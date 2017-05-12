@@ -133,8 +133,15 @@ if(WIN32)
   target_sources(b2 PRIVATE guids_win32.c)
   target_sources(b2 PRIVATE b2.natvis)
 
-  # http://stackoverflow.com/questions/21569478
-  set_target_properties(b2 PROPERTIES LINK_FLAGS_RELWITHDEBINFO "/INCREMENTAL:NO")
+  # /INCREMENTAL:NO - http://stackoverflow.com/questions/21569478
+  #
+  # /OPT:REF /OPT:ICF - no idea why these have gone missing. Aren't
+  # they supposed to be the defaults?? (This would happen in VC6
+  # sometimes too, but I can't remember why... anyway, specifying them
+  # explicitly was always the solution then too.)
+  set(EXTRA_LINKER_FLAGS "/INCREMENTAL:NO /OPT:REF /OPT:ICF")
+  set_target_properties(b2 PROPERTIES LINK_FLAGS_RELWITHDEBINFO ${EXTRA_LINKER_FLAGS})
+  set_target_properties(b2 PROPERTIES LINK_FLAGS_FINAL ${EXTRA_LINKER_FLAGS})
 endif()
 
 ##########################################################################
