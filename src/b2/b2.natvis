@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
+  <Type Name="BeebEvent">
+    <DisplayString Condition="type==BeebEventType_KeyState">{{KeyState: key={(BeebKey)data.key_state.key} state={(bool)data.key_state.state} time={time_2MHz_cycles}}}</DisplayString>
+    <DisplayString Condition="type==BeebEventType_SetReset">{{SetReset: reset={(bool)data.set_reset.level} time={time_2MHz_cycles}}}</DisplayString>
+    <DisplayString Condition="type==BeebEventType_LoadDiscImage">{{LoadDiscImage drive={(unsigned)data.load_disc_image->drive} image={data.load_disc_image->disc_image} time={time_2MHz_cycles}}}</DisplayString>
+    <DisplayString Condition="type==BeebEventType_ChangeConfig">{{ChangeConfig config={data.config->config.config.name} time={time_2MHz_cycles}}}</DisplayString>
+    <DisplayString Condition="type==BeebEventType_HardReset">{{HardReset flags={data.hard_reset.flags,x} time={time_2MHz_cycles}}}</DisplayString>
+    <DisplayString>{{type={(BeebEventType)type} time={time_2MHz_cycles}}}</DisplayString>
+  </Type>
+</AutoVisualizer>
+
+<!--BEEB_EVENT_TYPE(None)
+BEEB_EVENT_TYPE(SetTurboDisc)
+BEEB_EVENT_TYPE(SaveState)
+BEEB_EVENT_TYPE(LoadState)
+BEEB_EVENT_TYPE(WindowProxy)
+BEEB_EVENT_TYPE(Root)-->

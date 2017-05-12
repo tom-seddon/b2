@@ -1,0 +1,6 @@
+#..
+header-folder=h/6502
+src-folder=c
+c
+extern-c
+knr

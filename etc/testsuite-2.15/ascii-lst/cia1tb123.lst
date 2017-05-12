@@ -1,0 +1,692 @@
+
+; 64tass Turbo Assembler Macro V1.52.1237 listing file
+; 64tass.exe -L ascii-lst/cia1tb123.lst -o ascii-bin/cia1tb123 -T ascii-src/cia1tb123.asm
+; Mon Sep 26 23:32:16 2016
+
+;Offset	;Hex		;Monitor	;Source
+
+;******  Processing input file: ascii-src/cia1tb123.asm
+
+>0801	4c 14 08 00 97			           .byte $4c,$14,$08,$00,$97
+=780					turboass   = 780
+>0806	37 38 30			           .text "780"
+>0809	2c 30 3a 9e 32 30		           .byte $2c,$30,$3a,$9e,$32,$30
+>080f	37 33 00 00 00			           .byte $37,$33,$00,$00,$00
+.0814	a9 01		lda #$01	           lda #1
+.0816	8d 0c 03	sta $030c	           sta turboass
+.0819	4c bd 08	jmp $08bd	           jmp main
+.081c					print
+.081c	68		pla		           pla
+.081d	8d 27 08	sta $0827	           sta print0+1
+.0820	68		pla		           pla
+.0821	8d 28 08	sta $0828	           sta print0+2
+.0824	a2 01		ldx #$01	           ldx #1
+.0826					print0
+.0826	bd 11 11	lda $1111,x	           lda $1111,x
+.0829	f0 06		beq $0831	           beq print1
+.082b	20 d2 ff	jsr $ffd2	           jsr $ffd2
+.082e	e8		inx		           inx
+.082f	d0 f5		bne $0826	           bne print0
+.0831					print1
+.0831	38		sec		           sec
+.0832	8a		txa		           txa
+.0833	6d 27 08	adc $0827	           adc print0+1
+.0836	8d 42 08	sta $0842	           sta print2+1
+.0839	a9 00		lda #$00	           lda #0
+.083b	6d 28 08	adc $0828	           adc print0+2
+.083e	8d 43 08	sta $0843	           sta print2+2
+.0841					print2
+.0841	4c 11 11	jmp $1111	           jmp $1111
+.0844					printhb
+.0844	48		pha		           pha
+.0845	4a		lsr a		           lsr a
+.0846	4a		lsr a		           lsr a
+.0847	4a		lsr a		           lsr a
+.0848	4a		lsr a		           lsr a
+.0849	20 4f 08	jsr $084f	           jsr printhn
+.084c	68		pla		           pla
+.084d	29 0f		and #$0f	           and #$0f
+.084f					printhn
+.084f	09 30		ora #$30	           ora #$30
+.0851	c9 3a		cmp #$3a	           cmp #$3a
+.0853	90 02		bcc $0857	           bcc printhn0
+.0855	69 06		adc #$06	           adc #6
+.0857					printhn0
+.0857	20 d2 ff	jsr $ffd2	           jsr $ffd2
+.085a	60		rts		           rts
+.085b					waitborder
+.085b	ad 11 d0	lda $d011	           lda $d011
+.085e	30 07		bmi $0867	           bmi ok
+.0860					wait
+.0860	ad 12 d0	lda $d012	           lda $d012
+.0863	c9 1e		cmp #$1e	           cmp #30
+.0865	b0 f9		bcs $0860	           bcs wait
+.0867					ok
+.0867	60		rts		           rts
+.0868					waitkey
+.0868	20 a3 fd	jsr $fda3	           jsr $fda3
+.086b					wait
+.086b	20 e4 ff	jsr $ffe4	           jsr $ffe4
+.086e	f0 fb		beq $086b	           beq wait
+.0870	c9 03		cmp #$03	           cmp #3
+.0872	f0 01		beq $0875	           beq stop
+.0874	60		rts		           rts
+.0875					stop
+.0875	ad 0c 03	lda $030c	           lda turboass
+.0878	f0 00		beq $087a	           beq basic
+.087a					basic
+.087a	4c 74 a4	jmp $a474	           jmp $a474
+.087d					newbrk
+.087d	68		pla		           pla
+.087e	68		pla		           pla
+.087f	68		pla		           pla
+.0880	68		pla		           pla
+.0881	68		pla		           pla
+.0882	68		pla		           pla
+.0883	60		rts		           rts
+.0884					setbrk
+.0884	78		sei		           sei
+.0885	a9 00		lda #$00	           lda #$00
+.0887	8d 0e dc	sta $dc0e	           sta $dc0e
+.088a	2c 0b dc	bit $dc0b	           bit $dc0b
+.088d	8d 0b dc	sta $dc0b	           sta $dc0b
+.0890	8d 09 dc	sta $dc09	           sta $dc09
+.0893	8d 08 dc	sta $dc08	           sta $dc08
+.0896	2c 0b dc	bit $dc0b	           bit $dc0b
+.0899	a9 7f		lda #$7f	           lda #$7f
+.089b	8d 0d dc	sta $dc0d	           sta $dc0d
+.089e	2c 0d dc	bit $dc0d	           bit $dc0d
+.08a1	a9 7d		lda #$7d	           lda #<newbrk
+.08a3	8d 16 03	sta $0316	           sta $0316
+.08a6	a9 08		lda #$08	           lda #>newbrk
+.08a8	8d 17 03	sta $0317	           sta $0317
+.08ab	60		rts		           rts
+.08ac					restorebrk
+.08ac	48		pha		           pha
+.08ad	a9 66		lda #$66	           lda #$66
+.08af	8d 16 03	sta $0316	           sta $0316
+.08b2	a9 fe		lda #$fe	           lda #$fe
+.08b4	8d 17 03	sta $0317	           sta $0317
+.08b7	20 a3 fd	jsr $fda3	           jsr $fda3
+.08ba	68		pla		           pla
+.08bb	58		cli		           cli
+.08bc	60		rts		           rts
+.08bd					main
+.08bd	20 1c 08	jsr $081c	           jsr print
+>08c0	0d				           .byte 13
+>08c1	28 75 70 29 63 69 61 31		           .text "(up)cia1tb123"
+>08c9	74 62 31 32 33
+>08ce	00				           .byte 0
+.08cf	4c d8 08	jmp $08d8	           jmp start
+.08d2					code
+.08d2	ea		nop		           nop
+.08d3	8d 0f dc	sta $dc0f	           sta $dc0f
+.08d6	0a		asl a		           asl a
+.08d7	60		rts		           rts
+.08d8					start
+.08d8	20 84 08	jsr $0884	           jsr setbrk
+.08db	a2 00		ldx #$00	           ldx #0
+.08dd	8e 0f dc	stx $dc0f	           stx $dc0f
+.08e0					copy
+.08e0	bd d2 08	lda $08d2,x	           lda code,x
+.08e3	9d 02 dc	sta $dc02,x	           sta $dc02,x
+.08e6	e8		inx		           inx
+.08e7	e0 06		cpx #$06	           cpx #6
+.08e9	90 f5		bcc $08e0	           bcc copy
+.08eb	20 5b 08	jsr $085b	           jsr waitborder
+.08ee	a9 01		lda #$01	           lda #$01
+.08f0	20 02 dc	jsr $dc02	           jsr $dc02
+.08f3	20 ac 08	jsr $08ac	           jsr restorebrk
+.08f6	c9 02		cmp #$02	           cmp #2
+.08f8	f0 1c		beq $0916	           beq ok
+.08fa	20 1c 08	jsr $081c	           jsr print
+>08fd	0d 0d				           .byte 13,13
+>08ff	65 72 72 6f 72 20 30 30		           .text "error 00 01 cycle 1"
+>0907	20 30 31 20 63 79 63 6c 65 20 31
+>0912	00				           .byte 0
+.0913	20 68 08	jsr $0868	           jsr waitkey
+.0916					ok
+.0916	4c 1f 09	jmp $091f	           jmp start
+.0919					code
+.0919	8d 0f dc	sta $dc0f	           sta $dc0f
+.091c	a9 0a		lda #$0a	           lda #$0a
+.091e	60		rts		           rts
+.091f					start
+.091f	20 84 08	jsr $0884	           jsr setbrk
+.0922	a2 00		ldx #$00	           ldx #0
+.0924	8e 0f dc	stx $dc0f	           stx $dc0f
+.0927					copy
+.0927	bd 19 09	lda $0919,x	           lda code,x
+.092a	9d 02 dc	sta $dc02,x	           sta $dc02,x
+.092d	e8		inx		           inx
+.092e	e0 06		cpx #$06	           cpx #6
+.0930	90 f5		bcc $0927	           bcc copy
+.0932	20 5b 08	jsr $085b	           jsr waitborder
+.0935	a9 01		lda #$01	           lda #$01
+.0937	20 02 dc	jsr $dc02	           jsr $dc02
+.093a	20 ac 08	jsr $08ac	           jsr restorebrk
+.093d	c9 0a		cmp #$0a	           cmp #$0a
+.093f	f0 1c		beq $095d	           beq ok
+.0941	20 1c 08	jsr $081c	           jsr print
+>0944	0d 0d				           .byte 13,13
+>0946	65 72 72 6f 72 20 30 30		           .text "error 00 01 cycle 2"
+>094e	20 30 31 20 63 79 63 6c 65 20 32
+>0959	00				           .byte 0
+.095a	20 68 08	jsr $0868	           jsr waitkey
+.095d					ok
+.095d	4c 66 09	jmp $0966	           jmp start
+.0960					code
+.0960	8d 0f dc	sta $dc0f	           sta $dc0f
+.0963	ea		nop		           nop
+>0964	0b				           .byte $0b
+.0965	60		rts		           rts
+.0966					start
+.0966	20 84 08	jsr $0884	           jsr setbrk
+.0969	a2 00		ldx #$00	           ldx #0
+.096b	8e 0f dc	stx $dc0f	           stx $dc0f
+.096e					copy
+.096e	bd 60 09	lda $0960,x	           lda code,x
+.0971	9d 02 dc	sta $dc02,x	           sta $dc02,x
+.0974	e8		inx		           inx
+.0975	e0 06		cpx #$06	           cpx #6
+.0977	90 f5		bcc $096e	           bcc copy
+.0979	20 5b 08	jsr $085b	           jsr waitborder
+.097c	a9 01		lda #$01	           lda #$01
+.097e	20 02 dc	jsr $dc02	           jsr $dc02
+.0981	20 ac 08	jsr $08ac	           jsr restorebrk
+.0984	c9 02		cmp #$02	           cmp #2
+.0986	f0 1c		beq $09a4	           beq ok
+.0988	20 1c 08	jsr $081c	           jsr print
+>098b	0d 0d				           .byte 13,13
+>098d	65 72 72 6f 72 20 30 30		           .text "error 00 01 cycle 3"
+>0995	20 30 31 20 63 79 63 6c 65 20 33
+>09a0	00				           .byte 0
+.09a1	20 68 08	jsr $0868	           jsr waitkey
+.09a4					ok
+.09a4	4c ad 09	jmp $09ad	           jmp start
+.09a7					code
+.09a7	ea		nop		           nop
+.09a8	8d 0f dc	sta $dc0f	           sta $dc0f
+.09ab	ea		nop		           nop
+.09ac	60		rts		           rts
+.09ad					start
+.09ad	20 84 08	jsr $0884	           jsr setbrk
+.09b0	a2 00		ldx #$00	           ldx #0
+.09b2	8e 0f dc	stx $dc0f	           stx $dc0f
+.09b5					copy
+.09b5	bd a7 09	lda $09a7,x	           lda code,x
+.09b8	9d 02 dc	sta $dc02,x	           sta $dc02,x
+.09bb	e8		inx		           inx
+.09bc	e0 06		cpx #$06	           cpx #6
+.09be	90 f5		bcc $09b5	           bcc copy
+.09c0	a9 0a		lda #$0a	           lda #$0a
+.09c2	8d 06 dc	sta $dc06	           sta $dc06
+.09c5	20 5b 08	jsr $085b	           jsr waitborder
+.09c8	a9 10		lda #$10	           lda #$10
+.09ca	20 02 dc	jsr $dc02	           jsr $dc02
+.09cd	20 ac 08	jsr $08ac	           jsr restorebrk
+.09d0	c9 10		cmp #$10	           cmp #$10
+.09d2	f0 1c		beq $09f0	           beq ok
+.09d4	20 1c 08	jsr $081c	           jsr print
+>09d7	0d 0d				           .byte 13,13
+>09d9	65 72 72 6f 72 20 30 30		           .text "error 00 10 cycle 1"
+>09e1	20 31 30 20 63 79 63 6c 65 20 31
+>09ec	00				           .byte 0
+.09ed	20 68 08	jsr $0868	           jsr waitkey
+.09f0					ok
+.09f0	4c f9 09	jmp $09f9	           jmp start
+.09f3					code
+.09f3	8d 0f dc	sta $dc0f	           sta $dc0f
+.09f6	a9 ea		lda #$ea	           lda #$ea
+.09f8	60		rts		           rts
+.09f9					start
+.09f9	20 84 08	jsr $0884	           jsr setbrk
+.09fc	a2 00		ldx #$00	           ldx #0
+.09fe	8e 0f dc	stx $dc0f	           stx $dc0f
+.0a01					copy
+.0a01	bd f3 09	lda $09f3,x	           lda code,x
+.0a04	9d 02 dc	sta $dc02,x	           sta $dc02,x
+.0a07	e8		inx		           inx
+.0a08	e0 06		cpx #$06	           cpx #6
+.0a0a	90 f5		bcc $0a01	           bcc copy
+.0a0c	a9 0a		lda #$0a	           lda #$0a
+.0a0e	8d 06 dc	sta $dc06	           sta $dc06
+.0a11	20 5b 08	jsr $085b	           jsr waitborder
+.0a14	a9 10		lda #$10	           lda #$10
+.0a16	20 02 dc	jsr $dc02	           jsr $dc02
+.0a19	20 ac 08	jsr $08ac	           jsr restorebrk
+.0a1c	c9 0a		cmp #$0a	           cmp #$0a
+.0a1e	f0 1c		beq $0a3c	           beq ok
+.0a20	20 1c 08	jsr $081c	           jsr print
+>0a23	0d 0d				           .byte 13,13
+>0a25	65 72 72 6f 72 20 30 30		           .text "error 00 10 cycle 2"
+>0a2d	20 31 30 20 63 79 63 6c 65 20 32
+>0a38	00				           .byte 0
+.0a39	20 68 08	jsr $0868	           jsr waitkey
+.0a3c					ok
+.0a3c	4c 45 0a	jmp $0a45	           jmp start
+.0a3f					code
+.0a3f	8d 0f dc	sta $dc0f	           sta $dc0f
+.0a42	ea		nop		           nop
+.0a43	ea		nop		           nop
+.0a44	60		rts		           rts
+.0a45					start
+.0a45	20 84 08	jsr $0884	           jsr setbrk
+.0a48	a2 00		ldx #$00	           ldx #0
+.0a4a	8e 0f dc	stx $dc0f	           stx $dc0f
+.0a4d					copy
+.0a4d	bd 3f 0a	lda $0a3f,x	           lda code,x
+.0a50	9d 02 dc	sta $dc02,x	           sta $dc02,x
+.0a53	e8		inx		           inx
+.0a54	e0 06		cpx #$06	           cpx #6
+.0a56	90 f5		bcc $0a4d	           bcc copy
+.0a58	a9 0a		lda #$0a	           lda #$0a
+.0a5a	8d 06 dc	sta $dc06	           sta $dc06
+.0a5d	20 5b 08	jsr $085b	           jsr waitborder
+.0a60	a9 10		lda #$10	           lda #$10
+.0a62	20 02 dc	jsr $dc02	           jsr $dc02
+.0a65	20 ac 08	jsr $08ac	           jsr restorebrk
+.0a68	c9 20		cmp #$20	           cmp #$20
+.0a6a	f0 1c		beq $0a88	           beq ok
+.0a6c	20 1c 08	jsr $081c	           jsr print
+>0a6f	0d 0d				           .byte 13,13
+>0a71	65 72 72 6f 72 20 30 30		           .text "error 00 10 cycle 3"
+>0a79	20 31 30 20 63 79 63 6c 65 20 33
+>0a84	00				           .byte 0
+.0a85	20 68 08	jsr $0868	           jsr waitkey
+.0a88					ok
+.0a88	4c 91 0a	jmp $0a91	           jmp start
+.0a8b					code
+.0a8b	ea		nop		           nop
+.0a8c	8d 0f dc	sta $dc0f	           sta $dc0f
+.0a8f	ea		nop		           nop
+.0a90	60		rts		           rts
+.0a91					start
+.0a91	20 84 08	jsr $0884	           jsr setbrk
+.0a94	a2 00		ldx #$00	           ldx #0
+.0a96	8e 0f dc	stx $dc0f	           stx $dc0f
+.0a99					copy
+.0a99	bd 8b 0a	lda $0a8b,x	           lda code,x
+.0a9c	9d 02 dc	sta $dc02,x	           sta $dc02,x
+.0a9f	e8		inx		           inx
+.0aa0	e0 06		cpx #$06	           cpx #6
+.0aa2	90 f5		bcc $0a99	           bcc copy
+.0aa4	a9 0a		lda #$0a	           lda #$0a
+.0aa6	8d 06 dc	sta $dc06	           sta $dc06
+.0aa9	20 5b 08	jsr $085b	           jsr waitborder
+.0aac	a9 11		lda #$11	           lda #$11
+.0aae	20 02 dc	jsr $dc02	           jsr $dc02
+.0ab1	20 ac 08	jsr $08ac	           jsr restorebrk
+.0ab4	c9 11		cmp #$11	           cmp #$11
+.0ab6	f0 1c		beq $0ad4	           beq ok
+.0ab8	20 1c 08	jsr $081c	           jsr print
+>0abb	0d 0d				           .byte 13,13
+>0abd	65 72 72 6f 72 20 30 30		           .text "error 00 11 cycle 1"
+>0ac5	20 31 31 20 63 79 63 6c 65 20 31
+>0ad0	00				           .byte 0
+.0ad1	20 68 08	jsr $0868	           jsr waitkey
+.0ad4					ok
+.0ad4	4c dd 0a	jmp $0add	           jmp start
+.0ad7					code
+.0ad7	8d 0f dc	sta $dc0f	           sta $dc0f
+.0ada	a9 ea		lda #$ea	           lda #$ea
+.0adc	60		rts		           rts
+.0add					start
+.0add	20 84 08	jsr $0884	           jsr setbrk
+.0ae0	a2 00		ldx #$00	           ldx #0
+.0ae2	8e 0f dc	stx $dc0f	           stx $dc0f
+.0ae5					copy
+.0ae5	bd d7 0a	lda $0ad7,x	           lda code,x
+.0ae8	9d 02 dc	sta $dc02,x	           sta $dc02,x
+.0aeb	e8		inx		           inx
+.0aec	e0 06		cpx #$06	           cpx #6
+.0aee	90 f5		bcc $0ae5	           bcc copy
+.0af0	a9 0a		lda #$0a	           lda #$0a
+.0af2	8d 06 dc	sta $dc06	           sta $dc06
+.0af5	20 5b 08	jsr $085b	           jsr waitborder
+.0af8	a9 11		lda #$11	           lda #$11
+.0afa	20 02 dc	jsr $dc02	           jsr $dc02
+.0afd	20 ac 08	jsr $08ac	           jsr restorebrk
+.0b00	c9 0a		cmp #$0a	           cmp #$0a
+.0b02	f0 1c		beq $0b20	           beq ok
+.0b04	20 1c 08	jsr $081c	           jsr print
+>0b07	0d 0d				           .byte 13,13
+>0b09	65 72 72 6f 72 20 30 30		           .text "error 00 11 cycle 2"
+>0b11	20 31 31 20 63 79 63 6c 65 20 32
+>0b1c	00				           .byte 0
+.0b1d	20 68 08	jsr $0868	           jsr waitkey
+.0b20					ok
+.0b20	4c 29 0b	jmp $0b29	           jmp start
+.0b23					code
+.0b23	8d 0f dc	sta $dc0f	           sta $dc0f
+.0b26	ea		nop		           nop
+.0b27	ea		nop		           nop
+.0b28	60		rts		           rts
+.0b29					start
+.0b29	20 84 08	jsr $0884	           jsr setbrk
+.0b2c	a2 00		ldx #$00	           ldx #0
+.0b2e	8e 0f dc	stx $dc0f	           stx $dc0f
+.0b31					copy
+.0b31	bd 23 0b	lda $0b23,x	           lda code,x
+.0b34	9d 02 dc	sta $dc02,x	           sta $dc02,x
+.0b37	e8		inx		           inx
+.0b38	e0 06		cpx #$06	           cpx #6
+.0b3a	90 f5		bcc $0b31	           bcc copy
+.0b3c	a9 0a		lda #$0a	           lda #$0a
+.0b3e	8d 06 dc	sta $dc06	           sta $dc06
+.0b41	20 5b 08	jsr $085b	           jsr waitborder
+.0b44	a9 11		lda #$11	           lda #$11
+.0b46	20 02 dc	jsr $dc02	           jsr $dc02
+.0b49	20 ac 08	jsr $08ac	           jsr restorebrk
+.0b4c	c9 22		cmp #$22	           cmp #$22
+.0b4e	f0 1c		beq $0b6c	           beq ok
+.0b50	20 1c 08	jsr $081c	           jsr print
+>0b53	0d 0d				           .byte 13,13
+>0b55	65 72 72 6f 72 20 30 30		           .text "error 00 11 cycle 3"
+>0b5d	20 31 31 20 63 79 63 6c 65 20 33
+>0b68	00				           .byte 0
+.0b69	20 68 08	jsr $0868	           jsr waitkey
+.0b6c					ok
+.0b6c	4c 75 0b	jmp $0b75	           jmp start
+.0b6f					code
+.0b6f	ea		nop		           nop
+.0b70	8e 0f dc	stx $dc0f	           stx $dc0f
+>0b73	15				           .byte $15
+.0b74	60		rts		           rts
+.0b75					start
+.0b75	20 84 08	jsr $0884	           jsr setbrk
+.0b78	a2 00		ldx #$00	           ldx #0
+.0b7a	8e 0f dc	stx $dc0f	           stx $dc0f
+.0b7d					copy
+.0b7d	bd 6f 0b	lda $0b6f,x	           lda code,x
+.0b80	9d 02 dc	sta $dc02,x	           sta $dc02,x
+.0b83	e8		inx		           inx
+.0b84	e0 06		cpx #$06	           cpx #6
+.0b86	90 f5		bcc $0b7d	           bcc copy
+.0b88	20 5b 08	jsr $085b	           jsr waitborder
+.0b8b	a9 01		lda #$01	           lda #$01
+.0b8d	a2 11		ldx #$11	           ldx #$11
+.0b8f	8d 0f dc	sta $dc0f	           sta $dc0f
+.0b92	20 02 dc	jsr $dc02	           jsr $dc02
+.0b95	20 ac 08	jsr $08ac	           jsr restorebrk
+.0b98	c9 02		cmp #$02	           cmp #$02
+.0b9a	f0 1c		beq $0bb8	           beq ok
+.0b9c	20 1c 08	jsr $081c	           jsr print
+>0b9f	0d 0d				           .byte 13,13
+>0ba1	65 72 72 6f 72 20 30 31		           .text "error 01 11 cycle 1"
+>0ba9	20 31 31 20 63 79 63 6c 65 20 31
+>0bb4	00				           .byte 0
+.0bb5	20 68 08	jsr $0868	           jsr waitkey
+.0bb8					ok
+.0bb8	4c c1 0b	jmp $0bc1	           jmp start
+.0bbb					code
+.0bbb	8e 0f dc	stx $dc0f	           stx $dc0f
+.0bbe	a9 0a		lda #$0a	           lda #$0a
+.0bc0	60		rts		           rts
+.0bc1					start
+.0bc1	20 84 08	jsr $0884	           jsr setbrk
+.0bc4	a2 00		ldx #$00	           ldx #0
+.0bc6	8e 0f dc	stx $dc0f	           stx $dc0f
+.0bc9					copy
+.0bc9	bd bb 0b	lda $0bbb,x	           lda code,x
+.0bcc	9d 02 dc	sta $dc02,x	           sta $dc02,x
+.0bcf	e8		inx		           inx
+.0bd0	e0 06		cpx #$06	           cpx #6
+.0bd2	90 f5		bcc $0bc9	           bcc copy
+.0bd4	20 5b 08	jsr $085b	           jsr waitborder
+.0bd7	a9 01		lda #$01	           lda #$01
+.0bd9	a2 11		ldx #$11	           ldx #$11
+.0bdb	8d 0f dc	sta $dc0f	           sta $dc0f
+.0bde	20 02 dc	jsr $dc02	           jsr $dc02
+.0be1	20 ac 08	jsr $08ac	           jsr restorebrk
+.0be4	c9 0a		cmp #$0a	           cmp #$0a
+.0be6	f0 1c		beq $0c04	           beq ok
+.0be8	20 1c 08	jsr $081c	           jsr print
+>0beb	0d 0d				           .byte 13,13
+>0bed	65 72 72 6f 72 20 30 31		           .text "error 01 11 cycle 2"
+>0bf5	20 31 31 20 63 79 63 6c 65 20 32
+>0c00	00				           .byte 0
+.0c01	20 68 08	jsr $0868	           jsr waitkey
+.0c04					ok
+.0c04	4c 0d 0c	jmp $0c0d	           jmp start
+.0c07					code
+.0c07	8e 0f dc	stx $dc0f	           stx $dc0f
+.0c0a	ea		nop		           nop
+>0c0b	0a				           .byte $0a
+.0c0c	60		rts		           rts
+.0c0d					start
+.0c0d	20 84 08	jsr $0884	           jsr setbrk
+.0c10	a2 00		ldx #$00	           ldx #0
+.0c12	8e 0f dc	stx $dc0f	           stx $dc0f
+.0c15					copy
+.0c15	bd 07 0c	lda $0c07,x	           lda code,x
+.0c18	9d 02 dc	sta $dc02,x	           sta $dc02,x
+.0c1b	e8		inx		           inx
+.0c1c	e0 06		cpx #$06	           cpx #6
+.0c1e	90 f5		bcc $0c15	           bcc copy
+.0c20	20 5b 08	jsr $085b	           jsr waitborder
+.0c23	a9 01		lda #$01	           lda #$01
+.0c25	a2 11		ldx #$11	           ldx #$11
+.0c27	8d 0f dc	sta $dc0f	           sta $dc0f
+.0c2a	20 02 dc	jsr $dc02	           jsr $dc02
+.0c2d	20 ac 08	jsr $08ac	           jsr restorebrk
+.0c30	c9 02		cmp #$02	           cmp #$02
+.0c32	f0 1c		beq $0c50	           beq ok
+.0c34	20 1c 08	jsr $081c	           jsr print
+>0c37	0d 0d				           .byte 13,13
+>0c39	65 72 72 6f 72 20 30 31		           .text "error 01 11 cycle 3"
+>0c41	20 31 31 20 63 79 63 6c 65 20 33
+>0c4c	00				           .byte 0
+.0c4d	20 68 08	jsr $0868	           jsr waitkey
+.0c50					ok
+.0c50	4c 59 0c	jmp $0c59	           jmp start
+.0c53					code
+.0c53	ea		nop		           nop
+.0c54	8e 0f dc	stx $dc0f	           stx $dc0f
+>0c57	15				           .byte $15
+.0c58	60		rts		           rts
+.0c59					start
+.0c59	20 84 08	jsr $0884	           jsr setbrk
+.0c5c	a2 00		ldx #$00	           ldx #0
+.0c5e	8e 0f dc	stx $dc0f	           stx $dc0f
+.0c61					copy
+.0c61	bd 53 0c	lda $0c53,x	           lda code,x
+.0c64	9d 02 dc	sta $dc02,x	           sta $dc02,x
+.0c67	e8		inx		           inx
+.0c68	e0 06		cpx #$06	           cpx #6
+.0c6a	90 f5		bcc $0c61	           bcc copy
+.0c6c	20 5b 08	jsr $085b	           jsr waitborder
+.0c6f	a9 01		lda #$01	           lda #$01
+.0c71	a2 10		ldx #$10	           ldx #$10
+.0c73	8d 0f dc	sta $dc0f	           sta $dc0f
+.0c76	20 02 dc	jsr $dc02	           jsr $dc02
+.0c79	20 ac 08	jsr $08ac	           jsr restorebrk
+.0c7c	c9 02		cmp #$02	           cmp #$02
+.0c7e	f0 1c		beq $0c9c	           beq ok
+.0c80	20 1c 08	jsr $081c	           jsr print
+>0c83	0d 0d				           .byte 13,13
+>0c85	65 72 72 6f 72 20 30 31		           .text "error 01 10 cycle 1"
+>0c8d	20 31 30 20 63 79 63 6c 65 20 31
+>0c98	00				           .byte 0
+.0c99	20 68 08	jsr $0868	           jsr waitkey
+.0c9c					ok
+.0c9c	4c a5 0c	jmp $0ca5	           jmp start
+.0c9f					code
+.0c9f	8e 0f dc	stx $dc0f	           stx $dc0f
+.0ca2	a9 0a		lda #$0a	           lda #$0a
+.0ca4	60		rts		           rts
+.0ca5					start
+.0ca5	20 84 08	jsr $0884	           jsr setbrk
+.0ca8	a2 00		ldx #$00	           ldx #0
+.0caa	8e 0f dc	stx $dc0f	           stx $dc0f
+.0cad					copy
+.0cad	bd 9f 0c	lda $0c9f,x	           lda code,x
+.0cb0	9d 02 dc	sta $dc02,x	           sta $dc02,x
+.0cb3	e8		inx		           inx
+.0cb4	e0 06		cpx #$06	           cpx #6
+.0cb6	90 f5		bcc $0cad	           bcc copy
+.0cb8	20 5b 08	jsr $085b	           jsr waitborder
+.0cbb	a9 01		lda #$01	           lda #$01
+.0cbd	a2 10		ldx #$10	           ldx #$10
+.0cbf	8d 0f dc	sta $dc0f	           sta $dc0f
+.0cc2	20 02 dc	jsr $dc02	           jsr $dc02
+.0cc5	20 ac 08	jsr $08ac	           jsr restorebrk
+.0cc8	c9 0a		cmp #$0a	           cmp #$0a
+.0cca	f0 1c		beq $0ce8	           beq ok
+.0ccc	20 1c 08	jsr $081c	           jsr print
+>0ccf	0d 0d				           .byte 13,13
+>0cd1	65 72 72 6f 72 20 30 31		           .text "error 01 10 cycle 2"
+>0cd9	20 31 30 20 63 79 63 6c 65 20 32
+>0ce4	00				           .byte 0
+.0ce5	20 68 08	jsr $0868	           jsr waitkey
+.0ce8					ok
+.0ce8	4c f1 0c	jmp $0cf1	           jmp start
+.0ceb					code
+.0ceb	8e 0f dc	stx $dc0f	           stx $dc0f
+.0cee	ea		nop		           nop
+.0cef	0a		asl a		           asl a
+.0cf0	60		rts		           rts
+.0cf1					start
+.0cf1	20 84 08	jsr $0884	           jsr setbrk
+.0cf4	a2 00		ldx #$00	           ldx #0
+.0cf6	8e 0f dc	stx $dc0f	           stx $dc0f
+.0cf9					copy
+.0cf9	bd eb 0c	lda $0ceb,x	           lda code,x
+.0cfc	9d 02 dc	sta $dc02,x	           sta $dc02,x
+.0cff	e8		inx		           inx
+.0d00	e0 06		cpx #$06	           cpx #6
+.0d02	90 f5		bcc $0cf9	           bcc copy
+.0d04	20 5b 08	jsr $085b	           jsr waitborder
+.0d07	a9 01		lda #$01	           lda #$01
+.0d09	a2 10		ldx #$10	           ldx #$10
+.0d0b	8d 0f dc	sta $dc0f	           sta $dc0f
+.0d0e	20 02 dc	jsr $dc02	           jsr $dc02
+.0d11	20 ac 08	jsr $08ac	           jsr restorebrk
+.0d14	c9 02		cmp #$02	           cmp #$02
+.0d16	f0 1c		beq $0d34	           beq ok
+.0d18	20 1c 08	jsr $081c	           jsr print
+>0d1b	0d 0d				           .byte 13,13
+>0d1d	65 72 72 6f 72 20 30 31		           .text "error 01 10 cycle 3"
+>0d25	20 31 30 20 63 79 63 6c 65 20 33
+>0d30	00				           .byte 0
+.0d31	20 68 08	jsr $0868	           jsr waitkey
+.0d34					ok
+.0d34	4c 3d 0d	jmp $0d3d	           jmp start
+.0d37					code
+.0d37	ea		nop		           nop
+.0d38	8e 0f dc	stx $dc0f	           stx $dc0f
+>0d3b	15				           .byte $15
+.0d3c	60		rts		           rts
+.0d3d					start
+.0d3d	20 84 08	jsr $0884	           jsr setbrk
+.0d40	a2 00		ldx #$00	           ldx #0
+.0d42	8e 0f dc	stx $dc0f	           stx $dc0f
+.0d45					copy
+.0d45	bd 37 0d	lda $0d37,x	           lda code,x
+.0d48	9d 02 dc	sta $dc02,x	           sta $dc02,x
+.0d4b	e8		inx		           inx
+.0d4c	e0 06		cpx #$06	           cpx #6
+.0d4e	90 f5		bcc $0d45	           bcc copy
+.0d50	20 5b 08	jsr $085b	           jsr waitborder
+.0d53	a9 01		lda #$01	           lda #$01
+.0d55	a2 00		ldx #$00	           ldx #$00
+.0d57	8d 0f dc	sta $dc0f	           sta $dc0f
+.0d5a	20 02 dc	jsr $dc02	           jsr $dc02
+.0d5d	20 ac 08	jsr $08ac	           jsr restorebrk
+.0d60	c9 02		cmp #$02	           cmp #$02
+.0d62	f0 1c		beq $0d80	           beq ok
+.0d64	20 1c 08	jsr $081c	           jsr print
+>0d67	0d 0d				           .byte 13,13
+>0d69	65 72 72 6f 72 20 30 31		           .text "error 01 00 cycle 1"
+>0d71	20 30 30 20 63 79 63 6c 65 20 31
+>0d7c	00				           .byte 0
+.0d7d	20 68 08	jsr $0868	           jsr waitkey
+.0d80					ok
+.0d80	4c 89 0d	jmp $0d89	           jmp start
+.0d83					code
+.0d83	8e 0f dc	stx $dc0f	           stx $dc0f
+.0d86	a9 0a		lda #$0a	           lda #$0a
+.0d88	60		rts		           rts
+.0d89					start
+.0d89	20 84 08	jsr $0884	           jsr setbrk
+.0d8c	a2 00		ldx #$00	           ldx #0
+.0d8e	8e 0f dc	stx $dc0f	           stx $dc0f
+.0d91					copy
+.0d91	bd 83 0d	lda $0d83,x	           lda code,x
+.0d94	9d 02 dc	sta $dc02,x	           sta $dc02,x
+.0d97	e8		inx		           inx
+.0d98	e0 06		cpx #$06	           cpx #6
+.0d9a	90 f5		bcc $0d91	           bcc copy
+.0d9c	20 5b 08	jsr $085b	           jsr waitborder
+.0d9f	a9 01		lda #$01	           lda #$01
+.0da1	a2 00		ldx #$00	           ldx #$00
+.0da3	8d 0f dc	sta $dc0f	           sta $dc0f
+.0da6	20 02 dc	jsr $dc02	           jsr $dc02
+.0da9	20 ac 08	jsr $08ac	           jsr restorebrk
+.0dac	c9 00		cmp #$00	           cmp #$00
+.0dae	f0 1c		beq $0dcc	           beq ok
+.0db0	20 1c 08	jsr $081c	           jsr print
+>0db3	0d 0d				           .byte 13,13
+>0db5	65 72 72 6f 72 20 30 31		           .text "error 01 00 cycle 2"
+>0dbd	20 30 30 20 63 79 63 6c 65 20 32
+>0dc8	00				           .byte 0
+.0dc9	20 68 08	jsr $0868	           jsr waitkey
+.0dcc					ok
+.0dcc	4c d5 0d	jmp $0dd5	           jmp start
+.0dcf					code
+.0dcf	8e 0f dc	stx $dc0f	           stx $dc0f
+.0dd2	ea		nop		           nop
+>0dd3	14				           .byte $14
+.0dd4	60		rts		           rts
+.0dd5					start
+.0dd5	20 84 08	jsr $0884	           jsr setbrk
+.0dd8	a2 00		ldx #$00	           ldx #0
+.0dda	8e 0f dc	stx $dc0f	           stx $dc0f
+.0ddd					copy
+.0ddd	bd cf 0d	lda $0dcf,x	           lda code,x
+.0de0	9d 02 dc	sta $dc02,x	           sta $dc02,x
+.0de3	e8		inx		           inx
+.0de4	e0 06		cpx #$06	           cpx #6
+.0de6	90 f5		bcc $0ddd	           bcc copy
+.0de8	20 5b 08	jsr $085b	           jsr waitborder
+.0deb	a9 01		lda #$01	           lda #$01
+.0ded	a2 00		ldx #$00	           ldx #$00
+.0def	8d 0f dc	sta $dc0f	           sta $dc0f
+.0df2	20 02 dc	jsr $dc02	           jsr $dc02
+.0df5	20 ac 08	jsr $08ac	           jsr restorebrk
+.0df8	c9 02		cmp #$02	           cmp #$02
+.0dfa	f0 1c		beq $0e18	           beq ok
+.0dfc	20 1c 08	jsr $081c	           jsr print
+>0dff	0d 0d				           .byte 13,13
+>0e01	65 72 72 6f 72 20 30 31		           .text "error 01 00 cycle 3"
+>0e09	20 30 30 20 63 79 63 6c 65 20 33
+>0e14	00				           .byte 0
+.0e15	20 68 08	jsr $0868	           jsr waitkey
+.0e18					ok
+.0e18	20 1c 08	jsr $081c	           jsr print
+>0e1b	20 2d 20 6f 6b			           .text " - ok"
+>0e20	0d 00				           .byte 13,0
+.0e22	ad 0c 03	lda $030c	           lda turboass
+.0e25	f0 06		beq $0e2d	           beq load
+.0e27	20 68 08	jsr $0868	           jsr waitkey
+.0e2a	4c 00 80	jmp $8000	           jmp $8000
+.0e2d					load
+.0e2d	20 1c 08	jsr $081c	           jsr print
+>0e30	63 69 61 32 74 62 31 32		name       .text "cia2tb123"
+>0e38	33
+=9					namelen    = *-name
+>0e39	00				           .byte 0
+.0e3a	a9 00		lda #$00	           lda #0
+.0e3c	85 0a		sta $0a		           sta $0a
+.0e3e	85 b9		sta $b9		           sta $b9
+.0e40	a9 09		lda #$09	           lda #namelen
+.0e42	85 b7		sta $b7		           sta $b7
+.0e44	a9 30		lda #$30	           lda #<name
+.0e46	85 bb		sta $bb		           sta $bb
+.0e48	a9 0e		lda #$0e	           lda #>name
+.0e4a	85 bc		sta $bc		           sta $bc
+.0e4c	68		pla		           pla
+.0e4d	68		pla		           pla
+.0e4e	4c 6f e1	jmp $e16f	           jmp $e16f
+
+;******  End of listing

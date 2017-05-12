@@ -1,0 +1,1488 @@
+
+; 64tass Turbo Assembler Macro V1.52.1237 listing file
+; 64tass.exe -L ascii-lst/nmi.lst -o ascii-bin/nmi -T ascii-src/nmi.asm
+; Mon Sep 26 23:32:24 2016
+
+;Offset	;Hex		;Monitor	;Source
+
+;******  Processing input file: ascii-src/nmi.asm
+
+>0801	4c 14 08 00 97			           .byte $4c,$14,$08,$00,$97
+=780					turboass   = 780
+>0806	37 38 30			           .text "780"
+>0809	2c 30 3a 9e 32 30		           .byte $2c,$30,$3a,$9e,$32,$30
+>080f	37 33 00 00 00			           .byte $37,$33,$00,$00,$00
+.0814	a9 01		lda #$01	           lda #1
+.0816	8d 0c 03	sta $030c	           sta turboass
+.0819	4c 1b 0c	jmp $0c1b	           jmp main
+.081c					print
+.081c	68		pla		           pla
+.081d	8d 27 08	sta $0827	           sta print0+1
+.0820	68		pla		           pla
+.0821	8d 28 08	sta $0828	           sta print0+2
+.0824	a2 01		ldx #$01	           ldx #1
+.0826					print0
+.0826	bd 26 08	lda $0826,x	           lda !*,x
+.0829	f0 06		beq $0831	           beq print1
+.082b	20 d2 ff	jsr $ffd2	           jsr $ffd2
+.082e	e8		inx		           inx
+.082f	d0 f5		bne $0826	           bne print0
+.0831					print1
+.0831	38		sec		           sec
+.0832	8a		txa		           txa
+.0833	6d 27 08	adc $0827	           adc print0+1
+.0836	8d 42 08	sta $0842	           sta print2+1
+.0839	a9 00		lda #$00	           lda #0
+.083b	6d 28 08	adc $0828	           adc print0+2
+.083e	8d 43 08	sta $0843	           sta print2+2
+.0841					print2
+.0841	4c 41 08	jmp $0841	           jmp !*
+.0844					printhb
+.0844	48		pha		           pha
+.0845	4a		lsr a		           lsr a
+.0846	4a		lsr a		           lsr a
+.0847	4a		lsr a		           lsr a
+.0848	4a		lsr a		           lsr a
+.0849	20 4f 08	jsr $084f	           jsr printhn
+.084c	68		pla		           pla
+.084d	29 0f		and #$0f	           and #$0f
+.084f					printhn
+.084f	09 30		ora #$30	           ora #$30
+.0851	c9 3a		cmp #$3a	           cmp #$3a
+.0853	90 02		bcc $0857	           bcc printhn0
+.0855	69 06		adc #$06	           adc #6
+.0857					printhn0
+.0857	20 d2 ff	jsr $ffd2	           jsr $ffd2
+.085a	60		rts		           rts
+.085b	00		brk #		starttimer brk
+.085c	00		brk #		stoptimer  brk
+>085d	00				intlow     .byte 0
+>085e	00				inthigh    .byte 0
+>085f	00				flagsbefore .byte 0
+>0860	00				flagsafter .byte 0
+.0861					setint
+.0861	48		pha		           pha
+.0862	a9 00		lda #$00	           lda #0
+.0864	8d 0e dd	sta $dd0e	           sta $dd0e
+.0867	ad 0d dd	lda $dd0d	           lda $dd0d
+.086a	a9 7f		lda #$7f	           lda #127
+.086c	8d 0d dc	sta $dc0d	           sta $dc0d
+.086f	a9 81		lda #$81	           lda #129
+.0871	8d 0d dd	sta $dd0d	           sta $dd0d
+.0874	18		clc		           clc
+.0875	68		pla		           pla
+.0876	69 03		adc #$03	           adc #3
+.0878	8d 04 dd	sta $dd04	           sta $dd04
+.087b	a9 00		lda #$00	           lda #0
+.087d	8d 05 dd	sta $dd05	           sta $dd05
+.0880	a9 a0		lda #$a0	           lda #<nmi
+.0882	8d fa ff	sta $fffa	           sta $fffa
+.0885	a9 08		lda #$08	           lda #>nmi
+.0887	8d fb ff	sta $fffb	           sta $fffb
+.088a	a9 35		lda #$35	           lda #$35
+.088c	85 01		sta $01		           sta 1
+.088e	ad 11 d0	lda $d011	           lda $d011
+.0891	30 07		bmi $089a	           bmi ok
+.0893					wait
+.0893	ad 12 d0	lda $d012	           lda $d012
+.0896	c9 1e		cmp #$1e	           cmp #30
+.0898	b0 f9		bcs $0893	           bcs wait
+.089a					ok
+.089a	a9 19		lda #$19	           lda #$19
+.089c	8d 0e dd	sta $dd0e	           sta $dd0e
+.089f	60		rts		           rts
+.08a0					nmi
+.08a0	08		php		           php
+.08a1	2c 0d dd	bit $dd0d	           bit $dd0d
+.08a4	8d c7 08	sta $08c7	           sta saveda+1
+.08a7	8e c5 08	stx $08c5	           stx savedx+1
+.08aa	68		pla		           pla
+.08ab	8d 60 08	sta $0860	           sta flagsafter
+.08ae	ba		tsx		           tsx
+.08af	e8		inx		           inx
+.08b0	bd 00 01	lda $0100,x	           lda $0100,x
+.08b3	8d 5f 08	sta $085f	           sta flagsbefore
+.08b6	e8		inx		           inx
+.08b7	bd 00 01	lda $0100,x	           lda $0100,x
+.08ba	8d 5d 08	sta $085d	           sta intlow
+.08bd	e8		inx		           inx
+.08be	bd 00 01	lda $0100,x	           lda $0100,x
+.08c1	8d 5e 08	sta $085e	           sta inthigh
+.08c4					savedx
+.08c4	a2 11		ldx #$11	           ldx #$11
+.08c6					saveda
+.08c6	a9 11		lda #$11	           lda #$11
+.08c8	40		rti		           rti
+.08c9					restoreint
+.08c9	a9 37		lda #$37	           lda #$37
+.08cb	85 01		sta $01		           sta 1
+.08cd	a9 81		lda #$81	           lda #129
+.08cf	8d 0d dc	sta $dc0d	           sta $dc0d
+.08d2	60		rts		           rts
+>08d3	00				gsavesp    .byte 0
+.08d4					gastack
+.09d4					savestack
+.09d4	ba		tsx		           tsx
+.09d5	8e d3 08	stx $08d3	           stx gsavesp
+.09d8	a2 00		ldx #$00	           ldx #0
+.09da					save
+.09da	bd 00 01	lda $0100,x	           lda $0100,x
+.09dd	9d d4 08	sta $08d4,x	           sta gastack,x
+.09e0	e8		inx		           inx
+.09e1	d0 f7		bne $09da	           bne save
+.09e3	60		rts		           rts
+.09e4					restorestack
+.09e4	68		pla		           pla
+.09e5	8d 01 0a	sta $0a01	           sta return2+1
+.09e8	68		pla		           pla
+.09e9	8d fe 09	sta $09fe	           sta return1+1
+.09ec	ae d3 08	ldx $08d3	           ldx gsavesp
+.09ef	e8		inx		           inx
+.09f0	e8		inx		           inx
+.09f1	9a		txs		           txs
+.09f2	a2 00		ldx #$00	           ldx #0
+.09f4					restore
+.09f4	bd d4 08	lda $08d4,x	           lda gastack,x
+.09f7	9d 00 01	sta $0100,x	           sta $0100,x
+.09fa	e8		inx		           inx
+.09fb	d0 f7		bne $09f4	           bne restore
+.09fd					return1
+.09fd	a9 11		lda #$11	           lda #$11
+.09ff	48		pha		           pha
+.0a00					return2
+.0a00	a9 11		lda #$11	           lda #$11
+.0a02	48		pha		           pha
+.0a03	60		rts		           rts
+.0a04					addressing
+>0a04	78 13				           .word brkn
+>0a06	3e 10				           .word rix
+>0a08	0a 15				           .word hltn
+>0a0a	7e 10				           .word mix
+>0a0c	3a 0e				           .word rz
+>0a0e	3a 0e				           .word rz
+>0a10	67 0e				           .word mz
+>0a12	67 0e				           .word mz
+>0a14	c4 13				           .word phpn
+>0a16	0e 0e				           .word b
+>0a18	a0 0d				           .word n
+>0a1a	0e 0e				           .word b
+>0a1c	fc 0e				           .word ra
+>0a1e	fc 0e				           .word ra
+>0a20	2b 0f				           .word ma
+>0a22	2b 0f				           .word ma
+>0a24	af 11				           .word r
+>0a26	c0 10				           .word riy
+>0a28	0a 15				           .word hltn
+>0a2a	6d 11				           .word miy
+>0a2c	96 0e				           .word rzx
+>0a2e	96 0e				           .word rzx
+>0a30	c8 0e				           .word mzx
+>0a32	c8 0e				           .word mzx
+>0a34	a0 0d				           .word n
+>0a36	5c 0f				           .word ray
+>0a38	a0 0d				           .word n
+>0a3a	02 10				           .word may
+>0a3c	5c 0f				           .word rax
+>0a3e	5c 0f				           .word rax
+>0a40	02 10				           .word max
+>0a42	02 10				           .word max
+>0a44	7e 14				           .word jsrw
+>0a46	3e 10				           .word rix
+>0a48	0a 15				           .word hltn
+>0a4a	7e 10				           .word mix
+>0a4c	3a 0e				           .word rz
+>0a4e	3a 0e				           .word rz
+>0a50	67 0e				           .word mz
+>0a52	67 0e				           .word mz
+>0a54	f0 13				           .word plpn
+>0a56	0e 0e				           .word b
+>0a58	a0 0d				           .word n
+>0a5a	0e 0e				           .word b
+>0a5c	fc 0e				           .word ra
+>0a5e	fc 0e				           .word ra
+>0a60	2b 0f				           .word ma
+>0a62	2b 0f				           .word ma
+>0a64	af 11				           .word r
+>0a66	c0 10				           .word riy
+>0a68	0a 15				           .word hltn
+>0a6a	6d 11				           .word miy
+>0a6c	96 0e				           .word rzx
+>0a6e	96 0e				           .word rzx
+>0a70	c8 0e				           .word mzx
+>0a72	c8 0e				           .word mzx
+>0a74	a0 0d				           .word n
+>0a76	5c 0f				           .word ray
+>0a78	a0 0d				           .word n
+>0a7a	02 10				           .word may
+>0a7c	5c 0f				           .word rax
+>0a7e	5c 0f				           .word rax
+>0a80	02 10				           .word max
+>0a82	02 10				           .word max
+>0a84	da 14				           .word rtin
+>0a86	3e 10				           .word rix
+>0a88	0a 15				           .word hltn
+>0a8a	7e 10				           .word mix
+>0a8c	3a 0e				           .word rz
+>0a8e	3a 0e				           .word rz
+>0a90	67 0e				           .word mz
+>0a92	67 0e				           .word mz
+>0a94	c4 13				           .word phan
+>0a96	0e 0e				           .word b
+>0a98	a0 0d				           .word n
+>0a9a	0e 0e				           .word b
+>0a9c	20 14				           .word jmpw
+>0a9e	fc 0e				           .word ra
+>0aa0	2b 0f				           .word ma
+>0aa2	2b 0f				           .word ma
+>0aa4	af 11				           .word r
+>0aa6	c0 10				           .word riy
+>0aa8	0a 15				           .word hltn
+>0aaa	6d 11				           .word miy
+>0aac	96 0e				           .word rzx
+>0aae	96 0e				           .word rzx
+>0ab0	c8 0e				           .word mzx
+>0ab2	c8 0e				           .word mzx
+>0ab4	a0 0d				           .word n
+>0ab6	5c 0f				           .word ray
+>0ab8	a0 0d				           .word n
+>0aba	02 10				           .word may
+>0abc	5c 0f				           .word rax
+>0abe	5c 0f				           .word rax
+>0ac0	02 10				           .word max
+>0ac2	02 10				           .word max
+>0ac4	ab 14				           .word rtsn
+>0ac6	3e 10				           .word rix
+>0ac8	0a 15				           .word hltn
+>0aca	7e 10				           .word mix
+>0acc	3a 0e				           .word rz
+>0ace	3a 0e				           .word rz
+>0ad0	67 0e				           .word mz
+>0ad2	67 0e				           .word mz
+>0ad4	f0 13				           .word plan
+>0ad6	0e 0e				           .word b
+>0ad8	a0 0d				           .word n
+>0ada	0e 0e				           .word b
+>0adc	49 14				           .word jmpi
+>0ade	fc 0e				           .word ra
+>0ae0	2b 0f				           .word ma
+>0ae2	2b 0f				           .word ma
+>0ae4	af 11				           .word r
+>0ae6	c0 10				           .word riy
+>0ae8	0a 15				           .word hltn
+>0aea	6d 11				           .word miy
+>0aec	96 0e				           .word rzx
+>0aee	96 0e				           .word rzx
+>0af0	c8 0e				           .word mzx
+>0af2	c8 0e				           .word mzx
+>0af4	d2 0d				           .word sein
+>0af6	5c 0f				           .word ray
+>0af8	a0 0d				           .word n
+>0afa	02 10				           .word may
+>0afc	5c 0f				           .word rax
+>0afe	5c 0f				           .word rax
+>0b00	02 10				           .word max
+>0b02	02 10				           .word max
+>0b04	0e 0e				           .word b
+>0b06	3e 10				           .word wix
+>0b08	0e 0e				           .word b
+>0b0a	3e 10				           .word rix
+>0b0c	3a 0e				           .word wz
+>0b0e	3a 0e				           .word wz
+>0b10	3a 0e				           .word wz
+>0b12	3a 0e				           .word rz
+>0b14	a0 0d				           .word n
+>0b16	0e 0e				           .word b
+>0b18	a0 0d				           .word n
+>0b1a	0e 0e				           .word b
+>0b1c	fc 0e				           .word wa
+>0b1e	fc 0e				           .word wa
+>0b20	fc 0e				           .word wa
+>0b22	fc 0e				           .word ra
+>0b24	af 11				           .word r
+>0b26	2d 11				           .word wiy
+>0b28	0a 15				           .word hltn
+>0b2a	2d 11				           .word wiy
+>0b2c	96 0e				           .word wzx
+>0b2e	96 0e				           .word wzx
+>0b30	96 0e				           .word wzy
+>0b32	96 0e				           .word rzy
+>0b34	a0 0d				           .word n
+>0b36	c8 0f				           .word way
+>0b38	a0 0d				           .word n
+>0b3a	c8 0f				           .word way
+>0b3c	c8 0f				           .word wax
+>0b3e	c8 0f				           .word wax
+>0b40	c8 0f				           .word way
+>0b42	c8 0f				           .word way
+>0b44	0e 0e				           .word b
+>0b46	3e 10				           .word rix
+>0b48	0e 0e				           .word b
+>0b4a	3e 10				           .word rix
+>0b4c	3a 0e				           .word rz
+>0b4e	3a 0e				           .word rz
+>0b50	3a 0e				           .word rz
+>0b52	3a 0e				           .word rz
+>0b54	a0 0d				           .word n
+>0b56	0e 0e				           .word b
+>0b58	a0 0d				           .word n
+>0b5a	0e 0e				           .word b
+>0b5c	fc 0e				           .word ra
+>0b5e	fc 0e				           .word ra
+>0b60	fc 0e				           .word ra
+>0b62	fc 0e				           .word ra
+>0b64	af 11				           .word r
+>0b66	c0 10				           .word riy
+>0b68	0a 15				           .word hltn
+>0b6a	c0 10				           .word riy
+>0b6c	96 0e				           .word rzx
+>0b6e	96 0e				           .word rzx
+>0b70	96 0e				           .word rzy
+>0b72	96 0e				           .word rzy
+>0b74	a0 0d				           .word n
+>0b76	5c 0f				           .word ray
+>0b78	a0 0d				           .word n
+>0b7a	5c 0f				           .word ray
+>0b7c	5c 0f				           .word rax
+>0b7e	5c 0f				           .word rax
+>0b80	5c 0f				           .word ray
+>0b82	5c 0f				           .word ray
+>0b84	0e 0e				           .word b
+>0b86	3e 10				           .word rix
+>0b88	0e 0e				           .word b
+>0b8a	7e 10				           .word mix
+>0b8c	3a 0e				           .word rz
+>0b8e	3a 0e				           .word rz
+>0b90	67 0e				           .word mz
+>0b92	67 0e				           .word mz
+>0b94	a0 0d				           .word n
+>0b96	0e 0e				           .word b
+>0b98	a0 0d				           .word n
+>0b9a	0e 0e				           .word b
+>0b9c	fc 0e				           .word ra
+>0b9e	fc 0e				           .word ra
+>0ba0	2b 0f				           .word ma
+>0ba2	2b 0f				           .word ma
+>0ba4	af 11				           .word r
+>0ba6	c0 10				           .word riy
+>0ba8	0a 15				           .word hltn
+>0baa	6d 11				           .word miy
+>0bac	96 0e				           .word rzx
+>0bae	96 0e				           .word rzx
+>0bb0	c8 0e				           .word mzx
+>0bb2	c8 0e				           .word mzx
+>0bb4	a0 0d				           .word n
+>0bb6	5c 0f				           .word ray
+>0bb8	a0 0d				           .word n
+>0bba	02 10				           .word may
+>0bbc	5c 0f				           .word rax
+>0bbe	5c 0f				           .word rax
+>0bc0	02 10				           .word max
+>0bc2	02 10				           .word max
+>0bc4	0e 0e				           .word b
+>0bc6	3e 10				           .word rix
+>0bc8	0e 0e				           .word b
+>0bca	7e 10				           .word mix
+>0bcc	3a 0e				           .word rz
+>0bce	3a 0e				           .word rz
+>0bd0	67 0e				           .word mz
+>0bd2	67 0e				           .word mz
+>0bd4	a0 0d				           .word n
+>0bd6	0e 0e				           .word b
+>0bd8	a0 0d				           .word n
+>0bda	0e 0e				           .word b
+>0bdc	fc 0e				           .word ra
+>0bde	fc 0e				           .word ra
+>0be0	2b 0f				           .word ma
+>0be2	2b 0f				           .word ma
+>0be4	af 11				           .word r
+>0be6	c0 10				           .word riy
+>0be8	0a 15				           .word hltn
+>0bea	6d 11				           .word miy
+>0bec	96 0e				           .word rzx
+>0bee	96 0e				           .word rzx
+>0bf0	c8 0e				           .word mzx
+>0bf2	c8 0e				           .word mzx
+>0bf4	a0 0d				           .word n
+>0bf6	5c 0f				           .word ray
+>0bf8	a0 0d				           .word n
+>0bfa	02 10				           .word may
+>0bfc	5c 0f				           .word rax
+>0bfe	5c 0f				           .word rax
+>0c00	02 10				           .word max
+>0c02	02 10				           .word max
+>0c04	00				cmd        .byte 0
+.0c05					wrong
+.0c05	20 c9 08	jsr $08c9	           jsr restoreint
+.0c08	20 1c 08	jsr $081c	           jsr print
+>0c0b	0d				           .byte 13
+>0c0c	77 72 6f 6e 67 20 24 64		           .text "wrong $dd0d"
+>0c14	64 30 64
+>0c17	00				           .byte 0
+.0c18	4c 4a 0d	jmp $0d4a	           jmp waitk
+.0c1b					main
+.0c1b	20 1c 08	jsr $081c	           jsr print
+>0c1e	0d				           .byte 13
+>0c1f	28 75 70 29 6e 6d 69		           .text "(up)nmi"
+>0c26	00				           .byte 0
+.0c27	ba		tsx		           tsx
+.0c28	8e d2 0c	stx $0cd2	           stx error+1
+.0c2b	a9 00		lda #$00	           lda #0
+.0c2d	8d 04 0c	sta $0c04	           sta cmd
+.0c30	a9 05		lda #$05	           lda #5
+.0c32	20 61 08	jsr $0861	           jsr setint
+.0c35	ad 0d dd	lda $dd0d	           lda $dd0d
+.0c38	c9 00		cmp #$00	           cmp #$00
+.0c3a	d0 c9		bne $0c05	           bne wrong
+.0c3c	a9 04		lda #$04	           lda #4
+.0c3e	20 61 08	jsr $0861	           jsr setint
+.0c41	ad 0d dd	lda $dd0d	           lda $dd0d
+.0c44	c9 01		cmp #$01	           cmp #$01
+.0c46	d0 bd		bne $0c05	           bne wrong
+.0c48	a9 03		lda #$03	           lda #3
+.0c4a	20 61 08	jsr $0861	           jsr setint
+.0c4d	ad 0d dd	lda $dd0d	           lda $dd0d
+.0c50	c9 81		cmp #$81	           cmp #$81
+.0c52	d0 b1		bne $0c05	           bne wrong
+.0c54	20 c9 08	jsr $08c9	           jsr restoreint
+.0c57					loop
+.0c57	ad 04 0c	lda $0c04	           lda cmd
+.0c5a	c9 ff		cmp #$ff	           cmp #$ff
+.0c5c	4c 76 0c	jmp $0c76	           jmp ok
+.0c5f	a9 0d		lda #$0d	           lda #13
+.0c61	20 d2 ff	jsr $ffd2	           jsr $ffd2
+.0c64	ad 04 0c	lda $0c04	           lda cmd
+.0c67	20 44 08	jsr $0844	           jsr printhb
+.0c6a					waitkey
+.0c6a	20 e4 ff	jsr $ffe4	           jsr $ffe4
+.0c6d	f0 fb		beq $0c6a	           beq waitkey
+.0c6f	c9 03		cmp #$03	           cmp #3
+.0c71	d0 03		bne $0c76	           bne ok
+.0c73	4c 00 80	jmp $8000	           jmp $8000
+.0c76					ok
+.0c76	a9 04		lda #$04	           lda #<addressing
+.0c78	a2 0a		ldx #$0a	           ldx #>addressing
+.0c7a	18		clc		           clc
+.0c7b	6d 04 0c	adc $0c04	           adc cmd
+.0c7e	90 01		bcc $0c81	           bcc noinc1
+.0c80	e8		inx		           inx
+.0c81					noinc1
+.0c81	18		clc		           clc
+.0c82	6d 04 0c	adc $0c04	           adc cmd
+.0c85	90 01		bcc $0c88	           bcc noinc2
+.0c87	e8		inx		           inx
+.0c88					noinc2
+.0c88	85 ac		sta $ac		           sta 172
+.0c8a	86 ad		stx $ad		           stx 173
+.0c8c	a0 00		ldy #$00	           ldy #0
+.0c8e	b1 ac		lda ($ac),y	           lda (172),y
+.0c90	8d 9a 0c	sta $0c9a	           sta jump+1
+.0c93	c8		iny		           iny
+.0c94	b1 ac		lda ($ac),y	           lda (172),y
+.0c96	8d 9b 0c	sta $0c9b	           sta jump+2
+.0c99					jump
+.0c99	20 11 11	jsr $1111	           jsr $1111
+.0c9c					noerror
+.0c9c	ee 04 0c	inc $0c04	           inc cmd
+.0c9f	d0 b6		bne $0c57	           bne loop
+.0ca1	4c 61 0d	jmp $0d61	           jmp ok
+>0ca4	00				clock      .byte 0
+>0ca5	00				rightlow   .byte 0
+>0ca6	00				righthigh  .byte 0
+.0ca7					compare
+.0ca7	8e ac 0c	stx $0cac	           stx addlow+1
+.0caa	18		clc		           clc
+.0cab					addlow
+.0cab	69 11		adc #$11	           adc #$11
+.0cad	8d a5 0c	sta $0ca5	           sta rightlow
+.0cb0	90 01		bcc $0cb3	           bcc noiny
+.0cb2	c8		iny		           iny
+.0cb3					noiny
+.0cb3	8c a6 0c	sty $0ca6	           sty righthigh
+.0cb6	cd 5d 08	cmp $085d	           cmp intlow
+.0cb9	d0 16		bne $0cd1	           bne error
+.0cbb	cc 5e 08	cpy $085e	           cpy inthigh
+.0cbe	d0 11		bne $0cd1	           bne error
+.0cc0	ad 5f 08	lda $085f	           lda flagsbefore
+.0cc3	29 14		and #$14	           and #$14
+.0cc5	d0 0a		bne $0cd1	           bne error
+.0cc7	ad 60 08	lda $0860	           lda flagsafter
+.0cca	29 14		and #$14	           and #$14
+.0ccc	c9 14		cmp #$14	           cmp #$14
+.0cce	d0 01		bne $0cd1	           bne error
+.0cd0	60		rts		           rts
+.0cd1					error
+.0cd1	a2 11		ldx #$11	           ldx #$11
+.0cd3	9a		txs		           txs
+.0cd4	a9 0d		lda #$0d	           lda #13
+.0cd6	20 d2 ff	jsr $ffd2	           jsr $ffd2
+.0cd9	ad 04 0c	lda $0c04	           lda cmd
+.0cdc	20 44 08	jsr $0844	           jsr printhb
+.0cdf	a9 2f		lda #$2f	           lda #"/"
+.0ce1	20 d2 ff	jsr $ffd2	           jsr $ffd2
+.0ce4	ae a4 0c	ldx $0ca4	           ldx clock
+.0ce7	a9 00		lda #$00	           lda #0
+.0ce9	20 cd bd	jsr $bdcd	           jsr $bdcd
+.0cec	20 1c 08	jsr $081c	           jsr print
+>0cef	0d				           .byte 13
+>0cf0	73 74 61 63 6b 20 20		           .text "stack  "
+>0cf7	00				           .byte 0
+.0cf8	ad 5e 08	lda $085e	           lda inthigh
+.0cfb	20 44 08	jsr $0844	           jsr printhb
+.0cfe	ad 5d 08	lda $085d	           lda intlow
+.0d01	20 44 08	jsr $0844	           jsr printhb
+.0d04	a9 20		lda #$20	           lda #32
+.0d06	20 d2 ff	jsr $ffd2	           jsr $ffd2
+.0d09	ad 5f 08	lda $085f	           lda flagsbefore
+.0d0c	29 14		and #$14	           and #$14
+.0d0e	20 44 08	jsr $0844	           jsr printhb
+.0d11	a9 20		lda #$20	           lda #32
+.0d13	20 d2 ff	jsr $ffd2	           jsr $ffd2
+.0d16	ad 60 08	lda $0860	           lda flagsafter
+.0d19	29 14		and #$14	           and #$14
+.0d1b	20 44 08	jsr $0844	           jsr printhb
+.0d1e	20 1c 08	jsr $081c	           jsr print
+>0d21	0d				           .byte 13
+>0d22	72 69 67 68 74 20 20		           .text "right  "
+>0d29	00				           .byte 0
+.0d2a	ad a6 0c	lda $0ca6	           lda righthigh
+.0d2d	20 44 08	jsr $0844	           jsr printhb
+.0d30	ad a5 0c	lda $0ca5	           lda rightlow
+.0d33	20 44 08	jsr $0844	           jsr printhb
+.0d36	a9 20		lda #$20	           lda #32
+.0d38	20 d2 ff	jsr $ffd2	           jsr $ffd2
+.0d3b	a9 00		lda #$00	           lda #$00
+.0d3d	20 44 08	jsr $0844	           jsr printhb
+.0d40	a9 20		lda #$20	           lda #32
+.0d42	20 d2 ff	jsr $ffd2	           jsr $ffd2
+.0d45	a9 14		lda #$14	           lda #$14
+.0d47	20 44 08	jsr $0844	           jsr printhb
+.0d4a					waitk
+.0d4a	20 e4 ff	jsr $ffe4	           jsr $ffe4
+.0d4d	f0 fb		beq $0d4a	           beq waitk
+.0d4f	c9 03		cmp #$03	           cmp #3
+.0d51	f0 03		beq $0d56	           beq stop
+.0d53	4c 9c 0c	jmp $0c9c	           jmp noerror
+.0d56					stop
+.0d56	ad 0c 03	lda $030c	           lda turboass
+.0d59	f0 03		beq $0d5e	           beq basic
+.0d5b	4c 00 80	jmp $8000	           jmp $8000
+.0d5e					basic
+.0d5e	4c 74 a4	jmp $a474	           jmp $a474
+.0d61					ok
+.0d61	20 1c 08	jsr $081c	           jsr print
+>0d64	20 2d 20 6f 6b			           .text " - ok"
+>0d69	0d 00				           .byte 13,0
+.0d6b	ad 0c 03	lda $030c	           lda turboass
+.0d6e	f0 08		beq $0d78	           beq load
+.0d70	20 e4 ff	jsr $ffe4	waitkey    jsr $ffe4
+.0d73	f0 fb		beq $0d70	           beq waitkey
+.0d75	4c 00 80	jmp $8000	           jmp $8000
+.0d78					load
+.0d78	a9 2f		lda #$2f	           lda #47
+.0d7a	85 00		sta $00		           sta 0
+.0d7c	20 1c 08	jsr $081c	           jsr print
+>0d7f	63 69 61 31 74 62 31 32		name       .text "cia1tb123"
+>0d87	33
+=9					namelen    = *-name
+>0d88	00				           .byte 0
+.0d89	a9 00		lda #$00	           lda #0
+.0d8b	85 0a		sta $0a		           sta $0a
+.0d8d	85 b9		sta $b9		           sta $b9
+.0d8f	a9 09		lda #$09	           lda #namelen
+.0d91	85 b7		sta $b7		           sta $b7
+.0d93	a9 7f		lda #$7f	           lda #<name
+.0d95	85 bb		sta $bb		           sta $bb
+.0d97	a9 0d		lda #$0d	           lda #>name
+.0d99	85 bc		sta $bc		           sta $bc
+.0d9b	68		pla		           pla
+.0d9c	68		pla		           pla
+.0d9d	4c 6f e1	jmp $e16f	           jmp $e16f
+.0da0					n
+.0da0	20 d4 09	jsr $09d4	           jsr savestack
+.0da3	ad 04 0c	lda $0c04	           lda cmd
+.0da6	8d b4 0d	sta $0db4	           sta command
+.0da9	a9 01		lda #$01	           lda #1
+.0dab	8d a4 0c	sta $0ca4	           sta clock
+.0dae					loop
+.0dae	ad a4 0c	lda $0ca4	           lda clock
+.0db1	20 61 08	jsr $0861	           jsr setint
+.0db4					command
+.0db4	ea		nop		           nop
+.0db5	58		cli		           cli
+.0db6	d8		cld		           cld
+.0db7	20 c9 08	jsr $08c9	           jsr restoreint
+.0dba	ae a4 0c	ldx $0ca4	           ldx clock
+.0dbd	bd d0 0d	lda $0dd0,x	           lda right,x
+.0dc0	a2 b4		ldx #$b4	           ldx #<command
+.0dc2	a0 0d		ldy #$0d	           ldy #>command
+.0dc4	20 a7 0c	jsr $0ca7	           jsr compare
+.0dc7	ce a4 0c	dec $0ca4	           dec clock
+.0dca	10 e2		bpl $0dae	           bpl loop
+.0dcc	20 e4 09	jsr $09e4	           jsr restorestack
+.0dcf	60		rts		           rts
+>0dd0	01 02				right      .byte 1,2
+.0dd2					sein
+.0dd2	20 d4 09	jsr $09d4	           jsr savestack
+.0dd5	ad 04 0c	lda $0c04	           lda cmd
+.0dd8	8d e6 0d	sta $0de6	           sta command
+.0ddb	a9 01		lda #$01	           lda #1
+.0ddd	8d a4 0c	sta $0ca4	           sta clock
+.0de0					loop
+.0de0	ad a4 0c	lda $0ca4	           lda clock
+.0de3	20 61 08	jsr $0861	           jsr setint
+.0de6					command
+.0de6	ea		nop		           nop
+.0de7	58		cli		           cli
+.0de8	d8		cld		           cld
+.0de9	20 c9 08	jsr $08c9	           jsr restoreint
+.0dec	ae a4 0c	ldx $0ca4	           ldx clock
+.0def	d0 08		bne $0df9	           bne not0
+.0df1	ad 5f 08	lda $085f	           lda flagsbefore
+.0df4	49 04		eor #$04	           eor #$04
+.0df6	8d 5f 08	sta $085f	           sta flagsbefore
+.0df9					not0
+.0df9	bd 0c 0e	lda $0e0c,x	           lda right,x
+.0dfc	a2 e6		ldx #$e6	           ldx #<command
+.0dfe	a0 0d		ldy #$0d	           ldy #>command
+.0e00	20 a7 0c	jsr $0ca7	           jsr compare
+.0e03	ce a4 0c	dec $0ca4	           dec clock
+.0e06	10 d8		bpl $0de0	           bpl loop
+.0e08	20 e4 09	jsr $09e4	           jsr restorestack
+.0e0b	60		rts		           rts
+>0e0c	01 02				right      .byte 1,2
+.0e0e					b
+.0e0e	ad 04 0c	lda $0c04	           lda cmd
+.0e11	8d 1f 0e	sta $0e1f	           sta command
+.0e14	a9 01		lda #$01	           lda #1
+.0e16	8d a4 0c	sta $0ca4	           sta clock
+.0e19					loop
+.0e19	ad a4 0c	lda $0ca4	           lda clock
+.0e1c	20 61 08	jsr $0861	           jsr setint
+.0e1f					command
+.0e1f	a9 00		lda #$00	           lda #0
+.0e21	ea		nop		           nop
+.0e22	20 c9 08	jsr $08c9	           jsr restoreint
+.0e25	ae a4 0c	ldx $0ca4	           ldx clock
+.0e28	bd 38 0e	lda $0e38,x	           lda right,x
+.0e2b	a2 1f		ldx #$1f	           ldx #<command
+.0e2d	a0 0e		ldy #$0e	           ldy #>command
+.0e2f	20 a7 0c	jsr $0ca7	           jsr compare
+.0e32	ce a4 0c	dec $0ca4	           dec clock
+.0e35	10 e2		bpl $0e19	           bpl loop
+.0e37	60		rts		           rts
+>0e38	02 03				right      .byte 2,3
+.0e3a					rz
+.0e3a					wz
+.0e3a	ad 04 0c	lda $0c04	           lda cmd
+.0e3d	8d 4b 0e	sta $0e4b	           sta command
+.0e40	a9 02		lda #$02	           lda #2
+.0e42	8d a4 0c	sta $0ca4	           sta clock
+.0e45					loop
+.0e45	ad a4 0c	lda $0ca4	           lda clock
+.0e48	20 61 08	jsr $0861	           jsr setint
+.0e4b					command
+.0e4b	a5 02		lda $02		           lda 2
+.0e4d	ea		nop		           nop
+.0e4e	20 c9 08	jsr $08c9	           jsr restoreint
+.0e51	ae a4 0c	ldx $0ca4	           ldx clock
+.0e54	bd 64 0e	lda $0e64,x	           lda right,x
+.0e57	a2 4b		ldx #$4b	           ldx #<command
+.0e59	a0 0e		ldy #$0e	           ldy #>command
+.0e5b	20 a7 0c	jsr $0ca7	           jsr compare
+.0e5e	ce a4 0c	dec $0ca4	           dec clock
+.0e61	10 e2		bpl $0e45	           bpl loop
+.0e63	60		rts		           rts
+>0e64	02 02 03			right      .byte 2,2,3
+.0e67					mz
+.0e67	ad 04 0c	lda $0c04	           lda cmd
+.0e6a	8d 78 0e	sta $0e78	           sta command
+.0e6d	a9 04		lda #$04	           lda #4
+.0e6f	8d a4 0c	sta $0ca4	           sta clock
+.0e72					loop
+.0e72	ad a4 0c	lda $0ca4	           lda clock
+.0e75	20 61 08	jsr $0861	           jsr setint
+.0e78					command
+.0e78	a5 02		lda $02		           lda 2
+.0e7a	ea		nop		           nop
+.0e7b	20 c9 08	jsr $08c9	           jsr restoreint
+.0e7e	ae a4 0c	ldx $0ca4	           ldx clock
+.0e81	bd 91 0e	lda $0e91,x	           lda right,x
+.0e84	a2 78		ldx #$78	           ldx #<command
+.0e86	a0 0e		ldy #$0e	           ldy #>command
+.0e88	20 a7 0c	jsr $0ca7	           jsr compare
+.0e8b	ce a4 0c	dec $0ca4	           dec clock
+.0e8e	10 e2		bpl $0e72	           bpl loop
+.0e90	60		rts		           rts
+>0e91	02 02 02 02 03			right      .byte 2,2,2,2,3
+.0e96					rzx
+.0e96					rzy
+.0e96					wzx
+.0e96					wzy
+.0e96	ad 04 0c	lda $0c04	           lda cmd
+.0e99	8d ab 0e	sta $0eab	           sta command
+.0e9c	a9 03		lda #$03	           lda #3
+.0e9e	8d a4 0c	sta $0ca4	           sta clock
+.0ea1					loop
+.0ea1	a2 00		ldx #$00	           ldx #0
+.0ea3	a0 00		ldy #$00	           ldy #0
+.0ea5	ad a4 0c	lda $0ca4	           lda clock
+.0ea8	20 61 08	jsr $0861	           jsr setint
+.0eab					command
+.0eab	b5 02		lda $02,x	           lda 2,x
+.0ead	ea		nop		           nop
+.0eae	20 c9 08	jsr $08c9	           jsr restoreint
+.0eb1	ae a4 0c	ldx $0ca4	           ldx clock
+.0eb4	bd c4 0e	lda $0ec4,x	           lda right,x
+.0eb7	a2 ab		ldx #$ab	           ldx #<command
+.0eb9	a0 0e		ldy #$0e	           ldy #>command
+.0ebb	20 a7 0c	jsr $0ca7	           jsr compare
+.0ebe	ce a4 0c	dec $0ca4	           dec clock
+.0ec1	10 de		bpl $0ea1	           bpl loop
+.0ec3	60		rts		           rts
+>0ec4	02 02 02 03			right      .byte 2,2,2,3
+.0ec8					mzx
+.0ec8					mzy
+.0ec8	ad 04 0c	lda $0c04	           lda cmd
+.0ecb	8d dd 0e	sta $0edd	           sta command
+.0ece	a9 05		lda #$05	           lda #5
+.0ed0	8d a4 0c	sta $0ca4	           sta clock
+.0ed3					loop
+.0ed3	a2 00		ldx #$00	           ldx #0
+.0ed5	a0 00		ldy #$00	           ldy #0
+.0ed7	ad a4 0c	lda $0ca4	           lda clock
+.0eda	20 61 08	jsr $0861	           jsr setint
+.0edd					command
+.0edd	b5 02		lda $02,x	           lda 2,x
+.0edf	ea		nop		           nop
+.0ee0	20 c9 08	jsr $08c9	           jsr restoreint
+.0ee3	ae a4 0c	ldx $0ca4	           ldx clock
+.0ee6	bd f6 0e	lda $0ef6,x	           lda right,x
+.0ee9	a2 dd		ldx #$dd	           ldx #<command
+.0eeb	a0 0e		ldy #$0e	           ldy #>command
+.0eed	20 a7 0c	jsr $0ca7	           jsr compare
+.0ef0	ce a4 0c	dec $0ca4	           dec clock
+.0ef3	10 de		bpl $0ed3	           bpl loop
+.0ef5	60		rts		           rts
+>0ef6	02 02 02 02 02 03		right      .byte 2,2,2,2,2,3
+.0efc					ra
+.0efc					wa
+.0efc	ad 04 0c	lda $0c04	           lda cmd
+.0eff	8d 0d 0f	sta $0f0d	           sta command
+.0f02	a9 03		lda #$03	           lda #3
+.0f04	8d a4 0c	sta $0ca4	           sta clock
+.0f07					loop
+.0f07	ad a4 0c	lda $0ca4	           lda clock
+.0f0a	20 61 08	jsr $0861	           jsr setint
+.0f0d					command
+.0f0d	ad f0 ff	lda $fff0	           lda $fff0
+.0f10	ea		nop		           nop
+.0f11	20 c9 08	jsr $08c9	           jsr restoreint
+.0f14	ae a4 0c	ldx $0ca4	           ldx clock
+.0f17	bd 27 0f	lda $0f27,x	           lda right,x
+.0f1a	a2 0d		ldx #$0d	           ldx #<command
+.0f1c	a0 0f		ldy #$0f	           ldy #>command
+.0f1e	20 a7 0c	jsr $0ca7	           jsr compare
+.0f21	ce a4 0c	dec $0ca4	           dec clock
+.0f24	10 e1		bpl $0f07	           bpl loop
+.0f26	60		rts		           rts
+>0f27	03 03 03 04			right      .byte 3,3,3,4
+.0f2b					ma
+.0f2b	ad 04 0c	lda $0c04	           lda cmd
+.0f2e	8d 3c 0f	sta $0f3c	           sta command
+.0f31	a9 05		lda #$05	           lda #5
+.0f33	8d a4 0c	sta $0ca4	           sta clock
+.0f36					loop
+.0f36	ad a4 0c	lda $0ca4	           lda clock
+.0f39	20 61 08	jsr $0861	           jsr setint
+.0f3c					command
+.0f3c	ad f0 ff	lda $fff0	           lda $fff0
+.0f3f	ea		nop		           nop
+.0f40	20 c9 08	jsr $08c9	           jsr restoreint
+.0f43	ae a4 0c	ldx $0ca4	           ldx clock
+.0f46	bd 56 0f	lda $0f56,x	           lda right,x
+.0f49	a2 3c		ldx #$3c	           ldx #<command
+.0f4b	a0 0f		ldy #$0f	           ldy #>command
+.0f4d	20 a7 0c	jsr $0ca7	           jsr compare
+.0f50	ce a4 0c	dec $0ca4	           dec clock
+.0f53	10 e1		bpl $0f36	           bpl loop
+.0f55	60		rts		           rts
+>0f56	03 03 03 03 03 04		right      .byte 3,3,3,3,3,4
+.0f5c					rax
+.0f5c					ray
+.0f5c	20 d4 09	jsr $09d4	           jsr savestack
+.0f5f	ad 04 0c	lda $0c04	           lda cmd
+.0f62	8d 74 0f	sta $0f74	           sta command
+.0f65	a9 03		lda #$03	           lda #3
+.0f67	8d a4 0c	sta $0ca4	           sta clock
+.0f6a					loop
+.0f6a	a2 00		ldx #$00	           ldx #0
+.0f6c	a0 00		ldy #$00	           ldy #0
+.0f6e	ad a4 0c	lda $0ca4	           lda clock
+.0f71	20 61 08	jsr $0861	           jsr setint
+.0f74					command
+.0f74	bd f0 ff	lda $fff0,x	           lda $fff0,x
+.0f77	ea		nop		           nop
+.0f78	20 c9 08	jsr $08c9	           jsr restoreint
+.0f7b	ae a4 0c	ldx $0ca4	           ldx clock
+.0f7e	bd bf 0f	lda $0fbf,x	           lda right1,x
+.0f81	a2 74		ldx #$74	           ldx #<command
+.0f83	a0 0f		ldy #$0f	           ldy #>command
+.0f85	20 a7 0c	jsr $0ca7	           jsr compare
+.0f88	ce a4 0c	dec $0ca4	           dec clock
+.0f8b	10 dd		bpl $0f6a	           bpl loop
+.0f8d	ad 04 0c	lda $0c04	           lda cmd
+.0f90	8d a2 0f	sta $0fa2	           sta command2
+.0f93	a9 04		lda #$04	           lda #4
+.0f95	8d a4 0c	sta $0ca4	           sta clock
+.0f98					loop2
+.0f98	a2 12		ldx #$12	           ldx #$12
+.0f9a	a0 12		ldy #$12	           ldy #$12
+.0f9c	ad a4 0c	lda $0ca4	           lda clock
+.0f9f	20 61 08	jsr $0861	           jsr setint
+.0fa2					command2
+.0fa2	bd f0 ff	lda $fff0,x	           lda $fff0,x
+.0fa5	ea		nop		           nop
+.0fa6	20 c9 08	jsr $08c9	           jsr restoreint
+.0fa9	ae a4 0c	ldx $0ca4	           ldx clock
+.0fac	bd c3 0f	lda $0fc3,x	           lda right2,x
+.0faf	a2 a2		ldx #$a2	           ldx #<command2
+.0fb1	a0 0f		ldy #$0f	           ldy #>command2
+.0fb3	20 a7 0c	jsr $0ca7	           jsr compare
+.0fb6	ce a4 0c	dec $0ca4	           dec clock
+.0fb9	10 dd		bpl $0f98	           bpl loop2
+.0fbb	20 e4 09	jsr $09e4	           jsr restorestack
+.0fbe	60		rts		           rts
+>0fbf	03 03 03 04			right1     .byte 3,3,3,4
+>0fc3	03 03 03 03 04			right2     .byte 3,3,3,3,4
+.0fc8					wax
+.0fc8					way
+.0fc8	20 d4 09	jsr $09d4	           jsr savestack
+.0fcb	ad 04 0c	lda $0c04	           lda cmd
+.0fce	8d e0 0f	sta $0fe0	           sta command
+.0fd1	a9 04		lda #$04	           lda #4
+.0fd3	8d a4 0c	sta $0ca4	           sta clock
+.0fd6					loop
+.0fd6	a2 00		ldx #$00	           ldx #0
+.0fd8	a0 00		ldy #$00	           ldy #0
+.0fda	ad a4 0c	lda $0ca4	           lda clock
+.0fdd	20 61 08	jsr $0861	           jsr setint
+.0fe0					command
+.0fe0	9d f0 ff	sta $fff0,x	           sta $fff0,x
+.0fe3	ea		nop		           nop
+.0fe4	20 c9 08	jsr $08c9	           jsr restoreint
+.0fe7	ae a4 0c	ldx $0ca4	           ldx clock
+.0fea	bd fd 0f	lda $0ffd,x	           lda right,x
+.0fed	a2 e0		ldx #$e0	           ldx #<command
+.0fef	a0 0f		ldy #$0f	           ldy #>command
+.0ff1	20 a7 0c	jsr $0ca7	           jsr compare
+.0ff4	ce a4 0c	dec $0ca4	           dec clock
+.0ff7	10 dd		bpl $0fd6	           bpl loop
+.0ff9	20 e4 09	jsr $09e4	           jsr restorestack
+.0ffc	60		rts		           rts
+>0ffd	03 03 03 03 04			right      .byte 3,3,3,3,4
+.1002					max
+.1002					may
+.1002	20 d4 09	jsr $09d4	           jsr savestack
+.1005	ad 04 0c	lda $0c04	           lda cmd
+.1008	8d 1a 10	sta $101a	           sta command
+.100b	a9 06		lda #$06	           lda #6
+.100d	8d a4 0c	sta $0ca4	           sta clock
+.1010					loop
+.1010	a2 00		ldx #$00	           ldx #0
+.1012	a0 00		ldy #$00	           ldy #0
+.1014	ad a4 0c	lda $0ca4	           lda clock
+.1017	20 61 08	jsr $0861	           jsr setint
+.101a					command
+.101a	9d f0 ff	sta $fff0,x	           sta $fff0,x
+.101d	ea		nop		           nop
+.101e	20 c9 08	jsr $08c9	           jsr restoreint
+.1021	ae a4 0c	ldx $0ca4	           ldx clock
+.1024	bd 37 10	lda $1037,x	           lda right,x
+.1027	a2 1a		ldx #$1a	           ldx #<command
+.1029	a0 10		ldy #$10	           ldy #>command
+.102b	20 a7 0c	jsr $0ca7	           jsr compare
+.102e	ce a4 0c	dec $0ca4	           dec clock
+.1031	10 dd		bpl $1010	           bpl loop
+.1033	20 e4 09	jsr $09e4	           jsr restorestack
+.1036	60		rts		           rts
+>1037	03 03 03 03 03 03 04		right      .byte 3,3,3,3,3,3,4
+.103e					rix
+.103e					wix
+.103e	20 d4 09	jsr $09d4	           jsr savestack
+.1041	ad 04 0c	lda $0c04	           lda cmd
+.1044	8d 5c 10	sta $105c	           sta command
+.1047	a9 02		lda #$02	           lda #$02
+.1049	85 ac		sta $ac		           sta 172
+.104b	a9 00		lda #$00	           lda #$00
+.104d	85 ad		sta $ad		           sta 173
+.104f	a9 05		lda #$05	           lda #5
+.1051	8d a4 0c	sta $0ca4	           sta clock
+.1054					loop
+.1054	a2 00		ldx #$00	           ldx #0
+.1056	ad a4 0c	lda $0ca4	           lda clock
+.1059	20 61 08	jsr $0861	           jsr setint
+.105c					command
+.105c	a1 ac		lda ($ac,x)	           lda (172,x)
+.105e	ea		nop		           nop
+.105f	20 c9 08	jsr $08c9	           jsr restoreint
+.1062	ae a4 0c	ldx $0ca4	           ldx clock
+.1065	bd 78 10	lda $1078,x	           lda right,x
+.1068	a2 5c		ldx #$5c	           ldx #<command
+.106a	a0 10		ldy #$10	           ldy #>command
+.106c	20 a7 0c	jsr $0ca7	           jsr compare
+.106f	ce a4 0c	dec $0ca4	           dec clock
+.1072	10 e0		bpl $1054	           bpl loop
+.1074	20 e4 09	jsr $09e4	           jsr restorestack
+.1077	60		rts		           rts
+>1078	02 02 02 02 02 03		right      .byte 2,2,2,2,2,3
+.107e					mix
+.107e	20 d4 09	jsr $09d4	           jsr savestack
+.1081	ad 04 0c	lda $0c04	           lda cmd
+.1084	8d 9c 10	sta $109c	           sta command
+.1087	a9 02		lda #$02	           lda #$02
+.1089	85 ac		sta $ac		           sta 172
+.108b	a9 00		lda #$00	           lda #$00
+.108d	85 ad		sta $ad		           sta 173
+.108f	a9 07		lda #$07	           lda #7
+.1091	8d a4 0c	sta $0ca4	           sta clock
+.1094					loop
+.1094	a2 00		ldx #$00	           ldx #0
+.1096	ad a4 0c	lda $0ca4	           lda clock
+.1099	20 61 08	jsr $0861	           jsr setint
+.109c					command
+.109c	a1 ac		lda ($ac,x)	           lda (172,x)
+.109e	ea		nop		           nop
+.109f	20 c9 08	jsr $08c9	           jsr restoreint
+.10a2	ae a4 0c	ldx $0ca4	           ldx clock
+.10a5	bd b8 10	lda $10b8,x	           lda right,x
+.10a8	a2 9c		ldx #$9c	           ldx #<command
+.10aa	a0 10		ldy #$10	           ldy #>command
+.10ac	20 a7 0c	jsr $0ca7	           jsr compare
+.10af	ce a4 0c	dec $0ca4	           dec clock
+.10b2	10 e0		bpl $1094	           bpl loop
+.10b4	20 e4 09	jsr $09e4	           jsr restorestack
+.10b7	60		rts		           rts
+>10b8	02 02 02 02 02 02 02 03		right      .byte 2,2,2,2,2,2,2,3
+.10c0					riy
+.10c0	20 d4 09	jsr $09d4	           jsr savestack
+.10c3	ad 04 0c	lda $0c04	           lda cmd
+.10c6	8d e1 10	sta $10e1	           sta command
+.10c9	8d 06 11	sta $1106	           sta command1
+.10cc	a9 f0		lda #$f0	           lda #$f0
+.10ce	85 ac		sta $ac		           sta 172
+.10d0	a9 ff		lda #$ff	           lda #$ff
+.10d2	85 ad		sta $ad		           sta 173
+.10d4	a9 04		lda #$04	           lda #4
+.10d6	8d a4 0c	sta $0ca4	           sta clock
+.10d9					loop
+.10d9	a0 00		ldy #$00	           ldy #$00
+.10db	ad a4 0c	lda $0ca4	           lda clock
+.10de	20 61 08	jsr $0861	           jsr setint
+.10e1					command
+.10e1	b1 ac		lda ($ac),y	           lda (172),y
+.10e3	ea		nop		           nop
+.10e4	20 c9 08	jsr $08c9	           jsr restoreint
+.10e7	ae a4 0c	ldx $0ca4	           ldx clock
+.10ea	bd 22 11	lda $1122,x	           lda right,x
+.10ed	a2 e1		ldx #$e1	           ldx #<command
+.10ef	a0 10		ldy #$10	           ldy #>command
+.10f1	20 a7 0c	jsr $0ca7	           jsr compare
+.10f4	ce a4 0c	dec $0ca4	           dec clock
+.10f7	10 e0		bpl $10d9	           bpl loop
+.10f9	a9 05		lda #$05	           lda #5
+.10fb	8d a4 0c	sta $0ca4	           sta clock
+.10fe					loop1
+.10fe	a0 12		ldy #$12	           ldy #$12
+.1100	ad a4 0c	lda $0ca4	           lda clock
+.1103	20 61 08	jsr $0861	           jsr setint
+.1106					command1
+.1106	b1 ac		lda ($ac),y	           lda (172),y
+.1108	ea		nop		           nop
+.1109	20 c9 08	jsr $08c9	           jsr restoreint
+.110c	ae a4 0c	ldx $0ca4	           ldx clock
+.110f	bd 27 11	lda $1127,x	           lda right1,x
+.1112	a2 06		ldx #$06	           ldx #<command1
+.1114	a0 11		ldy #$11	           ldy #>command1
+.1116	20 a7 0c	jsr $0ca7	           jsr compare
+.1119	ce a4 0c	dec $0ca4	           dec clock
+.111c	10 e0		bpl $10fe	           bpl loop1
+.111e	20 e4 09	jsr $09e4	           jsr restorestack
+.1121	60		rts		           rts
+>1122	02 02 02 02 03			right      .byte 2,2,2,2,3
+>1127	02 02 02 02 02 03		right1     .byte 2,2,2,2,2,3
+.112d					wiy
+.112d	20 d4 09	jsr $09d4	           jsr savestack
+.1130	ad 04 0c	lda $0c04	           lda cmd
+.1133	8d 4b 11	sta $114b	           sta command
+.1136	a9 f0		lda #$f0	           lda #$f0
+.1138	85 ac		sta $ac		           sta 172
+.113a	a9 ff		lda #$ff	           lda #$ff
+.113c	85 ad		sta $ad		           sta 173
+.113e	a9 05		lda #$05	           lda #5
+.1140	8d a4 0c	sta $0ca4	           sta clock
+.1143					loop
+.1143	a0 00		ldy #$00	           ldy #$00
+.1145	ad a4 0c	lda $0ca4	           lda clock
+.1148	20 61 08	jsr $0861	           jsr setint
+.114b					command
+.114b	b1 ac		lda ($ac),y	           lda (172),y
+.114d	ea		nop		           nop
+.114e	20 c9 08	jsr $08c9	           jsr restoreint
+.1151	ae a4 0c	ldx $0ca4	           ldx clock
+.1154	bd 67 11	lda $1167,x	           lda right,x
+.1157	a2 4b		ldx #$4b	           ldx #<command
+.1159	a0 11		ldy #$11	           ldy #>command
+.115b	20 a7 0c	jsr $0ca7	           jsr compare
+.115e	ce a4 0c	dec $0ca4	           dec clock
+.1161	10 e0		bpl $1143	           bpl loop
+.1163	20 e4 09	jsr $09e4	           jsr restorestack
+.1166	60		rts		           rts
+>1167	02 02 02 02 02 03		right      .byte 2,2,2,2,2,3
+.116d					miy
+.116d	20 d4 09	jsr $09d4	           jsr savestack
+.1170	ad 04 0c	lda $0c04	           lda cmd
+.1173	8d 8b 11	sta $118b	           sta command
+.1176	a9 f0		lda #$f0	           lda #$f0
+.1178	85 ac		sta $ac		           sta 172
+.117a	a9 ff		lda #$ff	           lda #$ff
+.117c	85 ad		sta $ad		           sta 173
+.117e	a9 07		lda #$07	           lda #7
+.1180	8d a4 0c	sta $0ca4	           sta clock
+.1183					loop
+.1183	a0 00		ldy #$00	           ldy #$00
+.1185	ad a4 0c	lda $0ca4	           lda clock
+.1188	20 61 08	jsr $0861	           jsr setint
+.118b					command
+.118b	b1 ac		lda ($ac),y	           lda (172),y
+.118d	ea		nop		           nop
+.118e	20 c9 08	jsr $08c9	           jsr restoreint
+.1191	ae a4 0c	ldx $0ca4	           ldx clock
+.1194	bd a7 11	lda $11a7,x	           lda right,x
+.1197	a2 8b		ldx #$8b	           ldx #<command
+.1199	a0 11		ldy #$11	           ldy #>command
+.119b	20 a7 0c	jsr $0ca7	           jsr compare
+.119e	ce a4 0c	dec $0ca4	           dec clock
+.11a1	10 e0		bpl $1183	           bpl loop
+.11a3	20 e4 09	jsr $09e4	           jsr restorestack
+.11a6	60		rts		           rts
+>11a7	02 02 02 02 02 02 02 03		right      .byte 2,2,2,2,2,2,2,3
+.11af					r
+=$2000					from       = $2000
+=$2000					to         = $2000
+.11af	ad 04 0c	lda $0c04	           lda cmd
+.11b2	8d fe 1f	sta $1ffe	           sta from-2
+.11b5	a2 f3		ldx #$f3	           ldx #$f3
+.11b7	29 20		and #$20	           and #$20
+.11b9	f0 02		beq $11bd	           beq clear
+.11bb	a2 30		ldx #$30	           ldx #$30
+.11bd					clear
+.11bd	8a		txa		           txa
+.11be	48		pha		           pha
+.11bf	a9 00		lda #$00	           lda #to-from&$ff
+.11c1	8d ff 1f	sta $1fff	           sta from-1
+.11c4	a9 ea		lda #$ea	           lda #$ea
+.11c6	8d 00 20	sta $2000	           sta to
+.11c9	a9 60		lda #$60	           lda #$60
+.11cb	8d 01 20	sta $2001	           sta to+1
+.11ce	a9 00		lda #$00	           lda #0
+.11d0	8d a4 0c	sta $0ca4	           sta clock
+.11d3	a9 0a		lda #$0a	           lda #10
+.11d5	20 61 08	jsr $0861	           jsr setint
+.11d8	28		plp		           plp
+.11d9	20 fe 1f	jsr $1ffe	           jsr from-2
+.11dc	20 c9 08	jsr $08c9	           jsr restoreint
+.11df	a2 00		ldx #$00	           ldx #<to
+.11e1	a0 20		ldy #$20	           ldy #>to
+.11e3	a9 00		lda #$00	           lda #0
+.11e5	20 a7 0c	jsr $0ca7	           jsr compare
+=$2000					from       = $2000
+=$2000					to         = $2000
+.11e8	ad 04 0c	lda $0c04	           lda cmd
+.11eb	8d fe 1f	sta $1ffe	           sta from-2
+.11ee	a2 f3		ldx #$f3	           ldx #$f3
+.11f0	29 20		and #$20	           and #$20
+.11f2	f0 02		beq $11f6	           beq clear
+.11f4	a2 30		ldx #$30	           ldx #$30
+.11f6					clear
+.11f6	8a		txa		           txa
+.11f7	48		pha		           pha
+.11f8	a9 00		lda #$00	           lda #to-from&$ff
+.11fa	8d ff 1f	sta $1fff	           sta from-1
+.11fd	a9 ea		lda #$ea	           lda #$ea
+.11ff	8d 00 20	sta $2000	           sta to
+.1202	a9 60		lda #$60	           lda #$60
+.1204	8d 01 20	sta $2001	           sta to+1
+.1207	a9 01		lda #$01	           lda #1
+.1209	8d a4 0c	sta $0ca4	           sta clock
+.120c	a9 0b		lda #$0b	           lda #11
+.120e	20 61 08	jsr $0861	           jsr setint
+.1211	28		plp		           plp
+.1212	20 fe 1f	jsr $1ffe	           jsr from-2
+.1215	20 c9 08	jsr $08c9	           jsr restoreint
+.1218	a2 00		ldx #$00	           ldx #<to
+.121a	a0 20		ldy #$20	           ldy #>to
+.121c	a9 01		lda #$01	           lda #1
+.121e	20 a7 0c	jsr $0ca7	           jsr compare
+=$2000					from       = $2000
+=$2010					to         = $2010
+.1221	ad 04 0c	lda $0c04	           lda cmd
+.1224	8d fe 1f	sta $1ffe	           sta from-2
+.1227	a2 f3		ldx #$f3	           ldx #$f3
+.1229	29 20		and #$20	           and #$20
+.122b	d0 02		bne $122f	           bne clear
+.122d	a2 30		ldx #$30	           ldx #$30
+.122f					clear
+.122f	8a		txa		           txa
+.1230	48		pha		           pha
+.1231	a9 10		lda #$10	           lda #to-from&$ff
+.1233	8d ff 1f	sta $1fff	           sta from-1
+.1236	a9 ea		lda #$ea	           lda #$ea
+.1238	8d 10 20	sta $2010	           sta to
+.123b	a9 60		lda #$60	           lda #$60
+.123d	8d 11 20	sta $2011	           sta to+1
+.1240	a9 00		lda #$00	           lda #0
+.1242	8d a4 0c	sta $0ca4	           sta clock
+.1245	a9 0a		lda #$0a	           lda #10
+.1247	20 61 08	jsr $0861	           jsr setint
+.124a	28		plp		           plp
+.124b	20 fe 1f	jsr $1ffe	           jsr from-2
+.124e	20 c9 08	jsr $08c9	           jsr restoreint
+.1251	a2 10		ldx #$10	           ldx #<to
+.1253	a0 20		ldy #$20	           ldy #>to
+.1255	a9 00		lda #$00	           lda #0
+.1257	20 a7 0c	jsr $0ca7	           jsr compare
+=$2000					from       = $2000
+=$2010					to         = $2010
+.125a	ad 04 0c	lda $0c04	           lda cmd
+.125d	8d fe 1f	sta $1ffe	           sta from-2
+.1260	a2 f3		ldx #$f3	           ldx #$f3
+.1262	29 20		and #$20	           and #$20
+.1264	d0 02		bne $1268	           bne clear
+.1266	a2 30		ldx #$30	           ldx #$30
+.1268					clear
+.1268	8a		txa		           txa
+.1269	48		pha		           pha
+.126a	a9 10		lda #$10	           lda #to-from&$ff
+.126c	8d ff 1f	sta $1fff	           sta from-1
+.126f	a9 ea		lda #$ea	           lda #$ea
+.1271	8d 10 20	sta $2010	           sta to
+.1274	a9 60		lda #$60	           lda #$60
+.1276	8d 11 20	sta $2011	           sta to+1
+.1279	a9 01		lda #$01	           lda #1
+.127b	8d a4 0c	sta $0ca4	           sta clock
+.127e	a9 0b		lda #$0b	           lda #11
+.1280	20 61 08	jsr $0861	           jsr setint
+.1283	28		plp		           plp
+.1284	20 fe 1f	jsr $1ffe	           jsr from-2
+.1287	20 c9 08	jsr $08c9	           jsr restoreint
+.128a	a2 10		ldx #$10	           ldx #<to
+.128c	a0 20		ldy #$20	           ldy #>to
+.128e	a9 01		lda #$01	           lda #1
+.1290	20 a7 0c	jsr $0ca7	           jsr compare
+=$2000					from       = $2000
+=$2010					to         = $2010
+.1293	ad 04 0c	lda $0c04	           lda cmd
+.1296	8d fe 1f	sta $1ffe	           sta from-2
+.1299	a2 f3		ldx #$f3	           ldx #$f3
+.129b	29 20		and #$20	           and #$20
+.129d	d0 02		bne $12a1	           bne clear
+.129f	a2 30		ldx #$30	           ldx #$30
+.12a1					clear
+.12a1	8a		txa		           txa
+.12a2	48		pha		           pha
+.12a3	a9 10		lda #$10	           lda #to-from&$ff
+.12a5	8d ff 1f	sta $1fff	           sta from-1
+.12a8	a9 ea		lda #$ea	           lda #$ea
+.12aa	8d 10 20	sta $2010	           sta to
+.12ad	a9 60		lda #$60	           lda #$60
+.12af	8d 11 20	sta $2011	           sta to+1
+.12b2	a9 02		lda #$02	           lda #2
+.12b4	8d a4 0c	sta $0ca4	           sta clock
+.12b7	a9 0c		lda #$0c	           lda #12
+.12b9	20 61 08	jsr $0861	           jsr setint
+.12bc	28		plp		           plp
+.12bd	20 fe 1f	jsr $1ffe	           jsr from-2
+.12c0	20 c9 08	jsr $08c9	           jsr restoreint
+.12c3	a2 10		ldx #$10	           ldx #<to
+.12c5	a0 20		ldy #$20	           ldy #>to
+.12c7	a9 01		lda #$01	           lda #1
+.12c9	20 a7 0c	jsr $0ca7	           jsr compare
+=$1ff0					from       = $1ff0
+=$2010					to         = $2010
+.12cc	ad 04 0c	lda $0c04	           lda cmd
+.12cf	8d ee 1f	sta $1fee	           sta from-2
+.12d2	a2 f3		ldx #$f3	           ldx #$f3
+.12d4	29 20		and #$20	           and #$20
+.12d6	d0 02		bne $12da	           bne clear
+.12d8	a2 30		ldx #$30	           ldx #$30
+.12da					clear
+.12da	8a		txa		           txa
+.12db	48		pha		           pha
+.12dc	a9 20		lda #$20	           lda #to-from&$ff
+.12de	8d ef 1f	sta $1fef	           sta from-1
+.12e1	a9 ea		lda #$ea	           lda #$ea
+.12e3	8d 10 20	sta $2010	           sta to
+.12e6	a9 60		lda #$60	           lda #$60
+.12e8	8d 11 20	sta $2011	           sta to+1
+.12eb	a9 01		lda #$01	           lda #1
+.12ed	8d a4 0c	sta $0ca4	           sta clock
+.12f0	a9 0b		lda #$0b	           lda #11
+.12f2	20 61 08	jsr $0861	           jsr setint
+.12f5	28		plp		           plp
+.12f6	20 ee 1f	jsr $1fee	           jsr from-2
+.12f9	20 c9 08	jsr $08c9	           jsr restoreint
+.12fc	a2 10		ldx #$10	           ldx #<to
+.12fe	a0 20		ldy #$20	           ldy #>to
+.1300	a9 00		lda #$00	           lda #0
+.1302	20 a7 0c	jsr $0ca7	           jsr compare
+=$1ff0					from       = $1ff0
+=$2010					to         = $2010
+.1305	ad 04 0c	lda $0c04	           lda cmd
+.1308	8d ee 1f	sta $1fee	           sta from-2
+.130b	a2 f3		ldx #$f3	           ldx #$f3
+.130d	29 20		and #$20	           and #$20
+.130f	d0 02		bne $1313	           bne clear
+.1311	a2 30		ldx #$30	           ldx #$30
+.1313					clear
+.1313	8a		txa		           txa
+.1314	48		pha		           pha
+.1315	a9 20		lda #$20	           lda #to-from&$ff
+.1317	8d ef 1f	sta $1fef	           sta from-1
+.131a	a9 ea		lda #$ea	           lda #$ea
+.131c	8d 10 20	sta $2010	           sta to
+.131f	a9 60		lda #$60	           lda #$60
+.1321	8d 11 20	sta $2011	           sta to+1
+.1324	a9 02		lda #$02	           lda #2
+.1326	8d a4 0c	sta $0ca4	           sta clock
+.1329	a9 0c		lda #$0c	           lda #12
+.132b	20 61 08	jsr $0861	           jsr setint
+.132e	28		plp		           plp
+.132f	20 ee 1f	jsr $1fee	           jsr from-2
+.1332	20 c9 08	jsr $08c9	           jsr restoreint
+.1335	a2 10		ldx #$10	           ldx #<to
+.1337	a0 20		ldy #$20	           ldy #>to
+.1339	a9 00		lda #$00	           lda #0
+.133b	20 a7 0c	jsr $0ca7	           jsr compare
+=$1ff0					from       = $1ff0
+=$2010					to         = $2010
+.133e	ad 04 0c	lda $0c04	           lda cmd
+.1341	8d ee 1f	sta $1fee	           sta from-2
+.1344	a2 f3		ldx #$f3	           ldx #$f3
+.1346	29 20		and #$20	           and #$20
+.1348	d0 02		bne $134c	           bne clear
+.134a	a2 30		ldx #$30	           ldx #$30
+.134c					clear
+.134c	8a		txa		           txa
+.134d	48		pha		           pha
+.134e	a9 20		lda #$20	           lda #to-from&$ff
+.1350	8d ef 1f	sta $1fef	           sta from-1
+.1353	a9 ea		lda #$ea	           lda #$ea
+.1355	8d 10 20	sta $2010	           sta to
+.1358	a9 60		lda #$60	           lda #$60
+.135a	8d 11 20	sta $2011	           sta to+1
+.135d	a9 03		lda #$03	           lda #3
+.135f	8d a4 0c	sta $0ca4	           sta clock
+.1362	a9 0d		lda #$0d	           lda #13
+.1364	20 61 08	jsr $0861	           jsr setint
+.1367	28		plp		           plp
+.1368	20 ee 1f	jsr $1fee	           jsr from-2
+.136b	20 c9 08	jsr $08c9	           jsr restoreint
+.136e	a2 10		ldx #$10	           ldx #<to
+.1370	a0 20		ldy #$20	           ldy #>to
+.1372	a9 01		lda #$01	           lda #1
+.1374	20 a7 0c	jsr $0ca7	           jsr compare
+.1377	60		rts		           rts
+.1378					brkn
+.1378	a9 ae		lda #$ae	           lda #<irq
+.137a	8d fe ff	sta $fffe	           sta $fffe
+.137d	a9 13		lda #$13	           lda #>irq
+.137f	8d ff ff	sta $ffff	           sta $ffff
+.1382	a9 09		lda #$09	           lda #9
+.1384	8d a4 0c	sta $0ca4	           sta clock
+.1387					loop
+.1387	ad a4 0c	lda $0ca4	           lda clock
+.138a	20 61 08	jsr $0861	           jsr setint
+.138d					command
+.138d	00		brk #		           brk
+.138e	ea		nop		           nop
+.138f	20 c9 08	jsr $08c9	           jsr restoreint
+.1392	ae a4 0c	ldx $0ca4	           ldx clock
+.1395	ad 5f 08	lda $085f	           lda flagsbefore
+.1398	5d ba 13	eor $13ba,x	           eor flags,x
+.139b	8d 5f 08	sta $085f	           sta flagsbefore
+.139e	bd b0 13	lda $13b0,x	           lda table,x
+.13a1	a2 8d		ldx #$8d	           ldx #<command
+.13a3	a0 13		ldy #$13	           ldy #>command
+.13a5	20 a7 0c	jsr $0ca7	           jsr compare
+.13a8	ce a4 0c	dec $0ca4	           dec clock
+.13ab	10 da		bpl $1387	           bpl loop
+.13ad	60		rts		           rts
+.13ae					irq
+.13ae	ea		nop		           nop
+.13af	40		rti		           rti
+>13b0	02 02 02 02 22			table      .byte 2,2,2,2,34
+>13b5	22 22 22 02 02			           .byte 34,34,34,2,2
+>13ba	10 10 10 10 04			flags      .byte $10,$10,$10,$10,$04
+>13bf	04 04 04 00 00			           .byte $04,$04,$04,$00,$00
+.13c4					phan
+.13c4					phpn
+.13c4	ad 04 0c	lda $0c04	           lda cmd
+.13c7	8d d5 13	sta $13d5	           sta command
+.13ca	a9 02		lda #$02	           lda #2
+.13cc	8d a4 0c	sta $0ca4	           sta clock
+.13cf					loop
+.13cf	ad a4 0c	lda $0ca4	           lda clock
+.13d2	20 61 08	jsr $0861	           jsr setint
+.13d5					command
+.13d5	ea		nop		           nop
+.13d6	68		pla		           pla
+.13d7	20 c9 08	jsr $08c9	           jsr restoreint
+.13da	ae a4 0c	ldx $0ca4	           ldx clock
+.13dd	bd ed 13	lda $13ed,x	           lda right,x
+.13e0	a2 d5		ldx #$d5	           ldx #<command
+.13e2	a0 13		ldy #$13	           ldy #>command
+.13e4	20 a7 0c	jsr $0ca7	           jsr compare
+.13e7	ce a4 0c	dec $0ca4	           dec clock
+.13ea	10 e3		bpl $13cf	           bpl loop
+.13ec	60		rts		           rts
+>13ed	01 01 02			right      .byte 1,1,2
+.13f0					plan
+.13f0					plpn
+.13f0	ad 04 0c	lda $0c04	           lda cmd
+.13f3	8d 04 14	sta $1404	           sta command
+.13f6	a9 03		lda #$03	           lda #3
+.13f8	8d a4 0c	sta $0ca4	           sta clock
+.13fb					loop
+.13fb	a9 00		lda #$00	           lda #0
+.13fd	48		pha		           pha
+.13fe	ad a4 0c	lda $0ca4	           lda clock
+.1401	20 61 08	jsr $0861	           jsr setint
+.1404					command
+.1404	ea		nop		           nop
+.1405	ea		nop		           nop
+.1406	20 c9 08	jsr $08c9	           jsr restoreint
+.1409	ae a4 0c	ldx $0ca4	           ldx clock
+.140c	bd 1c 14	lda $141c,x	           lda right,x
+.140f	a2 04		ldx #$04	           ldx #<command
+.1411	a0 14		ldy #$14	           ldy #>command
+.1413	20 a7 0c	jsr $0ca7	           jsr compare
+.1416	ce a4 0c	dec $0ca4	           dec clock
+.1419	10 e0		bpl $13fb	           bpl loop
+.141b	60		rts		           rts
+>141c	01 01 01 02			right      .byte 1,1,1,2
+.1420					jmpw
+.1420	a9 02		lda #$02	           lda #2
+.1422	8d a4 0c	sta $0ca4	           sta clock
+.1425					loop
+.1425	ad a4 0c	lda $0ca4	           lda clock
+.1428	20 61 08	jsr $0861	           jsr setint
+.142b	4c 2f 14	jmp $142f	           jmp target
+.142e	00		brk #		           brk
+.142f					target
+.142f	ea		nop		           nop
+.1430	20 c9 08	jsr $08c9	           jsr restoreint
+.1433	ae a4 0c	ldx $0ca4	           ldx clock
+.1436	bd 46 14	lda $1446,x	           lda right,x
+.1439	a2 2f		ldx #$2f	           ldx #<target
+.143b	a0 14		ldy #$14	           ldy #>target
+.143d	20 a7 0c	jsr $0ca7	           jsr compare
+.1440	ce a4 0c	dec $0ca4	           dec clock
+.1443	10 e0		bpl $1425	           bpl loop
+.1445	60		rts		           rts
+>1446	00 00 01			right      .byte 0,0,1
+.1449					jmpi
+.1449	a9 62		lda #$62	           lda #<target
+.144b	8d 00 20	sta $2000	           sta $2000
+.144e	a9 14		lda #$14	           lda #>target
+.1450	8d 01 20	sta $2001	           sta $2001
+.1453	a9 04		lda #$04	           lda #4
+.1455	8d a4 0c	sta $0ca4	           sta clock
+.1458					loop
+.1458	ad a4 0c	lda $0ca4	           lda clock
+.145b	20 61 08	jsr $0861	           jsr setint
+.145e	6c 00 20	jmp ($2000)	           jmp ($2000)
+.1461	00		brk #		           brk
+.1462					target
+.1462	ea		nop		           nop
+.1463	20 c9 08	jsr $08c9	           jsr restoreint
+.1466	ae a4 0c	ldx $0ca4	           ldx clock
+.1469	bd 79 14	lda $1479,x	           lda right,x
+.146c	a2 62		ldx #$62	           ldx #<target
+.146e	a0 14		ldy #$14	           ldy #>target
+.1470	20 a7 0c	jsr $0ca7	           jsr compare
+.1473	ce a4 0c	dec $0ca4	           dec clock
+.1476	10 e0		bpl $1458	           bpl loop
+.1478	60		rts		           rts
+>1479	00 00 00 00 01			right      .byte 0,0,0,0,1
+.147e					jsrw
+.147e	a9 05		lda #$05	           lda #5
+.1480	8d a4 0c	sta $0ca4	           sta clock
+.1483					loop
+.1483	ad a4 0c	lda $0ca4	           lda clock
+.1486	20 61 08	jsr $0861	           jsr setint
+.1489	20 8d 14	jsr $148d	           jsr target
+.148c	00		brk #		           brk
+.148d					target
+.148d	68		pla		           pla
+.148e	68		pla		           pla
+.148f	20 c9 08	jsr $08c9	           jsr restoreint
+.1492	ae a4 0c	ldx $0ca4	           ldx clock
+.1495	bd a5 14	lda $14a5,x	           lda right,x
+.1498	a2 8d		ldx #$8d	           ldx #<target
+.149a	a0 14		ldy #$14	           ldy #>target
+.149c	20 a7 0c	jsr $0ca7	           jsr compare
+.149f	ce a4 0c	dec $0ca4	           dec clock
+.14a2	10 df		bpl $1483	           bpl loop
+.14a4	60		rts		           rts
+>14a5	00 00 00 00 00 01		right      .byte 0,0,0,0,0,1
+.14ab					rtsn
+.14ab	a9 05		lda #$05	           lda #5
+.14ad	8d a4 0c	sta $0ca4	           sta clock
+.14b0					loop
+.14b0	a9 14		lda #$14	           lda #>continue-1
+.14b2	48		pha		           pha
+.14b3	a9 bc		lda #$bc	           lda #<continue-1
+.14b5	48		pha		           pha
+.14b6	ad a4 0c	lda $0ca4	           lda clock
+.14b9	20 61 08	jsr $0861	           jsr setint
+.14bc	60		rts		           rts
+.14bd					continue
+.14bd	ea		nop		           nop
+.14be	20 c9 08	jsr $08c9	           jsr restoreint
+.14c1	ae a4 0c	ldx $0ca4	           ldx clock
+.14c4	bd d4 14	lda $14d4,x	           lda right,x
+.14c7	a2 bd		ldx #$bd	           ldx #<continue
+.14c9	a0 14		ldy #$14	           ldy #>continue
+.14cb	20 a7 0c	jsr $0ca7	           jsr compare
+.14ce	ce a4 0c	dec $0ca4	           dec clock
+.14d1	10 dd		bpl $14b0	           bpl loop
+.14d3	60		rts		           rts
+>14d4	00 00 00 00 00 01		right      .byte 0,0,0,0,0,1
+.14da					rtin
+.14da	a9 05		lda #$05	           lda #5
+.14dc	8d a4 0c	sta $0ca4	           sta clock
+.14df					loop
+.14df	a9 14		lda #$14	           lda #>continue
+.14e1	48		pha		           pha
+.14e2	a9 ed		lda #$ed	           lda #<continue
+.14e4	48		pha		           pha
+.14e5	08		php		           php
+.14e6	ad a4 0c	lda $0ca4	           lda clock
+.14e9	20 61 08	jsr $0861	           jsr setint
+.14ec	40		rti		           rti
+.14ed					continue
+.14ed	ea		nop		           nop
+.14ee	20 c9 08	jsr $08c9	           jsr restoreint
+.14f1	ae a4 0c	ldx $0ca4	           ldx clock
+.14f4	bd 04 15	lda $1504,x	           lda right,x
+.14f7	a2 ed		ldx #$ed	           ldx #<continue
+.14f9	a0 14		ldy #$14	           ldy #>continue
+.14fb	20 a7 0c	jsr $0ca7	           jsr compare
+.14fe	ce a4 0c	dec $0ca4	           dec clock
+.1501	10 dc		bpl $14df	           bpl loop
+.1503	60		rts		           rts
+>1504	00 00 00 00 00 01		right      .byte 0,0,0,0,0,1
+.150a					hltn
+.150a	60		rts		           rts
+
+;******  End of listing

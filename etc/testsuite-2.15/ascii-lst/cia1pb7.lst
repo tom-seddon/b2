@@ -1,0 +1,474 @@
+
+; 64tass Turbo Assembler Macro V1.52.1237 listing file
+; 64tass.exe -L ascii-lst/cia1pb7.lst -o ascii-bin/cia1pb7 -T ascii-src/cia1pb7.asm
+; Mon Sep 26 23:32:15 2016
+
+;Offset	;Hex		;Monitor	;Source
+
+;******  Processing input file: ascii-src/cia1pb7.asm
+
+>0801	4c 14 08 00 97			           .byte $4c,$14,$08,$00,$97
+=780					turboass   = 780
+>0806	37 38 30			           .text "780"
+>0809	2c 30 3a 9e 32 30		           .byte $2c,$30,$3a,$9e,$32,$30
+>080f	37 33 00 00 00			           .byte $37,$33,$00,$00,$00
+.0814	a9 01		lda #$01	           lda #1
+.0816	8d 0c 03	sta $030c	           sta turboass
+.0819	a2 00		ldx #$00	           ldx #0
+.081b	86 d3		stx $d3		           stx $d3
+.081d	ad ec 08	lda $08ec	           lda thisname
+.0820					printthis
+.0820	20 d2 ff	jsr $ffd2	           jsr $ffd2
+.0823	e8		inx		           inx
+.0824	bd ec 08	lda $08ec,x	           lda thisname,x
+.0827	d0 f7		bne $0820	           bne printthis
+.0829	20 fc 08	jsr $08fc	           jsr main
+.082c	a9 37		lda #$37	           lda #$37
+.082e	85 01		sta $01		           sta 1
+.0830	a9 2f		lda #$2f	           lda #$2f
+.0832	85 00		sta $00		           sta 0
+.0834	20 15 fd	jsr $fd15	           jsr $fd15
+.0837	20 a3 fd	jsr $fda3	           jsr $fda3
+.083a	20 7a 08	jsr $087a	           jsr print
+>083d	20 2d 20 6f 6b			           .text " - ok"
+>0842	0d 00				           .byte 13,0
+.0844	ad 0c 03	lda $030c	           lda turboass
+.0847	f0 06		beq $084f	           beq loadnext
+.0849	20 c5 08	jsr $08c5	           jsr waitkey
+.084c	4c 00 80	jmp $8000	           jmp $8000
+.084f					loadnext
+.084f	a2 f8		ldx #$f8	           ldx #$f8
+.0851	9a		txs		           txs
+.0852	ad f4 08	lda $08f4	           lda nextname
+.0855	c9 2d		cmp #$2d	           cmp #"-"
+.0857	d0 03		bne $085c	           bne notempty
+.0859	4c 74 a4	jmp $a474	           jmp $a474
+.085c					notempty
+.085c	a2 00		ldx #$00	           ldx #0
+.085e					printnext
+.085e	20 d2 ff	jsr $ffd2	           jsr $ffd2
+.0861	e8		inx		           inx
+.0862	bd f4 08	lda $08f4,x	           lda nextname,x
+.0865	d0 f7		bne $085e	           bne printnext
+.0867	a9 00		lda #$00	           lda #0
+.0869	85 0a		sta $0a		           sta $0a
+.086b	85 b9		sta $b9		           sta $b9
+.086d	86 b7		stx $b7		           stx $b7
+.086f	a9 f4		lda #$f4	           lda #<nextname
+.0871	85 bb		sta $bb		           sta $bb
+.0873	a9 08		lda #$08	           lda #>nextname
+.0875	85 bc		sta $bc		           sta $bc
+.0877	4c 6f e1	jmp $e16f	           jmp $e16f
+.087a					print
+.087a	68		pla		           pla
+.087b	8d 85 08	sta $0885	           sta next+1
+.087e	68		pla		           pla
+.087f	8d 86 08	sta $0886	           sta next+2
+.0882	a2 01		ldx #$01	           ldx #1
+.0884					next
+.0884	bd 11 11	lda $1111,x	           lda $1111,x
+.0887	f0 06		beq $088f	           beq end
+.0889	20 d2 ff	jsr $ffd2	           jsr $ffd2
+.088c	e8		inx		           inx
+.088d	d0 f5		bne $0884	           bne next
+.088f					end
+.088f	38		sec		           sec
+.0890	8a		txa		           txa
+.0891	6d 85 08	adc $0885	           adc next+1
+.0894	8d a0 08	sta $08a0	           sta return+1
+.0897	a9 00		lda #$00	           lda #0
+.0899	6d 86 08	adc $0886	           adc next+2
+.089c	8d a1 08	sta $08a1	           sta return+2
+.089f					return
+.089f	4c 11 11	jmp $1111	           jmp $1111
+.08a2					printhb
+.08a2	48		pha		           pha
+.08a3	4a		lsr a		           lsr a
+.08a4	4a		lsr a		           lsr a
+.08a5	4a		lsr a		           lsr a
+.08a6	4a		lsr a		           lsr a
+.08a7	20 ad 08	jsr $08ad	           jsr printhn
+.08aa	68		pla		           pla
+.08ab	29 0f		and #$0f	           and #$0f
+.08ad					printhn
+.08ad	09 30		ora #$30	           ora #$30
+.08af	c9 3a		cmp #$3a	           cmp #$3a
+.08b1	90 02		bcc $08b5	           bcc noletter
+.08b3	69 06		adc #$06	           adc #6
+.08b5					noletter
+.08b5	4c d2 ff	jmp $ffd2	           jmp $ffd2
+.08b8					waitborder
+.08b8	ad 11 d0	lda $d011	           lda $d011
+.08bb	30 07		bmi $08c4	           bmi ok
+.08bd					wait
+.08bd	ad 12 d0	lda $d012	           lda $d012
+.08c0	c9 1e		cmp #$1e	           cmp #30
+.08c2	b0 f9		bcs $08bd	           bcs wait
+.08c4					ok
+.08c4	60		rts		           rts
+.08c5					waitkey
+.08c5	20 15 fd	jsr $fd15	           jsr $fd15
+.08c8	20 a3 fd	jsr $fda3	           jsr $fda3
+.08cb	58		cli		           cli
+.08cc					wait
+.08cc	20 e4 ff	jsr $ffe4	           jsr $ffe4
+.08cf	f0 fb		beq $08cc	           beq wait
+.08d1	c9 03		cmp #$03	           cmp #3
+.08d3	f0 01		beq $08d6	           beq stop
+.08d5	60		rts		           rts
+.08d6					stop
+.08d6	ad 0c 03	lda $030c	           lda turboass
+.08d9	f0 03		beq $08de	           beq load
+.08db	4c 00 80	jmp $8000	           jmp $8000
+.08de					load
+.08de	20 7a 08	jsr $087a	           jsr print
+>08e1	0d				           .byte 13
+>08e2	62 72 65 61 6b			           .text "break"
+>08e7	0d 00				           .byte 13,0
+.08e9	4c 4f 08	jmp $084f	           jmp loadnext
+>08ec	63 69 61 31 70 62 37 00		thisname   .null "cia1pb7"
+>08f4	63 69 61 32 70 62 36 00		nextname   .null "cia2pb6"
+.08fc					main
+.08fc	4c 83 09	jmp $0983	           jmp start
+>08ff	00				i          .byte 0
+>0900	00				old        .byte 0
+>0901	00				new        .byte 0
+>0902	00				or         .byte 0
+>0903	2d 2d 2d 2d 2d 2d 2d 2d		right      .text "----------------"
+>090b	2d 2d 2d 2d 2d 2d 2d 2d
+>0913	30 30 30 30 30 30 30 30		           .text "0000000000000000"
+>091b	30 30 30 30 30 30 30 30
+>0923	2d 2d 2d 2d 2d 2d 2d 2d		           .text "----------------"
+>092b	2d 2d 2d 2d 2d 2d 2d 2d
+>0933	31 31 31 31 31 31 31 31		           .text "1111111111111111"
+>093b	31 31 31 31 31 31 31 31
+>0943	2d 2d 2d 2d 2d 2d 2d 2d		           .text "----------------"
+>094b	2d 2d 2d 2d 2d 2d 2d 2d
+>0953	30 30 30 30 30 30 30 30		           .text "0000000000000000"
+>095b	30 30 30 30 30 30 30 30
+>0963	2d 2d 2d 2d 2d 2d 2d 2d		           .text "----------------"
+>096b	2d 2d 2d 2d 2d 2d 2d 2d
+>0973	31 31 31 31 31 31 31 31		           .text "1111111111111111"
+>097b	31 31 31 31 31 31 31 31
+.0983					start
+.0983	a9 00		lda #$00	           lda #0
+.0985	8d ff 08	sta $08ff	           sta i
+.0988					loop
+.0988	a9 80		lda #$80	           lda #$80
+.098a	8d 03 dc	sta $dc03	           sta $dc03
+.098d	a9 00		lda #$00	           lda #0
+.098f	8d 01 dc	sta $dc01	           sta $dc01
+.0992	8d 0e dc	sta $dc0e	           sta $dc0e
+.0995	8d 0f dc	sta $dc0f	           sta $dc0f
+.0998	a9 7f		lda #$7f	           lda #127
+.099a	8d 0d dc	sta $dc0d	           sta $dc0d
+.099d	2c 0d dc	bit $dc0d	           bit $dc0d
+.09a0	a9 ff		lda #$ff	           lda #$ff
+.09a2	8d 06 dc	sta $dc06	           sta $dc06
+.09a5	8d 07 dc	sta $dc07	           sta $dc07
+.09a8	ad ff 08	lda $08ff	           lda i
+.09ab	29 07		and #$07	           and #%00000111
+.09ad	8d 0f dc	sta $dc0f	           sta $dc0f
+.09b0	8d 00 09	sta $0900	           sta old
+.09b3	ad ff 08	lda $08ff	           lda i
+.09b6	4a		lsr a		           lsr a
+.09b7	4a		lsr a		           lsr a
+.09b8	48		pha		           pha
+.09b9	29 10		and #$10	           and #%00010000
+.09bb	8d 02 09	sta $0902	           sta or
+.09be	68		pla		           pla
+.09bf	4a		lsr a		           lsr a
+.09c0	29 07		and #$07	           and #%00000111
+.09c2	0d 02 09	ora $0902	           ora or
+.09c5	8d 0f dc	sta $dc0f	           sta $dc0f
+.09c8	8d 01 09	sta $0901	           sta new
+.09cb	ad 01 dc	lda $dc01	           lda $dc01
+.09ce	49 80		eor #$80	           eor #$80
+.09d0	8d 01 dc	sta $dc01	           sta $dc01
+.09d3	cd 01 dc	cmp $dc01	           cmp $dc01
+.09d6	f0 09		beq $09e1	           beq minus
+.09d8	49 80		eor #$80	           eor #$80
+.09da	0a		asl a		           asl a
+.09db	a9 18		lda #$18	           lda #"0"/2
+.09dd	2a		rol a		           rol a
+.09de	4c e3 09	jmp $09e3	           jmp nominus
+.09e1					minus
+.09e1	a9 2d		lda #$2d	           lda #"-"
+.09e3					nominus
+.09e3	ae ff 08	ldx $08ff	           ldx i
+.09e6	dd 03 09	cmp $0903,x	           cmp right,x
+.09e9	f0 30		beq $0a1b	           beq ok
+.09eb	48		pha		           pha
+.09ec	20 7a 08	jsr $087a	           jsr print
+>09ef	0d				           .byte 13
+>09f0	6f 6c 64 20 6e 65 77 20		           .text "old new pb7  "
+>09f8	70 62 37 20 20
+>09fd	00				           .byte 0
+.09fe	ad 00 09	lda $0900	           lda old
+.0a01	20 a2 08	jsr $08a2	           jsr printhb
+.0a04	a9 20		lda #$20	           lda #32
+.0a06	20 d2 ff	jsr $ffd2	           jsr $ffd2
+.0a09	ad 01 09	lda $0901	           lda new
+.0a0c	20 a2 08	jsr $08a2	           jsr printhb
+.0a0f	a9 20		lda #$20	           lda #32
+.0a11	20 d2 ff	jsr $ffd2	           jsr $ffd2
+.0a14	68		pla		           pla
+.0a15	20 d2 ff	jsr $ffd2	           jsr $ffd2
+.0a18	20 c5 08	jsr $08c5	           jsr waitkey
+.0a1b					ok
+.0a1b	ee ff 08	inc $08ff	           inc i
+.0a1e	30 03		bmi $0a23	           bmi end
+.0a20	4c 88 09	jmp $0988	           jmp loop
+.0a23					end
+.0a23	a9 00		lda #$00	           lda #0
+.0a25	8d 0f dc	sta $dc0f	           sta $dc0f
+.0a28	a2 64		ldx #$64	           ldx #100
+.0a2a	8e 06 dc	stx $dc06	           stx $dc06
+.0a2d	8d 07 dc	sta $dc07	           sta $dc07
+.0a30	78		sei		           sei
+.0a31	20 b8 08	jsr $08b8	           jsr waitborder
+.0a34	a9 0f		lda #$0f	           lda #$0f
+.0a36	8d 0f dc	sta $dc0f	           sta $dc0f
+.0a39	a9 80		lda #$80	           lda #$80
+.0a3b	2c 01 dc	bit $dc01	           bit $dc01
+.0a3e	d0 17		bne $0a57	           bne ok1
+.0a40	20 7a 08	jsr $087a	           jsr print
+>0a43	0d				           .byte 13
+>0a44	70 62 37 20 69 73 20 6e		           .null "pb7 is not high"
+>0a4c	6f 74 20 68 69 67 68 00
+.0a54	20 c5 08	jsr $08c5	           jsr waitkey
+.0a57					ok1
+.0a57	a9 01		lda #$01	           lda #$01
+.0a59					wait
+.0a59	2c 0f dc	bit $dc0f	           bit $dc0f
+.0a5c	d0 fb		bne $0a59	           bne wait
+.0a5e	a9 80		lda #$80	           lda #$80
+.0a60	2c 01 dc	bit $dc01	           bit $dc01
+.0a63	f0 16		beq $0a7b	           beq ok2
+.0a65	20 7a 08	jsr $087a	           jsr print
+>0a68	0d				           .byte 13
+>0a69	70 62 37 20 69 73 20 6e		           .null "pb7 is not low"
+>0a71	6f 74 20 6c 6f 77 00
+.0a78	20 c5 08	jsr $08c5	           jsr waitkey
+.0a7b					ok2
+.0a7b	a9 0e		lda #$0e	           lda #$0e
+.0a7d	8d 0f dc	sta $dc0f	           sta $dc0f
+.0a80	a9 80		lda #$80	           lda #$80
+.0a82	2c 01 dc	bit $dc01	           bit $dc01
+.0a85	f0 28		beq $0aaf	           beq ok3
+.0a87	20 7a 08	jsr $087a	           jsr print
+>0a8a	0d				           .byte 13
+>0a8b	77 72 69 74 69 6e 67 20		           .text "writing crb may "
+>0a93	63 72 62 20 6d 61 79 20
+>0a9b	6e 6f 74 20 73 65 74 20		           .text "not set pb7 high"
+>0aa3	70 62 37 20 68 69 67 68
+>0aab	00				           .byte 0
+.0aac	20 c5 08	jsr $08c5	           jsr waitkey
+.0aaf					ok3
+.0aaf	a9 64		lda #$64	           lda #100
+.0ab1	8d 06 dc	sta $dc06	           sta $dc06
+.0ab4	a9 80		lda #$80	           lda #$80
+.0ab6	2c 01 dc	bit $dc01	           bit $dc01
+.0ab9	f0 2b		beq $0ae6	           beq ok4
+.0abb	20 7a 08	jsr $087a	           jsr print
+>0abe	0d				           .byte 13
+>0abf	77 72 69 74 69 6e 67 20		           .text "writing ta low may "
+>0ac7	74 61 20 6c 6f 77 20 6d 61 79 20
+>0ad2	6e 6f 74 20 73 65 74 20		           .text "not set pb7 high"
+>0ada	70 62 37 20 68 69 67 68
+>0ae2	00				           .byte 0
+.0ae3	20 c5 08	jsr $08c5	           jsr waitkey
+.0ae6					ok4
+.0ae6	a9 00		lda #$00	           lda #0
+.0ae8	8d 05 dc	sta $dc05	           sta $dc05
+.0aeb	a9 80		lda #$80	           lda #$80
+.0aed	2c 01 dc	bit $dc01	           bit $dc01
+.0af0	f0 2c		beq $0b1e	           beq ok5
+.0af2	20 7a 08	jsr $087a	           jsr print
+>0af5	0d				           .byte 13
+>0af6	77 72 69 74 69 6e 67 20		           .text "writing ta high may "
+>0afe	74 61 20 68 69 67 68 20 6d 61 79 20
+>0b0a	6e 6f 74 20 73 65 74 20		           .text "not set pb7 high"
+>0b12	70 62 37 20 68 69 67 68
+>0b1a	00				           .byte 0
+.0b1b	20 c5 08	jsr $08c5	           jsr waitkey
+.0b1e					ok5
+.0b1e	a9 1e		lda #$1e	           lda #$1e
+.0b20	8d 0f dc	sta $dc0f	           sta $dc0f
+.0b23	a9 80		lda #$80	           lda #$80
+.0b25	2c 01 dc	bit $dc01	           bit $dc01
+.0b28	f0 27		beq $0b51	           beq ok6
+.0b2a	20 7a 08	jsr $087a	           jsr print
+>0b2d	0d				           .byte 13
+>0b2e	66 6f 72 63 65 20 6c 6f		           .text "force load may "
+>0b36	61 64 20 6d 61 79 20
+>0b3d	6e 6f 74 20 73 65 74 20		           .text "not set pb7 high"
+>0b45	70 62 37 20 68 69 67 68
+>0b4d	00				           .byte 0
+.0b4e	20 c5 08	jsr $08c5	           jsr waitkey
+.0b51					ok6
+.0b51	a9 0a		lda #$0a	           lda #%00001010
+.0b53	8d 0f dc	sta $dc0f	           sta $dc0f
+.0b56	a9 0e		lda #$0e	           lda #%00001110
+.0b58	8d 0f dc	sta $dc0f	           sta $dc0f
+.0b5b	a9 80		lda #$80	           lda #$80
+.0b5d	2c 01 dc	bit $dc01	           bit $dc01
+.0b60	f0 2d		beq $0b8f	           beq ok7
+.0b62	20 7a 08	jsr $087a	           jsr print
+>0b65	0d				           .byte 13
+>0b66	73 77 69 74 63 68 69 6e		           .text "switching toggle "
+>0b6e	67 20 74 6f 67 67 6c 65 20
+>0b77	6d 61 79 20 6e 6f 74 20		           .text "may not set pb7 high"
+>0b7f	73 65 74 20 70 62 37 20 68 69 67 68
+>0b8b	00				           .byte 0
+.0b8c	20 c5 08	jsr $08c5	           jsr waitkey
+.0b8f					ok7
+.0b8f	a9 0c		lda #$0c	           lda #%00001100
+.0b91	8d 0f dc	sta $dc0f	           sta $dc0f
+.0b94	a9 0e		lda #$0e	           lda #%00001110
+.0b96	8d 0f dc	sta $dc0f	           sta $dc0f
+.0b99	a9 80		lda #$80	           lda #$80
+.0b9b	2c 01 dc	bit $dc01	           bit $dc01
+.0b9e	f0 2c		beq $0bcc	           beq ok8
+.0ba0	20 7a 08	jsr $087a	           jsr print
+>0ba3	0d				           .byte 13
+>0ba4	73 77 69 74 63 68 69 6e		           .text "switching pb7on "
+>0bac	67 20 70 62 37 6f 6e 20
+>0bb4	6d 61 79 20 6e 6f 74 20		           .text "may not set pb7 high"
+>0bbc	73 65 74 20 70 62 37 20 68 69 67 68
+>0bc8	00				           .byte 0
+.0bc9	20 c5 08	jsr $08c5	           jsr waitkey
+.0bcc					ok8
+.0bcc	78		sei		           sei
+.0bcd	20 b8 08	jsr $08b8	           jsr waitborder
+.0bd0	a9 07		lda #$07	           lda #%00000111
+.0bd2	8d 0f dc	sta $dc0f	           sta $dc0f
+.0bd5	a9 80		lda #$80	           lda #$80
+.0bd7	2c 01 dc	bit $dc01	           bit $dc01
+.0bda	d0 1f		bne $0bfb	           bne ok9
+.0bdc	20 7a 08	jsr $087a	           jsr print
+>0bdf	0d				           .byte 13
+>0be0	73 74 61 72 74 20 6d 75		           .text "start must set "
+>0be8	73 74 20 73 65 74 20
+>0bef	70 62 37 20 68 69 67 68		           .text "pb7 high"
+>0bf7	00				           .byte 0
+.0bf8	20 c5 08	jsr $08c5	           jsr waitkey
+.0bfb					ok9
+.0bfb	a9 80		lda #$80	           lda #$80
+.0bfd	a2 00		ldx #$00	           ldx #0
+.0bff					waitlow0
+.0bff	ca		dex		           dex
+.0c00	f0 20		beq $0c22	           beq timeout
+.0c02	2c 01 dc	bit $dc01	           bit $dc01
+.0c05	d0 f8		bne $0bff	           bne waitlow0
+.0c07					waithigh0
+.0c07	ca		dex		           dex
+.0c08	f0 18		beq $0c22	           beq timeout
+.0c0a	2c 01 dc	bit $dc01	           bit $dc01
+.0c0d	f0 f8		beq $0c07	           beq waithigh0
+.0c0f					waitlow1
+.0c0f	ca		dex		           dex
+.0c10	f0 10		beq $0c22	           beq timeout
+.0c12	2c 01 dc	bit $dc01	           bit $dc01
+.0c15	d0 f8		bne $0c0f	           bne waitlow1
+.0c17					waithigh1
+.0c17	ca		dex		           dex
+.0c18	f0 08		beq $0c22	           beq timeout
+.0c1a	2c 01 dc	bit $dc01	           bit $dc01
+.0c1d	f0 f8		beq $0c17	           beq waithigh1
+.0c1f	4c 3e 0c	jmp $0c3e	           jmp ok
+.0c22					timeout
+.0c22	20 7a 08	jsr $087a	           jsr print
+>0c25	0d				           .byte 13
+>0c26	70 62 37 20 74 6f 67 67		           .null "pb7 toggle timed out"
+>0c2e	6c 65 20 74 69 6d 65 64 20 6f 75 74 00
+.0c3b	20 c5 08	jsr $08c5	           jsr waitkey
+.0c3e					ok
+.0c3e	4c 42 0c	jmp $0c42	           jmp start
+>0c41	00				i          .byte 0
+.0c42					start
+.0c42	a9 03		lda #$03	           lda #3
+.0c44	8d 41 0c	sta $0c41	           sta i
+.0c47					loop
+.0c47	a9 00		lda #$00	           lda #0
+.0c49	8d 0f dc	sta $dc0f	           sta $dc0f
+.0c4c	a9 0f		lda #$0f	           lda #15
+.0c4e	8d 06 dc	sta $dc06	           sta $dc06
+.0c51	a9 00		lda #$00	           lda #0
+.0c53	8d 07 dc	sta $dc07	           sta $dc07
+.0c56	78		sei		           sei
+.0c57	20 b8 08	jsr $08b8	           jsr waitborder
+.0c5a	ad 41 0c	lda $0c41	           lda i
+.0c5d	38		sec		           sec
+.0c5e	2a		rol a		           rol a
+.0c5f	8d 0f dc	sta $dc0f	           sta $dc0f
+.0c62	a2 07		ldx #$07	           ldx #$07
+.0c64	8e 0f dc	stx $dc0f	           stx $dc0f
+.0c67	ac 01 dc	ldy $dc01	           ldy $dc01
+.0c6a	8d 0f dc	sta $dc0f	           sta $dc0f
+.0c6d	a2 07		ldx #$07	           ldx #$07
+.0c6f	8e 0f dc	stx $dc0f	           stx $dc0f
+.0c72	ad 01 dc	lda $dc01	           lda $dc01
+.0c75	29 80		and #$80	           and #$80
+.0c77	d0 05		bne $0c7e	           bne error
+.0c79	98		tya		           tya
+.0c7a	29 80		and #$80	           and #$80
+.0c7c	d0 2e		bne $0cac	           bne ok
+.0c7e					error
+.0c7e	20 7a 08	jsr $087a	           jsr print
+>0c81	0d				           .byte 13
+>0c82	74 6f 67 67 6c 65 20 73		           .text "toggle state is not "
+>0c8a	74 61 74 65 20 69 73 20 6e 6f 74 20
+>0c96	69 6e 64 65 70 65 6e 64		           .null "independent "
+>0c9e	65 6e 74 20 00
+.0ca3	ad 41 0c	lda $0c41	           lda i
+.0ca6	20 a2 08	jsr $08a2	           jsr printhb
+.0ca9	20 c5 08	jsr $08c5	           jsr waitkey
+.0cac					ok
+.0cac	ce 41 0c	dec $0c41	           dec i
+.0caf	10 96		bpl $0c47	           bpl loop
+.0cb1	4c df 0c	jmp $0cdf	           jmp start
+>0cb4	07 07 07 07 07 07		settab     .byte 7,7,7,7,7,7
+>0cba	03 03 03 03 03 03 03 03		           .byte 3,3,3,3,3,3,3,3
+>0cc2	07 06 03 02 01 00		loadtab    .byte 7,6,3,2,1,0
+>0cc8	07 06 05 04 03 02 01 00		           .byte 7,6,5,4,3,2,1,0
+>0cd0	01 00 00 01 00 00		comptab    .byte 1,0,0,1,0,0
+>0cd6	00 01 00 00 00 00 00 01		           .byte 0,1,0,0,0,0,0,1
+>0cde	00				i          .byte 0
+.0cdf					start
+.0cdf	a9 0d		lda #$0d	           lda #loadtab-settab-1
+.0ce1	8d de 0c	sta $0cde	           sta i
+.0ce4					loop
+.0ce4	a9 00		lda #$00	           lda #0
+.0ce6	8d 0f dc	sta $dc0f	           sta $dc0f
+.0ce9	ae de 0c	ldx $0cde	           ldx i
+.0cec	bd c2 0c	lda $0cc2,x	           lda loadtab,x
+.0cef	8d 06 dc	sta $dc06	           sta $dc06
+.0cf2	a9 00		lda #$00	           lda #0
+.0cf4	8d 07 dc	sta $dc07	           sta $dc07
+.0cf7	78		sei		           sei
+.0cf8	20 b8 08	jsr $08b8	           jsr waitborder
+.0cfb	ae de 0c	ldx $0cde	           ldx i
+.0cfe	bd b4 0c	lda $0cb4,x	           lda settab,x
+.0d01	8d 0f dc	sta $dc0f	           sta $dc0f
+.0d04	ea		nop		           nop
+.0d05	ea		nop		           nop
+.0d06	ad 01 dc	lda $dc01	           lda $dc01
+.0d09	0a		asl a		           asl a
+.0d0a	a9 00		lda #$00	           lda #0
+.0d0c	2a		rol a		           rol a
+.0d0d	dd d0 0c	cmp $0cd0,x	           cmp comptab,x
+.0d10	f0 21		beq $0d33	           beq ok
+.0d12	20 7a 08	jsr $087a	           jsr print
+>0d15	0d				           .byte 13
+>0d16	74 69 6d 69 6e 67 20 65		           .null "timing error index "
+>0d1e	72 72 6f 72 20 69 6e 64 65 78 20 00
+.0d2a	ad de 0c	lda $0cde	           lda i
+.0d2d	20 a2 08	jsr $08a2	           jsr printhb
+.0d30	20 c5 08	jsr $08c5	           jsr waitkey
+.0d33					ok
+.0d33	ce de 0c	dec $0cde	           dec i
+.0d36	10 ac		bpl $0ce4	           bpl loop
+.0d38	60		rts		           rts
+
+;******  End of listing

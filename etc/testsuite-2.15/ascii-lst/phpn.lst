@@ -1,0 +1,303 @@
+
+; 64tass Turbo Assembler Macro V1.52.1237 listing file
+; 64tass.exe -L ascii-lst/phpn.lst -o ascii-bin/phpn -T ascii-src/phpn.asm
+; Mon Sep 26 23:32:25 2016
+
+;Offset	;Hex		;Monitor	;Source
+
+;******  Processing input file: ascii-src/phpn.asm
+
+>0801	4c 16 08 00 97 32		         .byte $4c,$16,$08,$00,$97,$32
+>0807	2c 30 3a 9e 32 30		         .byte $2c,$30,$3a,$9e,$32,$30
+>080d	37 30 00 00 00 a9		         .byte $37,$30,$00,$00,$00,$a9
+>0813	01 85 02			         .byte $01,$85,$02
+.0816	20 49 0a	jsr $0a49	         jsr print
+>0819	0d				         .byte 13
+>081a	28 75 70 29 70 68 70 6e		         .text "(up)phpn"
+>0822	00				         .byte 0
+.0823	a9 1b		lda #$1b	         lda #%00011011
+.0825	8d f2 08	sta $08f2	         sta db
+.0828	a9 c6		lda #$c6	         lda #%11000110
+.082a	8d f3 08	sta $08f3	         sta ab
+.082d	a9 b1		lda #$b1	         lda #%10110001
+.082f	8d f4 08	sta $08f4	         sta xb
+.0832	a9 6c		lda #$6c	         lda #%01101100
+.0834	8d f5 08	sta $08f5	         sta yb
+.0837	a9 00		lda #$00	         lda #0
+.0839	8d f6 08	sta $08f6	         sta pb
+.083c	ba		tsx		         tsx
+.083d	8e f7 08	stx $08f7	         stx sb
+.0840	8e b0 08	stx $08b0	         stx saves+1
+.0843	a2 00		ldx #$00	         ldx #0
+.0845	bd 00 01	lda $0100,x	s0       lda $0100,x
+.0848	9d 00 10	sta $1000,x	         sta $1000,x
+.084b	e8		inx		         inx
+.084c	d0 f7		bne $0845	         bne s0
+.084e	a9 00		lda #$00	         lda #0
+.0850	8d f6 08	sta $08f6	         sta pb
+.0853	ad f2 08	lda $08f2	next     lda db
+.0856	ad f3 08	lda $08f3	         lda ab
+.0859	8d ff 08	sta $08ff	         sta ar
+.085c	ad f4 08	lda $08f4	         lda xb
+.085f	8d 00 09	sta $0900	         sta xr
+.0862	ad f5 08	lda $08f5	         lda yb
+.0865	8d 01 09	sta $0901	         sta yr
+.0868	ad f6 08	lda $08f6	         lda pb
+.086b	09 30		ora #$30	         ora #%00110000
+.086d	8d 02 09	sta $0902	         sta pr
+.0870	8d fe 08	sta $08fe	         sta dr
+.0873	ae f7 08	ldx $08f7	         ldx sb
+.0876	9a		txs		         txs
+.0877	ca		dex		         dex
+.0878	8e 03 09	stx $0903	         stx sr
+.087b	ad f6 08	lda $08f6	         lda pb
+.087e	48		pha		         pha
+.087f	ad f3 08	lda $08f3	         lda ab
+.0882	ae f4 08	ldx $08f4	         ldx xb
+.0885	ac f5 08	ldy $08f5	         ldy yb
+.0888	28		plp		         plp
+.0889	08		php		cmd      php
+.088a	08		php		         php
+.088b	d8		cld		         cld
+.088c	8d f9 08	sta $08f9	         sta aa
+.088f	8e fa 08	stx $08fa	         stx xa
+.0892	8c fb 08	sty $08fb	         sty ya
+.0895	68		pla		         pla
+.0896	8d fc 08	sta $08fc	         sta pa
+.0899	ba		tsx		         tsx
+.089a	8e fd 08	stx $08fd	         stx sa
+.089d	e8		inx		         inx
+.089e	bd 00 01	lda $0100,x	         lda $0100,x
+.08a1	8d f8 08	sta $08f8	         sta da
+.08a4	20 04 09	jsr $0904	         jsr check
+.08a7	ce f7 08	dec $08f7	         dec sb
+.08aa	ee f6 08	inc $08f6	         inc pb
+.08ad	d0 a4		bne $0853	         bne next
+.08af	a2 00		ldx #$00	saves    ldx #0
+.08b1	9a		txs		         txs
+.08b2	a2 00		ldx #$00	         ldx #0
+.08b4	bd 00 10	lda $1000,x	s1       lda $1000,x
+.08b7	9d 00 01	sta $0100,x	         sta $0100,x
+.08ba	e8		inx		         inx
+.08bb	d0 f7		bne $08b4	         bne s1
+.08bd	20 49 0a	jsr $0a49	         jsr print
+>08c0	20 2d 20 6f 6b			         .text " - ok"
+>08c5	0d 00				         .byte 13,0
+.08c7	a5 02		lda $02		         lda 2
+.08c9	f0 08		beq $08d3	         beq load
+.08cb	20 e4 ff	jsr $ffe4	wait     jsr $ffe4
+.08ce	f0 fb		beq $08cb	         beq wait
+.08d0	4c 00 80	jmp $8000	         jmp $8000
+.08d3	20 49 0a	jsr $0a49	load     jsr print
+>08d6	70 6c 70 6e			name     .text "plpn"
+=4					namelen  = *-name
+>08da	00				         .byte 0
+.08db	a9 00		lda #$00	         lda #0
+.08dd	85 0a		sta $0a		         sta $0a
+.08df	85 b9		sta $b9		         sta $b9
+.08e1	a9 04		lda #$04	         lda #namelen
+.08e3	85 b7		sta $b7		         sta $b7
+.08e5	a9 d6		lda #$d6	         lda #<name
+.08e7	85 bb		sta $bb		         sta $bb
+.08e9	a9 08		lda #$08	         lda #>name
+.08eb	85 bc		sta $bc		         sta $bc
+.08ed	68		pla		         pla
+.08ee	68		pla		         pla
+.08ef	4c 6f e1	jmp $e16f	         jmp $e16f
+>08f2	00				db       .byte 0
+>08f3	00				ab       .byte 0
+>08f4	00				xb       .byte 0
+>08f5	00				yb       .byte 0
+>08f6	00				pb       .byte 0
+>08f7	00				sb       .byte 0
+>08f8	00				da       .byte 0
+>08f9	00				aa       .byte 0
+>08fa	00				xa       .byte 0
+>08fb	00				ya       .byte 0
+>08fc	00				pa       .byte 0
+>08fd	00				sa       .byte 0
+>08fe	00				dr       .byte 0
+>08ff	00				ar       .byte 0
+>0900	00				xr       .byte 0
+>0901	00				yr       .byte 0
+>0902	00				pr       .byte 0
+>0903	00				sr       .byte 0
+.0904					check
+.0904	ad f8 08	lda $08f8	         lda da
+.0907	cd fe 08	cmp $08fe	         cmp dr
+.090a	d0 29		bne $0935	         bne error
+.090c	ad f9 08	lda $08f9	         lda aa
+.090f	cd ff 08	cmp $08ff	         cmp ar
+.0912	d0 21		bne $0935	         bne error
+.0914	ad fa 08	lda $08fa	         lda xa
+.0917	cd 00 09	cmp $0900	         cmp xr
+.091a	d0 19		bne $0935	         bne error
+.091c	ad fb 08	lda $08fb	         lda ya
+.091f	cd 01 09	cmp $0901	         cmp yr
+.0922	d0 11		bne $0935	         bne error
+.0924	ad fc 08	lda $08fc	         lda pa
+.0927	cd 02 09	cmp $0902	         cmp pr
+.092a	d0 09		bne $0935	         bne error
+.092c	ad fd 08	lda $08fd	         lda sa
+.092f	cd 03 09	cmp $0903	         cmp sr
+.0932	d0 01		bne $0935	         bne error
+.0934	60		rts		         rts
+.0935	20 49 0a	jsr $0a49	error    jsr print
+>0938	0d				         .byte 13
+>0939	62 65 66 6f 72 65 20 20		         .null "before  "
+>0941	00
+.0942	a2 f2		ldx #$f2	         ldx #<db
+.0944	a0 08		ldy #$08	         ldy #>db
+.0946	20 8a 09	jsr $098a	         jsr showregs
+.0949	20 49 0a	jsr $0a49	         jsr print
+>094c	0d				         .byte 13
+>094d	61 66 74 65 72 20 20 20		         .null "after   "
+>0955	00
+.0956	a2 f8		ldx #$f8	         ldx #<da
+.0958	a0 08		ldy #$08	         ldy #>da
+.095a	20 8a 09	jsr $098a	         jsr showregs
+.095d	20 49 0a	jsr $0a49	         jsr print
+>0960	0d				         .byte 13
+>0961	72 69 67 68 74 20 20 20		         .null "right   "
+>0969	00
+.096a	a2 fe		ldx #$fe	         ldx #<dr
+.096c	a0 08		ldy #$08	         ldy #>dr
+.096e	20 8a 09	jsr $098a	         jsr showregs
+.0971	a9 0d		lda #$0d	         lda #13
+.0973	20 d2 ff	jsr $ffd2	         jsr $ffd2
+.0976	20 e4 ff	jsr $ffe4	wait     jsr $ffe4
+.0979	f0 fb		beq $0976	         beq wait
+.097b	c9 03		cmp #$03	         cmp #3
+.097d	f0 01		beq $0980	         beq stop
+.097f	60		rts		         rts
+.0980	a5 02		lda $02		stop     lda 2
+.0982	f0 03		beq $0987	         beq basic
+.0984	4c 00 80	jmp $8000	         jmp $8000
+.0987	6c 02 a0	jmp ($a002)	basic    jmp ($a002)
+.098a	86 ac		stx $ac		showregs stx 172
+.098c	84 ad		sty $ad		         sty 173
+.098e	a0 00		ldy #$00	         ldy #0
+.0990	b1 ac		lda ($ac),y	         lda (172),y
+.0992	20 33 0a	jsr $0a33	         jsr hexb
+.0995	a9 20		lda #$20	         lda #32
+.0997	20 d2 ff	jsr $ffd2	         jsr $ffd2
+.099a	a9 20		lda #$20	         lda #32
+.099c	20 d2 ff	jsr $ffd2	         jsr $ffd2
+.099f	c8		iny		         iny
+.09a0	b1 ac		lda ($ac),y	         lda (172),y
+.09a2	20 33 0a	jsr $0a33	         jsr hexb
+.09a5	a9 20		lda #$20	         lda #32
+.09a7	20 d2 ff	jsr $ffd2	         jsr $ffd2
+.09aa	c8		iny		         iny
+.09ab	b1 ac		lda ($ac),y	         lda (172),y
+.09ad	20 33 0a	jsr $0a33	         jsr hexb
+.09b0	a9 20		lda #$20	         lda #32
+.09b2	20 d2 ff	jsr $ffd2	         jsr $ffd2
+.09b5	c8		iny		         iny
+.09b6	b1 ac		lda ($ac),y	         lda (172),y
+.09b8	20 33 0a	jsr $0a33	         jsr hexb
+.09bb	a9 20		lda #$20	         lda #32
+.09bd	20 d2 ff	jsr $ffd2	         jsr $ffd2
+.09c0	c8		iny		         iny
+.09c1	b1 ac		lda ($ac),y	         lda (172),y
+.09c3	a2 6e		ldx #$6e	         ldx #"n"
+.09c5	0a		asl a		         asl a
+.09c6	90 02		bcc $09ca	         bcc ok7
+.09c8	a2 4e		ldx #$4e	         ldx #"N"
+.09ca	48		pha		ok7      pha
+.09cb	8a		txa		         txa
+.09cc	20 d2 ff	jsr $ffd2	         jsr $ffd2
+.09cf	68		pla		         pla
+.09d0	a2 76		ldx #$76	         ldx #"v"
+.09d2	0a		asl a		         asl a
+.09d3	90 02		bcc $09d7	         bcc ok6
+.09d5	a2 56		ldx #$56	         ldx #"V"
+.09d7	48		pha		ok6      pha
+.09d8	8a		txa		         txa
+.09d9	20 d2 ff	jsr $ffd2	         jsr $ffd2
+.09dc	68		pla		         pla
+.09dd	a2 30		ldx #$30	         ldx #"0"
+.09df	0a		asl a		         asl a
+.09e0	90 02		bcc $09e4	         bcc ok5
+.09e2	a2 31		ldx #$31	         ldx #"1"
+.09e4	48		pha		ok5      pha
+.09e5	8a		txa		         txa
+.09e6	20 d2 ff	jsr $ffd2	         jsr $ffd2
+.09e9	68		pla		         pla
+.09ea	a2 62		ldx #$62	         ldx #"b"
+.09ec	0a		asl a		         asl a
+.09ed	90 02		bcc $09f1	         bcc ok4
+.09ef	a2 42		ldx #$42	         ldx #"B"
+.09f1	48		pha		ok4      pha
+.09f2	8a		txa		         txa
+.09f3	20 d2 ff	jsr $ffd2	         jsr $ffd2
+.09f6	68		pla		         pla
+.09f7	a2 64		ldx #$64	         ldx #"d"
+.09f9	0a		asl a		         asl a
+.09fa	90 02		bcc $09fe	         bcc ok3
+.09fc	a2 44		ldx #$44	         ldx #"D"
+.09fe	48		pha		ok3      pha
+.09ff	8a		txa		         txa
+.0a00	20 d2 ff	jsr $ffd2	         jsr $ffd2
+.0a03	68		pla		         pla
+.0a04	a2 69		ldx #$69	         ldx #"i"
+.0a06	0a		asl a		         asl a
+.0a07	90 02		bcc $0a0b	         bcc ok2
+.0a09	a2 49		ldx #$49	         ldx #"I"
+.0a0b	48		pha		ok2      pha
+.0a0c	8a		txa		         txa
+.0a0d	20 d2 ff	jsr $ffd2	         jsr $ffd2
+.0a10	68		pla		         pla
+.0a11	a2 7a		ldx #$7a	         ldx #"z"
+.0a13	0a		asl a		         asl a
+.0a14	90 02		bcc $0a18	         bcc ok1
+.0a16	a2 5a		ldx #$5a	         ldx #"Z"
+.0a18	48		pha		ok1      pha
+.0a19	8a		txa		         txa
+.0a1a	20 d2 ff	jsr $ffd2	         jsr $ffd2
+.0a1d	68		pla		         pla
+.0a1e	a2 63		ldx #$63	         ldx #"c"
+.0a20	0a		asl a		         asl a
+.0a21	90 02		bcc $0a25	         bcc ok0
+.0a23	a2 43		ldx #$43	         ldx #"C"
+.0a25	48		pha		ok0      pha
+.0a26	8a		txa		         txa
+.0a27	20 d2 ff	jsr $ffd2	         jsr $ffd2
+.0a2a	68		pla		         pla
+.0a2b	a9 20		lda #$20	         lda #32
+.0a2d	20 d2 ff	jsr $ffd2	         jsr $ffd2
+.0a30	c8		iny		         iny
+.0a31	b1 ac		lda ($ac),y	         lda (172),y
+.0a33	48		pha		hexb     pha
+.0a34	4a		lsr a		         lsr a
+.0a35	4a		lsr a		         lsr a
+.0a36	4a		lsr a		         lsr a
+.0a37	4a		lsr a		         lsr a
+.0a38	20 3e 0a	jsr $0a3e	         jsr hexn
+.0a3b	68		pla		         pla
+.0a3c	29 0f		and #$0f	         and #$0f
+.0a3e	09 30		ora #$30	hexn     ora #$30
+.0a40	c9 3a		cmp #$3a	         cmp #$3a
+.0a42	90 02		bcc $0a46	         bcc hexn0
+.0a44	69 06		adc #$06	         adc #6
+.0a46	4c d2 ff	jmp $ffd2	hexn0    jmp $ffd2
+.0a49	68		pla		print    pla
+.0a4a	8d 54 0a	sta $0a54	         sta print0+1
+.0a4d	68		pla		         pla
+.0a4e	8d 55 0a	sta $0a55	         sta print0+2
+.0a51	a2 01		ldx #$01	         ldx #1
+.0a53	bd 53 0a	lda $0a53,x	print0   lda !*,x
+.0a56	f0 06		beq $0a5e	         beq print1
+.0a58	20 d2 ff	jsr $ffd2	         jsr $ffd2
+.0a5b	e8		inx		         inx
+.0a5c	d0 f5		bne $0a53	         bne print0
+.0a5e	38		sec		print1   sec
+.0a5f	8a		txa		         txa
+.0a60	6d 54 0a	adc $0a54	         adc print0+1
+.0a63	8d 6f 0a	sta $0a6f	         sta print2+1
+.0a66	a9 00		lda #$00	         lda #0
+.0a68	6d 55 0a	adc $0a55	         adc print0+2
+.0a6b	8d 70 0a	sta $0a70	         sta print2+2
+.0a6e	4c 6e 0a	jmp $0a6e	print2   jmp !*
+
+;******  End of listing

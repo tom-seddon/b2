@@ -1,0 +1,38 @@
+#include <shared/system.h>
+#include <shared/path.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include <stdio.h>
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#define EXE "/proc/self/exe"
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+/* see http://stackoverflow.com/a/38353197/1618406 - lstat doesn't
+ * work for /proc. Rather than mess about, just go for 64K, and if
+ * that isn't enough... tough. */
+
+std::string PathGetEXEFileName(void) {
+    std::vector<char> buf;
+    buf.resize(65536);
+
+    ssize_t n=readlink(EXE,buf.data(),buf.size());
+    if(n<0) {
+        return "";
+    }
+
+    buf.resize((size_t)n);
+    buf.push_back(0);
+
+    return buf.data();
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+

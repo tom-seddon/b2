@@ -1,0 +1,23 @@
+* WMV3 debug
+
+Total: 286.754299
+Load: 199.309725
+Conv: 74.446868
+Video: 6.217331
+Audio: 0.447790
+
+* WMV3 release
+
+Total: 186.824512
+Load: 55.330303
+Conv: 7.144164
+Video: 119.106101
+Audio: 1.467192
+
+* H264 debug
+
+Total: 182.988162
+Load: 109.949042
+Conv: 61.837110
+Video: 5.889374
+Audio: 0.345407

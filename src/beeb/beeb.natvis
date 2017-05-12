@@ -1,0 +1,6 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
+  <Type Name="VideoDataHalfMicrosecond">
+    <DisplayString>{pixels[0]*72057594037927936ULL+pixels[1]*281474976710656ULL+pixels[2]*1099511627776L+pixels[3]*4294967296L+pixels[4]*16777216L+pixels[5]*65536L+pixels[6]*256L+pixels[7],x}</DisplayString>
+  </Type>
+</AutoVisualizer>

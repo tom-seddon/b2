@@ -1,0 +1,5 @@
+#..
+header-folder=h/shared
+src-folder=c
+c
+extern-c

@@ -1,0 +1,1166 @@
+
+; 64tass Turbo Assembler Macro V1.52.1237 listing file
+; 64tass.exe -L ascii-lst/cputiming.lst -o ascii-bin/cputiming -T ascii-src/cputiming.asm
+; Mon Sep 26 23:32:17 2016
+
+;Offset	;Hex		;Monitor	;Source
+
+;******  Processing input file: ascii-src/cputiming.asm
+
+>0801	4c 14 08 00 97			           .byte $4c,$14,$08,$00,$97
+=780					turboass   = 780
+>0806	37 38 30			           .text "780"
+>0809	2c 30 3a 9e 32 30		           .byte $2c,$30,$3a,$9e,$32,$30
+>080f	37 33 00 00 00			           .byte $37,$33,$00,$00,$00
+.0814	a9 01		lda #$01	           lda #1
+.0816	8d 0c 03	sta $030c	           sta turboass
+.0819	4c 74 0c	jmp $0c74	           jmp main
+.081c					print
+.081c	68		pla		           pla
+.081d	8d 27 08	sta $0827	           sta print0+1
+.0820	68		pla		           pla
+.0821	8d 28 08	sta $0828	           sta print0+2
+.0824	a2 01		ldx #$01	           ldx #1
+.0826					print0
+.0826	bd 26 08	lda $0826,x	           lda !*,x
+.0829	f0 06		beq $0831	           beq print1
+.082b	20 d2 ff	jsr $ffd2	           jsr $ffd2
+.082e	e8		inx		           inx
+.082f	d0 f5		bne $0826	           bne print0
+.0831					print1
+.0831	38		sec		           sec
+.0832	8a		txa		           txa
+.0833	6d 27 08	adc $0827	           adc print0+1
+.0836	8d 42 08	sta $0842	           sta print2+1
+.0839	a9 00		lda #$00	           lda #0
+.083b	6d 28 08	adc $0828	           adc print0+2
+.083e	8d 43 08	sta $0843	           sta print2+2
+.0841					print2
+.0841	4c 41 08	jmp $0841	           jmp !*
+.0844					printhb
+.0844	48		pha		           pha
+.0845	4a		lsr a		           lsr a
+.0846	4a		lsr a		           lsr a
+.0847	4a		lsr a		           lsr a
+.0848	4a		lsr a		           lsr a
+.0849	20 4f 08	jsr $084f	           jsr printhn
+.084c	68		pla		           pla
+.084d	29 0f		and #$0f	           and #$0f
+.084f					printhn
+.084f	09 30		ora #$30	           ora #$30
+.0851	c9 3a		cmp #$3a	           cmp #$3a
+.0853	90 02		bcc $0857	           bcc printhn0
+.0855	69 06		adc #$06	           adc #6
+.0857					printhn0
+.0857	20 d2 ff	jsr $ffd2	           jsr $ffd2
+.085a	60		rts		           rts
+.085b					delay
+.085b	8d 04 dd	sta $dd04	           sta $dd04
+.085e	8e 05 dd	stx $dd05	           stx $dd05
+.0861	a9 19		lda #$19	           lda #%00011001
+.0863	8d 0e dd	sta $dd0e	           sta $dd0e
+.0866	a9 01		lda #$01	           lda #1
+.0868					wait
+.0868	2c 0e dd	bit $dd0e	           bit $dd0e
+.086b	d0 fb		bne $0868	           bne wait
+.086d	60		rts		           rts
+.086e					gatimer
+.0872					gatimerc
+.0876					inittimer
+.0876	a9 00		lda #$00	           lda #0
+.0878	a2 03		ldx #$03	           ldx #3
+.087a					clear
+.087a	9d 72 08	sta $0872,x	           sta gatimerc,x
+.087d	ca		dex		           dex
+.087e	10 fa		bpl $087a	           bpl clear
+.0880	20 92 08	jsr $0892	           jsr starttimer
+.0883	20 c7 08	jsr $08c7	           jsr stoptimer
+.0886	a2 03		ldx #$03	           ldx #3
+.0888					setc
+.0888	bd 6e 08	lda $086e,x	           lda gatimer,x
+.088b	9d 72 08	sta $0872,x	           sta gatimerc,x
+.088e	ca		dex		           dex
+.088f	10 f7		bpl $0888	           bpl setc
+.0891	60		rts		           rts
+.0892					starttimer
+.0892	78		sei		           sei
+.0893	ad 11 d0	lda $d011	           lda $d011
+.0896	29 ef		and #$ef	           and #%11101111
+.0898	30 07		bmi $08a1	           bmi isborder
+.089a					waitborder
+.089a	ad 12 d0	lda $d012	           lda $d012
+.089d	c9 1e		cmp #$1e	           cmp #30
+.089f	b0 f9		bcs $089a	           bcs waitborder
+.08a1					isborder
+.08a1	a9 7f		lda #$7f	           lda #%01111111
+.08a3	8d 0d dd	sta $dd0d	           sta $dd0d
+.08a6	a9 00		lda #$00	           lda #0
+.08a8	8d 0e dd	sta $dd0e	           sta $dd0e
+.08ab	8d 0f dd	sta $dd0f	           sta $dd0f
+.08ae	a9 ff		lda #$ff	           lda #$ff
+.08b0	8d 04 dd	sta $dd04	           sta $dd04
+.08b3	8d 05 dd	sta $dd05	           sta $dd05
+.08b6	8d 06 dd	sta $dd06	           sta $dd06
+.08b9	8d 07 dd	sta $dd07	           sta $dd07
+.08bc	a9 51		lda #$51	           lda #%01010001
+.08be	8d 0f dd	sta $dd0f	           sta $dd0f
+.08c1	a9 11		lda #$11	           lda #%00010001
+.08c3	8d 0e dd	sta $dd0e	           sta $dd0e
+.08c6	60		rts		           rts
+.08c7					stoptimer
+.08c7	a2 00		ldx #$00	           ldx #0
+.08c9	8e 0e dd	stx $dd0e	           stx $dd0e
+.08cc	d8		cld		           cld
+.08cd	38		sec		           sec
+.08ce	ad 04 dd	lda $dd04	           lda $dd04
+.08d1	49 ff		eor #$ff	           eor #$ff
+.08d3	ed 72 08	sbc $0872	           sbc gatimerc+0
+.08d6	8d 6e 08	sta $086e	           sta gatimer+0
+.08d9	ad 05 dd	lda $dd05	           lda $dd05
+.08dc	49 ff		eor #$ff	           eor #$ff
+.08de	ed 73 08	sbc $0873	           sbc gatimerc+1
+.08e1	8d 6f 08	sta $086f	           sta gatimer+1
+.08e4	ad 06 dd	lda $dd06	           lda $dd06
+.08e7	49 ff		eor #$ff	           eor #$ff
+.08e9	ed 74 08	sbc $0874	           sbc gatimerc+2
+.08ec	8d 70 08	sta $0870	           sta gatimer+2
+.08ef	ad 07 dd	lda $dd07	           lda $dd07
+.08f2	49 ff		eor #$ff	           eor #$ff
+.08f4	ed 75 08	sbc $0875	           sbc gatimerc+3
+.08f7	8d 71 08	sta $0871	           sta gatimer+3
+.08fa	58		cli		           cli
+.08fb	ad 11 d0	lda $d011	           lda $d011
+.08fe	09 10		ora #$10	           ora #%00010000
+.0900	8d 11 d0	sta $d011	           sta $d011
+.0903	60		rts		           rts
+.0904					printtimer
+.0904	ad 70 08	lda $0870	           lda gatimer+2
+.0907	85 63		sta $63		           sta $63
+.0909	ad 71 08	lda $0871	           lda gatimer+3
+.090c	85 62		sta $62		           sta $62
+.090e	a2 90		ldx #$90	           ldx #$90
+.0910	38		sec		           sec
+.0911	20 49 bc	jsr $bc49	           jsr $bc49
+.0914	a9 41		lda #$41	           lda #<r65536
+.0916	a0 09		ldy #$09	           ldy #>r65536
+.0918	20 28 ba	jsr $ba28	           jsr $ba28
+.091b	20 0c bc	jsr $bc0c	           jsr $bc0c
+.091e	ad 6e 08	lda $086e	           lda gatimer+0
+.0921	85 63		sta $63		           sta $63
+.0923	ad 6f 08	lda $086f	           lda gatimer+1
+.0926	85 62		sta $62		           sta $62
+.0928	a2 90		ldx #$90	           ldx #$90
+.092a	38		sec		           sec
+.092b	20 49 bc	jsr $bc49	           jsr $bc49
+.092e	20 6a b8	jsr $b86a	           jsr $b86a
+.0931	20 dd bd	jsr $bddd	           jsr $bddd
+.0934	ae 00 01	ldx $0100	           ldx $0100
+.0937	e0 20		cpx #$20	           cpx #32
+.0939	d0 03		bne $093e	           bne negative
+.093b	18		clc		           clc
+.093c	69 01		adc #$01	           adc #1
+.093e					negative
+.093e	4c 1e ab	jmp $ab1e	           jmp $ab1e
+>0941	91 00 00 00 00			r65536     .byte $91,$00,$00,$00,$00
+>0946	00				gsavesp    .byte 0
+.0947					gastack
+.0a47					savestack
+.0a47	ba		tsx		           tsx
+.0a48	8e 46 09	stx $0946	           stx gsavesp
+.0a4b	a2 00		ldx #$00	           ldx #0
+.0a4d					save
+.0a4d	bd 00 01	lda $0100,x	           lda $0100,x
+.0a50	9d 47 09	sta $0947,x	           sta gastack,x
+.0a53	e8		inx		           inx
+.0a54	d0 f7		bne $0a4d	           bne save
+.0a56	60		rts		           rts
+.0a57					restorestack
+.0a57	68		pla		           pla
+.0a58	8d 71 0a	sta $0a71	           sta return+1
+.0a5b	68		pla		           pla
+.0a5c	8d 72 0a	sta $0a72	           sta return+2
+.0a5f	ae 46 09	ldx $0946	           ldx gsavesp
+.0a62	e8		inx		           inx
+.0a63	e8		inx		           inx
+.0a64	9a		txs		           txs
+.0a65	a2 00		ldx #$00	           ldx #0
+.0a67					restore
+.0a67	bd 47 09	lda $0947,x	           lda gastack,x
+.0a6a	9d 00 01	sta $0100,x	           sta $0100,x
+.0a6d	e8		inx		           inx
+.0a6e	d0 f7		bne $0a67	           bne restore
+.0a70					return
+.0a70	4c 11 11	jmp $1111	           jmp $1111
+.0a73					addressing
+>0a73	64 11				           .word brkn
+>0a75	02 0f				           .word rix
+>0a77	2b 12				           .word hltn
+>0a79	32 0f				           .word mix
+>0a7b	a4 0d				           .word rz
+>0a7d	a4 0d				           .word rz
+>0a7f	b7 0d				           .word mz
+>0a81	b7 0d				           .word mz
+>0a83	8f 11				           .word phpn
+>0a85	91 0d				           .word b
+>0a87	6f 0d				           .word n
+>0a89	91 0d				           .word b
+>0a8b	26 0e				           .word ra
+>0a8d	26 0e				           .word ra
+>0a8f	3a 0e				           .word ma
+>0a91	3a 0e				           .word ma
+>0a93	f2 0f				           .word r
+>0a95	62 0f				           .word riy
+>0a97	2b 12				           .word hltn
+>0a99	c2 0f				           .word miy
+>0a9b	ca 0d				           .word rzx
+>0a9d	ca 0d				           .word rzx
+>0a9f	f8 0d				           .word mzx
+>0aa1	f8 0d				           .word mzx
+>0aa3	6f 0d				           .word n
+>0aa5	4e 0e				           .word ray
+>0aa7	6f 0d				           .word n
+>0aa9	c6 0e				           .word may
+>0aab	4e 0e				           .word rax
+>0aad	4e 0e				           .word rax
+>0aaf	c6 0e				           .word max
+>0ab1	c6 0e				           .word max
+>0ab3	f5 11				           .word jsrw
+>0ab5	02 0f				           .word rix
+>0ab7	2b 12				           .word hltn
+>0ab9	32 0f				           .word mix
+>0abb	a4 0d				           .word rz
+>0abd	a4 0d				           .word rz
+>0abf	b7 0d				           .word mz
+>0ac1	b7 0d				           .word mz
+>0ac3	a2 11				           .word plpn
+>0ac5	91 0d				           .word b
+>0ac7	6f 0d				           .word n
+>0ac9	91 0d				           .word b
+>0acb	26 0e				           .word ra
+>0acd	26 0e				           .word ra
+>0acf	3a 0e				           .word ma
+>0ad1	3a 0e				           .word ma
+>0ad3	f2 0f				           .word r
+>0ad5	62 0f				           .word riy
+>0ad7	2b 12				           .word hltn
+>0ad9	c2 0f				           .word miy
+>0adb	ca 0d				           .word rzx
+>0add	ca 0d				           .word rzx
+>0adf	f8 0d				           .word mzx
+>0ae1	f8 0d				           .word mzx
+>0ae3	6f 0d				           .word n
+>0ae5	4e 0e				           .word ray
+>0ae7	6f 0d				           .word n
+>0ae9	c6 0e				           .word may
+>0aeb	4e 0e				           .word rax
+>0aed	4e 0e				           .word rax
+>0aef	c6 0e				           .word max
+>0af1	c6 0e				           .word max
+>0af3	17 12				           .word rtin
+>0af5	02 0f				           .word rix
+>0af7	2b 12				           .word hltn
+>0af9	32 0f				           .word mix
+>0afb	a4 0d				           .word rz
+>0afd	a4 0d				           .word rz
+>0aff	b7 0d				           .word mz
+>0b01	b7 0d				           .word mz
+>0b03	8f 11				           .word phan
+>0b05	91 0d				           .word b
+>0b07	6f 0d				           .word n
+>0b09	91 0d				           .word b
+>0b0b	b7 11				           .word jmpw
+>0b0d	26 0e				           .word ra
+>0b0f	3a 0e				           .word ma
+>0b11	3a 0e				           .word ma
+>0b13	f2 0f				           .word r
+>0b15	62 0f				           .word riy
+>0b17	2b 12				           .word hltn
+>0b19	c2 0f				           .word miy
+>0b1b	ca 0d				           .word rzx
+>0b1d	ca 0d				           .word rzx
+>0b1f	f8 0d				           .word mzx
+>0b21	f8 0d				           .word mzx
+>0b23	6f 0d				           .word n
+>0b25	4e 0e				           .word ray
+>0b27	6f 0d				           .word n
+>0b29	c6 0e				           .word may
+>0b2b	4e 0e				           .word rax
+>0b2d	4e 0e				           .word rax
+>0b2f	c6 0e				           .word max
+>0b31	c6 0e				           .word max
+>0b33	05 12				           .word rtsn
+>0b35	02 0f				           .word rix
+>0b37	2b 12				           .word hltn
+>0b39	32 0f				           .word mix
+>0b3b	a4 0d				           .word rz
+>0b3d	a4 0d				           .word rz
+>0b3f	b7 0d				           .word mz
+>0b41	b7 0d				           .word mz
+>0b43	a2 11				           .word plan
+>0b45	91 0d				           .word b
+>0b47	6f 0d				           .word n
+>0b49	91 0d				           .word b
+>0b4b	c5 11				           .word jmpi
+>0b4d	26 0e				           .word ra
+>0b4f	3a 0e				           .word ma
+>0b51	3a 0e				           .word ma
+>0b53	f2 0f				           .word r
+>0b55	62 0f				           .word riy
+>0b57	2b 12				           .word hltn
+>0b59	c2 0f				           .word miy
+>0b5b	ca 0d				           .word rzx
+>0b5d	ca 0d				           .word rzx
+>0b5f	f8 0d				           .word mzx
+>0b61	f8 0d				           .word mzx
+>0b63	6f 0d				           .word n
+>0b65	4e 0e				           .word ray
+>0b67	6f 0d				           .word n
+>0b69	c6 0e				           .word may
+>0b6b	4e 0e				           .word rax
+>0b6d	4e 0e				           .word rax
+>0b6f	c6 0e				           .word max
+>0b71	c6 0e				           .word max
+>0b73	91 0d				           .word b
+>0b75	02 0f				           .word wix
+>0b77	91 0d				           .word b
+>0b79	02 0f				           .word rix
+>0b7b	a4 0d				           .word wz
+>0b7d	a4 0d				           .word wz
+>0b7f	a4 0d				           .word wz
+>0b81	a4 0d				           .word rz
+>0b83	6f 0d				           .word n
+>0b85	91 0d				           .word b
+>0b87	6f 0d				           .word n
+>0b89	91 0d				           .word b
+>0b8b	26 0e				           .word wa
+>0b8d	26 0e				           .word wa
+>0b8f	26 0e				           .word wa
+>0b91	26 0e				           .word ra
+>0b93	f2 0f				           .word r
+>0b95	92 0f				           .word wiy
+>0b97	2b 12				           .word hltn
+>0b99	92 0f				           .word wiy
+>0b9b	ca 0d				           .word wzx
+>0b9d	ca 0d				           .word wzx
+>0b9f	ca 0d				           .word wzy
+>0ba1	ca 0d				           .word rzy
+>0ba3	6f 0d				           .word n
+>0ba5	8a 0e				           .word way
+>0ba7	6f 0d				           .word n
+>0ba9	8a 0e				           .word way
+>0bab	8a 0e				           .word wax
+>0bad	8a 0e				           .word wax
+>0baf	8a 0e				           .word way
+>0bb1	8a 0e				           .word way
+>0bb3	91 0d				           .word b
+>0bb5	02 0f				           .word rix
+>0bb7	91 0d				           .word b
+>0bb9	02 0f				           .word rix
+>0bbb	a4 0d				           .word rz
+>0bbd	a4 0d				           .word rz
+>0bbf	a4 0d				           .word rz
+>0bc1	a4 0d				           .word rz
+>0bc3	6f 0d				           .word n
+>0bc5	91 0d				           .word b
+>0bc7	6f 0d				           .word n
+>0bc9	91 0d				           .word b
+>0bcb	26 0e				           .word ra
+>0bcd	26 0e				           .word ra
+>0bcf	26 0e				           .word ra
+>0bd1	26 0e				           .word ra
+>0bd3	f2 0f				           .word r
+>0bd5	62 0f				           .word riy
+>0bd7	2b 12				           .word hltn
+>0bd9	62 0f				           .word riy
+>0bdb	ca 0d				           .word rzx
+>0bdd	ca 0d				           .word rzx
+>0bdf	ca 0d				           .word rzy
+>0be1	ca 0d				           .word rzy
+>0be3	6f 0d				           .word n
+>0be5	4e 0e				           .word ray
+>0be7	6f 0d				           .word n
+>0be9	4e 0e				           .word ray
+>0beb	4e 0e				           .word rax
+>0bed	4e 0e				           .word rax
+>0bef	4e 0e				           .word ray
+>0bf1	4e 0e				           .word ray
+>0bf3	91 0d				           .word b
+>0bf5	02 0f				           .word rix
+>0bf7	91 0d				           .word b
+>0bf9	32 0f				           .word mix
+>0bfb	a4 0d				           .word rz
+>0bfd	a4 0d				           .word rz
+>0bff	b7 0d				           .word mz
+>0c01	b7 0d				           .word mz
+>0c03	6f 0d				           .word n
+>0c05	91 0d				           .word b
+>0c07	6f 0d				           .word n
+>0c09	91 0d				           .word b
+>0c0b	26 0e				           .word ra
+>0c0d	26 0e				           .word ra
+>0c0f	3a 0e				           .word ma
+>0c11	3a 0e				           .word ma
+>0c13	f2 0f				           .word r
+>0c15	62 0f				           .word riy
+>0c17	2b 12				           .word hltn
+>0c19	c2 0f				           .word miy
+>0c1b	ca 0d				           .word rzx
+>0c1d	ca 0d				           .word rzx
+>0c1f	f8 0d				           .word mzx
+>0c21	f8 0d				           .word mzx
+>0c23	6f 0d				           .word n
+>0c25	4e 0e				           .word ray
+>0c27	6f 0d				           .word n
+>0c29	c6 0e				           .word may
+>0c2b	4e 0e				           .word rax
+>0c2d	4e 0e				           .word rax
+>0c2f	c6 0e				           .word max
+>0c31	c6 0e				           .word max
+>0c33	91 0d				           .word b
+>0c35	02 0f				           .word rix
+>0c37	91 0d				           .word b
+>0c39	32 0f				           .word mix
+>0c3b	a4 0d				           .word rz
+>0c3d	a4 0d				           .word rz
+>0c3f	b7 0d				           .word mz
+>0c41	b7 0d				           .word mz
+>0c43	6f 0d				           .word n
+>0c45	91 0d				           .word b
+>0c47	6f 0d				           .word n
+>0c49	91 0d				           .word b
+>0c4b	26 0e				           .word ra
+>0c4d	26 0e				           .word ra
+>0c4f	3a 0e				           .word ma
+>0c51	3a 0e				           .word ma
+>0c53	f2 0f				           .word r
+>0c55	62 0f				           .word riy
+>0c57	2b 12				           .word hltn
+>0c59	c2 0f				           .word miy
+>0c5b	ca 0d				           .word rzx
+>0c5d	ca 0d				           .word rzx
+>0c5f	f8 0d				           .word mzx
+>0c61	f8 0d				           .word mzx
+>0c63	6f 0d				           .word n
+>0c65	4e 0e				           .word ray
+>0c67	6f 0d				           .word n
+>0c69	c6 0e				           .word may
+>0c6b	4e 0e				           .word rax
+>0c6d	4e 0e				           .word rax
+>0c6f	c6 0e				           .word max
+>0c71	c6 0e				           .word max
+>0c73	00				cmd        .byte 0
+.0c74					main
+.0c74	20 1c 08	jsr $081c	           jsr print
+>0c77	0d				           .byte 13
+>0c78	28 75 70 29 63 70 75 74		           .text "(up)cputiming"
+>0c80	69 6d 69 6e 67
+>0c85	00				           .byte 0
+.0c86	ba		tsx		           tsx
+.0c87	8e e4 0c	stx $0ce4	           stx error+1
+.0c8a	a9 00		lda #$00	           lda #0
+.0c8c	8d 73 0c	sta $0c73	           sta cmd
+.0c8f	20 76 08	jsr $0876	           jsr inittimer
+.0c92					loop
+.0c92	a9 73		lda #$73	           lda #<addressing
+.0c94	a2 0a		ldx #$0a	           ldx #>addressing
+.0c96	18		clc		           clc
+.0c97	6d 73 0c	adc $0c73	           adc cmd
+.0c9a	90 01		bcc $0c9d	           bcc noinc1
+.0c9c	e8		inx		           inx
+.0c9d					noinc1
+.0c9d	18		clc		           clc
+.0c9e	6d 73 0c	adc $0c73	           adc cmd
+.0ca1	90 01		bcc $0ca4	           bcc noinc2
+.0ca3	e8		inx		           inx
+.0ca4					noinc2
+.0ca4	85 ac		sta $ac		           sta 172
+.0ca6	86 ad		stx $ad		           stx 173
+.0ca8	a0 00		ldy #$00	           ldy #0
+.0caa	b1 ac		lda ($ac),y	           lda (172),y
+.0cac	8d c4 0c	sta $0cc4	           sta jump+1
+.0caf	c8		iny		           iny
+.0cb0	b1 ac		lda ($ac),y	           lda (172),y
+.0cb2	8d c5 0c	sta $0cc5	           sta jump+2
+.0cb5	a9 00		lda #$00	           lda #0
+.0cb7	8d 6e 08	sta $086e	           sta gatimer+0
+.0cba	8d 6f 08	sta $086f	           sta gatimer+1
+.0cbd	8d 70 08	sta $0870	           sta gatimer+2
+.0cc0	8d 71 08	sta $0871	           sta gatimer+3
+.0cc3					jump
+.0cc3	20 11 11	jsr $1111	           jsr $1111
+.0cc6					noerror
+.0cc6	ee 73 0c	inc $0c73	           inc cmd
+.0cc9	d0 c7		bne $0c92	           bne loop
+.0ccb	4c 36 0d	jmp $0d36	           jmp ok
+.0cce					compare
+.0cce	cd 6e 08	cmp $086e	           cmp gatimer+0
+.0cd1	d0 10		bne $0ce3	           bne error
+.0cd3	ae 6f 08	ldx $086f	           ldx gatimer+1
+.0cd6	d0 0b		bne $0ce3	           bne error
+.0cd8	ae 70 08	ldx $0870	           ldx gatimer+2
+.0cdb	d0 06		bne $0ce3	           bne error
+.0cdd	ae 71 08	ldx $0871	           ldx gatimer+3
+.0ce0	d0 01		bne $0ce3	           bne error
+.0ce2	60		rts		           rts
+.0ce3					error
+.0ce3	a2 11		ldx #$11	           ldx #$11
+.0ce5	9a		txs		           txs
+.0ce6	48		pha		           pha
+.0ce7	a9 0d		lda #$0d	           lda #13
+.0ce9	20 d2 ff	jsr $ffd2	           jsr $ffd2
+.0cec	ad 73 0c	lda $0c73	           lda cmd
+.0cef	20 44 08	jsr $0844	           jsr printhb
+.0cf2	20 1c 08	jsr $081c	           jsr print
+>0cf5	0d				           .byte 13
+>0cf6	63 6c 6f 63 6b 73 20		           .text "clocks "
+>0cfd	00				           .byte 0
+.0cfe	20 04 09	jsr $0904	           jsr printtimer
+.0d01	20 1c 08	jsr $081c	           jsr print
+>0d04	0d				           .byte 13
+>0d05	72 69 67 68 74 20 20		           .text "right  "
+>0d0c	00				           .byte 0
+.0d0d	68		pla		           pla
+.0d0e	8d 6e 08	sta $086e	           sta gatimer+0
+.0d11	a9 00		lda #$00	           lda #0
+.0d13	8d 6f 08	sta $086f	           sta gatimer+1
+.0d16	8d 70 08	sta $0870	           sta gatimer+2
+.0d19	8d 71 08	sta $0871	           sta gatimer+3
+.0d1c	20 04 09	jsr $0904	           jsr printtimer
+.0d1f					waitk
+.0d1f	20 e4 ff	jsr $ffe4	           jsr $ffe4
+.0d22	f0 fb		beq $0d1f	           beq waitk
+.0d24	c9 03		cmp #$03	           cmp #3
+.0d26	f0 03		beq $0d2b	           beq stop
+.0d28	4c c6 0c	jmp $0cc6	           jmp noerror
+.0d2b					stop
+.0d2b	ad 0c 03	lda $030c	           lda turboass
+.0d2e	f0 03		beq $0d33	           beq basic
+.0d30	4c 00 80	jmp $8000	           jmp $8000
+.0d33					basic
+.0d33	4c 74 a4	jmp $a474	           jmp $a474
+.0d36					ok
+.0d36	20 1c 08	jsr $081c	           jsr print
+>0d39	20 2d 20 6f 6b			           .text " - ok"
+>0d3e	0d 00				           .byte 13,0
+.0d40	ad 0c 03	lda $030c	           lda turboass
+.0d43	f0 08		beq $0d4d	           beq load
+.0d45	20 e4 ff	jsr $ffe4	waitkey    jsr $ffe4
+.0d48	f0 fb		beq $0d45	           beq waitkey
+.0d4a	4c 00 80	jmp $8000	           jmp $8000
+.0d4d					load
+.0d4d	a9 2f		lda #$2f	           lda #47
+.0d4f	85 00		sta $00		           sta 0
+.0d51	20 1c 08	jsr $081c	           jsr print
+>0d54	69 72 71			name       .text "irq"
+=3					namelen    = *-name
+>0d57	00				           .byte 0
+.0d58	a9 00		lda #$00	           lda #0
+.0d5a	85 0a		sta $0a		           sta $0a
+.0d5c	85 b9		sta $b9		           sta $b9
+.0d5e	a9 03		lda #$03	           lda #namelen
+.0d60	85 b7		sta $b7		           sta $b7
+.0d62	a9 54		lda #$54	           lda #<name
+.0d64	85 bb		sta $bb		           sta $bb
+.0d66	a9 0d		lda #$0d	           lda #>name
+.0d68	85 bc		sta $bc		           sta $bc
+.0d6a	68		pla		           pla
+.0d6b	68		pla		           pla
+.0d6c	4c 6f e1	jmp $e16f	           jmp $e16f
+.0d6f					n
+.0d6f	20 47 0a	jsr $0a47	           jsr savestack
+.0d72	ad 73 0c	lda $0c73	           lda cmd
+.0d75	8d 80 0d	sta $0d80	           sta nx
+.0d78	a9 7f		lda #$7f	           lda #$7f
+.0d7a	8d 0d dc	sta $dc0d	           sta $dc0d
+.0d7d	20 92 08	jsr $0892	           jsr starttimer
+.0d80					nx
+.0d80	ea		nop		           nop
+.0d81	20 c7 08	jsr $08c7	           jsr stoptimer
+.0d84	a9 81		lda #$81	           lda #$81
+.0d86	8d 0d dc	sta $dc0d	           sta $dc0d
+.0d89	20 57 0a	jsr $0a57	           jsr restorestack
+.0d8c	a9 02		lda #$02	           lda #2
+.0d8e	4c ce 0c	jmp $0cce	           jmp compare
+.0d91					b
+.0d91	ad 73 0c	lda $0c73	           lda cmd
+.0d94	8d 9a 0d	sta $0d9a	           sta bx
+.0d97	20 92 08	jsr $0892	           jsr starttimer
+.0d9a					bx
+.0d9a	a9 00		lda #$00	           lda #0
+.0d9c	20 c7 08	jsr $08c7	           jsr stoptimer
+.0d9f	a9 02		lda #$02	           lda #2
+.0da1	4c ce 0c	jmp $0cce	           jmp compare
+.0da4					rz
+.0da4					wz
+.0da4	ad 73 0c	lda $0c73	           lda cmd
+.0da7	8d ad 0d	sta $0dad	           sta command
+.0daa	20 92 08	jsr $0892	           jsr starttimer
+.0dad					command
+.0dad	a5 02		lda $02		           lda 2
+.0daf	20 c7 08	jsr $08c7	           jsr stoptimer
+.0db2	a9 03		lda #$03	           lda #3
+.0db4	4c ce 0c	jmp $0cce	           jmp compare
+.0db7					mz
+.0db7	ad 73 0c	lda $0c73	           lda cmd
+.0dba	8d c0 0d	sta $0dc0	           sta command
+.0dbd	20 92 08	jsr $0892	           jsr starttimer
+.0dc0					command
+.0dc0	a5 02		lda $02		           lda 2
+.0dc2	20 c7 08	jsr $08c7	           jsr stoptimer
+.0dc5	a9 05		lda #$05	           lda #5
+.0dc7	4c ce 0c	jmp $0cce	           jmp compare
+.0dca					rzx
+.0dca					rzy
+.0dca					wzx
+.0dca					wzy
+.0dca	ad 73 0c	lda $0c73	           lda cmd
+.0dcd	8d d7 0d	sta $0dd7	           sta nowrap
+.0dd0	20 92 08	jsr $0892	           jsr starttimer
+.0dd3	a2 02		ldx #$02	           ldx #2
+.0dd5	a0 02		ldy #$02	           ldy #2
+.0dd7					nowrap
+.0dd7	b5 00		lda $00,x	           lda 0,x
+.0dd9	20 c7 08	jsr $08c7	           jsr stoptimer
+.0ddc	a9 08		lda #$08	           lda #8
+.0dde	20 ce 0c	jsr $0cce	           jsr compare
+.0de1	ad 73 0c	lda $0c73	           lda cmd
+.0de4	8d ee 0d	sta $0dee	           sta wrap
+.0de7	20 92 08	jsr $0892	           jsr starttimer
+.0dea	a2 ff		ldx #$ff	           ldx #$ff
+.0dec	a0 ff		ldy #$ff	           ldy #$ff
+.0dee					wrap
+.0dee	b5 03		lda $03,x	           lda 3,x
+.0df0	20 c7 08	jsr $08c7	           jsr stoptimer
+.0df3	a9 08		lda #$08	           lda #8
+.0df5	4c ce 0c	jmp $0cce	           jmp compare
+.0df8					mzx
+.0df8					mzy
+.0df8	ad 73 0c	lda $0c73	           lda cmd
+.0dfb	8d 05 0e	sta $0e05	           sta nowrap
+.0dfe	20 92 08	jsr $0892	           jsr starttimer
+.0e01	a2 02		ldx #$02	           ldx #2
+.0e03	a0 02		ldy #$02	           ldy #2
+.0e05					nowrap
+.0e05	a5 00		lda $00		           lda 0
+.0e07	20 c7 08	jsr $08c7	           jsr stoptimer
+.0e0a	a9 0a		lda #$0a	           lda #10
+.0e0c	20 ce 0c	jsr $0cce	           jsr compare
+.0e0f	ad 73 0c	lda $0c73	           lda cmd
+.0e12	8d 1c 0e	sta $0e1c	           sta wrap
+.0e15	20 92 08	jsr $0892	           jsr starttimer
+.0e18	a2 ff		ldx #$ff	           ldx #$ff
+.0e1a	a0 ff		ldy #$ff	           ldy #$ff
+.0e1c					wrap
+.0e1c	a5 03		lda $03		           lda 3
+.0e1e	20 c7 08	jsr $08c7	           jsr stoptimer
+.0e21	a9 0a		lda #$0a	           lda #10
+.0e23	4c ce 0c	jmp $0cce	           jmp compare
+.0e26					ra
+.0e26					wa
+.0e26	ad 73 0c	lda $0c73	           lda cmd
+.0e29	8d 2f 0e	sta $0e2f	           sta command
+.0e2c	20 92 08	jsr $0892	           jsr starttimer
+.0e2f					command
+.0e2f	ad ff ff	lda $ffff	           lda $ffff
+.0e32	20 c7 08	jsr $08c7	           jsr stoptimer
+.0e35	a9 04		lda #$04	           lda #4
+.0e37	4c ce 0c	jmp $0cce	           jmp compare
+.0e3a					ma
+.0e3a	ad 73 0c	lda $0c73	           lda cmd
+.0e3d	8d 43 0e	sta $0e43	           sta command
+.0e40	20 92 08	jsr $0892	           jsr starttimer
+.0e43					command
+.0e43	ad ff ff	lda $ffff	           lda $ffff
+.0e46	20 c7 08	jsr $08c7	           jsr stoptimer
+.0e49	a9 06		lda #$06	           lda #6
+.0e4b	4c ce 0c	jmp $0cce	           jmp compare
+.0e4e					rax
+.0e4e					ray
+.0e4e	20 47 0a	jsr $0a47	           jsr savestack
+.0e51	ad 73 0c	lda $0c73	           lda cmd
+.0e54	8d 5e 0e	sta $0e5e	           sta nowrap
+.0e57	20 92 08	jsr $0892	           jsr starttimer
+.0e5a	a2 00		ldx #$00	           ldx #0
+.0e5c	a0 00		ldy #$00	           ldy #0
+.0e5e					nowrap
+.0e5e	ad ff ff	lda $ffff	           lda $ffff
+.0e61	20 c7 08	jsr $08c7	           jsr stoptimer
+.0e64	20 57 0a	jsr $0a57	           jsr restorestack
+.0e67	a9 08		lda #$08	           lda #8
+.0e69	20 ce 0c	jsr $0cce	           jsr compare
+.0e6c	20 47 0a	jsr $0a47	           jsr savestack
+.0e6f	ad 73 0c	lda $0c73	           lda cmd
+.0e72	8d 7c 0e	sta $0e7c	           sta wrap
+.0e75	20 92 08	jsr $0892	           jsr starttimer
+.0e78	a2 03		ldx #$03	           ldx #3
+.0e7a	a0 03		ldy #$03	           ldy #3
+.0e7c					wrap
+.0e7c	ad ff ff	lda $ffff	           lda $ffff
+.0e7f	20 c7 08	jsr $08c7	           jsr stoptimer
+.0e82	20 57 0a	jsr $0a57	           jsr restorestack
+.0e85	a9 09		lda #$09	           lda #9
+.0e87	4c ce 0c	jmp $0cce	           jmp compare
+.0e8a					wax
+.0e8a					way
+.0e8a	20 47 0a	jsr $0a47	           jsr savestack
+.0e8d	ad 73 0c	lda $0c73	           lda cmd
+.0e90	8d 9a 0e	sta $0e9a	           sta nowrap
+.0e93	20 92 08	jsr $0892	           jsr starttimer
+.0e96	a2 00		ldx #$00	           ldx #0
+.0e98	a0 00		ldy #$00	           ldy #0
+.0e9a					nowrap
+.0e9a	ad ff ff	lda $ffff	           lda $ffff
+.0e9d	20 c7 08	jsr $08c7	           jsr stoptimer
+.0ea0	20 57 0a	jsr $0a57	           jsr restorestack
+.0ea3	a9 09		lda #$09	           lda #9
+.0ea5	20 ce 0c	jsr $0cce	           jsr compare
+.0ea8	20 47 0a	jsr $0a47	           jsr savestack
+.0eab	ad 73 0c	lda $0c73	           lda cmd
+.0eae	8d b8 0e	sta $0eb8	           sta wrap
+.0eb1	20 92 08	jsr $0892	           jsr starttimer
+.0eb4	a2 03		ldx #$03	           ldx #3
+.0eb6	a0 03		ldy #$03	           ldy #3
+.0eb8					wrap
+.0eb8	ad ff ff	lda $ffff	           lda $ffff
+.0ebb	20 c7 08	jsr $08c7	           jsr stoptimer
+.0ebe	20 57 0a	jsr $0a57	           jsr restorestack
+.0ec1	a9 09		lda #$09	           lda #9
+.0ec3	4c ce 0c	jmp $0cce	           jmp compare
+.0ec6					max
+.0ec6					may
+.0ec6	20 47 0a	jsr $0a47	           jsr savestack
+.0ec9	ad 73 0c	lda $0c73	           lda cmd
+.0ecc	8d d6 0e	sta $0ed6	           sta nowrap
+.0ecf	20 92 08	jsr $0892	           jsr starttimer
+.0ed2	a2 00		ldx #$00	           ldx #0
+.0ed4	a0 00		ldy #$00	           ldy #0
+.0ed6					nowrap
+.0ed6	ad ff ff	lda $ffff	           lda $ffff
+.0ed9	20 c7 08	jsr $08c7	           jsr stoptimer
+.0edc	20 57 0a	jsr $0a57	           jsr restorestack
+.0edf	a9 0b		lda #$0b	           lda #11
+.0ee1	20 ce 0c	jsr $0cce	           jsr compare
+.0ee4	20 47 0a	jsr $0a47	           jsr savestack
+.0ee7	ad 73 0c	lda $0c73	           lda cmd
+.0eea	8d f4 0e	sta $0ef4	           sta wrap
+.0eed	20 92 08	jsr $0892	           jsr starttimer
+.0ef0	a2 03		ldx #$03	           ldx #3
+.0ef2	a0 03		ldy #$03	           ldy #3
+.0ef4					wrap
+.0ef4	ad ff ff	lda $ffff	           lda $ffff
+.0ef7	20 c7 08	jsr $08c7	           jsr stoptimer
+.0efa	20 57 0a	jsr $0a57	           jsr restorestack
+.0efd	a9 0b		lda #$0b	           lda #11
+.0eff	4c ce 0c	jmp $0cce	           jmp compare
+.0f02					rix
+.0f02					wix
+.0f02	a9 ff		lda #$ff	           lda #$ff
+.0f04	85 ac		sta $ac		           sta 172
+.0f06	85 ad		sta $ad		           sta 173
+.0f08	ad 73 0c	lda $0c73	           lda cmd
+.0f0b	8d 13 0f	sta $0f13	           sta nowrap
+.0f0e	20 92 08	jsr $0892	           jsr starttimer
+.0f11	a2 00		ldx #$00	           ldx #0
+.0f13					nowrap
+.0f13	a1 ac		lda ($ac,x)	           lda (172,x)
+.0f15	20 c7 08	jsr $08c7	           jsr stoptimer
+.0f18	a9 08		lda #$08	           lda #8
+.0f1a	20 ce 0c	jsr $0cce	           jsr compare
+.0f1d	ad 73 0c	lda $0c73	           lda cmd
+.0f20	8d 28 0f	sta $0f28	           sta wrap
+.0f23	20 92 08	jsr $0892	           jsr starttimer
+.0f26	a2 ff		ldx #$ff	           ldx #$ff
+.0f28					wrap
+.0f28	a1 ad		lda ($ad,x)	           lda (173,x)
+.0f2a	20 c7 08	jsr $08c7	           jsr stoptimer
+.0f2d	a9 08		lda #$08	           lda #8
+.0f2f	4c ce 0c	jmp $0cce	           jmp compare
+.0f32					mix
+.0f32	a9 ff		lda #$ff	           lda #$ff
+.0f34	85 ac		sta $ac		           sta 172
+.0f36	85 ad		sta $ad		           sta 173
+.0f38	ad 73 0c	lda $0c73	           lda cmd
+.0f3b	8d 43 0f	sta $0f43	           sta nowrap
+.0f3e	20 92 08	jsr $0892	           jsr starttimer
+.0f41	a2 00		ldx #$00	           ldx #0
+.0f43					nowrap
+.0f43	a1 ac		lda ($ac,x)	           lda (172,x)
+.0f45	20 c7 08	jsr $08c7	           jsr stoptimer
+.0f48	a9 0a		lda #$0a	           lda #10
+.0f4a	20 ce 0c	jsr $0cce	           jsr compare
+.0f4d	ad 73 0c	lda $0c73	           lda cmd
+.0f50	8d 58 0f	sta $0f58	           sta wrap
+.0f53	20 92 08	jsr $0892	           jsr starttimer
+.0f56	a2 ff		ldx #$ff	           ldx #$ff
+.0f58					wrap
+.0f58	a1 ad		lda ($ad,x)	           lda (173,x)
+.0f5a	20 c7 08	jsr $08c7	           jsr stoptimer
+.0f5d	a9 0a		lda #$0a	           lda #10
+.0f5f	4c ce 0c	jmp $0cce	           jmp compare
+.0f62					riy
+.0f62	a9 ff		lda #$ff	           lda #$ff
+.0f64	85 ac		sta $ac		           sta 172
+.0f66	85 ad		sta $ad		           sta 173
+.0f68	ad 73 0c	lda $0c73	           lda cmd
+.0f6b	8d 73 0f	sta $0f73	           sta nowrap
+.0f6e	20 92 08	jsr $0892	           jsr starttimer
+.0f71	a0 00		ldy #$00	           ldy #0
+.0f73					nowrap
+.0f73	b1 ac		lda ($ac),y	           lda (172),y
+.0f75	20 c7 08	jsr $08c7	           jsr stoptimer
+.0f78	a9 07		lda #$07	           lda #7
+.0f7a	20 ce 0c	jsr $0cce	           jsr compare
+.0f7d	ad 73 0c	lda $0c73	           lda cmd
+.0f80	8d 88 0f	sta $0f88	           sta wrap
+.0f83	20 92 08	jsr $0892	           jsr starttimer
+.0f86	a0 03		ldy #$03	           ldy #3
+.0f88					wrap
+.0f88	b1 ac		lda ($ac),y	           lda (172),y
+.0f8a	20 c7 08	jsr $08c7	           jsr stoptimer
+.0f8d	a9 08		lda #$08	           lda #8
+.0f8f	4c ce 0c	jmp $0cce	           jmp compare
+.0f92					wiy
+.0f92	a9 ff		lda #$ff	           lda #$ff
+.0f94	85 ac		sta $ac		           sta 172
+.0f96	85 ad		sta $ad		           sta 173
+.0f98	ad 73 0c	lda $0c73	           lda cmd
+.0f9b	8d a3 0f	sta $0fa3	           sta nowrap
+.0f9e	20 92 08	jsr $0892	           jsr starttimer
+.0fa1	a0 00		ldy #$00	           ldy #0
+.0fa3					nowrap
+.0fa3	b1 ac		lda ($ac),y	           lda (172),y
+.0fa5	20 c7 08	jsr $08c7	           jsr stoptimer
+.0fa8	a9 08		lda #$08	           lda #8
+.0faa	20 ce 0c	jsr $0cce	           jsr compare
+.0fad	ad 73 0c	lda $0c73	           lda cmd
+.0fb0	8d b8 0f	sta $0fb8	           sta wrap
+.0fb3	20 92 08	jsr $0892	           jsr starttimer
+.0fb6	a0 03		ldy #$03	           ldy #3
+.0fb8					wrap
+.0fb8	b1 ac		lda ($ac),y	           lda (172),y
+.0fba	20 c7 08	jsr $08c7	           jsr stoptimer
+.0fbd	a9 08		lda #$08	           lda #8
+.0fbf	4c ce 0c	jmp $0cce	           jmp compare
+.0fc2					miy
+.0fc2	a9 ff		lda #$ff	           lda #$ff
+.0fc4	85 ac		sta $ac		           sta 172
+.0fc6	85 ad		sta $ad		           sta 173
+.0fc8	ad 73 0c	lda $0c73	           lda cmd
+.0fcb	8d d3 0f	sta $0fd3	           sta nowrap
+.0fce	20 92 08	jsr $0892	           jsr starttimer
+.0fd1	a0 00		ldy #$00	           ldy #0
+.0fd3					nowrap
+.0fd3	b1 ac		lda ($ac),y	           lda (172),y
+.0fd5	20 c7 08	jsr $08c7	           jsr stoptimer
+.0fd8	a9 0a		lda #$0a	           lda #10
+.0fda	20 ce 0c	jsr $0cce	           jsr compare
+.0fdd	ad 73 0c	lda $0c73	           lda cmd
+.0fe0	8d e8 0f	sta $0fe8	           sta wrap
+.0fe3	20 92 08	jsr $0892	           jsr starttimer
+.0fe6	a0 03		ldy #$03	           ldy #3
+.0fe8					wrap
+.0fe8	b1 ac		lda ($ac),y	           lda (172),y
+.0fea	20 c7 08	jsr $08c7	           jsr stoptimer
+.0fed	a9 0a		lda #$0a	           lda #10
+.0fef	4c ce 0c	jmp $0cce	           jmp compare
+.0ff2					r
+=$2000					from       = $2000
+=$2000					to         = $2000
+.0ff2	a2 f7		ldx #$f7	           ldx #$f7
+.0ff4	ad 73 0c	lda $0c73	           lda cmd
+.0ff7	8d fe 1f	sta $1ffe	           sta from-2
+.0ffa	29 20		and #$20	           and #$20
+.0ffc	f0 02		beq $1000	           beq clear
+.0ffe	a2 34		ldx #$34	           ldx #$34
+.1000					clear
+.1000	8a		txa		           txa
+.1001	48		pha		           pha
+.1002	a9 00		lda #$00	           lda #to-from&$ff
+.1004	8d ff 1f	sta $1fff	           sta from-1
+.1007	a9 60		lda #$60	           lda #$60
+.1009	8d 00 20	sta $2000	           sta to
+.100c	20 92 08	jsr $0892	           jsr starttimer
+.100f	28		plp		           plp
+.1010	20 fe 1f	jsr $1ffe	           jsr from-2
+.1013	20 c7 08	jsr $08c7	           jsr stoptimer
+.1016	a9 12		lda #$12	           lda #18
+.1018	20 ce 0c	jsr $0cce	           jsr compare
+=$2000					from       = $2000
+=$2000					to         = $2000
+.101b	a2 34		ldx #$34	           ldx #$34
+.101d	ad 73 0c	lda $0c73	           lda cmd
+.1020	8d fe 1f	sta $1ffe	           sta from-2
+.1023	29 20		and #$20	           and #$20
+.1025	f0 02		beq $1029	           beq clear
+.1027	a2 f7		ldx #$f7	           ldx #$f7
+.1029					clear
+.1029	8a		txa		           txa
+.102a	48		pha		           pha
+.102b	a9 00		lda #$00	           lda #to-from&$ff
+.102d	8d ff 1f	sta $1fff	           sta from-1
+.1030	a9 60		lda #$60	           lda #$60
+.1032	8d 00 20	sta $2000	           sta to
+.1035	20 92 08	jsr $0892	           jsr starttimer
+.1038	28		plp		           plp
+.1039	20 fe 1f	jsr $1ffe	           jsr from-2
+.103c	20 c7 08	jsr $08c7	           jsr stoptimer
+.103f	a9 13		lda #$13	           lda #19
+.1041	20 ce 0c	jsr $0cce	           jsr compare
+=$2000					from       = $2000
+=$207f					to         = $207f
+.1044	a2 34		ldx #$34	           ldx #$34
+.1046	ad 73 0c	lda $0c73	           lda cmd
+.1049	8d fe 1f	sta $1ffe	           sta from-2
+.104c	29 20		and #$20	           and #$20
+.104e	f0 02		beq $1052	           beq clear
+.1050	a2 f7		ldx #$f7	           ldx #$f7
+.1052					clear
+.1052	8a		txa		           txa
+.1053	48		pha		           pha
+.1054	a9 7f		lda #$7f	           lda #to-from&$ff
+.1056	8d ff 1f	sta $1fff	           sta from-1
+.1059	a9 60		lda #$60	           lda #$60
+.105b	8d 7f 20	sta $207f	           sta to
+.105e	20 92 08	jsr $0892	           jsr starttimer
+.1061	28		plp		           plp
+.1062	20 fe 1f	jsr $1ffe	           jsr from-2
+.1065	20 c7 08	jsr $08c7	           jsr stoptimer
+.1068	a9 13		lda #$13	           lda #19
+.106a	20 ce 0c	jsr $0cce	           jsr compare
+=$1fff					from       = $1fff
+=$2000					to         = $2000
+.106d	a2 34		ldx #$34	           ldx #$34
+.106f	ad 73 0c	lda $0c73	           lda cmd
+.1072	8d fd 1f	sta $1ffd	           sta from-2
+.1075	29 20		and #$20	           and #$20
+.1077	f0 02		beq $107b	           beq clear
+.1079	a2 f7		ldx #$f7	           ldx #$f7
+.107b					clear
+.107b	8a		txa		           txa
+.107c	48		pha		           pha
+.107d	a9 01		lda #$01	           lda #to-from&$ff
+.107f	8d fe 1f	sta $1ffe	           sta from-1
+.1082	a9 60		lda #$60	           lda #$60
+.1084	8d 00 20	sta $2000	           sta to
+.1087	20 92 08	jsr $0892	           jsr starttimer
+.108a	28		plp		           plp
+.108b	20 fd 1f	jsr $1ffd	           jsr from-2
+.108e	20 c7 08	jsr $08c7	           jsr stoptimer
+.1091	a9 14		lda #$14	           lda #20
+.1093	20 ce 0c	jsr $0cce	           jsr compare
+=$1fff					from       = $1fff
+=$207e					to         = $207e
+.1096	a2 34		ldx #$34	           ldx #$34
+.1098	ad 73 0c	lda $0c73	           lda cmd
+.109b	8d fd 1f	sta $1ffd	           sta from-2
+.109e	29 20		and #$20	           and #$20
+.10a0	f0 02		beq $10a4	           beq clear
+.10a2	a2 f7		ldx #$f7	           ldx #$f7
+.10a4					clear
+.10a4	8a		txa		           txa
+.10a5	48		pha		           pha
+.10a6	a9 7f		lda #$7f	           lda #to-from&$ff
+.10a8	8d fe 1f	sta $1ffe	           sta from-1
+.10ab	a9 60		lda #$60	           lda #$60
+.10ad	8d 7e 20	sta $207e	           sta to
+.10b0	20 92 08	jsr $0892	           jsr starttimer
+.10b3	28		plp		           plp
+.10b4	20 fd 1f	jsr $1ffd	           jsr from-2
+.10b7	20 c7 08	jsr $08c7	           jsr stoptimer
+.10ba	a9 14		lda #$14	           lda #20
+.10bc	20 ce 0c	jsr $0cce	           jsr compare
+=$1fff					from       = $1fff
+=$1ffc					to         = $1ffc
+.10bf	a2 34		ldx #$34	           ldx #$34
+.10c1	ad 73 0c	lda $0c73	           lda cmd
+.10c4	8d fd 1f	sta $1ffd	           sta from-2
+.10c7	29 20		and #$20	           and #$20
+.10c9	f0 02		beq $10cd	           beq clear
+.10cb	a2 f7		ldx #$f7	           ldx #$f7
+.10cd					clear
+.10cd	8a		txa		           txa
+.10ce	48		pha		           pha
+.10cf	a9 fd		lda #$fd	           lda #to-from&$ff
+.10d1	8d fe 1f	sta $1ffe	           sta from-1
+.10d4	a9 60		lda #$60	           lda #$60
+.10d6	8d fc 1f	sta $1ffc	           sta to
+.10d9	20 92 08	jsr $0892	           jsr starttimer
+.10dc	28		plp		           plp
+.10dd	20 fd 1f	jsr $1ffd	           jsr from-2
+.10e0	20 c7 08	jsr $08c7	           jsr stoptimer
+.10e3	a9 13		lda #$13	           lda #19
+.10e5	20 ce 0c	jsr $0cce	           jsr compare
+=$1fff					from       = $1fff
+=$1f7f					to         = $1f7f
+.10e8	a2 34		ldx #$34	           ldx #$34
+.10ea	ad 73 0c	lda $0c73	           lda cmd
+.10ed	8d fd 1f	sta $1ffd	           sta from-2
+.10f0	29 20		and #$20	           and #$20
+.10f2	f0 02		beq $10f6	           beq clear
+.10f4	a2 f7		ldx #$f7	           ldx #$f7
+.10f6					clear
+.10f6	8a		txa		           txa
+.10f7	48		pha		           pha
+.10f8	a9 80		lda #$80	           lda #to-from&$ff
+.10fa	8d fe 1f	sta $1ffe	           sta from-1
+.10fd	a9 60		lda #$60	           lda #$60
+.10ff	8d 7f 1f	sta $1f7f	           sta to
+.1102	20 92 08	jsr $0892	           jsr starttimer
+.1105	28		plp		           plp
+.1106	20 fd 1f	jsr $1ffd	           jsr from-2
+.1109	20 c7 08	jsr $08c7	           jsr stoptimer
+.110c	a9 13		lda #$13	           lda #19
+.110e	20 ce 0c	jsr $0cce	           jsr compare
+=$2000					from       = $2000
+=$1ffd					to         = $1ffd
+.1111	a2 34		ldx #$34	           ldx #$34
+.1113	ad 73 0c	lda $0c73	           lda cmd
+.1116	8d fe 1f	sta $1ffe	           sta from-2
+.1119	29 20		and #$20	           and #$20
+.111b	f0 02		beq $111f	           beq clear
+.111d	a2 f7		ldx #$f7	           ldx #$f7
+.111f					clear
+.111f	8a		txa		           txa
+.1120	48		pha		           pha
+.1121	a9 fd		lda #$fd	           lda #to-from&$ff
+.1123	8d ff 1f	sta $1fff	           sta from-1
+.1126	a9 60		lda #$60	           lda #$60
+.1128	8d fd 1f	sta $1ffd	           sta to
+.112b	20 92 08	jsr $0892	           jsr starttimer
+.112e	28		plp		           plp
+.112f	20 fe 1f	jsr $1ffe	           jsr from-2
+.1132	20 c7 08	jsr $08c7	           jsr stoptimer
+.1135	a9 14		lda #$14	           lda #20
+.1137	20 ce 0c	jsr $0cce	           jsr compare
+=$2000					from       = $2000
+=$1f80					to         = $1f80
+.113a	a2 34		ldx #$34	           ldx #$34
+.113c	ad 73 0c	lda $0c73	           lda cmd
+.113f	8d fe 1f	sta $1ffe	           sta from-2
+.1142	29 20		and #$20	           and #$20
+.1144	f0 02		beq $1148	           beq clear
+.1146	a2 f7		ldx #$f7	           ldx #$f7
+.1148					clear
+.1148	8a		txa		           txa
+.1149	48		pha		           pha
+.114a	a9 80		lda #$80	           lda #to-from&$ff
+.114c	8d ff 1f	sta $1fff	           sta from-1
+.114f	a9 60		lda #$60	           lda #$60
+.1151	8d 80 1f	sta $1f80	           sta to
+.1154	20 92 08	jsr $0892	           jsr starttimer
+.1157	28		plp		           plp
+.1158	20 fe 1f	jsr $1ffe	           jsr from-2
+.115b	20 c7 08	jsr $08c7	           jsr stoptimer
+.115e	a9 14		lda #$14	           lda #20
+.1160	20 ce 0c	jsr $0cce	           jsr compare
+.1163	60		rts		           rts
+.1164					brkn
+.1164	a9 7f		lda #$7f	           lda #$7f
+.1166	8d 0d dc	sta $dc0d	           sta $dc0d
+.1169	a9 35		lda #$35	           lda #$35
+.116b	85 01		sta $01		           sta 1
+.116d	a9 7b		lda #$7b	           lda #<break
+.116f	8d fe ff	sta $fffe	           sta $fffe
+.1172	a9 11		lda #$11	           lda #>break
+.1174	8d ff ff	sta $ffff	           sta $ffff
+.1177	20 92 08	jsr $0892	           jsr starttimer
+.117a	00		brk #		           brk
+.117b					break
+.117b	20 c7 08	jsr $08c7	           jsr stoptimer
+.117e	68		pla		           pla
+.117f	68		pla		           pla
+.1180	68		pla		           pla
+.1181	a9 37		lda #$37	           lda #$37
+.1183	85 01		sta $01		           sta 1
+.1185	a9 81		lda #$81	           lda #$81
+.1187	8d 0d dc	sta $dc0d	           sta $dc0d
+.118a	a9 07		lda #$07	           lda #7
+.118c	4c ce 0c	jmp $0cce	           jmp compare
+.118f					phan
+.118f					phpn
+.118f	ad 73 0c	lda $0c73	           lda cmd
+.1192	8d 98 11	sta $1198	           sta command
+.1195	20 92 08	jsr $0892	           jsr starttimer
+.1198					command
+.1198	48		pha		           pha
+.1199	20 c7 08	jsr $08c7	           jsr stoptimer
+.119c	68		pla		           pla
+.119d	a9 03		lda #$03	           lda #3
+.119f	4c ce 0c	jmp $0cce	           jmp compare
+.11a2					plan
+.11a2					plpn
+.11a2	ad 73 0c	lda $0c73	           lda cmd
+.11a5	8d ae 11	sta $11ae	           sta command
+.11a8	a9 f7		lda #$f7	           lda #$f7
+.11aa	48		pha		           pha
+.11ab	20 92 08	jsr $0892	           jsr starttimer
+.11ae					command
+.11ae	68		pla		           pla
+.11af	20 c7 08	jsr $08c7	           jsr stoptimer
+.11b2	a9 04		lda #$04	           lda #4
+.11b4	4c ce 0c	jmp $0cce	           jmp compare
+.11b7					jmpw
+.11b7	20 92 08	jsr $0892	           jsr starttimer
+.11ba	4c bd 11	jmp $11bd	           jmp continue
+.11bd					continue
+.11bd	20 c7 08	jsr $08c7	           jsr stoptimer
+.11c0	a9 03		lda #$03	           lda #3
+.11c2	4c ce 0c	jmp $0cce	           jmp compare
+.11c5					jmpi
+.11c5	a9 d5		lda #$d5	           lda #<nowrap
+.11c7	8d 00 20	sta $2000	           sta $2000
+.11ca	a9 11		lda #$11	           lda #>nowrap
+.11cc	8d 01 20	sta $2001	           sta $2001
+.11cf	20 92 08	jsr $0892	           jsr starttimer
+.11d2	6c 00 20	jmp ($2000)	           jmp ($2000)
+.11d5					nowrap
+.11d5	20 c7 08	jsr $08c7	           jsr stoptimer
+.11d8	a9 05		lda #$05	           lda #5
+.11da	20 ce 0c	jsr $0cce	           jsr compare
+.11dd	a9 ed		lda #$ed	           lda #<wrap
+.11df	8d ff 1f	sta $1fff	           sta $1fff
+.11e2	a9 11		lda #$11	           lda #>wrap
+.11e4	8d 00 1f	sta $1f00	           sta $1f00
+.11e7	20 92 08	jsr $0892	           jsr starttimer
+.11ea	6c ff 1f	jmp ($1fff)	           jmp ($1fff)
+.11ed					wrap
+.11ed	20 c7 08	jsr $08c7	           jsr stoptimer
+.11f0	a9 05		lda #$05	           lda #5
+.11f2	4c ce 0c	jmp $0cce	           jmp compare
+.11f5					jsrw
+.11f5	20 92 08	jsr $0892	           jsr starttimer
+.11f8	20 fb 11	jsr $11fb	           jsr continue
+.11fb					continue
+.11fb	20 c7 08	jsr $08c7	           jsr stoptimer
+.11fe	68		pla		           pla
+.11ff	68		pla		           pla
+.1200	a9 06		lda #$06	           lda #6
+.1202	4c ce 0c	jmp $0cce	           jmp compare
+.1205					rtsn
+.1205	a9 12		lda #$12	           lda #>continue-1
+.1207	48		pha		           pha
+.1208	a9 0e		lda #$0e	           lda #<continue-1
+.120a	48		pha		           pha
+.120b	20 92 08	jsr $0892	           jsr starttimer
+.120e	60		rts		           rts
+.120f					continue
+.120f	20 c7 08	jsr $08c7	           jsr stoptimer
+.1212	a9 06		lda #$06	           lda #6
+.1214	4c ce 0c	jmp $0cce	           jmp compare
+.1217					rtin
+.1217	a9 12		lda #$12	           lda #>continue
+.1219	48		pha		           pha
+.121a	a9 23		lda #$23	           lda #<continue
+.121c	48		pha		           pha
+.121d	78		sei		           sei
+.121e	08		php		           php
+.121f	20 92 08	jsr $0892	           jsr starttimer
+.1222	40		rti		           rti
+.1223					continue
+.1223	20 c7 08	jsr $08c7	           jsr stoptimer
+.1226	a9 06		lda #$06	           lda #6
+.1228	4c ce 0c	jmp $0cce	           jmp compare
+.122b					hltn
+.122b	60		rts		           rts
+
+;******  End of listing

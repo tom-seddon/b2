@@ -1,0 +1,245 @@
+
+; 64tass Turbo Assembler Macro V1.52.1237 listing file
+; 64tass.exe -L ascii-lst/loadth.lst -o ascii-bin/loadth -T ascii-src/loadth.asm
+; Mon Sep 26 23:32:23 2016
+
+;Offset	;Hex		;Monitor	;Source
+
+;******  Processing input file: ascii-src/loadth.asm
+
+>0801	4c 14 08 00 97			           .byte $4c,$14,$08,$00,$97
+=780					turboass   = 780
+>0806	37 38 30			           .text "780"
+>0809	2c 30 3a 9e 32 30		           .byte $2c,$30,$3a,$9e,$32,$30
+>080f	37 33 00 00 00			           .byte $37,$33,$00,$00,$00
+.0814	a9 01		lda #$01	           lda #1
+.0816	8d 0c 03	sta $030c	           sta turboass
+.0819	a2 00		ldx #$00	           ldx #0
+.081b	86 d3		stx $d3		           stx $d3
+.081d	ad ec 08	lda $08ec	           lda thisname
+.0820					printthis
+.0820	20 d2 ff	jsr $ffd2	           jsr $ffd2
+.0823	e8		inx		           inx
+.0824	bd ec 08	lda $08ec,x	           lda thisname,x
+.0827	d0 f7		bne $0820	           bne printthis
+.0829	20 f9 08	jsr $08f9	           jsr main
+.082c	a9 37		lda #$37	           lda #$37
+.082e	85 01		sta $01		           sta 1
+.0830	a9 2f		lda #$2f	           lda #$2f
+.0832	85 00		sta $00		           sta 0
+.0834	20 15 fd	jsr $fd15	           jsr $fd15
+.0837	20 a3 fd	jsr $fda3	           jsr $fda3
+.083a	20 7a 08	jsr $087a	           jsr print
+>083d	20 2d 20 6f 6b			           .text " - ok"
+>0842	0d 00				           .byte 13,0
+.0844	ad 0c 03	lda $030c	           lda turboass
+.0847	f0 06		beq $084f	           beq loadnext
+.0849	20 c5 08	jsr $08c5	           jsr waitkey
+.084c	4c 00 80	jmp $8000	           jmp $8000
+.084f					loadnext
+.084f	a2 f8		ldx #$f8	           ldx #$f8
+.0851	9a		txs		           txs
+.0852	ad f3 08	lda $08f3	           lda nextname
+.0855	c9 2d		cmp #$2d	           cmp #"-"
+.0857	d0 03		bne $085c	           bne notempty
+.0859	4c 74 a4	jmp $a474	           jmp $a474
+.085c					notempty
+.085c	a2 00		ldx #$00	           ldx #0
+.085e					printnext
+.085e	20 d2 ff	jsr $ffd2	           jsr $ffd2
+.0861	e8		inx		           inx
+.0862	bd f3 08	lda $08f3,x	           lda nextname,x
+.0865	d0 f7		bne $085e	           bne printnext
+.0867	a9 00		lda #$00	           lda #0
+.0869	85 0a		sta $0a		           sta $0a
+.086b	85 b9		sta $b9		           sta $b9
+.086d	86 b7		stx $b7		           stx $b7
+.086f	a9 f3		lda #$f3	           lda #<nextname
+.0871	85 bb		sta $bb		           sta $bb
+.0873	a9 08		lda #$08	           lda #>nextname
+.0875	85 bc		sta $bc		           sta $bc
+.0877	4c 6f e1	jmp $e16f	           jmp $e16f
+.087a					print
+.087a	68		pla		           pla
+.087b	8d 85 08	sta $0885	           sta next+1
+.087e	68		pla		           pla
+.087f	8d 86 08	sta $0886	           sta next+2
+.0882	a2 01		ldx #$01	           ldx #1
+.0884					next
+.0884	bd 11 11	lda $1111,x	           lda $1111,x
+.0887	f0 06		beq $088f	           beq end
+.0889	20 d2 ff	jsr $ffd2	           jsr $ffd2
+.088c	e8		inx		           inx
+.088d	d0 f5		bne $0884	           bne next
+.088f					end
+.088f	38		sec		           sec
+.0890	8a		txa		           txa
+.0891	6d 85 08	adc $0885	           adc next+1
+.0894	8d a0 08	sta $08a0	           sta return+1
+.0897	a9 00		lda #$00	           lda #0
+.0899	6d 86 08	adc $0886	           adc next+2
+.089c	8d a1 08	sta $08a1	           sta return+2
+.089f					return
+.089f	4c 11 11	jmp $1111	           jmp $1111
+.08a2					printhb
+.08a2	48		pha		           pha
+.08a3	4a		lsr a		           lsr a
+.08a4	4a		lsr a		           lsr a
+.08a5	4a		lsr a		           lsr a
+.08a6	4a		lsr a		           lsr a
+.08a7	20 ad 08	jsr $08ad	           jsr printhn
+.08aa	68		pla		           pla
+.08ab	29 0f		and #$0f	           and #$0f
+.08ad					printhn
+.08ad	09 30		ora #$30	           ora #$30
+.08af	c9 3a		cmp #$3a	           cmp #$3a
+.08b1	90 02		bcc $08b5	           bcc noletter
+.08b3	69 06		adc #$06	           adc #6
+.08b5					noletter
+.08b5	4c d2 ff	jmp $ffd2	           jmp $ffd2
+.08b8					waitborder
+.08b8	ad 11 d0	lda $d011	           lda $d011
+.08bb	30 07		bmi $08c4	           bmi ok
+.08bd					wait
+.08bd	ad 12 d0	lda $d012	           lda $d012
+.08c0	c9 1e		cmp #$1e	           cmp #30
+.08c2	b0 f9		bcs $08bd	           bcs wait
+.08c4					ok
+.08c4	60		rts		           rts
+.08c5					waitkey
+.08c5	20 15 fd	jsr $fd15	           jsr $fd15
+.08c8	20 a3 fd	jsr $fda3	           jsr $fda3
+.08cb	58		cli		           cli
+.08cc					wait
+.08cc	20 e4 ff	jsr $ffe4	           jsr $ffe4
+.08cf	f0 fb		beq $08cc	           beq wait
+.08d1	c9 03		cmp #$03	           cmp #3
+.08d3	f0 01		beq $08d6	           beq stop
+.08d5	60		rts		           rts
+.08d6					stop
+.08d6	ad 0c 03	lda $030c	           lda turboass
+.08d9	f0 03		beq $08de	           beq load
+.08db	4c 00 80	jmp $8000	           jmp $8000
+.08de					load
+.08de	20 7a 08	jsr $087a	           jsr print
+>08e1	0d				           .byte 13
+>08e2	62 72 65 61 6b			           .text "break"
+>08e7	0d 00				           .byte 13,0
+.08e9	4c 4f 08	jmp $084f	           jmp loadnext
+>08ec	6c 6f 61 64 74 68 00		thisname   .null "loadth"
+>08f3	63 6e 74 6f 32 00		nextname   .null "cnto2"
+.08f9					main
+.08f9	78		sei		           sei
+.08fa	a9 00		lda #$00	           lda #0
+.08fc	8d 04 dc	sta $dc04	           sta $dc04
+.08ff	8d 05 dc	sta $dc05	           sta $dc05
+.0902	8d 06 dc	sta $dc06	           sta $dc06
+.0905	8d 07 dc	sta $dc07	           sta $dc07
+.0908	8d 04 dd	sta $dd04	           sta $dd04
+.090b	8d 05 dd	sta $dd05	           sta $dd05
+.090e	8d 06 dd	sta $dd06	           sta $dd06
+.0911	8d 07 dd	sta $dd07	           sta $dd07
+.0914	a9 10		lda #$10	           lda #%00010000
+.0916	8d 0e dc	sta $dc0e	           sta $dc0e
+.0919	8d 0f dc	sta $dc0f	           sta $dc0f
+.091c	8d 0e dd	sta $dd0e	           sta $dd0e
+.091f	8d 0f dd	sta $dd0f	           sta $dd0f
+.0922	ad 04 dc	lda $dc04	           lda $dc04
+.0925	0d 05 dc	ora $dc05	           ora $dc05
+.0928	0d 06 dc	ora $dc06	           ora $dc06
+.092b	0d 07 dc	ora $dc07	           ora $dc07
+.092e	0d 04 dd	ora $dd04	           ora $dd04
+.0931	0d 05 dd	ora $dd05	           ora $dd05
+.0934	0d 06 dd	ora $dd06	           ora $dd06
+.0937	0d 07 dd	ora $dd07	           ora $dd07
+.093a	f0 20		beq $095c	           beq ok1
+.093c	20 7a 08	jsr $087a	           jsr print
+>093f	0d				           .byte 13
+>0940	66 6f 72 63 65 20 6c 6f		           .text "force load does "
+>0948	61 64 20 64 6f 65 73 20
+>0950	6e 6f 74 20 77 6f 72 6b		           .text "not work"
+>0958	00				           .byte 0
+.0959	20 c5 08	jsr $08c5	           jsr waitkey
+.095c					ok1
+.095c	78		sei		           sei
+.095d	a9 ff		lda #$ff	           lda #255
+.095f	8d 04 dc	sta $dc04	           sta $dc04
+.0962	8d 06 dc	sta $dc06	           sta $dc06
+.0965	8d 04 dd	sta $dd04	           sta $dd04
+.0968	8d 06 dd	sta $dd06	           sta $dd06
+.096b	ad 04 dc	lda $dc04	           lda $dc04
+.096e	0d 05 dc	ora $dc05	           ora $dc05
+.0971	0d 06 dc	ora $dc06	           ora $dc06
+.0974	0d 07 dc	ora $dc07	           ora $dc07
+.0977	0d 04 dd	ora $dd04	           ora $dd04
+.097a	0d 05 dd	ora $dd05	           ora $dd05
+.097d	0d 06 dd	ora $dd06	           ora $dd06
+.0980	0d 07 dd	ora $dd07	           ora $dd07
+.0983	f0 27		beq $09ac	           beq ok1
+.0985	20 7a 08	jsr $087a	           jsr print
+>0988	0d				           .byte 13
+>0989	77 72 69 74 69 6e 67 20		           .text "writing tl may not "
+>0991	74 6c 20 6d 61 79 20 6e 6f 74 20
+>099c	6c 6f 61 64 20 63 6f 75		           .text "load counter"
+>09a4	6e 74 65 72
+>09a8	00				           .byte 0
+.09a9	20 c5 08	jsr $08c5	           jsr waitkey
+.09ac					ok1
+.09ac	78		sei		           sei
+.09ad	a9 ff		lda #$ff	           lda #255
+.09af	8d 05 dc	sta $dc05	           sta $dc05
+.09b2	8d 07 dc	sta $dc07	           sta $dc07
+.09b5	8d 05 dd	sta $dd05	           sta $dd05
+.09b8	8d 07 dd	sta $dd07	           sta $dd07
+.09bb	ad 04 dc	lda $dc04	           lda $dc04
+.09be	2d 05 dc	and $dc05	           and $dc05
+.09c1	2d 06 dc	and $dc06	           and $dc06
+.09c4	2d 07 dc	and $dc07	           and $dc07
+.09c7	2d 04 dd	and $dd04	           and $dd04
+.09ca	2d 05 dd	and $dd05	           and $dd05
+.09cd	2d 06 dd	and $dd06	           and $dd06
+.09d0	2d 07 dd	and $dd07	           and $dd07
+.09d3	c9 ff		cmp #$ff	           cmp #255
+.09d5	f0 2c		beq $0a03	           beq ok1
+.09d7	20 7a 08	jsr $087a	           jsr print
+>09da	0d				           .byte 13
+>09db	77 72 69 74 69 6e 67 20		           .text "writing th while "
+>09e3	74 68 20 77 68 69 6c 65 20
+>09ec	73 74 6f 70 70 65 64 20		           .text "stopped didn't load"
+>09f4	64 69 64 6e 27 74 20 6c 6f 61 64
+>09ff	00				           .byte 0
+.0a00	20 c5 08	jsr $08c5	           jsr waitkey
+.0a03					ok1
+.0a03	78		sei		           sei
+.0a04	a9 21		lda #$21	           lda #%00100001
+.0a06	8d 0e dc	sta $dc0e	           sta $dc0e
+.0a09	8d 0f dc	sta $dc0f	           sta $dc0f
+.0a0c	8d 0e dd	sta $dd0e	           sta $dd0e
+.0a0f	8d 0f dd	sta $dd0f	           sta $dd0f
+.0a12	a9 00		lda #$00	           lda #0
+.0a14	8d 05 dc	sta $dc05	           sta $dc05
+.0a17	8d 07 dc	sta $dc07	           sta $dc07
+.0a1a	8d 05 dd	sta $dd05	           sta $dd05
+.0a1d	8d 07 dd	sta $dd07	           sta $dd07
+.0a20	ad 04 dc	lda $dc04	           lda $dc04
+.0a23	2d 05 dc	and $dc05	           and $dc05
+.0a26	2d 06 dc	and $dc06	           and $dc06
+.0a29	2d 07 dc	and $dc07	           and $dc07
+.0a2c	2d 04 dd	and $dd04	           and $dd04
+.0a2f	2d 05 dd	and $dd05	           and $dd05
+.0a32	2d 06 dd	and $dd06	           and $dd06
+.0a35	2d 07 dd	and $dd07	           and $dd07
+.0a38	c9 ff		cmp #$ff	           cmp #255
+.0a3a	f0 2d		beq $0a69	           beq ok1
+.0a3c	20 7a 08	jsr $087a	           jsr print
+>0a3f	0d				           .byte 13
+>0a40	77 72 69 74 69 6e 67 20		           .text "writing th while "
+>0a48	74 68 20 77 68 69 6c 65 20
+>0a51	73 74 61 72 74 65 64 20		           .text "started may not load"
+>0a59	6d 61 79 20 6e 6f 74 20 6c 6f 61 64
+>0a65	00				           .byte 0
+.0a66	20 c5 08	jsr $08c5	           jsr waitkey
+.0a69					ok1
+.0a69	60		rts		           rts
+
+;******  End of listing

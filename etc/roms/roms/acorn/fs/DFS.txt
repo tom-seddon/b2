@@ -1,0 +1,50 @@
+DFS-0.9  - 8271 BBC B
+DFS-0.98 - 8271 BBC B
+DFS 2.10 - 1770 BBC B/B+
+DFS 2.20 - 1770 BBC B/B+
+DFS 2.22 - 1770 BBC B/B+
+DFS 2.23 - 1770 BBC B/B+
+DFS 2.24 - Master MOS 3.20  But why not a major version change?
+DFS 2.25 - 1770 BBC B/B+
+DFS 2.26 - 1770 BBC B/B+ Last for the B/B+. Why another B/B+ release after the Master?
+DFS 2.45 - Master MOS 3.50  Why the big version jump?  
+
+BBC B/B+ 1770 DFS Versions
+
+The first release was 2.0j which was DFS in EPROM. Following this was v2.1 which is 2.0j in ROM.
+The release of the BBC B+ 128 saw version 2.2 DFS released.
+v2.2    Shift-Z Break function included to emulate the 8271
+        Extra commands necessary to deal with the 64K of paged RAM in the B+
+v2.21   No record of it's release or existence.
+
+v2.22   Developed to fix an esoteric OSFILE bug.
+        Also the 128k associated SRAM utilities have been tidied up to make them more user friendly.
+		This version will not work in all BBC model B's fitted with a 1770 upgrade board.
+v2.23   Cures the problem of v2.22 not working in all BBC's.
+		
+Master 128 1770 DFS Versions 2.20,24,25,26,27,28,29
+
+V2.20   First Release
+V2.24   Loading with OSFILE &FF returns A=1
+        File saves>64K work
+V2.25   CLOSE#0 and *CLOSE and *SHUT leaves files with correct length
+        Writing to extent works correctly
+        Unknown command as LIBFS works correctly
+V2.26   OSGBPB speeded-up
+        All four head step rates implemented i.e.
+        *CONFIGURE FDRIVE       0       1       2       3
+        for 1770                6       12      20      30 mS
+        for 1772                6       12      2       3  mS
+V2.27/8 Software patch for spurious Motor-on after 1770 reset
+        Following fixed:
+        If a) A file was open
+           b) the disk had been changed
+           c) BREAK was pressed
+        then the old disk catalogue would be written to the new disk.
+V2.29   OSGBPB tube problem introduced at 2.26 fixed
+        *CONFIGURE FDRIVE 2 has software delay added to hardware delay.
+        This allows for support of slow step rate drives with 1772
+        fitted, ie
+        *CONFIGURE FDRIVE       0       1       2       3
+        for 1770                6       12      50      30 mS
+        for 1772                6       12      32      3  mS

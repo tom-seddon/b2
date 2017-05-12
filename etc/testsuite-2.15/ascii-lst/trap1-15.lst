@@ -1,0 +1,1712 @@
+
+; 64tass Turbo Assembler Macro V1.52.1237 listing file
+; 64tass.exe -L ascii-lst/trap1-15.lst -o ascii-bin/trap1-15 -T ascii-src/trap1-15.asm
+; Mon Sep 26 23:32:30 2016
+
+;Offset	;Hex		;Monitor	;Source
+
+;******  Processing input file: ascii-src/trap1-15.asm
+
+>0801	4c 14 08 00 97			           .byte $4c,$14,$08,$00,$97
+=780					turboass   = 780
+>0806	37 38 30			           .text "780"
+>0809	2c 30 3a 9e 32 30		           .byte $2c,$30,$3a,$9e,$32,$30
+>080f	37 33 00 00 00			           .byte $37,$33,$00,$00,$00
+.0814	a9 01		lda #$01	           lda #1
+.0816	8d 0c 03	sta $030c	           sta turboass
+.0819	4c 21 08	jmp $0821	           jmp main
+=$2800					code       = $2800
+=$29c0					data       = $29c0
+=$f7					zerodata   = $f7
+=$f7					zeroptr    = $f7;$f8
+=172					ptable     = 172;173
+>081c	00				bcmd       .byte 0
+=174					pcode      = 174;175
+=$1b					db         = %00011011
+=$c6					ab         = %11000110
+=$b1					xb         = %10110001
+=$6c					yb         = %01101100
+=$29c0					da         = data
+>081d	00				aa         .byte 0
+>081e	00				xa         .byte 0
+>081f	00				ya         .byte 0
+>0820	00				pa         .byte 0
+.0821					main
+.0821	20 b3 09	jsr $09b3	           jsr print
+>0824	0d				           .byte 13
+>0825	28 75 70 29 74 72 61 70		           .text "(up)trap1"
+>082d	31
+>082e	00				           .byte 0
+.082f	a9 00		lda #$00	           lda #<code
+.0831	85 ae		sta $ae		           sta pcode+0
+.0833	a9 28		lda #$28	           lda #>code
+.0835	85 af		sta $af		           sta pcode+1
+.0837	a9 b4		lda #$b4	           lda #<table
+.0839	85 ac		sta $ac		           sta ptable+0
+.083b	a9 0e		lda #$0e	           lda #>table
+.083d	85 ad		sta $ad		           sta ptable+1
+.083f					nextcommand
+.083f	a0 00		ldy #$00	           ldy #0
+.0841	ad 1c 08	lda $081c	           lda bcmd
+.0844	91 ae		sta ($ae),y	           sta (pcode),y
+.0846	a9 60		lda #$60	           lda #$60
+.0848	c8		iny		           iny
+.0849	91 ae		sta ($ae),y	           sta (pcode),y
+.084b	c8		iny		           iny
+.084c	91 ae		sta ($ae),y	           sta (pcode),y
+.084e	c8		iny		           iny
+.084f	91 ae		sta ($ae),y	           sta (pcode),y
+.0851	a0 03		ldy #$03	           ldy #3
+.0853	b1 ac		lda ($ac),y	           lda (ptable),y
+.0855	8d 6b 08	sta $086b	           sta jump+1
+.0858	c8		iny		           iny
+.0859	b1 ac		lda ($ac),y	           lda (ptable),y
+.085b	8d 6c 08	sta $086c	           sta jump+2
+.085e					waitborder
+.085e	ad 11 d0	lda $d011	           lda $d011
+.0861	30 07		bmi $086a	           bmi jump
+.0863	ad 12 d0	lda $d012	           lda $d012
+.0866	c9 1e		cmp #$1e	           cmp #30
+.0868	b0 f4		bcs $085e	           bcs waitborder
+.086a	20 11 11	jsr $1111	jump       jsr $1111
+.086d	a0 05		ldy #$05	           ldy #5
+.086f	ad c0 29	lda $29c0	           lda da
+.0872	d1 ac		cmp ($ac),y	           cmp (ptable),y
+.0874	d0 38		bne $08ae	           bne error
+.0876	c8		iny		           iny
+.0877	ad 1d 08	lda $081d	           lda aa
+.087a	d1 ac		cmp ($ac),y	           cmp (ptable),y
+.087c	d0 30		bne $08ae	           bne error
+.087e	c8		iny		           iny
+.087f	ad 1e 08	lda $081e	           lda xa
+.0882	d1 ac		cmp ($ac),y	           cmp (ptable),y
+.0884	d0 28		bne $08ae	           bne error
+.0886	c8		iny		           iny
+.0887	ad 1f 08	lda $081f	           lda ya
+.088a	d1 ac		cmp ($ac),y	           cmp (ptable),y
+.088c	d0 20		bne $08ae	           bne error
+.088e	c8		iny		           iny
+.088f	ad 20 08	lda $0820	           lda pa
+.0892	d1 ac		cmp ($ac),y	           cmp (ptable),y
+.0894	d0 18		bne $08ae	           bne error
+.0896					nostop
+.0896	18		clc		           clc
+.0897	a5 ac		lda $ac		           lda ptable+0
+.0899	69 0a		adc #$0a	           adc #10
+.089b	85 ac		sta $ac		           sta ptable+0
+.089d	a5 ad		lda $ad		           lda ptable+1
+.089f	69 00		adc #$00	           adc #0
+.08a1	85 ad		sta $ad		           sta ptable+1
+.08a3	ee 1c 08	inc $081c	           inc bcmd
+.08a6	d0 03		bne $08ab	           bne jmpnextcommand
+.08a8	4c 78 09	jmp $0978	           jmp ok
+.08ab					jmpnextcommand
+.08ab	4c 3f 08	jmp $083f	           jmp nextcommand
+.08ae					error
+.08ae	a9 0d		lda #$0d	           lda #13
+.08b0	20 d2 ff	jsr $ffd2	           jsr $ffd2
+.08b3	a0 00		ldy #$00	           ldy #0
+.08b5	b1 ac		lda ($ac),y	           lda (ptable),y
+.08b7	20 d2 ff	jsr $ffd2	           jsr $ffd2
+.08ba	c8		iny		           iny
+.08bb	b1 ac		lda ($ac),y	           lda (ptable),y
+.08bd	20 d2 ff	jsr $ffd2	           jsr $ffd2
+.08c0	c8		iny		           iny
+.08c1	b1 ac		lda ($ac),y	           lda (ptable),y
+.08c3	20 d2 ff	jsr $ffd2	           jsr $ffd2
+.08c6	a9 20		lda #$20	           lda #32
+.08c8	20 d2 ff	jsr $ffd2	           jsr $ffd2
+.08cb	ad 1c 08	lda $081c	           lda bcmd
+.08ce	20 db 09	jsr $09db	           jsr printhb
+.08d1	20 b3 09	jsr $09b3	           jsr print
+>08d4	0d				           .byte 13
+>08d5	61 66 74 65 72 20 20		           .text "after  "
+>08dc	00				           .byte 0
+.08dd	ad c0 29	lda $29c0	           lda da
+.08e0	20 db 09	jsr $09db	           jsr printhb
+.08e3	a9 20		lda #$20	           lda #32
+.08e5	20 d2 ff	jsr $ffd2	           jsr $ffd2
+.08e8	20 d2 ff	jsr $ffd2	           jsr $ffd2
+.08eb	ad 1d 08	lda $081d	           lda aa
+.08ee	20 db 09	jsr $09db	           jsr printhb
+.08f1	a9 20		lda #$20	           lda #32
+.08f3	20 d2 ff	jsr $ffd2	           jsr $ffd2
+.08f6	ad 1e 08	lda $081e	           lda xa
+.08f9	20 db 09	jsr $09db	           jsr printhb
+.08fc	a9 20		lda #$20	           lda #32
+.08fe	20 d2 ff	jsr $ffd2	           jsr $ffd2
+.0901	ad 1f 08	lda $081f	           lda ya
+.0904	20 db 09	jsr $09db	           jsr printhb
+.0907	a9 20		lda #$20	           lda #32
+.0909	20 d2 ff	jsr $ffd2	           jsr $ffd2
+.090c	20 d2 ff	jsr $ffd2	           jsr $ffd2
+.090f	ad 20 08	lda $0820	           lda pa
+.0912	20 db 09	jsr $09db	           jsr printhb
+.0915	20 b3 09	jsr $09b3	           jsr print
+>0918	0d				           .byte 13
+>0919	72 69 67 68 74 20 20		           .text "right  "
+>0920	00				           .byte 0
+.0921	a0 05		ldy #$05	           ldy #5
+.0923	b1 ac		lda ($ac),y	           lda (ptable),y
+.0925	20 db 09	jsr $09db	           jsr printhb
+.0928	a9 20		lda #$20	           lda #32
+.092a	20 d2 ff	jsr $ffd2	           jsr $ffd2
+.092d	20 d2 ff	jsr $ffd2	           jsr $ffd2
+.0930	c8		iny		           iny
+.0931	b1 ac		lda ($ac),y	           lda (ptable),y
+.0933	20 db 09	jsr $09db	           jsr printhb
+.0936	a9 20		lda #$20	           lda #32
+.0938	20 d2 ff	jsr $ffd2	           jsr $ffd2
+.093b	c8		iny		           iny
+.093c	b1 ac		lda ($ac),y	           lda (ptable),y
+.093e	20 db 09	jsr $09db	           jsr printhb
+.0941	a9 20		lda #$20	           lda #32
+.0943	20 d2 ff	jsr $ffd2	           jsr $ffd2
+.0946	c8		iny		           iny
+.0947	b1 ac		lda ($ac),y	           lda (ptable),y
+.0949	20 db 09	jsr $09db	           jsr printhb
+.094c	a9 20		lda #$20	           lda #32
+.094e	20 d2 ff	jsr $ffd2	           jsr $ffd2
+.0951	20 d2 ff	jsr $ffd2	           jsr $ffd2
+.0954	c8		iny		           iny
+.0955	b1 ac		lda ($ac),y	           lda (ptable),y
+.0957	20 db 09	jsr $09db	           jsr printhb
+.095a	a9 0d		lda #$0d	           lda #13
+.095c	20 d2 ff	jsr $ffd2	           jsr $ffd2
+.095f					waitkey
+.095f	20 e4 ff	jsr $ffe4	           jsr $ffe4
+.0962	f0 fb		beq $095f	           beq waitkey
+.0964	c9 03		cmp #$03	           cmp #3
+.0966	d0 08		bne $0970	           bne jmpnostop
+.0968	ad 0c 03	lda $030c	           lda turboass
+.096b	f0 06		beq $0973	           beq return
+.096d	4c 00 80	jmp $8000	           jmp $8000
+.0970					jmpnostop
+.0970	4c 96 08	jmp $0896	           jmp nostop
+.0973					return
+.0973	a9 2f		lda #$2f	           lda #47
+.0975	85 00		sta $00		           sta 0
+.0977	60		rts		           rts
+.0978					ok
+.0978	20 b3 09	jsr $09b3	           jsr print
+>097b	20 2d 20 6f 6b			           .text " - ok"
+>0980	0d 00				           .byte 13,0
+.0982	ad 0c 03	lda $030c	           lda turboass
+.0985	f0 08		beq $098f	           beq load
+.0987	20 e4 ff	jsr $ffe4	wait       jsr $ffe4
+.098a	f0 fb		beq $0987	           beq wait
+.098c	4c 00 80	jmp $8000	           jmp $8000
+.098f					load
+.098f	a9 2f		lda #$2f	           lda #47
+.0991	85 00		sta $00		           sta 0
+.0993	20 b3 09	jsr $09b3	           jsr print
+>0996	74 72 61 70 32			name       .text "trap2"
+=5					namelen    = *-name
+>099b	00				           .byte 0
+.099c	a9 00		lda #$00	           lda #0
+.099e	85 0a		sta $0a		           sta $0a
+.09a0	85 b9		sta $b9		           sta $b9
+.09a2	a9 05		lda #$05	           lda #namelen
+.09a4	85 b7		sta $b7		           sta $b7
+.09a6	a9 96		lda #$96	           lda #<name
+.09a8	85 bb		sta $bb		           sta $bb
+.09aa	a9 09		lda #$09	           lda #>name
+.09ac	85 bc		sta $bc		           sta $bc
+.09ae	68		pla		           pla
+.09af	68		pla		           pla
+.09b0	4c 6f e1	jmp $e16f	           jmp $e16f
+.09b3	68		pla		print      pla
+.09b4	8d be 09	sta $09be	           sta print0+1
+.09b7	68		pla		           pla
+.09b8	8d bf 09	sta $09bf	           sta print0+2
+.09bb	a2 01		ldx #$01	           ldx #1
+.09bd	bd bd 09	lda $09bd,x	print0     lda !*,x
+.09c0	f0 06		beq $09c8	           beq print1
+.09c2	20 d2 ff	jsr $ffd2	           jsr $ffd2
+.09c5	e8		inx		           inx
+.09c6	d0 f5		bne $09bd	           bne print0
+.09c8	38		sec		print1     sec
+.09c9	8a		txa		           txa
+.09ca	6d be 09	adc $09be	           adc print0+1
+.09cd	8d d9 09	sta $09d9	           sta print2+1
+.09d0	a9 00		lda #$00	           lda #0
+.09d2	6d bf 09	adc $09bf	           adc print0+2
+.09d5	8d da 09	sta $09da	           sta print2+2
+.09d8	4c d8 09	jmp $09d8	print2     jmp !*
+.09db					printhb
+.09db	48		pha		           pha
+.09dc	4e 97 0a	lsr $0a97	           lsr a
+.09df	4e 97 0a	lsr $0a97	           lsr a
+.09e2	4e 97 0a	lsr $0a97	           lsr a
+.09e5	4e 97 0a	lsr $0a97	           lsr a
+.09e8	20 ee 09	jsr $09ee	           jsr printhn
+.09eb	68		pla		           pla
+.09ec	29 0f		and #$0f	           and #$0f
+.09ee					printhn
+.09ee	09 30		ora #$30	           ora #$30
+.09f0	c9 3a		cmp #$3a	           cmp #$3a
+.09f2	90 02		bcc $09f6	           bcc printhn0
+.09f4	69 06		adc #$06	           adc #6
+.09f6					printhn0
+.09f6	20 d2 ff	jsr $ffd2	           jsr $ffd2
+.09f9	60		rts		           rts
+>09fa	00				savesp     .byte 0
+=$2a00					savedstack = $2a00;2aff
+.09fb					savestack
+.09fb	ba		tsx		           tsx
+.09fc	8e fa 09	stx $09fa	           stx savesp
+.09ff	a2 00		ldx #$00	           ldx #0
+.0a01					save
+.0a01	bd 00 01	lda $0100,x	           lda $0100,x
+.0a04	9d 00 2a	sta $2a00,x	           sta savedstack,x
+.0a07	e8		inx		           inx
+.0a08	d0 f7		bne $0a01	           bne save
+.0a0a	60		rts		           rts
+.0a0b					restorestack
+.0a0b	68		pla		           pla
+.0a0c	8d 28 0a	sta $0a28	           sta retlow+1
+.0a0f	68		pla		           pla
+.0a10	8d 25 0a	sta $0a25	           sta rethigh+1
+.0a13	ae fa 09	ldx $09fa	           ldx savesp
+.0a16	e8		inx		           inx
+.0a17	e8		inx		           inx
+.0a18	9a		txs		           txs
+.0a19	a2 00		ldx #$00	           ldx #0
+.0a1b					restore
+.0a1b	bd 00 2a	lda $2a00,x	           lda savedstack,x
+.0a1e	9d 00 01	sta $0100,x	           sta $0100,x
+.0a21	e8		inx		           inx
+.0a22	d0 f7		bne $0a1b	           bne restore
+.0a24					rethigh
+.0a24	a9 11		lda #$11	           lda #$11
+.0a26	48		pha		           pha
+.0a27					retlow
+.0a27	a9 11		lda #$11	           lda #$11
+.0a29	48		pha		           pha
+.0a2a	60		rts		           rts
+.0a2b					execute
+.0a2b	a9 00		lda #$00	           lda #0
+.0a2d	48		pha		           pha
+.0a2e	a9 1b		lda #$1b	           lda #db
+.0a30	8d c0 29	sta $29c0	           sta da
+.0a33	a9 c6		lda #$c6	           lda #ab
+.0a35	a2 b1		ldx #$b1	           ldx #xb
+.0a37	a0 6c		ldy #$6c	           ldy #yb
+.0a39	28		plp		           plp
+.0a3a	20 4d 0a	jsr $0a4d	           jsr jmppcode
+.0a3d	08		php		           php
+.0a3e	d8		cld		           cld
+.0a3f	8d 1d 08	sta $081d	           sta aa
+.0a42	8e 1e 08	stx $081e	           stx xa
+.0a45	8c 1f 08	sty $081f	           sty ya
+.0a48	68		pla		           pla
+.0a49	8d 20 08	sta $0820	           sta pa
+.0a4c	60		rts		           rts
+.0a4d					jmppcode
+.0a4d	6c ae 00	jmp ($00ae)	           jmp (pcode)
+.0a50					n
+.0a50	20 2b 0a	jsr $0a2b	           jsr execute
+.0a53	60		rts		           rts
+.0a54					b
+.0a54	a9 1b		lda #$1b	           lda #db
+.0a56	a0 01		ldy #$01	           ldy #1
+.0a58	91 ae		sta ($ae),y	           sta (pcode),y
+.0a5a	20 2b 0a	jsr $0a2b	           jsr execute
+.0a5d	60		rts		           rts
+.0a5e					z
+.0a5e	a9 f7		lda #$f7	           lda #zerodata
+.0a60	a0 01		ldy #$01	           ldy #1
+.0a62	91 ae		sta ($ae),y	           sta (pcode),y
+.0a64	a9 1b		lda #$1b	           lda #db
+.0a66	85 f7		sta $f7		           sta zerodata
+.0a68	20 2b 0a	jsr $0a2b	           jsr execute
+.0a6b	a5 f7		lda $f7		           lda zerodata
+.0a6d	8d c0 29	sta $29c0	           sta da
+.0a70	60		rts		           rts
+.0a71					zx
+.0a71	a9 46		lda #$46	           lda #zerodata-xb&$ff
+.0a73	a0 01		ldy #$01	           ldy #1
+.0a75	91 ae		sta ($ae),y	           sta (pcode),y
+.0a77	a9 1b		lda #$1b	           lda #db
+.0a79	85 f7		sta $f7		           sta zerodata
+.0a7b	20 2b 0a	jsr $0a2b	           jsr execute
+.0a7e	a5 f7		lda $f7		           lda zerodata
+.0a80	8d c0 29	sta $29c0	           sta da
+.0a83	60		rts		           rts
+.0a84					zy
+.0a84	a9 8b		lda #$8b	           lda #zerodata-yb&$ff
+.0a86	a0 01		ldy #$01	           ldy #1
+.0a88	91 ae		sta ($ae),y	           sta (pcode),y
+.0a8a	a9 1b		lda #$1b	           lda #db
+.0a8c	85 f7		sta $f7		           sta zerodata
+.0a8e	20 2b 0a	jsr $0a2b	           jsr execute
+.0a91	a5 f7		lda $f7		           lda zerodata
+.0a93	8d c0 29	sta $29c0	           sta da
+.0a96	60		rts		           rts
+.0a97					a
+.0a97	a0 01		ldy #$01	           ldy #1
+.0a99	a9 c0		lda #$c0	           lda #<da
+.0a9b	91 ae		sta ($ae),y	           sta (pcode),y
+.0a9d	c8		iny		           iny
+.0a9e	a9 29		lda #$29	           lda #>da
+.0aa0	91 ae		sta ($ae),y	           sta (pcode),y
+.0aa2	20 2b 0a	jsr $0a2b	           jsr execute
+.0aa5	60		rts		           rts
+.0aa6					ax
+.0aa6	a0 01		ldy #$01	           ldy #1
+.0aa8	a9 0f		lda #$0f	           lda #<(da-xb)
+.0aaa	91 ae		sta ($ae),y	           sta (pcode),y
+.0aac	c8		iny		           iny
+.0aad	a9 29		lda #$29	           lda #>(da-xb)
+.0aaf	91 ae		sta ($ae),y	           sta (pcode),y
+.0ab1	20 2b 0a	jsr $0a2b	           jsr execute
+.0ab4	60		rts		           rts
+.0ab5					ay
+.0ab5	a0 01		ldy #$01	           ldy #1
+.0ab7	a9 54		lda #$54	           lda #<(da-yb)
+.0ab9	91 ae		sta ($ae),y	           sta (pcode),y
+.0abb	c8		iny		           iny
+.0abc	a9 29		lda #$29	           lda #>(da-yb)
+.0abe	91 ae		sta ($ae),y	           sta (pcode),y
+.0ac0	20 2b 0a	jsr $0a2b	           jsr execute
+.0ac3	60		rts		           rts
+.0ac4					ix
+.0ac4	a0 01		ldy #$01	           ldy #1
+.0ac6	a9 46		lda #$46	           lda #zeroptr-xb&$ff
+.0ac8	91 ae		sta ($ae),y	           sta (pcode),y
+.0aca	a9 c0		lda #$c0	           lda #<da
+.0acc	85 f7		sta $f7		           sta zeroptr+0&$ff
+.0ace	a9 29		lda #$29	           lda #>da
+.0ad0	85 f8		sta $f8		           sta zeroptr+1&$ff
+.0ad2	20 2b 0a	jsr $0a2b	           jsr execute
+.0ad5	60		rts		           rts
+.0ad6					iy
+.0ad6	a0 01		ldy #$01	           ldy #1
+.0ad8	a9 f7		lda #$f7	           lda #zeroptr
+.0ada	91 ae		sta ($ae),y	           sta (pcode),y
+.0adc	a9 54		lda #$54	           lda #<(da-yb)
+.0ade	85 f7		sta $f7		           sta zeroptr+0&$ff
+.0ae0	a9 29		lda #$29	           lda #>(da-yb)
+.0ae2	85 f8		sta $f8		           sta zeroptr+1&$ff
+.0ae4	20 2b 0a	jsr $0a2b	           jsr execute
+.0ae7	60		rts		           rts
+.0ae8					r
+.0ae8	a9 01		lda #$01	           lda #1
+.0aea	a0 01		ldy #$01	           ldy #1
+.0aec	91 ae		sta ($ae),y	           sta (pcode),y
+.0aee	a9 00		lda #$00	           lda #0
+.0af0	48		pha		           pha
+.0af1	a9 1b		lda #$1b	           lda #db
+.0af3	8d c0 29	sta $29c0	           sta da
+.0af6	a9 c6		lda #$c6	           lda #ab
+.0af8	a2 b1		ldx #$b1	           ldx #xb
+.0afa	a0 6c		ldy #$6c	           ldy #yb
+.0afc	28		plp		           plp
+.0afd	20 4d 0a	jsr $0a4d	           jsr jmppcode
+.0b00	a9 f3		lda #$f3	           lda #$f3
+.0b02	48		pha		           pha
+.0b03	a9 1b		lda #$1b	           lda #db
+.0b05	8d c0 29	sta $29c0	           sta da
+.0b08	a9 c6		lda #$c6	           lda #ab
+.0b0a	a2 b1		ldx #$b1	           ldx #xb
+.0b0c	a0 6c		ldy #$6c	           ldy #yb
+.0b0e	28		plp		           plp
+.0b0f	20 4d 0a	jsr $0a4d	           jsr jmppcode
+.0b12	c6 af		dec $af		           dec pcode+1
+.0b14	a9 60		lda #$60	           lda #$60
+.0b16	a0 82		ldy #$82	           ldy #130
+.0b18	91 ae		sta ($ae),y	           sta (pcode),y
+.0b1a	e6 af		inc $af		           inc pcode+1
+.0b1c	a9 80		lda #$80	           lda #128
+.0b1e	a0 01		ldy #$01	           ldy #1
+.0b20	91 ae		sta ($ae),y	           sta (pcode),y
+.0b22	a9 00		lda #$00	           lda #0
+.0b24	48		pha		           pha
+.0b25	a9 1b		lda #$1b	           lda #db
+.0b27	8d c0 29	sta $29c0	           sta da
+.0b2a	a9 c6		lda #$c6	           lda #ab
+.0b2c	a2 b1		ldx #$b1	           ldx #xb
+.0b2e	a0 6c		ldy #$6c	           ldy #yb
+.0b30	28		plp		           plp
+.0b31	20 4d 0a	jsr $0a4d	           jsr jmppcode
+.0b34	a9 f3		lda #$f3	           lda #$f3
+.0b36	48		pha		           pha
+.0b37	a9 1b		lda #$1b	           lda #db
+.0b39	8d c0 29	sta $29c0	           sta da
+.0b3c	a9 c6		lda #$c6	           lda #ab
+.0b3e	a2 b1		ldx #$b1	           ldx #xb
+.0b40	a0 6c		ldy #$6c	           ldy #yb
+.0b42	28		plp		           plp
+.0b43	20 4d 0a	jsr $0a4d	           jsr jmppcode
+.0b46	08		php		           php
+.0b47	d8		cld		           cld
+.0b48	8d 1d 08	sta $081d	           sta aa
+.0b4b	8e 1e 08	stx $081e	           stx xa
+.0b4e	8c 1f 08	sty $081f	           sty ya
+.0b51	68		pla		           pla
+.0b52	8d 20 08	sta $0820	           sta pa
+.0b55	60		rts		           rts
+.0b56					hltn
+.0b56	a9 00		lda #$00	           lda #0
+.0b58	8d c0 29	sta $29c0	           sta da
+.0b5b	8d 1d 08	sta $081d	           sta aa
+.0b5e	8d 1e 08	sta $081e	           sta xa
+.0b61	8d 1f 08	sta $081f	           sta ya
+.0b64	8d 20 08	sta $0820	           sta pa
+.0b67	60		rts		           rts
+.0b68					brkn
+.0b68	a9 92		lda #$92	           lda #<continue
+.0b6a	8d fe ff	sta $fffe	           sta $fffe
+.0b6d	a9 0b		lda #$0b	           lda #>continue
+.0b6f	8d ff ff	sta $ffff	           sta $ffff
+.0b72	78		sei		           sei
+.0b73	a5 00		lda $00		           lda 0
+.0b75	8d a6 0b	sta $0ba6	           sta old0+1
+.0b78	a9 2f		lda #$2f	           lda #47
+.0b7a	85 00		sta $00		           sta 0
+.0b7c	a5 01		lda $01		           lda 1
+.0b7e	8d a2 0b	sta $0ba2	           sta old1+1
+.0b81	29 fd		and #$fd	           and #$fd
+.0b83	85 01		sta $01		           sta 1
+.0b85	a9 00		lda #$00	           lda #0
+.0b87	48		pha		           pha
+.0b88	a9 c6		lda #$c6	           lda #ab
+.0b8a	a2 b1		ldx #$b1	           ldx #xb
+.0b8c	a0 6c		ldy #$6c	           ldy #yb
+.0b8e	28		plp		           plp
+.0b8f	6c ae 00	jmp ($00ae)	           jmp (pcode)
+.0b92					continue
+.0b92	08		php		           php
+.0b93	d8		cld		           cld
+.0b94	8d 1d 08	sta $081d	           sta aa
+.0b97	8e 1e 08	stx $081e	           stx xa
+.0b9a	8c 1f 08	sty $081f	           sty ya
+.0b9d	68		pla		           pla
+.0b9e	8d 20 08	sta $0820	           sta pa
+.0ba1					old1
+.0ba1	a9 11		lda #$11	           lda #$11
+.0ba3	85 01		sta $01		           sta 1
+.0ba5					old0
+.0ba5	a9 11		lda #$11	           lda #$11
+.0ba7	85 00		sta $00		           sta 0
+.0ba9	a9 1b		lda #$1b	           lda #db
+.0bab	8d c0 29	sta $29c0	           sta da
+.0bae	58		cli		           cli
+.0baf	68		pla		           pla
+.0bb0	68		pla		           pla
+.0bb1	68		pla		           pla
+.0bb2	60		rts		           rts
+.0bb3					jmpi
+.0bb3	a9 f7		lda #$f7	           lda #<zeroptr
+.0bb5	a0 01		ldy #$01	           ldy #1
+.0bb7	91 ae		sta ($ae),y	           sta (pcode),y
+.0bb9	a9 00		lda #$00	           lda #>zeroptr
+.0bbb	c8		iny		           iny
+.0bbc	91 ae		sta ($ae),y	           sta (pcode),y
+.0bbe	a9 d8		lda #$d8	           lda #<continue
+.0bc0	85 f7		sta $f7		           sta zeroptr+0&$ff
+.0bc2	a9 0b		lda #$0b	           lda #>continue
+.0bc4	85 f8		sta $f8		           sta zeroptr+1&$ff
+.0bc6	a9 00		lda #$00	           lda #0
+.0bc8	48		pha		           pha
+.0bc9	a9 1b		lda #$1b	           lda #db
+.0bcb	8d c0 29	sta $29c0	           sta da
+.0bce	a9 c6		lda #$c6	           lda #ab
+.0bd0	a2 b1		ldx #$b1	           ldx #xb
+.0bd2	a0 6c		ldy #$6c	           ldy #yb
+.0bd4	28		plp		           plp
+.0bd5	6c ae 00	jmp ($00ae)	           jmp (pcode)
+.0bd8					continue
+.0bd8	08		php		           php
+.0bd9	d8		cld		           cld
+.0bda	8d 1d 08	sta $081d	           sta aa
+.0bdd	8e 1e 08	stx $081e	           stx xa
+.0be0	8c 1f 08	sty $081f	           sty ya
+.0be3	68		pla		           pla
+.0be4	8d 20 08	sta $0820	           sta pa
+.0be7	60		rts		           rts
+.0be8					jmpw
+.0be8	a9 05		lda #$05	           lda #<continue
+.0bea	a0 01		ldy #$01	           ldy #1
+.0bec	91 ae		sta ($ae),y	           sta (pcode),y
+.0bee	a9 0c		lda #$0c	           lda #>continue
+.0bf0	c8		iny		           iny
+.0bf1	91 ae		sta ($ae),y	           sta (pcode),y
+.0bf3	a9 00		lda #$00	           lda #0
+.0bf5	48		pha		           pha
+.0bf6	a9 1b		lda #$1b	           lda #db
+.0bf8	8d c0 29	sta $29c0	           sta da
+.0bfb	a9 c6		lda #$c6	           lda #ab
+.0bfd	a2 b1		ldx #$b1	           ldx #xb
+.0bff	a0 6c		ldy #$6c	           ldy #yb
+.0c01	28		plp		           plp
+.0c02	6c ae 00	jmp ($00ae)	           jmp (pcode)
+.0c05					continue
+.0c05	08		php		           php
+.0c06	d8		cld		           cld
+.0c07	8d 1d 08	sta $081d	           sta aa
+.0c0a	8e 1e 08	stx $081e	           stx xa
+.0c0d	8c 1f 08	sty $081f	           sty ya
+.0c10	68		pla		           pla
+.0c11	8d 20 08	sta $0820	           sta pa
+.0c14	60		rts		           rts
+.0c15					jsrw
+.0c15	a9 32		lda #$32	           lda #<continue
+.0c17	a0 01		ldy #$01	           ldy #1
+.0c19	91 ae		sta ($ae),y	           sta (pcode),y
+.0c1b	a9 0c		lda #$0c	           lda #>continue
+.0c1d	c8		iny		           iny
+.0c1e	91 ae		sta ($ae),y	           sta (pcode),y
+.0c20	a9 00		lda #$00	           lda #0
+.0c22	48		pha		           pha
+.0c23	a9 1b		lda #$1b	           lda #db
+.0c25	8d c0 29	sta $29c0	           sta da
+.0c28	a9 c6		lda #$c6	           lda #ab
+.0c2a	a2 b1		ldx #$b1	           ldx #xb
+.0c2c	a0 6c		ldy #$6c	           ldy #yb
+.0c2e	28		plp		           plp
+.0c2f	6c ae 00	jmp ($00ae)	           jmp (pcode)
+.0c32					continue
+.0c32	08		php		           php
+.0c33	d8		cld		           cld
+.0c34	8d 1d 08	sta $081d	           sta aa
+.0c37	8e 1e 08	stx $081e	           stx xa
+.0c3a	8c 1f 08	sty $081f	           sty ya
+.0c3d	68		pla		           pla
+.0c3e	8d 20 08	sta $0820	           sta pa
+.0c41	68		pla		           pla
+.0c42	68		pla		           pla
+.0c43	60		rts		           rts
+.0c44					rtin
+.0c44	a9 0c		lda #$0c	           lda #>continue
+.0c46	48		pha		           pha
+.0c47	a9 5f		lda #$5f	           lda #<continue
+.0c49	48		pha		           pha
+.0c4a	a9 b3		lda #$b3	           lda #$b3
+.0c4c	48		pha		           pha
+.0c4d	a9 00		lda #$00	           lda #0
+.0c4f	48		pha		           pha
+.0c50	a9 1b		lda #$1b	           lda #db
+.0c52	8d c0 29	sta $29c0	           sta da
+.0c55	a9 c6		lda #$c6	           lda #ab
+.0c57	a2 b1		ldx #$b1	           ldx #xb
+.0c59	a0 6c		ldy #$6c	           ldy #yb
+.0c5b	28		plp		           plp
+.0c5c	6c ae 00	jmp ($00ae)	           jmp (pcode)
+.0c5f					continue
+.0c5f	08		php		           php
+.0c60	d8		cld		           cld
+.0c61	8d 1d 08	sta $081d	           sta aa
+.0c64	8e 1e 08	stx $081e	           stx xa
+.0c67	8c 1f 08	sty $081f	           sty ya
+.0c6a	68		pla		           pla
+.0c6b	8d 20 08	sta $0820	           sta pa
+.0c6e	60		rts		           rts
+.0c6f					txsn
+.0c6f	a9 4c		lda #$4c	           lda #$4c
+.0c71	a0 01		ldy #$01	           ldy #1
+.0c73	91 ae		sta ($ae),y	           sta (pcode),y
+.0c75	a9 94		lda #$94	           lda #<continue
+.0c77	c8		iny		           iny
+.0c78	91 ae		sta ($ae),y	           sta (pcode),y
+.0c7a	a9 0c		lda #$0c	           lda #>continue
+.0c7c	c8		iny		           iny
+.0c7d	91 ae		sta ($ae),y	           sta (pcode),y
+.0c7f	20 fb 09	jsr $09fb	           jsr savestack
+.0c82	a9 00		lda #$00	           lda #0
+.0c84	48		pha		           pha
+.0c85	a9 1b		lda #$1b	           lda #db
+.0c87	8d c0 29	sta $29c0	           sta da
+.0c8a	a9 c6		lda #$c6	           lda #ab
+.0c8c	a2 b1		ldx #$b1	           ldx #xb
+.0c8e	a0 6c		ldy #$6c	           ldy #yb
+.0c90	28		plp		           plp
+.0c91	6c ae 00	jmp ($00ae)	           jmp (pcode)
+.0c94					continue
+.0c94	08		php		           php
+.0c95	d8		cld		           cld
+.0c96	8d 1d 08	sta $081d	           sta aa
+.0c99	8e 1e 08	stx $081e	           stx xa
+.0c9c	8c 1f 08	sty $081f	           sty ya
+.0c9f	68		pla		           pla
+.0ca0	8d 20 08	sta $0820	           sta pa
+.0ca3	ba		tsx		           tsx
+.0ca4	8e ab 0c	stx $0cab	           stx newsp+1
+.0ca7	20 0b 0a	jsr $0a0b	           jsr restorestack
+.0caa					newsp
+.0caa	a9 11		lda #$11	           lda #$11
+.0cac	c9 b1		cmp #$b1	           cmp #xb
+.0cae	d0 01		bne $0cb1	           bne wrong
+.0cb0	60		rts		           rts
+.0cb1					wrong
+.0cb1	68		pla		           pla
+.0cb2	68		pla		           pla
+.0cb3	4c ae 08	jmp $08ae	           jmp error
+.0cb6					plan
+.0cb6	a9 4c		lda #$4c	           lda #$4c
+.0cb8	a0 01		ldy #$01	           ldy #1
+.0cba	91 ae		sta ($ae),y	           sta (pcode),y
+.0cbc	a9 db		lda #$db	           lda #<continue
+.0cbe	c8		iny		           iny
+.0cbf	91 ae		sta ($ae),y	           sta (pcode),y
+.0cc1	a9 0c		lda #$0c	           lda #>continue
+.0cc3	c8		iny		           iny
+.0cc4	91 ae		sta ($ae),y	           sta (pcode),y
+.0cc6	a9 f0		lda #$f0	           lda #$f0
+.0cc8	48		pha		           pha
+.0cc9	a9 00		lda #$00	           lda #0
+.0ccb	48		pha		           pha
+.0ccc	a9 1b		lda #$1b	           lda #db
+.0cce	8d c0 29	sta $29c0	           sta da
+.0cd1	a9 c6		lda #$c6	           lda #ab
+.0cd3	a2 b1		ldx #$b1	           ldx #xb
+.0cd5	a0 6c		ldy #$6c	           ldy #yb
+.0cd7	28		plp		           plp
+.0cd8	6c ae 00	jmp ($00ae)	           jmp (pcode)
+.0cdb					continue
+.0cdb	08		php		           php
+.0cdc	d8		cld		           cld
+.0cdd	8d 1d 08	sta $081d	           sta aa
+.0ce0	8e 1e 08	stx $081e	           stx xa
+.0ce3	8c 1f 08	sty $081f	           sty ya
+.0ce6	68		pla		           pla
+.0ce7	8d 20 08	sta $0820	           sta pa
+.0cea	60		rts		           rts
+.0ceb					phan
+.0ceb	a9 4c		lda #$4c	           lda #$4c
+.0ced	a0 01		ldy #$01	           ldy #1
+.0cef	91 ae		sta ($ae),y	           sta (pcode),y
+.0cf1	a9 0d		lda #$0d	           lda #<continue
+.0cf3	c8		iny		           iny
+.0cf4	91 ae		sta ($ae),y	           sta (pcode),y
+.0cf6	a9 0d		lda #$0d	           lda #>continue
+.0cf8	c8		iny		           iny
+.0cf9	91 ae		sta ($ae),y	           sta (pcode),y
+.0cfb	a9 00		lda #$00	           lda #0
+.0cfd	48		pha		           pha
+.0cfe	a9 1b		lda #$1b	           lda #db
+.0d00	8d c0 29	sta $29c0	           sta da
+.0d03	a9 c6		lda #$c6	           lda #ab
+.0d05	a2 b1		ldx #$b1	           ldx #xb
+.0d07	a0 6c		ldy #$6c	           ldy #yb
+.0d09	28		plp		           plp
+.0d0a	6c ae 00	jmp ($00ae)	           jmp (pcode)
+.0d0d					continue
+.0d0d	08		php		           php
+.0d0e	d8		cld		           cld
+.0d0f	8d 1d 08	sta $081d	           sta aa
+.0d12	8e 1e 08	stx $081e	           stx xa
+.0d15	8c 1f 08	sty $081f	           sty ya
+.0d18	68		pla		           pla
+.0d19	8d 20 08	sta $0820	           sta pa
+.0d1c	68		pla		           pla
+.0d1d	c9 c6		cmp #$c6	           cmp #ab
+.0d1f	d0 01		bne $0d22	           bne wrong
+.0d21	60		rts		           rts
+.0d22					wrong
+.0d22	68		pla		           pla
+.0d23	68		pla		           pla
+.0d24	4c ae 08	jmp $08ae	           jmp error
+.0d27					plpn
+.0d27	a9 4c		lda #$4c	           lda #$4c
+.0d29	a0 01		ldy #$01	           ldy #1
+.0d2b	91 ae		sta ($ae),y	           sta (pcode),y
+.0d2d	a9 4c		lda #$4c	           lda #<continue
+.0d2f	c8		iny		           iny
+.0d30	91 ae		sta ($ae),y	           sta (pcode),y
+.0d32	a9 0d		lda #$0d	           lda #>continue
+.0d34	c8		iny		           iny
+.0d35	91 ae		sta ($ae),y	           sta (pcode),y
+.0d37	a9 b3		lda #$b3	           lda #$b3
+.0d39	48		pha		           pha
+.0d3a	a9 00		lda #$00	           lda #0
+.0d3c	48		pha		           pha
+.0d3d	a9 1b		lda #$1b	           lda #db
+.0d3f	8d c0 29	sta $29c0	           sta da
+.0d42	a9 c6		lda #$c6	           lda #ab
+.0d44	a2 b1		ldx #$b1	           ldx #xb
+.0d46	a0 6c		ldy #$6c	           ldy #yb
+.0d48	28		plp		           plp
+.0d49	6c ae 00	jmp ($00ae)	           jmp (pcode)
+.0d4c					continue
+.0d4c	08		php		           php
+.0d4d	d8		cld		           cld
+.0d4e	8d 1d 08	sta $081d	           sta aa
+.0d51	8e 1e 08	stx $081e	           stx xa
+.0d54	8c 1f 08	sty $081f	           sty ya
+.0d57	68		pla		           pla
+.0d58	8d 20 08	sta $0820	           sta pa
+.0d5b	60		rts		           rts
+.0d5c					phpn
+.0d5c	a9 4c		lda #$4c	           lda #$4c
+.0d5e	a0 01		ldy #$01	           ldy #1
+.0d60	91 ae		sta ($ae),y	           sta (pcode),y
+.0d62	a9 7e		lda #$7e	           lda #<continue
+.0d64	c8		iny		           iny
+.0d65	91 ae		sta ($ae),y	           sta (pcode),y
+.0d67	a9 0d		lda #$0d	           lda #>continue
+.0d69	c8		iny		           iny
+.0d6a	91 ae		sta ($ae),y	           sta (pcode),y
+.0d6c	a9 00		lda #$00	           lda #0
+.0d6e	48		pha		           pha
+.0d6f	a9 1b		lda #$1b	           lda #db
+.0d71	8d c0 29	sta $29c0	           sta da
+.0d74	a9 c6		lda #$c6	           lda #ab
+.0d76	a2 b1		ldx #$b1	           ldx #xb
+.0d78	a0 6c		ldy #$6c	           ldy #yb
+.0d7a	28		plp		           plp
+.0d7b	6c ae 00	jmp ($00ae)	           jmp (pcode)
+.0d7e					continue
+.0d7e	08		php		           php
+.0d7f	d8		cld		           cld
+.0d80	8d 1d 08	sta $081d	           sta aa
+.0d83	8e 1e 08	stx $081e	           stx xa
+.0d86	8c 1f 08	sty $081f	           sty ya
+.0d89	68		pla		           pla
+.0d8a	8d 20 08	sta $0820	           sta pa
+.0d8d	68		pla		           pla
+.0d8e	c9 30		cmp #$30	           cmp #$30
+.0d90	d0 01		bne $0d93	           bne wrong
+.0d92	60		rts		           rts
+.0d93					wrong
+.0d93	68		pla		           pla
+.0d94	68		pla		           pla
+.0d95	4c ae 08	jmp $08ae	           jmp error
+.0d98					shaay
+.0d98	a9 29		lda #$29	           lda #>da
+.0d9a	18		clc		           clc
+.0d9b	69 01		adc #$01	           adc #1
+.0d9d	29 c6		and #$c6	           and #ab
+.0d9f	29 b1		and #$b1	           and #xb
+.0da1	a0 05		ldy #$05	           ldy #5
+.0da3	91 ac		sta ($ac),y	           sta (ptable),y
+.0da5	4c b5 0a	jmp $0ab5	           jmp ay
+.0da8					shaiy
+.0da8	a9 29		lda #$29	           lda #>da
+.0daa	18		clc		           clc
+.0dab	69 01		adc #$01	           adc #1
+.0dad	29 c6		and #$c6	           and #ab
+.0daf	29 b1		and #$b1	           and #xb
+.0db1	a0 05		ldy #$05	           ldy #5
+.0db3	91 ac		sta ($ac),y	           sta (ptable),y
+.0db5	4c d6 0a	jmp $0ad6	           jmp iy
+.0db8					shxay
+.0db8	a9 29		lda #$29	           lda #>da
+.0dba	18		clc		           clc
+.0dbb	69 01		adc #$01	           adc #1
+.0dbd	29 b1		and #$b1	           and #xb
+.0dbf	a0 05		ldy #$05	           ldy #5
+.0dc1	91 ac		sta ($ac),y	           sta (ptable),y
+.0dc3	4c b5 0a	jmp $0ab5	           jmp ay
+.0dc6					shyax
+.0dc6	a9 29		lda #$29	           lda #>da
+.0dc8	18		clc		           clc
+.0dc9	69 01		adc #$01	           adc #1
+.0dcb	29 6c		and #$6c	           and #yb
+.0dcd	a0 05		ldy #$05	           ldy #5
+.0dcf	91 ac		sta ($ac),y	           sta (ptable),y
+.0dd1	4c a6 0a	jmp $0aa6	           jmp ax
+.0dd4					shsay
+.0dd4	a9 c6		lda #$c6	           lda #ab
+.0dd6	29 b1		and #$b1	           and #xb
+.0dd8	8d 31 0e	sta $0e31	           sta sr+1
+.0ddb	a2 29		ldx #$29	           ldx #>da
+.0ddd	e8		inx		           inx
+.0dde	8e e2 0d	stx $0de2	           stx andx+1
+.0de1					andx
+.0de1	29 11		and #$11	           and #$11
+.0de3	a0 05		ldy #$05	           ldy #5
+.0de5	91 ac		sta ($ac),y	           sta (ptable),y
+.0de7	20 fb 09	jsr $09fb	           jsr savestack
+.0dea	a9 54		lda #$54	           lda #<da-yb
+.0dec	a0 01		ldy #$01	           ldy #1
+.0dee	91 ae		sta ($ae),y	           sta (pcode),y
+.0df0	a9 29		lda #$29	           lda #>da-yb
+.0df2	c8		iny		           iny
+.0df3	91 ae		sta ($ae),y	           sta (pcode),y
+.0df5	a9 4c		lda #$4c	           lda #$4c
+.0df7	c8		iny		           iny
+.0df8	91 ae		sta ($ae),y	           sta (pcode),y
+.0dfa	a9 16		lda #$16	           lda #<continue
+.0dfc	c8		iny		           iny
+.0dfd	91 ae		sta ($ae),y	           sta (pcode),y
+.0dff	a9 0e		lda #$0e	           lda #>continue
+.0e01	c8		iny		           iny
+.0e02	91 ae		sta ($ae),y	           sta (pcode),y
+.0e04	a9 00		lda #$00	           lda #0
+.0e06	48		pha		           pha
+.0e07	a9 1b		lda #$1b	           lda #db
+.0e09	8d c0 29	sta $29c0	           sta da
+.0e0c	a9 c6		lda #$c6	           lda #ab
+.0e0e	a2 b1		ldx #$b1	           ldx #xb
+.0e10	a0 6c		ldy #$6c	           ldy #yb
+.0e12	28		plp		           plp
+.0e13	6c ae 00	jmp ($00ae)	           jmp (pcode)
+.0e16					continue
+.0e16	08		php		           php
+.0e17	d8		cld		           cld
+.0e18	8d 1d 08	sta $081d	           sta aa
+.0e1b	8e 1e 08	stx $081e	           stx xa
+.0e1e	8c 1f 08	sty $081f	           sty ya
+.0e21	68		pla		           pla
+.0e22	8d 20 08	sta $0820	           sta pa
+.0e25	ba		tsx		           tsx
+.0e26	8e 2d 0e	stx $0e2d	           stx sa+1
+.0e29	20 0b 0a	jsr $0a0b	           jsr restorestack
+.0e2c					sa
+.0e2c	a9 11		lda #$11	           lda #$11
+.0e2e	a0 06		ldy #$06	           ldy #6
+.0e30					sr
+.0e30	c9 11		cmp #$11	           cmp #$11
+.0e32	d0 01		bne $0e35	           bne wrong
+.0e34	60		rts		           rts
+.0e35					wrong
+.0e35	68		pla		           pla
+.0e36	68		pla		           pla
+.0e37	4c ae 08	jmp $08ae	           jmp error
+.0e3a					lasay
+.0e3a	ba		tsx		           tsx
+.0e3b	8a		txa		           txa
+.0e3c	29 1b		and #$1b	           and #db
+.0e3e	08		php		           php
+.0e3f	a0 06		ldy #$06	           ldy #6
+.0e41	91 ac		sta ($ac),y	           sta (ptable),y
+.0e43	c8		iny		           iny
+.0e44	91 ac		sta ($ac),y	           sta (ptable),y
+.0e46	68		pla		           pla
+.0e47	29 b2		and #$b2	           and #%10110010
+.0e49	a0 09		ldy #$09	           ldy #9
+.0e4b	91 ac		sta ($ac),y	           sta (ptable),y
+.0e4d	20 fb 09	jsr $09fb	           jsr savestack
+.0e50	a9 54		lda #$54	           lda #<da-yb
+.0e52	a0 01		ldy #$01	           ldy #1
+.0e54	91 ae		sta ($ae),y	           sta (pcode),y
+.0e56	a9 29		lda #$29	           lda #>da-yb
+.0e58	c8		iny		           iny
+.0e59	91 ae		sta ($ae),y	           sta (pcode),y
+.0e5b	a9 4c		lda #$4c	           lda #$4c
+.0e5d	c8		iny		           iny
+.0e5e	91 ae		sta ($ae),y	           sta (pcode),y
+.0e60	a9 7c		lda #$7c	           lda #<continue
+.0e62	c8		iny		           iny
+.0e63	91 ae		sta ($ae),y	           sta (pcode),y
+.0e65	a9 0e		lda #$0e	           lda #>continue
+.0e67	c8		iny		           iny
+.0e68	91 ae		sta ($ae),y	           sta (pcode),y
+.0e6a	a9 00		lda #$00	           lda #0
+.0e6c	48		pha		           pha
+.0e6d	a9 1b		lda #$1b	           lda #db
+.0e6f	8d c0 29	sta $29c0	           sta da
+.0e72	a9 c6		lda #$c6	           lda #ab
+.0e74	a2 b1		ldx #$b1	           ldx #xb
+.0e76	a0 6c		ldy #$6c	           ldy #yb
+.0e78	28		plp		           plp
+.0e79	6c ae 00	jmp ($00ae)	           jmp (pcode)
+.0e7c					continue
+.0e7c	08		php		           php
+.0e7d	d8		cld		           cld
+.0e7e	8d 1d 08	sta $081d	           sta aa
+.0e81	8e 1e 08	stx $081e	           stx xa
+.0e84	8c 1f 08	sty $081f	           sty ya
+.0e87	68		pla		           pla
+.0e88	8d 20 08	sta $0820	           sta pa
+.0e8b	ba		tsx		           tsx
+.0e8c	8e 93 0e	stx $0e93	           stx sa+1
+.0e8f	20 0b 0a	jsr $0a0b	           jsr restorestack
+.0e92					sa
+.0e92	a9 11		lda #$11	           lda #$11
+.0e94	a0 06		ldy #$06	           ldy #6
+.0e96	d1 ac		cmp ($ac),y	           cmp (ptable),y
+.0e98	d0 01		bne $0e9b	           bne wrong
+.0e9a	60		rts		           rts
+.0e9b					wrong
+.0e9b	68		pla		           pla
+.0e9c	68		pla		           pla
+.0e9d	4c ae 08	jmp $08ae	           jmp error
+.0ea0					tsxn
+.0ea0	20 2b 0a	jsr $0a2b	           jsr execute
+.0ea3	ba		tsx		           tsx
+.0ea4	ca		dex		           dex
+.0ea5	ca		dex		           dex
+.0ea6	ca		dex		           dex
+.0ea7	ca		dex		           dex
+.0ea8	08		php		           php
+.0ea9	8a		txa		           txa
+.0eaa	a0 07		ldy #$07	           ldy #7
+.0eac	91 ac		sta ($ac),y	           sta (ptable),y
+.0eae	68		pla		           pla
+.0eaf	a0 09		ldy #$09	           ldy #9
+.0eb1	91 ac		sta ($ac),y	           sta (ptable),y
+.0eb3	60		rts		           rts
+.0eb4					table
+>0eb4	62 72 6b			           .text "brk"
+>0eb7	68 0b				           .word brkn
+>0eb9	1b c6 b1 6c 34			           .byte $1b,$c6,$b1,$6c,$34
+>0ebe	6f 72 61			           .text "ora"
+>0ec1	c4 0a				           .word ix
+>0ec3	1b df b1 6c b0			           .byte $1b,$df,$b1,$6c,$b0
+>0ec8	68 6c 74			           .text "hlt"
+>0ecb	56 0b				           .word hltn
+>0ecd	00 00 00 00 00			           .byte $00,$00,$00,$00,$00
+>0ed2	61 73 6f			           .text "aso"
+>0ed5	c4 0a				           .word ix
+>0ed7	36 f6 b1 6c b0			           .byte $36,$f6,$b1,$6c,$b0
+>0edc	6e 6f 70			           .text "nop"
+>0edf	5e 0a				           .word z
+>0ee1	1b c6 b1 6c 30			           .byte $1b,$c6,$b1,$6c,$30
+>0ee6	6f 72 61			           .text "ora"
+>0ee9	5e 0a				           .word z
+>0eeb	1b df b1 6c b0			           .byte $1b,$df,$b1,$6c,$b0
+>0ef0	61 73 6c			           .text "asl"
+>0ef3	5e 0a				           .word z
+>0ef5	36 c6 b1 6c 30			           .byte $36,$c6,$b1,$6c,$30
+>0efa	61 73 6f			           .text "aso"
+>0efd	5e 0a				           .word z
+>0eff	36 f6 b1 6c b0			           .byte $36,$f6,$b1,$6c,$b0
+>0f04	70 68 70			           .text "php"
+>0f07	5c 0d				           .word phpn
+>0f09	1b c6 b1 6c 30			           .byte $1b,$c6,$b1,$6c,$30
+>0f0e	6f 72 61			           .text "ora"
+>0f11	54 0a				           .word b
+>0f13	1b df b1 6c b0			           .byte $1b,$df,$b1,$6c,$b0
+>0f18	61 73 6c			           .text "asl"
+>0f1b	50 0a				           .word n
+>0f1d	1b 8c b1 6c b1			           .byte $1b,$8c,$b1,$6c,$b1
+>0f22	61 6e 63			           .text "anc"
+>0f25	54 0a				           .word b
+>0f27	1b 02 b1 6c 30			           .byte $1b,$02,$b1,$6c,$30
+>0f2c	6e 6f 70			           .text "nop"
+>0f2f	97 0a				           .word a
+>0f31	1b c6 b1 6c 30			           .byte $1b,$c6,$b1,$6c,$30
+>0f36	6f 72 61			           .text "ora"
+>0f39	97 0a				           .word a
+>0f3b	1b df b1 6c b0			           .byte $1b,$df,$b1,$6c,$b0
+>0f40	61 73 6c			           .text "asl"
+>0f43	97 0a				           .word a
+>0f45	36 c6 b1 6c 30			           .byte $36,$c6,$b1,$6c,$30
+>0f4a	61 73 6f			           .text "aso"
+>0f4d	97 0a				           .word a
+>0f4f	36 f6 b1 6c b0			           .byte $36,$f6,$b1,$6c,$b0
+>0f54	62 70 6c			           .text "bpl"
+>0f57	e8 0a				           .word r
+>0f59	1b c6 b1 6c f3			           .byte $1b,$c6,$b1,$6c,$f3
+>0f5e	6f 72 61			           .text "ora"
+>0f61	d6 0a				           .word iy
+>0f63	1b df b1 6c b0			           .byte $1b,$df,$b1,$6c,$b0
+>0f68	68 6c 74			           .text "hlt"
+>0f6b	56 0b				           .word hltn
+>0f6d	00 00 00 00 00			           .byte $00,$00,$00,$00,$00
+>0f72	61 73 6f			           .text "aso"
+>0f75	d6 0a				           .word iy
+>0f77	36 f6 b1 6c b0			           .byte $36,$f6,$b1,$6c,$b0
+>0f7c	6e 6f 70			           .text "nop"
+>0f7f	71 0a				           .word zx
+>0f81	1b c6 b1 6c 30			           .byte $1b,$c6,$b1,$6c,$30
+>0f86	6f 72 61			           .text "ora"
+>0f89	71 0a				           .word zx
+>0f8b	1b df b1 6c b0			           .byte $1b,$df,$b1,$6c,$b0
+>0f90	61 73 6c			           .text "asl"
+>0f93	71 0a				           .word zx
+>0f95	36 c6 b1 6c 30			           .byte $36,$c6,$b1,$6c,$30
+>0f9a	61 73 6f			           .text "aso"
+>0f9d	71 0a				           .word zx
+>0f9f	36 f6 b1 6c b0			           .byte $36,$f6,$b1,$6c,$b0
+>0fa4	63 6c 63			           .text "clc"
+>0fa7	50 0a				           .word n
+>0fa9	1b c6 b1 6c 30			           .byte $1b,$c6,$b1,$6c,$30
+>0fae	6f 72 61			           .text "ora"
+>0fb1	b5 0a				           .word ay
+>0fb3	1b df b1 6c b0			           .byte $1b,$df,$b1,$6c,$b0
+>0fb8	6e 6f 70			           .text "nop"
+>0fbb	50 0a				           .word n
+>0fbd	1b c6 b1 6c 30			           .byte $1b,$c6,$b1,$6c,$30
+>0fc2	61 73 6f			           .text "aso"
+>0fc5	b5 0a				           .word ay
+>0fc7	36 f6 b1 6c b0			           .byte $36,$f6,$b1,$6c,$b0
+>0fcc	6e 6f 70			           .text "nop"
+>0fcf	a6 0a				           .word ax
+>0fd1	1b c6 b1 6c 30			           .byte $1b,$c6,$b1,$6c,$30
+>0fd6	6f 72 61			           .text "ora"
+>0fd9	a6 0a				           .word ax
+>0fdb	1b df b1 6c b0			           .byte $1b,$df,$b1,$6c,$b0
+>0fe0	61 73 6c			           .text "asl"
+>0fe3	a6 0a				           .word ax
+>0fe5	36 c6 b1 6c 30			           .byte $36,$c6,$b1,$6c,$30
+>0fea	61 73 6f			           .text "aso"
+>0fed	a6 0a				           .word ax
+>0fef	36 f6 b1 6c b0			           .byte $36,$f6,$b1,$6c,$b0
+>0ff4	6a 73 72			           .text "jsr"
+>0ff7	15 0c				           .word jsrw
+>0ff9	1b c6 b1 6c 30			           .byte $1b,$c6,$b1,$6c,$30
+>0ffe	61 6e 64			           .text "and"
+>1001	c4 0a				           .word ix
+>1003	1b 02 b1 6c 30			           .byte $1b,$02,$b1,$6c,$30
+>1008	68 6c 74			           .text "hlt"
+>100b	56 0b				           .word hltn
+>100d	00 00 00 00 00			           .byte $00,$00,$00,$00,$00
+>1012	72 6c 61			           .text "rla"
+>1015	c4 0a				           .word ix
+>1017	36 06 b1 6c 30			           .byte $36,$06,$b1,$6c,$30
+>101c	62 69 74			           .text "bit"
+>101f	5e 0a				           .word z
+>1021	1b c6 b1 6c 30			           .byte $1b,$c6,$b1,$6c,$30
+>1026	61 6e 64			           .text "and"
+>1029	5e 0a				           .word z
+>102b	1b 02 b1 6c 30			           .byte $1b,$02,$b1,$6c,$30
+>1030	72 6f 6c			           .text "rol"
+>1033	5e 0a				           .word z
+>1035	36 c6 b1 6c 30			           .byte $36,$c6,$b1,$6c,$30
+>103a	72 6c 61			           .text "rla"
+>103d	5e 0a				           .word z
+>103f	36 06 b1 6c 30			           .byte $36,$06,$b1,$6c,$30
+>1044	70 6c 70			           .text "plp"
+>1047	27 0d				           .word plpn
+>1049	1b c6 b1 6c b3			           .byte $1b,$c6,$b1,$6c,$b3
+>104e	61 6e 64			           .text "and"
+>1051	54 0a				           .word b
+>1053	1b 02 b1 6c 30			           .byte $1b,$02,$b1,$6c,$30
+>1058	72 6f 6c			           .text "rol"
+>105b	50 0a				           .word n
+>105d	1b 8c b1 6c b1			           .byte $1b,$8c,$b1,$6c,$b1
+>1062	61 6e 63			           .text "anc"
+>1065	54 0a				           .word b
+>1067	1b 02 b1 6c 30			           .byte $1b,$02,$b1,$6c,$30
+>106c	62 69 74			           .text "bit"
+>106f	97 0a				           .word a
+>1071	1b c6 b1 6c 30			           .byte $1b,$c6,$b1,$6c,$30
+>1076	61 6e 64			           .text "and"
+>1079	97 0a				           .word a
+>107b	1b 02 b1 6c 30			           .byte $1b,$02,$b1,$6c,$30
+>1080	72 6f 6c			           .text "rol"
+>1083	97 0a				           .word a
+>1085	36 c6 b1 6c 30			           .byte $36,$c6,$b1,$6c,$30
+>108a	72 6c 61			           .text "rla"
+>108d	97 0a				           .word a
+>108f	36 06 b1 6c 30			           .byte $36,$06,$b1,$6c,$30
+>1094	62 6d 69			           .text "bmi"
+>1097	e8 0a				           .word r
+>1099	1b c6 b1 6c f3			           .byte $1b,$c6,$b1,$6c,$f3
+>109e	61 6e 64			           .text "and"
+>10a1	d6 0a				           .word iy
+>10a3	1b 02 b1 6c 30			           .byte $1b,$02,$b1,$6c,$30
+>10a8	68 6c 74			           .text "hlt"
+>10ab	56 0b				           .word hltn
+>10ad	00 00 00 00 00			           .byte $00,$00,$00,$00,$00
+>10b2	72 6c 61			           .text "rla"
+>10b5	d6 0a				           .word iy
+>10b7	36 06 b1 6c 30			           .byte $36,$06,$b1,$6c,$30
+>10bc	6e 6f 70			           .text "nop"
+>10bf	71 0a				           .word zx
+>10c1	1b c6 b1 6c 30			           .byte $1b,$c6,$b1,$6c,$30
+>10c6	61 6e 64			           .text "and"
+>10c9	71 0a				           .word zx
+>10cb	1b 02 b1 6c 30			           .byte $1b,$02,$b1,$6c,$30
+>10d0	72 6f 6c			           .text "rol"
+>10d3	71 0a				           .word zx
+>10d5	36 c6 b1 6c 30			           .byte $36,$c6,$b1,$6c,$30
+>10da	72 6c 61			           .text "rla"
+>10dd	71 0a				           .word zx
+>10df	36 06 b1 6c 30			           .byte $36,$06,$b1,$6c,$30
+>10e4	73 65 63			           .text "sec"
+>10e7	50 0a				           .word n
+>10e9	1b c6 b1 6c 31			           .byte $1b,$c6,$b1,$6c,$31
+>10ee	61 6e 64			           .text "and"
+>10f1	b5 0a				           .word ay
+>10f3	1b 02 b1 6c 30			           .byte $1b,$02,$b1,$6c,$30
+>10f8	6e 6f 70			           .text "nop"
+>10fb	50 0a				           .word n
+>10fd	1b c6 b1 6c 30			           .byte $1b,$c6,$b1,$6c,$30
+>1102	72 6c 61			           .text "rla"
+>1105	b5 0a				           .word ay
+>1107	36 06 b1 6c 30			           .byte $36,$06,$b1,$6c,$30
+>110c	6e 6f 70			           .text "nop"
+>110f	a6 0a				           .word ax
+>1111	1b c6 b1 6c 30			           .byte $1b,$c6,$b1,$6c,$30
+>1116	61 6e 64			           .text "and"
+>1119	a6 0a				           .word ax
+>111b	1b 02 b1 6c 30			           .byte $1b,$02,$b1,$6c,$30
+>1120	72 6f 6c			           .text "rol"
+>1123	a6 0a				           .word ax
+>1125	36 c6 b1 6c 30			           .byte $36,$c6,$b1,$6c,$30
+>112a	72 6c 61			           .text "rla"
+>112d	a6 0a				           .word ax
+>112f	36 06 b1 6c 30			           .byte $36,$06,$b1,$6c,$30
+>1134	72 74 69			           .text "rti"
+>1137	44 0c				           .word rtin
+>1139	1b c6 b1 6c b3			           .byte $1b,$c6,$b1,$6c,$b3
+>113e	65 6f 72			           .text "eor"
+>1141	c4 0a				           .word ix
+>1143	1b dd b1 6c b0			           .byte $1b,$dd,$b1,$6c,$b0
+>1148	68 6c 74			           .text "hlt"
+>114b	56 0b				           .word hltn
+>114d	00 00 00 00 00			           .byte $00,$00,$00,$00,$00
+>1152	6c 73 65			           .text "lse"
+>1155	c4 0a				           .word ix
+>1157	0d cb b1 6c b1			           .byte $0d,$cb,$b1,$6c,$b1
+>115c	6e 6f 70			           .text "nop"
+>115f	5e 0a				           .word z
+>1161	1b c6 b1 6c 30			           .byte $1b,$c6,$b1,$6c,$30
+>1166	65 6f 72			           .text "eor"
+>1169	5e 0a				           .word z
+>116b	1b dd b1 6c b0			           .byte $1b,$dd,$b1,$6c,$b0
+>1170	6c 73 72			           .text "lsr"
+>1173	5e 0a				           .word z
+>1175	0d c6 b1 6c 31			           .byte $0d,$c6,$b1,$6c,$31
+>117a	6c 73 65			           .text "lse"
+>117d	5e 0a				           .word z
+>117f	0d cb b1 6c b1			           .byte $0d,$cb,$b1,$6c,$b1
+>1184	70 68 61			           .text "pha"
+>1187	eb 0c				           .word phan
+>1189	1b c6 b1 6c 30			           .byte $1b,$c6,$b1,$6c,$30
+>118e	65 6f 72			           .text "eor"
+>1191	54 0a				           .word b
+>1193	1b dd b1 6c b0			           .byte $1b,$dd,$b1,$6c,$b0
+>1198	6c 73 72			           .text "lsr"
+>119b	50 0a				           .word n
+>119d	1b 63 b1 6c 30			           .byte $1b,$63,$b1,$6c,$30
+>11a2	61 6c 72			           .text "alr"
+>11a5	54 0a				           .word b
+>11a7	1b 01 b1 6c 30			           .byte $1b,$01,$b1,$6c,$30
+>11ac	6a 6d 70			           .text "jmp"
+>11af	e8 0b				           .word jmpw
+>11b1	1b c6 b1 6c 30			           .byte $1b,$c6,$b1,$6c,$30
+>11b6	65 6f 72			           .text "eor"
+>11b9	97 0a				           .word a
+>11bb	1b dd b1 6c b0			           .byte $1b,$dd,$b1,$6c,$b0
+>11c0	6c 73 72			           .text "lsr"
+>11c3	97 0a				           .word a
+>11c5	0d c6 b1 6c 31			           .byte $0d,$c6,$b1,$6c,$31
+>11ca	6c 73 65			           .text "lse"
+>11cd	97 0a				           .word a
+>11cf	0d cb b1 6c b1			           .byte $0d,$cb,$b1,$6c,$b1
+>11d4	62 76 63			           .text "bvc"
+>11d7	e8 0a				           .word r
+>11d9	1b c6 b1 6c f3			           .byte $1b,$c6,$b1,$6c,$f3
+>11de	65 6f 72			           .text "eor"
+>11e1	d6 0a				           .word iy
+>11e3	1b dd b1 6c b0			           .byte $1b,$dd,$b1,$6c,$b0
+>11e8	68 6c 74			           .text "hlt"
+>11eb	56 0b				           .word hltn
+>11ed	00 00 00 00 00			           .byte $00,$00,$00,$00,$00
+>11f2	6c 73 65			           .text "lse"
+>11f5	d6 0a				           .word iy
+>11f7	0d cb b1 6c b1			           .byte $0d,$cb,$b1,$6c,$b1
+>11fc	6e 6f 70			           .text "nop"
+>11ff	71 0a				           .word zx
+>1201	1b c6 b1 6c 30			           .byte $1b,$c6,$b1,$6c,$30
+>1206	65 6f 72			           .text "eor"
+>1209	71 0a				           .word zx
+>120b	1b dd b1 6c b0			           .byte $1b,$dd,$b1,$6c,$b0
+>1210	6c 73 72			           .text "lsr"
+>1213	71 0a				           .word zx
+>1215	0d c6 b1 6c 31			           .byte $0d,$c6,$b1,$6c,$31
+>121a	6c 73 65			           .text "lse"
+>121d	71 0a				           .word zx
+>121f	0d cb b1 6c b1			           .byte $0d,$cb,$b1,$6c,$b1
+>1224	63 6c 69			           .text "cli"
+>1227	50 0a				           .word n
+>1229	1b c6 b1 6c 30			           .byte $1b,$c6,$b1,$6c,$30
+>122e	65 6f 72			           .text "eor"
+>1231	b5 0a				           .word ay
+>1233	1b dd b1 6c b0			           .byte $1b,$dd,$b1,$6c,$b0
+>1238	6e 6f 70			           .text "nop"
+>123b	50 0a				           .word n
+>123d	1b c6 b1 6c 30			           .byte $1b,$c6,$b1,$6c,$30
+>1242	6c 73 65			           .text "lse"
+>1245	b5 0a				           .word ay
+>1247	0d cb b1 6c b1			           .byte $0d,$cb,$b1,$6c,$b1
+>124c	6e 6f 70			           .text "nop"
+>124f	a6 0a				           .word ax
+>1251	1b c6 b1 6c 30			           .byte $1b,$c6,$b1,$6c,$30
+>1256	65 6f 72			           .text "eor"
+>1259	a6 0a				           .word ax
+>125b	1b dd b1 6c b0			           .byte $1b,$dd,$b1,$6c,$b0
+>1260	6c 73 72			           .text "lsr"
+>1263	a6 0a				           .word ax
+>1265	0d c6 b1 6c 31			           .byte $0d,$c6,$b1,$6c,$31
+>126a	6c 73 65			           .text "lse"
+>126d	a6 0a				           .word ax
+>126f	0d cb b1 6c b1			           .byte $0d,$cb,$b1,$6c,$b1
+>1274	72 74 73			           .text "rts"
+>1277	50 0a				           .word n
+>1279	1b c6 b1 6c 30			           .byte $1b,$c6,$b1,$6c,$30
+>127e	61 64 63			           .text "adc"
+>1281	c4 0a				           .word ix
+>1283	1b e1 b1 6c b0			           .byte $1b,$e1,$b1,$6c,$b0
+>1288	68 6c 74			           .text "hlt"
+>128b	56 0b				           .word hltn
+>128d	00 00 00 00 00			           .byte $00,$00,$00,$00,$00
+>1292	72 72 61			           .text "rra"
+>1295	c4 0a				           .word ix
+>1297	0d d4 b1 6c b0			           .byte $0d,$d4,$b1,$6c,$b0
+>129c	6e 6f 70			           .text "nop"
+>129f	5e 0a				           .word z
+>12a1	1b c6 b1 6c 30			           .byte $1b,$c6,$b1,$6c,$30
+>12a6	61 64 63			           .text "adc"
+>12a9	5e 0a				           .word z
+>12ab	1b e1 b1 6c b0			           .byte $1b,$e1,$b1,$6c,$b0
+>12b0	72 6f 72			           .text "ror"
+>12b3	5e 0a				           .word z
+>12b5	0d c6 b1 6c 31			           .byte $0d,$c6,$b1,$6c,$31
+>12ba	72 72 61			           .text "rra"
+>12bd	5e 0a				           .word z
+>12bf	0d d4 b1 6c b0			           .byte $0d,$d4,$b1,$6c,$b0
+>12c4	70 6c 61			           .text "pla"
+>12c7	b6 0c				           .word plan
+>12c9	1b f0 b1 6c b0			           .byte $1b,$f0,$b1,$6c,$b0
+>12ce	61 64 63			           .text "adc"
+>12d1	54 0a				           .word b
+>12d3	1b e1 b1 6c b0			           .byte $1b,$e1,$b1,$6c,$b0
+>12d8	72 6f 72			           .text "ror"
+>12db	50 0a				           .word n
+>12dd	1b 63 b1 6c 30			           .byte $1b,$63,$b1,$6c,$30
+>12e2	61 72 72			           .text "arr"
+>12e5	54 0a				           .word b
+>12e7	1b 01 b1 6c 30			           .byte $1b,$01,$b1,$6c,$30
+>12ec	6a 6d 70			           .text "jmp"
+>12ef	b3 0b				           .word jmpi
+>12f1	1b c6 b1 6c 30			           .byte $1b,$c6,$b1,$6c,$30
+>12f6	61 64 63			           .text "adc"
+>12f9	97 0a				           .word a
+>12fb	1b e1 b1 6c b0			           .byte $1b,$e1,$b1,$6c,$b0
+>1300	72 6f 72			           .text "ror"
+>1303	97 0a				           .word a
+>1305	0d c6 b1 6c 31			           .byte $0d,$c6,$b1,$6c,$31
+>130a	72 72 61			           .text "rra"
+>130d	97 0a				           .word a
+>130f	0d d4 b1 6c b0			           .byte $0d,$d4,$b1,$6c,$b0
+>1314	62 76 73			           .text "bvs"
+>1317	e8 0a				           .word r
+>1319	1b c6 b1 6c f3			           .byte $1b,$c6,$b1,$6c,$f3
+>131e	61 64 63			           .text "adc"
+>1321	d6 0a				           .word iy
+>1323	1b e1 b1 6c b0			           .byte $1b,$e1,$b1,$6c,$b0
+>1328	68 6c 74			           .text "hlt"
+>132b	56 0b				           .word hltn
+>132d	00 00 00 00 00			           .byte $00,$00,$00,$00,$00
+>1332	72 72 61			           .text "rra"
+>1335	d6 0a				           .word iy
+>1337	0d d4 b1 6c b0			           .byte $0d,$d4,$b1,$6c,$b0
+>133c	6e 6f 70			           .text "nop"
+>133f	71 0a				           .word zx
+>1341	1b c6 b1 6c 30			           .byte $1b,$c6,$b1,$6c,$30
+>1346	61 64 63			           .text "adc"
+>1349	71 0a				           .word zx
+>134b	1b e1 b1 6c b0			           .byte $1b,$e1,$b1,$6c,$b0
+>1350	72 6f 72			           .text "ror"
+>1353	71 0a				           .word zx
+>1355	0d c6 b1 6c 31			           .byte $0d,$c6,$b1,$6c,$31
+>135a	72 72 61			           .text "rra"
+>135d	71 0a				           .word zx
+>135f	0d d4 b1 6c b0			           .byte $0d,$d4,$b1,$6c,$b0
+>1364	73 65 69			           .text "sei"
+>1367	50 0a				           .word n
+>1369	1b c6 b1 6c 34			           .byte $1b,$c6,$b1,$6c,$34
+>136e	61 64 63			           .text "adc"
+>1371	b5 0a				           .word ay
+>1373	1b e1 b1 6c b0			           .byte $1b,$e1,$b1,$6c,$b0
+>1378	6e 6f 70			           .text "nop"
+>137b	50 0a				           .word n
+>137d	1b c6 b1 6c 30			           .byte $1b,$c6,$b1,$6c,$30
+>1382	72 72 61			           .text "rra"
+>1385	b5 0a				           .word ay
+>1387	0d d4 b1 6c b0			           .byte $0d,$d4,$b1,$6c,$b0
+>138c	6e 6f 70			           .text "nop"
+>138f	a6 0a				           .word ax
+>1391	1b c6 b1 6c 30			           .byte $1b,$c6,$b1,$6c,$30
+>1396	61 64 63			           .text "adc"
+>1399	a6 0a				           .word ax
+>139b	1b e1 b1 6c b0			           .byte $1b,$e1,$b1,$6c,$b0
+>13a0	72 6f 72			           .text "ror"
+>13a3	a6 0a				           .word ax
+>13a5	0d c6 b1 6c 31			           .byte $0d,$c6,$b1,$6c,$31
+>13aa	72 72 61			           .text "rra"
+>13ad	a6 0a				           .word ax
+>13af	0d d4 b1 6c b0			           .byte $0d,$d4,$b1,$6c,$b0
+>13b4	6e 6f 70			           .text "nop"
+>13b7	54 0a				           .word b
+>13b9	1b c6 b1 6c 30			           .byte $1b,$c6,$b1,$6c,$30
+>13be	73 74 61			           .text "sta"
+>13c1	c4 0a				           .word ix
+>13c3	c6 c6 b1 6c 30			           .byte $c6,$c6,$b1,$6c,$30
+>13c8	6e 6f 70			           .text "nop"
+>13cb	54 0a				           .word b
+>13cd	1b c6 b1 6c 30			           .byte $1b,$c6,$b1,$6c,$30
+>13d2	61 78 73			           .text "axs"
+>13d5	c4 0a				           .word ix
+>13d7	80 c6 b1 6c 30			           .byte $80,$c6,$b1,$6c,$30
+>13dc	73 74 79			           .text "sty"
+>13df	5e 0a				           .word z
+>13e1	6c c6 b1 6c 30			           .byte $6c,$c6,$b1,$6c,$30
+>13e6	73 74 61			           .text "sta"
+>13e9	5e 0a				           .word z
+>13eb	c6 c6 b1 6c 30			           .byte $c6,$c6,$b1,$6c,$30
+>13f0	73 74 78			           .text "stx"
+>13f3	5e 0a				           .word z
+>13f5	b1 c6 b1 6c 30			           .byte $b1,$c6,$b1,$6c,$30
+>13fa	61 78 73			           .text "axs"
+>13fd	5e 0a				           .word z
+>13ff	80 c6 b1 6c 30			           .byte $80,$c6,$b1,$6c,$30
+>1404	64 65 79			           .text "dey"
+>1407	50 0a				           .word n
+>1409	1b c6 b1 6b 30			           .byte $1b,$c6,$b1,$6b,$30
+>140e	6e 6f 70			           .text "nop"
+>1411	54 0a				           .word b
+>1413	1b c6 b1 6c 30			           .byte $1b,$c6,$b1,$6c,$30
+>1418	74 78 61			           .text "txa"
+>141b	50 0a				           .word n
+>141d	1b b1 b1 6c b0			           .byte $1b,$b1,$b1,$6c,$b0
+>1422	61 6e 65			           .text "ane"
+>1425	54 0a				           .word b
+>1427	1b 00 b1 6c 32			           .byte $1b,$00,$b1,$6c,$32
+>142c	73 74 79			           .text "sty"
+>142f	97 0a				           .word a
+>1431	6c c6 b1 6c 30			           .byte $6c,$c6,$b1,$6c,$30
+>1436	73 74 61			           .text "sta"
+>1439	97 0a				           .word a
+>143b	c6 c6 b1 6c 30			           .byte $c6,$c6,$b1,$6c,$30
+>1440	73 74 78			           .text "stx"
+>1443	97 0a				           .word a
+>1445	b1 c6 b1 6c 30			           .byte $b1,$c6,$b1,$6c,$30
+>144a	61 78 73			           .text "axs"
+>144d	97 0a				           .word a
+>144f	80 c6 b1 6c 30			           .byte $80,$c6,$b1,$6c,$30
+>1454	62 63 63			           .text "bcc"
+>1457	e8 0a				           .word r
+>1459	1b c6 b1 6c f3			           .byte $1b,$c6,$b1,$6c,$f3
+>145e	73 74 61			           .text "sta"
+>1461	d6 0a				           .word iy
+>1463	c6 c6 b1 6c 30			           .byte $c6,$c6,$b1,$6c,$30
+>1468	68 6c 74			           .text "hlt"
+>146b	56 0b				           .word hltn
+>146d	00 00 00 00 00			           .byte $00,$00,$00,$00,$00
+>1472	73 68 61			           .text "sha"
+>1475	a8 0d				           .word shaiy
+>1477	00 c6 b1 6c 30			           .byte $00,$c6,$b1,$6c,$30
+>147c	73 74 79			           .text "sty"
+>147f	71 0a				           .word zx
+>1481	6c c6 b1 6c 30			           .byte $6c,$c6,$b1,$6c,$30
+>1486	73 74 61			           .text "sta"
+>1489	71 0a				           .word zx
+>148b	c6 c6 b1 6c 30			           .byte $c6,$c6,$b1,$6c,$30
+>1490	73 74 78			           .text "stx"
+>1493	84 0a				           .word zy
+>1495	b1 c6 b1 6c 30			           .byte $b1,$c6,$b1,$6c,$30
+>149a	61 78 73			           .text "axs"
+>149d	84 0a				           .word zy
+>149f	80 c6 b1 6c 30			           .byte $80,$c6,$b1,$6c,$30
+>14a4	74 79 61			           .text "tya"
+>14a7	50 0a				           .word n
+>14a9	1b 6c b1 6c 30			           .byte $1b,$6c,$b1,$6c,$30
+>14ae	73 74 61			           .text "sta"
+>14b1	b5 0a				           .word ay
+>14b3	c6 c6 b1 6c 30			           .byte $c6,$c6,$b1,$6c,$30
+>14b8	74 78 73			           .text "txs"
+>14bb	6f 0c				           .word txsn
+>14bd	1b c6 b1 6c 30			           .byte $1b,$c6,$b1,$6c,$30
+>14c2	73 68 73			           .text "shs"
+>14c5	d4 0d				           .word shsay
+>14c7	00 c6 b1 6c 30			           .byte $00,$c6,$b1,$6c,$30
+>14cc	73 68 79			           .text "shy"
+>14cf	c6 0d				           .word shyax
+>14d1	00 c6 b1 6c 30			           .byte $00,$c6,$b1,$6c,$30
+>14d6	73 74 61			           .text "sta"
+>14d9	a6 0a				           .word ax
+>14db	c6 c6 b1 6c 30			           .byte $c6,$c6,$b1,$6c,$30
+>14e0	73 68 78			           .text "shx"
+>14e3	b8 0d				           .word shxay
+>14e5	00 c6 b1 6c 30			           .byte $00,$c6,$b1,$6c,$30
+>14ea	73 68 61			           .text "sha"
+>14ed	98 0d				           .word shaay
+>14ef	00 c6 b1 6c 30			           .byte $00,$c6,$b1,$6c,$30
+>14f4	6c 64 79			           .text "ldy"
+>14f7	54 0a				           .word b
+>14f9	1b c6 b1 1b 30			           .byte $1b,$c6,$b1,$1b,$30
+>14fe	6c 64 61			           .text "lda"
+>1501	c4 0a				           .word ix
+>1503	1b 1b b1 6c 30			           .byte $1b,$1b,$b1,$6c,$30
+>1508	6c 64 78			           .text "ldx"
+>150b	54 0a				           .word b
+>150d	1b c6 1b 6c 30			           .byte $1b,$c6,$1b,$6c,$30
+>1512	6c 61 78			           .text "lax"
+>1515	c4 0a				           .word ix
+>1517	1b 1b 1b 6c 30			           .byte $1b,$1b,$1b,$6c,$30
+>151c	6c 64 79			           .text "ldy"
+>151f	5e 0a				           .word z
+>1521	1b c6 b1 1b 30			           .byte $1b,$c6,$b1,$1b,$30
+>1526	6c 64 61			           .text "lda"
+>1529	5e 0a				           .word z
+>152b	1b 1b b1 6c 30			           .byte $1b,$1b,$b1,$6c,$30
+>1530	6c 64 78			           .text "ldx"
+>1533	5e 0a				           .word z
+>1535	1b c6 1b 6c 30			           .byte $1b,$c6,$1b,$6c,$30
+>153a	6c 61 78			           .text "lax"
+>153d	5e 0a				           .word z
+>153f	1b 1b 1b 6c 30			           .byte $1b,$1b,$1b,$6c,$30
+>1544	74 61 79			           .text "tay"
+>1547	50 0a				           .word n
+>1549	1b c6 b1 c6 b0			           .byte $1b,$c6,$b1,$c6,$b0
+>154e	6c 64 61			           .text "lda"
+>1551	54 0a				           .word b
+>1553	1b 1b b1 6c 30			           .byte $1b,$1b,$b1,$6c,$30
+>1558	74 61 78			           .text "tax"
+>155b	50 0a				           .word n
+>155d	1b c6 c6 6c b0			           .byte $1b,$c6,$c6,$6c,$b0
+>1562	6c 78 61			           .text "lxa"
+>1565	54 0a				           .word b
+>1567	1b 0a 0a 6c 30			           .byte $1b,$0a,$0a,$6c,$30
+>156c	6c 64 79			           .text "ldy"
+>156f	97 0a				           .word a
+>1571	1b c6 b1 1b 30			           .byte $1b,$c6,$b1,$1b,$30
+>1576	6c 64 61			           .text "lda"
+>1579	97 0a				           .word a
+>157b	1b 1b b1 6c 30			           .byte $1b,$1b,$b1,$6c,$30
+>1580	6c 64 78			           .text "ldx"
+>1583	97 0a				           .word a
+>1585	1b c6 1b 6c 30			           .byte $1b,$c6,$1b,$6c,$30
+>158a	6c 61 78			           .text "lax"
+>158d	97 0a				           .word a
+>158f	1b 1b 1b 6c 30			           .byte $1b,$1b,$1b,$6c,$30
+>1594	62 63 73			           .text "bcs"
+>1597	e8 0a				           .word r
+>1599	1b c6 b1 6c f3			           .byte $1b,$c6,$b1,$6c,$f3
+>159e	6c 64 61			           .text "lda"
+>15a1	d6 0a				           .word iy
+>15a3	1b 1b b1 6c 30			           .byte $1b,$1b,$b1,$6c,$30
+>15a8	68 6c 74			           .text "hlt"
+>15ab	56 0b				           .word hltn
+>15ad	00 00 00 00 00			           .byte $00,$00,$00,$00,$00
+>15b2	6c 61 78			           .text "lax"
+>15b5	d6 0a				           .word iy
+>15b7	1b 1b 1b 6c 30			           .byte $1b,$1b,$1b,$6c,$30
+>15bc	6c 64 79			           .text "ldy"
+>15bf	71 0a				           .word zx
+>15c1	1b c6 b1 1b 30			           .byte $1b,$c6,$b1,$1b,$30
+>15c6	6c 64 61			           .text "lda"
+>15c9	71 0a				           .word zx
+>15cb	1b 1b b1 6c 30			           .byte $1b,$1b,$b1,$6c,$30
+>15d0	6c 64 78			           .text "ldx"
+>15d3	84 0a				           .word zy
+>15d5	1b c6 1b 6c 30			           .byte $1b,$c6,$1b,$6c,$30
+>15da	6c 61 78			           .text "lax"
+>15dd	84 0a				           .word zy
+>15df	1b 1b 1b 6c 30			           .byte $1b,$1b,$1b,$6c,$30
+>15e4	63 6c 76			           .text "clv"
+>15e7	50 0a				           .word n
+>15e9	1b c6 b1 6c 30			           .byte $1b,$c6,$b1,$6c,$30
+>15ee	6c 64 61			           .text "lda"
+>15f1	b5 0a				           .word ay
+>15f3	1b 1b b1 6c 30			           .byte $1b,$1b,$b1,$6c,$30
+>15f8	74 73 78			           .text "tsx"
+>15fb	a0 0e				           .word tsxn
+>15fd	1b c6 00 6c 00			           .byte $1b,$c6,$00,$6c,$00
+>1602	6c 61 73			           .text "las"
+>1605	3a 0e				           .word lasay
+>1607	1b 00 00 6c 00			           .byte $1b,$00,$00,$6c,$00
+>160c	6c 64 79			           .text "ldy"
+>160f	a6 0a				           .word ax
+>1611	1b c6 b1 1b 30			           .byte $1b,$c6,$b1,$1b,$30
+>1616	6c 64 61			           .text "lda"
+>1619	a6 0a				           .word ax
+>161b	1b 1b b1 6c 30			           .byte $1b,$1b,$b1,$6c,$30
+>1620	6c 64 78			           .text "ldx"
+>1623	b5 0a				           .word ay
+>1625	1b c6 1b 6c 30			           .byte $1b,$c6,$1b,$6c,$30
+>162a	6c 61 78			           .text "lax"
+>162d	b5 0a				           .word ay
+>162f	1b 1b 1b 6c 30			           .byte $1b,$1b,$1b,$6c,$30
+>1634	63 70 79			           .text "cpy"
+>1637	54 0a				           .word b
+>1639	1b c6 b1 6c 31			           .byte $1b,$c6,$b1,$6c,$31
+>163e	63 6d 70			           .text "cmp"
+>1641	c4 0a				           .word ix
+>1643	1b c6 b1 6c b1			           .byte $1b,$c6,$b1,$6c,$b1
+>1648	6e 6f 70			           .text "nop"
+>164b	54 0a				           .word b
+>164d	1b c6 b1 6c 30			           .byte $1b,$c6,$b1,$6c,$30
+>1652	64 63 6d			           .text "dcm"
+>1655	c4 0a				           .word ix
+>1657	1a c6 b1 6c b1			           .byte $1a,$c6,$b1,$6c,$b1
+>165c	63 70 79			           .text "cpy"
+>165f	5e 0a				           .word z
+>1661	1b c6 b1 6c 31			           .byte $1b,$c6,$b1,$6c,$31
+>1666	63 6d 70			           .text "cmp"
+>1669	5e 0a				           .word z
+>166b	1b c6 b1 6c b1			           .byte $1b,$c6,$b1,$6c,$b1
+>1670	64 65 63			           .text "dec"
+>1673	5e 0a				           .word z
+>1675	1a c6 b1 6c 30			           .byte $1a,$c6,$b1,$6c,$30
+>167a	64 63 6d			           .text "dcm"
+>167d	5e 0a				           .word z
+>167f	1a c6 b1 6c b1			           .byte $1a,$c6,$b1,$6c,$b1
+>1684	69 6e 79			           .text "iny"
+>1687	50 0a				           .word n
+>1689	1b c6 b1 6d 30			           .byte $1b,$c6,$b1,$6d,$30
+>168e	63 6d 70			           .text "cmp"
+>1691	54 0a				           .word b
+>1693	1b c6 b1 6c b1			           .byte $1b,$c6,$b1,$6c,$b1
+>1698	64 65 78			           .text "dex"
+>169b	50 0a				           .word n
+>169d	1b c6 b0 6c b0			           .byte $1b,$c6,$b0,$6c,$b0
+>16a2	73 62 78			           .text "sbx"
+>16a5	54 0a				           .word b
+>16a7	1b c6 65 6c 31			           .byte $1b,$c6,$65,$6c,$31
+>16ac	63 70 79			           .text "cpy"
+>16af	97 0a				           .word a
+>16b1	1b c6 b1 6c 31			           .byte $1b,$c6,$b1,$6c,$31
+>16b6	63 6d 70			           .text "cmp"
+>16b9	97 0a				           .word a
+>16bb	1b c6 b1 6c b1			           .byte $1b,$c6,$b1,$6c,$b1
+>16c0	64 65 63			           .text "dec"
+>16c3	97 0a				           .word a
+>16c5	1a c6 b1 6c 30			           .byte $1a,$c6,$b1,$6c,$30
+>16ca	64 63 6d			           .text "dcm"
+>16cd	97 0a				           .word a
+>16cf	1a c6 b1 6c b1			           .byte $1a,$c6,$b1,$6c,$b1
+>16d4	62 6e 65			           .text "bne"
+>16d7	e8 0a				           .word r
+>16d9	1b c6 b1 6c f3			           .byte $1b,$c6,$b1,$6c,$f3
+>16de	63 6d 70			           .text "cmp"
+>16e1	d6 0a				           .word iy
+>16e3	1b c6 b1 6c b1			           .byte $1b,$c6,$b1,$6c,$b1
+>16e8	68 6c 74			           .text "hlt"
+>16eb	56 0b				           .word hltn
+>16ed	00 00 00 00 00			           .byte $00,$00,$00,$00,$00
+>16f2	64 63 6d			           .text "dcm"
+>16f5	d6 0a				           .word iy
+>16f7	1a c6 b1 6c b1			           .byte $1a,$c6,$b1,$6c,$b1
+>16fc	6e 6f 70			           .text "nop"
+>16ff	71 0a				           .word zx
+>1701	1b c6 b1 6c 30			           .byte $1b,$c6,$b1,$6c,$30
+>1706	63 6d 70			           .text "cmp"
+>1709	71 0a				           .word zx
+>170b	1b c6 b1 6c b1			           .byte $1b,$c6,$b1,$6c,$b1
+>1710	64 65 63			           .text "dec"
+>1713	71 0a				           .word zx
+>1715	1a c6 b1 6c 30			           .byte $1a,$c6,$b1,$6c,$30
+>171a	64 63 6d			           .text "dcm"
+>171d	71 0a				           .word zx
+>171f	1a c6 b1 6c b1			           .byte $1a,$c6,$b1,$6c,$b1
+>1724	63 6c 64			           .text "cld"
+>1727	50 0a				           .word n
+>1729	1b c6 b1 6c 30			           .byte $1b,$c6,$b1,$6c,$30
+>172e	63 6d 70			           .text "cmp"
+>1731	b5 0a				           .word ay
+>1733	1b c6 b1 6c b1			           .byte $1b,$c6,$b1,$6c,$b1
+>1738	6e 6f 70			           .text "nop"
+>173b	50 0a				           .word n
+>173d	1b c6 b1 6c 30			           .byte $1b,$c6,$b1,$6c,$30
+>1742	64 63 6d			           .text "dcm"
+>1745	b5 0a				           .word ay
+>1747	1a c6 b1 6c b1			           .byte $1a,$c6,$b1,$6c,$b1
+>174c	6e 6f 70			           .text "nop"
+>174f	a6 0a				           .word ax
+>1751	1b c6 b1 6c 30			           .byte $1b,$c6,$b1,$6c,$30
+>1756	63 6d 70			           .text "cmp"
+>1759	a6 0a				           .word ax
+>175b	1b c6 b1 6c b1			           .byte $1b,$c6,$b1,$6c,$b1
+>1760	64 65 63			           .text "dec"
+>1763	a6 0a				           .word ax
+>1765	1a c6 b1 6c 30			           .byte $1a,$c6,$b1,$6c,$30
+>176a	64 63 6d			           .text "dcm"
+>176d	a6 0a				           .word ax
+>176f	1a c6 b1 6c b1			           .byte $1a,$c6,$b1,$6c,$b1
+>1774	63 70 78			           .text "cpx"
+>1777	54 0a				           .word b
+>1779	1b c6 b1 6c b1			           .byte $1b,$c6,$b1,$6c,$b1
+>177e	73 62 63			           .text "sbc"
+>1781	c4 0a				           .word ix
+>1783	1b aa b1 6c b1			           .byte $1b,$aa,$b1,$6c,$b1
+>1788	6e 6f 70			           .text "nop"
+>178b	54 0a				           .word b
+>178d	1b c6 b1 6c 30			           .byte $1b,$c6,$b1,$6c,$30
+>1792	69 6e 73			           .text "ins"
+>1795	c4 0a				           .word ix
+>1797	1c a9 b1 6c b1			           .byte $1c,$a9,$b1,$6c,$b1
+>179c	63 70 78			           .text "cpx"
+>179f	5e 0a				           .word z
+>17a1	1b c6 b1 6c b1			           .byte $1b,$c6,$b1,$6c,$b1
+>17a6	73 62 63			           .text "sbc"
+>17a9	5e 0a				           .word z
+>17ab	1b aa b1 6c b1			           .byte $1b,$aa,$b1,$6c,$b1
+>17b0	69 6e 63			           .text "inc"
+>17b3	5e 0a				           .word z
+>17b5	1c c6 b1 6c 30			           .byte $1c,$c6,$b1,$6c,$30
+>17ba	69 6e 73			           .text "ins"
+>17bd	5e 0a				           .word z
+>17bf	1c a9 b1 6c b1			           .byte $1c,$a9,$b1,$6c,$b1
+>17c4	69 6e 78			           .text "inx"
+>17c7	50 0a				           .word n
+>17c9	1b c6 b2 6c b0			           .byte $1b,$c6,$b2,$6c,$b0
+>17ce	73 62 63			           .text "sbc"
+>17d1	54 0a				           .word b
+>17d3	1b aa b1 6c b1			           .byte $1b,$aa,$b1,$6c,$b1
+>17d8	6e 6f 70			           .text "nop"
+>17db	50 0a				           .word n
+>17dd	1b c6 b1 6c 30			           .byte $1b,$c6,$b1,$6c,$30
+>17e2	73 62 63			           .text "sbc"
+>17e5	54 0a				           .word b
+>17e7	1b aa b1 6c b1			           .byte $1b,$aa,$b1,$6c,$b1
+>17ec	63 70 78			           .text "cpx"
+>17ef	97 0a				           .word a
+>17f1	1b c6 b1 6c b1			           .byte $1b,$c6,$b1,$6c,$b1
+>17f6	73 62 63			           .text "sbc"
+>17f9	97 0a				           .word a
+>17fb	1b aa b1 6c b1			           .byte $1b,$aa,$b1,$6c,$b1
+>1800	69 6e 63			           .text "inc"
+>1803	97 0a				           .word a
+>1805	1c c6 b1 6c 30			           .byte $1c,$c6,$b1,$6c,$30
+>180a	69 6e 73			           .text "ins"
+>180d	97 0a				           .word a
+>180f	1c a9 b1 6c b1			           .byte $1c,$a9,$b1,$6c,$b1
+>1814	62 65 71			           .text "beq"
+>1817	e8 0a				           .word r
+>1819	1b c6 b1 6c f3			           .byte $1b,$c6,$b1,$6c,$f3
+>181e	73 62 63			           .text "sbc"
+>1821	d6 0a				           .word iy
+>1823	1b aa b1 6c b1			           .byte $1b,$aa,$b1,$6c,$b1
+>1828	68 6c 74			           .text "hlt"
+>182b	56 0b				           .word hltn
+>182d	00 00 00 00 00			           .byte $00,$00,$00,$00,$00
+>1832	69 6e 73			           .text "ins"
+>1835	d6 0a				           .word iy
+>1837	1c a9 b1 6c b1			           .byte $1c,$a9,$b1,$6c,$b1
+>183c	6e 6f 70			           .text "nop"
+>183f	71 0a				           .word zx
+>1841	1b c6 b1 6c 30			           .byte $1b,$c6,$b1,$6c,$30
+>1846	73 62 63			           .text "sbc"
+>1849	71 0a				           .word zx
+>184b	1b aa b1 6c b1			           .byte $1b,$aa,$b1,$6c,$b1
+>1850	69 6e 63			           .text "inc"
+>1853	71 0a				           .word zx
+>1855	1c c6 b1 6c 30			           .byte $1c,$c6,$b1,$6c,$30
+>185a	69 6e 73			           .text "ins"
+>185d	71 0a				           .word zx
+>185f	1c a9 b1 6c b1			           .byte $1c,$a9,$b1,$6c,$b1
+>1864	73 65 64			           .text "sed"
+>1867	50 0a				           .word n
+>1869	1b c6 b1 6c 38			           .byte $1b,$c6,$b1,$6c,$38
+>186e	73 62 63			           .text "sbc"
+>1871	b5 0a				           .word ay
+>1873	1b aa b1 6c b1			           .byte $1b,$aa,$b1,$6c,$b1
+>1878	6e 6f 70			           .text "nop"
+>187b	50 0a				           .word n
+>187d	1b c6 b1 6c 30			           .byte $1b,$c6,$b1,$6c,$30
+>1882	69 6e 73			           .text "ins"
+>1885	b5 0a				           .word ay
+>1887	1c a9 b1 6c b1			           .byte $1c,$a9,$b1,$6c,$b1
+>188c	6e 6f 70			           .text "nop"
+>188f	a6 0a				           .word ax
+>1891	1b c6 b1 6c 30			           .byte $1b,$c6,$b1,$6c,$30
+>1896	73 62 63			           .text "sbc"
+>1899	a6 0a				           .word ax
+>189b	1b aa b1 6c b1			           .byte $1b,$aa,$b1,$6c,$b1
+>18a0	69 6e 63			           .text "inc"
+>18a3	a6 0a				           .word ax
+>18a5	1c c6 b1 6c 30			           .byte $1c,$c6,$b1,$6c,$30
+>18aa	69 6e 73			           .text "ins"
+>18ad	a6 0a				           .word ax
+>18af	1c a9 b1 6c b1			           .byte $1c,$a9,$b1,$6c,$b1
+>18b4	00				           .byte 0
+
+;******  End of listing

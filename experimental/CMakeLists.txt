@@ -1,0 +1,17 @@
+include("../common.txt")
+
+if(WIN32)
+  add_subdirectory("test_dxgi")
+  add_subdirectory("test_dxgi2")
+  add_subdirectory("test_dxgi3")
+  add_subdirectory("test_media_foundation")
+endif()
+
+if(HAVE_FFMPEG)
+  add_subdirectory(test_ffmpeg)
+endif()
+
+add_subdirectory("test_SDL_RenderGeometry")
+add_subdirectory("test_dear_imgui")
+add_subdirectory("test_SDL_keyboard")
+add_subdirectory("test_locks")

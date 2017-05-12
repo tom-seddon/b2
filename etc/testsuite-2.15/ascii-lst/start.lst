@@ -1,0 +1,4668 @@
+
+; 64tass Turbo Assembler Macro V1.52.1237 listing file
+; 64tass.exe -L ascii-lst/start.lst -o ascii-bin/start -T ascii-src/start.asm
+; Mon Sep 26 23:32:30 2016
+
+;Offset	;Hex		;Monitor	;Source
+
+;******  Processing input file: ascii-src/start.asm
+
+>0801	4c 16 08 00 97 32		         .byte $4c,$16,$08,$00,$97,$32
+>0807	2c 30 3a 9e 32 30		         .byte $2c,$30,$3a,$9e,$32,$30
+>080d	37 30 00 00 00 a9		         .byte $37,$30,$00,$00,$00,$a9
+>0813	01 85 02			         .byte $01,$85,$02
+.0816	20 45 15	jsr $1545	         jsr print
+>0819	93 0e 0d			         .byte 147,14,13
+>081c	43 6f 6d 6d 6f 64 6f 72		         .text "Commodore 64 "
+>0824	65 20 36 34 20
+>0829	45 6d 75 6c 61 74 6f 72		         .text "Emulator Test Suite"
+>0831	20 54 65 73 74 20 53 75 69 74 65
+>083c	0d				         .byte 13
+>083d	50 75 62 6c 69 63 20 44		         .text "Public Domain, "
+>0845	6f 6d 61 69 6e 2c 20
+>084c	6e 6f 20 43 6f 70 79 72		         .text "no Copyright"
+>0854	69 67 68 74
+>0858	0d 0d				         .byte 13,13
+>085a	62 61 73 69 63 20 63 6f		         .null "basic commands"
+>0862	6d 6d 61 6e 64 73 00
+.0869	58		cli		         cli
+.086a	d8		cld		         cld
+.086b	a9 00		lda #$00	l00      lda #0
+.086d	c9 00		cmp #$00	l01      cmp #0
+.086f	f0 18		beq $0889	         beq l02
+.0871	20 45 15	jsr $1545	         jsr print
+>0874	20 2d 20 62 6c 6f 63 6b		         .text " - block "
+>087c	20
+>087d	60 31				         .text "`1"
+>087f	20 66 61 69 6c 65 64		         .text " failed"
+>0886	0d 00				         .byte 13,0
+.0888	60		rts		         rts
+.0889	ee 6c 08	inc $086c	l02      inc l00+1
+.088c	ee 6e 08	inc $086e	         inc l01+1
+.088f	d0 da		bne $086b	         bne l00
+.0891	a9 00		lda #$00	         lda #0
+.0893	f0 18		beq $08ad	         beq l03
+.0895	20 45 15	jsr $1545	         jsr print
+>0898	20 2d 20 62 6c 6f 63 6b		         .text " - block "
+>08a0	20
+>08a1	60 31				         .text "`1"
+>08a3	20 66 61 69 6c 65 64		         .text " failed"
+>08aa	0d 00				         .byte 13,0
+.08ac	60		rts		         rts
+.08ad	a9 00		lda #$00	l03      lda #0
+.08af	10 18		bpl $08c9	         bpl l04
+.08b1	20 45 15	jsr $1545	         jsr print
+>08b4	20 2d 20 62 6c 6f 63 6b		         .text " - block "
+>08bc	20
+>08bd	60 31				         .text "`1"
+>08bf	20 66 61 69 6c 65 64		         .text " failed"
+>08c6	0d 00				         .byte 13,0
+.08c8	60		rts		         rts
+.08c9	a9 80		lda #$80	l04      lda #$80
+.08cb	30 18		bmi $08e5	         bmi l05
+.08cd	20 45 15	jsr $1545	         jsr print
+>08d0	20 2d 20 62 6c 6f 63 6b		         .text " - block "
+>08d8	20
+>08d9	60 31				         .text "`1"
+>08db	20 66 61 69 6c 65 64		         .text " failed"
+>08e2	0d 00				         .byte 13,0
+.08e4	60		rts		         rts
+.08e5	a9 00		lda #$00	l05      lda #0
+.08e7	38		sec		         sec
+.08e8	0a		asl a		         asl a
+.08e9	b0 3c		bcs $0927	         bcs l06
+.08eb	c9 00		cmp #$00	         cmp #0
+.08ed	d0 38		bne $0927	         bne l06
+.08ef	a9 01		lda #$01	         lda #1
+.08f1	0a		asl a		         asl a
+.08f2	b0 33		bcs $0927	         bcs l06
+.08f4	c9 02		cmp #$02	         cmp #2
+.08f6	d0 2f		bne $0927	         bne l06
+.08f8	0a		asl a		         asl a
+.08f9	b0 2c		bcs $0927	         bcs l06
+.08fb	c9 04		cmp #$04	         cmp #4
+.08fd	d0 28		bne $0927	         bne l06
+.08ff	0a		asl a		         asl a
+.0900	b0 25		bcs $0927	         bcs l06
+.0902	c9 08		cmp #$08	         cmp #8
+.0904	d0 21		bne $0927	         bne l06
+.0906	0a		asl a		         asl a
+.0907	b0 1e		bcs $0927	         bcs l06
+.0909	c9 10		cmp #$10	         cmp #16
+.090b	d0 1a		bne $0927	         bne l06
+.090d	0a		asl a		         asl a
+.090e	b0 17		bcs $0927	         bcs l06
+.0910	c9 20		cmp #$20	         cmp #32
+.0912	d0 13		bne $0927	         bne l06
+.0914	0a		asl a		         asl a
+.0915	b0 10		bcs $0927	         bcs l06
+.0917	c9 40		cmp #$40	         cmp #64
+.0919	d0 0c		bne $0927	         bne l06
+.091b	0a		asl a		         asl a
+.091c	b0 09		bcs $0927	         bcs l06
+.091e	c9 80		cmp #$80	         cmp #128
+.0920	d0 05		bne $0927	         bne l06
+.0922	0a		asl a		         asl a
+.0923	90 02		bcc $0927	         bcc l06
+.0925	f0 18		beq $093f	         beq l07
+.0927					l06
+.0927	20 45 15	jsr $1545	         jsr print
+>092a	20 2d 20 62 6c 6f 63 6b		         .text " - block "
+>0932	20
+>0933	60 31				         .text "`1"
+>0935	20 66 61 69 6c 65 64		         .text " failed"
+>093c	0d 00				         .byte 13,0
+.093e	60		rts		         rts
+.093f	18		clc		l07      clc
+.0940	90 18		bcc $095a	         bcc l08
+.0942	20 45 15	jsr $1545	         jsr print
+>0945	20 2d 20 62 6c 6f 63 6b		         .text " - block "
+>094d	20
+>094e	60 31				         .text "`1"
+>0950	20 66 61 69 6c 65 64		         .text " failed"
+>0957	0d 00				         .byte 13,0
+.0959	60		rts		         rts
+.095a	38		sec		l08      sec
+.095b	b0 18		bcs $0975	         bcs l09
+.095d	20 45 15	jsr $1545	         jsr print
+>0960	20 2d 20 62 6c 6f 63 6b		         .text " - block "
+>0968	20
+>0969	60 31				         .text "`1"
+>096b	20 66 61 69 6c 65 64		         .text " failed"
+>0972	0d 00				         .byte 13,0
+.0974	60		rts		         rts
+.0975	a9 00		lda #$00	l09      lda #0
+.0977	38		sec		         sec
+.0978	4a		lsr a		         lsr a
+.0979	b0 3c		bcs $09b7	         bcs l10
+.097b	c9 00		cmp #$00	         cmp #0
+.097d	d0 38		bne $09b7	         bne l10
+.097f	a9 80		lda #$80	         lda #128
+.0981	4a		lsr a		         lsr a
+.0982	b0 33		bcs $09b7	         bcs l10
+.0984	c9 40		cmp #$40	         cmp #64
+.0986	d0 2f		bne $09b7	         bne l10
+.0988	4a		lsr a		         lsr a
+.0989	b0 2c		bcs $09b7	         bcs l10
+.098b	c9 20		cmp #$20	         cmp #32
+.098d	d0 28		bne $09b7	         bne l10
+.098f	4a		lsr a		         lsr a
+.0990	b0 25		bcs $09b7	         bcs l10
+.0992	c9 10		cmp #$10	         cmp #16
+.0994	d0 21		bne $09b7	         bne l10
+.0996	4a		lsr a		         lsr a
+.0997	b0 1e		bcs $09b7	         bcs l10
+.0999	c9 08		cmp #$08	         cmp #8
+.099b	d0 1a		bne $09b7	         bne l10
+.099d	4a		lsr a		         lsr a
+.099e	b0 17		bcs $09b7	         bcs l10
+.09a0	c9 04		cmp #$04	         cmp #4
+.09a2	d0 13		bne $09b7	         bne l10
+.09a4	4a		lsr a		         lsr a
+.09a5	b0 10		bcs $09b7	         bcs l10
+.09a7	c9 02		cmp #$02	         cmp #2
+.09a9	d0 0c		bne $09b7	         bne l10
+.09ab	4a		lsr a		         lsr a
+.09ac	b0 09		bcs $09b7	         bcs l10
+.09ae	c9 01		cmp #$01	         cmp #1
+.09b0	d0 05		bne $09b7	         bne l10
+.09b2	4a		lsr a		         lsr a
+.09b3	90 02		bcc $09b7	         bcc l10
+.09b5	f0 1d		beq $09d4	         beq l11
+.09b7					l10
+.09b7	20 45 15	jsr $1545	         jsr print
+>09ba	20 2d 20 62 6c 6f 63 6b		         .text " - block "
+>09c2	20
+>09c3	60 31				         .text "`1"
+>09c5	20 66 61 69 6c 65 64		         .text " failed"
+>09cc	0d 00				         .byte 13,0
+.09ce	60		rts		         rts
+.09cf	a9 01		lda #$01	         lda #1
+.09d1	8d d5 09	sta $09d5	         sta l11+1
+.09d4	a9 01		lda #$01	l11      lda #1
+.09d6	d0 18		bne $09f0	         bne l12
+.09d8	20 45 15	jsr $1545	         jsr print
+>09db	20 2d 20 62 6c 6f 63 6b		         .text " - block "
+>09e3	20
+>09e4	60 31				         .text "`1"
+>09e6	20 66 61 69 6c 65 64		         .text " failed"
+>09ed	0d 00				         .byte 13,0
+.09ef	60		rts		         rts
+.09f0	ee d5 09	inc $09d5	l12      inc l11+1
+.09f3	d0 df		bne $09d4	         bne l11
+.09f5	a9 00		lda #$00	         lda #0
+.09f7	8d 01 0a	sta $0a01	         sta l14+1
+.09fa	ee 01 0a	inc $0a01	l13      inc l14+1
+.09fd	18		clc		         clc
+.09fe	69 01		adc #$01	         adc #1
+.0a00	c9 01		cmp #$01	l14      cmp #1
+.0a02	f0 18		beq $0a1c	         beq l15
+.0a04	20 45 15	jsr $1545	         jsr print
+>0a07	20 2d 20 62 6c 6f 63 6b		         .text " - block "
+>0a0f	20
+>0a10	60 31				         .text "`1"
+>0a12	20 66 61 69 6c 65 64		         .text " failed"
+>0a19	0d 00				         .byte 13,0
+.0a1b	60		rts		         rts
+.0a1c	ae 01 0a	ldx $0a01	l15      ldx l14+1
+.0a1f	d0 d9		bne $09fa	         bne l13
+.0a21	a9 00		lda #$00	         lda #0
+.0a23	8d 2d 0a	sta $0a2d	         sta l17+1
+.0a26	ee 2d 0a	inc $0a2d	l16      inc l17+1
+.0a29	38		sec		         sec
+.0a2a	69 00		adc #$00	         adc #0
+.0a2c	c9 01		cmp #$01	l17      cmp #1
+.0a2e	f0 18		beq $0a48	         beq l18
+.0a30	20 45 15	jsr $1545	         jsr print
+>0a33	20 2d 20 62 6c 6f 63 6b		         .text " - block "
+>0a3b	20
+>0a3c	60 31				         .text "`1"
+>0a3e	20 66 61 69 6c 65 64		         .text " failed"
+>0a45	0d 00				         .byte 13,0
+.0a47	60		rts		         rts
+.0a48	ae 2d 0a	ldx $0a2d	l18      ldx l17+1
+.0a4b	d0 d9		bne $0a26	         bne l16
+.0a4d	a9 ff		lda #$ff	         lda #255
+.0a4f	18		clc		         clc
+.0a50	69 01		adc #$01	         adc #1
+.0a52	d0 04		bne $0a58	         bne l19
+.0a54	30 02		bmi $0a58	         bmi l19
+.0a56	b0 18		bcs $0a70	         bcs l20
+.0a58					l19
+.0a58	20 45 15	jsr $1545	         jsr print
+>0a5b	20 2d 20 62 6c 6f 63 6b		         .text " - block "
+>0a63	20
+>0a64	60 31				         .text "`1"
+>0a66	20 66 61 69 6c 65 64		         .text " failed"
+>0a6d	0d 00				         .byte 13,0
+.0a6f	60		rts		         rts
+.0a70	a9 00		lda #$00	l20      lda #0
+.0a72	85 ac		sta $ac		         sta 172
+.0a74	a5 ac		lda $ac		         lda 172
+.0a76	c9 00		cmp #$00	l21      cmp #0
+.0a78	f0 18		beq $0a92	         beq l22
+.0a7a	20 45 15	jsr $1545	         jsr print
+>0a7d	20 2d 20 62 6c 6f 63 6b		         .text " - block "
+>0a85	20
+>0a86	60 31				         .text "`1"
+>0a88	20 66 61 69 6c 65 64		         .text " failed"
+>0a8f	0d 00				         .byte 13,0
+.0a91	60		rts		         rts
+.0a92	ee 71 0a	inc $0a71	l22      inc l20+1
+.0a95	ee 77 0a	inc $0a77	         inc l21+1
+.0a98	d0 d6		bne $0a70	         bne l20
+.0a9a	a9 4e		lda #$4e	         lda #78
+.0a9c	aa		tax		         tax
+.0a9d	a9 00		lda #$00	         lda #0
+.0a9f	8a		txa		         txa
+.0aa0	c9 4e		cmp #$4e	         cmp #78
+.0aa2	f0 18		beq $0abc	         beq l23
+.0aa4	20 45 15	jsr $1545	         jsr print
+>0aa7	20 2d 20 62 6c 6f 63 6b		         .text " - block "
+>0aaf	20
+>0ab0	60 31				         .text "`1"
+>0ab2	20 66 61 69 6c 65 64		         .text " failed"
+>0ab9	0d 00				         .byte 13,0
+.0abb	60		rts		         rts
+.0abc	a9 00		lda #$00	l23      lda #0
+.0abe	09 01		ora #$01	         ora #$01
+.0ac0	c9 01		cmp #$01	         cmp #$01
+.0ac2	d0 2a		bne $0aee	         bne l24
+.0ac4	09 02		ora #$02	         ora #$02
+.0ac6	c9 03		cmp #$03	         cmp #$03
+.0ac8	d0 24		bne $0aee	         bne l24
+.0aca	09 04		ora #$04	         ora #$04
+.0acc	c9 07		cmp #$07	         cmp #$07
+.0ace	d0 1e		bne $0aee	         bne l24
+.0ad0	09 08		ora #$08	         ora #$08
+.0ad2	c9 0f		cmp #$0f	         cmp #$0f
+.0ad4	d0 18		bne $0aee	         bne l24
+.0ad6	09 10		ora #$10	         ora #$10
+.0ad8	c9 1f		cmp #$1f	         cmp #$1f
+.0ada	d0 12		bne $0aee	         bne l24
+.0adc	09 20		ora #$20	         ora #$20
+.0ade	c9 3f		cmp #$3f	         cmp #$3f
+.0ae0	d0 0c		bne $0aee	         bne l24
+.0ae2	09 40		ora #$40	         ora #$40
+.0ae4	c9 7f		cmp #$7f	         cmp #$7f
+.0ae6	d0 06		bne $0aee	         bne l24
+.0ae8	09 80		ora #$80	         ora #$80
+.0aea	c9 ff		cmp #$ff	         cmp #$ff
+.0aec	f0 18		beq $0b06	         beq l25
+.0aee					l24
+.0aee	20 45 15	jsr $1545	         jsr print
+>0af1	20 2d 20 62 6c 6f 63 6b		         .text " - block "
+>0af9	20
+>0afa	60 31				         .text "`1"
+>0afc	20 66 61 69 6c 65 64		         .text " failed"
+>0b03	0d 00				         .byte 13,0
+.0b05	60		rts		         rts
+.0b06	a9 ff		lda #$ff	l25      lda #$ff
+.0b08	29 fe		and #$fe	         and #$fe
+.0b0a	c9 fe		cmp #$fe	         cmp #$fe
+.0b0c	d0 2a		bne $0b38	         bne l26
+.0b0e	29 fd		and #$fd	         and #$fd
+.0b10	c9 fc		cmp #$fc	         cmp #$fc
+.0b12	d0 24		bne $0b38	         bne l26
+.0b14	29 fb		and #$fb	         and #$fb
+.0b16	c9 f8		cmp #$f8	         cmp #$f8
+.0b18	d0 1e		bne $0b38	         bne l26
+.0b1a	29 f7		and #$f7	         and #$f7
+.0b1c	c9 f0		cmp #$f0	         cmp #$f0
+.0b1e	d0 18		bne $0b38	         bne l26
+.0b20	29 ef		and #$ef	         and #$ef
+.0b22	c9 e0		cmp #$e0	         cmp #$e0
+.0b24	d0 12		bne $0b38	         bne l26
+.0b26	29 df		and #$df	         and #$df
+.0b28	c9 c0		cmp #$c0	         cmp #$c0
+.0b2a	d0 0c		bne $0b38	         bne l26
+.0b2c	29 bf		and #$bf	         and #$bf
+.0b2e	c9 80		cmp #$80	         cmp #$80
+.0b30	d0 06		bne $0b38	         bne l26
+.0b32	29 7f		and #$7f	         and #$7f
+.0b34	c9 00		cmp #$00	         cmp #$00
+.0b36	f0 18		beq $0b50	         beq l27
+.0b38					l26
+.0b38	20 45 15	jsr $1545	         jsr print
+>0b3b	20 2d 20 62 6c 6f 63 6b		         .text " - block "
+>0b43	20
+>0b44	60 31				         .text "`1"
+>0b46	20 66 61 69 6c 65 64		         .text " failed"
+>0b4d	0d 00				         .byte 13,0
+.0b4f	60		rts		         rts
+.0b50	a2 00		ldx #$00	l27      ldx #0
+.0b52	8a		txa		l28      txa
+.0b53	0a		asl a		         asl a
+.0b54	dd 45 0d	cmp $0d45,x	         cmp l0tab,x
+.0b57	f0 18		beq $0b71	         beq l29
+.0b59	20 45 15	jsr $1545	         jsr print
+>0b5c	20 2d 20 62 6c 6f 63 6b		         .text " - block "
+>0b64	20
+>0b65	60 31				         .text "`1"
+>0b67	20 66 61 69 6c 65 64		         .text " failed"
+>0b6e	0d 00				         .byte 13,0
+.0b70	60		rts		         rts
+.0b71	e8		inx		l29      inx
+.0b72	d0 de		bne $0b52	         bne l28
+.0b74	a2 00		ldx #$00	         ldx #0
+.0b76	8a		txa		l30      txa
+.0b77	18		clc		         clc
+.0b78	2a		rol a		         rol a
+.0b79	dd 45 0d	cmp $0d45,x	         cmp l0tab,x
+.0b7c	f0 18		beq $0b96	         beq l31
+.0b7e	20 45 15	jsr $1545	         jsr print
+>0b81	20 2d 20 62 6c 6f 63 6b		         .text " - block "
+>0b89	20
+>0b8a	60 31				         .text "`1"
+>0b8c	20 66 61 69 6c 65 64		         .text " failed"
+>0b93	0d 00				         .byte 13,0
+.0b95	60		rts		         rts
+.0b96	e8		inx		l31      inx
+.0b97	d0 dd		bne $0b76	         bne l30
+.0b99	a2 00		ldx #$00	         ldx #0
+.0b9b	8a		txa		l32      txa
+.0b9c	38		sec		         sec
+.0b9d	2a		rol a		         rol a
+.0b9e	dd 45 0e	cmp $0e45,x	         cmp l1tab,x
+.0ba1	f0 18		beq $0bbb	         beq l33
+.0ba3	20 45 15	jsr $1545	         jsr print
+>0ba6	20 2d 20 62 6c 6f 63 6b		         .text " - block "
+>0bae	20
+>0baf	60 31				         .text "`1"
+>0bb1	20 66 61 69 6c 65 64		         .text " failed"
+>0bb8	0d 00				         .byte 13,0
+.0bba	60		rts		         rts
+.0bbb	e8		inx		l33      inx
+.0bbc	d0 dd		bne $0b9b	         bne l32
+.0bbe	a2 00		ldx #$00	         ldx #0
+.0bc0	8a		txa		l34      txa
+.0bc1	4a		lsr a		         lsr a
+.0bc2	dd 45 0f	cmp $0f45,x	         cmp r0tab,x
+.0bc5	f0 18		beq $0bdf	         beq l35
+.0bc7	20 45 15	jsr $1545	         jsr print
+>0bca	20 2d 20 62 6c 6f 63 6b		         .text " - block "
+>0bd2	20
+>0bd3	60 31				         .text "`1"
+>0bd5	20 66 61 69 6c 65 64		         .text " failed"
+>0bdc	0d 00				         .byte 13,0
+.0bde	60		rts		         rts
+.0bdf	e8		inx		l35      inx
+.0be0	d0 de		bne $0bc0	         bne l34
+.0be2	a2 00		ldx #$00	         ldx #0
+.0be4	8a		txa		l36      txa
+.0be5	18		clc		         clc
+.0be6	6a		ror a		         ror a
+.0be7	dd 45 0f	cmp $0f45,x	         cmp r0tab,x
+.0bea	f0 18		beq $0c04	         beq l37
+.0bec	20 45 15	jsr $1545	         jsr print
+>0bef	20 2d 20 62 6c 6f 63 6b		         .text " - block "
+>0bf7	20
+>0bf8	60 31				         .text "`1"
+>0bfa	20 66 61 69 6c 65 64		         .text " failed"
+>0c01	0d 00				         .byte 13,0
+.0c03	60		rts		         rts
+.0c04	e8		inx		l37      inx
+.0c05	d0 dd		bne $0be4	         bne l36
+.0c07	a2 00		ldx #$00	         ldx #0
+.0c09	8a		txa		l38      txa
+.0c0a	38		sec		         sec
+.0c0b	6a		ror a		         ror a
+.0c0c	dd 45 10	cmp $1045,x	         cmp r1tab,x
+.0c0f	f0 18		beq $0c29	         beq l39
+.0c11	20 45 15	jsr $1545	         jsr print
+>0c14	20 2d 20 62 6c 6f 63 6b		         .text " - block "
+>0c1c	20
+>0c1d	60 31				         .text "`1"
+>0c1f	20 66 61 69 6c 65 64		         .text " failed"
+>0c26	0d 00				         .byte 13,0
+.0c28	60		rts		         rts
+.0c29	e8		inx		l39      inx
+.0c2a	d0 dd		bne $0c09	         bne l38
+.0c2c	a0 00		ldy #$00	         ldy #0
+.0c2e	98		tya		l40      tya
+.0c2f	aa		tax		         tax
+.0c30	e8		inx		         inx
+.0c31	8a		txa		         txa
+.0c32	d9 45 11	cmp $1145,y	         cmp i0tab,y
+.0c35	f0 18		beq $0c4f	         beq l41
+.0c37	20 45 15	jsr $1545	         jsr print
+>0c3a	20 2d 20 62 6c 6f 63 6b		         .text " - block "
+>0c42	20
+>0c43	60 31				         .text "`1"
+>0c45	20 66 61 69 6c 65 64		         .text " failed"
+>0c4c	0d 00				         .byte 13,0
+.0c4e	60		rts		         rts
+.0c4f	c8		iny		l41      iny
+.0c50	d0 dc		bne $0c2e	         bne l40
+.0c52	a2 00		ldx #$00	         ldx #0
+.0c54	8a		txa		l42      txa
+.0c55	a8		tay		         tay
+.0c56	c8		iny		         iny
+.0c57	98		tya		         tya
+.0c58	dd 45 11	cmp $1145,x	         cmp i0tab,x
+.0c5b	f0 18		beq $0c75	         beq l43
+.0c5d	20 45 15	jsr $1545	         jsr print
+>0c60	20 2d 20 62 6c 6f 63 6b		         .text " - block "
+>0c68	20
+>0c69	60 31				         .text "`1"
+>0c6b	20 66 61 69 6c 65 64		         .text " failed"
+>0c72	0d 00				         .byte 13,0
+.0c74	60		rts		         rts
+.0c75	e8		inx		l43      inx
+.0c76	d0 dc		bne $0c54	         bne l42
+.0c78	a2 00		ldx #$00	         ldx #0
+.0c7a	8a		txa		l44      txa
+.0c7b	18		clc		         clc
+.0c7c	69 01		adc #$01	         adc #1
+.0c7e	dd 45 11	cmp $1145,x	         cmp i0tab,x
+.0c81	f0 18		beq $0c9b	         beq l45
+.0c83	20 45 15	jsr $1545	         jsr print
+>0c86	20 2d 20 62 6c 6f 63 6b		         .text " - block "
+>0c8e	20
+>0c8f	60 31				         .text "`1"
+>0c91	20 66 61 69 6c 65 64		         .text " failed"
+>0c98	0d 00				         .byte 13,0
+.0c9a	60		rts		         rts
+.0c9b	e8		inx		l45      inx
+.0c9c	d0 dc		bne $0c7a	         bne l44
+.0c9e	a2 00		ldx #$00	         ldx #0
+.0ca0	8a		txa		l46      txa
+.0ca1	38		sec		         sec
+.0ca2	69 01		adc #$01	         adc #1
+.0ca4	dd 45 12	cmp $1245,x	         cmp i1tab,x
+.0ca7	f0 18		beq $0cc1	         beq l47
+.0ca9	20 45 15	jsr $1545	         jsr print
+>0cac	20 2d 20 62 6c 6f 63 6b		         .text " - block "
+>0cb4	20
+>0cb5	60 31				         .text "`1"
+>0cb7	20 66 61 69 6c 65 64		         .text " failed"
+>0cbe	0d 00				         .byte 13,0
+.0cc0	60		rts		         rts
+.0cc1	e8		inx		l47      inx
+.0cc2	d0 dc		bne $0ca0	         bne l46
+.0cc4	a2 00		ldx #$00	         ldx #0
+.0cc6	8a		txa		l48      txa
+.0cc7	38		sec		         sec
+.0cc8	e9 01		sbc #$01	         sbc #1
+.0cca	dd 45 13	cmp $1345,x	         cmp d0tab,x
+.0ccd	f0 18		beq $0ce7	         beq l49
+.0ccf	20 45 15	jsr $1545	         jsr print
+>0cd2	20 2d 20 62 6c 6f 63 6b		         .text " - block "
+>0cda	20
+>0cdb	60 31				         .text "`1"
+>0cdd	20 66 61 69 6c 65 64		         .text " failed"
+>0ce4	0d 00				         .byte 13,0
+.0ce6	60		rts		         rts
+.0ce7	e8		inx		l49      inx
+.0ce8	d0 dc		bne $0cc6	         bne l48
+.0cea	a2 00		ldx #$00	         ldx #0
+.0cec	8a		txa		l50      txa
+.0ced	18		clc		         clc
+.0cee	e9 01		sbc #$01	         sbc #1
+.0cf0	dd 45 14	cmp $1445,x	         cmp d1tab,x
+.0cf3	f0 18		beq $0d0d	         beq l51
+.0cf5	20 45 15	jsr $1545	         jsr print
+>0cf8	20 2d 20 62 6c 6f 63 6b		         .text " - block "
+>0d00	20
+>0d01	60 31				         .text "`1"
+>0d03	20 66 61 69 6c 65 64		         .text " failed"
+>0d0a	0d 00				         .byte 13,0
+.0d0c	60		rts		         rts
+.0d0d	e8		inx		l51      inx
+.0d0e	d0 dc		bne $0cec	         bne l50
+.0d10	20 45 15	jsr $1545	         jsr print
+>0d13	20 2d 20 6f 6b			         .text " - ok"
+>0d18	0d 00				         .byte 13,0
+.0d1a	a5 02		lda $02		         lda 2
+.0d1c	f0 08		beq $0d26	         beq load
+.0d1e	20 e4 ff	jsr $ffe4	wait     jsr $ffe4
+.0d21	f0 fb		beq $0d1e	         beq wait
+.0d23	4c 00 80	jmp $8000	         jmp $8000
+.0d26	20 45 15	jsr $1545	load     jsr print
+>0d29	6c 64 61 62			name     .text "ldab"
+=4					namelen  = *-name
+>0d2d	00				         .byte 0
+.0d2e	a9 00		lda #$00	         lda #0
+.0d30	85 0a		sta $0a		         sta $0a
+.0d32	85 b9		sta $b9		         sta $b9
+.0d34	a9 04		lda #$04	         lda #namelen
+.0d36	85 b7		sta $b7		         sta $b7
+.0d38	a9 29		lda #$29	         lda #<name
+.0d3a	85 bb		sta $bb		         sta $bb
+.0d3c	a9 0d		lda #$0d	         lda #>name
+.0d3e	85 bc		sta $bc		         sta $bc
+.0d40	68		pla		         pla
+.0d41	68		pla		         pla
+.0d42	4c 6f e1	jmp $e16f	         jmp $e16f
+.0d45					l0tab
+=0					x        .var 0
+>0d45	00				         .byte x*2&255
+=1					x        .var x+1&255
+>0d46	02				         .byte x*2&255
+=2					x        .var x+1&255
+>0d47	04				         .byte x*2&255
+=3					x        .var x+1&255
+>0d48	06				         .byte x*2&255
+=4					x        .var x+1&255
+>0d49	08				         .byte x*2&255
+=5					x        .var x+1&255
+>0d4a	0a				         .byte x*2&255
+=6					x        .var x+1&255
+>0d4b	0c				         .byte x*2&255
+=7					x        .var x+1&255
+>0d4c	0e				         .byte x*2&255
+=8					x        .var x+1&255
+>0d4d	10				         .byte x*2&255
+=9					x        .var x+1&255
+>0d4e	12				         .byte x*2&255
+=10					x        .var x+1&255
+>0d4f	14				         .byte x*2&255
+=11					x        .var x+1&255
+>0d50	16				         .byte x*2&255
+=12					x        .var x+1&255
+>0d51	18				         .byte x*2&255
+=13					x        .var x+1&255
+>0d52	1a				         .byte x*2&255
+=14					x        .var x+1&255
+>0d53	1c				         .byte x*2&255
+=15					x        .var x+1&255
+>0d54	1e				         .byte x*2&255
+=16					x        .var x+1&255
+>0d55	20				         .byte x*2&255
+=17					x        .var x+1&255
+>0d56	22				         .byte x*2&255
+=18					x        .var x+1&255
+>0d57	24				         .byte x*2&255
+=19					x        .var x+1&255
+>0d58	26				         .byte x*2&255
+=20					x        .var x+1&255
+>0d59	28				         .byte x*2&255
+=21					x        .var x+1&255
+>0d5a	2a				         .byte x*2&255
+=22					x        .var x+1&255
+>0d5b	2c				         .byte x*2&255
+=23					x        .var x+1&255
+>0d5c	2e				         .byte x*2&255
+=24					x        .var x+1&255
+>0d5d	30				         .byte x*2&255
+=25					x        .var x+1&255
+>0d5e	32				         .byte x*2&255
+=26					x        .var x+1&255
+>0d5f	34				         .byte x*2&255
+=27					x        .var x+1&255
+>0d60	36				         .byte x*2&255
+=28					x        .var x+1&255
+>0d61	38				         .byte x*2&255
+=29					x        .var x+1&255
+>0d62	3a				         .byte x*2&255
+=30					x        .var x+1&255
+>0d63	3c				         .byte x*2&255
+=31					x        .var x+1&255
+>0d64	3e				         .byte x*2&255
+=32					x        .var x+1&255
+>0d65	40				         .byte x*2&255
+=33					x        .var x+1&255
+>0d66	42				         .byte x*2&255
+=34					x        .var x+1&255
+>0d67	44				         .byte x*2&255
+=35					x        .var x+1&255
+>0d68	46				         .byte x*2&255
+=36					x        .var x+1&255
+>0d69	48				         .byte x*2&255
+=37					x        .var x+1&255
+>0d6a	4a				         .byte x*2&255
+=38					x        .var x+1&255
+>0d6b	4c				         .byte x*2&255
+=39					x        .var x+1&255
+>0d6c	4e				         .byte x*2&255
+=40					x        .var x+1&255
+>0d6d	50				         .byte x*2&255
+=41					x        .var x+1&255
+>0d6e	52				         .byte x*2&255
+=42					x        .var x+1&255
+>0d6f	54				         .byte x*2&255
+=43					x        .var x+1&255
+>0d70	56				         .byte x*2&255
+=44					x        .var x+1&255
+>0d71	58				         .byte x*2&255
+=45					x        .var x+1&255
+>0d72	5a				         .byte x*2&255
+=46					x        .var x+1&255
+>0d73	5c				         .byte x*2&255
+=47					x        .var x+1&255
+>0d74	5e				         .byte x*2&255
+=48					x        .var x+1&255
+>0d75	60				         .byte x*2&255
+=49					x        .var x+1&255
+>0d76	62				         .byte x*2&255
+=50					x        .var x+1&255
+>0d77	64				         .byte x*2&255
+=51					x        .var x+1&255
+>0d78	66				         .byte x*2&255
+=52					x        .var x+1&255
+>0d79	68				         .byte x*2&255
+=53					x        .var x+1&255
+>0d7a	6a				         .byte x*2&255
+=54					x        .var x+1&255
+>0d7b	6c				         .byte x*2&255
+=55					x        .var x+1&255
+>0d7c	6e				         .byte x*2&255
+=56					x        .var x+1&255
+>0d7d	70				         .byte x*2&255
+=57					x        .var x+1&255
+>0d7e	72				         .byte x*2&255
+=58					x        .var x+1&255
+>0d7f	74				         .byte x*2&255
+=59					x        .var x+1&255
+>0d80	76				         .byte x*2&255
+=60					x        .var x+1&255
+>0d81	78				         .byte x*2&255
+=61					x        .var x+1&255
+>0d82	7a				         .byte x*2&255
+=62					x        .var x+1&255
+>0d83	7c				         .byte x*2&255
+=63					x        .var x+1&255
+>0d84	7e				         .byte x*2&255
+=64					x        .var x+1&255
+>0d85	80				         .byte x*2&255
+=65					x        .var x+1&255
+>0d86	82				         .byte x*2&255
+=66					x        .var x+1&255
+>0d87	84				         .byte x*2&255
+=67					x        .var x+1&255
+>0d88	86				         .byte x*2&255
+=68					x        .var x+1&255
+>0d89	88				         .byte x*2&255
+=69					x        .var x+1&255
+>0d8a	8a				         .byte x*2&255
+=70					x        .var x+1&255
+>0d8b	8c				         .byte x*2&255
+=71					x        .var x+1&255
+>0d8c	8e				         .byte x*2&255
+=72					x        .var x+1&255
+>0d8d	90				         .byte x*2&255
+=73					x        .var x+1&255
+>0d8e	92				         .byte x*2&255
+=74					x        .var x+1&255
+>0d8f	94				         .byte x*2&255
+=75					x        .var x+1&255
+>0d90	96				         .byte x*2&255
+=76					x        .var x+1&255
+>0d91	98				         .byte x*2&255
+=77					x        .var x+1&255
+>0d92	9a				         .byte x*2&255
+=78					x        .var x+1&255
+>0d93	9c				         .byte x*2&255
+=79					x        .var x+1&255
+>0d94	9e				         .byte x*2&255
+=80					x        .var x+1&255
+>0d95	a0				         .byte x*2&255
+=81					x        .var x+1&255
+>0d96	a2				         .byte x*2&255
+=82					x        .var x+1&255
+>0d97	a4				         .byte x*2&255
+=83					x        .var x+1&255
+>0d98	a6				         .byte x*2&255
+=84					x        .var x+1&255
+>0d99	a8				         .byte x*2&255
+=85					x        .var x+1&255
+>0d9a	aa				         .byte x*2&255
+=86					x        .var x+1&255
+>0d9b	ac				         .byte x*2&255
+=87					x        .var x+1&255
+>0d9c	ae				         .byte x*2&255
+=88					x        .var x+1&255
+>0d9d	b0				         .byte x*2&255
+=89					x        .var x+1&255
+>0d9e	b2				         .byte x*2&255
+=90					x        .var x+1&255
+>0d9f	b4				         .byte x*2&255
+=91					x        .var x+1&255
+>0da0	b6				         .byte x*2&255
+=92					x        .var x+1&255
+>0da1	b8				         .byte x*2&255
+=93					x        .var x+1&255
+>0da2	ba				         .byte x*2&255
+=94					x        .var x+1&255
+>0da3	bc				         .byte x*2&255
+=95					x        .var x+1&255
+>0da4	be				         .byte x*2&255
+=96					x        .var x+1&255
+>0da5	c0				         .byte x*2&255
+=97					x        .var x+1&255
+>0da6	c2				         .byte x*2&255
+=98					x        .var x+1&255
+>0da7	c4				         .byte x*2&255
+=99					x        .var x+1&255
+>0da8	c6				         .byte x*2&255
+=100					x        .var x+1&255
+>0da9	c8				         .byte x*2&255
+=101					x        .var x+1&255
+>0daa	ca				         .byte x*2&255
+=102					x        .var x+1&255
+>0dab	cc				         .byte x*2&255
+=103					x        .var x+1&255
+>0dac	ce				         .byte x*2&255
+=104					x        .var x+1&255
+>0dad	d0				         .byte x*2&255
+=105					x        .var x+1&255
+>0dae	d2				         .byte x*2&255
+=106					x        .var x+1&255
+>0daf	d4				         .byte x*2&255
+=107					x        .var x+1&255
+>0db0	d6				         .byte x*2&255
+=108					x        .var x+1&255
+>0db1	d8				         .byte x*2&255
+=109					x        .var x+1&255
+>0db2	da				         .byte x*2&255
+=110					x        .var x+1&255
+>0db3	dc				         .byte x*2&255
+=111					x        .var x+1&255
+>0db4	de				         .byte x*2&255
+=112					x        .var x+1&255
+>0db5	e0				         .byte x*2&255
+=113					x        .var x+1&255
+>0db6	e2				         .byte x*2&255
+=114					x        .var x+1&255
+>0db7	e4				         .byte x*2&255
+=115					x        .var x+1&255
+>0db8	e6				         .byte x*2&255
+=116					x        .var x+1&255
+>0db9	e8				         .byte x*2&255
+=117					x        .var x+1&255
+>0dba	ea				         .byte x*2&255
+=118					x        .var x+1&255
+>0dbb	ec				         .byte x*2&255
+=119					x        .var x+1&255
+>0dbc	ee				         .byte x*2&255
+=120					x        .var x+1&255
+>0dbd	f0				         .byte x*2&255
+=121					x        .var x+1&255
+>0dbe	f2				         .byte x*2&255
+=122					x        .var x+1&255
+>0dbf	f4				         .byte x*2&255
+=123					x        .var x+1&255
+>0dc0	f6				         .byte x*2&255
+=124					x        .var x+1&255
+>0dc1	f8				         .byte x*2&255
+=125					x        .var x+1&255
+>0dc2	fa				         .byte x*2&255
+=126					x        .var x+1&255
+>0dc3	fc				         .byte x*2&255
+=127					x        .var x+1&255
+>0dc4	fe				         .byte x*2&255
+=128					x        .var x+1&255
+>0dc5	00				         .byte x*2&255
+=129					x        .var x+1&255
+>0dc6	02				         .byte x*2&255
+=130					x        .var x+1&255
+>0dc7	04				         .byte x*2&255
+=131					x        .var x+1&255
+>0dc8	06				         .byte x*2&255
+=132					x        .var x+1&255
+>0dc9	08				         .byte x*2&255
+=133					x        .var x+1&255
+>0dca	0a				         .byte x*2&255
+=134					x        .var x+1&255
+>0dcb	0c				         .byte x*2&255
+=135					x        .var x+1&255
+>0dcc	0e				         .byte x*2&255
+=136					x        .var x+1&255
+>0dcd	10				         .byte x*2&255
+=137					x        .var x+1&255
+>0dce	12				         .byte x*2&255
+=138					x        .var x+1&255
+>0dcf	14				         .byte x*2&255
+=139					x        .var x+1&255
+>0dd0	16				         .byte x*2&255
+=140					x        .var x+1&255
+>0dd1	18				         .byte x*2&255
+=141					x        .var x+1&255
+>0dd2	1a				         .byte x*2&255
+=142					x        .var x+1&255
+>0dd3	1c				         .byte x*2&255
+=143					x        .var x+1&255
+>0dd4	1e				         .byte x*2&255
+=144					x        .var x+1&255
+>0dd5	20				         .byte x*2&255
+=145					x        .var x+1&255
+>0dd6	22				         .byte x*2&255
+=146					x        .var x+1&255
+>0dd7	24				         .byte x*2&255
+=147					x        .var x+1&255
+>0dd8	26				         .byte x*2&255
+=148					x        .var x+1&255
+>0dd9	28				         .byte x*2&255
+=149					x        .var x+1&255
+>0dda	2a				         .byte x*2&255
+=150					x        .var x+1&255
+>0ddb	2c				         .byte x*2&255
+=151					x        .var x+1&255
+>0ddc	2e				         .byte x*2&255
+=152					x        .var x+1&255
+>0ddd	30				         .byte x*2&255
+=153					x        .var x+1&255
+>0dde	32				         .byte x*2&255
+=154					x        .var x+1&255
+>0ddf	34				         .byte x*2&255
+=155					x        .var x+1&255
+>0de0	36				         .byte x*2&255
+=156					x        .var x+1&255
+>0de1	38				         .byte x*2&255
+=157					x        .var x+1&255
+>0de2	3a				         .byte x*2&255
+=158					x        .var x+1&255
+>0de3	3c				         .byte x*2&255
+=159					x        .var x+1&255
+>0de4	3e				         .byte x*2&255
+=160					x        .var x+1&255
+>0de5	40				         .byte x*2&255
+=161					x        .var x+1&255
+>0de6	42				         .byte x*2&255
+=162					x        .var x+1&255
+>0de7	44				         .byte x*2&255
+=163					x        .var x+1&255
+>0de8	46				         .byte x*2&255
+=164					x        .var x+1&255
+>0de9	48				         .byte x*2&255
+=165					x        .var x+1&255
+>0dea	4a				         .byte x*2&255
+=166					x        .var x+1&255
+>0deb	4c				         .byte x*2&255
+=167					x        .var x+1&255
+>0dec	4e				         .byte x*2&255
+=168					x        .var x+1&255
+>0ded	50				         .byte x*2&255
+=169					x        .var x+1&255
+>0dee	52				         .byte x*2&255
+=170					x        .var x+1&255
+>0def	54				         .byte x*2&255
+=171					x        .var x+1&255
+>0df0	56				         .byte x*2&255
+=172					x        .var x+1&255
+>0df1	58				         .byte x*2&255
+=173					x        .var x+1&255
+>0df2	5a				         .byte x*2&255
+=174					x        .var x+1&255
+>0df3	5c				         .byte x*2&255
+=175					x        .var x+1&255
+>0df4	5e				         .byte x*2&255
+=176					x        .var x+1&255
+>0df5	60				         .byte x*2&255
+=177					x        .var x+1&255
+>0df6	62				         .byte x*2&255
+=178					x        .var x+1&255
+>0df7	64				         .byte x*2&255
+=179					x        .var x+1&255
+>0df8	66				         .byte x*2&255
+=180					x        .var x+1&255
+>0df9	68				         .byte x*2&255
+=181					x        .var x+1&255
+>0dfa	6a				         .byte x*2&255
+=182					x        .var x+1&255
+>0dfb	6c				         .byte x*2&255
+=183					x        .var x+1&255
+>0dfc	6e				         .byte x*2&255
+=184					x        .var x+1&255
+>0dfd	70				         .byte x*2&255
+=185					x        .var x+1&255
+>0dfe	72				         .byte x*2&255
+=186					x        .var x+1&255
+>0dff	74				         .byte x*2&255
+=187					x        .var x+1&255
+>0e00	76				         .byte x*2&255
+=188					x        .var x+1&255
+>0e01	78				         .byte x*2&255
+=189					x        .var x+1&255
+>0e02	7a				         .byte x*2&255
+=190					x        .var x+1&255
+>0e03	7c				         .byte x*2&255
+=191					x        .var x+1&255
+>0e04	7e				         .byte x*2&255
+=192					x        .var x+1&255
+>0e05	80				         .byte x*2&255
+=193					x        .var x+1&255
+>0e06	82				         .byte x*2&255
+=194					x        .var x+1&255
+>0e07	84				         .byte x*2&255
+=195					x        .var x+1&255
+>0e08	86				         .byte x*2&255
+=196					x        .var x+1&255
+>0e09	88				         .byte x*2&255
+=197					x        .var x+1&255
+>0e0a	8a				         .byte x*2&255
+=198					x        .var x+1&255
+>0e0b	8c				         .byte x*2&255
+=199					x        .var x+1&255
+>0e0c	8e				         .byte x*2&255
+=200					x        .var x+1&255
+>0e0d	90				         .byte x*2&255
+=201					x        .var x+1&255
+>0e0e	92				         .byte x*2&255
+=202					x        .var x+1&255
+>0e0f	94				         .byte x*2&255
+=203					x        .var x+1&255
+>0e10	96				         .byte x*2&255
+=204					x        .var x+1&255
+>0e11	98				         .byte x*2&255
+=205					x        .var x+1&255
+>0e12	9a				         .byte x*2&255
+=206					x        .var x+1&255
+>0e13	9c				         .byte x*2&255
+=207					x        .var x+1&255
+>0e14	9e				         .byte x*2&255
+=208					x        .var x+1&255
+>0e15	a0				         .byte x*2&255
+=209					x        .var x+1&255
+>0e16	a2				         .byte x*2&255
+=210					x        .var x+1&255
+>0e17	a4				         .byte x*2&255
+=211					x        .var x+1&255
+>0e18	a6				         .byte x*2&255
+=212					x        .var x+1&255
+>0e19	a8				         .byte x*2&255
+=213					x        .var x+1&255
+>0e1a	aa				         .byte x*2&255
+=214					x        .var x+1&255
+>0e1b	ac				         .byte x*2&255
+=215					x        .var x+1&255
+>0e1c	ae				         .byte x*2&255
+=216					x        .var x+1&255
+>0e1d	b0				         .byte x*2&255
+=217					x        .var x+1&255
+>0e1e	b2				         .byte x*2&255
+=218					x        .var x+1&255
+>0e1f	b4				         .byte x*2&255
+=219					x        .var x+1&255
+>0e20	b6				         .byte x*2&255
+=220					x        .var x+1&255
+>0e21	b8				         .byte x*2&255
+=221					x        .var x+1&255
+>0e22	ba				         .byte x*2&255
+=222					x        .var x+1&255
+>0e23	bc				         .byte x*2&255
+=223					x        .var x+1&255
+>0e24	be				         .byte x*2&255
+=224					x        .var x+1&255
+>0e25	c0				         .byte x*2&255
+=225					x        .var x+1&255
+>0e26	c2				         .byte x*2&255
+=226					x        .var x+1&255
+>0e27	c4				         .byte x*2&255
+=227					x        .var x+1&255
+>0e28	c6				         .byte x*2&255
+=228					x        .var x+1&255
+>0e29	c8				         .byte x*2&255
+=229					x        .var x+1&255
+>0e2a	ca				         .byte x*2&255
+=230					x        .var x+1&255
+>0e2b	cc				         .byte x*2&255
+=231					x        .var x+1&255
+>0e2c	ce				         .byte x*2&255
+=232					x        .var x+1&255
+>0e2d	d0				         .byte x*2&255
+=233					x        .var x+1&255
+>0e2e	d2				         .byte x*2&255
+=234					x        .var x+1&255
+>0e2f	d4				         .byte x*2&255
+=235					x        .var x+1&255
+>0e30	d6				         .byte x*2&255
+=236					x        .var x+1&255
+>0e31	d8				         .byte x*2&255
+=237					x        .var x+1&255
+>0e32	da				         .byte x*2&255
+=238					x        .var x+1&255
+>0e33	dc				         .byte x*2&255
+=239					x        .var x+1&255
+>0e34	de				         .byte x*2&255
+=240					x        .var x+1&255
+>0e35	e0				         .byte x*2&255
+=241					x        .var x+1&255
+>0e36	e2				         .byte x*2&255
+=242					x        .var x+1&255
+>0e37	e4				         .byte x*2&255
+=243					x        .var x+1&255
+>0e38	e6				         .byte x*2&255
+=244					x        .var x+1&255
+>0e39	e8				         .byte x*2&255
+=245					x        .var x+1&255
+>0e3a	ea				         .byte x*2&255
+=246					x        .var x+1&255
+>0e3b	ec				         .byte x*2&255
+=247					x        .var x+1&255
+>0e3c	ee				         .byte x*2&255
+=248					x        .var x+1&255
+>0e3d	f0				         .byte x*2&255
+=249					x        .var x+1&255
+>0e3e	f2				         .byte x*2&255
+=250					x        .var x+1&255
+>0e3f	f4				         .byte x*2&255
+=251					x        .var x+1&255
+>0e40	f6				         .byte x*2&255
+=252					x        .var x+1&255
+>0e41	f8				         .byte x*2&255
+=253					x        .var x+1&255
+>0e42	fa				         .byte x*2&255
+=254					x        .var x+1&255
+>0e43	fc				         .byte x*2&255
+=255					x        .var x+1&255
+>0e44	fe				         .byte x*2&255
+=0					x        .var x+1&255
+.0e45					l1tab
+=0					x        .var 0
+>0e45	01				         .byte x*2&255.1
+=1					x        .var x+1&255
+>0e46	03				         .byte x*2&255.1
+=2					x        .var x+1&255
+>0e47	05				         .byte x*2&255.1
+=3					x        .var x+1&255
+>0e48	07				         .byte x*2&255.1
+=4					x        .var x+1&255
+>0e49	09				         .byte x*2&255.1
+=5					x        .var x+1&255
+>0e4a	0b				         .byte x*2&255.1
+=6					x        .var x+1&255
+>0e4b	0d				         .byte x*2&255.1
+=7					x        .var x+1&255
+>0e4c	0f				         .byte x*2&255.1
+=8					x        .var x+1&255
+>0e4d	11				         .byte x*2&255.1
+=9					x        .var x+1&255
+>0e4e	13				         .byte x*2&255.1
+=10					x        .var x+1&255
+>0e4f	15				         .byte x*2&255.1
+=11					x        .var x+1&255
+>0e50	17				         .byte x*2&255.1
+=12					x        .var x+1&255
+>0e51	19				         .byte x*2&255.1
+=13					x        .var x+1&255
+>0e52	1b				         .byte x*2&255.1
+=14					x        .var x+1&255
+>0e53	1d				         .byte x*2&255.1
+=15					x        .var x+1&255
+>0e54	1f				         .byte x*2&255.1
+=16					x        .var x+1&255
+>0e55	21				         .byte x*2&255.1
+=17					x        .var x+1&255
+>0e56	23				         .byte x*2&255.1
+=18					x        .var x+1&255
+>0e57	25				         .byte x*2&255.1
+=19					x        .var x+1&255
+>0e58	27				         .byte x*2&255.1
+=20					x        .var x+1&255
+>0e59	29				         .byte x*2&255.1
+=21					x        .var x+1&255
+>0e5a	2b				         .byte x*2&255.1
+=22					x        .var x+1&255
+>0e5b	2d				         .byte x*2&255.1
+=23					x        .var x+1&255
+>0e5c	2f				         .byte x*2&255.1
+=24					x        .var x+1&255
+>0e5d	31				         .byte x*2&255.1
+=25					x        .var x+1&255
+>0e5e	33				         .byte x*2&255.1
+=26					x        .var x+1&255
+>0e5f	35				         .byte x*2&255.1
+=27					x        .var x+1&255
+>0e60	37				         .byte x*2&255.1
+=28					x        .var x+1&255
+>0e61	39				         .byte x*2&255.1
+=29					x        .var x+1&255
+>0e62	3b				         .byte x*2&255.1
+=30					x        .var x+1&255
+>0e63	3d				         .byte x*2&255.1
+=31					x        .var x+1&255
+>0e64	3f				         .byte x*2&255.1
+=32					x        .var x+1&255
+>0e65	41				         .byte x*2&255.1
+=33					x        .var x+1&255
+>0e66	43				         .byte x*2&255.1
+=34					x        .var x+1&255
+>0e67	45				         .byte x*2&255.1
+=35					x        .var x+1&255
+>0e68	47				         .byte x*2&255.1
+=36					x        .var x+1&255
+>0e69	49				         .byte x*2&255.1
+=37					x        .var x+1&255
+>0e6a	4b				         .byte x*2&255.1
+=38					x        .var x+1&255
+>0e6b	4d				         .byte x*2&255.1
+=39					x        .var x+1&255
+>0e6c	4f				         .byte x*2&255.1
+=40					x        .var x+1&255
+>0e6d	51				         .byte x*2&255.1
+=41					x        .var x+1&255
+>0e6e	53				         .byte x*2&255.1
+=42					x        .var x+1&255
+>0e6f	55				         .byte x*2&255.1
+=43					x        .var x+1&255
+>0e70	57				         .byte x*2&255.1
+=44					x        .var x+1&255
+>0e71	59				         .byte x*2&255.1
+=45					x        .var x+1&255
+>0e72	5b				         .byte x*2&255.1
+=46					x        .var x+1&255
+>0e73	5d				         .byte x*2&255.1
+=47					x        .var x+1&255
+>0e74	5f				         .byte x*2&255.1
+=48					x        .var x+1&255
+>0e75	61				         .byte x*2&255.1
+=49					x        .var x+1&255
+>0e76	63				         .byte x*2&255.1
+=50					x        .var x+1&255
+>0e77	65				         .byte x*2&255.1
+=51					x        .var x+1&255
+>0e78	67				         .byte x*2&255.1
+=52					x        .var x+1&255
+>0e79	69				         .byte x*2&255.1
+=53					x        .var x+1&255
+>0e7a	6b				         .byte x*2&255.1
+=54					x        .var x+1&255
+>0e7b	6d				         .byte x*2&255.1
+=55					x        .var x+1&255
+>0e7c	6f				         .byte x*2&255.1
+=56					x        .var x+1&255
+>0e7d	71				         .byte x*2&255.1
+=57					x        .var x+1&255
+>0e7e	73				         .byte x*2&255.1
+=58					x        .var x+1&255
+>0e7f	75				         .byte x*2&255.1
+=59					x        .var x+1&255
+>0e80	77				         .byte x*2&255.1
+=60					x        .var x+1&255
+>0e81	79				         .byte x*2&255.1
+=61					x        .var x+1&255
+>0e82	7b				         .byte x*2&255.1
+=62					x        .var x+1&255
+>0e83	7d				         .byte x*2&255.1
+=63					x        .var x+1&255
+>0e84	7f				         .byte x*2&255.1
+=64					x        .var x+1&255
+>0e85	81				         .byte x*2&255.1
+=65					x        .var x+1&255
+>0e86	83				         .byte x*2&255.1
+=66					x        .var x+1&255
+>0e87	85				         .byte x*2&255.1
+=67					x        .var x+1&255
+>0e88	87				         .byte x*2&255.1
+=68					x        .var x+1&255
+>0e89	89				         .byte x*2&255.1
+=69					x        .var x+1&255
+>0e8a	8b				         .byte x*2&255.1
+=70					x        .var x+1&255
+>0e8b	8d				         .byte x*2&255.1
+=71					x        .var x+1&255
+>0e8c	8f				         .byte x*2&255.1
+=72					x        .var x+1&255
+>0e8d	91				         .byte x*2&255.1
+=73					x        .var x+1&255
+>0e8e	93				         .byte x*2&255.1
+=74					x        .var x+1&255
+>0e8f	95				         .byte x*2&255.1
+=75					x        .var x+1&255
+>0e90	97				         .byte x*2&255.1
+=76					x        .var x+1&255
+>0e91	99				         .byte x*2&255.1
+=77					x        .var x+1&255
+>0e92	9b				         .byte x*2&255.1
+=78					x        .var x+1&255
+>0e93	9d				         .byte x*2&255.1
+=79					x        .var x+1&255
+>0e94	9f				         .byte x*2&255.1
+=80					x        .var x+1&255
+>0e95	a1				         .byte x*2&255.1
+=81					x        .var x+1&255
+>0e96	a3				         .byte x*2&255.1
+=82					x        .var x+1&255
+>0e97	a5				         .byte x*2&255.1
+=83					x        .var x+1&255
+>0e98	a7				         .byte x*2&255.1
+=84					x        .var x+1&255
+>0e99	a9				         .byte x*2&255.1
+=85					x        .var x+1&255
+>0e9a	ab				         .byte x*2&255.1
+=86					x        .var x+1&255
+>0e9b	ad				         .byte x*2&255.1
+=87					x        .var x+1&255
+>0e9c	af				         .byte x*2&255.1
+=88					x        .var x+1&255
+>0e9d	b1				         .byte x*2&255.1
+=89					x        .var x+1&255
+>0e9e	b3				         .byte x*2&255.1
+=90					x        .var x+1&255
+>0e9f	b5				         .byte x*2&255.1
+=91					x        .var x+1&255
+>0ea0	b7				         .byte x*2&255.1
+=92					x        .var x+1&255
+>0ea1	b9				         .byte x*2&255.1
+=93					x        .var x+1&255
+>0ea2	bb				         .byte x*2&255.1
+=94					x        .var x+1&255
+>0ea3	bd				         .byte x*2&255.1
+=95					x        .var x+1&255
+>0ea4	bf				         .byte x*2&255.1
+=96					x        .var x+1&255
+>0ea5	c1				         .byte x*2&255.1
+=97					x        .var x+1&255
+>0ea6	c3				         .byte x*2&255.1
+=98					x        .var x+1&255
+>0ea7	c5				         .byte x*2&255.1
+=99					x        .var x+1&255
+>0ea8	c7				         .byte x*2&255.1
+=100					x        .var x+1&255
+>0ea9	c9				         .byte x*2&255.1
+=101					x        .var x+1&255
+>0eaa	cb				         .byte x*2&255.1
+=102					x        .var x+1&255
+>0eab	cd				         .byte x*2&255.1
+=103					x        .var x+1&255
+>0eac	cf				         .byte x*2&255.1
+=104					x        .var x+1&255
+>0ead	d1				         .byte x*2&255.1
+=105					x        .var x+1&255
+>0eae	d3				         .byte x*2&255.1
+=106					x        .var x+1&255
+>0eaf	d5				         .byte x*2&255.1
+=107					x        .var x+1&255
+>0eb0	d7				         .byte x*2&255.1
+=108					x        .var x+1&255
+>0eb1	d9				         .byte x*2&255.1
+=109					x        .var x+1&255
+>0eb2	db				         .byte x*2&255.1
+=110					x        .var x+1&255
+>0eb3	dd				         .byte x*2&255.1
+=111					x        .var x+1&255
+>0eb4	df				         .byte x*2&255.1
+=112					x        .var x+1&255
+>0eb5	e1				         .byte x*2&255.1
+=113					x        .var x+1&255
+>0eb6	e3				         .byte x*2&255.1
+=114					x        .var x+1&255
+>0eb7	e5				         .byte x*2&255.1
+=115					x        .var x+1&255
+>0eb8	e7				         .byte x*2&255.1
+=116					x        .var x+1&255
+>0eb9	e9				         .byte x*2&255.1
+=117					x        .var x+1&255
+>0eba	eb				         .byte x*2&255.1
+=118					x        .var x+1&255
+>0ebb	ed				         .byte x*2&255.1
+=119					x        .var x+1&255
+>0ebc	ef				         .byte x*2&255.1
+=120					x        .var x+1&255
+>0ebd	f1				         .byte x*2&255.1
+=121					x        .var x+1&255
+>0ebe	f3				         .byte x*2&255.1
+=122					x        .var x+1&255
+>0ebf	f5				         .byte x*2&255.1
+=123					x        .var x+1&255
+>0ec0	f7				         .byte x*2&255.1
+=124					x        .var x+1&255
+>0ec1	f9				         .byte x*2&255.1
+=125					x        .var x+1&255
+>0ec2	fb				         .byte x*2&255.1
+=126					x        .var x+1&255
+>0ec3	fd				         .byte x*2&255.1
+=127					x        .var x+1&255
+>0ec4	ff				         .byte x*2&255.1
+=128					x        .var x+1&255
+>0ec5	01				         .byte x*2&255.1
+=129					x        .var x+1&255
+>0ec6	03				         .byte x*2&255.1
+=130					x        .var x+1&255
+>0ec7	05				         .byte x*2&255.1
+=131					x        .var x+1&255
+>0ec8	07				         .byte x*2&255.1
+=132					x        .var x+1&255
+>0ec9	09				         .byte x*2&255.1
+=133					x        .var x+1&255
+>0eca	0b				         .byte x*2&255.1
+=134					x        .var x+1&255
+>0ecb	0d				         .byte x*2&255.1
+=135					x        .var x+1&255
+>0ecc	0f				         .byte x*2&255.1
+=136					x        .var x+1&255
+>0ecd	11				         .byte x*2&255.1
+=137					x        .var x+1&255
+>0ece	13				         .byte x*2&255.1
+=138					x        .var x+1&255
+>0ecf	15				         .byte x*2&255.1
+=139					x        .var x+1&255
+>0ed0	17				         .byte x*2&255.1
+=140					x        .var x+1&255
+>0ed1	19				         .byte x*2&255.1
+=141					x        .var x+1&255
+>0ed2	1b				         .byte x*2&255.1
+=142					x        .var x+1&255
+>0ed3	1d				         .byte x*2&255.1
+=143					x        .var x+1&255
+>0ed4	1f				         .byte x*2&255.1
+=144					x        .var x+1&255
+>0ed5	21				         .byte x*2&255.1
+=145					x        .var x+1&255
+>0ed6	23				         .byte x*2&255.1
+=146					x        .var x+1&255
+>0ed7	25				         .byte x*2&255.1
+=147					x        .var x+1&255
+>0ed8	27				         .byte x*2&255.1
+=148					x        .var x+1&255
+>0ed9	29				         .byte x*2&255.1
+=149					x        .var x+1&255
+>0eda	2b				         .byte x*2&255.1
+=150					x        .var x+1&255
+>0edb	2d				         .byte x*2&255.1
+=151					x        .var x+1&255
+>0edc	2f				         .byte x*2&255.1
+=152					x        .var x+1&255
+>0edd	31				         .byte x*2&255.1
+=153					x        .var x+1&255
+>0ede	33				         .byte x*2&255.1
+=154					x        .var x+1&255
+>0edf	35				         .byte x*2&255.1
+=155					x        .var x+1&255
+>0ee0	37				         .byte x*2&255.1
+=156					x        .var x+1&255
+>0ee1	39				         .byte x*2&255.1
+=157					x        .var x+1&255
+>0ee2	3b				         .byte x*2&255.1
+=158					x        .var x+1&255
+>0ee3	3d				         .byte x*2&255.1
+=159					x        .var x+1&255
+>0ee4	3f				         .byte x*2&255.1
+=160					x        .var x+1&255
+>0ee5	41				         .byte x*2&255.1
+=161					x        .var x+1&255
+>0ee6	43				         .byte x*2&255.1
+=162					x        .var x+1&255
+>0ee7	45				         .byte x*2&255.1
+=163					x        .var x+1&255
+>0ee8	47				         .byte x*2&255.1
+=164					x        .var x+1&255
+>0ee9	49				         .byte x*2&255.1
+=165					x        .var x+1&255
+>0eea	4b				         .byte x*2&255.1
+=166					x        .var x+1&255
+>0eeb	4d				         .byte x*2&255.1
+=167					x        .var x+1&255
+>0eec	4f				         .byte x*2&255.1
+=168					x        .var x+1&255
+>0eed	51				         .byte x*2&255.1
+=169					x        .var x+1&255
+>0eee	53				         .byte x*2&255.1
+=170					x        .var x+1&255
+>0eef	55				         .byte x*2&255.1
+=171					x        .var x+1&255
+>0ef0	57				         .byte x*2&255.1
+=172					x        .var x+1&255
+>0ef1	59				         .byte x*2&255.1
+=173					x        .var x+1&255
+>0ef2	5b				         .byte x*2&255.1
+=174					x        .var x+1&255
+>0ef3	5d				         .byte x*2&255.1
+=175					x        .var x+1&255
+>0ef4	5f				         .byte x*2&255.1
+=176					x        .var x+1&255
+>0ef5	61				         .byte x*2&255.1
+=177					x        .var x+1&255
+>0ef6	63				         .byte x*2&255.1
+=178					x        .var x+1&255
+>0ef7	65				         .byte x*2&255.1
+=179					x        .var x+1&255
+>0ef8	67				         .byte x*2&255.1
+=180					x        .var x+1&255
+>0ef9	69				         .byte x*2&255.1
+=181					x        .var x+1&255
+>0efa	6b				         .byte x*2&255.1
+=182					x        .var x+1&255
+>0efb	6d				         .byte x*2&255.1
+=183					x        .var x+1&255
+>0efc	6f				         .byte x*2&255.1
+=184					x        .var x+1&255
+>0efd	71				         .byte x*2&255.1
+=185					x        .var x+1&255
+>0efe	73				         .byte x*2&255.1
+=186					x        .var x+1&255
+>0eff	75				         .byte x*2&255.1
+=187					x        .var x+1&255
+>0f00	77				         .byte x*2&255.1
+=188					x        .var x+1&255
+>0f01	79				         .byte x*2&255.1
+=189					x        .var x+1&255
+>0f02	7b				         .byte x*2&255.1
+=190					x        .var x+1&255
+>0f03	7d				         .byte x*2&255.1
+=191					x        .var x+1&255
+>0f04	7f				         .byte x*2&255.1
+=192					x        .var x+1&255
+>0f05	81				         .byte x*2&255.1
+=193					x        .var x+1&255
+>0f06	83				         .byte x*2&255.1
+=194					x        .var x+1&255
+>0f07	85				         .byte x*2&255.1
+=195					x        .var x+1&255
+>0f08	87				         .byte x*2&255.1
+=196					x        .var x+1&255
+>0f09	89				         .byte x*2&255.1
+=197					x        .var x+1&255
+>0f0a	8b				         .byte x*2&255.1
+=198					x        .var x+1&255
+>0f0b	8d				         .byte x*2&255.1
+=199					x        .var x+1&255
+>0f0c	8f				         .byte x*2&255.1
+=200					x        .var x+1&255
+>0f0d	91				         .byte x*2&255.1
+=201					x        .var x+1&255
+>0f0e	93				         .byte x*2&255.1
+=202					x        .var x+1&255
+>0f0f	95				         .byte x*2&255.1
+=203					x        .var x+1&255
+>0f10	97				         .byte x*2&255.1
+=204					x        .var x+1&255
+>0f11	99				         .byte x*2&255.1
+=205					x        .var x+1&255
+>0f12	9b				         .byte x*2&255.1
+=206					x        .var x+1&255
+>0f13	9d				         .byte x*2&255.1
+=207					x        .var x+1&255
+>0f14	9f				         .byte x*2&255.1
+=208					x        .var x+1&255
+>0f15	a1				         .byte x*2&255.1
+=209					x        .var x+1&255
+>0f16	a3				         .byte x*2&255.1
+=210					x        .var x+1&255
+>0f17	a5				         .byte x*2&255.1
+=211					x        .var x+1&255
+>0f18	a7				         .byte x*2&255.1
+=212					x        .var x+1&255
+>0f19	a9				         .byte x*2&255.1
+=213					x        .var x+1&255
+>0f1a	ab				         .byte x*2&255.1
+=214					x        .var x+1&255
+>0f1b	ad				         .byte x*2&255.1
+=215					x        .var x+1&255
+>0f1c	af				         .byte x*2&255.1
+=216					x        .var x+1&255
+>0f1d	b1				         .byte x*2&255.1
+=217					x        .var x+1&255
+>0f1e	b3				         .byte x*2&255.1
+=218					x        .var x+1&255
+>0f1f	b5				         .byte x*2&255.1
+=219					x        .var x+1&255
+>0f20	b7				         .byte x*2&255.1
+=220					x        .var x+1&255
+>0f21	b9				         .byte x*2&255.1
+=221					x        .var x+1&255
+>0f22	bb				         .byte x*2&255.1
+=222					x        .var x+1&255
+>0f23	bd				         .byte x*2&255.1
+=223					x        .var x+1&255
+>0f24	bf				         .byte x*2&255.1
+=224					x        .var x+1&255
+>0f25	c1				         .byte x*2&255.1
+=225					x        .var x+1&255
+>0f26	c3				         .byte x*2&255.1
+=226					x        .var x+1&255
+>0f27	c5				         .byte x*2&255.1
+=227					x        .var x+1&255
+>0f28	c7				         .byte x*2&255.1
+=228					x        .var x+1&255
+>0f29	c9				         .byte x*2&255.1
+=229					x        .var x+1&255
+>0f2a	cb				         .byte x*2&255.1
+=230					x        .var x+1&255
+>0f2b	cd				         .byte x*2&255.1
+=231					x        .var x+1&255
+>0f2c	cf				         .byte x*2&255.1
+=232					x        .var x+1&255
+>0f2d	d1				         .byte x*2&255.1
+=233					x        .var x+1&255
+>0f2e	d3				         .byte x*2&255.1
+=234					x        .var x+1&255
+>0f2f	d5				         .byte x*2&255.1
+=235					x        .var x+1&255
+>0f30	d7				         .byte x*2&255.1
+=236					x        .var x+1&255
+>0f31	d9				         .byte x*2&255.1
+=237					x        .var x+1&255
+>0f32	db				         .byte x*2&255.1
+=238					x        .var x+1&255
+>0f33	dd				         .byte x*2&255.1
+=239					x        .var x+1&255
+>0f34	df				         .byte x*2&255.1
+=240					x        .var x+1&255
+>0f35	e1				         .byte x*2&255.1
+=241					x        .var x+1&255
+>0f36	e3				         .byte x*2&255.1
+=242					x        .var x+1&255
+>0f37	e5				         .byte x*2&255.1
+=243					x        .var x+1&255
+>0f38	e7				         .byte x*2&255.1
+=244					x        .var x+1&255
+>0f39	e9				         .byte x*2&255.1
+=245					x        .var x+1&255
+>0f3a	eb				         .byte x*2&255.1
+=246					x        .var x+1&255
+>0f3b	ed				         .byte x*2&255.1
+=247					x        .var x+1&255
+>0f3c	ef				         .byte x*2&255.1
+=248					x        .var x+1&255
+>0f3d	f1				         .byte x*2&255.1
+=249					x        .var x+1&255
+>0f3e	f3				         .byte x*2&255.1
+=250					x        .var x+1&255
+>0f3f	f5				         .byte x*2&255.1
+=251					x        .var x+1&255
+>0f40	f7				         .byte x*2&255.1
+=252					x        .var x+1&255
+>0f41	f9				         .byte x*2&255.1
+=253					x        .var x+1&255
+>0f42	fb				         .byte x*2&255.1
+=254					x        .var x+1&255
+>0f43	fd				         .byte x*2&255.1
+=255					x        .var x+1&255
+>0f44	ff				         .byte x*2&255.1
+=0					x        .var x+1&255
+.0f45					r0tab
+=0					x        .var 0
+>0f45	00				         .byte x/2&255
+=1					x        .var x+1&255
+>0f46	00				         .byte x/2&255
+=2					x        .var x+1&255
+>0f47	01				         .byte x/2&255
+=3					x        .var x+1&255
+>0f48	01				         .byte x/2&255
+=4					x        .var x+1&255
+>0f49	02				         .byte x/2&255
+=5					x        .var x+1&255
+>0f4a	02				         .byte x/2&255
+=6					x        .var x+1&255
+>0f4b	03				         .byte x/2&255
+=7					x        .var x+1&255
+>0f4c	03				         .byte x/2&255
+=8					x        .var x+1&255
+>0f4d	04				         .byte x/2&255
+=9					x        .var x+1&255
+>0f4e	04				         .byte x/2&255
+=10					x        .var x+1&255
+>0f4f	05				         .byte x/2&255
+=11					x        .var x+1&255
+>0f50	05				         .byte x/2&255
+=12					x        .var x+1&255
+>0f51	06				         .byte x/2&255
+=13					x        .var x+1&255
+>0f52	06				         .byte x/2&255
+=14					x        .var x+1&255
+>0f53	07				         .byte x/2&255
+=15					x        .var x+1&255
+>0f54	07				         .byte x/2&255
+=16					x        .var x+1&255
+>0f55	08				         .byte x/2&255
+=17					x        .var x+1&255
+>0f56	08				         .byte x/2&255
+=18					x        .var x+1&255
+>0f57	09				         .byte x/2&255
+=19					x        .var x+1&255
+>0f58	09				         .byte x/2&255
+=20					x        .var x+1&255
+>0f59	0a				         .byte x/2&255
+=21					x        .var x+1&255
+>0f5a	0a				         .byte x/2&255
+=22					x        .var x+1&255
+>0f5b	0b				         .byte x/2&255
+=23					x        .var x+1&255
+>0f5c	0b				         .byte x/2&255
+=24					x        .var x+1&255
+>0f5d	0c				         .byte x/2&255
+=25					x        .var x+1&255
+>0f5e	0c				         .byte x/2&255
+=26					x        .var x+1&255
+>0f5f	0d				         .byte x/2&255
+=27					x        .var x+1&255
+>0f60	0d				         .byte x/2&255
+=28					x        .var x+1&255
+>0f61	0e				         .byte x/2&255
+=29					x        .var x+1&255
+>0f62	0e				         .byte x/2&255
+=30					x        .var x+1&255
+>0f63	0f				         .byte x/2&255
+=31					x        .var x+1&255
+>0f64	0f				         .byte x/2&255
+=32					x        .var x+1&255
+>0f65	10				         .byte x/2&255
+=33					x        .var x+1&255
+>0f66	10				         .byte x/2&255
+=34					x        .var x+1&255
+>0f67	11				         .byte x/2&255
+=35					x        .var x+1&255
+>0f68	11				         .byte x/2&255
+=36					x        .var x+1&255
+>0f69	12				         .byte x/2&255
+=37					x        .var x+1&255
+>0f6a	12				         .byte x/2&255
+=38					x        .var x+1&255
+>0f6b	13				         .byte x/2&255
+=39					x        .var x+1&255
+>0f6c	13				         .byte x/2&255
+=40					x        .var x+1&255
+>0f6d	14				         .byte x/2&255
+=41					x        .var x+1&255
+>0f6e	14				         .byte x/2&255
+=42					x        .var x+1&255
+>0f6f	15				         .byte x/2&255
+=43					x        .var x+1&255
+>0f70	15				         .byte x/2&255
+=44					x        .var x+1&255
+>0f71	16				         .byte x/2&255
+=45					x        .var x+1&255
+>0f72	16				         .byte x/2&255
+=46					x        .var x+1&255
+>0f73	17				         .byte x/2&255
+=47					x        .var x+1&255
+>0f74	17				         .byte x/2&255
+=48					x        .var x+1&255
+>0f75	18				         .byte x/2&255
+=49					x        .var x+1&255
+>0f76	18				         .byte x/2&255
+=50					x        .var x+1&255
+>0f77	19				         .byte x/2&255
+=51					x        .var x+1&255
+>0f78	19				         .byte x/2&255
+=52					x        .var x+1&255
+>0f79	1a				         .byte x/2&255
+=53					x        .var x+1&255
+>0f7a	1a				         .byte x/2&255
+=54					x        .var x+1&255
+>0f7b	1b				         .byte x/2&255
+=55					x        .var x+1&255
+>0f7c	1b				         .byte x/2&255
+=56					x        .var x+1&255
+>0f7d	1c				         .byte x/2&255
+=57					x        .var x+1&255
+>0f7e	1c				         .byte x/2&255
+=58					x        .var x+1&255
+>0f7f	1d				         .byte x/2&255
+=59					x        .var x+1&255
+>0f80	1d				         .byte x/2&255
+=60					x        .var x+1&255
+>0f81	1e				         .byte x/2&255
+=61					x        .var x+1&255
+>0f82	1e				         .byte x/2&255
+=62					x        .var x+1&255
+>0f83	1f				         .byte x/2&255
+=63					x        .var x+1&255
+>0f84	1f				         .byte x/2&255
+=64					x        .var x+1&255
+>0f85	20				         .byte x/2&255
+=65					x        .var x+1&255
+>0f86	20				         .byte x/2&255
+=66					x        .var x+1&255
+>0f87	21				         .byte x/2&255
+=67					x        .var x+1&255
+>0f88	21				         .byte x/2&255
+=68					x        .var x+1&255
+>0f89	22				         .byte x/2&255
+=69					x        .var x+1&255
+>0f8a	22				         .byte x/2&255
+=70					x        .var x+1&255
+>0f8b	23				         .byte x/2&255
+=71					x        .var x+1&255
+>0f8c	23				         .byte x/2&255
+=72					x        .var x+1&255
+>0f8d	24				         .byte x/2&255
+=73					x        .var x+1&255
+>0f8e	24				         .byte x/2&255
+=74					x        .var x+1&255
+>0f8f	25				         .byte x/2&255
+=75					x        .var x+1&255
+>0f90	25				         .byte x/2&255
+=76					x        .var x+1&255
+>0f91	26				         .byte x/2&255
+=77					x        .var x+1&255
+>0f92	26				         .byte x/2&255
+=78					x        .var x+1&255
+>0f93	27				         .byte x/2&255
+=79					x        .var x+1&255
+>0f94	27				         .byte x/2&255
+=80					x        .var x+1&255
+>0f95	28				         .byte x/2&255
+=81					x        .var x+1&255
+>0f96	28				         .byte x/2&255
+=82					x        .var x+1&255
+>0f97	29				         .byte x/2&255
+=83					x        .var x+1&255
+>0f98	29				         .byte x/2&255
+=84					x        .var x+1&255
+>0f99	2a				         .byte x/2&255
+=85					x        .var x+1&255
+>0f9a	2a				         .byte x/2&255
+=86					x        .var x+1&255
+>0f9b	2b				         .byte x/2&255
+=87					x        .var x+1&255
+>0f9c	2b				         .byte x/2&255
+=88					x        .var x+1&255
+>0f9d	2c				         .byte x/2&255
+=89					x        .var x+1&255
+>0f9e	2c				         .byte x/2&255
+=90					x        .var x+1&255
+>0f9f	2d				         .byte x/2&255
+=91					x        .var x+1&255
+>0fa0	2d				         .byte x/2&255
+=92					x        .var x+1&255
+>0fa1	2e				         .byte x/2&255
+=93					x        .var x+1&255
+>0fa2	2e				         .byte x/2&255
+=94					x        .var x+1&255
+>0fa3	2f				         .byte x/2&255
+=95					x        .var x+1&255
+>0fa4	2f				         .byte x/2&255
+=96					x        .var x+1&255
+>0fa5	30				         .byte x/2&255
+=97					x        .var x+1&255
+>0fa6	30				         .byte x/2&255
+=98					x        .var x+1&255
+>0fa7	31				         .byte x/2&255
+=99					x        .var x+1&255
+>0fa8	31				         .byte x/2&255
+=100					x        .var x+1&255
+>0fa9	32				         .byte x/2&255
+=101					x        .var x+1&255
+>0faa	32				         .byte x/2&255
+=102					x        .var x+1&255
+>0fab	33				         .byte x/2&255
+=103					x        .var x+1&255
+>0fac	33				         .byte x/2&255
+=104					x        .var x+1&255
+>0fad	34				         .byte x/2&255
+=105					x        .var x+1&255
+>0fae	34				         .byte x/2&255
+=106					x        .var x+1&255
+>0faf	35				         .byte x/2&255
+=107					x        .var x+1&255
+>0fb0	35				         .byte x/2&255
+=108					x        .var x+1&255
+>0fb1	36				         .byte x/2&255
+=109					x        .var x+1&255
+>0fb2	36				         .byte x/2&255
+=110					x        .var x+1&255
+>0fb3	37				         .byte x/2&255
+=111					x        .var x+1&255
+>0fb4	37				         .byte x/2&255
+=112					x        .var x+1&255
+>0fb5	38				         .byte x/2&255
+=113					x        .var x+1&255
+>0fb6	38				         .byte x/2&255
+=114					x        .var x+1&255
+>0fb7	39				         .byte x/2&255
+=115					x        .var x+1&255
+>0fb8	39				         .byte x/2&255
+=116					x        .var x+1&255
+>0fb9	3a				         .byte x/2&255
+=117					x        .var x+1&255
+>0fba	3a				         .byte x/2&255
+=118					x        .var x+1&255
+>0fbb	3b				         .byte x/2&255
+=119					x        .var x+1&255
+>0fbc	3b				         .byte x/2&255
+=120					x        .var x+1&255
+>0fbd	3c				         .byte x/2&255
+=121					x        .var x+1&255
+>0fbe	3c				         .byte x/2&255
+=122					x        .var x+1&255
+>0fbf	3d				         .byte x/2&255
+=123					x        .var x+1&255
+>0fc0	3d				         .byte x/2&255
+=124					x        .var x+1&255
+>0fc1	3e				         .byte x/2&255
+=125					x        .var x+1&255
+>0fc2	3e				         .byte x/2&255
+=126					x        .var x+1&255
+>0fc3	3f				         .byte x/2&255
+=127					x        .var x+1&255
+>0fc4	3f				         .byte x/2&255
+=128					x        .var x+1&255
+>0fc5	40				         .byte x/2&255
+=129					x        .var x+1&255
+>0fc6	40				         .byte x/2&255
+=130					x        .var x+1&255
+>0fc7	41				         .byte x/2&255
+=131					x        .var x+1&255
+>0fc8	41				         .byte x/2&255
+=132					x        .var x+1&255
+>0fc9	42				         .byte x/2&255
+=133					x        .var x+1&255
+>0fca	42				         .byte x/2&255
+=134					x        .var x+1&255
+>0fcb	43				         .byte x/2&255
+=135					x        .var x+1&255
+>0fcc	43				         .byte x/2&255
+=136					x        .var x+1&255
+>0fcd	44				         .byte x/2&255
+=137					x        .var x+1&255
+>0fce	44				         .byte x/2&255
+=138					x        .var x+1&255
+>0fcf	45				         .byte x/2&255
+=139					x        .var x+1&255
+>0fd0	45				         .byte x/2&255
+=140					x        .var x+1&255
+>0fd1	46				         .byte x/2&255
+=141					x        .var x+1&255
+>0fd2	46				         .byte x/2&255
+=142					x        .var x+1&255
+>0fd3	47				         .byte x/2&255
+=143					x        .var x+1&255
+>0fd4	47				         .byte x/2&255
+=144					x        .var x+1&255
+>0fd5	48				         .byte x/2&255
+=145					x        .var x+1&255
+>0fd6	48				         .byte x/2&255
+=146					x        .var x+1&255
+>0fd7	49				         .byte x/2&255
+=147					x        .var x+1&255
+>0fd8	49				         .byte x/2&255
+=148					x        .var x+1&255
+>0fd9	4a				         .byte x/2&255
+=149					x        .var x+1&255
+>0fda	4a				         .byte x/2&255
+=150					x        .var x+1&255
+>0fdb	4b				         .byte x/2&255
+=151					x        .var x+1&255
+>0fdc	4b				         .byte x/2&255
+=152					x        .var x+1&255
+>0fdd	4c				         .byte x/2&255
+=153					x        .var x+1&255
+>0fde	4c				         .byte x/2&255
+=154					x        .var x+1&255
+>0fdf	4d				         .byte x/2&255
+=155					x        .var x+1&255
+>0fe0	4d				         .byte x/2&255
+=156					x        .var x+1&255
+>0fe1	4e				         .byte x/2&255
+=157					x        .var x+1&255
+>0fe2	4e				         .byte x/2&255
+=158					x        .var x+1&255
+>0fe3	4f				         .byte x/2&255
+=159					x        .var x+1&255
+>0fe4	4f				         .byte x/2&255
+=160					x        .var x+1&255
+>0fe5	50				         .byte x/2&255
+=161					x        .var x+1&255
+>0fe6	50				         .byte x/2&255
+=162					x        .var x+1&255
+>0fe7	51				         .byte x/2&255
+=163					x        .var x+1&255
+>0fe8	51				         .byte x/2&255
+=164					x        .var x+1&255
+>0fe9	52				         .byte x/2&255
+=165					x        .var x+1&255
+>0fea	52				         .byte x/2&255
+=166					x        .var x+1&255
+>0feb	53				         .byte x/2&255
+=167					x        .var x+1&255
+>0fec	53				         .byte x/2&255
+=168					x        .var x+1&255
+>0fed	54				         .byte x/2&255
+=169					x        .var x+1&255
+>0fee	54				         .byte x/2&255
+=170					x        .var x+1&255
+>0fef	55				         .byte x/2&255
+=171					x        .var x+1&255
+>0ff0	55				         .byte x/2&255
+=172					x        .var x+1&255
+>0ff1	56				         .byte x/2&255
+=173					x        .var x+1&255
+>0ff2	56				         .byte x/2&255
+=174					x        .var x+1&255
+>0ff3	57				         .byte x/2&255
+=175					x        .var x+1&255
+>0ff4	57				         .byte x/2&255
+=176					x        .var x+1&255
+>0ff5	58				         .byte x/2&255
+=177					x        .var x+1&255
+>0ff6	58				         .byte x/2&255
+=178					x        .var x+1&255
+>0ff7	59				         .byte x/2&255
+=179					x        .var x+1&255
+>0ff8	59				         .byte x/2&255
+=180					x        .var x+1&255
+>0ff9	5a				         .byte x/2&255
+=181					x        .var x+1&255
+>0ffa	5a				         .byte x/2&255
+=182					x        .var x+1&255
+>0ffb	5b				         .byte x/2&255
+=183					x        .var x+1&255
+>0ffc	5b				         .byte x/2&255
+=184					x        .var x+1&255
+>0ffd	5c				         .byte x/2&255
+=185					x        .var x+1&255
+>0ffe	5c				         .byte x/2&255
+=186					x        .var x+1&255
+>0fff	5d				         .byte x/2&255
+=187					x        .var x+1&255
+>1000	5d				         .byte x/2&255
+=188					x        .var x+1&255
+>1001	5e				         .byte x/2&255
+=189					x        .var x+1&255
+>1002	5e				         .byte x/2&255
+=190					x        .var x+1&255
+>1003	5f				         .byte x/2&255
+=191					x        .var x+1&255
+>1004	5f				         .byte x/2&255
+=192					x        .var x+1&255
+>1005	60				         .byte x/2&255
+=193					x        .var x+1&255
+>1006	60				         .byte x/2&255
+=194					x        .var x+1&255
+>1007	61				         .byte x/2&255
+=195					x        .var x+1&255
+>1008	61				         .byte x/2&255
+=196					x        .var x+1&255
+>1009	62				         .byte x/2&255
+=197					x        .var x+1&255
+>100a	62				         .byte x/2&255
+=198					x        .var x+1&255
+>100b	63				         .byte x/2&255
+=199					x        .var x+1&255
+>100c	63				         .byte x/2&255
+=200					x        .var x+1&255
+>100d	64				         .byte x/2&255
+=201					x        .var x+1&255
+>100e	64				         .byte x/2&255
+=202					x        .var x+1&255
+>100f	65				         .byte x/2&255
+=203					x        .var x+1&255
+>1010	65				         .byte x/2&255
+=204					x        .var x+1&255
+>1011	66				         .byte x/2&255
+=205					x        .var x+1&255
+>1012	66				         .byte x/2&255
+=206					x        .var x+1&255
+>1013	67				         .byte x/2&255
+=207					x        .var x+1&255
+>1014	67				         .byte x/2&255
+=208					x        .var x+1&255
+>1015	68				         .byte x/2&255
+=209					x        .var x+1&255
+>1016	68				         .byte x/2&255
+=210					x        .var x+1&255
+>1017	69				         .byte x/2&255
+=211					x        .var x+1&255
+>1018	69				         .byte x/2&255
+=212					x        .var x+1&255
+>1019	6a				         .byte x/2&255
+=213					x        .var x+1&255
+>101a	6a				         .byte x/2&255
+=214					x        .var x+1&255
+>101b	6b				         .byte x/2&255
+=215					x        .var x+1&255
+>101c	6b				         .byte x/2&255
+=216					x        .var x+1&255
+>101d	6c				         .byte x/2&255
+=217					x        .var x+1&255
+>101e	6c				         .byte x/2&255
+=218					x        .var x+1&255
+>101f	6d				         .byte x/2&255
+=219					x        .var x+1&255
+>1020	6d				         .byte x/2&255
+=220					x        .var x+1&255
+>1021	6e				         .byte x/2&255
+=221					x        .var x+1&255
+>1022	6e				         .byte x/2&255
+=222					x        .var x+1&255
+>1023	6f				         .byte x/2&255
+=223					x        .var x+1&255
+>1024	6f				         .byte x/2&255
+=224					x        .var x+1&255
+>1025	70				         .byte x/2&255
+=225					x        .var x+1&255
+>1026	70				         .byte x/2&255
+=226					x        .var x+1&255
+>1027	71				         .byte x/2&255
+=227					x        .var x+1&255
+>1028	71				         .byte x/2&255
+=228					x        .var x+1&255
+>1029	72				         .byte x/2&255
+=229					x        .var x+1&255
+>102a	72				         .byte x/2&255
+=230					x        .var x+1&255
+>102b	73				         .byte x/2&255
+=231					x        .var x+1&255
+>102c	73				         .byte x/2&255
+=232					x        .var x+1&255
+>102d	74				         .byte x/2&255
+=233					x        .var x+1&255
+>102e	74				         .byte x/2&255
+=234					x        .var x+1&255
+>102f	75				         .byte x/2&255
+=235					x        .var x+1&255
+>1030	75				         .byte x/2&255
+=236					x        .var x+1&255
+>1031	76				         .byte x/2&255
+=237					x        .var x+1&255
+>1032	76				         .byte x/2&255
+=238					x        .var x+1&255
+>1033	77				         .byte x/2&255
+=239					x        .var x+1&255
+>1034	77				         .byte x/2&255
+=240					x        .var x+1&255
+>1035	78				         .byte x/2&255
+=241					x        .var x+1&255
+>1036	78				         .byte x/2&255
+=242					x        .var x+1&255
+>1037	79				         .byte x/2&255
+=243					x        .var x+1&255
+>1038	79				         .byte x/2&255
+=244					x        .var x+1&255
+>1039	7a				         .byte x/2&255
+=245					x        .var x+1&255
+>103a	7a				         .byte x/2&255
+=246					x        .var x+1&255
+>103b	7b				         .byte x/2&255
+=247					x        .var x+1&255
+>103c	7b				         .byte x/2&255
+=248					x        .var x+1&255
+>103d	7c				         .byte x/2&255
+=249					x        .var x+1&255
+>103e	7c				         .byte x/2&255
+=250					x        .var x+1&255
+>103f	7d				         .byte x/2&255
+=251					x        .var x+1&255
+>1040	7d				         .byte x/2&255
+=252					x        .var x+1&255
+>1041	7e				         .byte x/2&255
+=253					x        .var x+1&255
+>1042	7e				         .byte x/2&255
+=254					x        .var x+1&255
+>1043	7f				         .byte x/2&255
+=255					x        .var x+1&255
+>1044	7f				         .byte x/2&255
+=0					x        .var x+1&255
+.1045					r1tab
+=0					x        .var 0
+>1045	80				         .byte x/2&255.128
+=1					x        .var x+1&255
+>1046	80				         .byte x/2&255.128
+=2					x        .var x+1&255
+>1047	81				         .byte x/2&255.128
+=3					x        .var x+1&255
+>1048	81				         .byte x/2&255.128
+=4					x        .var x+1&255
+>1049	82				         .byte x/2&255.128
+=5					x        .var x+1&255
+>104a	82				         .byte x/2&255.128
+=6					x        .var x+1&255
+>104b	83				         .byte x/2&255.128
+=7					x        .var x+1&255
+>104c	83				         .byte x/2&255.128
+=8					x        .var x+1&255
+>104d	84				         .byte x/2&255.128
+=9					x        .var x+1&255
+>104e	84				         .byte x/2&255.128
+=10					x        .var x+1&255
+>104f	85				         .byte x/2&255.128
+=11					x        .var x+1&255
+>1050	85				         .byte x/2&255.128
+=12					x        .var x+1&255
+>1051	86				         .byte x/2&255.128
+=13					x        .var x+1&255
+>1052	86				         .byte x/2&255.128
+=14					x        .var x+1&255
+>1053	87				         .byte x/2&255.128
+=15					x        .var x+1&255
+>1054	87				         .byte x/2&255.128
+=16					x        .var x+1&255
+>1055	88				         .byte x/2&255.128
+=17					x        .var x+1&255
+>1056	88				         .byte x/2&255.128
+=18					x        .var x+1&255
+>1057	89				         .byte x/2&255.128
+=19					x        .var x+1&255
+>1058	89				         .byte x/2&255.128
+=20					x        .var x+1&255
+>1059	8a				         .byte x/2&255.128
+=21					x        .var x+1&255
+>105a	8a				         .byte x/2&255.128
+=22					x        .var x+1&255
+>105b	8b				         .byte x/2&255.128
+=23					x        .var x+1&255
+>105c	8b				         .byte x/2&255.128
+=24					x        .var x+1&255
+>105d	8c				         .byte x/2&255.128
+=25					x        .var x+1&255
+>105e	8c				         .byte x/2&255.128
+=26					x        .var x+1&255
+>105f	8d				         .byte x/2&255.128
+=27					x        .var x+1&255
+>1060	8d				         .byte x/2&255.128
+=28					x        .var x+1&255
+>1061	8e				         .byte x/2&255.128
+=29					x        .var x+1&255
+>1062	8e				         .byte x/2&255.128
+=30					x        .var x+1&255
+>1063	8f				         .byte x/2&255.128
+=31					x        .var x+1&255
+>1064	8f				         .byte x/2&255.128
+=32					x        .var x+1&255
+>1065	90				         .byte x/2&255.128
+=33					x        .var x+1&255
+>1066	90				         .byte x/2&255.128
+=34					x        .var x+1&255
+>1067	91				         .byte x/2&255.128
+=35					x        .var x+1&255
+>1068	91				         .byte x/2&255.128
+=36					x        .var x+1&255
+>1069	92				         .byte x/2&255.128
+=37					x        .var x+1&255
+>106a	92				         .byte x/2&255.128
+=38					x        .var x+1&255
+>106b	93				         .byte x/2&255.128
+=39					x        .var x+1&255
+>106c	93				         .byte x/2&255.128
+=40					x        .var x+1&255
+>106d	94				         .byte x/2&255.128
+=41					x        .var x+1&255
+>106e	94				         .byte x/2&255.128
+=42					x        .var x+1&255
+>106f	95				         .byte x/2&255.128
+=43					x        .var x+1&255
+>1070	95				         .byte x/2&255.128
+=44					x        .var x+1&255
+>1071	96				         .byte x/2&255.128
+=45					x        .var x+1&255
+>1072	96				         .byte x/2&255.128
+=46					x        .var x+1&255
+>1073	97				         .byte x/2&255.128
+=47					x        .var x+1&255
+>1074	97				         .byte x/2&255.128
+=48					x        .var x+1&255
+>1075	98				         .byte x/2&255.128
+=49					x        .var x+1&255
+>1076	98				         .byte x/2&255.128
+=50					x        .var x+1&255
+>1077	99				         .byte x/2&255.128
+=51					x        .var x+1&255
+>1078	99				         .byte x/2&255.128
+=52					x        .var x+1&255
+>1079	9a				         .byte x/2&255.128
+=53					x        .var x+1&255
+>107a	9a				         .byte x/2&255.128
+=54					x        .var x+1&255
+>107b	9b				         .byte x/2&255.128
+=55					x        .var x+1&255
+>107c	9b				         .byte x/2&255.128
+=56					x        .var x+1&255
+>107d	9c				         .byte x/2&255.128
+=57					x        .var x+1&255
+>107e	9c				         .byte x/2&255.128
+=58					x        .var x+1&255
+>107f	9d				         .byte x/2&255.128
+=59					x        .var x+1&255
+>1080	9d				         .byte x/2&255.128
+=60					x        .var x+1&255
+>1081	9e				         .byte x/2&255.128
+=61					x        .var x+1&255
+>1082	9e				         .byte x/2&255.128
+=62					x        .var x+1&255
+>1083	9f				         .byte x/2&255.128
+=63					x        .var x+1&255
+>1084	9f				         .byte x/2&255.128
+=64					x        .var x+1&255
+>1085	a0				         .byte x/2&255.128
+=65					x        .var x+1&255
+>1086	a0				         .byte x/2&255.128
+=66					x        .var x+1&255
+>1087	a1				         .byte x/2&255.128
+=67					x        .var x+1&255
+>1088	a1				         .byte x/2&255.128
+=68					x        .var x+1&255
+>1089	a2				         .byte x/2&255.128
+=69					x        .var x+1&255
+>108a	a2				         .byte x/2&255.128
+=70					x        .var x+1&255
+>108b	a3				         .byte x/2&255.128
+=71					x        .var x+1&255
+>108c	a3				         .byte x/2&255.128
+=72					x        .var x+1&255
+>108d	a4				         .byte x/2&255.128
+=73					x        .var x+1&255
+>108e	a4				         .byte x/2&255.128
+=74					x        .var x+1&255
+>108f	a5				         .byte x/2&255.128
+=75					x        .var x+1&255
+>1090	a5				         .byte x/2&255.128
+=76					x        .var x+1&255
+>1091	a6				         .byte x/2&255.128
+=77					x        .var x+1&255
+>1092	a6				         .byte x/2&255.128
+=78					x        .var x+1&255
+>1093	a7				         .byte x/2&255.128
+=79					x        .var x+1&255
+>1094	a7				         .byte x/2&255.128
+=80					x        .var x+1&255
+>1095	a8				         .byte x/2&255.128
+=81					x        .var x+1&255
+>1096	a8				         .byte x/2&255.128
+=82					x        .var x+1&255
+>1097	a9				         .byte x/2&255.128
+=83					x        .var x+1&255
+>1098	a9				         .byte x/2&255.128
+=84					x        .var x+1&255
+>1099	aa				         .byte x/2&255.128
+=85					x        .var x+1&255
+>109a	aa				         .byte x/2&255.128
+=86					x        .var x+1&255
+>109b	ab				         .byte x/2&255.128
+=87					x        .var x+1&255
+>109c	ab				         .byte x/2&255.128
+=88					x        .var x+1&255
+>109d	ac				         .byte x/2&255.128
+=89					x        .var x+1&255
+>109e	ac				         .byte x/2&255.128
+=90					x        .var x+1&255
+>109f	ad				         .byte x/2&255.128
+=91					x        .var x+1&255
+>10a0	ad				         .byte x/2&255.128
+=92					x        .var x+1&255
+>10a1	ae				         .byte x/2&255.128
+=93					x        .var x+1&255
+>10a2	ae				         .byte x/2&255.128
+=94					x        .var x+1&255
+>10a3	af				         .byte x/2&255.128
+=95					x        .var x+1&255
+>10a4	af				         .byte x/2&255.128
+=96					x        .var x+1&255
+>10a5	b0				         .byte x/2&255.128
+=97					x        .var x+1&255
+>10a6	b0				         .byte x/2&255.128
+=98					x        .var x+1&255
+>10a7	b1				         .byte x/2&255.128
+=99					x        .var x+1&255
+>10a8	b1				         .byte x/2&255.128
+=100					x        .var x+1&255
+>10a9	b2				         .byte x/2&255.128
+=101					x        .var x+1&255
+>10aa	b2				         .byte x/2&255.128
+=102					x        .var x+1&255
+>10ab	b3				         .byte x/2&255.128
+=103					x        .var x+1&255
+>10ac	b3				         .byte x/2&255.128
+=104					x        .var x+1&255
+>10ad	b4				         .byte x/2&255.128
+=105					x        .var x+1&255
+>10ae	b4				         .byte x/2&255.128
+=106					x        .var x+1&255
+>10af	b5				         .byte x/2&255.128
+=107					x        .var x+1&255
+>10b0	b5				         .byte x/2&255.128
+=108					x        .var x+1&255
+>10b1	b6				         .byte x/2&255.128
+=109					x        .var x+1&255
+>10b2	b6				         .byte x/2&255.128
+=110					x        .var x+1&255
+>10b3	b7				         .byte x/2&255.128
+=111					x        .var x+1&255
+>10b4	b7				         .byte x/2&255.128
+=112					x        .var x+1&255
+>10b5	b8				         .byte x/2&255.128
+=113					x        .var x+1&255
+>10b6	b8				         .byte x/2&255.128
+=114					x        .var x+1&255
+>10b7	b9				         .byte x/2&255.128
+=115					x        .var x+1&255
+>10b8	b9				         .byte x/2&255.128
+=116					x        .var x+1&255
+>10b9	ba				         .byte x/2&255.128
+=117					x        .var x+1&255
+>10ba	ba				         .byte x/2&255.128
+=118					x        .var x+1&255
+>10bb	bb				         .byte x/2&255.128
+=119					x        .var x+1&255
+>10bc	bb				         .byte x/2&255.128
+=120					x        .var x+1&255
+>10bd	bc				         .byte x/2&255.128
+=121					x        .var x+1&255
+>10be	bc				         .byte x/2&255.128
+=122					x        .var x+1&255
+>10bf	bd				         .byte x/2&255.128
+=123					x        .var x+1&255
+>10c0	bd				         .byte x/2&255.128
+=124					x        .var x+1&255
+>10c1	be				         .byte x/2&255.128
+=125					x        .var x+1&255
+>10c2	be				         .byte x/2&255.128
+=126					x        .var x+1&255
+>10c3	bf				         .byte x/2&255.128
+=127					x        .var x+1&255
+>10c4	bf				         .byte x/2&255.128
+=128					x        .var x+1&255
+>10c5	c0				         .byte x/2&255.128
+=129					x        .var x+1&255
+>10c6	c0				         .byte x/2&255.128
+=130					x        .var x+1&255
+>10c7	c1				         .byte x/2&255.128
+=131					x        .var x+1&255
+>10c8	c1				         .byte x/2&255.128
+=132					x        .var x+1&255
+>10c9	c2				         .byte x/2&255.128
+=133					x        .var x+1&255
+>10ca	c2				         .byte x/2&255.128
+=134					x        .var x+1&255
+>10cb	c3				         .byte x/2&255.128
+=135					x        .var x+1&255
+>10cc	c3				         .byte x/2&255.128
+=136					x        .var x+1&255
+>10cd	c4				         .byte x/2&255.128
+=137					x        .var x+1&255
+>10ce	c4				         .byte x/2&255.128
+=138					x        .var x+1&255
+>10cf	c5				         .byte x/2&255.128
+=139					x        .var x+1&255
+>10d0	c5				         .byte x/2&255.128
+=140					x        .var x+1&255
+>10d1	c6				         .byte x/2&255.128
+=141					x        .var x+1&255
+>10d2	c6				         .byte x/2&255.128
+=142					x        .var x+1&255
+>10d3	c7				         .byte x/2&255.128
+=143					x        .var x+1&255
+>10d4	c7				         .byte x/2&255.128
+=144					x        .var x+1&255
+>10d5	c8				         .byte x/2&255.128
+=145					x        .var x+1&255
+>10d6	c8				         .byte x/2&255.128
+=146					x        .var x+1&255
+>10d7	c9				         .byte x/2&255.128
+=147					x        .var x+1&255
+>10d8	c9				         .byte x/2&255.128
+=148					x        .var x+1&255
+>10d9	ca				         .byte x/2&255.128
+=149					x        .var x+1&255
+>10da	ca				         .byte x/2&255.128
+=150					x        .var x+1&255
+>10db	cb				         .byte x/2&255.128
+=151					x        .var x+1&255
+>10dc	cb				         .byte x/2&255.128
+=152					x        .var x+1&255
+>10dd	cc				         .byte x/2&255.128
+=153					x        .var x+1&255
+>10de	cc				         .byte x/2&255.128
+=154					x        .var x+1&255
+>10df	cd				         .byte x/2&255.128
+=155					x        .var x+1&255
+>10e0	cd				         .byte x/2&255.128
+=156					x        .var x+1&255
+>10e1	ce				         .byte x/2&255.128
+=157					x        .var x+1&255
+>10e2	ce				         .byte x/2&255.128
+=158					x        .var x+1&255
+>10e3	cf				         .byte x/2&255.128
+=159					x        .var x+1&255
+>10e4	cf				         .byte x/2&255.128
+=160					x        .var x+1&255
+>10e5	d0				         .byte x/2&255.128
+=161					x        .var x+1&255
+>10e6	d0				         .byte x/2&255.128
+=162					x        .var x+1&255
+>10e7	d1				         .byte x/2&255.128
+=163					x        .var x+1&255
+>10e8	d1				         .byte x/2&255.128
+=164					x        .var x+1&255
+>10e9	d2				         .byte x/2&255.128
+=165					x        .var x+1&255
+>10ea	d2				         .byte x/2&255.128
+=166					x        .var x+1&255
+>10eb	d3				         .byte x/2&255.128
+=167					x        .var x+1&255
+>10ec	d3				         .byte x/2&255.128
+=168					x        .var x+1&255
+>10ed	d4				         .byte x/2&255.128
+=169					x        .var x+1&255
+>10ee	d4				         .byte x/2&255.128
+=170					x        .var x+1&255
+>10ef	d5				         .byte x/2&255.128
+=171					x        .var x+1&255
+>10f0	d5				         .byte x/2&255.128
+=172					x        .var x+1&255
+>10f1	d6				         .byte x/2&255.128
+=173					x        .var x+1&255
+>10f2	d6				         .byte x/2&255.128
+=174					x        .var x+1&255
+>10f3	d7				         .byte x/2&255.128
+=175					x        .var x+1&255
+>10f4	d7				         .byte x/2&255.128
+=176					x        .var x+1&255
+>10f5	d8				         .byte x/2&255.128
+=177					x        .var x+1&255
+>10f6	d8				         .byte x/2&255.128
+=178					x        .var x+1&255
+>10f7	d9				         .byte x/2&255.128
+=179					x        .var x+1&255
+>10f8	d9				         .byte x/2&255.128
+=180					x        .var x+1&255
+>10f9	da				         .byte x/2&255.128
+=181					x        .var x+1&255
+>10fa	da				         .byte x/2&255.128
+=182					x        .var x+1&255
+>10fb	db				         .byte x/2&255.128
+=183					x        .var x+1&255
+>10fc	db				         .byte x/2&255.128
+=184					x        .var x+1&255
+>10fd	dc				         .byte x/2&255.128
+=185					x        .var x+1&255
+>10fe	dc				         .byte x/2&255.128
+=186					x        .var x+1&255
+>10ff	dd				         .byte x/2&255.128
+=187					x        .var x+1&255
+>1100	dd				         .byte x/2&255.128
+=188					x        .var x+1&255
+>1101	de				         .byte x/2&255.128
+=189					x        .var x+1&255
+>1102	de				         .byte x/2&255.128
+=190					x        .var x+1&255
+>1103	df				         .byte x/2&255.128
+=191					x        .var x+1&255
+>1104	df				         .byte x/2&255.128
+=192					x        .var x+1&255
+>1105	e0				         .byte x/2&255.128
+=193					x        .var x+1&255
+>1106	e0				         .byte x/2&255.128
+=194					x        .var x+1&255
+>1107	e1				         .byte x/2&255.128
+=195					x        .var x+1&255
+>1108	e1				         .byte x/2&255.128
+=196					x        .var x+1&255
+>1109	e2				         .byte x/2&255.128
+=197					x        .var x+1&255
+>110a	e2				         .byte x/2&255.128
+=198					x        .var x+1&255
+>110b	e3				         .byte x/2&255.128
+=199					x        .var x+1&255
+>110c	e3				         .byte x/2&255.128
+=200					x        .var x+1&255
+>110d	e4				         .byte x/2&255.128
+=201					x        .var x+1&255
+>110e	e4				         .byte x/2&255.128
+=202					x        .var x+1&255
+>110f	e5				         .byte x/2&255.128
+=203					x        .var x+1&255
+>1110	e5				         .byte x/2&255.128
+=204					x        .var x+1&255
+>1111	e6				         .byte x/2&255.128
+=205					x        .var x+1&255
+>1112	e6				         .byte x/2&255.128
+=206					x        .var x+1&255
+>1113	e7				         .byte x/2&255.128
+=207					x        .var x+1&255
+>1114	e7				         .byte x/2&255.128
+=208					x        .var x+1&255
+>1115	e8				         .byte x/2&255.128
+=209					x        .var x+1&255
+>1116	e8				         .byte x/2&255.128
+=210					x        .var x+1&255
+>1117	e9				         .byte x/2&255.128
+=211					x        .var x+1&255
+>1118	e9				         .byte x/2&255.128
+=212					x        .var x+1&255
+>1119	ea				         .byte x/2&255.128
+=213					x        .var x+1&255
+>111a	ea				         .byte x/2&255.128
+=214					x        .var x+1&255
+>111b	eb				         .byte x/2&255.128
+=215					x        .var x+1&255
+>111c	eb				         .byte x/2&255.128
+=216					x        .var x+1&255
+>111d	ec				         .byte x/2&255.128
+=217					x        .var x+1&255
+>111e	ec				         .byte x/2&255.128
+=218					x        .var x+1&255
+>111f	ed				         .byte x/2&255.128
+=219					x        .var x+1&255
+>1120	ed				         .byte x/2&255.128
+=220					x        .var x+1&255
+>1121	ee				         .byte x/2&255.128
+=221					x        .var x+1&255
+>1122	ee				         .byte x/2&255.128
+=222					x        .var x+1&255
+>1123	ef				         .byte x/2&255.128
+=223					x        .var x+1&255
+>1124	ef				         .byte x/2&255.128
+=224					x        .var x+1&255
+>1125	f0				         .byte x/2&255.128
+=225					x        .var x+1&255
+>1126	f0				         .byte x/2&255.128
+=226					x        .var x+1&255
+>1127	f1				         .byte x/2&255.128
+=227					x        .var x+1&255
+>1128	f1				         .byte x/2&255.128
+=228					x        .var x+1&255
+>1129	f2				         .byte x/2&255.128
+=229					x        .var x+1&255
+>112a	f2				         .byte x/2&255.128
+=230					x        .var x+1&255
+>112b	f3				         .byte x/2&255.128
+=231					x        .var x+1&255
+>112c	f3				         .byte x/2&255.128
+=232					x        .var x+1&255
+>112d	f4				         .byte x/2&255.128
+=233					x        .var x+1&255
+>112e	f4				         .byte x/2&255.128
+=234					x        .var x+1&255
+>112f	f5				         .byte x/2&255.128
+=235					x        .var x+1&255
+>1130	f5				         .byte x/2&255.128
+=236					x        .var x+1&255
+>1131	f6				         .byte x/2&255.128
+=237					x        .var x+1&255
+>1132	f6				         .byte x/2&255.128
+=238					x        .var x+1&255
+>1133	f7				         .byte x/2&255.128
+=239					x        .var x+1&255
+>1134	f7				         .byte x/2&255.128
+=240					x        .var x+1&255
+>1135	f8				         .byte x/2&255.128
+=241					x        .var x+1&255
+>1136	f8				         .byte x/2&255.128
+=242					x        .var x+1&255
+>1137	f9				         .byte x/2&255.128
+=243					x        .var x+1&255
+>1138	f9				         .byte x/2&255.128
+=244					x        .var x+1&255
+>1139	fa				         .byte x/2&255.128
+=245					x        .var x+1&255
+>113a	fa				         .byte x/2&255.128
+=246					x        .var x+1&255
+>113b	fb				         .byte x/2&255.128
+=247					x        .var x+1&255
+>113c	fb				         .byte x/2&255.128
+=248					x        .var x+1&255
+>113d	fc				         .byte x/2&255.128
+=249					x        .var x+1&255
+>113e	fc				         .byte x/2&255.128
+=250					x        .var x+1&255
+>113f	fd				         .byte x/2&255.128
+=251					x        .var x+1&255
+>1140	fd				         .byte x/2&255.128
+=252					x        .var x+1&255
+>1141	fe				         .byte x/2&255.128
+=253					x        .var x+1&255
+>1142	fe				         .byte x/2&255.128
+=254					x        .var x+1&255
+>1143	ff				         .byte x/2&255.128
+=255					x        .var x+1&255
+>1144	ff				         .byte x/2&255.128
+=0					x        .var x+1&255
+.1145					i0tab
+=0					x        .var 0
+>1145	01				         .byte x+1&255
+=1					x        .var x+1&255
+>1146	02				         .byte x+1&255
+=2					x        .var x+1&255
+>1147	03				         .byte x+1&255
+=3					x        .var x+1&255
+>1148	04				         .byte x+1&255
+=4					x        .var x+1&255
+>1149	05				         .byte x+1&255
+=5					x        .var x+1&255
+>114a	06				         .byte x+1&255
+=6					x        .var x+1&255
+>114b	07				         .byte x+1&255
+=7					x        .var x+1&255
+>114c	08				         .byte x+1&255
+=8					x        .var x+1&255
+>114d	09				         .byte x+1&255
+=9					x        .var x+1&255
+>114e	0a				         .byte x+1&255
+=10					x        .var x+1&255
+>114f	0b				         .byte x+1&255
+=11					x        .var x+1&255
+>1150	0c				         .byte x+1&255
+=12					x        .var x+1&255
+>1151	0d				         .byte x+1&255
+=13					x        .var x+1&255
+>1152	0e				         .byte x+1&255
+=14					x        .var x+1&255
+>1153	0f				         .byte x+1&255
+=15					x        .var x+1&255
+>1154	10				         .byte x+1&255
+=16					x        .var x+1&255
+>1155	11				         .byte x+1&255
+=17					x        .var x+1&255
+>1156	12				         .byte x+1&255
+=18					x        .var x+1&255
+>1157	13				         .byte x+1&255
+=19					x        .var x+1&255
+>1158	14				         .byte x+1&255
+=20					x        .var x+1&255
+>1159	15				         .byte x+1&255
+=21					x        .var x+1&255
+>115a	16				         .byte x+1&255
+=22					x        .var x+1&255
+>115b	17				         .byte x+1&255
+=23					x        .var x+1&255
+>115c	18				         .byte x+1&255
+=24					x        .var x+1&255
+>115d	19				         .byte x+1&255
+=25					x        .var x+1&255
+>115e	1a				         .byte x+1&255
+=26					x        .var x+1&255
+>115f	1b				         .byte x+1&255
+=27					x        .var x+1&255
+>1160	1c				         .byte x+1&255
+=28					x        .var x+1&255
+>1161	1d				         .byte x+1&255
+=29					x        .var x+1&255
+>1162	1e				         .byte x+1&255
+=30					x        .var x+1&255
+>1163	1f				         .byte x+1&255
+=31					x        .var x+1&255
+>1164	20				         .byte x+1&255
+=32					x        .var x+1&255
+>1165	21				         .byte x+1&255
+=33					x        .var x+1&255
+>1166	22				         .byte x+1&255
+=34					x        .var x+1&255
+>1167	23				         .byte x+1&255
+=35					x        .var x+1&255
+>1168	24				         .byte x+1&255
+=36					x        .var x+1&255
+>1169	25				         .byte x+1&255
+=37					x        .var x+1&255
+>116a	26				         .byte x+1&255
+=38					x        .var x+1&255
+>116b	27				         .byte x+1&255
+=39					x        .var x+1&255
+>116c	28				         .byte x+1&255
+=40					x        .var x+1&255
+>116d	29				         .byte x+1&255
+=41					x        .var x+1&255
+>116e	2a				         .byte x+1&255
+=42					x        .var x+1&255
+>116f	2b				         .byte x+1&255
+=43					x        .var x+1&255
+>1170	2c				         .byte x+1&255
+=44					x        .var x+1&255
+>1171	2d				         .byte x+1&255
+=45					x        .var x+1&255
+>1172	2e				         .byte x+1&255
+=46					x        .var x+1&255
+>1173	2f				         .byte x+1&255
+=47					x        .var x+1&255
+>1174	30				         .byte x+1&255
+=48					x        .var x+1&255
+>1175	31				         .byte x+1&255
+=49					x        .var x+1&255
+>1176	32				         .byte x+1&255
+=50					x        .var x+1&255
+>1177	33				         .byte x+1&255
+=51					x        .var x+1&255
+>1178	34				         .byte x+1&255
+=52					x        .var x+1&255
+>1179	35				         .byte x+1&255
+=53					x        .var x+1&255
+>117a	36				         .byte x+1&255
+=54					x        .var x+1&255
+>117b	37				         .byte x+1&255
+=55					x        .var x+1&255
+>117c	38				         .byte x+1&255
+=56					x        .var x+1&255
+>117d	39				         .byte x+1&255
+=57					x        .var x+1&255
+>117e	3a				         .byte x+1&255
+=58					x        .var x+1&255
+>117f	3b				         .byte x+1&255
+=59					x        .var x+1&255
+>1180	3c				         .byte x+1&255
+=60					x        .var x+1&255
+>1181	3d				         .byte x+1&255
+=61					x        .var x+1&255
+>1182	3e				         .byte x+1&255
+=62					x        .var x+1&255
+>1183	3f				         .byte x+1&255
+=63					x        .var x+1&255
+>1184	40				         .byte x+1&255
+=64					x        .var x+1&255
+>1185	41				         .byte x+1&255
+=65					x        .var x+1&255
+>1186	42				         .byte x+1&255
+=66					x        .var x+1&255
+>1187	43				         .byte x+1&255
+=67					x        .var x+1&255
+>1188	44				         .byte x+1&255
+=68					x        .var x+1&255
+>1189	45				         .byte x+1&255
+=69					x        .var x+1&255
+>118a	46				         .byte x+1&255
+=70					x        .var x+1&255
+>118b	47				         .byte x+1&255
+=71					x        .var x+1&255
+>118c	48				         .byte x+1&255
+=72					x        .var x+1&255
+>118d	49				         .byte x+1&255
+=73					x        .var x+1&255
+>118e	4a				         .byte x+1&255
+=74					x        .var x+1&255
+>118f	4b				         .byte x+1&255
+=75					x        .var x+1&255
+>1190	4c				         .byte x+1&255
+=76					x        .var x+1&255
+>1191	4d				         .byte x+1&255
+=77					x        .var x+1&255
+>1192	4e				         .byte x+1&255
+=78					x        .var x+1&255
+>1193	4f				         .byte x+1&255
+=79					x        .var x+1&255
+>1194	50				         .byte x+1&255
+=80					x        .var x+1&255
+>1195	51				         .byte x+1&255
+=81					x        .var x+1&255
+>1196	52				         .byte x+1&255
+=82					x        .var x+1&255
+>1197	53				         .byte x+1&255
+=83					x        .var x+1&255
+>1198	54				         .byte x+1&255
+=84					x        .var x+1&255
+>1199	55				         .byte x+1&255
+=85					x        .var x+1&255
+>119a	56				         .byte x+1&255
+=86					x        .var x+1&255
+>119b	57				         .byte x+1&255
+=87					x        .var x+1&255
+>119c	58				         .byte x+1&255
+=88					x        .var x+1&255
+>119d	59				         .byte x+1&255
+=89					x        .var x+1&255
+>119e	5a				         .byte x+1&255
+=90					x        .var x+1&255
+>119f	5b				         .byte x+1&255
+=91					x        .var x+1&255
+>11a0	5c				         .byte x+1&255
+=92					x        .var x+1&255
+>11a1	5d				         .byte x+1&255
+=93					x        .var x+1&255
+>11a2	5e				         .byte x+1&255
+=94					x        .var x+1&255
+>11a3	5f				         .byte x+1&255
+=95					x        .var x+1&255
+>11a4	60				         .byte x+1&255
+=96					x        .var x+1&255
+>11a5	61				         .byte x+1&255
+=97					x        .var x+1&255
+>11a6	62				         .byte x+1&255
+=98					x        .var x+1&255
+>11a7	63				         .byte x+1&255
+=99					x        .var x+1&255
+>11a8	64				         .byte x+1&255
+=100					x        .var x+1&255
+>11a9	65				         .byte x+1&255
+=101					x        .var x+1&255
+>11aa	66				         .byte x+1&255
+=102					x        .var x+1&255
+>11ab	67				         .byte x+1&255
+=103					x        .var x+1&255
+>11ac	68				         .byte x+1&255
+=104					x        .var x+1&255
+>11ad	69				         .byte x+1&255
+=105					x        .var x+1&255
+>11ae	6a				         .byte x+1&255
+=106					x        .var x+1&255
+>11af	6b				         .byte x+1&255
+=107					x        .var x+1&255
+>11b0	6c				         .byte x+1&255
+=108					x        .var x+1&255
+>11b1	6d				         .byte x+1&255
+=109					x        .var x+1&255
+>11b2	6e				         .byte x+1&255
+=110					x        .var x+1&255
+>11b3	6f				         .byte x+1&255
+=111					x        .var x+1&255
+>11b4	70				         .byte x+1&255
+=112					x        .var x+1&255
+>11b5	71				         .byte x+1&255
+=113					x        .var x+1&255
+>11b6	72				         .byte x+1&255
+=114					x        .var x+1&255
+>11b7	73				         .byte x+1&255
+=115					x        .var x+1&255
+>11b8	74				         .byte x+1&255
+=116					x        .var x+1&255
+>11b9	75				         .byte x+1&255
+=117					x        .var x+1&255
+>11ba	76				         .byte x+1&255
+=118					x        .var x+1&255
+>11bb	77				         .byte x+1&255
+=119					x        .var x+1&255
+>11bc	78				         .byte x+1&255
+=120					x        .var x+1&255
+>11bd	79				         .byte x+1&255
+=121					x        .var x+1&255
+>11be	7a				         .byte x+1&255
+=122					x        .var x+1&255
+>11bf	7b				         .byte x+1&255
+=123					x        .var x+1&255
+>11c0	7c				         .byte x+1&255
+=124					x        .var x+1&255
+>11c1	7d				         .byte x+1&255
+=125					x        .var x+1&255
+>11c2	7e				         .byte x+1&255
+=126					x        .var x+1&255
+>11c3	7f				         .byte x+1&255
+=127					x        .var x+1&255
+>11c4	80				         .byte x+1&255
+=128					x        .var x+1&255
+>11c5	81				         .byte x+1&255
+=129					x        .var x+1&255
+>11c6	82				         .byte x+1&255
+=130					x        .var x+1&255
+>11c7	83				         .byte x+1&255
+=131					x        .var x+1&255
+>11c8	84				         .byte x+1&255
+=132					x        .var x+1&255
+>11c9	85				         .byte x+1&255
+=133					x        .var x+1&255
+>11ca	86				         .byte x+1&255
+=134					x        .var x+1&255
+>11cb	87				         .byte x+1&255
+=135					x        .var x+1&255
+>11cc	88				         .byte x+1&255
+=136					x        .var x+1&255
+>11cd	89				         .byte x+1&255
+=137					x        .var x+1&255
+>11ce	8a				         .byte x+1&255
+=138					x        .var x+1&255
+>11cf	8b				         .byte x+1&255
+=139					x        .var x+1&255
+>11d0	8c				         .byte x+1&255
+=140					x        .var x+1&255
+>11d1	8d				         .byte x+1&255
+=141					x        .var x+1&255
+>11d2	8e				         .byte x+1&255
+=142					x        .var x+1&255
+>11d3	8f				         .byte x+1&255
+=143					x        .var x+1&255
+>11d4	90				         .byte x+1&255
+=144					x        .var x+1&255
+>11d5	91				         .byte x+1&255
+=145					x        .var x+1&255
+>11d6	92				         .byte x+1&255
+=146					x        .var x+1&255
+>11d7	93				         .byte x+1&255
+=147					x        .var x+1&255
+>11d8	94				         .byte x+1&255
+=148					x        .var x+1&255
+>11d9	95				         .byte x+1&255
+=149					x        .var x+1&255
+>11da	96				         .byte x+1&255
+=150					x        .var x+1&255
+>11db	97				         .byte x+1&255
+=151					x        .var x+1&255
+>11dc	98				         .byte x+1&255
+=152					x        .var x+1&255
+>11dd	99				         .byte x+1&255
+=153					x        .var x+1&255
+>11de	9a				         .byte x+1&255
+=154					x        .var x+1&255
+>11df	9b				         .byte x+1&255
+=155					x        .var x+1&255
+>11e0	9c				         .byte x+1&255
+=156					x        .var x+1&255
+>11e1	9d				         .byte x+1&255
+=157					x        .var x+1&255
+>11e2	9e				         .byte x+1&255
+=158					x        .var x+1&255
+>11e3	9f				         .byte x+1&255
+=159					x        .var x+1&255
+>11e4	a0				         .byte x+1&255
+=160					x        .var x+1&255
+>11e5	a1				         .byte x+1&255
+=161					x        .var x+1&255
+>11e6	a2				         .byte x+1&255
+=162					x        .var x+1&255
+>11e7	a3				         .byte x+1&255
+=163					x        .var x+1&255
+>11e8	a4				         .byte x+1&255
+=164					x        .var x+1&255
+>11e9	a5				         .byte x+1&255
+=165					x        .var x+1&255
+>11ea	a6				         .byte x+1&255
+=166					x        .var x+1&255
+>11eb	a7				         .byte x+1&255
+=167					x        .var x+1&255
+>11ec	a8				         .byte x+1&255
+=168					x        .var x+1&255
+>11ed	a9				         .byte x+1&255
+=169					x        .var x+1&255
+>11ee	aa				         .byte x+1&255
+=170					x        .var x+1&255
+>11ef	ab				         .byte x+1&255
+=171					x        .var x+1&255
+>11f0	ac				         .byte x+1&255
+=172					x        .var x+1&255
+>11f1	ad				         .byte x+1&255
+=173					x        .var x+1&255
+>11f2	ae				         .byte x+1&255
+=174					x        .var x+1&255
+>11f3	af				         .byte x+1&255
+=175					x        .var x+1&255
+>11f4	b0				         .byte x+1&255
+=176					x        .var x+1&255
+>11f5	b1				         .byte x+1&255
+=177					x        .var x+1&255
+>11f6	b2				         .byte x+1&255
+=178					x        .var x+1&255
+>11f7	b3				         .byte x+1&255
+=179					x        .var x+1&255
+>11f8	b4				         .byte x+1&255
+=180					x        .var x+1&255
+>11f9	b5				         .byte x+1&255
+=181					x        .var x+1&255
+>11fa	b6				         .byte x+1&255
+=182					x        .var x+1&255
+>11fb	b7				         .byte x+1&255
+=183					x        .var x+1&255
+>11fc	b8				         .byte x+1&255
+=184					x        .var x+1&255
+>11fd	b9				         .byte x+1&255
+=185					x        .var x+1&255
+>11fe	ba				         .byte x+1&255
+=186					x        .var x+1&255
+>11ff	bb				         .byte x+1&255
+=187					x        .var x+1&255
+>1200	bc				         .byte x+1&255
+=188					x        .var x+1&255
+>1201	bd				         .byte x+1&255
+=189					x        .var x+1&255
+>1202	be				         .byte x+1&255
+=190					x        .var x+1&255
+>1203	bf				         .byte x+1&255
+=191					x        .var x+1&255
+>1204	c0				         .byte x+1&255
+=192					x        .var x+1&255
+>1205	c1				         .byte x+1&255
+=193					x        .var x+1&255
+>1206	c2				         .byte x+1&255
+=194					x        .var x+1&255
+>1207	c3				         .byte x+1&255
+=195					x        .var x+1&255
+>1208	c4				         .byte x+1&255
+=196					x        .var x+1&255
+>1209	c5				         .byte x+1&255
+=197					x        .var x+1&255
+>120a	c6				         .byte x+1&255
+=198					x        .var x+1&255
+>120b	c7				         .byte x+1&255
+=199					x        .var x+1&255
+>120c	c8				         .byte x+1&255
+=200					x        .var x+1&255
+>120d	c9				         .byte x+1&255
+=201					x        .var x+1&255
+>120e	ca				         .byte x+1&255
+=202					x        .var x+1&255
+>120f	cb				         .byte x+1&255
+=203					x        .var x+1&255
+>1210	cc				         .byte x+1&255
+=204					x        .var x+1&255
+>1211	cd				         .byte x+1&255
+=205					x        .var x+1&255
+>1212	ce				         .byte x+1&255
+=206					x        .var x+1&255
+>1213	cf				         .byte x+1&255
+=207					x        .var x+1&255
+>1214	d0				         .byte x+1&255
+=208					x        .var x+1&255
+>1215	d1				         .byte x+1&255
+=209					x        .var x+1&255
+>1216	d2				         .byte x+1&255
+=210					x        .var x+1&255
+>1217	d3				         .byte x+1&255
+=211					x        .var x+1&255
+>1218	d4				         .byte x+1&255
+=212					x        .var x+1&255
+>1219	d5				         .byte x+1&255
+=213					x        .var x+1&255
+>121a	d6				         .byte x+1&255
+=214					x        .var x+1&255
+>121b	d7				         .byte x+1&255
+=215					x        .var x+1&255
+>121c	d8				         .byte x+1&255
+=216					x        .var x+1&255
+>121d	d9				         .byte x+1&255
+=217					x        .var x+1&255
+>121e	da				         .byte x+1&255
+=218					x        .var x+1&255
+>121f	db				         .byte x+1&255
+=219					x        .var x+1&255
+>1220	dc				         .byte x+1&255
+=220					x        .var x+1&255
+>1221	dd				         .byte x+1&255
+=221					x        .var x+1&255
+>1222	de				         .byte x+1&255
+=222					x        .var x+1&255
+>1223	df				         .byte x+1&255
+=223					x        .var x+1&255
+>1224	e0				         .byte x+1&255
+=224					x        .var x+1&255
+>1225	e1				         .byte x+1&255
+=225					x        .var x+1&255
+>1226	e2				         .byte x+1&255
+=226					x        .var x+1&255
+>1227	e3				         .byte x+1&255
+=227					x        .var x+1&255
+>1228	e4				         .byte x+1&255
+=228					x        .var x+1&255
+>1229	e5				         .byte x+1&255
+=229					x        .var x+1&255
+>122a	e6				         .byte x+1&255
+=230					x        .var x+1&255
+>122b	e7				         .byte x+1&255
+=231					x        .var x+1&255
+>122c	e8				         .byte x+1&255
+=232					x        .var x+1&255
+>122d	e9				         .byte x+1&255
+=233					x        .var x+1&255
+>122e	ea				         .byte x+1&255
+=234					x        .var x+1&255
+>122f	eb				         .byte x+1&255
+=235					x        .var x+1&255
+>1230	ec				         .byte x+1&255
+=236					x        .var x+1&255
+>1231	ed				         .byte x+1&255
+=237					x        .var x+1&255
+>1232	ee				         .byte x+1&255
+=238					x        .var x+1&255
+>1233	ef				         .byte x+1&255
+=239					x        .var x+1&255
+>1234	f0				         .byte x+1&255
+=240					x        .var x+1&255
+>1235	f1				         .byte x+1&255
+=241					x        .var x+1&255
+>1236	f2				         .byte x+1&255
+=242					x        .var x+1&255
+>1237	f3				         .byte x+1&255
+=243					x        .var x+1&255
+>1238	f4				         .byte x+1&255
+=244					x        .var x+1&255
+>1239	f5				         .byte x+1&255
+=245					x        .var x+1&255
+>123a	f6				         .byte x+1&255
+=246					x        .var x+1&255
+>123b	f7				         .byte x+1&255
+=247					x        .var x+1&255
+>123c	f8				         .byte x+1&255
+=248					x        .var x+1&255
+>123d	f9				         .byte x+1&255
+=249					x        .var x+1&255
+>123e	fa				         .byte x+1&255
+=250					x        .var x+1&255
+>123f	fb				         .byte x+1&255
+=251					x        .var x+1&255
+>1240	fc				         .byte x+1&255
+=252					x        .var x+1&255
+>1241	fd				         .byte x+1&255
+=253					x        .var x+1&255
+>1242	fe				         .byte x+1&255
+=254					x        .var x+1&255
+>1243	ff				         .byte x+1&255
+=255					x        .var x+1&255
+>1244	00				         .byte x+1&255
+=0					x        .var x+1&255
+.1245					i1tab
+=0					x        .var 0
+>1245	02				         .byte x+2&255
+=1					x        .var x+1&255
+>1246	03				         .byte x+2&255
+=2					x        .var x+1&255
+>1247	04				         .byte x+2&255
+=3					x        .var x+1&255
+>1248	05				         .byte x+2&255
+=4					x        .var x+1&255
+>1249	06				         .byte x+2&255
+=5					x        .var x+1&255
+>124a	07				         .byte x+2&255
+=6					x        .var x+1&255
+>124b	08				         .byte x+2&255
+=7					x        .var x+1&255
+>124c	09				         .byte x+2&255
+=8					x        .var x+1&255
+>124d	0a				         .byte x+2&255
+=9					x        .var x+1&255
+>124e	0b				         .byte x+2&255
+=10					x        .var x+1&255
+>124f	0c				         .byte x+2&255
+=11					x        .var x+1&255
+>1250	0d				         .byte x+2&255
+=12					x        .var x+1&255
+>1251	0e				         .byte x+2&255
+=13					x        .var x+1&255
+>1252	0f				         .byte x+2&255
+=14					x        .var x+1&255
+>1253	10				         .byte x+2&255
+=15					x        .var x+1&255
+>1254	11				         .byte x+2&255
+=16					x        .var x+1&255
+>1255	12				         .byte x+2&255
+=17					x        .var x+1&255
+>1256	13				         .byte x+2&255
+=18					x        .var x+1&255
+>1257	14				         .byte x+2&255
+=19					x        .var x+1&255
+>1258	15				         .byte x+2&255
+=20					x        .var x+1&255
+>1259	16				         .byte x+2&255
+=21					x        .var x+1&255
+>125a	17				         .byte x+2&255
+=22					x        .var x+1&255
+>125b	18				         .byte x+2&255
+=23					x        .var x+1&255
+>125c	19				         .byte x+2&255
+=24					x        .var x+1&255
+>125d	1a				         .byte x+2&255
+=25					x        .var x+1&255
+>125e	1b				         .byte x+2&255
+=26					x        .var x+1&255
+>125f	1c				         .byte x+2&255
+=27					x        .var x+1&255
+>1260	1d				         .byte x+2&255
+=28					x        .var x+1&255
+>1261	1e				         .byte x+2&255
+=29					x        .var x+1&255
+>1262	1f				         .byte x+2&255
+=30					x        .var x+1&255
+>1263	20				         .byte x+2&255
+=31					x        .var x+1&255
+>1264	21				         .byte x+2&255
+=32					x        .var x+1&255
+>1265	22				         .byte x+2&255
+=33					x        .var x+1&255
+>1266	23				         .byte x+2&255
+=34					x        .var x+1&255
+>1267	24				         .byte x+2&255
+=35					x        .var x+1&255
+>1268	25				         .byte x+2&255
+=36					x        .var x+1&255
+>1269	26				         .byte x+2&255
+=37					x        .var x+1&255
+>126a	27				         .byte x+2&255
+=38					x        .var x+1&255
+>126b	28				         .byte x+2&255
+=39					x        .var x+1&255
+>126c	29				         .byte x+2&255
+=40					x        .var x+1&255
+>126d	2a				         .byte x+2&255
+=41					x        .var x+1&255
+>126e	2b				         .byte x+2&255
+=42					x        .var x+1&255
+>126f	2c				         .byte x+2&255
+=43					x        .var x+1&255
+>1270	2d				         .byte x+2&255
+=44					x        .var x+1&255
+>1271	2e				         .byte x+2&255
+=45					x        .var x+1&255
+>1272	2f				         .byte x+2&255
+=46					x        .var x+1&255
+>1273	30				         .byte x+2&255
+=47					x        .var x+1&255
+>1274	31				         .byte x+2&255
+=48					x        .var x+1&255
+>1275	32				         .byte x+2&255
+=49					x        .var x+1&255
+>1276	33				         .byte x+2&255
+=50					x        .var x+1&255
+>1277	34				         .byte x+2&255
+=51					x        .var x+1&255
+>1278	35				         .byte x+2&255
+=52					x        .var x+1&255
+>1279	36				         .byte x+2&255
+=53					x        .var x+1&255
+>127a	37				         .byte x+2&255
+=54					x        .var x+1&255
+>127b	38				         .byte x+2&255
+=55					x        .var x+1&255
+>127c	39				         .byte x+2&255
+=56					x        .var x+1&255
+>127d	3a				         .byte x+2&255
+=57					x        .var x+1&255
+>127e	3b				         .byte x+2&255
+=58					x        .var x+1&255
+>127f	3c				         .byte x+2&255
+=59					x        .var x+1&255
+>1280	3d				         .byte x+2&255
+=60					x        .var x+1&255
+>1281	3e				         .byte x+2&255
+=61					x        .var x+1&255
+>1282	3f				         .byte x+2&255
+=62					x        .var x+1&255
+>1283	40				         .byte x+2&255
+=63					x        .var x+1&255
+>1284	41				         .byte x+2&255
+=64					x        .var x+1&255
+>1285	42				         .byte x+2&255
+=65					x        .var x+1&255
+>1286	43				         .byte x+2&255
+=66					x        .var x+1&255
+>1287	44				         .byte x+2&255
+=67					x        .var x+1&255
+>1288	45				         .byte x+2&255
+=68					x        .var x+1&255
+>1289	46				         .byte x+2&255
+=69					x        .var x+1&255
+>128a	47				         .byte x+2&255
+=70					x        .var x+1&255
+>128b	48				         .byte x+2&255
+=71					x        .var x+1&255
+>128c	49				         .byte x+2&255
+=72					x        .var x+1&255
+>128d	4a				         .byte x+2&255
+=73					x        .var x+1&255
+>128e	4b				         .byte x+2&255
+=74					x        .var x+1&255
+>128f	4c				         .byte x+2&255
+=75					x        .var x+1&255
+>1290	4d				         .byte x+2&255
+=76					x        .var x+1&255
+>1291	4e				         .byte x+2&255
+=77					x        .var x+1&255
+>1292	4f				         .byte x+2&255
+=78					x        .var x+1&255
+>1293	50				         .byte x+2&255
+=79					x        .var x+1&255
+>1294	51				         .byte x+2&255
+=80					x        .var x+1&255
+>1295	52				         .byte x+2&255
+=81					x        .var x+1&255
+>1296	53				         .byte x+2&255
+=82					x        .var x+1&255
+>1297	54				         .byte x+2&255
+=83					x        .var x+1&255
+>1298	55				         .byte x+2&255
+=84					x        .var x+1&255
+>1299	56				         .byte x+2&255
+=85					x        .var x+1&255
+>129a	57				         .byte x+2&255
+=86					x        .var x+1&255
+>129b	58				         .byte x+2&255
+=87					x        .var x+1&255
+>129c	59				         .byte x+2&255
+=88					x        .var x+1&255
+>129d	5a				         .byte x+2&255
+=89					x        .var x+1&255
+>129e	5b				         .byte x+2&255
+=90					x        .var x+1&255
+>129f	5c				         .byte x+2&255
+=91					x        .var x+1&255
+>12a0	5d				         .byte x+2&255
+=92					x        .var x+1&255
+>12a1	5e				         .byte x+2&255
+=93					x        .var x+1&255
+>12a2	5f				         .byte x+2&255
+=94					x        .var x+1&255
+>12a3	60				         .byte x+2&255
+=95					x        .var x+1&255
+>12a4	61				         .byte x+2&255
+=96					x        .var x+1&255
+>12a5	62				         .byte x+2&255
+=97					x        .var x+1&255
+>12a6	63				         .byte x+2&255
+=98					x        .var x+1&255
+>12a7	64				         .byte x+2&255
+=99					x        .var x+1&255
+>12a8	65				         .byte x+2&255
+=100					x        .var x+1&255
+>12a9	66				         .byte x+2&255
+=101					x        .var x+1&255
+>12aa	67				         .byte x+2&255
+=102					x        .var x+1&255
+>12ab	68				         .byte x+2&255
+=103					x        .var x+1&255
+>12ac	69				         .byte x+2&255
+=104					x        .var x+1&255
+>12ad	6a				         .byte x+2&255
+=105					x        .var x+1&255
+>12ae	6b				         .byte x+2&255
+=106					x        .var x+1&255
+>12af	6c				         .byte x+2&255
+=107					x        .var x+1&255
+>12b0	6d				         .byte x+2&255
+=108					x        .var x+1&255
+>12b1	6e				         .byte x+2&255
+=109					x        .var x+1&255
+>12b2	6f				         .byte x+2&255
+=110					x        .var x+1&255
+>12b3	70				         .byte x+2&255
+=111					x        .var x+1&255
+>12b4	71				         .byte x+2&255
+=112					x        .var x+1&255
+>12b5	72				         .byte x+2&255
+=113					x        .var x+1&255
+>12b6	73				         .byte x+2&255
+=114					x        .var x+1&255
+>12b7	74				         .byte x+2&255
+=115					x        .var x+1&255
+>12b8	75				         .byte x+2&255
+=116					x        .var x+1&255
+>12b9	76				         .byte x+2&255
+=117					x        .var x+1&255
+>12ba	77				         .byte x+2&255
+=118					x        .var x+1&255
+>12bb	78				         .byte x+2&255
+=119					x        .var x+1&255
+>12bc	79				         .byte x+2&255
+=120					x        .var x+1&255
+>12bd	7a				         .byte x+2&255
+=121					x        .var x+1&255
+>12be	7b				         .byte x+2&255
+=122					x        .var x+1&255
+>12bf	7c				         .byte x+2&255
+=123					x        .var x+1&255
+>12c0	7d				         .byte x+2&255
+=124					x        .var x+1&255
+>12c1	7e				         .byte x+2&255
+=125					x        .var x+1&255
+>12c2	7f				         .byte x+2&255
+=126					x        .var x+1&255
+>12c3	80				         .byte x+2&255
+=127					x        .var x+1&255
+>12c4	81				         .byte x+2&255
+=128					x        .var x+1&255
+>12c5	82				         .byte x+2&255
+=129					x        .var x+1&255
+>12c6	83				         .byte x+2&255
+=130					x        .var x+1&255
+>12c7	84				         .byte x+2&255
+=131					x        .var x+1&255
+>12c8	85				         .byte x+2&255
+=132					x        .var x+1&255
+>12c9	86				         .byte x+2&255
+=133					x        .var x+1&255
+>12ca	87				         .byte x+2&255
+=134					x        .var x+1&255
+>12cb	88				         .byte x+2&255
+=135					x        .var x+1&255
+>12cc	89				         .byte x+2&255
+=136					x        .var x+1&255
+>12cd	8a				         .byte x+2&255
+=137					x        .var x+1&255
+>12ce	8b				         .byte x+2&255
+=138					x        .var x+1&255
+>12cf	8c				         .byte x+2&255
+=139					x        .var x+1&255
+>12d0	8d				         .byte x+2&255
+=140					x        .var x+1&255
+>12d1	8e				         .byte x+2&255
+=141					x        .var x+1&255
+>12d2	8f				         .byte x+2&255
+=142					x        .var x+1&255
+>12d3	90				         .byte x+2&255
+=143					x        .var x+1&255
+>12d4	91				         .byte x+2&255
+=144					x        .var x+1&255
+>12d5	92				         .byte x+2&255
+=145					x        .var x+1&255
+>12d6	93				         .byte x+2&255
+=146					x        .var x+1&255
+>12d7	94				         .byte x+2&255
+=147					x        .var x+1&255
+>12d8	95				         .byte x+2&255
+=148					x        .var x+1&255
+>12d9	96				         .byte x+2&255
+=149					x        .var x+1&255
+>12da	97				         .byte x+2&255
+=150					x        .var x+1&255
+>12db	98				         .byte x+2&255
+=151					x        .var x+1&255
+>12dc	99				         .byte x+2&255
+=152					x        .var x+1&255
+>12dd	9a				         .byte x+2&255
+=153					x        .var x+1&255
+>12de	9b				         .byte x+2&255
+=154					x        .var x+1&255
+>12df	9c				         .byte x+2&255
+=155					x        .var x+1&255
+>12e0	9d				         .byte x+2&255
+=156					x        .var x+1&255
+>12e1	9e				         .byte x+2&255
+=157					x        .var x+1&255
+>12e2	9f				         .byte x+2&255
+=158					x        .var x+1&255
+>12e3	a0				         .byte x+2&255
+=159					x        .var x+1&255
+>12e4	a1				         .byte x+2&255
+=160					x        .var x+1&255
+>12e5	a2				         .byte x+2&255
+=161					x        .var x+1&255
+>12e6	a3				         .byte x+2&255
+=162					x        .var x+1&255
+>12e7	a4				         .byte x+2&255
+=163					x        .var x+1&255
+>12e8	a5				         .byte x+2&255
+=164					x        .var x+1&255
+>12e9	a6				         .byte x+2&255
+=165					x        .var x+1&255
+>12ea	a7				         .byte x+2&255
+=166					x        .var x+1&255
+>12eb	a8				         .byte x+2&255
+=167					x        .var x+1&255
+>12ec	a9				         .byte x+2&255
+=168					x        .var x+1&255
+>12ed	aa				         .byte x+2&255
+=169					x        .var x+1&255
+>12ee	ab				         .byte x+2&255
+=170					x        .var x+1&255
+>12ef	ac				         .byte x+2&255
+=171					x        .var x+1&255
+>12f0	ad				         .byte x+2&255
+=172					x        .var x+1&255
+>12f1	ae				         .byte x+2&255
+=173					x        .var x+1&255
+>12f2	af				         .byte x+2&255
+=174					x        .var x+1&255
+>12f3	b0				         .byte x+2&255
+=175					x        .var x+1&255
+>12f4	b1				         .byte x+2&255
+=176					x        .var x+1&255
+>12f5	b2				         .byte x+2&255
+=177					x        .var x+1&255
+>12f6	b3				         .byte x+2&255
+=178					x        .var x+1&255
+>12f7	b4				         .byte x+2&255
+=179					x        .var x+1&255
+>12f8	b5				         .byte x+2&255
+=180					x        .var x+1&255
+>12f9	b6				         .byte x+2&255
+=181					x        .var x+1&255
+>12fa	b7				         .byte x+2&255
+=182					x        .var x+1&255
+>12fb	b8				         .byte x+2&255
+=183					x        .var x+1&255
+>12fc	b9				         .byte x+2&255
+=184					x        .var x+1&255
+>12fd	ba				         .byte x+2&255
+=185					x        .var x+1&255
+>12fe	bb				         .byte x+2&255
+=186					x        .var x+1&255
+>12ff	bc				         .byte x+2&255
+=187					x        .var x+1&255
+>1300	bd				         .byte x+2&255
+=188					x        .var x+1&255
+>1301	be				         .byte x+2&255
+=189					x        .var x+1&255
+>1302	bf				         .byte x+2&255
+=190					x        .var x+1&255
+>1303	c0				         .byte x+2&255
+=191					x        .var x+1&255
+>1304	c1				         .byte x+2&255
+=192					x        .var x+1&255
+>1305	c2				         .byte x+2&255
+=193					x        .var x+1&255
+>1306	c3				         .byte x+2&255
+=194					x        .var x+1&255
+>1307	c4				         .byte x+2&255
+=195					x        .var x+1&255
+>1308	c5				         .byte x+2&255
+=196					x        .var x+1&255
+>1309	c6				         .byte x+2&255
+=197					x        .var x+1&255
+>130a	c7				         .byte x+2&255
+=198					x        .var x+1&255
+>130b	c8				         .byte x+2&255
+=199					x        .var x+1&255
+>130c	c9				         .byte x+2&255
+=200					x        .var x+1&255
+>130d	ca				         .byte x+2&255
+=201					x        .var x+1&255
+>130e	cb				         .byte x+2&255
+=202					x        .var x+1&255
+>130f	cc				         .byte x+2&255
+=203					x        .var x+1&255
+>1310	cd				         .byte x+2&255
+=204					x        .var x+1&255
+>1311	ce				         .byte x+2&255
+=205					x        .var x+1&255
+>1312	cf				         .byte x+2&255
+=206					x        .var x+1&255
+>1313	d0				         .byte x+2&255
+=207					x        .var x+1&255
+>1314	d1				         .byte x+2&255
+=208					x        .var x+1&255
+>1315	d2				         .byte x+2&255
+=209					x        .var x+1&255
+>1316	d3				         .byte x+2&255
+=210					x        .var x+1&255
+>1317	d4				         .byte x+2&255
+=211					x        .var x+1&255
+>1318	d5				         .byte x+2&255
+=212					x        .var x+1&255
+>1319	d6				         .byte x+2&255
+=213					x        .var x+1&255
+>131a	d7				         .byte x+2&255
+=214					x        .var x+1&255
+>131b	d8				         .byte x+2&255
+=215					x        .var x+1&255
+>131c	d9				         .byte x+2&255
+=216					x        .var x+1&255
+>131d	da				         .byte x+2&255
+=217					x        .var x+1&255
+>131e	db				         .byte x+2&255
+=218					x        .var x+1&255
+>131f	dc				         .byte x+2&255
+=219					x        .var x+1&255
+>1320	dd				         .byte x+2&255
+=220					x        .var x+1&255
+>1321	de				         .byte x+2&255
+=221					x        .var x+1&255
+>1322	df				         .byte x+2&255
+=222					x        .var x+1&255
+>1323	e0				         .byte x+2&255
+=223					x        .var x+1&255
+>1324	e1				         .byte x+2&255
+=224					x        .var x+1&255
+>1325	e2				         .byte x+2&255
+=225					x        .var x+1&255
+>1326	e3				         .byte x+2&255
+=226					x        .var x+1&255
+>1327	e4				         .byte x+2&255
+=227					x        .var x+1&255
+>1328	e5				         .byte x+2&255
+=228					x        .var x+1&255
+>1329	e6				         .byte x+2&255
+=229					x        .var x+1&255
+>132a	e7				         .byte x+2&255
+=230					x        .var x+1&255
+>132b	e8				         .byte x+2&255
+=231					x        .var x+1&255
+>132c	e9				         .byte x+2&255
+=232					x        .var x+1&255
+>132d	ea				         .byte x+2&255
+=233					x        .var x+1&255
+>132e	eb				         .byte x+2&255
+=234					x        .var x+1&255
+>132f	ec				         .byte x+2&255
+=235					x        .var x+1&255
+>1330	ed				         .byte x+2&255
+=236					x        .var x+1&255
+>1331	ee				         .byte x+2&255
+=237					x        .var x+1&255
+>1332	ef				         .byte x+2&255
+=238					x        .var x+1&255
+>1333	f0				         .byte x+2&255
+=239					x        .var x+1&255
+>1334	f1				         .byte x+2&255
+=240					x        .var x+1&255
+>1335	f2				         .byte x+2&255
+=241					x        .var x+1&255
+>1336	f3				         .byte x+2&255
+=242					x        .var x+1&255
+>1337	f4				         .byte x+2&255
+=243					x        .var x+1&255
+>1338	f5				         .byte x+2&255
+=244					x        .var x+1&255
+>1339	f6				         .byte x+2&255
+=245					x        .var x+1&255
+>133a	f7				         .byte x+2&255
+=246					x        .var x+1&255
+>133b	f8				         .byte x+2&255
+=247					x        .var x+1&255
+>133c	f9				         .byte x+2&255
+=248					x        .var x+1&255
+>133d	fa				         .byte x+2&255
+=249					x        .var x+1&255
+>133e	fb				         .byte x+2&255
+=250					x        .var x+1&255
+>133f	fc				         .byte x+2&255
+=251					x        .var x+1&255
+>1340	fd				         .byte x+2&255
+=252					x        .var x+1&255
+>1341	fe				         .byte x+2&255
+=253					x        .var x+1&255
+>1342	ff				         .byte x+2&255
+=254					x        .var x+1&255
+>1343	00				         .byte x+2&255
+=255					x        .var x+1&255
+>1344	01				         .byte x+2&255
+=0					x        .var x+1&255
+.1345					d0tab
+=0					x        .var 0
+>1345	ff				         .byte x-1&255
+=1					x        .var x+1&255
+>1346	00				         .byte x-1&255
+=2					x        .var x+1&255
+>1347	01				         .byte x-1&255
+=3					x        .var x+1&255
+>1348	02				         .byte x-1&255
+=4					x        .var x+1&255
+>1349	03				         .byte x-1&255
+=5					x        .var x+1&255
+>134a	04				         .byte x-1&255
+=6					x        .var x+1&255
+>134b	05				         .byte x-1&255
+=7					x        .var x+1&255
+>134c	06				         .byte x-1&255
+=8					x        .var x+1&255
+>134d	07				         .byte x-1&255
+=9					x        .var x+1&255
+>134e	08				         .byte x-1&255
+=10					x        .var x+1&255
+>134f	09				         .byte x-1&255
+=11					x        .var x+1&255
+>1350	0a				         .byte x-1&255
+=12					x        .var x+1&255
+>1351	0b				         .byte x-1&255
+=13					x        .var x+1&255
+>1352	0c				         .byte x-1&255
+=14					x        .var x+1&255
+>1353	0d				         .byte x-1&255
+=15					x        .var x+1&255
+>1354	0e				         .byte x-1&255
+=16					x        .var x+1&255
+>1355	0f				         .byte x-1&255
+=17					x        .var x+1&255
+>1356	10				         .byte x-1&255
+=18					x        .var x+1&255
+>1357	11				         .byte x-1&255
+=19					x        .var x+1&255
+>1358	12				         .byte x-1&255
+=20					x        .var x+1&255
+>1359	13				         .byte x-1&255
+=21					x        .var x+1&255
+>135a	14				         .byte x-1&255
+=22					x        .var x+1&255
+>135b	15				         .byte x-1&255
+=23					x        .var x+1&255
+>135c	16				         .byte x-1&255
+=24					x        .var x+1&255
+>135d	17				         .byte x-1&255
+=25					x        .var x+1&255
+>135e	18				         .byte x-1&255
+=26					x        .var x+1&255
+>135f	19				         .byte x-1&255
+=27					x        .var x+1&255
+>1360	1a				         .byte x-1&255
+=28					x        .var x+1&255
+>1361	1b				         .byte x-1&255
+=29					x        .var x+1&255
+>1362	1c				         .byte x-1&255
+=30					x        .var x+1&255
+>1363	1d				         .byte x-1&255
+=31					x        .var x+1&255
+>1364	1e				         .byte x-1&255
+=32					x        .var x+1&255
+>1365	1f				         .byte x-1&255
+=33					x        .var x+1&255
+>1366	20				         .byte x-1&255
+=34					x        .var x+1&255
+>1367	21				         .byte x-1&255
+=35					x        .var x+1&255
+>1368	22				         .byte x-1&255
+=36					x        .var x+1&255
+>1369	23				         .byte x-1&255
+=37					x        .var x+1&255
+>136a	24				         .byte x-1&255
+=38					x        .var x+1&255
+>136b	25				         .byte x-1&255
+=39					x        .var x+1&255
+>136c	26				         .byte x-1&255
+=40					x        .var x+1&255
+>136d	27				         .byte x-1&255
+=41					x        .var x+1&255
+>136e	28				         .byte x-1&255
+=42					x        .var x+1&255
+>136f	29				         .byte x-1&255
+=43					x        .var x+1&255
+>1370	2a				         .byte x-1&255
+=44					x        .var x+1&255
+>1371	2b				         .byte x-1&255
+=45					x        .var x+1&255
+>1372	2c				         .byte x-1&255
+=46					x        .var x+1&255
+>1373	2d				         .byte x-1&255
+=47					x        .var x+1&255
+>1374	2e				         .byte x-1&255
+=48					x        .var x+1&255
+>1375	2f				         .byte x-1&255
+=49					x        .var x+1&255
+>1376	30				         .byte x-1&255
+=50					x        .var x+1&255
+>1377	31				         .byte x-1&255
+=51					x        .var x+1&255
+>1378	32				         .byte x-1&255
+=52					x        .var x+1&255
+>1379	33				         .byte x-1&255
+=53					x        .var x+1&255
+>137a	34				         .byte x-1&255
+=54					x        .var x+1&255
+>137b	35				         .byte x-1&255
+=55					x        .var x+1&255
+>137c	36				         .byte x-1&255
+=56					x        .var x+1&255
+>137d	37				         .byte x-1&255
+=57					x        .var x+1&255
+>137e	38				         .byte x-1&255
+=58					x        .var x+1&255
+>137f	39				         .byte x-1&255
+=59					x        .var x+1&255
+>1380	3a				         .byte x-1&255
+=60					x        .var x+1&255
+>1381	3b				         .byte x-1&255
+=61					x        .var x+1&255
+>1382	3c				         .byte x-1&255
+=62					x        .var x+1&255
+>1383	3d				         .byte x-1&255
+=63					x        .var x+1&255
+>1384	3e				         .byte x-1&255
+=64					x        .var x+1&255
+>1385	3f				         .byte x-1&255
+=65					x        .var x+1&255
+>1386	40				         .byte x-1&255
+=66					x        .var x+1&255
+>1387	41				         .byte x-1&255
+=67					x        .var x+1&255
+>1388	42				         .byte x-1&255
+=68					x        .var x+1&255
+>1389	43				         .byte x-1&255
+=69					x        .var x+1&255
+>138a	44				         .byte x-1&255
+=70					x        .var x+1&255
+>138b	45				         .byte x-1&255
+=71					x        .var x+1&255
+>138c	46				         .byte x-1&255
+=72					x        .var x+1&255
+>138d	47				         .byte x-1&255
+=73					x        .var x+1&255
+>138e	48				         .byte x-1&255
+=74					x        .var x+1&255
+>138f	49				         .byte x-1&255
+=75					x        .var x+1&255
+>1390	4a				         .byte x-1&255
+=76					x        .var x+1&255
+>1391	4b				         .byte x-1&255
+=77					x        .var x+1&255
+>1392	4c				         .byte x-1&255
+=78					x        .var x+1&255
+>1393	4d				         .byte x-1&255
+=79					x        .var x+1&255
+>1394	4e				         .byte x-1&255
+=80					x        .var x+1&255
+>1395	4f				         .byte x-1&255
+=81					x        .var x+1&255
+>1396	50				         .byte x-1&255
+=82					x        .var x+1&255
+>1397	51				         .byte x-1&255
+=83					x        .var x+1&255
+>1398	52				         .byte x-1&255
+=84					x        .var x+1&255
+>1399	53				         .byte x-1&255
+=85					x        .var x+1&255
+>139a	54				         .byte x-1&255
+=86					x        .var x+1&255
+>139b	55				         .byte x-1&255
+=87					x        .var x+1&255
+>139c	56				         .byte x-1&255
+=88					x        .var x+1&255
+>139d	57				         .byte x-1&255
+=89					x        .var x+1&255
+>139e	58				         .byte x-1&255
+=90					x        .var x+1&255
+>139f	59				         .byte x-1&255
+=91					x        .var x+1&255
+>13a0	5a				         .byte x-1&255
+=92					x        .var x+1&255
+>13a1	5b				         .byte x-1&255
+=93					x        .var x+1&255
+>13a2	5c				         .byte x-1&255
+=94					x        .var x+1&255
+>13a3	5d				         .byte x-1&255
+=95					x        .var x+1&255
+>13a4	5e				         .byte x-1&255
+=96					x        .var x+1&255
+>13a5	5f				         .byte x-1&255
+=97					x        .var x+1&255
+>13a6	60				         .byte x-1&255
+=98					x        .var x+1&255
+>13a7	61				         .byte x-1&255
+=99					x        .var x+1&255
+>13a8	62				         .byte x-1&255
+=100					x        .var x+1&255
+>13a9	63				         .byte x-1&255
+=101					x        .var x+1&255
+>13aa	64				         .byte x-1&255
+=102					x        .var x+1&255
+>13ab	65				         .byte x-1&255
+=103					x        .var x+1&255
+>13ac	66				         .byte x-1&255
+=104					x        .var x+1&255
+>13ad	67				         .byte x-1&255
+=105					x        .var x+1&255
+>13ae	68				         .byte x-1&255
+=106					x        .var x+1&255
+>13af	69				         .byte x-1&255
+=107					x        .var x+1&255
+>13b0	6a				         .byte x-1&255
+=108					x        .var x+1&255
+>13b1	6b				         .byte x-1&255
+=109					x        .var x+1&255
+>13b2	6c				         .byte x-1&255
+=110					x        .var x+1&255
+>13b3	6d				         .byte x-1&255
+=111					x        .var x+1&255
+>13b4	6e				         .byte x-1&255
+=112					x        .var x+1&255
+>13b5	6f				         .byte x-1&255
+=113					x        .var x+1&255
+>13b6	70				         .byte x-1&255
+=114					x        .var x+1&255
+>13b7	71				         .byte x-1&255
+=115					x        .var x+1&255
+>13b8	72				         .byte x-1&255
+=116					x        .var x+1&255
+>13b9	73				         .byte x-1&255
+=117					x        .var x+1&255
+>13ba	74				         .byte x-1&255
+=118					x        .var x+1&255
+>13bb	75				         .byte x-1&255
+=119					x        .var x+1&255
+>13bc	76				         .byte x-1&255
+=120					x        .var x+1&255
+>13bd	77				         .byte x-1&255
+=121					x        .var x+1&255
+>13be	78				         .byte x-1&255
+=122					x        .var x+1&255
+>13bf	79				         .byte x-1&255
+=123					x        .var x+1&255
+>13c0	7a				         .byte x-1&255
+=124					x        .var x+1&255
+>13c1	7b				         .byte x-1&255
+=125					x        .var x+1&255
+>13c2	7c				         .byte x-1&255
+=126					x        .var x+1&255
+>13c3	7d				         .byte x-1&255
+=127					x        .var x+1&255
+>13c4	7e				         .byte x-1&255
+=128					x        .var x+1&255
+>13c5	7f				         .byte x-1&255
+=129					x        .var x+1&255
+>13c6	80				         .byte x-1&255
+=130					x        .var x+1&255
+>13c7	81				         .byte x-1&255
+=131					x        .var x+1&255
+>13c8	82				         .byte x-1&255
+=132					x        .var x+1&255
+>13c9	83				         .byte x-1&255
+=133					x        .var x+1&255
+>13ca	84				         .byte x-1&255
+=134					x        .var x+1&255
+>13cb	85				         .byte x-1&255
+=135					x        .var x+1&255
+>13cc	86				         .byte x-1&255
+=136					x        .var x+1&255
+>13cd	87				         .byte x-1&255
+=137					x        .var x+1&255
+>13ce	88				         .byte x-1&255
+=138					x        .var x+1&255
+>13cf	89				         .byte x-1&255
+=139					x        .var x+1&255
+>13d0	8a				         .byte x-1&255
+=140					x        .var x+1&255
+>13d1	8b				         .byte x-1&255
+=141					x        .var x+1&255
+>13d2	8c				         .byte x-1&255
+=142					x        .var x+1&255
+>13d3	8d				         .byte x-1&255
+=143					x        .var x+1&255
+>13d4	8e				         .byte x-1&255
+=144					x        .var x+1&255
+>13d5	8f				         .byte x-1&255
+=145					x        .var x+1&255
+>13d6	90				         .byte x-1&255
+=146					x        .var x+1&255
+>13d7	91				         .byte x-1&255
+=147					x        .var x+1&255
+>13d8	92				         .byte x-1&255
+=148					x        .var x+1&255
+>13d9	93				         .byte x-1&255
+=149					x        .var x+1&255
+>13da	94				         .byte x-1&255
+=150					x        .var x+1&255
+>13db	95				         .byte x-1&255
+=151					x        .var x+1&255
+>13dc	96				         .byte x-1&255
+=152					x        .var x+1&255
+>13dd	97				         .byte x-1&255
+=153					x        .var x+1&255
+>13de	98				         .byte x-1&255
+=154					x        .var x+1&255
+>13df	99				         .byte x-1&255
+=155					x        .var x+1&255
+>13e0	9a				         .byte x-1&255
+=156					x        .var x+1&255
+>13e1	9b				         .byte x-1&255
+=157					x        .var x+1&255
+>13e2	9c				         .byte x-1&255
+=158					x        .var x+1&255
+>13e3	9d				         .byte x-1&255
+=159					x        .var x+1&255
+>13e4	9e				         .byte x-1&255
+=160					x        .var x+1&255
+>13e5	9f				         .byte x-1&255
+=161					x        .var x+1&255
+>13e6	a0				         .byte x-1&255
+=162					x        .var x+1&255
+>13e7	a1				         .byte x-1&255
+=163					x        .var x+1&255
+>13e8	a2				         .byte x-1&255
+=164					x        .var x+1&255
+>13e9	a3				         .byte x-1&255
+=165					x        .var x+1&255
+>13ea	a4				         .byte x-1&255
+=166					x        .var x+1&255
+>13eb	a5				         .byte x-1&255
+=167					x        .var x+1&255
+>13ec	a6				         .byte x-1&255
+=168					x        .var x+1&255
+>13ed	a7				         .byte x-1&255
+=169					x        .var x+1&255
+>13ee	a8				         .byte x-1&255
+=170					x        .var x+1&255
+>13ef	a9				         .byte x-1&255
+=171					x        .var x+1&255
+>13f0	aa				         .byte x-1&255
+=172					x        .var x+1&255
+>13f1	ab				         .byte x-1&255
+=173					x        .var x+1&255
+>13f2	ac				         .byte x-1&255
+=174					x        .var x+1&255
+>13f3	ad				         .byte x-1&255
+=175					x        .var x+1&255
+>13f4	ae				         .byte x-1&255
+=176					x        .var x+1&255
+>13f5	af				         .byte x-1&255
+=177					x        .var x+1&255
+>13f6	b0				         .byte x-1&255
+=178					x        .var x+1&255
+>13f7	b1				         .byte x-1&255
+=179					x        .var x+1&255
+>13f8	b2				         .byte x-1&255
+=180					x        .var x+1&255
+>13f9	b3				         .byte x-1&255
+=181					x        .var x+1&255
+>13fa	b4				         .byte x-1&255
+=182					x        .var x+1&255
+>13fb	b5				         .byte x-1&255
+=183					x        .var x+1&255
+>13fc	b6				         .byte x-1&255
+=184					x        .var x+1&255
+>13fd	b7				         .byte x-1&255
+=185					x        .var x+1&255
+>13fe	b8				         .byte x-1&255
+=186					x        .var x+1&255
+>13ff	b9				         .byte x-1&255
+=187					x        .var x+1&255
+>1400	ba				         .byte x-1&255
+=188					x        .var x+1&255
+>1401	bb				         .byte x-1&255
+=189					x        .var x+1&255
+>1402	bc				         .byte x-1&255
+=190					x        .var x+1&255
+>1403	bd				         .byte x-1&255
+=191					x        .var x+1&255
+>1404	be				         .byte x-1&255
+=192					x        .var x+1&255
+>1405	bf				         .byte x-1&255
+=193					x        .var x+1&255
+>1406	c0				         .byte x-1&255
+=194					x        .var x+1&255
+>1407	c1				         .byte x-1&255
+=195					x        .var x+1&255
+>1408	c2				         .byte x-1&255
+=196					x        .var x+1&255
+>1409	c3				         .byte x-1&255
+=197					x        .var x+1&255
+>140a	c4				         .byte x-1&255
+=198					x        .var x+1&255
+>140b	c5				         .byte x-1&255
+=199					x        .var x+1&255
+>140c	c6				         .byte x-1&255
+=200					x        .var x+1&255
+>140d	c7				         .byte x-1&255
+=201					x        .var x+1&255
+>140e	c8				         .byte x-1&255
+=202					x        .var x+1&255
+>140f	c9				         .byte x-1&255
+=203					x        .var x+1&255
+>1410	ca				         .byte x-1&255
+=204					x        .var x+1&255
+>1411	cb				         .byte x-1&255
+=205					x        .var x+1&255
+>1412	cc				         .byte x-1&255
+=206					x        .var x+1&255
+>1413	cd				         .byte x-1&255
+=207					x        .var x+1&255
+>1414	ce				         .byte x-1&255
+=208					x        .var x+1&255
+>1415	cf				         .byte x-1&255
+=209					x        .var x+1&255
+>1416	d0				         .byte x-1&255
+=210					x        .var x+1&255
+>1417	d1				         .byte x-1&255
+=211					x        .var x+1&255
+>1418	d2				         .byte x-1&255
+=212					x        .var x+1&255
+>1419	d3				         .byte x-1&255
+=213					x        .var x+1&255
+>141a	d4				         .byte x-1&255
+=214					x        .var x+1&255
+>141b	d5				         .byte x-1&255
+=215					x        .var x+1&255
+>141c	d6				         .byte x-1&255
+=216					x        .var x+1&255
+>141d	d7				         .byte x-1&255
+=217					x        .var x+1&255
+>141e	d8				         .byte x-1&255
+=218					x        .var x+1&255
+>141f	d9				         .byte x-1&255
+=219					x        .var x+1&255
+>1420	da				         .byte x-1&255
+=220					x        .var x+1&255
+>1421	db				         .byte x-1&255
+=221					x        .var x+1&255
+>1422	dc				         .byte x-1&255
+=222					x        .var x+1&255
+>1423	dd				         .byte x-1&255
+=223					x        .var x+1&255
+>1424	de				         .byte x-1&255
+=224					x        .var x+1&255
+>1425	df				         .byte x-1&255
+=225					x        .var x+1&255
+>1426	e0				         .byte x-1&255
+=226					x        .var x+1&255
+>1427	e1				         .byte x-1&255
+=227					x        .var x+1&255
+>1428	e2				         .byte x-1&255
+=228					x        .var x+1&255
+>1429	e3				         .byte x-1&255
+=229					x        .var x+1&255
+>142a	e4				         .byte x-1&255
+=230					x        .var x+1&255
+>142b	e5				         .byte x-1&255
+=231					x        .var x+1&255
+>142c	e6				         .byte x-1&255
+=232					x        .var x+1&255
+>142d	e7				         .byte x-1&255
+=233					x        .var x+1&255
+>142e	e8				         .byte x-1&255
+=234					x        .var x+1&255
+>142f	e9				         .byte x-1&255
+=235					x        .var x+1&255
+>1430	ea				         .byte x-1&255
+=236					x        .var x+1&255
+>1431	eb				         .byte x-1&255
+=237					x        .var x+1&255
+>1432	ec				         .byte x-1&255
+=238					x        .var x+1&255
+>1433	ed				         .byte x-1&255
+=239					x        .var x+1&255
+>1434	ee				         .byte x-1&255
+=240					x        .var x+1&255
+>1435	ef				         .byte x-1&255
+=241					x        .var x+1&255
+>1436	f0				         .byte x-1&255
+=242					x        .var x+1&255
+>1437	f1				         .byte x-1&255
+=243					x        .var x+1&255
+>1438	f2				         .byte x-1&255
+=244					x        .var x+1&255
+>1439	f3				         .byte x-1&255
+=245					x        .var x+1&255
+>143a	f4				         .byte x-1&255
+=246					x        .var x+1&255
+>143b	f5				         .byte x-1&255
+=247					x        .var x+1&255
+>143c	f6				         .byte x-1&255
+=248					x        .var x+1&255
+>143d	f7				         .byte x-1&255
+=249					x        .var x+1&255
+>143e	f8				         .byte x-1&255
+=250					x        .var x+1&255
+>143f	f9				         .byte x-1&255
+=251					x        .var x+1&255
+>1440	fa				         .byte x-1&255
+=252					x        .var x+1&255
+>1441	fb				         .byte x-1&255
+=253					x        .var x+1&255
+>1442	fc				         .byte x-1&255
+=254					x        .var x+1&255
+>1443	fd				         .byte x-1&255
+=255					x        .var x+1&255
+>1444	fe				         .byte x-1&255
+=0					x        .var x+1&255
+.1445					d1tab
+=0					x        .var 0
+>1445	fe				         .byte x-2&255
+=1					x        .var x+1&255
+>1446	ff				         .byte x-2&255
+=2					x        .var x+1&255
+>1447	00				         .byte x-2&255
+=3					x        .var x+1&255
+>1448	01				         .byte x-2&255
+=4					x        .var x+1&255
+>1449	02				         .byte x-2&255
+=5					x        .var x+1&255
+>144a	03				         .byte x-2&255
+=6					x        .var x+1&255
+>144b	04				         .byte x-2&255
+=7					x        .var x+1&255
+>144c	05				         .byte x-2&255
+=8					x        .var x+1&255
+>144d	06				         .byte x-2&255
+=9					x        .var x+1&255
+>144e	07				         .byte x-2&255
+=10					x        .var x+1&255
+>144f	08				         .byte x-2&255
+=11					x        .var x+1&255
+>1450	09				         .byte x-2&255
+=12					x        .var x+1&255
+>1451	0a				         .byte x-2&255
+=13					x        .var x+1&255
+>1452	0b				         .byte x-2&255
+=14					x        .var x+1&255
+>1453	0c				         .byte x-2&255
+=15					x        .var x+1&255
+>1454	0d				         .byte x-2&255
+=16					x        .var x+1&255
+>1455	0e				         .byte x-2&255
+=17					x        .var x+1&255
+>1456	0f				         .byte x-2&255
+=18					x        .var x+1&255
+>1457	10				         .byte x-2&255
+=19					x        .var x+1&255
+>1458	11				         .byte x-2&255
+=20					x        .var x+1&255
+>1459	12				         .byte x-2&255
+=21					x        .var x+1&255
+>145a	13				         .byte x-2&255
+=22					x        .var x+1&255
+>145b	14				         .byte x-2&255
+=23					x        .var x+1&255
+>145c	15				         .byte x-2&255
+=24					x        .var x+1&255
+>145d	16				         .byte x-2&255
+=25					x        .var x+1&255
+>145e	17				         .byte x-2&255
+=26					x        .var x+1&255
+>145f	18				         .byte x-2&255
+=27					x        .var x+1&255
+>1460	19				         .byte x-2&255
+=28					x        .var x+1&255
+>1461	1a				         .byte x-2&255
+=29					x        .var x+1&255
+>1462	1b				         .byte x-2&255
+=30					x        .var x+1&255
+>1463	1c				         .byte x-2&255
+=31					x        .var x+1&255
+>1464	1d				         .byte x-2&255
+=32					x        .var x+1&255
+>1465	1e				         .byte x-2&255
+=33					x        .var x+1&255
+>1466	1f				         .byte x-2&255
+=34					x        .var x+1&255
+>1467	20				         .byte x-2&255
+=35					x        .var x+1&255
+>1468	21				         .byte x-2&255
+=36					x        .var x+1&255
+>1469	22				         .byte x-2&255
+=37					x        .var x+1&255
+>146a	23				         .byte x-2&255
+=38					x        .var x+1&255
+>146b	24				         .byte x-2&255
+=39					x        .var x+1&255
+>146c	25				         .byte x-2&255
+=40					x        .var x+1&255
+>146d	26				         .byte x-2&255
+=41					x        .var x+1&255
+>146e	27				         .byte x-2&255
+=42					x        .var x+1&255
+>146f	28				         .byte x-2&255
+=43					x        .var x+1&255
+>1470	29				         .byte x-2&255
+=44					x        .var x+1&255
+>1471	2a				         .byte x-2&255
+=45					x        .var x+1&255
+>1472	2b				         .byte x-2&255
+=46					x        .var x+1&255
+>1473	2c				         .byte x-2&255
+=47					x        .var x+1&255
+>1474	2d				         .byte x-2&255
+=48					x        .var x+1&255
+>1475	2e				         .byte x-2&255
+=49					x        .var x+1&255
+>1476	2f				         .byte x-2&255
+=50					x        .var x+1&255
+>1477	30				         .byte x-2&255
+=51					x        .var x+1&255
+>1478	31				         .byte x-2&255
+=52					x        .var x+1&255
+>1479	32				         .byte x-2&255
+=53					x        .var x+1&255
+>147a	33				         .byte x-2&255
+=54					x        .var x+1&255
+>147b	34				         .byte x-2&255
+=55					x        .var x+1&255
+>147c	35				         .byte x-2&255
+=56					x        .var x+1&255
+>147d	36				         .byte x-2&255
+=57					x        .var x+1&255
+>147e	37				         .byte x-2&255
+=58					x        .var x+1&255
+>147f	38				         .byte x-2&255
+=59					x        .var x+1&255
+>1480	39				         .byte x-2&255
+=60					x        .var x+1&255
+>1481	3a				         .byte x-2&255
+=61					x        .var x+1&255
+>1482	3b				         .byte x-2&255
+=62					x        .var x+1&255
+>1483	3c				         .byte x-2&255
+=63					x        .var x+1&255
+>1484	3d				         .byte x-2&255
+=64					x        .var x+1&255
+>1485	3e				         .byte x-2&255
+=65					x        .var x+1&255
+>1486	3f				         .byte x-2&255
+=66					x        .var x+1&255
+>1487	40				         .byte x-2&255
+=67					x        .var x+1&255
+>1488	41				         .byte x-2&255
+=68					x        .var x+1&255
+>1489	42				         .byte x-2&255
+=69					x        .var x+1&255
+>148a	43				         .byte x-2&255
+=70					x        .var x+1&255
+>148b	44				         .byte x-2&255
+=71					x        .var x+1&255
+>148c	45				         .byte x-2&255
+=72					x        .var x+1&255
+>148d	46				         .byte x-2&255
+=73					x        .var x+1&255
+>148e	47				         .byte x-2&255
+=74					x        .var x+1&255
+>148f	48				         .byte x-2&255
+=75					x        .var x+1&255
+>1490	49				         .byte x-2&255
+=76					x        .var x+1&255
+>1491	4a				         .byte x-2&255
+=77					x        .var x+1&255
+>1492	4b				         .byte x-2&255
+=78					x        .var x+1&255
+>1493	4c				         .byte x-2&255
+=79					x        .var x+1&255
+>1494	4d				         .byte x-2&255
+=80					x        .var x+1&255
+>1495	4e				         .byte x-2&255
+=81					x        .var x+1&255
+>1496	4f				         .byte x-2&255
+=82					x        .var x+1&255
+>1497	50				         .byte x-2&255
+=83					x        .var x+1&255
+>1498	51				         .byte x-2&255
+=84					x        .var x+1&255
+>1499	52				         .byte x-2&255
+=85					x        .var x+1&255
+>149a	53				         .byte x-2&255
+=86					x        .var x+1&255
+>149b	54				         .byte x-2&255
+=87					x        .var x+1&255
+>149c	55				         .byte x-2&255
+=88					x        .var x+1&255
+>149d	56				         .byte x-2&255
+=89					x        .var x+1&255
+>149e	57				         .byte x-2&255
+=90					x        .var x+1&255
+>149f	58				         .byte x-2&255
+=91					x        .var x+1&255
+>14a0	59				         .byte x-2&255
+=92					x        .var x+1&255
+>14a1	5a				         .byte x-2&255
+=93					x        .var x+1&255
+>14a2	5b				         .byte x-2&255
+=94					x        .var x+1&255
+>14a3	5c				         .byte x-2&255
+=95					x        .var x+1&255
+>14a4	5d				         .byte x-2&255
+=96					x        .var x+1&255
+>14a5	5e				         .byte x-2&255
+=97					x        .var x+1&255
+>14a6	5f				         .byte x-2&255
+=98					x        .var x+1&255
+>14a7	60				         .byte x-2&255
+=99					x        .var x+1&255
+>14a8	61				         .byte x-2&255
+=100					x        .var x+1&255
+>14a9	62				         .byte x-2&255
+=101					x        .var x+1&255
+>14aa	63				         .byte x-2&255
+=102					x        .var x+1&255
+>14ab	64				         .byte x-2&255
+=103					x        .var x+1&255
+>14ac	65				         .byte x-2&255
+=104					x        .var x+1&255
+>14ad	66				         .byte x-2&255
+=105					x        .var x+1&255
+>14ae	67				         .byte x-2&255
+=106					x        .var x+1&255
+>14af	68				         .byte x-2&255
+=107					x        .var x+1&255
+>14b0	69				         .byte x-2&255
+=108					x        .var x+1&255
+>14b1	6a				         .byte x-2&255
+=109					x        .var x+1&255
+>14b2	6b				         .byte x-2&255
+=110					x        .var x+1&255
+>14b3	6c				         .byte x-2&255
+=111					x        .var x+1&255
+>14b4	6d				         .byte x-2&255
+=112					x        .var x+1&255
+>14b5	6e				         .byte x-2&255
+=113					x        .var x+1&255
+>14b6	6f				         .byte x-2&255
+=114					x        .var x+1&255
+>14b7	70				         .byte x-2&255
+=115					x        .var x+1&255
+>14b8	71				         .byte x-2&255
+=116					x        .var x+1&255
+>14b9	72				         .byte x-2&255
+=117					x        .var x+1&255
+>14ba	73				         .byte x-2&255
+=118					x        .var x+1&255
+>14bb	74				         .byte x-2&255
+=119					x        .var x+1&255
+>14bc	75				         .byte x-2&255
+=120					x        .var x+1&255
+>14bd	76				         .byte x-2&255
+=121					x        .var x+1&255
+>14be	77				         .byte x-2&255
+=122					x        .var x+1&255
+>14bf	78				         .byte x-2&255
+=123					x        .var x+1&255
+>14c0	79				         .byte x-2&255
+=124					x        .var x+1&255
+>14c1	7a				         .byte x-2&255
+=125					x        .var x+1&255
+>14c2	7b				         .byte x-2&255
+=126					x        .var x+1&255
+>14c3	7c				         .byte x-2&255
+=127					x        .var x+1&255
+>14c4	7d				         .byte x-2&255
+=128					x        .var x+1&255
+>14c5	7e				         .byte x-2&255
+=129					x        .var x+1&255
+>14c6	7f				         .byte x-2&255
+=130					x        .var x+1&255
+>14c7	80				         .byte x-2&255
+=131					x        .var x+1&255
+>14c8	81				         .byte x-2&255
+=132					x        .var x+1&255
+>14c9	82				         .byte x-2&255
+=133					x        .var x+1&255
+>14ca	83				         .byte x-2&255
+=134					x        .var x+1&255
+>14cb	84				         .byte x-2&255
+=135					x        .var x+1&255
+>14cc	85				         .byte x-2&255
+=136					x        .var x+1&255
+>14cd	86				         .byte x-2&255
+=137					x        .var x+1&255
+>14ce	87				         .byte x-2&255
+=138					x        .var x+1&255
+>14cf	88				         .byte x-2&255
+=139					x        .var x+1&255
+>14d0	89				         .byte x-2&255
+=140					x        .var x+1&255
+>14d1	8a				         .byte x-2&255
+=141					x        .var x+1&255
+>14d2	8b				         .byte x-2&255
+=142					x        .var x+1&255
+>14d3	8c				         .byte x-2&255
+=143					x        .var x+1&255
+>14d4	8d				         .byte x-2&255
+=144					x        .var x+1&255
+>14d5	8e				         .byte x-2&255
+=145					x        .var x+1&255
+>14d6	8f				         .byte x-2&255
+=146					x        .var x+1&255
+>14d7	90				         .byte x-2&255
+=147					x        .var x+1&255
+>14d8	91				         .byte x-2&255
+=148					x        .var x+1&255
+>14d9	92				         .byte x-2&255
+=149					x        .var x+1&255
+>14da	93				         .byte x-2&255
+=150					x        .var x+1&255
+>14db	94				         .byte x-2&255
+=151					x        .var x+1&255
+>14dc	95				         .byte x-2&255
+=152					x        .var x+1&255
+>14dd	96				         .byte x-2&255
+=153					x        .var x+1&255
+>14de	97				         .byte x-2&255
+=154					x        .var x+1&255
+>14df	98				         .byte x-2&255
+=155					x        .var x+1&255
+>14e0	99				         .byte x-2&255
+=156					x        .var x+1&255
+>14e1	9a				         .byte x-2&255
+=157					x        .var x+1&255
+>14e2	9b				         .byte x-2&255
+=158					x        .var x+1&255
+>14e3	9c				         .byte x-2&255
+=159					x        .var x+1&255
+>14e4	9d				         .byte x-2&255
+=160					x        .var x+1&255
+>14e5	9e				         .byte x-2&255
+=161					x        .var x+1&255
+>14e6	9f				         .byte x-2&255
+=162					x        .var x+1&255
+>14e7	a0				         .byte x-2&255
+=163					x        .var x+1&255
+>14e8	a1				         .byte x-2&255
+=164					x        .var x+1&255
+>14e9	a2				         .byte x-2&255
+=165					x        .var x+1&255
+>14ea	a3				         .byte x-2&255
+=166					x        .var x+1&255
+>14eb	a4				         .byte x-2&255
+=167					x        .var x+1&255
+>14ec	a5				         .byte x-2&255
+=168					x        .var x+1&255
+>14ed	a6				         .byte x-2&255
+=169					x        .var x+1&255
+>14ee	a7				         .byte x-2&255
+=170					x        .var x+1&255
+>14ef	a8				         .byte x-2&255
+=171					x        .var x+1&255
+>14f0	a9				         .byte x-2&255
+=172					x        .var x+1&255
+>14f1	aa				         .byte x-2&255
+=173					x        .var x+1&255
+>14f2	ab				         .byte x-2&255
+=174					x        .var x+1&255
+>14f3	ac				         .byte x-2&255
+=175					x        .var x+1&255
+>14f4	ad				         .byte x-2&255
+=176					x        .var x+1&255
+>14f5	ae				         .byte x-2&255
+=177					x        .var x+1&255
+>14f6	af				         .byte x-2&255
+=178					x        .var x+1&255
+>14f7	b0				         .byte x-2&255
+=179					x        .var x+1&255
+>14f8	b1				         .byte x-2&255
+=180					x        .var x+1&255
+>14f9	b2				         .byte x-2&255
+=181					x        .var x+1&255
+>14fa	b3				         .byte x-2&255
+=182					x        .var x+1&255
+>14fb	b4				         .byte x-2&255
+=183					x        .var x+1&255
+>14fc	b5				         .byte x-2&255
+=184					x        .var x+1&255
+>14fd	b6				         .byte x-2&255
+=185					x        .var x+1&255
+>14fe	b7				         .byte x-2&255
+=186					x        .var x+1&255
+>14ff	b8				         .byte x-2&255
+=187					x        .var x+1&255
+>1500	b9				         .byte x-2&255
+=188					x        .var x+1&255
+>1501	ba				         .byte x-2&255
+=189					x        .var x+1&255
+>1502	bb				         .byte x-2&255
+=190					x        .var x+1&255
+>1503	bc				         .byte x-2&255
+=191					x        .var x+1&255
+>1504	bd				         .byte x-2&255
+=192					x        .var x+1&255
+>1505	be				         .byte x-2&255
+=193					x        .var x+1&255
+>1506	bf				         .byte x-2&255
+=194					x        .var x+1&255
+>1507	c0				         .byte x-2&255
+=195					x        .var x+1&255
+>1508	c1				         .byte x-2&255
+=196					x        .var x+1&255
+>1509	c2				         .byte x-2&255
+=197					x        .var x+1&255
+>150a	c3				         .byte x-2&255
+=198					x        .var x+1&255
+>150b	c4				         .byte x-2&255
+=199					x        .var x+1&255
+>150c	c5				         .byte x-2&255
+=200					x        .var x+1&255
+>150d	c6				         .byte x-2&255
+=201					x        .var x+1&255
+>150e	c7				         .byte x-2&255
+=202					x        .var x+1&255
+>150f	c8				         .byte x-2&255
+=203					x        .var x+1&255
+>1510	c9				         .byte x-2&255
+=204					x        .var x+1&255
+>1511	ca				         .byte x-2&255
+=205					x        .var x+1&255
+>1512	cb				         .byte x-2&255
+=206					x        .var x+1&255
+>1513	cc				         .byte x-2&255
+=207					x        .var x+1&255
+>1514	cd				         .byte x-2&255
+=208					x        .var x+1&255
+>1515	ce				         .byte x-2&255
+=209					x        .var x+1&255
+>1516	cf				         .byte x-2&255
+=210					x        .var x+1&255
+>1517	d0				         .byte x-2&255
+=211					x        .var x+1&255
+>1518	d1				         .byte x-2&255
+=212					x        .var x+1&255
+>1519	d2				         .byte x-2&255
+=213					x        .var x+1&255
+>151a	d3				         .byte x-2&255
+=214					x        .var x+1&255
+>151b	d4				         .byte x-2&255
+=215					x        .var x+1&255
+>151c	d5				         .byte x-2&255
+=216					x        .var x+1&255
+>151d	d6				         .byte x-2&255
+=217					x        .var x+1&255
+>151e	d7				         .byte x-2&255
+=218					x        .var x+1&255
+>151f	d8				         .byte x-2&255
+=219					x        .var x+1&255
+>1520	d9				         .byte x-2&255
+=220					x        .var x+1&255
+>1521	da				         .byte x-2&255
+=221					x        .var x+1&255
+>1522	db				         .byte x-2&255
+=222					x        .var x+1&255
+>1523	dc				         .byte x-2&255
+=223					x        .var x+1&255
+>1524	dd				         .byte x-2&255
+=224					x        .var x+1&255
+>1525	de				         .byte x-2&255
+=225					x        .var x+1&255
+>1526	df				         .byte x-2&255
+=226					x        .var x+1&255
+>1527	e0				         .byte x-2&255
+=227					x        .var x+1&255
+>1528	e1				         .byte x-2&255
+=228					x        .var x+1&255
+>1529	e2				         .byte x-2&255
+=229					x        .var x+1&255
+>152a	e3				         .byte x-2&255
+=230					x        .var x+1&255
+>152b	e4				         .byte x-2&255
+=231					x        .var x+1&255
+>152c	e5				         .byte x-2&255
+=232					x        .var x+1&255
+>152d	e6				         .byte x-2&255
+=233					x        .var x+1&255
+>152e	e7				         .byte x-2&255
+=234					x        .var x+1&255
+>152f	e8				         .byte x-2&255
+=235					x        .var x+1&255
+>1530	e9				         .byte x-2&255
+=236					x        .var x+1&255
+>1531	ea				         .byte x-2&255
+=237					x        .var x+1&255
+>1532	eb				         .byte x-2&255
+=238					x        .var x+1&255
+>1533	ec				         .byte x-2&255
+=239					x        .var x+1&255
+>1534	ed				         .byte x-2&255
+=240					x        .var x+1&255
+>1535	ee				         .byte x-2&255
+=241					x        .var x+1&255
+>1536	ef				         .byte x-2&255
+=242					x        .var x+1&255
+>1537	f0				         .byte x-2&255
+=243					x        .var x+1&255
+>1538	f1				         .byte x-2&255
+=244					x        .var x+1&255
+>1539	f2				         .byte x-2&255
+=245					x        .var x+1&255
+>153a	f3				         .byte x-2&255
+=246					x        .var x+1&255
+>153b	f4				         .byte x-2&255
+=247					x        .var x+1&255
+>153c	f5				         .byte x-2&255
+=248					x        .var x+1&255
+>153d	f6				         .byte x-2&255
+=249					x        .var x+1&255
+>153e	f7				         .byte x-2&255
+=250					x        .var x+1&255
+>153f	f8				         .byte x-2&255
+=251					x        .var x+1&255
+>1540	f9				         .byte x-2&255
+=252					x        .var x+1&255
+>1541	fa				         .byte x-2&255
+=253					x        .var x+1&255
+>1542	fb				         .byte x-2&255
+=254					x        .var x+1&255
+>1543	fc				         .byte x-2&255
+=255					x        .var x+1&255
+>1544	fd				         .byte x-2&255
+=0					x        .var x+1&255
+.1545	68		pla		print    pla
+.1546	8d 50 15	sta $1550	         sta print0+1
+.1549	68		pla		         pla
+.154a	8d 51 15	sta $1551	         sta print0+2
+.154d	a2 01		ldx #$01	         ldx #1
+.154f	bd 4f 15	lda $154f,x	print0   lda !*,x
+.1552	f0 06		beq $155a	         beq print1
+.1554	20 d2 ff	jsr $ffd2	         jsr $ffd2
+.1557	e8		inx		         inx
+.1558	d0 f5		bne $154f	         bne print0
+.155a	38		sec		print1   sec
+.155b	8a		txa		         txa
+.155c	6d 50 15	adc $1550	         adc print0+1
+.155f	8d 6b 15	sta $156b	         sta print2+1
+.1562	a9 00		lda #$00	         lda #0
+.1564	6d 51 15	adc $1551	         adc print0+2
+.1567	8d 6c 15	sta $156c	         sta print2+2
+.156a	4c 6a 15	jmp $156a	print2   jmp !*
+
+;******  End of listing

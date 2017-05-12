@@ -1,0 +1,351 @@
+
+; 64tass Turbo Assembler Macro V1.52.1237 listing file
+; 64tass.exe -L ascii-lst/icr01.lst -o ascii-bin/icr01 -T ascii-src/icr01.asm
+; Mon Sep 26 23:32:19 2016
+
+;Offset	;Hex		;Monitor	;Source
+
+;******  Processing input file: ascii-src/icr01.asm
+
+>0801	4c 14 08 00 97			           .byte $4c,$14,$08,$00,$97
+=780					turboass   = 780
+>0806	37 38 30			           .text "780"
+>0809	2c 30 3a 9e 32 30		           .byte $2c,$30,$3a,$9e,$32,$30
+>080f	37 33 00 00 00			           .byte $37,$33,$00,$00,$00
+.0814	a9 01		lda #$01	           lda #1
+.0816	8d 0c 03	sta $030c	           sta turboass
+.0819	a2 00		ldx #$00	           ldx #0
+.081b	86 d3		stx $d3		           stx $d3
+.081d	ad ec 08	lda $08ec	           lda thisname
+.0820					printthis
+.0820	20 d2 ff	jsr $ffd2	           jsr $ffd2
+.0823	e8		inx		           inx
+.0824	bd ec 08	lda $08ec,x	           lda thisname,x
+.0827	d0 f7		bne $0820	           bne printthis
+.0829	20 0c 09	jsr $090c	           jsr main
+.082c	a9 37		lda #$37	           lda #$37
+.082e	85 01		sta $01		           sta 1
+.0830	a9 2f		lda #$2f	           lda #$2f
+.0832	85 00		sta $00		           sta 0
+.0834	20 15 fd	jsr $fd15	           jsr $fd15
+.0837	20 a3 fd	jsr $fda3	           jsr $fda3
+.083a	20 7a 08	jsr $087a	           jsr print
+>083d	20 2d 20 6f 6b			           .text " - ok"
+>0842	0d 00				           .byte 13,0
+.0844	ad 0c 03	lda $030c	           lda turboass
+.0847	f0 06		beq $084f	           beq loadnext
+.0849	20 c5 08	jsr $08c5	           jsr waitkey
+.084c	4c 00 80	jmp $8000	           jmp $8000
+.084f					loadnext
+.084f	a2 f8		ldx #$f8	           ldx #$f8
+.0851	9a		txs		           txs
+.0852	ad f2 08	lda $08f2	           lda nextname
+.0855	c9 2d		cmp #$2d	           cmp #"-"
+.0857	d0 03		bne $085c	           bne notempty
+.0859	4c 74 a4	jmp $a474	           jmp $a474
+.085c					notempty
+.085c	a2 00		ldx #$00	           ldx #0
+.085e					printnext
+.085e	20 d2 ff	jsr $ffd2	           jsr $ffd2
+.0861	e8		inx		           inx
+.0862	bd f2 08	lda $08f2,x	           lda nextname,x
+.0865	d0 f7		bne $085e	           bne printnext
+.0867	a9 00		lda #$00	           lda #0
+.0869	85 0a		sta $0a		           sta $0a
+.086b	85 b9		sta $b9		           sta $b9
+.086d	86 b7		stx $b7		           stx $b7
+.086f	a9 f2		lda #$f2	           lda #<nextname
+.0871	85 bb		sta $bb		           sta $bb
+.0873	a9 08		lda #$08	           lda #>nextname
+.0875	85 bc		sta $bc		           sta $bc
+.0877	4c 6f e1	jmp $e16f	           jmp $e16f
+.087a					print
+.087a	68		pla		           pla
+.087b	8d 85 08	sta $0885	           sta next+1
+.087e	68		pla		           pla
+.087f	8d 86 08	sta $0886	           sta next+2
+.0882	a2 01		ldx #$01	           ldx #1
+.0884					next
+.0884	bd 11 11	lda $1111,x	           lda $1111,x
+.0887	f0 06		beq $088f	           beq end
+.0889	20 d2 ff	jsr $ffd2	           jsr $ffd2
+.088c	e8		inx		           inx
+.088d	d0 f5		bne $0884	           bne next
+.088f					end
+.088f	38		sec		           sec
+.0890	8a		txa		           txa
+.0891	6d 85 08	adc $0885	           adc next+1
+.0894	8d a0 08	sta $08a0	           sta return+1
+.0897	a9 00		lda #$00	           lda #0
+.0899	6d 86 08	adc $0886	           adc next+2
+.089c	8d a1 08	sta $08a1	           sta return+2
+.089f					return
+.089f	4c 11 11	jmp $1111	           jmp $1111
+.08a2					printhb
+.08a2	48		pha		           pha
+.08a3	4a		lsr a		           lsr a
+.08a4	4a		lsr a		           lsr a
+.08a5	4a		lsr a		           lsr a
+.08a6	4a		lsr a		           lsr a
+.08a7	20 ad 08	jsr $08ad	           jsr printhn
+.08aa	68		pla		           pla
+.08ab	29 0f		and #$0f	           and #$0f
+.08ad					printhn
+.08ad	09 30		ora #$30	           ora #$30
+.08af	c9 3a		cmp #$3a	           cmp #$3a
+.08b1	90 02		bcc $08b5	           bcc noletter
+.08b3	69 06		adc #$06	           adc #6
+.08b5					noletter
+.08b5	4c d2 ff	jmp $ffd2	           jmp $ffd2
+.08b8					waitborder
+.08b8	ad 11 d0	lda $d011	           lda $d011
+.08bb	30 07		bmi $08c4	           bmi ok
+.08bd					wait
+.08bd	ad 12 d0	lda $d012	           lda $d012
+.08c0	c9 1e		cmp #$1e	           cmp #30
+.08c2	b0 f9		bcs $08bd	           bcs wait
+.08c4					ok
+.08c4	60		rts		           rts
+.08c5					waitkey
+.08c5	20 15 fd	jsr $fd15	           jsr $fd15
+.08c8	20 a3 fd	jsr $fda3	           jsr $fda3
+.08cb	58		cli		           cli
+.08cc					wait
+.08cc	20 e4 ff	jsr $ffe4	           jsr $ffe4
+.08cf	f0 fb		beq $08cc	           beq wait
+.08d1	c9 03		cmp #$03	           cmp #3
+.08d3	f0 01		beq $08d6	           beq stop
+.08d5	60		rts		           rts
+.08d6					stop
+.08d6	ad 0c 03	lda $030c	           lda turboass
+.08d9	f0 03		beq $08de	           beq load
+.08db	4c 00 80	jmp $8000	           jmp $8000
+.08de					load
+.08de	20 7a 08	jsr $087a	           jsr print
+>08e1	0d				           .byte 13
+>08e2	62 72 65 61 6b			           .text "break"
+>08e7	0d 00				           .byte 13,0
+.08e9	4c 4f 08	jmp $084f	           jmp loadnext
+>08ec	69 63 72 30 31 00		thisname   .null "icr01"
+>08f2	69 6d 72 00			nextname   .null "imr"
+>08f6	00 00				nmiadr     .word 0
+.08f8					onnmi
+.08f8	48		pha		           pha
+.08f9	8a		txa		           txa
+.08fa	48		pha		           pha
+.08fb	ba		tsx		           tsx
+.08fc	bd 04 01	lda $0104,x	           lda $0104,x
+.08ff	8d f6 08	sta $08f6	           sta nmiadr+0
+.0902	bd 05 01	lda $0105,x	           lda $0105,x
+.0905	8d f7 08	sta $08f7	           sta nmiadr+1
+.0908	68		pla		           pla
+.0909	aa		tax		           tax
+.090a	68		pla		           pla
+.090b	40		rti		           rti
+.090c					main
+.090c	78		sei		           sei
+.090d	a9 00		lda #$00	           lda #0
+.090f	8d 0e dc	sta $dc0e	           sta $dc0e
+.0912	8d 0f dc	sta $dc0f	           sta $dc0f
+.0915	a9 7f		lda #$7f	           lda #$7f
+.0917	8d 0d dc	sta $dc0d	           sta $dc0d
+.091a	a9 81		lda #$81	           lda #$81
+.091c	8d 0d dc	sta $dc0d	           sta $dc0d
+.091f	2c 0d dc	bit $dc0d	           bit $dc0d
+.0922	a9 02		lda #$02	           lda #2
+.0924	8d 04 dc	sta $dc04	           sta $dc04
+.0927	a9 00		lda #$00	           lda #0
+.0929	8d 05 dc	sta $dc05	           sta $dc05
+.092c	20 b8 08	jsr $08b8	           jsr waitborder
+.092f	a9 09		lda #$09	           lda #%00001001
+.0931	8d 0e dc	sta $dc0e	           sta $dc0e
+.0934	ad 0d dc	lda $dc0d	           lda $dc0d
+.0937	ae 0d dc	ldx $dc0d	           ldx $dc0d
+.093a	c9 01		cmp #$01	           cmp #$01
+.093c	f0 1b		beq $0959	           beq ok1
+.093e	20 7a 08	jsr $087a	           jsr print
+>0941	0d				           .byte 13
+>0942	63 69 61 31 20 69 63 72		           .text "cia1 icr is not $01"
+>094a	20 69 73 20 6e 6f 74 20 24 30 31
+>0955	00				           .byte 0
+.0956	20 c5 08	jsr $08c5	           jsr waitkey
+.0959					ok1
+.0959	e0 00		cpx #$00	           cpx #$00
+.095b	f0 25		beq $0982	           beq ok2
+.095d	20 7a 08	jsr $087a	           jsr print
+>0960	0d				           .byte 13
+>0961	72 65 61 64 69 6e 67 20		           .text "reading icr=01 did "
+>0969	69 63 72 3d 30 31 20 64 69 64 20
+>0974	6e 6f 74 20 63 6c 65 61		           .text "not clear int"
+>097c	72 20 69 6e 74
+>0981	00				           .byte 0
+.0982					ok2
+.0982	78		sei		           sei
+.0983	a9 00		lda #$00	           lda #0
+.0985	8d f6 08	sta $08f6	           sta nmiadr+0
+.0988	8d f7 08	sta $08f7	           sta nmiadr+1
+.098b	8d 0e dd	sta $dd0e	           sta $dd0e
+.098e	8d 0f dd	sta $dd0f	           sta $dd0f
+.0991	a9 7f		lda #$7f	           lda #$7f
+.0993	8d 0d dd	sta $dd0d	           sta $dd0d
+.0996	a9 81		lda #$81	           lda #$81
+.0998	8d 0d dd	sta $dd0d	           sta $dd0d
+.099b	2c 0d dd	bit $dd0d	           bit $dd0d
+.099e	a9 f8		lda #$f8	           lda #<onnmi
+.09a0	8d 18 03	sta $0318	           sta $0318
+.09a3	a9 08		lda #$08	           lda #>onnmi
+.09a5	8d 19 03	sta $0319	           sta $0319
+.09a8	a9 02		lda #$02	           lda #2
+.09aa	8d 04 dd	sta $dd04	           sta $dd04
+.09ad	a9 00		lda #$00	           lda #0
+.09af	8d 05 dd	sta $dd05	           sta $dd05
+.09b2	20 b8 08	jsr $08b8	           jsr waitborder
+.09b5	a9 09		lda #$09	           lda #%00001001
+.09b7	8d 0e dd	sta $dd0e	           sta $dd0e
+.09ba	ad 0d dd	lda $dd0d	           lda $dd0d
+.09bd	ae 0d dd	ldx $dd0d	           ldx $dd0d
+.09c0	c9 01		cmp #$01	           cmp #$01
+.09c2	f0 1b		beq $09df	           beq ok1
+.09c4	20 7a 08	jsr $087a	           jsr print
+>09c7	0d				           .byte 13
+>09c8	63 69 61 32 20 69 63 72		           .text "cia2 icr is not $01"
+>09d0	20 69 73 20 6e 6f 74 20 24 30 31
+>09db	00				           .byte 0
+.09dc	20 c5 08	jsr $08c5	           jsr waitkey
+.09df					ok1
+.09df	e0 00		cpx #$00	           cpx #$00
+.09e1	f0 28		beq $0a0b	           beq ok2
+.09e3	20 7a 08	jsr $087a	           jsr print
+>09e6	0d				           .byte 13
+>09e7	72 65 61 64 69 6e 67 20		           .text "reading icr=01 did "
+>09ef	69 63 72 3d 30 31 20 64 69 64 20
+>09fa	6e 6f 74 20 63 6c 65 61		           .text "not clear icr"
+>0a02	72 20 69 63 72
+>0a07	00				           .byte 0
+.0a08	20 c5 08	jsr $08c5	           jsr waitkey
+.0a0b					ok2
+.0a0b	ad f7 08	lda $08f7	           lda nmiadr+1
+.0a0e	f0 2a		beq $0a3a	           beq ok3
+.0a10	20 7a 08	jsr $087a	           jsr print
+>0a13	0d				           .byte 13
+>0a14	72 65 61 64 69 6e 67 20		           .text "reading icr=01 did "
+>0a1c	69 63 72 3d 30 31 20 64 69 64 20
+>0a27	6e 6f 74 20 70 72 65 76		           .text "not prevent nmi"
+>0a2f	65 6e 74 20 6e 6d 69
+>0a36	00				           .byte 0
+.0a37	20 c5 08	jsr $08c5	           jsr waitkey
+.0a3a					ok3
+.0a3a	78		sei		           sei
+.0a3b	a9 00		lda #$00	           lda #0
+.0a3d	8d f6 08	sta $08f6	           sta nmiadr+0
+.0a40	8d f7 08	sta $08f7	           sta nmiadr+1
+.0a43	8d 0e dd	sta $dd0e	           sta $dd0e
+.0a46	8d 0f dd	sta $dd0f	           sta $dd0f
+.0a49	a9 7f		lda #$7f	           lda #$7f
+.0a4b	8d 0d dd	sta $dd0d	           sta $dd0d
+.0a4e	a9 81		lda #$81	           lda #$81
+.0a50	8d 0d dd	sta $dd0d	           sta $dd0d
+.0a53	2c 0d dd	bit $dd0d	           bit $dd0d
+.0a56	a9 f8		lda #$f8	           lda #<onnmi
+.0a58	8d 18 03	sta $0318	           sta $0318
+.0a5b	a9 08		lda #$08	           lda #>onnmi
+.0a5d	8d 19 03	sta $0319	           sta $0319
+.0a60	a9 01		lda #$01	           lda #1
+.0a62	8d 04 dd	sta $dd04	           sta $dd04
+.0a65	a9 00		lda #$00	           lda #0
+.0a67	8d 05 dd	sta $dd05	           sta $dd05
+.0a6a	20 b8 08	jsr $08b8	           jsr waitborder
+.0a6d	a9 09		lda #$09	           lda #%00001001
+.0a6f	8d 0e dd	sta $dd0e	           sta $dd0e
+.0a72	ad 0d dd	lda $dd0d	           lda $dd0d
+.0a75	ae 0d dd	ldx $dd0d	           ldx $dd0d
+.0a78					nmi
+.0a78	c9 81		cmp #$81	           cmp #$81
+.0a7a	f0 1b		beq $0a97	           beq ok1
+.0a7c	20 7a 08	jsr $087a	           jsr print
+>0a7f	0d				           .byte 13
+>0a80	63 69 61 32 20 69 63 72		           .text "cia2 icr is not $81"
+>0a88	20 69 73 20 6e 6f 74 20 24 38 31
+>0a93	00				           .byte 0
+.0a94	20 c5 08	jsr $08c5	           jsr waitkey
+.0a97					ok1
+.0a97	e0 00		cpx #$00	           cpx #$00
+.0a99	f0 28		beq $0ac3	           beq ok2
+.0a9b	20 7a 08	jsr $087a	           jsr print
+>0a9e	0d				           .byte 13
+>0a9f	72 65 61 64 69 6e 67 20		           .text "reading icr=81 did "
+>0aa7	69 63 72 3d 38 31 20 64 69 64 20
+>0ab2	6e 6f 74 20 63 6c 65 61		           .text "not clear icr"
+>0aba	72 20 69 63 72
+>0abf	00				           .byte 0
+.0ac0	20 c5 08	jsr $08c5	           jsr waitkey
+.0ac3					ok2
+.0ac3	ad f7 08	lda $08f7	           lda nmiadr+1
+.0ac6	d0 24		bne $0aec	           bne ok3
+.0ac8	20 7a 08	jsr $087a	           jsr print
+>0acb	0d				           .byte 13
+>0acc	72 65 61 64 69 6e 67 20		           .text "reading icr=81 must "
+>0ad4	69 63 72 3d 38 31 20 6d 75 73 74 20
+>0ae0	70 61 73 73 20 6e 6d 69		           .text "pass nmi"
+>0ae8	00				           .byte 0
+.0ae9	20 c5 08	jsr $08c5	           jsr waitkey
+.0aec					ok3
+.0aec	78		sei		           sei
+.0aed	a9 00		lda #$00	           lda #0
+.0aef	8d f6 08	sta $08f6	           sta nmiadr+0
+.0af2	8d f7 08	sta $08f7	           sta nmiadr+1
+.0af5	8d 0e dd	sta $dd0e	           sta $dd0e
+.0af8	8d 0f dd	sta $dd0f	           sta $dd0f
+.0afb	a9 7f		lda #$7f	           lda #$7f
+.0afd	8d 0d dd	sta $dd0d	           sta $dd0d
+.0b00	a9 81		lda #$81	           lda #$81
+.0b02	8d 0d dd	sta $dd0d	           sta $dd0d
+.0b05	2c 0d dd	bit $dd0d	           bit $dd0d
+.0b08	a9 f8		lda #$f8	           lda #<onnmi
+.0b0a	8d 18 03	sta $0318	           sta $0318
+.0b0d	a9 08		lda #$08	           lda #>onnmi
+.0b0f	8d 19 03	sta $0319	           sta $0319
+.0b12	a9 03		lda #$03	           lda #3
+.0b14	8d 04 dd	sta $dd04	           sta $dd04
+.0b17	a9 00		lda #$00	           lda #0
+.0b19	8d 05 dd	sta $dd05	           sta $dd05
+.0b1c	20 b8 08	jsr $08b8	           jsr waitborder
+.0b1f	a9 09		lda #$09	           lda #%00001001
+.0b21	8d 0e dd	sta $dd0e	           sta $dd0e
+.0b24	ad 0d dd	lda $dd0d	           lda $dd0d
+.0b27	ae 0d dd	ldx $dd0d	           ldx $dd0d
+.0b2a					nmi
+.0b2a	c9 00		cmp #$00	           cmp #$00
+.0b2c	f0 1b		beq $0b49	           beq ok1
+.0b2e	20 7a 08	jsr $087a	           jsr print
+>0b31	0d				           .byte 13
+>0b32	63 69 61 32 20 69 63 72		           .text "cia2 icr is not $00"
+>0b3a	20 69 73 20 6e 6f 74 20 24 30 30
+>0b45	00				           .byte 0
+.0b46	20 c5 08	jsr $08c5	           jsr waitkey
+.0b49					ok1
+.0b49	e0 81		cpx #$81	           cpx #$81
+.0b4b	f0 28		beq $0b75	           beq ok2
+.0b4d	20 7a 08	jsr $087a	           jsr print
+>0b50	0d				           .byte 13
+>0b51	72 65 61 64 69 6e 67 20		           .text "reading icr=00 may "
+>0b59	69 63 72 3d 30 30 20 6d 61 79 20
+>0b64	6e 6f 74 20 63 6c 65 61		           .text "not clear icr"
+>0b6c	72 20 69 63 72
+>0b71	00				           .byte 0
+.0b72	20 c5 08	jsr $08c5	           jsr waitkey
+.0b75					ok2
+.0b75	ad f7 08	lda $08f7	           lda nmiadr+1
+.0b78	d0 2a		bne $0ba4	           bne ok3
+.0b7a	20 7a 08	jsr $087a	           jsr print
+>0b7d	0d				           .byte 13
+>0b7e	72 65 61 64 69 6e 67 20		           .text "reading icr=00 may "
+>0b86	69 63 72 3d 30 30 20 6d 61 79 20
+>0b91	6e 6f 74 20 70 72 65 76		           .text "not prevent nmi"
+>0b99	65 6e 74 20 6e 6d 69
+>0ba0	00				           .byte 0
+.0ba1	20 c5 08	jsr $08c5	           jsr waitkey
+.0ba4					ok3
+.0ba4	60		rts		           rts
+
+;******  End of listing

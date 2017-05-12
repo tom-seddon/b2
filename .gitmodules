@@ -1,0 +1,33 @@
+[submodule "submodules/SDL"]
+	path = submodules/SDL
+	url = https://github.com/tom-seddon/SDL
+[submodule "submodules/Font-Awesome"]
+	path = submodules/Font-Awesome
+	url = https://github.com/FortAwesome/Font-Awesome
+[submodule "submodules/IconFontCppHeaders"]
+	path = submodules/IconFontCppHeaders
+	url = https://github.com/juliettef/IconFontCppHeaders
+[submodule "submodules/Remotery"]
+	path = submodules/Remotery
+	url = https://github.com/tom-seddon/Remotery
+[submodule "submodules/imgui"]
+	path = submodules/imgui
+	url = https://github.com/tom-seddon/imgui
+[submodule "submodules/macdylibbundler"]
+	path = submodules/macdylibbundler
+	url = https://github.com/tom-seddon/macdylibbundler
+[submodule "submodules/noc"]
+	path = submodules/noc
+	url = https://github.com/tom-seddon/noc
+[submodule "submodules/rapidjson"]
+	path = submodules/rapidjson
+	url = https://github.com/tom-seddon/rapidjson
+[submodule "submodules/relacy"]
+	path = submodules/relacy
+	url = https://github.com/tom-seddon/relacy
+[submodule "submodules/miniz"]
+	path = submodules/miniz
+	url = https://github.com/richgel999/miniz
+[submodule "submodules/sanitizers-cmake"]
+	path = submodules/sanitizers-cmake
+	url = https://github.com/arsenm/sanitizers-cmake

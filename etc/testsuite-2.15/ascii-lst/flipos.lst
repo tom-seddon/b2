@@ -1,0 +1,279 @@
+
+; 64tass Turbo Assembler Macro V1.52.1237 listing file
+; 64tass.exe -L ascii-lst/flipos.lst -o ascii-bin/flipos -T ascii-src/flipos.asm
+; Mon Sep 26 23:32:19 2016
+
+;Offset	;Hex		;Monitor	;Source
+
+;******  Processing input file: ascii-src/flipos.asm
+
+>0801	4c 14 08 00 97			           .byte $4c,$14,$08,$00,$97
+=780					turboass   = 780
+>0806	37 38 30			           .text "780"
+>0809	2c 30 3a 9e 32 30		           .byte $2c,$30,$3a,$9e,$32,$30
+>080f	37 33 00 00 00			           .byte $37,$33,$00,$00,$00
+.0814	a9 01		lda #$01	           lda #1
+.0816	8d 0c 03	sta $030c	           sta turboass
+.0819	a2 00		ldx #$00	           ldx #0
+.081b	86 d3		stx $d3		           stx $d3
+.081d	ad ec 08	lda $08ec	           lda thisname
+.0820					printthis
+.0820	20 d2 ff	jsr $ffd2	           jsr $ffd2
+.0823	e8		inx		           inx
+.0824	bd ec 08	lda $08ec,x	           lda thisname,x
+.0827	d0 f7		bne $0820	           bne printthis
+.0829	20 fb 08	jsr $08fb	           jsr main
+.082c	a9 37		lda #$37	           lda #$37
+.082e	85 01		sta $01		           sta 1
+.0830	a9 2f		lda #$2f	           lda #$2f
+.0832	85 00		sta $00		           sta 0
+.0834	20 15 fd	jsr $fd15	           jsr $fd15
+.0837	20 a3 fd	jsr $fda3	           jsr $fda3
+.083a	20 7a 08	jsr $087a	           jsr print
+>083d	20 2d 20 6f 6b			           .text " - ok"
+>0842	0d 00				           .byte 13,0
+.0844	ad 0c 03	lda $030c	           lda turboass
+.0847	f0 06		beq $084f	           beq loadnext
+.0849	20 c5 08	jsr $08c5	           jsr waitkey
+.084c	4c 00 80	jmp $8000	           jmp $8000
+.084f					loadnext
+.084f	a2 f8		ldx #$f8	           ldx #$f8
+.0851	9a		txs		           txs
+.0852	ad f3 08	lda $08f3	           lda nextname
+.0855	c9 2d		cmp #$2d	           cmp #"-"
+.0857	d0 03		bne $085c	           bne notempty
+.0859	4c 74 a4	jmp $a474	           jmp $a474
+.085c					notempty
+.085c	a2 00		ldx #$00	           ldx #0
+.085e					printnext
+.085e	20 d2 ff	jsr $ffd2	           jsr $ffd2
+.0861	e8		inx		           inx
+.0862	bd f3 08	lda $08f3,x	           lda nextname,x
+.0865	d0 f7		bne $085e	           bne printnext
+.0867	a9 00		lda #$00	           lda #0
+.0869	85 0a		sta $0a		           sta $0a
+.086b	85 b9		sta $b9		           sta $b9
+.086d	86 b7		stx $b7		           stx $b7
+.086f	a9 f3		lda #$f3	           lda #<nextname
+.0871	85 bb		sta $bb		           sta $bb
+.0873	a9 08		lda #$08	           lda #>nextname
+.0875	85 bc		sta $bc		           sta $bc
+.0877	4c 6f e1	jmp $e16f	           jmp $e16f
+.087a					print
+.087a	68		pla		           pla
+.087b	8d 85 08	sta $0885	           sta next+1
+.087e	68		pla		           pla
+.087f	8d 86 08	sta $0886	           sta next+2
+.0882	a2 01		ldx #$01	           ldx #1
+.0884					next
+.0884	bd 11 11	lda $1111,x	           lda $1111,x
+.0887	f0 06		beq $088f	           beq end
+.0889	20 d2 ff	jsr $ffd2	           jsr $ffd2
+.088c	e8		inx		           inx
+.088d	d0 f5		bne $0884	           bne next
+.088f					end
+.088f	38		sec		           sec
+.0890	8a		txa		           txa
+.0891	6d 85 08	adc $0885	           adc next+1
+.0894	8d a0 08	sta $08a0	           sta return+1
+.0897	a9 00		lda #$00	           lda #0
+.0899	6d 86 08	adc $0886	           adc next+2
+.089c	8d a1 08	sta $08a1	           sta return+2
+.089f					return
+.089f	4c 11 11	jmp $1111	           jmp $1111
+.08a2					printhb
+.08a2	48		pha		           pha
+.08a3	4a		lsr a		           lsr a
+.08a4	4a		lsr a		           lsr a
+.08a5	4a		lsr a		           lsr a
+.08a6	4a		lsr a		           lsr a
+.08a7	20 ad 08	jsr $08ad	           jsr printhn
+.08aa	68		pla		           pla
+.08ab	29 0f		and #$0f	           and #$0f
+.08ad					printhn
+.08ad	09 30		ora #$30	           ora #$30
+.08af	c9 3a		cmp #$3a	           cmp #$3a
+.08b1	90 02		bcc $08b5	           bcc noletter
+.08b3	69 06		adc #$06	           adc #6
+.08b5					noletter
+.08b5	4c d2 ff	jmp $ffd2	           jmp $ffd2
+.08b8					waitborder
+.08b8	ad 11 d0	lda $d011	           lda $d011
+.08bb	30 07		bmi $08c4	           bmi ok
+.08bd					wait
+.08bd	ad 12 d0	lda $d012	           lda $d012
+.08c0	c9 1e		cmp #$1e	           cmp #30
+.08c2	b0 f9		bcs $08bd	           bcs wait
+.08c4					ok
+.08c4	60		rts		           rts
+.08c5					waitkey
+.08c5	20 15 fd	jsr $fd15	           jsr $fd15
+.08c8	20 a3 fd	jsr $fda3	           jsr $fda3
+.08cb	58		cli		           cli
+.08cc					wait
+.08cc	20 e4 ff	jsr $ffe4	           jsr $ffe4
+.08cf	f0 fb		beq $08cc	           beq wait
+.08d1	c9 03		cmp #$03	           cmp #3
+.08d3	f0 01		beq $08d6	           beq stop
+.08d5	60		rts		           rts
+.08d6					stop
+.08d6	ad 0c 03	lda $030c	           lda turboass
+.08d9	f0 03		beq $08de	           beq load
+.08db	4c 00 80	jmp $8000	           jmp $8000
+.08de					load
+.08de	20 7a 08	jsr $087a	           jsr print
+>08e1	0d				           .byte 13
+>08e2	62 72 65 61 6b			           .text "break"
+>08e7	0d 00				           .byte 13,0
+.08e9	4c 4f 08	jmp $084f	           jmp loadnext
+>08ec	66 6c 69 70 6f 73 00		thisname   .null "flipos"
+>08f3	6f 6e 65 73 68 6f 74 00		nextname   .null "oneshot"
+.08fb					main
+.08fb	78		sei		           sei
+.08fc	a9 00		lda #$00	           lda #0
+.08fe	8d 0e dc	sta $dc0e	           sta $dc0e
+.0901	8d 0f dc	sta $dc0f	           sta $dc0f
+.0904	a9 7f		lda #$7f	           lda #$7f
+.0906	8d 0d dc	sta $dc0d	           sta $dc0d
+.0909	2c 0d dc	bit $dc0d	           bit $dc0d
+.090c	a9 03		lda #$03	           lda #3
+.090e	8d 04 dc	sta $dc04	           sta $dc04
+.0911	a9 00		lda #$00	           lda #0
+.0913	8d 05 dc	sta $dc05	           sta $dc05
+.0916	a9 21		lda #$21	           lda #%00100001
+.0918	8d 0e dc	sta $dc0e	           sta $dc0e
+.091b	a9 ff		lda #$ff	           lda #255
+.091d	8d 04 dc	sta $dc04	           sta $dc04
+.0920	8d 05 dc	sta $dc05	           sta $dc05
+.0923	a9 00		lda #$00	           lda #%00000000
+.0925	8d 0e dc	sta $dc0e	           sta $dc0e
+.0928	20 b8 08	jsr $08b8	           jsr waitborder
+.092b	a9 01		lda #$01	           lda #%00000001
+.092d	a2 09		ldx #$09	           ldx #%00001001
+.092f	8d 0e dc	sta $dc0e	           sta $dc0e
+.0932	8e 0e dc	stx $dc0e	           stx $dc0e
+.0935	ad 04 dc	lda $dc04	           lda $dc04
+.0938	2d 05 dc	and $dc05	           and $dc05
+.093b	c9 ff		cmp #$ff	           cmp #255
+.093d	f0 2f		beq $096e	           beq ok1
+.093f	20 7a 08	jsr $087a	           jsr print
+>0942	0d				           .byte 13
+>0943	73 65 74 20 6f 6e 65 73		           .text "set oneshot at t-1 "
+>094b	68 6f 74 20 61 74 20 74 2d 31 20
+>0956	64 69 64 20 6e 6f 74 20		           .text "did not stop counter"
+>095e	73 74 6f 70 20 63 6f 75 6e 74 65 72
+>096a	00				           .byte 0
+.096b	20 c5 08	jsr $08c5	           jsr waitkey
+.096e					ok1
+.096e	78		sei		           sei
+.096f	a9 00		lda #$00	           lda #0
+.0971	8d 0e dc	sta $dc0e	           sta $dc0e
+.0974	8d 0f dc	sta $dc0f	           sta $dc0f
+.0977	a9 7f		lda #$7f	           lda #$7f
+.0979	8d 0d dc	sta $dc0d	           sta $dc0d
+.097c	2c 0d dc	bit $dc0d	           bit $dc0d
+.097f	a9 02		lda #$02	           lda #2
+.0981	8d 04 dc	sta $dc04	           sta $dc04
+.0984	a9 00		lda #$00	           lda #0
+.0986	8d 05 dc	sta $dc05	           sta $dc05
+.0989	a9 21		lda #$21	           lda #%00100001
+.098b	8d 0e dc	sta $dc0e	           sta $dc0e
+.098e	a9 ff		lda #$ff	           lda #255
+.0990	8d 04 dc	sta $dc04	           sta $dc04
+.0993	8d 05 dc	sta $dc05	           sta $dc05
+.0996	a9 00		lda #$00	           lda #%00000000
+.0998	8d 0e dc	sta $dc0e	           sta $dc0e
+.099b	20 b8 08	jsr $08b8	           jsr waitborder
+.099e	a9 01		lda #$01	           lda #%00000001
+.09a0	a2 09		ldx #$09	           ldx #%00001001
+.09a2	8d 0e dc	sta $dc0e	           sta $dc0e
+.09a5	8e 0e dc	stx $dc0e	           stx $dc0e
+.09a8	ad 04 dc	lda $dc04	           lda $dc04
+.09ab	2d 05 dc	and $dc05	           and $dc05
+.09ae	8d 00 40	sta $4000	           sta 16384
+.09b1	c9 fc		cmp #$fc	           cmp #252
+.09b3	f0 2d		beq $09e2	           beq ok1
+.09b5	20 7a 08	jsr $087a	           jsr print
+>09b8	0d				           .byte 13
+>09b9	73 65 74 20 6f 6e 65 73		           .text "set oneshot at t "
+>09c1	68 6f 74 20 61 74 20 74 20
+>09ca	6d 61 79 20 6e 6f 74 20		           .text "may not stop counter"
+>09d2	73 74 6f 70 20 63 6f 75 6e 74 65 72
+>09de	00				           .byte 0
+.09df	20 c5 08	jsr $08c5	           jsr waitkey
+.09e2					ok1
+.09e2	78		sei		           sei
+.09e3	a9 00		lda #$00	           lda #0
+.09e5	8d 0e dc	sta $dc0e	           sta $dc0e
+.09e8	8d 0f dc	sta $dc0f	           sta $dc0f
+.09eb	a9 7f		lda #$7f	           lda #$7f
+.09ed	8d 0d dc	sta $dc0d	           sta $dc0d
+.09f0	2c 0d dc	bit $dc0d	           bit $dc0d
+.09f3	a9 03		lda #$03	           lda #3
+.09f5	8d 04 dc	sta $dc04	           sta $dc04
+.09f8	a9 00		lda #$00	           lda #0
+.09fa	8d 05 dc	sta $dc05	           sta $dc05
+.09fd	a9 21		lda #$21	           lda #%00100001
+.09ff	8d 0e dc	sta $dc0e	           sta $dc0e
+.0a02	a9 ff		lda #$ff	           lda #255
+.0a04	8d 04 dc	sta $dc04	           sta $dc04
+.0a07	8d 05 dc	sta $dc05	           sta $dc05
+.0a0a	a9 00		lda #$00	           lda #%00000000
+.0a0c	8d 0e dc	sta $dc0e	           sta $dc0e
+.0a0f	20 b8 08	jsr $08b8	           jsr waitborder
+.0a12	a9 09		lda #$09	           lda #%00001001
+.0a14	a2 01		ldx #$01	           ldx #%00000001
+.0a16	8d 0e dc	sta $dc0e	           sta $dc0e
+.0a19	8e 0e dc	stx $dc0e	           stx $dc0e
+.0a1c	ad 04 dc	lda $dc04	           lda $dc04
+.0a1f	2d 05 dc	and $dc05	           and $dc05
+.0a22	c9 ff		cmp #$ff	           cmp #255
+.0a24	f0 2f		beq $0a55	           beq ok1
+.0a26	20 7a 08	jsr $087a	           jsr print
+>0a29	0d				           .byte 13
+>0a2a	63 6c 72 20 6f 6e 65 73		           .text "clr oneshot at t-1 "
+>0a32	68 6f 74 20 61 74 20 74 2d 31 20
+>0a3d	64 69 64 20 6e 6f 74 20		           .text "did not stop counter"
+>0a45	73 74 6f 70 20 63 6f 75 6e 74 65 72
+>0a51	00				           .byte 0
+.0a52	20 c5 08	jsr $08c5	           jsr waitkey
+.0a55					ok1
+.0a55	78		sei		           sei
+.0a56	a9 00		lda #$00	           lda #0
+.0a58	8d 0e dc	sta $dc0e	           sta $dc0e
+.0a5b	8d 0f dc	sta $dc0f	           sta $dc0f
+.0a5e	a9 7f		lda #$7f	           lda #$7f
+.0a60	8d 0d dc	sta $dc0d	           sta $dc0d
+.0a63	2c 0d dc	bit $dc0d	           bit $dc0d
+.0a66	a9 04		lda #$04	           lda #4
+.0a68	8d 04 dc	sta $dc04	           sta $dc04
+.0a6b	a9 00		lda #$00	           lda #0
+.0a6d	8d 05 dc	sta $dc05	           sta $dc05
+.0a70	a9 21		lda #$21	           lda #%00100001
+.0a72	8d 0e dc	sta $dc0e	           sta $dc0e
+.0a75	a9 ff		lda #$ff	           lda #255
+.0a77	8d 04 dc	sta $dc04	           sta $dc04
+.0a7a	8d 05 dc	sta $dc05	           sta $dc05
+.0a7d	a9 00		lda #$00	           lda #%00000000
+.0a7f	8d 0e dc	sta $dc0e	           sta $dc0e
+.0a82	20 b8 08	jsr $08b8	           jsr waitborder
+.0a85	a9 09		lda #$09	           lda #%00001001
+.0a87	a2 01		ldx #$01	           ldx #%00000001
+.0a89	8d 0e dc	sta $dc0e	           sta $dc0e
+.0a8c	8e 0e dc	stx $dc0e	           stx $dc0e
+.0a8f	ad 04 dc	lda $dc04	           lda $dc04
+.0a92	2d 05 dc	and $dc05	           and $dc05
+.0a95	c9 fe		cmp #$fe	           cmp #254
+.0a97	f0 2f		beq $0ac8	           beq ok1
+.0a99	20 7a 08	jsr $087a	           jsr print
+>0a9c	0d				           .byte 13
+>0a9d	63 6c 72 20 6f 6e 65 73		           .text "clr oneshot at t-2 "
+>0aa5	68 6f 74 20 61 74 20 74 2d 32 20
+>0ab0	6d 61 79 20 6e 6f 74 20		           .text "may not stop counter"
+>0ab8	73 74 6f 70 20 63 6f 75 6e 74 65 72
+>0ac4	00				           .byte 0
+.0ac5	20 c5 08	jsr $08c5	           jsr waitkey
+.0ac8					ok1
+.0ac8	60		rts		           rts
+
+;******  End of listing
