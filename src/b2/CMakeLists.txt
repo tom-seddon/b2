@@ -142,6 +142,14 @@ if(WIN32)
   set(EXTRA_LINKER_FLAGS "/INCREMENTAL:NO /OPT:REF /OPT:ICF")
   set_target_properties(b2 PROPERTIES LINK_FLAGS_RELWITHDEBINFO ${EXTRA_LINKER_FLAGS})
   set_target_properties(b2 PROPERTIES LINK_FLAGS_FINAL ${EXTRA_LINKER_FLAGS})
+
+  # The debug and RelWithDebInfo versions want to be console apps.
+  # 
+  # http://stackoverflow.com/questions/8054734/cmake-how-to-use-different-add-executable-for-debug-build
+  # http://public.kitware.com/Bug/view.php?id=11171
+  # http://public.kitware.com/Bug/view.php?id=12566
+  #
+  # TL;DR - bleargh. So this is done with a #pragma in b2.cpp.
 endif()
 
 ##########################################################################
