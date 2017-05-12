@@ -3,8 +3,8 @@ ifndef OS
 $(error must specify OS on command line)
 endif
 
-.PHONY:unix
-unix:
+.PHONY:init
+init:
 	$(MAKE) _unix SANITIZER= SUFFIX=
 	$(MAKE) -j$(shell $(NPROC)) _sanitizers
 
@@ -38,11 +38,11 @@ _unixr:
 _unix: _unixd _unixr
 
 .PHONY:_unix2
-_unix2: _FOLDER=0.$(OS).$(FOLDER)
+_unix2: _FOLDER=0$(FOLDERPREFIX).$(OS).$(FOLDER)
 _unix2:
 	@echo ---------------------------------------------------------------------------
 	@echo ---------------------------------------------------------------------------
 	@echo ---------------------------------------------------------------------------
 	rm -Rf "$(_FOLDER)"
 	mkdir -p "$(_FOLDER)"
-	(cd "$(_FOLDER)" && cmake -G Ninja -DCMAKE_BUILD_TYPE=$(BUILD) $(if $(SANITIZER),-DSANITIZE_$(SANITIZER)=On) ..) || $(if $(SANITIZER),rm -Rf "$(_FOLDER)",false)
+	(cd "$(_FOLDER)" && cmake -G Ninja -DINCLUDE_EXPERIMENTAL=$(INCLUDE_EXPERIMENTAL) -DCMAKE_BUILD_TYPE=$(BUILD) $(if $(SANITIZER),-DSANITIZE_$(SANITIZER)=On) ..) || $(if $(SANITIZER),rm -Rf "$(_FOLDER)",false)

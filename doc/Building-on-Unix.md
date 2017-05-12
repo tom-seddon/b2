@@ -33,8 +33,8 @@ Initial setup steps:
 
 1. Open terminal and change to working copy folder
 
-2. Run `make` - you should get a bunch of output - if anything goes
-   wrong it should stop with a `CMake Error` that will hopefully
+2. Run `make init` - you should get a bunch of output - if anything
+   goes wrong it should stop with a `CMake Error` that will hopefully
    explain things
 
 General day-to-day build steps:

@@ -143,5 +143,7 @@ endif()
 ##########################################################################
 
 add_subdirectory(src)
-add_subdirectory(experimental)
+if(INCLUDE_EXPERIMENTAL)
+  add_subdirectory(experimental)
+endif()
 add_subdirectory(submodules)

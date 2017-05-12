@@ -1,6 +1,7 @@
 /0.osx.*/
 /.dir-locals.el
-/!.win*/
+/0.win*/
+/0Rel*/
 /games/
 /0.linux.*/
 beeb_dis.txt

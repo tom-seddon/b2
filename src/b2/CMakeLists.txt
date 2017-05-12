@@ -249,6 +249,9 @@ endif()
 ##########################################################################
 
 # Post build step - copy assets.
+#
+# The release process copies the asset folder from an unspecified
+# configuration. The assets must be the same for every configuration.
 
 set(ASSETS assets)
 set(ROMS ${ASSETS}/roms)

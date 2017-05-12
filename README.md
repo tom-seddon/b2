@@ -11,6 +11,14 @@ somewhat usable as-is.
 If you have feedback, please add it to the
 [b2 GitHub issues page](https://github.com/tom-seddon/b2/issues).
 
+# Install
+
+For Windows and OS X, you can get a binary release from the b2 GitHub
+releases page.
+
+If you use Linux, or if you just want to build it yourself anyway,
+follow [the building instructions](#Building).
+
 # Guided tour
 
 Double-click the icon. Everything you need to get started is provided,

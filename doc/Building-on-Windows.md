@@ -14,11 +14,11 @@ Initial build steps:
 
 1. Open command prompt in working copy folder 
 
-2. Run `snmake` (supplied) - you should get a bunch of output. There
-   may be the odd warning but there should be no obvious errors and it
-   should finish with an exit code of 0
+2. Run `snmake init` (`snmake.exe` is supplied) - you should get a
+   bunch of output. There may be the odd warning but there should be
+   no obvious errors and it should finish with an exit code of 0
    
-3. Load `!.win64\b2.sln` into Visual Studio 2015
+3. Load `0.win64\b2.sln` into Visual Studio 2015
 
 4. Set `b2` as the startup project
 
