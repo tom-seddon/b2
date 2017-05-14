@@ -25,22 +25,6 @@ PLATFORMS={
 ##########################################################################
 ##########################################################################
 
-# class Configuration:
-#     def __init__(self,_folder_suffix):
-#         self._folder_suffix=_folder_suffix
-
-#     @property
-#     def folder_suffix(self): return self._folder_suffix
-
-# CONFIGURATIONS={
-#     "Debug":Configuration("d"),
-#     "RelWithDebInfo":Configuration("r"),
-#     "Final":Configuration("f"),
-# }
-
-##########################################################################
-##########################################################################
-
 g_verbose=False
 
 def v(str):
@@ -171,44 +155,48 @@ def build_darwin_config(options,config):
             run(["ctest",
                  "-j",str(multiprocessing.cpu_count())])
 
+def copy_darwin_app(config,mount,app_name):
+    dest=os.path.join(mount,app_name)
+    run(["ditto",get_build_path(config,"src/b2/b2.app"),dest])
+    shutil.copyfile("./etc/release/LICENCE.txt",os.path.join(dest,"Contents/LICENCE.txt"))
+
 def build_darwin(options,ifolder,suffix,rev_hash):
     build_darwin_config(options,"r")
     build_darwin_config(options,"f")
-                            
-    # DMG_FOLDER is the folder that the DMG contents will be assembled
-    # into.
-    dmg_folder=os.path.join(ifolder,"b2")
-    makedirs(dmg_folder)
 
-    # Make b2.app and b2 Debug.app.
-    for config,app_suffix in [("f",""),("r"," Debug")]:
-        dest=os.path.join(ifolder,"b2/b2%s.app"%app_suffix)
-        shutil.copytree(get_build_path(config,"src/b2/b2.app"),dest)
+    stem="b2"+suffix
+    
+    temp_dmg=os.path.join(ifolder,stem+"_temp.dmg")
+    final_dmg=os.path.join(ifolder,stem+".dmg")
+    mount=os.path.join(ifolder,stem+".dmg")
+
+    # Copy template DMG to temp DMG.
+    shutil.copyfile("./etc/release/template.dmg",temp_dmg)
+
+    # Mount temp DMG.
+    run(["hdiutil","attach",temp_dmg,"-mountpoint",mount])
+
+    try:
+        # Copy text files to the DMG.
         shutil.copyfile("./etc/release/LICENCE.txt",
-                        os.path.join(dest,"Contents/LICENCE.txt"))
+                        os.path.join(mount,"LICENCE.txt"))
+        create_README(mount,rev_hash)
 
-    # Add extra stuff into the DMG.
-    shutil.copyfile("./etc/release/LICENCE.txt",
-                    os.path.join(dmg_folder,"LICENCE.txt"))
-    create_README(dmg_folder,rev_hash)
+        # Copy app folders to the DMG.
+        copy_darwin_app("f",mount,"b2.app")
+        copy_darwin_app("r",mount,"b2 Debug.app")
+        
+        # Give the DMG a better volume name.
+        run(["diskutil","rename",mount,"b2 "+suffix])
+    finally:
+        # Unmount the DMG
+        run(["hdiutil","detach",mount])
 
-    rm(os.path.join(ifolder,"b2-%s.dmg"%suffix))
+    # Convert temp DMG into final DMG.
+    run(["hdiutil","convert",temp_dmg,"-format","UDBZ","-o",final_dmg])
 
-    # The create-dmg script can leave these around if errors occur at
-    # certain points. (Haven't investigated this thoroughly at all.)
-    rm(os.path.join(ifolder,"rw.b2-%s.dmg"%suffix))
-
-    run(["./submodules/create-dmg/create-dmg",
-         "--volicon",get_build_path("f","src/b2/b2.icns"),
-         "--app-drop-link","400","150",
-         "--icon","b2.app","250","50",
-         "--icon","b2 Debug.app","250","200",
-         "--icon","README.txt","50","50",
-         "--icon","LICENCE.txt","50","200",
-         "--window-size","400","400",
-         # positional arguments follow
-         os.path.join(ifolder,"b2-%s.dmg"%suffix),
-         dmg_folder])
+    # Delete temp DMG.
+    rm(temp_dmg)
 
 ##########################################################################
 ##########################################################################
