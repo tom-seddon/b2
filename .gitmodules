@@ -31,6 +31,3 @@
 [submodule "submodules/sanitizers-cmake"]
 	path = submodules/sanitizers-cmake
 	url = https://github.com/arsenm/sanitizers-cmake
-[submodule "submodules/create-dmg"]
-	path = submodules/create-dmg
-	url = https://github.com/andreyvit/create-dmg
