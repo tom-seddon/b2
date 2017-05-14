@@ -2,7 +2,11 @@
 default:
 	$(error Must specify target. One of: init, rel)
 
-INCLUDE_EXPERIMENTAL?=ON
+ifdef RELEASE_MODE
+INCLUDE_EXPERIMENTAL:=ON
+else
+INCLUDE_EXPERIMENTAL:=OFF
+endif
 
 ifeq ($(OS),Windows_NT)
 

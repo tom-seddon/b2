@@ -5,6 +5,8 @@ Prerequisites:
 - Visual Studio 2015
 - [cmake](https://cmake.org/) version 3.5+ on the PATH (I used
   3.7.0-rc2)
+- [Python 2.x](https://www.python.org/download/releases/2.7/) on the
+  PATH
   
 Optional, but recommended:
 

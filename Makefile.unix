@@ -6,7 +6,9 @@ endif
 .PHONY:init
 init:
 	$(MAKE) _unix SANITIZER= SUFFIX=
+ifndef RELEASE_MODE
 	$(MAKE) -j$(shell $(NPROC)) _sanitizers
+endif
 
 .PHONY:_usan
 _usan:
@@ -33,9 +35,12 @@ _unixd:
 .PHONY:_unixr
 _unixr:
 	$(MAKE) _unix2 SANITIZER=$(SANITIZER) FOLDER=r$(SUFFIX) BUILD=RelWithDebInfo
+.PHONY:_unixf
+_unixf:
+	$(MAKE) _unix2 SANITIZER=$(SANITIZER) FOLDER=f$(SUFFIX) BUILD=Final
 
 .PHONY:_unix
-_unix: _unixd _unixr
+_unix: _unixd _unixr _unixf
 
 .PHONY:_unix2
 _unix2: _FOLDER=0$(FOLDERPREFIX).$(OS).$(FOLDER)

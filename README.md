@@ -134,7 +134,9 @@ button to load a ROM image on startup.
 
 Please consult folders and files for more info.
 
-(This is all stuff that's freely available on the internet.)
+This is all stuff that's freely available and distributable, included
+in the repo so it's self-contained, since not every dependency can be
+added as a git submodule.
 
 ## `experimental`, `src`
 
@@ -145,6 +147,14 @@ Licence: GPL v3.
 -----
 
 # Building
+
+The repo has submodules, so do a recursive clone, or do a normal clone
+plus the usual submodule nonsense.
+
+The submodules are referred to by https. Before cloning, you can use
+`git config --global url.ssh://git@github.com/.insteadOf
+https://github.com/` to have them cloned over SSH instead, if you have
+a GitHub login.
 
 [Instructions for building on Windows](doc/Building-on-Windows.md).
 

@@ -67,6 +67,8 @@ if(APPLE)
 
   # https://developer.apple.com/library/content/documentation/UserExperience/Conceptual/OSXHIGuidelines/Designing.html#//apple_ref/doc/uid/20000957-CH87-SW1
 
+  # The icons could be different per configuration. The Final build
+  # icon is the one used for the DMG.
   add_custom_command(
     OUTPUT b2.icns ${ICONS_TMP}/icon_16x16.png ${ICONS_TMP}/icon_32x32.png ${ICONS_TMP}/icon_64x64.png ${ICONS_TMP}/icon_128x128.png ${ICONS_TMP}/icon_256x256.png ${ICONS_TMP}/icon_512x512.png ${ICONS_TMP}/icon_512x512@2x.png ${ICONS_TMP}/icon_16x16@2x.png ${ICONS_TMP}/icon_32x32@2x.png ${ICONS_TMP}/icon_128x128@2x.png ${ICONS_TMP}/icon_256x256@2x.png
     COMMAND cmake -E make_directory ${ICONS_TMP}

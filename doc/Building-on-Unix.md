@@ -10,6 +10,7 @@ The Linux version is most politely described as "experimental".
 Prerequisites for both:
 
 - gcc, g++, make (on OS X you get these with Xcode)
+- Python 2.x (on OS X this comes with the system)
 - [cmake](https://cmake.org/) version 3.5+ on the PATH (I built it from (the CMake github repo)[https://github.com/Kitware/CMake])
 - [ninja](https://ninja-build.org/) (build from the (Ninja github repo)[https://github.com/ninja-build/ninja], install from MacPorts, etc.)
 

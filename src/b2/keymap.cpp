@@ -9,7 +9,7 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-inline bool Keymap::MappingLessThanByPCKey::operator()(const Mapping &a,const Mapping &b) const {
+bool Keymap::MappingLessThanByPCKey::operator()(const Mapping &a,const Mapping &b) const {
     if(a.pc_key<b.pc_key) {
         return true;
     } else if(b.pc_key<a.pc_key) {
