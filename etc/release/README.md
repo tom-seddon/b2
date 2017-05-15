@@ -1,3 +1,7 @@
+# Release process
+
+This probably isn't of much interest for anybody other than me.
+
 # Prerequisites
 
 ## All

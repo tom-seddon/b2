@@ -86,8 +86,27 @@ def rm(x):
     
 ##########################################################################
 ##########################################################################
+    
+def create_intermediate_folder():
+    ifolder=os.path.abspath(os.path.join("0Rel",sys.platform))
+    
+    try: shutil.rmtree(ifolder)
+    except: pass
 
-def build_win32(timings,options,platform,config,colour):
+    makedirs(ifolder)
+
+    return ifolder
+
+def create_README(folder,rev_hash):
+    with open(os.path.join(folder,"README.txt"),"wt") as f:
+        f.write("b2 - a BBC Micro emulator\n\n")
+        f.write("For licence information, please consult LICENCE.txt.\n\n")
+        f.write("Documentation can be found here: https://github.com/tom-seddon/b2/blob/%s/README.md\n\n"%rev_hash)
+
+##########################################################################
+##########################################################################
+
+def build_win32_config(timings,options,platform,config,colour):
     folder="0%s.%s"%(FOLDERPREFIX,platform)
     
     start_time=time.clock()
@@ -113,41 +132,48 @@ def build_win32(timings,options,platform,config,colour):
 
     timings[(platform,config)]=time.clock()-start_time
 
-def create_README(folder,rev_hash):
-    with open(os.path.join(folder,"README.txt"),"wt") as f:
-        f.write("b2 - a BBC Micro emulator\n\n")
-        f.write("For licence information, please consult LICENCE.txt.\n\n")
-        f.write("Documentation can be found here: https://github.com/tom-seddon/b2/blob/%s/README.md\n\n"%rev_hash)
+def build_win32(options,ifolder,suffix,rev_hash):
+    timings={}
 
-##########################################################################
-##########################################################################
+    # path that the ZIP contents will be assembled into.
+    zip_folder=os.path.join(ifolder,"b2")
+    makedirs(zip_folder)
 
-def create_intermediate_folder():
-    ifolder=os.path.abspath(os.path.join("0Rel",sys.platform))
+    build_win32_config(timings,options,"win64","RelWithDebInfo",0xf0)
+    build_win32_config(timings,options,"win64","Final",0xf4)
+    build_win32_config(timings,options,"win32","Final",0xe0)
+
+    print timings
+
+    shutil.copyfile("./0Rel.win32/src/b2/Final/b2.exe",os.path.join(zip_folder,"b2_32bit.exe"))
+    shutil.copyfile("./0Rel.win64/src/b2/Final/b2.exe",os.path.join(zip_folder,"b2.exe"))
+    shutil.copyfile("./0Rel.win64/src/b2/RelWithDebInfo/b2.exe",os.path.join(zip_folder,"b2_Debug.exe"))
+
+    # Copy the assets from any output folder... they're all the same.
+    shutil.copytree("./0Rel.win64/src/b2/Final/assets",os.path.join(zip_folder,"assets"))
+
+    shutil.copyfile("./etc/release/LICENCE.txt",os.path.join(zip_folder,"LICENCE.txt"))
+
+    create_README(zip_folder,rev_hash)
+
+    zip_fname="b2-%s.zip"%suffix
+    zip_fname=os.path.join(ifolder,zip_fname)
+
+    # The ZipFile module is a bit annoying to use.
+    with ChangeDirectory(ifolder): run(["zip.exe","-9r",zip_fname,"b2"])
     
-    try: shutil.rmtree(ifolder)
-    except: pass
-
-    makedirs(ifolder)
-
-    return ifolder
-
 ##########################################################################
 ##########################################################################
 
-def get_build_path(folder_suffix,path=None):
+def get_darwin_build_path(folder_suffix,path=None):
     result="0Rel.%s.%s"%(PLATFORMS[sys.platform].name,folder_suffix)
 
     if path is not None: result=os.path.join(result,path)
     
     return result
-                                      
-
-##########################################################################
-##########################################################################
 
 def build_darwin_config(options,config):
-    with ChangeDirectory(get_build_path(config)):
+    with ChangeDirectory(get_darwin_build_path(config)):
         if not options.skip_compile:
             run(["ninja"])
 
@@ -157,7 +183,7 @@ def build_darwin_config(options,config):
 
 def copy_darwin_app(config,mount,app_name):
     dest=os.path.join(mount,app_name)
-    run(["ditto",get_build_path(config,"src/b2/b2.app"),dest])
+    run(["ditto",get_darwin_build_path(config,"src/b2/b2.app"),dest])
     shutil.copyfile("./etc/release/LICENCE.txt",os.path.join(dest,"Contents/LICENCE.txt"))
 
 def build_darwin(options,ifolder,suffix,rev_hash):
@@ -237,11 +263,12 @@ def main(options):
     v("Dirty working copy: %s\n"%bool_str(wc_dirty))
 
     if not options.skip_cmake:
-        # -j makes a hilarious mess of the text output, but the
-        # makefile parallelizes perfectly on Windows, saving about 1
-        # minute on my laptop.
+        # -j makes a hilarious mess of the text output on Windows, but
+        # the makefile parallelizes perfectly, saving about 1 minute
+        # on my laptop. By the time this script is run there ought not
+        # to be any need to debug things, hopefully...
         run([options.make,
-             "-j",
+             "-j%d"%multiprocessing.cpu_count(),
              "init",
              "FOLDERPREFIX=%s"%FOLDERPREFIX,
              "RELEASE_MODE=1"])
@@ -252,34 +279,7 @@ def main(options):
     if wc_dirty: suffix+="-local"
 
     if sys.platform=="win32":
-        timings={}
-
-        # path that the ZIP contents will be assembled into.
-        zip_folder=os.path.join(ifolder,"b2")
-        makedirs(zip_folder)
-
-        build_win32(timings,options,"win64","RelWithDebInfo",0xf0)
-        build_win32(timings,options,"win64","Final",0xf4)
-        build_win32(timings,options,"win32","Final",0xe0)
-
-        print timings
-
-        shutil.copyfile("./0Rel.win32/src/b2/Final/b2.exe",os.path.join(zip_folder,"b2_32bit.exe"))
-        shutil.copyfile("./0Rel.win64/src/b2/Final/b2.exe",os.path.join(zip_folder,"b2.exe"))
-        shutil.copyfile("./0Rel.win64/src/b2/RelWithDebInfo/b2.exe",os.path.join(zip_folder,"b2_Debug.exe"))
-
-        # Copy the assets from any output folder... they're all the same.
-        shutil.copytree("./0Rel.win64/src/b2/Final/assets",os.path.join(zip_folder,"assets"))
-    
-        shutil.copyfile("./etc/release/LICENCE.txt",os.path.join(zip_folder,"LICENCE.txt"))
-
-        create_README(zip_folder,rev_hash)
-
-        zip_fname="b2-%s.zip"%suffix
-        zip_fname=os.path.join(ifolder,zip_fname)
-
-        # The ZipFile module is a bit annoying to use.
-        with ChangeDirectory(ifolder): run(["zip.exe","-9r",zip_fname,"b2"])
+        build_win32(options,ifolder,suffix,rev_hash)
     elif sys.platform=="darwin":
         build_darwin(options,ifolder,suffix,rev_hash)
 

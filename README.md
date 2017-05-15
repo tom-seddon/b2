@@ -156,6 +156,11 @@ The submodules are referred to by https. Before cloning, you can use
 https://github.com/` to have them cloned over SSH instead, if you have
 a GitHub login.
 
+Branches with names beginning `v` are version branches. Check out a
+version branch to
+
+Branches with names beginning `_` are undefined.
+
 [Instructions for building on Windows](doc/Building-on-Windows.md).
 
 [Instructions for building on OS X or Linux](doc/Building-on-Unix.md).
