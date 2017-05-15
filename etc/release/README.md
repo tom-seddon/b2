@@ -56,3 +56,5 @@ This probably isn't of much interest for anybody other than me.
    5.2. `git push origin VERSION`
    
    5.3. add assets via the website
+
+6. Cherry-pick/merge any useful fixes into `master`
