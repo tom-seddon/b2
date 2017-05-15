@@ -12,29 +12,44 @@ This probably isn't of much interest for anybody other than me.
 
 - Info-Zip on the PATH
 
-# Clean release
+# Process
 
-1. Write code, test on all platforms, etc., commit and push to the
-   github
+1. Prepare code:
 
-2. Branch from tested commit. Start branch name with `v` and append
-   version number, e.g., `v1.0`. Push to github again so the branch is
-   there too
+   1.1. Test on all platforms, push to github
    
-3. Run `make rel` from clean working copy. This will assemble
-   `0Rel\win32\b2-XXX.zip` (Windows) or `0Rel\darwin\b2-XXX.dmg` (OS
-   X), where `XXX` is the version number from the branch name
+   1.2. Create branch for version, named after the version, e.g., `v0.0.1`
    
-# Test release
+        `git branch VERSION`
+   
+   1.3. Push version branch to origin
+   
+        `git push origin VERSION`
 
-1. Change to working copy folder and run .py file by hand:
+2. Build on Mac:
 
-   `./etc/release/release.py --ignore-working-copy --ignore-branch`
+   3.1. `git pull`
    
-   (The two switches stop it complaining when the working copy isn't
-   clean and/or you're not on a version branch. There are other
-   switches too; use `-h` to see the full set.)
+   3.2. `git checkout VERSION`
    
-   This will assemble a .zip (Windows) or .dmg (OS X) file, with a
-   `-local` suffix.
+   3.3. `make rel`
    
+   (this will produce a dmg in the `0Rel` folder)
+   
+3. Build on Windows:
+
+   4.1. `git pull`
+   
+   4.2. `git checkout VERSION`
+   
+   4.3. `make rel`
+   
+   (this will produce a zip in the `0Rel` folder)
+
+5. Assuming everything seems to be in order, do the release on github.
+
+   5.1. `git tag -a VERSION`
+   
+   5.2. `git push origin VERSION`
+   
+   5.3. add assets via the website
