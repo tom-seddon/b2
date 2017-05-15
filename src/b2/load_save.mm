@@ -51,14 +51,16 @@ bool SetCocoaFrameUsingName(void *nswindow,const std::string &name) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-std::string GetApplicationSupportFileName(const std::string &suffix) {
+static std::string GetPath(const std::string &path,
+                           NSSearchPathDirectory directory)
+{
     std::string fname;
     
     @autoreleasepool {
         NSFileManager *defaultManager=[NSFileManager defaultManager];
         NSError *error=nil;
 
-        NSURL *url=[defaultManager URLForDirectory:NSApplicationSupportDirectory
+        NSURL *url=[defaultManager URLForDirectory:directory
                                           inDomain:NSUserDomainMask
                                  appropriateForURL:nil
                                             create:TRUE
@@ -83,7 +85,7 @@ std::string GetApplicationSupportFileName(const std::string &suffix) {
         }
     }
 
-    fname=PathJoined(fname,suffix);
+    fname=PathJoined(fname,path);
 
     if(!PathCreateFolder(PathGetFolder(fname))) {
         LOGF(OUTPUT,"%s: PathCreateFolder failed: %s\n",__func__,strerror(errno));
@@ -91,6 +93,20 @@ std::string GetApplicationSupportFileName(const std::string &suffix) {
     }
 
     return fname;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+std::string GetOSXApplicationSupportPath(const std::string &path) {
+    return GetPath(path,NSApplicationSupportDirectory);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+std::string GetOSXCachePath(const std::string &path) {
+    return GetPath(path,NSCachesDirectory);
 }
 
 //////////////////////////////////////////////////////////////////////////

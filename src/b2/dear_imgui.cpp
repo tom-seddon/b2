@@ -36,7 +36,6 @@ static const ImWchar FA_ICONS_RANGES[]={ICON_MIN_FA,ICON_MAX_FA,0};
 
 struct ImGuiShutdownObject {
     ~ImGuiShutdownObject() {
-
         ImGui::Shutdown();
     }
 };
@@ -138,6 +137,13 @@ bool ImGuiStuff::Init() {
     // Answers on a postcard.
 
 #endif
+
+    m_imgui_ini_path=GetConfigPath("imgui.ini");
+    io.IniFilename=m_imgui_ini_path.c_str();
+
+    // On OS X, could this usefully go in ~/Library/Logs?
+    m_imgui_log_txt_path=GetCachePath("imgui_log.txt");
+    io.LogFilename=m_imgui_log_txt_path.c_str();
 
 #if USE_SDL_CLIPBOARD
 

@@ -24,6 +24,22 @@ class Messages;
 std::string GetAssetPath(const std::string &f0);
 std::string GetAssetPath(const std::string &f0,const std::string &f1);
 
+// Get path to user-specific config file. This will be stored
+// somewhere persistent, that may follow the user around.
+//
+// Windows: APPDATA
+// OS X: ~/Library/Application Support/IDENTIFIER/
+// Linux: XDG_CONFIG_HOME
+std::string GetConfigPath(const std::string &path);
+
+// Get path to user-specific cache file. This will stick around,
+// probably.
+//
+// Windows: LOCALAPPDATA
+// OS X: ~/Library/Caches/IDENTIFIER
+// Linux: XDG_CACHE_HOME (but do see: https://wiki.debian.org/XDGBaseDirectorySpecification#state)
+std::string GetCachePath(const std::string &path);
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 

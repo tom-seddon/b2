@@ -32,6 +32,11 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+// https://specifications.freedesktop.org/basedir-spec/basedir-spec-latest.html
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 // (sigh)
 #define PRIsizetype "u"
 CHECK_SIZEOF(rapidjson::SizeType,sizeof(unsigned));
@@ -42,9 +47,12 @@ CHECK_SIZEOF(rapidjson::SizeType,sizeof(unsigned));
 #if SYSTEM_OSX
 
 // Forms a path from NSApplicationSupportDirectory, the bundle
-// identifier, and suffix (which can have folder components in it).
-// Tries to create the resulting folder.
-std::string GetApplicationSupportFileName(const std::string &suffix);
+// identifier, and PATH. Tries to create the resulting folder.
+std::string GetOSXApplicationSupportPath(const std::string &path);
+
+// Forms a path from NSApplicationCacheDirectory, the bundle
+// identifier, and PATH. Tries to create the resulting folder.
+std::string GetOSXCachePath(const std::string &path);
 
 #endif
 
@@ -107,54 +115,96 @@ static std::wstring GetWideString(const char *str) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-const char CONFIG_FILE_NAME[]="b2.json";
-
-static std::string GetConfigFileName() {
 #if SYSTEM_WINDOWS
+static std::string GetWindowsPath(const GUID &known_folder,const std::string &path) {
+    std::string result;
+    WCHAR *wpath;
 
-    WCHAR *wpath=NULL;
-    if(FAILED(SHGetKnownFolderPath(FOLDERID_LocalAppData,KF_FLAG_CREATE,nullptr,&wpath))) {
-    bad:;
-        return CONFIG_FILE_NAME;
+    wpath=nullptr;
+    if(FAILED(SHGetKnownFolderPath(known_folder,KF_FLAG_CREATE,nullptr,&wpath))) {
+        goto bad;
     }
 
-    std::string path=GetUTF8String(wpath);
+    result=GetUTF8String(wpath);
 
     CoTaskMemFree(wpath);
     wpath=NULL;
 
-    if(path.empty()) {
+    if(result.empty()) {
         goto bad;
     }
 
-    path=PathJoined(path,"b2",CONFIG_FILE_NAME);
+    return PathJoined(result,"b2",path);
+
+bad:;
     return path;
+}
+#endif
+
+#if SYSTEM_LINUX
+static std::string GetXDGPath(const char *env_name,const char *folder_name,const std::string &path) {
+    std::string result;
+
+    if(const char *env_value=getenv(env_name)) {
+        result=env_value;
+    } else if(const char *home=getenv("HOME")) {
+        result=PathJoined(home,folder_name);
+    } else {
+        result="."; // *sigh*
+    }
+
+    result=PathJoined(result,"b2",path);
+    return result;
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+std::string GetConfigPath(const std::string &path) {
+#if SYSTEM_WINDOWS
+
+    // The config file includes a bunch of paths to local files, so it
+    // should probably be Local rather than Roaming. But it's
+    // debatable.
+    return GetWindowsPath(FOLDERID_LocalAppData,path);
 
 #elif SYSTEM_LINUX
 
-    // https://specifications.freedesktop.org/basedir-spec/basedir-spec-latest.html
-    std::string file_name;
-
-    if(const char *xdg_home=getenv("XDG_CONFIG_HOME")) {
-        file_name=xdg_home;
-    } else if(const char *home=getenv("HOME")) {
-        file_name=PathJoined(home,".config");
-    } else {
-        file_name=".";          // *sigh*
-    }
-
-    file_name=PathJoined(file_name,"b2",CONFIG_FILE_NAME);
-    return file_name;
+    return GetXDGPath("XDG_CONFIG_HOME",".config",path);
 
 #elif SYSTEM_OSX
 
-    return GetApplicationSupportFileName(CONFIG_FILE_NAME);
+    return GetOSXApplicationSupportPath(path);
 
 #else
-
 #error
-
 #endif
+    }
+
+std::string GetCachePath(const std::string &path) {
+#if SYSTEM_WINDOWS
+
+    return GetWindowsPath(FOLDERID_LocalAppData,path);
+
+#elif SYSTEM_LINUX
+
+    return GetXDGPath("XDG_CACHE_HOME",".cache",path);
+
+#elif SYSTEM_OSX
+
+    return GetOSXCachePath(path);
+
+#else
+#error
+#endif
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+static std::string GetConfigFileName() {
+    return GetConfigPath("b2.json");
 }
 
 //////////////////////////////////////////////////////////////////////////
