@@ -381,7 +381,7 @@ static bool DoCommandLineOptions(
     p.SetLogs(&init_messages->i,&init_messages->e);
 
     for(int drive=0;drive<NUM_DRIVES;++drive) {
-        p.AddOption('0'+drive).Arg(&options->discs[drive]).Meta("PATH").Help("load drive "+std::to_string(drive)+" from PATH - an SSD/DSD file, or 65Link volume/drive folder");
+        p.AddOption((char)('0'+drive)).Arg(&options->discs[drive]).Meta("PATH").Help("load drive "+std::to_string(drive)+" from PATH - an SSD/DSD file, or 65Link volume/drive folder");
     }
 
     p.AddOption('b',"boot").SetIfPresent(&options->boot).Help("attempt to auto-boot disc");

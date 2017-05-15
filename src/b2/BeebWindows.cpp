@@ -317,6 +317,8 @@ void BeebWindows::HandleVBlank(VBlankMonitor *vblank_monitor,void *display_data,
 
     while(i<g_->windows.size()) {
         size_t old_size=g_->windows.size();
+        (void)old_size;
+
         BeebWindow *window=g_->windows[i];
         bool keep_window=window->HandleVBlank(vblank_monitor,display_data,ticks);
         ASSERT(g_->windows.size()>=old_size);
