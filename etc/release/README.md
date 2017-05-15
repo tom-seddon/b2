@@ -46,7 +46,10 @@ This probably isn't of much interest for anybody other than me.
    
    (this will produce a zip in the `0Rel` folder)
 
-5. Assuming everything seems to be in order, do the release on github.
+4. Repeat steps 2 and 3 until everything seems to be in order and both
+   platforms have built correctly from the same commit.
+
+5. Do the release on github.
 
    5.1. `git tag -a VERSION`
    
