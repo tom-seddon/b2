@@ -44,15 +44,20 @@ struct Defaults;
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 namespace BeebWindows {
     // an accessor doesn't really buy much here...
     extern Defaults defaults;
 
+    // Shortcut keys for stuff.
     extern uint32_t save_state_shortcut_key;
     extern uint32_t load_last_state_shortcut_key;
+
+    // Filter flags for BBC display and UI.
+    //
+    // These don't quite work like the other defaults, so they're
+    // separate. But maybe they should move...?
+    extern bool filter_bbc;
+    extern bool filter_ui;
 
     bool Init();
     void Shutdown();

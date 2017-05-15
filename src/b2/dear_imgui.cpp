@@ -7,6 +7,7 @@
 #include <limits.h>
 #include <IconsFontAwesome.h>
 #include "load_save.h"
+#include "misc.h"
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -112,7 +113,7 @@ static void SetClipboardText(void *user_data,const char *text) {
 }
 #endif
 
-bool ImGuiStuff::Init() {
+bool ImGuiStuff::Init(bool filter) {
     int rc;
 
     m_context=ImGui::CreateContext();
@@ -189,7 +190,7 @@ bool ImGuiStuff::Init() {
     int width,height;
     io.Fonts->GetTexDataAsRGBA32(&pixels,&width,&height);
 
-    SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY,"nearest");
+    SetRenderScaleQualityHint(filter);
     m_font_texture=SDL_CreateTexture(m_renderer,SDL_PIXELFORMAT_RGBA32,SDL_TEXTUREACCESS_STATIC,width,height);
     if(!m_font_texture) {
         return false;

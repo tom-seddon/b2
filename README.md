@@ -83,6 +83,26 @@ speed by turning off emulation of seek times and internal disc delays.
 
 **Turbo disc mode is experimental**
 
+## Filtering options
+
+Use `Tools` > `Filtering options` to bring up the filtering options
+dialog.
+
+When `Filter BBC` is checked, the BBC display will be bilinear
+filtered, making it look smoother, or more blurry; when unchecked, it
+will be point sampled, making it look more blocky and pixelated. By
+default, it is checked.
+
+`Filter UI` applies a similar effect to the UI text. (The UI is
+actually supposed to look the same with both settings, but with some
+graphics cards and/or graphics drivers this may not be the case. If
+you feel the UI looks a bit blurry or ugly, try the other option -
+unfortunately there is no guarantee of any improvement...)
+
+Unlike the other options - which is why these two have their own,
+separate dialog - changes don't take effect immediately. Create a new
+window to see the effect.
+
 ## Customize keyboard layout
 
 Click `Tools` > `Keyboard layout...` to bring up the keyboard layout

@@ -471,6 +471,12 @@ void BeebWindow::DoOptionsGui() {
     }
 }
 
+void BeebWindow::DoFilteringOptionsGui() {
+    ImGui::TextWrapped("This window's filtering settings can't be changed. These settings apply to new windows and/or future runs only.");
+    ImGui::Checkbox("Filter UI",&BeebWindows::filter_ui);
+    ImGui::Checkbox("Filter BBC",&BeebWindows::filter_bbc);
+}
+
 class FileMenuItem {
 public:
     bool selected=false;
@@ -801,6 +807,7 @@ bool BeebWindow::DoImGui(int output_width,int output_height) {
 
         if(ImGui::BeginMenu("Tools")) {
             ImGuiMenuItemFlag("Emulator options...",NULL,&m_ui_flags,BeebWindowUIFlag_Options);
+            ImGuiMenuItemFlag("Filtering options...",nullptr,&m_ui_flags,BeebWindowUIFlag_FilteringOptions);
             ImGuiMenuItemFlag("Keyboard layout...",NULL,&m_ui_flags,BeebWindowUIFlag_Keymaps);
             ImGuiMenuItemFlag("Messages...",NULL,&m_ui_flags,BeebWindowUIFlag_Messages);
 #if TIMELINE_UI_ENABLED
@@ -925,6 +932,21 @@ bool BeebWindow::DoImGui(int output_width,int output_height) {
             this->DoOptionsGui();
         }
         ImGui::End();
+
+        if(!(m_ui_flags&BeebWindowUIFlag_Options)) {
+            this->MaybeSaveConfig(true);
+        }
+    }
+
+    if(m_ui_flags&BeebWindowUIFlag_FilteringOptions) {
+        if(ImGuiBeginFlag("Filtering Options",&m_ui_flags,BeebWindowUIFlag_FilteringOptions)) {
+            this->DoFilteringOptionsGui();
+        }
+        ImGui::End();
+
+        if(!(m_ui_flags&BeebWindowUIFlag_FilteringOptions)) {
+            this->MaybeSaveConfig(true);
+        }
     }
 
     if(m_ui_flags&BeebWindowUIFlag_Messages) {
@@ -1457,7 +1479,7 @@ bool BeebWindow::InitInternal() {
 #endif
 
     {
-        SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY,"nearest");
+        SetRenderScaleQualityHint(BeebWindows::filter_bbc);
         m_tv_texture=SDL_CreateTexture(m_renderer,m_pixel_format->format,SDL_TEXTUREACCESS_STREAMING,TV_TEXTURE_WIDTH,TV_TEXTURE_HEIGHT);
         if(!m_tv_texture) {
             m_msg.e.f("Failed to create TV texture: %s\n",SDL_GetError());
@@ -1471,7 +1493,7 @@ bool BeebWindow::InitInternal() {
     }
 
     m_imgui_stuff=new ImGuiStuff(m_renderer);
-    if(!m_imgui_stuff->Init()) {
+    if(!m_imgui_stuff->Init(BeebWindows::filter_ui)) {
         m_msg.e.f("failed to initialise ImGui\n");
         return false;
     }

@@ -177,7 +177,7 @@ private:
     BeebWindowDisplayAlignment m_display_alignment_y;
     bool m_auto_scale;
     float m_overall_scale;
-
+    
     // The default is 1x2, since the texture is 640x272 or so.
     float m_tv_scale_x;
     float m_tv_scale_y;
@@ -255,6 +255,7 @@ private:
     bool Load65LinkFolder(int drive,const std::string &path);
     void DoVolumeImGui(const char *label,float (BeebThread::*get_volume_mfn)() const,void (BeebThread::*set_volume_mfn)(float));
     void DoOptionsGui();
+    void DoFilteringOptionsGui();
     bool DoImGui(int output_width,int output_height);
     BeebWindowInitArguments GetNewWindowInitArguments() const;
     void MaybeSaveConfig(bool save_config);
