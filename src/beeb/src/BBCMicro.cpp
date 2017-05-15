@@ -1324,7 +1324,7 @@ void BBCMicro::SetSidewaysRAM(uint8_t bank,std::shared_ptr<const ROMData> data) 
     if(data) {
         m_state.sideways_ram_buffers[bank]=std::vector<uint8_t>(data->begin(),data->end());
     } else {
-        m_state.sideways_ram_buffers[bank].clear();
+        m_state.sideways_ram_buffers[bank]=std::vector<uint8_t>(16384);
     }
 
     m_state.sideways_rom_buffers[bank]=nullptr;
