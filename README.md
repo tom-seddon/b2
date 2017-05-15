@@ -13,11 +13,11 @@ If you have feedback, please add it to the
 
 # Install
 
-For Windows and OS X, you can get a binary release from the b2 GitHub
-releases page.
+For Windows and OS X, you can get a binary release from the
+[b2 GitHub releases page](https://github.com/tom-seddon/b2/releases).
 
 If you use Linux, or if you just want to build it yourself anyway,
-follow [the building instructions](#Building).
+follow [the building instructions](#building).
 
 # Guided tour
 
@@ -148,18 +148,32 @@ Licence: GPL v3.
 
 # Building
 
-The repo has submodules, so do a recursive clone, or do a normal clone
-plus the usual submodule nonsense.
+This repo has submodules, so you have to clone it to build it. The
+source code archives in the releases page won't work. (This is a
+GitHub bug and there doesn't appear to be any way around it.)
 
 The submodules are referred to by https. Before cloning, you can use
 `git config --global url.ssh://git@github.com/.insteadOf
 https://github.com/` to have them cloned over SSH instead, if you have
 a GitHub login.
 
-Branches with names beginning `v` are version branches. Check out a
-version branch to
+To clone the repo:
+
+    git clone --recursive https://github.com/tom-seddon/b2.git
+	
+If you're reading this after already cloning it:
+
+    git submodule init
+	git submodule update
+
+To get the code for a particular version, check out that version's tag
+and then do a `git submodule update`. Each version also has its own
+branch, with a `v` prefix (for any matters arising while it's being
+prepared).
 
 Branches with names beginning `_` are undefined.
+
+Once you're all set up:
 
 [Instructions for building on Windows](doc/Building-on-Windows.md).
 
