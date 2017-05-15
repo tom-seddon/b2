@@ -190,7 +190,7 @@ def build_darwin(options,ifolder,suffix,rev_hash):
     build_darwin_config(options,"r")
     build_darwin_config(options,"f")
 
-    stem="b2"+suffix
+    stem="b2-"+suffix
     
     temp_dmg=os.path.join(ifolder,stem+"_temp.dmg")
     final_dmg=os.path.join(ifolder,stem+".dmg")
