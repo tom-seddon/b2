@@ -98,9 +98,13 @@ is off, and the text should be readable; if the text looks ugly, try
 switching it on... it may still look ugly, but it might be more
 readable.
 
-Unlike the other options - which is why these two have their own,
-separate dialog - changes don't take effect immediately. Create a new
-window to see the effect.
+Changes to the filter flags don't take effect immediately. Create a
+new window to see the effect.
+
+When using Direct3D 9 (highly likely on Windows), there's an
+additional emergency option for ugly text rendering: `UI half-pixel
+offset`. Some combination of this and `Filter UI` may make the text
+readable.
 
 ## Customize keyboard layout
 
