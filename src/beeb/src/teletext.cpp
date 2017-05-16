@@ -58,6 +58,14 @@ static const uint8_t TELETEXT_FONT[96][10][3]={
 static const uint8_t FRAMES_PER_SECOND=50;
 static const uint8_t NUM_FLASH_OFF_FRAMES=16;
 
+// Column widths for alpha characters. Left column is blank.
+static const size_t ALPHA_WIDTHS[]={3,2,3,2,3,2};
+
+// Column widths for graphic characters. Ought to have the same weight
+// for columns 3 and 6, so that separated graphics don't look too
+// ugly.
+static const size_t GRAPHIC_WIDTHS[]={3,3,2,3,3,2};
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
@@ -85,10 +93,12 @@ static uint16_t Get16WideRow(size_t style,size_t ch,int y) {
 
     uint16_t w=0;
 
-    // 2,3,3,2,3,3 is definitely the least objectionable.
-    //
-    // Some glyphs look OK with 3,3,2,2,3,3.
-    size_t widths[]={2,3,3,2,3,3};
+    const size_t *widths;
+    if(style==TeletextCharset_Alpha||(ch&0x20)==0) {
+        widths=ALPHA_WIDTHS;
+    } else {
+        widths=GRAPHIC_WIDTHS;
+    }
 
     if(y>=0&&y<20) {
         size_t left=0;
