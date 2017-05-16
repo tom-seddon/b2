@@ -65,7 +65,7 @@ struct Defaults {
 
     bool display_auto_scale=true;
     float display_overall_scale=1.f;
-    float display_scale_x=1.f;
+    float display_scale_x=1.2f/1.25f;
     float display_scale_y=1.f;
     BeebWindowDisplayAlignment display_alignment_x=BeebWindowDisplayAlignment_Centre;
     BeebWindowDisplayAlignment display_alignment_y=BeebWindowDisplayAlignment_Centre;
