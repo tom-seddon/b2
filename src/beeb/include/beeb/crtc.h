@@ -137,7 +137,7 @@ private:
     uint8_t m_raster=0;//scanline in character
     uint8_t m_vsync_left=0;//vsync counter
     uint8_t m_hsync_left=0;//hsync counter
-    uint8_t m_nadj_left=0;
+    bool m_adj=false;//set if in the adjustment period
     M6502Word m_line_addr={};
     M6502Word m_char_addr={};
     uint8_t m_delay=0;// display enable delay for current scanline
@@ -147,6 +147,9 @@ private:
     uint32_t m_trace_scanline=0;
     bool m_trace_scanlines=false;
 #endif
+
+    void NextRaster();
+    void StartOfFrame();
 };
 
 //////////////////////////////////////////////////////////////////////////

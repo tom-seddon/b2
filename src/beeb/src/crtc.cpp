@@ -126,11 +126,9 @@ CRTC::Output CRTC::Update(uint8_t fast_6845) {
     } else if(m_hsync_left>0) {
         // hblank region
         output.hsync=1;
-        output.display=m_row<m_registers.values[6]&&m_nadj_left==0;
+        output.display=m_row<m_registers.values[6]&&!m_adj;
         //m_nadj_left==0;//m_registers.bits.r8.bits.d!=3;
         --m_hsync_left;
-    } else if(m_nadj_left>0) {
-        // Still doing the vertical total adjustement.
     } else if(m_row>=m_registers.values[6]) {
         // Off the bottom of the screen.
     } else {
@@ -238,18 +236,15 @@ CRTC::Output CRTC::Update(uint8_t fast_6845) {
             --m_vsync_left;
         }
 
-        if(m_nadj_left>0) {
-            --m_nadj_left;
-        } else if(m_raster<m_registers.values[9]) {
-            m_char_addr.w=m_line_addr.w;
-
-            if(m_registers.bits.r8.bits.v&&m_registers.bits.r8.bits.s) {
-                // Interlace sync and video
-                m_raster+=2;
-            } else {
-                // Interlace sync, no interlace
-                ++m_raster;
+        if(m_adj) {
+            this->NextRaster();
+            
+            if(m_raster>=m_registers.values[5]) {
+                m_adj=false;
+                this->StartOfFrame();
             }
+        } else if(m_raster<m_registers.values[9]) {
+            this->NextRaster();
         } else {
             m_raster=0;
 
@@ -275,32 +270,26 @@ CRTC::Output CRTC::Update(uint8_t fast_6845) {
                 TRACEF_IF(m_trace_scanlines,m_trace,"6845 - vsync begin: %u scanline(s)\n",m_vsync_left);
             }
 
-            if(m_row==m_registers.values[4]+1) {
-                m_nadj_left=m_registers.values[5];
-
-                // reload the start address.
-                m_line_addr.b.h=m_registers.values[12];
-                m_line_addr.b.l=m_registers.values[13];
-
-                // start of frame again.
-                m_row=0;
-#if BBCMICRO_TRACE
-                m_trace_scanline=0;
-
-                TRACEF(m_trace,"6845 - start of frame. CRTC address: $%04X\n",m_line_addr.w);
-#endif
-            } else {
-                // calculate next start address.
-                m_line_addr.w+=m_registers.values[1];
-                m_line_addr.w&=0x3fff;
-            }
-            ASSERT(!(m_line_addr.b.h&~0x3f));
+            // calculate next start address.
+            m_line_addr.w+=m_registers.values[1];
+            m_line_addr.w&=0x3fff;
 
             m_char_addr=m_line_addr;
+
+            if(m_row==m_registers.values[4]+1) {
+                if(m_registers.values[5]==0) {
+                    this->StartOfFrame();
+                } else {
+                    m_adj=true;
+                }
+            }
+            
+            ASSERT(!(m_line_addr.b.h&~0x3f));
+
         }
 
-        TRACEF_IF(m_trace_scanline,m_trace,"6845 - start of scanline %u: CRTC addr: $%04X; delay: %u; raster: %u; row: %u; vsync_left: %u; nadj_left: %u\n",
-            m_trace_scanline,m_line_addr.w,m_delay,m_raster,m_row,m_vsync_left,m_nadj_left);
+        TRACEF_IF(m_trace_scanline,m_trace,"6845 - start of scanline %u: CRTC addr: $%04X; delay: %u; raster: %u; row: %u; vsync_left: %u; adj: %s\n",
+                  m_trace_scanline,m_line_addr.w,m_delay,m_raster,m_row,m_vsync_left,BOOL_STR(m_adj));
     } else {
         // advance to next column in row.
         ++m_column;
@@ -328,6 +317,40 @@ void CRTC::SetTrace(Trace *t,bool trace_scanlines) {
     m_trace_scanlines=trace_scanlines;
 }
 #endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void CRTC::NextRaster() {
+    m_char_addr.w=m_line_addr.w;
+
+    if(m_registers.bits.r8.bits.v&&m_registers.bits.r8.bits.s) {
+        // Interlace sync and video
+        m_raster+=2;
+    } else {
+        // Interlace sync, no interlace
+        ++m_raster;
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void CRTC::StartOfFrame() {
+    m_line_addr.b.h=m_registers.values[12];
+    m_line_addr.b.l=m_registers.values[13];
+
+    m_char_addr=m_line_addr;
+
+    m_row=0;
+    m_raster=0;
+    
+#if BBCMICRO_TRACE
+    m_trace_scanline=0;
+
+    TRACEF(m_trace,"6845 - start of frame. CRTC address: $%04X\n",m_line_addr.w);
+#endif
+}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
