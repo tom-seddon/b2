@@ -478,7 +478,7 @@ void BeebWindow::DoFilteringOptionsGui() {
 
     if(m_renderer_is_d3d9) {
         ImGui::TextWrapped("The half pixel offset affects all windows.");
-        ImGui::Checkbox("UI Half-pixel offset",&BeebWindows::half_pixel_offset);
+        ImGui::Checkbox("UI half-pixel offset",&BeebWindows::half_pixel_offset);
     }
 }
 
