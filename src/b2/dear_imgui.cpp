@@ -174,17 +174,18 @@ bool ImGuiStuff::Init(bool filter) {
     io.KeyMap[ImGuiKey_Z]=SDL_GetScancodeFromKey(SDLK_z);// for text edit CTRL+Z: undo
 
     // https://github.com/ocornut/imgui/commit/aa11934efafe4db75993e23aacacf9ed8b1dd40c#diff-bbaa16f299ca6d388a3a779b16572882L446
+
     m_original_font_atlas=io.Fonts;
     io.Fonts=new ImFontAtlas;
-    io.Fonts->AddFontDefault();
+    m_fonts.push_back(io.Fonts->AddFontDefault());
 
     ImFontConfig fa_config;
     fa_config.MergeMode=true;
     fa_config.PixelSnapH=true;
-    io.Fonts->AddFontFromFileTTF(GetAssetPath(FA_FILE_NAME).c_str(),
+    m_fonts.push_back(io.Fonts->AddFontFromFileTTF(GetAssetPath(FA_FILE_NAME).c_str(),
         16.f,
         &fa_config,
-        FA_ICONS_RANGES);
+        FA_ICONS_RANGES));
 
     unsigned char *pixels;
     int width,height;
@@ -211,6 +212,8 @@ bool ImGuiStuff::Init(bool filter) {
     ASSERT(rc==0);
 
     io.Fonts->TexID=m_font_texture;
+
+    this->SetFontDisplayOffset(ImVec2(.5f,.5f));
 
     return true;
 }
@@ -378,6 +381,26 @@ bool ImGuiStuff::WantCaptureKeyboard() const {
 
 bool ImGuiStuff::WantTextInput() const {
     return m_want_text_input;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+ImVec2 ImGuiStuff::GetFontDisplayOffset() const {
+    if(m_fonts.empty()) {
+        return ImVec2(0.f,0.f);
+    } else {
+        return m_fonts[0]->DisplayOffset;
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void ImGuiStuff::SetFontDisplayOffset(const ImVec2 &offset) {
+    for(ImFont *font:m_fonts) {
+        font->DisplayOffset=offset;
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////
