@@ -213,7 +213,7 @@ bool ImGuiStuff::Init(bool filter) {
 
     io.Fonts->TexID=m_font_texture;
 
-    this->SetFontDisplayOffset(ImVec2(.5f,.5f));
+    //this->SetFontDisplayOffset(ImVec2(.5f,.5f));
 
     return true;
 }
@@ -386,22 +386,22 @@ bool ImGuiStuff::WantTextInput() const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-ImVec2 ImGuiStuff::GetFontDisplayOffset() const {
-    if(m_fonts.empty()) {
-        return ImVec2(0.f,0.f);
-    } else {
-        return m_fonts[0]->DisplayOffset;
-    }
-}
+//ImVec2 ImGuiStuff::GetFontDisplayOffset() const {
+//    if(m_fonts.empty()) {
+//        return ImVec2(0.f,0.f);
+//    } else {
+//        return m_fonts[0]->DisplayOffset;
+//    }
+//}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void ImGuiStuff::SetFontDisplayOffset(const ImVec2 &offset) {
-    for(ImFont *font:m_fonts) {
-        font->DisplayOffset=offset;
-    }
-}
+//void ImGuiStuff::SetFontDisplayOffset(const ImVec2 &offset) {
+//    for(ImFont *font:m_fonts) {
+//        font->DisplayOffset=offset;
+//    }
+//}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

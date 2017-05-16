@@ -55,8 +55,8 @@ public:
     bool WantCaptureKeyboard() const;
     bool WantTextInput() const;
 
-    ImVec2 GetFontDisplayOffset() const;
-    void SetFontDisplayOffset(const ImVec2 &offset);
+    //ImVec2 GetFontDisplayOffset() const;
+    //void SetFontDisplayOffset(const ImVec2 &offset);
 protected:
 private:
     SDL_Renderer *m_renderer=nullptr;
