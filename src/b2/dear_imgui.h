@@ -42,7 +42,7 @@ public:
     // bool parameter, yum.
     bool Init(bool filter);
 
-    void NewFrame(bool got_mouse_focus);
+    void NewFrame(bool got_mouse_focus,bool half_pixel_offset);
     void Render();
 
     // Temporary (?) fix for disappearing mousewheel messages.

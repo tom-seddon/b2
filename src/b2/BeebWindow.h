@@ -150,6 +150,7 @@ private:
     // SDLstuff.
     SDL_Window *m_window=nullptr;
     SDL_Renderer *m_renderer=nullptr;
+    bool m_renderer_is_d3d9=false;
     SDL_PixelFormat *m_pixel_format=nullptr;
 
 #if SYSTEM_WINDOWS

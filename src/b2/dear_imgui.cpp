@@ -221,7 +221,9 @@ bool ImGuiStuff::Init(bool filter) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void ImGuiStuff::NewFrame(bool got_mouse_focus) {
+void ImGuiStuff::NewFrame(bool got_mouse_focus,
+                          bool half_pixel_offset)
+{
     ImGuiContextSetter setter(this);
     ImGuiIO &io=ImGui::GetIO();
 
@@ -268,6 +270,18 @@ void ImGuiStuff::NewFrame(bool got_mouse_focus) {
 
     io.MouseWheel=(float)m_next_wheel;
     m_next_wheel=0;
+
+    ImVec2 font_display_offset;
+    if(half_pixel_offset) {
+        font_display_offset=ImVec2(.5f,.5f);
+    } else {
+        font_display_offset=ImVec2(0.f,1.f);
+    }
+    
+    for(ImFont *font:m_fonts) {
+        font->DisplayOffset=font_display_offset;
+    }
+
 
     ImGui::NewFrame();
 
@@ -382,26 +396,6 @@ bool ImGuiStuff::WantCaptureKeyboard() const {
 bool ImGuiStuff::WantTextInput() const {
     return m_want_text_input;
 }
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-//ImVec2 ImGuiStuff::GetFontDisplayOffset() const {
-//    if(m_fonts.empty()) {
-//        return ImVec2(0.f,0.f);
-//    } else {
-//        return m_fonts[0]->DisplayOffset;
-//    }
-//}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-//void ImGuiStuff::SetFontDisplayOffset(const ImVec2 &offset) {
-//    for(ImFont *font:m_fonts) {
-//        font->DisplayOffset=offset;
-//    }
-//}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
