@@ -57,6 +57,21 @@ check_sanitizer(ADDRESS ASan)
 ##########################################################################
 ##########################################################################
 
+if(OSX)
+  # Adding options with add_definitions and CMAKE_EXE_LINKER_FLAGS
+  # doesn't affect the SDL project. So use the
+  # MAXOSX_DEPLOYMENT_TARGET environment variable instead (see
+  # http://stackoverflow.com/questions/25352389/), which seems to have
+  # the desired effect.
+  set(ENV{MACOSX_DEPLOYMENT_TARGET} 10.7)
+  
+  add_definitions("-mmacosx-version-min=10.7 -stdlib=libc++")
+  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -mmacosx-version-min=10.7 -stdlib=libc++")
+endif()
+
+##########################################################################
+##########################################################################
+
 # Use the SDL submodule, but set the variables up so it looks like it
 # was found by FindSDL2. It doesn't look like the SDL2 cmake build
 # process is designed for this, so this is a bit of a hack.
