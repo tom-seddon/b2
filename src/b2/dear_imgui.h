@@ -42,7 +42,7 @@ public:
     // bool parameter, yum.
     bool Init(bool filter);
 
-    void NewFrame(bool got_mouse_focus,bool half_pixel_offset);
+    void NewFrame(bool got_mouse_focus);
     void Render();
 
     // Temporary (?) fix for disappearing mousewheel messages.
@@ -54,9 +54,6 @@ public:
     bool WantCaptureMouse() const;
     bool WantCaptureKeyboard() const;
     bool WantTextInput() const;
-
-    //ImVec2 GetFontDisplayOffset() const;
-    //void SetFontDisplayOffset(const ImVec2 &offset);
 protected:
 private:
     SDL_Renderer *m_renderer=nullptr;
@@ -70,7 +67,7 @@ private:
     bool m_want_text_input=false;
     std::string m_imgui_ini_path;
     std::string m_imgui_log_txt_path;
-    std::vector<ImFont *> m_fonts;
+    ImVec2 m_render_offset{0.f,0.f};
 
     friend class ImGuiContextSetter;
 };

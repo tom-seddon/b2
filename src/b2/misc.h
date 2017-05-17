@@ -30,6 +30,9 @@ void DumpRendererInfo(Log *log,const struct SDL_RendererInfo *info);
 
 void SetRenderScaleQualityHint(bool filter);
 
+// this just wraps a GetRendererInfo/strcmp...
+bool IsDirect3D9Renderer(SDL_Renderer *renderer);
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 

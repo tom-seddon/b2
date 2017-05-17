@@ -475,11 +475,6 @@ void BeebWindow::DoFilteringOptionsGui() {
     ImGui::TextWrapped("This window's filtering settings can't be changed. These settings apply to new windows only.");
     ImGui::Checkbox("Filter UI",&BeebWindows::filter_ui);
     ImGui::Checkbox("Filter BBC",&BeebWindows::filter_bbc);
-
-    if(m_renderer_is_d3d9) {
-        ImGui::TextWrapped("The half pixel offset affects all windows.");
-        ImGui::Checkbox("UI half-pixel offset",&BeebWindows::half_pixel_offset);
-    }
 }
 
 class FileMenuItem {
@@ -1272,8 +1267,7 @@ bool BeebWindow::HandleVBlank(uint64_t ticks) {
         }
     }
 
-    m_imgui_stuff->NewFrame(got_mouse_focus,
-                            m_renderer_is_d3d9&&BeebWindows::half_pixel_offset);
+    m_imgui_stuff->NewFrame(got_mouse_focus);
 
     return keep_window;
 }
@@ -1468,8 +1462,6 @@ bool BeebWindow::InitInternal() {
         return false;
     }
 
-    m_renderer_is_d3d9=strcmp(info.name,"direct3d")==0;
-
 #if RMT_ENABLED
     if(g_num_BeebWindow_inits==0) {
 #if RMT_USE_OPENGL
@@ -1535,8 +1527,7 @@ bool BeebWindow::InitInternal() {
         }
     }
 
-    m_imgui_stuff->NewFrame(false,
-                            m_renderer_is_d3d9&&BeebWindows::half_pixel_offset);
+    m_imgui_stuff->NewFrame(false);
 
     m_display_size_options.push_back("Auto");
 

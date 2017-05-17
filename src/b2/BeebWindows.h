@@ -58,7 +58,6 @@ namespace BeebWindows {
     // separate. But maybe they should move...?
     extern bool filter_bbc;
     extern bool filter_ui;
-    extern bool half_pixel_offset;
 
     bool Init();
     void Shutdown();

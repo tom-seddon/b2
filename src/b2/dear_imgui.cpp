@@ -68,6 +68,10 @@ ImGuiStuff::ImGuiStuff(SDL_Renderer *renderer):
     m_renderer(renderer)
 {
     m_last_new_frame_ticks=GetCurrentTickCount();
+
+    if(IsDirect3D9Renderer(renderer)) {
+        m_render_offset=ImVec2(-.5f,-.5f);
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -177,15 +181,15 @@ bool ImGuiStuff::Init(bool filter) {
 
     m_original_font_atlas=io.Fonts;
     io.Fonts=new ImFontAtlas;
-    m_fonts.push_back(io.Fonts->AddFontDefault());
+    io.Fonts->AddFontDefault();
 
     ImFontConfig fa_config;
     fa_config.MergeMode=true;
     fa_config.PixelSnapH=true;
-    m_fonts.push_back(io.Fonts->AddFontFromFileTTF(GetAssetPath(FA_FILE_NAME).c_str(),
+    io.Fonts->AddFontFromFileTTF(GetAssetPath(FA_FILE_NAME).c_str(),
         16.f,
         &fa_config,
-        FA_ICONS_RANGES));
+        FA_ICONS_RANGES);
 
     unsigned char *pixels;
     int width,height;
@@ -213,17 +217,13 @@ bool ImGuiStuff::Init(bool filter) {
 
     io.Fonts->TexID=m_font_texture;
 
-    //this->SetFontDisplayOffset(ImVec2(.5f,.5f));
-
     return true;
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void ImGuiStuff::NewFrame(bool got_mouse_focus,
-                          bool half_pixel_offset)
-{
+void ImGuiStuff::NewFrame(bool got_mouse_focus) {
     ImGuiContextSetter setter(this);
     ImGuiIO &io=ImGui::GetIO();
 
@@ -270,18 +270,6 @@ void ImGuiStuff::NewFrame(bool got_mouse_focus,
 
     io.MouseWheel=(float)m_next_wheel;
     m_next_wheel=0;
-
-    ImVec2 font_display_offset;
-    if(half_pixel_offset) {
-        font_display_offset=ImVec2(.5f,.5f);
-    } else {
-        font_display_offset=ImVec2(0.f,1.f);
-    }
-    
-    for(ImFont *font:m_fonts) {
-        font->DisplayOffset=font_display_offset;
-    }
-
 
     ImGui::NewFrame();
 
@@ -335,7 +323,9 @@ void ImGuiStuff::Render() {
                 int *indices=(int *)&draw_list->IdxBuffer[idx_buffer_pos];
                 ASSERT(idx_buffer_pos+(int)cmd.ElemCount<=draw_list->IdxBuffer.size());
 
-                rc=SDL_RenderGeometry(m_renderer,texture,vertices,num_vertices,indices,(int)cmd.ElemCount,NULL);
+                SDL_Vector2f offset={m_render_offset.x,m_render_offset.y};
+
+                rc=SDL_RenderGeometry(m_renderer,texture,vertices,num_vertices,indices,(int)cmd.ElemCount,&offset);
                 ASSERT(rc==0);
 
                 ASSERT(cmd.ElemCount<=INT_MAX);
