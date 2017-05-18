@@ -58,13 +58,33 @@ static const uint8_t TELETEXT_FONT[96][10][3]={
 static const uint8_t FRAMES_PER_SECOND=50;
 static const uint8_t NUM_FLASH_OFF_FRAMES=16;
 
-// Column widths for alpha characters. Left column is blank.
-static const size_t ALPHA_WIDTHS[]={3,2,3,2,3,2};
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
 
-// Column widths for graphic characters. Ought to have the same weight
-// for columns 3 and 6, so that separated graphics don't look too
-// ugly.
-static const size_t GRAPHIC_WIDTHS[]={3,3,2,3,3,2};
+// Column widths for characters by type.
+//
+// For alpha chars, left column is the blank one.
+//
+// Graphics chars ought to have the same weight for columns 3 and 6 so
+// that separated graphics don't look too ugly.
+
+#if BBCMICRO_PRESTRETCH_TELETEXT
+static const size_t ALPHA_WIDTHS[]={
+    3,2,3,2,3,2,
+};
+#endif
+
+#if BBCMICRO_PRESTRETCH_TELETEXT
+static const size_t GRAPHIC_WIDTHS[]={
+    3,3,2,3,3,2,
+};
+#endif
+
+#if !BBCMICRO_PRESTRETCH_TELETEXT
+static const size_t UNIFORM_WIDTHS[]={
+    2,2,2,2,2,2,
+};
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -90,15 +110,20 @@ static int ShouldAntialias(size_t style,size_t ch) {
 static uint16_t Get16WideRow(size_t style,size_t ch,int y) {
     ASSERT(style<3);
     ASSERT(ch>=32&&ch<128);
+    
 
     uint16_t w=0;
 
     const size_t *widths;
+#if BBCMICRO_PRESTRETCH_TELETEXT
     if(style==TeletextCharset_Alpha||(ch&0x20)==0) {
         widths=ALPHA_WIDTHS;
     } else {
         widths=GRAPHIC_WIDTHS;
     }
+#else
+    widths=UNIFORM_WIDTHS;
+#endif
 
     if(y>=0&&y<20) {
         size_t left=0;
@@ -377,8 +402,13 @@ void SAA5050::EmitVideoDataHalfUnit(VideoDataHalfUnit *hu) {
     hu->teletext.data0=(uint8_t)m_data0;
     hu->teletext.data1=(uint8_t)m_data1;
 
+#if BBCMICRO_PRESTRETCH_TELETEXT
     m_data0>>=8;
     m_data1>>=8;
+#else
+    m_data0>>=6;
+    m_data1>>=6;
+#endif
 
 #else
 

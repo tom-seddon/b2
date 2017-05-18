@@ -59,7 +59,8 @@ private:
     size_t m_x=0;
     size_t m_y=0;
     int m_state_timer=0;
-    uint32_t m_palette[8]={};
+
+    uint32_t m_palette[2][8][8]={};
     SDL_PixelFormat *m_pixel_format=nullptr;
     size_t m_num_fields=0;
 
@@ -72,6 +73,7 @@ private:
     size_t num_renders;
 #endif
 
+    void InitPalette(const SDL_PixelFormat *pixel_format,size_t palette,double fa);
 };
 
 //////////////////////////////////////////////////////////////////////////
