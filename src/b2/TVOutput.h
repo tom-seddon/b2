@@ -52,6 +52,9 @@ public:
     const SDL_PixelFormat *GetPixelFormat() const;
 
     bool IsInVerticalBlank() const;
+
+     double GetGamma() const;
+    void SetGamma(double gamma);
 protected:
 private:
     TVOutputState m_state=TVOutputState_VerticalRetrace;
@@ -73,7 +76,10 @@ private:
     size_t num_renders;
 #endif
 
-    void InitPalette(const SDL_PixelFormat *pixel_format,size_t palette,double fa);
+    double m_gamma=2.2;
+
+    void InitPalette(size_t palette,double fa);
+    void InitPalette();
 };
 
 //////////////////////////////////////////////////////////////////////////

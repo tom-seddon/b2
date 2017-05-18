@@ -376,14 +376,6 @@ bool BeebWindow::Load65LinkFolder(int drive,const std::string &path) {
     }
 }
 
-void BeebWindow::DoVolumeImGui(const char *label,float (BeebThread::*get_volume_mfn)() const,void (BeebThread::*set_volume_mfn)(float)) {
-    float volume=((*m_beeb_thread).*get_volume_mfn)();
-
-    if(ImGui::SliderFloat(label,&volume,MIN_DB,MAX_DB,"%.1f dB")) {
-        ((*m_beeb_thread).*set_volume_mfn)(volume);
-    }
-}
-
 void BeebWindow::DoOptionsGui() {
     {
         bool paused=m_beeb_thread->IsPaused();
@@ -420,8 +412,10 @@ void BeebWindow::DoOptionsGui() {
         this->RecreateTexture();
     }
 
-    this->DoVolumeImGui("BBC volume",&BeebThread::GetBBCVolume,&BeebThread::SetBBCVolume);
-    this->DoVolumeImGui("Disc volume",&BeebThread::GetDiscVolume,&BeebThread::SetDiscVolume);
+    //ImGuiSliderGetSet("Mode 7 gamma",&m_tv,&TVOutput::GetGamma,&TVOutput::SetGamma,1.f,10.f,"%.3f");
+
+    ImGuiSliderGetSet("BBC volume",m_beeb_thread.get(),&BeebThread::GetBBCVolume,&BeebThread::SetBBCVolume,MIN_DB,MAX_DB,"%.1f dB");
+    ImGuiSliderGetSet("Disc volume",m_beeb_thread.get(),&BeebThread::GetDiscVolume,&BeebThread::SetDiscVolume,MIN_DB,MAX_DB,"%.1f dB");
 
     if(ImGui::CollapsingHeader("Display Alignment",ImGuiTreeNodeFlags_DefaultOpen)) {
         ImVec2 size(20.f,20.f);

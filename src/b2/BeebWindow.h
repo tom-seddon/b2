@@ -259,7 +259,6 @@ private:
     bool InitInternal();
     bool LoadDiscImageFile(int drive,const std::string &path);
     bool Load65LinkFolder(int drive,const std::string &path);
-    void DoVolumeImGui(const char *label,float (BeebThread::*get_volume_mfn)() const,void (BeebThread::*set_volume_mfn)(float));
     void DoOptionsGui();
     bool DoImGui(int output_width,int output_height);
     BeebWindowInitArguments GetNewWindowInitArguments() const;

@@ -46,51 +46,6 @@ TVOutput::~TVOutput() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static uint8_t GetByte(double x) {
-    if(x<0.) {
-        return 0;
-    } else if(x>=1.) {
-        return 255;
-    } else {
-        return (uint8_t)(x*255.);
-    }
-}
-
-void TVOutput::InitPalette(const SDL_PixelFormat *pixel_format,size_t palette,double fa) {
-    // Random value (that isn't totally unreasonable).
-    double gamma=2.2;
-    
-    for(size_t i=0;i<64;++i) {
-        double ra=i&1?1.:0.;
-        double ga=i&2?1.:0.;
-        double ba=i&4?1.:0.;
-            
-        double rb=i&8?1.:0.;
-        double gb=i&16?1.:0.;
-        double bb=i&32?1.:0.;
-
-        double pr=fa*ra+(1.-fa)*rb;
-        double pg=fa*ga+(1.-fa)*gb;
-        double pb=fa*ba+(1.-fa)*bb;
-
-        pr=pow(pr,1./gamma);
-        pg=pow(pg,1./gamma);
-        pb=pow(pb,1./gamma);
-
-        uint8_t prb=GetByte(pr);
-        uint8_t pgb=GetByte(pg);
-        uint8_t pbb=GetByte(pb);
-
-        m_palette[palette][i]=SDL_MapRGBA(pixel_format,prb,pgb,pbb,255);
-    }
-    
-    // LOGF(OUTPUT,"palette[%d][%zu]=(%d,%d,%d)",palette,index,prbyte,pgbyte,pbbyte);
-    // while(LOG(OUTPUT).GetColumn()<40) {
-    //     LOGF(OUTPUT," ");
-    // }
-    // LOGF(OUTPUT,"(%.2f*%s, %.2f*%s)\n",fa,names[a],fb,names[b]);
-}
-
 bool TVOutput::InitTexture(const SDL_PixelFormat *pixel_format) {
     if(pixel_format->BytesPerPixel!=4) {
         return false;
@@ -101,8 +56,7 @@ bool TVOutput::InitTexture(const SDL_PixelFormat *pixel_format) {
 
     m_texture_data.resize(TV_TEXTURE_WIDTH*TV_TEXTURE_HEIGHT);
 
-    this->InitPalette(pixel_format,0,1.);
-    this->InitPalette(pixel_format,1,1./3);
+    this->InitPalette();
 
     return true;
 }
@@ -458,6 +412,69 @@ const SDL_PixelFormat *TVOutput::GetPixelFormat() const {
 
 bool TVOutput::IsInVerticalBlank() const {
     return m_state==TVOutputState_VerticalRetrace||m_state==TVOutputState_VerticalRetraceWait;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+double TVOutput::GetGamma() const {
+    return m_gamma;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void TVOutput::SetGamma(double gamma) {
+    m_gamma=gamma;
+
+    this->InitPalette();
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+static uint8_t GetByte(double x) {
+    if(x<0.) {
+        return 0;
+    } else if(x>=1.) {
+        return 255;
+    } else {
+        return (uint8_t)(x*255.);
+    }
+}
+
+void TVOutput::InitPalette(size_t palette,double fa) {
+    for(size_t i=0;i<64;++i) {
+        double ra=i&1?1.:0.;
+        double ga=i&2?1.:0.;
+        double ba=i&4?1.:0.;
+            
+        double rb=i&8?1.:0.;
+        double gb=i&16?1.:0.;
+        double bb=i&32?1.:0.;
+
+        double pr=fa*ra+(1.-fa)*rb;
+        double pg=fa*ga+(1.-fa)*gb;
+        double pb=fa*ba+(1.-fa)*bb;
+
+        pr=pow(pr,1./m_gamma);
+        pg=pow(pg,1./m_gamma);
+        pb=pow(pb,1./m_gamma);
+
+        uint8_t prb=GetByte(pr);
+        uint8_t pgb=GetByte(pg);
+        uint8_t pbb=GetByte(pb);
+
+        m_palette[palette][i]=SDL_MapRGBA(m_pixel_format,prb,pgb,pbb,255);
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void TVOutput::InitPalette() {
+    this->InitPalette(0,1.);
+    this->InitPalette(1,1./3);
 }
 
 //////////////////////////////////////////////////////////////////////////

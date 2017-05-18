@@ -200,4 +200,23 @@ bool ImGuiButton(const char *label,bool enabled=true);
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+template<class ObjectTypePtr,class ObjectType,class ResultType,class ArgumentType>
+void ImGuiSliderGetSet(const char *label,
+                       ObjectTypePtr &&object,
+                       ResultType (ObjectType::*get_mfn)() const,
+                       void (ObjectType::*set_mfn)(ArgumentType),
+                       float mini,
+                       float maxi,
+                       const char *display_format)
+{
+    float value=(object->*get_mfn)();
+
+    if(ImGui::SliderFloat(label,&value,mini,maxi,display_format)) {
+        (object->*set_mfn)(value);
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 #endif
