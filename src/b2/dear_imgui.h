@@ -209,7 +209,7 @@ void ImGuiSliderGetSet(const char *label,
                        float maxi,
                        const char *display_format)
 {
-    float value=(object->*get_mfn)();
+    auto value=static_cast<float>((object->*get_mfn)());
 
     if(ImGui::SliderFloat(label,&value,mini,maxi,display_format)) {
         (object->*set_mfn)(value);
