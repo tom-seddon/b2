@@ -720,6 +720,25 @@ static bool InitLogs(const Options &options,Messages *init_messages) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#if SYSTEM_OSX
+static void SaveKeyWindowSettings() {
+    if(void *key_nswindow=GetKeyWindow()) {
+        for(size_t i=0;i<BeebWindows::GetNumWindows();++i) {
+            BeebWindow *window=BeebWindows::GetWindowByIndex(i);
+
+            void *window_nswindow=window->GetNSWindow();
+            if(window_nswindow==key_nswindow) {
+                window->SaveSettings();
+                break;
+            }
+        }
+    }
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &init_message_list) {
 #if RMT_ENABLED
     {
@@ -889,6 +908,16 @@ static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &init
             }
 
             if(event.type==SDL_QUIT) {
+#if SYSTEM_OSX
+                // On OS X, quit just does a quit, and there are no
+                // window-specific messages sent to indicate that it's
+                // happening. So jump through a few hoops in order
+                // that the settings from the key window (if there is
+                // one) are saved.
+                //
+                // This is a bit of a hack.
+                SaveKeyWindowSettings();
+#endif
                 goto done;
             }
 

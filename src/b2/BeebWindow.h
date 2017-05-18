@@ -136,6 +136,9 @@ public:
 #if SYSTEM_WINDOWS
     void *GetHWND() const;
 #endif
+#if SYSTEM_OSX
+    void *GetNSWindow() const;
+#endif
 protected:
 private:
     struct DriveState {
