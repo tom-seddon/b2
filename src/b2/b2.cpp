@@ -375,6 +375,37 @@ static std::string GetLogList() {
     return list;
 }
 
+#if SYSTEM_OSX
+static bool IsPSNArgument(const char *arg) {
+    if(arg[0]!='-'||arg[1]!='p'||arg[2]!='s'||arg[3]!='n'||arg[4]!='_'||!isdigit(arg[5])||arg[6]!='_') {
+        return false;
+    }
+
+    for(int i=7;arg[i]!=0;++i) {
+        if(!isdigit(arg[i])) {
+            return false;
+        }
+    }
+
+    return true;
+}
+#endif
+
+#if SYSTEM_OSX
+// http://stackoverflow.com/questions/10242115/
+static void RemovePSNArguments(std::vector<const char *> *argv) {
+    auto &&it=argv->begin();
+    while(it!=argv->end()) {
+        if(IsPSNArgument(*it)) {
+            asl_log(nullptr,nullptr,ASL_LEVEL_ERR,"removing PSN argument: %s",*it);
+            it=argv->erase(it);
+        } else {
+            ++it;
+        }
+    }
+}
+#endif
+
 static bool DoCommandLineOptions(
     Options *options,
     int argc,char *argv[],
@@ -424,7 +455,13 @@ static bool DoCommandLineOptions(
 
     p.AddHelpOption(&options->help);
 
-    if(!p.Parse(argc,argv)) {
+    std::vector<const char *> args(argv,argv+argc);
+
+#if SYSTEM_OSX
+    RemovePSNArguments(&args);
+#endif
+
+    if(!p.Parse((int)args.size(),args.data())) {
         return false;
     }
 
