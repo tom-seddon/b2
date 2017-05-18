@@ -57,26 +57,24 @@ static uint8_t GetByte(double x) {
 }
 
 void TVOutput::InitPalette(const SDL_PixelFormat *pixel_format,size_t palette,double fa) {
-    for(size_t a=0;a<8;++a) {
-        for(size_t b=0;b<8;++b) {
-            double rb=b&1?1.:0.;
-            double gb=b&2?1.:0.;
-            double bb=b&4?1.:0.;
+    for(size_t i=0;i<64;++i) {
+        double ra=i&1?1.:0.;
+        double ga=i&2?1.:0.;
+        double ba=i&4?1.:0.;
+            
+        double rb=i&8?1.:0.;
+        double gb=i&16?1.:0.;
+        double bb=i&32?1.:0.;
 
-            double ra=a&1?1.:0.;
-            double ga=a&2?1.:0.;
-            double ba=a&4?1.:0.;
+        double pr=fa*ra+(1.-fa)*rb;
+        double pg=fa*ga+(1.-fa)*gb;
+        double pb=fa*ba+(1.-fa)*bb;
 
-            double pr=fa*ra+(1.-fa)*rb;
-            double pg=fa*ga+(1.-fa)*gb;
-            double pb=fa*ba+(1.-fa)*bb;
+        uint8_t prb=GetByte(pr);
+        uint8_t pgb=GetByte(pg);
+        uint8_t pbb=GetByte(pb);
 
-            uint8_t prb=GetByte(pr);
-            uint8_t pgb=GetByte(pg);
-            uint8_t pbb=GetByte(pb);
-
-            m_palette[palette][b][a]=SDL_MapRGBA(pixel_format,prb,pgb,pbb,255);
-        }
+        m_palette[palette][i]=SDL_MapRGBA(pixel_format,prb,pgb,pbb,255);
     }
     
     // LOGF(OUTPUT,"palette[%d][%zu]=(%d,%d,%d)",palette,index,prbyte,pgbyte,pbbyte);
@@ -97,7 +95,7 @@ bool TVOutput::InitTexture(const SDL_PixelFormat *pixel_format) {
     m_texture_data.resize(TV_TEXTURE_WIDTH*TV_TEXTURE_HEIGHT);
 
     this->InitPalette(pixel_format,0,1.);
-    this->InitPalette(pixel_format,1,2./3);
+    this->InitPalette(pixel_format,1,1./3);
 
     return true;
 }
@@ -190,10 +188,10 @@ void TVOutput::UpdateOneHalfUnit(const VideoDataHalfUnit *hu,float amt) {
                     if(m_x<TV_TEXTURE_WIDTH&&m_y<TV_TEXTURE_HEIGHT) {
                         uint32_t *line=m_line+m_x;
 
-                        line[7]=line[6]=line[5]=line[4]=line[3]=line[2]=line[1]=line[0]=m_palette[0][0][0];
+                        line[7]=line[6]=line[5]=line[4]=line[3]=line[2]=line[1]=line[0]=m_palette[0][0];
 #if FULL_PAL_HEIGHT
                         line+=TV_TEXTURE_WIDTH;
-                        line[7]=line[6]=line[5]=line[4]=line[3]=line[2]=line[1]=line[0]=m_palette[0][0][0];
+                        line[7]=line[6]=line[5]=line[4]=line[3]=line[2]=line[1]=line[0]=m_palette[0][0];
 #endif
                     }
                     m_x+=8;
@@ -203,10 +201,10 @@ void TVOutput::UpdateOneHalfUnit(const VideoDataHalfUnit *hu,float amt) {
                     if(m_x<TV_TEXTURE_WIDTH&&m_y<TV_TEXTURE_HEIGHT) {
                         uint32_t *line=m_line+m_x;
 
-                        line[7]=line[6]=line[5]=line[4]=line[3]=line[2]=line[1]=line[0]=m_palette[0][0][7];
+                        line[7]=line[6]=line[5]=line[4]=line[3]=line[2]=line[1]=line[0]=m_palette[0][7];
 #if FULL_PAL_HEIGHT
                         line+=TV_TEXTURE_WIDTH;
-                        line[7]=line[6]=line[5]=line[4]=line[3]=line[2]=line[1]=line[0]=m_palette[0][0][7];
+                        line[7]=line[6]=line[5]=line[4]=line[3]=line[2]=line[1]=line[0]=m_palette[0][7];
 #endif
                     }
                     m_x+=8;
@@ -222,7 +220,7 @@ void TVOutput::UpdateOneHalfUnit(const VideoDataHalfUnit *hu,float amt) {
 
 #if BBCMICRO_PRESTRETCH_TELETEXT
                         
-#define P_(N,I) line##N[I]=m_palette[0][0][hu->teletext.colours[((hu->teletext.data##N)>>(I))&1]]
+#define P_(N,I) line##N[I]=m_palette[0][hu->teletext.colours[((hu->teletext.data##N)>>(I))&1]]
                         
 #if FULL_PAL_HEIGHT
 #define P(I) P_(0,I); P_(1,I)
@@ -253,15 +251,20 @@ void TVOutput::UpdateOneHalfUnit(const VideoDataHalfUnit *hu,float amt) {
                         uint8_t c04=hu->teletext.colours[hu->teletext.data0>>4&1];
                         uint8_t c05=hu->teletext.colours[hu->teletext.data0>>5&1];
 
-                        line0[0]=m_palette[0][0][c00];     // c0/c0/c0
-                        line0[1]=m_palette[1][c00][c01];   // c0/c1/c1
-                        line0[2]=m_palette[1][c02][c01];   // c1/c1/c2
-                        line0[3]=m_palette[0][0][c02];     // c2/c2/c2
+                        uint8_t c010=c01<<3|c00;
+                        uint8_t c012=c01<<3|c02;
+                        uint8_t c043=c04<<3|c03;
+                        uint8_t c045=c04<<3|c05;
 
-                        line0[4]=m_palette[0][0][c03];     
-                        line0[5]=m_palette[1][c03][c04];   
-                        line0[6]=m_palette[1][c05][c04];   
-                        line0[7]=m_palette[0][0][c05];     
+                        line0[0]=m_palette[0][c010]; // (c0+c0+c0)/3
+                        line0[1]=m_palette[1][c010]; // (c0+c1+c1)/3
+                        line0[2]=m_palette[1][c012]; // (c1+c1+c2)/3
+                        line0[3]=m_palette[0][c012]; // (c2+c2+c2)/3
+
+                        line0[4]=m_palette[0][c043];     
+                        line0[5]=m_palette[1][c043];   
+                        line0[6]=m_palette[1][c045];   
+                        line0[7]=m_palette[0][c045];     
                         
 #if FULL_PAL_HEIGHT
                         uint8_t c10=hu->teletext.colours[hu->teletext.data1&1];
@@ -270,15 +273,20 @@ void TVOutput::UpdateOneHalfUnit(const VideoDataHalfUnit *hu,float amt) {
                         uint8_t c13=hu->teletext.colours[hu->teletext.data1>>3&1];
                         uint8_t c14=hu->teletext.colours[hu->teletext.data1>>4&1];
                         uint8_t c15=hu->teletext.colours[hu->teletext.data1>>5&1];
+
+                        uint8_t c110=c11<<3|c10;
+                        uint8_t c112=c11<<3|c12;
+                        uint8_t c143=c14<<3|c13;
+                        uint8_t c145=c14<<3|c15;
                         
-                        line1[0]=m_palette[0][0][c10];
-                        line1[1]=m_palette[1][c10][c11];
-                        line1[2]=m_palette[1][c12][c11];
-                        line1[3]=m_palette[0][0][c12];
-                        line1[4]=m_palette[0][0][c13];     
-                        line1[5]=m_palette[1][c13][c14];   
-                        line1[6]=m_palette[1][c15][c14];   
-                        line1[7]=m_palette[0][0][c15];     
+                        line1[0]=m_palette[0][c110];
+                        line1[1]=m_palette[1][c110];
+                        line1[2]=m_palette[1][c112];
+                        line1[3]=m_palette[0][c112];
+                        line1[4]=m_palette[0][c143];
+                        line1[5]=m_palette[1][c143];
+                        line1[6]=m_palette[1][c145];
+                        line1[7]=m_palette[0][c145];
 #endif
                         
 #endif   
@@ -338,7 +346,7 @@ void TVOutput::UpdateOneHalfUnit(const VideoDataHalfUnit *hu,float amt) {
 #else
                     
                     uint32_t *line=m_line+m_x;
-#define V(I) m_palette[0][0][hu->pixels[I]]
+#define V(I) m_palette[0][hu->pixels[I]]
                     
 #if FULL_PAL_HEIGHT
                     uint32_t *line2=line+TV_TEXTURE_WIDTH;
