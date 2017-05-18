@@ -57,6 +57,9 @@ static uint8_t GetByte(double x) {
 }
 
 void TVOutput::InitPalette(const SDL_PixelFormat *pixel_format,size_t palette,double fa) {
+    // Random value (that isn't totally unreasonable).
+    double gamma=2.2;
+    
     for(size_t i=0;i<64;++i) {
         double ra=i&1?1.:0.;
         double ga=i&2?1.:0.;
@@ -69,6 +72,10 @@ void TVOutput::InitPalette(const SDL_PixelFormat *pixel_format,size_t palette,do
         double pr=fa*ra+(1.-fa)*rb;
         double pg=fa*ga+(1.-fa)*gb;
         double pb=fa*ba+(1.-fa)*bb;
+
+        pr=pow(pr,1./gamma);
+        pg=pow(pg,1./gamma);
+        pb=pow(pb,1./gamma);
 
         uint8_t prb=GetByte(pr);
         uint8_t pgb=GetByte(pg);
