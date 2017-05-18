@@ -117,7 +117,7 @@ static void SetClipboardText(void *user_data,const char *text) {
 }
 #endif
 
-bool ImGuiStuff::Init(bool filter) {
+bool ImGuiStuff::Init() {
     int rc;
 
     m_context=ImGui::CreateContext();
@@ -195,7 +195,7 @@ bool ImGuiStuff::Init(bool filter) {
     int width,height;
     io.Fonts->GetTexDataAsRGBA32(&pixels,&width,&height);
 
-    SetRenderScaleQualityHint(filter);
+    SetRenderScaleQualityHint(false);
     m_font_texture=SDL_CreateTexture(m_renderer,SDL_PIXELFORMAT_RGBA32,SDL_TEXTUREACCESS_STATIC,width,height);
     if(!m_font_texture) {
         return false;

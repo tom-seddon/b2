@@ -473,7 +473,6 @@ void BeebWindow::DoOptionsGui() {
 
 void BeebWindow::DoFilteringOptionsGui() {
     ImGui::TextWrapped("This window's filtering settings can't be changed. These settings apply to new windows only.");
-    ImGui::Checkbox("Filter UI",&BeebWindows::filter_ui);
     ImGui::Checkbox("Filter BBC",&BeebWindows::filter_bbc);
 }
 
@@ -1489,7 +1488,7 @@ bool BeebWindow::InitInternal() {
     }
 
     m_imgui_stuff=new ImGuiStuff(m_renderer);
-    if(!m_imgui_stuff->Init(BeebWindows::filter_ui)) {
+    if(!m_imgui_stuff->Init()) {
         m_msg.e.f("failed to initialise ImGui\n");
         return false;
     }

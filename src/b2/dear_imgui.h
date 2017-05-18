@@ -40,7 +40,7 @@ public:
     ImGuiStuff &operator=(ImGuiStuff &&)=delete;
 
     // bool parameter, yum.
-    bool Init(bool filter);
+    bool Init();
 
     void NewFrame(bool got_mouse_focus);
     void Render();

@@ -842,7 +842,6 @@ static const char DISPLAY_SCALE_Y[]="display_scale_y";
 static const char DISPLAY_ALIGNMENT_X[]="display_alignment_x";
 static const char DISPLAY_ALIGNMENT_Y[]="display_alignment_y";
 static const char FILTER_BBC[]="filter_bbc";
-static const char FILTER_UI[]="filter_ui";
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -1103,7 +1102,6 @@ static bool LoadWindows(rapidjson::Value *windows,Messages *msg) {
     LoadKeycode(&BeebWindows::load_last_state_shortcut_key,windows,LOAD_LAST_STATE_SHORTCUT,msg);
 
     FindBoolMember(&BeebWindows::filter_bbc,windows,FILTER_BBC,nullptr);
-    FindBoolMember(&BeebWindows::filter_ui,windows,FILTER_UI,nullptr);
 
     return true;
 }
@@ -1452,9 +1450,6 @@ static void SaveWindows(JSONWriter<StringStream> *writer) {
 
         writer->Key(FILTER_BBC);
         writer->Bool(BeebWindows::filter_bbc);
-        
-        writer->Key(FILTER_UI);
-        writer->Bool(BeebWindows::filter_ui);
     }
 }
 

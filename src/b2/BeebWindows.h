@@ -57,7 +57,6 @@ namespace BeebWindows {
     // These don't quite work like the other defaults, so they're
     // separate. But maybe they should move...?
     extern bool filter_bbc;
-    extern bool filter_ui;
 
     bool Init();
     void Shutdown();
