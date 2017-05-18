@@ -135,6 +135,7 @@ BeebWindow::BeebWindow(BeebWindowInitArguments init_arguments):
     m_tv_scale_y=BeebWindows::defaults.display_scale_y;
     m_display_alignment_x=BeebWindows::defaults.display_alignment_x;
     m_display_alignment_y=BeebWindows::defaults.display_alignment_y;
+    m_display_filter=BeebWindows::defaults.display_filter;
 
     m_blend_amt=1.f;
 }
@@ -154,7 +155,10 @@ BeebWindow::~BeebWindow() {
     m_timeline_ui=nullptr;
 #endif
 
-    SDL_DestroyTexture(m_tv_texture);
+    if(m_tv_texture) {
+        SDL_DestroyTexture(m_tv_texture);
+    }
+    
     SDL_DestroyRenderer(m_renderer);
     SDL_DestroyWindow(m_window);
     SDL_FreeFormat(m_pixel_format);
@@ -412,6 +416,10 @@ void BeebWindow::DoOptionsGui() {
         m_overall_scale=std::max(m_overall_scale,MIN_SCALE);
     }
 
+    if(ImGui::Checkbox("Filter display",&m_display_filter)) {
+        this->RecreateTexture();
+    }
+
     this->DoVolumeImGui("BBC volume",&BeebThread::GetBBCVolume,&BeebThread::SetBBCVolume);
     this->DoVolumeImGui("Disc volume",&BeebThread::GetDiscVolume,&BeebThread::SetDiscVolume);
 
@@ -469,11 +477,6 @@ void BeebWindow::DoOptionsGui() {
             m_beeb_thread->SendDebugFlagsMessage(flags);
         }
     }
-}
-
-void BeebWindow::DoFilteringOptionsGui() {
-    ImGui::TextWrapped("This window's filtering settings can't be changed. These settings apply to new windows only.");
-    ImGui::Checkbox("Filter BBC",&BeebWindows::filter_bbc);
 }
 
 class FileMenuItem {
@@ -806,7 +809,6 @@ bool BeebWindow::DoImGui(int output_width,int output_height) {
 
         if(ImGui::BeginMenu("Tools")) {
             ImGuiMenuItemFlag("Emulator options...",NULL,&m_ui_flags,BeebWindowUIFlag_Options);
-            ImGuiMenuItemFlag("Filtering options...",nullptr,&m_ui_flags,BeebWindowUIFlag_FilteringOptions);
             ImGuiMenuItemFlag("Keyboard layout...",NULL,&m_ui_flags,BeebWindowUIFlag_Keymaps);
             ImGuiMenuItemFlag("Messages...",NULL,&m_ui_flags,BeebWindowUIFlag_Messages);
 #if TIMELINE_UI_ENABLED
@@ -933,17 +935,6 @@ bool BeebWindow::DoImGui(int output_width,int output_height) {
         ImGui::End();
 
         if(!(m_ui_flags&BeebWindowUIFlag_Options)) {
-            this->MaybeSaveConfig(true);
-        }
-    }
-
-    if(m_ui_flags&BeebWindowUIFlag_FilteringOptions) {
-        if(ImGuiBeginFlag("Filtering Options",&m_ui_flags,BeebWindowUIFlag_FilteringOptions)) {
-            this->DoFilteringOptionsGui();
-        }
-        ImGui::End();
-
-        if(!(m_ui_flags&BeebWindowUIFlag_FilteringOptions)) {
             this->MaybeSaveConfig(true);
         }
     }
@@ -1218,10 +1209,10 @@ bool BeebWindow::HandleVBlank(uint64_t ticks) {
         }
     }
 
-    const void *tv_texture_data=m_tv.GetTextureData(nullptr);
-
-    if(tv_texture_data) {
-        SDL_UpdateTexture(m_tv_texture,NULL,tv_texture_data,(int)TV_TEXTURE_WIDTH*4);
+    if(m_tv_texture) {
+        if(const void *tv_texture_data=m_tv.GetTextureData(nullptr)) {
+            SDL_UpdateTexture(m_tv_texture,NULL,tv_texture_data,(int)TV_TEXTURE_WIDTH*4);
+        }
     }
 
     m_vblank_index=(m_vblank_index+1)%NUM_VBLANK_RECORDS;
@@ -1254,7 +1245,9 @@ bool BeebWindow::HandleVBlank(uint64_t ticks) {
     dest_rect.y=GetAlignedCoordinate(m_display_alignment_y,output_height,dest_rect.h);
 
     SDL_RenderClear(m_renderer);
-    SDL_RenderCopy(m_renderer,m_tv_texture,NULL,&dest_rect);
+    if(m_tv_texture) {
+        SDL_RenderCopy(m_renderer,m_tv_texture,NULL,&dest_rect);
+    }
     m_imgui_stuff->Render();
     SDL_RenderPresent(m_renderer);
 
@@ -1317,6 +1310,7 @@ void BeebWindow::SaveSettings() {
     BeebWindows::defaults.display_alignment_y=m_display_alignment_y;
     BeebWindows::defaults.display_scale_x=m_tv_scale_x;
     BeebWindows::defaults.display_scale_y=m_tv_scale_y;
+    BeebWindows::defaults.display_filter=m_display_filter;
 
     this->SavePosition();
 }
@@ -1473,18 +1467,13 @@ bool BeebWindow::InitInternal() {
     ++g_num_BeebWindow_inits;
 #endif
 
-    {
-        SetRenderScaleQualityHint(BeebWindows::filter_bbc);
-        m_tv_texture=SDL_CreateTexture(m_renderer,m_pixel_format->format,SDL_TEXTUREACCESS_STREAMING,TV_TEXTURE_WIDTH,TV_TEXTURE_HEIGHT);
-        if(!m_tv_texture) {
-            m_msg.e.f("Failed to create TV texture: %s\n",SDL_GetError());
-            return false;
-        }
+    if(!this->RecreateTexture()) {
+        return false;
+    }
 
-        if(!m_tv.InitTexture(m_pixel_format)) {
-            m_msg.e.f("Failed to initialise TVOutput texture\n");
-            return false;
-        }
+    if(!m_tv.InitTexture(m_pixel_format)) {
+        m_msg.e.f("Failed to initialise TVOutput texture\n");
+        return false;
     }
 
     m_imgui_stuff=new ImGuiStuff(m_renderer);
@@ -1767,6 +1756,26 @@ void BeebWindow::LoadLastState() {
 
 void BeebWindow::SaveState() {
     m_beeb_thread->SendSaveStateMessage(true);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool BeebWindow::RecreateTexture() {
+    if(m_tv_texture) {
+        SDL_DestroyTexture(m_tv_texture);
+        m_tv_texture=nullptr;
+    }
+    
+    SetRenderScaleQualityHint(m_display_filter);
+    
+    m_tv_texture=SDL_CreateTexture(m_renderer,m_pixel_format->format,SDL_TEXTUREACCESS_STREAMING,TV_TEXTURE_WIDTH,TV_TEXTURE_HEIGHT);
+    if(!m_tv_texture) {
+        m_msg.e.f("Failed to create TV texture: %s\n",SDL_GetError());
+        return false;
+    }
+
+    return true;
 }
 
 //////////////////////////////////////////////////////////////////////////

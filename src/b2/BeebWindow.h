@@ -69,6 +69,7 @@ struct Defaults {
     float display_scale_y=1.f;
     BeebWindowDisplayAlignment display_alignment_x=BeebWindowDisplayAlignment_Centre;
     BeebWindowDisplayAlignment display_alignment_y=BeebWindowDisplayAlignment_Centre;
+    bool display_filter=false;
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -183,6 +184,8 @@ private:
     float m_tv_scale_y;
     float m_blend_amt=0.f;
 
+    bool m_display_filter=false;
+
     // Audio output
     SDL_AudioDeviceID m_sound_device=0;
 
@@ -255,7 +258,6 @@ private:
     bool Load65LinkFolder(int drive,const std::string &path);
     void DoVolumeImGui(const char *label,float (BeebThread::*get_volume_mfn)() const,void (BeebThread::*set_volume_mfn)(float));
     void DoOptionsGui();
-    void DoFilteringOptionsGui();
     bool DoImGui(int output_width,int output_height);
     BeebWindowInitArguments GetNewWindowInitArguments() const;
     void MaybeSaveConfig(bool save_config);
@@ -264,6 +266,7 @@ private:
     void LoadLastState();
     void SaveState();
     bool HandleBeebKey(const SDL_Keysym &keysym,bool state);
+    bool RecreateTexture();
 };
 
 //////////////////////////////////////////////////////////////////////////

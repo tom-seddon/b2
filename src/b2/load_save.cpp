@@ -1081,6 +1081,7 @@ static bool LoadWindows(rapidjson::Value *windows,Messages *msg) {
     FindFloatMember(&BeebWindows::defaults.display_scale_y,windows,DISPLAY_SCALE_Y,msg);
     FindEnumMember(&BeebWindows::defaults.display_alignment_x,windows,DISPLAY_ALIGNMENT_X,"window alignment",GetBeebWindowDisplayAlignmentEnumName,msg);
     FindEnumMember(&BeebWindows::defaults.display_alignment_y,windows,DISPLAY_ALIGNMENT_Y,"window alignment",GetBeebWindowDisplayAlignmentEnumName,msg);
+    FindBoolMember(&BeebWindows::defaults.display_filter,windows,FILTER_BBC,nullptr);
     
     {
         std::string keymap_name;
@@ -1100,8 +1101,6 @@ static bool LoadWindows(rapidjson::Value *windows,Messages *msg) {
 
     LoadKeycode(&BeebWindows::save_state_shortcut_key,windows,SAVE_STATE_SHORTCUT,msg);
     LoadKeycode(&BeebWindows::load_last_state_shortcut_key,windows,LOAD_LAST_STATE_SHORTCUT,msg);
-
-    FindBoolMember(&BeebWindows::filter_bbc,windows,FILTER_BBC,nullptr);
 
     return true;
 }
@@ -1449,7 +1448,7 @@ static void SaveWindows(JSONWriter<StringStream> *writer) {
         SaveEnum(writer,BeebWindows::defaults.display_alignment_y,&GetBeebWindowDisplayAlignmentEnumName);
 
         writer->Key(FILTER_BBC);
-        writer->Bool(BeebWindows::filter_bbc);
+        writer->Bool(BeebWindows::defaults.display_filter);
     }
 }
 

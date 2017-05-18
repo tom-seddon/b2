@@ -52,12 +52,6 @@ namespace BeebWindows {
     extern uint32_t save_state_shortcut_key;
     extern uint32_t load_last_state_shortcut_key;
 
-    // Filter settings for BBC display and UI.
-    //
-    // These don't quite work like the other defaults, so they're
-    // separate. But maybe they should move...?
-    extern bool filter_bbc;
-
     bool Init();
     void Shutdown();
 

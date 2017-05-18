@@ -52,7 +52,6 @@ static BeebWindowsState *g_;
 Defaults BeebWindows::defaults;
 uint32_t BeebWindows::save_state_shortcut_key=SDLK_PAGEDOWN;
 uint32_t BeebWindows::load_last_state_shortcut_key=SDLK_PAGEUP;
-bool BeebWindows::filter_bbc=true;
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

@@ -39,7 +39,6 @@ EPNV(Configs,1<<4)
 EPNV(Trace,1<<5)
 EPNV(NVRAM,1<<6)
 EPNV(AudioCallback,1<<7)
-EPNV(FilteringOptions,1<<8)
 EEND()
 #undef ENAME
 
