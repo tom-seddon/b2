@@ -37,7 +37,7 @@ bool PathGlob(const std::string &folder,
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static bool IsThingOnDisk(const std::string &path,int mask) {
+static bool IsThingOnDisk(const std::string &path,mode_t mask) {
     struct stat st;
     if(stat(path.c_str(),&st)==-1) {
         return false;
