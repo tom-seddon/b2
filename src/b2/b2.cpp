@@ -38,10 +38,6 @@
 #include <atomic>
 #include <shared/system_specific.h>
 
-#if SYSTEM_OSX
-#include <asl.h>
-#endif
-
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
@@ -397,7 +393,6 @@ static void RemovePSNArguments(std::vector<const char *> *argv) {
     auto &&it=argv->begin();
     while(it!=argv->end()) {
         if(IsPSNArgument(*it)) {
-            asl_log(nullptr,nullptr,ASL_LEVEL_ERR,"removing PSN argument: %s",*it);
             it=argv->erase(it);
         } else {
             ++it;
@@ -756,13 +751,6 @@ static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &init
     }
 
     if(!DoCommandLineOptions(&options,argc,argv,&init_messages)) {
-#if SYSTEM_OSX
-        asl_log(nullptr,nullptr,ASL_LEVEL_ERR,"b2: %d command line arguments:",argc);
-        for(int i=0;i<argc;++i) {
-            asl_log(nullptr,nullptr,ASL_LEVEL_ERR,"argv[%d]: %s",i,argv[i]);
-        }
-#endif
-        
         if(options.help) {
 #if SYSTEM_WINDOWS
             if(!GetConsoleWindow()) {
