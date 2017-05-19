@@ -156,7 +156,7 @@ def build_win32(options,ifolder,suffix,rev_hash):
 
     create_README(zip_folder,rev_hash)
 
-    zip_fname="b2-%s.zip"%suffix
+    zip_fname="b2-%s-windows.zip"%suffix
     zip_fname=os.path.join(ifolder,zip_fname)
 
     # The ZipFile module is a bit annoying to use.
@@ -190,7 +190,7 @@ def build_darwin(options,ifolder,suffix,rev_hash):
     build_darwin_config(options,"r")
     build_darwin_config(options,"f")
 
-    stem="b2-"+suffix
+    stem="b2-"+suffix+"-osx"
     
     temp_dmg=os.path.join(ifolder,stem+"_temp.dmg")
     final_dmg=os.path.join(ifolder,stem+".dmg")
