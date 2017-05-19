@@ -57,7 +57,7 @@ struct BeebWindowTextureDataVersion {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-struct Defaults {
+struct BeebWindowSettings {
     uint32_t ui_flags=0;
 
     float bbc_volume=0.f;
@@ -177,17 +177,7 @@ private:
     TVOutput m_tv;
     SDL_Texture *m_tv_texture=nullptr;
 
-    BeebWindowDisplayAlignment m_display_alignment_x;
-    BeebWindowDisplayAlignment m_display_alignment_y;
-    bool m_auto_scale;
-    float m_overall_scale;
-    
-    // The default is 1x2, since the texture is 640x272 or so.
-    float m_tv_scale_x;
-    float m_tv_scale_y;
     float m_blend_amt=0.f;
-
-    bool m_display_filter=false;
 
     // Audio output
     SDL_AudioDeviceID m_sound_device=0;
@@ -217,7 +207,7 @@ private:
     // you can press per unit time.
     std::map<uint32_t,std::set<BeebKeySym>> m_beeb_keysyms_by_keycode;
 
-    uint32_t m_ui_flags=0;
+    BeebWindowSettings m_settings;
 
     //
     //bool m_ui=false;

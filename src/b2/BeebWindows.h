@@ -23,7 +23,7 @@ struct SDL_WindowEvent;
 class BeebConfig;
 class BeebLoadedConfig;
 struct SDL_KeyboardEvent;
-struct Defaults;
+struct BeebWindowSettings;
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -46,7 +46,7 @@ struct Defaults;
 
 namespace BeebWindows {
     // an accessor doesn't really buy much here...
-    extern Defaults defaults;
+    extern BeebWindowSettings defaults;
 
     // Shortcut keys for stuff.
     extern uint32_t save_state_shortcut_key;

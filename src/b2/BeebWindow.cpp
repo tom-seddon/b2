@@ -125,18 +125,10 @@ BeebWindow::BeebWindow(BeebWindowInitArguments init_arguments):
         init_arguments.sound_spec.freq,
         init_arguments.sound_spec.samples);
 
-    m_ui_flags=BeebWindows::defaults.ui_flags;
+    m_settings=BeebWindows::defaults;
 
-    m_beeb_thread->SetBBCVolume(BeebWindows::defaults.bbc_volume);
-    m_beeb_thread->SetDiscVolume(BeebWindows::defaults.disc_volume);
-
-    m_auto_scale=BeebWindows::defaults.display_auto_scale;
-    m_overall_scale=BeebWindows::defaults.display_overall_scale;
-    m_tv_scale_x=BeebWindows::defaults.display_scale_x;
-    m_tv_scale_y=BeebWindows::defaults.display_scale_y;
-    m_display_alignment_x=BeebWindows::defaults.display_alignment_x;
-    m_display_alignment_y=BeebWindows::defaults.display_alignment_y;
-    m_display_filter=BeebWindows::defaults.display_filter;
+    m_beeb_thread->SetBBCVolume(m_settings.bbc_volume);
+    m_beeb_thread->SetDiscVolume(m_settings.disc_volume);
 
     m_blend_amt=1.f;
 }
@@ -397,26 +389,31 @@ void BeebWindow::DoOptionsGui() {
     static const float MAX_SCALE=3.f;
     static const float SCALE_STEP=.01f;
 
-    ImGui::DragFloat("Width scale",&m_tv_scale_x,SCALE_STEP,0.f,MAX_SCALE);
-    m_tv_scale_x=std::max(m_tv_scale_x,MIN_SCALE);
+    ImGui::DragFloat("Width scale",&m_settings.display_scale_x,SCALE_STEP,0.f,MAX_SCALE);
+    m_settings.display_scale_x=std::max(m_settings.display_scale_x,MIN_SCALE);
 
-    ImGui::DragFloat("Height scale",&m_tv_scale_y,SCALE_STEP,0.f,MAX_SCALE);
-    m_tv_scale_y=std::max(m_tv_scale_y,MIN_SCALE);
+    ImGui::DragFloat("Height scale",&m_settings.display_scale_y,SCALE_STEP,0.f,MAX_SCALE);
+    m_settings.display_scale_y=std::max(m_settings.display_scale_y,MIN_SCALE);
 
-    ImGui::Checkbox("Auto display size",&m_auto_scale);
-    if(!m_auto_scale) {
-        ImGui::DragFloat("Overall scale",&m_overall_scale,SCALE_STEP,0.f,MAX_SCALE);
-        m_overall_scale=std::max(m_overall_scale,MIN_SCALE);
+    ImGui::Checkbox("Auto display size",&m_settings.display_auto_scale);
+    if(!m_settings.display_overall_scale) {
+        ImGui::DragFloat("Overall scale",&m_settings.display_overall_scale,SCALE_STEP,0.f,MAX_SCALE);
+        m_settings.display_overall_scale=std::max(m_settings.display_overall_scale,MIN_SCALE);
     }
 
-    if(ImGui::Checkbox("Filter display",&m_display_filter)) {
+    if(ImGui::Checkbox("Filter display",&m_settings.display_filter)) {
         this->RecreateTexture();
     }
 
     //ImGuiSliderGetSet("Mode 7 gamma",&m_tv,&TVOutput::GetGamma,&TVOutput::SetGamma,1.f,10.f,"%.3f");
 
-    ImGuiSliderGetSet("BBC volume",m_beeb_thread.get(),&BeebThread::GetBBCVolume,&BeebThread::SetBBCVolume,MIN_DB,MAX_DB,"%.1f dB");
-    ImGuiSliderGetSet("Disc volume",m_beeb_thread.get(),&BeebThread::GetDiscVolume,&BeebThread::SetDiscVolume,MIN_DB,MAX_DB,"%.1f dB");
+    if(ImGui::SliderFloat("BBC volume",&m_settings.bbc_volume,MIN_DB,MAX_DB,"%.1f dB")) {
+        m_beeb_thread->SetBBCVolume(m_settings.bbc_volume);
+    }
+
+    if(ImGui::SliderFloat("Disc volume",&m_settings.disc_volume,MIN_DB,MAX_DB,"%.1f dB")) {
+        m_beeb_thread->SetDiscVolume(m_settings.disc_volume);
+    }
 
     if(ImGui::CollapsingHeader("Display Alignment",ImGuiTreeNodeFlags_DefaultOpen)) {
         ImVec2 size(20.f,20.f);
@@ -425,15 +422,15 @@ void BeebWindow::DoOptionsGui() {
             ImGui::NewLine();
             for(int x=0;x<3;++x) {
                 const char *caption="";
-                if(x==m_display_alignment_x&&y==m_display_alignment_y) {
+                if(x==m_settings.display_alignment_x&&y==m_settings.display_alignment_y) {
                     caption="*";
                 }
 
                 {
                     ImGuiIDPusher id_pusher(y*3+x);
                     if(ImGui::Button(caption,size)) {
-                        m_display_alignment_x=(BeebWindowDisplayAlignment)x;
-                        m_display_alignment_y=(BeebWindowDisplayAlignment)y;
+                        m_settings.display_alignment_x=(BeebWindowDisplayAlignment)x;
+                        m_settings.display_alignment_y=(BeebWindowDisplayAlignment)y;
                     }
                 }
 
@@ -821,13 +818,13 @@ bool BeebWindow::DoImGui(int output_width,int output_height) {
         }
 
         if(ImGui::BeginMenu("Tools")) {
-            ImGuiMenuItemFlag("Emulator options...",NULL,&m_ui_flags,BeebWindowUIFlag_Options);
-            ImGuiMenuItemFlag("Keyboard layout...",NULL,&m_ui_flags,BeebWindowUIFlag_Keymaps);
-            ImGuiMenuItemFlag("Messages...",NULL,&m_ui_flags,BeebWindowUIFlag_Messages);
+            ImGuiMenuItemFlag("Emulator options...",NULL,&m_settings.ui_flags,BeebWindowUIFlag_Options);
+            ImGuiMenuItemFlag("Keyboard layout...",NULL,&m_settings.ui_flags,BeebWindowUIFlag_Keymaps);
+            ImGuiMenuItemFlag("Messages...",NULL,&m_settings.ui_flags,BeebWindowUIFlag_Messages);
 #if TIMELINE_UI_ENABLED
-            ImGuiMenuItemFlag("Timeline...",NULL,&m_ui_flags,BeebWindowUIFlag_Timeline);
+            ImGuiMenuItemFlag("Timeline...",NULL,&m_settings.ui_flags,BeebWindowUIFlag_Timeline);
 #endif
-            ImGuiMenuItemFlag("Configurations...",NULL,&m_ui_flags,BeebWindowUIFlag_Configs);
+            ImGuiMenuItemFlag("Configurations...",NULL,&m_settings.ui_flags,BeebWindowUIFlag_Configs);
 
             // if(ImGui::MenuItem("Dump states")) {
             //     std::vector<std::shared_ptr<BeebState>> all_states=BeebState::GetAllStates();
@@ -866,8 +863,8 @@ bool BeebWindow::DoImGui(int output_width,int output_height) {
 #if ENABLE_IMGUI_DEMO
             ImGui::MenuItem("ImGui demo...",NULL,&m_imgui_demo);
 #endif
-            ImGuiMenuItemFlag("Event trace...",NULL,&m_ui_flags,BeebWindowUIFlag_Trace);
-            ImGuiMenuItemFlag("Audio callback...",NULL,&m_ui_flags,BeebWindowUIFlag_AudioCallback);
+            ImGuiMenuItemFlag("Event trace...",NULL,&m_settings.ui_flags,BeebWindowUIFlag_Trace);
+            ImGuiMenuItemFlag("Audio callback...",NULL,&m_settings.ui_flags,BeebWindowUIFlag_AudioCallback);
 
 #if SYSTEM_WINDOWS
             if(GetConsoleWindow()) {
@@ -938,13 +935,13 @@ bool BeebWindow::DoImGui(int output_width,int output_height) {
     }
 #endif
 
-    if(m_ui_flags&BeebWindowUIFlag_Keymaps) {
+    if(m_settings.ui_flags&BeebWindowUIFlag_Keymaps) {
         if(!m_keymaps_ui) {
             m_keymaps_ui=KeymapsUI::Create();
             m_keymaps_ui->SetWindowDetails(this);
         }
 
-        if(ImGuiBeginFlag("Keyboard layout",&m_ui_flags,BeebWindowUIFlag_Keymaps)) {
+        if(ImGuiBeginFlag("Keyboard layout",&m_settings.ui_flags,BeebWindowUIFlag_Keymaps)) {
             m_keymaps_ui->SetCurrentKeymap(m_keymap);
             m_keymaps_ui->DoImGui();
             m_keymap=m_keymaps_ui->GetCurrentKeymap();
@@ -959,24 +956,24 @@ bool BeebWindow::DoImGui(int output_width,int output_height) {
         m_keymaps_ui=nullptr;
     }
 
-    if(m_ui_flags&BeebWindowUIFlag_Options) {
-        if(ImGuiBeginFlag("Options",&m_ui_flags,BeebWindowUIFlag_Options)) {
+    if(m_settings.ui_flags&BeebWindowUIFlag_Options) {
+        if(ImGuiBeginFlag("Options",&m_settings.ui_flags,BeebWindowUIFlag_Options)) {
             this->DoOptionsGui();
         }
         ImGui::End();
 
-        if(!(m_ui_flags&BeebWindowUIFlag_Options)) {
+        if(!(m_settings.ui_flags&BeebWindowUIFlag_Options)) {
             this->MaybeSaveConfig(true);
         }
     }
 
-    if(m_ui_flags&BeebWindowUIFlag_Messages) {
+    if(m_settings.ui_flags&BeebWindowUIFlag_Messages) {
         if(!m_messages_ui) {
             m_messages_ui=MessagesUI::Create();
             m_messages_ui->SetMessageList(m_message_list);
         }
 
-        if(ImGuiBeginFlag("Messages",&m_ui_flags,BeebWindowUIFlag_Messages)) {
+        if(ImGuiBeginFlag("Messages",&m_settings.ui_flags,BeebWindowUIFlag_Messages)) {
             m_messages_ui->DoImGui();
         }
         ImGui::End();
@@ -985,14 +982,14 @@ bool BeebWindow::DoImGui(int output_width,int output_height) {
     }
 
 #if TIMELINE_UI_ENABLED
-    if(m_ui_flags&BeebWindowUIFlag_Timeline) {
+    if(m_settings.ui_flags&BeebWindowUIFlag_Timeline) {
         if(!m_timeline_ui) {
             m_timeline_ui=TimelineUI::Create();
             m_timeline_ui->SetWindowDetails(this,this->GetNewWindowInitArguments());
             m_timeline_ui->SetRenderDetails(m_renderer,m_pixel_format);
         }
 
-        if(ImGuiBeginFlag("Timeline",&m_ui_flags,BeebWindowUIFlag_Timeline)) {
+        if(ImGuiBeginFlag("Timeline",&m_settings.ui_flags,BeebWindowUIFlag_Timeline)) {
             m_timeline_ui->DoImGui();
 
             // if(std::shared_ptr<BeebState> state=m_timeline_ui->GetSelectedState()) {
@@ -1005,12 +1002,12 @@ bool BeebWindow::DoImGui(int output_width,int output_height) {
     }
 #endif
 
-    if(m_ui_flags&BeebWindowUIFlag_Configs) {
+    if(m_settings.ui_flags&BeebWindowUIFlag_Configs) {
         if(!m_configs_ui) {
             m_configs_ui=ConfigsUI::Create();
         }
 
-        if(ImGuiBeginFlag("Configurations",&m_ui_flags,BeebWindowUIFlag_Configs)) {
+        if(ImGuiBeginFlag("Configurations",&m_settings.ui_flags,BeebWindowUIFlag_Configs)) {
             m_configs_ui->DoImGui();
         }
         ImGui::End();
@@ -1020,12 +1017,12 @@ bool BeebWindow::DoImGui(int output_width,int output_height) {
     }
 
 #if BBCMICRO_TRACE
-    if(m_ui_flags&BeebWindowUIFlag_Trace) {
+    if(m_settings.ui_flags&BeebWindowUIFlag_Trace) {
         if(!m_trace_ui) {
             m_trace_ui=std::make_unique<TraceUI>(this);
         }
 
-        if(ImGuiBeginFlag("Tracing",&m_ui_flags,BeebWindowUIFlag_Trace)) {
+        if(ImGuiBeginFlag("Tracing",&m_settings.ui_flags,BeebWindowUIFlag_Trace)) {
             m_trace_ui->DoImGui();
         }
         ImGui::End();
@@ -1035,12 +1032,12 @@ bool BeebWindow::DoImGui(int output_width,int output_height) {
     }
 #endif
 
-    if(m_ui_flags&BeebWindowUIFlag_NVRAM) {
+    if(m_settings.ui_flags&BeebWindowUIFlag_NVRAM) {
         if(!m_nvram_ui) {
             m_nvram_ui=std::make_unique<NVRAMUI>(this);
         }
 
-        if(ImGuiBeginFlag("Non-volatile RAM",&m_ui_flags,BeebWindowUIFlag_NVRAM)) {
+        if(ImGuiBeginFlag("Non-volatile RAM",&m_settings.ui_flags,BeebWindowUIFlag_NVRAM)) {
             m_nvram_ui->DoImGui();
         }
         ImGui::End();
@@ -1048,12 +1045,12 @@ bool BeebWindow::DoImGui(int output_width,int output_height) {
         m_nvram_ui=nullptr;
     }
 
-    if(m_ui_flags&BeebWindowUIFlag_AudioCallback) {
+    if(m_settings.ui_flags&BeebWindowUIFlag_AudioCallback) {
         if(!m_audio_callback_ui) {
             m_audio_callback_ui=std::make_unique<AudioCallbackUI>(this);
         }
 
-        if(ImGuiBeginFlag("Audio Callback",&m_ui_flags,BeebWindowUIFlag_AudioCallback)) {
+        if(ImGuiBeginFlag("Audio Callback",&m_settings.ui_flags,BeebWindowUIFlag_AudioCallback)) {
             m_audio_callback_ui->DoImGui();
         }
         ImGui::End();
@@ -1062,7 +1059,7 @@ bool BeebWindow::DoImGui(int output_width,int output_height) {
     }
 
     if(ValueChanged(&m_msg_last_num_errors_and_warnings_printed,m_message_list->GetNumErrorsAndWarningsPrinted())) {
-        m_ui_flags|=BeebWindowUIFlag_Messages;
+        m_settings.ui_flags|=BeebWindowUIFlag_Messages;
     }
 
     if(ValueChanged(&m_msg_last_num_messages_printed,m_message_list->GetNumMessagesPrinted())) {
@@ -1257,8 +1254,8 @@ bool BeebWindow::HandleVBlank(uint64_t ticks) {
 
     SDL_Rect dest_rect;
 
-    if(m_auto_scale) {
-        double tv_aspect=(TV_TEXTURE_WIDTH*m_tv_scale_x)/(TV_TEXTURE_HEIGHT*m_tv_scale_y);
+    if(m_settings.display_auto_scale) {
+        double tv_aspect=(TV_TEXTURE_WIDTH*m_settings.display_scale_x)/(TV_TEXTURE_HEIGHT*m_settings.display_scale_y);
 
         dest_rect.w=output_width;
         dest_rect.h=(int)(dest_rect.w/tv_aspect);
@@ -1268,12 +1265,12 @@ bool BeebWindow::HandleVBlank(uint64_t ticks) {
             dest_rect.w=(int)(dest_rect.h*tv_aspect);
         }
     } else {
-        dest_rect.w=(int)(TV_TEXTURE_WIDTH*m_tv_scale_x*m_overall_scale);
-        dest_rect.h=(int)(TV_TEXTURE_HEIGHT*m_tv_scale_y*m_overall_scale);
+        dest_rect.w=(int)(TV_TEXTURE_WIDTH*m_settings.display_scale_x*m_settings.display_overall_scale);
+        dest_rect.h=(int)(TV_TEXTURE_HEIGHT*m_settings.display_scale_y*m_settings.display_overall_scale);
     }
 
-    dest_rect.x=GetAlignedCoordinate(m_display_alignment_x,output_width,dest_rect.w);
-    dest_rect.y=GetAlignedCoordinate(m_display_alignment_y,output_height,dest_rect.h);
+    dest_rect.x=GetAlignedCoordinate(m_settings.display_alignment_x,output_width,dest_rect.w);
+    dest_rect.y=GetAlignedCoordinate(m_settings.display_alignment_y,output_height,dest_rect.h);
 
     SDL_RenderClear(m_renderer);
     if(m_tv_texture) {
@@ -1332,16 +1329,7 @@ bool BeebWindow::Init() {
 //////////////////////////////////////////////////////////////////////////
 
 void BeebWindow::SaveSettings() {
-    BeebWindows::defaults.ui_flags=m_ui_flags;
-    BeebWindows::defaults.bbc_volume=m_beeb_thread->GetBBCVolume();
-    BeebWindows::defaults.disc_volume=m_beeb_thread->GetDiscVolume();
-    BeebWindows::defaults.display_auto_scale=m_auto_scale;
-    BeebWindows::defaults.display_overall_scale=m_overall_scale;
-    BeebWindows::defaults.display_alignment_x=m_display_alignment_x;
-    BeebWindows::defaults.display_alignment_y=m_display_alignment_y;
-    BeebWindows::defaults.display_scale_x=m_tv_scale_x;
-    BeebWindows::defaults.display_scale_y=m_tv_scale_y;
-    BeebWindows::defaults.display_filter=m_display_filter;
+    BeebWindows::defaults=m_settings;
 
     this->SavePosition();
 }
@@ -1412,8 +1400,8 @@ bool BeebWindow::InitInternal() {
     m_window=SDL_CreateWindow("",
         SDL_WINDOWPOS_UNDEFINED,
         SDL_WINDOWPOS_UNDEFINED,
-        (int)(TV_TEXTURE_WIDTH*m_tv_scale_x),
-        (int)(TV_TEXTURE_HEIGHT*m_tv_scale_y),
+        (int)(TV_TEXTURE_WIDTH*m_settings.display_scale_x),
+        (int)(TV_TEXTURE_HEIGHT*m_settings.display_scale_y),
         SDL_WINDOW_RESIZABLE|SDL_WINDOW_OPENGL);
     if(!m_window) {
         m_msg.e.f("SDL_CreateWindow failed: %s\n",SDL_GetError());
@@ -1807,7 +1795,7 @@ bool BeebWindow::RecreateTexture() {
         m_tv_texture=nullptr;
     }
 
-    SetRenderScaleQualityHint(m_display_filter);
+    SetRenderScaleQualityHint(m_settings.display_filter);
 
     m_tv_texture=SDL_CreateTexture(m_renderer,m_pixel_format->format,SDL_TEXTUREACCESS_STREAMING,TV_TEXTURE_WIDTH,TV_TEXTURE_HEIGHT);
     if(!m_tv_texture) {
