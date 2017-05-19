@@ -855,7 +855,6 @@ static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &init
 #if SYSTEM_OSX
             ia.frame_name="b2Frame";
 #endif
-            ia.keymap=BeebWindows::GetDefaultKeymap();
         }
 
         {

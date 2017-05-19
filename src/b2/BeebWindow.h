@@ -182,7 +182,7 @@ private:
     // Audio output
     SDL_AudioDeviceID m_sound_device=0;
 
-    const Keymap *m_keymap;
+    const Keymap *m_keymap=nullptr;
 
     // number of emulated us that had passed at the time of the last
     // title update.

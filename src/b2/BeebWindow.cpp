@@ -911,7 +911,13 @@ bool BeebWindow::DoImGui(int output_width,int output_height) {
             }
 
             if(ImGui::MenuItem("Clone")) {
-                m_beeb_thread->SendCloneWindowMessage(this->GetNewWindowInitArguments());
+                BeebWindowInitArguments init_arguments=this->GetNewWindowInitArguments();
+
+                if(m_keymap) {
+                    init_arguments.keymap_name=m_keymap->GetName();
+                }
+
+                m_beeb_thread->SendCloneWindowMessage(init_arguments);
             }
 
             ImGui::Separator();
@@ -1545,7 +1551,13 @@ bool BeebWindow::InitInternal() {
         m_display_size_options.push_back(name);
     }
 
-    m_keymap=m_init_arguments.keymap;
+    if(!m_init_arguments.keymap_name.empty()) {
+        m_keymap=BeebWindows::FindKeymapByName(m_init_arguments.keymap_name);
+    }
+
+    if(!m_keymap) {
+        m_keymap=BeebWindows::GetDefaultKeymap();
+    }
 
     if(SDL_GL_GetCurrentContext()) {
         if(SDL_GL_SetSwapInterval(0)!=0) {
@@ -1639,7 +1651,6 @@ void BeebWindow::UpdateTitle() {
 
 void BeebWindow::KeymapWillBeDeleted(Keymap *keymap) {
     keymap->WillBeDeleted(&m_keymap);
-    keymap->WillBeDeleted(&m_init_arguments.keymap);
 }
 
 //////////////////////////////////////////////////////////////////////////

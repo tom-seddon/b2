@@ -80,9 +80,7 @@ static std::string GetUniqueBeebWindowName(std::string name,BeebWindow *ignore) 
 
 static std::string GetUniqueKeymapName(std::string name,Keymap *ignore) {
     return GetUniqueName(std::move(name),[](const std::string &name)->const void * {
-        return BeebWindows::ForEachKeymap([&name](const Keymap *keymap,Keymap *) {
-            return name!=keymap->GetName();
-        });
+        return BeebWindows::FindKeymapByName(name);
     },ignore);
 }
 
@@ -432,6 +430,15 @@ const Keymap *BeebWindows::ForEachKeymap(const std::function<bool(const Keymap *
     }
 
     return nullptr;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+const Keymap *BeebWindows::FindKeymapByName(const std::string &name) {
+    return BeebWindows::ForEachKeymap([&name](const Keymap *keymap,Keymap *) {
+        return name!=keymap->GetName();
+    });
 }
 
 //////////////////////////////////////////////////////////////////////////

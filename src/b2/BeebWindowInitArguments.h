@@ -92,8 +92,11 @@ public:
     // printed to Messages::stdio.)
     uint32_t initiating_window_id=0;
 
-    // Initial keymap to select.
-    const Keymap *keymap=nullptr;
+    // If non-empty, name of the initial keymap to select.
+    //
+    // (Keymap pointer is no good, as this struct gets sent to the
+    // BeebThread; the keymap could be deleted by the time it's used.)
+    std::string keymap_name;
 };
 
 //////////////////////////////////////////////////////////////////////////

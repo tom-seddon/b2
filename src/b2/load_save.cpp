@@ -1086,10 +1086,7 @@ static bool LoadWindows(rapidjson::Value *windows,Messages *msg) {
     {
         std::string keymap_name;
         if(FindStringMember(&keymap_name,windows,KEYMAP,msg)) {
-            const Keymap *keymap=BeebWindows::ForEachKeymap([&](const Keymap *keymap,Keymap *) {
-                return keymap->GetName()!=keymap_name;
-            });
-            if(keymap) {
+            if(const Keymap *keymap=BeebWindows::FindKeymapByName(keymap_name)) {
                 BeebWindows::SetDefaultKeymap(keymap);
             } else {
                 msg->w.f("default keymap unknown: %s\n",keymap_name.c_str());

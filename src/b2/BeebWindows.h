@@ -101,6 +101,9 @@ namespace BeebWindows {
     // might be wrong.
     const Keymap *ForEachKeymap(const std::function<bool(const Keymap *,Keymap *)> &func);
 
+    // Keymaps are not optimised for retrieval by name.
+    const Keymap *FindKeymapByName(const std::string &name);
+
     // Alterations take effect the next time this config is selected.
     //void SetConfig(BeebConfig *config,BeebConfig new_config);
 
