@@ -1058,7 +1058,7 @@ void BBCMicro::UpdateVideoHardware() {
         uint16_t addr=(uint16_t)output.address;
 
         if(addr&0x2000) {
-            addr=(addr&0x3ff)|0x3c00|((addr&0x800)<<3);
+            addr=(addr&0x3ff)|m_teletext_bases[addr>>11&1];
         } else {
             if(addr&0x1000) {
                 addr-=SCREEN_WRAP_ADJUSTMENTS[m_state.addressable_latch.bits.screen_base];
@@ -1603,6 +1603,8 @@ void BBCMicro::InitStuff() {
         m_romsel_mask=0x0f;
         m_update_acccon_pages_fn=&UpdateBACCCONPages;
         m_acccon_mask=0;
+        m_teletext_bases[0]=0x3c00;
+        m_teletext_bases[1]=0x7c00;
         for(uint16_t i=0;i<16;++i) {
             this->SetMMIOFns((uint16_t)(0xfe30+i),&ReadROMSEL,&WriteROMSEL,this);
         }
@@ -1613,6 +1615,8 @@ void BBCMicro::InitStuff() {
         m_romsel_mask=0x8f;
         m_update_acccon_pages_fn=&UpdateBPlusACCCONPages;
         m_acccon_mask=0x80;
+        m_teletext_bases[0]=0x3c00;
+        m_teletext_bases[1]=0x7c00;
     romsel_and_acccon:
         for(uint16_t i=0;i<4;++i) {
             this->SetMMIOFns((uint16_t)(0xfe30+i),&ReadROMSEL,&WriteROMSEL,this);
@@ -1632,6 +1636,8 @@ void BBCMicro::InitStuff() {
         m_romsel_mask=0x8f;
         m_update_acccon_pages_fn=&UpdateMaster128ACCCONPages;
         m_acccon_mask=0xff;
+        m_teletext_bases[0]=0x7c00;
+        m_teletext_bases[1]=0x7c00;
         goto romsel_and_acccon;
     }
 

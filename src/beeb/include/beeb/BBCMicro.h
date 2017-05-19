@@ -455,6 +455,10 @@ private:
     uint8_t m_romsel_mask=0;
     uint8_t m_acccon_mask=0;
 
+    // teletext_bases[0] is used when 6845 address bit 11 is clear;
+    // teletext_bases[1] when it's set.
+    uint16_t m_teletext_bases[2]={};
+
     uint8_t *m_ram=nullptr;
 
     std::vector<float> m_disc_drive_sounds[DiscDriveSound_EndValue];
