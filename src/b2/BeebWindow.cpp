@@ -1549,8 +1549,7 @@ bool BeebWindow::InitInternal() {
 
     if(SDL_GL_GetCurrentContext()) {
         if(SDL_GL_SetSwapInterval(0)!=0) {
-            m_msg.i.f(
-                "WARNING: failed to set GL swap interval to 0: %s\n",SDL_GetError());
+            m_msg.i.f("failed to set GL swap interval to 0: %s\n",SDL_GetError());
         }
     }
 
