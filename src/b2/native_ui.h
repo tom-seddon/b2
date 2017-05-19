@@ -49,6 +49,7 @@ private:
 //////////////////////////////////////////////////////////////////////////
 
 void ForEachRecentPaths(std::function<void(const std::string &,const RecentPaths &)> fun);
+RecentPaths *GetRecentPathsByTag(const std::string &tag);
 void SetRecentPathsByTag(std::string tag,RecentPaths recents);
 
 //////////////////////////////////////////////////////////////////////////
@@ -81,7 +82,7 @@ class FileDialog:
 {
 public:
     explicit FileDialog(std::string tag,int noc_flags);
-    
+
     // PATTERNS should be ;-separated list of patterns.
     void AddFilter(std::string title,const std::string &patterns);
     void AddAllFilesFilter();

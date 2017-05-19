@@ -47,21 +47,29 @@ bool PathGlob(const std::string &folder,std::function<void(const std::string &pa
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool PathIsFolderOnDisk(const std::string &path) {
+static bool PathIsOnDisk(const std::string &path,DWORD value) {
     WIN32_FIND_DATAA fd;
     HANDLE h=FindFirstFileA(path.c_str(),&fd);
     if(h==INVALID_HANDLE_VALUE) {
-        return 0;
+        return false;
     }
 
     FindClose(h);
     h=INVALID_HANDLE_VALUE;
 
-    if(fd.dwFileAttributes&FILE_ATTRIBUTE_DIRECTORY) {
+    if((fd.dwFileAttributes&FILE_ATTRIBUTE_DIRECTORY)==value) {
         return true;
     } else {
         return false;
     }
+}
+
+bool PathIsFileOnDisk(const std::string &path) {
+    return PathIsOnDisk(path,0);
+}
+
+bool PathIsFolderOnDisk(const std::string &path) {
+    return PathIsOnDisk(path,FILE_ATTRIBUTE_DIRECTORY);
 }
 
 //////////////////////////////////////////////////////////////////////////

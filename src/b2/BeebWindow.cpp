@@ -32,6 +32,7 @@
 #include <IconsFontAwesome.h>
 #include "AudioCallbackUI.h"
 #include "Timeline.h"
+#include <shared/path.h>
 
 #ifdef _MSC_VER
 #include <crtdbg.h>
@@ -76,7 +77,7 @@ static const double LEDS_POPUP_TIME_SECONDS=1.;
 
 static const std::string RECENT_PATHS_65LINK="65link";
 static const std::string RECENT_PATHS_DISC_IMAGE="disc_image";
-static const std::string RECENT_PATHS_RAM="ram";
+//static const std::string RECENT_PATHS_RAM="ram";
 static const std::string RECENT_PATHS_NVRAM="nvram";
 
 //////////////////////////////////////////////////////////////////////////
@@ -158,7 +159,7 @@ BeebWindow::~BeebWindow() {
     if(m_tv_texture) {
         SDL_DestroyTexture(m_tv_texture);
     }
-    
+
     SDL_DestroyRenderer(m_renderer);
     SDL_DestroyWindow(m_window);
     SDL_FreeFormat(m_pixel_format);
@@ -529,7 +530,6 @@ public:
                 ImGui::EndMenu();
             }
 
-
             ImGui::EndMenu();
         }
     }
@@ -562,6 +562,25 @@ static void ClearConsole() {
 }
 #endif
 #endif
+
+static size_t CleanUpRecentPaths(const std::string &tag,bool (*exists_fn)(const std::string &)) {
+    size_t n=0;
+
+    if(RecentPaths *rp=GetRecentPathsByTag(tag)) {
+        size_t i=0;
+
+        while(i<rp->GetNumPaths()) {
+            if((*exists_fn)(rp->GetPathByIndex(i))) {
+                ++i;
+            } else {
+                rp->RemovePathByIndex(i);
+                ++n;
+            }
+        }
+    }
+
+    return n;
+}
 
 bool BeebWindow::DoImGui(int output_width,int output_height) {
     (void)output_width,(void)output_height;
@@ -820,6 +839,24 @@ bool BeebWindow::DoImGui(int output_width,int output_height) {
             //         all_states[i]->Dump(&LOG(OUTPUT));
             //     }
             // }
+
+            ImGui::Separator();
+
+            if(ImGui::BeginMenu("Clean up recent files lists")) {
+                if(ImGui::MenuItem("Confirm")) {
+                    size_t n=0;
+
+                    n+=CleanUpRecentPaths(RECENT_PATHS_65LINK,&PathIsFolderOnDisk);
+                    n+=CleanUpRecentPaths(RECENT_PATHS_DISC_IMAGE,&PathIsFileOnDisk);
+                    n+=CleanUpRecentPaths(RECENT_PATHS_NVRAM,&PathIsFileOnDisk);
+
+                    if(n>0) {
+                        m_msg.i.f("Removed %zu items\n",n);
+                    }
+                }
+
+                ImGui::EndMenu();
+            }
 
             ImGui::EndMenu();
         }
@@ -1769,9 +1806,9 @@ bool BeebWindow::RecreateTexture() {
         SDL_DestroyTexture(m_tv_texture);
         m_tv_texture=nullptr;
     }
-    
+
     SetRenderScaleQualityHint(m_display_filter);
-    
+
     m_tv_texture=SDL_CreateTexture(m_renderer,m_pixel_format->format,SDL_TEXTUREACCESS_STREAMING,TV_TEXTURE_WIDTH,TV_TEXTURE_HEIGHT);
     if(!m_tv_texture) {
         m_msg.e.f("Failed to create TV texture: %s\n",SDL_GetError());

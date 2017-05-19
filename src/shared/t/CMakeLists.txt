@@ -51,5 +51,4 @@ add_sanitizers(test_path)
 target_link_libraries(test_path PRIVATE shared_lib)
 add_test(
   NAME test_path
-  COMMAND $<TARGET_FILE:test_path> $<TARGET_FILE:test_path>)
-
+  COMMAND $<TARGET_FILE:test_path> $<TARGET_FILE:test_path> ${CMAKE_CURRENT_SOURCE_DIR})

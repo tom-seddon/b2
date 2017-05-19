@@ -101,21 +101,21 @@ void FailureMessageBox(const std::string &title,const std::shared_ptr<MessageLis
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static RecentPaths *GetRecentPathsByTag(const std::string &tag) {
-    if(tag.empty()) {
-        return nullptr;
+void ForEachRecentPaths(std::function<void(const std::string &,const RecentPaths &)> fun) {
+    for(auto &&it:g_recent_paths_by_tag) {
+        fun(it.first,it.second);
     }
-
-    return &g_recent_paths_by_tag[tag];
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void ForEachRecentPaths(std::function<void(const std::string &,const RecentPaths &)> fun) {
-    for(auto &&it:g_recent_paths_by_tag) {
-        fun(it.first,it.second);
+RecentPaths *GetRecentPathsByTag(const std::string &tag) {
+    if(tag.empty()) {
+        return nullptr;
     }
+
+    return &g_recent_paths_by_tag[tag];
 }
 
 //////////////////////////////////////////////////////////////////////////

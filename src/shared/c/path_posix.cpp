@@ -37,17 +37,26 @@ bool PathGlob(const std::string &folder,
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool PathIsFolderOnDisk(const std::string &path) {
+static bool IsThingOnDisk(const std::string &path,int mask) {
     struct stat st;
     if(stat(path.c_str(),&st)==-1) {
-        return 0;
+        return false;
     }
 
-    if(st.st_mode&S_IFDIR) {
+    if((st.st_mode&mask)==mask) {
         return true;
     } else {
         return false;
     }
+    
+}
+
+bool PathIsFileOnDisk(const std::string &path) {
+    return IsThingOnDisk(path,S_IFREG);
+}
+
+bool PathIsFolderOnDisk(const std::string &path) {
+    return IsThingOnDisk(path,S_IFDIR);
 }
 
 //////////////////////////////////////////////////////////////////////////
