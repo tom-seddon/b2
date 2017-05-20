@@ -68,10 +68,6 @@ ImGuiStuff::ImGuiStuff(SDL_Renderer *renderer):
     m_renderer(renderer)
 {
     m_last_new_frame_ticks=GetCurrentTickCount();
-
-    if(IsDirect3D9Renderer(renderer)) {
-        m_render_offset=ImVec2(-.5f,-.5f);
-    }
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -323,9 +319,7 @@ void ImGuiStuff::Render() {
                 int *indices=(int *)&draw_list->IdxBuffer[idx_buffer_pos];
                 ASSERT(idx_buffer_pos+(int)cmd.ElemCount<=draw_list->IdxBuffer.size());
 
-                SDL_Vector2f offset={m_render_offset.x,m_render_offset.y};
-
-                rc=SDL_RenderGeometry(m_renderer,texture,vertices,num_vertices,indices,(int)cmd.ElemCount,&offset);
+                rc=SDL_RenderGeometry(m_renderer,texture,vertices,num_vertices,indices,(int)cmd.ElemCount,nullptr);
                 ASSERT(rc==0);
 
                 ASSERT(cmd.ElemCount<=INT_MAX);

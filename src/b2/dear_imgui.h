@@ -67,7 +67,6 @@ private:
     bool m_want_text_input=false;
     std::string m_imgui_ini_path;
     std::string m_imgui_log_txt_path;
-    ImVec2 m_render_offset{0.f,0.f};
 
     friend class ImGuiContextSetter;
 };
