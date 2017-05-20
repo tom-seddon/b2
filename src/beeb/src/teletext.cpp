@@ -89,6 +89,15 @@ static const size_t UNIFORM_WIDTHS[]={
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#if BBCMICRO_PRESTRETCH_TELETEXT
+static constexpr size_t CONSUMER_SHIFT=8;
+#else
+static constexpr size_t CONSUMER_SHIFT=6;
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 static int GetHexChar(int nybble) {
     ASSERT(nybble>=0&&nybble<16);
     if(nybble<10) {
@@ -110,7 +119,6 @@ static int ShouldAntialias(size_t style,size_t ch) {
 static uint16_t Get16WideRow(size_t style,size_t ch,int y) {
     ASSERT(style<3);
     ASSERT(ch>=32&&ch<128);
-    
 
     uint16_t w=0;
 
@@ -169,7 +177,7 @@ struct InitTeletextFont {
                     int lc=GetHexChar(ch&0x0f);
 
                     for(int y=0;y<10;++y) {
-                        teletext_debug_font[ch][y]=TELETEXT_FONT[hc][y][0]<<2|TELETEXT_FONT[lc][y][0]<<8;
+                        teletext_debug_font[ch][y]=TELETEXT_FONT[hc][y][0]<<(CONSUMER_SHIFT-6)|TELETEXT_FONT[lc][y][0]<<CONSUMER_SHIFT;
                     }
 
                     for(int y=0;y<10;++y) {
@@ -402,13 +410,8 @@ void SAA5050::EmitVideoDataHalfUnit(VideoDataHalfUnit *hu) {
     hu->teletext.data0=(uint8_t)m_data0;
     hu->teletext.data1=(uint8_t)m_data1;
 
-#if BBCMICRO_PRESTRETCH_TELETEXT
-    m_data0>>=8;
-    m_data1>>=8;
-#else
-    m_data0>>=6;
-    m_data1>>=6;
-#endif
+    m_data0>>=CONSUMER_SHIFT;
+    m_data1>>=CONSUMER_SHIFT;
 
 #else
 
