@@ -25,7 +25,6 @@ add_executable(b2 MACOSX_BUNDLE
   JobQueue.cpp JobQueue.h
   GenerateThumbnailJob.cpp GenerateThumbnailJob.h
   BeebWindow.cpp BeebWindow.h BeebWindow.inl
-  BeebWindowInitArguments.cpp BeebWindowInitArguments.h
   TimelineUI.cpp TimelineUI.h
   beeb_events.cpp beeb_events.h beeb_events.inl beeb_events_types.inl
   load_save.cpp load_save.h

@@ -24,7 +24,6 @@
 #include "BeebWindows.h"
 #include "keymap.h"
 #include "conf.h"
-#include "BeebWindowInitArguments.h"
 #include "BeebState.h"
 #include "load_save.h"
 #include "Messages.h"

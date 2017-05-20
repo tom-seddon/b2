@@ -125,7 +125,11 @@ BeebWindow::BeebWindow(BeebWindowInitArguments init_arguments):
         init_arguments.sound_spec.freq,
         init_arguments.sound_spec.samples);
 
-    m_settings=BeebWindows::defaults;
+    if(init_arguments.use_settings) {
+        m_settings=init_arguments.settings;
+    } else {
+        m_settings=BeebWindows::defaults;
+    }
 
     m_beeb_thread->SetBBCVolume(m_settings.bbc_volume);
     m_beeb_thread->SetDiscVolume(m_settings.disc_volume);
@@ -916,6 +920,9 @@ bool BeebWindow::DoImGui(int output_width,int output_height) {
                 if(m_keymap) {
                     init_arguments.keymap_name=m_keymap->GetName();
                 }
+
+                init_arguments.settings=m_settings;
+                init_arguments.use_settings=true;
 
                 m_beeb_thread->SendCloneWindowMessage(init_arguments);
             }

@@ -13,7 +13,6 @@
 #include "BeebState.h"
 #include "BeebWindows.h"
 #include "b2.h"
-#include "BeebWindowInitArguments.h"
 #include "TVOutput.h"
 #include "misc.h"
 #include "beeb_events.h"
@@ -28,6 +27,7 @@
 #include <math.h>
 #include "WriteVideoJob.h"
 #include "Timeline.h"
+#include "BeebWindow.h"
 
 #include <shared/enum_def.h>
 #include "BeebThread.inl"
