@@ -24,7 +24,7 @@ class MessagesUI;
 class TraceUI;
 #endif
 class NVRAMUI;
-class AudioCallbackUI;
+class DataRateUI;
 class BeebState;
 
 #include "keys.h"
@@ -166,6 +166,11 @@ public:
 
 class BeebWindow {
 public:
+    struct VBlankRecord {
+        uint64_t num_ticks=0;
+        size_t num_video_units=0;
+    };
+
     static const char SDL_WINDOW_DATA_NAME[];
 
     BeebWindow(BeebWindowInitArguments init_arguments);
@@ -228,6 +233,8 @@ public:
 #if SYSTEM_OSX
     void *GetNSWindow() const;
 #endif
+
+    std::vector<VBlankRecord> GetVBlankRecords() const;
 protected:
 private:
     struct DriveState {
@@ -258,9 +265,9 @@ private:
     };
 #include <shared/poppack.h>
 #endif
-    uint64_t m_vblank_ticks[NUM_VBLANK_RECORDS]={};
-    //int m_us_per_vblank[NUM_VBLANK_RECORDS]={};
+    std::vector<VBlankRecord> m_vblank_records;
     size_t m_vblank_index=0;
+    uint64_t m_last_vblank_ticks=0;
 
     // TV output.
     TVOutput m_tv;
@@ -319,7 +326,7 @@ private:
     std::unique_ptr<TraceUI> m_trace_ui;
 #endif
     std::unique_ptr<NVRAMUI> m_nvram_ui;
-    std::unique_ptr<AudioCallbackUI> m_audio_callback_ui;
+    std::unique_ptr<DataRateUI> m_data_rate_ui;
 
     bool m_messages_popup_ui_active=false;
     uint64_t m_messages_popup_ticks=0;

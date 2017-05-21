@@ -921,7 +921,7 @@ void BeebThread::SetDiscVolume(float db) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-std::vector<AudioCallbackRecord> BeebThread::GetAudioCallbackRecords() const {
+std::vector<BeebThread::AudioCallbackRecord> BeebThread::GetAudioCallbackRecords() const {
     std::vector<AudioCallbackRecord> records;
     records.reserve(m_audio_thread_data->records.size());
 

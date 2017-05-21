@@ -30,7 +30,7 @@
 #include "TraceUI.h"
 #include "NVRAMUI.h"
 #include <IconsFontAwesome.h>
-#include "AudioCallbackUI.h"
+#include "DataRateUI.h"
 #include "Timeline.h"
 #include <shared/path.h>
 
@@ -868,7 +868,7 @@ bool BeebWindow::DoImGui(int output_width,int output_height) {
             ImGui::MenuItem("ImGui demo...",NULL,&m_imgui_demo);
 #endif
             ImGuiMenuItemFlag("Event trace...",NULL,&m_settings.ui_flags,BeebWindowUIFlag_Trace);
-            ImGuiMenuItemFlag("Audio callback...",NULL,&m_settings.ui_flags,BeebWindowUIFlag_AudioCallback);
+            ImGuiMenuItemFlag("Data rate...",NULL,&m_settings.ui_flags,BeebWindowUIFlag_AudioCallback);
 
 #if SYSTEM_WINDOWS
             if(GetConsoleWindow()) {
@@ -1059,16 +1059,16 @@ bool BeebWindow::DoImGui(int output_width,int output_height) {
     }
 
     if(m_settings.ui_flags&BeebWindowUIFlag_AudioCallback) {
-        if(!m_audio_callback_ui) {
-            m_audio_callback_ui=std::make_unique<AudioCallbackUI>(this);
+        if(!m_data_rate_ui) {
+            m_data_rate_ui=std::make_unique<DataRateUI>(this);
         }
 
-        if(ImGuiBeginFlag("Audio Callback",&m_settings.ui_flags,BeebWindowUIFlag_AudioCallback)) {
-            m_audio_callback_ui->DoImGui();
+        if(ImGuiBeginFlag("Data Rate",&m_settings.ui_flags,BeebWindowUIFlag_AudioCallback)) {
+            m_data_rate_ui->DoImGui();
         }
         ImGui::End();
     } else {
-        m_audio_callback_ui=nullptr;
+        m_data_rate_ui=nullptr;
     }
 
     if(ValueChanged(&m_msg_last_num_errors_and_warnings_printed,m_message_list->GetNumErrorsAndWarningsPrinted())) {
@@ -1233,21 +1233,31 @@ bool BeebWindow::HandleVBlank(uint64_t ticks) {
 
     ImGuiContextSetter setter(m_imgui_stuff);
 
-    ASSERT(m_vblank_index<NUM_VBLANK_RECORDS);
-    m_vblank_ticks[m_vblank_index]=ticks;
+    VBlankRecord *vblank_record;
+    if(m_vblank_records.size()<NUM_VBLANK_RECORDS) {
+        m_vblank_records.emplace_back();
+        vblank_record=&m_vblank_records.back();
+    } else {
+        vblank_record=&m_vblank_records[m_vblank_index];
+        m_vblank_index=(m_vblank_index+1)%NUM_VBLANK_RECORDS;
+    }
+
+    vblank_record->num_ticks=ticks-m_last_vblank_ticks;
+    m_last_vblank_ticks=ticks;
 
     {
         OutputDataBuffer<VideoDataUnit> *video_output=m_beeb_thread->GetVideoOutput();
 
         const VideoDataUnit *a,*b;
         size_t na,nb;
-
         if(video_output->ConsumerLock(&a,&na,&b,&nb)) {
             m_tv.Update(a,na);
             m_tv.Update(b,nb);
 
             video_output->ConsumerUnlock(na+nb);
         }
+
+        vblank_record->num_video_units=na+nb;
     }
 
     if(m_tv_texture) {
@@ -1256,7 +1266,6 @@ bool BeebWindow::HandleVBlank(uint64_t ticks) {
         }
     }
 
-    m_vblank_index=(m_vblank_index+1)%NUM_VBLANK_RECORDS;
 
     int output_width,output_height;
     SDL_GetRendererOutputSize(m_renderer,&output_width,&output_height);
@@ -1397,7 +1406,7 @@ void BeebWindow::SavePosition() {
     BeebWindows::SetLastWindowPlacementData(buf);
 
 #endif
-}
+    }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -1477,7 +1486,7 @@ bool BeebWindow::InitInternal() {
         if(wp->maximized) {
             SDL_MaximizeWindow(m_window);
         }
-    }
+        }
 
 #endif
 
@@ -1493,9 +1502,9 @@ bool BeebWindow::InitInternal() {
         if(strcmp(info.name,"opengl")==0) {
             rmt_BindOpenGL();
             g_unbind_opengl=1;
-        }
-#endif
     }
+#endif
+}
     ++g_num_BeebWindow_inits;
 #endif
 
@@ -1538,13 +1547,6 @@ bool BeebWindow::InitInternal() {
 
     if(!m_init_arguments.initially_paused) {
         m_beeb_thread->SetPaused(false);
-    }
-
-    {
-        uint64_t ticks=GetCurrentTickCount();
-        for(size_t i=0;i<NUM_VBLANK_RECORDS;++i) {
-            m_vblank_ticks[i]=ticks;
-        }
     }
 
     m_imgui_stuff->NewFrame(false);
@@ -1719,6 +1721,26 @@ void *BeebWindow::GetNSWindow() const {
     return m_nswindow;
 }
 #endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+std::vector<BeebWindow::VBlankRecord> BeebWindow::GetVBlankRecords() const {
+    std::vector<BeebWindow::VBlankRecord> records;
+
+    if(m_vblank_records.size()<NUM_VBLANK_RECORDS) {
+        records=m_vblank_records;
+    } else {
+        ASSERT(m_vblank_index<m_vblank_records.size());
+        auto &&it=m_vblank_records.begin()+m_vblank_index;
+
+        records.reserve(m_vblank_records.size());
+        records.insert(records.end(),it,m_vblank_records.end());
+        records.insert(records.end(),m_vblank_records.begin(),it);
+    }
+
+    return records;
+}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

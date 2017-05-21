@@ -9,9 +9,9 @@ class BeebWindow;
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-class AudioCallbackUI {
+class DataRateUI {
 public:
-    explicit AudioCallbackUI(BeebWindow *beeb_window);
+    explicit DataRateUI(BeebWindow *beeb_window);
 
     void DoImGui();
 protected:

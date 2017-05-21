@@ -35,7 +35,7 @@ add_executable(b2 MACOSX_BUNDLE
   MessagesUI.cpp MessagesUI.h
   TraceUI.cpp TraceUI.h TraceUI.inl
   NVRAMUI.cpp NVRAMUI.h NVRAMUI_private.inl
-  AudioCallbackUI.cpp AudioCallbackUI.h
+  DataRateUI.cpp DataRateUI.h
   VideoWriter.cpp VideoWriter.h
   WriteVideoJob.cpp WriteVideoJob.h
   Timeline.cpp Timeline.h

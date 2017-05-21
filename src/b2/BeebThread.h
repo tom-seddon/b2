@@ -63,15 +63,6 @@ struct TraceConditions {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-struct AudioCallbackRecord {
-    uint64_t time=0;
-    uint64_t needed=0;
-    uint64_t available=0;
-};
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 // BeebThread runs a BBCMicro object in a thread.
 //
 // The BBCMicro will run flat out for some period, or some smallish
@@ -88,6 +79,12 @@ struct AudioCallbackRecord {
 
 class BeebThread {
 public:
+    struct AudioCallbackRecord {
+        uint64_t time=0;
+        uint64_t needed=0;
+        uint64_t available=0;
+    };
+
     explicit BeebThread(std::shared_ptr<MessageList> message_list,uint32_t sound_device_id,int sound_freq,size_t sound_buffer_size_samples);
     ~BeebThread();
 
