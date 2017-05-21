@@ -1248,16 +1248,44 @@ bool BeebWindow::HandleVBlank(uint64_t ticks) {
     {
         OutputDataBuffer<VideoDataUnit> *video_output=m_beeb_thread->GetVideoOutput();
 
+        uint64_t num_us=(uint64_t)(GetSecondsFromTicks(vblank_record->num_ticks)*1e6);
+        uint64_t num_us_left=num_us;
+
         const VideoDataUnit *a,*b;
         size_t na,nb;
-        if(video_output->ConsumerLock(&a,&na,&b,&nb)) {
-            m_tv.Update(a,na);
-            m_tv.Update(b,nb);
 
-            video_output->ConsumerUnlock(na+nb);
+        size_t num_units=0;
+
+        if(video_output->ConsumerLock(&a,&na,&b,&nb)) {
+            bool limited=m_beeb_thread->IsSpeedLimited();
+
+            size_t n;
+
+            n=na;
+            if(limited) {
+                n=(size_t)std::min((uint64_t)n,num_us_left);
+            }
+            m_tv.Update(a,n);
+            num_us_left-=n;
+
+            n=nb;
+            if(limited) {
+                n=(size_t)std::min((uint64_t)n,num_us_left);
+            }
+            m_tv.Update(b,n);
+            num_us_left-=n;
+
+            if(limited) {
+                ASSERT(num_us>=num_us_left);
+                num_units=num_us-num_us_left;
+            } else {
+                num_units=na+nb;
+            }
+
+            video_output->ConsumerUnlock(num_units);
         }
 
-        vblank_record->num_video_units=na+nb;
+        vblank_record->num_video_units=num_units;
     }
 
     if(m_tv_texture) {
