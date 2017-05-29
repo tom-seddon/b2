@@ -1498,35 +1498,6 @@ char *M6502P_GetString(char *dest,M6502P value) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-// These are artefacts of the code generation process, and
-// probably want tidying up...
-enum {
-    M6502AddrMode_IMM_BCD_CMOS=M6502AddrMode_IMM,
-    M6502AddrMode_ZPG_CMOS=M6502AddrMode_ZPG,
-    M6502AddrMode_ZPG_BCD_CMOS=M6502AddrMode_ZPG,
-    M6502AddrMode_ZPX_CMOS=M6502AddrMode_ZPX,
-    M6502AddrMode_ZPX_BCD_CMOS=M6502AddrMode_ZPX,
-    M6502AddrMode_ZPY_CMOS=M6502AddrMode_ZPY,
-    M6502AddrMode_ABS_CMOS=M6502AddrMode_ABS,
-    M6502AddrMode_ABS_BCD_CMOS=M6502AddrMode_ABS,
-    M6502AddrMode_ABX_CMOS=M6502AddrMode_ABX,
-    M6502AddrMode_ABX2_CMOS=M6502AddrMode_ABX,
-    M6502AddrMode_ABX_BCD_CMOS=M6502AddrMode_ABX,
-    M6502AddrMode_ABY_BCD_CMOS=M6502AddrMode_ABY,
-    M6502AddrMode_INX_BCD_CMOS=M6502AddrMode_INX,
-    M6502AddrMode_INY_BCD_CMOS=M6502AddrMode_INY,
-    M6502AddrMode_IND_CMOS=M6502AddrMode_IND,
-    M6502AddrMode_INZ_BCD_CMOS=M6502AddrMode_INZ,
-
-    // 
-    M6502AddrMode_NOP11_CMOS=M6502AddrMode_IMP,
-    M6502AddrMode_NOP22_CMOS=M6502AddrMode_ZPG,
-    M6502AddrMode_NOP23_CMOS=M6502AddrMode_ZPG,
-    M6502AddrMode_NOP24_CMOS=M6502AddrMode_ZPG,
-    M6502AddrMode_NOP34_CMOS=M6502AddrMode_ABS,
-    M6502AddrMode_NOP38_CMOS=M6502AddrMode_ABS,
-};
-
 #include <6502_internal.inl>
 
 const M6502Config M6502_defined_config={

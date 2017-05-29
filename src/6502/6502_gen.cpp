@@ -226,6 +226,25 @@ public:
         return m;
     }
 
+    Mode GetDisassemblyMode() const {
+        switch(this->mode) {
+        default:
+            return this->mode;
+
+        case Mode_Nop11_CMOS:
+            return Mode_Imp;
+
+        case Mode_Nop22_CMOS:
+        case Mode_Nop23_CMOS:
+        case Mode_Nop24_CMOS:
+            return Mode_Zpg;
+
+        case Mode_Nop34_CMOS:
+        case Mode_Nop38_CMOS:
+            return Mode_Abs;
+        }
+    }
+
     void GetTFunAndIFun(std::string *tfun,std::string *ifun) const {
         if(this->mnemonic=="brk") {
             if(this->cmos) {
@@ -480,17 +499,6 @@ static std::map<uint8_t,Instr> GetCMOSInstructions() {
     for(int i=0;i<256;++i) {
         ASSERT(instructions.count((uint8_t)i)==1);
     }
-
-    //std::set<std::string> shifts{"asl","lsr","rol","ror"};
-
-    //// More hacks.
-    //for(auto &&it:instructions) {
-    //    if(it.second.mode==Mode_Abx&&shifts.count(it.second.mnemonic)>0) {
-    //        // 1 cycle short when no page boundary crossed, unlike the
-    //        // other RMW instructions.
-    //        it.second.mode=Mode_Abx2_CMOS;
-    //    }
-    //}
 
     MarkInstructions(&instructions,&Instr::cmos);
 
@@ -1223,24 +1231,7 @@ static void GenerateConfig(const std::string &stem,const std::map<uint8_t,Instr>
     for(size_t i=0;i<256;++i) {
         const Instr *instr=instrs[i];
 
-        std::string mode="M6502AddrMode_"+ToUpper(GetModeEnumName(instr->mode));
-
-        if(instr->cmos) {
-            // Pile-o-hax. Mimic the behaviour of the original Python
-            // script so the output is identical. Some of this stuff
-            // duplicates the logic in GetIFunAndTFun. If you can read
-            // this... you probably just need to get a later commit
-            // where all this crap has been taken out.
-            if(instr->IsBCDInstruction()) {
-                mode+=BCD_CMOS_FUNCTION_SUFFIX;
-            } else if(instr->IsShiftInstruction()&&instr->mode==Mode_Abx) {
-                mode="M6502AddrMode_ABX2_CMOS";
-            } else if(instr->GetInstrType()==InstrType_RMW) {
-                mode+=CMOS_FUNCTION_SUFFIX;
-            } else if(instr->GetDisassemblyMnemonic()=="jmp"&&instr->mode==Mode_Ind) {
-                mode+=CMOS_FUNCTION_SUFFIX;
-            }
-        }
+        std::string mode="M6502AddrMode_"+ToUpper(GetModeEnumName(instr->GetDisassemblyMode()));
 
         std::string mnemonic=instr->GetDisassemblyMnemonic();
 
