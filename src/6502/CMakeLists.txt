@@ -21,7 +21,8 @@ add_dependencies(6502_lib 6502_gen)
 
 add_custom_command(
   OUTPUT 6502_internal.inl
-  COMMAND $<TARGET_FILE:6502_gen> -o 6502_internal.inl)
+  COMMAND $<TARGET_FILE:6502_gen> -o 6502_internal.inl
+  DEPENDS $<TARGET_FILE:6502_gen>)
 
 target_include_directories(6502_lib PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 target_include_directories(6502_lib PUBLIC h)
