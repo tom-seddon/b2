@@ -241,7 +241,7 @@ class G:
     def gen_phase1(self,cycle,**kwargs):
         if callable(cycle.addr): cycle.addr(**kwargs)
         else:
-            set_acarray=False
+            set_acarry=False
             if cycle.addr=="1.ad+index":
                 set_acarry=True
                 gen_indexed_lsb("ad",kwargs["index"])

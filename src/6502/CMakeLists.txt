@@ -8,6 +8,10 @@ add_custom_command(
   DEPENDS gen_6502.py
   MAIN_DEPENDENCY gen_6502.py)
 
+add_executable(6502_gen
+  6502_gen.cpp 6502_gen.inl)
+target_link_libraries(6502_gen shared_lib)
+
 add_library(6502_lib STATIC
   c/6502.c h/6502/6502.h
   ${CMAKE_CURRENT_BINARY_DIR}/6502_internal.inl
