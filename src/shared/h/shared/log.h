@@ -111,11 +111,11 @@ public:
     int v(const char *fmt,va_list v);
     void s(const char *str);
     void c(char c);
-
     void Enable();
     void Disable();
 
     void PushIndent();
+    void PushIndent(int delta);
     void PopIndent();
 
     bool IsAtBOL() const;
@@ -139,6 +139,7 @@ public:
     void LockPrinterForNextLine();
 
     LogPrinter *GetPrinter() const;
+    void SetPrinter(LogPrinter *printer);
 
     void SetPrefix(const char *prefix);
 
@@ -158,7 +159,9 @@ private:
     bool m_is_printer_locked=false;
     std::string m_tag;
 
+    void RawChar(char c);
     void Flush(char c);
+    void PushIndentInternal(int indent);
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -259,7 +262,6 @@ void LogStackTrace(Log *log);
 #define LOG_TAGGED_DEFINE(NAME,TAG,...) LOG_DEFINE(NAME,TAG,__VA_ARGS__) static LogRegister g_log_register_##NAME(&LOG(NAME));
 
 // The indentation level is popped at the end of the current scope.
-// This macro expands two TWO statements.
 #define LOGI(X) LogIndenter CONCAT2(indenter,__COUNTER__)(&LOG(X))
 
 #define LOGF(X,...) LOG__PRINT(X,f,(__VA_ARGS__))

@@ -130,8 +130,7 @@ Log::Log(const char *prefix,LogPrinter *printer,bool enabled):
 Log::Log(const char *tag,const char *prefix,LogPrinter *printer,bool enabled_) {
     this->SetPrefix(prefix);
 
-    m_printer=printer;
-    ASSERT(m_printer);
+    this->SetPrinter(printer);
 
     if(tag) {
         m_tag=tag;
@@ -158,10 +157,7 @@ Log::Log(const char *prefix,const Log &log):
 //////////////////////////////////////////////////////////////////////////
 
 Log::~Log() {
-    if(m_is_printer_locked) {
-        m_printer->unlock();
-        m_is_printer_locked=false;
-    }
+    this->SetPrinter(nullptr);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -222,51 +218,8 @@ void Log::s(const char *str) {
         return;
     }
 
-    for(const char *str_c=str;*str_c!=0;++str_c) {
-        int print=1;
-
-        if(m_bol) {
-            if(*str_c=='\t') {
-                if(m_prefix[0]!=0) {
-                    for(const char *prefix_c=m_prefix;
-                        *prefix_c!=0;
-                        ++prefix_c)
-                    {
-                        this->c(' ');
-                    }
-
-                    this->c(' ');
-                    this->c(' ');
-                }
-
-                print=0;
-            } else {
-                if(m_prefix[0]!=0) {
-                    for(const char *prefix_c=m_prefix;
-                        *prefix_c!=0;
-                        ++prefix_c)
-                    {
-                        this->c(*prefix_c);
-                    }
-
-                    this->c(':');
-                    this->c(' ');
-                }
-            }
-
-            /* Columns spent printing the prefix don't count. */
-            m_column=0;
-            
-            for(int i=0;i<m_indent;++i) {
-                this->c(' ');
-            }
-        }
-
-        if(print) {
-            c(*str_c);
-        }
-
-        m_bol=*str_c=='\n';
+    for(const char *c=str;*c!=0;++c) {
+        this->c(*c);
     }
 }
 
@@ -274,17 +227,54 @@ void Log::s(const char *str) {
 //////////////////////////////////////////////////////////////////////////
 
 void Log::c(char c) {
-    m_buffer[m_buffer_size++]=c;
-
-    if(c=='\n'||m_buffer_size==MAX_BUFFER_SIZE-1) {
-        this->Flush(c);
+    if(!this->enabled) {
+        return;
     }
 
-    if(c=='\n'||c=='\r') {
+    bool print=true;
+
+    if(m_bol) {
+        if(c=='\t') {
+            if(m_prefix[0]!=0) {
+                for(const char *prefix_c=m_prefix;
+                    *prefix_c!=0;
+                    ++prefix_c)
+                {
+                    this->RawChar(' ');
+                }
+
+                this->RawChar(' ');
+                this->RawChar(' ');
+            }
+
+            print=false;
+        } else {
+            if(m_prefix[0]!=0) {
+                for(const char *prefix_c=m_prefix;
+                    *prefix_c!=0;
+                    ++prefix_c)
+                {
+                    this->RawChar(*prefix_c);
+                }
+
+                this->RawChar(':');
+                this->RawChar(' ');
+            }
+        }
+
+        /* Columns spent printing the prefix don't count. */
         m_column=0;
-    } else {
-        ++m_column;
+
+        for(int i=0;i<m_indent;++i) {
+            this->RawChar(' ');
+        }
     }
+
+    if(print) {
+        this->RawChar(c);
+    }
+
+    m_bol=c=='\n';
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -309,12 +299,14 @@ void Log::Disable() {
 //////////////////////////////////////////////////////////////////////////
 
 void Log::PushIndent() {
-    if(m_indent_stack_depth<MAX_INDENT_STACK_DEPTH) {
-        m_indent_stack[m_indent_stack_depth]=m_indent;
-        m_indent=m_column;
-    }
+    this->PushIndentInternal(m_column);
+}
 
-    ++m_indent_stack_depth;
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void Log::PushIndent(int delta) {
+    this->PushIndentInternal(m_indent+delta);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -342,6 +334,23 @@ bool Log::IsAtBOL() const {
 
 int Log::GetColumn() const {
     return m_column;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void Log::RawChar(char c) {
+    m_buffer[m_buffer_size++]=c;
+
+    if(c=='\n'||m_buffer_size==MAX_BUFFER_SIZE-1) {
+        this->Flush(c);
+    }
+
+    if(c=='\n'||c=='\r') {
+        m_column=0;
+    } else {
+        ++m_column;
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -391,6 +400,19 @@ LogPrinter *Log::GetPrinter() const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+void Log::SetPrinter(LogPrinter *printer) {
+    if(m_is_printer_locked) {
+        ASSERT(m_printer);
+        m_printer->unlock();
+        m_is_printer_locked=false;
+    }
+
+    m_printer=printer;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 void Log::SetPrefix(const char *prefix) {
     strlcpy(m_prefix,prefix,MAX_PREFIX_SIZE);
 }
@@ -413,18 +435,32 @@ void Log::Flush(char c) {
     ASSERT(m_buffer_size<MAX_BUFFER_SIZE);
     m_buffer[m_buffer_size]=0;
 
-    if(!m_is_printer_locked) {
-        m_printer->lock();
-    }
+    if(m_printer) {
+        if(!m_is_printer_locked) {
+            m_printer->lock();
+        }
 
-    m_printer->Print(m_buffer,m_buffer_size);
+        m_printer->Print(m_buffer,m_buffer_size);
 
-    if(!m_is_printer_locked||c=='\n') {
-        m_printer->unlock();
-        m_is_printer_locked=false;
+        if(!m_is_printer_locked||c=='\n') {
+            m_printer->unlock();
+            m_is_printer_locked=false;
+        }
     }
 
     m_buffer_size=0;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void Log::PushIndentInternal(int indent) {
+    if(m_indent_stack_depth<MAX_INDENT_STACK_DEPTH) {
+        m_indent_stack[m_indent_stack_depth]=m_indent;
+        m_indent=indent;
+    }
+
+    ++m_indent_stack_depth;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -542,15 +578,15 @@ enum {
 static const LogDumpBytesExData DEFAULT_DUMP_BYTES_EX_DATA={16};
 
 void LogDumpBytesEx(Log *log,
-                    const void *begin,
-                    size_t size,
-                    const LogDumpBytesExData *ex_data)
+    const void *begin,
+    size_t size,
+    const LogDumpBytesExData *ex_data)
 {
     if(size==0) {
         log->f("<<no data>>\n");
         return;
     }
-    
+
     auto p=(const uint8_t *)begin;
     size_t offset=0;
     char cs[MAX_NUM_DUMP_COLUMNS+1];
@@ -565,7 +601,7 @@ void LogDumpBytesEx(Log *log,
     } else if(num_dump_columns>MAX_NUM_DUMP_COLUMNS) {
         num_dump_columns=MAX_NUM_DUMP_COLUMNS;
     }
-    
+
     cs[num_dump_columns]=0;
 
     int offset_width;
@@ -609,7 +645,7 @@ void LogDumpBytesEx(Log *log,
         for(size_t i=0;i<num_dump_columns;++i) {
             if(offset+i<size) {
                 char c=(char)p[offset+i];
-                
+
                 if(c>=32&&c<=126) {
                     cs[i]=c;
                 } else {
@@ -635,7 +671,7 @@ void LogStringPrintable(Log *log,const char *str) {
     if(!log) {
         return;
     }
-    
+
     if(!str) {
         log->s("<<NULL>>");
     } else {
@@ -684,12 +720,12 @@ void LogStackTrace(Log *log) {
     if(!log) {
         return;
     }
-    
+
     void *buffer[100];
     int n=backtrace(buffer,sizeof buffer/sizeof buffer[0]);
 
     char **symbols=GetBacktraceSymbols(buffer,n);
-    
+
     log->f("Stack trace:");
 
     if(!symbols) {
@@ -697,7 +733,7 @@ void LogStackTrace(Log *log) {
     }
 
     log->f("\n");
-    
+
 
     for(int i=0;i<n;++i) {
         log->f("    %d. ",i);
