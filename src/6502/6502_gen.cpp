@@ -89,16 +89,18 @@ static void PRINTF_LIKE(1,2) P(const char *fmt,...) {
     }
 
     for(const char *c=str;*c!=0;++c) {
-        if(*c=='{') {
-            LOG(CODE_FILE).PushIndent(4);
-            LOG(CODE_STDOUT).PushIndent(4);
-        } else if(*c=='}') {
+        if(*c=='}') {
             LOG(CODE_FILE).PopIndent();
             LOG(CODE_STDOUT).PopIndent();
         }
 
         LOG(CODE_FILE).c(*c);
         LOG(CODE_STDOUT).c(*c);
+
+        if(*c=='{') {
+            LOG(CODE_FILE).PushIndent(4);
+            LOG(CODE_STDOUT).PushIndent(4);
+        }
     }
 
     free(str);
@@ -1206,7 +1208,7 @@ static void GenerateConfig(const std::string &stem,const std::map<uint8_t,Instr>
     std::string fns_name="g_"+stem+"_fns";
     std::string di_name="g_"+stem+"_disassembly_info";
     std::string config_name="M6502_"+stem+"_config";
-    std::string get_fn_name_name="GetFnName_"+stem;
+    //std::string get_fn_name_name="GetFnName_"+stem;
 
     Sep();
     Sep();
@@ -1244,6 +1246,41 @@ static void GenerateConfig(const std::string &stem,const std::map<uint8_t,Instr>
     }
     P("};\n");
     P("\n");
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+static void GenerateFnNameStuff(const std::vector<InstrGen> &gens) {
+    std::set<std::string> names;
+
+    for(const InstrGen &gen:gens) {
+        for(const std::string &fn_name:gen.GetFnNames()) {
+            ASSERT(names.count(fn_name)==0);
+            names.insert(fn_name);
+        }
+    }
+
+    P("static const Fn g_fns_by_name[]={\n");
+    {
+        for(auto &&it:names) {
+            P("{\"%s\",&%s},\n",it.c_str(),it.c_str());
+        }
+    }
+    P("{NULL,NULL},\n");
+    P("};\n");
+    P("\n");
+
+    //P("static const char *GetGeneratedFnName(M6502Fn tfn) {\n");
+    //for(auto &&it:names) {
+    //    P("if(tfn==&%s) {\n",it.first.c_str());
+    //    P("return g_fn_names[%zu];\n",it.second);
+    //    P("}\n");
+    //    P("\n");
+    //}
+    //P("return NULL;\n");
+    //P("}\n");
+    //P("\n");
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -1301,18 +1338,7 @@ int main(int argc,char *argv[]) {
         gen.GenerateC();
     }
 
-    P("static const char *GetGeneratedFnName(M6502Fn tfn) {\n");
-    for(const InstrGen &gen:gens) {
-        for(const std::string &fn_name:gen.GetFnNames()) {
-            P("if(tfn==&%s) {\n",fn_name.c_str());
-            P("return \"%s\";\n",fn_name.c_str());
-            P("}\n");
-            P("\n");
-        }
-    }
-    P("return NULL;\n");
-    P("}\n");
-    P("\n");
+    GenerateFnNameStuff(gens);
 
     GenerateConfig("defined",GetDefinedInstructions(),GetUndefinedTrapInstructions());
     GenerateConfig("nmos6502",GetDefinedInstructions(),GetUndefinedInstructions());
