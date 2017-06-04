@@ -1498,21 +1498,21 @@ char *M6502P_GetString(char *dest,M6502P value) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-struct Fn {
+struct NamedFn {
     const char *name;
     M6502Fn fn;
 };
-typedef struct Fn Fn;
+typedef struct NamedFn NamedFn;
 
 #include <6502_internal.inl>
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static const char *GetGeneratedFnName(M6502Fn tfn) {
-    for(const Fn *fn=g_fns_by_name;fn->name;++fn) {
-        if(fn->fn==tfn) {
-            return fn->name;
+static const char *FindNameByFn(const NamedFn *named_fns,M6502Fn fn) {
+    for(const NamedFn *named_fn=named_fns;named_fn->name;++named_fn) {
+        if(named_fn->fn==fn) {
+            return named_fn->name;
         }
     }
 
@@ -1838,28 +1838,16 @@ void M6502_SetDeviceNMI(M6502 *s,M6502_DeviceIRQFlags mask,int wants_nmi) {
 #define CASE(X) if(fn==&(X)) return #X
 
 static const char *GetFnName(M6502Fn fn) {
-
-
-    CASE(T0_IMP);
-    CASE(T1_IMP);
-    CASE(T0_HLT);
-    CASE(T1_HLT);
-    CASE(T0_Interrupt);
-    CASE(T1_Interrupt);
-    CASE(T2_Interrupt);
-    CASE(T3_Interrupt);
-    CASE(T4_Interrupt);
-    CASE(T5_Interrupt);
-    CASE(T6_Interrupt);
-    CASE(T0_Branch);
-    CASE(T1_Branch);
-    CASE(T2_Branch);
-    CASE(T3_Branch);
-    CASE(T0_All);
     CASE(M6502_NextInstruction);
 
+    const char *name;
 
-    const char *name=GetGeneratedFnName(fn);
+    name=FindNameByFn(g_named_tfns,fn);
+    if(name) {
+        return name;
+    }
+
+    name=FindNameByFn(g_named_ifns,fn);
     if(name) {
         return name;
     }
@@ -1867,105 +1855,12 @@ static const char *GetFnName(M6502Fn fn) {
     return "?";
 }
 
-static const char *GetInstrFnName(M6502Fn fn) {
-    CASE(CLD);
-    CASE(SED);
-    CASE(CLI);
-    CASE(SEI);
-    CASE(CLV);
-    CASE(CLC);
-    CASE(SEC);
-    CASE(TXA);
-    CASE(TYA);
-    CASE(TXS);
-    CASE(TAX);
-    CASE(TSX);
-    CASE(TAY);
-    CASE(INX);
-    CASE(INY);
-    CASE(DEX);
-    CASE(DEY);
-    CASE(ILL);
-    CASE(ADC);
-    CASE(SBC);
-    CASE(AND);
-    CASE(BIT);
-    CASE(CMP);
-    CASE(CPX);
-    CASE(CPY);
-    CASE(EOR);
-    CASE(LDA);
-    CASE(LDX);
-    CASE(LDY);
-    CASE(ORA);
-    CASE(NOP);
-    CASE(ROL);
-    CASE(ROLA);
-    CASE(ROR);
-    CASE(RORA);
-    CASE(ASL);
-    CASE(ASLA);
-    CASE(LSR);
-    CASE(LSRA);
-    CASE(INC);
-    CASE(DEC);
-    CASE(STA);
-    CASE(STX);
-    CASE(STY);
-    CASE(BCC);
-    CASE(BCS);
-    CASE(BEQ);
-    CASE(BMI);
-    CASE(BNE);
-    CASE(BPL);
-    CASE(BVC);
-    CASE(BVS);
-    CASE(PHA);
-    CASE(PHP);
-    CASE(PLP);
-    CASE(PLA);
-    CASE(SLO);
-    CASE(RLA);
-    CASE(SRE);
-    CASE(RRA);
-    CASE(DCP);
-    CASE(ISC);
-    CASE(LAX);
-    CASE(SAX);
-    CASE(ALR);
-    CASE(ARR);
-    CASE(XAA);
-    CASE(LXA);
-    CASE(AXS);
-    CASE(AHX);
-    CASE(SHX);
-    CASE(SHY);
-    CASE(TAS);
-    CASE(ANC);
-    CASE(LAS);
-    CASE(ADC_CMOS);
-    CASE(SBC_CMOS);
-    CASE(BIT_CMOS);
-    CASE(INCA);
-    CASE(DECA);
-    CASE(TRB);
-    CASE(TSB);
-    CASE(STZ);
-    CASE(BRA);
-    CASE(PHX);
-    CASE(PHY);
-    CASE(PLX);
-    CASE(PLY);
-
-    return NULL;
-}
-
 #undef CASE
 
 static char g_fn_name_buf[200];
 
 const char *M6502_GetStateName(M6502 *s) {
-    const char *instr_name=GetInstrFnName(s->ifn);
+    const char *instr_name=FindNameByFn(g_named_ifns,s->ifn);
 
     snprintf(g_fn_name_buf,sizeof g_fn_name_buf,"%s%s%s",GetFnName(s->tfn),instr_name?": ":"",instr_name?instr_name:"");
 

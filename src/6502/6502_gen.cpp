@@ -6,6 +6,8 @@
 #include <string>
 #include <map>
 #include <set>
+#include <regex>
+#include <fstream>
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -13,7 +15,6 @@
 #include <shared/enum_decl.h>
 #include "6502_gen.inl"
 #include <shared/enum_end.h>
-
 
 #include <shared/enum_def.h>
 #include "6502_gen.inl"
@@ -48,7 +49,7 @@ static LogPrinterFILE g_code_file_printer;
 LOG_DEFINE(V,"",&log_printer_stderr_and_debugger,false);
 LOG_DEFINE(CODE_FILE,"",&g_code_file_printer,false);
 LOG_DEFINE(CODE_STDOUT,"",&log_printer_stdout,false);
-LOG_DEFINE(ERR,"",&log_printer_stderr_and_debugger,false);
+LOG_DEFINE(ERR,"",&log_printer_stderr_and_debugger,true);
 
 //#define P(...) LOGF(CODE,__VA_ARGS__)
 
@@ -64,6 +65,7 @@ static const std::string BCD_CMOS_FUNCTION_SUFFIX="_BCD_CMOS";
 
 struct Options {
     std::string ofname;
+    std::vector<std::string> c_fnames;
     bool to_stdout=false;
 };
 
@@ -72,7 +74,7 @@ struct Options {
 
 static std::string ToUpper(std::string str) {
     for(size_t i=0;i<str.size();++i) {
-        str[i]=toupper(str[i]);
+        str[i]=(char)toupper(str[i]);
     }
 
     return str;
@@ -111,12 +113,12 @@ static void Sep() {
     P("//////////////////////////////////////////////////////////////////////////\n");
 }
 
-static void Sep2() {
-    P("\n");
-    Sep();
-    Sep();
-    P("\n");
-}
+//static void Sep2() {
+//    P("\n");
+//    Sep();
+//    Sep();
+//    P("\n");
+//}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -179,9 +181,16 @@ static std::map<InstrType,std::set<std::string>> INSTR_TYPES={
 
 class Instr {
 public:
+    // Mnemonic, in lower case.
     std::string mnemonic;
+
+    // Addressing mode.
     Mode mode=Mode_Imp;
+
+    // Set if this is a CMOS instruction.
     bool cmos=false;
+
+    // Set if this is an undocumented NMOS instruction.
     bool undocumented=false;
 
     Instr()=default;
@@ -545,9 +554,24 @@ static const std::map<std::string,std::string> WHAT_EXPRS={
 };
 
 struct Cycle {
+    // True if this is a read cycle, false if a write cycle.
     bool read=true;
-    std::string addr,what,action;
-    //void (*phase1_fn)(const InstrGen *gen)=nullptr;
+
+    // Address to read from or write to, set up in phase 1. Addresses
+    // that map to a simple C expression are listed in ADDR_EXPRS;
+    // those that expand to something more involved can be seen in
+    // GeneratePhase1.
+    std::string addr;
+
+    // What to put on the data bus in phase 1 (write) or where to
+    // store the data in phase 2 (read). These always expand to a
+    // simple C expression, and the full list can be found in
+    // WHAT_EXPRS.
+    std::string what;
+
+    // Action to take on phase 2. The full list can be seen in
+    // GeneratePhase2.
+    std::string action;
 
     Cycle(bool read_,std::string addr_,const char *what_,const char *action_):
         read(read_),
@@ -560,8 +584,17 @@ struct Cycle {
 
 class InstrGen {
 public:
-    std::string stem,description;
+    // Name stem used to generate the function names.
+    std::string stem;
+
+    // Description.
+    std::string description;
+
+    // List of operations for each cycle.
     std::vector<Cycle> cycles;
+
+    // Name of index register to use when the addressing mode is
+    // indexed - 'X', 'Y' or 0 if none.
     char index=0;
 
     InstrGen(std::string stem_,std::string description_,const std::initializer_list<Cycle> &cycles_,char index_=0):
@@ -709,6 +742,8 @@ private:
         if(c->action.empty()) {
             // ignore...
         } else if(c->action=="maybe_call") {
+            // Call the ifn if there was no carry during the address
+            // calculation LSB.
             P("if(!s->acarry) {\n");
             P("/* No carry - done. */\n");
             this->GenerateCallIFn();
@@ -718,9 +753,12 @@ private:
             P("return;\n");
             P("}\n");
         } else if(c->action=="call") {
+            // Call the ifn.
             this->GenerateCallIFn();
         } else if(c->action=="maybe_call_bcd_cmos") {
-            P("    if(!s->p.bits.d) {\n");
+            // As maybe_call, but for CMOS BCD instructions. An extra
+            // cycle is needed in decimal mode.
+            P("if(!s->p.bits.d) {\n");
             P("if(!s->acarry) {\n");
             P("/* No carry, no decimal - done. */\n");
             this->GenerateCallIFn();
@@ -731,6 +769,8 @@ private:
             P("}\n");
             P("}\n");
         } else if(c->action=="call_bcd_cmos") {
+            // As call, but for CMOS BCD instructions. An extra cycle
+            // is needed in decimal mode.
             this->GenerateCallIFn();
             P("if(!s->p.bits.d) {\n");
             P("/* No decimal - done. */\n");
@@ -740,8 +780,11 @@ private:
             P("return;\n");
             P("}\n");
         } else if(c->action=="jmp") {
+            // Handle JMP. This is a special case as it involves a
+            // word copy.
             P("s->pc=s->ad;\n");
         } else if(c->action=="rti") {
+            // Call the RTI callback.
             P("if(s->rti_fn) {\n");
             P("(*s->rti_fn)(s);\n");
             P("}\n");
@@ -1189,7 +1232,7 @@ static std::vector<InstrGen> GetAll() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static void GenerateConfig(const std::string &stem,const std::map<uint8_t,Instr> &instrs0,const std::map<uint8_t,Instr> &instrs1) {
+static void GenerateConfig(std::set<std::string> *tfns,std::set<std::string> *ifuns,const std::string &stem,const std::map<uint8_t,Instr> &instrs0,const std::map<uint8_t,Instr> &instrs1) {
     const Instr *instrs[256]={};
 
     for(auto &&it:instrs0) {
@@ -1225,6 +1268,17 @@ static void GenerateConfig(const std::string &stem,const std::map<uint8_t,Instr>
             P("&%s",ifun.c_str());
         }
         P(",},\n");
+
+        if(!ifun.empty()) {
+            ifuns->insert(ifun);
+        }
+
+        if(tfns->count(tfun)==0) {
+            // most tfns are added by the loop in GenerateFnNameStuff
+            // - but a few of the hand-written ones are only referred
+            // to by this table.
+            tfns->insert(tfun);
+        }
     }
     P("};\n");
     P("\n");
@@ -1251,36 +1305,116 @@ static void GenerateConfig(const std::string &stem,const std::map<uint8_t,Instr>
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static void GenerateFnNameStuff(const std::vector<InstrGen> &gens) {
-    std::set<std::string> names;
+static void PrintFnNameTable(const char *table_name,const std::map<std::string,std::string> &names) {
+    P("static const NamedFn %s[]={\n",table_name);
+    for(auto &&it:names) {
+        P("{\"%s\",&%s},",it.first.c_str(),it.first.c_str());
 
-    for(const InstrGen &gen:gens) {
-        for(const std::string &fn_name:gen.GetFnNames()) {
-            ASSERT(names.count(fn_name)==0);
-            names.insert(fn_name);
+        if(!it.second.empty()) {
+            P("//%s",it.second.c_str());
         }
-    }
 
-    P("static const Fn g_fns_by_name[]={\n");
-    {
-        for(auto &&it:names) {
-            P("{\"%s\",&%s},\n",it.c_str(),it.c_str());
-        }
+        P("\n");
     }
     P("{NULL,NULL},\n");
     P("};\n");
     P("\n");
+}
 
-    //P("static const char *GetGeneratedFnName(M6502Fn tfn) {\n");
-    //for(auto &&it:names) {
-    //    P("if(tfn==&%s) {\n",it.first.c_str());
-    //    P("return g_fn_names[%zu];\n",it.second);
-    //    P("}\n");
-    //    P("\n");
-    //}
-    //P("return NULL;\n");
-    //P("}\n");
-    //P("\n");
+static void GenerateFnNameStuff(
+    const std::vector<InstrGen> &gens,
+    const std::set<std::string> &tfns,
+    const std::map<std::string,std::map<std::string,std::set<size_t>>> &extra_tfns,
+    const std::set<std::string> &ifuns)
+{
+    std::map<std::string,std::string> commented_tfns;
+
+    for(const InstrGen &gen:gens) {
+        for(const std::string &fn_name:gen.GetFnNames()) {
+            commented_tfns[fn_name];
+        }
+    }
+
+    for(auto &&it:tfns) {
+        commented_tfns[it];
+    }
+
+    for(auto &&it1:extra_tfns) {
+        std::string *comment=&commented_tfns[it1.first];
+
+        for(auto &&it2:it1.second) {
+            if(!comment->empty()) {
+                *comment+="; ";
+            }
+
+            *comment+=it2.first+" (";
+            bool first=true;
+            for(auto &&it3:it2.second) {
+                if(!first) {
+                    *comment+=", ";
+                } else {
+                    first=false;
+                }
+
+                *comment+=std::to_string(it3);
+            }
+            *comment+=")";
+        }
+    }
+
+    PrintFnNameTable("g_named_tfns",commented_tfns);
+
+    std::map<std::string,std::string> commented_ifns;
+    for(auto &&it:ifuns) {
+        commented_ifns[it]="";
+    }
+
+    PrintFnNameTable("g_named_ifns",commented_ifns);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+static bool ReadAdditionalFuns(std::map<std::string,std::map<std::string,std::set<size_t>>> *tfns,const std::string &fname) {
+    std::ifstream input(fname.c_str(),std::ios_base::in);
+    if(!input.good()) {
+        LOGF(ERR,"failed to open C++ file: %s\n",fname.c_str());
+        return false;
+    }
+
+    std::regex ifn_re("->tfn=&([A-Za-z_][A-Za-z0-9_]*);",std::regex_constants::extended);
+
+    size_t line_number=1;
+
+    for(;;) {
+        std::string line;
+        std::getline(input,line);
+
+        if(!input.good()) {
+            break;
+        }
+
+        //LOGF(ERR,"--- %zu: %s\n",line_number,line.c_str());
+
+        std::match_results<std::string::const_iterator> match;
+        while(std::regex_search(line,match,ifn_re)) {
+            std::string tfn(match[1].first,match[1].second);
+            (*tfns)[tfn][fname].insert(line_number);
+
+            // This is a bit stupid, but the regex_iterator stuff
+            // looks like a real pain to use.
+            line=match.suffix();
+        }
+
+        ++line_number;
+    }
+
+    if(!input.eof()) {
+        LOGF(ERR,"failed to read from C++ file: %s\n",fname.c_str());
+        return false;
+    }
+
+    return true;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -1294,6 +1428,7 @@ static bool DoCommandLine(Options *options,int argc,char *argv[]) {
     p.AddOption('v',"verbose").SetIfPresent(&verbose).Help("be more verbose (on stderr)");
     p.AddOption('o').Arg(&options->ofname).Meta("FILE").Help("write code to FILE");
     p.AddOption("stdout").SetIfPresent(&options->to_stdout).Help("write code to stdout");
+    p.AddOption('c').AddArgToList(&options->c_fnames).Meta("FILE").Help("guess additional function names from C/C++ code in FILE");
     p.AddHelpOption();
 
     if(!p.Parse(argc,argv)) {
@@ -1308,6 +1443,8 @@ static bool DoCommandLine(Options *options,int argc,char *argv[]) {
 }
 
 int main(int argc,char *argv[]) {
+    std::ios::sync_with_stdio();
+
     Options options;
     if(!DoCommandLine(&options,argc,argv)) {
         return EXIT_FAILURE;
@@ -1329,6 +1466,14 @@ int main(int argc,char *argv[]) {
         LOG(CODE_FILE).Enable();
     }
 
+    std::map<std::string,std::map<std::string,std::set<size_t>>> extra_tfns;
+
+    for(const std::string &c_fname:options.c_fnames) {
+        if(!ReadAdditionalFuns(&extra_tfns,c_fname)) {
+            return EXIT_FAILURE;
+        }
+    }
+
     std::vector<InstrGen> gens=GetAll();
 
     P("// Automatically generated by 6502_gen.cpp\n");
@@ -1338,11 +1483,14 @@ int main(int argc,char *argv[]) {
         gen.GenerateC();
     }
 
-    GenerateFnNameStuff(gens);
+    // tfuns, ifuns... really need to decide which it is!
+    std::set<std::string> tfns,ifuns;
 
-    GenerateConfig("defined",GetDefinedInstructions(),GetUndefinedTrapInstructions());
-    GenerateConfig("nmos6502",GetDefinedInstructions(),GetUndefinedInstructions());
-    GenerateConfig("cmos6502",GetCMOSInstructions(),{});
+    GenerateConfig(&tfns,&ifuns,"defined",GetDefinedInstructions(),GetUndefinedTrapInstructions());
+    GenerateConfig(&tfns,&ifuns,"nmos6502",GetDefinedInstructions(),GetUndefinedInstructions());
+    GenerateConfig(&tfns,&ifuns,"cmos6502",GetCMOSInstructions(),{});
+
+    GenerateFnNameStuff(gens,tfns,extra_tfns,ifuns);
 
     g_code_file_printer.SetFILE(nullptr);
 
