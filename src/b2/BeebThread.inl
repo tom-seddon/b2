@@ -54,11 +54,6 @@ EPN(LoadDisc)
 // (payload)data.ptr
 EPN(SetDiscImageNameAndLoadMethod)
 
-// Set reset state.
-//
-// (bool)data.u64 - reset line state
-EPN(Reset)
-
 // Set paused state.
 //
 // (bool)data.u64 - pause state

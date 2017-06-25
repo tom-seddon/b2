@@ -52,7 +52,7 @@ class VideoWriter;
 
 struct TraceConditions {
     BeebThreadStartTraceCondition start=BeebThreadStartTraceCondition_Immediate;
-    uint8_t beeb_key=BeebSpecialKey_None;
+    int8_t beeb_key=-1;
 
     BeebThreadStopTraceCondition stop=BeebThreadStopTraceCondition_ByRequest;
 
@@ -118,7 +118,6 @@ public:
     void SendHardResetMessage(bool boot);
     void SendChangeConfigMessage(BeebLoadedConfig config);
     void SendSetSpeedLimitingMessage(bool limit_speed);
-    void SendResetMessage(bool state);
     void SendLoadDiscMessage(int drive,std::shared_ptr<DiscImage> disc_image,bool verbose);
     void SendDebugFlagsMessage(uint32_t debug_flags);
     void SendLoadStateMessage(uint64_t parent_timeline_id,std::shared_ptr<BeebState> state);
@@ -173,7 +172,7 @@ public:
     uint32_t GetLEDs() const;
 
     // Get the given BBC key state.
-    bool GetKeyState(uint8_t beeb_key) const;
+    bool GetKeyState(BeebKey beeb_key) const;
 
     // Get/set NVRAM. 0 is the first byte of CMOS RAM/EEPROM (the RTC
     // data is not included) - so the values are indexed as per the
@@ -235,8 +234,8 @@ private:
 
     class KeyStates {
     public:
-        bool GetState(uint8_t key) const;
-        void SetState(uint8_t key,bool state);
+        bool GetState(BeebKey key) const;
+        void SetState(BeebKey key,bool state);
     protected:
     private:
         std::atomic<uint64_t> m_flags[2]={};
@@ -336,7 +335,7 @@ private:
     void ThreadStartTrace(ThreadState *ts);
     void ThreadStopTrace(ThreadState *ts);
 #endif
-    void ThreadSetKeyState(ThreadState *ts,uint8_t beeb_key,bool state);
+    void ThreadSetKeyState(ThreadState *ts,BeebKey beeb_key,bool state);
     void ThreadSetFakeShiftState(ThreadState *ts,BeebShiftState state);
     void ThreadSetBootState(ThreadState *ts,bool state);
     void ThreadUpdateShiftKeyState(ThreadState *ts);

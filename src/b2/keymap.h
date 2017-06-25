@@ -11,7 +11,7 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-// Maintains a mapping from 32-bit PC key code to 8-bit BBC key code.
+// Maintains a mapping from uint32_t PC key code to int8_t BBC key code.
 //
 // The mapping is SDL_Scancode<->BeebKey (for scancode mappings) or
 // SDL_Keycode+PCKeyModifier<->BeebKeySym (for keysym mappings). Use
@@ -27,7 +27,7 @@ class Keymap {
 public:
     struct Mapping {
         uint32_t pc_key;
-        uint8_t beeb_key;
+        int8_t beeb_key;
     };
 
     static const Keymap DEFAULT;
@@ -46,20 +46,20 @@ public:
     std::string GetName() const;
     void SetName(std::string name);
 
-    bool GetMapping(uint32_t pc,uint8_t bbc) const;
-    void SetMapping(uint32_t pc,uint8_t bbc,bool state);
+    bool GetMapping(uint32_t pc,int8_t bbc) const;
+    void SetMapping(uint32_t pc,int8_t bbc,bool state);
 
     // list is terminated by BeebSpecialKey_None.
     //
     // Returned pointer becomes invalid after next non-const member
     // function call.
-    const uint8_t *GetBeebKeysForPCKey(uint32_t keycode) const;
+    const int8_t *GetBeebKeysForPCKey(uint32_t keycode) const;
 
     // list is terminated by 0.
     //
     // Returned pointer becomes invalid after next non-const member
     // function call.
-    const uint32_t *GetPCKeysForBeebKey(uint8_t beeb_key) const;
+    const uint32_t *GetPCKeysForBeebKey(int8_t beeb_key) const;
 
     // If *keymap_ptr==this, resets *keymap_ptr to one of the default
     // keymaps.
@@ -75,7 +75,7 @@ private:
     struct BeebKeyListLessThanPCKey;
 
     struct PCKeyList {
-        uint8_t beeb_key;
+        int8_t beeb_key;
         size_t index;
     };
     struct PCKeyListLessThanBeebKey;
@@ -93,11 +93,11 @@ private:
 
     mutable bool m_dirty;
     mutable std::vector<BeebKeyList> m_beeb_key_lists;
-    mutable std::vector<uint8_t> m_all_beeb_keys;
+    mutable std::vector<int8_t> m_all_beeb_keys;
     mutable std::vector<PCKeyList> m_pc_key_lists;
     mutable std::vector<uint32_t> m_all_pc_keys;
 
-    bool GetIndex(size_t *index,uint32_t pc_key,uint8_t beeb_key) const;
+    bool GetIndex(size_t *index,uint32_t pc_key,int8_t beeb_key) const;
     void RebuildTables() const;
 };
 

@@ -127,7 +127,7 @@ void Keymap::SetName(std::string name) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool Keymap::GetMapping(uint32_t pc_key,uint8_t beeb_key) const {
+bool Keymap::GetMapping(uint32_t pc_key,int8_t beeb_key) const {
     Mapping mapping={pc_key,beeb_key};
     return m_map.count(mapping)>0;
 }
@@ -135,7 +135,7 @@ bool Keymap::GetMapping(uint32_t pc_key,uint8_t beeb_key) const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void Keymap::SetMapping(uint32_t pc_key,uint8_t beeb_key,bool state) {
+void Keymap::SetMapping(uint32_t pc_key,int8_t beeb_key,bool state) {
     Mapping mapping{pc_key,beeb_key};
     if(state) {
         if(m_map.insert(mapping).second) {
@@ -151,7 +151,7 @@ void Keymap::SetMapping(uint32_t pc_key,uint8_t beeb_key,bool state) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-const uint8_t *Keymap::GetBeebKeysForPCKey(uint32_t pc_key) const {
+const int8_t *Keymap::GetBeebKeysForPCKey(uint32_t pc_key) const {
     if(m_dirty) {
         this->RebuildTables();
     }
@@ -168,7 +168,7 @@ const uint8_t *Keymap::GetBeebKeysForPCKey(uint32_t pc_key) const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-const uint32_t *Keymap::GetPCKeysForBeebKey(uint8_t beeb_key) const {
+const uint32_t *Keymap::GetPCKeysForBeebKey(int8_t beeb_key) const {
     if(m_dirty) {
         this->RebuildTables();
     }
@@ -209,16 +209,16 @@ size_t Keymap::GetKeymapSize() const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool Keymap::GetIndex(size_t *index,uint32_t scancode,uint8_t beeb_key) const {
+bool Keymap::GetIndex(size_t *index,uint32_t scancode,int8_t beeb_key) const {
     if(scancode>=SDL_NUM_SCANCODES) {
         return false;
     }
 
-    if(beeb_key==BeebSpecialKey_None) {
+    if(beeb_key<0) {
         return false;
     }
 
-    *index=scancode*255+beeb_key;
+    *index=scancode*128+beeb_key;
     return true;
 }
 
@@ -254,7 +254,7 @@ void Keymap::RebuildTables() const {
             ++j;
         }
 
-        m_all_beeb_keys.push_back(BeebSpecialKey_None);
+        m_all_beeb_keys.push_back(-1);
         m_beeb_key_lists.push_back(list);
 
         i=j;
@@ -395,7 +395,7 @@ static const Keymap::Mapping g_keysym_common[]={
     {SDLK_KP_PERIOD,BeebKeySym_KeypadStop},
     {SDLK_KP_ENTER,BeebKeySym_KeypadReturn},
     {SDLK_SPACE,BeebKeySym_Space},
-    {SDLK_F11,BeebSpecialKey_Break,},
+    {SDLK_F11,BeebKeySym_Break,},
     {}
 };
 
@@ -444,7 +444,7 @@ static const Keymap::Mapping g_scancode_common[]={
     {SDL_SCANCODE_9,BeebKey_9,},
     {SDL_SCANCODE_APOSTROPHE,BeebKey_Colon,},
     {SDL_SCANCODE_SEMICOLON,BeebKey_Semicolon,},
-    {AT_SCANCODE,BeebKey_At,},
+    {SDL_SCANCODE_HOME,BeebKey_At,},
     {SDL_SCANCODE_NONUSBACKSLASH,BeebKey_At,},
     {SDL_SCANCODE_A,BeebKey_A,},
     {SDL_SCANCODE_B,BeebKey_B,},
@@ -481,7 +481,7 @@ static const Keymap::Mapping g_scancode_common[]={
     {SDL_SCANCODE_ESCAPE,BeebKey_Escape,},
     {SDL_SCANCODE_TAB,BeebKey_Tab,},
     {SDL_SCANCODE_RCTRL,BeebKey_Ctrl,},
-    {SHIFT_LOCK_SCANCODE,BeebKey_ShiftLock,},
+    {SDL_SCANCODE_SCROLLLOCK,BeebKey_ShiftLock,},
     {SDL_SCANCODE_LSHIFT,BeebKey_Shift,},
     {SDL_SCANCODE_RSHIFT,BeebKey_Shift,},
     {SDL_SCANCODE_BACKSPACE,BeebKey_Delete,},
@@ -501,7 +501,7 @@ static const Keymap::Mapping g_scancode_common[]={
     {SDL_SCANCODE_F7,BeebKey_f7,},
     {SDL_SCANCODE_F8,BeebKey_f8,},
     {SDL_SCANCODE_F9,BeebKey_f9,},
-    {BREAK_SCANCODE,BeebSpecialKey_Break,},
+    {SDL_SCANCODE_F11,BeebKey_Break,},
 
     {SDL_SCANCODE_KP_0,BeebKey_Keypad0,},
     {SDL_SCANCODE_KP_1,BeebKey_Keypad1,},

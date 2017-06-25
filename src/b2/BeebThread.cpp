@@ -130,8 +130,8 @@ BeebThread::AudioThreadData::AudioThreadData(uint64_t sound_freq,uint64_t sound_
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool BeebThread::KeyStates::GetState(uint8_t key) const {
-    ASSERT(!(key&0x80));
+bool BeebThread::KeyStates::GetState(BeebKey key) const {
+    ASSERT(key>=0&&key<128);
 
     uint8_t index=key>>6&1;
     uint64_t mask=1ull<<(key&63);
@@ -143,8 +143,8 @@ bool BeebThread::KeyStates::GetState(uint8_t key) const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void BeebThread::KeyStates::SetState(uint8_t key,bool state) {
-    ASSERT(!(key&0x80));
+void BeebThread::KeyStates::SetState(BeebKey key,bool state) {
+    ASSERT(key>=0&&key<128);
 
     uint8_t index=key>>6&1;
     uint64_t mask=1ull<<(key&63);
@@ -351,13 +351,6 @@ void BeebThread::SendChangeConfigMessage(BeebLoadedConfig config) {
 
 void BeebThread::SendSetSpeedLimitingMessage(bool limit_speed) {
     this->SendMessage(BeebThreadEventType_SetSpeedLimiting,0,limit_speed);
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-void BeebThread::SendResetMessage(bool state) {
-    this->SendMessage(BeebThreadEventType_Reset,0,state);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -660,8 +653,8 @@ uint32_t BeebThread::GetLEDs() const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool BeebThread::GetKeyState(uint8_t beeb_key) const {
-    ASSERT(!(beeb_key&0x80));
+bool BeebThread::GetKeyState(BeebKey beeb_key) const {
+    ASSERT(beeb_key>=0);
     return m_effective_key_states.GetState(beeb_key);
 }
 
@@ -1124,17 +1117,17 @@ void BeebThread::ThreadReplaceBeeb(ThreadState *ts,std::unique_ptr<BBCMicro> bee
 
     if(flags&BeebThreadReplaceFlag_ApplyPCState) {
         // Set BBC state from shadow state.
-        for(uint8_t i=0;i<128;++i) {
-            bool state=this->GetKeyState(i);
-            this->ThreadSetKeyState(ts,i,state);
+        for(int i=0;i<128;++i) {
+            bool state=this->GetKeyState((BeebKey)i);
+            this->ThreadSetKeyState(ts,(BeebKey)i,state);
         }
 
         ts->beeb->SetTurboDisc(m_is_turbo_disc);
     } else {
         // Set shadow state from BBC state.
-        for(uint8_t i=0;i<128;++i) {
-            bool state=!!ts->beeb->GetKeyState(i);
-            this->ThreadSetKeyState(ts,i,state);
+        for(int i=0;i<128;++i) {
+            bool state=!!ts->beeb->GetKeyState((BeebKey)i);
+            this->ThreadSetKeyState(ts,(BeebKey)i,state);
         }
 
         m_is_turbo_disc.store(ts->beeb->GetTurboDisc(),std::memory_order_release);
@@ -1208,7 +1201,7 @@ void BeebThread::ThreadUpdateShiftKeyState(ThreadState *ts) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void BeebThread::ThreadSetKeyState(ThreadState *ts,uint8_t beeb_key,bool state) {
+void BeebThread::ThreadSetKeyState(ThreadState *ts,BeebKey beeb_key,bool state) {
     ASSERT(!(beeb_key&0x80));
 
     if(IsNumericKeypadKey(beeb_key)&&!ts->beeb->HasNumericKeypad()) {
@@ -1256,7 +1249,7 @@ void BeebThread::ThreadSetKeyState(ThreadState *ts,uint8_t beeb_key,bool state) 
         if(ts->trace_conditions.start==BeebThreadStartTraceCondition_NextKeypress) {
             if(m_is_tracing) {
                 if(state) {
-                    if(ts->trace_conditions.beeb_key==BeebSpecialKey_None||beeb_key==ts->trace_conditions.beeb_key) {
+                    if(ts->trace_conditions.beeb_key<0||beeb_key==ts->trace_conditions.beeb_key) {
                         ts->trace_conditions.start=BeebThreadStartTraceCondition_Immediate;
                         this->ThreadStartTrace(ts);
                     }
@@ -1290,11 +1283,7 @@ void BeebThread::ThreadReplayEvent(ThreadState *ts,const BeebEvent &event) {
         return;
 
     case BeebEventType_KeyState:
-        ts->beeb->SetKeyState(event.data.key_state.key,event.data.key_state.state);
-        return;
-
-    case BeebEventType_SetReset:
-        ts->beeb->SetReset(event.data.set_reset.level);
+        ts->beeb->SetKeyState(event.data.key_state.key,!!event.data.key_state.state);
         return;
 
     case BeebEventType_LoadDiscImage:
@@ -1507,7 +1496,7 @@ bool BeebThread::ThreadHandleMessage(
                 ASSERT(ts->beeb);
 
                 ASSERT((msg->u32&0x7f)==msg->u32);
-                uint8_t key=(uint8_t)msg->u32;
+                auto key=(BeebKey)msg->u32;
                 bool state=msg->data.u64!=0;
 
                 this->ThreadSetKeyState(ts,key,state);
@@ -1527,9 +1516,9 @@ bool BeebThread::ThreadHandleMessage(
 
                 bool state=msg->data.u64!=0;
 
-                uint8_t beeb_key;
+                BeebKey beeb_key;
                 BeebShiftState shift_state;
-                if(GetBeebKeyComboForKeySym(&beeb_key,&shift_state,(uint8_t)key)) {
+                if(GetBeebKeyComboForKeySym(&beeb_key,&shift_state,key)) {
                     this->ThreadSetFakeShiftState(ts,state?shift_state:BeebShiftState_Any);
                     this->ThreadSetKeyState(ts,beeb_key,state);
                 }
@@ -1598,18 +1587,6 @@ bool BeebThread::ThreadHandleMessage(
 
                 this->ThreadSetDiscImage(ts,ptr->drive,std::move(ptr->disc_image));
             }
-        }
-        break;
-
-    case BeebThreadEventType_Reset:
-        {
-            ASSERT(ts->beeb);
-
-            bool state=msg->data.u64!=0;
-
-            ts->beeb->SetReset(state);
-
-            this->ThreadRecordEvent(ts,BeebEvent::MakeSetReset(*ts->num_executed_2MHz_cycles,state));
         }
         break;
 
@@ -1850,7 +1827,7 @@ bool BeebThread::ThreadHandleMessage(
     MessageDestroy(msg);
 
     return result;
-}
+        }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

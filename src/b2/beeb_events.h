@@ -36,6 +36,7 @@ namespace Timeline {
 #include <memory>
 #include <string>
 #include "BeebConfig.h"
+#include "keys.h"
 
 // X.h nonsense.
 #ifdef None
@@ -51,16 +52,8 @@ namespace Timeline {
 
 #include <shared/pshpack1.h>
 struct BeebEventKeyState {
-    uint8_t key,state;
-};
-#include <shared/poppack.h>
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-#include <shared/pshpack1.h>
-struct BeebEventSetReset {
-    uint8_t level;
+    BeebKey key;
+    uint8_t state;
 };
 #include <shared/poppack.h>
 
@@ -125,7 +118,6 @@ struct BeebEventWindowProxy {
 #include <shared/pshpack1.h>
 union BeebEventData {
     BeebEventKeyState key_state;
-    BeebEventSetReset set_reset;
     BeebEventLoadDiscImageData *load_disc_image;
     BeebEventConfigData *config;
     BeebEventHardReset hard_reset;
@@ -155,9 +147,7 @@ public:
 
     static BeebEvent MakeNone(uint64_t time_2MHz_cycles);
 
-    static BeebEvent MakeKeyState(uint64_t time_2MHz_cycles,uint8_t key,uint8_t state);
-
-    static BeebEvent MakeSetReset(uint64_t time_2MHz_cycles,uint8_t level);
+    static BeebEvent MakeKeyState(uint64_t time_2MHz_cycles,BeebKey key,uint8_t state);
 
     static BeebEvent MakeLoadDiscImage(uint64_t time_2MHz_cycles,int drive,std::shared_ptr<const DiscImage> disc_image);
 

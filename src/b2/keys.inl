@@ -29,25 +29,6 @@ EEND()
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-// This enum has ended up totally pointless; it just sits around
-// getting in the way of using BeebKey (rather than uint8_t)
-// everywhere it doesn't have to be 1 byte specifically.
-//
-// 0x7f would have done fine for Break. This would also fit around the
-// BeebKeySym enum, which stops at 111.
-//
-// Then the whole thing could be int8_t, and -1 could be the null
-// value. 
-#define ENAME BeebSpecialKey
-EBEGIN()
-EPNV(Break,0x80)
-EPNV(None,0xFF)
-EEND()
-#undef ENAME
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 #define ENAME BeebCharKeyFlag
 EBEGIN()
 // (skipping bit 31 to avoid annoying warning)
@@ -70,12 +51,10 @@ EEND()
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-// As with BeebKey, BeebKeySym values fit in 7 bits, so it's
-// compatible with the BeebSpecialKey enum.
-
+// All BeebKeySym values fit in an int8_t.
 #define ENAME BeebKeySym
 EBEGIN()
-EPN(None)
+EPNV(None,-1)
 EPN(f0)
 EPN(f1)
 EPN(f2)
@@ -187,5 +166,6 @@ EPN(Keypad0)
 EPN(KeypadStop)
 EPN(KeypadReturn)
 EPN(Space)
+EPN(Break)
 EEND()
 #undef ENAME

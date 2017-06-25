@@ -139,29 +139,6 @@ const BeebEventKeyStateHandler BeebEventKeyStateHandler::INSTANCE;
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-class BeebEventSetResetHandler:
-    public BeebEventValueHander
-{
-public:
-    static const BeebEventSetResetHandler INSTANCE;
-
-    BeebEventSetResetHandler():
-        BeebEventValueHander(0)
-    {
-    }
-
-    void Dump(const BeebEvent *e,Log *log) const override {
-        log->f("level: %u",e->data.set_reset.level);
-    }
-protected:
-private:
-};
-
-const BeebEventSetResetHandler BeebEventSetResetHandler::INSTANCE;
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 class BeebEventLoadDiscImageHandler:
     public BeebEventHandler
 {
@@ -441,24 +418,13 @@ BeebEvent BeebEvent::MakeNone(uint64_t time) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-BeebEvent BeebEvent::MakeKeyState(uint64_t time,uint8_t key,uint8_t state) {
+BeebEvent BeebEvent::MakeKeyState(uint64_t time,BeebKey key,uint8_t state) {
     BeebEventData data={};
 
     data.key_state.key=key;
     data.key_state.state=state;
 
     return BeebEvent{BeebEventType_KeyState,time,data};
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-BeebEvent BeebEvent::MakeSetReset(uint64_t time,uint8_t level) {
-    BeebEventData data={};
-
-    data.set_reset.level=level;
-
-    return BeebEvent{BeebEventType_SetReset,time,data};
 }
 
 //////////////////////////////////////////////////////////////////////////

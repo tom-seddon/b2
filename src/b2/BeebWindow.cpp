@@ -193,16 +193,11 @@ void BeebWindow::SetName(std::string name) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool BeebWindow::GetBeebKeyState(uint8_t key) const {
-    if(key&0x80) {
-        switch(key) {
-        default:
-            ASSERT(false);
-            // fall through
-        case BeebSpecialKey_None:
-        case BeebSpecialKey_Break:
-            return false;
-        }
+bool BeebWindow::GetBeebKeyState(BeebKey key) const {
+    if(key<0) {
+        return false;
+    } else if(key==BeebKey_Break) {
+        return false;
     } else {
         return m_beeb_thread->GetKeyState(key);
     }
@@ -268,7 +263,7 @@ bool BeebWindow::HandleBeebKey(const SDL_Keysym &keysym,bool state) {
             }
         }
 
-        const uint8_t *beeb_syms=keymap->GetBeebKeysForPCKey(pc_key|modifiers);
+        const int8_t *beeb_syms=keymap->GetBeebKeysForPCKey(pc_key|modifiers);
         if(!beeb_syms) {
             // If key+modifier isn't bound, just go for key on its
             // own (and the modifiers will be applied in the
@@ -280,45 +275,24 @@ bool BeebWindow::HandleBeebKey(const SDL_Keysym &keysym,bool state) {
             return false;
         }
 
-        for(const uint8_t *beeb_sym=beeb_syms;*beeb_sym!=BeebSpecialKey_None;++beeb_sym) {
-            if(*beeb_sym&0x80) {
-                this->HandleBeebSpecialKey(*beeb_sym,state);
-            } else {
-                if(state) {
-                    m_beeb_keysyms_by_keycode[pc_key].insert((BeebKeySym)*beeb_sym);
-                    m_beeb_thread->SendKeySymMessage((BeebKeySym)*beeb_sym,state);
-                }
+        for(const int8_t *beeb_sym=beeb_syms;*beeb_sym>=0;++beeb_sym) {
+            if(state) {
+                m_beeb_keysyms_by_keycode[pc_key].insert((BeebKeySym)*beeb_sym);
+                m_beeb_thread->SendKeySymMessage((BeebKeySym)*beeb_sym,state);
             }
         }
     } else {
-        const uint8_t *beeb_keys=keymap->GetBeebKeysForPCKey(keysym.scancode);
+        const int8_t *beeb_keys=keymap->GetBeebKeysForPCKey(keysym.scancode);
         if(!beeb_keys) {
             return false;
         }
 
-        for(const uint8_t *beeb_key=beeb_keys;*beeb_key!=BeebSpecialKey_None;++beeb_key) {
-            if(*beeb_key&0x80) {
-                this->HandleBeebSpecialKey(*beeb_key,state);
-            } else {
-                m_beeb_thread->SendKeyMessage((BeebKey)*beeb_key,state);
-            }
+        for(const int8_t *beeb_key=beeb_keys;*beeb_key>=0;++beeb_key) {
+            m_beeb_thread->SendKeyMessage((BeebKey)*beeb_key,state);
         }
     }
 
     return true;
-}
-
-void BeebWindow::HandleBeebSpecialKey(uint8_t beeb_key,bool state) {
-    ASSERT(beeb_key&0x80);
-    switch(beeb_key) {
-    default:
-        // ...
-        break;
-
-    case BeebSpecialKey_Break:
-        m_beeb_thread->SendResetMessage(state!=0);
-        break;
-    }
 }
 
 //////////////////////////////////////////////////////////////////////////

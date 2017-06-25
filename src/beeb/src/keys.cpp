@@ -1,4 +1,5 @@
 #include <shared/system.h>
+#include <shared/debug.h>
 #include <beeb/keys.h>
 
 #include <shared/enum_def.h>
@@ -8,16 +9,20 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-int IsNumericKeypadKey(uint8_t beeb_key) {
-    if(beeb_key&0x80) {
+int IsNumericKeypadKey(BeebKey beeb_key) {
+    ASSERT(beeb_key>=0&&beeb_key<128);
+
+    if(beeb_key<0) {
         return 0;
     }
 
-    if((beeb_key&0x0f)<0x0a) {
-        return 0;
-    }
+    int8_t column=beeb_key&0xf;
 
-    return 1;
+    if(column>=10&&column<=14) {
+        return true;
+    } else {
+        return false;
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////

@@ -187,7 +187,7 @@ public:
     const std::string &GetName() const;
     void SetName(std::string name);
 
-    bool GetBeebKeyState(uint8_t key) const;
+    bool GetBeebKeyState(BeebKey key) const;
 
     uint32_t GetSDLWindowID() const;
 
@@ -350,7 +350,6 @@ private:
     BeebWindowInitArguments GetNewWindowInitArguments() const;
     void MaybeSaveConfig(bool save_config);
     void DoOptionsCheckbox(const char *label,bool (BeebThread::*get_mfn)() const,void (BeebThread::*send_mfn)(bool));
-    void HandleBeebSpecialKey(uint8_t beeb_key,bool state);
     void LoadLastState();
     void SaveState();
     bool HandleBeebKey(const SDL_Keysym &keysym,bool state);

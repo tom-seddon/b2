@@ -1,4 +1,15 @@
-// All BeebKey values fit into a uint8_t.
+// All BeebKey values fit into a int8_t.
+//
+// Valid values are between 0 and 127, with bits 0-3 being the column
+// and bits 4-6 the row. Invalid values are <0.
+//
+// Columns 0-9 are shared between BBC and Master. Columns 10-14 are
+// the Master keypad. Column 15 - never used on the original hardware
+// - is used to encode special keys, which so far means Break.
+//
+// 
+//
+// Rows 10-14 are 
 #define ENAME BeebKey
 EBEGIN()
 // Main keys.
@@ -96,5 +107,12 @@ EPNV(Keypad8,0x2A)
 EPNV(Keypad9,0x2B)
 EPNV(Keypad6,0x1A)
 EPNV(Keypad7,0x1B)
+
+// Break.
+EPNV(Break,0x7f)
+
+// Any negative value counts as no key, and here's a specific enum
+// that counts as that.
+EPNV(None,-1)
 EEND()
 #undef ENAME

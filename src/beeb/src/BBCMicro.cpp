@@ -719,8 +719,8 @@ const uint64_t *BBCMicro::GetNum2MHzCycles() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-uint8_t BBCMicro::GetKeyState(uint8_t key) {
-    ASSERT(!(key&0x80));
+uint8_t BBCMicro::GetKeyState(BeebKey key) {
+    ASSERT(key>=0&&key<128);
 
     uint8_t *column=&m_state.key_columns[key&0x0f];
     uint8_t mask=1<<(key>>4);
@@ -752,28 +752,44 @@ const uint8_t *BBCMicro::GetRAM() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-int BBCMicro::SetKeyState(uint8_t key,uint8_t new_state) {
-    ASSERT(!(key&0x80));
+bool BBCMicro::SetKeyState(BeebKey key,bool new_state) {
+    ASSERT(key>=0&&key<128);
 
     uint8_t *column=&m_state.key_columns[key&0x0f];
     uint8_t mask=1<<(key>>4);
-    uint8_t old_state=*column&mask;
+    bool old_state=(*column&mask)!=0;
 
-    if(!old_state&&new_state) {
-        ASSERT(m_state.num_keys_down<256);
-        ++m_state.num_keys_down;
-        *column|=mask;
-        //printf("%d keys down\n",m_num_keys_down);
-        return 1;
-    } else if(old_state&&!new_state) {
-        ASSERT(m_state.num_keys_down>0);
-        --m_state.num_keys_down;
-        *column&=~mask;
-        //printf("%d keys down\n",m_num_keys_down);
-        return 1;
+    if(key==BeebKey_Break) {
+        if(new_state!=m_state.resetting) {
+            m_state.resetting=new_state;
+
+            if(new_state) {
+                M6502_Halt(&m_state.cpu);
+            } else {
+                M6502_Reset(&m_state.cpu);
+            }
+
+            return true;
+        }
     } else {
-        return 0;
+        if(!old_state&&new_state) {
+            ASSERT(m_state.num_keys_down<256);
+            ++m_state.num_keys_down;
+            *column|=mask;
+            //printf("%d keys down\n",m_num_keys_down);
+
+            return true;
+        } else if(old_state&&!new_state) {
+            ASSERT(m_state.num_keys_down>0);
+            --m_state.num_keys_down;
+            *column&=~mask;
+            //printf("%d keys down\n",m_num_keys_down);
+
+            return true;
+        }
     }
+
+    return false;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -781,21 +797,6 @@ int BBCMicro::SetKeyState(uint8_t key,uint8_t new_state) {
 
 bool BBCMicro::HasNumericKeypad() const {
     return m_type==BBCMicroType_Master;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-void BBCMicro::SetReset(uint8_t state) {
-    if(state!=m_state.resetting) {
-        m_state.resetting=state;
-
-        if(state) {
-            M6502_Halt(&m_state.cpu);
-        } else {
-            M6502_Reset(&m_state.cpu);
-        }
-    }
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -1123,12 +1124,12 @@ void BBCMicro::UpdateDisplayOutput(VideoDataHalfUnit *hu) {
 #endif
                 if(m_state.cursor_pattern&1) {
                     hu->value^=0x0707070707070707ull;
-                }
-            } else {
-                hu->pixels[0]=BeebControlPixel_Nothing^(m_state.cursor_pattern&1);
-            }
         }
     } else {
+                hu->pixels[0]=BeebControlPixel_Nothing^(m_state.cursor_pattern&1);
+            }
+}
+} else {
         hu->pixels[0]=BeebControlPixel_Nothing;
     }
 }
@@ -1359,7 +1360,7 @@ void BBCMicro::SetInstructionTraceEventFn(OnInstructionTraceEventFn fn,void *con
 #if BBCMICRO_TRACE
 std::shared_ptr<Trace> BBCMicro::StopTrace() {
     std::shared_ptr<Trace> old_trace=m_trace_ptr;
-    
+
     if(m_trace) {
         if(m_trace_current_instruction) {
             m_trace->CancelEvent(INSTRUCTION_EVENT,m_trace_current_instruction);
@@ -1368,7 +1369,7 @@ std::shared_ptr<Trace> BBCMicro::StopTrace() {
 
         this->SetTrace(nullptr,0);
     }
-        
+
     return old_trace;
 }
 #endif

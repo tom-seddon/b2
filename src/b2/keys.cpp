@@ -11,105 +11,77 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-struct CheckKeyNames {
-    CheckKeyNames() {
-        const char *bk[128],*sk[128];
-        for(int i=0;i<128;++i) {
-            bk[i]=GetBeebKeyEnumName(i);
-            ASSERT(GetBeebSpecialKeyEnumName(i)[0]=='?');
-
-            sk[i]=GetBeebSpecialKeyEnumName(128+i);
-            ASSERT(GetBeebKeyEnumName(128+i)[0]=='?');
-        }
-
-        for(int i=0;i<128;++i) {
-            for(int j=0;j<128;++j) {
-                ASSERT(strcmp(bk[i],sk[j])!=0);
-            }
-        }
-
-        // the BeebKeySym enum must fit in 7 bits...
-        ASSERT(GetBeebKeySymEnumName(128)[0]=='?');
-    }
-};
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-static const char *DoGetBeebKeyName(uint8_t number,const char *(*get_name_fn)(int)) {
-    const char *n;
-
-    if(number&0x80) {
-        n=GetBeebSpecialKeyEnumName(number);
-    } else {
-        n=(*get_name_fn)(number);
-    }
-
-    if(n[0]=='?') {
-        n=nullptr;
-    }
-
-    return n;
-}
-
-static uint8_t DoGetBeebKeyByName(const char *name,const char *(*get_name_fn)(uint8_t)) {
-    for(uint8_t i=0;i<255;++i) {
-        if(const char *n=(*get_name_fn)(i)) {
+template<class T>
+static T GetKeyByName(const char *name,const char *(*get_name_fn)(T)) {
+    for(int i=0;i<128;++i) {
+        if(const char *n=(*get_name_fn)(static_cast<T>(i))) {
             if(strcmp(n,name)==0) {
-                return i;
+                return static_cast<T>(i);
             }
         }
     }
 
-    return BeebSpecialKey_None;
+    return (T)-1;
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-const char *GetBeebKeyName(uint8_t beeb_key) {
-    return DoGetBeebKeyName(beeb_key,&GetBeebKeyEnumName);
+const char *GetBeebKeyName(BeebKey beeb_key) {
+    const char *name=GetBeebKeyEnumName(beeb_key);
+    if(name[0]=='?') {
+        return nullptr;
+    } else {
+        return name;
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-uint8_t GetBeebKeyByName(const char *name) {
-    return DoGetBeebKeyByName(name,&GetBeebKeyName);
+BeebKey GetBeebKeyByName(const char *name) {
+    return GetKeyByName(name,&GetBeebKeyName);
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-const char *GetBeebKeySymName(uint8_t beeb_keycap) {
-    return DoGetBeebKeyName(beeb_keycap,&GetBeebKeySymEnumName);
+const char *GetBeebKeySymName(BeebKeySym beeb_sym) {
+    const char *name=GetBeebKeySymEnumName(beeb_sym);
+    if(name[0]=='?') {
+        return nullptr;
+    } else {
+        return name;
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-uint8_t GetBeebKeySymByName(const char *name) {
-    return DoGetBeebKeyByName(name,&GetBeebKeySymName);
+BeebKeySym GetBeebKeySymByName(const char *name) {
+    return GetKeyByName(name,&GetBeebKeySymName);
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 struct KeyCombo {
-    uint8_t beeb_key;
+    BeebKey beeb_key;
     BeebShiftState shift_state;
 };
 
 // indexed by BeebKeySym
-static KeyCombo g_key_combo_table[256];
+static KeyCombo g_key_combo_table[128];
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool GetBeebKeyComboForKeySym(uint8_t *beeb_key,BeebShiftState *shift_state,uint8_t beeb_sym) {
+bool GetBeebKeyComboForKeySym(BeebKey *beeb_key,BeebShiftState *shift_state,BeebKeySym beeb_sym) {
+    ASSERT(beeb_sym>=0&&beeb_sym<128);
+
     const KeyCombo *combo=&g_key_combo_table[beeb_sym];
 
-    if(combo->beeb_key==BeebSpecialKey_None) {
+    if(combo->beeb_key<0) {
         return false;
     }
 
@@ -181,8 +153,8 @@ BEGIN_MACRO {\
 
 struct KeyComboTableInitialiser {
     KeyComboTableInitialiser() {
-        for(size_t i=0;i<256;++i) {
-            g_key_combo_table[i]={BeebSpecialKey_None,BeebShiftState_Any};
+        for(size_t i=0;i<128;++i) {
+            g_key_combo_table[i]={BeebKey_None,BeebShiftState_Any};
         }
 
         K(f0);
@@ -276,6 +248,7 @@ struct KeyComboTableInitialiser {
         K(KeypadStop);
         K(KeypadReturn);
         K(Space);
+        K(Break);
     }
 };
 

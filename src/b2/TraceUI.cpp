@@ -513,7 +513,7 @@ bool TraceUI::GetBeebKeyName(void *data,int idx,const char **out_text) {
     auto this_=(TraceUI *)data;
 
     if(idx>=0&&(size_t)idx<this_->m_keys.size()) {
-        *out_text=::GetBeebKeyName(this_->m_keys[(size_t)idx]);
+        *out_text=::GetBeebKeyName((BeebKey)this_->m_keys[(size_t)idx]);
         ASSERT(*out_text);
         return true;
     } else {

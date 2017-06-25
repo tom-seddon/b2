@@ -180,7 +180,7 @@ std::string GetConfigPath(const std::string &path) {
 #else
 #error
 #endif
-    }
+}
 
 std::string GetCachePath(const std::string &path) {
 #if SYSTEM_WINDOWS
@@ -983,8 +983,8 @@ static bool LoadKeymaps(rapidjson::Value *keymaps_json,Messages *msg) {
                 ++keys_it)
             {
                 const char *beeb_sym_name=keys_it->name.GetString();
-                uint8_t beeb_sym=GetBeebKeySymByName(beeb_sym_name);
-                if(beeb_sym==BeebSpecialKey_None) {
+                BeebKeySym beeb_sym=GetBeebKeySymByName(beeb_sym_name);
+                if(beeb_sym<0) {
                     msg->w.f("unknown BBC keysym: %s\n",beeb_sym_name);
                     continue;
                 }
@@ -1001,7 +1001,7 @@ static bool LoadKeymaps(rapidjson::Value *keymaps_json,Messages *msg) {
                         continue;
                     }
 
-                    keymap.SetMapping(keycode,beeb_sym,true);
+                    keymap.SetMapping(keycode,(int8_t)beeb_sym,true);
                 }
             }
         } else {
@@ -1011,8 +1011,8 @@ static bool LoadKeymaps(rapidjson::Value *keymaps_json,Messages *msg) {
             {
                 LOGF(LOADSAVE,"    Loading scancodes for: %s\n",keys_it->name.GetString());
                 const char *beeb_key_name=keys_it->name.GetString();
-                uint8_t beeb_key=GetBeebKeyByName(beeb_key_name);
-                if(beeb_key==BeebSpecialKey_None) {
+                BeebKey beeb_key=GetBeebKeyByName(beeb_key_name);
+                if(beeb_key<0) {
                     msg->w.f("unknown BBC key: %s\n",beeb_key_name);
                     continue;
                 }
@@ -1026,7 +1026,7 @@ static bool LoadKeymaps(rapidjson::Value *keymaps_json,Messages *msg) {
                 for(rapidjson::SizeType i=0;i<keys_it->value.Size();++i) {
                     if(keys_it->value[i].IsNumber()) {
                         uint32_t scancode=(uint32_t)keys_it->value[i].GetInt64();
-                        keymap.SetMapping(scancode,beeb_key,true);
+                        keymap.SetMapping(scancode,(int8_t)beeb_key,true);
                     } else if(keys_it->value[i].IsString()) {
                         const char *scancode_name=keys_it->value[i].GetString();
                         uint32_t scancode=SDL_GetScancodeFromName(scancode_name);
@@ -1034,7 +1034,7 @@ static bool LoadKeymaps(rapidjson::Value *keymaps_json,Messages *msg) {
                             msg->w.f("unknown scancode: %s\n",
                                 scancode_name);
                         } else {
-                            keymap.SetMapping(scancode,beeb_key,true);
+                            keymap.SetMapping(scancode,(int8_t)beeb_key,true);
                         }
                     } else {
                         msg->e.f("not number/string: %s.%s.keys.%s[%" PRIsizetype "]\n",
@@ -1082,7 +1082,7 @@ static bool LoadWindows(rapidjson::Value *windows,Messages *msg) {
     FindEnumMember(&BeebWindows::defaults.display_alignment_x,windows,DISPLAY_ALIGNMENT_X,"window alignment",GetBeebWindowDisplayAlignmentEnumName,msg);
     FindEnumMember(&BeebWindows::defaults.display_alignment_y,windows,DISPLAY_ALIGNMENT_Y,"window alignment",GetBeebWindowDisplayAlignmentEnumName,msg);
     FindBoolMember(&BeebWindows::defaults.display_filter,windows,FILTER_BBC,nullptr);
-    
+
     {
         std::string keymap_name;
         if(FindStringMember(&keymap_name,windows,KEYMAP,msg)) {
@@ -1284,13 +1284,13 @@ static void SaveKeymaps(JSONWriter<StringStream> *writer) {
         auto keys_json=ObjectWriter(writer,KEYS);
 
         if(keymap->IsKeySymMap()) {
-            for(uint8_t beeb_sym=0;beeb_sym<BeebSpecialKey_None;++beeb_sym) {
-                const char *beeb_sym_name=GetBeebKeySymName(beeb_sym);
+            for(int beeb_sym=0;beeb_sym<128;++beeb_sym) {
+                const char *beeb_sym_name=GetBeebKeySymName((BeebKeySym)beeb_sym);
                 if(!beeb_sym_name) {
                     continue;
                 }
 
-                const uint32_t *keycodes=keymap->GetPCKeysForBeebKey(beeb_sym);
+                const uint32_t *keycodes=keymap->GetPCKeysForBeebKey((int8_t)beeb_sym);
                 if(!keycodes) {
                     continue;
                 }
@@ -1302,16 +1302,13 @@ static void SaveKeymaps(JSONWriter<StringStream> *writer) {
                 }
             }
         } else {
-            for(uint8_t beeb_key=0;
-                beeb_key<BeebSpecialKey_None;
-                ++beeb_key)
-            {
-                const char *beeb_key_name=GetBeebKeyName(beeb_key);
+            for(int beeb_key=0;beeb_key<128;++beeb_key) {
+                const char *beeb_key_name=GetBeebKeyName((BeebKey)beeb_key);
                 if(!beeb_key_name) {
                     continue;
                 }
 
-                const uint32_t *pc_keys=keymap->GetPCKeysForBeebKey(beeb_key);
+                const uint32_t *pc_keys=keymap->GetPCKeysForBeebKey((int8_t)beeb_key);
                 if(!pc_keys) {
                     continue;
                 }

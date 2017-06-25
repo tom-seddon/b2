@@ -20,16 +20,16 @@ static const uint32_t PCKeyModifier_All=PCKeyModifier_Shift|PCKeyModifier_Ctrl|P
 //////////////////////////////////////////////////////////////////////////
 
 // Handles BeebKey and BeebSpecialKey. Returns nullptr if unknown.
-const char *GetBeebKeyName(uint8_t beeb_key);
-uint8_t GetBeebKeyByName(const char *name);
+const char *GetBeebKeyName(BeebKey beeb_key);
+BeebKey GetBeebKeyByName(const char *name);
 
-const char *GetBeebKeySymName(uint8_t beeb_keycap);
-uint8_t GetBeebKeySymByName(const char *name);
+const char *GetBeebKeySymName(BeebKeySym beeb_sym);
+BeebKeySym GetBeebKeySymByName(const char *name);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool GetBeebKeyComboForKeySym(uint8_t *beeb_key,BeebShiftState *shift_state,uint8_t beeb_sym);
+bool GetBeebKeyComboForKeySym(BeebKey *beeb_key,BeebShiftState *shift_state,BeebKeySym beeb_sym);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

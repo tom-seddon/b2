@@ -31,6 +31,7 @@ class DiscImage;
 #include "DiscInterface.h"
 #include <mutex>
 #include <time.h>
+#include "keys.h"
 
 #include <shared/enum_decl.h>
 #include "BBCMicro.inl"
@@ -212,7 +213,7 @@ public:
     // have to worry about that.)
     const uint64_t *GetNum2MHzCycles();
 
-    uint8_t GetKeyState(uint8_t key);
+    uint8_t GetKeyState(BeebKey key);
 
     // Read a value from memory. The read takes place as if the PC were in
     // zero page. There are no side-effects and reads from memory-mapped
@@ -223,15 +224,13 @@ public:
     // GetTypeInfo(m)->ram_size.
     const uint8_t *GetRAM();
 
-    // `key' must be a BeebKey - top bit reset. BeebSpecialKeys not
-    // permitted. Returns true if the key state changed.
-    int SetKeyState(uint8_t key,uint8_t new_state);
+    // Set key state. If the key is Break, handle the reset line
+    // appropriately.
+    //
+    // Returns true if the key state changed.
+    bool SetKeyState(BeebKey key,bool new_state);
 
     bool HasNumericKeypad() const;
-
-    // Sets the reset line, as linked to the Break key. To reset, set the
-    // state to 1, then set it back to 0.
-    void SetReset(uint8_t state);
 
     /* combination of DebugFlag values. */
     uint32_t GetDebugFlags();
@@ -353,7 +352,7 @@ private:
 
         M6502 cpu={};
         uint8_t stretched_cycles_left=0;
-        uint8_t resetting=0;
+        bool resetting=false;
 
         R6522 system_via;
         R6522 user_via;
