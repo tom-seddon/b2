@@ -46,7 +46,6 @@ public:
     std::string GetName() const;
     void SetName(std::string name);
 
-    bool GetMapping(uint32_t pc,int8_t bbc) const;
     void SetMapping(uint32_t pc,int8_t bbc,bool state);
 
     // list is terminated by BeebSpecialKey_None.
@@ -64,8 +63,6 @@ public:
     // If *keymap_ptr==this, resets *keymap_ptr to one of the default
     // keymaps.
     void WillBeDeleted(const Keymap **keymap_ptr) const;
-
-    size_t GetKeymapSize() const;
 protected:
 private:
     struct BeebKeyList {

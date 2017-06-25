@@ -127,14 +127,6 @@ void Keymap::SetName(std::string name) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool Keymap::GetMapping(uint32_t pc_key,int8_t beeb_key) const {
-    Mapping mapping={pc_key,beeb_key};
-    return m_map.count(mapping)>0;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 void Keymap::SetMapping(uint32_t pc_key,int8_t beeb_key,bool state) {
     Mapping mapping{pc_key,beeb_key};
     if(state) {
@@ -189,21 +181,6 @@ void Keymap::WillBeDeleted(const Keymap **keymap_ptr) const {
     if(*keymap_ptr==this) {
         *keymap_ptr=&DEFAULT;
     }
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-size_t Keymap::GetKeymapSize() const {
-    size_t n=sizeof *this;
-
-    n+=m_map.size()/8;
-    n+=m_beeb_key_lists.capacity()*sizeof m_beeb_key_lists[0];
-    n+=m_all_beeb_keys.capacity()*sizeof m_all_beeb_keys[0];
-    n+=m_pc_key_lists.capacity()*sizeof m_pc_key_lists[0];
-    n+=m_all_pc_keys.capacity()*sizeof m_all_pc_keys[0];
-
-    return n;
 }
 
 //////////////////////////////////////////////////////////////////////////
