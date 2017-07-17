@@ -5,7 +5,6 @@
 //////////////////////////////////////////////////////////////////////////
 
 struct ROM;
-struct BeebKeymap;
 struct DiscDriveCallbacks;
 class Log;
 struct VideoDataUnit;

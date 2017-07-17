@@ -976,7 +976,7 @@ static bool LoadKeymaps(rapidjson::Value *keymaps_json,Messages *msg) {
             return false;
         }
 
-        Keymap keymap("",keysyms);//need better ctors than this
+        BeebKeymap keymap("",keysyms);//need better ctors than this
         if(keysyms) {
             for(rapidjson::Value::MemberIterator keys_it=keys_json.MemberBegin();
                 keys_it!=keys_json.MemberEnd();
@@ -1045,8 +1045,8 @@ static bool LoadKeymaps(rapidjson::Value *keymaps_json,Messages *msg) {
             }
         }
 
-        Keymap *keymap_ptr=BeebWindows::AddKeymap(std::move(keymap));
-        BeebWindows::SetKeymapName(keymap_ptr,keymap_name);
+        BeebKeymap *keymap_ptr=BeebWindows::AddBeebKeymap(std::move(keymap));
+        BeebWindows::SetBeebKeymapName(keymap_ptr,keymap_name);
     }
 
     return true;
@@ -1086,8 +1086,8 @@ static bool LoadWindows(rapidjson::Value *windows,Messages *msg) {
     {
         std::string keymap_name;
         if(FindStringMember(&keymap_name,windows,KEYMAP,msg)) {
-            if(const Keymap *keymap=BeebWindows::FindKeymapByName(keymap_name)) {
-                BeebWindows::SetDefaultKeymap(keymap);
+            if(const BeebKeymap *keymap=BeebWindows::FindBeebKeymapByName(keymap_name)) {
+                BeebWindows::SetDefaultBeebKeymap(keymap);
             } else {
                 msg->w.f("default keymap unknown: %s\n",keymap_name.c_str());
 
@@ -1267,7 +1267,7 @@ static void SaveRecentPaths(JSONWriter<StringStream> *writer) {
 static void SaveKeymaps(JSONWriter<StringStream> *writer) {
     auto keymaps_json=ArrayWriter(writer,KEYMAPS);
 
-    BeebWindows::ForEachKeymap([&](const Keymap *keymap,Keymap *editable_keymap) {
+    BeebWindows::ForEachBeebKeymap([&](const BeebKeymap *keymap,BeebKeymap *editable_keymap) {
         if(!editable_keymap) {
             // don't serialize stock keymaps.
             return true;
@@ -1290,7 +1290,7 @@ static void SaveKeymaps(JSONWriter<StringStream> *writer) {
                     continue;
                 }
 
-                const uint32_t *keycodes=keymap->GetPCKeysForBeebKey((int8_t)beeb_sym);
+                const uint32_t *keycodes=keymap->GetPCKeysForValue((int8_t)beeb_sym);
                 if(!keycodes) {
                     continue;
                 }
@@ -1308,7 +1308,7 @@ static void SaveKeymaps(JSONWriter<StringStream> *writer) {
                     continue;
                 }
 
-                const uint32_t *pc_keys=keymap->GetPCKeysForBeebKey((int8_t)beeb_key);
+                const uint32_t *pc_keys=keymap->GetPCKeysForValue((int8_t)beeb_key);
                 if(!pc_keys) {
                     continue;
                 }
@@ -1412,7 +1412,7 @@ static void SaveWindows(JSONWriter<StringStream> *writer) {
         }
 
         writer->Key(KEYMAP);
-        writer->String(BeebWindows::GetDefaultKeymap()->GetName().c_str());
+        writer->String(BeebWindows::GetDefaultBeebKeymap()->GetName().c_str());
 
         writer->Key(BBC_VOLUME);
         writer->Double(BeebWindows::defaults.bbc_volume);

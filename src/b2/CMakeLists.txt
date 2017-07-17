@@ -42,7 +42,7 @@ add_executable(b2 MACOSX_BUNDLE
   VBlankMonitor.cpp VBlankMonitor.h
   VBlankMonitorDefault.cpp VBlankMonitorDefault.h
   MessageQueue.cpp MessageQueue.h
-  default_keymaps.cpp default_keymaps.h
+  BeebKeymap.cpp BeebKeymap.h
   )
 
 ##########################################################################

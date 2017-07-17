@@ -11,9 +11,9 @@
 #include <beeb/conf.h>
 #include "BeebConfig.h"
 #include "JobQueue.h"
+#include "BeebKeymap.h"
 
 class BeebState;
-class Keymap;
 class VBlankMonitor;
 class BeebWindow;
 class BBCMicro;
@@ -78,7 +78,7 @@ namespace BeebWindows {
 
     // If the keymap is in use by any windows, they'll be reset to use
     // the default keymap.
-    void RemoveKeymap(Keymap *keymap);
+    void RemoveBeebKeymap(BeebKeymap *keymap);
 
     // When necessary, name will be adjusted to make it unique.
     //
@@ -87,10 +87,10 @@ namespace BeebWindows {
     // shuffled up one); otherwise, it will be added to the end.
     //
     // Returns the pointer to the editable keymap in the list.
-    Keymap *AddKeymap(Keymap keymap,Keymap *other_keymap=nullptr);
+    BeebKeymap *AddBeebKeymap(BeebKeymap keymap,BeebKeymap *other_keymap=nullptr);
 
     // When necessary, name will be adjusted to make it unique.
-    void SetKeymapName(Keymap *keymap,std::string name);
+    void SetBeebKeymapName(BeebKeymap *keymap,std::string name);
 
     // For each stock keymap k, calls func(k,nullptr); for each keymap
     // in the keymap list, calls func (k,k). If func returns false,
@@ -99,10 +99,10 @@ namespace BeebWindows {
     // Adding/removing keymaps in the loop is safe, but keymaps may be
     // missed or seen multiple times and/or the ForEach return value
     // might be wrong.
-    const Keymap *ForEachKeymap(const std::function<bool(const Keymap *,Keymap *)> &func);
+    const BeebKeymap *ForEachBeebKeymap(const std::function<bool(const BeebKeymap *,BeebKeymap *)> &func);
 
     // Keymaps are not optimised for retrieval by name.
-    const Keymap *FindKeymapByName(const std::string &name);
+    const BeebKeymap *FindBeebKeymapByName(const std::string &name);
 
     // Alterations take effect the next time this config is selected.
     //void SetConfig(BeebConfig *config,BeebConfig new_config);
@@ -149,8 +149,8 @@ namespace BeebWindows {
     const std::vector<uint8_t> &GetLastWindowPlacementData();
     void SetLastWindowPlacementData(std::vector<uint8_t> placement_data);
 
-    const Keymap *GetDefaultKeymap();
-    void SetDefaultKeymap(const Keymap *keymap);
+    const BeebKeymap *GetDefaultBeebKeymap();
+    void SetDefaultBeebKeymap(const BeebKeymap *keymap);
 }
 
 //////////////////////////////////////////////////////////////////////////

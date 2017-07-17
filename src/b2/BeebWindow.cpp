@@ -237,7 +237,7 @@ void BeebWindow::HandleSDLKeyEvent(const SDL_KeyboardEvent &event) {
 }
 
 bool BeebWindow::HandleBeebKey(const SDL_Keysym &keysym,bool state) {
-    const Keymap *keymap=m_keymap;
+    const BeebKeymap *keymap=m_keymap;
     if(!keymap) {
         return false;
     }
@@ -263,12 +263,12 @@ bool BeebWindow::HandleBeebKey(const SDL_Keysym &keysym,bool state) {
             }
         }
 
-        const int8_t *beeb_syms=keymap->GetBeebKeysForPCKey(pc_key|modifiers);
+        const int8_t *beeb_syms=keymap->GetValuesForPCKey(pc_key|modifiers);
         if(!beeb_syms) {
             // If key+modifier isn't bound, just go for key on its
             // own (and the modifiers will be applied in the
             // emulated BBC).
-            beeb_syms=keymap->GetBeebKeysForPCKey(pc_key&~PCKeyModifier_All);
+            beeb_syms=keymap->GetValuesForPCKey(pc_key&~PCKeyModifier_All);
         }
 
         if(!beeb_syms) {
@@ -282,7 +282,7 @@ bool BeebWindow::HandleBeebKey(const SDL_Keysym &keysym,bool state) {
             }
         }
     } else {
-        const int8_t *beeb_keys=keymap->GetBeebKeysForPCKey(keysym.scancode);
+        const int8_t *beeb_keys=keymap->GetValuesForPCKey(keysym.scancode);
         if(!beeb_keys) {
             return false;
         }
@@ -619,7 +619,7 @@ bool BeebWindow::DoImGui(int output_width,int output_height) {
 
             if(ImGui::BeginMenu("Keymap")) {
                 bool seen_first_custom=false;
-                BeebWindows::ForEachKeymap([&](const Keymap *keymap,Keymap *editable_keymap) {
+                BeebWindows::ForEachBeebKeymap([&](const BeebKeymap *keymap,BeebKeymap *editable_keymap) {
                     if(editable_keymap) {
                         if(!seen_first_custom) {
                             ImGui::Separator();
@@ -929,9 +929,9 @@ bool BeebWindow::DoImGui(int output_width,int output_height) {
         }
 
         if(ImGuiBeginFlag("Keyboard layout",&m_settings.ui_flags,BeebWindowUIFlag_Keymaps)) {
-            m_keymaps_ui->SetCurrentKeymap(m_keymap);
+            m_keymaps_ui->SetCurrentBeebKeymap(m_keymap);
             m_keymaps_ui->DoImGui();
-            m_keymap=m_keymaps_ui->GetCurrentKeymap();
+            m_keymap=m_keymaps_ui->GetCurrentBeebKeymap();
 
             if(m_keymaps_ui->WantsKeyboardFocus()) {
                 m_imgui_has_kb_focus=true;
@@ -1408,7 +1408,7 @@ void BeebWindow::SavePosition() {
     BeebWindows::SetLastWindowPlacementData(buf);
 
 #endif
-    }
+}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -1488,7 +1488,7 @@ bool BeebWindow::InitInternal() {
         if(wp->maximized) {
             SDL_MaximizeWindow(m_window);
         }
-        }
+    }
 
 #endif
 
@@ -1504,9 +1504,9 @@ bool BeebWindow::InitInternal() {
         if(strcmp(info.name,"opengl")==0) {
             rmt_BindOpenGL();
             g_unbind_opengl=1;
-    }
+        }
 #endif
-}
+    }
     ++g_num_BeebWindow_inits;
 #endif
 
@@ -1563,11 +1563,11 @@ bool BeebWindow::InitInternal() {
     }
 
     if(!m_init_arguments.keymap_name.empty()) {
-        m_keymap=BeebWindows::FindKeymapByName(m_init_arguments.keymap_name);
+        m_keymap=BeebWindows::FindBeebKeymapByName(m_init_arguments.keymap_name);
     }
 
     if(!m_keymap) {
-        m_keymap=BeebWindows::GetDefaultKeymap();
+        m_keymap=BeebWindows::GetDefaultBeebKeymap();
     }
 
     if(SDL_GL_GetCurrentContext()) {
@@ -1660,8 +1660,10 @@ void BeebWindow::UpdateTitle() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void BeebWindow::KeymapWillBeDeleted(Keymap *keymap) {
-    keymap->WillBeDeleted(&m_keymap);
+void BeebWindow::BeebKeymapWillBeDeleted(BeebKeymap *keymap) {
+    if(m_keymap==keymap) {
+        m_keymap=&DEFAULT_KEYMAP;
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////

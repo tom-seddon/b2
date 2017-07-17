@@ -11,7 +11,6 @@
 
 struct BeebWindowInitArguments;
 class VBlankMonitor;
-class Keymap;
 class BeebThread;
 class TimelineUI;
 struct SDL_Texture;
@@ -41,6 +40,7 @@ class BeebState;
 #include <set>
 #include <limits.h>
 #include "BeebConfig.h"
+#include "BeebKeymap.h"
 
 #include <shared/enum_decl.h>
 #include "BeebWindow.inl"
@@ -204,7 +204,7 @@ public:
 
     void UpdateTitle();
 
-    void KeymapWillBeDeleted(Keymap *keymap);
+    void BeebKeymapWillBeDeleted(BeebKeymap *keymap);
 
     // If this BeebWindow has a SDL_Texture holding the current
     // display contents that's suitable for rendering with the given
@@ -278,7 +278,7 @@ private:
     // Audio output
     SDL_AudioDeviceID m_sound_device=0;
 
-    const Keymap *m_keymap=nullptr;
+    const BeebKeymap *m_keymap=nullptr;
 
     // number of emulated us that had passed at the time of the last
     // title update.

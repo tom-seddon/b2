@@ -1,5 +1,5 @@
 #include <shared/system.h>
-#include "default_keymaps.h"
+#include "BeebKeymap.h"
 #include "keymap.h"
 #include <SDL.h>
 #include "keys.h"
@@ -9,7 +9,7 @@
 
 #define SHIFT(K) ((K)|PCKeyModifier_Shift)
 
-static const Keymap::Mapping g_keysym_common[]={
+static const BeebKeymap::Mapping g_keysym_common[]={
     {SDLK_F10,BeebKeySym_f0},
     {SDLK_F1,BeebKeySym_f1},
     {SDLK_F2,BeebKeySym_f2},
@@ -119,7 +119,7 @@ static const Keymap::Mapping g_keysym_common[]={
 };
 
 // US-style
-static const Keymap::Mapping g_keysym_us[]={
+static const BeebKeymap::Mapping g_keysym_us[]={
     {SHIFT(SDLK_QUOTE),BeebKeySym_Quotes},
     {SHIFT(SDLK_3),BeebKeySym_Hash},
     {SHIFT(SDLK_BACKQUOTE),BeebKeySym_Tilde},
@@ -131,7 +131,7 @@ static const Keymap::Mapping g_keysym_us[]={
 };
 
 // UK-style
-static const Keymap::Mapping g_keysym_uk[]={
+static const BeebKeymap::Mapping g_keysym_uk[]={
     {SHIFT(SDLK_2),BeebKeySym_Quotes},
     {'#',BeebKeySym_Hash},
     {SHIFT('#'),BeebKeySym_Tilde},
@@ -145,7 +145,7 @@ static const Keymap::Mapping g_keysym_uk[]={
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static const Keymap::Mapping g_scancode_common[]={
+static const BeebKeymap::Mapping g_scancode_common[]={
     {SDL_SCANCODE_SPACE,BeebKey_Space,},
     {SDL_SCANCODE_COMMA,BeebKey_Comma,},
     {SDL_SCANCODE_MINUS,BeebKey_Minus,},
@@ -244,14 +244,14 @@ static const Keymap::Mapping g_scancode_common[]={
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static const Keymap::Mapping g_scancode_cc[]={
+static const BeebKeymap::Mapping g_scancode_cc[]={
     {SDL_SCANCODE_CAPSLOCK,BeebKey_Ctrl,},
     {SDL_SCANCODE_LCTRL,BeebKey_CapsLock,},
     {SDL_SCANCODE_LALT,BeebKey_Ctrl,},
     {},
 };
 
-static const Keymap::Mapping g_scancode_noncc[]={
+static const BeebKeymap::Mapping g_scancode_noncc[]={
     {SDL_SCANCODE_CAPSLOCK,BeebKey_CapsLock,},
     {SDL_SCANCODE_LCTRL,BeebKey_Ctrl,},
     {},
@@ -260,10 +260,10 @@ static const Keymap::Mapping g_scancode_noncc[]={
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-const Keymap DEFAULT_KEYMAP("Default",false,{g_scancode_common,g_scancode_noncc});
-const Keymap DEFAULT_KEYMAP_CC("Default (caps/ctrl)",false,{g_scancode_common,g_scancode_cc});
-const Keymap DEFAULT_KEYMAP_UK("Default UK",true,{g_keysym_common,g_keysym_uk});
-const Keymap DEFAULT_KEYMAP_US("Default US",true,{g_keysym_common,g_keysym_us});
+const BeebKeymap DEFAULT_KEYMAP("Default",false,{g_scancode_common,g_scancode_noncc});
+const BeebKeymap DEFAULT_KEYMAP_CC("Default (caps/ctrl)",false,{g_scancode_common,g_scancode_cc});
+const BeebKeymap DEFAULT_KEYMAP_UK("Default UK",true,{g_keysym_common,g_keysym_uk});
+const BeebKeymap DEFAULT_KEYMAP_US("Default US",true,{g_keysym_common,g_keysym_us});
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
