@@ -30,11 +30,6 @@ public:
         int8_t beeb_key;
     };
 
-    static const Keymap DEFAULT;
-    static const Keymap DEFAULT_CC;
-    static const Keymap DEFAULT_UK;
-    static const Keymap DEFAULT_US;
-
     Keymap();
     explicit Keymap(std::string name,bool key_sym_map);
     explicit Keymap(std::string name,bool key_sym_map,const std::initializer_list<const Mapping *> &list);
@@ -94,7 +89,6 @@ private:
     mutable std::vector<PCKeyList> m_pc_key_lists;
     mutable std::vector<uint32_t> m_all_pc_keys;
 
-    bool GetIndex(size_t *index,uint32_t pc_key,int8_t beeb_key) const;
     void RebuildTables() const;
 };
 

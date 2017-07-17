@@ -11,6 +11,7 @@
 #include "load_save.h"
 #include "b2.h"
 #include "Timeline.h"
+#include "default_keymaps.h"
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -35,7 +36,7 @@ struct BeebWindowsState {
     std::vector<std::unique_ptr<Keymap>> keymaps;
     std::vector<Config> configs;
     const BeebConfig *default_config=nullptr;
-    const Keymap *default_keymap=&Keymap::DEFAULT;
+    const Keymap *default_keymap=&DEFAULT_KEYMAP;
 
     std::vector<uint8_t> last_window_placement_data;
 
@@ -403,10 +404,10 @@ void BeebWindows::SetKeymapName(Keymap *keymap,std::string name) {
 //////////////////////////////////////////////////////////////////////////
 
 static const Keymap *const STOCK_KEYMAPS[]={
-    &Keymap::DEFAULT,
-    &Keymap::DEFAULT_CC,
-    &Keymap::DEFAULT_UK,
-    &Keymap::DEFAULT_US,
+    &DEFAULT_KEYMAP,
+    &DEFAULT_KEYMAP_CC,
+    &DEFAULT_KEYMAP_UK,
+    &DEFAULT_KEYMAP_US,
     nullptr,
 };
 
