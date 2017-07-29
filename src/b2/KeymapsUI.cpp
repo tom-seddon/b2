@@ -25,6 +25,10 @@ const char KeymapsUI::NOT_EDITABLE_ICON[]=ICON_FA_LOCK;
 const char KeymapsUI::SCANCODES_KEYMAP_ICON[]=ICON_FA_KEYBOARD_O;
 const char KeymapsUI::KEYSYMS_KEYMAP_ICON[]=ICON_FA_FONT;
 
+static const char SHORTCUT_KEYCODES_POPUP[]="shortcut_keycodes";
+static const char PC_SCANCODES_POPUP[]="pc_scancodes";
+static const char PC_KEYCODES_POPUP[]="pc_keycodes";
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
@@ -151,10 +155,52 @@ void KeymapsUIImpl::DoImGui() {
 
     m_wants_keyboard_focus=false;
 
-    if(ImGui::CollapsingHeader("Global shortcuts","header",true,true)) {
-        this->DoShortcutEditGui(&BeebWindows::save_state_shortcut_key,"Save state");
-        this->DoShortcutEditGui(&BeebWindows::load_last_state_shortcut_key,"Load last state");
-    }
+    CommandTable::ForEachCommandTable([&](CommandTable *table) {
+        ImGuiIDPusher id_pusher(table);
+        std::string title=table->GetName()+" shortcuts";
+        if(ImGui::CollapsingHeader(title.c_str(),"header",true,true)) {
+            table->ForEachCommand([&](Command *command) {
+                ImGuiIDPusher id_pusher(command);
+                ImGui::TextUnformatted(command->GetText().c_str());
+
+                if(ImGui::IsItemHovered()) {
+                    ImGui::OpenPopup(SHORTCUT_KEYCODES_POPUP);
+                }
+
+                if(ImGui::BeginPopup(SHORTCUT_KEYCODES_POPUP)) {
+                    ImGui::Text("Edit PC Keys");
+
+                    if(const uint32_t *pc_keys=table->GetPCKeysForCommand(command)) {
+                        ImGui::Separator();
+
+                        for(const uint32_t *pc_key=pc_keys;*pc_key!=0;++pc_key) {
+                            if(ImGui::Button("x")) {
+                                table->SetMapping(*pc_key,command,false);
+                                m_edited=true;
+                                break;
+                            }
+
+                            ImGui::SameLine();
+
+                            std::string name=GetKeycodeName(*pc_key);
+                            ImGui::TextUnformatted(name.c_str());
+                        }
+                    }
+
+                    ImGui::Separator();
+
+                    ImGui::TextUnformatted("(press key to set)");
+
+                    uint32_t k=this->GetPressedKeycode();
+                    if(k!=0) {
+                        table->SetMapping(k,command,true);
+                    }
+
+                    ImGui::EndPopup();
+                }
+            });
+        }
+    });
 
     BeebWindows::ForEachBeebKeymap([&](const BeebKeymap *keymap,BeebKeymap *editable_keymap) {
         if(any) {
@@ -458,9 +504,6 @@ void KeymapsUIImpl::DoKeySymsList(const BeebKeymap *keymap,BeebKeymap *editable_
             std::string name=GetKeycodeName(*keycode);
 
             ImGui::TextUnformatted(name.c_str());
-
-            // (N.B., SDL_GetScancodeFromKey has a loop in it.)
-
         }
     }
 
@@ -502,8 +545,6 @@ static const float KEY_WIDTH=36.f;
 static const float KEY_HEIGHT=32.f;
 static const float KEYPAD_X=750.f;
 static const size_t MAX_NUM_KEYCAPS=100;
-static const char PC_SCANCODES_POPUP[]="pc_scancodes";
-static const char PC_KEYCODES_POPUP[]="pc_keycodes";
 
 struct Row2Key {
     const Keycap *key;
@@ -777,8 +818,6 @@ bool KeymapsUIImpl::DoEditKeymapGui(const BeebKeymap *keymap,BeebKeymap *editabl
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
-
-static const char SHORTCUT_KEYCODES_POPUP[]="shortcut_keycodes";
 
 void KeymapsUIImpl::DoShortcutEditGui(uint32_t *keycode,const char *label) {
     ImGuiIDPusher id_pusher(label);

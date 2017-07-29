@@ -8,6 +8,7 @@
 #include <vector>
 #include <set>
 #include <shared/debug.h>
+#include <algorithm>
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -25,7 +26,7 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-template<class ValueType>
+template<class ValueType,ValueType TERMINATOR>
 class Keymap {
 public:
     struct Mapping {
@@ -64,7 +65,7 @@ public:
         return m_is_key_sym_map;
     }
 
-    std::string GetName() const {
+    const std::string &GetName() const {
         return m_name;
     }
 
@@ -126,6 +127,12 @@ public:
     //void WillBeDeleted(const Keymap **keymap_ptr) const {
     //    if(*keymap_ptr==this) {
     //        *keymap_ptr=&DEFAULT_KEYMAP;
+    //    }
+    //}
+
+    //void ForEachMapping(std::function<void(uint32_t,ValueType)> fun) const {
+    //    for(auto &&it:m_map) {
+    //        fun(it->pc_key,it->value);
     //    }
     //}
 protected:
@@ -228,7 +235,7 @@ private:
                 ++j;
             }
 
-            m_all_values.push_back(-1);
+            m_all_values.push_back(TERMINATOR);
             m_value_lists.push_back(list);
 
             i=j;

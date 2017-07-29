@@ -557,6 +557,8 @@ static size_t CleanUpRecentPaths(const std::string &tag,bool (*exists_fn)(const 
     return n;
 }
 
+
+
 bool BeebWindow::DoImGui(int output_width,int output_height) {
     (void)output_width,(void)output_height;
     const uint64_t now=GetCurrentTickCount();
@@ -575,9 +577,7 @@ bool BeebWindow::DoImGui(int output_width,int output_height) {
 
     if(ImGui::BeginMainMenuBar()) {
         if(ImGui::BeginMenu("File")) {
-            if(ImGui::MenuItem("Hard reset")) {
-                m_beeb_thread->SendHardResetMessage(false);
-            }
+            ms_command_table.FindCommandByName("hard_reset")->DoMenuItemUI(this);
 
             if(ImGui::BeginMenu("Change config")) {
                 bool seen_first_custom=false;
@@ -772,13 +772,8 @@ bool BeebWindow::DoImGui(int output_width,int output_height) {
             //    }
             //}
 
-            if(ImGui::MenuItem("Load last state",GetKeycodeName(BeebWindows::load_last_state_shortcut_key).c_str(),nullptr,m_beeb_thread->GetLastSavedStateTimelineId()!=0)) {
-                this->LoadLastState();
-            }
-
-            if(ImGui::MenuItem("Save state",GetKeycodeName(BeebWindows::save_state_shortcut_key).c_str())) {
-                this->SaveState();
-            }
+            ms_command_table.FindCommandByName("load_last_state")->DoMenuItemUI(this,m_beeb_thread->GetLastSavedStateTimelineId()!=0);
+            ms_command_table.FindCommandByName("save_state")->DoMenuItemUI(this);
 
             if(ImGui::BeginMenu("Exit")) {
                 if(ImGui::MenuItem("Confirm")) {
@@ -1818,6 +1813,13 @@ void BeebWindow::DoOptionsCheckbox(const char *label,bool (BeebThread::*get_mfn)
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+void BeebWindow::HardReset() {
+    m_beeb_thread->SendHardResetMessage(false);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 void BeebWindow::LoadLastState() {
     m_beeb_thread->SendLoadLastStateMessage();
 }
@@ -1851,3 +1853,10 @@ bool BeebWindow::RecreateTexture() {
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
+
+ObjectCommandTable<BeebWindow> BeebWindow::ms_command_table("Beeb Window",{
+    {"hard_reset","Hard Reset",&BeebWindow::HardReset},
+    {"load_last_state","Load Last State",&BeebWindow::LoadLastState},
+    {"save_state","Save State",&BeebWindow::SaveState},
+});
+

@@ -41,6 +41,7 @@ class BeebState;
 #include <limits.h>
 #include "BeebConfig.h"
 #include "BeebKeymap.h"
+#include "commands.h"
 
 #include <shared/enum_decl.h>
 #include "BeebWindow.inl"
@@ -350,10 +351,13 @@ private:
     BeebWindowInitArguments GetNewWindowInitArguments() const;
     void MaybeSaveConfig(bool save_config);
     void DoOptionsCheckbox(const char *label,bool (BeebThread::*get_mfn)() const,void (BeebThread::*send_mfn)(bool));
+    void HardReset();
     void LoadLastState();
     void SaveState();
     bool HandleBeebKey(const SDL_Keysym &keysym,bool state);
     bool RecreateTexture();
+
+    static ObjectCommandTable<BeebWindow> ms_command_table;
 };
 
 //////////////////////////////////////////////////////////////////////////
