@@ -90,7 +90,8 @@ private:
 
     void DoScancodesList(const BeebKeymap *keymap,BeebKeymap *editable_keymap,BeebKey beeb_key);
     uint32_t GetPressedKeycode();
-    void DoKeySymsList(const BeebKeymap *keymap,BeebKeymap *editable_keymap,BeebKeySym beeb_sym);
+    template<class KeymapType>
+    void DoKeySymsList(const KeymapType *keymap,KeymapType *editable_keymap,typename KeymapType::ValueType value);
     ImGuiStyleColourPusher GetColourPusherForKeycap(const BeebKeymap *keymap,int8_t keymap_key,const Keycap *keycap);
     void DoScancodeKeyboardLinePart(const BeebKeymap *keymap,BeebKeymap *editable_keymap,const Keycap *line);
     void DoScancodeKeyboardLineParts(const BeebKeymap *keymap,BeebKeymap *editable_keymap,const Keycap *line,const Keycap *m128_line);
@@ -99,7 +100,6 @@ private:
     void DoKeySymKeyboardLineBottomHalves(const BeebKeymap *keymap,BeebKeymap *editable_keymap,float y,const BottomHalfKeycap *bottom_halves,size_t num_bottom_halves);
     void DoKeySymKeyboardLineParts(const BeebKeymap *keymap,BeebKeymap *editable_keymap,const Keycap *line,const Keycap *m128_line);
     void DoKeyboardLine(const BeebKeymap *keymap,BeebKeymap *editable_keymap,const Keycap *line,const Keycap *m128_line);
-    void DoShortcutEditGui(uint32_t *keycode,const char *label);
 
     // Returns false if keymap was deleted.
     bool DoEditKeymapGui(const BeebKeymap *keymap,BeebKeymap *editable_keymap);
@@ -161,41 +161,19 @@ void KeymapsUIImpl::DoImGui() {
         if(ImGui::CollapsingHeader(title.c_str(),"header",true,true)) {
             table->ForEachCommand([&](Command *command) {
                 ImGuiIDPusher id_pusher(command);
-                ImGui::TextUnformatted(command->GetText().c_str());
 
-                if(ImGui::IsItemHovered()) {
+                if(ImGui::Button(command->GetText().c_str())) {
                     ImGui::OpenPopup(SHORTCUT_KEYCODES_POPUP);
                 }
 
+                if(ImGui::IsItemHovered()) {
+                    ImGui::BeginTooltip();
+                    this->DoKeySymsList(table,(CommandTable *)nullptr,command);
+                    ImGui::EndTooltip();
+                }
+
                 if(ImGui::BeginPopup(SHORTCUT_KEYCODES_POPUP)) {
-                    ImGui::Text("Edit PC Keys");
-
-                    if(const uint32_t *pc_keys=table->GetPCKeysForCommand(command)) {
-                        ImGui::Separator();
-
-                        for(const uint32_t *pc_key=pc_keys;*pc_key!=0;++pc_key) {
-                            if(ImGui::Button("x")) {
-                                table->SetMapping(*pc_key,command,false);
-                                m_edited=true;
-                                break;
-                            }
-
-                            ImGui::SameLine();
-
-                            std::string name=GetKeycodeName(*pc_key);
-                            ImGui::TextUnformatted(name.c_str());
-                        }
-                    }
-
-                    ImGui::Separator();
-
-                    ImGui::TextUnformatted("(press key to set)");
-
-                    uint32_t k=this->GetPressedKeycode();
-                    if(k!=0) {
-                        table->SetMapping(k,command,true);
-                    }
-
+                    this->DoKeySymsList(table,table,command);
                     ImGui::EndPopup();
                 }
             });
@@ -486,16 +464,17 @@ uint32_t KeymapsUIImpl::GetPressedKeycode() {
     return 0;
 }
 
-void KeymapsUIImpl::DoKeySymsList(const BeebKeymap *keymap,BeebKeymap *editable_keymap,BeebKeySym beeb_sym) {
+template<class KeymapType>
+void KeymapsUIImpl::DoKeySymsList(const KeymapType *keymap,KeymapType *editable_keymap,typename KeymapType::ValueType value) {
     ImGui::Text(editable_keymap?"Edit PC Keys":"PC Keys");
     ImGui::Separator();
-    if(const uint32_t *keycodes=keymap->GetPCKeysForValue((int8_t)beeb_sym)) {
+    if(const uint32_t *keycodes=keymap->GetPCKeysForValue(value)) {
         for(const uint32_t *keycode=keycodes;*keycode!=0;++keycode) {
             ImGuiIDPusher id_pusher((int)*keycode);
 
             if(editable_keymap) {
                 if(ImGui::Button("x")) {
-                    editable_keymap->SetMapping(*keycode,(int8_t)beeb_sym,false);
+                    editable_keymap->SetMapping(*keycode,value,false);
                     m_edited=true;
                 }
                 ImGui::SameLine();
@@ -512,7 +491,7 @@ void KeymapsUIImpl::DoKeySymsList(const BeebKeymap *keymap,BeebKeymap *editable_
 
         uint32_t keycode=this->GetPressedKeycode();
         if(keycode!=0) {
-            editable_keymap->SetMapping(keycode,(int8_t)beeb_sym,true);
+            editable_keymap->SetMapping(keycode,value,true);
             m_edited=true;
         }
     }
@@ -638,12 +617,12 @@ void KeymapsUIImpl::DoKeySymButton(const BeebKeymap *keymap,BeebKeymap *editable
 
     if(ImGui::IsItemHovered()) {
         ImGui::BeginTooltip();
-        this->DoKeySymsList(keymap,nullptr,key_sym);
+        this->DoKeySymsList(keymap,(BeebKeymap *)nullptr,(int8_t)key_sym);
         ImGui::EndTooltip();
     }
 
     if(ImGui::BeginPopup(PC_KEYCODES_POPUP)) {
-        this->DoKeySymsList(keymap,editable_keymap,key_sym);
+        this->DoKeySymsList(keymap,editable_keymap,(int8_t)key_sym);
         ImGui::EndPopup();
     }
 }
@@ -814,58 +793,6 @@ bool KeymapsUIImpl::DoEditKeymapGui(const BeebKeymap *keymap,BeebKeymap *editabl
     }
 
     return true;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-void KeymapsUIImpl::DoShortcutEditGui(uint32_t *keycode,const char *label) {
-    ImGuiIDPusher id_pusher(label);
-
-    ImGui::TextUnformatted(label);
-
-    ImGui::SameLine();
-
-    std::string name=GetKeycodeName(*keycode);
-    if(name.empty()) {
-        ImGui::TextDisabled("(none set)");
-    } else {
-        ImGui::TextUnformatted(name.c_str());
-    }
-
-    ImGui::SameLine();
-
-    if(ImGui::Button("Edit")) {
-        ImGui::OpenPopup(SHORTCUT_KEYCODES_POPUP);
-    }
-
-    if(ImGui::BeginPopup(SHORTCUT_KEYCODES_POPUP)) {
-        ImGui::Text("Edit PC Key");
-        ImGui::Separator();
-
-        if(*keycode!=0) {
-            if(ImGui::Button("x")) {
-                *keycode=0;
-                m_edited=true;
-                ImGui::CloseCurrentPopup();
-            }
-
-            ImGui::SameLine();
-
-            ImGui::TextUnformatted(name.c_str());
-        }
-
-        ImGui::TextUnformatted("(press key to set)");
-
-        uint32_t k=this->GetPressedKeycode();
-        if(k!=0) {
-            *keycode=k;
-            m_edited=true;
-            ImGui::CloseCurrentPopup();
-        }
-
-        ImGui::EndPopup();
-    }
 }
 
 //////////////////////////////////////////////////////////////////////////

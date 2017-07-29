@@ -26,13 +26,15 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-template<class ValueType,ValueType TERMINATOR>
+template<class TraitsType>
 class Keymap {
 public:
     struct Mapping {
         uint32_t pc_key;
-        ValueType value;
+        typename TraitsType::ValueType value;
     };
+
+    typedef typename TraitsType::ValueType ValueType;
 
     Keymap():
         Keymap("",false)
@@ -73,7 +75,7 @@ public:
         m_name=std::move(name);
     }
 
-    void SetMapping(uint32_t pc_key,ValueType value,bool state) {
+    void SetMapping(uint32_t pc_key,typename TraitsType::ValueType value,bool state) {
         Mapping mapping{pc_key,value};
         if(state) {
             if(m_map.insert(mapping).second) {
@@ -90,7 +92,7 @@ public:
     //
     // Returned pointer becomes invalid after next non-const member
     // function call.
-    const ValueType *GetValuesForPCKey(uint32_t pc_key) const {
+    const typename TraitsType::ValueType *GetValuesForPCKey(uint32_t pc_key) const {
         if(m_dirty) {
             this->RebuildTables();
         }
@@ -108,7 +110,7 @@ public:
     //
     // Returned pointer becomes invalid after next non-const member
     // function call.
-    const uint32_t *GetPCKeysForValue(ValueType value) const {
+    const uint32_t *GetPCKeysForValue(typename TraitsType::ValueType value) const {
         if(m_dirty) {
             this->RebuildTables();
         }
@@ -149,12 +151,12 @@ private:
     };
 
     struct PCKeyList {
-        ValueType value;
+        typename TraitsType::ValueType value;
         size_t index;
     };
 
     struct PCKeyListLessThanValue {
-        inline bool operator()(const PCKeyList &a,ValueType b) const {
+        inline bool operator()(const PCKeyList &a,typename TraitsType::ValueType b) const {
             return a.value<b;
         }
     };
@@ -202,7 +204,7 @@ private:
 
     mutable bool m_dirty;
     mutable std::vector<ValueList> m_value_lists;
-    mutable std::vector<ValueType> m_all_values;
+    mutable std::vector<typename TraitsType::ValueType> m_all_values;
     mutable std::vector<PCKeyList> m_pc_key_lists;
     mutable std::vector<uint32_t> m_all_pc_keys;
 
@@ -235,7 +237,7 @@ private:
                 ++j;
             }
 
-            m_all_values.push_back(TERMINATOR);
+            m_all_values.push_back(TraitsType::TERMINATOR);
             m_value_lists.push_back(list);
 
             i=j;

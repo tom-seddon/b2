@@ -129,7 +129,7 @@ void CommandTable::SetMapping(uint32_t pc_key,Command *command,bool state) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-const uint32_t *CommandTable::GetPCKeysForCommand(Command *command) const {
+const uint32_t *CommandTable::GetPCKeysForValue(Command *command) const {
     return m_keymap.GetPCKeysForValue(command);
 }
 

@@ -68,8 +68,17 @@ private:
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+// the CommandTable conforms to roughly the same interface as Keymap,
+// though not perfectly - just enough so that the keymap configuration
+// UI can share code between the two cases (it has to be templated
+// anyway because the value types are different...), and so that the
+// window code for handling Beeb keypresses is pretty similar to the
+// code for handling command keypresses.
+
 class CommandTable {
 public:
+    typedef Command *ValueType;
+
     static void ForEachCommandTable(std::function<void(CommandTable *)> fun);
 
     CommandTable(std::string name);
@@ -83,7 +92,7 @@ public:
     void ForEachCommand(std::function<void(Command *)> fun);
 
     void SetMapping(uint32_t pc_key,Command *command,bool state);
-    const uint32_t *GetPCKeysForCommand(Command *command) const;
+    const uint32_t *GetPCKeysForValue(Command *command) const;
 protected:
     Command *AddCommand(std::unique_ptr<Command> command);
 private:
