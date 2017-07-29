@@ -833,8 +833,6 @@ static const char KEYSYMS[]="keysyms";
 static const char KEYCODE[]="keycode";
 static const char BBC_VOLUME[]="bbc_volume";
 static const char DISC_VOLUME[]="disc_volume";
-static const char SAVE_STATE_SHORTCUT[]="save_state_shortcut";
-static const char LOAD_LAST_STATE_SHORTCUT[]="load_last_state_shortcut";
 static const char DISPLAY_AUTO_SCALE[]="display_auto_scale";
 static const char DISPLAY_OVERALL_SCALE[]="display_overall_scale";
 static const char DISPLAY_SCALE_X[]="display_scale_x";
@@ -842,6 +840,7 @@ static const char DISPLAY_SCALE_Y[]="display_scale_y";
 static const char DISPLAY_ALIGNMENT_X[]="display_alignment_x";
 static const char DISPLAY_ALIGNMENT_Y[]="display_alignment_y";
 static const char FILTER_BBC[]="filter_bbc";
+static const char SHORTCUTS[]="shortcuts";
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -1052,11 +1051,55 @@ static bool LoadKeymaps(rapidjson::Value *keymaps_json,Messages *msg) {
     return true;
 }
 
-static void LoadKeycode(uint32_t *keycode,rapidjson::Value *windows,const char *key,Messages *msg) {
-    rapidjson::Value shortcut;
-    if(FindObjectMember(&shortcut,windows,key,msg)) {
-        LoadKeycodeFromObject(keycode,&shortcut,msg,"%s.%s",WINDOWS,key);
+static bool LoadShortcuts(rapidjson::Value *shortcuts_json,Messages *msg) {
+    for(rapidjson::Value::MemberIterator table_it=shortcuts_json->MemberBegin();
+        table_it!=shortcuts_json->MemberEnd();
+        ++table_it)
+    {
+        CommandTable *table=CommandTable::FindCommandTableByName(table_it->name.GetString());
+        if(!table) {
+            msg->w.f("unknown command table: %s\n",table_it->name.GetString());
+            continue;
+        }
+
+        if(!table_it->value.IsObject()) {
+            msg->e.f("not an object: %s.%s\n",
+                SHORTCUTS,table_it->name.GetString());
+            continue;
+        }
+
+        for(rapidjson::Value::MemberIterator command_it=table_it->value.MemberBegin();
+            command_it!=table_it->value.MemberEnd();
+            ++command_it)
+        {
+            Command *command=table->FindCommandByName(command_it->name.GetString());
+            if(!command) {
+                msg->w.f("unknown %s command: %s\n",table_it->name.GetString(),command_it->name.GetString());
+                continue;
+            }
+
+            if(!command_it->value.IsArray()) {
+                msg->e.f("not an array: %s.%s.%s\n",
+                    SHORTCUTS,table_it->name.GetString(),command_it->name.GetString());
+                continue;
+            }
+
+            table->ClearMappingsByCommand(command);
+
+            for(rapidjson::SizeType i=0;i<command_it->value.Size();++i) {
+                uint32_t keycode;
+                if(!LoadKeycodeFromObject(&keycode,&command_it->value[i],msg,
+                    "%s.%s.%s[%" PRIsizetype "]",SHORTCUTS,table_it->name.GetString(),command_it->name.GetString(),i))
+                {
+                    continue;
+                }
+
+                table->SetMapping(keycode,command,true);
+            }
+        }
     }
+
+    return true;
 }
 
 static bool LoadWindows(rapidjson::Value *windows,Messages *msg) {
@@ -1095,9 +1138,6 @@ static bool LoadWindows(rapidjson::Value *windows,Messages *msg) {
             }
         }
     }
-
-    LoadKeycode(&BeebWindows::save_state_shortcut_key,windows,SAVE_STATE_SHORTCUT,msg);
-    LoadKeycode(&BeebWindows::load_last_state_shortcut_key,windows,LOAD_LAST_STATE_SHORTCUT,msg);
 
     return true;
 }
@@ -1207,6 +1247,15 @@ bool LoadGlobalConfig(Messages *msg)
         LOGF(LOADSAVE,"Loading keymaps.\n");
 
         if(!LoadKeymaps(&keymaps,msg)) {
+            return false;
+        }
+    }
+
+    rapidjson::Value shortcuts;
+    if(FindObjectMember(&shortcuts,doc.get(),SHORTCUTS,msg)) {
+        LOGF(LOADSAVE,"Loading keyboard shortcuts.\n");
+
+        if(!LoadShortcuts(&shortcuts,msg)) {
             return false;
         }
     }
@@ -1333,6 +1382,24 @@ static void SaveKeymaps(JSONWriter<StringStream> *writer) {
     });
 }
 
+static void SaveShortcuts(JSONWriter<StringStream> *writer) {
+    auto shortcuts_json=ObjectWriter(writer,SHORTCUTS);
+
+    CommandTable::ForEachCommandTable([&](CommandTable *table) {
+        auto commands_json=ObjectWriter(writer,table->GetName().c_str());
+
+        table->ForEachCommand([&](Command *command) {
+            if(const uint32_t *keycodes=table->GetPCKeysForValue(command)) {
+                auto command_json=ArrayWriter(writer,command->GetName().c_str());
+
+                for(const uint32_t *keycode=keycodes;*keycode!=0;++keycode) {
+                    SaveKeycodeObject(writer,*keycode);
+                }
+            }
+        });
+    });
+}
+
 static void SaveConfigs(JSONWriter<StringStream> *writer) {
     {
         auto configs_json=ArrayWriter(writer,CONFIGS);
@@ -1388,11 +1455,6 @@ static void SaveConfigs(JSONWriter<StringStream> *writer) {
     writer->String(BeebWindows::GetDefaultConfig()->name.c_str());
 }
 
-static void SaveKeycode(JSONWriter<StringStream> *writer,const char *key,uint32_t keycode) {
-    writer->Key(key);
-    SaveKeycodeObject(writer,keycode);
-}
-
 static void SaveWindows(JSONWriter<StringStream> *writer) {
     {
         auto windows_json=ObjectWriter(writer,WINDOWS);
@@ -1419,9 +1481,6 @@ static void SaveWindows(JSONWriter<StringStream> *writer) {
 
         writer->Key(DISC_VOLUME);
         writer->Double(BeebWindows::defaults.disc_volume);
-
-        SaveKeycode(writer,SAVE_STATE_SHORTCUT,BeebWindows::save_state_shortcut_key);
-        SaveKeycode(writer,LOAD_LAST_STATE_SHORTCUT,BeebWindows::load_last_state_shortcut_key);
 
         writer->Key(DISPLAY_AUTO_SCALE);
         writer->Bool(BeebWindows::defaults.display_auto_scale);
@@ -1492,6 +1551,8 @@ bool SaveGlobalConfig(Messages *messages) {
         SaveRecentPaths(&writer);
 
         SaveKeymaps(&writer);
+
+        SaveShortcuts(&writer);
 
         SaveWindows(&writer);
 

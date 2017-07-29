@@ -44,8 +44,24 @@ const std::string &Command::GetText() const {
 //////////////////////////////////////////////////////////////////////////
 
 void CommandTable::ForEachCommandTable(std::function<void(CommandTable *)> fun) {
+    InitAllCommandTables();
+
     for(auto &&it:*g_all_command_tables) {
         fun(it.second);
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+CommandTable *CommandTable::FindCommandTableByName(const std::string &name) {
+    InitAllCommandTables();
+
+    auto &&it=g_all_command_tables->find(name);
+    if(it==g_all_command_tables->end()) {
+        return nullptr;
+    } else {
+        return it->second;
     }
 }
 
@@ -107,6 +123,13 @@ void CommandTable::ForEachCommand(std::function<void(Command *)> fun) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+void CommandTable::ClearMappingsByCommand(Command *command) {
+    m_keymap.ClearMappingsByValue(command);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 void CommandTable::SetMapping(uint32_t pc_key,Command *command,bool state) {
     ASSERT(this->FindCommandByName(command->m_name));
 
@@ -136,6 +159,13 @@ const uint32_t *CommandTable::GetPCKeysForValue(Command *command) const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+const Command *const *CommandTable::GetValuesForPCKey(uint32_t key) const {
+    return m_keymap.GetValuesForPCKey(key);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 Command *CommandTable::AddCommand(std::unique_ptr<Command> command) {
     ASSERT(!this->FindCommandByName(command->m_name));
 
@@ -158,8 +188,7 @@ CommandContext::CommandContext(void *object,const CommandTable *table):
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void CommandContext::DoMenuItemUI(const char *name,bool enabled)
-{
+void CommandContext::DoMenuItemUI(const char *name,bool enabled) {
     Command *command=m_table->FindCommandByName(name);
     ASSERT(command);
 
@@ -171,6 +200,22 @@ void CommandContext::DoMenuItemUI(const char *name,bool enabled)
     if(ImGui::MenuItem(command->m_text.c_str(),shortcut.empty()?nullptr:shortcut.c_str(),nullptr,enabled)) {
         command->Execute(m_object);
     }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool CommandContext::ExecuteCommandsForPCKey(uint32_t keycode) const {
+    const Command *const *commands=m_table->GetValuesForPCKey(keycode);
+    if(!commands) {
+        return false;
+    }
+
+    for(size_t i=0;commands[i];++i) {
+        commands[i]->Execute(m_object);
+    }
+
+    return true;
 }
 
 //////////////////////////////////////////////////////////////////////////

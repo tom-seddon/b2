@@ -27,7 +27,7 @@ public:
     Command(std::string name,std::string text);
 
     //void DoMenuItemUI(void *object,bool enabled=true);
-    virtual void Execute(void *object)=0;
+    virtual void Execute(void *object) const=0;
 
     const std::string &GetName() const;
     const std::string &GetText() const;
@@ -55,7 +55,7 @@ public:
     {
     }
 
-    void Execute(void *object_) override {
+    void Execute(void *object_) const override {
         auto object=(T *)object_;
 
         (object->*m_mfn)();
@@ -80,6 +80,7 @@ public:
     typedef Command *ValueType;
 
     static void ForEachCommandTable(std::function<void(CommandTable *)> fun);
+    static CommandTable *FindCommandTableByName(const std::string &name);
 
     CommandTable(std::string name);
     ~CommandTable();
@@ -91,8 +92,10 @@ public:
 
     void ForEachCommand(std::function<void(Command *)> fun);
 
+    void ClearMappingsByCommand(Command *command);
     void SetMapping(uint32_t pc_key,Command *command,bool state);
     const uint32_t *GetPCKeysForValue(Command *command) const;
+    const Command *const *GetValuesForPCKey(uint32_t key) const;
 protected:
     Command *AddCommand(std::unique_ptr<Command> command);
 private:
@@ -155,6 +158,7 @@ public:
     CommandContext &operator=(CommandContext &&)=delete;
 
     void DoMenuItemUI(const char *name,bool enabled=true);
+    bool ExecuteCommandsForPCKey(uint32_t keycode) const;
 protected:
 private:
     void *m_object=nullptr;
@@ -166,7 +170,7 @@ private:
 
 template<class T>
 class ObjectCommandContext:
-    private CommandContext
+    public CommandContext
 {
 public:
     ObjectCommandContext(T *object,const ObjectCommandTable<T> *table):

@@ -315,6 +315,8 @@ private:
     bool m_imgui_demo=false;
 #endif
 
+    std::vector<CommandContext *> m_cc_stack;
+
     std::vector<std::string> m_display_size_options;
 
     std::unique_ptr<KeymapsUI> m_keymaps_ui;

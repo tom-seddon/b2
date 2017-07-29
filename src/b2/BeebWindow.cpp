@@ -229,10 +229,12 @@ void BeebWindow::HandleSDLKeyEvent(const SDL_KeyboardEvent &event) {
     if(state) {
         uint32_t keycode=(uint32_t)event.keysym.sym|GetPCKeyModifiersFromSDLKeymod(event.keysym.mod);
 
-        if(keycode==BeebWindows::save_state_shortcut_key) {
-            this->SaveState();
-        } else if(keycode==BeebWindows::load_last_state_shortcut_key) {
-            this->LoadLastState();
+        for(size_t i=0;i<m_cc_stack.size();++i) {
+            CommandContext *cc=m_cc_stack[m_cc_stack.size()-1-i];
+
+            if(cc->ExecuteCommandsForPCKey(keycode)) {
+                break;
+            }
         }
     }
 }
@@ -567,6 +569,9 @@ bool BeebWindow::DoImGui(int output_width,int output_height) {
     bool keep_window=true;
 
     m_imgui_has_kb_focus=false;
+
+    m_cc_stack.clear();
+    m_cc_stack.push_back(&m_cc);
 
     if(m_imgui_stuff->WantCaptureKeyboard()) {
         m_imgui_has_kb_focus=true;

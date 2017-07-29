@@ -48,10 +48,6 @@ namespace BeebWindows {
     // an accessor doesn't really buy much here...
     extern BeebWindowSettings defaults;
 
-    // Shortcut keys for stuff.
-    extern uint32_t save_state_shortcut_key;
-    extern uint32_t load_last_state_shortcut_key;
-
     bool Init();
     void Shutdown();
 

@@ -75,6 +75,19 @@ public:
         m_name=std::move(name);
     }
 
+    void ClearMappingsByValue(typename TraitsType::ValueType value) {
+        auto &&it=m_map.begin();
+
+        while(it!=m_map.end()) {
+            if(it->value==value) {
+                it=m_map.erase(it);
+                m_dirty=true;
+            } else {
+                ++it;
+            }
+        }
+    }
+
     void SetMapping(uint32_t pc_key,typename TraitsType::ValueType value,bool state) {
         Mapping mapping{pc_key,value};
         if(state) {
