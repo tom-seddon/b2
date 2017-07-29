@@ -29,20 +29,6 @@ Command::Command(std::string name,std::string text):
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void Command::DoMenuItemUI(void *object,bool enabled) {
-    std::string shortcut;
-    if(m_shortcut!=0) {
-        shortcut=GetKeycodeName(m_shortcut).c_str();
-    }
-
-    if(ImGui::MenuItem(m_text.c_str(),shortcut.empty()?nullptr:shortcut.c_str(),nullptr,enabled)) {
-        this->Execute(object);
-    }
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 const std::string &Command::GetName() const {
     return m_name;
 }
@@ -158,6 +144,33 @@ Command *CommandTable::AddCommand(std::unique_ptr<Command> command) {
     m_command_by_name[command->m_name.c_str()]=std::move(command);
 
     return result;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+CommandContext::CommandContext(void *object,const CommandTable *table):
+    m_object(object),
+    m_table(table)
+{
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void CommandContext::DoMenuItemUI(const char *name,bool enabled)
+{
+    Command *command=m_table->FindCommandByName(name);
+    ASSERT(command);
+
+    std::string shortcut;
+    if(command->m_shortcut!=0) {
+        shortcut=GetKeycodeName(command->m_shortcut).c_str();
+    }
+
+    if(ImGui::MenuItem(command->m_text.c_str(),shortcut.empty()?nullptr:shortcut.c_str(),nullptr,enabled)) {
+        command->Execute(m_object);
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////

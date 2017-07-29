@@ -112,7 +112,8 @@ BeebWindow::DriveState::DriveState():
 //////////////////////////////////////////////////////////////////////////
 
 BeebWindow::BeebWindow(BeebWindowInitArguments init_arguments):
-    m_init_arguments(std::move(init_arguments))
+    m_init_arguments(std::move(init_arguments)),
+    m_cc(this,&ms_command_table)
 {
     m_name=m_init_arguments.name;
 
@@ -577,7 +578,7 @@ bool BeebWindow::DoImGui(int output_width,int output_height) {
 
     if(ImGui::BeginMainMenuBar()) {
         if(ImGui::BeginMenu("File")) {
-            ms_command_table.FindCommandByName("hard_reset")->DoMenuItemUI(this);
+            m_cc.DoMenuItemUI("hard_reset");
 
             if(ImGui::BeginMenu("Change config")) {
                 bool seen_first_custom=false;
@@ -772,8 +773,8 @@ bool BeebWindow::DoImGui(int output_width,int output_height) {
             //    }
             //}
 
-            ms_command_table.FindCommandByName("load_last_state")->DoMenuItemUI(this,m_beeb_thread->GetLastSavedStateTimelineId()!=0);
-            ms_command_table.FindCommandByName("save_state")->DoMenuItemUI(this);
+            m_cc.DoMenuItemUI("load_last_state",m_beeb_thread->GetLastSavedStateTimelineId()!=0);
+            m_cc.DoMenuItemUI("save_state");
 
             if(ImGui::BeginMenu("Exit")) {
                 if(ImGui::MenuItem("Confirm")) {

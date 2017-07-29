@@ -343,6 +343,8 @@ private:
     // Keep this towards the end. It's quite a large object.
     Messages m_msg;
 
+    ObjectCommandContext<BeebWindow> m_cc;
+
     bool InitInternal();
     bool LoadDiscImageFile(int drive,const std::string &path);
     bool Load65LinkFolder(int drive,const std::string &path);

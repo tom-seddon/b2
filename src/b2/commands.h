@@ -26,7 +26,7 @@ class Command {
 public:
     Command(std::string name,std::string text);
 
-    void DoMenuItemUI(void *object,bool enabled=true);
+    //void DoMenuItemUI(void *object,bool enabled=true);
     virtual void Execute(void *object)=0;
 
     const std::string &GetName() const;
@@ -38,6 +38,7 @@ private:
     uint32_t m_shortcut=0;
 
     friend class CommandTable;
+    friend class CommandContext;
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -86,13 +87,18 @@ public:
 protected:
     Command *AddCommand(std::unique_ptr<Command> command);
 private:
+    struct KeymapTraits {
+        typedef Command *ValueType;
+        static constexpr Command *TERMINATOR=nullptr;
+    };
+
     struct StringLessThan {
         inline bool operator()(const char *a,const char *b) const {
             return strcmp(a,b)<0;
         }
     };
     std::map<const char *,std::unique_ptr<Command>,StringLessThan> m_command_by_name;
-    Keymap<Command *,nullptr> m_keymap;
+    Keymap<KeymapTraits> m_keymap;
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -121,6 +127,45 @@ public:
     Command *AddCommand(std::string name,std::string text,void (T::*mfn)()) {
         return this->CommandTable::AddCommand(std::make_unique<ObjectCommand<T>>(std::move(name),std::move(text),mfn));
     }
+protected:
+private:
+};
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+class CommandContext
+{
+public:
+    CommandContext(void *object,const CommandTable *table);
+
+    CommandContext(const CommandContext &)=delete;
+    CommandContext &operator=(const CommandContext &)=delete;
+
+    CommandContext(CommandContext &&)=delete;
+    CommandContext &operator=(CommandContext &&)=delete;
+
+    void DoMenuItemUI(const char *name,bool enabled=true);
+protected:
+private:
+    void *m_object=nullptr;
+    const CommandTable *m_table=nullptr;
+};
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+template<class T>
+class ObjectCommandContext:
+    private CommandContext
+{
+public:
+    ObjectCommandContext(T *object,const ObjectCommandTable<T> *table):
+        CommandContext(object,table)
+    {
+    }
+
+    using CommandContext::DoMenuItemUI;
 protected:
 private:
 };
