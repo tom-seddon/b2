@@ -797,13 +797,13 @@ bool BeebWindow::DoImGui(int output_width,int output_height) {
         }
 
         if(ImGui::BeginMenu("Tools")) {
-            ImGuiMenuItemFlag("Emulator options...",NULL,&m_settings.ui_flags,BeebWindowUIFlag_Options);
-            ImGuiMenuItemFlag("Keyboard layout...",NULL,&m_settings.ui_flags,BeebWindowUIFlag_Keymaps);
-            ImGuiMenuItemFlag("Messages...",NULL,&m_settings.ui_flags,BeebWindowUIFlag_Messages);
+            m_cc.DoMenuItemUI("toggle_emulator_options");
+            m_cc.DoMenuItemUI("toggle_keyboard_layout");
+            m_cc.DoMenuItemUI("toggle_messages");
 #if TIMELINE_UI_ENABLED
-            ImGuiMenuItemFlag("Timeline...",NULL,&m_settings.ui_flags,BeebWindowUIFlag_Timeline);
+            m_cc.DoMenuItemUI("toggle_timeline");
 #endif
-            ImGuiMenuItemFlag("Configurations...",NULL,&m_settings.ui_flags,BeebWindowUIFlag_Configs);
+            m_cc.DoMenuItemUI("toggle_configurations");
 
             // if(ImGui::MenuItem("Dump states")) {
             //     std::vector<std::shared_ptr<BeebState>> all_states=BeebState::GetAllStates();
@@ -1860,9 +1860,30 @@ bool BeebWindow::RecreateTexture() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+uint32_t BeebWindow::GetSettingsUIFlags() const {
+    return m_settings.ui_flags;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BeebWindow::SetSettingsUIFlags(uint32_t flags) {
+    m_settings.ui_flags=flags;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 ObjectCommandTable<BeebWindow> BeebWindow::ms_command_table("Beeb Window",{
     {"hard_reset","Hard Reset",&BeebWindow::HardReset},
     {"load_last_state","Load Last State",&BeebWindow::LoadLastState},
     {"save_state","Save State",&BeebWindow::SaveState},
+    {"toggle_emulator_options","Emulator options...",&BeebWindow::GetSettingsUIFlags,&BeebWindow::SetSettingsUIFlags,BeebWindowUIFlag_Options},
+    {"toggle_keyboard_layout","Keyboard layout...",&BeebWindow::GetSettingsUIFlags,&BeebWindow::SetSettingsUIFlags,BeebWindowUIFlag_Keymaps},
+    {"toggle_messages","Messages...",&BeebWindow::GetSettingsUIFlags,&BeebWindow::SetSettingsUIFlags,BeebWindowUIFlag_Messages},
+#if TIMELINE_UI_ENABLED
+    {"toggle_timeline","Timeline...",&BeebWindow::GetSettingsUIFlags,&BeebWindow::SetSettingsUIFlags,BeebWindowUIFlag_Timeline},
+#endif
+    {"toggle_configurations","Configurations...",&BeebWindow::GetSettingsUIFlags,&BeebWindow::SetSettingsUIFlags,BeebWindowUIFlag_Configs},
 });
 

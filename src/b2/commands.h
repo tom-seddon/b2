@@ -28,6 +28,7 @@ public:
 
     //void DoMenuItemUI(void *object,bool enabled=true);
     virtual void Execute(void *object) const=0;
+    virtual bool IsTicked(void *object) const=0;
 
     const std::string &GetName() const;
     const std::string &GetText() const;
@@ -49,20 +50,33 @@ class ObjectCommand:
     public Command
 {
 public:
-    ObjectCommand(std::string name,std::string text,void (T::*mfn)()):
+    ObjectCommand(std::string name,std::string text,std::function<void(T *)> execute_fun,std::function<bool(T *)> ticked_fun={}):
         Command(std::move(name),std::move(text)),
-        m_mfn(mfn)
+        m_execute_fun(std::move(execute_fun)),
+        m_ticked_fun(std::move(ticked_fun))
     {
+        ASSERT(!!m_execute_fun);
     }
 
     void Execute(void *object_) const override {
         auto object=(T *)object_;
 
-        (object->*m_mfn)();
+        m_execute_fun(object);
+    }
+
+    virtual bool IsTicked(void *object_) const {
+        if(!m_ticked_fun) {
+            return false;
+        } else {
+            auto object=(T *)object_;
+            bool ticked=m_ticked_fun(object);
+            return ticked;
+        }
     }
 protected:
 private:
-    void (T::*m_mfn)()=nullptr;
+    std::function<void(T *)> m_execute_fun;
+    std::function<bool(T *)> m_ticked_fun;
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -124,20 +138,63 @@ public:
     struct Initializer {
         std::string name;
         std::string text;
-        void (T::*mfn)();
-        intptr_t arg;
+        void (T::*mfn)()=nullptr;
+        intptr_t arg=0;
+        uint32_t (T::*get_flags_mfn)() const=nullptr;
+        void (T::*set_flags_mfn)(uint32_t)=nullptr;
+        uint32_t flags_mask=0;
+
+        Initializer(std::string name_,std::string text_,void (T::*mfn_)()):
+            name(std::move(name_)),
+            text(std::move(text_)),
+            mfn(std::move(mfn_))
+        {
+        }
+
+        Initializer(std::string name_,std::string text_,uint32_t (T::*get_flags_mfn_)() const,void (T::*set_flags_mfn_)(uint32_t),uint32_t flags_mask_):
+            name(std::move(name_)),
+            text(std::move(text_)),
+            get_flags_mfn(get_flags_mfn_),
+            set_flags_mfn(set_flags_mfn_),
+            flags_mask(flags_mask_)
+        {
+        }
     };
 
-    ObjectCommandTable(std::string name,std::initializer_list<Initializer> inits):
-        CommandTable(std::move(name))
+    ObjectCommandTable(std::string table_name,std::initializer_list<Initializer> inits):
+        CommandTable(std::move(table_name))
     {
         for(const Initializer &init:inits) {
-            this->AddCommand(init.name,init.text,init.mfn);
-        }
-    }
+            std::function<void(T *)> execute_fun;
+            std::function<bool(T *)> ticked_fun;
 
-    Command *AddCommand(std::string name,std::string text,void (T::*mfn)()) {
-        return this->CommandTable::AddCommand(std::make_unique<ObjectCommand<T>>(std::move(name),std::move(text),mfn));
+            if(init.mfn) {
+                // Command
+                auto mfn=init.mfn;
+                execute_fun=[=](T *p) {
+                    (p->*mfn)();
+                };
+            } else if(init.flags_mask!=0) {
+                // Toggle
+                ASSERT(init.get_flags_mfn&&init.set_flags_mfn);
+                auto get_flags_mfn=init.get_flags_mfn;
+                auto set_flags_mfn=init.set_flags_mfn;
+                auto flags_mask=init.flags_mask;
+                execute_fun=[=](T *p) {
+                    uint32_t flags=(p->*get_flags_mfn)();
+                    flags^=flags_mask;
+                    (p->*set_flags_mfn)(flags);
+                };
+                ticked_fun=[=](T *p) {
+                    uint32_t flags=(p->*get_flags_mfn)();
+                    return !!(flags&flags_mask);
+                };
+            } else {
+                ASSERT(false);
+            }
+
+            this->AddCommand(std::make_unique<ObjectCommand<T>>(std::move(init.name),std::move(init.text),std::move(execute_fun),std::move(ticked_fun)));
+        }
     }
 protected:
 private:

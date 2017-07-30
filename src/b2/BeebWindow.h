@@ -360,6 +360,8 @@ private:
     void SaveState();
     bool HandleBeebKey(const SDL_Keysym &keysym,bool state);
     bool RecreateTexture();
+    uint32_t GetSettingsUIFlags() const;
+    void SetSettingsUIFlags(uint32_t flags);
 
     static ObjectCommandTable<BeebWindow> ms_command_table;
 };

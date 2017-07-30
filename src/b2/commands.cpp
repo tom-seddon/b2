@@ -197,7 +197,12 @@ void CommandContext::DoMenuItemUI(const char *name,bool enabled) {
         shortcut=GetKeycodeName(command->m_shortcut).c_str();
     }
 
-    if(ImGui::MenuItem(command->m_text.c_str(),shortcut.empty()?nullptr:shortcut.c_str(),nullptr,enabled)) {
+    bool selected=false;
+    if(command->IsTicked(m_object)) {
+        selected=true;
+    }
+
+    if(ImGui::MenuItem(command->m_text.c_str(),shortcut.empty()?nullptr:shortcut.c_str(),&selected,enabled)) {
         command->Execute(m_object);
     }
 }
