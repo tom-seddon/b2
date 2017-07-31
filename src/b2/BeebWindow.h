@@ -357,6 +357,7 @@ private:
     void DoOptionsCheckbox(const char *label,bool (BeebThread::*get_mfn)() const,void (BeebThread::*send_mfn)(bool));
     void HardReset();
     void LoadLastState();
+    bool IsLoadLastStateEnabled() const;
     void SaveState();
     bool HandleBeebKey(const SDL_Keysym &keysym,bool state);
     bool RecreateTexture();

@@ -189,7 +189,7 @@ CommandContext::CommandContext(void *object,const CommandTable *table):
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void CommandContext::DoMenuItemUI(const char *name,bool enabled) {
+void CommandContext::DoMenuItemUI(const char *name) {
     Command *command=m_table->FindCommandByName(name);
     ASSERT(command);
 
@@ -197,6 +197,8 @@ void CommandContext::DoMenuItemUI(const char *name,bool enabled) {
     if(command->m_shortcut!=0) {
         shortcut=GetKeycodeName(command->m_shortcut).c_str();
     }
+
+    bool enabled=command->IsEnabled(m_object);
 
     if(command->m_confirm) {
         if(ImGui::BeginMenu(command->m_text.c_str(),enabled)) {

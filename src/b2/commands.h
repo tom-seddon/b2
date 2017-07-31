@@ -26,9 +26,9 @@ class Command {
 public:
     Command(std::string name,std::string text,bool confirm);
 
-    //void DoMenuItemUI(void *object,bool enabled=true);
     virtual void Execute(void *object) const=0;
     virtual bool IsTicked(void *object) const=0;
+    virtual bool IsEnabled(void *object) const=0;
 
     const std::string &GetName() const;
     const std::string &GetText() const;
@@ -76,14 +76,13 @@ public:
         m_execute_fun(object);
     }
 
-    virtual bool IsTicked(void *object_) const {
-        return this->DoBoolFun(object_,m_ticked_fun,false);
+    bool IsTicked(void *object) const override {
+        return this->DoBoolFun(object,m_ticked_fun,false);
     }
 
-    virtual bool IsEnabled(void *object_) const {
-        return this->DoBoolFun(object_,m_enabled_fun,true);
+    bool IsEnabled(void *object) const override {
+        return this->DoBoolFun(object,m_enabled_fun,true);
     }
-protected:
 private:
     std::function<void(T *)> m_execute_fun;
     std::function<bool(T *)> m_ticked_fun;
@@ -262,7 +261,7 @@ public:
     CommandContext(CommandContext &&)=delete;
     CommandContext &operator=(CommandContext &&)=delete;
 
-    void DoMenuItemUI(const char *name,bool enabled=true);
+    void DoMenuItemUI(const char *name);
     bool ExecuteCommandsForPCKey(uint32_t keycode) const;
 protected:
 private:

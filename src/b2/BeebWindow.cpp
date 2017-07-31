@@ -778,7 +778,7 @@ bool BeebWindow::DoImGui(int output_width,int output_height) {
             //    }
             //}
 
-            m_cc.DoMenuItemUI("load_last_state",m_beeb_thread->GetLastSavedStateTimelineId()!=0);
+            m_cc.DoMenuItemUI("load_last_state");
             m_cc.DoMenuItemUI("save_state");
             ImGui::Separator();
             m_cc.DoMenuItemUI("exit");
@@ -1793,6 +1793,13 @@ void BeebWindow::LoadLastState() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+bool BeebWindow::IsLoadLastStateEnabled() const {
+    return m_beeb_thread->GetLastSavedStateTimelineId()!=0;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 void BeebWindow::SaveState() {
     m_beeb_thread->SendSaveStateMessage(true);
 }
@@ -1898,7 +1905,7 @@ void BeebWindow::CheckTimeline() {
 
 ObjectCommandTable<BeebWindow> BeebWindow::ms_command_table("Beeb Window",{
     {"hard_reset","Hard Reset",&BeebWindow::HardReset},
-    {"load_last_state","Load Last State",&BeebWindow::LoadLastState},
+    {"load_last_state","Load Last State",&BeebWindow::LoadLastState,&BeebWindow::IsLoadLastStateEnabled},
     {"save_state","Save State",&BeebWindow::SaveState},
     {"toggle_emulator_options","Emulator options...",&BeebWindow::GetSettingsUIFlags,&BeebWindow::SetSettingsUIFlags,BeebWindowUIFlag_Options},
     {"toggle_keyboard_layout","Keyboard layout...",&BeebWindow::GetSettingsUIFlags,&BeebWindow::SetSettingsUIFlags,BeebWindowUIFlag_Keymaps},
@@ -1915,5 +1922,5 @@ ObjectCommandTable<BeebWindow> BeebWindow::ms_command_table("Beeb Window",{
     {"print_separator","Print stdout separator",&BeebWindow::PrintSeparator},
     {"dump_timeline_console","Dump timeline to console only",&BeebWindow::DumpTimelineConsole},
     {"dump_timeline_debugger","Dump timeline to console+debugger",&BeebWindow::DumpTimelineDebuger},
-    {"check_timeline","Check timeline",&BeebWindow::CheckTimeline}, 
+    {"check_timeline","Check timeline",&BeebWindow::CheckTimeline},
 });
