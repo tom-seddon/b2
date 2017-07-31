@@ -362,6 +362,13 @@ private:
     bool RecreateTexture();
     uint32_t GetSettingsUIFlags() const;
     void SetSettingsUIFlags(uint32_t flags);
+    void Exit();
+    void CleanUpRecentFilesLists();
+    void ClearConsole();
+    void PrintSeparator();
+    void DumpTimelineConsole();
+    void DumpTimelineDebuger();
+    void CheckTimeline();
 
     static ObjectCommandTable<BeebWindow> ms_command_table;
 };

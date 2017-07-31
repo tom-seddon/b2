@@ -20,9 +20,10 @@ static void InitAllCommandTables() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-Command::Command(std::string name,std::string text):
+Command::Command(std::string name,std::string text,bool confirm):
     m_name(std::move(name)),
-    m_text(std::move(text))
+    m_text(std::move(text)),
+    m_confirm(confirm)
 {
 }
 
@@ -197,13 +198,22 @@ void CommandContext::DoMenuItemUI(const char *name,bool enabled) {
         shortcut=GetKeycodeName(command->m_shortcut).c_str();
     }
 
-    bool selected=false;
-    if(command->IsTicked(m_object)) {
-        selected=true;
-    }
+    if(command->m_confirm) {
+        if(ImGui::BeginMenu(command->m_text.c_str(),enabled)) {
+            if(ImGui::MenuItem("Confirm")) {
+                command->Execute(m_object);
+            }
+            ImGui::EndMenu();
+        }
+    } else {
+        bool selected=false;
+        if(command->IsTicked(m_object)) {
+            selected=true;
+        }
 
-    if(ImGui::MenuItem(command->m_text.c_str(),shortcut.empty()?nullptr:shortcut.c_str(),&selected,enabled)) {
-        command->Execute(m_object);
+        if(ImGui::MenuItem(command->m_text.c_str(),shortcut.empty()?nullptr:shortcut.c_str(),&selected,enabled)) {
+            command->Execute(m_object);
+        }
     }
 }
 

@@ -780,19 +780,8 @@ bool BeebWindow::DoImGui(int output_width,int output_height) {
 
             m_cc.DoMenuItemUI("load_last_state",m_beeb_thread->GetLastSavedStateTimelineId()!=0);
             m_cc.DoMenuItemUI("save_state");
-
-            if(ImGui::BeginMenu("Exit")) {
-                if(ImGui::MenuItem("Confirm")) {
-                    this->SaveSettings();
-
-                    SDL_Event event={};
-                    event.type=SDL_QUIT;
-
-                    SDL_PushEvent(&event);
-                }
-                ImGui::EndMenu();
-            }
-
+            ImGui::Separator();
+            m_cc.DoMenuItemUI("exit");
             ImGui::EndMenu();
         }
 
@@ -817,23 +806,7 @@ bool BeebWindow::DoImGui(int output_width,int output_height) {
             // }
 
             ImGui::Separator();
-
-            if(ImGui::BeginMenu("Clean up recent files lists")) {
-                if(ImGui::MenuItem("Confirm")) {
-                    size_t n=0;
-
-                    n+=CleanUpRecentPaths(RECENT_PATHS_65LINK,&PathIsFolderOnDisk);
-                    n+=CleanUpRecentPaths(RECENT_PATHS_DISC_IMAGE,&PathIsFileOnDisk);
-                    n+=CleanUpRecentPaths(RECENT_PATHS_NVRAM,&PathIsFileOnDisk);
-
-                    if(n>0) {
-                        m_msg.i.f("Removed %zu items\n",n);
-                    }
-                }
-
-                ImGui::EndMenu();
-            }
-
+            m_cc.DoMenuItemUI("clean_up_recent_files_lists");
             ImGui::EndMenu();
         }
 
@@ -842,32 +815,19 @@ bool BeebWindow::DoImGui(int output_width,int output_height) {
 #if ENABLE_IMGUI_DEMO
             ImGui::MenuItem("ImGui demo...",NULL,&m_imgui_demo);
 #endif
-            ImGuiMenuItemFlag("Event trace...",NULL,&m_settings.ui_flags,BeebWindowUIFlag_Trace);
-            ImGuiMenuItemFlag("Data rate...",NULL,&m_settings.ui_flags,BeebWindowUIFlag_AudioCallback);
+            m_cc.DoMenuItemUI("toggle_event_trace");
+            m_cc.DoMenuItemUI("toggle_date_rate");
 
 #if SYSTEM_WINDOWS
             if(GetConsoleWindow()) {
-                if(ImGui::MenuItem("Clear console")) {
-                    ClearConsole();
-                }
-
-                if(ImGui::MenuItem("Print separator")) {
-                    printf("--------------------------------------------------\n");
-                }
+                m_cc.DoMenuItemUI("clear_console");
+                m_cc.DoMenuItemUI("print_separator");
             }
 #endif
 
-            if(ImGui::MenuItem("Dump timeline to console only")) {
-                Timeline::Dump(&LOG(OUTPUTND));
-            }
-
-            if(ImGui::MenuItem("Dump timeline to console+debugger")) {
-                Timeline::Dump(&LOG(OUTPUT));
-            }
-
-            if(ImGui::MenuItem("Check timeline")) {
-                Timeline::Check();
-            }
+            m_cc.DoMenuItemUI("dump_timeline_console");
+            m_cc.DoMenuItemUI("dump_timeline_debugger");
+            m_cc.DoMenuItemUI("check_timeline");
 
             ImGui::EndMenu();
         }
@@ -1064,9 +1024,9 @@ bool BeebWindow::DoImGui(int output_width,int output_height) {
 
     if(m_messages_popup_ui_active) {
         ImGuiWindowFlags flags=(ImGuiWindowFlags_NoTitleBar|
-            ImGuiWindowFlags_ShowBorders|
-            ImGuiWindowFlags_AlwaysAutoResize|
-            ImGuiWindowFlags_NoFocusOnAppearing);
+                                ImGuiWindowFlags_ShowBorders|
+                                ImGuiWindowFlags_AlwaysAutoResize|
+                                ImGuiWindowFlags_NoFocusOnAppearing);
         ImGui::SetNextWindowPosCenter();
 
         // What's supposed to happen here: the window is 90% of the
@@ -1104,9 +1064,9 @@ bool BeebWindow::DoImGui(int output_width,int output_height) {
 
     if(m_leds_popup_ui_active) {
         ImGuiWindowFlags flags=(ImGuiWindowFlags_NoTitleBar|
-            ImGuiWindowFlags_ShowBorders|
-            ImGuiWindowFlags_AlwaysAutoResize|
-            ImGuiWindowFlags_NoFocusOnAppearing);
+                                ImGuiWindowFlags_ShowBorders|
+                                ImGuiWindowFlags_AlwaysAutoResize|
+                                ImGuiWindowFlags_NoFocusOnAppearing);
         ImGui::SetNextWindowPos(ImVec2(10.f,output_height-50.f));
 
         if(ImGui::Begin("LEDs",&m_leds_popup_ui_active,flags)) {
@@ -1155,9 +1115,9 @@ bool BeebWindow::DoImGui(int output_width,int output_height) {
                 ImGui::Separator();
             } else {
                 ImGuiWindowFlags flags=(ImGuiWindowFlags_NoTitleBar|
-                    ImGuiWindowFlags_ShowBorders|
-                    ImGuiWindowFlags_AlwaysAutoResize|
-                    ImGuiWindowFlags_NoFocusOnAppearing);
+                                        ImGuiWindowFlags_ShowBorders|
+                                        ImGuiWindowFlags_AlwaysAutoResize|
+                                        ImGuiWindowFlags_NoFocusOnAppearing);
 
                 ImGui::SetNextWindowPos(ImVec2(10.f,30.f));
 
@@ -1423,19 +1383,19 @@ bool BeebWindow::InitInternal() {
     ASSERT(m_init_arguments.sound_spec.freq>0);
 
     m_window=SDL_CreateWindow("",
-        SDL_WINDOWPOS_UNDEFINED,
-        SDL_WINDOWPOS_UNDEFINED,
-        (int)(TV_TEXTURE_WIDTH*m_settings.display_scale_x),
-        (int)(TV_TEXTURE_HEIGHT*m_settings.display_scale_y),
-        SDL_WINDOW_RESIZABLE|SDL_WINDOW_OPENGL);
+                              SDL_WINDOWPOS_UNDEFINED,
+                              SDL_WINDOWPOS_UNDEFINED,
+                              (int)(TV_TEXTURE_WIDTH*m_settings.display_scale_x),
+                              (int)(TV_TEXTURE_HEIGHT*m_settings.display_scale_y),
+                              SDL_WINDOW_RESIZABLE|SDL_WINDOW_OPENGL);
     if(!m_window) {
         m_msg.e.f("SDL_CreateWindow failed: %s\n",SDL_GetError());
         return false;
     }
 
     m_renderer=SDL_CreateRenderer(m_window,
-        m_init_arguments.render_driver_index,
-        0);
+                                  m_init_arguments.render_driver_index,
+                                  0);
     if(!m_renderer) {
         m_msg.e.f("SDL_CreateRenderer failed: %s\n",SDL_GetError());
         return false;
@@ -1582,17 +1542,17 @@ bool BeebWindow::InitInternal() {
         int width,height;
         SDL_QueryTexture(m_tv_texture,&format,nullptr,&width,&height);
         m_msg.i.f("Renderer: %s, %dx%d %s\n",
-            info.name,
-            width,
-            height,
-            SDL_GetPixelFormatName(format));
+                  info.name,
+                  width,
+                  height,
+                  SDL_GetPixelFormatName(format));
     }
 
     m_msg.i.f("Sound: %s, %dHz %d-channel (%d byte buffer)\n",
-        SDL_GetCurrentAudioDriver(),
-        m_init_arguments.sound_spec.freq,
-        m_init_arguments.sound_spec.channels,
-        m_init_arguments.sound_spec.size);
+              SDL_GetCurrentAudioDriver(),
+              m_init_arguments.sound_spec.freq,
+              m_init_arguments.sound_spec.channels,
+              m_init_arguments.sound_spec.size);
 
 
     return true;
@@ -1682,7 +1642,7 @@ SDL_Texture *BeebWindow::GetTextureForRenderer(SDL_Renderer *renderer) const {
 //////////////////////////////////////////////////////////////////////////
 
 bool BeebWindow::GetTextureData(BeebWindowTextureDataVersion *version,
-    const SDL_PixelFormat **format_ptr,const void **pixels_ptr) const
+                                const SDL_PixelFormat **format_ptr,const void **pixels_ptr) const
 {
     uint64_t v;
     *pixels_ptr=m_tv.GetTextureData(&v);
@@ -1874,6 +1834,68 @@ void BeebWindow::SetSettingsUIFlags(uint32_t flags) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+void BeebWindow::Exit() {
+    this->SaveSettings();
+
+    SDL_Event event={};
+    event.type=SDL_QUIT;
+
+    SDL_PushEvent(&event);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BeebWindow::CleanUpRecentFilesLists() {
+    size_t n=0;
+
+    n+=CleanUpRecentPaths(RECENT_PATHS_65LINK,&PathIsFolderOnDisk);
+    n+=CleanUpRecentPaths(RECENT_PATHS_DISC_IMAGE,&PathIsFileOnDisk);
+    n+=CleanUpRecentPaths(RECENT_PATHS_NVRAM,&PathIsFileOnDisk);
+
+    if(n>0) {
+        m_msg.i.f("Removed %zu items\n",n);
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BeebWindow::ClearConsole() {
+    ::ClearConsole();
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BeebWindow::PrintSeparator() {
+    printf("--------------------------------------------------\n");
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BeebWindow::DumpTimelineConsole() {
+    Timeline::Dump(&LOG(OUTPUTND));
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BeebWindow::DumpTimelineDebuger() {
+    Timeline::Dump(&LOG(OUTPUT));
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BeebWindow::CheckTimeline() {
+    Timeline::Check();
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 ObjectCommandTable<BeebWindow> BeebWindow::ms_command_table("Beeb Window",{
     {"hard_reset","Hard Reset",&BeebWindow::HardReset},
     {"load_last_state","Load Last State",&BeebWindow::LoadLastState},
@@ -1885,5 +1907,13 @@ ObjectCommandTable<BeebWindow> BeebWindow::ms_command_table("Beeb Window",{
     {"toggle_timeline","Timeline...",&BeebWindow::GetSettingsUIFlags,&BeebWindow::SetSettingsUIFlags,BeebWindowUIFlag_Timeline},
 #endif
     {"toggle_configurations","Configurations...",&BeebWindow::GetSettingsUIFlags,&BeebWindow::SetSettingsUIFlags,BeebWindowUIFlag_Configs},
+    {"exit","Exit",&BeebWindow::Exit,ConfirmCommand()},
+    {"clean_up_recent_files_lists","Clean up recent files lists",&BeebWindow::CleanUpRecentFilesLists,ConfirmCommand()},
+    {"toggle_event_trace","Event trace...",&BeebWindow::GetSettingsUIFlags,&BeebWindow::SetSettingsUIFlags,BeebWindowUIFlag_Trace},
+    {"toggle_date_rate","Data rate...",&BeebWindow::GetSettingsUIFlags,&BeebWindow::SetSettingsUIFlags,BeebWindowUIFlag_AudioCallback},
+    {"clear_console","Clear Win32 console",&BeebWindow::ClearConsole},
+    {"print_separator","Print stdout separator",&BeebWindow::PrintSeparator},
+    {"dump_timeline_console","Dump timeline to console only",&BeebWindow::DumpTimelineConsole},
+    {"dump_timeline_debugger","Dump timeline to console+debugger",&BeebWindow::DumpTimelineDebuger},
+    {"check_timeline","Check timeline",&BeebWindow::CheckTimeline}, 
 });
-

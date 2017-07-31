@@ -24,7 +24,7 @@
 
 class Command {
 public:
-    Command(std::string name,std::string text);
+    Command(std::string name,std::string text,bool confirm);
 
     //void DoMenuItemUI(void *object,bool enabled=true);
     virtual void Execute(void *object) const=0;
@@ -37,9 +37,16 @@ private:
     const std::string m_name;
     std::string m_text;
     uint32_t m_shortcut=0;
+    bool m_confirm=false;
 
     friend class CommandTable;
     friend class CommandContext;
+};
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+struct ConfirmCommand {
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -50,10 +57,15 @@ class ObjectCommand:
     public Command
 {
 public:
-    ObjectCommand(std::string name,std::string text,std::function<void(T *)> execute_fun,std::function<bool(T *)> ticked_fun={}):
-        Command(std::move(name),std::move(text)),
+    ObjectCommand(std::string name,std::string text,
+                  std::function<void(T *)> execute_fun,
+                  std::function<bool(T *)> ticked_fun,
+                  std::function<bool(T *)> enabled_fun,
+                  bool confirm):
+        Command(std::move(name),std::move(text),confirm),
         m_execute_fun(std::move(execute_fun)),
-        m_ticked_fun(std::move(ticked_fun))
+        m_ticked_fun(std::move(ticked_fun)),
+        m_enabled_fun(std::move(enabled_fun))
     {
         ASSERT(!!m_execute_fun);
     }
@@ -65,18 +77,30 @@ public:
     }
 
     virtual bool IsTicked(void *object_) const {
-        if(!m_ticked_fun) {
-            return false;
-        } else {
-            auto object=(T *)object_;
-            bool ticked=m_ticked_fun(object);
-            return ticked;
-        }
+        return this->DoBoolFun(object_,m_ticked_fun,false);
+    }
+
+    virtual bool IsEnabled(void *object_) const {
+        return this->DoBoolFun(object_,m_enabled_fun,true);
     }
 protected:
 private:
     std::function<void(T *)> m_execute_fun;
     std::function<bool(T *)> m_ticked_fun;
+    std::function<bool(T *)> m_enabled_fun;
+
+    bool DoBoolFun(void *object_,
+                   const std::function<bool(T *)> &fun,
+                   bool default_value) const
+    {
+        if(!fun) {
+            return default_value;
+        } else {
+            auto object=(T *)object_;
+            bool ticked=fun(object);
+            return ticked;
+        }
+    }
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -139,15 +163,26 @@ public:
         std::string name;
         std::string text;
         void (T::*mfn)()=nullptr;
+        bool (T::*enabled_mfn)() const=nullptr;
+        bool confirm=false;
         intptr_t arg=0;
         uint32_t (T::*get_flags_mfn)() const=nullptr;
         void (T::*set_flags_mfn)(uint32_t)=nullptr;
         uint32_t flags_mask=0;
 
-        Initializer(std::string name_,std::string text_,void (T::*mfn_)()):
+        Initializer(std::string name_,std::string text_,void (T::*mfn_)(),bool (T::*enabled_mfn_)() const=nullptr):
             name(std::move(name_)),
             text(std::move(text_)),
-            mfn(std::move(mfn_))
+            mfn(std::move(mfn_)),
+            enabled_mfn(std::move(enabled_mfn_))
+        {
+        }
+
+        Initializer(std::string name_,std::string text_,void (T::*mfn_)(),ConfirmCommand):
+            name(std::move(name_)),
+            text(std::move(text_)),
+            mfn(std::move(mfn_)),
+            confirm(true)
         {
         }
 
@@ -166,6 +201,7 @@ public:
     {
         for(const Initializer &init:inits) {
             std::function<void(T *)> execute_fun;
+            std::function<bool(T *)> enabled_fun;
             std::function<bool(T *)> ticked_fun;
 
             if(init.mfn) {
@@ -193,7 +229,19 @@ public:
                 ASSERT(false);
             }
 
-            this->AddCommand(std::make_unique<ObjectCommand<T>>(std::move(init.name),std::move(init.text),std::move(execute_fun),std::move(ticked_fun)));
+            if(init.enabled_mfn) {
+                auto enabled_mfn=init.enabled_mfn;
+                enabled_fun=[=](T *p) {
+                    return (p->*enabled_mfn)();
+                };
+            }
+
+            this->AddCommand(std::make_unique<ObjectCommand<T>>(std::move(init.name),
+                                                                std::move(init.text),
+                                                                std::move(execute_fun),
+                                                                std::move(ticked_fun),
+                                                                std::move(enabled_fun),
+                                                                init.confirm));
         }
     }
 protected:
