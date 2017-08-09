@@ -113,7 +113,7 @@ BeebWindow::DriveState::DriveState():
 
 BeebWindow::BeebWindow(BeebWindowInitArguments init_arguments):
     m_init_arguments(std::move(init_arguments)),
-    m_cc(this,&ms_command_table)
+    m_occ(this,&ms_command_table)
 {
     m_name=m_init_arguments.name;
 
@@ -230,7 +230,7 @@ void BeebWindow::HandleSDLKeyEvent(const SDL_KeyboardEvent &event) {
         uint32_t keycode=(uint32_t)event.keysym.sym|GetPCKeyModifiersFromSDLKeymod(event.keysym.mod);
 
         for(size_t i=0;i<m_cc_stack.size();++i) {
-            CommandContext *cc=m_cc_stack[m_cc_stack.size()-1-i];
+            const std::shared_ptr<CommandContext> &cc=m_cc_stack[m_cc_stack.size()-1-i];
 
             if(cc->ExecuteCommandsForPCKey(keycode)) {
                 break;
@@ -571,7 +571,7 @@ bool BeebWindow::DoImGui(int output_width,int output_height) {
     m_imgui_has_kb_focus=false;
 
     m_cc_stack.clear();
-    m_cc_stack.push_back(&m_cc);
+    m_cc_stack.push_back(m_occ.cc);
 
     if(m_imgui_stuff->WantCaptureKeyboard()) {
         m_imgui_has_kb_focus=true;
@@ -583,7 +583,7 @@ bool BeebWindow::DoImGui(int output_width,int output_height) {
 
     if(ImGui::BeginMainMenuBar()) {
         if(ImGui::BeginMenu("File")) {
-            m_cc.DoMenuItemUI("hard_reset");
+            m_occ.DoMenuItemUI("hard_reset");
 
             if(ImGui::BeginMenu("Change config")) {
                 bool seen_first_custom=false;
@@ -778,21 +778,21 @@ bool BeebWindow::DoImGui(int output_width,int output_height) {
             //    }
             //}
 
-            m_cc.DoMenuItemUI("load_last_state");
-            m_cc.DoMenuItemUI("save_state");
+            m_occ.DoMenuItemUI("load_last_state");
+            m_occ.DoMenuItemUI("save_state");
             ImGui::Separator();
-            m_cc.DoMenuItemUI("exit");
+            m_occ.DoMenuItemUI("exit");
             ImGui::EndMenu();
         }
 
         if(ImGui::BeginMenu("Tools")) {
-            m_cc.DoMenuItemUI("toggle_emulator_options");
-            m_cc.DoMenuItemUI("toggle_keyboard_layout");
-            m_cc.DoMenuItemUI("toggle_messages");
+            m_occ.DoMenuItemUI("toggle_emulator_options");
+            m_occ.DoMenuItemUI("toggle_keyboard_layout");
+            m_occ.DoMenuItemUI("toggle_messages");
 #if TIMELINE_UI_ENABLED
-            m_cc.DoMenuItemUI("toggle_timeline");
+            m_occ.DoMenuItemUI("toggle_timeline");
 #endif
-            m_cc.DoMenuItemUI("toggle_configurations");
+            m_occ.DoMenuItemUI("toggle_configurations");
 
             // if(ImGui::MenuItem("Dump states")) {
             //     std::vector<std::shared_ptr<BeebState>> all_states=BeebState::GetAllStates();
@@ -806,7 +806,7 @@ bool BeebWindow::DoImGui(int output_width,int output_height) {
             // }
 
             ImGui::Separator();
-            m_cc.DoMenuItemUI("clean_up_recent_files_lists");
+            m_occ.DoMenuItemUI("clean_up_recent_files_lists");
             ImGui::EndMenu();
         }
 
@@ -815,19 +815,19 @@ bool BeebWindow::DoImGui(int output_width,int output_height) {
 #if ENABLE_IMGUI_DEMO
             ImGui::MenuItem("ImGui demo...",NULL,&m_imgui_demo);
 #endif
-            m_cc.DoMenuItemUI("toggle_event_trace");
-            m_cc.DoMenuItemUI("toggle_date_rate");
+            m_occ.DoMenuItemUI("toggle_event_trace");
+            m_occ.DoMenuItemUI("toggle_date_rate");
 
 #if SYSTEM_WINDOWS
             if(GetConsoleWindow()) {
-                m_cc.DoMenuItemUI("clear_console");
-                m_cc.DoMenuItemUI("print_separator");
+                m_occ.DoMenuItemUI("clear_console");
+                m_occ.DoMenuItemUI("print_separator");
             }
 #endif
 
-            m_cc.DoMenuItemUI("dump_timeline_console");
-            m_cc.DoMenuItemUI("dump_timeline_debugger");
-            m_cc.DoMenuItemUI("check_timeline");
+            m_occ.DoMenuItemUI("dump_timeline_console");
+            m_occ.DoMenuItemUI("dump_timeline_debugger");
+            m_occ.DoMenuItemUI("check_timeline");
 
             ImGui::EndMenu();
         }

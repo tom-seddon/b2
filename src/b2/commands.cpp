@@ -189,9 +189,20 @@ CommandContext::CommandContext(void *object,const CommandTable *table):
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+void CommandContext::Reset() {
+    m_object=nullptr;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 void CommandContext::DoMenuItemUI(const char *name) {
     Command *command=m_table->FindCommandByName(name);
     ASSERT(command);
+
+    if(!m_object) {
+        return;
+    }
 
     std::string shortcut;
     if(command->m_shortcut!=0) {
@@ -225,6 +236,10 @@ void CommandContext::DoMenuItemUI(const char *name) {
 bool CommandContext::ExecuteCommandsForPCKey(uint32_t keycode) const {
     const Command *const *commands=m_table->GetValuesForPCKey(keycode);
     if(!commands) {
+        return false;
+    }
+
+    if(!m_object) {
         return false;
     }
 

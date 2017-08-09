@@ -315,7 +315,7 @@ private:
     bool m_imgui_demo=false;
 #endif
 
-    std::vector<CommandContext *> m_cc_stack;
+    std::vector<std::shared_ptr<CommandContext>> m_cc_stack;
 
     std::vector<std::string> m_display_size_options;
 
@@ -345,7 +345,7 @@ private:
     // Keep this towards the end. It's quite a large object.
     Messages m_msg;
 
-    ObjectCommandContext<BeebWindow> m_cc;
+    ObjectCommandContext<BeebWindow> m_occ;
 
     bool InitInternal();
     bool LoadDiscImageFile(int drive,const std::string &path);

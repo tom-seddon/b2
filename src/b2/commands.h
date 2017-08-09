@@ -261,6 +261,8 @@ public:
     CommandContext(CommandContext &&)=delete;
     CommandContext &operator=(CommandContext &&)=delete;
 
+    void Reset();
+
     void DoMenuItemUI(const char *name);
     bool ExecuteCommandsForPCKey(uint32_t keycode) const;
 protected:
@@ -272,17 +274,42 @@ private:
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+// This object does three things:
+//
+// 1. ensure a (non-templated) CommandContext is created in a
+// type-safe fashion
+//
+// 2. creates a shareable CommandContext that can outlive the
+// ObjectCommandContext. The context stack is only updated during the
+// imgui step, but its contents have to stick around past that, so it
+// can be handled by the SDL key event handler. This means that the
+// CommandContext objects need to be able to outlive (if hopefully
+// only briefly) the ObjectCommandContext they come from
+//
+// 3. calls Reset on its CommandContext on destruction, so that the
+// CommandContext knows that its ObjectCommandContext has gone away
+//
+// (If point 2 weren't an issue, this could be simpler. Perhaps
+// keyboard shortcuts could/should be handled by the dear imgui
+// keyboard stuff instead?)
+
 template<class T>
-class ObjectCommandContext:
-    public CommandContext
-{
+class ObjectCommandContext {
 public:
+    const std::shared_ptr<CommandContext> cc;
+
     ObjectCommandContext(T *object,const ObjectCommandTable<T> *table):
-        CommandContext(object,table)
+        cc(std::make_shared<CommandContext>(object,table))
     {
     }
 
-    using CommandContext::DoMenuItemUI;
+    ~ObjectCommandContext() {
+        this->cc->Reset();
+    }
+
+    void DoMenuItemUI(const char *name) {
+        this->cc->DoMenuItemUI(name);
+    }
 protected:
 private:
 };
