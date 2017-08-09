@@ -25,6 +25,7 @@ class TraceUI;
 class NVRAMUI;
 class DataRateUI;
 class BeebState;
+class CommandContextStackUI;
 
 #include "keys.h"
 #include "dear_imgui.h"
@@ -315,7 +316,7 @@ private:
     bool m_imgui_demo=false;
 #endif
 
-    std::vector<std::shared_ptr<CommandContext>> m_cc_stack;
+    CommandContextStack m_cc_stack;
 
     std::vector<std::string> m_display_size_options;
 
@@ -330,6 +331,7 @@ private:
 #endif
     std::unique_ptr<NVRAMUI> m_nvram_ui;
     std::unique_ptr<DataRateUI> m_data_rate_ui;
+    std::unique_ptr<CommandContextStackUI> m_cc_stack_ui;
 
     bool m_messages_popup_ui_active=false;
     uint64_t m_messages_popup_ticks=0;

@@ -1,31 +1,25 @@
-#ifndef HEADER_C7C9CDD4D0B044EA8EC0A19416AFF74B// -*- mode:c++ -*-
-#define HEADER_C7C9CDD4D0B044EA8EC0A19416AFF74B
+#ifndef HEADER_1CB63B4BE4204F0AA6F3920B2F7F32CD// -*- mode:c++ -*-
+#define HEADER_1CB63B4BE4204F0AA6F3920B2F7F32CD
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
-
-#include <memory>
-#include "Messages.h"
 
 class CommandContextStack;
 
+#include <memory>
+#include <vector>
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-class MessagesUI {
+class CommandContextStackUI {
 public:
-    static std::unique_ptr<MessagesUI> Create();
+    CommandContextStackUI(CommandContextStack *cc_stack);
 
-    MessagesUI();
-    virtual ~MessagesUI()=0;
-
-    static void DoMessageImGui(const MessageList::Message *m);
-
-    virtual void SetMessageList(std::shared_ptr<MessageList> messages)=0;
-
-    virtual void DoImGui(CommandContextStack *cc_stack)=0;
+    void DoImGui();
 protected:
 private:
+    CommandContextStack *m_cc_stack=nullptr;
 };
 
 //////////////////////////////////////////////////////////////////////////

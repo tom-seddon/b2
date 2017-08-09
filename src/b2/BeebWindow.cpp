@@ -33,6 +33,7 @@
 #include "DataRateUI.h"
 #include "Timeline.h"
 #include <shared/path.h>
+#include "CommandContextStackUI.h"
 
 #ifdef _MSC_VER
 #include <crtdbg.h>
@@ -220,23 +221,22 @@ void BeebWindow::HandleSDLKeyEvent(const SDL_KeyboardEvent &event) {
         return;
     }
 
+    // Might be a shortcut key.
+    if(state) {
+        uint32_t keycode=(uint32_t)event.keysym.sym|GetPCKeyModifiersFromSDLKeymod(event.keysym.mod);
+
+        if(m_cc_stack.ExecuteCommandsForPCKey(keycode)) {
+            // The emulator may later get key up messages for this
+            // key, but that is (ought to be...) OK.
+            return;
+        }
+    }
+
     if(this->HandleBeebKey(event.keysym,state)) {
         // The emulated BBC ate the keypress.
         return;
     }
 
-    // Might be a shortcut key.
-    if(state) {
-        uint32_t keycode=(uint32_t)event.keysym.sym|GetPCKeyModifiersFromSDLKeymod(event.keysym.mod);
-
-        for(size_t i=0;i<m_cc_stack.size();++i) {
-            const std::shared_ptr<CommandContext> &cc=m_cc_stack[m_cc_stack.size()-1-i];
-
-            if(cc->ExecuteCommandsForPCKey(keycode)) {
-                break;
-            }
-        }
-    }
 }
 
 bool BeebWindow::HandleBeebKey(const SDL_Keysym &keysym,bool state) {
@@ -570,8 +570,8 @@ bool BeebWindow::DoImGui(int output_width,int output_height) {
 
     m_imgui_has_kb_focus=false;
 
-    m_cc_stack.clear();
-    m_cc_stack.push_back(m_occ.cc);
+    m_cc_stack.Reset();
+    m_cc_stack.Push(m_occ,true);//true=force push
 
     if(m_imgui_stuff->WantCaptureKeyboard()) {
         m_imgui_has_kb_focus=true;
@@ -817,6 +817,7 @@ bool BeebWindow::DoImGui(int output_width,int output_height) {
 #endif
             m_occ.DoMenuItemUI("toggle_event_trace");
             m_occ.DoMenuItemUI("toggle_date_rate");
+            m_occ.DoMenuItemUI("toggle_cc_stack");
 
 #if SYSTEM_WINDOWS
             if(GetConsoleWindow()) {
@@ -922,7 +923,7 @@ bool BeebWindow::DoImGui(int output_width,int output_height) {
         }
 
         if(ImGuiBeginFlag("Messages",&m_settings.ui_flags,BeebWindowUIFlag_Messages)) {
-            m_messages_ui->DoImGui();
+            m_messages_ui->DoImGui(&m_cc_stack);
         }
         ImGui::End();
     } else {
@@ -1004,6 +1005,19 @@ bool BeebWindow::DoImGui(int output_width,int output_height) {
         ImGui::End();
     } else {
         m_data_rate_ui=nullptr;
+    }
+
+    if(m_settings.ui_flags&BeebWindowUIFlag_CommandContextStack) {
+        if(!m_cc_stack_ui) {
+            m_cc_stack_ui=std::make_unique<CommandContextStackUI>(&m_cc_stack);
+        }
+
+        if(ImGuiBeginFlag("Command Context Stack",&m_settings.ui_flags,BeebWindowUIFlag_CommandContextStack)) {
+            m_cc_stack_ui->DoImGui();
+        }
+        ImGui::End();
+    } else {
+        m_cc_stack_ui=nullptr;
     }
 
     if(ValueChanged(&m_msg_last_num_errors_and_warnings_printed,m_message_list->GetNumErrorsAndWarningsPrinted())) {
@@ -1923,4 +1937,5 @@ ObjectCommandTable<BeebWindow> BeebWindow::ms_command_table("Beeb Window",{
     {"dump_timeline_console","Dump timeline to console only",&BeebWindow::DumpTimelineConsole},
     {"dump_timeline_debugger","Dump timeline to console+debugger",&BeebWindow::DumpTimelineDebuger},
     {"check_timeline","Check timeline",&BeebWindow::CheckTimeline},
+    {"toggle_cc_stack","Command context stack...",&BeebWindow::GetSettingsUIFlags,&BeebWindow::SetSettingsUIFlags,BeebWindowUIFlag_CommandContextStack},
 });

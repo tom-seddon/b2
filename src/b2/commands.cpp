@@ -218,6 +218,32 @@ void CommandContext::Reset() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+void CommandContext::DoButton(const char *name) {
+    Command *command=m_table->FindCommandByName(name);
+    ASSERT(command);
+
+    if(!m_object) {
+        return;
+    }
+
+    bool enabled=command->IsEnabled(m_object);
+
+    if(command->m_confirm) {
+        // bleargh...
+    } else if(const bool *ticked=command->IsTicked(m_object)) {
+        if(ImGui::RadioButton(command->m_text.c_str(),*ticked)) {
+            command->Execute(m_object);
+        }
+    } else {
+        if(ImGui::Button(command->m_text.c_str())) {
+            command->Execute(m_object);
+        }
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 void CommandContext::DoMenuItemUI(const char *name) {
     Command *command=m_table->FindCommandByName(name);
     ASSERT(command);
@@ -241,8 +267,10 @@ void CommandContext::DoMenuItemUI(const char *name) {
             ImGui::EndMenu();
         }
     } else {
+        const bool *ticked=command->IsTicked(m_object);
+
         bool selected=false;
-        if(command->IsTicked(m_object)) {
+        if(!ticked||*ticked) {
             selected=true;
         }
 
@@ -270,6 +298,59 @@ bool CommandContext::ExecuteCommandsForPCKey(uint32_t keycode) const {
     }
 
     return true;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+const CommandTable *CommandContext::GetCommandTable() const {
+    return m_table;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void CommandContextStack::Push(const std::shared_ptr<CommandContext> &cc,bool force) {
+    if(force||ImGui::IsRootWindowFocused()) {
+        m_ccs.push_back(cc);
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void CommandContextStack::Reset() {
+    m_ccs.clear();
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+size_t CommandContextStack::GetNumCCs() const {
+    return m_ccs.size();
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+const std::shared_ptr<CommandContext> &CommandContextStack::GetCCByIndex(size_t index) const {
+    ASSERT(index<m_ccs.size());
+    return m_ccs[m_ccs.size()-1-index];
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool CommandContextStack::ExecuteCommandsForPCKey(uint32_t keycode) const {
+    for(size_t i=0;i<this->GetNumCCs();++i) {
+        const std::shared_ptr<CommandContext> &cc=this->GetCCByIndex(i);
+
+        if(cc->ExecuteCommandsForPCKey(keycode)) {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 //////////////////////////////////////////////////////////////////////////

@@ -27,7 +27,7 @@ public:
     Command(std::string name,std::string text,bool confirm);
 
     virtual void Execute(void *object) const=0;
-    virtual bool IsTicked(void *object) const=0;
+    virtual const bool *IsTicked(void *object) const=0;
     virtual bool IsEnabled(void *object) const=0;
 
     const std::string &GetName() const;
@@ -76,30 +76,37 @@ public:
         m_execute_fun(object);
     }
 
-    bool IsTicked(void *object) const override {
-        return this->DoBoolFun(object,m_ticked_fun,false);
+    const bool *IsTicked(void *object_) const override {
+        if(!m_ticked_fun) {
+            return nullptr;
+        } else {
+            auto object=(T *)object_;
+            bool ticked=m_ticked_fun(object);
+            if(ticked) {
+                return &ms_true;
+            } else {
+                return &ms_false;
+            }
+        }
     }
 
-    bool IsEnabled(void *object) const override {
-        return this->DoBoolFun(object,m_enabled_fun,true);
+    bool IsEnabled(void *object_) const override {
+        bool enabled=true;
+
+        if(!!m_enabled_fun) {
+            auto object=(T *)object_;
+            enabled=m_enabled_fun(object);
+        }
+
+        return enabled;
     }
 private:
     std::function<void(T *)> m_execute_fun;
     std::function<bool(T *)> m_ticked_fun;
     std::function<bool(T *)> m_enabled_fun;
 
-    bool DoBoolFun(void *object_,
-                   const std::function<bool(T *)> &fun,
-                   bool default_value) const
-    {
-        if(!fun) {
-            return default_value;
-        } else {
-            auto object=(T *)object_;
-            bool ticked=fun(object);
-            return ticked;
-        }
-    }
+    static const bool ms_true=true;
+    static const bool ms_false=false;
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -268,8 +275,11 @@ public:
 
     void Reset();
 
+    void DoButton(const char *name);
     void DoMenuItemUI(const char *name);
     bool ExecuteCommandsForPCKey(uint32_t keycode) const;
+
+    const CommandTable *GetCommandTable() const;
 protected:
 private:
     void *m_object=nullptr;
@@ -312,11 +322,40 @@ public:
         this->cc->Reset();
     }
 
+    void DoButton(const char *name) {
+        this->cc->DoButton(name);
+    }
+
     void DoMenuItemUI(const char *name) {
         this->cc->DoMenuItemUI(name);
     }
 protected:
 private:
+};
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+class CommandContextStack {
+public:
+    template<class T>
+    void Push(const ObjectCommandContext<T> &occ,bool force=false) {
+        this->Push(occ.cc,force);
+    }
+
+    void Reset();
+
+    void Push(const std::shared_ptr<CommandContext> &cc,bool force=false);
+
+    size_t GetNumCCs() const;
+
+    // index 0 is top of stack.
+    const std::shared_ptr<CommandContext> &GetCCByIndex(size_t index) const;
+
+    bool ExecuteCommandsForPCKey(uint32_t keycode) const;
+protected:
+private:
+    std::vector<std::shared_ptr<CommandContext>> m_ccs;
 };
 
 //////////////////////////////////////////////////////////////////////////
