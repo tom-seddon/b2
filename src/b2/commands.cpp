@@ -116,8 +116,10 @@ const std::string &CommandTable::GetName() const {
 //////////////////////////////////////////////////////////////////////////
 
 void CommandTable::ForEachCommand(std::function<void(Command *)> fun) {
-    for(auto &&it:m_command_by_name) {
-        fun(it.second.get());
+    UpdateSortedCommands();
+
+    for(size_t i=0;i<m_commands_sorted.size();++i) {
+        fun(m_commands_sorted[i]);
     }
 }
 
@@ -173,8 +175,28 @@ Command *CommandTable::AddCommand(std::unique_ptr<Command> command) {
     Command *result=command.get();
 
     m_command_by_name[command->m_name.c_str()]=std::move(command);
+    m_commands_sorted_dirty=true;
 
     return result;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void CommandTable::UpdateSortedCommands() {
+    if(m_commands_sorted_dirty) {
+        m_commands_sorted.clear();
+        m_commands_sorted.reserve(m_command_by_name.size());
+        for(auto &&it:m_command_by_name) {
+            m_commands_sorted.push_back(it.second.get());
+        }
+
+        std::sort(m_commands_sorted.begin(),m_commands_sorted.end(),[](auto a,auto b) {
+            return a->GetText()<b->GetText();
+        });
+
+        m_commands_sorted_dirty=false;
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////

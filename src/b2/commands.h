@@ -148,6 +148,11 @@ private:
     };
     std::map<const char *,std::unique_ptr<Command>,StringLessThan> m_command_by_name;
     Keymap<KeymapTraits> m_keymap;
+
+    std::vector<Command *> m_commands_sorted;
+    bool m_commands_sorted_dirty=true;
+
+    void UpdateSortedCommands();
 };
 
 //////////////////////////////////////////////////////////////////////////
