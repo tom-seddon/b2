@@ -58,6 +58,9 @@ public:
         }
     }
 
+    virtual ~Keymap() {
+    }
+
     void Reset() {
         m_map.clear();
         m_dirty=true;

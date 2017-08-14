@@ -221,10 +221,14 @@ void BeebWindow::HandleSDLKeyEvent(const SDL_KeyboardEvent &event) {
         return;
     }
 
-    // Might be a shortcut key.
-    if(state) {
-        uint32_t keycode=(uint32_t)event.keysym.sym|GetPCKeyModifiersFromSDLKeymod(event.keysym.mod);
+    bool prefer_shortcuts=m_keymap->GetPreferShortcuts();
 
+    uint32_t keycode=0;
+    if(state) {
+        keycode=(uint32_t)event.keysym.sym|GetPCKeyModifiersFromSDLKeymod(event.keysym.mod);
+    }
+
+    if(prefer_shortcuts&&keycode!=0) {
         if(m_cc_stack.ExecuteCommandsForPCKey(keycode)) {
             // The emulator may later get key up messages for this
             // key, but that is (ought to be...) OK.
@@ -237,6 +241,11 @@ void BeebWindow::HandleSDLKeyEvent(const SDL_KeyboardEvent &event) {
         return;
     }
 
+    if(!prefer_shortcuts&&keycode!=0) {
+        if(m_cc_stack.ExecuteCommandsForPCKey(keycode)) {
+            return;
+        }
+    }
 }
 
 bool BeebWindow::HandleBeebKey(const SDL_Keysym &keysym,bool state) {

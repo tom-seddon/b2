@@ -841,6 +841,7 @@ static const char DISPLAY_ALIGNMENT_X[]="display_alignment_x";
 static const char DISPLAY_ALIGNMENT_Y[]="display_alignment_y";
 static const char FILTER_BBC[]="filter_bbc";
 static const char SHORTCUTS[]="shortcuts";
+static const char PREFER_SHORTCUTS[]="prefer_shortcuts";
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -1042,6 +1043,11 @@ static bool LoadKeymaps(rapidjson::Value *keymaps_json,Messages *msg) {
                     }
                 }
             }
+        }
+
+        bool prefer_shortcuts;
+        if(FindBoolMember(&prefer_shortcuts,keymap_json,PREFER_SHORTCUTS,nullptr)) {
+            keymap.SetPreferShortcuts(prefer_shortcuts);
         }
 
         BeebKeymap *keymap_ptr=BeebWindows::AddBeebKeymap(std::move(keymap));
@@ -1330,6 +1336,9 @@ static void SaveKeymaps(JSONWriter<StringStream> *writer) {
         writer->Key(KEYSYMS);
         writer->Bool(keymap->IsKeySymMap());
 
+        writer->Key(PREFER_SHORTCUTS);
+        writer->Bool(keymap->GetPreferShortcuts());
+
         auto keys_json=ObjectWriter(writer,KEYS);
 
         if(keymap->IsKeySymMap()) {
@@ -1377,6 +1386,7 @@ static void SaveKeymaps(JSONWriter<StringStream> *writer) {
                 }
             }
         }
+
 
         return true;
     });

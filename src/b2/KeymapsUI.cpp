@@ -784,6 +784,16 @@ bool KeymapsUIImpl::DoEditKeymapGui(const BeebKeymap *keymap,BeebKeymap *editabl
             }
         }
 
+        {
+            bool prefer=keymap->GetPreferShortcuts();
+            if(ImGui::Checkbox("Prioritize command shortcuts",&prefer)) {
+                if(editable_keymap) {
+                    editable_keymap->SetPreferShortcuts(prefer);
+                    m_edited=true;
+                }
+            }
+        }
+
         this->DoKeyboardLine(keymap,editable_keymap,g_keyboard_line1,g_m128_line1);
         this->DoKeyboardLine(keymap,editable_keymap,g_keyboard_line2,g_m128_line2);
         this->DoKeyboardLine(keymap,editable_keymap,g_keyboard_line3,g_m128_line3);
