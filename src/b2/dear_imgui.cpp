@@ -298,7 +298,8 @@ void ImGuiStuff::Render() {
         int idx_buffer_pos=0;
 
         SDL_Vertex *vertices=(SDL_Vertex *)&draw_list->VtxBuffer[0];
-        int num_vertices=(int)(draw_list->VtxBuffer.size());
+        Uint16 num_vertices=(Uint16)(draw_list->VtxBuffer.size());
+        ASSERT(draw_list->VtxBuffer.size()<=(std::numeric_limits<decltype(num_vertices)>::max)());
 
         for(const ImDrawCmd &cmd:draw_list->CmdBuffer) {
             SDL_Rect clip_rect={
@@ -316,7 +317,7 @@ void ImGuiStuff::Render() {
             } else {
                 SDL_Texture *texture=(SDL_Texture *)cmd.TextureId;
 
-                int *indices=(int *)&draw_list->IdxBuffer[idx_buffer_pos];
+                const uint16_t *indices=&draw_list->IdxBuffer[idx_buffer_pos];
                 ASSERT(idx_buffer_pos+(int)cmd.ElemCount<=draw_list->IdxBuffer.size());
 
                 rc=SDL_RenderGeometry(m_renderer,texture,vertices,num_vertices,indices,(int)cmd.ElemCount,nullptr);

@@ -323,8 +323,22 @@ void Window::Update() {
 
     this->NewImGuiFrame();
 
-    ImGui::ShowTestWindow();
+    //ImGui::BulletText("hello 0");
+    //ImGui::BulletText("hello 1");
+    //ImGui::BulletText("hello 2");
+    //ImGui::BulletText("hello 3");
+    //ImGui::BulletText("hello 4");
+    //ImGui::BulletText("hello 5");
+    //ImGui::BulletText("hello 6");
+    //ImGui::BulletText("hello 7");
+    //ImGui::BulletText("hello 8");
+    //ImGui::BulletText("hello 9");
 
+    //for(size_t i=0;i<10;++i) {
+    //    ImGui::BulletText("hello %zu",i);
+    //}
+
+    ImGui::ShowTestWindow();
     ImGuiNodeGraphTestGithub();
     EmoonNodes();
 }
@@ -361,9 +375,9 @@ void Window::HandleKeyEvent(const SDL_KeyboardEvent &event) {
     int k=event.keysym.scancode;
 
     printf("down=%d; scancode=%s (%d; 0x%x); sym=%s (%d; 0x%x)\n",
-        event.type==SDL_KEYDOWN,
-        SDL_GetScancodeName(event.keysym.scancode),(int)event.keysym.scancode,(int)event.keysym.scancode,
-        SDL_GetKeyName(event.keysym.sym),(int)event.keysym.sym,(int)event.keysym.sym);
+           event.type==SDL_KEYDOWN,
+           SDL_GetScancodeName(event.keysym.scancode),(int)event.keysym.scancode,(int)event.keysym.scancode,
+           SDL_GetKeyName(event.keysym.sym),(int)event.keysym.sym,(int)event.keysym.sym);
 
     if(k>=0&&(size_t)k<sizeof io.KeysDown/sizeof io.KeysDown[0]) {
         io.KeysDown[k]=event.type==SDL_KEYDOWN;
@@ -458,9 +472,16 @@ void Window::RenderImGuiDrawData() {
         size_t idx_buffer_pos=0;
 
         SDL_Vertex *vertices=(SDL_Vertex *)&draw_list->VtxBuffer[0];
-        int num_vertices=(int)(draw_list->VtxBuffer.size());
+        Uint16 num_vertices=(Uint16)(draw_list->VtxBuffer.size());
+        assert(draw_list->VtxBuffer.size()<=(std::numeric_limits<decltype(num_vertices)>::max)());
 
-        for(const ImDrawCmd &cmd:draw_list->CmdBuffer) {
+        for(int j=0;j<draw_list->CmdBuffer.size();++j) {
+            //if(j==0) {
+            //    continue;
+            //}
+
+            const ImDrawCmd &cmd=draw_list->CmdBuffer[j];
+
             SDL_Rect clip_rect={
                 (int)cmd.ClipRect.x,
                 (int)cmd.ClipRect.y,
@@ -476,7 +497,7 @@ void Window::RenderImGuiDrawData() {
             } else {
                 SDL_Texture *texture=(SDL_Texture *)cmd.TextureId;
 
-                int *indices=(int *)&draw_list->IdxBuffer[idx_buffer_pos];
+                const uint16_t *indices=&draw_list->IdxBuffer[idx_buffer_pos];
                 assert(idx_buffer_pos+cmd.ElemCount<=(size_t)draw_list->IdxBuffer.size());
 
                 rc=SDL_RenderGeometry(m_renderer,texture,vertices,num_vertices,indices,(int)cmd.ElemCount,NULL);
@@ -507,7 +528,7 @@ int main(int argc,char *argv[]) {
     (void)argc,(void)argv;
 
     (void)&FatalError;
-    
+
 #ifdef _MSC_VER
     _CrtSetDbgFlag(_CrtSetDbgFlag(_CRTDBG_REPORT_FLAG)|_CRTDBG_LEAK_CHECK_DF);
     //_CrtSetDbgFlag(_CrtSetDbgFlag(_CRTDBG_REPORT_FLAG)|_CRTDBG_CHECK_ALWAYS_DF|);
@@ -518,7 +539,7 @@ int main(int argc,char *argv[]) {
         FatalSDLError("SDL_Init");
     }
 
-    //SDL_SetHint(SDL_HINT_RENDER_DRIVER,"opengl");
+    SDL_SetHint(SDL_HINT_RENDER_DRIVER,"opengles2");
 
     g_update_window_event_type=SDL_RegisterEvents(1);
     SDL_AddTimer(20,&HandleUpdateWindowTimer,NULL);

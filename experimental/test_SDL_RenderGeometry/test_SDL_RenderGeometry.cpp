@@ -29,7 +29,7 @@
 #ifdef __APPLE__
 static const char DEFAULT_RENDER_DRIVER[]="opengl";
 #else
-static const char DEFAULT_RENDER_DRIVER[]="opengl";
+static const char DEFAULT_RENDER_DRIVER[]="opengles2";
 #endif
 
 static Uint32 g_window_timer_event_type;
@@ -360,6 +360,7 @@ static void Update(TestRenderGeometryState *s) {
 
 #define NUM_POINTS (3)
 STATIC_ASSERT(NUM_POINTS>=3);
+STATIC_ASSERT(NUM_POINTS*3<=65535);
 
 static void SetVertex(SDL_Vertex *v,float x,float y,uint8_t r,uint8_t g,uint8_t b,uint8_t a,float s,float t) {
     v->position.x=x;
@@ -412,14 +413,14 @@ static void Render(TestRenderGeometryState *state,SDL_Window *window,SDL_Rendere
     // b=g=r=200;
 
     SDL_Vertex vertices[1+NUM_POINTS],*vertex=vertices;
-    int indices[NUM_POINTS*3],*index=indices;//stoopid
+    uint16_t indices[NUM_POINTS*3],*index=indices;//stoopid
 
     SDL_Vector2f mini,maxi;
 
     mini.x=maxi.x=w*.5f;
     mini.y=maxi.y=h*.5f;
 
-    for(int i=0;i<NUM_POINTS;++i) {
+    for(Uint16 i=0;i<NUM_POINTS;++i) {
         double angle=state->a+(i/(double)NUM_POINTS)*2.*M_PI;
         double c=cos(angle),s=sin(angle);
 
@@ -458,8 +459,9 @@ static void Render(TestRenderGeometryState *state,SDL_Window *window,SDL_Rendere
 
     SDL_Texture *texture=state->textures[0].get();
 
+    // TODO - fix this up to use the RenderGeometry caps flag...
     if(state->do_RenderGeometry) {
-        if(SDL_RenderGeometry(renderer,texture,vertices,num_vertices,indices,num_indices,NULL)!=0) {
+        if(SDL_RenderGeometry(renderer,texture,vertices,(Uint16)num_vertices,indices,(Uint16)num_indices,NULL)!=0) {
             printf("renderer probably doesn't support RenderGeometry...\n");
             state->do_RenderGeometry=0;
         }
@@ -479,7 +481,7 @@ static void Render(TestRenderGeometryState *state,SDL_Window *window,SDL_Rendere
         clip.h=h;
 
         SDL_RenderSetClipRect(renderer,&clip);
-        SDL_RenderGeometry(renderer,NULL,vertices,num_vertices,indices,num_indices,&offset);
+        SDL_RenderGeometry(renderer,NULL,vertices,(Uint16)num_vertices,indices,(Uint16)num_indices,&offset);
         SDL_RenderSetClipRect(renderer,NULL);
     }
 
