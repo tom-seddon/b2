@@ -270,7 +270,7 @@ void CommandContext::DoMenuItemUI(const char *name) {
         const bool *ticked=command->IsTicked(m_object);
 
         bool selected=false;
-        if(!ticked||*ticked) {
+        if(ticked&&*ticked) {
             selected=true;
         }
 
