@@ -46,10 +46,10 @@ private:
 
 static LogPrinterFILE g_code_file_printer;
 
-LOG_DEFINE(V,"",&log_printer_stderr_and_debugger,false);
-LOG_DEFINE(CODE_FILE,"",&g_code_file_printer,false);
-LOG_DEFINE(CODE_STDOUT,"",&log_printer_stdout,false);
-LOG_DEFINE(ERR,"",&log_printer_stderr_and_debugger,true);
+LOG_DEFINE(V,"",&log_printer_stderr_and_debugger,false)
+LOG_DEFINE(CODE_FILE,"",&g_code_file_printer,false)
+LOG_DEFINE(CODE_STDOUT,"",&log_printer_stdout,false)
+LOG_DEFINE(ERR,"",&log_printer_stderr_and_debugger,true)
 
 //#define P(...) LOGF(CODE,__VA_ARGS__)
 
@@ -633,7 +633,7 @@ public:
             if(i<0) {
                 P("/* (decode - already done) */\n");
             } else {
-                this->GeneratePhase2(&this->cycles[i]);
+                this->GeneratePhase2(&this->cycles[(size_t)i]);
             }
 
             P("\n");
@@ -644,7 +644,7 @@ public:
             if(i==(int)this->cycles.size()) {
                 P("M6502_NextInstruction(s);\n");
             } else {
-                this->GeneratePhase1(&this->cycles[i]);
+                this->GeneratePhase1(&this->cycles[(size_t)i]);
                 P("s->tfn=&T%d_%s;\n",i+1,this->stem.c_str());
 
                 if(i==(int)this->cycles.size()-1) {

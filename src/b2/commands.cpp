@@ -226,7 +226,7 @@ void CommandContext::DoButton(const char *name) {
         return;
     }
 
-    bool enabled=command->IsEnabled(m_object);
+    //bool enabled=command->IsEnabled(m_object);
 
     if(command->m_confirm) {
         // bleargh...

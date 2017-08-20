@@ -253,7 +253,7 @@ private:
                 ++j;
             }
 
-            m_all_values.push_back(TraitsType::TERMINATOR);
+            m_all_values.emplace_back(decltype(TraitsType::TERMINATOR)(TraitsType::TERMINATOR));
             m_value_lists.push_back(list);
 
             i=j;

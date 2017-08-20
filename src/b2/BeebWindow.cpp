@@ -1720,7 +1720,7 @@ std::vector<BeebWindow::VBlankRecord> BeebWindow::GetVBlankRecords() const {
         records=m_vblank_records;
     } else {
         ASSERT(m_vblank_index<m_vblank_records.size());
-        auto &&it=m_vblank_records.begin()+m_vblank_index;
+        auto &&it=m_vblank_records.begin()+(ptrdiff_t)m_vblank_index;
 
         records.reserve(m_vblank_records.size());
         records.insert(records.end(),it,m_vblank_records.end());
@@ -1891,9 +1891,11 @@ void BeebWindow::CleanUpRecentFilesLists() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#if SYSTEM_WINDOWS
 void BeebWindow::ClearConsole() {
     ::ClearConsole();
 }
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -1941,7 +1943,9 @@ ObjectCommandTable<BeebWindow> BeebWindow::ms_command_table("Beeb Window",{
     {"clean_up_recent_files_lists","Clean up recent files lists",&BeebWindow::CleanUpRecentFilesLists,ConfirmCommand()},
     {"toggle_event_trace","Event trace...",&BeebWindow::GetSettingsUIFlags,&BeebWindow::SetSettingsUIFlags,BeebWindowUIFlag_Trace},
     {"toggle_date_rate","Data rate...",&BeebWindow::GetSettingsUIFlags,&BeebWindow::SetSettingsUIFlags,BeebWindowUIFlag_AudioCallback},
+#if SYSTEM_WINDOWS
     {"clear_console","Clear Win32 console",&BeebWindow::ClearConsole},
+#endif
     {"print_separator","Print stdout separator",&BeebWindow::PrintSeparator},
     {"dump_timeline_console","Dump timeline to console only",&BeebWindow::DumpTimelineConsole},
     {"dump_timeline_debugger","Dump timeline to console+debugger",&BeebWindow::DumpTimelineDebuger},

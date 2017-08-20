@@ -9,6 +9,7 @@
 #include <memory>
 #include <map>
 #include "keymap.h"
+#include <string.h>
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -77,15 +78,17 @@ public:
     }
 
     const bool *IsTicked(void *object_) const override {
+        static const bool s_true=true,s_false=false;
+        
         if(!m_ticked_fun) {
             return nullptr;
         } else {
             auto object=(T *)object_;
             bool ticked=m_ticked_fun(object);
             if(ticked) {
-                return &ms_true;
+                return &s_true;
             } else {
-                return &ms_false;
+                return &s_false;
             }
         }
     }
@@ -104,9 +107,6 @@ private:
     std::function<void(T *)> m_execute_fun;
     std::function<bool(T *)> m_ticked_fun;
     std::function<bool(T *)> m_enabled_fun;
-
-    static const bool ms_true=true;
-    static const bool ms_false=false;
 };
 
 //////////////////////////////////////////////////////////////////////////

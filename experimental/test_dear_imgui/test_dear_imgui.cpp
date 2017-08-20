@@ -11,6 +11,7 @@
 #include <string>
 #include <vector>
 #include <map>
+#include <limits>
 
 #include "imgui_node_graph_test_github.h"
 #include "emoon_nodes.h"
