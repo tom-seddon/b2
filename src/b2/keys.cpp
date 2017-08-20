@@ -77,7 +77,7 @@ static KeyCombo g_key_combo_table[128];
 //////////////////////////////////////////////////////////////////////////
 
 bool GetBeebKeyComboForKeySym(BeebKey *beeb_key,BeebShiftState *shift_state,BeebKeySym beeb_sym) {
-    ASSERT(beeb_sym>=0&&beeb_sym<128);
+    ASSERT(beeb_sym>=0&&(int)beeb_sym<128);
 
     const KeyCombo *combo=&g_key_combo_table[beeb_sym];
 

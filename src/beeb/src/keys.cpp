@@ -10,7 +10,7 @@
 //////////////////////////////////////////////////////////////////////////
 
 int IsNumericKeypadKey(BeebKey beeb_key) {
-    ASSERT(beeb_key>=0&&beeb_key<128);
+    ASSERT((int)beeb_key>=0&&(int)beeb_key<128);
 
     if(beeb_key<0) {
         return 0;

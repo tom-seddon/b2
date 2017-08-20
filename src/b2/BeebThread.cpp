@@ -131,7 +131,7 @@ BeebThread::AudioThreadData::AudioThreadData(uint64_t sound_freq,uint64_t sound_
 //////////////////////////////////////////////////////////////////////////
 
 bool BeebThread::KeyStates::GetState(BeebKey key) const {
-    ASSERT(key>=0&&key<128);
+    ASSERT(key>=0&&(int)key<128);
 
     uint8_t index=key>>6&1;
     uint64_t mask=1ull<<(key&63);
@@ -144,7 +144,7 @@ bool BeebThread::KeyStates::GetState(BeebKey key) const {
 //////////////////////////////////////////////////////////////////////////
 
 void BeebThread::KeyStates::SetState(BeebKey key,bool state) {
-    ASSERT(key>=0&&key<128);
+    ASSERT(key>=0&&(int)key<128);
 
     uint8_t index=key>>6&1;
     uint64_t mask=1ull<<(key&63);
@@ -307,14 +307,14 @@ void BeebThread::AddSyntheticMessage(BeebThreadSyntheticEventType type,uint64_t 
 //////////////////////////////////////////////////////////////////////////
 
 void BeebThread::SendKeyMessage(BeebKey key,bool state) {
-    this->SendMessage(BeebThreadEventType_KeyState,key,state);
+    this->SendMessage(BeebThreadEventType_KeyState,(uint32_t)key,state);
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 void BeebThread::SendKeySymMessage(BeebKeySym key_sym,bool state) {
-    this->SendMessage(BeebThreadEventType_KeySymState,key_sym,state);
+    this->SendMessage(BeebThreadEventType_KeySymState,(uint32_t)key_sym,state);
 }
 
 //////////////////////////////////////////////////////////////////////////

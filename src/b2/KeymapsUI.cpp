@@ -812,7 +812,6 @@ struct KeySymLabelsInitialiser {
     KeySymLabelsInitialiser() {
         g_keysym_labels[BeebKeySym_Break]="BRK";
 
-        g_keysym_labels[BeebKeySym_None]=nullptr;
         g_keysym_labels[BeebKeySym_f0]="f0";
         g_keysym_labels[BeebKeySym_f1]="f1";
         g_keysym_labels[BeebKeySym_f2]="f2";

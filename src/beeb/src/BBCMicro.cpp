@@ -720,7 +720,7 @@ const uint64_t *BBCMicro::GetNum2MHzCycles() {
 //////////////////////////////////////////////////////////////////////////
 
 uint8_t BBCMicro::GetKeyState(BeebKey key) {
-    ASSERT(key>=0&&key<128);
+    ASSERT(key>=0&&(int)key<128);
 
     uint8_t *column=&m_state.key_columns[key&0x0f];
     uint8_t mask=1<<(key>>4);
@@ -753,7 +753,7 @@ const uint8_t *BBCMicro::GetRAM() {
 //////////////////////////////////////////////////////////////////////////
 
 bool BBCMicro::SetKeyState(BeebKey key,bool new_state) {
-    ASSERT(key>=0&&key<128);
+    ASSERT(key>=0&&(int)key<128);
 
     uint8_t *column=&m_state.key_columns[key&0x0f];
     uint8_t mask=1<<(key>>4);
