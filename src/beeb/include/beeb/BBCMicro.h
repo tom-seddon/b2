@@ -311,6 +311,11 @@ public:
     //
     // The disc mutex will be locked if there is one.
     bool GetAndResetDiscAccessFlag();
+
+#if BBCMICRO_ENABLE_PASTE
+    bool IsPasting() const;
+    void Paste(std::shared_ptr<std::string> text);
+#endif
 protected:
 private:
     //////////////////////////////////////////////////////////////////////////
@@ -361,8 +366,9 @@ private:
 
         // Key states
         uint8_t key_columns[16]={};
-        uint8_t key_scan_column={};
+        uint8_t key_scan_column=0;
         int num_keys_down=0;
+        //BeebKey auto_reset_key=BeebKey_None;
 
         // Disk stuff
         WD1770 fdc;
@@ -384,6 +390,14 @@ private:
         // something like unique_ptr<ROMData>, but that isn't
         // copyable.
         std::vector<uint8_t> sideways_ram_buffers[16];
+
+        uint32_t hack_flags=0;
+
+        // Current paste data, if any.
+        BBCMicroPasteState paste_state=BBCMicroPasteState_None;
+        std::shared_ptr<std::string> paste_text;
+        size_t paste_index=0;
+        uint64_t paste_wait_end=0;
 
         explicit State(BBCMicroType type,const std::vector<uint8_t> &nvram_contents,const tm *rtc_time);
     };
@@ -461,6 +475,8 @@ private:
 
     std::vector<float> m_disc_drive_sounds[DiscDriveSound_EndValue];
 
+    void (*m_default_handle_cpu_data_bus_fn)(BBCMicro *)=nullptr;
+
     //////////////////////////////////////////////////////////////////////////
     //////////////////////////////////////////////////////////////////////////
     //
@@ -530,6 +546,7 @@ private:
     bool PreUpdateCPU(uint8_t num_stretch_cycles);
     static void HandleCPUDataBusMainRAMOnly(BBCMicro *m);
     static void HandleCPUDataBusWithShadowRAM(BBCMicro *m);
+    static void HandleCPUDataBusWithHacks(BBCMicro *m);
     void UpdateVideoHardware();
     void UpdateDisplayOutput(VideoDataHalfUnit *hu);
     static void HandleTurboRTI(M6502 *cpu);
@@ -551,6 +568,10 @@ private:
     void StepSound(DiscDrive *dd);
     float UpdateDiscDriveSound(DiscDrive *dd);
 #endif
+#if BBCMICRO_ENABLE_PASTE
+    void StopPasting();
+#endif
+    void UpdateCPUDataBusFn();
 };
 
 //////////////////////////////////////////////////////////////////////////

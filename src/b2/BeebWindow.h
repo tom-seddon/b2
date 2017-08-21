@@ -373,6 +373,12 @@ private:
     void DumpTimelineDebuger();
     void CheckTimeline();
 
+#if BBCMICRO_ENABLE_PASTE
+    void Paste();
+    void PasteThenReturn();
+    void DoPaste(bool add_return);
+#endif
+
     static ObjectCommandTable<BeebWindow> ms_command_table;
 };
 

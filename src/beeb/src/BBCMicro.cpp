@@ -59,6 +59,11 @@ static std::map<DiscDriveType,std::array<std::vector<float>,DiscDriveSound_EndVa
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#if BBCMICRO_ENABLE_PASTE
+// The key to press to start the paste going.
+static const BeebKey PASTE_START_KEY=BeebKey_A;
+#endif
+
 #if BBCMICRO_TRACE
 const TraceEventType BBCMicro::INSTRUCTION_EVENT("BBCMicroInstruction",sizeof(InstructionTraceEvent));
 const TraceEventType BBCMicro::INITIAL_EVENT("BBCMicroInitial",sizeof(InitialTraceEvent));
@@ -844,22 +849,28 @@ void BBCMicro::UpdateKeyboardMatrix() {
         m_state.key_scan_column&=0x0f;
     } else {
         // manual scan
-        uint8_t kcol=m_state.system_via.a.p&0x0f;
-        uint8_t krow=(m_state.system_via.a.p>>4)&0x07;
+        BeebKey key=(BeebKey)(m_state.system_via.a.p&0x7f);
+        uint8_t kcol=key&0x0f;
+        uint8_t krow=(uint8_t)(key>>4);
 
-        uint8_t column=m_state.key_columns[kcol];
+        uint8_t *column=&m_state.key_columns[kcol];
 
         // row 0 doesn't cause an interrupt
-        if(column&0xfe) {
+        if(*column&0xfe) {
             m_state.system_via.a.c2=1;
         } else {
             m_state.system_via.a.c2=0;
         }
 
         m_state.system_via.a.p&=0x7f;
-        if(column&1<<krow) {
+        if(*column&1<<krow) {
             m_state.system_via.a.p|=0x80;
         }
+
+        //if(key==m_state.auto_reset_key) {
+        //    //*column&=~(1<<krow);
+        //    m_state.auto_reset_key=BeebKey_None;
+        //}
     }
 }
 
@@ -1001,6 +1012,60 @@ void BBCMicro::HandleCPUDataBusWithShadowRAM(BBCMicro *m) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+void BBCMicro::HandleCPUDataBusWithHacks(BBCMicro *m) {
+#if BBCMICRO_ENABLE_PASTE
+
+    if(m->m_state.hack_flags&BBCMicroHackFlag_Paste) {
+        ASSERT(m->m_state.paste_state!=BBCMicroPasteState_None);
+
+        if(m->m_state.cpu.read&&m->m_state.cpu.abus.w==0xffe0&&m->m_state.cpu.pc.w==0xffe1) {
+            // This is the opcode fetch for the first byte of OSRDCH.
+
+            // Put next byte in A.
+            switch(m->m_state.paste_state) {
+            case BBCMicroPasteState_None:
+                ASSERT(false);
+                break;
+
+            case BBCMicroPasteState_Wait:
+                m->SetKeyState(PASTE_START_KEY,false);
+                m->m_state.paste_state=BBCMicroPasteState_Delete;
+                // fall through
+            case BBCMicroPasteState_Delete:
+                m->m_state.cpu.a=127;
+                m->m_state.paste_state=BBCMicroPasteState_Paste;
+                break;
+
+            case BBCMicroPasteState_Paste:
+                ASSERT(m->m_state.paste_index<m->m_state.paste_text->size());
+                m->m_state.cpu.a=m->m_state.paste_text->at(m->m_state.paste_index);
+
+                ++m->m_state.paste_index;
+                if(m->m_state.paste_index==m->m_state.paste_text->size()) {
+                    m->StopPasting();
+                }
+                break;
+            }
+
+            // No Escape.
+            m->m_state.cpu.p.bits.c=0;
+
+            // Pretend the instruction was RTS.
+            m->m_state.cpu.dbus=0x60;
+
+            return;
+        }
+    }
+
+#endif
+
+normal:;
+    (*m->m_default_handle_cpu_data_bus_fn)(m);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 // The cursor pattern is spread over the next 4 displayed columns.
 //
 // <pre>
@@ -1074,9 +1139,9 @@ void BBCMicro::UpdateVideoHardware() {
         }
 
         ASSERTF(addr<32768,"output: hsync=%u vsync=%u display=%u address=0x%x raster=%u; addr=0x%x; latch screen_base=%u\n",
-            output.hsync,output.vsync,output.display,output.address,output.raster,
-            addr,
-            m_state.addressable_latch.bits.screen_base);
+                output.hsync,output.vsync,output.display,output.address,output.raster,
+                addr,
+                m_state.addressable_latch.bits.screen_base);
         addr|=m_state.shadow_select_mask;
         if(m_state.video_ula.control.bits.teletext) {
             m_state.saa5050.Byte(m_ram[addr]);
@@ -1124,15 +1189,15 @@ void BBCMicro::UpdateDisplayOutput(VideoDataHalfUnit *hu) {
 #endif
                 if(m_state.cursor_pattern&1) {
                     hu->value^=0x0707070707070707ull;
-        }
-    } else {
+                }
+            } else {
                 hu->pixels[0]=BeebControlPixel_Nothing^(m_state.cursor_pattern&1);
             }
-}
-} else {
+            }
+        } else {
         hu->pixels[0]=BeebControlPixel_Nothing;
     }
-}
+    }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -1476,6 +1541,34 @@ bool BBCMicro::GetAndResetDiscAccessFlag() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#if BBCMICRO_ENABLE_PASTE
+bool BBCMicro::IsPasting() const {
+    return (m_state.hack_flags&BBCMicroHackFlag_Paste)!=0;
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_ENABLE_PASTE
+void BBCMicro::Paste(std::shared_ptr<std::string> text) {
+    this->StopPasting();
+
+    m_state.hack_flags|=BBCMicroHackFlag_Paste;
+    m_state.paste_state=BBCMicroPasteState_Wait;
+    m_state.paste_text=std::move(text);
+    m_state.paste_index=0;
+    m_state.paste_wait_end=m_state.num_2MHz_cycles+2000000;
+
+    this->SetKeyState(PASTE_START_KEY,true);
+
+    this->UpdateCPUDataBusFn();
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 void BBCMicro::InitStuff() {
     CHECK_SIZEOF(AddressableLatch,1);
     CHECK_SIZEOF(ROMSEL,1);
@@ -1590,10 +1683,12 @@ void BBCMicro::InitStuff() {
             m_pc_pages[i]=&m_pages;
         }
 
-        m_handle_cpu_data_bus_fn=&HandleCPUDataBusWithShadowRAM;
+        m_default_handle_cpu_data_bus_fn=&HandleCPUDataBusWithShadowRAM;
     } else {
-        m_handle_cpu_data_bus_fn=&HandleCPUDataBusMainRAMOnly;
+        m_default_handle_cpu_data_bus_fn=&HandleCPUDataBusMainRAMOnly;
     }
+
+    this->UpdateCPUDataBusFn();
 
     switch(m_type) {
     default:
@@ -1969,6 +2064,31 @@ float BBCMicro::UpdateDiscDriveSound(DiscDrive *dd) {
     return acc;
 }
 #endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_ENABLE_PASTE
+void BBCMicro::StopPasting() {
+    m_state.paste_state=BBCMicroPasteState_None;
+    m_state.paste_index=0;
+    m_state.paste_text.reset();
+
+    m_state.hack_flags&=~BBCMicroHackFlag_Paste;
+    this->UpdateCPUDataBusFn();
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BBCMicro::UpdateCPUDataBusFn() {
+    if(m_state.hack_flags==0) {
+        m_handle_cpu_data_bus_fn=m_default_handle_cpu_data_bus_fn;
+    } else {
+        m_handle_cpu_data_bus_fn=&HandleCPUDataBusWithHacks;
+    }
+}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

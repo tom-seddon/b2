@@ -126,8 +126,8 @@ public:
 
     void Dump(const BeebEvent *e,Log *log) const override {
         log->f("%s: %s",
-            e->data.key_state.state?"press":"release",
-            GetBeebKeyName(e->data.key_state.key));
+               e->data.key_state.state?"press":"release",
+               GetBeebKeyName(e->data.key_state.key));
         (void)e,(void)log;
     }
 protected:
@@ -403,6 +403,83 @@ const BeebEventWindowProxyHandler BeebEventWindowProxyHandler::INSTANCE;
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+class BeebEventPasteHandler:
+    public BeebEventHandler
+{
+public:
+    static const BeebEventPasteHandler INSTANCE;
+
+    BeebEventPasteHandler():
+        BeebEventHandler(0)
+    {
+    }
+
+    BeebEventData Clone(const BeebEventData &src) const override {
+        BeebEventData clone={};
+
+        if(src.paste) {
+            clone.paste=new BeebEventPasteData(*src.paste);
+        }
+
+        return clone;
+    }
+
+    void Dump(const BeebEvent *e,Log *log) const override {
+        log->f("Paste %zu bytes: ",e->data.paste->text->size());
+
+        static const size_t MAX=20;
+
+        bool in=false;
+
+        for(size_t i=0;i<(std::min)(e->data.paste->text->size(),MAX);++i) {
+            char c=e->data.paste->text->at(i);
+
+            if(c>=32&&c<=126) {
+                if(!in) {
+                    if(i>0) {
+                        log->f("+");
+                    }
+
+                    log->f("\"");
+                    in=true;
+                }
+
+                log->f("%c",c);
+            } else {
+                if(in) {
+                    log->f("\"");
+                    in=false;
+                }
+
+                if(i>0) {
+                    log->f("+");
+                }
+                
+                log->f("CHR$%d",c);
+            }
+        }
+
+        if(in) {
+            log->f("\"");
+        }
+
+        if(e->data.paste->text->size()>MAX) {
+            log->f("+...");
+        }
+    }
+protected:
+    void HandleDestroy(BeebEventData *data) const override {
+        delete data->paste;
+        data->paste=nullptr;
+    }
+private:
+};
+
+const BeebEventPasteHandler BeebEventPasteHandler::INSTANCE;
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 const BeebEventHandler *BeebEventHandler::handlers[256]={
 #define BEEB_EVENT_TYPE(X) &BeebEvent##X##Handler::INSTANCE,
 #include "beeb_events_types.inl"
@@ -511,6 +588,19 @@ BeebEvent BeebEvent::MakeWindowProxy(BeebWindow *window) {
     uint64_t time=thread->GetEmulated2MHzCycles();
 
     return BeebEvent{BeebEventType_WindowProxy,time,data};
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+BeebEvent BeebEvent::MakePaste(uint64_t time_2MHz_cycles,std::shared_ptr<std::string> text) {
+    BeebEventData data={};
+
+    data.paste=new BeebEventPasteData;
+
+    data.paste->text=std::move(text);
+
+    return BeebEvent{BeebEventType_Paste,time_2MHz_cycles,data};
 }
 
 //////////////////////////////////////////////////////////////////////////

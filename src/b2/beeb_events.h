@@ -115,6 +115,13 @@ struct BeebEventWindowProxy {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+struct BeebEventPasteData {
+    std::shared_ptr<std::string> text;
+};
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 #include <shared/pshpack1.h>
 union BeebEventData {
     BeebEventKeyState key_state;
@@ -126,6 +133,7 @@ union BeebEventData {
 #endif
     BeebEventStateData *state;
     BeebEventWindowProxy window_proxy;
+    BeebEventPasteData *paste;
 };
 #include <shared/poppack.h>
 
@@ -167,6 +175,8 @@ public:
     //static BeebEvent MakeSetReplayProgress(uint64_t time_2MHz_cycles,const std::shared_ptr<Timeline::Node> &node,size_t index);
 
     static BeebEvent MakeWindowProxy(BeebWindow *window);
+
+    static BeebEvent MakePaste(uint64_t time_2MHz_cycles,std::shared_ptr<std::string> text);
 
     ~BeebEvent();
 

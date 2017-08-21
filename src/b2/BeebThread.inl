@@ -113,6 +113,14 @@ EPN(SaveAndVideoFrom)
 EPN(LoadLastState)
 
 EPN(CancelReplay)
+
+#if BBCMICRO_ENABLE_PASTE
+// Paste text.
+//
+// (payload)data.ptr
+EPN(Paste)
+#endif
+
 EEND()
 #undef ENAME
 

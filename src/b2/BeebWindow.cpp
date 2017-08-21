@@ -794,6 +794,13 @@ bool BeebWindow::DoImGui(int output_width,int output_height) {
             ImGui::EndMenu();
         }
 
+        if(ImGui::BeginMenu("Edit")) {
+            m_occ.DoMenuItemUI("paste");
+            m_occ.DoMenuItemUI("paste_return");
+
+            ImGui::EndMenu();
+        }
+
         if(ImGui::BeginMenu("Tools")) {
             m_occ.DoMenuItemUI("toggle_emulator_options");
             m_occ.DoMenuItemUI("toggle_keyboard_layout");
@@ -1928,6 +1935,148 @@ void BeebWindow::CheckTimeline() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#if BBCMICRO_ENABLE_PASTE
+void BeebWindow::Paste() {
+    this->DoPaste(false);
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_ENABLE_PASTE
+void BeebWindow::PasteThenReturn() {
+    this->DoPaste(true);
+}
+#endif 
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_ENABLE_PASTE
+
+// Copyright (c) 2008-2009 Bjoern Hoehrmann <bjoern@hoehrmann.de>
+// See http://bjoern.hoehrmann.de/utf-8/decoder/dfa/ for details.
+
+static const uint32_t UTF8_ACCEPT=0;
+static const uint32_t UTF8_REJECT=1;
+
+static const uint8_t utf8d[]={
+    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, // 00..1f
+    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, // 20..3f
+    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, // 40..5f
+    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, // 60..7f
+    1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9, // 80..9f
+    7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7, // a0..bf
+    8,8,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2, // c0..df
+    0xa,0x3,0x3,0x3,0x3,0x3,0x3,0x3,0x3,0x3,0x3,0x3,0x3,0x4,0x3,0x3, // e0..ef
+    0xb,0x6,0x6,0x6,0x5,0x8,0x8,0x8,0x8,0x8,0x8,0x8,0x8,0x8,0x8,0x8, // f0..ff
+    0x0,0x1,0x2,0x3,0x5,0x8,0x7,0x1,0x1,0x1,0x4,0x6,0x1,0x1,0x1,0x1, // s0..s0
+    1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,0,1,0,1,1,1,1,1,1, // s1..s2
+    1,2,1,1,1,1,1,2,1,2,1,1,1,1,1,1,1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1, // s3..s4
+    1,2,1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,1,1,1,3,1,3,1,1,1,1,1,1, // s5..s6
+    1,3,1,1,1,1,1,3,1,3,1,1,1,1,1,1,1,3,1,1,1,1,1,1,1,1,1,1,1,1,1,1, // s7..s8
+};
+
+uint32_t inline
+decode(uint32_t* state,uint32_t* codep,uint32_t byte) {
+    uint32_t type=utf8d[byte];
+
+    *codep=(*state!=UTF8_ACCEPT)?
+        (byte&0x3fu)|(*codep<<6):
+        (0xff>>type) & (byte);
+
+    *state=utf8d[256+*state*16+type];
+    return *state;
+}
+
+void BeebWindow::DoPaste(bool add_return) {
+    // Get UTF-8 clipboard.
+    std::vector<uint8_t> utf8;
+    {
+        char *tmp=SDL_GetClipboardText();
+        if(!tmp) {
+            m_msg.e.f("Clipboard error: %s\n",SDL_GetError());
+            return;
+        }
+
+        utf8.resize(strlen(tmp));
+        memcpy(utf8.data(),tmp,utf8.size());
+
+        SDL_free(tmp);
+        tmp=nullptr;
+
+        if(utf8.empty()) {
+            return;
+        }
+    }
+
+    // Convert UTF-8 into BBC-friendly ASCII.
+    std::string ascii;
+    {
+        uint32_t state=UTF8_ACCEPT,codepoint;
+        size_t char_start=0;
+        for(size_t i=0;i<utf8.size();++i) {
+            decode(&state,&codepoint,utf8[i]);
+            if(state==UTF8_ACCEPT) {
+                // Do some useful translation.
+                if(codepoint==0xa3) {
+                    // GBP symbol
+                    codepoint=95;
+                }
+
+                if(codepoint==13) {
+                } else if(codepoint==10) {
+                } else if(codepoint>=32&&codepoint<=126) {
+                } else {
+                    m_msg.e.f("Invalid character: ");
+
+                    if(codepoint>=32) {
+                        m_msg.e.f("'%.*s', ",(int)(i-char_start),&utf8[char_start]);
+                    }
+
+                    m_msg.e.f("%u (0x%X)\n",codepoint,codepoint);
+                    return;
+                }
+
+                ascii.push_back((char)codepoint);
+                char_start=i+1;
+            } else if(state==UTF8_REJECT) {
+                m_msg.e.f("Clipboard contents are not valid UTF-8 text\n");
+                return;
+            }
+        }
+    }
+
+    // Knobble newlines.
+    if(ascii.size()>1) {
+        std::string::size_type i=0;
+
+        while(i<ascii.size()-1) {
+            if(ascii[i]==10&&ascii[i+1]==13) {
+                ascii.erase(i,1);
+            } else if(ascii[i]==13&&ascii[i+1]==10) {
+                ++i;
+                ascii.erase(i,1);
+            } else if(ascii[i]==10) {
+                ascii[i++]=13;
+            } else {
+                ++i;
+            }
+        }
+    }
+
+    if(add_return) {
+        ascii.push_back(13);
+    }
+
+    m_beeb_thread->SendPasteMessage(std::move(ascii));
+}
+#endif 
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 ObjectCommandTable<BeebWindow> BeebWindow::ms_command_table("Beeb Window",{
     {"hard_reset","Hard Reset",&BeebWindow::HardReset},
     {"load_last_state","Load Last State",&BeebWindow::LoadLastState,&BeebWindow::IsLoadLastStateEnabled},
@@ -1951,4 +2100,8 @@ ObjectCommandTable<BeebWindow> BeebWindow::ms_command_table("Beeb Window",{
     {"dump_timeline_debugger","Dump timeline to console+debugger",&BeebWindow::DumpTimelineDebuger},
     {"check_timeline","Check timeline",&BeebWindow::CheckTimeline},
     {"toggle_cc_stack","Command context stack...",&BeebWindow::GetSettingsUIFlags,&BeebWindow::SetSettingsUIFlags,BeebWindowUIFlag_CommandContextStack},
+#if BBCMICRO_ENABLE_PASTE
+    {"paste","Paste",&BeebWindow::Paste},
+    {"paste_return","Paste+Return",&BeebWindow::PasteThenReturn},
+#endif
 });

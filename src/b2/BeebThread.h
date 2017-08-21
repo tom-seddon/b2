@@ -141,6 +141,10 @@ public:
     bool IsTurboDisc() const;
 #endif
 
+#if BBCMICRO_ENABLE_PASTE
+    void SendPasteMessage(std::string text);
+#endif
+
     // Get trace stats, or nullptr if there's no trace.
     const volatile TraceStats *GetTraceStats() const;
 

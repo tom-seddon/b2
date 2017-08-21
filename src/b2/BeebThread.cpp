@@ -510,6 +510,23 @@ bool BeebThread::IsTurboDisc() const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#if BBCMICRO_ENABLE_PASTE
+struct PasteMessagePayload {
+    std::string text;
+};
+
+void BeebThread::SendPasteMessage(std::string text) {
+    auto ptr=new PasteMessagePayload;
+
+    ptr->text=std::move(text);
+
+    this->SendMessageWithPayload(BeebThreadEventType_Paste,ptr);
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 #if BBCMICRO_TRACE
 struct StartTraceMessagePayload {
     TraceConditions conditions;
@@ -553,7 +570,7 @@ const volatile TraceStats *BeebThread::GetTraceStats() const {
 
 void BeebThread::SendCloneWindowMessage(BeebWindowInitArguments init_arguments) {
     this->SendMessageWithPayload(BeebThreadEventType_CloneWindow,
-        new BeebWindowInitArguments(std::move(init_arguments)));
+                                 new BeebWindowInitArguments(std::move(init_arguments)));
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -1332,6 +1349,12 @@ void BeebThread::ThreadReplayEvent(ThreadState *ts,const BeebEvent &event) {
             // These events should never occur.
         }
         break;
+
+    case BeebEventType_Paste:
+        {
+            ts->beeb->Paste(event.data.paste->text);
+        }
+        return;
     }
 
     ASSERT(false);
@@ -1809,6 +1832,24 @@ bool BeebThread::ThreadHandleMessage(
         }
         break;
 
+#if BBCMICRO_ENABLE_PASTE
+    case BeebThreadEventType_Paste:
+        {
+            auto ptr=(PasteMessagePayload *)msg->data.ptr;
+
+
+            if(m_is_replaying) {
+                // Ignore.
+            } else {
+                auto shared_text=std::make_shared<std::string>(std::move(ptr->text));
+
+                ts->beeb->Paste(shared_text);
+                this->ThreadRecordEvent(ts,BeebEvent::MakePaste(*ts->num_executed_2MHz_cycles,shared_text));
+            }
+        }
+        break;
+#endif
+
     case MESSAGE_TYPE_SYNTHETIC:
         switch(msg->u32) {
         default:
@@ -1827,7 +1868,7 @@ bool BeebThread::ThreadHandleMessage(
     MessageDestroy(msg);
 
     return result;
-        }
+}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
