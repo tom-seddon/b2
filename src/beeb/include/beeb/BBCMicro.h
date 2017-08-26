@@ -316,6 +316,13 @@ public:
     bool IsPasting() const;
     void Paste(std::shared_ptr<std::string> text);
 #endif
+
+#if BBCMICRO_ENABLE_COPY
+    void StartCopy();
+    std::vector<uint8_t> StopCopy();
+    //bool IsCopying() const;
+#endif
+
 protected:
 private:
     //////////////////////////////////////////////////////////////////////////
@@ -391,6 +398,7 @@ private:
         // copyable.
         std::vector<uint8_t> sideways_ram_buffers[16];
 
+        // Combination of BBCMicroHackFlag.
         uint32_t hack_flags=0;
 
         // Current paste data, if any.
@@ -509,6 +517,13 @@ private:
     OnInstructionTraceEventFn m_trace_instr_fn=nullptr;
     void *m_trace_instr_context=nullptr;
     uint32_t m_trace_flags=0;
+#endif
+
+    // Combination of BBCMicroNonIntrusiveHackFlag.
+    uint32_t m_ni_hack_flags=0;
+
+#if BBCMICRO_ENABLE_COPY
+    std::vector<uint8_t> m_copy_data;
 #endif
 
     void InitStuff();

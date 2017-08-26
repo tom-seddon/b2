@@ -349,6 +349,10 @@ private:
 
     ObjectCommandContext<BeebWindow> m_occ;
 
+#if BBCMICRO_ENABLE_COPY
+    bool m_copying=false;
+#endif
+
     bool InitInternal();
     bool LoadDiscImageFile(int drive,const std::string &path);
     bool Load65LinkFolder(int drive,const std::string &path);
@@ -363,8 +367,6 @@ private:
     void SaveState();
     bool HandleBeebKey(const SDL_Keysym &keysym,bool state);
     bool RecreateTexture();
-    uint32_t GetSettingsUIFlags() const;
-    void SetSettingsUIFlags(uint32_t flags);
     void Exit();
     void CleanUpRecentFilesLists();
     void ClearConsole();
@@ -373,10 +375,26 @@ private:
     void DumpTimelineDebuger();
     void CheckTimeline();
 
+    template<BeebWindowUIFlag>
+    void ToggleUICommand();
+
+    template<BeebWindowUIFlag>
+    bool IsUICommandTicked() const;
+
+    template<BeebWindowUIFlag>
+    static ObjectCommandTable<BeebWindow>::Initializer GetToggleUICommand(std::string name,std::string text);
+
 #if BBCMICRO_ENABLE_PASTE
     void Paste();
     void PasteThenReturn();
     void DoPaste(bool add_return);
+#endif
+
+#if BBCMICRO_ENABLE_COPY
+    template<bool IS_TEXT>
+    void CopyOSWRCH();
+    void SetClipboardData(std::vector<uint8_t> data,bool is_text);
+    bool IsCopyOSWRCHTicked() const;
 #endif
 
     static ObjectCommandTable<BeebWindow> ms_command_table;

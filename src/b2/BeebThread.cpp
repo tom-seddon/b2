@@ -527,6 +527,41 @@ void BeebThread::SendPasteMessage(std::string text) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#if BBCMICRO_ENABLE_PASTE
+bool BeebThread::IsPasting() const {
+    return m_is_pasting.load(std::memory_order_acquire);
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_ENABLE_COPY
+void BeebThread::SendStartCopyMessage() {
+    this->SendMessage(BeebThreadEventType_StartCopy,0,(uint64_t)0);
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_ENABLE_COPY
+struct StopyCopyMessagePayload {
+    std::function<void(const std::vector<uint8_t> &)> fun;
+};
+
+void BeebThread::SendStopCopyMessage(std::function<void(std::vector<uint8_t>)> fun) {
+    auto ptr=new StopyCopyMessagePayload;
+
+    ptr->fun=std::move(fun);
+
+    this->SendMessageWithPayload(BeebThreadEventType_StopCopy,ptr);
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 #if BBCMICRO_TRACE
 struct StartTraceMessagePayload {
     TraceConditions conditions;
@@ -968,6 +1003,22 @@ uint64_t BeebThread::GetLastSavedStateTimelineId() const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+void BeebThread::FlushCallbacks() {
+    std::vector<std::function<void()>> callbacks;
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+
+        callbacks=std::move(m_callbacks);
+    }
+
+    for(auto &&callback:callbacks) {
+        callback();
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 void BeebThread::SetLastSavedStateTimelineId(uint64_t id) {
     std::lock_guard<std::mutex> lock(m_mutex);
 
@@ -1025,6 +1076,9 @@ void BeebThread::ThreadStopTraceOnOSWORD0(BBCMicro *beeb,const BBCMicro::Instruc
     (void)beeb;
 
     auto ts=(BeebThread::ThreadState *)context;
+
+    // Would be nice to integrate this with the BBCMicroHackFlags
+    // stuff, perhaps...
 
     if(event->pc==0xfff1&&event->a==0) {
         ts->beeb_thread->ThreadStopTrace(ts);
@@ -1837,7 +1891,6 @@ bool BeebThread::ThreadHandleMessage(
         {
             auto ptr=(PasteMessagePayload *)msg->data.ptr;
 
-
             if(m_is_replaying) {
                 // Ignore.
             } else {
@@ -1845,7 +1898,27 @@ bool BeebThread::ThreadHandleMessage(
 
                 ts->beeb->Paste(shared_text);
                 this->ThreadRecordEvent(ts,BeebEvent::MakePaste(*ts->num_executed_2MHz_cycles,shared_text));
+
+                m_is_pasting.store(true,std::memory_order_release);
             }
+        }
+        break;
+#endif
+
+#if BBCMICRO_ENABLE_COPY
+    case BeebThreadEventType_StartCopy:
+        {
+            ts->beeb->StartCopy();
+        }
+        break;
+
+    case BeebThreadEventType_StopCopy:
+        {
+            auto ptr=(StopyCopyMessagePayload *)msg->data.ptr;
+
+            this->AddCallback([data=ts->beeb->StopCopy(),fun=ptr->fun]() {
+                fun(std::move(data));
+            });
         }
         break;
 #endif
@@ -1918,6 +1991,14 @@ void BeebThread::ThreadMain(void) {
                 }
             }
         }
+
+#if BBCMICRO_ENABLE_PASTE
+        if(m_is_pasting) {
+            if(!ts.beeb->IsPasting()) {
+                m_is_pasting.store(false,std::memory_order_release);
+            }
+        }
+#endif
 
         if(!m_paused_ts&&stop_2MHz_cycles>*ts.num_executed_2MHz_cycles) {
             ASSERT(ts.beeb);
@@ -2028,6 +2109,15 @@ void BeebThread::DeleteOuMessagePayload(Message *msg) {
 template<class PayloadType>
 void BeebThread::SendMessageWithPayload(BeebThreadEventType type,PayloadType *payload) {
     this->SendMessage(type,0,payload,&DeleteOuMessagePayload<PayloadType>);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BeebThread::AddCallback(std::function<void()> callback) {
+    std::lock_guard<std::mutex> lock(m_mutex);
+
+    m_callbacks.emplace_back(std::move(callback));
 }
 
 //////////////////////////////////////////////////////////////////////////

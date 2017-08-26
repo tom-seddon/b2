@@ -121,6 +121,17 @@ EPN(CancelReplay)
 EPN(Paste)
 #endif
 
+#if BBCMICRO_ENABLE_COPY
+// Start copying.
+EPN(StartCopy)
+
+// Stop copying. Enqueue callback that will be called with the text
+// copied.
+//
+// (payload)data.ptr.
+EPN(StopCopy)
+#endif
+
 EEND()
 #undef ENAME
 

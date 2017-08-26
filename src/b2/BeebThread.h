@@ -143,6 +143,12 @@ public:
 
 #if BBCMICRO_ENABLE_PASTE
     void SendPasteMessage(std::string text);
+    bool IsPasting() const;
+#endif
+
+#if BBCMICRO_ENABLE_COPY
+    void SendStartCopyMessage();
+    void SendStopCopyMessage(std::function<void(std::vector<uint8_t>)> fun);
 #endif
 
     // Get trace stats, or nullptr if there's no trace.
@@ -231,6 +237,10 @@ public:
 
     uint64_t GetParentTimelineEventId() const;
     uint64_t GetLastSavedStateTimelineId() const;
+
+    // Clears the callback list, then calls each callback in the order
+    // it was added.
+    void FlushCallbacks();
 protected:
 private:
     struct ThreadState;
@@ -271,6 +281,9 @@ private:
 #if BBCMICRO_TURBO_DISC
     // Whether turbo disc mode is active.
     std::atomic<bool> m_is_turbo_disc{false};
+#endif
+#if BBCMICRO_ENABLE_PASTE
+    std::atomic<bool> m_is_pasting{false};
 #endif
     //mutable volatile int32_t m_is_paused=1;
 
@@ -328,6 +341,9 @@ private:
     //
     std::shared_ptr<MessageList> m_message_list;
 
+    // Must take mutex to read or write.
+    std::vector<std::function<void()>> m_callbacks;
+
 #if BBCMICRO_TRACE
     static void ThreadStopTraceOnOSWORD0(BBCMicro *beeb,const BBCMicro::InstructionTraceEvent *event,void *context);
 #endif
@@ -372,6 +388,7 @@ private:
     void SetVolume(float *scale_var,float *db_var,float db);
     //void SetDiscImage(int drive,std::unique_ptr<DiscImage> disc_image);
     void SetLastSavedStateTimelineId(uint64_t id);
+    void AddCallback(std::function<void()> callback);
 };
 
 //////////////////////////////////////////////////////////////////////////

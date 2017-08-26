@@ -144,6 +144,31 @@ To add a new sideways RAM slot, use one of the `Add RAM` buttons.
 Sideways RAM slots are by default empty but you can use the `...`
 button to load a ROM image on startup.
 
+## Paste from clipboard
+
+Paste text from the clipboard to the BASIC prompt using `OSRDCH Paste`
+and `OSRDCH Paste (+Return)`. The `(+Return)` version effectively
+presses Return at the end, which is sometimes necessary when copying
+and pasting BASIC listings.
+
+This is intended for pasting in BASIC listings. No guarantees it will
+work properly anywhere else, but you might get lucky.
+
+## Copy to clipboard
+
+Copy text output using `OSWRCH Copy Text`. This works a bit like
+`*SPOOL`, in that once activated it captures anything printed via
+`OSWRCH` until deactivated.
+
+It's explicitly described as `Copy Text`, because it strips out VDU
+control codes and normalizes line endings. You stand a good chance of
+being able to paste the result into a word processor or text editor or
+what have you.
+
+(A future version will probably sport a `Copy Binary` version, which
+grabs everything. Though I'm not entirely sure how useful this will
+be.)
+
 -----
 
 # Licence

@@ -60,8 +60,8 @@ class ObjectCommand:
 public:
     ObjectCommand(std::string name,std::string text,
                   std::function<void(T *)> execute_fun,
-                  std::function<bool(T *)> ticked_fun,
-                  std::function<bool(T *)> enabled_fun,
+                  std::function<bool(const T *)> ticked_fun,
+                  std::function<bool(const T *)> enabled_fun,
                   bool confirm):
         Command(std::move(name),std::move(text),confirm),
         m_execute_fun(std::move(execute_fun)),
@@ -79,7 +79,7 @@ public:
 
     const bool *IsTicked(void *object_) const override {
         static const bool s_true=true,s_false=false;
-        
+
         if(!m_ticked_fun) {
             return nullptr;
         } else {
@@ -105,8 +105,8 @@ public:
     }
 private:
     std::function<void(T *)> m_execute_fun;
-    std::function<bool(T *)> m_ticked_fun;
-    std::function<bool(T *)> m_enabled_fun;
+    std::function<bool(const T *)> m_ticked_fun;
+    std::function<bool(const T *)> m_enabled_fun;
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -173,36 +173,26 @@ public:
     struct Initializer {
         std::string name;
         std::string text;
-        void (T::*mfn)()=nullptr;
+        void (T::*execute_mfn)()=nullptr;
+        bool (T::*ticked_mfn)() const=nullptr;
         bool (T::*enabled_mfn)() const=nullptr;
         bool confirm=false;
         intptr_t arg=0;
-        uint32_t (T::*get_flags_mfn)() const=nullptr;
-        void (T::*set_flags_mfn)(uint32_t)=nullptr;
-        uint32_t flags_mask=0;
 
-        Initializer(std::string name_,std::string text_,void (T::*mfn_)(),bool (T::*enabled_mfn_)() const=nullptr):
+        Initializer(std::string name_,std::string text_,void (T::*execute_mfn_)(),bool (T::*ticked_mfn_)() const=nullptr,bool (T::*enabled_mfn_)() const=nullptr):
             name(std::move(name_)),
             text(std::move(text_)),
-            mfn(std::move(mfn_)),
-            enabled_mfn(std::move(enabled_mfn_))
+            execute_mfn(std::move(execute_mfn_)),
+            ticked_mfn(ticked_mfn_),
+            enabled_mfn(enabled_mfn_)
         {
         }
 
-        Initializer(std::string name_,std::string text_,void (T::*mfn_)(),ConfirmCommand):
+        Initializer(std::string name_,std::string text_,void (T::*execute_mfn_)(),ConfirmCommand):
             name(std::move(name_)),
             text(std::move(text_)),
-            mfn(std::move(mfn_)),
+            execute_mfn(std::move(execute_mfn_)),
             confirm(true)
-        {
-        }
-
-        Initializer(std::string name_,std::string text_,uint32_t (T::*get_flags_mfn_)() const,void (T::*set_flags_mfn_)(uint32_t),uint32_t flags_mask_):
-            name(std::move(name_)),
-            text(std::move(text_)),
-            get_flags_mfn(get_flags_mfn_),
-            set_flags_mfn(set_flags_mfn_),
-            flags_mask(flags_mask_)
         {
         }
     };
@@ -211,39 +201,21 @@ public:
         CommandTable(std::move(table_name))
     {
         for(const Initializer &init:inits) {
-            std::function<void(T *)> execute_fun;
-            std::function<bool(T *)> enabled_fun;
-            std::function<bool(T *)> ticked_fun;
+            std::function<void(T *)> execute_fun=[mfn=init.execute_mfn](T *p) {
+                (p->*mfn)();
+            };
 
-            if(init.mfn) {
-                // Command
-                auto mfn=init.mfn;
-                execute_fun=[=](T *p) {
-                    (p->*mfn)();
+            std::function<bool(const T *)> ticked_fun;
+            if(init.ticked_mfn) {
+                ticked_fun=[mfn=init.ticked_mfn](const T *p) {
+                    return (p->*mfn)();
                 };
-            } else if(init.flags_mask!=0) {
-                // Toggle
-                ASSERT(init.get_flags_mfn&&init.set_flags_mfn);
-                auto get_flags_mfn=init.get_flags_mfn;
-                auto set_flags_mfn=init.set_flags_mfn;
-                auto flags_mask=init.flags_mask;
-                execute_fun=[=](T *p) {
-                    uint32_t flags=(p->*get_flags_mfn)();
-                    flags^=flags_mask;
-                    (p->*set_flags_mfn)(flags);
-                };
-                ticked_fun=[=](T *p) {
-                    uint32_t flags=(p->*get_flags_mfn)();
-                    return !!(flags&flags_mask);
-                };
-            } else {
-                ASSERT(false);
             }
 
+            std::function<bool(const T *)> enabled_fun;
             if(init.enabled_mfn) {
-                auto enabled_mfn=init.enabled_mfn;
-                enabled_fun=[=](T *p) {
-                    return (p->*enabled_mfn)();
+                enabled_fun=[mfn=init.enabled_mfn](const T *p) {
+                    return (p->*mfn)();
                 };
             }
 

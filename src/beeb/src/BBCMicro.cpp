@@ -1019,7 +1019,7 @@ void BBCMicro::HandleCPUDataBusWithHacks(BBCMicro *m) {
         ASSERT(m->m_state.paste_state!=BBCMicroPasteState_None);
 
         if(m->m_state.cpu.read&&m->m_state.cpu.abus.w==0xffe0&&m->m_state.cpu.pc.w==0xffe1) {
-            // This is the opcode fetch for the first byte of OSRDCH.
+            // Opcode fetch for the first byte of OSRDCH.
 
             // Put next byte in A.
             switch(m->m_state.paste_state) {
@@ -1059,7 +1059,23 @@ void BBCMicro::HandleCPUDataBusWithHacks(BBCMicro *m) {
 
 #endif
 
-normal:;
+#if BBCMICRO_ENABLE_COPY
+
+    if(m->m_ni_hack_flags&BBCMicroNonIntrusiveHackFlag_CopyOSWRCH) {
+        // Rather tiresomely, BASIC 2 prints stuff with JMP (WRCHV).
+        // Who comes up with this stuff? So detect opcode fetches from
+        // wherever WRCHV points to.
+        if(m->m_state.cpu.read&&m->m_state.cpu.abus.w+1==m->m_state.cpu.pc.w) {
+            if(m->m_state.cpu.abus.b.l==m->m_ram[0x020e]&&m->m_state.cpu.abus.b.h==m->m_ram[0x020f]) {
+                // Opcode fetch for first byte of OSWRCH
+                m->m_copy_data.push_back(m->m_state.cpu.a);
+            }
+        }
+    }
+
+#endif
+
+    //normal:;
     (*m->m_default_handle_cpu_data_bus_fn)(m);
 }
 
@@ -1193,11 +1209,11 @@ void BBCMicro::UpdateDisplayOutput(VideoDataHalfUnit *hu) {
             } else {
                 hu->pixels[0]=BeebControlPixel_Nothing^(m_state.cursor_pattern&1);
             }
-            }
-        } else {
+        }
+    } else {
         hu->pixels[0]=BeebControlPixel_Nothing;
     }
-    }
+}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -1565,6 +1581,38 @@ void BBCMicro::Paste(std::shared_ptr<std::string> text) {
     this->UpdateCPUDataBusFn();
 }
 #endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_ENABLE_COPY
+void BBCMicro::StartCopy() {
+    m_ni_hack_flags|=BBCMicroNonIntrusiveHackFlag_CopyOSWRCH;
+    m_copy_data.clear();
+    this->UpdateCPUDataBusFn();
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_ENABLE_COPY
+std::vector<uint8_t> BBCMicro::StopCopy() {
+    m_ni_hack_flags&=~BBCMicroNonIntrusiveHackFlag_CopyOSWRCH;
+    this->UpdateCPUDataBusFn();
+
+    return std::vector<uint8_t>(std::move(m_copy_data));
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+//#if BBCMICRO_ENABLE_COPY
+//bool BBCMicro::IsCopying() const {
+//    return !!(m_ni_hack_flags&BBCMicroNonIntrusiveHackFlag_CopyOSWRCH);
+//}
+//#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -2083,7 +2131,7 @@ void BBCMicro::StopPasting() {
 //////////////////////////////////////////////////////////////////////////
 
 void BBCMicro::UpdateCPUDataBusFn() {
-    if(m_state.hack_flags==0) {
+    if(m_state.hack_flags==0&&m_ni_hack_flags==0) {
         m_handle_cpu_data_bus_fn=m_default_handle_cpu_data_bus_fn;
     } else {
         m_handle_cpu_data_bus_fn=&HandleCPUDataBusWithHacks;

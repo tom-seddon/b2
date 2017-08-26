@@ -795,6 +795,8 @@ bool BeebWindow::DoImGui(int output_width,int output_height) {
         }
 
         if(ImGui::BeginMenu("Edit")) {
+            m_occ.DoMenuItemUI("toggle_copy_oswrch_text");
+            //m_occ.DoMenuItemUI("toggle_copy_oswrch_binary");
             m_occ.DoMenuItemUI("paste");
             m_occ.DoMenuItemUI("paste_return");
 
@@ -1045,13 +1047,6 @@ bool BeebWindow::DoImGui(int output_width,int output_height) {
         m_messages_popup_ticks=now;
     }
 
-    bool replaying=m_beeb_thread->IsReplaying();
-    if(ValueChanged(&m_leds,m_beeb_thread->GetLEDs())||(m_leds&BBCMicroLEDFlags_AllDrives)||replaying) {
-        m_leds_popup_ui_active=true;
-        m_leds_popup_ticks=now;
-        //LOGF(OUTPUT,"leds now: 0x%x\n",m_leds);
-    }
-
     if(m_messages_popup_ui_active) {
         ImGuiWindowFlags flags=(ImGuiWindowFlags_NoTitleBar|
                                 ImGuiWindowFlags_ShowBorders|
@@ -1092,6 +1087,13 @@ bool BeebWindow::DoImGui(int output_width,int output_height) {
         }
     }
 
+    bool replaying=m_beeb_thread->IsReplaying();
+    if(ValueChanged(&m_leds,m_beeb_thread->GetLEDs())||(m_leds&BBCMicroLEDFlags_AllDrives)||replaying||m_copying||m_beeb_thread->IsPasting()) {
+        m_leds_popup_ui_active=true;
+        m_leds_popup_ticks=now;
+        //LOGF(OUTPUT,"leds now: 0x%x\n",m_leds);
+    }
+
     if(m_leds_popup_ui_active) {
         ImGuiWindowFlags flags=(ImGuiWindowFlags_NoTitleBar|
                                 ImGuiWindowFlags_ShowBorders|
@@ -1115,8 +1117,8 @@ bool BeebWindow::DoImGui(int output_width,int output_height) {
 
             colour_pusher.Push(ImGuiCol_CheckMark,ImVec4(0.f,1.f,0.f,1.f));
 
-            ImGui::SameLine();
-            ImGuiLED(replaying,"Replaying");
+            //ImGui::SameLine();
+            ImGuiLED(replaying,"Replay");
 
             if(replaying) {
                 ImGui::SameLine();
@@ -1124,6 +1126,16 @@ bool BeebWindow::DoImGui(int output_width,int output_height) {
                     m_beeb_thread->SendCancelReplayMessage();
                 }
             }
+
+#if BBCMICRO_ENABLE_COPY
+            ImGui::SameLine();
+            ImGuiLED(m_copying,"Copy");
+#endif
+
+#if BBCMICRO_ENABLE_PASTE
+            ImGui::SameLine();
+            ImGuiLED(m_beeb_thread->IsPasting(),"Paste");
+#endif
         }
         ImGui::End();
 
@@ -1259,9 +1271,10 @@ bool BeebWindow::HandleVBlank(uint64_t ticks) {
         }
     }
 
-
     int output_width,output_height;
     SDL_GetRendererOutputSize(m_renderer,&output_width,&output_height);
+
+    m_beeb_thread->FlushCallbacks();
 
     if(!this->DoImGui(output_width,output_height)) {
         keep_window=false;
@@ -1857,20 +1870,6 @@ bool BeebWindow::RecreateTexture() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-uint32_t BeebWindow::GetSettingsUIFlags() const {
-    return m_settings.ui_flags;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-void BeebWindow::SetSettingsUIFlags(uint32_t flags) {
-    m_settings.ui_flags=flags;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 void BeebWindow::Exit() {
     this->SaveSettings();
 
@@ -1930,6 +1929,30 @@ void BeebWindow::DumpTimelineDebuger() {
 
 void BeebWindow::CheckTimeline() {
     Timeline::Check();
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+template<BeebWindowUIFlag FLAG>
+void BeebWindow::ToggleUICommand() {
+    m_settings.ui_flags^=FLAG;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+template<BeebWindowUIFlag FLAG>
+bool BeebWindow::IsUICommandTicked() const {
+    return !!(m_settings.ui_flags&FLAG);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+template<BeebWindowUIFlag FLAG>
+ObjectCommandTable<BeebWindow>::Initializer BeebWindow::GetToggleUICommand(std::string name,std::string text) {
+    return ObjectCommandTable<BeebWindow>::Initializer(std::move(name),std::move(text),&BeebWindow::ToggleUICommand<FLAG>,&BeebWindow::IsUICommandTicked<FLAG>);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -2077,21 +2100,91 @@ void BeebWindow::DoPaste(bool add_return) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#if BBCMICRO_ENABLE_COPY
+static const uint8_t VDU_CODE_LENGTHS[32]={
+    0,1,0,0,0,0,0,0,
+    0,0,0,0,0,0,0,0,
+    0,1,2,5,0,0,1,9,
+    8,5,0,0,4,4,0,2,
+};
+#endif
+
+#if BBCMICRO_ENABLE_COPY
+void BeebWindow::SetClipboardData(std::vector<uint8_t> data,bool is_text) {
+    if(is_text) {
+        // Normalize line endings and strip out control codes.
+
+        std::vector<uint8_t>::iterator it=data.begin();
+        uint8_t delete_counter=0;
+        while(it!=data.end()) {
+            if(delete_counter>0) {
+                it=data.erase(it);
+                --delete_counter;
+            } else if(*it==10&&it+1!=data.end()&&*(it+1)==13) {
+                *it=13;
+                *(it+1)=10;
+                it+=2;
+            } else if(*it<32) {
+                delete_counter=VDU_CODE_LENGTHS[*it];
+                ++it;
+            } else {
+                ++it;
+            }
+        }
+    }
+
+    data.push_back(0);
+
+    int rc=SDL_SetClipboardText((const char *)data.data());
+    if(rc!=0) {
+        m_msg.e.f("Failed to copy to clipboard: %s\n",SDL_GetError());
+    }
+}
+#endif
+
+#if BBCMICRO_ENABLE_COPY
+template<bool IS_TEXT>
+void BeebWindow::CopyOSWRCH() {
+    if(IsCopyOSWRCHTicked()) {
+        m_copying=false;
+        m_beeb_thread->SendStopCopyMessage([this](std::vector<uint8_t> data) {
+            this->SetClipboardData(std::move(data),IS_TEXT);
+        });
+    } else {
+        m_beeb_thread->SendStartCopyMessage();
+        m_copying=true;
+    }
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_ENABLE_COPY
+bool BeebWindow::IsCopyOSWRCHTicked() const {
+    return m_copying;
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 ObjectCommandTable<BeebWindow> BeebWindow::ms_command_table("Beeb Window",{
     {"hard_reset","Hard Reset",&BeebWindow::HardReset},
-    {"load_last_state","Load Last State",&BeebWindow::LoadLastState,&BeebWindow::IsLoadLastStateEnabled},
+    {"load_last_state","Load Last State",&BeebWindow::LoadLastState,nullptr,&BeebWindow::IsLoadLastStateEnabled},
     {"save_state","Save State",&BeebWindow::SaveState},
-    {"toggle_emulator_options","Emulator options...",&BeebWindow::GetSettingsUIFlags,&BeebWindow::SetSettingsUIFlags,BeebWindowUIFlag_Options},
-    {"toggle_keyboard_layout","Keyboard layout...",&BeebWindow::GetSettingsUIFlags,&BeebWindow::SetSettingsUIFlags,BeebWindowUIFlag_Keymaps},
-    {"toggle_messages","Messages...",&BeebWindow::GetSettingsUIFlags,&BeebWindow::SetSettingsUIFlags,BeebWindowUIFlag_Messages},
+    GetToggleUICommand<BeebWindowUIFlag_Options>("toggle_emulator_options","Emulator options..."),
+    GetToggleUICommand<BeebWindowUIFlag_Keymaps>("toggle_keyboard_layout","Keyboard layout..."),
 #if TIMELINE_UI_ENABLED
-    {"toggle_timeline","Timeline...",&BeebWindow::GetSettingsUIFlags,&BeebWindow::SetSettingsUIFlags,BeebWindowUIFlag_Timeline},
+    GetToggleUICommand<BeebWindowUIFlag_Timeline>("toggle_timeline","Timeline..."),
 #endif
-    {"toggle_configurations","Configurations...",&BeebWindow::GetSettingsUIFlags,&BeebWindow::SetSettingsUIFlags,BeebWindowUIFlag_Configs},
+    GetToggleUICommand<BeebWindowUIFlag_Messages>("toggle_messages","Messages..."),
+    GetToggleUICommand<BeebWindowUIFlag_Configs>("toggle_configurations","Configurations..."),
+    GetToggleUICommand<BeebWindowUIFlag_Trace>("toggle_event_trace","Event trace..."),
+    GetToggleUICommand<BeebWindowUIFlag_AudioCallback>("toggle_date_rate","Data rate..."),
+    GetToggleUICommand<BeebWindowUIFlag_CommandContextStack>("toggle_cc_stack","Command context stack..."),
     {"exit","Exit",&BeebWindow::Exit,ConfirmCommand()},
     {"clean_up_recent_files_lists","Clean up recent files lists",&BeebWindow::CleanUpRecentFilesLists,ConfirmCommand()},
-    {"toggle_event_trace","Event trace...",&BeebWindow::GetSettingsUIFlags,&BeebWindow::SetSettingsUIFlags,BeebWindowUIFlag_Trace},
-    {"toggle_date_rate","Data rate...",&BeebWindow::GetSettingsUIFlags,&BeebWindow::SetSettingsUIFlags,BeebWindowUIFlag_AudioCallback},
 #if SYSTEM_WINDOWS
     {"clear_console","Clear Win32 console",&BeebWindow::ClearConsole},
 #endif
@@ -2099,9 +2192,12 @@ ObjectCommandTable<BeebWindow> BeebWindow::ms_command_table("Beeb Window",{
     {"dump_timeline_console","Dump timeline to console only",&BeebWindow::DumpTimelineConsole},
     {"dump_timeline_debugger","Dump timeline to console+debugger",&BeebWindow::DumpTimelineDebuger},
     {"check_timeline","Check timeline",&BeebWindow::CheckTimeline},
-    {"toggle_cc_stack","Command context stack...",&BeebWindow::GetSettingsUIFlags,&BeebWindow::SetSettingsUIFlags,BeebWindowUIFlag_CommandContextStack},
 #if BBCMICRO_ENABLE_PASTE
-    {"paste","Paste",&BeebWindow::Paste},
-    {"paste_return","Paste+Return",&BeebWindow::PasteThenReturn},
+    {"paste","OSRDCH Paste",&BeebWindow::Paste},
+    {"paste_return","OSRDCH Paste (+Return)",&BeebWindow::PasteThenReturn},
+#endif
+#if BBCMICRO_ENABLE_COPY
+    {"toggle_copy_oswrch_text","OSWRCH Copy Text",&BeebWindow::CopyOSWRCH<true>,&BeebWindow::IsCopyOSWRCHTicked},
+    //{"toggle_copy_oswrch_binary","OSWRCH Copy Binary",&BeebWindow::CopyOSWRCH<false>,&BeebWindow::IsCopyOSWRCHTicked},
 #endif
 });
