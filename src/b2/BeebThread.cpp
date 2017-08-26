@@ -1072,19 +1072,22 @@ std::shared_ptr<BeebState> BeebThread::ThreadSaveState(ThreadState *ts) {
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_TRACE
-void BeebThread::ThreadStopTraceOnOSWORD0(BBCMicro *beeb,const BBCMicro::InstructionTraceEvent *event,void *context) {
+bool BeebThread::ThreadStopTraceOnOSWORD0(BBCMicro *beeb,M6502 *cpu,void *context) {
     (void)beeb;
 
     auto ts=(BeebThread::ThreadState *)context;
 
-    // Would be nice to integrate this with the BBCMicroHackFlags
-    // stuff, perhaps...
-
-    if(event->pc==0xfff1&&event->a==0) {
+    if(cpu->pc.w==0xfff2&&cpu->a==0) {
         ts->beeb_thread->ThreadStopTrace(ts);
+        return false;
+    } else {
+        return true;
     }
 }
 #endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_TRACE
 void BeebThread::ThreadStartTrace(ThreadState *ts) {
@@ -1094,7 +1097,7 @@ void BeebThread::ThreadStartTrace(ThreadState *ts) {
         // fall through
     case BeebThreadStartTraceCondition_Immediate:
         // Start now.
-        ts->beeb->StartTrace(ts->trace_conditions.trace_flags);
+        this->ThreadBeebStartTrace(ts);
         break;
 
     case BeebThreadStartTraceCondition_NextKeypress:
@@ -1102,7 +1105,7 @@ void BeebThread::ThreadStartTrace(ThreadState *ts) {
         break;
     }
 
-    ts->beeb->SetInstructionTraceEventFn(nullptr,nullptr);
+    //ts->beeb->SetInstructionTraceEventFn(nullptr,nullptr);
 
     switch(ts->trace_conditions.stop) {
     default:
@@ -1113,7 +1116,8 @@ void BeebThread::ThreadStartTrace(ThreadState *ts) {
         break;
 
     case BeebThreadStopTraceCondition_OSWORD0:
-        ts->beeb->SetInstructionTraceEventFn(&ThreadStopTraceOnOSWORD0,ts);
+        ts->beeb->AddInstructionFn(&ThreadStopTraceOnOSWORD0,ts);
+        break;
     }
 
     {
@@ -1123,6 +1127,15 @@ void BeebThread::ThreadStartTrace(ThreadState *ts) {
         m_is_tracing.store(true,std::memory_order_release);
         m_last_trace=nullptr;
     }
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_TRACE
+void BeebThread::ThreadBeebStartTrace(ThreadState *ts) {
+    ts->beeb->StartTrace(ts->trace_conditions.trace_flags);
 }
 #endif
 
@@ -1322,7 +1335,7 @@ void BeebThread::ThreadSetKeyState(ThreadState *ts,BeebKey beeb_key,bool state) 
                 if(state) {
                     if(ts->trace_conditions.beeb_key<0||beeb_key==ts->trace_conditions.beeb_key) {
                         ts->trace_conditions.start=BeebThreadStartTraceCondition_Immediate;
-                        this->ThreadStartTrace(ts);
+                        this->ThreadBeebStartTrace(ts);
                     }
                 }
             }

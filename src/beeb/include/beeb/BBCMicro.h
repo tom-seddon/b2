@@ -202,6 +202,15 @@ public:
 #endif
     };
 
+    // Called after an opcode fetch and before execution.
+    //
+    // cpu->pc.w is PC+1; cpu->pc.dbus is the opcode fetched.
+    //
+    // With care, the fetched opcode can be modified...
+    //
+    // Return true to keep the callback, or false to remove it.
+    typedef bool (*InstructionFn)(BBCMicro *m,M6502 *cpu,void *context);
+
     //const BBCMicroType *GetType();
 
     // Get read-only pointer to the cycle counter. The pointer is never
@@ -281,11 +290,11 @@ public:
      * Otherwise, returns null. */
     std::shared_ptr<Trace> StopTrace();
 
-    typedef void (*OnInstructionTraceEventFn)(BBCMicro *m,const InstructionTraceEvent *event,void *context);
-    void SetInstructionTraceEventFn(OnInstructionTraceEventFn fn,void *context);
-
     int GetTraceStats(struct TraceStats *stats);
 #endif
+
+    //
+    void AddInstructionFn(InstructionFn fn,void *context);
 
     void SetMMIOFns(uint16_t addr,ReadMMIOFn read_fn,WriteMMIOFn write_fn,void *context);
     void SetMMIOCycleStretch(uint16_t addr,bool stretch);
@@ -514,13 +523,13 @@ private:
     std::shared_ptr<Trace> m_trace_ptr;
     Trace *m_trace=nullptr;
     InstructionTraceEvent *m_trace_current_instruction=nullptr;
-    OnInstructionTraceEventFn m_trace_instr_fn=nullptr;
-    void *m_trace_instr_context=nullptr;
     uint32_t m_trace_flags=0;
 #endif
 
     // Combination of BBCMicroNonIntrusiveHackFlag.
     uint32_t m_ni_hack_flags=0;
+
+    std::vector<std::pair<InstructionFn,void *>> m_instruction_fns;
 
 #if BBCMICRO_ENABLE_COPY
     std::vector<uint8_t> m_copy_data;

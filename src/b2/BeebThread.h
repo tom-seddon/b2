@@ -345,7 +345,7 @@ private:
     std::vector<std::function<void()>> m_callbacks;
 
 #if BBCMICRO_TRACE
-    static void ThreadStopTraceOnOSWORD0(BBCMicro *beeb,const BBCMicro::InstructionTraceEvent *event,void *context);
+    static bool ThreadStopTraceOnOSWORD0(BBCMicro *beeb,M6502 *cpu,void *context);
 #endif
 
     void ThreadRecordEvent(ThreadState *ts,BeebEvent event);
@@ -353,6 +353,7 @@ private:
     void ThreadReplaceBeeb(ThreadState *ts,std::unique_ptr<BBCMicro> beeb,uint32_t flags);
 #if BBCMICRO_TRACE
     void ThreadStartTrace(ThreadState *ts);
+    void ThreadBeebStartTrace(ThreadState *ts);
     void ThreadStopTrace(ThreadState *ts);
 #endif
     void ThreadSetKeyState(ThreadState *ts,BeebKey beeb_key,bool state);

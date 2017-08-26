@@ -972,9 +972,95 @@ void BBCMicro::HandleCPUDataBusWithShadowRAM(BBCMicro *m) {
 //////////////////////////////////////////////////////////////////////////
 
 void BBCMicro::HandleCPUDataBusWithHacks(BBCMicro *m) {
-#if BBCMICRO_TRACE
-    if(m->m_trace) {
-        if(M6502_IsAboutToExecute(&m->m_state.cpu)) {
+    (*m->m_default_handle_cpu_data_bus_fn)(m);
+
+    if(M6502_IsAboutToExecute(&m->m_state.cpu)) {
+        if(!m->m_instruction_fns.empty()) {
+
+            // This is a bit bizarre, but I just can't stomach the
+            // idea of literally like 1,000,000 std::vector calls per
+            // second. But this way, it's hopefully more like only
+            // 300,000.
+
+            auto *fn=m->m_instruction_fns.data();
+            auto *fns_end=fn+m->m_instruction_fns.size();
+            bool removed=false;
+
+            while(fn!=fns_end) {
+                if((*fn->first)(m,&m->m_state.cpu,fn->second)) {
+                    ++fn;
+                } else {
+                    removed=true;
+                    *fn=*--fns_end;
+                }
+            }
+
+            if(removed) {
+                m->m_instruction_fns.resize(fns_end-m->m_instruction_fns.data());
+
+                m->UpdateCPUDataBusFn();
+            }
+        }
+
+#if BBCMICRO_ENABLE_PASTE
+
+        if(m->m_state.hack_flags&BBCMicroHackFlag_Paste) {
+            ASSERT(m->m_state.paste_state!=BBCMicroPasteState_None);
+
+            if(m->m_state.cpu.pc.w==0xffe1) {
+                // OSRDCH
+
+                // Put next byte in A.
+                switch(m->m_state.paste_state) {
+                case BBCMicroPasteState_None:
+                    ASSERT(false);
+                    break;
+
+                case BBCMicroPasteState_Wait:
+                    m->SetKeyState(PASTE_START_KEY,false);
+                    m->m_state.paste_state=BBCMicroPasteState_Delete;
+                    // fall through
+                case BBCMicroPasteState_Delete:
+                    m->m_state.cpu.a=127;
+                    m->m_state.paste_state=BBCMicroPasteState_Paste;
+                    break;
+
+                case BBCMicroPasteState_Paste:
+                    ASSERT(m->m_state.paste_index<m->m_state.paste_text->size());
+                    m->m_state.cpu.a=m->m_state.paste_text->at(m->m_state.paste_index);
+
+                    ++m->m_state.paste_index;
+                    if(m->m_state.paste_index==m->m_state.paste_text->size()) {
+                        m->StopPasting();
+                    }
+                    break;
+                }
+
+                // No Escape.
+                m->m_state.cpu.p.bits.c=0;
+
+                // Pretend the instruction was RTS.
+                m->m_state.cpu.dbus=0x60;
+            }
+        }
+
+#endif
+
+#if BBCMICRO_ENABLE_COPY
+
+        if(m->m_ni_hack_flags&BBCMicroNonIntrusiveHackFlag_CopyOSWRCH) {
+            // Rather tiresomely, BASIC 2 prints stuff with JMP (WRCHV).
+            // Who comes up with this stuff? So detect opcode fetches from
+            // wherever WRCHV points to.
+            if(m->m_state.cpu.abus.b.l==m->m_ram[0x020e]&&m->m_state.cpu.abus.b.h==m->m_ram[0x020f]) {
+                // Opcode fetch for first byte of OSWRCH
+                m->m_copy_data.push_back(m->m_state.cpu.a);
+            }
+        }
+
+#endif
+
+        if(m->m_trace) {
             InstructionTraceEvent *e;
 
             // Fill out results of last instruction.
@@ -989,15 +1075,6 @@ void BBCMicro::HandleCPUDataBusWithHacks(BBCMicro *m) {
                 //e->pc=m_state.cpu.pc.w;//...for next instruction
                 e->ad=m->m_state.cpu.ad.w;
                 e->ia=m->m_state.cpu.ia.w;
-
-                if(m->m_trace_instr_fn) {
-                    (*m->m_trace_instr_fn)(m,e,m->m_trace_instr_context);
-
-                    if(!m->m_trace) {
-                        // Trace was disabled.
-                        goto no_trace;
-                    }
-                }
             }
 
             // Allocate event for next instruction.
@@ -1012,73 +1089,6 @@ void BBCMicro::HandleCPUDataBusWithHacks(BBCMicro *m) {
             }
         }
     }
-no_trace:;
-#endif
-
-#if BBCMICRO_ENABLE_PASTE
-
-    if(m->m_state.hack_flags&BBCMicroHackFlag_Paste) {
-        ASSERT(m->m_state.paste_state!=BBCMicroPasteState_None);
-
-        if(m->m_state.cpu.read&&m->m_state.cpu.abus.w==0xffe0&&m->m_state.cpu.pc.w==0xffe1) {
-            // Opcode fetch for the first byte of OSRDCH.
-
-            // Put next byte in A.
-            switch(m->m_state.paste_state) {
-            case BBCMicroPasteState_None:
-                ASSERT(false);
-                break;
-
-            case BBCMicroPasteState_Wait:
-                m->SetKeyState(PASTE_START_KEY,false);
-                m->m_state.paste_state=BBCMicroPasteState_Delete;
-                // fall through
-            case BBCMicroPasteState_Delete:
-                m->m_state.cpu.a=127;
-                m->m_state.paste_state=BBCMicroPasteState_Paste;
-                break;
-
-            case BBCMicroPasteState_Paste:
-                ASSERT(m->m_state.paste_index<m->m_state.paste_text->size());
-                m->m_state.cpu.a=m->m_state.paste_text->at(m->m_state.paste_index);
-
-                ++m->m_state.paste_index;
-                if(m->m_state.paste_index==m->m_state.paste_text->size()) {
-                    m->StopPasting();
-                }
-                break;
-            }
-
-            // No Escape.
-            m->m_state.cpu.p.bits.c=0;
-
-            // Pretend the instruction was RTS.
-            m->m_state.cpu.dbus=0x60;
-
-            return;
-        }
-    }
-
-#endif
-
-#if BBCMICRO_ENABLE_COPY
-
-    if(m->m_ni_hack_flags&BBCMicroNonIntrusiveHackFlag_CopyOSWRCH) {
-        // Rather tiresomely, BASIC 2 prints stuff with JMP (WRCHV).
-        // Who comes up with this stuff? So detect opcode fetches from
-        // wherever WRCHV points to.
-        if(m->m_state.cpu.read&&m->m_state.cpu.abus.w+1==m->m_state.cpu.pc.w) {
-            if(m->m_state.cpu.abus.b.l==m->m_ram[0x020e]&&m->m_state.cpu.abus.b.h==m->m_ram[0x020f]) {
-                // Opcode fetch for first byte of OSWRCH
-                m->m_copy_data.push_back(m->m_state.cpu.a);
-            }
-        }
-    }
-
-#endif
-
-    //normal:;
-    (*m->m_default_handle_cpu_data_bus_fn)(m);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -1431,16 +1441,6 @@ void BBCMicro::StartTrace(uint32_t trace_flags) {
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_TRACE
-void BBCMicro::SetInstructionTraceEventFn(OnInstructionTraceEventFn fn,void *context) {
-    m_trace_instr_fn=fn;
-    m_trace_instr_context=context;
-}
-#endif
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-#if BBCMICRO_TRACE
 std::shared_ptr<Trace> BBCMicro::StopTrace() {
     std::shared_ptr<Trace> old_trace=m_trace_ptr;
 
@@ -1470,6 +1470,17 @@ int BBCMicro::GetTraceStats(struct TraceStats *stats) {
     return 1;
 }
 #endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BBCMicro::AddInstructionFn(InstructionFn fn,void *context) {
+    ASSERT(std::find(m_instruction_fns.begin(),m_instruction_fns.end(),std::make_pair(fn,context))==m_instruction_fns.end());
+
+    m_instruction_fns.emplace_back(fn,context);
+
+    this->UpdateCPUDataBusFn();
+}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -2133,7 +2144,7 @@ void BBCMicro::StopPasting() {
 //////////////////////////////////////////////////////////////////////////
 
 void BBCMicro::UpdateCPUDataBusFn() {
-    if(m_state.hack_flags!=0||m_ni_hack_flags!=0||m_trace) {
+    if(m_state.hack_flags!=0||m_ni_hack_flags!=0||m_trace||!m_instruction_fns.empty()) {
         m_handle_cpu_data_bus_fn=&HandleCPUDataBusWithHacks;
     } else {
         m_handle_cpu_data_bus_fn=m_default_handle_cpu_data_bus_fn;
