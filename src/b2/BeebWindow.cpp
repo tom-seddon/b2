@@ -2136,6 +2136,8 @@ static const uint8_t VDU_CODE_LENGTHS[32]={
 void BeebWindow::SetClipboardData(std::vector<uint8_t> data,bool is_text) {
     if(is_text) {
         // Normalize line endings and strip out control codes.
+        //
+        // TODO: do it in a less dumb fashion.
 
         std::vector<uint8_t>::iterator it=data.begin();
         uint8_t delete_counter=0;
@@ -2144,9 +2146,16 @@ void BeebWindow::SetClipboardData(std::vector<uint8_t> data,bool is_text) {
                 it=data.erase(it);
                 --delete_counter;
             } else if(*it==10&&it+1!=data.end()&&*(it+1)==13) {
+#if SYSTEM_WINDOWS
+                // DOS-style line endings.
                 *it=13;
                 *(it+1)=10;
                 it+=2;
+#else
+                // Unix-style line endings.
+                *it++='\n';
+                delete_counter=1;
+#endif
             } else if(*it<32) {
                 delete_counter=VDU_CODE_LENGTHS[*it];
                 ++it;
