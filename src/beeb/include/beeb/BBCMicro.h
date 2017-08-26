@@ -293,7 +293,12 @@ public:
     int GetTraceStats(struct TraceStats *stats);
 #endif
 
+    // Add instruction callback. It's an error to add the same one
+    // twice...
     //
+    // The only way to remove one is to have the callback return
+    // false... it's too much faff trying to make it all work properly
+    // otherwise.
     void AddInstructionFn(InstructionFn fn,void *context);
 
     void SetMMIOFns(uint16_t addr,ReadMMIOFn read_fn,WriteMMIOFn write_fn,void *context);
@@ -325,13 +330,6 @@ public:
     bool IsPasting() const;
     void Paste(std::shared_ptr<std::string> text);
 #endif
-
-#if BBCMICRO_ENABLE_COPY
-    void StartCopy();
-    std::vector<uint8_t> StopCopy();
-    //bool IsCopying() const;
-#endif
-
 protected:
 private:
     //////////////////////////////////////////////////////////////////////////
@@ -526,14 +524,7 @@ private:
     uint32_t m_trace_flags=0;
 #endif
 
-    // Combination of BBCMicroNonIntrusiveHackFlag.
-    uint32_t m_ni_hack_flags=0;
-
     std::vector<std::pair<InstructionFn,void *>> m_instruction_fns;
-
-#if BBCMICRO_ENABLE_COPY
-    std::vector<uint8_t> m_copy_data;
-#endif
 
     void InitStuff();
     void SetOSPages(uint8_t dest_page,uint8_t src_page,uint8_t num_pages);

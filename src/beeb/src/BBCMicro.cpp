@@ -1046,20 +1046,6 @@ void BBCMicro::HandleCPUDataBusWithHacks(BBCMicro *m) {
 
 #endif
 
-#if BBCMICRO_ENABLE_COPY
-
-        if(m->m_ni_hack_flags&BBCMicroNonIntrusiveHackFlag_CopyOSWRCH) {
-            // Rather tiresomely, BASIC 2 prints stuff with JMP (WRCHV).
-            // Who comes up with this stuff? So detect opcode fetches from
-            // wherever WRCHV points to.
-            if(m->m_state.cpu.abus.b.l==m->m_ram[0x020e]&&m->m_state.cpu.abus.b.h==m->m_ram[0x020f]) {
-                // Opcode fetch for first byte of OSWRCH
-                m->m_copy_data.push_back(m->m_state.cpu.a);
-            }
-        }
-
-#endif
-
         if(m->m_trace) {
             InstructionTraceEvent *e;
 
@@ -1598,38 +1584,6 @@ void BBCMicro::Paste(std::shared_ptr<std::string> text) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-#if BBCMICRO_ENABLE_COPY
-void BBCMicro::StartCopy() {
-    m_ni_hack_flags|=BBCMicroNonIntrusiveHackFlag_CopyOSWRCH;
-    m_copy_data.clear();
-    this->UpdateCPUDataBusFn();
-}
-#endif
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-#if BBCMICRO_ENABLE_COPY
-std::vector<uint8_t> BBCMicro::StopCopy() {
-    m_ni_hack_flags&=~BBCMicroNonIntrusiveHackFlag_CopyOSWRCH;
-    this->UpdateCPUDataBusFn();
-
-    return std::vector<uint8_t>(std::move(m_copy_data));
-}
-#endif
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-//#if BBCMICRO_ENABLE_COPY
-//bool BBCMicro::IsCopying() const {
-//    return !!(m_ni_hack_flags&BBCMicroNonIntrusiveHackFlag_CopyOSWRCH);
-//}
-//#endif
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 void BBCMicro::InitStuff() {
     CHECK_SIZEOF(AddressableLatch,1);
     CHECK_SIZEOF(ROMSEL,1);
@@ -2144,7 +2098,7 @@ void BBCMicro::StopPasting() {
 //////////////////////////////////////////////////////////////////////////
 
 void BBCMicro::UpdateCPUDataBusFn() {
-    if(m_state.hack_flags!=0||m_ni_hack_flags!=0||m_trace||!m_instruction_fns.empty()) {
+    if(m_state.hack_flags!=0||m_trace||!m_instruction_fns.empty()) {
         m_handle_cpu_data_bus_fn=&HandleCPUDataBusWithHacks;
     } else {
         m_handle_cpu_data_bus_fn=m_default_handle_cpu_data_bus_fn;

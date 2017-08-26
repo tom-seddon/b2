@@ -93,6 +93,11 @@ struct BeebThread::ThreadState {
     size_t replay_next_index=0;
     uint64_t replay_next_event_cycles=0;
 
+#if BBCMICRO_ENABLE_COPY
+    bool copying=false;
+    std::vector<uint8_t> copy_data;
+#endif
+
     Log log{"BEEB  ",LOG(BTHREAD)};
     Messages msgs;
 };
@@ -1074,7 +1079,6 @@ std::shared_ptr<BeebState> BeebThread::ThreadSaveState(ThreadState *ts) {
 #if BBCMICRO_TRACE
 bool BeebThread::ThreadStopTraceOnOSWORD0(BBCMicro *beeb,M6502 *cpu,void *context) {
     (void)beeb;
-
     auto ts=(BeebThread::ThreadState *)context;
 
     if(cpu->pc.w==0xfff2&&cpu->a==0) {
@@ -1083,6 +1087,33 @@ bool BeebThread::ThreadStopTraceOnOSWORD0(BBCMicro *beeb,M6502 *cpu,void *contex
     } else {
         return true;
     }
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_ENABLE_COPY
+bool BeebThread::ThreadAddCopyData(BBCMicro *beeb,M6502 *cpu,void *context) {
+    (void)beeb;
+    auto ts=(ThreadState *)context;
+
+    if(!ts->copying) {
+        return false;
+    }
+
+    const uint8_t *ram=beeb->GetRAM();
+
+    // Rather tiresomely, BASIC 2 prints stuff with JMP (WRCHV). Who
+    // comes up with this stuff? So check against WRCHV, not just
+    // 0xffee.
+
+    if(cpu->abus.b.l==ram[0x020e]&&cpu->abus.b.h==ram[0x020f]) {
+        // Opcode fetch for first byte of OSWRCH
+        ts->copy_data.push_back(cpu->a);
+    }
+
+    return true;
 }
 #endif
 
@@ -1923,7 +1954,11 @@ bool BeebThread::ThreadHandleMessage(
 #if BBCMICRO_ENABLE_COPY
     case BeebThreadEventType_StartCopy:
         {
-            ts->beeb->StartCopy();
+            ts->copy_data.clear();
+            if(!ts->copying) {
+                ts->beeb->AddInstructionFn(&ThreadAddCopyData,ts);
+            }
+            ts->copying=true;
         }
         break;
 
@@ -1931,7 +1966,9 @@ bool BeebThread::ThreadHandleMessage(
         {
             auto ptr=(StopyCopyMessagePayload *)msg->data.ptr;
 
-            this->AddCallback([data=ts->beeb->StopCopy(),fun=ptr->fun]() {
+            ts->copying=false;
+
+            this->AddCallback([data=std::move(ts->copy_data),fun=ptr->fun]() {
                 fun(std::move(data));
             });
         }

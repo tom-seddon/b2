@@ -347,6 +347,9 @@ private:
 #if BBCMICRO_TRACE
     static bool ThreadStopTraceOnOSWORD0(BBCMicro *beeb,M6502 *cpu,void *context);
 #endif
+#if BBCMICRO_ENABLE_COPY
+    static bool ThreadAddCopyData(BBCMicro *beeb,M6502 *cpu,void *context);
+#endif
 
     void ThreadRecordEvent(ThreadState *ts,BeebEvent event);
     std::shared_ptr<BeebState> ThreadSaveState(ThreadState *ts);
