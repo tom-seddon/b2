@@ -1088,7 +1088,15 @@ bool BeebWindow::DoImGui(int output_width,int output_height) {
     }
 
     bool replaying=m_beeb_thread->IsReplaying();
-    if(ValueChanged(&m_leds,m_beeb_thread->GetLEDs())||(m_leds&BBCMicroLEDFlags_AllDrives)||replaying||m_copying||m_beeb_thread->IsPasting()) {
+    if(ValueChanged(&m_leds,m_beeb_thread->GetLEDs())||(m_leds&BBCMicroLEDFlags_AllDrives)||replaying
+#if BBCMICRO_ENABLE_COPY
+       ||m_copying
+#endif
+#if BBCMICRO_ENABLE_PASTE
+       ||m_beeb_thread->IsPasting()
+#endif
+       )
+    {
         m_leds_popup_ui_active=true;
         m_leds_popup_ticks=now;
         //LOGF(OUTPUT,"leds now: 0x%x\n",m_leds);

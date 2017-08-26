@@ -1404,11 +1404,13 @@ void BeebThread::ThreadReplayEvent(ThreadState *ts,const BeebEvent &event) {
         }
         break;
 
+#if BBCMICRO_ENABLE_PASTE
     case BeebEventType_Paste:
         {
             ts->beeb->Paste(event.data.paste->text);
         }
         return;
+#endif
     }
 
     ASSERT(false);

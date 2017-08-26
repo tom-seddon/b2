@@ -176,7 +176,9 @@ public:
 
     static BeebEvent MakeWindowProxy(BeebWindow *window);
 
+#if BBCMICRO_ENABLE_PASTE
     static BeebEvent MakePaste(uint64_t time_2MHz_cycles,std::shared_ptr<std::string> text);
+#endif
 
     ~BeebEvent();
 
