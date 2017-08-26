@@ -1698,8 +1698,13 @@ void BeebThread::ThreadStopCopy(ThreadState *ts) {
             }
 
             if(ts->copy_data.size()>=prefix.size()) {
-                if(std::equal(ts->copy_data.begin(),ts->copy_data.begin()+prefix.size(),prefix.begin())) {
-                    ts->copy_data.erase(ts->copy_data.begin(),ts->copy_data.begin()+prefix.size());
+                auto begin=ts->copy_data.begin();
+                
+                auto end=begin;
+                std::advance(end,prefix.size());
+                
+                if(std::equal(begin,end,prefix.begin())) {
+                    ts->copy_data.erase(begin,end);
                 }
             }
         }

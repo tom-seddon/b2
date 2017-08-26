@@ -21,6 +21,7 @@
 #include <beeb/DiscImage.h>
 #include <map>
 #include <limits.h>
+#include <algorithm>
 
 #include <shared/enum_decl.h>
 #include "BBCMicro_private.inl"
@@ -1003,7 +1004,7 @@ void BBCMicro::HandleCPUDataBusWithHacks(BBCMicro *m) {
             }
 
             if(removed) {
-                m->m_instruction_fns.resize(fns_end-m->m_instruction_fns.data());
+                m->m_instruction_fns.resize((size_t)(fns_end-m->m_instruction_fns.data()));
 
                 m->UpdateCPUDataBusFn();
             }
@@ -1034,7 +1035,7 @@ void BBCMicro::HandleCPUDataBusWithHacks(BBCMicro *m) {
 
                 case BBCMicroPasteState_Paste:
                     ASSERT(m->m_state.paste_index<m->m_state.paste_text->size());
-                    m->m_state.cpu.a=m->m_state.paste_text->at(m->m_state.paste_index);
+                    m->m_state.cpu.a=(uint8_t)m->m_state.paste_text->at(m->m_state.paste_index);
 
                     ++m->m_state.paste_index;
                     if(m->m_state.paste_index==m->m_state.paste_text->size()) {
@@ -1597,7 +1598,7 @@ void BBCMicro::StopPaste() {
     m_state.paste_index=0;
     m_state.paste_text.reset();
 
-    m_state.hack_flags&=~BBCMicroHackFlag_Paste;
+    m_state.hack_flags&=(uint32_t)~BBCMicroHackFlag_Paste;
     this->UpdateCPUDataBusFn();
 }
 #endif

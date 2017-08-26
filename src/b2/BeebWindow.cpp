@@ -2017,7 +2017,7 @@ decode(uint32_t* state,uint32_t* codep,uint32_t byte) {
 
     *codep=(*state!=UTF8_ACCEPT)?
         (byte&0x3fu)|(*codep<<6):
-        (0xff>>type) & (byte);
+        (0xffu>>type) & (byte);
 
     *state=utf8d[256+*state*16+type];
     return *state;
