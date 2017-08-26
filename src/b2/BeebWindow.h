@@ -380,24 +380,18 @@ private:
     template<BeebWindowUIFlag>
     static ObjectCommandTable<BeebWindow>::Initializer GetToggleUICommand(std::string name,std::string text);
 
-#if BBCMICRO_ENABLE_PASTE
     void Paste();
     void PasteThenReturn();
     void DoPaste(bool add_return);
     bool IsPasteTicked() const;
-#endif
 
-#if BBCMICRO_ENABLE_COPY
     template<bool IS_TEXT>
     void CopyOSWRCH();
     void SetClipboardData(std::vector<uint8_t> data,bool is_text);
     bool IsCopyOSWRCHTicked() const;
-#endif
 
-#if BBCMICRO_ENABLE_PASTE&&BBCMICRO_ENABLE_COPY
     void CopyBASIC();
     bool IsCopyBASICEnabled() const;
-#endif
 
     static ObjectCommandTable<BeebWindow> ms_command_table;
 };

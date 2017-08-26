@@ -326,13 +326,11 @@ public:
     // The disc mutex will be locked if there is one.
     bool GetAndResetDiscAccessFlag();
 
-#if BBCMICRO_ENABLE_PASTE
     static const char PASTE_START_CHAR;
 
     bool IsPasting() const;
     void StartPaste(std::shared_ptr<std::string> text);
     void StopPaste();
-#endif
 protected:
 private:
     //////////////////////////////////////////////////////////////////////////

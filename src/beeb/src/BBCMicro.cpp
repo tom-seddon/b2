@@ -60,14 +60,12 @@ static std::map<DiscDriveType,std::array<std::vector<float>,DiscDriveSound_EndVa
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-#if BBCMICRO_ENABLE_PASTE
 // The key to press to start the paste going.
 static const BeebKey PASTE_START_KEY=BeebKey_Space;
 
 // The corresponding char, so it can be removed when copying the BASIC
 // listing.
 const char BBCMicro::PASTE_START_CHAR=' ';
-#endif
 
 #if BBCMICRO_TRACE
 const TraceEventType BBCMicro::INSTRUCTION_EVENT("BBCMicroInstruction",sizeof(InstructionTraceEvent));
@@ -779,9 +777,7 @@ bool BBCMicro::SetKeyState(BeebKey key,bool new_state) {
                 M6502_Halt(&m_state.cpu);
             } else {
                 M6502_Reset(&m_state.cpu);
-#if BBCMICRO_ENABLE_PASTE
                 this->StopPaste();
-#endif
             }
 
             return true;
@@ -1010,8 +1006,6 @@ void BBCMicro::HandleCPUDataBusWithHacks(BBCMicro *m) {
             }
         }
 
-#if BBCMICRO_ENABLE_PASTE
-
         if(m->m_state.hack_flags&BBCMicroHackFlag_Paste) {
             ASSERT(m->m_state.paste_state!=BBCMicroPasteState_None);
 
@@ -1051,8 +1045,6 @@ void BBCMicro::HandleCPUDataBusWithHacks(BBCMicro *m) {
                 m->m_state.cpu.dbus=0x60;
             }
         }
-
-#endif
 
         if(m->m_trace) {
             InstructionTraceEvent *e;
@@ -1564,16 +1556,13 @@ bool BBCMicro::GetAndResetDiscAccessFlag() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-#if BBCMICRO_ENABLE_PASTE
 bool BBCMicro::IsPasting() const {
     return (m_state.hack_flags&BBCMicroHackFlag_Paste)!=0;
 }
-#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-#if BBCMICRO_ENABLE_PASTE
 void BBCMicro::StartPaste(std::shared_ptr<std::string> text) {
     this->StopPaste();
 
@@ -1587,12 +1576,10 @@ void BBCMicro::StartPaste(std::shared_ptr<std::string> text) {
 
     this->UpdateCPUDataBusFn();
 }
-#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-#if BBCMICRO_ENABLE_PASTE
 void BBCMicro::StopPaste() {
     m_state.paste_state=BBCMicroPasteState_None;
     m_state.paste_index=0;
@@ -1601,7 +1588,6 @@ void BBCMicro::StopPaste() {
     m_state.hack_flags&=(uint32_t)~BBCMicroHackFlag_Paste;
     this->UpdateCPUDataBusFn();
 }
-#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

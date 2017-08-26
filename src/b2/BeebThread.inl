@@ -114,15 +114,12 @@ EPN(LoadLastState)
 
 EPN(CancelReplay)
 
-#if BBCMICRO_ENABLE_PASTE
 // Paste text.
 //
 // (payload)data.ptr
 EPN(StartPaste)
 EPN(StopPaste)
-#endif
 
-#if BBCMICRO_ENABLE_COPY
 // Start copying.
 //
 // (payload)data.ptr
@@ -133,7 +130,6 @@ EPN(StartCopy)
 //
 // (payload)data.ptr.
 EPN(StopCopy)
-#endif
 
 EEND()
 #undef ENAME

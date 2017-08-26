@@ -141,18 +141,14 @@ public:
     bool IsTurboDisc() const;
 #endif
 
-#if BBCMICRO_ENABLE_PASTE
     void SendStartPasteMessage(std::string text);
     void SendStopPasteMessage();
     bool IsPasting() const;
-#endif
 
-#if BBCMICRO_ENABLE_COPY
     void SendStartCopyMessage(std::function<void(std::vector<uint8_t>)> stop_fun);
-    void SendStartCopyBASICMessage(std::function<void(std::vector<uint8_t>)> stop_fun);
     void SendStopCopyMessage();
     bool IsCopying() const;
-#endif
+    void SendStartCopyBASICMessage(std::function<void(std::vector<uint8_t>)> stop_fun);
 
     // Get trace stats, or nullptr if there's no trace.
     const volatile TraceStats *GetTraceStats() const;
@@ -285,12 +281,8 @@ private:
     // Whether turbo disc mode is active.
     std::atomic<bool> m_is_turbo_disc{false};
 #endif
-#if BBCMICRO_ENABLE_PASTE
     std::atomic<bool> m_is_pasting{false};
-#endif
-#if BBCMICRO_ENABLE_COPY
     std::atomic<bool> m_is_copying{false};
-#endif
 
     //mutable volatile int32_t m_is_paused=1;
 
@@ -355,9 +347,7 @@ private:
     static bool ThreadStopTraceOnOSWORD0(BBCMicro *beeb,M6502 *cpu,void *context);
 #endif
     static bool ThreadStopCopyOnOSWORD0(BBCMicro *beeb,M6502 *cpu,void *context);
-#if BBCMICRO_ENABLE_COPY
     static bool ThreadAddCopyData(BBCMicro *beeb,M6502 *cpu,void *context);
-#endif
 
     void ThreadRecordEvent(ThreadState *ts,BeebEvent event);
     std::shared_ptr<BeebState> ThreadSaveState(ThreadState *ts);
@@ -382,13 +372,9 @@ private:
     void ThreadHandleReplayEvents(ThreadState *ts);
     bool ThreadHandleMessage(ThreadState *ts,Message *msg,bool *limit_speed,uint64_t *next_stop_2MHz_cycles);
     void ThreadSetDiscImage(ThreadState *ts,int drive,std::shared_ptr<DiscImage> disc_image);
-#if BBCMICRO_ENABLE_PASTE
     void ThreadStartPaste(ThreadState *ts,std::string text);
     void ThreadStopPaste(ThreadState *ts);
-#endif
-#if BBCMICRO_ENABLE_COPY
     void ThreadStopCopy(ThreadState *ts);
-#endif
     void ThreadMain();
     static void ThreadBBCMicroNVRAMCallback(BBCMicro *m,size_t offset,uint8_t value,void *context);
 

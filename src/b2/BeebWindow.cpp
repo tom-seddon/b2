@@ -1090,15 +1090,7 @@ bool BeebWindow::DoImGui(int output_width,int output_height) {
     }
 
     bool replaying=m_beeb_thread->IsReplaying();
-    if(ValueChanged(&m_leds,m_beeb_thread->GetLEDs())||(m_leds&BBCMicroLEDFlags_AllDrives)||replaying
-#if BBCMICRO_ENABLE_COPY
-       ||m_beeb_thread->IsCopying()
-#endif
-#if BBCMICRO_ENABLE_PASTE
-       ||m_beeb_thread->IsPasting()
-#endif
-       )
-    {
+    if(ValueChanged(&m_leds,m_beeb_thread->GetLEDs())||(m_leds&BBCMicroLEDFlags_AllDrives)||replaying||m_beeb_thread->IsCopying()||m_beeb_thread->IsPasting()) {
         m_leds_popup_ui_active=true;
         m_leds_popup_ticks=now;
         //LOGF(OUTPUT,"leds now: 0x%x\n",m_leds);
@@ -1137,22 +1129,18 @@ bool BeebWindow::DoImGui(int output_width,int output_height) {
                 }
             }
 
-#if BBCMICRO_ENABLE_COPY
             ImGui::SameLine();
             ImGuiLED(m_beeb_thread->IsCopying(),"Copy");
-#endif
 
-#if BBCMICRO_ENABLE_PASTE
             ImGui::SameLine();
             ImGuiLED(m_beeb_thread->IsPasting(),"Paste");
-#endif
         }
         ImGui::End();
 
         if(GetSecondsFromTicks(now-m_leds_popup_ticks)>LEDS_POPUP_TIME_SECONDS) {
             m_leds_popup_ui_active=false;
         }
-    }
+        }
 
     std::vector<std::shared_ptr<JobQueue::Job>> jobs=BeebWindows::GetJobs();
     if(!jobs.empty()) {
@@ -1194,7 +1182,7 @@ bool BeebWindow::DoImGui(int output_width,int output_height) {
     }
 
     return keep_window;
-}
+    }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -1609,7 +1597,7 @@ bool BeebWindow::InitInternal() {
 
 
     return true;
-}
+    }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -1968,25 +1956,19 @@ ObjectCommandTable<BeebWindow>::Initializer BeebWindow::GetToggleUICommand(std::
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-#if BBCMICRO_ENABLE_PASTE
 void BeebWindow::Paste() {
     this->DoPaste(false);
 }
-#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-#if BBCMICRO_ENABLE_PASTE
 void BeebWindow::PasteThenReturn() {
     this->DoPaste(true);
 }
-#endif 
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
-
-#if BBCMICRO_ENABLE_PASTE
 
 // Copyright (c) 2008-2009 Bjoern Hoehrmann <bjoern@hoehrmann.de>
 // See http://bjoern.hoehrmann.de/utf-8/decoder/dfa/ for details.
@@ -2109,30 +2091,24 @@ void BeebWindow::DoPaste(bool add_return) {
         m_beeb_thread->SendStartPasteMessage(std::move(ascii));
     }
 }
-#endif 
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-#if BBCMICRO_ENABLE_PASTE
 bool BeebWindow::IsPasteTicked() const {
     return m_beeb_thread->IsPasting();
 }
-#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-#if BBCMICRO_ENABLE_COPY
 static const uint8_t VDU_CODE_LENGTHS[32]={
     0,1,0,0,0,0,0,0,
     0,0,0,0,0,0,0,0,
     0,1,2,5,0,0,1,9,
     8,5,0,0,4,4,0,2,
 };
-#endif
 
-#if BBCMICRO_ENABLE_COPY
 void BeebWindow::SetClipboardData(std::vector<uint8_t> data,bool is_text) {
     if(is_text) {
         // Normalize line endings and strip out control codes.
@@ -2172,9 +2148,10 @@ void BeebWindow::SetClipboardData(std::vector<uint8_t> data,bool is_text) {
         m_msg.e.f("Failed to copy to clipboard: %s\n",SDL_GetError());
     }
 }
-#endif
 
-#if BBCMICRO_ENABLE_COPY
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 template<bool IS_TEXT>
 void BeebWindow::CopyOSWRCH() {
     if(m_beeb_thread->IsCopying()) {
@@ -2185,16 +2162,13 @@ void BeebWindow::CopyOSWRCH() {
         });
     }
 }
-#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-#if BBCMICRO_ENABLE_COPY
 bool BeebWindow::IsCopyOSWRCHTicked() const {
     return m_beeb_thread->IsCopying();
 }
-#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -2242,15 +2216,9 @@ ObjectCommandTable<BeebWindow> BeebWindow::ms_command_table("Beeb Window",{
     {"dump_timeline_console","Dump timeline to console only",&BeebWindow::DumpTimelineConsole},
     {"dump_timeline_debugger","Dump timeline to console+debugger",&BeebWindow::DumpTimelineDebuger},
     {"check_timeline","Check timeline",&BeebWindow::CheckTimeline},
-#if BBCMICRO_ENABLE_PASTE
     {"paste","OSRDCH Paste",&BeebWindow::Paste,&BeebWindow::IsPasteTicked},
     {"paste_return","OSRDCH Paste (+Return)",&BeebWindow::PasteThenReturn,&BeebWindow::IsPasteTicked},
-#endif
-#if BBCMICRO_ENABLE_COPY
     {"toggle_copy_oswrch_text","OSWRCH Copy Text",&BeebWindow::CopyOSWRCH<true>,&BeebWindow::IsCopyOSWRCHTicked},
     //{"toggle_copy_oswrch_binary","OSWRCH Copy Binary",&BeebWindow::CopyOSWRCH<false>,&BeebWindow::IsCopyOSWRCHTicked},
-#endif
-#if BBCMICRO_ENABLE_PASTE&&BBCMICRO_ENABLE_COPY
     {"copy_basic","Copy BASIC listing",&BeebWindow::CopyBASIC,&BeebWindow::IsCopyOSWRCHTicked,&BeebWindow::IsCopyBASICEnabled},
-#endif
 });

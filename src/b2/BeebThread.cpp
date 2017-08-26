@@ -102,11 +102,9 @@ struct BeebThread::ThreadState {
     size_t replay_next_index=0;
     uint64_t replay_next_event_cycles=0;
 
-#if BBCMICRO_ENABLE_COPY
     bool copy_basic=false;
     std::function<void(std::vector<uint8_t>)> copy_stop_fun;
     std::vector<uint8_t> copy_data;
-#endif
 
     Log log{"BEEB  ",LOG(BTHREAD)};
     Messages msgs;
@@ -525,7 +523,6 @@ bool BeebThread::IsTurboDisc() const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-#if BBCMICRO_ENABLE_PASTE
 struct StartPasteMessagePayload {
     std::string text;
 };
@@ -537,7 +534,6 @@ void BeebThread::SendStartPasteMessage(std::string text) {
 
     this->SendMessageWithPayload(BeebThreadEventType_StartPaste,ptr);
 }
-#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -549,16 +545,13 @@ void BeebThread::SendStopPasteMessage() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-#if BBCMICRO_ENABLE_PASTE
 bool BeebThread::IsPasting() const {
     return m_is_pasting.load(std::memory_order_acquire);
 }
-#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-#if BBCMICRO_ENABLE_COPY
 struct StartCopyMessagePayload {
     bool basic=false;
     std::function<void(const std::vector<uint8_t> &)> stop_fun;
@@ -572,12 +565,10 @@ void BeebThread::SendStartCopyMessage(std::function<void(std::vector<uint8_t>)> 
 
     this->SendMessageWithPayload(BeebThreadEventType_StartCopy,ptr);
 }
-#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-#if BBCMICRO_ENABLE_COPY
 void BeebThread::SendStartCopyBASICMessage(std::function<void(std::vector<uint8_t>)> stop_fun) {
     auto ptr=new StartCopyMessagePayload;
 
@@ -586,12 +577,10 @@ void BeebThread::SendStartCopyBASICMessage(std::function<void(std::vector<uint8_
 
     this->SendMessageWithPayload(BeebThreadEventType_StartCopy,ptr);
 }
-#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-#if BBCMICRO_ENABLE_COPY
 struct StopyCopyMessagePayload {
     std::function<void(const std::vector<uint8_t> &)> fun;
 };
@@ -599,7 +588,6 @@ struct StopyCopyMessagePayload {
 void BeebThread::SendStopCopyMessage() {
     this->SendMessage(BeebThreadEventType_StopCopy,0,nullptr);
 }
-#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -1158,7 +1146,6 @@ bool BeebThread::ThreadStopCopyOnOSWORD0(BBCMicro *beeb,M6502 *cpu,void *context
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-#if BBCMICRO_ENABLE_COPY
 bool BeebThread::ThreadAddCopyData(BBCMicro *beeb,M6502 *cpu,void *context) {
     (void)beeb;
     auto ts=(ThreadState *)context;
@@ -1180,7 +1167,6 @@ bool BeebThread::ThreadAddCopyData(BBCMicro *beeb,M6502 *cpu,void *context) {
 
     return true;
 }
-#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -2071,7 +2057,6 @@ bool BeebThread::ThreadHandleMessage(
         }
         break;
 
-#if BBCMICRO_ENABLE_PASTE
     case BeebThreadEventType_StartPaste:
         {
             auto ptr=(StartPasteMessagePayload *)msg->data.ptr;
@@ -2093,9 +2078,7 @@ bool BeebThread::ThreadHandleMessage(
             }
         }
         break;
-#endif
 
-#if BBCMICRO_ENABLE_COPY
     case BeebThreadEventType_StartCopy:
         {
             auto ptr=(StartCopyMessagePayload *)msg->data.ptr;
@@ -2137,7 +2120,6 @@ bool BeebThread::ThreadHandleMessage(
             this->ThreadStopCopy(ts);
         }
         break;
-#endif
 
     case MESSAGE_TYPE_SYNTHETIC:
         switch(msg->u32) {
@@ -2208,13 +2190,11 @@ void BeebThread::ThreadMain(void) {
             }
         }
 
-#if BBCMICRO_ENABLE_PASTE
         if(m_is_pasting) {
             if(!ts.beeb->IsPasting()) {
                 m_is_pasting.store(false,std::memory_order_release);
             }
         }
-#endif
 
         if(!m_paused_ts&&stop_2MHz_cycles>*ts.num_executed_2MHz_cycles) {
             ASSERT(ts.beeb);
