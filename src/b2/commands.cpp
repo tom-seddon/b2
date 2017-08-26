@@ -220,7 +220,9 @@ void CommandContext::Reset() {
 
 void CommandContext::DoButton(const char *name) {
     Command *command=m_table->FindCommandByName(name);
-    ASSERT(command);
+    if(!command) {
+        return;
+    }
 
     if(!m_object) {
         return;
@@ -246,7 +248,9 @@ void CommandContext::DoButton(const char *name) {
 
 void CommandContext::DoMenuItemUI(const char *name) {
     Command *command=m_table->FindCommandByName(name);
-    ASSERT(command);
+    if(!command) {
+        return;
+    }
 
     if(!m_object) {
         return;
