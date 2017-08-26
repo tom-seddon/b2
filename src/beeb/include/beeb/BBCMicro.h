@@ -327,8 +327,11 @@ public:
     bool GetAndResetDiscAccessFlag();
 
 #if BBCMICRO_ENABLE_PASTE
+    static const char PASTE_START_CHAR;
+
     bool IsPasting() const;
-    void Paste(std::shared_ptr<std::string> text);
+    void StartPaste(std::shared_ptr<std::string> text);
+    void StopPaste();
 #endif
 protected:
 private:
@@ -582,9 +585,6 @@ private:
     void InitDiscDriveSounds(DiscDriveType type);
     void StepSound(DiscDrive *dd);
     float UpdateDiscDriveSound(DiscDrive *dd);
-#endif
-#if BBCMICRO_ENABLE_PASTE
-    void StopPasting();
 #endif
     void UpdateCPUDataBusFn();
 };

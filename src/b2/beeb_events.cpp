@@ -68,11 +68,11 @@ void BeebEventHandler::Destroy(BeebEvent *e) const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-class BeebEventValueHander:
+class BeebEventValueHandler:
     public BeebEventHandler
 {
 public:
-    explicit BeebEventValueHander(uint32_t flags):
+    explicit BeebEventValueHandler(uint32_t flags):
         BeebEventHandler(flags)
     {
     }
@@ -91,13 +91,13 @@ private:
 //////////////////////////////////////////////////////////////////////////
 
 class BeebEventNoneHandler:
-    public BeebEventValueHander
+    public BeebEventValueHandler
 {
 public:
     static const BeebEventNoneHandler INSTANCE;
 
     BeebEventNoneHandler():
-        BeebEventValueHander(0)
+        BeebEventValueHandler(0)
     {
     }
 
@@ -114,13 +114,13 @@ const BeebEventNoneHandler BeebEventNoneHandler::INSTANCE;
 //////////////////////////////////////////////////////////////////////////
 
 class BeebEventKeyStateHandler:
-    public BeebEventValueHander
+    public BeebEventValueHandler
 {
 public:
     static const BeebEventKeyStateHandler INSTANCE;
 
     BeebEventKeyStateHandler():
-        BeebEventValueHander(0)
+        BeebEventValueHandler(0)
     {
     }
 
@@ -260,13 +260,13 @@ const BeebEventRootHandler BeebEventRootHandler::INSTANCE;
 //////////////////////////////////////////////////////////////////////////
 
 class BeebEventHardResetHandler:
-    public BeebEventValueHander
+    public BeebEventValueHandler
 {
 public:
     static const BeebEventHardResetHandler INSTANCE;
 
     BeebEventHardResetHandler():
-        BeebEventValueHander(0)
+        BeebEventValueHandler(0)
     {
     }
 
@@ -284,13 +284,13 @@ const BeebEventHardResetHandler BeebEventHardResetHandler::INSTANCE;
 
 #if BBCMICRO_TURBO_DISC
 class BeebEventSetTurboDiscHandler:
-    public BeebEventValueHander
+    public BeebEventValueHandler
 {
 public:
     static const BeebEventSetTurboDiscHandler INSTANCE;
 
     BeebEventSetTurboDiscHandler():
-        BeebEventValueHander(0)
+        BeebEventValueHandler(0)
     {
     }
 
@@ -381,13 +381,13 @@ const BeebEventSaveStateHandler BeebEventSaveStateHandler::INSTANCE;
 //////////////////////////////////////////////////////////////////////////
 
 class BeebEventWindowProxyHandler:
-    public BeebEventValueHander
+    public BeebEventValueHandler
 {
 public:
     static const BeebEventWindowProxyHandler INSTANCE;
 
     BeebEventWindowProxyHandler():
-        BeebEventValueHander(BeebEventTypeFlag_ChangesTimeline|BeebEventTypeFlag_Synthetic)
+        BeebEventValueHandler(BeebEventTypeFlag_ChangesTimeline|BeebEventTypeFlag_Synthetic)
     {
     }
 
@@ -403,13 +403,13 @@ const BeebEventWindowProxyHandler BeebEventWindowProxyHandler::INSTANCE;
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-class BeebEventPasteHandler:
+class BeebEventStartPasteHandler:
     public BeebEventHandler
 {
 public:
-    static const BeebEventPasteHandler INSTANCE;
+    static const BeebEventStartPasteHandler INSTANCE;
 
-    BeebEventPasteHandler():
+    BeebEventStartPasteHandler():
         BeebEventHandler(0)
     {
     }
@@ -475,7 +475,32 @@ protected:
 private:
 };
 
-const BeebEventPasteHandler BeebEventPasteHandler::INSTANCE;
+const BeebEventStartPasteHandler BeebEventStartPasteHandler::INSTANCE;
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+class BeebEventStopPasteHandler:
+    public BeebEventValueHandler
+{
+public:
+    static const BeebEventStopPasteHandler INSTANCE;
+
+    BeebEventStopPasteHandler():
+        BeebEventValueHandler(0)
+    {
+    }
+
+    void Dump(const BeebEvent *e,Log *log) const override {
+        (void)e;
+
+        log->f("Stop Paste");
+    }
+protected:
+private:
+};
+
+const BeebEventStopPasteHandler BeebEventStopPasteHandler::INSTANCE;
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -594,14 +619,25 @@ BeebEvent BeebEvent::MakeWindowProxy(BeebWindow *window) {
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_ENABLE_PASTE
-BeebEvent BeebEvent::MakePaste(uint64_t time_2MHz_cycles,std::shared_ptr<std::string> text) {
+BeebEvent BeebEvent::MakeStartPaste(uint64_t time_2MHz_cycles,std::shared_ptr<std::string> text) {
     BeebEventData data={};
 
     data.paste=new BeebEventPasteData;
 
     data.paste->text=std::move(text);
 
-    return BeebEvent{BeebEventType_Paste,time_2MHz_cycles,data};
+    return BeebEvent{BeebEventType_StartPaste,time_2MHz_cycles,data};
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_ENABLE_PASTE
+BeebEvent BeebEvent::MakeStopPaste(uint64_t time_2MHz_cycles) {
+    BeebEventData data={};
+
+    return BeebEvent{BeebEventType_StopPaste,time_2MHz_cycles,data};
 }
 #endif
 

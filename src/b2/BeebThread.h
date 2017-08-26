@@ -142,13 +142,16 @@ public:
 #endif
 
 #if BBCMICRO_ENABLE_PASTE
-    void SendPasteMessage(std::string text);
+    void SendStartPasteMessage(std::string text);
+    void SendStopPasteMessage();
     bool IsPasting() const;
 #endif
 
 #if BBCMICRO_ENABLE_COPY
-    void SendStartCopyMessage();
-    void SendStopCopyMessage(std::function<void(std::vector<uint8_t>)> fun);
+    void SendStartCopyMessage(std::function<void(std::vector<uint8_t>)> stop_fun);
+    void SendStartCopyBASICMessage(std::function<void(std::vector<uint8_t>)> stop_fun);
+    void SendStopCopyMessage();
+    bool IsCopying() const;
 #endif
 
     // Get trace stats, or nullptr if there's no trace.
@@ -285,6 +288,10 @@ private:
 #if BBCMICRO_ENABLE_PASTE
     std::atomic<bool> m_is_pasting{false};
 #endif
+#if BBCMICRO_ENABLE_COPY
+    std::atomic<bool> m_is_copying{false};
+#endif
+
     //mutable volatile int32_t m_is_paused=1;
 
     mutable std::mutex m_mutex;
@@ -347,6 +354,7 @@ private:
 #if BBCMICRO_TRACE
     static bool ThreadStopTraceOnOSWORD0(BBCMicro *beeb,M6502 *cpu,void *context);
 #endif
+    static bool ThreadStopCopyOnOSWORD0(BBCMicro *beeb,M6502 *cpu,void *context);
 #if BBCMICRO_ENABLE_COPY
     static bool ThreadAddCopyData(BBCMicro *beeb,M6502 *cpu,void *context);
 #endif
@@ -374,6 +382,13 @@ private:
     void ThreadHandleReplayEvents(ThreadState *ts);
     bool ThreadHandleMessage(ThreadState *ts,Message *msg,bool *limit_speed,uint64_t *next_stop_2MHz_cycles);
     void ThreadSetDiscImage(ThreadState *ts,int drive,std::shared_ptr<DiscImage> disc_image);
+#if BBCMICRO_ENABLE_PASTE
+    void ThreadStartPaste(ThreadState *ts,std::string text);
+    void ThreadStopPaste(ThreadState *ts);
+#endif
+#if BBCMICRO_ENABLE_COPY
+    void ThreadStopCopy(ThreadState *ts);
+#endif
     void ThreadMain();
     static void ThreadBBCMicroNVRAMCallback(BBCMicro *m,size_t offset,uint8_t value,void *context);
 

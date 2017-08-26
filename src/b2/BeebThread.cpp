@@ -64,6 +64,15 @@ LOG_TAGGED_DEFINE(BTHREAD,"beeb","",&log_printer_stdout_and_debugger,false)
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+static const char *const COPY_BASIC_LINES[]={
+    "OLD",
+    "LIST",
+    nullptr,
+};
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 static const float VOLUMES_TABLE[]={
     -1.00000f,-0.79433f,-0.63096f,-0.50119f,-0.39811f,-0.31623f,-0.25119f,-0.19953f,-0.15849f,-0.12589f,-0.10000f,-0.07943f,-0.06310f,-0.05012f,-0.03981f,
     0.00000f,
@@ -94,7 +103,8 @@ struct BeebThread::ThreadState {
     uint64_t replay_next_event_cycles=0;
 
 #if BBCMICRO_ENABLE_COPY
-    bool copying=false;
+    bool copy_basic=false;
+    std::function<void(std::vector<uint8_t>)> copy_stop_fun;
     std::vector<uint8_t> copy_data;
 #endif
 
@@ -516,18 +526,25 @@ bool BeebThread::IsTurboDisc() const {
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_ENABLE_PASTE
-struct PasteMessagePayload {
+struct StartPasteMessagePayload {
     std::string text;
 };
 
-void BeebThread::SendPasteMessage(std::string text) {
-    auto ptr=new PasteMessagePayload;
+void BeebThread::SendStartPasteMessage(std::string text) {
+    auto ptr=new StartPasteMessagePayload;
 
     ptr->text=std::move(text);
 
-    this->SendMessageWithPayload(BeebThreadEventType_Paste,ptr);
+    this->SendMessageWithPayload(BeebThreadEventType_StartPaste,ptr);
 }
 #endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BeebThread::SendStopPasteMessage() {
+    this->SendMessage(BeebThreadEventType_StopPaste,0,nullptr);
+}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -542,8 +559,32 @@ bool BeebThread::IsPasting() const {
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_ENABLE_COPY
-void BeebThread::SendStartCopyMessage() {
-    this->SendMessage(BeebThreadEventType_StartCopy,0,(uint64_t)0);
+struct StartCopyMessagePayload {
+    bool basic=false;
+    std::function<void(const std::vector<uint8_t> &)> stop_fun;
+};
+
+void BeebThread::SendStartCopyMessage(std::function<void(std::vector<uint8_t>)> stop_fun) {
+    auto ptr=new StartCopyMessagePayload;
+
+    ptr->basic=false;
+    ptr->stop_fun=std::move(stop_fun);
+
+    this->SendMessageWithPayload(BeebThreadEventType_StartCopy,ptr);
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_ENABLE_COPY
+void BeebThread::SendStartCopyBASICMessage(std::function<void(std::vector<uint8_t>)> stop_fun) {
+    auto ptr=new StartCopyMessagePayload;
+
+    ptr->basic=true;
+    ptr->stop_fun=std::move(stop_fun);
+
+    this->SendMessageWithPayload(BeebThreadEventType_StartCopy,ptr);
 }
 #endif
 
@@ -555,14 +596,17 @@ struct StopyCopyMessagePayload {
     std::function<void(const std::vector<uint8_t> &)> fun;
 };
 
-void BeebThread::SendStopCopyMessage(std::function<void(std::vector<uint8_t>)> fun) {
-    auto ptr=new StopyCopyMessagePayload;
-
-    ptr->fun=std::move(fun);
-
-    this->SendMessageWithPayload(BeebThreadEventType_StopCopy,ptr);
+void BeebThread::SendStopCopyMessage() {
+    this->SendMessage(BeebThreadEventType_StopCopy,0,nullptr);
 }
 #endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool BeebThread::IsCopying() const {
+    return m_is_copying.load(std::memory_order_acquire);
+}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -1093,12 +1137,33 @@ bool BeebThread::ThreadStopTraceOnOSWORD0(BBCMicro *beeb,M6502 *cpu,void *contex
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+bool BeebThread::ThreadStopCopyOnOSWORD0(BBCMicro *beeb,M6502 *cpu,void *context) {
+    (void)beeb;
+    auto ts=(ThreadState *)context;
+
+    if(!ts->beeb_thread->m_is_copying) {
+        return false;
+    }
+
+    if(cpu->pc.w==0xfff2&&cpu->a==0) {
+        if(!ts->beeb->IsPasting()) {
+            ts->beeb_thread->ThreadStopCopy(ts);
+            return false;
+        }
+    }
+
+    return true;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 #if BBCMICRO_ENABLE_COPY
 bool BeebThread::ThreadAddCopyData(BBCMicro *beeb,M6502 *cpu,void *context) {
     (void)beeb;
     auto ts=(ThreadState *)context;
 
-    if(!ts->copying) {
+    if(!ts->beeb_thread->m_is_copying) {
         return false;
     }
 
@@ -1449,9 +1514,15 @@ void BeebThread::ThreadReplayEvent(ThreadState *ts,const BeebEvent &event) {
         break;
 
 #if BBCMICRO_ENABLE_PASTE
-    case BeebEventType_Paste:
+    case BeebEventType_StartPaste:
         {
-            ts->beeb->Paste(event.data.paste->text);
+            ts->beeb->StartPaste(event.data.paste->text);
+        }
+        return;
+
+    case BeebEventType_StopPaste:
+        {
+            ts->beeb->StopPaste();
         }
         return;
 #endif
@@ -1576,6 +1647,69 @@ void BeebThread::ThreadSetDiscImage(ThreadState *ts,int drive,std::shared_ptr<Di
 
     std::lock_guard<std::mutex> lock(m_mutex);
     m_disc_images[drive]=disc_image;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BeebThread::ThreadStartPaste(ThreadState *ts,std::string text) {
+    auto shared_text=std::make_shared<std::string>(std::move(text));
+
+    ts->beeb->StartPaste(shared_text);
+    this->ThreadRecordEvent(ts,BeebEvent::MakeStartPaste(*ts->num_executed_2MHz_cycles,shared_text));
+
+    m_is_pasting.store(true,std::memory_order_release);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BeebThread::ThreadStopPaste(ThreadState *ts) {
+    ts->beeb->StopPaste();
+    this->ThreadRecordEvent(ts,BeebEvent::MakeStopPaste(*ts->num_executed_2MHz_cycles));
+
+    m_is_pasting.store(false,std::memory_order_release);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BeebThread::ThreadStopCopy(ThreadState *ts) {
+    ASSERT(m_is_copying);
+
+    if(ts->copy_basic) {
+        if(!ts->copy_data.empty()) {
+            if(ts->copy_data.back()=='>') {
+                ts->copy_data.pop_back();
+            }
+
+            std::string prefix;
+
+            for(size_t i=0;COPY_BASIC_LINES[i];++i) {
+                if(i==0) {
+                    prefix.push_back(BBCMicro::PASTE_START_CHAR);
+                    prefix.push_back(127);
+                } else {
+                    prefix.push_back('>');
+                }
+
+                prefix+=COPY_BASIC_LINES[i];
+                prefix+="\n\r";
+            }
+
+            if(ts->copy_data.size()>=prefix.size()) {
+                if(std::equal(ts->copy_data.begin(),ts->copy_data.begin()+prefix.size(),prefix.begin())) {
+                    ts->copy_data.erase(ts->copy_data.begin(),ts->copy_data.begin()+prefix.size());
+                }
+            }
+        }
+    }
+
+    this->AddCallback([data=std::move(ts->copy_data),fun=std::move(ts->copy_stop_fun)]() {
+        fun(std::move(data));
+    });
+
+    m_is_copying.store(false,std::memory_order_release);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -1933,19 +2067,24 @@ bool BeebThread::ThreadHandleMessage(
         break;
 
 #if BBCMICRO_ENABLE_PASTE
-    case BeebThreadEventType_Paste:
+    case BeebThreadEventType_StartPaste:
         {
-            auto ptr=(PasteMessagePayload *)msg->data.ptr;
+            auto ptr=(StartPasteMessagePayload *)msg->data.ptr;
 
             if(m_is_replaying) {
                 // Ignore.
             } else {
-                auto shared_text=std::make_shared<std::string>(std::move(ptr->text));
+                this->ThreadStartPaste(ts,std::move(ptr->text));
+            }
+        }
+        break;
 
-                ts->beeb->Paste(shared_text);
-                this->ThreadRecordEvent(ts,BeebEvent::MakePaste(*ts->num_executed_2MHz_cycles,shared_text));
-
-                m_is_pasting.store(true,std::memory_order_release);
+    case BeebThreadEventType_StopPaste:
+        {
+            if(m_is_replaying) {
+                // Ignore.
+            } else {
+                this->ThreadStopPaste(ts);
             }
         }
         break;
@@ -1954,23 +2093,43 @@ bool BeebThread::ThreadHandleMessage(
 #if BBCMICRO_ENABLE_COPY
     case BeebThreadEventType_StartCopy:
         {
+            auto ptr=(StartCopyMessagePayload *)msg->data.ptr;
+
+            // StartCopy and StartCopyBASIC really aren't the same
+            // sort of thing, but they share enough code that it felt
+            // a bit daft whichever way round they went.
+
+            if(ptr->basic) {
+                if(m_is_replaying) {
+                    // Ignore.
+                    break;
+                }
+
+                std::string text;
+                for(size_t i=0;COPY_BASIC_LINES[i];++i) {
+                    text+=COPY_BASIC_LINES[i];
+                    text.push_back('\r');
+                }
+
+                this->ThreadStartPaste(ts,std::move(text));
+
+                ts->beeb->AddInstructionFn(&ThreadStopCopyOnOSWORD0,ts);
+            }
+
             ts->copy_data.clear();
-            if(!ts->copying) {
+            if(!ts->beeb_thread->m_is_copying) {
                 ts->beeb->AddInstructionFn(&ThreadAddCopyData,ts);
             }
-            ts->copying=true;
+
+            ts->copy_basic=ptr->basic;
+            ts->copy_stop_fun=std::move(ptr->stop_fun);
+            m_is_copying.store(true,std::memory_order_release);
         }
         break;
 
     case BeebThreadEventType_StopCopy:
         {
-            auto ptr=(StopyCopyMessagePayload *)msg->data.ptr;
-
-            ts->copying=false;
-
-            this->AddCallback([data=std::move(ts->copy_data),fun=ptr->fun]() {
-                fun(std::move(data));
-            });
+            this->ThreadStopCopy(ts);
         }
         break;
 #endif

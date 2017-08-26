@@ -349,10 +349,6 @@ private:
 
     ObjectCommandContext<BeebWindow> m_occ;
 
-#if BBCMICRO_ENABLE_COPY
-    bool m_copying=false;
-#endif
-
     bool InitInternal();
     bool LoadDiscImageFile(int drive,const std::string &path);
     bool Load65LinkFolder(int drive,const std::string &path);
@@ -388,6 +384,7 @@ private:
     void Paste();
     void PasteThenReturn();
     void DoPaste(bool add_return);
+    bool IsPasteTicked() const;
 #endif
 
 #if BBCMICRO_ENABLE_COPY
@@ -395,6 +392,11 @@ private:
     void CopyOSWRCH();
     void SetClipboardData(std::vector<uint8_t> data,bool is_text);
     bool IsCopyOSWRCHTicked() const;
+#endif
+
+#if BBCMICRO_ENABLE_PASTE&&BBCMICRO_ENABLE_COPY
+    void CopyBASIC();
+    bool IsCopyBASICEnabled() const;
 #endif
 
     static ObjectCommandTable<BeebWindow> ms_command_table;

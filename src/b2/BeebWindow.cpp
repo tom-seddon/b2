@@ -796,6 +796,8 @@ bool BeebWindow::DoImGui(int output_width,int output_height) {
 
         if(ImGui::BeginMenu("Edit")) {
             m_occ.DoMenuItemUI("toggle_copy_oswrch_text");
+            m_occ.DoMenuItemUI("copy_basic");
+
             //m_occ.DoMenuItemUI("toggle_copy_oswrch_binary");
             m_occ.DoMenuItemUI("paste");
             m_occ.DoMenuItemUI("paste_return");
@@ -1090,7 +1092,7 @@ bool BeebWindow::DoImGui(int output_width,int output_height) {
     bool replaying=m_beeb_thread->IsReplaying();
     if(ValueChanged(&m_leds,m_beeb_thread->GetLEDs())||(m_leds&BBCMicroLEDFlags_AllDrives)||replaying
 #if BBCMICRO_ENABLE_COPY
-       ||m_copying
+       ||m_beeb_thread->IsCopying()
 #endif
 #if BBCMICRO_ENABLE_PASTE
        ||m_beeb_thread->IsPasting()
@@ -1137,7 +1139,7 @@ bool BeebWindow::DoImGui(int output_width,int output_height) {
 
 #if BBCMICRO_ENABLE_COPY
             ImGui::SameLine();
-            ImGuiLED(m_copying,"Copy");
+            ImGuiLED(m_beeb_thread->IsCopying(),"Copy");
 #endif
 
 #if BBCMICRO_ENABLE_PASTE
@@ -2022,88 +2024,101 @@ decode(uint32_t* state,uint32_t* codep,uint32_t byte) {
 }
 
 void BeebWindow::DoPaste(bool add_return) {
-    // Get UTF-8 clipboard.
-    std::vector<uint8_t> utf8;
-    {
-        char *tmp=SDL_GetClipboardText();
-        if(!tmp) {
-            m_msg.e.f("Clipboard error: %s\n",SDL_GetError());
-            return;
-        }
+    if(m_beeb_thread->IsPasting()) {
+        m_beeb_thread->SendStopPasteMessage();
+    } else {
+        // Get UTF-8 clipboard.
+        std::vector<uint8_t> utf8;
+        {
+            char *tmp=SDL_GetClipboardText();
+            if(!tmp) {
+                m_msg.e.f("Clipboard error: %s\n",SDL_GetError());
+                return;
+            }
 
-        utf8.resize(strlen(tmp));
-        memcpy(utf8.data(),tmp,utf8.size());
+            utf8.resize(strlen(tmp));
+            memcpy(utf8.data(),tmp,utf8.size());
 
-        SDL_free(tmp);
-        tmp=nullptr;
+            SDL_free(tmp);
+            tmp=nullptr;
 
-        if(utf8.empty()) {
-            return;
-        }
-    }
-
-    // Convert UTF-8 into BBC-friendly ASCII.
-    std::string ascii;
-    {
-        uint32_t state=UTF8_ACCEPT,codepoint;
-        size_t char_start=0;
-        for(size_t i=0;i<utf8.size();++i) {
-            decode(&state,&codepoint,utf8[i]);
-            if(state==UTF8_ACCEPT) {
-                // Do some useful translation.
-                if(codepoint==0xa3) {
-                    // GBP symbol
-                    codepoint=95;
-                }
-
-                if(codepoint==13) {
-                } else if(codepoint==10) {
-                } else if(codepoint>=32&&codepoint<=126) {
-                } else {
-                    m_msg.e.f("Invalid character: ");
-
-                    if(codepoint>=32) {
-                        m_msg.e.f("'%.*s', ",(int)(i-char_start),&utf8[char_start]);
-                    }
-
-                    m_msg.e.f("%u (0x%X)\n",codepoint,codepoint);
-                    return;
-                }
-
-                ascii.push_back((char)codepoint);
-                char_start=i+1;
-            } else if(state==UTF8_REJECT) {
-                m_msg.e.f("Clipboard contents are not valid UTF-8 text\n");
+            if(utf8.empty()) {
                 return;
             }
         }
-    }
 
-    // Knobble newlines.
-    if(ascii.size()>1) {
-        std::string::size_type i=0;
+        // Convert UTF-8 into BBC-friendly ASCII.
+        std::string ascii;
+        {
+            uint32_t state=UTF8_ACCEPT,codepoint;
+            size_t char_start=0;
+            for(size_t i=0;i<utf8.size();++i) {
+                decode(&state,&codepoint,utf8[i]);
+                if(state==UTF8_ACCEPT) {
+                    // Do some useful translation.
+                    if(codepoint==0xa3) {
+                        // GBP symbol
+                        codepoint=95;
+                    }
 
-        while(i<ascii.size()-1) {
-            if(ascii[i]==10&&ascii[i+1]==13) {
-                ascii.erase(i,1);
-            } else if(ascii[i]==13&&ascii[i+1]==10) {
-                ++i;
-                ascii.erase(i,1);
-            } else if(ascii[i]==10) {
-                ascii[i++]=13;
-            } else {
-                ++i;
+                    if(codepoint==13) {
+                    } else if(codepoint==10) {
+                    } else if(codepoint>=32&&codepoint<=126) {
+                    } else {
+                        m_msg.e.f("Invalid character: ");
+
+                        if(codepoint>=32) {
+                            m_msg.e.f("'%.*s', ",(int)(i-char_start),&utf8[char_start]);
+                        }
+
+                        m_msg.e.f("%u (0x%X)\n",codepoint,codepoint);
+                        return;
+                    }
+
+                    ascii.push_back((char)codepoint);
+                    char_start=i+1;
+                } else if(state==UTF8_REJECT) {
+                    m_msg.e.f("Clipboard contents are not valid UTF-8 text\n");
+                    return;
+                }
             }
         }
-    }
 
-    if(add_return) {
-        ascii.push_back(13);
-    }
+        // Knobble newlines.
+        if(ascii.size()>1) {
+            std::string::size_type i=0;
 
-    m_beeb_thread->SendPasteMessage(std::move(ascii));
+            while(i<ascii.size()-1) {
+                if(ascii[i]==10&&ascii[i+1]==13) {
+                    ascii.erase(i,1);
+                } else if(ascii[i]==13&&ascii[i+1]==10) {
+                    ++i;
+                    ascii.erase(i,1);
+                } else if(ascii[i]==10) {
+                    ascii[i++]=13;
+                } else {
+                    ++i;
+                }
+            }
+        }
+
+        if(add_return) {
+            ascii.push_back(13);
+        }
+
+        m_beeb_thread->SendStartPasteMessage(std::move(ascii));
+    }
 }
 #endif 
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_ENABLE_PASTE
+bool BeebWindow::IsPasteTicked() const {
+    return m_beeb_thread->IsPasting();
+}
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -2153,14 +2168,12 @@ void BeebWindow::SetClipboardData(std::vector<uint8_t> data,bool is_text) {
 #if BBCMICRO_ENABLE_COPY
 template<bool IS_TEXT>
 void BeebWindow::CopyOSWRCH() {
-    if(IsCopyOSWRCHTicked()) {
-        m_copying=false;
-        m_beeb_thread->SendStopCopyMessage([this](std::vector<uint8_t> data) {
+    if(m_beeb_thread->IsCopying()) {
+        m_beeb_thread->SendStopCopyMessage();
+    } else {
+        m_beeb_thread->SendStartCopyMessage([this](std::vector<uint8_t> data) {
             this->SetClipboardData(std::move(data),IS_TEXT);
         });
-    } else {
-        m_beeb_thread->SendStartCopyMessage();
-        m_copying=true;
     }
 }
 #endif
@@ -2170,9 +2183,29 @@ void BeebWindow::CopyOSWRCH() {
 
 #if BBCMICRO_ENABLE_COPY
 bool BeebWindow::IsCopyOSWRCHTicked() const {
-    return m_copying;
+    return m_beeb_thread->IsCopying();
 }
 #endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BeebWindow::CopyBASIC() {
+    if(m_beeb_thread->IsCopying()) {
+        m_beeb_thread->SendStopCopyMessage();
+    } else {
+        m_beeb_thread->SendStartCopyBASICMessage([this](std::vector<uint8_t> data) {
+            this->SetClipboardData(std::move(data),true);
+        });
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool BeebWindow::IsCopyBASICEnabled() const {
+    return !m_beeb_thread->IsPasting();
+}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -2201,11 +2234,14 @@ ObjectCommandTable<BeebWindow> BeebWindow::ms_command_table("Beeb Window",{
     {"dump_timeline_debugger","Dump timeline to console+debugger",&BeebWindow::DumpTimelineDebuger},
     {"check_timeline","Check timeline",&BeebWindow::CheckTimeline},
 #if BBCMICRO_ENABLE_PASTE
-    {"paste","OSRDCH Paste",&BeebWindow::Paste},
-    {"paste_return","OSRDCH Paste (+Return)",&BeebWindow::PasteThenReturn},
+    {"paste","OSRDCH Paste",&BeebWindow::Paste,&BeebWindow::IsPasteTicked},
+    {"paste_return","OSRDCH Paste (+Return)",&BeebWindow::PasteThenReturn,&BeebWindow::IsPasteTicked},
 #endif
 #if BBCMICRO_ENABLE_COPY
     {"toggle_copy_oswrch_text","OSWRCH Copy Text",&BeebWindow::CopyOSWRCH<true>,&BeebWindow::IsCopyOSWRCHTicked},
     //{"toggle_copy_oswrch_binary","OSWRCH Copy Binary",&BeebWindow::CopyOSWRCH<false>,&BeebWindow::IsCopyOSWRCHTicked},
+#endif
+#if BBCMICRO_ENABLE_PASTE&&BBCMICRO_ENABLE_COPY
+    {"copy_basic","Copy BASIC listing",&BeebWindow::CopyBASIC,&BeebWindow::IsCopyOSWRCHTicked,&BeebWindow::IsCopyBASICEnabled},
 #endif
 });
