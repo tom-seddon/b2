@@ -98,12 +98,34 @@ ImGuiStuff::~ImGuiStuff() {
 //////////////////////////////////////////////////////////////////////////
 
 #if USE_SDL_CLIPBOARD
+
+static char *g_last_clipboard_text;
+static bool g_FreeLastClipboardText_registered;
+
+static void FreeLastClipboardText() {
+    SDL_free(g_last_clipboard_text);
+    g_last_clipboard_text=nullptr;
+}
+
 static const char *GetClipboardText(void *user_data) {
     (void)user_data;
 
-    return SDL_GetClipboardText();
+    // This is quite safe, at least for now, due to the way the
+    // callback is called...
+
+    if(!g_FreeLastClipboardText_registered) {
+        atexit(&FreeLastClipboardText);
+    }
+
+    FreeLastClipboardText();
+    g_last_clipboard_text=SDL_GetClipboardText();
+
+    return g_last_clipboard_text;
 }
 #endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
 
 #if USE_SDL_CLIPBOARD
 static void SetClipboardText(void *user_data,const char *text) {
@@ -112,6 +134,9 @@ static void SetClipboardText(void *user_data,const char *text) {
     SDL_SetClipboardText(text);
 }
 #endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
 
 bool ImGuiStuff::Init() {
     int rc;
@@ -183,9 +208,9 @@ bool ImGuiStuff::Init() {
     fa_config.MergeMode=true;
     fa_config.PixelSnapH=true;
     io.Fonts->AddFontFromFileTTF(GetAssetPath(FA_FILE_NAME).c_str(),
-        16.f,
-        &fa_config,
-        FA_ICONS_RANGES);
+                                 16.f,
+                                 &fa_config,
+                                 FA_ICONS_RANGES);
 
     unsigned char *pixels;
     int width,height;
@@ -561,8 +586,8 @@ void TranslateImRect(ImRect *rect,const ImVec2 &delta) {
 //////////////////////////////////////////////////////////////////////////
 
 bool ImGuiInputText(std::string *new_str,
-    const char *name,
-    const std::string &old_str)
+                    const char *name,
+                    const std::string &old_str)
 {
     // This is a bit lame - but ImGui insists on editing a char
     // buffer.
