@@ -43,7 +43,7 @@ _unixf:
 _unix: _unixd _unixr _unixf
 
 .PHONY:_unix2
-_unix2: _FOLDER=0$(FOLDERPREFIX).$(OS).$(FOLDER)
+_unix2: _FOLDER=0$(FOLDERPREFIX).$(FOLDER).$(OS)
 _unix2:
 	@echo ---------------------------------------------------------------------------
 	@echo ---------------------------------------------------------------------------

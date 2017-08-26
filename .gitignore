@@ -1,8 +1,10 @@
+/0.*.osx/
 /0.osx.*/
 /.dir-locals.el
 /0.win*/
 /0Rel*/
 /games/
+/0.*.linux/
 /0.linux.*/
 beeb_dis.txt
 imgui.ini
