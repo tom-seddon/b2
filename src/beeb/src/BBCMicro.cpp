@@ -218,6 +218,8 @@ void BBCMicro::SetTrace(std::shared_ptr<Trace> trace,uint32_t trace_flags) {
         !!(trace_flags&BBCMicroTraceFlag_6845Scanlines));
     m_state.system_via.SetTrace(trace_flags&BBCMicroTraceFlag_SystemVIA?m_trace:NULL);
     m_state.user_via.SetTrace(trace_flags&BBCMicroTraceFlag_UserVIA?m_trace:NULL);
+
+    this->UpdateCPUDataBusFn();
 }
 #endif
 
@@ -912,49 +914,6 @@ bool BBCMicro::PreUpdateCPU(uint8_t num_stretch_cycles) {
     } else {
         (*m_state.cpu.tfn)(&m_state.cpu);
 
-#if BBCMICRO_TRACE
-        if(m_trace) {
-            if(M6502_IsAboutToExecute(&m_state.cpu)) {
-                InstructionTraceEvent *e;
-
-                // Fill out results of last instruction.
-                if((e=m_trace_current_instruction)!=NULL) {
-                    e->a=m_state.cpu.a;
-                    e->x=m_state.cpu.x;
-                    e->y=m_state.cpu.y;
-                    e->p=m_state.cpu.p.value;
-                    e->data=m_state.cpu.data;
-                    e->opcode=m_state.cpu.opcode;
-                    e->s=m_state.cpu.s.b.l;
-                    //e->pc=m_state.cpu.pc.w;//...for next instruction
-                    e->ad=m_state.cpu.ad.w;
-                    e->ia=m_state.cpu.ia.w;
-
-                    if(m_trace_instr_fn) {
-                        (*m_trace_instr_fn)(this,e,m_trace_instr_context);
-
-                        if(!m_trace) {
-                            // Trace was disabled.
-                            goto no_trace;
-                        }
-                    }
-                }
-
-                // Allocate event for next instruction.
-                e=m_trace_current_instruction=(InstructionTraceEvent *)m_trace->AllocEvent(INSTRUCTION_EVENT);
-
-                if(e) {
-                    e->pc=m_state.cpu.abus.w;
-
-                    /* doesn't matter if the last instruction ends up
-                     * bogus... there are no invalid values.
-                     */
-                }
-            }
-        }
-    no_trace:;
-#endif
-
         uint8_t mmio_page=m_state.cpu.abus.b.h-0xfc;
         if(mmio_page<3) {
             if(m_state.cpu.read) {
@@ -1013,6 +972,49 @@ void BBCMicro::HandleCPUDataBusWithShadowRAM(BBCMicro *m) {
 //////////////////////////////////////////////////////////////////////////
 
 void BBCMicro::HandleCPUDataBusWithHacks(BBCMicro *m) {
+#if BBCMICRO_TRACE
+    if(m->m_trace) {
+        if(M6502_IsAboutToExecute(&m->m_state.cpu)) {
+            InstructionTraceEvent *e;
+
+            // Fill out results of last instruction.
+            if((e=m->m_trace_current_instruction)!=NULL) {
+                e->a=m->m_state.cpu.a;
+                e->x=m->m_state.cpu.x;
+                e->y=m->m_state.cpu.y;
+                e->p=m->m_state.cpu.p.value;
+                e->data=m->m_state.cpu.data;
+                e->opcode=m->m_state.cpu.opcode;
+                e->s=m->m_state.cpu.s.b.l;
+                //e->pc=m_state.cpu.pc.w;//...for next instruction
+                e->ad=m->m_state.cpu.ad.w;
+                e->ia=m->m_state.cpu.ia.w;
+
+                if(m->m_trace_instr_fn) {
+                    (*m->m_trace_instr_fn)(m,e,m->m_trace_instr_context);
+
+                    if(!m->m_trace) {
+                        // Trace was disabled.
+                        goto no_trace;
+                    }
+                }
+            }
+
+            // Allocate event for next instruction.
+            e=m->m_trace_current_instruction=(InstructionTraceEvent *)m->m_trace->AllocEvent(INSTRUCTION_EVENT);
+
+            if(e) {
+                e->pc=m->m_state.cpu.abus.w;
+
+                /* doesn't matter if the last instruction ends up
+                * bogus... there are no invalid values.
+                */
+            }
+        }
+    }
+no_trace:;
+#endif
+
 #if BBCMICRO_ENABLE_PASTE
 
     if(m->m_state.hack_flags&BBCMicroHackFlag_Paste) {
@@ -2131,10 +2133,10 @@ void BBCMicro::StopPasting() {
 //////////////////////////////////////////////////////////////////////////
 
 void BBCMicro::UpdateCPUDataBusFn() {
-    if(m_state.hack_flags==0&&m_ni_hack_flags==0) {
-        m_handle_cpu_data_bus_fn=m_default_handle_cpu_data_bus_fn;
-    } else {
+    if(m_state.hack_flags!=0||m_ni_hack_flags!=0||m_trace) {
         m_handle_cpu_data_bus_fn=&HandleCPUDataBusWithHacks;
+    } else {
+        m_handle_cpu_data_bus_fn=m_default_handle_cpu_data_bus_fn;
     }
 }
 
