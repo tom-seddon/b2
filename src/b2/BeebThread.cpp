@@ -1499,7 +1499,6 @@ void BeebThread::ThreadReplayEvent(ThreadState *ts,const BeebEvent &event) {
         }
         break;
 
-#if BBCMICRO_ENABLE_PASTE
     case BeebEventType_StartPaste:
         {
             ts->beeb->StartPaste(event.data.paste->text);
@@ -1511,7 +1510,6 @@ void BeebThread::ThreadReplayEvent(ThreadState *ts,const BeebEvent &event) {
             ts->beeb->StopPaste();
         }
         return;
-#endif
     }
 
     ASSERT(false);
