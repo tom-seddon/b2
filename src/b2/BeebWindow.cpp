@@ -158,9 +158,17 @@ BeebWindow::~BeebWindow() {
         SDL_DestroyTexture(m_tv_texture);
     }
 
-    SDL_DestroyRenderer(m_renderer);
-    SDL_DestroyWindow(m_window);
-    SDL_FreeFormat(m_pixel_format);
+    if(m_renderer) {
+        SDL_DestroyRenderer(m_renderer);
+    }
+
+    if(m_window) {
+        SDL_DestroyWindow(m_window);
+    }
+
+    if(m_pixel_format) {
+        SDL_FreeFormat(m_pixel_format);
+    }
 
 #if RMT_ENABLED
     ASSERT(g_num_BeebWindow_inits>0);
@@ -175,7 +183,9 @@ BeebWindow::~BeebWindow() {
     }
 #endif
 
-    SDL_UnlockAudioDevice(m_sound_device);
+    if(m_sound_device!=0) {
+        SDL_UnlockAudioDevice(m_sound_device);
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -1335,7 +1345,7 @@ bool BeebWindow::Init() {
 
         return true;
     } else {
-        std::shared_ptr<MessageList> msg=MessageList::stdio.shared_from_this();
+        std::shared_ptr<MessageList> msg=MessageList::stdio;
 
         if(m_init_arguments.preinit_message_list) {
             msg=m_init_arguments.preinit_message_list;
@@ -1410,7 +1420,7 @@ void BeebWindow::SavePosition() {
     BeebWindows::SetLastWindowPlacementData(buf);
 
 #endif
-}
+    }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

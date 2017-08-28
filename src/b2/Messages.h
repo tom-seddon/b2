@@ -97,7 +97,7 @@ public:
     void FlushMessagesToStdio();
 
     // A global Messages with the stdio flag set.
-    static MessageList stdio;
+    static const std::shared_ptr<MessageList> stdio;
 protected:
 private:
     class Printer:
