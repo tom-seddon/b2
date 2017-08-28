@@ -94,8 +94,6 @@ struct BeebThread::ThreadState {
     bool boot=false;
     BeebShiftState fake_shift_state=BeebShiftState_Any;
 
-    bool recording_events=true;
-
     // Replay data. All valid if the thread's m_is_replaying flag is
     // set.
     Timeline::ReplayData replay_data;
@@ -1087,12 +1085,9 @@ void BeebThread::SetVolume(float *scale_var,float *db_var,float db) {
 //////////////////////////////////////////////////////////////////////////
 
 void BeebThread::ThreadRecordEvent(ThreadState *ts,BeebEvent event) {
-    if(ts->recording_events) {
-        m_parent_timeline_event_id=Timeline::AddEvent(this->GetParentTimelineEventId(),std::move(event));
-    } else {
-        // The event will be discarded. Sucks to have paid the cost of
-        // creating it needlessly, but there you go...
-    }
+    this->ThreadHandleEvent(ts,event,false);
+    
+    m_parent_timeline_event_id=Timeline::AddEvent(this->GetParentTimelineEventId(),std::move(event));
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -1407,9 +1402,8 @@ void BeebThread::ThreadSetKeyState(ThreadState *ts,BeebKey beeb_key,bool state) 
         //    BOOL_STR(ts->boot),
         //    GetBeebShiftStateEnumName(ts->fake_shift_state),
         //    BOOL_STR(m_real_key_states.GetState(BeebKey_Shift)));
-        if(ts->beeb->SetKeyState(beeb_key,state)) {
-            this->ThreadRecordEvent(ts,BeebEvent::MakeKeyState(*ts->num_executed_2MHz_cycles,beeb_key,state));
-        }
+        
+        this->ThreadRecordEvent(ts,BeebEvent::MakeKeyState(*ts->num_executed_2MHz_cycles,beeb_key,state));
 
 #if BBCMICRO_TRACE
         if(ts->trace_conditions.start==BeebThreadStartTraceCondition_NextKeypress) {
@@ -1440,10 +1434,13 @@ void BeebThread::ThreadSetTurboDisc(ThreadState *ts,bool turbo) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-// At the moment, this is only called when replaying. But for most
-// events it would be nicer to have everything route through this
-// function.
-void BeebThread::ThreadReplayEvent(ThreadState *ts,const BeebEvent &event) {
+// REPLAYING is set if this event is coming from a replay. Otherwise,
+// it's the first time.
+
+void BeebThread::ThreadHandleEvent(ThreadState *ts,
+                                   const BeebEvent &event,
+                                   bool replay)
+{
     switch((BeebEventType)event.type) {
     case BeebEventType_None:
         return;
@@ -1465,19 +1462,33 @@ void BeebThread::ThreadReplayEvent(ThreadState *ts,const BeebEvent &event) {
     case BeebEventType_ChangeConfig:
         {
             ts->current_config=event.data.config->config;
-            this->ThreadReplaceBeeb(ts,event.data.config->config.CreateBBCMicro(),BeebThreadReplaceFlag_KeepCurrentDiscs);
+
+            uint32_t flags=BeebThreadReplaceFlag_KeepCurrentDiscs;
+            if(!replay) {
+                flags|=BeebThreadReplaceFlag_ApplyPCState;
+            }
+            
+            
+            this->ThreadReplaceBeeb(ts,event.data.config->config.CreateBBCMicro(),flags);
         }
         return;
 
     case BeebEventType_HardReset:
         {
-            this->ThreadReplaceBeeb(ts,ts->current_config.CreateBBCMicro(),event.data.hard_reset.flags);
+            uint32_t flags=event.data.hard_reset.flags;
+            if(!replay) {
+                flags|=BeebThreadReplaceFlag_ApplyPCState;
+            }
+            
+            this->ThreadReplaceBeeb(ts,
+                                    ts->current_config.CreateBBCMicro(),
+                                    flags);
         }
         return;
 
 #if BBCMICRO_TURBO_DISC
     case BeebEventType_SetTurboDisc:
-        ts->beeb->SetTurboDisc(event.data.set_turbo_disc.turbo);
+        this->ThreadSetTurboDisc(ts,event.data.set_turbo_disc.turbo);
         return;
 #endif
 
@@ -1502,12 +1513,14 @@ void BeebThread::ThreadReplayEvent(ThreadState *ts,const BeebEvent &event) {
     case BeebEventType_StartPaste:
         {
             ts->beeb->StartPaste(event.data.paste->text);
+            m_is_pasting.store(true,std::memory_order_release);
         }
         return;
 
     case BeebEventType_StopPaste:
         {
             ts->beeb->StopPaste();
+            m_is_pasting.store(false,std::memory_order_release);
         }
         return;
     }
@@ -1605,7 +1618,7 @@ void BeebThread::ThreadHandleReplayEvents(ThreadState *ts) {
 
         ++ts->replay_next_index;
 
-        this->ThreadReplayEvent(ts,re->be);
+        this->ThreadHandleEvent(ts,re->be,true);
 
         if(re->id==0) {
             // Event wasn't on timeline, so don't update parent.
@@ -1639,20 +1652,7 @@ void BeebThread::ThreadSetDiscImage(ThreadState *ts,int drive,std::shared_ptr<Di
 void BeebThread::ThreadStartPaste(ThreadState *ts,std::string text) {
     auto shared_text=std::make_shared<std::string>(std::move(text));
 
-    ts->beeb->StartPaste(shared_text);
     this->ThreadRecordEvent(ts,BeebEvent::MakeStartPaste(*ts->num_executed_2MHz_cycles,shared_text));
-
-    m_is_pasting.store(true,std::memory_order_release);
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-void BeebThread::ThreadStopPaste(ThreadState *ts) {
-    ts->beeb->StopPaste();
-    this->ThreadRecordEvent(ts,BeebEvent::MakeStopPaste(*ts->num_executed_2MHz_cycles));
-
-    m_is_pasting.store(false,std::memory_order_release);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -1683,9 +1683,9 @@ void BeebThread::ThreadStopCopy(ThreadState *ts) {
 
             if(ts->copy_data.size()>=prefix.size()) {
                 auto begin=ts->copy_data.begin();
-                
-                auto end=begin;
-                std::advance(end,prefix.size());
+
+                ASSERT(prefix.size()<=PTRDIFF_MAX);
+                auto end=begin+(ptrdiff_t)prefix.size();
                 
                 if(std::equal(begin,end,prefix.begin())) {
                     ts->copy_data.erase(begin,end);
@@ -1782,7 +1782,7 @@ bool BeebThread::ThreadHandleMessage(
 
             ts->log.f("%s: flags=%s\n",GetBeebThreadEventTypeEnumName((int)msg->type),GetFlagsString(flags,&GetBeebThreadReplaceFlagEnumName).c_str());
 
-            this->ThreadReplaceBeeb(ts,ts->current_config.CreateBBCMicro(),flags|BeebThreadReplaceFlag_ApplyPCState);
+            // this->ThreadReplaceBeeb(ts,ts->current_config.CreateBBCMicro(),flags|BeebThreadReplaceFlag_ApplyPCState);
 
             this->ThreadRecordEvent(ts,BeebEvent::MakeHardReset(*ts->num_executed_2MHz_cycles,flags));
         }
@@ -1793,9 +1793,7 @@ bool BeebThread::ThreadHandleMessage(
             auto ptr=(ChangeConfigPayload *)msg->data.ptr;
 
             ts->current_config=std::move(ptr->config);
-
-            this->ThreadReplaceBeeb(ts,ts->current_config.CreateBBCMicro(),BeebThreadReplaceFlag_ApplyPCState|BeebThreadReplaceFlag_KeepCurrentDiscs);
-
+            
             this->ThreadRecordEvent(ts,BeebEvent::MakeChangeConfig(*ts->num_executed_2MHz_cycles,ts->current_config));
         }
         break;
@@ -1816,8 +1814,6 @@ bool BeebThread::ThreadHandleMessage(
             } else {
                 auto ptr=(LoadDiscPayload *)msg->data.ptr;
 
-                this->ThreadRecordEvent(ts,BeebEvent::MakeLoadDiscImage(*ts->num_executed_2MHz_cycles,ptr->drive,DiscImage::Clone(ptr->disc_image)));
-
                 if(ptr->verbose) {
                     if(!ptr->disc_image) {
                         ts->msgs.i.f("Drive %d: empty\n",ptr->drive);
@@ -1831,7 +1827,7 @@ bool BeebThread::ThreadHandleMessage(
                     }
                 }
 
-                this->ThreadSetDiscImage(ts,ptr->drive,std::move(ptr->disc_image));
+                this->ThreadRecordEvent(ts,BeebEvent::MakeLoadDiscImage(*ts->num_executed_2MHz_cycles,ptr->drive,std::move(ptr->disc_image)));
             }
         }
         break;
@@ -1912,14 +1908,15 @@ bool BeebThread::ThreadHandleMessage(
 
             std::shared_ptr<BeebState> state=this->ThreadSaveState(ts);
 
-            this->ThreadRecordEvent(ts,BeebEvent::MakeSaveState(*ts->num_executed_2MHz_cycles,state));
-
-            this->SetLastSavedStateTimelineId(this->GetParentTimelineEventId());
-
             if(ptr->verbose) {
                 std::string time_str=Get2MHzCyclesString(state->GetEmulated2MHzCycles());
                 ts->msgs.i.f("Saved state: %s\n",time_str.c_str());
             }
+            
+            this->ThreadRecordEvent(ts,BeebEvent::MakeSaveState(*ts->num_executed_2MHz_cycles,state));
+
+            this->SetLastSavedStateTimelineId(this->GetParentTimelineEventId());
+
         }
         break;
 
@@ -1949,13 +1946,9 @@ bool BeebThread::ThreadHandleMessage(
 
     case BeebThreadEventType_SetTurboDisc:
         {
-            ASSERT(ts->beeb);
-
-            bool turbo=!!msg->data.u64;
-
-            this->ThreadRecordEvent(ts,BeebEvent::MakeSetTurboDisc(*ts->num_executed_2MHz_cycles,turbo));
-
-            this->ThreadSetTurboDisc(ts,turbo);
+            this->ThreadRecordEvent(ts,
+                                    BeebEvent::MakeSetTurboDisc(*ts->num_executed_2MHz_cycles,
+                                                                !!msg->data.u64));
         }
         break;
 
@@ -2072,7 +2065,7 @@ bool BeebThread::ThreadHandleMessage(
             if(m_is_replaying) {
                 // Ignore.
             } else {
-                this->ThreadStopPaste(ts);
+                this->ThreadRecordEvent(ts,BeebEvent::MakeStopPaste(*ts->num_executed_2MHz_cycles));
             }
         }
         break;

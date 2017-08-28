@@ -364,7 +364,7 @@ private:
 #if BBCMICRO_TURBO_DISC
     void ThreadSetTurboDisc(ThreadState *ts,bool turbo);
 #endif
-    void ThreadReplayEvent(ThreadState *ts,const BeebEvent &event);
+    void ThreadHandleEvent(ThreadState *ts,const BeebEvent &event,bool replay);
     void ThreadStartReplay(ThreadState *ts,Timeline::ReplayData replay_data);
     void ThreadStopReplay(ThreadState *ts);
     void ThreadSetPaused(ThreadState *ts,bool paused);
