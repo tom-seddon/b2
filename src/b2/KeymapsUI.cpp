@@ -197,8 +197,6 @@ void KeymapsUIImpl::DoImGui() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static const char *g_keysym_labels[256];
-
 //#define K(KEY,...) {BeebKey_##KEY,__VA_ARGS__,)
 //#define F(N) {BeebKey_F##N,"f" #N,0,2,KeyColour_Red}
 //#define E(N,C) {BeebKey_##N,C,nullptr,2,KeyColour_Khaki}
@@ -347,6 +345,137 @@ static const Keycap g_m128_line5[]={
 };
 
 #undef END
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+static const char *GetKeySymLabel(BeebKeySym sym) {
+    if(sym<0) {
+        return "";
+    } else {
+        switch(sym) {
+        default:
+            break;
+
+#define L(SYM,LABEL) case (SYM): return LABEL
+            L(BeebKeySym_Break,"BRK");
+            L(BeebKeySym_f0,"f0");
+            L(BeebKeySym_f1,"f1");
+            L(BeebKeySym_f2,"f2");
+            L(BeebKeySym_f3,"f3");
+            L(BeebKeySym_f4,"f4");
+            L(BeebKeySym_f5,"f5");
+            L(BeebKeySym_f6,"f6");
+            L(BeebKeySym_f7,"f7");
+            L(BeebKeySym_f8,"f8");
+            L(BeebKeySym_f9,"f9");
+            L(BeebKeySym_Escape,"ESC");
+            L(BeebKeySym_1,"1");
+            L(BeebKeySym_ExclamationMark,"!");
+            L(BeebKeySym_2,"2");
+            L(BeebKeySym_Quotes,"\"");
+            L(BeebKeySym_3,"3");
+            L(BeebKeySym_Hash,"#");
+            L(BeebKeySym_4,"4");
+            L(BeebKeySym_Dollar,"$");
+            L(BeebKeySym_5,"5");
+            L(BeebKeySym_Percent,"%");
+            L(BeebKeySym_6,"6");
+            L(BeebKeySym_Ampersand,"&");
+            L(BeebKeySym_7,"7");
+            L(BeebKeySym_Apostrophe,"'");
+            L(BeebKeySym_8,"8");
+            L(BeebKeySym_LeftBracket,"(");
+            L(BeebKeySym_9,"9");
+            L(BeebKeySym_RightBracket,")");
+            L(BeebKeySym_0,"0");
+            L(BeebKeySym_Minus,"-");
+            L(BeebKeySym_Equals,"=");
+            L(BeebKeySym_Caret,"^");
+            L(BeebKeySym_Tilde,"~");
+            L(BeebKeySym_Backslash,"\\");
+            L(BeebKeySym_Pipe,"|");
+            L(BeebKeySym_Tab,"TAB");
+            L(BeebKeySym_Q,"Q");
+            L(BeebKeySym_W,"W");
+            L(BeebKeySym_E,"E");
+            L(BeebKeySym_R,"R");
+            L(BeebKeySym_T,"T");
+            L(BeebKeySym_Y,"Y");
+            L(BeebKeySym_U,"U");
+            L(BeebKeySym_I,"I");
+            L(BeebKeySym_O,"O");
+            L(BeebKeySym_P,"P");
+            L(BeebKeySym_At,"@");
+            L(BeebKeySym_LeftSquareBracket,"[");
+            L(BeebKeySym_LeftCurlyBracket,"{");
+            L(BeebKeySym_Underline,"_");
+            L(BeebKeySym_Pound,"\xc2\xa3");
+            L(BeebKeySym_CapsLock,"CAPS\nLOCK");
+            L(BeebKeySym_Ctrl,"CTRL");
+            L(BeebKeySym_A,"A");
+            L(BeebKeySym_S,"S");
+            L(BeebKeySym_D,"D");
+            L(BeebKeySym_F,"F");
+            L(BeebKeySym_G,"G");
+            L(BeebKeySym_H,"H");
+            L(BeebKeySym_J,"J");
+            L(BeebKeySym_K,"K");
+            L(BeebKeySym_L,"L");
+            L(BeebKeySym_Semicolon,";");
+            L(BeebKeySym_Plus,"+");
+            L(BeebKeySym_Colon,":");
+            L(BeebKeySym_Star,"*");
+            L(BeebKeySym_RightSquareBracket,"]");
+            L(BeebKeySym_RightCurlyBracket,"}");
+            L(BeebKeySym_Return,"RETURN");
+            L(BeebKeySym_ShiftLock,"SHF\nLOCK");
+            L(BeebKeySym_Shift,"SHIFT");
+            L(BeebKeySym_Z,"Z");
+            L(BeebKeySym_X,"X");
+            L(BeebKeySym_C,"C");
+            L(BeebKeySym_V,"V");
+            L(BeebKeySym_B,"B");
+            L(BeebKeySym_N,"N");
+            L(BeebKeySym_M,"M");
+            L(BeebKeySym_Comma,",");
+            L(BeebKeySym_LessThan,"<");
+            L(BeebKeySym_Stop,".");
+            L(BeebKeySym_GreaterThan,">");
+            L(BeebKeySym_Slash,"/");
+            L(BeebKeySym_QuestionMarke,"?");
+            L(BeebKeySym_Delete,"DEL");
+            L(BeebKeySym_Copy,"COPY");
+            L(BeebKeySym_Up,ICON_FA_LONG_ARROW_UP);
+            L(BeebKeySym_Down,ICON_FA_LONG_ARROW_DOWN);
+            L(BeebKeySym_Left,ICON_FA_LONG_ARROW_LEFT);
+            L(BeebKeySym_Right,ICON_FA_LONG_ARROW_RIGHT);
+            L(BeebKeySym_KeypadPlus,"+");
+            L(BeebKeySym_KeypadMinus,"-");
+            L(BeebKeySym_KeypadSlash,"/");
+            L(BeebKeySym_KeypadStar,"*");
+            L(BeebKeySym_Keypad7,"7");
+            L(BeebKeySym_Keypad8,"8");
+            L(BeebKeySym_Keypad9,"9");
+            L(BeebKeySym_KeypadHash,"#");
+            L(BeebKeySym_Keypad4,"4");
+            L(BeebKeySym_Keypad5,"5");
+            L(BeebKeySym_Keypad6,"6");
+            L(BeebKeySym_KeypadDelete,"DEL");
+            L(BeebKeySym_Keypad1,"1");
+            L(BeebKeySym_Keypad2,"2");
+            L(BeebKeySym_Keypad3,"3");
+            L(BeebKeySym_KeypadComma,",");
+            L(BeebKeySym_Keypad0,"0");
+            L(BeebKeySym_KeypadStop,".");
+            L(BeebKeySym_KeypadReturn,"RETURN");
+            L(BeebKeySym_Space,"");
+#undef L
+        }
+
+        return "";
+    }
+}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -554,8 +683,8 @@ void KeymapsUIImpl::DoScancodeKeyboardLinePart(const BeebKeymap *keymap,BeebKeym
 
             char tmp[100];
             const char *label;
-            const char *shifted=g_keysym_labels[key->shifted_sym];
-            const char *unshifted=g_keysym_labels[key->unshifted_sym];
+            const char *shifted=GetKeySymLabel(key->shifted_sym);
+            const char *unshifted=GetKeySymLabel(key->unshifted_sym);
 
             if(shifted&&unshifted) {
                 snprintf(tmp,sizeof tmp,"%s\n%s",shifted,unshifted);
@@ -636,8 +765,8 @@ void KeymapsUIImpl::DoKeySymKeyboardLineTopHalves(const BeebKeymap *keymap,BeebK
         if(keycap->key<0) {
             ImGui::InvisibleButton("",size);
         } else {
-            const char *shifted=g_keysym_labels[keycap->shifted_sym];
-            const char *unshifted=g_keysym_labels[keycap->unshifted_sym];
+            const char *shifted=GetKeySymLabel(keycap->shifted_sym);
+            const char *unshifted=GetKeySymLabel(keycap->unshifted_sym);
 
             if(shifted&&unshifted) {
                 // Two half-height buttons.
@@ -669,7 +798,12 @@ void KeymapsUIImpl::DoKeySymKeyboardLineBottomHalves(const BeebKeymap *keymap,Be
         ImGuiIDPusher id_pusher2(0);
 
         ImGui::SetCursorPos(ImVec2(key->x,y));
-        this->DoKeySymButton(keymap,editable_keymap,g_keysym_labels[key->keycap->unshifted_sym],key->size,key->keycap->unshifted_sym,key->keycap);
+        this->DoKeySymButton(keymap,
+                             editable_keymap,
+                             GetKeySymLabel(key->keycap->unshifted_sym),
+                             key->size,
+                             key->keycap->unshifted_sym,
+                             key->keycap);
 
         ImGui::SameLine();
     }
@@ -807,122 +941,3 @@ bool KeymapsUIImpl::DoEditKeymapGui(const BeebKeymap *keymap,BeebKeymap *editabl
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
-
-struct KeySymLabelsInitialiser {
-    KeySymLabelsInitialiser() {
-        g_keysym_labels[BeebKeySym_Break]="BRK";
-
-        g_keysym_labels[BeebKeySym_f0]="f0";
-        g_keysym_labels[BeebKeySym_f1]="f1";
-        g_keysym_labels[BeebKeySym_f2]="f2";
-        g_keysym_labels[BeebKeySym_f3]="f3";
-        g_keysym_labels[BeebKeySym_f4]="f4";
-        g_keysym_labels[BeebKeySym_f5]="f5";
-        g_keysym_labels[BeebKeySym_f6]="f6";
-        g_keysym_labels[BeebKeySym_f7]="f7";
-        g_keysym_labels[BeebKeySym_f8]="f8";
-        g_keysym_labels[BeebKeySym_f9]="f9";
-        g_keysym_labels[BeebKeySym_Escape]="ESC";
-        g_keysym_labels[BeebKeySym_1]="1";
-        g_keysym_labels[BeebKeySym_ExclamationMark]="!";
-        g_keysym_labels[BeebKeySym_2]="2";
-        g_keysym_labels[BeebKeySym_Quotes]="\"";
-        g_keysym_labels[BeebKeySym_3]="3";
-        g_keysym_labels[BeebKeySym_Hash]="#";
-        g_keysym_labels[BeebKeySym_4]="4";
-        g_keysym_labels[BeebKeySym_Dollar]="$";
-        g_keysym_labels[BeebKeySym_5]="5";
-        g_keysym_labels[BeebKeySym_Percent]="%";
-        g_keysym_labels[BeebKeySym_6]="6";
-        g_keysym_labels[BeebKeySym_Ampersand]="&";
-        g_keysym_labels[BeebKeySym_7]="7";
-        g_keysym_labels[BeebKeySym_Apostrophe]="'";
-        g_keysym_labels[BeebKeySym_8]="8";
-        g_keysym_labels[BeebKeySym_LeftBracket]="(";
-        g_keysym_labels[BeebKeySym_9]="9";
-        g_keysym_labels[BeebKeySym_RightBracket]=")";
-        g_keysym_labels[BeebKeySym_0]="0";
-        g_keysym_labels[BeebKeySym_Minus]="-";
-        g_keysym_labels[BeebKeySym_Equals]="=";
-        g_keysym_labels[BeebKeySym_Caret]="^";
-        g_keysym_labels[BeebKeySym_Tilde]="~";
-        g_keysym_labels[BeebKeySym_Backslash]="\\";
-        g_keysym_labels[BeebKeySym_Pipe]="|";
-        g_keysym_labels[BeebKeySym_Tab]="TAB";
-        g_keysym_labels[BeebKeySym_Q]="Q";
-        g_keysym_labels[BeebKeySym_W]="W";
-        g_keysym_labels[BeebKeySym_E]="E";
-        g_keysym_labels[BeebKeySym_R]="R";
-        g_keysym_labels[BeebKeySym_T]="T";
-        g_keysym_labels[BeebKeySym_Y]="Y";
-        g_keysym_labels[BeebKeySym_U]="U";
-        g_keysym_labels[BeebKeySym_I]="I";
-        g_keysym_labels[BeebKeySym_O]="O";
-        g_keysym_labels[BeebKeySym_P]="P";
-        g_keysym_labels[BeebKeySym_At]="@";
-        g_keysym_labels[BeebKeySym_LeftSquareBracket]="[";
-        g_keysym_labels[BeebKeySym_LeftCurlyBracket]="{";
-        g_keysym_labels[BeebKeySym_Underline]="_";
-        g_keysym_labels[BeebKeySym_Pound]="\xc2\xa3";
-        g_keysym_labels[BeebKeySym_CapsLock]="CAPS\nLOCK";
-        g_keysym_labels[BeebKeySym_Ctrl]="CTRL";
-        g_keysym_labels[BeebKeySym_A]="A";
-        g_keysym_labels[BeebKeySym_S]="S";
-        g_keysym_labels[BeebKeySym_D]="D";
-        g_keysym_labels[BeebKeySym_F]="F";
-        g_keysym_labels[BeebKeySym_G]="G";
-        g_keysym_labels[BeebKeySym_H]="H";
-        g_keysym_labels[BeebKeySym_J]="J";
-        g_keysym_labels[BeebKeySym_K]="K";
-        g_keysym_labels[BeebKeySym_L]="L";
-        g_keysym_labels[BeebKeySym_Semicolon]=";";
-        g_keysym_labels[BeebKeySym_Plus]="+";
-        g_keysym_labels[BeebKeySym_Colon]=":";
-        g_keysym_labels[BeebKeySym_Star]="*";
-        g_keysym_labels[BeebKeySym_RightSquareBracket]="]";
-        g_keysym_labels[BeebKeySym_RightCurlyBracket]="}";
-        g_keysym_labels[BeebKeySym_Return]="RETURN";
-        g_keysym_labels[BeebKeySym_ShiftLock]="SHF\nLOCK";
-        g_keysym_labels[BeebKeySym_Shift]="SHIFT";
-        g_keysym_labels[BeebKeySym_Z]="Z";
-        g_keysym_labels[BeebKeySym_X]="X";
-        g_keysym_labels[BeebKeySym_C]="C";
-        g_keysym_labels[BeebKeySym_V]="V";
-        g_keysym_labels[BeebKeySym_B]="B";
-        g_keysym_labels[BeebKeySym_N]="N";
-        g_keysym_labels[BeebKeySym_M]="M";
-        g_keysym_labels[BeebKeySym_Comma]=",";
-        g_keysym_labels[BeebKeySym_LessThan]="<";
-        g_keysym_labels[BeebKeySym_Stop]=".";
-        g_keysym_labels[BeebKeySym_GreaterThan]=">";
-        g_keysym_labels[BeebKeySym_Slash]="/";
-        g_keysym_labels[BeebKeySym_QuestionMarke]="?";
-        g_keysym_labels[BeebKeySym_Delete]="DEL";
-        g_keysym_labels[BeebKeySym_Copy]="COPY";
-        g_keysym_labels[BeebKeySym_Up]=ICON_FA_LONG_ARROW_UP;
-        g_keysym_labels[BeebKeySym_Down]=ICON_FA_LONG_ARROW_DOWN;
-        g_keysym_labels[BeebKeySym_Left]=ICON_FA_LONG_ARROW_LEFT;
-        g_keysym_labels[BeebKeySym_Right]=ICON_FA_LONG_ARROW_RIGHT;
-        g_keysym_labels[BeebKeySym_KeypadPlus]="+";
-        g_keysym_labels[BeebKeySym_KeypadMinus]="-";
-        g_keysym_labels[BeebKeySym_KeypadSlash]="/";
-        g_keysym_labels[BeebKeySym_KeypadStar]="*";
-        g_keysym_labels[BeebKeySym_Keypad7]="7";
-        g_keysym_labels[BeebKeySym_Keypad8]="8";
-        g_keysym_labels[BeebKeySym_Keypad9]="9";
-        g_keysym_labels[BeebKeySym_KeypadHash]="#";
-        g_keysym_labels[BeebKeySym_Keypad4]="4";
-        g_keysym_labels[BeebKeySym_Keypad5]="5";
-        g_keysym_labels[BeebKeySym_Keypad6]="6";
-        g_keysym_labels[BeebKeySym_KeypadDelete]="DEL";
-        g_keysym_labels[BeebKeySym_Keypad1]="1";
-        g_keysym_labels[BeebKeySym_Keypad2]="2";
-        g_keysym_labels[BeebKeySym_Keypad3]="3";
-        g_keysym_labels[BeebKeySym_KeypadComma]=",";
-        g_keysym_labels[BeebKeySym_Keypad0]="0";
-        g_keysym_labels[BeebKeySym_KeypadStop]=".";
-        g_keysym_labels[BeebKeySym_KeypadReturn]="RETURN";
-        g_keysym_labels[BeebKeySym_Space]="";
-    }
-};
-static const KeySymLabelsInitialiser g_key_sym_labels_initialiser;
