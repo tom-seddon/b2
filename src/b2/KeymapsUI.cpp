@@ -359,7 +359,7 @@ static const Keycap g_m128_line5[]={
 
 static const char *GetKeySymLabel(BeebKeySym sym) {
     if(sym<0) {
-        return "";
+        return nullptr;
     } else {
         switch(sym) {
         default:
