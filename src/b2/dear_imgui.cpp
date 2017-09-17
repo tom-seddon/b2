@@ -931,3 +931,50 @@ void ImGuiPlotHistogram(const char* label,float (*values_getter)(void* data,int 
 {
     PlotEx2(ImGuiPlotType_Histogram,label,values_getter,data,values_count,values_offset,overlay_text,scale_min,scale_max,graph_size,markers);
 }
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+static bool IsModifierKey(SDL_Scancode k) {
+    switch(k) {
+    case SDL_SCANCODE_LSHIFT:
+    case SDL_SCANCODE_RSHIFT:
+    case SDL_SCANCODE_LCTRL:
+    case SDL_SCANCODE_RCTRL:
+    case SDL_SCANCODE_LALT:
+    case SDL_SCANCODE_RALT:
+    case SDL_SCANCODE_LGUI:
+    case SDL_SCANCODE_RGUI:
+    case SDL_SCANCODE_MODE:
+        return true;
+
+    default:
+        return false;
+    }
+}
+
+uint32_t ImGuiGetPressedKeycode() {
+    int sdl_keystates_size;
+    const Uint8 *sdl_keystates=SDL_GetKeyboardState(&sdl_keystates_size);
+    uint32_t modifiers=GetPCKeyModifiersFromSDLKeymod((uint16_t)SDL_GetModState());
+
+    //m_wants_keyboard_focus=true;
+
+    for(int i=0;i<sdl_keystates_size;++i) {
+        if(sdl_keystates[i]) {
+            if(IsModifierKey((SDL_Scancode)i)) {
+                // Ignore...
+            } else {
+                SDL_Keycode keycode=SDL_GetKeyFromScancode((SDL_Scancode)i);
+                if(keycode!=0) {
+                    return (uint32_t)keycode|modifiers;
+                }
+            }
+        }
+    }
+
+    return 0;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////

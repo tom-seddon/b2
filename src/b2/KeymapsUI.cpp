@@ -89,9 +89,6 @@ private:
     bool m_edited=false;
 
     void DoScancodesList(const BeebKeymap *keymap,BeebKeymap *editable_keymap,BeebKey beeb_key);
-    uint32_t GetPressedKeycode();
-    template<class KeymapType>
-    void DoKeySymsList(const KeymapType *keymap,KeymapType *editable_keymap,typename KeymapType::ValueType value);
     ImGuiStyleColourPusher GetColourPusherForKeycap(const BeebKeymap *keymap,int8_t keymap_key,const Keycap *keycap);
     void DoScancodeKeyboardLinePart(const BeebKeymap *keymap,BeebKeymap *editable_keymap,const Keycap *line);
     void DoScancodeKeyboardLineParts(const BeebKeymap *keymap,BeebKeymap *editable_keymap,const Keycap *line,const Keycap *m128_line);
@@ -154,31 +151,6 @@ void KeymapsUIImpl::DoImGui() {
     bool any=false;
 
     m_wants_keyboard_focus=false;
-
-    CommandTable::ForEachCommandTable([&](CommandTable *table) {
-        ImGuiIDPusher id_pusher(table);
-        std::string title=table->GetName()+" shortcuts";
-        if(ImGui::CollapsingHeader(title.c_str(),"header",true,true)) {
-            table->ForEachCommand([&](Command *command) {
-                ImGuiIDPusher id_pusher(command);
-
-                if(ImGui::Button(command->GetText().c_str())) {
-                    ImGui::OpenPopup(SHORTCUT_KEYCODES_POPUP);
-                }
-
-                if(ImGui::IsItemHovered()) {
-                    ImGui::BeginTooltip();
-                    this->DoKeySymsList(table,(CommandTable *)nullptr,command);
-                    ImGui::EndTooltip();
-                }
-
-                if(ImGui::BeginPopup(SHORTCUT_KEYCODES_POPUP)) {
-                    this->DoKeySymsList(table,table,command);
-                    ImGui::EndPopup();
-                }
-            });
-        }
-    });
 
     BeebWindows::ForEachBeebKeymap([&](const BeebKeymap *keymap,BeebKeymap *editable_keymap) {
         if(any) {
@@ -551,80 +523,29 @@ void KeymapsUIImpl::DoScancodesList(const BeebKeymap *keymap,BeebKeymap *editabl
     }
 }
 
-static bool IsModifierKey(SDL_Scancode k) {
-    switch(k) {
-    case SDL_SCANCODE_LSHIFT:
-    case SDL_SCANCODE_RSHIFT:
-    case SDL_SCANCODE_LCTRL:
-    case SDL_SCANCODE_RCTRL:
-    case SDL_SCANCODE_LALT:
-    case SDL_SCANCODE_RALT:
-    case SDL_SCANCODE_LGUI:
-    case SDL_SCANCODE_RGUI:
-    case SDL_SCANCODE_MODE:
-        return true;
-
-    default:
-        return false;
-    }
-}
-
-// returns 0 if there's nothing pressed.
-uint32_t KeymapsUIImpl::GetPressedKeycode() {
-    int sdl_keystates_size;
-    const Uint8 *sdl_keystates=SDL_GetKeyboardState(&sdl_keystates_size);
-    uint32_t modifiers=GetPCKeyModifiersFromSDLKeymod((uint16_t)SDL_GetModState());
-
-    m_wants_keyboard_focus=true;
-
-    for(int i=0;i<sdl_keystates_size;++i) {
-        if(sdl_keystates[i]) {
-            if(IsModifierKey((SDL_Scancode)i)) {
-                // Ignore...
-            } else {
-                SDL_Keycode keycode=SDL_GetKeyFromScancode((SDL_Scancode)i);
-                if(keycode!=0) {
-                    return (uint32_t)keycode|modifiers;
-                }
-            }
-        }
-    }
-
-    return 0;
-}
-
-template<class KeymapType>
-void KeymapsUIImpl::DoKeySymsList(const KeymapType *keymap,KeymapType *editable_keymap,typename KeymapType::ValueType value) {
-    ImGui::Text(editable_keymap?"Edit PC Keys":"PC Keys");
-    ImGui::Separator();
-    if(const uint32_t *keycodes=keymap->GetPCKeysForValue(value)) {
-        for(const uint32_t *keycode=keycodes;*keycode!=0;++keycode) {
-            ImGuiIDPusher id_pusher((int)*keycode);
-
-            if(editable_keymap) {
-                if(ImGui::Button("x")) {
-                    editable_keymap->SetMapping(*keycode,value,false);
-                    m_edited=true;
-                }
-                ImGui::SameLine();
-            }
-
-            std::string name=GetKeycodeName(*keycode);
-
-            ImGui::TextUnformatted(name.c_str());
-        }
-    }
-
-    if(editable_keymap) {
-        ImGui::TextUnformatted("(press key to add)");
-
-        uint32_t keycode=this->GetPressedKeycode();
-        if(keycode!=0) {
-            editable_keymap->SetMapping(keycode,value,true);
-            m_edited=true;
-        }
-    }
-}
+//// returns 0 if there's nothing pressed.
+//uint32_t KeymapsUIImpl::GetPressedKeycode() {
+//    int sdl_keystates_size;
+//    const Uint8 *sdl_keystates=SDL_GetKeyboardState(&sdl_keystates_size);
+//    uint32_t modifiers=GetPCKeyModifiersFromSDLKeymod((uint16_t)SDL_GetModState());
+//
+//    m_wants_keyboard_focus=true;
+//
+//    for(int i=0;i<sdl_keystates_size;++i) {
+//        if(sdl_keystates[i]) {
+//            if(IsModifierKey((SDL_Scancode)i)) {
+//                // Ignore...
+//            } else {
+//                SDL_Keycode keycode=SDL_GetKeyFromScancode((SDL_Scancode)i);
+//                if(keycode!=0) {
+//                    return (uint32_t)keycode|modifiers;
+//                }
+//            }
+//        }
+//    }
+//
+//    return 0;
+//}
 
 ImGuiStyleColourPusher KeymapsUIImpl::GetColourPusherForKeycap(const BeebKeymap *keymap,int8_t keymap_key,const Keycap *keycap) {
     uint8_t beeb_key_pressed=m_beeb_window->GetBeebKeyState(keycap->key);
@@ -746,12 +667,14 @@ void KeymapsUIImpl::DoKeySymButton(const BeebKeymap *keymap,BeebKeymap *editable
 
     if(ImGui::IsItemHovered()) {
         ImGui::BeginTooltip();
-        this->DoKeySymsList(keymap,(BeebKeymap *)nullptr,(int8_t)key_sym);
+        ImGuiKeySymsList(&m_edited,keymap,(BeebKeymap *)nullptr,(int8_t)key_sym);
+        m_wants_keyboard_focus=true;
         ImGui::EndTooltip();
     }
 
     if(ImGui::BeginPopup(PC_KEYCODES_POPUP)) {
-        this->DoKeySymsList(keymap,editable_keymap,(int8_t)key_sym);
+        ImGuiKeySymsList(&m_edited,keymap,editable_keymap,(int8_t)key_sym);
+        m_wants_keyboard_focus=true;
         ImGui::EndPopup();
     }
 }

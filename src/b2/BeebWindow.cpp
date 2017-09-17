@@ -34,6 +34,7 @@
 #include "Timeline.h"
 #include <shared/path.h>
 #include "CommandContextStackUI.h"
+#include "CommandKeymapsUI.h"
 
 #ifdef _MSC_VER
 #include <crtdbg.h>
@@ -818,6 +819,7 @@ bool BeebWindow::DoImGui(int output_width,int output_height) {
         if(ImGui::BeginMenu("Tools")) {
             m_occ.DoMenuItemUI("toggle_emulator_options");
             m_occ.DoMenuItemUI("toggle_keyboard_layout");
+            m_occ.DoMenuItemUI("toggle_command_keymaps");
             m_occ.DoMenuItemUI("toggle_messages");
 #if TIMELINE_UI_ENABLED
             m_occ.DoMenuItemUI("toggle_timeline");
@@ -933,6 +935,24 @@ bool BeebWindow::DoImGui(int output_width,int output_height) {
     } else if(!!m_keymaps_ui) {
         this->MaybeSaveConfig(m_keymaps_ui->DidConfigChange());
         m_keymaps_ui=nullptr;
+    }
+
+    if(m_settings.ui_flags&BeebWindowUIFlag_CommandKeymaps) {
+        if(!m_command_keymaps_ui) {
+            m_command_keymaps_ui=std::make_unique<CommandKeymapsUI>();
+        }
+
+        if(ImGuiBeginFlag("Command Keys",&m_settings.ui_flags,BeebWindowUIFlag_CommandKeymaps)) {
+            m_command_keymaps_ui->DoImGui();
+
+            if(m_command_keymaps_ui->WantsKeyboardFocus()) {
+                m_imgui_has_kb_focus=true;
+            }
+        }
+        ImGui::End();
+    } else if(!!m_command_keymaps_ui) {
+        this->MaybeSaveConfig(m_command_keymaps_ui->DidConfigChange());
+        m_command_keymaps_ui=nullptr;
     }
 
     if(m_settings.ui_flags&BeebWindowUIFlag_Options) {
@@ -1150,7 +1170,7 @@ bool BeebWindow::DoImGui(int output_width,int output_height) {
         if(GetSecondsFromTicks(now-m_leds_popup_ticks)>LEDS_POPUP_TIME_SECONDS) {
             m_leds_popup_ui_active=false;
         }
-        }
+    }
 
     std::vector<std::shared_ptr<JobQueue::Job>> jobs=BeebWindows::GetJobs();
     if(!jobs.empty()) {
@@ -1192,7 +1212,7 @@ bool BeebWindow::DoImGui(int output_width,int output_height) {
     }
 
     return keep_window;
-    }
+}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -1420,7 +1440,7 @@ void BeebWindow::SavePosition() {
     BeebWindows::SetLastWindowPlacementData(buf);
 
 #endif
-    }
+}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -1607,7 +1627,7 @@ bool BeebWindow::InitInternal() {
 
 
     return true;
-    }
+}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -2217,6 +2237,7 @@ ObjectCommandTable<BeebWindow> BeebWindow::ms_command_table("Beeb Window",{
     GetToggleUICommand<BeebWindowUIFlag_Trace>("toggle_event_trace","Event trace..."),
     GetToggleUICommand<BeebWindowUIFlag_AudioCallback>("toggle_date_rate","Data rate..."),
     GetToggleUICommand<BeebWindowUIFlag_CommandContextStack>("toggle_cc_stack","Command context stack..."),
+    GetToggleUICommand<BeebWindowUIFlag_CommandKeymaps>("toggle_command_keymaps","Command shortcuts..."),
     {"exit","Exit",&BeebWindow::Exit,ConfirmCommand()},
     {"clean_up_recent_files_lists","Clean up recent files lists",&BeebWindow::CleanUpRecentFilesLists,ConfirmCommand()},
 #if SYSTEM_WINDOWS

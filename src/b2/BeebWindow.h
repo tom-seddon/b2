@@ -26,6 +26,7 @@ class NVRAMUI;
 class DataRateUI;
 class BeebState;
 class CommandContextStackUI;
+class CommandKeymapsUI;
 
 #include "keys.h"
 #include "dear_imgui.h"
@@ -321,6 +322,7 @@ private:
     std::vector<std::string> m_display_size_options;
 
     std::unique_ptr<KeymapsUI> m_keymaps_ui;
+    std::unique_ptr<CommandKeymapsUI> m_command_keymaps_ui;
     std::unique_ptr<MessagesUI> m_messages_ui;
 #if TIMELINE_UI_ENABLED
     std::unique_ptr<TimelineUI> m_timeline_ui;

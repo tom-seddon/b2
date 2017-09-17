@@ -45,6 +45,7 @@ add_executable(b2 MACOSX_BUNDLE
   BeebKeymap.cpp BeebKeymap.h
   commands.cpp commands.h
   CommandContextStackUI.cpp CommandContextStackUI.h
+  CommandKeymapsUI.cpp CommandKeymapsUI.h
   )
 
 ##########################################################################

@@ -40,6 +40,7 @@ EPNV(Trace,1<<5)
 EPNV(NVRAM,1<<6)
 EPNV(AudioCallback,1<<7)
 EPNV(CommandContextStack,1<<8)
+EPNV(CommandKeymaps,1<<9)
 EEND()
 #undef ENAME
 
