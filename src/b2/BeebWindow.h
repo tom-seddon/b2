@@ -356,6 +356,11 @@ private:
     bool Load65LinkFolder(int drive,const std::string &path);
     void DoOptionsGui();
     bool DoImGui(int output_width,int output_height);
+    void DoFileMenu();
+    void DoEditMenu();
+    void DoToolsMenu();
+    void DoDebugMenu();
+    bool DoWindowMenu();
     BeebWindowInitArguments GetNewWindowInitArguments() const;
     void MaybeSaveConfig(bool save_config);
     void DoOptionsCheckbox(const char *label,bool (BeebThread::*get_mfn)() const,void (BeebThread::*send_mfn)(bool));

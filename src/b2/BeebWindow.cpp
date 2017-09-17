@@ -580,8 +580,6 @@ static size_t CleanUpRecentPaths(const std::string &tag,bool (*exists_fn)(const 
     return n;
 }
 
-
-
 bool BeebWindow::DoImGui(int output_width,int output_height) {
     (void)output_width,(void)output_height;
     const uint64_t now=GetCurrentTickCount();
@@ -602,311 +600,13 @@ bool BeebWindow::DoImGui(int output_width,int output_height) {
     }
 
     if(ImGui::BeginMainMenuBar()) {
-        if(ImGui::BeginMenu("File")) {
-            m_occ.DoMenuItemUI("hard_reset");
-
-            if(ImGui::BeginMenu("Change config")) {
-                bool seen_first_custom=false;
-                BeebWindows::ForEachConfig([&](BeebConfig *config,const BeebLoadedConfig *loaded_config) {
-                    const char *name;
-
-                    if(config) {
-                        if(!seen_first_custom) {
-                            ImGui::Separator();
-                            seen_first_custom=true;
-                        }
-
-                        name=config->name.c_str();
-                    } else {
-                        name=loaded_config->config.name.c_str();
-                    }
-
-                    if(ImGui::MenuItem(name)) {
-                        BeebLoadedConfig tmp;
-
-                        if(!loaded_config) {
-                            if(BeebWindows::GetLoadedConfigForConfig(&tmp,config,&m_msg)) {
-                                loaded_config=&tmp;
-                            }
-                        }
-
-                        if(loaded_config) {
-                            m_beeb_thread->SendChangeConfigMessage(*loaded_config);
-                        }
-                    }
-
-                    return true;
-                });
-
-                ImGui::EndMenu();
-            }
-
-            ImGui::Separator();
-
-            if(ImGui::BeginMenu("Keymap")) {
-                bool seen_first_custom=false;
-                BeebWindows::ForEachBeebKeymap([&](const BeebKeymap *keymap,BeebKeymap *editable_keymap) {
-                    if(editable_keymap) {
-                        if(!seen_first_custom) {
-                            ImGui::Separator();
-                            seen_first_custom=true;
-                        }
-                    }
-
-                    if(ImGui::MenuItem(keymap->GetName().c_str(),keymap->IsKeySymMap()?KeymapsUI::KEYSYMS_KEYMAP_ICON:KeymapsUI::SCANCODES_KEYMAP_ICON,m_keymap==keymap)) {
-                        m_keymap=keymap;
-                    }
-
-                    return true;
-                });
-
-                ImGui::EndMenu();
-            }
-
-            ImGui::Separator();
-
-            for(int drive=0;drive<NUM_DRIVES;++drive) {
-                DriveState *d=&m_drives[drive];
-
-                char title[100];
-                snprintf(title,sizeof title,"Drive %d",drive);
-
-                if(ImGui::BeginMenu(title)) {
-                    std::string name,load_method;
-                    std::unique_lock<std::mutex> d_lock;
-                    std::shared_ptr<const DiscImage> disc_image=m_beeb_thread->GetDiscImage(&d_lock,drive);
-
-                    if(disc_image) {
-                        name=disc_image->GetName();
-                        ImGui::MenuItem(name.empty()?"(no name)":name.c_str(),nullptr,false,false);
-
-                        std::string desc=disc_image->GetDescription();
-                        if(!desc.empty()) {
-                            ImGui::MenuItem(("Info: "+desc).c_str(),nullptr,false,false);
-                        }
-
-                        std::string hash=disc_image->GetHash();
-                        if(!hash.empty()) {
-                            ImGui::MenuItem(("SHA1: "+hash).c_str(),nullptr,false,false);
-                        }
-
-                        load_method=disc_image->GetLoadMethod();
-                        ImGui::MenuItem(("Loaded from: "+load_method).c_str(),nullptr,false,false);
-                    } else {
-                        ImGui::MenuItem("(empty)",NULL,false,false);
-                    }
-
-                    if(!name.empty()) {
-                        if(ImGui::MenuItem("Copy path to clipboard")) {
-                            SDL_SetClipboardText(name.c_str());
-                        }
-                    }
-
-                    ImGui::Separator();
-
-                    FileMenuItem file_item(&d->open_disc_image_file_dialog,"Disc image...","Recent disc image");
-                    if(file_item.selected) {
-                        if(this->LoadDiscImageFile(drive,file_item.path)) {
-                            file_item.Success();
-                        }
-                    }
-
-                    FileMenuItem folder_item(&d->open_65link_folder_dialog,"65Link folder...","Recent 65Link folder");
-                    if(folder_item.selected) {
-                        if(this->Load65LinkFolder(drive,folder_item.path)) {
-                            folder_item.Success();
-                        }
-                    }
-
-                    if(!!disc_image) {
-                        ImGui::Separator();
-
-                        if(load_method==MemoryDiscImage::LOAD_METHOD_FILE) {
-                            if(ImGui::MenuItem("Save disc image")) {
-                                disc_image->SaveToFile(disc_image->GetName(),&m_msg);
-                            }
-                        }
-
-                        if(ImGui::MenuItem("Save disc image as...")) {
-                            SaveFileDialog fd(RECENT_PATHS_DISC_IMAGE);
-
-                            disc_image->AddFileDialogFilter(&fd);
-                            fd.AddAllFilesFilter();
-
-                            std::string path;
-                            if(fd.Open(&path)) {
-                                if(disc_image->SaveToFile(path,&m_msg)) {
-                                    fd.AddLastPathToRecentPaths();
-
-                                    m_beeb_thread->SendSetDiscImageNameAndLoadMethodMessage(drive,std::move(path),MemoryDiscImage::LOAD_METHOD_FILE);
-                                }
-                            }
-                        }
-
-                        if(ImGui::MenuItem("Export 65Link folder...")) {
-                            FolderDialog fd(RECENT_PATHS_65LINK);
-
-                            std::string path;
-                            if(fd.Open(&path)) {
-                                if(SaveDiscImageTo65LinkFolder(disc_image,path,&m_msg)) {
-                                    fd.AddLastPathToRecentPaths();
-                                }
-                            }
-                        }
-                    }
-
-                    ImGui::EndMenu();
-                }
-            }
-
-            ImGui::Separator();
-
-            if(ImGui::MenuItem("Save NVRAM...",nullptr,false,m_beeb_thread->HasNVRAM())) {
-                SaveFileDialog fd(RECENT_PATHS_NVRAM);
-
-                fd.AddFilter("BBC NVRAM data","*.bbcnvram");
-                fd.AddAllFilesFilter();
-
-                std::string file_name;
-                if(fd.Open(&file_name)) {
-                    std::vector<uint8_t> nvram=m_beeb_thread->GetNVRAM();
-
-                    if(SaveFile(nvram,file_name,&m_msg)) {
-                        fd.AddLastPathToRecentPaths();
-                    }
-                }
-            }
-
-            //if(ImGui::MenuItem("Save RAM...")) {
-            //    SaveFileDialog fd(RECENT_PATHS_RAM);
-
-            //    fd.AddFilter("BBC RAM","*.bbcram");
-            //    fd.AddAllFilesFilter();
-
-            //    std::string file_name;
-            //    if(fd.Open(&file_name)) {
-            //        BBCMicro *beeb=m_beeb_thread->Pause(BeebWindowPauser_SaveRAM);
-
-            //        size_t ram_size=BBCMicro_GetType(beeb)->ram_size;
-            //        const uint8_t *ram=BBCMicro_GetRAM(beeb);
-
-            //        if(SaveFile(ram,ram_size,file_name,&m_msg)) {
-            //            fd.AddLastPathToRecentPaths();
-            //        }
-
-            //        m_beeb_thread->Resume(BeebWindowPauser_SaveRAM,&beeb);
-            //    }
-            //}
-
-            m_occ.DoMenuItemUI("load_last_state");
-            m_occ.DoMenuItemUI("save_state");
-            ImGui::Separator();
-            m_occ.DoMenuItemUI("exit");
-            ImGui::EndMenu();
+        this->DoFileMenu();
+        this->DoEditMenu();
+        this->DoToolsMenu();
+        this->DoDebugMenu();
+        if(!this->DoWindowMenu()) {
+            keep_window=false;
         }
-
-        if(ImGui::BeginMenu("Edit")) {
-            m_occ.DoMenuItemUI("toggle_copy_oswrch_text");
-            m_occ.DoMenuItemUI("copy_basic");
-
-            //m_occ.DoMenuItemUI("toggle_copy_oswrch_binary");
-            m_occ.DoMenuItemUI("paste");
-            m_occ.DoMenuItemUI("paste_return");
-
-            ImGui::EndMenu();
-        }
-
-        if(ImGui::BeginMenu("Tools")) {
-            m_occ.DoMenuItemUI("toggle_emulator_options");
-            m_occ.DoMenuItemUI("toggle_keyboard_layout");
-            m_occ.DoMenuItemUI("toggle_command_keymaps");
-            m_occ.DoMenuItemUI("toggle_messages");
-#if TIMELINE_UI_ENABLED
-            m_occ.DoMenuItemUI("toggle_timeline");
-#endif
-            m_occ.DoMenuItemUI("toggle_configurations");
-
-            // if(ImGui::MenuItem("Dump states")) {
-            //     std::vector<std::shared_ptr<BeebState>> all_states=BeebState::GetAllStates();
-
-            //     for(size_t i=0;i<all_states.size();++i) {
-            //         LOGF(OUTPUT,"%zu. ",i);
-            //         LOGI(OUTPUT);
-            //         LOGF(OUTPUT,"(BeebState *)%p\n",(void *)all_states[i].get());
-            //         all_states[i]->Dump(&LOG(OUTPUT));
-            //     }
-            // }
-
-            ImGui::Separator();
-            m_occ.DoMenuItemUI("clean_up_recent_files_lists");
-            ImGui::EndMenu();
-        }
-
-#if ENABLE_DEBUG_MENU
-        if(ImGui::BeginMenu("Debug")) {
-#if ENABLE_IMGUI_DEMO
-            ImGui::MenuItem("ImGui demo...",NULL,&m_imgui_demo);
-#endif
-            m_occ.DoMenuItemUI("toggle_event_trace");
-            m_occ.DoMenuItemUI("toggle_date_rate");
-            m_occ.DoMenuItemUI("toggle_cc_stack");
-
-#if SYSTEM_WINDOWS
-            if(GetConsoleWindow()) {
-                m_occ.DoMenuItemUI("clear_console");
-                m_occ.DoMenuItemUI("print_separator");
-            }
-#endif
-
-            m_occ.DoMenuItemUI("dump_timeline_console");
-            m_occ.DoMenuItemUI("dump_timeline_debugger");
-            m_occ.DoMenuItemUI("check_timeline");
-
-            ImGui::EndMenu();
-        }
-#endif
-
-        if(ImGui::BeginMenu("Window")) {
-            {
-                char name[100];
-                strlcpy(name,m_name.c_str(),sizeof name);
-
-                if(ImGui::InputText("Name",name,sizeof name,ImGuiInputTextFlags_EnterReturnsTrue|ImGuiInputTextFlags_AutoSelectAll)) {
-                    BeebWindows::SetBeebWindowName(this,name);
-                }
-            }
-
-            ImGui::Separator();
-
-            if(ImGui::MenuItem("New")) {
-                PushNewWindowMessage(this->GetNewWindowInitArguments());
-            }
-
-            if(ImGui::MenuItem("Clone")) {
-                BeebWindowInitArguments init_arguments=this->GetNewWindowInitArguments();
-
-                if(m_keymap) {
-                    init_arguments.keymap_name=m_keymap->GetName();
-                }
-
-                init_arguments.settings=m_settings;
-                init_arguments.use_settings=true;
-
-                m_beeb_thread->SendCloneWindowMessage(init_arguments);
-            }
-
-            ImGui::Separator();
-
-            if(ImGui::BeginMenu("Close")) {
-                if(ImGui::MenuItem("Confirm")) {
-                    keep_window=false;
-                }
-                ImGui::EndMenu();
-            }
-
-            ImGui::EndMenu();
-        }
-
         ImGui::EndMainMenuBar();
     }
 
@@ -1209,6 +909,340 @@ bool BeebWindow::DoImGui(int output_width,int output_height) {
         if(open) {
             ImGui::End();
         }
+    }
+
+    return keep_window;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BeebWindow::DoFileMenu(){
+    if(ImGui::BeginMenu("File")) {
+        m_occ.DoMenuItemUI("hard_reset");
+
+        if(ImGui::BeginMenu("Change config")) {
+            bool seen_first_custom=false;
+            BeebWindows::ForEachConfig([&](BeebConfig *config,const BeebLoadedConfig *loaded_config) {
+                const char *name;
+
+                if(config) {
+                    if(!seen_first_custom) {
+                        ImGui::Separator();
+                        seen_first_custom=true;
+                    }
+
+                    name=config->name.c_str();
+                } else {
+                    name=loaded_config->config.name.c_str();
+                }
+
+                if(ImGui::MenuItem(name)) {
+                    BeebLoadedConfig tmp;
+
+                    if(!loaded_config) {
+                        if(BeebWindows::GetLoadedConfigForConfig(&tmp,config,&m_msg)) {
+                            loaded_config=&tmp;
+                        }
+                    }
+
+                    if(loaded_config) {
+                        m_beeb_thread->SendChangeConfigMessage(*loaded_config);
+                    }
+                }
+
+                return true;
+            });
+
+            ImGui::EndMenu();
+        }
+
+        ImGui::Separator();
+
+        if(ImGui::BeginMenu("Keymap")) {
+            bool seen_first_custom=false;
+            BeebWindows::ForEachBeebKeymap([&](const BeebKeymap *keymap,BeebKeymap *editable_keymap) {
+                if(editable_keymap) {
+                    if(!seen_first_custom) {
+                        ImGui::Separator();
+                        seen_first_custom=true;
+                    }
+                }
+
+                if(ImGui::MenuItem(keymap->GetName().c_str(),keymap->IsKeySymMap()?KeymapsUI::KEYSYMS_KEYMAP_ICON:KeymapsUI::SCANCODES_KEYMAP_ICON,m_keymap==keymap)) {
+                    m_keymap=keymap;
+                }
+
+                return true;
+            });
+
+            ImGui::EndMenu();
+        }
+
+        ImGui::Separator();
+
+        for(int drive=0;drive<NUM_DRIVES;++drive) {
+            DriveState *d=&m_drives[drive];
+
+            char title[100];
+            snprintf(title,sizeof title,"Drive %d",drive);
+
+            if(ImGui::BeginMenu(title)) {
+                std::string name,load_method;
+                std::unique_lock<std::mutex> d_lock;
+                std::shared_ptr<const DiscImage> disc_image=m_beeb_thread->GetDiscImage(&d_lock,drive);
+
+                if(disc_image) {
+                    name=disc_image->GetName();
+                    ImGui::MenuItem(name.empty()?"(no name)":name.c_str(),nullptr,false,false);
+
+                    std::string desc=disc_image->GetDescription();
+                    if(!desc.empty()) {
+                        ImGui::MenuItem(("Info: "+desc).c_str(),nullptr,false,false);
+                    }
+
+                    std::string hash=disc_image->GetHash();
+                    if(!hash.empty()) {
+                        ImGui::MenuItem(("SHA1: "+hash).c_str(),nullptr,false,false);
+                    }
+
+                    load_method=disc_image->GetLoadMethod();
+                    ImGui::MenuItem(("Loaded from: "+load_method).c_str(),nullptr,false,false);
+                } else {
+                    ImGui::MenuItem("(empty)",NULL,false,false);
+                }
+
+                if(!name.empty()) {
+                    if(ImGui::MenuItem("Copy path to clipboard")) {
+                        SDL_SetClipboardText(name.c_str());
+                    }
+                }
+
+                ImGui::Separator();
+
+                FileMenuItem file_item(&d->open_disc_image_file_dialog,"Disc image...","Recent disc image");
+                if(file_item.selected) {
+                    if(this->LoadDiscImageFile(drive,file_item.path)) {
+                        file_item.Success();
+                    }
+                }
+
+                FileMenuItem folder_item(&d->open_65link_folder_dialog,"65Link folder...","Recent 65Link folder");
+                if(folder_item.selected) {
+                    if(this->Load65LinkFolder(drive,folder_item.path)) {
+                        folder_item.Success();
+                    }
+                }
+
+                if(!!disc_image) {
+                    ImGui::Separator();
+
+                    if(load_method==MemoryDiscImage::LOAD_METHOD_FILE) {
+                        if(ImGui::MenuItem("Save disc image")) {
+                            disc_image->SaveToFile(disc_image->GetName(),&m_msg);
+                        }
+                    }
+
+                    if(ImGui::MenuItem("Save disc image as...")) {
+                        SaveFileDialog fd(RECENT_PATHS_DISC_IMAGE);
+
+                        disc_image->AddFileDialogFilter(&fd);
+                        fd.AddAllFilesFilter();
+
+                        std::string path;
+                        if(fd.Open(&path)) {
+                            if(disc_image->SaveToFile(path,&m_msg)) {
+                                fd.AddLastPathToRecentPaths();
+
+                                m_beeb_thread->SendSetDiscImageNameAndLoadMethodMessage(drive,std::move(path),MemoryDiscImage::LOAD_METHOD_FILE);
+                            }
+                        }
+                    }
+
+                    if(ImGui::MenuItem("Export 65Link folder...")) {
+                        FolderDialog fd(RECENT_PATHS_65LINK);
+
+                        std::string path;
+                        if(fd.Open(&path)) {
+                            if(SaveDiscImageTo65LinkFolder(disc_image,path,&m_msg)) {
+                                fd.AddLastPathToRecentPaths();
+                            }
+                        }
+                    }
+                }
+
+                ImGui::EndMenu();
+            }
+        }
+
+        ImGui::Separator();
+
+        if(ImGui::MenuItem("Save NVRAM...",nullptr,false,m_beeb_thread->HasNVRAM())) {
+            SaveFileDialog fd(RECENT_PATHS_NVRAM);
+
+            fd.AddFilter("BBC NVRAM data","*.bbcnvram");
+            fd.AddAllFilesFilter();
+
+            std::string file_name;
+            if(fd.Open(&file_name)) {
+                std::vector<uint8_t> nvram=m_beeb_thread->GetNVRAM();
+
+                if(SaveFile(nvram,file_name,&m_msg)) {
+                    fd.AddLastPathToRecentPaths();
+                }
+            }
+        }
+
+        //if(ImGui::MenuItem("Save RAM...")) {
+        //    SaveFileDialog fd(RECENT_PATHS_RAM);
+
+        //    fd.AddFilter("BBC RAM","*.bbcram");
+        //    fd.AddAllFilesFilter();
+
+        //    std::string file_name;
+        //    if(fd.Open(&file_name)) {
+        //        BBCMicro *beeb=m_beeb_thread->Pause(BeebWindowPauser_SaveRAM);
+
+        //        size_t ram_size=BBCMicro_GetType(beeb)->ram_size;
+        //        const uint8_t *ram=BBCMicro_GetRAM(beeb);
+
+        //        if(SaveFile(ram,ram_size,file_name,&m_msg)) {
+        //            fd.AddLastPathToRecentPaths();
+        //        }
+
+        //        m_beeb_thread->Resume(BeebWindowPauser_SaveRAM,&beeb);
+        //    }
+        //}
+
+        m_occ.DoMenuItemUI("load_last_state");
+        m_occ.DoMenuItemUI("save_state");
+        ImGui::Separator();
+        m_occ.DoMenuItemUI("exit");
+        ImGui::EndMenu();
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BeebWindow::DoEditMenu() {
+    if(ImGui::BeginMenu("Edit")) {
+        m_occ.DoMenuItemUI("toggle_copy_oswrch_text");
+        m_occ.DoMenuItemUI("copy_basic");
+
+        //m_occ.DoMenuItemUI("toggle_copy_oswrch_binary");
+        m_occ.DoMenuItemUI("paste");
+        m_occ.DoMenuItemUI("paste_return");
+
+        ImGui::EndMenu();
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BeebWindow::DoToolsMenu() {
+    if(ImGui::BeginMenu("Tools")) {
+        m_occ.DoMenuItemUI("toggle_emulator_options");
+        m_occ.DoMenuItemUI("toggle_keyboard_layout");
+        m_occ.DoMenuItemUI("toggle_command_keymaps");
+        m_occ.DoMenuItemUI("toggle_messages");
+#if TIMELINE_UI_ENABLED
+        m_occ.DoMenuItemUI("toggle_timeline");
+#endif
+        m_occ.DoMenuItemUI("toggle_configurations");
+
+        // if(ImGui::MenuItem("Dump states")) {
+        //     std::vector<std::shared_ptr<BeebState>> all_states=BeebState::GetAllStates();
+
+        //     for(size_t i=0;i<all_states.size();++i) {
+        //         LOGF(OUTPUT,"%zu. ",i);
+        //         LOGI(OUTPUT);
+        //         LOGF(OUTPUT,"(BeebState *)%p\n",(void *)all_states[i].get());
+        //         all_states[i]->Dump(&LOG(OUTPUT));
+        //     }
+        // }
+
+        ImGui::Separator();
+        m_occ.DoMenuItemUI("clean_up_recent_files_lists");
+        ImGui::EndMenu();
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BeebWindow::DoDebugMenu() {
+#if ENABLE_DEBUG_MENU
+    if(ImGui::BeginMenu("Debug")) {
+#if ENABLE_IMGUI_DEMO
+        ImGui::MenuItem("ImGui demo...",NULL,&m_imgui_demo);
+#endif
+        m_occ.DoMenuItemUI("toggle_event_trace");
+        m_occ.DoMenuItemUI("toggle_date_rate");
+        m_occ.DoMenuItemUI("toggle_cc_stack");
+
+#if SYSTEM_WINDOWS
+        if(GetConsoleWindow()) {
+            m_occ.DoMenuItemUI("clear_console");
+            m_occ.DoMenuItemUI("print_separator");
+        }
+#endif
+
+        m_occ.DoMenuItemUI("dump_timeline_console");
+        m_occ.DoMenuItemUI("dump_timeline_debugger");
+        m_occ.DoMenuItemUI("check_timeline");
+
+        ImGui::EndMenu();
+    }
+#endif
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool BeebWindow::DoWindowMenu() {
+    bool keep_window=true;
+
+    if(ImGui::BeginMenu("Window")) {
+        {
+            char name[100];
+            strlcpy(name,m_name.c_str(),sizeof name);
+
+            if(ImGui::InputText("Name",name,sizeof name,ImGuiInputTextFlags_EnterReturnsTrue|ImGuiInputTextFlags_AutoSelectAll)) {
+                BeebWindows::SetBeebWindowName(this,name);
+            }
+        }
+
+        ImGui::Separator();
+
+        if(ImGui::MenuItem("New")) {
+            PushNewWindowMessage(this->GetNewWindowInitArguments());
+        }
+
+        if(ImGui::MenuItem("Clone")) {
+            BeebWindowInitArguments init_arguments=this->GetNewWindowInitArguments();
+
+            if(m_keymap) {
+                init_arguments.keymap_name=m_keymap->GetName();
+            }
+
+            init_arguments.settings=m_settings;
+            init_arguments.use_settings=true;
+
+            m_beeb_thread->SendCloneWindowMessage(init_arguments);
+        }
+
+        ImGui::Separator();
+
+        if(ImGui::BeginMenu("Close")) {
+            if(ImGui::MenuItem("Confirm")) {
+                keep_window=false;
+            }
+            ImGui::EndMenu();
+        }
+
+        ImGui::EndMenu();
     }
 
     return keep_window;
