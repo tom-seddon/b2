@@ -112,12 +112,10 @@ private:
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-// the CommandTable conforms to roughly the same interface as Keymap,
-// though not perfectly - just enough so that the keymap configuration
-// UI can share code between the two cases (it has to be templated
-// anyway because the value types are different...), and so that the
-// window code for handling Beeb keypresses is pretty similar to the
-// code for handling command keypresses.
+// the CommandTable conforms to roughly the same interface as Keymap.
+// Originally this was because there was some shared UI code that
+// dealt with both, but this is no longer the case, and this might
+// warrant a rethink...
 
 class CommandTable {
 public:

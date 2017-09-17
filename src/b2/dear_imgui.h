@@ -234,39 +234,6 @@ void ImGuiPlotHistogram(const char* label,float (*values_getter)(void* data,int 
 
 uint32_t ImGuiGetPressedKeycode();
 
-template<class KeymapType>
-void ImGuiKeySymsList(bool *edited,const KeymapType *keymap,KeymapType *editable_keymap,typename KeymapType::ValueType value) {
-    ImGui::Text(editable_keymap?"Edit PC Keys":"PC Keys");
-    ImGui::Separator();
-    if(const uint32_t *keycodes=keymap->GetPCKeysForValue(value)) {
-        for(const uint32_t *keycode=keycodes;*keycode!=0;++keycode) {
-            ImGuiIDPusher id_pusher((int)*keycode);
-
-            if(editable_keymap) {
-                if(ImGui::Button("x")) {
-                    editable_keymap->SetMapping(*keycode,value,false);
-                    *edited=true;
-                }
-                ImGui::SameLine();
-            }
-
-            std::string name=GetKeycodeName(*keycode);
-
-            ImGui::TextUnformatted(name.c_str());
-        }
-    }
-
-    if(editable_keymap) {
-        ImGui::TextUnformatted("(press key to add)");
-
-        uint32_t keycode=ImGuiGetPressedKeycode();
-        if(keycode!=0) {
-            editable_keymap->SetMapping(keycode,value,true);
-            *edited=true;
-        }
-    }
-}
-
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 

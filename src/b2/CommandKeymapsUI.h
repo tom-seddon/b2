@@ -16,6 +16,7 @@ protected:
 private:
     bool m_edited=false;
     bool m_wants_keyboard_focus=false;
+    float m_max_command_text_width=0.f;
 };
 
 //////////////////////////////////////////////////////////////////////////
