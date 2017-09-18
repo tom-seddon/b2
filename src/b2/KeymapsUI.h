@@ -6,27 +6,28 @@
 
 #include <memory>
 #include "BeebKeymap.h"
+#include "SettingsUI.h"
 
 class BeebWindow;
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-class KeymapsUI {
+class KeymapsUI:
+    public SettingsUI
+{
 public:
     static const char NOT_EDITABLE_ICON[];
     static const char SCANCODES_KEYMAP_ICON[];
     static const char KEYSYMS_KEYMAP_ICON[];
 
-    static std::unique_ptr<KeymapsUI> Create();
+    static std::unique_ptr<KeymapsUI> Create(BeebWindow *beeb_window);
 
     KeymapsUI();
     virtual ~KeymapsUI()=0;
 
     KeymapsUI(const KeymapsUI &)=delete;
     KeymapsUI &operator=(const KeymapsUI &)=delete;
-
-    virtual void SetWindowDetails(BeebWindow *beeb_window)=0;
 
     virtual void SetCurrentBeebKeymap(const BeebKeymap *beeb_keymap)=0;
     virtual const BeebKeymap *GetCurrentBeebKeymap() const=0;

@@ -580,6 +580,31 @@ static size_t CleanUpRecentPaths(const std::string &tag,bool (*exists_fn)(const 
     return n;
 }
 
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BeebWindow::DoSettingsUI(uint32_t ui_flag,const char *name,std::unique_ptr<SettingsUI> *uptr,std::function<std::unique_ptr<SettingsUI>()> create_fun) {
+    if(m_settings.ui_flags&ui_flag) {
+        if(!*uptr) {
+            *uptr=create_fun();
+        }
+
+        if(ImGuiBeginFlag(name,&m_settings.ui_flags,ui_flag)) {
+            (*uptr)->DoImGui();
+
+            if((*uptr)->WantsKeyboardFocus()) {
+                m_imgui_has_kb_focus=true;
+            }
+        }
+    } else if(!!*uptr) {
+        this->MaybeSaveConfig((*uptr)->DidConfigChange());
+        *uptr=nullptr;
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 bool BeebWindow::DoImGui(int output_width,int output_height) {
     (void)output_width,(void)output_height;
     const uint64_t now=GetCurrentTickCount();
@@ -616,44 +641,53 @@ bool BeebWindow::DoImGui(int output_width,int output_height) {
     }
 #endif
 
-    if(m_settings.ui_flags&BeebWindowUIFlag_Keymaps) {
-        if(!m_keymaps_ui) {
-            m_keymaps_ui=KeymapsUI::Create();
-            m_keymaps_ui->SetWindowDetails(this);
-        }
+    this->DoSettingsUI(BeebWindowUIFlag_Keymaps,"Keyboard layout",&m_keymaps_ui,[this]() {
+        return KeymapsUI::Create(this);
+    });
 
-        if(ImGuiBeginFlag("Keyboard layout",&m_settings.ui_flags,BeebWindowUIFlag_Keymaps)) {
-            m_keymaps_ui->SetCurrentBeebKeymap(m_keymap);
-            m_keymaps_ui->DoImGui();
-            m_keymap=m_keymaps_ui->GetCurrentBeebKeymap();
+    this->DoSettingsUI(BeebWindowUIFlag_CommandKeymaps,"Command Keys",&m_command_keymaps_ui,[]() {
+        return std::make_unique<CommandKeymapsUI>();
+    });
 
-            if(m_keymaps_ui->WantsKeyboardFocus()) {
-                m_imgui_has_kb_focus=true;
-            }
-        }
-        ImGui::End();
-    } else if(!!m_keymaps_ui) {
-        this->MaybeSaveConfig(m_keymaps_ui->DidConfigChange());
-        m_keymaps_ui=nullptr;
-    }
 
-    if(m_settings.ui_flags&BeebWindowUIFlag_CommandKeymaps) {
-        if(!m_command_keymaps_ui) {
-            m_command_keymaps_ui=std::make_unique<CommandKeymapsUI>();
-        }
+    //if(m_settings.ui_flags&BeebWindowUIFlag_Keymaps) {
+    //    if(!m_keymaps_ui) {
+    //        m_keymaps_ui=KeymapsUI::Create();
+    //        m_keymaps_ui->SetWindowDetails(this);
+    //    }
 
-        if(ImGuiBeginFlag("Command Keys",&m_settings.ui_flags,BeebWindowUIFlag_CommandKeymaps)) {
-            m_command_keymaps_ui->DoImGui();
+    //    if(ImGuiBeginFlag("Keyboard layout",&m_settings.ui_flags,BeebWindowUIFlag_Keymaps)) {
+    //        m_keymaps_ui->SetCurrentBeebKeymap(m_keymap);
+    //        m_keymaps_ui->DoImGui();
+    //        m_keymap=m_keymaps_ui->GetCurrentBeebKeymap();
 
-            if(m_command_keymaps_ui->WantsKeyboardFocus()) {
-                m_imgui_has_kb_focus=true;
-            }
-        }
-        ImGui::End();
-    } else if(!!m_command_keymaps_ui) {
-        this->MaybeSaveConfig(m_command_keymaps_ui->DidConfigChange());
-        m_command_keymaps_ui=nullptr;
-    }
+    //        if(m_keymaps_ui->WantsKeyboardFocus()) {
+    //            m_imgui_has_kb_focus=true;
+    //        }
+    //    }
+    //    ImGui::End();
+    //} else if(!!m_keymaps_ui) {
+    //    this->MaybeSaveConfig(m_keymaps_ui->DidConfigChange());
+    //    m_keymaps_ui=nullptr;
+    //}
+
+    //if(m_settings.ui_flags&BeebWindowUIFlag_CommandKeymaps) {
+    //    if(!m_command_keymaps_ui) {
+    //        m_command_keymaps_ui=std::make_unique<CommandKeymapsUI>();
+    //    }
+
+    //    if(ImGuiBeginFlag("Command Keys",&m_settings.ui_flags,BeebWindowUIFlag_CommandKeymaps)) {
+    //        m_command_keymaps_ui->DoImGui();
+
+    //        if(m_command_keymaps_ui->WantsKeyboardFocus()) {
+    //            m_imgui_has_kb_focus=true;
+    //        }
+    //    }
+    //    ImGui::End();
+    //} else if(!!m_command_keymaps_ui) {
+    //    this->MaybeSaveConfig(m_command_keymaps_ui->DidConfigChange());
+    //    m_command_keymaps_ui=nullptr;
+    //}
 
     if(m_settings.ui_flags&BeebWindowUIFlag_Options) {
         if(ImGuiBeginFlag("Options",&m_settings.ui_flags,BeebWindowUIFlag_Options)) {
@@ -917,7 +951,7 @@ bool BeebWindow::DoImGui(int output_width,int output_height) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void BeebWindow::DoFileMenu(){
+void BeebWindow::DoFileMenu() {
     if(ImGui::BeginMenu("File")) {
         m_occ.DoMenuItemUI("hard_reset");
 
@@ -1474,7 +1508,7 @@ void BeebWindow::SavePosition() {
     BeebWindows::SetLastWindowPlacementData(buf);
 
 #endif
-}
+    }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -1810,6 +1844,20 @@ std::vector<BeebWindow::VBlankRecord> BeebWindow::GetVBlankRecords() const {
     }
 
     return records;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+const BeebKeymap *BeebWindow::GetCurrentKeymap() const {
+    return m_keymap;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BeebWindow::SetCurrentKeymap(const BeebKeymap *keymap) {
+    m_keymap=keymap;
 }
 
 //////////////////////////////////////////////////////////////////////////

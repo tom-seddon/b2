@@ -110,7 +110,7 @@ class KeymapsUIImpl:
     public KeymapsUI
 {
 public:
-    void SetWindowDetails(BeebWindow *beeb_window) override;
+    KeymapsUIImpl(BeebWindow *beeb_window);
 
     void SetCurrentBeebKeymap(const BeebKeymap *keymap) override;
     const BeebKeymap *GetCurrentBeebKeymap() const override;
@@ -141,15 +141,16 @@ private:
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-std::unique_ptr<KeymapsUI> KeymapsUI::Create() {
-    return std::make_unique<KeymapsUIImpl>();
+std::unique_ptr<KeymapsUI> KeymapsUI::Create(BeebWindow *beeb_window) {
+    return std::make_unique<KeymapsUIImpl>(beeb_window);
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void KeymapsUIImpl::SetWindowDetails(BeebWindow *beeb_window) {
-    m_beeb_window=beeb_window;
+KeymapsUIImpl::KeymapsUIImpl(BeebWindow *beeb_window):
+    m_beeb_window(beeb_window)
+{
 }
 
 //////////////////////////////////////////////////////////////////////////

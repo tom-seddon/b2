@@ -27,6 +27,7 @@ class DataRateUI;
 class BeebState;
 class CommandContextStackUI;
 class CommandKeymapsUI;
+class SettingsUI;
 
 #include "keys.h"
 #include "dear_imgui.h"
@@ -221,7 +222,7 @@ public:
     // Otherwise, out parameters are filled with unspecified values,
     // and returns false.
     bool GetTextureData(BeebWindowTextureDataVersion *version,
-        const SDL_PixelFormat **format_ptr,const void **pixels_ptr) const;
+                        const SDL_PixelFormat **format_ptr,const void **pixels_ptr) const;
 
     // Get pointer to this window's BeebThread. (The lifespan of the
     // BeebThread is the same as that of the window.)
@@ -238,6 +239,9 @@ public:
 #endif
 
     std::vector<VBlankRecord> GetVBlankRecords() const;
+
+    const BeebKeymap *GetCurrentKeymap() const;
+    void SetCurrentKeymap(const BeebKeymap *keymap);
 protected:
 private:
     struct DriveState {
@@ -321,8 +325,8 @@ private:
 
     std::vector<std::string> m_display_size_options;
 
-    std::unique_ptr<KeymapsUI> m_keymaps_ui;
-    std::unique_ptr<CommandKeymapsUI> m_command_keymaps_ui;
+    std::unique_ptr<SettingsUI> m_keymaps_ui;
+    std::unique_ptr<SettingsUI> m_command_keymaps_ui;
     std::unique_ptr<MessagesUI> m_messages_ui;
 #if TIMELINE_UI_ENABLED
     std::unique_ptr<TimelineUI> m_timeline_ui;
@@ -355,6 +359,7 @@ private:
     bool LoadDiscImageFile(int drive,const std::string &path);
     bool Load65LinkFolder(int drive,const std::string &path);
     void DoOptionsGui();
+    void DoSettingsUI(uint32_t ui_flag,const char *name,std::unique_ptr<SettingsUI> *uptr,std::function<std::unique_ptr<SettingsUI>()> create_fun);
     bool DoImGui(int output_width,int output_height);
     void DoFileMenu();
     void DoEditMenu();
