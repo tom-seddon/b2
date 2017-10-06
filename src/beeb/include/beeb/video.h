@@ -16,10 +16,17 @@
 // Holds 0.5us of video output data: 8 Mode 0/3 pixels, 4 Mode 1/4/6
 // pixels, 2 Mode 2/5 pixels, 1 "Mode 8" pixel, 0.5 Mode 7 glyphs.
 //
-// When !(pixels[0]&0x80): the 8 bytes are the TV palette indexes for
-// the 8 pixels.
+// When (type&0x8000)==0, the 8 words are the 12 bpp colour
+// data for the 8 pixels.
 //
-// Otherwise: check (BeebControlPixel)pixels[0]:
+// <pre>
+//   f   e   d   c   b   a   9   8   7   6   5   4   3   2   1   0
+// +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
+// | 0   0   0   0 |      red      |     green     |      blue     |
+// +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
+// </pre>
+//
+// Otherwise: the type is (BeebControlPixel)type:
 //
 #if BBCMICRO_FINER_TELETEXT
 // Teletext: teletext data for this column over two half-scanlines.
@@ -31,21 +38,25 @@
 
 #if BBCMICRO_FINER_TELETEXT
 struct VideoDataTeletextHalfUnit {
-    uint8_t pixel0;
+    uint16_t type;
     uint8_t colours[2];
     uint8_t data0,data1;
 };
 #endif
 
+struct VideoDataBitmapHalfUnit {
+    uint16_t pixels[8];
+};
+
 union VideoDataHalfUnit {
-    uint8_t pixels[8];
-    uint64_t value;
+    uint16_t type;
+    VideoDataBitmapHalfUnit bitmap;
 #if BBCMICRO_FINER_TELETEXT
     VideoDataTeletextHalfUnit teletext;
 #endif
 };
 
-CHECK_SIZEOF(VideoDataHalfUnit,8);
+CHECK_SIZEOF(VideoDataHalfUnit,16);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

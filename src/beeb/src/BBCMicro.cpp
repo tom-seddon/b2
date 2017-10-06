@@ -1176,9 +1176,9 @@ void BBCMicro::UpdateVideoHardware() {
 
 void BBCMicro::UpdateDisplayOutput(VideoDataHalfUnit *hu) {
     if(m_state.crtc_last_output.hsync) {
-        hu->pixels[0]=BeebControlPixel_HSync;
+        hu->type=BeebControlPixel_HSync;
     } else if(m_state.crtc_last_output.vsync) {
-        hu->pixels[0]=BeebControlPixel_VSync;
+        hu->type=BeebControlPixel_VSync;
     } else if(m_state.crtc_last_output.display) {
         if(m_state.video_ula.control.bits.teletext) {
             m_state.saa5050.EmitVideoDataHalfUnit(hu);
@@ -1202,14 +1202,16 @@ void BBCMicro::UpdateDisplayOutput(VideoDataHalfUnit *hu) {
                 ;//fix VC++ indentation bug
 #endif
                 if(m_state.cursor_pattern&1) {
-                    hu->value^=0x0707070707070707ull;
+                    for(size_t i=0;i<sizeof hu->bitmap.pixels;++i) {
+                        hu->bitmap.pixels[i]^=0x0fff;
+                    }
                 }
             } else {
-                hu->pixels[0]=BeebControlPixel_Nothing^(m_state.cursor_pattern&1);
+                hu->type=BeebControlPixel_Nothing^(m_state.cursor_pattern&1);
             }
         }
     } else {
-        hu->pixels[0]=BeebControlPixel_Nothing;
+        hu->type=BeebControlPixel_Nothing;
     }
 }
 

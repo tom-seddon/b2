@@ -404,7 +404,7 @@ void SAA5050::Byte(uint8_t value) {
 void SAA5050::EmitVideoDataHalfUnit(VideoDataHalfUnit *hu) {
 #if BBCMICRO_FINER_TELETEXT
 
-    hu->teletext.pixel0=BeebControlPixel_Teletext;
+    hu->teletext.type=BeebControlPixel_Teletext;
     hu->teletext.colours[0]=m_data_colours[0];
     hu->teletext.colours[1]=m_data_colours[1];
     hu->teletext.data0=(uint8_t)m_data0;

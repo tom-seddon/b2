@@ -135,8 +135,8 @@ void TVOutput::UpdateOneHalfUnit(const VideoDataHalfUnit *hu,float amt) {
 
     case TVOutputState_Scanout:
         {
-            if(hu->pixels[0]&0x80) {
-                switch(hu->pixels[0]) {
+            if(hu->type&0x8000) {
+                switch(hu->type) {
                 case BeebControlPixel_HSync:
                     m_state=TVOutputState_HorizontalRetrace;
                     break;
@@ -307,7 +307,9 @@ void TVOutput::UpdateOneHalfUnit(const VideoDataHalfUnit *hu,float amt) {
 #else
                     
                     uint32_t *line=m_line+m_x;
-#define V(I) m_palette[0][hu->pixels[I]]
+                    uint16_t tmp;
+//#define V(I) m_palette[0][hu->pixels[I]]
+#define V(I) (tmp=hu->bitmap.pixels[I],m_reds[tmp>>8]|m_greens[(uint8_t)tmp>>4]|m_blues[tmp&0xf])
                     
 #if FULL_PAL_HEIGHT
                     uint32_t *line2=line+TV_TEXTURE_WIDTH;
@@ -475,6 +477,14 @@ void TVOutput::InitPalette(size_t palette,double fa) {
 void TVOutput::InitPalette() {
     this->InitPalette(0,1.);
     this->InitPalette(1,1./3);
+
+    for(uint8_t i=0;i<16;++i) {
+        uint8_t value=i<<4|i;
+
+        m_reds[i]=SDL_MapRGBA(m_pixel_format,value,0,0,255);
+        m_greens[i]=SDL_MapRGBA(m_pixel_format,0,value,0,255);
+        m_blues[i]=SDL_MapRGBA(m_pixel_format,0,0,value,255);
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////

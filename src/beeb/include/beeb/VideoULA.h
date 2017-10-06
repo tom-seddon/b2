@@ -42,7 +42,7 @@ private:
     uint8_t m_palette[16]={};
     uint8_t m_byte=0;
 
-    uint8_t Shift();
+    uint16_t Shift();
     void Emit2MHz(VideoDataHalfUnit *hu);
     void Emit4MHz(VideoDataHalfUnit *hu);
     void Emit8MHz(VideoDataHalfUnit *hu);

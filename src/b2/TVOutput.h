@@ -64,6 +64,9 @@ private:
     int m_state_timer=0;
 
     uint32_t m_palette[2][64]={};
+    uint32_t m_reds[16]={};
+    uint32_t m_greens[16]={};
+    uint32_t m_blues[16]={};
     SDL_PixelFormat *m_pixel_format=nullptr;
     size_t m_num_fields=0;
 
