@@ -43,6 +43,7 @@ public:
     uint8_t keyboard_links=0;
     std::vector<uint8_t> nvram_contents;
     const DiscInterfaceDef *disc_interface=nullptr;
+    bool video_nula=true;
 protected:
 private:
 };

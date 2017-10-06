@@ -142,10 +142,11 @@ BBCMicro::State::State(const BBCMicroType type,const std::vector<uint8_t> &nvram
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-BBCMicro::BBCMicro(BBCMicroType type,const DiscInterfaceDef *def,const std::vector<uint8_t> &nvram_contents,const tm *rtc_time):
+BBCMicro::BBCMicro(BBCMicroType type,const DiscInterfaceDef *def,const std::vector<uint8_t> &nvram_contents,const tm *rtc_time,bool video_nula):
     m_state(type,nvram_contents,rtc_time),
     m_type(type),
-    m_disc_interface(def->create_fun())
+    m_disc_interface(def->create_fun()),
+    m_video_nula(video_nula)
 {
     this->InitStuff();
 }
@@ -156,7 +157,8 @@ BBCMicro::BBCMicro(BBCMicroType type,const DiscInterfaceDef *def,const std::vect
 BBCMicro::BBCMicro(const BBCMicro &src):
     m_state(src.m_state),
     m_type(src.m_type),
-    m_disc_interface(src.m_disc_interface?src.m_disc_interface->Clone():nullptr)
+    m_disc_interface(src.m_disc_interface?src.m_disc_interface->Clone():nullptr),
+    m_video_nula(src.m_video_nula)
 {
     for(int i=0;i<2;++i) {
         std::unique_lock<std::mutex> lock;
@@ -1648,8 +1650,15 @@ void BBCMicro::InitStuff() {
     }
 
     // I/O: Video ULA
-    this->SetMMIOFns(0xfe20,nullptr,&VideoULA::WriteControlRegister,&m_state.video_ula);
-    this->SetMMIOFns(0xfe21,nullptr,&VideoULA::WritePalette,&m_state.video_ula);
+    for(int i=0;i<2;++i) {
+        this->SetMMIOFns((uint16_t)(0xfe20+i*2),nullptr,&VideoULA::WriteControlRegister,&m_state.video_ula);
+        this->SetMMIOFns((uint16_t)(0xfe21+i*2),nullptr,&VideoULA::WritePalette,&m_state.video_ula);
+    }
+
+    if(m_video_nula) {
+        this->SetMMIOFns(0xfe22,nullptr,&VideoULA::WriteNuLAControlRegister,&m_state.video_ula);
+        this->SetMMIOFns(0xfe23,nullptr,&VideoULA::WriteNuLAPalette,&m_state.video_ula);
+    }
 
     // I/O: disc interface
     if(m_disc_interface) {

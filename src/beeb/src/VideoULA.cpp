@@ -4,20 +4,12 @@
 #include <beeb/VideoULA.h>
 #include <beeb/video.h>
 #include <shared/debug.h>
+#include <shared/log.h>
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static const uint16_t COLOURS[8]={
-    0x0000,
-    0x0f00,
-    0x00f0,
-    0x0ff0,
-    0x000f,
-    0x0f0f,
-    0x00ff,
-    0x0fff,
-};
+LOG_DEFINE(VU,"VIDULA",&log_printer_stdout_and_debugger);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -45,6 +37,87 @@ void VideoULA::WritePalette(void *ula_,M6502Word a,uint8_t value) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+void VideoULA::WriteNuLAControlRegister(void *ula_,M6502Word a,uint8_t value) {
+    auto ula=(VideoULA *)ula_;
+
+    if(ula->m_disable_a1) {
+        WriteControlRegister(ula_,a,value);
+    } else {
+        uint8_t code=value>>4,param=value&0xf;
+
+        LOGF(VU,"NuLA Control: code=%u, param=%u\n",code,param);
+
+        switch(code) {
+        case 1:
+            // Toggle direct palette mode.
+            ula->m_direct_palette=param;
+            break;
+
+        case 4:
+            // Reset NuLA state.
+            ula->ResetNuLAState();
+            break;
+
+        case 5:
+            // Disable A1.
+            ula->m_disable_a1=1;
+            break;
+
+        case 8:
+            // Set flashing flags for logical colours 8-11.
+            ula->m_flash[8]=param&0x08;
+            ula->m_flash[9]=param&0x04;
+            ula->m_flash[10]=param&0x02;
+            ula->m_flash[11]=param&0x01;
+            break;
+
+        case 9:
+            // Set flashing flags for logical colours 12-15.
+            ula->m_flash[12]=param&0x08;
+            ula->m_flash[13]=param&0x04;
+            ula->m_flash[14]=param&0x02;
+            ula->m_flash[15]=param&0x01;
+            break;
+
+        default:
+            // Ignore...
+            break;
+        }
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void VideoULA::WriteNuLAPalette(void *ula_,M6502Word a,uint8_t value) {
+    auto ula=(VideoULA *)ula_;
+
+    if(ula->m_disable_a1) {
+        WritePalette(ula_,a,value);
+    } else {
+        if(ula->m_nula_palette_write_state) {
+            uint8_t index=ula->m_nula_palette_write_buffer>>4;
+            ula->m_output_palette[index]=(ula->m_nula_palette_write_buffer&0xf)<<8|value;
+
+            LOGF(VU,"NuLA Palette: index=%u, value=0x%06X\n",index,ula->m_output_palette[index]&0xfff);
+        } else {
+            ula->m_nula_palette_write_buffer=value;
+        }
+
+        ula->m_nula_palette_write_state=!ula->m_nula_palette_write_state;
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+VideoULA::VideoULA() {
+    this->ResetNuLAState();
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 void VideoULA::Byte(uint8_t byte) {
     m_byte=byte;
 }
@@ -52,13 +125,37 @@ void VideoULA::Byte(uint8_t byte) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static const uint8_t FLASH_XOR_VALUES[2][2]={
-    {0,8,},
-    {0,15,},
-};
+void VideoULA::ResetNuLAState() {
+    // Reset output palette.
+    for(size_t i=0;i<16;++i) {
+        if(i&1) {
+            m_output_palette[i]|=0xf00;
+        }
 
-// TODO need to work through this again, post-NuLA - the flashing
-// stuff can be done directly on the 12bpp values, surely??
+        if(i&2) {
+            m_output_palette[i]|=0x0f0;
+        }
+
+        if(i&4) {
+            m_output_palette[i]|=0x00f;
+        }
+    }
+
+    // Reset flash flags.
+    for(size_t i=0;i<8;++i) {
+        m_flash[8+i]=1;
+    }
+
+    // Don't use direct palette.
+    m_direct_palette=0;
+
+    // Reset palette write state.
+    m_nula_palette_write_state=0;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 uint16_t VideoULA::Shift() {
     uint8_t index=m_byte;
     index=((index>>1)&1)|((index>>2)&2)|((index>>3)&4)|((index>>4)&8);
@@ -66,12 +163,18 @@ uint16_t VideoULA::Shift() {
     m_byte<<=1;
     m_byte|=1;
 
-    uint8_t value=m_palette[index];
+    if(!m_direct_palette) {
+        index=m_palette[index];
 
-    value^=FLASH_XOR_VALUES[this->control.bits.flash][value>>3];
+        if(m_flash[index]) {
+            if(this->control.bits.flash) {
+                index^=7;
+            }
+        }
+    }
 
-    ASSERT(value>=0&&value<8);
-    return COLOURS[value];
+    uint16_t value=m_output_palette[index];
+    return value;
 }
 
 //////////////////////////////////////////////////////////////////////////

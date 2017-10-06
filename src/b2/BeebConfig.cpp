@@ -220,7 +220,7 @@ std::unique_ptr<BBCMicro> BeebLoadedConfig::CreateBBCMicro() const {
 
     tm now=GetLocalTimeNow();
 
-    auto m=std::make_unique<BBCMicro>((BBCMicroType)this->config.beeb_type,this->config.disc_interface,this->config.nvram_contents,&now);
+    auto m=std::make_unique<BBCMicro>((BBCMicroType)this->config.beeb_type,this->config.disc_interface,this->config.nvram_contents,&now,this->config.video_nula);
 
     m->SetOSROM(this->os);
 

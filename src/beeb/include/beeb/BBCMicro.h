@@ -53,7 +53,7 @@ public:
 
     // nvram_contents and rtc_time are ignored if the BBCMicro doesn't
     // support such things.
-    BBCMicro(BBCMicroType type,const DiscInterfaceDef *def,const std::vector<uint8_t> &nvram_contents,const tm *rtc_time);
+    BBCMicro(BBCMicroType type,const DiscInterfaceDef *def,const std::vector<uint8_t> &nvram_contents,const tm *rtc_time,bool video_nula);
 protected:
     BBCMicro(const BBCMicro &src);
 public:
@@ -431,6 +431,7 @@ private:
     const BBCMicroType m_type;
     DiscInterface *const m_disc_interface=nullptr;
     std::shared_ptr<DiscImage> m_disc_images[NUM_DRIVES];
+    const bool m_video_nula;
 
     //////////////////////////////////////////////////////////////////////////
     //////////////////////////////////////////////////////////////////////////
