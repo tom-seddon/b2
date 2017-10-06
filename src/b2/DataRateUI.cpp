@@ -60,6 +60,8 @@ static float GetPercentage(void *data_,int idx) {
 }
 
 void DataRateUI::DoImGui(CommandContextStack *cc_stack) {
+    (void)cc_stack;
+
     std::shared_ptr<BeebThread> beeb_thread=m_beeb_window->GetBeebThread();
 
     ImGui::TextUnformatted("Audio Data Availability (mark=25%)");
