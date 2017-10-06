@@ -590,7 +590,7 @@ void BeebWindow::DoSettingsUI(uint32_t ui_flag,const char *name,std::unique_ptr<
         }
 
         if(ImGuiBeginFlag(name,&m_settings.ui_flags,ui_flag)) {
-            (*uptr)->DoImGui();
+            (*uptr)->DoImGui(&m_cc_stack);
 
             if((*uptr)->WantsKeyboardFocus()) {
                 m_imgui_has_kb_focus=true;
@@ -598,7 +598,7 @@ void BeebWindow::DoSettingsUI(uint32_t ui_flag,const char *name,std::unique_ptr<
         }
         ImGui::End();
     } else if(!!*uptr) {
-        this->MaybeSaveConfig((*uptr)->DidConfigChange());
+        this->MaybeSaveConfig((*uptr)->OnClose());
         *uptr=nullptr;
     }
 }
@@ -650,46 +650,7 @@ bool BeebWindow::DoImGui(int output_width,int output_height) {
         return std::make_unique<CommandKeymapsUI>();
     });
 
-
-    //if(m_settings.ui_flags&BeebWindowUIFlag_Keymaps) {
-    //    if(!m_keymaps_ui) {
-    //        m_keymaps_ui=KeymapsUI::Create();
-    //        m_keymaps_ui->SetWindowDetails(this);
-    //    }
-
-    //    if(ImGuiBeginFlag("Keyboard layout",&m_settings.ui_flags,BeebWindowUIFlag_Keymaps)) {
-    //        m_keymaps_ui->SetCurrentBeebKeymap(m_keymap);
-    //        m_keymaps_ui->DoImGui();
-    //        m_keymap=m_keymaps_ui->GetCurrentBeebKeymap();
-
-    //        if(m_keymaps_ui->WantsKeyboardFocus()) {
-    //            m_imgui_has_kb_focus=true;
-    //        }
-    //    }
-    //    ImGui::End();
-    //} else if(!!m_keymaps_ui) {
-    //    this->MaybeSaveConfig(m_keymaps_ui->DidConfigChange());
-    //    m_keymaps_ui=nullptr;
-    //}
-
-    //if(m_settings.ui_flags&BeebWindowUIFlag_CommandKeymaps) {
-    //    if(!m_command_keymaps_ui) {
-    //        m_command_keymaps_ui=std::make_unique<CommandKeymapsUI>();
-    //    }
-
-    //    if(ImGuiBeginFlag("Command Keys",&m_settings.ui_flags,BeebWindowUIFlag_CommandKeymaps)) {
-    //        m_command_keymaps_ui->DoImGui();
-
-    //        if(m_command_keymaps_ui->WantsKeyboardFocus()) {
-    //            m_imgui_has_kb_focus=true;
-    //        }
-    //    }
-    //    ImGui::End();
-    //} else if(!!m_command_keymaps_ui) {
-    //    this->MaybeSaveConfig(m_command_keymaps_ui->DidConfigChange());
-    //    m_command_keymaps_ui=nullptr;
-    //}
-
+    // Options is its own thing, for now, since it fiddles with the BeebWindow internals a bit...
     if(m_settings.ui_flags&BeebWindowUIFlag_Options) {
         if(ImGuiBeginFlag("Options",&m_settings.ui_flags,BeebWindowUIFlag_Options)) {
             this->DoOptionsGui();
@@ -701,109 +662,36 @@ bool BeebWindow::DoImGui(int output_width,int output_height) {
         }
     }
 
-    if(m_settings.ui_flags&BeebWindowUIFlag_Messages) {
-        if(!m_messages_ui) {
-            m_messages_ui=MessagesUI::Create();
-            m_messages_ui->SetMessageList(m_message_list);
-        }
-
-        if(ImGuiBeginFlag("Messages",&m_settings.ui_flags,BeebWindowUIFlag_Messages)) {
-            m_messages_ui->DoImGui(&m_cc_stack);
-        }
-        ImGui::End();
-    } else {
-        m_messages_ui=nullptr;
-    }
+    this->DoSettingsUI(BeebWindowUIFlag_Messages,"Messages",&m_messages_ui,[this]() {
+        return CreateMessagesUI(m_message_list);
+    });
 
 #if TIMELINE_UI_ENABLED
-    if(m_settings.ui_flags&BeebWindowUIFlag_Timeline) {
-        if(!m_timeline_ui) {
-            m_timeline_ui=TimelineUI::Create();
-            m_timeline_ui->SetWindowDetails(this,this->GetNewWindowInitArguments());
-            m_timeline_ui->SetRenderDetails(m_renderer,m_pixel_format);
-        }
-
-        if(ImGuiBeginFlag("Timeline",&m_settings.ui_flags,BeebWindowUIFlag_Timeline)) {
-            m_timeline_ui->DoImGui();
-
-            // if(std::shared_ptr<BeebState> state=m_timeline_ui->GetSelectedState()) {
-            //     m_beeb_thread->SendLoadStateMessage(std::move(state));
-            // }
-        }
-        ImGui::End();
-    } else {
-        m_timeline_ui=nullptr;
-    }
+    this->DoSettingsUI(BeebWindowUIFlag_Timeline,"Timeline",&m_timeline_ui,[this]() {
+        return CreateTimelineUI(this,this->GetNewWindowInitArguments(),m_renderer,m_pixel_format);
+    });
 #endif
 
-    if(m_settings.ui_flags&BeebWindowUIFlag_Configs) {
-        if(!m_configs_ui) {
-            m_configs_ui=ConfigsUI::Create();
-        }
-
-        if(ImGuiBeginFlag("Configurations",&m_settings.ui_flags,BeebWindowUIFlag_Configs)) {
-            m_configs_ui->DoImGui();
-        }
-        ImGui::End();
-    } else if(!!m_configs_ui) {
-        this->MaybeSaveConfig(m_configs_ui->DidConfigChange());
-        m_configs_ui=nullptr;
-    }
+    this->DoSettingsUI(BeebWindowUIFlag_Configs,"Configurations",&m_configs_ui,&CreateConfigsUI);
 
 #if BBCMICRO_TRACE
-    if(m_settings.ui_flags&BeebWindowUIFlag_Trace) {
-        if(!m_trace_ui) {
-            m_trace_ui=std::make_unique<TraceUI>(this);
-        }
-
-        if(ImGuiBeginFlag("Tracing",&m_settings.ui_flags,BeebWindowUIFlag_Trace)) {
-            m_trace_ui->DoImGui();
-        }
-        ImGui::End();
-    } else if(!!m_trace_ui) {
-        this->MaybeSaveConfig(m_trace_ui->DoClose());
-        m_trace_ui=nullptr;
-    }
+    this->DoSettingsUI(BeebWindowUIFlag_Trace,"Tracing",&m_trace_ui,[this]() {
+        return std::make_unique<TraceUI>(this);
+    });
 #endif
 
-    if(m_settings.ui_flags&BeebWindowUIFlag_NVRAM) {
-        if(!m_nvram_ui) {
-            m_nvram_ui=std::make_unique<NVRAMUI>(this);
-        }
+    this->DoSettingsUI(BeebWindowUIFlag_NVRAM,"Non-volatile RAM",&m_nvram_ui,[this]() {
+        return std::make_unique<NVRAMUI>(this);
+    });
 
-        if(ImGuiBeginFlag("Non-volatile RAM",&m_settings.ui_flags,BeebWindowUIFlag_NVRAM)) {
-            m_nvram_ui->DoImGui();
-        }
-        ImGui::End();
-    } else {
-        m_nvram_ui=nullptr;
-    }
+    this->DoSettingsUI(BeebWindowUIFlag_AudioCallback,"Data Rate",&m_data_rate_ui,[this]() {
+        return std::make_unique<DataRateUI>(this);
 
-    if(m_settings.ui_flags&BeebWindowUIFlag_AudioCallback) {
-        if(!m_data_rate_ui) {
-            m_data_rate_ui=std::make_unique<DataRateUI>(this);
-        }
+    });
 
-        if(ImGuiBeginFlag("Data Rate",&m_settings.ui_flags,BeebWindowUIFlag_AudioCallback)) {
-            m_data_rate_ui->DoImGui();
-        }
-        ImGui::End();
-    } else {
-        m_data_rate_ui=nullptr;
-    }
-
-    if(m_settings.ui_flags&BeebWindowUIFlag_CommandContextStack) {
-        if(!m_cc_stack_ui) {
-            m_cc_stack_ui=std::make_unique<CommandContextStackUI>(&m_cc_stack);
-        }
-
-        if(ImGuiBeginFlag("Command Context Stack",&m_settings.ui_flags,BeebWindowUIFlag_CommandContextStack)) {
-            m_cc_stack_ui->DoImGui();
-        }
-        ImGui::End();
-    } else {
-        m_cc_stack_ui=nullptr;
-    }
+    this->DoSettingsUI(BeebWindowUIFlag_CommandContextStack,"Command Context Stack",&m_cc_stack_ui,[this]() {
+        return std::make_unique<CommandContextStackUI>(&m_cc_stack);
+    });
 
     if(ValueChanged(&m_msg_last_num_errors_and_warnings_printed,m_message_list->GetNumErrorsAndWarningsPrinted())) {
         m_settings.ui_flags|=BeebWindowUIFlag_Messages;
@@ -839,7 +727,7 @@ bool BeebWindow::DoImGui(int output_width,int output_height) {
         if(ImGui::Begin("Recent Messages",&m_messages_popup_ui_active,flags)) {
             m_message_list->ForEachMessage(5,[this](MessageList::Message *m) {
                 if(!m->seen) {
-                    MessagesUI::DoMessageImGui(m);
+                    ImGuiMessageListMessage(m);
                 }
             });
         }
@@ -1509,7 +1397,7 @@ void BeebWindow::SavePosition() {
     BeebWindows::SetLastWindowPlacementData(buf);
 
 #endif
-    }
+}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -2259,7 +2147,7 @@ void BeebWindow::SetClipboardData(std::vector<uint8_t> data,bool is_text) {
     int rc=SDL_SetClipboardText((const char *)data.data());
     if(rc!=0) {
         m_msg.e.f("Failed to copy to clipboard: %s\n",SDL_GetError());
-    }
+}
 }
 
 //////////////////////////////////////////////////////////////////////////

@@ -521,7 +521,9 @@ bool TraceUI::GetBeebKeyName(void *data,int idx,const char **out_text) {
     }
 }
 
-void TraceUI::DoImGui() {
+void TraceUI::DoImGui(CommandContextStack *cc_stack) {
+    (void)cc_stack;
+
     std::shared_ptr<BeebThread> beeb_thread=m_beeb_window->GetBeebThread();
 
     if(m_save_trace_job) {
@@ -650,7 +652,7 @@ void TraceUI::DoImGui() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool TraceUI::DoClose() {
+bool TraceUI::OnClose() {
     SetDefaultSettings(m_settings);
 
     return true;

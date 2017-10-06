@@ -24,7 +24,9 @@ CommandKeymapsUI::CommandKeymapsUI() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void CommandKeymapsUI::DoImGui() {
+void CommandKeymapsUI::DoImGui(CommandContextStack *cc_stack) {
+    (void)cc_stack;
+
     float extra=(GImGui->Style.FramePadding.x+GImGui->Style.FrameRounding)*2.f;
 
     CommandTable::ForEachCommandTable([&](CommandTable *table) {
@@ -88,7 +90,7 @@ bool CommandKeymapsUI::WantsKeyboardFocus() const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool CommandKeymapsUI::DidConfigChange() const {
+bool CommandKeymapsUI::OnClose() {
     return m_edited;
 }
 

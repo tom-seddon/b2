@@ -3,6 +3,7 @@
 #include "dear_imgui.h"
 #include "Messages.h"
 #include "commands.h"
+#include "SettingsUI.h"
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -14,19 +15,7 @@ static const ImVec4 ERROR_COLOUR(1.f,0.f,0.f,1.f);
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-MessagesUI::MessagesUI() {
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-MessagesUI::~MessagesUI() {
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-void MessagesUI::DoMessageImGui(const MessageList::Message *m) {
+void ImGuiMessageListMessage(const MessageList::Message *m) {
     ImGuiStyleColourPusher pusher;
 
     switch(m->type) {
@@ -49,46 +38,40 @@ void MessagesUI::DoMessageImGui(const MessageList::Message *m) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-class MessagesUIImpl:
-    public MessagesUI
+class MessagesUI:
+    public SettingsUI
 {
 public:
-    MessagesUIImpl();
-
-    void SetMessageList(std::shared_ptr<MessageList> message_list) override;
+    MessagesUI(std::shared_ptr<MessageList> message_list);
 
     void DoImGui(CommandContextStack *cc_stack) override;
+
+    bool OnClose() override;
 protected:
 private:
     std::shared_ptr<MessageList> m_message_list;
 
-    ObjectCommandContext<MessagesUIImpl> m_occ;
+    ObjectCommandContext<MessagesUI> m_occ;
 
     void Copy();
     void Clear();
 
-    static ObjectCommandTable<MessagesUIImpl> ms_command_table;
+    static ObjectCommandTable<MessagesUI> ms_command_table;
 };
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-ObjectCommandTable<MessagesUIImpl> MessagesUIImpl::ms_command_table("Messages Window",{
-    {"copy","Copy",&MessagesUIImpl::Copy},
-    {"clear","Clear",&MessagesUIImpl::Clear}
+ObjectCommandTable<MessagesUI> MessagesUI::ms_command_table("Messages Window",{
+    {"copy","Copy",&MessagesUI::Copy},
+    {"clear","Clear",&MessagesUI::Clear}
 });
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-std::unique_ptr<MessagesUI> MessagesUI::Create() {
-    return std::make_unique<MessagesUIImpl>();
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-MessagesUIImpl::MessagesUIImpl():
+MessagesUI::MessagesUI(std::shared_ptr<MessageList> message_list):
+    m_message_list(std::move(message_list)),
     m_occ(this,&ms_command_table)
 {
 }
@@ -96,14 +79,7 @@ MessagesUIImpl::MessagesUIImpl():
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void MessagesUIImpl::SetMessageList(std::shared_ptr<MessageList> message_list) {
-    m_message_list=std::move(message_list);
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-void MessagesUIImpl::DoImGui(CommandContextStack *cc_stack) {
+void MessagesUI::DoImGui(CommandContextStack *cc_stack) {
     cc_stack->Push(m_occ);
 
     m_occ.DoButton("clear");
@@ -114,10 +90,7 @@ void MessagesUIImpl::DoImGui(CommandContextStack *cc_stack) {
 
     ImGui::BeginChild("",ImVec2(),true);
 
-    m_message_list->ForEachMessage(
-        [this](const MessageList::Message *m) {
-        this->DoMessageImGui(m);
-    });
+    m_message_list->ForEachMessage(&ImGuiMessageListMessage);
 
     ImGui::EndChild();
 }
@@ -125,7 +98,14 @@ void MessagesUIImpl::DoImGui(CommandContextStack *cc_stack) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void MessagesUIImpl::Copy() {
+bool MessagesUI::OnClose() {
+    return false;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void MessagesUI::Copy() {
     ImGuiIO &io=ImGui::GetIO();
 
     std::string text;
@@ -141,9 +121,14 @@ void MessagesUIImpl::Copy() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void MessagesUIImpl::Clear() {
+void MessagesUI::Clear() {
     m_message_list->ClearMessages();
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
+
+std::unique_ptr<SettingsUI> CreateMessagesUI(std::shared_ptr<MessageList> message_list) {
+    return std::make_unique<MessagesUI>(std::move(message_list));
+}
+

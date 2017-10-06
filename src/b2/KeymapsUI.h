@@ -31,9 +31,6 @@ public:
 
     virtual void SetCurrentBeebKeymap(const BeebKeymap *beeb_keymap)=0;
     virtual const BeebKeymap *GetCurrentBeebKeymap() const=0;
-    virtual void DoImGui()=0;
-    virtual bool WantsKeyboardFocus() const=0;
-    virtual bool DidConfigChange() const=0;
 protected:
 private:
 };

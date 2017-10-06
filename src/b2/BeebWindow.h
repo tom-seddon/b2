@@ -18,7 +18,6 @@ struct SDL_Renderer;
 struct Keycap;
 class ConfigsUI;
 class KeymapsUI;
-class MessagesUI;
 #if BBCMICRO_TRACE
 class TraceUI;
 #endif
@@ -327,17 +326,17 @@ private:
 
     std::unique_ptr<SettingsUI> m_keymaps_ui;
     std::unique_ptr<SettingsUI> m_command_keymaps_ui;
-    std::unique_ptr<MessagesUI> m_messages_ui;
+    std::unique_ptr<SettingsUI> m_messages_ui;
 #if TIMELINE_UI_ENABLED
-    std::unique_ptr<TimelineUI> m_timeline_ui;
+    std::unique_ptr<SettingsUI> m_timeline_ui;
 #endif
-    std::unique_ptr<ConfigsUI> m_configs_ui;
+    std::unique_ptr<SettingsUI> m_configs_ui;
 #if BBCMICRO_TRACE
-    std::unique_ptr<TraceUI> m_trace_ui;
+    std::unique_ptr<SettingsUI> m_trace_ui;
 #endif
-    std::unique_ptr<NVRAMUI> m_nvram_ui;
-    std::unique_ptr<DataRateUI> m_data_rate_ui;
-    std::unique_ptr<CommandContextStackUI> m_cc_stack_ui;
+    std::unique_ptr<SettingsUI> m_nvram_ui;
+    std::unique_ptr<SettingsUI> m_data_rate_ui;
+    std::unique_ptr<SettingsUI> m_cc_stack_ui;
 
     bool m_messages_popup_ui_active=false;
     uint64_t m_messages_popup_ticks=0;

@@ -59,7 +59,7 @@ static float GetPercentage(void *data_,int idx) {
     return (float)(emu_us/real_us*100.);
 }
 
-void DataRateUI::DoImGui() {
+void DataRateUI::DoImGui(CommandContextStack *cc_stack) {
     std::shared_ptr<BeebThread> beeb_thread=m_beeb_window->GetBeebThread();
 
     ImGui::TextUnformatted("Audio Data Availability (mark=25%)");
@@ -77,6 +77,13 @@ void DataRateUI::DoImGui() {
 
     ImGui::TextUnformatted("Video Data Availability (mark=50%)");
     ImGuiPlotLines("",&GetPercentage,&vblank_records,(int)vblank_records.size(),0,nullptr,0.f,200.f,ImVec2(0,100),ImVec2(0,50));
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool DataRateUI::OnClose() {
+    return false;
 }
 
 //////////////////////////////////////////////////////////////////////////

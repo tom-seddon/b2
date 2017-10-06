@@ -8,15 +8,20 @@ class CommandContextStack;
 
 #include <memory>
 #include <vector>
+#include "SettingsUI.h"
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-class CommandContextStackUI {
+class CommandContextStackUI:
+    public SettingsUI
+{
 public:
     CommandContextStackUI(CommandContextStack *cc_stack);
 
-    void DoImGui();
+    void DoImGui(CommandContextStack *cc_stack) override;
+
+    bool OnClose() override;
 protected:
 private:
     CommandContextStack *m_cc_stack=nullptr;

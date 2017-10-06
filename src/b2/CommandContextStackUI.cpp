@@ -14,7 +14,9 @@ CommandContextStackUI::CommandContextStackUI(CommandContextStack *cc_stack):
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void CommandContextStackUI::DoImGui() {
+void CommandContextStackUI::DoImGui(CommandContextStack *cc_stack) {
+    (void)cc_stack;
+
     ImGui::Text("IsRootWindowFocused=%s",BOOL_STR(ImGui::IsRootWindowFocused()));
     ImGui::Text("IsWindowFocused=%s",BOOL_STR(ImGui::IsWindowFocused()));
     ImGui::Text("IsRootWindowOrAnyChildFocused=%s",BOOL_STR(ImGui::IsRootWindowOrAnyChildFocused()));
@@ -25,6 +27,13 @@ void CommandContextStackUI::DoImGui() {
 
         ImGui::Text("%zu. %s",i,table->GetName().c_str());
     }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool CommandContextStackUI::OnClose() {
+    return false;
 }
 
 //////////////////////////////////////////////////////////////////////////

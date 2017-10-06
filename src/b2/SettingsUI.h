@@ -4,6 +4,11 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+class CommandContextStack;
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 class SettingsUI {
 public:
     SettingsUI();
@@ -14,9 +19,9 @@ public:
     SettingsUI(SettingsUI &&)=delete;
     SettingsUI &operator=(SettingsUI &&)=delete;
 
-    virtual void DoImGui()=0;
+    virtual void DoImGui(CommandContextStack *cc_stack)=0;
 
-    virtual bool DidConfigChange() const=0;
+    virtual bool OnClose()=0;
 
     // default impl returns false.
     virtual bool WantsKeyboardFocus() const;

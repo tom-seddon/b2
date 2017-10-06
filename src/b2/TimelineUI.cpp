@@ -23,6 +23,7 @@
 #include "VideoWriter.h"
 #include "Timeline.h"
 #include <float.h>
+#include "SettingsUI.h"
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -39,18 +40,6 @@
 //////////////////////////////////////////////////////////////////////////
 
 static const std::string RECENT_PATHS_VIDEO("video");
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-TimelineUI::TimelineUI() {
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-TimelineUI::~TimelineUI() {
-}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -133,15 +122,16 @@ struct LayoutColumn {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-class TimelineUIImpl:
-    public TimelineUI
+class TimelineUI:
+    public SettingsUI
 {
 public:
-    ~TimelineUIImpl();
+    TimelineUI::TimelineUI(BeebWindow *beeb_window,BeebWindowInitArguments init_arguments,SDL_Renderer *renderer,const SDL_PixelFormat *pixel_format);
+    ~TimelineUI();
 
-    void SetWindowDetails(BeebWindow *beeb_window,BeebWindowInitArguments init_arguments) override;
-    void SetRenderDetails(SDL_Renderer *renderer,const SDL_PixelFormat *pixel_format) override;
-    void DoImGui() override;
+    void DoImGui(CommandContextStack *cc_stack) override;
+
+    bool OnClose() override;
 protected:
 private:
     Timeline::Tree m_tree;
@@ -172,37 +162,25 @@ private:
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-std::unique_ptr<TimelineUI> TimelineUI::Create() {
-    return std::make_unique<TimelineUIImpl>();
+//std::unique_ptr<TimelineUI> TimelineUI::Create() {
+//    return std::make_unique<TimelineUI>();
+//}
+
+TimelineUI::TimelineUI(BeebWindow *beeb_window,BeebWindowInitArguments init_arguments,SDL_Renderer *renderer,const SDL_PixelFormat *pixel_format):
+    m_beeb_window(beeb_window),
+    m_init_arguments(std::move(init_arguments)),
+    m_renderer(renderer),
+    m_pixel_format(ClonePixelFormat(pixel_format))
+{
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-TimelineUIImpl::~TimelineUIImpl() {
+TimelineUI::~TimelineUI() {
     if(m_pixel_format) {
         SDL_FreeFormat(m_pixel_format);
     }
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-void TimelineUIImpl::SetWindowDetails(BeebWindow *beeb_window,BeebWindowInitArguments init_arguments) {
-    m_beeb_window=beeb_window;
-    m_init_arguments=std::move(init_arguments);
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-void TimelineUIImpl::SetRenderDetails(SDL_Renderer *renderer,const SDL_PixelFormat *pixel_format) {
-    m_renderer=renderer;
-
-    if(m_pixel_format) {
-        SDL_FreeFormat(m_pixel_format);
-    }
-    m_pixel_format=ClonePixelFormat(pixel_format);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -221,7 +199,9 @@ static void ThumbnailError(TreeEventData *te_data,const char *message) {
     }
 }
 
-void TimelineUIImpl::DoImGui() {
+void TimelineUI::DoImGui(CommandContextStack *cc_stack) {
+    (void)cc_stack;
+
     ASSERT(m_pixel_format);
 
     this->UpdateData();
@@ -279,7 +259,14 @@ void TimelineUIImpl::DoImGui() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void TimelineUIImpl::DoTreeEventImGui(TreeEventData *te_data,const Timeline::Tree::Event *te,ImDrawList *draw_list,const ImVec2 &origin) {
+bool TimelineUI::OnClose() {
+    return false;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void TimelineUI::DoTreeEventImGui(TreeEventData *te_data,const Timeline::Tree::Event *te,ImDrawList *draw_list,const ImVec2 &origin) {
     ImGuiIDPusher id_pusher(te_data);
 
     draw_list->ChannelsSetCurrent(1);//fg
@@ -448,7 +435,7 @@ void TimelineUIImpl::DoTreeEventImGui(TreeEventData *te_data,const Timeline::Tre
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-ImVec2 TimelineUIImpl::DrawLink(ImDrawList *dl,const TreeEventData *src,const TreeEventData *dest,const ImVec2 &origin,const ImColor &colour,float thickness) {
+ImVec2 TimelineUI::DrawLink(ImDrawList *dl,const TreeEventData *src,const TreeEventData *dest,const ImVec2 &origin,const ImColor &colour,float thickness) {
     const ImGuiStyle &style=ImGui::GetStyle();
 
     ImVec2 psrc(src->anim_state->draw_pos.x+BOX_SIZE.x+style.WindowPadding.x,src->anim_state->draw_pos.y+BOX_SIZE.y*.5f);
@@ -463,7 +450,7 @@ ImVec2 TimelineUIImpl::DrawLink(ImDrawList *dl,const TreeEventData *src,const Tr
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void TimelineUIImpl::ImGuiThumbnailImage(TreeEventData *te_data) {
+void TimelineUI::ImGuiThumbnailImage(TreeEventData *te_data) {
     const char *text=GetThumbnailStateEnumName(te_data->thumbnail_state);
 
     switch(te_data->thumbnail_state) {
@@ -604,7 +591,7 @@ void TimelineUIImpl::ImGuiThumbnailImage(TreeEventData *te_data) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool TimelineUIImpl::UpdateThumbnailTexture(TreeEventData *te_data,const void *pixels) {
+bool TimelineUI::UpdateThumbnailTexture(TreeEventData *te_data,const void *pixels) {
     if(!te_data->thumbnail_texture) {
         te_data->thumbnail_texture=this->GetThumbnailTexture();
         ASSERT(!!te_data->thumbnail_texture);
@@ -623,7 +610,7 @@ bool TimelineUIImpl::UpdateThumbnailTexture(TreeEventData *te_data,const void *p
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-SDLUniquePtr<SDL_Texture> TimelineUIImpl::GetThumbnailTexture() {
+SDLUniquePtr<SDL_Texture> TimelineUI::GetThumbnailTexture() {
     SDLUniquePtr<SDL_Texture> texture;
 
     if(m_thumbnail_textures.empty()) {
@@ -643,7 +630,7 @@ SDLUniquePtr<SDL_Texture> TimelineUIImpl::GetThumbnailTexture() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void TimelineUIImpl::ReturnThumbnailTexture(SDLUniquePtr<SDL_Texture> texture) {
+void TimelineUI::ReturnThumbnailTexture(SDLUniquePtr<SDL_Texture> texture) {
     if(!!texture) {
         m_thumbnail_textures.push_back(std::move(texture));
     }
@@ -652,7 +639,7 @@ void TimelineUIImpl::ReturnThumbnailTexture(SDLUniquePtr<SDL_Texture> texture) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void TimelineUIImpl::UpdateData() {
+void TimelineUI::UpdateData() {
     uint64_t state_version=Timeline::GetVersion();
 
     if(state_version==m_state_version) {
@@ -833,7 +820,7 @@ void TimelineUIImpl::UpdateData() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void TimelineUIImpl::InitTreeOrdered(std::vector<size_t> *events,size_t idx,size_t depth) {
+void TimelineUI::InitTreeOrdered(std::vector<size_t> *events,size_t idx,size_t depth) {
     TreeEventData *te_data=&m_te_datas[idx];
 
     m_max_depth=std::max(m_max_depth,depth);
@@ -846,6 +833,13 @@ void TimelineUIImpl::InitTreeOrdered(std::vector<size_t> *events,size_t idx,size
     for(size_t child_idx:te_data->child_idxs) {
         this->InitTreeOrdered(events,child_idx,depth+1);
     }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+std::unique_ptr<SettingsUI> CreateTimelineUI(BeebWindow *beeb_window,BeebWindowInitArguments init_arguments,SDL_Renderer *renderer,const SDL_PixelFormat *pixel_format) {
+    return std::make_unique<TimelineUI>(beeb_window,std::move(init_arguments),renderer,pixel_format);
 }
 
 //////////////////////////////////////////////////////////////////////////

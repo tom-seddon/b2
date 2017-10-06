@@ -7,26 +7,15 @@
 #include <memory>
 #include "Messages.h"
 
-class CommandContextStack;
+class SettingsUI;
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-class MessagesUI {
-public:
-    static std::unique_ptr<MessagesUI> Create();
+// TODO should this be part of dear_imgui.cpp?
+void ImGuiMessageListMessage(const MessageList::Message *m);
 
-    MessagesUI();
-    virtual ~MessagesUI()=0;
-
-    static void DoMessageImGui(const MessageList::Message *m);
-
-    virtual void SetMessageList(std::shared_ptr<MessageList> messages)=0;
-
-    virtual void DoImGui(CommandContextStack *cc_stack)=0;
-protected:
-private:
-};
+std::unique_ptr<SettingsUI> CreateMessagesUI(std::shared_ptr<MessageList> message_list);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

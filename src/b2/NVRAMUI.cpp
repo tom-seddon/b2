@@ -23,7 +23,9 @@ NVRAMUI::NVRAMUI(BeebWindow *beeb_window):
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void NVRAMUI::DoImGui() {
+void NVRAMUI::DoImGui(CommandContextStack *cc_stack) {
+    (void)cc_stack;
+
     std::shared_ptr<BeebThread> thread=m_beeb_window->GetBeebThread();
     std::vector<uint8_t> nvram=thread->GetNVRAM();
 
@@ -80,6 +82,13 @@ void NVRAMUI::DoImGui() {
     ImGui::Text("Default scrolling: %s\n",nvram[16]&8?"protected":"enabled");
     ImGui::Text("Default boot mode: %s\n",nvram[16]&16?"auto boot":"no boot");
     ImGui::Text("Default serial data format: %d\n",nvram[16]>>5&7);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool NVRAMUI::OnClose() {
+    return false;
 }
 
 //////////////////////////////////////////////////////////////////////////

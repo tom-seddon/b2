@@ -5,6 +5,8 @@
 #include "b2.h"
 #include "BeebWindows.h"
 #include <shared/debug.h>
+#include "SettingsUI.h"
+#include "commands.h"
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -14,27 +16,15 @@ static const std::string RECENT_PATHS_ROMS("roms");
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-ConfigsUI::ConfigsUI() {
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-ConfigsUI::~ConfigsUI() {
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-class ConfigsUIImpl:
-    public ConfigsUI
+class ConfigsUI:
+    public SettingsUI
 {
 public:
-    ConfigsUIImpl();
+    ConfigsUI();
 
-    void DoImGui() override;
+    void DoImGui(CommandContextStack *cc_stack) override;
 
-    bool DidConfigChange() const override;
+    bool OnClose() override;
 protected:
 private:
     bool m_edited=false;
@@ -50,20 +40,15 @@ private:
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-std::unique_ptr<ConfigsUI> ConfigsUI::Create() {
-    return std::make_unique<ConfigsUIImpl>();
+ConfigsUI::ConfigsUI() {
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-ConfigsUIImpl::ConfigsUIImpl() {
-}
+void ConfigsUI::DoImGui(CommandContextStack *cc_stack) {
+    (void)cc_stack;
 
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-void ConfigsUIImpl::DoImGui() {
     BeebWindows::ForEachConfig([&](BeebConfig *config,const BeebLoadedConfig *loaded_config) {
         if(config) {
             if(!this->DoEditConfigGui(config,config)) {
@@ -80,7 +65,7 @@ void ConfigsUIImpl::DoImGui() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool ConfigsUIImpl::DidConfigChange() const {
+bool ConfigsUI::OnClose() {
     return m_edited;
 }
 
@@ -89,7 +74,7 @@ bool ConfigsUIImpl::DidConfigChange() const {
 
 static const char *const CAPTIONS[16]={"0","1","2","3","4","5","6","7","8","9","A","B","C","D","E","F"};
 
-bool ConfigsUIImpl::DoEditConfigGui(const BeebConfig *config,BeebConfig *editable_config) {
+bool ConfigsUI::DoEditConfigGui(const BeebConfig *config,BeebConfig *editable_config) {
     // set to true if *editable_config was edited - as well as
     // dirtying the corresponding loaded config, this will set
     // m_edited.
@@ -251,7 +236,7 @@ bool ConfigsUIImpl::DoEditConfigGui(const BeebConfig *config,BeebConfig *editabl
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void ConfigsUIImpl::DoROMInfoGui(const char *caption,const std::string &file_name,const bool *writeable) {
+void ConfigsUI::DoROMInfoGui(const char *caption,const std::string &file_name,const bool *writeable) {
     ImGuiIDPusher id_pusher(caption);
 
     ImGui::AlignFirstTextHeightToWidgets();
@@ -275,7 +260,7 @@ void ConfigsUIImpl::DoROMInfoGui(const char *caption,const std::string &file_nam
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool ConfigsUIImpl::DoROMEditGui(const char *caption,std::string *file_name,bool *writeable) {
+bool ConfigsUI::DoROMEditGui(const char *caption,std::string *file_name,bool *writeable) {
     bool edited=false;
 
     ImGuiIDPusher id_pusher(caption);
@@ -314,7 +299,7 @@ bool ConfigsUIImpl::DoROMEditGui(const char *caption,std::string *file_name,bool
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool ConfigsUIImpl::DoFileSelect(std::string *file_name) {
+bool ConfigsUI::DoFileSelect(std::string *file_name) {
     OpenFileDialog fd(RECENT_PATHS_ROMS);
 
     fd.AddAllFilesFilter();
@@ -326,3 +311,13 @@ bool ConfigsUIImpl::DoFileSelect(std::string *file_name) {
     fd.AddLastPathToRecentPaths();
     return true;
 }
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+std::unique_ptr<SettingsUI> CreateConfigsUI() {
+    return std::make_unique<ConfigsUI>();
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////

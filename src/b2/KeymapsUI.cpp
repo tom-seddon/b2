@@ -114,9 +114,9 @@ public:
 
     void SetCurrentBeebKeymap(const BeebKeymap *keymap) override;
     const BeebKeymap *GetCurrentBeebKeymap() const override;
-    void DoImGui() override;
+    void DoImGui(CommandContextStack *cc_stack) override;
     bool WantsKeyboardFocus() const override;
-    bool DidConfigChange() const override;
+    bool OnClose() override;
 protected:
 private:
     BeebWindow *m_beeb_window=nullptr;
@@ -177,14 +177,16 @@ bool KeymapsUIImpl::WantsKeyboardFocus() const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool KeymapsUIImpl::DidConfigChange() const {
+bool KeymapsUIImpl::OnClose() {
     return m_edited;
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void KeymapsUIImpl::DoImGui() {
+void KeymapsUIImpl::DoImGui(CommandContextStack *cc_stack) {
+    (void)cc_stack;
+
     bool any=false;
 
     m_wants_keyboard_focus=false;

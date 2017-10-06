@@ -6,24 +6,12 @@
 
 #include <memory>
 
+class SettingsUI;
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-class ConfigsUI {
-public:
-    static std::unique_ptr<ConfigsUI> Create();
-
-    ConfigsUI();
-    virtual ~ConfigsUI()=0;
-
-    ConfigsUI(const ConfigsUI &)=delete;
-    ConfigsUI &operator=(const ConfigsUI &)=delete;
-
-    virtual void DoImGui()=0;
-    virtual bool DidConfigChange() const=0;
-protected:
-private:
-};
+std::unique_ptr<SettingsUI> CreateConfigsUI();
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

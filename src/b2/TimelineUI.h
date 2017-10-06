@@ -16,42 +16,16 @@
 
 #include <memory>
 
-class BeebThread;
-struct SDL_Renderer;
-struct SDL_PixelFormat;
-class BeebState;
+class SettingsUI;
 class BeebWindow;
 struct BeebWindowInitArguments;
+struct SDL_Renderer;
+struct SDL_PixelFormat;
 
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-class TimelineUI {
-public:
-    static std::unique_ptr<TimelineUI> Create();
-
-    TimelineUI();
-    virtual ~TimelineUI()=0;
-
-    TimelineUI(const TimelineUI &)=delete;
-    TimelineUI &operator=(const TimelineUI &)=delete;
-
-    // beeb_windows is the BeebWindows object to get the window list
-    // from. beeb_window is the window this timeline UI is going to be
-    // displayed in. (This is used to disable buttons that aren't
-    // appropriate for the timeline entry corresponding to the current
-    // window.)
-    virtual void SetWindowDetails(BeebWindow *beeb_window,BeebWindowInitArguments init_arguments)=0;
-
-    // Set renderer details. Used to create textures and whatnot.
-    virtual void SetRenderDetails(SDL_Renderer *renderer,const SDL_PixelFormat *pixel_format)=0;
-    
-    virtual void DoImGui()=0;
-
-    // If 
-    // virtual std::shared_ptr<BeebState> GetSelectedState()=0;
-    // virtual BeebWindow *GetSelectedWindow()=0;
-};
+// beeb_window is the window this timeline UI is going to be displayed
+// in. (This is used to disable buttons that aren't appropriate for
+// the timeline entry corresponding to the current window.)
+std::unique_ptr<SettingsUI> CreateTimelineUI(BeebWindow *beeb_window,BeebWindowInitArguments init_arguments,SDL_Renderer *renderer,const SDL_PixelFormat *pixel_format);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

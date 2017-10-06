@@ -6,6 +6,8 @@
 
 #include "SettingsUI.h"
 
+class CommandContextStack;
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
@@ -15,10 +17,10 @@ class CommandKeymapsUI:
 public:
     CommandKeymapsUI();
 
-    void DoImGui();
+    void DoImGui(CommandContextStack *cc_stack) override;
 
-    bool WantsKeyboardFocus() const;
-    bool DidConfigChange() const;
+    bool WantsKeyboardFocus() const override;
+    bool OnClose() override;
 protected:
 private:
     bool m_edited=false;

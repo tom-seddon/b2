@@ -20,6 +20,7 @@ class MessageList;
 class Trace;
 
 #include "conf.h"
+#include "SettingsUI.h"
 
 #include <memory>
 #include <vector>
@@ -31,7 +32,9 @@ class Trace;
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-class TraceUI {
+class TraceUI:
+    public SettingsUI
+{
 public:
     struct Settings {
         TraceUIStartCondition start=TraceUIStartCondition_Now;
@@ -45,8 +48,8 @@ public:
 #if BBCMICRO_TRACE
     TraceUI(BeebWindow *beeb_window);
 
-    void DoImGui();
-    bool DoClose();
+    void DoImGui(CommandContextStack *cc_stack) override;
+    bool OnClose() override;
 protected:
 private:
     class SaveTraceJob;
