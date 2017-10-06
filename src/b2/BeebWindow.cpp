@@ -596,6 +596,7 @@ void BeebWindow::DoSettingsUI(uint32_t ui_flag,const char *name,std::unique_ptr<
                 m_imgui_has_kb_focus=true;
             }
         }
+        ImGui::End();
     } else if(!!*uptr) {
         this->MaybeSaveConfig((*uptr)->DidConfigChange());
         *uptr=nullptr;
