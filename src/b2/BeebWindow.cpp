@@ -113,6 +113,148 @@ BeebWindow::DriveState::DriveState():
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+class BeebWindow::OptionsUI:
+    public SettingsUI
+{
+public:
+    explicit OptionsUI(BeebWindow *beeb_window);
+
+    void DoImGui(CommandContextStack *cc_stack) override;
+
+    bool OnClose() override;
+protected:
+private:
+    BeebWindow *m_beeb_window=nullptr;
+};
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+BeebWindow::OptionsUI::OptionsUI(BeebWindow *beeb_window):
+    m_beeb_window(beeb_window)
+{
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BeebWindow::OptionsUI::DoImGui(CommandContextStack *cc_stack) {
+    (void)cc_stack;
+
+    const std::shared_ptr<BeebThread> &beeb_thread=m_beeb_window->m_beeb_thread;
+    BeebWindowSettings *settings=&m_beeb_window->m_settings;
+
+    {
+        bool paused=m_beeb_window->m_beeb_thread->IsPaused();
+        if(ImGui::Checkbox("Paused",&paused)) {
+            beeb_thread->SetPaused(paused);
+        }
+    }
+
+    m_beeb_window->DoOptionsCheckbox("Limit speed",&BeebThread::IsSpeedLimited,&BeebThread::SendSetSpeedLimitingMessage);
+    m_beeb_window->DoOptionsCheckbox("Turbo disc",&BeebThread::IsTurboDisc,&BeebThread::SendSetTurboDiscMessage);
+
+    //    bool ImGui::Combo(const char* label, int* current_item, bool (*items_getter)(void*, int, const char**), void* data, int items_count, int height_in_items)
+
+    // Manually do the scale minimum, since ImGui lets you type in
+    // out-of-range values and you don't want 0.f.
+
+    static const float MIN_SCALE=.1f;
+    static const float MAX_SCALE=3.f;
+    static const float SCALE_STEP=.01f;
+
+    ImGui::DragFloat("Width scale",&settings->display_scale_x,SCALE_STEP,0.f,MAX_SCALE);
+    settings->display_scale_x=std::max(settings->display_scale_x,MIN_SCALE);
+
+    ImGui::DragFloat("Height scale",&settings->display_scale_y,SCALE_STEP,0.f,MAX_SCALE);
+    settings->display_scale_y=std::max(settings->display_scale_y,MIN_SCALE);
+
+    ImGui::Checkbox("Auto display size",&settings->display_auto_scale);
+    if(!settings->display_overall_scale) {
+        ImGui::DragFloat("Overall scale",&settings->display_overall_scale,SCALE_STEP,0.f,MAX_SCALE);
+        settings->display_overall_scale=std::max(settings->display_overall_scale,MIN_SCALE);
+    }
+
+    if(ImGui::Checkbox("Filter display",&settings->display_filter)) {
+        m_beeb_window->RecreateTexture();
+    }
+
+    //ImGuiSliderGetSet("Mode 7 gamma",&m_tv,&TVOutput::GetGamma,&TVOutput::SetGamma,1.f,10.f,"%.3f");
+
+    if(ImGui::SliderFloat("BBC volume",&settings->bbc_volume,MIN_DB,MAX_DB,"%.1f dB")) {
+        beeb_thread->SetBBCVolume(settings->bbc_volume);
+    }
+
+    if(ImGui::SliderFloat("Disc volume",&settings->disc_volume,MIN_DB,MAX_DB,"%.1f dB")) {
+        beeb_thread->SetDiscVolume(settings->disc_volume);
+    }
+
+    if(ImGui::CollapsingHeader("Display Alignment",ImGuiTreeNodeFlags_DefaultOpen)) {
+        ImVec2 size(20.f,20.f);
+
+        for(int y=0;y<3;++y) {
+            ImGui::NewLine();
+            for(int x=0;x<3;++x) {
+                const char *caption="";
+                if(x==settings->display_alignment_x&&y==settings->display_alignment_y) {
+                    caption="*";
+                }
+
+                {
+                    ImGuiIDPusher id_pusher(y*3+x);
+                    if(ImGui::Button(caption,size)) {
+                        settings->display_alignment_x=(BeebWindowDisplayAlignment)x;
+                        settings->display_alignment_y=(BeebWindowDisplayAlignment)y;
+                    }
+                }
+
+                ImGui::SameLine();
+            }
+        }
+
+        //ImGui::End();
+    }
+
+    ImGui::NewLine();
+
+    if(ImGui::CollapsingHeader("Debug Flags",ImGuiTreeNodeFlags_DefaultOpen)) {
+        uint32_t flags=beeb_thread->GetDebugFlags();
+        bool any_changed=false;
+
+        for(uint32_t i=0;i<32;++i) {
+            uint32_t mask=1u<<i;
+            const char *name=GetBBCMicroDebugFlagEnumName((int)mask);
+            if(name[0]=='?') {
+                continue;
+            }
+
+            bool value=!!(flags&mask);
+            if(ImGui::Checkbox(name,&value)) {
+                any_changed=true;
+
+                flags&=~mask;
+                if(value) {
+                    flags|=mask;
+                }
+            }
+        }
+
+        if(any_changed) {
+            beeb_thread->SendDebugFlagsMessage(flags);
+        }
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool BeebWindow::OptionsUI::OnClose() {
+    return true;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 BeebWindow::BeebWindow(BeebWindowInitArguments init_arguments):
     m_init_arguments(std::move(init_arguments)),
     m_occ(this,&ms_command_table)
@@ -370,108 +512,6 @@ bool BeebWindow::Load65LinkFolder(int drive,const std::string &path) {
     }
 }
 
-void BeebWindow::DoOptionsGui() {
-    {
-        bool paused=m_beeb_thread->IsPaused();
-        if(ImGui::Checkbox("Paused",&paused)) {
-            m_beeb_thread->SetPaused(paused);
-        }
-    }
-
-    this->DoOptionsCheckbox("Limit speed",&BeebThread::IsSpeedLimited,&BeebThread::SendSetSpeedLimitingMessage);
-    this->DoOptionsCheckbox("Turbo disc",&BeebThread::IsTurboDisc,&BeebThread::SendSetTurboDiscMessage);
-
-    //    bool ImGui::Combo(const char* label, int* current_item, bool (*items_getter)(void*, int, const char**), void* data, int items_count, int height_in_items)
-
-    // Manually do the scale minimum, since ImGui lets you type in
-    // out-of-range values and you don't want 0.f.
-
-    static const float MIN_SCALE=.1f;
-    static const float MAX_SCALE=3.f;
-    static const float SCALE_STEP=.01f;
-
-    ImGui::DragFloat("Width scale",&m_settings.display_scale_x,SCALE_STEP,0.f,MAX_SCALE);
-    m_settings.display_scale_x=std::max(m_settings.display_scale_x,MIN_SCALE);
-
-    ImGui::DragFloat("Height scale",&m_settings.display_scale_y,SCALE_STEP,0.f,MAX_SCALE);
-    m_settings.display_scale_y=std::max(m_settings.display_scale_y,MIN_SCALE);
-
-    ImGui::Checkbox("Auto display size",&m_settings.display_auto_scale);
-    if(!m_settings.display_overall_scale) {
-        ImGui::DragFloat("Overall scale",&m_settings.display_overall_scale,SCALE_STEP,0.f,MAX_SCALE);
-        m_settings.display_overall_scale=std::max(m_settings.display_overall_scale,MIN_SCALE);
-    }
-
-    if(ImGui::Checkbox("Filter display",&m_settings.display_filter)) {
-        this->RecreateTexture();
-    }
-
-    //ImGuiSliderGetSet("Mode 7 gamma",&m_tv,&TVOutput::GetGamma,&TVOutput::SetGamma,1.f,10.f,"%.3f");
-
-    if(ImGui::SliderFloat("BBC volume",&m_settings.bbc_volume,MIN_DB,MAX_DB,"%.1f dB")) {
-        m_beeb_thread->SetBBCVolume(m_settings.bbc_volume);
-    }
-
-    if(ImGui::SliderFloat("Disc volume",&m_settings.disc_volume,MIN_DB,MAX_DB,"%.1f dB")) {
-        m_beeb_thread->SetDiscVolume(m_settings.disc_volume);
-    }
-
-    if(ImGui::CollapsingHeader("Display Alignment",ImGuiTreeNodeFlags_DefaultOpen)) {
-        ImVec2 size(20.f,20.f);
-
-        for(int y=0;y<3;++y) {
-            ImGui::NewLine();
-            for(int x=0;x<3;++x) {
-                const char *caption="";
-                if(x==m_settings.display_alignment_x&&y==m_settings.display_alignment_y) {
-                    caption="*";
-                }
-
-                {
-                    ImGuiIDPusher id_pusher(y*3+x);
-                    if(ImGui::Button(caption,size)) {
-                        m_settings.display_alignment_x=(BeebWindowDisplayAlignment)x;
-                        m_settings.display_alignment_y=(BeebWindowDisplayAlignment)y;
-                    }
-                }
-
-                ImGui::SameLine();
-            }
-        }
-
-        //ImGui::End();
-    }
-
-    ImGui::NewLine();
-
-    if(ImGui::CollapsingHeader("Debug Flags",ImGuiTreeNodeFlags_DefaultOpen)) {
-        uint32_t flags=m_beeb_thread->GetDebugFlags();
-        bool any_changed=false;
-
-        for(uint32_t i=0;i<32;++i) {
-            uint32_t mask=1u<<i;
-            const char *name=GetBBCMicroDebugFlagEnumName((int)mask);
-            if(name[0]=='?') {
-                continue;
-            }
-
-            bool value=!!(flags&mask);
-            if(ImGui::Checkbox(name,&value)) {
-                any_changed=true;
-
-                flags&=~mask;
-                if(value) {
-                    flags|=mask;
-                }
-            }
-        }
-
-        if(any_changed) {
-            m_beeb_thread->SendDebugFlagsMessage(flags);
-        }
-    }
-}
-
 class FileMenuItem {
 public:
     bool selected=false;
@@ -650,17 +690,21 @@ bool BeebWindow::DoImGui(int output_width,int output_height) {
         return std::make_unique<CommandKeymapsUI>();
     });
 
-    // Options is its own thing, for now, since it fiddles with the BeebWindow internals a bit...
-    if(m_settings.ui_flags&BeebWindowUIFlag_Options) {
-        if(ImGuiBeginFlag("Options",&m_settings.ui_flags,BeebWindowUIFlag_Options)) {
-            this->DoOptionsGui();
-        }
-        ImGui::End();
+    this->DoSettingsUI(BeebWindowUIFlag_Options,"Options",&m_options_ui,[this]() {
+        return std::make_unique<OptionsUI>(this);
+    });
 
-        if(!(m_settings.ui_flags&BeebWindowUIFlag_Options)) {
-            this->MaybeSaveConfig(true);
-        }
-    }
+    //// Options is its own thing, for now, since it fiddles with the BeebWindow internals a bit...
+    //if(m_settings.ui_flags&BeebWindowUIFlag_Options) {
+    //    if(ImGuiBeginFlag("Options",&m_settings.ui_flags,BeebWindowUIFlag_Options)) {
+    //        this->DoOptionsGui();
+    //    }
+    //    ImGui::End();
+
+    //    if(!(m_settings.ui_flags&BeebWindowUIFlag_Options)) {
+    //        this->MaybeSaveConfig(true);
+    //    }
+    //}
 
     this->DoSettingsUI(BeebWindowUIFlag_Messages,"Messages",&m_messages_ui,[this]() {
         return CreateMessagesUI(m_message_list);

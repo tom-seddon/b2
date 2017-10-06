@@ -174,6 +174,8 @@ public:
         size_t num_video_units=0;
     };
 
+    class OptionsUI;
+
     static const char SDL_WINDOW_DATA_NAME[];
 
     BeebWindow(BeebWindowInitArguments init_arguments);
@@ -337,6 +339,7 @@ private:
     std::unique_ptr<SettingsUI> m_nvram_ui;
     std::unique_ptr<SettingsUI> m_data_rate_ui;
     std::unique_ptr<SettingsUI> m_cc_stack_ui;
+    std::unique_ptr<SettingsUI> m_options_ui;
 
     bool m_messages_popup_ui_active=false;
     uint64_t m_messages_popup_ticks=0;
