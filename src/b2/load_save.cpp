@@ -297,10 +297,10 @@ static bool GetDataFromHexString(std::vector<uint8_t> *data,const std::string &s
 //////////////////////////////////////////////////////////////////////////
 
 static void AddError(Messages *msg,
-    const std::string &path,
-    const char *what1,
-    const char *what2,
-    int err)
+                     const std::string &path,
+                     const char *what1,
+                     const char *what2,
+                     int err)
 {
     msg->w.f("%s failed: %s\n",what1,path.c_str());
 
@@ -331,10 +331,10 @@ static FILE *fopenUTF8(const char *path,const char *mode) {
 
 template<class ContType>
 static bool LoadFile2(ContType *data,
-    const std::string &path,
-    Messages *msg,
-    uint32_t flags,
-    const char *mode)
+                      const std::string &path,
+                      Messages *msg,
+                      uint32_t flags,
+                      const char *mode)
 {
     static_assert(sizeof(typename ContType::value_type)==1,"LoadFile2 can only load into a vector of bytes");
     FILE *f=NULL;
@@ -402,9 +402,9 @@ done:;
 //////////////////////////////////////////////////////////////////////////
 
 bool LoadFile(std::vector<uint8_t> *data,
-    const std::string &path,
-    Messages *messages,
-    uint32_t flags)
+              const std::string &path,
+              Messages *messages,
+              uint32_t flags)
 {
     if(!LoadFile2(data,path,messages,flags,"rb")) {
         return false;
@@ -418,9 +418,9 @@ bool LoadFile(std::vector<uint8_t> *data,
 //////////////////////////////////////////////////////////////////////////
 
 bool LoadTextFile(std::vector<char> *data,
-    const std::string &path,
-    Messages *messages,
-    uint32_t flags)
+                  const std::string &path,
+                  Messages *messages,
+                  uint32_t flags)
 {
     if(!LoadFile2(data,path,messages,flags,"rt")) {
         return false;
@@ -741,8 +741,8 @@ static std::unique_ptr<rapidjson::Document> LoadDocument(
 
     if(doc->HasParseError()) {
         msg->e.f("JSON error: +%zu: %s\n",
-            doc->GetErrorOffset(),
-            rapidjson::GetParseError_En(doc->GetParseError()));
+                 doc->GetErrorOffset(),
+                 rapidjson::GetParseError_En(doc->GetParseError()));
         return nullptr;
     }
 
@@ -777,9 +777,9 @@ struct WriterHelper {
 
 template<class WriterType>
 static WriterHelper DoWriter(WriterType *writer,
-    const char *name,
-    bool (WriterType::*begin_mfn)(),
-    bool (WriterType::*end_mfn)(rapidjson::SizeType))
+                             const char *name,
+                             bool (WriterType::*begin_mfn)(),
+                             bool (WriterType::*end_mfn)(rapidjson::SizeType))
 {
     if(name) {
         writer->Key(name);
@@ -795,14 +795,14 @@ static WriterHelper DoWriter(WriterType *writer,
 
 template<class WriterType>
 static WriterHelper ObjectWriter(WriterType *writer,
-    const char *name=nullptr)
+                                 const char *name=nullptr)
 {
     return DoWriter(writer,name,&WriterType::StartObject,&WriterType::EndObject);
 }
 
 template<class WriterType>
 static WriterHelper ArrayWriter(WriterType *writer,
-    const char *name=nullptr)
+                                const char *name=nullptr)
 {
     return DoWriter(writer,name,&WriterType::StartArray,&WriterType::EndArray);
 }
@@ -914,7 +914,7 @@ static void SaveKeycodeObject(JSONWriter<StringStream> *writer,uint32_t keycode)
 //////////////////////////////////////////////////////////////////////////
 
 static bool LoadRecentPaths(rapidjson::Value *recent_paths,
-    Messages *msg)
+                            Messages *msg)
 {
     for(rapidjson::Value::MemberIterator it=recent_paths->MemberBegin();
         it!=recent_paths->MemberEnd();
@@ -937,7 +937,7 @@ static bool LoadRecentPaths(rapidjson::Value *recent_paths,
 
             if(!paths[i].IsString()) {
                 msg->e.f("not a string: %s.%s.paths[%u]\n",
-                    RECENT_PATHS,tag.c_str(),i);
+                         RECENT_PATHS,tag.c_str(),i);
                 return false;
             }
 
@@ -957,7 +957,7 @@ static bool LoadKeymaps(rapidjson::Value *keymaps_json,Messages *msg) {
 
         if(!keymap_json->IsObject()) {
             msg->e.f("not an object: %s[%" PRIsizetype "]\n",
-                KEYMAPS,keymap_idx);
+                     KEYMAPS,keymap_idx);
             continue;
         }
 
@@ -992,7 +992,7 @@ static bool LoadKeymaps(rapidjson::Value *keymaps_json,Messages *msg) {
 
                 if(!keys_it->value.IsArray()) {
                     msg->e.f("not an array: %s.%s.keys.%s\n",
-                        KEYS,keymap_name.c_str(),beeb_sym_name);
+                             KEYS,keymap_name.c_str(),beeb_sym_name);
                     continue;
                 }
 
@@ -1020,7 +1020,7 @@ static bool LoadKeymaps(rapidjson::Value *keymaps_json,Messages *msg) {
 
                 if(!keys_it->value.IsArray()) {
                     msg->e.f("not an array: %s.%s.keys.%s\n",
-                        KEYS,keymap_name.c_str(),beeb_key_name);
+                             KEYS,keymap_name.c_str(),beeb_key_name);
                     continue;
                 }
 
@@ -1033,13 +1033,13 @@ static bool LoadKeymaps(rapidjson::Value *keymaps_json,Messages *msg) {
                         uint32_t scancode=SDL_GetScancodeFromName(scancode_name);
                         if(scancode==SDL_SCANCODE_UNKNOWN) {
                             msg->w.f("unknown scancode: %s\n",
-                                scancode_name);
+                                     scancode_name);
                         } else {
                             keymap.SetMapping(scancode,(int8_t)beeb_key,true);
                         }
                     } else {
                         msg->e.f("not number/string: %s.%s.keys.%s[%" PRIsizetype "]\n",
-                            KEYS,keymap_name.c_str(),beeb_key_name,i);
+                                 KEYS,keymap_name.c_str(),beeb_key_name,i);
                         continue;
                     }
                 }
@@ -1071,7 +1071,7 @@ static bool LoadShortcuts(rapidjson::Value *shortcuts_json,Messages *msg) {
 
         if(!table_it->value.IsObject()) {
             msg->e.f("not an object: %s.%s\n",
-                SHORTCUTS,table_it->name.GetString());
+                     SHORTCUTS,table_it->name.GetString());
             continue;
         }
 
@@ -1087,7 +1087,7 @@ static bool LoadShortcuts(rapidjson::Value *shortcuts_json,Messages *msg) {
 
             if(!command_it->value.IsArray()) {
                 msg->e.f("not an array: %s.%s.%s\n",
-                    SHORTCUTS,table_it->name.GetString(),command_it->name.GetString());
+                         SHORTCUTS,table_it->name.GetString(),command_it->name.GetString());
                 continue;
             }
 
@@ -1096,7 +1096,7 @@ static bool LoadShortcuts(rapidjson::Value *shortcuts_json,Messages *msg) {
             for(rapidjson::SizeType i=0;i<command_it->value.Size();++i) {
                 uint32_t keycode;
                 if(!LoadKeycodeFromObject(&keycode,&command_it->value[i],msg,
-                    "%s.%s.%s[%" PRIsizetype "]",SHORTCUTS,table_it->name.GetString(),command_it->name.GetString(),i))
+                                          "%s.%s.%s[%" PRIsizetype "]",SHORTCUTS,table_it->name.GetString(),command_it->name.GetString(),i))
                 {
                     continue;
                 }
@@ -1149,7 +1149,6 @@ static bool LoadWindows(rapidjson::Value *windows,Messages *msg) {
     return true;
 }
 
-
 static bool LoadConfigs(rapidjson::Value *configs_json,Messages *msg) {
     for(rapidjson::SizeType config_idx=0;config_idx<configs_json->Size();++config_idx) {
         rapidjson::Value *config_json=&(*configs_json)[config_idx];
@@ -1186,7 +1185,7 @@ static bool LoadConfigs(rapidjson::Value *configs_json,Messages *msg) {
 
         if(roms.Size()!=16) {
             msg->e.f("not an array with 16 entries: %s[%" PRIsizetype "].%s\n",
-                CONFIGS,config_idx,ROMS);
+                     CONFIGS,config_idx,ROMS);
             continue;
         }
 
@@ -1200,7 +1199,7 @@ static bool LoadConfigs(rapidjson::Value *configs_json,Messages *msg) {
                 FindStringMember(&rom->file_name,&roms[i],FILE_NAME,nullptr);
             } else {
                 msg->e.f("not null or object: %s[%" PRIsizetype "].%s[%" PRIsizetype "]\n",
-                    CONFIGS,config_idx,ROMS,i);
+                         CONFIGS,config_idx,ROMS,i);
                 continue;
             }
         }
@@ -1311,7 +1310,7 @@ static void SaveRecentPaths(JSONWriter<StringStream> *writer) {
 
     ForEachRecentPaths(
         [writer](const std::string &tag,
-            const RecentPaths &recents)
+                 const RecentPaths &recents)
     {
         auto tag_json=ObjectWriter(writer,tag.c_str());
 
