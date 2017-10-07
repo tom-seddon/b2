@@ -817,6 +817,7 @@ static const char KEYS[]="keys";
 static const char PLACEMENT[]="window_placement";
 static const char CONFIGS[]="configs";
 static const char OS[]="os";
+static const char TYPE[]="type";
 static const char ROMS[]="roms";
 static const char WRITEABLE[]="writeable";
 static const char FILE_NAME[]="file_name";
@@ -1166,6 +1167,10 @@ static bool LoadConfigs(rapidjson::Value *configs_json,Messages *msg) {
 
         FindStringMember(&config.os_file_name,config_json,OS,msg);
 
+        if(!FindEnumMember(&config.beeb_type,config_json,TYPE,"BBC Micro type",&GetBBCMicroTypeEnumName,msg)) {
+            continue;
+        }
+
         std::string disc_interface_name;
         if(FindStringMember(&disc_interface_name,config_json,DISC_INTERFACE,nullptr)) {
             config.disc_interface=FindDiscInterfaceByName(disc_interface_name.c_str());
@@ -1427,6 +1432,9 @@ static void SaveConfigs(JSONWriter<StringStream> *writer) {
 
             writer->Key(OS);
             writer->String(config->os_file_name.c_str());
+
+            writer->Key(TYPE);
+            SaveEnum(writer,config->beeb_type,&GetBBCMicroTypeEnumName);
 
             writer->Key(DISC_INTERFACE);
             if(!config->disc_interface) {
