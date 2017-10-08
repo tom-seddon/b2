@@ -1178,9 +1178,9 @@ void BBCMicro::UpdateVideoHardware() {
 
 void BBCMicro::UpdateDisplayOutput(VideoDataHalfUnit *hu) {
     if(m_state.crtc_last_output.hsync) {
-        hu->type.x=BeebControlPixel_HSync;
+        hu->type.x=VideoDataType_HSync;
     } else if(m_state.crtc_last_output.vsync) {
-        hu->type.x=BeebControlPixel_VSync;
+        hu->type.x=VideoDataType_VSync;
     } else if(m_state.crtc_last_output.display) {
         if(m_state.video_ula.control.bits.teletext) {
             m_state.saa5050.EmitVideoDataHalfUnit(hu);
@@ -1214,11 +1214,11 @@ void BBCMicro::UpdateDisplayOutput(VideoDataHalfUnit *hu) {
                     }
                 }
             } else {
-                hu->type.x=BeebControlPixel_Nothing^(m_state.cursor_pattern&1);
+                hu->type.x=VideoDataType_Nothing^(m_state.cursor_pattern&1);
             }
         }
     } else {
-        hu->type.x=BeebControlPixel_Nothing;
+        hu->type.x=VideoDataType_Nothing;
     }
 }
 

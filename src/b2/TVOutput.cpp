@@ -136,7 +136,7 @@ void TVOutput::UpdateOneHalfUnit(const VideoDataHalfUnit *hu,float amt) {
     case TVOutputState_Scanout:
         {
             switch(hu->type.x) {
-            case BeebControlPixel_Data:
+            case VideoDataType_Data:
                 {
                     if(m_x<TV_TEXTURE_WIDTH&&m_y<TV_TEXTURE_HEIGHT) {
 #if BLEND
@@ -217,19 +217,19 @@ void TVOutput::UpdateOneHalfUnit(const VideoDataHalfUnit *hu,float amt) {
                 }
                 break;
 
-            case BeebControlPixel_HSync:
+            case VideoDataType_HSync:
                 {
                     m_state=TVOutputState_HorizontalRetrace;
                 }
                 break;
 
-            case BeebControlPixel_VSync:
+            case VideoDataType_VSync:
                 {
                     m_state=TVOutputState_VerticalRetrace;
                 }
                 break;
 
-            case BeebControlPixel_Nothing:
+            case VideoDataType_Nothing:
                 {
                     if(m_x<TV_TEXTURE_WIDTH&&m_y<TV_TEXTURE_HEIGHT) {
                         uint32_t *line=m_line+m_x;
@@ -244,7 +244,7 @@ void TVOutput::UpdateOneHalfUnit(const VideoDataHalfUnit *hu,float amt) {
                 }
                 break;
 
-            case BeebControlPixel_Cursor:
+            case VideoDataType_Cursor:
                 {
                     if(m_x<TV_TEXTURE_WIDTH&&m_y<TV_TEXTURE_HEIGHT) {
                         uint32_t *line=m_line+m_x;
@@ -260,7 +260,7 @@ void TVOutput::UpdateOneHalfUnit(const VideoDataHalfUnit *hu,float amt) {
                 break;
 
 #if BBCMICRO_FINER_TELETEXT
-            case BeebControlPixel_Teletext:
+            case VideoDataType_Teletext:
                 {
                     if(m_x<TV_TEXTURE_WIDTH&&m_y<TV_TEXTURE_HEIGHT) {
                         uint32_t *line0=m_line+m_x;
@@ -346,7 +346,7 @@ void TVOutput::UpdateOneHalfUnit(const VideoDataHalfUnit *hu,float amt) {
                 break;
 #endif
 
-            case BeebControlPixel_NuLAAttribute:
+            case VideoDataType_NuLAAttribute:
                 {
                     if(m_x<TV_TEXTURE_WIDTH&&m_y<TV_TEXTURE_HEIGHT) {
                         uint32_t *line0=m_line+m_x;

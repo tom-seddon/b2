@@ -1,4 +1,4 @@
-#define ENAME BeebControlPixel
+#define ENAME VideoDataType
 EBEGIN()
 EPNV(Data,0)
 EPNV(Nothing,2)

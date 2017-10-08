@@ -26,7 +26,7 @@
 // +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
 // </pre>
 //
-// Otherwise: the type is (BeebControlPixel)type.x:
+// Otherwise: the type is (VideoDataType)type.x:
 //
 #if BBCMICRO_FINER_TELETEXT
 // Teletext: teletext data for this column over two half-scanlines.

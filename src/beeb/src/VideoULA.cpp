@@ -178,6 +178,9 @@ void VideoULA::ResetNuLAState() {
 
     // Reset palette write state.
     m_nula_palette_write_state=0;
+
+    // Reset attribute mode.
+    m_attribute_mode={};
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -344,7 +347,7 @@ void VideoULA::Emit16MHz(VideoDataHalfUnit *hu) {
 void VideoULA::EmitNuLAAttributeMode0(VideoDataHalfUnit *hu) {
     VideoDataBitmapPixel pixel;
 
-    hu->type.x=BeebControlPixel_NuLAAttribute;
+    hu->type.x=VideoDataType_NuLAAttribute;
 
     pixel=this->ShiftAttributeMode0();
     hu->bitmap.pixels[1]=pixel;
@@ -371,7 +374,7 @@ void VideoULA::EmitNuLAAttributeMode0(VideoDataHalfUnit *hu) {
 void VideoULA::EmitNuLAAttributeMode1(VideoDataHalfUnit *hu) {
     VideoDataBitmapPixel pixel;
 
-    hu->type.x=BeebControlPixel_NuLAAttribute;
+    hu->type.x=VideoDataType_NuLAAttribute;
 
     pixel=this->ShiftAttributeMode1();
     hu->bitmap.pixels[1]=pixel;
@@ -392,7 +395,7 @@ void VideoULA::EmitNuLAAttributeMode1(VideoDataHalfUnit *hu) {
 void VideoULA::EmitNuLAAttributeMode4(VideoDataHalfUnit *hu) {
     VideoDataBitmapPixel pixel;
 
-    hu->type.x=BeebControlPixel_NuLAAttribute;
+    hu->type.x=VideoDataType_NuLAAttribute;
 
     pixel=this->ShiftAttributeMode0();
     hu->bitmap.pixels[1]=pixel;
@@ -413,7 +416,7 @@ void VideoULA::EmitNuLAAttributeMode4(VideoDataHalfUnit *hu) {
 void VideoULA::EmitNuLAAttributeTextMode4(VideoDataHalfUnit *hu) {
     VideoDataBitmapPixel pixel;
 
-    hu->type.x=BeebControlPixel_NuLAAttribute;
+    hu->type.x=VideoDataType_NuLAAttribute;
 
     pixel=this->ShiftAttributeText();
     hu->bitmap.pixels[1]=pixel;
@@ -434,7 +437,7 @@ void VideoULA::EmitNuLAAttributeTextMode4(VideoDataHalfUnit *hu) {
 void VideoULA::EmitNuLAAttributeTextMode0(VideoDataHalfUnit *hu) {
     VideoDataBitmapPixel pixel;
 
-    hu->type.x=BeebControlPixel_NuLAAttribute;
+    hu->type.x=VideoDataType_NuLAAttribute;
 
     pixel=this->ShiftAttributeText();
     hu->bitmap.pixels[1]=pixel;
@@ -459,7 +462,7 @@ void VideoULA::EmitNuLAAttributeTextMode0(VideoDataHalfUnit *hu) {
 //////////////////////////////////////////////////////////////////////////
 
 void VideoULA::EmitNothing(VideoDataHalfUnit *hu) {
-    hu->type.x=BeebControlPixel_Nothing;
+    hu->type.x=VideoDataType_Nothing;
 }
 
 //////////////////////////////////////////////////////////////////////////
