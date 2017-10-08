@@ -1162,6 +1162,10 @@ void BBCMicro::UpdateVideoHardware() {
         if(m_state.video_ula.control.bits.teletext) {
             m_state.saa5050.Byte(m_ram[addr]);
         } else {
+            if(!m_state.crtc_last_output.display) {
+                m_state.video_ula.DisplayEnabled();
+            }
+
             m_state.video_ula.Byte(m_ram[addr]);
         }
 

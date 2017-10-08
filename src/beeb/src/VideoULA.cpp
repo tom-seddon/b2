@@ -57,6 +57,16 @@ void VideoULA::WriteNuLAControlRegister(void *ula_,M6502Word a,uint8_t value) {
             LOGF(VU,"NuLA Control: Direct Palette=%s\n",BOOL_STR(ula->m_direct_palette));
             break;
 
+        case 2:
+            ula->m_scroll_offset=param&7;
+            LOGF(VU,"NuLA Control: Scroll Offset=%u\n",ula->m_scroll_offset);
+            break;
+
+        case 3:
+            ula->m_blanking_size=param;
+            LOGF(VU,"NuLA Control: Blanking Size=%u\n",ula->m_blanking_size);
+            break;
+
         case 4:
             // Reset NuLA state.
             ula->ResetNuLAState();
@@ -143,8 +153,20 @@ VideoULA::VideoULA() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+void VideoULA::DisplayEnabled() {
+    // 1 fractional bit - it counts halves in slow clock mode.
+    m_blanking_counter=m_blanking_size<<1;
+
+    m_pixel_buffer.values[0]=0;
+    m_pixel_buffer.values[1]=0;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 void VideoULA::Byte(uint8_t byte) {
-    m_original_byte=m_byte=byte;
+    m_work_byte=byte;
+    m_original_byte=byte;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -152,6 +174,11 @@ void VideoULA::Byte(uint8_t byte) {
 
 void VideoULA::EmitPixels(union VideoDataHalfUnit *hu) {
     (this->*EMIT_MFNS[this->m_attribute_mode.value][this->control.bits.fast_6845][this->control.bits.line_width])(hu);
+
+    if(m_blanking_counter>0) {
+        m_blanking_counter-=1+this->control.bits.fast_6845;
+        hu->type.x=VideoDataType_Nothing;
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -173,6 +200,9 @@ void VideoULA::ResetNuLAState() {
         m_flash[8+i]=1;
     }
 
+    // Reset scrolling.
+    m_scroll_offset=0;
+
     // Don't use direct palette.
     m_direct_palette=0;
 
@@ -187,7 +217,6 @@ void VideoULA::ResetNuLAState() {
 //////////////////////////////////////////////////////////////////////////
 
 VideoDataBitmapPixel VideoULA::GetPalette(uint8_t index) {
-
     if(!m_direct_palette) {
         index=m_palette[index];
 
@@ -205,11 +234,11 @@ VideoDataBitmapPixel VideoULA::GetPalette(uint8_t index) {
 //////////////////////////////////////////////////////////////////////////
 
 VideoDataBitmapPixel VideoULA::Shift() {
-    uint8_t index=m_byte;
+    uint8_t index=m_work_byte;
     index=((index>>1)&1)|((index>>2)&2)|((index>>3)&4)|((index>>4)&8);
 
-    m_byte<<=1;
-    m_byte|=1;
+    m_work_byte<<=1;
+    m_work_byte|=1;
 
     return this->GetPalette(index);
 }
@@ -220,10 +249,10 @@ VideoDataBitmapPixel VideoULA::Shift() {
 VideoDataBitmapPixel VideoULA::ShiftAttributeMode0() {
     uint8_t attribute=m_original_byte&0x03;
 
-    uint8_t index=m_byte>>7|attribute<<2;
+    uint8_t index=m_work_byte>>7|attribute<<2;
 
-    m_byte<<=1;
-    m_byte|=1;
+    m_work_byte<<=1;
+    m_work_byte|=1;
 
     return this->GetPalette(index);
 }
@@ -232,10 +261,10 @@ VideoDataBitmapPixel VideoULA::ShiftAttributeMode0() {
 //////////////////////////////////////////////////////////////////////////
 
 VideoDataBitmapPixel VideoULA::ShiftAttributeMode1() {
-    uint8_t index=(m_original_byte>>1)&8|(m_original_byte<<2)&4|(m_byte>>6)&2|(m_byte>>3)&1;
+    uint8_t index=(m_original_byte>>1)&8|(m_original_byte<<2)&4|(m_work_byte>>6)&2|(m_work_byte>>3)&1;
 
-    m_byte<<=1;
-    m_byte|=1;
+    m_work_byte<<=1;
+    m_work_byte|=1;
 
     return this->GetPalette(index);
 }
@@ -244,10 +273,10 @@ VideoDataBitmapPixel VideoULA::ShiftAttributeMode1() {
 //////////////////////////////////////////////////////////////////////////
 
 VideoDataBitmapPixel VideoULA::ShiftAttributeText() {
-    uint8_t index=(m_byte>>7|m_original_byte<<1)&0xf;
+    uint8_t index=(m_work_byte>>7|m_original_byte<<1)&0xf;
 
-    m_byte<<=1;
-    m_byte&=0xf0;
+    m_work_byte<<=1;
+    m_work_byte&=0xf0;
 
     return this->GetPalette(index);
 }
@@ -256,89 +285,121 @@ VideoDataBitmapPixel VideoULA::ShiftAttributeText() {
 //////////////////////////////////////////////////////////////////////////
 
 void VideoULA::Emit2MHz(VideoDataHalfUnit *hu) {
-    VideoDataBitmapPixel pixel=this->Shift();
+    VideoDataBitmapPixel *dest=&m_pixel_buffer.pixels[m_scroll_offset];
 
-    hu->bitmap.pixels[0]=pixel;
-    hu->bitmap.pixels[1]=pixel;
-    hu->bitmap.pixels[2]=pixel;
-    hu->bitmap.pixels[3]=pixel;
-    hu->bitmap.pixels[4]=pixel;
-    hu->bitmap.pixels[5]=pixel;
-    hu->bitmap.pixels[6]=pixel;
-    hu->bitmap.pixels[7]=pixel;
+    VideoDataBitmapPixel pixel=this->Shift();
+    
+    dest[0]=pixel;
+    dest[1]=pixel;
+    dest[2]=pixel;
+    dest[3]=pixel;
+    dest[4]=pixel;
+    dest[5]=pixel;
+    dest[6]=pixel;
+    dest[7]=pixel;
+
+    hu->values[0]=m_pixel_buffer.values[0];
+    hu->values[1]=m_pixel_buffer.values[1];
+
+    m_pixel_buffer.values[0]=m_pixel_buffer.values[2];
+    m_pixel_buffer.values[1]=m_pixel_buffer.values[3];
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 void VideoULA::Emit4MHz(VideoDataHalfUnit *hu) {
+    VideoDataBitmapPixel *dest=&m_pixel_buffer.pixels[m_scroll_offset];
+
     VideoDataBitmapPixel pixel;
 
     pixel=this->Shift();
-    hu->bitmap.pixels[0]=pixel;
-    hu->bitmap.pixels[1]=pixel;
-    hu->bitmap.pixels[2]=pixel;
-    hu->bitmap.pixels[3]=pixel;
+    dest[0]=pixel;
+    dest[1]=pixel;
+    dest[2]=pixel;
+    dest[3]=pixel;
 
     pixel=this->Shift();
-    hu->bitmap.pixels[4]=pixel;
-    hu->bitmap.pixels[5]=pixel;
-    hu->bitmap.pixels[6]=pixel;
-    hu->bitmap.pixels[7]=pixel;
+    dest[4]=pixel;
+    dest[5]=pixel;
+    dest[6]=pixel;
+    dest[7]=pixel;
+
+    hu->values[0]=m_pixel_buffer.values[0];
+    hu->values[1]=m_pixel_buffer.values[1];
+
+    m_pixel_buffer.values[0]=m_pixel_buffer.values[2];
+    m_pixel_buffer.values[1]=m_pixel_buffer.values[3];
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 void VideoULA::Emit8MHz(VideoDataHalfUnit *hu) {
+    VideoDataBitmapPixel *dest=&m_pixel_buffer.pixels[m_scroll_offset];
+
     VideoDataBitmapPixel pixel;
 
     pixel=this->Shift();
-    hu->bitmap.pixels[0]=pixel;
-    hu->bitmap.pixels[1]=pixel;
+    dest[0]=pixel;
+    dest[1]=pixel;
 
     pixel=this->Shift();
-    hu->bitmap.pixels[2]=pixel;
-    hu->bitmap.pixels[3]=pixel;
+    dest[2]=pixel;
+    dest[3]=pixel;
 
     pixel=this->Shift();
-    hu->bitmap.pixels[4]=pixel;
-    hu->bitmap.pixels[5]=pixel;
+    dest[4]=pixel;
+    dest[5]=pixel;
 
     pixel=this->Shift();
-    hu->bitmap.pixels[6]=pixel;
-    hu->bitmap.pixels[7]=pixel;
+    dest[6]=pixel;
+    dest[7]=pixel;
+
+    hu->values[0]=m_pixel_buffer.values[0];
+    hu->values[1]=m_pixel_buffer.values[1];
+
+    m_pixel_buffer.values[0]=m_pixel_buffer.values[2];
+    m_pixel_buffer.values[1]=m_pixel_buffer.values[3];
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 void VideoULA::Emit16MHz(VideoDataHalfUnit *hu) {
+    VideoDataBitmapPixel *dest=&m_pixel_buffer.pixels[m_scroll_offset];
+
     VideoDataBitmapPixel pixel;
 
     pixel=this->Shift();
-    hu->bitmap.pixels[0]=pixel;
+    dest[0]=pixel;
 
     pixel=this->Shift();
-    hu->bitmap.pixels[1]=pixel;
+    dest[1]=pixel;
 
     pixel=this->Shift();
-    hu->bitmap.pixels[2]=pixel;
+    dest[2]=pixel;
 
     pixel=this->Shift();
-    hu->bitmap.pixels[3]=pixel;
+    dest[3]=pixel;
 
     pixel=this->Shift();
-    hu->bitmap.pixels[4]=pixel;
+    dest[4]=pixel;
 
     pixel=this->Shift();
-    hu->bitmap.pixels[5]=pixel;
+    dest[5]=pixel;
 
     pixel=this->Shift();
-    hu->bitmap.pixels[6]=pixel;
+    dest[6]=pixel;
 
     pixel=this->Shift();
-    hu->bitmap.pixels[7]=pixel;
+    dest[7]=pixel;
+
+    hu->values[0]=m_pixel_buffer.values[0];
+    hu->values[1]=m_pixel_buffer.values[1];
+
+    m_pixel_buffer.values[0]=m_pixel_buffer.values[2];
+    m_pixel_buffer.values[1]=m_pixel_buffer.values[3];
 }
 
 //////////////////////////////////////////////////////////////////////////

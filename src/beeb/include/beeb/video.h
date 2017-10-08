@@ -63,6 +63,7 @@ union VideoDataHalfUnit {
 #if BBCMICRO_FINER_TELETEXT
     VideoDataTeletextHalfUnit teletext;
 #endif
+    uint64_t values[2];
 };
 
 CHECK_SIZEOF(VideoDataHalfUnit,16);
