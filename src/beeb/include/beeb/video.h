@@ -16,7 +16,7 @@
 // Holds 0.5us of video output data: 8 Mode 0/3 pixels, 4 Mode 1/4/6
 // pixels, 2 Mode 2/5 pixels, 1 "Mode 8" pixel, 0.5 Mode 7 glyphs.
 //
-// When (type&0x8000)==0, the 8 words are the 12 bpp colour
+// When type.x==0, the 8 words are the 12 bpp colour
 // data for the 8 pixels.
 //
 // <pre>
@@ -26,7 +26,7 @@
 // +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
 // </pre>
 //
-// Otherwise: the type is (BeebControlPixel)type:
+// Otherwise: the type is (BeebControlPixel)type.x:
 //
 #if BBCMICRO_FINER_TELETEXT
 // Teletext: teletext data for this column over two half-scanlines.
@@ -36,20 +36,29 @@
 //
 // VSync: vsync is active. Ignore pixels[1...].
 
+struct VideoDataBitmapPixel {
+    uint16_t b:4;
+    uint16_t g:4;
+    uint16_t r:4;
+    uint16_t x:4;
+};
+
+CHECK_SIZEOF(VideoDataBitmapPixel,2);
+
 #if BBCMICRO_FINER_TELETEXT
 struct VideoDataTeletextHalfUnit {
-    uint16_t type;
+    VideoDataBitmapPixel type;
     uint8_t colours[2];
     uint8_t data0,data1;
 };
 #endif
 
 struct VideoDataBitmapHalfUnit {
-    uint16_t pixels[8];
+    VideoDataBitmapPixel pixels[8];
 };
 
 union VideoDataHalfUnit {
-    uint16_t type;
+    VideoDataBitmapPixel type;
     VideoDataBitmapHalfUnit bitmap;
 #if BBCMICRO_FINER_TELETEXT
     VideoDataTeletextHalfUnit teletext;

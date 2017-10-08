@@ -112,13 +112,13 @@ void TVOutput::UpdateOneHalfUnit(const VideoDataHalfUnit *hu,float amt) {
         m_line=m_texture_data.data();
 #if FULL_PAL_HEIGHT
         // "Fun" (translation: brain-eating) fake interlace
-        
+
         // if(m_num_fields&1) {
         //     m_line+=m_texture_pitch;
         //     ++m_y;
         // }
 #endif
-        
+
         m_state_timer=1;
         break;
 
@@ -135,17 +135,102 @@ void TVOutput::UpdateOneHalfUnit(const VideoDataHalfUnit *hu,float amt) {
 
     case TVOutputState_Scanout:
         {
-            if(hu->type&0x8000) {
-                switch(hu->type) {
-                case BeebControlPixel_HSync:
+            switch(hu->type.x) {
+            case BeebControlPixel_Data:
+                {
+                    if(m_x<TV_TEXTURE_WIDTH&&m_y<TV_TEXTURE_HEIGHT) {
+#if BLEND
+
+                        float inv_amt=1.f-amt;
+
+                        for(size_t i=0;i<8;++i) {
+                            uint8_t rgb[4];
+                            memcpy(rgb,&m_line[m_x+i],4);
+
+                            float b=rgb[0]/255.f;
+                            float g=rgb[1]/255.f;
+                            float r=rgb[2]/255.f;
+
+                            b*=inv_amt;
+                            g*=inv_amt;
+                            r*=inv_amt;
+
+                            if(hu->pixels[i]&1) {
+                                r+=amt;
+
+                                if(r>1.f) {
+                                    r=1.f;
+                                }
+                            }
+
+                            if(hu->pixels[i]&2) {
+                                g+=amt;
+
+                                if(g>1.f) {
+                                    g=1.f;
+                                }
+                            }
+
+                            if(hu->pixels[i]&4) {
+                                b+=amt;
+
+                                if(b>1.f) {
+                                    b=1.f;
+                                }
+                            }
+
+                            rgb[0]=(uint8_t)(b*255.f);
+                            rgb[1]=(uint8_t)(g*255.f);
+                            rgb[2]=(uint8_t)(r*255.f);
+
+                            memcpy(&m_line[m_x+i],rgb,4);
+                        }
+#else
+
+                        uint32_t *line=m_line+m_x;
+                        VideoDataBitmapPixel tmp;
+                        //#define V(I) m_palette[0][hu->pixels[I]]
+#define V(I) (tmp=hu->bitmap.pixels[I],m_rs[tmp.r]|m_gs[tmp.g]|m_bs[tmp.b])
+
+#if FULL_PAL_HEIGHT
+                        uint32_t *line2=line+TV_TEXTURE_WIDTH;
+#define P(I) line2[I]=line[I]=V(I)
+#else
+#define P(I) line[I]=V(I)
+#endif
+
+                        P(0);
+                        P(1);
+                        P(2);
+                        P(3);
+                        P(4);
+                        P(5);
+                        P(6);
+                        P(7);
+
+#undef P
+#undef V
+
+#endif
+                    }
+                    m_x+=8;
+                }
+                break;
+
+            case BeebControlPixel_HSync:
+                {
                     m_state=TVOutputState_HorizontalRetrace;
-                    break;
+                }
+                break;
 
-                case BeebControlPixel_VSync:
+            case BeebControlPixel_VSync:
+                {
                     m_state=TVOutputState_VerticalRetrace;
-                    break;
+                }
+                break;
 
-                case BeebControlPixel_Nothing:
+            case BeebControlPixel_Nothing:
+                {
                     if(m_x<TV_TEXTURE_WIDTH&&m_y<TV_TEXTURE_HEIGHT) {
                         uint32_t *line=m_line+m_x;
 
@@ -156,9 +241,11 @@ void TVOutput::UpdateOneHalfUnit(const VideoDataHalfUnit *hu,float amt) {
 #endif
                     }
                     m_x+=8;
-                    break;
+                }
+                break;
 
-                case BeebControlPixel_Cursor:
+            case BeebControlPixel_Cursor:
+                {
                     if(m_x<TV_TEXTURE_WIDTH&&m_y<TV_TEXTURE_HEIGHT) {
                         uint32_t *line=m_line+m_x;
 
@@ -169,10 +256,12 @@ void TVOutput::UpdateOneHalfUnit(const VideoDataHalfUnit *hu,float amt) {
 #endif
                     }
                     m_x+=8;
-                    break;
+                }
+                break;
 
 #if BBCMICRO_FINER_TELETEXT
-                case BeebControlPixel_Teletext:
+            case BeebControlPixel_Teletext:
+                {
                     if(m_x<TV_TEXTURE_WIDTH&&m_y<TV_TEXTURE_HEIGHT) {
                         uint32_t *line0=m_line+m_x;
 #if FULL_PAL_HEIGHT
@@ -180,9 +269,9 @@ void TVOutput::UpdateOneHalfUnit(const VideoDataHalfUnit *hu,float amt) {
 #endif
 
 #if BBCMICRO_PRESTRETCH_TELETEXT
-                        
+
 #define P_(N,I) line##N[I]=m_palette[0][hu->teletext.colours[((hu->teletext.data##N)>>(I))&1]]
-                        
+
 #if FULL_PAL_HEIGHT
 #define P(I) P_(0,I); P_(1,I)
 #else
@@ -222,11 +311,11 @@ void TVOutput::UpdateOneHalfUnit(const VideoDataHalfUnit *hu,float amt) {
                         line0[2]=m_palette[1][c012]; // (c1+c1+c2)/3
                         line0[3]=m_palette[0][c012]; // (c2+c2+c2)/3
 
-                        line0[4]=m_palette[0][c043];     
-                        line0[5]=m_palette[1][c043];   
-                        line0[6]=m_palette[1][c045];   
-                        line0[7]=m_palette[0][c045];     
-                        
+                        line0[4]=m_palette[0][c043];
+                        line0[5]=m_palette[1][c043];
+                        line0[6]=m_palette[1][c045];
+                        line0[7]=m_palette[0][c045];
+
 #if FULL_PAL_HEIGHT
                         uint8_t c10=hu->teletext.colours[hu->teletext.data1&1];
                         uint8_t c11=hu->teletext.colours[hu->teletext.data1>>1&1];
@@ -239,7 +328,7 @@ void TVOutput::UpdateOneHalfUnit(const VideoDataHalfUnit *hu,float amt) {
                         uint8_t c112=c11<<3|c12;
                         uint8_t c143=c14<<3|c13;
                         uint8_t c145=c14<<3|c15;
-                        
+
                         line1[0]=m_palette[0][c110];
                         line1[1]=m_palette[1][c110];
                         line1[2]=m_palette[1][c112];
@@ -249,90 +338,56 @@ void TVOutput::UpdateOneHalfUnit(const VideoDataHalfUnit *hu,float amt) {
                         line1[6]=m_palette[1][c145];
                         line1[7]=m_palette[0][c145];
 #endif
-                        
+
 #endif   
                     }
                     m_x+=8;
-                    break;
-#endif
                 }
-            } else {
-                if(m_x<TV_TEXTURE_WIDTH&&m_y<TV_TEXTURE_HEIGHT) {
-#if BLEND
+                break;
+#endif
 
-                    float inv_amt=1.f-amt;
-
-                    for(size_t i=0;i<8;++i) {
-                        uint8_t rgb[4];
-                        memcpy(rgb,&m_line[m_x+i],4);
-
-                        float b=rgb[0]/255.f;
-                        float g=rgb[1]/255.f;
-                        float r=rgb[2]/255.f;
-
-                        b*=inv_amt;
-                        g*=inv_amt;
-                        r*=inv_amt;
-
-                        if(hu->pixels[i]&1) {
-                            r+=amt;
-
-                            if(r>1.f) {
-                                r=1.f;
-                            }
-                        }
-
-                        if(hu->pixels[i]&2) {
-                            g+=amt;
-
-                            if(g>1.f) {
-                                g=1.f;
-                            }
-                        }
-
-                        if(hu->pixels[i]&4) {
-                            b+=amt;
-
-                            if(b>1.f) {
-                                b=1.f;
-                            }
-                        }
-
-                        rgb[0]=(uint8_t)(b*255.f);
-                        rgb[1]=(uint8_t)(g*255.f);
-                        rgb[2]=(uint8_t)(r*255.f);
-
-                        memcpy(&m_line[m_x+i],rgb,4);
-                    }
-#else
-                    
-                    uint32_t *line=m_line+m_x;
-                    uint16_t tmp;
-//#define V(I) m_palette[0][hu->pixels[I]]
-#define V(I) (tmp=hu->bitmap.pixels[I],m_reds[tmp>>8]|m_greens[(uint8_t)tmp>>4]|m_blues[tmp&0xf])
-                    
+            case BeebControlPixel_NuLAAttribute:
+                {
+                    if(m_x<TV_TEXTURE_WIDTH&&m_y<TV_TEXTURE_HEIGHT) {
+                        uint32_t *line0=m_line+m_x;
 #if FULL_PAL_HEIGHT
-                    uint32_t *line2=line+TV_TEXTURE_WIDTH;
-#define P(I) line2[I]=line[I]=V(I)
+                        uint32_t *line1=line0+TV_TEXTURE_WIDTH;
+#endif
+
+
+#if FULL_PAL_HEIGHT
+#define DEST(I) line1[I]=line0[I]
 #else
-#define P(I) line[I]=V(I)
+#define DEST(I) line0[I]
 #endif
 
-                    P(0);
-                    P(1);
-                    P(2);
-                    P(3);
-                    P(4);
-                    P(5);
-                    P(6);
-                    P(7);
+#define PIXEL(INDEX,A,B,C)\
+    VideoDataBitmapPixel p##INDEX##a=hu->bitmap.pixels[1+(A)];\
+    VideoDataBitmapPixel p##INDEX##b=hu->bitmap.pixels[1+(B)];\
+    VideoDataBitmapPixel p##INDEX##c=hu->bitmap.pixels[1+(C)];\
+    uint32_t r##INDEX=((p##INDEX##a.r<<4|p##INDEX##a.r)+(p##INDEX##b.r<<4|p##INDEX##b.r)+(p##INDEX##c.r<<4|p##INDEX##c.r))/3;\
+    uint32_t g##INDEX=((p##INDEX##a.g<<4|p##INDEX##a.g)+(p##INDEX##b.g<<4|p##INDEX##b.g)+(p##INDEX##c.g<<4|p##INDEX##c.g))/3;\
+    uint32_t b##INDEX=((p##INDEX##a.b<<4|p##INDEX##a.b)+(p##INDEX##b.b<<4|p##INDEX##b.b)+(p##INDEX##c.b<<4|p##INDEX##c.b))/3;\
+    /*ASSERT(r##INDEX<256);*/\
+    /*ASSERT(g##INDEX<256);*/\
+    /*ASSERT(b##INDEX<256);*/\
+    DEST(INDEX)=r##INDEX<<m_rshift|g##INDEX<<m_gshift|b##INDEX<<m_bshift|m_alpha;
 
-#undef P
-#undef V
-                    
-#endif
+                        PIXEL(0,0,0,0);
+                        PIXEL(1,0,1,1);
+                        PIXEL(2,1,1,2);
+                        PIXEL(3,2,2,2);
+                        PIXEL(4,3,3,3);
+                        PIXEL(5,3,4,4);
+                        PIXEL(6,4,4,5);
+                        PIXEL(7,5,5,5);
+
+#undef PIXEL
+#undef DEST
+                    }
+                    m_x+=8;
                 }
-                m_x+=8;
+                break;
             }
 
             if(m_state_timer++>=SCAN_OUT_CYCLES) {
@@ -450,7 +505,7 @@ void TVOutput::InitPalette(size_t palette,double fa) {
         double ra=i&1?1.:0.;
         double ga=i&2?1.:0.;
         double ba=i&4?1.:0.;
-            
+
         double rb=i&8?1.:0.;
         double gb=i&16?1.:0.;
         double bb=i&32?1.:0.;
@@ -481,10 +536,15 @@ void TVOutput::InitPalette() {
     for(uint8_t i=0;i<16;++i) {
         uint8_t value=i<<4|i;
 
-        m_reds[i]=SDL_MapRGBA(m_pixel_format,value,0,0,255);
-        m_greens[i]=SDL_MapRGBA(m_pixel_format,0,value,0,255);
-        m_blues[i]=SDL_MapRGBA(m_pixel_format,0,0,value,255);
+        m_rs[i]=SDL_MapRGBA(m_pixel_format,value,0,0,255);
+        m_gs[i]=SDL_MapRGBA(m_pixel_format,0,value,0,255);
+        m_bs[i]=SDL_MapRGBA(m_pixel_format,0,0,value,255);
     }
+
+    m_rshift=m_pixel_format->Rshift;
+    m_gshift=m_pixel_format->Gshift;
+    m_bshift=m_pixel_format->Bshift;
+    m_alpha=SDL_MapRGBA(m_pixel_format,0,0,0,255);
 }
 
 //////////////////////////////////////////////////////////////////////////
