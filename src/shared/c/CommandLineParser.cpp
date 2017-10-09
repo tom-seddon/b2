@@ -256,7 +256,7 @@ bool CommandLineParser::Parse(int argc,
 static void PrintWrappedLines(Log *log,
                               const std::string &str)
 {
-    int wrap_column=GetTerminalWidth();
+    int wrap_column=GetTerminalWidth()-1;
     if(log->GetColumn()>wrap_column) {
         // Terminal is probably super-narrow, so it's going to make a
         // mess anyway.
