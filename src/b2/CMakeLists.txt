@@ -47,6 +47,7 @@ add_executable(b2 MACOSX_BUNDLE
   CommandContextStackUI.cpp CommandContextStackUI.h
   CommandKeymapsUI.cpp CommandKeymapsUI.h
   SettingsUI.cpp SettingsUI.h
+  PixelMetadataUI.cpp PixelMetadataUI.h
   )
 
 ##########################################################################

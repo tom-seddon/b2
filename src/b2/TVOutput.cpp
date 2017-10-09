@@ -55,6 +55,9 @@ bool TVOutput::InitTexture(const SDL_PixelFormat *pixel_format) {
     m_pixel_format=ClonePixelFormat(pixel_format);
 
     m_texture_data.resize(TV_TEXTURE_WIDTH*TV_TEXTURE_HEIGHT);
+#if VIDEO_TRACK_METADATA
+    m_texture_metadata.resize(m_texture_data.size());
+#endif
 
     this->InitPalette();
 
@@ -110,6 +113,9 @@ void TVOutput::UpdateOneHalfUnit(const VideoDataHalfUnit *hu,float amt) {
         m_x=0;
         m_y=0;
         m_line=m_texture_data.data();
+#if VIDEO_TRACK_METADATA
+        m_metadata_line=m_texture_metadata.data();
+#endif
 #if FULL_PAL_HEIGHT
         // "Fun" (translation: brain-eating) fake interlace
 
@@ -212,6 +218,31 @@ void TVOutput::UpdateOneHalfUnit(const VideoDataHalfUnit *hu,float amt) {
 #undef V
 
 #endif
+
+#if VIDEO_TRACK_METADATA
+                        VideoDataHalfUnitMetadata *metadata_line=m_metadata_line+m_x;
+
+                        metadata_line[0]=hu->bitmap.metadata;
+                        metadata_line[1]=hu->bitmap.metadata;
+                        metadata_line[2]=hu->bitmap.metadata;
+                        metadata_line[3]=hu->bitmap.metadata;
+                        metadata_line[4]=hu->bitmap.metadata;
+                        metadata_line[5]=hu->bitmap.metadata;
+                        metadata_line[6]=hu->bitmap.metadata;
+                        metadata_line[7]=hu->bitmap.metadata;
+
+                        metadata_line+=TV_TEXTURE_WIDTH;
+
+                        metadata_line[0]=hu->bitmap.metadata;
+                        metadata_line[1]=hu->bitmap.metadata;
+                        metadata_line[2]=hu->bitmap.metadata;
+                        metadata_line[3]=hu->bitmap.metadata;
+                        metadata_line[4]=hu->bitmap.metadata;
+                        metadata_line[5]=hu->bitmap.metadata;
+                        metadata_line[6]=hu->bitmap.metadata;
+                        metadata_line[7]=hu->bitmap.metadata;
+#endif
+
                     }
                     m_x+=8;
                 }
@@ -239,6 +270,14 @@ void TVOutput::UpdateOneHalfUnit(const VideoDataHalfUnit *hu,float amt) {
                         line+=TV_TEXTURE_WIDTH;
                         line[7]=line[6]=line[5]=line[4]=line[3]=line[2]=line[1]=line[0]=m_palette[0][0];
 #endif
+
+#if VIDEO_TRACK_METADATA
+                        VideoDataHalfUnitMetadata *metadata_line=m_metadata_line+m_x;
+
+                        metadata_line[7]=metadata_line[6]=metadata_line[5]=metadata_line[4]=metadata_line[3]=metadata_line[2]=metadata_line[1]=metadata_line[0]=NULL_VIDEO_METADATA;
+                        metadata_line+=TV_TEXTURE_WIDTH;
+                        metadata_line[7]=metadata_line[6]=metadata_line[5]=metadata_line[4]=metadata_line[3]=metadata_line[2]=metadata_line[1]=metadata_line[0]=NULL_VIDEO_METADATA;
+#endif
                     }
                     m_x+=8;
                 }
@@ -253,6 +292,14 @@ void TVOutput::UpdateOneHalfUnit(const VideoDataHalfUnit *hu,float amt) {
 #if FULL_PAL_HEIGHT
                         line+=TV_TEXTURE_WIDTH;
                         line[7]=line[6]=line[5]=line[4]=line[3]=line[2]=line[1]=line[0]=m_palette[0][7];
+#endif
+
+#if VIDEO_TRACK_METADATA
+                        VideoDataHalfUnitMetadata *metadata_line=m_metadata_line+m_x;
+
+                        metadata_line[7]=metadata_line[6]=metadata_line[5]=metadata_line[4]=metadata_line[3]=metadata_line[2]=metadata_line[1]=metadata_line[0]=NULL_VIDEO_METADATA;
+                        metadata_line+=TV_TEXTURE_WIDTH;
+                        metadata_line[7]=metadata_line[6]=metadata_line[5]=metadata_line[4]=metadata_line[3]=metadata_line[2]=metadata_line[1]=metadata_line[0]=NULL_VIDEO_METADATA;
 #endif
                     }
                     m_x+=8;
@@ -340,6 +387,32 @@ void TVOutput::UpdateOneHalfUnit(const VideoDataHalfUnit *hu,float amt) {
 #endif
 
 #endif   
+
+#if VIDEO_TRACK_METADATA
+                        VideoDataHalfUnitMetadata *metadata_line=m_metadata_line+m_x;
+
+                        metadata_line[0]=hu->teletext.metadata;
+                        metadata_line[1]=hu->teletext.metadata;
+                        metadata_line[2]=hu->teletext.metadata;
+                        metadata_line[3]=hu->teletext.metadata;
+                        metadata_line[4]=hu->teletext.metadata;
+                        metadata_line[5]=hu->teletext.metadata;
+                        metadata_line[6]=hu->teletext.metadata;
+                        metadata_line[7]=hu->teletext.metadata;
+
+                        metadata_line+=TV_TEXTURE_WIDTH;
+
+                        metadata_line[0]=hu->teletext.metadata;
+                        metadata_line[1]=hu->teletext.metadata;
+                        metadata_line[2]=hu->teletext.metadata;
+                        metadata_line[3]=hu->teletext.metadata;
+                        metadata_line[4]=hu->teletext.metadata;
+                        metadata_line[5]=hu->teletext.metadata;
+                        metadata_line[6]=hu->teletext.metadata;
+                        metadata_line[7]=hu->teletext.metadata;
+#endif
+
+
                     }
                     m_x+=8;
                 }
@@ -384,6 +457,30 @@ void TVOutput::UpdateOneHalfUnit(const VideoDataHalfUnit *hu,float amt) {
 
 #undef PIXEL
 #undef DEST
+
+#if VIDEO_TRACK_METADATA
+                        VideoDataHalfUnitMetadata *metadata_line=m_metadata_line+m_x;
+
+                        metadata_line[0]=hu->bitmap.metadata;
+                        metadata_line[1]=hu->bitmap.metadata;
+                        metadata_line[2]=hu->bitmap.metadata;
+                        metadata_line[3]=hu->bitmap.metadata;
+                        metadata_line[4]=hu->bitmap.metadata;
+                        metadata_line[5]=hu->bitmap.metadata;
+                        metadata_line[6]=hu->bitmap.metadata;
+                        metadata_line[7]=hu->bitmap.metadata;
+
+                        metadata_line+=TV_TEXTURE_WIDTH;
+
+                        metadata_line[0]=hu->bitmap.metadata;
+                        metadata_line[1]=hu->bitmap.metadata;
+                        metadata_line[2]=hu->bitmap.metadata;
+                        metadata_line[3]=hu->bitmap.metadata;
+                        metadata_line[4]=hu->bitmap.metadata;
+                        metadata_line[5]=hu->bitmap.metadata;
+                        metadata_line[6]=hu->bitmap.metadata;
+                        metadata_line[7]=hu->bitmap.metadata;
+#endif
                     }
                     m_x+=8;
                 }
@@ -406,6 +503,9 @@ void TVOutput::UpdateOneHalfUnit(const VideoDataHalfUnit *hu,float amt) {
             break;
         }
         m_line+=TV_TEXTURE_WIDTH*HEIGHT_SCALE;
+#if VIDEO_TRACK_METADATA
+        m_metadata_line+=TV_TEXTURE_WIDTH*HEIGHT_SCALE;
+#endif
         m_state_timer=1;
         m_state=TVOutputState_HorizontalRetraceWait;
         break;
@@ -456,6 +556,15 @@ const void *TVOutput::GetTextureData(uint64_t *texture_data_version) const {
 
     return m_texture_data.data();
 }
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if VIDEO_TRACK_METADATA
+const VideoDataHalfUnitMetadata *TVOutput::GetTextureMetadata() const {
+    return m_texture_metadata.data();
+}
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

@@ -24,6 +24,7 @@ class BeebConfig;
 class BeebLoadedConfig;
 struct SDL_KeyboardEvent;
 struct BeebWindowSettings;
+struct SDL_MouseMotionEvent;
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -65,6 +66,7 @@ namespace BeebWindows {
     void HandleSDLKeyEvent(const SDL_KeyboardEvent &event);
     void SetSDLMouseWheelState(uint32_t sdl_window_id,int x,int y);
     void HandleSDLTextInput(uint32_t sdl_window_id,const char *text);
+    void HandleSDLMouseMotionEvent(const SDL_MouseMotionEvent &event);
 
     void HandleVBlank(VBlankMonitor *vblank_monitor,void *display_data,uint64_t ticks);
 

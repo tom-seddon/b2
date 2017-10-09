@@ -44,6 +44,8 @@ class SettingsUI;
 #include "BeebConfig.h"
 #include "BeebKeymap.h"
 #include "commands.h"
+#include "SDL_video.h"
+#include <beeb/video.h>
 
 #include <shared/enum_decl.h>
 #include "BeebWindow.inl"
@@ -200,6 +202,7 @@ public:
 
     void SetSDLMouseWheelState(int x,int y);
     void HandleSDLTextInput(const char *text);
+    void HandleSDLMouseMotionEvent(const SDL_MouseMotionEvent &event);
 
     void ThreadFillAudioBuffer(SDL_AudioDeviceID audio_device_id,float *mix_buffer,size_t num_samples);
 
@@ -243,6 +246,10 @@ public:
 
     const BeebKeymap *GetCurrentKeymap() const;
     void SetCurrentKeymap(const BeebKeymap *keymap);
+
+#if VIDEO_TRACK_METADATA
+    const VideoDataHalfUnitMetadata *GetMetadataForMousePixel() const;
+#endif
 protected:
 private:
     struct DriveState {
@@ -340,6 +347,9 @@ private:
     std::unique_ptr<SettingsUI> m_data_rate_ui;
     std::unique_ptr<SettingsUI> m_cc_stack_ui;
     std::unique_ptr<SettingsUI> m_options_ui;
+#if VIDEO_TRACK_METADATA
+    std::unique_ptr<SettingsUI> m_pixel_metadata_ui;
+#endif
 
     bool m_messages_popup_ui_active=false;
     uint64_t m_messages_popup_ticks=0;
@@ -352,10 +362,13 @@ private:
     std::shared_ptr<MessageList> m_message_list;
     uint64_t m_msg_last_num_messages_printed=0;
     uint64_t m_msg_last_num_errors_and_warnings_printed=0;
-    // Keep this towards the end. It's quite a large object.
-    Messages m_msg;
-
     ObjectCommandContext<BeebWindow> m_occ;
+#if VIDEO_TRACK_METADATA
+    bool m_got_mouse_pixel_metadata=false;
+    VideoDataHalfUnitMetadata m_mouse_pixel_metadata={};
+#endif
+
+    SDL_Point m_mouse_pos={-1,-1};
 
     bool InitInternal();
     bool LoadDiscImageFile(int drive,const std::string &path);
@@ -408,6 +421,9 @@ private:
     bool IsCopyBASICEnabled() const;
 
     static ObjectCommandTable<BeebWindow> ms_command_table;
+
+    // Keep this at the end. It's massive.
+    Messages m_msg;
 };
 
 //////////////////////////////////////////////////////////////////////////

@@ -4,6 +4,8 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#include "conf.h"
+
 #include <shared/enum_decl.h>
 #include "TVOutput.inl"
 #include <shared/enum_end.h>
@@ -12,12 +14,17 @@
 #include <vector>
 #include <beeb/OutputData.h>
 
+
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 struct VideoDataUnit;
 union VideoDataHalfUnit;
 struct SDL_PixelFormat;
+#if VIDEO_TRACK_METADATA
+struct VideoDataHalfUnitMetadata;
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -43,22 +50,29 @@ public:
     void Update(const VideoDataUnit *units,size_t num_units);
 
     void UpdateOneHalfUnit(const VideoDataHalfUnit *hu,float amt);
-    
+
     // *data_version (optional) is set to texture data version, incremented on
     // each vblank. (Between vblanks, the buffer contains a partially scanned-out frame.)
     const void *GetTextureData(uint64_t *texture_data_version) const;
+
+#if VIDEO_TRACK_METADATA
+    const VideoDataHalfUnitMetadata *GetTextureMetadata() const;
+#endif
 
     // returns pointer to TVOutput's copy of the pixel format.
     const SDL_PixelFormat *GetPixelFormat() const;
 
     bool IsInVerticalBlank() const;
 
-     double GetGamma() const;
+    double GetGamma() const;
     void SetGamma(double gamma);
 protected:
 private:
     TVOutputState m_state=TVOutputState_VerticalRetrace;
     uint32_t *m_line=nullptr;
+#if VIDEO_TRACK_METADATA
+    VideoDataHalfUnitMetadata *m_metadata_line=nullptr;
+#endif
     size_t m_x=0;
     size_t m_y=0;
     int m_state_timer=0;
@@ -73,6 +87,9 @@ private:
 
     // TV - output texture and its properties
     std::vector<uint32_t> m_texture_data;
+#if VIDEO_TRACK_METADATA
+    std::vector<VideoDataHalfUnitMetadata> m_texture_metadata;
+#endif
     uint64_t m_texture_data_version=1;
 
 #if TRACK_VIDEO_LATENCY

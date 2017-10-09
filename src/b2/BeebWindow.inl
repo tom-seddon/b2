@@ -41,6 +41,7 @@ EPNV(NVRAM,1<<6)
 EPNV(AudioCallback,1<<7)
 EPNV(CommandContextStack,1<<8)
 EPNV(CommandKeymaps,1<<9)
+EPNV(PixelMetadata,1<<10)
 EEND()
 #undef ENAME
 

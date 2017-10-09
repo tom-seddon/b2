@@ -914,6 +914,12 @@ static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &init
                 }
                 break;
 
+            case SDL_MOUSEMOTION:
+                {
+                    BeebWindows::HandleSDLMouseMotionEvent(event.motion);
+                }
+                break;
+
             case SDL_TEXTINPUT:
                 {
                     BeebWindows::HandleSDLTextInput(event.text.windowID,event.text.text);

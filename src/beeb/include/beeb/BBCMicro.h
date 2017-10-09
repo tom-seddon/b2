@@ -31,6 +31,7 @@ class DiscImage;
 #include <mutex>
 #include <time.h>
 #include "keys.h"
+#include "video.h"
 
 #include <shared/enum_decl.h>
 #include "BBCMicro.inl"
@@ -514,6 +515,12 @@ private:
     //
     // Controlled by the disc mutex, if there is one.
     bool m_disc_access=false;
+
+#if VIDEO_TRACK_METADATA
+    // This doesn't need to be copied. If it becomes stale, it'll be
+    // refreshed within 1 cycle...
+    uint16_t m_last_video_access_address=0;
+#endif
 
 #if BBCMICRO_TRACE
     // Event trace stuff.

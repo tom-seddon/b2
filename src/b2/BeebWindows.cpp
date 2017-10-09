@@ -307,6 +307,15 @@ void BeebWindows::HandleSDLTextInput(uint32_t sdl_window_id,const char *text) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+void BeebWindows::HandleSDLMouseMotionEvent(const SDL_MouseMotionEvent &event) {
+    if(BeebWindow *window=FindBeebWindowBySDLWindowID(event.windowID)) {
+        window->HandleSDLMouseMotionEvent(event);
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 void BeebWindows::HandleVBlank(VBlankMonitor *vblank_monitor,void *display_data,uint64_t ticks) {
     size_t i=0;
 

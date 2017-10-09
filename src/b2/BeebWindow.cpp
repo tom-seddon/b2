@@ -35,6 +35,7 @@
 #include <shared/path.h>
 #include "CommandContextStackUI.h"
 #include "CommandKeymapsUI.h"
+#include "PixelMetadataUI.h"
 
 #ifdef _MSC_VER
 #include <crtdbg.h>
@@ -486,6 +487,15 @@ void BeebWindow::HandleSDLTextInput(const char *text) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+void BeebWindow::HandleSDLMouseMotionEvent(const SDL_MouseMotionEvent &event) {
+    //LOGF(OUTPUT,"%s: x=%" PRId32 " y=%" PRId32 "\n",__func__,event.x,event.y);
+    m_mouse_pos.x=event.x;
+    m_mouse_pos.y=event.y;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 bool BeebWindow::LoadDiscImageFile(int drive,const std::string &path) {
     std::unique_ptr<MemoryDiscImage> disc_image=MemoryDiscImage::LoadFromFile(path,&m_msg);
     if(!disc_image) {
@@ -735,6 +745,10 @@ bool BeebWindow::DoImGui(int output_width,int output_height) {
 
     this->DoSettingsUI(BeebWindowUIFlag_CommandContextStack,"Command Context Stack",&m_cc_stack_ui,[this]() {
         return std::make_unique<CommandContextStackUI>(&m_cc_stack);
+    });
+
+    this->DoSettingsUI(BeebWindowUIFlag_PixelMetadata,"Pixel Metadata",&m_pixel_metadata_ui,[this]() {
+        return std::make_unique<PixelMetadataUI>(this);
     });
 
     if(ValueChanged(&m_msg_last_num_errors_and_warnings_printed,m_message_list->GetNumErrorsAndWarningsPrinted())) {
@@ -1159,6 +1173,9 @@ void BeebWindow::DoDebugMenu() {
         m_occ.DoMenuItemUI("dump_timeline_console");
         m_occ.DoMenuItemUI("dump_timeline_debugger");
         m_occ.DoMenuItemUI("check_timeline");
+#if VIDEO_TRACK_METADATA
+        m_occ.DoMenuItemUI("toggle_pixel_metadata");
+#endif
 
         ImGui::EndMenu();
     }
@@ -1345,6 +1362,26 @@ bool BeebWindow::HandleVBlank(uint64_t ticks) {
     }
 
     m_imgui_stuff->NewFrame(got_mouse_focus);
+
+#if VIDEO_TRACK_METADATA
+    if(SDL_PointInRect(&m_mouse_pos,&dest_rect)) {
+        double tx=(double)(m_mouse_pos.x-dest_rect.x)/dest_rect.w;
+        double ty=(double)(m_mouse_pos.y-dest_rect.y)/dest_rect.h;
+
+        int x=(int)(tx*TV_TEXTURE_WIDTH);
+        int y=(int)(ty*TV_TEXTURE_HEIGHT);
+
+        ASSERT(x>=0&&x<TV_TEXTURE_WIDTH);
+        ASSERT(y>=0&&y<TV_TEXTURE_HEIGHT);
+
+        m_got_mouse_pixel_metadata=true;
+
+        const VideoDataHalfUnitMetadata *metadata=m_tv.GetTextureMetadata();
+        m_mouse_pixel_metadata=metadata[y*TV_TEXTURE_WIDTH+x];
+    } else {
+        m_got_mouse_pixel_metadata=false;
+    }
+#endif
 
     return keep_window;
 }
@@ -1796,6 +1833,19 @@ void BeebWindow::SetCurrentKeymap(const BeebKeymap *keymap) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#if VIDEO_TRACK_METADATA
+const VideoDataHalfUnitMetadata *BeebWindow::GetMetadataForMousePixel() const {
+    if(m_got_mouse_pixel_metadata) {
+        return &m_mouse_pixel_metadata;
+    } else {
+        return nullptr;
+    }
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 bool BeebWindow::HandleVBlank(VBlankMonitor *vblank_monitor,void *display_data,uint64_t ticks) {
     // There's an API for exactly this on Windows. But it's probably
     // better to have the same code on every platform. 99% of the time
@@ -2191,7 +2241,7 @@ void BeebWindow::SetClipboardData(std::vector<uint8_t> data,bool is_text) {
     int rc=SDL_SetClipboardText((const char *)data.data());
     if(rc!=0) {
         m_msg.e.f("Failed to copy to clipboard: %s\n",SDL_GetError());
-}
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -2267,4 +2317,8 @@ ObjectCommandTable<BeebWindow> BeebWindow::ms_command_table("Beeb Window",{
     {"toggle_copy_oswrch_text","OSWRCH Copy Text",&BeebWindow::CopyOSWRCH<true>,&BeebWindow::IsCopyOSWRCHTicked},
     //{"toggle_copy_oswrch_binary","OSWRCH Copy Binary",&BeebWindow::CopyOSWRCH<false>,&BeebWindow::IsCopyOSWRCHTicked},
     {"copy_basic","Copy BASIC listing",&BeebWindow::CopyBASIC,&BeebWindow::IsCopyOSWRCHTicked,&BeebWindow::IsCopyBASICEnabled},
+#if VIDEO_TRACK_METADATA
+    GetToggleUICommand<BeebWindowUIFlag_PixelMetadata>("toggle_pixel_metadata","Pixel metadata..."),
+#endif
+
 });

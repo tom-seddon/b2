@@ -1172,6 +1172,10 @@ void BBCMicro::UpdateVideoHardware() {
         if(output.cudisp) {
             m_state.cursor_pattern=CURSOR_PATTERNS[m_state.video_ula.control.bits.cursor];
         }
+
+#if VIDEO_TRACK_METADATA
+        m_last_video_access_address=addr;
+#endif
     }
 
     m_state.crtc_last_output=output;
@@ -1188,6 +1192,9 @@ void BBCMicro::UpdateDisplayOutput(VideoDataHalfUnit *hu) {
     } else if(m_state.crtc_last_output.display) {
         if(m_state.video_ula.control.bits.teletext) {
             m_state.saa5050.EmitVideoDataHalfUnit(hu);
+#if VIDEO_TRACK_METADATA
+            hu->teletext.metadata.addr=m_last_video_access_address;
+#endif
 #if BBCMICRO_FINER_TELETEXT
 
             if(m_state.cursor_pattern&1) {
@@ -1201,6 +1208,9 @@ void BBCMicro::UpdateDisplayOutput(VideoDataHalfUnit *hu) {
         } else {
             if(m_state.crtc_last_output.raster<8) {
                 m_state.video_ula.EmitPixels(hu);
+#if VIDEO_TRACK_METADATA
+                hu->bitmap.metadata.addr=m_last_video_access_address;
+#endif
                 //(m_state.video_ula.*VideoULA::EMIT_MFNS[m_state.video_ula.control.bits.line_width])(hu);
 
 #if !BBCMICRO_FINER_TELETEXT
@@ -1249,8 +1259,11 @@ bool BBCMicro::Update(VideoDataUnit *video_unit,SoundDataUnit *sound_unit) {
 
     this->UpdateVideoHardware();
     this->UpdateDisplayOutput(&video_unit->b);
+
     this->UpdateKeyboardMatrix();
+
     this->UpdateJoysticks();
+
     M6502_SetDeviceIRQ(&m_state.cpu,BBCMicroIRQDevice_SystemVIA,m_state.system_via.Update());
     M6502_SetDeviceIRQ(&m_state.cpu,BBCMicroIRQDevice_UserVIA,m_state.user_via.Update());
 

@@ -45,18 +45,36 @@ struct VideoDataBitmapPixel {
 
 CHECK_SIZEOF(VideoDataBitmapPixel,2);
 
+#if VIDEO_TRACK_METADATA
+struct VideoDataHalfUnitMetadata {
+    uint16_t addr;
+};
+
+static const VideoDataHalfUnitMetadata NULL_VIDEO_METADATA={
+    0xffff,//addr
+};
+
+#endif
+
 #if BBCMICRO_FINER_TELETEXT
 struct VideoDataTeletextHalfUnit {
     VideoDataBitmapPixel type;
     uint8_t colours[2];
     uint8_t data0,data1;
+#if VIDEO_TRACK_METADATA
+    VideoDataHalfUnitMetadata metadata;
+#endif
 };
 #endif
 
 struct VideoDataBitmapHalfUnit {
     VideoDataBitmapPixel pixels[8];
+#if VIDEO_TRACK_METADATA
+    VideoDataHalfUnitMetadata metadata;
+#endif
 };
 
+#include <shared/pshpack1.h>
 union VideoDataHalfUnit {
     VideoDataBitmapPixel type;
     VideoDataBitmapHalfUnit bitmap;
@@ -65,8 +83,13 @@ union VideoDataHalfUnit {
 #endif
     uint64_t values[2];
 };
+#include <shared/poppack.h>
 
+#if VIDEO_TRACK_METADATA
+CHECK_SIZEOF(VideoDataHalfUnit,18);
+#else
 CHECK_SIZEOF(VideoDataHalfUnit,16);
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
