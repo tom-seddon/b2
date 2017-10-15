@@ -50,6 +50,9 @@ public:
     std::string GetFileName() const;
     void SetFileName(std::string file_name);
 
+    int GetFileType() const;
+    void SetFileType(int file_type);
+
     virtual bool BeginWrite()=0;
     virtual bool EndWrite()=0;
 
@@ -61,6 +64,7 @@ public:
     virtual bool WriteSound(const void *data,size_t data_size_bytes)=0;
     virtual bool WriteVideo(const void *data)=0;
 protected:
+    int m_file_type=-1;
     std::string m_file_name;
     Messages m_msg;
     void *m_window=nullptr;//HWND, NSWindow *, whatever

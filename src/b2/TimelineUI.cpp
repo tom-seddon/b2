@@ -374,6 +374,7 @@ void TimelineUI::DoTreeEventImGui(TreeEventData *te_data,const Timeline::Tree::E
                 if(fd.Open(&path)) {
                     fd.AddLastPathToRecentPaths();
 
+                    video_writer->SetFileType(fd.GetFilterIndex());
                     video_writer->SetFileName(path);
 
                     if(video_writer->BeginWrite()) {

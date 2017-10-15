@@ -109,6 +109,8 @@ static std::wstring GetWideStringFromUTF8String(const char *str) {
 static const UINT32 FPS=50;
 static const double TICKS_PER_SEC=1e7;
 static const LONGLONG TICKS_PER_FRAME=(LONGLONG)(TICKS_PER_SEC/FPS);
+static const UINT32 VIDEO_AVG_BITRATE=4000000;
+static const UINT32 AUDIO_AVG_BYTES_PER_SECOND=24000;
 
 class VideoWriterMF:
     public VideoWriter
@@ -126,11 +128,26 @@ public:
     }
 
     void AddFileDialogFilters(FileDialog *fd) const override {
-        fd->AddFilter("MPEG-4 (H264/AAC)","*.mp4");
+        static const char MASK[]="*.mp4";
+
+        std::string description=strprintf("MPEG-4 (H264 %.1fMb/sec; AAC %.1fKb/sec)",VIDEO_AVG_BITRATE/1.e6,AUDIO_AVG_BYTES_PER_SECOND*8/1.e3);
+
+        fd->AddFilter(strprintf("%dx%d %s",TV_TEXTURE_WIDTH,TV_TEXTURE_HEIGHT,description.c_str()),MASK);
+        fd->AddFilter(strprintf("%dx%d %s",2*TV_TEXTURE_WIDTH,2*TV_TEXTURE_HEIGHT,description.c_str()),MASK);
     }
 
     bool BeginWrite() override {
         HRESULT hr;
+
+        UINT width,height;
+        if(m_file_type==1) {
+            // 2x
+            width=2*TV_TEXTURE_WIDTH;
+            height=2*TV_TEXTURE_HEIGHT;
+        } else {
+            width=TV_TEXTURE_WIDTH;
+            height=TV_TEXTURE_HEIGHT;
+        }
 
         std::vector<MFAttribute> sink_writer_attributes_list={
             MFAttributeUINT32(MF_READWRITE_ENABLE_HARDWARE_TRANSFORMS,TRUE),
@@ -156,9 +173,9 @@ public:
         std::vector<MFAttribute> video_output_attributes={
             MFAttributeGUID(MF_MT_MAJOR_TYPE,MFMediaType_Video),
             MFAttributeGUID(MF_MT_SUBTYPE,MFVideoFormat_H264),
-            MFAttributeUINT32(MF_MT_AVG_BITRATE,800000),
+            MFAttributeUINT32(MF_MT_AVG_BITRATE,VIDEO_AVG_BITRATE),
             MFAttributeUINT32(MF_MT_INTERLACE_MODE,MFVideoInterlace_Progressive),
-            MFAttributeSize(MF_MT_FRAME_SIZE,TV_TEXTURE_WIDTH,TV_TEXTURE_HEIGHT),
+            MFAttributeSize(MF_MT_FRAME_SIZE,width,height),
             MFAttributeRatio(MF_MT_FRAME_RATE,FPS,1),
             MFAttributeRatio(MF_MT_PIXEL_ASPECT_RATIO,1,1),
         };
@@ -180,7 +197,7 @@ public:
             MFAttributeGUID(MF_MT_SUBTYPE,MFAudioFormat_AAC),
             MFAttributeUINT32(MF_MT_AUDIO_NUM_CHANNELS,1),
             MFAttributeUINT32(MF_MT_AUDIO_BITS_PER_SAMPLE,16),
-            MFAttributeUINT32(MF_MT_AUDIO_AVG_BYTES_PER_SECOND,24000),
+            MFAttributeUINT32(MF_MT_AUDIO_AVG_BYTES_PER_SECOND,AUDIO_AVG_BYTES_PER_SECOND),
             MFAttributeUINT32(MF_MT_AUDIO_SAMPLES_PER_SECOND,m_afmt.nSamplesPerSec),
             MFAttributeUINT32(MF_MT_AUDIO_NUM_CHANNELS,m_afmt.nChannels),
         };
