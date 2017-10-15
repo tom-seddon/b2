@@ -592,25 +592,6 @@ private:
     SelectorDialog *m_dialog;
 };
 
-#if SYSTEM_WINDOWS
-#if ENABLE_DEBUG_MENU
-static void ClearConsole() {
-    HANDLE h=GetStdHandle(STD_OUTPUT_HANDLE);
-
-    CONSOLE_SCREEN_BUFFER_INFO csbi;
-    if(!GetConsoleScreenBufferInfo(h,&csbi)) {
-        return;
-    }
-
-    COORD coord={0,0};
-    DWORD num_chars=csbi.dwSize.X*csbi.dwSize.Y,num_written;
-    FillConsoleOutputAttribute(h,csbi.wAttributes,num_chars,coord,&num_written);
-    FillConsoleOutputCharacter(h,' ',num_chars,coord,&num_written);
-    SetConsoleCursorPosition(h,coord);
-}
-#endif
-#endif
-
 static size_t CleanUpRecentPaths(const std::string &tag,bool (*exists_fn)(const std::string &)) {
     size_t n=0;
 
@@ -747,9 +728,11 @@ bool BeebWindow::DoImGui(int output_width,int output_height) {
         return std::make_unique<CommandContextStackUI>(&m_cc_stack);
     });
 
+#if VIDEO_TRACK_METADATA
     this->DoSettingsUI(BeebWindowUIFlag_PixelMetadata,"Pixel Metadata",&m_pixel_metadata_ui,[this]() {
         return std::make_unique<PixelMetadataUI>(this);
     });
+#endif
 
     if(ValueChanged(&m_msg_last_num_errors_and_warnings_printed,m_message_list->GetNumErrorsAndWarningsPrinted())) {
         m_settings.ui_flags|=BeebWindowUIFlag_Messages;
@@ -1992,7 +1975,18 @@ void BeebWindow::CleanUpRecentFilesLists() {
 
 #if SYSTEM_WINDOWS
 void BeebWindow::ClearConsole() {
-    ::ClearConsole();
+    HANDLE h=GetStdHandle(STD_OUTPUT_HANDLE);
+
+    CONSOLE_SCREEN_BUFFER_INFO csbi;
+    if(!GetConsoleScreenBufferInfo(h,&csbi)) {
+        return;
+    }
+
+    COORD coord={0,0};
+    DWORD num_chars=csbi.dwSize.X*csbi.dwSize.Y,num_written;
+    FillConsoleOutputAttribute(h,csbi.wAttributes,num_chars,coord,&num_written);
+    FillConsoleOutputCharacter(h,' ',num_chars,coord,&num_written);
+    SetConsoleCursorPosition(h,coord);
 }
 #endif
 

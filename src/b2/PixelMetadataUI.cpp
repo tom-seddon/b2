@@ -1,5 +1,8 @@
 #include <shared/system.h>
 #include "PixelMetadataUI.h"
+
+#if VIDEO_TRACK_METADATA
+
 #include "BeebWindow.h"
 #include "dear_imgui.h"
 #include <beeb/video.h>
@@ -34,3 +37,5 @@ bool PixelMetadataUI::OnClose() {
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
+
+#endif

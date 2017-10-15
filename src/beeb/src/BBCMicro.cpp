@@ -1048,6 +1048,7 @@ void BBCMicro::HandleCPUDataBusWithHacks(BBCMicro *m) {
             }
         }
 
+#if BBCMICRO_TRACE
         if(m->m_trace) {
             InstructionTraceEvent *e;
 
@@ -1076,6 +1077,7 @@ void BBCMicro::HandleCPUDataBusWithHacks(BBCMicro *m) {
                 */
             }
         }
+#endif
     }
 }
 
@@ -2125,7 +2127,12 @@ float BBCMicro::UpdateDiscDriveSound(DiscDrive *dd) {
 //////////////////////////////////////////////////////////////////////////
 
 void BBCMicro::UpdateCPUDataBusFn() {
-    if(m_state.hack_flags!=0||m_trace||!m_instruction_fns.empty()) {
+    if(m_state.hack_flags!=0||
+#if BBCMICRO_TRACE//<---note
+       m_trace||////<---note
+#endif//////////////<---note
+       !m_instruction_fns.empty())
+    {
         m_handle_cpu_data_bus_fn=&HandleCPUDataBusWithHacks;
     } else {
         m_handle_cpu_data_bus_fn=m_default_handle_cpu_data_bus_fn;
