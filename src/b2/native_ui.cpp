@@ -63,7 +63,7 @@ void FailureMessageBox(const std::string &title,const std::shared_ptr<MessageLis
             text+=message.text;
         }
     }
-    
+
 #if SYSTEM_WINDOWS
 
     MessageBox(nullptr,text.c_str(),title.c_str(),MB_ICONERROR);
@@ -78,7 +78,7 @@ void FailureMessageBox(const std::string &title,const std::shared_ptr<MessageLis
     (void)title;
 
     gtk_init_check(nullptr,nullptr);
-    
+
     GtkWidget *dialog=gtk_message_dialog_new(nullptr,
                                              GTK_DIALOG_MODAL,
                                              GTK_MESSAGE_ERROR,
@@ -291,6 +291,13 @@ void FileDialog::AddAllFilesFilter() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+int FileDialog::GetFilterIndex() const {
+    return m_filter_index;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 const char *FileDialog::HandleOpen() {
     std::string default_name=PathGetName(m_last_path);
     std::string default_folder=PathGetFolder(m_last_path);
@@ -307,6 +314,9 @@ const char *FileDialog::HandleOpen() {
     const char *r=noc_file_dialog_open(m_noc_flags,m_filters.c_str(),
                                        GetCStr(default_folder),
                                        GetCStr(default_name));
+
+    m_filter_index=noc_file_dialog_get_filter_index();
+
     return r;
 }
 

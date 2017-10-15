@@ -86,13 +86,16 @@ public:
     // PATTERNS should be ;-separated list of patterns.
     void AddFilter(std::string title,const std::string &patterns);
     void AddAllFilesFilter();
+
+    int GetFilterIndex() const;
 protected:
     const char *HandleOpen() override;
 private:
     std::string m_default_dir;
     std::string m_default_name;
     std::string m_filters;
-    int m_noc_flags;
+    int m_noc_flags=0;
+    int m_filter_index=-1;
 };
 
 //////////////////////////////////////////////////////////////////////////
