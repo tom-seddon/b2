@@ -20,16 +20,19 @@ static const size_t NUM_VBLANK_RECORDS=250;
 
 #define ENABLE_IMGUI_DEMO 1
 #define ENABLE_DEBUG_MENU 1
+#define ENABLE_IMGUI_TEST 1
 
 #elif BUILD_TYPE_RelWithDebInfo
 
 #define ENABLE_IMGUI_DEMO 1
 #define ENABLE_DEBUG_MENU 1
+#define ENABLE_IMGUI_TEST 1
 
 #elif BUILD_TYPE_Final
 
 #define ENABLE_IMGUI_DEMO 0
 #define ENABLE_DEBUG_MENU 0
+#define ENABLE_IMGUI_TEST 0
 
 #else
 #error unexpected build type

@@ -36,6 +36,7 @@
 #include "CommandContextStackUI.h"
 #include "CommandKeymapsUI.h"
 #include "PixelMetadataUI.h"
+#include "DearImguiTestUI.h"
 
 #ifdef _MSC_VER
 #include <crtdbg.h>
@@ -734,6 +735,8 @@ bool BeebWindow::DoImGui(int output_width,int output_height) {
     });
 #endif
 
+    this->DoSettingsUI(BeebWindowUIFlag_DearImguiTest,"dear imgui Test",&m_dear_imgui_test,&CreateDearImguiTestUI);
+
     if(ValueChanged(&m_msg_last_num_errors_and_warnings_printed,m_message_list->GetNumErrorsAndWarningsPrinted())) {
         m_settings.ui_flags|=BeebWindowUIFlag_Messages;
     }
@@ -1141,6 +1144,9 @@ void BeebWindow::DoDebugMenu() {
     if(ImGui::BeginMenu("Debug")) {
 #if ENABLE_IMGUI_DEMO
         ImGui::MenuItem("ImGui demo...",NULL,&m_imgui_demo);
+#endif
+#if ENABLE_IMGUI_TEST
+        m_occ.DoMenuItemUI("toggle_dear_imgui_test");
 #endif
         m_occ.DoMenuItemUI("toggle_event_trace");
         m_occ.DoMenuItemUI("toggle_date_rate");
@@ -2314,5 +2320,7 @@ ObjectCommandTable<BeebWindow> BeebWindow::ms_command_table("Beeb Window",{
 #if VIDEO_TRACK_METADATA
     GetToggleUICommand<BeebWindowUIFlag_PixelMetadata>("toggle_pixel_metadata","Pixel metadata..."),
 #endif
-
+#if ENABLE_IMGUI_TEST
+    GetToggleUICommand<BeebWindowUIFlag_DearImguiTest>("toggle_dear_imgui_test","dear imgui test..."),
+#endif
 });

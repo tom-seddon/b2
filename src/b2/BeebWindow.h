@@ -350,6 +350,9 @@ private:
 #if VIDEO_TRACK_METADATA
     std::unique_ptr<SettingsUI> m_pixel_metadata_ui;
 #endif
+#if ENABLE_IMGUI_TEST
+    std::unique_ptr<SettingsUI> m_dear_imgui_test;
+#endif
 
     bool m_messages_popup_ui_active=false;
     uint64_t m_messages_popup_ticks=0;

@@ -42,6 +42,7 @@ EPNV(AudioCallback,1<<7)
 EPNV(CommandContextStack,1<<8)
 EPNV(CommandKeymaps,1<<9)
 EPNV(PixelMetadata,1<<10)
+EPNV(DearImguiTest,1<<11)
 EEND()
 #undef ENAME
 
