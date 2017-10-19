@@ -23,20 +23,36 @@ target_include_directories(miniz_lib INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/miniz
 ##########################################################################
 ##########################################################################
 
-set(IMGUI_FOLDER ${CMAKE_CURRENT_SOURCE_DIR}/Flix01_imgui)
+set(IMGUI__FOLDER ${CMAKE_CURRENT_SOURCE_DIR}/Flix01_imgui)
 
 add_library(imgui_lib STATIC
-  ${IMGUI_FOLDER}/imconfig.h
-  ${IMGUI_FOLDER}/imgui.cpp
-  ${IMGUI_FOLDER}/imgui_demo.cpp
-  ${IMGUI_FOLDER}/imgui_draw.cpp
-  ${IMGUI_FOLDER}/imgui.h
-  ${IMGUI_FOLDER}/imgui_internal.h
-  ${IMGUI_FOLDER}/stb_rect_pack.h
-  ${IMGUI_FOLDER}/stb_textedit.h
-  ${IMGUI_FOLDER}/stb_truetype.h
-  )
-target_include_directories(imgui_lib INTERFACE ${IMGUI_FOLDER})
+  ${IMGUI__FOLDER}/imconfig.h
+  ${IMGUI__FOLDER}/imgui.cpp
+  ${IMGUI__FOLDER}/imgui_demo.cpp
+  ${IMGUI__FOLDER}/imgui_draw.cpp
+  ${IMGUI__FOLDER}/imgui.h
+  ${IMGUI__FOLDER}/imgui_internal.h
+  ${IMGUI__FOLDER}/stb_rect_pack.h
+  ${IMGUI__FOLDER}/stb_textedit.h
+  ${IMGUI__FOLDER}/stb_truetype.h
+  ${IMGUI__FOLDER}/addons/imgui_user.h
+  ${IMGUI__FOLDER}/addons/imgui_user.inl)
+
+target_include_directories(imgui_lib PUBLIC ${IMGUI__FOLDER})
+target_compile_definitions(imgui_lib PUBLIC
+	IMGUI_INCLUDE_IMGUI_USER_H IMGUI_INCLUDE_IMGUI_USER_INL
+	NO_IMGUI_ADDONS YES_IMGUIDOCK YES_IMGUITABWINDOW YES_IMGUITOOLBAR YES_IMGUIPANELMANAGER)
+
+if(MSVC)
+	target_compile_definitions(imgui_lib PRIVATE _CRT_SECURE_NO_WARNINGS)
+
+	# C4305: 'identifier' : truncation from 'type1' to 'type2'
+	# C4267: 'var' : conversion from 'size_t' to 'type', possible loss of data
+	# C4800: 'type' : forcing value to bool 'true' or 'false' (performance warning)
+	# C4244: 'conversion' conversion from 'type1' to 'type2', possible loss of data
+	# C4312: 'operation' : conversion from 'type1' to 'type2' of greater size 
+	target_compile_options(imgui_lib PRIVATE /wd4305 /wd4267 /wd4800 /wd4244 /wd4312 /wd4458)
+endif()
 
 ##########################################################################
 ##########################################################################
