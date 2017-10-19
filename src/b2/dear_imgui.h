@@ -82,6 +82,9 @@ private:
     bool m_want_text_input=false;
     std::string m_imgui_ini_path;
     std::string m_imgui_log_txt_path;
+#if SYSTEM_WINDOWS
+    void *m_cursors[ImGuiMouseCursor_Count_]={};
+#endif
 
     friend class ImGuiContextSetter;
 };

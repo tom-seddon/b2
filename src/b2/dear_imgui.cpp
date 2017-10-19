@@ -158,6 +158,14 @@ bool ImGuiStuff::Init() {
 
     io.MouseDoubleClickTime=GetDoubleClickTime()/1000.f;
 
+    m_cursors[ImGuiMouseCursor_Arrow]=LoadCursor(nullptr,IDC_ARROW);
+    m_cursors[ImGuiMouseCursor_Move]=LoadCursor(nullptr,IDC_SIZEALL);
+    m_cursors[ImGuiMouseCursor_ResizeEW]=LoadCursor(nullptr,IDC_SIZEWE);
+    m_cursors[ImGuiMouseCursor_ResizeNS]=LoadCursor(nullptr,IDC_SIZENS);
+    m_cursors[ImGuiMouseCursor_ResizeNESW]=LoadCursor(nullptr,IDC_SIZENESW);
+    m_cursors[ImGuiMouseCursor_ResizeNWSE]=LoadCursor(nullptr,IDC_SIZENWSE);
+    m_cursors[ImGuiMouseCursor_TextInput]=LoadCursor(nullptr,IDC_IBEAM);
+
 #else
 
     // Answers on a postcard.
@@ -244,6 +252,10 @@ bool ImGuiStuff::Init() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#if SYSTEM_WINDOWS
+extern "C" HCURSOR SDL_cursor;
+#endif
+
 void ImGuiStuff::NewFrame(bool got_mouse_focus) {
     ImGuiContextSetter setter(this);
     ImGuiIO &io=ImGui::GetIO();
@@ -268,6 +280,17 @@ void ImGuiStuff::NewFrame(bool got_mouse_focus) {
         io.KeyCtrl=!!(m&KMOD_CTRL);
         io.KeyAlt=!!(m&KMOD_ALT);
         io.KeyShift=!!(m&KMOD_SHIFT);
+
+#if SYSTEM_WINDOWS
+        {
+            ImGuiMouseCursor cursor=ImGui::GetMouseCursor();
+
+            if(cursor>=0&&cursor<ImGuiMouseCursor_Count_)
+                SDL_cursor=(HCURSOR)m_cursors[cursor];
+            else
+                SDL_cursor=nullptr;
+        }
+#endif
     } else {
         io.MousePos.x=-1.f;
         io.MousePos.y=-1.f;
