@@ -39,9 +39,31 @@ add_library(imgui_lib STATIC
   ${IMGUI__FOLDER}/addons/imgui_user.inl)
 
 target_include_directories(imgui_lib PUBLIC ${IMGUI__FOLDER})
-target_compile_definitions(imgui_lib PUBLIC
-	IMGUI_INCLUDE_IMGUI_USER_H IMGUI_INCLUDE_IMGUI_USER_INL
-	NO_IMGUI_ADDONS YES_IMGUIDOCK YES_IMGUITABWINDOW YES_IMGUITOOLBAR YES_IMGUIPANELMANAGER)
+target_compile_definitions(imgui_lib PUBLIC IMGUI_INCLUDE_IMGUI_USER_H IMGUI_INCLUDE_IMGUI_USER_INL NO_IMGUI_ADDONS)
+
+target_compile_definitions(imgui_lib PUBLIC YES_IMGUIDOCK)
+target_sources(imgui_lib PRIVATE
+  ${IMGUI__FOLDER}/addons/imguidock/imguidock.cpp
+  ${IMGUI__FOLDER}/addons/imguidock/imguidock.h)
+set_source_files_properties(${IMGUI__FOLDER}/addons/imguidock/imguidock.cpp PROPERTIES HEADER_FILE_ONLY TRUE)
+
+target_compile_definitions(imgui_lib PUBLIC YES_IMGUITABWINDOW)
+target_sources(imgui_lib PRIVATE
+  ${IMGUI__FOLDER}/addons/imguitabwindow/imguitabwindow.cpp
+  ${IMGUI__FOLDER}/addons/imguitabwindow/imguitabwindow.h)
+set_source_files_properties(${IMGUI__FOLDER}/addons/imguitabwindow/imguitabwindow.cpp PROPERTIES HEADER_FILE_ONLY TRUE)
+
+target_compile_definitions(imgui_lib PUBLIC YES_IMGUITOOLBAR)
+target_sources(imgui_lib PRIVATE
+  ${IMGUI__FOLDER}/addons/imguitoolbar/imguitoolbar.cpp
+  ${IMGUI__FOLDER}/addons/imguitoolbar/imguitoolbar.h)
+set_source_files_properties(${IMGUI__FOLDER}/addons/imguitoolbar/imguitoolbar.cpp PROPERTIES HEADER_FILE_ONLY TRUE)
+
+target_compile_definitions(imgui_lib PUBLIC YES_IMGUIPANELMANAGER)
+target_sources(imgui_lib PRIVATE
+  ${IMGUI__FOLDER}/addons/imguipanelmanager/imguipanelmanager.cpp
+  ${IMGUI__FOLDER}/addons/imguipanelmanager/imguipanelmanager.h)
+set_source_files_properties(${IMGUI__FOLDER}/addons/imguipanelmanager/imguipanelmanager.cpp PROPERTIES HEADER_FILE_ONLY TRUE)
 
 if(MSVC)
 	target_compile_definitions(imgui_lib PRIVATE _CRT_SECURE_NO_WARNINGS)
