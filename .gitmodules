@@ -31,3 +31,6 @@
 [submodule "submodules/sanitizers-cmake"]
 	path = submodules/sanitizers-cmake
 	url = https://github.com/arsenm/sanitizers-cmake
+[submodule "submodules/Flix01_imgui"]
+	path = submodules/Flix01_imgui
+	url = https://github.com/tom-seddon/Flix01_imgui

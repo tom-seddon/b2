@@ -564,7 +564,7 @@ void TraceUI::DoImGui(CommandContextStack *cc_stack) {
     const volatile TraceStats *running_stats=beeb_thread->GetTraceStats();
 
     if(!running_stats) {
-        ImGui::AlignFirstTextHeightToWidgets();
+        ImGui::AlignTextToFramePadding();
         ImGui::TextUnformatted("Start:");
         ImGui::SameLine();
         ImGuiRadioButton("Immediate",&m_settings.start,TraceUIStartCondition_Now);

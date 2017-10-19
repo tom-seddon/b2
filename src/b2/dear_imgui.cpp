@@ -650,7 +650,7 @@ static void ImGuiLED2(bool on,const char *begin,const char *end) {
         ImGui::ItemSize(ImVec2(text_bb.GetWidth(),check_bb.GetHeight()),GImGui->Style.FramePadding.y);
     }
 
-    if(!ImGui::ItemAdd(total_bb,&id))
+    if(!ImGui::ItemAdd(total_bb,id))
         return;
 
     ImVec2 centre=check_bb.GetCenter();
@@ -839,7 +839,7 @@ static void PlotEx2(
 
         // Tooltip on hover
         int v_hovered=-1;
-        if(IsHovered(inner_bb,0))
+        if(ItemHoverable(inner_bb,0))
         {
             const float t=ImClamp((g.IO.MousePos.x-inner_bb.Min.x)/(inner_bb.Max.x-inner_bb.Min.x),0.0f,0.9999f);
             const int v_idx=(int)(t * item_count);

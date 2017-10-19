@@ -18,7 +18,7 @@ static inline ImVec2 operator-(const ImVec2& lhs, const ImVec2& rhs) { return Im
 // Note that we storing links are INDICES (not ID) to make example code shorter, obviously a bad idea for any general purpose code.
 static void ShowExampleAppCustomNodeGraph(bool* opened)
 {
-    ImGui::SetNextWindowSize(ImVec2(700,600), ImGuiSetCond_FirstUseEver);
+    ImGui::SetNextWindowSize(ImVec2(700,600), ImGuiCond_FirstUseEver);
     if (!ImGui::Begin("Example: Custom Node Graph (ocornut)", opened))
     {
         ImGui::End();
@@ -180,7 +180,7 @@ static void ShowExampleAppCustomNodeGraph(bool* opened)
     draw_list->ChannelsMerge();
 
     // Open context menu
-    if (!ImGui::IsAnyItemHovered() && ImGui::IsMouseHoveringWindow() && ImGui::IsMouseClicked(1))
+    if (!ImGui::IsAnyItemHovered() && ImGui::IsWindowRectHovered() && ImGui::IsMouseClicked(1))
     {
         node_selected = node_hovered_in_list = node_hovered_in_scene = -1;
         open_context_menu = true;

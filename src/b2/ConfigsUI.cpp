@@ -93,7 +93,7 @@ bool ConfigsUI::DoEditConfigGui(const BeebConfig *config,BeebConfig *editable_co
         title+=" (default)";
     }
 
-    if(ImGui::CollapsingHeader(title.c_str(),"header",true,true)) {
+    if(ImGui::CollapsingHeader(title.c_str(),ImGuiTreeNodeFlags_DefaultOpen)) {
         if(editable_config) {
             std::string name;
             if(ImGuiInputText(&editable_config->name,"Name",editable_config->name)) {
@@ -239,7 +239,7 @@ bool ConfigsUI::DoEditConfigGui(const BeebConfig *config,BeebConfig *editable_co
 void ConfigsUI::DoROMInfoGui(const char *caption,const std::string &file_name,const bool *writeable) {
     ImGuiIDPusher id_pusher(caption);
 
-    ImGui::AlignFirstTextHeightToWidgets();
+    ImGui::AlignTextToFramePadding();
     
     ImGui::TextUnformatted(caption);
 

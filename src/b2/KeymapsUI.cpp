@@ -837,7 +837,7 @@ bool KeymapsUIImpl::DoEditKeymapGui(const BeebKeymap *keymap,BeebKeymap *editabl
         title+=SCANCODES_KEYMAP_ICON;
     }
 
-    if(ImGui::CollapsingHeader(title.c_str(),"header",true,is_current)) {
+    if(ImGui::CollapsingHeader(title.c_str(),is_current?ImGuiTreeNodeFlags_DefaultOpen:0)) {
         if(editable_keymap) {
             std::string name;
             if(ImGuiInputText(&name,"Name",keymap->GetName())) {

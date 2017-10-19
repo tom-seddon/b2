@@ -751,7 +751,7 @@ bool BeebWindow::DoImGui(int output_width,int output_height) {
                                 ImGuiWindowFlags_ShowBorders|
                                 ImGuiWindowFlags_AlwaysAutoResize|
                                 ImGuiWindowFlags_NoFocusOnAppearing);
-        ImGui::SetNextWindowPosCenter();
+        ImGui::SetNextWindowPos(ImGui::GetIO().DisplaySize * 0.5f, ImGuiCond_Always, ImVec2(0.5f, 0.5f));
 
         // What's supposed to happen here: the window is 90% of the
         // screen width and as tall as it needs to be ("set axis to

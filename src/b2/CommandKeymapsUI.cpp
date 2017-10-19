@@ -32,7 +32,7 @@ void CommandKeymapsUI::DoImGui(CommandContextStack *cc_stack) {
     CommandTable::ForEachCommandTable([&](CommandTable *table) {
         ImGuiIDPusher id_pusher(table);
         std::string title=table->GetName()+" shortcuts";
-        if(ImGui::CollapsingHeader(title.c_str(),"header",true,true)) {
+        if(ImGui::CollapsingHeader(title.c_str(),ImGuiTreeNodeFlags_DefaultOpen)) {
             table->ForEachCommand([&](Command *command) {
                 ImGuiIDPusher command_id_pusher(command);
 

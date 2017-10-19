@@ -23,7 +23,7 @@ target_include_directories(miniz_lib INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/miniz
 ##########################################################################
 ##########################################################################
 
-set(IMGUI_FOLDER ${CMAKE_CURRENT_SOURCE_DIR}/imgui)
+set(IMGUI_FOLDER ${CMAKE_CURRENT_SOURCE_DIR}/Flix01_imgui)
 
 add_library(imgui_lib STATIC
   ${IMGUI_FOLDER}/imconfig.h
@@ -36,7 +36,7 @@ add_library(imgui_lib STATIC
   ${IMGUI_FOLDER}/stb_textedit.h
   ${IMGUI_FOLDER}/stb_truetype.h
   )
-target_include_directories(imgui_lib INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/imgui)
+target_include_directories(imgui_lib INTERFACE ${IMGUI_FOLDER})
 
 ##########################################################################
 ##########################################################################
