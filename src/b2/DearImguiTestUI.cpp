@@ -3,6 +3,7 @@
 
 #if ENABLE_IMGUI_TEST
 
+#include "misc.h"
 #include "SettingsUI.h"
 #include "dear_imgui.h"
 
@@ -20,6 +21,7 @@ public:
     bool WantsKeyboardFocus() const override;
 protected:
 private:
+    void DoDock(const char *slot_name,ImGuiDockSlot slot);
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -28,7 +30,18 @@ private:
 void DearImguiTestUI::DoImGui(CommandContextStack *cc_stack) {
     (void)cc_stack;
 
-    ImGui::Text("Hello");
+    ImGui::BeginDockspace();
+
+#define TW(X) (this->DoDock(#X,ImGuiDockSlot_##X))
+
+    TW(Left);
+    TW(Right);
+    TW(Top);
+    TW(Bottom);
+
+#undef TW
+
+    ImGui::EndDockspace();
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -43,6 +56,19 @@ bool DearImguiTestUI::OnClose() {
 
 bool DearImguiTestUI::WantsKeyboardFocus() const {
     return false;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void DearImguiTestUI::DoDock(const char *slot_name,ImGuiDockSlot slot) {
+    std::string title=std::string("Dock ")+slot_name;
+
+    ImGui::SetNextDock(slot);
+    if(ImGui::BeginDock(title.c_str())) {
+        ImGui::Text("Dock: %s",slot_name);
+    }
+    ImGui::EndDock();
 }
 
 //////////////////////////////////////////////////////////////////////////
