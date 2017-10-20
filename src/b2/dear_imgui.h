@@ -28,6 +28,7 @@
 
 struct SDL_Texture;
 struct SDL_Renderer;
+class Messages;
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -69,10 +70,14 @@ public:
     bool WantCaptureMouse() const;
     bool WantCaptureKeyboard() const;
     bool WantTextInput() const;
+
+    bool LoadDockContext(const std::string &config);
+    std::string SaveDockContext() const;
 protected:
 private:
     SDL_Renderer *m_renderer=nullptr;
     ImGuiContext *m_context=nullptr;
+    ImGui::DockContext *m_dock_context=nullptr;
     struct SDL_Texture *m_font_texture=nullptr;
     uint64_t m_last_new_frame_ticks=0;
     int m_next_wheel=0;
@@ -94,7 +99,7 @@ private:
 
 class ImGuiContextSetter {
 public:
-    explicit ImGuiContextSetter(ImGuiStuff *stuff);
+    explicit ImGuiContextSetter(const ImGuiStuff *stuff);
     ~ImGuiContextSetter();
 
     ImGuiContextSetter(const ImGuiContextSetter &)=delete;
@@ -104,7 +109,8 @@ public:
     ImGuiContextSetter &operator=(ImGuiContextSetter &&)=delete;
 protected:
 private:
-    ImGuiContext *m_old_imgui_context;
+    ImGuiContext *m_old_imgui_context=nullptr;
+    ImGui::DockContext *m_old_dock_context=nullptr;
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -205,7 +211,7 @@ static bool ImGuiRadioButton(const char *label,T *value,T button_value) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool ImGuiBeginFlag(const char *label,uint32_t *open,uint32_t open_mask,ImGuiWindowFlags flags=0);
+//bool ImGuiBeginFlag(const char *label,uint32_t *open,uint32_t open_mask,ImGuiWindowFlags flags=0);
 
 bool ImGuiMenuItemFlag(const char* label,const char* shortcut,uint32_t *selected,uint32_t selected_mask,bool enabled=true);
 

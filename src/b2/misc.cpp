@@ -288,3 +288,27 @@ AudioDeviceLock::~AudioDeviceLock() {
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
+
+void ForEachLine(const std::string &str,std::function<void(const std::string::const_iterator &a,const std::string::const_iterator &b)> fun) {
+    std::string::const_iterator a=str.begin(),b=a;
+    while(b!=str.end()) {
+        char c=*b;
+        if(c=='\r'||c=='\n') {
+            fun(a,b);
+
+            ++b;
+            if(b!=str.end()) {
+                if((*b=='\r'||*b=='\n')&&*b!=c) {
+                    ++b;
+                }
+            }
+
+            a=b;
+        } else {
+            ++b;
+        }
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////

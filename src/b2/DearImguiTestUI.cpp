@@ -30,18 +30,18 @@ private:
 void DearImguiTestUI::DoImGui(CommandContextStack *cc_stack) {
     (void)cc_stack;
 
-    ImGui::BeginDockspace();
-
-#define TW(X) (this->DoDock(#X,ImGuiDockSlot_##X))
-
-    TW(Left);
-    TW(Right);
-    TW(Top);
-    TW(Bottom);
-
-#undef TW
-
-    ImGui::EndDockspace();
+//    ImGui::BeginDockspace();
+//
+//#define TW(X) (this->DoDock(#X,ImGuiDockSlot_##X))
+//
+//    TW(Left);
+//    TW(Right);
+//    TW(Top);
+//    TW(Bottom);
+//
+//#undef TW
+//
+//    ImGui::EndDockspace();
 }
 
 //////////////////////////////////////////////////////////////////////////

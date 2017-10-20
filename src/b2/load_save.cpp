@@ -843,6 +843,7 @@ static const char DISPLAY_ALIGNMENT_Y[]="display_alignment_y";
 static const char FILTER_BBC[]="filter_bbc";
 static const char SHORTCUTS[]="shortcuts";
 static const char PREFER_SHORTCUTS[]="prefer_shortcuts";
+static const char DOCK_CONFIG[]="dock_config";
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -1123,6 +1124,7 @@ static bool LoadWindows(rapidjson::Value *windows,Messages *msg) {
     }
 
     FindFlagsMember(&BeebWindows::defaults.ui_flags,windows,FLAGS,"UI flag",&GetBeebWindowUIFlagEnumName,msg);
+    //FindStringMember(&BeebWindows::defaults.dock_config,windows,DOCK_CONFIG,msg);
     FindFloatMember(&BeebWindows::defaults.bbc_volume,windows,BBC_VOLUME,msg);
     FindFloatMember(&BeebWindows::defaults.disc_volume,windows,DISC_VOLUME,msg);
     FindBoolMember(&BeebWindows::defaults.display_auto_scale,windows,DISPLAY_AUTO_SCALE,msg);
@@ -1142,6 +1144,27 @@ static bool LoadWindows(rapidjson::Value *windows,Messages *msg) {
                 msg->w.f("default keymap unknown: %s\n",keymap_name.c_str());
 
                 // But it's OK - a sensible one will be selected.
+            }
+        }
+    }
+
+    {
+        rapidjson::Value dock_config;
+        if(FindArrayMember(&dock_config,windows,DOCK_CONFIG,nullptr)) {
+            BeebWindows::defaults.dock_config.clear();
+
+            for(rapidjson::SizeType i=0;i<dock_config.Size();++i) {
+                rapidjson::Value *dock_config_line=&dock_config[i];
+
+                if(!dock_config_line->IsString()) {
+                    msg->e.f("not a string: %s[%" PRIsizetype "]\n",DOCK_CONFIG,i);
+                    BeebWindows::defaults.dock_config.clear();
+                    // and it's OK; there'll just be no dock config.
+                    break;
+                }
+
+                BeebWindows::defaults.dock_config+=dock_config_line->GetString();
+                BeebWindows::defaults.dock_config+="\n";
             }
         }
     }
@@ -1488,6 +1511,14 @@ static void SaveWindows(JSONWriter<StringStream> *writer) {
             auto ui_flags_json=ArrayWriter(writer,FLAGS);
 
             SaveFlags(writer,BeebWindows::defaults.ui_flags,&GetBeebWindowUIFlagEnumName);
+        }
+
+        {
+            auto dock_config_json=ArrayWriter(writer,DOCK_CONFIG);
+
+            ForEachLine(BeebWindows::defaults.dock_config.c_str(),[writer](const std::string::const_iterator &a,const std::string::const_iterator &b) {
+                writer->String(std::string(a,b).c_str());//ugh.
+            });
         }
 
         writer->Key(KEYMAP);

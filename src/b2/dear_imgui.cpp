@@ -46,19 +46,23 @@ static ImGuiShutdownObject g_imgui_shutdown_object;
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-ImGuiContextSetter::ImGuiContextSetter(ImGuiStuff *stuff):
-    m_old_imgui_context(ImGui::GetCurrentContext())
+ImGuiContextSetter::ImGuiContextSetter(const ImGuiStuff *stuff):
+    m_old_imgui_context(ImGui::GetCurrentContext()),
+    m_old_dock_context(ImGui::GetCurrentDockContext())
 {
     if(stuff->m_context)
         ImGui::SetCurrentContext(stuff->m_context);
+
+    if(stuff->m_dock_context)
+        ImGui::SetCurrentDockContext(stuff->m_dock_context);
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-ImGuiContextSetter::~ImGuiContextSetter()
-{
+ImGuiContextSetter::~ImGuiContextSetter() {
     ImGui::SetCurrentContext(m_old_imgui_context);
+    ImGui::SetCurrentDockContext(m_old_dock_context);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -76,6 +80,9 @@ ImGuiStuff::ImGuiStuff(SDL_Renderer *renderer):
 ImGuiStuff::~ImGuiStuff() {
     if(m_context) {
         ImGuiContextSetter setter(this);
+
+        ImGui::DestroyDockContext(m_dock_context);
+        m_dock_context=nullptr;
 
         ImGuiIO &io=ImGui::GetIO();
 
@@ -142,6 +149,7 @@ bool ImGuiStuff::Init() {
     int rc;
 
     m_context=ImGui::CreateContext();
+    m_dock_context=ImGui::CreateDockContext();
 
     ImGuiContextSetter setter(this);
 
@@ -428,6 +436,30 @@ bool ImGuiStuff::WantCaptureKeyboard() const {
 
 bool ImGuiStuff::WantTextInput() const {
     return m_want_text_input;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool ImGuiStuff::LoadDockContext(const std::string &config) {
+    ImGuiContextSetter setter(this);
+
+    ImGuiHelper::Deserializer deserializer(config.data(),config.size());
+    return ImGui::LoadDock(deserializer);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+std::string ImGuiStuff::SaveDockContext() const {
+    ImGuiContextSetter setter(this);
+
+    ImGuiHelper::Serializer serializer;
+    ImGui::SaveDock(serializer);
+
+    ASSERT(serializer.getBufferSize()>=0);
+    std::string result(serializer.getBuffer(),(size_t)serializer.getBufferSize());
+    return result;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -737,19 +769,19 @@ void ImGuiLEDf(bool on,const char *fmt,...) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool ImGuiBeginFlag(const char *label,uint32_t *open,uint32_t open_mask,ImGuiWindowFlags flags) {
-    bool tmp=!!(*open&open_mask);
-
-    bool result=ImGui::Begin(label,&tmp,flags);
-
-    if(tmp) {
-        *open|=open_mask;
-    } else {
-        *open&=~open_mask;
-    }
-
-    return result;
-}
+//bool ImGuiBeginFlag(const char *label,uint32_t *open,uint32_t open_mask,ImGuiWindowFlags flags) {
+//    bool tmp=!!(*open&open_mask);
+//
+//    bool result=ImGui::Begin(label,&tmp,flags);
+//
+//    if(tmp) {
+//        *open|=open_mask;
+//    } else {
+//        *open&=~open_mask;
+//    }
+//
+//    return result;
+//}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

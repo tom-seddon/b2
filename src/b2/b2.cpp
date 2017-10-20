@@ -998,7 +998,7 @@ int main(int argc,char *argv[]) {
 #ifdef _MSC_VER
     _CrtSetDbgFlag(_CrtSetDbgFlag(_CRTDBG_REPORT_FLAG)|_CRTDBG_LEAK_CHECK_DF);
     //_CrtSetDbgFlag(_CrtSetDbgFlag(_CRTDBG_REPORT_FLAG)|_CRTDBG_CHECK_ALWAYS_DF|);
-    //_crtBreakAlloc=1369;
+    //_crtBreakAlloc=12520;
 #endif
 
     auto &&messages=std::make_shared<MessageList>();

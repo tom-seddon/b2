@@ -621,14 +621,23 @@ void BeebWindow::DoSettingsUI(uint32_t ui_flag,const char *name,std::unique_ptr<
             *uptr=create_fun();
         }
 
-        if(ImGuiBeginFlag(name,&m_settings.ui_flags,ui_flag)) {
+        bool opened=!!(m_settings.ui_flags&ui_flag);
+
+        if(ImGui::BeginDock(name,&opened)) {
             (*uptr)->DoImGui(&m_cc_stack);
 
             if((*uptr)->WantsKeyboardFocus()) {
                 m_imgui_has_kb_focus=true;
             }
         }
-        ImGui::End();
+        ImGui::EndDock();
+
+        if(opened) {
+            m_settings.ui_flags|=ui_flag;
+        } else {
+            m_settings.ui_flags&=~ui_flag;
+        }
+
     } else if(!!*uptr) {
         this->MaybeSaveConfig((*uptr)->OnClose());
         *uptr=nullptr;
@@ -639,7 +648,6 @@ void BeebWindow::DoSettingsUI(uint32_t ui_flag,const char *name,std::unique_ptr<
 //////////////////////////////////////////////////////////////////////////
 
 bool BeebWindow::DoImGui(int output_width,int output_height) {
-    (void)output_width,(void)output_height;
     const uint64_t now=GetCurrentTickCount();
 
     bool keep_window=true;
@@ -657,6 +665,119 @@ bool BeebWindow::DoImGui(int output_width,int output_height) {
         m_imgui_has_kb_focus=true;
     }
 
+    if(!this->DoMenuUI()) {
+        keep_window=false;
+    }
+
+    // Minor WTF...
+    {
+        ImVec2 pos=ImGui::GetCursorPos();
+
+        // ImGui::GetContentRegionAvail() doesn't return this value.
+        ImVec2 size={(float)output_width-pos.x,(float)output_height-pos.y};
+
+        ImGui::SetNextWindowPos(pos);
+        ImGui::SetNextWindowSize(size);
+    }
+
+    uint32_t content_holder_flags=(ImGuiWindowFlags_NoScrollWithMouse|
+                                   ImGuiWindowFlags_NoTitleBar|
+                                   ImGuiWindowFlags_NoResize|
+                                   ImGuiWindowFlags_NoMove|
+                                   ImGuiWindowFlags_NoScrollbar|
+                                   ImGuiWindowFlags_NoSavedSettings|
+                                   ImGuiWindowFlags_NoInputs|
+                                   ImGuiWindowFlags_NoBringToFrontOnFocus);
+
+    if(ImGui::Begin("ContentHolder",nullptr,content_holder_flags)) {
+        ImGui::BeginDockspace();
+
+        this->DoSettingsUI(BeebWindowUIFlag_Keymaps,"Keyboard layout",&m_keymaps_ui,[this]() {
+            return KeymapsUI::Create(this);
+        });
+
+        this->DoSettingsUI(BeebWindowUIFlag_CommandKeymaps,"Command Keys",&m_command_keymaps_ui,[]() {
+            return std::make_unique<CommandKeymapsUI>();
+        });
+
+        this->DoSettingsUI(BeebWindowUIFlag_Options,"Options",&m_options_ui,[this]() {
+            return std::make_unique<OptionsUI>(this);
+        });
+
+        //// Options is its own thing, for now, since it fiddles with the BeebWindow internals a bit...
+        //if(m_settings.ui_flags&BeebWindowUIFlag_Options) {
+        //    if(ImGuiBeginFlag("Options",&m_settings.ui_flags,BeebWindowUIFlag_Options)) {
+        //        this->DoOptionsGui();
+        //    }
+        //    ImGui::End();
+
+        //    if(!(m_settings.ui_flags&BeebWindowUIFlag_Options)) {
+        //        this->MaybeSaveConfig(true);
+        //    }
+        //}
+
+        this->DoSettingsUI(BeebWindowUIFlag_Messages,"Messages",&m_messages_ui,[this]() {
+            return CreateMessagesUI(m_message_list);
+        });
+
+#if TIMELINE_UI_ENABLED
+        this->DoSettingsUI(BeebWindowUIFlag_Timeline,"Timeline",&m_timeline_ui,[this]() {
+            return CreateTimelineUI(this,this->GetNewWindowInitArguments(),m_renderer,m_pixel_format);
+        });
+#endif
+
+        this->DoSettingsUI(BeebWindowUIFlag_Configs,"Configurations",&m_configs_ui,&CreateConfigsUI);
+
+#if BBCMICRO_TRACE
+        this->DoSettingsUI(BeebWindowUIFlag_Trace,"Tracing",&m_trace_ui,[this]() {
+            return std::make_unique<TraceUI>(this);
+        });
+#endif
+
+        this->DoSettingsUI(BeebWindowUIFlag_NVRAM,"Non-volatile RAM",&m_nvram_ui,[this]() {
+            return std::make_unique<NVRAMUI>(this);
+        });
+
+        this->DoSettingsUI(BeebWindowUIFlag_AudioCallback,"Data Rate",&m_data_rate_ui,[this]() {
+            return std::make_unique<DataRateUI>(this);
+
+        });
+
+        this->DoSettingsUI(BeebWindowUIFlag_CommandContextStack,"Command Context Stack",&m_cc_stack_ui,[this]() {
+            return std::make_unique<CommandContextStackUI>(&m_cc_stack);
+        });
+
+#if VIDEO_TRACK_METADATA
+        this->DoSettingsUI(BeebWindowUIFlag_PixelMetadata,"Pixel Metadata",&m_pixel_metadata_ui,[this]() {
+            return std::make_unique<PixelMetadataUI>(this);
+        });
+#endif
+
+        this->DoSettingsUI(BeebWindowUIFlag_DearImguiTest,"dear imgui Test",&m_dear_imgui_test,&CreateDearImguiTestUI);
+
+        if(ValueChanged(&m_msg_last_num_errors_and_warnings_printed,m_message_list->GetNumErrorsAndWarningsPrinted())) {
+            m_settings.ui_flags|=BeebWindowUIFlag_Messages;
+        }
+
+        ImGui::EndDockspace();
+
+#if ENABLE_IMGUI_DEMO
+        if(m_imgui_demo) {
+            ImGui::ShowTestWindow();
+        }
+#endif
+
+        this->DoPopupUI(now,output_width,output_height);
+
+        ImGui::End();
+    }
+
+    return keep_window;
+}
+
+bool BeebWindow::DoMenuUI() {
+    bool keep_window=true;
+
     if(ImGui::BeginMainMenuBar()) {
         this->DoFileMenu();
         this->DoEditMenu();
@@ -668,78 +789,11 @@ bool BeebWindow::DoImGui(int output_width,int output_height) {
         ImGui::EndMainMenuBar();
     }
 
-#if ENABLE_IMGUI_DEMO
-    if(m_imgui_demo) {
-        ImGui::ShowTestWindow();
-    }
-#endif
+    return keep_window;
+}
 
-    this->DoSettingsUI(BeebWindowUIFlag_Keymaps,"Keyboard layout",&m_keymaps_ui,[this]() {
-        return KeymapsUI::Create(this);
-    });
-
-    this->DoSettingsUI(BeebWindowUIFlag_CommandKeymaps,"Command Keys",&m_command_keymaps_ui,[]() {
-        return std::make_unique<CommandKeymapsUI>();
-    });
-
-    this->DoSettingsUI(BeebWindowUIFlag_Options,"Options",&m_options_ui,[this]() {
-        return std::make_unique<OptionsUI>(this);
-    });
-
-    //// Options is its own thing, for now, since it fiddles with the BeebWindow internals a bit...
-    //if(m_settings.ui_flags&BeebWindowUIFlag_Options) {
-    //    if(ImGuiBeginFlag("Options",&m_settings.ui_flags,BeebWindowUIFlag_Options)) {
-    //        this->DoOptionsGui();
-    //    }
-    //    ImGui::End();
-
-    //    if(!(m_settings.ui_flags&BeebWindowUIFlag_Options)) {
-    //        this->MaybeSaveConfig(true);
-    //    }
-    //}
-
-    this->DoSettingsUI(BeebWindowUIFlag_Messages,"Messages",&m_messages_ui,[this]() {
-        return CreateMessagesUI(m_message_list);
-    });
-
-#if TIMELINE_UI_ENABLED
-    this->DoSettingsUI(BeebWindowUIFlag_Timeline,"Timeline",&m_timeline_ui,[this]() {
-        return CreateTimelineUI(this,this->GetNewWindowInitArguments(),m_renderer,m_pixel_format);
-    });
-#endif
-
-    this->DoSettingsUI(BeebWindowUIFlag_Configs,"Configurations",&m_configs_ui,&CreateConfigsUI);
-
-#if BBCMICRO_TRACE
-    this->DoSettingsUI(BeebWindowUIFlag_Trace,"Tracing",&m_trace_ui,[this]() {
-        return std::make_unique<TraceUI>(this);
-    });
-#endif
-
-    this->DoSettingsUI(BeebWindowUIFlag_NVRAM,"Non-volatile RAM",&m_nvram_ui,[this]() {
-        return std::make_unique<NVRAMUI>(this);
-    });
-
-    this->DoSettingsUI(BeebWindowUIFlag_AudioCallback,"Data Rate",&m_data_rate_ui,[this]() {
-        return std::make_unique<DataRateUI>(this);
-
-    });
-
-    this->DoSettingsUI(BeebWindowUIFlag_CommandContextStack,"Command Context Stack",&m_cc_stack_ui,[this]() {
-        return std::make_unique<CommandContextStackUI>(&m_cc_stack);
-    });
-
-#if VIDEO_TRACK_METADATA
-    this->DoSettingsUI(BeebWindowUIFlag_PixelMetadata,"Pixel Metadata",&m_pixel_metadata_ui,[this]() {
-        return std::make_unique<PixelMetadataUI>(this);
-    });
-#endif
-
-    this->DoSettingsUI(BeebWindowUIFlag_DearImguiTest,"dear imgui Test",&m_dear_imgui_test,&CreateDearImguiTestUI);
-
-    if(ValueChanged(&m_msg_last_num_errors_and_warnings_printed,m_message_list->GetNumErrorsAndWarningsPrinted())) {
-        m_settings.ui_flags|=BeebWindowUIFlag_Messages;
-    }
+void BeebWindow::DoPopupUI(uint64_t now,int output_width,int output_height) {
+    (void)output_width;
 
     if(ValueChanged(&m_msg_last_num_messages_printed,m_message_list->GetNumMessagesPrinted())) {
         m_messages_popup_ui_active=true;
@@ -751,7 +805,7 @@ bool BeebWindow::DoImGui(int output_width,int output_height) {
                                 ImGuiWindowFlags_ShowBorders|
                                 ImGuiWindowFlags_AlwaysAutoResize|
                                 ImGuiWindowFlags_NoFocusOnAppearing);
-        ImGui::SetNextWindowPos(ImGui::GetIO().DisplaySize * 0.5f, ImGuiCond_Always, ImVec2(0.5f, 0.5f));
+        ImGui::SetNextWindowPos(ImGui::GetIO().DisplaySize * 0.5f,ImGuiCond_Always,ImVec2(0.5f,0.5f));
 
         // What's supposed to happen here: the window is 90% of the
         // screen width and as tall as it needs to be ("set axis to
@@ -877,8 +931,6 @@ bool BeebWindow::DoImGui(int output_width,int output_height) {
             ImGui::End();
         }
     }
-
-    return keep_window;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -1342,6 +1394,8 @@ bool BeebWindow::HandleVBlank(uint64_t ticks) {
     m_imgui_stuff->Render();
     SDL_RenderPresent(m_renderer);
 
+    //printf("dear imgui: Active=%08x Hovered=%08x, HovWin=%s\n",GImGui->ActiveId,GImGui->HoveredId,GImGui->HoveredWindow?GImGui->HoveredWindow->Name:"-");
+
     bool got_mouse_focus=false;
     {
         SDL_Window *mouse_window=SDL_GetMouseFocus();
@@ -1412,6 +1466,8 @@ bool BeebWindow::Init() {
 //////////////////////////////////////////////////////////////////////////
 
 void BeebWindow::SaveSettings() {
+    m_settings.dock_config=m_imgui_stuff->SaveDockContext();
+
     BeebWindows::defaults=m_settings;
 
     this->SavePosition();
@@ -1467,7 +1523,7 @@ void BeebWindow::SavePosition() {
     BeebWindows::SetLastWindowPlacementData(buf);
 
 #endif
-}
+    }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -1504,7 +1560,6 @@ bool BeebWindow::InitInternal() {
         m_msg.e.f("SDL_AllocFormat failed: %s\n",SDL_GetError());
         return false;
     }
-
 
     SDL_SetWindowData(m_window,SDL_WINDOW_DATA_NAME,this);
 
@@ -1632,6 +1687,12 @@ bool BeebWindow::InitInternal() {
     if(SDL_GL_GetCurrentContext()) {
         if(SDL_GL_SetSwapInterval(0)!=0) {
             m_msg.i.f("failed to set GL swap interval to 0: %s\n",SDL_GetError());
+        }
+    }
+
+    if(!m_settings.dock_config.empty()) {
+        if(!m_imgui_stuff->LoadDockContext(m_settings.dock_config)) {
+            m_msg.w.f("failed to load dock config\n");
         }
     }
 
@@ -1883,6 +1944,8 @@ void BeebWindow::MaybeSaveConfig(bool save_config) {
         this->SaveSettings();
 
         SaveGlobalConfig(&m_msg);
+
+        printf("%s\n",m_imgui_stuff->SaveDockContext().c_str());
 
         m_msg.i.f("Configuration saved.\n");
     }

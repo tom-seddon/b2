@@ -65,6 +65,12 @@ target_sources(imgui_lib PRIVATE
   ${IMGUI__FOLDER}/addons/imguipanelmanager/imguipanelmanager.h)
 set_source_files_properties(${IMGUI__FOLDER}/addons/imguipanelmanager/imguipanelmanager.cpp PROPERTIES HEADER_FILE_ONLY TRUE)
 
+target_compile_definitions(imgui_lib PUBLIC YES_IMGUIHELPER)
+target_sources(imgui_lib PRIVATE
+  ${IMGUI__FOLDER}/addons/imguihelper/imguihelper.cpp
+  ${IMGUI__FOLDER}/addons/imguihelper/imguihelper.h)
+set_source_files_properties(${IMGUI__FOLDER}/addons/imguihelper/imguihelper.cpp PROPERTIES HEADER_FILE_ONLY TRUE)
+
 if(MSVC)
 	target_compile_definitions(imgui_lib PRIVATE _CRT_SECURE_NO_WARNINGS)
 

@@ -64,6 +64,8 @@ struct BeebWindowTextureDataVersion {
 struct BeebWindowSettings {
     uint32_t ui_flags=0;
 
+    std::string dock_config;
+
     float bbc_volume=0.f;
     float disc_volume=0.f;
 
@@ -379,6 +381,8 @@ private:
     void DoOptionsGui();
     void DoSettingsUI(uint32_t ui_flag,const char *name,std::unique_ptr<SettingsUI> *uptr,std::function<std::unique_ptr<SettingsUI>()> create_fun);
     bool DoImGui(int output_width,int output_height);
+    bool DoMenuUI();
+    void DoPopupUI(uint64_t now,int output_width,int output_height);
     void DoFileMenu();
     void DoEditMenu();
     void DoToolsMenu();
