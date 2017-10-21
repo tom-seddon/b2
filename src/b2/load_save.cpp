@@ -207,6 +207,10 @@ static std::string GetConfigFileName() {
     return GetConfigPath("b2.json");
 }
 
+static std::string GetDockLayoutFileName() {
+    return GetConfigPath("imguidock.ini");
+}
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
@@ -839,7 +843,7 @@ static const char DISPLAY_SCALE_Y[]="display_scale_y";
 static const char FILTER_BBC[]="filter_bbc";
 static const char SHORTCUTS[]="shortcuts";
 static const char PREFER_SHORTCUTS[]="prefer_shortcuts";
-static const char DOCK_CONFIG[]="dock_config";
+//static const char DOCK_CONFIG[]="dock_config";
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -1140,26 +1144,26 @@ static bool LoadWindows(rapidjson::Value *windows,Messages *msg) {
         }
     }
 
-    {
-        rapidjson::Value dock_config;
-        if(FindArrayMember(&dock_config,windows,DOCK_CONFIG,nullptr)) {
-            BeebWindows::defaults.dock_config.clear();
+    //{
+    //    rapidjson::Value dock_config;
+    //    if(FindArrayMember(&dock_config,windows,DOCK_CONFIG,nullptr)) {
+    //        BeebWindows::defaults.dock_config.clear();
 
-            for(rapidjson::SizeType i=0;i<dock_config.Size();++i) {
-                rapidjson::Value *dock_config_line=&dock_config[i];
+    //        for(rapidjson::SizeType i=0;i<dock_config.Size();++i) {
+    //            rapidjson::Value *dock_config_line=&dock_config[i];
 
-                if(!dock_config_line->IsString()) {
-                    msg->e.f("not a string: %s[%" PRIsizetype "]\n",DOCK_CONFIG,i);
-                    BeebWindows::defaults.dock_config.clear();
-                    // and it's OK; there'll just be no dock config.
-                    break;
-                }
+    //            if(!dock_config_line->IsString()) {
+    //                msg->e.f("not a string: %s[%" PRIsizetype "]\n",DOCK_CONFIG,i);
+    //                BeebWindows::defaults.dock_config.clear();
+    //                // and it's OK; there'll just be no dock config.
+    //                break;
+    //            }
 
-                BeebWindows::defaults.dock_config+=dock_config_line->GetString();
-                BeebWindows::defaults.dock_config+="\n";
-            }
-        }
-    }
+    //            BeebWindows::defaults.dock_config+=dock_config_line->GetString();
+    //            BeebWindows::defaults.dock_config+="\n";
+    //        }
+    //    }
+    //}
 
     return true;
 }
@@ -1234,6 +1238,23 @@ static bool LoadTrace(rapidjson::Value *trace_json,Messages *msg) {
 
     TraceUI::SetDefaultSettings(settings);
 
+    return true;
+}
+
+static bool LoadDockConfig(Messages *msg) {
+    std::string fname=GetDockLayoutFileName();
+    if(fname.empty()) {
+        msg->e.f("failed to load dock layout file\n");
+        msg->i.f("(couldn't get file name)\n");
+        return false;
+    }
+
+    std::vector<char> data;
+    if(!LoadTextFile(&data,fname,msg,LoadFlag_MightNotExist)) {
+        return true;
+    }
+
+    BeebWindows::defaults.dock_config=std::string(data.data());
     return true;
 }
 
@@ -1313,6 +1334,10 @@ bool LoadGlobalConfig(Messages *msg)
     if(FindStringMember(&default_config,doc.get(),DEFAULT_CONFIG,msg)) {
         BeebWindows::SetDefaultConfig(default_config.GetString());
     }
+
+    // don't bother with error checking for this... not really worth
+    // it?
+    LoadDockConfig(msg);
 
     return true;
 }
@@ -1505,13 +1530,13 @@ static void SaveWindows(JSONWriter<StringStream> *writer) {
             SaveFlags(writer,BeebWindows::defaults.ui_flags,&GetBeebWindowUIFlagEnumName);
         }
 
-        {
-            auto dock_config_json=ArrayWriter(writer,DOCK_CONFIG);
+        //{
+        //    auto dock_config_json=ArrayWriter(writer,DOCK_CONFIG);
 
-            ForEachLine(BeebWindows::defaults.dock_config.c_str(),[writer](const std::string::const_iterator &a,const std::string::const_iterator &b) {
-                writer->String(std::string(a,b).c_str());//ugh.
-            });
-        }
+        //    ForEachLine(BeebWindows::defaults.dock_config.c_str(),[writer](const std::string::const_iterator &a,const std::string::const_iterator &b) {
+        //        writer->String(std::string(a,b).c_str());//ugh.
+        //    });
+        //}
 
         writer->Key(KEYMAP);
         writer->String(BeebWindows::GetDefaultBeebKeymap()->GetName().c_str());
@@ -1592,6 +1617,8 @@ bool SaveGlobalConfig(Messages *messages) {
     if(!SaveTextFile(json,fname,messages)) {
         return false;
     }
+
+    SaveTextFile(BeebWindows::defaults.dock_config,GetDockLayoutFileName(),messages);
 
     return true;
 }

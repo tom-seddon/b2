@@ -465,7 +465,7 @@ std::string ImGuiStuff::SaveDockContext() const {
     ImGui::SaveDock(serializer);
 
     ASSERT(serializer.getBufferSize()>=0);
-    std::string result(serializer.getBuffer(),(size_t)serializer.getBufferSize());
+    std::string result(serializer.getBuffer());
     return result;
 }
 
