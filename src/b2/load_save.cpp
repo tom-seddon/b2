@@ -834,12 +834,8 @@ static const char KEYSYMS[]="keysyms";
 static const char KEYCODE[]="keycode";
 static const char BBC_VOLUME[]="bbc_volume";
 static const char DISC_VOLUME[]="disc_volume";
-static const char DISPLAY_AUTO_SCALE[]="display_auto_scale";
-static const char DISPLAY_OVERALL_SCALE[]="display_overall_scale";
 static const char DISPLAY_SCALE_X[]="display_scale_x";
 static const char DISPLAY_SCALE_Y[]="display_scale_y";
-static const char DISPLAY_ALIGNMENT_X[]="display_alignment_x";
-static const char DISPLAY_ALIGNMENT_Y[]="display_alignment_y";
 static const char FILTER_BBC[]="filter_bbc";
 static const char SHORTCUTS[]="shortcuts";
 static const char PREFER_SHORTCUTS[]="prefer_shortcuts";
@@ -1127,12 +1123,8 @@ static bool LoadWindows(rapidjson::Value *windows,Messages *msg) {
     //FindStringMember(&BeebWindows::defaults.dock_config,windows,DOCK_CONFIG,msg);
     FindFloatMember(&BeebWindows::defaults.bbc_volume,windows,BBC_VOLUME,msg);
     FindFloatMember(&BeebWindows::defaults.disc_volume,windows,DISC_VOLUME,msg);
-    FindBoolMember(&BeebWindows::defaults.display_auto_scale,windows,DISPLAY_AUTO_SCALE,msg);
-    FindFloatMember(&BeebWindows::defaults.display_overall_scale,windows,DISPLAY_OVERALL_SCALE,msg);
     FindFloatMember(&BeebWindows::defaults.display_scale_x,windows,DISPLAY_SCALE_X,msg);
     FindFloatMember(&BeebWindows::defaults.display_scale_y,windows,DISPLAY_SCALE_Y,msg);
-    FindEnumMember(&BeebWindows::defaults.display_alignment_x,windows,DISPLAY_ALIGNMENT_X,"window alignment",GetBeebWindowDisplayAlignmentEnumName,msg);
-    FindEnumMember(&BeebWindows::defaults.display_alignment_y,windows,DISPLAY_ALIGNMENT_Y,"window alignment",GetBeebWindowDisplayAlignmentEnumName,msg);
     FindBoolMember(&BeebWindows::defaults.display_filter,windows,FILTER_BBC,nullptr);
 
     {
@@ -1530,23 +1522,11 @@ static void SaveWindows(JSONWriter<StringStream> *writer) {
         writer->Key(DISC_VOLUME);
         writer->Double(BeebWindows::defaults.disc_volume);
 
-        writer->Key(DISPLAY_AUTO_SCALE);
-        writer->Bool(BeebWindows::defaults.display_auto_scale);
-
-        writer->Key(DISPLAY_OVERALL_SCALE);
-        writer->Double(BeebWindows::defaults.display_overall_scale);
-
         writer->Key(DISPLAY_SCALE_X);
         writer->Double(BeebWindows::defaults.display_scale_x);
 
         writer->Key(DISPLAY_SCALE_Y);
         writer->Double(BeebWindows::defaults.display_scale_y);
-
-        writer->Key(DISPLAY_ALIGNMENT_X);
-        SaveEnum(writer,BeebWindows::defaults.display_alignment_x,&GetBeebWindowDisplayAlignmentEnumName);
-
-        writer->Key(DISPLAY_ALIGNMENT_Y);
-        SaveEnum(writer,BeebWindows::defaults.display_alignment_y,&GetBeebWindowDisplayAlignmentEnumName);
 
         writer->Key(FILTER_BBC);
         writer->Bool(BeebWindows::defaults.display_filter);

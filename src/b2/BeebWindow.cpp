@@ -171,12 +171,6 @@ void BeebWindow::OptionsUI::DoImGui(CommandContextStack *cc_stack) {
     ImGui::DragFloat("Height scale",&settings->display_scale_y,SCALE_STEP,0.f,MAX_SCALE);
     settings->display_scale_y=std::max(settings->display_scale_y,MIN_SCALE);
 
-    ImGui::Checkbox("Auto display size",&settings->display_auto_scale);
-    if(!settings->display_overall_scale) {
-        ImGui::DragFloat("Overall scale",&settings->display_overall_scale,SCALE_STEP,0.f,MAX_SCALE);
-        settings->display_overall_scale=std::max(settings->display_overall_scale,MIN_SCALE);
-    }
-
     if(ImGui::Checkbox("Filter display",&settings->display_filter)) {
         m_beeb_window->RecreateTexture();
     }
@@ -189,32 +183,6 @@ void BeebWindow::OptionsUI::DoImGui(CommandContextStack *cc_stack) {
 
     if(ImGui::SliderFloat("Disc volume",&settings->disc_volume,MIN_DB,MAX_DB,"%.1f dB")) {
         beeb_thread->SetDiscVolume(settings->disc_volume);
-    }
-
-    if(ImGui::CollapsingHeader("Display Alignment",ImGuiTreeNodeFlags_DefaultOpen)) {
-        ImVec2 size(20.f,20.f);
-
-        for(int y=0;y<3;++y) {
-            ImGui::NewLine();
-            for(int x=0;x<3;++x) {
-                const char *caption="";
-                if(x==settings->display_alignment_x&&y==settings->display_alignment_y) {
-                    caption="*";
-                }
-
-                {
-                    ImGuiIDPusher id_pusher(y*3+x);
-                    if(ImGui::Button(caption,size)) {
-                        settings->display_alignment_x=(BeebWindowDisplayAlignment)x;
-                        settings->display_alignment_y=(BeebWindowDisplayAlignment)y;
-                    }
-                }
-
-                ImGui::SameLine();
-            }
-        }
-
-        //ImGui::End();
     }
 
     ImGui::NewLine();
@@ -616,39 +584,43 @@ static size_t CleanUpRecentPaths(const std::string &tag,bool (*exists_fn)(const 
 //////////////////////////////////////////////////////////////////////////
 
 void BeebWindow::DoSettingsUI(uint32_t ui_flag,const char *name,std::unique_ptr<SettingsUI> *uptr,std::function<std::unique_ptr<SettingsUI>()> create_fun) {
-    if(m_settings.ui_flags&ui_flag) {
+    bool opened=!!(m_settings.ui_flags&ui_flag);
+
+    if(ImGui::BeginDock(name,&opened)) {
         if(!*uptr) {
+            printf("Creating: %s\n",name);
             *uptr=create_fun();
         }
 
-        bool opened=!!(m_settings.ui_flags&ui_flag);
+        (*uptr)->DoImGui(&m_cc_stack);
 
-        if(ImGui::BeginDock(name,&opened)) {
-            (*uptr)->DoImGui(&m_cc_stack);
-
-            if((*uptr)->WantsKeyboardFocus()) {
-                m_imgui_has_kb_focus=true;
-            }
-        }
-        ImGui::EndDock();
-
-        if(opened) {
-            m_settings.ui_flags|=ui_flag;
-        } else {
-            m_settings.ui_flags&=~ui_flag;
+        if((*uptr)->WantsKeyboardFocus()) {
+            m_imgui_has_kb_focus=true;
         }
 
-    } else if(!!*uptr) {
-        this->MaybeSaveConfig((*uptr)->OnClose());
-        *uptr=nullptr;
+        m_settings.ui_flags|=ui_flag;
+    }
+    ImGui::EndDock();
+    
+    if(!opened) {
+        if(*uptr) {
+            printf("Deleting: %s\n",name);
+            this->MaybeSaveConfig((*uptr)->OnClose());
+            *uptr=nullptr;
+        }
+
+        m_settings.ui_flags&=~ui_flag;
     }
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool BeebWindow::DoImGui(int output_width,int output_height) {
-    const uint64_t now=GetCurrentTickCount();
+bool BeebWindow::DoImGui(uint64_t ticks) {
+    //const uint64_t now=GetCurrentTickCount();
+
+    int output_width,output_height;
+    SDL_GetRendererOutputSize(m_renderer,&output_width,&output_height);
 
     bool keep_window=true;
 
@@ -669,11 +641,11 @@ bool BeebWindow::DoImGui(int output_width,int output_height) {
         keep_window=false;
     }
 
-    // Minor WTF...
+    // TODO - shouldn't GetContentRegionAvail return this sort of
+    // value? dear imgui is informed of the screen size in
+    // ImGuiStuff::NewFrame...
     {
         ImVec2 pos=ImGui::GetCursorPos();
-
-        // ImGui::GetContentRegionAvail() doesn't return this value.
         ImVec2 size={(float)output_width-pos.x,(float)output_height-pos.y};
 
         ImGui::SetNextWindowPos(pos);
@@ -689,91 +661,67 @@ bool BeebWindow::DoImGui(int output_width,int output_height) {
                                    ImGuiWindowFlags_NoInputs|
                                    ImGuiWindowFlags_NoBringToFrontOnFocus);
 
-    if(ImGui::Begin("ContentHolder",nullptr,content_holder_flags)) {
-        ImGui::BeginDockspace();
+    // Rather ugly hack... see imgui docs:
+    //
+    // ``Old API feature: we could override the window background
+    // alpha with a parameter. This is actually tricky to reproduce
+    // manually because:
+    //
+    // (1) there are multiple variants of WindowBg (popup, tooltip,
+    // etc.) and (2) you can't call PushStyleColor before Begin and
+    // PopStyleColor just after Begin() because of how
+    // CheckStackSizes() behave.
+    //
+    // The user-side solution is to do backup =
+    // GetStyleColorVec4(ImGuiCol_xxxBG),
+    // PushStyleColor(ImGuiCol_xxxBg), Begin,
+    // PushStyleColor(ImGuiCol_xxxBg, backup), [...], PopStyleColor(),
+    // End(); PopStyleColor() - which is super awkward.
+    //
+    // The alpha override was rarely used but for now we'll leave the
+    // Begin() variant around for a bit. We may either lift the
+    // constraint on CheckStackSizes() either add a
+    // SetNextWindowBgAlpha() helper that does it magically.''
 
-        this->DoSettingsUI(BeebWindowUIFlag_Keymaps,"Keyboard layout",&m_keymaps_ui,[this]() {
-            return KeymapsUI::Create(this);
-        });
+    {
+        ImGuiCol style_colour=ImGuiCol_WindowBg;
+        ImVec4 old_bg_colour=ImGui::GetStyleColorVec4(style_colour);
+        ImGuiStyleColourPusher pusher1(style_colour,ImVec4(0.f,0.f,0.f,0.f));
 
-        this->DoSettingsUI(BeebWindowUIFlag_CommandKeymaps,"Command Keys",&m_command_keymaps_ui,[]() {
-            return std::make_unique<CommandKeymapsUI>();
-        });
+        if(ImGui::Begin("DockHolder",nullptr,content_holder_flags)) {
+            {
+                ImGuiStyleColourPusher pusher2(style_colour,old_bg_colour);
+                ImGui::BeginDockspace();
 
-        this->DoSettingsUI(BeebWindowUIFlag_Options,"Options",&m_options_ui,[this]() {
-            return std::make_unique<OptionsUI>(this);
-        });
+                this->DoSettingsUI();
 
-        //// Options is its own thing, for now, since it fiddles with the BeebWindow internals a bit...
-        //if(m_settings.ui_flags&BeebWindowUIFlag_Options) {
-        //    if(ImGuiBeginFlag("Options",&m_settings.ui_flags,BeebWindowUIFlag_Options)) {
-        //        this->DoOptionsGui();
-        //    }
-        //    ImGui::End();
+                this->DoBeebDisplayUI();
 
-        //    if(!(m_settings.ui_flags&BeebWindowUIFlag_Options)) {
-        //        this->MaybeSaveConfig(true);
-        //    }
-        //}
-
-        this->DoSettingsUI(BeebWindowUIFlag_Messages,"Messages",&m_messages_ui,[this]() {
-            return CreateMessagesUI(m_message_list);
-        });
-
-#if TIMELINE_UI_ENABLED
-        this->DoSettingsUI(BeebWindowUIFlag_Timeline,"Timeline",&m_timeline_ui,[this]() {
-            return CreateTimelineUI(this,this->GetNewWindowInitArguments(),m_renderer,m_pixel_format);
-        });
-#endif
-
-        this->DoSettingsUI(BeebWindowUIFlag_Configs,"Configurations",&m_configs_ui,&CreateConfigsUI);
-
-#if BBCMICRO_TRACE
-        this->DoSettingsUI(BeebWindowUIFlag_Trace,"Tracing",&m_trace_ui,[this]() {
-            return std::make_unique<TraceUI>(this);
-        });
-#endif
-
-        this->DoSettingsUI(BeebWindowUIFlag_NVRAM,"Non-volatile RAM",&m_nvram_ui,[this]() {
-            return std::make_unique<NVRAMUI>(this);
-        });
-
-        this->DoSettingsUI(BeebWindowUIFlag_AudioCallback,"Data Rate",&m_data_rate_ui,[this]() {
-            return std::make_unique<DataRateUI>(this);
-
-        });
-
-        this->DoSettingsUI(BeebWindowUIFlag_CommandContextStack,"Command Context Stack",&m_cc_stack_ui,[this]() {
-            return std::make_unique<CommandContextStackUI>(&m_cc_stack);
-        });
-
-#if VIDEO_TRACK_METADATA
-        this->DoSettingsUI(BeebWindowUIFlag_PixelMetadata,"Pixel Metadata",&m_pixel_metadata_ui,[this]() {
-            return std::make_unique<PixelMetadataUI>(this);
-        });
-#endif
-
-        this->DoSettingsUI(BeebWindowUIFlag_DearImguiTest,"dear imgui Test",&m_dear_imgui_test,&CreateDearImguiTestUI);
-
-        if(ValueChanged(&m_msg_last_num_errors_and_warnings_printed,m_message_list->GetNumErrorsAndWarningsPrinted())) {
-            m_settings.ui_flags|=BeebWindowUIFlag_Messages;
-        }
-
-        ImGui::EndDockspace();
+                ImGui::EndDockspace();
 
 #if ENABLE_IMGUI_DEMO
-        if(m_imgui_demo) {
-            ImGui::ShowTestWindow();
-        }
+                if(m_imgui_demo) {
+                    ImGui::ShowTestWindow();
+                }
 #endif
 
-        this->DoPopupUI(now,output_width,output_height);
+                if(m_imgui_dock_debug) {
+                    ImGui::DockDebugWindow();
+                }
 
-        ImGui::End();
+                this->DoPopupUI(ticks,output_width,output_height);
+
+                //printf("any docked: %s\n",BOOL_STR(ImGui::AreAnyCurrentDockContextDocksDocked()));
+            }
+            ImGui::End();
+        }
     }
 
     return keep_window;
 }
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
 
 bool BeebWindow::DoMenuUI() {
     bool keep_window=true;
@@ -791,6 +739,69 @@ bool BeebWindow::DoMenuUI() {
 
     return keep_window;
 }
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BeebWindow::DoSettingsUI() {
+    this->DoSettingsUI(BeebWindowUIFlag_Keymaps,"Keyboard layout",&m_keymaps_ui,[this]() {
+        return KeymapsUI::Create(this);
+    });
+
+    this->DoSettingsUI(BeebWindowUIFlag_CommandKeymaps,"Command Keys",&m_command_keymaps_ui,[]() {
+        return std::make_unique<CommandKeymapsUI>();
+    });
+
+    this->DoSettingsUI(BeebWindowUIFlag_Options,"Options",&m_options_ui,[this]() {
+        return std::make_unique<OptionsUI>(this);
+    });
+
+    this->DoSettingsUI(BeebWindowUIFlag_Messages,"Messages",&m_messages_ui,[this]() {
+        return CreateMessagesUI(m_message_list);
+    });
+
+#if TIMELINE_UI_ENABLED
+    this->DoSettingsUI(BeebWindowUIFlag_Timeline,"Timeline",&m_timeline_ui,[this]() {
+        return CreateTimelineUI(this,this->GetNewWindowInitArguments(),m_renderer,m_pixel_format);
+    });
+#endif
+
+    this->DoSettingsUI(BeebWindowUIFlag_Configs,"Configurations",&m_configs_ui,&CreateConfigsUI);
+
+#if BBCMICRO_TRACE
+    this->DoSettingsUI(BeebWindowUIFlag_Trace,"Tracing",&m_trace_ui,[this]() {
+        return std::make_unique<TraceUI>(this);
+    });
+#endif
+
+    this->DoSettingsUI(BeebWindowUIFlag_NVRAM,"Non-volatile RAM",&m_nvram_ui,[this]() {
+        return std::make_unique<NVRAMUI>(this);
+    });
+
+    this->DoSettingsUI(BeebWindowUIFlag_AudioCallback,"Data Rate",&m_data_rate_ui,[this]() {
+        return std::make_unique<DataRateUI>(this);
+
+    });
+
+    this->DoSettingsUI(BeebWindowUIFlag_CommandContextStack,"Command Context Stack",&m_cc_stack_ui,[this]() {
+        return std::make_unique<CommandContextStackUI>(&m_cc_stack);
+    });
+
+#if VIDEO_TRACK_METADATA
+    this->DoSettingsUI(BeebWindowUIFlag_PixelMetadata,"Pixel Metadata",&m_pixel_metadata_ui,[this]() {
+        return std::make_unique<PixelMetadataUI>(this);
+    });
+#endif
+
+    this->DoSettingsUI(BeebWindowUIFlag_DearImguiTest,"dear imgui Test",&m_dear_imgui_test,&CreateDearImguiTestUI);
+
+    if(ValueChanged(&m_msg_last_num_errors_and_warnings_printed,m_message_list->GetNumErrorsAndWarningsPrinted())) {
+        m_settings.ui_flags|=BeebWindowUIFlag_Messages;
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
 
 void BeebWindow::DoPopupUI(uint64_t now,int output_width,int output_height) {
     (void)output_width;
@@ -1194,9 +1205,6 @@ void BeebWindow::DoToolsMenu() {
 void BeebWindow::DoDebugMenu() {
 #if ENABLE_DEBUG_MENU
     if(ImGui::BeginMenu("Debug")) {
-#if ENABLE_IMGUI_DEMO
-        ImGui::MenuItem("ImGui demo...",NULL,&m_imgui_demo);
-#endif
 #if ENABLE_IMGUI_TEST
         m_occ.DoMenuItemUI("toggle_dear_imgui_test");
 #endif
@@ -1217,6 +1225,13 @@ void BeebWindow::DoDebugMenu() {
 #if VIDEO_TRACK_METADATA
         m_occ.DoMenuItemUI("toggle_pixel_metadata");
 #endif
+
+        ImGui::Separator();
+
+#if ENABLE_IMGUI_DEMO
+        ImGui::MenuItem("ImGui demo...",NULL,&m_imgui_demo);
+#endif
+        ImGui::MenuItem("ImGui dock debug...",nullptr,&m_imgui_dock_debug);
 
         ImGui::EndMenu();
     }
@@ -1276,28 +1291,61 @@ bool BeebWindow::DoWindowMenu() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static int GetAlignedCoordinate(BeebWindowDisplayAlignment alignment,int size,int dimension) {
-    switch(alignment) {
-    default:
-        ASSERT(false);
-        // fall through
-    case BeebWindowDisplayAlignment_Centre:
-        return (size-dimension)/2;
+void BeebWindow::UpdateTVTexture(VBlankRecord *vblank_record) {
+    OutputDataBuffer<VideoDataUnit> *video_output=m_beeb_thread->GetVideoOutput();
 
-    case BeebWindowDisplayAlignment_Min:
-        return 0;
+    uint64_t num_us=(uint64_t)(GetSecondsFromTicks(vblank_record->num_ticks)*1e6);
+    uint64_t num_us_left=num_us;
 
-    case BeebWindowDisplayAlignment_Max:
-        return size-dimension;
+    const VideoDataUnit *a,*b;
+    size_t na,nb;
+
+    size_t num_units=0;
+
+    if(video_output->ConsumerLock(&a,&na,&b,&nb)) {
+        bool limited=m_beeb_thread->IsSpeedLimited();
+
+        size_t n;
+
+        n=na;
+        if(limited) {
+            n=(size_t)std::min((uint64_t)n,num_us_left);
+        }
+        m_tv.Update(a,n);
+        num_us_left-=n;
+
+        n=nb;
+        if(limited) {
+            n=(size_t)std::min((uint64_t)n,num_us_left);
+        }
+        m_tv.Update(b,n);
+        num_us_left-=n;
+
+        if(limited) {
+            ASSERT(num_us>=num_us_left);
+            num_units=num_us-num_us_left;
+        } else {
+            num_units=na+nb;
+        }
+
+        video_output->ConsumerUnlock(num_units);
+    }
+
+    vblank_record->num_video_units=num_units;
+
+    if(m_tv_texture) {
+        if(const void *tv_texture_data=m_tv.GetTextureData(nullptr)) {
+            SDL_UpdateTexture(m_tv_texture,NULL,tv_texture_data,(int)TV_TEXTURE_WIDTH*4);
+        }
     }
 }
 
-bool BeebWindow::HandleVBlank(uint64_t ticks) {
-    bool keep_window=true;
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
 
-    ImGuiContextSetter setter(m_imgui_stuff);
-
+BeebWindow::VBlankRecord *BeebWindow::NewVBlankRecord(uint64_t ticks) {
     VBlankRecord *vblank_record;
+
     if(m_vblank_records.size()<NUM_VBLANK_RECORDS) {
         m_vblank_records.emplace_back();
         vblank_record=&m_vblank_records.back();
@@ -1309,90 +1357,151 @@ bool BeebWindow::HandleVBlank(uint64_t ticks) {
     vblank_record->num_ticks=ticks-m_last_vblank_ticks;
     m_last_vblank_ticks=ticks;
 
-    {
-        OutputDataBuffer<VideoDataUnit> *video_output=m_beeb_thread->GetVideoOutput();
+    return vblank_record;
+}
 
-        uint64_t num_us=(uint64_t)(GetSecondsFromTicks(vblank_record->num_ticks)*1e6);
-        uint64_t num_us_left=num_us;
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
 
-        const VideoDataUnit *a,*b;
-        size_t na,nb;
-
-        size_t num_units=0;
-
-        if(video_output->ConsumerLock(&a,&na,&b,&nb)) {
-            bool limited=m_beeb_thread->IsSpeedLimited();
-
-            size_t n;
-
-            n=na;
-            if(limited) {
-                n=(size_t)std::min((uint64_t)n,num_us_left);
-            }
-            m_tv.Update(a,n);
-            num_us_left-=n;
-
-            n=nb;
-            if(limited) {
-                n=(size_t)std::min((uint64_t)n,num_us_left);
-            }
-            m_tv.Update(b,n);
-            num_us_left-=n;
-
-            if(limited) {
-                ASSERT(num_us>=num_us_left);
-                num_units=num_us-num_us_left;
-            } else {
-                num_units=na+nb;
-            }
-
-            video_output->ConsumerUnlock(num_units);
-        }
-
-        vblank_record->num_video_units=num_units;
-    }
-
-    if(m_tv_texture) {
-        if(const void *tv_texture_data=m_tv.GetTextureData(nullptr)) {
-            SDL_UpdateTexture(m_tv_texture,NULL,tv_texture_data,(int)TV_TEXTURE_WIDTH*4);
-        }
+void BeebWindow::RenderTVTexture() {
+    if(!m_tv_texture) {
+        return;
     }
 
     int output_width,output_height;
     SDL_GetRendererOutputSize(m_renderer,&output_width,&output_height);
 
-    m_beeb_thread->FlushCallbacks();
+    ImVec2 output_size((float)output_width,(float)output_height);
 
-    if(!this->DoImGui(output_width,output_height)) {
-        keep_window=false;
-    }
+    ImVec2 display_size=this->GetBeebDisplaySize(output_size);
 
     SDL_Rect dest_rect;
 
-    if(m_settings.display_auto_scale) {
-        double tv_aspect=(TV_TEXTURE_WIDTH*m_settings.display_scale_x)/(TV_TEXTURE_HEIGHT*m_settings.display_scale_y);
+    dest_rect.w=(int)display_size.x;
+    dest_rect.h=(int)display_size.y;
 
-        dest_rect.w=output_width;
-        dest_rect.h=(int)(dest_rect.w/tv_aspect);
+    dest_rect.x=(output_width-dest_rect.w)/2;
+    dest_rect.y=(output_height-dest_rect.h)/2;
 
-        if(dest_rect.h>output_height) {
-            dest_rect.h=output_height;
-            dest_rect.w=(int)(dest_rect.h*tv_aspect);
+    SDL_RenderCopy(m_renderer,m_tv_texture,nullptr,&dest_rect);
+
+    if(SDL_PointInRect(&m_mouse_pos,&dest_rect)) {
+        this->UpdatePixelMetadata((double)(m_mouse_pos.x-dest_rect.x)/dest_rect.w,
+            (double)(m_mouse_pos.y-dest_rect.y)/dest_rect.h);
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BeebWindow::DoBeebDisplayUI() {
+    bool opened=m_imgui_stuff->AreAnyDocksDocked();
+    if(ImGui::BeginDock("Display",&opened)) {
+        if(m_tv_texture) {
+            ImVec2 window_size=ImGui::GetWindowSize();
+            ImVec2 display_size=this->GetBeebDisplaySize(window_size);
+
+            ImVec2 display_pos=(window_size-display_size)*.5f;
+            ImGui::SetCursorPos(display_pos);
+
+            ImGui::Image(m_tv_texture,display_size);
         }
-    } else {
-        dest_rect.w=(int)(TV_TEXTURE_WIDTH*m_settings.display_scale_x*m_settings.display_overall_scale);
-        dest_rect.h=(int)(TV_TEXTURE_HEIGHT*m_settings.display_scale_y*m_settings.display_overall_scale);
+    }
+    ImGui::EndDock();
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+ImVec2 BeebWindow::GetBeebDisplaySize(const ImVec2 &window_size) const {
+    double tv_aspect=(TV_TEXTURE_WIDTH*m_settings.display_scale_x)/(TV_TEXTURE_HEIGHT*m_settings.display_scale_y);
+
+    double width=window_size.x;
+    double height=width/tv_aspect;
+
+    if(height>window_size.y) {
+        height=window_size.y;
+        width=height*tv_aspect;
     }
 
-    dest_rect.x=GetAlignedCoordinate(m_settings.display_alignment_x,output_width,dest_rect.w);
-    dest_rect.y=GetAlignedCoordinate(m_settings.display_alignment_y,output_height,dest_rect.h);
+    return ImVec2((float)width,(float)height);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BeebWindow::UpdatePixelMetadata(double tx,double ty) {
+#if VIDEO_TRACK_METADATA
+
+    if(tx<0.||tx>=1.||ty<0.||ty>=1.) {
+        m_got_mouse_pixel_metadata=false;
+    } else {
+        int x=(int)(tx*TV_TEXTURE_WIDTH);
+        int y=(int)(ty*TV_TEXTURE_HEIGHT);
+
+        ASSERT(x>=0&&x<TV_TEXTURE_WIDTH);
+        ASSERT(y>=0&&y<TV_TEXTURE_HEIGHT);
+
+        m_got_mouse_pixel_metadata=true;
+
+        const VideoDataHalfUnitMetadata *metadata=m_tv.GetTextureMetadata();
+        m_mouse_pixel_metadata=metadata[y*TV_TEXTURE_WIDTH+x];
+    }
+
+#else
+
+    (void)tx,(void)ty;
+
+#endif
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool BeebWindow::HandleVBlank(uint64_t ticks) {
+    ImGuiContextSetter setter(m_imgui_stuff);
+
+    bool keep_window=true;
+
+    m_got_mouse_pixel_metadata=false;
+
+    VBlankRecord *vblank_record=this->NewVBlankRecord(ticks);
+
+    this->UpdateTVTexture(vblank_record);
+
+    m_beeb_thread->FlushCallbacks();
+
+    if(!this->DoImGui(ticks)) {
+        keep_window=false;
+    }
 
     SDL_RenderClear(m_renderer);
-    if(m_tv_texture) {
-        SDL_RenderCopy(m_renderer,m_tv_texture,NULL,&dest_rect);
+
+    if(!m_imgui_stuff->AreAnyDocksDocked()) {
+        this->RenderTVTexture();
     }
+
     m_imgui_stuff->Render();
+
     SDL_RenderPresent(m_renderer);
+
+    //SDL_Rect dest_rect;
+
+    //if(m_settings.display_auto_scale) {
+    //} else {
+    //    dest_rect.w=(int)(TV_TEXTURE_WIDTH*m_settings.display_scale_x*m_settings.display_overall_scale);
+    //    dest_rect.h=(int)(TV_TEXTURE_HEIGHT*m_settings.display_scale_y*m_settings.display_overall_scale);
+    //}
+
+    //dest_rect.x=GetAlignedCoordinate(m_settings.display_alignment_x,output_width,dest_rect.w);
+    //dest_rect.y=GetAlignedCoordinate(m_settings.display_alignment_y,output_height,dest_rect.h);
+
+    //SDL_RenderClear(m_renderer);
+    //if(m_tv_texture) {
+    //    SDL_RenderCopy(m_renderer,m_tv_texture,NULL,&dest_rect);
+    //}
+    //m_imgui_stuff->Render();
+    //SDL_RenderPresent(m_renderer);
 
     //printf("dear imgui: Active=%08x Hovered=%08x, HovWin=%s\n",GImGui->ActiveId,GImGui->HoveredId,GImGui->HoveredWindow?GImGui->HoveredWindow->Name:"-");
 
@@ -1405,26 +1514,6 @@ bool BeebWindow::HandleVBlank(uint64_t ticks) {
     }
 
     m_imgui_stuff->NewFrame(got_mouse_focus);
-
-#if VIDEO_TRACK_METADATA
-    if(SDL_PointInRect(&m_mouse_pos,&dest_rect)) {
-        double tx=(double)(m_mouse_pos.x-dest_rect.x)/dest_rect.w;
-        double ty=(double)(m_mouse_pos.y-dest_rect.y)/dest_rect.h;
-
-        int x=(int)(tx*TV_TEXTURE_WIDTH);
-        int y=(int)(ty*TV_TEXTURE_HEIGHT);
-
-        ASSERT(x>=0&&x<TV_TEXTURE_WIDTH);
-        ASSERT(y>=0&&y<TV_TEXTURE_HEIGHT);
-
-        m_got_mouse_pixel_metadata=true;
-
-        const VideoDataHalfUnitMetadata *metadata=m_tv.GetTextureMetadata();
-        m_mouse_pixel_metadata=metadata[y*TV_TEXTURE_WIDTH+x];
-    } else {
-        m_got_mouse_pixel_metadata=false;
-    }
-#endif
 
     return keep_window;
 }
@@ -1523,7 +1612,7 @@ void BeebWindow::SavePosition() {
     BeebWindows::SetLastWindowPlacementData(buf);
 
 #endif
-    }
+}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -1944,8 +2033,6 @@ void BeebWindow::MaybeSaveConfig(bool save_config) {
         this->SaveSettings();
 
         SaveGlobalConfig(&m_msg);
-
-        printf("%s\n",m_imgui_stuff->SaveDockContext().c_str());
 
         m_msg.i.f("Configuration saved.\n");
     }

@@ -69,12 +69,12 @@ struct BeebWindowSettings {
     float bbc_volume=0.f;
     float disc_volume=0.f;
 
-    bool display_auto_scale=true;
-    float display_overall_scale=1.f;
+    //bool display_auto_scale=true;
+    //float display_overall_scale=1.f;
     float display_scale_x=1.2f/1.25f;
     float display_scale_y=1.f;
-    BeebWindowDisplayAlignment display_alignment_x=BeebWindowDisplayAlignment_Centre;
-    BeebWindowDisplayAlignment display_alignment_y=BeebWindowDisplayAlignment_Centre;
+    //BeebWindowDisplayAlignment display_alignment_x=BeebWindowDisplayAlignment_Centre;
+    //BeebWindowDisplayAlignment display_alignment_y=BeebWindowDisplayAlignment_Centre;
     bool display_filter=false;
 };
 
@@ -330,6 +330,7 @@ private:
 #if ENABLE_IMGUI_DEMO
     bool m_imgui_demo=false;
 #endif
+    bool m_imgui_dock_debug=false;
 
     CommandContextStack m_cc_stack;
 
@@ -380,8 +381,9 @@ private:
     bool Load65LinkFolder(int drive,const std::string &path);
     void DoOptionsGui();
     void DoSettingsUI(uint32_t ui_flag,const char *name,std::unique_ptr<SettingsUI> *uptr,std::function<std::unique_ptr<SettingsUI>()> create_fun);
-    bool DoImGui(int output_width,int output_height);
+    bool DoImGui(uint64_t ticks);
     bool DoMenuUI();
+    void DoSettingsUI();
     void DoPopupUI(uint64_t now,int output_width,int output_height);
     void DoFileMenu();
     void DoEditMenu();
@@ -404,6 +406,12 @@ private:
     void DumpTimelineConsole();
     void DumpTimelineDebuger();
     void CheckTimeline();
+    void UpdateTVTexture(VBlankRecord *vblank_record);
+    VBlankRecord *NewVBlankRecord(uint64_t ticks);
+    void RenderTVTexture();
+    void UpdatePixelMetadata(double tx,double ty);
+    void DoBeebDisplayUI();
+    ImVec2 GetBeebDisplaySize(const ImVec2 &window_size) const;
 
     template<BeebWindowUIFlag>
     void ToggleUICommand();

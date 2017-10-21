@@ -71,6 +71,8 @@ public:
     bool WantCaptureKeyboard() const;
     bool WantTextInput() const;
 
+    bool AreAnyDocksDocked() const;
+
     bool LoadDockContext(const std::string &config);
     std::string SaveDockContext() const;
 protected:
