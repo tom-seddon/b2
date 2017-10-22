@@ -57,6 +57,13 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+// if true, beeb display should fill the entire imgui window, ignoring
+// aspect ratio. Use when debugging imgui window size.
+#define BEEB_DISPLAY_FILL 0
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 LOG_EXTERN(OUTPUT);
 LOG_EXTERN(OUTPUTND);
 
@@ -601,7 +608,7 @@ void BeebWindow::DoSettingsUI(uint32_t ui_flag,const char *name,std::unique_ptr<
         m_settings.ui_flags|=ui_flag;
     }
     ImGui::EndDock();
-    
+
     if(!opened) {
         if(*uptr) {
             printf("Deleting: %s\n",name);
@@ -637,79 +644,76 @@ bool BeebWindow::DoImGui(uint64_t ticks) {
         m_imgui_has_kb_focus=true;
     }
 
-    if(!this->DoMenuUI()) {
-        keep_window=false;
-    }
-
-    // TODO - shouldn't GetContentRegionAvail return this sort of
-    // value? dear imgui is informed of the screen size in
-    // ImGuiStuff::NewFrame...
+    // Set the window padding to 0x0, so that the docking stuff, which
+    // makes its own child windows, ends up tightly aligned to the
+    // window border. (Well, tightly enough, anyway... in fact there's
+    // still a 1 pixel border that I haven't figured out yet.)
+    //
+    // 0x0 padding makes everything else look a bit of a mess, so this
+    // does mean that the default window padding has to be pushed in
+    // various places. Need to fix this...
+    ImGuiStyleVarPusher vpusher1(ImGuiStyleVar_WindowPadding,ImVec2(0.f,0.f));
     {
-        ImVec2 pos=ImGui::GetCursorPos();
-        ImVec2 size={(float)output_width-pos.x,(float)output_height-pos.y};
+        {
+            ImGuiStyleVarPusher vpusher2(ImGuiStyleVar_WindowPadding,IMGUI_DEFAULT_STYLE.WindowPadding);
 
-        ImGui::SetNextWindowPos(pos);
-        ImGui::SetNextWindowSize(size);
-    }
+            if(!this->DoMenuUI()) {
+                keep_window=false;
+            }
+        }
 
-    uint32_t content_holder_flags=(ImGuiWindowFlags_NoScrollWithMouse|
-                                   ImGuiWindowFlags_NoTitleBar|
-                                   ImGuiWindowFlags_NoResize|
-                                   ImGuiWindowFlags_NoMove|
-                                   ImGuiWindowFlags_NoScrollbar|
-                                   ImGuiWindowFlags_NoSavedSettings|
-                                   ImGuiWindowFlags_NoInputs|
-                                   ImGuiWindowFlags_NoBringToFrontOnFocus);
+        {
+            ImVec2 pos=ImGui::GetCursorPos();
+            pos.x=0.f;
+            ImVec2 size={(float)output_width-pos.x,(float)output_height-pos.y};
 
-    // Rather ugly hack... see imgui docs:
-    //
-    // ``Old API feature: we could override the window background
-    // alpha with a parameter. This is actually tricky to reproduce
-    // manually because:
-    //
-    // (1) there are multiple variants of WindowBg (popup, tooltip,
-    // etc.) and (2) you can't call PushStyleColor before Begin and
-    // PopStyleColor just after Begin() because of how
-    // CheckStackSizes() behave.
-    //
-    // The user-side solution is to do backup =
-    // GetStyleColorVec4(ImGuiCol_xxxBG),
-    // PushStyleColor(ImGuiCol_xxxBg), Begin,
-    // PushStyleColor(ImGuiCol_xxxBg, backup), [...], PopStyleColor(),
-    // End(); PopStyleColor() - which is super awkward.
-    //
-    // The alpha override was rarely used but for now we'll leave the
-    // Begin() variant around for a bit. We may either lift the
-    // constraint on CheckStackSizes() either add a
-    // SetNextWindowBgAlpha() helper that does it magically.''
+            ImGui::SetNextWindowPos(pos);
+            ImGui::SetNextWindowSize(size);
+        }
 
-    {
         ImGuiCol style_colour=ImGuiCol_WindowBg;
-        ImVec4 old_bg_colour=ImGui::GetStyleColorVec4(style_colour);
-        ImGuiStyleColourPusher pusher1(style_colour,ImVec4(0.f,0.f,0.f,0.f));
+        ImGuiStyleColourPusher cpusher1(style_colour,ImVec4(0.f,0.f,0.f,0.f));
 
-        if(ImGui::Begin("DockHolder",nullptr,content_holder_flags)) {
+        if(ImGui::Begin("DockHolder",
+                        nullptr,
+                        (ImGuiWindowFlags_NoScrollWithMouse|
+                         ImGuiWindowFlags_NoTitleBar|
+                         ImGuiWindowFlags_NoResize|
+                         ImGuiWindowFlags_NoMove|
+                         ImGuiWindowFlags_NoScrollbar|
+                         ImGuiWindowFlags_NoSavedSettings|
+                         ImGuiWindowFlags_NoInputs|
+                         ImGuiWindowFlags_NoBringToFrontOnFocus)))
+        {
             {
-                ImGuiStyleColourPusher pusher2(style_colour,old_bg_colour);
+                ImGuiStyleColourPusher cpusher2;
+                cpusher2.PushDefault(style_colour);
+
                 ImGui::BeginDockspace();
+                {
+                    ImGuiStyleVarPusher vpusher2(ImGuiStyleVar_WindowPadding,IMGUI_DEFAULT_STYLE.WindowPadding);
 
-                this->DoSettingsUI();
+                    this->DoSettingsUI();
 
-                this->DoBeebDisplayUI();
-
+                    this->DoBeebDisplayUI();
+                }
                 ImGui::EndDockspace();
 
+                {
+                    ImGuiStyleVarPusher vpusher2(ImGuiStyleVar_WindowPadding,IMGUI_DEFAULT_STYLE.WindowPadding);
+
 #if ENABLE_IMGUI_DEMO
-                if(m_imgui_demo) {
-                    ImGui::ShowTestWindow();
-                }
+                    if(m_imgui_demo) {
+                        ImGui::ShowTestWindow();
+                    }
 #endif
 
-                if(m_imgui_dock_debug) {
-                    ImGui::DockDebugWindow();
-                }
+                    if(m_imgui_dock_debug) {
+                        ImGui::DockDebugWindow();
+                    }
 
-                this->DoPopupUI(ticks,output_width,output_height);
+                    this->DoPopupUI(ticks,output_width,output_height);
+                }
 
                 //printf("any docked: %s\n",BOOL_STR(ImGui::AreAnyCurrentDockContextDocksDocked()));
             }
@@ -1363,48 +1367,28 @@ BeebWindow::VBlankRecord *BeebWindow::NewVBlankRecord(uint64_t ticks) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void BeebWindow::RenderTVTexture() {
-    if(!m_tv_texture) {
-        return;
-    }
-
-    int output_width,output_height;
-    SDL_GetRendererOutputSize(m_renderer,&output_width,&output_height);
-
-    ImVec2 output_size((float)output_width,(float)output_height);
-
-    ImVec2 display_size=this->GetBeebDisplaySize(output_size);
-
-    SDL_Rect dest_rect;
-
-    dest_rect.w=(int)display_size.x;
-    dest_rect.h=(int)display_size.y;
-
-    dest_rect.x=(output_width-dest_rect.w)/2;
-    dest_rect.y=(output_height-dest_rect.h)/2;
-
-    SDL_RenderCopy(m_renderer,m_tv_texture,nullptr,&dest_rect);
-
-    if(SDL_PointInRect(&m_mouse_pos,&dest_rect)) {
-        this->UpdatePixelMetadata((double)(m_mouse_pos.x-dest_rect.x)/dest_rect.w,
-            (double)(m_mouse_pos.y-dest_rect.y)/dest_rect.h);
-    }
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 void BeebWindow::DoBeebDisplayUI() {
-    bool opened=m_imgui_stuff->AreAnyDocksDocked();
-    if(ImGui::BeginDock("Display",&opened)) {
+    //bool opened=m_imgui_stuff->AreAnyDocksDocked();
+
+    if(ImGui::BeginDock("Display",nullptr,ImGuiWindowFlags_NoTitleBar)) {
+        ImGuiStyleVarPusher vpusher(ImGuiStyleVar_WindowPadding,ImVec2(0.f,0.f));
         if(m_tv_texture) {
+#if BEEB_DISPLAY_FILL
+
+            const ImVec2 &size=ImGui::GetWindowSize();
+            ImVec2 pos(0.f,0.f);
+
+#else
+
             ImVec2 window_size=ImGui::GetWindowSize();
-            ImVec2 display_size=this->GetBeebDisplaySize(window_size);
+            ImVec2 size=this->GetBeebDisplaySize(window_size);
 
-            ImVec2 display_pos=(window_size-display_size)*.5f;
-            ImGui::SetCursorPos(display_pos);
+            ImVec2 pos=(window_size-size)*.5f;
 
-            ImGui::Image(m_tv_texture,display_size);
+#endif
+
+            ImGui::SetCursorPos(pos);
+            ImGui::Image(m_tv_texture,size);
         }
     }
     ImGui::EndDock();
@@ -1477,10 +1461,6 @@ bool BeebWindow::HandleVBlank(uint64_t ticks) {
 
     SDL_RenderClear(m_renderer);
 
-    if(!m_imgui_stuff->AreAnyDocksDocked()) {
-        this->RenderTVTexture();
-    }
-
     m_imgui_stuff->Render();
 
     SDL_RenderPresent(m_renderer);
@@ -1513,7 +1493,15 @@ bool BeebWindow::HandleVBlank(uint64_t ticks) {
         }
     }
 
+    if(m_pushed_window_padding) {
+        ImGui::PopStyleVar(1);
+    }
+
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding,ImVec2(0.f,0.f));
+
     m_imgui_stuff->NewFrame(got_mouse_focus);
+
+    m_pushed_window_padding=true;
 
     return keep_window;
 }
@@ -1804,7 +1792,7 @@ bool BeebWindow::InitInternal() {
 
 
     return true;
-}
+    }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

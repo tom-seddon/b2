@@ -324,6 +324,7 @@ private:
 
     //
     //bool m_ui=false;
+    bool m_pushed_window_padding=false;
     ImGuiStuff *m_imgui_stuff=nullptr;
     bool m_imgui_has_kb_focus=false;
 
@@ -408,7 +409,6 @@ private:
     void CheckTimeline();
     void UpdateTVTexture(VBlankRecord *vblank_record);
     VBlankRecord *NewVBlankRecord(uint64_t ticks);
-    void RenderTVTexture();
     void UpdatePixelMetadata(double tx,double ty);
     void DoBeebDisplayUI();
     ImVec2 GetBeebDisplaySize(const ImVec2 &window_size) const;
