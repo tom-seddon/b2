@@ -300,8 +300,8 @@ void ImGuiStuff::NewFrame(bool got_mouse_focus) {
         }
 #endif
     } else {
-        io.MousePos.x=-1.f;
-        io.MousePos.y=-1.f;
+        io.MousePos.x=-FLT_MAX;
+        io.MousePos.y=-FLT_MAX;
 
         io.MouseDown[0]=false;
         io.MouseDown[1]=false;
