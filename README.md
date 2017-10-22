@@ -83,24 +83,6 @@ speed by turning off emulation of seek times and internal disc delays.
 
 **Turbo disc mode is experimental**
 
-## Filtering options
-
-Use `Tools` > `Filtering options` to bring up the filtering options
-dialog.
-
-When `Filter BBC` is checked, the BBC display will be bilinear
-filtered, making it look smoother, or more blurry; when unchecked, it
-will be point sampled, making it look more blocky and pixelated. By
-default, it is checked.
-
-`Filter UI` applies a similar effect to the UI text. By default this
-is off, and the text should be readable; if the text looks ugly, try
-switching it on. It may still look ugly, but it might be more
-readable.
-
-Changes to the filter flags don't take effect immediately. Create a
-new window to see the effect.
-
 ## Customize keyboard layout
 
 Click `Tools` > `Keyboard layout...` to bring up the keyboard layout
@@ -177,9 +159,9 @@ be.)
 
 Please consult folders and files for more info.
 
-This is all stuff that's freely available and distributable, included
-in the repo so it's self-contained, since not every dependency can be
-added as a git submodule.
+The contents of `etc` is all stuff that's freely available and
+distributable, included in the repo so it's self-contained, since not
+every dependency can be added as a git submodule.
 
 ## `experimental`, `src`
 
