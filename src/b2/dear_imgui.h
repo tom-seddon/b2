@@ -165,6 +165,31 @@ private:
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+class ImGuiStyleVarPusher {
+public:
+    ImGuiStyleVarPusher();
+    ImGuiStyleVarPusher(ImGuiStyleVar idx0,float val0);
+    ImGuiStyleVarPusher(ImGuiStyleVar idx0,const ImVec2 &val0);
+
+    ~ImGuiStyleVarPusher();
+
+    // returns *this.
+    ImGuiStyleVarPusher &Push(ImGuiStyleVar idx,float val);
+    ImGuiStyleVarPusher &Push(ImGuiStyleVar idx,const ImVec2 &val);
+
+    ImGuiStyleVarPusher(const ImGuiStyleVarPusher &)=delete;
+    ImGuiStyleVarPusher &operator=(const ImGuiStyleVarPusher &)=delete;
+
+    ImGuiStyleVarPusher(ImGuiStyleVarPusher &&);
+    ImGuiStyleVarPusher &operator=(ImGuiStyleVarPusher &&)=delete;
+protected:
+private:
+    int m_num_pushes=0;
+};
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 // (std::vector<std::string> *)idx
 //bool ImGuiGetListBoxItemFromStringVector(void *data,int idx,const char **out_text);
 
