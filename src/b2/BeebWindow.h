@@ -254,6 +254,8 @@ public:
 #endif
 protected:
 private:
+    struct SettingsUIMetadata;
+
     struct DriveState {
         FolderDialog open_65link_folder_dialog;
         OpenFileDialog open_disc_image_file_dialog;
@@ -355,7 +357,7 @@ private:
     std::unique_ptr<SettingsUI> m_pixel_metadata_ui;
 #endif
 #if ENABLE_IMGUI_TEST
-    std::unique_ptr<SettingsUI> m_dear_imgui_test;
+    std::unique_ptr<SettingsUI> m_dear_imgui_test_ui;
 #endif
 
     bool m_messages_popup_ui_active=false;
@@ -381,7 +383,7 @@ private:
     bool LoadDiscImageFile(int drive,const std::string &path);
     bool Load65LinkFolder(int drive,const std::string &path);
     void DoOptionsGui();
-    void DoSettingsUI(uint32_t ui_flag,const char *name,std::unique_ptr<SettingsUI> *uptr,std::function<std::unique_ptr<SettingsUI>()> create_fun);
+    //void DoSettingsUI(uint32_t ui_flag,const char *name,std::unique_ptr<SettingsUI> *uptr,std::function<std::unique_ptr<SettingsUI>()> create_fun);
     bool DoImGui(uint64_t ticks);
     bool DoMenuUI();
     void DoSettingsUI();
@@ -420,7 +422,7 @@ private:
     bool IsUICommandTicked() const;
 
     template<BeebWindowUIFlag>
-    static ObjectCommandTable<BeebWindow>::Initializer GetToggleUICommand(std::string name,std::string text);
+    static ObjectCommandTable<BeebWindow>::Initializer GetToggleUICommand(std::string name);
 
     void Paste();
     void PasteThenReturn();
@@ -435,7 +437,27 @@ private:
     void CopyBASIC();
     bool IsCopyBASICEnabled() const;
 
+    std::unique_ptr<SettingsUI> BeebWindow::CreateKeymapsUI();
+    std::unique_ptr<SettingsUI> BeebWindow::CreateCommandKeymapsUI();
+    std::unique_ptr<SettingsUI> BeebWindow::CreateOptionsUI();
+    std::unique_ptr<SettingsUI> BeebWindow::CreateMessagesUI();
+#if TIMELINE_UI_ENABLED
+    std::unique_ptr<SettingsUI> BeebWindow::CreateTimelineUI();
+#endif
+    std::unique_ptr<SettingsUI> BeebWindow::CreateConfigsUI();
+    std::unique_ptr<SettingsUI> BeebWindow::CreateTraceUI();
+    std::unique_ptr<SettingsUI> BeebWindow::CreateNVRAMUI();
+    std::unique_ptr<SettingsUI> BeebWindow::CreateDataRateUI();
+    std::unique_ptr<SettingsUI> BeebWindow::CreateCCStackUI();
+#if VIDEO_TRACK_METADATA
+    std::unique_ptr<SettingsUI> BeebWindow::CreatePixelMetadataUI();
+#endif
+#if ENABLE_IMGUI_TEST
+    std::unique_ptr<SettingsUI> BeebWindow::CreateDearImguiTestUI();
+#endif
+
     static ObjectCommandTable<BeebWindow> ms_command_table;
+    static const SettingsUIMetadata ms_settings_uis[];
 
     // Keep this at the end. It's massive.
     Messages m_msg;
