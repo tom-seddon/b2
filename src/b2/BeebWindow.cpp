@@ -1461,8 +1461,39 @@ void BeebWindow::DoBeebDisplayUI() {
 #endif
 
             ImGui::SetCursorPos(pos);
+            ImVec2 screen_pos=ImGui::GetCursorScreenPos();
             ImGui::Image(m_tv_texture,size);
-}
+
+#if VIDEO_TRACK_METADATA
+
+            m_got_mouse_pixel_metadata=false;
+
+            if(ImGui::IsItemHovered()) {
+                ImVec2 mouse_pos=ImGui::GetMousePos();
+                mouse_pos-=screen_pos;
+
+                double tx=mouse_pos.x/size.x;
+                double ty=mouse_pos.y/size.y;
+
+                if(tx>=0.&&tx<1.&&ty>=0.&&ty<1.) {
+                    int x=(int)(tx*TV_TEXTURE_WIDTH);
+                    int y=(int)(ty*TV_TEXTURE_HEIGHT);
+
+
+                    ASSERT(x>=0&&x<TV_TEXTURE_WIDTH);
+                    ASSERT(y>=0&&y<TV_TEXTURE_HEIGHT);
+
+                    m_got_mouse_pixel_metadata=true;
+
+                    const VideoDataHalfUnitMetadata *metadata=m_tv.GetTextureMetadata();
+                    m_mouse_pixel_metadata=metadata[y*TV_TEXTURE_WIDTH+x];
+                    m_got_mouse_pixel_metadata=true;
+
+                    //printf("tx=%f x=%d; ty=%f y=%d; addr=%04x\n",tx,x,ty,y,m_mouse_pixel_metadata.addr);
+                }
+            }
+#endif
+        }
     }
     ImGui::EndDock();
 }
@@ -1487,40 +1518,10 @@ ImVec2 BeebWindow::GetBeebDisplaySize(const ImVec2 &window_size) const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void BeebWindow::UpdatePixelMetadata(double tx,double ty) {
-#if VIDEO_TRACK_METADATA
-
-    if(tx<0.||tx>=1.||ty<0.||ty>=1.) {
-        m_got_mouse_pixel_metadata=false;
-    } else {
-        int x=(int)(tx*TV_TEXTURE_WIDTH);
-        int y=(int)(ty*TV_TEXTURE_HEIGHT);
-
-        ASSERT(x>=0&&x<TV_TEXTURE_WIDTH);
-        ASSERT(y>=0&&y<TV_TEXTURE_HEIGHT);
-
-        m_got_mouse_pixel_metadata=true;
-
-        const VideoDataHalfUnitMetadata *metadata=m_tv.GetTextureMetadata();
-        m_mouse_pixel_metadata=metadata[y*TV_TEXTURE_WIDTH+x];
-    }
-
-#else
-
-    (void)tx,(void)ty;
-
-#endif
-    }
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 bool BeebWindow::HandleVBlank(uint64_t ticks) {
     ImGuiContextSetter setter(m_imgui_stuff);
 
     bool keep_window=true;
-
-    m_got_mouse_pixel_metadata=false;
 
     VBlankRecord *vblank_record=this->NewVBlankRecord(ticks);
 
@@ -1673,7 +1674,7 @@ void BeebWindow::SavePosition() {
     BeebWindows::SetLastWindowPlacementData(buf);
 
 #endif
-        }
+}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -1768,9 +1769,9 @@ bool BeebWindow::InitInternal() {
         if(strcmp(info.name,"opengl")==0) {
             rmt_BindOpenGL();
             g_unbind_opengl=1;
-    }
+        }
 #endif
-}
+    }
     ++g_num_BeebWindow_inits;
 #endif
 
@@ -1865,7 +1866,7 @@ bool BeebWindow::InitInternal() {
 
 
     return true;
-    }
+}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

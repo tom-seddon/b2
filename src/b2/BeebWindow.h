@@ -411,7 +411,6 @@ private:
     void CheckTimeline();
     void UpdateTVTexture(VBlankRecord *vblank_record);
     VBlankRecord *NewVBlankRecord(uint64_t ticks);
-    void UpdatePixelMetadata(double tx,double ty);
     void DoBeebDisplayUI();
     ImVec2 GetBeebDisplaySize(const ImVec2 &window_size) const;
 
