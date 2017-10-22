@@ -97,6 +97,8 @@ static const int HEIGHT_SCALE=1;
 // output...
 static const int MAX_NUM_SCANNED_LINES=500*HEIGHT_SCALE;
 
+#define NOTHING_PALETTE_INDEX (0)
+
 void TVOutput::UpdateOneHalfUnit(const VideoDataHalfUnit *hu,float amt) {
 #if !BLEND
     (void)amt;
@@ -265,10 +267,10 @@ void TVOutput::UpdateOneHalfUnit(const VideoDataHalfUnit *hu,float amt) {
                     if(m_x<TV_TEXTURE_WIDTH&&m_y<TV_TEXTURE_HEIGHT) {
                         uint32_t *line=m_line+m_x;
 
-                        line[7]=line[6]=line[5]=line[4]=line[3]=line[2]=line[1]=line[0]=m_palette[0][0];
+                        line[7]=line[6]=line[5]=line[4]=line[3]=line[2]=line[1]=line[0]=m_palette[0][NOTHING_PALETTE_INDEX];
 #if FULL_PAL_HEIGHT
                         line+=TV_TEXTURE_WIDTH;
-                        line[7]=line[6]=line[5]=line[4]=line[3]=line[2]=line[1]=line[0]=m_palette[0][0];
+                        line[7]=line[6]=line[5]=line[4]=line[3]=line[2]=line[1]=line[0]=m_palette[0][NOTHING_PALETTE_INDEX];
 #endif
 
 #if VIDEO_TRACK_METADATA
