@@ -743,7 +743,9 @@ void BeebWindow::DoSettingsUI() {
         std::unique_ptr<SettingsUI> *uptr=&(this->*ui->uptr_mptr);
 
         if(opened) {
-            if(ImGui::BeginDock(ui->name,&opened)) {
+            ImGui::SetNextDock(ImGuiDockSlot_None);
+            ImVec2 default_size=ImGui::GetIO().DisplaySize*.4f;
+            if(ImGui::BeginDock(ui->name,&opened,0,default_size)) {
 
                 if(!*uptr) {
                     printf("Creating: %s\n",ui->name);
