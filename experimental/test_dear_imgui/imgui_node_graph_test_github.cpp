@@ -180,7 +180,7 @@ static void ShowExampleAppCustomNodeGraph(bool* opened)
     draw_list->ChannelsMerge();
 
     // Open context menu
-    if (!ImGui::IsAnyItemHovered() && ImGui::IsWindowRectHovered() && ImGui::IsMouseClicked(1))
+    if (!ImGui::IsAnyItemHovered() && ImGui::IsWindowHovered() && ImGui::IsMouseClicked(1))
     {
         node_selected = node_hovered_in_list = node_hovered_in_scene = -1;
         open_context_menu = true;
