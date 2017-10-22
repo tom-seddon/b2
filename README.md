@@ -77,6 +77,25 @@ saved state.
 Use `Tools` > `Options...` to bring up the options dialog, letting you
 fiddle with screen size and speed limiting and stuff.
 
+### Display options
+
+Tick `Auto scale` to have the Beeb display automatically scaled based
+on the window size, or untick it and use the `Manual scale` filter to
+choose your preferred scale.
+
+`Correct aspect ratio` makes the display slightly narrower, better
+matching the output from a real BBC.
+
+`Filter display` lets the GPU smooth the display a bit when it's being
+stretched.
+
+For best results, leave these options on.
+
+For (inauthentic!) 1:1 pixel output, switch them off and set a manual
+scale of 1.0, or 2.0, and so on.
+
+### Turbo disc
+
 Click `Turbo disc` to activate turbo disc mode. Turbo disc mode
 improves disc read/write throughput by 2-3x, and further improves
 speed by turning off emulation of seek times and internal disc delays.

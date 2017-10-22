@@ -69,12 +69,9 @@ struct BeebWindowSettings {
     float bbc_volume=0.f;
     float disc_volume=0.f;
 
-    //bool display_auto_scale=true;
-    //float display_overall_scale=1.f;
-    float display_scale_x=1.2f/1.25f;
-    float display_scale_y=1.f;
-    //BeebWindowDisplayAlignment display_alignment_x=BeebWindowDisplayAlignment_Centre;
-    //BeebWindowDisplayAlignment display_alignment_y=BeebWindowDisplayAlignment_Centre;
+    bool display_auto_scale=true;
+    bool correct_aspect_ratio=true;
+    float display_manual_scale=1.f;
     bool display_filter=false;
 };
 
@@ -412,7 +409,6 @@ private:
     void UpdateTVTexture(VBlankRecord *vblank_record);
     VBlankRecord *NewVBlankRecord(uint64_t ticks);
     void DoBeebDisplayUI();
-    ImVec2 GetBeebDisplaySize(const ImVec2 &window_size) const;
 
     template<BeebWindowUIFlag>
     void ToggleUICommand();

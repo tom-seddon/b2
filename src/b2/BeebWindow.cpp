@@ -163,26 +163,15 @@ void BeebWindow::OptionsUI::DoImGui(CommandContextStack *cc_stack) {
     m_beeb_window->DoOptionsCheckbox("Limit speed",&BeebThread::IsSpeedLimited,&BeebThread::SendSetSpeedLimitingMessage);
     m_beeb_window->DoOptionsCheckbox("Turbo disc",&BeebThread::IsTurboDisc,&BeebThread::SendSetTurboDiscMessage);
 
-    //    bool ImGui::Combo(const char* label, int* current_item, bool (*items_getter)(void*, int, const char**), void* data, int items_count, int height_in_items)
+    ImGui::Checkbox("Correct aspect ratio",&settings->correct_aspect_ratio);
 
-    // Manually do the scale minimum, since ImGui lets you type in
-    // out-of-range values and you don't want 0.f.
+    ImGui::Checkbox("Auto scale",&settings->display_auto_scale);
 
-    static const float MIN_SCALE=.1f;
-    static const float MAX_SCALE=3.f;
-    static const float SCALE_STEP=.01f;
-
-    ImGui::DragFloat("Width scale",&settings->display_scale_x,SCALE_STEP,0.f,MAX_SCALE);
-    settings->display_scale_x=std::max(settings->display_scale_x,MIN_SCALE);
-
-    ImGui::DragFloat("Height scale",&settings->display_scale_y,SCALE_STEP,0.f,MAX_SCALE);
-    settings->display_scale_y=std::max(settings->display_scale_y,MIN_SCALE);
+    ImGui::DragFloat("Manual scale",&settings->display_manual_scale,.01f,0.f,10.f);
 
     if(ImGui::Checkbox("Filter display",&settings->display_filter)) {
         m_beeb_window->RecreateTexture();
     }
-
-    //ImGuiSliderGetSet("Mode 7 gamma",&m_tv,&TVOutput::GetGamma,&TVOutput::SetGamma,1.f,10.f,"%.3f");
 
     if(ImGui::SliderFloat("BBC volume",&settings->bbc_volume,MIN_DB,MAX_DB,"%.1f dB")) {
         beeb_thread->SetBBCVolume(settings->bbc_volume);
@@ -753,31 +742,37 @@ void BeebWindow::DoSettingsUI() {
         bool opened=!!(m_settings.ui_flags&ui->mask);
         std::unique_ptr<SettingsUI> *uptr=&(this->*ui->uptr_mptr);
 
-        if(ImGui::BeginDock(ui->name,&opened)) {
+        if(opened) {
+            if(ImGui::BeginDock(ui->name,&opened)) {
 
-            if(!*uptr) {
-                printf("Creating: %s\n",ui->name);
-                *uptr=(this->*ui->create_mfn)();
+                if(!*uptr) {
+                    printf("Creating: %s\n",ui->name);
+                    *uptr=(this->*ui->create_mfn)();
+                }
+
+                (*uptr)->DoImGui(&m_cc_stack);
+
+                if((*uptr)->WantsKeyboardFocus()) {
+                    m_imgui_has_kb_focus=true;
+                }
+
+                m_settings.ui_flags|=ui->mask;
             }
+            ImGui::EndDock();
 
-            (*uptr)->DoImGui(&m_cc_stack);
+            if(!opened) {
+                m_settings.ui_flags&=~ui->mask;
 
-            if((*uptr)->WantsKeyboardFocus()) {
-                m_imgui_has_kb_focus=true;
+                // Leave the deletion until the next frame -
+                // references to its textures might still be queued up
+                // in the dear imgui drawlists.
             }
-
-            m_settings.ui_flags|=ui->mask;
-        }
-        ImGui::EndDock();
-
-        if(!opened) {
+        } else {
             if(*uptr) {
                 printf("Deleting: %s\n",ui->name);
                 this->MaybeSaveConfig((*uptr)->OnClose());
                 *uptr=nullptr;
             }
-
-            m_settings.ui_flags&=~ui->mask;
         }
     }
 
@@ -1454,9 +1449,39 @@ void BeebWindow::DoBeebDisplayUI() {
 #else
 
             ImVec2 window_size=ImGui::GetWindowSize();
-            ImVec2 size=this->GetBeebDisplaySize(window_size);
+
+            ImVec2 size;
+
+            double scale_x;
+            if(m_settings.correct_aspect_ratio) {
+                scale_x=1.2/1.25;
+            } else {
+                scale_x=1;
+            }
+
+            if(m_settings.display_auto_scale) {
+                double tv_aspect=(TV_TEXTURE_WIDTH*scale_x)/TV_TEXTURE_HEIGHT;
+
+                double width=window_size.x;
+                double height=width/tv_aspect;
+
+                if(height>window_size.y) {
+                    height=window_size.y;
+                    width=height*tv_aspect;
+                }
+
+                size.x=(float)width;
+                size.y=(float)height;
+            } else {
+                size.x=(float)(m_settings.display_manual_scale*TV_TEXTURE_WIDTH*scale_x);
+                size.y=(float)(m_settings.display_manual_scale*TV_TEXTURE_HEIGHT);
+            }
 
             ImVec2 pos=(window_size-size)*.5f;
+
+            // Don't fight any half pixel offset.
+            pos.x=(float)(int)pos.x;
+            pos.y=(float)(int)pos.y;
 
 #endif
 
@@ -1501,23 +1526,6 @@ void BeebWindow::DoBeebDisplayUI() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-ImVec2 BeebWindow::GetBeebDisplaySize(const ImVec2 &window_size) const {
-    double tv_aspect=(TV_TEXTURE_WIDTH*m_settings.display_scale_x)/(TV_TEXTURE_HEIGHT*m_settings.display_scale_y);
-
-    double width=window_size.x;
-    double height=width/tv_aspect;
-
-    if(height>window_size.y) {
-        height=window_size.y;
-        width=height*tv_aspect;
-    }
-
-    return ImVec2((float)width,(float)height);
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 bool BeebWindow::HandleVBlank(uint64_t ticks) {
     ImGuiContextSetter setter(m_imgui_stuff);
 
@@ -1538,26 +1546,6 @@ bool BeebWindow::HandleVBlank(uint64_t ticks) {
     m_imgui_stuff->Render();
 
     SDL_RenderPresent(m_renderer);
-
-    //SDL_Rect dest_rect;
-
-    //if(m_settings.display_auto_scale) {
-    //} else {
-    //    dest_rect.w=(int)(TV_TEXTURE_WIDTH*m_settings.display_scale_x*m_settings.display_overall_scale);
-    //    dest_rect.h=(int)(TV_TEXTURE_HEIGHT*m_settings.display_scale_y*m_settings.display_overall_scale);
-    //}
-
-    //dest_rect.x=GetAlignedCoordinate(m_settings.display_alignment_x,output_width,dest_rect.w);
-    //dest_rect.y=GetAlignedCoordinate(m_settings.display_alignment_y,output_height,dest_rect.h);
-
-    //SDL_RenderClear(m_renderer);
-    //if(m_tv_texture) {
-    //    SDL_RenderCopy(m_renderer,m_tv_texture,NULL,&dest_rect);
-    //}
-    //m_imgui_stuff->Render();
-    //SDL_RenderPresent(m_renderer);
-
-    //printf("dear imgui: Active=%08x Hovered=%08x, HovWin=%s\n",GImGui->ActiveId,GImGui->HoveredId,GImGui->HoveredWindow?GImGui->HoveredWindow->Name:"-");
 
     bool got_mouse_focus=false;
     {
@@ -1690,8 +1678,8 @@ bool BeebWindow::InitInternal() {
     m_window=SDL_CreateWindow("",
                               SDL_WINDOWPOS_UNDEFINED,
                               SDL_WINDOWPOS_UNDEFINED,
-                              (int)(TV_TEXTURE_WIDTH*m_settings.display_scale_x),
-                              (int)(TV_TEXTURE_HEIGHT*m_settings.display_scale_y),
+                              TV_TEXTURE_WIDTH,
+                              TV_TEXTURE_HEIGHT,
                               SDL_WINDOW_RESIZABLE|SDL_WINDOW_OPENGL);
     if(!m_window) {
         m_msg.e.f("SDL_CreateWindow failed: %s\n",SDL_GetError());

@@ -838,12 +838,13 @@ static const char KEYSYMS[]="keysyms";
 static const char KEYCODE[]="keycode";
 static const char BBC_VOLUME[]="bbc_volume";
 static const char DISC_VOLUME[]="disc_volume";
-static const char DISPLAY_SCALE_X[]="display_scale_x";
-static const char DISPLAY_SCALE_Y[]="display_scale_y";
 static const char FILTER_BBC[]="filter_bbc";
 static const char SHORTCUTS[]="shortcuts";
 static const char PREFER_SHORTCUTS[]="prefer_shortcuts";
 //static const char DOCK_CONFIG[]="dock_config";
+static const char CORRECT_ASPECT_RATIO[]="correct_aspect_ratio";
+static const char AUTO_SCALE[]="auto_scale";
+static const char MANUAL_SCALE[]="manual_scale";
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -1127,9 +1128,10 @@ static bool LoadWindows(rapidjson::Value *windows,Messages *msg) {
     //FindStringMember(&BeebWindows::defaults.dock_config,windows,DOCK_CONFIG,msg);
     FindFloatMember(&BeebWindows::defaults.bbc_volume,windows,BBC_VOLUME,msg);
     FindFloatMember(&BeebWindows::defaults.disc_volume,windows,DISC_VOLUME,msg);
-    FindFloatMember(&BeebWindows::defaults.display_scale_x,windows,DISPLAY_SCALE_X,msg);
-    FindFloatMember(&BeebWindows::defaults.display_scale_y,windows,DISPLAY_SCALE_Y,msg);
     FindBoolMember(&BeebWindows::defaults.display_filter,windows,FILTER_BBC,nullptr);
+    FindBoolMember(&BeebWindows::defaults.correct_aspect_ratio,windows,CORRECT_ASPECT_RATIO,nullptr);
+    FindBoolMember(&BeebWindows::defaults.display_auto_scale,windows,AUTO_SCALE,nullptr);
+    FindFloatMember(&BeebWindows::defaults.display_manual_scale,windows,MANUAL_SCALE,nullptr);
 
     {
         std::string keymap_name;
@@ -1547,14 +1549,17 @@ static void SaveWindows(JSONWriter<StringStream> *writer) {
         writer->Key(DISC_VOLUME);
         writer->Double(BeebWindows::defaults.disc_volume);
 
-        writer->Key(DISPLAY_SCALE_X);
-        writer->Double(BeebWindows::defaults.display_scale_x);
-
-        writer->Key(DISPLAY_SCALE_Y);
-        writer->Double(BeebWindows::defaults.display_scale_y);
-
         writer->Key(FILTER_BBC);
         writer->Bool(BeebWindows::defaults.display_filter);
+
+        writer->Key(CORRECT_ASPECT_RATIO);
+        writer->Bool(BeebWindows::defaults.correct_aspect_ratio);
+
+        writer->Key(AUTO_SCALE);
+        writer->Bool(BeebWindows::defaults.display_auto_scale);
+
+        writer->Key(MANUAL_SCALE);
+        writer->Double(BeebWindows::defaults.display_manual_scale);
     }
 }
 
