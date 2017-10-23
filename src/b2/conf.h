@@ -79,9 +79,9 @@ static const size_t NUM_VBLANK_RECORDS=250;
 // centre differently from in the emulator, so obviously something's
 // still wrong.)
 
-static const size_t TV_TEXTURE_WIDTH=736;
+static const int TV_TEXTURE_WIDTH=736;
 
-static const size_t TV_TEXTURE_HEIGHT=288
+static const int TV_TEXTURE_HEIGHT=288
 #if FULL_PAL_HEIGHT
     *2
 #endif

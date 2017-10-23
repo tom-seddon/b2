@@ -440,13 +440,13 @@ void TVOutput::UpdateOneHalfUnit(const VideoDataHalfUnit *hu,float amt) {
     VideoDataBitmapPixel p##INDEX##a=hu->bitmap.pixels[1+(A)];\
     VideoDataBitmapPixel p##INDEX##b=hu->bitmap.pixels[1+(B)];\
     VideoDataBitmapPixel p##INDEX##c=hu->bitmap.pixels[1+(C)];\
-    uint32_t r##INDEX=((p##INDEX##a.r<<4|p##INDEX##a.r)+(p##INDEX##b.r<<4|p##INDEX##b.r)+(p##INDEX##c.r<<4|p##INDEX##c.r))/3;\
-    uint32_t g##INDEX=((p##INDEX##a.g<<4|p##INDEX##a.g)+(p##INDEX##b.g<<4|p##INDEX##b.g)+(p##INDEX##c.g<<4|p##INDEX##c.g))/3;\
-    uint32_t b##INDEX=((p##INDEX##a.b<<4|p##INDEX##a.b)+(p##INDEX##b.b<<4|p##INDEX##b.b)+(p##INDEX##c.b<<4|p##INDEX##c.b))/3;\
+    int32_t r##INDEX=((p##INDEX##a.r<<4|p##INDEX##a.r)+(p##INDEX##b.r<<4|p##INDEX##b.r)+(p##INDEX##c.r<<4|p##INDEX##c.r))/3;\
+    int32_t g##INDEX=((p##INDEX##a.g<<4|p##INDEX##a.g)+(p##INDEX##b.g<<4|p##INDEX##b.g)+(p##INDEX##c.g<<4|p##INDEX##c.g))/3;\
+    int32_t b##INDEX=((p##INDEX##a.b<<4|p##INDEX##a.b)+(p##INDEX##b.b<<4|p##INDEX##b.b)+(p##INDEX##c.b<<4|p##INDEX##c.b))/3;\
     /*ASSERT(r##INDEX<256);*/\
     /*ASSERT(g##INDEX<256);*/\
     /*ASSERT(b##INDEX<256);*/\
-    DEST(INDEX)=r##INDEX<<m_rshift|g##INDEX<<m_gshift|b##INDEX<<m_bshift|m_alpha;
+    DEST(INDEX)=(uint32_t)r##INDEX<<m_rshift|(uint32_t)g##INDEX<<m_gshift|(uint32_t)b##INDEX<<m_bshift|m_alpha;
 
                         PIXEL(0,0,0,0);
                         PIXEL(1,0,1,1);

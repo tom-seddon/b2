@@ -354,7 +354,8 @@ void ImGuiStuff::Render() {
     }
 
 #if STORE_DRAWLISTS
-    m_draw_lists.resize(draw_data->CmdListsCount);
+    ASSERT(draw_data->CmdListsCount>=0);
+    m_draw_lists.resize((size_t)draw_data->CmdListsCount);
 #endif
 
     for(int i=0;i<draw_data->CmdListsCount;++i) {
@@ -367,8 +368,9 @@ void ImGuiStuff::Render() {
         ASSERT(draw_list->VtxBuffer.size()<=(std::numeric_limits<decltype(num_vertices)>::max)());
 
 #if STORE_DRAWLISTS
-        StoredDrawList *stored_list=&m_draw_lists[i];
-        stored_list->cmds.resize(draw_list->CmdBuffer.size());
+        StoredDrawList *stored_list=&m_draw_lists[(size_t)i];
+        ASSERT(draw_list->CmdBuffer.size()>=0);
+        stored_list->cmds.resize((size_t)draw_list->CmdBuffer.size());
 
         if(draw_list->_OwnerName) {
             stored_list->name=draw_list->_OwnerName;
@@ -983,7 +985,7 @@ static void PlotEx2(
     const ImRect inner_bb(frame_bb.Min+style.FramePadding,frame_bb.Max-style.FramePadding);
     const ImRect total_bb(frame_bb.Min,frame_bb.Max+ImVec2(label_size.x>0.0f?style.ItemInnerSpacing.x+label_size.x:0.0f,0));
     ItemSize(total_bb,style.FramePadding.y);
-    if(!ItemAdd(total_bb,NULL))
+    if(!ItemAdd(total_bb,0))
         return;
 
     // Determine scale from values if not specified
@@ -1091,7 +1093,9 @@ struct ImGuiPlotArrayGetterData2 {
 
 static float Plot2_ArrayGetter(void* data,int idx) {
     ImGuiPlotArrayGetterData2* plot_data=(ImGuiPlotArrayGetterData2*)data;
-    const float v=*(float*)(void*)((unsigned char*)plot_data->Values+(size_t)idx * plot_data->Stride);
+    ASSERT(idx>=0);
+    ASSERT(plot_data->Stride>=0);
+    const float v=*(float*)(void*)((unsigned char*)plot_data->Values+(size_t)idx * (size_t)plot_data->Stride);
     return v;
 }
 

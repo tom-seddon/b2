@@ -126,7 +126,7 @@ class TimelineUI:
     public SettingsUI
 {
 public:
-    TimelineUI::TimelineUI(BeebWindow *beeb_window,BeebWindowInitArguments init_arguments,SDL_Renderer *renderer,const SDL_PixelFormat *pixel_format);
+    TimelineUI(BeebWindow *beeb_window,BeebWindowInitArguments init_arguments,SDL_Renderer *renderer,const SDL_PixelFormat *pixel_format);
     ~TimelineUI();
 
     void DoImGui(CommandContextStack *cc_stack) override;
@@ -167,10 +167,10 @@ private:
 //}
 
 TimelineUI::TimelineUI(BeebWindow *beeb_window,BeebWindowInitArguments init_arguments,SDL_Renderer *renderer,const SDL_PixelFormat *pixel_format):
-    m_beeb_window(beeb_window),
-    m_init_arguments(std::move(init_arguments)),
     m_renderer(renderer),
-    m_pixel_format(ClonePixelFormat(pixel_format))
+    m_beeb_window(beeb_window),
+    m_pixel_format(ClonePixelFormat(pixel_format)),
+    m_init_arguments(std::move(init_arguments))
 {
 }
 

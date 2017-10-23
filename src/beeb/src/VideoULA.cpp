@@ -9,7 +9,7 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-LOG_TAGGED_DEFINE(VU,"video","VIDULA",&log_printer_stdout_and_debugger,false);
+LOG_TAGGED_DEFINE(VU,"video","VIDULA",&log_printer_stdout_and_debugger,false)
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -261,7 +261,7 @@ VideoDataBitmapPixel VideoULA::ShiftAttributeMode0() {
 //////////////////////////////////////////////////////////////////////////
 
 VideoDataBitmapPixel VideoULA::ShiftAttributeMode1() {
-    uint8_t index=(m_original_byte>>1)&8|(m_original_byte<<2)&4|(m_work_byte>>6)&2|(m_work_byte>>3)&1;
+    uint8_t index=(m_original_byte>>1&8)|(m_original_byte<<2&4)|(m_work_byte>>6&2)|(m_work_byte>>3&1);
 
     m_work_byte<<=1;
     m_work_byte|=1;

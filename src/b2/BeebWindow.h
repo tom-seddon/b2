@@ -435,23 +435,23 @@ private:
     void CopyBASIC();
     bool IsCopyBASICEnabled() const;
 
-    std::unique_ptr<SettingsUI> BeebWindow::CreateKeymapsUI();
-    std::unique_ptr<SettingsUI> BeebWindow::CreateCommandKeymapsUI();
-    std::unique_ptr<SettingsUI> BeebWindow::CreateOptionsUI();
-    std::unique_ptr<SettingsUI> BeebWindow::CreateMessagesUI();
+    std::unique_ptr<SettingsUI> CreateKeymapsUI();
+    std::unique_ptr<SettingsUI> CreateCommandKeymapsUI();
+    std::unique_ptr<SettingsUI> CreateOptionsUI();
+    std::unique_ptr<SettingsUI> CreateMessagesUI();
 #if TIMELINE_UI_ENABLED
-    std::unique_ptr<SettingsUI> BeebWindow::CreateTimelineUI();
+    std::unique_ptr<SettingsUI> CreateTimelineUI();
 #endif
-    std::unique_ptr<SettingsUI> BeebWindow::CreateConfigsUI();
-    std::unique_ptr<SettingsUI> BeebWindow::CreateTraceUI();
-    std::unique_ptr<SettingsUI> BeebWindow::CreateNVRAMUI();
-    std::unique_ptr<SettingsUI> BeebWindow::CreateDataRateUI();
-    std::unique_ptr<SettingsUI> BeebWindow::CreateCCStackUI();
+    std::unique_ptr<SettingsUI> CreateConfigsUI();
+    std::unique_ptr<SettingsUI> CreateTraceUI();
+    std::unique_ptr<SettingsUI> CreateNVRAMUI();
+    std::unique_ptr<SettingsUI> CreateDataRateUI();
+    std::unique_ptr<SettingsUI> CreateCCStackUI();
 #if VIDEO_TRACK_METADATA
-    std::unique_ptr<SettingsUI> BeebWindow::CreatePixelMetadataUI();
+    std::unique_ptr<SettingsUI> CreatePixelMetadataUI();
 #endif
 #if ENABLE_IMGUI_TEST
-    std::unique_ptr<SettingsUI> BeebWindow::CreateDearImguiTestUI();
+    std::unique_ptr<SettingsUI> CreateDearImguiTestUI();
 #endif
 
     static ObjectCommandTable<BeebWindow> ms_command_table;
