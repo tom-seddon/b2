@@ -359,6 +359,9 @@ private:
 #if ENABLE_IMGUI_TEST
     std::unique_ptr<SettingsUI> m_dear_imgui_test_ui;
 #endif
+#if BBCMICRO_DEBUGGER
+    std::unique_ptr<SettingsUI> m_6502_debugger_ui;
+#endif
 
     bool m_messages_popup_ui_active=false;
     uint64_t m_messages_popup_ticks=0;
@@ -452,6 +455,9 @@ private:
 #endif
 #if ENABLE_IMGUI_TEST
     std::unique_ptr<SettingsUI> CreateDearImguiTestUI();
+#endif
+#if BBCMICRO_DEBUGGER
+    std::unique_ptr<SettingsUI> Create6502DebuggerUI();
 #endif
 
     static ObjectCommandTable<BeebWindow> ms_command_table;

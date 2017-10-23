@@ -332,6 +332,8 @@ public:
     bool IsPasting() const;
     void StartPaste(std::shared_ptr<std::string> text);
     void StopPaste();
+
+    const M6502 *GetM6502() const;
 protected:
 private:
     //////////////////////////////////////////////////////////////////////////

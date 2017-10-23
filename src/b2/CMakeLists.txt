@@ -49,6 +49,7 @@ add_executable(b2 MACOSX_BUNDLE
   SettingsUI.cpp SettingsUI.h
   PixelMetadataUI.cpp PixelMetadataUI.h
   DearImguiTestUI.cpp DearImguiTestUI.h
+  debugger.cpp debugger.h debugger.inl
   )
 
 ##########################################################################

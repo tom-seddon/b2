@@ -43,6 +43,7 @@ EPNV(CommandContextStack,1<<8)
 EPNV(CommandKeymaps,1<<9)
 EPNV(PixelMetadata,1<<10)
 EPNV(DearImguiTest,1<<11)
+EPNV(6502Debugger,1<<12)
 EEND()
 #undef ENAME
 

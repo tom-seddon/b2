@@ -35,25 +35,6 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-#define BIT(X,N) (((X)&1<<N)?'1':'0')
-#define BITS(X) {BIT(X,7),BIT(X,6),BIT(X,5),BIT(X,4),BIT(X,3),BIT(X,2),BIT(X,1),BIT(X,0),0},
-#define AABBCCDD(A,Y,Z,W) BITS(((A)<<6|(Y)<<4|(Z)<<2|(W)))
-#define AABBCC__(A,B,C) AABBCCDD(A,B,C,0) AABBCCDD(A,B,C,1) AABBCCDD(A,B,C,2) AABBCCDD(A,B,C,3)
-#define AABB____(A,B)   AABBCC__(A,B,0)   AABBCC__(A,B,1)   AABBCC__(A,B,2)   AABBCC__(A,B,3) 
-#define AA______(A)     AABB____(A,0)     AABB____(A,1)     AABB____(A,2)     AABB____(A,3)
-
-static const char BINARY_BYTE_STRINGS[256][9]={AA______(0) AA______(1) AA______(2) AA______(3)};
-
-#undef AA______
-#undef AABB____
-#undef AABBCC__
-#undef AABBCCDD
-#undef BITS
-#undef BIT
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 static const std::unique_ptr<DiscImage> NULL_DISCIMAGE_PTR;
 static std::map<DiscDriveType,std::array<std::vector<float>,DiscDriveSound_EndValue>> g_disc_drive_sounds;
 
@@ -1615,6 +1596,13 @@ void BBCMicro::StopPaste() {
 
     m_state.hack_flags&=(uint32_t)~BBCMicroHackFlag_Paste;
     this->UpdateCPUDataBusFn();
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+const M6502 *BBCMicro::GetM6502() const {
+    return &m_state.cpu;
 }
 
 //////////////////////////////////////////////////////////////////////////

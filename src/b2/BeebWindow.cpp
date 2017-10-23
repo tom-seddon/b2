@@ -37,6 +37,7 @@
 #include "CommandKeymapsUI.h"
 #include "PixelMetadataUI.h"
 #include "DearImguiTestUI.h"
+#include "debugger.h"
 
 #ifdef _MSC_VER
 #include <crtdbg.h>
@@ -737,6 +738,9 @@ const BeebWindow::SettingsUIMetadata BeebWindow::ms_settings_uis[]={
 #if ENABLE_IMGUI_TEST
     {BeebWindowUIFlag_DearImguiTest,"dear imgui Test",&BeebWindow::m_dear_imgui_test_ui,&BeebWindow::CreateDearImguiTestUI},
 #endif
+#if BBCMICRO_DEBUGGER
+    {BeebWindowUIFlag_6502Debugger,"6502 Debug",&BeebWindow::m_6502_debugger_ui,&BeebWindow::Create6502DebuggerUI,},
+#endif
     {},
 };
 
@@ -877,6 +881,15 @@ std::unique_ptr<SettingsUI> BeebWindow::CreatePixelMetadataUI() {
 #if ENABLE_IMGUI_TEST
 std::unique_ptr<SettingsUI> BeebWindow::CreateDearImguiTestUI() {
     return ::CreateDearImguiTestUI();
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_DEBUGGER
+std::unique_ptr<SettingsUI> BeebWindow::Create6502DebuggerUI() {
+    return Create6502DebugWindow(m_beeb_thread);
 }
 #endif
 
@@ -1304,6 +1317,12 @@ void BeebWindow::DoDebugMenu() {
         m_occ.DoMenuItemUI("check_timeline");
 #if VIDEO_TRACK_METADATA
         m_occ.DoMenuItemUI("toggle_pixel_metadata");
+#endif
+
+#if BBCMICRO_DEBUGGER
+        ImGui::Separator();
+
+        m_occ.DoMenuItemUI("toggle_6502_debugger");
 #endif
 
         ImGui::Separator();
@@ -2558,5 +2577,8 @@ ObjectCommandTable<BeebWindow> BeebWindow::ms_command_table("Beeb Window",{
 #endif
 #if ENABLE_IMGUI_TEST
     GetToggleUICommand<BeebWindowUIFlag_DearImguiTest>("toggle_dear_imgui_test"),
+#endif
+#if BBCMICRO_DEBUGGER
+    GetToggleUICommand<BeebWindowUIFlag_6502Debugger>("toggle_6502_debugger"),
 #endif
 });

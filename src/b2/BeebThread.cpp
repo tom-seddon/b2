@@ -676,6 +676,34 @@ void BeebThread::SendCancelReplayMessage() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#if BBCMICRO_DEBUGGER
+void BeebThread::SendUpdate6502StateMessage() {
+    this->SendMessage(BeebThreadEventType_Update6502State,0,nullptr);
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_DEBUGGER
+const M6502 *BeebThread::Get6502State(std::unique_lock<std::mutex> *lock) const {
+    std::unique_lock<std::mutex> tmp_lock(m_mutex);
+
+    if(m_paused_ts) {
+        *lock=std::move(tmp_lock);
+        return m_paused_ts->beeb->GetM6502();
+    } else if(m_6502_state.config) {
+        *lock=std::move(tmp_lock);
+        return &m_6502_state;
+    } else {
+        return nullptr;
+    }
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 bool BeebThread::IsSpeedLimited() const {
     return m_limit_speed.load(std::memory_order_acquire);
 }
@@ -2111,6 +2139,16 @@ bool BeebThread::ThreadHandleMessage(
             this->ThreadStopCopy(ts);
         }
         break;
+
+#if BBCMICRO_DEBUGGER
+    case BeebThreadEventType_Update6502State:
+        {
+            std::lock_guard<std::mutex> lock(m_mutex);
+
+            m_6502_state=*ts->beeb->GetM6502();
+        }
+        break;
+#endif
 
     case MESSAGE_TYPE_SYNTHETIC:
         switch(msg->u32) {

@@ -150,6 +150,13 @@ public:
     bool IsCopying() const;
     void SendStartCopyBASICMessage(std::function<void(std::vector<uint8_t>)> stop_fun);
 
+#if BBCMICRO_DEBUGGER
+    void SendUpdate6502StateMessage();
+    const M6502 *Get6502State(std::unique_lock<std::mutex> *lock) const;
+#endif
+
+    // 
+
     // Get trace stats, or nullptr if there's no trace.
     const volatile TraceStats *GetTraceStats() const;
 
@@ -342,6 +349,10 @@ private:
 
     // Must take mutex to read or write.
     std::vector<std::function<void()>> m_callbacks;
+
+#if BBCMICRO_DEBUGGER
+    M6502 m_6502_state={};
+#endif
 
 #if BBCMICRO_TRACE
     static bool ThreadStopTraceOnOSWORD0(BBCMicro *beeb,M6502 *cpu,void *context);

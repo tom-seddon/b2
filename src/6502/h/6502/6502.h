@@ -337,7 +337,7 @@ const char *M6502_GetStateName(M6502 *s);
 
 /* Getter and setter for the P register. Don't access it directly. */
 void M6502_SetP(M6502 *s,uint8_t p);
-M6502P M6502_GetP(M6502 *s);
+M6502P M6502_GetP(const M6502 *s);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
