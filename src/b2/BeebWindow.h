@@ -331,6 +331,9 @@ private:
     bool m_imgui_demo=false;
 #endif
     bool m_imgui_dock_debug=false;
+#if STORE_DRAWLISTS
+    bool m_imgui_drawlists=false;
+#endif
 
     CommandContextStack m_cc_stack;
 

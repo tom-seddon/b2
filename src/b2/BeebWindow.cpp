@@ -668,6 +668,12 @@ bool BeebWindow::DoImGui(uint64_t ticks) {
                         ImGui::DockDebugWindow();
                     }
 
+#if STORE_DRAWLISTS
+                    if(m_imgui_drawlists) {
+                        m_imgui_stuff->DoStoredDrawListWindow();
+                    }
+#endif
+
                     this->DoPopupUI(ticks,output_width,output_height);
                 }
 
@@ -1306,6 +1312,9 @@ void BeebWindow::DoDebugMenu() {
         ImGui::MenuItem("ImGui demo...",NULL,&m_imgui_demo);
 #endif
         ImGui::MenuItem("ImGui dock debug...",nullptr,&m_imgui_dock_debug);
+#if STORE_DRAWLISTS
+        ImGui::MenuItem("ImGui drawlists...",nullptr,&m_imgui_drawlists);
+#endif
 
         ImGui::EndMenu();
     }

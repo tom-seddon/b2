@@ -340,6 +340,10 @@ void ImGuiStuff::Render() {
 
     ImGui::Render();
 
+#if STORE_DRAWLISTS
+    m_draw_lists.clear();
+#endif
+
     ImDrawData *draw_data=ImGui::GetDrawData();
     if(!draw_data) {
         return;
@@ -348,6 +352,11 @@ void ImGuiStuff::Render() {
     if(!draw_data->Valid) {
         return;
     }
+
+#if STORE_DRAWLISTS
+    m_draw_lists.resize(draw_data->CmdListsCount);
+#endif
+
     for(int i=0;i<draw_data->CmdListsCount;++i) {
         ImDrawList *draw_list=draw_data->CmdLists[i];
 
@@ -356,6 +365,21 @@ void ImGuiStuff::Render() {
         SDL_Vertex *vertices=(SDL_Vertex *)&draw_list->VtxBuffer[0];
         Uint16 num_vertices=(Uint16)(draw_list->VtxBuffer.size());
         ASSERT(draw_list->VtxBuffer.size()<=(std::numeric_limits<decltype(num_vertices)>::max)());
+
+#if STORE_DRAWLISTS
+        StoredDrawList *stored_list=&m_draw_lists[i];
+        stored_list->cmds.resize(draw_list->CmdBuffer.size());
+
+        if(draw_list->_OwnerName) {
+            stored_list->name=draw_list->_OwnerName;
+        } else {
+            stored_list->name.clear();
+        }
+#endif
+
+#if STORE_DRAWLISTS
+        StoredDrawCmd *stored_cmd=stored_list->cmds.data();
+#endif
 
         for(const ImDrawCmd &cmd:draw_list->CmdBuffer) {
             SDL_Rect clip_rect={
@@ -369,9 +393,23 @@ void ImGuiStuff::Render() {
             ASSERT(rc==0);
 
             if(cmd.UserCallback) {
+#if STORE_DRAWLISTS
+                stored_cmd->callback=true;
+#endif
+
                 (*cmd.UserCallback)(draw_list,&cmd);
             } else {
                 SDL_Texture *texture=(SDL_Texture *)cmd.TextureId;
+
+#if STORE_DRAWLISTS
+                stored_cmd->callback=false;
+
+                if(texture) {
+                    SDL_QueryTexture(texture,nullptr,nullptr,&stored_cmd->texture_width,&stored_cmd->texture_height);
+                }
+
+                stored_cmd->num_indices=cmd.ElemCount;
+#endif
 
                 const uint16_t *indices=&draw_list->IdxBuffer[idx_buffer_pos];
                 ASSERT(idx_buffer_pos+(int)cmd.ElemCount<=draw_list->IdxBuffer.size());
@@ -381,7 +419,12 @@ void ImGuiStuff::Render() {
 
                 ASSERT(cmd.ElemCount<=INT_MAX);
                 idx_buffer_pos+=(int)cmd.ElemCount;
+
             }
+
+#if STORE_DRAWLISTS
+            ++stored_cmd;
+#endif
         }
     }
     rc=SDL_RenderSetClipRect(m_renderer,NULL);
@@ -461,6 +504,37 @@ std::string ImGuiStuff::SaveDockContext() const {
     std::string result(serializer.getBuffer());
     return result;
 }
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if STORE_DRAWLISTS
+void ImGuiStuff::DoStoredDrawListWindow() {
+    if(ImGui::Begin("Drawlists")) {
+        ImGui::Text("%zu draw lists",m_draw_lists.size());
+
+        for(size_t i=0;i<m_draw_lists.size();++i) {
+            const StoredDrawList *list=&m_draw_lists[i];
+
+            if(ImGui::TreeNode((const void *)(uintptr_t)i,"\"%s\"; %zu commands",list->name.c_str(),list->cmds.size())) {
+                for(size_t j=0;j<list->cmds.size();++j) {
+                    const StoredDrawCmd *cmd=&list->cmds[j];
+
+                    if(cmd->callback) {
+                        ImGui::Text("%zu. (callback)",j);
+                    } else if(cmd->texture_width>0&&cmd->texture_height>0) {
+                        ImGui::Text("%zu. %u indices, %dx%d texture",j,cmd->num_indices,cmd->texture_width,cmd->texture_height);
+                    } else {
+                        ImGui::Text("%zu. %u indices",j,cmd->num_indices);
+                    }
+                }
+                ImGui::TreePop();
+            }
+        }
+    }
+    ImGui::End();
+}
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

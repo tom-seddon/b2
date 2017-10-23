@@ -30,6 +30,10 @@ struct SDL_Texture;
 struct SDL_Renderer;
 class Messages;
 
+#if !BUILD_TYPE_Final
+#define STORE_DRAWLISTS 1
+#endif
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
@@ -73,6 +77,10 @@ public:
 
     bool LoadDockContext(const std::string &config);
     std::string SaveDockContext() const;
+
+#if STORE_DRAWLISTS
+    void DoStoredDrawListWindow();
+#endif
 protected:
 private:
     SDL_Renderer *m_renderer=nullptr;
@@ -89,6 +97,21 @@ private:
     std::string m_imgui_log_txt_path;
 #if SYSTEM_WINDOWS
     void *m_cursors[ImGuiMouseCursor_Count_]={};
+#endif
+#if STORE_DRAWLISTS
+    struct StoredDrawCmd {
+        bool callback=false;
+        int texture_width=0;
+        int texture_height=0;
+        unsigned num_indices=0;
+    };
+
+    struct StoredDrawList {
+        std::string name;
+        std::vector<StoredDrawCmd> cmds;
+    };
+
+    std::vector<StoredDrawList> m_draw_lists;
 #endif
 
     friend class ImGuiContextSetter;
