@@ -117,7 +117,7 @@ static void LockedCheck() {
         all_ids.push_back(e->id);
 
         // The previous event must be earlier than this one.
-        if(e->prev_idx==UINT32_MAX) {
+        if(e->prev_idx!=UINT32_MAX) {
             ASSERT(e->prev_idx<i);
         }
 
