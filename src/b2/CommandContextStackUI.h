@@ -6,8 +6,6 @@
 
 class CommandContextStack;
 
-#include <memory>
-#include <vector>
 #include "SettingsUI.h"
 
 //////////////////////////////////////////////////////////////////////////

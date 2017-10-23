@@ -315,7 +315,9 @@ bool ConfigsUI::DoFileSelect(std::string *file_name) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-std::unique_ptr<SettingsUI> CreateConfigsUI() {
+std::unique_ptr<SettingsUI> CreateConfigsUI(BeebWindow *beeb_window) {
+    (void)beeb_window;
+
     return std::make_unique<ConfigsUI>();
 }
 

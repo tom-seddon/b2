@@ -15,6 +15,7 @@
 #include "keys.h"
 #include <math.h>
 #include <atomic>
+#include "SettingsUI.h"
 
 #include <shared/enum_def.h>
 #include "TraceUI.inl"
@@ -25,19 +26,19 @@
 
 static const std::string RECENT_PATHS_TRACES="traces";
 
-static TraceUI::Settings g_default_settings;
+static TraceUISettings g_default_settings;
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-TraceUI::Settings TraceUI::GetDefaultSettings() {
+TraceUISettings GetDefaultTraceUISettings() {
     return g_default_settings;
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void TraceUI::SetDefaultSettings(const Settings &settings) {
+void SetDefaultTraceUISettings(const TraceUISettings &settings) {
     g_default_settings=settings;
 }
 
@@ -45,6 +46,37 @@ void TraceUI::SetDefaultSettings(const Settings &settings) {
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_TRACE
+
+class TraceUI:
+    public SettingsUI
+{
+public:
+#if BBCMICRO_TRACE
+    TraceUI(BeebWindow *beeb_window);
+
+    void DoImGui(CommandContextStack *cc_stack) override;
+    bool OnClose() override;
+protected:
+private:
+    class SaveTraceJob;
+    struct Key;
+
+    BeebWindow *m_beeb_window=nullptr;
+
+    std::shared_ptr<SaveTraceJob> m_save_trace_job;
+    std::vector<uint8_t> m_keys;
+
+    TraceUISettings m_settings;
+    bool m_config_changed=false;
+
+    int GetKeyIndex(uint8_t beeb_key) const;
+    static bool GetBeebKeyName(void *data,int idx,const char **out_text);
+    void SaveButton(const char *label,const std::shared_ptr<Trace> &last_trace,bool cycles);
+#endif
+};
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
 
 static const char HEX[]="0123456789ABCDEF";
 
@@ -653,7 +685,7 @@ void TraceUI::DoImGui(CommandContextStack *cc_stack) {
 //////////////////////////////////////////////////////////////////////////
 
 bool TraceUI::OnClose() {
-    SetDefaultSettings(m_settings);
+    SetDefaultTraceUISettings(m_settings);
 
     return true;
 }
@@ -676,6 +708,13 @@ void TraceUI::SaveButton(const char *label,const std::shared_ptr<Trace> &last_tr
         }
     }
 
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+std::unique_ptr<SettingsUI> CreateTraceUI(BeebWindow *beeb_window) {
+    return std::make_unique<TraceUI>(beeb_window);
 }
 
 //////////////////////////////////////////////////////////////////////////

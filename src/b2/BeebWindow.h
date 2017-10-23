@@ -438,27 +438,11 @@ private:
     void CopyBASIC();
     bool IsCopyBASICEnabled() const;
 
-    std::unique_ptr<SettingsUI> CreateKeymapsUI();
-    std::unique_ptr<SettingsUI> CreateCommandKeymapsUI();
-    std::unique_ptr<SettingsUI> CreateOptionsUI();
-    std::unique_ptr<SettingsUI> CreateMessagesUI();
+    static std::unique_ptr<SettingsUI> CreateOptionsUI(BeebWindow *beeb_window);
 #if TIMELINE_UI_ENABLED
-    std::unique_ptr<SettingsUI> CreateTimelineUI();
+    static std::unique_ptr<SettingsUI> CreateTimelineUI(BeebWindow *beeb_window);
 #endif
-    std::unique_ptr<SettingsUI> CreateConfigsUI();
-    std::unique_ptr<SettingsUI> CreateTraceUI();
-    std::unique_ptr<SettingsUI> CreateNVRAMUI();
-    std::unique_ptr<SettingsUI> CreateDataRateUI();
-    std::unique_ptr<SettingsUI> CreateCCStackUI();
-#if VIDEO_TRACK_METADATA
-    std::unique_ptr<SettingsUI> CreatePixelMetadataUI();
-#endif
-#if ENABLE_IMGUI_TEST
-    std::unique_ptr<SettingsUI> CreateDearImguiTestUI();
-#endif
-#if BBCMICRO_DEBUGGER
-    std::unique_ptr<SettingsUI> Create6502DebuggerUI();
-#endif
+    static std::unique_ptr<SettingsUI> CreateCommandContextStackUI(BeebWindow *beeb_window);
 
     static ObjectCommandTable<BeebWindow> ms_command_table;
     static const SettingsUIMetadata ms_settings_uis[];

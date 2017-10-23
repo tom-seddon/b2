@@ -714,32 +714,32 @@ struct BeebWindow::SettingsUIMetadata {
     uint32_t mask;
     const char *name;
     std::unique_ptr<SettingsUI> BeebWindow::*uptr_mptr;
-    std::unique_ptr<SettingsUI> (BeebWindow::*create_mfn)();
+    std::unique_ptr<SettingsUI> (*create_fn)(BeebWindow *beeb_window);
 };
 
 const BeebWindow::SettingsUIMetadata BeebWindow::ms_settings_uis[]={
-    {BeebWindowUIFlag_Keymaps,"Keyboard Layout",&BeebWindow::m_keymaps_ui,&BeebWindow::CreateKeymapsUI},
-    {BeebWindowUIFlag_CommandKeymaps,"Command Keys",&BeebWindow::m_command_keymaps_ui,&BeebWindow::CreateCommandKeymapsUI},
+    {BeebWindowUIFlag_Keymaps,"Keyboard Layout",&BeebWindow::m_keymaps_ui,&CreateKeymapsUI},
+    {BeebWindowUIFlag_CommandKeymaps,"Command Keys",&BeebWindow::m_command_keymaps_ui,&CreateCommandKeymapsUI},
     {BeebWindowUIFlag_Options,"Options",&BeebWindow::m_options_ui,&BeebWindow::CreateOptionsUI},
-    {BeebWindowUIFlag_Messages,"Messages",&BeebWindow::m_messages_ui,&BeebWindow::CreateMessagesUI},
+    {BeebWindowUIFlag_Messages,"Messages",&BeebWindow::m_messages_ui,&CreateMessagesUI},
 #if TIMELINE_UI_ENABLED
     {BeebWindowUIFlag_Timeline,"Timeline",&BeebWindow::m_timeline_ui,&BeebWindow::CreateTimelineUI},
 #endif
-    {BeebWindowUIFlag_Configs,"Configurations",&BeebWindow::m_configs_ui,&BeebWindow::CreateConfigsUI},
+    {BeebWindowUIFlag_Configs,"Configurations",&BeebWindow::m_configs_ui,&CreateConfigsUI},
 #if BBCMICRO_TRACE
-    {BeebWindowUIFlag_Trace,"Tracing",&BeebWindow::m_trace_ui,&BeebWindow::CreateTraceUI},
+    {BeebWindowUIFlag_Trace,"Tracing",&BeebWindow::m_trace_ui,&CreateTraceUI},
 #endif
-    {BeebWindowUIFlag_NVRAM,"Non-volatile RAM",&BeebWindow::m_nvram_ui,&BeebWindow::CreateNVRAMUI},
-    {BeebWindowUIFlag_AudioCallback,"Data Rate",&BeebWindow::m_data_rate_ui,&BeebWindow::CreateDataRateUI},
-    {BeebWindowUIFlag_CommandContextStack,"Command Context Stack",&BeebWindow::m_cc_stack_ui,&BeebWindow::CreateCCStackUI},
+    {BeebWindowUIFlag_NVRAM,"Non-volatile RAM",&BeebWindow::m_nvram_ui,&CreateNVRAMUI},
+    {BeebWindowUIFlag_AudioCallback,"Data Rate",&BeebWindow::m_data_rate_ui,&CreateDataRateUI},
+    {BeebWindowUIFlag_CommandContextStack,"Command Context Stack",&BeebWindow::m_cc_stack_ui,&BeebWindow::CreateCommandContextStackUI},
 #if VIDEO_TRACK_METADATA
-    {BeebWindowUIFlag_PixelMetadata,"Pixel Metadata",&BeebWindow::m_pixel_metadata_ui,&BeebWindow::CreatePixelMetadataUI},
+    {BeebWindowUIFlag_PixelMetadata,"Pixel Metadata",&BeebWindow::m_pixel_metadata_ui,&CreatePixelMetadataUI},
 #endif
 #if ENABLE_IMGUI_TEST
-    {BeebWindowUIFlag_DearImguiTest,"dear imgui Test",&BeebWindow::m_dear_imgui_test_ui,&BeebWindow::CreateDearImguiTestUI},
+    {BeebWindowUIFlag_DearImguiTest,"dear imgui Test",&BeebWindow::m_dear_imgui_test_ui,&CreateDearImguiTestUI},
 #endif
 #if BBCMICRO_DEBUGGER
-    {BeebWindowUIFlag_6502Debugger,"6502 Debug",&BeebWindow::m_6502_debugger_ui,&BeebWindow::Create6502DebuggerUI,},
+    {BeebWindowUIFlag_6502Debugger,"6502 Debug",&BeebWindow::m_6502_debugger_ui,&Create6502DebugWindow,},
 #endif
     {},
 };
@@ -759,7 +759,7 @@ void BeebWindow::DoSettingsUI() {
 
                 if(!*uptr) {
                     printf("Creating: %s\n",ui->name);
-                    *uptr=(this->*ui->create_mfn)();
+                    *uptr=(*ui->create_fn)(this);
                 }
 
                 (*uptr)->DoImGui(&m_cc_stack);
@@ -796,102 +796,28 @@ void BeebWindow::DoSettingsUI() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-std::unique_ptr<SettingsUI> BeebWindow::CreateKeymapsUI() {
-    return KeymapsUI::Create(this);
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-std::unique_ptr<SettingsUI> BeebWindow::CreateCommandKeymapsUI() {
-    return std::make_unique<CommandKeymapsUI>();
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-std::unique_ptr<SettingsUI> BeebWindow::CreateOptionsUI() {
-    return std::make_unique<OptionsUI>(this);
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-std::unique_ptr<SettingsUI> BeebWindow::CreateMessagesUI() {
-    return ::CreateMessagesUI(m_message_list);
+std::unique_ptr<SettingsUI> BeebWindow::CreateOptionsUI(BeebWindow *beeb_window) {
+    return std::make_unique<OptionsUI>(beeb_window);
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 #if TIMELINE_UI_ENABLED
-std::unique_ptr<SettingsUI> BeebWindow::CreateTimelineUI() {
-    return ::CreateTimelineUI(this,this->GetNewWindowInitArguments(),m_renderer,m_pixel_format);
+std::unique_ptr<SettingsUI> BeebWindow::CreateTimelineUI(BeebWindow *beeb_window) {
+    return ::CreateTimelineUI(beeb_window,
+                              beeb_window->GetNewWindowInitArguments(),
+                              beeb_window->m_renderer,
+                              beeb_window->m_pixel_format);
 }
 #endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-std::unique_ptr<SettingsUI> BeebWindow::CreateConfigsUI() {
-    return ::CreateConfigsUI();
+std::unique_ptr<SettingsUI> BeebWindow::CreateCommandContextStackUI(BeebWindow *beeb_window) {
+    return std::make_unique<CommandContextStackUI>(&beeb_window->m_cc_stack);
 }
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-std::unique_ptr<SettingsUI> BeebWindow::CreateTraceUI() {
-    return std::make_unique<TraceUI>(this);
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-std::unique_ptr<SettingsUI> BeebWindow::CreateNVRAMUI() {
-    return std::make_unique<NVRAMUI>(this);
-
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-std::unique_ptr<SettingsUI> BeebWindow::CreateDataRateUI() {
-    return std::make_unique<DataRateUI>(this);
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-std::unique_ptr<SettingsUI> BeebWindow::CreateCCStackUI() {
-    return std::make_unique<CommandContextStackUI>(&m_cc_stack);
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-#if VIDEO_TRACK_METADATA
-std::unique_ptr<SettingsUI> BeebWindow::CreatePixelMetadataUI() {
-    return std::make_unique<PixelMetadataUI>(this);
-}
-#endif
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-#if ENABLE_IMGUI_TEST
-std::unique_ptr<SettingsUI> BeebWindow::CreateDearImguiTestUI() {
-    return ::CreateDearImguiTestUI();
-}
-#endif
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-#if BBCMICRO_DEBUGGER
-std::unique_ptr<SettingsUI> BeebWindow::Create6502DebuggerUI() {
-    return Create6502DebugWindow(m_beeb_thread);
-}
-#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -1092,7 +1018,7 @@ void BeebWindow::DoFileMenu() {
                     }
                 }
 
-                if(ImGui::MenuItem(keymap->GetName().c_str(),keymap->IsKeySymMap()?KeymapsUI::KEYSYMS_KEYMAP_ICON:KeymapsUI::SCANCODES_KEYMAP_ICON,m_keymap==keymap)) {
+                if(ImGui::MenuItem(keymap->GetName().c_str(),keymap->IsKeySymMap()?KEYMAP_KEYSYMS_KEYMAP_ICON:KEYMAP_SCANCODES_KEYMAP_ICON,m_keymap==keymap)) {
                     m_keymap=keymap;
                 }
 

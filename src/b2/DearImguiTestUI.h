@@ -9,10 +9,11 @@
 #if ENABLE_IMGUI_TEST
 
 class SettingsUI;
+class BeebWindow;
 
 #include <memory>
 
-std::unique_ptr<SettingsUI> CreateDearImguiTestUI();
+std::unique_ptr<SettingsUI> CreateDearImguiTestUI(BeebWindow *beeb_window);
 
 #endif
 

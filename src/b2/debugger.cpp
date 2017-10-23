@@ -4,6 +4,7 @@
 #if BBCMICRO_DEBUGGER
 
 #include "dear_imgui.h"
+#include "BeebWindow.h"
 #include "BeebThread.h"
 
 //////////////////////////////////////////////////////////////////////////
@@ -61,8 +62,11 @@ private:
     }
 };
 
-std::unique_ptr<SettingsUI> Create6502DebugWindow(std::shared_ptr<BeebThread> beeb_thread) {
-    return std::make_unique<M6502DebugWindow>(std::move(beeb_thread));
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+std::unique_ptr<SettingsUI> Create6502DebugWindow(BeebWindow *beeb_window) {
+    return std::make_unique<M6502DebugWindow>(beeb_window->GetBeebThread());
 }
 
 //////////////////////////////////////////////////////////////////////////

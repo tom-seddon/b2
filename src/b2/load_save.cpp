@@ -1210,13 +1210,13 @@ static bool LoadConfigs(rapidjson::Value *configs_json,Messages *msg) {
 }
 
 static bool LoadTrace(rapidjson::Value *trace_json,Messages *msg) {
-    TraceUI::Settings settings;
+    TraceUISettings settings;
 
     FindFlagsMember(&settings.flags,trace_json,FLAGS,"trace flag",&GetBBCMicroTraceFlagEnumName,msg);
     FindEnumMember(&settings.start,trace_json,START,"start condition",&GetTraceUIStartConditionEnumName,msg);
     FindEnumMember(&settings.stop,trace_json,STOP,"stop condition",&GetTraceUIStopConditionEnumName,msg);
 
-    TraceUI::SetDefaultSettings(settings);
+    SetDefaultTraceUISettings(settings);
 
     return true;
 }
@@ -1534,7 +1534,7 @@ static void SaveWindows(JSONWriter<StringStream> *writer) {
 }
 
 static void SaveTrace(JSONWriter<StringStream> *writer) {
-    const TraceUI::Settings &settings=TraceUI::GetDefaultSettings();
+    const TraceUISettings &settings=GetDefaultTraceUISettings();
 
     {
         auto trace_json=ObjectWriter(writer,TRACE);

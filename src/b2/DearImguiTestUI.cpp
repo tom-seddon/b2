@@ -74,7 +74,9 @@ void DearImguiTestUI::DoDock(const char *slot_name,ImGuiDockSlot slot) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-std::unique_ptr<SettingsUI> CreateDearImguiTestUI() {
+std::unique_ptr<SettingsUI> CreateDearImguiTestUI(BeebWindow *beeb_window) {
+    (void)beeb_window;
+
     return std::make_unique<DearImguiTestUI>();
 }
 

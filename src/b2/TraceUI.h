@@ -6,24 +6,7 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-// The TraceUI class exists in some (unused, non-functional) form even
-// when tracing is compiled out, so that the TraceUI::Settings stuff
-// can get serialized.
-//
-// This wants revisiting, as it's rather ugly.
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-class BeebWindow;
-class MessageList;
-class Trace;
-
 #include "conf.h"
-#include "SettingsUI.h"
-
-#include <memory>
-#include <vector>
 
 #include <shared/enum_decl.h>
 #include "TraceUI.inl"
@@ -32,42 +15,31 @@ class Trace;
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-class TraceUI:
-    public SettingsUI
-{
-public:
-    struct Settings {
-        TraceUIStartCondition start=TraceUIStartCondition_Now;
-        TraceUIStopCondition stop=TraceUIStopCondition_ByRequest;
-        uint32_t flags=0;
-    };
+// This stuff exists even when tracing is compiled out, so that the
+// settings can still be serialized.
 
-    static Settings GetDefaultSettings();
-    static void SetDefaultSettings(const Settings &settings);
+struct TraceUISettings {
+    TraceUIStartCondition start=TraceUIStartCondition_Now;
+    TraceUIStopCondition stop=TraceUIStopCondition_ByRequest;
+    uint32_t flags=0;
+};
+
+TraceUISettings GetDefaultTraceUISettings();
+void SetDefaultTraceUISettings(const TraceUISettings &settings);
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_TRACE
-    TraceUI(BeebWindow *beeb_window);
 
-    void DoImGui(CommandContextStack *cc_stack) override;
-    bool OnClose() override;
-protected:
-private:
-    class SaveTraceJob;
-    struct Key;
+#include <memory>
 
-    BeebWindow *m_beeb_window=nullptr;
-    
-    std::shared_ptr<SaveTraceJob> m_save_trace_job;
-    std::vector<uint8_t> m_keys;
+class BeebWindow;
+class SettingsUI;
 
-    Settings m_settings;
-    bool m_config_changed=false;
+std::unique_ptr<SettingsUI> CreateTraceUI(BeebWindow *beeb_window);
 
-    int GetKeyIndex(uint8_t beeb_key) const;
-    static bool GetBeebKeyName(void *data,int idx,const char **out_text);
-    void SaveButton(const char *label,const std::shared_ptr<Trace> &last_trace,bool cycles);
 #endif
-};
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

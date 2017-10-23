@@ -12,9 +12,9 @@
 #include "SettingsUI.h"
 #include <memory>
 
-class BeebThread;
+class BeebWindow;
 
-std::unique_ptr<SettingsUI> Create6502DebugWindow(std::shared_ptr<BeebThread> beeb_thread);
+std::unique_ptr<SettingsUI> Create6502DebugWindow(BeebWindow *beeb_window);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
