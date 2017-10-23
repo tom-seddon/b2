@@ -1440,7 +1440,29 @@ BeebWindow::VBlankRecord *BeebWindow::NewVBlankRecord(uint64_t ticks) {
 void BeebWindow::DoBeebDisplayUI() {
     //bool opened=m_imgui_stuff->AreAnyDocksDocked();
 
-    if(ImGui::BeginDock("Display",nullptr,ImGuiWindowFlags_NoTitleBar)) {
+    double scale_x;
+    if(m_settings.correct_aspect_ratio) {
+        scale_x=1.2/1.25;
+    } else {
+        scale_x=1;
+    }
+
+    ImGuiWindowFlags flags=ImGuiWindowFlags_NoTitleBar;
+    ImVec2 pos;
+    ImVec2 size;
+    if(!m_settings.display_auto_scale) {
+        pos.x=0.f;
+        pos.y=0.f;
+
+        size.x=(float)(m_settings.display_manual_scale*TV_TEXTURE_WIDTH*scale_x);
+        size.y=(float)(m_settings.display_manual_scale*TV_TEXTURE_HEIGHT);
+
+        flags|=ImGuiWindowFlags_HorizontalScrollbar;
+
+        ImGui::SetNextWindowContentSize(size);
+    }
+
+    if(ImGui::BeginDock("Display",nullptr,flags)) {
         ImGuiStyleVarPusher vpusher(ImGuiStyleVar_WindowPadding,ImVec2(0.f,0.f));
         if(m_tv_texture) {
 #if BEEB_DISPLAY_FILL
@@ -1451,15 +1473,6 @@ void BeebWindow::DoBeebDisplayUI() {
 #else
 
             ImVec2 window_size=ImGui::GetWindowSize();
-
-            ImVec2 size;
-
-            double scale_x;
-            if(m_settings.correct_aspect_ratio) {
-                scale_x=1.2/1.25;
-            } else {
-                scale_x=1;
-            }
 
             if(m_settings.display_auto_scale) {
                 double tv_aspect=(TV_TEXTURE_WIDTH*scale_x)/TV_TEXTURE_HEIGHT;
@@ -1474,16 +1487,13 @@ void BeebWindow::DoBeebDisplayUI() {
 
                 size.x=(float)width;
                 size.y=(float)height;
-            } else {
-                size.x=(float)(m_settings.display_manual_scale*TV_TEXTURE_WIDTH*scale_x);
-                size.y=(float)(m_settings.display_manual_scale*TV_TEXTURE_HEIGHT);
+
+                pos=(window_size-size)*.5f;
+
+                // Don't fight any half pixel offset.
+                pos.x=(float)(int)pos.x;
+                pos.y=(float)(int)pos.y;
             }
-
-            ImVec2 pos=(window_size-size)*.5f;
-
-            // Don't fight any half pixel offset.
-            pos.x=(float)(int)pos.x;
-            pos.y=(float)(int)pos.y;
 
 #endif
 
