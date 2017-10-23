@@ -1125,7 +1125,6 @@ static bool LoadWindows(rapidjson::Value *windows,Messages *msg) {
     }
 
     FindFlagsMember(&BeebWindows::defaults.ui_flags,windows,FLAGS,"UI flag",&GetBeebWindowUIFlagEnumName,msg);
-    //FindStringMember(&BeebWindows::defaults.dock_config,windows,DOCK_CONFIG,msg);
     FindFloatMember(&BeebWindows::defaults.bbc_volume,windows,BBC_VOLUME,msg);
     FindFloatMember(&BeebWindows::defaults.disc_volume,windows,DISC_VOLUME,msg);
     FindBoolMember(&BeebWindows::defaults.display_filter,windows,FILTER_BBC,nullptr);
@@ -1145,27 +1144,6 @@ static bool LoadWindows(rapidjson::Value *windows,Messages *msg) {
             }
         }
     }
-
-    //{
-    //    rapidjson::Value dock_config;
-    //    if(FindArrayMember(&dock_config,windows,DOCK_CONFIG,nullptr)) {
-    //        BeebWindows::defaults.dock_config.clear();
-
-    //        for(rapidjson::SizeType i=0;i<dock_config.Size();++i) {
-    //            rapidjson::Value *dock_config_line=&dock_config[i];
-
-    //            if(!dock_config_line->IsString()) {
-    //                msg->e.f("not a string: %s[%" PRIsizetype "]\n",DOCK_CONFIG,i);
-    //                BeebWindows::defaults.dock_config.clear();
-    //                // and it's OK; there'll just be no dock config.
-    //                break;
-    //            }
-
-    //            BeebWindows::defaults.dock_config+=dock_config_line->GetString();
-    //            BeebWindows::defaults.dock_config+="\n";
-    //        }
-    //    }
-    //}
 
     return true;
 }
@@ -1531,14 +1509,6 @@ static void SaveWindows(JSONWriter<StringStream> *writer) {
 
             SaveFlags(writer,BeebWindows::defaults.ui_flags,&GetBeebWindowUIFlagEnumName);
         }
-
-        //{
-        //    auto dock_config_json=ArrayWriter(writer,DOCK_CONFIG);
-
-        //    ForEachLine(BeebWindows::defaults.dock_config.c_str(),[writer](const std::string::const_iterator &a,const std::string::const_iterator &b) {
-        //        writer->String(std::string(a,b).c_str());//ugh.
-        //    });
-        //}
 
         writer->Key(KEYMAP);
         writer->String(BeebWindows::GetDefaultBeebKeymap()->GetName().c_str());
