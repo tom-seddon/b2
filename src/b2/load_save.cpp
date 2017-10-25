@@ -609,6 +609,71 @@ static bool FindFloatMember(float *value,rapidjson::Value *object,const char *ke
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+// Bit-indexed flags are flags where the enum values relate to the bit
+// indexes rather than the mask values.
+//
+// This is indeed some crappy naming.
+
+template<class T>
+static void SaveBitIndexedFlags(JSONWriter<StringStream> *writer,T flags,const char *(*get_name_fn)(int)) {
+    for(int i=0;i<sizeof(T)*CHAR_BIT;++i) {
+        const char *name=(*get_name_fn)(i);
+        if(name[0]=='?') {
+            continue;
+        }
+
+        if(!(flags&(T)1<<i)) {
+            continue;
+        }
+
+        writer->String(name);
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+template<class T>
+static bool FindBitIndexedFlagsMember(T *flags,rapidjson::Value *object,const char *key,const char *what,const char *(*get_name_fn)(int),Messages *msg) {
+    rapidjson::Value array;
+    if(!FindArrayMember(&array,object,key,msg)) {
+        return false;
+    }
+
+    bool good=true;
+    *flags=0;
+
+    for(rapidjson::SizeType i=0;i<array.Size();++i) {
+        if(array[i].IsString()) {
+            bool found=false;
+            const char *bit_name=array[i].GetString();
+
+            for(int j=0;j<sizeof(T)*CHAR_BIT;++j) {
+                const char *name=(*get_name_fn)(j);
+                if(name[0]=='?') {
+                    continue;
+                }
+
+                if(strcmp(bit_name,name)==0) {
+                    found=true;
+                    *flags|=(T)1<<j;
+                    break;
+                }
+            }
+
+            if(!found) {
+                msg->e.f("unknown %s: %s\n",what,bit_name);
+                good=false;
+            }
+        }
+    }
+
+    return good;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 static void SaveFlags(JSONWriter<StringStream> *writer,uint32_t flags,const char *(*get_name_fn)(int)) {
     for(uint32_t mask=1;mask!=0;mask<<=1) {
         const char *name=(*get_name_fn)((int)mask);
@@ -627,16 +692,19 @@ static void SaveFlags(JSONWriter<StringStream> *writer,uint32_t flags,const char
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static bool LoadFlags(uint32_t *flags,const rapidjson::Value &json,const char *what,const char *(*get_name_fn)(int),Messages *msg) {
-    ASSERT(json.IsArray());
+static bool FindFlagsMember(uint32_t *flags,rapidjson::Value *object,const char *key,const char *what,const char *(*get_name_fn)(int),Messages *msg) {
+    rapidjson::Value array;
+    if(!FindArrayMember(&array,object,key,msg)) {
+        return false;
+    }
 
     bool good=true;
     *flags=0;
 
-    for(rapidjson::SizeType i=0;i<json.Size();++i) {
-        if(json[i].IsString()) {
+    for(rapidjson::SizeType i=0;i<array.Size();++i) {
+        if(array[i].IsString()) {
             bool found=false;
-            const char *flag_name=json[i].GetString();
+            const char *flag_name=array[i].GetString();
 
             for(uint32_t mask=1;mask!=0;mask<<=1) {
                 const char *name=(*get_name_fn)((int)mask);
@@ -659,22 +727,6 @@ static bool LoadFlags(uint32_t *flags,const rapidjson::Value &json,const char *w
     }
 
     return good;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-static bool FindFlagsMember(uint32_t *flags,rapidjson::Value *object,const char *key,const char *what,const char *(*get_name_fn)(int),Messages *msg) {
-    rapidjson::Value array;
-    if(!FindArrayMember(&array,object,key,msg)) {
-        return false;
-    }
-
-    if(!LoadFlags(flags,array,what,get_name_fn,msg)) {
-        return false;
-    }
-
-    return true;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -845,6 +897,7 @@ static const char PREFER_SHORTCUTS[]="prefer_shortcuts";
 static const char CORRECT_ASPECT_RATIO[]="correct_aspect_ratio";
 static const char AUTO_SCALE[]="auto_scale";
 static const char MANUAL_SCALE[]="manual_scale";
+static const char POPUPS[]="popups";
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -1124,7 +1177,7 @@ static bool LoadWindows(rapidjson::Value *windows,Messages *msg) {
         }
     }
 
-    FindFlagsMember(&BeebWindows::defaults.ui_flags,windows,FLAGS,"UI flag",&GetBeebWindowUIFlagEnumName,msg);
+    FindBitIndexedFlagsMember(&BeebWindows::defaults.popups,windows,POPUPS,"Active popups",&GetBeebWindowPopupTypeEnumName,msg);
     FindFloatMember(&BeebWindows::defaults.bbc_volume,windows,BBC_VOLUME,msg);
     FindFloatMember(&BeebWindows::defaults.disc_volume,windows,DISC_VOLUME,msg);
     FindBoolMember(&BeebWindows::defaults.display_filter,windows,FILTER_BBC,nullptr);
@@ -1505,9 +1558,9 @@ static void SaveWindows(JSONWriter<StringStream> *writer) {
         }
 
         {
-            auto ui_flags_json=ArrayWriter(writer,FLAGS);
+            auto ui_flags_json=ArrayWriter(writer,POPUPS);
 
-            SaveFlags(writer,BeebWindows::defaults.ui_flags,&GetBeebWindowUIFlagEnumName);
+            SaveBitIndexedFlags(writer,BeebWindows::defaults.popups,&GetBeebWindowPopupTypeEnumName);
         }
 
         writer->Key(KEYMAP);

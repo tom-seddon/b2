@@ -62,7 +62,7 @@ struct BeebWindowTextureDataVersion {
 //////////////////////////////////////////////////////////////////////////
 
 struct BeebWindowSettings {
-    uint32_t ui_flags=0;
+    uint64_t popups=0;
 
     std::string dock_config;
 
@@ -339,29 +339,7 @@ private:
 
     std::vector<std::string> m_display_size_options;
 
-    std::unique_ptr<SettingsUI> m_keymaps_ui;
-    std::unique_ptr<SettingsUI> m_command_keymaps_ui;
-    std::unique_ptr<SettingsUI> m_messages_ui;
-#if TIMELINE_UI_ENABLED
-    std::unique_ptr<SettingsUI> m_timeline_ui;
-#endif
-    std::unique_ptr<SettingsUI> m_configs_ui;
-#if BBCMICRO_TRACE
-    std::unique_ptr<SettingsUI> m_trace_ui;
-#endif
-    std::unique_ptr<SettingsUI> m_nvram_ui;
-    std::unique_ptr<SettingsUI> m_data_rate_ui;
-    std::unique_ptr<SettingsUI> m_cc_stack_ui;
-    std::unique_ptr<SettingsUI> m_options_ui;
-#if VIDEO_TRACK_METADATA
-    std::unique_ptr<SettingsUI> m_pixel_metadata_ui;
-#endif
-#if ENABLE_IMGUI_TEST
-    std::unique_ptr<SettingsUI> m_dear_imgui_test_ui;
-#endif
-#if BBCMICRO_DEBUGGER
-    std::unique_ptr<SettingsUI> m_6502_debugger_ui;
-#endif
+    std::unique_ptr<SettingsUI> m_popups[BeebWindowPopupType_MaxValue];
 
     bool m_messages_popup_ui_active=false;
     uint64_t m_messages_popup_ticks=0;
@@ -416,14 +394,14 @@ private:
     VBlankRecord *NewVBlankRecord(uint64_t ticks);
     void DoBeebDisplayUI();
 
-    template<BeebWindowUIFlag>
-    void ToggleUICommand();
+    template<BeebWindowPopupType>
+    void TogglePopupCommand();
 
-    template<BeebWindowUIFlag>
-    bool IsUICommandTicked() const;
+    template<BeebWindowPopupType>
+    bool IsPopupCommandTicked() const;
 
-    template<BeebWindowUIFlag>
-    static ObjectCommandTable<BeebWindow>::Initializer GetToggleUICommand(std::string name);
+    template<BeebWindowPopupType>
+    static ObjectCommandTable<BeebWindow>::Initializer GetTogglePopupCommand(std::string name);
 
     void Paste();
     void PasteThenReturn();

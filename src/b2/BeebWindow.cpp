@@ -255,14 +255,14 @@ BeebWindow::BeebWindow(BeebWindowInitArguments init_arguments):
 BeebWindow::~BeebWindow() {
     m_beeb_thread->Stop();
 
+    // Clear these explicitly before destroying the dear imgui stuff
+    // and shutting down SDL.
+    for(int i=0;i<BeebWindowPopupType_MaxValue;++i) {
+        m_popups[i]=nullptr;
+    }
+
     delete m_imgui_stuff;
     m_imgui_stuff=nullptr;
-
-#if TIMELINE_UI_ENABLED
-    // Clean this up early... it maintains its own textures, and they
-    // want to be destroyed before the renderer goes away.
-    m_timeline_ui=nullptr;
-#endif
 
     if(m_tv_texture) {
         SDL_DestroyTexture(m_tv_texture);
@@ -710,86 +710,89 @@ bool BeebWindow::DoMenuUI() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+// The table can be in any order. Entries are found by their type
+// field (since C++11 doesn't have C99-style designated
+// initializers..).
 struct BeebWindow::SettingsUIMetadata {
-    uint32_t mask;
+    BeebWindowPopupType type;
     const char *name;
-    std::unique_ptr<SettingsUI> BeebWindow::*uptr_mptr;
     std::unique_ptr<SettingsUI> (*create_fn)(BeebWindow *beeb_window);
 };
 
 const BeebWindow::SettingsUIMetadata BeebWindow::ms_settings_uis[]={
-    {BeebWindowUIFlag_Keymaps,"Keyboard Layout",&BeebWindow::m_keymaps_ui,&CreateKeymapsUI},
-    {BeebWindowUIFlag_CommandKeymaps,"Command Keys",&BeebWindow::m_command_keymaps_ui,&CreateCommandKeymapsUI},
-    {BeebWindowUIFlag_Options,"Options",&BeebWindow::m_options_ui,&BeebWindow::CreateOptionsUI},
-    {BeebWindowUIFlag_Messages,"Messages",&BeebWindow::m_messages_ui,&CreateMessagesUI},
+    {BeebWindowPopupType_Keymaps,"Keyboard Layout",&CreateKeymapsUI},
+    {BeebWindowPopupType_CommandKeymaps,"Command Keys",&CreateCommandKeymapsUI},
+    {BeebWindowPopupType_Options,"Options",&BeebWindow::CreateOptionsUI},
+    {BeebWindowPopupType_Messages,"Messages",&CreateMessagesUI},
 #if TIMELINE_UI_ENABLED
-    {BeebWindowUIFlag_Timeline,"Timeline",&BeebWindow::m_timeline_ui,&BeebWindow::CreateTimelineUI},
+    {BeebWindowPopupType_Timeline,"Timeline",&BeebWindow::CreateTimelineUI},
 #endif
-    {BeebWindowUIFlag_Configs,"Configurations",&BeebWindow::m_configs_ui,&CreateConfigsUI},
+    {BeebWindowPopupType_Configs,"Configurations",&CreateConfigsUI},
 #if BBCMICRO_TRACE
-    {BeebWindowUIFlag_Trace,"Tracing",&BeebWindow::m_trace_ui,&CreateTraceUI},
+    {BeebWindowPopupType_Trace,"Tracing",&CreateTraceUI},
 #endif
-    {BeebWindowUIFlag_NVRAM,"Non-volatile RAM",&BeebWindow::m_nvram_ui,&CreateNVRAMUI},
-    {BeebWindowUIFlag_AudioCallback,"Data Rate",&BeebWindow::m_data_rate_ui,&CreateDataRateUI},
-    {BeebWindowUIFlag_CommandContextStack,"Command Context Stack",&BeebWindow::m_cc_stack_ui,&BeebWindow::CreateCommandContextStackUI},
+    {BeebWindowPopupType_NVRAM,"Non-volatile RAM",&CreateNVRAMUI},
+    {BeebWindowPopupType_AudioCallback,"Data Rate",&CreateDataRateUI},
+    {BeebWindowPopupType_CommandContextStack,"Command Context Stack",&BeebWindow::CreateCommandContextStackUI},
 #if VIDEO_TRACK_METADATA
-    {BeebWindowUIFlag_PixelMetadata,"Pixel Metadata",&BeebWindow::m_pixel_metadata_ui,&CreatePixelMetadataUI},
+    {BeebWindowPopupType_PixelMetadata,"Pixel Metadata",&CreatePixelMetadataUI},
 #endif
 #if ENABLE_IMGUI_TEST
-    {BeebWindowUIFlag_DearImguiTest,"dear imgui Test",&BeebWindow::m_dear_imgui_test_ui,&CreateDearImguiTestUI},
+    {BeebWindowPopupType_DearImguiTest,"dear imgui Test",&CreateDearImguiTestUI},
 #endif
 #if BBCMICRO_DEBUGGER
-    {BeebWindowUIFlag_6502Debugger,"6502 Debug",&BeebWindow::m_6502_debugger_ui,&Create6502DebugWindow,},
+    {BeebWindowPopupType_6502Debugger,"6502 Debug",&Create6502DebugWindow,},
 #endif
-    {},
+
+    // terminator
+    {BeebWindowPopupType_MaxValue},
 };
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 void BeebWindow::DoSettingsUI() {
-    for(const SettingsUIMetadata *ui=ms_settings_uis;ui->mask!=0;++ui) {
-        bool opened=!!(m_settings.ui_flags&ui->mask);
-        std::unique_ptr<SettingsUI> *uptr=&(this->*ui->uptr_mptr);
+    for(const SettingsUIMetadata *ui=ms_settings_uis;ui->type!=BeebWindowPopupType_MaxValue;++ui) {
+        uint64_t mask=(uint64_t)1<<ui->type;
+        bool opened=!!(m_settings.popups&mask);
 
         if(opened) {
             ImGui::SetNextDock(ImGuiDockSlot_None);
             ImVec2 default_size=ImGui::GetIO().DisplaySize*.4f;
             if(ImGui::BeginDock(ui->name,&opened,0,default_size)) {
-
-                if(!*uptr) {
+                if(!m_popups[ui->type]) {
                     printf("Creating: %s\n",ui->name);
-                    *uptr=(*ui->create_fn)(this);
+                    m_popups[ui->type]=(*ui->create_fn)(this);
                 }
 
-                (*uptr)->DoImGui(&m_cc_stack);
+                m_popups[ui->type]->DoImGui(&m_cc_stack);
 
-                if((*uptr)->WantsKeyboardFocus()) {
+                if(m_popups[ui->type]->WantsKeyboardFocus()) {
                     m_imgui_has_kb_focus=true;
                 }
 
-                m_settings.ui_flags|=ui->mask;
+                m_settings.popups|=mask;
             }
             ImGui::EndDock();
 
             if(!opened) {
-                m_settings.ui_flags&=~ui->mask;
+                m_settings.popups&=~mask;
 
                 // Leave the deletion until the next frame -
                 // references to its textures might still be queued up
                 // in the dear imgui drawlists.
             }
         } else {
-            if(*uptr) {
+            if(m_popups[ui->type]) {
                 printf("Deleting: %s\n",ui->name);
-                this->MaybeSaveConfig((*uptr)->OnClose());
-                *uptr=nullptr;
+                this->MaybeSaveConfig(m_popups[ui->type]->OnClose());
+                m_popups[ui->type]=nullptr;
             }
         }
     }
 
     if(ValueChanged(&m_msg_last_num_errors_and_warnings_printed,m_message_list->GetNumErrorsAndWarningsPrinted())) {
-        m_settings.ui_flags|=BeebWindowUIFlag_Messages;
+        m_settings.popups|=BeebWindowPopupType_Messages;
     }
 }
 
@@ -2193,28 +2196,28 @@ void BeebWindow::CheckTimeline() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-template<BeebWindowUIFlag FLAG>
-void BeebWindow::ToggleUICommand() {
-    m_settings.ui_flags^=FLAG;
+template<BeebWindowPopupType POPUP_TYPE>
+void BeebWindow::TogglePopupCommand() {
+    m_settings.popups^=(uint64_t)1<<POPUP_TYPE;
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-template<BeebWindowUIFlag FLAG>
-bool BeebWindow::IsUICommandTicked() const {
-    return !!(m_settings.ui_flags&FLAG);
+template<BeebWindowPopupType POPUP_TYPE>
+bool BeebWindow::IsPopupCommandTicked() const {
+    return !!(m_settings.popups&(uint64_t)1<<POPUP_TYPE);
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-template<BeebWindowUIFlag FLAG>
-ObjectCommandTable<BeebWindow>::Initializer BeebWindow::GetToggleUICommand(std::string name) {
+template<BeebWindowPopupType POPUP_TYPE>
+ObjectCommandTable<BeebWindow>::Initializer BeebWindow::GetTogglePopupCommand(std::string name) {
     std::string text;
 
-    for(const SettingsUIMetadata *ui=ms_settings_uis;ui->mask!=0;++ui) {
-        if(ui->mask==FLAG) {
+    for(const SettingsUIMetadata *ui=ms_settings_uis;ui->type!=BeebWindowPopupType_MaxValue;++ui) {
+        if(ui->type==POPUP_TYPE) {
             text=ui->name;
             break;
         }
@@ -2226,7 +2229,10 @@ ObjectCommandTable<BeebWindow>::Initializer BeebWindow::GetToggleUICommand(std::
         text+="...";
     }
 
-    return ObjectCommandTable<BeebWindow>::Initializer(std::move(name),std::move(text),&BeebWindow::ToggleUICommand<FLAG>,&BeebWindow::IsUICommandTicked<FLAG>);
+    return ObjectCommandTable<BeebWindow>::Initializer(std::move(name),
+                                                       std::move(text),
+                                                       &BeebWindow::TogglePopupCommand<POPUP_TYPE>,
+                                                       &BeebWindow::IsPopupCommandTicked<POPUP_TYPE>);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -2473,17 +2479,17 @@ ObjectCommandTable<BeebWindow> BeebWindow::ms_command_table("Beeb Window",{
     {"hard_reset","Hard Reset",&BeebWindow::HardReset},
     {"load_last_state","Load Last State",&BeebWindow::LoadLastState,nullptr,&BeebWindow::IsLoadLastStateEnabled},
     {"save_state","Save State",&BeebWindow::SaveState},
-    GetToggleUICommand<BeebWindowUIFlag_Options>("toggle_emulator_options"),
-    GetToggleUICommand<BeebWindowUIFlag_Keymaps>("toggle_keyboard_layout"),
+    GetTogglePopupCommand<BeebWindowPopupType_Options>("toggle_emulator_options"),
+    GetTogglePopupCommand<BeebWindowPopupType_Keymaps>("toggle_keyboard_layout"),
 #if TIMELINE_UI_ENABLED
-    GetToggleUICommand<BeebWindowUIFlag_Timeline>("toggle_timeline"),
+    GetTogglePopupCommand<BeebWindowPopupType_Timeline>("toggle_timeline"),
 #endif
-    GetToggleUICommand<BeebWindowUIFlag_Messages>("toggle_messages"),
-    GetToggleUICommand<BeebWindowUIFlag_Configs>("toggle_configurations"),
-    GetToggleUICommand<BeebWindowUIFlag_Trace>("toggle_event_trace"),
-    GetToggleUICommand<BeebWindowUIFlag_AudioCallback>("toggle_date_rate"),
-    GetToggleUICommand<BeebWindowUIFlag_CommandContextStack>("toggle_cc_stack"),
-    GetToggleUICommand<BeebWindowUIFlag_CommandKeymaps>("toggle_command_keymaps"),
+    GetTogglePopupCommand<BeebWindowPopupType_Messages>("toggle_messages"),
+    GetTogglePopupCommand<BeebWindowPopupType_Configs>("toggle_configurations"),
+    GetTogglePopupCommand<BeebWindowPopupType_Trace>("toggle_event_trace"),
+    GetTogglePopupCommand<BeebWindowPopupType_AudioCallback>("toggle_date_rate"),
+    GetTogglePopupCommand<BeebWindowPopupType_CommandContextStack>("toggle_cc_stack"),
+    GetTogglePopupCommand<BeebWindowPopupType_CommandKeymaps>("toggle_command_keymaps"),
     {"exit","Exit",&BeebWindow::Exit,ConfirmCommand()},
     {"clean_up_recent_files_lists","Clean up recent files lists",&BeebWindow::CleanUpRecentFilesLists,ConfirmCommand()},
 #if SYSTEM_WINDOWS
@@ -2499,12 +2505,12 @@ ObjectCommandTable<BeebWindow> BeebWindow::ms_command_table("Beeb Window",{
     //{"toggle_copy_oswrch_binary","OSWRCH Copy Binary",&BeebWindow::CopyOSWRCH<false>,&BeebWindow::IsCopyOSWRCHTicked},
     {"copy_basic","Copy BASIC listing",&BeebWindow::CopyBASIC,&BeebWindow::IsCopyOSWRCHTicked,&BeebWindow::IsCopyBASICEnabled},
 #if VIDEO_TRACK_METADATA
-    GetToggleUICommand<BeebWindowUIFlag_PixelMetadata>("toggle_pixel_metadata"),
+    GetTogglePopupCommand<BeebWindowPopupType_PixelMetadata>("toggle_pixel_metadata"),
 #endif
 #if ENABLE_IMGUI_TEST
-    GetToggleUICommand<BeebWindowUIFlag_DearImguiTest>("toggle_dear_imgui_test"),
+    GetTogglePopupCommand<BeebWindowPopupType_DearImguiTest>("toggle_dear_imgui_test"),
 #endif
 #if BBCMICRO_DEBUGGER
-    GetToggleUICommand<BeebWindowUIFlag_6502Debugger>("toggle_6502_debugger"),
+    GetTogglePopupCommand<BeebWindowPopupType_6502Debugger>("toggle_6502_debugger"),
 #endif
 });
