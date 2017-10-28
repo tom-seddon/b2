@@ -388,7 +388,7 @@ int main(int argc,char *argv[]) {
                         di->mnemonic,
                         pc+2+(int8_t)g_mem[(uint16_t)(pc+1)]);
                 } else {
-                    AddrModeDisassemblyInfo amdi=GetDisassemblyInfoForAddrMode(di->mode);
+                    AddrModeDisassemblyInfo amdi=GetDisassemblyInfoForAddrMode((M6502AddrMode)di->mode);
                     ASSERT(amdi.prefix);
                     ASSERT(amdi.suffix);
 

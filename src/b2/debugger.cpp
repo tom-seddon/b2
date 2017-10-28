@@ -227,8 +227,8 @@ public:
             bytes[0]=m_mem.GetByte(addr++);
             const M6502DisassemblyInfo *di=&config->disassembly_info[bytes[0]];
 
-            memcpy(c,di->mnemonic,di->mnemonic_length);
-            c+=di->mnemonic_length;
+            memcpy(c,di->mnemonic,sizeof di->mnemonic-1);
+            c+=sizeof di->mnemonic-1;
             *c++=' ';
 
             switch(di->mode) {

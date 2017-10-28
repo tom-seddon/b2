@@ -116,14 +116,26 @@ struct M6502Fns {
 typedef struct M6502Fns M6502Fns;
 
 struct M6502DisassemblyInfo {
-    /* Mnemonic */
-    uint8_t mnemonic_length;
-    char mnemonic[7];
+    // 3-char mnemonic.
+    char mnemonic[4];
 
-    M6502AddrMode mode;
+    // M6502AddrMode.
+    uint8_t mode;
 
-    /* True if this opcode is undocumented. */
-    int undocumented;
+    // Count includes the instruction.
+    uint8_t num_bytes;
+
+    // Set if undocumented.
+    uint8_t undocumented:1;
+
+    // Set if this is a JSR.
+    uint8_t jsr:1;
+
+    // Set if this is an RTS.
+    uint8_t rts:1;
+
+    // Set if this is RTS or RTI.
+    uint8_t return_:1;
 };
 typedef struct M6502DisassemblyInfo M6502DisassemblyInfo;
 

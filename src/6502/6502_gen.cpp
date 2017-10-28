@@ -1295,12 +1295,15 @@ static void GenerateConfig(std::set<std::string> *tfns,std::set<std::string> *if
 
         std::string mnemonic=instr->GetDisassemblyMnemonic();
 
-        P("[0x%02zx]={%zu,\"%s\",%s,%d},\n",
-            i,
-            mnemonic.size(),
-            mnemonic.c_str(),
-            mode.c_str(),
-            instr->undocumented);
+        ASSERT(mnemonic.size()==3);
+        P("[0x%02zx]={.mnemonic=\"%s\",.mode=%s,.undocumented=%d,.jsr=%d,.rts=%d,.return_=%d},\n",
+          i,
+          mnemonic.c_str(),
+          mode.c_str(),
+          instr->undocumented,
+          mnemonic=="jsr",
+          mnemonic=="rts",
+          mnemonic=="rts"||mnemonic=="rti");
     }
     P("};\n");
     P("\n");

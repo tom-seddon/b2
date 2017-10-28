@@ -289,8 +289,8 @@ private:
 
         char *mnemonic_begin=c;
 
-        memcpy(c,i->mnemonic,sizeof i->mnemonic);
-        c+=i->mnemonic_length;
+        memcpy(c,i->mnemonic,sizeof i->mnemonic-1);
+        c+=sizeof i->mnemonic-1;
 
         *c++=' ';
 
