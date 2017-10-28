@@ -241,7 +241,8 @@ public:
     // it was added.
     void FlushCallbacks();
 
-    void CopyBeebMemory(void *dest,M6502Word addr,uint16_t num_bytes);
+    void DebugCopyMemory(void *dest,M6502Word addr,uint16_t num_bytes);
+    void SendDebugSetByteMessage(uint16_t address,uint8_t value);
 protected:
 private:
     struct ThreadState;

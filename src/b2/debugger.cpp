@@ -113,7 +113,7 @@ private:
             M6502Word page_addr=addr;
             addr.b.l=0;
 
-            self->m_beeb_thread->CopyBeebMemory(self->m_page_buffer,page_addr,256);
+            self->m_beeb_thread->DebugCopyMemory(self->m_page_buffer,page_addr,256);
             self->m_page_buffer_page=addr.b.h;
         }
 
@@ -123,9 +123,9 @@ private:
     // There's no context parameter :( - so this hijacks the data
     // parameter for that purpose.
     static void MemoryEditorWrite(uint8_t *data,size_t off,uint8_t d) {
-        auto window=(MemoryDebugWindow *)data;
+        auto self=(MemoryDebugWindow *)data;
 
-        // TODO.
+        self->m_beeb_thread->SendDebugSetByteMessage((uint16_t)off,d);
     }
 };
 

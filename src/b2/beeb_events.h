@@ -32,7 +32,7 @@ namespace Timeline {
     class Node;
 }
 
-#include <beeb/conf.h>
+#include "conf.h"
 #include <memory>
 #include <string>
 #include "BeebConfig.h"
@@ -122,6 +122,18 @@ struct BeebEventPasteData {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#if BBCMICRO_DEBUGGER
+#include <shared/pshpack1.h>
+struct BeebEventSetByteData {
+    uint16_t address;
+    uint8_t value;
+};
+#include <shared/poppack.h>
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 #include <shared/pshpack1.h>
 union BeebEventData {
     BeebEventKeyState key_state;
@@ -134,9 +146,11 @@ union BeebEventData {
     BeebEventStateData *state;
     BeebEventWindowProxy window_proxy;
     BeebEventPasteData *paste;
+#if BBCMICRO_DEBUGGER
+    BeebEventSetByteData set_byte;
+#endif
 };
 #include <shared/poppack.h>
-
 
 CHECK_SIZEOF(BeebEventData,sizeof(void *));
 
@@ -178,6 +192,9 @@ public:
 
     static BeebEvent MakeStartPaste(uint64_t time_2MHz_cycles,std::shared_ptr<std::string> text);
     static BeebEvent MakeStopPaste(uint64_t time_2MHz_cycles);
+#if BBCMICRO_DEBUGGER
+    static BeebEvent MakeSetByte(uint64_t time_2MHz_cycles,uint16_t address,uint8_t value);
+#endif
 
     ~BeebEvent();
 

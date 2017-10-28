@@ -1594,7 +1594,7 @@ const M6502 *BBCMicro::GetM6502() const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void BBCMicro::CopyBeebMemory(void *dest_,M6502Word addr_,uint16_t num_bytes) const {
+void BBCMicro::DebugCopyMemory(void *dest_,M6502Word addr_,uint16_t num_bytes) const {
     M6502Word addr=addr_;
     auto dest=(char *)dest_;
     size_t num_bytes_left=num_bytes;
@@ -1612,7 +1612,7 @@ void BBCMicro::CopyBeebMemory(void *dest_,M6502Word addr_,uint16_t num_bytes) co
 
         uint16_t n=256-offset;
         if(n>num_bytes_left) {
-            n=num_bytes_left;
+            n=(uint16_t)num_bytes_left;
         }
 
         memcpy(dest,pages[page]+offset,n);
@@ -1621,6 +1621,17 @@ void BBCMicro::CopyBeebMemory(void *dest_,M6502Word addr_,uint16_t num_bytes) co
 
         ASSERT(num_bytes_left>=n);
         num_bytes_left-=n;
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BBCMicro::DebugSetMemory(M6502Word addr,uint8_t value) {
+    if(m_pc_pages) {
+        m_pc_pages[m_state.cpu.pc.b.h]->w[addr.b.h][addr.b.l]=value;
+    } else {
+        m_pages.w[addr.b.h][addr.b.l]=value;
     }
 }
 

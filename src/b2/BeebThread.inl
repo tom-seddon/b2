@@ -141,6 +141,12 @@ EPN(StopCopy)
 //
 #if BBCMICRO_DEBUGGER
 
+// Set byte in memory.
+//
+// u32 - address
+// data.u64 - value
+EPN(SetByte)
+
 #endif
 //
 //////////////////////////////////////////////////////////////////////////

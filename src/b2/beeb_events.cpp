@@ -505,6 +505,31 @@ const BeebEventStopPasteHandler BeebEventStopPasteHandler::INSTANCE;
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+class BeebEventSetByteHandler:
+    public BeebEventValueHandler
+{
+public:
+    static const BeebEventSetByteHandler INSTANCE;
+
+    BeebEventSetByteHandler():
+        BeebEventValueHandler(0)
+    {
+    }
+
+    void Dump(const BeebEvent *e,Log *log) const override {
+        (void)e;
+
+        log->f("address=$%04x, value=$%02x",e->data.set_byte.address,e->data.set_byte.value);
+    }
+protected:
+private:
+};
+
+const BeebEventSetByteHandler BeebEventSetByteHandler::INSTANCE;
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 const BeebEventHandler *BeebEventHandler::handlers[256]={
 #define BEEB_EVENT_TYPE(X) &BeebEvent##X##Handler::INSTANCE,
 #include "beeb_events_types.inl"
@@ -636,6 +661,20 @@ BeebEvent BeebEvent::MakeStopPaste(uint64_t time_2MHz_cycles) {
 
     return BeebEvent{BeebEventType_StopPaste,time_2MHz_cycles,data};
 }
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_DEBUGGER
+BeebEvent BeebEvent::MakeSetByte(uint64_t time_2MHz_cycles,uint16_t address,uint8_t value) {
+    BeebEventData data={};
+
+    data.set_byte.address=address;
+    data.set_byte.value=value;
+
+    return BeebEvent{BeebEventType_SetByte,time_2MHz_cycles,data};
+}
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

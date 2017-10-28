@@ -325,8 +325,9 @@ public:
 
     const M6502 *GetM6502() const;
 
-    // sadly "CopyMemory" is a Windows #define... :(
-    void CopyBeebMemory(void *dest,M6502Word addr,uint16_t num_bytes) const;
+    void DebugCopyMemory(void *dest,M6502Word addr,uint16_t num_bytes) const;
+
+    void DebugSetMemory(M6502Word addr,uint8_t value);
 protected:
 private:
     //////////////////////////////////////////////////////////////////////////

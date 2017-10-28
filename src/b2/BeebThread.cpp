@@ -1047,10 +1047,17 @@ void BeebThread::FlushCallbacks() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void BeebThread::CopyBeebMemory(void *dest,M6502Word addr,uint16_t num_bytes) {
+void BeebThread::DebugCopyMemory(void *dest,M6502Word addr,uint16_t num_bytes) {
     std::lock_guard<std::mutex> lock(m_mutex);
 
-    m_thread_state->beeb->CopyBeebMemory(dest,addr,num_bytes);
+    m_thread_state->beeb->DebugCopyMemory(dest,addr,num_bytes);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BeebThread::SendDebugSetByteMessage(uint16_t address,uint8_t value) {
+    this->SendMessage(BeebThreadEventType_SetByte,address,value);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -1430,7 +1437,8 @@ void BeebThread::ThreadHandleEvent(ThreadState *ts,
                                    const BeebEvent &event,
                                    bool replay)
 {
-    switch((BeebEventType)event.type) {
+    auto event_type=(BeebEventType)event.type;
+    switch(event_type) {
     case BeebEventType_None:
         return;
 
@@ -1510,6 +1518,14 @@ void BeebThread::ThreadHandleEvent(ThreadState *ts,
         {
             ts->beeb->StopPaste();
             m_is_pasting.store(false,std::memory_order_release);
+        }
+        return;
+
+    case BeebEventType_SetByte:
+        {
+            M6502Word address={event.data.set_byte.address};
+
+            ts->beeb->DebugSetMemory(address,event.data.set_byte.value);
         }
         return;
     }
@@ -2076,6 +2092,15 @@ bool BeebThread::ThreadHandleMessage(
     case BeebThreadEventType_StopCopy:
         {
             this->ThreadStopCopy(ts);
+        }
+        break;
+
+    case BeebThreadEventType_SetByte:
+        {
+            M6502Word address={(uint16_t)msg->u32};
+            uint8_t value=(uint8_t)msg->data.u64;
+
+            this->ThreadRecordEvent(ts,BeebEvent::MakeSetByte(*ts->num_executed_2MHz_cycles,address.w,value));
         }
         break;
 
