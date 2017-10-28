@@ -142,8 +142,7 @@ BBCMicro::BBCMicro(const BBCMicro &src):
     m_video_nula(src.m_video_nula)
 {
     for(int i=0;i<2;++i) {
-        std::unique_lock<std::mutex> lock;
-        std::shared_ptr<DiscImage> disc_image=DiscImage::Clone(src.GetDiscImage(&lock,i));
+        std::shared_ptr<DiscImage> disc_image=DiscImage::Clone(src.GetDiscImage(i));
         this->SetDiscImage(i,std::move(disc_image));
     }
 
@@ -1508,9 +1507,8 @@ void BBCMicro::SetMMIOCycleStretch(uint16_t addr,bool stretch) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-std::shared_ptr<DiscImage> BBCMicro::GetMutableDiscImage(std::unique_lock<std::mutex> *lock,int drive) {
+std::shared_ptr<DiscImage> BBCMicro::GetMutableDiscImage(int drive) {
     if(drive>=0&&drive<NUM_DRIVES) {
-        *lock=this->GetDiscLock();
         return m_disc_images[drive];
     } else {
         return nullptr;
@@ -1520,9 +1518,8 @@ std::shared_ptr<DiscImage> BBCMicro::GetMutableDiscImage(std::unique_lock<std::m
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-std::shared_ptr<const DiscImage> BBCMicro::GetDiscImage(std::unique_lock<std::mutex> *lock,int drive) const {
+std::shared_ptr<const DiscImage> BBCMicro::GetDiscImage(int drive) const {
     if(drive>=0&&drive<NUM_DRIVES) {
-        *lock=this->GetDiscLock();
         return m_disc_images[drive];
     } else {
         return nullptr;
@@ -1537,24 +1534,13 @@ void BBCMicro::SetDiscImage(int drive,std::shared_ptr<DiscImage> disc_image) {
         return;
     }
 
-    auto lock=this->GetDiscLock();
-
     m_disc_images[drive]=std::move(disc_image);
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void BBCMicro::SetDiscMutex(std::mutex *mutex) {
-    m_disc_mutex=mutex;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 bool BBCMicro::GetAndResetDiscAccessFlag() {
-    std::unique_lock<std::mutex> lock=this->GetDiscLock();
-
     bool result=m_disc_access;
 
     m_disc_access=false;
@@ -1603,6 +1589,39 @@ void BBCMicro::StopPaste() {
 
 const M6502 *BBCMicro::GetM6502() const {
     return &m_state.cpu;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BBCMicro::CopyBeebMemory(void *dest_,M6502Word addr_,uint16_t num_bytes) const {
+    M6502Word addr=addr_;
+    auto dest=(char *)dest_;
+    size_t num_bytes_left=num_bytes;
+
+    const uint8_t *const *pages;
+    if(m_pc_pages) {
+        pages=m_pc_pages[m_state.cpu.pc.b.h]->r;
+    } else {
+        pages=m_pages.r;
+    }
+
+    while(num_bytes_left>0) {
+        uint8_t page=addr.b.h;
+        uint8_t offset=addr.b.l;
+
+        uint16_t n=256-offset;
+        if(n>num_bytes_left) {
+            n=num_bytes_left;
+        }
+
+        memcpy(dest,pages[page]+offset,n);
+
+        addr.w+=n;
+
+        ASSERT(num_bytes_left>=n);
+        num_bytes_left-=n;
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -1730,6 +1749,7 @@ void BBCMicro::InitStuff() {
         }
 
         m_default_handle_cpu_data_bus_fn=&HandleCPUDataBusWithShadowRAM;
+
     } else {
         m_default_handle_cpu_data_bus_fn=&HandleCPUDataBusMainRAMOnly;
     }
@@ -1818,8 +1838,7 @@ void BBCMicro::InitStuff() {
 //////////////////////////////////////////////////////////////////////////
 
 bool BBCMicro::IsTrack0() {
-    std::unique_lock<std::mutex> disc_lock;
-    if(DiscDrive *dd=this->GetDiscDrive(&disc_lock)) {
+    if(DiscDrive *dd=this->GetDiscDrive()) {
         return dd->track==0;
     }
 
@@ -1830,8 +1849,7 @@ bool BBCMicro::IsTrack0() {
 //////////////////////////////////////////////////////////////////////////
 
 void BBCMicro::StepOut() {
-    std::unique_lock<std::mutex> disc_lock;
-    if(DiscDrive *dd=this->GetDiscDrive(&disc_lock)) {
+    if(DiscDrive *dd=this->GetDiscDrive()) {
         if(dd->track>0) {
             --dd->track;
 
@@ -1846,8 +1864,7 @@ void BBCMicro::StepOut() {
 //////////////////////////////////////////////////////////////////////////
 
 void BBCMicro::StepIn() {
-    std::unique_lock<std::mutex> disc_lock;
-    if(DiscDrive *dd=this->GetDiscDrive(&disc_lock)) {
+    if(DiscDrive *dd=this->GetDiscDrive()) {
         if(dd->track<255) {
             ++dd->track;
 
@@ -1862,8 +1879,7 @@ void BBCMicro::StepIn() {
 //////////////////////////////////////////////////////////////////////////
 
 void BBCMicro::SpinUp() {
-    std::unique_lock<std::mutex> disc_lock;
-    if(DiscDrive *dd=this->GetDiscDrive(&disc_lock)) {
+    if(DiscDrive *dd=this->GetDiscDrive()) {
         dd->motor=true;
 
 #if BBCMICRO_ENABLE_DISC_DRIVE_SOUND
@@ -1877,8 +1893,7 @@ void BBCMicro::SpinUp() {
 //////////////////////////////////////////////////////////////////////////
 
 void BBCMicro::SpinDown() {
-    std::unique_lock<std::mutex> disc_lock;
-    if(DiscDrive *dd=this->GetDiscDrive(&disc_lock)) {
+    if(DiscDrive *dd=this->GetDiscDrive()) {
         dd->motor=false;
 
 #if BBCMICRO_ENABLE_DISC_DRIVE_SOUND
@@ -1892,8 +1907,7 @@ void BBCMicro::SpinDown() {
 //////////////////////////////////////////////////////////////////////////
 
 bool BBCMicro::IsWriteProtected() {
-    std::unique_lock<std::mutex> disc_lock;
-    if(this->GetDiscDrive(&disc_lock)) {
+    if(this->GetDiscDrive()) {
         if(m_disc_images[m_state.disc_control.drive]) {
             if(m_disc_images[m_state.disc_control.drive]->IsWriteProtected()) {
                 return true;
@@ -1908,8 +1922,7 @@ bool BBCMicro::IsWriteProtected() {
 //////////////////////////////////////////////////////////////////////////
 
 bool BBCMicro::GetByte(uint8_t *value,uint8_t track,uint8_t sector,size_t offset) {
-    std::unique_lock<std::mutex> disc_lock;
-    if(DiscDrive *dd=this->GetDiscDrive(&disc_lock)) {
+    if(DiscDrive *dd=this->GetDiscDrive()) {
         m_disc_access=true;
 
         if(dd->track==track) {
@@ -1928,8 +1941,7 @@ bool BBCMicro::GetByte(uint8_t *value,uint8_t track,uint8_t sector,size_t offset
 //////////////////////////////////////////////////////////////////////////
 
 bool BBCMicro::SetByte(uint8_t track,uint8_t sector,size_t offset,uint8_t value) {
-    std::unique_lock<std::mutex> disc_lock;
-    if(DiscDrive *dd=this->GetDiscDrive(&disc_lock)) {
+    if(DiscDrive *dd=this->GetDiscDrive()) {
         m_disc_access=true;
 
         if(dd->track==track) {
@@ -1948,8 +1960,7 @@ bool BBCMicro::SetByte(uint8_t track,uint8_t sector,size_t offset,uint8_t value)
 //////////////////////////////////////////////////////////////////////////
 
 bool BBCMicro::GetSectorDetails(uint8_t *side,size_t *size,uint8_t track,uint8_t sector,bool double_density) {
-    std::unique_lock<std::mutex> disc_lock;
-    if(DiscDrive *dd=this->GetDiscDrive(&disc_lock)) {
+    if(DiscDrive *dd=this->GetDiscDrive()) {
         m_disc_access=true;
 
         if(dd->track==track) {
@@ -1968,20 +1979,8 @@ bool BBCMicro::GetSectorDetails(uint8_t *side,size_t *size,uint8_t track,uint8_t
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-std::unique_lock<std::mutex> BBCMicro::GetDiscLock() const {
-    if(m_disc_mutex) {
-        return std::unique_lock<std::mutex>(*m_disc_mutex);
-    } else {
-        return std::unique_lock<std::mutex>();
-    }
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-BBCMicro::DiscDrive *BBCMicro::GetDiscDrive(std::unique_lock<std::mutex> *lock) {
+BBCMicro::DiscDrive *BBCMicro::GetDiscDrive() {
     if(m_state.disc_control.drive>=0&&m_state.disc_control.drive<NUM_DRIVES) {
-        *lock=this->GetDiscLock();
         return &m_state.drives[m_state.disc_control.drive];
     } else {
         return nullptr;

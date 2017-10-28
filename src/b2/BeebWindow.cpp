@@ -157,7 +157,7 @@ void BeebWindow::OptionsUI::DoImGui(CommandContextStack *cc_stack) {
     {
         bool paused=m_beeb_window->m_beeb_thread->IsPaused();
         if(ImGui::Checkbox("Paused",&paused)) {
-            beeb_thread->SetPaused(paused);
+            beeb_thread->SendPauseMessage(paused);
         }
     }
 
@@ -742,6 +742,7 @@ const BeebWindow::SettingsUIMetadata BeebWindow::ms_settings_uis[]={
 #endif
 #if BBCMICRO_DEBUGGER
     {BeebWindowPopupType_6502Debugger,"6502 Debug",&Create6502DebugWindow,},
+    {BeebWindowPopupType_MemoryDebugger,"Memory Debug",&CreateMemoryDebugWindow,},
 #endif
 
     // terminator
@@ -1252,6 +1253,7 @@ void BeebWindow::DoDebugMenu() {
         ImGui::Separator();
 
         m_occ.DoMenuItemUI("toggle_6502_debugger");
+        m_occ.DoMenuItemUI("toggle_memory_debugger");
 #endif
 
         ImGui::Separator();
@@ -1770,7 +1772,7 @@ bool BeebWindow::InitInternal() {
 
 
     if(!m_init_arguments.initially_paused) {
-        m_beeb_thread->SetPaused(false);
+        m_beeb_thread->SendPauseMessage(false);
     }
 
     m_imgui_stuff->NewFrame(false);
@@ -2512,5 +2514,6 @@ ObjectCommandTable<BeebWindow> BeebWindow::ms_command_table("Beeb Window",{
 #endif
 #if BBCMICRO_DEBUGGER
     GetTogglePopupCommand<BeebWindowPopupType_6502Debugger>("toggle_6502_debugger"),
+    GetTogglePopupCommand<BeebWindowPopupType_MemoryDebugger>("toggle_memory_debugger"),
 #endif
 });

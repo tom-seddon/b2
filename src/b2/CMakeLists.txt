@@ -248,6 +248,7 @@ target_link_libraries(b2 PRIVATE
   miniz_lib
   remotery_lib
   imgui_lib
+  imgui_memory_editor_lib
   noc_lib
   rapidjson_lib
   IconFontCppHeaders_lib

@@ -141,9 +141,6 @@ EPN(StopCopy)
 //
 #if BBCMICRO_DEBUGGER
 
-// Update the publicly visible running 6502 state.
-EPN(Update6502State)
-
 #endif
 //
 //////////////////////////////////////////////////////////////////////////

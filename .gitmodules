@@ -31,3 +31,6 @@
 [submodule "submodules/sanitizers-cmake"]
 	path = submodules/sanitizers-cmake
 	url = https://github.com/arsenm/sanitizers-cmake
+[submodule "submodules/imgui_club"]
+	path = submodules/imgui_club
+	url = https://github.com/tom-seddon/imgui_club

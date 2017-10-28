@@ -211,8 +211,6 @@ bool BeebThread::Start() {
         return false;
     }
 
-    this->SetPaused(true);
-
     return true;
 }
 
@@ -579,6 +577,13 @@ void BeebThread::SendStartCopyBASICMessage(std::function<void(std::vector<uint8_
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+void BeebThread::SendPauseMessage(bool pause) {
+    this->SendMessage(BeebThreadEventType_SetPaused,0,pause);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 struct StopyCopyMessagePayload {
     std::function<void(const std::vector<uint8_t> &)> fun;
 };
@@ -677,27 +682,10 @@ void BeebThread::SendCancelReplayMessage() {
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_DEBUGGER
-void BeebThread::SendUpdate6502StateMessage() {
-    this->SendMessage(BeebThreadEventType_Update6502State,0,nullptr);
-}
-#endif
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-#if BBCMICRO_DEBUGGER
 const M6502 *BeebThread::Get6502State(std::unique_lock<std::mutex> *lock) const {
-    std::unique_lock<std::mutex> tmp_lock(m_mutex);
+    *lock=std::unique_lock<std::mutex>(m_mutex);
 
-    if(m_paused_ts) {
-        *lock=std::move(tmp_lock);
-        return m_paused_ts->beeb->GetM6502();
-    } else if(m_6502_state.config) {
-        *lock=std::move(tmp_lock);
-        return &m_6502_state;
-    } else {
-        return nullptr;
-    }
+    return m_thread_state->beeb->GetM6502();
 }
 #endif
 
@@ -721,30 +709,7 @@ uint32_t BeebThread::GetDebugFlags() const {
 bool BeebThread::IsPaused() const {
     std::lock_guard<std::mutex> lock(m_mutex);
 
-    return !!m_paused_ts;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-bool BeebThread::SetPaused(bool paused) {
-    std::unique_lock<std::mutex> lock(m_mutex);
-
-    bool was_paused=!!m_paused_ts;
-
-    if(was_paused!=paused) {
-        this->SendMessage(BeebThreadEventType_SetPaused,0,paused);
-
-        for(;;) {
-            m_paused_cv.wait(lock);
-
-            if(!!m_paused_ts==paused) {
-                break;
-            }
-        }
-    }
-
-    return was_paused;
+    return m_paused;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -1082,6 +1047,15 @@ void BeebThread::FlushCallbacks() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+void BeebThread::CopyBeebMemory(void *dest,M6502Word addr,uint16_t num_bytes) {
+    std::lock_guard<std::mutex> lock(m_mutex);
+
+    m_thread_state->beeb->CopyBeebMemory(dest,addr,num_bytes);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 void BeebThread::SetLastSavedStateTimelineId(uint64_t id) {
     std::lock_guard<std::mutex> lock(m_mutex);
 
@@ -1114,8 +1088,8 @@ void BeebThread::SetVolume(float *scale_var,float *db_var,float db) {
 
 void BeebThread::ThreadRecordEvent(ThreadState *ts,BeebEvent event) {
     this->ThreadHandleEvent(ts,event,false);
-    
-    m_parent_timeline_event_id=Timeline::AddEvent(this->GetParentTimelineEventId(),std::move(event));
+
+    m_parent_timeline_event_id=Timeline::AddEvent(m_parent_timeline_event_id,std::move(event));
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -1225,13 +1199,9 @@ void BeebThread::ThreadStartTrace(ThreadState *ts) {
         break;
     }
 
-    {
-        std::lock_guard<std::mutex> lock(m_mutex);
-
-        memset(&m_trace_stats,0,sizeof m_trace_stats);
-        m_is_tracing.store(true,std::memory_order_release);
-        m_last_trace=nullptr;
-    }
+    memset(&m_trace_stats,0,sizeof m_trace_stats);
+    m_is_tracing.store(true,std::memory_order_release);
+    m_last_trace=nullptr;
 }
 #endif
 
@@ -1258,11 +1228,7 @@ void BeebThread::ThreadStopTrace(ThreadState *ts) {
 
     ts->trace_conditions=TraceConditions();
 
-    {
-        std::lock_guard<std::mutex> lock(m_mutex);
-
-        m_last_trace=last_trace;
-    }
+    m_last_trace=last_trace;
 }
 #endif
 
@@ -1277,8 +1243,6 @@ void BeebThread::ThreadReplaceBeeb(ThreadState *ts,std::unique_ptr<BBCMicro> bee
 
     ts->num_executed_2MHz_cycles=ts->beeb->GetNum2MHzCycles();
 
-    ts->beeb->SetDiscMutex(&m_mutex);
-
     {
         AudioDeviceLock lock(m_sound_device_id);
 
@@ -1287,8 +1251,6 @@ void BeebThread::ThreadReplaceBeeb(ThreadState *ts,std::unique_ptr<BBCMicro> bee
 
     // Always take shadow copy of NVRAM.
     {
-        std::lock_guard<std::mutex> lock(m_mutex);
-
         m_nvram_copy.clear();
         m_nvram_copy.resize(ts->beeb->GetNVRAMSize());
     }
@@ -1328,8 +1290,7 @@ void BeebThread::ThreadReplaceBeeb(ThreadState *ts,std::unique_ptr<BBCMicro> bee
         }
     } else {
         for(int i=0;i<NUM_DRIVES;++i) {
-            std::unique_lock<std::mutex> lock;
-            m_disc_images[i]=ts->beeb->GetDiscImage(&lock,i);
+            m_disc_images[i]=ts->beeb->GetDiscImage(i);
         }
     }
 
@@ -1343,7 +1304,7 @@ void BeebThread::ThreadReplaceBeeb(ThreadState *ts,std::unique_ptr<BBCMicro> bee
     ts->beeb->GetAndResetDiscAccessFlag();
     this->ThreadSetBootState(ts,!!(flags&BeebThreadReplaceFlag_Autoboot));
 
-    this->ThreadSetPaused(ts,false);
+    m_paused=false;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -1430,7 +1391,7 @@ void BeebThread::ThreadSetKeyState(ThreadState *ts,BeebKey beeb_key,bool state) 
         //    BOOL_STR(ts->boot),
         //    GetBeebShiftStateEnumName(ts->fake_shift_state),
         //    BOOL_STR(m_real_key_states.GetState(BeebKey_Shift)));
-        
+
         this->ThreadRecordEvent(ts,BeebEvent::MakeKeyState(*ts->num_executed_2MHz_cycles,beeb_key,state));
 
 #if BBCMICRO_TRACE
@@ -1495,8 +1456,8 @@ void BeebThread::ThreadHandleEvent(ThreadState *ts,
             if(!replay) {
                 flags|=BeebThreadReplaceFlag_ApplyPCState;
             }
-            
-            
+
+
             this->ThreadReplaceBeeb(ts,event.data.config->config.CreateBBCMicro(),flags);
         }
         return;
@@ -1507,7 +1468,7 @@ void BeebThread::ThreadHandleEvent(ThreadState *ts,
             if(!replay) {
                 flags|=BeebThreadReplaceFlag_ApplyPCState;
             }
-            
+
             this->ThreadReplaceBeeb(ts,
                                     ts->current_config.CreateBBCMicro(),
                                     flags);
@@ -1590,21 +1551,21 @@ void BeebThread::ThreadStopReplay(ThreadState *ts) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void BeebThread::ThreadSetPaused(ThreadState *ts,bool paused) {
-    (void)ts;
-
-    std::lock_guard<std::mutex> lock(m_mutex);
-
-    if(!!m_paused_ts!=paused) {
-        if(paused) {
-            m_paused_ts=ts;
-        } else {
-            m_paused_ts=nullptr;
-        }
-
-        m_paused_cv.notify_all();
-    }
-}
+//void BeebThread::ThreadSetPaused(ThreadState *ts,bool paused) {
+//    (void)ts;
+//
+//    std::lock_guard<std::mutex> lock(m_mutex);
+//
+//    if(!!m_paused_ts!=paused) {
+//        if(paused) {
+//            m_paused_ts=ts;
+//        } else {
+//            m_paused_ts=nullptr;
+//        }
+//
+//        m_paused_cv.notify_all();
+//    }
+//}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -1612,11 +1573,7 @@ void BeebThread::ThreadSetPaused(ThreadState *ts,bool paused) {
 void BeebThread::ThreadLoadState(ThreadState *ts,uint64_t parent_timeline_id,const std::shared_ptr<BeebState> &state) {
     this->ThreadReplaceBeeb(ts,state->CloneBBCMicro(),0);
 
-    {
-        std::lock_guard<std::mutex> lock(m_mutex);
-
         m_parent_timeline_event_id=parent_timeline_id;
-    }
 
     Timeline::DidChange();
 }
@@ -1651,11 +1608,7 @@ void BeebThread::ThreadHandleReplayEvents(ThreadState *ts) {
         if(re->id==0) {
             // Event wasn't on timeline, so don't update parent.
         } else {
-            {
-                std::lock_guard<std::mutex> lock(m_mutex);
-
                 m_parent_timeline_event_id=re->id;
-            }
 
             if(re->be.GetTypeFlags()&BeebEventTypeFlag_ChangesTimeline) {
                 Timeline::DidChange();
@@ -1670,7 +1623,6 @@ void BeebThread::ThreadHandleReplayEvents(ThreadState *ts) {
 void BeebThread::ThreadSetDiscImage(ThreadState *ts,int drive,std::shared_ptr<DiscImage> disc_image) {
     ts->beeb->SetDiscImage(drive,disc_image);
 
-    std::lock_guard<std::mutex> lock(m_mutex);
     m_disc_images[drive]=disc_image;
 }
 
@@ -1714,7 +1666,7 @@ void BeebThread::ThreadStopCopy(ThreadState *ts) {
 
                 ASSERT(prefix.size()<=PTRDIFF_MAX);
                 auto end=begin+(ptrdiff_t)prefix.size();
-                
+
                 if(std::equal(begin,end,prefix.begin())) {
                     ts->copy_data.erase(begin,end);
                 }
@@ -1821,7 +1773,7 @@ bool BeebThread::ThreadHandleMessage(
             auto ptr=(ChangeConfigPayload *)msg->data.ptr;
 
             ts->current_config=std::move(ptr->config);
-            
+
             this->ThreadRecordEvent(ts,BeebEvent::MakeChangeConfig(*ts->num_executed_2MHz_cycles,ts->current_config));
         }
         break;
@@ -1862,9 +1814,7 @@ bool BeebThread::ThreadHandleMessage(
 
     case BeebThreadEventType_SetPaused:
         {
-            bool is_paused=!!msg->data.u64;
-
-            this->ThreadSetPaused(ts,is_paused);
+            m_paused=!!msg->data.u64;
         }
         break;
 
@@ -1940,7 +1890,7 @@ bool BeebThread::ThreadHandleMessage(
                 std::string time_str=Get2MHzCyclesString(state->GetEmulated2MHzCycles());
                 ts->msgs.i.f("Saved state: %s\n",time_str.c_str());
             }
-            
+
             this->ThreadRecordEvent(ts,BeebEvent::MakeSaveState(*ts->num_executed_2MHz_cycles,state));
 
             this->SetLastSavedStateTimelineId(this->GetParentTimelineEventId());
@@ -1997,13 +1947,8 @@ bool BeebThread::ThreadHandleMessage(
 
             std::shared_ptr<BeebState> state=this->ThreadSaveState(ts);
 
-            // Save the current state so the replay can be canceled.
-            {
-                std::lock_guard<std::mutex> lock(m_mutex);
-
                 m_pre_replay_parent_timeline_event_id=m_parent_timeline_event_id;
                 m_pre_replay_state=state;
-            }
 
             auto &&replay_data=Timeline::CreateReplay(start_timeline_id,m_parent_timeline_event_id,&ts->msgs);
 
@@ -2032,9 +1977,7 @@ bool BeebThread::ThreadHandleMessage(
         {
             auto ptr=(SetDiscImageNameAndLoadMethodMessagePayload *)msg->data.ptr;
 
-            std::unique_lock<std::mutex> lock;
-
-            if(std::shared_ptr<DiscImage> disc_image=ts->beeb->GetMutableDiscImage(&lock,ptr->drive)) {
+            if(std::shared_ptr<DiscImage> disc_image=ts->beeb->GetMutableDiscImage(ptr->drive)) {
                 disc_image->SetName(std::move(ptr->name));
                 disc_image->SetLoadMethod(std::move(ptr->load_method));
             }
@@ -2057,15 +2000,11 @@ bool BeebThread::ThreadHandleMessage(
                 std::shared_ptr<BeebState> state;
                 uint64_t timeline_id;
 
-                {
-                    std::lock_guard<std::mutex> lock(m_mutex);
-
                     state=std::move(m_pre_replay_state);
                     ASSERT(!m_pre_replay_state);
 
                     timeline_id=m_pre_replay_parent_timeline_event_id;
                     m_pre_replay_parent_timeline_event_id=0;
-                }
 
                 if(!!state) {
                     this->ThreadLoadState(ts,timeline_id,state);
@@ -2140,16 +2079,6 @@ bool BeebThread::ThreadHandleMessage(
         }
         break;
 
-#if BBCMICRO_DEBUGGER
-    case BeebThreadEventType_Update6502State:
-        {
-            std::lock_guard<std::mutex> lock(m_mutex);
-
-            m_6502_state=*ts->beeb->GetM6502();
-        }
-        break;
-#endif
-
     case MESSAGE_TYPE_SYNTHETIC:
         switch(msg->u32) {
         default:
@@ -2168,7 +2097,7 @@ bool BeebThread::ThreadHandleMessage(
     MessageDestroy(msg);
 
     return result;
-}
+        }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -2176,21 +2105,25 @@ bool BeebThread::ThreadHandleMessage(
 void BeebThread::ThreadMain(void) {
     uint64_t next_stop_2MHz_cycles=0;
     bool limit_speed=m_limit_speed.load(std::memory_order_acquire);
-
-    SetCurrentThreadNamef("BeebThread");
-
     ThreadState ts;
 
-    ts.beeb_thread=this;
-    ts.msgs=Messages(m_message_list);
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
 
-    this->ThreadSetPaused(&ts,true);
+        SetCurrentThreadNamef("BeebThread");
+
+
+        ts.beeb_thread=this;
+        ts.msgs=Messages(m_message_list);
+
+        m_thread_state=&ts;
+    }
 
     for(;;) {
         Message msg;
         int got_msg;
 
-        if(m_paused_ts||(limit_speed&&next_stop_2MHz_cycles<=*ts.num_executed_2MHz_cycles)) {
+        if(m_paused||(limit_speed&&next_stop_2MHz_cycles<=*ts.num_executed_2MHz_cycles)) {
         wait_for_message:
             MessageQueueWaitForMessage(m_mq,&msg);
             got_msg=1;
@@ -2198,122 +2131,131 @@ void BeebThread::ThreadMain(void) {
             got_msg=MessageQueuePollForMessage(m_mq,&msg);
         }
 
-        if(got_msg) {
-            if(!this->ThreadHandleMessage(&ts,&msg,&limit_speed,&next_stop_2MHz_cycles)) {
-                goto done;
-            }
-        }
+        std::unique_lock<std::mutex> lock(m_mutex,std::defer_lock);
 
-        uint64_t stop_2MHz_cycles=next_stop_2MHz_cycles;
-
-        if(m_is_replaying) {
-            ASSERT(*ts.num_executed_2MHz_cycles<=ts.replay_next_event_cycles);
-            if(*ts.num_executed_2MHz_cycles==ts.replay_next_event_cycles) {
-                this->ThreadHandleReplayEvents(&ts);
+        if(lock.try_lock()) {
+            if(got_msg) {
+                if(!this->ThreadHandleMessage(&ts,&msg,&limit_speed,&next_stop_2MHz_cycles)) {
+                    goto done;
+                }
             }
+
+            uint64_t stop_2MHz_cycles=next_stop_2MHz_cycles;
 
             if(m_is_replaying) {
-                if(ts.replay_next_event_cycles<stop_2MHz_cycles) {
-                    stop_2MHz_cycles=ts.replay_next_event_cycles;
+                ASSERT(*ts.num_executed_2MHz_cycles<=ts.replay_next_event_cycles);
+                if(*ts.num_executed_2MHz_cycles==ts.replay_next_event_cycles) {
+                    this->ThreadHandleReplayEvents(&ts);
                 }
-            }
-        }
 
-        if(m_is_pasting) {
-            if(!ts.beeb->IsPasting()) {
-                m_is_pasting.store(false,std::memory_order_release);
-            }
-        }
-
-        if(!m_paused_ts&&stop_2MHz_cycles>*ts.num_executed_2MHz_cycles) {
-            ASSERT(ts.beeb);
-
-            uint64_t num_2MHz_cycles=stop_2MHz_cycles-*ts.num_executed_2MHz_cycles;
-            if(num_2MHz_cycles>RUN_2MHz_CYCLES) {
-                num_2MHz_cycles=RUN_2MHz_CYCLES;
-            }
-
-            // One day I'll clear up the units mismatch...
-            VideoDataUnit *va,*vb;
-            size_t num_va,num_vb;
-            size_t num_video_units=num_2MHz_cycles>>1;
-            ASSERT((num_2MHz_cycles&1)==0);
-            if(!m_video_output.ProducerLock(&va,&num_va,&vb,&num_vb,num_video_units)) {
-                goto wait_for_message;
-            }
-
-            // should really have this as part of the OutputDataBuffer API.
-            if(num_va+num_vb<num_video_units) {
-            unlock_video:;
-                m_video_output.ProducerUnlock(0);
-                goto wait_for_message;
-            }
-
-            size_t num_sound_units=(num_2MHz_cycles+(1<<SOUND_CLOCK_SHIFT)-1)>>SOUND_CLOCK_SHIFT;
-
-            SoundDataUnit *sa,*sb;
-            size_t num_sa,num_sb;
-            if(!m_sound_output.ProducerLock(&sa,&num_sa,&sb,&num_sb,num_sound_units)) {
-                goto unlock_video;
-            }
-
-            if(num_sa+num_sb<num_sound_units) {
-                m_sound_output.ProducerUnlock(0);
-                goto unlock_video;
-            }
-
-            SoundDataUnit *sunit=sa;
-            size_t num_sunits_produced=0;
-
-            // Fill part A.
-            {
-                VideoDataUnit *vunit=va;
-
-                for(uint64_t i=0;i<num_va;++i) {
-                    if(ts.beeb->Update(vunit++,sunit)) {
-                        ++sunit;
-
-                        if(sunit==sa+num_sa) {
-                            sunit=sb;
-                        } else if(sunit==sb+num_sb) {
-                            sunit=nullptr;
-                        }
-
-                        ++num_sunits_produced;
+                if(m_is_replaying) {
+                    if(ts.replay_next_event_cycles<stop_2MHz_cycles) {
+                        stop_2MHz_cycles=ts.replay_next_event_cycles;
                     }
                 }
             }
 
-            // Fill part B.
-            {
-                VideoDataUnit *vunit=vb;
-
-                for(uint64_t i=0;i<num_vb;++i) {
-                    if(ts.beeb->Update(vunit++,sunit)) {
-                        ++sunit;
-
-                        if(sunit==sa+num_sa) {
-                            sunit=sb;
-                        } else if(sunit==sb+num_sb) {
-                            sunit=nullptr;
-                        }
-
-                        ++num_sunits_produced;
-                    }
+            if(m_is_pasting) {
+                if(!ts.beeb->IsPasting()) {
+                    m_is_pasting.store(false,std::memory_order_release);
                 }
             }
 
-            m_video_output.ProducerUnlock(num_va+num_vb);
-            m_sound_output.ProducerUnlock(num_sunits_produced);
+            if(!m_paused&&stop_2MHz_cycles>*ts.num_executed_2MHz_cycles) {
+                ASSERT(ts.beeb);
 
-            // It's a bit dumb having multiple copies.
-            m_num_2MHz_cycles.store(*ts.num_executed_2MHz_cycles,std::memory_order_release);
+                uint64_t num_2MHz_cycles=stop_2MHz_cycles-*ts.num_executed_2MHz_cycles;
+                if(num_2MHz_cycles>RUN_2MHz_CYCLES) {
+                    num_2MHz_cycles=RUN_2MHz_CYCLES;
+                }
+
+                // One day I'll clear up the units mismatch...
+                VideoDataUnit *va,*vb;
+                size_t num_va,num_vb;
+                size_t num_video_units=num_2MHz_cycles>>1;
+                ASSERT((num_2MHz_cycles&1)==0);
+                if(!m_video_output.ProducerLock(&va,&num_va,&vb,&num_vb,num_video_units)) {
+                    goto wait_for_message;
+                }
+
+                // should really have this as part of the OutputDataBuffer API.
+                if(num_va+num_vb<num_video_units) {
+                unlock_video:;
+                    m_video_output.ProducerUnlock(0);
+                    goto wait_for_message;
+                }
+
+                size_t num_sound_units=(num_2MHz_cycles+(1<<SOUND_CLOCK_SHIFT)-1)>>SOUND_CLOCK_SHIFT;
+
+                SoundDataUnit *sa,*sb;
+                size_t num_sa,num_sb;
+                if(!m_sound_output.ProducerLock(&sa,&num_sa,&sb,&num_sb,num_sound_units)) {
+                    goto unlock_video;
+                }
+
+                if(num_sa+num_sb<num_sound_units) {
+                    m_sound_output.ProducerUnlock(0);
+                    goto unlock_video;
+                }
+
+                SoundDataUnit *sunit=sa;
+                size_t num_sunits_produced=0;
+
+                // Fill part A.
+                {
+                    VideoDataUnit *vunit=va;
+
+                    for(uint64_t i=0;i<num_va;++i) {
+                        if(ts.beeb->Update(vunit++,sunit)) {
+                            ++sunit;
+
+                            if(sunit==sa+num_sa) {
+                                sunit=sb;
+                            } else if(sunit==sb+num_sb) {
+                                sunit=nullptr;
+                            }
+
+                            ++num_sunits_produced;
+                        }
+                    }
+                }
+
+                // Fill part B.
+                {
+                    VideoDataUnit *vunit=vb;
+
+                    for(uint64_t i=0;i<num_vb;++i) {
+                        if(ts.beeb->Update(vunit++,sunit)) {
+                            ++sunit;
+
+                            if(sunit==sa+num_sa) {
+                                sunit=sb;
+                            } else if(sunit==sb+num_sb) {
+                                sunit=nullptr;
+                            }
+
+                            ++num_sunits_produced;
+                        }
+                    }
+                }
+
+                m_video_output.ProducerUnlock(num_va+num_vb);
+                m_sound_output.ProducerUnlock(num_sunits_produced);
+
+                // It's a bit dumb having multiple copies.
+                m_num_2MHz_cycles.store(*ts.num_executed_2MHz_cycles,std::memory_order_release);
+            }
         }
     }
-done:;
+done:
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
 
-    delete ts.beeb;
-    ts.beeb=nullptr;
+        m_thread_state=nullptr;
+
+        delete ts.beeb;
+        ts.beeb=nullptr;
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////

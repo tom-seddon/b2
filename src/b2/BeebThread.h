@@ -151,9 +151,10 @@ public:
     void SendStartCopyBASICMessage(std::function<void(std::vector<uint8_t>)> stop_fun);
 
 #if BBCMICRO_DEBUGGER
-    void SendUpdate6502StateMessage();
     const M6502 *Get6502State(std::unique_lock<std::mutex> *lock) const;
 #endif
+
+    void SendPauseMessage(bool pause);
 
     // 
 
@@ -171,14 +172,6 @@ public:
 
     // Get pause state as set by SetPaused.
     bool IsPaused() const;
-
-    // When changing from unpaused to paused, the emulation will
-    // definitely be paused by the time SetPaused returns, with its
-    // message queue empty. (There is no corresponding promise for the
-    // other direction.)
-    //
-    // Returns previous value of pause flag.
-    bool SetPaused(bool paused);
 
     // Get the disc image pointer for the given drive, using the given
     // lock object to take a lock on the disc access mutex.
@@ -247,6 +240,8 @@ public:
     // Clears the callback list, then calls each callback in the order
     // it was added.
     void FlushCallbacks();
+
+    void CopyBeebMemory(void *dest,M6502Word addr,uint16_t num_bytes);
 protected:
 private:
     struct ThreadState;
@@ -295,17 +290,10 @@ private:
 
     mutable std::mutex m_mutex;
 
-    // nullptr when running, or pointer to the thread's ThreadState
-    // when paused.
-    //
-    // BeebThread: must take mutex to write. Can always read.
-    //
-    // Main thread: must take mutex to read or write.
-    ThreadState *m_paused_ts=nullptr;
+    bool m_paused=true;
 
-    // When the BeebThread changes the paused flag, it notifies this
-    // condition variable.
-    std::condition_variable m_paused_cv;
+    // Main thread must take mutex to access.
+    ThreadState *m_thread_state=nullptr;
 
     // use GetPreviousState/SetPreviousState to modify. Controlled by
     // the global timeline mutex.
@@ -378,7 +366,7 @@ private:
     void ThreadHandleEvent(ThreadState *ts,const BeebEvent &event,bool replay);
     void ThreadStartReplay(ThreadState *ts,Timeline::ReplayData replay_data);
     void ThreadStopReplay(ThreadState *ts);
-    void ThreadSetPaused(ThreadState *ts,bool paused);
+    //void ThreadSetPaused(ThreadState *ts,bool paused);
     void ThreadLoadState(ThreadState *ts,uint64_t parent_timeline_id,const std::shared_ptr<BeebState> &state);
     void ThreadHandleReplayEvents(ThreadState *ts);
     bool ThreadHandleMessage(ThreadState *ts,Message *msg,bool *limit_speed,uint64_t *next_stop_2MHz_cycles);

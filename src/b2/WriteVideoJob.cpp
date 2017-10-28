@@ -272,7 +272,7 @@ void WriteVideoJob::ThreadExecute() {
 
         beeb_thread->SendReplayMessage(std::move(m_replay_data));
 
-        beeb_thread->SetPaused(false);
+        beeb_thread->SendPauseMessage(false);
 
         for(;;) {
             uint64_t cycles=beeb_thread->GetEmulated2MHzCycles();

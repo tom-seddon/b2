@@ -305,20 +305,10 @@ public:
     void SetMMIOFns(uint16_t addr,ReadMMIOFn read_fn,WriteMMIOFn write_fn,void *context);
     void SetMMIOCycleStretch(uint16_t addr,bool stretch);
 
-    std::shared_ptr<DiscImage> GetMutableDiscImage(std::unique_lock<std::mutex> *lock,int drive);
-    std::shared_ptr<const DiscImage> GetDiscImage(std::unique_lock<std::mutex> *lock,int drive) const;
+    std::shared_ptr<DiscImage> GetMutableDiscImage(int drive);
+    std::shared_ptr<const DiscImage> GetDiscImage(int drive) const;
 
     void SetDiscImage(int drive,std::shared_ptr<DiscImage> disc_image);
-
-    // Sets a pointer to the disc mutex. When non-NULL, the disc mutex
-    // will be locked when changing disc image, during disc access,
-    // and (via a caller-supplied unique_lock) when retrieving a disc
-    // image pointer.
-    //
-    // (The caller-supplied unique_lock isn't foolproof; the lifetime
-    // of the return pointer can exceed that of the lock. This is OK
-    // if caution is exercised.)
-    void SetDiscMutex(std::mutex *mutex);
 
     // Every time there is a disc access, the disc access flag is set
     // to true. This call retrieves its current value, and sets it to
@@ -334,6 +324,9 @@ public:
     void StopPaste();
 
     const M6502 *GetM6502() const;
+
+    // sadly "CopyMemory" is a Windows #define... :(
+    void CopyBeebMemory(void *dest,M6502Word addr,uint16_t num_bytes) const;
 protected:
 private:
     //////////////////////////////////////////////////////////////////////////
@@ -510,7 +503,6 @@ private:
     NVRAMChangedFn m_nvram_changed_fn=nullptr;
     void *m_nvram_changed_context=nullptr;
     //DiscDriveCallbacks m_disc_drive_callbacks={};
-    std::mutex *m_disc_mutex=nullptr;
 
     // This doesn't need to be copied. The event list records its
     // influence.
@@ -587,8 +579,7 @@ private:
     bool GetByte(uint8_t *value,uint8_t track,uint8_t sector,size_t offset) override;
     bool SetByte(uint8_t track,uint8_t sector,size_t offset,uint8_t value) override;
     bool GetSectorDetails(uint8_t *side,size_t *size,uint8_t track,uint8_t sector,bool double_density) override;
-    std::unique_lock<std::mutex> GetDiscLock() const;
-    DiscDrive *GetDiscDrive(std::unique_lock<std::mutex> *disc_mutex_lock);
+    DiscDrive *GetDiscDrive();
 #if BBCMICRO_ENABLE_DISC_DRIVE_SOUND
     void InitDiscDriveSounds(DiscDriveType type);
     void StepSound(DiscDrive *dd);

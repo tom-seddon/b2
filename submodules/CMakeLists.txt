@@ -85,6 +85,12 @@ endif()
 ##########################################################################
 ##########################################################################
 
+add_library(imgui_memory_editor_lib INTERFACE)
+target_include_directories(imgui_memory_editor_lib INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/imgui_club/imgui_memory_editor)
+
+##########################################################################
+##########################################################################
+
 add_library(remotery_lib STATIC
 	${CMAKE_CURRENT_SOURCE_DIR}/Remotery/lib/Remotery.c
 	${CMAKE_CURRENT_SOURCE_DIR}/Remotery/lib/Remotery.h
