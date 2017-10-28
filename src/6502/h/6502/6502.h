@@ -321,7 +321,7 @@ void M6502_DisassembleLastInstruction(M6502 *s,char *buf,size_t buf_size,int *ia
  *
  * The return value is the number of bytes consumed - always >=1.
  */
-uint16_t M6502_DisassembleInstruction(M6502 *s,char *buf,size_t buf_size,uint16_t pc,uint8_t a,uint8_t b,uint8_t c);
+//uint16_t M6502Config_DisassembleInstruction(const M6502Config *config,char *buf,size_t buf_size,uint16_t pc,uint8_t a,uint8_t b,uint8_t c);
 
 /* After the end state of an instruction, point the PC at the right
  * place and call this to set things up for the next one. */

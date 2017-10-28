@@ -1612,75 +1612,75 @@ static void DisassembleWord(char *buf,
     snprintf(buf,buf_size,"%s %s$%04x%s",di->mnemonic,prefix,value,suffix);
 }
 
-uint16_t M6502_DisassembleInstruction(M6502 *s,char *buf,size_t buf_size,uint16_t pc,uint8_t a,uint8_t b,uint8_t c) {
-    const M6502DisassemblyInfo *di=&s->config->disassembly_info[a];
-
-    switch(di->mode) {
-    default:
-        assert(0);
-        // fall through
-    case M6502AddrMode_IMP:
-        snprintf(buf,buf_size,"%s",di->mnemonic);
-        return 1;
-
-    case M6502AddrMode_IMM:
-        DisassembleByte(buf,buf_size,di,"#",b,"");
-        return 2;
-
-    case M6502AddrMode_REL:
-        DisassembleWord(buf,buf_size,di,"",(uint16_t)(pc+2+(uint16_t)(int16_t)(int8_t)b),"");
-        return 2;
-
-    case M6502AddrMode_ZPG:
-        DisassembleByte(buf,buf_size,di,"",b,"");
-        return 2;
-
-    case M6502AddrMode_ZPX:
-        DisassembleByte(buf,buf_size,di,"",b,",x");
-        return 2;
-
-    case M6502AddrMode_ZPY:
-        DisassembleByte(buf,buf_size,di,"",b,",y");
-        return 2;
-
-    case M6502AddrMode_INX:
-        DisassembleByte(buf,buf_size,di,"(",b,",x)");
-        return 2;
-
-    case M6502AddrMode_INY:
-        DisassembleByte(buf,buf_size,di,"(",b,"),y");
-        return 2;
-
-    case M6502AddrMode_ABS:
-        DisassembleWord(buf,buf_size,di,"",(M6502Word) { .b.l=b,.b.h=c }.w,"");
-        return 3;
-
-    case M6502AddrMode_ABX:
-        DisassembleWord(buf,buf_size,di,"",(M6502Word) { .b.l=b,.b.h=c }.w,",x");
-        return 3;
-
-    case M6502AddrMode_ABY:
-        DisassembleWord(buf,buf_size,di,"",(M6502Word) { .b.l=b,.b.h=c }.w,",y");
-        return 3;
-
-    case M6502AddrMode_IND:
-        DisassembleWord(buf,buf_size,di,"(",(M6502Word) { .b.l=b,.b.h=c }.w,")");
-        return 3;
-
-    case M6502AddrMode_ACC:
-        snprintf(buf,buf_size,"%s A",di->mnemonic);
-        return 1;
-
-    case M6502AddrMode_INZ:
-        DisassembleByte(buf,buf_size,di,"(",b,")");
-        return 1;
-
-    case M6502AddrMode_INDX:
-        DisassembleWord(buf,buf_size,di,"(",(M6502Word) { .b.l=b,.b.h=c }.w,",x)");
-        return 2;
-    }
-
-}
+//uint16_t M6502Config_DisassembleInstruction(const M6502Config *config,char *buf,size_t buf_size,uint16_t pc,uint8_t a,uint8_t b,uint8_t c) {
+//    const M6502DisassemblyInfo *di=&config->disassembly_info[a];
+//
+//    switch(di->mode) {
+//    default:
+//        assert(0);
+//        // fall through
+//    case M6502AddrMode_IMP:
+//        snprintf(buf,buf_size,"%s",di->mnemonic);
+//        return 1;
+//
+//    case M6502AddrMode_IMM:
+//        DisassembleByte(buf,buf_size,di,"#",b,"");
+//        return 2;
+//
+//    case M6502AddrMode_REL:
+//        DisassembleWord(buf,buf_size,di,"",(uint16_t)(pc+2+(uint16_t)(int16_t)(int8_t)b),"");
+//        return 2;
+//
+//    case M6502AddrMode_ZPG:
+//        DisassembleByte(buf,buf_size,di,"",b,"");
+//        return 2;
+//
+//    case M6502AddrMode_ZPX:
+//        DisassembleByte(buf,buf_size,di,"",b,",x");
+//        return 2;
+//
+//    case M6502AddrMode_ZPY:
+//        DisassembleByte(buf,buf_size,di,"",b,",y");
+//        return 2;
+//
+//    case M6502AddrMode_INX:
+//        DisassembleByte(buf,buf_size,di,"(",b,",x)");
+//        return 2;
+//
+//    case M6502AddrMode_INY:
+//        DisassembleByte(buf,buf_size,di,"(",b,"),y");
+//        return 2;
+//
+//    case M6502AddrMode_ABS:
+//        DisassembleWord(buf,buf_size,di,"",(M6502Word) { .b.l=b,.b.h=c }.w,"");
+//        return 3;
+//
+//    case M6502AddrMode_ABX:
+//        DisassembleWord(buf,buf_size,di,"",(M6502Word) { .b.l=b,.b.h=c }.w,",x");
+//        return 3;
+//
+//    case M6502AddrMode_ABY:
+//        DisassembleWord(buf,buf_size,di,"",(M6502Word) { .b.l=b,.b.h=c }.w,",y");
+//        return 3;
+//
+//    case M6502AddrMode_IND:
+//        DisassembleWord(buf,buf_size,di,"(",(M6502Word) { .b.l=b,.b.h=c }.w,")");
+//        return 3;
+//
+//    case M6502AddrMode_ACC:
+//        snprintf(buf,buf_size,"%s A",di->mnemonic);
+//        return 1;
+//
+//    case M6502AddrMode_INZ:
+//        DisassembleByte(buf,buf_size,di,"(",b,")");
+//        return 1;
+//
+//    case M6502AddrMode_INDX:
+//        DisassembleWord(buf,buf_size,di,"(",(M6502Word) { .b.l=b,.b.h=c }.w,",x)");
+//        return 2;
+//    }
+//
+//}
 
 void M6502_DisassembleLastInstruction(M6502 *s,char *buf,size_t buf_size,int *ia,int *ad) {
     const M6502DisassemblyInfo *di=&s->config->disassembly_info[s->opcode];
