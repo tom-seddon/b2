@@ -247,6 +247,9 @@ public:
 
     void DoButton(const char *name);
     void DoMenuItemUI(const char *name);
+
+    // The check reflects the tick status, and the command is assumed to toggle that state.
+    void DoToggleCheckboxUI(const char *name);
     bool ExecuteCommandsForPCKey(uint32_t keycode) const;
 
     const CommandTable *GetCommandTable() const;
@@ -298,6 +301,10 @@ public:
 
     void DoMenuItemUI(const char *name) {
         this->cc->DoMenuItemUI(name);
+    }
+
+    void DoToggleCheckboxUI(const char *name) {
+        this->cc->DoToggleCheckboxUI(name);
     }
 protected:
 private:

@@ -48,6 +48,7 @@ EPN(PixelMetadata)
 EPN(DearImguiTest)
 EPN(6502Debugger)
 EPN(MemoryDebugger)
+EPN(DisassemblyDebugger)
 
 // must be last
 EQPN(MaxValue)

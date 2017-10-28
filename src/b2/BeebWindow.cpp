@@ -733,7 +733,6 @@ const BeebWindow::SettingsUIMetadata BeebWindow::ms_settings_uis[]={
 #endif
     {BeebWindowPopupType_NVRAM,"Non-volatile RAM",&CreateNVRAMUI},
     {BeebWindowPopupType_AudioCallback,"Data Rate",&CreateDataRateUI},
-    {BeebWindowPopupType_CommandContextStack,"Command Context Stack",&BeebWindow::CreateCommandContextStackUI},
 #if VIDEO_TRACK_METADATA
     {BeebWindowPopupType_PixelMetadata,"Pixel Metadata",&CreatePixelMetadataUI},
 #endif
@@ -743,7 +742,16 @@ const BeebWindow::SettingsUIMetadata BeebWindow::ms_settings_uis[]={
 #if BBCMICRO_DEBUGGER
     {BeebWindowPopupType_6502Debugger,"6502 Debug",&Create6502DebugWindow,},
     {BeebWindowPopupType_MemoryDebugger,"Memory Debug",&CreateMemoryDebugWindow,},
+    {BeebWindowPopupType_DisassemblyDebugger,"Disassembly Debug",&CreateDisassemblyDebugWindow,},
 #endif
+
+    // Keep this one at the end, because the command context stack is
+    // updated as it goes...
+    //
+    // (Could maybe rearrange things so that this can display the
+    // previous frame's stack... but it hardly seems worth the
+    // bother.)
+    {BeebWindowPopupType_CommandContextStack,"Command Context Stack",&BeebWindow::CreateCommandContextStackUI},
 
     // terminator
     {BeebWindowPopupType_MaxValue},
@@ -1254,6 +1262,7 @@ void BeebWindow::DoDebugMenu() {
 
         m_occ.DoMenuItemUI("toggle_6502_debugger");
         m_occ.DoMenuItemUI("toggle_memory_debugger");
+        m_occ.DoMenuItemUI("toggle_disassembly_debugger");
 #endif
 
         ImGui::Separator();
@@ -2515,5 +2524,6 @@ ObjectCommandTable<BeebWindow> BeebWindow::ms_command_table("Beeb Window",{
 #if BBCMICRO_DEBUGGER
     GetTogglePopupCommand<BeebWindowPopupType_6502Debugger>("toggle_6502_debugger"),
     GetTogglePopupCommand<BeebWindowPopupType_MemoryDebugger>("toggle_memory_debugger"),
+    GetTogglePopupCommand<BeebWindowPopupType_DisassemblyDebugger>("toggle_disassembly_debugger"),
 #endif
 });

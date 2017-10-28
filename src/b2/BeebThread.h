@@ -241,7 +241,10 @@ public:
     // it was added.
     void FlushCallbacks();
 
+    // Byte-by-byte access isn't provided, to avoid excessive mutex
+    // locking. But maybe that's dumb?
     void DebugCopyMemory(void *dest,M6502Word addr,uint16_t num_bytes);
+
     void SendDebugSetByteMessage(uint16_t address,uint8_t value);
 protected:
 private:

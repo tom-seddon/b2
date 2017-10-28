@@ -287,6 +287,26 @@ void CommandContext::DoMenuItemUI(const char *name) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+void CommandContext::DoToggleCheckboxUI(const char *name) {
+    Command *command=m_table->FindCommandByName(name);
+    if(!command) {
+        return;
+    }
+
+    if(!m_object) {
+        return;
+    }
+
+    bool value=*command->IsTicked(m_object);
+
+    if(ImGui::Checkbox(command->GetText().c_str(),&value)) {
+        command->Execute(m_object);
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 bool CommandContext::ExecuteCommandsForPCKey(uint32_t keycode) const {
     const Command *const *commands=m_table->GetValuesForPCKey(keycode);
     if(!commands) {
