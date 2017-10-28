@@ -328,6 +328,11 @@ bool BeebWindow::GetBeebKeyState(BeebKey key) const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+// TODO - nasty, hacky logic dating from when the BBC display was a
+// special case. It doesn't even work properly. Now that the BBC has a
+// dear imgui window, like everything else, it can probably be
+// improved.
+
 void BeebWindow::HandleSDLKeyEvent(const SDL_KeyboardEvent &event) {
     //printf("%s: scancode=%s key=%s mod=0x%X state=%s\n",__func__,SDL_GetScancodeName(keysym.scancode),SDL_GetKeyName(keysym.sym),keysym.mod,BOOL_STR(state));
     bool state=event.type==SDL_KEYDOWN;
@@ -343,15 +348,26 @@ void BeebWindow::HandleSDLKeyEvent(const SDL_KeyboardEvent &event) {
 
     bool prefer_shortcuts=m_keymap->GetPreferShortcuts();
 
+    bool got_ccs=false;
+    if(m_cc_stack.GetNumCCs()>1) {
+        got_ccs=true;
+    }
+
     uint32_t keycode=0;
     if(state) {
         keycode=(uint32_t)event.keysym.sym|GetPCKeyModifiersFromSDLKeymod(event.keysym.mod);
     }
 
-    if(prefer_shortcuts&&keycode!=0) {
+    if((prefer_shortcuts||got_ccs)&&keycode!=0) {
         if(m_cc_stack.ExecuteCommandsForPCKey(keycode)) {
             // The emulator may later get key up messages for this
             // key, but that is (ought to be...) OK.
+            return;
+        }
+
+        if(got_ccs) {
+            // a command context has the focus. Don't let the keypress
+            // get through to the emulator.
             return;
         }
     }

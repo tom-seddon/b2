@@ -17,6 +17,7 @@ CommandContextStackUI::CommandContextStackUI(CommandContextStack *cc_stack):
 void CommandContextStackUI::DoImGui(CommandContextStack *cc_stack) {
     (void)cc_stack;
 
+    ImGui::Text("Focus Window=%s",GImGui->NavWindow?GImGui->NavWindow->Name:"(none)");
     ImGui::Text("IsRootWindowFocused=%s",BOOL_STR(ImGui::IsRootWindowFocused()));
     ImGui::Text("IsWindowFocused=%s",BOOL_STR(ImGui::IsWindowFocused()));
     ImGui::Text("IsRootWindowOrAnyChildFocused=%s",BOOL_STR(ImGui::IsRootWindowOrAnyChildFocused()));

@@ -335,7 +335,7 @@ const CommandTable *CommandContext::GetCommandTable() const {
 //////////////////////////////////////////////////////////////////////////
 
 void CommandContextStack::Push(const std::shared_ptr<CommandContext> &cc,bool force) {
-    if(force||ImGui::IsRootWindowFocused()) {
+    if(force||ImGui::IsWindowFocused()) {
         m_ccs.push_back(cc);
     }
 }
