@@ -34,6 +34,8 @@ public:
 
     const std::string &GetName() const;
     const std::string &GetText() const;
+
+    const std::vector<uint32_t> *GetDefaultShortcuts() const;
 protected:
 private:
     const std::string m_name;
@@ -128,16 +130,22 @@ public:
 
     const std::string &GetName() const;
 
-    void ForEachCommand(std::function<void(Command *)> fun);
+    void ForEachCommand(std::function<void(Command *)> fun) const;
 
+    // sets command to have its default shortcuts.
+    void ResetDefaultMappingsByCommand(Command *command);
+
+    // sets command to explicitly have no shortcuts at all.
     void ClearMappingsByCommand(Command *command);
 
     void AddMapping(uint32_t pc_key,Command *command);
     void RemoveMapping(uint32_t pc_key,Command *command);
 
-    const std::vector<uint32_t> *GetPCKeysForCommand(Command *command) const;
+    const std::vector<uint32_t> *GetPCKeysForCommand(bool *are_defaults,Command *command) const;
 
-    const std::vector<Command *> *GetCommandsForPCKey(uint32_t key) const;
+    bool ExecuteCommandsForPCKey(uint32_t keycode,void *object) const;
+
+    //const std::vector<Command *> *GetCommandsForPCKey(uint32_t key) const;
 protected:
     Command *AddCommand(std::unique_ptr<Command> command);
 private:
@@ -150,13 +158,15 @@ private:
     };
     std::map<const char *,std::unique_ptr<Command>,StringLessThan> m_command_by_name;
 
-    std::map<uint32_t,std::vector<Command *>> m_commands_by_pc_key;
     std::map<Command *,std::vector<uint32_t>> m_pc_keys_by_command;
 
-    std::vector<Command *> m_commands_sorted;
-    bool m_commands_sorted_dirty=true;
+    mutable std::map<uint32_t,std::vector<Command *>> m_commands_by_pc_key;
+    mutable bool m_commands_by_pc_key_dirty=true;
 
-    void UpdateSortedCommands();
+    mutable std::vector<Command *> m_commands_sorted;
+    mutable bool m_commands_sorted_dirty=true;
+
+    void UpdateSortedCommands() const;
 };
 
 //////////////////////////////////////////////////////////////////////////

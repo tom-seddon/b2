@@ -46,6 +46,13 @@ const std::string &Command::GetText() const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+const std::vector<uint32_t> *Command::GetDefaultShortcuts() const {
+    return &m_default_shortcuts;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 void CommandTable::ForEachCommandTable(std::function<void(CommandTable *)> fun) {
     InitAllCommandTables();
 
@@ -117,8 +124,8 @@ const std::string &CommandTable::GetName() const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void CommandTable::ForEachCommand(std::function<void(Command *)> fun) {
-    UpdateSortedCommands();
+void CommandTable::ForEachCommand(std::function<void(Command *)> fun) const {
+    this->UpdateSortedCommands();
 
     for(size_t i=0;i<m_commands_sorted.size();++i) {
         fun(m_commands_sorted[i]);
@@ -128,16 +135,19 @@ void CommandTable::ForEachCommand(std::function<void(Command *)> fun) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void CommandTable::ClearMappingsByCommand(Command *command) {
-    // only used when loading settings, so it doesn't need to be
-    // particularly efficient.
+void CommandTable::ResetDefaultMappingsByCommand(Command *command) {
+    m_pc_keys_by_command.erase(command);
 
-    for(auto &&it:m_commands_by_pc_key) {
-        it.second.erase(std::remove(it.second.begin(),
-                                    it.second.end(),
-                                    command),
-                        it.second.end());
-    }
+    m_commands_by_pc_key_dirty=true;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void CommandTable::ClearMappingsByCommand(Command *command) {
+    m_pc_keys_by_command[command].clear();
+
+    m_commands_by_pc_key_dirty=true;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -146,18 +156,16 @@ void CommandTable::ClearMappingsByCommand(Command *command) {
 void CommandTable::AddMapping(uint32_t pc_key,Command *command) {
     ASSERT(this->FindCommandByName(command->m_name));
 
-    std::vector<Command *> *commands=&m_commands_by_pc_key[pc_key];
+    std::vector<uint32_t> *pc_keys=&m_pc_keys_by_command[command];
 
-    if(std::find(commands->begin(),commands->end(),command)==commands->end()) {
-        commands->push_back(command);
+    if(std::find(pc_keys->begin(),pc_keys->end(),pc_key)==pc_keys->end()) {
+        pc_keys->push_back(pc_key);
 
         if(command->m_shortcut==0) {
             command->m_shortcut=pc_key;
         }
 
-        std::vector<uint32_t> *pc_keys=&m_pc_keys_by_command[command];
-        ASSERT(std::find(pc_keys->begin(),pc_keys->end(),pc_key)==pc_keys->end());
-        pc_keys->push_back(pc_key);
+        m_commands_by_pc_key_dirty=true;
     }
 }
 
@@ -167,43 +175,41 @@ void CommandTable::AddMapping(uint32_t pc_key,Command *command) {
 void CommandTable::RemoveMapping(uint32_t pc_key,Command *command) {
     ASSERT(this->FindCommandByName(command->m_name));
 
-    std::map<uint32_t,std::vector<Command *>>::iterator command_by_pc_key_it=m_commands_by_pc_key.find(pc_key);
-    if(command_by_pc_key_it==m_commands_by_pc_key.end()) {
+    auto &&command_it=m_pc_keys_by_command.find(command);
+    if(command_it==m_pc_keys_by_command.end()) {
         return;
     }
 
-    std::vector<Command *> *commands=&command_by_pc_key_it->second;
-    std::vector<Command *>::iterator command_it=std::find(commands->begin(),commands->end(),command);
-    if(command_it==commands->end()) {
+    auto &&key_it=std::find(command_it->second.begin(),command_it->second.end(),pc_key);
+    if(key_it==command_it->second.end()) {
         return;
     }
 
-    commands->erase(command_it);
-    if(commands->empty()) {
-        m_commands_by_pc_key.erase(command_by_pc_key_it);
-    }
+    command_it->second.erase(key_it);
 
-    std::vector<uint32_t> *pc_keys=&m_pc_keys_by_command[command];//known to exist
-    std::vector<uint32_t>::iterator pc_key_it=std::find(pc_keys->begin(),pc_keys->end(),pc_key);
-    ASSERT(pc_key_it!=pc_keys->end());
-    pc_keys->erase(pc_key_it);
-
-    if(pc_keys->empty()) {
-        m_pc_keys_by_command.erase(command);
+    if(command_it->second.empty()) {
         command->m_shortcut=0;
+
+        // and leave the empty mapping in place.
     } else {
-        command->m_shortcut=(*pc_keys)[0];
+        command->m_shortcut=command_it->second[0];
     }
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-const std::vector<uint32_t> *CommandTable::GetPCKeysForCommand(Command *command) const {
+const std::vector<uint32_t> *CommandTable::GetPCKeysForCommand(bool *are_defaults,Command *command) const {
     auto &&it=m_pc_keys_by_command.find(command);
     if(it==m_pc_keys_by_command.end()) {
-        return nullptr;
+        if(are_defaults) {
+            *are_defaults=true;
+        }
+        return command->GetDefaultShortcuts();
     } else {
+        if(are_defaults) {
+            *are_defaults=false;
+        }
         return &it->second;
     }
 }
@@ -211,13 +217,34 @@ const std::vector<uint32_t> *CommandTable::GetPCKeysForCommand(Command *command)
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-const std::vector<Command *> *CommandTable::GetCommandsForPCKey(uint32_t key) const {
+bool CommandTable::ExecuteCommandsForPCKey(uint32_t key,void *object) const {
+    if(!object) {
+        return false;
+    }
+
+    if(m_commands_by_pc_key_dirty) {
+        m_commands_by_pc_key.clear();
+
+        this->ForEachCommand([this](Command *command) {
+            const std::vector<uint32_t> *pc_keys=this->GetPCKeysForCommand(nullptr,command);
+            for(uint32_t pc_key:*pc_keys) {
+                m_commands_by_pc_key[pc_key].push_back(command);
+            }
+        });
+
+        m_commands_by_pc_key_dirty=false;
+    }
+
     auto &&it=m_commands_by_pc_key.find(key);
     if(it==m_commands_by_pc_key.end()) {
-        return nullptr;
-    } else {
-        return &it->second;
+        return false;
     }
+
+    for(Command *command:it->second) {
+        command->Execute(object);
+    }
+
+    return true;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -237,7 +264,7 @@ Command *CommandTable::AddCommand(std::unique_ptr<Command> command) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void CommandTable::UpdateSortedCommands() {
+void CommandTable::UpdateSortedCommands() const {
     if(m_commands_sorted_dirty) {
         m_commands_sorted.clear();
         m_commands_sorted.reserve(m_command_by_name.size());
@@ -389,20 +416,7 @@ void CommandContext::DoToggleCheckboxUI(const char *name) {
 //////////////////////////////////////////////////////////////////////////
 
 bool CommandContext::ExecuteCommandsForPCKey(uint32_t keycode) const {
-    const std::vector<Command *> *commands=m_table->GetCommandsForPCKey(keycode);
-    if(!commands) {
-        return false;
-    }
-
-    if(!m_object) {
-        return false;
-    }
-
-    for(Command *command:*commands) {
-        command->Execute(m_object);
-    }
-
-    return true;
+    return m_table->ExecuteCommandsForPCKey(keycode,m_object);
 }
 
 //////////////////////////////////////////////////////////////////////////

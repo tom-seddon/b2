@@ -41,10 +41,28 @@ public:
                 table->ForEachCommand([&](Command *command) {
                     ImGuiIDPusher command_id_pusher(command);
 
+                    bool default_shortcuts;
+                    const std::vector<uint32_t> *pc_keys=table->GetPCKeysForCommand(&default_shortcuts,command);
+
                     float left=ImGui::GetCursorPosX();
 
                     if(ImGui::Button(command->GetText().c_str())) {
                         ImGui::OpenPopup(SHORTCUT_KEYCODES_POPUP);
+                    }
+
+                    if (ImGui::BeginPopupContextItem("command context item"))
+                    {
+                        if(ImGui::Selectable("Clear shortcuts")) {
+                            table->ClearMappingsByCommand(command);
+                        }
+
+                        if(!default_shortcuts) {
+                            if(ImGui::Selectable("Reset to default")) {
+                                table->ResetDefaultMappingsByCommand(command);
+                            }
+                        }
+
+                        ImGui::EndPopup();
                     }
 
                     if(ImGui::BeginPopup(SHORTCUT_KEYCODES_POPUP)) {
@@ -61,7 +79,9 @@ public:
                         ImGui::EndPopup();
                     }
 
-                    if(const std::vector<uint32_t> *pc_keys=table->GetPCKeysForCommand(command)) {
+                    if(pc_keys) {
+                        ImGuiStyleColourPusher pusher;
+
                         for(size_t i=0;i<pc_keys->size();++i) {
                             uint32_t pc_key=(*pc_keys)[i];
                             ImGuiIDPusher pc_key_id_pusher(pc_key);
@@ -72,12 +92,15 @@ public:
 
                             ImGui::SameLine(left+m_max_command_text_width+extra+20.f);
 
-                            if(ImGui::Button("x")) {
-                                table->RemoveMapping(pc_key,command);
-                                break;
+                            if(!default_shortcuts) {
+                                if(ImGui::Button("x")) {
+                                    table->RemoveMapping(pc_key,command);
+                                    break;
+                                }
+
+                                ImGui::SameLine();
                             }
 
-                            ImGui::SameLine();
 
                             ImGui::Text("%s",GetKeycodeName(pc_key).c_str());
                         }

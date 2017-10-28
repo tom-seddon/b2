@@ -1476,11 +1476,14 @@ static void SaveShortcuts(JSONWriter<StringStream> *writer) {
         auto commands_json=ObjectWriter(writer,table->GetName().c_str());
 
         table->ForEachCommand([&](Command *command) {
-            if(const std::vector<uint32_t> *pc_keys=table->GetPCKeysForCommand(command)) {
-                auto command_json=ArrayWriter(writer,command->GetName().c_str());
+            bool are_defaults;
+            if(const std::vector<uint32_t> *pc_keys=table->GetPCKeysForCommand(&are_defaults,command)) {
+                if(!are_defaults) {
+                    auto command_json=ArrayWriter(writer,command->GetName().c_str());
 
-                for(uint32_t pc_key:*pc_keys) {
-                    SaveKeycodeObject(writer,pc_key);
+                    for(uint32_t pc_key:*pc_keys) {
+                        SaveKeycodeObject(writer,pc_key);
+                    }
                 }
             }
         });
