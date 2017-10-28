@@ -3,6 +3,7 @@
 #include "commands.h"
 #include "dear_imgui.h"
 #include "keys.h"
+#include <algorithm>
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -20,10 +21,11 @@ static void InitAllCommandTables() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-Command::Command(std::string name,std::string text,bool confirm):
+Command::Command(std::string name,std::string text,bool must_confirm,std::vector<uint32_t> default_shortcuts):
     m_name(std::move(name)),
     m_text(std::move(text)),
-    m_confirm(confirm)
+    m_must_confirm(must_confirm),
+    m_default_shortcuts(std::move(default_shortcuts))
 {
 }
 
@@ -70,7 +72,7 @@ CommandTable *CommandTable::FindCommandTableByName(const std::string &name) {
 //////////////////////////////////////////////////////////////////////////
 
 CommandTable::CommandTable(std::string name):
-    m_keymap(std::move(name),true)
+    m_name(std::move(name))
 {
     InitAllCommandTables();
 
@@ -109,7 +111,7 @@ Command *CommandTable::FindCommandByName(const std::string &str) const {
 //////////////////////////////////////////////////////////////////////////
 
 const std::string &CommandTable::GetName() const {
-    return m_keymap.GetName();
+    return m_name;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -127,43 +129,95 @@ void CommandTable::ForEachCommand(std::function<void(Command *)> fun) {
 //////////////////////////////////////////////////////////////////////////
 
 void CommandTable::ClearMappingsByCommand(Command *command) {
-    m_keymap.ClearMappingsByValue(command);
-}
+    // only used when loading settings, so it doesn't need to be
+    // particularly efficient.
 
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-void CommandTable::SetMapping(uint32_t pc_key,Command *command,bool state) {
-    ASSERT(this->FindCommandByName(command->m_name));
-
-    m_keymap.SetMapping(pc_key,command,state);
-
-    if(state) {
-        if(command->m_shortcut==0) {
-            command->m_shortcut=pc_key;
-        }
-    } else {
-        const uint32_t *pc_keys=m_keymap.GetPCKeysForValue(command);
-        if(pc_keys) {
-            command->m_shortcut=pc_keys[0];
-        } else {
-            command->m_shortcut=0;
-        }
+    for(auto &&it:m_commands_by_pc_key) {
+        it.second.erase(std::remove(it.second.begin(),
+                                    it.second.end(),
+                                    command),
+                        it.second.end());
     }
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-const uint32_t *CommandTable::GetPCKeysForValue(Command *command) const {
-    return m_keymap.GetPCKeysForValue(command);
+void CommandTable::AddMapping(uint32_t pc_key,Command *command) {
+    ASSERT(this->FindCommandByName(command->m_name));
+
+    std::vector<Command *> *commands=&m_commands_by_pc_key[pc_key];
+
+    if(std::find(commands->begin(),commands->end(),command)==commands->end()) {
+        commands->push_back(command);
+
+        if(command->m_shortcut==0) {
+            command->m_shortcut=pc_key;
+        }
+
+        std::vector<uint32_t> *pc_keys=&m_pc_keys_by_command[command];
+        ASSERT(std::find(pc_keys->begin(),pc_keys->end(),pc_key)==pc_keys->end());
+        pc_keys->push_back(pc_key);
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-const Command *const *CommandTable::GetValuesForPCKey(uint32_t key) const {
-    return m_keymap.GetValuesForPCKey(key);
+void CommandTable::RemoveMapping(uint32_t pc_key,Command *command) {
+    ASSERT(this->FindCommandByName(command->m_name));
+
+    std::map<uint32_t,std::vector<Command *>>::iterator command_by_pc_key_it=m_commands_by_pc_key.find(pc_key);
+    if(command_by_pc_key_it==m_commands_by_pc_key.end()) {
+        return;
+    }
+
+    std::vector<Command *> *commands=&command_by_pc_key_it->second;
+    std::vector<Command *>::iterator command_it=std::find(commands->begin(),commands->end(),command);
+    if(command_it==commands->end()) {
+        return;
+    }
+
+    commands->erase(command_it);
+    if(commands->empty()) {
+        m_commands_by_pc_key.erase(command_by_pc_key_it);
+    }
+
+    std::vector<uint32_t> *pc_keys=&m_pc_keys_by_command[command];//known to exist
+    std::vector<uint32_t>::iterator pc_key_it=std::find(pc_keys->begin(),pc_keys->end(),pc_key);
+    ASSERT(pc_key_it!=pc_keys->end());
+    pc_keys->erase(pc_key_it);
+
+    if(pc_keys->empty()) {
+        m_pc_keys_by_command.erase(command);
+        command->m_shortcut=0;
+    } else {
+        command->m_shortcut=(*pc_keys)[0];
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+const std::vector<uint32_t> *CommandTable::GetPCKeysForCommand(Command *command) const {
+    auto &&it=m_pc_keys_by_command.find(command);
+    if(it==m_pc_keys_by_command.end()) {
+        return nullptr;
+    } else {
+        return &it->second;
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+const std::vector<Command *> *CommandTable::GetCommandsForPCKey(uint32_t key) const {
+    auto &&it=m_commands_by_pc_key.find(key);
+    if(it==m_commands_by_pc_key.end()) {
+        return nullptr;
+    } else {
+        return &it->second;
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -202,6 +256,33 @@ void CommandTable::UpdateSortedCommands() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+CommandDef::CommandDef(std::string name_,std::string text_):
+    name(std::move(name_)),
+    text(std::move(text_))
+{
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+CommandDef &CommandDef::Shortcut(uint32_t keycode) {
+    this->shortcuts.push_back(keycode);
+
+    return *this;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+CommandDef &CommandDef::MustConfirm() {
+    this->must_confirm=true;
+
+    return *this;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 CommandContext::CommandContext(void *object,const CommandTable *table):
     m_object(object),
     m_table(table)
@@ -230,7 +311,7 @@ void CommandContext::DoButton(const char *name) {
 
     //bool enabled=command->IsEnabled(m_object);
 
-    if(command->m_confirm) {
+    if(command->m_must_confirm) {
         // bleargh...
     } else if(const bool *ticked=command->IsTicked(m_object)) {
         if(ImGui::RadioButton(command->m_text.c_str(),*ticked)) {
@@ -263,7 +344,7 @@ void CommandContext::DoMenuItemUI(const char *name) {
 
     bool enabled=command->IsEnabled(m_object);
 
-    if(command->m_confirm) {
+    if(command->m_must_confirm) {
         if(ImGui::BeginMenu(command->m_text.c_str(),enabled)) {
             if(ImGui::MenuItem("Confirm")) {
                 command->Execute(m_object);
@@ -308,7 +389,7 @@ void CommandContext::DoToggleCheckboxUI(const char *name) {
 //////////////////////////////////////////////////////////////////////////
 
 bool CommandContext::ExecuteCommandsForPCKey(uint32_t keycode) const {
-    const Command *const *commands=m_table->GetValuesForPCKey(keycode);
+    const std::vector<Command *> *commands=m_table->GetCommandsForPCKey(keycode);
     if(!commands) {
         return false;
     }
@@ -317,8 +398,8 @@ bool CommandContext::ExecuteCommandsForPCKey(uint32_t keycode) const {
         return false;
     }
 
-    for(size_t i=0;commands[i];++i) {
-        commands[i]->Execute(m_object);
+    for(Command *command:*commands) {
+        command->Execute(m_object);
     }
 
     return true;

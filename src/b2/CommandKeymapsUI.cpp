@@ -3,6 +3,7 @@
 #include "commands.h"
 #include "dear_imgui.h"
 #include "SettingsUI.h"
+#include <algorithm>
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -29,6 +30,8 @@ public:
     void DoImGui(CommandContextStack *cc_stack) override {
         (void)cc_stack;
 
+        m_wants_keyboard_focus=false;
+
         float extra=(GImGui->Style.FramePadding.x+GImGui->Style.FrameRounding)*2.f;
 
         CommandTable::ForEachCommandTable([&](CommandTable *table) {
@@ -49,7 +52,7 @@ public:
 
                         uint32_t keycode=ImGuiGetPressedKeycode();
                         if(keycode!=0) {
-                            table->SetMapping(keycode,command,true);
+                            table->AddMapping(keycode,command);
                             m_edited=true;
                             ImGui::CloseCurrentPopup();
                         }
@@ -58,23 +61,25 @@ public:
                         ImGui::EndPopup();
                     }
 
-                    if(const uint32_t *pc_keys=table->GetPCKeysForValue(command)) {
-                        for(const uint32_t *pc_key=pc_keys;*pc_key!=0;++pc_key) {
+                    if(const std::vector<uint32_t> *pc_keys=table->GetPCKeysForCommand(command)) {
+                        for(size_t i=0;i<pc_keys->size();++i) {
+                            uint32_t pc_key=(*pc_keys)[i];
                             ImGuiIDPusher pc_key_id_pusher(pc_key);
 
-                            if(pc_key!=pc_keys) {
+                            if(i>0) {
                                 ImGui::NewLine();
                             }
 
                             ImGui::SameLine(left+m_max_command_text_width+extra+20.f);
 
                             if(ImGui::Button("x")) {
-                                table->SetMapping(*pc_key,command,false);
+                                table->RemoveMapping(pc_key,command);
+                                break;
                             }
 
                             ImGui::SameLine();
 
-                            ImGui::Text("%s",GetKeycodeName(*pc_key).c_str());
+                            ImGui::Text("%s",GetKeycodeName(pc_key).c_str());
                         }
                     }
                 });

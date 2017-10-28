@@ -1156,7 +1156,7 @@ static bool LoadShortcuts(rapidjson::Value *shortcuts_json,Messages *msg) {
                     continue;
                 }
 
-                table->SetMapping(keycode,command,true);
+                table->AddMapping(keycode,command);
             }
         }
     }
@@ -1476,11 +1476,11 @@ static void SaveShortcuts(JSONWriter<StringStream> *writer) {
         auto commands_json=ObjectWriter(writer,table->GetName().c_str());
 
         table->ForEachCommand([&](Command *command) {
-            if(const uint32_t *keycodes=table->GetPCKeysForValue(command)) {
+            if(const std::vector<uint32_t> *pc_keys=table->GetPCKeysForCommand(command)) {
                 auto command_json=ArrayWriter(writer,command->GetName().c_str());
 
-                for(const uint32_t *keycode=keycodes;*keycode!=0;++keycode) {
-                    SaveKeycodeObject(writer,*keycode);
+                for(uint32_t pc_key:*pc_keys) {
+                    SaveKeycodeObject(writer,pc_key);
                 }
             }
         });

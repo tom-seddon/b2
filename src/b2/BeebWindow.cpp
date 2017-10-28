@@ -2256,8 +2256,8 @@ ObjectCommandTable<BeebWindow>::Initializer BeebWindow::GetTogglePopupCommand(st
         text+="...";
     }
 
-    return ObjectCommandTable<BeebWindow>::Initializer(std::move(name),
-                                                       std::move(text),
+    return ObjectCommandTable<BeebWindow>::Initializer(CommandDef(std::move(name),
+                                                                  std::move(text)),
                                                        &BeebWindow::TogglePopupCommand<POPUP_TYPE>,
                                                        &BeebWindow::IsPopupCommandTicked<POPUP_TYPE>);
 }
@@ -2503,9 +2503,9 @@ bool BeebWindow::IsCopyBASICEnabled() const {
 //////////////////////////////////////////////////////////////////////////
 
 ObjectCommandTable<BeebWindow> BeebWindow::ms_command_table("Beeb Window",{
-    {"hard_reset","Hard Reset",&BeebWindow::HardReset},
-    {"load_last_state","Load Last State",&BeebWindow::LoadLastState,nullptr,&BeebWindow::IsLoadLastStateEnabled},
-    {"save_state","Save State",&BeebWindow::SaveState},
+    {{"hard_reset","Hard Reset"},&BeebWindow::HardReset},
+    {{"load_last_state","Load Last State"},&BeebWindow::LoadLastState,nullptr,&BeebWindow::IsLoadLastStateEnabled},
+    {{"save_state","Save State"},&BeebWindow::SaveState},
     GetTogglePopupCommand<BeebWindowPopupType_Options>("toggle_emulator_options"),
     GetTogglePopupCommand<BeebWindowPopupType_Keymaps>("toggle_keyboard_layout"),
 #if TIMELINE_UI_ENABLED
@@ -2517,20 +2517,19 @@ ObjectCommandTable<BeebWindow> BeebWindow::ms_command_table("Beeb Window",{
     GetTogglePopupCommand<BeebWindowPopupType_AudioCallback>("toggle_date_rate"),
     GetTogglePopupCommand<BeebWindowPopupType_CommandContextStack>("toggle_cc_stack"),
     GetTogglePopupCommand<BeebWindowPopupType_CommandKeymaps>("toggle_command_keymaps"),
-    {"exit","Exit",&BeebWindow::Exit,ConfirmCommand()},
-    {"clean_up_recent_files_lists","Clean up recent files lists",&BeebWindow::CleanUpRecentFilesLists,ConfirmCommand()},
+    {CommandDef("exit","Exit").MustConfirm(),&BeebWindow::Exit},
+    {CommandDef("clean_up_recent_files_lists","Clean up recent files lists").MustConfirm(),&BeebWindow::CleanUpRecentFilesLists},
 #if SYSTEM_WINDOWS
-    {"clear_console","Clear Win32 console",&BeebWindow::ClearConsole},
+    {{"clear_console","Clear Win32 console"},&BeebWindow::ClearConsole},
 #endif
-    {"print_separator","Print stdout separator",&BeebWindow::PrintSeparator},
-    {"dump_timeline_console","Dump timeline to console only",&BeebWindow::DumpTimelineConsole},
-    {"dump_timeline_debugger","Dump timeline to console+debugger",&BeebWindow::DumpTimelineDebuger},
-    {"check_timeline","Check timeline",&BeebWindow::CheckTimeline},
-    {"paste","OSRDCH Paste",&BeebWindow::Paste,&BeebWindow::IsPasteTicked},
-    {"paste_return","OSRDCH Paste (+Return)",&BeebWindow::PasteThenReturn,&BeebWindow::IsPasteTicked},
-    {"toggle_copy_oswrch_text","OSWRCH Copy Text",&BeebWindow::CopyOSWRCH<true>,&BeebWindow::IsCopyOSWRCHTicked},
-    //{"toggle_copy_oswrch_binary","OSWRCH Copy Binary",&BeebWindow::CopyOSWRCH<false>,&BeebWindow::IsCopyOSWRCHTicked},
-    {"copy_basic","Copy BASIC listing",&BeebWindow::CopyBASIC,&BeebWindow::IsCopyOSWRCHTicked,&BeebWindow::IsCopyBASICEnabled},
+    {{"print_separator","Print stdout separator"},&BeebWindow::PrintSeparator},
+    {{"dump_timeline_console","Dump timeline to console only"},&BeebWindow::DumpTimelineConsole},
+    {{"dump_timeline_debugger","Dump timeline to console+debugger"},&BeebWindow::DumpTimelineDebuger},
+    {{"check_timeline","Check timeline"},&BeebWindow::CheckTimeline},
+    {{"paste","OSRDCH Paste"},&BeebWindow::Paste,&BeebWindow::IsPasteTicked},
+    {{"paste_return","OSRDCH Paste (+Return)"},&BeebWindow::PasteThenReturn,&BeebWindow::IsPasteTicked},
+    {{"toggle_copy_oswrch_text","OSWRCH Copy Text"},&BeebWindow::CopyOSWRCH<true>,&BeebWindow::IsCopyOSWRCHTicked},
+    {{"copy_basic","Copy BASIC listing"},&BeebWindow::CopyBASIC,&BeebWindow::IsCopyOSWRCHTicked,&BeebWindow::IsCopyBASICEnabled},
 #if VIDEO_TRACK_METADATA
     GetTogglePopupCommand<BeebWindowPopupType_PixelMetadata>("toggle_pixel_metadata"),
 #endif

@@ -8,8 +8,9 @@
 #include <functional>
 #include <memory>
 #include <map>
-#include "keymap.h"
 #include <string.h>
+#include <vector>
+#include <shared/debug.h>
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -25,7 +26,7 @@
 
 class Command {
 public:
-    Command(std::string name,std::string text,bool confirm);
+    Command(std::string name,std::string text,bool must_confirm,std::vector<uint32_t> default_shortcuts);
 
     virtual void Execute(void *object) const=0;
     virtual const bool *IsTicked(void *object) const=0;
@@ -38,7 +39,8 @@ private:
     const std::string m_name;
     std::string m_text;
     uint32_t m_shortcut=0;
-    bool m_confirm=false;
+    bool m_must_confirm=false;
+    std::vector<uint32_t> m_default_shortcuts;
 
     friend class CommandTable;
     friend class CommandContext;
@@ -62,8 +64,9 @@ public:
                   std::function<void(T *)> execute_fun,
                   std::function<bool(const T *)> ticked_fun,
                   std::function<bool(const T *)> enabled_fun,
-                  bool confirm):
-        Command(std::move(name),std::move(text),confirm),
+                  bool must_confirm,
+                  std::vector<uint32_t> default_shortcuts):
+        Command(std::move(name),std::move(text),must_confirm,std::move(default_shortcuts)),
         m_execute_fun(std::move(execute_fun)),
         m_ticked_fun(std::move(ticked_fun)),
         m_enabled_fun(std::move(enabled_fun))
@@ -112,15 +115,8 @@ private:
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-// the CommandTable conforms to roughly the same interface as Keymap.
-// Originally this was because there was some shared UI code that
-// dealt with both, but this is no longer the case, and this might
-// warrant a rethink...
-
 class CommandTable {
 public:
-    typedef Command *ValueType;
-
     static void ForEachCommandTable(std::function<void(CommandTable *)> fun);
     static CommandTable *FindCommandTableByName(const std::string &name);
 
@@ -135,16 +131,17 @@ public:
     void ForEachCommand(std::function<void(Command *)> fun);
 
     void ClearMappingsByCommand(Command *command);
-    void SetMapping(uint32_t pc_key,Command *command,bool state);
-    const uint32_t *GetPCKeysForValue(Command *command) const;
-    const Command *const *GetValuesForPCKey(uint32_t key) const;
+
+    void AddMapping(uint32_t pc_key,Command *command);
+    void RemoveMapping(uint32_t pc_key,Command *command);
+
+    const std::vector<uint32_t> *GetPCKeysForCommand(Command *command) const;
+
+    const std::vector<Command *> *GetCommandsForPCKey(uint32_t key) const;
 protected:
     Command *AddCommand(std::unique_ptr<Command> command);
 private:
-    struct KeymapTraits {
-        typedef Command *ValueType;
-        static constexpr Command *TERMINATOR=nullptr;
-    };
+    std::string m_name;
 
     struct StringLessThan {
         inline bool operator()(const char *a,const char *b) const {
@@ -152,12 +149,29 @@ private:
         }
     };
     std::map<const char *,std::unique_ptr<Command>,StringLessThan> m_command_by_name;
-    Keymap<KeymapTraits> m_keymap;
+
+    std::map<uint32_t,std::vector<Command *>> m_commands_by_pc_key;
+    std::map<Command *,std::vector<uint32_t>> m_pc_keys_by_command;
 
     std::vector<Command *> m_commands_sorted;
     bool m_commands_sorted_dirty=true;
 
     void UpdateSortedCommands();
+};
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+struct CommandDef {
+    std::string name;
+    std::string text;
+    std::vector<uint32_t> shortcuts;
+    bool must_confirm=false;
+
+    CommandDef(std::string name,std::string text);
+
+    CommandDef &Shortcut(uint32_t keycode);
+    CommandDef &MustConfirm();
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -169,28 +183,16 @@ class ObjectCommandTable:
 {
 public:
     struct Initializer {
-        std::string name;
-        std::string text;
+        CommandDef def;
         void (T::*execute_mfn)()=nullptr;
         bool (T::*ticked_mfn)() const=nullptr;
         bool (T::*enabled_mfn)() const=nullptr;
-        bool confirm=false;
-        intptr_t arg=0;
 
-        Initializer(std::string name_,std::string text_,void (T::*execute_mfn_)(),bool (T::*ticked_mfn_)() const=nullptr,bool (T::*enabled_mfn_)() const=nullptr):
-            name(std::move(name_)),
-            text(std::move(text_)),
+        Initializer(CommandDef def_,void (T::*execute_mfn_)(),bool (T::*ticked_mfn_)() const=nullptr,bool (T::*enabled_mfn_)() const=nullptr):
+            def(std::move(def_)),
             execute_mfn(std::move(execute_mfn_)),
             ticked_mfn(ticked_mfn_),
             enabled_mfn(enabled_mfn_)
-        {
-        }
-
-        Initializer(std::string name_,std::string text_,void (T::*execute_mfn_)(),ConfirmCommand):
-            name(std::move(name_)),
-            text(std::move(text_)),
-            execute_mfn(std::move(execute_mfn_)),
-            confirm(true)
         {
         }
     };
@@ -217,12 +219,14 @@ public:
                 };
             }
 
-            this->AddCommand(std::make_unique<ObjectCommand<T>>(std::move(init.name),
-                                                                std::move(init.text),
-                                                                std::move(execute_fun),
-                                                                std::move(ticked_fun),
-                                                                std::move(enabled_fun),
-                                                                init.confirm));
+            Command *command=this->AddCommand(std::make_unique<ObjectCommand<T>>(std::move(init.def.name),
+                                                                                 std::move(init.def.text),
+                                                                                 std::move(execute_fun),
+                                                                                 std::move(ticked_fun),
+                                                                                 std::move(enabled_fun),
+                                                                                 init.def.must_confirm,
+                                                                                 std::move(init.def.shortcuts)));
+            (void)command;
         }
     }
 protected:

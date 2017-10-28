@@ -64,8 +64,8 @@ private:
 //////////////////////////////////////////////////////////////////////////
 
 ObjectCommandTable<MessagesUI> MessagesUI::ms_command_table("Messages Window",{
-    {"copy","Copy",&MessagesUI::Copy},
-    {"clear","Clear",&MessagesUI::Clear}
+    {{"copy","Copy"},&MessagesUI::Copy},
+    {{"clear","Clear"},&MessagesUI::Clear}
 });
 
 //////////////////////////////////////////////////////////////////////////
