@@ -558,8 +558,18 @@ static const std::map<std::string,std::string> WHAT_EXPRS={
 };
 
 struct Cycle {
+    enum class Type {
+        Write,
+        ReadData,
+        ReadDataNoCarry,
+        ReadOpcode,
+        ReadInstruction,
+        ReadAddress,
+        ReadUninteresting,
+    };
+
     // True if this is a read cycle, false if a write cycle.
-    bool read=true;
+    Type type;
 
     // Address to read from or write to, set up in phase 1. Addresses
     // that map to a simple C expression are listed in ADDR_EXPRS;
@@ -577,8 +587,8 @@ struct Cycle {
     // GeneratePhase2.
     std::string action;
 
-    Cycle(bool read_,std::string addr_,const char *what_,const char *action_):
-        read(read_),
+    Cycle(Type type_,std::string addr_,const char *what_,const char *action_):
+        type(type_),
         addr(std::move(addr_)),
         what(what_?what_:""),
         action(action_?action_:"")
@@ -671,6 +681,34 @@ public:
     }
 protected:
 private:
+    static const char *GetCycleTypeName(Cycle::Type type) {
+        switch(type) {
+        default:
+            ASSERT(false);
+            // fall through
+        case Cycle::Type::Write:
+            return "0";
+
+        case Cycle::Type::ReadData:
+            return "M6502_READ_DATA";
+
+        case Cycle::Type::ReadDataNoCarry:
+            return "M6502_READ_DATA_NO_CARRY";
+
+        case Cycle::Type::ReadOpcode:
+            return "M6502_READ_OPCODE";
+        
+        case Cycle::Type::ReadInstruction:
+            return "M6502_READ_INSTRUCTION";
+        
+        case Cycle::Type::ReadAddress:
+            return "M6502_READ_ADDRESS";
+
+        case Cycle::Type::ReadUninteresting:
+            return "M6502_READ_UNINTERESTING";
+        }
+    }
+
     void GeneratePhase1(const Cycle *c) const {
         bool set_acarry=false;
 
@@ -712,13 +750,13 @@ private:
             P("s->abus.w=%s;\n",it->second.c_str());
         }
 
-        if(!c->read) {
+        if(c->type==Cycle::Type::Write) {
             auto &&it=WHAT_EXPRS.find(c->what);
             ASSERT(it!=WHAT_EXPRS.end());
             P("s->dbus=s->%s;\n",it->second.c_str());
         }
 
-        P("s->read=%d;\n",c->read);
+        P("s->read=%s;\n",GetCycleTypeName(c->type));
         // P("    SET_DBUS(%s);\n"%what)
 
         if(c->action=="maybe_call") {
@@ -733,7 +771,7 @@ private:
     }
 
     void GeneratePhase2(const Cycle *c) const {
-        if(c->read) {
+        if(c->type!=Cycle::Type::Write) {
             if(c->what.empty()) {
                 P("/* ignore dummy read */\n");
             } else {
@@ -832,170 +870,176 @@ private:
 static std::vector<InstrGen> GetAll() {
     std::vector<InstrGen> gs;
 
-#define R(...) Cycle(true,__VA_ARGS__)
-#define W(...) Cycle(false,__VA_ARGS__)
+    // Could/should probably infer the read cycle type from the
+    // address being read...
+#define Rd(...) Cycle(Cycle::Type::ReadData,__VA_ARGS__)
+#define Rn(...) Cycle(Cycle::Type::ReadDataNoCarry,__VA_ARGS__)
+#define Ri(...) Cycle(Cycle::Type::ReadInstruction,__VA_ARGS__)
+#define Ra(...) Cycle(Cycle::Type::ReadAddress,__VA_ARGS__)
+#define Ru(...) Cycle(Cycle::Type::ReadUninteresting,__VA_ARGS__)
+#define W(...) Cycle(Cycle::Type::Write,__VA_ARGS__)
 #define G(...) gs.push_back(InstrGen(__VA_ARGS__))
 
     // 1-byte instructions.
     {
         G("IMP","1-byte instructions",{
-            R("pc","data!","call")
+            Ri("pc","data!","call")
         });
     }
 
     // Read instructions.
     {
         G("R_IMM","Read/Immediate",{
-            R("pc++","data","call")
+            Ri("pc++","data","call")
         });
 
         G("R_ZPG","Read/Zero page",{
-            R("pc++","adl",nullptr),
-            R("adl","data","call")
+            Ri("pc++","adl",nullptr),
+            Rd("adl","data","call")
         });
 
         G("R_ABS","Read/Absolute",{
-            R("pc++","adl",nullptr),
-            R("pc++","adh",nullptr),
-            R("ad","data","call")
+            Ri("pc++","adl",nullptr),
+            Ri("pc++","adh",nullptr),
+            Rd("ad","data","call")
         });
 
         G("R_INX","Read/Indirect,X",{
-            R("pc++","ial",nullptr),
-            R("ial","data!",nullptr),
-            R("ial+x","adl",nullptr),
-            R("ial+x+1","adh",nullptr),
-            R("ad","data","call")
+            Ri("pc++","ial",nullptr),
+            Ru("ial","data!",nullptr),
+            Ra("ial+x","adl",nullptr),
+            Ra("ial+x+1","adh",nullptr),
+            Rd("ad","data","call")
         });
 
         std::initializer_list<Cycle> r_abs_indexed={
-            R("pc++","adl",nullptr),
-            R("pc++","adh",nullptr),
-            R("1.ad+index","data!","maybe_call"),
-            R("2.ad+index","data","call"),
+            Ri("pc++","adl",nullptr),
+            Ri("pc++","adh",nullptr),
+            Rn("1.ad+index","data!","maybe_call"),
+            Rd("2.ad+index","data","call"),
         };
 
         G("R_ABX","Read/Absolute,X",r_abs_indexed,'x');
         G("R_ABY","Read/Absolute,Y",r_abs_indexed,'y');
 
         std::initializer_list<Cycle> r_zpg_indexed={
-            R("pc++","adl",nullptr),
-            R("adl","data!",nullptr),
-            R("adl+index","data","call")
+            Ri("pc++","adl",nullptr),
+            Ru("adl","data!",nullptr),
+            Rd("adl+index","data","call")
         };
 
         G("R_ZPX","Read/Zero page,X",r_zpg_indexed,'x');
         G("R_ZPY","Read/Zero page,Y",r_zpg_indexed,'y');
 
         G("R_INY","Read/Indirect,Y",{
-            R("pc++","ial",nullptr),
-            R("ial","adl",nullptr),
-            R("ial+1","adh",nullptr),
-            R("1.ad+index","data!","maybe_call"),
-            R("2.ad+index","data","call")
+            Ri("pc++","ial",nullptr),
+            Ra("ial","adl",nullptr),
+            Ra("ial+1","adh",nullptr),
+            Rn("1.ad+index","data!","maybe_call"),
+            Rd("2.ad+index","data","call")
         },'y');
 
         G("R_INZ","Read/Indirect Zero Page",{
-            R("pc++","ial",nullptr),
-            R("ial","adl",nullptr),
-            R("ial+1","adh",nullptr),
-            R("ad","data","call")
+            Ri("pc++","ial",nullptr),
+            Ra("ial","adl",nullptr),
+            Ra("ial+1","adh",nullptr),
+            Rd("ad","data","call")
         });
     }
 
     // Read instructions with BCD (CMOS).
     {
         G("R_IMM_BCD_CMOS","Read/Immediate",{
-            R("pc++","data","call_bcd_cmos"),
-            R("pc",nullptr,nullptr)
+            Ri("pc++","data","call_bcd_cmos"),
+            Ru("pc",nullptr,nullptr)
         });
 
         G("R_ZPG_BCD_CMOS","Read/Zero page",{
-            R("pc++","adl",nullptr),
-            R("adl","data","call_bcd_cmos"),
-            R("pc",nullptr,nullptr)
+            Ri("pc++","adl",nullptr),
+            Rd("adl","data","call_bcd_cmos"),
+            Ru("pc",nullptr,nullptr)
         });
 
         G("R_ABS_BCD_CMOS","Read/Absolute",{
-            R("pc++","adl",nullptr),
-            R("pc++","adh",nullptr),
-            R("ad","data","call_bcd_cmos"),
-            R("pc",nullptr,nullptr)
+            Ri("pc++","adl",nullptr),
+            Ri("pc++","adh",nullptr),
+            Rd("ad","data","call_bcd_cmos"),
+            Ru("pc",nullptr,nullptr)
         });
 
         G("R_INX_BCD_CMOS","Read/Indirect,X",{
-            R("pc++","ial",nullptr),
-            R("ial","data!",nullptr),
-            R("ial+x","adl",nullptr),
-            R("ial+x+1","adh",nullptr),
-            R("ad","data","call_bcd_cmos"),
-            R("pc",nullptr,nullptr)
+            Ri("pc++","ial",nullptr),
+            Ru("ial","data!",nullptr),
+            Ra("ial+x","adl",nullptr),
+            Ra("ial+x+1","adh",nullptr),
+            Rd("ad","data","call_bcd_cmos"),
+            Ru("pc",nullptr,nullptr)
         });
 
         std::initializer_list<Cycle> r_abs_indexed_bcd_cmos={
-            R("pc++","adl",nullptr),
-            R("pc++","adh",nullptr),
-            R("1.ad+index","data!","maybe_call_bcd_cmos"),
-            R("2.ad+index","data","call_bcd_cmos"),
-            R("pc",nullptr,nullptr)
+            Ri("pc++","adl",nullptr),
+            Ri("pc++","adh",nullptr),
+            Rn("1.ad+index","data!","maybe_call_bcd_cmos"),
+            Rd("2.ad+index","data","call_bcd_cmos"),
+            Ru("pc",nullptr,nullptr)
         };
 
         G("R_ABX_BCD_CMOS","Read/Absolute,X",r_abs_indexed_bcd_cmos,'x');
         G("R_ABY_BCD_CMOS","Read/Absolute,Y",r_abs_indexed_bcd_cmos,'y');
 
         std::initializer_list<Cycle> r_zpg_indexed_bcd_cmos={
-            R("pc++","adl",nullptr),
-            R("adl","data!",nullptr),
-            R("adl+index","data","call_bcd_cmos"),
-            R("pc",nullptr,nullptr)
+            Ri("pc++","adl",nullptr),
+            Ru("adl","data!",nullptr),
+            Ra("adl+index","data","call_bcd_cmos"),
+            Rd("pc",nullptr,nullptr)
         };
 
         G("R_ZPX_BCD_CMOS","Read/Zero page,X",r_zpg_indexed_bcd_cmos,'x');
         G("R_ZPY_BCD_CMOS","Read/Zero page,Y",r_zpg_indexed_bcd_cmos,'y');
 
         G("R_INY_BCD_CMOS","Read/Indirect,Y",{
-            R("pc++","ial",nullptr),
-            R("ial","adl",nullptr),
-            R("ial+1","adh",nullptr),
-            R("1.ad+index","data!","maybe_call_bcd_cmos"),
-            R("2.ad+index","data","call_bcd_cmos"),
-            R("pc",nullptr,nullptr)
+            Ri("pc++","ial",nullptr),
+            Ra("ial","adl",nullptr),
+            Ra("ial+1","adh",nullptr),
+            Rn("1.ad+index","data!","maybe_call_bcd_cmos"),
+            Rd("2.ad+index","data","call_bcd_cmos"),
+            Ru("pc",nullptr,nullptr)
         },'y');
 
         G("R_INZ_BCD_CMOS","Read/Indirect Zero Page",{
-            R("pc++","ial",nullptr),
-            R("ial","adl",nullptr),
-            R("ial+1","adh",nullptr),
-            R("ad","data","call_bcd_cmos"),
-            R("pc",nullptr,nullptr)
+            Ri("pc++","ial",nullptr),
+            Ra("ial","adl",nullptr),
+            Ra("ial+1","adh",nullptr),
+            Rd("ad","data","call_bcd_cmos"),
+            Ru("pc",nullptr,nullptr)
         });
     }
 
     // Write instructions.
     {
         G("W_ZPG","Write/Zero page",{
-            R("pc++","adl","call"),
+            Ri("pc++","adl","call"),
             W("adl","data",nullptr)
         });
 
         G("W_ABS","Write/Absolute",{
-            R("pc++","adl",nullptr),
-            R("pc++","adh","call"),
+            Ri("pc++","adl",nullptr),
+            Ri("pc++","adh","call"),
             W("ad","data",nullptr)
         });
 
         G("W_INX","Write/Indirect,X",{
-            R("pc++","ial",nullptr),
-            R("ial","data!",nullptr),
-            R("ial+x","adl",nullptr),
-            R("ial+x+1","adh","call"),
+            Ri("pc++","ial",nullptr),
+            Ru("ial","data!",nullptr),
+            Ra("ial+x","adl",nullptr),
+            Ra("ial+x+1","adh","call"),
             W("ad","data",nullptr)
         });
 
         std::initializer_list<Cycle> w_abs_indexed={
-            R("pc++","adl",nullptr),
-            R("pc++","adh",nullptr),
-            R("1.ad+index","data!","call"),
+            Ri("pc++","adl",nullptr),
+            Ri("pc++","adh",nullptr),
+            Ru("1.ad+index","data!","call"),
             W("2.ad+index","data",nullptr)
         };
 
@@ -1003,8 +1047,8 @@ static std::vector<InstrGen> GetAll() {
         G("W_ABY","Write/Absolute,Y",w_abs_indexed,'y');
 
         std::initializer_list<Cycle> w_zpg_indexed={
-            R("pc++","adl",nullptr),
-            R("adl","data","call"),
+            Ri("pc++","adl",nullptr),
+            Ru("adl","data","call"),
             W("adl+index","data",nullptr)
         };
 
@@ -1012,17 +1056,17 @@ static std::vector<InstrGen> GetAll() {
         G("W_ZPY","Write/Zero page,Y",w_zpg_indexed,'y');
 
         G("W_INY","Write/Indirect,Y",{
-            R("pc++","ial",nullptr),
-            R("ial","adl",nullptr),
-            R("ial+1","adh",nullptr),
-            R("1.ad+index","data","call"),
+            Ri("pc++","ial",nullptr),
+            Ra("ial","adl",nullptr),
+            Ra("ial+1","adh",nullptr),
+            Ru("1.ad+index","data","call"),
             W("2.ad+index","data",nullptr)
         },'y');
 
         G("W_INZ","Write/Indirect Zero Page",{
-            R("pc++","ial",nullptr),
-            R("ial","adl",nullptr),
-            R("ial+1","adh","call"),
+            Ri("pc++","ial",nullptr),
+            Ra("ial","adl",nullptr),
+            Ra("ial+1","adh","call"),
             W("ad","data",nullptr)
         });
     }
@@ -1031,62 +1075,62 @@ static std::vector<InstrGen> GetAll() {
     size_t rmw_idx0=gs.size();
     {
         G("RMW_ZPG","Read-modify-write/Zero page",{
-            R("pc++","adl",nullptr),
-            R("adl","data!",nullptr),
+            Ri("pc++","adl",nullptr),
+            Rd("adl","data!",nullptr),
             W("adl","data!","call"),
             W("adl","data",nullptr)
         });
 
         G("RMW_ABS","Read-modify-write/Absolute",{
-            R("pc++","adl",nullptr),
-            R("pc++","adh",nullptr),
-            R("ad","data!",nullptr),
+            Ri("pc++","adl",nullptr),
+            Ri("pc++","adh",nullptr),
+            Rd("ad","data!",nullptr),
             W("ad","data!","call"),
             W("ad","data",nullptr)
         });
 
         G("RMW_ZPX","Read-modify-write/Zero page,X",{
-            R("pc++","adl",nullptr),
-            R("adl","data",nullptr),
-            R("adl+index","data!",nullptr),
+            Ri("pc++","adl",nullptr),
+            Ru("adl","data",nullptr),
+            Rd("adl+index","data!",nullptr),
             W("adl+index","data!","call"),
             W("adl+index","data",nullptr)
         },'x');
 
         G("RMW_ABX","Read-modify-write/Absolute,X",{
-            R("pc++","adl",nullptr),
-            R("pc++","adh",nullptr),
-            R("1.ad+index","data!",nullptr),
-            R("2.ad+index","data!",nullptr),
+            Ri("pc++","adl",nullptr),
+            Ri("pc++","adh",nullptr),
+            Ru("1.ad+index","data!",nullptr),
+            Rd("2.ad+index","data!",nullptr),
             W("2.ad+index","data!","call"),
             W("2.ad+index","data",nullptr)
         },'x');
 
         G("RMW_ABY","Read-modify-write/Absolute,Y",{
-            R("pc++","adl",nullptr),
-            R("pc++","adh",nullptr),
-            R("1.ad+index","data!",nullptr),
-            R("2.ad+index","data!",nullptr),
+            Ri("pc++","adl",nullptr),
+            Ri("pc++","adh",nullptr),
+            Ru("1.ad+index","data!",nullptr),
+            Rd("2.ad+index","data!",nullptr),
             W("2.ad+index","data!","call"),
             W("2.ad+index","data",nullptr)
         },'y');
 
         G("RMW_INX","Read-modify-write/Indirect,X",{
-            R("pc++","ial",nullptr),//T2
-            R("ial","data!",nullptr),//T3
-            R("ial+x","adl",nullptr),//T4
-            R("ial+x+1","adh",nullptr),//T5
-            R("ad","data",nullptr),//??
+            Ri("pc++","ial",nullptr),//T2
+            Ru("ial","data!",nullptr),//T3
+            Ra("ial+x","adl",nullptr),//T4
+            Ra("ial+x+1","adh",nullptr),//T5
+            Rd("ad","data",nullptr),//??
             W("ad","data","call"),//??
             W("ad","data",nullptr)//T0
         },'x');
 
         G("RMW_INY","Read-modify-write/Indirect,Y",{
-            R("pc++","ial",nullptr),//T2
-            R("ial","adl",nullptr),//T3
-            R("ial+1","adh",nullptr),//T4
-            R("1.ad+index","data",nullptr),//T5
-            R("2.ad+index","data",nullptr),//??
+            Ri("pc++","ial",nullptr),//T2
+            Ra("ial","adl",nullptr),//T3
+            Ra("ial+1","adh",nullptr),//T4
+            Ru("1.ad+index","data",nullptr),//T5
+            Rd("2.ad+index","data",nullptr),//??
             W("2.ad+index","data","call"),//??
             W("2.ad+index","data",nullptr)//T0
         },'y');
@@ -1101,8 +1145,8 @@ static std::vector<InstrGen> GetAll() {
             g_cmos.stem+=CMOS_FUNCTION_SUFFIX;
             g_cmos.description+=" (CMOS)";
             ASSERT(g_cmos.cycles.size()>=2);
-            ASSERT(!g_cmos.cycles[g_cmos.cycles.size()-2].read);
-            g_cmos.cycles[g_cmos.cycles.size()-2].read=true;
+            ASSERT(g_cmos.cycles[g_cmos.cycles.size()-2].type==Cycle::Type::Write);
+            g_cmos.cycles[g_cmos.cycles.size()-2].type=Cycle::Type::ReadUninteresting; // but is that really true?
 
             gs.push_back(g_cmos);
         }
@@ -1111,7 +1155,7 @@ static std::vector<InstrGen> GetAll() {
     // Push instructions.
     {
         G("Push","Push instructions",{
-            R("pc","data!","call"),
+            Ri("pc","data!","call"),
             W("sp--","data",nullptr)
         });
     }
@@ -1119,75 +1163,75 @@ static std::vector<InstrGen> GetAll() {
     // Pop instructions.
     {
         G("Pop","Pop instructions",{
-            R("pc","data!",nullptr),
-            R("sp++","data!",nullptr),
-            R("sp","data","call")
+            Ri("pc","data!",nullptr),
+            Rd("sp++","data!",nullptr),
+            Rd("sp","data","call")
         });
     }
 
     // Special cases.
     {
         G("JSR","JSR",{
-            R("pc++","adl",nullptr),
-            R("sp","data!",nullptr),
+            Ri("pc++","adl",nullptr),
+            Ru("sp","data!",nullptr),
             W("sp--","pch",nullptr),
             W("sp--","pcl",nullptr),
-            R("pc++","adh","jmp")
+            Ri("pc++","adh","jmp")
         });
 
         G("Reset","Interrupts",{
-            R("pc","data!",nullptr),
-            R("sp--","pch",nullptr),
-            R("sp--","pcl",nullptr),
-            R("sp--","data",nullptr),
-            R("resl","pcl",nullptr),
-            R("resh","pch",nullptr)
+            Ri("pc","data!",nullptr),
+            Rd("sp--","pch",nullptr),
+            Rd("sp--","pcl",nullptr),
+            Rd("sp--","data",nullptr),
+            Ra("resl","pcl",nullptr),
+            Ra("resh","pch",nullptr)
         });
 
         G("RTI","RTI",{
-            R("pc","data!",nullptr),
-            R("sp++","data",nullptr),
-            R("sp++","p",nullptr),
-            R("sp++","pcl",nullptr),
-            R("sp","pch","rti")
+            Ri("pc","data!",nullptr),
+            Rd("sp++","data",nullptr),
+            Rd("sp++","p",nullptr),
+            Rd("sp++","pcl",nullptr),
+            Rd("sp","pch","rti")
         });
 
         G("JMP_ABS","JMP absolute",{
-            R("pc++","adl",nullptr),
-            R("pc++","adh","jmp")
+            Ri("pc++","adl",nullptr),
+            Ri("pc++","adh","jmp")
         });
 
         G("JMP_IND","JMP indirect",{
-            R("pc++","ial",nullptr),
-            R("pc++","iah",nullptr),
-            R("ia","pcl",nullptr),
-            R("ia+1(nocarry)","pch",nullptr)
+            Ri("pc++","ial",nullptr),
+            Ri("pc++","iah",nullptr),
+            Ra("ia","pcl",nullptr),
+            Ra("ia+1(nocarry)","pch",nullptr)
         });
 
         // always seems to take 6 cycles.
         G("JMP_IND_CMOS","JMP indirect",{
-            R("pc++","ial",nullptr),
-            R("pc++","iah",nullptr),
-            R("ia","pcl",nullptr),
-            R("ia+1","pch",nullptr),
-            R("ia+1","pch",nullptr)
+            Ri("pc++","ial",nullptr),
+            Ri("pc++","iah",nullptr),
+            Ra("ia","pcl",nullptr),
+            Ru("ia+1","pch",nullptr),
+            Ra("ia+1","pch",nullptr)
         });
 
         // always seems to take 6 cycles
         G("JMP_INDX","JMP (indirect,X)",{
-            R("pc++","ial",nullptr),
-            R("pc++","iah",nullptr),
-            R("1.ia+x_cmos","data!",nullptr),
-            R("2.ia+x_cmos","pcl",nullptr),
-            R("3.ia+x_cmos","pch",nullptr)
+            Ri("pc++","ial",nullptr),
+            Ri("pc++","iah",nullptr),
+            Ru("1.ia+x_cmos","data!",nullptr),
+            Ra("2.ia+x_cmos","pcl",nullptr),
+            Ra("3.ia+x_cmos","pch",nullptr)
         },'x');
 
         G("RTS","RTS",{
-            R("pc","data!",nullptr),
-            R("sp++","data",nullptr),
-            R("sp++","pcl",nullptr),
-            R("sp","pch",nullptr),
-            R("pc++","data",nullptr)
+            Ri("pc","data!",nullptr),
+            Rd("sp++","data",nullptr),
+            Rd("sp++","pcl",nullptr),
+            Rd("sp","pch",nullptr),
+            Rd("pc++","data",nullptr)
         });
 
         // CMOS NOPs
@@ -1195,34 +1239,34 @@ static std::vector<InstrGen> GetAll() {
         });
 
         G("R_NOP22_CMOS","CMOS NOP (2 bytes, 2 cycles)",{
-            R("pc++","data",nullptr)
+            Ri("pc++","data",nullptr)
         });
 
         G("R_NOP23_CMOS","CMOS NOP (2 bytes, 3 cycles)",{
-            R("pc","data",nullptr),
-            R("pc++","data",nullptr)
+            Ri("pc","data",nullptr),
+            Ri("pc++","data",nullptr)
         });
 
         G("R_NOP24_CMOS","CMOS NOP (2 bytes, 4 cycles)",{
-            R("pc","data",nullptr),
-            R("pc","data",nullptr),
-            R("pc++","data",nullptr)
+            Ri("pc","data",nullptr),
+            Ri("pc","data",nullptr),
+            Ri("pc++","data",nullptr)
         });
 
         G("R_NOP34_CMOS","CMOS NOP (3 bytes, 4 cycles)",{
-            R("pc","data",nullptr),
-            R("pc++","data",nullptr),
-            R("pc++","data",nullptr)
+            Ri("pc","data",nullptr),
+            Ri("pc++","data",nullptr),
+            Ri("pc++","data",nullptr)
         });
 
         G("R_NOP38_CMOS","CMOS NOP (3 bytes, 8 cycles)",{
-            R("pc","data",nullptr),
-            R("pc","data",nullptr),
-            R("pc","data",nullptr),
-            R("pc","data",nullptr),
-            R("pc","data",nullptr),
-            R("pc++","data",nullptr),
-            R("pc++","data",nullptr)
+            Ri("pc","data",nullptr),
+            Ri("pc","data",nullptr),
+            Ri("pc","data",nullptr),
+            Ri("pc","data",nullptr),
+            Ri("pc","data",nullptr),
+            Ri("pc++","data",nullptr),
+            Ri("pc++","data",nullptr)
         });
     }
 

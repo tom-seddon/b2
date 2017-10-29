@@ -195,6 +195,30 @@ typedef uint8_t M6502_DeviceNMIFlags;
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+// These are mask-friendly, but only one is set at a time.
+
+// Read data from memory.
+#define M6502_READ_DATA (1)
+
+// First attempt at reading data as part of an indexed instruction. If
+// the 6502's acarry flag is set, this read is bogus.
+#define M6502_READ_DATA_NO_CARRY (2)
+
+// Fetch opcode byte.
+#define M6502_READ_OPCODE (4)
+
+// Fetch non-opcode instruction byte.
+#define M6502_READ_INSTRUCTION (8)
+
+// Fetch indirect address.
+#define M6502_READ_ADDRESS (16)
+
+// Almost certainly not interesting.
+#define M6502_READ_UNINTERESTING (32)
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 #ifdef __GNUC__
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wpedantic"
@@ -223,7 +247,7 @@ struct M6502 {
     /* Address pins. */
     M6502Word abus;
 
-    /* Read/write pin. (true=read, false=write) */
+    /* Read/write pin. true = read - one of the M6502_READ_xxx values; false = write. */
     uint8_t read;
 
     /* Data bus. */
