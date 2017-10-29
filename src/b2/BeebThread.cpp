@@ -1585,7 +1585,7 @@ void BeebThread::ThreadStopReplay(ThreadState *ts) {
 void BeebThread::ThreadLoadState(ThreadState *ts,uint64_t parent_timeline_id,const std::shared_ptr<BeebState> &state) {
     this->ThreadReplaceBeeb(ts,state->CloneBBCMicro(),0);
 
-        m_parent_timeline_event_id=parent_timeline_id;
+    m_parent_timeline_event_id=parent_timeline_id;
 
     Timeline::DidChange();
 }
@@ -1620,7 +1620,7 @@ void BeebThread::ThreadHandleReplayEvents(ThreadState *ts) {
         if(re->id==0) {
             // Event wasn't on timeline, so don't update parent.
         } else {
-                m_parent_timeline_event_id=re->id;
+            m_parent_timeline_event_id=re->id;
 
             if(re->be.GetTypeFlags()&BeebEventTypeFlag_ChangesTimeline) {
                 Timeline::DidChange();
@@ -1959,8 +1959,8 @@ bool BeebThread::ThreadHandleMessage(
 
             std::shared_ptr<BeebState> state=this->ThreadSaveState(ts);
 
-                m_pre_replay_parent_timeline_event_id=m_parent_timeline_event_id;
-                m_pre_replay_state=state;
+            m_pre_replay_parent_timeline_event_id=m_parent_timeline_event_id;
+            m_pre_replay_state=state;
 
             auto &&replay_data=Timeline::CreateReplay(start_timeline_id,m_parent_timeline_event_id,&ts->msgs);
 
@@ -2012,11 +2012,11 @@ bool BeebThread::ThreadHandleMessage(
                 std::shared_ptr<BeebState> state;
                 uint64_t timeline_id;
 
-                    state=std::move(m_pre_replay_state);
-                    ASSERT(!m_pre_replay_state);
+                state=std::move(m_pre_replay_state);
+                ASSERT(!m_pre_replay_state);
 
-                    timeline_id=m_pre_replay_parent_timeline_event_id;
-                    m_pre_replay_parent_timeline_event_id=0;
+                timeline_id=m_pre_replay_parent_timeline_event_id;
+                m_pre_replay_parent_timeline_event_id=0;
 
                 if(!!state) {
                     this->ThreadLoadState(ts,timeline_id,state);
