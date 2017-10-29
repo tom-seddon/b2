@@ -2127,24 +2127,27 @@ void BeebThread::ThreadMain(void) {
     uint64_t next_stop_2MHz_cycles=0;
     bool limit_speed=m_limit_speed.load(std::memory_order_acquire);
     ThreadState ts;
+    bool paused;
 
     {
         std::lock_guard<std::mutex> lock(m_mutex);
 
         SetCurrentThreadNamef("BeebThread");
 
-
         ts.beeb_thread=this;
         ts.msgs=Messages(m_message_list);
 
         m_thread_state=&ts;
+
+        paused=m_paused;
     }
+
 
     for(;;) {
         Message msg;
         int got_msg;
 
-        if(m_paused||(limit_speed&&next_stop_2MHz_cycles<=*ts.num_executed_2MHz_cycles)) {
+        if(paused||(limit_speed&&next_stop_2MHz_cycles<=*ts.num_executed_2MHz_cycles)) {
         wait_for_message:
             MessageQueueWaitForMessage(m_mq,&msg);
             got_msg=1;
@@ -2182,7 +2185,14 @@ void BeebThread::ThreadMain(void) {
                 }
             }
 
-            if(!m_paused&&stop_2MHz_cycles>*ts.num_executed_2MHz_cycles) {
+            paused=m_paused;
+#if BBCMICRO_DEBUGGER
+            if(ts.beeb->DebugIsHalted()) {
+                paused=true;
+            }
+#endif
+
+            if(!paused&&stop_2MHz_cycles>*ts.num_executed_2MHz_cycles) {
                 ASSERT(ts.beeb);
 
                 uint64_t num_2MHz_cycles=stop_2MHz_cycles-*ts.num_executed_2MHz_cycles;
@@ -2224,12 +2234,14 @@ void BeebThread::ThreadMain(void) {
 
                 SoundDataUnit *sunit=sa;
                 size_t num_sunits_produced=0;
+                size_t num_vunits_produced=0;
 
                 // Fill part A.
                 {
                     VideoDataUnit *vunit=va;
+                    size_t i;
 
-                    for(uint64_t i=0;i<num_va;++i) {
+                    for(i=0;i<num_va;++i) {
                         if(ts.beeb->Update(vunit++,sunit)) {
                             ++sunit;
 
@@ -2241,14 +2253,21 @@ void BeebThread::ThreadMain(void) {
 
                             ++num_sunits_produced;
                         }
+
+                        if(ts.beeb->DebugIsHalted()) {
+                            break;
+                        }
                     }
+
+                    num_vunits_produced+=i;
                 }
 
                 // Fill part B.
-                {
+                if(!ts.beeb->DebugIsHalted()) {
                     VideoDataUnit *vunit=vb;
+                    size_t i;
 
-                    for(uint64_t i=0;i<num_vb;++i) {
+                    for(i=0;i<num_vb;++i) {
                         if(ts.beeb->Update(vunit++,sunit)) {
                             ++sunit;
 
@@ -2261,9 +2280,11 @@ void BeebThread::ThreadMain(void) {
                             ++num_sunits_produced;
                         }
                     }
+
+                    num_vunits_produced+=i;
                 }
 
-                m_video_output.ProducerUnlock(num_va+num_vb);
+                m_video_output.ProducerUnlock(num_vunits_produced);
                 m_sound_output.ProducerUnlock(num_sunits_produced);
 
                 // It's a bit dumb having multiple copies.

@@ -120,3 +120,21 @@ EEND()
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_DEBUGGER
+#define ENAME BBCMicroDebugByteFlag
+EBEGIN()
+EPNV(BreakExecute,1<<0)
+EPNV(BreakRead,1<<1)
+EPNV(BreakWrite,1<<2)
+EEND()
+#undef ENAME
+
+#define ENAME BBCMicroDebugRunFlag
+EBEGIN()
+EPN(None)
+EPN(StepIn)
+EEND()
+#undef ENAME
+
+#endif

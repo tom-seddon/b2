@@ -171,8 +171,11 @@ public:
     };
 
     struct MemoryPages {
-        uint8_t *w[256];
-        const uint8_t *r[256];
+        uint8_t *w[256]={};
+        const uint8_t *r[256]={};
+#if BBCMICRO_DEBUGGER
+        const uint8_t *debug[256]={};
+#endif
     };
 
     typedef uint8_t (*ReadMMIOFn)(void *,union M6502Word);
@@ -332,6 +335,11 @@ public:
     void DebugCopyMemory(void *dest,M6502Word addr,uint16_t num_bytes) const;
 
     void DebugSetMemory(M6502Word addr,uint8_t value);
+
+#if BBCMICRO_DEBUGGER
+    void DebugHalt();
+    bool DebugIsHalted() const;
+#endif
 protected:
 private:
     //////////////////////////////////////////////////////////////////////////
@@ -534,13 +542,31 @@ private:
 
     std::vector<std::pair<InstructionFn,void *>> m_instruction_fns;
 
+#if BBCMICRO_DEBUGGER
+    bool m_is_halted=false;
+    //BBCMicroDebugRunFlag m_debug_run_flag=BBCMicroDebugRunFlag_None;
+
+    // No attempt made to minimize this stuff... it doesn't go into
+    // the saved states, so whatever.
+    //
+    // Keep this at the end, since it's 336K...
+    static const size_t NUM_DEBUG_FLAGS_PAGES=256+16*64+64;
+    uint8_t m_debug_flags[NUM_DEBUG_FLAGS_PAGES][256]={};
+#endif
+
     void InitStuff();
     void SetOSPages(uint8_t dest_page,uint8_t src_page,uint8_t num_pages);
     void SetROMPages(uint8_t bank,uint8_t page,size_t src_page,size_t num_pages);
 #if BBCMICRO_TRACE
     void SetTrace(std::shared_ptr<Trace> trace,uint32_t trace_flags);
 #endif
-    void SetPages(uint8_t page_,size_t num_pages,const uint8_t *read_data,size_t read_page_stride,uint8_t *write_data,size_t write_page_stride);
+    void SetPages(uint8_t page_,size_t num_pages,
+                  const uint8_t *read_data,size_t read_page_stride,
+                  uint8_t *write_data,size_t write_page_stride
+#if BBCMICRO_DEBUGGER//////////////////////////////////////////////////<--note
+                  ,const uint8_t *debug_data,size_t debug_page_stride//<--note
+#endif/////////////////////////////////////////////////////////////////<--note
+    );/////////////////////////////////////////////////////////////////<--note
     static void UpdateBROMSELPages(BBCMicro *m);
     static void UpdateBPlusACCCONPages(BBCMicro *m,const ACCCON *old);
     static void UpdateBACCCONPages(BBCMicro *m,const ACCCON *old);

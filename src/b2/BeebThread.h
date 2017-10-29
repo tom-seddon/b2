@@ -154,6 +154,7 @@ public:
     const M6502 *Get6502State(std::unique_lock<std::mutex> *lock) const;
 #endif
 
+    // 
     void SendPauseMessage(bool pause);
 
     // 
