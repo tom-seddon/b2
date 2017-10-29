@@ -195,26 +195,23 @@ typedef uint8_t M6502_DeviceNMIFlags;
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-// These are mask-friendly, but only one is set at a time.
+enum M6502ReadType {
+    // Read data from memory.
+    M6502ReadType_Data=1,
 
-// Read data from memory.
-#define M6502_READ_DATA (1)
+    // Almost certainly not interesting.
+    M6502ReadType_Uninteresting=2,
 
-// First attempt at reading data as part of an indexed instruction. If
-// the 6502's acarry flag is set, this read is bogus.
-#define M6502_READ_DATA_NO_CARRY (2)
+    // Fetch opcode byte.
+    M6502ReadType_Opcode,
 
-// Fetch opcode byte.
-#define M6502_READ_OPCODE (4)
+    // Fetch non-opcode instruction byte.
+    M6502ReadType_Instruction,
 
-// Fetch non-opcode instruction byte.
-#define M6502_READ_INSTRUCTION (8)
+    // Fetch indirect address.
+    M6502ReadType_Address,
 
-// Fetch indirect address.
-#define M6502_READ_ADDRESS (16)
-
-// Almost certainly not interesting.
-#define M6502_READ_UNINTERESTING (32)
+};
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

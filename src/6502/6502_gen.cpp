@@ -690,22 +690,22 @@ private:
             return "0";
 
         case Cycle::Type::ReadData:
-            return "M6502_READ_DATA";
+            return "M6502ReadType_Data";
 
         case Cycle::Type::ReadDataNoCarry:
-            return "M6502_READ_DATA_NO_CARRY";
+            return "M6502ReadType_DataNoCarry";
 
         case Cycle::Type::ReadOpcode:
-            return "M6502_READ_OPCODE";
+            return "M6502ReadType_Opcode";
         
         case Cycle::Type::ReadInstruction:
-            return "M6502_READ_INSTRUCTION";
+            return "M6502ReadType_Instruction";
         
         case Cycle::Type::ReadAddress:
-            return "M6502_READ_ADDRESS";
+            return "M6502ReadType_Address";
 
         case Cycle::Type::ReadUninteresting:
-            return "M6502_READ_UNINTERESTING";
+            return "M6502ReadType_Uninteresting";
         }
     }
 
@@ -756,8 +756,39 @@ private:
             P("s->dbus=s->%s;\n",it->second.c_str());
         }
 
-        P("s->read=%s;\n",GetCycleTypeName(c->type));
-        // P("    SET_DBUS(%s);\n"%what)
+        switch(c->type) {
+        default:
+            ASSERT(false);
+            // fall through
+        case Cycle::Type::Write:
+            P("s->read=0;\n");
+            break;
+
+        case Cycle::Type::ReadData:
+            P("s->read=M6502ReadType_Data;\n");
+            break;
+
+        case Cycle::Type::ReadDataNoCarry:
+            P("assert(s->acarry==0||s->acarry==1);\n");
+            P("s->read=M6502ReadType_Data+s->acarry;\n");
+            break;
+
+        case Cycle::Type::ReadOpcode:
+            P("s->read=M6502ReadType_Opcode;\n");
+            break;
+
+        case Cycle::Type::ReadInstruction:
+            P("s->read=M6502ReadType_Instruction;\n");
+            break;
+
+        case Cycle::Type::ReadAddress:
+            P("s->read=M6502ReadType_Address;\n");
+            break;
+
+        case Cycle::Type::ReadUninteresting:
+            P("s->read=M6502ReadType_Uninteresting;\n");
+            break;
+        }
 
         if(c->action=="maybe_call") {
             ASSERT(set_acarry);
