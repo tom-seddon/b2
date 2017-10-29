@@ -1322,12 +1322,8 @@ void BeebThread::ThreadBBCMicroNVRAMCallback(BBCMicro *m,size_t offset,uint8_t v
 
     auto this_=(BeebThread *)context;
 
-    {
-        std::lock_guard<std::mutex> lock(this_->m_mutex);
-
-        ASSERT(offset<this_->m_nvram_copy.size());
-        this_->m_nvram_copy[offset]=value;
-    }
+    ASSERT(offset<this_->m_nvram_copy.size());
+    this_->m_nvram_copy[offset]=value;
 }
 
 //////////////////////////////////////////////////////////////////////////
