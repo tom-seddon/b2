@@ -69,8 +69,8 @@ void GenerateThumbnailJob::Tick() {
     SoundDataUnit sunit;
     VideoDataUnit vunits[2];
 
-    m_beeb->UpdateCycle0(&vunits[0]);
-    m_beeb->UpdateCycle1(&vunits[1],&sunit);
+    m_beeb->Update(&vunits[0],&sunit);
+    m_beeb->Update(&vunits[1],&sunit);
 
     m_tv_output.UpdateOneUnit(&vunits[0],1.f);
     m_tv_output.UpdateOneUnit(&vunits[1],1.f);

@@ -1221,71 +1221,47 @@ void BBCMicro::UpdateDisplayOutput(VideoDataUnit *unit) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void BBCMicro::UpdateCycle0(VideoDataUnit *video_unit) {
-    ASSERT((m_state.num_2MHz_cycles&1)==0);
+bool BBCMicro::Update(VideoDataUnit *video_unit,SoundDataUnit *sound_unit) {
+    if((m_state.num_2MHz_cycles&1)==0) {
+        ++m_state.num_2MHz_cycles;
+        if(this->PreUpdateCPU(1)) {
+            (*m_handle_cpu_data_bus_fn)(this);
+        }
 
-    ++m_state.num_2MHz_cycles;
-    if(this->PreUpdateCPU(1)) {
-        (*m_handle_cpu_data_bus_fn)(this);
-    }
+        if(m_state.video_ula.control.bits.fast_6845) {
+            this->UpdateVideoHardware();
+        }
+        this->UpdateDisplayOutput(video_unit);
 
-    if(m_state.video_ula.control.bits.fast_6845) {
+        return false;
+    } else {
+        ++m_state.num_2MHz_cycles;
+        if(this->PreUpdateCPU(2)) {
+            (*m_handle_cpu_data_bus_fn)(this);
+        }
+
         this->UpdateVideoHardware();
+        this->UpdateDisplayOutput(video_unit);
+
+        this->UpdateKeyboardMatrix();
+
+        this->UpdateJoysticks();
+
+        M6502_SetDeviceIRQ(&m_state.cpu,BBCMicroIRQDevice_SystemVIA,m_state.system_via.Update());
+        M6502_SetDeviceIRQ(&m_state.cpu,BBCMicroIRQDevice_UserVIA,m_state.user_via.Update());
+
+        if(m_has_rtc) {
+            m_state.rtc.Update();
+        }
+
+        M6502_SetDeviceNMI(&m_state.cpu,BBCMicroNMIDevice_1770,m_state.fdc.Update().value);
+        bool sound=this->UpdateSound(sound_unit);
+
+        m_state.old_addressable_latch=m_state.addressable_latch;
+
+        return sound;
     }
-    this->UpdateDisplayOutput(video_unit);
 }
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-bool BBCMicro::UpdateCycle1(VideoDataUnit *video_unit,SoundDataUnit *sound_unit) {
-    ASSERT((m_state.num_2MHz_cycles&1)==1);
-
-    ++m_state.num_2MHz_cycles;
-    if(this->PreUpdateCPU(2)) {
-        (*m_handle_cpu_data_bus_fn)(this);
-    }
-
-    this->UpdateVideoHardware();
-    this->UpdateDisplayOutput(video_unit);
-
-    this->UpdateKeyboardMatrix();
-
-    this->UpdateJoysticks();
-
-    M6502_SetDeviceIRQ(&m_state.cpu,BBCMicroIRQDevice_SystemVIA,m_state.system_via.Update());
-    M6502_SetDeviceIRQ(&m_state.cpu,BBCMicroIRQDevice_UserVIA,m_state.user_via.Update());
-
-    if(m_has_rtc) {
-        m_state.rtc.Update();
-    }
-
-    M6502_SetDeviceNMI(&m_state.cpu,BBCMicroNMIDevice_1770,m_state.fdc.Update().value);
-    bool sound=this->UpdateSound(sound_unit);
-
-    m_state.old_addressable_latch=m_state.addressable_latch;
-
-    return sound;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-//bool BBCMicro::Update(VideoDataUnit *unit0,VideoDataUnit *unit1,SoundDataUnit *sound_unit) {
-//    this->UpdateCycle0(unit0);
-//
-//    return this->UpdateCycle1(unit1,sound_unit);
-//}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-//void BBCMicro::SetDiscDriveCallbacks(const struct DiscDriveCallbacks *callbacks) {
-//    m_disc_drive_callbacks=*callbacks;
-//    //for(int i=0;i<NUM_DRIVES;++i) {
-//    //    DiscDrive_SetCallbacks(&m_state.drives[i],callbacks);
-//    //}
-//}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

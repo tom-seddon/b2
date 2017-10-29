@@ -245,8 +245,9 @@ public:
     uint32_t GetDebugFlags();
     void SetDebugFlags(uint32_t flags);
 
-    void UpdateCycle0(VideoDataUnit *video_unit);
-    bool UpdateCycle1(VideoDataUnit *video_unit,SoundDataUnit *sound_unit);
+    bool Update(VideoDataUnit *video_unit,SoundDataUnit *sound_unit);
+    //void UpdateCycle0(VideoDataUnit *video_unit);
+    //bool UpdateCycle1(VideoDataUnit *video_unit,SoundDataUnit *sound_unit);
 
     // *UNIT0 and *UNIT1 are always filled in. Returns true if
     // *SOUND_UNIT was filled in.

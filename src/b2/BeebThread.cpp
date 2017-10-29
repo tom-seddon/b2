@@ -2229,10 +2229,8 @@ void BeebThread::ThreadMain(void) {
                 {
                     VideoDataUnit *vunit=va;
 
-                    for(uint64_t i=0;i<num_va;i+=2) {
-                        ts.beeb->UpdateCycle0(vunit++);
-
-                        if(ts.beeb->UpdateCycle1(vunit++,sunit)) {
+                    for(uint64_t i=0;i<num_va;++i) {
+                        if(ts.beeb->Update(vunit++,sunit)) {
                             ++sunit;
 
                             if(sunit==sa+num_sa) {
@@ -2250,10 +2248,8 @@ void BeebThread::ThreadMain(void) {
                 {
                     VideoDataUnit *vunit=vb;
 
-                    for(uint64_t i=0;i<num_vb;i+=2) {
-                        ts.beeb->UpdateCycle0(vunit++);
-
-                        if(ts.beeb->UpdateCycle1(vunit++,sunit)) {
+                    for(uint64_t i=0;i<num_vb;++i) {
+                        if(ts.beeb->Update(vunit++,sunit)) {
                             ++sunit;
 
                             if(sunit==sa+num_sa) {
