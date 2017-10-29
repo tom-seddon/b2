@@ -1352,13 +1352,13 @@ bool BeebWindow::DoWindowMenu() {
 void BeebWindow::UpdateTVTexture(VBlankRecord *vblank_record) {
     OutputDataBuffer<VideoDataUnit> *video_output=m_beeb_thread->GetVideoOutput();
 
-    uint64_t num_us=(uint64_t)(GetSecondsFromTicks(vblank_record->num_ticks)*1e6);
-    uint64_t num_us_left=num_us;
+    uint64_t num_units=(uint64_t)(GetSecondsFromTicks(vblank_record->num_ticks)*1e6)*2;
+    uint64_t num_units_left=num_units;
 
     const VideoDataUnit *a,*b;
     size_t na,nb;
 
-    size_t num_units=0;
+    size_t num_units_consumed=0;
 
     if(video_output->ConsumerLock(&a,&na,&b,&nb)) {
         bool limited=m_beeb_thread->IsSpeedLimited();
@@ -1367,29 +1367,29 @@ void BeebWindow::UpdateTVTexture(VBlankRecord *vblank_record) {
 
         n=na;
         if(limited) {
-            n=(size_t)std::min((uint64_t)n,num_us_left);
+            n=(size_t)std::min((uint64_t)n,num_units_left);
         }
         m_tv.Update(a,n);
-        num_us_left-=n;
+        num_units_left-=n;
 
         n=nb;
         if(limited) {
-            n=(size_t)std::min((uint64_t)n,num_us_left);
+            n=(size_t)std::min((uint64_t)n,num_units_left);
         }
         m_tv.Update(b,n);
-        num_us_left-=n;
+        num_units_left-=n;
 
         if(limited) {
-            ASSERT(num_us>=num_us_left);
-            num_units=num_us-num_us_left;
+            ASSERT(num_units>=num_units_left);
+            num_units_consumed=num_units-num_units_left;
         } else {
-            num_units=na+nb;
+            num_units_consumed=na+nb;
         }
 
-        video_output->ConsumerUnlock(num_units);
+        video_output->ConsumerUnlock(num_units_consumed);
     }
 
-    vblank_record->num_video_units=num_units;
+    vblank_record->num_video_units=num_units_consumed;
 
     if(m_tv_texture) {
         if(const void *tv_texture_data=m_tv.GetTextureData(nullptr)) {
@@ -1506,7 +1506,7 @@ void BeebWindow::DoBeebDisplayUI() {
 
                     m_got_mouse_pixel_metadata=true;
 
-                    const VideoDataHalfUnitMetadata *metadata=m_tv.GetTextureMetadata();
+                    const VideoDataUnitMetadata *metadata=m_tv.GetTextureMetadata();
                     m_mouse_pixel_metadata=metadata[y*TV_TEXTURE_WIDTH+x];
                     m_got_mouse_pixel_metadata=true;
 
@@ -2019,7 +2019,7 @@ void BeebWindow::SetCurrentKeymap(const BeebKeymap *keymap) {
 //////////////////////////////////////////////////////////////////////////
 
 #if VIDEO_TRACK_METADATA
-const VideoDataHalfUnitMetadata *BeebWindow::GetMetadataForMousePixel() const {
+const VideoDataUnitMetadata *BeebWindow::GetMetadataForMousePixel() const {
     if(m_got_mouse_pixel_metadata) {
         return &m_mouse_pixel_metadata;
     } else {

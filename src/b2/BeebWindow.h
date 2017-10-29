@@ -247,7 +247,7 @@ public:
     void SetCurrentKeymap(const BeebKeymap *keymap);
 
 #if VIDEO_TRACK_METADATA
-    const VideoDataHalfUnitMetadata *GetMetadataForMousePixel() const;
+    const VideoDataUnitMetadata *GetMetadataForMousePixel() const;
 #endif
 protected:
 private:
@@ -355,7 +355,7 @@ private:
     ObjectCommandContext<BeebWindow> m_occ;
 #if VIDEO_TRACK_METADATA
     bool m_got_mouse_pixel_metadata=false;
-    VideoDataHalfUnitMetadata m_mouse_pixel_metadata={};
+    VideoDataUnitMetadata m_mouse_pixel_metadata={};
 #endif
 
     SDL_Point m_mouse_pos={-1,-1};

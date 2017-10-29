@@ -2118,7 +2118,7 @@ bool BeebThread::ThreadHandleMessage(
     MessageDestroy(msg);
 
     return result;
-        }
+}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -2193,7 +2193,7 @@ void BeebThread::ThreadMain(void) {
                 // One day I'll clear up the units mismatch...
                 VideoDataUnit *va,*vb;
                 size_t num_va,num_vb;
-                size_t num_video_units=num_2MHz_cycles>>1;
+                size_t num_video_units=num_2MHz_cycles;
                 ASSERT((num_2MHz_cycles&1)==0);
                 if(!m_video_output.ProducerLock(&va,&num_va,&vb,&num_vb,num_video_units)) {
                     goto wait_for_message;
@@ -2205,6 +2205,9 @@ void BeebThread::ThreadMain(void) {
                     m_video_output.ProducerUnlock(0);
                     goto wait_for_message;
                 }
+
+                ASSERT((num_va&1)==0);
+                ASSERT((num_vb&1)==0);
 
                 size_t num_sound_units=(num_2MHz_cycles+(1<<SOUND_CLOCK_SHIFT)-1)>>SOUND_CLOCK_SHIFT;
 
@@ -2226,8 +2229,10 @@ void BeebThread::ThreadMain(void) {
                 {
                     VideoDataUnit *vunit=va;
 
-                    for(uint64_t i=0;i<num_va;++i) {
-                        if(ts.beeb->Update(vunit++,sunit)) {
+                    for(uint64_t i=0;i<num_va;i+=2) {
+                        ts.beeb->UpdateCycle0(vunit++);
+
+                        if(ts.beeb->UpdateCycle1(vunit++,sunit)) {
                             ++sunit;
 
                             if(sunit==sa+num_sa) {
@@ -2245,8 +2250,10 @@ void BeebThread::ThreadMain(void) {
                 {
                     VideoDataUnit *vunit=vb;
 
-                    for(uint64_t i=0;i<num_vb;++i) {
-                        if(ts.beeb->Update(vunit++,sunit)) {
+                    for(uint64_t i=0;i<num_vb;i+=2) {
+                        ts.beeb->UpdateCycle0(vunit++);
+
+                        if(ts.beeb->UpdateCycle1(vunit++,sunit)) {
                             ++sunit;
 
                             if(sunit==sa+num_sa) {

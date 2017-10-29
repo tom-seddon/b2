@@ -1166,22 +1166,22 @@ void BBCMicro::UpdateVideoHardware() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void BBCMicro::UpdateDisplayOutput(VideoDataHalfUnit *hu) {
+void BBCMicro::UpdateDisplayOutput(VideoDataUnit *unit) {
     if(m_state.crtc_last_output.hsync) {
-        hu->type.x=VideoDataType_HSync;
+        unit->type.x=VideoDataType_HSync;
     } else if(m_state.crtc_last_output.vsync) {
-        hu->type.x=VideoDataType_VSync;
+        unit->type.x=VideoDataType_VSync;
     } else if(m_state.crtc_last_output.display) {
         if(m_state.video_ula.control.bits.teletext) {
-            m_state.saa5050.EmitVideoDataHalfUnit(hu);
+            m_state.saa5050.EmitVideoDataUnit(unit);
 #if VIDEO_TRACK_METADATA
-            hu->teletext.metadata.addr=m_last_video_access_address;
+            unit->teletext.metadata.addr=m_last_video_access_address;
 #endif
 #if BBCMICRO_FINER_TELETEXT
 
             if(m_state.cursor_pattern&1) {
-                hu->teletext.colours[0]^=7;
-                hu->teletext.colours[1]^=7;
+                unit->teletext.colours[0]^=7;
+                unit->teletext.colours[1]^=7;
             }
 
 #else
@@ -1189,9 +1189,9 @@ void BBCMicro::UpdateDisplayOutput(VideoDataHalfUnit *hu) {
 #endif
         } else {
             if(m_state.crtc_last_output.raster<8) {
-                m_state.video_ula.EmitPixels(hu);
+                m_state.video_ula.EmitPixels(unit);
 #if VIDEO_TRACK_METADATA
-                hu->bitmap.metadata.addr=m_last_video_access_address;
+                unit->bitmap.metadata.addr=m_last_video_access_address;
 #endif
                 //(m_state.video_ula.*VideoULA::EMIT_MFNS[m_state.video_ula.control.bits.line_width])(hu);
 
@@ -1201,8 +1201,8 @@ void BBCMicro::UpdateDisplayOutput(VideoDataHalfUnit *hu) {
                 ;//fix VC++ indentation bug
 #endif
                 if(m_state.cursor_pattern&1) {
-                    VideoDataBitmapPixel *pixel=hu->bitmap.pixels;
-                    for(size_t i=0;i<sizeof hu->bitmap.pixels;++i) {
+                    VideoDataBitmapPixel *pixel=unit->bitmap.pixels;
+                    for(size_t i=0;i<sizeof unit->bitmap.pixels;++i) {
                         pixel->r=~pixel->r;
                         pixel->g=~pixel->g;
                         pixel->b=~pixel->b;
@@ -1210,19 +1210,20 @@ void BBCMicro::UpdateDisplayOutput(VideoDataHalfUnit *hu) {
                     }
                 }
             } else {
-                hu->type.x=VideoDataType_Nothing^(m_state.cursor_pattern&1);
+                unit->type.x=VideoDataType_Nothing^(m_state.cursor_pattern&1);
             }
         }
     } else {
-        hu->type.x=VideoDataType_Nothing;
+        unit->type.x=VideoDataType_Nothing;
     }
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool BBCMicro::Update(VideoDataUnit *video_unit,SoundDataUnit *sound_unit) {
-    // Cycle 1
+void BBCMicro::UpdateCycle0(VideoDataUnit *video_unit) {
+    ASSERT((m_state.num_2MHz_cycles&1)==0);
+
     ++m_state.num_2MHz_cycles;
     if(this->PreUpdateCPU(1)) {
         (*m_handle_cpu_data_bus_fn)(this);
@@ -1231,16 +1232,22 @@ bool BBCMicro::Update(VideoDataUnit *video_unit,SoundDataUnit *sound_unit) {
     if(m_state.video_ula.control.bits.fast_6845) {
         this->UpdateVideoHardware();
     }
-    this->UpdateDisplayOutput(&video_unit->a);
+    this->UpdateDisplayOutput(video_unit);
+}
 
-    // Cycle 2
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool BBCMicro::UpdateCycle1(VideoDataUnit *video_unit,SoundDataUnit *sound_unit) {
+    ASSERT((m_state.num_2MHz_cycles&1)==1);
+
     ++m_state.num_2MHz_cycles;
     if(this->PreUpdateCPU(2)) {
         (*m_handle_cpu_data_bus_fn)(this);
     }
 
     this->UpdateVideoHardware();
-    this->UpdateDisplayOutput(&video_unit->b);
+    this->UpdateDisplayOutput(video_unit);
 
     this->UpdateKeyboardMatrix();
 
@@ -1260,6 +1267,15 @@ bool BBCMicro::Update(VideoDataUnit *video_unit,SoundDataUnit *sound_unit) {
 
     return sound;
 }
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+//bool BBCMicro::Update(VideoDataUnit *unit0,VideoDataUnit *unit1,SoundDataUnit *sound_unit) {
+//    this->UpdateCycle0(unit0);
+//
+//    return this->UpdateCycle1(unit1,sound_unit);
+//}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

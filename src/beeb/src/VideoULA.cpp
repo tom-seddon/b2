@@ -172,12 +172,12 @@ void VideoULA::Byte(uint8_t byte) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void VideoULA::EmitPixels(union VideoDataHalfUnit *hu) {
-    (this->*EMIT_MFNS[this->m_attribute_mode.value][this->control.bits.fast_6845][this->control.bits.line_width])(hu);
+void VideoULA::EmitPixels(union VideoDataUnit *unit) {
+    (this->*EMIT_MFNS[this->m_attribute_mode.value][this->control.bits.fast_6845][this->control.bits.line_width])(unit);
 
     if(m_blanking_counter>0) {
         m_blanking_counter-=1+this->control.bits.fast_6845;
-        hu->type.x=VideoDataType_Nothing;
+        unit->type.x=VideoDataType_Nothing;
     }
 }
 
@@ -284,7 +284,7 @@ VideoDataBitmapPixel VideoULA::ShiftAttributeText() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void VideoULA::Emit2MHz(VideoDataHalfUnit *hu) {
+void VideoULA::Emit2MHz(VideoDataUnit *unit) {
     VideoDataBitmapPixel *dest=&m_pixel_buffer.pixels[m_scroll_offset];
 
     VideoDataBitmapPixel pixel=this->Shift();
@@ -298,8 +298,8 @@ void VideoULA::Emit2MHz(VideoDataHalfUnit *hu) {
     dest[6]=pixel;
     dest[7]=pixel;
 
-    hu->values[0]=m_pixel_buffer.values[0];
-    hu->values[1]=m_pixel_buffer.values[1];
+    unit->values[0]=m_pixel_buffer.values[0];
+    unit->values[1]=m_pixel_buffer.values[1];
 
     m_pixel_buffer.values[0]=m_pixel_buffer.values[2];
     m_pixel_buffer.values[1]=m_pixel_buffer.values[3];
@@ -308,7 +308,7 @@ void VideoULA::Emit2MHz(VideoDataHalfUnit *hu) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void VideoULA::Emit4MHz(VideoDataHalfUnit *hu) {
+void VideoULA::Emit4MHz(VideoDataUnit *unit) {
     VideoDataBitmapPixel *dest=&m_pixel_buffer.pixels[m_scroll_offset];
 
     VideoDataBitmapPixel pixel;
@@ -325,8 +325,8 @@ void VideoULA::Emit4MHz(VideoDataHalfUnit *hu) {
     dest[6]=pixel;
     dest[7]=pixel;
 
-    hu->values[0]=m_pixel_buffer.values[0];
-    hu->values[1]=m_pixel_buffer.values[1];
+    unit->values[0]=m_pixel_buffer.values[0];
+    unit->values[1]=m_pixel_buffer.values[1];
 
     m_pixel_buffer.values[0]=m_pixel_buffer.values[2];
     m_pixel_buffer.values[1]=m_pixel_buffer.values[3];
@@ -335,7 +335,7 @@ void VideoULA::Emit4MHz(VideoDataHalfUnit *hu) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void VideoULA::Emit8MHz(VideoDataHalfUnit *hu) {
+void VideoULA::Emit8MHz(VideoDataUnit *unit) {
     VideoDataBitmapPixel *dest=&m_pixel_buffer.pixels[m_scroll_offset];
 
     VideoDataBitmapPixel pixel;
@@ -356,8 +356,8 @@ void VideoULA::Emit8MHz(VideoDataHalfUnit *hu) {
     dest[6]=pixel;
     dest[7]=pixel;
 
-    hu->values[0]=m_pixel_buffer.values[0];
-    hu->values[1]=m_pixel_buffer.values[1];
+    unit->values[0]=m_pixel_buffer.values[0];
+    unit->values[1]=m_pixel_buffer.values[1];
 
     m_pixel_buffer.values[0]=m_pixel_buffer.values[2];
     m_pixel_buffer.values[1]=m_pixel_buffer.values[3];
@@ -366,7 +366,7 @@ void VideoULA::Emit8MHz(VideoDataHalfUnit *hu) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void VideoULA::Emit16MHz(VideoDataHalfUnit *hu) {
+void VideoULA::Emit16MHz(VideoDataUnit *unit) {
     VideoDataBitmapPixel *dest=&m_pixel_buffer.pixels[m_scroll_offset];
 
     VideoDataBitmapPixel pixel;
@@ -395,8 +395,8 @@ void VideoULA::Emit16MHz(VideoDataHalfUnit *hu) {
     pixel=this->Shift();
     dest[7]=pixel;
 
-    hu->values[0]=m_pixel_buffer.values[0];
-    hu->values[1]=m_pixel_buffer.values[1];
+    unit->values[0]=m_pixel_buffer.values[0];
+    unit->values[1]=m_pixel_buffer.values[1];
 
     m_pixel_buffer.values[0]=m_pixel_buffer.values[2];
     m_pixel_buffer.values[1]=m_pixel_buffer.values[3];
@@ -405,125 +405,125 @@ void VideoULA::Emit16MHz(VideoDataHalfUnit *hu) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void VideoULA::EmitNuLAAttributeMode0(VideoDataHalfUnit *hu) {
+void VideoULA::EmitNuLAAttributeMode0(VideoDataUnit *unit) {
     VideoDataBitmapPixel pixel;
 
-    hu->type.x=VideoDataType_NuLAAttribute;
+    unit->type.x=VideoDataType_NuLAAttribute;
 
     pixel=this->ShiftAttributeMode0();
-    hu->bitmap.pixels[1]=pixel;
+    unit->bitmap.pixels[1]=pixel;
 
     pixel=this->ShiftAttributeMode0();
-    hu->bitmap.pixels[2]=pixel;
+    unit->bitmap.pixels[2]=pixel;
 
     pixel=this->ShiftAttributeMode0();
-    hu->bitmap.pixels[3]=pixel;
+    unit->bitmap.pixels[3]=pixel;
 
     pixel=this->ShiftAttributeMode0();
-    hu->bitmap.pixels[4]=pixel;
+    unit->bitmap.pixels[4]=pixel;
 
     pixel=this->ShiftAttributeMode0();
-    hu->bitmap.pixels[5]=pixel;
+    unit->bitmap.pixels[5]=pixel;
 
     pixel=this->ShiftAttributeMode0();
-    hu->bitmap.pixels[6]=pixel;
+    unit->bitmap.pixels[6]=pixel;
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void VideoULA::EmitNuLAAttributeMode1(VideoDataHalfUnit *hu) {
+void VideoULA::EmitNuLAAttributeMode1(VideoDataUnit *unit) {
     VideoDataBitmapPixel pixel;
 
-    hu->type.x=VideoDataType_NuLAAttribute;
+    unit->type.x=VideoDataType_NuLAAttribute;
 
     pixel=this->ShiftAttributeMode1();
-    hu->bitmap.pixels[1]=pixel;
-    hu->bitmap.pixels[2]=pixel;
+    unit->bitmap.pixels[1]=pixel;
+    unit->bitmap.pixels[2]=pixel;
 
     pixel=this->ShiftAttributeMode1();
-    hu->bitmap.pixels[3]=pixel;
-    hu->bitmap.pixels[4]=pixel;
+    unit->bitmap.pixels[3]=pixel;
+    unit->bitmap.pixels[4]=pixel;
 
     pixel=this->ShiftAttributeMode1();
-    hu->bitmap.pixels[5]=pixel;
-    hu->bitmap.pixels[6]=pixel;
+    unit->bitmap.pixels[5]=pixel;
+    unit->bitmap.pixels[6]=pixel;
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void VideoULA::EmitNuLAAttributeMode4(VideoDataHalfUnit *hu) {
+void VideoULA::EmitNuLAAttributeMode4(VideoDataUnit *unit) {
     VideoDataBitmapPixel pixel;
 
-    hu->type.x=VideoDataType_NuLAAttribute;
+    unit->type.x=VideoDataType_NuLAAttribute;
 
     pixel=this->ShiftAttributeMode0();
-    hu->bitmap.pixels[1]=pixel;
-    hu->bitmap.pixels[2]=pixel;
+    unit->bitmap.pixels[1]=pixel;
+    unit->bitmap.pixels[2]=pixel;
 
     pixel=this->ShiftAttributeMode0();
-    hu->bitmap.pixels[3]=pixel;
-    hu->bitmap.pixels[4]=pixel;
+    unit->bitmap.pixels[3]=pixel;
+    unit->bitmap.pixels[4]=pixel;
 
     pixel=this->ShiftAttributeMode0();
-    hu->bitmap.pixels[5]=pixel;
-    hu->bitmap.pixels[6]=pixel;
+    unit->bitmap.pixels[5]=pixel;
+    unit->bitmap.pixels[6]=pixel;
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void VideoULA::EmitNuLAAttributeTextMode4(VideoDataHalfUnit *hu) {
+void VideoULA::EmitNuLAAttributeTextMode4(VideoDataUnit *unit) {
     VideoDataBitmapPixel pixel;
 
-    hu->type.x=VideoDataType_NuLAAttribute;
+    unit->type.x=VideoDataType_NuLAAttribute;
 
     pixel=this->ShiftAttributeText();
-    hu->bitmap.pixels[1]=pixel;
-    hu->bitmap.pixels[2]=pixel;
+    unit->bitmap.pixels[1]=pixel;
+    unit->bitmap.pixels[2]=pixel;
 
     pixel=this->ShiftAttributeText();
-    hu->bitmap.pixels[3]=pixel;
-    hu->bitmap.pixels[4]=pixel;
+    unit->bitmap.pixels[3]=pixel;
+    unit->bitmap.pixels[4]=pixel;
 
     pixel=this->ShiftAttributeText();
-    hu->bitmap.pixels[5]=pixel;
-    hu->bitmap.pixels[6]=pixel;
+    unit->bitmap.pixels[5]=pixel;
+    unit->bitmap.pixels[6]=pixel;
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void VideoULA::EmitNuLAAttributeTextMode0(VideoDataHalfUnit *hu) {
+void VideoULA::EmitNuLAAttributeTextMode0(VideoDataUnit *unit) {
     VideoDataBitmapPixel pixel;
 
-    hu->type.x=VideoDataType_NuLAAttribute;
+    unit->type.x=VideoDataType_NuLAAttribute;
 
     pixel=this->ShiftAttributeText();
-    hu->bitmap.pixels[1]=pixel;
+    unit->bitmap.pixels[1]=pixel;
 
     pixel=this->ShiftAttributeText();
-    hu->bitmap.pixels[2]=pixel;
+    unit->bitmap.pixels[2]=pixel;
 
     pixel=this->ShiftAttributeText();
-    hu->bitmap.pixels[3]=pixel;
+    unit->bitmap.pixels[3]=pixel;
 
     pixel=this->ShiftAttributeText();
-    hu->bitmap.pixels[4]=pixel;
+    unit->bitmap.pixels[4]=pixel;
 
     pixel=this->ShiftAttributeText();
-    hu->bitmap.pixels[5]=pixel;
+    unit->bitmap.pixels[5]=pixel;
 
     pixel=this->ShiftAttributeText();
-    hu->bitmap.pixels[6]=pixel;
+    unit->bitmap.pixels[6]=pixel;
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void VideoULA::EmitNothing(VideoDataHalfUnit *hu) {
-    hu->type.x=VideoDataType_Nothing;
+void VideoULA::EmitNothing(VideoDataUnit *unit) {
+    unit->type.x=VideoDataType_Nothing;
 }
 
 //////////////////////////////////////////////////////////////////////////

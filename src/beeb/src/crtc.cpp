@@ -222,10 +222,9 @@ CRTC::Output CRTC::Update(uint8_t fast_6845) {
             // Without the scaling, a 1 cycle 6845 delay will shift
             // the output by only half a 6845 column in slow clock
             // mode, because the video output effectively always runs
-            // at 2MHz (since one VideoDataHalfUnit = 0.5us) even when
-            // the 6845 is running at 1MHz. But there needs to be a
-            // shift of 1 full column to put Mode 7 in the right
-            // place.
+            // at 2MHz (since one VideoDataUnit = 0.5us) even when the
+            // 6845 is running at 1MHz. But there needs to be a shift
+            // of 1 full column to put Mode 7 in the right place.
             //
             // See the skew notes above too.
             m_delay*=2;

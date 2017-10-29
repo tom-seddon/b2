@@ -6,7 +6,7 @@
 
 #include "video.h"
 
-union VideoDataHalfUnit;
+union VideoDataUnit;
 union M6502Word;
 
 //////////////////////////////////////////////////////////////////////////
@@ -57,7 +57,7 @@ public:
 
     void Byte(uint8_t byte);
 
-    void EmitPixels(union VideoDataHalfUnit *hu);
+    void EmitPixels(VideoDataUnit *unit);
 protected:
 private:
     union PixelBuffer {
@@ -88,18 +88,18 @@ private:
     VideoDataBitmapPixel ShiftAttributeMode1();
     VideoDataBitmapPixel ShiftAttributeText();
 
-    void Emit2MHz(VideoDataHalfUnit *hu);
-    void Emit4MHz(VideoDataHalfUnit *hu);
-    void Emit8MHz(VideoDataHalfUnit *hu);
-    void Emit16MHz(VideoDataHalfUnit *hu);
-    void EmitNuLAAttributeMode0(VideoDataHalfUnit *hu);
-    void EmitNuLAAttributeMode1(VideoDataHalfUnit *hu);
-    void EmitNuLAAttributeMode4(VideoDataHalfUnit *hu);
-    void EmitNuLAAttributeTextMode4(VideoDataHalfUnit *hu);
-    void EmitNuLAAttributeTextMode0(VideoDataHalfUnit *hu);
-    void EmitNothing(VideoDataHalfUnit *hu);
+    void Emit2MHz(VideoDataUnit *hu);
+    void Emit4MHz(VideoDataUnit *hu);
+    void Emit8MHz(VideoDataUnit *hu);
+    void Emit16MHz(VideoDataUnit *hu);
+    void EmitNuLAAttributeMode0(VideoDataUnit *hu);
+    void EmitNuLAAttributeMode1(VideoDataUnit *hu);
+    void EmitNuLAAttributeMode4(VideoDataUnit *hu);
+    void EmitNuLAAttributeTextMode4(VideoDataUnit *hu);
+    void EmitNuLAAttributeTextMode0(VideoDataUnit *hu);
+    void EmitNothing(VideoDataUnit *hu);
 
-    typedef void (VideoULA::*EmitMFn)(union VideoDataHalfUnit *);
+    typedef void (VideoULA::*EmitMFn)(union VideoDataUnit *);
     static const EmitMFn EMIT_MFNS[4][2][4];
     //static const EmitMFn NULA_EMIT_MFNS[2][4];
 };

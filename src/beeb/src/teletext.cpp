@@ -401,14 +401,14 @@ void SAA5050::Byte(uint8_t value) {
     }
 }
 
-void SAA5050::EmitVideoDataHalfUnit(VideoDataHalfUnit *hu) {
+void SAA5050::EmitVideoDataUnit(VideoDataUnit *unit) {
 #if BBCMICRO_FINER_TELETEXT
 
-    hu->teletext.type.x=VideoDataType_Teletext;
-    hu->teletext.colours[0]=m_data_colours[0];
-    hu->teletext.colours[1]=m_data_colours[1];
-    hu->teletext.data0=(uint8_t)m_data0;
-    hu->teletext.data1=(uint8_t)m_data1;
+    unit->teletext.type.x=VideoDataType_Teletext;
+    unit->teletext.colours[0]=m_data_colours[0];
+    unit->teletext.colours[1]=m_data_colours[1];
+    unit->teletext.data0=(uint8_t)m_data0;
+    unit->teletext.data1=(uint8_t)m_data1;
 
     m_data0>>=CONSUMER_SHIFT;
     m_data1>>=CONSUMER_SHIFT;

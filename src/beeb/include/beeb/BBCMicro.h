@@ -7,7 +7,7 @@
 struct ROM;
 struct DiscDriveCallbacks;
 class Log;
-struct VideoDataUnit;
+union VideoDataUnit;
 struct SoundDataUnit;
 struct DiscInterfaceDef;
 class Trace;
@@ -245,9 +245,12 @@ public:
     uint32_t GetDebugFlags();
     void SetDebugFlags(uint32_t flags);
 
-    // *VIDEO_UNIT is always filled in. Returns true if *SOUND_UNIT
-    // was filled in.
-    bool Update(VideoDataUnit *video_unit,SoundDataUnit *sound_unit);
+    void UpdateCycle0(VideoDataUnit *video_unit);
+    bool UpdateCycle1(VideoDataUnit *video_unit,SoundDataUnit *sound_unit);
+
+    // *UNIT0 and *UNIT1 are always filled in. Returns true if
+    // *SOUND_UNIT was filled in.
+    //bool Update(VideoDataUnit *unit0,VideoDataUnit *unit1,SoundDataUnit *sound_unit);
 
 #if BBCMICRO_TURBO_DISC
     bool GetTurboDisc();
@@ -567,7 +570,7 @@ private:
     static void HandleCPUDataBusWithShadowRAM(BBCMicro *m);
     static void HandleCPUDataBusWithHacks(BBCMicro *m);
     void UpdateVideoHardware();
-    void UpdateDisplayOutput(VideoDataHalfUnit *hu);
+    void UpdateDisplayOutput(VideoDataUnit *unit);
     static void HandleTurboRTI(M6502 *cpu);
 
     // 1770 handler stuff.

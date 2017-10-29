@@ -329,9 +329,11 @@ void WriteVideoJob::ThreadExecute() {
                     const VideoDataUnit *v=vp[i];
                     size_t n=vn[i];
 
-                    for(size_t j=0;j<n;++j,++v) {
-                        tv_output.UpdateOneHalfUnit(&v->a,1.f);
-                        tv_output.UpdateOneHalfUnit(&v->b,1.f);
+                    ASSERT((n&1)==0);
+
+                    for(size_t j=0;j<n;++j) {
+                        tv_output.UpdateOneUnit(v++,1.f);
+                        tv_output.UpdateOneUnit(v++,1.f);
 
                         bool is_vblank=tv_output.IsInVerticalBlank();
                         if(is_vblank&&!was_vblank) {

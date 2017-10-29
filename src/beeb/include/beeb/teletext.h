@@ -4,7 +4,7 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-union VideoDataHalfUnit;
+union VideoDataUnit;
 
 #include "conf.h"
 
@@ -21,8 +21,8 @@ public:
 
     void Byte(uint8_t byte);
 
-    // Produce 1 video data half unit. (One char is 2 data units wide.)
-    void EmitVideoDataHalfUnit(VideoDataHalfUnit *unit);
+    // One char is 2 units wide.
+    void EmitVideoDataUnit(VideoDataUnit *unit);
 
     void HSync();
 

@@ -19,11 +19,10 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-struct VideoDataUnit;
-union VideoDataHalfUnit;
+union VideoDataUnit;
 struct SDL_PixelFormat;
 #if VIDEO_TRACK_METADATA
-struct VideoDataHalfUnitMetadata;
+struct VideoDataUnitMetadata;
 #endif
 
 //////////////////////////////////////////////////////////////////////////
@@ -49,14 +48,14 @@ public:
     // returns number of us consumed.
     void Update(const VideoDataUnit *units,size_t num_units);
 
-    void UpdateOneHalfUnit(const VideoDataHalfUnit *hu,float amt);
+    void UpdateOneUnit(const VideoDataUnit *unit,float amt);
 
     // *data_version (optional) is set to texture data version, incremented on
     // each vblank. (Between vblanks, the buffer contains a partially scanned-out frame.)
     const void *GetTextureData(uint64_t *texture_data_version) const;
 
 #if VIDEO_TRACK_METADATA
-    const VideoDataHalfUnitMetadata *GetTextureMetadata() const;
+    const VideoDataUnitMetadata *GetTextureMetadata() const;
 #endif
 
     // returns pointer to TVOutput's copy of the pixel format.
@@ -71,7 +70,7 @@ private:
     TVOutputState m_state=TVOutputState_VerticalRetrace;
     uint32_t *m_line=nullptr;
 #if VIDEO_TRACK_METADATA
-    VideoDataHalfUnitMetadata *m_metadata_line=nullptr;
+    VideoDataUnitMetadata *m_metadata_line=nullptr;
 #endif
     size_t m_x=0;
     size_t m_y=0;
@@ -88,7 +87,7 @@ private:
     // TV - output texture and its properties
     std::vector<uint32_t> m_texture_data;
 #if VIDEO_TRACK_METADATA
-    std::vector<VideoDataHalfUnitMetadata> m_texture_metadata;
+    std::vector<VideoDataUnitMetadata> m_texture_metadata;
 #endif
     uint64_t m_texture_data_version=1;
 

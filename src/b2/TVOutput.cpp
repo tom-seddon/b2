@@ -99,7 +99,7 @@ static const int MAX_NUM_SCANNED_LINES=500*HEIGHT_SCALE;
 
 #define NOTHING_PALETTE_INDEX (0)
 
-void TVOutput::UpdateOneHalfUnit(const VideoDataHalfUnit *hu,float amt) {
+void TVOutput::UpdateOneUnit(const VideoDataUnit *unit,float amt) {
 #if !BLEND
     (void)amt;
 #endif
@@ -143,7 +143,7 @@ void TVOutput::UpdateOneHalfUnit(const VideoDataHalfUnit *hu,float amt) {
 
     case TVOutputState_Scanout:
         {
-            switch(hu->type.x) {
+            switch(unit->type.x) {
             case VideoDataType_Data:
                 {
                     if(m_x<TV_TEXTURE_WIDTH&&m_y<TV_TEXTURE_HEIGHT) {
@@ -163,7 +163,7 @@ void TVOutput::UpdateOneHalfUnit(const VideoDataHalfUnit *hu,float amt) {
                             g*=inv_amt;
                             r*=inv_amt;
 
-                            if(hu->pixels[i]&1) {
+                            if(unit->pixels[i]&1) {
                                 r+=amt;
 
                                 if(r>1.f) {
@@ -171,7 +171,7 @@ void TVOutput::UpdateOneHalfUnit(const VideoDataHalfUnit *hu,float amt) {
                                 }
                             }
 
-                            if(hu->pixels[i]&2) {
+                            if(unit->pixels[i]&2) {
                                 g+=amt;
 
                                 if(g>1.f) {
@@ -179,7 +179,7 @@ void TVOutput::UpdateOneHalfUnit(const VideoDataHalfUnit *hu,float amt) {
                                 }
                             }
 
-                            if(hu->pixels[i]&4) {
+                            if(unit->pixels[i]&4) {
                                 b+=amt;
 
                                 if(b>1.f) {
@@ -197,8 +197,8 @@ void TVOutput::UpdateOneHalfUnit(const VideoDataHalfUnit *hu,float amt) {
 
                         uint32_t *line=m_line+m_x;
                         VideoDataBitmapPixel tmp;
-                        //#define V(I) m_palette[0][hu->pixels[I]]
-#define V(I) (tmp=hu->bitmap.pixels[I],m_rs[tmp.r]|m_gs[tmp.g]|m_bs[tmp.b])
+                        //#define V(I) m_palette[0][unit->pixels[I]]
+#define V(I) (tmp=unit->bitmap.pixels[I],m_rs[tmp.r]|m_gs[tmp.g]|m_bs[tmp.b])
 
 #if FULL_PAL_HEIGHT
                         uint32_t *line2=line+TV_TEXTURE_WIDTH;
@@ -222,27 +222,27 @@ void TVOutput::UpdateOneHalfUnit(const VideoDataHalfUnit *hu,float amt) {
 #endif
 
 #if VIDEO_TRACK_METADATA
-                        VideoDataHalfUnitMetadata *metadata_line=m_metadata_line+m_x;
+                        VideoDataUnitMetadata *metadata_line=m_metadata_line+m_x;
 
-                        metadata_line[0]=hu->bitmap.metadata;
-                        metadata_line[1]=hu->bitmap.metadata;
-                        metadata_line[2]=hu->bitmap.metadata;
-                        metadata_line[3]=hu->bitmap.metadata;
-                        metadata_line[4]=hu->bitmap.metadata;
-                        metadata_line[5]=hu->bitmap.metadata;
-                        metadata_line[6]=hu->bitmap.metadata;
-                        metadata_line[7]=hu->bitmap.metadata;
+                        metadata_line[0]=unit->bitmap.metadata;
+                        metadata_line[1]=unit->bitmap.metadata;
+                        metadata_line[2]=unit->bitmap.metadata;
+                        metadata_line[3]=unit->bitmap.metadata;
+                        metadata_line[4]=unit->bitmap.metadata;
+                        metadata_line[5]=unit->bitmap.metadata;
+                        metadata_line[6]=unit->bitmap.metadata;
+                        metadata_line[7]=unit->bitmap.metadata;
 
                         metadata_line+=TV_TEXTURE_WIDTH;
 
-                        metadata_line[0]=hu->bitmap.metadata;
-                        metadata_line[1]=hu->bitmap.metadata;
-                        metadata_line[2]=hu->bitmap.metadata;
-                        metadata_line[3]=hu->bitmap.metadata;
-                        metadata_line[4]=hu->bitmap.metadata;
-                        metadata_line[5]=hu->bitmap.metadata;
-                        metadata_line[6]=hu->bitmap.metadata;
-                        metadata_line[7]=hu->bitmap.metadata;
+                        metadata_line[0]=unit->bitmap.metadata;
+                        metadata_line[1]=unit->bitmap.metadata;
+                        metadata_line[2]=unit->bitmap.metadata;
+                        metadata_line[3]=unit->bitmap.metadata;
+                        metadata_line[4]=unit->bitmap.metadata;
+                        metadata_line[5]=unit->bitmap.metadata;
+                        metadata_line[6]=unit->bitmap.metadata;
+                        metadata_line[7]=unit->bitmap.metadata;
 #endif
 
                     }
@@ -274,7 +274,7 @@ void TVOutput::UpdateOneHalfUnit(const VideoDataHalfUnit *hu,float amt) {
 #endif
 
 #if VIDEO_TRACK_METADATA
-                        VideoDataHalfUnitMetadata *metadata_line=m_metadata_line+m_x;
+                        VideoDataUnitMetadata *metadata_line=m_metadata_line+m_x;
 
                         metadata_line[7]=metadata_line[6]=metadata_line[5]=metadata_line[4]=metadata_line[3]=metadata_line[2]=metadata_line[1]=metadata_line[0]=NULL_VIDEO_METADATA;
                         metadata_line+=TV_TEXTURE_WIDTH;
@@ -297,7 +297,7 @@ void TVOutput::UpdateOneHalfUnit(const VideoDataHalfUnit *hu,float amt) {
 #endif
 
 #if VIDEO_TRACK_METADATA
-                        VideoDataHalfUnitMetadata *metadata_line=m_metadata_line+m_x;
+                        VideoDataUnitMetadata *metadata_line=m_metadata_line+m_x;
 
                         metadata_line[7]=metadata_line[6]=metadata_line[5]=metadata_line[4]=metadata_line[3]=metadata_line[2]=metadata_line[1]=metadata_line[0]=NULL_VIDEO_METADATA;
                         metadata_line+=TV_TEXTURE_WIDTH;
@@ -319,7 +319,7 @@ void TVOutput::UpdateOneHalfUnit(const VideoDataHalfUnit *hu,float amt) {
 
 #if BBCMICRO_PRESTRETCH_TELETEXT
 
-#define P_(N,I) line##N[I]=m_palette[0][hu->teletext.colours[((hu->teletext.data##N)>>(I))&1]]
+#define P_(N,I) line##N[I]=m_palette[0][unit->teletext.colours[((unit->teletext.data##N)>>(I))&1]]
 
 #if FULL_PAL_HEIGHT
 #define P(I) P_(0,I); P_(1,I)
@@ -343,12 +343,12 @@ void TVOutput::UpdateOneHalfUnit(const VideoDataHalfUnit *hu,float amt) {
 
 #else
 
-                        uint8_t c00=hu->teletext.colours[hu->teletext.data0&1];
-                        uint8_t c01=hu->teletext.colours[hu->teletext.data0>>1&1];
-                        uint8_t c02=hu->teletext.colours[hu->teletext.data0>>2&1];
-                        uint8_t c03=hu->teletext.colours[hu->teletext.data0>>3&1];
-                        uint8_t c04=hu->teletext.colours[hu->teletext.data0>>4&1];
-                        uint8_t c05=hu->teletext.colours[hu->teletext.data0>>5&1];
+                        uint8_t c00=unit->teletext.colours[unit->teletext.data0&1];
+                        uint8_t c01=unit->teletext.colours[unit->teletext.data0>>1&1];
+                        uint8_t c02=unit->teletext.colours[unit->teletext.data0>>2&1];
+                        uint8_t c03=unit->teletext.colours[unit->teletext.data0>>3&1];
+                        uint8_t c04=unit->teletext.colours[unit->teletext.data0>>4&1];
+                        uint8_t c05=unit->teletext.colours[unit->teletext.data0>>5&1];
 
                         uint8_t c010=c01<<3|c00;
                         uint8_t c012=c01<<3|c02;
@@ -366,12 +366,12 @@ void TVOutput::UpdateOneHalfUnit(const VideoDataHalfUnit *hu,float amt) {
                         line0[7]=m_palette[0][c045];
 
 #if FULL_PAL_HEIGHT
-                        uint8_t c10=hu->teletext.colours[hu->teletext.data1&1];
-                        uint8_t c11=hu->teletext.colours[hu->teletext.data1>>1&1];
-                        uint8_t c12=hu->teletext.colours[hu->teletext.data1>>2&1];
-                        uint8_t c13=hu->teletext.colours[hu->teletext.data1>>3&1];
-                        uint8_t c14=hu->teletext.colours[hu->teletext.data1>>4&1];
-                        uint8_t c15=hu->teletext.colours[hu->teletext.data1>>5&1];
+                        uint8_t c10=unit->teletext.colours[unit->teletext.data1&1];
+                        uint8_t c11=unit->teletext.colours[unit->teletext.data1>>1&1];
+                        uint8_t c12=unit->teletext.colours[unit->teletext.data1>>2&1];
+                        uint8_t c13=unit->teletext.colours[unit->teletext.data1>>3&1];
+                        uint8_t c14=unit->teletext.colours[unit->teletext.data1>>4&1];
+                        uint8_t c15=unit->teletext.colours[unit->teletext.data1>>5&1];
 
                         uint8_t c110=c11<<3|c10;
                         uint8_t c112=c11<<3|c12;
@@ -391,27 +391,27 @@ void TVOutput::UpdateOneHalfUnit(const VideoDataHalfUnit *hu,float amt) {
 #endif   
 
 #if VIDEO_TRACK_METADATA
-                        VideoDataHalfUnitMetadata *metadata_line=m_metadata_line+m_x;
+                        VideoDataUnitMetadata *metadata_line=m_metadata_line+m_x;
 
-                        metadata_line[0]=hu->teletext.metadata;
-                        metadata_line[1]=hu->teletext.metadata;
-                        metadata_line[2]=hu->teletext.metadata;
-                        metadata_line[3]=hu->teletext.metadata;
-                        metadata_line[4]=hu->teletext.metadata;
-                        metadata_line[5]=hu->teletext.metadata;
-                        metadata_line[6]=hu->teletext.metadata;
-                        metadata_line[7]=hu->teletext.metadata;
+                        metadata_line[0]=unit->teletext.metadata;
+                        metadata_line[1]=unit->teletext.metadata;
+                        metadata_line[2]=unit->teletext.metadata;
+                        metadata_line[3]=unit->teletext.metadata;
+                        metadata_line[4]=unit->teletext.metadata;
+                        metadata_line[5]=unit->teletext.metadata;
+                        metadata_line[6]=unit->teletext.metadata;
+                        metadata_line[7]=unit->teletext.metadata;
 
                         metadata_line+=TV_TEXTURE_WIDTH;
 
-                        metadata_line[0]=hu->teletext.metadata;
-                        metadata_line[1]=hu->teletext.metadata;
-                        metadata_line[2]=hu->teletext.metadata;
-                        metadata_line[3]=hu->teletext.metadata;
-                        metadata_line[4]=hu->teletext.metadata;
-                        metadata_line[5]=hu->teletext.metadata;
-                        metadata_line[6]=hu->teletext.metadata;
-                        metadata_line[7]=hu->teletext.metadata;
+                        metadata_line[0]=unit->teletext.metadata;
+                        metadata_line[1]=unit->teletext.metadata;
+                        metadata_line[2]=unit->teletext.metadata;
+                        metadata_line[3]=unit->teletext.metadata;
+                        metadata_line[4]=unit->teletext.metadata;
+                        metadata_line[5]=unit->teletext.metadata;
+                        metadata_line[6]=unit->teletext.metadata;
+                        metadata_line[7]=unit->teletext.metadata;
 #endif
 
 
@@ -437,9 +437,9 @@ void TVOutput::UpdateOneHalfUnit(const VideoDataHalfUnit *hu,float amt) {
 #endif
 
 #define PIXEL(INDEX,A,B,C)\
-    VideoDataBitmapPixel p##INDEX##a=hu->bitmap.pixels[1+(A)];\
-    VideoDataBitmapPixel p##INDEX##b=hu->bitmap.pixels[1+(B)];\
-    VideoDataBitmapPixel p##INDEX##c=hu->bitmap.pixels[1+(C)];\
+    VideoDataBitmapPixel p##INDEX##a=unit->bitmap.pixels[1+(A)];\
+    VideoDataBitmapPixel p##INDEX##b=unit->bitmap.pixels[1+(B)];\
+    VideoDataBitmapPixel p##INDEX##c=unit->bitmap.pixels[1+(C)];\
     int32_t r##INDEX=((p##INDEX##a.r<<4|p##INDEX##a.r)+(p##INDEX##b.r<<4|p##INDEX##b.r)+(p##INDEX##c.r<<4|p##INDEX##c.r))/3;\
     int32_t g##INDEX=((p##INDEX##a.g<<4|p##INDEX##a.g)+(p##INDEX##b.g<<4|p##INDEX##b.g)+(p##INDEX##c.g<<4|p##INDEX##c.g))/3;\
     int32_t b##INDEX=((p##INDEX##a.b<<4|p##INDEX##a.b)+(p##INDEX##b.b<<4|p##INDEX##b.b)+(p##INDEX##c.b<<4|p##INDEX##c.b))/3;\
@@ -461,27 +461,27 @@ void TVOutput::UpdateOneHalfUnit(const VideoDataHalfUnit *hu,float amt) {
 #undef DEST
 
 #if VIDEO_TRACK_METADATA
-                        VideoDataHalfUnitMetadata *metadata_line=m_metadata_line+m_x;
+                        VideoDataUnitMetadata *metadata_line=m_metadata_line+m_x;
 
-                        metadata_line[0]=hu->bitmap.metadata;
-                        metadata_line[1]=hu->bitmap.metadata;
-                        metadata_line[2]=hu->bitmap.metadata;
-                        metadata_line[3]=hu->bitmap.metadata;
-                        metadata_line[4]=hu->bitmap.metadata;
-                        metadata_line[5]=hu->bitmap.metadata;
-                        metadata_line[6]=hu->bitmap.metadata;
-                        metadata_line[7]=hu->bitmap.metadata;
+                        metadata_line[0]=unit->bitmap.metadata;
+                        metadata_line[1]=unit->bitmap.metadata;
+                        metadata_line[2]=unit->bitmap.metadata;
+                        metadata_line[3]=unit->bitmap.metadata;
+                        metadata_line[4]=unit->bitmap.metadata;
+                        metadata_line[5]=unit->bitmap.metadata;
+                        metadata_line[6]=unit->bitmap.metadata;
+                        metadata_line[7]=unit->bitmap.metadata;
 
                         metadata_line+=TV_TEXTURE_WIDTH;
 
-                        metadata_line[0]=hu->bitmap.metadata;
-                        metadata_line[1]=hu->bitmap.metadata;
-                        metadata_line[2]=hu->bitmap.metadata;
-                        metadata_line[3]=hu->bitmap.metadata;
-                        metadata_line[4]=hu->bitmap.metadata;
-                        metadata_line[5]=hu->bitmap.metadata;
-                        metadata_line[6]=hu->bitmap.metadata;
-                        metadata_line[7]=hu->bitmap.metadata;
+                        metadata_line[0]=unit->bitmap.metadata;
+                        metadata_line[1]=unit->bitmap.metadata;
+                        metadata_line[2]=unit->bitmap.metadata;
+                        metadata_line[3]=unit->bitmap.metadata;
+                        metadata_line[4]=unit->bitmap.metadata;
+                        metadata_line[5]=unit->bitmap.metadata;
+                        metadata_line[6]=unit->bitmap.metadata;
+                        metadata_line[7]=unit->bitmap.metadata;
 #endif
                     }
                     m_x+=8;
@@ -542,9 +542,8 @@ void TVOutput::UpdateOneHalfUnit(const VideoDataHalfUnit *hu,float amt) {
 void TVOutput::Update(const VideoDataUnit *units,size_t num_units) {
     const VideoDataUnit *unit=units;
 
-    for(size_t i=0;i<num_units;++i,++unit) {
-        this->UpdateOneHalfUnit(&unit->a,0.f);
-        this->UpdateOneHalfUnit(&unit->b,0.f);
+    for(size_t i=0;i<num_units;++i) {
+        this->UpdateOneUnit(unit++,1.f);
     }
 }
 
@@ -563,7 +562,7 @@ const void *TVOutput::GetTextureData(uint64_t *texture_data_version) const {
 //////////////////////////////////////////////////////////////////////////
 
 #if VIDEO_TRACK_METADATA
-const VideoDataHalfUnitMetadata *TVOutput::GetTextureMetadata() const {
+const VideoDataUnitMetadata *TVOutput::GetTextureMetadata() const {
     return m_texture_metadata.data();
 }
 #endif

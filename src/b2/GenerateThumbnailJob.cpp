@@ -67,11 +67,13 @@ const void *GenerateThumbnailJob::GetTextureData() const {
 
 void GenerateThumbnailJob::Tick() {
     SoundDataUnit sunit;
-    VideoDataUnit vunit;
-    m_beeb->Update(&vunit,&sunit);
+    VideoDataUnit vunits[2];
 
-    m_tv_output.UpdateOneHalfUnit(&vunit.a,1.f);
-    m_tv_output.UpdateOneHalfUnit(&vunit.b,1.f);
+    m_beeb->UpdateCycle0(&vunits[0]);
+    m_beeb->UpdateCycle1(&vunits[1],&sunit);
+
+    m_tv_output.UpdateOneUnit(&vunits[0],1.f);
+    m_tv_output.UpdateOneUnit(&vunits[1],1.f);
 }
 
 //////////////////////////////////////////////////////////////////////////

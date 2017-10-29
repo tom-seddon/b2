@@ -39,7 +39,7 @@ PixelMetadataUI::PixelMetadataUI(BeebWindow *beeb_window):
 void PixelMetadataUI::DoImGui(CommandContextStack *cc_stack) {
     (void)cc_stack;
 
-    if(const VideoDataHalfUnitMetadata *m=m_beeb_window->GetMetadataForMousePixel()) {
+    if(const VideoDataUnitMetadata *m=m_beeb_window->GetMetadataForMousePixel()) {
         if(!(m->addr&0x8000)) {
             ImGui::Text("Address: $%04X",m->addr);
         }
