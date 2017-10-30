@@ -945,7 +945,7 @@ static void T0_All(M6502 *s);
 void M6502_NextInstruction(M6502 *s) {
     if(!s->d1x1) {
         s->abus.w=s->pc.w;
-        s->read=M6502ReadType_Instruction;
+        s->read=M6502ReadType_Interrupt;
         s->tfn=s->interrupt_tfn;
     } else {
         s->abus.w=s->pc.w++;
@@ -1594,21 +1594,21 @@ int M6502_IsAboutToExecute(M6502 *s) {
 //////////////////////////////////////////////////////////////////////////
 
 static void DisassembleByte(char *buf,
-    size_t buf_size,
-    const M6502DisassemblyInfo *di,
-    const char *prefix,
-    uint8_t value,
-    const char *suffix)
+                            size_t buf_size,
+                            const M6502DisassemblyInfo *di,
+                            const char *prefix,
+                            uint8_t value,
+                            const char *suffix)
 {
     snprintf(buf,buf_size,"%s %s$%02x%s",di->mnemonic,prefix,value,suffix);
 }
 
 static void DisassembleWord(char *buf,
-    size_t buf_size,
-    const M6502DisassemblyInfo *di,
-    const char *prefix,
-    uint16_t value,
-    const char *suffix)
+                            size_t buf_size,
+                            const M6502DisassemblyInfo *di,
+                            const char *prefix,
+                            uint16_t value,
+                            const char *suffix)
 {
     snprintf(buf,buf_size,"%s %s$%04x%s",di->mnemonic,prefix,value,suffix);
 }
@@ -1838,19 +1838,24 @@ void M6502_SetDeviceNMI(M6502 *s,M6502_DeviceIRQFlags mask,int wants_nmi) {
 
 #define CASE(X) if(fn==&(X)) return #X
 
+static const NamedFn g_known_fns[]={
+    {"M6502_NextInstruction",&M6502_NextInstruction},
+    {NULL,NULL},
+};
+
+static const NamedFn *const g_named_fn_lists[]={
+    g_known_fns,
+    g_named_tfns,
+    g_named_ifns,
+    NULL,
+};
+
 static const char *GetFnName(M6502Fn fn) {
-    CASE(M6502_NextInstruction);
-
-    const char *name;
-
-    name=FindNameByFn(g_named_tfns,fn);
-    if(name) {
-        return name;
-    }
-
-    name=FindNameByFn(g_named_ifns,fn);
-    if(name) {
-        return name;
+    for(size_t i=0;g_named_fn_lists[i];++i) {
+        const char *name=FindNameByFn(g_named_fn_lists[i],fn);
+        if(name) {
+            return name;
+        }
     }
 
     return "?";
@@ -1866,6 +1871,19 @@ const char *M6502_GetStateName(M6502 *s) {
     snprintf(g_fn_name_buf,sizeof g_fn_name_buf,"%s%s%s",GetFnName(s->tfn),instr_name?": ":"",instr_name?instr_name:"");
 
     return g_fn_name_buf;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void M6502_ForEachFn(M6502_ForEachFnFn fn,void *context) {
+    for(size_t i=0;g_named_fn_lists[i];++i) {
+        const NamedFn *named_fn=g_named_fn_lists[i];
+        while(named_fn->name) {
+            (*fn)(named_fn->name,named_fn->fn,context);
+            ++named_fn;
+        }
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////

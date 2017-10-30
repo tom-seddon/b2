@@ -562,7 +562,6 @@ struct Cycle {
         Write,
         ReadData,
         ReadDataNoCarry,
-        ReadOpcode,
         ReadInstruction,
         ReadAddress,
         ReadUninteresting,
@@ -681,34 +680,6 @@ public:
     }
 protected:
 private:
-    static const char *GetCycleTypeName(Cycle::Type type) {
-        switch(type) {
-        default:
-            ASSERT(false);
-            // fall through
-        case Cycle::Type::Write:
-            return "0";
-
-        case Cycle::Type::ReadData:
-            return "M6502ReadType_Data";
-
-        case Cycle::Type::ReadDataNoCarry:
-            return "M6502ReadType_DataNoCarry";
-
-        case Cycle::Type::ReadOpcode:
-            return "M6502ReadType_Opcode";
-        
-        case Cycle::Type::ReadInstruction:
-            return "M6502ReadType_Instruction";
-        
-        case Cycle::Type::ReadAddress:
-            return "M6502ReadType_Address";
-
-        case Cycle::Type::ReadUninteresting:
-            return "M6502ReadType_Uninteresting";
-        }
-    }
-
     void GeneratePhase1(const Cycle *c) const {
         bool set_acarry=false;
 
@@ -771,10 +742,6 @@ private:
         case Cycle::Type::ReadDataNoCarry:
             P("assert(s->acarry==0||s->acarry==1);\n");
             P("s->read=M6502ReadType_Data+s->acarry;\n");
-            break;
-
-        case Cycle::Type::ReadOpcode:
-            P("s->read=M6502ReadType_Opcode;\n");
             break;
 
         case Cycle::Type::ReadInstruction:
@@ -1371,14 +1338,11 @@ static void GenerateConfig(std::set<std::string> *tfns,std::set<std::string> *if
         std::string mnemonic=instr->GetDisassemblyMnemonic();
 
         ASSERT(mnemonic.size()==3);
-        P("[0x%02zx]={.mnemonic=\"%s\",.mode=%s,.undocumented=%d,.jsr=%d,.rts=%d,.return_=%d},\n",
+        P("[0x%02zx]={.mnemonic=\"%s\",.mode=%s,.undocumented=%d},\n",
           i,
           mnemonic.c_str(),
           mode.c_str(),
-          instr->undocumented,
-          mnemonic=="jsr",
-          mnemonic=="rts",
-          mnemonic=="rts"||mnemonic=="rti");
+          instr->undocumented);
     }
     P("};\n");
     P("\n");

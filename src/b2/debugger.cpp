@@ -8,11 +8,30 @@
 #include "BeebThread.h"
 #include <shared/log.h>
 #include <imgui_memory_editor.h>
+#include <unordered_map>
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 LOG_TAGGED_DEFINE(DBG,"debugger","DBG   ",&log_printer_stdout_and_debugger,true)
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+static std::unordered_map<M6502Fn,const char *> g_name_by_6502_fn;
+
+static const char *GetFnName(M6502Fn fn) {
+    if(!fn) {
+        return "NULL";
+    } else {
+        auto it=g_name_by_6502_fn.find(fn);
+        if(it==g_name_by_6502_fn.end()) {
+            return "?";
+        } else {
+            return it->second;
+        }
+    }
+}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -38,6 +57,11 @@ public:
     explicit M6502DebugWindow(std::shared_ptr<BeebThread> beeb_thread):
         m_beeb_thread(std::move(beeb_thread))
     {
+        if(g_name_by_6502_fn.empty()) {
+            M6502_ForEachFn([](const char *name,M6502Fn fn,void *) {
+                g_name_by_6502_fn[fn]=name;
+            },nullptr);
+        }
     }
 
     void DoImGui(CommandContextStack *cc_stack) {
@@ -56,6 +80,9 @@ public:
                 M6502P p=M6502_GetP(s);
                 char pstr[9];
                 ImGui::Text("P = $%02x %s",p.value,M6502P_GetString(pstr,p));
+
+                ImGui::Text("tfn=%s",GetFnName(s->tfn));
+                ImGui::Text("ifn=%s",GetFnName(s->ifn));
             } else {
                 ImGui::TextUnformatted("6502 state not available");
             }

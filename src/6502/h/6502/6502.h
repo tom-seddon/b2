@@ -127,15 +127,6 @@ struct M6502DisassemblyInfo {
 
     // Set if undocumented.
     uint8_t undocumented:1;
-
-    // Set if this is a JSR.
-    uint8_t jsr:1;
-
-    // Set if this is an RTS.
-    uint8_t rts:1;
-
-    // Set if this is RTS or RTI.
-    uint8_t return_:1;
 };
 typedef struct M6502DisassemblyInfo M6502DisassemblyInfo;
 
@@ -202,15 +193,20 @@ enum M6502ReadType {
     // Almost certainly not interesting.
     M6502ReadType_Uninteresting=2,
 
-    // Fetch opcode byte.
+    // Fetch opcode byte. This only occurs at one point: the first
+    // cycle of an instruction.
     M6502ReadType_Opcode,
+
+    // Dummy fetch when an interrupt/NMI is due. This only occurs at
+    // one point: the first cycle of an instruction, when that
+    // instruction was interrupted.
+    M6502ReadType_Interrupt,
 
     // Fetch non-opcode instruction byte.
     M6502ReadType_Instruction,
 
     // Fetch indirect address.
     M6502ReadType_Address,
-
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -371,6 +367,9 @@ const char *M6502_GetStateName(M6502 *s);
 /* Getter and setter for the P register. Don't access it directly. */
 void M6502_SetP(M6502 *s,uint8_t p);
 M6502P M6502_GetP(const M6502 *s);
+
+typedef void (*M6502_ForEachFnFn)(const char *name,M6502Fn fn,void *context);
+void M6502_ForEachFn(M6502_ForEachFnFn fn,void *context);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
