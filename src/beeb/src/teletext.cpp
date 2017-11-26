@@ -246,7 +246,7 @@ void SAA5050::Byte(uint8_t value) {
             // Alpha
             m_fg=value;
             m_charset=TeletextCharset_Alpha;
-            m_conceal=0;
+            m_conceal=false;
 #if BBCMICRO_FINER_TELETEXT
             m_last_graphics_data0=0;
             m_last_graphics_data1=0;
@@ -262,7 +262,7 @@ void SAA5050::Byte(uint8_t value) {
 
         case 0x09:
             //Steady
-            m_flash=1;
+            m_flash=true;
             break;
 
         case 0x0a:
@@ -280,7 +280,7 @@ void SAA5050::Byte(uint8_t value) {
 
         case 0x0d:
             // Double Height
-            m_any_double_height=1;
+            m_any_double_height=true;
             m_raster_shift=1;
             break;
 
@@ -305,14 +305,14 @@ void SAA5050::Byte(uint8_t value) {
         case 0x17:
             // Graphics
             m_fg=value&7;
-            m_conceal=0;
+            m_conceal=false;
         set_charset:;
             m_charset=m_graphics_charset;
             break;
 
         case 0x18:
             // Conceal Display
-            m_conceal=1;
+            m_conceal=true;
             goto display_non_control_char;
 
         case 0x19:
@@ -341,12 +341,12 @@ void SAA5050::Byte(uint8_t value) {
 
         case 0x1e:
             // Hold Graphics
-            m_hold=1;
+            m_hold=true;
             break;
 
         case 0x1f:
             // Release Graphics
-            m_hold=0;
+            m_hold=false;
             break;
         }
     } else {
@@ -433,7 +433,7 @@ void SAA5050::EmitVideoDataHalfUnit(VideoDataHalfUnit *hu) {
 //////////////////////////////////////////////////////////////////////////
 
 void SAA5050::HSync() {
-    m_conceal=0;
+    m_conceal=false;
     m_fg=7;
     m_bg=0;
     m_graphics_charset=TeletextCharset_ContiguousGraphics;
@@ -444,8 +444,8 @@ void SAA5050::HSync() {
 #else
     m_last_graphics_data=0;
 #endif
-    m_hold=0;
-    m_flash=1;
+    m_hold=false;
+    m_flash=true;
     m_raster_shift=0;
 
     m_raster+=2;
@@ -460,7 +460,7 @@ void SAA5050::HSync() {
             m_raster_offset=0;
         }
 
-        m_any_double_height=0;
+        m_any_double_height=false;
     }
 }
 
@@ -482,7 +482,7 @@ void SAA5050::VSync(uint8_t odd_frame) {
         m_raster=odd_frame;
     } else {
         m_raster=0;
-    }
+}
 
 #endif
 
@@ -493,7 +493,7 @@ void SAA5050::VSync(uint8_t odd_frame) {
 
     m_frame_flash=m_frame<NUM_FLASH_OFF_FRAMES;
 
-    m_any_double_height=0;
+    m_any_double_height=false;
     m_raster_offset=0;
 }
 
