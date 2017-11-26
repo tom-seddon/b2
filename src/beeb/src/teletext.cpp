@@ -342,12 +342,19 @@ void SAA5050::Byte(uint8_t value) {
         case 0x1e:
             // Hold Graphics
             m_hold=true;
+            m_data0=m_last_graphics_data0;
+            m_data1=m_last_graphics_data1;
             break;
 
         case 0x1f:
             // Release Graphics
             m_hold=false;
             break;
+        }
+
+        if(!m_hold) {
+            m_last_graphics_data0=0;
+            m_last_graphics_data1=0;
         }
     } else {
     display_non_control_char:;
@@ -374,7 +381,7 @@ void SAA5050::Byte(uint8_t value) {
         m_data_colours[0]=m_bg;
         m_data_colours[1]=m_fg;
 
-        if(value&0x20) {
+        if(value&0x20&&m_charset!=TeletextCharset_Alpha) {
             if(!m_conceal) {
 #if BBCMICRO_FINER_TELETEXT
                 m_last_graphics_data0=m_data0;
@@ -384,7 +391,7 @@ void SAA5050::Byte(uint8_t value) {
 #endif
             }
         }
-    }
+            }
 
     if(m_debug) {
         size_t ch=value&0x7f;
@@ -482,7 +489,7 @@ void SAA5050::VSync(uint8_t odd_frame) {
         m_raster=odd_frame;
     } else {
         m_raster=0;
-}
+    }
 
 #endif
 
