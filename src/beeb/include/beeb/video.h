@@ -28,9 +28,7 @@
 //
 // Otherwise: the type is (VideoDataType)type.x:
 //
-#if BBCMICRO_FINER_TELETEXT
 // Teletext: teletext data for this column over two half-scanlines.
-#endif
 //
 // HSync: hsync is active. Ignore pixels[1...].
 //
@@ -56,7 +54,6 @@ static const VideoDataUnitMetadata NULL_VIDEO_METADATA={
 
 #endif
 
-#if BBCMICRO_FINER_TELETEXT
 struct VideoDataTeletextUnit {
     VideoDataBitmapPixel type;
     uint8_t colours[2];
@@ -65,7 +62,6 @@ struct VideoDataTeletextUnit {
     VideoDataUnitMetadata metadata;
 #endif
 };
-#endif
 
 struct VideoDataBitmapUnit {
     VideoDataBitmapPixel pixels[8];
@@ -78,9 +74,7 @@ struct VideoDataBitmapUnit {
 union VideoDataUnit {
     VideoDataBitmapPixel type;
     VideoDataBitmapUnit bitmap;
-#if BBCMICRO_FINER_TELETEXT
     VideoDataTeletextUnit teletext;
-#endif
     uint64_t values[2];
 };
 #include <shared/poppack.h>

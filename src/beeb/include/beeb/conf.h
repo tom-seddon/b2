@@ -65,22 +65,9 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-/* If defined, produce finer-resolution teletext output
- * Finer-resolution means more pixels - rather than increase the
- * output pixel clock, this changes the video output data format. */
-#define BBCMICRO_FINER_TELETEXT 1
-
-#if !BBCMICRO_FINER_TELETEXT
-#error building without BBCMICRO_FINER_TELETEXT no longer supported
-#endif
-
-#if BBCMICRO_FINER_TELETEXT
-
 // If true, pre-stretch teletext glyphs from 12 to 16 pixels wide
 // during setup. Otherwise, stretch them as part of the TVOutput step.
 #define BBCMICRO_PRESTRETCH_TELETEXT 0
-
-#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

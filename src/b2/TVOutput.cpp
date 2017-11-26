@@ -77,11 +77,7 @@ static const int SCANLINE_CYCLES=HORIZONTAL_RETRACE_CYCLES+BACK_PORCH_CYCLES+SCA
 static_assert(SCANLINE_CYCLES==128,"one scanline must be 64us");
 static const int VERTICAL_RETRACE_SCANLINES=10;
 
-#if FULL_PAL_HEIGHT
 static const int HEIGHT_SCALE=2;
-#else
-static const int HEIGHT_SCALE=1;
-#endif
 
 // If this many lines are scanned without a vertical retrace, the TV
 // retraces anyway.
@@ -118,14 +114,13 @@ void TVOutput::UpdateOneUnit(const VideoDataUnit *unit,float amt) {
 #if VIDEO_TRACK_METADATA
         m_metadata_line=m_texture_metadata.data();
 #endif
-#if FULL_PAL_HEIGHT
+
         // "Fun" (translation: brain-eating) fake interlace
 
         // if(m_num_fields&1) {
         //     m_line+=m_texture_pitch;
         //     ++m_y;
         // }
-#endif
 
         m_state_timer=1;
         break;
@@ -196,28 +191,33 @@ void TVOutput::UpdateOneUnit(const VideoDataUnit *unit,float amt) {
 #else
 
                         uint32_t *line=m_line+m_x;
-                        VideoDataBitmapPixel tmp;
-                        //#define V(I) m_palette[0][unit->pixels[I]]
-#define V(I) (tmp=unit->bitmap.pixels[I],m_rs[tmp.r]|m_gs[tmp.g]|m_bs[tmp.b])
-
-#if FULL_PAL_HEIGHT
                         uint32_t *line2=line+TV_TEXTURE_WIDTH;
-#define P(I) line2[I]=line[I]=V(I)
-#else
-#define P(I) line[I]=V(I)
-#endif
 
-                        P(0);
-                        P(1);
-                        P(2);
-                        P(3);
-                        P(4);
-                        P(5);
-                        P(6);
-                        P(7);
+                        VideoDataBitmapPixel tmp;
 
-#undef P
-#undef V
+                        tmp=unit->bitmap.pixels[0];
+                        line2[0]=line[0]=m_rs[tmp.r]|m_gs[tmp.g]|m_bs[tmp.b];
+
+                        tmp=unit->bitmap.pixels[1];
+                        line2[1]=line[1]=m_rs[tmp.r]|m_gs[tmp.g]|m_bs[tmp.b];
+
+                        tmp=unit->bitmap.pixels[2];
+                        line2[2]=line[2]=m_rs[tmp.r]|m_gs[tmp.g]|m_bs[tmp.b];
+
+                        tmp=unit->bitmap.pixels[3];
+                        line2[3]=line[3]=m_rs[tmp.r]|m_gs[tmp.g]|m_bs[tmp.b];
+
+                        tmp=unit->bitmap.pixels[4];
+                        line2[4]=line[4]=m_rs[tmp.r]|m_gs[tmp.g]|m_bs[tmp.b];
+
+                        tmp=unit->bitmap.pixels[5];
+                        line2[5]=line[5]=m_rs[tmp.r]|m_gs[tmp.g]|m_bs[tmp.b];
+
+                        tmp=unit->bitmap.pixels[6];
+                        line2[6]=line[6]=m_rs[tmp.r]|m_gs[tmp.g]|m_bs[tmp.b];
+
+                        tmp=unit->bitmap.pixels[7];
+                        line2[7]=line[7]=m_rs[tmp.r]|m_gs[tmp.g]|m_bs[tmp.b];
 
 #endif
 
@@ -268,10 +268,9 @@ void TVOutput::UpdateOneUnit(const VideoDataUnit *unit,float amt) {
                         uint32_t *line=m_line+m_x;
 
                         line[7]=line[6]=line[5]=line[4]=line[3]=line[2]=line[1]=line[0]=m_palette[0][NOTHING_PALETTE_INDEX];
-#if FULL_PAL_HEIGHT
+
                         line+=TV_TEXTURE_WIDTH;
                         line[7]=line[6]=line[5]=line[4]=line[3]=line[2]=line[1]=line[0]=m_palette[0][NOTHING_PALETTE_INDEX];
-#endif
 
 #if VIDEO_TRACK_METADATA
                         VideoDataUnitMetadata *metadata_line=m_metadata_line+m_x;
@@ -291,10 +290,9 @@ void TVOutput::UpdateOneUnit(const VideoDataUnit *unit,float amt) {
                         uint32_t *line=m_line+m_x;
 
                         line[7]=line[6]=line[5]=line[4]=line[3]=line[2]=line[1]=line[0]=m_palette[0][7];
-#if FULL_PAL_HEIGHT
+
                         line+=TV_TEXTURE_WIDTH;
                         line[7]=line[6]=line[5]=line[4]=line[3]=line[2]=line[1]=line[0]=m_palette[0][7];
-#endif
 
 #if VIDEO_TRACK_METADATA
                         VideoDataUnitMetadata *metadata_line=m_metadata_line+m_x;
@@ -308,26 +306,17 @@ void TVOutput::UpdateOneUnit(const VideoDataUnit *unit,float amt) {
                 }
                 break;
 
-#if BBCMICRO_FINER_TELETEXT
             case VideoDataType_Teletext:
                 {
                     if(m_x<TV_TEXTURE_WIDTH&&m_y<TV_TEXTURE_HEIGHT) {
                         uint32_t *line0=m_line+m_x;
-#if FULL_PAL_HEIGHT
                         uint32_t *line1=line0+TV_TEXTURE_WIDTH;
-#endif
 
 #if BBCMICRO_PRESTRETCH_TELETEXT
 
 #define P_(N,I) line##N[I]=m_palette[0][unit->teletext.colours[((unit->teletext.data##N)>>(I))&1]]
 
-#if FULL_PAL_HEIGHT
 #define P(I) P_(0,I); P_(1,I)
-#else
-                        // It's going to look kind of crap. But it
-                        // won't break.
-#define P(I) P_(0,I)
-#endif
 
                         P(0);
                         P(1);
@@ -365,7 +354,6 @@ void TVOutput::UpdateOneUnit(const VideoDataUnit *unit,float amt) {
                         line0[6]=m_palette[1][c045];
                         line0[7]=m_palette[0][c045];
 
-#if FULL_PAL_HEIGHT
                         uint8_t c10=unit->teletext.colours[unit->teletext.data1&1];
                         uint8_t c11=unit->teletext.colours[unit->teletext.data1>>1&1];
                         uint8_t c12=unit->teletext.colours[unit->teletext.data1>>2&1];
@@ -386,7 +374,6 @@ void TVOutput::UpdateOneUnit(const VideoDataUnit *unit,float amt) {
                         line1[5]=m_palette[1][c143];
                         line1[6]=m_palette[1][c145];
                         line1[7]=m_palette[0][c145];
-#endif
 
 #endif   
 
@@ -419,22 +406,13 @@ void TVOutput::UpdateOneUnit(const VideoDataUnit *unit,float amt) {
                     m_x+=8;
                 }
                 break;
-#endif
 
             case VideoDataType_NuLAAttribute:
                 {
                     if(m_x<TV_TEXTURE_WIDTH&&m_y<TV_TEXTURE_HEIGHT) {
                         uint32_t *line0=m_line+m_x;
-#if FULL_PAL_HEIGHT
                         uint32_t *line1=line0+TV_TEXTURE_WIDTH;
-#endif
 
-
-#if FULL_PAL_HEIGHT
-#define DEST(I) line1[I]=line0[I]
-#else
-#define DEST(I) line0[I]
-#endif
 
 #define PIXEL(INDEX,A,B,C)\
     VideoDataBitmapPixel p##INDEX##a=unit->bitmap.pixels[1+(A)];\
@@ -446,7 +424,7 @@ void TVOutput::UpdateOneUnit(const VideoDataUnit *unit,float amt) {
     /*ASSERT(r##INDEX<256);*/\
     /*ASSERT(g##INDEX<256);*/\
     /*ASSERT(b##INDEX<256);*/\
-    DEST(INDEX)=(uint32_t)r##INDEX<<m_rshift|(uint32_t)g##INDEX<<m_gshift|(uint32_t)b##INDEX<<m_bshift|m_alpha;
+    line1[INDEX]=line0[INDEX]=(uint32_t)r##INDEX<<m_rshift|(uint32_t)g##INDEX<<m_gshift|(uint32_t)b##INDEX<<m_bshift|m_alpha;
 
                         PIXEL(0,0,0,0);
                         PIXEL(1,0,1,1);
@@ -458,7 +436,6 @@ void TVOutput::UpdateOneUnit(const VideoDataUnit *unit,float amt) {
                         PIXEL(7,5,5,5);
 
 #undef PIXEL
-#undef DEST
 
 #if VIDEO_TRACK_METADATA
                         VideoDataUnitMetadata *metadata_line=m_metadata_line+m_x;

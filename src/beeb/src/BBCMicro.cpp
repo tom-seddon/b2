@@ -871,12 +871,6 @@ uint32_t BBCMicro::GetDebugFlags() {
         result|=BBCMicroDebugFlag_TeletextDebug;
     }
 
-#if !BBCMICRO_FINER_TELETEXT
-    if(m_state.saa5050.IsAA()) {
-        result|=BBCMicroDebugFlag_TeletextInterlace;
-    }
-#endif
-
     return result;
 }
 
@@ -885,10 +879,6 @@ uint32_t BBCMicro::GetDebugFlags() {
 
 void BBCMicro::SetDebugFlags(uint32_t flags) {
     m_state.saa5050.SetDebug(!!(flags&BBCMicroDebugFlag_TeletextDebug));
-
-#if !BBCMICRO_FINER_TELETEXT
-    m_state.saa5050.SetAA(!!(flags&BBCMicroDebugFlag_TeletextInterlace));
-#endif
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -1272,16 +1262,11 @@ void BBCMicro::UpdateDisplayOutput(VideoDataUnit *unit) {
 #if VIDEO_TRACK_METADATA
             unit->teletext.metadata.addr=m_last_video_access_address;
 #endif
-#if BBCMICRO_FINER_TELETEXT
 
             if(m_state.cursor_pattern&1) {
                 unit->teletext.colours[0]^=7;
                 unit->teletext.colours[1]^=7;
             }
-
-#else
-            goto xor_pixels_with_cursor;
-#endif
         } else {
             if(m_state.crtc_last_output.raster<8) {
                 m_state.video_ula.EmitPixels(unit);
@@ -1290,11 +1275,6 @@ void BBCMicro::UpdateDisplayOutput(VideoDataUnit *unit) {
 #endif
                 //(m_state.video_ula.*VideoULA::EMIT_MFNS[m_state.video_ula.control.bits.line_width])(hu);
 
-#if !BBCMICRO_FINER_TELETEXT
-                xor_pixels_with_cursor:;
-#else
-                ;//fix VC++ indentation bug
-#endif
                 if(m_state.cursor_pattern&1) {
                     VideoDataBitmapPixel *pixel=unit->bitmap.pixels;
                     for(size_t i=0;i<sizeof unit->bitmap.pixels;++i) {

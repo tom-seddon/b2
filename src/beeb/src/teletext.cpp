@@ -199,10 +199,6 @@ static InitTeletextFont g_init_teletext_font;
 //////////////////////////////////////////////////////////////////////////
 
 SAA5050::SAA5050() {
-#if !BBCMICRO_FINER_TELETEXT
-    m_aa=1;
-#endif
-
     this->HSync();
 }
 
@@ -214,19 +210,11 @@ void SAA5050::Byte(uint8_t value) {
 
     if(value<32) {
         if(m_conceal||!m_hold) {
-#if BBCMICRO_FINER_TELETEXT
             m_data0=0;
             m_data1=0;
-#else
-            m_data=0;
-#endif
         } else {
-#if BBCMICRO_FINER_TELETEXT
             m_data0=m_last_graphics_data0;
             m_data1=m_last_graphics_data1;
-#else
-            m_data=m_last_graphics_data;
-#endif
         }
         m_data_colours[0]=m_bg;
         m_data_colours[1]=m_fg;
@@ -246,13 +234,9 @@ void SAA5050::Byte(uint8_t value) {
             // Alpha
             m_fg=value;
             m_charset=TeletextCharset_Alpha;
-            m_conceal=0;
-#if BBCMICRO_FINER_TELETEXT
+            m_conceal=false;
             m_last_graphics_data0=0;
             m_last_graphics_data1=0;
-#else
-            m_last_graphics_data=0;
-#endif
             break;
 
         case 0x08:
@@ -262,7 +246,7 @@ void SAA5050::Byte(uint8_t value) {
 
         case 0x09:
             //Steady
-            m_flash=1;
+            m_flash=true;
             break;
 
         case 0x0a:
@@ -280,7 +264,7 @@ void SAA5050::Byte(uint8_t value) {
 
         case 0x0d:
             // Double Height
-            m_any_double_height=1;
+            m_any_double_height=true;
             m_raster_shift=1;
             break;
 
@@ -305,14 +289,14 @@ void SAA5050::Byte(uint8_t value) {
         case 0x17:
             // Graphics
             m_fg=value&7;
-            m_conceal=0;
+            m_conceal=false;
         set_charset:;
             m_charset=m_graphics_charset;
             break;
 
         case 0x18:
             // Conceal Display
-            m_conceal=1;
+            m_conceal=true;
             goto display_non_control_char;
 
         case 0x19:
@@ -341,13 +325,20 @@ void SAA5050::Byte(uint8_t value) {
 
         case 0x1e:
             // Hold Graphics
-            m_hold=1;
+            m_hold=true;
+            m_data0=m_last_graphics_data0;
+            m_data1=m_last_graphics_data1;
             break;
 
         case 0x1f:
             // Release Graphics
-            m_hold=0;
+            m_hold=false;
             break;
+        }
+
+        if(!m_hold) {
+            m_last_graphics_data0=0;
+            m_last_graphics_data1=0;
         }
     } else {
     display_non_control_char:;
@@ -356,54 +347,35 @@ void SAA5050::Byte(uint8_t value) {
         uint8_t glyph_raster=(m_raster+m_raster_offset)>>m_raster_shift;
 
         if(glyph_raster<20&&m_flash&&!m_conceal) {
-#if BBCMICRO_FINER_TELETEXT
             m_data0=teletext_font[1][m_charset][value-32][glyph_raster];
             m_data1=teletext_font[1][m_charset][value-32][glyph_raster+(1>>m_raster_shift)];
-#else
-            m_data=teletext_font[m_aa][m_charset][value-32][glyph_raster];
-#endif
         } else {
-#if BBCMICRO_FINER_TELETEXT
             m_data0=0;
             m_data1=0;
-#else
-            m_data=0;
-#endif
         }
 
         m_data_colours[0]=m_bg;
         m_data_colours[1]=m_fg;
 
-        if(value&0x20) {
+        if(value&0x20&&m_charset!=TeletextCharset_Alpha) {
             if(!m_conceal) {
-#if BBCMICRO_FINER_TELETEXT
                 m_last_graphics_data0=m_data0;
                 m_last_graphics_data1=m_data1;
-#else
-                m_last_graphics_data=m_data;
-#endif
             }
         }
-    }
+            }
 
     if(m_debug) {
         size_t ch=value&0x7f;
         size_t row=m_raster/2;
-#if BBCMICRO_FINER_TELETEXT
         m_data0&=teletext_debug_font_bgmask[ch][row];
         m_data0|=teletext_debug_font[ch][row];
         m_data1&=teletext_debug_font_bgmask[ch][row];
         m_data1|=teletext_debug_font[ch][row];
-#else
-        m_data&=teletext_debug_font_bgmask[ch][row];
-        m_data|=teletext_debug_font[ch][row];
-#endif
     }
 }
 
 void SAA5050::EmitVideoDataUnit(VideoDataUnit *unit) {
-#if BBCMICRO_FINER_TELETEXT
-
     unit->teletext.type.x=VideoDataType_Teletext;
     unit->teletext.colours[0]=m_data_colours[0];
     unit->teletext.colours[1]=m_data_colours[1];
@@ -412,40 +384,21 @@ void SAA5050::EmitVideoDataUnit(VideoDataUnit *unit) {
 
     m_data0>>=CONSUMER_SHIFT;
     m_data1>>=CONSUMER_SHIFT;
-
-#else
-
-    hu->pixels[0]=m_data_colours[(m_data>>0)&1];
-    hu->pixels[1]=m_data_colours[(m_data>>1)&1];
-    hu->pixels[2]=m_data_colours[(m_data>>2)&1];
-    hu->pixels[3]=m_data_colours[(m_data>>3)&1];
-    hu->pixels[4]=m_data_colours[(m_data>>4)&1];
-    hu->pixels[5]=m_data_colours[(m_data>>5)&1];
-    hu->pixels[6]=m_data_colours[(m_data>>6)&1];
-    hu->pixels[7]=m_data_colours[(m_data>>7)&1];
-
-    m_data>>=8;
-
-#endif
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 void SAA5050::HSync() {
-    m_conceal=0;
+    m_conceal=false;
     m_fg=7;
     m_bg=0;
     m_graphics_charset=TeletextCharset_ContiguousGraphics;
     m_charset=TeletextCharset_Alpha;
-#if BBCMICRO_FINER_TELETEXT
     m_last_graphics_data0=0;
     m_last_graphics_data1=0;
-#else
-    m_last_graphics_data=0;
-#endif
-    m_hold=0;
-    m_flash=1;
+    m_hold=false;
+    m_flash=true;
     m_raster_shift=0;
 
     m_raster+=2;
@@ -460,7 +413,7 @@ void SAA5050::HSync() {
             m_raster_offset=0;
         }
 
-        m_any_double_height=0;
+        m_any_double_height=false;
     }
 }
 
@@ -468,23 +421,9 @@ void SAA5050::HSync() {
 //////////////////////////////////////////////////////////////////////////
 
 void SAA5050::VSync(uint8_t odd_frame) {
-#if BBCMICRO_FINER_TELETEXT
-
     (void)odd_frame;
 
     m_raster=0;
-
-#else
-
-    // m->saa5050.raster=m->crtc.registers.bits.r8.bits.v&&m->crtc.registers.bits.r8.bits.s&&(m->crtc.num_frames&1);
-
-    if(m_aa) {
-        m_raster=odd_frame;
-    } else {
-        m_raster=0;
-    }
-
-#endif
 
     ++m_frame;
     if(m_frame>=FRAMES_PER_SECOND) {
@@ -493,7 +432,7 @@ void SAA5050::VSync(uint8_t odd_frame) {
 
     m_frame_flash=m_frame<NUM_FLASH_OFF_FRAMES;
 
-    m_any_double_height=0;
+    m_any_double_height=false;
     m_raster_offset=0;
 }
 
@@ -510,24 +449,6 @@ bool SAA5050::IsDebug() const {
 void SAA5050::SetDebug(bool debug) {
     m_debug=debug;
 }
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-#if !BBCMICRO_FINER_TELETEXT
-bool SAA5050::IsAA() const {
-    return m_aa;
-}
-#endif
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-#if !BBCMICRO_FINER_TELETEXT
-void SAA5050::SetAA(bool aa) {
-    m_aa=aa;
-}
-#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
