@@ -41,17 +41,6 @@ static const size_t NUM_VBLANK_RECORDS=250;
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-#if BBCMICRO_FINER_TELETEXT
-#define FULL_PAL_HEIGHT 1
-#endif
-
-#if !FULL_PAL_HEIGHT
-#error building without FULL_PAL_HEIGHT no longer supported
-#endif
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 // When the timeline UI is disabled, a few vestiges do remain so that
 // any persisted UI enable/disable state is retained.
 #define TIMELINE_UI_ENABLED 1
@@ -81,11 +70,7 @@ static const size_t NUM_VBLANK_RECORDS=250;
 
 static const int TV_TEXTURE_WIDTH=736;
 
-static const int TV_TEXTURE_HEIGHT=288
-#if FULL_PAL_HEIGHT
-    *2
-#endif
-    ;
+static const int TV_TEXTURE_HEIGHT=288*2;
 
 static_assert(TV_TEXTURE_WIDTH%8==0,"");
 
