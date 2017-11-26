@@ -7,11 +7,6 @@
 #define ENAME BBCMicroDebugFlag
 EBEGIN()
 EPNV(TeletextDebug,1<<0)
-
-#if !BBCMICRO_FINER_TELETEXT
-EPNV(TeletextInterlace,1<<1)
-#endif
-
 EEND()
 #undef ENAME
 
