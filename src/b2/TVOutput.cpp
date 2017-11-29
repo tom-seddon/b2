@@ -95,6 +95,10 @@ static const int MAX_NUM_SCANNED_LINES=500*HEIGHT_SCALE;
 
 #define NOTHING_PALETTE_INDEX (0)
 
+#if BUILD_TYPE_Debug
+#pragma optimize("tsg",on)
+#endif
+
 void TVOutput::UpdateOneUnit(const VideoDataUnit *unit,float amt) {
 #if !BLEND
     (void)amt;
@@ -190,8 +194,29 @@ void TVOutput::UpdateOneUnit(const VideoDataUnit *unit,float amt) {
                         }
 #else
 
+
                         uint32_t *line=m_line+m_x;
                         uint32_t *line2=line+TV_TEXTURE_WIDTH;
+
+#if TV_OUTPUT_ONE_BIG_TABLE
+
+                        union PixelIndex {
+                            VideoDataBitmapPixel pixel;
+                            uint16_t index;
+                        };
+
+                        auto pixel=(PixelIndex *)unit->bitmap.pixels;
+
+                        *line2++=*line++=m_rgbs[pixel++->index];
+                        *line2++=*line++=m_rgbs[pixel++->index];
+                        *line2++=*line++=m_rgbs[pixel++->index];
+                        *line2++=*line++=m_rgbs[pixel++->index];
+                        *line2++=*line++=m_rgbs[pixel++->index];
+                        *line2++=*line++=m_rgbs[pixel++->index];
+                        *line2++=*line++=m_rgbs[pixel++->index];
+                        *line2++=*line++=m_rgbs[pixel++->index];
+
+#else
 
                         VideoDataBitmapPixel tmp;
 
@@ -218,6 +243,8 @@ void TVOutput::UpdateOneUnit(const VideoDataUnit *unit,float amt) {
 
                         tmp=unit->bitmap.pixels[7];
                         line2[7]=line[7]=m_rs[tmp.r]|m_gs[tmp.g]|m_bs[tmp.b];
+
+#endif
 
 #endif
 
@@ -513,6 +540,10 @@ void TVOutput::UpdateOneUnit(const VideoDataUnit *unit,float amt) {
     }
 }
 
+#if BUILD_TYPE_Debug
+#pragma optimize("",on)
+#endif
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
@@ -620,6 +651,28 @@ void TVOutput::InitPalette() {
     this->InitPalette(0,1.);
     this->InitPalette(1,1./3);
 
+#if TV_OUTPUT_ONE_BIG_TABLE
+
+    for(uint8_t r=0;r<16;++r) {
+        for(uint8_t g=0;g<16;++g) {
+            for(uint8_t b=0;b<16;++b) {
+                VideoDataBitmapPixel pixel={};
+
+                pixel.r=r;
+                pixel.g=g;
+                pixel.b=b;
+
+                uint16_t index;
+                memcpy(&index,&pixel,2);
+                ASSERT(index<4096);
+
+                m_rgbs[index]=SDL_MapRGBA(m_pixel_format,r<<4|r,g<<4|g,b<<4|b,255);
+            }
+        }
+    }
+
+#else
+
     for(uint8_t i=0;i<16;++i) {
         uint8_t value=i<<4|i;
 
@@ -627,6 +680,8 @@ void TVOutput::InitPalette() {
         m_gs[i]=SDL_MapRGBA(m_pixel_format,0,value,0,255);
         m_bs[i]=SDL_MapRGBA(m_pixel_format,0,0,value,255);
     }
+
+#endif
 
     m_rshift=m_pixel_format->Rshift;
     m_gshift=m_pixel_format->Gshift;

@@ -14,7 +14,10 @@
 #include <vector>
 #include <beeb/OutputData.h>
 
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
 
+#define TV_OUTPUT_ONE_BIG_TABLE 0
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -75,14 +78,12 @@ private:
     size_t m_x=0;
     size_t m_y=0;
     int m_state_timer=0;
+    size_t m_num_fields=0;
 
     uint32_t m_palette[2][64]={};
-    uint32_t m_rs[16]={};
-    uint32_t m_gs[16]={};
-    uint32_t m_bs[16]={};
     uint32_t m_rshift=0,m_gshift=0,m_bshift=0,m_alpha=0;
+
     SDL_PixelFormat *m_pixel_format=nullptr;
-    size_t m_num_fields=0;
 
     // TV - output texture and its properties
     std::vector<uint32_t> m_texture_data;
@@ -97,6 +98,14 @@ private:
 #endif
 
     double m_gamma=2.2;
+
+#if TV_OUTPUT_ONE_BIG_TABLE
+    uint32_t m_rgbs[4096]={};
+#else
+    uint32_t m_rs[16]={};
+    uint32_t m_gs[16]={};
+    uint32_t m_bs[16]={};
+#endif
 
     void InitPalette(size_t palette,double fa);
     void InitPalette();
