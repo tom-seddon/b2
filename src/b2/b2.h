@@ -15,6 +15,9 @@ struct BeebWindowInitArguments;
 // Create new window with the given init arguments.
 void PushNewWindowMessage(BeebWindowInitArguments init_arguments);
 
+// Call the given function next time round the loop.
+void PushFunctionMessage(std::function<void()> fun);
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 

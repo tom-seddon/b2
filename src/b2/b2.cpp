@@ -76,6 +76,7 @@ LOG_DEFINE(OUTPUTND,"",&log_printer_stdout,false)
 static Uint32 g_vblank_event_type;
 static Uint32 g_update_window_title_event_type;
 static Uint32 g_new_window_event_type;
+static Uint32 g_function_event_type;
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -225,6 +226,19 @@ void PushNewWindowMessage(BeebWindowInitArguments init_arguments_) {
     // it. It's probably possible for an SDL_QUIT to end up ahead of
     // it in the queue, meaning that the object could leak.
     event.user.data1=new BeebWindowInitArguments(std::move(init_arguments_));
+
+    SDL_PushEvent(&event);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void PushFunctionMessage(std::function<void()> fun) {
+    SDL_Event event={};
+
+    event.user.type=g_function_event_type;
+
+    event.user.data1=new std::function<void()>(std::move(fun));
 
     SDL_PushEvent(&event);
 }
@@ -506,6 +520,7 @@ static bool InitSystem(
     g_vblank_event_type=SDL_RegisterEvents(1);
     g_update_window_title_event_type=SDL_RegisterEvents(1);
     g_new_window_event_type=SDL_RegisterEvents(1);
+    g_function_event_type=SDL_RegisterEvents(1);
 
     // 
     SDL_AddTimer(1000,&UpdateWindowTitle,NULL);
@@ -964,6 +979,13 @@ static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &init
 
                         delete init_arguments;
                         init_arguments=nullptr;
+                    } else if(event.type==g_function_event_type) {
+                        auto fun=(std::function<void()> *)event.user.data1;
+
+                        (*fun)();
+
+                        delete fun;
+                        fun=nullptr;
                     }
                 }
                 break;
