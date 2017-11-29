@@ -37,6 +37,14 @@
 #include <atomic>
 #include <shared/system_specific.h>
 
+#include <shared/enum_decl.h>
+#include "b2.inl"
+#include <shared/enum_end.h>
+
+#include <shared/enum_def.h>
+#include "b2.inl"
+#include <shared/enum_end.h>
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
@@ -73,10 +81,7 @@ LOG_DEFINE(OUTPUTND,"",&log_printer_stdout,false)
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static Uint32 g_vblank_event_type;
-static Uint32 g_update_window_title_event_type;
-static Uint32 g_new_window_event_type;
-static Uint32 g_function_event_type;
+static Uint32 g_first_event_type;
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -143,7 +148,7 @@ void b2VBlankHandler::ThreadVBlank(uint32_t display_id,void *data) {
 
     if(vblank->event) {
         SDL_Event event={};
-        event.user.type=g_vblank_event_type;
+        event.user.type=g_first_event_type+SDLEventType_VBlank;
         event.user.code=(Sint32)display_id;
 
         SDL_PushEvent(&event);
@@ -201,7 +206,7 @@ static void ThreadFillAudioBuffer(void *userdata,uint8_t *stream,int len) {
 
 static void PushUpdateWindowTitleEvent(void) {
     SDL_Event event={};
-    event.user.type=g_update_window_title_event_type;
+    event.user.type=g_first_event_type+SDLEventType_UpdateWindowTitle;
 
     SDL_PushEvent(&event);
 }
@@ -220,7 +225,7 @@ static Uint32 UpdateWindowTitle(Uint32 interval,void *param) {
 void PushNewWindowMessage(BeebWindowInitArguments init_arguments_) {
     SDL_Event event={};
 
-    event.user.type=g_new_window_event_type;
+    event.user.type=g_first_event_type+SDLEventType_NewWindow;
 
     // This relies on the message loop receiving it, so it can delete
     // it. It's probably possible for an SDL_QUIT to end up ahead of
@@ -236,7 +241,7 @@ void PushNewWindowMessage(BeebWindowInitArguments init_arguments_) {
 void PushFunctionMessage(std::function<void()> fun) {
     SDL_Event event={};
 
-    event.user.type=g_function_event_type;
+    event.user.type=g_first_event_type+SDLEventType_Function;
 
     event.user.data1=new std::function<void()>(std::move(fun));
 
@@ -455,11 +460,11 @@ static bool DoCommandLineOptions(
 
     if(!GetLogListsByTag().empty()) {
         std::string list=GetLogList();
-        
+
         p.AddOption('e',"enable-log").AddArgToList(&options->enable_logs).Meta("LOG").Help("enable additional log LOG (one of: "+list+")");
         p.AddOption('d',"disable-log").AddArgToList(&options->disable_logs).Meta("LOG").Help("disable additional log LOG (one of: "+list+")");
     }
-    
+
     p.AddOption('v',"verbose").SetIfPresent(&options->verbose).Help("be extra verbose");
 
     p.AddHelpOption(&options->help);
@@ -485,8 +490,8 @@ static bool DoCommandLineOptions(
     }
 
     if(options->audio_buffer_size<=0||
-        options->audio_buffer_size>=65535||
-        (options->audio_buffer_size&(options->audio_buffer_size-1))!=0)
+       options->audio_buffer_size>=65535||
+       (options->audio_buffer_size&(options->audio_buffer_size-1))!=0)
     {
         init_messages->e.f("invalid audio buffer size: %d\n",options->audio_buffer_size);
         return false;
@@ -517,10 +522,7 @@ static bool InitSystem(
     }
 
     // Allocate user events
-    g_vblank_event_type=SDL_RegisterEvents(1);
-    g_update_window_title_event_type=SDL_RegisterEvents(1);
-    g_new_window_event_type=SDL_RegisterEvents(1);
-    g_function_event_type=SDL_RegisterEvents(1);
+    g_first_event_type=SDL_RegisterEvents(SDLEventType_Count);
 
     // 
     SDL_AddTimer(1000,&UpdateWindowTitle,NULL);
@@ -718,7 +720,7 @@ static bool InitLogs(const Options &options,Messages *init_messages) {
     }
 
     // the Log API really isn't very good for this :(
-    
+
     if(!InitLogs(options.enable_logs,&Log::Enable,init_messages)) {
         return false;
     }
@@ -962,30 +964,53 @@ static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &init
 
             default:
                 {
-                    if(event.type==g_vblank_event_type) {
-                        if(auto dd=(b2VBlankHandler::Display *)vblank_monitor->GetDisplayDataForDisplayID((uint32_t)event.user.code)) {
-                            uint64_t ticks=GetCurrentTickCount();
+                    if(event.type>=g_first_event_type&&event.type<g_first_event_type+SDLEventType_Count) {
+                        switch((SDLEventType)(event.type-g_first_event_type)) {
+                        case SDLEventType_VBlank:
+                            {
+                                if(auto dd=(b2VBlankHandler::Display *)vblank_monitor->GetDisplayDataForDisplayID((uint32_t)event.user.code)) {
+                                    uint64_t ticks=GetCurrentTickCount();
 
-                            BeebWindows::HandleVBlank(vblank_monitor.get(),dd,ticks);
+                                    BeebWindows::HandleVBlank(vblank_monitor.get(),dd,ticks);
 
-                            dd->message_pending=false;
+                                    dd->message_pending=false;
+                                }
+                            }
+                            break;
+
+                        case SDLEventType_UpdateWindowTitle:
+                            {
+                                BeebWindows::UpdateWindowTitles();
+                            }
+                            break;
+
+                        case SDLEventType_NewWindow:
+                            {
+                                auto init_arguments=(BeebWindowInitArguments *)event.user.data1;
+
+                                BeebWindows::CreateBeebWindow(*init_arguments);
+
+                                delete init_arguments;
+                                init_arguments=nullptr;
+                            }
+                            break;
+
+                        case SDLEventType_Function:
+                            {
+                                auto fun=(std::function<void()> *)event.user.data1;
+
+                                (*fun)();
+
+                                delete fun;
+                                fun=nullptr;
+                            }
+                            break;
+
+                        case SDLEventType_Count:
+                            // only here avoid incomplete switch warning.
+                            ASSERT(false);
+                            break;
                         }
-                    } else if(event.type==g_update_window_title_event_type) {
-                        BeebWindows::UpdateWindowTitles();
-                    } else if(event.type==g_new_window_event_type) {
-                        auto init_arguments=(BeebWindowInitArguments *)event.user.data1;
-
-                        BeebWindows::CreateBeebWindow(*init_arguments);
-
-                        delete init_arguments;
-                        init_arguments=nullptr;
-                    } else if(event.type==g_function_event_type) {
-                        auto fun=(std::function<void()> *)event.user.data1;
-
-                        (*fun)();
-
-                        delete fun;
-                        fun=nullptr;
                     }
                 }
                 break;
@@ -1015,7 +1040,7 @@ static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &init
 
 
     return true;
-    }
+}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

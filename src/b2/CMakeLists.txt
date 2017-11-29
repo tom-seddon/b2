@@ -5,7 +5,7 @@ include(BundleUtilities)
 ##########################################################################
 
 add_executable(b2 MACOSX_BUNDLE
-  b2.cpp b2.h
+  b2.cpp b2.h b2.inl
   65link.cpp 65link.h
   BeebThread.cpp BeebThread.h BeebThread.inl
   BeebWindows.cpp BeebWindows.h 
