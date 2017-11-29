@@ -1031,22 +1031,6 @@ uint64_t BeebThread::GetLastSavedStateTimelineId() const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void BeebThread::FlushCallbacks() {
-    std::vector<std::function<void()>> callbacks;
-    {
-        std::lock_guard<std::mutex> lock(m_mutex);
-
-        callbacks=std::move(m_callbacks);
-    }
-
-    for(auto &&callback:callbacks) {
-        callback();
-    }
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 void BeebThread::DebugCopyMemory(void *dest,M6502Word addr,uint16_t num_bytes) {
     std::lock_guard<std::mutex> lock(m_mutex);
 
@@ -1693,7 +1677,7 @@ void BeebThread::ThreadStopCopy(ThreadState *ts) {
         }
     }
 
-    this->AddCallback([data=std::move(ts->copy_data),fun=std::move(ts->copy_stop_fun)]() {
+    PushFunctionMessage([data=std::move(ts->copy_data),fun=std::move(ts->copy_stop_fun)]() {
         fun(std::move(data));
     });
 
@@ -2331,15 +2315,6 @@ void BeebThread::DeleteOuMessagePayload(Message *msg) {
 template<class PayloadType>
 void BeebThread::SendMessageWithPayload(BeebThreadEventType type,PayloadType *payload) {
     this->SendMessage(type,0,payload,&DeleteOuMessagePayload<PayloadType>);
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-void BeebThread::AddCallback(std::function<void()> callback) {
-    std::lock_guard<std::mutex> lock(m_mutex);
-
-    m_callbacks.emplace_back(std::move(callback));
 }
 
 //////////////////////////////////////////////////////////////////////////

@@ -1531,8 +1531,6 @@ bool BeebWindow::HandleVBlank(uint64_t ticks) {
 
     this->UpdateTVTexture(vblank_record);
 
-    m_beeb_thread->FlushCallbacks();
-
     if(!this->DoImGui(ticks)) {
         keep_window=false;
     }

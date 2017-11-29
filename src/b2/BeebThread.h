@@ -243,10 +243,6 @@ public:
     uint64_t GetParentTimelineEventId() const;
     uint64_t GetLastSavedStateTimelineId() const;
 
-    // Clears the callback list, then calls each callback in the order
-    // it was added.
-    void FlushCallbacks();
-
     // Byte-by-byte access isn't provided, to avoid excessive mutex
     // locking. But maybe that's dumb?
     void DebugCopyMemory(void *dest,M6502Word addr,uint16_t num_bytes);
@@ -351,9 +347,6 @@ private:
     //
     std::shared_ptr<MessageList> m_message_list;
 
-    // Must take mutex to read or write.
-    std::vector<std::function<void()>> m_callbacks;
-
 #if BBCMICRO_DEBUGGER
     M6502 m_6502_state={};
 #endif
@@ -408,7 +401,6 @@ private:
     void SetVolume(float *scale_var,float *db_var,float db);
     //void SetDiscImage(int drive,std::unique_ptr<DiscImage> disc_image);
     void SetLastSavedStateTimelineId(uint64_t id);
-    void AddCallback(std::function<void()> callback);
 };
 
 //////////////////////////////////////////////////////////////////////////
