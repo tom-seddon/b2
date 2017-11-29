@@ -1063,6 +1063,13 @@ void BeebThread::SendDebugSetByteMessage(uint16_t address,uint8_t value) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+BeebThread::MainLoopStats BeebThread::GetMainLoopStats() const {
+    return m_main_loop_stats;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 void BeebThread::SetLastSavedStateTimelineId(uint64_t id) {
     std::lock_guard<std::mutex> lock(m_mutex);
 
@@ -2142,10 +2149,11 @@ void BeebThread::ThreadMain(void) {
         paused=m_paused;
     }
 
-
     for(;;) {
         Message msg;
         int got_msg;
+
+        ++m_main_loop_stats.num_iterations;
 
         if(paused||(limit_speed&&next_stop_2MHz_cycles<=*ts.num_executed_2MHz_cycles)) {
         wait_for_message:
@@ -2155,141 +2163,143 @@ void BeebThread::ThreadMain(void) {
             got_msg=MessageQueuePollForMessage(m_mq,&msg);
         }
 
-        std::unique_lock<std::mutex> lock(m_mutex,std::defer_lock);
+        uint64_t lock_start_ticks=GetCurrentTickCount();
 
-        if(lock.try_lock()) {
-            if(got_msg) {
-                if(!this->ThreadHandleMessage(&ts,&msg,&limit_speed,&next_stop_2MHz_cycles)) {
-                    goto done;
-                }
+        std::lock_guard<std::mutex> lock(m_mutex);
+
+        m_main_loop_stats.mutex_lock_wait_ticks+=GetCurrentTickCount()-lock_start_ticks;
+
+        if(got_msg) {
+            if(!this->ThreadHandleMessage(&ts,&msg,&limit_speed,&next_stop_2MHz_cycles)) {
+                goto done;
             }
+        }
 
-            uint64_t stop_2MHz_cycles=next_stop_2MHz_cycles;
+        uint64_t stop_2MHz_cycles=next_stop_2MHz_cycles;
+
+        if(m_is_replaying) {
+            ASSERT(*ts.num_executed_2MHz_cycles<=ts.replay_next_event_cycles);
+            if(*ts.num_executed_2MHz_cycles==ts.replay_next_event_cycles) {
+                this->ThreadHandleReplayEvents(&ts);
+            }
 
             if(m_is_replaying) {
-                ASSERT(*ts.num_executed_2MHz_cycles<=ts.replay_next_event_cycles);
-                if(*ts.num_executed_2MHz_cycles==ts.replay_next_event_cycles) {
-                    this->ThreadHandleReplayEvents(&ts);
-                }
-
-                if(m_is_replaying) {
-                    if(ts.replay_next_event_cycles<stop_2MHz_cycles) {
-                        stop_2MHz_cycles=ts.replay_next_event_cycles;
-                    }
+                if(ts.replay_next_event_cycles<stop_2MHz_cycles) {
+                    stop_2MHz_cycles=ts.replay_next_event_cycles;
                 }
             }
+        }
 
-            if(m_is_pasting) {
-                if(!ts.beeb->IsPasting()) {
-                    m_is_pasting.store(false,std::memory_order_release);
-                }
+        if(m_is_pasting) {
+            if(!ts.beeb->IsPasting()) {
+                m_is_pasting.store(false,std::memory_order_release);
             }
+        }
 
-            paused=m_paused;
+        paused=m_paused;
 #if BBCMICRO_DEBUGGER
-            if(ts.beeb->DebugIsHalted()) {
-                paused=true;
-            }
+        if(ts.beeb->DebugIsHalted()) {
+            paused=true;
+        }
 #endif
 
-            if(!paused&&stop_2MHz_cycles>*ts.num_executed_2MHz_cycles) {
-                ASSERT(ts.beeb);
+        if(!paused&&stop_2MHz_cycles>*ts.num_executed_2MHz_cycles) {
+            ASSERT(ts.beeb);
 
-                uint64_t num_2MHz_cycles=stop_2MHz_cycles-*ts.num_executed_2MHz_cycles;
-                if(num_2MHz_cycles>RUN_2MHz_CYCLES) {
-                    num_2MHz_cycles=RUN_2MHz_CYCLES;
-                }
-
-                // One day I'll clear up the units mismatch...
-                VideoDataUnit *va,*vb;
-                size_t num_va,num_vb;
-                size_t num_video_units=num_2MHz_cycles;
-                ASSERT((num_2MHz_cycles&1)==0);
-                if(!m_video_output.ProducerLock(&va,&num_va,&vb,&num_vb,num_video_units)) {
-                    goto wait_for_message;
-                }
-
-                // should really have this as part of the OutputDataBuffer API.
-                if(num_va+num_vb<num_video_units) {
-                unlock_video:;
-                    m_video_output.ProducerUnlock(0);
-                    goto wait_for_message;
-                }
-
-                ASSERT((num_va&1)==0);
-                ASSERT((num_vb&1)==0);
-
-                size_t num_sound_units=(num_2MHz_cycles+(1<<SOUND_CLOCK_SHIFT)-1)>>SOUND_CLOCK_SHIFT;
-
-                SoundDataUnit *sa,*sb;
-                size_t num_sa,num_sb;
-                if(!m_sound_output.ProducerLock(&sa,&num_sa,&sb,&num_sb,num_sound_units)) {
-                    goto unlock_video;
-                }
-
-                if(num_sa+num_sb<num_sound_units) {
-                    m_sound_output.ProducerUnlock(0);
-                    goto unlock_video;
-                }
-
-                SoundDataUnit *sunit=sa;
-                size_t num_sunits_produced=0;
-                size_t num_vunits_produced=0;
-
-                // Fill part A.
-                {
-                    VideoDataUnit *vunit=va;
-                    size_t i;
-
-                    for(i=0;i<num_va;++i) {
-                        if(ts.beeb->Update(vunit++,sunit)) {
-                            ++sunit;
-
-                            if(sunit==sa+num_sa) {
-                                sunit=sb;
-                            } else if(sunit==sb+num_sb) {
-                                sunit=nullptr;
-                            }
-
-                            ++num_sunits_produced;
-                        }
-
-                        if(ts.beeb->DebugIsHalted()) {
-                            break;
-                        }
-                    }
-
-                    num_vunits_produced+=i;
-                }
-
-                // Fill part B.
-                if(!ts.beeb->DebugIsHalted()) {
-                    VideoDataUnit *vunit=vb;
-                    size_t i;
-
-                    for(i=0;i<num_vb;++i) {
-                        if(ts.beeb->Update(vunit++,sunit)) {
-                            ++sunit;
-
-                            if(sunit==sa+num_sa) {
-                                sunit=sb;
-                            } else if(sunit==sb+num_sb) {
-                                sunit=nullptr;
-                            }
-
-                            ++num_sunits_produced;
-                        }
-                    }
-
-                    num_vunits_produced+=i;
-                }
-
-                m_video_output.ProducerUnlock(num_vunits_produced);
-                m_sound_output.ProducerUnlock(num_sunits_produced);
-
-                // It's a bit dumb having multiple copies.
-                m_num_2MHz_cycles.store(*ts.num_executed_2MHz_cycles,std::memory_order_release);
+            uint64_t num_2MHz_cycles=stop_2MHz_cycles-*ts.num_executed_2MHz_cycles;
+            if(num_2MHz_cycles>RUN_2MHz_CYCLES) {
+                num_2MHz_cycles=RUN_2MHz_CYCLES;
             }
+
+            // One day I'll clear up the units mismatch...
+            VideoDataUnit *va,*vb;
+            size_t num_va,num_vb;
+            size_t num_video_units=num_2MHz_cycles;
+            ASSERT((num_2MHz_cycles&1)==0);
+            if(!m_video_output.ProducerLock(&va,&num_va,&vb,&num_vb,num_video_units)) {
+                goto wait_for_message;
+            }
+
+            // should really have this as part of the OutputDataBuffer API.
+            if(num_va+num_vb<num_video_units) {
+            unlock_video:;
+                m_video_output.ProducerUnlock(0);
+                goto wait_for_message;
+            }
+
+            ASSERT((num_va&1)==0);
+            ASSERT((num_vb&1)==0);
+
+            size_t num_sound_units=(num_2MHz_cycles+(1<<SOUND_CLOCK_SHIFT)-1)>>SOUND_CLOCK_SHIFT;
+
+            SoundDataUnit *sa,*sb;
+            size_t num_sa,num_sb;
+            if(!m_sound_output.ProducerLock(&sa,&num_sa,&sb,&num_sb,num_sound_units)) {
+                goto unlock_video;
+            }
+
+            if(num_sa+num_sb<num_sound_units) {
+                m_sound_output.ProducerUnlock(0);
+                goto unlock_video;
+            }
+
+            SoundDataUnit *sunit=sa;
+            size_t num_sunits_produced=0;
+            size_t num_vunits_produced=0;
+
+            // Fill part A.
+            {
+                VideoDataUnit *vunit=va;
+                size_t i;
+
+                for(i=0;i<num_va;++i) {
+                    if(ts.beeb->Update(vunit++,sunit)) {
+                        ++sunit;
+
+                        if(sunit==sa+num_sa) {
+                            sunit=sb;
+                        } else if(sunit==sb+num_sb) {
+                            sunit=nullptr;
+                        }
+
+                        ++num_sunits_produced;
+                    }
+
+                    if(ts.beeb->DebugIsHalted()) {
+                        break;
+                    }
+                }
+
+                num_vunits_produced+=i;
+            }
+
+            // Fill part B.
+            if(!ts.beeb->DebugIsHalted()) {
+                VideoDataUnit *vunit=vb;
+                size_t i;
+
+                for(i=0;i<num_vb;++i) {
+                    if(ts.beeb->Update(vunit++,sunit)) {
+                        ++sunit;
+
+                        if(sunit==sa+num_sa) {
+                            sunit=sb;
+                        } else if(sunit==sb+num_sb) {
+                            sunit=nullptr;
+                        }
+
+                        ++num_sunits_produced;
+                    }
+                }
+
+                num_vunits_produced+=i;
+            }
+
+            m_video_output.ProducerUnlock(num_vunits_produced);
+            m_sound_output.ProducerUnlock(num_sunits_produced);
+
+            // It's a bit dumb having multiple copies.
+            m_num_2MHz_cycles.store(*ts.num_executed_2MHz_cycles,std::memory_order_release);
         }
     }
 done:

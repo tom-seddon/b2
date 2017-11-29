@@ -5,6 +5,7 @@
 #include "dear_imgui.h"
 #include <shared/debug.h>
 #include "SettingsUI.h"
+#include <inttypes.h>
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -82,6 +83,15 @@ void DataRateUI::DoImGui(CommandContextStack *cc_stack) {
     (void)cc_stack;
 
     std::shared_ptr<BeebThread> beeb_thread=m_beeb_window->GetBeebThread();
+
+    {
+        BeebThread::MainLoopStats stats=beeb_thread->GetMainLoopStats();
+
+        ImGui::Text("Main loop iterations: %" PRIu64,stats.num_iterations);
+        ImGui::Text("Mutex lock wait time: %.3f sec",GetSecondsFromTicks(stats.mutex_lock_wait_ticks));
+    }
+
+    ImGui::Separator();
 
     ImGui::TextUnformatted("Audio Data Availability (mark=25%)");
     std::vector<BeebThread::AudioCallbackRecord> audio_records=beeb_thread->GetAudioCallbackRecords();

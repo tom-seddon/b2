@@ -85,6 +85,11 @@ public:
         uint64_t available=0;
     };
 
+    struct MainLoopStats {
+        uint64_t num_iterations=0;
+        uint64_t mutex_lock_wait_ticks=0;
+    };
+
     explicit BeebThread(std::shared_ptr<MessageList> message_list,uint32_t sound_device_id,int sound_freq,size_t sound_buffer_size_samples);
     ~BeebThread();
 
@@ -247,6 +252,8 @@ public:
     void DebugCopyMemory(void *dest,M6502Word addr,uint16_t num_bytes);
 
     void SendDebugSetByteMessage(uint16_t address,uint8_t value);
+
+    MainLoopStats GetMainLoopStats() const;
 protected:
 private:
     struct ThreadState;
@@ -323,6 +330,10 @@ private:
     // inconsistency isn't a problem.
     TraceStats m_trace_stats;
 #endif
+
+    // There's no mutex for this... it's only for the UI, so
+    // inconsistency isn't a problem.
+    MainLoopStats m_main_loop_stats;
 
     // Shadow copy of last known disc drive pointers.
     std::shared_ptr<const DiscImage> m_disc_images[NUM_DRIVES];
