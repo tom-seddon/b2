@@ -22,6 +22,7 @@ set(SRCS
   ${H}/enum_decl.h  ${H}/enum_def.h  ${H}/enum_end.h  ${H}/system_specific.h
   ${H}/popwarn.h ${H}/pushwarn_bitfields.h ${H}/pushwarn_flexible_struct_member.h ${H}/pushwarn_padded_struct.h
   c/relacy.cpp ${H}/relacy.h
+  c/mutex.cpp ${H}/mutex.h
   )
 
 if(APPLE)
@@ -48,6 +49,7 @@ endif()
 
 add_library(shared_lib STATIC ${SRCS})
 
+
 target_include_directories(shared_lib INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/h)
 target_include_directories(shared_lib PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/h)
 
@@ -64,3 +66,4 @@ endif()
 
 add_subdirectory("t")
 add_sanitizers(shared_lib)
+add_config_define(shared_lib)

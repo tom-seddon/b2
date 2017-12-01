@@ -5,7 +5,7 @@
 //////////////////////////////////////////////////////////////////////////
 
 #include "conf.h"
-#include <mutex>
+#include <shared/mutex.h>
 #include <thread>
 #include <beeb/sound.h>
 #include <beeb/video.h>
@@ -13,11 +13,10 @@
 #include <beeb/conf.h>
 #include <memory>
 #include <vector>
-#include <mutex>
+#include <shared/mutex.h>
 #include <beeb/Trace.h>
 #include "misc.h"
 #include "keys.h"
-#include <condition_variable>
 #include <beeb/DiscImage.h>
 #include <beeb/BBCMicro.h>
 #include <atomic>
@@ -83,11 +82,6 @@ public:
         uint64_t time=0;
         uint64_t needed=0;
         uint64_t available=0;
-    };
-
-    struct MainLoopStats {
-        uint64_t num_iterations=0;
-        uint64_t mutex_lock_wait_ticks=0;
     };
 
     explicit BeebThread(std::shared_ptr<MessageList> message_list,uint32_t sound_device_id,int sound_freq,size_t sound_buffer_size_samples);
@@ -156,7 +150,7 @@ public:
     void SendStartCopyBASICMessage(std::function<void(std::vector<uint8_t>)> stop_fun);
 
 #if BBCMICRO_DEBUGGER
-    const M6502 *Get6502State(std::unique_lock<std::mutex> *lock) const;
+    const M6502 *Get6502State(std::unique_lock<Mutex> *lock) const;
 #endif
 
     // 
@@ -181,7 +175,7 @@ public:
 
     // Get the disc image pointer for the given drive, using the given
     // lock object to take a lock on the disc access mutex.
-    std::shared_ptr<const DiscImage> GetDiscImage(std::unique_lock<std::mutex> *lock,int drive) const;
+    std::shared_ptr<const DiscImage> GetDiscImage(std::unique_lock<Mutex> *lock,int drive) const;
 
     // Get the current LED flags - a combination of BBCMicroLEDFlag values.
     uint32_t GetLEDs() const;
@@ -248,8 +242,6 @@ public:
     void DebugCopyMemory(void *dest,M6502Word addr,uint16_t num_bytes);
 
     void SendDebugSetByteMessage(uint16_t address,uint8_t value);
-
-    MainLoopStats GetMainLoopStats() const;
 protected:
 private:
     struct ThreadState;
@@ -296,7 +288,7 @@ private:
 
     //mutable volatile int32_t m_is_paused=1;
 
-    mutable std::mutex m_mutex;
+    mutable Mutex m_mutex;
 
     bool m_paused=true;
 
@@ -326,10 +318,6 @@ private:
     // inconsistency isn't a problem.
     TraceStats m_trace_stats;
 #endif
-
-    // There's no mutex for this... it's only for the UI, so
-    // inconsistency isn't a problem.
-    MainLoopStats m_main_loop_stats;
 
     // Shadow copy of last known disc drive pointers.
     std::shared_ptr<const DiscImage> m_disc_images[NUM_DRIVES];

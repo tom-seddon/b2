@@ -7,7 +7,7 @@
 #include <stdarg.h>
 #include <stddef.h>
 #include <thread>
-#include <mutex>
+#include <shared/mutex.h>
 #include <string>
 #include <vector>
 #include <map>
@@ -29,9 +29,11 @@ public:
     void lock();
     void unlock();
     bool try_lock();
+
+    void SetMutexName(std::string name);
 protected:
 private:
-    std::mutex m_mutex;
+    Mutex m_mutex;
 };
 
 //////////////////////////////////////////////////////////////////////////

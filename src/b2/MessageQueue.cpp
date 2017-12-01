@@ -3,8 +3,7 @@
 #include "MessageQueue.h"
 #include <stdlib.h>
 #include <limits.h>
-#include <mutex>
-#include <condition_variable>
+#include <shared/mutex.h>
 #include <vector>
 
 //////////////////////////////////////////////////////////////////////////
@@ -15,8 +14,8 @@ typedef uint64_t SyntheticMessageSet;
 #define NUM_SYNTHETIC_MESSAGES (sizeof(SyntheticMessageSet)*CHAR_BIT)
 
 struct MessageQueue {
-    std::mutex mutex;
-    std::condition_variable cv;
+    Mutex mutex;
+    ConditionVariable cv;
     std::vector<Message> msgs;
     SyntheticMessageSet synthetic_messages_pending=0;
     Message::Data synthetic_messages_data[NUM_SYNTHETIC_MESSAGES]={};
@@ -44,6 +43,8 @@ void MessageDestroy(Message *msg) {
 
 MessageQueue *MessageQueueAlloc(void) {
     auto mq=new MessageQueue;
+
+    MUTEX_SET_NAME(mq->mutex,"MessageQueue");
 
     return mq;
 }
@@ -75,7 +76,7 @@ void MessageQueueAddSyntheticMessage(MessageQueue *mq,uint32_t u32,Message::Data
 
     uint64_t old;
     {
-        std::lock_guard<std::mutex> lock(mq->mutex);
+        std::lock_guard<Mutex> lock(mq->mutex);
 
         old=mq->synthetic_messages_pending;
         uint64_t mask=1ull<<u32;
@@ -100,7 +101,7 @@ void MessageQueuePush(MessageQueue *mq,const Message *msg) {
     ASSERT(msg->type!=MESSAGE_TYPE_SYNTHETIC);
 
     {
-        std::lock_guard<std::mutex> lock(mq->mutex);
+        std::lock_guard<Mutex> lock(mq->mutex);
 
         mq->msgs.push_back(*msg);
 
@@ -167,7 +168,7 @@ static bool Poll(MessageQueue *mq,Message *msg) {
 //////////////////////////////////////////////////////////////////////////
 
 void MessageQueueWaitForMessage(MessageQueue *mq,Message *msg) {
-    std::unique_lock<std::mutex> lock(mq->mutex);
+    std::unique_lock<Mutex> lock(mq->mutex);
 
     while(!Poll(mq,msg)) {
         mq->cv.wait(lock);
@@ -178,7 +179,7 @@ void MessageQueueWaitForMessage(MessageQueue *mq,Message *msg) {
 //////////////////////////////////////////////////////////////////////////
 
 int MessageQueuePollForMessage(MessageQueue *mq,Message *msg) {
-    std::lock_guard<std::mutex> lock(mq->mutex);
+    std::lock_guard<Mutex> lock(mq->mutex);
 
     return Poll(mq,msg);
 }

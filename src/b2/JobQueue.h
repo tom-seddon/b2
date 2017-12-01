@@ -5,9 +5,8 @@
 //////////////////////////////////////////////////////////////////////////
 
 #include <thread>
-#include <mutex>
+#include <shared/mutex.h>
 #include <vector>
-#include <condition_variable>
 #include <atomic>
 
 //////////////////////////////////////////////////////////////////////////
@@ -66,8 +65,8 @@ private:
     
     std::vector<ThreadData> m_threads;
     
-    mutable std::mutex m_jobs_mutex;
-    std::condition_variable m_jobs_cv;
+    mutable Mutex m_jobs_mutex;
+    ConditionVariable m_jobs_cv;
     std::vector<std::shared_ptr<Job>> m_jobs;
     bool m_quit=false;
 

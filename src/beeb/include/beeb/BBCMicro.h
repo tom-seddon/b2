@@ -28,7 +28,7 @@ class DiscImage;
 #include "VideoULA.h"
 #include "teletext.h"
 #include "DiscInterface.h"
-#include <mutex>
+#include <shared/mutex.h>
 #include <time.h>
 #include "keys.h"
 #include "video.h"

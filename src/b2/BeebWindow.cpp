@@ -4,7 +4,7 @@
 #include <beeb/OutputData.h>
 #include "Remapper.h"
 #include <beeb/conf.h>
-#include <mutex>
+#include <shared/mutex.h>
 #include "BeebThread.h"
 #include <beeb/sound.h>
 #include <shared/debug.h>
@@ -1066,7 +1066,7 @@ void BeebWindow::DoFileMenu() {
 
             if(ImGui::BeginMenu(title)) {
                 std::string name,load_method;
-                std::unique_lock<std::mutex> d_lock;
+                std::unique_lock<Mutex> d_lock;
                 std::shared_ptr<const DiscImage> disc_image=m_beeb_thread->GetDiscImage(&d_lock,drive);
 
                 if(disc_image) {

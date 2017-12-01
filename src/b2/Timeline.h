@@ -9,7 +9,7 @@ class Messages;
 class Log;
 
 #include <memory>
-#include <mutex>
+#include <shared/mutex.h>
 #include "beeb_events.h"
 
 //////////////////////////////////////////////////////////////////////////

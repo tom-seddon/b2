@@ -120,7 +120,7 @@ private:
     Printer m_warning_printer;
     Printer m_error_printer;
     
-    mutable std::mutex m_mutex;
+    mutable Mutex m_mutex;
     mutable std::vector<Message> m_messages;
     size_t m_head=0;
     size_t m_max_num_messages=0;

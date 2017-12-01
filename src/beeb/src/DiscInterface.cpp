@@ -6,7 +6,7 @@
 #include <stdlib.h>
 #include <shared/debug.h>
 #include <memory>
-#include <mutex>
+#include <shared/mutex.h>
 #include <vector>
 
 #include <shared/enum_def.h>
@@ -326,7 +326,7 @@ static const DiscInterfaceDef DISC_INTERFACE_OPUS{"Opus 1770","OPUS-DDOS-3.45.ro
 #define CHALLENGER_CHUNK_SIZE (8192)
 
 struct ChallengerRAMChunk {
-    std::mutex mutex;
+    Mutex mutex;
 
     size_t num_refs=1;
     uint8_t data[CHALLENGER_CHUNK_SIZE]={};
@@ -354,7 +354,7 @@ public:
 
     ~DiscInterfaceChallenger() {
         for(size_t i=0;i<m_chunks.size();++i) {
-            this->DecLockedChunkRef(i,std::unique_lock<std::mutex>(m_chunks[i]->mutex));
+            this->DecLockedChunkRef(i,std::unique_lock<Mutex>(m_chunks[i]->mutex));
         }
     }
 
@@ -364,7 +364,7 @@ public:
         m_chunks(rhs.m_chunks)
     {
         for(ChallengerRAMChunk *chunk:m_chunks) {
-            std::lock_guard<std::mutex> lock(chunk->mutex);
+            std::lock_guard<Mutex> lock(chunk->mutex);
 
             ++chunk->num_refs;
         }
@@ -423,7 +423,7 @@ private:
     M6502Word m_page;
     std::vector<ChallengerRAMChunk *> m_chunks;
 
-    bool GetChallengerRAMPtr(std::unique_lock<std::mutex> *lock_ptr,size_t *index_ptr,size_t *offset_ptr,uint8_t addr_lsb) {
+    bool GetChallengerRAMPtr(std::unique_lock<Mutex> *lock_ptr,size_t *index_ptr,size_t *offset_ptr,uint8_t addr_lsb) {
         size_t addr=(uint32_t)m_page.w<<8|addr_lsb;
 
         size_t chunk_index=addr/CHALLENGER_CHUNK_SIZE;
@@ -434,14 +434,14 @@ private:
 
         ChallengerRAMChunk *chunk=m_chunks[chunk_index];
 
-        *lock_ptr=std::unique_lock<std::mutex>(chunk->mutex);
+        *lock_ptr=std::unique_lock<Mutex>(chunk->mutex);
         *index_ptr=chunk_index;
         *offset_ptr=addr%CHALLENGER_CHUNK_SIZE;
 
         return true;
     }
 
-    void DecLockedChunkRef(size_t index,std::unique_lock<std::mutex> lock) {
+    void DecLockedChunkRef(size_t index,std::unique_lock<Mutex> lock) {
         ASSERT(index>=0&&index<m_chunks.size());
 
         ChallengerRAMChunk *chunk=m_chunks[index];
@@ -493,7 +493,7 @@ private:
         auto c=(DiscInterfaceChallenger *)data;
 
         size_t index,offset;
-        std::unique_lock<std::mutex> lock;
+        std::unique_lock<Mutex> lock;
         if(c->GetChallengerRAMPtr(&lock,&index,&offset,addr.b.l)) {
             return c->m_chunks[index]->data[offset];
         } else {
@@ -509,7 +509,7 @@ private:
         auto c=(DiscInterfaceChallenger *)data;
 
         size_t index,offset;
-        std::unique_lock<std::mutex> lock;
+        std::unique_lock<Mutex> lock;
         if(!c->GetChallengerRAMPtr(&lock,&index,&offset,addr.b.l)) {
             // Ignore out of range addresses.
             return;

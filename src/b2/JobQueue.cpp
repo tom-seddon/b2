@@ -58,6 +58,7 @@ void JobQueue::Job::DoImGui() {
 //////////////////////////////////////////////////////////////////////////
 
 JobQueue::JobQueue() {
+    MUTEX_SET_NAME(m_jobs_mutex,"Jobs");
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -65,7 +66,7 @@ JobQueue::JobQueue() {
 
 JobQueue::~JobQueue() {
     {
-        std::lock_guard<std::mutex> lock(m_jobs_mutex);
+        std::lock_guard<Mutex> lock(m_jobs_mutex);
 
         for(auto &&thread:m_threads) {
             if(!!thread.job) {
@@ -121,7 +122,7 @@ bool JobQueue::Init(unsigned num_threads) {
 
 void JobQueue::AddJob(std::shared_ptr<Job> job) {
     {
-        std::lock_guard<std::mutex> lock(m_jobs_mutex);
+        std::lock_guard<Mutex> lock(m_jobs_mutex);
 
         m_jobs.push_back(std::move(job));
     }
@@ -135,7 +136,7 @@ void JobQueue::AddJob(std::shared_ptr<Job> job) {
 std::vector<std::shared_ptr<JobQueue::Job>> JobQueue::GetJobs() const {
     std::vector<std::shared_ptr<Job>> jobs;
 
-    std::lock_guard<std::mutex> lock(m_jobs_mutex);
+    std::lock_guard<Mutex> lock(m_jobs_mutex);
 
     for(const ThreadData &thread:m_threads) {
         std::shared_ptr<Job> job=thread.job;
@@ -145,7 +146,9 @@ std::vector<std::shared_ptr<JobQueue::Job>> JobQueue::GetJobs() const {
         }
     }
 
-    jobs.insert(jobs.end(),m_jobs.begin(),m_jobs.end());
+    if(!m_jobs.empty()) {
+        jobs.insert(jobs.end(),m_jobs.begin(),m_jobs.end());
+    }
 
     return jobs;
 }
@@ -157,7 +160,7 @@ void JobQueue::ThreadFunc(ThreadData *td) {
     SetCurrentThreadNamef("JobQueue%zu",td->index);
 
     for(;;) {
-        std::unique_lock<std::mutex> lock(m_jobs_mutex);
+        std::unique_lock<Mutex> lock(m_jobs_mutex);
 
         td->job=nullptr;
 

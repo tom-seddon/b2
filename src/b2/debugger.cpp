@@ -69,7 +69,7 @@ public:
         //m_beeb_thread->SendUpdate6502StateMessage();
 
         {
-            std::unique_lock<std::mutex> lock;
+            std::unique_lock<Mutex> lock;
             if(const M6502 *s=m_beeb_thread->Get6502State(&lock)) {
                 this->Reg("A",s->a);
                 this->Reg("X",s->x);
@@ -226,7 +226,7 @@ public:
         const M6502Config *config;
         uint16_t pc;
         {
-            std::unique_lock<std::mutex> lock;
+            std::unique_lock<Mutex> lock;
             const M6502 *s=m_beeb_thread->Get6502State(&lock);
 
             config=s->config;

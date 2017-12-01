@@ -10,7 +10,7 @@
 #include <unistd.h>
 #endif
 #include <inttypes.h>
-#include <mutex>
+#include <shared/mutex.h>
 #include <algorithm>
 
 //////////////////////////////////////////////////////////////////////////
@@ -61,11 +61,19 @@ bool LogPrinter::try_lock() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+void LogPrinter::SetMutexName(std::string name) {
+    MUTEX_SET_NAME(m_mutex,std::move(name));
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 LogPrinterStd::LogPrinterStd(bool to_stdout,bool to_stderr,bool debugger):
     m_stdout(to_stdout),
     m_stderr(to_stderr),
     m_debugger(debugger)
 {
+    this->SetMutexName(std::string("LogPrinterStd (out=")+BOOL_STR(to_stdout)+" err="+BOOL_STR(to_stderr)+" debug="+BOOL_STR(debugger));
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -105,6 +113,7 @@ LogPrinterStd log_printer_stderr_and_debugger(false,true,true);
 LogPrinterString::LogPrinterString(std::string *str):
     m_str(str)
 {
+    this->SetMutexName("LogPrinterString");
 }
 
 //////////////////////////////////////////////////////////////////////////

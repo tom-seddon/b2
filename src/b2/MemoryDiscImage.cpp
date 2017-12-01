@@ -7,7 +7,7 @@
 #include "download.h"
 #include "misc.h"
 #include <shared/sha1.h>
-#include <mutex>
+#include <shared/mutex.h>
 #include <shared/debug.h>
 #include "load_save.h"
 #include "Messages.h"
@@ -204,7 +204,7 @@ struct MemoryDiscImage::Data {
     // Don't change it though...
     DiscGeometry geometry;
 
-    std::mutex mut;
+    Mutex mut;
 
     size_t num_refs=1;
     std::vector<uint8_t> data;
@@ -531,11 +531,11 @@ MemoryDiscImage::MemoryDiscImage():
 
 MemoryDiscImage::MemoryDiscImage(std::string path,std::string load_method,const void *data,size_t data_size,const DiscGeometry &geometry):
     m_data(new Data),
-    m_name(std::move(path)),
     m_load_method(std::move(load_method))
 {
     m_data->data.assign((const uint8_t *)data,(const uint8_t *)data+data_size);
     m_data->geometry=geometry;
+    this->SetName(std::move(path));
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -543,9 +543,9 @@ MemoryDiscImage::MemoryDiscImage(std::string path,std::string load_method,const 
 
 MemoryDiscImage::MemoryDiscImage(Data *data,std::string name,std::string load_method):
     m_data(data),
-    m_name(std::move(name)),
     m_load_method(std::move(load_method))
 {
+    this->SetName(std::move(name));
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -566,7 +566,7 @@ bool MemoryDiscImage::CanClone() const {
 //////////////////////////////////////////////////////////////////////////
 
 std::shared_ptr<DiscImage> MemoryDiscImage::Clone() const {
-    std::lock_guard<std::mutex> lock(m_data->mut);
+    std::lock_guard<Mutex> lock(m_data->mut);
 
     ++m_data->num_refs;
 
@@ -577,7 +577,7 @@ std::shared_ptr<DiscImage> MemoryDiscImage::Clone() const {
 //////////////////////////////////////////////////////////////////////////
 
 std::string MemoryDiscImage::GetHash() const {
-    std::lock_guard<std::mutex> lock(m_data->mut);
+    std::lock_guard<Mutex> lock(m_data->mut);
 
     if(m_data->hash.empty()) {
         char hash_str[SHA1::DIGEST_STR_SIZE];
@@ -601,6 +601,8 @@ std::string MemoryDiscImage::GetName() const {
 
 void MemoryDiscImage::SetName(std::string name) {
     m_name=std::move(name);
+
+    MUTEX_SET_NAME(m_data->mut,strprintf("MemoryDiscImage: %s",m_name.c_str()));
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -649,7 +651,7 @@ bool MemoryDiscImage::SaveToFile(const std::string &file_name,Messages *msg) con
 //////////////////////////////////////////////////////////////////////////
 
 bool MemoryDiscImage::Read(uint8_t *value,uint8_t side,uint8_t track,uint8_t sector,size_t offset) const {
-    std::lock_guard<std::mutex> lock(m_data->mut);
+    std::lock_guard<Mutex> lock(m_data->mut);
 
     size_t index;
     if(!this->GetIndex(&index,side,track,sector,offset)) {
@@ -676,7 +678,7 @@ bool MemoryDiscImage::Write(uint8_t side,uint8_t track,uint8_t sector,size_t off
 
     this->MakeDataUnique();
 
-    std::lock_guard<std::mutex> lock(m_data->mut);
+    std::lock_guard<Mutex> lock(m_data->mut);
 
     if(index>=m_data->data.size()) {
         // Round up to the next sector boundary, but don't try to be
@@ -764,7 +766,7 @@ void MemoryDiscImage::MakeDataUnique() {
     Data *old_data;
 
     {
-        std::lock_guard<std::mutex> lock(m_data->mut);
+        std::lock_guard<Mutex> lock(m_data->mut);
 
         if(m_data->num_refs==1) {
             // This can't be racing anything else; there's no other
@@ -789,7 +791,7 @@ void MemoryDiscImage::ReleaseData(Data **data_ptr) {
     Data *data=*data_ptr;
     *data_ptr=nullptr;
 
-    std::unique_lock<std::mutex> lock(data->mut);
+    std::unique_lock<Mutex> lock(data->mut);
 
     ASSERT(data->num_refs>0);
     --data->num_refs;

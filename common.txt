@@ -27,6 +27,18 @@ set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DASSERT_ENABLED=1")
 ##########################################################################
 ##########################################################################
 
+# This will just make a huge mess if it's inconsistent. Rather than add
+# BUILD_TYPE_$<CONFIG>=1 to every project, which thanks to the generator
+# expression appears to be basically rocket science, just set the define
+# for Final build only and have a #ifdef in the code.
+#
+# The mutex debugging stuff only ever affects C++.
+
+set(CMAKE_CXX_FLAGS_FINAL "${CMAKE_CXX_FLAGS_FINAL} -DMUTEX_DEBUGGING=0")
+
+##########################################################################
+##########################################################################
+
 if(${CMAKE_C_COMPILER_ID} MATCHES "GNU|Clang")
   # Warnings.
   add_definitions("-Wall -Wuninitialized -Winit-self -pedantic -Werror=implicit-function-declaration")

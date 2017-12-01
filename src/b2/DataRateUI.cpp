@@ -79,17 +79,30 @@ static float GetPercentage(void *data_,int idx) {
     return (float)(emu_us/real_us*100.);
 }
 
+static bool EverLocked(const MutexMetadata *m) {
+    if(m->num_locks>0) {
+        return true;
+    }
+
+    if(m->num_try_locks>0) {
+        return true;
+    }
+
+    return false;
+}
+
+static void MutexMetadataUI(const MutexMetadata *m) {
+    ImGui::Spacing();
+    ImGui::Text("Mutex Name: %s",m->name.c_str());
+    ImGui::Text("Locks: %" PRIu64,m->num_locks);
+    ImGui::Text("Lock Wait Time: %.05f sec",GetSecondsFromTicks(m->total_lock_ticks));
+    ImGui::Text("Successful Try Locks: %" PRIu64 "/%" PRIu64,m->num_successful_try_locks,m->num_try_locks);
+}
+
 void DataRateUI::DoImGui(CommandContextStack *cc_stack) {
     (void)cc_stack;
 
     std::shared_ptr<BeebThread> beeb_thread=m_beeb_window->GetBeebThread();
-
-    {
-        BeebThread::MainLoopStats stats=beeb_thread->GetMainLoopStats();
-
-        ImGui::Text("Main loop iterations: %" PRIu64,stats.num_iterations);
-        ImGui::Text("Mutex lock wait time: %.3f sec",GetSecondsFromTicks(stats.mutex_lock_wait_ticks));
-    }
 
     ImGui::Separator();
 
@@ -108,6 +121,38 @@ void DataRateUI::DoImGui(CommandContextStack *cc_stack) {
 
     ImGui::TextUnformatted("Video Data Availability (mark=50%)");
     ImGuiPlotLines("",&GetPercentage,&vblank_records,(int)vblank_records.size(),0,nullptr,0.f,200.f,ImVec2(0,100),ImVec2(0,50));
+
+#if MUTEX_DEBUGGING
+
+    ImGui::Separator();
+
+    std::vector<std::shared_ptr<const MutexMetadata>> metadata=Mutex::GetAllMetadata();
+
+    size_t num_skipped=0;
+
+    for(size_t i=0;i<metadata.size();++i) {
+        const MutexMetadata *m=metadata[i].get();
+
+        if(EverLocked(m)) {
+            MutexMetadataUI(m);
+        } else {
+            ++num_skipped;
+        }
+    }
+
+    if(num_skipped>0) {
+        if(ImGui::CollapsingHeader("Never Locked")) {
+            for(size_t i=0;i<metadata.size();++i) {
+                const MutexMetadata *m=metadata[i].get();
+
+                if(!EverLocked(m)) {
+                    MutexMetadataUI(m);
+                }
+            }
+        }
+    }
+
+#endif
 }
 
 //////////////////////////////////////////////////////////////////////////

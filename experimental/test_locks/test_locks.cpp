@@ -1,18 +1,18 @@
 #include <shared/system.h>
 #include <shared/log.h>
 #include <thread>
-#include <mutex>
+#include <shared/mutex.h>
 
 LOG_DEFINE(OUTPUT,"",&log_printer_stdout_and_debugger)
 
 static volatile uint64_t g_counter;
 static volatile bool g_done;
-static std::mutex mutex;
+static Mutex mutex;
 
 static void Thread() {
     while(!g_done) {
         //SleepMS(1);
-        std::lock_guard<std::mutex> lock(mutex);
+        std::lock_guard<Mutex> lock(mutex);
         ++g_counter;
     }
 }
@@ -23,7 +23,7 @@ int main() {
     uint64_t a=GetCurrentTickCount();
 
     for(int i=0;i<2000000;++i) {
-        std::lock_guard<std::mutex> lock(mutex);
+        std::lock_guard<Mutex> lock(mutex);
 
         ++g_counter;
     }

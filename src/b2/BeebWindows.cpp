@@ -30,7 +30,7 @@ struct Config {
 struct BeebWindowsState {
     // This mutex must be taken when adding to or removing from
     // m_windows.
-    std::mutex windows_mutex;
+    Mutex windows_mutex;
     std::vector<BeebWindow *> windows;
 
     std::vector<std::unique_ptr<BeebKeymap>> beeb_keymaps;
@@ -167,6 +167,8 @@ bool BeebWindows::Init() {
 
     g_=new BeebWindowsState;
 
+    MUTEX_SET_NAME(g_->windows_mutex,"BeebWindows windows_mutex");
+
     ResetDefaultConfig();
 
     if(!g_->job_queue.Init()) {
@@ -181,7 +183,7 @@ bool BeebWindows::Init() {
 
 void BeebWindows::Shutdown() {
     {
-        std::lock_guard<std::mutex> lock(g_->windows_mutex);
+        std::lock_guard<Mutex> lock(g_->windows_mutex);
 
         for(BeebWindow *window:g_->windows) {
             delete window;
@@ -211,7 +213,7 @@ BeebWindow *BeebWindows::CreateBeebWindow(BeebWindowInitArguments init_arguments
         return nullptr;
     }
 
-    std::lock_guard<std::mutex> lock(g_->windows_mutex);
+    std::lock_guard<Mutex> lock(g_->windows_mutex);
     g_->windows.push_back(window);
 
     // There probably needs to be a more general mechanism than this.
@@ -253,7 +255,7 @@ void BeebWindows::HandleSDLWindowEvent(const SDL_WindowEvent &event) {
         {
             window->SaveSettings();
 
-            std::lock_guard<std::mutex> lock(g_->windows_mutex);
+            std::lock_guard<Mutex> lock(g_->windows_mutex);
 
             g_->windows.erase(std::remove(g_->windows.begin(),g_->windows.end(),window),g_->windows.end());
 
@@ -333,7 +335,7 @@ void BeebWindows::HandleVBlank(VBlankMonitor *vblank_monitor,void *display_data,
         if(keep_window) {
             ++i;
         } else {
-            std::lock_guard<std::mutex> lock(g_->windows_mutex);
+            std::lock_guard<Mutex> lock(g_->windows_mutex);
 
             delete window;
             window=nullptr;
@@ -350,7 +352,7 @@ void BeebWindows::ThreadFillAudioBuffer(uint32_t audio_device_id,float *mix_buff
     // Just hold the lock for the duration - this shouldn't take too
     // long, and the only thing it will block is creation or
     // destruction of windows...
-    std::lock_guard<std::mutex> lock(g_->windows_mutex);
+    std::lock_guard<Mutex> lock(g_->windows_mutex);
 
     for(BeebWindow *window:g_->windows) {
         window->ThreadFillAudioBuffer(audio_device_id,mix_buffer,mix_buffer_size);

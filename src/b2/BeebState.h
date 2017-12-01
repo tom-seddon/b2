@@ -15,7 +15,7 @@ class BeebLoadedConfig;
 #include <beeb/conf.h>
 #include <memory>
 #include <vector>
-#include <mutex>
+#include <shared/mutex.h>
 #include <map>
 #include <time.h>
 #include <string>
