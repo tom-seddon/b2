@@ -96,7 +96,7 @@ add_library(remotery_lib STATIC
 	${CMAKE_CURRENT_SOURCE_DIR}/Remotery/lib/Remotery.h
 	)
 target_include_directories(remotery_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/Remotery/lib)
-target_compile_definitions(remotery_lib PUBLIC RMT_ENABLED=0 RMT_USE_D3D11=0 RMT_USE_OPENGL=0)
+target_compile_definitions(remotery_lib PUBLIC RMT_ENABLED=1 RMT_USE_D3D11=0 RMT_USE_OPENGL=0)
 
 ##########################################################################
 ##########################################################################

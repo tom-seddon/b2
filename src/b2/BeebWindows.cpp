@@ -12,6 +12,7 @@
 #include "b2.h"
 #include "Timeline.h"
 #include "BeebKeymap.h"
+#include <Remotery.h>
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -327,6 +328,13 @@ void BeebWindows::HandleVBlank(VBlankMonitor *vblank_monitor,void *display_data,
         size_t old_size=g_->windows.size();
         (void)old_size;
 
+#if RMT_ENABLED
+        char rmt_text[100];
+        snprintf(rmt_text,sizeof rmt_text,"Window %zu",i);
+#endif
+
+        rmt_BeginCPUSampleDynamic(rmt_text,0);
+
         BeebWindow *window=g_->windows[i];
         bool keep_window=window->HandleVBlank(vblank_monitor,display_data,ticks);
         ASSERT(g_->windows.size()>=old_size);
@@ -342,6 +350,8 @@ void BeebWindows::HandleVBlank(VBlankMonitor *vblank_monitor,void *display_data,
 
             g_->windows.erase(g_->windows.begin()+(ptrdiff_t)i);
         }
+
+        rmt_EndCPUSample();
     }
 }
 

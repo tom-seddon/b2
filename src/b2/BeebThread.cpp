@@ -28,6 +28,7 @@
 #include "WriteVideoJob.h"
 #include "Timeline.h"
 #include "BeebWindow.h"
+#include <Remotery.h>
 
 #include <shared/enum_def.h>
 #include "BeebThread.inl"
@@ -2134,6 +2135,7 @@ void BeebThread::ThreadMain(void) {
 
         if(paused||(limit_speed&&next_stop_2MHz_cycles<=*ts.num_executed_2MHz_cycles)) {
         wait_for_message:
+            rmt_ScopedCPUSample(MessageQueueWaitForMessage,0);
             MessageQueueWaitForMessage(m_mq,&msg);
             got_msg=1;
         } else {
@@ -2177,6 +2179,8 @@ void BeebThread::ThreadMain(void) {
 #endif
 
         if(!paused&&stop_2MHz_cycles>*ts.num_executed_2MHz_cycles) {
+            rmt_ScopedCPUSample(BeebUpdate,0);
+
             ASSERT(ts.beeb);
 
             uint64_t num_2MHz_cycles=stop_2MHz_cycles-*ts.num_executed_2MHz_cycles;

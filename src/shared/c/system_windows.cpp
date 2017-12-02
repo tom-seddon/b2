@@ -313,7 +313,7 @@ struct THREADNAME_INFO {
 };
 #include <shared/poppack.h>
 
-void SetCurrentThreadName(const char *name) {
+void SetCurrentThreadNameInternal(const char *name) {
     THREADNAME_INFO i={
         0x1000,
         name,

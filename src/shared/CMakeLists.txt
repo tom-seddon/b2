@@ -13,7 +13,7 @@ set(H h/shared)
 set(SRCS
   c/debug.c ${H}/debug.h
   c/log.cpp ${H}/log.h
-  c/system.c ${H}/system.h
+  c/system.cpp ${H}/system.h
   c/CommandLineParser.cpp ${H}/CommandLineParser.h
   c/testing.cpp ${H}/testing.h
   c/sha1.cpp ${H}/sha1.h

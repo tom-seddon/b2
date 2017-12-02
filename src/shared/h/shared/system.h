@@ -312,10 +312,20 @@ int GetTerminalWidth(void);
 //////////////////////////////////////////////////////////////////////////
 
 // Set name of the current thread. The size for the expansion may be
-// quite limited, put any uniqueness in a prefix rather than a suffix.
+// quite limited, so put any uniqueness in a prefix rather than a
+// suffix.
 void PRINTF_LIKE(1,2) SetCurrentThreadNamef(const char *fmt,...);
 void SetCurrentThreadNamev(const char *fmt,va_list v);
 void SetCurrentThreadName(const char *name);
+
+// Callback called each time the thread name is set. This is basically
+// a hack so that the Remotery thread names can be reliable without
+// needing to have the shared stuff depend on it.
+//
+// (In the longer run, the shared stuff will probably just depend on
+// Remotery, job done...)
+typedef void (*SetCurrentThreadNameFn)(const char *name,void *context);
+void SetSetCurrentThreadNameCallback(SetCurrentThreadNameFn fn,void *context);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

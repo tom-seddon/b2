@@ -421,7 +421,7 @@ size_t GetNumSetBits64(uint64_t value) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void SetCurrentThreadName(const char *name) {
+void SetCurrentThreadNameInternal(const char *name) {
     char tmp[16];
     strlcpy(tmp,name,16);
     prctl(PR_SET_NAME,(unsigned long)name,0,0,0);

@@ -754,12 +754,25 @@ static void SaveKeyWindowSettings() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#if RMT_ENABLED
+static void SetRmtThreadName(const char *name,void *context) {
+    (void)context;
+
+    rmt_SetCurrentThreadName(name);
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &init_message_list) {
 #if RMT_ENABLED
     {
         rmtError x=rmt_CreateGlobalInstance(&g_remotery);
         ASSERT(x==RMT_ERROR_NONE);
         atexit(&DestroyRemotery);
+
+        SetSetCurrentThreadNameCallback(&SetRmtThreadName,nullptr);
     }
 #endif
 
@@ -910,8 +923,12 @@ static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &init
 
         while(BeebWindows::GetNumWindows()>0) {
             SDL_Event event;
-            if(!SDL_WaitEvent(&event)) {
-                goto done;
+
+            {
+                rmt_ScopedCPUSample(SDL_WaitEvent,0);
+                if(!SDL_WaitEvent(&event)) {
+                    goto done;
+                }
             }
 
             if(event.type==SDL_QUIT) {
@@ -931,18 +948,21 @@ static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &init
             switch(event.type) {
             case SDL_WINDOWEVENT:
                 {
+                    rmt_ScopedCPUSample(SDL_WINDOWEVENT,0);
                     BeebWindows::HandleSDLWindowEvent(event.window);
                 }
                 break;
 
             case SDL_MOUSEMOTION:
                 {
+                    rmt_ScopedCPUSample(SDL_MOUSEMOTION,0);
                     BeebWindows::HandleSDLMouseMotionEvent(event.motion);
                 }
                 break;
 
             case SDL_TEXTINPUT:
                 {
+                    rmt_ScopedCPUSample(SDL_TEXTINPUT,0);
                     BeebWindows::HandleSDLTextInput(event.text.windowID,event.text.text);
                 }
                 break;
@@ -950,6 +970,7 @@ static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &init
             case SDL_KEYUP:
             case SDL_KEYDOWN:
                 {
+                    rmt_ScopedCPUSample(SDL_KEYxx,0);
                     if(event.key.repeat==0) {
                         BeebWindows::HandleSDLKeyEvent(event.key);
                     }
@@ -958,6 +979,7 @@ static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &init
 
             case SDL_MOUSEWHEEL:
                 {
+                    rmt_ScopedCPUSample(SDL_MOUSEWHEEL,0);
                     BeebWindows::SetSDLMouseWheelState(event.wheel.windowID,event.wheel.x,event.wheel.y);
                 }
                 break;
@@ -968,10 +990,13 @@ static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &init
                         switch((SDLEventType)(event.type-g_first_event_type)) {
                         case SDLEventType_VBlank:
                             {
+                                rmt_ScopedCPUSample(SDLEventType_VBlank,0);
                                 if(auto dd=(b2VBlankHandler::Display *)vblank_monitor->GetDisplayDataForDisplayID((uint32_t)event.user.code)) {
                                     uint64_t ticks=GetCurrentTickCount();
 
-                                    BeebWindows::HandleVBlank(vblank_monitor.get(),dd,ticks);
+                                    {
+                                        BeebWindows::HandleVBlank(vblank_monitor.get(),dd,ticks);
+                                    }
 
                                     dd->message_pending=false;
                                 }
@@ -980,12 +1005,14 @@ static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &init
 
                         case SDLEventType_UpdateWindowTitle:
                             {
+                                rmt_ScopedCPUSample(SDLEventType_UpdateWindowTitle,0);
                                 BeebWindows::UpdateWindowTitles();
                             }
                             break;
 
                         case SDLEventType_NewWindow:
                             {
+                                rmt_ScopedCPUSample(SDLEventType_NewWindow,0);
                                 auto init_arguments=(BeebWindowInitArguments *)event.user.data1;
 
                                 BeebWindows::CreateBeebWindow(*init_arguments);
@@ -997,6 +1024,7 @@ static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &init
 
                         case SDLEventType_Function:
                             {
+                                rmt_ScopedCPUSample(SDLEventType_Function,0);
                                 auto fun=(std::function<void()> *)event.user.data1;
 
                                 (*fun)();
