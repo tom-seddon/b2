@@ -26,7 +26,8 @@ struct MutexMetadata {
     std::string name;
 
     uint64_t num_locks=0;
-    uint64_t total_lock_ticks=0;
+    uint64_t num_contended_locks=0;
+    uint64_t total_lock_wait_ticks=0;
 
     std::atomic<uint64_t> num_try_locks=0;
     uint64_t num_successful_try_locks=0;

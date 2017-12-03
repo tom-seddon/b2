@@ -127,10 +127,13 @@ const MutexMetadata *Mutex::GetMetadata() const {
 void Mutex::lock() {
     uint64_t a_ticks=GetCurrentTickCount();
 
-    m_mutex.lock();
+    if(!m_mutex.try_lock()) {
+        m_mutex.lock();
+        ++m_metadata->meta.num_contended_locks;
+    }
 
     ++m_metadata->meta.num_locks;
-    m_metadata->meta.total_lock_ticks+=GetCurrentTickCount()-a_ticks;
+    m_metadata->meta.total_lock_wait_ticks+=GetCurrentTickCount()-a_ticks;
 }
 
 //////////////////////////////////////////////////////////////////////////

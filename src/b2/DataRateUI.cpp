@@ -95,7 +95,8 @@ static void MutexMetadataUI(const MutexMetadata *m) {
     ImGui::Spacing();
     ImGui::Text("Mutex Name: %s",m->name.c_str());
     ImGui::Text("Locks: %" PRIu64,m->num_locks);
-    ImGui::Text("Lock Wait Time: %.05f sec",GetSecondsFromTicks(m->total_lock_ticks));
+    ImGui::Text("Contended Locks: %" PRIu64 " (%.3f%%)",m->num_contended_locks,m->num_locks==0?0.:(double)m->num_contended_locks/m->num_locks);
+    ImGui::Text("Lock Wait Time: %.05f sec",GetSecondsFromTicks(m->total_lock_wait_ticks));
     ImGui::Text("Successful Try Locks: %" PRIu64 "/%" PRIu64,m->num_successful_try_locks,m->num_try_locks);
 }
 
