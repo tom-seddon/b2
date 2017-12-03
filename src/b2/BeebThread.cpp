@@ -2142,9 +2142,9 @@ void BeebThread::ThreadMain(void) {
             got_msg=MessageQueuePollForMessage(m_mq,&msg);
         }
 
-        std::lock_guard<Mutex> lock(m_mutex);
 
         if(got_msg) {
+            std::lock_guard<Mutex> lock(m_mutex);
             if(!this->ThreadHandleMessage(&ts,&msg,&limit_speed,&next_stop_2MHz_cycles)) {
                 goto done;
             }
@@ -2224,52 +2224,77 @@ void BeebThread::ThreadMain(void) {
             size_t num_sunits_produced=0;
             size_t num_vunits_produced=0;
 
-            // Fill part A.
+
             {
-                VideoDataUnit *vunit=va;
+                VideoDataUnit *vunit;
                 size_t i;
+                std::unique_lock<Mutex> lock(m_mutex,std::defer_lock);
 
-                for(i=0;i<num_va;++i) {
-                    if(ts.beeb->Update(vunit++,sunit)) {
-                        ++sunit;
+                // A.
+                {
+                    vunit=va;
 
-                        if(sunit==sa+num_sa) {
-                            sunit=sb;
-                        } else if(sunit==sb+num_sb) {
-                            sunit=nullptr;
+                    for(i=0;i<num_va;++i) {
+                        if(!lock.owns_lock()) {
+                            lock.lock();
                         }
 
-                        ++num_sunits_produced;
-                    }
-
-                    if(ts.beeb->DebugIsHalted()) {
-                        break;
-                    }
-                }
-
-                num_vunits_produced+=i;
-            }
-
-            // Fill part B.
-            if(!ts.beeb->DebugIsHalted()) {
-                VideoDataUnit *vunit=vb;
-                size_t i;
-
-                for(i=0;i<num_vb;++i) {
-                    if(ts.beeb->Update(vunit++,sunit)) {
-                        ++sunit;
-
-                        if(sunit==sa+num_sa) {
-                            sunit=sb;
-                        } else if(sunit==sb+num_sb) {
-                            sunit=nullptr;
+                        if(ts.beeb->DebugIsHalted()) {
+                            break;
                         }
 
-                        ++num_sunits_produced;
+                        if(ts.beeb->Update(vunit++,sunit)) {
+                            lock.unlock();
+
+                            ++sunit;
+
+                            if(sunit==sa+num_sa) {
+                                sunit=sb;
+                            } else if(sunit==sb+num_sb) {
+                                sunit=nullptr;
+                            }
+
+                            ++num_sunits_produced;
+                        }
                     }
+
+                    num_vunits_produced+=i;
                 }
 
-                num_vunits_produced+=i;
+                if(!lock.owns_lock()) {
+                    lock.lock();
+                }
+
+                // B.
+                if(!ts.beeb->DebugIsHalted()) {
+                    vunit=vb;
+
+                    for(i=0;i<num_vb;++i) {
+                        if(!lock.owns_lock()) {
+                            lock.lock();
+                        }
+
+                        if(ts.beeb->DebugIsHalted()) {
+                            break;
+                        }
+
+                        if(ts.beeb->Update(vunit++,sunit)) {
+                            lock.unlock();
+
+                            ++sunit;
+
+                            if(sunit==sa+num_sa) {
+                                sunit=sb;
+                            } else if(sunit==sb+num_sb) {
+                                sunit=nullptr;
+                            }
+
+                            ++num_sunits_produced;
+                        }
+                    }
+
+                    num_vunits_produced+=i;
+                }
             }
 
             m_video_output.ProducerUnlock(num_vunits_produced);
