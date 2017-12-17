@@ -953,7 +953,7 @@ bool BBCMicro::UpdateSound(SoundDataUnit *sound_unit) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool BBCMicro::PreUpdateCPU(uint8_t num_stretch_cycles) {
+void BBCMicro::UpdateCPU1(uint8_t num_stretch_cycles) {
     if(m_state.stretched_cycles_left>0) {
         --m_state.stretched_cycles_left;
     } else {
@@ -969,26 +969,22 @@ bool BBCMicro::PreUpdateCPU(uint8_t num_stretch_cycles) {
         }
     }
 
-    if(m_state.stretched_cycles_left>0) {
-        return false;
-    }
-
-    uint8_t mmio_page=m_state.cpu.abus.b.h-0xfc;
-    if(mmio_page<3) {
-        if(m_state.cpu.read) {
-            ReadMMIOFn fn=m_rmmio_fns[mmio_page][m_state.cpu.abus.b.l];
-            void *context=m_mmio_fn_contexts[mmio_page][m_state.cpu.abus.b.l];
-            m_state.cpu.dbus=(*fn)(context,m_state.cpu.abus);
+    if(m_state.stretched_cycles_left==0) {
+        uint8_t mmio_page=m_state.cpu.abus.b.h-0xfc;
+        if(mmio_page<3) {
+            if(m_state.cpu.read) {
+                ReadMMIOFn fn=m_rmmio_fns[mmio_page][m_state.cpu.abus.b.l];
+                void *context=m_mmio_fn_contexts[mmio_page][m_state.cpu.abus.b.l];
+                m_state.cpu.dbus=(*fn)(context,m_state.cpu.abus);
+            } else {
+                WriteMMIOFn fn=m_hw_wmmio_fns[mmio_page][m_state.cpu.abus.b.l];
+                void *context=m_hw_mmio_fn_contexts[mmio_page][m_state.cpu.abus.b.l];
+                (*fn)(context,m_state.cpu.abus,m_state.cpu.dbus);
+            }
         } else {
-            WriteMMIOFn fn=m_hw_wmmio_fns[mmio_page][m_state.cpu.abus.b.l];
-            void *context=m_hw_mmio_fn_contexts[mmio_page][m_state.cpu.abus.b.l];
-            (*fn)(context,m_state.cpu.abus,m_state.cpu.dbus);
+            (*m_handle_cpu_data_bus_fn)(this);
         }
-
-        return false;
     }
-
-    return true;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -1299,9 +1295,7 @@ void BBCMicro::UpdateDisplayOutput(VideoDataUnit *unit) {
 bool BBCMicro::Update(VideoDataUnit *video_unit,SoundDataUnit *sound_unit) {
     if((m_state.num_2MHz_cycles&1)==0) {
         ++m_state.num_2MHz_cycles;
-        if(this->PreUpdateCPU(1)) {
-            (*m_handle_cpu_data_bus_fn)(this);
-        }
+        this->UpdateCPU1(1);
 
         if(m_state.video_ula.control.bits.fast_6845) {
             this->UpdateVideoHardware();
@@ -1311,9 +1305,7 @@ bool BBCMicro::Update(VideoDataUnit *video_unit,SoundDataUnit *sound_unit) {
         return false;
     } else {
         ++m_state.num_2MHz_cycles;
-        if(this->PreUpdateCPU(2)) {
-            (*m_handle_cpu_data_bus_fn)(this);
-        }
+        this->UpdateCPU1(2);
 
         this->UpdateVideoHardware();
         this->UpdateDisplayOutput(video_unit);
@@ -2211,7 +2203,7 @@ void BBCMicro::UpdateCPUDataBusFn() {
 //#if BBCMICRO_DEBUGGER/////////////////////////////////<--note
 //       m_debug_run_flag!=BBCMicroDebugRunFlag_None||//<--note
 //#endif////////////////////////////////////////////////<--note
-       !m_instruction_fns.empty())
+!m_instruction_fns.empty())
     {
         m_handle_cpu_data_bus_fn=&HandleCPUDataBusWithHacks;
     } else {

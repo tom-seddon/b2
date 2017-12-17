@@ -592,7 +592,7 @@ private:
     void UpdateKeyboardMatrix();
     void UpdateJoysticks();
     bool UpdateSound(SoundDataUnit *sound_unit);
-    bool PreUpdateCPU(uint8_t num_stretch_cycles);
+    void UpdateCPU1(uint8_t num_stretch_cycles);
     static void HandleCPUDataBusMainRAMOnly(BBCMicro *m);
     static void HandleCPUDataBusWithShadowRAM(BBCMicro *m);
     static void HandleCPUDataBusWithHacks(BBCMicro *m);

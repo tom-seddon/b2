@@ -193,20 +193,26 @@ enum M6502ReadType {
     // Almost certainly not interesting.
     M6502ReadType_Uninteresting=2,
 
+    // Fetch non-opcode instruction byte.
+    M6502ReadType_Instruction=3,
+
+    // Fetch indirect address.
+    M6502ReadType_Address=4,
+
     // Fetch opcode byte. This only occurs at one point: the first
     // cycle of an instruction.
-    M6502ReadType_Opcode,
+    M6502ReadType_Opcode=8,
 
     // Dummy fetch when an interrupt/NMI is due. This only occurs at
     // one point: the first cycle of an instruction, when that
     // instruction was interrupted.
-    M6502ReadType_Interrupt,
+    M6502ReadType_Interrupt=9,
 
-    // Fetch non-opcode instruction byte.
-    M6502ReadType_Instruction,
+    M6502ReadType_Count,
 
-    // Fetch indirect address.
-    M6502ReadType_Address,
+    // Bitmask for a 1 bit for all read types that indicate the first
+    // cycle of an instruction.
+    M6502ReadType_FirstInstructionCycleMask=8,
 };
 
 //////////////////////////////////////////////////////////////////////////

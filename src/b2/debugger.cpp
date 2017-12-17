@@ -74,7 +74,7 @@ public:
                 this->Reg("A",s->a);
                 this->Reg("X",s->x);
                 this->Reg("Y",s->y);
-                ImGui::Text("PC = $%04x",s->pc.w);
+                ImGui::Text("PC = $%04x",s->opcode_pc.w);
                 ImGui::Text("S = $01%02X",s->s.b.l);
 
                 M6502P p=M6502_GetP(s);
