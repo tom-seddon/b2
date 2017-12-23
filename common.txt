@@ -43,7 +43,7 @@ if(${CMAKE_C_COMPILER_ID} MATCHES "GNU|Clang")
   # endif()
 
   if(${CMAKE_C_COMPILER_ID} MATCHES "Clang")
-    add_definitions("-Wno-extended-offsetof")
+    add_definitions("-Wno-invalid-offsetof")
     add_definitions("-Werror=incompatible-pointer-types")
     add_definitions("-Werror=int-conversion")
     add_definitions("-Werror=return-type")

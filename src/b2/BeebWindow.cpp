@@ -914,7 +914,7 @@ void BeebWindow::DoPopupUI(uint64_t now,int output_width,int output_height) {
         //ImGui::SetNextWindowSize(ImVec2(output_width*0.9f,0));
 
         if(ImGui::Begin("Recent Messages",&m_messages_popup_ui_active,flags)) {
-            m_message_list->ForEachMessage(5,[this](MessageList::Message *m) {
+            m_message_list->ForEachMessage(5,[](MessageList::Message *m) {
                 if(!m->seen) {
                     ImGuiMessageListMessage(m);
                 }

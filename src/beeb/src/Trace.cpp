@@ -272,8 +272,11 @@ void Trace::FinishLog(Log *log) {
     }
 
     EventWithSizeHeader *h=(EventWithSizeHeader *)m_last_alloc;
-    const char *tail_data=(const char *)(m_tail+1);
 
+#if ASSERT_ENABLED
+    const char *tail_data=(const char *)(m_tail+1);
+#endif
+    
     ASSERT(m_log_data+h->size==tail_data+m_tail->size);
 
     ASSERT(m_log_max_len>=m_log_len);

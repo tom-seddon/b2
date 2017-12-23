@@ -19,12 +19,12 @@ void SetCurrentThreadNamef(const char *fmt,...) {
 
 void SetCurrentThreadNamev(const char *fmt,va_list v) {
     char *name;
-    vasprintf(&name,fmt,v);
+    if(vasprintf(&name,fmt,v)!=-1) {
+        SetCurrentThreadName(name);
 
-    SetCurrentThreadName(name);
-
-    free(name);
-    name=NULL;
+        free(name);
+        name=NULL;
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////

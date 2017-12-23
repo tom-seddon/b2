@@ -366,7 +366,7 @@ static bool LoadFile2(ContType *data,
     if(len<0) {
         AddError(msg,path,"load","ftell failed",errno);
         goto done;
-    } else if((size_t)len>SIZE_MAX) {
+    } else if(len>SIZE_MAX) {
         AddError(msg,path,"load","file is too large",0);
         goto done;
     }

@@ -116,7 +116,10 @@ static uint8_t unhex(char c) {
 
 std::string strprintfv(const char *fmt,va_list v) {
     char *str;
-    vasprintf(&str,fmt,v);
+    if(vasprintf(&str,fmt,v)==-1) {
+        perror("vasprintf failed");
+        exit(1);
+    }
 
     std::string result(str);
 

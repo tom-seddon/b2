@@ -53,14 +53,17 @@ std::string strprintf(const char *fmt,...) {
 
 std::string strprintfv(const char *fmt,va_list v) {
     char *str;
-    vasprintf(&str,fmt,v);
+    if(vasprintf(&str,fmt,v)==-1) {
+        // Better suggestions welcome... please.
+        return std::string("vasprintf failed - ")+strerror(errno)+" ("+std::to_string(errno)+")";
+    } else {
+        std::string result(str);
 
-    std::string result(str);
+        free(str);
+        str=NULL;
 
-    free(str);
-    str=NULL;
-
-    return result;
+        return result;
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////

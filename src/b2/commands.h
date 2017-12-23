@@ -26,6 +26,7 @@
 class Command {
 public:
     Command(std::string name,std::string text,bool confirm);
+    virtual ~Command()=0;
 
     virtual void Execute(void *object) const=0;
     virtual const bool *IsTicked(void *object) const=0;

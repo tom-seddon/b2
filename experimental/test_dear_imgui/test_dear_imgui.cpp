@@ -246,6 +246,7 @@ Window::~Window() {
 
 bool Window::Init() {
     int rc;
+    (void)rc;
 
     if(SDL_CreateWindowAndRenderer(640,480,SDL_WINDOW_OPENGL|SDL_WINDOW_RESIZABLE,&m_window,&m_renderer)!=0) {
         return false;
@@ -458,6 +459,7 @@ void Window::NewImGuiFrame() {
 
 void Window::RenderImGuiDrawData() {
     int rc;
+    (void)rc;
 
     ImDrawData *draw_data=ImGui::GetDrawData();
     if(!draw_data) {

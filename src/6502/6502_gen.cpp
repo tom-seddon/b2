@@ -86,7 +86,12 @@ static void PRINTF_LIKE(1,2) P(const char *fmt,...) {
         va_list v;
 
         va_start(v,fmt);
-        vasprintf(&str,fmt,v);
+        
+        if(vasprintf(&str,fmt,v)==-1) {
+            LOGF(ERR,"FATAL: vasprintf failed: %s\n",strerror(errno));
+            exit(1);
+        }
+        
         va_end(v);
     }
 
@@ -669,6 +674,7 @@ protected:
 private:
     void GeneratePhase1(const Cycle *c) const {
         bool set_acarry=false;
+        (void)set_acarry;
 
         if(c->addr=="1.ad+index") {
             set_acarry=true;
