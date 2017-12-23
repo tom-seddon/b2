@@ -194,7 +194,6 @@ void TVOutput::UpdateOneUnit(const VideoDataUnit *unit,float amt) {
                         }
 #else
 
-
                         uint32_t *line=m_line+m_x;
                         uint32_t *line2=line+TV_TEXTURE_WIDTH;
 

@@ -819,7 +819,7 @@ size_t BeebThread::AudioThreadFillAudioBuffer(float *samples,size_t num_samples,
     uint64_t units_needed_now=atd->remapper.GetNumUnits(num_samples);
     uint64_t units_needed_future=atd->remapper.GetNumUnits(num_samples*5/2);
 
-    const SoundDataUnit *sa,*sb;
+    const SoundDataUnit *sa=nullptr,*sb=nullptr;
     size_t num_sa,num_sb;
     if(!m_sound_output.ConsumerLock(&sa,&num_sa,&sb,&num_sb)) {
         num_sa=0;
@@ -891,6 +891,7 @@ size_t BeebThread::AudioThreadFillAudioBuffer(float *samples,size_t num_samples,
 #define MIX (*filter++*MIXALL)
 
     // This functionality may return.
+    (void)fn,(void)fn_context;
     ASSERT(!fn);
     ASSERT(!fn_context);
 

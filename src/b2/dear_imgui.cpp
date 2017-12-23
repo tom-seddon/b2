@@ -147,6 +147,7 @@ static void SetClipboardText(void *user_data,const char *text) {
 
 bool ImGuiStuff::Init() {
     int rc;
+    (void)rc;
 
     m_context=ImGui::CreateContext();
     m_dock_context=ImGui::CreateDockContext();
@@ -335,6 +336,7 @@ void ImGuiStuff::NewFrame(bool got_mouse_focus) {
 
 void ImGuiStuff::Render() {
     int rc;
+    (void)rc;
 
     ImGuiContextSetter setter(this);
 

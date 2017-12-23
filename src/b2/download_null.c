@@ -1,14 +1,14 @@
 #include <shared/system.h>
 #include "download.h"
-#include <stdio.h>
+#include <string.h>
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 int DownloadFile(char **result,const char *url,int force_download) {
     (void)url,(void)force_download;
-    
-    asprintf(result,"this build does not support HTTP downloads");
+
+    *result=strdup("this build does not support HTTP downloads");
     return -1;
 }
 

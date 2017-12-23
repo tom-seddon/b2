@@ -26,7 +26,6 @@ const char KEYMAP_NOT_EDITABLE_ICON[]=ICON_FA_LOCK;
 const char KEYMAP_SCANCODES_KEYMAP_ICON[]=ICON_FA_KEYBOARD_O;
 const char KEYMAP_KEYSYMS_KEYMAP_ICON[]=ICON_FA_FONT;
 
-static const char SHORTCUT_KEYCODES_POPUP[]="shortcut_keycodes";
 static const char PC_SCANCODES_POPUP[]="pc_scancodes";
 static const char PC_KEYCODES_POPUP[]="pc_keycodes";
 

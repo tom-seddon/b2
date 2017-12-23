@@ -104,6 +104,9 @@ static void GetBacktraceSymbols(char **symbols,
                                 const Module &module)
 {
     std::vector<size_t> indexes;
+    int fds[2]={-1,-1};
+    std::vector<char> output;
+
     ASSERT(num_addresses>=0);
     indexes.reserve((size_t)num_addresses);
 
@@ -131,14 +134,14 @@ static void GetBacktraceSymbols(char **symbols,
 
     for(size_t index:indexes) {
         char *tmp;
-        asprintf(&tmp,"%p",addresses[index]);
+        if(asprintf(&tmp,"%p",addresses[index])==-1) {
+            goto done;
+        }
+        
         argv.push_back(tmp);
     }
 
     argv.push_back(nullptr);
-
-    int fds[2]={-1,-1};
-    std::vector<char> output;
 
     /* for(int i=0;i<num_addresses;++i) { */
     /*     printf("%d. %p\n",i,addresses[i]); */
@@ -200,7 +203,9 @@ static void GetBacktraceSymbols(char **symbols,
                     if(fun[0]!='?'&&loc[0]!='?') {
                         char **p=&symbols[indexes[i]];
                         if(!*p) {
-                            asprintf(p,"%p: %s: %s",addresses[indexes[i]],fun,loc);
+                            if(asprintf(p,"%p: %s: %s",addresses[indexes[i]],fun,loc)==-1) {
+                                goto done;
+                            }
                         }
                     }
 
@@ -327,7 +332,9 @@ char **GetBacktraceSymbols(void *const *addresses,int num_addresses) {
     /* If any entries are missing, fill them in with the address. */
     for(size_t i=0;i<symbols.size();++i){
         if(!symbols[i]) {
-            asprintf(&symbols[i],"%p",addresses[i]);
+            if(asprintf(&symbols[i],"%p",addresses[i])==-1) {
+                symbols[i]=nullptr;
+            }
         }
     }
     
