@@ -589,15 +589,9 @@ private:
     static void WriteROMSEL(void *m_,M6502Word a,uint8_t value);
     static uint8_t ReadACCCON(void *m_,M6502Word a);
     static void WriteACCCON(void *m_,M6502Word a,uint8_t value);
-    void UpdateKeyboardMatrix();
-    void UpdateJoysticks();
-    bool UpdateSound(SoundDataUnit *sound_unit);
-    void UpdateCPU1(uint8_t num_stretch_cycles);
     static void HandleCPUDataBusMainRAMOnly(BBCMicro *m);
     static void HandleCPUDataBusWithShadowRAM(BBCMicro *m);
     static void HandleCPUDataBusWithHacks(BBCMicro *m);
-    void UpdateVideoHardware();
-    void UpdateDisplayOutput(VideoDataUnit *unit);
     static void HandleTurboRTI(M6502 *cpu);
 
     // 1770 handler stuff.

@@ -884,112 +884,6 @@ void BBCMicro::SetDebugFlags(uint32_t flags) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void BBCMicro::UpdateKeyboardMatrix() {
-    if(m_state.addressable_latch.bits.not_kb_write) {
-        if(m_state.key_columns[m_state.key_scan_column]&0xfe) {
-            m_state.system_via.a.c2=1;
-        } else {
-            m_state.system_via.a.c2=0;
-        }
-
-        ++m_state.key_scan_column;
-        m_state.key_scan_column&=0x0f;
-    } else {
-        // manual scan
-        BeebKey key=(BeebKey)(m_state.system_via.a.p&0x7f);
-        uint8_t kcol=key&0x0f;
-        uint8_t krow=(uint8_t)(key>>4);
-
-        uint8_t *column=&m_state.key_columns[kcol];
-
-        // row 0 doesn't cause an interrupt
-        if(*column&0xfe) {
-            m_state.system_via.a.c2=1;
-        } else {
-            m_state.system_via.a.c2=0;
-        }
-
-        m_state.system_via.a.p&=0x7f;
-        if(*column&1<<krow) {
-            m_state.system_via.a.p|=0x80;
-        }
-
-        //if(key==m_state.auto_reset_key) {
-        //    //*column&=~(1<<krow);
-        //    m_state.auto_reset_key=BeebKey_None;
-        //}
-    }
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-void BBCMicro::UpdateJoysticks() {
-    m_state.system_via.b.p|=1<<4|1<<5;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-bool BBCMicro::UpdateSound(SoundDataUnit *sound_unit) {
-    if(m_state.addressable_latch.bits.not_sound_write==0&&m_state.old_addressable_latch.bits.not_sound_write==1) {
-        m_state.sn76489.Write(m_state.system_via.a.p);
-    }
-
-    if((m_state.num_2MHz_cycles&((1<<SOUND_CLOCK_SHIFT)-1))==0) {
-        sound_unit->sn_output=m_state.sn76489.Update();
-
-#if BBCMICRO_ENABLE_DISC_DRIVE_SOUND
-        // The disc drive sounds are pretty quiet. 
-        sound_unit->disc_drive_sound=this->UpdateDiscDriveSound(&m_state.drives[0]);
-        sound_unit->disc_drive_sound+=this->UpdateDiscDriveSound(&m_state.drives[1]);
-#endif
-        return true;
-    } else {
-        return false;
-    }
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-void BBCMicro::UpdateCPU1(uint8_t num_stretch_cycles) {
-    if(m_state.stretched_cycles_left>0) {
-        --m_state.stretched_cycles_left;
-    } else {
-        (*m_state.cpu.tfn)(&m_state.cpu);
-
-        uint8_t mmio_page=m_state.cpu.abus.b.h-0xfc;
-        if(mmio_page<3) {
-            if(m_state.cpu.read) {
-                m_state.stretched_cycles_left=num_stretch_cycles&m_mmio_stretch[mmio_page][m_state.cpu.abus.b.l];
-            } else {
-                m_state.stretched_cycles_left=num_stretch_cycles&m_hw_mmio_stretch[mmio_page][m_state.cpu.abus.b.l];
-            }
-        }
-    }
-
-    if(m_state.stretched_cycles_left==0) {
-        uint8_t mmio_page=m_state.cpu.abus.b.h-0xfc;
-        if(mmio_page<3) {
-            if(m_state.cpu.read) {
-                ReadMMIOFn fn=m_rmmio_fns[mmio_page][m_state.cpu.abus.b.l];
-                void *context=m_mmio_fn_contexts[mmio_page][m_state.cpu.abus.b.l];
-                m_state.cpu.dbus=(*fn)(context,m_state.cpu.abus);
-            } else {
-                WriteMMIOFn fn=m_hw_wmmio_fns[mmio_page][m_state.cpu.abus.b.l];
-                void *context=m_hw_mmio_fn_contexts[mmio_page][m_state.cpu.abus.b.l];
-                (*fn)(context,m_state.cpu.abus,m_state.cpu.dbus);
-            }
-        } else {
-            (*m_handle_cpu_data_bus_fn)(this);
-        }
-    }
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 void BBCMicro::HandleCPUDataBusMainRAMOnly(BBCMicro *m) {
     if(m->m_state.cpu.read) {
         m->m_state.cpu.dbus=m->m_pages.r[m->m_state.cpu.abus.b.h][m->m_state.cpu.abus.b.l];
@@ -1180,100 +1074,142 @@ static const uint8_t CURSOR_PATTERNS[8]={
     1+2+4+8,
 };
 
-void BBCMicro::UpdateVideoHardware() {
-    CRTC::Output output=m_state.crtc.Update(m_state.video_ula.control.bits.fast_6845);
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
 
-    m_state.system_via.a.c1=output.vsync;
-    m_state.cursor_pattern>>=1;
+bool BBCMicro::Update(VideoDataUnit *video_unit,SoundDataUnit *sound_unit) {
+    uint8_t odd_cycle=m_state.num_2MHz_cycles&1;
+    bool sound=false;
 
-    if(output.hsync) {
-        if(!m_state.crtc_last_output.hsync) {
-            if(output.display) {
-                m_state.saa5050.HSync();
+    ++m_state.num_2MHz_cycles;
+
+    // Update CPU.
+    if(m_state.stretched_cycles_left>0) {
+        --m_state.stretched_cycles_left;
+    } else {
+        (*m_state.cpu.tfn)(&m_state.cpu);
+
+        uint8_t mmio_page=m_state.cpu.abus.b.h-0xfc;
+        if(mmio_page<3) {
+            uint8_t num_stretch_cycles=1+odd_cycle;
+
+            if(m_state.cpu.read) {
+                m_state.stretched_cycles_left=num_stretch_cycles&m_mmio_stretch[mmio_page][m_state.cpu.abus.b.l];
+            } else {
+                m_state.stretched_cycles_left=num_stretch_cycles&m_hw_mmio_stretch[mmio_page][m_state.cpu.abus.b.l];
             }
         }
-    } else if(output.vsync) {
-        if(!m_state.crtc_last_output.vsync) {
-            m_state.last_frame_2MHz_cycles=m_state.num_2MHz_cycles-m_state.last_vsync_2MHz_cycles;
-            m_state.last_vsync_2MHz_cycles=m_state.num_2MHz_cycles;
-
-            m_state.saa5050.VSync(output.odd_frame);
-        }
-    } else if(output.display) {
-        uint16_t addr=(uint16_t)output.address;
-
-        if(addr&0x2000) {
-            addr=(addr&0x3ff)|m_teletext_bases[addr>>11&1];
-        } else {
-            if(addr&0x1000) {
-                addr-=SCREEN_WRAP_ADJUSTMENTS[m_state.addressable_latch.bits.screen_base];
-                addr&=~0x1000;
-            }
-
-            addr<<=3;
-
-            // When output.raster>=8, this address is bogus. There's a
-            // check later.
-            addr|=output.raster&7;
-        }
-
-        ASSERTF(addr<32768,"output: hsync=%u vsync=%u display=%u address=0x%x raster=%u; addr=0x%x; latch screen_base=%u\n",
-                output.hsync,output.vsync,output.display,output.address,output.raster,
-                addr,
-                m_state.addressable_latch.bits.screen_base);
-        addr|=m_state.shadow_select_mask;
-        if(m_state.video_ula.control.bits.teletext) {
-            m_state.saa5050.Byte(m_ram[addr]);
-        } else {
-            if(!m_state.crtc_last_output.display) {
-                m_state.video_ula.DisplayEnabled();
-            }
-
-            m_state.video_ula.Byte(m_ram[addr]);
-        }
-
-        if(output.cudisp) {
-            m_state.cursor_pattern=CURSOR_PATTERNS[m_state.video_ula.control.bits.cursor];
-        }
-
-#if VIDEO_TRACK_METADATA
-        m_last_video_access_address=addr;
-#endif
     }
 
-    m_state.crtc_last_output=output;
-}
+    if(m_state.stretched_cycles_left==0) {
+        uint8_t mmio_page=m_state.cpu.abus.b.h-0xfc;
+        if(mmio_page<3) {
+            if(m_state.cpu.read) {
+                ReadMMIOFn fn=m_rmmio_fns[mmio_page][m_state.cpu.abus.b.l];
+                void *context=m_mmio_fn_contexts[mmio_page][m_state.cpu.abus.b.l];
+                m_state.cpu.dbus=(*fn)(context,m_state.cpu.abus);
+            } else {
+                WriteMMIOFn fn=m_hw_wmmio_fns[mmio_page][m_state.cpu.abus.b.l];
+                void *context=m_hw_mmio_fn_contexts[mmio_page][m_state.cpu.abus.b.l];
+                (*fn)(context,m_state.cpu.abus,m_state.cpu.dbus);
+            }
+        } else {
+            (*m_handle_cpu_data_bus_fn)(this);
+        }
+    }
 
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
+    // Update video hardware.
+    if(m_state.video_ula.control.bits.fast_6845|odd_cycle) {
+        CRTC::Output output=m_state.crtc.Update(m_state.video_ula.control.bits.fast_6845);
 
-void BBCMicro::UpdateDisplayOutput(VideoDataUnit *unit) {
+        m_state.system_via.a.c1=output.vsync;
+        m_state.cursor_pattern>>=1;
+
+        if(output.hsync) {
+            if(!m_state.crtc_last_output.hsync) {
+                if(output.display) {
+                    m_state.saa5050.HSync();
+                }
+            }
+        } else if(output.vsync) {
+            if(!m_state.crtc_last_output.vsync) {
+                m_state.last_frame_2MHz_cycles=m_state.num_2MHz_cycles-m_state.last_vsync_2MHz_cycles;
+                m_state.last_vsync_2MHz_cycles=m_state.num_2MHz_cycles;
+
+                m_state.saa5050.VSync(output.odd_frame);
+            }
+        } else if(output.display) {
+            uint16_t addr=(uint16_t)output.address;
+
+            if(addr&0x2000) {
+                addr=(addr&0x3ff)|m_teletext_bases[addr>>11&1];
+            } else {
+                if(addr&0x1000) {
+                    addr-=SCREEN_WRAP_ADJUSTMENTS[m_state.addressable_latch.bits.screen_base];
+                    addr&=~0x1000;
+                }
+
+                addr<<=3;
+
+                // When output.raster>=8, this address is bogus. There's a
+                // check later.
+                addr|=output.raster&7;
+            }
+
+            ASSERTF(addr<32768,"output: hsync=%u vsync=%u display=%u address=0x%x raster=%u; addr=0x%x; latch screen_base=%u\n",
+                    output.hsync,output.vsync,output.display,output.address,output.raster,
+                    addr,
+                    m_state.addressable_latch.bits.screen_base);
+            addr|=m_state.shadow_select_mask;
+            if(m_state.video_ula.control.bits.teletext) {
+                m_state.saa5050.Byte(m_ram[addr]);
+            } else {
+                if(!m_state.crtc_last_output.display) {
+                    m_state.video_ula.DisplayEnabled();
+                }
+
+                m_state.video_ula.Byte(m_ram[addr]);
+            }
+
+            if(output.cudisp) {
+                m_state.cursor_pattern=CURSOR_PATTERNS[m_state.video_ula.control.bits.cursor];
+            }
+
+#if VIDEO_TRACK_METADATA
+            m_last_video_access_address=addr;
+#endif
+        }
+
+        m_state.crtc_last_output=output;
+    }
+
+    // Update display output.
     if(m_state.crtc_last_output.hsync) {
-        unit->type.x=VideoDataType_HSync;
+        video_unit->type.x=VideoDataType_HSync;
     } else if(m_state.crtc_last_output.vsync) {
-        unit->type.x=VideoDataType_VSync;
+        video_unit->type.x=VideoDataType_VSync;
     } else if(m_state.crtc_last_output.display) {
         if(m_state.video_ula.control.bits.teletext) {
-            m_state.saa5050.EmitVideoDataUnit(unit);
+            m_state.saa5050.EmitVideoDataUnit(video_unit);
 #if VIDEO_TRACK_METADATA
-            unit->teletext.metadata.addr=m_last_video_access_address;
+            video_unit->teletext.metadata.addr=m_last_video_access_address;
 #endif
 
             if(m_state.cursor_pattern&1) {
-                unit->teletext.colours[0]^=7;
-                unit->teletext.colours[1]^=7;
+                video_unit->teletext.colours[0]^=7;
+                video_unit->teletext.colours[1]^=7;
             }
         } else {
             if(m_state.crtc_last_output.raster<8) {
-                m_state.video_ula.EmitPixels(unit);
+                m_state.video_ula.EmitPixels(video_unit);
 #if VIDEO_TRACK_METADATA
-                unit->bitmap.metadata.addr=m_last_video_access_address;
+                video_unit->bitmap.metadata.addr=m_last_video_access_address;
 #endif
                 //(m_state.video_ula.*VideoULA::EMIT_MFNS[m_state.video_ula.control.bits.line_width])(hu);
 
                 if(m_state.cursor_pattern&1) {
-                    VideoDataBitmapPixel *pixel=unit->bitmap.pixels;
-                    for(size_t i=0;i<sizeof unit->bitmap.pixels;++i) {
+                    VideoDataBitmapPixel *pixel=video_unit->bitmap.pixels;
+                    for(size_t i=0;i<sizeof video_unit->bitmap.pixels;++i) {
                         pixel->r=~pixel->r;
                         pixel->g=~pixel->g;
                         pixel->b=~pixel->b;
@@ -1281,53 +1217,85 @@ void BBCMicro::UpdateDisplayOutput(VideoDataUnit *unit) {
                     }
                 }
             } else {
-                unit->type.x=VideoDataType_Nothing^(m_state.cursor_pattern&1);
+                video_unit->type.x=VideoDataType_Nothing^(m_state.cursor_pattern&1);
             }
         }
     } else {
-        unit->type.x=VideoDataType_Nothing;
+        video_unit->type.x=VideoDataType_Nothing;
     }
-}
 
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
+    if(odd_cycle) {
+        // Update keyboard.
+        if(m_state.addressable_latch.bits.not_kb_write) {
+            if(m_state.key_columns[m_state.key_scan_column]&0xfe) {
+                m_state.system_via.a.c2=1;
+            } else {
+                m_state.system_via.a.c2=0;
+            }
 
-bool BBCMicro::Update(VideoDataUnit *video_unit,SoundDataUnit *sound_unit) {
-    if((m_state.num_2MHz_cycles&1)==0) {
-        ++m_state.num_2MHz_cycles;
-        this->UpdateCPU1(1);
+            ++m_state.key_scan_column;
+            m_state.key_scan_column&=0x0f;
+        } else {
+            // manual scan
+            BeebKey key=(BeebKey)(m_state.system_via.a.p&0x7f);
+            uint8_t kcol=key&0x0f;
+            uint8_t krow=(uint8_t)(key>>4);
 
-        if(m_state.video_ula.control.bits.fast_6845) {
-            this->UpdateVideoHardware();
+            uint8_t *column=&m_state.key_columns[kcol];
+
+            // row 0 doesn't cause an interrupt
+            if(*column&0xfe) {
+                m_state.system_via.a.c2=1;
+            } else {
+                m_state.system_via.a.c2=0;
+            }
+
+            m_state.system_via.a.p&=0x7f;
+            if(*column&1<<krow) {
+                m_state.system_via.a.p|=0x80;
+            }
+
+            //if(key==m_state.auto_reset_key) {
+            //    //*column&=~(1<<krow);
+            //    m_state.auto_reset_key=BeebKey_None;
+            //}
         }
-        this->UpdateDisplayOutput(video_unit);
 
-        return false;
-    } else {
-        ++m_state.num_2MHz_cycles;
-        this->UpdateCPU1(2);
+        // Update joysticks.
+        m_state.system_via.b.p|=1<<4|1<<5;
 
-        this->UpdateVideoHardware();
-        this->UpdateDisplayOutput(video_unit);
-
-        this->UpdateKeyboardMatrix();
-
-        this->UpdateJoysticks();
-
+        // Update IRQs.
         M6502_SetDeviceIRQ(&m_state.cpu,BBCMicroIRQDevice_SystemVIA,m_state.system_via.Update());
         M6502_SetDeviceIRQ(&m_state.cpu,BBCMicroIRQDevice_UserVIA,m_state.user_via.Update());
 
+        // Update RTC.
         if(m_has_rtc) {
             m_state.rtc.Update();
         }
 
+        // Update NMI.
         M6502_SetDeviceNMI(&m_state.cpu,BBCMicroNMIDevice_1770,m_state.fdc.Update().value);
-        bool sound=this->UpdateSound(sound_unit);
+
+        // Update sound.
+        if(m_state.addressable_latch.bits.not_sound_write==0&&m_state.old_addressable_latch.bits.not_sound_write==1) {
+            m_state.sn76489.Write(m_state.system_via.a.p);
+        }
+
+        if((m_state.num_2MHz_cycles&((1<<SOUND_CLOCK_SHIFT)-1))==0) {
+            sound_unit->sn_output=m_state.sn76489.Update();
+
+#if BBCMICRO_ENABLE_DISC_DRIVE_SOUND
+            // The disc drive sounds are pretty quiet. 
+            sound_unit->disc_drive_sound=this->UpdateDiscDriveSound(&m_state.drives[0]);
+            sound_unit->disc_drive_sound+=this->UpdateDiscDriveSound(&m_state.drives[1]);
+#endif
+            sound=true;
+        }
 
         m_state.old_addressable_latch=m_state.addressable_latch;
-
-        return sound;
     }
+
+    return sound;
 }
 
 //////////////////////////////////////////////////////////////////////////
