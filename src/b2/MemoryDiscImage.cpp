@@ -17,6 +17,7 @@
 #ifdef __GNUC__
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wsign-conversion"
+#pragma GCC diagnostic ignored "-Wunused-parameter"
 #elif defined _MSC_VER
 #pragma warning(push)
 #pragma warning(disable:4100)//C4100: 'IDENTIFIER': unreferenced formal parameter
