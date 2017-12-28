@@ -12,6 +12,7 @@
 #include "BeebConfig.h"
 #include "JobQueue.h"
 #include "BeebKeymap.h"
+#include <functional>
 
 class BeebState;
 class VBlankMonitor;

@@ -128,7 +128,20 @@ static int PRINTF_LIKE(3,4) wrap_vsnprintf(char *buf,size_t buf_size,const char 
     return n;
 }
 
-static void TestC99() {
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunknown-warning-option"
+#pragma GCC diagnostic ignored "-Wformat-truncation"
+#endif
+
+static void
+#ifdef __GNUC__
+// if gcc is allowed to inline the function, a format-truncation
+// warning is emitted from main, into which it has presumably been
+// inlined.
+__attribute__((noinline))
+#endif
+TestC99() {
     char buf[3];
     size_t value=12345;
     int n;
@@ -144,6 +157,10 @@ static void TestC99() {
     snprintf(buf,sizeof buf,"%zx",value);
     TEST_EQ_SS(buf,"30");
 }
+
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

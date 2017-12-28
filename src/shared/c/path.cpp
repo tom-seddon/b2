@@ -199,10 +199,16 @@ bool PathLoadBinaryFile(std::vector<uint8_t> *contents,const std::string &path) 
     }
 
     len=ftell(f);
-    if(len<0||len>SIZE_MAX) {
+    if(len<0) {
         goto done;
     }
 
+#if LONG_MAX>SIZE_MAX
+    if(len>(long)SIZE_MAX) {
+        goto done;
+    }
+#endif
+    
     if(fseek(f,0,SEEK_SET)==-1) {
         goto done;
     }

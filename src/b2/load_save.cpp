@@ -366,10 +366,14 @@ static bool LoadFile2(ContType *data,
     if(len<0) {
         AddError(msg,path,"load","ftell failed",errno);
         goto done;
-    } else if(len>SIZE_MAX) {
+    }
+
+#if LONG_MAX>SIZE_MAX
+    if(len>(long)SIZE_MAX) {
         AddError(msg,path,"load","file is too large",0);
         goto done;
     }
+#endif
 
     if(fseek(f,0,SEEK_SET)==-1) {
         AddError(msg,path,"load","fseek (2) failed",errno);
