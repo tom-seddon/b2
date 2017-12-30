@@ -342,8 +342,6 @@ void CommandContext::DoButton(const char *name) {
         return;
     }
 
-    //bool enabled=command->IsEnabled(m_object);
-
     if(command->m_must_confirm) {
         // bleargh...
     } else if(const bool *ticked=command->IsTicked(m_object)) {
@@ -351,7 +349,8 @@ void CommandContext::DoButton(const char *name) {
             command->Execute(m_object);
         }
     } else {
-        if(ImGui::Button(command->m_text.c_str())) {
+        bool enabled=command->IsEnabled(m_object);
+        if(ImGuiButton(command->m_text.c_str(),enabled)) {
             command->Execute(m_object);
         }
     }

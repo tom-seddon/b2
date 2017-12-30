@@ -310,15 +310,15 @@ public:
         this->cc->Reset();
     }
 
-    void DoButton(const char *name) {
+    void DoButton(const char *name) const {
         this->cc->DoButton(name);
     }
 
-    void DoMenuItemUI(const char *name) {
+    void DoMenuItemUI(const char *name) const {
         this->cc->DoMenuItemUI(name);
     }
 
-    void DoToggleCheckboxUI(const char *name) {
+    void DoToggleCheckboxUI(const char *name) const {
         this->cc->DoToggleCheckboxUI(name);
     }
 protected:
