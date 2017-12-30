@@ -84,6 +84,9 @@ static constexpr size_t DEBUG_OS_PAGE=DEBUG_ROM0_PAGE+16*DEBUG_NUM_ROM_PAGES;
 
 #endif
 
+// 1 char = 4K
+const char DEBUG_PAGE_CODES[]="rrrrrrrrxxxsssss0000111122223333444455556666777788889999aaaabbbbccccddddeeeeffffoooo";
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
@@ -1813,6 +1816,15 @@ void BBCMicro::DebugAddTempBreakpoint(M6502Word addr) {
 void BBCMicro::DebugStepIn() {
     m_stepping_in=true;
     this->UpdateCPUDataBusFn();
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+char BBCMicro::DebugGetFlatPageCode(uint16_t flat_page) {
+    static_assert(sizeof DEBUG_PAGE_CODES==NUM_DEBUG_FLAGS_PAGES/16+1,"");
+    ASSERT(flat_page<NUM_DEBUG_FLAGS_PAGES);
+    return DEBUG_PAGE_CODES[flat_page>>4];
 }
 
 //////////////////////////////////////////////////////////////////////////

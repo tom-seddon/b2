@@ -365,7 +365,7 @@ public:
     void DebugRun();
 
     ByteDebugFlags DebugGetByteFlags(M6502Word addr) const;
-    
+
     void DebugSetByteFlags(M6502Word addr,ByteDebugFlags flags);
 
     // Temp breakpoints are automatically removed when the BBCMicro is
@@ -373,6 +373,8 @@ public:
     void DebugAddTempBreakpoint(M6502Word addr);
 
     void DebugStepIn();
+
+    static char DebugGetFlatPageCode(uint16_t flat_page);
 #endif
 protected:
 private:

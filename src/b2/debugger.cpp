@@ -370,18 +370,16 @@ public:
             M6502Word line_addr={addr};
             char disassembly_text[50],bytes_text[50];
             uint8_t bytes[3];
-            size_t num_bytes;
-            BBCMicro::ByteDebugFlags debug_flags;
-            uint16_t debug_flat_page;
 
             char *c=disassembly_text;
-            num_bytes=0;
+            size_t num_bytes=0;
 
             ImGuiIDPusher id_pusher(addr);
 
             bytes[0]=m_mem.GetByte(addr);
-            debug_flags=m_mem.GetDebugFlags(addr);
-            debug_flat_page=m_mem.GetDebugPage(addr);
+            BBCMicro::ByteDebugFlags debug_flags=m_mem.GetDebugFlags(addr);
+            uint16_t debug_flat_page=m_mem.GetDebugPage(addr);
+            char flat_page_code=BBCMicro::DebugGetFlatPageCode(debug_flat_page);
             ++addr;
 
             const M6502DisassemblyInfo *di=&config->disassembly_info[bytes[0]];
@@ -533,7 +531,8 @@ public:
 
             ImGui::SameLine();
 
-            ImGui::Text("%04x %s %s",line_addr.w,bytes_text,disassembly_text);
+
+            ImGui::Text("%c.%04x %s %s",flat_page_code,line_addr.w,bytes_text,disassembly_text);
         }
     }
 protected:
