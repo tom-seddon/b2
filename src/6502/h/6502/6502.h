@@ -337,7 +337,7 @@ void M6502_Halt(M6502 *s);
 
 /* If the 6502 is about to execute an instruction, return true. The
  * address of the instruction can be seen on the address bus, and
- * s->read is 1.
+ * s->read is M6502ReadType_Opcode.
  *
  * s->opcode is the last opcode executed, and a/x/y/etc. have
  * appropriate values.
@@ -345,7 +345,7 @@ void M6502_Halt(M6502 *s);
  * When (and only when) M6502_IsAboutToExecute returns true, the 6502
  * state can be (somewhat) safely fiddled with.
  */
-int M6502_IsAboutToExecute(M6502 *s);
+#define M6502_IsAboutToExecute(S) ((S)->read==M6502ReadType_Opcode)
 
 /* If M6502_IsAboutToExecute, disassemble the last instruction. (Any
  * other time, you just get junk...)
@@ -358,14 +358,14 @@ int M6502_IsAboutToExecute(M6502 *s);
  */
 void M6502_DisassembleLastInstruction(M6502 *s,char *buf,size_t buf_size,int *ia,int *ad);
 
-/* Disassemble the given instruction.
+/* Get the current opcode, assuming the data bus is up to date.
  *
- * PC is the address of the instruction, and its bytes (max 3) are A,
- * B and C.
+ * If M6502_IsAboutToExecute, the current opcode is what's on the data
+ * bus; otherwise, it's the opcode register.
  *
- * The return value is the number of bytes consumed - always >=1.
+ * 
  */
-//uint16_t M6502Config_DisassembleInstruction(const M6502Config *config,char *buf,size_t buf_size,uint16_t pc,uint8_t a,uint8_t b,uint8_t c);
+uint8_t M6502_GetOpcode(const M6502 *s);
 
 /* After the end state of an instruction, point the PC at the right
  * place and call this to set things up for the next one. */

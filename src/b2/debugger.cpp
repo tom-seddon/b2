@@ -93,9 +93,7 @@ public:
             p=M6502_GetP(s);
             tfn=s->tfn;
             ifn=s->ifn;
-
-            // TODO - this logic probably wants centralizing...
-            opcode=read==M6502ReadType_Opcode?s->dbus:s->opcode;
+            opcode=M6502_GetOpcode(s);
         }
 
         this->Reg("A",a);

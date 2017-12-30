@@ -1670,13 +1670,6 @@ void M6502_Halt(M6502 *s) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-int M6502_IsAboutToExecute(M6502 *s) {
-    return s->tfn==&T0_All;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 static void DisassembleByte(char *buf,
                             size_t buf_size,
                             const M6502DisassemblyInfo *di,
@@ -1871,6 +1864,17 @@ void M6502_DisassembleLastInstruction(M6502 *s,char *buf,size_t buf_size,int *ia
         DisassembleWord(buf,buf_size,di,"(",s->ad.w,",x)");
         *ad=s->ad.w+s->x;
         break;
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+uint8_t M6502_GetOpcode(const M6502 *s) {
+    if(s->read==M6502ReadType_Opcode) {
+        return s->dbus;
+    } else {
+        return s->opcode;
     }
 }
 
