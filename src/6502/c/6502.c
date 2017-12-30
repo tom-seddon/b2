@@ -949,6 +949,7 @@ void M6502_NextInstruction(M6502 *s) {
         s->tfn=s->interrupt_tfn;
     } else {
         s->abus.w=s->pc.w++;
+        s->opcode_pc=s->abus;
         s->read=M6502ReadType_Opcode;
         s->tfn=&T0_All;
     }
@@ -960,7 +961,6 @@ void M6502_NextInstruction(M6502 *s) {
 static void T0_All(M6502 *s) {
     /* T0 phase 2 */
     s->opcode=s->dbus;
-    s->opcode_pc=s->abus;
     //++s->pc.w;
 
     const M6502Fns *fns=&s->fns[s->opcode];
@@ -1499,6 +1499,60 @@ char *M6502P_GetString(char *dest,M6502P value) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+const char *M6502AddrMode_GetName(uint8_t mode) {
+    switch((M6502AddrMode)mode) {
+    case M6502AddrMode_IMP:
+        return "Implied";
+
+    case M6502AddrMode_IMM:
+        return "Immediate";
+
+    case M6502AddrMode_REL:
+        return "Relative";
+
+    case M6502AddrMode_ZPG:
+        return "Zero Page";
+
+    case M6502AddrMode_ZPX:
+        return "Zero Page,X";
+
+    case M6502AddrMode_ZPY:
+        return "Zero Page,Y";
+
+    case M6502AddrMode_INX:
+        return "(Zero Page,X)";
+
+    case M6502AddrMode_INY:
+        return "(Zero Page),Y";
+
+    case M6502AddrMode_ABS:
+        return "Absolute";
+
+    case M6502AddrMode_ABX:
+        return "Absolute,X";
+
+    case M6502AddrMode_ABY:
+        return "Absolute,Y";
+
+    case M6502AddrMode_IND:
+        return "(Absolute)";
+
+    case M6502AddrMode_ACC:
+        return "Accumulator";
+
+    case M6502AddrMode_INZ:
+        return "(Zero Page)";
+
+    case M6502AddrMode_INDX:
+        return "(Absolute,X)";
+    }
+
+    return "?";
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 struct NamedFn {
     const char *name;
     M6502Fn fn;
@@ -1544,6 +1598,36 @@ const M6502Config M6502_cmos6502_config={
     .interrupt_tfn=&T0_InterruptCMOS,
     .disassembly_info=g_cmos6502_disassembly_info,
 };
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+const char *M6502ReadType_GetName(uint8_t read_type) {
+    switch(read_type) {
+    case 0:
+        return "Write";
+
+    case M6502ReadType_Data:
+        return "Read Data";
+
+    case M6502ReadType_Instruction:
+        return "Read Instruction";
+
+    case M6502ReadType_Address:
+        return "Read Address";
+
+    case M6502ReadType_Uninteresting:
+        return "Read Internal";
+
+    case M6502ReadType_Opcode:
+        return "Read Opcode";
+
+    case M6502ReadType_Interrupt:
+        return "Read Interrupted Opcode";
+    }
+
+    return "?";
+}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

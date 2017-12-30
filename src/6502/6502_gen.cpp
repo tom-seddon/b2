@@ -86,12 +86,12 @@ static void PRINTF_LIKE(1,2) P(const char *fmt,...) {
         va_list v;
 
         va_start(v,fmt);
-        
+
         if(vasprintf(&str,fmt,v)==-1) {
             LOGF(ERR,"FATAL: vasprintf failed: %s\n",strerror(errno));
             exit(1);
         }
-        
+
         va_end(v);
     }
 
@@ -263,6 +263,41 @@ public:
         case Mode_Nop38_CMOS:
             return Mode_Abs;
         }
+    }
+
+    uint8_t GetNumBytes() const {
+        switch(this->mode) {
+        case Mode_Acc:
+        case Mode_Imp:
+        case Mode_Nop11_CMOS:
+            return 1;
+
+        case Mode_Imm:
+        case Mode_Inx:
+        case Mode_Iny:
+        case Mode_Inz:
+        case Mode_Rel:
+        case Mode_Zpg:
+        case Mode_Zpx:
+        case Mode_Zpy:
+        case Mode_Nop22_CMOS:
+        case Mode_Nop23_CMOS:
+        case Mode_Nop24_CMOS:
+            return 2;
+
+        case Mode_Abs:
+        case Mode_Abx:
+        case Mode_Aby:
+        case Mode_Ind:
+        case Mode_Indx:
+        case Mode_Nop34_CMOS:
+        case Mode_Nop38_CMOS:
+        case Mode_Abx2_CMOS:
+            return 3;
+        }
+
+        ASSERT(false);
+        return 0;
     }
 
     void GetTFunAndIFun(std::string *tfun,std::string *ifun) const {
@@ -1335,6 +1370,15 @@ static void GenerateConfig(std::set<std::string> *tfns,std::set<std::string> *if
     P("};\n");
     P("\n");
 
+    const std::set<std::string> ALWAYS_STEP_IN={
+        "brk",
+        "rts","rti",
+        "jmp","bra",
+        "bcc","bcs","beq","bne","bvc","bvs","bmi","bpl",
+    };
+
+    //const std::map<
+
     P("static const M6502DisassemblyInfo %s[256]={\n",di_name.c_str());
     for(size_t i=0;i<256;++i) {
         const Instr *instr=instrs[i];
@@ -1343,12 +1387,16 @@ static void GenerateConfig(std::set<std::string> *tfns,std::set<std::string> *if
 
         std::string mnemonic=instr->GetDisassemblyMnemonic();
 
+        int always_step_in=ALWAYS_STEP_IN.count(mnemonic)>0;
+
         ASSERT(mnemonic.size()==3);
-        P("[0x%02zx]={.mnemonic=\"%s\",.mode=%s,.undocumented=%d},\n",
+        P("[0x%02zx]={.mnemonic=\"%s\",.mode=%s,.num_bytes=%u,.undocumented=%d,.always_step_in=%d},\n",
           i,
           mnemonic.c_str(),
           mode.c_str(),
-          instr->undocumented);
+          instr->GetNumBytes(),
+          instr->undocumented,
+          always_step_in);
     }
     P("};\n");
     P("\n");

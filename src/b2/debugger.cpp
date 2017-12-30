@@ -68,25 +68,100 @@ public:
         (void)cc_stack;
         //m_beeb_thread->SendUpdate6502StateMessage();
 
+        bool halted;
+        uint16_t pc,abus;
+        uint8_t a,x,y,sp,opcode,read,dbus;
+        M6502P p;
+        M6502Fn tfn,ifn;
+        const M6502Config *config;
+
         {
             std::unique_lock<Mutex> lock;
-            if(const M6502 *s=m_beeb_thread->Get6502State(&lock)) {
-                this->Reg("A",s->a);
-                this->Reg("X",s->x);
-                this->Reg("Y",s->y);
-                ImGui::Text("PC = $%04x",s->opcode_pc.w);
-                ImGui::Text("S = $01%02X",s->s.b.l);
+            const BBCMicro *m=m_beeb_thread->LockBeeb(&lock);
+            const M6502 *s=m->GetM6502();
 
-                M6502P p=M6502_GetP(s);
-                char pstr[9];
-                ImGui::Text("P = $%02x %s",p.value,M6502P_GetString(pstr,p));
+            config=s->config;
+            halted=m->DebugIsHalted();
+            a=s->a;
+            x=s->x;
+            y=s->y;
+            pc=s->opcode_pc.w;
+            sp=s->s.b.l;
+            read=s->read;
+            abus=s->abus.w;
+            dbus=s->dbus;
+            p=M6502_GetP(s);
+            tfn=s->tfn;
+            ifn=s->ifn;
 
-                ImGui::Text("tfn=%s",GetFnName(s->tfn));
-                ImGui::Text("ifn=%s",GetFnName(s->ifn));
+            // TODO - this logic probably wants centralizing...
+            opcode=read==M6502ReadType_Opcode?s->dbus:s->opcode;
+        }
+
+        this->Reg("A",a);
+        this->Reg("X",x);
+        this->Reg("Y",y);
+        ImGui::Text("PC = $%04x",pc);
+        ImGui::Text("S = $01%02X",sp);
+        const char *mnemonic=config->disassembly_info[opcode].mnemonic;
+        const char *mode_name=M6502AddrMode_GetName(config->disassembly_info[opcode].mode);
+
+        char pstr[9];
+        ImGui::Text("P = $%02x %s",p.value,M6502P_GetString(pstr,p));
+
+        ImGui::Separator();
+
+        ImGui::Text("Opcode = $%02X %03d - %s %s",opcode,opcode,mnemonic,mode_name);
+        ImGui::Text("tfn = %s; ifn = %s",GetFnName(tfn),GetFnName(ifn));
+        ImGui::Text("State = %s",halted?"halted":"running");
+        ImGui::Text("Address = $%04x; Data = $%02x %03d %s",abus,dbus,dbus,BINARY_BYTE_STRINGS[dbus]);
+        ImGui::Text("Access = %s",M6502ReadType_GetName(read));
+
+        ImGui::Separator();
+
+        if(ImGuiButton("Stop",!halted)) {
+            std::unique_lock<Mutex> lock;
+            BBCMicro *m=m_beeb_thread->LockMutableBeeb(&lock);
+            m->DebugHalt();
+        }
+
+        ImGui::SameLine();
+        if(ImGuiButton("Run",halted)) {
+            std::unique_lock<Mutex> lock;
+            BBCMicro *m=m_beeb_thread->LockMutableBeeb(&lock);
+            m->DebugRun();
+            m_beeb_thread->SendDebugWakeUpMessage();
+        }
+
+        ImGui::SameLine();
+        if(ImGuiButton("Step In",halted)) {
+            this->StepIn();
+        }
+
+        ImGui::SameLine();
+        if(ImGuiButton("Step Over",halted)) {
+            const M6502DisassemblyInfo *di=&config->disassembly_info[opcode];
+
+            if(di->always_step_in) {
+                this->StepIn();
             } else {
-                ImGui::TextUnformatted("6502 state not available");
+                std::unique_lock<Mutex> lock;
+                BBCMicro *m=m_beeb_thread->LockMutableBeeb(&lock);
+
+                const M6502 *s=m->GetM6502();
+
+                M6502Word next_pc={(uint16_t)(s->opcode_pc.w+di->num_bytes)};
+                m->DebugAddTempBreakpoint(next_pc);
+                printf("step over %s/%s - next_pc=$%04x\n",mnemonic,mode_name,next_pc.w);
+                m->DebugRun();
+                m_beeb_thread->SendDebugWakeUpMessage();
             }
         }
+
+        //ImGui::SameLine();
+
+        //if(ImGuiButton("Step Out",halted)) {
+        //}
     }
 protected:
 private:
@@ -94,6 +169,16 @@ private:
 
     void Reg(const char *name,uint8_t value) {
         ImGui::Text("%s = $%02x %03d %s",name,value,value,BINARY_BYTE_STRINGS[value]);
+    }
+
+    void StepIn() {
+        printf("step in...\n");
+        std::unique_lock<Mutex> lock;
+        BBCMicro *m=m_beeb_thread->LockMutableBeeb(&lock);
+
+        m->DebugStepIn();
+        m->DebugRun();
+        m_beeb_thread->SendDebugWakeUpMessage();
     }
 };
 
@@ -113,11 +198,18 @@ public:
 
     void Reset();
     uint8_t GetByte(uint16_t addr);
+    uint16_t GetDebugPage(uint16_t addr);
+    BBCMicro::ByteDebugFlags GetDebugFlags(uint16_t addr);
 protected:
 private:
     const std::shared_ptr<BeebThread> m_beeb_thread;
     uint8_t m_buffer[256]={};
+    uint16_t m_debug_flat_page=0;
+    BBCMicro::ByteDebugFlags m_debug_buffer[256]={};
+
     int m_buffer_page;
+
+    void PrepareBuffer(M6502Word addr);
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -142,15 +234,48 @@ void BeebMemory::Reset() {
 uint8_t BeebMemory::GetByte(uint16_t addr_) {
     M6502Word addr={addr_};
 
-    if(m_buffer_page!=addr.b.h) {
-        M6502Word page_addr=addr;
-        page_addr.b.l=0;
-
-        m_beeb_thread->DebugCopyMemory(m_buffer,page_addr,256);
-        m_buffer_page=addr.b.h;
-    }
+    this->PrepareBuffer(addr);
 
     return m_buffer[addr.b.l];
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+uint16_t BeebMemory::GetDebugPage(uint16_t addr_) {
+    M6502Word addr={addr_};
+
+    this->PrepareBuffer(addr);
+
+    return m_debug_flat_page;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+BBCMicro::ByteDebugFlags BeebMemory::GetDebugFlags(uint16_t addr_) {
+    M6502Word addr={addr_};
+
+    this->PrepareBuffer(addr);
+
+    return m_debug_buffer[addr.b.l];
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BeebMemory::PrepareBuffer(M6502Word addr) {
+    if(m_buffer_page!=addr.b.h) {
+        addr.b.l=0;
+
+        std::unique_lock<Mutex> lock;
+        const BBCMicro *m=m_beeb_thread->LockBeeb(&lock);
+
+        m_debug_flat_page=m->DebugGetFlatPage(addr.b.h);
+        m->DebugCopyMemory(m_buffer,m_debug_buffer,addr,256);
+
+        m_buffer_page=addr.b.h;
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -227,7 +352,8 @@ public:
         uint16_t pc;
         {
             std::unique_lock<Mutex> lock;
-            const M6502 *s=m_beeb_thread->Get6502State(&lock);
+            const BBCMicro *m=m_beeb_thread->LockBeeb(&lock);
+            const M6502 *s=m->GetM6502();
 
             config=s->config;
             pc=s->opcode_pc.w;
@@ -241,17 +367,27 @@ public:
             m_addr=pc;
         }
 
+        m_mem.Reset();
+
         uint16_t addr=m_addr;
         while(ImGui::GetCursorPosY()<height) {
-            uint16_t line_addr=addr;
+            M6502Word line_addr={addr};
             char disassembly_text[50],bytes_text[50];
             uint8_t bytes[3];
             size_t num_bytes;
+            BBCMicro::ByteDebugFlags debug_flags;
+            uint16_t debug_flat_page;
 
             char *c=disassembly_text;
             num_bytes=0;
 
-            bytes[0]=m_mem.GetByte(addr++);
+            ImGuiIDPusher id_pusher(addr);
+
+            bytes[0]=m_mem.GetByte(addr);
+            debug_flags=m_mem.GetDebugFlags(addr);
+            debug_flat_page=m_mem.GetDebugPage(addr);
+            ++addr;
+
             const M6502DisassemblyInfo *di=&config->disassembly_info[bytes[0]];
 
             memcpy(c,di->mnemonic,sizeof di->mnemonic-1);
@@ -273,7 +409,7 @@ public:
                     M6502Word dest;
                     dest.w=addr+(uint16_t)(int16_t)(int8_t)bytes[1];
 
-                    c=AddWord(c,"$",dest.b.h,dest.b.l,"");
+                    c=AddWord(c,"$",dest.b.l,dest.b.h,"");
                     num_bytes=2;
                 }
                 break;
@@ -385,11 +521,23 @@ public:
 
             ImGuiStyleColourPusher pusher;
 
-            if(line_addr==pc) {
+            if(line_addr.w==pc) {
                 pusher.Push(ImGuiCol_Text,ImVec4(1.f,1.f,0.f,1.f));
             }
 
-            ImGui::Text("%04x %s %s",line_addr,bytes_text,disassembly_text);
+            bool break_execute=!!debug_flags.bits.break_execute;
+            if(ImGui::Checkbox("",&break_execute)) {
+                debug_flags.bits.break_execute=break_execute;
+
+                std::unique_lock<Mutex> lock;
+                BBCMicro *m=m_beeb_thread->LockMutableBeeb(&lock);
+
+                m->DebugSetByteFlags(line_addr,debug_flags);
+            }
+
+            ImGui::SameLine();
+
+            ImGui::Text("%04x %s %s",line_addr.w,bytes_text,disassembly_text);
         }
     }
 protected:

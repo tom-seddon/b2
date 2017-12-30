@@ -170,11 +170,30 @@ public:
         Master128ACCCONBits m128_bits;
     };
 
+#if BBCMICRO_DEBUGGER
+    struct ByteDebugFlagBits {
+        uint8_t break_execute:1;
+        uint8_t temp_execute:1;
+        uint8_t break_read:1;
+        uint8_t break_write:1;
+    };
+
+    union ByteDebugFlags {
+        uint8_t value;
+        ByteDebugFlagBits bits;
+    };
+
+    struct ByteDebugFlagsPage {
+        ByteDebugFlags flags[256];
+        uint16_t flat_page;
+    };
+#endif
+
     struct MemoryPages {
         uint8_t *w[256]={};
         const uint8_t *r[256]={};
 #if BBCMICRO_DEBUGGER
-        const uint8_t *debug[256]={};
+        ByteDebugFlagsPage *debug[256]={};
 #endif
     };
 
@@ -230,7 +249,7 @@ public:
     // Read a value from memory. The read takes place as if the PC were in
     // zero page. There are no side-effects and reads from memory-mapped
     // I/O return 0x00.
-    uint8_t ReadMemory(uint16_t address);
+    //uint8_t ReadMemory(uint16_t address);
 
     // Return pointer to base of BBC RAM. Get the size of RAM from
     // GetTypeInfo(m)->ram_size.
@@ -332,13 +351,28 @@ public:
 
     const M6502 *GetM6502() const;
 
-    void DebugCopyMemory(void *dest,M6502Word addr,uint16_t num_bytes) const;
+    uint16_t DebugGetFlatPage(uint8_t page) const;
 
-    void DebugSetMemory(M6502Word addr,uint8_t value);
+    void DebugCopyMemory(void *bytes_dest,ByteDebugFlags *debug_dest,M6502Word addr_,uint16_t num_bytes) const;
+
+    void SetMemory(M6502Word addr,uint8_t value);
 
 #if BBCMICRO_DEBUGGER
     void DebugHalt();
+
     bool DebugIsHalted() const;
+
+    void DebugRun();
+
+    ByteDebugFlags DebugGetByteFlags(M6502Word addr) const;
+    
+    void DebugSetByteFlags(M6502Word addr,ByteDebugFlags flags);
+
+    // Temp breakpoints are automatically removed when the BBCMicro is
+    // halted.
+    void DebugAddTempBreakpoint(M6502Word addr);
+
+    void DebugStepIn();
 #endif
 protected:
 private:
@@ -544,14 +578,16 @@ private:
 
 #if BBCMICRO_DEBUGGER
     bool m_is_halted=false;
-    //BBCMicroDebugRunFlag m_debug_run_flag=BBCMicroDebugRunFlag_None;
+    bool m_stepping_in=false;
+
+    std::vector<ByteDebugFlags *> m_temp_execute_breakpoints;
 
     // No attempt made to minimize this stuff... it doesn't go into
     // the saved states, so whatever.
     //
-    // Keep this at the end, since it's 336K...
-    static const size_t NUM_DEBUG_FLAGS_PAGES=256+16*64+64;
-    uint8_t m_debug_flags[NUM_DEBUG_FLAGS_PAGES][256]={};
+    // Do keep this table at the end, since it's massive.
+    static const uint16_t NUM_DEBUG_FLAGS_PAGES=256+16*64+64;
+    ByteDebugFlagsPage m_debug_flags_pages[NUM_DEBUG_FLAGS_PAGES]={};
 #endif
 
     void InitStuff();
@@ -563,10 +599,10 @@ private:
     void SetPages(uint8_t page_,size_t num_pages,
                   const uint8_t *read_data,size_t read_page_stride,
                   uint8_t *write_data,size_t write_page_stride
-#if BBCMICRO_DEBUGGER//////////////////////////////////////////////////<--note
-                  ,const uint8_t *debug_data,size_t debug_page_stride//<--note
-#endif/////////////////////////////////////////////////////////////////<--note
-    );/////////////////////////////////////////////////////////////////<--note
+#if BBCMICRO_DEBUGGER/////////////////////////////////////////////////////////<--note
+                  ,uint16_t debug_page////////////////////////////////////////<--note
+#endif////////////////////////////////////////////////////////////////////////<--note
+    );////////////////////////////////////////////////////////////////////////<--note
     static void UpdateBROMSELPages(BBCMicro *m);
     static void UpdateBPlusACCCONPages(BBCMicro *m,const ACCCON *old);
     static void UpdateBACCCONPages(BBCMicro *m,const ACCCON *old);
@@ -589,6 +625,7 @@ private:
     static void WriteROMSEL(void *m_,M6502Word a,uint8_t value);
     static uint8_t ReadACCCON(void *m_,M6502Word a);
     static void WriteACCCON(void *m_,M6502Word a,uint8_t value);
+    void HandleReadByteDebugFlags(uint8_t read,ByteDebugFlags *flags);
     static void HandleCPUDataBusMainRAMOnly(BBCMicro *m);
     static void HandleCPUDataBusWithShadowRAM(BBCMicro *m);
     static void HandleCPUDataBusWithHacks(BBCMicro *m);

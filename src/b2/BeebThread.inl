@@ -147,6 +147,10 @@ EPN(StopCopy)
 // data.u64 - value
 EPN(SetByte)
 
+// Wake thread up when emulator is being resumed. The thread could
+// have gone to sleep.
+EPN(DebugWakeUp)
+
 #endif
 //
 //////////////////////////////////////////////////////////////////////////

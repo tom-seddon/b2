@@ -150,7 +150,15 @@ public:
     void SendStartCopyBASICMessage(std::function<void(std::vector<uint8_t>)> stop_fun);
 
 #if BBCMICRO_DEBUGGER
-    const M6502 *Get6502State(std::unique_lock<Mutex> *lock) const;
+    void SendDebugWakeUpMessage();
+
+    // It's safe to call any of the const BBCMicro public member
+    // functions on the result as long as the lock is held.
+    const BBCMicro *LockBeeb(std::unique_lock<Mutex> *lock) const;
+
+    // As well as the LockBeeb guarantees, it's also safe to call the
+    // non-const DebugXXX functions.
+    BBCMicro *LockMutableBeeb(std::unique_lock<Mutex> *lock);
 #endif
 
     // 
@@ -236,10 +244,6 @@ public:
 
     uint64_t GetParentTimelineEventId() const;
     uint64_t GetLastSavedStateTimelineId() const;
-
-    // Byte-by-byte access isn't provided, to avoid excessive mutex
-    // locking. But maybe that's dumb?
-    void DebugCopyMemory(void *dest,M6502Word addr,uint16_t num_bytes);
 
     void SendDebugSetByteMessage(uint16_t address,uint8_t value);
 protected:

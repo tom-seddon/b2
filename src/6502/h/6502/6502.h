@@ -103,6 +103,8 @@ enum M6502AddrMode {
 };
 typedef enum M6502AddrMode M6502AddrMode;
 
+const char *M6502AddrMode_GetName(uint8_t mode);
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
@@ -127,6 +129,10 @@ struct M6502DisassemblyInfo {
 
     // Set if undocumented.
     uint8_t undocumented:1;
+
+    // Set if the debugger should actually do a step in when stepping
+    // over this instruction.
+    uint8_t always_step_in:1;
 };
 typedef struct M6502DisassemblyInfo M6502DisassemblyInfo;
 
@@ -190,30 +196,33 @@ enum M6502ReadType {
     // Read data from memory.
     M6502ReadType_Data=1,
 
-    // Almost certainly not interesting.
-    M6502ReadType_Uninteresting=2,
-
     // Fetch non-opcode instruction byte.
-    M6502ReadType_Instruction=3,
+    M6502ReadType_Instruction=2,
 
     // Fetch indirect address.
-    M6502ReadType_Address=4,
+    M6502ReadType_Address=3,
+
+    // Almost certainly not interesting.
+    M6502ReadType_Uninteresting=4,
 
     // Fetch opcode byte. This only occurs at one point: the first
     // cycle of an instruction.
-    M6502ReadType_Opcode=8,
+    M6502ReadType_Opcode=5,
 
     // Dummy fetch when an interrupt/NMI is due. This only occurs at
     // one point: the first cycle of an instruction, when that
-    // instruction was interrupted.
-    M6502ReadType_Interrupt=9,
+    // instruction was interrupted. The next 7 cycles will be the
+    // usual interrupt setup stuff, and then there'll be a Opcode read
+    // for the first instruction of the interrupt handler.
+    M6502ReadType_Interrupt=6,
 
     M6502ReadType_Count,
 
-    // Bitmask for a 1 bit for all read types that indicate the first
-    // cycle of an instruction.
-    M6502ReadType_FirstInstructionCycleMask=8,
+    M6502ReadType_LastInterestingDataRead=M6502ReadType_Address,
+    M6502ReadType_FirstBeginInstruction=M6502ReadType_Opcode,
 };
+
+const char *M6502ReadType_GetName(uint8_t read_type);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

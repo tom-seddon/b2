@@ -580,6 +580,13 @@ void BeebThread::SendStartCopyBASICMessage(std::function<void(std::vector<uint8_
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+void BeebThread::SendDebugWakeUpMessage() {
+    this->SendMessage(BeebThreadEventType_DebugWakeUp,0,nullptr);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 void BeebThread::SendPauseMessage(bool pause) {
     this->SendMessage(BeebThreadEventType_SetPaused,0,pause);
 }
@@ -685,10 +692,21 @@ void BeebThread::SendCancelReplayMessage() {
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_DEBUGGER
-const M6502 *BeebThread::Get6502State(std::unique_lock<Mutex> *lock) const {
+const BBCMicro *BeebThread::LockBeeb(std::unique_lock<Mutex> *lock) const {
     *lock=std::unique_lock<Mutex>(m_mutex);
 
-    return m_thread_state->beeb->GetM6502();
+    return m_thread_state->beeb;
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_DEBUGGER
+BBCMicro *BeebThread::LockMutableBeeb(std::unique_lock<Mutex> *lock) {
+    *lock=std::unique_lock<Mutex>(m_mutex);
+
+    return m_thread_state->beeb;
 }
 #endif
 
@@ -1030,15 +1048,6 @@ uint64_t BeebThread::GetLastSavedStateTimelineId() const {
     std::lock_guard<Mutex> lock(m_mutex);
 
     return m_last_saved_state_timeline_id;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-void BeebThread::DebugCopyMemory(void *dest,M6502Word addr,uint16_t num_bytes) {
-    std::lock_guard<Mutex> lock(m_mutex);
-
-    m_thread_state->beeb->DebugCopyMemory(dest,addr,num_bytes);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -1509,7 +1518,7 @@ void BeebThread::ThreadHandleEvent(ThreadState *ts,
         {
             M6502Word address={event.data.set_byte.address};
 
-            ts->beeb->DebugSetMemory(address,event.data.set_byte.value);
+            ts->beeb->SetMemory(address,event.data.set_byte.value);
         }
         return;
     }
@@ -2088,6 +2097,12 @@ bool BeebThread::ThreadHandleMessage(
         }
         break;
 
+    case BeebThreadEventType_DebugWakeUp:
+        {
+            // Nothing to do.
+        }
+        break;
+
     case MESSAGE_TYPE_SYNTHETIC:
         switch(msg->u32) {
         default:
@@ -2143,7 +2158,6 @@ void BeebThread::ThreadMain(void) {
             got_msg=MessageQueuePollForMessage(m_mq,&msg);
         }
 
-
         if(got_msg) {
             std::lock_guard<Mutex> lock(m_mutex);
             if(!this->ThreadHandleMessage(&ts,&msg,&limit_speed,&next_stop_2MHz_cycles)) {
@@ -2193,7 +2207,6 @@ void BeebThread::ThreadMain(void) {
             VideoDataUnit *va,*vb;
             size_t num_va,num_vb;
             size_t num_video_units=num_2MHz_cycles;
-            ASSERT((num_2MHz_cycles&1)==0);
             if(!m_video_output.ProducerLock(&va,&num_va,&vb,&num_vb,num_video_units)) {
                 goto wait_for_message;
             }
@@ -2204,9 +2217,6 @@ void BeebThread::ThreadMain(void) {
                 m_video_output.ProducerUnlock(0);
                 goto wait_for_message;
             }
-
-            ASSERT((num_va&1)==0);
-            ASSERT((num_vb&1)==0);
 
             size_t num_sound_units=(num_2MHz_cycles+(1<<SOUND_CLOCK_SHIFT)-1)>>SOUND_CLOCK_SHIFT;
 
