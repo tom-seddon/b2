@@ -330,8 +330,6 @@ std::unique_ptr<SettingsUI> CreateMemoryDebugWindow(BeebWindow *beeb_window) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static const char HEX[]="0123456789ABCDEF";
-
 class DisassemblyDebugWindow:
     public DebugUI
 {
@@ -506,8 +504,8 @@ public:
                 }
 
                 if(i<num_bytes) {
-                    *c++=HEX[bytes[i]>>4&15];
-                    *c++=HEX[bytes[i]&15];
+                    *c++=HEX_CHARS_LC[bytes[i]>>4&15];
+                    *c++=HEX_CHARS_LC[bytes[i]&15];
                 } else {
                     *c++=' ';
                     *c++=' ';
@@ -559,8 +557,8 @@ private:
             ++c;
         }
 
-        *c++=HEX[value>>4&15];
-        *c++=HEX[value&15];
+        *c++=HEX_CHARS_LC[value>>4&15];
+        *c++=HEX_CHARS_LC[value&15];
 
         while((*c=*suffix++)!=0) {
             ++c;
@@ -574,10 +572,10 @@ private:
             ++c;
         }
 
-        *c++=HEX[msb>>4&15];
-        *c++=HEX[msb&15];
-        *c++=HEX[lsb>>4&15];
-        *c++=HEX[lsb&15];
+        *c++=HEX_CHARS_LC[msb>>4&15];
+        *c++=HEX_CHARS_LC[msb&15];
+        *c++=HEX_CHARS_LC[lsb>>4&15];
+        *c++=HEX_CHARS_LC[lsb&15];
 
         while((*c=*suffix++)!=0) {
             ++c;

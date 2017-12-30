@@ -242,12 +242,6 @@ std::string GetAssetPath(const std::string &f0,const std::string &f1) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static char GetHexChar(uint8_t value) {
-    ASSERT(value<16);
-
-    return "0123456789abcdef"[value];
-}
-
 static int GetHexCharValue(char c) {
     if(c>='0'&&c<='9') {
         return c-'0';
@@ -266,8 +260,8 @@ static std::string GetHexStringFromData(const std::vector<uint8_t> &data) {
     hex.reserve(data.size()*2);
 
     for(uint8_t byte:data) {
-        hex.append(1,GetHexChar(byte>>4));
-        hex.append(1,GetHexChar(byte&15));
+        hex.append(1,HEX_CHARS_LC[byte>>4]);
+        hex.append(1,HEX_CHARS_LC[byte&15]);
     }
 
     return hex;

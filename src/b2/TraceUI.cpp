@@ -78,8 +78,6 @@ private:
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static const char HEX[]="0123456789ABCDEF";
-
 class TraceUI::SaveTraceJob:
     public JobQueue::Job
 {
@@ -228,8 +226,8 @@ private:
             ++c;
         }
 
-        *c++=HEX[value>>4&15];
-        *c++=HEX[value&15];
+        *c++=HEX_CHARS_LC[value>>4&15];
+        *c++=HEX_CHARS_LC[value&15];
 
         while((*c=*suffix++)!=0) {
             ++c;
@@ -243,10 +241,10 @@ private:
             ++c;
         }
 
-        *c++=HEX[value>>12];
-        *c++=HEX[value>>8&15];
-        *c++=HEX[value>>4&15];
-        *c++=HEX[value&15];
+        *c++=HEX_CHARS_LC[value>>12];
+        *c++=HEX_CHARS_LC[value>>8&15];
+        *c++=HEX_CHARS_LC[value>>4&15];
+        *c++=HEX_CHARS_LC[value&15];
 
         while((*c=*suffix++)!=0) {
             ++c;

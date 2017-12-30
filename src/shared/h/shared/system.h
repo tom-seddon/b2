@@ -300,6 +300,8 @@ size_t GetNumSetBits64(uint64_t value);
 #define BOOL_STR(X) ((X)?"true":"false")
 
 extern const char BINARY_BYTE_STRINGS[256][9];
+extern const char HEX_CHARS_UC[];
+extern const char HEX_CHARS_LC[];
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

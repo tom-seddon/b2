@@ -181,8 +181,6 @@ SHA1::Final(uint8_t digest[DIGEST_SIZE])
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static const char HEX[]="0123456789abcdef";
-
 void SHA1::Finish(uint8_t digest[DIGEST_SIZE],char digest_str[DIGEST_STR_SIZE])
 {
     uint8_t tmp_digest[20];
@@ -199,8 +197,8 @@ void SHA1::Finish(uint8_t digest[DIGEST_SIZE],char digest_str[DIGEST_STR_SIZE])
         for(i=0;i<20;++i) {
             uint8_t x=tmp_digest[i];
             
-            digest_str[j++]=HEX[x>>4];
-            digest_str[j++]=HEX[x&15];
+            digest_str[j++]=HEX_CHARS_LC[x>>4];
+            digest_str[j++]=HEX_CHARS_LC[x&15];
         }
 
         digest_str[j]=0;
