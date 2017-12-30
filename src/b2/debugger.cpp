@@ -40,12 +40,94 @@ class DebugUI:
     public SettingsUI
 {
 public:
+    explicit DebugUI(std::shared_ptr<BeebThread> beeb_thread):
+        m_beeb_thread(std::move(beeb_thread)),
+        m_debug_occ(this,&ms_command_table)
+    {
+    }
+
+    void DoImGui(CommandContextStack *cc_stack) {
+        cc_stack->Push(m_debug_occ);
+    }
+
     bool OnClose() override {
         return false;
     }
 protected:
+    const std::shared_ptr<BeebThread> m_beeb_thread;
+    const ObjectCommandContext<DebugUI> m_debug_occ;
+
+    void UpdateEnableFlags(const BBCMicro *m) {
+        m_halted=m->DebugIsHalted();
+    }
 private:
+    bool m_halted=false;
+
+    bool IsStopEnabled() const {
+        return !m_halted;
+    }
+
+    bool IsRunEnabled() const {
+        return m_halted;
+    }
+
+    void Stop() {
+        std::unique_lock<Mutex> lock;
+        BBCMicro *m=m_beeb_thread->LockMutableBeeb(&lock);
+
+        m->DebugHalt();
+    }
+
+    void Run() {
+        std::unique_lock<Mutex> lock;
+        BBCMicro *m=m_beeb_thread->LockMutableBeeb(&lock);
+
+        m->DebugRun();
+        m_beeb_thread->SendDebugWakeUpMessage();
+    }
+
+    void StepOver() {
+        std::unique_lock<Mutex> lock;
+        BBCMicro *m=m_beeb_thread->LockMutableBeeb(&lock);
+
+        const M6502 *s=m->GetM6502();
+        uint8_t opcode=M6502_GetOpcode(s);
+        const M6502DisassemblyInfo *di=&s->config->disassembly_info[opcode];
+
+        if(di->always_step_in) {
+            this->StepInLocked(m);
+        } else {
+            M6502Word next_pc={(uint16_t)(s->opcode_pc.w+di->num_bytes)};
+            m->DebugAddTempBreakpoint(next_pc);
+            //printf("step over %s/%s - next_pc=$%04x\n",mnemonic,mode_name,next_pc.w);
+            m->DebugRun();
+            m_beeb_thread->SendDebugWakeUpMessage();
+        }
+
+    }
+
+    void StepIn() {
+        std::unique_lock<Mutex> lock;
+        BBCMicro *m=m_beeb_thread->LockMutableBeeb(&lock);
+
+        this->StepInLocked(m);
+    }
+
+    void StepInLocked(BBCMicro *m) {
+        m->DebugStepIn();
+        m->DebugRun();
+        m_beeb_thread->SendDebugWakeUpMessage();
+    }
+
+    static ObjectCommandTable<DebugUI> ms_command_table;
 };
+
+ObjectCommandTable<DebugUI> DebugUI::ms_command_table("All Debug Windows",{
+    {CommandDef("stop","Stop").Shortcut(SDLK_F5|PCKeyModifier_Shift),&DebugUI::Stop,nullptr,&DebugUI::IsStopEnabled},
+    {CommandDef("run","Run").Shortcut(SDLK_F5),&DebugUI::Run,nullptr,&DebugUI::IsRunEnabled},
+    {CommandDef("step_over","Step Over").Shortcut(SDLK_F10),&DebugUI::StepOver,nullptr,&DebugUI::IsRunEnabled},
+    {CommandDef("step_in","Step In").Shortcut(SDLK_F11),&DebugUI::StepIn,nullptr,&DebugUI::IsRunEnabled},
+});
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -55,7 +137,7 @@ class M6502DebugWindow:
 {
 public:
     explicit M6502DebugWindow(std::shared_ptr<BeebThread> beeb_thread):
-        m_beeb_thread(std::move(beeb_thread))
+        DebugUI(std::move(beeb_thread))
     {
         if(g_name_by_6502_fn.empty()) {
             M6502_ForEachFn([](const char *name,M6502Fn fn,void *) {
@@ -67,6 +149,8 @@ public:
     void DoImGui(CommandContextStack *cc_stack) {
         (void)cc_stack;
         //m_beeb_thread->SendUpdate6502StateMessage();
+
+        this->DebugUI::DoImGui(cc_stack);
 
         bool halted;
         uint16_t pc,abus;
@@ -94,6 +178,8 @@ public:
             tfn=s->tfn;
             ifn=s->ifn;
             opcode=M6502_GetOpcode(s);
+
+            this->UpdateEnableFlags(m);
         }
 
         this->Reg("A",a);
@@ -116,55 +202,16 @@ public:
         ImGui::Text("Access = %s",M6502ReadType_GetName(read));
 
         ImGui::Separator();
-
-        if(ImGuiButton("Stop",!halted)) {
-            std::unique_lock<Mutex> lock;
-            BBCMicro *m=m_beeb_thread->LockMutableBeeb(&lock);
-            m->DebugHalt();
-        }
-
+        m_debug_occ.DoButton("stop");
         ImGui::SameLine();
-        if(ImGuiButton("Run",halted)) {
-            std::unique_lock<Mutex> lock;
-            BBCMicro *m=m_beeb_thread->LockMutableBeeb(&lock);
-            m->DebugRun();
-            m_beeb_thread->SendDebugWakeUpMessage();
-        }
-
+        m_debug_occ.DoButton("run");
         ImGui::SameLine();
-        if(ImGuiButton("Step In",halted)) {
-            this->StepIn();
-        }
-
+        m_debug_occ.DoButton("step_in");
         ImGui::SameLine();
-        if(ImGuiButton("Step Over",halted)) {
-            const M6502DisassemblyInfo *di=&config->disassembly_info[opcode];
-
-            if(di->always_step_in) {
-                this->StepIn();
-            } else {
-                std::unique_lock<Mutex> lock;
-                BBCMicro *m=m_beeb_thread->LockMutableBeeb(&lock);
-
-                const M6502 *s=m->GetM6502();
-
-                M6502Word next_pc={(uint16_t)(s->opcode_pc.w+di->num_bytes)};
-                m->DebugAddTempBreakpoint(next_pc);
-                printf("step over %s/%s - next_pc=$%04x\n",mnemonic,mode_name,next_pc.w);
-                m->DebugRun();
-                m_beeb_thread->SendDebugWakeUpMessage();
-            }
-        }
-
-        //ImGui::SameLine();
-
-        //if(ImGuiButton("Step Out",halted)) {
-        //}
+        m_debug_occ.DoButton("step_over");
     }
 protected:
 private:
-    const std::shared_ptr<BeebThread> m_beeb_thread;
-
     void Reg(const char *name,uint8_t value) {
         ImGui::Text("%s = $%02x %03d %s",name,value,value,BINARY_BYTE_STRINGS[value]);
     }
@@ -189,8 +236,7 @@ std::unique_ptr<SettingsUI> Create6502DebugWindow(BeebWindow *beeb_window) {
 
 // A 256-byte cache for data copied out from DebugCopyMemory, since
 // the debug windows' memory accesses are often predictable.
-class BeebMemory
-{
+class BeebMemory {
 public:
     explicit BeebMemory(std::shared_ptr<BeebThread> beeb_thread);
 
@@ -284,7 +330,7 @@ class MemoryDebugWindow:
 {
 public:
     explicit MemoryDebugWindow(std::shared_ptr<BeebThread> beeb_thread):
-        m_beeb_thread(std::move(beeb_thread)),
+        DebugUI(std::move(beeb_thread)),
         m_mem(m_beeb_thread)
     {
         m_memory_editor.ReadFn=&MemoryEditorRead;
@@ -294,13 +340,14 @@ public:
     void DoImGui(CommandContextStack *cc_stack) {
         (void)cc_stack;
 
+        this->DebugUI::DoImGui(cc_stack);
+
         m_mem.Reset();
 
         m_memory_editor.DrawContents((uint8_t *)this,65536,0);
     }
 protected:
 private:
-    const std::shared_ptr<BeebThread> m_beeb_thread;
     M6502Word m_addr{};
     MemoryEditor m_memory_editor;
     BeebMemory m_mem;
@@ -335,13 +382,15 @@ class DisassemblyDebugWindow:
 {
 public:
     explicit DisassemblyDebugWindow(std::shared_ptr<BeebThread> beeb_thread):
-        m_beeb_thread(std::move(beeb_thread)),
+        DebugUI(std::move(beeb_thread)),
         m_occ(this,&ms_command_table),
         m_mem(m_beeb_thread)
     {
     }
 
     void DoImGui(CommandContextStack *cc_stack) {
+        this->DebugUI::DoImGui(cc_stack);
+
         cc_stack->Push(m_occ);
 
         const M6502Config *config;
@@ -538,7 +587,6 @@ public:
 protected:
 private:
     ObjectCommandContext<DisassemblyDebugWindow> m_occ;
-    const std::shared_ptr<BeebThread> m_beeb_thread;
     uint16_t m_addr=0;
     BeebMemory m_mem;
     bool m_track_pc=true;
