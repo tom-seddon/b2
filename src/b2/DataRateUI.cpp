@@ -79,6 +79,7 @@ static float GetPercentage(void *data_,int idx) {
     return (float)(emu_us/real_us*100.);
 }
 
+#if MUTEX_DEBUGGING
 static bool EverLocked(const MutexMetadata *m) {
     if(m->num_locks>0) {
         return true;
@@ -90,7 +91,9 @@ static bool EverLocked(const MutexMetadata *m) {
 
     return false;
 }
+#endif
 
+#if MUTEX_DEBUGGING
 static void MutexMetadataUI(const MutexMetadata *m) {
     ImGui::Spacing();
     ImGui::Text("Mutex Name: %s",m->name.c_str());
@@ -99,6 +102,7 @@ static void MutexMetadataUI(const MutexMetadata *m) {
     ImGui::Text("Lock Wait Time: %.05f sec",GetSecondsFromTicks(m->total_lock_wait_ticks));
     ImGui::Text("Successful Try Locks: %" PRIu64 "/%" PRIu64,m->num_successful_try_locks,m->num_try_locks);
 }
+#endif
 
 void DataRateUI::DoImGui(CommandContextStack *cc_stack) {
     (void)cc_stack;

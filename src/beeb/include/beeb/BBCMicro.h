@@ -351,13 +351,13 @@ public:
 
     const M6502 *GetM6502() const;
 
+#if BBCMICRO_DEBUGGER
     uint16_t DebugGetFlatPage(uint8_t page) const;
 
     void DebugCopyMemory(void *bytes_dest,ByteDebugFlags *debug_dest,M6502Word addr_,uint16_t num_bytes) const;
 
     void SetMemory(M6502Word addr,uint8_t value);
 
-#if BBCMICRO_DEBUGGER
     void DebugHalt();
 
     bool DebugIsHalted() const;
@@ -627,7 +627,9 @@ private:
     static void WriteROMSEL(void *m_,M6502Word a,uint8_t value);
     static uint8_t ReadACCCON(void *m_,M6502Word a);
     static void WriteACCCON(void *m_,M6502Word a,uint8_t value);
+#if BBCMICRO_DEBUGGER
     void HandleReadByteDebugFlags(uint8_t read,ByteDebugFlags *flags);
+#endif
     static void HandleCPUDataBusMainRAMOnly(BBCMicro *m);
     static void HandleCPUDataBusWithShadowRAM(BBCMicro *m);
     static void HandleCPUDataBusWithHacks(BBCMicro *m);

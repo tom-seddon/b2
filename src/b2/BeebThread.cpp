@@ -580,9 +580,11 @@ void BeebThread::SendStartCopyBASICMessage(std::function<void(std::vector<uint8_
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#if BBCMICRO_DEBUGGER
 void BeebThread::SendDebugWakeUpMessage() {
     this->SendMessage(BeebThreadEventType_DebugWakeUp,0,nullptr);
 }
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -1053,9 +1055,11 @@ uint64_t BeebThread::GetLastSavedStateTimelineId() const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#if BBCMICRO_DEBUGGER
 void BeebThread::SendDebugSetByteMessage(uint16_t address,uint8_t value) {
     this->SendMessage(BeebThreadEventType_SetByte,address,value);
 }
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -1514,6 +1518,7 @@ void BeebThread::ThreadHandleEvent(ThreadState *ts,
         }
         return;
 
+#if BBCMICRO_DEBUGGER
     case BeebEventType_SetByte:
         {
             M6502Word address={event.data.set_byte.address};
@@ -1521,6 +1526,7 @@ void BeebThread::ThreadHandleEvent(ThreadState *ts,
             ts->beeb->SetMemory(address,event.data.set_byte.value);
         }
         return;
+#endif
     }
 
     ASSERT(false);
@@ -2088,6 +2094,7 @@ bool BeebThread::ThreadHandleMessage(
         }
         break;
 
+#if BBCMICRO_DEBUGGER
     case BeebThreadEventType_SetByte:
         {
             M6502Word address={(uint16_t)msg->u32};
@@ -2096,12 +2103,15 @@ bool BeebThread::ThreadHandleMessage(
             this->ThreadRecordEvent(ts,BeebEvent::MakeSetByte(*ts->num_executed_2MHz_cycles,address.w,value));
         }
         break;
+#endif
 
+#if BBCMICRO_DEBUGGER
     case BeebThreadEventType_DebugWakeUp:
         {
             // Nothing to do.
         }
         break;
+#endif
 
     case MESSAGE_TYPE_SYNTHETIC:
         switch(msg->u32) {
@@ -2250,9 +2260,11 @@ void BeebThread::ThreadMain(void) {
                             lock.lock();
                         }
 
+#if BBCMICRO_DEBUGGER
                         if(ts.beeb->DebugIsHalted()) {
                             break;
                         }
+#endif
 
                         if(ts.beeb->Update(vunit++,sunit)) {
                             lock.unlock();
@@ -2277,7 +2289,10 @@ void BeebThread::ThreadMain(void) {
                 }
 
                 // B.
-                if(!ts.beeb->DebugIsHalted()) {
+#if BBCMICRO_DEBUGGER//////////////////////////<--note
+                if(!ts.beeb->DebugIsHalted())//<--note
+#endif/////////////////////////////////////////<--note
+                {//////////////////////////////<--note
                     vunit=vb;
 
                     for(i=0;i<num_vb;++i) {
@@ -2285,9 +2300,11 @@ void BeebThread::ThreadMain(void) {
                             lock.lock();
                         }
 
+#if BBCMICRO_DEBUGGER
                         if(ts.beeb->DebugIsHalted()) {
                             break;
                         }
+#endif
 
                         if(ts.beeb->Update(vunit++,sunit)) {
                             lock.unlock();

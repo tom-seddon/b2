@@ -245,7 +245,9 @@ public:
     uint64_t GetParentTimelineEventId() const;
     uint64_t GetLastSavedStateTimelineId() const;
 
+#if BBCMICRO_DEBUGGER
     void SendDebugSetByteMessage(uint16_t address,uint8_t value);
+#endif
 protected:
 private:
     struct ThreadState;

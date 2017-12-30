@@ -769,6 +769,7 @@ static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &init
 #if RMT_ENABLED
     {
         rmtError x=rmt_CreateGlobalInstance(&g_remotery);
+        (void)x;
         ASSERT(x==RMT_ERROR_NONE);
         atexit(&DestroyRemotery);
 

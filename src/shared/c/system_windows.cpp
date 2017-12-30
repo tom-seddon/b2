@@ -71,7 +71,7 @@ int vasprintf(char **buf,const char *fmt,va_list v_) {
     va_copy(v,v_);
     int n2=vsnprintf(*buf,n+1,fmt,v);
     va_end(v);
-    if(n<0) {
+    if(n2<0) {
         // Is this even possible?
         return -1;
     }
