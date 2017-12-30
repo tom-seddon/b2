@@ -1387,6 +1387,10 @@ void BeebWindow::UpdateTVTexture(VBlankRecord *vblank_record) {
         }
 
         video_output->ConsumerUnlock(num_units_consumed);
+    } else {
+#if BBCMICRO_DEBUGGER
+            m_tv.AddBeamMarker();
+#endif
     }
 
     vblank_record->num_video_units=num_units_consumed;

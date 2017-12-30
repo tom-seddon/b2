@@ -53,6 +53,10 @@ public:
 
     void UpdateOneUnit(const VideoDataUnit *unit,float amt);
 
+#if BBCMICRO_DEBUGGER
+    void AddBeamMarker();
+#endif
+
     // *data_version (optional) is set to texture data version, incremented on
     // each vblank. (Between vblanks, the buffer contains a partially scanned-out frame.)
     const void *GetTextureData(uint64_t *texture_data_version) const;

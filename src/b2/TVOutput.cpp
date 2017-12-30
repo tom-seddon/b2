@@ -557,6 +557,17 @@ void TVOutput::Update(const VideoDataUnit *units,size_t num_units) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#if BBCMICRO_DEBUGGER
+void TVOutput::AddBeamMarker() {
+    if(m_x<TV_TEXTURE_WIDTH&&m_y<TV_TEXTURE_HEIGHT) {
+        m_texture_data[m_x+m_y*TV_TEXTURE_WIDTH]=0xffffffff;
+    }
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 const void *TVOutput::GetTextureData(uint64_t *texture_data_version) const {
     if(texture_data_version) {
         *texture_data_version=m_texture_data_version;
