@@ -118,7 +118,6 @@ public:
     void SendChangeConfigMessage(BeebLoadedConfig config);
     void SendSetSpeedLimitingMessage(bool limit_speed);
     void SendLoadDiscMessage(int drive,std::shared_ptr<DiscImage> disc_image,bool verbose);
-    void SendDebugFlagsMessage(uint32_t debug_flags);
     void SendLoadStateMessage(uint64_t parent_timeline_id,std::shared_ptr<BeebState> state);
     void SendGoToTimelineNodeMessage(uint64_t timeline_id);
     void SendSaveStateMessage(bool verbose);
@@ -279,7 +278,6 @@ private:
     // Safe provided they are updated atomically.
     std::atomic<uint64_t> m_num_2MHz_cycles{0};
     std::atomic<bool> m_limit_speed{true};
-    std::atomic<uint32_t> m_debug_flags{0};
     std::atomic<uint32_t> m_leds{0};
 #if BBCMICRO_TRACE
     std::atomic<bool> m_is_tracing{false};

@@ -263,9 +263,10 @@ public:
 
     bool HasNumericKeypad() const;
 
-    /* combination of DebugFlag values. */
-    uint32_t GetDebugFlags();
-    void SetDebugFlags(uint32_t flags);
+#if BBCMICRO_DEBUGGER
+    bool GetTeletextDebug() const;
+    void SetTeletextDebug(bool teletext_debug);
+#endif
 
     bool Update(VideoDataUnit *video_unit,SoundDataUnit *sound_unit);
     //void UpdateCycle0(VideoDataUnit *video_unit);

@@ -29,8 +29,10 @@ public:
     /* odd_frame is specifically 1 (odd frame) or 0 (even frame). */
     void VSync(uint8_t odd_frame);
 
+#if BBCMICRO_DEBUGGER
     bool IsDebug() const;
     void SetDebug(bool debug);
+#endif
 protected:
 private:
     // Teletext
@@ -63,7 +65,9 @@ private:
     bool m_hold=false;
     bool m_flash=false;
     bool m_frame_flash=false;
+#if BBCMICRO_DEBUGGER
     bool m_debug=false;
+#endif
 };
 
 //////////////////////////////////////////////////////////////////////////

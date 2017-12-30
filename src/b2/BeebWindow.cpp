@@ -184,32 +184,21 @@ void BeebWindow::OptionsUI::DoImGui(CommandContextStack *cc_stack) {
 
     ImGui::NewLine();
 
-    if(ImGui::CollapsingHeader("Debug Flags",ImGuiTreeNodeFlags_DefaultOpen)) {
-        uint32_t flags=beeb_thread->GetDebugFlags();
-        bool any_changed=false;
+#if BBCMICRO_DEBUGGER
+    if(ImGui::CollapsingHeader("Display Debug Flags",ImGuiTreeNodeFlags_DefaultOpen)) {
+        {
+            std::unique_lock<Mutex> lock;
+            BBCMicro *m=m_beeb_window->m_beeb_thread->LockMutableBeeb(&lock);
 
-        for(uint32_t i=0;i<32;++i) {
-            uint32_t mask=1u<<i;
-            const char *name=GetBBCMicroDebugFlagEnumName((int)mask);
-            if(name[0]=='?') {
-                continue;
-            }
-
-            bool value=!!(flags&mask);
-            if(ImGui::Checkbox(name,&value)) {
-                any_changed=true;
-
-                flags&=~mask;
-                if(value) {
-                    flags|=mask;
-                }
+            bool debug=m->GetTeletextDebug();
+            if(ImGui::Checkbox("Teletext debug",&debug)) {
+                m->SetTeletextDebug(debug);
             }
         }
 
-        if(any_changed) {
-            beeb_thread->SendDebugFlagsMessage(flags);
-        }
+        ImGui::Checkbox("Show TV beam position",&m_beeb_window->m_show_beam_position);
     }
+#endif
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -1389,7 +1378,9 @@ void BeebWindow::UpdateTVTexture(VBlankRecord *vblank_record) {
         video_output->ConsumerUnlock(num_units_consumed);
     } else {
 #if BBCMICRO_DEBUGGER
+        if(m_show_beam_position) {
             m_tv.AddBeamMarker();
+        }
 #endif
     }
 
@@ -1518,8 +1509,8 @@ void BeebWindow::DoBeebDisplayUI() {
                 }
             }
 #endif
-        }
     }
+}
     ImGui::EndDock();
 }
 
@@ -1660,7 +1651,7 @@ void BeebWindow::SavePosition() {
     BeebWindows::SetLastWindowPlacementData(buf);
 
 #endif
-}
+    }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -1755,9 +1746,9 @@ bool BeebWindow::InitInternal() {
         if(strcmp(info.name,"opengl")==0) {
             rmt_BindOpenGL();
             g_unbind_opengl=1;
-        }
+}
 #endif
-    }
+}
     ++g_num_BeebWindow_inits;
 #endif
 

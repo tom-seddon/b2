@@ -348,6 +348,10 @@ private:
     bool m_leds_popup_ui_active=false;
     uint64_t m_leds_popup_ticks=0;
 
+#if BBCMICRO_DEBUGGER
+    bool m_show_beam_position=true;
+#endif
+
     //
     std::shared_ptr<MessageList> m_message_list;
     uint64_t m_msg_last_num_messages_printed=0;

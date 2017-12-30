@@ -62,9 +62,6 @@ EPN(SetDiscImageNameAndLoadMethod)
 // (bool)data.u64 - pause state
 EPN(SetPaused)
 
-// u32 - debug flags
-EPN(DebugFlags)
-
 // Goes to the given spot in the timeline and continues from there.
 //
 // data.u64 - node ID

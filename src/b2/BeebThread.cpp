@@ -394,13 +394,6 @@ void BeebThread::SendLoadDiscMessage(int drive,std::shared_ptr<DiscImage> disc_i
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void BeebThread::SendDebugFlagsMessage(uint32_t debug_flags) {
-    this->SendMessage(BeebThreadEventType_DebugFlags,debug_flags,nullptr);
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 struct LoadStateMessagePayload {
     // previous timeline id.
     uint64_t parent_timeline_id=0;
@@ -717,13 +710,6 @@ BBCMicro *BeebThread::LockMutableBeeb(std::unique_lock<Mutex> *lock) {
 
 bool BeebThread::IsSpeedLimited() const {
     return m_limit_speed.load(std::memory_order_acquire);
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-uint32_t BeebThread::GetDebugFlags() const {
-    return m_debug_flags.load(std::memory_order_acquire);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -1264,9 +1250,6 @@ void BeebThread::ThreadReplaceBeeb(ThreadState *ts,std::unique_ptr<BBCMicro> bee
     }
 
     ts->beeb->SetNVRAMCallback(&ThreadBBCMicroNVRAMCallback,this);
-
-    // Always set debug flags. They don't affect reproducibility.
-    ts->beeb->SetDebugFlags(m_debug_flags.load(std::memory_order_acquire));
 
     // Apply current keypresses to the emulated BBC. Reset fake shift
     // state and boot state first so that the Shift key status is set
@@ -1830,18 +1813,6 @@ bool BeebThread::ThreadHandleMessage(
     case BeebThreadEventType_SetPaused:
         {
             m_paused=!!msg->data.u64;
-        }
-        break;
-
-    case BeebThreadEventType_DebugFlags:
-        {
-            ASSERT(ts->beeb);
-
-            uint32_t flags=msg->u32;
-
-            ts->beeb->SetDebugFlags(flags);
-
-            m_debug_flags.store(flags,std::memory_order_release);
         }
         break;
 

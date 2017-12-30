@@ -30,8 +30,10 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#if BBCMICRO_DEBUGGER
 static uint16_t teletext_debug_font[128][10];
 static uint16_t teletext_debug_font_bgmask[128][10];
+#endif
 
 //[(bool)aa][(TeletextCharset)style][ch-32][row]
 static uint16_t teletext_font[2][3][96][20];
@@ -98,6 +100,7 @@ static constexpr size_t CONSUMER_SHIFT=6;
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#if BBCMICRO_DEBUGGER
 static int GetHexChar(int nybble) {
     ASSERT(nybble>=0&&nybble<16);
     if(nybble<10) {
@@ -106,6 +109,7 @@ static int GetHexChar(int nybble) {
         return 'A'+nybble-10-32;
     }
 }
+#endif
 
 static int ShouldAntialias(size_t style,size_t ch) {
     if(style==TeletextCharset_Alpha) {
@@ -171,6 +175,7 @@ struct InitTeletextFont {
                     }
                 }
 
+#if BBCMICRO_DEBUGGER
                 // debug
                 {
                     int hc=GetHexChar(ch>>4);
@@ -188,6 +193,7 @@ struct InitTeletextFont {
                         teletext_debug_font_bgmask[ch][y]=~(a|b<<1|b|b>>1|c);
                     }
                 }
+#endif
             }
         }
     }
@@ -363,8 +369,9 @@ void SAA5050::Byte(uint8_t value) {
                 m_last_graphics_data1=m_data1;
             }
         }
-            }
+    }
 
+#if BBCMICRO_DEBUGGER
     if(m_debug) {
         size_t ch=value&0x7f;
         size_t row=m_raster/2;
@@ -373,6 +380,7 @@ void SAA5050::Byte(uint8_t value) {
         m_data1&=teletext_debug_font_bgmask[ch][row];
         m_data1|=teletext_debug_font[ch][row];
     }
+#endif
 }
 
 void SAA5050::EmitVideoDataUnit(VideoDataUnit *unit) {
@@ -439,16 +447,20 @@ void SAA5050::VSync(uint8_t odd_frame) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#if BBCMICRO_DEBUGGER
 bool SAA5050::IsDebug() const {
     return m_debug;
 }
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#if BBCMICRO_DEBUGGER
 void SAA5050::SetDebug(bool debug) {
     m_debug=debug;
 }
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
