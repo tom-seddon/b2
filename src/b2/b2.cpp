@@ -971,9 +971,7 @@ static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &init
             case SDL_KEYDOWN:
                 {
                     rmt_ScopedCPUSample(SDL_KEYxx,0);
-                    if(event.key.repeat==0) {
-                        BeebWindows::HandleSDLKeyEvent(event.key);
-                    }
+                    BeebWindows::HandleSDLKeyEvent(event.key);
                 }
                 break;
 
