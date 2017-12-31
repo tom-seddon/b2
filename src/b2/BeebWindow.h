@@ -350,6 +350,8 @@ private:
 
 #if BBCMICRO_DEBUGGER
     bool m_show_beam_position=true;
+    mutable bool m_debug_halted=false;
+    mutable bool m_got_debug_halted=false;
 #endif
 
     //
@@ -419,6 +421,17 @@ private:
 
     void CopyBASIC();
     bool IsCopyBASICEnabled() const;
+
+#if BBCMICRO_DEBUGGER
+    void DebugStop();
+    void DebugRun();
+    void DebugStepOver();
+    void DebugStepIn();
+    void DebugStepInLocked(BBCMicro *m);
+    bool DebugIsStopEnabled() const;
+    bool DebugIsRunEnabled() const;
+    bool DebugIsHalted() const;
+#endif
 
     static std::unique_ptr<SettingsUI> CreateOptionsUI(BeebWindow *beeb_window);
 #if TIMELINE_UI_ENABLED

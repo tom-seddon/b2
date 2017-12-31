@@ -595,6 +595,10 @@ bool BeebWindow::DoImGui(uint64_t ticks) {
 
     m_imgui_has_kb_focus=false;
 
+#if BBCMICRO_DEBUGGER
+    m_got_debug_halted=false;
+#endif
+
     m_cc_stack.Reset();
     m_cc_stack.Push(m_occ,true);//true=force push
 
@@ -1268,6 +1272,14 @@ void BeebWindow::DoDebugMenu() {
         m_occ.DoMenuItemUI("toggle_6502_debugger");
         m_occ.DoMenuItemUI("toggle_memory_debugger");
         m_occ.DoMenuItemUI("toggle_disassembly_debugger");
+
+        ImGui::Separator();
+
+        m_occ.DoMenuItemUI("debug_stop");
+        m_occ.DoMenuItemUI("debug_run");
+        m_occ.DoMenuItemUI("debug_step_over");
+        m_occ.DoMenuItemUI("debug_step_in");
+
 #endif
 
         ImGui::Separator();
@@ -2495,6 +2507,107 @@ bool BeebWindow::IsCopyBASICEnabled() const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#if BBCMICRO_DEBUGGER
+void BeebWindow::DebugStop() {
+    std::unique_lock<Mutex> lock;
+    BBCMicro *m=m_beeb_thread->LockMutableBeeb(&lock);
+
+    m->DebugHalt();
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_DEBUGGER
+void BeebWindow::DebugRun() {
+    std::unique_lock<Mutex> lock;
+    BBCMicro *m=m_beeb_thread->LockMutableBeeb(&lock);
+
+    m->DebugRun();
+    m_beeb_thread->SendDebugWakeUpMessage();
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_DEBUGGER
+void BeebWindow::DebugStepOver() {
+    std::unique_lock<Mutex> lock;
+    BBCMicro *m=m_beeb_thread->LockMutableBeeb(&lock);
+
+    const M6502 *s=m->GetM6502();
+    uint8_t opcode=M6502_GetOpcode(s);
+    const M6502DisassemblyInfo *di=&s->config->disassembly_info[opcode];
+
+    if(di->always_step_in) {
+        this->DebugStepInLocked(m);
+    } else {
+        M6502Word next_pc={(uint16_t)(s->opcode_pc.w+di->num_bytes)};
+        m->DebugAddTempBreakpoint(next_pc);
+        //printf("step over %s/%s - next_pc=$%04x\n",mnemonic,mode_name,next_pc.w);
+        m->DebugRun();
+        m_beeb_thread->SendDebugWakeUpMessage();
+    }
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_DEBUGGER
+void BeebWindow::DebugStepIn() {
+    std::unique_lock<Mutex> lock;
+    BBCMicro *m=m_beeb_thread->LockMutableBeeb(&lock);
+
+    this->DebugStepInLocked(m);
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_DEBUGGER
+void BeebWindow::DebugStepInLocked(BBCMicro *m) {
+    m->DebugStepIn();
+    m->DebugRun();
+    m_beeb_thread->SendDebugWakeUpMessage();
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool BeebWindow::DebugIsStopEnabled() const {
+    return !this->DebugIsHalted();
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool BeebWindow::DebugIsRunEnabled() const {
+    return this->DebugIsHalted();
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool BeebWindow::DebugIsHalted() const {
+    if(!m_got_debug_halted) {
+        std::unique_lock<Mutex> lock;
+        BBCMicro *m=m_beeb_thread->LockMutableBeeb(&lock);
+
+        m_debug_halted=m->DebugIsHalted();
+        m_got_debug_halted=true;
+    }
+
+    return m_debug_halted;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 ObjectCommandTable<BeebWindow> BeebWindow::ms_command_table("Beeb Window",{
     {{"hard_reset","Hard Reset"},&BeebWindow::HardReset},
     {{"load_last_state","Load Last State"},&BeebWindow::LoadLastState,nullptr,&BeebWindow::IsLoadLastStateEnabled},
@@ -2533,5 +2646,9 @@ ObjectCommandTable<BeebWindow> BeebWindow::ms_command_table("Beeb Window",{
     GetTogglePopupCommand<BeebWindowPopupType_6502Debugger>("toggle_6502_debugger"),
     GetTogglePopupCommand<BeebWindowPopupType_MemoryDebugger>("toggle_memory_debugger"),
     GetTogglePopupCommand<BeebWindowPopupType_DisassemblyDebugger>("toggle_disassembly_debugger"),
+    {CommandDef("debug_stop","Stop").Shortcut(SDLK_F5|PCKeyModifier_Shift),&BeebWindow::DebugStop,nullptr,&BeebWindow::DebugIsStopEnabled},
+    {CommandDef("debug_run","Run").Shortcut(SDLK_F5),&BeebWindow::DebugRun,nullptr,&BeebWindow::DebugIsRunEnabled},
+    {CommandDef("debug_step_over","Step Over").Shortcut(SDLK_F10),&BeebWindow::DebugStepOver,nullptr,&BeebWindow::DebugIsRunEnabled},
+    {CommandDef("debug_step_in","Step In").Shortcut(SDLK_F11),&BeebWindow::DebugStepIn,nullptr,&BeebWindow::DebugIsRunEnabled},
 #endif
 });

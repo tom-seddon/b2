@@ -41,13 +41,8 @@ class DebugUI:
 {
 public:
     explicit DebugUI(std::shared_ptr<BeebThread> beeb_thread):
-        m_beeb_thread(std::move(beeb_thread)),
-        m_debug_occ(this,&ms_command_table)
+        m_beeb_thread(std::move(beeb_thread))
     {
-    }
-
-    void DoImGui(CommandContextStack *cc_stack) {
-        cc_stack->Push(m_debug_occ);
     }
 
     bool OnClose() override {
@@ -55,79 +50,8 @@ public:
     }
 protected:
     const std::shared_ptr<BeebThread> m_beeb_thread;
-    const ObjectCommandContext<DebugUI> m_debug_occ;
-
-    void UpdateEnableFlags(const BBCMicro *m) {
-        m_halted=m->DebugIsHalted();
-    }
 private:
-    bool m_halted=false;
-
-    bool IsStopEnabled() const {
-        return !m_halted;
-    }
-
-    bool IsRunEnabled() const {
-        return m_halted;
-    }
-
-    void Stop() {
-        std::unique_lock<Mutex> lock;
-        BBCMicro *m=m_beeb_thread->LockMutableBeeb(&lock);
-
-        m->DebugHalt();
-    }
-
-    void Run() {
-        std::unique_lock<Mutex> lock;
-        BBCMicro *m=m_beeb_thread->LockMutableBeeb(&lock);
-
-        m->DebugRun();
-        m_beeb_thread->SendDebugWakeUpMessage();
-    }
-
-    void StepOver() {
-        std::unique_lock<Mutex> lock;
-        BBCMicro *m=m_beeb_thread->LockMutableBeeb(&lock);
-
-        const M6502 *s=m->GetM6502();
-        uint8_t opcode=M6502_GetOpcode(s);
-        const M6502DisassemblyInfo *di=&s->config->disassembly_info[opcode];
-
-        if(di->always_step_in) {
-            this->StepInLocked(m);
-        } else {
-            M6502Word next_pc={(uint16_t)(s->opcode_pc.w+di->num_bytes)};
-            m->DebugAddTempBreakpoint(next_pc);
-            //printf("step over %s/%s - next_pc=$%04x\n",mnemonic,mode_name,next_pc.w);
-            m->DebugRun();
-            m_beeb_thread->SendDebugWakeUpMessage();
-        }
-
-    }
-
-    void StepIn() {
-        std::unique_lock<Mutex> lock;
-        BBCMicro *m=m_beeb_thread->LockMutableBeeb(&lock);
-
-        this->StepInLocked(m);
-    }
-
-    void StepInLocked(BBCMicro *m) {
-        m->DebugStepIn();
-        m->DebugRun();
-        m_beeb_thread->SendDebugWakeUpMessage();
-    }
-
-    static ObjectCommandTable<DebugUI> ms_command_table;
 };
-
-ObjectCommandTable<DebugUI> DebugUI::ms_command_table("All Debug Windows",{
-    {CommandDef("stop","Stop").Shortcut(SDLK_F5|PCKeyModifier_Shift),&DebugUI::Stop,nullptr,&DebugUI::IsStopEnabled},
-    {CommandDef("run","Run").Shortcut(SDLK_F5),&DebugUI::Run,nullptr,&DebugUI::IsRunEnabled},
-    {CommandDef("step_over","Step Over").Shortcut(SDLK_F10),&DebugUI::StepOver,nullptr,&DebugUI::IsRunEnabled},
-    {CommandDef("step_in","Step In").Shortcut(SDLK_F11),&DebugUI::StepIn,nullptr,&DebugUI::IsRunEnabled},
-});
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -149,8 +73,6 @@ public:
     void DoImGui(CommandContextStack *cc_stack) {
         (void)cc_stack;
         //m_beeb_thread->SendUpdate6502StateMessage();
-
-        this->DebugUI::DoImGui(cc_stack);
 
         bool halted;
         uint16_t pc,abus;
@@ -178,8 +100,6 @@ public:
             tfn=s->tfn;
             ifn=s->ifn;
             opcode=M6502_GetOpcode(s);
-
-            this->UpdateEnableFlags(m);
         }
 
         this->Reg("A",a);
@@ -201,29 +121,19 @@ public:
         ImGui::Text("Address = $%04x; Data = $%02x %03d %s",abus,dbus,dbus,BINARY_BYTE_STRINGS[dbus]);
         ImGui::Text("Access = %s",M6502ReadType_GetName(read));
 
-        ImGui::Separator();
-        m_debug_occ.DoButton("stop");
-        ImGui::SameLine();
-        m_debug_occ.DoButton("run");
-        ImGui::SameLine();
-        m_debug_occ.DoButton("step_in");
-        ImGui::SameLine();
-        m_debug_occ.DoButton("step_over");
+        //ImGui::Separator();
+        //m_debug_occ.DoButton("stop");
+        //ImGui::SameLine();
+        //m_debug_occ.DoButton("run");
+        //ImGui::SameLine();
+        //m_debug_occ.DoButton("step_in");
+        //ImGui::SameLine();
+        //m_debug_occ.DoButton("step_over");
     }
 protected:
 private:
     void Reg(const char *name,uint8_t value) {
         ImGui::Text("%s = $%02x %03d %s",name,value,value,BINARY_BYTE_STRINGS[value]);
-    }
-
-    void StepIn() {
-        printf("step in...\n");
-        std::unique_lock<Mutex> lock;
-        BBCMicro *m=m_beeb_thread->LockMutableBeeb(&lock);
-
-        m->DebugStepIn();
-        m->DebugRun();
-        m_beeb_thread->SendDebugWakeUpMessage();
     }
 };
 
@@ -340,8 +250,6 @@ public:
     void DoImGui(CommandContextStack *cc_stack) {
         (void)cc_stack;
 
-        this->DebugUI::DoImGui(cc_stack);
-
         m_mem.Reset();
 
         m_memory_editor.DrawContents((uint8_t *)this,65536,0);
@@ -389,8 +297,6 @@ public:
     }
 
     void DoImGui(CommandContextStack *cc_stack) {
-        this->DebugUI::DoImGui(cc_stack);
-
         cc_stack->Push(m_occ);
 
         const M6502Config *config;
@@ -408,6 +314,19 @@ public:
 
         m_occ.DoToggleCheckboxUI("toggle_track_pc");
 
+        m_occ.DoButton("go_back");
+
+        if(ImGui::InputText("Address",
+                            m_address_text,sizeof m_address_text,
+                            ImGuiInputTextFlags_EnterReturnsTrue|ImGuiInputTextFlags_AutoSelectAll))
+        {
+            char *ep;
+            unsigned long address=strtoul(m_address_text,&ep,16);
+            if(*ep==0||isspace(*ep)&&address<65536) {
+                this->GoTo((uint16_t)address);
+            }
+        }
+
         if(m_track_pc) {
             m_addr=pc;
         }
@@ -417,11 +336,7 @@ public:
         uint16_t addr=m_addr;
         while(ImGui::GetCursorPosY()<height) {
             M6502Word line_addr={addr};
-            char disassembly_text[50],bytes_text[50];
             uint8_t bytes[3];
-
-            char *c=disassembly_text;
-            size_t num_bytes=0;
 
             ImGuiIDPusher id_pusher(addr);
 
@@ -433,134 +348,9 @@ public:
 
             const M6502DisassemblyInfo *di=&config->disassembly_info[bytes[0]];
 
-            memcpy(c,di->mnemonic,sizeof di->mnemonic-1);
-            c+=sizeof di->mnemonic-1;
-            *c++=' ';
-
-            switch(di->mode) {
-            default:
-                ASSERT(0);
-                // fall through
-            case M6502AddrMode_IMP:
-                num_bytes=1;
-                break;
-
-            case M6502AddrMode_REL:
-                {
-                    bytes[1]=m_mem.GetByte(addr++);
-
-                    M6502Word dest;
-                    dest.w=addr+(uint16_t)(int16_t)(int8_t)bytes[1];
-
-                    c=AddWord(c,"$",dest.b.l,dest.b.h,"");
-                    num_bytes=2;
-                }
-                break;
-
-            case M6502AddrMode_IMM:
-                bytes[1]=m_mem.GetByte(addr++);
-                c=AddByte(c,"#$",bytes[1],"");
-                num_bytes=2;
-                break;
-
-            case M6502AddrMode_ZPG:
-                bytes[1]=m_mem.GetByte(addr++);
-                c=AddByte(c,"$",bytes[1],"");
-                num_bytes=2;
-                break;
-
-            case M6502AddrMode_ZPX:
-                bytes[1]=m_mem.GetByte(addr++);
-                c=AddByte(c,"$",bytes[1],",X");
-                num_bytes=2;
-                break;
-
-            case M6502AddrMode_ZPY:
-                bytes[1]=m_mem.GetByte(addr++);
-                c=AddByte(c,"$",bytes[1],",Y");
-                num_bytes=2;
-                break;
-
-            case M6502AddrMode_ABS:
-                bytes[1]=m_mem.GetByte(addr++);
-                bytes[2]=m_mem.GetByte(addr++);
-                c=AddWord(c,"$",bytes[1],bytes[2],"");
-                num_bytes=3;
-                break;
-
-            case M6502AddrMode_ABX:
-                bytes[1]=m_mem.GetByte(addr++);
-                bytes[2]=m_mem.GetByte(addr++);
-                c=AddWord(c,"$",bytes[1],bytes[2],",X");
-                num_bytes=3;
-                break;
-
-            case M6502AddrMode_ABY:
-                bytes[1]=m_mem.GetByte(addr++);
-                bytes[2]=m_mem.GetByte(addr++);
-                c=AddWord(c,"$",bytes[1],bytes[2],",Y");
-                num_bytes=3;
-                break;
-
-            case M6502AddrMode_INX:
-                bytes[1]=m_mem.GetByte(addr++);
-                c=AddByte(c,"($",bytes[1],",X)");
-                num_bytes=2;
-                break;
-
-            case M6502AddrMode_INY:
-                bytes[1]=m_mem.GetByte(addr++);
-                c=AddByte(c,"($",bytes[1],"),Y");
-                num_bytes=2;
-                break;
-
-            case M6502AddrMode_IND:
-                bytes[1]=m_mem.GetByte(addr++);
-                bytes[2]=m_mem.GetByte(addr++);
-                c=AddWord(c,"($",bytes[1],bytes[2],")");
-                num_bytes=3;
-                break;
-
-            case M6502AddrMode_ACC:
-                *c++='A';
-                num_bytes=1;
-                break;
-
-            case M6502AddrMode_INZ:
-                bytes[1]=m_mem.GetByte(addr++);
-                c=AddByte(c,"($",bytes[1],")");
-                num_bytes=2;
-                break;
-
-            case M6502AddrMode_INDX:
-                bytes[1]=m_mem.GetByte(addr++);
-                bytes[2]=m_mem.GetByte(addr++);
-                c=AddWord(c,"($",bytes[1],bytes[2],",X)");
-                num_bytes=2;
-                break;
+            for(uint8_t i=1;i<di->num_bytes;++i) {
+                bytes[i]=m_mem.GetByte(addr++);
             }
-
-            *c++=0;
-            ASSERT(c<=disassembly_text+sizeof disassembly_text);
-
-            c=bytes_text;
-
-            for(size_t i=0;i<3;++i) {
-                if(i>0) {
-                    *c++=' ';
-                }
-
-                if(i<num_bytes) {
-                    *c++=HEX_CHARS_LC[bytes[i]>>4&15];
-                    *c++=HEX_CHARS_LC[bytes[i]&15];
-                } else {
-                    *c++=' ';
-                    *c++=' ';
-                }
-            }
-
-            *c++=0;
-            ASSERT(c<=bytes_text+sizeof bytes_text);
 
             ImGuiStyleColourPusher pusher;
 
@@ -580,8 +370,86 @@ public:
 
             ImGui::SameLine();
 
+            ImGui::Text("%c.%04x %c%c %c%c %c%c %s ",
+                        flat_page_code,
+                        line_addr.w,
+                        HEX_CHARS_LC[bytes[0]>>4&15],
+                        HEX_CHARS_LC[bytes[0]&15],
+                        di->num_bytes>=2?HEX_CHARS_LC[bytes[1]>>4&15]:' ',
+                        di->num_bytes>=2?HEX_CHARS_LC[bytes[1]&15]:' ',
+                        di->num_bytes>=3?HEX_CHARS_LC[bytes[2]>>4&15]:' ',
+                        di->num_bytes>=3?HEX_CHARS_LC[bytes[2]&15]:' ',
+                        di->mnemonic);
 
-            ImGui::Text("%c.%04x %s %s",flat_page_code,line_addr.w,bytes_text,disassembly_text);
+            switch(di->mode) {
+            default:
+                ASSERT(0);
+                // fall through
+            case M6502AddrMode_IMP:
+                break;
+
+            case M6502AddrMode_REL:
+                {
+                    M6502Word dest;
+                    dest.w=addr+(uint16_t)(int16_t)(int8_t)bytes[1];
+
+                    this->AddWord("$",dest.b.l,dest.b.h,"");
+                }
+                break;
+
+            case M6502AddrMode_IMM:
+                this->AddByte("#$",bytes[1],"");
+                break;
+
+            case M6502AddrMode_ZPG:
+                this->AddByte("$",bytes[1],"");
+                break;
+
+            case M6502AddrMode_ZPX:
+                this->AddByte("$",bytes[1],",X");
+                break;
+
+            case M6502AddrMode_ZPY:
+                this->AddByte("$",bytes[1],",Y");
+                break;
+
+            case M6502AddrMode_ABS:
+                this->AddWord("$",bytes[1],bytes[2],"");
+                break;
+
+            case M6502AddrMode_ABX:
+                this->AddWord("$",bytes[1],bytes[2],",X");
+                break;
+
+            case M6502AddrMode_ABY:
+                this->AddWord("$",bytes[1],bytes[2],",Y");
+                break;
+
+            case M6502AddrMode_INX:
+                this->AddByte("($",bytes[1],",X)");
+                break;
+
+            case M6502AddrMode_INY:
+                this->AddByte("($",bytes[1],"),Y");
+                break;
+
+            case M6502AddrMode_IND:
+                this->AddWord("($",bytes[1],bytes[2],")");
+                break;
+
+            case M6502AddrMode_ACC:
+                ImGui::SameLine();
+                ImGui::TextUnformatted("A");
+                break;
+
+            case M6502AddrMode_INZ:
+                this->AddByte("($",bytes[1],")");
+                break;
+
+            case M6502AddrMode_INDX:
+                this->AddWord("($",bytes[1],bytes[2],",X)");
+                break;
+            }
         }
     }
 protected:
@@ -590,6 +458,61 @@ private:
     uint16_t m_addr=0;
     BeebMemory m_mem;
     bool m_track_pc=true;
+    char m_address_text[100]={};
+    std::vector<uint16_t> m_history;
+    //char m_disassembly_text[100];
+
+    void AddWord(const char *prefix,uint8_t lsb,uint8_t msb,const char *suffix) {
+        char label[5]={
+            HEX_CHARS_LC[msb>>4&15],
+            HEX_CHARS_LC[msb&15],
+            HEX_CHARS_LC[lsb>>4&15],
+            HEX_CHARS_LC[lsb&15],
+        };
+
+        this->DoClickableAddress(prefix,label,suffix,msb<<8|lsb);
+    }
+
+    void AddByte(const char *prefix,uint8_t value,const char *suffix) {
+        char label[3]={
+            HEX_CHARS_LC[value>>4&15],
+            HEX_CHARS_LC[value&15],
+        };
+
+        this->DoClickableAddress(prefix,label,suffix,value);
+    }
+
+    void DoClickableAddress(const char *prefix,const char *label,const char *suffix,uint16_t address) {
+        if(prefix[0]!=0) {
+            ImGui::SameLine(0.f,0.f);
+            ImGui::TextUnformatted(prefix);
+        }
+
+        ImGui::SameLine(0.f,0.f);
+
+        {
+            // No point using SmallButton - it doesn't set the horizontal padding to 0.
+
+            ImGuiStyleVarPusher pusher(ImGuiStyleVar_FramePadding,ImVec2(0.f,0.f));
+
+            if(ImGui::ButtonEx(label,ImVec2(0.f,0.f),ImGuiButtonFlags_AlignTextBaseLine)) {
+                this->GoTo(address);
+            }
+        }
+
+        if(suffix[0]!=0) {
+            ImGui::SameLine(0.f,0.f);
+            ImGui::TextUnformatted(suffix);
+        }
+    }
+
+    void GoTo(uint16_t address) {
+        if(m_history.empty()||m_addr!=m_history.back()) {
+            m_history.push_back(m_addr);
+        }
+        m_track_pc=false;
+        m_addr=address;
+    }
 
     bool IsTrackingPC() const {
         return m_track_pc;
@@ -599,36 +522,16 @@ private:
         m_track_pc=!m_track_pc;
     }
 
-    static char *AddByte(char *c,const char *prefix,uint8_t value,const char *suffix) {
-        while((*c=*prefix++)!=0) {
-            ++c;
-        }
-
-        *c++=HEX_CHARS_LC[value>>4&15];
-        *c++=HEX_CHARS_LC[value&15];
-
-        while((*c=*suffix++)!=0) {
-            ++c;
-        }
-
-        return c;
+    bool IsGoBackEnabled() const {
+        return !m_history.empty();
     }
 
-    static char *AddWord(char *c,const char *prefix,uint8_t lsb,uint8_t msb,const char *suffix) {
-        while((*c=*prefix++)!=0) {
-            ++c;
+    void GoBack() {
+        if(!m_history.empty()) {
+            m_track_pc=false;
+            m_addr=m_history.back();
+            m_history.pop_back();
         }
-
-        *c++=HEX_CHARS_LC[msb>>4&15];
-        *c++=HEX_CHARS_LC[msb&15];
-        *c++=HEX_CHARS_LC[lsb>>4&15];
-        *c++=HEX_CHARS_LC[lsb&15];
-
-        while((*c=*suffix++)!=0) {
-            ++c;
-        }
-
-        return c;
     }
 
     static ObjectCommandTable<DisassemblyDebugWindow> ms_command_table;
@@ -636,6 +539,7 @@ private:
 
 ObjectCommandTable<DisassemblyDebugWindow> DisassemblyDebugWindow::ms_command_table("Disassembly Window",{
     {CommandDef("toggle_track_pc","Track PC").Shortcut(SDLK_t),&DisassemblyDebugWindow::ToggleTrackPC,&DisassemblyDebugWindow::IsTrackingPC,nullptr},
+    {CommandDef("go_back","Back").Shortcut(SDLK_BACKSPACE),&DisassemblyDebugWindow::GoBack,nullptr,&DisassemblyDebugWindow::IsGoBackEnabled},
 });
 
 std::unique_ptr<SettingsUI> CreateDisassemblyDebugWindow(BeebWindow *beeb_window) {
