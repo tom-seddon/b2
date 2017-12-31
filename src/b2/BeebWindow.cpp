@@ -853,7 +853,7 @@ void BeebWindow::DoPopupUI(uint64_t now,int output_width,int output_height) {
 
     if(m_messages_popup_ui_active) {
         ImGuiWindowFlags flags=(ImGuiWindowFlags_NoTitleBar|
-                                ImGuiWindowFlags_ShowBorders|
+                                //ImGuiWindowFlags_ShowBorders|
                                 ImGuiWindowFlags_AlwaysAutoResize|
                                 ImGuiWindowFlags_NoFocusOnAppearing);
         ImGui::SetNextWindowPos(ImGui::GetIO().DisplaySize * 0.5f,ImGuiCond_Always,ImVec2(0.5f,0.5f));
@@ -900,7 +900,7 @@ void BeebWindow::DoPopupUI(uint64_t now,int output_width,int output_height) {
 
     if(m_leds_popup_ui_active) {
         ImGuiWindowFlags flags=(ImGuiWindowFlags_NoTitleBar|
-                                ImGuiWindowFlags_ShowBorders|
+                                //ImGuiWindowFlags_ShowBorders|
                                 ImGuiWindowFlags_AlwaysAutoResize|
                                 ImGuiWindowFlags_NoFocusOnAppearing);
         ImGui::SetNextWindowPos(ImVec2(10.f,output_height-50.f));
@@ -957,7 +957,7 @@ void BeebWindow::DoPopupUI(uint64_t now,int output_width,int output_height) {
                 ImGui::Separator();
             } else {
                 ImGuiWindowFlags flags=(ImGuiWindowFlags_NoTitleBar|
-                                        ImGuiWindowFlags_ShowBorders|
+                                        //ImGuiWindowFlags_ShowBorders|
                                         ImGuiWindowFlags_AlwaysAutoResize|
                                         ImGuiWindowFlags_NoFocusOnAppearing);
 
