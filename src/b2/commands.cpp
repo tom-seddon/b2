@@ -27,6 +27,9 @@ Command::Command(std::string name,std::string text,bool must_confirm,std::vector
     m_must_confirm(must_confirm),
     m_default_shortcuts(std::move(default_shortcuts))
 {
+    if(!m_default_shortcuts.empty()) {
+        m_shortcut=m_default_shortcuts[0];
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////
