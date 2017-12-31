@@ -41,6 +41,8 @@ add_library(imgui_lib STATIC
 target_include_directories(imgui_lib PUBLIC ${IMGUI__FOLDER})
 target_compile_definitions(imgui_lib PUBLIC IMGUI_INCLUDE_IMGUI_USER_H IMGUI_INCLUDE_IMGUI_USER_INL NO_IMGUI_ADDONS)
 
+target_compile_definitions(imgui_lib PUBLIC "IMGUI_OVERRIDE_DRAWVERT_STRUCT_LAYOUT=struct ImDrawVert {ImVec2 pos\\; ImU32 col\\; ImVec2 uv\\;}")
+
 target_compile_definitions(imgui_lib PUBLIC YES_IMGUIDOCK)
 target_sources(imgui_lib PRIVATE
   ${IMGUI__FOLDER}/addons/imguidock/imguidock.cpp
