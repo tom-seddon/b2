@@ -55,6 +55,7 @@ public:
 
 #if BBCMICRO_DEBUGGER
     void AddBeamMarker();
+    void FillWithTestPattern();
 #endif
 
     // *data_version (optional) is set to texture data version, incremented on

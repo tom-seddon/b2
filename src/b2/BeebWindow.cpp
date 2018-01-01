@@ -197,6 +197,11 @@ void BeebWindow::OptionsUI::DoImGui(CommandContextStack *cc_stack) {
         }
 
         ImGui::Checkbox("Show TV beam position",&m_beeb_window->m_show_beam_position);
+        if(ImGui::Checkbox("Test pattern",&m_beeb_window->m_test_pattern)) {
+            if(m_beeb_window->m_test_pattern) {
+                m_beeb_window->m_tv.FillWithTestPattern();
+            }
+        }
     }
 #endif
 }
@@ -1361,6 +1366,13 @@ void BeebWindow::UpdateTVTexture(VBlankRecord *vblank_record) {
 
     size_t num_units_consumed=0;
 
+    bool update=true;
+#if BBCMICRO_DEBUGGER
+    if(m_test_pattern) {
+        update=false;
+    }
+#endif
+
     if(video_output->ConsumerLock(&a,&na,&b,&nb)) {
         bool limited=m_beeb_thread->IsSpeedLimited();
 
@@ -1370,14 +1382,18 @@ void BeebWindow::UpdateTVTexture(VBlankRecord *vblank_record) {
         if(limited) {
             n=(size_t)std::min((uint64_t)n,num_units_left);
         }
-        m_tv.Update(a,n);
+        if(update) {
+            m_tv.Update(a,n);
+        }
         num_units_left-=n;
 
         n=nb;
         if(limited) {
             n=(size_t)std::min((uint64_t)n,num_units_left);
         }
-        m_tv.Update(b,n);
+        if(update) {
+            m_tv.Update(b,n);
+        }
         num_units_left-=n;
 
         if(limited) {
@@ -1390,8 +1406,10 @@ void BeebWindow::UpdateTVTexture(VBlankRecord *vblank_record) {
         video_output->ConsumerUnlock(num_units_consumed);
     } else {
 #if BBCMICRO_DEBUGGER
-        if(m_show_beam_position) {
-            m_tv.AddBeamMarker();
+        if(update) {
+            if(m_show_beam_position) {
+                m_tv.AddBeamMarker();
+            }
         }
 #endif
     }

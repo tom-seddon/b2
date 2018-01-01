@@ -64,7 +64,6 @@ bool TVOutput::InitTexture(const SDL_PixelFormat *pixel_format) {
     return true;
 }
 
-
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
@@ -561,6 +560,81 @@ void TVOutput::Update(const VideoDataUnit *units,size_t num_units) {
 void TVOutput::AddBeamMarker() {
     if(m_x<TV_TEXTURE_WIDTH&&m_y<TV_TEXTURE_HEIGHT) {
         m_texture_data[m_x+m_y*TV_TEXTURE_WIDTH]=0xffffffff;
+    }
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_DEBUGGER
+
+static const uint8_t DIGITS[10][13]={
+    {0x00,0x00,0x04,0x0A,0x11,0x11,0x11,0x11,0x11,0x0A,0x04,0x00,0x00,},// 48 (0x30) '0'
+    {0x00,0x00,0x04,0x06,0x05,0x04,0x04,0x04,0x04,0x04,0x1F,0x00,0x00,},// 49 (0x31) '1'
+    {0x00,0x00,0x0E,0x11,0x11,0x10,0x08,0x04,0x02,0x01,0x1F,0x00,0x00,},// 50 (0x32) '2'
+    {0x00,0x00,0x1F,0x10,0x08,0x04,0x0E,0x10,0x10,0x11,0x0E,0x00,0x00,},// 51 (0x33) '3'
+    {0x00,0x00,0x08,0x08,0x0C,0x0A,0x0A,0x09,0x1F,0x08,0x08,0x00,0x00,},// 52 (0x34) '4'
+    {0x00,0x00,0x1F,0x01,0x01,0x0D,0x13,0x10,0x10,0x11,0x0E,0x00,0x00,},// 53 (0x35) '5'
+    {0x00,0x00,0x0E,0x11,0x01,0x01,0x0F,0x11,0x11,0x11,0x0E,0x00,0x00,},// 54 (0x36) '6'
+    {0x00,0x00,0x1F,0x10,0x08,0x08,0x04,0x04,0x02,0x02,0x02,0x00,0x00,},// 55 (0x37) '7'
+    {0x00,0x00,0x0E,0x11,0x11,0x11,0x0E,0x11,0x11,0x11,0x0E,0x00,0x00,},// 56 (0x38) '8'
+    {0x00,0x00,0x0E,0x11,0x11,0x11,0x1E,0x10,0x10,0x11,0x0E,0x00,0x00,},// 57 (0x39) '9'
+};
+
+void TVOutput::FillWithTestPattern() {
+    m_texture_data.clear();
+    m_texture_data.resize(TV_TEXTURE_WIDTH*TV_TEXTURE_HEIGHT,m_palette[0][3]);
+
+    {
+        uint32_t *top=&m_texture_data[0];
+        uint32_t *bot=&m_texture_data[(TV_TEXTURE_HEIGHT-1)*TV_TEXTURE_WIDTH];
+
+        for(int x=0;x<TV_TEXTURE_WIDTH;++x) {
+            *bot++=*top++=m_palette[0][1];
+        }
+    }
+
+    {
+        uint32_t *line=&m_texture_data[0];
+
+        for(int y=0;y<TV_TEXTURE_HEIGHT;++y) {
+            line[TV_TEXTURE_WIDTH-1]=line[0]=m_palette[0][1];
+            line[TV_TEXTURE_WIDTH-2]=line[1]=m_palette[0][7];
+            line[TV_TEXTURE_WIDTH-3]=line[2]=m_palette[0][4];
+            line+=TV_TEXTURE_WIDTH;
+        }
+    }
+
+    {
+        for(int cy=0;cy<TV_TEXTURE_HEIGHT;cy+=50) {
+            int tmp=cy;
+            int cx=100;
+            do {
+                const uint8_t *digit=DIGITS[tmp%10];
+
+                for(int gy=0;gy<13;++gy) {
+                    if(cy+gy>=TV_TEXTURE_HEIGHT) {
+                        break;
+                    }
+
+                    uint32_t *line=&m_texture_data[cx+(cy+gy)*TV_TEXTURE_WIDTH];
+                    uint8_t row=*digit++;
+
+                    for(int gx=0;gx<6;++gx) {
+                        if(row&1) {
+                            *line=m_palette[0][0];
+                        }
+
+                        row>>=1;
+                        ++line;
+                    }
+                }
+
+                cx-=6;
+                tmp/=10;
+            } while(tmp!=0);
+        }
     }
 }
 #endif

@@ -350,6 +350,7 @@ private:
 
 #if BBCMICRO_DEBUGGER
     bool m_show_beam_position=true;
+    bool m_test_pattern=false;
     mutable bool m_debug_halted=false;
     mutable bool m_got_debug_halted=false;
 #endif
