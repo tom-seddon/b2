@@ -144,8 +144,11 @@ std::unique_ptr<SettingsUI> Create6502DebugWindow(BeebWindow *beeb_window) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-// A 256-byte cache for data copied out from DebugCopyMemory, since
-// the debug windows' memory accesses are often predictable.
+// A cache for data copied out from DebugCopyMemory. For each memory
+// access by the debug window, 256 bytes is copied out, in an attempt
+// to avoid calling LockBeeb too often.
+//
+// Rather than trying to be at all clever, this just has a very large buffer.
 class BeebMemory {
 public:
     explicit BeebMemory(std::shared_ptr<BeebThread> beeb_thread);
@@ -156,12 +159,17 @@ public:
     BBCMicro::ByteDebugFlags GetDebugFlags(uint16_t addr);
 protected:
 private:
-    const std::shared_ptr<BeebThread> m_beeb_thread;
-    uint8_t m_buffer[256]={};
-    uint16_t m_debug_flat_page=0;
-    BBCMicro::ByteDebugFlags m_debug_buffer[256]={};
+    struct Page {
+        uint8_t ram[256];
+        BBCMicro::ByteDebugFlags debug[256];
+        uint16_t flat_page;
+    };
 
-    int m_buffer_page;
+    const std::shared_ptr<BeebThread> m_beeb_thread;
+    uint8_t m_got_pages[32];
+    Page m_pages[256]={};
+    uint8_t m_ram[256][256]={};
+    BBCMicro::ByteDebugFlags m_debug[256][256]={};
 
     void PrepareBuffer(M6502Word addr);
 };
@@ -179,7 +187,7 @@ BeebMemory::BeebMemory(std::shared_ptr<BeebThread> beeb_thread):
 //////////////////////////////////////////////////////////////////////////
 
 void BeebMemory::Reset() {
-    m_buffer_page=-1;
+    memset(m_got_pages,0,sizeof m_got_pages);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -190,7 +198,7 @@ uint8_t BeebMemory::GetByte(uint16_t addr_) {
 
     this->PrepareBuffer(addr);
 
-    return m_buffer[addr.b.l];
+    return m_pages[addr.b.h].ram[addr.b.l];
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -201,7 +209,7 @@ uint16_t BeebMemory::GetDebugPage(uint16_t addr_) {
 
     this->PrepareBuffer(addr);
 
-    return m_debug_flat_page;
+    return m_pages[addr.b.h].flat_page;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -212,23 +220,27 @@ BBCMicro::ByteDebugFlags BeebMemory::GetDebugFlags(uint16_t addr_) {
 
     this->PrepareBuffer(addr);
 
-    return m_debug_buffer[addr.b.l];
+    return m_pages[addr.b.h].debug[addr.b.l];
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 void BeebMemory::PrepareBuffer(M6502Word addr) {
-    if(m_buffer_page!=addr.b.h) {
+    uint8_t *flags=&m_got_pages[addr.b.h>>3];
+    uint8_t mask=1<<(addr.b.h&7);
+    if(!(*flags&mask)) {
         addr.b.l=0;
 
         std::unique_lock<Mutex> lock;
         const BBCMicro *m=m_beeb_thread->LockBeeb(&lock);
 
-        m_debug_flat_page=m->DebugGetFlatPage(addr.b.h);
-        m->DebugCopyMemory(m_buffer,m_debug_buffer,addr,256);
+        Page *page=&m_pages[addr.b.h];
 
-        m_buffer_page=addr.b.h;
+        page->flat_page=m->DebugGetFlatPage(addr.b.h);
+        m->DebugCopyMemory(page->ram,page->debug,addr,256);
+
+        *flags|=mask;
     }
 }
 
@@ -309,6 +321,7 @@ public:
 
         const M6502Config *config;
         uint16_t pc;
+        uint8_t x,y;
         {
             std::unique_lock<Mutex> lock;
             const BBCMicro *m=m_beeb_thread->LockBeeb(&lock);
@@ -316,6 +329,8 @@ public:
 
             config=s->config;
             pc=s->opcode_pc.w;
+            x=s->x;
+            y=s->y;
         }
 
         float maxY=ImGui::GetCurrentWindow()->Size.y;//-ImGui::GetTextLineHeight()-GImGui->Style.WindowPadding.y*2.f;
@@ -340,24 +355,31 @@ public:
         }
 
         m_mem.Reset();
+        //m_line_addrs.clear();
 
+        m_num_lines=0;
         uint16_t addr=m_addr;
         while(ImGui::GetCursorPosY()<=maxY) {
+            ++m_num_lines;
             M6502Word line_addr={addr};
-            uint8_t bytes[3];
+            //m_line_addrs.push_back(line_addr.w);
 
             ImGuiIDPusher id_pusher(addr);
 
-            bytes[0]=m_mem.GetByte(addr);
+            uint8_t opcode=m_mem.GetByte(addr);
             BBCMicro::ByteDebugFlags debug_flags=m_mem.GetDebugFlags(addr);
             uint16_t debug_flat_page=m_mem.GetDebugPage(addr);
             char flat_page_code=BBCMicro::DebugGetFlatPageCode(debug_flat_page);
             ++addr;
 
-            const M6502DisassemblyInfo *di=&config->disassembly_info[bytes[0]];
+            const M6502DisassemblyInfo *di=&config->disassembly_info[opcode];
 
-            for(uint8_t i=1;i<di->num_bytes;++i) {
-                bytes[i]=m_mem.GetByte(addr++);
+            M6502Word operand={};
+            if(di->num_bytes>=2) {
+                operand.b.l=m_mem.GetByte(addr++);
+            }
+            if(di->num_bytes>=3) {
+                operand.b.h=m_mem.GetByte(addr++);
             }
 
             ImGuiStyleColourPusher pusher;
@@ -378,15 +400,18 @@ public:
 
             ImGui::SameLine();
 
-            ImGui::Text("%c.%04x %c%c %c%c %c%c %s ",
+            ImGui::Text("%c.%04x  %c%c %c%c %c%c  %c%c%c  %s ",
                         flat_page_code,
                         line_addr.w,
-                        HEX_CHARS_LC[bytes[0]>>4&15],
-                        HEX_CHARS_LC[bytes[0]&15],
-                        di->num_bytes>=2?HEX_CHARS_LC[bytes[1]>>4&15]:' ',
-                        di->num_bytes>=2?HEX_CHARS_LC[bytes[1]&15]:' ',
-                        di->num_bytes>=3?HEX_CHARS_LC[bytes[2]>>4&15]:' ',
-                        di->num_bytes>=3?HEX_CHARS_LC[bytes[2]&15]:' ',
+                        HEX_CHARS_LC[opcode>>4&15],
+                        HEX_CHARS_LC[opcode&15],
+                        di->num_bytes>=2?HEX_CHARS_LC[operand.b.l>>4&15]:' ',
+                        di->num_bytes>=2?HEX_CHARS_LC[operand.b.l&15]:' ',
+                        di->num_bytes>=3?HEX_CHARS_LC[operand.b.h>>4&15]:' ',
+                        di->num_bytes>=3?HEX_CHARS_LC[operand.b.h&15]:' ',
+                        opcode>=32&&opcode<127?opcode:' ',
+                        operand.b.l>=32&&operand.b.l<127?operand.b.l:' ',
+                        operand.b.h>=32&&operand.b.h<127?operand.b.h:' ',
                         di->mnemonic);
 
             switch(di->mode) {
@@ -399,50 +424,58 @@ public:
             case M6502AddrMode_REL:
                 {
                     M6502Word dest;
-                    dest.w=addr+(uint16_t)(int16_t)(int8_t)bytes[1];
+                    dest.w=addr+(uint16_t)(int16_t)(int8_t)operand.b.l;
 
-                    this->AddWord("$",dest.b.l,dest.b.h,"");
+                    this->AddWord("$",dest.w,"");
                 }
                 break;
 
             case M6502AddrMode_IMM:
-                this->AddByte("#$",bytes[1],"");
+                this->AddByte("#$",operand.b.l,"");
                 break;
 
             case M6502AddrMode_ZPG:
-                this->AddByte("$",bytes[1],"");
+                this->AddByte("$",operand.b.l,"");
                 break;
 
             case M6502AddrMode_ZPX:
-                this->AddByte("$",bytes[1],",X");
+                this->AddByte("$",operand.b.l,",X");
+                this->AddByte(IND_PREFIX,operand.b.l+x,"");
                 break;
 
             case M6502AddrMode_ZPY:
-                this->AddByte("$",bytes[1],",Y");
+                this->AddByte("$",operand.b.l,",Y");
+                this->AddByte(IND_PREFIX,operand.b.l+y,"");
                 break;
 
             case M6502AddrMode_ABS:
-                this->AddWord("$",bytes[1],bytes[2],"");
+                this->AddWord("$",operand.w,"");
                 break;
 
             case M6502AddrMode_ABX:
-                this->AddWord("$",bytes[1],bytes[2],",X");
+                this->AddWord("$",operand.w,",X");
+                this->AddWord(IND_PREFIX,operand.w+x,"");
                 break;
 
             case M6502AddrMode_ABY:
-                this->AddWord("$",bytes[1],bytes[2],",Y");
+                this->AddWord("$",operand.w,",Y");
+                this->AddWord(IND_PREFIX,operand.w+y,"");
                 break;
 
             case M6502AddrMode_INX:
-                this->AddByte("($",bytes[1],",X)");
+                this->AddByte("($",operand.b.l,",X)");
+                this->DoIndirect((operand.b.l+x)&0xff,0xff,0);
                 break;
 
             case M6502AddrMode_INY:
-                this->AddByte("($",bytes[1],"),Y");
+                this->AddByte("($",operand.b.l,"),Y");
+                this->DoIndirect(operand.b.l,0xff,y);
                 break;
 
             case M6502AddrMode_IND:
-                this->AddWord("($",bytes[1],bytes[2],")");
+                this->AddWord("($",operand.w,")");
+                // doesn't handle the 6502 page crossing bug...
+                this->DoIndirect(operand.w,0xffff,0);
                 break;
 
             case M6502AddrMode_ACC:
@@ -451,34 +484,78 @@ public:
                 break;
 
             case M6502AddrMode_INZ:
-                this->AddByte("($",bytes[1],")");
+                this->AddByte("($",operand.b.l,")");
+                this->DoIndirect(operand.b.l,0xff,0);
                 break;
 
             case M6502AddrMode_INDX:
-                this->AddWord("($",bytes[1],bytes[2],",X)");
+                this->AddWord("($",operand.w,",X)");
+                this->DoIndirect(operand.w+x,0xffff,0);
                 break;
+            }
+        }
+
+        {
+            ImGuiIO& io=ImGui::GetIO();
+
+            m_wheel+=io.MouseWheel;
+
+            int wheel=(int)m_wheel;
+
+            m_wheel-=(float)wheel;
+
+            wheel*=5;//wild guess...
+
+            if(wheel<0) {
+                this->Down(config,-wheel);
+            } else if(wheel>0) {
+                this->Up(config,wheel);
             }
         }
     }
 protected:
 private:
+    static const char IND_PREFIX[];
+
     ObjectCommandContext<DisassemblyDebugWindow> m_occ;
     uint16_t m_addr=0;
     BeebMemory m_mem;
     bool m_track_pc=true;
     char m_address_text[100]={};
+    //std::vector<uint16_t> m_line_addrs;
     std::vector<uint16_t> m_history;
+    int m_num_lines=0;
     //char m_disassembly_text[100];
+    float m_wheel=0;
 
-    void AddWord(const char *prefix,uint8_t lsb,uint8_t msb,const char *suffix) {
+    void DoIndirect(uint16_t address,uint16_t mask,uint16_t post_index) {
+        M6502Word addr;
+        addr.b.l=m_mem.GetByte(address);
+
+        ++address;
+        address&=mask;
+
+        addr.b.h=m_mem.GetByte(address);
+
+        addr.w+=post_index;
+
+        M6502Word target_addr;
+        target_addr.b.l=m_mem.GetByte(addr.w);
+        ++addr.w;
+        target_addr.b.h=m_mem.GetByte(addr.w);
+
+        this->AddWord(IND_PREFIX,target_addr.w,"");
+    }
+
+    void AddWord(const char *prefix,uint16_t w,const char *suffix) {
         char label[5]={
-            HEX_CHARS_LC[msb>>4&15],
-            HEX_CHARS_LC[msb&15],
-            HEX_CHARS_LC[lsb>>4&15],
-            HEX_CHARS_LC[lsb&15],
+            HEX_CHARS_LC[w>>12&15],
+            HEX_CHARS_LC[w>>8&15],
+            HEX_CHARS_LC[w>>4&15],
+            HEX_CHARS_LC[w&15],
         };
 
-        this->DoClickableAddress(prefix,label,suffix,msb<<8|lsb);
+        this->DoClickableAddress(prefix,label,suffix,w);
     }
 
     void AddByte(const char *prefix,uint8_t value,const char *suffix) {
@@ -530,11 +607,11 @@ private:
         m_track_pc=!m_track_pc;
     }
 
-    bool IsGoBackEnabled() const {
+    bool IsBackEnabled() const {
         return !m_history.empty();
     }
 
-    void GoBack() {
+    void Back() {
         if(!m_history.empty()) {
             m_track_pc=false;
             m_addr=m_history.back();
@@ -542,12 +619,89 @@ private:
         }
     }
 
+    bool IsMoveEnabled() const {
+        if(m_track_pc) {
+            return false;
+        }
+
+        //if(m_line_addrs.empty()) {
+        //    return false;
+        //}
+
+        return true;
+    }
+
+    void PageUp() {
+        const M6502Config *config=this->Get6502Config();
+
+        this->Up(config,m_num_lines-2);
+    }
+
+    void PageDown() {
+        const M6502Config *config=this->Get6502Config();
+
+        this->Down(config,m_num_lines-2);
+    }
+
+    void Up() {
+        const M6502Config *config=this->Get6502Config();
+
+        this->Up(config,1);
+    }
+
+    void Down() {
+        const M6502Config *config=this->Get6502Config();
+
+        this->Down(config,1);
+    }
+
+    void Up(const M6502Config *config,int n) {
+        for(int i=0;i<n;++i) {
+            uint8_t opcode;
+
+            opcode=m_mem.GetByte(m_addr-1);
+            if(config->disassembly_info[opcode].num_bytes==1) {
+                --m_addr;
+                return;
+            }
+
+            opcode=m_mem.GetByte(m_addr-2);
+            if(config->disassembly_info[opcode].num_bytes==2) {
+                m_addr-=2;
+                return;
+            }
+
+            m_addr-=3;
+        }
+    }
+
+    void Down(const M6502Config *config,int n) {
+        for(int i=0;i<n;++i) {
+            uint8_t opcode=m_mem.GetByte(m_addr);
+            m_addr+=config->disassembly_info[opcode].num_bytes;
+        }
+    }
+
+    const M6502Config *Get6502Config() {
+        std::unique_lock<Mutex> lock;
+        const BBCMicro *m=m_beeb_thread->LockBeeb(&lock);
+        const M6502 *s=m->GetM6502();
+
+        return s->config;
+    }
+
     static ObjectCommandTable<DisassemblyDebugWindow> ms_command_table;
 };
 
+const char DisassemblyDebugWindow::IND_PREFIX[]=" --> $";
+
 ObjectCommandTable<DisassemblyDebugWindow> DisassemblyDebugWindow::ms_command_table("Disassembly Window",{
     {CommandDef("toggle_track_pc","Track PC").Shortcut(SDLK_t),&DisassemblyDebugWindow::ToggleTrackPC,&DisassemblyDebugWindow::IsTrackingPC,nullptr},
-    {CommandDef("go_back","Back").Shortcut(SDLK_BACKSPACE),&DisassemblyDebugWindow::GoBack,nullptr,&DisassemblyDebugWindow::IsGoBackEnabled},
+    {CommandDef("back","Back").Shortcut(SDLK_BACKSPACE),&DisassemblyDebugWindow::Back,nullptr,&DisassemblyDebugWindow::IsBackEnabled},
+    {CommandDef("up","Up").Shortcut(SDLK_UP),&DisassemblyDebugWindow::Up,&DisassemblyDebugWindow::IsMoveEnabled},
+    {CommandDef("down","Down").Shortcut(SDLK_DOWN),&DisassemblyDebugWindow::Down,&DisassemblyDebugWindow::IsMoveEnabled},
+    {CommandDef("page_up","Page Up").Shortcut(SDLK_PAGEUP),&DisassemblyDebugWindow::PageUp,&DisassemblyDebugWindow::IsMoveEnabled},
+    {CommandDef("page_down","Page Down").Shortcut(SDLK_PAGEDOWN),&DisassemblyDebugWindow::PageDown,&DisassemblyDebugWindow::IsMoveEnabled},
 });
 
 std::unique_ptr<SettingsUI> CreateDisassemblyDebugWindow(BeebWindow *beeb_window) {
