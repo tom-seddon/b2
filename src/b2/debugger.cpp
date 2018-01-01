@@ -296,6 +296,14 @@ public:
     {
     }
 
+    uint32_t GetExtraImGuiWindowFlags() const override {
+        // The bottom line of the disassembly should just be clipped
+        // if it runs off the bottom... only drawing whole lines just
+        // looks weird. But when that happens, dear imgui
+        // automatically adds a scroll bar. And that's even weirder.
+        return ImGuiWindowFlags_NoScrollbar|ImGuiWindowFlags_NoScrollWithMouse;
+    }
+
     void DoImGui(CommandContextStack *cc_stack) {
         cc_stack->Push(m_occ);
 
@@ -310,7 +318,7 @@ public:
             pc=s->opcode_pc.w;
         }
 
-        float height=ImGui::GetCurrentWindow()->Size.y;
+        float maxY=ImGui::GetCurrentWindow()->Size.y;//-ImGui::GetTextLineHeight()-GImGui->Style.WindowPadding.y*2.f;
 
         m_occ.DoToggleCheckboxUI("toggle_track_pc");
 
@@ -334,7 +342,7 @@ public:
         m_mem.Reset();
 
         uint16_t addr=m_addr;
-        while(ImGui::GetCursorPosY()<height) {
+        while(ImGui::GetCursorPosY()<=maxY) {
             M6502Word line_addr={addr};
             uint8_t bytes[3];
 

@@ -19,6 +19,9 @@ public:
     SettingsUI(SettingsUI &&)=delete;
     SettingsUI &operator=(SettingsUI &&)=delete;
 
+    // default impl returns 0.
+    virtual uint32_t GetExtraImGuiWindowFlags() const;
+
     virtual void DoImGui(CommandContextStack *cc_stack)=0;
 
     virtual bool OnClose()=0;

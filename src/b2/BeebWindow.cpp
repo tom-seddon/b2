@@ -782,7 +782,15 @@ void BeebWindow::DoSettingsUI() {
         if(opened) {
             ImGui::SetNextDock(ImGuiDockSlot_None);
             ImVec2 default_size=ImGui::GetIO().DisplaySize*.4f;
-            if(ImGui::BeginDock(ui->name,&opened,0,default_size)) {
+
+            // The extra flags could be wrong for the first frame
+            // after the window is created.
+            ImGuiWindowFlags extra_flags=0;
+            if(m_popups[ui->type]) {
+                extra_flags|=m_popups[ui->type]->GetExtraImGuiWindowFlags();
+            }
+
+            if(ImGui::BeginDock(ui->name,&opened,extra_flags,default_size)) {
                 if(!m_popups[ui->type]) {
                     printf("Creating: %s\n",ui->name);
                     m_popups[ui->type]=(*ui->create_fn)(this);
@@ -1472,6 +1480,8 @@ void BeebWindow::DoBeebDisplayUI() {
     }
 
     if(ImGui::BeginDock("Display",nullptr,flags)) {
+        ImVec2 padding=GImGui->Style.WindowPadding;
+
         ImGuiStyleVarPusher vpusher(ImGuiStyleVar_WindowPadding,ImVec2(0.f,0.f));
         if(m_tv_texture) {
 #if BEEB_DISPLAY_FILL
@@ -1481,7 +1491,7 @@ void BeebWindow::DoBeebDisplayUI() {
 
 #else
 
-            ImVec2 window_size=ImGui::GetWindowSize();
+            ImVec2 window_size=ImGui::GetWindowSize()-padding*2.f;
 
             if(m_settings.display_auto_scale) {
                 double tv_aspect=(TV_TEXTURE_WIDTH*scale_x)/TV_TEXTURE_HEIGHT;
