@@ -19,6 +19,8 @@ std::unique_ptr<SettingsUI> CreateMemoryDebugWindow(BeebWindow *beeb_window);
 std::unique_ptr<SettingsUI> CreateDisassemblyDebugWindow(BeebWindow *beeb_window);
 std::unique_ptr<SettingsUI> CreateCRTCDebugWindow(BeebWindow *beeb_window);
 std::unique_ptr<SettingsUI> CreateVideoULADebugWindow(BeebWindow *beeb_window);
+std::unique_ptr<SettingsUI> CreateSystemVIADebugWindow(BeebWindow *beeb_window);
+std::unique_ptr<SettingsUI> CreateUserVIADebugWindow(BeebWindow *beeb_window);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

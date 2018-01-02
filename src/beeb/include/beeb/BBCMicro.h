@@ -236,7 +236,7 @@ public:
     // Return true to keep the callback, or false to remove it.
     typedef bool (*InstructionFn)(BBCMicro *m,M6502 *cpu,void *context);
 
-    //const BBCMicroType *GetType();
+    BBCMicroType GetType() const;
 
     // Get read-only pointer to the cycle counter. The pointer is never
     // NULL and remains valid for the lifetime of the BBCMicro.
@@ -244,7 +244,7 @@ public:
     // (This is supposed to be impossible to get wrong (like a getter) but
     // also cheap enough in a debug build (unlike a getter) that I don't
     // have to worry about that.)
-    const uint64_t *GetNum2MHzCycles();
+    const uint64_t *GetNum2MHzCycles() const;
 
     uint8_t GetKeyState(BeebKey key);
 
@@ -363,6 +363,8 @@ public:
     const CRTC *DebugGetCRTC() const;
     const VideoULA *DebugGetVideoULA() const;
     const AddressableLatch DebugGetAddressableLatch() const;
+    const R6522 *DebugGetSystemVIA() const;
+    const R6522 *DebugGetUserVIA() const;
 
     uint16_t DebugGetFlatPage(uint8_t page) const;
 

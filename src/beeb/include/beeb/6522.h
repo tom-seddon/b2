@@ -109,6 +109,9 @@ public:
         void *fn_context;
 
         friend class R6522;
+#if BBCMICRO_DEBUGGER
+        friend class R6522DebugWindow;
+#endif
     };
 #include <shared/popwarn.h>
 
@@ -202,6 +205,10 @@ private:
     void DoPortHandshakingRead(Port *port,uint8_t pcr_bits,uint8_t irqmask2);
     void DoPortHandshakingWrite(Port *port,uint8_t pcr_bits,uint8_t irqmask2);
     void UpdatePortPins(Port *port);
+
+#if BBCMICRO_DEBUGGER
+    friend class R6522DebugWindow;
+#endif
 };
 
 //////////////////////////////////////////////////////////////////////////

@@ -759,6 +759,8 @@ const BeebWindow::SettingsUIMetadata BeebWindow::ms_settings_uis[]={
     {BeebWindowPopupType_DisassemblyDebugger,"Disassembly Debug",&CreateDisassemblyDebugWindow,},
     {BeebWindowPopupType_CRTCDebugger,"CRTC Debug",&CreateCRTCDebugWindow,},
     {BeebWindowPopupType_VideoULADebugger,"Video ULA Debug",&CreateVideoULADebugWindow,},
+    {BeebWindowPopupType_SystemVIADebugger,"System VIA Debug",&CreateSystemVIADebugWindow,},
+    {BeebWindowPopupType_UserVIADebugger,"User VIA Debug",&CreateUserVIADebugWindow,},
 #endif
 
     // Keep this one at the end, because the command context stack is
@@ -1289,6 +1291,8 @@ void BeebWindow::DoDebugMenu() {
         m_occ.DoMenuItemUI("toggle_disassembly_debugger");
         m_occ.DoMenuItemUI("toggle_crtc_debugger");
         m_occ.DoMenuItemUI("toggle_video_ula_debugger");
+        m_occ.DoMenuItemUI("toggle_system_via_debugger");
+        m_occ.DoMenuItemUI("toggle_user_via_debugger");
 
         ImGui::Separator();
 
@@ -2680,6 +2684,9 @@ ObjectCommandTable<BeebWindow> BeebWindow::ms_command_table("Beeb Window",{
     GetTogglePopupCommand<BeebWindowPopupType_DisassemblyDebugger>("toggle_disassembly_debugger"),
     GetTogglePopupCommand<BeebWindowPopupType_CRTCDebugger>("toggle_crtc_debugger"),
     GetTogglePopupCommand<BeebWindowPopupType_VideoULADebugger>("toggle_video_ula_debugger"),
+    GetTogglePopupCommand<BeebWindowPopupType_SystemVIADebugger>("toggle_system_via_debugger"),
+    GetTogglePopupCommand<BeebWindowPopupType_UserVIADebugger>("toggle_user_via_debugger"),
+
     {CommandDef("debug_stop","Stop").Shortcut(SDLK_F5|PCKeyModifier_Shift),&BeebWindow::DebugStop,nullptr,&BeebWindow::DebugIsStopEnabled},
     {CommandDef("debug_run","Run").Shortcut(SDLK_F5),&BeebWindow::DebugRun,nullptr,&BeebWindow::DebugIsRunEnabled},
     {CommandDef("debug_step_over","Step Over").Shortcut(SDLK_F10),&BeebWindow::DebugStepOver,nullptr,&BeebWindow::DebugIsRunEnabled},

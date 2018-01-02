@@ -146,6 +146,30 @@ std::string Get2MHzCyclesString(uint64_t num_2MHz_cycles) {
     return str;
 }
 
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void GetThousandsString(char *str,uint64_t value) {
+    char tmp[MAX_UINT64_THOUSANDS_LEN+1];
+    char *p=tmp+sizeof tmp-1;
+    int n=3;
+
+    *p=0;
+
+    do {
+        --p;
+        if(n==0) {
+            *p=',';
+            --p;
+            n=3;
+        }
+        *p='0'+value%10;
+        value/=10;
+        --n;
+    } while(value!=0);
+
+    memcpy(str,p,tmp+sizeof tmp-p);
+}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

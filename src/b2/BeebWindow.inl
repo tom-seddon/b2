@@ -51,6 +51,8 @@ EPN(MemoryDebugger)
 EPN(DisassemblyDebugger)
 EPN(CRTCDebugger)
 EPN(VideoULADebugger)
+EPN(SystemVIADebugger)
+EPN(UserVIADebugger)
 
 // must be last
 EQPN(MaxValue)

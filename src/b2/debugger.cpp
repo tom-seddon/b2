@@ -80,6 +80,7 @@ public:
         M6502P p;
         M6502Fn tfn,ifn;
         const M6502Config *config;
+        const volatile uint64_t *cycles;
 
         {
             std::unique_lock<Mutex> lock;
@@ -100,6 +101,7 @@ public:
             tfn=s->tfn;
             ifn=s->ifn;
             opcode=M6502_GetOpcode(s);
+            cycles=m->GetNum2MHzCycles();
         }
 
         this->Reg("A",a);
@@ -113,8 +115,12 @@ public:
         char pstr[9];
         ImGui::Text("P = $%02x %s",p.value,M6502P_GetString(pstr,p));
 
+        char cycles_str[MAX_UINT64_THOUSANDS_LEN];
+        GetThousandsString(cycles_str,*cycles);
+
         ImGui::Separator();
 
+        ImGui::Text("Cycles = %s",cycles_str);
         ImGui::Text("Opcode = $%02X %03d - %s %s",opcode,opcode,mnemonic,mode_name);
         ImGui::Text("tfn = %s; ifn = %s",GetFnName(tfn),GetFnName(ifn));
         ImGui::Text("State = %s",halted?"halted":"running");
@@ -903,6 +909,219 @@ const char *const VideoULADebugWindow::CURSOR_SHAPES[]={
 std::unique_ptr<SettingsUI> CreateVideoULADebugWindow(BeebWindow *beeb_window) {
     return std::make_unique<VideoULADebugWindow>(beeb_window->GetBeebThread());
 }
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+class R6522DebugWindow:
+    public DebugUI
+{
+public:
+    struct PortState {
+        uint8_t or_,ddr,p,c1,c2;
+    };
+
+    struct State {
+        uint16_t t1,t2;
+        M6502Word t1l;
+        uint8_t t2ll;
+        uint8_t sr;
+        R6522::ACR acr;
+        R6522::PCR pcr;
+        R6522::IRQ ifr,ier;
+        PortState a,b;
+    };
+
+    explicit R6522DebugWindow(std::shared_ptr<BeebThread> beeb_thread):
+        DebugUI(std::move(beeb_thread))
+    {
+    }
+protected:
+    void DoRegisterValuesGui(const State &s) {
+        this->DoPortRegisterValuesGui('A',s.a);
+        this->DoPortRegisterValuesGui('B',s.b);
+        ImGui::Text("T1 : $%04x %05d %s%s",s.t1,s.t1,BINARY_BYTE_STRINGS[s.t1>>8&0xff],BINARY_BYTE_STRINGS[s.t1&0xff]);
+        ImGui::Text("T1L: $%04x %05d %s%s",s.t1l.w,s.t1l.w,BINARY_BYTE_STRINGS[s.t1l.b.h],BINARY_BYTE_STRINGS[s.t1l.b.l]);
+        ImGui::Text("T2 : $%04x %05d %s%s",s.t2,s.t2,BINARY_BYTE_STRINGS[s.t2>>8&0xff],BINARY_BYTE_STRINGS[s.t2&0xff]);
+        ImGui::Text("SR : $%02x %03d %s",s.sr,s.sr,BINARY_BYTE_STRINGS[s.sr]);
+        ImGui::Text("ACR: PA latching = %s",BOOL_STR(s.acr.bits.pa_latching));
+        ImGui::Text("ACR: PB latching = %s",BOOL_STR(s.acr.bits.pb_latching));
+        ImGui::Text("ACR: Shift mode = %s",ACR_SHIFT_MODES[s.acr.bits.sr]);
+        ImGui::Text("ACR: T2 mode = %s",s.acr.bits.t2_count_pb6?"Timed interrupt":"Count PB6 pulses");
+        ImGui::Text("ACR: T1 continuous = %s, output PB7 = %s",BOOL_STR(s.acr.bits.t1_continuous),BOOL_STR(s.acr.bits.t1_output_pb7));
+        ImGui::Text("PCR: CA1 = %cve edge",s.pcr.bits.ca1_pos_irq?'+':'-');
+        ImGui::Text("PCR: CA2 = %s",PCR_CONTROL_MODES[s.pcr.bits.ca2_mode]);
+        ImGui::Text("PCR: CB1 = %cve edge",s.pcr.bits.cb1_pos_irq?'+':'-');
+        ImGui::Text("PCR: CB2 = %s",PCR_CONTROL_MODES[s.pcr.bits.cb2_mode]);
+        ImGui::Text("     [ T1][ T2][CB1][CB2][ SR][CA1][CA2]");
+        ImGui::Text("IFR:   %u    %u    %u    %u    %u    %u    %u",s.ifr.bits.t1,s.ifr.bits.t2,s.ifr.bits.cb1,s.ifr.bits.cb2,s.ifr.bits.sr,s.ifr.bits.ca1,s.ifr.bits.ca2);
+        ImGui::Text("IER:   %u    %u    %u    %u    %u    %u    %u",s.ier.bits.t1,s.ier.bits.t2,s.ier.bits.cb1,s.ier.bits.cb2,s.ier.bits.sr,s.ier.bits.ca1,s.ier.bits.ca2);
+    }
+
+    void GetState(State *state,const R6522 *via) {
+        state->t1=(uint16_t)via->m_t1;
+        state->t2=(uint16_t)via->m_t2;
+        state->t1l.b.l=via->m_t1ll;
+        state->t1l.b.h=via->m_t1lh;
+        state->t2ll=via->m_t2ll;
+        state->sr=via->m_sr;
+        state->acr=via->m_acr;
+        state->pcr=via->m_pcr;
+        state->ifr=via->m_ifr;
+        state->ier=via->m_ier;
+
+        state->a.or_=via->a.or_;
+        state->a.ddr=via->a.ddr;
+        state->a.p=via->a.p;
+        state->a.c1=via->a.c1;
+        state->a.c2=via->a.c2;
+
+        state->b.or_=via->b.or_;
+        state->b.ddr=via->b.ddr;
+        state->b.p=via->b.p;
+        state->b.c1=via->b.c1;
+        state->b.c2=via->b.c2;
+    }
+private:
+    void DoPortRegisterValuesGui(char port,const PortState &p) {
+        ImGui::Text("Port %c: Pins = $%02x %03d %s",port,p.p,p.p,BINARY_BYTE_STRINGS[p.p]);
+        ImGui::Text("Port %c: DDR%c = $%02x %03d %s",port,port,p.ddr,p.ddr,BINARY_BYTE_STRINGS[p.ddr]);
+        ImGui::Text("Port %c: OR%c  = $%02x %03d %s",port,port,p.or_,p.or_,BINARY_BYTE_STRINGS[p.or_]);
+        ImGui::Text("Port %c: C%c1 = %s C%c2 = %s",port,port,BOOL_STR(p.c1),port,BOOL_STR(p.c2));
+    }
+
+    static const char *const ACR_SHIFT_MODES[];
+    static const char *const PCR_CONTROL_MODES[];
+};
+
+const char *const R6522DebugWindow::ACR_SHIFT_MODES[]={
+    "Off",
+    "In, T2",
+    "In, clock",
+    "In, CB1",
+    "Out, free, T2",
+    "Out, T2",
+    "Out, clock",
+    "Out, CB1",
+};
+
+const char *const R6522DebugWindow::PCR_CONTROL_MODES[]={
+    "Input -ve edge",
+    "Indep. IRQ input -ve edge",
+    "Input +ve edge",
+    "Indep. IRQ input +ve edge",
+    "Handshake output",
+    "Pulse output",
+    "Low output",
+    "High output",
+};
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+class SystemVIADebugWindow:
+    public R6522DebugWindow
+{
+public:
+    explicit SystemVIADebugWindow(std::shared_ptr<BeebThread> beeb_thread):
+        R6522DebugWindow(std::move(beeb_thread))
+    {
+    }
+
+    void DoImGui(CommandContextStack *cc_stack) override {
+        (void)cc_stack;
+
+        State state;
+        BBCMicro::AddressableLatch latch;
+        BBCMicroType type;
+        {
+            std::unique_lock<Mutex> lock;
+            const BBCMicro *m=m_beeb_thread->LockBeeb(&lock);
+            this->GetState(&state,m->DebugGetSystemVIA());
+            latch=m->DebugGetAddressableLatch();
+            type=m->GetType();
+        }
+
+        this->DoRegisterValuesGui(state);
+
+        ImGui::Separator();
+
+        BBCMicro::SystemVIAPB pb;
+        pb.value=state.b.p;
+
+        ImGui::Text("Joystick 0 Fire = %s",BOOL_STR(!pb.bits.not_joystick0_fire));
+        ImGui::Text("Joystick 1 Fire = %s",BOOL_STR(!pb.bits.not_joystick1_fire));
+        ImGui::Text("Latch Bit = %u, Value = %u",pb.bits.latch_index,pb.bits.latch_value);
+        switch(type) {
+        case BBCMicroType_B:
+        case BBCMicroType_BPlus:
+            ImGui::Text("Speech Ready = %u, IRQ = %u",pb.b_bits.speech_ready,pb.b_bits.speech_interrupt);
+            break;
+
+        case BBCMicroType_Master:
+            ImGui::Text("RTC CS = %u, AS = %u",pb.m128_bits.rtc_chip_select,pb.m128_bits.rtc_address_strobe);
+            break;
+        }
+
+        ImGui::Separator();
+
+        ImGui::Text("Sound Write = %s",BOOL_STR(!latch.bits.not_sound_write));
+        ImGui::Text("Screen Wrap Size = $%04x",BBCMicro::SCREEN_WRAP_ADJUSTMENTS[latch.bits.screen_base]<<3);
+        ImGui::Text("Caps Lock LED = %s",BOOL_STR(latch.bits.caps_lock_led));
+        ImGui::Text("Shift Lock LED = %s",BOOL_STR(latch.bits.shift_lock_led));
+
+        switch(type) {
+        case BBCMicroType_B:
+        case BBCMicroType_BPlus:
+            ImGui::Text("Speech Read = %u, Write = %u",latch.b_bits.speech_read,latch.b_bits.speech_write);
+            break;
+
+        case BBCMicroType_Master:
+            ImGui::Text("RTC Read = %u, DS = %u",latch.m128_bits.rtc_read,latch.m128_bits.rtc_data_strobe);
+            break;
+        }
+    }
+protected:
+private:
+};
+
+std::unique_ptr<SettingsUI> CreateSystemVIADebugWindow(BeebWindow *beeb_window) {
+    return std::make_unique<SystemVIADebugWindow>(beeb_window->GetBeebThread());
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+class UserVIADebugWindow:
+    public R6522DebugWindow
+{
+public:
+    explicit UserVIADebugWindow(std::shared_ptr<BeebThread> beeb_thread):
+        R6522DebugWindow(std::move(beeb_thread))
+    {
+    }
+
+    void DoImGui(CommandContextStack *cc_stack) override {
+        (void)cc_stack;
+
+        State state;
+        {
+            std::unique_lock<Mutex> lock;
+            const BBCMicro *m=m_beeb_thread->LockBeeb(&lock);
+            this->GetState(&state,m->DebugGetUserVIA());
+        }
+
+        this->DoRegisterValuesGui(state);
+    }
+protected:
+private:
+};
+
+std::unique_ptr<SettingsUI> CreateUserVIADebugWindow(BeebWindow *beeb_window) {
+    return std::make_unique<UserVIADebugWindow>(beeb_window->GetBeebThread());
+}
+
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

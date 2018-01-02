@@ -47,6 +47,13 @@ std::string GetFlagsString(uint32_t value,const char *(*get_name_fn)(int));
 std::string GetMicrosecondsString(uint64_t num_microseconds);
 std::string Get2MHzCyclesString(uint64_t num_2MHz_cycles);
 
+// 0         1         2
+// 012345687901234567890123456
+// 18,446,744,073,709,551,616
+
+static const size_t MAX_UINT64_THOUSANDS_LEN=26;
+void GetThousandsString(char *str,uint64_t value);
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
