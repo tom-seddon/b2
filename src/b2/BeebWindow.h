@@ -408,7 +408,7 @@ private:
     bool IsPopupCommandTicked() const;
 
     template<BeebWindowPopupType>
-    static ObjectCommandTable<BeebWindow>::Initializer GetTogglePopupCommand(std::string name);
+    static ObjectCommandTable<BeebWindow>::Initializer GetTogglePopupCommand();
 
     void Paste();
     void PasteThenReturn();

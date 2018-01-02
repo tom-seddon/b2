@@ -730,37 +730,38 @@ bool BeebWindow::DoMenuUI() {
 struct BeebWindow::SettingsUIMetadata {
     BeebWindowPopupType type;
     const char *name;
+    const char *command_name;
     std::unique_ptr<SettingsUI> (*create_fn)(BeebWindow *beeb_window);
 };
 
 const BeebWindow::SettingsUIMetadata BeebWindow::ms_settings_uis[]={
-    {BeebWindowPopupType_Keymaps,"Keyboard Layout",&CreateKeymapsUI},
-    {BeebWindowPopupType_CommandKeymaps,"Command Keys",&CreateCommandKeymapsUI},
-    {BeebWindowPopupType_Options,"Options",&BeebWindow::CreateOptionsUI},
-    {BeebWindowPopupType_Messages,"Messages",&CreateMessagesUI},
+    {BeebWindowPopupType_Keymaps,"Keyboard Layout","toggle_keyboard_layout",&CreateKeymapsUI},
+    {BeebWindowPopupType_CommandKeymaps,"Command Keys","toggle_command_keymaps",&CreateCommandKeymapsUI},
+    {BeebWindowPopupType_Options,"Options","toggle_emulator_options",&BeebWindow::CreateOptionsUI},
+    {BeebWindowPopupType_Messages,"Messages","toggle_messages",&CreateMessagesUI},
 #if TIMELINE_UI_ENABLED
-    {BeebWindowPopupType_Timeline,"Timeline",&BeebWindow::CreateTimelineUI},
+    {BeebWindowPopupType_Timeline,"Timeline","toggle_timeline",&BeebWindow::CreateTimelineUI},
 #endif
-    {BeebWindowPopupType_Configs,"Configurations",&CreateConfigsUI},
+    {BeebWindowPopupType_Configs,"Configurations","toggle_configurations",&CreateConfigsUI},
 #if BBCMICRO_TRACE
-    {BeebWindowPopupType_Trace,"Tracing",&CreateTraceUI},
+    {BeebWindowPopupType_Trace,"Tracing","toggle_event_trace",&CreateTraceUI},
 #endif
-    {BeebWindowPopupType_NVRAM,"Non-volatile RAM",&CreateNVRAMUI},
-    {BeebWindowPopupType_AudioCallback,"Data Rate",&CreateDataRateUI},
+    //{BeebWindowPopupType_NVRAM,"Non-volatile RAM",&CreateNVRAMUI},
+    {BeebWindowPopupType_AudioCallback,"Data Rate","toggle_date_rate",&CreateDataRateUI},
 #if VIDEO_TRACK_METADATA
-    {BeebWindowPopupType_PixelMetadata,"Pixel Metadata",&CreatePixelMetadataUI},
+    {BeebWindowPopupType_PixelMetadata,"Pixel Metadata","toggle_pixel_metadata",&CreatePixelMetadataUI},
 #endif
 #if ENABLE_IMGUI_TEST
-    {BeebWindowPopupType_DearImguiTest,"dear imgui Test",&CreateDearImguiTestUI},
+    {BeebWindowPopupType_DearImguiTest,"dear imgui Test","toggle_dear_imgui_test",&CreateDearImguiTestUI},
 #endif
 #if BBCMICRO_DEBUGGER
-    {BeebWindowPopupType_6502Debugger,"6502 Debug",&Create6502DebugWindow,},
-    {BeebWindowPopupType_MemoryDebugger,"Memory Debug",&CreateMemoryDebugWindow,},
-    {BeebWindowPopupType_DisassemblyDebugger,"Disassembly Debug",&CreateDisassemblyDebugWindow,},
-    {BeebWindowPopupType_CRTCDebugger,"CRTC Debug",&CreateCRTCDebugWindow,},
-    {BeebWindowPopupType_VideoULADebugger,"Video ULA Debug",&CreateVideoULADebugWindow,},
-    {BeebWindowPopupType_SystemVIADebugger,"System VIA Debug",&CreateSystemVIADebugWindow,},
-    {BeebWindowPopupType_UserVIADebugger,"User VIA Debug",&CreateUserVIADebugWindow,},
+    {BeebWindowPopupType_6502Debugger,"6502 Debug","toggle_6502_debugger",&Create6502DebugWindow,},
+    {BeebWindowPopupType_MemoryDebugger,"Memory Debug","toggle_memory_debugger",&CreateMemoryDebugWindow,},
+    {BeebWindowPopupType_DisassemblyDebugger,"Disassembly Debug","toggle_disassembly_debugger",&CreateDisassemblyDebugWindow,},
+    {BeebWindowPopupType_CRTCDebugger,"CRTC Debug","toggle_crtc_debugger",&CreateCRTCDebugWindow,},
+    {BeebWindowPopupType_VideoULADebugger,"Video ULA Debug","toggle_video_ula_debugger",&CreateVideoULADebugWindow,},
+    {BeebWindowPopupType_SystemVIADebugger,"System VIA Debug","toggle_system_via_debugger",&CreateSystemVIADebugWindow,},
+    {BeebWindowPopupType_UserVIADebugger,"User VIA Debug","toggle_user_via_debugger",&CreateUserVIADebugWindow,},
 #endif
 
     // Keep this one at the end, because the command context stack is
@@ -769,7 +770,7 @@ const BeebWindow::SettingsUIMetadata BeebWindow::ms_settings_uis[]={
     // (Could maybe rearrange things so that this can display the
     // previous frame's stack... but it hardly seems worth the
     // bother.)
-    {BeebWindowPopupType_CommandContextStack,"Command Context Stack",&BeebWindow::CreateCommandContextStackUI},
+    {BeebWindowPopupType_CommandContextStack,"Command Context Stack","toggle_cc_stack",&BeebWindow::CreateCommandContextStackUI},
 
     // terminator
     {BeebWindowPopupType_MaxValue},
@@ -1557,8 +1558,8 @@ void BeebWindow::DoBeebDisplayUI() {
                 }
             }
 #endif
+        }
     }
-}
     ImGui::EndDock();
 }
 
@@ -1699,7 +1700,7 @@ void BeebWindow::SavePosition() {
     BeebWindows::SetLastWindowPlacementData(buf);
 
 #endif
-    }
+}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -1794,9 +1795,9 @@ bool BeebWindow::InitInternal() {
         if(strcmp(info.name,"opengl")==0) {
             rmt_BindOpenGL();
             g_unbind_opengl=1;
-}
+        }
 #endif
-}
+    }
     ++g_num_BeebWindow_inits;
 #endif
 
@@ -2281,23 +2282,22 @@ bool BeebWindow::IsPopupCommandTicked() const {
 //////////////////////////////////////////////////////////////////////////
 
 template<BeebWindowPopupType POPUP_TYPE>
-ObjectCommandTable<BeebWindow>::Initializer BeebWindow::GetTogglePopupCommand(std::string name) {
-    std::string text;
-
-    for(const SettingsUIMetadata *ui=ms_settings_uis;ui->type!=BeebWindowPopupType_MaxValue;++ui) {
+ObjectCommandTable<BeebWindow>::Initializer BeebWindow::GetTogglePopupCommand() {
+    const SettingsUIMetadata *ui;
+    for(ui=ms_settings_uis;ui->type!=BeebWindowPopupType_MaxValue;++ui) {
         if(ui->type==POPUP_TYPE) {
-            text=ui->name;
             break;
         }
     }
 
-    if(text.empty()) {
+    std::string text;
+    if(strlen(ui->name)==0) {
         text="?";
     } else {
-        text+="...";
+        text=std::string(ui->name)+"...";
     }
 
-    return ObjectCommandTable<BeebWindow>::Initializer(CommandDef(std::move(name),
+    return ObjectCommandTable<BeebWindow>::Initializer(CommandDef(ui->command_name,
                                                                   std::move(text)),
                                                        &BeebWindow::TogglePopupCommand<POPUP_TYPE>,
                                                        &BeebWindow::IsPopupCommandTicked<POPUP_TYPE>);
@@ -2648,17 +2648,17 @@ ObjectCommandTable<BeebWindow> BeebWindow::ms_command_table("Beeb Window",{
     {{"hard_reset","Hard Reset"},&BeebWindow::HardReset},
     {{"load_last_state","Load Last State"},&BeebWindow::LoadLastState,nullptr,&BeebWindow::IsLoadLastStateEnabled},
     {{"save_state","Save State"},&BeebWindow::SaveState},
-    GetTogglePopupCommand<BeebWindowPopupType_Options>("toggle_emulator_options"),
-    GetTogglePopupCommand<BeebWindowPopupType_Keymaps>("toggle_keyboard_layout"),
+    GetTogglePopupCommand<BeebWindowPopupType_Options>(),
+    GetTogglePopupCommand<BeebWindowPopupType_Keymaps>(),
 #if TIMELINE_UI_ENABLED
-    GetTogglePopupCommand<BeebWindowPopupType_Timeline>("toggle_timeline"),
+    GetTogglePopupCommand<BeebWindowPopupType_Timeline>(),
 #endif
-    GetTogglePopupCommand<BeebWindowPopupType_Messages>("toggle_messages"),
-    GetTogglePopupCommand<BeebWindowPopupType_Configs>("toggle_configurations"),
-    GetTogglePopupCommand<BeebWindowPopupType_Trace>("toggle_event_trace"),
-    GetTogglePopupCommand<BeebWindowPopupType_AudioCallback>("toggle_date_rate"),
-    GetTogglePopupCommand<BeebWindowPopupType_CommandContextStack>("toggle_cc_stack"),
-    GetTogglePopupCommand<BeebWindowPopupType_CommandKeymaps>("toggle_command_keymaps"),
+    GetTogglePopupCommand<BeebWindowPopupType_Messages>(),
+    GetTogglePopupCommand<BeebWindowPopupType_Configs>(),
+    GetTogglePopupCommand<BeebWindowPopupType_Trace>(),
+    GetTogglePopupCommand<BeebWindowPopupType_AudioCallback>(),
+    GetTogglePopupCommand<BeebWindowPopupType_CommandContextStack>(),
+    GetTogglePopupCommand<BeebWindowPopupType_CommandKeymaps>(),
     {CommandDef("exit","Exit").MustConfirm(),&BeebWindow::Exit},
     {CommandDef("clean_up_recent_files_lists","Clean up recent files lists").MustConfirm(),&BeebWindow::CleanUpRecentFilesLists},
 #if SYSTEM_WINDOWS
@@ -2673,19 +2673,19 @@ ObjectCommandTable<BeebWindow> BeebWindow::ms_command_table("Beeb Window",{
     {{"toggle_copy_oswrch_text","OSWRCH Copy Text"},&BeebWindow::CopyOSWRCH<true>,&BeebWindow::IsCopyOSWRCHTicked},
     {{"copy_basic","Copy BASIC listing"},&BeebWindow::CopyBASIC,&BeebWindow::IsCopyOSWRCHTicked,&BeebWindow::IsCopyBASICEnabled},
 #if VIDEO_TRACK_METADATA
-    GetTogglePopupCommand<BeebWindowPopupType_PixelMetadata>("toggle_pixel_metadata"),
+    GetTogglePopupCommand<BeebWindowPopupType_PixelMetadata>(),
 #endif
 #if ENABLE_IMGUI_TEST
-    GetTogglePopupCommand<BeebWindowPopupType_DearImguiTest>("toggle_dear_imgui_test"),
+    GetTogglePopupCommand<BeebWindowPopupType_DearImguiTest>(),
 #endif
 #if BBCMICRO_DEBUGGER
-    GetTogglePopupCommand<BeebWindowPopupType_6502Debugger>("toggle_6502_debugger"),
-    GetTogglePopupCommand<BeebWindowPopupType_MemoryDebugger>("toggle_memory_debugger"),
-    GetTogglePopupCommand<BeebWindowPopupType_DisassemblyDebugger>("toggle_disassembly_debugger"),
-    GetTogglePopupCommand<BeebWindowPopupType_CRTCDebugger>("toggle_crtc_debugger"),
-    GetTogglePopupCommand<BeebWindowPopupType_VideoULADebugger>("toggle_video_ula_debugger"),
-    GetTogglePopupCommand<BeebWindowPopupType_SystemVIADebugger>("toggle_system_via_debugger"),
-    GetTogglePopupCommand<BeebWindowPopupType_UserVIADebugger>("toggle_user_via_debugger"),
+    GetTogglePopupCommand<BeebWindowPopupType_6502Debugger>(),
+    GetTogglePopupCommand<BeebWindowPopupType_MemoryDebugger>(),
+    GetTogglePopupCommand<BeebWindowPopupType_DisassemblyDebugger>(),
+    GetTogglePopupCommand<BeebWindowPopupType_CRTCDebugger>(),
+    GetTogglePopupCommand<BeebWindowPopupType_VideoULADebugger>(),
+    GetTogglePopupCommand<BeebWindowPopupType_SystemVIADebugger>(),
+    GetTogglePopupCommand<BeebWindowPopupType_UserVIADebugger>(),
 
     {CommandDef("debug_stop","Stop").Shortcut(SDLK_F5|PCKeyModifier_Shift),&BeebWindow::DebugStop,nullptr,&BeebWindow::DebugIsStopEnabled},
     {CommandDef("debug_run","Run").Shortcut(SDLK_F5),&BeebWindow::DebugRun,nullptr,&BeebWindow::DebugIsRunEnabled},
