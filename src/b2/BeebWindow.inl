@@ -53,6 +53,7 @@ EPN(CRTCDebugger)
 EPN(VideoULADebugger)
 EPN(SystemVIADebugger)
 EPN(UserVIADebugger)
+EPN(NVRAMDebugger)
 
 // must be last
 EQPN(MaxValue)

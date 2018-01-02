@@ -746,7 +746,6 @@ const BeebWindow::SettingsUIMetadata BeebWindow::ms_settings_uis[]={
 #if BBCMICRO_TRACE
     {BeebWindowPopupType_Trace,"Tracing","toggle_event_trace",&CreateTraceUI},
 #endif
-    //{BeebWindowPopupType_NVRAM,"Non-volatile RAM",&CreateNVRAMUI},
     {BeebWindowPopupType_AudioCallback,"Data Rate","toggle_date_rate",&CreateDataRateUI},
 #if VIDEO_TRACK_METADATA
     {BeebWindowPopupType_PixelMetadata,"Pixel Metadata","toggle_pixel_metadata",&CreatePixelMetadataUI},
@@ -762,6 +761,7 @@ const BeebWindow::SettingsUIMetadata BeebWindow::ms_settings_uis[]={
     {BeebWindowPopupType_VideoULADebugger,"Video ULA Debug","toggle_video_ula_debugger",&CreateVideoULADebugWindow,},
     {BeebWindowPopupType_SystemVIADebugger,"System VIA Debug","toggle_system_via_debugger",&CreateSystemVIADebugWindow,},
     {BeebWindowPopupType_UserVIADebugger,"User VIA Debug","toggle_user_via_debugger",&CreateUserVIADebugWindow,},
+    {BeebWindowPopupType_NVRAMDebugger,"NVRAM Debug","toggle_nvram_debugger",&CreateNVRAMDebugWindow,},
 #endif
 
     // Keep this one at the end, because the command context stack is
@@ -1294,6 +1294,7 @@ void BeebWindow::DoDebugMenu() {
         m_occ.DoMenuItemUI("toggle_video_ula_debugger");
         m_occ.DoMenuItemUI("toggle_system_via_debugger");
         m_occ.DoMenuItemUI("toggle_user_via_debugger");
+        m_occ.DoMenuItemUI("toggle_nvram_debugger");
 
         ImGui::Separator();
 
@@ -2686,6 +2687,7 @@ ObjectCommandTable<BeebWindow> BeebWindow::ms_command_table("Beeb Window",{
     GetTogglePopupCommand<BeebWindowPopupType_VideoULADebugger>(),
     GetTogglePopupCommand<BeebWindowPopupType_SystemVIADebugger>(),
     GetTogglePopupCommand<BeebWindowPopupType_UserVIADebugger>(),
+    GetTogglePopupCommand<BeebWindowPopupType_NVRAMDebugger>(),
 
     {CommandDef("debug_stop","Stop").Shortcut(SDLK_F5|PCKeyModifier_Shift),&BeebWindow::DebugStop,nullptr,&BeebWindow::DebugIsStopEnabled},
     {CommandDef("debug_run","Run").Shortcut(SDLK_F5),&BeebWindow::DebugRun,nullptr,&BeebWindow::DebugIsRunEnabled},
