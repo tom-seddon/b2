@@ -63,43 +63,6 @@ static const uint8_t NUM_FLASH_OFF_FRAMES=16;
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-// Column widths for characters by type.
-//
-// For alpha chars, left column is the blank one.
-//
-// Graphics chars ought to have the same weight for columns 3 and 6 so
-// that separated graphics don't look too ugly.
-
-#if BBCMICRO_PRESTRETCH_TELETEXT
-static const size_t ALPHA_WIDTHS[]={
-    3,2,3,2,3,2,
-};
-#endif
-
-#if BBCMICRO_PRESTRETCH_TELETEXT
-static const size_t GRAPHIC_WIDTHS[]={
-    3,3,2,3,3,2,
-};
-#endif
-
-#if !BBCMICRO_PRESTRETCH_TELETEXT
-static const size_t UNIFORM_WIDTHS[]={
-    2,2,2,2,2,2,
-};
-#endif
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-#if BBCMICRO_PRESTRETCH_TELETEXT
-static constexpr size_t CONSUMER_SHIFT=8;
-#else
-static constexpr size_t CONSUMER_SHIFT=6;
-#endif
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 #if BBCMICRO_DEBUGGER
 static int GetHexChar(int nybble) {
     ASSERT(nybble>=0&&nybble<16);
@@ -126,24 +89,13 @@ static uint16_t Get16WideRow(size_t style,size_t ch,int y) {
 
     uint16_t w=0;
 
-    const size_t *widths;
-#if BBCMICRO_PRESTRETCH_TELETEXT
-    if(style==TeletextCharset_Alpha||(ch&0x20)==0) {
-        widths=ALPHA_WIDTHS;
-    } else {
-        widths=GRAPHIC_WIDTHS;
-    }
-#else
-    widths=UNIFORM_WIDTHS;
-#endif
-
     if(y>=0&&y<20) {
         size_t left=0;
         for(size_t i=0;i<6;++i) {
             if(TELETEXT_FONT[ch-32][y/2][style]&1<<i) {
-                w|=((1<<widths[i])-1)<<left;
+                w|=3<<left;
             }
-            left+=widths[i];
+            left+=2;
         }
     }
 
@@ -182,7 +134,7 @@ struct InitTeletextFont {
                     int lc=GetHexChar(ch&0x0f);
 
                     for(int y=0;y<10;++y) {
-                        teletext_debug_font[ch][y]=TELETEXT_FONT[hc][y][0]<<(CONSUMER_SHIFT-6)|TELETEXT_FONT[lc][y][0]<<CONSUMER_SHIFT;
+                        teletext_debug_font[ch][y]=TELETEXT_FONT[hc][y][0]|TELETEXT_FONT[lc][y][0]<<6;
                     }
 
                     for(int y=0;y<10;++y) {
@@ -390,8 +342,8 @@ void SAA5050::EmitVideoDataUnit(VideoDataUnit *unit) {
     unit->teletext.data0=(uint8_t)m_data0;
     unit->teletext.data1=(uint8_t)m_data1;
 
-    m_data0>>=CONSUMER_SHIFT;
-    m_data1>>=CONSUMER_SHIFT;
+    m_data0>>=6;
+    m_data1>>=6;
 }
 
 //////////////////////////////////////////////////////////////////////////

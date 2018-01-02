@@ -337,26 +337,6 @@ void TVOutput::UpdateOneUnit(const VideoDataUnit *unit,float amt) {
                         uint32_t *line0=m_line+m_x;
                         uint32_t *line1=line0+TV_TEXTURE_WIDTH;
 
-#if BBCMICRO_PRESTRETCH_TELETEXT
-
-#define P_(N,I) line##N[I]=m_palette[0][unit->teletext.colours[((unit->teletext.data##N)>>(I))&1]]
-
-#define P(I) P_(0,I); P_(1,I)
-
-                        P(0);
-                        P(1);
-                        P(2);
-                        P(3);
-                        P(4);
-                        P(5);
-                        P(6);
-                        P(7);
-
-#undef P
-#undef P_
-
-#else
-
                         uint8_t c00=unit->teletext.colours[unit->teletext.data0&1];
                         uint8_t c01=unit->teletext.colours[unit->teletext.data0>>1&1];
                         uint8_t c02=unit->teletext.colours[unit->teletext.data0>>2&1];
@@ -399,8 +379,6 @@ void TVOutput::UpdateOneUnit(const VideoDataUnit *unit,float amt) {
                         line1[5]=m_palette[1][c143];
                         line1[6]=m_palette[1][c145];
                         line1[7]=m_palette[0][c145];
-
-#endif   
 
 #if VIDEO_TRACK_METADATA
                         VideoDataUnitMetadata *metadata_line=m_metadata_line+m_x;
