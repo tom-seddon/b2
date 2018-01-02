@@ -299,7 +299,7 @@ public:
     uint32_t GetLEDs();
 
     // Get the buffer size from GetNVRAMSize.
-    const uint8_t *GetNVRAM();
+    const uint8_t *GetNVRAM() const;
     size_t GetNVRAMSize() const;
 
     // The shared_ptr is copied.
