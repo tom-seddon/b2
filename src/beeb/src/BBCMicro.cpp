@@ -87,7 +87,6 @@ const char DEBUG_PAGE_CODES[]="rrrrrrrrxxxsssss000011112222333344445555666677778
 
 #endif
 
-
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
@@ -107,7 +106,7 @@ static const BBCMicro::ReadMMIOFn g_WD1770_read_fns[]={&WD1770::Read0,&WD1770::R
 static const uint8_t g_unmapped_rom_reads[256]={0,};
 static uint8_t g_rom_writes[256];
 
-static const uint16_t SCREEN_WRAP_ADJUSTMENTS[]={
+const uint16_t BBCMicro::SCREEN_WRAP_ADJUSTMENTS[]={
     0x4000>>3,
     0x2000>>3,
     0x5000>>3,
@@ -1129,6 +1128,28 @@ static const uint8_t CURSOR_PATTERNS[8]={
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#if BBCMICRO_DEBUGGER
+uint16_t BBCMicro::DebugGetBeebAddressFromCRTCAddress(uint8_t h,uint8_t l) const {
+    M6502Word addr;
+    addr.b.h=h;
+    addr.b.l=l;
+
+    if(addr.w&0x2000) {
+        return (addr.w&0x3ff)|m_teletext_bases[addr.w>>11&1];
+    } else {
+        if(addr.w&0x1000) {
+            addr.w-=SCREEN_WRAP_ADJUSTMENTS[m_state.addressable_latch.bits.screen_base];
+            addr.w&=~0x1000;
+        }
+
+        return addr.w<<3;
+    }
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 bool BBCMicro::Update(VideoDataUnit *video_unit,SoundDataUnit *sound_unit) {
     uint8_t odd_cycle=m_state.num_2MHz_cycles&1;
     bool sound=false;
@@ -1669,6 +1690,33 @@ void BBCMicro::StopPaste() {
 const M6502 *BBCMicro::GetM6502() const {
     return &m_state.cpu;
 }
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_DEBUGGER
+const CRTC *BBCMicro::DebugGetCRTC() const {
+    return &m_state.crtc;
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_DEBUGGER
+const VideoULA *BBCMicro::DebugGetVideoULA() const {
+    return &m_state.video_ula;
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_DEBUGGER
+const BBCMicro::AddressableLatch BBCMicro::DebugGetAddressableLatch() const {
+    return m_state.addressable_latch;
+}
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

@@ -150,6 +150,10 @@ private:
 
     void NextRaster();
     void StartOfFrame();
+
+#if BBCMICRO_DEBUGGER
+    friend class CRTCDebugWindow;
+#endif
 };
 
 //////////////////////////////////////////////////////////////////////////

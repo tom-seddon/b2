@@ -48,6 +48,8 @@ class BBCMicro:
     private WD1770Handler
 {
 public:
+    static const uint16_t SCREEN_WRAP_ADJUSTMENTS[];
+
     union ACCCON;
     typedef void (*UpdateROMSELPagesFn)(BBCMicro *);
     typedef void (*UpdateACCCONPagesFn)(BBCMicro *,const ACCCON *);
@@ -353,6 +355,15 @@ public:
     const M6502 *GetM6502() const;
 
 #if BBCMICRO_DEBUGGER
+    uint16_t DebugGetBeebAddressFromCRTCAddress(uint8_t h,uint8_t l) const;
+
+    // Hiding these behind accessors really doesn't buy much. Just
+    // trying to avoid making the debug stuff a friend of this
+    // class... though maybe it wouldn't matter?
+    const CRTC *DebugGetCRTC() const;
+    const VideoULA *DebugGetVideoULA() const;
+    const AddressableLatch DebugGetAddressableLatch() const;
+
     uint16_t DebugGetFlatPage(uint8_t page) const;
 
     void DebugCopyMemory(void *bytes_dest,ByteDebugFlags *debug_dest,M6502Word addr_,uint16_t num_bytes) const;

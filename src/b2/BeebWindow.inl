@@ -49,6 +49,8 @@ EPN(DearImguiTest)
 EPN(6502Debugger)
 EPN(MemoryDebugger)
 EPN(DisassemblyDebugger)
+EPN(CRTCDebugger)
+EPN(VideoULADebugger)
 
 // must be last
 EQPN(MaxValue)

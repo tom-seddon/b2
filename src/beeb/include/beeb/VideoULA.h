@@ -101,6 +101,10 @@ private:
     typedef void (VideoULA::*EmitMFn)(union VideoDataUnit *);
     static const EmitMFn EMIT_MFNS[4][2][4];
     //static const EmitMFn NULA_EMIT_MFNS[2][4];
+
+#if BBCMICRO_DEBUGGER
+    friend class VideoULADebugWindow;
+#endif
 };
 
 //////////////////////////////////////////////////////////////////////////

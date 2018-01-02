@@ -576,7 +576,8 @@ private:
         ImGui::SameLine(0.f,0.f);
 
         {
-            // No point using SmallButton - it doesn't set the horizontal padding to 0.
+            // No point using SmallButton - it doesn't set the
+            // horizontal frame padding to 0.
 
             ImGuiStyleVarPusher pusher(ImGuiStyleVar_FramePadding,ImVec2(0.f,0.f));
 
@@ -706,6 +707,201 @@ ObjectCommandTable<DisassemblyDebugWindow> DisassemblyDebugWindow::ms_command_ta
 
 std::unique_ptr<SettingsUI> CreateDisassemblyDebugWindow(BeebWindow *beeb_window) {
     return std::make_unique<DisassemblyDebugWindow>(beeb_window->GetBeebThread());
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+class CRTCDebugWindow:
+    public DebugUI
+{
+public:
+    explicit CRTCDebugWindow(std::shared_ptr<BeebThread> beeb_thread):
+        DebugUI(std::move(beeb_thread))
+    {
+    }
+
+    void DoImGui(CommandContextStack *cc_stack) {
+        (void)cc_stack;
+
+        CRTC::Registers registers;
+        uint8_t address;
+        uint16_t cursor_address;
+        uint16_t display_address;
+        BBCMicro::AddressableLatch latch;
+
+        {
+            std::unique_lock<Mutex> lock;
+            const BBCMicro *m=m_beeb_thread->LockBeeb(&lock);
+
+            const CRTC *c=m->DebugGetCRTC();
+            //const VideoULA *u=m->DebugGetVideoULA();
+
+            registers=c->m_registers;
+            address=c->m_address;
+
+            cursor_address=m->DebugGetBeebAddressFromCRTCAddress(registers.bits.cursorh,registers.bits.cursorl);
+            display_address=m->DebugGetBeebAddressFromCRTCAddress(registers.bits.addrh,registers.bits.addrl);
+
+            latch=m->DebugGetAddressableLatch();
+
+            //ucontrol=u->control;
+            //memcpy(upalette,u->m_palette,16);
+        }
+
+        if(ImGui::CollapsingHeader("Register Values")) {
+            ImGui::Text("Address = $%02x %03u",address,address);
+            for(size_t i=0;i<18;++i) {
+                ImGui::Text("R%zu = $%02x %03u %s",i,registers.values[i],registers.values[i],BINARY_BYTE_STRINGS[registers.values[i]]);
+            }
+            ImGui::Separator();
+        }
+
+        ImGui::Text("H Displayed = %u, Total = %u",registers.bits.nhd,registers.bits.nht);
+        ImGui::Text("V Displayed = %u, Total = %u",registers.bits.nvd,registers.bits.nvt);
+        ImGui::Text("Scanlines = %u * %u + %u = %u",registers.bits.nvd,registers.bits.nr+1,registers.bits.nadj,registers.bits.nvd*(registers.bits.nr+1)+registers.bits.nadj);
+        ImGui::Text("Address = $%04x",display_address);
+        ImGui::Text("(Wrap Adjustment = $%04x)",BBCMicro::SCREEN_WRAP_ADJUSTMENTS[latch.bits.screen_base]<<3);
+        ImGui::Separator();
+        ImGui::Text("HSync Pos = %u, Width = %u",registers.bits.nhsp,registers.bits.nsw.bits.wh);
+        ImGui::Text("VSync Pos = %u, Width = %u",registers.bits.nvsp,registers.bits.nsw.bits.wv);
+        ImGui::Text("Interlace Sync = %s, Video = %s",BOOL_STR(registers.bits.r8.bits.s),BOOL_STR(registers.bits.r8.bits.v));
+        ImGui::Text("Delay Mode = %s",DELAY_NAMES[registers.bits.r8.bits.d]);
+        ImGui::Separator();
+        ImGui::Text("Cursor Start = %u, End = %u, Mode = %s",registers.bits.ncstart.bits.start,registers.bits.ncend,GetCRTCCursorModeEnumName(registers.bits.ncstart.bits.mode));
+        ImGui::Text("Cursor Delay Mode = %s",DELAY_NAMES[registers.bits.r8.bits.c]);
+        ImGui::Text("Cursor Address = $%04x",cursor_address);
+        ImGui::Separator();
+    }
+protected:
+private:
+    static const char *const INTERLACE_NAMES[];
+    static const char *const DELAY_NAMES[];
+};
+
+const char *const CRTCDebugWindow::INTERLACE_NAMES[]={"Normal","Normal","Interlace sync","Interlace sync+video"};
+
+const char *const CRTCDebugWindow::DELAY_NAMES[]={"0","1","2","Off"};
+
+std::unique_ptr<SettingsUI> CreateCRTCDebugWindow(BeebWindow *beeb_window) {
+    return std::make_unique<CRTCDebugWindow>(beeb_window->GetBeebThread());
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+class VideoULADebugWindow:
+    public DebugUI
+{
+public:
+    explicit VideoULADebugWindow(std::shared_ptr<BeebThread> beeb_thread):
+        DebugUI(std::move(beeb_thread))
+    {
+    }
+
+    void DoImGui(CommandContextStack *cc_stack) {
+        (void)cc_stack;
+
+        VideoULA::Control control;
+        uint8_t palette[16];
+
+        {
+            std::unique_lock<Mutex> lock;
+            const BBCMicro *m=m_beeb_thread->LockBeeb(&lock);
+
+            const VideoULA *u=m->DebugGetVideoULA();
+
+            control=u->control;
+            memcpy(palette,u->m_palette,16);
+        }
+
+
+        if(ImGui::CollapsingHeader("Register Values")) {
+            ImGui::Text("Control = $%02x %03u %s",control,control,BINARY_BYTE_STRINGS[control.value]);
+            for(size_t i=0;i<16;++i) {
+                uint8_t p=palette[i];
+                ImGui::Text("Palette[%zu] = $%01x %02u %s ",i,p,p,BINARY_BYTE_STRINGS[p]+4);
+
+                uint8_t colour=p&7;
+                if(p&8) {
+                    if(control.bits.flash) {
+                        colour^=7;
+                    }
+                }
+
+                ImGui::SameLine();
+
+                {
+                    ImGuiStyleColourPusher pusher(ImGuiCol_Text,COLOUR_COLOURS[colour]);
+                    ImGui::TextUnformatted(COLOUR_NAMES[colour]);
+                }
+
+                if(p&8) {
+                    ImGui::SameLine();
+
+                    ImGui::Text("(%s/%s)",COLOUR_NAMES[p&7],COLOUR_NAMES[p&7^7]);
+                }
+            }
+            ImGui::Separator();
+        }
+
+        ImGui::Text("Flash colour = %u",control.bits.flash);
+        ImGui::Text("Teletext output = %s",BOOL_STR(control.bits.teletext));
+        ImGui::Text("Chars per line = %u",(1<<control.bits.line_width)*10);
+        ImGui::Text("6845 clock = %u MHz",1+control.bits.fast_6845);
+        ImGui::Text("Cursor Shape = %s",CURSOR_SHAPES[control.bits.cursor]);
+
+        for(uint8_t i=0;i<16;i+=4) {
+            ImGui::Text("Palette:");
+            ImGuiStyleVarPusher vpusher(ImGuiStyleVar_FramePadding,ImVec2(0.f,0.f));
+
+            for(uint8_t j=0;j<4;++j) {
+                uint8_t index=i+j;
+                uint8_t entry=palette[index];
+
+                uint8_t colour=entry&7;
+                if(entry&8) {
+                    if(control.bits.flash) {
+                        colour^=7;
+                    }
+                }
+
+                ImGui::SameLine();
+                ImGui::Text(" %x=",index);
+                ImGuiStyleColourPusher cpusher(ImGuiCol_Text,COLOUR_COLOURS[colour]);
+                ImGui::SameLine();
+                ImGui::Text("%x",entry);
+            }
+        }
+    }
+protected:
+private:
+    static const char *const COLOUR_NAMES[];
+    static const ImVec4 COLOUR_COLOURS[];
+    static const char *const CURSOR_SHAPES[];
+};
+
+const char *const VideoULADebugWindow::COLOUR_NAMES[]={
+    "Black","Red","Green","Yellow","Blue","Magenta","Cyan","White",
+};
+
+const ImVec4 VideoULADebugWindow::COLOUR_COLOURS[]={
+    {.8f,.8f,.8f,1.f},//Black on black = useless
+    {1.f,0.f,0.f,1.f},
+    {0.f,1.f,0.f,1.f},
+    {1.f,1.f,0.f,1.f},
+    {.2f,.4f,1.f,1.f},//I find the blue a bit hard to see on black...
+    {1.f,0.f,1.f,1.f},
+    {0.f,1.f,1.f,1.f},
+    {1.f,1.f,1.f,1.f},
+};
+
+const char *const VideoULADebugWindow::CURSOR_SHAPES[]={
+    "....",".**.",".*..",".***","*...","*.**","**..","****"
+};
+
+std::unique_ptr<SettingsUI> CreateVideoULADebugWindow(BeebWindow *beeb_window) {
+    return std::make_unique<VideoULADebugWindow>(beeb_window->GetBeebThread());
 }
 
 //////////////////////////////////////////////////////////////////////////
