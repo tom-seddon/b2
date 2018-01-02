@@ -289,6 +289,7 @@ private:
 #endif
     std::atomic<bool> m_is_pasting{false};
     std::atomic<bool> m_is_copying{false};
+    std::atomic<bool> m_has_vram{false};
 
     //mutable volatile int32_t m_is_paused=1;
 
@@ -312,9 +313,6 @@ private:
 
     // Last recorded trace. Controlled by m_mutex.
     std::shared_ptr<Trace> m_last_trace;
-
-    // Copy of CMOS RAM/EEPROM. Controlled by m_mutex.
-    std::vector<uint8_t> m_nvram_copy;
 
 #if BBCMICRO_TRACE
     // Trace stats. Updated regularly when a trace is active. There's
@@ -376,7 +374,6 @@ private:
     void ThreadStopPaste(ThreadState *ts);
     void ThreadStopCopy(ThreadState *ts);
     void ThreadMain();
-    static void ThreadBBCMicroNVRAMCallback(BBCMicro *m,size_t offset,uint8_t value,void *context);
 
     // calls scalar delete on (PayloadType *)msg->data.ptr, then does
     // msg->data.ptr=nullptr.

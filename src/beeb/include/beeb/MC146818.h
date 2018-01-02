@@ -136,14 +136,7 @@ public:
 
     // Set one of the data registers to VALUE. The register address
     // comes from the address register.
-    //
-    // If the byte was written to the RAM, returns [0,RAM_SIZE),
-    // indicating the address written to. (This value can be used to
-    // index into the data pointed at by the result of GetRAM.)
-    //
-    // Otherwise, the write was to the RTC/control register/etc., and
-    // returns a negative value.
-    int SetData(uint8_t value);
+    void SetData(uint8_t value);
 
     // Get pointer to first byte of the RAM_SIZE bytes of RAM.
     const uint8_t *GetRAM() const;

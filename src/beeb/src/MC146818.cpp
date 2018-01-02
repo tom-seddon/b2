@@ -256,7 +256,7 @@ void MC146818::SetAddress(uint8_t value) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-int MC146818::SetData(uint8_t value) {
+void MC146818::SetData(uint8_t value) {
     m_regs.values[m_reg]&=g_ro_masks[m_reg];
     m_regs.values[m_reg]|=value&~g_ro_masks[m_reg];
 
@@ -271,8 +271,6 @@ int MC146818::SetData(uint8_t value) {
         m_trace->AllocStringf("CMOS - Write %s: Value now: %d ($%02X)\n",d,m_regs.values[m_reg],m_regs.values[m_reg]);
     }
 #endif
-
-    return (int)m_reg-(int)offsetof(RegisterBits,ram);
 }
 
 //////////////////////////////////////////////////////////////////////////

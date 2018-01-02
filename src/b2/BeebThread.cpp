@@ -753,16 +753,20 @@ bool BeebThread::GetKeyState(BeebKey beeb_key) const {
 std::vector<uint8_t> BeebThread::GetNVRAM() const {
     std::lock_guard<Mutex> lock(m_mutex);
 
-    return m_nvram_copy;
+    std::vector<uint8_t> nvram;
+    nvram.resize(m_thread_state->beeb->GetNVRAMSize());
+    if(!nvram.empty()) {
+        memcpy(nvram.data(),m_thread_state->beeb->GetNVRAM(),nvram.size());
+    }
+
+    return nvram;
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 bool BeebThread::HasNVRAM() const {
-    std::lock_guard<Mutex> lock(m_mutex);
-
-    return !m_nvram_copy.empty();
+    return m_has_vram.load(std::memory_order_acquire);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -1243,13 +1247,7 @@ void BeebThread::ThreadReplaceBeeb(ThreadState *ts,std::unique_ptr<BBCMicro> bee
         m_audio_thread_data->num_consumed_sound_units=*ts->num_executed_2MHz_cycles>>SOUND_CLOCK_SHIFT;
     }
 
-    // Always take shadow copy of NVRAM.
-    {
-        m_nvram_copy.clear();
-        m_nvram_copy.resize(ts->beeb->GetNVRAMSize());
-    }
-
-    ts->beeb->SetNVRAMCallback(&ThreadBBCMicroNVRAMCallback,this);
+    m_has_vram.store(ts->beeb->GetNVRAMSize()>0,std::memory_order_release);
 
     // Apply current keypresses to the emulated BBC. Reset fake shift
     // state and boot state first so that the Shift key status is set
@@ -1296,18 +1294,6 @@ void BeebThread::ThreadReplaceBeeb(ThreadState *ts,std::unique_ptr<BBCMicro> bee
     this->ThreadSetBootState(ts,!!(flags&BeebThreadReplaceFlag_Autoboot));
 
     m_paused=false;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-void BeebThread::ThreadBBCMicroNVRAMCallback(BBCMicro *m,size_t offset,uint8_t value,void *context) {
-    (void)m;
-
-    auto this_=(BeebThread *)context;
-
-    ASSERT(offset<this_->m_nvram_copy.size());
-    this_->m_nvram_copy[offset]=value;
 }
 
 //////////////////////////////////////////////////////////////////////////

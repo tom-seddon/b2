@@ -584,15 +584,6 @@ uint8_t BBCMicro::Read1770ControlRegister(void *m_,M6502Word a) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void BBCMicro::CallNVRAMCallback(size_t offset,uint8_t value) {
-    if(m_nvram_changed_fn) {
-        (*m_nvram_changed_fn)(this,offset,value,m_nvram_changed_context);
-    }
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 #if BBCMICRO_TRACE
 void BBCMicro::TracePortB(SystemVIAPB pb) {
     if(m_trace) {
@@ -704,10 +695,7 @@ void BBCMicro::HandleSystemVIAB(R6522 *via,uint8_t value,uint8_t old_value,void 
             } else {
                 // 1->0
                 if(!m->m_state.addressable_latch.m128_bits.rtc_read) {
-                    int ram_address=m->m_state.rtc.SetData(x);
-                    if(ram_address>=0) {
-                        m->CallNVRAMCallback((size_t)ram_address,x);
-                    }
+                    m->m_state.rtc.SetData(x);
                 }
             }
         }
@@ -1470,22 +1458,6 @@ size_t BBCMicro::GetNVRAMSize() const {
         return MC146818::RAM_SIZE;
     } else {
         return 0;
-    }
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-void BBCMicro::SetNVRAMCallback(NVRAMChangedFn nvram_changed_fn,void *context) {
-    m_nvram_changed_fn=nvram_changed_fn;
-    m_nvram_changed_context=context;
-
-    const uint8_t *p=this->GetNVRAM();
-
-    if(m_has_rtc) {
-        for(size_t i=0;i<MC146818::RAM_SIZE;++i) {
-            this->CallNVRAMCallback(i,p[i]);
-        }
     }
 }
 

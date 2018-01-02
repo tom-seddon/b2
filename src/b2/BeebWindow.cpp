@@ -28,7 +28,6 @@
 #include "MessagesUI.h"
 #include "load_save.h"
 #include "TraceUI.h"
-#include "NVRAMUI.h"
 #include <IconsFontAwesome.h>
 #include "DataRateUI.h"
 #include "Timeline.h"

@@ -62,8 +62,8 @@ protected:
 public:
     ~BBCMicro();
 
-    // The clone has no NVRAM callbacks, no disc drive callbacks, and
-    // no disc access mutex.
+    // The clone has no disc drive callbacks, and no disc access
+    // mutex.
     std::unique_ptr<BBCMicro> Clone() const;
 
     typedef std::array<uint8_t,16384> ROMData;
@@ -290,11 +290,6 @@ public:
     // Once a particular sound is set, it can't be changed.
     static void SetDiscDriveSound(DiscDriveType type,DiscDriveSound sound,std::vector<float> samples);
 #endif
-
-    // When a callback is set, before SetNVRAMCallback returns it is
-    // immediately called with the current NVRAM contents.
-    typedef void (*NVRAMChangedFn)(BBCMicro *m,size_t offset,uint8_t new_value,void *context);
-    void SetNVRAMCallback(NVRAMChangedFn nvram_changed_fn,void *context);
 
     uint32_t GetLEDs();
 
@@ -563,8 +558,6 @@ private:
 
     //mutable std::mutex m_disc_image_mutexes[NUM_DRIVES];
 
-    NVRAMChangedFn m_nvram_changed_fn=nullptr;
-    void *m_nvram_changed_context=nullptr;
     //DiscDriveCallbacks m_disc_drive_callbacks={};
 
     // This doesn't need to be copied. The event list records its
@@ -629,7 +622,6 @@ private:
     void InitROMPages();
     static void Write1770ControlRegister(void *m_,M6502Word a,uint8_t value);
     static uint8_t Read1770ControlRegister(void *m_,M6502Word a);
-    void CallNVRAMCallback(size_t offset,uint8_t value);
 #if BBCMICRO_TRACE
     void TracePortB(SystemVIAPB pb);
 #endif
