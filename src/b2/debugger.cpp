@@ -40,18 +40,112 @@ class DebugUI:
     public SettingsUI
 {
 public:
-    explicit DebugUI(std::shared_ptr<BeebThread> beeb_thread):
-        m_beeb_thread(std::move(beeb_thread))
-    {
-    }
-
     bool OnClose() override {
         return false;
     }
+
+    void SetBeebThread(std::shared_ptr<BeebThread> beeb_thread) {
+        ASSERT(!m_beeb_thread);
+        m_beeb_thread=std::move(beeb_thread);
+    }
+
+    void DoImGui(CommandContextStack *cc_stack) final {
+        for(size_t i=0;i<256;++i) {
+            if(m_pages[i]) {
+                m_pages[i]->valid=false;
+            }
+        }
+
+        this->HandleDoImGui(cc_stack);
+    }
 protected:
-    const std::shared_ptr<BeebThread> m_beeb_thread;
+    std::shared_ptr<BeebThread> m_beeb_thread;
+
+    uint8_t GetByte(uint16_t addr);
+    uint16_t GetDebugPage(uint16_t addr);
+    BBCMicro::ByteDebugFlags GetDebugFlags(uint16_t addr);
+
+    virtual void HandleDoImGui(CommandContextStack *cc_stack)=0;
 private:
+    struct Page {
+        uint8_t ram[256]={};
+        BBCMicro::ByteDebugFlags debug[256]={};
+        uint16_t flat_page=0;
+        bool valid=false;
+    };
+
+    Page *m_pages[256]={};
+
+    void PrepareForRead(M6502Word addr);
 };
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+uint8_t DebugUI::GetByte(uint16_t addr_) {
+    M6502Word addr={addr_};
+
+    this->PrepareForRead(addr);
+
+    return m_pages[addr.b.h]->ram[addr.b.l];
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+uint16_t DebugUI::GetDebugPage(uint16_t addr_) {
+    M6502Word addr={addr_};
+
+    this->PrepareForRead(addr);
+
+    return m_pages[addr.b.h]->flat_page;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+BBCMicro::ByteDebugFlags DebugUI::GetDebugFlags(uint16_t addr_) {
+    M6502Word addr={addr_};
+
+    this->PrepareForRead(addr);
+
+    return m_pages[addr.b.h]->debug[addr.b.l];
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void DebugUI::PrepareForRead(M6502Word addr) {
+    Page *page=m_pages[addr.b.h];
+
+    if(!page) {
+        page=m_pages[addr.b.h]=new Page;
+    }
+
+    if(!page->valid) {
+        addr.b.l=0;
+
+        std::unique_lock<Mutex> lock;
+        const BBCMicro *m=m_beeb_thread->LockBeeb(&lock);
+
+        page->flat_page=m->DebugGetFlatPage(addr.b.h);
+        m->DebugCopyMemory(page->ram,page->debug,addr,256);
+
+        page->valid=true;
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+template<class DerivedType>
+static std::unique_ptr<SettingsUI> CreateDebugUI(BeebWindow *beeb_window) {
+    std::unique_ptr<DebugUI> ptr=std::make_unique<DerivedType>();
+
+    ptr->SetBeebThread(beeb_window->GetBeebThread());
+
+    return ptr;
+}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -60,17 +154,15 @@ class M6502DebugWindow:
     public DebugUI
 {
 public:
-    explicit M6502DebugWindow(std::shared_ptr<BeebThread> beeb_thread):
-        DebugUI(std::move(beeb_thread))
-    {
+    M6502DebugWindow() {
         if(g_name_by_6502_fn.empty()) {
             M6502_ForEachFn([](const char *name,M6502Fn fn,void *) {
                 g_name_by_6502_fn[fn]=name;
             },nullptr);
         }
     }
-
-    void DoImGui(CommandContextStack *cc_stack) {
+protected:
+    void HandleDoImGui(CommandContextStack *cc_stack) override {
         (void)cc_stack;
         //m_beeb_thread->SendUpdate6502StateMessage();
 
@@ -136,7 +228,6 @@ public:
         //ImGui::SameLine();
         //m_debug_occ.DoButton("step_over");
     }
-protected:
 private:
     void Reg(const char *name,uint8_t value) {
         ImGui::Text("%s = $%02x %03d %s",name,value,value,BINARY_BYTE_STRINGS[value]);
@@ -144,110 +235,7 @@ private:
 };
 
 std::unique_ptr<SettingsUI> Create6502DebugWindow(BeebWindow *beeb_window) {
-    return std::make_unique<M6502DebugWindow>(beeb_window->GetBeebThread());
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-// A cache for data copied out from DebugCopyMemory. For each memory
-// access by the debug window, 256 bytes is copied out, in an attempt
-// to avoid calling LockBeeb too often.
-//
-// Rather than trying to be at all clever, this just has a very large buffer.
-class BeebMemory {
-public:
-    explicit BeebMemory(std::shared_ptr<BeebThread> beeb_thread);
-
-    void Reset();
-    uint8_t GetByte(uint16_t addr);
-    uint16_t GetDebugPage(uint16_t addr);
-    BBCMicro::ByteDebugFlags GetDebugFlags(uint16_t addr);
-protected:
-private:
-    struct Page {
-        uint8_t ram[256];
-        BBCMicro::ByteDebugFlags debug[256];
-        uint16_t flat_page;
-    };
-
-    const std::shared_ptr<BeebThread> m_beeb_thread;
-    uint8_t m_got_pages[32];
-    Page m_pages[256]={};
-    uint8_t m_ram[256][256]={};
-    BBCMicro::ByteDebugFlags m_debug[256][256]={};
-
-    void PrepareBuffer(M6502Word addr);
-};
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-BeebMemory::BeebMemory(std::shared_ptr<BeebThread> beeb_thread):
-    m_beeb_thread(std::move(beeb_thread))
-{
-    this->Reset();
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-void BeebMemory::Reset() {
-    memset(m_got_pages,0,sizeof m_got_pages);
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-uint8_t BeebMemory::GetByte(uint16_t addr_) {
-    M6502Word addr={addr_};
-
-    this->PrepareBuffer(addr);
-
-    return m_pages[addr.b.h].ram[addr.b.l];
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-uint16_t BeebMemory::GetDebugPage(uint16_t addr_) {
-    M6502Word addr={addr_};
-
-    this->PrepareBuffer(addr);
-
-    return m_pages[addr.b.h].flat_page;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-BBCMicro::ByteDebugFlags BeebMemory::GetDebugFlags(uint16_t addr_) {
-    M6502Word addr={addr_};
-
-    this->PrepareBuffer(addr);
-
-    return m_pages[addr.b.h].debug[addr.b.l];
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-void BeebMemory::PrepareBuffer(M6502Word addr) {
-    uint8_t *flags=&m_got_pages[addr.b.h>>3];
-    uint8_t mask=1<<(addr.b.h&7);
-    if(!(*flags&mask)) {
-        addr.b.l=0;
-
-        std::unique_lock<Mutex> lock;
-        const BBCMicro *m=m_beeb_thread->LockBeeb(&lock);
-
-        Page *page=&m_pages[addr.b.h];
-
-        page->flat_page=m->DebugGetFlatPage(addr.b.h);
-        m->DebugCopyMemory(page->ram,page->debug,addr,256);
-
-        *flags|=mask;
-    }
+    return CreateDebugUI<M6502DebugWindow>(beeb_window);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -257,26 +245,19 @@ class MemoryDebugWindow:
     public DebugUI
 {
 public:
-    explicit MemoryDebugWindow(std::shared_ptr<BeebThread> beeb_thread):
-        DebugUI(std::move(beeb_thread)),
-        m_mem(m_beeb_thread)
-    {
+    MemoryDebugWindow() {
         m_memory_editor.ReadFn=&MemoryEditorRead;
         m_memory_editor.WriteFn=&MemoryEditorWrite;
     }
-
-    void DoImGui(CommandContextStack *cc_stack) {
+protected:
+    void HandleDoImGui(CommandContextStack *cc_stack) override {
         (void)cc_stack;
-
-        m_mem.Reset();
 
         m_memory_editor.DrawContents((uint8_t *)this,65536,0);
     }
-protected:
 private:
     M6502Word m_addr{};
     MemoryEditor m_memory_editor;
-    BeebMemory m_mem;
 
     // There's no context parameter :( - so this hijacks the data
     // parameter for that purpose.
@@ -284,7 +265,7 @@ private:
         auto self=(MemoryDebugWindow *)data;
 
         ASSERT((uint16_t)off==off);
-        return self->m_mem.GetByte((uint16_t)off);
+        return self->GetByte((uint16_t)off);
     }
 
     // There's no context parameter :( - so this hijacks the data
@@ -297,7 +278,7 @@ private:
 };
 
 std::unique_ptr<SettingsUI> CreateMemoryDebugWindow(BeebWindow *beeb_window) {
-    return std::make_unique<MemoryDebugWindow>(beeb_window->GetBeebThread());
+    return CreateDebugUI<MemoryDebugWindow>(beeb_window);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -307,10 +288,8 @@ class DisassemblyDebugWindow:
     public DebugUI
 {
 public:
-    explicit DisassemblyDebugWindow(std::shared_ptr<BeebThread> beeb_thread):
-        DebugUI(std::move(beeb_thread)),
-        m_occ(this,&ms_command_table),
-        m_mem(m_beeb_thread)
+    DisassemblyDebugWindow():
+        m_occ(this,&ms_command_table)
     {
     }
 
@@ -321,8 +300,8 @@ public:
         // automatically adds a scroll bar. And that's even weirder.
         return ImGuiWindowFlags_NoScrollbar|ImGuiWindowFlags_NoScrollWithMouse;
     }
-
-    void DoImGui(CommandContextStack *cc_stack) {
+protected:
+    void HandleDoImGui(CommandContextStack *cc_stack) override {
         cc_stack->Push(m_occ);
 
         const M6502Config *config;
@@ -360,9 +339,6 @@ public:
             m_addr=pc;
         }
 
-        m_mem.Reset();
-        //m_line_addrs.clear();
-
         m_num_lines=0;
         uint16_t addr=m_addr;
         while(ImGui::GetCursorPosY()<=maxY) {
@@ -372,9 +348,9 @@ public:
 
             ImGuiIDPusher id_pusher(addr);
 
-            uint8_t opcode=m_mem.GetByte(addr);
-            BBCMicro::ByteDebugFlags debug_flags=m_mem.GetDebugFlags(addr);
-            uint16_t debug_flat_page=m_mem.GetDebugPage(addr);
+            uint8_t opcode=this->GetByte(addr);
+            BBCMicro::ByteDebugFlags debug_flags=this->GetDebugFlags(addr);
+            uint16_t debug_flat_page=this->GetDebugPage(addr);
             char flat_page_code=BBCMicro::DebugGetFlatPageCode(debug_flat_page);
             ++addr;
 
@@ -382,10 +358,10 @@ public:
 
             M6502Word operand={};
             if(di->num_bytes>=2) {
-                operand.b.l=m_mem.GetByte(addr++);
+                operand.b.l=this->GetByte(addr++);
             }
             if(di->num_bytes>=3) {
-                operand.b.h=m_mem.GetByte(addr++);
+                operand.b.h=this->GetByte(addr++);
             }
 
             ImGuiStyleColourPusher pusher;
@@ -519,13 +495,11 @@ public:
             }
         }
     }
-protected:
 private:
     static const char IND_PREFIX[];
 
     ObjectCommandContext<DisassemblyDebugWindow> m_occ;
     uint16_t m_addr=0;
-    BeebMemory m_mem;
     bool m_track_pc=true;
     char m_address_text[100]={};
     //std::vector<uint16_t> m_line_addrs;
@@ -536,19 +510,19 @@ private:
 
     void DoIndirect(uint16_t address,uint16_t mask,uint16_t post_index) {
         M6502Word addr;
-        addr.b.l=m_mem.GetByte(address);
+        addr.b.l=this->GetByte(address);
 
         ++address;
         address&=mask;
 
-        addr.b.h=m_mem.GetByte(address);
+        addr.b.h=this->GetByte(address);
 
         addr.w+=post_index;
 
         M6502Word target_addr;
-        target_addr.b.l=m_mem.GetByte(addr.w);
+        target_addr.b.l=this->GetByte(addr.w);
         ++addr.w;
-        target_addr.b.h=m_mem.GetByte(addr.w);
+        target_addr.b.h=this->GetByte(addr.w);
 
         this->AddWord(IND_PREFIX,target_addr.w,"");
     }
@@ -666,13 +640,13 @@ private:
         for(int i=0;i<n;++i) {
             uint8_t opcode;
 
-            opcode=m_mem.GetByte(m_addr-1);
+            opcode=this->GetByte(m_addr-1);
             if(config->disassembly_info[opcode].num_bytes==1) {
                 --m_addr;
                 return;
             }
 
-            opcode=m_mem.GetByte(m_addr-2);
+            opcode=this->GetByte(m_addr-2);
             if(config->disassembly_info[opcode].num_bytes==2) {
                 m_addr-=2;
                 return;
@@ -684,7 +658,7 @@ private:
 
     void Down(const M6502Config *config,int n) {
         for(int i=0;i<n;++i) {
-            uint8_t opcode=m_mem.GetByte(m_addr);
+            uint8_t opcode=this->GetByte(m_addr);
             m_addr+=config->disassembly_info[opcode].num_bytes;
         }
     }
@@ -712,7 +686,7 @@ ObjectCommandTable<DisassemblyDebugWindow> DisassemblyDebugWindow::ms_command_ta
 });
 
 std::unique_ptr<SettingsUI> CreateDisassemblyDebugWindow(BeebWindow *beeb_window) {
-    return std::make_unique<DisassemblyDebugWindow>(beeb_window->GetBeebThread());
+    return CreateDebugUI<DisassemblyDebugWindow>(beeb_window);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -722,12 +696,8 @@ class CRTCDebugWindow:
     public DebugUI
 {
 public:
-    explicit CRTCDebugWindow(std::shared_ptr<BeebThread> beeb_thread):
-        DebugUI(std::move(beeb_thread))
-    {
-    }
-
-    void DoImGui(CommandContextStack *cc_stack) {
+protected:
+    void HandleDoImGui(CommandContextStack *cc_stack) override {
         (void)cc_stack;
 
         CRTC::Registers registers;
@@ -779,7 +749,6 @@ public:
         ImGui::Text("Cursor Address = $%04x",cursor_address);
         ImGui::Separator();
     }
-protected:
 private:
     static const char *const INTERLACE_NAMES[];
     static const char *const DELAY_NAMES[];
@@ -790,7 +759,7 @@ const char *const CRTCDebugWindow::INTERLACE_NAMES[]={"Normal","Normal","Interla
 const char *const CRTCDebugWindow::DELAY_NAMES[]={"0","1","2","Off"};
 
 std::unique_ptr<SettingsUI> CreateCRTCDebugWindow(BeebWindow *beeb_window) {
-    return std::make_unique<CRTCDebugWindow>(beeb_window->GetBeebThread());
+    return CreateDebugUI<CRTCDebugWindow>(beeb_window);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -800,12 +769,8 @@ class VideoULADebugWindow:
     public DebugUI
 {
 public:
-    explicit VideoULADebugWindow(std::shared_ptr<BeebThread> beeb_thread):
-        DebugUI(std::move(beeb_thread))
-    {
-    }
-
-    void DoImGui(CommandContextStack *cc_stack) {
+protected:
+    void HandleDoImGui(CommandContextStack *cc_stack) override {
         (void)cc_stack;
 
         VideoULA::Control control;
@@ -880,7 +845,6 @@ public:
             }
         }
     }
-protected:
 private:
     static const char *const COLOUR_NAMES[];
     static const ImVec4 COLOUR_COLOURS[];
@@ -907,7 +871,7 @@ const char *const VideoULADebugWindow::CURSOR_SHAPES[]={
 };
 
 std::unique_ptr<SettingsUI> CreateVideoULADebugWindow(BeebWindow *beeb_window) {
-    return std::make_unique<VideoULADebugWindow>(beeb_window->GetBeebThread());
+    return CreateDebugUI<VideoULADebugWindow>(beeb_window);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -931,11 +895,6 @@ public:
         R6522::IRQ ifr,ier;
         PortState a,b;
     };
-
-    explicit R6522DebugWindow(std::shared_ptr<BeebThread> beeb_thread):
-        DebugUI(std::move(beeb_thread))
-    {
-    }
 protected:
     void DoRegisterValuesGui(const State &s) {
         this->DoPortRegisterValuesGui('A',s.a);
@@ -1023,12 +982,8 @@ class SystemVIADebugWindow:
     public R6522DebugWindow
 {
 public:
-    explicit SystemVIADebugWindow(std::shared_ptr<BeebThread> beeb_thread):
-        R6522DebugWindow(std::move(beeb_thread))
-    {
-    }
-
-    void DoImGui(CommandContextStack *cc_stack) override {
+protected:
+    void HandleDoImGui(CommandContextStack *cc_stack) override {
         (void)cc_stack;
 
         State state;
@@ -1081,12 +1036,11 @@ public:
             break;
         }
     }
-protected:
 private:
 };
 
 std::unique_ptr<SettingsUI> CreateSystemVIADebugWindow(BeebWindow *beeb_window) {
-    return std::make_unique<SystemVIADebugWindow>(beeb_window->GetBeebThread());
+    return CreateDebugUI<SystemVIADebugWindow>(beeb_window);
 }
 
 
@@ -1097,12 +1051,8 @@ class UserVIADebugWindow:
     public R6522DebugWindow
 {
 public:
-    explicit UserVIADebugWindow(std::shared_ptr<BeebThread> beeb_thread):
-        R6522DebugWindow(std::move(beeb_thread))
-    {
-    }
-
-    void DoImGui(CommandContextStack *cc_stack) override {
+protected:
+    void HandleDoImGui(CommandContextStack *cc_stack) override {
         (void)cc_stack;
 
         State state;
@@ -1114,14 +1064,12 @@ public:
 
         this->DoRegisterValuesGui(state);
     }
-protected:
 private:
 };
 
 std::unique_ptr<SettingsUI> CreateUserVIADebugWindow(BeebWindow *beeb_window) {
-    return std::make_unique<UserVIADebugWindow>(beeb_window->GetBeebThread());
+    return CreateDebugUI<UserVIADebugWindow>(beeb_window);
 }
-
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
