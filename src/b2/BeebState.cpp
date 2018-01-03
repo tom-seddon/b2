@@ -4,13 +4,21 @@
 #include <beeb/DiscImage.h>
 #include "misc.h"
 #include <beeb/BBCMicro.h>
+#include "TVOutput.h"
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 BeebState::BeebState(std::unique_ptr<BBCMicro> beeb):
-    creation_time(GetUTCTimeNow()),
-    m_beeb(std::move(beeb))
+    BeebState(std::move(beeb),nullptr)
+{
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+BeebState::BeebState(std::unique_ptr<BBCMicro> beeb,const TVOutput &tv):
+    BeebState(std::move(beeb),&tv)
 {
 }
 
@@ -37,6 +45,17 @@ std::unique_ptr<BBCMicro> BeebState::CloneBBCMicro() const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+const void *BeebState::GetTVTextureData() const {
+    if(m_tv_texture_data.empty()) {
+        return nullptr;
+    } else {
+        return m_tv_texture_data.data();
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 const std::string &BeebState::GetName() const {
     return m_name;
 }
@@ -46,6 +65,19 @@ const std::string &BeebState::GetName() const {
 
 void BeebState::SetName(std::string name) {
     m_name=name;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+BeebState::BeebState(std::unique_ptr<BBCMicro> beeb,const TVOutput *tv):
+    creation_time(GetUTCTimeNow()),
+    m_beeb(std::move(beeb))
+{
+    if(tv) {
+        m_tv_texture_data.resize(TV_TEXTURE_WIDTH*TV_TEXTURE_HEIGHT);
+        memcpy(m_tv_texture_data.data(),tv->GetTextureData(nullptr),TV_TEXTURE_WIDTH*TV_TEXTURE_HEIGHT*4);
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////

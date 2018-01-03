@@ -11,6 +11,7 @@ struct SDL_Renderer;
 struct SDL_PixelFormat;
 class BeebThread;
 class BeebLoadedConfig;
+class TVOutput;
 
 #include <beeb/conf.h>
 #include <memory>
@@ -33,6 +34,7 @@ public:
     const struct tm creation_time;
 
     BeebState(std::unique_ptr<BBCMicro> beeb);
+    BeebState(std::unique_ptr<BBCMicro> beeb,const TVOutput &tv);
     ~BeebState();
 
     // Number of emulated 2MHz cycles elapsed.
@@ -41,6 +43,8 @@ public:
     // Get clone of BBCMicro with this state's state. Its DiscDrive
     // and NVRAM callbacks are indeterminate.
     std::unique_ptr<BBCMicro> CloneBBCMicro() const;
+
+    const void *GetTVTextureData() const;
 
     const std::string &GetName() const;
     void SetName(std::string name);
@@ -53,7 +57,13 @@ protected:
 private:
     std::unique_ptr<BBCMicro> m_beeb;
 
+    // No need to store the pixel format. It's the same for every
+    // window.
+    std::vector<uint32_t> m_tv_texture_data;
+
     std::string m_name;
+
+    BeebState(std::unique_ptr<BBCMicro> beeb,const TVOutput *tv);
 };
 
 //////////////////////////////////////////////////////////////////////////
