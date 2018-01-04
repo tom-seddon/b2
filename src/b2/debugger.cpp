@@ -41,6 +41,12 @@ class DebugUI:
     public SettingsUI
 {
 public:
+    ~DebugUI() {
+        for(int i=0;i<256;++i) {
+            delete m_pages[i];
+        }
+    }
+
     bool OnClose() override {
         return false;
     }
