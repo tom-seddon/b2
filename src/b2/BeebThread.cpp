@@ -1054,11 +1054,11 @@ void BeebThread::SendDebugSetByteMessage(uint16_t address,uint8_t value) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void BeebThread::SetLastSavedStateTimelineId(uint64_t id) {
-    std::lock_guard<Mutex> lock(m_mutex);
-
-    m_last_saved_state_timeline_id=id;
-}
+//void BeebThread::SetLastSavedStateTimelineId(uint64_t id) {
+//    std::lock_guard<Mutex> lock(m_mutex);
+//
+//    m_last_saved_state_timeline_id=id;
+//}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -1234,10 +1234,33 @@ void BeebThread::ThreadStopTrace(ThreadState *ts) {
 //////////////////////////////////////////////////////////////////////////
 
 void BeebThread::ThreadReplaceBeeb(ThreadState *ts,std::unique_ptr<BBCMicro> beeb,uint32_t flags) {
-    delete ts->beeb;
-    ts->beeb=nullptr;
+    {
+#if BBCMICRO_DEBUGGER
+        std::unique_ptr<BBCMicro::DebugState> debug_state;
+#endif
 
-    ts->beeb=beeb.release();
+        if(ts->beeb) {
+#if BBCMICRO_DEBUGGER
+            debug_state=ts->beeb->TakeDebugState();
+#endif
+            delete ts->beeb;
+            ts->beeb=nullptr;
+        }
+
+        if(!debug_state) {
+#if BBCMICRO_DEBUGGER
+            // Probably just the first time round.
+            ts->log.f("Creating new BBCMicro::DebugState.\n");
+            debug_state=std::make_unique<BBCMicro::DebugState>();
+#endif
+        }
+
+        ts->beeb=beeb.release();
+
+#if BBCMICRO_DEBUGGER
+        ts->beeb->SetDebugState(std::move(debug_state));
+#endif
+    }
 
     ts->num_executed_2MHz_cycles=ts->beeb->GetNum2MHzCycles();
 
@@ -1282,7 +1305,6 @@ void BeebThread::ThreadReplaceBeeb(ThreadState *ts,std::unique_ptr<BBCMicro> bee
             m_disc_images[i]=ts->beeb->GetDiscImage(i);
         }
     }
-
 
 #if BBCMICRO_TRACE
     if(m_is_tracing) {
@@ -1865,8 +1887,7 @@ bool BeebThread::ThreadHandleMessage(
 
             this->ThreadRecordEvent(ts,BeebEvent::MakeSaveState(*ts->num_executed_2MHz_cycles,state));
 
-            this->SetLastSavedStateTimelineId(this->GetParentTimelineEventId());
-
+            m_last_saved_state_timeline_id=m_parent_timeline_event_id;
         }
         break;
 
@@ -2125,8 +2146,9 @@ void BeebThread::ThreadMain(void) {
             got_msg=MessageQueuePollForMessage(m_mq,&msg);
         }
 
+
         if(got_msg) {
-            std::lock_guard<Mutex> lock(m_mutex);
+        std::lock_guard<Mutex> lock(m_mutex);
             if(!this->ThreadHandleMessage(&ts,&msg,&limit_speed,&next_stop_2MHz_cycles)) {
                 goto done;
             }
@@ -2201,7 +2223,6 @@ void BeebThread::ThreadMain(void) {
             SoundDataUnit *sunit=sa;
             size_t num_sunits_produced=0;
             size_t num_vunits_produced=0;
-
 
             {
                 VideoDataUnit *vunit;

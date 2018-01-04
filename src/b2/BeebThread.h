@@ -389,7 +389,7 @@ private:
     //void SetPreviousState(std::shared_ptr<BeebState> previous_state);
     void SetVolume(float *scale_var,float *db_var,float db);
     //void SetDiscImage(int drive,std::unique_ptr<DiscImage> disc_image);
-    void SetLastSavedStateTimelineId(uint64_t id);
+    //void SetLastSavedStateTimelineId(uint64_t id);
 };
 
 //////////////////////////////////////////////////////////////////////////

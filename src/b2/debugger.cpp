@@ -64,13 +64,13 @@ protected:
 
     uint8_t GetByte(uint16_t addr);
     uint16_t GetDebugPage(uint16_t addr);
-    BBCMicro::ByteDebugFlags GetDebugFlags(uint16_t addr);
+    BBCMicro::DebugState::ByteDebugFlags GetDebugFlags(uint16_t addr);
 
     virtual void HandleDoImGui(CommandContextStack *cc_stack)=0;
 private:
     struct Page {
         uint8_t ram[256]={};
-        BBCMicro::ByteDebugFlags debug[256]={};
+        BBCMicro::DebugState::ByteDebugFlags debug[256]={};
         uint16_t flat_page=0;
         bool valid=false;
     };
@@ -105,7 +105,7 @@ uint16_t DebugUI::GetDebugPage(uint16_t addr_) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-BBCMicro::ByteDebugFlags DebugUI::GetDebugFlags(uint16_t addr_) {
+BBCMicro::DebugState::ByteDebugFlags DebugUI::GetDebugFlags(uint16_t addr_) {
     M6502Word addr={addr_};
 
     this->PrepareForRead(addr);
@@ -308,6 +308,7 @@ protected:
         const M6502Config *config;
         uint16_t pc;
         uint8_t x,y;
+        bool has_debug_state;
         {
             std::unique_lock<Mutex> lock;
             const BBCMicro *m=m_beeb_thread->LockBeeb(&lock);
@@ -317,6 +318,7 @@ protected:
             pc=s->opcode_pc.w;
             x=s->x;
             y=s->y;
+            has_debug_state=m->HasDebugState();
         }
 
         float maxY=ImGui::GetCurrentWindow()->Size.y;//-ImGui::GetTextLineHeight()-GImGui->Style.WindowPadding.y*2.f;
@@ -350,9 +352,8 @@ protected:
             ImGuiIDPusher id_pusher(addr);
 
             uint8_t opcode=this->GetByte(addr);
-            BBCMicro::ByteDebugFlags debug_flags=this->GetDebugFlags(addr);
+            BBCMicro::DebugState::ByteDebugFlags debug_flags=this->GetDebugFlags(addr);
             uint16_t debug_flat_page=this->GetDebugPage(addr);
-            char flat_page_code=BBCMicro::DebugGetFlatPageCode(debug_flat_page);
             ++addr;
 
             const M6502DisassemblyInfo *di=&config->disassembly_info[opcode];
@@ -371,20 +372,31 @@ protected:
                 pusher.Push(ImGuiCol_Text,ImVec4(1.f,1.f,0.f,1.f));
             }
 
-            bool break_execute=!!debug_flags.bits.break_execute;
-            if(ImGui::Checkbox("",&break_execute)) {
-                debug_flags.bits.break_execute=break_execute;
+            if(has_debug_state) {
+                bool break_execute=!!debug_flags.bits.break_execute;
+                if(ImGui::Checkbox("",&break_execute)) {
+                    debug_flags.bits.break_execute=break_execute;
 
-                std::unique_lock<Mutex> lock;
-                BBCMicro *m=m_beeb_thread->LockMutableBeeb(&lock);
+                    std::unique_lock<Mutex> lock;
+                    BBCMicro *m=m_beeb_thread->LockMutableBeeb(&lock);
 
-                m->DebugSetByteFlags(line_addr,debug_flags);
+                    m->DebugSetByteFlags(line_addr,debug_flags);
+                }
+
+                ImGui::SameLine();
             }
 
-            ImGui::SameLine();
+            char prefix[3];
+            if(has_debug_state) {
+                prefix[0]=BBCMicro::DebugGetFlatPageCode(debug_flat_page);
+                prefix[1]='.';
+                prefix[2]=0;
+            } else {
+                prefix[0]=0;
+            }
 
-            ImGui::Text("%c.%04x  %c%c %c%c %c%c  %c%c%c  %s ",
-                        flat_page_code,
+            ImGui::Text("%s%04x  %c%c %c%c %c%c  %c%c%c  %s ",
+                        prefix,
                         line_addr.w,
                         HEX_CHARS_LC[opcode>>4&15],
                         HEX_CHARS_LC[opcode&15],

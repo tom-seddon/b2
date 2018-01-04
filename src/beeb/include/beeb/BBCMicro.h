@@ -42,8 +42,6 @@ class DiscImage;
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-// This class is a monster, and all I can do is apologise.
-
 class BBCMicro:
     private WD1770Handler
 {
@@ -53,6 +51,34 @@ public:
     union ACCCON;
     typedef void (*UpdateROMSELPagesFn)(BBCMicro *);
     typedef void (*UpdateACCCONPagesFn)(BBCMicro *,const ACCCON *);
+
+#if BBCMICRO_DEBUGGER
+    struct DebugState {
+        static const uint16_t INVALID_PAGE_INDEX=0xffff;
+
+        struct ByteDebugFlagBits {
+            uint8_t break_execute:1;
+            uint8_t temp_execute:1;
+            uint8_t break_read:1;
+            uint8_t break_write:1;
+        };
+
+        union ByteDebugFlags {
+            uint8_t value;
+            ByteDebugFlagBits bits;
+        };
+
+        // No attempt made to minimize this stuff... it doesn't go into
+        // the saved states, so whatever.
+        static const uint16_t NUM_DEBUG_FLAGS_PAGES=256+16*64+64;
+        ByteDebugFlags pages[NUM_DEBUG_FLAGS_PAGES][256]={};
+
+        bool is_halted=false;
+        bool stepping_in=false;
+
+        std::vector<DebugState::ByteDebugFlags *> temp_execute_breakpoints;
+    };
+#endif
 
     // nvram_contents and rtc_time are ignored if the BBCMicro doesn't
     // support such things.
@@ -172,31 +198,15 @@ public:
         Master128ACCCONBits m128_bits;
     };
 
-#if BBCMICRO_DEBUGGER
-    struct ByteDebugFlagBits {
-        uint8_t break_execute:1;
-        uint8_t temp_execute:1;
-        uint8_t break_read:1;
-        uint8_t break_write:1;
-    };
-
-    union ByteDebugFlags {
-        uint8_t value;
-        ByteDebugFlagBits bits;
-    };
-
-    struct ByteDebugFlagsPage {
-        ByteDebugFlags flags[256];
-        uint16_t flat_page;
-    };
-#endif
-
     struct MemoryPages {
         uint8_t *w[256]={};
         const uint8_t *r[256]={};
 #if BBCMICRO_DEBUGGER
-        ByteDebugFlagsPage *debug[256]={};
+        DebugState::ByteDebugFlags *debug[256]={};
+        uint16_t debug_page_index[256];
 #endif
+
+        MemoryPages();
     };
 
     typedef uint8_t (*ReadMMIOFn)(void *,union M6502Word);
@@ -363,7 +373,7 @@ public:
 
     uint16_t DebugGetFlatPage(uint8_t page) const;
 
-    void DebugCopyMemory(void *bytes_dest,ByteDebugFlags *debug_dest,M6502Word addr_,uint16_t num_bytes) const;
+    void DebugCopyMemory(void *bytes_dest,DebugState::ByteDebugFlags *debug_dest,M6502Word addr_,uint16_t num_bytes) const;
 
     void SetMemory(M6502Word addr,uint8_t value);
 
@@ -373,9 +383,9 @@ public:
 
     void DebugRun();
 
-    ByteDebugFlags DebugGetByteFlags(M6502Word addr) const;
+    DebugState::ByteDebugFlags DebugGetByteFlags(M6502Word addr) const;
 
-    void DebugSetByteFlags(M6502Word addr,ByteDebugFlags flags);
+    void DebugSetByteFlags(M6502Word addr,DebugState::ByteDebugFlags flags);
 
     // Temp breakpoints are automatically removed when the BBCMicro is
     // halted.
@@ -384,6 +394,10 @@ public:
     void DebugStepIn();
 
     static char DebugGetFlatPageCode(uint16_t flat_page);
+
+    bool HasDebugState() const;
+    std::unique_ptr<DebugState> TakeDebugState();
+    void SetDebugState(std::unique_ptr<DebugState> debug);
 #endif
 protected:
 private:
@@ -586,17 +600,10 @@ private:
     std::vector<std::pair<InstructionFn,void *>> m_instruction_fns;
 
 #if BBCMICRO_DEBUGGER
-    bool m_is_halted=false;
-    bool m_stepping_in=false;
+    std::unique_ptr<DebugState> m_debug_ptr;
 
-    std::vector<ByteDebugFlags *> m_temp_execute_breakpoints;
-
-    // No attempt made to minimize this stuff... it doesn't go into
-    // the saved states, so whatever.
-    //
-    // Do keep this table at the end, since it's massive.
-    static const uint16_t NUM_DEBUG_FLAGS_PAGES=256+16*64+64;
-    ByteDebugFlagsPage m_debug_flags_pages[NUM_DEBUG_FLAGS_PAGES]={};
+    // try to avoid appalling debug build performance...
+    DebugState *m_debug=nullptr;
 #endif
 
     void InitStuff();
@@ -634,10 +641,16 @@ private:
     static uint8_t ReadACCCON(void *m_,M6502Word a);
     static void WriteACCCON(void *m_,M6502Word a,uint8_t value);
 #if BBCMICRO_DEBUGGER
-    void HandleReadByteDebugFlags(uint8_t read,ByteDebugFlags *flags);
+    void HandleReadByteDebugFlags(uint8_t read,DebugState::ByteDebugFlags *flags);
 #endif
     static void HandleCPUDataBusMainRAMOnly(BBCMicro *m);
     static void HandleCPUDataBusWithShadowRAM(BBCMicro *m);
+#if BBCMICRO_DEBUGGER
+    static void HandleCPUDataBusMainRAMOnlyDebug(BBCMicro *m);
+    static void HandleCPUDataBusWithShadowRAMDebug(BBCMicro *m);
+    void UpdateDebugPages(MemoryPages *pages);
+    void UpdateDebugState();
+#endif
     static void HandleCPUDataBusWithHacks(BBCMicro *m);
     static void HandleTurboRTI(M6502 *cpu);
 
