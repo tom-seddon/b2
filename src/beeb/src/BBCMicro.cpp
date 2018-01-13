@@ -83,7 +83,92 @@ static constexpr size_t DEBUG_NUM_ROM_PAGES=64;
 static constexpr size_t DEBUG_OS_PAGE=DEBUG_ROM0_PAGE+16*DEBUG_NUM_ROM_PAGES;
 
 // 1 char = 4K
-const char DEBUG_PAGE_CODES[]="rrrrrrrrxxxsssss0000111122223333444455556666777788889999aaaabbbbccccddddeeeeffffoooo";
+const char DEBUG_PAGE_CODES[]=
+"rrrrrrrrrrrrrrrr"//$0000
+"rrrrrrrrrrrrrrrr"//$1000
+"rrrrrrrrrrrrrrrr"//$2000
+"rrrrrrrrrrrrrrrr"//$3000
+"rrrrrrrrrrrrrrrr"//$4000
+"rrrrrrrrrrrrrrrr"//$5000
+"rrrrrrrrrrrrrrrr"//$6000
+"rrrrrrrrrrrrrrrr"//$7000
+"xxxxxxxxxxxxxxxx"//extra 12K RAM
+"xxxxxxxxxxxxxxxx"//extra 12K RAM
+"xxxxxxxxxxxxxxxx"//extra 12K RAM
+"ssssssssssssssss"//$3000 (shadow RAM)
+"ssssssssssssssss"//$4000 (shadow RAM)
+"ssssssssssssssss"//$5000 (shadow RAM)
+"ssssssssssssssss"//$6000 (shadow RAM)
+"ssssssssssssssss"//$7000 (shadow RAM)
+"0000000000000000"//$8000 (rom 0)
+"0000000000000000"//$9000 (rom 0)
+"0000000000000000"//$a000 (rom 0)
+"0000000000000000"//$b000 (rom 0)
+"1111111111111111"//$8000 (rom 1)
+"1111111111111111"//$9000 (rom 1)
+"1111111111111111"//$a000 (rom 1)
+"1111111111111111"//$b000 (rom 1)
+"2222222222222222"//$8000 (rom 2)
+"2222222222222222"//$9000 (rom 2)
+"2222222222222222"//$a000 (rom 2)
+"2222222222222222"//$b000 (rom 2)
+"3333333333333333"//$8000 (rom 3)
+"3333333333333333"//$9000 (rom 3)
+"3333333333333333"//$a000 (rom 3)
+"3333333333333333"//$b000 (rom 3)
+"4444444444444444"//$8000 (rom 4)
+"4444444444444444"//$9000 (rom 4)
+"4444444444444444"//$a000 (rom 4)
+"4444444444444444"//$b000 (rom 4)
+"5555555555555555"//$8000 (rom 5)
+"5555555555555555"//$9000 (rom 5)
+"5555555555555555"//$a000 (rom 5)
+"5555555555555555"//$b000 (rom 5)
+"6666666666666666"//$8000 (rom 6)
+"6666666666666666"//$9000 (rom 6)
+"6666666666666666"//$a000 (rom 6)
+"6666666666666666"//$b000 (rom 6)
+"7777777777777777"//$8000 (rom 7)
+"7777777777777777"//$9000 (rom 7)
+"7777777777777777"//$a000 (rom 7)
+"7777777777777777"//$b000 (rom 7)
+"8888888888888888"//$8000 (rom 8)
+"8888888888888888"//$9000 (rom 8)
+"8888888888888888"//$a000 (rom 8)
+"8888888888888888"//$b000 (rom 8)
+"9999999999999999"//$8000 (rom 9)
+"9999999999999999"//$9000 (rom 9)
+"9999999999999999"//$a000 (rom 9)
+"9999999999999999"//$b000 (rom 9)
+"aaaaaaaaaaaaaaaa"//$8000 (rom a)
+"aaaaaaaaaaaaaaaa"//$9000 (rom a)
+"aaaaaaaaaaaaaaaa"//$a000 (rom a)
+"aaaaaaaaaaaaaaaa"//$b000 (rom a)
+"bbbbbbbbbbbbbbbb"//$8000 (rom b)
+"bbbbbbbbbbbbbbbb"//$9000 (rom b)
+"bbbbbbbbbbbbbbbb"//$a000 (rom b)
+"bbbbbbbbbbbbbbbb"//$b000 (rom b)
+"cccccccccccccccc"//$8000 (rom c)
+"cccccccccccccccc"//$9000 (rom c)
+"cccccccccccccccc"//$a000 (rom c)
+"cccccccccccccccc"//$b000 (rom c)
+"dddddddddddddddd"//$8000 (rom d)
+"dddddddddddddddd"//$9000 (rom d)
+"dddddddddddddddd"//$a000 (rom d)
+"dddddddddddddddd"//$b000 (rom d)
+"eeeeeeeeeeeeeeee"//$8000 (rom e)
+"eeeeeeeeeeeeeeee"//$9000 (rom e)
+"eeeeeeeeeeeeeeee"//$a000 (rom e)
+"eeeeeeeeeeeeeeee"//$b000 (rom e)
+"ffffffffffffffff"//$8000 (rom f)
+"ffffffffffffffff"//$9000 (rom f)
+"ffffffffffffffff"//$a000 (rom f)
+"ffffffffffffffff"//$b000 (rom f)
+"oooooooooooooooo"//$c000 (OS)
+"oooooooooooooooo"//$d000 (OS)
+"oooooooooooooooo"//$e000 (OS)
+"ooooooooooooiiio"//$f000 (OS)
+;
 
 static const BBCMicro::DebugState::ByteDebugFlags DUMMY_BYTE_DEBUG_FLAGS={};
 
@@ -2022,12 +2107,12 @@ void BBCMicro::DebugStepIn() {
 
 #if BBCMICRO_DEBUGGER
 char BBCMicro::DebugGetFlatPageCode(uint16_t flat_page) {
-    static_assert(sizeof DEBUG_PAGE_CODES==DebugState::NUM_DEBUG_FLAGS_PAGES/16+1,"");
+    static_assert(sizeof DEBUG_PAGE_CODES==DebugState::NUM_DEBUG_FLAGS_PAGES+1,"");
     if(flat_page==DebugState::INVALID_PAGE_INDEX) {
         return '!';
     } else {
         ASSERT(flat_page<DebugState::NUM_DEBUG_FLAGS_PAGES);
-        return DEBUG_PAGE_CODES[flat_page>>4];
+        return DEBUG_PAGE_CODES[flat_page];
     }
 }
 #endif
