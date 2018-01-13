@@ -901,15 +901,34 @@ void BBCMicro::SetTeletextDebug(bool teletext_debug) {
 
 #if BBCMICRO_DEBUGGER
 void BBCMicro::HandleReadByteDebugFlags(uint8_t read,DebugState::ByteDebugFlags *flags) {
-    if(flags->bits.break_execute||flags->bits.temp_execute) {
+    if(flags->bits.break_execute) {
         if(read==M6502ReadType_Opcode) {
-            this->DebugHalt();
+            this->DebugHalt("execute: $%04x",m_state.cpu.abus.w);
+        }
+    } else if(flags->bits.temp_execute) {
+        if(read==M6502ReadType_Opcode) {
+            this->DebugHalt("single step");
         }
     }
 
-    if(flags->bits.break_write) {
+    if(flags->bits.break_read) {
         if(read<=M6502ReadType_LastInterestingDataRead) {
-            this->DebugHalt();
+            this->DebugHalt("data read: $%04x",m_state.cpu.abus.w);
+        }
+    }
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_DEBUGGER
+void BBCMicro::HandleInterruptBreakpoints() {
+    if(M6502_IsProbablyIRQ(&m_state.cpu)) {
+        if((m_state.system_via.ifr.value&m_state.system_via.ier.value&m_debug->hw.system_via_irq_breakpoints.value)||
+            (m_state.user_via.ifr.value&m_state.user_via.ier.value&m_debug->hw.user_via_irq_breakpoints.value))
+        {
+            this->SetDebugStepType(BBCMicroStepType_StepIntoIRQHandler);
         }
     }
 }
@@ -937,10 +956,14 @@ void BBCMicro::HandleCPUDataBusMainRAMOnlyDebug(BBCMicro *m) {
         if(flags->value!=0) {
             m->HandleReadByteDebugFlags(read,flags);
         }
+
+        if(read==M6502ReadType_Interrupt) {
+            m->HandleInterruptBreakpoints();
+        }
     } else {
         m->m_pages.w[m->m_state.cpu.abus.b.h][m->m_state.cpu.abus.b.l]=m->m_state.cpu.dbus;
         if(m->m_pages.debug[m->m_state.cpu.abus.b.h][m->m_state.cpu.abus.b.l].bits.break_write) {
-            m->DebugHalt();
+            m->DebugHalt("data write: $%04x",m->m_state.cpu.abus.w);
         }
     }
 }
@@ -968,10 +991,14 @@ void BBCMicro::HandleCPUDataBusWithShadowRAMDebug(BBCMicro *m) {
         if(flags->value!=0) {
             m->HandleReadByteDebugFlags(read,flags);
         }
+
+        if(read==M6502ReadType_Interrupt) {
+            m->HandleInterruptBreakpoints();
+        }
     } else {
         m->m_pc_pages[m->m_state.cpu.opcode_pc.b.h]->w[m->m_state.cpu.abus.b.h][m->m_state.cpu.abus.b.l]=m->m_state.cpu.dbus;
         if(m->m_pc_pages[m->m_state.cpu.opcode_pc.b.h]->debug[m->m_state.cpu.abus.b.h][m->m_state.cpu.abus.b.l].bits.break_write) {
-            m->DebugHalt();
+            m->DebugHalt("data write: $%04x",m->m_state.cpu.abus.w);
         }
     }
 }
@@ -1086,19 +1113,38 @@ void BBCMicro::HandleCPUDataBusWithHacks(BBCMicro *m) {
 #if BBCMICRO_DEBUGGER
     if(m->m_debug) {
         if(m->m_state.cpu.read>=M6502ReadType_Opcode) {
-            if(m->m_debug->stepping_in) {
-                if(m->m_state.cpu.read==M6502ReadType_Opcode) {
-                    // Done.
-                    m->DebugHalt();
-                } else {
-                    ASSERT(m->m_state.cpu.read==M6502ReadType_Interrupt);
-                    // The instruction was interrupted, so set a temp
-                    // breakpoint in the right place.
-                    m->DebugAddTempBreakpoint(m->m_state.cpu.pc);
-                }
+            switch(m->m_debug->step_type) {
+            default:
+                ASSERT(false);
+                // fall through
+            case BBCMicroStepType_None:
+                break;
 
-                m->m_debug->stepping_in=false;
-                m->UpdateCPUDataBusFn();
+            case BBCMicroStepType_StepIn:
+                {
+                    if(m->m_state.cpu.read==M6502ReadType_Opcode) {
+                        // Done.
+                        m->DebugHalt("single step");
+                    } else {
+                        ASSERT(m->m_state.cpu.read==M6502ReadType_Interrupt);
+                        // The instruction was interrupted, so set a temp
+                        // breakpoint in the right place.
+                        m->DebugAddTempBreakpoint(m->m_state.cpu.pc);
+                    }
+
+                    m->SetDebugStepType(BBCMicroStepType_None);
+                }
+                break;
+
+            case BBCMicroStepType_StepIntoIRQHandler:
+                {
+                    ASSERT(m->m_state.cpu.read==M6502ReadType_Opcode||m->m_state.cpu.read==M6502ReadType_Interrupt);
+                    if(m->m_state.cpu.read==M6502ReadType_Opcode) {
+                        m->SetDebugStepType(BBCMicroStepType_None);
+                        m->DebugHalt("IRQ/NMI");
+                    }
+                }
+                break;
             }
         }
     }
@@ -1321,8 +1367,17 @@ bool BBCMicro::Update(VideoDataUnit *video_unit,SoundDataUnit *sound_unit) {
         m_state.system_via.b.p|=1<<4|1<<5;
 
         // Update IRQs.
-        M6502_SetDeviceIRQ(&m_state.cpu,BBCMicroIRQDevice_SystemVIA,m_state.system_via.Update());
-        M6502_SetDeviceIRQ(&m_state.cpu,BBCMicroIRQDevice_UserVIA,m_state.user_via.Update());
+        if(m_state.system_via.Update()) {
+            M6502_SetDeviceIRQ(&m_state.cpu,BBCMicroIRQDevice_SystemVIA,1);
+        } else {
+            M6502_SetDeviceIRQ(&m_state.cpu,BBCMicroIRQDevice_SystemVIA,0);
+        }
+
+        if(m_state.user_via.Update()) {
+            M6502_SetDeviceIRQ(&m_state.cpu,BBCMicroIRQDevice_UserVIA,1);
+        } else {
+            M6502_SetDeviceIRQ(&m_state.cpu,BBCMicroIRQDevice_UserVIA,0);
+        }
 
         // Update RTC.
         if(m_has_rtc) {
@@ -1817,9 +1872,19 @@ void BBCMicro::SetMemory(M6502Word addr,uint8_t value) {
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_DEBUGGER
-void BBCMicro::DebugHalt() {
+void BBCMicro::DebugHalt(const char *fmt,...) {
     if(m_debug) {
         m_debug->is_halted=true;
+
+        if(fmt) {
+            va_list v;
+
+            va_start(v,fmt);
+            vsnprintf(m_debug->halt_reason,sizeof m_debug->halt_reason,fmt,v);
+            va_end(v);
+        } else {
+            m_debug->halt_reason[0]=0;
+        }
 
         for(DebugState::ByteDebugFlags *flags:m_debug->temp_execute_breakpoints) {
             ASSERT(flags>=(void *)m_debug->pages);
@@ -1830,8 +1895,7 @@ void BBCMicro::DebugHalt() {
 
         m_debug->temp_execute_breakpoints.clear();
 
-        m_debug->stepping_in=false;
-        this->UpdateCPUDataBusFn();
+        this->SetDebugStepType(BBCMicroStepType_None);
     }
 }
 #endif
@@ -1846,6 +1910,23 @@ bool BBCMicro::DebugIsHalted() const {
     }
 
     return m_debug->is_halted;
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_DEBUGGER
+const char *BBCMicro::DebugGetHaltReason() const {
+    if(!m_debug) {
+        return nullptr;
+    }
+
+    if(m_debug->halt_reason[0]==0) {
+        return nullptr;
+    }
+
+    return m_debug->halt_reason;
 }
 #endif
 
@@ -1932,8 +2013,7 @@ void BBCMicro::DebugStepIn() {
         return;
     }
 
-    m_debug->stepping_in=true;
-    this->UpdateCPUDataBusFn();
+    this->SetDebugStepType(BBCMicroStepType_StepIn);
 }
 #endif
 
@@ -1992,6 +2072,48 @@ void BBCMicro::SetDebugState(std::unique_ptr<DebugState> debug) {
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_DEBUGGER
+BBCMicro::HardwareDebugState BBCMicro::GetHardwareDebugState() const {
+    if(!m_debug) {
+        return HardwareDebugState();
+    }
+
+    return m_debug->hw;
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_DEBUGGER
+void BBCMicro::SetHardwareDebugState(const HardwareDebugState &hw) {
+    if(!m_debug) {
+        return;
+    }
+
+    m_debug->hw=hw;
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_DEBUGGER
+void BBCMicro::UpdateDebugPages(MemoryPages *pages) {
+    for(size_t i=0;i<256;++i) {
+        if(m_debug) {
+            ASSERT(pages->debug_page_index[i]<DebugState::NUM_DEBUG_FLAGS_PAGES);
+            pages->debug[i]=m_debug->pages[pages->debug_page_index[i]];
+        } else {
+            pages->debug[i]=nullptr;
+        }
+    }
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_DEBUGGER
 void BBCMicro::UpdateDebugState() {
     this->UpdateCPUDataBusFn();
 
@@ -2008,13 +2130,11 @@ void BBCMicro::UpdateDebugState() {
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_DEBUGGER
-void BBCMicro::UpdateDebugPages(MemoryPages *pages) {
-    for(size_t i=0;i<256;++i) {
-        if(m_debug) {
-            ASSERT(pages->debug_page_index[i]<DebugState::NUM_DEBUG_FLAGS_PAGES);
-            pages->debug[i]=m_debug->pages[pages->debug_page_index[i]];
-        } else {
-            pages->debug[i]=nullptr;
+void BBCMicro::SetDebugStepType(BBCMicroStepType step_type) {
+    if(m_debug) {
+        if(m_debug->step_type!=step_type) {
+            m_debug->step_type=step_type;
+            this->UpdateCPUDataBusFn();
         }
     }
 }
@@ -2543,7 +2663,7 @@ void BBCMicro::UpdateCPUDataBusFn() {
 
 #if BBCMICRO_DEBUGGER
     if(m_debug) {
-        if(m_debug->stepping_in) {
+        if(m_debug->step_type!=BBCMicroStepType_None) {
             goto hack;
         }
     }

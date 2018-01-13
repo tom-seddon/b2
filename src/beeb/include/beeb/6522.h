@@ -69,8 +69,8 @@ public:
 #include <shared/popwarn.h>
 
     union IRQ {
-        IRQBits bits;
         uint8_t value;
+        IRQBits bits;
     };
 
     /* Cx1 and Cx2 */
@@ -117,6 +117,8 @@ public:
 
     Port a={};
     Port b={};
+    IRQ ifr={};
+    IRQ ier={};
 
     /* for me, in the debugger... */
     const char *tag=nullptr;
@@ -176,8 +178,6 @@ private:
     uint8_t m_sr=0;
     ACR m_acr={};
     PCR m_pcr={};
-    IRQ m_ifr={};
-    IRQ m_ier={};
 
     int32_t m_t1=0;
     int32_t m_t2=0;

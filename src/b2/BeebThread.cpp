@@ -1724,6 +1724,10 @@ bool BeebThread::ThreadHandleMessage(
         {
             if(m_is_replaying) {
                 // Ignore.
+#if BBCMICRO_DEBUGGER
+            } else if(ts->beeb->DebugIsHalted()) {
+                // Ignore.
+#endif
             } else {
                 ASSERT(ts->beeb);
 
@@ -1740,6 +1744,10 @@ bool BeebThread::ThreadHandleMessage(
         {
             if(m_is_replaying) {
                 // Ignore.
+#if BBCMICRO_DEBUGGER
+            } else if(ts->beeb->DebugIsHalted()) {
+                // Ignore.
+#endif
             } else {
                 ASSERT(ts->beeb);
 

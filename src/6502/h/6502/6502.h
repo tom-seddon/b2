@@ -362,10 +362,18 @@ void M6502_DisassembleLastInstruction(M6502 *s,char *buf,size_t buf_size,int *ia
  *
  * If M6502_IsAboutToExecute, the current opcode is what's on the data
  * bus; otherwise, it's the opcode register.
- *
- * 
  */
 uint8_t M6502_GetOpcode(const M6502 *s);
+
+/* Guess whether the current interrupt is an IRQ rather than an NMI.
+ * Call when the bus access type is M6502ReadType_Interrupt - the
+ * result isn't meaningful otherwise.
+ *
+ * The result is accurate for CMOS parts. NMOS parts on the other hand
+ * don't actually check for NMI vs IRQ until 4 cycles later, so the
+ * result could be wrong.
+ */
+#define M6502_IsProbablyIRQ(S) ((S)->irq_flags!=0)
 
 /* After the end state of an instruction, point the PC at the right
  * place and call this to set things up for the next one. */

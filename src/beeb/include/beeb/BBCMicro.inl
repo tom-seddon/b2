@@ -113,10 +113,11 @@ EPNV(BreakWrite,1<<2)
 EEND()
 #undef ENAME
 
-#define ENAME BBCMicroDebugRunFlag
+#define ENAME BBCMicroStepType
 EBEGIN()
 EPN(None)
 EPN(StepIn)
+EPN(StepIntoIRQHandler)
 EEND()
 #undef ENAME
 

@@ -22,7 +22,7 @@
 
 inline void R6522::DoPortHandshakingRead(Port *port,uint8_t pcr_bits,uint8_t irqmask2) {
     /* Always clear Cx1 */
-    m_ifr.value&=~(irqmask2<<1);
+    this->ifr.value&=~(irqmask2<<1);
 
     switch(pcr_bits&7) {
     case R6522Cx2Control_Input_IndIRQNegEdge:
@@ -36,12 +36,12 @@ inline void R6522::DoPortHandshakingRead(Port *port,uint8_t pcr_bits,uint8_t irq
     case R6522Cx2Control_Input_PosEdge:
     case R6522Cx2Control_Output_Handshake:
         /* Clear Cx2 */
-        m_ifr.value&=~irqmask2;
+        this->ifr.value&=~irqmask2;
         break;
 
     case R6522Cx2Control_Output_Pulse:
         /* Clear Cx2 and prepare for the pulse */
-        m_ifr.value&=~irqmask2;
+        this->ifr.value&=~irqmask2;
         port->pulse=2;
         break;
     }
@@ -53,11 +53,11 @@ inline void R6522::DoPortHandshakingRead(Port *port,uint8_t pcr_bits,uint8_t irq
 inline void R6522::DoPortHandshakingWrite(Port *port,uint8_t pcr_bits,uint8_t irqmask2) {
     switch(pcr_bits&7) {
     case R6522Cx2Control_Output_Handshake:
-        m_ifr.value&=~irqmask2;
+        this->ifr.value&=~irqmask2;
         break;
 
     case R6522Cx2Control_Output_Pulse:
-        m_ifr.value&=~irqmask2;
+        this->ifr.value&=~irqmask2;
         port->pulse=2;
         break;
 
@@ -224,7 +224,7 @@ uint8_t R6522::Read4(void *via_,M6502Word addr) {
     auto via=(R6522 *)via_;
     (void)addr;
 
-    via->m_ifr.bits.t1=0;
+    via->ifr.bits.t1=0;
 
     return (uint8_t)(via->m_t1);
 }
@@ -252,7 +252,7 @@ void R6522::Write5(void *via_,M6502Word addr,uint8_t value) {
     auto via=(R6522 *)via_;
     (void)addr;
 
-    via->m_ifr.bits.t1=0;
+    via->ifr.bits.t1=0;
     via->m_t1_irq=1;
 
     via->m_t1lh=value;
@@ -300,9 +300,9 @@ void R6522::Write7(void *via_,M6502Word addr,uint8_t value) {
     (void)addr;
 
     /* See V.TIMERS. My model-b notes say Skirmish needs this. */
-    via->m_ifr.bits.t1=0;
+    via->ifr.bits.t1=0;
 
-    TRACEF(via->m_trace,"%s - Write T1L-H. IFR:" IRQ_FMT,via->tag,IRQ_ARGS(via->m_ifr));
+    TRACEF(via->m_trace,"%s - Write T1L-H. IFR:" IRQ_FMT,via->tag,IRQ_ARGS(via->ifr));
 
     via->m_t1lh=value;
 }
@@ -315,7 +315,7 @@ uint8_t R6522::Read8(void *via_,M6502Word addr) {
     auto via=(R6522 *)via_;
     (void)addr;
 
-    via->m_ifr.bits.t2=0;
+    via->ifr.bits.t2=0;
 
     return (uint8_t)via->m_t2;
 }
@@ -342,7 +342,7 @@ void R6522::Write9(void *via_,M6502Word addr,uint8_t value) {
     auto via=(R6522 *)via_;
     (void)addr;
 
-    via->m_ifr.bits.t2=0;
+    via->ifr.bits.t2=0;
 
     via->m_t2=(via->m_t2ll|value<<8)+1;
     via->m_t2_irq=1;
@@ -412,9 +412,9 @@ uint8_t R6522::ReadD(void *via_,M6502Word addr) {
     auto via=(R6522 *)via_;
     (void)addr;
 
-    uint8_t value=via->m_ifr.value&0x7f;
+    uint8_t value=via->ifr.value&0x7f;
 
-    if(via->m_ier.value&via->m_ifr.value&0x7f) {
+    if(via->ier.value&via->ifr.value&0x7f) {
         value|=0x80;
     }
 
@@ -425,9 +425,9 @@ void R6522::WriteD(void *via_,M6502Word addr,uint8_t value) {
     auto via=(R6522 *)via_;
     (void)addr;
 
-    via->m_ifr.value&=~value;
+    via->ifr.value&=~value;
 
-    TRACEF(via->m_trace,"%s - Write IFR. IFR:" IRQ_FMT,via->tag,IRQ_ARGS(via->m_ifr));
+    TRACEF(via->m_trace,"%s - Write IFR. IFR:" IRQ_FMT,via->tag,IRQ_ARGS(via->ifr));
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -438,7 +438,7 @@ uint8_t R6522::ReadE(void *via_,M6502Word addr) {
     auto via=(R6522 *)via_;
     (void)addr;
 
-    return via->m_ier.value|0x80;
+    return via->ier.value|0x80;
 }
 
 void R6522::WriteE(void *via_,M6502Word addr,uint8_t value) {
@@ -446,12 +446,12 @@ void R6522::WriteE(void *via_,M6502Word addr,uint8_t value) {
     (void)addr;
 
     if(value&0x80) {
-        via->m_ier.value|=value;
+        via->ier.value|=value;
     } else {
-        via->m_ier.value&=~value;
+        via->ier.value&=~value;
     }
 
-    TRACEF(via->m_trace,"%s - Write IER. IER:" IRQ_FMT,via->tag,IRQ_ARGS(via->m_ier));
+    TRACEF(via->m_trace,"%s - Write IER. IER:" IRQ_FMT,via->tag,IRQ_ARGS(via->ier));
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -468,7 +468,7 @@ uint8_t R6522::Update() {
     {
         if(m_t1--<0) {
             if(m_t1_irq) {
-                m_ifr.bits.t1=1;
+                this->ifr.bits.t1=1;
 
                 if(!m_acr.bits.t1_continuous) {
                     m_t1_irq=0;
@@ -499,7 +499,7 @@ uint8_t R6522::Update() {
                 if(m_t2_irq) {
                     TRACEF(m_trace,"%s - T2 timed out.",this->tag);
 
-                    m_ifr.bits.t2=1;
+                    this->ifr.bits.t2=1;
                     m_t2_irq=0;
                 }
             }
@@ -508,9 +508,9 @@ uint8_t R6522::Update() {
         m_old_pb=this->b.p;
     }
 
-    uint8_t any_irqs=m_ifr.value&m_ier.value&0x7f;
+    uint8_t any_irqs=this->ifr.value&this->ier.value&0x7f;
 
-    TRACEF_IF(any_irqs,m_trace,"%s - IRQ. IFR:" IRQ_FMT "; IER:" IRQ_FMT,this->tag,IRQ_ARGS(m_ifr),IRQ_ARGS(m_ier));
+    TRACEF_IF(any_irqs,m_trace,"%s - IRQ. IFR:" IRQ_FMT "; IER:" IRQ_FMT,this->tag,IRQ_ARGS(this->ifr),IRQ_ARGS(this->ier));
 
     /* Assert IRQ if necessary. */
     return any_irqs;
@@ -548,7 +548,7 @@ void R6522::TickControl(Port *port,uint8_t latching,uint8_t pcr_bits,uint8_t cx2
         if(code==2||code==5) {
             ASSERT(((pcr_bits&1)&&!port->old_c1&&port->c1)||(!(pcr_bits&1)&&port->old_c1&&!port->c1));
 
-            m_ifr.value|=cx2_mask<<1;
+            this->ifr.value|=cx2_mask<<1;
 
             if(latching) {
                 port->p_latch=port->p;
@@ -565,14 +565,14 @@ void R6522::TickControl(Port *port,uint8_t latching,uint8_t pcr_bits,uint8_t cx2
         case R6522Cx2Control_Input_IndIRQNegEdge:
         case R6522Cx2Control_Input_NegEdge:
             if(port->old_c2&&!port->c2) {
-                m_ifr.value|=cx2_mask;
+                this->ifr.value|=cx2_mask;
             }
             break;
 
         case R6522Cx2Control_Input_IndIRQPosEdge:
         case R6522Cx2Control_Input_PosEdge:
             if(!port->old_c2&&port->c2) {
-                m_ifr.value|=cx2_mask;
+                this->ifr.value|=cx2_mask;
             }
             break;
 

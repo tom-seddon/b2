@@ -53,8 +53,17 @@ public:
     typedef void (*UpdateACCCONPagesFn)(BBCMicro *,const ACCCON *);
 
 #if BBCMICRO_DEBUGGER
+    struct HardwareDebugState {
+        R6522::IRQ system_via_irq_breakpoints={};
+        R6522::IRQ user_via_irq_breakpoints={};
+    };
+
     struct DebugState {
         static const uint16_t INVALID_PAGE_INDEX=0xffff;
+        
+        struct Breakpoint {
+            uint64_t id=0;
+        };
 
         struct ByteDebugFlagBits {
             uint8_t break_execute:1;
@@ -68,15 +77,24 @@ public:
             ByteDebugFlagBits bits;
         };
 
+        bool is_halted=false;
+        BBCMicroStepType step_type=BBCMicroStepType_None;
+
+        HardwareDebugState hw;
+
+        static_assert(sizeof(ByteDebugFlags)==1,"");
+
+        static const uint16_t NUM_DEBUG_FLAGS_PAGES=256+16*64+64;
+
         // No attempt made to minimize this stuff... it doesn't go into
         // the saved states, so whatever.
-        static const uint16_t NUM_DEBUG_FLAGS_PAGES=256+16*64+64;
         ByteDebugFlags pages[NUM_DEBUG_FLAGS_PAGES][256]={};
+        //Breakpoint *indexes[NUM_DEBUG_FLAGS_PAGES][256]={};
 
-        bool is_halted=false;
-        bool stepping_in=false;
+        std::vector<ByteDebugFlags *> temp_execute_breakpoints;
+        //std::vector<Breakpoint *> breakpoints;
 
-        std::vector<DebugState::ByteDebugFlags *> temp_execute_breakpoints;
+        char halt_reason[1000];
     };
 #endif
 
@@ -377,9 +395,10 @@ public:
 
     void SetMemory(M6502Word addr,uint8_t value);
 
-    void DebugHalt();
+    void DebugHalt(const char *fmt,...) PRINTF_LIKE(2,3);
 
     bool DebugIsHalted() const;
+    const char *DebugGetHaltReason() const;
 
     void DebugRun();
 
@@ -398,6 +417,9 @@ public:
     bool HasDebugState() const;
     std::unique_ptr<DebugState> TakeDebugState();
     void SetDebugState(std::unique_ptr<DebugState> debug);
+
+    HardwareDebugState GetHardwareDebugState() const;
+    void SetHardwareDebugState(const HardwareDebugState &hw);
 #endif
 protected:
 private:
@@ -642,6 +664,7 @@ private:
     static void WriteACCCON(void *m_,M6502Word a,uint8_t value);
 #if BBCMICRO_DEBUGGER
     void HandleReadByteDebugFlags(uint8_t read,DebugState::ByteDebugFlags *flags);
+    void HandleInterruptBreakpoints();
 #endif
     static void HandleCPUDataBusMainRAMOnly(BBCMicro *m);
     static void HandleCPUDataBusWithShadowRAM(BBCMicro *m);
@@ -650,6 +673,7 @@ private:
     static void HandleCPUDataBusWithShadowRAMDebug(BBCMicro *m);
     void UpdateDebugPages(MemoryPages *pages);
     void UpdateDebugState();
+    void SetDebugStepType(BBCMicroStepType step_type);
 #endif
     static void HandleCPUDataBusWithHacks(BBCMicro *m);
     static void HandleTurboRTI(M6502 *cpu);

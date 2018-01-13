@@ -2548,7 +2548,7 @@ void BeebWindow::DebugStop() {
     std::unique_lock<Mutex> lock;
     BBCMicro *m=m_beeb_thread->LockMutableBeeb(&lock);
 
-    m->DebugHalt();
+    m->DebugHalt("manual stop");
 }
 #endif
 

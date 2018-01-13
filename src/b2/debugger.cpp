@@ -180,6 +180,7 @@ protected:
         M6502Fn tfn,ifn;
         const M6502Config *config;
         const volatile uint64_t *cycles;
+        char halt_reason[1000];
 
         {
             std::unique_lock<Mutex> lock;
@@ -188,6 +189,11 @@ protected:
 
             config=s->config;
             halted=m->DebugIsHalted();
+            if(const char *tmp=m->DebugGetHaltReason()) {
+                strlcpy(halt_reason,tmp,sizeof halt_reason);
+            } else {
+                halt_reason[0]=0;
+            }
             a=s->a;
             x=s->x;
             y=s->y;
@@ -222,18 +228,18 @@ protected:
         ImGui::Text("Cycles = %s",cycles_str);
         ImGui::Text("Opcode = $%02X %03d - %s %s",opcode,opcode,mnemonic,mode_name);
         ImGui::Text("tfn = %s; ifn = %s",GetFnName(tfn),GetFnName(ifn));
-        ImGui::Text("State = %s",halted?"halted":"running");
+        if(halted) {
+            if(halt_reason[0]==0) {
+                ImGui::TextUnformatted("State = halted");
+            } else {
+                ImGui::Text("State = halted: %s",halt_reason);
+            }
+        } else {
+            ImGui::TextUnformatted("State = running");
+        }
+
         ImGui::Text("Address = $%04x; Data = $%02x %03d %s",abus,dbus,dbus,BINARY_BYTE_STRINGS[dbus]);
         ImGui::Text("Access = %s",M6502ReadType_GetName(read));
-
-        //ImGui::Separator();
-        //m_debug_occ.DoButton("stop");
-        //ImGui::SameLine();
-        //m_debug_occ.DoButton("run");
-        //ImGui::SameLine();
-        //m_debug_occ.DoButton("step_in");
-        //ImGui::SameLine();
-        //m_debug_occ.DoButton("step_over");
     }
 private:
     void Reg(const char *name,uint8_t value) {
@@ -915,7 +921,7 @@ public:
         PortState a,b;
     };
 protected:
-    void DoRegisterValuesGui(const State &s) {
+    void DoRegisterValuesGui(const State &s,bool has_debug_state,BBCMicro::HardwareDebugState hw,R6522::IRQ BBCMicro::HardwareDebugState::*irq_mptr) {
         this->DoPortRegisterValuesGui('A',s.a);
         this->DoPortRegisterValuesGui('B',s.b);
         ImGui::Text("T1 : $%04x %05d %s%s",s.t1,s.t1,BINARY_BYTE_STRINGS[s.t1>>8&0xff],BINARY_BYTE_STRINGS[s.t1&0xff]);
@@ -931,9 +937,42 @@ protected:
         ImGui::Text("PCR: CA2 = %s",PCR_CONTROL_MODES[s.pcr.bits.ca2_mode]);
         ImGui::Text("PCR: CB1 = %cve edge",s.pcr.bits.cb1_pos_irq?'+':'-');
         ImGui::Text("PCR: CB2 = %s",PCR_CONTROL_MODES[s.pcr.bits.cb2_mode]);
-        ImGui::Text("     [ T1][ T2][CB1][CB2][ SR][CA1][CA2]");
-        ImGui::Text("IFR:   %u    %u    %u    %u    %u    %u    %u",s.ifr.bits.t1,s.ifr.bits.t2,s.ifr.bits.cb1,s.ifr.bits.cb2,s.ifr.bits.sr,s.ifr.bits.ca1,s.ifr.bits.ca2);
-        ImGui::Text("IER:   %u    %u    %u    %u    %u    %u    %u",s.ier.bits.t1,s.ier.bits.t2,s.ier.bits.cb1,s.ier.bits.cb2,s.ier.bits.sr,s.ier.bits.ca1,s.ier.bits.ca2);
+
+        ImGui::Text("     [%-3s][%-3s][%-3s][%-3s][%-3s][%-3s][%-3s]",IRQ_NAMES[6],IRQ_NAMES[5],IRQ_NAMES[4],IRQ_NAMES[3],IRQ_NAMES[2],IRQ_NAMES[1],IRQ_NAMES[0]);
+        ImGui::Text("IFR:   %u    %u    %u    %u    %u    %u    %u",s.ifr.value&1<<6,s.ifr.value&1<<5,s.ifr.value&1<<4,s.ifr.value&1<<3,s.ifr.value&1<<2,s.ifr.value&1<<1,s.ifr.value&1<<0);
+        ImGui::Text("IER:   %u    %u    %u    %u    %u    %u    %u",s.ier.value&1<<6,s.ier.value&1<<5,s.ier.value&1<<4,s.ier.value&1<<3,s.ier.value&1<<2,s.ier.value&1<<1,s.ier.value&1<<0);
+
+        if(has_debug_state) {
+            ImGui::Separator();
+
+            bool changed=false;
+
+            R6522::IRQ *irq=&(hw.*irq_mptr);
+
+            ImGui::Text("Break: ");
+
+            for(uint8_t i=0;i<7;++i) {
+                uint8_t bit=6-i;
+                uint8_t mask=1<<bit;
+
+                ImGui::SameLine();
+
+                bool value=!!(irq->value&mask);
+                if(ImGui::Checkbox(IRQ_NAMES[bit],&value)) {
+                    irq->value&=~mask;
+                    if(value) {
+                        irq->value|=mask;
+                    }
+                    changed=true;
+                }
+            }
+
+            if(changed) {
+                std::unique_lock<Mutex> lock;
+                BBCMicro *m=m_beeb_thread->LockMutableBeeb(&lock);
+                m->SetHardwareDebugState(hw);
+            }
+        }
     }
 
     void GetState(State *state,const R6522 *via) {
@@ -945,8 +984,8 @@ protected:
         state->sr=via->m_sr;
         state->acr=via->m_acr;
         state->pcr=via->m_pcr;
-        state->ifr=via->m_ifr;
-        state->ier=via->m_ier;
+        state->ifr=via->ifr;
+        state->ier=via->ier;
 
         state->a.or_=via->a.or_;
         state->a.ddr=via->a.ddr;
@@ -970,6 +1009,18 @@ private:
 
     static const char *const ACR_SHIFT_MODES[];
     static const char *const PCR_CONTROL_MODES[];
+    static const char *const IRQ_NAMES[];
+};
+
+// indexed by bit
+const char *const R6522DebugWindow::IRQ_NAMES[]={
+    "CA2",
+    "CA1",
+    "SR",
+    "CB2",
+    "CB1",
+    "T2",
+    "T1",
 };
 
 const char *const R6522DebugWindow::ACR_SHIFT_MODES[]={
@@ -1008,15 +1059,19 @@ protected:
         State state;
         BBCMicro::AddressableLatch latch;
         BBCMicroType type;
+        bool has_debug_state;
+        BBCMicro::HardwareDebugState hw;
         {
             std::unique_lock<Mutex> lock;
             const BBCMicro *m=m_beeb_thread->LockBeeb(&lock);
             this->GetState(&state,m->DebugGetSystemVIA());
             latch=m->DebugGetAddressableLatch();
             type=m->GetType();
+            has_debug_state=m->HasDebugState();
+            hw=m->GetHardwareDebugState();
         }
 
-        this->DoRegisterValuesGui(state);
+        this->DoRegisterValuesGui(state,has_debug_state,hw,&BBCMicro::HardwareDebugState::system_via_irq_breakpoints);
 
         ImGui::Separator();
 
@@ -1075,13 +1130,17 @@ protected:
         (void)cc_stack;
 
         State state;
+        bool has_debug_state;
+        BBCMicro::HardwareDebugState hw;
         {
             std::unique_lock<Mutex> lock;
             const BBCMicro *m=m_beeb_thread->LockBeeb(&lock);
             this->GetState(&state,m->DebugGetUserVIA());
+            has_debug_state=m->HasDebugState();
+            hw=m->GetHardwareDebugState();
         }
 
-        this->DoRegisterValuesGui(state);
+        this->DoRegisterValuesGui(state,has_debug_state,hw,&BBCMicro::HardwareDebugState::user_via_irq_breakpoints);
     }
 private:
 };
