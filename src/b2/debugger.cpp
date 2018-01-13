@@ -544,12 +544,7 @@ private:
 
         addr.w+=post_index;
 
-        M6502Word target_addr;
-        target_addr.b.l=this->GetByte(addr.w);
-        ++addr.w;
-        target_addr.b.h=this->GetByte(addr.w);
-
-        this->AddWord(IND_PREFIX,target_addr.w,"");
+        this->AddWord(IND_PREFIX,addr.w,"");
     }
 
     void AddWord(const char *prefix,uint16_t w,const char *suffix) {
