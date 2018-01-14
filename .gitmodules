@@ -34,3 +34,6 @@
 [submodule "submodules/imgui_club"]
 	path = submodules/imgui_club
 	url = https://github.com/tom-seddon/imgui_club
+[submodule "submodules/libuv"]
+	path = submodules/libuv
+	url = https://github.com/tom-seddon/libuv
