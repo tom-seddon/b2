@@ -754,7 +754,10 @@ const BeebWindow::SettingsUIMetadata BeebWindow::ms_settings_uis[]={
 #endif
 #if BBCMICRO_DEBUGGER
     {BeebWindowPopupType_6502Debugger,"6502 Debug","toggle_6502_debugger",&Create6502DebugWindow,},
-    {BeebWindowPopupType_MemoryDebugger,"Memory Debug","toggle_memory_debugger",&CreateMemoryDebugWindow,},
+    {BeebWindowPopupType_MemoryDebugger1,"Memory Debug 1","toggle_memory_debugger1",&CreateMemoryDebugWindow,},
+    {BeebWindowPopupType_MemoryDebugger2,"Memory Debug 2","toggle_memory_debugger2",&CreateMemoryDebugWindow,},
+    {BeebWindowPopupType_MemoryDebugger3,"Memory Debug 3","toggle_memory_debugger3",&CreateMemoryDebugWindow,},
+    {BeebWindowPopupType_MemoryDebugger4,"Memory Debug 4","toggle_memory_debugger4",&CreateMemoryDebugWindow,},
     {BeebWindowPopupType_DisassemblyDebugger,"Disassembly Debug","toggle_disassembly_debugger",&CreateDisassemblyDebugWindow,},
     {BeebWindowPopupType_CRTCDebugger,"CRTC Debug","toggle_crtc_debugger",&CreateCRTCDebugWindow,},
     {BeebWindowPopupType_VideoULADebugger,"Video ULA Debug","toggle_video_ula_debugger",&CreateVideoULADebugWindow,},
@@ -1287,7 +1290,13 @@ void BeebWindow::DoDebugMenu() {
         ImGui::Separator();
 
         m_occ.DoMenuItemUI("toggle_6502_debugger");
-        m_occ.DoMenuItemUI("toggle_memory_debugger");
+        if(ImGui::BeginMenu("Memory Debug")) {
+            m_occ.DoMenuItemUI("toggle_memory_debugger1");
+            m_occ.DoMenuItemUI("toggle_memory_debugger2");
+            m_occ.DoMenuItemUI("toggle_memory_debugger3");
+            m_occ.DoMenuItemUI("toggle_memory_debugger4");
+            ImGui::EndMenu();
+        }
         m_occ.DoMenuItemUI("toggle_disassembly_debugger");
         m_occ.DoMenuItemUI("toggle_crtc_debugger");
         m_occ.DoMenuItemUI("toggle_video_ula_debugger");
@@ -2680,7 +2689,10 @@ ObjectCommandTable<BeebWindow> BeebWindow::ms_command_table("Beeb Window",{
 #endif
 #if BBCMICRO_DEBUGGER
     GetTogglePopupCommand<BeebWindowPopupType_6502Debugger>(),
-    GetTogglePopupCommand<BeebWindowPopupType_MemoryDebugger>(),
+    GetTogglePopupCommand<BeebWindowPopupType_MemoryDebugger1>(),
+    GetTogglePopupCommand<BeebWindowPopupType_MemoryDebugger2>(),
+    GetTogglePopupCommand<BeebWindowPopupType_MemoryDebugger3>(),
+    GetTogglePopupCommand<BeebWindowPopupType_MemoryDebugger4>(),
     GetTogglePopupCommand<BeebWindowPopupType_DisassemblyDebugger>(),
     GetTogglePopupCommand<BeebWindowPopupType_CRTCDebugger>(),
     GetTogglePopupCommand<BeebWindowPopupType_VideoULADebugger>(),

@@ -26,11 +26,11 @@ EEND()
 // need to remain consistent. Additionally, they're always defined,
 // even when the corresponding feature is #if'd out, so that settings
 // from one build don't get lost after running another.
-
-// There are two types of window - popup, and panel. Popups manipulate
-// or display some kind of global state, so there's only ever one of
-// each type displayed. Panels on the other hand have local state, and
-// so there may be multiple instance of each type of panel visible.
+//
+// When it would make sense to have multiple copies of a particular
+// popup, that popup just has N numbered entries. This is a bit lame,
+// and should really be fixed, but it's not a pressing concern just
+// yet...
 
 #define ENAME BeebWindowPopupType
 EBEGIN()
@@ -47,7 +47,10 @@ EPN(CommandKeymaps)
 EPN(PixelMetadata)
 EPN(DearImguiTest)
 EPN(6502Debugger)
-EPN(MemoryDebugger)
+EPN(MemoryDebugger1)
+EPN(MemoryDebugger2)
+EPN(MemoryDebugger3)
+EPN(MemoryDebugger4)
 EPN(DisassemblyDebugger)
 EPN(CRTCDebugger)
 EPN(VideoULADebugger)
