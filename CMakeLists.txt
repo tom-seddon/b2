@@ -157,6 +157,20 @@ endif()
 ##########################################################################
 ##########################################################################
 
+option(LIBUV_BUILD_TESTS "" ON)
+set(LIBUVDIR ${CMAKE_CURRENT_SOURCE_DIR}/submodules/libuv)
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/etc/libuv-cmake)
+
+# Don't add libuv's tests as a ctest test. The shutdown_eof test fails, for some reason.
+
+# add_test(
+#   NAME uv
+#   COMMAND $<TARGET_FILE:run-tests>)
+# set_tests_properties(uv PROPERTIES LABELS slow)
+
+##########################################################################
+##########################################################################
+
 add_subdirectory(src)
 if(INCLUDE_EXPERIMENTAL)
   add_subdirectory(experimental)

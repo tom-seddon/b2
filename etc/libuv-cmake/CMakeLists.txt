@@ -1,12 +1,28 @@
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 3.5)
 project(libuv C)
 
 option(LIBUV_BUILD_TESTS "builds libuv tests and benchmarks if set to ON" OFF)
 
-set(LIBUVDIR libuv)
+# set(LIBUVDIR libuv)
+if(NOT DEFINED LIBUVDIR)
+  message(FATAL_ERROR "LIBUVDIR not set")
+endif()
 
-include_directories(${LIBUVDIR}/include ${LIBUVDIR}/src)
-set(SOURCES
+function(add_standard_settings target)
+  if(MSVC)
+    # C4244 - 'conversion' conversion from 'type1' to 'type2', possible loss of data' - https://docs.microsoft.com/en-us/cpp/error-messages/compiler-warnings/compiler-warning-levels-3-and-4-c4244
+    # C4267 - 'var' : conversion from 'size_t' to 'type', possible loss of data' - https://docs.microsoft.com/en-us/cpp/error-messages/compiler-warnings/compiler-warning-level-3-c4267
+    
+    # (the libuv people don't seem to build on Windows x64 much
+    # themselves...)
+
+    target_compile_options(${target} PRIVATE /wd4244 /wd4267)
+    target_compile_definitions(${target} PRIVATE _CRT_SECURE_NO_WARNINGS _CRT_NONSTDC_NO_DEPRECATE)
+  endif()
+endfunction()
+
+#include_directories(${LIBUVDIR}/include ${LIBUVDIR}/src)
+add_library(uv
   ${LIBUVDIR}/include/uv.h
   ${LIBUVDIR}/include/tree.h
   ${LIBUVDIR}/include/uv-errno.h
@@ -20,11 +36,16 @@ set(SOURCES
   ${LIBUVDIR}/src/uv-common.c
   ${LIBUVDIR}/src/uv-common.h
   ${LIBUVDIR}/src/version.c
+  ${LIBUVDIR}/src/uv-data-getter-setters.c
   )
 
+add_standard_settings(uv)
+target_include_directories(uv PUBLIC ${LIBUVDIR}/include)
+target_include_directories(uv PRIVATE ${LIBUVDIR}/src)
+
 if(WIN32)
-  add_definitions(-D_WIN32_WINNT=0x0600 -D_GNU_SOURCE -D_CRT_SECURE_NO_WARNINGS)
-  set (SOURCES ${SOURCES}
+  target_compile_definitions(uv PRIVATE _WIN32_WINNT=0x0600 _GNU_SOURCE _CRT_SECURE_NO_WARNINGS)
+  target_sources(uv PRIVATE
     ${LIBUVDIR}/include/uv-win.h
     ${LIBUVDIR}/src/win/async.c
     ${LIBUVDIR}/src/win/atomicops-inl.h
@@ -61,13 +82,12 @@ if(WIN32)
     ${LIBUVDIR}/src/win/winsock.h
     )
 
-  add_library(uv ${SOURCES})
-  target_link_libraries(uv advapi32 iphlpapi psapi userenv shell32 ws2_32)
+  target_link_libraries(uv PUBLIC advapi32 iphlpapi psapi userenv shell32 ws2_32)
 else()
-  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g --std=gnu89 -pedantic -Wall -Wextra -Wno-unused-parameter")
-  add_definitions(-D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64)
-  include_directories(${LIBUVDIR}/src/unix)
-  set(SOURCES ${SOURCES}
+  target_compile_options(UV PRIVATE -g --std=gnu89 -pedantic -Wall -Wextra -Wno-unused-parameter)
+  target_compile_definitions(uv PRIVATE _LARGEFILE_SOURCE _FILE_OFFSET_BITS=64)
+  target_include_directories(uv PRIVATE ${LIBUVDIR}/src/unix)
+  target_sources(uv PRIVATE
     ${LIBUVDIR}/include/uv-unix.h
     ${LIBUVDIR}/include/uv-linux.h
     ${LIBUVDIR}/include/uv-sunos.h
@@ -98,14 +118,15 @@ else()
     )
 
   if (APPLE)
-    add_definitions(-D_DARWIN_USE_64_BIT_INODE=1 -D_DARWIN_UNLIMITED_SELECT=1)
-    set(SOURCES ${SOURCES}
+    target_compile_definitions(uv PRIVATE _DARWIN_USE_64_BIT_INODE=1 _DARWIN_UNLIMITED_SELECT=1)
+    target_sources(uv PRIVATE
       ${LIBUVDIR}/src/unix/proctitle.c
       ${LIBUVDIR}/src/unix/kqueue.c
       ${LIBUVDIR}/src/unix/darwin.c
       ${LIBUVDIR}/src/unix/fsevents.c
       ${LIBUVDIR}/src/unix/pthread-barrier.c
       ${LIBUVDIR}/src/unix/darwin-proctitle.c
+      ${LIBUVDIR}/src/unix/bsd-ifaddrs.c
       )
 
     #This is necessary to mute harmless warnings, as documented by https://github.com/libuv/libuv/issues/454
@@ -113,62 +134,65 @@ else()
   endif()
 
   if (NOT APPLE)
-    add_definitions(-Wstrict-aliasing)
+    target_compile_options(uv PRIVATE -Wstrict-aliasing)
   endif()
 
   if ((${CMAKE_SYSTEM_NAME} MATCHES "Linux") OR (${CMAKE_SYSTEM_NAME} MATCHES "Android"))
-    add_definitions(-D_GNU_SOURCE -D_POSIX_C_SOURCE=200112)
-    set(SOURCES ${SOURCES}
+    target_compile_definitions(uv _GNU_SOURCE _POSIX_C_SOURCE=200112)
+    target_sources(uv PRIVATE
       ${LIBUVDIR}/src/unix/proctitle.c
       ${LIBUVDIR}/src/unix/linux-core.c
       ${LIBUVDIR}/src/unix/linux-inotify.c
       ${LIBUVDIR}/src/unix/linux-syscalls.c
       ${LIBUVDIR}/src/unix/linux-syscalls.h
+      ${LIBUVDIR}/src/unix/procfs-exepath.c
+      ${LIBUVDIR}/src/unix/sysinfo-loadavg.c
+      ${LIBUVDIR}/src/unix/sysinfo-memory.c
       )
   endif()
 
   if (${CMAKE_SYSTEM_NAME} MATCHES "SunOS")
-    add_definitions(-D__EXTENSIONS__ -D_XOPEN_SOURCE=500)
-    set(SOURCES ${SOURCES}
+    target_compile_definitions(uv __EXTENSIONS__ _XOPEN_SOURCE=500)
+    target_sources(uv PRIVATE
       ${LIBUVDIR}/src/unix/sunos.c
       )
   endif()
 
   if (${CMAKE_SYSTEM_NAME} MATCHES "AIX")
-    add_definitions(-D_ALL_SOURCE -D_XOPEN_SOURCE=500 -D_LINUX_SOURCE_COMPAT)
-    set (SOURCES ${SOURCES}
+    target_compile_definitions(uv _ALL_SOURCE _XOPEN_SOURCE=500 _LINUX_SOURCE_COMPAT)
+    target_sources(uv PRIVATE
       ${LIBUVDIR}/src/unix/aic.c
       )
     find_library(PERFSTAT_LIB NAMES perfstat)
   endif()
 
   if (${CMAKE_SYSTEM_NAME} MATCHES "FreeBSD" OR ${CMAKE_SYSTEM_NAME} MATCHES "DragonFlyBSD")
-    set (SOURCES ${SOURCES}
+    target_sources(uv PRIVATE
       ${LIBUVDIR}/src/unix/freebsd.c
       )
   endif()
 
   if (${CMAKE_SYSTEM_NAME} MATCHES "OpenBSD")
-    set (SOURCES ${SOURCES}
+    target_sources(uv PRIVATE
       ${LIBUVDIR}/src/unix/openbsd.c
       )
   endif()
 
   if (${CMAKE_SYSTEM_NAME} MATCHES "NetBSD")
-    set (SOURCES ${SOURCES}
+    target_sources(uv PRIVATE
       ${LIBUVDIR}/src/unix/netbsd.c
       )
   endif()
 
   if (${CMAKE_SYSTEM_NAME} MATCHES "FreeBSD" OR ${CMAKE_SYSTEM_NAME} MATCHES "DragonFlyBSD" OR
       ${CMAKE_SYSTEM_NAME} MATCHES "OpenBSD" OR ${CMAKE_SYSTEM_NAME} MATCHES "NetBSD")
-    set (SOURCES ${SOURCES}
+    target_sources(uv PRIVATE
       ${LIBUVDIR}/src/unix/kqueue.c
       )
   endif()
 
   if (${CMAKE_SYSTEM_NAME} MATCHES "Android")
-    set (SOURCES ${SOURCES}
+    target_sources(uv PRIVATE
       ${LIBUVDIR}/include/android-ifaddrs.h
       ${LIBUVDIR}/include/pthread-barrier.h
       ${LIBUVDIR}/src/unix/android-ifaddrs.c
@@ -180,12 +204,12 @@ else()
 
   find_library(M_LIB NAMES m)
   find_package(Threads)
-  target_link_libraries(uv ${CMAKE_THREAD_LIBS_INIT} ${M_LIB})
+  target_link_libraries(uv PRIVATE ${CMAKE_THREAD_LIBS_INIT} ${M_LIB})
 
   if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
     find_library(DL_LIB NAMES dl)
     find_library(RT_LIB NAMES rt)
-    target_link_libraries(uv ${DL_LIB} ${RT_LIB})
+    target_link_libraries(uv PRIVATE ${DL_LIB} ${RT_LIB})
   endif()
 
   if (${CMAKE_SYSTEM_NAME} MATCHES "SunOS")
@@ -193,18 +217,18 @@ else()
     find_library(NSL_LIB NAMES nsl)
     find_library(SENDFILE_LIB NAMES sendfile)
     find_library(SOCKET_LIB NAMES socket)
-    target_link_libraries(uv ${KSTAT_LIB} ${NSL_LIB} ${SENDFILE_LIB} ${SOCKET_LIB})
+    target_link_libraries(uv PRIVATE ${KSTAT_LIB} ${NSL_LIB} ${SENDFILE_LIB} ${SOCKET_LIB})
   endif()
 
   if (${CMAKE_SYSTEM_NAME} MATCHES "AIX")
     find_library(PERFSTAT_LIB NAMES perfstat)
-    target_link_libraries(uv ${PERFSTAT_LIB})
+    target_link_libraries(uv PRIVATE ${PERFSTAT_LIB})
   endif()
 
   if (${CMAKE_SYSTEM_NAME} MATCHES "FreeBSD" OR ${CMAKE_SYSTEM_NAME} MATCHES "DragonFlyBSD" OR
       ${CMAKE_SYSTEM_NAME} MATCHES "OpenBSD" OR ${CMAKE_SYSTEM_NAME} MATCHES "NetBSD")
     find_library(KVM_LIB NAMES kvm)
-    target_link_libraries(uv ${KVM_LIB})
+    target_link_libraries(uv PRIVATE ${KVM_LIB})
   endif()
 
 endif()
@@ -226,27 +250,32 @@ if(LIBUV_BUILD_TESTS)
     ${LIBUVDIR}/test/test-close-fd.c
     ${LIBUVDIR}/test/test-close-order.c
     ${LIBUVDIR}/test/test-condvar.c
+    ${LIBUVDIR}/test/test-connect-unspecified.c
     ${LIBUVDIR}/test/test-connection-fail.c
     ${LIBUVDIR}/test/test-cwd-and-chdir.c
     ${LIBUVDIR}/test/test-default-loop-close.c
     ${LIBUVDIR}/test/test-delayed-accept.c
     ${LIBUVDIR}/test/test-dlerror.c
-    ${LIBUVDIR}/test/test-eintr-handling.c
+    #${LIBUVDIR}/test/test-eintr-handling.c
     ${LIBUVDIR}/test/test-embed.c
     ${LIBUVDIR}/test/test-emfile.c
+    ${LIBUVDIR}/test/test-env-vars.c
     ${LIBUVDIR}/test/test-error.c
     ${LIBUVDIR}/test/test-fail-always.c
     ${LIBUVDIR}/test/test-fs-event.c
     ${LIBUVDIR}/test/test-fs-poll.c
     ${LIBUVDIR}/test/test-fs.c
+    ${LIBUVDIR}/test/test-fs-copyfile.c
     ${LIBUVDIR}/test/test-get-currentexe.c
     ${LIBUVDIR}/test/test-get-loadavg.c
     ${LIBUVDIR}/test/test-get-loadavg.c
     ${LIBUVDIR}/test/test-get-memory.c
     ${LIBUVDIR}/test/test-get-passwd.c
     ${LIBUVDIR}/test/test-getaddrinfo.c
+    ${LIBUVDIR}/test/test-gethostname.c
     ${LIBUVDIR}/test/test-getnameinfo.c
     ${LIBUVDIR}/test/test-getsockname.c
+    ${LIBUVDIR}/test/test-getters-setters.c
     ${LIBUVDIR}/test/test-handle-fileno.c
     ${LIBUVDIR}/test/test-homedir.c
     ${LIBUVDIR}/test/test-hrtime.c
@@ -276,11 +305,13 @@ if(LIBUV_BUILD_TESTS)
     ${LIBUVDIR}/test/test-pipe-pending-instances.c
     ${LIBUVDIR}/test/test-pipe-sendmsg.c
     ${LIBUVDIR}/test/test-pipe-server-close.c
+    ${LIBUVDIR}/test/test-pipe-set-fchmod.c
     ${LIBUVDIR}/test/test-pipe-set-non-blocking.c
     ${LIBUVDIR}/test/test-platform-output.c
     ${LIBUVDIR}/test/test-poll-close.c
     ${LIBUVDIR}/test/test-poll.c
     ${LIBUVDIR}/test/test-process-title.c
+    ${LIBUVDIR}/test/test-process-title-threadsafe.c
     ${LIBUVDIR}/test/test-queue-foreach-delete.c
     ${LIBUVDIR}/test/test-ref.c
     ${LIBUVDIR}/test/test-run-nowait.c
@@ -294,6 +325,7 @@ if(LIBUV_BUILD_TESTS)
     ${LIBUVDIR}/test/test-socket-buffer-size.c
     ${LIBUVDIR}/test/test-spawn.c
     ${LIBUVDIR}/test/test-stdio-over-pipes.c
+    ${LIBUVDIR}/test/test-tcp-alloc-cb-fail.c
     ${LIBUVDIR}/test/test-tcp-bind-error.c
     ${LIBUVDIR}/test/test-tcp-bind6-error.c
     ${LIBUVDIR}/test/test-tcp-close-accept.c
@@ -325,6 +357,7 @@ if(LIBUV_BUILD_TESTS)
     ${LIBUVDIR}/test/test-timer.c
     ${LIBUVDIR}/test/test-tmpdir.c
     ${LIBUVDIR}/test/test-tty.c
+    ${LIBUVDIR}/test/test-udp-alloc-cb-fail.c
     ${LIBUVDIR}/test/test-udp-bind.c
     ${LIBUVDIR}/test/test-udp-create-socket-early.c
     ${LIBUVDIR}/test/test-udp-dgram-too-big.c
@@ -337,6 +370,7 @@ if(LIBUV_BUILD_TESTS)
     ${LIBUVDIR}/test/test-udp-open.c
     ${LIBUVDIR}/test/test-udp-options.c
     ${LIBUVDIR}/test/test-udp-send-and-recv.c
+    ${LIBUVDIR}/test/test-udp-send-hang-loop.c
     ${LIBUVDIR}/test/test-udp-send-immediate.c
     ${LIBUVDIR}/test/test-udp-send-unreachable.c
     ${LIBUVDIR}/test/test-udp-try-send.c
@@ -356,6 +390,9 @@ if(LIBUV_BUILD_TESTS)
       )
   else()
     set (TEST_SOURCES ${TEST_SOURCES}
+      ${LIBUVDIR}/test/test-fork.c
+      ${LIBUVDIR}/test/test-poll-close-doesnt-corrupt-stack.c
+      ${LIBUVDIR}/test/test-poll-closesocket.c
       #Unix runner
       ${LIBUVDIR}/test/runner-unix.c
       ${LIBUVDIR}/test/runner-unix.h
@@ -365,6 +402,7 @@ if(LIBUV_BUILD_TESTS)
   file(COPY ${LIBUVDIR}/test/fixtures DESTINATION test)
 
   add_executable(run-tests ${TEST_SOURCES})
+  add_standard_settings(run-tests)
   set_property(TARGET run-tests PROPERTY C_STANDARD 99)
   target_link_libraries(run-tests uv)
 
@@ -409,4 +447,5 @@ if(LIBUV_BUILD_TESTS)
 
   add_executable(run-benchmarks ${BENCHMARK_SOURCES})
   target_link_libraries(run-benchmarks uv)
+  add_standard_settings(run-benchmarks)
 endif()
