@@ -247,3 +247,17 @@ endif()
 
 ##########################################################################
 ##########################################################################
+
+if(HAVE_LIBUV)
+  add_library(http-parser STATIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/http-parser/http_parser.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/http-parser/http_parser.h)
+  target_link_libraries(http-parser INTERFACE uv)
+  if(MSVC)
+    # C4244: 'conversion' conversion from 'type1' to 'type2', possible loss of data
+    target_compile_options(http-parser PRIVATE /wd4244)
+  endif()
+endif()
+
+##########################################################################
+##########################################################################

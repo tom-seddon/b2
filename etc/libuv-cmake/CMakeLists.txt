@@ -200,8 +200,6 @@ else()
       )
   endif()
 
-  add_library(uv ${SOURCES})
-
   find_library(M_LIB NAMES m)
   find_package(Threads)
   target_link_libraries(uv PRIVATE ${CMAKE_THREAD_LIBS_INIT} ${M_LIB})

@@ -37,3 +37,6 @@
 [submodule "submodules/libuv"]
 	path = submodules/libuv
 	url = https://github.com/tom-seddon/libuv
+[submodule "submodules/http-parser"]
+	path = submodules/http-parser
+	url = https://github.com/tom-seddon/http-parser

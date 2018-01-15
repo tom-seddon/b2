@@ -168,6 +168,8 @@ add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/etc/libuv-cmake)
 #   COMMAND $<TARGET_FILE:run-tests>)
 # set_tests_properties(uv PROPERTIES LABELS slow)
 
+set(HAVE_LIBUV ON)
+
 ##########################################################################
 ##########################################################################
 
