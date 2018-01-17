@@ -36,6 +36,7 @@
 #include <beeb/BBCMicro.h>
 #include <atomic>
 #include <shared/system_specific.h>
+#include "HTTPServer.h"
 
 #include <shared/enum_decl.h>
 #include "b2.inl"
@@ -304,6 +305,9 @@ struct Options {
     bool boot=0;
     bool help=false;
     std::vector<std::string> enable_logs,disable_logs;
+#if HTTP_SERVER
+    bool http_listen_on_all_interfaces=false;
+#endif
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -466,6 +470,10 @@ static bool DoCommandLineOptions(
     }
 
     p.AddOption('v',"verbose").SetIfPresent(&options->verbose).Help("be extra verbose");
+
+#if HTTP_SERVER
+    p.AddOption("http-listen-on-all-interfaces").SetIfPresent(&options->http_listen_on_all_interfaces).Help("at own risk, listen for HTTP connections on all network interfaces, not just localhost");
+#endif
 
     p.AddHelpOption(&options->help);
 
@@ -823,6 +831,13 @@ static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &init
     }
 #endif
 
+#if HTTP_SERVER
+    if(!StartHTTPServer(0xbbcb)) {
+        init_messages.w.f("Failed to start HTTP server.\n");
+        // but carry on... it's not fatal.
+    }
+#endif
+
 #if HAVE_FFMPEG
     if(!InitFFmpeg(&init_messages)) {
         return false;
@@ -1053,6 +1068,10 @@ static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &init
 
         BeebWindows::Shutdown();
         Timeline::Shutdown();
+
+#if HTTP_SERVER
+        StopHTTPServer();
+#endif
     }
 
     vblank_monitor=nullptr;
