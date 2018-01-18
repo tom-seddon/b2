@@ -18,9 +18,14 @@ class MessageList;
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+struct HTTPQueryParameter {
+    std::string key,value;
+};
+
 struct HTTPRequest {
     std::map<std::string,std::string> headers;
-    std::string url,url_path,url_query,url_fragment;
+    std::string url,url_path,url_fragment;
+    std::vector<HTTPQueryParameter> query;
     std::vector<uint8_t> body;
     std::string method;
 };

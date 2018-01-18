@@ -68,7 +68,8 @@ struct HTTPConnection {
     std::string response_body_str;
     uv_write_t write_response_req={};
 
-    char read_buf[1];
+    size_t num_read=0;
+    char read_buf[100];
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -217,38 +218,46 @@ static int GetHexCharValue(char c) {
     }
 }
 
-static bool GetURLField(std::string *result,const http_parser_url &url,http_parser_url_fields field,const std::string &url_str) {
+static bool GetPercentDecoded(std::string *result,const std::string &str,size_t offset,size_t n) {
+    ASSERT(offset+n<=str.size());
+
     result->clear();
+    result->reserve(n);
 
-    if(url.field_set&1<<field) {
-        size_t n=url.field_data[field].len;
-        const char *src=url_str.data()+url.field_data[field].off;
-
-        result->reserve(n);
-
-        size_t i=0;
-        while(i<n) {
-            if(src[i]=='%') {
-                if(i+3>=n) {
-                    return false;
-                }
-
-                int l=GetHexCharValue(src[i+1]);
-                if(l<0) {
-                    return false;
-                }
-
-                int h=GetHexCharValue(src[i+2]);
-                if(h<0) {
-                    return false;
-                }
-
-                result->append(1,(char)(h<<4|l));
-                i+=3;
-            } else {
-                result->append(1,src[i]);
-                ++i;
+    size_t i=offset;
+    size_t end=offset+n;
+    while(i<end) {
+        if(str[i]=='%') {
+            if(i+3>end) {
+                return false;
             }
+
+            int h=GetHexCharValue(str[i+1]);
+            if(h<0) {
+                return false;
+            }
+
+            int l=GetHexCharValue(str[i+2]);
+            if(l<0) {
+                return false;
+            }
+
+            result->append(1,(char)(h<<4|l));
+            i+=3;
+        } else {
+            result->append(1,str[i]);
+            ++i;
+        }
+    }
+
+    return true;
+}
+
+static bool GetPercentDecodedURLPart(std::string *result,const http_parser_url &url,http_parser_url_fields field,const std::string &url_str,const char *part_name) {
+    if(url.field_set&1<<field) {
+        if(!GetPercentDecoded(result,url_str,url.field_data[field].off,url.field_data[field].len)) {
+            LOGF(HTTP,"invalid percent-encoded %s in URL: %s\n",part_name,url_str.c_str());
+            return false;
         }
     }
 
@@ -271,12 +280,51 @@ static int HandleHTTPHeadersComplete(http_parser *parser) {
         return -1;
     }
 
-    if(!GetURLField(&conn->request.url_path,url,UF_PATH,conn->request.url)||
-       !GetURLField(&conn->request.url_query,url,UF_QUERY,conn->request.url)||
-       !GetURLField(&conn->request.url_fragment,url,UF_FRAGMENT,conn->request.url))
-    {
-        LOGF(HTTP,"invalid percent-encoded URL: %s\n",conn->request.url.c_str());
+    if(!GetPercentDecodedURLPart(&conn->request.url_path,url,UF_PATH,conn->request.url,"path")) {
         return -1;
+    }
+
+    if(!GetPercentDecodedURLPart(&conn->request.url_fragment,url,UF_FRAGMENT,conn->request.url,"fragment")) {
+        return -1;
+    }
+
+    if(url.field_set&1<<UF_QUERY) {
+        size_t begin=url.field_data[UF_QUERY].off;
+        size_t end=begin+url.field_data[UF_QUERY].len;
+
+        size_t a=begin;
+        while(a<end) {
+            HTTPQueryParameter kv;
+
+            size_t b=a;
+            while(b<end&&conn->request.url[b]!='=') {
+                ++b;
+            }
+
+            if(b>=end) {
+                LOGF(HTTP,"invalid URL query (missing '='): %s\n",conn->request.url.c_str());
+                return -1;
+            }
+
+            if(!GetPercentDecoded(&kv.key,conn->request.url,a,b-a)) {
+                LOGF(HTTP,"invalid URL query (bad key percent encoding): %s\n",conn->request.url.c_str());
+                return -1;
+            }
+
+            a=b+1;
+            while(b<end&&conn->request.url[b]!='&') {
+                ++b;
+            }
+
+            if(!GetPercentDecoded(&kv.value,conn->request.url,a,b-a)) {
+                LOGF(HTTP,"invalid URL query (bad value percent encoding): %s\n",conn->request.url.c_str());
+                return -1;
+            }
+
+            conn->request.query.push_back(std::move(kv));
+
+            a=b+1;
+        }
     }
 
     return 0;
@@ -311,33 +359,46 @@ static void ConnectionAlloc(uv_handle_t *handle,size_t suggested_size,uv_buf_t *
     (void)suggested_size;
 
     ASSERT(handle==(uv_handle_t *)&conn->tcp);
-    *buf=uv_buf_init(conn->read_buf,sizeof conn->read_buf);
+    ASSERT(conn->num_read<sizeof conn->read_buf);
+    static_assert(sizeof conn->read_buf<=UINT_MAX,"");
+    *buf=uv_buf_init(conn->read_buf+conn->num_read,(unsigned)(sizeof conn->read_buf-conn->num_read));
 }
 
 static void SendResponse(HTTPConnection *conn,HTTPResponse &&response);
 
-static void ConnectionRead(uv_stream_t *stream,ssize_t nread,const uv_buf_t *buf) {
+static void ConnectionRead(uv_stream_t *stream,ssize_t num_read,const uv_buf_t *buf) {
     (void)buf;
 
     auto conn=(HTTPConnection *)stream->data;
     ASSERT(stream==(uv_stream_t *)&conn->tcp);
 
-    if(nread==UV_EOF) {
+    if(num_read==UV_EOF) {
         CloseConnection(conn);
-    } else if(nread<0) {
-        PrintLibUVError((int)nread,"connection read callback");
+    } else if(num_read<0) {
+        PrintLibUVError((int)num_read,"connection read callback");
         CloseConnection(conn);
-    } else if(nread==0) {
+    } else if(num_read==0) {
         // ignore...
-    } else if(nread>0) {
-        ASSERT((size_t)nread<=sizeof conn->read_buf);
-        size_t n=http_parser_execute(&conn->parser,&conn->parser_settings,conn->read_buf,(size_t)nread);
+    } else if(num_read>0) {
+        ASSERT((size_t)num_read<=sizeof conn->read_buf);
+        size_t total_num_read=conn->num_read+(size_t)num_read;
+        ASSERT(total_num_read<=sizeof conn->read_buf);
+        size_t num_consumed=http_parser_execute(&conn->parser,&conn->parser_settings,conn->read_buf,total_num_read);
+        if(num_consumed==0) {
+            if(conn->parser.http_errno==0) {
+                // Is this even possible?
+                conn->parser.http_errno=HPE_UNKNOWN;
+            }
+        }
+
         if(conn->parser.http_errno!=0) {
             LOGF(HTTP,"HTTP error: %s\n",http_errno_description((http_errno)conn->parser.http_errno));
             SendResponse(conn,CreateErrorResponse(conn->request,"400 Bad Request"));
             //CloseConnection(conn);
         } else {
-            ASSERT(n==(size_t)nread);
+            ASSERT(num_consumed<=total_num_read);
+            memmove(conn->read_buf,conn->read_buf+num_consumed,total_num_read-num_consumed);
+            conn->num_read=total_num_read-num_consumed;
         }
     }
 }
@@ -452,9 +513,20 @@ static int HandleHTTPMessageComplete(http_parser *parser) {
             LogIndenter indent2(&LOG(HTTP));
             LOGF(HTTP,"%s\n",conn->request.url.c_str());
             LOGF(HTTP,"Path: %s\n",conn->request.url_path.c_str());
-            LOGF(HTTP,"Query: %s\n",conn->request.url_query.c_str());
+            //LOGF(HTTP,"Query: %s\n",conn->request.url_query.c_str());
+
+            if(!conn->request.query.empty()) {
+                LOGF(HTTP,"Query: ");
+                {
+                    LogIndenter indent3(&LOG(HTTP));
+
+                    for(const HTTPQueryParameter &kv:conn->request.query) {
+                        LOGF(HTTP,"%s: %s\n",kv.key.c_str(),kv.value.c_str());
+                    }
+                }
+            }
+
             LOGF(HTTP,"Fragment: %s\n",conn->request.url_fragment.c_str());
-            LOGF(HTTP,"URL: %s\n",conn->request.url.c_str());
         }
 
         if(!conn->request.headers.empty()) {
