@@ -393,6 +393,12 @@ public:
 
     void DebugCopyMemory(void *bytes_dest,DebugState::ByteDebugFlags *debug_dest,M6502Word addr_,uint16_t num_bytes) const;
 
+    // Uses addressing scheme described in
+    // http://mdfs.net/Docs/Comp/BBC/MemAddrs. Returns <0 if the
+    // address isn't accessible.
+    void DebugSetByte(uint32_t addr,uint8_t value);
+    int DebugGetByte(uint32_t addr) const;
+
     void SetMemory(M6502Word addr,uint8_t value);
 
     void DebugHalt(const char *fmt,...) PRINTF_LIKE(2,3);
@@ -674,6 +680,7 @@ private:
     void UpdateDebugPages(MemoryPages *pages);
     void UpdateDebugState();
     void SetDebugStepType(BBCMicroStepType step_type);
+    void DebugGetBytePointers(uint8_t **write_ptr,const uint8_t **read_ptr,uint16_t *debug_page,uint32_t full_addr);
 #endif
     static void HandleCPUDataBusWithHacks(BBCMicro *m);
     static void HandleTurboRTI(M6502 *cpu);

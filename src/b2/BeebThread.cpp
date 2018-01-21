@@ -1054,6 +1054,25 @@ void BeebThread::SendDebugSetByteMessage(uint16_t address,uint8_t value) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#if BBCMICRO_DEBUGGER
+struct DebugSetBytesMessagePayload {
+    uint32_t address;
+    std::vector<uint8_t> values;
+};
+
+void BeebThread::SendDebugSetBytesMessage(uint32_t address,std::vector<uint8_t> values) {
+    auto ptr=new DebugSetBytesMessagePayload;
+
+    ptr->address=address;
+    ptr->values=std::move(values);
+
+    this->SendMessageWithPayload(BeebThreadEventType_SetBytes,ptr);
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 //void BeebThread::SetLastSavedStateTimelineId(uint64_t id) {
 //    std::lock_guard<Mutex> lock(m_mutex);
 //
@@ -1515,6 +1534,16 @@ void BeebThread::ThreadHandleEvent(ThreadState *ts,
             M6502Word address={event.data.set_byte.address};
 
             ts->beeb->SetMemory(address,event.data.set_byte.value);
+        }
+        return;
+
+    case BeebEventType_SetBytes:
+        {
+            uint32_t addr=event.data.set_bytes->address;
+
+            for(uint8_t value:event.data.set_bytes->values) {
+                ts->beeb->DebugSetByte(addr++,value);
+            }
         }
         return;
 #endif

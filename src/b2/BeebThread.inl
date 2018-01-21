@@ -148,6 +148,11 @@ EPN(SetByte)
 // have gone to sleep.
 EPN(DebugWakeUp)
 
+// Set multiple bytes.
+//
+// (payload)data.ptr
+EPN(SetBytes)
+
 #endif
 //
 //////////////////////////////////////////////////////////////////////////

@@ -1944,6 +1944,191 @@ void BBCMicro::DebugCopyMemory(void *bytes_dest_,DebugState::ByteDebugFlags *deb
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_DEBUGGER
+// <pre>
+// Address     &0000-&7FFF   &8000-&BFFF   &C000-&FBFF  &FC00-&FDFF   address
+// <&FFxxxxxx   lang memory   lang memory   lang memory  lang memory  b23-b21+4
+// &FF0rxxxx   main memory   SROM/SRAM r   FS RAM         MOS ROM       0100
+// &FF2rxxxx   main memory   SROM/SRAM r   FS RAM           I/O         0110
+// &FF4rxxxx   main memory   VDU RAM       MOS ROM        MOS ROM       1000
+// &FF6rxxxx   main memory   VDU RAM       MOS ROM          I/O         1010
+// &FF8rxxxx   main memory   VDU RAM       FS RAM         MOS ROM       1100
+// &FFArxxxx   main memory   VDU RAM       FS RAM           I/O         1110
+// &FFCrxxxx   main memory   SROM/SRAM r   MOS ROM        MOS ROM       0000
+// &FFErxxxx   main memory   SROM/SRAM r   MOS ROM          I/O         0010
+// &FFFDxxxx   shadow mem    SROM/SRAM r   MOS ROM          I/O         |||
+// &FFFExxxx   display mem   SROM/SRAM r   MOS ROM          I/O         |||
+// &FFFFxxxx   main memory   SROM/SRAM r   MOS ROM          I/O         |||
+//                                                             SROM/VDU-+||
+//                                                             MOS/FSRAM-+|
+//                                                             MOS/IO-----+
+void BBCMicro::DebugGetBytePointers(uint8_t **write_ptr,const uint8_t **read_ptr,uint16_t *debug_page_ptr,uint32_t full_addr) {
+    uint8_t *write=nullptr;
+    const uint8_t *read=nullptr;
+    uint16_t debug_page=DebugState::INVALID_PAGE_INDEX;
+
+    //if(full_addr<0xff000000) {
+    //    return;
+    //}
+
+    const M6502Word addr={(uint16_t)full_addr};
+    uint8_t bbb=(full_addr>>20)+4&0xf;
+    uint8_t r=(full_addr>>16)&0xf;
+    bool parasite=full_addr>=0xff000000;
+
+    switch(addr.w>>12&0xf) {
+    case 0x0:
+    case 0x1:
+    case 0x2:
+        // Always main memory.
+    main_memory:;
+        read=write=&m_state.ram_buffer[addr.w];
+        debug_page=addr.b.h;
+        break;
+
+    case 0x3:
+    case 0x4:
+    case 0x5:
+    case 0x6:
+    case 0x7:
+        if(parasite) {
+            goto main_memory;
+        }
+
+        // I/O memory, display memory or shadow RAM.
+        switch(full_addr>>16&0xf) {
+        case 0xf:
+            // I/O memory.
+            read=write=&m_state.ram_buffer[addr.w];
+            debug_page=addr.b.h;
+            break;
+
+        case 0xe:
+            // Currently displayed screen.
+            {
+                M6502Word disp_addr={(uint16_t)(addr.w|m_state.shadow_select_mask)};
+                read=write=&m_state.ram_buffer[disp_addr.w];
+                debug_page=disp_addr.b.h;
+            }
+            break;
+
+        default:
+            // Shadow RAM.
+            {
+                M6502Word shadow_addr={(uint16_t)(addr.w|0x8000)};
+                read=write=&m_state.ram_buffer[shadow_addr.w];
+                debug_page=shadow_addr.b.h;
+            }
+            break;
+        }
+        break;
+
+    case 0x8:
+    case 0x9:
+    case 0xa:
+        // Sideways ROM/extra B+ or M128 RAM
+        if(!parasite&&(bbb&4)&&m_state.ram_buffer.size()>32768) {
+            read=write=&m_state.ram_buffer[addr.w];
+            debug_page=addr.b.h;
+        } else {
+        sideways:
+            if(!!m_state.sideways_rom_buffers[r]) {
+                read=&m_state.sideways_rom_buffers[r]->at(addr.w-0x8000);
+                write=nullptr;
+                debug_page=DEBUG_ROM0_PAGE+r*DEBUG_NUM_ROM_PAGES;
+            } else if(!m_state.sideways_ram_buffers[r].empty()) {
+                read=write=&m_state.sideways_ram_buffers[r][addr.w-0x8000];
+                debug_page=DEBUG_ROM0_PAGE+r*DEBUG_NUM_ROM_PAGES;
+            } else {
+                read=nullptr;
+                write=nullptr;
+                debug_page=DebugState::INVALID_PAGE_INDEX;
+            }
+        }
+        break;
+
+    case 0xb:
+        // can't put the case straight in the right place. VC++ cocks
+        // up the indentation.
+        goto sideways;
+
+    case 0xc:
+    case 0xd:
+        if(!parasite&&(bbb&2)&&m_type==BBCMicroType_Master) {
+            M6502Word fs_ram_addr={(uint16_t)(addr.w-0xc000+FS_RAM_OFFSET)};
+            read=write=&m_state.ram_buffer[fs_ram_addr.w];
+            debug_page=fs_ram_addr.b.h;
+        } else {
+        mos:;
+            M6502Word os_addr={(uint16_t)(addr.w-0xc000)};
+            read=&m_state.os_buffer->at(os_addr.w);
+            write=nullptr;
+            debug_page=DEBUG_OS_PAGE+os_addr.b.h;
+        }
+        break;
+
+    case 0xe:
+        goto mos;
+
+    case 0xf:
+        if(addr.w>=0xfc00&&addr.w<=0xfeff) {
+            if(parasite||(bbb&1)) {
+                read=write=nullptr;
+                debug_page=DebugState::INVALID_PAGE_INDEX;
+            } else {
+                goto mos;
+            }
+        } else {
+            goto mos;
+        }
+        break;
+    }
+
+    if(read_ptr) {
+        *read_ptr=read;
+    }
+
+    if(write_ptr) {
+        *write_ptr=write;
+    }
+
+    if(debug_page_ptr) {
+        *debug_page_ptr=debug_page;
+    }
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_DEBUGGER
+void BBCMicro::DebugSetByte(uint32_t addr,uint8_t value) {
+    uint8_t *write;
+    this->DebugGetBytePointers(&write,nullptr,nullptr,addr);
+    if(write) {
+        *write=value;
+    }
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_DEBUGGER
+int BBCMicro::DebugGetByte(uint32_t addr) const {
+    const uint8_t *read;
+    const_cast<BBCMicro *>(this)->DebugGetBytePointers(nullptr,&read,nullptr,addr);//ugh.
+    if(read) {
+        return *read;
+    } else {
+        return -1;
+    }
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_DEBUGGER
 void BBCMicro::SetMemory(M6502Word addr,uint8_t value) {
     if(m_pc_pages) {
         m_pc_pages[m_state.cpu.opcode_pc.b.h]->w[addr.b.h][addr.b.l]=value;

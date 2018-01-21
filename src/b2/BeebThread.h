@@ -246,6 +246,7 @@ public:
 
 #if BBCMICRO_DEBUGGER
     void SendDebugSetByteMessage(uint16_t address,uint8_t value);
+    void SendDebugSetBytesMessage(uint32_t address,std::vector<uint8_t> values);
 #endif
 protected:
 private:

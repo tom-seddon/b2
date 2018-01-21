@@ -134,6 +134,16 @@ struct BeebEventSetByteData {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#if BBCMICRO_DEBUGGER
+struct BeebEventSetBytesData {
+    uint32_t address;
+    std::vector<uint8_t> values;
+};
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 #include <shared/pshpack1.h>
 union BeebEventData {
     BeebEventKeyState key_state;
@@ -148,6 +158,7 @@ union BeebEventData {
     BeebEventPasteData *paste;
 #if BBCMICRO_DEBUGGER
     BeebEventSetByteData set_byte;
+    BeebEventSetBytesData *set_bytes;
 #endif
 };
 #include <shared/poppack.h>
@@ -194,6 +205,7 @@ public:
     static BeebEvent MakeStopPaste(uint64_t time_2MHz_cycles);
 #if BBCMICRO_DEBUGGER
     static BeebEvent MakeSetByte(uint64_t time_2MHz_cycles,uint16_t address,uint8_t value);
+    static BeebEvent MakeSetBytes(uint64_t time_2MHz_cycles,uint32_t address,std::vector<uint8_t> values);
 #endif
 
     ~BeebEvent();

@@ -532,6 +532,47 @@ const BeebEventSetByteHandler BeebEventSetByteHandler::INSTANCE;
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#if BBCMICRO_DEBUGGER
+class BeebEventSetBytesHandler:
+    public BeebEventHandler
+{
+public:
+    static const BeebEventSetBytesHandler INSTANCE;
+
+    BeebEventSetBytesHandler():
+        BeebEventHandler(0)
+    {
+    }
+
+    BeebEventData Clone(const BeebEventData &src) const override {
+        BeebEventData clone={};
+
+        if(src.set_bytes) {
+            clone.set_bytes=new BeebEventSetBytesData(*src.set_bytes);
+        }
+
+        return clone;
+    }
+
+    void Dump(const BeebEvent *e,Log *log) const override {
+        (void)e;
+
+        log->f("address=$%08x, %zu byte(s)",e->data.set_bytes->address,e->data.set_bytes->values.size());
+    }
+protected:
+    void HandleDestroy(BeebEventData *data) const override {
+        delete data->set_bytes;
+        data->set_bytes=nullptr;
+    }
+private:
+};
+
+const BeebEventSetBytesHandler BeebEventSetBytesHandler::INSTANCE;
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 const BeebEventHandler *BeebEventHandler::handlers[256]={
 #define BEEB_EVENT_TYPE(X) &BeebEvent##X##Handler::INSTANCE,
 #include "beeb_events_types.inl"
@@ -675,6 +716,22 @@ BeebEvent BeebEvent::MakeSetByte(uint64_t time_2MHz_cycles,uint16_t address,uint
     data.set_byte.value=value;
 
     return BeebEvent{BeebEventType_SetByte,time_2MHz_cycles,data};
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_DEBUGGER
+BeebEvent BeebEvent::MakeSetBytes(uint64_t time_2MHz_cycles,uint32_t address,std::vector<uint8_t> values) {
+    BeebEventData data={};
+
+    data.set_bytes=new BeebEventSetBytesData;
+
+    data.set_bytes->address=address;
+    data.set_bytes->values=std::move(values);
+
+    return BeebEvent{BeebEventType_SetBytes,time_2MHz_cycles,data};
 }
 #endif
 
