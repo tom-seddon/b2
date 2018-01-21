@@ -145,6 +145,8 @@ namespace BeebWindows {
 
     BeebWindow *FindBeebWindowBySDLWindowID(uint32_t sdl_window_id);
 
+    BeebWindow *FindBeebWindowByName(const std::string &name);
+
     const std::vector<uint8_t> &GetLastWindowPlacementData();
     void SetLastWindowPlacementData(std::vector<uint8_t> placement_data);
 

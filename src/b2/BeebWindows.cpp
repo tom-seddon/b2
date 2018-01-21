@@ -56,22 +56,9 @@ BeebWindowSettings BeebWindows::defaults;
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static BeebWindow *FindBeebWindowByName(const std::string &name) {
-    for(BeebWindow *window:g_->windows) {
-        if(window->GetName()==name) {
-            return window;
-        }
-    }
-
-    return nullptr;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 static std::string GetUniqueBeebWindowName(std::string name,BeebWindow *ignore) {
     return GetUniqueName(std::move(name),[](const std::string &name)->const void * {
-        return FindBeebWindowByName(name);
+        return BeebWindows::FindBeebWindowByName(name);
     },ignore);
 }
 
@@ -640,6 +627,20 @@ BeebWindow *BeebWindows::FindBeebWindowBySDLWindowID(uint32_t sdl_window_id) {
 
     return window;
 }
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+BeebWindow *BeebWindows::FindBeebWindowByName(const std::string &name) {
+    for(BeebWindow *window:g_->windows) {
+        if(window->GetName()==name) {
+            return window;
+        }
+    }
+
+    return nullptr;
+}
+
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
