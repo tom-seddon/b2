@@ -130,7 +130,7 @@ void ForEachLine(const std::string &str,std::function<void(const std::string::co
 //////////////////////////////////////////////////////////////////////////
 
 // Treats '&' and '$' prefixes as indicating hex.
-bool GetUInt32FromString(uint64_t *value,const char *str);
+bool GetUInt32FromString(uint32_t *value,const char *str);
 bool GetUInt64FromString(uint64_t *value,const char *str);
 
 //////////////////////////////////////////////////////////////////////////
