@@ -2128,6 +2128,16 @@ bool BeebThread::ThreadHandleMessage(
         break;
 #endif
 
+#if BBCMICRO_DEBUGGER
+    case BeebThreadEventType_SetBytes:
+        {
+            auto ptr=(DebugSetBytesMessagePayload *)msg->data.ptr;
+
+            this->ThreadRecordEvent(ts,BeebEvent::MakeSetBytes(*ts->num_executed_2MHz_cycles,ptr->address,std::move(ptr->values)));
+        }
+        break;
+#endif
+
     case MESSAGE_TYPE_SYNTHETIC:
         switch(msg->u32) {
         default:

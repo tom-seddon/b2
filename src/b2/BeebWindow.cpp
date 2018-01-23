@@ -37,6 +37,7 @@
 #include "PixelMetadataUI.h"
 #include "DearImguiTestUI.h"
 #include "debugger.h"
+#include "HTTPServer.h"
 
 #ifdef _MSC_VER
 #include <crtdbg.h>
@@ -2076,6 +2077,46 @@ const VideoDataUnitMetadata *BeebWindow::GetMetadataForMousePixel() const {
     } else {
         return nullptr;
     }
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if HTTP_SERVER
+void BeebWindow::HandleHTTPRequest(HTTPRequest *request,const std::vector<std::string> &path_parts) {
+    if(request->IsPOST()&&path_parts.size()==2&&path_parts[0]=="pokes"&&path_parts[1]=="clear") {
+        m_http_pokes.clear();
+    } else if(request->IsPOST()&&path_parts.size()==3&&path_parts[0]=="pokes"&&path_parts[1]=="add") {
+        HTTPPoke poke;
+
+        if(!GetUInt32FromString(&poke.addr,path_parts[2].c_str())) {
+            request->Send400("bad hex");
+            return;
+        }
+
+        poke.data=request->GetBody();
+
+        if(!poke.data.empty()) {
+            m_http_pokes.push_back(std::move(poke));
+        }
+    } else if(request->IsPOST()&&path_parts.size()==2&&path_parts[0]=="pokes"&&path_parts[1]=="do") {
+        if(!m_http_pokes.empty()) {
+            std::unique_lock<Mutex> lock;
+            const BBCMicro *beeb=m_beeb_thread->LockBeeb(&lock);
+
+            for(HTTPPoke &poke:m_http_pokes) {
+                m_beeb_thread->SendDebugSetBytesMessage(poke.addr,std::move(poke.data));
+            }
+
+            m_http_pokes.clear();
+        }
+    } else {
+        request->Send404();
+        return;
+    }
+
+    request->Send200();
 }
 #endif
 

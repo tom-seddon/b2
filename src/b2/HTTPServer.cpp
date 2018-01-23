@@ -14,6 +14,9 @@
 #include <shared/debug.h>
 #include <map>
 #include <string>
+#include "b2.h"
+#include "BeebWindow.h"
+#include "BeebWindows.h"
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -50,6 +53,47 @@ struct HTTPServer;
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+struct HTTPQueryParameter {
+    std::string key,value;
+};
+
+struct HTTPConnection;
+
+class HTTPRequestImpl:
+    public HTTPRequest
+{
+public:
+    HTTPConnection *conn=nullptr;
+    std::map<std::string,std::string> headers;
+    std::string url;
+    std::string url_path;
+    std::string url_fragment;
+    std::vector<HTTPQueryParameter> query;
+    std::vector<uint8_t> body;
+    std::string method;
+    bool sent_response=false;
+
+    explicit HTTPRequestImpl(HTTPConnection *conn);
+
+    HTTPRequestImpl(const HTTPRequestImpl &)=default;
+    HTTPRequestImpl &operator=(const HTTPRequestImpl &)=default;
+
+    HTTPRequestImpl(HTTPRequestImpl &&)=default;
+    HTTPRequestImpl &operator=(HTTPRequestImpl &&)=default;
+
+    const std::string *GetHeaderValue(const std::string &key) const override;
+    const std::vector<uint8_t> &GetBody() const override;
+    const std::string &GetMethod() const override;
+    const std::string &GetURL() const override;
+    const std::string &GetURLPath() const override;
+    void SendResponse(HTTPResponse response);
+protected:
+private:
+};
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 struct HTTPConnection {
     HTTPServer *server=nullptr;
     uv_tcp_t tcp={};
@@ -58,7 +102,7 @@ struct HTTPConnection {
 
     std::string key;
     std::string *value=nullptr;
-    HTTPRequest request;
+    HTTPRequestImpl request{this};
 
     bool keep_alive=false;
 
@@ -108,20 +152,26 @@ static std::string GetEscaped(std::string str) {
     return result;
 }
 
-static HTTPResponse CreateErrorResponse(const HTTPRequest &request,const std::string &status) {
+static HTTPResponse CreateErrorResponse(const HTTPRequest &request,
+                                        const std::string &status,
+                                        const std::string &info=std::string()) {
     HTTPResponse r;
 
     r.headers["Content-Type"]="text/html";
 
-    r.body_str=
-        "<html>"
-        "<head><title>"+status+"</title></head>"
-        "<body>"
-        "<h1>"+status+"</h1>"
-        "<p><b>URL:</b> "+GetEscaped(request.url)+"</p>"
-        "<p><b>Method:</b> "+request.method+"</p>"
-        "</body>"
-        "</html>";
+    r.body_str.clear();
+
+    r.body_str+="<html>";
+    r.body_str+="<head><title>"+status+"</title></head>";
+    r.body_str+="<body>";
+    r.body_str+="<h1>"+status+"</h1>";
+    r.body_str+="<p><b>URL:</b> "+GetEscaped(request.GetURL())+"</p>";
+    r.body_str+="<p><b>Method:</b> "+request.GetMethod()+"</p>";
+    if(!info.empty()) {
+        r.body_str+="<p><b>Extra info:</b> "+GetEscaped(info)+"</p>";
+    }
+    r.body_str+="</body>";
+    r.body_str+="</html>";
 
     return r;
 }
@@ -155,7 +205,7 @@ static std::vector<uv_buf_t> GetBufs(ContType *cont) {
 //////////////////////////////////////////////////////////////////////////
 
 template<class T>
-static void CloseCallback(uv_handle_t *handle) {
+static void ScalarDeleteCloseCallback(uv_handle_t *handle) {
     delete (T *)handle;
 }
 
@@ -164,7 +214,8 @@ static void EmptyCloseCallback(uv_handle_t *handle) {
 }
 
 static int HandleHTTPMessageBegin(http_parser *parser) {
-    auto conn=(HTTPConnection *)parser->data;
+    (void)parser;
+    //auto conn=(HTTPConnection *)parser->data;
 
     LOGF(HTTP,"%s\n",__func__);
 
@@ -408,7 +459,7 @@ static void WaitForRequest(HTTPConnection *conn) {
 
     conn->key.clear();
     conn->value=nullptr;
-    conn->request=HTTPRequest();
+    conn->request=HTTPRequestImpl(conn);
     conn->response_body_data.clear();
     conn->response_body_str.clear();
     conn->response_prefix.clear();
@@ -440,6 +491,8 @@ static void WriteResponseCallback(uv_write_t *req,int status) {
     }
 }
 
+static const std::string CONTENT_LENGTH="Content-Length";
+
 static void SendResponse(HTTPConnection *conn,HTTPResponse &&response) {
     int rc;
 
@@ -451,12 +504,14 @@ static void SendResponse(HTTPConnection *conn,HTTPResponse &&response) {
     std::vector<uv_buf_t> body_bufs;
     if(!response.body_data.empty()) {
         conn->response_body_data=std::move(response.body_data);
-        headers["Content-Length"]=std::to_string(conn->response_body_data.size());
+        headers[CONTENT_LENGTH]=std::to_string(conn->response_body_data.size());
         body_bufs=GetBufs(&conn->response_body_data);
     } else if(!response.body_str.empty()) {
         conn->response_body_str=std::move(response.body_str);
-        headers["Content-Length"]=std::to_string(conn->response_body_str.size());
+        headers[CONTENT_LENGTH]=std::to_string(conn->response_body_str.size());
         body_bufs=GetBufs(&conn->response_body_str);
+    } else {
+        headers[CONTENT_LENGTH]="0";
     }
 
     conn->response_prefix="HTTP/1.1 ";
@@ -486,6 +541,48 @@ static void SendResponse(HTTPConnection *conn,HTTPResponse &&response) {
         PrintLibUVError(rc,"uv_write failed");
         CloseConnection(conn);
         return;
+    }
+}
+
+static void DispatchRequestMainThread(HTTPRequestImpl *request) {
+    std::vector<std::string> path_parts;
+    {
+        std::string part;
+
+        for(char c:request->GetURLPath()) {
+            if(c=='/') {
+                if(!part.empty()) {
+                    path_parts.push_back(part);
+                    part.clear();
+                }
+            } else {
+                part.append(1,c);
+            }
+        }
+
+        if(!part.empty()) {
+            path_parts.push_back(part);
+        }
+    }
+
+    if(path_parts.size()>=3&&path_parts[0]=="w") {
+        // /w/WINDOW/METHOD...
+        BeebWindow *beeb_window=BeebWindows::FindBeebWindowByName(path_parts[1]);
+        if(!beeb_window) {
+            request->Send404("no such window");
+            return;
+        }
+
+        path_parts.erase(path_parts.begin(),path_parts.begin()+2);
+
+        beeb_window->HandleHTTPRequest(request,path_parts);
+
+        if(!request->sent_response) {
+            request->Send500();
+            return;
+        }
+    } else {
+        request->Send404("unknown REST path");
     }
 }
 
@@ -549,8 +646,12 @@ static int HandleHTTPMessageComplete(http_parser *parser) {
     //conn->status="404 Not Found";
 
     //if(!conn->status.empty()) {
-    SendResponse(conn,CreateErrorResponse(conn->request,"404 Not Found"));
+    //SendResponse(conn,CreateErrorResponse(conn->request,"404 Not Found"));
     //}
+
+    PushFunctionMessage([conn]() {
+        DispatchRequestMainThread(&conn->request);
+    });
 
     return 0;
 }
@@ -707,6 +808,146 @@ void StopHTTPServer() {
 
         ASSERT(!g_uv_loop);
     }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+HTTPRequest::HTTPRequest() {
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+HTTPRequest::~HTTPRequest() {
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool HTTPRequest::IsPOST() const {
+    return this->GetMethod()=="POST";
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool HTTPRequest::IsGET() const {
+    return this->GetMethod()=="GET";
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void HTTPRequest::Send200() {
+    this->SendResponse(HTTPResponse());
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void HTTPRequest::Send400(const std::string &elaboration) {
+    this->SendResponse(CreateErrorResponse(*this,"400 Bad Request",elaboration));
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void HTTPRequest::Send404(const std::string &elaboration) {
+    this->SendResponse(CreateErrorResponse(*this,"404 Not Found",elaboration));
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void HTTPRequest::Send500() {
+    this->SendResponse(CreateErrorResponse(*this,"500 Internal Server Error"));
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+HTTPRequestImpl::HTTPRequestImpl(HTTPConnection *conn_):
+    conn(conn_)
+{
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+const std::string *HTTPRequestImpl::GetHeaderValue(const std::string &key) const {
+    auto &&it=this->headers.find(key);
+    if(it==this->headers.end()) {
+        return nullptr;
+    } else {
+        return &it->second;
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+const std::vector<uint8_t> &HTTPRequestImpl::GetBody() const {
+    return this->body;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+const std::string &HTTPRequestImpl::GetMethod() const {
+    return this->method;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+const std::string &HTTPRequestImpl::GetURL() const {
+    return this->url;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+const std::string &HTTPRequestImpl::GetURLPath() const {
+    return this->url_path;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+struct SendResponseAsyncData {
+    HTTPResponse response;
+    HTTPRequestImpl *request=nullptr;
+};
+
+static void SendResponseAsyncCallback(uv_async_t *async) {
+    auto data=(SendResponseAsyncData *)async->data;
+    async->data=nullptr;
+
+    SendResponse(data->request->conn,std::move(data->response));
+
+    delete data;
+    data=nullptr;
+
+    uv_close((uv_handle_t *)async,&ScalarDeleteCloseCallback<uv_async_t>);
+}
+
+void HTTPRequestImpl::SendResponse(HTTPResponse response) {
+    ASSERT(!this->sent_response);
+    ASSERT(this==&this->conn->request);
+
+    auto data=new SendResponseAsyncData;
+
+    data->response=std::move(response);
+    data->request=this;
+
+    auto async=new uv_async_t{};
+    async->data=data;
+
+    uv_async_init(g_uv_loop,async,&SendResponseAsyncCallback);
+    uv_async_send(async);
+
+    this->sent_response=true;
 }
 
 //////////////////////////////////////////////////////////////////////////

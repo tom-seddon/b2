@@ -27,6 +27,9 @@ class BeebState;
 class CommandContextStackUI;
 class CommandKeymapsUI;
 class SettingsUI;
+#if HTTP_SERVER
+class HTTPRequest;
+#endif
 
 #include "keys.h"
 #include "dear_imgui.h"
@@ -249,6 +252,10 @@ public:
 #if VIDEO_TRACK_METADATA
     const VideoDataUnitMetadata *GetMetadataForMousePixel() const;
 #endif
+
+#if HTTP_SERVER
+    void HandleHTTPRequest(HTTPRequest *request,const std::vector<std::string> &path_parts);
+#endif
 protected:
 private:
     struct SettingsUIMetadata;
@@ -366,6 +373,15 @@ private:
 #endif
 
     SDL_Point m_mouse_pos={-1,-1};
+
+#if HTTP_SERVER
+    struct HTTPPoke {
+        uint32_t addr=0;
+        std::vector<uint8_t> data;
+    };
+
+    std::vector<HTTPPoke> m_http_pokes;
+#endif
 
     bool InitInternal();
     bool LoadDiscImageFile(int drive,const std::string &path);
