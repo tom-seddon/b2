@@ -1,6 +1,8 @@
 #include <shared/system.h>
 #include <shared/debug.h>
 #include <beeb/SN76489.h>
+#include <string.h>
+#include <stdio.h>
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -23,12 +25,14 @@ void SN76489::Reset() {
     m_state=State();
     m_state.noise_seed=1<<14;
 
-    for(size_t i=0;i<3;++i) {
-        m_state.channels[i].output.tone.mul=1;
-    }
+    for(size_t i=0;i<4;++i) {
+        Channel *c=&m_state.channels[i];
 
-    m_state.channels[3].output.noise.toggle=0;
-    m_state.channels[3].output.noise.value=0;
+        c->freq=1023;
+        c->vol=15;
+
+        memset(&c->output,0xff,sizeof c->output);
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -85,6 +89,7 @@ SN76489::Output SN76489::Update() {
             channel->counter=freq;
         }
 
+        //printf("%02x ",channel->output.noise.value);
         output.ch[3]=channel->vol*(int8_t)channel->output.noise.value;
         ASSERT(output.ch[3]>=-15&&output.ch[3]<=15);
     }
@@ -142,7 +147,7 @@ void SN76489::Write(uint8_t value) {
 // http://www.zeridajh.org/articles/various/sn76489/index.htm
 uint8_t SN76489::NextWhiteNoiseBit() {
     uint8_t feed_bit=((m_state.noise_seed>>1)^m_state.noise_seed)&1;
-    m_state.noise_seed=m_state.noise_seed>>1|feed_bit<<14;
+    m_state.noise_seed=(m_state.noise_seed&32767)>>1|feed_bit<<14;
     return (m_state.noise_seed&1)^1;
 }
 
