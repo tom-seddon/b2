@@ -340,41 +340,19 @@ void ForEachLine(const std::string &str,std::function<void(const std::string::co
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-template<class T0,class T1>
-static bool GetUIntFromString(T0 *value,const char *str,T1 (*fn)(const char *,char **,int)) {
-    static_assert(sizeof(T0)==sizeof(T1),"");
-    const char *p=str;
-
-    while(*p!=0&&isspace(*p)) {
-        ++p;
-    }
-
-    if(*p==0) {
-        return false;
-    }
-
-    int radix=0;
-    if(*p=='$'||*p=='&') {
-        radix=16;
-        ++p;
-    }
-
+bool GetUInt32FromHexString(uint32_t *value,const std::string &str) {
     char *ep;
-    T0 tmp=(*fn)(p,&ep,radix);
+    unsigned long tmp=strtoul(str.c_str(),&ep,16);
     if(*ep!=0&&!isspace(*ep)) {
         return false;
     }
 
-    *value=tmp;
+    if(tmp>UINT32_MAX) {
+        return false;
+    }
+
+    *value=(uint32_t)tmp;
     return true;
-}
-
-bool GetUInt32FromString(uint32_t *value,const char *str) {
-    return GetUIntFromString(value,str,&strtoul);
-}
-
-bool GetUInt64FromString(uint64_t *value,const char *str) {
-    return GetUIntFromString(value,str,&strtoull);
 }
 
 //////////////////////////////////////////////////////////////////////////
