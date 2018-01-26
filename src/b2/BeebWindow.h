@@ -29,6 +29,7 @@ class CommandKeymapsUI;
 class SettingsUI;
 #if HTTP_SERVER
 class HTTPRequest;
+class HTTPResponse;
 #endif
 
 #include "keys.h"
@@ -254,7 +255,8 @@ public:
 #endif
 
 #if HTTP_SERVER
-    void HandleHTTPRequest(HTTPRequest *request,const std::vector<std::string> &path_parts);
+    // it's OK to modify *request.
+    HTTPResponse HandleHTTPRequest(HTTPRequest *request,const std::vector<std::string> &path_parts);
 #endif
 protected:
 private:

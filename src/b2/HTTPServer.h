@@ -18,49 +18,67 @@ class MessageList;
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-struct HTTPResponse {
-    std::string status;
-    std::map<std::string,std::string> headers;
+struct HTTPQueryParameter {
+    std::string key,value;
+};
 
-    // If body_data's length is 0, body_str will be considered
-    // instead. Just use whichever is easiest to construct.
-    std::vector<uint8_t> body_data;
-    std::string body_str;
+class HTTPRequest {
+public:
+    std::map<std::string,std::string> headers;
+    std::string url;
+    std::string url_path;
+    std::string url_fragment;
+    std::vector<HTTPQueryParameter> query;
+    std::vector<uint8_t> body;
+    std::string method;
+
+    HTTPRequest()=default;
+
+    const std::string *GetHeaderValue(const std::string &key) const;
+
+    bool IsPOST() const;
+    bool IsGET() const;
+protected:
+private:
 };
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-class HTTPRequest {
+class HTTPResponse {
 public:
-    HTTPRequest();
-    virtual ~HTTPRequest()=0;
+    std::string status;
 
-    virtual const std::string *GetHeaderValue(const std::string &key) const=0;
+    std::vector<uint8_t> content_vec;
+    std::string content_str;
 
-    virtual const std::vector<uint8_t> &GetBody() const=0;
+    // if content is non-empty but content_type is "", the assumed
+    // content type is application/octet-stream.
+    std::string content_type;
 
-    virtual const std::string &GetMethod() const=0;
+    // if content is empty and elaboration is not "", the elaboration
+    // is included in the error message
+    //std::string elaboration;
 
-    virtual const std::string &GetURL() const=0;
+    static const HTTPResponse OK;
+    static const HTTPResponse BAD_REQUEST;
 
-    virtual const std::string &GetURLPath() const=0;
+    // A default-constructed HTTPResponse has a status of 500 Internal
+    // Server Error.
+    HTTPResponse();
 
-    bool IsPOST() const;
-    bool IsGET() const;
+    // An HTTPResponse constructed with a status string is assumed to
+    // be an error.
+    explicit HTTPResponse(std::string status);
 
-    void Send200();
-    void Send400(const std::string &elaboration=std::string());
-    void Send404(const std::string &elaboration=std::string());
-    void Send500();
+    // An HTTPResponse with content and no status implicitly has a
+    // status of 200 OK.
+    HTTPResponse(std::string content_type,std::vector<uint8_t> content);
+    HTTPResponse(std::string content_type,std::string content);
 
-    virtual void SendResponse(HTTPResponse response)=0;
+    HTTPResponse(std::string status,std::string content_type,std::vector<uint8_t> content);
+    HTTPResponse(std::string status,std::string content_type,std::string content);
 protected:
-    HTTPRequest(const HTTPRequest &)=default;
-    HTTPRequest &operator=(const HTTPRequest &)=default;
-
-    HTTPRequest(HTTPRequest &&)=default;
-    HTTPRequest &operator=(HTTPRequest &&)=default;
 private:
 };
 

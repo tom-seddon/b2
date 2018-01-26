@@ -2084,39 +2084,46 @@ const VideoDataUnitMetadata *BeebWindow::GetMetadataForMousePixel() const {
 //////////////////////////////////////////////////////////////////////////
 
 #if HTTP_SERVER
-void BeebWindow::HandleHTTPRequest(HTTPRequest *request,const std::vector<std::string> &path_parts) {
-    if(request->IsPOST()&&path_parts.size()==2&&path_parts[0]=="pokes"&&path_parts[1]=="clear") {
-        m_http_pokes.clear();
-    } else if(request->IsPOST()&&path_parts.size()==3&&path_parts[0]=="pokes"&&path_parts[1]=="add") {
-        HTTPPoke poke;
+HTTPResponse BeebWindow::HandleHTTPRequest(HTTPRequest *request,const std::vector<std::string> &path_parts) {
+    //uint32_t value;
 
-        if(!GetUInt32FromString(&poke.addr,path_parts[2].c_str())) {
-            request->Send400("bad hex");
-            return;
-        }
+    //if(request->IsPOST()&&path_parts.size()==2&&path_parts[0]=="poke"&&GetUInt32FromHexString(&value,path_parts[1])) {
+    //    if(!request->body.empty()) {
+    //        HTTPPoke poke;
 
-        poke.data=request->GetBody();
+    //        poke.addr=value;
+    //        poke.data=std::move(request->body);
 
-        if(!poke.data.empty()) {
-            m_http_pokes.push_back(std::move(poke));
-        }
-    } else if(request->IsPOST()&&path_parts.size()==2&&path_parts[0]=="pokes"&&path_parts[1]=="do") {
-        if(!m_http_pokes.empty()) {
-            std::unique_lock<Mutex> lock;
-            const BBCMicro *beeb=m_beeb_thread->LockBeeb(&lock);
+    //        m_http_pokes.push_back(std::move(poke));
+    //    }
 
-            for(HTTPPoke &poke:m_http_pokes) {
-                m_beeb_thread->SendDebugSetBytesMessage(poke.addr,std::move(poke.data));
-            }
+    //    return HTTPResponse::OK;
+    //} else if(request->IsPOST()&&path_parts.size()==3&&path_parts[0]=="pokes"&&path_parts[1]=="add") {
+    //    HTTPPoke poke;
 
-            m_http_pokes.clear();
-        }
-    } else {
-        request->Send404();
-        return;
-    }
+    //    if(!GetUInt32FromString(&poke.addr,path_parts[2].c_str())) {
+    //        request->Send400("bad hex");
+    //        return;
+    //    }
 
-    request->Send200();
+    //    poke.data=std::move(request->body);
+
+    //    if(!poke.data.empty()) {
+    //        m_http_pokes.push_back(std::move(poke));
+    //    }
+    //} else if(request->IsPOST()&&path_parts.size()==2&&path_parts[0]=="pokes"&&path_parts[1]=="do") {
+    //    if(!m_http_pokes.empty()) {
+    //        std::unique_lock<Mutex> lock;
+    //        const BBCMicro *beeb=m_beeb_thread->LockBeeb(&lock);
+
+    //        for(HTTPPoke &poke:m_http_pokes) {
+    //            m_beeb_thread->SendDebugSetBytesMessage(poke.addr,std::move(poke.data));
+    //        }
+
+    //        m_http_pokes.clear();
+    //    }
+    return HTTPResponse::BAD_REQUEST;
+
 }
 #endif
 
