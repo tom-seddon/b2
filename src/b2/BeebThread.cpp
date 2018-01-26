@@ -83,7 +83,7 @@ static const float VOLUMES_TABLE[]={
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-BeebThreadMessage::BeebThreadMessage(BeebThreadMessageType type_):
+BeebThread::Message::Message(BeebThreadMessageType type_):
     type(type_)
 {
 }
@@ -91,8 +91,8 @@ BeebThreadMessage::BeebThreadMessage(BeebThreadMessageType type_):
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-BeebThreadKeyMessage::BeebThreadKeyMessage(BeebKey key_,bool state_):
-    BeebThreadMessage(BeebThreadMessageType_KeyState),
+BeebThread::KeyMessage::KeyMessage(BeebKey key_,bool state_):
+    Message(BeebThreadMessageType_KeyState),
     key(key_),
     state(state_)
 {
@@ -101,8 +101,8 @@ BeebThreadKeyMessage::BeebThreadKeyMessage(BeebKey key_,bool state_):
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-BeebThreadKeySymMessage::BeebThreadKeySymMessage(BeebKeySym key_sym_,bool state_):
-    BeebThreadMessage(BeebThreadMessageType_KeySymState),
+BeebThread::KeySymMessage::KeySymMessage(BeebKeySym key_sym_,bool state_):
+    Message(BeebThreadMessageType_KeySymState),
     key_sym(key_sym_),
     state(state_)
 {
@@ -111,8 +111,8 @@ BeebThreadKeySymMessage::BeebThreadKeySymMessage(BeebKeySym key_sym_,bool state_
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-BeebThreadHardResetMessage::BeebThreadHardResetMessage(bool boot_):
-    BeebThreadMessage(BeebThreadMessageType_HardReset),
+BeebThread::HardResetMessage::HardResetMessage(bool boot_):
+    Message(BeebThreadMessageType_HardReset),
     boot(boot_)
 {
 }
@@ -120,8 +120,8 @@ BeebThreadHardResetMessage::BeebThreadHardResetMessage(bool boot_):
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-BeebThreadChangeConfigMessage::BeebThreadChangeConfigMessage(BeebLoadedConfig config_):
-    BeebThreadMessage(BeebThreadMessageType_ChangeConfig),
+BeebThread::ChangeConfigMessage::ChangeConfigMessage(BeebLoadedConfig config_):
+    Message(BeebThreadMessageType_ChangeConfig),
     config(std::move(config_))
 {
 }
@@ -129,8 +129,8 @@ BeebThreadChangeConfigMessage::BeebThreadChangeConfigMessage(BeebLoadedConfig co
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-BeebThreadSetSpeedLimitingMessage::BeebThreadSetSpeedLimitingMessage(bool limit_speed_):
-    BeebThreadMessage(BeebThreadMessageType_SetSpeedLimiting),
+BeebThread::SetSpeedLimitingMessage::SetSpeedLimitingMessage(bool limit_speed_):
+    Message(BeebThreadMessageType_SetSpeedLimiting),
     limit_speed(limit_speed_)
 {
 }
@@ -138,8 +138,8 @@ BeebThreadSetSpeedLimitingMessage::BeebThreadSetSpeedLimitingMessage(bool limit_
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-BeebThreadLoadDiscMessage::BeebThreadLoadDiscMessage(int drive_,std::shared_ptr<DiscImage> disc_image_,bool verbose_):
-    BeebThreadMessage(BeebThreadMessageType_LoadDisc),
+BeebThread::LoadDiscMessage::LoadDiscMessage(int drive_,std::shared_ptr<DiscImage> disc_image_,bool verbose_):
+    Message(BeebThreadMessageType_LoadDisc),
     drive(drive_),
     disc_image(std::move(disc_image_)),
     verbose(verbose_)
@@ -149,8 +149,8 @@ BeebThreadLoadDiscMessage::BeebThreadLoadDiscMessage(int drive_,std::shared_ptr<
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-BeebThreadLoadStateMessage::BeebThreadLoadStateMessage(uint64_t parent_timeline_id_,std::shared_ptr<BeebState> state_):
-    BeebThreadMessage(BeebThreadMessageType_LoadState),
+BeebThread::LoadStateMessage::LoadStateMessage(uint64_t parent_timeline_id_,std::shared_ptr<BeebState> state_):
+    Message(BeebThreadMessageType_LoadState),
     parent_timeline_id(parent_timeline_id_),
     state(std::move(state_))
 {
@@ -159,8 +159,8 @@ BeebThreadLoadStateMessage::BeebThreadLoadStateMessage(uint64_t parent_timeline_
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-BeebThreadGoToTimelineNodeMessage::BeebThreadGoToTimelineNodeMessage(uint64_t timeline_id_):
-    BeebThreadMessage(BeebThreadMessageType_GoToTimelineNode),
+BeebThread::GoToTimelineNodeMessage::GoToTimelineNodeMessage(uint64_t timeline_id_):
+    Message(BeebThreadMessageType_GoToTimelineNode),
     timeline_id(timeline_id_)
 {
 }
@@ -168,8 +168,8 @@ BeebThreadGoToTimelineNodeMessage::BeebThreadGoToTimelineNodeMessage(uint64_t ti
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-BeebThreadSaveStateMessage::BeebThreadSaveStateMessage(bool verbose_):
-    BeebThreadMessage(BeebThreadMessageType_SaveState),
+BeebThread::SaveStateMessage::SaveStateMessage(bool verbose_):
+    Message(BeebThreadMessageType_SaveState),
     verbose(verbose_)
 {
 }
@@ -177,8 +177,8 @@ BeebThreadSaveStateMessage::BeebThreadSaveStateMessage(bool verbose_):
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-BeebThreadReplayMessage::BeebThreadReplayMessage(Timeline::ReplayData replay_data_):
-    BeebThreadMessage(BeebThreadMessageType_Replay),
+BeebThread::ReplayMessage::ReplayMessage(Timeline::ReplayData replay_data_):
+    Message(BeebThreadMessageType_Replay),
     replay_data(std::move(replay_data_))
 {
 }
@@ -186,8 +186,8 @@ BeebThreadReplayMessage::BeebThreadReplayMessage(Timeline::ReplayData replay_dat
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-BeebThreadSaveAndReplayFromMessage::BeebThreadSaveAndReplayFromMessage(uint64_t timeline_start_id_):
-    BeebThreadMessage(BeebThreadMessageType_SaveAndReplayFrom),
+BeebThread::SaveAndReplayFromMessage::SaveAndReplayFromMessage(uint64_t timeline_start_id_):
+    Message(BeebThreadMessageType_SaveAndReplayFrom),
     timeline_start_id(timeline_start_id_)
 {
 }
@@ -195,8 +195,8 @@ BeebThreadSaveAndReplayFromMessage::BeebThreadSaveAndReplayFromMessage(uint64_t 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-BeebThreadSaveAndVideoFromMessage::BeebThreadSaveAndVideoFromMessage(uint64_t timeline_start_id_,std::unique_ptr<VideoWriter> video_writer_):
-    BeebThreadMessage(BeebThreadMessageType_SaveAndVideoFrom),
+BeebThread::SaveAndVideoFromMessage::SaveAndVideoFromMessage(uint64_t timeline_start_id_,std::unique_ptr<VideoWriter> video_writer_):
+    Message(BeebThreadMessageType_SaveAndVideoFrom),
     timeline_start_id(timeline_start_id_),
     video_writer(std::move(video_writer_))
 {
@@ -205,8 +205,8 @@ BeebThreadSaveAndVideoFromMessage::BeebThreadSaveAndVideoFromMessage(uint64_t ti
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-BeebThreadSetDiscImageNameAndLoadMethodMessage::BeebThreadSetDiscImageNameAndLoadMethodMessage(int drive_,std::string name_,std::string load_method_):
-    BeebThreadMessage(BeebThreadMessageType_SetDiscImageNameAndLoadMethod),
+BeebThread::SetDiscImageNameAndLoadMethodMessage::SetDiscImageNameAndLoadMethodMessage(int drive_,std::string name_,std::string load_method_):
+    Message(BeebThreadMessageType_SetDiscImageNameAndLoadMethod),
     drive(drive_),
     name(std::move(name_)),
     load_method(std::move(load_method_))
@@ -217,8 +217,8 @@ BeebThreadSetDiscImageNameAndLoadMethodMessage::BeebThreadSetDiscImageNameAndLoa
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_TRACE
-BeebThreadStartTraceMessage::BeebThreadStartTraceMessage(const TraceConditions &conditions_):
-    BeebThreadMessage(BeebThreadMessageType_StartTrace),
+BeebThread::StartTraceMessage::StartTraceMessage(const TraceConditions &conditions_):
+    Message(BeebThreadMessageType_StartTrace),
     conditions(conditions_)
 {
 }
@@ -228,8 +228,8 @@ BeebThreadStartTraceMessage::BeebThreadStartTraceMessage(const TraceConditions &
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_TRACE
-BeebThreadStopTraceMessage::BeebThreadStopTraceMessage():
-    BeebThreadMessage(BeebThreadMessageType_StopTrace)
+BeebThread::StopTraceMessage::StopTraceMessage():
+    Message(BeebThreadMessageType_StopTrace)
 {
 }
 #endif
@@ -237,8 +237,8 @@ BeebThreadStopTraceMessage::BeebThreadStopTraceMessage():
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-BeebThreadCloneWindowMessage::BeebThreadCloneWindowMessage(BeebWindowInitArguments init_arguments_):
-    BeebThreadMessage(BeebThreadMessageType_CloneWindow),
+BeebThread::CloneWindowMessage::CloneWindowMessage(BeebWindowInitArguments init_arguments_):
+    Message(BeebThreadMessageType_CloneWindow),
     init_arguments(std::move(init_arguments))
 {
 }
@@ -246,8 +246,8 @@ BeebThreadCloneWindowMessage::BeebThreadCloneWindowMessage(BeebWindowInitArgumen
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-BeebThreadCloneThisThreadMessage::BeebThreadCloneThisThreadMessage(std::shared_ptr<BeebThread> dest_thread_):
-    BeebThreadMessage(BeebThreadMessageType_CloneThisThread),
+BeebThread::CloneThisThreadMessage::CloneThisThreadMessage(std::shared_ptr<BeebThread> dest_thread_):
+    Message(BeebThreadMessageType_CloneThisThread),
     dest_thread(std::move(dest_thread_))
 {
 }
@@ -255,24 +255,24 @@ BeebThreadCloneThisThreadMessage::BeebThreadCloneThisThreadMessage(std::shared_p
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-BeebThreadLoadLastStateMessage::BeebThreadLoadLastStateMessage():
-    BeebThreadMessage(BeebThreadMessageType_LoadLastState)
+BeebThread::LoadLastStateMessage::LoadLastStateMessage():
+    Message(BeebThreadMessageType_LoadLastState)
 {
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-BeebThreadCancelReplayMessage::BeebThreadCancelReplayMessage():
-    BeebThreadMessage(BeebThreadMessageType_CancelReplay)
+BeebThread::CancelReplayMessage::CancelReplayMessage():
+    Message(BeebThreadMessageType_CancelReplay)
 {
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-BeebThreadSetTurboDiscMessage::BeebThreadSetTurboDiscMessage(bool turbo_):
-    BeebThreadMessage(BeebThreadMessageType_SetTurboDisc),
+BeebThread::SetTurboDiscMessage::SetTurboDiscMessage(bool turbo_):
+    Message(BeebThreadMessageType_SetTurboDisc),
     turbo(turbo_)
 {
 }
@@ -280,8 +280,8 @@ BeebThreadSetTurboDiscMessage::BeebThreadSetTurboDiscMessage(bool turbo_):
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-BeebThreadStartPasteMessage::BeebThreadStartPasteMessage(std::string text_):
-    BeebThreadMessage(BeebThreadMessageType_StartPaste),
+BeebThread::StartPasteMessage::StartPasteMessage(std::string text_):
+    Message(BeebThreadMessageType_StartPaste),
     text(std::move(text_))
 {
 }
@@ -289,16 +289,16 @@ BeebThreadStartPasteMessage::BeebThreadStartPasteMessage(std::string text_):
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-BeebThreadStopPasteMessage::BeebThreadStopPasteMessage():
-    BeebThreadMessage(BeebThreadMessageType_StopPaste)
+BeebThread::StopPasteMessage::StopPasteMessage():
+    Message(BeebThreadMessageType_StopPaste)
 {
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-BeebThreadStartCopyMessage::BeebThreadStartCopyMessage(std::function<void(std::vector<uint8_t>)> stop_fun_,bool basic_):
-    BeebThreadMessage(BeebThreadMessageType_StartCopy),
+BeebThread::StartCopyMessage::StartCopyMessage(std::function<void(std::vector<uint8_t>)> stop_fun_,bool basic_):
+    Message(BeebThreadMessageType_StartCopy),
     stop_fun(std::move(stop_fun_)),
     basic(basic_)
 {
@@ -307,8 +307,8 @@ BeebThreadStartCopyMessage::BeebThreadStartCopyMessage(std::function<void(std::v
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-BeebThreadStopCopyMessage::BeebThreadStopCopyMessage():
-    BeebThreadMessage(BeebThreadMessageType_StopCopy)
+BeebThread::StopCopyMessage::StopCopyMessage():
+    Message(BeebThreadMessageType_StopCopy)
 {
 }
 
@@ -316,8 +316,8 @@ BeebThreadStopCopyMessage::BeebThreadStopCopyMessage():
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_DEBUGGER
-BeebThreadDebugWakeUpMessage::BeebThreadDebugWakeUpMessage():
-    BeebThreadMessage(BeebThreadMessageType_DebugWakeUp)
+BeebThread::DebugWakeUpMessage::DebugWakeUpMessage():
+    Message(BeebThreadMessageType_DebugWakeUp)
 {
 }
 #endif
@@ -325,8 +325,8 @@ BeebThreadDebugWakeUpMessage::BeebThreadDebugWakeUpMessage():
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-BeebThreadPauseMessage::BeebThreadPauseMessage(bool pause_):
-    BeebThreadMessage(BeebThreadMessageType_SetPaused),
+BeebThread::PauseMessage::PauseMessage(bool pause_):
+    Message(BeebThreadMessageType_SetPaused),
     pause(pause_)
 {
 }
@@ -335,8 +335,8 @@ BeebThreadPauseMessage::BeebThreadPauseMessage(bool pause_):
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_DEBUGGER
-BeebThreadDebugSetByteMessage::BeebThreadDebugSetByteMessage(uint16_t addr_,uint8_t value_):
-    BeebThreadMessage(BeebThreadMessageType_SetByte),
+BeebThread::DebugSetByteMessage::DebugSetByteMessage(uint16_t addr_,uint8_t value_):
+    Message(BeebThreadMessageType_SetByte),
     addr(addr_),
     value(value_)
 {
@@ -347,8 +347,8 @@ BeebThreadDebugSetByteMessage::BeebThreadDebugSetByteMessage(uint16_t addr_,uint
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_DEBUGGER
-BeebThreadDebugSetBytesMessage::BeebThreadDebugSetBytesMessage(uint32_t addr_,std::vector<uint8_t> values_):
-    BeebThreadMessage(BeebThreadMessageType_SetBytes),
+BeebThread::DebugSetBytesMessage::DebugSetBytesMessage(uint32_t addr_,std::vector<uint8_t> values_):
+    Message(BeebThreadMessageType_SetBytes),
     addr(addr_),
     values(std::move(values_))
 {
@@ -497,7 +497,7 @@ bool BeebThread::Start() {
 
 void BeebThread::Stop() {
     if(m_thread.joinable()) {
-        this->Send(std::make_unique<BeebThreadMessage>(BeebThreadMessageType_Stop));
+        this->Send(std::make_unique<Message>(BeebThreadMessageType_Stop));
 
         m_thread.join();
     }
@@ -530,12 +530,12 @@ OutputDataBuffer<VideoDataUnit> *BeebThread::GetVideoOutput() {
 //////////////////////////////////////////////////////////////////////////
 
 static void DestroyBeebThreadMessageMessage(Message *m) {
-    delete (BeebThreadMessage *)m->data.ptr;
+    delete (BeebThread::Message *)m->data.ptr;
 }
 
-void BeebThread::Send(std::unique_ptr<BeebThreadMessage> message) {
+void BeebThread::Send(std::unique_ptr<Message> message) {
     if(m_mq) {
-        Message m={};
+        ::Message m={};
 
         m.data.ptr=message.release();
         m.destroy_fn=&DestroyBeebThreadMessageMessage;
@@ -549,7 +549,7 @@ void BeebThread::Send(std::unique_ptr<BeebThreadMessage> message) {
 
 void BeebThread::SendTimingMessage(uint64_t max_sound_units) {
     if(m_mq) {
-        Message::Data tmp;
+        ::Message::Data tmp;
 
         tmp.u64=max_sound_units;
 
@@ -1575,7 +1575,7 @@ void BeebThread::ThreadStopCopy(ThreadState *ts) {
 
 bool BeebThread::ThreadHandleMessage(
     ThreadState *ts,
-    Message *msg,
+    ::Message *msg,
     bool *limit_speed,
     uint64_t *next_stop_2MHz_cycles)
 {
@@ -1602,7 +1602,7 @@ bool BeebThread::ThreadHandleMessage(
 
     case 0:
         {
-            std::unique_ptr<BeebThreadMessage> message((BeebThreadMessage *)msg->data.ptr);
+            std::unique_ptr<Message> message((Message *)msg->data.ptr);
             msg->data.ptr=nullptr;
 
             switch(message->type) {
@@ -1622,7 +1622,7 @@ bool BeebThread::ThreadHandleMessage(
                         // Ignore.
 #endif
                     } else {
-                        auto m=(BeebThreadKeyMessage *)message.get();
+                        auto m=(KeyMessage *)message.get();
 
                         ASSERT(ts->beeb);
 
@@ -1640,7 +1640,7 @@ bool BeebThread::ThreadHandleMessage(
                         // Ignore.
 #endif
                     } else {
-                        auto m=(BeebThreadKeySymMessage *)message.get();
+                        auto m=(KeySymMessage *)message.get();
 
                         ASSERT(ts->beeb);
 
@@ -1656,7 +1656,7 @@ bool BeebThread::ThreadHandleMessage(
 
             case BeebThreadMessageType_HardReset:
                 {
-                    auto m=(BeebThreadHardResetMessage *)message.get();
+                    auto m=(HardResetMessage *)message.get();
 
                     uint32_t flags=BeebThreadReplaceFlag_KeepCurrentDiscs;
 
@@ -1674,7 +1674,7 @@ bool BeebThread::ThreadHandleMessage(
 
             case BeebThreadMessageType_ChangeConfig:
                 {
-                    auto m=(BeebThreadChangeConfigMessage *)message.get();
+                    auto m=(ChangeConfigMessage *)message.get();
 
                     ts->current_config=std::move(m->config);
 
@@ -1684,7 +1684,7 @@ bool BeebThread::ThreadHandleMessage(
 
             case BeebThreadMessageType_SetSpeedLimiting:
                 {
-                    auto m=(BeebThreadSetSpeedLimitingMessage *)message.get();
+                    auto m=(SetSpeedLimitingMessage *)message.get();
 
                     *limit_speed=m->limit_speed;
                     m_limit_speed.store(*limit_speed,std::memory_order_release);
@@ -1698,7 +1698,7 @@ bool BeebThread::ThreadHandleMessage(
                     if(m_is_replaying) {
                         // Ignore.
                     } else {
-                        auto m=(BeebThreadLoadDiscMessage *)message.get();
+                        auto m=(LoadDiscMessage *)message.get();
 
                         if(m->verbose) {
                             if(!m->disc_image) {
@@ -1720,7 +1720,7 @@ bool BeebThread::ThreadHandleMessage(
 
             case BeebThreadMessageType_SetPaused:
                 {
-                    auto m=(BeebThreadPauseMessage *)message.get();
+                    auto m=(PauseMessage *)message.get();
 
                     m_paused=m->pause;
                 }
@@ -1731,7 +1731,7 @@ bool BeebThread::ThreadHandleMessage(
                     if(m_is_replaying) {
                         // ignore
                     } else {
-                        auto m=(BeebThreadGoToTimelineNodeMessage *)message.get();
+                        auto m=(GoToTimelineNodeMessage *)message.get();
 
                         auto &&replay_data=Timeline::CreateReplay(m->timeline_id,m->timeline_id,&ts->msgs);
 
@@ -1745,7 +1745,7 @@ bool BeebThread::ThreadHandleMessage(
                     if(m_is_replaying) {
                         // ignore
                     } else {
-                        auto m=(BeebThreadLoadStateMessage *)message.get();
+                        auto m=(LoadStateMessage *)message.get();
 
                         this->ThreadLoadState(ts,m->parent_timeline_id,m->state);
                     }
@@ -1754,17 +1754,17 @@ bool BeebThread::ThreadHandleMessage(
 
             case BeebThreadMessageType_CloneThisThread:
                 {
-                    auto m=(BeebThreadCloneThisThreadMessage *)message.get();
+                    auto m=(CloneThisThreadMessage *)message.get();
 
                     std::shared_ptr<BeebState> state=this->ThreadSaveState(ts);
 
-                    m->dest_thread->Send(std::make_unique<BeebThreadLoadStateMessage>(m_parent_timeline_event_id,std::move(state)));
+                    m->dest_thread->Send(std::make_unique<LoadStateMessage>(m_parent_timeline_event_id,std::move(state)));
                 }
                 break;
 
             case BeebThreadMessageType_CloneWindow:
                 {
-                    auto m=(BeebThreadCloneWindowMessage *)message.get();
+                    auto m=(CloneWindowMessage *)message.get();
 
                     BeebWindowInitArguments init_arguments=std::move(m->init_arguments);
 
@@ -1780,7 +1780,7 @@ bool BeebThread::ThreadHandleMessage(
 
             case BeebThreadMessageType_SaveState:
                 {
-                    auto m=(BeebThreadSaveStateMessage *)message.get();
+                    auto m=(SaveStateMessage *)message.get();
 
                     std::shared_ptr<BeebState> state=this->ThreadSaveState(ts);
 
@@ -1801,7 +1801,7 @@ bool BeebThread::ThreadHandleMessage(
                     ASSERT(ts->beeb);
 
                     {
-                        auto m=(BeebThreadStartTraceMessage *)message.get();
+                        auto m=(StartTraceMessage *)message.get();
 
                         ts->trace_conditions=m->conditions;
                     }
@@ -1821,7 +1821,7 @@ bool BeebThread::ThreadHandleMessage(
 
             case BeebThreadMessageType_SetTurboDisc:
                 {
-                    auto m=(BeebThreadSetTurboDiscMessage *)message.get();
+                    auto m=(SetTurboDiscMessage *)message.get();
                     this->ThreadRecordEvent(ts,
                                             BeebEvent::MakeSetTurboDisc(*ts->num_executed_2MHz_cycles,
                                                                         m->turbo));
@@ -1830,7 +1830,7 @@ bool BeebThread::ThreadHandleMessage(
 
             case BeebThreadMessageType_Replay:
                 {
-                    auto m=(BeebThreadReplayMessage *)message.get();
+                    auto m=(ReplayMessage *)message.get();
 
                     this->ThreadStartReplay(ts,std::move(m->replay_data));
                 }
@@ -1838,7 +1838,7 @@ bool BeebThread::ThreadHandleMessage(
 
             case BeebThreadMessageType_SaveAndReplayFrom:
                 {
-                    auto m=(BeebThreadSaveAndReplayFromMessage *)message.get();
+                    auto m=(SaveAndReplayFromMessage *)message.get();
                     //uint64_t start_timeline_id=msg->data.u64;
 
                     // Add a placeholder event that will serve as the finish event for the replay.
@@ -1859,7 +1859,7 @@ bool BeebThread::ThreadHandleMessage(
 
             case BeebThreadMessageType_SaveAndVideoFrom:
                 {
-                    auto m=(BeebThreadSaveAndVideoFromMessage *)message.get();
+                    auto m=(SaveAndVideoFromMessage *)message.get();
                     //auto ptr=(SaveAndVideoFromMessagePayload  *)msg->data.ptr;
 
                     this->ThreadRecordEvent(ts,BeebEvent::MakeNone(*ts->num_executed_2MHz_cycles));
@@ -1875,7 +1875,7 @@ bool BeebThread::ThreadHandleMessage(
 
             case BeebThreadMessageType_SetDiscImageNameAndLoadMethod:
                 {
-                    auto m=(BeebThreadSetDiscImageNameAndLoadMethodMessage *)message.get();
+                    auto m=(SetDiscImageNameAndLoadMethodMessage *)message.get();
 
                     if(std::shared_ptr<DiscImage> disc_image=ts->beeb->GetMutableDiscImage(m->drive)) {
                         disc_image->SetName(std::move(m->name));
@@ -1888,7 +1888,7 @@ bool BeebThread::ThreadHandleMessage(
                 {
                     if(uint64_t id=this->GetLastSavedStateTimelineId()) {
                         //auto m=(BeebThreadLoadLastStateMessage *)message.get();
-                        this->Send(std::make_unique<BeebThreadGoToTimelineNodeMessage>(id));
+                        this->Send(std::make_unique<GoToTimelineNodeMessage>(id));
                         //this->SendGoToTimelineNodeMessage(id);
                     }
                 }
@@ -1919,7 +1919,7 @@ bool BeebThread::ThreadHandleMessage(
 
             case BeebThreadMessageType_StartPaste:
                 {
-                    auto m=(BeebThreadStartPasteMessage *)message.get();
+                    auto m=(StartPasteMessage *)message.get();
                     //auto ptr=(StartPasteMessagePayload *)msg->data.ptr;
 
                     if(m_is_replaying) {
@@ -1942,7 +1942,7 @@ bool BeebThread::ThreadHandleMessage(
 
             case BeebThreadMessageType_StartCopy:
                 {
-                    auto m=(BeebThreadStartCopyMessage *)message.get();
+                    auto m=(StartCopyMessage *)message.get();
 
                     // StartCopy and StartCopyBASIC really aren't the same
                     // sort of thing, but they share enough code that it felt
@@ -1985,7 +1985,7 @@ bool BeebThread::ThreadHandleMessage(
 #if BBCMICRO_DEBUGGER
             case BeebThreadMessageType_SetByte:
                 {
-                    auto m=(BeebThreadDebugSetByteMessage *)message.get();
+                    auto m=(DebugSetByteMessage *)message.get();
                     //M6502Word address={(uint16_t)msg->u32};
                     //uint8_t value=(uint8_t)msg->data.u64;
 
@@ -2005,7 +2005,7 @@ bool BeebThread::ThreadHandleMessage(
 #if BBCMICRO_DEBUGGER
             case BeebThreadMessageType_SetBytes:
                 {
-                    auto m=(BeebThreadDebugSetBytesMessage *)message.get();
+                    auto m=(DebugSetBytesMessage *)message.get();
 
                     this->ThreadRecordEvent(ts,BeebEvent::MakeSetBytes(*ts->num_executed_2MHz_cycles,m->addr,std::move(m->values)));
                 }
@@ -2058,7 +2058,7 @@ void BeebThread::ThreadMain(void) {
     }
 
     for(;;) {
-        Message msg;
+        ::Message msg;
         int got_msg;
 
         if(paused||(limit_speed&&next_stop_2MHz_cycles<=*ts.num_executed_2MHz_cycles)) {

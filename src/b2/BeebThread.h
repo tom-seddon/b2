@@ -75,421 +75,334 @@ struct TraceConditions {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-class BeebThreadMessage {
-public:
-    BeebThreadMessageType type=BeebThreadMessageType_None;
-
-    explicit BeebThreadMessage(BeebThreadMessageType type);
-protected:
-private:
-};
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-class BeebThreadKeyMessage:
-    public BeebThreadMessage
-{
-public:
-    BeebKey key=BeebKey_None;
-    bool state=false;
-
-    BeebThreadKeyMessage(BeebKey key,bool state);
-protected:
-private:
-};
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-class BeebThreadKeySymMessage:
-    public BeebThreadMessage
-{
-public:
-    BeebKeySym key_sym=BeebKeySym_None;
-    bool state=false;
-
-    BeebThreadKeySymMessage(BeebKeySym key_sym,bool state);
-protected:
-private:
-};
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-class BeebThreadHardResetMessage:
-    public BeebThreadMessage
-{
-public:
-    bool boot=false;
-
-    explicit BeebThreadHardResetMessage(bool boot);
-protected:
-private:
-};
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-class BeebThreadChangeConfigMessage:
-    public BeebThreadMessage
-{
-public:
-    BeebLoadedConfig config;
-
-    explicit BeebThreadChangeConfigMessage(BeebLoadedConfig config);
-protected:
-private:
-};
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-class BeebThreadSetSpeedLimitingMessage:
-    public BeebThreadMessage
-{
-public:
-    bool limit_speed=false;
-
-    explicit BeebThreadSetSpeedLimitingMessage(bool limit_speed);
-protected:
-private:
-};
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-class BeebThreadLoadDiscMessage:
-    public BeebThreadMessage
-{
-public:
-    int drive=-1;
-    std::shared_ptr<DiscImage> disc_image;
-    bool verbose=false;
-
-    BeebThreadLoadDiscMessage(int drive,std::shared_ptr<DiscImage> disc_image,bool verbose);
-protected:
-private:
-};
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-class BeebThreadLoadStateMessage:
-    public BeebThreadMessage
-{
-public:
-    uint64_t parent_timeline_id=0;
-    std::shared_ptr<BeebState> state;
-
-    BeebThreadLoadStateMessage(uint64_t parent_timeline_id,std::shared_ptr<BeebState> state);
-protected:
-private:
-};
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-class BeebThreadGoToTimelineNodeMessage:
-    public BeebThreadMessage
-{
-public:
-    uint64_t timeline_id=0;
-
-    explicit BeebThreadGoToTimelineNodeMessage(uint64_t timeline_id);
-protected:
-private:
-};
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-class BeebThreadSaveStateMessage:
-    public BeebThreadMessage
-{
-public:
-    bool verbose=false;
-
-    explicit BeebThreadSaveStateMessage(bool verbose);
-protected:
-private:
-};
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-class BeebThreadReplayMessage:
-    public BeebThreadMessage
-{
-public:
-    Timeline::ReplayData replay_data;
-
-    explicit BeebThreadReplayMessage(Timeline::ReplayData replay_data);
-protected:
-private:
-};
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-class BeebThreadSaveAndReplayFromMessage:
-    public BeebThreadMessage
-{
-public:
-    uint64_t timeline_start_id=0;
-
-    explicit BeebThreadSaveAndReplayFromMessage(uint64_t timeline_start_id);
-protected:
-private:
-};
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-class BeebThreadSaveAndVideoFromMessage:
-    public BeebThreadMessage
-{
-public:
-    uint64_t timeline_start_id=0;
-    std::unique_ptr<VideoWriter> video_writer;
-
-    BeebThreadSaveAndVideoFromMessage(uint64_t timeline_start_id,std::unique_ptr<VideoWriter> video_writer);
-protected:
-private:
-};
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-class BeebThreadSetDiscImageNameAndLoadMethodMessage:
-    public BeebThreadMessage
-{
-public:
-    int drive=-1;
-    std::string name;
-    std::string load_method;
-
-    BeebThreadSetDiscImageNameAndLoadMethodMessage(int drive,std::string name,std::string load_method);
-protected:
-private:
-};
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-#if BBCMICRO_TRACE
-class BeebThreadStartTraceMessage:
-    public BeebThreadMessage
-{
-public:
-    const TraceConditions conditions;
-
-    explicit BeebThreadStartTraceMessage(const TraceConditions &conditions);
-protected:
-private:
-};
-#endif
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-#if BBCMICRO_TRACE
-class BeebThreadStopTraceMessage:
-    public BeebThreadMessage
-{
-public:
-    BeebThreadStopTraceMessage();
-protected:
-private:
-};
-#endif
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-class BeebThreadCloneWindowMessage:
-    public BeebThreadMessage
-{
-public:
-    BeebWindowInitArguments init_arguments;
-
-    explicit BeebThreadCloneWindowMessage(BeebWindowInitArguments init_arguments);
-protected:
-private:
-};
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-class BeebThreadCloneThisThreadMessage:
-    public BeebThreadMessage
-{
-public:
-    std::shared_ptr<BeebThread> dest_thread;
-
-    explicit BeebThreadCloneThisThreadMessage(std::shared_ptr<BeebThread> dest_thread);
-protected:
-private:
-};
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-class BeebThreadLoadLastStateMessage:
-    public BeebThreadMessage
-{
-public:
-    BeebThreadLoadLastStateMessage();
-protected:
-private:
-};
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-class BeebThreadCancelReplayMessage:
-    public BeebThreadMessage
-{
-public:
-    BeebThreadCancelReplayMessage();
-protected:
-private:
-};
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-#if BBCMICRO_TURBO_DISC
-class BeebThreadSetTurboDiscMessage:
-    public BeebThreadMessage
-{
-public:
-    bool turbo=false;
-
-    explicit BeebThreadSetTurboDiscMessage(bool turbo);
-protected:
-private:
-};
-#endif
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-class BeebThreadStartPasteMessage:
-    public BeebThreadMessage
-{
-public:
-    std::string text;
-
-    explicit BeebThreadStartPasteMessage(std::string text);
-protected:
-private:
-};
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-class BeebThreadStopPasteMessage:
-    public BeebThreadMessage
-{
-public:
-    BeebThreadStopPasteMessage();
-protected:
-private:
-};
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-class BeebThreadStartCopyMessage:
-    public BeebThreadMessage
-{
-public:
-    std::function<void(std::vector<uint8_t>)> stop_fun;
-    bool basic=false;
-
-    BeebThreadStartCopyMessage(std::function<void(std::vector<uint8_t>)> stop_fun,bool basic);
-protected:
-private:
-};
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-class BeebThreadStopCopyMessage:
-    public BeebThreadMessage
-{
-public:
-    BeebThreadStopCopyMessage();
-protected:
-private:
-};
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-class BeebThreadDebugWakeUpMessage:
-    public BeebThreadMessage
-{
-public:
-    BeebThreadDebugWakeUpMessage();
-protected:
-private:
-};
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-class BeebThreadPauseMessage:
-    public BeebThreadMessage
-{
-public:
-    bool pause=false;
-
-    explicit BeebThreadPauseMessage(bool pause);
-protected:
-private:
-};
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-#if BBCMICRO_DEBUGGER
-class BeebThreadDebugSetByteMessage:
-    public BeebThreadMessage
-{
-public:
-    uint16_t addr=0;
-    uint8_t value=0;
-
-    BeebThreadDebugSetByteMessage(uint16_t addr,uint8_t value);
-protected:
-private:
-};
-#endif
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-#if BBCMICRO_DEBUGGER
-class BeebThreadDebugSetBytesMessage:
-    public BeebThreadMessage
-{
-public:
-    uint32_t addr=0;
-    std::vector<uint8_t> values;
-
-    BeebThreadDebugSetBytesMessage(uint32_t addr,std::vector<uint8_t> values);
-protected:
-private:
-};
-#endif
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 class BeebThread {
 public:
+    class Message {
+    public:
+        BeebThreadMessageType type=BeebThreadMessageType_None;
+
+        explicit Message(BeebThreadMessageType type);
+    protected:
+    private:
+    };
+
+    class KeyMessage:
+        public Message
+    {
+    public:
+        BeebKey key=BeebKey_None;
+        bool state=false;
+
+        KeyMessage(BeebKey key,bool state);
+    protected:
+    private:
+    };
+
+    class KeySymMessage:
+        public Message
+    {
+    public:
+        BeebKeySym key_sym=BeebKeySym_None;
+        bool state=false;
+
+        KeySymMessage(BeebKeySym key_sym,bool state);
+    protected:
+    private:
+    };
+
+    class HardResetMessage:
+        public Message
+    {
+    public:
+        bool boot=false;
+
+        explicit HardResetMessage(bool boot);
+    protected:
+    private:
+    };
+
+    class ChangeConfigMessage:
+        public Message
+    {
+    public:
+        BeebLoadedConfig config;
+
+        explicit ChangeConfigMessage(BeebLoadedConfig config);
+    protected:
+    private:
+    };
+
+    class SetSpeedLimitingMessage:
+        public Message
+    {
+    public:
+        bool limit_speed=false;
+
+        explicit SetSpeedLimitingMessage(bool limit_speed);
+    protected:
+    private:
+    };
+
+    class LoadDiscMessage:
+        public Message
+    {
+    public:
+        int drive=-1;
+        std::shared_ptr<DiscImage> disc_image;
+        bool verbose=false;
+
+        LoadDiscMessage(int drive,std::shared_ptr<DiscImage> disc_image,bool verbose);
+    protected:
+    private:
+    };
+
+    class LoadStateMessage:
+        public Message
+    {
+    public:
+        uint64_t parent_timeline_id=0;
+        std::shared_ptr<BeebState> state;
+
+        LoadStateMessage(uint64_t parent_timeline_id,std::shared_ptr<BeebState> state);
+    protected:
+    private:
+    };
+
+    class GoToTimelineNodeMessage:
+        public Message
+    {
+    public:
+        uint64_t timeline_id=0;
+
+        explicit GoToTimelineNodeMessage(uint64_t timeline_id);
+    protected:
+    private:
+    };
+
+    class SaveStateMessage:
+        public Message
+    {
+    public:
+        bool verbose=false;
+
+        explicit SaveStateMessage(bool verbose);
+    protected:
+    private:
+    };
+
+    class ReplayMessage:
+        public Message
+    {
+    public:
+        Timeline::ReplayData replay_data;
+
+        explicit ReplayMessage(Timeline::ReplayData replay_data);
+    protected:
+    private:
+    };
+
+    class SaveAndReplayFromMessage:
+        public Message
+    {
+    public:
+        uint64_t timeline_start_id=0;
+
+        explicit SaveAndReplayFromMessage(uint64_t timeline_start_id);
+    protected:
+    private:
+    };
+
+    class SaveAndVideoFromMessage:
+        public Message
+    {
+    public:
+        uint64_t timeline_start_id=0;
+        std::unique_ptr<VideoWriter> video_writer;
+
+        SaveAndVideoFromMessage(uint64_t timeline_start_id,std::unique_ptr<VideoWriter> video_writer);
+    protected:
+    private:
+    };
+
+    class SetDiscImageNameAndLoadMethodMessage:
+        public Message
+    {
+    public:
+        int drive=-1;
+        std::string name;
+        std::string load_method;
+
+        SetDiscImageNameAndLoadMethodMessage(int drive,std::string name,std::string load_method);
+    protected:
+    private:
+    };
+
+#if BBCMICRO_TRACE
+    class StartTraceMessage:
+        public Message
+    {
+    public:
+        const TraceConditions conditions;
+
+        explicit StartTraceMessage(const TraceConditions &conditions);
+    protected:
+    private:
+    };
+#endif
+
+#if BBCMICRO_TRACE
+    class StopTraceMessage:
+        public Message
+    {
+    public:
+        StopTraceMessage();
+    protected:
+    private:
+    };
+#endif
+
+    class CloneWindowMessage:
+        public Message
+    {
+    public:
+        BeebWindowInitArguments init_arguments;
+
+        explicit CloneWindowMessage(BeebWindowInitArguments init_arguments);
+    protected:
+    private:
+    };
+
+    class CloneThisThreadMessage:
+        public Message
+    {
+    public:
+        std::shared_ptr<BeebThread> dest_thread;
+
+        explicit CloneThisThreadMessage(std::shared_ptr<BeebThread> dest_thread);
+    protected:
+    private:
+    };
+
+    class LoadLastStateMessage:
+        public Message
+    {
+    public:
+        LoadLastStateMessage();
+    protected:
+    private:
+    };
+
+    class CancelReplayMessage:
+        public Message
+    {
+    public:
+        CancelReplayMessage();
+    protected:
+    private:
+    };
+
+#if BBCMICRO_TURBO_DISC
+    class SetTurboDiscMessage:
+        public Message
+    {
+    public:
+        bool turbo=false;
+
+        explicit SetTurboDiscMessage(bool turbo);
+    protected:
+    private:
+    };
+#endif
+
+    class StartPasteMessage:
+        public Message
+    {
+    public:
+        std::string text;
+
+        explicit StartPasteMessage(std::string text);
+    protected:
+    private:
+    };
+
+    class StopPasteMessage:
+        public Message
+    {
+    public:
+        StopPasteMessage();
+    protected:
+    private:
+    };
+
+    class StartCopyMessage:
+        public Message
+    {
+    public:
+        std::function<void(std::vector<uint8_t>)> stop_fun;
+        bool basic=false;
+
+        StartCopyMessage(std::function<void(std::vector<uint8_t>)> stop_fun,bool basic);
+    protected:
+    private:
+    };
+
+    class StopCopyMessage:
+        public Message
+    {
+    public:
+        StopCopyMessage();
+    protected:
+    private:
+    };
+
+    class DebugWakeUpMessage:
+        public Message
+    {
+    public:
+        DebugWakeUpMessage();
+    protected:
+    private:
+    };
+
+    class PauseMessage:
+        public Message
+    {
+    public:
+        bool pause=false;
+
+        explicit PauseMessage(bool pause);
+    protected:
+    private:
+    };
+
+#if BBCMICRO_DEBUGGER
+    class DebugSetByteMessage:
+        public Message
+    {
+    public:
+        uint16_t addr=0;
+        uint8_t value=0;
+
+        DebugSetByteMessage(uint16_t addr,uint8_t value);
+    protected:
+    private:
+    };
+#endif
+
+#if BBCMICRO_DEBUGGER
+    class DebugSetBytesMessage:
+        public Message
+    {
+    public:
+        uint32_t addr=0;
+        std::vector<uint8_t> values;
+
+        DebugSetBytesMessage(uint32_t addr,std::vector<uint8_t> values);
+    protected:
+    private:
+    };
+#endif
+
     struct AudioCallbackRecord {
         uint64_t time=0;
         uint64_t needed=0;
@@ -518,7 +431,7 @@ public:
     OutputDataBuffer<VideoDataUnit> *GetVideoOutput();
 
     // Crap naming, because windows.h does #define SendMessage.
-    void Send(std::unique_ptr<BeebThreadMessage> message);
+    void Send(std::unique_ptr<Message> message);
 
     void SendTimingMessage(uint64_t max_sound_units);
 
@@ -738,7 +651,7 @@ private:
     void ThreadStopReplay(ThreadState *ts);
     void ThreadLoadState(ThreadState *ts,uint64_t parent_timeline_id,const std::shared_ptr<BeebState> &state);
     void ThreadHandleReplayEvents(ThreadState *ts);
-    bool ThreadHandleMessage(ThreadState *ts,Message *msg,bool *limit_speed,uint64_t *next_stop_2MHz_cycles);
+    bool ThreadHandleMessage(ThreadState *ts,::Message *msg,bool *limit_speed,uint64_t *next_stop_2MHz_cycles);
     void ThreadSetDiscImage(ThreadState *ts,int drive,std::shared_ptr<DiscImage> disc_image);
     void ThreadStartPaste(ThreadState *ts,std::string text);
     void ThreadStopPaste(ThreadState *ts);

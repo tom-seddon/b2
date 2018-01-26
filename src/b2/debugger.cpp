@@ -286,7 +286,7 @@ private:
     static void MemoryEditorWrite(uint8_t *data,size_t off,uint8_t d) {
         auto self=(MemoryDebugWindow *)data;
 
-        self->m_beeb_thread->Send(std::make_unique<BeebThreadDebugSetByteMessage>((uint16_t)off,d));
+        self->m_beeb_thread->Send(std::make_unique<BeebThread::DebugSetByteMessage>((uint16_t)off,d));
     }
 };
 

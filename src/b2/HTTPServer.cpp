@@ -625,7 +625,7 @@ protected:
 
         std::shared_ptr<BeebThread> beeb_thread=beeb_window->GetBeebThread();
 
-        beeb_thread->Send(std::make_unique<BeebThreadDebugSetBytesMessage>(m_addr,std::move(m_data)));
+        beeb_thread->Send(std::make_unique<BeebThread::DebugSetBytesMessage>(m_addr,std::move(m_data)));
     }
 private:
     uint32_t m_addr=0;
@@ -691,7 +691,7 @@ protected:
 
         std::shared_ptr<BeebThread> beeb_thread=beeb_window->GetBeebThread();
 
-        beeb_thread->Send(std::make_unique<BeebThreadHardResetMessage>(m_boot));
+        beeb_thread->Send(std::make_unique<BeebThread::HardResetMessage>(m_boot));
     }
 private:
     bool m_boot=false;

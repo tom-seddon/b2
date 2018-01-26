@@ -157,21 +157,21 @@ void BeebWindow::OptionsUI::DoImGui(CommandContextStack *cc_stack) {
     {
         bool paused=m_beeb_window->m_beeb_thread->IsPaused();
         if(ImGui::Checkbox("Paused",&paused)) {
-            beeb_thread->Send(std::make_unique<BeebThreadPauseMessage>(paused));
+            beeb_thread->Send(std::make_unique<BeebThread::PauseMessage>(paused));
         }
     }
 
     {
         bool value=beeb_thread->IsSpeedLimited();
         if(ImGui::Checkbox("Limit speed",&value)) {
-            beeb_thread->Send(std::make_unique<BeebThreadSetSpeedLimitingMessage>(value));
+            beeb_thread->Send(std::make_unique<BeebThread::SetSpeedLimitingMessage>(value));
         }
     }
 
     {
         bool value=beeb_thread->IsTurboDisc();
         if(ImGui::Checkbox("Turbo disc",&value)) {
-            beeb_thread->Send(std::make_unique<BeebThreadSetTurboDiscMessage>(value));
+            beeb_thread->Send(std::make_unique<BeebThread::SetTurboDiscMessage>(value));
         }
     }
 
@@ -412,7 +412,7 @@ bool BeebWindow::HandleBeebKey(const SDL_Keysym &keysym,bool state) {
 
             if(it!=m_beeb_keysyms_by_keycode.end()) {
                 for(BeebKeySym beeb_keysym:it->second) {
-                    m_beeb_thread->Send(std::make_unique<BeebThreadKeySymMessage>(beeb_keysym,false));
+                    m_beeb_thread->Send(std::make_unique<BeebThread::KeySymMessage>(beeb_keysym,false));
                 }
 
                 m_beeb_keysyms_by_keycode.erase(it);
@@ -434,7 +434,7 @@ bool BeebWindow::HandleBeebKey(const SDL_Keysym &keysym,bool state) {
         for(const int8_t *beeb_sym=beeb_syms;*beeb_sym>=0;++beeb_sym) {
             if(state) {
                 m_beeb_keysyms_by_keycode[pc_key].insert((BeebKeySym)*beeb_sym);
-                m_beeb_thread->Send(std::make_unique<BeebThreadKeySymMessage>((BeebKeySym)*beeb_sym,state));
+                m_beeb_thread->Send(std::make_unique<BeebThread::KeySymMessage>((BeebKeySym)*beeb_sym,state));
             }
         }
     } else {
@@ -444,7 +444,7 @@ bool BeebWindow::HandleBeebKey(const SDL_Keysym &keysym,bool state) {
         }
 
         for(const int8_t *beeb_key=beeb_keys;*beeb_key>=0;++beeb_key) {
-            m_beeb_thread->Send(std::make_unique<BeebThreadKeyMessage>((BeebKey)*beeb_key,state));
+            m_beeb_thread->Send(std::make_unique<BeebThread::KeyMessage>((BeebKey)*beeb_key,state));
         }
     }
 
@@ -492,7 +492,7 @@ bool BeebWindow::LoadDiscImageFile(int drive,const std::string &path) {
         //m_msg.w.f("Failed to load %s: %s\n",path.c_str(),error.c_str());
         return false;
     } else {
-        m_beeb_thread->Send(std::make_unique<BeebThreadLoadDiscMessage>(drive,std::move(disc_image),true));
+        m_beeb_thread->Send(std::make_unique<BeebThread::LoadDiscMessage>(drive,std::move(disc_image),true));
         return true;
     }
 }
@@ -507,7 +507,7 @@ bool BeebWindow::Load65LinkFolder(int drive,const std::string &path) {
         //m_msg.w.f("Failed to load %s: %s\n",path.c_str(),error.c_str());
         return false;
     } else {
-        m_beeb_thread->Send(std::make_unique<BeebThreadLoadDiscMessage>(drive,std::move(disc_image),true));
+        m_beeb_thread->Send(std::make_unique<BeebThread::LoadDiscMessage>(drive,std::move(disc_image),true));
         return true;
     }
 }
@@ -962,7 +962,7 @@ void BeebWindow::DoPopupUI(uint64_t now,int output_width,int output_height) {
             if(replaying) {
                 ImGui::SameLine();
                 if(ImGui::Button("Cancel")) {
-                    m_beeb_thread->Send(std::make_unique<BeebThreadCancelReplayMessage>());
+                    m_beeb_thread->Send(std::make_unique<BeebThread::CancelReplayMessage>());
                 }
             }
 
@@ -1052,7 +1052,7 @@ void BeebWindow::DoFileMenu() {
                     }
 
                     if(loaded_config) {
-                        m_beeb_thread->Send(std::make_unique<BeebThreadChangeConfigMessage>(*loaded_config));
+                        m_beeb_thread->Send(std::make_unique<BeebThread::ChangeConfigMessage>(*loaded_config));
                     }
                 }
 
@@ -1159,7 +1159,7 @@ void BeebWindow::DoFileMenu() {
                             if(disc_image->SaveToFile(path,&m_msg)) {
                                 fd.AddLastPathToRecentPaths();
 
-                                m_beeb_thread->Send(std::make_unique<BeebThreadSetDiscImageNameAndLoadMethodMessage>(drive,std::move(path),MemoryDiscImage::LOAD_METHOD_FILE));
+                                m_beeb_thread->Send(std::make_unique<BeebThread::SetDiscImageNameAndLoadMethodMessage>(drive,std::move(path),MemoryDiscImage::LOAD_METHOD_FILE));
                             }
                         }
                     }
@@ -1375,7 +1375,7 @@ bool BeebWindow::DoWindowMenu() {
             init_arguments.settings=m_settings;
             init_arguments.use_settings=true;
 
-            m_beeb_thread->Send(std::make_unique<BeebThreadCloneWindowMessage>(init_arguments));
+            m_beeb_thread->Send(std::make_unique<BeebThread::CloneWindowMessage>(init_arguments));
         }
 
         ImGui::Separator();
@@ -1849,7 +1849,7 @@ bool BeebWindow::InitInternal() {
 
     if(!!m_init_arguments.initial_state) {
         // Load initial state, and use parent timeline event ID (whichever it is).
-        m_beeb_thread->Send(std::make_unique<BeebThreadLoadStateMessage>(m_init_arguments.parent_timeline_event_id,m_init_arguments.initial_state));
+        m_beeb_thread->Send(std::make_unique<BeebThread::LoadStateMessage>(m_init_arguments.parent_timeline_event_id,m_init_arguments.initial_state));
     } else {
         if(m_init_arguments.parent_timeline_event_id==0) {
             // Create new root in timeline using config from init
@@ -1858,12 +1858,12 @@ bool BeebWindow::InitInternal() {
         }
 
         // Start from the requested timeline node.
-        m_beeb_thread->Send(std::make_unique<BeebThreadGoToTimelineNodeMessage>(m_init_arguments.parent_timeline_event_id));
+        m_beeb_thread->Send(std::make_unique<BeebThread::GoToTimelineNodeMessage>(m_init_arguments.parent_timeline_event_id));
     }
 
 
     if(!m_init_arguments.initially_paused) {
-        m_beeb_thread->Send(std::make_unique<BeebThreadPauseMessage>(false));
+        m_beeb_thread->Send(std::make_unique<BeebThread::PauseMessage>(false));
     }
 
     m_imgui_stuff->NewFrame(false);
@@ -2167,14 +2167,14 @@ void BeebWindow::MaybeSaveConfig(bool save_config) {
 //////////////////////////////////////////////////////////////////////////
 
 void BeebWindow::HardReset() {
-    m_beeb_thread->Send(std::make_unique<BeebThreadHardResetMessage>(false));
+    m_beeb_thread->Send(std::make_unique<BeebThread::HardResetMessage>(false));
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 void BeebWindow::LoadLastState() {
-    m_beeb_thread->Send(std::make_unique<BeebThreadLoadLastStateMessage>());
+    m_beeb_thread->Send(std::make_unique<BeebThread::LoadLastStateMessage>());
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -2188,7 +2188,7 @@ bool BeebWindow::IsLoadLastStateEnabled() const {
 //////////////////////////////////////////////////////////////////////////
 
 void BeebWindow::SaveState() {
-    m_beeb_thread->Send(std::make_unique<BeebThreadSaveStateMessage>(true));
+    m_beeb_thread->Send(std::make_unique<BeebThread::SaveStateMessage>(true));
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -2381,7 +2381,7 @@ decode(uint32_t* state,uint32_t* codep,uint32_t byte) {
 
 void BeebWindow::DoPaste(bool add_return) {
     if(m_beeb_thread->IsPasting()) {
-        m_beeb_thread->Send(std::make_unique<BeebThreadStopPasteMessage>());
+        m_beeb_thread->Send(std::make_unique<BeebThread::StopPasteMessage>());
     } else {
         // Get UTF-8 clipboard.
         std::vector<uint8_t> utf8;
@@ -2462,7 +2462,7 @@ void BeebWindow::DoPaste(bool add_return) {
             ascii.push_back(13);
         }
 
-        m_beeb_thread->Send(std::make_unique<BeebThreadStartPasteMessage>(std::move(ascii)));
+        m_beeb_thread->Send(std::make_unique<BeebThread::StartPasteMessage>(std::move(ascii)));
     }
 }
 
@@ -2529,9 +2529,9 @@ void BeebWindow::SetClipboardData(std::vector<uint8_t> data,bool is_text) {
 template<bool IS_TEXT>
 void BeebWindow::CopyOSWRCH() {
     if(m_beeb_thread->IsCopying()) {
-        m_beeb_thread->Send(std::make_unique<BeebThreadStopCopyMessage>());
+        m_beeb_thread->Send(std::make_unique<BeebThread::StopCopyMessage>());
     } else {
-        m_beeb_thread->Send(std::make_unique<BeebThreadStartCopyMessage>([this](std::vector<uint8_t> data) {
+        m_beeb_thread->Send(std::make_unique<BeebThread::StartCopyMessage>([this](std::vector<uint8_t> data) {
             this->SetClipboardData(std::move(data),IS_TEXT);
         },false));//false=not Copy BASIC
     }
@@ -2549,9 +2549,9 @@ bool BeebWindow::IsCopyOSWRCHTicked() const {
 
 void BeebWindow::CopyBASIC() {
     if(m_beeb_thread->IsCopying()) {
-        m_beeb_thread->Send(std::make_unique<BeebThreadStopCopyMessage>());
+        m_beeb_thread->Send(std::make_unique<BeebThread::StopCopyMessage>());
     } else {
-        m_beeb_thread->Send(std::make_unique<BeebThreadStartCopyMessage>([this](std::vector<uint8_t> data) {
+        m_beeb_thread->Send(std::make_unique<BeebThread::StartCopyMessage>([this](std::vector<uint8_t> data) {
             this->SetClipboardData(std::move(data),true);
         },true));//true=Copy BASIC
     }
@@ -2586,7 +2586,7 @@ void BeebWindow::DebugRun() {
 
     
     m->DebugRun();
-    m_beeb_thread->Send(std::make_unique<BeebThreadDebugWakeUpMessage>());
+    m_beeb_thread->Send(std::make_unique<BeebThread::DebugWakeUpMessage>());
 }
 #endif
 
@@ -2609,7 +2609,7 @@ void BeebWindow::DebugStepOver() {
         m->DebugAddTempBreakpoint(next_pc);
         //printf("step over %s/%s - next_pc=$%04x\n",mnemonic,mode_name,next_pc.w);
         m->DebugRun();
-        m_beeb_thread->Send(std::make_unique<BeebThreadDebugWakeUpMessage>());
+        m_beeb_thread->Send(std::make_unique<BeebThread::DebugWakeUpMessage>());
     }
 }
 #endif
@@ -2633,7 +2633,7 @@ void BeebWindow::DebugStepIn() {
 void BeebWindow::DebugStepInLocked(BBCMicro *m) {
     m->DebugStepIn();
     m->DebugRun();
-    m_beeb_thread->Send(std::make_unique<BeebThreadDebugWakeUpMessage>());
+    m_beeb_thread->Send(std::make_unique<BeebThread::DebugWakeUpMessage>());
 }
 #endif
 
