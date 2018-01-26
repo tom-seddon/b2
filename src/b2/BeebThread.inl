@@ -4,8 +4,10 @@
 // For event type XXX, "payload" refers to the XXXMessagePayload struct
 // defined in the .cpp.
 
-#define ENAME BeebThreadEventType
+#define ENAME BeebThreadMessageType
 EBEGIN()
+
+EPN(None)
 
 // Stop thread.
 //

@@ -924,12 +924,12 @@ static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &init
 
                 for(int i=0;i<NUM_DRIVES;++i) {
                     if(!!init_disc_images[i]) {
-                        thread->SendLoadDiscMessage(i,std::move(init_disc_images[i]),true);
+                        thread->Send(std::make_unique<BeebThreadLoadDiscMessage>(i,std::move(init_disc_images[i]),true));
                     }
                 }
 
                 if(options.boot) {
-                    thread->SendHardResetMessage(true);
+                    thread->Send(std::make_unique<BeebThreadHardResetMessage>(true));
                 }
             }
         }

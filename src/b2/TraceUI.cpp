@@ -649,7 +649,7 @@ void TraceUI::DoImGui(CommandContextStack *cc_stack) {
 
             c.trace_flags=m_settings.flags;
 
-            beeb_thread->SendStartTraceMessage(c);
+            beeb_thread->Send(std::make_unique<BeebThreadStartTraceMessage>(c));
         }
 
         std::shared_ptr<Trace> last_trace=beeb_thread->GetLastTrace();
@@ -672,7 +672,7 @@ void TraceUI::DoImGui(CommandContextStack *cc_stack) {
         }
     } else {
         if(ImGui::Button("Stop")) {
-            beeb_thread->SendStopTraceMessage();
+            beeb_thread->Send(std::make_unique<BeebThreadStopTraceMessage>());
         }
 
         DoTraceStatsImGui(running_stats);

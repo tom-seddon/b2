@@ -1,7 +1,4 @@
-#ifdef HEADER_33477416E2224FD8A7F0B58AC38F831D// -*- mode:c++ -*-
-// sorry... this header is too much of a monster.
-#error
-#else
+#ifndef HEADER_33477416E2224FD8A7F0B58AC38F831D// -*- mode:c++ -*-
 #define HEADER_33477416E2224FD8A7F0B58AC38F831D
 
 //////////////////////////////////////////////////////////////////////////
@@ -392,7 +389,6 @@ private:
     bool DoWindowMenu();
     BeebWindowInitArguments GetNewWindowInitArguments() const;
     void MaybeSaveConfig(bool save_config);
-    void DoOptionsCheckbox(const char *label,bool (BeebThread::*get_mfn)() const,void (BeebThread::*send_mfn)(bool));
     void HardReset();
     void LoadLastState();
     bool IsLoadLastStateEnabled() const;

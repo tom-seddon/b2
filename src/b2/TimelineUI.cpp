@@ -315,9 +315,9 @@ void TimelineUI::DoTreeEventImGui(TreeEventData *te_data,const Timeline::Tree::E
         } else if(te_data->window) {
             std::shared_ptr<BeebThread> src_thread=te_data->window->GetBeebThread();
 
-            src_thread->SendCloneThisThreadMessage(thread);
+            src_thread->Send(std::make_unique<BeebThreadCloneThisThreadMessage>(thread));
         } else if(uint64_t id=m_tree.events[te_data->te_index].id) {
-            thread->SendGoToTimelineNodeMessage(id);
+            thread->Send(std::make_unique<BeebThreadGoToTimelineNodeMessage>(id));
         }
     }
 
@@ -326,7 +326,7 @@ void TimelineUI::DoTreeEventImGui(TreeEventData *te_data,const Timeline::Tree::E
     if(ImGui::Button("Clone")) {
         if(te_data->window) {
             std::shared_ptr<BeebThread> thread=te_data->window->GetBeebThread();
-            thread->SendCloneWindowMessage(m_init_arguments);
+            thread->Send(std::make_unique<BeebThreadCloneWindowMessage>(m_init_arguments));
         } else {
             BeebWindowInitArguments init_arguments=m_init_arguments;
 
@@ -356,7 +356,7 @@ void TimelineUI::DoTreeEventImGui(TreeEventData *te_data,const Timeline::Tree::E
         std::shared_ptr<BeebThread> beeb_thread=m_beeb_window->GetBeebThread();
 
         uint64_t id=m_tree.events[te_data->te_index].id;
-        beeb_thread->SendSaveAndReplayFromMessage(id);
+        beeb_thread->Send(std::make_unique<BeebThreadSaveAndReplayFromMessage>(id));
     }
 
     ImGui::SameLine();
@@ -381,7 +381,7 @@ void TimelineUI::DoTreeEventImGui(TreeEventData *te_data,const Timeline::Tree::E
                         std::shared_ptr<BeebThread> beeb_thread=m_beeb_window->GetBeebThread();
 
                         uint64_t id=m_tree.events[te_data->te_index].id;
-                        beeb_thread->SendSaveAndVideoFromMessage(id,std::move(video_writer));
+                        beeb_thread->Send(std::make_unique<BeebThreadSaveAndVideoFromMessage>(id,std::move(video_writer)));
                     }
                 }
             }

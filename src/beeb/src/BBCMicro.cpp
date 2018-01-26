@@ -204,9 +204,11 @@ const uint16_t BBCMicro::SCREEN_WRAP_ADJUSTMENTS[]={
 //////////////////////////////////////////////////////////////////////////
 
 BBCMicro::MemoryPages::MemoryPages() {
+#if BBCMICRO_DEBUGGER
     for(int i=0;i<256;++i) {
         this->debug_page_index[i]=DebugState::INVALID_PAGE_INDEX;
     }
+#endif
 }
 
 //////////////////////////////////////////////////////////////////////////
