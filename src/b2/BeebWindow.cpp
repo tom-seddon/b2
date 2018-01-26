@@ -2083,53 +2083,6 @@ const VideoDataUnitMetadata *BeebWindow::GetMetadataForMousePixel() const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-#if HTTP_SERVER
-HTTPResponse BeebWindow::HandleHTTPRequest(HTTPRequest *request,const std::vector<std::string> &path_parts) {
-    //uint32_t value;
-
-    //if(request->IsPOST()&&path_parts.size()==2&&path_parts[0]=="poke"&&GetUInt32FromHexString(&value,path_parts[1])) {
-    //    if(!request->body.empty()) {
-    //        HTTPPoke poke;
-
-    //        poke.addr=value;
-    //        poke.data=std::move(request->body);
-
-    //        m_http_pokes.push_back(std::move(poke));
-    //    }
-
-    //    return HTTPResponse::OK;
-    //} else if(request->IsPOST()&&path_parts.size()==3&&path_parts[0]=="pokes"&&path_parts[1]=="add") {
-    //    HTTPPoke poke;
-
-    //    if(!GetUInt32FromString(&poke.addr,path_parts[2].c_str())) {
-    //        request->Send400("bad hex");
-    //        return;
-    //    }
-
-    //    poke.data=std::move(request->body);
-
-    //    if(!poke.data.empty()) {
-    //        m_http_pokes.push_back(std::move(poke));
-    //    }
-    //} else if(request->IsPOST()&&path_parts.size()==2&&path_parts[0]=="pokes"&&path_parts[1]=="do") {
-    //    if(!m_http_pokes.empty()) {
-    //        std::unique_lock<Mutex> lock;
-    //        const BBCMicro *beeb=m_beeb_thread->LockBeeb(&lock);
-
-    //        for(HTTPPoke &poke:m_http_pokes) {
-    //            m_beeb_thread->SendDebugSetBytesMessage(poke.addr,std::move(poke.data));
-    //        }
-
-    //        m_http_pokes.clear();
-    //    }
-    return HTTPResponse::BAD_REQUEST;
-
-}
-#endif
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 bool BeebWindow::HandleVBlank(VBlankMonitor *vblank_monitor,void *display_data,uint64_t ticks) {
     // There's an API for exactly this on Windows. But it's probably
     // better to have the same code on every platform. 99% of the time

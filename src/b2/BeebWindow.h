@@ -27,10 +27,6 @@ class BeebState;
 class CommandContextStackUI;
 class CommandKeymapsUI;
 class SettingsUI;
-#if HTTP_SERVER
-class HTTPRequest;
-class HTTPResponse;
-#endif
 
 #include "keys.h"
 #include "dear_imgui.h"
@@ -252,11 +248,6 @@ public:
 
 #if VIDEO_TRACK_METADATA
     const VideoDataUnitMetadata *GetMetadataForMousePixel() const;
-#endif
-
-#if HTTP_SERVER
-    // it's OK to modify *request.
-    HTTPResponse HandleHTTPRequest(HTTPRequest *request,const std::vector<std::string> &path_parts);
 #endif
 protected:
 private:

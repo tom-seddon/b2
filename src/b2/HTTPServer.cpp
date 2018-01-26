@@ -29,12 +29,18 @@ LOG_TAGGED_DEFINE(HTTP,"http","HTTP  ",&log_printer_stdout_and_debugger,true)
 
 static const std::string CONTENT_TYPE="Content-Type";
 static const std::string CONTENT_LENGTH="Content-Length";
-static const std::string DEFAULT_CONTENT_TYPE="application/octet-stream";
+static const std::string OCTET_STREAM_CONTENT_TYPE="application/octet-stream";
+static const std::string TEXT_CONTENT_TYPE="text/plain";
+static const std::string DEFAULT_CONTENT_TYPE=OCTET_STREAM_CONTENT_TYPE;
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-// Should probably do something a bit cleverer than this...
+// this is all a little bit understructured... there needs to be a
+// split between the HTTP server part and the actual emulator-specific
+// bits, and ideally support for multiple servers (with one thread per
+// server).
+
 static std::thread g_http_server_thread;
 static Mutex g_http_mutex;
 static uv_loop_t * g_uv_loop=nullptr;
@@ -86,6 +92,61 @@ struct HTTPConnection {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+class Request {
+public:
+    Request()=default;
+    virtual ~Request();
+
+    // default impl returns "", indicating no result.
+    virtual std::string GetContentType() const;
+
+    virtual const char *GetCommandName() const=0;
+
+    void Do(std::vector<uint8_t> *result_body,BeebWindow *beeb_window);
+protected:
+    virtual void HandleDo(std::vector<uint8_t> *result_body,BeebWindow *beeb_window)=0;
+private:
+    bool m_done=false;
+};
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+Request::~Request() {
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+std::string Request::GetContentType() const {
+    return "";
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void Request::Do(std::vector<uint8_t> *result_body,BeebWindow *beeb_window) {
+    ASSERT(!m_done);
+
+    size_t n=result_body->size();
+    (void)n;
+    this->HandleDo(result_body,beeb_window);
+    ASSERT(!this->GetContentType().empty()||result_body->size()==n);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+struct WindowQueue {
+    std::string content_type;
+    const char *content_type_request=nullptr;
+    std::vector<std::unique_ptr<Request>> requests;
+};
+
+struct MainThreadData {
+    std::map<std::string,WindowQueue> window_queues;
+};
+
 struct HTTPServer {
     int port=-1;
 
@@ -94,7 +155,7 @@ struct HTTPServer {
     bool closed=false;
     uv_tcp_t listen_tcp={};
 
-    std::map<std::string,std::function<void(BeebWindow *)>> window_queues;
+    MainThreadData main_thread_data;
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -543,66 +604,221 @@ static std::vector<std::string> GetPathParts(const std::string &path) {
     return parts;
 }
 
-//static bool FindBeebWindow(BeebWindow **window_ptr,const std::string &name) {
-//    *window_ptr=BeebWindows::FindBeebWindowByName(name);
-//    return !!*window_ptr;
-//}
+class PokeRequest:
+    public Request
+{
+public:
+    static const char COMMAND_NAME[];
 
-//static bool GetFunc(std::function<void(BeebWindow *)> *func,const std::vector<std::string> &parts,size_t index0,HTTPRequest *request) {
-//    uint32_t value;
-//
-//    if(parts[index0]=="poke"&&parts.size()==index0+1&&GetUInt32FromHexString(&value,parts[index0+1])) {
-//        if(!request->body.empty()) {
-//            *func=[body=std::move(request->body)](BeebWindow *window) {
-//                window->GetBeebThread()->
-//            };
-//            return true;
-//        }
-//    }
-//
-//    return false;
-//}
+    PokeRequest(uint32_t addr,std::vector<uint8_t> data):
+        m_addr(addr),
+        m_data(std::move(data))
+    {
+    }
 
-static HTTPResponse DispatchRequestMainThread2(HTTPRequest *request) {
-    //std::vector<std::string> parts=GetPathParts(request->url_path);
+    const char *GetCommandName() const override {
+        return COMMAND_NAME;
+    }
+protected:
+    void HandleDo(std::vector<uint8_t> *result_body,BeebWindow *beeb_window) override {
+        (void)result_body;
+
+        std::shared_ptr<BeebThread> beeb_thread=beeb_window->GetBeebThread();
+
+        beeb_thread->SendDebugSetBytesMessage(m_addr,std::move(m_data));
+    }
+private:
+    uint32_t m_addr=0;
+    std::vector<uint8_t> m_data;
+};
+
+const char PokeRequest::COMMAND_NAME[]="poke";
+
+class PeekRequest:
+    public Request
+{
+public:
+    static const char COMMAND_NAME[];
+
+    PeekRequest(uint32_t addr,uint32_t num_bytes):
+        m_addr(addr),
+        m_num_bytes(num_bytes)
+    {
+    }
+
+    std::string GetContentType() const override {
+        return OCTET_STREAM_CONTENT_TYPE;
+    }
+
+    const char *GetCommandName() const override {
+        return COMMAND_NAME;
+    }
+protected:
+    void HandleDo(std::vector<uint8_t> *result_body,BeebWindow *beeb_window) override {
+        std::shared_ptr<BeebThread> beeb_thread=beeb_window->GetBeebThread();
+
+        std::unique_lock<Mutex> lock;
+        const BBCMicro *beeb=beeb_thread->LockBeeb(&lock);
+
+        for(uint32_t i=0;i<m_num_bytes;++i) {
+            // when DebugGetByte returns -1, it'll produce 0xff. Not
+            // much point trying to be any cleverer than that.
+            result_body->push_back((uint8_t)beeb->DebugGetByte(m_addr+i));
+        }
+    }
+private:
+    uint32_t m_addr=0;
+    uint32_t m_num_bytes=0;
+};
+
+class ResetRequest:
+    public Request
+{
+public:
+    static const char COMMAND_NAME[];
+
+    ResetRequest(bool boot):
+        m_boot(boot)
+    {
+    }
+
+    const char *GetCommandName() const override {
+        return COMMAND_NAME;
+    }
+protected:
+    void HandleDo(std::vector<uint8_t> *result_body,BeebWindow *beeb_window) override {
+        (void)result_body;
+
+        std::shared_ptr<BeebThread> beeb_thread=beeb_window->GetBeebThread();
+
+        beeb_thread->SendHardResetMessage(m_boot);
+    }
+private:
+    bool m_boot=false;
+};
+
+const char ResetRequest::COMMAND_NAME[]="reset";
+
+static bool FindBeebWindow(BeebWindow **window_ptr,const std::string &name) {
+    *window_ptr=BeebWindows::FindBeebWindowByName(name);
+    return !!*window_ptr;
+}
+
+static std::unique_ptr<Request> CreateRequest(HTTPResponse *response,HTTPRequest *http_request,const std::vector<std::string> &path_parts,size_t index0) {
+    if(path_parts[index0]==PokeRequest::COMMAND_NAME) {
+        if(http_request->body.empty()) {
+            *response=HTTPResponse::BadRequest("no message body");
+            return nullptr;
+        }
+
+        if(path_parts.size()!=index0+2) {
+            *response=HTTPResponse::BadRequest("syntax: %s/ADDR",PokeRequest::COMMAND_NAME);
+            return nullptr;
+        }
+
+        uint32_t addr;
+        if(!GetUInt32FromHexString(&addr,path_parts[index0+1])) {
+            *response=HTTPResponse::BadRequest("bad address: %s",path_parts[index0+1].c_str());
+            return nullptr;
+        }
+
+        return std::make_unique<PokeRequest>(addr,std::move(http_request->body));
+    } else if(path_parts[index0]==ResetRequest::COMMAND_NAME) {
+        return std::make_unique<ResetRequest>(false);
+    } else {
+        *response=HTTPResponse::BadRequest("unknown request: %s",path_parts[index0].c_str());
+        return nullptr;
+    }
+}
+
+static HTTPResponse DispatchRequestMainThread2(MainThreadData *main_thread_data,HTTPRequest *http_request) {
+
+    std::vector<std::string> parts=GetPathParts(http_request->url_path);
 
     //uint32_t value;
-    //BeebWindow *window;
+    BeebWindow *window;
 
-    //if(parts.size()==2&&parts[0]=="c"&&FindBeebWindow(&window,parts[1])) {
+    if(parts.size()==2&&parts[0]=="c") {
+        if(!FindBeebWindow(&window,parts[1])) {
+            return HTTPResponse::BadRequest("unknown window: %s",parts[1].c_str());
+        }
 
-    //} else if(parts.size()>=3&&parts[0]=="q"&&FindBeebWindow(&window,parts[1])) {
-    //} else if(parts.size()>=3&&parts[0]=="x"&&FindBeebWindow(&window,parts[1])) {
-    //} else if(parts.size()==2&&parts[0]=="r"&&FindBeebWindow(&window,parts[1])) {
-    //} else {
-    return HTTPResponse::BAD_REQUEST;
+        main_thread_data->window_queues.erase(parts[1]);
+        return HTTPResponse::OK();
+    } else if(parts.size()>=3&&parts[0]=="q") {
+        if(!FindBeebWindow(&window,parts[1])) {
+            return HTTPResponse::BadRequest("unknown window: %s",parts[1].c_str());
+        }
+
+        HTTPResponse response;
+        std::unique_ptr<Request> request=CreateRequest(&response,http_request,parts,2);
+        if(!request) {
+            return response;
+        }
+
+        WindowQueue *window_queue=&main_thread_data->window_queues[parts[1]];
+
+        std::string content_type=request->GetContentType();
+        if(!content_type.empty()) {
+            if(window_queue->requests.empty()) {
+                window_queue->content_type=std::move(content_type);
+                window_queue->content_type_request=request->GetCommandName();
+            } else {
+                if(window_queue->content_type!=content_type) {
+                    return HTTPResponse::BadRequest("result type conflict: %s type is %s, queued %s type is %s",
+                                                    request->GetCommandName(),
+                                                    content_type.c_str(),
+                                                    window_queue->content_type_request,
+                                                    window_queue->content_type.c_str());
+                }
+            }
+        }
+
+        window_queue->requests.push_back(std::move(request));
+
+        return HTTPResponse::OK();
+    } else if(parts.size()>=3&&parts[0]=="x") {
+        if(!FindBeebWindow(&window,parts[1])) {
+            return HTTPResponse::BadRequest("unknown window: %s",parts[1].c_str());
+        }
+
+        HTTPResponse response;
+        std::unique_ptr<Request> request=CreateRequest(&response,http_request,parts,2);
+        if(!request) {
+            return response;
+        }
+
+        response=HTTPResponse("200 OK",request->GetContentType());
+
+        request->Do(&response.content_vec,window);
+
+        return response;
+    } else if(parts.size()==2&&parts[0]=="r") {
+        if(!FindBeebWindow(&window,parts[1])) {
+            return HTTPResponse::BadRequest("unknown window: %s",parts[1].c_str());
+        }
+
+        WindowQueue *window_queue=&main_thread_data->window_queues[parts[1]];
+
+        auto response=HTTPResponse("200 OK",window_queue->content_type);
+
+        for(const std::unique_ptr<Request> &request:window_queue->requests) {
+            request->Do(&response.content_vec,window);
+        }
+
+        window_queue=nullptr;
+        main_thread_data->window_queues.erase(parts[1]);
+
+        return response;
+    } else {
+        return HTTPResponse::BadRequest("unknown operation: %s",parts[0].c_str());
+    }
 }
 
 static void DispatchRequestMainThread(HTTPConnection *conn) {
-    HTTPResponse response=DispatchRequestMainThread2(&conn->request);
+    HTTPResponse response=DispatchRequestMainThread2(&conn->server->main_thread_data,&conn->request);
 
     SendResponse(conn,std::move(response));
-
-
-    //if(path_parts.size()>=3&&path_parts[0]=="w") {
-    //    // /w/WINDOW/METHOD...
-    //    BeebWindow *beeb_window=BeebWindows::FindBeebWindowByName(path_parts[1]);
-    //    if(!beeb_window) {
-    //        request->Send404("no such window");
-    //        return;
-    //    }
-
-    //    path_parts.erase(path_parts.begin(),path_parts.begin()+2);
-
-    //    beeb_window->HandleHTTPRequest(request,path_parts);
-
-    //    if(!request->sent_response) {
-    //        request->Send500();
-    //        return;
-    //    }
-    //} else {
-    //    request->Send404("unknown REST path");
-    //}
 }
 
 static int HandleHTTPMessageComplete(http_parser *parser) {
@@ -858,8 +1074,22 @@ bool HTTPRequest::IsGET() const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-const HTTPResponse HTTPResponse::OK("200 OK");
-const HTTPResponse HTTPResponse::BAD_REQUEST("400 Bad Request");
+HTTPResponse HTTPResponse::OK() {
+    return HTTPResponse("200 OK");
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+HTTPResponse HTTPResponse::BadRequest(const char *fmt,...) {
+    va_list v;
+
+    va_start(v,fmt);
+    std::string message=strprintfv(fmt,v);
+    va_end(v);
+
+    return HTTPResponse("400 Bad Request",TEXT_CONTENT_TYPE,std::move(message));
+}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

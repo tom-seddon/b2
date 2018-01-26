@@ -60,8 +60,8 @@ public:
     // is included in the error message
     //std::string elaboration;
 
-    static const HTTPResponse OK;
-    static const HTTPResponse BAD_REQUEST;
+    static HTTPResponse OK();
+    static HTTPResponse BadRequest(const char *fmt,...) PRINTF_LIKE(2,3);
 
     // A default-constructed HTTPResponse has a status of 500 Internal
     // Server Error.
