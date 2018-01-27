@@ -403,6 +403,21 @@ public:
     };
 #endif
 
+    // Somewhat open-ended extension mechanism.
+    //
+    // This does the bare minimum needed for the HTTP stuff to hang
+    // together.
+    class CustomMessage:
+        public Message
+    {
+    public:
+        CustomMessage();
+
+        virtual void ThreadHandleMessage(BBCMicro *beeb)=0;
+    protected:
+    private:
+    };
+
     struct AudioCallbackRecord {
         uint64_t time=0;
         uint64_t needed=0;

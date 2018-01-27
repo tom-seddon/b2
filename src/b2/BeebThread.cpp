@@ -358,6 +358,14 @@ BeebThread::DebugSetBytesMessage::DebugSetBytesMessage(uint32_t addr_,std::vecto
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+BeebThread::CustomMessage::CustomMessage():
+    Message(BeebThreadMessageType_Custom)
+{
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 struct BeebThread::ThreadState {
     // For the benefit of callbacks that have a ThreadState * as their context.
     BeebThread *beeb_thread=nullptr;
@@ -2011,6 +2019,14 @@ bool BeebThread::ThreadHandleMessage(
                 }
                 break;
 #endif
+
+            case BeebThreadMessageType_Custom:
+                {
+                    auto m=(CustomMessage *)message.get();
+
+                    m->ThreadHandleMessage(ts->beeb);
+                }
+                break;
             }
         }
         break;
@@ -2069,7 +2085,6 @@ void BeebThread::ThreadMain(void) {
         } else {
             got_msg=MessageQueuePollForMessage(m_mq,&msg);
         }
-
 
         if(got_msg) {
             std::lock_guard<Mutex> lock(m_mutex);
