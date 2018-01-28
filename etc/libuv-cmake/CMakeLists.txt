@@ -138,7 +138,7 @@ else()
   endif()
 
   if ((${CMAKE_SYSTEM_NAME} MATCHES "Linux") OR (${CMAKE_SYSTEM_NAME} MATCHES "Android"))
-    target_compile_definitions(uv _GNU_SOURCE _POSIX_C_SOURCE=200112)
+    target_compile_definitions(uv PRIVATE _GNU_SOURCE _POSIX_C_SOURCE=200112)
     target_sources(uv PRIVATE
       ${LIBUVDIR}/src/unix/proctitle.c
       ${LIBUVDIR}/src/unix/linux-core.c
@@ -404,6 +404,10 @@ if(LIBUV_BUILD_TESTS)
   add_standard_settings(run-tests)
   set_property(TARGET run-tests PROPERTY C_STANDARD 99)
   target_link_libraries(run-tests uv)
+
+  if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+    target_link_libraries(run-tests util)
+  endif()
 
   set(BENCHMARK_SOURCES
     ${LIBUVDIR}/test/blackhole-server.c

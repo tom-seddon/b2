@@ -1990,7 +1990,7 @@ void BBCMicro::DebugGetBytePointers(uint8_t **write_ptr,const uint8_t **read_ptr
         }
     } else {
         const M6502Word addr={(uint16_t)full_addr};
-        uint8_t bbb=(full_addr>>20)+4&0xf;
+        uint8_t bbb=((full_addr>>20)+4)&0xf;
         uint8_t r=(full_addr>>16)&0xf;
         bool parasite=full_addr>=0xff000000;
 
@@ -2051,11 +2051,11 @@ void BBCMicro::DebugGetBytePointers(uint8_t **write_ptr,const uint8_t **read_ptr
             } else {
             sideways:
                 if(!!m_state.sideways_rom_buffers[r]) {
-                    read=&m_state.sideways_rom_buffers[r]->at(addr.w-0x8000);
+                    read=&m_state.sideways_rom_buffers[r]->at(addr.w-0x8000u);
                     write=nullptr;
                     debug_page=DEBUG_ROM0_PAGE+r*DEBUG_NUM_ROM_PAGES;
                 } else if(!m_state.sideways_ram_buffers[r].empty()) {
-                    read=write=&m_state.sideways_ram_buffers[r][addr.w-0x8000];
+                    read=write=&m_state.sideways_ram_buffers[r][addr.w-0x8000u];
                     debug_page=DEBUG_ROM0_PAGE+r*DEBUG_NUM_ROM_PAGES;
                 } else {
                     read=nullptr;
@@ -2073,7 +2073,7 @@ void BBCMicro::DebugGetBytePointers(uint8_t **write_ptr,const uint8_t **read_ptr
         case 0xc:
         case 0xd:
             if(!parasite&&(bbb&2)&&m_type==BBCMicroType_Master) {
-                M6502Word fs_ram_addr={(uint16_t)(addr.w-0xc000+FS_RAM_OFFSET)};
+                M6502Word fs_ram_addr={(uint16_t)(addr.w-0xc000u+FS_RAM_OFFSET)};
                 read=write=&m_state.ram_buffer[fs_ram_addr.w];
                 debug_page=fs_ram_addr.b.h;
             } else {

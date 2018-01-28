@@ -16,10 +16,14 @@
 #elif defined __GNUC__
 
 #pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunknown-warning-option"
+
 #pragma GCC diagnostic ignored "-Wsign-conversion"
 #pragma GCC diagnostic ignored "-Wunused-parameter"
+
+#ifdef __clang__
+#pragma GCC diagnostic ignored "-Wunknown-warning-option"
 #pragma GCC diagnostic ignored "-Wmisleading-indentation"
+#endif
 
 #endif
 

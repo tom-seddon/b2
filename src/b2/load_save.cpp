@@ -646,7 +646,7 @@ static bool FindBitIndexedFlagsMember(T *flags,rapidjson::Value *object,const ch
             bool found=false;
             const char *bit_name=array[i].GetString();
 
-            for(int j=0;j<sizeof(T)*CHAR_BIT;++j) {
+            for(int j=0;j<(int)(sizeof(T)*CHAR_BIT);++j) {
                 const char *name=(*get_name_fn)(j);
                 if(name[0]=='?') {
                     continue;

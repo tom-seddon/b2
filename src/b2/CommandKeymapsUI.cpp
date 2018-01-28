@@ -84,7 +84,7 @@ public:
 
                         for(size_t i=0;i<pc_keys->size();++i) {
                             uint32_t pc_key=(*pc_keys)[i];
-                            ImGuiIDPusher pc_key_id_pusher(pc_key);
+                            ImGuiIDPusher pc_key_id_pusher((int)pc_key);
 
                             if(i>0) {
                                 ImGui::NewLine();

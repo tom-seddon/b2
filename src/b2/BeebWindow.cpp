@@ -809,7 +809,7 @@ void BeebWindow::DoSettingsUI() {
             // after the window is created.
             ImGuiWindowFlags extra_flags=0;
             if(m_popups[ui->type]) {
-                extra_flags|=m_popups[ui->type]->GetExtraImGuiWindowFlags();
+                extra_flags|=(ImGuiWindowFlags)m_popups[ui->type]->GetExtraImGuiWindowFlags();
             }
 
             if(ImGui::BeginDock(ui->name,&opened,extra_flags,default_size)) {
