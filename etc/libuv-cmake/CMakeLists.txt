@@ -84,7 +84,7 @@ if(WIN32)
 
   target_link_libraries(uv PUBLIC advapi32 iphlpapi psapi userenv shell32 ws2_32)
 else()
-  target_compile_options(UV PRIVATE -g --std=gnu89 -pedantic -Wall -Wextra -Wno-unused-parameter)
+  target_compile_options(uv PRIVATE -g --std=gnu89 -pedantic -Wall -Wextra -Wno-unused-parameter)
   target_compile_definitions(uv PRIVATE _LARGEFILE_SOURCE _FILE_OFFSET_BITS=64)
   target_include_directories(uv PRIVATE ${LIBUVDIR}/src/unix)
   target_sources(uv PRIVATE
@@ -124,7 +124,7 @@ else()
       ${LIBUVDIR}/src/unix/kqueue.c
       ${LIBUVDIR}/src/unix/darwin.c
       ${LIBUVDIR}/src/unix/fsevents.c
-      ${LIBUVDIR}/src/unix/pthread-barrier.c
+      # ${LIBUVDIR}/src/unix/pthread-barrier.c
       ${LIBUVDIR}/src/unix/darwin-proctitle.c
       ${LIBUVDIR}/src/unix/bsd-ifaddrs.c
       )
@@ -391,6 +391,7 @@ if(LIBUV_BUILD_TESTS)
       ${LIBUVDIR}/test/test-fork.c
       ${LIBUVDIR}/test/test-poll-close-doesnt-corrupt-stack.c
       ${LIBUVDIR}/test/test-poll-closesocket.c
+      ${LIBUVDIR}/test/test-poll-oob.c
       #Unix runner
       ${LIBUVDIR}/test/runner-unix.c
       ${LIBUVDIR}/test/runner-unix.h

@@ -69,7 +69,7 @@ const TraceEventType BBCMicro::INITIAL_EVENT("BBCMicroInitial",sizeof(InitialTra
 // doesn't really have one.)
 
 // RAM area layout is same as the RAM array.
-static constexpr size_t DEBUG_MAIN_RAM_PAGE=0;
+//static constexpr size_t DEBUG_MAIN_RAM_PAGE=0;
 static constexpr size_t DEBUG_BPLUS_RAM_PAGE=VDU_RAM_OFFSET>>8;
 static constexpr size_t DEBUG_VDU_RAM_PAGE=VDU_RAM_OFFSET>>8;
 static constexpr size_t DEBUG_FS_RAM_PAGE=FS_RAM_OFFSET>>8;

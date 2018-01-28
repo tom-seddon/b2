@@ -61,7 +61,7 @@ public:
     //std::string elaboration;
 
     static HTTPResponse OK();
-    static HTTPResponse BadRequest(const char *fmt,...) PRINTF_LIKE(2,3);
+    static HTTPResponse BadRequest(const char *fmt,...) PRINTF_LIKE(1,2);
 
     // A default-constructed HTTPResponse has a status of 500 Internal
     // Server Error.

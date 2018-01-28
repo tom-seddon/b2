@@ -168,7 +168,7 @@ void GetThousandsString(char *str,uint64_t value) {
         --n;
     } while(value!=0);
 
-    memcpy(str,p,tmp+sizeof tmp-p);
+    memcpy(str,p,(size_t)(tmp+sizeof tmp-p));
 }
 
 //////////////////////////////////////////////////////////////////////////

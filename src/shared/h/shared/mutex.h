@@ -6,6 +6,7 @@
 
 #include <mutex>
 #include <condition_variable>
+#include <string>
 
 #ifndef MUTEX_DEBUGGING
 #define MUTEX_DEBUGGING 1
@@ -29,7 +30,7 @@ struct MutexMetadata {
     uint64_t num_contended_locks=0;
     uint64_t total_lock_wait_ticks=0;
 
-    std::atomic<uint64_t> num_try_locks=0;
+    std::atomic<uint64_t> num_try_locks{0};
     uint64_t num_successful_try_locks=0;
 };
 

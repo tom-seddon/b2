@@ -1128,8 +1128,8 @@ HTTPResponse::HTTPResponse(std::string content_type,std::string content):
 
 HTTPResponse::HTTPResponse(std::string status_,std::string content_type_,std::vector<uint8_t> content):
     status(std::move(status_)),
-    content_type(content_type_.empty()?DEFAULT_CONTENT_TYPE:std::move(content_type_)),
-    content_vec(std::move(content))
+    content_vec(std::move(content)),
+    content_type(content_type_.empty()?DEFAULT_CONTENT_TYPE:std::move(content_type_))
 {
 }
 
@@ -1138,8 +1138,8 @@ HTTPResponse::HTTPResponse(std::string status_,std::string content_type_,std::ve
 
 HTTPResponse::HTTPResponse(std::string status_,std::string content_type_,std::string content):
     status(std::move(status_)),
-    content_type(std::move(content_type_)),
-    content_str(std::move(content))
+    content_str(std::move(content)),
+    content_type(std::move(content_type_))
 {
 }
 

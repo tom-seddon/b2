@@ -239,7 +239,7 @@ BeebThread::StopTraceMessage::StopTraceMessage():
 
 BeebThread::CloneWindowMessage::CloneWindowMessage(BeebWindowInitArguments init_arguments_):
     Message(BeebThreadMessageType_CloneWindow),
-    init_arguments(std::move(init_arguments))
+    init_arguments(std::move(init_arguments_))
 {
 }
 

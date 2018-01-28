@@ -95,7 +95,9 @@ static const int MAX_NUM_SCANNED_LINES=500*HEIGHT_SCALE;
 #define NOTHING_PALETTE_INDEX (0)
 
 #if BUILD_TYPE_Debug
+#ifdef _MSC_VER
 #pragma optimize("tsg",on)
+#endif
 #endif
 
 void TVOutput::UpdateOneUnit(const VideoDataUnit *unit,float amt) {
@@ -517,7 +519,9 @@ void TVOutput::UpdateOneUnit(const VideoDataUnit *unit,float amt) {
 }
 
 #if BUILD_TYPE_Debug
+#ifdef _MSC_VER
 #pragma optimize("",on)
+#endif
 #endif
 
 //////////////////////////////////////////////////////////////////////////
@@ -585,13 +589,13 @@ void TVOutput::FillWithTestPattern() {
     }
 
     {
-        for(int cy=0;cy<TV_TEXTURE_HEIGHT;cy+=50) {
-            int tmp=cy;
-            int cx=100;
+        for(size_t cy=0;cy<TV_TEXTURE_HEIGHT;cy+=50) {
+            size_t tmp=cy;
+            size_t cx=100;
             do {
                 const uint8_t *digit=DIGITS[tmp%10];
 
-                for(int gy=0;gy<13;++gy) {
+                for(size_t gy=0;gy<13;++gy) {
                     if(cy+gy>=TV_TEXTURE_HEIGHT) {
                         break;
                     }
@@ -599,7 +603,7 @@ void TVOutput::FillWithTestPattern() {
                     uint32_t *line=&m_texture_data[cx+(cy+gy)*TV_TEXTURE_WIDTH];
                     uint8_t row=*digit++;
 
-                    for(int gx=0;gx<6;++gx) {
+                    for(size_t gx=0;gx<6;++gx) {
                         if(row&1) {
                             *line=m_palette[0][0];
                         }

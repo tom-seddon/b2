@@ -269,7 +269,6 @@ protected:
         m_memory_editor.DrawContents((uint8_t *)this,65536,0);
     }
 private:
-    M6502Word m_addr{};
     MemoryEditor m_memory_editor;
 
     // There's no context parameter :( - so this hijacks the data
@@ -345,7 +344,7 @@ protected:
         {
             char *ep;
             unsigned long address=strtoul(m_address_text,&ep,16);
-            if(*ep==0||isspace(*ep)&&address<65536) {
+            if(*ep==0||(isspace(*ep)&&address<65536)) {
                 this->GoTo((uint16_t)address);
             }
         }
@@ -808,7 +807,7 @@ protected:
 
 
         if(ImGui::CollapsingHeader("Register Values")) {
-            ImGui::Text("Control = $%02x %03u %s",control,control,BINARY_BYTE_STRINGS[control.value]);
+            ImGui::Text("Control = $%02x %03u %s",control.value,control.value,BINARY_BYTE_STRINGS[control.value]);
             for(size_t i=0;i<16;++i) {
                 uint8_t p=palette[i];
                 ImGui::Text("Palette[%zu] = $%01x %02u %s ",i,p,p,BINARY_BYTE_STRINGS[p]+4);
@@ -830,7 +829,7 @@ protected:
                 if(p&8) {
                     ImGui::SameLine();
 
-                    ImGui::Text("(%s/%s)",COLOUR_NAMES[p&7],COLOUR_NAMES[p&7^7]);
+                    ImGui::Text("(%s/%s)",COLOUR_NAMES[p&7],COLOUR_NAMES[(p&7)^7]);
                 }
             }
             ImGui::Separator();
