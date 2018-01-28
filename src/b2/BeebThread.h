@@ -23,6 +23,7 @@
 #include "BeebConfig.h"
 #include "Timeline.h"
 #include "BeebWindow.h"
+#include "MessageQueue.h"
 
 #include <shared/enum_decl.h>
 #include "BeebThread.inl"
@@ -31,7 +32,6 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-struct MessageQueue;
 struct Message;
 struct BeebWindowInitArguments;
 class TVOutput;
@@ -418,6 +418,17 @@ public:
     private:
     };
 
+    class TimingMessage:
+        public Message
+    {
+    public:
+        uint64_t max_sound_units=0;
+
+        explicit TimingMessage(uint64_t max_sound_units);
+    protected:
+    private:
+    };
+
     struct AudioCallbackRecord {
         uint64_t time=0;
         uint64_t needed=0;
@@ -564,7 +575,7 @@ private:
     //std::shared_ptr<BeebThreadBeebState> m_beeb_state;
 
     // Safe provided they are accessed through their functions.
-    MessageQueue *m_mq=nullptr;
+    MessageQueue<std::unique_ptr<Message>> m_mq;
     OutputDataBuffer<VideoDataUnit> m_video_output;
     OutputDataBuffer<SoundDataUnit> m_sound_output;
     KeyStates m_effective_key_states;//includes fake shift
@@ -666,7 +677,7 @@ private:
     void ThreadStopReplay(ThreadState *ts);
     void ThreadLoadState(ThreadState *ts,uint64_t parent_timeline_id,const std::shared_ptr<BeebState> &state);
     void ThreadHandleReplayEvents(ThreadState *ts);
-    bool ThreadHandleMessage(ThreadState *ts,::Message *msg,bool *limit_speed,uint64_t *next_stop_2MHz_cycles);
+    bool ThreadHandleMessage(ThreadState *ts,const std::unique_ptr<Message> &message,bool *limit_speed,uint64_t *next_stop_2MHz_cycles);
     void ThreadSetDiscImage(ThreadState *ts,int drive,std::shared_ptr<DiscImage> disc_image);
     void ThreadStartPaste(ThreadState *ts,std::string text);
     void ThreadStopPaste(ThreadState *ts);

@@ -9,57 +9,160 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static const uint32_t MESSAGE_TYPE_SYNTHETIC=UINT32_MAX;
+#include <shared/system.h>
+#include <shared/debug.h>
+#include <shared/mutex.h>
+#include <vector>
+#include <bitset>
 
-struct Message {
-    struct Data {
-        uint64_t u64;
-        void *ptr;
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+// T needs to be default-constructible and movable.
+template<class T>
+class MessageQueue {
+public:
+    MessageQueue()=default;
+
+    // Pushed messages are retrieved in the order they were submitted.
+    void ProducerPush(T message) {
+        std::lock_guard<Mutex> lock(m_mutex);
+
+        m_messages.push_back(Message(std::move(message)));
+
+        m_cv.notify_one();
+    }
+
+    template<class SeqIt>
+    void ProducerPush(SeqIt begin,SeqIt end) {
+        std::lock_guard<Mutex> lock(m_mutex);
+
+        for(auto &&it=begin;it!=end;++it) {
+            m_messages.push_back(Message(std::move(*it)));
+        }
+        
+        m_cv.notify_one();
+    }
+
+    // When no pushed messages are available, an indexed pushed
+    // message is retrieved. Each message pushed with a particular
+    // index replaces the previous message with that index, so that
+    // messages that supercede any previous messages of the same type
+    // can be pushed without having to worry about filling the queue
+    // up.
+    //
+    // The consumer can't distinguished indexed messages from
+    // non-indexed ones. The distinction is for the producer's
+    // benefit.
+    //
+    // Valid indexes are from 0 to 63.
+    void ProducerPushIndexed(uint8_t index,T message) {
+        ASSERT(index<64);
+
+        uint64_t old_indexed_messages_pending;
+        {
+            std::lock_guard<Mutex> lock(m_mutex);
+
+            old_indexed_messages_pending=m_indexed_messages_pending;
+
+            m_indexed_messages[index]=Message(std::move(message));
+            m_indexed_messages_pending|=1ull<<index;
+        }
+
+        if(old_indexed_messages_pending==0) {
+            m_cv.notify_one();
+        }
+    }
+
+    void ConsumerWaitForMessages(std::vector<T> *messages) {
+        std::unique_lock<Mutex> lock(m_mutex);
+
+        for(;;) {
+            if(this->PollLocked(messages)) {
+                return;
+            }
+
+            m_cv.wait(lock);
+        }
+    }
+
+    bool ConsumerPollForMessages(std::vector<T> *messages) {
+        std::lock_guard<Mutex> lock(m_mutex);
+
+        return this->PollLocked(messages);
+    }
+
+protected:
+private:
+    struct Message {
+        T value;
+#if MESSAGE_QUEUE_TRACK_LATENCY
+        uint64_t push_ticks=GetCurrentTickCount();
+#endif
+
+        Message()=default;
+
+        explicit Message(T value_):
+            value(std::move(value_))
+        {
+        }
     };
 
-    // 0xffffffff is not a valid type.
-    uint32_t type;
-    uint32_t u32;
-    Data data;
-    void *sender;
-    void (*destroy_fn)(Message *);
-#ifdef MESSAGE_QUEUE_TRACK_LATENCY
-    uint64_t push_ticks;
+    Mutex m_mutex;
+    ConditionVariable m_cv;
+    std::vector<Message> m_messages;
+    Message m_indexed_messages[64];
+    uint64_t m_indexed_messages_pending=0;
+#if MESSAGE_QUEUE_TRACK_LATENCY
+    uint64_t m_total_latency=0;
+    uint64_t m_min_latency=UINT64_MAX;
+    uint64_t m_max_latency=0;
 #endif
+
+    bool PollLocked(std::vector<T> *messages) {
+        bool any=false;
+        uint64_t push_ticks=UINT64_MAX;
+
+        if(!m_messages.empty()) {
+#if MESSAGE_QUEUE_TRACK_LATENCY
+            push_ticks=m_messages[0].push_ticks;
+#endif
+
+            for(Message &message:m_messages) {
+                messages->push_back(std::move(message.value));
+            }
+
+            m_messages.clear();
+            any=true;
+        }
+
+        if(m_indexed_messages_pending!=0) {
+            for(uint8_t i=0;i<64;++i) {
+                if(m_indexed_messages_pending&1ull<<i) {
+                    Message *m=&m_indexed_messages[i];
+
+#if MESSAGE_QUEUE_TRACK_LATENCY
+                    push_ticks=std::min(push_ticks,m->push_ticks);
+#endif
+                    messages->push_back(std::move(m->value));
+
+                    any=true;
+                }
+            }
+
+            m_indexed_messages_pending=0;
+        }
+
+#if MESSAGE_QUEUE_TRACK_LATENCY
+        uint64_t latency=GetCurrentTickCount()-push_ticks;
+        m_total_latency+=latency;
+        m_min_latency=std::min(m_min_latency,latency);
+        m_max_latency=std::max(m_max_latency,latency);
+#endif
+
+        return any;
+    }
 };
-
-void MessageDestroy(Message *msg);
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-struct MessageQueue;
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-MessageQueue *MessageQueueAlloc(void);
-void MessageQueueFree(MessageQueue **mq_ptr);
-
-// Synthetic messages are retrieved when no other messages are
-// available. 
-//
-// Synthetic messages are emitted based on a set of flags. One
-// synthetic message with a given u32 will be retrieved, no matter how
-// many times one was added since the last time one was retrieved.
-//
-// When a synthetic message is retrieved, its message type will be
-// MESSAGE_TYPE_SYNTHETIC, its u32 the u32 supplied here, and its data
-// the data supplied to the last call to
-// MessageQueueAddSyntheticMessage for that u32.
-void MessageQueueAddSyntheticMessage(MessageQueue *mq,uint32_t u32,Message::Data data);
-
-// Add a message to the queue. One waiter is woken.
-void MessageQueuePush(MessageQueue *mq,const Message *msg);
-
-void MessageQueueWaitForMessage(MessageQueue *mq,Message *msg);
-
-int MessageQueuePollForMessage(MessageQueue *mq,Message *msg);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
