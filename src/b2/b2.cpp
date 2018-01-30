@@ -832,7 +832,8 @@ static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &init
 #endif
 
 #if HTTP_SERVER
-    if(!StartHTTPServer(0xbbcb)) {
+    std::unique_ptr<HTTPServer> http_server=CreateHTTPServer();
+    if(!http_server->Start(0xbbcb)) {
         init_messages.w.f("Failed to start HTTP server.\n");
         // but carry on... it's not fatal.
     }
@@ -1070,7 +1071,7 @@ static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &init
         Timeline::Shutdown();
 
 #if HTTP_SERVER
-        StopHTTPServer();
+        http_server=nullptr;
 #endif
     }
 

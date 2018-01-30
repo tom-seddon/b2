@@ -41,10 +41,10 @@ static const std::string DEFAULT_CONTENT_TYPE=OCTET_STREAM_CONTENT_TYPE;
 // bits, and ideally support for multiple servers (with one thread per
 // server).
 
-static std::thread g_http_server_thread;
-static Mutex g_http_mutex;
-static uv_loop_t * g_uv_loop=nullptr;
-static uv_async_t g_stop_async={};
+//static std::thread g_http_server_thread;
+//static Mutex g_http_mutex;
+//static uv_loop_t * g_uv_loop=nullptr;
+//static uv_async_t g_stop_async={};
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -62,101 +62,57 @@ static void PrintLibUVError(int rc,const char *fmt,...) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-struct HTTPServer;
+//struct HTTPServer;
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-struct HTTPConnection {
-    HTTPServer *server=nullptr;
-    uv_tcp_t tcp={};
-    http_parser parser={};
-    http_parser_settings parser_settings={};
-
-    std::string key;
-    std::string *value=nullptr;
-    HTTPRequest request;
-
-    bool keep_alive=false;
-
-    std::string response_status;
-    std::string response_prefix;
-    std::vector<uint8_t> response_body_data;
-    std::string response_body_str;
-    uv_write_t write_response_req={};
-
-    size_t num_read=0;
-    char read_buf[100];
-};
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-class Request {
-public:
-    Request()=default;
-    virtual ~Request();
-
-    // default impl returns "", indicating no result.
-    virtual std::string GetContentType() const;
-
-    virtual const char *GetCommandName() const=0;
-
-    void Do(std::vector<uint8_t> *result_body,BeebWindow *beeb_window);
-protected:
-    virtual void HandleDo(std::vector<uint8_t> *result_body,BeebWindow *beeb_window)=0;
-private:
-    bool m_done=false;
-};
+//struct HTTPConnection {
+//    uint64_t id=0;
+//    HTTPServer *server=nullptr;
+//    uv_tcp_t tcp={};
+//    http_parser parser={};
+//    http_parser_settings parser_settings={};
+//
+//    std::string key;
+//    std::string *value=nullptr;
+//    HTTPRequest request;
+//
+//    bool keep_alive=false;
+//
+//    std::string response_status;
+//    std::string response_prefix;
+//    std::vector<uint8_t> response_body_data;
+//    std::string response_body_str;
+//    uv_write_t write_response_req={};
+//
+//    size_t num_read=0;
+//    char read_buf[100];
+//};
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-Request::~Request() {
-}
+//struct WindowQueue {
+//    std::string content_type;
+//    std::string content_type_request;
+//    std::vector<std::unique_ptr<BeebThread::Message>> messages;
+//};
 
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
+//struct MainThreadData {
+//    std::map<std::string,WindowQueue> window_queues;
+//};
 
-std::string Request::GetContentType() const {
-    return "";
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-void Request::Do(std::vector<uint8_t> *result_body,BeebWindow *beeb_window) {
-    ASSERT(!m_done);
-
-    size_t n=result_body->size();
-    (void)n;
-    this->HandleDo(result_body,beeb_window);
-    ASSERT(!this->GetContentType().empty()||result_body->size()==n);
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-struct WindowQueue {
-    std::string content_type;
-    const char *content_type_request=nullptr;
-    std::vector<std::unique_ptr<Request>> requests;
-};
-
-struct MainThreadData {
-    std::map<std::string,WindowQueue> window_queues;
-};
-
-struct HTTPServer {
-    int port=-1;
-
-    std::set<HTTPConnection *> connections;
-    uv_loop_t loop={};
-    bool closed=false;
-    uv_tcp_t listen_tcp={};
-
-    MainThreadData main_thread_data;
-};
+//struct HTTPServer {
+//    int port=-1;
+//
+//    std::set<HTTPConnection *> connections;
+//    uv_loop_t loop={};
+//    bool closed=false;
+//    uv_tcp_t listen_tcp={};
+//
+//    MainThreadData main_thread_data;
+//};
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -247,49 +203,49 @@ static void EmptyCloseCallback(uv_handle_t *handle) {
     (void)handle;
 }
 
-static int HandleHTTPMessageBegin(http_parser *parser) {
-    (void)parser;
-    //auto conn=(HTTPConnection *)parser->data;
+//static int HandleHTTPMessageBegin(http_parser *parser) {
+//    (void)parser;
+//    //auto conn=(HTTPConnection *)parser->data;
+//
+//    LOGF(HTTP,"%s\n",__func__);
+//
+//    return 0;
+//}
 
-    LOGF(HTTP,"%s\n",__func__);
+//static int HandleHTTPURL(http_parser *parser,const char *at,size_t length) {
+//    auto conn=(HTTPConnection *)parser->data;
+//
+//    conn->request.url.append(at,length);
+//
+//    return 0;
+//}
 
-    return 0;
-}
+//static int HandleHTTPHeaderField(http_parser *parser,const char *at,size_t length) {
+//    auto conn=(HTTPConnection *)parser->data;
+//
+//    conn->value=nullptr;
+//    conn->key.append(at,length);
+//
+//    return 0;
+//}
 
-static int HandleHTTPURL(http_parser *parser,const char *at,size_t length) {
-    auto conn=(HTTPConnection *)parser->data;
-
-    conn->request.url.append(at,length);
-
-    return 0;
-}
-
-static int HandleHTTPHeaderField(http_parser *parser,const char *at,size_t length) {
-    auto conn=(HTTPConnection *)parser->data;
-
-    conn->value=nullptr;
-    conn->key.append(at,length);
-
-    return 0;
-}
-
-static int HandleHTTPHeaderValue(http_parser *parser,const char *at,size_t length) {
-    auto conn=(HTTPConnection *)parser->data;
-
-    if(!conn->value) {
-        conn->value=&conn->request.headers[conn->key];
-        conn->key.clear();
-
-        // https://tools.ietf.org/html/rfc2616#section-4.2
-        if(!conn->value->empty()) {
-            conn->value->append(1,',');
-        }
-    }
-
-    conn->value->append(at,length);
-
-    return 0;
-}
+//static int HandleHTTPHeaderValue(http_parser *parser,const char *at,size_t length) {
+//    auto conn=(HTTPConnection *)parser->data;
+//
+//    if(!conn->value) {
+//        conn->value=&conn->request.headers[conn->key];
+//        conn->key.clear();
+//
+//        // https://tools.ietf.org/html/rfc2616#section-4.2
+//        if(!conn->value->empty()) {
+//            conn->value->append(1,',');
+//        }
+//    }
+//
+//    conn->value->append(at,length);
+//
+//    return 0;
+//}
 
 static int GetHexCharValue(char c) {
     if(c>='0'&&c<='9') {
@@ -349,701 +305,631 @@ static bool GetPercentDecodedURLPart(std::string *result,const http_parser_url &
     return true;
 }
 
-static int HandleHTTPHeadersComplete(http_parser *parser) {
-    auto conn=(HTTPConnection *)parser->data;
-
-    LOGF(HTTP,"%s\n",__func__);
-
-    conn->request.method=http_method_str((http_method)parser->method);
-    //conn->status=200;
-    //conn->status=parser->status_code;
-
-    http_parser_url url={};
-    // 0 = not connect
-    if(http_parser_parse_url(conn->request.url.data(),conn->request.url.size(),0,&url)!=0) {
-        LOGF(HTTP,"invalid URL: %s\n",conn->request.url.c_str());
-        return -1;
-    }
-
-    if(!GetPercentDecodedURLPart(&conn->request.url_path,url,UF_PATH,conn->request.url,"path")) {
-        return -1;
-    }
-
-    if(!GetPercentDecodedURLPart(&conn->request.url_fragment,url,UF_FRAGMENT,conn->request.url,"fragment")) {
-        return -1;
-    }
-
-    if(url.field_set&1<<UF_QUERY) {
-        size_t begin=url.field_data[UF_QUERY].off;
-        size_t end=begin+url.field_data[UF_QUERY].len;
-
-        size_t a=begin;
-        while(a<end) {
-            HTTPQueryParameter kv;
-
-            size_t b=a;
-            while(b<end&&conn->request.url[b]!='=') {
-                ++b;
-            }
-
-            if(b>=end) {
-                LOGF(HTTP,"invalid URL query (missing '='): %s\n",conn->request.url.c_str());
-                return -1;
-            }
-
-            if(!GetPercentDecoded(&kv.key,conn->request.url,a,b-a)) {
-                LOGF(HTTP,"invalid URL query (bad key percent encoding): %s\n",conn->request.url.c_str());
-                return -1;
-            }
-
-            a=b+1;
-            while(b<end&&conn->request.url[b]!='&') {
-                ++b;
-            }
-
-            if(!GetPercentDecoded(&kv.value,conn->request.url,a,b-a)) {
-                LOGF(HTTP,"invalid URL query (bad value percent encoding): %s\n",conn->request.url.c_str());
-                return -1;
-            }
-
-            conn->request.query.push_back(std::move(kv));
-
-            a=b+1;
-        }
-    }
-
-    return 0;
-}
-
-static int HandleHTTPBody(http_parser *parser,const char *at,size_t length) {
-    auto conn=(HTTPConnection *)parser->data;
-
-    conn->request.body.insert(conn->request.body.end(),at,at+length);
-
-    return 0;
-}
-
-static void HandleConnectionClose(uv_handle_t *handle) {
-    auto conn=(HTTPConnection *)handle->data;
-    ASSERT(handle==(uv_handle_t *)&conn->tcp);
-    //HTTPServer *server=conn->server;
-
-    ASSERT(conn->server->connections.count(conn)==1);
-    conn->server->connections.erase(conn);
-
-    delete conn;
-    conn=nullptr;
-}
-
-static void CloseConnection(HTTPConnection *conn) {
-    uv_close((uv_handle_t *)&conn->tcp,&HandleConnectionClose);
-}
-
-static void ConnectionAlloc(uv_handle_t *handle,size_t suggested_size,uv_buf_t *buf) {
-    auto conn=(HTTPConnection *)handle->data;
-    (void)suggested_size;
-
-    ASSERT(handle==(uv_handle_t *)&conn->tcp);
-    ASSERT(conn->num_read<sizeof conn->read_buf);
-    static_assert(sizeof conn->read_buf<=UINT_MAX,"");
-    *buf=uv_buf_init(conn->read_buf+conn->num_read,(unsigned)(sizeof conn->read_buf-conn->num_read));
-}
-
-static void SendResponse(HTTPConnection *conn,HTTPResponse &&response);
-
-static void ConnectionRead(uv_stream_t *stream,ssize_t num_read,const uv_buf_t *buf) {
-    (void)buf;
-
-    auto conn=(HTTPConnection *)stream->data;
-    ASSERT(stream==(uv_stream_t *)&conn->tcp);
-
-    if(num_read==UV_EOF) {
-        CloseConnection(conn);
-    } else if(num_read<0) {
-        PrintLibUVError((int)num_read,"connection read callback");
-        CloseConnection(conn);
-    } else if(num_read==0) {
-        // ignore...
-    } else if(num_read>0) {
-        ASSERT((size_t)num_read<=sizeof conn->read_buf);
-        size_t total_num_read=conn->num_read+(size_t)num_read;
-        ASSERT(total_num_read<=sizeof conn->read_buf);
-        size_t num_consumed=http_parser_execute(&conn->parser,&conn->parser_settings,conn->read_buf,total_num_read);
-        if(num_consumed==0) {
-            if(conn->parser.http_errno==0) {
-                // Is this even possible?
-                conn->parser.http_errno=HPE_UNKNOWN;
-            }
-        }
-
-        if(conn->parser.http_errno!=0) {
-            LOGF(HTTP,"HTTP error: %s\n",http_errno_description((http_errno)conn->parser.http_errno));
-            SendResponse(conn,CreateErrorResponse(conn->request,"400 Bad Request"));
-            //CloseConnection(conn);
-        } else {
-            ASSERT(num_consumed<=total_num_read);
-            memmove(conn->read_buf,conn->read_buf+num_consumed,total_num_read-num_consumed);
-            conn->num_read=total_num_read-num_consumed;
-        }
-    }
-}
-
-static void WaitForRequest(HTTPConnection *conn) {
-    int rc;
-
-    conn->key.clear();
-    conn->value=nullptr;
-    conn->request=HTTPRequest();
-    conn->response_body_data.clear();
-    conn->response_body_str.clear();
-    conn->response_prefix.clear();
-
-    rc=uv_read_start((uv_stream_t *)&conn->tcp,&ConnectionAlloc,&ConnectionRead);
-    if(rc!=0) {
-        PrintLibUVError(rc,"uv_read_start failed");
-        CloseConnection(conn);
-        return;
-    }
-}
-
-static void WriteResponseCallback(uv_write_t *req,int status) {
-    auto conn=(HTTPConnection *)req->data;
-
-    ASSERT(req==&conn->write_response_req);
-    req->data=nullptr;
-
-    if(status!=0) {
-        PrintLibUVError(status,"%s status",__func__);
-        CloseConnection(conn);
-        return;
-    }
-
-    if(conn->keep_alive&&conn->parser.http_errno==0) {
-        WaitForRequest(conn);
-    } else {
-        CloseConnection(conn);
-    }
-}
-
-static void SendResponse(HTTPConnection *conn,HTTPResponse &&response) {
-    int rc;
-
-    ASSERT(!conn->write_response_req.data);
-    conn->write_response_req.data=conn;
-
-    std::map<std::string,std::string> headers;
-
-    if(response.content_type.empty()) {
-        headers[CONTENT_TYPE]=DEFAULT_CONTENT_TYPE;
-    } else {
-        headers[CONTENT_TYPE]=response.content_type;
-    }
-
-    std::vector<uv_buf_t> body_bufs;
-    if(!response.content_vec.empty()) {
-        conn->response_body_data=std::move(response.content_vec);
-        headers[CONTENT_LENGTH]=std::to_string(conn->response_body_data.size());
-        body_bufs=GetBufs(&conn->response_body_data);
-    } else if(!response.content_str.empty()) {
-        conn->response_body_str=std::move(response.content_str);
-        headers[CONTENT_LENGTH]=std::to_string(conn->response_body_str.size());
-        body_bufs=GetBufs(&conn->response_body_str);
-    } else {
-        headers[CONTENT_LENGTH]="0";
-    }
-
-    conn->response_prefix="HTTP/1.1 ";
-    if(response.status.empty()) {
-        conn->response_prefix+="200 OK";
-    } else {
-        conn->response_prefix+=response.status;
-    }
-    conn->response_prefix+="\r\n";
-
-    for(auto &&kv:headers) {
-        conn->response_prefix+=kv.first+":"+kv.second+"\r\n";
-    }
-    conn->response_prefix+="\r\n";
-
-    std::vector<uv_buf_t> bufs=GetBufs(&conn->response_prefix);
-    bufs.insert(bufs.end(),body_bufs.begin(),body_bufs.end());
-
-    for(size_t i=0;i<bufs.size();++i) {
-        LOGF(HTTP,"Buf %zu: ",i);
-        LogIndenter indent(&LOG(HTTP));
-        LogDumpBytes(&LOG(HTTP),bufs[i].base,bufs[i].len);
-    }
-
-    rc=uv_write(&conn->write_response_req,(uv_stream_t *)&conn->tcp,bufs.data(),(unsigned)bufs.size(),&WriteResponseCallback);
-    if(rc!=0) {
-        PrintLibUVError(rc,"uv_write failed");
-        CloseConnection(conn);
-        return;
-    }
-}
-
-static std::vector<std::string> GetPathParts(const std::string &path) {
-    std::vector<std::string> parts;
-    std::string part;
-
-    for(char c:path) {
-        if(c=='/') {
-            if(!part.empty()) {
-                parts.push_back(part);
-                part.clear();
-            }
-        } else {
-            part.append(1,c);
-        }
-    }
-
-    if(!part.empty()) {
-        parts.push_back(part);
-    }
-
-    return parts;
-}
-
-class PokeRequest:
-    public Request
-{
-public:
-    static const char COMMAND_NAME[];
-
-    PokeRequest(uint32_t addr,std::vector<uint8_t> data):
-        m_addr(addr),
-        m_data(std::move(data))
-    {
-    }
-
-    const char *GetCommandName() const override {
-        return COMMAND_NAME;
-    }
-protected:
-    void HandleDo(std::vector<uint8_t> *result_body,BeebWindow *beeb_window) override {
-        (void)result_body;
-
-        std::shared_ptr<BeebThread> beeb_thread=beeb_window->GetBeebThread();
-
-        beeb_thread->Send(std::make_unique<BeebThread::DebugSetBytesMessage>(m_addr,std::move(m_data)));
-    }
-private:
-    uint32_t m_addr=0;
-    std::vector<uint8_t> m_data;
-};
-
-const char PokeRequest::COMMAND_NAME[]="poke";
-
-class PeekRequest:
-    public Request
-{
-public:
-    static const char COMMAND_NAME[];
-
-    PeekRequest(uint32_t addr,uint32_t num_bytes):
-        m_addr(addr),
-        m_num_bytes(num_bytes)
-    {
-    }
-
-    std::string GetContentType() const override {
-        return OCTET_STREAM_CONTENT_TYPE;
-    }
-
-    const char *GetCommandName() const override {
-        return COMMAND_NAME;
-    }
-protected:
-    void HandleDo(std::vector<uint8_t> *result_body,BeebWindow *beeb_window) override {
-        std::shared_ptr<BeebThread> beeb_thread=beeb_window->GetBeebThread();
-
-        std::unique_lock<Mutex> lock;
-        const BBCMicro *beeb=beeb_thread->LockBeeb(&lock);
-
-        for(uint32_t i=0;i<m_num_bytes;++i) {
-            // when DebugGetByte returns -1, it'll produce 0xff. Not
-            // much point trying to be any cleverer than that.
-            result_body->push_back((uint8_t)beeb->DebugGetByte(m_addr+i));
-        }
-    }
-private:
-    uint32_t m_addr=0;
-    uint32_t m_num_bytes=0;
-};
-
-class ResetRequest:
-    public Request
-{
-public:
-    static const char COMMAND_NAME[];
-
-    ResetRequest(bool boot):
-        m_boot(boot)
-    {
-    }
-
-    const char *GetCommandName() const override {
-        return COMMAND_NAME;
-    }
-protected:
-    void HandleDo(std::vector<uint8_t> *result_body,BeebWindow *beeb_window) override {
-        (void)result_body;
-
-        std::shared_ptr<BeebThread> beeb_thread=beeb_window->GetBeebThread();
-
-        beeb_thread->Send(std::make_unique<BeebThread::HardResetMessage>(m_boot));
-    }
-private:
-    bool m_boot=false;
-};
-
-const char ResetRequest::COMMAND_NAME[]="reset";
-
-static bool FindBeebWindow(BeebWindow **window_ptr,const std::string &name) {
-    *window_ptr=BeebWindows::FindBeebWindowByName(name);
-    return !!*window_ptr;
-}
-
-static std::unique_ptr<Request> CreateRequest(HTTPResponse *response,HTTPRequest *http_request,const std::vector<std::string> &path_parts,size_t index0) {
-    if(path_parts[index0]==PokeRequest::COMMAND_NAME) {
-        if(http_request->body.empty()) {
-            *response=HTTPResponse::BadRequest("no message body");
-            return nullptr;
-        }
-
-        if(path_parts.size()!=index0+2) {
-            *response=HTTPResponse::BadRequest("syntax: %s/ADDR",PokeRequest::COMMAND_NAME);
-            return nullptr;
-        }
-
-        uint32_t addr;
-        if(!GetUInt32FromHexString(&addr,path_parts[index0+1])) {
-            *response=HTTPResponse::BadRequest("bad address: %s",path_parts[index0+1].c_str());
-            return nullptr;
-        }
-
-        return std::make_unique<PokeRequest>(addr,std::move(http_request->body));
-    } else if(path_parts[index0]==ResetRequest::COMMAND_NAME) {
-        return std::make_unique<ResetRequest>(false);
-    } else {
-        *response=HTTPResponse::BadRequest("unknown request: %s",path_parts[index0].c_str());
-        return nullptr;
-    }
-}
-
-static HTTPResponse DispatchRequestMainThread2(MainThreadData *main_thread_data,HTTPRequest *http_request) {
-
-    std::vector<std::string> parts=GetPathParts(http_request->url_path);
-
-    //uint32_t value;
-    BeebWindow *window;
-
-    if(parts.size()==2&&parts[0]=="c") {
-        if(!FindBeebWindow(&window,parts[1])) {
-            return HTTPResponse::BadRequest("unknown window: %s",parts[1].c_str());
-        }
-
-        main_thread_data->window_queues.erase(parts[1]);
-        return HTTPResponse::OK();
-    } else if(parts.size()>=3&&parts[0]=="q") {
-        if(!FindBeebWindow(&window,parts[1])) {
-            return HTTPResponse::BadRequest("unknown window: %s",parts[1].c_str());
-        }
-
-        HTTPResponse response;
-        std::unique_ptr<Request> request=CreateRequest(&response,http_request,parts,2);
-        if(!request) {
-            return response;
-        }
-
-        WindowQueue *window_queue=&main_thread_data->window_queues[parts[1]];
-
-        std::string content_type=request->GetContentType();
-        if(!content_type.empty()) {
-            if(window_queue->requests.empty()) {
-                window_queue->content_type=std::move(content_type);
-                window_queue->content_type_request=request->GetCommandName();
-            } else {
-                if(window_queue->content_type!=content_type) {
-                    return HTTPResponse::BadRequest("result type conflict: %s type is %s, queued %s type is %s",
-                                                    request->GetCommandName(),
-                                                    content_type.c_str(),
-                                                    window_queue->content_type_request,
-                                                    window_queue->content_type.c_str());
-                }
-            }
-        }
-
-        window_queue->requests.push_back(std::move(request));
-
-        return HTTPResponse::OK();
-    } else if(parts.size()>=3&&parts[0]=="x") {
-        if(!FindBeebWindow(&window,parts[1])) {
-            return HTTPResponse::BadRequest("unknown window: %s",parts[1].c_str());
-        }
-
-        HTTPResponse response;
-        std::unique_ptr<Request> request=CreateRequest(&response,http_request,parts,2);
-        if(!request) {
-            return response;
-        }
-
-        response=HTTPResponse("200 OK",request->GetContentType());
-
-        request->Do(&response.content_vec,window);
-
-        return response;
-    } else if(parts.size()==2&&parts[0]=="r") {
-        if(!FindBeebWindow(&window,parts[1])) {
-            return HTTPResponse::BadRequest("unknown window: %s",parts[1].c_str());
-        }
-
-        WindowQueue *window_queue=&main_thread_data->window_queues[parts[1]];
-
-        auto response=HTTPResponse("200 OK",window_queue->content_type);
-
-        for(const std::unique_ptr<Request> &request:window_queue->requests) {
-            request->Do(&response.content_vec,window);
-        }
-
-        window_queue=nullptr;
-        main_thread_data->window_queues.erase(parts[1]);
-
-        return response;
-    } else {
-        return HTTPResponse::BadRequest("unknown operation: %s",parts[0].c_str());
-    }
-}
-
-static void DispatchRequestMainThread(HTTPConnection *conn) {
-    HTTPResponse response=DispatchRequestMainThread2(&conn->server->main_thread_data,&conn->request);
-
-    SendResponse(conn,std::move(response));
-}
-
-static int HandleHTTPMessageComplete(http_parser *parser) {
-    int rc;
-    auto conn=(HTTPConnection *)parser->data;
-
-    conn->keep_alive=!!http_should_keep_alive(parser);
-
-    rc=uv_read_stop((uv_stream_t *)&conn->tcp);
-    if(rc!=0) {
-        PrintLibUVError(rc,"uv_read_stop failed");
-        CloseConnection(conn);
-        return -1;
-    }
-
-    LOGF(HTTP,"Headers: ");
-    {
-        LogIndenter indent(&LOG(HTTP));
-        //LOGF(HTTP,"Status: %u\n",conn->status);
-        LOGF(HTTP,"Method: %s\n",conn->request.method.c_str());
-
-        LOGF(HTTP,"URL: ");
-        {
-            LogIndenter indent2(&LOG(HTTP));
-            LOGF(HTTP,"%s\n",conn->request.url.c_str());
-            LOGF(HTTP,"Path: %s\n",conn->request.url_path.c_str());
-            //LOGF(HTTP,"Query: %s\n",conn->request.url_query.c_str());
-
-            if(!conn->request.query.empty()) {
-                LOGF(HTTP,"Query: ");
-                {
-                    LogIndenter indent3(&LOG(HTTP));
-
-                    for(const HTTPQueryParameter &kv:conn->request.query) {
-                        LOGF(HTTP,"%s: %s\n",kv.key.c_str(),kv.value.c_str());
-                    }
-                }
-            }
-
-            LOGF(HTTP,"Fragment: %s\n",conn->request.url_fragment.c_str());
-        }
-
-        if(!conn->request.headers.empty()) {
-            LOGF(HTTP,"Fields: ");
-            LogIndenter indent2(&LOG(HTTP));
-            for(auto &&kv:conn->request.headers) {
-                LOGF(HTTP,"%s: %s\n",kv.first.c_str(),kv.second.c_str());
-            }
-        }
-    }
-
-    if(conn->request.body.empty()) {
-        LOGF(HTTP,"Body: ");
-        {
-            LogIndenter indent(&LOG(HTTP));
-            LogDumpBytes(&LOG(HTTP),conn->request.body.data(),conn->request.body.size());
-        }
-    }
-
-    //conn->status="404 Not Found";
-
-    //if(!conn->status.empty()) {
-    //SendResponse(conn,CreateErrorResponse(conn->request,"404 Not Found"));
-    //}
-
-    PushFunctionMessage([conn]() {
-        DispatchRequestMainThread(conn);
-    });
-
-    return 0;
-}
-
-static void StopHTTPServerAsyncCallback(uv_async_t *async) {
-    auto server=(HTTPServer *)async->loop->data;
-
-    uv_print_all_handles(async->loop,stderr);
-
-    {
-        std::lock_guard<Mutex> lock(g_http_mutex);
-        ASSERT(async->loop==g_uv_loop);
-        g_uv_loop=nullptr;
-    }
-
-    uv_close((uv_handle_t *)async,&EmptyCloseCallback);
-
-    for(HTTPConnection *conn:server->connections) {
-        CloseConnection(conn);
-    }
-
-    uv_close((uv_handle_t *)&server->listen_tcp,&EmptyCloseCallback);
-}
-
-static void HandleConnection(uv_stream_t *server_tcp,int status) {
-    auto server=(HTTPServer *)server_tcp->data;
-    int rc;
-
-    if(status!=0) {
-        PrintLibUVError(status,"connection callback");
-        return;
-    }
-
-    auto conn=new HTTPConnection;
-
-    conn->parser_settings.on_url=&HandleHTTPURL;
-    conn->parser_settings.on_header_field=&HandleHTTPHeaderField;
-    conn->parser_settings.on_header_value=&HandleHTTPHeaderValue;
-    conn->parser_settings.on_headers_complete=&HandleHTTPHeadersComplete;
-    conn->parser_settings.on_body=&HandleHTTPBody;
-    conn->parser_settings.on_message_complete=&HandleHTTPMessageComplete;
-    conn->parser_settings.on_message_begin=&HandleHTTPMessageBegin;
-
-    http_parser_init(&conn->parser,HTTP_REQUEST);
-    conn->parser.data=conn;
-
-    rc=uv_tcp_init(server_tcp->loop,&conn->tcp);
-    if(rc!=0) {
-        PrintLibUVError(rc,"uv_tcp_init failed");
-        delete conn;
-        return;
-    }
-
-    rc=uv_accept(server_tcp,(uv_stream_t *)&conn->tcp);
-    if(rc!=0) {
-        PrintLibUVError(rc,"uv_accept failed");
-        delete conn;
-        return;
-    }
-
-    conn->tcp.data=conn;
-    conn->server=server;
-    conn->server->connections.insert(conn);
-
-    WaitForRequest(conn);
-}
-
-static void Run(int port) {
-    int rc;
-    uv_loop_t loop={};
-
-    HTTPServer server;
-
-    rc=uv_loop_init(&loop);
-    if(rc!=0) {
-        PrintLibUVError(rc,"uv_loop_init failed");
-        goto done;
-    }
-
-    loop.data=&server;
-
-    rc=uv_tcp_init(&loop,&server.listen_tcp);
-    if(rc!=0) {
-        PrintLibUVError(rc,"uv_tcp_init failed");
-        goto done;
-    }
-
-    server.listen_tcp.data=&server;
-
-    {
-        struct sockaddr_in addr;
-        uv_ip4_addr("127.0.0.1",port,&addr);
-        rc=uv_tcp_bind(&server.listen_tcp,(struct sockaddr *)&addr,0);
-        if(rc!=0) {
-            PrintLibUVError(rc,"uv_tcp_bind failed");
-            uv_close((uv_handle_t *)&server.listen_tcp,&EmptyCloseCallback);
-        } else {
-            rc=uv_listen((uv_stream_t *)&server.listen_tcp,10,&HandleConnection);
-            if(rc!=0) {
-                PrintLibUVError(rc,"uv_listen failed");
-                uv_close((uv_handle_t *)&server.listen_tcp,&EmptyCloseCallback);
-            }
-        }
-    }
-
-    {
-        std::lock_guard<Mutex> lock(g_http_mutex);
-        g_uv_loop=&loop;
-    }
-
-    LOGF(HTTP,"Running libuv loop...\n");
-    rc=uv_run(&loop,UV_RUN_DEFAULT);
-    LOGF(HTTP,"uv_run result: %d\n",rc);
-
-done:;
-    if(loop.data) {
-        uv_loop_close(&loop);
-        loop.data=nullptr;
-    }
-}
+//static int HandleHTTPHeadersComplete(http_parser *parser) {
+//    auto conn=(HTTPConnection *)parser->data;
+//
+//    LOGF(HTTP,"%s\n",__func__);
+//
+//    conn->request.method=http_method_str((http_method)parser->method);
+//    //conn->status=200;
+//    //conn->status=parser->status_code;
+//
+//    http_parser_url url={};
+//    // 0 = not connect
+//    if(http_parser_parse_url(conn->request.url.data(),conn->request.url.size(),0,&url)!=0) {
+//        LOGF(HTTP,"invalid URL: %s\n",conn->request.url.c_str());
+//        return -1;
+//    }
+//
+//    if(!GetPercentDecodedURLPart(&conn->request.url_path,url,UF_PATH,conn->request.url,"path")) {
+//        return -1;
+//    }
+//
+//    if(!GetPercentDecodedURLPart(&conn->request.url_fragment,url,UF_FRAGMENT,conn->request.url,"fragment")) {
+//        return -1;
+//    }
+//
+//    if(url.field_set&1<<UF_QUERY) {
+//        size_t begin=url.field_data[UF_QUERY].off;
+//        size_t end=begin+url.field_data[UF_QUERY].len;
+//
+//        size_t a=begin;
+//        while(a<end) {
+//            HTTPQueryParameter kv;
+//
+//            size_t b=a;
+//            while(b<end&&conn->request.url[b]!='=') {
+//                ++b;
+//            }
+//
+//            if(b>=end) {
+//                LOGF(HTTP,"invalid URL query (missing '='): %s\n",conn->request.url.c_str());
+//                return -1;
+//            }
+//
+//            if(!GetPercentDecoded(&kv.key,conn->request.url,a,b-a)) {
+//                LOGF(HTTP,"invalid URL query (bad key percent encoding): %s\n",conn->request.url.c_str());
+//                return -1;
+//            }
+//
+//            a=b+1;
+//            while(b<end&&conn->request.url[b]!='&') {
+//                ++b;
+//            }
+//
+//            if(!GetPercentDecoded(&kv.value,conn->request.url,a,b-a)) {
+//                LOGF(HTTP,"invalid URL query (bad value percent encoding): %s\n",conn->request.url.c_str());
+//                return -1;
+//            }
+//
+//            conn->request.query.push_back(std::move(kv));
+//
+//            a=b+1;
+//        }
+//    }
+//
+//    return 0;
+//}
+
+//static int HandleHTTPBody(http_parser *parser,const char *at,size_t length) {
+//    auto conn=(HTTPConnection *)parser->data;
+//
+//    conn->request.body.insert(conn->request.body.end(),at,at+length);
+//
+//    return 0;
+//}
+
+//static void HandleConnectionClose(uv_handle_t *handle) {
+//    auto conn=(HTTPConnection *)handle->data;
+//    ASSERT(handle==(uv_handle_t *)&conn->tcp);
+//    //HTTPServer *server=conn->server;
+//
+//    ASSERT(conn->server->connections.count(conn)==1);
+//    conn->server->connections.erase(conn);
+//
+//    delete conn;
+//    conn=nullptr;
+//}
+
+//static void CloseConnection(HTTPConnection *conn) {
+//    uv_close((uv_handle_t *)&conn->tcp,&HandleConnectionClose);
+//}
+
+//static void ConnectionAlloc(uv_handle_t *handle,size_t suggested_size,uv_buf_t *buf) {
+//    auto conn=(HTTPConnection *)handle->data;
+//    (void)suggested_size;
+//
+//    ASSERT(handle==(uv_handle_t *)&conn->tcp);
+//    ASSERT(conn->num_read<sizeof conn->read_buf);
+//    static_assert(sizeof conn->read_buf<=UINT_MAX,"");
+//    *buf=uv_buf_init(conn->read_buf+conn->num_read,(unsigned)(sizeof conn->read_buf-conn->num_read));
+//}
+
+//static void SendResponse(HTTPConnection *conn,HTTPResponse &&response);
+
+//static void ConnectionRead(uv_stream_t *stream,ssize_t num_read,const uv_buf_t *buf) {
+//    (void)buf;
+//
+//    auto conn=(HTTPConnection *)stream->data;
+//    ASSERT(stream==(uv_stream_t *)&conn->tcp);
+//
+//    if(num_read==UV_EOF) {
+//        CloseConnection(conn);
+//    } else if(num_read<0) {
+//        PrintLibUVError((int)num_read,"connection read callback");
+//        CloseConnection(conn);
+//    } else if(num_read==0) {
+//        // ignore...
+//    } else if(num_read>0) {
+//        ASSERT((size_t)num_read<=sizeof conn->read_buf);
+//        size_t total_num_read=conn->num_read+(size_t)num_read;
+//        ASSERT(total_num_read<=sizeof conn->read_buf);
+//        size_t num_consumed=http_parser_execute(&conn->parser,&conn->parser_settings,conn->read_buf,total_num_read);
+//        if(num_consumed==0) {
+//            if(conn->parser.http_errno==0) {
+//                // Is this even possible?
+//                conn->parser.http_errno=HPE_UNKNOWN;
+//            }
+//        }
+//
+//        if(conn->parser.http_errno!=0) {
+//            LOGF(HTTP,"HTTP error: %s\n",http_errno_description((http_errno)conn->parser.http_errno));
+//            SendResponse(conn,CreateErrorResponse(conn->request,"400 Bad Request"));
+//            //CloseConnection(conn);
+//        } else {
+//            ASSERT(num_consumed<=total_num_read);
+//            memmove(conn->read_buf,conn->read_buf+num_consumed,total_num_read-num_consumed);
+//            conn->num_read=total_num_read-num_consumed;
+//        }
+//    }
+//}
+
+//static void WaitForRequest(HTTPConnection *conn) {
+//    int rc;
+//
+//    conn->key.clear();
+//    conn->value=nullptr;
+//    conn->request=HTTPRequest();
+//    conn->response_body_data.clear();
+//    conn->response_body_str.clear();
+//    conn->response_prefix.clear();
+//
+//    rc=uv_read_start((uv_stream_t *)&conn->tcp,&ConnectionAlloc,&ConnectionRead);
+//    if(rc!=0) {
+//        PrintLibUVError(rc,"uv_read_start failed");
+//        CloseConnection(conn);
+//        return;
+//    }
+//}
+
+//static void WriteResponseCallback(uv_write_t *req,int status) {
+//    auto conn=(HTTPConnection *)req->data;
+//
+//    ASSERT(req==&conn->write_response_req);
+//    req->data=nullptr;
+//
+//    if(status!=0) {
+//        PrintLibUVError(status,"%s status",__func__);
+//        CloseConnection(conn);
+//        return;
+//    }
+//
+//    if(conn->keep_alive&&conn->parser.http_errno==0) {
+//        WaitForRequest(conn);
+//    } else {
+//        CloseConnection(conn);
+//    }
+//}
+
+//static void SendResponse(HTTPConnection *conn,HTTPResponse &&response) {
+//    int rc;
+//
+//    ASSERT(!conn->write_response_req.data);
+//    conn->write_response_req.data=conn;
+//
+//    std::map<std::string,std::string> headers;
+//
+//    if(response.content_type.empty()) {
+//        headers[CONTENT_TYPE]=DEFAULT_CONTENT_TYPE;
+//    } else {
+//        headers[CONTENT_TYPE]=response.content_type;
+//    }
+//
+//    std::vector<uv_buf_t> body_bufs;
+//    if(!response.content_vec.empty()) {
+//        conn->response_body_data=std::move(response.content_vec);
+//        headers[CONTENT_LENGTH]=std::to_string(conn->response_body_data.size());
+//        body_bufs=GetBufs(&conn->response_body_data);
+//    } else if(!response.content_str.empty()) {
+//        conn->response_body_str=std::move(response.content_str);
+//        headers[CONTENT_LENGTH]=std::to_string(conn->response_body_str.size());
+//        body_bufs=GetBufs(&conn->response_body_str);
+//    } else {
+//        headers[CONTENT_LENGTH]="0";
+//    }
+//
+//    conn->response_prefix="HTTP/1.1 ";
+//    if(response.status.empty()) {
+//        conn->response_prefix+="200 OK";
+//    } else {
+//        conn->response_prefix+=response.status;
+//    }
+//    conn->response_prefix+="\r\n";
+//
+//    for(auto &&kv:headers) {
+//        conn->response_prefix+=kv.first+":"+kv.second+"\r\n";
+//    }
+//    conn->response_prefix+="\r\n";
+//
+//    std::vector<uv_buf_t> bufs=GetBufs(&conn->response_prefix);
+//    bufs.insert(bufs.end(),body_bufs.begin(),body_bufs.end());
+//
+//    for(size_t i=0;i<bufs.size();++i) {
+//        LOGF(HTTP,"Buf %zu: ",i);
+//        LogIndenter indent(&LOG(HTTP));
+//        LogDumpBytes(&LOG(HTTP),bufs[i].base,bufs[i].len);
+//    }
+//
+//    rc=uv_write(&conn->write_response_req,(uv_stream_t *)&conn->tcp,bufs.data(),(unsigned)bufs.size(),&WriteResponseCallback);
+//    if(rc!=0) {
+//        PrintLibUVError(rc,"uv_write failed");
+//        CloseConnection(conn);
+//        return;
+//    }
+//}
+
+//static std::vector<std::string> GetPathParts(const std::string &path) {
+//    std::vector<std::string> parts;
+//    std::string part;
+//
+//    for(char c:path) {
+//        if(c=='/') {
+//            if(!part.empty()) {
+//                parts.push_back(part);
+//                part.clear();
+//            }
+//        } else {
+//            part.append(1,c);
+//        }
+//    }
+//
+//    if(!part.empty()) {
+//        parts.push_back(part);
+//    }
+//
+//    return parts;
+//}
+//
+//static bool FindBeebWindow(BeebWindow **window_ptr,const std::string &name) {
+//    *window_ptr=BeebWindows::FindBeebWindowByName(name);
+//    return !!*window_ptr;
+//}
+//
+//struct Response {
+//    HTTPResponse http_response;
+//    std::unique_ptr<BeebThread::Message> message;
+//    std::string content_type;
+//
+//    explicit Response(HTTPResponse http_response);
+//    explicit Response(std::unique_ptr<BeebThread::Message> message);
+//    Response(std::unique_ptr<BeebThread::Message> message,std::string content_type);
+//};
+//
+//Response::Response(HTTPResponse http_response_):
+//    http_response(std::move(http_response_))
+//{
+//}
+//
+//Response::Response(std::unique_ptr<BeebThread::Message> message_):
+//    message(std::move(message_))
+//{
+//}
+//
+//Response::Response(std::unique_ptr<BeebThread::Message> message_,std::string content_type_):
+//    message(std::move(message_)),
+//    content_type(std::move(content_type_))
+//{
+//}
+//
+//static const char POKE[]="poke";
+//static const char RESET[]="reset";
+//
+//static Response GetResponseForHTTPRequest(HTTPRequest *http_request,const std::vector<std::string> &path_parts,size_t index0) {
+//    if(path_parts[index0]==POKE) {
+//        if(http_request->body.empty()) {
+//            return Response(HTTPResponse::BadRequest("no message body"));
+//        }
+//
+//        if(path_parts.size()!=index0+2) {
+//            return Response(HTTPResponse::BadRequest("syntax: %s/ADDR",POKE));
+//        }
+//
+//        uint32_t addr;
+//        if(!GetUInt32FromHexString(&addr,path_parts[index0+1])) {
+//            return Response(HTTPResponse::BadRequest("bad address: %s",path_parts[index0+1].c_str()));
+//        }
+//
+//        return Response(std::make_unique<BeebThread::DebugSetBytesMessage>(addr,std::move(http_request->body)));
+//    } else if(path_parts[index0]==RESET) {
+//        return Response(std::make_unique<BeebThread::HardResetMessage>(false));
+//    } else {
+//        return Response(HTTPResponse::BadRequest("unknown request: %s",path_parts[index0].c_str()));
+//    }
+//}
+//
+//static void DispatchRequestMainThread(HTTPConnection *conn) {
+//    std::vector<std::string> parts=GetPathParts(conn->request.url_path);
+//
+//    //uint32_t value;
+//    BeebWindow *window;
+//
+//    if(parts.size()==2&&parts[0]=="c") {
+//        if(!FindBeebWindow(&window,parts[1])) {
+//            SendResponse(conn,HTTPResponse::BadRequest("unknown window: %s",parts[1].c_str()));
+//            return;
+//        }
+//
+//        conn->server->main_thread_data.window_queues.erase(parts[1]);
+//    } else if(parts.size()>=3&&parts[0]=="q") {
+//        if(!FindBeebWindow(&window,parts[1])) {
+//            SendResponse(conn,HTTPResponse::BadRequest("unknown window: %s",parts[1].c_str()));
+//            return;
+//        }
+//
+//        Response response=GetResponseForHTTPRequest(&conn->request,parts,2);
+//
+//        if(!response.message) {
+//            SendResponse(conn,std::move(response.http_response));
+//            return;
+//        }
+//
+//        WindowQueue *window_queue=&conn->server->main_thread_data.window_queues[parts[1]];
+//
+//        if(!content_type.empty()) {
+//            if(window_queue->messages.empty()) {
+//                window_queue->content_type=std::move(content_type);
+//                window_queue->content_type_request=parts[2];
+//            } else {
+//                if(window_queue->content_type!=content_type) {
+//                    return HTTPResponse::BadRequest("result type conflict: %s type is %s, queued %s type is %s",
+//                                                    parts[2],
+//                                                    content_type.c_str(),
+//                                                    window_queue->content_type_request.c_str(),
+//                                                    window_queue->content_type.c_str());
+//                }
+//            }
+//        }
+//
+//        window_queue->messages.push_back(std::move(message));
+//    } else if(parts.size()>=3&&parts[0]=="x") {
+//        if(!FindBeebWindow(&window,parts[1])) {
+//            return HTTPResponse::BadRequest("unknown window: %s",parts[1].c_str());
+//        }
+//
+//        std::string content_type;
+//        HTTPResponse response;
+//        std::unique_ptr<BeebThread::Message> message=CreateMessageFromRequest(&content_type,&response,http_request,parts,2);
+//        if(!message) {
+//            return response;
+//        }
+//
+//        response=HTTPResponse("200 OK",request->GetContentType());
+//
+//        window->GetBeebThread()->Send(std::move(message));
+//
+//        return response;
+//    } else if(parts.size()==2&&parts[0]=="r") {
+//        if(!FindBeebWindow(&window,parts[1])) {
+//            return HTTPResponse::BadRequest("unknown window: %s",parts[1].c_str());
+//        }
+//
+//        WindowQueue *window_queue=&main_thread_data->window_queues[parts[1]];
+//
+//        auto response=HTTPResponse("200 OK",window_queue->content_type);
+//
+//        for(const std::unique_ptr<Request> &request:window_queue->requests) {
+//            request->Do(&response.content_vec,window);
+//        }
+//
+//        window_queue=nullptr;
+//        main_thread_data->window_queues.erase(parts[1]);
+//
+//        return response;
+//    } else {
+//        return HTTPResponse::BadRequest("unknown operation: %s",parts[0].c_str());
+//    }
+//}
+
+//static void DispatchRequestMainThread(HTTPConnection *conn) {
+//    HTTPResponse response=DispatchRequestMainThread2(&conn->server->main_thread_data,&conn->request);
+//
+//    SendResponse(conn,std::move(response));
+//}
+
+//static int HandleHTTPMessageComplete(http_parser *parser) {
+//    int rc;
+//    auto conn=(HTTPConnection *)parser->data;
+//
+//    conn->keep_alive=!!http_should_keep_alive(parser);
+//
+//    rc=uv_read_stop((uv_stream_t *)&conn->tcp);
+//    if(rc!=0) {
+//        PrintLibUVError(rc,"uv_read_stop failed");
+//        CloseConnection(conn);
+//        return -1;
+//    }
+//
+//    LOGF(HTTP,"Headers: ");
+//    {
+//        LogIndenter indent(&LOG(HTTP));
+//        //LOGF(HTTP,"Status: %u\n",conn->status);
+//        LOGF(HTTP,"Method: %s\n",conn->request.method.c_str());
+//
+//        LOGF(HTTP,"URL: ");
+//        {
+//            LogIndenter indent2(&LOG(HTTP));
+//            LOGF(HTTP,"%s\n",conn->request.url.c_str());
+//            LOGF(HTTP,"Path: %s\n",conn->request.url_path.c_str());
+//            //LOGF(HTTP,"Query: %s\n",conn->request.url_query.c_str());
+//
+//            if(!conn->request.query.empty()) {
+//                LOGF(HTTP,"Query: ");
+//                {
+//                    LogIndenter indent3(&LOG(HTTP));
+//
+//                    for(const HTTPQueryParameter &kv:conn->request.query) {
+//                        LOGF(HTTP,"%s: %s\n",kv.key.c_str(),kv.value.c_str());
+//                    }
+//                }
+//            }
+//
+//            LOGF(HTTP,"Fragment: %s\n",conn->request.url_fragment.c_str());
+//        }
+//
+//        if(!conn->request.headers.empty()) {
+//            LOGF(HTTP,"Fields: ");
+//            LogIndenter indent2(&LOG(HTTP));
+//            for(auto &&kv:conn->request.headers) {
+//                LOGF(HTTP,"%s: %s\n",kv.first.c_str(),kv.second.c_str());
+//            }
+//        }
+//    }
+//
+//    if(conn->request.body.empty()) {
+//        LOGF(HTTP,"Body: ");
+//        {
+//            LogIndenter indent(&LOG(HTTP));
+//            LogDumpBytes(&LOG(HTTP),conn->request.body.data(),conn->request.body.size());
+//        }
+//    }
+//
+//    //conn->status="404 Not Found";
+//
+//    //if(!conn->status.empty()) {
+//    //SendResponse(conn,CreateErrorResponse(conn->request,"404 Not Found"));
+//    //}
+//
+//    PushFunctionMessage([conn]() {
+//        DispatchRequestMainThread(conn);
+//    });
+//
+//    return 0;
+//}
+
+//static void StopHTTPServerAsyncCallback(uv_async_t *async) {
+//    auto server=(HTTPServer *)async->loop->data;
+//
+//    uv_print_all_handles(async->loop,stderr);
+//
+//    {
+//        std::lock_guard<Mutex> lock(g_http_mutex);
+//        ASSERT(async->loop==g_uv_loop);
+//        g_uv_loop=nullptr;
+//    }
+//
+//    uv_close((uv_handle_t *)async,&EmptyCloseCallback);
+//
+//    for(HTTPConnection *conn:server->connections) {
+//        CloseConnection(conn);
+//    }
+//
+//    uv_close((uv_handle_t *)&server->listen_tcp,&EmptyCloseCallback);
+//    uv_close((uv_handle_t *)
+//}
+
+//static void HandleConnection(uv_stream_t *server_tcp,int status) {
+//    auto server=(HTTPServer *)server_tcp->data;
+//    int rc;
+//
+//    if(status!=0) {
+//        PrintLibUVError(status,"connection callback");
+//        return;
+//    }
+//
+//    auto conn=new HTTPConnection;
+//
+//    conn->parser_settings.on_url=&HandleHTTPURL;
+//    conn->parser_settings.on_header_field=&HandleHTTPHeaderField;
+//    conn->parser_settings.on_header_value=&HandleHTTPHeaderValue;
+//    conn->parser_settings.on_headers_complete=&HandleHTTPHeadersComplete;
+//    conn->parser_settings.on_body=&HandleHTTPBody;
+//    conn->parser_settings.on_message_complete=&HandleHTTPMessageComplete;
+//    conn->parser_settings.on_message_begin=&HandleHTTPMessageBegin;
+//
+//    http_parser_init(&conn->parser,HTTP_REQUEST);
+//    conn->parser.data=conn;
+//
+//    rc=uv_tcp_init(server_tcp->loop,&conn->tcp);
+//    if(rc!=0) {
+//        PrintLibUVError(rc,"uv_tcp_init failed");
+//        delete conn;
+//        return;
+//    }
+//
+//    rc=uv_accept(server_tcp,(uv_stream_t *)&conn->tcp);
+//    if(rc!=0) {
+//        PrintLibUVError(rc,"uv_accept failed");
+//        delete conn;
+//        return;
+//    }
+//
+//    conn->tcp.data=conn;
+//    conn->server=server;
+//    conn->server->connections.insert(conn);
+//
+//    WaitForRequest(conn);
+//}
+
+//static void Run(int port) {
+//    int rc;
+//    uv_loop_t loop={};
+//
+//    HTTPServer server;
+//
+//    rc=uv_loop_init(&loop);
+//    if(rc!=0) {
+//        PrintLibUVError(rc,"uv_loop_init failed");
+//        goto done;
+//    }
+//
+//    loop.data=&server;
+//
+//    rc=uv_tcp_init(&loop,&server.listen_tcp);
+//    if(rc!=0) {
+//        PrintLibUVError(rc,"uv_tcp_init failed");
+//        goto done;
+//    }
+//
+//    server.listen_tcp.data=&server;
+//
+//    {
+//        struct sockaddr_in addr;
+//        uv_ip4_addr("127.0.0.1",port,&addr);
+//        rc=uv_tcp_bind(&server.listen_tcp,(struct sockaddr *)&addr,0);
+//        if(rc!=0) {
+//            PrintLibUVError(rc,"uv_tcp_bind failed");
+//            uv_close((uv_handle_t *)&server.listen_tcp,&EmptyCloseCallback);
+//        } else {
+//            rc=uv_listen((uv_stream_t *)&server.listen_tcp,10,&HandleConnection);
+//            if(rc!=0) {
+//                PrintLibUVError(rc,"uv_listen failed");
+//                uv_close((uv_handle_t *)&server.listen_tcp,&EmptyCloseCallback);
+//            }
+//        }
+//    }
+//
+//    {
+//        std::lock_guard<Mutex> lock(g_http_mutex);
+//        g_uv_loop=&loop;
+//    }
+//
+//    LOGF(HTTP,"Running libuv loop...\n");
+//    rc=uv_run(&loop,UV_RUN_DEFAULT);
+//    LOGF(HTTP,"uv_run result: %d\n",rc);
+//
+//done:;
+//    if(loop.data) {
+//        uv_loop_close(&loop);
+//        loop.data=nullptr;
+//    }
+//}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool StartHTTPServer(int port) {
-    StopHTTPServer();
-
-    g_http_server_thread=std::thread([port]() {
-        Run(port);
-    });
-
-    return true;
-}
+//bool StartHTTPServer(int port) {
+//    StopHTTPServer();
+//
+//    g_http_server_thread=std::thread([port]() {
+//        Run(port);
+//    });
+//
+//    return true;
+//}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void StopHTTPServer() {
-    {
-        std::lock_guard<Mutex> lock(g_http_mutex);
-
-        if(!g_uv_loop) {
-            return;
-        }
-
-        uv_async_init(g_uv_loop,&g_stop_async,&StopHTTPServerAsyncCallback);
-        uv_async_send(&g_stop_async);
-    }
-
-    g_http_server_thread.join();
-
-    {
-        std::lock_guard<Mutex> lock(g_http_mutex);
-
-        ASSERT(!g_uv_loop);
-    }
-}
+//void StopHTTPServer() {
+//    {
+//        std::lock_guard<Mutex> lock(g_http_mutex);
+//
+//        if(!g_uv_loop) {
+//            return;
+//        }
+//
+//        uv_async_init(g_uv_loop,&g_stop_async,&StopHTTPServerAsyncCallback);
+//        uv_async_send(&g_stop_async);
+//    }
+//
+//    g_http_server_thread.join();
+//
+//    {
+//        std::lock_guard<Mutex> lock(g_http_mutex);
+//
+//        ASSERT(!g_uv_loop);
+//    }
+//}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -1141,6 +1027,674 @@ HTTPResponse::HTTPResponse(std::string status_,std::string content_type_,std::st
     content_str(std::move(content)),
     content_type(std::move(content_type_))
 {
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+HTTPServer::HTTPServer() {
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+HTTPServer::~HTTPServer() {
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+class HTTPServerImpl:
+    public HTTPServer
+{
+public:
+    HTTPServerImpl();
+    ~HTTPServerImpl();
+
+    bool Start(int port) override;
+protected:
+private:
+    struct Connection {
+        uint64_t id=0;
+        HTTPServerImpl *server=nullptr;
+        uv_tcp_t tcp={};
+        http_parser parser={};
+        http_parser_settings parser_settings={};
+
+        std::string key;
+        std::string *value=nullptr;
+        HTTPRequest request;
+
+        bool keep_alive=false;
+
+        std::string response_status;
+        std::string response_prefix;
+        std::vector<uint8_t> response_body_data;
+        std::string response_body_str;
+        uv_write_t write_response_req={};
+
+        size_t num_read=0;
+        char read_buf[100];
+    };
+
+    struct ThreadData {
+        uv_tcp_t listen_tcp{};
+        uint64_t next_connection_id=1;
+        std::map<uint64_t,Connection *> connection_by_id;
+    };
+
+    struct SharedData {
+        Mutex mutex;
+        uv_loop_t *loop=nullptr;
+    };
+
+    SharedData m_sd;
+    ThreadData m_td;
+    std::thread m_thread;
+
+    void ThreadMain(int port);
+    void CloseConnection(Connection *conn);
+    void WaitForRequest(Connection *conn);
+    void SendResponse(Connection *conn,HTTPResponse &&response);
+
+    static void StopAsyncCallback(uv_async_t *stop_async);
+    static int HandleMessageBegin(http_parser *parser);
+    static int HandleURL(http_parser *parser,const char *at,size_t length);
+    static int HandleHeaderField(http_parser *parser,const char *at,size_t length);
+    static int HandleHeaderValue(http_parser *parser,const char *at,size_t length);
+    static int HandleHeadersComplete(http_parser *parser);
+    static int HandleBody(http_parser *parser,const char *at,size_t length);
+    static int HandleMessageComplete(http_parser *parser);
+    static void HandleNewConnection(uv_stream_t *server_tcp,int status);
+    static void HandleReadAlloc(uv_handle_t *handle,size_t suggested_size,uv_buf_t *buf);
+    static void HandleRead(uv_stream_t *stream,ssize_t num_read,const uv_buf_t *buf);
+    static void HandleConnectionClose(uv_handle_t *handle);
+    static void HandleResponseWritten(uv_write_t *req,int status);
+};
+
+
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+HTTPServerImpl::HTTPServerImpl() {
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+HTTPServerImpl::~HTTPServerImpl() {
+    {
+        std::lock_guard<Mutex> sd_lock(m_sd.mutex);
+
+        if(!m_sd.loop) {
+            return;
+        }
+
+        auto stop_async=new uv_async_t{};
+        stop_async->data=this;
+        uv_async_init(m_sd.loop,stop_async,&StopAsyncCallback);
+        uv_async_send(stop_async);
+    }
+
+    m_thread.join();
+
+    {
+        std::lock_guard<Mutex> sd_lock(m_sd.mutex);
+
+        ASSERT(!m_sd.loop);
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool HTTPServerImpl::Start(int port) {
+    {
+        std::lock_guard<Mutex> sd_lock(m_sd.mutex);
+
+        if(m_sd.loop) {
+            return false;
+        }
+    }
+
+    m_thread=std::thread([this,port]() {
+        this->ThreadMain(port);
+    });
+
+    return true;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void HTTPServerImpl::ThreadMain(int port) {
+    int rc;
+
+    uv_loop_t loop={};
+
+    rc=uv_loop_init(&loop);
+    if(rc!=0) {
+        PrintLibUVError(rc,"uv_loop_init failed");
+        goto done;
+    }
+
+    loop.data=this;
+
+    rc=uv_tcp_init(&loop,&m_td.listen_tcp);
+    if(rc!=0) {
+        PrintLibUVError(rc,"uv_tcp_init failed");
+        goto done;
+    }
+
+    m_td.listen_tcp.data=this;
+
+    {
+        struct sockaddr_in addr;
+        uv_ip4_addr("127.0.0.1",port,&addr);
+        rc=uv_tcp_bind(&m_td.listen_tcp,(struct sockaddr *)&addr,0);
+        if(rc!=0) {
+            PrintLibUVError(rc,"uv_tcp_bind failed");
+            uv_close((uv_handle_t *)&m_td.listen_tcp,&EmptyCloseCallback);
+        } else {
+            rc=uv_listen((uv_stream_t *)&m_td.listen_tcp,10,&HandleNewConnection);
+            if(rc!=0) {
+                PrintLibUVError(rc,"uv_listen failed");
+                uv_close((uv_handle_t *)&m_td.listen_tcp,&EmptyCloseCallback);
+            }
+        }
+    }
+
+    {
+        std::lock_guard<Mutex> sd_lock(m_sd.mutex);
+        m_sd.loop=&loop;
+    }
+
+    rc=uv_run(&loop,UV_RUN_DEFAULT);
+
+done:
+    {
+        std::lock_guard<Mutex> sd_lock(m_sd.mutex);
+        m_sd.loop=nullptr;
+    }
+
+    if(loop.data) {
+        uv_loop_close(&loop);
+        loop.data=nullptr;
+    }
+
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void HTTPServerImpl::CloseConnection(Connection *conn) {
+    ASSERT(m_td.connection_by_id.count(conn->id)==1);
+    ASSERT(m_td.connection_by_id[conn->id]==conn);
+
+    m_td.connection_by_id.erase(conn->id);
+
+    uv_close((uv_handle_t *)&conn->tcp,&HandleConnectionClose);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void HTTPServerImpl::WaitForRequest(Connection *conn) {
+    int rc;
+
+    conn->key.clear();
+    conn->value=nullptr;
+    conn->request=HTTPRequest();
+    conn->response_body_data.clear();
+    conn->response_body_str.clear();
+    conn->response_prefix.clear();
+
+    rc=uv_read_start((uv_stream_t *)&conn->tcp,&HandleReadAlloc,&HandleRead);
+    if(rc!=0) {
+        PrintLibUVError(rc,"uv_read_start failed");
+        this->CloseConnection(conn);
+        return;
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void HTTPServerImpl::SendResponse(Connection *conn,HTTPResponse &&response) {
+    int rc;
+
+    ASSERT(!conn->write_response_req.data);
+    conn->write_response_req.data=conn;
+
+    std::map<std::string,std::string> headers;
+
+    if(response.content_type.empty()) {
+        headers[CONTENT_TYPE]=DEFAULT_CONTENT_TYPE;
+    } else {
+        headers[CONTENT_TYPE]=response.content_type;
+    }
+
+    std::vector<uv_buf_t> body_bufs;
+    if(!response.content_vec.empty()) {
+        conn->response_body_data=std::move(response.content_vec);
+        headers[CONTENT_LENGTH]=std::to_string(conn->response_body_data.size());
+        body_bufs=GetBufs(&conn->response_body_data);
+    } else if(!response.content_str.empty()) {
+        conn->response_body_str=std::move(response.content_str);
+        headers[CONTENT_LENGTH]=std::to_string(conn->response_body_str.size());
+        body_bufs=GetBufs(&conn->response_body_str);
+    } else {
+        headers[CONTENT_LENGTH]="0";
+    }
+
+    conn->response_prefix="HTTP/1.1 ";
+    if(response.status.empty()) {
+        conn->response_prefix+="200 OK";
+    } else {
+        conn->response_prefix+=response.status;
+    }
+    conn->response_prefix+="\r\n";
+
+    for(auto &&kv:headers) {
+        conn->response_prefix+=kv.first+":"+kv.second+"\r\n";
+    }
+    conn->response_prefix+="\r\n";
+
+    std::vector<uv_buf_t> bufs=GetBufs(&conn->response_prefix);
+    bufs.insert(bufs.end(),body_bufs.begin(),body_bufs.end());
+
+    for(size_t i=0;i<bufs.size();++i) {
+        LOGF(HTTP,"Buf %zu: ",i);
+        LogIndenter indent(&LOG(HTTP));
+        LogDumpBytes(&LOG(HTTP),bufs[i].base,bufs[i].len);
+    }
+
+    rc=uv_write(&conn->write_response_req,(uv_stream_t *)&conn->tcp,bufs.data(),(unsigned)bufs.size(),&HandleResponseWritten);
+    if(rc!=0) {
+        PrintLibUVError(rc,"uv_write failed");
+        this->CloseConnection(conn);
+        return;
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void HTTPServerImpl::StopAsyncCallback(uv_async_t *stop_async) {
+    auto server=(HTTPServerImpl *)stop_async->loop->data;
+
+    uv_print_all_handles(stop_async->loop,stderr);
+
+    {
+        std::lock_guard<Mutex> lock(server->m_sd.mutex);
+        ASSERT(stop_async->loop==server->m_sd.loop);
+        server->m_sd.loop=nullptr;
+    }
+
+    while(!server->m_td.connection_by_id.empty()) {
+        server->CloseConnection(server->m_td.connection_by_id.begin()->second);
+    }
+
+    uv_close((uv_handle_t *)&server->m_td.listen_tcp,&EmptyCloseCallback);
+    uv_close((uv_handle_t *)stop_async,&ScalarDeleteCloseCallback<uv_async_t>);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+int HTTPServerImpl::HandleMessageBegin(http_parser *parser) {
+    (void)parser;
+    //auto conn=(HTTPConnection *)parser->data;
+
+    LOGF(HTTP,"%s\n",__func__);
+
+    return 0;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+int HTTPServerImpl::HandleURL(http_parser *parser,const char *at,size_t length) {
+    auto conn=(Connection *)parser->data;
+
+    conn->request.url.append(at,length);
+
+    return 0;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+int HTTPServerImpl::HandleHeaderField(http_parser *parser,const char *at,size_t length) {
+    auto conn=(Connection *)parser->data;
+
+    conn->value=nullptr;
+    conn->key.append(at,length);
+
+    return 0;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+int HTTPServerImpl::HandleHeaderValue(http_parser *parser,const char *at,size_t length) {
+    auto conn=(Connection *)parser->data;
+
+    if(!conn->value) {
+        conn->value=&conn->request.headers[conn->key];
+        conn->key.clear();
+
+        // https://tools.ietf.org/html/rfc2616#section-4.2
+        if(!conn->value->empty()) {
+            conn->value->append(1,',');
+        }
+    }
+
+    conn->value->append(at,length);
+
+    return 0;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+int HTTPServerImpl::HandleHeadersComplete(http_parser *parser) {
+    auto conn=(Connection *)parser->data;
+
+    LOGF(HTTP,"%s\n",__func__);
+
+    conn->request.method=http_method_str((http_method)parser->method);
+    //conn->status=200;
+    //conn->status=parser->status_code;
+
+    http_parser_url url={};
+    // 0 = not connect
+    if(http_parser_parse_url(conn->request.url.data(),conn->request.url.size(),0,&url)!=0) {
+        LOGF(HTTP,"invalid URL: %s\n",conn->request.url.c_str());
+        return -1;
+    }
+
+    if(!GetPercentDecodedURLPart(&conn->request.url_path,url,UF_PATH,conn->request.url,"path")) {
+        return -1;
+    }
+
+    if(!GetPercentDecodedURLPart(&conn->request.url_fragment,url,UF_FRAGMENT,conn->request.url,"fragment")) {
+        return -1;
+    }
+
+    if(url.field_set&1<<UF_QUERY) {
+        size_t begin=url.field_data[UF_QUERY].off;
+        size_t end=begin+url.field_data[UF_QUERY].len;
+
+        size_t a=begin;
+        while(a<end) {
+            HTTPQueryParameter kv;
+
+            size_t b=a;
+            while(b<end&&conn->request.url[b]!='=') {
+                ++b;
+            }
+
+            if(b>=end) {
+                LOGF(HTTP,"invalid URL query (missing '='): %s\n",conn->request.url.c_str());
+                return -1;
+            }
+
+            if(!GetPercentDecoded(&kv.key,conn->request.url,a,b-a)) {
+                LOGF(HTTP,"invalid URL query (bad key percent encoding): %s\n",conn->request.url.c_str());
+                return -1;
+            }
+
+            a=b+1;
+            while(b<end&&conn->request.url[b]!='&') {
+                ++b;
+            }
+
+            if(!GetPercentDecoded(&kv.value,conn->request.url,a,b-a)) {
+                LOGF(HTTP,"invalid URL query (bad value percent encoding): %s\n",conn->request.url.c_str());
+                return -1;
+            }
+
+            conn->request.query.push_back(std::move(kv));
+
+            a=b+1;
+        }
+    }
+
+    return 0;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+int HTTPServerImpl::HandleBody(http_parser *parser,const char *at,size_t length) {
+    auto conn=(Connection *)parser->data;
+
+    conn->request.body.insert(conn->request.body.end(),at,at+length);
+
+    return 0;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+int HTTPServerImpl::HandleMessageComplete(http_parser *parser) {
+    int rc;
+    auto conn=(Connection *)parser->data;
+
+    conn->keep_alive=!!http_should_keep_alive(parser);
+
+    rc=uv_read_stop((uv_stream_t *)&conn->tcp);
+    if(rc!=0) {
+        PrintLibUVError(rc,"uv_read_stop failed");
+        conn->server->CloseConnection(conn);
+        return -1;
+    }
+
+    LOGF(HTTP,"Headers: ");
+    {
+        LogIndenter indent(&LOG(HTTP));
+        //LOGF(HTTP,"Status: %u\n",conn->status);
+        LOGF(HTTP,"Method: %s\n",conn->request.method.c_str());
+
+        LOGF(HTTP,"URL: ");
+        {
+            LogIndenter indent2(&LOG(HTTP));
+            LOGF(HTTP,"%s\n",conn->request.url.c_str());
+            LOGF(HTTP,"Path: %s\n",conn->request.url_path.c_str());
+            //LOGF(HTTP,"Query: %s\n",conn->request.url_query.c_str());
+
+            if(!conn->request.query.empty()) {
+                LOGF(HTTP,"Query: ");
+                {
+                    LogIndenter indent3(&LOG(HTTP));
+
+                    for(const HTTPQueryParameter &kv:conn->request.query) {
+                        LOGF(HTTP,"%s: %s\n",kv.key.c_str(),kv.value.c_str());
+                    }
+                }
+            }
+
+            LOGF(HTTP,"Fragment: %s\n",conn->request.url_fragment.c_str());
+        }
+
+        if(!conn->request.headers.empty()) {
+            LOGF(HTTP,"Fields: ");
+            LogIndenter indent2(&LOG(HTTP));
+            for(auto &&kv:conn->request.headers) {
+                LOGF(HTTP,"%s: %s\n",kv.first.c_str(),kv.second.c_str());
+            }
+        }
+    }
+
+    if(conn->request.body.empty()) {
+        LOGF(HTTP,"Body: ");
+        {
+            LogIndenter indent(&LOG(HTTP));
+            LogDumpBytes(&LOG(HTTP),conn->request.body.data(),conn->request.body.size());
+        }
+    }
+
+    conn->server->SendResponse(conn,CreateErrorResponse(conn->request,"404 Not Found"));
+
+    //conn->status="404 Not Found";
+
+    //if(!conn->status.empty()) {
+        //SendResponse(conn,CreateErrorResponse(conn->request,"404 Not Found"));
+    //}
+
+    //PushFunctionMessage([conn]() {
+    //    DispatchRequestMainThread(conn);
+    //});
+
+    return 0;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void HTTPServerImpl::HandleNewConnection(uv_stream_t *server_tcp,int status) {
+    auto server=(HTTPServerImpl *)server_tcp->data;
+    int rc;
+
+    if(status!=0) {
+        PrintLibUVError(status,"connection callback");
+        return;
+    }
+
+    auto conn=new Connection;
+
+    conn->id=server->m_td.next_connection_id++;
+    conn->parser_settings.on_url=&HandleURL;
+    conn->parser_settings.on_header_field=&HandleHeaderField;
+    conn->parser_settings.on_header_value=&HandleHeaderValue;
+    conn->parser_settings.on_headers_complete=&HandleHeadersComplete;
+    conn->parser_settings.on_body=&HandleBody;
+    conn->parser_settings.on_message_complete=&HandleMessageComplete;
+    conn->parser_settings.on_message_begin=&HandleMessageBegin;
+
+    http_parser_init(&conn->parser,HTTP_REQUEST);
+    conn->parser.data=conn;
+
+    rc=uv_tcp_init(server_tcp->loop,&conn->tcp);
+    if(rc!=0) {
+        PrintLibUVError(rc,"uv_tcp_init failed");
+        delete conn;
+        return;
+    }
+
+    rc=uv_accept(server_tcp,(uv_stream_t *)&conn->tcp);
+    if(rc!=0) {
+        PrintLibUVError(rc,"uv_accept failed");
+        delete conn;
+        return;
+    }
+
+    conn->tcp.data=conn;
+    conn->server=server;
+
+    ASSERT(conn->server->m_td.connection_by_id.count(conn->id)==0);
+    conn->server->m_td.connection_by_id[conn->id]=conn;
+
+    conn->server->WaitForRequest(conn);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void HTTPServerImpl::HandleReadAlloc(uv_handle_t *handle,size_t suggested_size,uv_buf_t *buf) {
+    auto conn=(Connection *)handle->data;
+    (void)suggested_size;
+
+    ASSERT(handle==(uv_handle_t *)&conn->tcp);
+    ASSERT(conn->num_read<sizeof conn->read_buf);
+    static_assert(sizeof conn->read_buf<=UINT_MAX,"");
+    *buf=uv_buf_init(conn->read_buf+conn->num_read,(unsigned)(sizeof conn->read_buf-conn->num_read));
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void HTTPServerImpl::HandleRead(uv_stream_t *stream,ssize_t num_read,const uv_buf_t *buf) {
+    (void)buf;
+
+    auto conn=(Connection *)stream->data;
+    ASSERT(stream==(uv_stream_t *)&conn->tcp);
+
+    if(num_read==UV_EOF) {
+        conn->server->CloseConnection(conn);
+    } else if(num_read<0) {
+        PrintLibUVError((int)num_read,"connection read callback");
+        conn->server->CloseConnection(conn);
+    } else if(num_read==0) {
+        // ignore...
+    } else if(num_read>0) {
+        ASSERT((size_t)num_read<=sizeof conn->read_buf);
+        size_t total_num_read=conn->num_read+(size_t)num_read;
+        ASSERT(total_num_read<=sizeof conn->read_buf);
+        size_t num_consumed=http_parser_execute(&conn->parser,&conn->parser_settings,conn->read_buf,total_num_read);
+        if(num_consumed==0) {
+            if(conn->parser.http_errno==0) {
+                // Is this even possible?
+                conn->parser.http_errno=HPE_UNKNOWN;
+            }
+        }
+
+        if(conn->parser.http_errno!=0) {
+            LOGF(HTTP,"HTTP error: %s\n",http_errno_description((http_errno)conn->parser.http_errno));
+            conn->server->SendResponse(conn,CreateErrorResponse(conn->request,"400 Bad Request"));
+            //CloseConnection(conn);
+        } else {
+            ASSERT(num_consumed<=total_num_read);
+            memmove(conn->read_buf,conn->read_buf+num_consumed,total_num_read-num_consumed);
+            conn->num_read=total_num_read-num_consumed;
+        }
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void HTTPServerImpl::HandleConnectionClose(uv_handle_t *handle) {
+    auto conn=(Connection *)handle->data;
+    ASSERT(handle==(uv_handle_t *)&conn->tcp);
+    //HTTPServer *server=conn->server;
+
+    //ASSERT(conn->server->connections.count(conn)==1);
+    //conn->server->connections.erase(conn);
+
+    delete conn;
+    conn=nullptr;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void HTTPServerImpl::HandleResponseWritten(uv_write_t *req,int status) {
+    auto conn=(Connection *)req->data;
+
+    ASSERT(req==&conn->write_response_req);
+    req->data=nullptr;
+
+    if(status!=0) {
+        PrintLibUVError(status,"%s status",__func__);
+        conn->server->CloseConnection(conn);
+        return;
+    }
+
+    if(conn->keep_alive&&conn->parser.http_errno==0) {
+        conn->server->WaitForRequest(conn);
+    } else {
+        conn->server->CloseConnection(conn);
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+std::unique_ptr<HTTPServer> CreateHTTPServer() {
+    return std::make_unique<HTTPServerImpl>();
 }
 
 //////////////////////////////////////////////////////////////////////////

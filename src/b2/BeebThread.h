@@ -459,6 +459,11 @@ public:
     // Crap naming, because windows.h does #define SendMessage.
     void Send(std::unique_ptr<Message> message);
 
+    template<class SeqIt>
+    void Send(SeqIt begin,SeqIt end) {
+        m_mq.ProducerPush(begin,end);
+    }
+
     void SendTimingMessage(uint64_t max_sound_units);
 
 #if BBCMICRO_TURBO_DISC
