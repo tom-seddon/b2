@@ -476,6 +476,7 @@ public:
     ~HTTPServerImpl();
 
     bool Start(int port) override;
+    void SetHandler(HTTPHandler *handler) override;
 protected:
 private:
     struct Connection {
@@ -510,6 +511,7 @@ private:
     struct SharedData {
         Mutex mutex;
         uv_loop_t *loop=nullptr;
+        HTTPHandler *handler=nullptr;
     };
 
     SharedData m_sd;
@@ -587,6 +589,15 @@ bool HTTPServerImpl::Start(int port) {
     });
 
     return true;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void HTTPServerImpl::SetHandler(HTTPHandler *handler) {
+    std::lock_guard<Mutex> sd_lock(m_sd.mutex);
+
+    m_sd.handler=handler;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -960,7 +971,25 @@ int HTTPServerImpl::HandleMessageComplete(http_parser *parser) {
         }
     }
 
-    conn->server->SendResponse(conn,CreateErrorResponse(conn->request,"404 Not Found"));
+    HTTPHandler *handler;
+    {
+        std::lock_guard<Mutex> sd_lock(conn->server->m_sd.mutex);
+
+        handler=conn->server->m_sd.handler;
+    }
+
+    HTTPResponse response;
+    bool send_response=false;
+    if(handler) {
+        send_response=handler->ThreadHandleRequest(&response,std::move(conn->request));
+    } else {
+        response=CreateErrorResponse(conn->request,"404 Not Found");
+        send_response=true;
+    }
+
+    if(send_response) {
+        conn->server->SendResponse(conn,std::move(response));
+    }
 
     //conn->status="404 Not Found";
 
