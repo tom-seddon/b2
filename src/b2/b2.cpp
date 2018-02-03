@@ -37,6 +37,7 @@
 #include <atomic>
 #include <shared/system_specific.h>
 #include "HTTPServer.h"
+#include "HTTPMethodsHandler.h"
 
 #include <shared/enum_decl.h>
 #include "b2.inl"
@@ -837,6 +838,9 @@ static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &init
         init_messages.w.f("Failed to start HTTP server.\n");
         // but carry on... it's not fatal.
     }
+
+    auto http_handler=CreateHTTPMethodsHandler();
+    http_server->SetHandler(http_handler.get());
 #endif
 
 #if HAVE_FFMPEG
@@ -1072,6 +1076,7 @@ static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &init
 
 #if HTTP_SERVER
         http_server=nullptr;
+        http_handler=nullptr;
 #endif
     }
 

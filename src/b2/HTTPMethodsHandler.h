@@ -1,23 +1,17 @@
-#ifndef HEADER_6CE0510D80AC4A17BD606A68EAA242EC// -*- mode:c++ -*-
-#define HEADER_6CE0510D80AC4A17BD606A68EAA242EC
+#ifndef HEADER_3B865EF84D1D4372BB2A1CE4C9FAC9E7// -*- mode:c++ -*-
+#define HEADER_3B865EF84D1D4372BB2A1CE4C9FAC9E7
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-struct BeebWindowInitArguments;
-
-#include <string>
-#include <vector>
-#include <functional>
+#include <memory>
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-// Create new window with the given init arguments.
-void PushNewWindowMessage(BeebWindowInitArguments init_arguments);
+class HTTPHandler;
 
-// Call the given function next time round the loop.
-void PushFunctionMessage(std::function<void()> fun);
+std::unique_ptr<HTTPHandler> CreateHTTPMethodsHandler();
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

@@ -14,6 +14,7 @@
 #include <vector>
 
 class MessageList;
+class HTTPServer;
 
 // stupid X11.h crap.
 #ifdef BadRequest
@@ -29,6 +30,7 @@ struct HTTPQueryParameter {
 
 class HTTPRequest {
 public:
+    uint64_t connection_id=0;
     std::map<std::string,std::string> headers;
     std::string url;
     std::string url_path;
@@ -94,7 +96,7 @@ class HTTPHandler {
 public:
     virtual ~HTTPHandler()=0;
 
-    virtual bool ThreadHandleRequest(HTTPResponse *response,HTTPRequest &&request)=0;
+    virtual bool ThreadHandleRequest(HTTPResponse *response,HTTPServer *server,HTTPRequest &&request)=0;
 protected:
 private:
 };
@@ -118,6 +120,8 @@ public:
     virtual bool Start(int port)=0;
 
     virtual void SetHandler(HTTPHandler *handler)=0;
+
+    virtual void SendResponse(const HTTPRequest &request,HTTPResponse response)=0;
 protected:
 private:
 };

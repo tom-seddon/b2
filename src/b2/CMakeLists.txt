@@ -50,6 +50,7 @@ add_executable(b2 MACOSX_BUNDLE
   DearImguiTestUI.cpp DearImguiTestUI.h
   debugger.cpp debugger.h debugger.inl
   HTTPServer.cpp HTTPServer.h
+  HTTPMethodsHandler.cpp HTTPMethodsHandler.h
   )
 
 ##########################################################################

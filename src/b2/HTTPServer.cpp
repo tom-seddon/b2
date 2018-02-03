@@ -193,168 +193,6 @@ static bool GetPercentDecodedURLPart(std::string *result,const http_parser_url &
     return true;
 }
 
-//static std::vector<std::string> GetPathParts(const std::string &path) {
-//    std::vector<std::string> parts;
-//    std::string part;
-//
-//    for(char c:path) {
-//        if(c=='/') {
-//            if(!part.empty()) {
-//                parts.push_back(part);
-//                part.clear();
-//            }
-//        } else {
-//            part.append(1,c);
-//        }
-//    }
-//
-//    if(!part.empty()) {
-//        parts.push_back(part);
-//    }
-//
-//    return parts;
-//}
-//
-//static bool FindBeebWindow(BeebWindow **window_ptr,const std::string &name) {
-//    *window_ptr=BeebWindows::FindBeebWindowByName(name);
-//    return !!*window_ptr;
-//}
-//
-//struct Response {
-//    HTTPResponse http_response;
-//    std::unique_ptr<BeebThread::Message> message;
-//    std::string content_type;
-//
-//    explicit Response(HTTPResponse http_response);
-//    explicit Response(std::unique_ptr<BeebThread::Message> message);
-//    Response(std::unique_ptr<BeebThread::Message> message,std::string content_type);
-//};
-//
-//Response::Response(HTTPResponse http_response_):
-//    http_response(std::move(http_response_))
-//{
-//}
-//
-//Response::Response(std::unique_ptr<BeebThread::Message> message_):
-//    message(std::move(message_))
-//{
-//}
-//
-//Response::Response(std::unique_ptr<BeebThread::Message> message_,std::string content_type_):
-//    message(std::move(message_)),
-//    content_type(std::move(content_type_))
-//{
-//}
-//
-//static const char POKE[]="poke";
-//static const char RESET[]="reset";
-//
-//static Response GetResponseForHTTPRequest(HTTPRequest *http_request,const std::vector<std::string> &path_parts,size_t index0) {
-//    if(path_parts[index0]==POKE) {
-//        if(http_request->body.empty()) {
-//            return Response(HTTPResponse::BadRequest("no message body"));
-//        }
-//
-//        if(path_parts.size()!=index0+2) {
-//            return Response(HTTPResponse::BadRequest("syntax: %s/ADDR",POKE));
-//        }
-//
-//        uint32_t addr;
-//        if(!GetUInt32FromHexString(&addr,path_parts[index0+1])) {
-//            return Response(HTTPResponse::BadRequest("bad address: %s",path_parts[index0+1].c_str()));
-//        }
-//
-//        return Response(std::make_unique<BeebThread::DebugSetBytesMessage>(addr,std::move(http_request->body)));
-//    } else if(path_parts[index0]==RESET) {
-//        return Response(std::make_unique<BeebThread::HardResetMessage>(false));
-//    } else {
-//        return Response(HTTPResponse::BadRequest("unknown request: %s",path_parts[index0].c_str()));
-//    }
-//}
-//
-//static void DispatchRequestMainThread(HTTPConnection *conn) {
-//    std::vector<std::string> parts=GetPathParts(conn->request.url_path);
-//
-//    //uint32_t value;
-//    BeebWindow *window;
-//
-//    if(parts.size()==2&&parts[0]=="c") {
-//        if(!FindBeebWindow(&window,parts[1])) {
-//            SendResponse(conn,HTTPResponse::BadRequest("unknown window: %s",parts[1].c_str()));
-//            return;
-//        }
-//
-//        conn->server->main_thread_data.window_queues.erase(parts[1]);
-//    } else if(parts.size()>=3&&parts[0]=="q") {
-//        if(!FindBeebWindow(&window,parts[1])) {
-//            SendResponse(conn,HTTPResponse::BadRequest("unknown window: %s",parts[1].c_str()));
-//            return;
-//        }
-//
-//        Response response=GetResponseForHTTPRequest(&conn->request,parts,2);
-//
-//        if(!response.message) {
-//            SendResponse(conn,std::move(response.http_response));
-//            return;
-//        }
-//
-//        WindowQueue *window_queue=&conn->server->main_thread_data.window_queues[parts[1]];
-//
-//        if(!content_type.empty()) {
-//            if(window_queue->messages.empty()) {
-//                window_queue->content_type=std::move(content_type);
-//                window_queue->content_type_request=parts[2];
-//            } else {
-//                if(window_queue->content_type!=content_type) {
-//                    return HTTPResponse::BadRequest("result type conflict: %s type is %s, queued %s type is %s",
-//                                                    parts[2],
-//                                                    content_type.c_str(),
-//                                                    window_queue->content_type_request.c_str(),
-//                                                    window_queue->content_type.c_str());
-//                }
-//            }
-//        }
-//
-//        window_queue->messages.push_back(std::move(message));
-//    } else if(parts.size()>=3&&parts[0]=="x") {
-//        if(!FindBeebWindow(&window,parts[1])) {
-//            return HTTPResponse::BadRequest("unknown window: %s",parts[1].c_str());
-//        }
-//
-//        std::string content_type;
-//        HTTPResponse response;
-//        std::unique_ptr<BeebThread::Message> message=CreateMessageFromRequest(&content_type,&response,http_request,parts,2);
-//        if(!message) {
-//            return response;
-//        }
-//
-//        response=HTTPResponse("200 OK",request->GetContentType());
-//
-//        window->GetBeebThread()->Send(std::move(message));
-//
-//        return response;
-//    } else if(parts.size()==2&&parts[0]=="r") {
-//        if(!FindBeebWindow(&window,parts[1])) {
-//            return HTTPResponse::BadRequest("unknown window: %s",parts[1].c_str());
-//        }
-//
-//        WindowQueue *window_queue=&main_thread_data->window_queues[parts[1]];
-//
-//        auto response=HTTPResponse("200 OK",window_queue->content_type);
-//
-//        for(const std::unique_ptr<Request> &request:window_queue->requests) {
-//            request->Do(&response.content_vec,window);
-//        }
-//
-//        window_queue=nullptr;
-//        main_thread_data->window_queues.erase(parts[1]);
-//
-//        return response;
-//    } else {
-//        return HTTPResponse::BadRequest("unknown operation: %s",parts[0].c_str());
-//    }
-//}
-
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
@@ -456,6 +294,12 @@ HTTPResponse::HTTPResponse(std::string status_,std::string content_type_,std::st
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+HTTPHandler::~HTTPHandler() {
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 HTTPServer::HTTPServer() {
 }
 
@@ -477,6 +321,7 @@ public:
 
     bool Start(int port) override;
     void SetHandler(HTTPHandler *handler) override;
+    void SendResponse(const HTTPRequest &request,HTTPResponse response) override;
 protected:
 private:
     struct Connection {
@@ -523,6 +368,7 @@ private:
     void WaitForRequest(Connection *conn);
     void SendResponse(Connection *conn,HTTPResponse &&response);
 
+    static void SendResponseAsyncCallback(uv_async_t *send_response_async);
     static void StopAsyncCallback(uv_async_t *stop_async);
     static int HandleMessageBegin(http_parser *parser);
     static int HandleURL(http_parser *parser,const char *at,size_t length);
@@ -598,6 +444,34 @@ void HTTPServerImpl::SetHandler(HTTPHandler *handler) {
     std::lock_guard<Mutex> sd_lock(m_sd.mutex);
 
     m_sd.handler=handler;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+struct SendResponseData {
+    uint64_t connection_id=0;
+    HTTPResponse response;
+};
+
+void HTTPServerImpl::SendResponse(const HTTPRequest &request,HTTPResponse response) {
+    std::lock_guard<Mutex> sd_lock(m_sd.mutex);
+
+    if(!m_sd.loop) {
+        return;
+    }
+
+    auto data=new SendResponseData{};
+
+    data->connection_id=request.connection_id;
+    data->response=std::move(response);
+
+    auto send_response_async=new uv_async_t{};
+    send_response_async->data=data;
+
+    uv_async_init(m_sd.loop,send_response_async,&SendResponseAsyncCallback);
+    uv_async_send(send_response_async);
+    send_response_async=nullptr;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -681,6 +555,7 @@ void HTTPServerImpl::WaitForRequest(Connection *conn) {
     conn->key.clear();
     conn->value=nullptr;
     conn->request=HTTPRequest();
+    conn->request.connection_id=conn->id;
     conn->response_body_data.clear();
     conn->response_body_str.clear();
     conn->response_prefix.clear();
@@ -751,6 +626,26 @@ void HTTPServerImpl::SendResponse(Connection *conn,HTTPResponse &&response) {
         this->CloseConnection(conn);
         return;
     }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void HTTPServerImpl::SendResponseAsyncCallback(uv_async_t *send_response_async) {
+    auto data=(SendResponseData *)send_response_async->data;
+    auto server=(HTTPServerImpl *)send_response_async->loop->data;
+
+    auto &&it=server->m_td.connection_by_id.find(data->connection_id);
+    if(it!=server->m_td.connection_by_id.end()) {
+        Connection *conn=it->second;
+
+        server->SendResponse(conn,std::move(data->response));
+    }
+
+    delete data;
+    data=nullptr;
+
+    uv_close((uv_handle_t *)send_response_async,&ScalarDeleteCloseCallback<uv_async_t>);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -981,7 +876,7 @@ int HTTPServerImpl::HandleMessageComplete(http_parser *parser) {
     HTTPResponse response;
     bool send_response=false;
     if(handler) {
-        send_response=handler->ThreadHandleRequest(&response,std::move(conn->request));
+        send_response=handler->ThreadHandleRequest(&response,conn->server,std::move(conn->request));
     } else {
         response=CreateErrorResponse(conn->request,"404 Not Found");
         send_response=true;
