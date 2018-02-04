@@ -129,7 +129,11 @@ void ForEachLine(const std::string &str,std::function<void(const std::string::co
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool GetUInt32FromHexString(uint32_t *value,const std::string &str);
+bool GetUInt32FromString(uint32_t *value,const std::string &str,int radix=0);
+bool GetUInt32FromString(uint32_t *value,const char *str,int radix=0);
+
+bool GetUInt64FromString(uint64_t *value,const std::string &str,int radix=0);
+bool GetUInt64FromString(uint64_t *value,const char *str,int radix=0);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

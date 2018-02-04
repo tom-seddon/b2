@@ -15,7 +15,7 @@
 
 void DumpRendererInfo(Log *log,const SDL_RendererInfo *info) {
     LogIndenter indent(log);
-    
+
     log->f("Name: %s\n",info->name);
 #define F(X) info->flags&SDL_RENDERER_##X?" " #X:""
     log->f("Flags:%s%s%s%s\n",F(SOFTWARE),F(ACCELERATED),F(PRESENTVSYNC),F(TARGETTEXTURE));
@@ -340,9 +340,16 @@ void ForEachLine(const std::string &str,std::function<void(const std::string::co
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool GetUInt32FromHexString(uint32_t *value,const std::string &str) {
+bool GetUInt32FromString(uint32_t *value,const std::string &str,int radix) {
+    return GetUInt32FromString(value,str.c_str(),radix);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool GetUInt32FromString(uint32_t *value,const char *str,int radix) {
     char *ep;
-    unsigned long tmp=strtoul(str.c_str(),&ep,16);
+    unsigned long tmp=strtoul(str,&ep,radix);
     if(*ep!=0&&!isspace(*ep)) {
         return false;
     }
@@ -352,6 +359,27 @@ bool GetUInt32FromHexString(uint32_t *value,const std::string &str) {
     }
 
     *value=(uint32_t)tmp;
+    return true;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool GetUInt64FromString(uint64_t *value,const std::string &str,int radix) {
+    return GetUInt64FromString(value,str.c_str(),radix);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool GetUInt64FromString(uint64_t *value,const char *str,int radix) {
+    char *ep;
+    unsigned long long tmp=strtoull(str,&ep,radix);
+    if(*ep!=0&&!isspace(*ep)) {
+        return false;
+    }
+
+    *value=tmp;
     return true;
 }
 

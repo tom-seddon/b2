@@ -54,6 +54,9 @@ private:
 
 class HTTPResponse {
 public:
+    static const std::string OCTET_STREAM_CONTENT_TYPE;
+    static const std::string TEXT_CONTENT_TYPE;
+
     std::string status;
 
     std::vector<uint8_t> content_vec;
@@ -63,12 +66,11 @@ public:
     // content type is application/octet-stream.
     std::string content_type;
 
-    // if content is empty and elaboration is not "", the elaboration
-    // is included in the error message
-    //std::string elaboration;
-
     static HTTPResponse OK();
+    static HTTPResponse BadRequest();
     static HTTPResponse BadRequest(const char *fmt,...) PRINTF_LIKE(1,2);
+    static HTTPResponse BadRequest(const HTTPRequest &request,const char *fmt=nullptr,...) PRINTF_LIKE(2,3);
+    static HTTPResponse NotFound(const HTTPRequest &request);
 
     // A default-constructed HTTPResponse has a status of 500 Internal
     // Server Error.
@@ -121,7 +123,8 @@ public:
 
     virtual void SetHandler(HTTPHandler *handler)=0;
 
-    virtual void SendResponse(const HTTPRequest &request,HTTPResponse response)=0;
+    void SendResponse(const HTTPRequest &request,HTTPResponse response);
+    virtual void SendResponse(uint64_t connection_id,HTTPResponse response)=0;
 protected:
 private:
 };

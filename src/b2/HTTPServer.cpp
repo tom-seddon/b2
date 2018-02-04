@@ -29,9 +29,9 @@ LOG_TAGGED_DEFINE(HTTP,"http","HTTP  ",&log_printer_stdout_and_debugger,true)
 
 static const std::string CONTENT_TYPE="Content-Type";
 static const std::string CONTENT_LENGTH="Content-Length";
-static const std::string OCTET_STREAM_CONTENT_TYPE="application/octet-stream";
-static const std::string TEXT_CONTENT_TYPE="text/plain";
-static const std::string DEFAULT_CONTENT_TYPE=OCTET_STREAM_CONTENT_TYPE;
+const std::string HTTPResponse::OCTET_STREAM_CONTENT_TYPE="application/octet-stream";
+const std::string HTTPResponse::TEXT_CONTENT_TYPE="text/plain";
+static const std::string DEFAULT_CONTENT_TYPE=HTTPResponse::OCTET_STREAM_CONTENT_TYPE;
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -229,6 +229,13 @@ HTTPResponse HTTPResponse::OK() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+HTTPResponse HTTPResponse::BadRequest() {
+    return HTTPResponse("400 Bad Request");
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 HTTPResponse HTTPResponse::BadRequest(const char *fmt,...) {
     va_list v;
 
@@ -237,6 +244,31 @@ HTTPResponse HTTPResponse::BadRequest(const char *fmt,...) {
     va_end(v);
 
     return HTTPResponse("400 Bad Request",TEXT_CONTENT_TYPE,std::move(message));
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+HTTPResponse HTTPResponse::BadRequest(const HTTPRequest &request,const char *fmt,...) {
+    std::string message=request.method+" "+request.url;
+
+    if(fmt) {
+        message+="\r\n";
+
+        va_list v;
+        va_start(v,fmt);
+        message+=strprintfv(fmt,v);
+        va_end(v);
+    }
+
+    return HTTPResponse("400 Bad Request",TEXT_CONTENT_TYPE,std::move(message));
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+HTTPResponse HTTPResponse::NotFound(const HTTPRequest &request) {
+    return HTTPResponse("404 Not Found",TEXT_CONTENT_TYPE,request.method+" "+request.url);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -312,6 +344,13 @@ HTTPServer::~HTTPServer() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+void HTTPServer::SendResponse(const HTTPRequest &request,HTTPResponse response) {
+    this->SendResponse(request.connection_id,std::move(response));
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 class HTTPServerImpl:
     public HTTPServer
 {
@@ -321,7 +360,7 @@ public:
 
     bool Start(int port) override;
     void SetHandler(HTTPHandler *handler) override;
-    void SendResponse(const HTTPRequest &request,HTTPResponse response) override;
+    void SendResponse(uint64_t connection_id,HTTPResponse response) override;
 protected:
 private:
     struct Connection {
@@ -454,7 +493,7 @@ struct SendResponseData {
     HTTPResponse response;
 };
 
-void HTTPServerImpl::SendResponse(const HTTPRequest &request,HTTPResponse response) {
+void HTTPServerImpl::SendResponse(uint64_t connection_id,HTTPResponse response) {
     std::lock_guard<Mutex> sd_lock(m_sd.mutex);
 
     if(!m_sd.loop) {
@@ -463,7 +502,7 @@ void HTTPServerImpl::SendResponse(const HTTPRequest &request,HTTPResponse respon
 
     auto data=new SendResponseData{};
 
-    data->connection_id=request.connection_id;
+    data->connection_id=connection_id;
     data->response=std::move(response);
 
     auto send_response_async=new uv_async_t{};
