@@ -82,6 +82,7 @@ public:
         BeebThreadMessageType type=BeebThreadMessageType_None;
 
         explicit Message(BeebThreadMessageType type);
+        virtual ~Message();
     protected:
     private:
     };
