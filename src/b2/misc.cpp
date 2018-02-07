@@ -9,6 +9,7 @@
 #include <time.h>
 #include <beeb/BBCMicro.h>
 #include <beeb/Trace.h>
+#include "Messages.h"
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -340,6 +341,27 @@ void ForEachLine(const std::string &str,std::function<void(const std::string::co
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+std::vector<std::string> GetSplitString(const std::string &str,const std::string &separator_chars) {
+    std::vector<std::string> parts;
+
+    std::string::size_type a=0;
+    while(a<str.size()) {
+        std::string::size_type b=str.find_first_of(separator_chars,a);
+        if(b==std::string::npos) {
+            parts.push_back(str.substr(a));
+            break;
+        }
+
+        parts.push_back(str.substr(a,b-a));
+        a=b+1;
+    }
+
+    return parts;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 bool GetUInt32FromString(uint32_t *value,const std::string &str,int radix) {
     return GetUInt32FromString(value,str.c_str(),radix);
 }
@@ -381,6 +403,152 @@ bool GetUInt64FromString(uint64_t *value,const char *str,int radix) {
 
     *value=tmp;
     return true;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+// Copyright (c) 2008-2009 Bjoern Hoehrmann <bjoern@hoehrmann.de>
+// See http://bjoern.hoehrmann.de/utf-8/decoder/dfa/ for details.
+
+static const uint32_t UTF8_ACCEPT=0;
+static const uint32_t UTF8_REJECT=1;
+
+static const uint8_t utf8d[]={
+    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, // 00..1f
+    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, // 20..3f
+    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, // 40..5f
+    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, // 60..7f
+    1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9, // 80..9f
+    7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7, // a0..bf
+    8,8,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2, // c0..df
+    0xa,0x3,0x3,0x3,0x3,0x3,0x3,0x3,0x3,0x3,0x3,0x3,0x3,0x4,0x3,0x3, // e0..ef
+    0xb,0x6,0x6,0x6,0x5,0x8,0x8,0x8,0x8,0x8,0x8,0x8,0x8,0x8,0x8,0x8, // f0..ff
+    0x0,0x1,0x2,0x3,0x5,0x8,0x7,0x1,0x1,0x1,0x4,0x6,0x1,0x1,0x1,0x1, // s0..s0
+    1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,0,1,0,1,1,1,1,1,1, // s1..s2
+    1,2,1,1,1,1,1,2,1,2,1,1,1,1,1,1,1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1, // s3..s4
+    1,2,1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,1,1,1,3,1,3,1,1,1,1,1,1, // s5..s6
+    1,3,1,1,1,1,1,3,1,3,1,1,1,1,1,1,1,3,1,1,1,1,1,1,1,1,1,1,1,1,1,1, // s7..s8
+};
+
+uint32_t inline
+decode(uint32_t* state,uint32_t* codep,uint32_t byte) {
+    uint32_t type=utf8d[byte];
+
+    *codep=(*state!=UTF8_ACCEPT)?
+        (byte&0x3fu)|(*codep<<6):
+        (0xffu>>type) & (byte);
+
+    *state=utf8d[256+*state*16+type];
+    return *state;
+}
+
+//////////////////////////////////////////////////////////////////////////
+
+static int GetBBCChar(uint32_t codepoint) {
+    if(codepoint==13||codepoint==10) {
+        return codepoint;
+    } else if(codepoint>=32&&codepoint<=126) {
+        return codepoint;
+    } else if(codepoint==0xa3) {
+        return 95;//GBP symbol
+    } else {
+        return -1;
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool GetBBCASCIIFromUTF8(std::string *ascii,
+                         const std::vector<uint8_t> &data,
+                         uint32_t *bad_codepoint_ptr,
+                         const uint8_t **bad_char_start_ptr,
+                         int *bad_char_len_ptr)
+{
+    uint32_t state=UTF8_ACCEPT,codepoint;
+
+    ascii->clear();
+    size_t char_start=0;
+
+    uint32_t bad_codepoint=0;
+    const uint8_t *bad_char_start=nullptr;
+    int bad_char_len=0;
+
+    for(size_t i=0;i<data.size();++i) {
+        decode(&state,&codepoint,data[i]);
+        if(state==UTF8_ACCEPT) {
+            int c=GetBBCChar(codepoint);
+            if(c<0) {
+                bad_codepoint=codepoint;
+                bad_char_start=&data[char_start];
+                bad_char_len=(int)(i-char_start);
+
+                goto bad;
+            }
+
+            ascii->push_back((char)c);
+        } else if(state==UTF8_REJECT) {
+            goto bad;
+        }
+    }
+
+    return true;
+
+bad:;
+    if(bad_codepoint_ptr) {
+        *bad_codepoint_ptr=bad_codepoint;
+    }
+
+    if(bad_char_start_ptr) {
+        *bad_char_start_ptr=bad_char_start;
+    }
+
+    if(bad_char_len_ptr) {
+        *bad_char_len_ptr=bad_char_len;
+    }
+
+    return false;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+uint32_t GetBBCASCIIFromISO88511(std::string *ascii,const std::vector<uint8_t> &data) {
+    ascii->clear();
+
+    for(uint8_t x:data) {
+        int c=GetBBCChar(x);
+        if(c<0) {
+            return x;
+        }
+        ascii->push_back((char)x);
+    }
+
+    return 0;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void FixBBCASCIINewlines(std::string *str) {
+    // Knobble newlines.
+    if(str->size()>1) {
+        std::string::size_type i=0;
+
+        while(i<str->size()-1) {
+            if((*str)[i]==10&&(*str)[i+1]==13) {
+                str->erase(i,1);
+            } else if((*str)[i]==13&&(*str)[i+1]==10) {
+                ++i;
+                str->erase(i,1);
+            } else if((*str)[i]==10) {
+                (*str)[i++]=13;
+            } else {
+                ++i;
+            }
+        }
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////

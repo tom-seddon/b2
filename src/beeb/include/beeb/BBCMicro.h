@@ -507,7 +507,7 @@ private:
 
         // Current paste data, if any.
         BBCMicroPasteState paste_state=BBCMicroPasteState_None;
-        std::shared_ptr<std::string> paste_text;
+        std::string paste_text;
         size_t paste_index=0;
         uint64_t paste_wait_end=0;
 

@@ -79,10 +79,11 @@ class BeebThreadSendResponseMessage:
     public BeebThread::CustomMessage
 {
 public:
-    BeebThreadSendResponseMessage(HTTPServer *server,uint64_t connection_id,std::unique_ptr<HTTPResponse> response):
+    BeebThreadSendResponseMessage(HTTPServer *server,HTTPRequest &&request,std::unique_ptr<HTTPResponse> response):
         m_server(server),
-        m_connection_id(connection_id),
-        m_response(std::move(response))
+        m_connection_id(request.connection_id),
+        m_response(std::move(response)),
+        m_request(std::move(request))
     {
         printf("BeebThreadSendResponseMessage: this=%p\n",(void *)this);
     }
@@ -90,13 +91,14 @@ public:
     void ThreadHandleMessage(BBCMicro *beeb) override {
         (void)beeb;
 
-        m_server->SendResponse(m_connection_id,std::move(*m_response));
+        m_server->SendResponse(m_request,std::move(*m_response));
     }
 protected:
 private:
     HTTPServer *m_server=nullptr;
     uint64_t m_connection_id=0;
     std::unique_ptr<HTTPResponse> m_response;
+    HTTPRequest m_request;
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -262,6 +264,11 @@ private:
 
         va_end(v);
 
+        if(arg_index!=parts.size()) {
+            server->SendResponse(request,HTTPResponse::BadRequest(request,"too many arguments"));
+            return false;
+        }
+
         return true;
     }
 
@@ -269,11 +276,11 @@ private:
     // path. PATH_PARTS[COMMAND_INDEX] is the command name; subsequent
     // entries in PATH_PARTS are the args.
     //
-    // Send some kind of error and return nullptr if there's a
+    // Send some kind of error and return false if there's a
     // problem.
     bool AddBeebThreadMessageOrSendResponse(HTTPServer *server,HTTPRequest *request,WindowRequests *requests,const std::vector<std::string> &path_parts,size_t command_index) {
         if(path_parts[command_index]=="peek") {
-            if(!this->SetContentTypeOrSendResponse(server,*request,requests,HTTPResponse::OCTET_STREAM_CONTENT_TYPE,path_parts[command_index])) {
+            if(!this->SetContentTypeOrSendResponse(server,*request,requests,HTTP_OCTET_STREAM_CONTENT_TYPE,path_parts[command_index])) {
                 return false;
             }
 
@@ -316,8 +323,39 @@ private:
             requests->messages.push_back(std::make_unique<BeebThread::DebugSetBytesMessage>(addr,std::move(request->body)));
             return true;
         } else if(path_parts[command_index]=="reset") {
+            if(!this->ParseArgsOrSendResponse(server,*request,path_parts,command_index,nullptr)) {
+                return false;
+            }
             requests->messages.push_back(std::make_unique<BeebThread::HardResetMessage>(false));//false = no autoboot
             return true;
+        } else if(path_parts[command_index]=="paste") {
+            if(!this->ParseArgsOrSendResponse(server,*request,path_parts,command_index,nullptr)) {
+                return false;
+            }
+
+            std::string ascii;
+            if(request->content_type==HTTP_TEXT_CONTENT_TYPE&&(request->content_type_charset.empty()||request->content_type_charset==HTTP_ISO_8859_1_CHARSET)) {
+                if(GetBBCASCIIFromISO88511(&ascii,request->body)!=0) {
+                    server->SendResponse(*request,HTTPResponse::BadRequest(*request));
+                    return false;
+                }
+            } else if(request->content_type==HTTP_TEXT_CONTENT_TYPE&&request->content_type_charset==HTTP_UTF8_CHARSET) {
+                if(!GetBBCASCIIFromUTF8(&ascii,request->body,nullptr,nullptr,nullptr)) {
+                    server->SendResponse(*request,HTTPResponse::BadRequest(*request));
+                    return false;
+                }
+            } else {
+                // Maybe support octet-stream?? Like, if you've got
+                // verbatim *SPOOL output from a real BBC or something?
+                server->SendResponse(*request,HTTPResponse::BadRequest(*request,"Unsupported Content-Type \"%s\", charset \"%s\"\n",request->content_type.c_str(),request->content_type_charset.c_str()));
+                return false;
+            }
+
+            FixBBCASCIINewlines(&ascii);
+
+            requests->messages.push_back(std::make_unique<BeebThread::StartPasteMessage>(std::move(ascii)));
+            return true;
+
         } else {
             server->SendResponse(*request,HTTPResponse::BadRequest(*request));
             return false;
@@ -330,8 +368,8 @@ private:
     //
     // After this call, *REQUESTS is a bit useless, as everything has
     // been moved out of it...
-    void RunRequests(BeebWindow *beeb_window,HTTPServer *server,const HTTPRequest &request,WindowRequests *requests) {
-        requests->messages.push_back(std::make_unique<BeebThreadSendResponseMessage>(server,request.connection_id,std::move(requests->response)));
+    void RunRequests(BeebWindow *beeb_window,HTTPServer *server,HTTPRequest &&request,WindowRequests *requests) {
+        requests->messages.push_back(std::make_unique<BeebThreadSendResponseMessage>(server,std::move(request),std::move(requests->response)));
 
         std::shared_ptr<BeebThread> beeb_thread=beeb_window->GetBeebThread();
 
@@ -365,7 +403,7 @@ private:
                 return;
             }
 
-            this->RunRequests(beeb_window,server,request,requests);
+            this->RunRequests(beeb_window,server,std::move(request),requests);
             m_window_requests_by_name.erase(path_parts[1]);
             return;
         } else if(path_parts.size()>=3&&path_parts[0]=="q") {
@@ -393,7 +431,7 @@ private:
                 return;
             }
 
-            this->RunRequests(beeb_window,server,request,&tmp_requests);
+            this->RunRequests(beeb_window,server,std::move(request),&tmp_requests);
             return;
         }
 

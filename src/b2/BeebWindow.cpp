@@ -2344,41 +2344,6 @@ void BeebWindow::PasteThenReturn() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-// Copyright (c) 2008-2009 Bjoern Hoehrmann <bjoern@hoehrmann.de>
-// See http://bjoern.hoehrmann.de/utf-8/decoder/dfa/ for details.
-
-static const uint32_t UTF8_ACCEPT=0;
-static const uint32_t UTF8_REJECT=1;
-
-static const uint8_t utf8d[]={
-    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, // 00..1f
-    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, // 20..3f
-    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, // 40..5f
-    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, // 60..7f
-    1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9, // 80..9f
-    7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7, // a0..bf
-    8,8,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2, // c0..df
-    0xa,0x3,0x3,0x3,0x3,0x3,0x3,0x3,0x3,0x3,0x3,0x3,0x3,0x4,0x3,0x3, // e0..ef
-    0xb,0x6,0x6,0x6,0x5,0x8,0x8,0x8,0x8,0x8,0x8,0x8,0x8,0x8,0x8,0x8, // f0..ff
-    0x0,0x1,0x2,0x3,0x5,0x8,0x7,0x1,0x1,0x1,0x4,0x6,0x1,0x1,0x1,0x1, // s0..s0
-    1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,0,1,0,1,1,1,1,1,1, // s1..s2
-    1,2,1,1,1,1,1,2,1,2,1,1,1,1,1,1,1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1, // s3..s4
-    1,2,1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,1,1,1,3,1,3,1,1,1,1,1,1, // s5..s6
-    1,3,1,1,1,1,1,3,1,3,1,1,1,1,1,1,1,3,1,1,1,1,1,1,1,1,1,1,1,1,1,1, // s7..s8
-};
-
-uint32_t inline
-decode(uint32_t* state,uint32_t* codep,uint32_t byte) {
-    uint32_t type=utf8d[byte];
-
-    *codep=(*state!=UTF8_ACCEPT)?
-        (byte&0x3fu)|(*codep<<6):
-        (0xffu>>type) & (byte);
-
-    *state=utf8d[256+*state*16+type];
-    return *state;
-}
-
 void BeebWindow::DoPaste(bool add_return) {
     if(m_beeb_thread->IsPasting()) {
         m_beeb_thread->Send(std::make_unique<BeebThread::StopPasteMessage>());
@@ -2406,57 +2371,27 @@ void BeebWindow::DoPaste(bool add_return) {
         // Convert UTF-8 into BBC-friendly ASCII.
         std::string ascii;
         {
-            uint32_t state=UTF8_ACCEPT,codepoint;
-            size_t char_start=0;
-            for(size_t i=0;i<utf8.size();++i) {
-                decode(&state,&codepoint,utf8[i]);
-                if(state==UTF8_ACCEPT) {
-                    // Do some useful translation.
-                    if(codepoint==0xa3) {
-                        // GBP symbol
-                        codepoint=95;
-                    }
-
-                    if(codepoint==13) {
-                    } else if(codepoint==10) {
-                    } else if(codepoint>=32&&codepoint<=126) {
-                    } else {
-                        m_msg.e.f("Invalid character: ");
-
-                        if(codepoint>=32) {
-                            m_msg.e.f("'%.*s', ",(int)(i-char_start),&utf8[char_start]);
-                        }
-
-                        m_msg.e.f("%u (0x%X)\n",codepoint,codepoint);
-                        return;
-                    }
-
-                    ascii.push_back((char)codepoint);
-                    char_start=i+1;
-                } else if(state==UTF8_REJECT) {
+            uint32_t bad_codepoint;
+            const uint8_t *bad_char_start;
+            int bad_char_len;
+            if(!GetBBCASCIIFromUTF8(&ascii,utf8,&bad_codepoint,&bad_char_start,&bad_char_len)) {
+                if(bad_codepoint==0) {
                     m_msg.e.f("Clipboard contents are not valid UTF-8 text\n");
-                    return;
-                }
-            }
-        }
-
-        // Knobble newlines.
-        if(ascii.size()>1) {
-            std::string::size_type i=0;
-
-            while(i<ascii.size()-1) {
-                if(ascii[i]==10&&ascii[i+1]==13) {
-                    ascii.erase(i,1);
-                } else if(ascii[i]==13&&ascii[i+1]==10) {
-                    ++i;
-                    ascii.erase(i,1);
-                } else if(ascii[i]==10) {
-                    ascii[i++]=13;
                 } else {
-                    ++i;
+                    m_msg.e.f("Invalid character: ");
+
+                    if(bad_codepoint>=32) {
+                        m_msg.e.f("'%.*s', ",bad_char_len,bad_char_start);
+                    }
+
+                    m_msg.e.f("%u (0x%X)\n",bad_codepoint,bad_codepoint);
                 }
+
+                return;
             }
         }
+
+        FixBBCASCIINewlines(&ascii);
 
         if(add_return) {
             ascii.push_back(13);
@@ -2584,7 +2519,7 @@ void BeebWindow::DebugRun() {
     std::unique_lock<Mutex> lock;
     BBCMicro *m=m_beeb_thread->LockMutableBeeb(&lock);
 
-    
+
     m->DebugRun();
     m_beeb_thread->Send(std::make_unique<BeebThread::DebugWakeUpMessage>());
 }

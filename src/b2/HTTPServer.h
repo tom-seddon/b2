@@ -24,6 +24,15 @@ class HTTPServer;
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+extern const std::string HTTP_OCTET_STREAM_CONTENT_TYPE;
+extern const std::string HTTP_TEXT_CONTENT_TYPE;
+
+extern const std::string HTTP_ISO_8859_1_CHARSET;
+extern const std::string HTTP_UTF8_CHARSET;
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 struct HTTPQueryParameter {
     std::string key,value;
 };
@@ -36,6 +45,8 @@ public:
     std::string url_path;
     std::string url_fragment;
     std::vector<HTTPQueryParameter> query;
+    std::string content_type,content_type_charset;
+    bool dump=false;
     std::vector<uint8_t> body;
     std::string method;
 
@@ -54,9 +65,6 @@ private:
 
 class HTTPResponse {
 public:
-    static const std::string OCTET_STREAM_CONTENT_TYPE;
-    static const std::string TEXT_CONTENT_TYPE;
-
     std::string status;
 
     std::vector<uint8_t> content_vec;
@@ -123,8 +131,7 @@ public:
 
     virtual void SetHandler(HTTPHandler *handler)=0;
 
-    void SendResponse(const HTTPRequest &request,HTTPResponse response);
-    virtual void SendResponse(uint64_t connection_id,HTTPResponse response)=0;
+    virtual void SendResponse(const HTTPRequest &request,HTTPResponse response)=0;
 protected:
 private:
 };

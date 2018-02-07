@@ -1147,11 +1147,11 @@ void BBCMicro::HandleCPUDataBusWithHacks(BBCMicro *m) {
                     break;
 
                 case BBCMicroPasteState_Paste:
-                    ASSERT(m->m_state.paste_index<m->m_state.paste_text->size());
-                    m->m_state.cpu.a=(uint8_t)m->m_state.paste_text->at(m->m_state.paste_index);
+                    ASSERT(m->m_state.paste_index<m->m_state.paste_text.size());
+                    m->m_state.cpu.a=(uint8_t)m->m_state.paste_text.at(m->m_state.paste_index);
 
                     ++m->m_state.paste_index;
-                    if(m->m_state.paste_index==m->m_state.paste_text->size()) {
+                    if(m->m_state.paste_index==m->m_state.paste_text.size()) {
                         m->StopPaste();
                     }
                     break;
@@ -1803,17 +1803,21 @@ bool BBCMicro::IsPasting() const {
 //////////////////////////////////////////////////////////////////////////
 
 void BBCMicro::StartPaste(std::shared_ptr<std::string> text) {
-    this->StopPaste();
+    //this->StopPaste();
 
-    m_state.hack_flags|=BBCMicroHackFlag_Paste;
-    m_state.paste_state=BBCMicroPasteState_Wait;
-    m_state.paste_text=std::move(text);
-    m_state.paste_index=0;
-    m_state.paste_wait_end=m_state.num_2MHz_cycles+2000000;
+    if(!(m_state.hack_flags&BBCMicroHackFlag_Paste)) {
+        m_state.hack_flags|=BBCMicroHackFlag_Paste;
+        m_state.paste_state=BBCMicroPasteState_Wait;
+        ASSERT(m_state.paste_text.empty());//m_state.paste_text.clear();//=std::move(text);
+        m_state.paste_index=0;
+        m_state.paste_wait_end=m_state.num_2MHz_cycles+2000000;
 
-    this->SetKeyState(PASTE_START_KEY,true);
+        this->SetKeyState(PASTE_START_KEY,true);
 
-    this->UpdateCPUDataBusFn();
+        this->UpdateCPUDataBusFn();
+    }
+
+    m_state.paste_text+=*text;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -1822,7 +1826,7 @@ void BBCMicro::StartPaste(std::shared_ptr<std::string> text) {
 void BBCMicro::StopPaste() {
     m_state.paste_state=BBCMicroPasteState_None;
     m_state.paste_index=0;
-    m_state.paste_text.reset();
+    m_state.paste_text.clear();
 
     m_state.hack_flags&=(uint32_t)~BBCMicroHackFlag_Paste;
     this->UpdateCPUDataBusFn();

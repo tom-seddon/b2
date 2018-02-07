@@ -13,6 +13,7 @@ struct SDL_Surface;
 struct SDL_PixelFormat;
 class BBCMicro;
 struct ROM;
+class Messages;
 
 #include <vector>
 #include <string>
@@ -126,6 +127,8 @@ private:
 
 void ForEachLine(const std::string &str,std::function<void(const std::string::const_iterator &a,const std::string::const_iterator &b)> fun);
 
+std::vector<std::string> GetSplitString(const std::string &str,const std::string &separator_chars);
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
@@ -134,6 +137,26 @@ bool GetUInt32FromString(uint32_t *value,const char *str,int radix=0);
 
 bool GetUInt64FromString(uint64_t *value,const std::string &str,int radix=0);
 bool GetUInt64FromString(uint64_t *value,const char *str,int radix=0);
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+// returns true on success, or false on failure. 
+bool GetBBCASCIIFromUTF8(std::string *ascii,
+                         const std::vector<uint8_t> &data,
+                         uint32_t *bad_codepoint_ptr,
+                         const uint8_t **bad_char_start_ptr,
+                         int *bad_char_len_ptr);
+
+// returns 0 on success, or the unsupported codepoint on failure.q
+uint32_t GetBBCASCIIFromISO88511(std::string *ascii,
+                                 const std::vector<uint8_t> &data);
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+// Should this be part of GetBBCASCIIFromXXX???
+void FixBBCASCIINewlines(std::string *str);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
