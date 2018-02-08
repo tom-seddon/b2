@@ -18,6 +18,7 @@
 #include "BeebWindow.h"
 #include "BeebWindows.h"
 #include "BeebThread.h"
+#include <inttypes.h>
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -33,10 +34,12 @@ static const std::string CONTENT_LENGTH="Content-Length";
 const std::string HTTP_OCTET_STREAM_CONTENT_TYPE="application/octet-stream";
 const std::string HTTP_TEXT_CONTENT_TYPE="text/plain";
 static const std::string DEFAULT_CONTENT_TYPE=HTTP_OCTET_STREAM_CONTENT_TYPE;
-static const std::string DUMP="X-Dump";
+static const std::string DUMP="b2Dump";
 const std::string HTTP_ISO_8859_1_CHARSET="ISO-8859-1";
 const std::string HTTP_UTF8_CHARSET="utf-8";
-
+const std::string EXPECT="Expect";
+const std::string EXPECT_CONTINUE="100-continue";
+const std::string CONTINUE_RESPONSE="100 Continue\r\n";
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -387,6 +390,7 @@ private:
 
         bool keep_alive=false;
 
+        bool interim_response=false;
         std::string response_status;
         std::string response_prefix;
         std::vector<uint8_t> response_body_data;
@@ -415,8 +419,10 @@ private:
 
     void ThreadMain(int port);
     void CloseConnection(Connection *conn);
-    void WaitForRequest(Connection *conn);
-    void SendResponse(Connection *conn,bool dump,HTTPResponse &&response);
+    void ResetRequest(Connection *conn);
+    void StartReading(Connection *conn);
+    bool StopReading(Connection *conn);
+    void SendResponse(Connection *conn,bool dump,HTTPResponse &&response,bool interim);
 
     static void SendResponseAsyncCallback(uv_async_t *send_response_async);
     static void StopAsyncCallback(uv_async_t *stop_async);
@@ -500,6 +506,7 @@ void HTTPServerImpl::SetHandler(HTTPHandler *handler) {
 //////////////////////////////////////////////////////////////////////////
 
 struct SendResponseData {
+    uint64_t tick_count=0;
     uint64_t connection_id=0;
     bool dump=false;
     HTTPResponse response;
@@ -514,6 +521,7 @@ void HTTPServerImpl::SendResponse(const HTTPRequest &request,HTTPResponse respon
 
     auto data=new SendResponseData{};
 
+    data->tick_count=GetCurrentTickCount();
     data->connection_id=request.connection_id;
     data->dump=request.dump;
     data->response=std::move(response);
@@ -601,9 +609,7 @@ void HTTPServerImpl::CloseConnection(Connection *conn) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void HTTPServerImpl::WaitForRequest(Connection *conn) {
-    int rc;
-
+void HTTPServerImpl::ResetRequest(Connection *conn) {
     conn->key.clear();
     conn->value=nullptr;
     conn->request=HTTPRequest();
@@ -611,8 +617,13 @@ void HTTPServerImpl::WaitForRequest(Connection *conn) {
     conn->response_body_data.clear();
     conn->response_body_str.clear();
     conn->response_prefix.clear();
+}
 
-    rc=uv_read_start((uv_stream_t *)&conn->tcp,&HandleReadAlloc,&HandleRead);
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void HTTPServerImpl::StartReading(Connection *conn) {
+    int rc=uv_read_start((uv_stream_t *)&conn->tcp,&HandleReadAlloc,&HandleRead);
     if(rc!=0) {
         PrintLibUVError(rc,"uv_read_start failed");
         this->CloseConnection(conn);
@@ -623,13 +634,33 @@ void HTTPServerImpl::WaitForRequest(Connection *conn) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void HTTPServerImpl::SendResponse(Connection *conn,bool dump,HTTPResponse &&response) {
+bool HTTPServerImpl::StopReading(Connection *conn) {
+    int rc=uv_read_stop((uv_stream_t *)&conn->tcp);
+    if(rc!=0) {
+        PrintLibUVError(rc,"uv_read_stop failed");
+        conn->server->CloseConnection(conn);
+        return false;
+    }
+
+    return true;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void HTTPServerImpl::SendResponse(Connection *conn,bool dump,HTTPResponse &&response,bool interim) {
     int rc;
+
+    if(!this->StopReading(conn)) {
+        return;
+    }
 
     ASSERT(!conn->write_response_req.data);
     conn->write_response_req.data=conn;
 
     std::map<std::string,std::string> headers;
+
+    conn->interim_response=interim;
 
     if(response.content_type.empty()) {
         headers[CONTENT_TYPE]=DEFAULT_CONTENT_TYPE;
@@ -689,11 +720,13 @@ void HTTPServerImpl::SendResponseAsyncCallback(uv_async_t *send_response_async) 
     auto data=(SendResponseData *)send_response_async->data;
     auto server=(HTTPServerImpl *)send_response_async->loop->data;
 
+    LOGF(HTTP,"%s: latency = %.3f sec\n",__func__,GetSecondsFromTicks(GetCurrentTickCount()-data->tick_count));
+
     auto &&it=server->m_td.connection_by_id.find(data->connection_id);
     if(it!=server->m_td.connection_by_id.end()) {
         Connection *conn=it->second;
 
-        server->SendResponse(conn,data->dump,std::move(data->response));
+        server->SendResponse(conn,data->dump,std::move(data->response),false);
     }
 
     delete data;
@@ -786,7 +819,7 @@ int HTTPServerImpl::HandleHeaderValue(http_parser *parser,const char *at,size_t 
 int HTTPServerImpl::HandleHeadersComplete(http_parser *parser) {
     auto conn=(Connection *)parser->data;
 
-    LOGF(HTTP,"%s\n",__func__);
+    LOGF(HTTP,"%s: start.\n",__func__);
 
     conn->request.method=http_method_str((http_method)parser->method);
     //conn->status=200;
@@ -846,6 +879,40 @@ int HTTPServerImpl::HandleHeadersComplete(http_parser *parser) {
         }
     }
 
+    if(const std::string *content_type=conn->request.GetHeaderValue(CONTENT_TYPE)) {
+        // This is a bit scrappy. I got bored trying to code it up
+        // properly.
+        std::string::size_type index=content_type->find_first_of(";");
+        if(index==std::string::npos) {
+            conn->request.content_type=*content_type;
+        } else {
+            conn->request.content_type=content_type->substr(0,index);
+
+            std::string parameters=content_type->substr(index+1);
+            index=parameters.find_first_not_of(" \t");
+            if(index!=std::string::npos) {
+                if(parameters.substr(index,CHARSET_PREFIX.size())==CHARSET_PREFIX) {
+                    conn->request.content_type_charset=parameters.substr(index+CHARSET_PREFIX.size());
+                }
+            }
+        }
+    }
+
+    if(const std::string *dump=conn->request.GetHeaderValue(DUMP)) {
+        conn->request.dump=*dump=="1";
+    }
+
+    {
+        auto &&it=conn->request.headers.find(EXPECT);
+        if(it!=conn->request.headers.end()) {
+            if(it->second==EXPECT_CONTINUE) {
+                conn->server->SendResponse(conn,conn->request.dump,HTTPResponse("100 Continue"),true);
+            }
+        }
+    }
+
+    LOGF(HTTP,"%s: finish.\n",__func__);
+
     return 0;
 }
 
@@ -855,7 +922,11 @@ int HTTPServerImpl::HandleHeadersComplete(http_parser *parser) {
 int HTTPServerImpl::HandleBody(http_parser *parser,const char *at,size_t length) {
     auto conn=(Connection *)parser->data;
 
+    LOGF(HTTP,"%s: start.\n",__func__);
+
     conn->request.body.insert(conn->request.body.end(),at,at+length);
+
+    LOGF(HTTP,"%s: finish.\n",__func__);
 
     return 0;
 }
@@ -864,15 +935,13 @@ int HTTPServerImpl::HandleBody(http_parser *parser,const char *at,size_t length)
 //////////////////////////////////////////////////////////////////////////
 
 int HTTPServerImpl::HandleMessageComplete(http_parser *parser) {
-    int rc;
     auto conn=(Connection *)parser->data;
+
+    LOGF(HTTP,"%s: start.\n",__func__);
 
     conn->keep_alive=!!http_should_keep_alive(parser);
 
-    rc=uv_read_stop((uv_stream_t *)&conn->tcp);
-    if(rc!=0) {
-        PrintLibUVError(rc,"uv_read_stop failed");
-        conn->server->CloseConnection(conn);
+    if(!conn->server->StopReading(conn)) {
         return -1;
     }
 
@@ -912,29 +981,6 @@ int HTTPServerImpl::HandleMessageComplete(http_parser *parser) {
         }
     }
 
-    if(const std::string *content_type=conn->request.GetHeaderValue(CONTENT_TYPE)) {
-        // This is a bit scrappy. I got bored trying to code it up
-        // properly.
-        std::string::size_type index=content_type->find_first_of(";");
-        if(index==std::string::npos) {
-            conn->request.content_type=*content_type;
-        } else {
-            conn->request.content_type=content_type->substr(0,index-1);
-
-            std::string parameters=content_type->substr(index+1);
-            index=parameters.find_first_not_of(" \t");
-            if(index!=std::string::npos) {
-                if(parameters.substr(index,CHARSET_PREFIX.size())==CHARSET_PREFIX) {
-                    conn->request.content_type_charset=parameters.substr(index+CHARSET_PREFIX.size());
-                }
-            }
-        }
-    }
-
-    if(const std::string *dump=conn->request.GetHeaderValue(DUMP)) {
-        conn->request.dump=*dump=="1";
-    }
-
     if(!conn->request.body.empty()) {
         if(conn->request.dump) {
             LOGF(HTTP,"Body: ");
@@ -962,7 +1008,7 @@ int HTTPServerImpl::HandleMessageComplete(http_parser *parser) {
     }
 
     if(send_response) {
-        conn->server->SendResponse(conn,conn->request.dump,std::move(response));
+        conn->server->SendResponse(conn,conn->request.dump,std::move(response),false);
     }
 
     //conn->status="404 Not Found";
@@ -975,6 +1021,8 @@ int HTTPServerImpl::HandleMessageComplete(http_parser *parser) {
     //    DispatchRequestMainThread(conn);
     //});
 
+    LOGF(HTTP,"%s: finish.\n",__func__);
+
     return 0;
 }
 
@@ -984,6 +1032,8 @@ int HTTPServerImpl::HandleMessageComplete(http_parser *parser) {
 void HTTPServerImpl::HandleNewConnection(uv_stream_t *server_tcp,int status) {
     auto server=(HTTPServerImpl *)server_tcp->data;
     int rc;
+
+    LOGF(HTTP,"%s: start: (ticks=%" PRIu64 ")\n",__func__,GetCurrentTickCount());
 
     if(status!=0) {
         PrintLibUVError(status,"connection callback");
@@ -1024,7 +1074,8 @@ void HTTPServerImpl::HandleNewConnection(uv_stream_t *server_tcp,int status) {
     ASSERT(conn->server->m_td.connection_by_id.count(conn->id)==0);
     conn->server->m_td.connection_by_id[conn->id]=conn;
 
-    conn->server->WaitForRequest(conn);
+    conn->server->ResetRequest(conn);
+    conn->server->StartReading(conn);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -1033,6 +1084,8 @@ void HTTPServerImpl::HandleNewConnection(uv_stream_t *server_tcp,int status) {
 void HTTPServerImpl::HandleReadAlloc(uv_handle_t *handle,size_t suggested_size,uv_buf_t *buf) {
     auto conn=(Connection *)handle->data;
     (void)suggested_size;
+
+    LOGF(HTTP,"%s: start: (ticks=%" PRIu64 ")\n",__func__,GetCurrentTickCount());
 
     ASSERT(handle==(uv_handle_t *)&conn->tcp);
     ASSERT(conn->num_read<sizeof conn->read_buf);
@@ -1048,6 +1101,8 @@ void HTTPServerImpl::HandleRead(uv_stream_t *stream,ssize_t num_read,const uv_bu
 
     auto conn=(Connection *)stream->data;
     ASSERT(stream==(uv_stream_t *)&conn->tcp);
+
+    LOGF(HTTP,"%s: start: num_read=%zd (ticks=%" PRIu64 ")\n",__func__,num_read,GetCurrentTickCount());
 
     if(num_read==UV_EOF) {
         conn->server->CloseConnection(conn);
@@ -1070,7 +1125,7 @@ void HTTPServerImpl::HandleRead(uv_stream_t *stream,ssize_t num_read,const uv_bu
 
         if(conn->parser.http_errno!=0) {
             LOGF(HTTP,"HTTP error: %s\n",http_errno_description((http_errno)conn->parser.http_errno));
-            conn->server->SendResponse(conn,conn->request.dump,CreateErrorResponse(conn->request,"400 Bad Request"));
+            conn->server->SendResponse(conn,conn->request.dump,CreateErrorResponse(conn->request,"400 Bad Request"),false);
             //CloseConnection(conn);
         } else {
             ASSERT(num_consumed<=total_num_read);
@@ -1078,6 +1133,8 @@ void HTTPServerImpl::HandleRead(uv_stream_t *stream,ssize_t num_read,const uv_bu
             conn->num_read=total_num_read-num_consumed;
         }
     }
+
+    LOGF(HTTP,"%s: finish.\n",__func__);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -1110,10 +1167,15 @@ void HTTPServerImpl::HandleResponseWritten(uv_write_t *req,int status) {
         return;
     }
 
-    if(conn->keep_alive&&conn->parser.http_errno==0) {
-        conn->server->WaitForRequest(conn);
+    if(conn->interim_response) {
+        conn->server->StartReading(conn);
     } else {
-        conn->server->CloseConnection(conn);
+        if(conn->keep_alive&&conn->parser.http_errno==0) {
+            conn->server->ResetRequest(conn);
+            conn->server->StartReading(conn);
+        } else {
+            conn->server->CloseConnection(conn);
+        }
     }
 }
 
