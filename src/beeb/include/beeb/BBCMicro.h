@@ -347,11 +347,11 @@ public:
 #endif
 
     // Add instruction callback. It's an error to add the same one
-    // twice...
+    // twice.
     //
-    // The only way to remove one is to have the callback return
-    // false... it's too much faff trying to make it all work properly
-    // otherwise.
+    // To remove, have the callback return false.
+    //
+    // The InstructionFn shouldn't affect reproducability.
     void AddInstructionFn(InstructionFn fn,void *context);
 
     void SetMMIOFns(uint16_t addr,ReadMMIOFn read_fn,WriteMMIOFn write_fn,void *context);

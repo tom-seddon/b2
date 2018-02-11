@@ -2962,6 +2962,10 @@ void BBCMicro::UpdateCPUDataBusFn() {
     }
 #endif
 
+    if(!m_instruction_fns.empty()) {
+        goto hack;
+    }
+
     // No hacks.
     m_handle_cpu_data_bus_fn=m_default_handle_cpu_data_bus_fn;
     return;
