@@ -79,10 +79,37 @@ class BeebThread {
 public:
     class Message {
     public:
-        BeebThreadMessageType type=BeebThreadMessageType_None;
+        const BeebThreadMessageType type=BeebThreadMessageType_None;
+
+        // completion_fun is called when the message has been handled
+        // or when it gets cancelled. (This is used by the HTTP server
+        // to delay sending an HTTP response until the message has
+        // been handled.)
+        //
+        // The parameter indicates whether the message was handled
+        // (true) or cancelled (false).
+        //
+        // When the Message is destroyed, if completion_fun is set it
+        // will be called with an argument of true. Alternatively, it
+        // can be called manually using CallCompletionFun.
+        //
+        // (Random notes: main other option here might be a virtual
+        // function, and the HTTP server could derive new message
+        // types that send a response on completion, perhaps using
+        // CRTP. But virtual functions are harder to call
+        // automatically from the destructor. And in some case there's
+        // extra overhead involved in working out when the message has
+        // been handled - e.g., when resetting - that could be avoided
+        // when unnecessary. Easy to test for with
+        // std::function<>::operator bool, but extra faff with a
+        // virtual function.)
+        std::function<void(bool)> completion_fun;
 
         explicit Message(BeebThreadMessageType type);
         virtual ~Message();
+
+        // Calls completion fun (if set) and then resets it.
+        void CallCompletionFun(bool success);
     protected:
     private:
     };
@@ -683,13 +710,18 @@ private:
     void ThreadStopReplay(ThreadState *ts);
     void ThreadLoadState(ThreadState *ts,uint64_t parent_timeline_id,const std::shared_ptr<BeebState> &state);
     void ThreadHandleReplayEvents(ThreadState *ts);
-    bool ThreadHandleMessage(ThreadState *ts,const std::unique_ptr<Message> &message,bool *limit_speed,uint64_t *next_stop_2MHz_cycles);
+    bool ThreadHandleMessage(ThreadState *ts,std::unique_ptr<Message> message,bool *limit_speed,uint64_t *next_stop_2MHz_cycles);
     void ThreadSetDiscImage(ThreadState *ts,int drive,std::shared_ptr<DiscImage> disc_image);
     void ThreadStartPaste(ThreadState *ts,std::string text);
     void ThreadStopPaste(ThreadState *ts);
     void ThreadStopCopy(ThreadState *ts);
+    void ThreadFailCompletionFun(std::unique_ptr<Message> *message_ptr);
     void ThreadMain();
     void SetVolume(float *scale_var,float *db_var,float db);
+
+#if HTTP_SERVER
+    static bool ThreadWaitForHardReset(BBCMicro *beeb,M6502 *cpu,void *context);
+#endif
 };
 
 //////////////////////////////////////////////////////////////////////////

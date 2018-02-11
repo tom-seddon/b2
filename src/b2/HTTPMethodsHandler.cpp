@@ -48,57 +48,37 @@ class BeebThreadPeekMessage:
     public BeebThread::CustomMessage
 {
 public:
-    BeebThreadPeekMessage(uint32_t addr,uint64_t count,HTTPResponse *response):
+    BeebThreadPeekMessage(uint32_t addr,uint64_t count,HTTPServer *server,HTTPRequest &&request):
         m_addr(addr),
         m_count(count),
-        m_response(response)
+        m_server(server),
+        m_response_data(request.response_data)
     {
         printf("BeebThreadPeekMessage: this=%p\n",(void *)this);
     }
 
     void ThreadHandleMessage(BBCMicro *beeb) override {
+        HTTPResponse m_response;
         uint32_t addr=m_addr;
+
+        std::vector<uint8_t> data;
+        data.reserve(m_count);
 
         for(uint64_t i=0;i<m_count;++i) {
             int value=beeb->DebugGetByte(addr++);
 
-            m_response->content_vec.push_back((uint8_t)value);
+            data.push_back((uint8_t)value);
         }
+
+        HTTPResponse response(HTTP_OCTET_STREAM_CONTENT_TYPE,std::move(data));
+        m_server->SendResponse(m_response_data,std::move(response));
     }
 protected:
 private:
     uint32_t m_addr=0;
     uint64_t m_count=0;
-    HTTPResponse *m_response=nullptr;
-};
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-class BeebThreadSendResponseMessage:
-    public BeebThread::CustomMessage
-{
-public:
-    BeebThreadSendResponseMessage(HTTPServer *server,HTTPRequest &&request,std::unique_ptr<HTTPResponse> response):
-        m_server(server),
-        m_connection_id(request.connection_id),
-        m_response(std::move(response)),
-        m_request(std::move(request))
-    {
-        printf("BeebThreadSendResponseMessage: this=%p\n",(void *)this);
-    }
-
-    void ThreadHandleMessage(BBCMicro *beeb) override {
-        (void)beeb;
-
-        m_server->SendResponse(m_request,std::move(*m_response));
-    }
-protected:
-private:
     HTTPServer *m_server=nullptr;
-    uint64_t m_connection_id=0;
-    std::unique_ptr<HTTPResponse> m_response;
-    HTTPRequest m_request;
+    HTTPResponseData m_response_data;
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -133,72 +113,6 @@ public:
     }
 protected:
 private:
-    struct WindowRequests {
-        // The request that assigned the Content-Type to the response
-        // (for error reporting when there's a mismatch).
-        std::string content_type_request;
-
-        // The list of BeebThread messages that will be sent to the
-        // BeebThread when the queue is flushed.
-        //
-        // Automatically topped off with a
-        // BeebThreadSendResponseMessage that sends the response,
-        // which is possibly just the 200 OK that it's initialised
-        // with.
-        std::vector<std::unique_ptr<BeebThread::Message>> messages;
-
-        // The response to send. Initially a 200 OK, but filled in by
-        // BeebThread messages that produce data.
-        //
-        // There's no check that messages that produce the same MIME
-        // type are consistently filling out content_vec or
-        // content_str, so don't mix and match.
-        std::unique_ptr<HTTPResponse> response=std::make_unique<HTTPResponse>(HTTPResponse::OK());
-    };
-
-    std::map<std::string,WindowRequests> m_window_requests_by_name;
-
-    // Get WindowRequests object and optionally BeebWindow pointer for
-    // the given window.
-    //
-    // Send a Not Found and return nullptr if the window isn't found.
-    WindowRequests *GetWindowRequestsOrSendResponse(BeebWindow **beeb_window_ptr,HTTPServer *server,const HTTPRequest &request,const std::string &window_name) {
-        if(BeebWindow *beeb_window=BeebWindows::FindBeebWindowByName(window_name)) {
-            if(beeb_window_ptr) {
-                *beeb_window_ptr=beeb_window;
-            }
-
-            return &m_window_requests_by_name[window_name];
-        } else {
-            server->SendResponse(request,HTTPResponse::NotFound(request));
-            return nullptr;
-        }
-    }
-
-    // Set the Content-Type for this set of window requests. If no
-    // Content-Type is set, it is set from this request; otherwise,
-    // this request's Content-Type must match the previous requests'.
-    //
-    // Send an explanatory Bad Request and return false if there's a
-    // mismatch.
-    bool SetContentTypeOrSendResponse(HTTPServer *server,const HTTPRequest &request,WindowRequests *requests,const std::string &content_type,const std::string &content_type_request) {
-        if(!content_type.empty()) {
-            if(requests->response->content_type.empty()) {
-                requests->response->content_type=content_type;
-                requests->content_type_request=content_type_request;
-            } else {
-                if(requests->response->content_type!=content_type) {
-                    server->SendResponse(request,HTTPResponse::BadRequest(request,"Content-Type mismatch\r\nContent-Type of previous %s request is %s\r\nContent-Type of new %s request is %s\r\n",
-                                                                          requests->content_type_request.c_str(),requests->response->content_type.c_str(),
-                                                                          content_type_request.c_str(),content_type.c_str()));
-                    return false;
-                }
-            }
-        }
-
-        return true;
-    }
-
     // Parse path parts.
     //
     // Send some kind of error and return false if there's a problem.
@@ -272,110 +186,6 @@ private:
         return true;
     }
 
-    // Create a suitable BeebThread message from the suffix of the URL
-    // path. PATH_PARTS[COMMAND_INDEX] is the command name; subsequent
-    // entries in PATH_PARTS are the args.
-    //
-    // Send some kind of error and return false if there's a
-    // problem.
-    bool AddBeebThreadMessageOrSendResponse(HTTPServer *server,HTTPRequest *request,WindowRequests *requests,const std::vector<std::string> &path_parts,size_t command_index) {
-        if(path_parts[command_index]=="peek") {
-            if(!this->SetContentTypeOrSendResponse(server,*request,requests,HTTP_OCTET_STREAM_CONTENT_TYPE,path_parts[command_index])) {
-                return false;
-            }
-
-            uint32_t begin;
-            uint64_t end;
-            bool end_is_len;
-            if(!this->ParseArgsOrSendResponse(server,*request,path_parts,command_index,
-                                              ":x32",&begin,
-                                              ":x64/len",&end,&end_is_len,
-                                              nullptr))
-            {
-                return false;
-            }
-
-            if(end_is_len) {
-                if(end>MAX_PEEK_SIZE) {
-                    server->SendResponse(*request,HTTPResponse::BadRequest(*request,"count is too large: %" PRIu64,end));
-                    return false;
-                }
-
-                end+=begin;
-            } else {
-                if(end<begin||end>1ull<<32) {
-                    server->SendResponse(*request,HTTPResponse::BadRequest(*request,"bad end address: %" PRIu64,end));
-                    return false;
-                }
-            }
-
-            requests->messages.push_back(std::make_unique<BeebThreadPeekMessage>(begin,end-begin,requests->response.get()));
-            return true;
-        } else if(path_parts[command_index]=="poke") {
-            uint32_t addr;
-            if(!this->ParseArgsOrSendResponse(server,*request,path_parts,command_index,
-                                              ":x32",&addr,
-                                              nullptr))
-            {
-                return false;
-            }
-
-            requests->messages.push_back(std::make_unique<BeebThread::DebugSetBytesMessage>(addr,std::move(request->body)));
-            return true;
-        } else if(path_parts[command_index]=="reset") {
-            if(!this->ParseArgsOrSendResponse(server,*request,path_parts,command_index,nullptr)) {
-                return false;
-            }
-            requests->messages.push_back(std::make_unique<BeebThread::HardResetMessage>(false));//false = no autoboot
-            return true;
-        } else if(path_parts[command_index]=="paste") {
-            if(!this->ParseArgsOrSendResponse(server,*request,path_parts,command_index,nullptr)) {
-                return false;
-            }
-
-            std::string ascii;
-            if(request->content_type==HTTP_TEXT_CONTENT_TYPE&&(request->content_type_charset.empty()||request->content_type_charset==HTTP_ISO_8859_1_CHARSET)) {
-                if(GetBBCASCIIFromISO88511(&ascii,request->body)!=0) {
-                    server->SendResponse(*request,HTTPResponse::BadRequest(*request));
-                    return false;
-                }
-            } else if(request->content_type==HTTP_TEXT_CONTENT_TYPE&&request->content_type_charset==HTTP_UTF8_CHARSET) {
-                if(!GetBBCASCIIFromUTF8(&ascii,request->body,nullptr,nullptr,nullptr)) {
-                    server->SendResponse(*request,HTTPResponse::BadRequest(*request));
-                    return false;
-                }
-            } else {
-                // Maybe support octet-stream?? Like, if you've got
-                // verbatim *SPOOL output from a real BBC or something?
-                server->SendResponse(*request,HTTPResponse::BadRequest(*request,"Unsupported Content-Type \"%s\", charset \"%s\"\n",request->content_type.c_str(),request->content_type_charset.c_str()));
-                return false;
-            }
-
-            FixBBCASCIINewlines(&ascii);
-
-            requests->messages.push_back(std::make_unique<BeebThread::StartPasteMessage>(std::move(ascii)));
-            return true;
-
-        } else {
-            server->SendResponse(*request,HTTPResponse::BadRequest(*request));
-            return false;
-        }
-    }
-
-    // Finish off the request list with an appropriate
-    // BeebThreadSendResponseMessage, then submit the list to the
-    // window's thread.
-    //
-    // After this call, *REQUESTS is a bit useless, as everything has
-    // been moved out of it...
-    void RunRequests(BeebWindow *beeb_window,HTTPServer *server,HTTPRequest &&request,WindowRequests *requests) {
-        requests->messages.push_back(std::make_unique<BeebThreadSendResponseMessage>(server,std::move(request),std::move(requests->response)));
-
-        std::shared_ptr<BeebThread> beeb_thread=beeb_window->GetBeebThread();
-
-        beeb_thread->Send(requests->messages.begin(),requests->messages.end());
-    }
-
     void HandleRequest(HTTPServer *server,HTTPRequest &&request) {
         //std::vector<std::string> parts=GetPathParts(request.url_path);
         //server->SendResponse(request,HTTPResponse::BadRequest("hello hello"));
@@ -387,55 +197,104 @@ private:
             return;
         }
 
-        if(path_parts.size()==2&&path_parts[0]=="c") {
-            if(!this->GetWindowRequestsOrSendResponse(nullptr,server,request,path_parts[1])) {
-                return;
-            }
-
-            m_window_requests_by_name.erase(path_parts[1]);
-
-            server->SendResponse(request,HTTPResponse::OK());
-            return;
-        } else if(path_parts.size()==2&&path_parts[0]=="r") {
-            BeebWindow *beeb_window;
-            WindowRequests *requests=this->GetWindowRequestsOrSendResponse(&beeb_window,server,request,path_parts[1]);
-            if(!requests) {
-                return;
-            }
-
-            this->RunRequests(beeb_window,server,std::move(request),requests);
-            m_window_requests_by_name.erase(path_parts[1]);
-            return;
-        } else if(path_parts.size()>=3&&path_parts[0]=="q") {
-            WindowRequests *requests=this->GetWindowRequestsOrSendResponse(nullptr,server,request,path_parts[1]);
-            if(!requests) {
-                return;
-            }
-
-            if(!this->AddBeebThreadMessageOrSendResponse(server,&request,requests,path_parts,2)) {
-                return;
-            }
-
-            server->SendResponse(request,HTTPResponse::OK());
-            return;
-        } else if(path_parts.size()>=3&&path_parts[0]=="x") {
-            WindowRequests tmp_requests;
-
+        if(path_parts.size()>=3&&path_parts[0]=="w") {
             BeebWindow *beeb_window=BeebWindows::FindBeebWindowByName(path_parts[1]);
             if(!beeb_window) {
                 server->SendResponse(request,HTTPResponse::NotFound(request));
                 return;
             }
 
-            if(!this->AddBeebThreadMessageOrSendResponse(server,&request,&tmp_requests,path_parts,2)) {
+            std::shared_ptr<BeebThread> beeb_thread=beeb_window->GetBeebThread();
+
+            if(path_parts[2]=="reset") {
+                if(!this->ParseArgsOrSendResponse(server,request,path_parts,2,nullptr)) {
+                    return;
+                }
+
+                this->SendMessage(beeb_thread,server,request,std::make_unique<BeebThread::HardResetMessage>(false));
+                return;
+            } else if(path_parts[2]=="paste") {
+                if(!this->ParseArgsOrSendResponse(server,request,path_parts,2,nullptr)) {
+                    return;
+                }
+
+                std::string ascii;
+                if(request.content_type==HTTP_TEXT_CONTENT_TYPE&&(request.content_type_charset.empty()||request.content_type_charset==HTTP_ISO_8859_1_CHARSET)) {
+                    if(GetBBCASCIIFromISO88511(&ascii,request.body)!=0) {
+                        server->SendResponse(request,HTTPResponse::BadRequest(request));
+                        return;
+                    }
+                } else if(request.content_type==HTTP_TEXT_CONTENT_TYPE&&request.content_type_charset==HTTP_UTF8_CHARSET) {
+                    if(!GetBBCASCIIFromUTF8(&ascii,request.body,nullptr,nullptr,nullptr)) {
+                        server->SendResponse(request,HTTPResponse::BadRequest(request));
+                        return;
+                    }
+                } else {
+                    // Maybe support octet-stream?? Like, if you've got
+                    // verbatim *SPOOL output from a real BBC or something?
+                    server->SendResponse(request,HTTPResponse::BadRequest(request,"Unsupported Content-Type \"%s\", charset \"%s\"\n",request.content_type.c_str(),request.content_type_charset.c_str()));
+                    return;
+                }
+
+                FixBBCASCIINewlines(&ascii);
+
+                this->SendMessage(beeb_thread,server,request,std::make_unique<BeebThread::StartPasteMessage>(std::move(ascii)));
+                return;
+            } else if(path_parts[2]=="poke") {
+                uint32_t addr;
+                if(!this->ParseArgsOrSendResponse(server,request,path_parts,2,
+                                                  ":x32",&addr,
+                                                  nullptr))
+                {
+                    return;
+                }
+
+                this->SendMessage(beeb_thread,server,request,std::make_unique<BeebThread::DebugSetBytesMessage>(addr,std::move(request.body)));
+                return;
+            } else if(path_parts[2]=="peek") {
+                uint32_t begin;
+                uint64_t end;
+                bool end_is_len;
+                if(!this->ParseArgsOrSendResponse(server,request,path_parts,2,
+                                                  ":x32",&begin,
+                                                  ":x64/len",&end,&end_is_len,
+                                                  nullptr))
+                {
+                    return;
+                }
+
+                if(end_is_len) {
+                    if(end>MAX_PEEK_SIZE) {
+                        server->SendResponse(request,HTTPResponse::BadRequest(request,"count is too large: %" PRIu64,end));
+                        return;
+                    }
+
+                    end+=begin;
+                } else {
+                    if(end<begin||end>1ull<<32) {
+                        server->SendResponse(request,HTTPResponse::BadRequest(request,"bad end address: %" PRIu64,end));
+                        return;
+                    }
+                }
+
+                beeb_thread->Send(std::make_unique<BeebThreadPeekMessage>(begin,end-begin,server,std::move(request)));
                 return;
             }
-
-            this->RunRequests(beeb_window,server,std::move(request),&tmp_requests);
-            return;
         }
 
         server->SendResponse(request,HTTPResponse::BadRequest());
+    }
+
+    void SendMessage(const std::shared_ptr<BeebThread> &beeb_thread,HTTPServer *server,const HTTPRequest &request,std::unique_ptr<BeebThread::Message> message) {
+        message->completion_fun=[server,response_data=request.response_data](bool success) {
+            if(success) {
+                server->SendResponse(response_data,HTTPResponse::OK());
+            } else {
+                server->SendResponse(response_data,HTTPResponse::ServiceUnavailable());
+            }
+        };
+
+        beeb_thread->Send(std::move(message));
     }
 };
 

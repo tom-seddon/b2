@@ -37,16 +37,27 @@ struct HTTPQueryParameter {
     std::string key,value;
 };
 
+// What a crap name... this is the minimum amount of stuff from a
+// response necessary to send a response to it.
+//
+// (This doesn't make much sense inside the server's code. But when
+// deferring a reply it means the handler doesn't have to store off
+// the entire HTTPRequest (strings, vectors, map...). Just this little
+// struct is enough.)
+struct HTTPResponseData {
+    uint64_t connection_id=0;
+    bool dump=false;
+};
+
 class HTTPRequest {
 public:
-    uint64_t connection_id=0;
+    HTTPResponseData response_data;
     std::map<std::string,std::string> headers;
     std::string url;
     std::string url_path;
     std::string url_fragment;
     std::vector<HTTPQueryParameter> query;
     std::string content_type,content_type_charset;
-    bool dump=false;
     std::vector<uint8_t> body;
     std::string method;
 
@@ -78,7 +89,9 @@ public:
     static HTTPResponse BadRequest();
     static HTTPResponse BadRequest(const char *fmt,...) PRINTF_LIKE(1,2);
     static HTTPResponse BadRequest(const HTTPRequest &request,const char *fmt=nullptr,...) PRINTF_LIKE(2,3);
+    static HTTPResponse NotFound();
     static HTTPResponse NotFound(const HTTPRequest &request);
+    static HTTPResponse ServiceUnavailable();
 
     // A default-constructed HTTPResponse has a status of 500 Internal
     // Server Error.
@@ -131,7 +144,8 @@ public:
 
     virtual void SetHandler(HTTPHandler *handler)=0;
 
-    virtual void SendResponse(const HTTPRequest &request,HTTPResponse response)=0;
+    void SendResponse(const HTTPRequest &request,HTTPResponse response);
+    virtual void SendResponse(const HTTPResponseData &response_data,HTTPResponse response)=0;
 protected:
 private:
 };

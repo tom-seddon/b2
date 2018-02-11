@@ -92,6 +92,17 @@ BeebThread::Message::Message(BeebThreadMessageType type_):
 //////////////////////////////////////////////////////////////////////////
 
 BeebThread::Message::~Message() {
+    this->CallCompletionFun(true);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BeebThread::Message::CallCompletionFun(bool success) {
+    if(!!this->completion_fun) {
+        this->completion_fun(success);
+        this->completion_fun=std::function<void(bool)>();
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -402,6 +413,11 @@ struct BeebThread::ThreadState {
     bool copy_basic=false;
     std::function<void(std::vector<uint8_t>)> copy_stop_fun;
     std::vector<uint8_t> copy_data;
+
+#if HTTP_SERVER
+    std::unique_ptr<BeebThread::Message> reset_message;
+    std::unique_ptr<BeebThread::Message> paste_message;
+#endif
 
     Log log{"BEEB  ",LOG(BTHREAD)};
     Messages msgs;
@@ -953,27 +969,6 @@ uint64_t BeebThread::GetLastSavedStateTimelineId() const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void BeebThread::SetVolume(float *scale_var,float *db_var,float db) {
-    if(db>MAX_DB) {
-        db=MAX_DB;
-    }
-
-    if(db<MIN_DB) {
-        db=MIN_DB;
-    }
-
-    *db_var=db;
-
-    {
-        AudioDeviceLock lock(m_sound_device_id);
-
-        *scale_var=powf(10.f,db/20.f);
-    }
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 void BeebThread::ThreadRecordEvent(ThreadState *ts,BeebEvent event) {
     this->ThreadHandleEvent(ts,event,false);
 
@@ -1150,6 +1145,9 @@ void BeebThread::ThreadReplaceBeeb(ThreadState *ts,std::unique_ptr<BBCMicro> bee
 #if BBCMICRO_DEBUGGER
         ts->beeb->SetDebugState(std::move(debug_state));
 #endif
+
+        this->ThreadFailCompletionFun(&ts->reset_message);
+        this->ThreadFailCompletionFun(&ts->paste_message);
     }
 
     ts->num_executed_2MHz_cycles=ts->beeb->GetNum2MHzCycles();
@@ -1571,9 +1569,19 @@ void BeebThread::ThreadStopCopy(ThreadState *ts) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+void BeebThread::ThreadFailCompletionFun(std::unique_ptr<Message> *message_ptr) {
+    if(!!*message_ptr) {
+        (*message_ptr)->CallCompletionFun(false);
+        message_ptr->reset();
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 bool BeebThread::ThreadHandleMessage(
     ThreadState *ts,
-    const std::unique_ptr<Message> &message,
+    std::unique_ptr<Message> message,
     bool *limit_speed,
     uint64_t *next_stop_2MHz_cycles)
 {
@@ -1657,6 +1665,11 @@ bool BeebThread::ThreadHandleMessage(
             // this->ThreadReplaceBeeb(ts,ts->current_config.CreateBBCMicro(),flags|BeebThreadReplaceFlag_ApplyPCState);
 
             this->ThreadRecordEvent(ts,BeebEvent::MakeHardReset(*ts->num_executed_2MHz_cycles,flags));
+
+            if(!!m->completion_fun) {
+                ts->reset_message=std::move(message);
+                ts->beeb->AddInstructionFn(&ThreadWaitForHardReset,ts);
+            }
         }
         break;
 
@@ -1914,6 +1927,10 @@ bool BeebThread::ThreadHandleMessage(
                 // Ignore.
             } else {
                 this->ThreadStartPaste(ts,std::move(m->text));
+
+                if(!!m->completion_fun) {
+                    ts->paste_message=std::move(message);
+                }
             }
         }
         break;
@@ -2059,8 +2076,12 @@ void BeebThread::ThreadMain(void) {
         if(!messages.empty()) {
             std::lock_guard<Mutex> lock(m_mutex);
 
-            for(const std::unique_ptr<Message> &message:messages) {
-                if(!this->ThreadHandleMessage(&ts,message,&limit_speed,&next_stop_2MHz_cycles)) {
+            for(size_t i=0;i<messages.size();++i) {
+                if(!this->ThreadHandleMessage(&ts,
+                                              std::move(messages[i]),
+                                              &limit_speed,
+                                              &next_stop_2MHz_cycles))
+                {
                     goto done;
                 }
             }
@@ -2086,6 +2107,7 @@ void BeebThread::ThreadMain(void) {
         if(m_is_pasting) {
             if(!ts.beeb->IsPasting()) {
                 m_is_pasting.store(false,std::memory_order_release);
+                ts.paste_message.reset();
             }
         }
 
@@ -2234,6 +2256,48 @@ done:
         ts.beeb=nullptr;
     }
 }
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BeebThread::SetVolume(float *scale_var,float *db_var,float db) {
+    if(db>MAX_DB) {
+        db=MAX_DB;
+    }
+
+    if(db<MIN_DB) {
+        db=MIN_DB;
+    }
+
+    *db_var=db;
+
+    {
+        AudioDeviceLock lock(m_sound_device_id);
+
+        *scale_var=powf(10.f,db/20.f);
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if HTTP_SERVER
+bool BeebThread::ThreadWaitForHardReset(BBCMicro *beeb,M6502 *cpu,void *context) {
+    (void)beeb;
+    auto ts=(ThreadState *)context;
+
+    // Watch for OSWORD 0, OSRDCH, or 5 seconds.
+    if((cpu->opcode_pc.w==0xfff1&&cpu->a==0)||
+       cpu->opcode_pc.w==0xffe0||
+       *ts->num_executed_2MHz_cycles>10000000)
+    {
+        ts->reset_message=nullptr;
+        return false;
+    }
+
+    return true;
+}
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

@@ -275,8 +275,22 @@ HTTPResponse HTTPResponse::BadRequest(const HTTPRequest &request,const char *fmt
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+HTTPResponse HTTPResponse::NotFound() {
+    return HTTPResponse("404 Not Found");
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 HTTPResponse HTTPResponse::NotFound(const HTTPRequest &request) {
     return HTTPResponse("404 Not Found",HTTP_TEXT_CONTENT_TYPE,request.method+" "+request.url);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+HTTPResponse HTTPResponse::ServiceUnavailable() {
+    return HTTPResponse("503 Service Unavailable");
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -352,9 +366,9 @@ HTTPServer::~HTTPServer() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-//void HTTPServer::SendResponse(const HTTPRequest &request,HTTPResponse response) {
-//    this->SendResponse(request.connection_id,std::move(response));
-//}
+void HTTPServer::SendResponse(const HTTPRequest &request,HTTPResponse response) {
+    this->SendResponse(request.response_data,std::move(response));
+}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -368,7 +382,7 @@ public:
 
     bool Start(int port) override;
     void SetHandler(HTTPHandler *handler) override;
-    void SendResponse(const HTTPRequest &request,HTTPResponse response) override;
+    void SendResponse(const HTTPResponseData &response_data,HTTPResponse response) override;
 protected:
 private:
     struct Connection {
@@ -512,7 +526,7 @@ struct SendResponseData {
     HTTPResponse response;
 };
 
-void HTTPServerImpl::SendResponse(const HTTPRequest &request,HTTPResponse response) {
+void HTTPServerImpl::SendResponse(const HTTPResponseData &response_data,HTTPResponse response) {
     std::lock_guard<Mutex> sd_lock(m_sd.mutex);
 
     if(!m_sd.loop) {
@@ -522,8 +536,8 @@ void HTTPServerImpl::SendResponse(const HTTPRequest &request,HTTPResponse respon
     auto data=new SendResponseData{};
 
     data->tick_count=GetCurrentTickCount();
-    data->connection_id=request.connection_id;
-    data->dump=request.dump;
+    data->connection_id=response_data.connection_id;
+    data->dump=response_data.dump;
     data->response=std::move(response);
 
     auto send_response_async=new uv_async_t{};
@@ -613,7 +627,7 @@ void HTTPServerImpl::ResetRequest(Connection *conn) {
     conn->key.clear();
     conn->value=nullptr;
     conn->request=HTTPRequest();
-    conn->request.connection_id=conn->id;
+    conn->request.response_data.connection_id=conn->id;
     conn->response_body_data.clear();
     conn->response_body_str.clear();
     conn->response_prefix.clear();
@@ -899,14 +913,14 @@ int HTTPServerImpl::HandleHeadersComplete(http_parser *parser) {
     }
 
     if(const std::string *dump=conn->request.GetHeaderValue(DUMP)) {
-        conn->request.dump=*dump=="1";
+        conn->request.response_data.dump=*dump=="1";
     }
 
     {
         auto &&it=conn->request.headers.find(EXPECT);
         if(it!=conn->request.headers.end()) {
             if(it->second==EXPECT_CONTINUE) {
-                conn->server->SendResponse(conn,conn->request.dump,HTTPResponse("100 Continue"),true);
+                conn->server->SendResponse(conn,conn->request.response_data.dump,HTTPResponse("100 Continue"),true);
             }
         }
     }
@@ -982,7 +996,7 @@ int HTTPServerImpl::HandleMessageComplete(http_parser *parser) {
     }
 
     if(!conn->request.body.empty()) {
-        if(conn->request.dump) {
+        if(conn->request.response_data.dump) {
             LOGF(HTTP,"Body: ");
             {
                 LogIndenter indent(&LOG(HTTP));
@@ -1008,7 +1022,7 @@ int HTTPServerImpl::HandleMessageComplete(http_parser *parser) {
     }
 
     if(send_response) {
-        conn->server->SendResponse(conn,conn->request.dump,std::move(response),false);
+        conn->server->SendResponse(conn,conn->request.response_data.dump,std::move(response),false);
     }
 
     //conn->status="404 Not Found";
@@ -1125,7 +1139,7 @@ void HTTPServerImpl::HandleRead(uv_stream_t *stream,ssize_t num_read,const uv_bu
 
         if(conn->parser.http_errno!=0) {
             LOGF(HTTP,"HTTP error: %s\n",http_errno_description((http_errno)conn->parser.http_errno));
-            conn->server->SendResponse(conn,conn->request.dump,CreateErrorResponse(conn->request,"400 Bad Request"),false);
+            conn->server->SendResponse(conn,conn->request.response_data.dump,CreateErrorResponse(conn->request,"400 Bad Request"),false);
             //CloseConnection(conn);
         } else {
             ASSERT(num_consumed<=total_num_read);
