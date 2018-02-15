@@ -35,13 +35,13 @@ static const ImWchar FA_ICONS_RANGES[]={ICON_MIN_FA,ICON_MAX_FA,0};
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-struct ImGuiShutdownObject {
-    ~ImGuiShutdownObject() {
-        ImGui::Shutdown();
-    }
-};
+//struct ImGuiShutdownObject {
+//    ~ImGuiShutdownObject() {
+//        ImGui::Shutdown();
+//    }
+//};
 
-static ImGuiShutdownObject g_imgui_shutdown_object;
+//static ImGuiShutdownObject g_imgui_shutdown_object;
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -86,7 +86,7 @@ ImGuiStuff::~ImGuiStuff() {
 
         ImGuiIO &io=ImGui::GetIO();
 
-        ImGui::Shutdown();
+        //ImGui::Shutdown();
 
         delete io.Fonts;
         io.Fonts=m_original_font_atlas;
