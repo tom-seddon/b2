@@ -1028,31 +1028,19 @@ void BeebWindow::DoFileMenu() {
 
         if(ImGui::BeginMenu("Change config")) {
             bool seen_first_custom=false;
-            BeebWindows::ForEachConfig([&](BeebConfig *config,const BeebLoadedConfig *loaded_config) {
-                const char *name;
-
-                if(config) {
+            BeebWindows::ForEachConfig([&](const BeebConfig *config,BeebConfig *editable_config) {
+                if(editable_config) {
                     if(!seen_first_custom) {
                         ImGui::Separator();
                         seen_first_custom=true;
                     }
-
-                    name=config->name.c_str();
-                } else {
-                    name=loaded_config->config.name.c_str();
                 }
 
-                if(ImGui::MenuItem(name)) {
+                if(ImGui::MenuItem(config->name.c_str())) {
                     BeebLoadedConfig tmp;
 
-                    if(!loaded_config) {
-                        if(BeebWindows::GetLoadedConfigForConfig(&tmp,config,&m_msg)) {
-                            loaded_config=&tmp;
-                        }
-                    }
-
-                    if(loaded_config) {
-                        m_beeb_thread->Send(std::make_unique<BeebThread::ChangeConfigMessage>(*loaded_config));
+                    if(BeebLoadedConfig::Load(&tmp,*config,&m_msg)) {
+                        m_beeb_thread->Send(std::make_unique<BeebThread::ChangeConfigMessage>(std::move(tmp)));
                     }
                 }
 

@@ -856,10 +856,7 @@ static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &init
     }
 #endif
 
-    if(!BeebLoadedConfig::InitDefaultConfigs(&init_messages)) {
-        init_messages.e.f("Failed to initialise default configurations.\n");
-        return false;
-    }
+    InitDefaultBeebConfigs();
 
     std::unique_ptr<DiscImage> init_disc_images[NUM_DRIVES];
     if(!LoadInitialDiscImages(init_disc_images,options,&init_messages)) {
@@ -886,7 +883,7 @@ static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &init
         }
 
         BeebLoadedConfig default_loaded_config;
-        if(!BeebWindows::GetLoadedConfigForConfig(&default_loaded_config,BeebWindows::GetDefaultConfig(),&init_messages)) {
+        if(!BeebWindows::LoadConfigByName(&default_loaded_config,BeebWindows::GetDefaultConfigName(),&init_messages)) {
             return false;
         }
 

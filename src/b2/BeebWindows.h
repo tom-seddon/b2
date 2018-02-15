@@ -103,36 +103,28 @@ namespace BeebWindows {
     // Keymaps are not optimised for retrieval by name.
     const BeebKeymap *FindBeebKeymapByName(const std::string &name);
 
-    // Alterations take effect the next time this config is selected.
-    //void SetConfig(BeebConfig *config,BeebConfig new_config);
-
     // Fill out a BeebLoadedConfig for the given BeebConfig.
     //
     // If it's a stock config, hand out the stock loaded config and
     // return true.
     //
-    // Otherwise, if there's a BeebLoadedConfig ready for it, hand
-    // that out and return true.
-    //
     // Otherwise, try to initialize a BeebLoadedConfig, returning
     // false if there was a problem and printing messages out to *msg.
-    bool GetLoadedConfigForConfig(BeebLoadedConfig *loaded_config,const BeebConfig *config,Messages *msg);
+    bool LoadConfigByName(BeebLoadedConfig *loaded_config,const std::string &config_name,Messages *msg);
 
-    // 
-    BeebConfig *AddConfig(BeebConfig config,BeebConfig *other_config=nullptr);
-    void RemoveConfig(BeebConfig *config);
-    void ConfigDidChange(BeebConfig *config);
+    void AddConfig(BeebConfig config);
+    void RemoveConfigByName(const std::string &config_name);
 
-    const BeebConfig *GetDefaultConfig();
-    void SetDefaultConfig(const std::string &default_config_name);
+    void ConfigDidChange(const std::string &config_name);
 
-    // For each stock loaded config l, calls func(nullptr,l).
+    const std::string &GetDefaultConfigName();
+    void SetDefaultConfig(std::string default_config_name);
+
+    // Finds 
     //
-    // Then for each config in the config list, calls func(c,l), where
-    // c points to its canonical BeebConfig and l its BeebLoadedConfig
-    // (if loaded) or null (if not). If func returns false, stop
-    // iteration.
-    void ForEachConfig(const std::function<bool(BeebConfig *,const BeebLoadedConfig *)> &func);
+    // c, calls func(c,nullptr); then for each
+    // custom config c, calls func(c,c).
+    void ForEachConfig(const std::function<bool(const BeebConfig *,BeebConfig *)> &func);
 
     // When necessary, name will be adjusted to make it unique.
     void SetBeebWindowName(BeebWindow *window,std::string name);

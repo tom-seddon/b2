@@ -24,7 +24,7 @@ typedef std::array<uint8_t,ROM_SIZE> BeebRomData;
 //////////////////////////////////////////////////////////////////////////
 
 // The BeebConfig holds all the config info that gets saved to the
-// JSON config file. That, and... the disc drive samples?
+// JSON config file.
 //
 // They probably need to go somewhere better.
 
@@ -48,6 +48,10 @@ protected:
 private:
 };
 
+void InitDefaultBeebConfigs();
+size_t GetNumDefaultBeebConfigs();
+const BeebConfig *GetDefaultBeebConfigByIndex(size_t index);
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
@@ -64,12 +68,6 @@ private:
 
 class BeebLoadedConfig {
 public:
-    // disc_drive_samples should point to an array of DiscDriveSound_EndValue.
-    static bool InitDefaultConfigs(Messages *init_messages);
-
-    static size_t GetNumDefaultConfigs();
-    static const BeebLoadedConfig *GetDefaultConfigByIndex(size_t index);
-
     BeebConfig config;
 
     std::shared_ptr<const BeebRomData> os,roms[16];

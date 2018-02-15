@@ -49,16 +49,8 @@ ConfigsUI::ConfigsUI() {
 void ConfigsUI::DoImGui(CommandContextStack *cc_stack) {
     (void)cc_stack;
 
-    BeebWindows::ForEachConfig([&](BeebConfig *config,const BeebLoadedConfig *loaded_config) {
-        if(config) {
-            if(!this->DoEditConfigGui(config,config)) {
-                return false;
-            }
-        } else {
-            this->DoEditConfigGui(&loaded_config->config,nullptr);
-        }
-
-        return true;
+    BeebWindows::ForEachConfig([&](const BeebConfig *config,BeebConfig *editable_config) {
+        return this->DoEditConfigGui(config,editable_config);
     });
 }
 
@@ -79,6 +71,7 @@ bool ConfigsUI::DoEditConfigGui(const BeebConfig *config,BeebConfig *editable_co
     // dirtying the corresponding loaded config, this will set
     // m_edited.
     bool edited=false;
+    bool is_default=config->name==BeebWindows::GetDefaultConfigName();
 
     const ImGuiStyle &style=ImGui::GetStyle();
 
@@ -89,7 +82,7 @@ bool ConfigsUI::DoEditConfigGui(const BeebConfig *config,BeebConfig *editable_co
         title+=" (not editable)";
     }
 
-    if(config==BeebWindows::GetDefaultConfig()) {
+    if(is_default) {
         title+=" (default)";
     }
 
@@ -110,13 +103,13 @@ bool ConfigsUI::DoEditConfigGui(const BeebConfig *config,BeebConfig *editable_co
             ImGui::SameLine();
 
             if(ImGui::Button("Delete")) {
-                BeebWindows::RemoveConfig(editable_config);
+                BeebWindows::RemoveConfigByName(editable_config->name);
                 m_edited=true;
                 return false;
             }
         }
 
-        if(config!=BeebWindows::GetDefaultConfig()) {
+        if(!is_default) {
             ImGui::SameLine();
 
             if(ImGui::Button("Set as default")) {
@@ -161,7 +154,7 @@ bool ConfigsUI::DoEditConfigGui(const BeebConfig *config,BeebConfig *editable_co
                 ImGuiIDPusher bank_id_pusher(bank);
 
                 ImGui::Separator();
-
+                
                 if(editable_config) {
                     BeebConfig::ROM *editable_rom=&editable_config->roms[bank];
 
@@ -226,7 +219,7 @@ bool ConfigsUI::DoEditConfigGui(const BeebConfig *config,BeebConfig *editable_co
     }
 
     if(edited) {
-        BeebWindows::ConfigDidChange(editable_config);
+        BeebWindows::ConfigDidChange(editable_config->name);
         m_edited=true;
     }
 

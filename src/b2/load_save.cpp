@@ -1492,8 +1492,8 @@ static void SaveConfigs(JSONWriter<StringStream> *writer) {
     {
         auto configs_json=ArrayWriter(writer,CONFIGS);
 
-        BeebWindows::ForEachConfig([&](const BeebConfig *config,const BeebLoadedConfig *) {
-            if(!config) {
+        BeebWindows::ForEachConfig([&](const BeebConfig *config,BeebConfig *editable_config) {
+            if(!editable_config) {
                 // don't serialize stock configs.
                 return true;
             }
@@ -1543,7 +1543,7 @@ static void SaveConfigs(JSONWriter<StringStream> *writer) {
     }
 
     writer->Key(DEFAULT_CONFIG);
-    writer->String(BeebWindows::GetDefaultConfig()->name.c_str());
+    writer->String(BeebWindows::GetDefaultConfigName().c_str());
 }
 
 static void SaveWindows(JSONWriter<StringStream> *writer) {

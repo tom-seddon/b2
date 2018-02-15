@@ -22,12 +22,6 @@ LOG_EXTERN(OUTPUT);
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-struct Config {
-    std::unique_ptr<BeebConfig> config;
-    BeebLoadedConfig loaded_config;
-    bool got_loaded_config=false;
-};
-
 struct BeebWindowsState {
     // This mutex must be taken when adding to or removing from
     // m_windows.
@@ -35,8 +29,8 @@ struct BeebWindowsState {
     std::vector<BeebWindow *> windows;
 
     std::vector<std::unique_ptr<BeebKeymap>> beeb_keymaps;
-    std::vector<Config> configs;
-    const BeebConfig *default_config=nullptr;
+    std::vector<BeebConfig> configs;
+    std::string default_config_name;
     const BeebKeymap *default_beeb_keymap=&DEFAULT_KEYMAP;
 
     std::vector<uint8_t> last_window_placement_data;
@@ -75,7 +69,9 @@ static std::string GetUniqueBeebKeymapName(std::string name,BeebKeymap *ignore) 
 //////////////////////////////////////////////////////////////////////////
 
 static void ResetDefaultConfig() {
-    g_->default_config=&BeebLoadedConfig::GetDefaultConfigByIndex(0)->config;
+    const BeebConfig *default_config0=GetDefaultBeebConfigByIndex(0);
+
+    g_->default_config_name=default_config0->name;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -95,21 +91,27 @@ static std::vector<std::unique_ptr<BeebKeymap>>::iterator FindBeebKeymapIterator
     return it;
 }
 
+//
+//    return it;
+//}
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static std::vector<Config>::iterator FindConfigIterator(BeebConfig *config) {
-    auto &&it=g_->configs.begin();
+static void ForEachBeebConfig(const std::function<bool(const BeebConfig *,const std::vector<BeebConfig>::iterator &)> &fun) {
+    for(size_t i=0;i<GetNumDefaultBeebConfigs();++i) {
+        const BeebConfig *default_config=GetDefaultBeebConfigByIndex(i);
 
-    while(it!=g_->configs.end()) {
-        if(it->config.get()==config) {
-            break;
+        if(!fun(default_config,g_->configs.end())) {
+            return;
         }
-
-        ++it;
     }
 
-    return it;
+    for(auto &&it=g_->configs.begin();it!=g_->configs.end();++it) {
+        if(!fun(&*it,it)) {
+            return;
+        }
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -118,18 +120,10 @@ static std::vector<Config>::iterator FindConfigIterator(BeebConfig *config) {
 static const BeebConfig *FindBeebConfigByName(const std::string &name) {
     const BeebConfig *result=nullptr;
 
-    BeebWindows::ForEachConfig([&result,&name](const BeebConfig *config,const BeebLoadedConfig *loaded_config) {
-        if(config) {
-            if(config->name==name) {
-                result=config;
-                return false;
-            }
-        } else {
-            ASSERT(loaded_config);
-            if(loaded_config->config.name==name) {
-                result=&loaded_config->config;
-                return false;
-            }
+    BeebWindows::ForEachConfig([&result,&name](const BeebConfig *config,BeebConfig *) {
+        if(config->name==name) {
+            result=config;
+            return false;
         }
 
         return true;
@@ -190,7 +184,7 @@ void BeebWindows::Shutdown() {
 
 BeebWindow *BeebWindows::CreateBeebWindow(BeebWindowInitArguments init_arguments) {
     init_arguments.name=GetUniqueBeebWindowName(init_arguments.name,
-        nullptr);
+                                                nullptr);
 
     auto window=new BeebWindow(std::move(init_arguments));
 
@@ -455,106 +449,77 @@ const BeebKeymap *BeebWindows::FindBeebKeymapByName(const std::string &name) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool BeebWindows::GetLoadedConfigForConfig(BeebLoadedConfig *loaded_config,const BeebConfig *config,Messages *msg) {
-    // Hmm. This isn't very nice. But if you just ignore it... it's
-    // probably OK.
-    for(size_t i=0;i<BeebLoadedConfig::GetNumDefaultConfigs();++i) {
-        const BeebLoadedConfig *c=BeebLoadedConfig::GetDefaultConfigByIndex(i);
-
-        if(config==&c->config) {
-            *loaded_config=*c;
-            return true;
-        }
+bool BeebWindows::LoadConfigByName(BeebLoadedConfig *loaded_config,const std::string &config_name,Messages *msg) {
+    const BeebConfig *config=FindBeebConfigByName(config_name);
+    if(!config) {
+        msg->e.f("unknown config: %s\n",config_name.c_str());
+        return false;
     }
 
-    for(size_t i=0;i<g_->configs.size();++i) {
-        Config *c=&g_->configs[i];
+    if(!BeebLoadedConfig::Load(loaded_config,*config,msg)) {
+        return false;
+    }
 
-        if(c->config.get()==config) {
-            if(!c->got_loaded_config) {
-                if(!BeebLoadedConfig::Load(&c->loaded_config,*config,msg)) {
-                    return false;
+    return true;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BeebWindows::AddConfig(BeebConfig config) {
+    g_->configs.push_back(config);
+
+    MakeNameUnique(&g_->configs.back());
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BeebWindows::RemoveConfigByName(const std::string &config_name) {
+    ForEachBeebConfig([&config_name](const BeebConfig *,const std::vector<BeebConfig>::iterator &it) {
+        if(it!=g_->configs.end()) {
+            if(it->name==config_name) {
+                g_->configs.erase(it);
+
+                if(config_name==g_->default_config_name) {
+                    ResetDefaultConfig();
                 }
-
-                c->got_loaded_config=true;
+                return false;
             }
+        }
 
-            *loaded_config=c->loaded_config;
+        return true;
+    });
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BeebWindows::ConfigDidChange(const std::string &config_name) {
+    ForEachConfig([&config_name](const BeebConfig *,BeebConfig *editable_config) {
+        if(editable_config->name==config_name) {
+            MakeNameUnique(editable_config);
+            return false;
+        } else {
             return true;
         }
-    }
-
-    return false;
+    });
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-BeebConfig *BeebWindows::AddConfig(BeebConfig config,BeebConfig *other_config) {
-    std::vector<Config>::iterator it;
-    if(!other_config) {
-        it=g_->configs.end();
-    } else {
-        it=FindConfigIterator(other_config);
-        ASSERT(it!=g_->configs.end());//but it won't break
-    }
-
-    it=g_->configs.insert(it,Config());
-    it->config=std::make_unique<BeebConfig>(std::move(config));
-
-    MakeNameUnique(it->config.get());
-
-    return it->config.get();
+const std::string &BeebWindows::GetDefaultConfigName() {
+    return g_->default_config_name;
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void BeebWindows::RemoveConfig(BeebConfig *config) {
-    auto &&it=FindConfigIterator(config);
-    ASSERT(it!=g_->configs.end());
+void BeebWindows::SetDefaultConfig(std::string default_config_name) {
+    g_->default_config_name=std::move(default_config_name);
 
-    if(it!=g_->configs.end()) {
-        if(it->config.get()==g_->default_config) {
-            ResetDefaultConfig();
-        }
-
-        g_->configs.erase(it);
-    }
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-void BeebWindows::ConfigDidChange(BeebConfig *config) {
-    auto &&it=FindConfigIterator(config);
-    ASSERT(it!=g_->configs.end());
-
-    MakeNameUnique(it->config.get());
-
-    if(it!=g_->configs.end()) {
-        // This could be improved. Not all changes will affect the
-        // BeebLoadedConfig.
-
-        it->loaded_config=BeebLoadedConfig();//clear out any shared_ptr refs...
-        it->got_loaded_config=false;
-    }
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-const BeebConfig *BeebWindows::GetDefaultConfig() {
-    return g_->default_config;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-void BeebWindows::SetDefaultConfig(const std::string &name) {
-    g_->default_config=FindBeebConfigByName(name);
-
-    if(!g_->default_config) {
+    if(g_->default_config_name.empty()) {
         ResetDefaultConfig();
     }
 }
@@ -562,27 +527,15 @@ void BeebWindows::SetDefaultConfig(const std::string &name) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void BeebWindows::ForEachConfig(const std::function<bool(BeebConfig *,const BeebLoadedConfig *)> &func) {
-    for(size_t i=0;i<BeebLoadedConfig::GetNumDefaultConfigs();++i) {
-        const BeebLoadedConfig *loaded_config=BeebLoadedConfig::GetDefaultConfigByIndex(i);
-
-        if(!func(nullptr,loaded_config)) {
-            return;
+void BeebWindows::ForEachConfig(const std::function<bool(const BeebConfig *,BeebConfig *)> &fun) {
+    ForEachBeebConfig([&fun](const BeebConfig *config,const std::vector<BeebConfig>::iterator &it) {
+        if(it!=g_->configs.end()) {
+            ASSERT(&*it==config);
+            return fun(&*it,&*it);
+        } else {
+            return fun(config,nullptr);
         }
-    }
-
-    for(size_t i=0;i<g_->configs.size();++i) {
-        const Config *c=&g_->configs[i];
-
-        const BeebLoadedConfig *l=nullptr;
-        if(c->got_loaded_config) {
-            l=&c->loaded_config;
-        }
-
-        if(!func(c->config.get(),l)) {
-            return;
-        }
-    }
+    });
 }
 
 //////////////////////////////////////////////////////////////////////////

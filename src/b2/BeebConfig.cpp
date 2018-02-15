@@ -50,7 +50,7 @@ static std::shared_ptr<BeebRomData> LoadROM(
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static std::vector<BeebLoadedConfig> g_default_configs;
+static std::vector<BeebConfig> g_default_configs;
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -59,8 +59,11 @@ static std::string GetROMPath(const std::string &file_name) {
     return GetAssetPath("roms",file_name);
 }
 
-bool BeebLoadedConfig::InitDefaultConfigs(Messages *init_messages) {
-    std::vector<BeebConfig> configs;
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void InitDefaultBeebConfigs() {
+    ASSERT(g_default_configs.empty());
 
     for(const DiscInterfaceDef *const *di_ptr=ALL_DISC_INTERFACES;*di_ptr;++di_ptr) {
         const DiscInterfaceDef *di=*di_ptr;
@@ -77,7 +80,7 @@ bool BeebLoadedConfig::InitDefaultConfigs(Messages *init_messages) {
         config.roms[14].file_name=config.disc_interface->default_fs_rom;
         config.roms[13].writeable=true;
 
-        configs.push_back(std::move(config));
+        g_default_configs.push_back(std::move(config));
     }
 
     // B+/B+128
@@ -92,7 +95,7 @@ bool BeebLoadedConfig::InitDefaultConfigs(Messages *init_messages) {
         config.roms[15].file_name="BASIC2.ROM";
         config.roms[14].file_name=config.disc_interface->default_fs_rom;
 
-        configs.push_back(config);
+        g_default_configs.push_back(config);
 
         config.name="B+128";
 
@@ -101,7 +104,7 @@ bool BeebLoadedConfig::InitDefaultConfigs(Messages *init_messages) {
         config.roms[12].writeable=true;
         config.roms[13].writeable=true;
 
-        configs.push_back(config);
+        g_default_configs.push_back(config);
     }
 
     // Master 128
@@ -140,44 +143,33 @@ bool BeebLoadedConfig::InitDefaultConfigs(Messages *init_messages) {
             config.nvram_contents[15]=0x00;
             config.nvram_contents[16]=2;//LOUD
 
-            configs.push_back(config);
+            g_default_configs.push_back(config);
         }
     }
 
-    ASSERT(!configs.empty());
-    g_default_configs.resize(configs.size());
+    for(BeebConfig &config:g_default_configs) {
+        ASSERT(!config.os_file_name.empty());
+        config.os_file_name=GetROMPath(config.os_file_name);
 
-    for(size_t i=0;i<configs.size();++i) {
-        BeebConfig *config=&configs[i];
-
-        ASSERT(!config->os_file_name.empty());
-        config->os_file_name=GetROMPath(config->os_file_name);
-
-        for(size_t j=0;j<16;++j) {
-            if(!config->roms[j].file_name.empty()) {
-                config->roms[j].file_name=GetROMPath(config->roms[j].file_name);
+        for(size_t i=0;i<16;++i) {
+            if(!config.roms[i].file_name.empty()) {
+                config.roms[i].file_name=GetROMPath(config.roms[i].file_name);
             }
         }
-
-        if(!BeebLoadedConfig::Load(&g_default_configs[i],*config,init_messages)) {
-            return false;
-        }
     }
-
-    return true;
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-size_t BeebLoadedConfig::GetNumDefaultConfigs() {
+size_t GetNumDefaultBeebConfigs() {
     return g_default_configs.size();
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-const BeebLoadedConfig *BeebLoadedConfig::GetDefaultConfigByIndex(size_t index) {
+const BeebConfig *GetDefaultBeebConfigByIndex(size_t index) {
     ASSERT(index<g_default_configs.size());
 
     return &g_default_configs[index];
