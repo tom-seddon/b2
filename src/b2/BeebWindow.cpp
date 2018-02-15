@@ -845,7 +845,7 @@ void BeebWindow::DoSettingsUI() {
     }
 
     if(ValueChanged(&m_msg_last_num_errors_and_warnings_printed,m_message_list->GetNumErrorsAndWarningsPrinted())) {
-        m_settings.popups|=BeebWindowPopupType_Messages;
+        m_settings.popups|=1<<BeebWindowPopupType_Messages;
     }
 }
 
