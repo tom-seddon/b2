@@ -16,6 +16,8 @@
 // somewhat arbitrary limit here...
 static const uint64_t MAX_PEEK_SIZE=4*1024*1024;
 
+static const std::string PRG_CONTENT_TYPE="application/x-c64-program";
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
@@ -241,15 +243,29 @@ private:
                 this->SendMessage(beeb_thread,server,request,std::make_unique<BeebThread::StartPasteMessage>(std::move(ascii)));
                 return;
             } else if(path_parts[2]=="poke") {
+                std::vector<uint8_t> data;
                 uint32_t addr;
-                if(!this->ParseArgsOrSendResponse(server,request,path_parts,2,
-                                                  ":x32",&addr,
-                                                  nullptr))
-                {
-                    return;
+                if(request.content_type==PRG_CONTENT_TYPE) {
+                    if(data.size()<2) {
+                        server->SendResponse(request,HTTPResponse::BadRequest(request));
+                        return;
+                    }
+
+                    addr=data[0]|data[1]<<8|0xffff0000;
+                    data=std::move(request.body);
+                    data.erase(data.begin(),data.begin()+2);
+                } else {
+                    if(!this->ParseArgsOrSendResponse(server,request,path_parts,2,
+                                                      ":x32",&addr,
+                                                      nullptr))
+                    {
+                        return;
+                    }
+
+                    data=std::move(request.body);
                 }
 
-                this->SendMessage(beeb_thread,server,request,std::make_unique<BeebThread::DebugSetBytesMessage>(addr,std::move(request.body)));
+                this->SendMessage(beeb_thread,server,request,std::make_unique<BeebThread::DebugSetBytesMessage>(addr,std::move(data)));
                 return;
             } else if(path_parts[2]=="peek") {
                 uint32_t begin;
