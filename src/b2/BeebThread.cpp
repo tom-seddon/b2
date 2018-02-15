@@ -1306,6 +1306,14 @@ void BeebThread::ThreadSetTurboDisc(ThreadState *ts,bool turbo) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+static void KeepOldROM(std::shared_ptr<const BeebRomData> *new_rom_ptr,const std::shared_ptr<const BeebRomData> &old_rom) {
+    if(*new_rom_ptr!=old_rom) {
+        if(!std::equal(old_rom->begin(),old_rom->end(),(*new_rom_ptr)->begin())) {
+            *new_rom_ptr=old_rom;
+        }
+    }
+}
+
 // REPLAYING is set if this event is coming from a replay. Otherwise,
 // it's the first time.
 
@@ -1334,6 +1342,11 @@ void BeebThread::ThreadHandleEvent(ThreadState *ts,
     case BeebEventType_Root:
     case BeebEventType_ChangeConfig:
         {
+            KeepOldROM(&event.data.config->config.os,ts->current_config.os);
+            for(size_t i=0;i<16;++i) {
+                KeepOldROM(&event.data.config->config.roms[i],ts->current_config.roms[i]);
+            }
+
             ts->current_config=event.data.config->config;
 
             uint32_t flags=BeebThreadReplaceFlag_KeepCurrentDiscs;
