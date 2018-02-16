@@ -267,6 +267,8 @@ bool TimelineUI::OnClose() {
 //////////////////////////////////////////////////////////////////////////
 
 void TimelineUI::DoTreeEventImGui(TreeEventData *te_data,const Timeline::Tree::Event *te,ImDrawList *draw_list,const ImVec2 &origin) {
+    std::shared_ptr<BeebThread> beeb_thread=m_beeb_window->GetBeebThread();
+
     ImGuiIDPusher id_pusher(te_data);
 
     draw_list->ChannelsSetCurrent(1);//fg
@@ -352,9 +354,7 @@ void TimelineUI::DoTreeEventImGui(TreeEventData *te_data,const Timeline::Tree::E
 
     ImGui::SameLine();
 
-    if(ImGuiButton("Replay",te_data->can_replay)) {
-        std::shared_ptr<BeebThread> beeb_thread=m_beeb_window->GetBeebThread();
-
+    if(ImGuiButton("Replay",te_data->can_replay&&!beeb_thread->IsReplaying())) {
         uint64_t id=m_tree.events[te_data->te_index].id;
         beeb_thread->Send(std::make_unique<BeebThread::SaveAndReplayFromMessage>(id));
     }
@@ -378,8 +378,6 @@ void TimelineUI::DoTreeEventImGui(TreeEventData *te_data,const Timeline::Tree::E
                     video_writer->SetFileName(path);
 
                     if(video_writer->BeginWrite()) {
-                        std::shared_ptr<BeebThread> beeb_thread=m_beeb_window->GetBeebThread();
-
                         uint64_t id=m_tree.events[te_data->te_index].id;
                         beeb_thread->Send(std::make_unique<BeebThread::SaveAndVideoFromMessage>(id,std::move(video_writer)));
                     }
