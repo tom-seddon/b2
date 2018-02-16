@@ -79,11 +79,10 @@ struct BeebEventConfigData {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-#include <shared/pshpack1.h>
-struct BeebEventHardReset {
-    uint32_t flags;
+struct BeebEventHardResetData {
+    BeebLoadedConfig loaded_config;
+    bool boot=false;
 };
-#include <shared/poppack.h>
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -149,7 +148,7 @@ union BeebEventData {
     BeebEventKeyState key_state;
     BeebEventLoadDiscImageData *load_disc_image;
     BeebEventConfigData *config;
-    BeebEventHardReset hard_reset;
+    BeebEventHardResetData *hard_reset;
 #if BBCMICRO_TURBO_DISC
     BeebEventSetTurboDisc set_turbo_disc;
 #endif
@@ -185,10 +184,8 @@ public:
     static BeebEvent MakeLoadDiscImage(uint64_t time_2MHz_cycles,int drive,std::shared_ptr<const DiscImage> disc_image);
 
     static BeebEvent MakeRoot(BeebLoadedConfig config);
-    static BeebEvent MakeChangeConfig(uint64_t time_2MHz_cycles,BeebLoadedConfig config);
 
-    // FLAGS is a combination of BeebThreadReplaceFlag
-    static BeebEvent MakeHardReset(uint64_t time_2MHz_cycles,uint32_t flags);
+    static BeebEvent MakeHardReset(uint64_t time_2MHz_cycles,BeebLoadedConfig loaded_config,bool boot);
 
 #if BBCMICRO_TURBO_DISC
     static BeebEvent MakeSetTurboDisc(uint64_t time_2MHz_cycles,bool turbo);

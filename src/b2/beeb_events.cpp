@@ -271,7 +271,7 @@ public:
     }
 
     void Dump(const BeebEvent *e,Log *log) const override {
-        log->f("Flags: %s",GetFlagsString(e->data.hard_reset.flags,&GetBeebThreadReplaceFlagEnumName).c_str());
+        log->f("Config: %s; boot=%s",e->data.hard_reset->loaded_config.config.name.c_str(),BOOL_STR(e->data.hard_reset->boot));
     }
 protected:
 private:
@@ -619,13 +619,6 @@ BeebEvent BeebEvent::MakeLoadDiscImage(uint64_t time,int drive,std::shared_ptr<c
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-BeebEvent BeebEvent::MakeChangeConfig(uint64_t time,BeebLoadedConfig config) {
-    return MakeConfigEvent(BeebEventType_ChangeConfig,time,std::move(config));
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 BeebEvent BeebEvent::MakeRoot(BeebLoadedConfig config) {
     return MakeConfigEvent(BeebEventType_Root,0,std::move(config));
 }
@@ -633,10 +626,13 @@ BeebEvent BeebEvent::MakeRoot(BeebLoadedConfig config) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-BeebEvent BeebEvent::MakeHardReset(uint64_t time,uint32_t flags) {
+BeebEvent BeebEvent::MakeHardReset(uint64_t time,BeebLoadedConfig loaded_config,bool boot) {
     BeebEventData data={};
 
-    data.hard_reset.flags=flags;
+    data.hard_reset=new BeebEventHardResetData;
+
+    data.hard_reset->loaded_config=std::move(loaded_config);
+    data.hard_reset->boot=boot;
 
     return BeebEvent{BeebEventType_HardReset,time,data};
 }

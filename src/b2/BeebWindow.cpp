@@ -1037,10 +1037,14 @@ void BeebWindow::DoFileMenu() {
                 }
 
                 if(ImGui::MenuItem(config->name.c_str())) {
-                    BeebLoadedConfig tmp;
+                    auto tmp=std::make_unique<BeebLoadedConfig>();
 
-                    if(BeebLoadedConfig::Load(&tmp,*config,&m_msg)) {
-                        m_beeb_thread->Send(std::make_unique<BeebThread::ChangeConfigMessage>(std::move(tmp)));
+                    if(BeebLoadedConfig::Load(tmp.get(),*config,&m_msg)) {
+                        auto message=std::make_unique<BeebThread::HardResetMessage>();
+
+                        message->loaded_config=std::move(tmp);
+
+                        m_beeb_thread->Send(std::move(message));
                     }
                 }
 
@@ -1570,8 +1574,8 @@ void BeebWindow::DoBeebDisplayUI() {
                 }
             }
 #endif
-        }
     }
+}
     ImGui::EndDock();
 }
 
@@ -1807,7 +1811,7 @@ bool BeebWindow::InitInternal() {
         if(strcmp(info.name,"opengl")==0) {
             rmt_BindOpenGL();
             g_unbind_opengl=1;
-        }
+}
 #endif
     }
     ++g_num_BeebWindow_inits;
@@ -2155,7 +2159,7 @@ void BeebWindow::MaybeSaveConfig(bool save_config) {
 //////////////////////////////////////////////////////////////////////////
 
 void BeebWindow::HardReset() {
-    m_beeb_thread->Send(std::make_unique<BeebThread::HardResetMessage>(false));
+    m_beeb_thread->Send(std::make_unique<BeebThread::HardResetMessage>());
 }
 
 //////////////////////////////////////////////////////////////////////////

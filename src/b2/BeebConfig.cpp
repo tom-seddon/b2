@@ -237,3 +237,30 @@ std::unique_ptr<BBCMicro> BeebLoadedConfig::CreateBBCMicro() const {
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
+
+// This is a bit stupid, but not a very common occurrence.
+//
+// Also, PCs are fast...
+void BeebLoadedConfig::ReuseROMs(const BeebLoadedConfig &oth) {
+    if(!!this->os&&!!oth.os) {
+        if(std::equal(this->os->begin(),this->os->end(),oth.os->begin())) {
+            this->os=oth.os;
+        }
+    }
+
+    for(size_t i=0;i<16;++i) {
+        if(!!this->roms[i]) {
+            for(size_t j=0;j<16;++j) {
+                if(!!oth.roms[j]) {
+                    if(std::equal(this->roms[i]->begin(),this->roms[i]->end(),oth.roms[j]->begin())) {
+                        this->roms[i]=oth.roms[j];
+                        break;
+                    }
+                }
+            }
+        }
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////

@@ -931,7 +931,11 @@ static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &init
                 }
 
                 if(options.boot) {
-                    thread->Send(std::make_unique<BeebThread::HardResetMessage>(true));
+                    auto message=std::make_unique<BeebThread::HardResetMessage>();
+
+                    message->boot=true;
+
+                    thread->Send(std::move(message));
                 }
             }
         }

@@ -144,18 +144,14 @@ public:
     public:
         bool boot=false;
 
-        explicit HardResetMessage(bool boot);
-    protected:
-    private:
-    };
+        // if non-null, use this as the new config.
+        std::unique_ptr<BeebLoadedConfig> loaded_config;
 
-    class ChangeConfigMessage:
-        public Message
-    {
-    public:
-        BeebLoadedConfig config;
+        // if set, reload the existing config. (Not much use in
+        // conjunction with loaded_config...)
+        bool reload_config=false;
 
-        explicit ChangeConfigMessage(BeebLoadedConfig config);
+        explicit HardResetMessage();
     protected:
     private:
     };

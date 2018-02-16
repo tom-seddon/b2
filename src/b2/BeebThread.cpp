@@ -128,18 +128,8 @@ BeebThread::KeySymMessage::KeySymMessage(BeebKeySym key_sym_,bool state_):
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-BeebThread::HardResetMessage::HardResetMessage(bool boot_):
-    Message(BeebThreadMessageType_HardReset),
-    boot(boot_)
-{
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-BeebThread::ChangeConfigMessage::ChangeConfigMessage(BeebLoadedConfig config_):
-    Message(BeebThreadMessageType_ChangeConfig),
-    config(std::move(config_))
+BeebThread::HardResetMessage::HardResetMessage():
+    Message(BeebThreadMessageType_HardReset)
 {
 }
 
@@ -1306,13 +1296,13 @@ void BeebThread::ThreadSetTurboDisc(ThreadState *ts,bool turbo) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static void KeepOldROM(std::shared_ptr<const BeebRomData> *new_rom_ptr,const std::shared_ptr<const BeebRomData> &old_rom) {
-    if(*new_rom_ptr!=old_rom) {
-        if(!std::equal(old_rom->begin(),old_rom->end(),(*new_rom_ptr)->begin())) {
-            *new_rom_ptr=old_rom;
-        }
-    }
-}
+//static void KeepOldROM(std::shared_ptr<const BeebRomData> *new_rom_ptr,const std::shared_ptr<const BeebRomData> &old_rom) {
+//    if(*new_rom_ptr!=old_rom) {
+//        if(!std::equal(old_rom->begin(),old_rom->end(),(*new_rom_ptr)->begin())) {
+//            *new_rom_ptr=old_rom;
+//        }
+//    }
+//}
 
 // REPLAYING is set if this event is coming from a replay. Otherwise,
 // it's the first time.
@@ -1340,13 +1330,7 @@ void BeebThread::ThreadHandleEvent(ThreadState *ts,
         return;
 
     case BeebEventType_Root:
-    case BeebEventType_ChangeConfig:
         {
-            KeepOldROM(&event.data.config->config.os,ts->current_config.os);
-            for(size_t i=0;i<16;++i) {
-                KeepOldROM(&event.data.config->config.roms[i],ts->current_config.roms[i]);
-            }
-
             ts->current_config=event.data.config->config;
 
             uint32_t flags=BeebThreadReplaceFlag_KeepCurrentDiscs;
@@ -1354,20 +1338,26 @@ void BeebThread::ThreadHandleEvent(ThreadState *ts,
                 flags|=BeebThreadReplaceFlag_ApplyPCState;
             }
 
-
             this->ThreadReplaceBeeb(ts,event.data.config->config.CreateBBCMicro(),flags);
         }
         return;
 
     case BeebEventType_HardReset:
         {
-            uint32_t flags=event.data.hard_reset.flags;
+            uint32_t flags=BeebThreadReplaceFlag_KeepCurrentDiscs;
+
+            if(event.data.hard_reset->boot) {
+                flags|=BeebThreadReplaceFlag_Autoboot;
+            }
+
             if(!replay) {
                 flags|=BeebThreadReplaceFlag_ApplyPCState;
             }
 
+            ts->current_config=event.data.hard_reset->loaded_config;
+
             this->ThreadReplaceBeeb(ts,
-                                    ts->current_config.CreateBBCMicro(),
+                                    event.data.hard_reset->loaded_config.CreateBBCMicro(),
                                     flags);
         }
         return;
@@ -1667,32 +1657,28 @@ bool BeebThread::ThreadHandleMessage(
         {
             auto m=(HardResetMessage *)message.get();
 
-            uint32_t flags=BeebThreadReplaceFlag_KeepCurrentDiscs;
+            if(m->loaded_config) {
+                this->ThreadRecordEvent(ts,BeebEvent::MakeHardReset(*ts->num_executed_2MHz_cycles,std::move(*m->loaded_config),m->boot));
+            } else if(m->reload_config) {
+                BeebLoadedConfig reloaded_config;
+                if(!BeebLoadedConfig::Load(&reloaded_config,ts->current_config.config,&ts->msgs)) {
+                    if(!!m->completion_fun) {
+                        m->completion_fun(false);
+                    }
+                    break;
+                }
 
-            if(m->boot) {
-                flags|=BeebThreadReplaceFlag_Autoboot;
+                reloaded_config.ReuseROMs(ts->current_config);
+
+                this->ThreadRecordEvent(ts,BeebEvent::MakeHardReset(*ts->num_executed_2MHz_cycles,std::move(reloaded_config),m->boot));
+            } else {
+                this->ThreadRecordEvent(ts,BeebEvent::MakeHardReset(*ts->num_executed_2MHz_cycles,ts->current_config,m->boot));
             }
-
-            ts->log.f("%s: flags=%s\n",GetBeebThreadMessageTypeEnumName((int)message->type),GetFlagsString(flags,&GetBeebThreadReplaceFlagEnumName).c_str());
-
-            // this->ThreadReplaceBeeb(ts,ts->current_config.CreateBBCMicro(),flags|BeebThreadReplaceFlag_ApplyPCState);
-
-            this->ThreadRecordEvent(ts,BeebEvent::MakeHardReset(*ts->num_executed_2MHz_cycles,flags));
 
             if(!!m->completion_fun) {
                 ts->reset_message=std::move(message);
                 ts->beeb->AddInstructionFn(&ThreadWaitForHardReset,ts);
             }
-        }
-        break;
-
-    case BeebThreadMessageType_ChangeConfig:
-        {
-            auto m=(ChangeConfigMessage *)message.get();
-
-            ts->current_config=std::move(m->config);
-
-            this->ThreadRecordEvent(ts,BeebEvent::MakeChangeConfig(*ts->num_executed_2MHz_cycles,ts->current_config));
         }
         break;
 

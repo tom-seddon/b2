@@ -25,8 +25,6 @@ typedef std::array<uint8_t,ROM_SIZE> BeebRomData;
 
 // The BeebConfig holds all the config info that gets saved to the
 // JSON config file.
-//
-// They probably need to go somewhere better.
 
 class BeebConfig {
 public:
@@ -76,6 +74,9 @@ public:
 
     // No disc or NVRAM callbacks are set.
     std::unique_ptr<BBCMicro> CreateBBCMicro() const;
+
+    //
+    void ReuseROMs(const BeebLoadedConfig &oth);
 protected:
 private:
 };

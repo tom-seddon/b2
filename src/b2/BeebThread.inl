@@ -38,11 +38,6 @@ EPN(CloneThisThread)
 // Hard reset with the current config.
 EPN(HardReset)
 
-// Change to a new config. The BBC will be hard reset.
-//
-// (payload)data.ptr
-EPN(ChangeConfig)
-
 // Change speed limiting.
 //
 // (bool)data.u64 - state
