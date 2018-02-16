@@ -151,6 +151,11 @@ public:
         // conjunction with loaded_config...)
         bool reload_config=false;
 
+#if BBCMICRO_DEBUGGER
+        // if set, set the emulator running after rebooting.
+        bool run=false;
+#endif
+
         explicit HardResetMessage();
     protected:
     private:

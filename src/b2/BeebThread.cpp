@@ -1679,6 +1679,12 @@ bool BeebThread::ThreadHandleMessage(
                 ts->reset_message=std::move(message);
                 ts->beeb->AddInstructionFn(&ThreadWaitForHardReset,ts);
             }
+
+#if BBCMICRO_DEBUGGER
+            if(m->run) {
+                ts->beeb->DebugRun();
+            }
+#endif
         }
         break;
 

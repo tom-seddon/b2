@@ -213,7 +213,12 @@ private:
                     return;
                 }
 
-                this->SendMessage(beeb_thread,server,request,std::make_unique<BeebThread::HardResetMessage>(false));
+                auto message=std::make_unique<BeebThread::HardResetMessage>();
+
+                message->reload_config=true;
+                message->run=true;
+
+                this->SendMessage(beeb_thread,server,request,std::move(message));
                 return;
             } else if(path_parts[2]=="paste") {
                 if(!this->ParseArgsOrSendResponse(server,request,path_parts,2,nullptr)) {
