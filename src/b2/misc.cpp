@@ -362,6 +362,76 @@ std::vector<std::string> GetSplitString(const std::string &str,const std::string
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+template<class T>
+static bool GetValueFromString(T *value,const char *str,int radix) {
+    char *ep;
+    unsigned long long tmp=strtoull(str,&ep,radix);
+    if(*ep!=0&&!isspace(*ep)) {
+        return false;
+    }
+
+    if(tmp>std::numeric_limits<T>::max()) {
+        return false;
+    }
+
+    *value=(T)tmp;
+    return true;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool GetBoolFromString(bool *value,const std::string &str) {
+    return GetBoolFromString(value,str.c_str());
+}
+
+bool GetBoolFromString(bool *value,const char *str) {
+    while(*str!=0&&isspace(*str)) {
+        ++str;
+    }
+
+    if(strcmp(str,"1")==0||strcmp(str,"true")==0) {
+        *value=true;
+        return true;
+    } else if(strcmp(str,"0")==0||strcmp(str,"false")==0) {
+        *value=false;
+        return true;
+    } else {
+        return false;
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool GetUInt8FromString(uint8_t *value,const std::string &str,int radix) {
+    return GetUInt8FromString(value,str.c_str(),radix);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool GetUInt8FromString(uint8_t *value,const char *str,int radix) {
+    return GetValueFromString(value,str,radix);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool GetUInt16FromString(uint16_t *value,const std::string &str,int radix) {
+    return GetUInt16FromString(value,str.c_str(),radix);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool GetUInt16FromString(uint16_t *value,const char *str,int radix) {
+    return GetValueFromString(value,str,radix);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 bool GetUInt32FromString(uint32_t *value,const std::string &str,int radix) {
     return GetUInt32FromString(value,str.c_str(),radix);
 }
@@ -370,18 +440,7 @@ bool GetUInt32FromString(uint32_t *value,const std::string &str,int radix) {
 //////////////////////////////////////////////////////////////////////////
 
 bool GetUInt32FromString(uint32_t *value,const char *str,int radix) {
-    char *ep;
-    unsigned long tmp=strtoul(str,&ep,radix);
-    if(*ep!=0&&!isspace(*ep)) {
-        return false;
-    }
-
-    if(tmp>UINT32_MAX) {
-        return false;
-    }
-
-    *value=(uint32_t)tmp;
-    return true;
+    return GetValueFromString(value,str,radix);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -395,14 +454,7 @@ bool GetUInt64FromString(uint64_t *value,const std::string &str,int radix) {
 //////////////////////////////////////////////////////////////////////////
 
 bool GetUInt64FromString(uint64_t *value,const char *str,int radix) {
-    char *ep;
-    unsigned long long tmp=strtoull(str,&ep,radix);
-    if(*ep!=0&&!isspace(*ep)) {
-        return false;
-    }
-
-    *value=tmp;
-    return true;
+    return GetValueFromString(value,str,radix);
 }
 
 //////////////////////////////////////////////////////////////////////////

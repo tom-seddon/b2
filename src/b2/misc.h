@@ -132,6 +132,15 @@ std::vector<std::string> GetSplitString(const std::string &str,const std::string
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+bool GetBoolFromString(bool *value,const std::string &str);
+bool GetBoolFromString(bool *value,const char *str);
+
+bool GetUInt8FromString(uint8_t *value,const std::string &str,int radix=0);
+bool GetUInt8FromString(uint8_t *value,const char *str,int radix=0);
+
+bool GetUInt16FromString(uint16_t *value,const std::string &str,int radix=0);
+bool GetUInt16FromString(uint16_t *value,const char *str,int radix=0);
+
 bool GetUInt32FromString(uint32_t *value,const std::string &str,int radix=0);
 bool GetUInt32FromString(uint32_t *value,const char *str,int radix=0);
 

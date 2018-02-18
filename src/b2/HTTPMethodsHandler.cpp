@@ -131,37 +131,80 @@ private:
                 return false;
             }
 
-            if(partspec[0]==':') {
-                if(strcmp(partspec+1,"x32")==0) {
+            const char *colon=strchr(partspec,':');
+            ASSERT(colon);
+            if(!colon) {
+                server->SendResponse(request,HTTPResponse());
+                return false;
+            }
+
+            const char *fmt=colon+1;
+
+            const std::string *value;
+            if(colon==partspec) {
+                value=&parts[arg_index++];
+            } else {
+                ASSERT(false);
+                std::string key(partspec,colon);
+
+                value=nullptr;
+
+                for(const HTTPQueryParameter &q:request.query) {
+                    if(q.key==key) {
+                        value=&q.value;
+                        break;
+                    }
+                }
+            }
+
+            if(value) {
+                if(strcmp(fmt,"u8")==0) {
+                    auto u8=va_arg(v,uint8_t *);
+                    if(!GetUInt8FromString(u8,*value)) {
+                        server->SendResponse(request,HTTPResponse::BadRequest(request,"bad 8-bit hex: %s",value->c_str()));
+                        return false;
+                    }
+                } else if(strcmp(fmt,"x16")==0) {
+                    auto u16=va_arg(v,uint16_t *);
+                    if(!GetUInt16FromString(u16,*value,16)) {
+                        server->SendResponse(request,HTTPResponse::BadRequest(request,"bad 16-bit hex value: %s",value->c_str()));
+                        return false;
+                    }
+                } else if(strcmp(fmt,"x32")==0) {
                     auto u32=va_arg(v,uint32_t *);
-                    if(!GetUInt32FromString(u32,parts[arg_index],16)) {
-                        server->SendResponse(request,HTTPResponse::BadRequest(request,"bad 32-bit hex value: %s",parts[arg_index].c_str()));
+                    if(!GetUInt32FromString(u32,*value,16)) {
+                        server->SendResponse(request,HTTPResponse::BadRequest(request,"bad 32-bit hex value: %s",value->c_str()));
                         return false;
                     }
-                } else if(strcmp(partspec+1,"x64")==0) {
+                } else if(strcmp(fmt,"x64")==0) {
                     auto u64=va_arg(v,uint64_t *);
-                    if(!GetUInt64FromString(u64,parts[arg_index],16)) {
-                        server->SendResponse(request,HTTPResponse::BadRequest(request,"bad 64-bit hex value: %s",parts[arg_index].c_str()));
+                    if(!GetUInt64FromString(u64,*value,16)) {
+                        server->SendResponse(request,HTTPResponse::BadRequest(request,"bad 64-bit hex value: %s",value->c_str()));
                         return false;
                     }
-                } else if(strcmp(partspec+1,"x64/len")==0) {
+                } else if(strcmp(fmt,"x64/len")==0) {
                     auto u64=va_arg(v,uint64_t *);
                     auto is_len=va_arg(v,bool *);
                     size_t index=0;
-                    if(parts[arg_index][index]=='+') {
+                    if((*value)[index]=='+') {
                         *is_len=true;
 
-                        if(!GetUInt64FromString(u64,parts[arg_index].c_str()+1)) {
-                            server->SendResponse(request,HTTPResponse::BadRequest(request,"bad length: %s",parts[arg_index].c_str()));
+                        if(!GetUInt64FromString(u64,value->c_str()+1)) {
+                            server->SendResponse(request,HTTPResponse::BadRequest(request,"bad length: %s",value->c_str()));
                             return false;
                         }
                     } else {
                         *is_len=false;
 
-                        if(!GetUInt64FromString(u64,parts[arg_index],16)) {
-                            server->SendResponse(request,HTTPResponse::BadRequest(request,"bad address: %s",parts[arg_index].c_str()));
+                        if(!GetUInt64FromString(u64,*value,16)) {
+                            server->SendResponse(request,HTTPResponse::BadRequest(request,"bad address: %s",value->c_str()));
                             return false;
                         }
+                    }
+                } else if(strcmp(fmt,"bool")==0) {
+                    auto b=va_arg(v,bool *);
+                    if(!GetBoolFromString(b,*value)) {
+                        server->SendResponse(request,HTTPResponse::BadRequest(request,"bad bool value: %s",value->c_str()));
                     }
                 } else {
                     ASSERT(false);
@@ -174,7 +217,6 @@ private:
                 return false;
             }
 
-            ++arg_index;
             partspec=va_arg(v,const char *);
         }
 
@@ -300,7 +342,27 @@ private:
 
                 beeb_thread->Send(std::make_unique<BeebThreadPeekMessage>(begin,end-begin,server,std::move(request)));
                 return;
+            } else if(path_parts[2]=="call") {
+                uint16_t addr;
+                uint8_t a=0,x=0,y=0;
+                bool c=false;
+                if(!this->ParseArgsOrSendResponse(server,request,path_parts,2,
+                                                  ":x16",&addr,
+                                                  "a:u8",&a,
+                                                  "x:u8",&x,
+                                                  "y:u8",&y,
+                                                  "c:bool",&c,
+                                                  nullptr))
+                {
+                    return;
+                }
+
+                this->SendMessage(beeb_thread,server,request,std::make_unique<BeebThread::DebugAsyncCallMessage>(addr,a,x,y,c));
+                return;
             }
+        } else if(path_parts.size()>=1&&path_parts[0]=="test") {
+            server->SendResponse(request,HTTPResponse::OK());
+            return;
         }
 
         server->SendResponse(request,HTTPResponse::BadRequest());
@@ -308,6 +370,7 @@ private:
 
     void SendMessage(const std::shared_ptr<BeebThread> &beeb_thread,HTTPServer *server,const HTTPRequest &request,std::unique_ptr<BeebThread::Message> message) {
         message->completion_fun=[server,response_data=request.response_data](bool success) {
+            printf("SendMessage completion_fun: connected ID=%" PRIu64 "\n",response_data.connection_id);
             if(success) {
                 server->SendResponse(response_data,HTTPResponse::OK());
             } else {

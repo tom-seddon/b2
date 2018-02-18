@@ -90,8 +90,9 @@ public:
         // (true) or cancelled (false).
         //
         // When the Message is destroyed, if completion_fun is set it
-        // will be called with an argument of true. Alternatively, it
-        // can be called manually using CallCompletionFun.
+        // will be called with the value of this->implicit_success
+        // (which is by default true). Alternatively, it can be called
+        // manually using CallCompletionFun.
         //
         // (Random notes: main other option here might be a virtual
         // function, and the HTTP server could derive new message
@@ -104,6 +105,8 @@ public:
         // std::function<>::operator bool, but extra faff with a
         // virtual function.)
         std::function<void(bool)> completion_fun;
+
+        bool implicit_success=true;
 
         explicit Message(BeebThreadMessageType type);
         virtual ~Message();
@@ -241,6 +244,11 @@ public:
     private:
     };
 
+    // Save current state, start recording video of replay from given
+    // state to new state.
+    //
+    // This doesn't affect the receiver - video recording runs as a
+    // job, and emulation continues.
     class SaveAndVideoFromMessage:
         public Message
     {
@@ -253,6 +261,8 @@ public:
     private:
     };
 
+    // Set name and load method for a loaded disc image. (The disc
+    // contents don't change.)
     class SetDiscImageNameAndLoadMethodMessage:
         public Message
     {
@@ -301,6 +311,9 @@ public:
     private:
     };
 
+    // Clone self into existing window. Save this thread's state and
+    // load the resulting state into another thread. (Not sure "clone"
+    // is really the best name for that though...?)
     class CloneThisThreadMessage:
         public Message
     {
@@ -384,6 +397,8 @@ public:
     private:
     };
 
+    // Wake thread up when emulator is being resumed. The thread could
+    // have gone to sleep.
     class DebugWakeUpMessage:
         public Message
     {
@@ -427,6 +442,21 @@ public:
         std::vector<uint8_t> values;
 
         DebugSetBytesMessage(uint32_t addr,std::vector<uint8_t> values);
+    protected:
+    private:
+    };
+#endif
+
+#if BBCMICRO_DEBUGGER
+    class DebugAsyncCallMessage:
+        public Message
+    {
+    public:
+        uint16_t addr=0;
+        uint8_t a=0,x=0,y=0;
+        bool c=false;
+
+        DebugAsyncCallMessage(uint16_t addr,uint8_t a,uint8_t x,uint8_t y,bool c);
     protected:
     private:
     };
@@ -722,6 +752,7 @@ private:
 
 #if HTTP_SERVER
     static bool ThreadWaitForHardReset(BBCMicro *beeb,M6502 *cpu,void *context);
+    static void DebugAsyncCallCallback(bool called,void *context);
 #endif
 };
 

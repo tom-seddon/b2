@@ -99,6 +99,10 @@ BeebThread::Message::~Message() {
 //////////////////////////////////////////////////////////////////////////
 
 void BeebThread::Message::CallCompletionFun(bool success) {
+    if(this->type!=BeebThreadMessageType_Timing) {
+        printf("%s: type=%s, success=%s, got completion_fun=%s\n",__func__,GetBeebThreadMessageTypeEnumName(this->type),BOOL_STR(success),BOOL_STR(!!this->completion_fun));
+    }
+
     if(!!this->completion_fun) {
         this->completion_fun(success);
         this->completion_fun=std::function<void(bool)>();
@@ -365,6 +369,20 @@ BeebThread::DebugSetBytesMessage::DebugSetBytesMessage(uint32_t addr_,std::vecto
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+BeebThread::DebugAsyncCallMessage::DebugAsyncCallMessage(uint16_t addr_,uint8_t a_,uint8_t x_,uint8_t y_,bool c_):
+    Message(BeebThreadMessageType_DebugAsyncCall),
+    addr(addr_),
+    a(a_),
+    x(x_),
+    y(y_),
+    c(c_)
+{
+    this->implicit_success=false;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 BeebThread::CustomMessage::CustomMessage():
     Message(BeebThreadMessageType_Custom)
 {
@@ -407,6 +425,7 @@ struct BeebThread::ThreadState {
 #if HTTP_SERVER
     std::unique_ptr<BeebThread::Message> reset_message;
     std::unique_ptr<BeebThread::Message> paste_message;
+    std::unique_ptr<BeebThread::Message> async_call_message;
 #endif
 
     Log log{"BEEB  ",LOG(BTHREAD)};
@@ -1418,6 +1437,17 @@ void BeebThread::ThreadHandleEvent(ThreadState *ts,
             }
         }
         return;
+
+    case BeebEventType_DebugAsyncCall:
+        {
+            ts->beeb->DebugSetAsyncCall(event.data.debug_async_call.addr,
+                                        event.data.debug_async_call.a,
+                                        event.data.debug_async_call.x,
+                                        event.data.debug_async_call.y,
+                                        event.data.debug_async_call.c,
+                                        &DebugAsyncCallCallback,ts);
+        }
+        return;
 #endif
     }
 
@@ -2022,6 +2052,20 @@ bool BeebThread::ThreadHandleMessage(
         break;
 #endif
 
+#if BBCMICRO_DEBUGGER
+    case BeebThreadMessageType_DebugAsyncCall:
+        {
+            printf("%s: BeebThreadMessageType_DebugAsyncCall\n",__func__);
+
+            auto m=(DebugAsyncCallMessage *)message.get();
+
+            this->ThreadRecordEvent(ts,BeebEvent::MakeAsyncCall(*ts->num_executed_2MHz_cycles,m->addr,m->a,m->x,m->y,m->c));
+
+            ts->async_call_message=std::move(message);
+        }
+        break;
+#endif
+
     case BeebThreadMessageType_Custom:
         {
             auto m=(CustomMessage *)message.get();
@@ -2301,6 +2345,20 @@ bool BeebThread::ThreadWaitForHardReset(BBCMicro *beeb,M6502 *cpu,void *context)
     }
 
     return true;
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if HTTP_SERVER
+void BeebThread::DebugAsyncCallCallback(bool called,void *context) {
+    auto ts=(ThreadState *)context;
+
+    if(!!ts->async_call_message) {
+        ts->async_call_message->CallCompletionFun(called);
+        ts->async_call_message.reset();
+    }
 }
 #endif
 

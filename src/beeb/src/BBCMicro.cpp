@@ -22,6 +22,7 @@
 #include <map>
 #include <limits.h>
 #include <algorithm>
+#include <inttypes.h>
 
 #include <shared/enum_decl.h>
 #include "BBCMicro_private.inl"
@@ -52,6 +53,13 @@ const char BBCMicro::PASTE_START_CHAR=' ';
 const TraceEventType BBCMicro::INSTRUCTION_EVENT("BBCMicroInstruction",sizeof(InstructionTraceEvent));
 const TraceEventType BBCMicro::INITIAL_EVENT("BBCMicroInitial",sizeof(InitialTraceEvent));
 #endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+// The async call thunk lives in an undefined area of FRED.
+static const M6502Word ASYNC_CALL_THUNK_ADDR={0xfc50};
+static const int ASYNC_CALL_TIMEOUT=1000000;
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -987,6 +995,22 @@ void BBCMicro::SetTeletextDebug(bool teletext_debug) {
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_DEBUGGER
+uint8_t BBCMicro::ReadAsyncCallThunk(void *m_,M6502Word a) {
+    auto m=(BBCMicro *)m_;
+
+    size_t offset=a.w-ASYNC_CALL_THUNK_ADDR.w;
+    ASSERT(offset<sizeof m->m_state.async_call_thunk_buf);
+
+    printf("%s: type=%u a=$%04x v=$%02x cycles=%" PRIu64 "\n",__func__,m->m_state.cpu.read,a.w,m->m_state.async_call_thunk_buf[offset],m->m_state.num_2MHz_cycles);
+
+    return m->m_state.async_call_thunk_buf[offset];
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_DEBUGGER
 void BBCMicro::HandleReadByteDebugFlags(uint8_t read,DebugState::ByteDebugFlags *flags) {
     if(flags->bits.break_execute) {
         if(read==M6502ReadType_Opcode) {
@@ -1024,11 +1048,40 @@ void BBCMicro::HandleInterruptBreakpoints() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+//
+//if(mmio_page<3) {
+//    if(m->m_state.cpu.read) {
+//        ReadMMIOFn fn=m->m_rmmio_fns[mmio_page][m->m_state.cpu.abus.b.l];
+//        void *context=m->m_mmio_fn_contexts[mmio_page][m->m_state.cpu.abus.b.l];
+//        m->m_state.cpu.dbus=(*fn)(context,m->m_state.cpu.abus);
+//    } else {
+//        WriteMMIOFn fn=m->m_hw_wmmio_fns[mmio_page][m->m_state.cpu.abus.b.l];
+//        void *context=m->m_hw_mmio_fn_contexts[mmio_page][m->m_state.cpu.abus.b.l];
+//        (*fn)(context,m->m_state.cpu.abus,m->m_state.cpu.dbus);
+//    }
+//} else {
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 void BBCMicro::HandleCPUDataBusMainRAMOnly(BBCMicro *m) {
+    uint8_t mmio_page=m->m_state.cpu.abus.b.h-0xfc;
     if(const uint8_t read=m->m_state.cpu.read) {
-        m->m_state.cpu.dbus=m->m_pages.r[m->m_state.cpu.abus.b.h][m->m_state.cpu.abus.b.l];
+        if(mmio_page<3) {
+            ReadMMIOFn fn=m->m_rmmio_fns[mmio_page][m->m_state.cpu.abus.b.l];
+            void *context=m->m_mmio_fn_contexts[mmio_page][m->m_state.cpu.abus.b.l];
+            m->m_state.cpu.dbus=(*fn)(context,m->m_state.cpu.abus);
+        } else {
+            m->m_state.cpu.dbus=m->m_pages.r[m->m_state.cpu.abus.b.h][m->m_state.cpu.abus.b.l];
+        }
     } else {
-        m->m_pages.w[m->m_state.cpu.abus.b.h][m->m_state.cpu.abus.b.l]=m->m_state.cpu.dbus;
+        if(mmio_page<3) {
+            WriteMMIOFn fn=m->m_hw_wmmio_fns[mmio_page][m->m_state.cpu.abus.b.l];
+            void *context=m->m_hw_mmio_fn_contexts[mmio_page][m->m_state.cpu.abus.b.l];
+            (*fn)(context,m->m_state.cpu.abus,m->m_state.cpu.dbus);
+        } else {
+            m->m_pages.w[m->m_state.cpu.abus.b.h][m->m_state.cpu.abus.b.l]=m->m_state.cpu.dbus;
+        }
     }
 }
 
@@ -1037,8 +1090,16 @@ void BBCMicro::HandleCPUDataBusMainRAMOnly(BBCMicro *m) {
 
 #if BBCMICRO_DEBUGGER
 void BBCMicro::HandleCPUDataBusMainRAMOnlyDebug(BBCMicro *m) {
+    uint8_t mmio_page=m->m_state.cpu.abus.b.h-0xfc;
     if(const uint8_t read=m->m_state.cpu.read) {
-        m->m_state.cpu.dbus=m->m_pages.r[m->m_state.cpu.abus.b.h][m->m_state.cpu.abus.b.l];
+        if(mmio_page<3) {
+            ReadMMIOFn fn=m->m_rmmio_fns[mmio_page][m->m_state.cpu.abus.b.l];
+            void *context=m->m_mmio_fn_contexts[mmio_page][m->m_state.cpu.abus.b.l];
+            m->m_state.cpu.dbus=(*fn)(context,m->m_state.cpu.abus);
+        } else {
+            m->m_state.cpu.dbus=m->m_pages.r[m->m_state.cpu.abus.b.h][m->m_state.cpu.abus.b.l];
+        }
+
         DebugState::ByteDebugFlags *flags=&m->m_pages.debug[m->m_state.cpu.abus.b.h][m->m_state.cpu.abus.b.l];
         if(flags->value!=0) {
             m->HandleReadByteDebugFlags(read,flags);
@@ -1048,7 +1109,14 @@ void BBCMicro::HandleCPUDataBusMainRAMOnlyDebug(BBCMicro *m) {
             m->HandleInterruptBreakpoints();
         }
     } else {
-        m->m_pages.w[m->m_state.cpu.abus.b.h][m->m_state.cpu.abus.b.l]=m->m_state.cpu.dbus;
+        if(mmio_page<3) {
+            WriteMMIOFn fn=m->m_hw_wmmio_fns[mmio_page][m->m_state.cpu.abus.b.l];
+            void *context=m->m_hw_mmio_fn_contexts[mmio_page][m->m_state.cpu.abus.b.l];
+            (*fn)(context,m->m_state.cpu.abus,m->m_state.cpu.dbus);
+        } else {
+            m->m_pages.w[m->m_state.cpu.abus.b.h][m->m_state.cpu.abus.b.l]=m->m_state.cpu.dbus;
+        }
+
         if(m->m_pages.debug[m->m_state.cpu.abus.b.h][m->m_state.cpu.abus.b.l].bits.break_write) {
             m->DebugHalt("data write: $%04x",m->m_state.cpu.abus.w);
         }
@@ -1060,10 +1128,23 @@ void BBCMicro::HandleCPUDataBusMainRAMOnlyDebug(BBCMicro *m) {
 //////////////////////////////////////////////////////////////////////////
 
 void BBCMicro::HandleCPUDataBusWithShadowRAM(BBCMicro *m) {
+    uint8_t mmio_page=m->m_state.cpu.abus.b.h-0xfc;
     if(const uint8_t read=m->m_state.cpu.read) {
-        m->m_state.cpu.dbus=m->m_pc_pages[m->m_state.cpu.opcode_pc.b.h]->r[m->m_state.cpu.abus.b.h][m->m_state.cpu.abus.b.l];
+        if(mmio_page<3) {
+            ReadMMIOFn fn=m->m_rmmio_fns[mmio_page][m->m_state.cpu.abus.b.l];
+            void *context=m->m_mmio_fn_contexts[mmio_page][m->m_state.cpu.abus.b.l];
+            m->m_state.cpu.dbus=(*fn)(context,m->m_state.cpu.abus);
+        } else {
+            m->m_state.cpu.dbus=m->m_pc_pages[m->m_state.cpu.opcode_pc.b.h]->r[m->m_state.cpu.abus.b.h][m->m_state.cpu.abus.b.l];
+        }
     } else {
-        m->m_pc_pages[m->m_state.cpu.opcode_pc.b.h]->w[m->m_state.cpu.abus.b.h][m->m_state.cpu.abus.b.l]=m->m_state.cpu.dbus;
+        if(mmio_page<3) {
+            WriteMMIOFn fn=m->m_hw_wmmio_fns[mmio_page][m->m_state.cpu.abus.b.l];
+            void *context=m->m_hw_mmio_fn_contexts[mmio_page][m->m_state.cpu.abus.b.l];
+            (*fn)(context,m->m_state.cpu.abus,m->m_state.cpu.dbus);
+        } else {
+            m->m_pc_pages[m->m_state.cpu.opcode_pc.b.h]->w[m->m_state.cpu.abus.b.h][m->m_state.cpu.abus.b.l]=m->m_state.cpu.dbus;
+        }
     }
 }
 
@@ -1072,8 +1153,16 @@ void BBCMicro::HandleCPUDataBusWithShadowRAM(BBCMicro *m) {
 
 #if BBCMICRO_DEBUGGER
 void BBCMicro::HandleCPUDataBusWithShadowRAMDebug(BBCMicro *m) {
+    uint8_t mmio_page=m->m_state.cpu.abus.b.h-0xfc;
     if(const uint8_t read=m->m_state.cpu.read) {
-        m->m_state.cpu.dbus=m->m_pc_pages[m->m_state.cpu.opcode_pc.b.h]->r[m->m_state.cpu.abus.b.h][m->m_state.cpu.abus.b.l];
+        if(mmio_page<3) {
+            ReadMMIOFn fn=m->m_rmmio_fns[mmio_page][m->m_state.cpu.abus.b.l];
+            void *context=m->m_mmio_fn_contexts[mmio_page][m->m_state.cpu.abus.b.l];
+            m->m_state.cpu.dbus=(*fn)(context,m->m_state.cpu.abus);
+        } else {
+            m->m_state.cpu.dbus=m->m_pc_pages[m->m_state.cpu.opcode_pc.b.h]->r[m->m_state.cpu.abus.b.h][m->m_state.cpu.abus.b.l];
+        }
+
         DebugState::ByteDebugFlags *flags=&m->m_pc_pages[m->m_state.cpu.opcode_pc.b.h]->debug[m->m_state.cpu.abus.b.h][m->m_state.cpu.abus.b.l];
         if(flags->value!=0) {
             m->HandleReadByteDebugFlags(read,flags);
@@ -1083,7 +1172,14 @@ void BBCMicro::HandleCPUDataBusWithShadowRAMDebug(BBCMicro *m) {
             m->HandleInterruptBreakpoints();
         }
     } else {
-        m->m_pc_pages[m->m_state.cpu.opcode_pc.b.h]->w[m->m_state.cpu.abus.b.h][m->m_state.cpu.abus.b.l]=m->m_state.cpu.dbus;
+        if(mmio_page<3) {
+            WriteMMIOFn fn=m->m_hw_wmmio_fns[mmio_page][m->m_state.cpu.abus.b.l];
+            void *context=m->m_hw_mmio_fn_contexts[mmio_page][m->m_state.cpu.abus.b.l];
+            (*fn)(context,m->m_state.cpu.abus,m->m_state.cpu.dbus);
+        } else {
+            m->m_pc_pages[m->m_state.cpu.opcode_pc.b.h]->w[m->m_state.cpu.abus.b.h][m->m_state.cpu.abus.b.l]=m->m_state.cpu.dbus;
+        }
+
         if(m->m_pc_pages[m->m_state.cpu.opcode_pc.b.h]->debug[m->m_state.cpu.abus.b.h][m->m_state.cpu.abus.b.l].bits.break_write) {
             m->DebugHalt("data write: $%04x",m->m_state.cpu.abus.w);
         }
@@ -1095,7 +1191,77 @@ void BBCMicro::HandleCPUDataBusWithShadowRAMDebug(BBCMicro *m) {
 //////////////////////////////////////////////////////////////////////////
 
 void BBCMicro::HandleCPUDataBusWithHacks(BBCMicro *m) {
+#if BBCMICRO_DEBUGGER
+    if(m->m_state.async_call_address.w!=INVALID_ASYNC_CALL_ADDRESS) {
+        if(m->m_state.cpu.read==M6502ReadType_Interrupt&&M6502_IsProbablyIRQ(&m->m_state.cpu)) {
+            // Already on the stack is the actual return that the
+            // thunk will RTI to.
+
+            // Manually push current PC and status register.
+            {
+                M6502P p=M6502_GetP(&m->m_state.cpu);
+
+                // Add the thunk call address that the IRQ routine will RTI to.
+                m->SetMemory(m->m_state.cpu.s,m->m_state.cpu.pc.b.h);
+                --m->m_state.cpu.s.b.l;
+
+                m->SetMemory(m->m_state.cpu.s,m->m_state.cpu.pc.b.l);
+                --m->m_state.cpu.s.b.l;
+
+                m->SetMemory(m->m_state.cpu.s,p.value);
+                --m->m_state.cpu.s.b.l;
+
+                // Set up CPU as if it's about to execute the thunk, so
+                // the IRQ routine will return to the desired place.
+                p.bits.c=m->m_state.async_call_c;
+                M6502_SetP(&m->m_state.cpu,p.value);
+                m->m_state.cpu.pc=ASYNC_CALL_THUNK_ADDR;
+            }
+
+            // Set up thunk.
+            {
+                uint8_t *p=m->m_state.async_call_thunk_buf;
+
+                *p++=0x48;//pha
+                *p++=0x8a;//txa
+                *p++=0x48;//pha
+                *p++=0x98;//tya
+                *p++=0x48;//pha
+                *p++=0xa9;
+                *p++=m->m_state.async_call_a;
+                *p++=0xa2;
+                *p++=m->m_state.async_call_x;
+                *p++=0xa0;
+                *p++=m->m_state.async_call_y;
+                *p++=m->m_state.async_call_c?0x38:0x18;//sec:clc
+                *p++=0x20;//jsr abs
+                *p++=m->m_state.async_call_address.b.l;
+                *p++=m->m_state.async_call_address.b.h;
+                *p++=0x68;//pla
+                *p++=0xa8;//tay
+                *p++=0x68;//pla
+                *p++=0xaa;//tax
+                *p++=0x68;//pla
+                *p++=0x40;//rti
+
+                ASSERT(p-m->m_state.async_call_thunk_buf<=sizeof m->m_state.async_call_thunk_buf);
+            }
+
+            m->FinishAsyncCall(true);
+        } else {
+            --m->m_state.async_call_timeout;
+            if(m->m_state.async_call_timeout<0) {
+                m->FinishAsyncCall(false);
+            }
+        }
+    }
+#endif
+
     (*m->m_default_handle_cpu_data_bus_fn)(m);
+
+    if(m->m_state.cpu.pc.w>=ASYNC_CALL_THUNK_ADDR.w&&m->m_state.cpu.pc.w<ASYNC_CALL_THUNK_ADDR.w+sizeof m->m_state.async_call_thunk_buf) {
+        printf("hola: pc=$%04x cycles=%" PRIu64 "\n",m->m_state.cpu.pc.w,m->m_state.num_2MHz_cycles);
+    }
 
     if(M6502_IsAboutToExecute(&m->m_state.cpu)) {
         if(!m->m_instruction_fns.empty()) {
@@ -1512,20 +1678,7 @@ bool BBCMicro::Update(VideoDataUnit *video_unit,SoundDataUnit *sound_unit) {
     }
 
     if(m_state.stretched_cycles_left==0) {
-        uint8_t mmio_page=m_state.cpu.abus.b.h-0xfc;
-        if(mmio_page<3) {
-            if(m_state.cpu.read) {
-                ReadMMIOFn fn=m_rmmio_fns[mmio_page][m_state.cpu.abus.b.l];
-                void *context=m_mmio_fn_contexts[mmio_page][m_state.cpu.abus.b.l];
-                m_state.cpu.dbus=(*fn)(context,m_state.cpu.abus);
-            } else {
-                WriteMMIOFn fn=m_hw_wmmio_fns[mmio_page][m_state.cpu.abus.b.l];
-                void *context=m_hw_mmio_fn_contexts[mmio_page][m_state.cpu.abus.b.l];
-                (*fn)(context,m_state.cpu.abus,m_state.cpu.dbus);
-            }
-        } else {
-            (*m_handle_cpu_data_bus_fn)(this);
-        }
+        (*m_handle_cpu_data_bus_fn)(this);
     }
 
     return sound;
@@ -2120,6 +2273,24 @@ void BBCMicro::DebugGetBytePointers(uint8_t **write_ptr,const uint8_t **read_ptr
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_DEBUGGER
+void BBCMicro::FinishAsyncCall(bool called) {
+    if(m_async_call_fn) {
+        (*m_async_call_fn)(called,m_async_call_context);
+    }
+
+    m_state.async_call_address.w=INVALID_ASYNC_CALL_ADDRESS;
+    m_state.async_call_timeout=0;
+    m_async_call_fn=nullptr;
+    m_async_call_context=nullptr;
+
+    this->UpdateCPUDataBusFn();
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_DEBUGGER
 void BBCMicro::DebugSetByte(uint32_t addr,uint8_t value) {
     uint8_t *write;
     this->DebugGetBytePointers(&write,nullptr,nullptr,addr);
@@ -2386,6 +2557,24 @@ void BBCMicro::SetHardwareDebugState(const HardwareDebugState &hw) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+void BBCMicro::DebugSetAsyncCall(uint16_t address,uint8_t a,uint8_t x,uint8_t y,bool c,DebugAsyncCallFn fn,void *context) {
+    this->FinishAsyncCall(false);
+
+    m_state.async_call_address.w=address;
+    m_state.async_call_timeout=ASYNC_CALL_TIMEOUT;
+    m_state.async_call_a=a;
+    m_state.async_call_x=x;
+    m_state.async_call_y=y;
+    m_state.async_call_c=c;
+    m_async_call_fn=fn;
+    m_async_call_context=context;
+
+    this->UpdateCPUDataBusFn();
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 #if BBCMICRO_DEBUGGER
 void BBCMicro::UpdateDebugPages(MemoryPages *pages) {
     for(size_t i=0;i<256;++i) {
@@ -2479,6 +2668,12 @@ void BBCMicro::InitStuff() {
         this->SetMMIOCycleStretch(i,i<0xfe00);
     }
 
+#if BBCMICRO_DEBUGGER
+    for(size_t i=0;i<sizeof m_state.async_call_thunk_buf;++i) {
+        this->SetMMIOFns((uint16_t)(ASYNC_CALL_THUNK_ADDR.w+i),&ReadAsyncCallThunk,nullptr,this);
+    }
+#endif
+
     // I/O: VIAs
     for(uint16_t i=0;i<32;++i) {
         this->SetMMIOFns(0xfe40+i,g_R6522_read_fns[i&15],g_R6522_write_fns[i&15],&m_state.system_via);
@@ -2533,6 +2728,9 @@ void BBCMicro::InitStuff() {
     } else {
         m_state.fdc.SetHandler(nullptr);
     }
+
+#if BBCMICRO_DEBUGGER
+#endif
 
     // I/O: additional cycle-stretched regions.
     for(uint16_t a=0xfe00;a<0xfe20;++a) {
@@ -2959,6 +3157,10 @@ void BBCMicro::UpdateCPUDataBusFn() {
 #endif
 
     if(!m_instruction_fns.empty()) {
+        goto hack;
+    }
+
+    if(m_state.async_call_address.w!=INVALID_ASYNC_CALL_ADDRESS) {
         goto hack;
     }
 

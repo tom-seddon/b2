@@ -573,6 +573,36 @@ const BeebEventSetBytesHandler BeebEventSetBytesHandler::INSTANCE;
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#if BBCMICRO_DEBUGGER
+class BeebEventDebugAsyncCallHandler:
+    public BeebEventValueHandler
+{
+public:
+    static const BeebEventDebugAsyncCallHandler INSTANCE;
+
+    BeebEventDebugAsyncCallHandler():
+        BeebEventValueHandler(0)
+    {
+    }
+
+    void Dump(const BeebEvent *e,Log *log) const override {
+        log->f("Address: $%04x, A=%u ($%02x), X=%u ($%02x), Y=%u ($%02x), C=%s",
+               e->data.debug_async_call.addr,
+               e->data.debug_async_call.a,e->data.debug_async_call.a,
+               e->data.debug_async_call.x,e->data.debug_async_call.x,
+               e->data.debug_async_call.y,e->data.debug_async_call.y,
+               BOOL_STR(e->data.debug_async_call.c));
+    }
+protected:
+private:
+};
+
+const BeebEventDebugAsyncCallHandler BeebEventDebugAsyncCallHandler::INSTANCE;
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 const BeebEventHandler *BeebEventHandler::handlers[256]={
 #define BEEB_EVENT_TYPE(X) &BeebEvent##X##Handler::INSTANCE,
 #include "beeb_events_types.inl"
@@ -728,6 +758,23 @@ BeebEvent BeebEvent::MakeSetBytes(uint64_t time_2MHz_cycles,uint32_t address,std
     data.set_bytes->values=std::move(values);
 
     return BeebEvent{BeebEventType_SetBytes,time_2MHz_cycles,data};
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_DEBUGGER
+BeebEvent BeebEvent::MakeAsyncCall(uint64_t time_2MHz_cycles,uint16_t addr,uint8_t a,uint8_t x,uint8_t y,bool c) {
+    BeebEventData data={};
+
+    data.debug_async_call.addr=addr;
+    data.debug_async_call.a=a;
+    data.debug_async_call.x=x;
+    data.debug_async_call.y=y;
+    data.debug_async_call.c=c;
+
+    return BeebEvent{BeebEventType_DebugAsyncCall,time_2MHz_cycles,data};
 }
 #endif
 

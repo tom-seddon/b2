@@ -426,6 +426,18 @@ public:
 
     HardwareDebugState GetHardwareDebugState() const;
     void SetHardwareDebugState(const HardwareDebugState &hw);
+
+    static const uint16_t INVALID_ASYNC_CALL_ADDRESS=0xffff;
+    typedef void (*DebugAsyncCallFn)(bool called,void *context);
+
+    // Set future call. The call will be made on exit from the next
+    // IRQ routine (this being about as safe a place to put it as
+    // any).
+    //
+    // The callback will be called with called=true when the call is
+    // made, or with called=false if it doesn't happen in a timely
+    // fashion.
+    void DebugSetAsyncCall(uint16_t address,uint8_t a,uint8_t x,uint8_t y,bool c,DebugAsyncCallFn fn,void *context);
 #endif
 protected:
 private:
@@ -510,6 +522,15 @@ private:
         std::shared_ptr<std::string> paste_text;
         size_t paste_index=0;
         uint64_t paste_wait_end=0;
+
+        // Upcoming async call address.
+        M6502Word async_call_address={INVALID_ASYNC_CALL_ADDRESS};
+        uint8_t async_call_a=0;
+        uint8_t async_call_x=0;
+        uint8_t async_call_y=0;
+        bool async_call_c=0;
+        uint8_t async_call_thunk_buf[32]={};
+        int async_call_timeout=0;
 
         explicit State(BBCMicroType type,const std::vector<uint8_t> &nvram_contents,const tm *rtc_time);
     };
@@ -632,6 +653,9 @@ private:
 
     // try to avoid appalling debug build performance...
     DebugState *m_debug=nullptr;
+
+    DebugAsyncCallFn m_async_call_fn=nullptr;
+    void *m_async_call_context=nullptr;
 #endif
 
     void InitStuff();
@@ -669,6 +693,7 @@ private:
     static uint8_t ReadACCCON(void *m_,M6502Word a);
     static void WriteACCCON(void *m_,M6502Word a,uint8_t value);
 #if BBCMICRO_DEBUGGER
+    static uint8_t ReadAsyncCallThunk(void *m_,M6502Word a);
     void HandleReadByteDebugFlags(uint8_t read,DebugState::ByteDebugFlags *flags);
     void HandleInterruptBreakpoints();
 #endif
@@ -681,6 +706,7 @@ private:
     void UpdateDebugState();
     void SetDebugStepType(BBCMicroStepType step_type);
     void DebugGetBytePointers(uint8_t **write_ptr,const uint8_t **read_ptr,uint16_t *debug_page,uint32_t full_addr);
+    void FinishAsyncCall(bool called);
 #endif
     static void HandleCPUDataBusWithHacks(BBCMicro *m);
     static void HandleTurboRTI(M6502 *cpu);
