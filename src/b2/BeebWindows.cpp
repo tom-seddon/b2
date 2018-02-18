@@ -497,7 +497,7 @@ void BeebWindows::RemoveConfigByName(const std::string &config_name) {
 
 void BeebWindows::ConfigDidChange(const std::string &config_name) {
     ForEachConfig([&config_name](const BeebConfig *,BeebConfig *editable_config) {
-        if(editable_config->name==config_name) {
+        if(editable_config&&editable_config->name==config_name) {
             MakeNameUnique(editable_config);
             return false;
         } else {
