@@ -1194,6 +1194,13 @@ void BBCMicro::HandleCPUDataBusWithHacks(BBCMicro *m) {
 #if BBCMICRO_DEBUGGER
     if(m->m_state.async_call_address.w!=INVALID_ASYNC_CALL_ADDRESS) {
         if(m->m_state.cpu.read==M6502ReadType_Interrupt&&M6502_IsProbablyIRQ(&m->m_state.cpu)) {
+            TRACEF(m->m_trace,"Enqueuing async call: address=$%04x, A=%03u ($%02x) X=%03u ($%02x) Y=%03u ($%02X) C=%s\n",
+                   m->m_state.async_call_address.w,
+                   m->m_state.async_call_a,m->m_state.async_call_a,
+                   m->m_state.async_call_x,m->m_state.async_call_x,
+                   m->m_state.async_call_y,m->m_state.async_call_y,
+                   BOOL_STR(m->m_state.async_call_c));
+
             // Already on the stack is the actual return that the
             // thunk will RTI to.
 
