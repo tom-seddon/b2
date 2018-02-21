@@ -122,15 +122,17 @@ private:
         va_list v;
         va_start(v,partspec0);
 
+        bool result=this->ParseArgsOrSendResponse2(server,request,parts,command_index,partspec0,v);
+
+        va_end(v);
+
+        return result;
+    }
+
+    bool ParseArgsOrSendResponse2(HTTPServer *server,const HTTPRequest &request,const std::vector<std::string> &parts,size_t command_index,const char *partspec0,va_list v) {
         const char *partspec=partspec0;
-
         size_t arg_index=command_index+1;
-        while(arg_index<parts.size()) {
-            if(!partspec) {
-                server->SendResponse(request,HTTPResponse::BadRequest(request,"too few args for command: %s",parts[command_index].c_str()));
-                return false;
-            }
-
+        while(partspec) {
             const char *colon=strchr(partspec,':');
             ASSERT(colon);
             if(!colon) {
@@ -144,7 +146,6 @@ private:
             if(colon==partspec) {
                 value=&parts[arg_index++];
             } else {
-                ASSERT(false);
                 std::string key(partspec,colon);
 
                 value=nullptr;
@@ -157,35 +158,43 @@ private:
                 }
             }
 
-            if(value) {
-                if(strcmp(fmt,"u8")==0) {
-                    auto u8=va_arg(v,uint8_t *);
+            if(strcmp(fmt,"u8")==0) {
+                auto u8=va_arg(v,uint8_t *);
+                if(value) {
                     if(!GetUInt8FromString(u8,*value)) {
                         server->SendResponse(request,HTTPResponse::BadRequest(request,"bad 8-bit hex: %s",value->c_str()));
                         return false;
                     }
-                } else if(strcmp(fmt,"x16")==0) {
-                    auto u16=va_arg(v,uint16_t *);
+                }
+            } else if(strcmp(fmt,"x16")==0) {
+                auto u16=va_arg(v,uint16_t *);
+                if(value) {
                     if(!GetUInt16FromString(u16,*value,16)) {
                         server->SendResponse(request,HTTPResponse::BadRequest(request,"bad 16-bit hex value: %s",value->c_str()));
                         return false;
                     }
-                } else if(strcmp(fmt,"x32")==0) {
-                    auto u32=va_arg(v,uint32_t *);
+                }
+            } else if(strcmp(fmt,"x32")==0) {
+                auto u32=va_arg(v,uint32_t *);
+                if(value) {
                     if(!GetUInt32FromString(u32,*value,16)) {
                         server->SendResponse(request,HTTPResponse::BadRequest(request,"bad 32-bit hex value: %s",value->c_str()));
                         return false;
                     }
-                } else if(strcmp(fmt,"x64")==0) {
-                    auto u64=va_arg(v,uint64_t *);
+                }
+            } else if(strcmp(fmt,"x64")==0) {
+                auto u64=va_arg(v,uint64_t *);
+                if(value) {
                     if(!GetUInt64FromString(u64,*value,16)) {
                         server->SendResponse(request,HTTPResponse::BadRequest(request,"bad 64-bit hex value: %s",value->c_str()));
                         return false;
                     }
-                } else if(strcmp(fmt,"x64/len")==0) {
-                    auto u64=va_arg(v,uint64_t *);
-                    auto is_len=va_arg(v,bool *);
-                    size_t index=0;
+                }
+            } else if(strcmp(fmt,"x64/len")==0) {
+                auto u64=va_arg(v,uint64_t *);
+                auto is_len=va_arg(v,bool *);
+                size_t index=0;
+                if(value) {
                     if((*value)[index]=='+') {
                         *is_len=true;
 
@@ -201,15 +210,13 @@ private:
                             return false;
                         }
                     }
-                } else if(strcmp(fmt,"bool")==0) {
-                    auto b=va_arg(v,bool *);
+                }
+            } else if(strcmp(fmt,"bool")==0) {
+                auto b=va_arg(v,bool *);
+                if(value) {
                     if(!GetBoolFromString(b,*value)) {
                         server->SendResponse(request,HTTPResponse::BadRequest(request,"bad bool value: %s",value->c_str()));
                     }
-                } else {
-                    ASSERT(false);
-                    server->SendResponse(request,HTTPResponse());
-                    return false;
                 }
             } else {
                 ASSERT(false);
@@ -219,8 +226,6 @@ private:
 
             partspec=va_arg(v,const char *);
         }
-
-        va_end(v);
 
         if(arg_index!=parts.size()) {
             server->SendResponse(request,HTTPResponse::BadRequest(request,"too many arguments"));
