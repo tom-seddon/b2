@@ -748,8 +748,6 @@ void BBCMicro::TracePortB(SystemVIAPB pb) {
         //    pb.m128_bits.rtc_chip_select,
         //    pb.m128_bits.rtc_address_strobe);
     }
-
-    //printf("PA=0x%02X addressable latch: !sndw=%d !kbw=%d base=$%04X\n",value,m_state.addressable_latch.bits.not_sound_write,m_state.addressable_latch.bits.not_kb_write,SCREEN_BASES[m_state.addressable_latch.bits.screen_base].w);
 }
 #endif
 
@@ -950,14 +948,12 @@ bool BBCMicro::SetKeyState(BeebKey key,bool new_state) {
             ASSERT(m_state.num_keys_down<256);
             ++m_state.num_keys_down;
             *column|=mask;
-            //printf("%d keys down\n",m_num_keys_down);
 
             return true;
         } else if(old_state&&!new_state) {
             ASSERT(m_state.num_keys_down>0);
             --m_state.num_keys_down;
             *column&=~mask;
-            //printf("%d keys down\n",m_num_keys_down);
 
             return true;
         }
@@ -1001,7 +997,7 @@ uint8_t BBCMicro::ReadAsyncCallThunk(void *m_,M6502Word a) {
     size_t offset=a.w-ASYNC_CALL_THUNK_ADDR.w;
     ASSERT(offset<sizeof m->m_state.async_call_thunk_buf);
 
-    printf("%s: type=%u a=$%04x v=$%02x cycles=%" PRIu64 "\n",__func__,m->m_state.cpu.read,a.w,m->m_state.async_call_thunk_buf[offset],m->m_state.num_2MHz_cycles);
+    LOGF(OUTPUT,"%s: type=%u a=$%04x v=$%02x cycles=%" PRIu64 "\n",__func__,m->m_state.cpu.read,a.w,m->m_state.async_call_thunk_buf[offset],m->m_state.num_2MHz_cycles);
 
     return m->m_state.async_call_thunk_buf[offset];
 }
@@ -1265,10 +1261,6 @@ void BBCMicro::HandleCPUDataBusWithHacks(BBCMicro *m) {
 #endif
 
     (*m->m_default_handle_cpu_data_bus_fn)(m);
-
-    if(m->m_state.cpu.pc.w>=ASYNC_CALL_THUNK_ADDR.w&&m->m_state.cpu.pc.w<ASYNC_CALL_THUNK_ADDR.w+sizeof m->m_state.async_call_thunk_buf) {
-        printf("hola: pc=$%04x cycles=%" PRIu64 "\n",m->m_state.cpu.pc.w,m->m_state.num_2MHz_cycles);
-    }
 
     if(M6502_IsAboutToExecute(&m->m_state.cpu)) {
         if(!m->m_instruction_fns.empty()) {

@@ -99,9 +99,9 @@ BeebThread::Message::~Message() {
 //////////////////////////////////////////////////////////////////////////
 
 void BeebThread::Message::CallCompletionFun(bool success) {
-    if(this->type!=BeebThreadMessageType_Timing) {
-        printf("%s: type=%s, success=%s, got completion_fun=%s\n",__func__,GetBeebThreadMessageTypeEnumName(this->type),BOOL_STR(success),BOOL_STR(!!this->completion_fun));
-    }
+    //if(this->type!=BeebThreadMessageType_Timing) {
+    //    LOGF(OUTPUT,"%s: type=%s, success=%s, got completion_fun=%s\n",__func__,GetBeebThreadMessageTypeEnumName(this->type),BOOL_STR(success),BOOL_STR(!!this->completion_fun));
+    //}
 
     if(!!this->completion_fun) {
         this->completion_fun(success);
@@ -1275,15 +1275,6 @@ void BeebThread::ThreadSetKeyState(ThreadState *ts,BeebKey beeb_key,bool state) 
 
         m_effective_key_states.SetState(beeb_key,state);
 
-        //printf("%-18" PRIu64 ": %s: %s=%s (boot=%s fake_shift_state=%s real shift=%s)\n",
-        //    *ts->num_executed_2MHz_cycles,
-        //    __func__,
-        //    GetBeebKeyEnumName(beeb_key),
-        //    BOOL_STR(state),
-        //    BOOL_STR(ts->boot),
-        //    GetBeebShiftStateEnumName(ts->fake_shift_state),
-        //    BOOL_STR(m_real_key_states.GetState(BeebKey_Shift)));
-
         this->ThreadRecordEvent(ts,BeebEvent::MakeKeyState(*ts->num_executed_2MHz_cycles,beeb_key,state));
 
 #if BBCMICRO_TRACE
@@ -2055,8 +2046,6 @@ bool BeebThread::ThreadHandleMessage(
 #if BBCMICRO_DEBUGGER
     case BeebThreadMessageType_DebugAsyncCall:
         {
-            printf("%s: BeebThreadMessageType_DebugAsyncCall\n",__func__);
-
             auto m=(DebugAsyncCallMessage *)message.get();
 
             this->ThreadRecordEvent(ts,BeebEvent::MakeAsyncCall(*ts->num_executed_2MHz_cycles,m->addr,m->a,m->x,m->y,m->c));

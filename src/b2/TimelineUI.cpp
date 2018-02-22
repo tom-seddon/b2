@@ -242,7 +242,6 @@ void TimelineUI::DoImGui(CommandContextStack *cc_stack) {
         if(!m_panning) {
             if(ImGui::IsWindowHovered()) {
                 m_panning=true;
-                //printf("MouseDelta: %f,%f\n",io.MouseDelta.x,io.MouseDelta.y);
             }
         }
 

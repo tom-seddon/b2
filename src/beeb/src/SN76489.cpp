@@ -89,7 +89,6 @@ SN76489::Output SN76489::Update() {
             channel->counter=freq;
         }
 
-        //printf("%02x ",channel->output.noise.value);
         output.ch[3]=channel->vol*(int8_t)channel->output.noise.value;
         ASSERT(output.ch[3]>=-15&&output.ch[3]<=15);
     }

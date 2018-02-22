@@ -58,7 +58,7 @@ public:
         m_server(server),
         m_response_data(request.response_data)
     {
-        printf("BeebThreadPeekMessage: this=%p\n",(void *)this);
+        LOGF(OUTPUT,"BeebThreadPeekMessage: this=%p\n",(void *)this);
     }
 
     void ThreadHandleMessage(BBCMicro *beeb) override {
@@ -441,7 +441,7 @@ private:
 
     void SendMessage(const std::shared_ptr<BeebThread> &beeb_thread,HTTPServer *server,const HTTPRequest &request,std::unique_ptr<BeebThread::Message> message) {
         message->completion_fun=[server,response_data=request.response_data](bool success) {
-            printf("SendMessage completion_fun: connected ID=%" PRIu64 "\n",response_data.connection_id);
+            LOGF(OUTPUT,"SendMessage completion_fun: connected ID=%" PRIu64 "\n",response_data.connection_id);
             if(success) {
                 server->SendResponse(response_data,HTTPResponse::OK());
             } else {

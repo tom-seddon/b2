@@ -342,7 +342,6 @@ bool BeebWindow::GetBeebKeyState(BeebKey key) const {
 // improved.
 
 void BeebWindow::HandleSDLKeyEvent(const SDL_KeyboardEvent &event) {
-    //printf("%s: scancode=%s key=%s mod=0x%X state=%s\n",__func__,SDL_GetScancodeName(keysym.scancode),SDL_GetKeyName(keysym.sym),keysym.mod,BOOL_STR(state));
     bool state=event.type==SDL_KEYDOWN;
 
     LOGF(OUTPUT,"%s: key=%s state=%s timestamp=%u\n",__func__,SDL_GetScancodeName(event.keysym.scancode),BOOL_STR(state),event.timestamp);
@@ -705,8 +704,6 @@ bool BeebWindow::DoImGui(uint64_t ticks) {
 
                     this->DoPopupUI(ticks,output_width,output_height);
                 }
-
-                //printf("any docked: %s\n",BOOL_STR(ImGui::AreAnyCurrentDockContextDocksDocked()));
             }
             ImGui::End();
         }
@@ -814,7 +811,6 @@ void BeebWindow::DoSettingsUI() {
 
             if(ImGui::BeginDock(ui->name,&opened,extra_flags,default_size)) {
                 if(!m_popups[ui->type]) {
-                    printf("Creating: %s\n",ui->name);
                     m_popups[ui->type]=(*ui->create_fn)(this);
                 }
 
@@ -837,7 +833,6 @@ void BeebWindow::DoSettingsUI() {
             }
         } else {
             if(m_popups[ui->type]) {
-                printf("Deleting: %s\n",ui->name);
                 this->MaybeSaveConfig(m_popups[ui->type]->OnClose());
                 m_popups[ui->type]=nullptr;
             }
@@ -1569,8 +1564,6 @@ void BeebWindow::DoBeebDisplayUI() {
                     const VideoDataUnitMetadata *metadata=m_tv.GetTextureMetadata();
                     m_mouse_pixel_metadata=metadata[y*TV_TEXTURE_WIDTH+x];
                     m_got_mouse_pixel_metadata=true;
-
-                    //printf("tx=%f x=%d; ty=%f y=%d; addr=%04x\n",tx,x,ty,y,m_mouse_pixel_metadata.addr);
                 }
             }
 #endif
@@ -2534,7 +2527,6 @@ void BeebWindow::DebugStepOver() {
     } else {
         M6502Word next_pc={(uint16_t)(s->opcode_pc.w+di->num_bytes)};
         m->DebugAddTempBreakpoint(next_pc);
-        //printf("step over %s/%s - next_pc=$%04x\n",mnemonic,mode_name,next_pc.w);
         m->DebugRun();
         m_beeb_thread->Send(std::make_unique<BeebThread::DebugWakeUpMessage>());
     }

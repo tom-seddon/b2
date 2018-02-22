@@ -906,11 +906,6 @@ static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &init
             return false;
         }
 
-        // printf("----8<----8<----8<----8<----8<----8<----\n");
-        // printf("%s\n",wlog.str.c_str());
-        // printf("%s\n",elog.str.c_str());
-        // printf("----8<----8<----8<----8<----8<----8<----\n");
-
         BeebWindowInitArguments ia;
         {
             ia.render_driver_index=options.render_driver_index;
