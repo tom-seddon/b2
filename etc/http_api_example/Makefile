@@ -13,7 +13,6 @@ WIN:=b2
 .PHONY:all
 all:
 	$(MKDIR) $(BUILD)
-	$(TASS) --nostart -L $(BUILD)/main.lst -o $(BUILD)/main.bin main.asm
+	$(TASS) --nostart -L $(BUILD)/main.lst -l $(BUILD)/main.sym -o $(BUILD)/main.prg --cbm-prg main.asm
 	$(CURL) $(URL)/w/$(WIN)/reset
-	$(CURL) --upload-file $(BUILD)/main.bin $(URL)/w/$(WIN)/poke/ffff1000
-	$(CURL) --upload-file commands.txt --header "Content-Type: text/plain; charset=utf-8" $(URL)/w/$(WIN)/paste
+	$(CURL) -H "Content-Type:application/x-c64-program" --upload-file $(BUILD)/main.prg $(URL)/w/$(WIN)/run

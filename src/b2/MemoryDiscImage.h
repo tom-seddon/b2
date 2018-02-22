@@ -55,6 +55,9 @@ public:
     // LOAD_METHOD_ZIP.
     static std::unique_ptr<MemoryDiscImage> LoadFromFile(std::string path,Messages *msg);
 
+    static bool FindDiscGeometryFromFileDetails(DiscGeometry *geometry,const char *file_name,size_t file_size,Messages *msg);
+    static bool FindDiscGeometryFromMIMEType(DiscGeometry *geometry,const char *mime_type,size_t file_size,Messages *msg);
+
     ~MemoryDiscImage();
 
     MemoryDiscImage(const MemoryDiscImage &)=delete;

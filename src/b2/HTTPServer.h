@@ -91,6 +91,7 @@ public:
     static HTTPResponse BadRequest(const HTTPRequest &request,const char *fmt=nullptr,...) PRINTF_LIKE(2,3);
     static HTTPResponse NotFound();
     static HTTPResponse NotFound(const HTTPRequest &request);
+    static HTTPResponse UnsupportedMediaType(const HTTPRequest &request);
     static HTTPResponse ServiceUnavailable();
 
     // A default-constructed HTTPResponse has a status of 500 Internal

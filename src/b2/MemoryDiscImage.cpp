@@ -38,8 +38,8 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-//static const DiscGeometry SSD_GEOMETRY(80,10,256);
-//static const DiscGeometry DSD_GEOMETRY(80,10,256,true);
+static const DiscGeometry SSD_GEOMETRY(80,10,256);
+static const DiscGeometry DSD_GEOMETRY(80,10,256,true);
 // static const DiscGeometry SDD_GEOMETRY(1,0,0,256);
 // static const DiscGeometry DDD_GEOMETRY(2,0,0,256);
 static const DiscGeometry ADM_GEOMETRY(80,16,256,false,true);
@@ -78,6 +78,18 @@ const std::string MemoryDiscImage::LOAD_METHOD_ZIP="zip";
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+struct DiscImageType;
+
+typedef bool (*FindDiscGeometryFn)(DiscGeometry *geometry,const char *name,size_t size,Messages *msg,const DiscImageType *disc_image_type);
+
+struct DiscImageType {
+    const char *ext;
+    const char *mime_type;
+    FindDiscGeometryFn find_geometry_fn;
+    const DiscGeometry *possible_geometries;
+    size_t num_possible_geometries;
+};
+
 static const char SSD_EXT[]=".ssd";
 static const char DSD_EXT[]=".dsd";
 static const char SDD_EXT[]=".sdd";
@@ -85,7 +97,88 @@ static const char DDD_EXT[]=".ddd";
 static const char ADM_EXT[]=".adm";
 static const char ADL_EXT[]=".adl";
 
-static const char *const ALL_EXTS[]={SSD_EXT,DSD_EXT,SDD_EXT,DDD_EXT,ADM_EXT,ADL_EXT,".zip",nullptr};
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+static bool FindSingleDensityDiscGeometry(DiscGeometry *geometry,const char *name,size_t size,Messages *msg,const DiscImageType *disc_image_type) {
+    ASSERT(disc_image_type->num_possible_geometries==1);
+    ASSERT(!disc_image_type->possible_geometries[0].double_density);
+    *geometry=DiscGeometry(80,10,256,disc_image_type->possible_geometries[0].double_sided);
+
+    if(size%256!=0) {
+        if(msg) {
+            msg->e.f("invalid size");
+            if(name) {
+                msg->e.f(" for file: %s",name);
+            }
+            msg->e.f("\n");
+
+            msg->i.f("(length %zu not a multiple of sector size 256)\n",
+                     size);
+        }
+        return false;
+    }
+
+    if(size>geometry->GetTotalNumBytes()) {
+        if(msg) {
+            msg->e.f("invalid size");
+            if(name) {
+                msg->e.f(" for file: %s",name);
+            }
+            msg->e.f("\n");
+            msg->i.f("(length %zu larger than maximum %zu for %d*%zu*%zu sectors)\n",
+                     size,
+                     geometry->GetTotalNumBytes(),
+                     geometry->double_sided?2:1,
+                     geometry->num_tracks,
+                     geometry->sectors_per_track);
+        }
+        return false;
+    }
+
+    return true;
+}
+
+static bool FindDiscGeometryFromFileSize(DiscGeometry *geometry,const char *name,size_t size,Messages *msg,const DiscImageType *disc_image_type) {
+    for(size_t i=0;i<disc_image_type->num_possible_geometries;++i) {
+        const DiscGeometry *g=&disc_image_type->possible_geometries[i];
+
+        if(size==g->GetTotalNumBytes()) {
+            *geometry=*g;
+            return true;
+        }
+    }
+
+    if(msg) {
+        msg->e.f("invalid size");
+        if(name) {
+            msg->e.f(" for file: %s",name);
+        }
+        msg->e.f("\n");
+
+        msg->i.f("(size is %zu; valid sizes are: ",size);
+        for(size_t i=0;i<disc_image_type->num_possible_geometries;++i) {
+            if(i>0) {
+                msg->i.f("; ");
+            }
+
+            msg->i.f("%zu",disc_image_type->possible_geometries[i].GetTotalNumBytes());
+        }
+        msg->i.f(")\n");
+    }
+
+    return false;
+}
+
+static const DiscImageType DISC_IMAGE_TYPES[]={
+    {SSD_EXT,"vnd.acorn.disc-image.ssd",&FindSingleDensityDiscGeometry,&SSD_GEOMETRY,1},
+    {DSD_EXT,"vnd.acorn.disc-image.dsd",&FindSingleDensityDiscGeometry,&DSD_GEOMETRY,1},
+    {SDD_EXT,"vnd.acorn.disc-image.sdd",&FindDiscGeometryFromFileSize,SDD_GEOMETRIES,NUM_SDD_GEOMETRIES},
+    {DDD_EXT,"vnd.acorn.disc-image.ddd",&FindDiscGeometryFromFileSize,DDD_GEOMETRIES,NUM_DDD_GEOMETRIES},
+    {ADM_EXT,"vnd.acorn.disc-image.adm",&FindDiscGeometryFromFileSize,&ADM_GEOMETRY,1},
+    {ADL_EXT,"vnd.acorn.disc-image.adl",&FindDiscGeometryFromFileSize,&ADL_GEOMETRY,1},
+    {},
+};
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -93,13 +186,13 @@ static const char *const ALL_EXTS[]={SSD_EXT,DSD_EXT,SDD_EXT,DDD_EXT,ADM_EXT,ADL
 void AddDiscImagesFileDialogFilter(FileDialog *fd) {
     std::string patterns;
 
-    for(size_t i=0;ALL_EXTS[i];++i) {
-        if(i>0) {
+    for(const DiscImageType *type=DISC_IMAGE_TYPES;type->ext;++type) {
+        if(!patterns.empty()) {
             patterns+=";";
         }
 
         patterns+="*";
-        patterns+=ALL_EXTS[i];
+        patterns+=type->ext;
     }
 
     fd->AddFilter("BBC disc images",patterns);
@@ -115,10 +208,10 @@ DiscGeometry::DiscGeometry() {
 //////////////////////////////////////////////////////////////////////////
 
 DiscGeometry::DiscGeometry(size_t num_tracks_,
-    size_t sectors_per_track_,
-    size_t bytes_per_sector_,
-    bool double_sided_,
-    bool double_density_):
+                           size_t sectors_per_track_,
+                           size_t bytes_per_sector_,
+                           bool double_sided_,
+                           bool double_density_):
     double_sided(double_sided_),
     double_density(double_density_),
     num_tracks(num_tracks_),
@@ -231,104 +324,11 @@ std::unique_ptr<MemoryDiscImage> MemoryDiscImage::LoadFromBuffer(
 
     if(data_size%geometry.bytes_per_sector!=0) {
         msg->e.f("%s: not a multiple of sector size (%zu)\n",
-            path.c_str(),geometry.bytes_per_sector);
+                 path.c_str(),geometry.bytes_per_sector);
         return nullptr;
     }
 
     return std::unique_ptr<MemoryDiscImage>(new MemoryDiscImage(std::move(path),std::move(load_method),data,data_size,geometry));
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-static bool FindDiscGeometryFromFileSize(
-    DiscGeometry *geometry,
-    const DiscGeometry *geometries,
-    size_t num_geometries,
-    size_t size,
-    const char *name,
-    Messages *msg)
-{
-    for(size_t i=0;i<num_geometries;++i) {
-        const DiscGeometry *g=&geometries[i];
-
-        if(size==g->GetTotalNumBytes()) {
-            *geometry=*g;
-            return true;
-        }
-    }
-
-    msg->e.f("invalid size for file: %s\n",name);
-
-    msg->i.f("(size is %zu; valid sizes are: ",size);
-    for(size_t i=0;i<num_geometries;++i) {
-        if(i>0) {
-            msg->i.f("; ");
-        }
-
-        msg->i.f("%zu",geometries[i].GetTotalNumBytes());
-    }
-    msg->i.f(")\n");
-
-    return false;
-}
-
-static bool GetSingleDensityDiscGeometry(
-    DiscGeometry *geometry,
-    bool double_sided,
-    const char *name,
-    size_t size,
-    Messages *msg)
-{
-    *geometry=DiscGeometry(80,10,256,double_sided);
-
-    if(size%256!=0) {
-        msg->e.f("invalid size for file: %s\n",name);
-        msg->i.f("(length %zu not a multiple of sector size 256)\n",
-            size);
-        return false;
-    }
-
-    if(size>geometry->GetTotalNumBytes()) {
-        msg->e.f("invalid size for file: %s\n",name);
-        msg->i.f("(length %zu larger than maximum %zu for %d*%zu*%zu sectors)\n",
-            size,
-            geometry->GetTotalNumBytes(),
-            geometry->double_sided?2:1,
-            geometry->num_tracks,
-            geometry->sectors_per_track);
-        return false;
-    }
-
-    return true;
-}
-
-static bool GetDiscGeometryFromFileDetails(
-    DiscGeometry *geometry,
-    const char *name,
-    size_t size,
-    Messages *msg)
-{
-    std::string ext=PathGetExtension(name);
-
-    //LOGF(OUTPUT,"%s: %s: %zu bytes\n",__func__,name,size);
-
-    if(PathCompare(ext,SSD_EXT)==0) {
-        return GetSingleDensityDiscGeometry(geometry,false,name,size,msg);
-    } else if(PathCompare(ext,DSD_EXT)==0) {
-        return GetSingleDensityDiscGeometry(geometry,true,name,size,msg);
-    } else if(PathCompare(ext,ADL_EXT)==0) {
-        return FindDiscGeometryFromFileSize(geometry,&ADL_GEOMETRY,1,size,name,msg);
-    } else if(PathCompare(ext,ADM_EXT)==0) {
-        return FindDiscGeometryFromFileSize(geometry,&ADM_GEOMETRY,1,size,name,msg);
-    } else if(PathCompare(ext,SDD_EXT)==0) {
-        return FindDiscGeometryFromFileSize(geometry,SDD_GEOMETRIES,NUM_SDD_GEOMETRIES,size,name,msg);
-    } else if(PathCompare(ext,DDD_EXT)==0) {
-        return FindDiscGeometryFromFileSize(geometry,DDD_GEOMETRIES,NUM_DDD_GEOMETRIES,size,name,msg);
-    } else {
-        msg->e.f("unknown extension: %s\n",ext.c_str());
-        return false;
-    }
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -424,7 +424,7 @@ static bool LoadDiscImageFromZipFile(
         }
 
         DiscGeometry g;
-        if(GetDiscGeometryFromFileDetails(&g,name.data(),stat.m_uncomp_size,nullptr)) {
+        if(MemoryDiscImage::FindDiscGeometryFromFileDetails(&g,name.data(),stat.m_uncomp_size,nullptr)) {
             if(image_index!=BAD_INDEX) {
                 msg->e.f("zip file contains multiple disc images: %s\n",zip_file_name.c_str());
                 msg->i.f("(at least: %s, %s)\n",name.data(),image_name->c_str());
@@ -467,19 +467,15 @@ done:;
 //////////////////////////////////////////////////////////////////////////
 
 static bool LoadDiscImage(std::vector<uint8_t> *data,
-    DiscGeometry *geometry,
-    const std::string &path,
-    Messages *msg)
+                          DiscGeometry *geometry,
+                          const std::string &path,
+                          Messages *msg)
 {
     if(!LoadFile(data,path,msg)) {
         return false;
     }
 
-    if(!GetDiscGeometryFromFileDetails(geometry,
-        path.c_str(),
-        data->size(),
-        msg))
-    {
+    if(!MemoryDiscImage::FindDiscGeometryFromFileDetails(geometry,path.c_str(),data->size(),msg)) {
         return false;
     }
 
@@ -517,6 +513,40 @@ std::unique_ptr<MemoryDiscImage> MemoryDiscImage::LoadFromFile(
     }
 
     return LoadFromBuffer(path,method,data.data(),data.size(),geometry,msg);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool MemoryDiscImage::FindDiscGeometryFromFileDetails(DiscGeometry *geometry,const char *file_name,size_t file_size,Messages *msg) {
+    std::string ext=PathGetExtension(file_name);
+
+    for(const DiscImageType *type=DISC_IMAGE_TYPES;type->ext;++type) {
+        if(PathCompare(ext,type->ext)==0) {
+            return (*type->find_geometry_fn)(geometry,file_name,file_size,msg,type);
+        }
+    }
+
+    if(msg) {
+        msg->e.f("unknown extension: %s\n",ext.c_str());
+    }
+    return false;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool MemoryDiscImage::FindDiscGeometryFromMIMEType(DiscGeometry *geometry,const char *mime_type,size_t file_size,Messages *msg) {
+    for(const DiscImageType *type=DISC_IMAGE_TYPES;type->ext;++type) {
+        if(strcmp(mime_type,type->mime_type)==0) {
+            return (*type->find_geometry_fn)(geometry,nullptr,file_size,msg,type);
+        }
+    }
+
+    if(msg) {
+        msg->e.f("unknown MIME type: %s\n",mime_type);
+    }
+    return false;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -625,10 +655,10 @@ void MemoryDiscImage::SetLoadMethod(std::string load_method) {
 
 std::string MemoryDiscImage::GetDescription() const {
     return strprintf("%s %s %zuT x %zuS",
-        m_data->geometry.double_sided?"DS":"SS",
-        m_data->geometry.double_density?"DD":"SD",
-        m_data->geometry.num_tracks,
-        m_data->geometry.sectors_per_track);
+                     m_data->geometry.double_sided?"DS":"SS",
+                     m_data->geometry.double_density?"DD":"SD",
+                     m_data->geometry.num_tracks,
+                     m_data->geometry.sectors_per_track);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -723,10 +753,10 @@ bool MemoryDiscImage::IsWriteProtected() const {
 //////////////////////////////////////////////////////////////////////////
 
 bool MemoryDiscImage::GetIndex(size_t *index,
-    uint8_t side,
-    uint8_t track,
-    uint8_t sector,
-    size_t offset) const
+                               uint8_t side,
+                               uint8_t track,
+                               uint8_t sector,
+                               size_t offset) const
 {
     if(side>=(m_data->geometry.double_sided?2:1)) {
         return false;
