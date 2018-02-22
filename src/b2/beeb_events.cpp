@@ -260,20 +260,34 @@ const BeebEventRootHandler BeebEventRootHandler::INSTANCE;
 //////////////////////////////////////////////////////////////////////////
 
 class BeebEventHardResetHandler:
-    public BeebEventValueHandler
+    public BeebEventHandler
 {
 public:
     static const BeebEventHardResetHandler INSTANCE;
 
     BeebEventHardResetHandler():
-        BeebEventValueHandler(0)
+        BeebEventHandler(0)
     {
+    }
+
+    BeebEventData Clone(const BeebEventData &src) const override {
+        BeebEventData clone={};
+
+        if(src.hard_reset) {
+            clone.hard_reset=new BeebEventHardResetData(*src.hard_reset);
+        }
+
+        return clone;
     }
 
     void Dump(const BeebEvent *e,Log *log) const override {
         log->f("Config: %s; boot=%s",e->data.hard_reset->loaded_config.config.name.c_str(),BOOL_STR(e->data.hard_reset->boot));
     }
 protected:
+    void HandleDestroy(BeebEventData *data) const override {
+        delete data->hard_reset;
+        data->hard_reset=nullptr;
+    }
 private:
 };
 
