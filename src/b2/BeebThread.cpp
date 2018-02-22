@@ -998,7 +998,7 @@ std::shared_ptr<BeebState> BeebThread::ThreadSaveState(ThreadState *ts) {
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_TRACE
-bool BeebThread::ThreadStopTraceOnOSWORD0(BBCMicro *beeb,M6502 *cpu,void *context) {
+bool BeebThread::ThreadStopTraceOnOSWORD0(const BBCMicro *beeb,const M6502 *cpu,void *context) {
     (void)beeb;
     auto ts=(BeebThread::ThreadState *)context;
 
@@ -1014,7 +1014,7 @@ bool BeebThread::ThreadStopTraceOnOSWORD0(BBCMicro *beeb,M6502 *cpu,void *contex
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool BeebThread::ThreadStopCopyOnOSWORD0(BBCMicro *beeb,M6502 *cpu,void *context) {
+bool BeebThread::ThreadStopCopyOnOSWORD0(const BBCMicro *beeb,const M6502 *cpu,void *context) {
     (void)beeb;
     auto ts=(ThreadState *)context;
 
@@ -1035,7 +1035,7 @@ bool BeebThread::ThreadStopCopyOnOSWORD0(BBCMicro *beeb,M6502 *cpu,void *context
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool BeebThread::ThreadAddCopyData(BBCMicro *beeb,M6502 *cpu,void *context) {
+bool BeebThread::ThreadAddCopyData(const BBCMicro *beeb,const M6502 *cpu,void *context) {
     (void)beeb;
     auto ts=(ThreadState *)context;
 
@@ -2331,7 +2331,7 @@ void BeebThread::SetVolume(float *scale_var,float *db_var,float db) {
 //////////////////////////////////////////////////////////////////////////
 
 #if HTTP_SERVER
-bool BeebThread::ThreadWaitForHardReset(BBCMicro *beeb,M6502 *cpu,void *context) {
+bool BeebThread::ThreadWaitForHardReset(const BBCMicro *beeb,const M6502 *cpu,void *context) {
     (void)beeb;
     auto ts=(ThreadState *)context;
 

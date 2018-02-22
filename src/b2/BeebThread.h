@@ -716,10 +716,10 @@ private:
 #endif
 
 #if BBCMICRO_TRACE
-    static bool ThreadStopTraceOnOSWORD0(BBCMicro *beeb,M6502 *cpu,void *context);
+    static bool ThreadStopTraceOnOSWORD0(const BBCMicro *beeb,const M6502 *cpu,void *context);
 #endif
-    static bool ThreadStopCopyOnOSWORD0(BBCMicro *beeb,M6502 *cpu,void *context);
-    static bool ThreadAddCopyData(BBCMicro *beeb,M6502 *cpu,void *context);
+    static bool ThreadStopCopyOnOSWORD0(const BBCMicro *beeb,const M6502 *cpu,void *context);
+    static bool ThreadAddCopyData(const BBCMicro *beeb,const M6502 *cpu,void *context);
 
     void ThreadRecordEvent(ThreadState *ts,BeebEvent event);
     std::shared_ptr<BeebState> ThreadSaveState(ThreadState *ts);
@@ -751,7 +751,7 @@ private:
     void SetVolume(float *scale_var,float *db_var,float db);
 
 #if HTTP_SERVER
-    static bool ThreadWaitForHardReset(BBCMicro *beeb,M6502 *cpu,void *context);
+    static bool ThreadWaitForHardReset(const BBCMicro *beeb,const M6502 *cpu,void *context);
     static void DebugAsyncCallCallback(bool called,void *context);
 #endif
 };

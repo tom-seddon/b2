@@ -259,10 +259,8 @@ public:
     //
     // cpu->pc.w is PC+1; cpu->pc.dbus is the opcode fetched.
     //
-    // With care, the fetched opcode can be modified...
-    //
     // Return true to keep the callback, or false to remove it.
-    typedef bool (*InstructionFn)(BBCMicro *m,M6502 *cpu,void *context);
+    typedef bool (*InstructionFn)(const BBCMicro *m,const M6502 *cpu,void *context);
 
     BBCMicroType GetType() const;
 
@@ -283,7 +281,7 @@ public:
 
     // Return pointer to base of BBC RAM. Get the size of RAM from
     // GetTypeInfo(m)->ram_size.
-    const uint8_t *GetRAM();
+    const uint8_t *GetRAM() const;
 
     // Set key state. If the key is Break, handle the reset line
     // appropriately.
@@ -351,7 +349,7 @@ public:
     //
     // To remove, have the callback return false.
     //
-    // The InstructionFn shouldn't affect reproducability.
+    // The InstructionFn mustn't affect reproducability.
     void AddInstructionFn(InstructionFn fn,void *context);
 
     void SetMMIOFns(uint16_t addr,ReadMMIOFn read_fn,WriteMMIOFn write_fn,void *context);
@@ -518,12 +516,21 @@ private:
         uint32_t hack_flags=0;
 
         // Current paste data, if any.
+        //
+        // (This has to be part of the BBCMicro state - suppose a
+        // state is saved mid-paste. The initiating event is in the
+        // past, and won't be included in the replay data, but when
+        // starting a replay from that state then the rest of the
+        // paste needs to be performed.)
         BBCMicroPasteState paste_state=BBCMicroPasteState_None;
         std::shared_ptr<std::string> paste_text;
         size_t paste_index=0;
         uint64_t paste_wait_end=0;
 
         // Upcoming async call address.
+        //
+        // (This has to be part of the BBCMicro state - same argument
+        // as for pasting.)
         M6502Word async_call_address={INVALID_ASYNC_CALL_ADDRESS};
         uint8_t async_call_a=0;
         uint8_t async_call_x=0;
