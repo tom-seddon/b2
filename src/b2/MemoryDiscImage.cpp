@@ -78,6 +78,11 @@ const std::string MemoryDiscImage::LOAD_METHOD_ZIP="zip";
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+// This mechanism is now officially a bit of a disaster area, what
+// with the separate calls for detecting disc type by extension or
+// MIME type (that aren't even really all that convenient to use). It
+// wants pulling out into its own module.
+
 struct DiscImageType;
 
 typedef bool (*FindDiscGeometryFn)(DiscGeometry *geometry,const char *name,size_t size,Messages *msg,const DiscImageType *disc_image_type);
@@ -171,12 +176,12 @@ static bool FindDiscGeometryFromFileSize(DiscGeometry *geometry,const char *name
 }
 
 static const DiscImageType DISC_IMAGE_TYPES[]={
-    {SSD_EXT,"vnd.acorn.disc-image.ssd",&FindSingleDensityDiscGeometry,&SSD_GEOMETRY,1},
-    {DSD_EXT,"vnd.acorn.disc-image.dsd",&FindSingleDensityDiscGeometry,&DSD_GEOMETRY,1},
-    {SDD_EXT,"vnd.acorn.disc-image.sdd",&FindDiscGeometryFromFileSize,SDD_GEOMETRIES,NUM_SDD_GEOMETRIES},
-    {DDD_EXT,"vnd.acorn.disc-image.ddd",&FindDiscGeometryFromFileSize,DDD_GEOMETRIES,NUM_DDD_GEOMETRIES},
-    {ADM_EXT,"vnd.acorn.disc-image.adm",&FindDiscGeometryFromFileSize,&ADM_GEOMETRY,1},
-    {ADL_EXT,"vnd.acorn.disc-image.adl",&FindDiscGeometryFromFileSize,&ADL_GEOMETRY,1},
+    {SSD_EXT,"application/vnd.acorn.disc-image.ssd",&FindSingleDensityDiscGeometry,&SSD_GEOMETRY,1},
+    {DSD_EXT,"application/vnd.acorn.disc-image.dsd",&FindSingleDensityDiscGeometry,&DSD_GEOMETRY,1},
+    {SDD_EXT,"application/vnd.acorn.disc-image.sdd",&FindDiscGeometryFromFileSize,SDD_GEOMETRIES,NUM_SDD_GEOMETRIES},
+    {DDD_EXT,"application/vnd.acorn.disc-image.ddd",&FindDiscGeometryFromFileSize,DDD_GEOMETRIES,NUM_DDD_GEOMETRIES},
+    {ADM_EXT,"application/vnd.acorn.disc-image.adm",&FindDiscGeometryFromFileSize,&ADM_GEOMETRY,1},
+    {ADL_EXT,"application/vnd.acorn.disc-image.adl",&FindDiscGeometryFromFileSize,&ADL_GEOMETRY,1},
     {},
 };
 
