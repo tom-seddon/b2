@@ -57,9 +57,11 @@ const TraceEventType BBCMicro::INITIAL_EVENT("BBCMicroInitial",sizeof(InitialTra
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#if BBCMICRO_DEBUGGER
 // The async call thunk lives in an undefined area of FRED.
 static const M6502Word ASYNC_CALL_THUNK_ADDR={0xfc50};
 static const int ASYNC_CALL_TIMEOUT=1000000;
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -2556,6 +2558,7 @@ void BBCMicro::SetHardwareDebugState(const HardwareDebugState &hw) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#if BBCMICRO_DEBUGGER
 void BBCMicro::DebugSetAsyncCall(uint16_t address,uint8_t a,uint8_t x,uint8_t y,bool c,DebugAsyncCallFn fn,void *context) {
     this->FinishAsyncCall(false);
 
@@ -2570,6 +2573,7 @@ void BBCMicro::DebugSetAsyncCall(uint16_t address,uint8_t a,uint8_t x,uint8_t y,
 
     this->UpdateCPUDataBusFn();
 }
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -3159,10 +3163,12 @@ void BBCMicro::UpdateCPUDataBusFn() {
         goto hack;
     }
 
+#if BBCMICRO_DEBUGGER
     if(m_state.async_call_address.w!=INVALID_ASYNC_CALL_ADDRESS) {
         goto hack;
     }
-
+#endif
+    
     // No hacks.
     m_handle_cpu_data_bus_fn=m_default_handle_cpu_data_bus_fn;
     return;

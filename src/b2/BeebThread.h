@@ -750,8 +750,8 @@ private:
     void ThreadMain();
     void SetVolume(float *scale_var,float *db_var,float db);
 
-#if HTTP_SERVER
     static bool ThreadWaitForHardReset(const BBCMicro *beeb,const M6502 *cpu,void *context);
+#if HTTP_SERVER
     static void DebugAsyncCallCallback(bool called,void *context);
 #endif
 };

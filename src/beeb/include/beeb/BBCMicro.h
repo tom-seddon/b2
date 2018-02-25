@@ -527,6 +527,7 @@ private:
         size_t paste_index=0;
         uint64_t paste_wait_end=0;
 
+#if BBCMICRO_DEBUGGER
         // Upcoming async call address.
         //
         // (This has to be part of the BBCMicro state - same argument
@@ -538,6 +539,7 @@ private:
         bool async_call_c=0;
         uint8_t async_call_thunk_buf[32]={};
         int async_call_timeout=0;
+#endif
 
         explicit State(BBCMicroType type,const std::vector<uint8_t> &nvram_contents,const tm *rtc_time);
     };

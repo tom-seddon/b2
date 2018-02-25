@@ -62,6 +62,7 @@ bool LogPrinter::try_lock() {
 //////////////////////////////////////////////////////////////////////////
 
 void LogPrinter::SetMutexName(std::string name) {
+    (void)name;
     MUTEX_SET_NAME(m_mutex,std::move(name));
 }
 

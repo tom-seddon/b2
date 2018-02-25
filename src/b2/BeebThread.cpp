@@ -369,6 +369,7 @@ BeebThread::DebugSetBytesMessage::DebugSetBytesMessage(uint32_t addr_,std::vecto
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#if BBCMICRO_DEBUGGER
 BeebThread::DebugAsyncCallMessage::DebugAsyncCallMessage(uint16_t addr_,uint8_t a_,uint8_t x_,uint8_t y_,bool c_):
     Message(BeebThreadMessageType_DebugAsyncCall),
     addr(addr_),
@@ -379,6 +380,7 @@ BeebThread::DebugAsyncCallMessage::DebugAsyncCallMessage(uint16_t addr_,uint8_t 
 {
     this->implicit_success=false;
 }
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -422,9 +424,9 @@ struct BeebThread::ThreadState {
     std::function<void(std::vector<uint8_t>)> copy_stop_fun;
     std::vector<uint8_t> copy_data;
 
-#if HTTP_SERVER
     std::unique_ptr<BeebThread::Message> reset_message;
     std::unique_ptr<BeebThread::Message> paste_message;
+#if HTTP_SERVER
     std::unique_ptr<BeebThread::Message> async_call_message;
 #endif
 
@@ -2319,7 +2321,6 @@ void BeebThread::SetVolume(float *scale_var,float *db_var,float db) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-#if HTTP_SERVER
 bool BeebThread::ThreadWaitForHardReset(const BBCMicro *beeb,const M6502 *cpu,void *context) {
     (void)beeb;
     auto ts=(ThreadState *)context;
@@ -2335,7 +2336,6 @@ bool BeebThread::ThreadWaitForHardReset(const BBCMicro *beeb,const M6502 *cpu,vo
 
     return true;
 }
-#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
