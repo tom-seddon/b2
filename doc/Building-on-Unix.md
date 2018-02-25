@@ -42,17 +42,13 @@ General day-to-day build steps:
 
 1. Change to build folder.
 
-   For OS X, debug (`0.osx.d`) or release (`0.osx.r`).
+   For OS X, debug (`build/d.osx`) or release (`build/r.osx`).
    
-   For Linux, debug (`0.linux.d`) or release (`0.linux.r`).
+   For Linux, debug (`build/d.linux`) or release (`build/r.linux`).
    
    (Debug build has no optimizations, asserts compiled in, plus maybe
    some other stuff that's snuck in.)
    
-   (The `0` doesn't mean anything - it just keeps all the build
-   folders at the start of the list. I find them easier to ignore that
-   way.)
-
 2. Run `ninja` to build
 
 3. Run `ninja test` to run the automated tests (this might take a few
@@ -68,7 +64,7 @@ file as follows. Copying this particular `ctest` command line is
 recommended; the slow tests are skipped (total time is usually <1
 second), and if a test fails then its output is shown directly.
 
-    ((nil . ((compile-command . "cd ~/beeb/b2/0.osx.d && ninja && ctest -LE slow --output-on-failure"))))
+    ((nil . ((compile-command . "cd ~/beeb/b2/build/osx && ninja && ctest -LE slow --output-on-failure"))))
 
 To force a rebuild, run `ninja clean` in the build folder. Maybe you
 can automate that too. I haven't bothered.
@@ -84,10 +80,10 @@ As well as plain old release and debug, you can build b2 with
 whichever gcc/clang sanitizers your compiler supports. Sanitizer build
 folders have a suffix indicating which sanitizer is active:
 
-`a` - address sanitizer
-`t` - thread sanitizer
-`u` - undefined behaviour sanitizer
-`m` - memory sanitizer
+* `a` - address sanitizer
+* `t` - thread sanitizer
+* `u` - undefined behaviour sanitizer
+* `m` - memory sanitizer
 
 Not all compilers support all sanitizers, nor is there any guarantee
 this actually works. And if it does work, you might still get

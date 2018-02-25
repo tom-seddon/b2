@@ -79,7 +79,7 @@ if(APPLE)
   # icon is the one used for the DMG.
   add_custom_command(
     OUTPUT b2.icns ${ICONS_TMP}/icon_16x16.png ${ICONS_TMP}/icon_32x32.png ${ICONS_TMP}/icon_64x64.png ${ICONS_TMP}/icon_128x128.png ${ICONS_TMP}/icon_256x256.png ${ICONS_TMP}/icon_512x512.png ${ICONS_TMP}/icon_512x512@2x.png ${ICONS_TMP}/icon_16x16@2x.png ${ICONS_TMP}/icon_32x32@2x.png ${ICONS_TMP}/icon_128x128@2x.png ${ICONS_TMP}/icon_256x256@2x.png
-    COMMAND cmake -E make_directory ${ICONS_TMP}
+    COMMAND ${CMAKE_COMMAND} -E make_directory ${ICONS_TMP}
     COMMAND sips -z 16 16 ${ICON_PNG} --out ${ICONS_TMP}/icon_16x16.png
     COMMAND sips -z 32 32 ${ICON_PNG} --out ${ICONS_TMP}/icon_32x32.png
     COMMAND sips -z 64 64 ${ICON_PNG} --out ${ICONS_TMP}/icon_64x64.png
@@ -87,10 +87,10 @@ if(APPLE)
     COMMAND sips -z 256 256 ${ICON_PNG} --out ${ICONS_TMP}/icon_256x256.png
     COMMAND sips -z 512 512 ${ICON_PNG} --out ${ICONS_TMP}/icon_512x512.png
     COMMAND sips -z 1024 1024 ${ICON_PNG} --out ${ICONS_TMP}/icon_512x512@2x.png
-    COMMAND cmake -E copy_if_different ${ICONS_TMP}/icon_32x32.png ${ICONS_TMP}/icon_16x16@2x.png
-    COMMAND cmake -E copy_if_different ${ICONS_TMP}/icon_64x64.png ${ICONS_TMP}/icon_32x32@2x.png
-    COMMAND cmake -E copy_if_different ${ICONS_TMP}/icon_256x256.png ${ICONS_TMP}/icon_128x128@2x.png
-    COMMAND cmake -E copy_if_different ${ICONS_TMP}/icon_512x512.png ${ICONS_TMP}/icon_256x256@2x.png
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different ${ICONS_TMP}/icon_32x32.png ${ICONS_TMP}/icon_16x16@2x.png
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different ${ICONS_TMP}/icon_64x64.png ${ICONS_TMP}/icon_32x32@2x.png
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different ${ICONS_TMP}/icon_256x256.png ${ICONS_TMP}/icon_128x128@2x.png
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different ${ICONS_TMP}/icon_512x512.png ${ICONS_TMP}/icon_256x256@2x.png
     COMMAND iconutil -c icns ${ICONS_TMP}
     DEPENDS ${ICON_PNG}
     MAIN_DEPENDENCY ${ICON_PNG}

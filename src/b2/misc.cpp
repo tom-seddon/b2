@@ -499,9 +499,9 @@ decode(uint32_t* state,uint32_t* codep,uint32_t byte) {
 
 static int GetBBCChar(uint32_t codepoint) {
     if(codepoint==13||codepoint==10) {
-        return codepoint;
+        return (int)codepoint;
     } else if(codepoint>=32&&codepoint<=126) {
-        return codepoint;
+        return (int)codepoint;
     } else if(codepoint==0xa3) {
         return 95;//GBP symbol
     } else {

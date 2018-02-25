@@ -20,7 +20,7 @@ Initial build steps:
    bunch of output. There may be the odd warning but there should be
    no obvious errors and it should finish with an exit code of 0
    
-3. Load `0.win64\b2.sln` into Visual Studio 2015
+3. Load `build\win64\b2.sln` into Visual Studio 2015
 
 4. Set `b2` as the startup project
 

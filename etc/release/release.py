@@ -4,7 +4,8 @@ import argparse,os,os.path,sys,stat,subprocess,pipes,time,shutil,multiprocessing
 ##########################################################################
 ##########################################################################
 
-FOLDERPREFIX="Rel"
+BUILD_FOLDER="build"
+FOLDER_PREFIX="_Rel."
 
 ##########################################################################
 ##########################################################################
@@ -107,7 +108,7 @@ def create_README(folder,rev_hash):
 ##########################################################################
 
 def build_win32_config(timings,options,platform,config,colour):
-    folder="0%s.%s"%(FOLDERPREFIX,platform)
+    folder="%s/%s%s"%(BUILD_FOLDER,FOLDER_PREFIX,platform)
     
     start_time=time.clock()
     run(["cmd","/c",
@@ -165,8 +166,11 @@ def build_win32(options,ifolder,suffix,rev_hash):
 ##########################################################################
 ##########################################################################
 
-def get_darwin_build_path(folder_suffix,path=None):
-    result="0Rel.%s.%s"%(PLATFORMS[sys.platform].name,folder_suffix)
+def get_darwin_build_path(config_name,path=None):
+    result="%s/%s%s.%s"%(BUILD_FOLDER,
+                         FOLDER_PREFIX,
+                         config_name,
+                         PLATFORMS[sys.platform].name)
 
     if path is not None: result=os.path.join(result,path)
     
@@ -270,7 +274,7 @@ def main(options):
         run([options.make,
              "-j%d"%multiprocessing.cpu_count(),
              "init",
-             "FOLDERPREFIX=%s"%FOLDERPREFIX,
+             "FOLDER_PREFIX=%s"%FOLDER_PREFIX,
              "RELEASE_MODE=1"])
 
     ifolder=create_intermediate_folder()

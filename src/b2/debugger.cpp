@@ -7,7 +7,17 @@
 #include "BeebWindow.h"
 #include "BeebThread.h"
 #include <shared/log.h>
+
+// Ugh, ugh, ugh.
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#endif
 #include <imgui_memory_editor.h>
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
+
 #include <unordered_map>
 #include <algorithm>
 

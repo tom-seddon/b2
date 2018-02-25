@@ -8,6 +8,8 @@ else
 INCLUDE_EXPERIMENTAL:=ON
 endif
 
+BUILD_FOLDER:=build
+
 ifeq ($(OS),Windows_NT)
 
 PYTHON:=cmd /c python.exe
@@ -22,6 +24,14 @@ ifeq ($(UNAME),Darwin)
 OS:=osx
 NPROC:=sysctl -n hw.ncpu
 include Makefile.unix
+
+.PHONY:init_xcode
+init_xcode: _FOLDER=$(BUILD_FOLDER)/$(FOLDER_PREFIX)Xcode
+init_xcode:
+	rm -Rf "$(_FOLDER)"
+	mkdir -p "$(_FOLDER)"
+	cd "$(_FOLDER)" && cmake -G Xcode -DINCLUDE_EXPERIMENTAL=$(INCLUDE_EXPERIMENTAL) ../..
+
 endif
 
 ifeq ($(UNAME),Linux)

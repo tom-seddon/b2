@@ -146,23 +146,22 @@ private:
     }
 
     template<class T>
-    bool HandleArgOrSendResponse(bool *good,va_list *v_ptr,const char *fmt,const char *t_fmt,int radix,const std::string *value,bool (*f)(T *,const std::string &,int),HTTPServer *server,const HTTPRequest &request,const char *what) {
-        if(strcmp(fmt,t_fmt)==0) {
-            *good=true;
-
-            auto p=va_arg(*v_ptr,T *);
-
-            if(value) {
-                if(!(*f)(p,*value,radix)) {
-                    server->SendResponse(request,HTTPResponse::BadRequest(request,"bad %s: %s",what,value->c_str()));
-                    *good=false;
-                }
+    bool HandleArgOrSendResponse(T *result,
+                                 const std::string *value,
+                                 bool (*f)(T *,const std::string &,int),
+                                 int radix,
+                                 HTTPServer *server,
+                                 const HTTPRequest &request,
+                                 const char *what)
+    {
+        if(value) {
+            if(!(*f)(result,*value,radix)) {
+                server->SendResponse(request,HTTPResponse::BadRequest(request,"bad %s: %s",what,value->c_str()));
+                return false;
             }
-
-            return true;
-        } else {
-            return false;
         }
+
+        return true;
     }
 
     bool ParseArgsOrSendResponse2(HTTPServer *server,const HTTPRequest &request,const std::vector<std::string> &parts,size_t command_index,const char *name0,va_list v) {
@@ -185,17 +184,26 @@ private:
                 value=&parts[arg_index++];
             }
 
-            bool good;
-            if(this->HandleArgOrSendResponse<uint8_t>(&good,&v,fmt,"u8",0,value,&GetUInt8FromString,server,request,"8-bit value")) {
-                return good;
-            } else if(this->HandleArgOrSendResponse<uint16_t>(&good,&v,fmt,"x16",16,value,&GetUInt16FromString,server,request,"16-bit hex value")) {
-                return good;
-            } else if(this->HandleArgOrSendResponse<uint32_t>(&good,&v,fmt,"x32",16,value,&GetUInt32FromString,server,request,"32-bit hex value")) {
-                return good;
-            } else if(this->HandleArgOrSendResponse<uint32_t>(&good,&v,fmt,"u32",0,value,&GetUInt32FromString,server,request,"32-bit value")) {
-                return good;
-            } else if(this->HandleArgOrSendResponse<uint64_t>(&good,&v,fmt,"x64",16,value,&GetUInt64FromString,server,request,"64-bit hex value")) {
-                return good;
+            if(strcmp(fmt,"u8")==0) {
+                if(!this->HandleArgOrSendResponse(va_arg(v,uint8_t *),value,&GetUInt8FromString,0,server,request,"8-bit value")) {
+                    return false;
+                }
+            } else if(strcmp(fmt,"x16")==0) {
+                if(!this->HandleArgOrSendResponse(va_arg(v,uint16_t *),value,&GetUInt16FromString,16,server,request,"16-bit hex value")) {
+                    return false;
+                }
+            } else if(strcmp(fmt,"x32")==0) {
+                if(!this->HandleArgOrSendResponse(va_arg(v,uint32_t *),value,&GetUInt32FromString,16,server,request,"32-bit hex value")) {
+                    return false;
+                }
+            } else if(strcmp(fmt,"u32")==0) {
+                if(!this->HandleArgOrSendResponse(va_arg(v,uint32_t *),value,&GetUInt32FromString,0,server,request,"32-bit value")) {
+                    return false;
+                }
+            } else if(strcmp(fmt,"x64")==0) {
+                if(!this->HandleArgOrSendResponse(va_arg(v,uint64_t *),value,&GetUInt64FromString,16,server,request,"64-bit hex value")) {
+                    return false;
+                }
             } else if(strcmp(fmt,"x64/len")==0) {
                 auto u64=va_arg(v,uint64_t *);
                 auto is_len=va_arg(v,bool *);
@@ -387,7 +395,7 @@ private:
                     return;
                 }
 
-                uint32_t addr=request.body[0]|request.body[1]<<8|0xffff0000;
+                uint32_t addr=request.body[0]|(uint32_t)(request.body[1]<<8)|0xffff0000u;
                 request.body.erase(request.body.begin(),request.body.begin()+2);
 
                 beeb_window->GetBeebThread()->Send(std::make_unique<BeebThread::DebugSetBytesMessage>(addr,std::move(request.body)));
