@@ -4,8 +4,11 @@ import argparse,os,os.path,sys,stat,subprocess,pipes,time,shutil,multiprocessing
 ##########################################################################
 ##########################################################################
 
+VERSION_BRANCH_PREFIX="ver/"
+
 BUILD_FOLDER="build"
 FOLDER_PREFIX="_Rel."
+INTERMEDIATE_FOLDER="_Rel"
 
 ##########################################################################
 ##########################################################################
@@ -90,7 +93,7 @@ def rm(x):
     
 def create_intermediate_folder():
     ifolder=os.path.abspath(os.path.join(BUILD_FOLDER,
-                                         "Rel",
+                                         INTERMEDIATE_FOLDER,
                                          sys.platform))
     
     try: shutil.rmtree(ifolder)
@@ -251,17 +254,20 @@ def main(options):
             branch=branch[2:]
             break
 
-    versioned=True
-    if not branch.startswith("ver/"):
-        versioned=False
+    if branch.startswith(VERSION_BRANCH_PREFIX):
+        suffix=branch[len(VERSION_BRANCH_PREFIX):]
+    else:
         if not options.ignore_branch:
             fatal("not a version branch (ignore with --ignore-branch)")
 
+        # (Or just use rev_hash here? does --short do anything more
+        # than just strip the end off???)
+        suffix=capture(["git","rev-parse","--short","HEAD"])[0]
+
+    if wc_dirty: suffix+="-local"
+
     # Get revision hash.
     rev_hash=capture(["git","rev-parse","HEAD"])[0]
-
-    # (does --short do anything more than just strip the end off???)
-    rev_hash_short=capture(["git","rev-parse","--short","HEAD"])[0]
 
     # 
     v("Branch: %s\n"%branch)
@@ -280,9 +286,6 @@ def main(options):
              "RELEASE_MODE=1"])
 
     ifolder=create_intermediate_folder()
-
-    suffix=branch if versioned else rev_hash_short
-    if wc_dirty: suffix+="-local"
 
     if sys.platform=="win32":
         build_win32(options,ifolder,suffix,rev_hash)
