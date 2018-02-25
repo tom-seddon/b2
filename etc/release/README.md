@@ -21,27 +21,27 @@ This probably isn't of much interest for anybody other than me.
    1.2. Create branch for version, named after the version, with a `v`
    prefix. For example, for version 0.0.1, `v0.0.1`.
    
-        `git branch vVERSION`
+        `git branch ver/VERSION`
    
    1.3. Push version branch to origin
    
-        `git push origin vVERSION`
+        `git push origin ver/VERSION`
 
 2. Build on Mac:
 
    3.1. `git pull`
    
-   3.2. `git checkout vVERSION`
+   3.2. `git checkout ver/VERSION`
    
    3.3. `make rel`
    
-   (this will produce a dmg in the `0Rel` folder)
+   (this will produce a dmg in the `build/Rel.r.osx` folder)
    
 3. Build on Windows:
 
    4.1. `git pull`
    
-   4.2. `git checkout vVERSION`
+   4.2. `git checkout ver/VERSION`
    
    4.3. `make rel`
    
@@ -50,9 +50,9 @@ This probably isn't of much interest for anybody other than me.
 4. Repeat steps 2 and 3 until everything seems to be in order and both
    platforms have built correctly from the same commit.
 
-5. Do the release on github. Don't include the `v` prefix - git
+5. Do the release on github. Don't include the `ver/` prefix - git
    becomes annoying to use when branches and tags have the same name,
-   and SourceTree seems to get very confused. GitHub 
+   and SourceTree seems to get very confused.
 
    5.1. `git tag -a VERSION`
    

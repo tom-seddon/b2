@@ -89,7 +89,9 @@ def rm(x):
 ##########################################################################
     
 def create_intermediate_folder():
-    ifolder=os.path.abspath(os.path.join("0Rel",sys.platform))
+    ifolder=os.path.abspath(os.path.join(BUILD_FOLDER,
+                                         "Rel",
+                                         sys.platform))
     
     try: shutil.rmtree(ifolder)
     except: pass
@@ -250,7 +252,7 @@ def main(options):
             break
 
     versioned=True
-    if not branch.startswith("v"):
+    if not branch.startswith("ver/"):
         versioned=False
         if not options.ignore_branch:
             fatal("not a version branch (ignore with --ignore-branch)")
