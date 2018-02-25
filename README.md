@@ -1,12 +1,7 @@
 # b2
 
-A cross-platform BBC Micro emulator. Play your old BBC games on your
-Windows/Linux PC or macOS computer.
-
-# Alpha
-
-It's still early days for this project, but it ought to be at least
-somewhat usable as-is.
+A cross-platform BBC Micro emulator. Use your Windows/Linux PC or
+macOS computer to play your old BBC games or develop new BBC software.
 
 If you have feedback, please add it to the
 [b2 GitHub issues page](https://github.com/tom-seddon/b2/issues).
@@ -172,21 +167,12 @@ be.)
 
 -----
 
-# Licence
+# Debug version - BBC development, debugger, HTTP API, etc. #
 
-## `etc`, `submodules`
+The debug version has some additional functionality that might prove
+useful for developing BBC software.
 
-Please consult folders and files for more info.
-
-The contents of `etc` is all stuff that's freely available and
-distributable, included in the repo so it's self-contained, since not
-every dependency can be added as a git submodule.
-
-## `experimental`, `src`
-
-Copyright (C) 2016-7 by Tom Seddon
-
-Licence: GPL v3.
+[Extra instructions for the debug version](doc/Debug-version.md).
 
 -----
 
@@ -226,3 +212,22 @@ Once you're all set up:
 [Notes about the 6502 test suites](doc/6502-test-suites.md).
 
 -----
+
+# Licence
+
+## `etc`, `submodules`
+
+Please consult folders and files for more info.
+
+The contents of `etc` is all stuff that's freely available and
+distributable, included in the repo so it's self-contained, since not
+every dependency can be added as a git submodule.
+
+## `experimental`, `src`
+
+Copyright (C) 2016-7 by Tom Seddon
+
+Licence: GPL v3.
+
+-----
+

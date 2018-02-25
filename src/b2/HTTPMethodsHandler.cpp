@@ -319,7 +319,7 @@ private:
 
             end+=begin;
         } else {
-            if(end<begin||end>1ull<<32) {
+            if(end<begin||end>1ull<<32||end-begin>MAX_PEEK_SIZE) {
                 server->SendResponse(request,HTTPResponse::BadRequest(request,"bad end address: %" PRIu64,end));
                 return;
             }
