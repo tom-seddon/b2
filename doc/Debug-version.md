@@ -1,17 +1,17 @@
 # Debug version
 
-Run the debug version on Windows by running `b2 Debug.exe` from the
-distribution zip file.
+Run the debug version on Windows by running `b2_Debug.exe`, as
+extracted from the distribution zip file.
 
 Run the debug version on OS X by copying `b2 Debug` from the dmg file
 to your Applications folder and running it.
 
 When building from source - your only option on Linux, sorry about
 that - get the debug version by building `Debug` (unoptimized) or
-`RelWithDebInfo` (optimized). (`RelWithDebInfo` will be more
-efficient; `Debug` will be slower, but easier to step through in a
-debugger. Either should maintain 100% BBC Micro speed on any decent
-modern PC.)
+`RelWithDebInfo` (optimized). (As is probably obvious:
+`RelWithDebInfo` will be more efficient, and `Debug` will be slower,
+but easier to step through in a debugger. But either should maintain
+100% BBC Micro speed on any decent modern PC.)
 
 However you run it, the debug version has a range of extra
 debug-related functionality, accessible from the `Debug` menu.
@@ -65,10 +65,10 @@ The first column is the cycle count - then address, instruction,
 effective address (when not staticaly obvious), and register values
 after the instruction is complete.
 
-The bracketed `D` value is the value of the internal register. For
-read or read-modify-write instructions, this is the value read; for
-branch instructions, this is the result of the test (1=taken, 0=not
-taken).
+The bracketed `D` value is the value of the emulated CPU's internal
+data register. For read or read-modify-write instructions, this is the
+value read; for branch instructions, this is the result of the test
+(1=taken, 0=not taken).
 
 Tick the `Flags` checkboxes to get additional hardware state output in
 the file:
@@ -215,12 +215,15 @@ not provided).
 The routine is called on exit from the next invocation of the IRQ
 handler, so interrupts must be enabled if it is to be actually called.
 
+There's no control over the paging. The address just has to be valid
+when the time comes.
+
 Respond with `200 OK` if the call was initiated within half a second
 or so, or `503 Service Unavailable` if not, e.g., because interrupts
 were disabled for the whole period.
 
 (There's no information available about when the routine returns. It
- might even not return at all.)
+might even not return at all.)
 
 ### `mount?drive=D&name=N` ###
 

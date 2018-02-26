@@ -10,15 +10,19 @@ If you have feedback, please add it to the
 
 For Windows and OS X, you can get a binary release from the
 [b2 GitHub releases page](https://github.com/tom-seddon/b2/releases).
+On Windows, unzip to a folder of your choice; on OS X, drag b2 to your
+Applications folder and run it from there.
 
 If you use Linux, or if you just want to build it yourself anyway,
 follow [the building instructions](#building).
 
 # Guided tour
 
-Double-click the icon. Everything you need to get started is provided,
-and the familiar `BBC Computer 32K` message should appear straight
-away.
+Double-click the icon: `b2` on OS X, `b2.exe` on 64-bit Windows, or
+`b2_32bit.exe` on 32-bit Windows.
+
+Everything you need to get started is provided, and the familiar `BBC
+Computer 32K` message should appear straight away.
 
 ## Load a disc
 
@@ -198,10 +202,10 @@ If you're reading this after already cloning it:
 
 To get the code for a particular version, check out that version's tag
 and then do a `git submodule update`. Each version also has its own
-branch, with a `v` prefix (for any matters arising while it's being
+branch, with a `ver/` prefix (for any matters arising while it's being
 prepared).
 
-Branches with names beginning `_` are undefined.
+Branches with names beginning `wip/` are undefined.
 
 Once you're all set up:
 
