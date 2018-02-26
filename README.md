@@ -207,6 +207,8 @@ Once you're all set up:
 
 [Instructions for building on Windows](doc/Building-on-Windows.md).
 
+[Instructions for building on OS X](doc/Building-on-OSX.md).
+
 [Instructions for building on OS X or Linux](doc/Building-on-Unix.md).
 
 [Notes about the 6502 test suites](doc/6502-test-suites.md).
