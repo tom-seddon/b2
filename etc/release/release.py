@@ -151,13 +151,15 @@ def build_win32(options,ifolder,suffix,rev_hash):
 
     print timings
 
-    shutil.copyfile("./0Rel.win32/src/b2/Final/b2.exe",os.path.join(zip_folder,"b2_32bit.exe"))
-    shutil.copyfile("./0Rel.win64/src/b2/Final/b2.exe",os.path.join(zip_folder,"b2.exe"))
-    shutil.copyfile("./0Rel.win64/src/b2/RelWithDebInfo/b2.exe",os.path.join(zip_folder,"b2_Debug.exe"))
+    build32=os.path.join(BUILD_FOLDER,"%swin32"%FOLDER_PREFIX)
+    build64=os.path.join(BUILD_FOLDER,"%swin64"%FOLDER_PREFIX)
+    
+    shutil.copyfile(os.path.join(build32,"src/b2/Final/b2.exe"),os.path.join(zip_folder,"b2_32bit.exe"))
+    shutil.copyfile(os.path.join(build64,"src/b2/Final/b2.exe"),os.path.join(zip_folder,"b2.exe"))
+    shutil.copyfile(os.path.join(build64,"src/b2/RelWithDebInfo/b2.exe"),os.path.join(zip_folder,"b2_Debug.exe"))
 
     # Copy the assets from any output folder... they're all the same.
-    shutil.copytree("./0Rel.win64/src/b2/Final/assets",os.path.join(zip_folder,"assets"))
-
+    shutil.copytree(os.path.join(build64,"src/b2/Final/assets"),os.path.join(zip_folder,"assets"))
     shutil.copyfile("./etc/release/LICENCE.txt",os.path.join(zip_folder,"LICENCE.txt"))
 
     create_README(zip_folder,rev_hash)
