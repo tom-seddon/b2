@@ -9,11 +9,16 @@ debugger.
 
 # Build using Xcode
 
+Prerequisites:
+
+* Xcode
+* [cmake](https://cmake.org/) version 3.5+
+
 Initial build steps:
 
 1. Open terminal in working copy folder
 
-2. Run `snmake init_xcode` - you should get a bunch of output and no
+2. Run `make init_xcode` - you should get a bunch of output and no
    obvious errors
    
 3. Load `build/Xcode/b2.xcodeproj` from Xcode
