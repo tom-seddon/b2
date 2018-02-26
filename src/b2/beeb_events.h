@@ -176,7 +176,9 @@ union BeebEventData {
 };
 #include <shared/poppack.h>
 
-CHECK_SIZEOF(BeebEventData,sizeof(void *));
+// BeebEventData is supposed to be pointer-sized on a 64-bit system.
+// Anything goes on 32 bit.
+static_assert(sizeof(BeebEventData)<=8,"BeebEventData must be <= 8 bytes");
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

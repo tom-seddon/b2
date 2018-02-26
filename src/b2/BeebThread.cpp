@@ -846,7 +846,9 @@ size_t BeebThread::AudioThreadFillAudioBuffer(float *samples,size_t num_samples,
     size_t num_units_consumed=0;
 
     for(size_t sample_idx=0;sample_idx<num_samples;++sample_idx) {
-        uint64_t num_units=remapper->Step();
+        uint64_t num_units_=remapper->Step();
+        ASSERT(num_units_<=SIZE_MAX);
+        size_t num_units=(size_t)num_units_;
 
         if(num_units>0) {
             acc=0.f;
@@ -2171,7 +2173,7 @@ void BeebThread::ThreadMain(void) {
             // One day I'll clear up the units mismatch...
             VideoDataUnit *va,*vb;
             size_t num_va,num_vb;
-            size_t num_video_units=num_2MHz_cycles;
+            size_t num_video_units=(size_t)num_2MHz_cycles;
             if(!m_video_output.ProducerLock(&va,&num_va,&vb,&num_vb,num_video_units)) {
                 goto wait_for_message;
             }
@@ -2183,7 +2185,7 @@ void BeebThread::ThreadMain(void) {
                 goto wait_for_message;
             }
 
-            size_t num_sound_units=(num_2MHz_cycles+(1<<SOUND_CLOCK_SHIFT)-1)>>SOUND_CLOCK_SHIFT;
+            size_t num_sound_units=(size_t)((num_2MHz_cycles+(1<<SOUND_CLOCK_SHIFT)-1)>>SOUND_CLOCK_SHIFT);
 
             SoundDataUnit *sa,*sb;
             size_t num_sa,num_sb;
