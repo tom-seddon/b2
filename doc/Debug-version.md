@@ -160,13 +160,13 @@ Use the HTTP API to control the emulator remotely. Use this from a
 shell script or batch file, say, using `curl`, or from a program,
 using an HTTP client library.
 
-The emulator listens on localhost on port 48075 (0xbbcb). Request
-paths are of the form `/w/WIN/TYPE...`, where `WIN` is the window name
-(as per the title bar) and `TYPE` the request type. Some requests take
-additional mandatory parameters, which are part of the URL path, and
-some requests take additional optional parameters, which are part of
-the URL query parameters. See each individual request type for the
-details.
+The emulator listens on localhost on port 48075 (0xbbcb).
+
+## HTTP Methods
+
+Values in capitals indicate parameters. Parameters listed as part of
+the path are found by position, and are mandatory; those listed as
+part of the query string are found by name, and are optional.
 
 Parameters expecting numbers are typically hex values, e.g., `ffff`
 (65535), or C-style literals, e.g., `65535` (65535), `0xffff` (65535),
@@ -179,27 +179,26 @@ Generally this will be one of `200 OK` (success), `400 Bad Request` or
 `404 Not Found` (invalid request), or `503 Service Unavailable` (request
 was valid but couldn't be fulfilled).
 
-## HTTP Methods
-
-### `reset` ###
+### `reset/WIN` ###
 
 Reset the BBC. This is equivalent to a power-on reset. Memory is wiped
 but mounted discs are retained.
 
-### `paste` ###
+### `paste/WIN` ###
 
 Paste text in as if by `Paste OSRDCH` from the `Edit` menu.
 
-The request body must be `text/plain`, with `Content-Encoding` of
-`ISO-8859-1` (assumed if not specified) or `utf-8`.
+The text to paste is taken from the request body, which must be
+`text/plain`, with `Content-Encoding` of `ISO-8859-1` (assumed if not
+specified) or `utf-8`.
 
-### `poke/ADDR` ###
+### `poke/WIN/ADDR` ###
 
 Store the request body into memory at `ADDR` (a 32-bit hex value), the
 address as per
 [JGH's addressing scheme](http://mdfs.net/Docs/Comp/BBC/MemAddrs).
 
-### `peek/BEGIN-ADDR/END-ADDR`; `peek/BEGIN-ADDR/+SIZE` ###
+### `peek/WIN/BEGIN-ADDR/END-ADDR`; `peek/WIN/BEGIN-ADDR/+SIZE` ###
 
 Retrieve memory from `BEGIN-ADDR` (32-bit hex, inclusive) to
 `END-ADDR` (32-bit hex, exclusive) or `BEGIN-ADDR+SIZE` (exclusive -
@@ -212,7 +211,7 @@ this is 4MBytes.
 Addresses are as per
 [JGH's addressing scheme](http://mdfs.net/Docs/Comp/BBC/MemAddrs).
 
-### `call/ADDR?a=A&x=X&y=Y&c=C` ###
+### `call/WIN/ADDR?a=A&x=X&y=Y&c=C` ###
 
 Call a routine at `ADDR` (16-bit hex). Load registers from `A`, `X`
 and `Y` (8-bit C-style literals, default 0 if not specified) first,
@@ -232,7 +231,7 @@ were disabled for the whole period.
 (There's no information available about when the routine returns. It
 might even not return at all.)
 
-### `mount?drive=D&name=N` ###
+### `mount/WIN?drive=D&name=N` ###
 
 Mount a disc image. `D` (default 0) is the drive, and `N` (default "")
 is the file name of the disc image. The request body is the disc
@@ -251,7 +250,7 @@ from the request content type, as follows:
 
 In either case, read the disc image data from the request body.
 
-### `run?name=N` ###
+### `run/WIN?name=N` ###
 
 "Run" a file. The file type is deduced from the file name `N`, if
 specified, or the request content type if not.

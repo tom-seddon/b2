@@ -26,8 +26,8 @@ WIN:=b2
 all:
 	$(MKDIR) $(BUILD)
 	$(TASS) --nostart -L $(BUILD)/main.lst -l $(BUILD)/main.sym -o $(BUILD)/main.prg --cbm-prg main.asm
-	$(CURL) $(URL)/w/$(WIN)/reset
-	$(CURL) -H "Content-Type:application/x-c64-program" --upload-file $(BUILD)/main.prg $(URL)/w/$(WIN)/run
+	$(CURL) $(URL)/reset/$(WIN)
+	$(CURL) -H "Content-Type:application/x-c64-program" --upload-file $(BUILD)/main.prg $(URL)/run/$(WIN)
 
 # Local Variables:
 # compile-command: "make -k "

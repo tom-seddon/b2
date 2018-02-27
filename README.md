@@ -151,8 +151,16 @@ and `OSRDCH Paste (+Return)`. The `(+Return)` version effectively
 presses Return at the end, which is sometimes necessary when copying
 and pasting BASIC listings.
 
-This is intended for pasting in BASIC listings. No guarantees it will
-work properly anywhere else, but you might get lucky.
+This is intended for pasting in BASIC listings at the BASIC prompt. No
+guarantees it will work properly anywhere else, but you might get
+lucky...
+
+To make it easy to paste text in from modern applications, newlines
+(`CR LF`, `LF CR`, `LF`) are translated into `CR` (ASCII 13), and £ is
+translated into BBC-style £ (ASCII 95). ASCII characters between 32
+and 126 are passed on as-is.
+
+Other characters are not currently supported.
 
 ## Copy to clipboard
 
