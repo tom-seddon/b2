@@ -139,13 +139,20 @@ Use `Stop` to stop the emulated BBC in its tracks.
 
 `Step Over` will run until the next instruction visible.
 
+# Other debug-related options #
+
+Additional debug options can be found in `Tools` > `Options` in the
+`Display Debug Flags` section.
+
+`Teletext debug` will overlay the teletext display with the value of
+the character in each cell.
+
+`Show TV beam position` will show (with a little white dot) where the
+TV beam is when the emulator is stopped in the debugger.
+
 # Other debugger stuff
 
-All other stuff in the `Debug` menu is undocumented. If it's not
-obvious what it does and/or what it's there for, it's probably some
-random thing I put in because I needed it on a one-off basis, and you
-should ignore it, because it is either useless and/or it will go away
-in the long run.
+There is other debug stuff, but it's all undocumented...
 
 # HTTP API
 
