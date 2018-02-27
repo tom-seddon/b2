@@ -72,10 +72,10 @@ struct VideoDataBitmapUnit {
 
 #include <shared/pshpack1.h>
 union VideoDataUnit {
+    uint64_t values[2];
     VideoDataBitmapPixel type;
     VideoDataBitmapUnit bitmap;
     VideoDataTeletextUnit teletext;
-    uint64_t values[2];
 };
 #include <shared/poppack.h>
 

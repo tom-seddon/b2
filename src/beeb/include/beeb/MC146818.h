@@ -33,8 +33,8 @@ public:
 #include <shared/popwarn.h>
 
     union A {
-        ABits bits;
         uint8_t value;
+        ABits bits;
     };
 
 #include <shared/pushwarn_bitfields.h>
@@ -51,8 +51,8 @@ public:
 #include <shared/popwarn.h>
 
     union B {
-        BBits bits;
         uint8_t value;
+        BBits bits;
     };
 
 
@@ -67,8 +67,8 @@ public:
 #include <shared/popwarn.h>
 
     union C {
-        CBits bits;
         uint8_t value;
+        CBits bits;
     };
 
 #include <shared/pushwarn_bitfields.h>
@@ -79,8 +79,8 @@ public:
 #include <shared/popwarn.h>
 
     union D {
-        DBits bits;
         uint8_t value;
+        DBits bits;
     };
 
     struct RegisterBits {
@@ -102,8 +102,8 @@ public:
     };
 
     union Registers {
-        RegisterBits bits;
         uint8_t values[64];
+        RegisterBits bits;
     };
 
     MC146818();

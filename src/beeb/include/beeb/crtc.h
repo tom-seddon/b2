@@ -66,8 +66,8 @@ private:
     //////////////////////////////////////////////////////////////////////////
 
     union R3 {
-        struct R3Bits bits;
         uint8_t value;
+        struct R3Bits bits;
     };
 
     //////////////////////////////////////////////////////////////////////////
@@ -84,8 +84,8 @@ private:
 #include <shared/popwarn.h>
 
     union R8 {
-        struct R8Bits bits;
         uint8_t value;
+        struct R8Bits bits;
     };
 
 #include <shared/pushwarn_bitfields.h>
@@ -96,8 +96,8 @@ private:
 #include <shared/popwarn.h>
 
     union R10 {
-        struct R10Bits bits;
         uint8_t value;
+        struct R10Bits bits;
     };
     typedef union CRTCR10 CRTCR10;
 
@@ -121,8 +121,8 @@ private:
     };
 
     union Registers {
-        RegisterBits bits;
         uint8_t values[18];
+        RegisterBits bits;
     };
 
     Registers m_registers={};

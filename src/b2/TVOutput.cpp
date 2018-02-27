@@ -201,8 +201,8 @@ void TVOutput::UpdateOneUnit(const VideoDataUnit *unit,float amt) {
 #if TV_OUTPUT_ONE_BIG_TABLE
 
                         union PixelIndex {
-                            VideoDataBitmapPixel pixel;
                             uint16_t index;
+                            VideoDataBitmapPixel pixel;
                         };
 
                         auto pixel=(PixelIndex *)unit->bitmap.pixels;

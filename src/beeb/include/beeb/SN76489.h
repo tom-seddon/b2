@@ -35,6 +35,7 @@ private:
 
 #include <shared/popwarn.h>
     union ChannelOutput {
+        uint8_t value;
         ToneChannelOutput tone;
         NoiseChannelOutput noise;
     };

@@ -48,8 +48,8 @@ struct M6502PBitsInternal {
 #endif
 
 union M6502PInternal {
-    struct M6502PBitsInternal bits;
     uint8_t value;
+    struct M6502PBitsInternal bits;
 };
 typedef union M6502PInternal M6502PInternal;
 
@@ -71,8 +71,8 @@ struct M6502PBits {
 #endif
 
 union M6502P {
-    struct M6502PBits bits;
     uint8_t value;
+    struct M6502PBits bits;
 };
 typedef union M6502P M6502P;
 

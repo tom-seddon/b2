@@ -34,13 +34,13 @@ public:
     };
 
     union NuLAAttributeMode {
-        NuLAAttributeModeBits bits;
         uint8_t value;
+        NuLAAttributeModeBits bits;
     };
 
     union Control {
-        ControlBits bits;
         uint8_t value;
+        ControlBits bits;
     };
 
     Control control={};
