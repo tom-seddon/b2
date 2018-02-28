@@ -1682,36 +1682,40 @@ bool BeebThread::ThreadHandleMessage(
 
     case BeebThreadMessageType_HardReset:
         {
-            auto m=(HardResetMessage *)message.get();
+            if(m_is_replaying) {
+                // Ignore.
+            } else {
+                auto m=(HardResetMessage *)message.get();
 
-            if(m->loaded_config) {
-                this->ThreadRecordEvent(ts,BeebEvent::MakeHardReset(*ts->num_executed_2MHz_cycles,std::move(*m->loaded_config),m->boot));
-            } else if(m->reload_config) {
-                BeebLoadedConfig reloaded_config;
-                if(!BeebLoadedConfig::Load(&reloaded_config,ts->current_config.config,&ts->msgs)) {
-                    if(!!m->completion_fun) {
-                        m->completion_fun(false);
+                if(m->loaded_config) {
+                    this->ThreadRecordEvent(ts,BeebEvent::MakeHardReset(*ts->num_executed_2MHz_cycles,std::move(*m->loaded_config),m->boot));
+                } else if(m->reload_config) {
+                    BeebLoadedConfig reloaded_config;
+                    if(!BeebLoadedConfig::Load(&reloaded_config,ts->current_config.config,&ts->msgs)) {
+                        if(!!m->completion_fun) {
+                            m->completion_fun(false);
+                        }
+                        break;
                     }
-                    break;
+
+                    reloaded_config.ReuseROMs(ts->current_config);
+
+                    this->ThreadRecordEvent(ts,BeebEvent::MakeHardReset(*ts->num_executed_2MHz_cycles,std::move(reloaded_config),m->boot));
+                } else {
+                    this->ThreadRecordEvent(ts,BeebEvent::MakeHardReset(*ts->num_executed_2MHz_cycles,ts->current_config,m->boot));
                 }
 
-                reloaded_config.ReuseROMs(ts->current_config);
-
-                this->ThreadRecordEvent(ts,BeebEvent::MakeHardReset(*ts->num_executed_2MHz_cycles,std::move(reloaded_config),m->boot));
-            } else {
-                this->ThreadRecordEvent(ts,BeebEvent::MakeHardReset(*ts->num_executed_2MHz_cycles,ts->current_config,m->boot));
-            }
-
-            if(!!m->completion_fun) {
-                ts->reset_message=std::move(message);
-                ts->beeb->AddInstructionFn(&ThreadWaitForHardReset,ts);
-            }
+                if(!!m->completion_fun) {
+                    ts->reset_message=std::move(message);
+                    ts->beeb->AddInstructionFn(&ThreadWaitForHardReset,ts);
+                }
 
 #if BBCMICRO_DEBUGGER
-            if(m->run) {
-                ts->beeb->DebugRun();
-            }
+                if(m->run) {
+                    ts->beeb->DebugRun();
+                }
 #endif
+            }
         }
         break;
 
