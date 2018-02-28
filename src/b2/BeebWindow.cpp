@@ -922,7 +922,9 @@ void BeebWindow::DoPopupUI(uint64_t now,int output_width,int output_height) {
     }
 
     bool replaying=m_beeb_thread->IsReplaying();
-    if(ValueChanged(&m_leds,m_beeb_thread->GetLEDs())||(m_leds&BBCMicroLEDFlags_AllDrives)||replaying||m_beeb_thread->IsCopying()||m_beeb_thread->IsPasting()) {
+    bool pasting=m_beeb_thread->IsPasting();
+    bool copying=m_beeb_thread->IsCopying();
+    if(ValueChanged(&m_leds,m_beeb_thread->GetLEDs())||(m_leds&BBCMicroLEDFlags_AllDrives)||replaying||copying||pasting) {
         m_leds_popup_ui_active=true;
         m_leds_popup_ticks=now;
         //LOGF(OUTPUT,"leds now: 0x%x\n",m_leds);
@@ -962,10 +964,22 @@ void BeebWindow::DoPopupUI(uint64_t now,int output_width,int output_height) {
             }
 
             ImGui::SameLine();
-            ImGuiLED(m_beeb_thread->IsCopying(),"Copy");
+            ImGuiLED(copying,"Copy");
+            if(copying) {
+                ImGui::SameLine();
+                if(ImGui::Button("Cancel")) {
+                    m_beeb_thread->Send(std::make_unique<BeebThread::StopCopyMessage>());
+                }
+            }
 
             ImGui::SameLine();
-            ImGuiLED(m_beeb_thread->IsPasting(),"Paste");
+            ImGuiLED(pasting,"Paste");
+            if(pasting) {
+                ImGui::SameLine();
+                if(ImGui::Button("Cancel")) {
+                    m_beeb_thread->Send(std::make_unique<BeebThread::StopPasteMessage>());
+                }
+            }
         }
         ImGui::End();
 
