@@ -473,7 +473,10 @@ void TimelineUI::ImGuiThumbnailImage(TreeEventData *te_data) {
                 } else {
                     const Timeline::Tree::Event *te=&m_tree.events[te_data->te_index];
                     ASSERT(te->be.type==BeebEventType_Root);
-                    good_init=te_data->thumbnail_job->Init(te->be.data.config->config.CreateBBCMicro(),NUM_BOOTUP_THUMBNAIL_RENDER_FRAMES,m_pixel_format);
+                    // initial cycle count doesn't matter here.
+                    good_init=te_data->thumbnail_job->Init(te->be.data.config->config.CreateBBCMicro(0),
+                                                           NUM_BOOTUP_THUMBNAIL_RENDER_FRAMES,
+                                                           m_pixel_format);
                 }
 
                 if(!good_init) {

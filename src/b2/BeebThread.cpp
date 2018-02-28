@@ -1352,7 +1352,9 @@ void BeebThread::ThreadHandleEvent(ThreadState *ts,
                 flags|=BeebThreadReplaceFlag_ApplyPCState;
             }
 
-            this->ThreadReplaceBeeb(ts,event.data.config->config.CreateBBCMicro(),flags);
+            this->ThreadReplaceBeeb(ts,
+                                    event.data.config->config.CreateBBCMicro(event.time_2MHz_cycles),
+                                    flags);
         }
         return;
 
@@ -1371,7 +1373,7 @@ void BeebThread::ThreadHandleEvent(ThreadState *ts,
             ts->current_config=event.data.hard_reset->loaded_config;
 
             this->ThreadReplaceBeeb(ts,
-                                    event.data.hard_reset->loaded_config.CreateBBCMicro(),
+                                    event.data.hard_reset->loaded_config.CreateBBCMicro(event.time_2MHz_cycles),
                                     flags);
         }
         return;

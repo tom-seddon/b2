@@ -205,14 +205,19 @@ bool BeebLoadedConfig::Load(
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-std::unique_ptr<BBCMicro> BeebLoadedConfig::CreateBBCMicro() const {
+std::unique_ptr<BBCMicro> BeebLoadedConfig::CreateBBCMicro(uint64_t initial_num_2MHz_cycles) const {
     if(!this->os) {
         return nullptr;
     }
 
     tm now=GetLocalTimeNow();
 
-    auto m=std::make_unique<BBCMicro>((BBCMicroType)this->config.beeb_type,this->config.disc_interface,this->config.nvram_contents,&now,this->config.video_nula);
+    auto m=std::make_unique<BBCMicro>((BBCMicroType)this->config.beeb_type,
+                                      this->config.disc_interface,
+                                      this->config.nvram_contents,
+                                      &now,
+                                      this->config.video_nula,
+                                      initial_num_2MHz_cycles);
 
     m->SetOSROM(this->os);
 

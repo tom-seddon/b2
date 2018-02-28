@@ -224,7 +224,12 @@ BBCMicro::MemoryPages::MemoryPages() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-BBCMicro::State::State(const BBCMicroType type,const std::vector<uint8_t> &nvram_contents,const tm *rtc_time) {
+BBCMicro::State::State(const BBCMicroType type,
+                       const std::vector<uint8_t> &nvram_contents,
+                       const tm *rtc_time,
+                       uint64_t initial_num_2MHz_cycles):
+num_2MHz_cycles(initial_num_2MHz_cycles)
+{
     switch(type) {
     default:
         ASSERT(false);
@@ -265,8 +270,13 @@ BBCMicro::State::State(const BBCMicroType type,const std::vector<uint8_t> &nvram
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-BBCMicro::BBCMicro(BBCMicroType type,const DiscInterfaceDef *def,const std::vector<uint8_t> &nvram_contents,const tm *rtc_time,bool video_nula):
-    m_state(type,nvram_contents,rtc_time),
+BBCMicro::BBCMicro(BBCMicroType type,
+                   const DiscInterfaceDef *def,
+                   const std::vector<uint8_t> &nvram_contents,
+                   const tm *rtc_time,
+                   bool video_nula,
+                   uint64_t initial_num_2MHz_cycles):
+    m_state(type,nvram_contents,rtc_time,initial_num_2MHz_cycles),
     m_type(type),
     m_disc_interface(def->create_fun()),
     m_video_nula(video_nula)

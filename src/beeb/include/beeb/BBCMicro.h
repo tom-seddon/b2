@@ -100,7 +100,12 @@ public:
 
     // nvram_contents and rtc_time are ignored if the BBCMicro doesn't
     // support such things.
-    BBCMicro(BBCMicroType type,const DiscInterfaceDef *def,const std::vector<uint8_t> &nvram_contents,const tm *rtc_time,bool video_nula);
+    BBCMicro(BBCMicroType type,
+             const DiscInterfaceDef *def,
+             const std::vector<uint8_t> &nvram_contents,
+             const tm *rtc_time,
+             bool video_nula,
+             uint64_t initial_num_2MHz_cycles);
 protected:
     BBCMicro(const BBCMicro &src);
 public:
@@ -541,7 +546,7 @@ private:
         int async_call_timeout=0;
 #endif
 
-        explicit State(BBCMicroType type,const std::vector<uint8_t> &nvram_contents,const tm *rtc_time);
+        explicit State(BBCMicroType type,const std::vector<uint8_t> &nvram_contents,const tm *rtc_time,uint64_t initial_num_2MHz_cycles);
     };
 
     State m_state;
