@@ -476,14 +476,12 @@ HTTPServerImpl::~HTTPServerImpl() {
     {
         std::lock_guard<Mutex> sd_lock(m_sd.mutex);
 
-        if(!m_sd.loop) {
-            return;
+        if(m_sd.loop) {
+            auto stop_async=new uv_async_t{};
+            stop_async->data=this;
+            uv_async_init(m_sd.loop,stop_async,&StopAsyncCallback);
+            uv_async_send(stop_async);
         }
-
-        auto stop_async=new uv_async_t{};
-        stop_async->data=this;
-        uv_async_init(m_sd.loop,stop_async,&StopAsyncCallback);
-        uv_async_send(stop_async);
     }
 
     m_thread.join();

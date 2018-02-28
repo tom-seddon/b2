@@ -276,13 +276,6 @@ void PushFunctionMessage(std::function<void()> fun) {
 static Remotery *g_remotery;
 #endif
 
-#if RMT_ENABLED
-static void DestroyRemotery(void) {
-    //rmt_DestroyGlobalInstance(g_remotery);
-    //g_remotery=NULL;
-}
-#endif
-
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
@@ -794,18 +787,18 @@ static void SetRmtThreadName(const char *name,void *context) {
 //////////////////////////////////////////////////////////////////////////
 
 static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &init_message_list) {
+    Messages init_messages(init_message_list);
+
 #if RMT_ENABLED
     {
         rmtError x=rmt_CreateGlobalInstance(&g_remotery);
-        (void)x;
-        ASSERT(x==RMT_ERROR_NONE);
-        atexit(&DestroyRemotery);
-
-        SetSetCurrentThreadNameCallback(&SetRmtThreadName,nullptr);
+        if(x==RMT_ERROR_NONE) {
+            SetSetCurrentThreadNameCallback(&SetRmtThreadName,nullptr);
+        } else {
+            init_messages.w.f("Failed to initialise Remotery\n");
+        }
     }
 #endif
-
-    Messages init_messages(init_message_list);
 
     Options options;
     if(!InitializeOptions(&options,&init_messages)) {
@@ -1101,8 +1094,10 @@ static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &init
     SDL_Quit();
 
 #if RMT_ENABLED
-    rmt_DestroyGlobalInstance(g_remotery);
-    g_remotery=NULL;
+    if(g_remotery) {
+        rmt_DestroyGlobalInstance(g_remotery);
+        g_remotery=NULL;
+    }
 #endif
 
 
