@@ -8,6 +8,7 @@
 #include <IconsFontAwesome.h>
 #include "load_save.h"
 #include "misc.h"
+#include "native_ui.h"
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -86,8 +87,6 @@ ImGuiStuff::~ImGuiStuff() {
 
         ImGuiIO &io=ImGui::GetIO();
 
-        //ImGui::Shutdown();
-
         delete io.Fonts;
         io.Fonts=m_original_font_atlas;
 
@@ -98,6 +97,11 @@ ImGuiStuff::~ImGuiStuff() {
     if(m_font_texture) {
         SDL_DestroyTexture(m_font_texture);
         m_font_texture=nullptr;
+    }
+
+    for(size_t i=0;i<ImGuiMouseCursor_Count_;++i) {
+        SDL_FreeCursor(m_cursors[i]);
+        m_cursors[i]=nullptr;
     }
 }
 
@@ -167,19 +171,19 @@ bool ImGuiStuff::Init() {
 
     io.MouseDoubleClickTime=GetDoubleClickTime()/1000.f;
 
-    m_cursors[ImGuiMouseCursor_Arrow]=LoadCursor(nullptr,IDC_ARROW);
-    m_cursors[ImGuiMouseCursor_Move]=LoadCursor(nullptr,IDC_SIZEALL);
-    m_cursors[ImGuiMouseCursor_ResizeEW]=LoadCursor(nullptr,IDC_SIZEWE);
-    m_cursors[ImGuiMouseCursor_ResizeNS]=LoadCursor(nullptr,IDC_SIZENS);
-    m_cursors[ImGuiMouseCursor_ResizeNESW]=LoadCursor(nullptr,IDC_SIZENESW);
-    m_cursors[ImGuiMouseCursor_ResizeNWSE]=LoadCursor(nullptr,IDC_SIZENWSE);
-    m_cursors[ImGuiMouseCursor_TextInput]=LoadCursor(nullptr,IDC_IBEAM);
+#elif SYSTEM_OSX
 
-#else
-
-    // Answers on a postcard.
+    io.MouseDoubleClickTime=(float)GetDoubleClickIntervalSeconds();
 
 #endif
+
+    m_cursors[ImGuiMouseCursor_Arrow]=SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_ARROW);
+    m_cursors[ImGuiMouseCursor_Move]=SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_SIZEALL);
+    m_cursors[ImGuiMouseCursor_ResizeEW]=SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_SIZEWE);
+    m_cursors[ImGuiMouseCursor_ResizeNS]=SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_SIZENS);
+    m_cursors[ImGuiMouseCursor_ResizeNESW]=SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_SIZENESW);
+    m_cursors[ImGuiMouseCursor_ResizeNWSE]=SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_SIZENWSE);
+    m_cursors[ImGuiMouseCursor_TextInput]=SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_IBEAM);
 
     m_imgui_ini_path=GetConfigPath("imgui.ini");
     io.IniFilename=m_imgui_ini_path.c_str();
@@ -290,16 +294,16 @@ void ImGuiStuff::NewFrame(bool got_mouse_focus) {
         io.KeyAlt=!!(m&KMOD_ALT);
         io.KeyShift=!!(m&KMOD_SHIFT);
 
-#if SYSTEM_WINDOWS
         {
             ImGuiMouseCursor cursor=ImGui::GetMouseCursor();
 
-            if(cursor>=0&&cursor<ImGuiMouseCursor_Count_)
-                SDL_cursor=(HCURSOR)m_cursors[cursor];
-            else
-                SDL_cursor=nullptr;
+            if(cursor>=0&&cursor<ImGuiMouseCursor_Count_&&m_cursors[cursor]) {
+                SDL_SetCursor(m_cursors[cursor]);
+            } else {
+                SDL_SetCursor(nullptr);
+            }
         }
-#endif
+
     } else {
         io.MousePos.x=-FLT_MAX;
         io.MousePos.y=-FLT_MAX;

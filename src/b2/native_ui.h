@@ -20,8 +20,16 @@ void FailureMessageBox(const std::string &title,const std::shared_ptr<MessageLis
 //////////////////////////////////////////////////////////////////////////
 
 #if SYSTEM_OSX
+
+// There's probably somewhere slightly better these could go. But it would
+// only be slightly better.
+
 // Returns the result of [NSApp keyWindow].
 void *GetKeyWindow();
+
+// Returns [NSEvent doubleClickInterval].
+double GetDoubleClickIntervalSeconds();
+
 #endif
 
 //////////////////////////////////////////////////////////////////////////
