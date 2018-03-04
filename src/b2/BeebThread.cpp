@@ -1465,6 +1465,8 @@ void BeebThread::ThreadStartReplay(ThreadState *ts,Timeline::ReplayData replay_d
     ASSERT(!m_is_replaying);
     m_is_replaying.store(true,std::memory_order_release);
 
+    ts->replay_data.Dump(&ts->log);
+
     //LOGF(OUTPUT,"replay start.\n");
 
     // Replay first event straight away to get things started.

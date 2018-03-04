@@ -157,6 +157,30 @@ Timeline::ReplayData::Event::Event(uint64_t id_,BeebEvent be_):
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+void Timeline::ReplayData::Dump(Log *log) {
+    log->f("%zu event(s):\n",this->events.size());
+
+    {
+        log->f("    ");
+        LogIndenter indenter(log);
+
+        for(size_t i=0;i<this->events.size();++i) {
+            const Event *e=&this->events[i];
+
+            log->f("%zu. ",i);
+
+            LogIndenter indenter2(log);
+
+            log->f("id=%" PRIu64 "\n",e->id);
+
+            e->be.Dump(log);
+        }
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 Timeline::Tree::Event::Event(uint64_t id_,size_t prev_index_,BeebEvent be_):
     id(id_),
     prev_index(prev_index_),

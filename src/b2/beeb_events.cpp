@@ -125,9 +125,9 @@ public:
     }
 
     void Dump(const BeebEvent *e,Log *log) const override {
-        log->f("%s: %s",
+        log->f("%s: %s (%u; 0x%02X)",
                e->data.key_state.state?"press":"release",
-               GetBeebKeyName(e->data.key_state.key));
+               GetBeebKeyName(e->data.key_state.key),e->data.key_state.key,e->data.key_state.key);
         (void)e,(void)log;
     }
 protected:

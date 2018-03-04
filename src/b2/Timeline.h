@@ -65,6 +65,8 @@ namespace Timeline {
         // with the start time of the replay. There is always at least
         // 1 event.
         std::vector<Event> events;
+
+        void Dump(Log *log);
     protected:
     private:
     };
