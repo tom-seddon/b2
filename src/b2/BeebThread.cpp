@@ -1925,9 +1925,9 @@ bool BeebThread::ThreadHandleMessage(
 
     case BeebThreadMessageType_LoadLastState:
         {
-            if(uint64_t id=this->GetLastSavedStateTimelineId()) {
+            if(m_last_saved_state_timeline_id!=0) {
                 //auto m=(BeebThreadLoadLastStateMessage *)message.get();
-                this->Send(std::make_unique<GoToTimelineNodeMessage>(id));
+                this->Send(std::make_unique<GoToTimelineNodeMessage>(m_last_saved_state_timeline_id));
                 //this->SendGoToTimelineNodeMessage(id);
             }
         }
