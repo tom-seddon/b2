@@ -321,6 +321,7 @@ struct Options {
 #if HTTP_SERVER
     bool http_listen_on_all_interfaces=false;
 #endif
+    bool ignore_vblank=false;
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -481,6 +482,8 @@ static bool DoCommandLineOptions(
         p.AddOption('e',"enable-log").AddArgToList(&options->enable_logs).Meta("LOG").Help("enable additional log LOG (one of: "+list+")");
         p.AddOption('d',"disable-log").AddArgToList(&options->disable_logs).Meta("LOG").Help("disable additional log LOG (one of: "+list+")");
     }
+
+    p.AddOption(0,"ignore-vblank").SetIfPresent(&options->ignore_vblank).Help("ignore vblank; present at 50Hz. YMMV");
 
     p.AddOption('v',"verbose").SetIfPresent(&options->verbose).Help("be extra verbose");
 
@@ -832,7 +835,9 @@ static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &init
     }
 
     auto &&vblank_handler=std::make_unique<b2VBlankHandler>();
-    std::unique_ptr<VBlankMonitor> vblank_monitor=CreateVBlankMonitor(vblank_handler.get(),&init_messages);
+    std::unique_ptr<VBlankMonitor> vblank_monitor=CreateVBlankMonitor(vblank_handler.get(),
+                                                                      options.ignore_vblank,
+                                                                      &init_messages);
     if(!vblank_monitor) {
         init_messages.e.f("Failed to initialise vblank monitor.\n");
         return false;

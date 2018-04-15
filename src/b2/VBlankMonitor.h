@@ -43,7 +43,9 @@ private:
 //////////////////////////////////////////////////////////////////////////
 
 // calls Init() as part of the process. If it fails, returns null.
-std::unique_ptr<VBlankMonitor> CreateVBlankMonitor(VBlankMonitor::Handler *handler,Messages *messages);
+std::unique_ptr<VBlankMonitor> CreateVBlankMonitor(VBlankMonitor::Handler *handler,
+                                                   bool force_default,
+                                                   Messages *messages);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
