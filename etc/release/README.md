@@ -10,7 +10,7 @@ This probably isn't of much interest for anybody other than me.
 
 ## Windows
 
-- Info-Zip on the PATH
+- `7z.exe` on the PATH
 
 # Process
 
