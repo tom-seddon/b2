@@ -2313,14 +2313,21 @@ ObjectCommandTable<BeebWindow>::Initializer BeebWindow::GetTogglePopupCommand() 
         }
     }
 
+    const char *command_name;
+    if(ui->type==BeebWindowPopupType_MaxValue) {
+        command_name="?";
+    } else {
+        command_name=ui->command_name;
+    }
+
     std::string text;
-    if(strlen(ui->name)==0) {
+    if(ui->type==BeebWindowPopupType_MaxValue||strlen(ui->name)==0) {
         text="?";
     } else {
         text=std::string(ui->name)+"...";
     }
 
-    return ObjectCommandTable<BeebWindow>::Initializer(CommandDef(ui->command_name,
+    return ObjectCommandTable<BeebWindow>::Initializer(CommandDef(command_name,
                                                                   std::move(text)),
                                                        &BeebWindow::TogglePopupCommand<POPUP_TYPE>,
                                                        &BeebWindow::IsPopupCommandTicked<POPUP_TYPE>);
@@ -2619,7 +2626,9 @@ ObjectCommandTable<BeebWindow> BeebWindow::ms_command_table("Beeb Window",{
 #endif
     GetTogglePopupCommand<BeebWindowPopupType_Messages>(),
     GetTogglePopupCommand<BeebWindowPopupType_Configs>(),
+#if BBCMICRO_TRACE
     GetTogglePopupCommand<BeebWindowPopupType_Trace>(),
+#endif
     GetTogglePopupCommand<BeebWindowPopupType_AudioCallback>(),
     GetTogglePopupCommand<BeebWindowPopupType_CommandContextStack>(),
     GetTogglePopupCommand<BeebWindowPopupType_CommandKeymaps>(),
