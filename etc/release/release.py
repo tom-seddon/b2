@@ -117,7 +117,7 @@ def build_win32_config(timings,options,platform,config,colour):
     
     start_time=time.clock()
     run(["cmd","/c",
-         "color","%x"%colour])
+         "color","%x"%colour],ignore_errors=True)
     
     if not options.skip_compile:
         run(["cmd","/c",
