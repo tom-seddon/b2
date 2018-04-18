@@ -10,6 +10,7 @@ project(6502)
 
 add_executable(6502_gen
   6502_gen.cpp 6502_gen.inl)
+add_sanitizers(6502_gen)
 target_link_libraries(6502_gen shared_lib)
 
 add_library(6502_lib STATIC

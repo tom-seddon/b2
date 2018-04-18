@@ -343,6 +343,7 @@ add_executable(test_JobQueue
   test_JobQueue.cpp
   JobQueue.cpp JobQueue.h
   )
+add_sanitizers(test_JobQueue)
 target_link_libraries(test_JobQueue PRIVATE shared_lib)
 add_test(
   NAME b2/test_JobQueue
