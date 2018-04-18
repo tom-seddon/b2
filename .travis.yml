@@ -6,4 +6,4 @@ osx_image: xcode9.2
 before_install:
   - brew install ninja
 
-script: python .\etc\release\release.py --ignore-branch
+script: python ./etc/release/release.py --ignore-branch
