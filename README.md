@@ -1,4 +1,4 @@
-Windows Build Status: ![status](https://ci.appveyor.com/api/projects/status/3sdnt3mh1r61h74y?svg=true)
+[Windows Build Status: ![status](https://ci.appveyor.com/api/projects/status/3sdnt3mh1r61h74y?svg=true)](https://ci.appveyor.com/project/tom-seddon/b2)
 
 # b2
 
