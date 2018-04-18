@@ -1,3 +1,5 @@
+Windows Build Status: ![status](https://ci.appveyor.com/api/projects/status/3sdnt3mh1r61h74y?svg=true)
+
 # b2
 
 A cross-platform BBC Micro emulator. Use your Windows/Linux PC or
@@ -10,11 +12,23 @@ If you have feedback, please add it to the
 
 For Windows and OS X, you can get a binary release from the
 [b2 GitHub releases page](https://github.com/tom-seddon/b2/releases).
-On Windows, unzip to a folder of your choice; on OS X, drag b2 to your
-Applications folder and run it from there.
+On Windows, unzip to a folder of your choice; on OS X, open the dmg
+and drag b2 to your Applications folder and run it from there.
 
 If you use Linux, or if you just want to build it yourself anyway,
 follow [the building instructions](#building).
+
+## Rolling Windows builds
+
+Feeling daring? You can get a Windows build of whatever the latest
+buildable code is/was, hot off the presses, for good or for ill, from
+the
+[AppVeyor b2 build history page](https://ci.appveyor.com/project/tom-seddon/b2/history).
+Find the highest-numbered green build, click its version number in the
+right-hand column, select `ARTIFACTS` from the version page, download
+the zip file. Install it as above.
+
+**These builds are not tested, and are provided as-is** -
 
 # Guided tour
 
