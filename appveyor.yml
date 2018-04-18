@@ -1,0 +1,17 @@
+version: '{build}'
+
+branches:
+  only:
+    - master
+
+image: Visual Studio 2015
+
+install:
+  - git submodule init
+  - git submodule update
+  
+build_script:
+  - python .\etc\release\release.py --ignore-branch --make .\snmake.exe
+
+artifacts:
+  - path: '.\build\_Rel\win32\b2-*.zip'
