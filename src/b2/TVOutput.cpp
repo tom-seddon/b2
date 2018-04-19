@@ -566,25 +566,31 @@ static const uint8_t DIGITS[10][13]={
 
 void TVOutput::FillWithTestPattern() {
     m_texture_data.clear();
-    m_texture_data.resize(TV_TEXTURE_WIDTH*TV_TEXTURE_HEIGHT,m_palette[0][3]);
+    m_texture_data.reserve(TV_TEXTURE_WIDTH*TV_TEXTURE_HEIGHT);
 
-    {
-        uint32_t *top=&m_texture_data[0];
-        uint32_t *bot=&m_texture_data[(TV_TEXTURE_HEIGHT-1)*TV_TEXTURE_WIDTH];
-
+    for(int y=0;y<TV_TEXTURE_HEIGHT;++y) {
         for(int x=0;x<TV_TEXTURE_WIDTH;++x) {
-            *bot++=*top++=m_palette[0][1];
+            if((x^y)&1) {
+                m_texture_data.push_back(m_palette[0][1]);
+            } else {
+                m_texture_data.push_back(m_palette[0][3]);
+            }
         }
     }
 
-    {
-        uint32_t *line=&m_texture_data[0];
+    uint32_t colours[]={m_palette[0][1],m_palette[0][6]};
 
-        for(int y=0;y<TV_TEXTURE_HEIGHT;++y) {
-            line[TV_TEXTURE_WIDTH-1]=line[0]=m_palette[0][1];
-            line[TV_TEXTURE_WIDTH-2]=line[1]=m_palette[0][7];
-            line[TV_TEXTURE_WIDTH-3]=line[2]=m_palette[0][4];
-            line+=TV_TEXTURE_WIDTH;
+    for(size_t i=0;i<sizeof colours/sizeof colours[0];++i) {
+        uint32_t colour=colours[i];
+
+        for(size_t x=i;x<TV_TEXTURE_WIDTH-i;++x) {
+            m_texture_data[i*TV_TEXTURE_WIDTH+x]=colour;
+            m_texture_data[(TV_TEXTURE_HEIGHT-1-i)*TV_TEXTURE_WIDTH+x]=colour;
+        }
+
+        for(size_t y=i;y<TV_TEXTURE_HEIGHT-i;++y) {
+            m_texture_data[y*TV_TEXTURE_WIDTH+i]=colour;
+            m_texture_data[y*TV_TEXTURE_WIDTH+TV_TEXTURE_WIDTH-1-i]=colour;
         }
     }
 
