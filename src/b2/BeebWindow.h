@@ -69,7 +69,7 @@ struct BeebWindowSettings {
     bool display_auto_scale=true;
     bool correct_aspect_ratio=true;
     float display_manual_scale=1.f;
-    bool display_filter=false;
+    bool display_filter=true;
 };
 
 //////////////////////////////////////////////////////////////////////////

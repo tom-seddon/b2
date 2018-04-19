@@ -1737,11 +1737,26 @@ bool BeebWindow::InitInternal() {
     m_sound_device=m_init_arguments.sound_device;
     ASSERT(m_init_arguments.sound_spec.freq>0);
 
+    // Add some extra space round the edges so the display doesn't have to
+    // be scaled down noticeably.
+    //
+    // 19 is the height of the dear imgui menu bar with the default font.
+    // (Ideally this would be retrieved at runtime, but that can't be done
+    // until after the window is created.)
+    //
+    // Maddeningly, this still isn't quite perfect - at least on OS X. It
+    // seems like there's a window border that's drawn on top of everything,
+    // inside the window? Bleargh. The dear imgui window position is probably
+    // wrong as well. Maybe all the border size saving and restoring is
+    // causing problems.
+    //
+    // Anyway, obvious with the test pattern, but in practice not an issue,
+    // as the borders are so large...
     m_window=SDL_CreateWindow("",
                               SDL_WINDOWPOS_UNDEFINED,
                               SDL_WINDOWPOS_UNDEFINED,
-                              TV_TEXTURE_WIDTH,
-                              TV_TEXTURE_HEIGHT,
+                              TV_TEXTURE_WIDTH+(int)(IMGUI_DEFAULT_STYLE.WindowPadding.x*2.f),
+                              19+TV_TEXTURE_HEIGHT+(int)(IMGUI_DEFAULT_STYLE.WindowPadding.y*2.f),
                               SDL_WINDOW_RESIZABLE|SDL_WINDOW_OPENGL);
     if(!m_window) {
         m_msg.e.f("SDL_CreateWindow failed: %s\n",SDL_GetError());
