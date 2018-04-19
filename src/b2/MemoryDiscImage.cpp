@@ -200,6 +200,8 @@ void AddDiscImagesFileDialogFilter(FileDialog *fd) {
         patterns+=type->ext;
     }
 
+    patterns+=";*.zip";
+
     fd->AddFilter("BBC disc images",patterns);
 }
 
