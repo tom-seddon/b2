@@ -322,6 +322,7 @@ struct Options {
     bool http_listen_on_all_interfaces=false;
 #endif
     bool ignore_vblank=false;
+    bool reset_windows=false;
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -486,6 +487,8 @@ static bool DoCommandLineOptions(
     p.AddOption(0,"ignore-vblank").SetIfPresent(&options->ignore_vblank).Help("ignore vblank; present at 50Hz. YMMV");
 
     p.AddOption('v',"verbose").SetIfPresent(&options->verbose).Help("be extra verbose");
+
+    p.AddOption(0,"reset-windows").SetIfPresent(&options->reset_windows).Help("reset window position and dock data");
 
 #if HTTP_SERVER
     p.AddOption("http-listen-on-all-interfaces").SetIfPresent(&options->http_listen_on_all_interfaces).Help("at own risk, listen for HTTP connections on all network interfaces, not just localhost");
@@ -914,10 +917,14 @@ static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &init
             ia.default_config=default_loaded_config;
             ia.name="b2";
             ia.preinit_message_list=init_message_list;
-            ia.placement_data=BeebWindows::GetLastWindowPlacementData();
+
 #if SYSTEM_OSX
             ia.frame_name="b2Frame";
+#else
+            ia.placement_data=BeebWindows::GetLastWindowPlacementData();
 #endif
+
+            ia.reset_windows=options.reset_windows;
         }
 
         {

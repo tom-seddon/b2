@@ -94,6 +94,7 @@ public:
 
     bool LoadDockContext(const std::string &config);
     std::string SaveDockContext() const;
+    void ResetDockContext();
 
 #if STORE_DRAWLISTS
     void DoStoredDrawListWindow();
@@ -103,6 +104,7 @@ private:
     SDL_Renderer *m_renderer=nullptr;
     ImGuiContext *m_context=nullptr;
     ImGui::DockContext *m_dock_context=nullptr;
+    bool m_reset_dock_context=false;
     struct SDL_Texture *m_font_texture=nullptr;
     uint64_t m_last_new_frame_ticks=0;
     int m_next_wheel=0;

@@ -51,11 +51,13 @@ ImGuiContextSetter::ImGuiContextSetter(const ImGuiStuff *stuff):
     m_old_imgui_context(ImGui::GetCurrentContext()),
     m_old_dock_context(ImGui::GetCurrentDockContext())
 {
-    if(stuff->m_context)
+    if(stuff->m_context) {
         ImGui::SetCurrentContext(stuff->m_context);
+    }
 
-    if(stuff->m_dock_context)
+    if(stuff->m_dock_context) {
         ImGui::SetCurrentDockContext(stuff->m_dock_context);
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -328,6 +330,22 @@ void ImGuiStuff::NewFrame(bool got_mouse_focus) {
     io.MouseWheel=(float)m_next_wheel;
     m_next_wheel=0;
 
+    if(m_reset_dock_context) {
+        bool set=false;
+        if(ImGui::GetCurrentDockContext()==m_dock_context) {
+            set=true;
+        }
+
+        ImGui::DestroyDockContext(m_dock_context);
+        m_dock_context=ImGui::CreateDockContext();
+
+        if(set) {
+            ImGui::SetCurrentDockContext(m_dock_context);
+        }
+
+        m_reset_dock_context=false;
+    }
+
     ImGui::NewFrame();
 
     m_want_capture_keyboard=io.WantCaptureKeyboard;
@@ -511,6 +529,13 @@ std::string ImGuiStuff::SaveDockContext() const {
     ASSERT(serializer.getBufferSize()>=0);
     std::string result(serializer.getBuffer());
     return result;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void ImGuiStuff::ResetDockContext() {
+    m_reset_dock_context=true;
 }
 
 //////////////////////////////////////////////////////////////////////////

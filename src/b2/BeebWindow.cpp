@@ -1271,6 +1271,7 @@ void BeebWindow::DoToolsMenu() {
 
         ImGui::Separator();
         m_occ.DoMenuItemUI("clean_up_recent_files_lists");
+        m_occ.DoMenuItemUI("reset_dock_windows");
         ImGui::EndMenu();
     }
 }
@@ -1767,40 +1768,50 @@ bool BeebWindow::InitInternal() {
     SDL_VERSION(&wmi.version);
     SDL_GetWindowWMInfo(m_window,&wmi);
 
+    bool reset_windows=m_init_arguments.reset_windows;
+    m_init_arguments.reset_windows=false;
+
 #if SYSTEM_WINDOWS
 
     m_hwnd=wmi.info.win.window;
 
-    if(m_hwnd) {
-        if(m_init_arguments.placement_data.size()==sizeof(WINDOWPLACEMENT)) {
-            auto wp=(const WINDOWPLACEMENT *)m_init_arguments.placement_data.data();
+    if(!reset_windows) {
+        if(m_hwnd) {
+            if(m_init_arguments.placement_data.size()==sizeof(WINDOWPLACEMENT)) {
+                auto wp=(const WINDOWPLACEMENT *)m_init_arguments.placement_data.data();
 
-            SetWindowPlacement((HWND)m_hwnd,wp);
+                SetWindowPlacement((HWND)m_hwnd,wp);
+            }
         }
     }
 
 #elif SYSTEM_OSX
 
     m_nswindow=wmi.info.cocoa.window;
-    SetCocoaFrameUsingName(m_nswindow,m_init_arguments.frame_name);
+
+    if(!reset_windows) {
+        SetCocoaFrameUsingName(m_nswindow,m_init_arguments.frame_name);
+    }
 
 #else
 
-    if(m_init_arguments.placement_data.size()==sizeof(WindowPlacementData)) {
-        auto wp=(const WindowPlacementData *)m_init_arguments.placement_data.data();
+    if(!reset_windows) {
+        if(m_init_arguments.placement_data.size()==sizeof(WindowPlacementData)) {
+            auto wp=(const WindowPlacementData *)m_init_arguments.placement_data.data();
 
-        SDL_RestoreWindow(m_window);
+            SDL_RestoreWindow(m_window);
 
-        if(wp->x!=INT_MIN&&wp->y!=INT_MIN) {
-            SDL_SetWindowPosition(m_window,wp->x,wp->y);
-        }
+            if(wp->x!=INT_MIN&&wp->y!=INT_MIN) {
+                SDL_SetWindowPosition(m_window,wp->x,wp->y);
+            }
 
-        if(wp->width>0&&wp->height>0) {
-            SDL_SetWindowSize(m_window,wp->width,wp->height);
-        }
+            if(wp->width>0&&wp->height>0) {
+                SDL_SetWindowSize(m_window,wp->width,wp->height);
+            }
 
-        if(wp->maximized) {
-            SDL_MaximizeWindow(m_window);
+            if(wp->maximized) {
+                SDL_MaximizeWindow(m_window);
+            }
         }
     }
 
@@ -1865,6 +1876,10 @@ bool BeebWindow::InitInternal() {
         m_beeb_thread->Send(std::make_unique<BeebThread::PauseMessage>(false));
     }
 
+    if(reset_windows) {
+        m_imgui_stuff->ResetDockContext();
+    }
+
     m_imgui_stuff->NewFrame(false);
 
     m_display_size_options.push_back("Auto");
@@ -1912,7 +1927,6 @@ bool BeebWindow::InitInternal() {
               m_init_arguments.sound_spec.freq,
               m_init_arguments.sound_spec.channels,
               m_init_arguments.sound_spec.size);
-
 
     return true;
 }
@@ -2235,6 +2249,13 @@ void BeebWindow::CleanUpRecentFilesLists() {
     if(n>0) {
         m_msg.i.f("Removed %zu items\n",n);
     }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BeebWindow::ResetDockWindows() {
+    m_imgui_stuff->ResetDockContext();
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -2634,6 +2655,7 @@ ObjectCommandTable<BeebWindow> BeebWindow::ms_command_table("Beeb Window",{
     GetTogglePopupCommand<BeebWindowPopupType_CommandKeymaps>(),
     {CommandDef("exit","Exit").MustConfirm(),&BeebWindow::Exit},
     {CommandDef("clean_up_recent_files_lists","Clean up recent files lists").MustConfirm(),&BeebWindow::CleanUpRecentFilesLists},
+    {CommandDef("reset_dock_windows","Reset dock windows").MustConfirm(),&BeebWindow::ResetDockWindows},
 #if SYSTEM_WINDOWS
     {{"clear_console","Clear Win32 console"},&BeebWindow::ClearConsole},
 #endif
