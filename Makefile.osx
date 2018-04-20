@@ -1,0 +1,8 @@
+# -*- mode:makefile-gmake; -*-
+
+.PHONY:init_xcode
+init_xcode: _FOLDER=$(BUILD_FOLDER)/$(FOLDER_PREFIX)Xcode
+init_xcode:
+	rm -Rf "$(_FOLDER)"
+	mkdir -p "$(_FOLDER)"
+	cd "$(_FOLDER)" && cmake -G Xcode $(CMAKE_DEFINES) ../..

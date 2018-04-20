@@ -157,7 +157,6 @@ endif()
 ##########################################################################
 ##########################################################################
 
-option(LIBUV_BUILD_TESTS "" ON)
 set(LIBUVDIR ${CMAKE_CURRENT_SOURCE_DIR}/submodules/libuv)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/etc/libuv-cmake)
 

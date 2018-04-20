@@ -4,9 +4,13 @@ default:
 
 ifdef RELEASE_MODE
 INCLUDE_EXPERIMENTAL:=OFF
+LIBUV_BUILD_TESTS:=OFF
 else
 INCLUDE_EXPERIMENTAL:=ON
+LIBUV_BUILD_TESTS:=ON
 endif
+
+CMAKE_DEFINES:=-DINCLUDE_EXPERIMENTAL=$(INCLUDE_EXPERIMENTAL) -DLIBUV_BUILD_TESTS=$(LIBUV_BUILD_TESTS)
 
 BUILD_FOLDER:=build
 
@@ -24,13 +28,7 @@ ifeq ($(UNAME),Darwin)
 OS:=osx
 NPROC:=sysctl -n hw.ncpu
 include Makefile.unix
-
-.PHONY:init_xcode
-init_xcode: _FOLDER=$(BUILD_FOLDER)/$(FOLDER_PREFIX)Xcode
-init_xcode:
-	rm -Rf "$(_FOLDER)"
-	mkdir -p "$(_FOLDER)"
-	cd "$(_FOLDER)" && cmake -G Xcode -DINCLUDE_EXPERIMENTAL=$(INCLUDE_EXPERIMENTAL) ../..
+include Makefile.osx
 
 endif
 
