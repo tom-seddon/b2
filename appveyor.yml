@@ -3,6 +3,7 @@ version: '{build}'
 branches:
   only:
     - master
+    - build
 
 image: Visual Studio 2015
 
@@ -16,3 +17,15 @@ build_script:
 
 artifacts:
   - path: '.\build\_Rel\win32\b2-*.zip'
+
+deploy:
+  release: b2-$(appveyor_repo_commit)
+  description: 'b2'
+  provider: GitHub
+  auth_token:
+    secure: NTWtNQsxaMVhAyad5bBM3H6lTGsqRCprICrq8kvYvXgjnaeDcjjLpNe0H0ZaG4sl
+  artifact: '.\build\_Rel\win32\b2-*.zip'
+  draft: false
+  prerelease: false
+  on:
+    branch: build

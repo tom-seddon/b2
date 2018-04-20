@@ -222,12 +222,12 @@ If you're reading this after already cloning it:
     git submodule init
 	git submodule update
 
-To get the code for a particular version, check out that version's tag
-and then do a `git submodule update`. Each version also has its own
-branch, with a `ver/` prefix (for any matters arising while it's being
-prepared).
+Regarding branches, `master` should always build (and shouldn't
+contain anything too outrageously half-baked) and `build` is the
+branch used by the CI servers to prepare releases. `master` is
+periodically merged into `build` when things are settled down.
 
-Branches with names beginning `wip/` are undefined.
+`wip/*` is stuff that's being worked on.
 
 Once you're all set up:
 
