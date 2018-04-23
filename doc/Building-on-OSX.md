@@ -27,7 +27,7 @@ Initial build steps:
    be the case when you first load the newly-generated xcodeproj)
 
 5. Select `Edit Scheme...` from the schemes dropdown, select the `Run`
-   option, and select `b2.app` as the `Executable`
+   option, `Info` section, and select `b2.app` as the `Executable`
 
 General day-to-day build steps:
 
@@ -42,8 +42,9 @@ option if you want something different.
 If the cmake settings change, `Product` > `Build` is supposed to
 rebuild the xcodeproj, and Xcode should then reload it, and the
 workflow should all be relatively convenient. But in practice it seems
-to be a bit flaky and you might have to use `Product` > `Build` a
-couple of times to make it work :(
+to be a bit flaky; I find the build is spuriously cancelled,
+necessitating additional attempts. Sometimes it requires several goes
+before the build will finish.
 
 (I don't really think this works especially well, particularly
 compared to Visual Studio. Xcode is awful, and cmake doesn't seem to
