@@ -12,7 +12,7 @@ install:
   - git submodule update
   - ps: $env:SUFFIX = $(git log -1 --format=%cd-%h --date=format:%Y%m%d-%H%M%S $env:APPVEYOR_REPO_COMMIT)
   - ps: $env:RELEASE_NAME = "b2-"+$env:SUFFIX
-  - ps: $env:OUTPUT_NAME = ".\build\_Rel\win32\b2-windows-"+$env:SUFFIX+".zip"
+  - ps: $env:OUTPUT_NAME = "build\_Rel\win32\b2-windows-"+$env:SUFFIX+".zip"
   
 build_script:
   - "echo OUTPUT_NAME: %OUTPUT_NAME%"
