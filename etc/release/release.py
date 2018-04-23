@@ -123,6 +123,7 @@ def build_win32_config(timings,options,platform,config,colour):
              "/maxcpucount",
              "/property:MultiProcessorCompilation=true", # http://stackoverflow.com/a/17719445/1618406
              "/property:Configuration=%s"%config,
+             "/verbosity:minimal",
              os.path.join(folder,"b2.sln")])
 
     if not options.skip_ctest:

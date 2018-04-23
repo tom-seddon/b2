@@ -16,7 +16,7 @@ install:
   
 build_script:
   - "echo OUTPUT_NAME: %OUTPUT_NAME%"
-  - python ./etc/release/release.py --make ./snmake.exe %SUFFIX%
+  - python ./etc/release/release.py --make=./snmake.exe --skip-ctest --skip-32-bit --skip-debug %SUFFIX%
 
 artifacts:
   - path: $(OUTPUT_NAME)
