@@ -4,8 +4,6 @@ import argparse,os,os.path,sys,stat,subprocess,pipes,time,shutil,multiprocessing
 ##########################################################################
 ##########################################################################
 
-VERSION_BRANCH_PREFIX="ver/"
-
 BUILD_FOLDER="build"
 FOLDER_PREFIX="_Rel."
 INTERMEDIATE_FOLDER="_Rel"
@@ -103,9 +101,9 @@ def create_intermediate_folder():
 
     return ifolder
 
-def create_README(folder,rev_hash):
+def create_README(options,folder,rev_hash):
     with open(os.path.join(folder,"README.txt"),"wt") as f:
-        f.write("b2 - a BBC Micro emulator\n\n")
+        f.write("b2 - a BBC Micro emulator - %s\n\n"%options.release_name)
         f.write("For licence information, please consult LICENCE.txt.\n\n")
         f.write("Documentation can be found here: https://github.com/tom-seddon/b2/blob/%s/README.md\n\n"%rev_hash)
 
@@ -138,7 +136,7 @@ def build_win32_config(timings,options,platform,config,colour):
 
     timings[(platform,config)]=time.clock()-start_time
 
-def build_win32(options,ifolder,suffix,rev_hash):
+def build_win32(options,ifolder,rev_hash):
     timings={}
 
     # path that the ZIP contents will be assembled into.
@@ -162,9 +160,9 @@ def build_win32(options,ifolder,suffix,rev_hash):
     shutil.copytree(os.path.join(build64,"src/b2/Final/assets"),os.path.join(zip_folder,"assets"))
     shutil.copyfile("./etc/release/LICENCE.txt",os.path.join(zip_folder,"LICENCE.txt"))
 
-    create_README(zip_folder,rev_hash)
+    create_README(options,zip_folder,rev_hash)
 
-    zip_fname="b2-%s-windows.zip"%suffix
+    zip_fname="b2-windows-%s.zip"%options.release_name
     zip_fname=os.path.join(ifolder,zip_fname)
 
     # The ZipFile module is a bit annoying to use.
@@ -197,11 +195,11 @@ def copy_darwin_app(config,mount,app_name):
     run(["ditto",get_darwin_build_path(config,"src/b2/b2.app"),dest])
     shutil.copyfile("./etc/release/LICENCE.txt",os.path.join(dest,"Contents/LICENCE.txt"))
 
-def build_darwin(options,ifolder,suffix,rev_hash):
+def build_darwin(options,ifolder,rev_hash):
     build_darwin_config(options,"r")
     build_darwin_config(options,"f")
 
-    stem="b2-"+suffix+"-osx"
+    stem="b2-osx-"+options.release_name
     
     temp_dmg=os.path.join(ifolder,stem+"_temp.dmg")
     final_dmg=os.path.join(ifolder,stem+".dmg")
@@ -217,14 +215,14 @@ def build_darwin(options,ifolder,suffix,rev_hash):
         # Copy text files to the DMG.
         shutil.copyfile("./etc/release/LICENCE.txt",
                         os.path.join(mount,"LICENCE.txt"))
-        create_README(mount,rev_hash)
+        create_README(options,mount,rev_hash)
 
         # Copy app folders to the DMG.
         copy_darwin_app("f",mount,"b2.app")
         copy_darwin_app("r",mount,"b2 Debug.app")
         
         # Give the DMG a better volume name.
-        run(["diskutil","rename",mount,"b2 "+suffix])
+        run(["diskutil","rename",mount,stem])
     finally:
         # Unmount the DMG
         run(["hdiutil","detach",mount])
@@ -241,40 +239,8 @@ def build_darwin(options,ifolder,suffix,rev_hash):
 def main(options):
     global g_verbose
     g_verbose=options.verbose
-    
-    # Check working copy state.
-    wc_dirty=False
-    if len(capture(["git","status","--porcelain"])):
-        wc_dirty=True
-        if not options.ignore_working_copy:
-            fatal("working copy is dirty (ignore with --ignore-working-copy)")
 
-    # Check current branch.
-    branches=capture(["git","branch"])
-    for branch in branches:
-        if branch.startswith("*"):
-            branch=branch[2:]
-            break
-
-    if branch.startswith(VERSION_BRANCH_PREFIX):
-        suffix=branch[len(VERSION_BRANCH_PREFIX):]
-    else:
-        if not options.ignore_branch:
-            fatal("not a version branch (ignore with --ignore-branch)")
-
-        # (Or just use rev_hash here? does --short do anything more
-        # than just strip the end off???)
-        suffix=capture(["git","rev-parse","--short","HEAD"])[0]
-
-    if wc_dirty: suffix+="-local"
-
-    # Get revision hash.
     rev_hash=capture(["git","rev-parse","HEAD"])[0]
-
-    # 
-    v("Branch: %s\n"%branch)
-    v("Hash: %s\n"%rev_hash)
-    v("Dirty working copy: %s\n"%bool_str(wc_dirty))
 
     if not options.skip_cmake:
         # -j makes a hilarious mess of the text output on Windows, but
@@ -285,14 +251,15 @@ def main(options):
              "-j%d"%multiprocessing.cpu_count(),
              "init",
              "FOLDER_PREFIX=%s"%FOLDER_PREFIX,
-             "RELEASE_MODE=1"])
+             "RELEASE_MODE=1",
+             "RELEASE_NAME=%s"%options.release_name])
 
     ifolder=create_intermediate_folder()
 
     if sys.platform=="win32":
-        build_win32(options,ifolder,suffix,rev_hash)
+        build_win32(options,ifolder,rev_hash)
     elif sys.platform=="darwin":
-        build_darwin(options,ifolder,suffix,rev_hash)
+        build_darwin(options,ifolder,rev_hash)
 
 ##########################################################################
 ##########################################################################
@@ -308,11 +275,10 @@ if __name__=="__main__":
         default_make="make"
 
     parser.add_argument("-v","--verbose",action="store_true",help="be more verbose")
-    parser.add_argument("--ignore-working-copy",action="store_true",help="ignore dirty working copy")
-    parser.add_argument("--ignore-branch",action="store_true",help="ignore non-version branch")
     parser.add_argument("--skip-cmake",action="store_true",help="skip the cmake step")
     parser.add_argument("--skip-compile",action="store_true",help="skip the compile step")
     parser.add_argument("--skip-ctest",action="store_true",help="skip the ctest step")
     parser.add_argument("--make",dest="make",default=default_make,help="use %(metavar)s as GNU make. Default: ``%(default)s''")
+    parser.add_argument("release_name",metavar="NAME",help="name for release. Embedded into executable, and used to generate output file name")
     
     main(parser.parse_args(sys.argv[1:]))

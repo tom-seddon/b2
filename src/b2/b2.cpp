@@ -50,6 +50,16 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+static const char PRODUCT_NAME[]=
+"b2 - BBC Micro B/B+/Master 128 emulator"
+#ifdef RELEASE_NAME
+" - " STRINGIZE(RELEASE_NAME)
+#endif
+;
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 #if SYSTEM_WINDOWS
 #if BUILD_TYPE_Final
 
@@ -444,7 +454,7 @@ static bool DoCommandLineOptions(
     int argc,char *argv[],
     Messages *init_messages)
 {
-    CommandLineParser p("BBC Micro B/B+/Master 128 emulator");
+    CommandLineParser p(PRODUCT_NAME);
 
     p.SetLogs(&init_messages->i,&init_messages->e);
 
@@ -830,6 +840,8 @@ static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &init
     if(!InitLogs(options,&init_messages)) {
         return false;
     }
+
+    init_messages.i.f("%s\n",PRODUCT_NAME);
 
     SDL_AudioDeviceID audio_device;
     SDL_AudioSpec audio_spec;

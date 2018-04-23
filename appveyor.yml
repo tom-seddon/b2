@@ -8,23 +8,26 @@ branches:
 image: Visual Studio 2015
 
 install:
-  - cmd: echo appveyor.yml install step
-  - git submodule init
-  - git submodule update
+  - ps: git submodule init
+  - ps: git submodule update
+  - ps: $env:SUFFIX = $(git log -1 --format=%cd-%h --date=format:%Y%m%d-%H%M%S $env:APPVEYOR_REPO_COMMIT)
+  - ps: $env:RELEASE_NAME = "b2-"+$env:SUFFIX
+  - ps: $env:OUTPUT_NAME = "./build/_Rel/win32/b2-windows-"+$env:SUFFIX+".zip"
   
 build_script:
-  - python .\etc\release\release.py --ignore-branch --make .\snmake.exe
+  - ps: python ./etc/release/release.py --make ./snmake.exe $env:SUFFIX
 
 artifacts:
-  - path: '.\build\_Rel\win32\b2-*.zip'
+  - path: $(OUTPUT_NAME)
+    name: output
 
 deploy:
-  release: b2-$(appveyor_repo_commit)
+  release: $(RELEASE_NAME)
   description: 'b2'
   provider: GitHub
   auth_token:
     secure: NTWtNQsxaMVhAyad5bBM3H6lTGsqRCprICrq8kvYvXgjnaeDcjjLpNe0H0ZaG4sl
-  artifact: '.\build\_Rel\win32\b2-*.zip'
+  artifact: output
   draft: false
   prerelease: false
   on:
