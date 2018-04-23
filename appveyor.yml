@@ -15,7 +15,7 @@ install:
   - ps: $env:OUTPUT_NAME = "./build/_Rel/win32/b2-windows-"+$env:SUFFIX+".zip"
   
 build_script:
-  - ps: python ./etc/release/release.py --make ./snmake.exe $env:SUFFIX
+  - python ./etc/release/release.py --make ./snmake.exe $env:SUFFIX
 
 artifacts:
   - path: $(OUTPUT_NAME)
