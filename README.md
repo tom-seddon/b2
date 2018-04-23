@@ -12,6 +12,9 @@ If you have feedback, please add it to the
 
 For Windows and OS X, you can get a binary release from the
 [b2 GitHub releases page](https://github.com/tom-seddon/b2/releases).
+Releases are tagged with their date, time, and GitHub commit. You
+probably want the latest one, which will be at the top.
+
 On Windows, unzip to a folder of your choice; on OS X, open the dmg
 and drag b2 to your Applications folder and run it from there.
 
@@ -27,8 +30,6 @@ the
 Find the highest-numbered green build, click its version number in the
 right-hand column, select `ARTIFACTS` from the version page, download
 the zip file. Install it as above.
-
-**These builds are not tested, and are provided as-is** -
 
 # Guided tour
 
