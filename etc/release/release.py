@@ -143,22 +143,42 @@ def build_win32(options,ifolder,rev_hash):
     zip_folder=os.path.join(ifolder,"b2")
     makedirs(zip_folder)
 
-    build_win32_config(timings,options,"win64","RelWithDebInfo",0xf0)
+    if not options.skip_debug:
+        build_win32_config(timings,options,"win64","RelWithDebInfo",0xf0)
+        
     build_win32_config(timings,options,"win64","Final",0xf4)
-    build_win32_config(timings,options,"win32","Final",0xe0)
+
+    if not options.skip_32_bit:
+        build_win32_config(timings,options,"win32","Final",0xe0)
 
     print timings
 
     build32=os.path.join(BUILD_FOLDER,"%swin32"%FOLDER_PREFIX)
     build64=os.path.join(BUILD_FOLDER,"%swin64"%FOLDER_PREFIX)
-    
-    shutil.copyfile(os.path.join(build32,"src/b2/Final/b2.exe"),os.path.join(zip_folder,"b2_32bit.exe"))
-    shutil.copyfile(os.path.join(build64,"src/b2/Final/b2.exe"),os.path.join(zip_folder,"b2.exe"))
-    shutil.copyfile(os.path.join(build64,"src/b2/RelWithDebInfo/b2.exe"),os.path.join(zip_folder,"b2_Debug.exe"))
+
+    if not options.skip_32_bit:
+        shutil.copyfile(os.path.join(build32,
+                                     "src/b2/Final/b2.exe"),
+                        os.path.join(zip_folder,
+                                     "b2_32bit.exe"))
+
+    shutil.copyfile(os.path.join(build64,
+                                 "src/b2/Final/b2.exe"),
+                    os.path.join(zip_folder,
+                                 "b2.exe"))
+
+    if not options.skip_debug:
+        shutil.copyfile(os.path.join(build64,
+                                     "src/b2/RelWithDebInfo/b2.exe"),
+                        os.path.join(zip_folder,
+                                     "b2_Debug.exe"))
 
     # Copy the assets from any output folder... they're all the same.
-    shutil.copytree(os.path.join(build64,"src/b2/Final/assets"),os.path.join(zip_folder,"assets"))
-    shutil.copyfile("./etc/release/LICENCE.txt",os.path.join(zip_folder,"LICENCE.txt"))
+    shutil.copytree(os.path.join(build64,"src/b2/Final/assets"),
+                    os.path.join(zip_folder,"assets"))
+    
+    shutil.copyfile("./etc/release/LICENCE.txt",
+                    os.path.join(zip_folder,"LICENCE.txt"))
 
     create_README(options,zip_folder,rev_hash)
 
@@ -196,7 +216,7 @@ def copy_darwin_app(config,mount,app_name):
     shutil.copyfile("./etc/release/LICENCE.txt",os.path.join(dest,"Contents/LICENCE.txt"))
 
 def build_darwin(options,ifolder,rev_hash):
-    build_darwin_config(options,"r")
+    if not options.skip_debug: build_darwin_config(options,"r")
     build_darwin_config(options,"f")
 
     stem="b2-osx-"+options.release_name
@@ -219,7 +239,9 @@ def build_darwin(options,ifolder,rev_hash):
 
         # Copy app folders to the DMG.
         copy_darwin_app("f",mount,"b2.app")
-        copy_darwin_app("r",mount,"b2 Debug.app")
+
+        if not options.skip_debug:
+            copy_darwin_app("r",mount,"b2 Debug.app")
         
         # Give the DMG a better volume name.
         run(["diskutil","rename",mount,stem])
@@ -278,6 +300,8 @@ if __name__=="__main__":
     parser.add_argument("--skip-cmake",action="store_true",help="skip the cmake step")
     parser.add_argument("--skip-compile",action="store_true",help="skip the compile step")
     parser.add_argument("--skip-ctest",action="store_true",help="skip the ctest step")
+    parser.add_argument("--skip-32-bit",action="store_true",help="skip any 32-bit build that might be built")
+    parser.add_argument("--skip-debug",action="store_true",help="skip any debug build that might be built")
     parser.add_argument("--make",dest="make",default=default_make,help="use %(metavar)s as GNU make. Default: ``%(default)s''")
     parser.add_argument("release_name",metavar="NAME",help="name for release. Embedded into executable, and used to generate output file name")
     
