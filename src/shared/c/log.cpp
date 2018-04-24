@@ -392,17 +392,6 @@ void Log::EnsureBOL(const char *fmt,...) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void Log::LockPrinterForNextLine() {
-    if(!m_is_printer_locked) {
-        m_printer->lock();
-
-        m_is_printer_locked=true;
-    }
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 LogPrinter *Log::GetPrinter() const {
     return m_printer;
 }
@@ -628,8 +617,6 @@ void LogDumpBytesEx(Log *log,
     }
 
     while(offset<size) {
-        log->LockPrinterForNextLine();
-
         log->f("0x%0*" PRIX64 ": ",offset_width,ex_data->first_address+offset);
 
         char sep[2]={0,0};

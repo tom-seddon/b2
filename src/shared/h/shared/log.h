@@ -131,15 +131,6 @@ public:
      */
     void PRINTF_LIKE(2,3) EnsureBOL(const char *fmt=nullptr,...);
 
-    /* If the log's printer has a mutex attached, lock it now, and
-     * don't unlock it until the next '\n' is printed. The default log
-     * buffer size is large enough that threads won't generally fight
-     * over the log mid-line; locking the printer ensures they won't.
-     *
-     * This isn't the default, nor is this done automatically.
-     */
-    void LockPrinterForNextLine();
-
     LogPrinter *GetPrinter() const;
     void SetPrinter(LogPrinter *printer);
 

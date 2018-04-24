@@ -12,41 +12,6 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static void TestLocking(void) {
-    Log null_log("",&log_printer_nowhere);
-
-    std::atomic<uint32_t> value{0};
-
-    std::thread th([&null_log,&value]() {
-        null_log.LockPrinterForNextLine();
-
-        ++value;
-
-        while(value==1) {
-            null_log.s("xxx");
-            SleepMS(1);
-        }
-
-        null_log.s("\n");
-    });
-
-    while(value==0) {
-        SleepMS(1);
-    }
-
-    TEST_FALSE(null_log.GetPrinter()->try_lock());
-
-    value=2;
-
-    th.join();
-
-    TEST_TRUE(null_log.GetPrinter()->try_lock());
-    null_log.GetPrinter()->unlock();
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 static const char EXPECTED[]={
 #include "test_log.expected.txt"
 };
@@ -192,8 +157,6 @@ int main(void) {
     /* LogDumpBytes(&LOG(OUT),g_buffer.text,g_buffer.size); */
 
     TEST_EQ_SS2(g_str,"Hello\\n\\r\\t\\bHello");
-
-    TestLocking();
 
     TestDumpBytes();
 
