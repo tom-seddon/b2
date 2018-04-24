@@ -559,6 +559,8 @@ void HTTPServerImpl::SendResponse(const HTTPResponseData &response_data,HTTPResp
 void HTTPServerImpl::ThreadMain(int port) {
     int rc;
 
+    SetCurrentThreadNamef("HTTP Server");
+
     uv_loop_t loop={};
 
     rc=uv_loop_init(&loop);
