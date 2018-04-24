@@ -254,7 +254,7 @@ if(LIBUV_BUILD_TESTS)
     ${LIBUVDIR}/test/test-default-loop-close.c
     ${LIBUVDIR}/test/test-delayed-accept.c
     ${LIBUVDIR}/test/test-dlerror.c
-    #${LIBUVDIR}/test/test-eintr-handling.c
+    ${LIBUVDIR}/test/test-eintr-handling.c
     ${LIBUVDIR}/test/test-embed.c
     ${LIBUVDIR}/test/test-emfile.c
     ${LIBUVDIR}/test/test-env-vars.c
