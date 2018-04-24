@@ -327,8 +327,8 @@ do_master_ROMs(3.50)
 add_custom_command(
   TARGET b2 POST_BUILD
   COMMAND ${CMAKE_COMMAND} -E make_directory $<TARGET_FILE_DIR:b2>/${FONTS}
-  COMMAND ${CMAKE_COMMAND} -E copy_if_different fontawesome-webfont.ttf $<TARGET_FILE_DIR:b2>/${FONTS}
-  WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/../../submodules/Font-Awesome/fonts
+  COMMAND ${CMAKE_COMMAND} -E copy_if_different fa-solid-900.ttf $<TARGET_FILE_DIR:b2>/${FONTS}
+  WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/../../submodules/Font-Awesome/web-fonts-with-css/webfonts
   VERBATIM)
 
 # Floppy disc sounds

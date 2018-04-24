@@ -28,7 +28,7 @@
 #include "MessagesUI.h"
 #include "load_save.h"
 #include "TraceUI.h"
-#include <IconsFontAwesome.h>
+#include <IconsFontAwesome5.h>
 #include "DataRateUI.h"
 #include "Timeline.h"
 #include <shared/path.h>

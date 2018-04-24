@@ -5,7 +5,7 @@
 #include <vector>
 #include <shared/system_specific.h>
 #include <limits.h>
-#include <IconsFontAwesome.h>
+#include <IconsFontAwesome5.h>
 #include "load_save.h"
 #include "misc.h"
 #include "native_ui.h"
@@ -30,7 +30,7 @@ const ImGuiStyle IMGUI_DEFAULT_STYLE;
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static const std::string FA_FILE_NAME="fonts/fontawesome-webfont.ttf";
+static const std::string FAS_FILE_NAME="fonts/" FONT_ICON_FILE_NAME_FAS;
 static const ImWchar FA_ICONS_RANGES[]={ICON_MIN_FA,ICON_MAX_FA,0};
 
 //////////////////////////////////////////////////////////////////////////
@@ -230,10 +230,7 @@ bool ImGuiStuff::Init() {
     ImFontConfig fa_config;
     fa_config.MergeMode=true;
     fa_config.PixelSnapH=true;
-    io.Fonts->AddFontFromFileTTF(GetAssetPath(FA_FILE_NAME).c_str(),
-                                 16.f,
-                                 &fa_config,
-                                 FA_ICONS_RANGES);
+    io.Fonts->AddFontFromFileTTF(GetAssetPath(FAS_FILE_NAME).c_str(),16.f,&fa_config,FA_ICONS_RANGES);
 
     unsigned char *pixels;
     int width,height;

@@ -7,7 +7,7 @@
 #include <shared/debug.h>
 #include "keymap.h"
 #include "BeebWindow.h"
-#include <IconsFontAwesome.h>
+#include <IconsFontAwesome5.h>
 #include "BeebKeymap.h"
 #include "SettingsUI.h"
 
@@ -23,7 +23,7 @@
 //////////////////////////////////////////////////////////////////////////
 
 const char KEYMAP_NOT_EDITABLE_ICON[]=ICON_FA_LOCK;
-const char KEYMAP_SCANCODES_KEYMAP_ICON[]=ICON_FA_KEYBOARD_O;
+const char KEYMAP_SCANCODES_KEYMAP_ICON[]=ICON_FA_KEYBOARD;
 const char KEYMAP_KEYSYMS_KEYMAP_ICON[]=ICON_FA_FONT;
 
 static const char PC_SCANCODES_POPUP[]="pc_scancodes";
@@ -445,10 +445,10 @@ static const char *GetKeySymLabel(BeebKeySym sym) {
             L(BeebKeySym_QuestionMarke,"?");
             L(BeebKeySym_Delete,"DEL");
             L(BeebKeySym_Copy,"COPY");
-            L(BeebKeySym_Up,ICON_FA_LONG_ARROW_UP);
-            L(BeebKeySym_Down,ICON_FA_LONG_ARROW_DOWN);
-            L(BeebKeySym_Left,ICON_FA_LONG_ARROW_LEFT);
-            L(BeebKeySym_Right,ICON_FA_LONG_ARROW_RIGHT);
+            L(BeebKeySym_Up,ICON_FA_LONG_ARROW_ALT_UP);
+            L(BeebKeySym_Down,ICON_FA_LONG_ARROW_ALT_DOWN);
+            L(BeebKeySym_Left,ICON_FA_LONG_ARROW_ALT_LEFT);
+            L(BeebKeySym_Right,ICON_FA_LONG_ARROW_ALT_RIGHT);
             L(BeebKeySym_KeypadPlus,"+");
             L(BeebKeySym_KeypadMinus,"-");
             L(BeebKeySym_KeypadSlash,"/");

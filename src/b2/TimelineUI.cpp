@@ -17,7 +17,7 @@
 #include "BeebWindow.h"
 #include "b2.h"
 #include <inttypes.h>
-#include <IconsFontAwesome.h>
+#include <IconsFontAwesome5.h>
 #include <algorithm>
 #include "native_ui.h"
 #include "VideoWriter.h"
