@@ -425,6 +425,7 @@ struct BeebThread::ThreadState {
     std::vector<uint8_t> copy_data;
 
     std::unique_ptr<BeebThread::Message> reset_message;
+    uint64_t reset_timeout_cycles=0;
     std::unique_ptr<BeebThread::Message> paste_message;
 #if HTTP_SERVER
     std::unique_ptr<BeebThread::Message> async_call_message;
@@ -1709,6 +1710,7 @@ bool BeebThread::ThreadHandleMessage(
 
                 if(!!m->completion_fun) {
                     ts->reset_message=std::move(message);
+                    ts->reset_timeout_cycles=*ts->num_executed_2MHz_cycles+10000000;
                     ts->beeb->AddInstructionFn(&ThreadWaitForHardReset,ts);
                 }
 
@@ -2338,7 +2340,7 @@ bool BeebThread::ThreadWaitForHardReset(const BBCMicro *beeb,const M6502 *cpu,vo
     // Watch for OSWORD 0, OSRDCH, or 5 seconds.
     if((cpu->opcode_pc.w==0xfff1&&cpu->a==0)||
        cpu->opcode_pc.w==0xffe0||
-       *ts->num_executed_2MHz_cycles>10000000)
+       *ts->num_executed_2MHz_cycles>ts->reset_timeout_cycles)
     {
         ts->reset_message=nullptr;
         return false;
