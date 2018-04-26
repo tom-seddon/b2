@@ -18,9 +18,9 @@ void CommandContextStackUI::DoImGui(CommandContextStack *cc_stack) {
     (void)cc_stack;
 
     ImGui::Text("Focus Window=%s",GImGui->NavWindow?GImGui->NavWindow->Name:"(none)");
-    ImGui::Text("IsRootWindowFocused=%s",BOOL_STR(ImGui::IsRootWindowFocused()));
     ImGui::Text("IsWindowFocused=%s",BOOL_STR(ImGui::IsWindowFocused()));
-    ImGui::Text("IsRootWindowOrAnyChildFocused=%s",BOOL_STR(ImGui::IsRootWindowOrAnyChildFocused()));
+    ImGui::Text("IsWindowFocused(RootWindow)=%s",BOOL_STR(ImGui::IsWindowFocused(ImGuiFocusedFlags_RootWindow)));
+    ImGui::Text("IsWindowFocused(RootAndChildWindows)=%s",BOOL_STR(ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows)));
 
     for(size_t i=0;i<m_cc_stack->GetNumCCs();++i) {
         const std::shared_ptr<CommandContext> &cc=m_cc_stack->GetCCByIndex(i);

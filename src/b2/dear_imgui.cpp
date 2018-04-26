@@ -101,7 +101,7 @@ ImGuiStuff::~ImGuiStuff() {
         m_font_texture=nullptr;
     }
 
-    for(size_t i=0;i<ImGuiMouseCursor_Count_;++i) {
+    for(size_t i=0;i<ImGuiMouseCursor_COUNT;++i) {
         SDL_FreeCursor(m_cursors[i]);
         m_cursors[i]=nullptr;
     }
@@ -180,7 +180,7 @@ bool ImGuiStuff::Init() {
 #endif
 
     m_cursors[ImGuiMouseCursor_Arrow]=SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_ARROW);
-    m_cursors[ImGuiMouseCursor_Move]=SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_SIZEALL);
+    m_cursors[ImGuiMouseCursor_ResizeAll]=SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_SIZEALL);
     m_cursors[ImGuiMouseCursor_ResizeEW]=SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_SIZEWE);
     m_cursors[ImGuiMouseCursor_ResizeNS]=SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_SIZENS);
     m_cursors[ImGuiMouseCursor_ResizeNESW]=SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_SIZENESW);

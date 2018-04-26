@@ -114,7 +114,7 @@ private:
     bool m_want_text_input=false;
     std::string m_imgui_ini_path;
     std::string m_imgui_log_txt_path;
-    SDL_Cursor *m_cursors[ImGuiMouseCursor_Count_]={};
+    SDL_Cursor *m_cursors[ImGuiMouseCursor_COUNT]={};
 #if STORE_DRAWLISTS
     struct StoredDrawCmd {
         bool callback=false;
