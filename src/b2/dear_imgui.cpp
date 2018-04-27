@@ -101,7 +101,7 @@ ImGuiStuff::~ImGuiStuff() {
         m_font_texture=nullptr;
     }
 
-    for(size_t i=0;i<ImGuiMouseCursor_COUNT;++i) {
+    for(size_t i=0;i<sizeof m_cursors/sizeof m_cursors[0];++i) {
         SDL_FreeCursor(m_cursors[i]);
         m_cursors[i]=nullptr;
     }
@@ -296,7 +296,7 @@ void ImGuiStuff::NewFrame(bool got_mouse_focus) {
         {
             ImGuiMouseCursor cursor=ImGui::GetMouseCursor();
 
-            if(cursor>=0&&cursor<ImGuiMouseCursor_Count_&&m_cursors[cursor]) {
+            if(cursor>=0&&cursor<ImGuiMouseCursor_COUNT&&m_cursors[cursor]) {
                 SDL_SetCursor(m_cursors[cursor]);
             } else {
                 SDL_SetCursor(nullptr);

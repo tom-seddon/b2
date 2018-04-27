@@ -688,7 +688,7 @@ bool BeebWindow::DoImGui(uint64_t ticks) {
 
 #if ENABLE_IMGUI_DEMO
                     if(m_imgui_demo) {
-                        ImGui::ShowTestWindow();
+                        ImGui::ShowDemoWindow();
                     }
 #endif
 
