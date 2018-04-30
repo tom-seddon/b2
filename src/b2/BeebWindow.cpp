@@ -800,6 +800,7 @@ void BeebWindow::DoSettingsUI() {
 
         if(opened) {
             ImGui::SetNextDock(ImGuiDockSlot_None);
+            ImVec2 default_pos=ImVec2(10.f,30.f);
             ImVec2 default_size=ImGui::GetIO().DisplaySize*.4f;
 
             // The extra flags could be wrong for the first frame
@@ -809,7 +810,7 @@ void BeebWindow::DoSettingsUI() {
                 extra_flags|=(ImGuiWindowFlags)m_popups[ui->type]->GetExtraImGuiWindowFlags();
             }
 
-            if(ImGui::BeginDock(ui->name,&opened,extra_flags,default_size)) {
+            if(ImGui::BeginDock(ui->name,&opened,extra_flags,default_size, default_pos)) {
                 if(!m_popups[ui->type]) {
                     m_popups[ui->type]=(*ui->create_fn)(this);
                 }
