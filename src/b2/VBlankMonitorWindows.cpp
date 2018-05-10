@@ -69,6 +69,7 @@ public:
                     display->hmonitor=desc.Monitor;
                     display->vbm=this;
                     display->output=output;
+                    display->thread_messages=Messages(messages->GetMessageList());
 
                     display->mi.cbSize=sizeof display->mi;
                     if(!GetMonitorInfo(display->hmonitor,(MONITORINFO *)&display->mi)) {
@@ -151,6 +152,7 @@ private:
         MONITORINFOEX mi;
         std::atomic<bool> stop_thread=false;
         HANDLE thread;
+        mutable Messages thread_messages;
     };
 
     Handler *m_handler;
@@ -178,11 +180,27 @@ private:
 
     static unsigned __stdcall VBlankThread(void *arg) {
         auto display=(const Display *)arg;
+        bool wait_for_vblank=true;
 
         SetCurrentThreadNamef("VBlank Monitor: %s",display->mi.szDevice);
 
         while(!display->stop_thread) {
-            display->output->WaitForVBlank();
+            if(wait_for_vblank) {
+                HRESULT hr=display->output->WaitForVBlank();
+                if(FAILED(hr)) {
+                    display->thread_messages.e.f("WaitForVBlank failed for display: %s\n",display->mi.szDevice);
+                    display->thread_messages.e.f("Switching to 50Hz timer.\n");
+                    display->thread_messages.e.f("(WaitForVBlank result: 0x%08lX)\n",hr);
+
+                    wait_for_vblank=false;
+                }
+            }
+
+            if(!wait_for_vblank) {
+                // There's not much point trying to be too clever...
+                std::this_thread::sleep_for(std::chrono::microseconds(20000));
+            }
+
             display->vbm->m_handler->ThreadVBlank(display->id,display->data);
         }
 
