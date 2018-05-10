@@ -152,11 +152,13 @@ public:
     Messages();
     Messages(std::shared_ptr<MessageList> message_list);
 
-    Messages(const Messages &)=default;
-    Messages &operator=(const Messages &)=default;
+    Messages(const Messages &)=delete;
+    Messages &operator=(const Messages &)=delete;
 
     Messages(Messages &&)=default;
     Messages &operator=(Messages &&)=default;
+
+    std::shared_ptr<MessageList> GetMessageList() const;
 protected:
 private:
     std::shared_ptr<MessageList> m_message_list;
