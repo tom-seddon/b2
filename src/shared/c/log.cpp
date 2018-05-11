@@ -353,7 +353,7 @@ void Log::RawChar(char c) {
     m_buffer[m_buffer_size++]=c;
 
     if(c=='\n'||m_buffer_size==MAX_BUFFER_SIZE-1) {
-        this->Flush(c);
+        this->Flush();
     }
 
     if(c=='\n'||c=='\r') {
@@ -367,7 +367,20 @@ void Log::RawChar(char c) {
 //////////////////////////////////////////////////////////////////////////
 
 void Log::Flush() {
-    this->Flush(0);
+    if(m_buffer_size==0) {
+        return;
+    }
+
+    ASSERT(m_buffer_size<MAX_BUFFER_SIZE);
+    m_buffer[m_buffer_size]=0;
+
+    if(m_printer) {
+        std::lock_guard<LogPrinter> lock(*m_printer);
+
+        m_printer->Print(m_buffer,m_buffer_size);
+    }
+
+    m_buffer_size=0;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -400,12 +413,6 @@ LogPrinter *Log::GetPrinter() const {
 //////////////////////////////////////////////////////////////////////////
 
 void Log::SetPrinter(LogPrinter *printer) {
-    if(m_is_printer_locked) {
-        ASSERT(m_printer);
-        m_printer->unlock();
-        m_is_printer_locked=false;
-    }
-
     m_printer=printer;
 }
 
@@ -421,33 +428,6 @@ void Log::SetPrefix(const char *prefix) {
 
 const std::string &Log::GetTag() const {
     return m_tag;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-void Log::Flush(char c) {
-    if(m_buffer_size==0) {
-        return;
-    }
-
-    ASSERT(m_buffer_size<MAX_BUFFER_SIZE);
-    m_buffer[m_buffer_size]=0;
-
-    if(m_printer) {
-        if(!m_is_printer_locked) {
-            m_printer->lock();
-        }
-
-        m_printer->Print(m_buffer,m_buffer_size);
-
-        if(!m_is_printer_locked||c=='\n') {
-            m_printer->unlock();
-            m_is_printer_locked=false;
-        }
-    }
-
-    m_buffer_size=0;
 }
 
 //////////////////////////////////////////////////////////////////////////

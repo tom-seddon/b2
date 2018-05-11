@@ -81,7 +81,7 @@ private:
 
 class Log {
 public:
-    static const size_t MAX_PREFIX_SIZE=20;
+    static const size_t MAX_PREFIX_SIZE=50;
     static const size_t MAX_INDENT_STACK_DEPTH=10;
     static const size_t MAX_BUFFER_SIZE=500;
 
@@ -149,11 +149,9 @@ private:
     size_t m_indent_stack_depth=0;
     size_t m_buffer_size=0;
     char m_buffer[MAX_BUFFER_SIZE]={};
-    bool m_is_printer_locked=false;
     std::string m_tag;
 
     void RawChar(char c);
-    void Flush(char c);
     void PushIndentInternal(int indent);
 };
 
