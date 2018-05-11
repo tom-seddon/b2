@@ -8,6 +8,15 @@
 #include <atlbase.h>
 #include <atomic>
 #include <shared/debug.h>
+#include <shared/mutex.h>
+#include "misc.h"
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+// this dummy log exists so there's a "vblank" tag that can be enabled
+// or disabled from the command line.
+LOG_TAGGED_DEFINE(VBLANK_DUMMY,"vblank","",&log_printer_stdout_and_debugger,false)
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -63,13 +72,13 @@ public:
                         continue;
                     }
 
-                    auto &&display=std::make_unique<Display>();
+                    auto &&display=std::make_shared<Display>();
 
                     display->id=m_next_display_id++;
                     display->hmonitor=desc.Monitor;
                     display->vbm=this;
                     display->output=output;
-                    display->thread_messages=Messages(messages->GetMessageList());
+                    //display->messages_list=messages->GetMessageList();
 
                     display->mi.cbSize=sizeof display->mi;
                     if(!GetMonitorInfo(display->hmonitor,(MONITORINFO *)&display->mi)) {
@@ -78,7 +87,7 @@ public:
 
                     display->data=m_handler->AllocateDisplayData(display->id);
                     if(!display->data) {
-                        messages->e.f("AllocateDisplayData failed for monitor: %s\n",display->mi.szDevice);
+                        messages->e.f("AllocateDisplayData failed for display: %s\n",display->mi.szDevice);
                         return false;
                     }
 
@@ -97,20 +106,41 @@ public:
         }
 
         for(auto &&display:m_displays) {
-            // (HANDLE)std::thread::native_handle would be an option
-            // for VC++. Don't know how standard that is, though...
-            // would be nice if it didn't obviously not work on MinGW.
-            display->thread=(HANDLE)_beginthreadex(NULL,0,&VBlankThread,display.get(),0,NULL);
-            if(!display->thread) {
+            auto thread=std::make_shared<Thread>();
+
+            MUTEX_SET_NAME(thread->mutex,strprintf("Mutex for display: %s",display->mi.szDevice));
+
+            thread->display=display;
+            thread->display_name=display->mi.szDevice;
+
+            // this has to be a non-std::thread, so that it can just
+            // be allowed to leak when/if the DXGI stuff isn't
+            // working.
+            thread->vblank_thread=(HANDLE)_beginthreadex(NULL,0,&VBlankThread,thread.get(),0,NULL);
+            if(!thread->vblank_thread) {
                 int e=errno;
-                messages->e.f("failed to start thread for monitor: %s\n",display->mi.szDevice);
-                messages->i.f("(_beginthreadex failed: %s\n)",strerror(e));
+                messages->e.f("failed to start vblank thread for display: %s\n",thread->display_name.c_str());
+                messages->i.f("(_beginthreadex failed: %s)\n",strerror(e));
                 return false;
             }
 
-            BOOL ok=SetThreadPriority(display->thread,THREAD_PRIORITY_TIME_CRITICAL);
+            BOOL ok=SetThreadPriority(thread->vblank_thread,THREAD_PRIORITY_TIME_CRITICAL);
             ASSERT(ok);//but if it fails, no big deal.
             (void)ok;
+
+            m_threads.push_back(thread);
+        }
+
+        for(auto &&thread:m_threads) {
+            try {
+                thread->monitor_thread=std::thread([thread]() {
+                    VBlankMonitorThread(thread);
+                });
+            } catch(const std::system_error &exc) {
+                messages->e.f("failed to start monitoring thread for display: %s\n",thread->display_name.c_str());
+                messages->i.f("(std::thread failed: %s)\n",exc.what());
+                return false;
+            }
         }
 
         return true;
@@ -144,64 +174,199 @@ public:
 protected:
 private:
     struct Display {
+        // id of the display.
         uint32_t id=0;
+
+        // handle to the Win32 monitor, and its info.
         HMONITOR hmonitor=nullptr;
+        MONITORINFOEX mi;
+
+        // vblank callback and its context.
         void *data=nullptr;
         VBlankMonitorWindows *vbm=nullptr;
+
+        // IDXGIOutput for this display.
         CComPtr<IDXGIOutput> output;
-        MONITORINFOEX mi;
-        std::atomic<bool> stop_thread=false;
-        HANDLE thread;
-        mutable Messages thread_messages;
+    };
+
+    struct Thread:
+        std::enable_shared_from_this<Thread>
+    {
+        Mutex mutex;
+
+        HANDLE vblank_thread=nullptr;
+
+        std::thread monitor_thread;
+
+        bool wait_for_vblank=true;
+        bool any_vblank=false;
+
+        std::shared_ptr<const Display> display;
+        std::string display_name;
+
+        std::shared_ptr<MessageList> message_list;
     };
 
     Handler *m_handler;
     CComPtr<IDXGIFactory> m_factory;
-    std::vector<std::unique_ptr<Display>> m_displays;
+    std::vector<std::shared_ptr<Thread>> m_threads;
+    std::vector<std::shared_ptr<Display>> m_displays;
     uint32_t m_next_display_id=1;
 
     void ResetDisplayList() {
-        for(auto &&display:m_displays) {
-            if(display->thread!=0) {
-                display->stop_thread=true;
+        std::vector<HANDLE> vblank_threads;
 
-                WaitForSingleObject(display->thread,INFINITE);
+        for(auto &&thread:m_threads) {
+            {
+                std::lock_guard<Mutex> lock(thread->mutex);
 
-                CloseHandle(display->thread);
-                display->thread=nullptr;
+                thread->display=nullptr;
             }
 
-            m_handler->FreeDisplayData(display->id,display->data);
-            display->data=nullptr;
+            if(thread->vblank_thread) {
+                vblank_threads.push_back(thread->vblank_thread);
+            }
+
+            if(thread->monitor_thread.joinable()) {
+                thread->monitor_thread.join();
+            }
+        }
+
+        // If the thread gets stuck waiting for the vblank (see
+        // https://github.com/tom-seddon/b2/issues/6) it can't be
+        // stopped cleanly, so it has to just leak :(
+        //
+        // If it resumes later, for some reason, it'll spot the null
+        // display pointer and return.
+        //
+        // There's no point checking the result, because if it didn't
+        // work, there's not much you can do...
+        WaitForMultipleObjects((DWORD)vblank_threads.size(),vblank_threads.data(),TRUE,500);
+
+        for(auto &&vblank_thread:vblank_threads) {
+            CloseHandle(vblank_thread);
+        }
+
+        for(auto &&display:m_displays) {
+            display->vbm->m_handler->FreeDisplayData(display->id,display->data);
         }
 
         m_displays.clear();
     }
 
-    static unsigned __stdcall VBlankThread(void *arg) {
-        auto display=(const Display *)arg;
-        bool wait_for_vblank=true;
+    static void VBlankThreadTimerMode(const std::shared_ptr<Thread> &thread) {
+        for(;;) {
+            std::shared_ptr<const Display> display;
+            {
+                std::lock_guard<Mutex> lock(thread->mutex);
 
-        SetCurrentThreadNamef("VBlank Monitor: %s",display->mi.szDevice);
+                display=thread->display;
 
-        while(!display->stop_thread) {
-            if(wait_for_vblank) {
-                HRESULT hr=display->output->WaitForVBlank();
-                if(FAILED(hr)) {
-                    display->thread_messages.e.f("WaitForVBlank failed for display: %s\n",display->mi.szDevice);
-                    display->thread_messages.e.f("Switching to 50Hz timer.\n");
-                    display->thread_messages.e.f("(WaitForVBlank result: 0x%08lX)\n",hr);
-
-                    wait_for_vblank=false;
+                if(!display) {
+                    break;
                 }
             }
 
-            if(!wait_for_vblank) {
-                // There's not much point trying to be too clever...
-                std::this_thread::sleep_for(std::chrono::microseconds(20000));
+            std::this_thread::sleep_for(std::chrono::microseconds(20000));
+
+            CallHandler(display);
+        }
+    }
+
+    static void VBlankMonitorThread(std::shared_ptr<Thread> thread) {
+        Log log(("VBLMON: "+thread->display_name).c_str(),LOG(VBLANK_DUMMY).GetPrinter(),LOG(VBLANK_DUMMY).enabled);
+        SetCurrentThreadNamef("%s - Monitor VBlank",thread->display_name.c_str());
+
+        log.f("thread=%p, display=%p\n",thread.get(),thread->display.get());
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(250));
+
+        bool bork=false;
+        {
+            std::lock_guard<Mutex> lock(thread->mutex);
+
+            if(!thread->any_vblank) {
+                thread->wait_for_vblank=false;
+                bork=true;
+            }
+        }
+
+        if(bork) {
+            log.f("bork. Using timer mode.\n",thread->display_name.c_str());
+            VBlankThreadTimerMode(thread);
+        } else {
+            log.f("WaitForVBlank appears to be working. Monitor thread will finish.\n",thread->display_name.c_str());
+        }
+    }
+
+    static void CallHandler(const std::shared_ptr<const Display> &display) {
+        if(!display) {
+            return;
+        }
+
+        if(display->vbm) {
+            display->vbm->m_handler->ThreadVBlank(display->id,display->data);
+        }
+    }
+
+    static unsigned __stdcall VBlankThread(void *arg) {
+        auto thread=((Thread *)arg)->shared_from_this();
+
+        Log log(("VBLANK: "+thread->display_name).c_str(),LOG(VBLANK_DUMMY).GetPrinter(),LOG(VBLANK_DUMMY).enabled);
+        SetCurrentThreadNamef("%s - VBlank",thread->display_name.c_str());
+
+        std::string device;
+        {
+            std::lock_guard<Mutex> lock(thread->mutex);
+
+            device=thread->display->mi.szDevice;
+        }
+
+        log.f("starting vblank thread.\n");
+
+
+        for(;;) {
+            std::shared_ptr<const Display> display;
+            {
+                std::lock_guard<Mutex> lock(thread->mutex);
+
+                if(!thread->display) {
+                    log.f("vblank thread will end. (display is NULL before WaitForVBlank.)\n");
+                    break;
+                }
+
+                if(!thread->wait_for_vblank) {
+                    log.f("vblank thread will end. (wait_for_vblank is false before WaitForVBlank.)\n");
+                    break;
+                }
+
+                display=thread->display;
             }
 
-            display->vbm->m_handler->ThreadVBlank(display->id,display->data);
+            //for(;;) {
+            //    Sleep(2000);
+            //}
+
+            display->output->WaitForVBlank();
+            thread->any_vblank=true;
+
+            {
+                std::lock_guard<Mutex> lock(thread->mutex);
+
+                if(!thread->display) {
+                    log.f("vblank thread will end. (display is NULL after WaitForVBlank.)\n");
+                    break;
+                }
+
+                if(!thread->wait_for_vblank) {
+                    log.f("vblank thread will end. (wait_for_vblank is false after WaitForVBlank.)\n");
+                    break;
+                }
+
+                display=thread->display;
+            }
+
+            CallHandler(display);
         }
 
         return 0;
