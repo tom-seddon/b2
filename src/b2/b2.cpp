@@ -127,9 +127,10 @@ public:
     };
 
     struct Display {
+        Mutex mutex;
         VBlank vblanks[NUM_VBLANK_RECORDS]={};
         size_t vblank_index=0;
-        std::atomic<bool> message_pending{false};
+        bool message_pending=false;
     };
 
     void *AllocateDisplayData(uint32_t display_id) override;
@@ -146,6 +147,8 @@ void *b2VBlankHandler::AllocateDisplayData(uint32_t display_id) {
     (void)display_id;
 
     auto display=new Display;
+
+    MUTEX_SET_NAME(display->mutex,strprintf("DisplayData for display %" PRIu32,display_id));
 
     return display;
 }
@@ -174,15 +177,22 @@ void b2VBlankHandler::ThreadVBlank(uint32_t display_id,void *data) {
 
     vblank->ticks=GetCurrentTickCount();
 
-    bool expected=false;
-    vblank->event=display->message_pending.compare_exchange_strong(expected,true);
+    bool message_pending;
+    {
+        std::lock_guard<Mutex> lock(display->mutex);
 
-    if(vblank->event) {
-        SDL_Event event={};
-        event.user.type=g_first_event_type+SDLEventType_VBlank;
-        event.user.code=(Sint32)display_id;
+        message_pending=display->message_pending;
+        vblank->event=!message_pending;
 
-        SDL_PushEvent(&event);
+        if(vblank->event) {
+            SDL_Event event={};
+            event.user.type=g_first_event_type+SDLEventType_VBlank;
+            event.user.code=(Sint32)display_id;
+
+            SDL_PushEvent(&event);
+
+            display->message_pending=true;
+        }
     }
 }
 
@@ -428,8 +438,8 @@ static bool IsPSNArgument(const char *arg) {
     for(int i=7;arg[i]!=0;++i) {
         if(!isdigit(arg[i])) {
             return false;
-        }
     }
+}
 
     return true;
 }
@@ -782,7 +792,7 @@ static void SaveKeyWindowSettings() {
             if(window_nswindow==key_nswindow) {
                 window->SaveSettings();
                 break;
-            }
+}
         }
     }
 }
@@ -996,7 +1006,7 @@ static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &init
                 SaveKeyWindowSettings();
 #endif
                 goto done;
-            }
+                }
 
             switch(event.type) {
             case SDL_WINDOWEVENT:
@@ -1049,7 +1059,11 @@ static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &init
                                         BeebWindows::HandleVBlank(vblank_monitor.get(),dd,ticks);
                                     }
 
-                                    dd->message_pending=false;
+                                    {
+                                        std::lock_guard<Mutex> lock(dd->mutex);
+
+                                        dd->message_pending=false;
+                                    }
                                 }
                             }
                             break;
@@ -1094,7 +1108,7 @@ static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &init
                 }
                 break;
             }
-        }
+            }
 
     done:;
         ;//<-- fix Visual Studio autoformat bug
@@ -1110,7 +1124,7 @@ static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &init
         http_server=nullptr;
         http_handler=nullptr;
 #endif
-    }
+        }
 
     vblank_monitor=nullptr;
     vblank_handler=nullptr;
@@ -1126,7 +1140,7 @@ static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &init
 
 
     return true;
-}
+    }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
