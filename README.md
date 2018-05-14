@@ -23,15 +23,14 @@ and drag b2 to your Applications folder and run it from there.
 If you use Linux, or if you just want to build it yourself anyway,
 follow [the building instructions](#building).
 
-## Rolling Windows builds
+## Rolling builds
 
-Feeling daring? You can get a Windows build of whatever the latest
-buildable code is/was, hot off the presses, for good or for ill, from
-the
-[AppVeyor b2 build history page](https://ci.appveyor.com/project/tom-seddon/b2/history).
-Find the highest-numbered green build, click its version number in the
-right-hand column, select `ARTIFACTS` from the version page, download
-the zip file. Install it as above.
+You can get a Windows or OS X build of the latest buildable code, hot
+off the presses, for good or for ill, from the
+[b2 builds site](http://ffe3.com/b2/ci/).
+
+The builds are sorted newest first, so grab the top one for the
+system of interest, and install as above!
 
 # Guided tour
 
