@@ -5,7 +5,7 @@ osx_image: xcode9.2
 
 env:
   global:
-  - secure: oXDczoOmtLRjBaLxa/SJfqE8R0kTCsDL0DAlReC0m4gl2pS8W65YWPBJvEtbzxUfE2kJZTFG2xnm17Lt4jxGiEu7th6hN0idWeNntrdJZrs5OCi8vivkGbe8YIjFgQclARKsEa+tXLJQmcpHHOLyk9Mf2Li9gZVwXpUDwRl8d5O330QdspjiElE3xcTveN+6BqHAQ5fu5LsCq9xx0ZPDJRq9I6Oegvu+YF6tl6KxFDNejUDv+b05M2Fe0EbHuCemaGpoox3aKvhVWClzr5mvnMBrfaW0TNs8k43g+Yv0MQpSd/qgOZ0RaQhtc4yFhxQI7rBGwVttOJAiCwdC/DVGQkiJnz1lOHgWqS+N3GNHPhemu/WgTaH/WTJE1u2xcyUK3LStRpwxtYTpEHA0USovpvoLRZ20y7ntUAUaCO8czpIDGk0ZsPBx26CbKTLnphmFKlNC45npEWoTsw6HYhekmlkLJmxEDFg98R3bp2PRnTPyKcAEsxD+uyAkp1mxFcOIP3v6wY50LVHIiaSt9QR5TlsaCb+VLvEzgcVbDIOc4R3ijHNDv6KLdgVcJ30RXtTIDkwiUNXSRpuQclIkM6QZeyfDOYOB/cjBY6MkfwfTbuYpeVWuhBq0iCvMhvr4HadQfrKjc5U8BD9R7ac8jWYHFlU/gRSir/wih450KUkH8ck=
+  - secure: z70ZSe8gw9m+680CODuuWpTyr9jBzcsF2hlneZdYNGAKUwzWMavrZYbaxoTlDB239/GE9BAypshucft5U0G89S1oOx8TGR5fbabs7hiUU+W5LRarMuESyCSlkk6zRB0Hl1HOQaPoHEM0TOXTXjn0LF7diu7KK+f/Rafce4pZM1gbUW+kOjVgpk+m7NBg9aUrhM0PGT39pfb+ES/zgihxpfQQu9Tg0vfqwVRzamCs3+0xjX2hfEEwTK+PEgrcxUdscrdkcXqv9Ly/CYDmGGwPuyrJfkaaIQgVmPuslnDPpIYaUq2FmJtdIUT6AnrMeU7gY5peHdACa/UCRwqC/IB+Flamv9afKWAvRu5WpHKSCd04+Phq4A0Y1s9YRhqVFIy9xRWHdSMUX23HmeP/BXT+Z/BulZIcXjUWrmcFuVJY9lvRcQ4Vc1+7ERmPrk7Ckyl+3EEM3ARLOWgddH6rhOk1rnQE1avqxNK9PU3t9gvj1Tsm5vaRDix+o+VcICv8/DaglxAIs+eZZhgGkxY+7i9M/1y5Sr9qpNfTjEgZ7QfoGLZ8WcdxfUgY2rjm4r8C2BPx1P5lSy9H8xZ54NeQkK9aLUTGBtF5OL3Sa06ZbVuchxeygizzieZ/SRM2Qgx5ybTn8+sdGd4nfq1pHgf+Gh8aUqxbKDPiSF6WE7tspFNrdD4=
 
 branches:
   only:
@@ -15,7 +15,8 @@ branches:
 before_install:
   - export SUFFIX=$(git log -1 --format=%cd-%h --date=format:%Y%m%d-%H%M%S $TRAVIS_COMMIT)
   - export RELEASE_NAME=b2-$SUFFIX
-  - export OUTPUT_NAME=./build/_Rel/darwin/b2-osx-$SUFFIX.dmg
+  - export OUTPUT_BASENAME=b2-osx-$SUFFIX.dmg
+  - export OUTPUT_NAME=./build/_Rel/darwin/$OUTPUT_BASENAME
   - brew install ninja
 
 before_deploy:
@@ -35,8 +36,7 @@ deploy:
     on:
       branch: build
   - provider: script
-    script: ftp -u ftp://b2_upload:${FFE3_PASSWORD}@ffe3.com/ffe3.com/b2/ci/${OUTPUT_NAME} ${OUTPUT_NAME}
+    script: ftp -u ftp://b2_upload:${FFE3_PASSWORD}@ffe3.com/ffe3.com/b2/ci/${OUTPUT_BASENAME} ${OUTPUT_NAME}
     on:
       branch: master
     skip_cleanup: true
-    
