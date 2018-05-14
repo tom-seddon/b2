@@ -23,13 +23,23 @@ artifacts:
     name: output
 
 deploy:
-  release: $(RELEASE_NAME)
-  description: 'b2'
-  provider: GitHub
-  auth_token:
-    secure: NTWtNQsxaMVhAyad5bBM3H6lTGsqRCprICrq8kvYvXgjnaeDcjjLpNe0H0ZaG4sl
-  artifact: output
-  draft: false
-  prerelease: false
-  on:
-    branch: build
+  - release: $(RELEASE_NAME)
+    description: 'b2'
+    provider: GitHub
+    auth_token:
+      secure: NTWtNQsxaMVhAyad5bBM3H6lTGsqRCprICrq8kvYvXgjnaeDcjjLpNe0H0ZaG4sl
+    artifact: output
+    draft: false
+    prerelease: false
+    on:
+      branch: build
+  - provider: FTP
+    protocol: sftp
+    host: ffe3.com
+    username: b2_upload
+    password:
+      secure: QxgHPePBfViWoQw+N8f1YU1hRmya/AbC9+XCP2gRLaI=
+    folder: ffe3.com/b2/ci
+    artifact: output
+    on:
+      branch: master
