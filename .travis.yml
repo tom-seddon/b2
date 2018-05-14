@@ -3,6 +3,10 @@ sudo: false
 os: osx
 osx_image: xcode9.2
 
+env:
+  global:
+  - secure: WxxSNBJoUiqWkqpUU4MNaz/eNYARMh4Vsue7Mcju22CXCbNkVX7WgyUzjowtECA0AhHa89slpjy7zrlXHwEESFShRM4ORWzMboqTz1ZAoc6P9Ki2uibjX7Dkw2RxUbRw78yFXixUCVQaNtbbg6hpVCFjqgQ/gsJ9w6E2NAE/M2JpE0wf5J3ZvQKjmSDVPnVwZ+6f3FeXIRquTIEVe7R91/1S92J7hn8WTCOVRmMlODNSSk/pU5Ka2WdymIJa1AJArjLL2q06sB8hFy//NmaBYbGMpzF8xrMR4LTqHDNnC1q5W2in5NKZ3MslQoVZJBYBmWH9hWRdMLTc5f0gBv1vW3BlLAAbsqCvs1DnA1aHpqkN0ZtJW3cc+Lc76FPDWU7mRBPSUQ6jrzlPZLNhgW2Au+sn6KrY9CWJktV1NwNyBdLruMY9BB+kckr5C708sMwI5YjrYjf7BQ/arZ7YQiMeZ5QwiUxVsyKWjnLcSYtw4Z+PxQyus0HgOA6q0H/IrJY5r4RKDzauPY4BQnguOpMUT2bedGfAcyB8Yphxdg9hrI4MCFbygwwP8QI0aaImlQgXKx3C8ykI5SW79plKyNw7MMXKLCDigiQQPXqUYTA2lfMJVu6V7ve1pt8cRsaymqpnSkLMiJGtVkyh9az4qD4QrpRqD+ngnGn8iUwEgSDPI3c=
+
 branches:
   only:
     - master
@@ -23,11 +27,16 @@ before_deploy:
 script: python ./etc/release/release.py $SUFFIX
 
 deploy:
-  provider: releases
-  api_key:
-    secure: r/uHB0E2ZQXdlakXeEISZdZD8K4WLkptyaYouPXG2xFLFZAgosuBkComk8uPkM4YH/qOo+7zHptELft8yO9uinil1IAWKmz6gxX6TrLQkdUWQThgRr0Vw5iLwymFr6MeESZ2G8jqc6CAw2YQJqhGhOU9AO5gvKfHFItrrVtoF+EOdRCd9w1wYUcH20uY0rGXD7vx6JmEpS1S48dDDr2XlAel368M1o3cjtaYo23uiW4K+21XMPCdK91Dz6fvnDXibnMTnOHmWGKIVp0lBow5R91a9ywHDmzNgyrEw+dmjAuMFtV3q05B8Wd5zg9zGAOt3dqkEdepvV+x9yqT1WXMg3t89x3gwKBPfrHIMPXDhDAg5iIDxi9L29XqvvZLExQIqQxDGQxRjAP2IinHfBsTBvBZAOA7gBVMDYppNTVOGU8FCxu3OGq9/CBlSQlgltZANDjboOexcc3abrNBhIvr0Fw7aE5YmCmwbIwmj+IQi2wmCsn1+o9jSACkm8h7k9mGuhw5LxvArZbu5W+Ka/wiTgXZnp3BcPaTMFLoMcoycY4DvweVLeALBg5esTbBsNbcxdHkOicwh8kwZIMCEes71WguXZV8fBoUsTn9GqzLY0MG3LQL7/RPobLBY+vdwrFb5zMEeuQCHu2uFXDUYbzfpTdE/ViXyUsqulajBbO5aGg=
-  file: ${OUTPUT_NAME}
-  skip_cleanup: true
-  on:
-    branch: build
-
+  - provider: releases
+    api_key:
+      secure: r/uHB0E2ZQXdlakXeEISZdZD8K4WLkptyaYouPXG2xFLFZAgosuBkComk8uPkM4YH/qOo+7zHptELft8yO9uinil1IAWKmz6gxX6TrLQkdUWQThgRr0Vw5iLwymFr6MeESZ2G8jqc6CAw2YQJqhGhOU9AO5gvKfHFItrrVtoF+EOdRCd9w1wYUcH20uY0rGXD7vx6JmEpS1S48dDDr2XlAel368M1o3cjtaYo23uiW4K+21XMPCdK91Dz6fvnDXibnMTnOHmWGKIVp0lBow5R91a9ywHDmzNgyrEw+dmjAuMFtV3q05B8Wd5zg9zGAOt3dqkEdepvV+x9yqT1WXMg3t89x3gwKBPfrHIMPXDhDAg5iIDxi9L29XqvvZLExQIqQxDGQxRjAP2IinHfBsTBvBZAOA7gBVMDYppNTVOGU8FCxu3OGq9/CBlSQlgltZANDjboOexcc3abrNBhIvr0Fw7aE5YmCmwbIwmj+IQi2wmCsn1+o9jSACkm8h7k9mGuhw5LxvArZbu5W+Ka/wiTgXZnp3BcPaTMFLoMcoycY4DvweVLeALBg5esTbBsNbcxdHkOicwh8kwZIMCEes71WguXZV8fBoUsTn9GqzLY0MG3LQL7/RPobLBY+vdwrFb5zMEeuQCHu2uFXDUYbzfpTdE/ViXyUsqulajBbO5aGg=
+    file: ${OUTPUT_NAME}
+    skip_cleanup: true
+    on:
+      branch: build
+  - provider: script
+    script: ftp -u ftp://b2_upload:${FFE3_PASSWORD}@ffe3.com/ffe3.com/b2/ci/${OUTPUT_NAME} ${OUTPUT_NAME}
+    on:
+      branch: master
+    skip_cleanup: true
+    
