@@ -14,6 +14,7 @@ branches:
 
 before_install:
   - export SUFFIX=$(git log -1 --format=%cd-%h --date=format:%Y%m%d-%H%M%S $TRAVIS_COMMIT)
+  - export TIMESTAMP=$(git log -1 --format=%cd --date=format:%Y%m%d-%H%M%S $TRAVIS_COMMIT)
   - export RELEASE_NAME=b2-$SUFFIX
   - export OUTPUT_BASENAME=b2-osx-$SUFFIX.dmg
   - export OUTPUT_NAME=./build/_Rel/darwin/$OUTPUT_BASENAME
@@ -25,7 +26,7 @@ before_deploy:
   - git config --local user.email "modelb@bbcmicro.com"
   - git tag $RELEASE_NAME
 
-script: python ./etc/release/release.py $SUFFIX
+script: python ./etc/release/release.py --timestamp=$TIMESTAMP $SUFFIX
 
 deploy:
   - provider: releases
