@@ -1,5 +1,5 @@
 #!/usr/bin/python
-import argparse,os,os.path,sys,stat,subprocess,pipes,time,shutil,multiprocessing
+import argparse,os,os.path,sys,stat,subprocess,pipes,time,shutil,multiprocessing,datetime,time
 
 ##########################################################################
 ##########################################################################
@@ -85,7 +85,28 @@ def makedirs(x):
 
 def rm(x):
     if os.path.isfile(x): os.unlink(x)
-    
+
+def set_file_timestamps(options,fname):
+    if options.timestamp is None: return
+
+    if os.path.islink(fname):
+        # There's a link to /Applications in the dmg, and this is a
+        # lame way of avoiding touching it.
+        return
+
+    t=time.mktime(options.timestamp.timetuple())
+
+    try:
+        os.utime(fname,(t,t))
+    except:
+        print>>sys.stderr,"WARNING: failed to set timestamps for: %s"%fname
+        pass
+
+def set_tree_timestamps(options,root):
+    for dirpath,dirnames,filenames in os.walk(root):
+        for f in dirnames+filenames:
+            set_file_timestamps(options,os.path.join(dirpath,f))
+        
 ##########################################################################
 ##########################################################################
     
@@ -186,8 +207,12 @@ def build_win32(options,ifolder,rev_hash):
     zip_fname="b2-windows-%s.zip"%options.release_name
     zip_fname=os.path.join(ifolder,zip_fname)
 
+    set_tree_timestamps(options,ifolder)
+
     # The ZipFile module is a bit annoying to use.
     with ChangeDirectory(ifolder): run(["7z.exe","a",zip_fname,"b2"])
+
+    set_file_timestamps(options,zip_fname)
     
 ##########################################################################
 ##########################################################################
@@ -243,6 +268,8 @@ def build_darwin(options,ifolder,rev_hash):
 
         if not options.skip_debug:
             copy_darwin_app("r",mount,"b2 Debug.app")
+
+        set_tree_timestamps(options,mount)
         
         # Give the DMG a better volume name.
         run(["diskutil","rename",mount,stem])
@@ -252,6 +279,7 @@ def build_darwin(options,ifolder,rev_hash):
 
     # Convert temp DMG into final DMG.
     run(["hdiutil","convert",temp_dmg,"-format","UDBZ","-o",final_dmg])
+    set_file_timestamps(options,final_dmg)
 
     # Delete temp DMG.
     rm(temp_dmg)
@@ -287,6 +315,8 @@ def main(options):
 ##########################################################################
 ##########################################################################
 
+def timestamp(x): return datetime.datetime.strptime(x,"%Y%m%d-%H%M%S")
+        
 if __name__=="__main__":
     parser=argparse.ArgumentParser()
 
@@ -303,7 +333,8 @@ if __name__=="__main__":
     parser.add_argument("--skip-ctest",action="store_true",help="skip the ctest step")
     parser.add_argument("--skip-32-bit",action="store_true",help="skip any 32-bit build that might be built")
     parser.add_argument("--skip-debug",action="store_true",help="skip any debug build that might be built")
-    parser.add_argument("--make",dest="make",default=default_make,help="use %(metavar)s as GNU make. Default: ``%(default)s''")
+    parser.add_argument("--make",metavar="FILE",dest="make",default=default_make,help="use %(metavar)s as GNU make. Default: ``%(default)s''")
+    parser.add_argument("--timestamp",metavar="TIMESTAMP",dest="timestamp",default=None,type=timestamp,help="set files' atime/mtime to %(metavar)s - format must be YYYYMMDD-HHMMSS")
     parser.add_argument("release_name",metavar="NAME",help="name for release. Embedded into executable, and used to generate output file name")
     
     main(parser.parse_args(sys.argv[1:]))
