@@ -29,7 +29,12 @@ LOG_TAGGED_DEFINE(DBG,"debugger","DBG   ",&log_printer_stdout_and_debugger,true)
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static std::unordered_map<M6502Fn,const char *> g_name_by_6502_fn;
+struct FnName {
+    std::string name;
+    std::vector<const char *> names;
+};
+
+static std::unordered_map<M6502Fn,FnName> g_name_by_6502_fn;
 
 static const char *GetFnName(M6502Fn fn) {
     if(!fn) {
@@ -39,7 +44,7 @@ static const char *GetFnName(M6502Fn fn) {
         if(it==g_name_by_6502_fn.end()) {
             return "?";
         } else {
-            return it->second;
+            return it->second.name.c_str();
         }
     }
 }
@@ -174,8 +179,18 @@ public:
     M6502DebugWindow() {
         if(g_name_by_6502_fn.empty()) {
             M6502_ForEachFn([](const char *name,M6502Fn fn,void *) {
-                g_name_by_6502_fn[fn]=name;
+                g_name_by_6502_fn[fn].names.push_back(name);
             },nullptr);
+
+            for(auto &&it:g_name_by_6502_fn) {
+                for(const std::string &name:it.second.names) {
+                    if(!it.second.name.empty()) {
+                        it.second.name+="/";
+                    }
+
+                    it.second.name+=name;
+                }
+            }
         }
     }
 protected:
@@ -237,7 +252,8 @@ protected:
 
         ImGui::Text("Cycles = %s",cycles_str);
         ImGui::Text("Opcode = $%02X %03d - %s %s",opcode,opcode,mnemonic,mode_name);
-        ImGui::Text("tfn = %s; ifn = %s",GetFnName(tfn),GetFnName(ifn));
+        ImGui::Text("tfn = %s",GetFnName(tfn));
+        ImGui::Text("ifn = %s",GetFnName(ifn));
         if(halted) {
             if(halt_reason[0]==0) {
                 ImGui::TextUnformatted("State = halted");
