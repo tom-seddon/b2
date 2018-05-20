@@ -53,8 +53,17 @@ CommandLineParser::Option &CommandLineParser::Option::ShowDefault() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-CommandLineParser::Option &CommandLineParser::Option::SetIfPresent(bool *present_ptr_) {
-    this->present_ptr=present_ptr_;
+CommandLineParser::Option &CommandLineParser::Option::SetIfPresent(bool *set_if_present_ptr_) {
+    this->set_if_present_ptr=set_if_present_ptr_;
+
+    return *this;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+CommandLineParser::Option &CommandLineParser::Option::ResetIfPresent(bool *reset_if_present_ptr_) {
+    this->reset_if_present_ptr=reset_if_present_ptr_;
 
     return *this;
 }
@@ -444,8 +453,12 @@ std::shared_ptr<CommandLineParser::Option> CommandLineParser::FindByShortOption(
 //////////////////////////////////////////////////////////////////////////
 
 bool CommandLineParser::HandleOption(const std::shared_ptr<Option> &option) const {
-    if(option->present_ptr) {
-        *option->present_ptr=true;
+    if(option->set_if_present_ptr) {
+        *option->set_if_present_ptr=true;
+    }
+
+    if(option->reset_if_present_ptr) {
+        *option->reset_if_present_ptr=false;
     }
 
     return this->NeedsArgument(option);

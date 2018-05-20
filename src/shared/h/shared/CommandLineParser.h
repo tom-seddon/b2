@@ -25,7 +25,8 @@ public:
         std::string meta;
         bool show_default=false;
 
-        bool *present_ptr=nullptr;
+        bool *set_if_present_ptr=nullptr;
+        bool *reset_if_present_ptr=nullptr;
         std::string *str_ptr=nullptr;
         std::vector<std::string> *strv_ptr=nullptr;
         int *int_ptr=nullptr;
@@ -35,6 +36,7 @@ public:
         Option &ShowDefault();
 
         Option &SetIfPresent(bool *present_ptr);
+        Option &ResetIfPresent(bool *present_ptr);
         Option &Arg(std::string *str_ptr);
         Option &AddArgToList(std::vector<std::string> *strv_ptr);
         Option &Arg(int *int_ptr);
