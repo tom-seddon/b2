@@ -98,6 +98,11 @@ static Uint32 g_first_event_type;
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+bool g_option_vsync=true;
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 //void *operator new(size_t n) {
 //    return malloc(n);
 //}
@@ -341,8 +346,9 @@ struct Options {
 #if HTTP_SERVER
     bool http_listen_on_all_interfaces=false;
 #endif
-    bool ignore_vblank=false;
     bool reset_windows=false;
+    bool vsync=false;
+    bool timer=false;
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -504,8 +510,6 @@ static bool DoCommandLineOptions(
         p.AddOption('d',"disable-log").AddArgToList(&options->disable_logs).Meta("LOG").Help("disable additional log LOG (one of: "+list+")");
     }
 
-    p.AddOption(0,"ignore-vblank").SetIfPresent(&options->ignore_vblank).Help("ignore vblank; present at 50Hz. YMMV");
-
     p.AddOption('v',"verbose").SetIfPresent(&options->verbose).Help("be extra verbose");
 
     p.AddOption(0,"reset-windows").SetIfPresent(&options->reset_windows).Help("reset window position and dock data");
@@ -513,6 +517,9 @@ static bool DoCommandLineOptions(
 #if HTTP_SERVER
     p.AddOption("http-listen-on-all-interfaces").SetIfPresent(&options->http_listen_on_all_interfaces).Help("at own risk, listen for HTTP connections on all network interfaces, not just localhost");
 #endif
+
+    p.AddOption("vsync").SetIfPresent(&options->vsync).Help("use vsync for timing");
+    p.AddOption("timer").ResetIfPresent(&options->timer).Help("use timer for timing");
 
     p.AddHelpOption(&options->help);
 
@@ -576,14 +583,6 @@ static bool InitSystem(
     PushUpdateWindowTitleEvent();
 
     SDL_StartTextInput();
-
-    //// Allocate vblank monitor
-    //*vblank_monitor_ptr=CreateVBlankMonitor();
-
-    //if(VBlankMonitorInit(*vblank_monitor_ptr)==-1) {
-    //    init_messages->e.f("FATAL: failed to initialize vblank monitor: %s\n",VBlankMonitorGetError(*vblank_monitor_ptr));
-    //    return false;
-    //}
 
     // Start audio
     {
@@ -859,15 +858,6 @@ static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &init
         return false;
     }
 
-    auto &&vblank_handler=std::make_unique<b2VBlankHandler>();
-    std::unique_ptr<VBlankMonitor> vblank_monitor=CreateVBlankMonitor(vblank_handler.get(),
-                                                                      options.ignore_vblank,
-                                                                      &init_messages);
-    if(!vblank_monitor) {
-        init_messages.e.f("Failed to initialise vblank monitor.\n");
-        return false;
-    }
-
 #if SYSTEM_WINDOWS
     if(!InitMF(&init_messages)) {
         return false;
@@ -921,6 +911,23 @@ static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &init
         SDL_PauseAudioDevice(audio_device,0);
 
         if(!LoadGlobalConfig(&init_messages)) {
+            return false;
+        }
+
+        // Ugh. This thing here is really a bit of a bodge...
+        if(options.vsync) {
+            g_option_vsync=true;
+        } else if(options.timer) {
+            g_option_vsync=false;
+        }
+
+        auto &&vblank_handler=std::make_unique<b2VBlankHandler>();
+        init_messages.i.f("Timing method: %s\n",g_option_vsync?"vsync":"timer");
+        std::unique_ptr<VBlankMonitor> vblank_monitor=CreateVBlankMonitor(vblank_handler.get(),
+                                                                          !g_option_vsync,
+                                                                          &init_messages);
+        if(!vblank_monitor) {
+            init_messages.e.f("Failed to initialise vblank monitor.\n");
             return false;
         }
 
@@ -1124,10 +1131,10 @@ static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &init
         http_server=nullptr;
         http_handler=nullptr;
 #endif
-        }
 
-    vblank_monitor=nullptr;
-    vblank_handler=nullptr;
+        vblank_monitor=nullptr;
+        vblank_handler=nullptr;
+    }
 
     SDL_Quit();
 

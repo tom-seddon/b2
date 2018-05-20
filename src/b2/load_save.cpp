@@ -24,6 +24,7 @@
 #include <ShlObj.h>
 #endif
 #include <beeb/BBCMicro.h>
+#include "b2.h"
 
 #include <shared/enum_def.h>
 #include "load_save.inl"
@@ -528,7 +529,11 @@ static bool FindMember(rapidjson::Value *member,rapidjson::Value *object,const c
     rapidjson::Document::MemberIterator it=object->FindMember(key);
     if(it==object->MemberEnd()) {
         if(msg) {
-            msg->w.f("%s not found: %s\n",type_name,key);
+            // It doesn't hurt to print this somewhere; it just
+            // doesn't want to pop up as part of the UI.
+            //
+            //msg->w.f("%s not found: %s\n",type_name,key);
+            LOGF(LOADSAVE,"%s not found: %s\n",type_name,key);
         }
 
         return false;
@@ -896,6 +901,8 @@ static const char CORRECT_ASPECT_RATIO[]="correct_aspect_ratio";
 static const char AUTO_SCALE[]="auto_scale";
 static const char MANUAL_SCALE[]="manual_scale";
 static const char POPUPS[]="popups";
+static const char GLOBALS[]="globals";
+static const char VSYNC[]="vsync";
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -965,6 +972,16 @@ static void SaveKeycodeObject(JSONWriter<StringStream> *writer,uint32_t keycode)
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
+
+static bool LoadGlobals(rapidjson::Value *globals,
+                        Messages *msg)
+{
+    (void)msg;
+
+    FindBoolMember(&g_option_vsync,globals,VSYNC,nullptr);
+
+    return true;
+}
 
 static bool LoadRecentPaths(rapidjson::Value *recent_paths,
                             Messages *msg)
@@ -1355,7 +1372,18 @@ bool LoadGlobalConfig(Messages *msg)
 
     rapidjson::Value trace;
     if(FindObjectMember(&trace,doc.get(),TRACE,msg)) {
+        LOGF(LOADSAVE,"Loading trace.\n");
+
         if(!LoadTrace(&trace,msg)) {
+            return false;
+        }
+    }
+
+    rapidjson::Value globals;
+    if(FindObjectMember(&globals,doc.get(),GLOBALS,msg)) {
+        LOGF(LOADSAVE,"Loading globals.\n");
+
+        if(!LoadGlobals(&globals,msg)) {
             return false;
         }
     }
@@ -1375,6 +1403,14 @@ bool LoadGlobalConfig(Messages *msg)
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
+
+static void SaveGlobals(JSONWriter<StringStream> *writer) {
+    auto globals_json=ObjectWriter(writer,GLOBALS);
+    {
+        writer->Key(VSYNC);
+        writer->Bool(g_option_vsync);
+    }
+}
 
 static void SaveRecentPaths(JSONWriter<StringStream> *writer) {
     auto recent_paths_json=ObjectWriter(writer,RECENT_PATHS);
@@ -1629,6 +1665,8 @@ bool SaveGlobalConfig(Messages *messages) {
         JSONWriter<StringStream> writer(stream);
 
         auto root=ObjectWriter(&writer);
+
+        SaveGlobals(&writer);
 
         SaveRecentPaths(&writer);
 

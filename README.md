@@ -17,11 +17,28 @@ For Windows and OS X, you can get a binary release from the
 Releases are tagged with their date, time, and GitHub commit. You
 probably want the latest one, which will be at the top.
 
-On Windows, unzip to a folder of your choice; on OS X, open the dmg
-and drag b2 to your Applications folder and run it from there.
+## Windows
 
-If you use Linux, or if you just want to build it yourself anyway,
-follow [the building instructions](#building).
+Unzip to a folder of your choice and run `b2.exe`.
+
+### Windows 7 ###
+
+If you have trouble with slow startup and poor performance on Windows
+7, try running `b2.exe` from the command line with the `--timer`
+option: `b2 --timer`.
+
+This setting is sticky, and will be saved on exit for future runs. So
+after you've done this one, you can just run it from Windows Explorer
+in future.
+
+## OS X
+
+Open the dmg, drag b2 to your Applications folder and run it from
+there.
+
+## Linux
+
+Please follow [the building instructions](#building).
 
 ## Rolling builds
 
