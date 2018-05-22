@@ -5,6 +5,7 @@
 #include <beeb/video.h>
 #include <shared/debug.h>
 #include <shared/log.h>
+#include <beeb/Trace.h>
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -21,7 +22,7 @@ void VideoULA::WriteControlRegister(void *ula_,M6502Word a,uint8_t value) {
     if(value!=ula->control.value) {
         ula->control.value=value;
 
-        LOGF(VU,"ULA Control: Flash=%s Teletext=%s Line Width=%d Fast6845=%s Cursor=%d\n",BOOL_STR(ula->control.bits.flash),BOOL_STR(ula->control.bits.teletext),ula->control.bits.line_width,BOOL_STR(ula->control.bits.fast_6845),ula->control.bits.cursor);
+        TRACEF(ula->m_trace,"ULA Control: Flash=%s Teletext=%s Line Width=%d Fast6845=%s Cursor=%d\n",BOOL_STR(ula->control.bits.flash),BOOL_STR(ula->control.bits.teletext),ula->control.bits.line_width,BOOL_STR(ula->control.bits.fast_6845),ula->control.bits.cursor);
     }
 }
 
@@ -54,41 +55,41 @@ void VideoULA::WriteNuLAControlRegister(void *ula_,M6502Word a,uint8_t value) {
         case 1:
             // Toggle direct palette mode.
             ula->m_direct_palette=param;
-            LOGF(VU,"NuLA Control: Direct Palette=%s\n",BOOL_STR(ula->m_direct_palette));
+            TRACEF(ula->m_trace,"NuLA Control: Direct Palette=%s\n",BOOL_STR(ula->m_direct_palette));
             break;
 
         case 2:
             ula->m_scroll_offset=param&7;
-            LOGF(VU,"NuLA Control: Scroll Offset=%u\n",ula->m_scroll_offset);
+            TRACEF(ula->m_trace,"NuLA Control: Scroll Offset=%u\n",ula->m_scroll_offset);
             break;
 
         case 3:
             ula->m_blanking_size=param;
-            LOGF(VU,"NuLA Control: Blanking Size=%u\n",ula->m_blanking_size);
+            TRACEF(ula->m_trace,"NuLA Control: Blanking Size=%u\n",ula->m_blanking_size);
             break;
 
         case 4:
             // Reset NuLA state.
             ula->ResetNuLAState();
-            LOGF(VU,"NuLA Control: Reset NuLA state\n");
+            TRACEF(ula->m_trace,"NuLA Control: Reset NuLA state\n");
             break;
 
         case 5:
             // Disable A1.
             ula->m_disable_a1=1;
-            LOGF(VU,"NuLA Control: Disable A1\n");
+            TRACEF(ula->m_trace,"NuLA Control: Disable A1\n");
             break;
 
         case 6:
             // Attribute modes on/off.
             ula->m_attribute_mode.bits.enabled=!!param;
-            LOGF(VU,"NuLA Control: Attribute Mode=%s\n",BOOL_STR(ula->m_attribute_mode.bits.enabled));
+            TRACEF(ula->m_trace,"NuLA Control: Attribute Mode=%s\n",BOOL_STR(ula->m_attribute_mode.bits.enabled));
             break;
 
         case 7:
             // Text attribute modes on/off.
             ula->m_attribute_mode.bits.text=!!param;
-            LOGF(VU,"NuLA Control: Text Attribute Mode=%s\n",BOOL_STR(ula->m_attribute_mode.bits.text));
+            TRACEF(ula->m_trace,"NuLA Control: Text Attribute Mode=%s\n",BOOL_STR(ula->m_attribute_mode.bits.text));
             break;
 
         case 8:
@@ -97,7 +98,7 @@ void VideoULA::WriteNuLAControlRegister(void *ula_,M6502Word a,uint8_t value) {
             ula->m_flash[9]=param&0x04;
             ula->m_flash[10]=param&0x02;
             ula->m_flash[11]=param&0x01;
-            LOGF(VU,"NuLA Control: Flash: 8=%s 9=%s 10=%s 11=%s\n",BOOL_STR(ula->m_flash[8]),BOOL_STR(ula->m_flash[9]),BOOL_STR(ula->m_flash[10]),BOOL_STR(ula->m_flash[11]));
+            TRACEF(ula->m_trace,"NuLA Control: Flash: 8=%s 9=%s 10=%s 11=%s\n",BOOL_STR(ula->m_flash[8]),BOOL_STR(ula->m_flash[9]),BOOL_STR(ula->m_flash[10]),BOOL_STR(ula->m_flash[11]));
             break;
 
         case 9:
@@ -106,12 +107,12 @@ void VideoULA::WriteNuLAControlRegister(void *ula_,M6502Word a,uint8_t value) {
             ula->m_flash[13]=param&0x04;
             ula->m_flash[14]=param&0x02;
             ula->m_flash[15]=param&0x01;
-            LOGF(VU,"NuLA Control: Flash: 12=%s 13=%s 14=%s 15=%s\n",BOOL_STR(ula->m_flash[12]),BOOL_STR(ula->m_flash[13]),BOOL_STR(ula->m_flash[14]),BOOL_STR(ula->m_flash[15]));
+            TRACEF(ula->m_trace,"NuLA Control: Flash: 12=%s 13=%s 14=%s 15=%s\n",BOOL_STR(ula->m_flash[12]),BOOL_STR(ula->m_flash[13]),BOOL_STR(ula->m_flash[14]),BOOL_STR(ula->m_flash[15]));
             break;
 
         default:
             // Ignore...
-            LOGF(VU,"NuLA Control: code=%u, param=%u\n",code,param);
+            TRACEF(ula->m_trace,"NuLA Control: code=%u, param=%u\n",code,param);
             break;
         }
     }
@@ -134,7 +135,7 @@ void VideoULA::WriteNuLAPalette(void *ula_,M6502Word a,uint8_t value) {
             entry->g=value>>4;
             entry->b=value&0xf;
 
-            LOGF(VU,"NuLA Palette: index=%u, rgb=0x%x%x%x\n",index,entry->r,entry->g,entry->b);
+            TRACEF(ula->m_trace,"NuLA Palette: index=%u, rgb=0x%x%x%x\n",index,entry->r,entry->g,entry->b);
         } else {
             ula->m_nula_palette_write_buffer=value;
         }
@@ -180,6 +181,15 @@ void VideoULA::EmitPixels(union VideoDataUnit *unit) {
         unit->type.x=VideoDataType_Nothing;
     }
 }
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_TRACE
+void VideoULA::SetTrace(Trace *t) {
+    m_trace=t;
+}
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

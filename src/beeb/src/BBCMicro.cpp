@@ -338,7 +338,7 @@ std::unique_ptr<BBCMicro> BBCMicro::Clone() const {
 void BBCMicro::SetTrace(std::shared_ptr<Trace> trace,uint32_t trace_flags) {
     m_trace_ptr=std::move(trace);
     m_trace=m_trace_ptr.get();
-    m_trace_current_instruction=NULL;
+    m_trace_current_instruction=nullptr;
     m_trace_flags=trace_flags;
 
     if(m_trace) {
@@ -348,13 +348,14 @@ void BBCMicro::SetTrace(std::shared_ptr<Trace> trace,uint32_t trace_flags) {
         e->config=m_state.cpu.config;
     }
 
-    m_state.fdc.SetTrace(trace_flags&BBCMicroTraceFlag_1770?m_trace:NULL);
-    m_state.rtc.SetTrace(trace_flags&BBCMicroTraceFlag_RTC?m_trace:NULL);
+    m_state.fdc.SetTrace(trace_flags&BBCMicroTraceFlag_1770?m_trace:nullptr);
+    m_state.rtc.SetTrace(trace_flags&BBCMicroTraceFlag_RTC?m_trace:nullptr);
     m_state.crtc.SetTrace(
-        (trace_flags&(BBCMicroTraceFlag_6845VSync|BBCMicroTraceFlag_6845Scanlines))?m_trace:NULL,
+        (trace_flags&(BBCMicroTraceFlag_6845VSync|BBCMicroTraceFlag_6845Scanlines))?m_trace:nullptr,
         !!(trace_flags&BBCMicroTraceFlag_6845Scanlines));
-    m_state.system_via.SetTrace(trace_flags&BBCMicroTraceFlag_SystemVIA?m_trace:NULL);
-    m_state.user_via.SetTrace(trace_flags&BBCMicroTraceFlag_UserVIA?m_trace:NULL);
+    m_state.system_via.SetTrace(trace_flags&BBCMicroTraceFlag_SystemVIA?m_trace:nullptr);
+    m_state.user_via.SetTrace(trace_flags&BBCMicroTraceFlag_UserVIA?m_trace:nullptr);
+    m_state.video_ula.SetTrace(trace_flags&BBCMicroTraceFlag_VideoULA?m_trace:nullptr);
 
     this->UpdateCPUDataBusFn();
 }

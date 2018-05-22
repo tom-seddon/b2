@@ -8,6 +8,7 @@
 
 union VideoDataUnit;
 union M6502Word;
+class Trace;
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -58,6 +59,10 @@ public:
     void Byte(uint8_t byte);
 
     void EmitPixels(VideoDataUnit *unit);
+
+#if BBCMICRO_TRACE
+    void SetTrace(Trace *t);
+#endif
 protected:
 private:
     union PixelBuffer {
@@ -79,6 +84,9 @@ private:
     uint8_t m_blanking_counter=0;
     NuLAAttributeMode m_attribute_mode={};
     PixelBuffer m_pixel_buffer={};
+#if BBCMICRO_TRACE
+    Trace *m_trace=nullptr;
+#endif
 
     void ResetNuLAState();
     VideoDataBitmapPixel GetPalette(uint8_t index);

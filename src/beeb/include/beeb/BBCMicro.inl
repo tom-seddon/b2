@@ -33,6 +33,7 @@ EPNV(RTC,1<<2)
 EPNV(1770,1<<3)
 EPNV(SystemVIA,1<<4)
 EPNV(UserVIA,1<<5)
+EPNV(VideoULA,1<<6)
 EEND()
 #undef ENAME
 
