@@ -135,6 +135,8 @@ void VideoULA::WriteNuLAPalette(void *ula_,M6502Word a,uint8_t value) {
             entry->g=value>>4;
             entry->b=value&0xf;
 
+            ula->m_flash[index]=0;
+
             TRACEF(ula->m_trace,"NuLA Palette: index=%u, rgb=0x%x%x%x\n",index,entry->r,entry->g,entry->b);
         } else {
             ula->m_nula_palette_write_buffer=value;
