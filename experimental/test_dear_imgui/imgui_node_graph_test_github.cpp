@@ -1,5 +1,5 @@
 #include "imgui_node_graph_test_github.h"
-#include <imgui.h>
+#include "imgui_no_warnings.h"
 #include <math.h>
 
 // Creating a node graph editor for ImGui
@@ -11,8 +11,8 @@
 
 // NB: You can use math functions/operators on ImVec2 if you #define IMGUI_DEFINE_MATH_OPERATORS and #include "imgui_internal.h"
 // Here we only declare simple +/- operators so others don't leak into the demo code.
-static inline ImVec2 operator+(const ImVec2& lhs, const ImVec2& rhs) { return ImVec2(lhs.x+rhs.x, lhs.y+rhs.y); }
-static inline ImVec2 operator-(const ImVec2& lhs, const ImVec2& rhs) { return ImVec2(lhs.x-rhs.x, lhs.y-rhs.y); }
+//static inline ImVec2 operator+(const ImVec2& lhs, const ImVec2& rhs) { return ImVec2(lhs.x+rhs.x, lhs.y+rhs.y); }
+//static inline ImVec2 operator-(const ImVec2& lhs, const ImVec2& rhs) { return ImVec2(lhs.x-rhs.x, lhs.y-rhs.y); }
 
 // Really dumb data structure provided for the example.
 // Note that we storing links are INDICES (not ID) to make example code shorter, obviously a bad idea for any general purpose code.
@@ -97,7 +97,7 @@ static void ShowExampleAppCustomNodeGraph(bool* opened)
     ImGui::Checkbox("Show grid", &show_grid);
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(1,1));
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0,0));
-    ImGui::PushStyleColor(ImGuiCol_ChildWindowBg, ImVec4(.25f,.25f,.3f,.8f));
+    ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(.25f,.25f,.3f,.8f));
     ImGui::BeginChild("scrolling_region", ImVec2(0,0), true, ImGuiWindowFlags_NoScrollbar|ImGuiWindowFlags_NoMove);
     ImGui::PushItemWidth(120.0f);
 

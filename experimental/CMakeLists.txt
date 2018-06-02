@@ -12,6 +12,6 @@ if(HAVE_FFMPEG)
 endif()
 
 add_subdirectory(test_SDL_RenderGeometry)
-# add_subdirectory(test_dear_imgui)
+add_subdirectory(test_dear_imgui)
 add_subdirectory(test_SDL_keyboard)
 add_subdirectory(test_locks)

@@ -2,7 +2,7 @@
 
 // ImGui - standalone example application for Glfw + OpenGL 3, using programmable pipeline
 
-#include <imgui.h>
+#include "imgui_no_warnings.h"
 //#include "imgui_impl_glfw_gl3.h"
 #include <stdio.h>
 //#include <GL/gl3w.h>
@@ -24,8 +24,8 @@ const ImVec2 NODE_WINDOW_PADDING(8.0f, 8.0f);
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-static inline ImVec2 operator+(const ImVec2& lhs, const ImVec2& rhs) { return ImVec2(lhs.x+rhs.x, lhs.y+rhs.y); }
-static inline ImVec2 operator-(const ImVec2& lhs, const ImVec2& rhs) { return ImVec2(lhs.x-rhs.x, lhs.y-rhs.y); }
+//static inline ImVec2 operator+(const ImVec2& lhs, const ImVec2& rhs) { return ImVec2(lhs.x+rhs.x, lhs.y+rhs.y); }
+//static inline ImVec2 operator-(const ImVec2& lhs, const ImVec2& rhs) { return ImVec2(lhs.x-rhs.x, lhs.y-rhs.y); }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -659,7 +659,7 @@ static void ShowExampleAppCustomNodeGraph(bool* opened)
     //ImGui::Text("Hold middle mouse button to scroll (%.2f,%.2f)", scrolling.x, scrolling.y);
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(1,1));
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0,0));
-    ImGui::PushStyleColor(ImGuiCol_ChildWindowBg, ImVec4(.15f,.15f,.15f,.8f));
+    ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(.15f,.15f,.15f,.8f));
     ImGui::BeginChild("scrolling_region", ImVec2(0,0), true, ImGuiWindowFlags_NoScrollbar|ImGuiWindowFlags_NoMove);
     ImGui::PushItemWidth(120.0f);
 

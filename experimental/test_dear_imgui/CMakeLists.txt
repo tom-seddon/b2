@@ -5,6 +5,7 @@ add_executable(test_dear_imgui
   test_dear_imgui.cpp
   imgui_node_graph_test_github.cpp imgui_node_graph_test_github.h
   emoon_nodes.cpp emoon_nodes.h
+  imgui_no_warnings.h
   )
 
 target_include_directories(test_dear_imgui PRIVATE ${SDL2_INCLUDE_DIR})

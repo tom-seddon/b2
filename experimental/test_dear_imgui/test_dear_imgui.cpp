@@ -7,11 +7,12 @@
 #include <math.h>
 #include <assert.h>
 #include <memory>
-#include <imgui.h>
 #include <string>
 #include <vector>
 #include <map>
 #include <limits>
+
+#include "imgui_no_warnings.h"
 
 #include "imgui_node_graph_test_github.h"
 #include "emoon_nodes.h"
@@ -228,7 +229,7 @@ Window::~Window() {
     if(m_imgui_context) {
         ImGuiContextSetter context_setter(m_imgui_context);
 
-        ImGui::Shutdown();
+        //ImGui::Shutdown();
 
         ImGui::DestroyContext(m_imgui_context);
         m_imgui_context=nullptr;
@@ -340,7 +341,7 @@ void Window::Update() {
     //    ImGui::BulletText("hello %zu",i);
     //}
 
-    ImGui::ShowTestWindow();
+    ImGui::ShowDemoWindow();
     ImGuiNodeGraphTestGithub();
     EmoonNodes();
 }
@@ -500,7 +501,8 @@ void Window::RenderImGuiDrawData() {
             } else {
                 SDL_Texture *texture=(SDL_Texture *)cmd.TextureId;
 
-                const uint16_t *indices=&draw_list->IdxBuffer[idx_buffer_pos];
+                ASSERT(idx_buffer_pos<=INT_MAX);
+                const uint16_t *indices=&draw_list->IdxBuffer[(int)idx_buffer_pos];
                 assert(idx_buffer_pos+cmd.ElemCount<=(size_t)draw_list->IdxBuffer.size());
 
                 rc=SDL_RenderGeometry(m_renderer,texture,vertices,num_vertices,indices,(int)cmd.ElemCount,NULL);
@@ -592,7 +594,7 @@ int main(int argc,char *argv[]) {
     }
 done:;
 
-    ImGui::Shutdown();
+    //ImGui::Shutdown();
 
     return 0;
 }
