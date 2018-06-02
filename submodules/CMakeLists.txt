@@ -91,6 +91,9 @@ endif()
 add_library(imgui_memory_editor_lib INTERFACE)
 target_include_directories(imgui_memory_editor_lib INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/imgui_club/imgui_memory_editor)
 
+target_sources(imgui_memory_editor_lib INTERFACE
+  ${CMAKE_CURRENT_SOURCE_DIR}/imgui_club/imgui_memory_editor/imgui_memory_editor.h)
+
 ##########################################################################
 ##########################################################################
 
