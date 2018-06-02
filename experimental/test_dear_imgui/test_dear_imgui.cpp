@@ -16,6 +16,7 @@
 
 #include "imgui_node_graph_test_github.h"
 #include "emoon_nodes.h"
+#include "test_imgui_memory_editor.h"
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -274,7 +275,7 @@ bool Window::Init() {
         io.KeyMap[ImGuiKey_Home]=SDL_SCANCODE_HOME;// for text edit
         io.KeyMap[ImGuiKey_End]=SDL_SCANCODE_END;// for text edit
         io.KeyMap[ImGuiKey_Delete]=SDL_SCANCODE_DELETE;// for text edit
-        io.KeyMap[ImGuiKey_Backspace]=SDL_SCANCODE_BACKSLASH;// for text edit
+        io.KeyMap[ImGuiKey_Backspace]=SDL_SCANCODE_BACKSPACE;// for text edit
         io.KeyMap[ImGuiKey_Enter]=SDL_SCANCODE_RETURN;// for text edit
         io.KeyMap[ImGuiKey_Escape]=SDL_SCANCODE_ESCAPE;// for text edit
         io.KeyMap[ImGuiKey_A]=SDL_GetScancodeFromKey(SDLK_a);// for text edit CTRL+A: select all
@@ -344,6 +345,7 @@ void Window::Update() {
     ImGui::ShowDemoWindow();
     ImGuiNodeGraphTestGithub();
     EmoonNodes();
+    TestImguiMemoryEditor();
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -537,7 +539,7 @@ int main(int argc,char *argv[]) {
 #ifdef _MSC_VER
     _CrtSetDbgFlag(_CrtSetDbgFlag(_CRTDBG_REPORT_FLAG)|_CRTDBG_LEAK_CHECK_DF);
     //_CrtSetDbgFlag(_CrtSetDbgFlag(_CRTDBG_REPORT_FLAG)|_CRTDBG_CHECK_ALWAYS_DF|);
-    //_crtBreakAlloc=1279;
+    //_crtBreakAlloc=191;
 #endif
 
     if(SDL_Init(SDL_INIT_TIMER|SDL_INIT_VIDEO|SDL_INIT_EVENTS)!=0) {
@@ -595,6 +597,7 @@ int main(int argc,char *argv[]) {
 done:;
 
     //ImGui::Shutdown();
+    SDL_Quit();
 
     return 0;
 }
