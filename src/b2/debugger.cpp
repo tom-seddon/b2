@@ -56,12 +56,6 @@ class DebugUI:
     public SettingsUI
 {
 public:
-    ~DebugUI() {
-        for(int i=0;i<256;++i) {
-            delete m_pages[i];
-        }
-    }
-
     bool OnClose() override {
         return false;
     }
@@ -96,7 +90,7 @@ private:
         bool valid=false;
     };
 
-    Page *m_pages[256]={};
+    std::unique_ptr<Page> m_pages[256];
 
     void PrepareForRead(M6502Word addr);
 };
@@ -138,10 +132,11 @@ BBCMicro::DebugState::ByteDebugFlags DebugUI::GetDebugFlags(uint16_t addr_) {
 //////////////////////////////////////////////////////////////////////////
 
 void DebugUI::PrepareForRead(M6502Word addr) {
-    Page *page=m_pages[addr.b.h];
+    Page *page=m_pages[addr.b.h].get();
 
     if(!page) {
-        page=m_pages[addr.b.h]=new Page;
+        m_pages[addr.b.h]=std::make_unique<Page>();
+        page=m_pages[addr.b.h].get();
     }
 
     if(!page->valid) {
