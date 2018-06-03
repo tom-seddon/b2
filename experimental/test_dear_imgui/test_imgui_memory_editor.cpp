@@ -3,6 +3,7 @@
 #include <imgui_memory_editor.h>
 #include <assert.h>
 #include <memory>
+#include "hex_editor.h"
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -18,8 +19,10 @@
 
 class TestMemoryEditor;
 
-static char g_buffer[1024];
+static char g_buffer[61];
 static std::unique_ptr<TestMemoryEditor> g_editor;
+static bool g_hex_editor_open;
+static std::unique_ptr<HexEditor> g_hex_editor;
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -76,6 +79,21 @@ void TestImguiMemoryEditor() {
 
     ImGui::SetNextWindowSize(ImVec2(700,600),ImGuiCond_FirstUseEver);
     g_editor->DoImGui();
+
+    {
+        if(ImGui::Begin("Example: tom memory editor",
+                        &g_hex_editor_open,
+                        ImGuiWindowFlags_NoScrollbar))
+        {
+            if(!g_hex_editor) {
+                g_hex_editor=std::make_unique<HexEditor>();
+            }
+
+            HexEditorBufferData buffer_data(g_buffer,sizeof g_buffer);
+            g_hex_editor->DoImGui(&buffer_data);
+        }
+        ImGui::End();
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////

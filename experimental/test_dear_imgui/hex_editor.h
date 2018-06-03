@@ -1,0 +1,119 @@
+#ifndef HEADER_EF50DD4251384D86B9D1AD17AED87393// -*- mode:c++ -*-
+#define HEADER_EF50DD4251384D86B9D1AD17AED87393
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+//
+// Memory editor for dear imgui. Based in part on the imgui_club
+// memory editor[0].
+//
+// [0]
+// https://github.com/ocornut/imgui_club/tree/master/imgui_memory_editor)
+//
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#include <stdint.h>
+
+struct ImGuiStyle;
+struct ImDrawList;
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+class HexEditorData {
+public:
+    HexEditorData();
+    virtual ~HexEditorData()=0;
+
+    HexEditorData(const HexEditorData &)=delete;
+    HexEditorData &operator=(const HexEditorData &)=delete;
+
+    HexEditorData(HexEditorData &&)=delete;
+    HexEditorData &operator=(HexEditorData &&)=delete;
+
+    virtual uint8_t ReadByte(size_t offset)=0;
+    virtual void WriteByte(size_t offset,uint8_t value)=0;
+    virtual bool CanWrite() const=0;
+    virtual size_t GetSize() const=0;
+protected:
+private:
+};
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+class HexEditorBufferData:
+    public HexEditorData
+{
+public:
+    HexEditorBufferData(void *buffer,size_t buffer_size);
+    HexEditorBufferData(const void *buffer,size_t buffer_size);
+
+    uint8_t ReadByte(size_t offset) override;
+    void WriteByte(size_t offset,uint8_t value) override;
+    bool CanWrite() const override;
+    size_t GetSize() const override;
+protected:
+private:
+    const uint8_t *m_read_buffer;
+    uint8_t *m_write_buffer;
+    size_t m_buffer_size;
+
+    void Construct(const void *read_buffer,void *write_buffer,size_t buffer_size);
+};
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+class HexEditor {
+public:
+    bool ascii=true;
+    bool hexii=false;
+    bool grey_zeroes=false;
+    bool upper_case=true;
+    size_t num_columns=16;
+    uint32_t highlight_colour;
+
+    HexEditor();
+
+    void DoImGui(HexEditorData *data,size_t base_address=0);
+protected:
+private:
+    static const size_t INVALID_OFFSET=~(size_t)0;
+
+    struct Metrics {
+        int num_addr_digits=0;
+        float line_height=0.f;
+        float glyph_width=0.f;
+        float hex_left_x=0.f;
+        float hex_column_width=0.f;
+        float ascii_left_x=0.f;
+    };
+
+    size_t m_offset=INVALID_OFFSET;
+    bool m_hex=false;
+    bool m_taken_focus=false;
+
+    uint8_t m_value=0;
+    bool m_high_nybble=true;
+
+    bool m_set_new_offset=false;
+    size_t m_new_offset=INVALID_OFFSET;
+
+    // Per-frame working data.
+    ImDrawList *m_draw_list=nullptr;
+    Metrics m_metrics;
+    HexEditorData *m_data=nullptr;
+
+    void GetMetrics(Metrics *metrics,const ImGuiStyle &style,HexEditorData *data,size_t base_address);
+    void DoHexPart(size_t begin_offset,size_t end_offset,size_t base_address);
+    void DoAsciiPart(size_t begin_offset,size_t end_offset);
+    void SetNewOffset(size_t base,int delta,bool invalidate_on_failure);
+    char GetDisplayChar(uint8_t value,bool *wasprint=nullptr) const;
+};
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#endif
