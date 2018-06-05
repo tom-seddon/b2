@@ -198,13 +198,23 @@ void HexEditor::GetMetrics(Metrics *metrics,const ImGuiStyle &style,HexEditorDat
 static int ReportCharCallback(ImGuiTextEditCallbackData *data) {
     ImWchar *ch=(ImWchar *)data->UserData;
 
-    if(data->EventFlag==ImGuiInputTextFlags_CallbackCharFilter) {
+    switch(data->EventFlag) {
+    case ImGuiInputTextFlags_CallbackCharFilter:
         *ch=data->EventChar;
-    } else if(data->EventFlag==ImGuiInputTextFlags_CallbackCompletion) {
-        *ch='\t';
-    }
 
-    return 0;
+        // Block the input. The text input box is wide enough for the
+        // cursor, but no more; if the string is allowed to grow, the
+        // cursor will become invisible.
+        //
+        // (InputText is actually supplied an empty string each time,
+        // but that's not enough, since it maintains its own buffer
+        // internally.)
+        return 1;
+
+    default:
+        *ch=0;
+        return 0;
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////
