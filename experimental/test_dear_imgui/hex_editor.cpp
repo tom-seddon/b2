@@ -234,28 +234,25 @@ void HexEditor::DoHexPart(size_t begin_offset,size_t end_offset,size_t base_addr
     }
 
     float x=m_metrics.hex_left_x;
-
-    //if(ImGui::IsMouseClicked(0)) {
-    //    printf("click: begin_offset=%zx\n",begin_offset);
-    //}
+    ImGui::SameLine(x);
+    ImVec2 screen_pos=ImGui::GetCursorScreenPos();
 
     for(size_t offset=begin_offset;offset!=end_offset;++offset) {
         uint8_t value=m_data->ReadByte(offset);
 
         bool editing;
 
-        ImGui::SameLine(x);
-
         if(offset==m_offset) {
-            ImVec2 pos=ImGui::GetCursorScreenPos();
-            m_draw_list->AddRectFilled(pos,ImVec2(pos.x+m_metrics.glyph_width*2.f,pos.y+m_metrics.line_height),m_highlight_colour);
+            m_draw_list->AddRectFilled(screen_pos,ImVec2(screen_pos.x+m_metrics.glyph_width*2.f,screen_pos.y+m_metrics.line_height),m_highlight_colour);
         }
 
         if(offset==m_offset&&m_hex) {
             bool commit=false;
             editing=true;
 
-            if(!m_high_nybble) {
+            if(m_high_nybble) {
+                ImGui::SameLine(x);
+            } else {
                 ImGui::SameLine(x+m_metrics.glyph_width);
             }
 
@@ -384,6 +381,7 @@ void HexEditor::DoHexPart(size_t begin_offset,size_t end_offset,size_t base_addr
         }
 
         x+=m_metrics.hex_column_width;
+        screen_pos.x+=m_metrics.hex_column_width;
     }
 
     ImGui::PopID();
@@ -398,6 +396,8 @@ void HexEditor::DoAsciiPart(size_t begin_offset,size_t end_offset) {
     ImGui::PushID("ascii");
 
     float x=m_metrics.ascii_left_x;
+    ImGui::SameLine(x);
+    ImVec2 screen_pos=ImGui::GetCursorScreenPos();
 
     ImGui::PushItemWidth(m_metrics.glyph_width);
 
@@ -407,11 +407,8 @@ void HexEditor::DoAsciiPart(size_t begin_offset,size_t end_offset) {
         bool wasprint;
         char display_char=this->GetDisplayChar(value,&wasprint);
 
-        ImGui::SameLine(x);
-
         if(offset==m_offset) {
-            ImVec2 pos=ImGui::GetCursorScreenPos();
-            m_draw_list->AddRectFilled(pos,ImVec2(pos.x+m_metrics.glyph_width,pos.y+m_metrics.line_height),m_highlight_colour);
+            m_draw_list->AddRectFilled(screen_pos,ImVec2(screen_pos.x+m_metrics.glyph_width,screen_pos.y+m_metrics.line_height),m_highlight_colour);
         }
 
         bool editing;
@@ -448,6 +445,7 @@ void HexEditor::DoAsciiPart(size_t begin_offset,size_t end_offset) {
         }
 
         x+=m_metrics.glyph_width;
+        screen_pos.x+=m_metrics.glyph_width;
     }
 
     ImGui::PopItemWidth();
