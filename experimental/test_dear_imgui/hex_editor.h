@@ -95,6 +95,7 @@ private:
     size_t m_offset=INVALID_OFFSET;
     bool m_hex=false;
     bool m_taken_focus=false;
+    float m_next_frame_scroll_y=-1.f;
 
     uint8_t m_value=0;
     bool m_high_nybble=true;

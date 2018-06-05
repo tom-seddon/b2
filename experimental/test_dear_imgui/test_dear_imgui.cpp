@@ -379,10 +379,10 @@ void Window::HandleKeyEvent(const SDL_KeyboardEvent &event) {
 
     int k=event.keysym.scancode;
 
-    printf("down=%d; scancode=%s (%d; 0x%x); sym=%s (%d; 0x%x)\n",
-           event.type==SDL_KEYDOWN,
-           SDL_GetScancodeName(event.keysym.scancode),(int)event.keysym.scancode,(int)event.keysym.scancode,
-           SDL_GetKeyName(event.keysym.sym),(int)event.keysym.sym,(int)event.keysym.sym);
+    //printf("down=%d; scancode=%s (%d; 0x%x); sym=%s (%d; 0x%x)\n",
+    //       event.type==SDL_KEYDOWN,
+    //       SDL_GetScancodeName(event.keysym.scancode),(int)event.keysym.scancode,(int)event.keysym.scancode,
+    //       SDL_GetKeyName(event.keysym.sym),(int)event.keysym.sym,(int)event.keysym.sym);
 
     if(k>=0&&(size_t)k<sizeof io.KeysDown/sizeof io.KeysDown[0]) {
         io.KeysDown[k]=event.type==SDL_KEYDOWN;

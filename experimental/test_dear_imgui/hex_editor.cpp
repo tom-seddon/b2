@@ -103,6 +103,15 @@ void HexEditor::DoImGui(HexEditorData *data,size_t base_address) {
     m_new_offset=INVALID_OFFSET;
 
     ImGui::BeginChild("##scrolling",ImVec2(0,-footer_height),false,ImGuiWindowFlags_NoMove);
+
+    int first_visible_row;
+    const int num_visible_rows=(std::max)(1,(int)(ImGui::GetContentRegionAvail().y/m_metrics.line_height));
+
+    if(m_next_frame_scroll_y>=0.f) {
+        ImGui::SetScrollY(m_next_frame_scroll_y);
+        m_next_frame_scroll_y=-1.f;
+    }
+
     {
         m_draw_list=ImGui::GetWindowDrawList();
 
@@ -112,6 +121,8 @@ void HexEditor::DoImGui(HexEditorData *data,size_t base_address) {
             size_t num_lines=(data->GetSize()+this->num_columns-1)/this->num_columns;
             IM_ASSERT(num_lines<=INT_MAX);
             ImGuiListClipper clipper((int)num_lines,m_metrics.line_height);
+
+            first_visible_row=clipper.DisplayStart;
 
             for(int line_index=clipper.DisplayStart;line_index<clipper.DisplayEnd;++line_index) {
                 size_t line_begin_offset=(size_t)line_index*this->num_columns;
@@ -124,6 +135,7 @@ void HexEditor::DoImGui(HexEditorData *data,size_t base_address) {
                 this->DoAsciiPart(line_begin_offset,line_end_offset);
                 ImGui::PopID();
             }
+
 
             clipper.End();
         }
@@ -152,6 +164,7 @@ void HexEditor::DoImGui(HexEditorData *data,size_t base_address) {
         m_taken_focus=false;
 
         printf("%zu - set new offset: now 0x%zx\n",m_num_calls,m_offset);
+        //printf("%zu - clipper = %d -> %d\n",m_num_calls,clipper_display_start,clipper_display_end);
 
         if(m_hex) {
             m_high_nybble=true;
@@ -159,6 +172,16 @@ void HexEditor::DoImGui(HexEditorData *data,size_t base_address) {
 
         if(m_offset!=INVALID_OFFSET) {
             m_value=m_data->ReadByte(m_offset);
+
+            size_t row=m_offset/this->num_columns;
+
+            if(row<first_visible_row) {
+                m_next_frame_scroll_y=row*m_metrics.line_height;
+            } else if(row>=first_visible_row+num_visible_rows) {
+                m_next_frame_scroll_y=(row-(num_visible_rows-1))*m_metrics.line_height;
+            }
+
+            //printf("row=%zu, clipper start=%d, clipper end=%d, scroll next frame=%f\n",row,clipper_display_start,clipper_display_end,m_next_frame_scroll_y);
         }
     }
 

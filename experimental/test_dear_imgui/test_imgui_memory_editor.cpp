@@ -19,7 +19,7 @@
 
 class TestMemoryEditor;
 
-static char g_buffer[61];
+static char g_buffer[711];
 static std::unique_ptr<TestMemoryEditor> g_editor;
 static bool g_hex_editor_open;
 static std::unique_ptr<HexEditor> g_hex_editor;
