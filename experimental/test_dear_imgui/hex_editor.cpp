@@ -79,9 +79,7 @@ void HexEditorBufferData::Construct(const void *read_buffer,void *write_buffer,s
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-HexEditor::HexEditor():
-    highlight_colour(IM_COL32(255,255,255,40))
-{
+HexEditor::HexEditor() {
     m_offset=0;
     m_hex=true;
 }
@@ -94,6 +92,7 @@ void HexEditor::DoImGui(HexEditorData *data,size_t base_address) {
 
     this->GetMetrics(&m_metrics,style,data,base_address);
     m_data=data;
+    m_highlight_colour=ImGui::GetColorU32(ImGuiCol_TextSelectedBg);
 
     const float footer_height=style.ItemSpacing.y+ImGui::GetFrameHeightWithSpacing();
 
@@ -152,7 +151,7 @@ void HexEditor::DoImGui(HexEditorData *data,size_t base_address) {
         m_offset=m_new_offset;
         m_taken_focus=false;
 
-        printf("set new offset: now 0x%zx\n",m_offset);
+        printf("%zu - set new offset: now 0x%zx\n",m_num_calls,m_offset);
 
         if(m_hex) {
             m_high_nybble=true;
@@ -165,6 +164,8 @@ void HexEditor::DoImGui(HexEditorData *data,size_t base_address) {
 
 
     m_data=nullptr;
+
+    ++m_num_calls;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -209,6 +210,18 @@ static int ReportCharCallback(ImGuiTextEditCallbackData *data) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+static const ImGuiInputTextFlags INPUT_TEXT_FLAGS=(//ImGuiInputTextFlags_CharsHexadecimal|
+                                                   //ImGuiInputTextFlags_EnterReturnsTrue|
+                                                   ImGuiInputTextFlags_AutoSelectAll|
+                                                   ImGuiInputTextFlags_NoHorizontalScroll|
+                                                   ImGuiInputTextFlags_AlwaysInsertMode|
+                                                   //ImGuiInputTextFlags_Multiline|
+                                                   //ImGuiInputTextFlags_AllowTabInput|
+                                                   //ImGuiInputTextFlags_CallbackAlways|
+                                                   ImGuiInputTextFlags_CallbackCharFilter|
+                                                   //ImGuiInputTextFlags_CallbackCompletion|
+                                                   0);
+
 void HexEditor::DoHexPart(size_t begin_offset,size_t end_offset,size_t base_address) {
     ImGui::PushID("hex");
     ImGui::PushID((void *)begin_offset);
@@ -231,14 +244,16 @@ void HexEditor::DoHexPart(size_t begin_offset,size_t end_offset,size_t base_addr
 
         bool editing;
 
+        ImGui::SameLine(x);
+
+        if(offset==m_offset) {
+            ImVec2 pos=ImGui::GetCursorScreenPos();
+            m_draw_list->AddRectFilled(pos,ImVec2(pos.x+m_metrics.glyph_width*2.f,pos.y+m_metrics.line_height),m_highlight_colour);
+        }
+
         if(offset==m_offset&&m_hex) {
             bool commit=false;
             editing=true;
-
-            ImGui::SameLine(x);
-
-            ImVec2 pos=ImGui::GetCursorScreenPos();
-            m_draw_list->AddRectFilled(pos,ImVec2(pos.x+m_metrics.glyph_width*2.f,pos.y+m_metrics.line_height),this->highlight_colour);
 
             if(!m_high_nybble) {
                 ImGui::SameLine(x+m_metrics.glyph_width);
@@ -261,57 +276,47 @@ void HexEditor::DoHexPart(size_t begin_offset,size_t end_offset,size_t base_addr
                 editing=false;
             } else if(ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_Escape))) {
                 this->SetNewOffset(INVALID_OFFSET,0,true);
+                m_hex=true;
                 editing=false;
             } else {
-                ImGui::PushID("input");
+                ImWchar ch;
+                this->GetChar(&ch,&editing,"hex_input");
 
-                bool taken_focus=m_taken_focus;
+                //bool taken_focus=this->TakeFocusIfNecessary();
+                ////if(!m_taken_focus) {
+                ////    printf("focus taken\n");
 
-                if(!m_taken_focus) {
-                    printf("focus taken\n");
+                ////    ImGui::SetKeyboardFocusHere();
+                ////    ImGui::CaptureKeyboardFromApp(true);
 
-                    ImGui::SetKeyboardFocusHere();
-                    ImGui::CaptureKeyboardFromApp(true);
+                ////    m_taken_focus=true;
+                ////}
 
-                    m_taken_focus=true;
-                }
+                //// This makes the InputText wide enough to display the
+                //// cursor.
+                //ImGui::PushItemWidth(1.f);
 
-                // This makes the InputText wide enough to display the
-                // cursor.
-                ImGui::PushItemWidth(1.f);
+                //ImWchar event_char=0;
+                //char text[2]={};
+                //ImGui::InputText("",text,sizeof text,INPUT_TEXT_FLAGS,&ReportCharCallback,&event_char);
 
-                ImGuiInputTextFlags flags=(//ImGuiInputTextFlags_CharsHexadecimal|
-                                           //ImGuiInputTextFlags_EnterReturnsTrue|
-                                           ImGuiInputTextFlags_AutoSelectAll|
-                                           ImGuiInputTextFlags_NoHorizontalScroll|
-                                           ImGuiInputTextFlags_AlwaysInsertMode|
-                                           //ImGuiInputTextFlags_Multiline|
-                                           //ImGuiInputTextFlags_AllowTabInput|
-                                           //ImGuiInputTextFlags_CallbackAlways|
-                                           ImGuiInputTextFlags_CallbackCharFilter|
-                                           //ImGuiInputTextFlags_CallbackCompletion|
-                                           0);
-                char text[2]="";
-                ImWchar event_char=0;
-                bool input_text_result=ImGui::InputText("",text,sizeof text,flags,&ReportCharCallback,&event_char);
+                //if(taken_focus&&!ImGui::IsItemActive()) {
+                //    this->SetNewOffset(INVALID_OFFSET,0,true);
+                //    editing=false;
+                //}
 
-                if(taken_focus&&!ImGui::IsItemActive()) {
-                    this->SetNewOffset(INVALID_OFFSET,0,true);
-                    editing=false;
-                }
-
-                ImGui::PopItemWidth();
-                ImGui::PopID();
+                //ImGui::PopItemWidth();
+                //ImGui::PopID();
 
                 if(editing) {
-                    if(event_char!=0) {
+                    if(ch!=0) {
                         int nybble=-1;
-                        if(event_char>='0'&&event_char<='9') {
-                            nybble=event_char-'0';
-                        } else if(event_char>='a'&&event_char<='f') {
-                            nybble=event_char-'a'+10;
-                        } else if(event_char>='A'&&event_char<='F') {
-                            nybble=event_char-'A'+10;
+                        if(ch>='0'&&ch<='9') {
+                            nybble=ch-'0';
+                        } else if(ch>='a'&&ch<='f') {
+                            nybble=ch-'a'+10;
+                        } else if(ch>='A'&&ch<='F') {
+                            nybble=ch-'A'+10;
                         }
 
                         if(nybble>=0) {
@@ -326,7 +331,7 @@ void HexEditor::DoHexPart(size_t begin_offset,size_t end_offset,size_t base_addr
                             }
                         }
 
-                        printf("got char: %u, 0x%04X, '%c'\n",event_char,event_char,event_char>=32&&event_char<127?(char)event_char:'?');
+                        printf("%zu - got char: %u, 0x%04X, '%c'\n",m_num_calls,ch,ch,ch>=32&&ch<127?(char)ch:'?');
                     }
                 }
             }
@@ -335,6 +340,7 @@ void HexEditor::DoHexPart(size_t begin_offset,size_t end_offset,size_t base_addr
                 m_data->WriteByte(m_offset,m_value);
 
                 this->SetNewOffset(m_offset,1,true);
+                m_hex=true;
             }
         } else {
             editing=false;
@@ -370,6 +376,7 @@ void HexEditor::DoHexPart(size_t begin_offset,size_t end_offset,size_t base_addr
                 //printf("hover item: %zx\n",offset);
                 if(ImGui::IsMouseClicked(0)) {
                     this->SetNewOffset(offset,0,false);
+                    m_hex=true;
                     //new_offset=offset;
                     //got_new_offset=true;
                 }
@@ -392,6 +399,8 @@ void HexEditor::DoAsciiPart(size_t begin_offset,size_t end_offset) {
 
     float x=m_metrics.ascii_left_x;
 
+    ImGui::PushItemWidth(m_metrics.glyph_width);
+
     for(size_t offset=begin_offset;offset!=end_offset;++offset) {
         uint8_t value=m_data->ReadByte(offset);
 
@@ -399,12 +408,84 @@ void HexEditor::DoAsciiPart(size_t begin_offset,size_t end_offset) {
         char display_char=this->GetDisplayChar(value,&wasprint);
 
         ImGui::SameLine(x);
+
+        if(offset==m_offset) {
+            ImVec2 pos=ImGui::GetCursorScreenPos();
+            m_draw_list->AddRectFilled(pos,ImVec2(pos.x+m_metrics.glyph_width,pos.y+m_metrics.line_height),m_highlight_colour);
+        }
+
+        bool editing;
+        if(offset==m_offset&&!m_hex) {
+            editing=true;
+
+            ImWchar ch;
+            ImGui::SameLine(x);
+            this->GetChar(&ch,&editing,"ascii_input");
+
+            if(editing) {
+                if(ch>=32&&ch<127) {
+                    m_data->WriteByte(m_offset,(uint8_t)ch);
+
+                    this->SetNewOffset(m_offset,1,true);
+                    m_hex=false;
+                }
+            }
+        } else {
+            editing=false;
+        }
+
+        ImGui::SameLine(x);
         ImGui::Text("%c",display_char);
+
+        if(!editing) {
+            if(ImGui::IsItemHovered()) {
+                if(ImGui::IsMouseClicked(0)) {
+                    printf("%zu - clicked on offset 0x%zx\n",m_num_calls,offset);
+                    this->SetNewOffset(offset,0,false);
+                    m_hex=false;
+                }
+            }
+        }
 
         x+=m_metrics.glyph_width;
     }
 
+    ImGui::PopItemWidth();
+
     ImGui::PopID();
+    ImGui::PopID();
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void HexEditor::GetChar(uint16_t *ch,bool *editing,const char *id) {
+    ImGui::PushID(id);
+
+    bool taken_focus=m_taken_focus;
+
+    if(!m_taken_focus) {
+        ImGui::SetKeyboardFocusHere();
+        ImGui::CaptureKeyboardFromApp(true);
+
+        m_taken_focus=true;
+    }
+
+    ImGui::PushItemWidth(1.f);
+    //ImGui::SameLine();
+
+    *ch=0;
+    char text[2]={};
+    ImGui::InputText("",text,sizeof text,INPUT_TEXT_FLAGS,&ReportCharCallback,ch);
+
+    if(taken_focus&&!m_set_new_offset&&!ImGui::IsItemActive()) {
+        printf("%zu - m_offset=0x%zx: InputText inactive. Invalidating offset.\n",m_num_calls,m_offset);
+        this->SetNewOffset(INVALID_OFFSET,0,true);
+        *editing=false;
+    }
+
+    ImGui::PopItemWidth();
+
     ImGui::PopID();
 }
 

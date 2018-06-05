@@ -73,7 +73,6 @@ public:
     bool grey_zeroes=false;
     bool upper_case=true;
     size_t num_columns=16;
-    uint32_t highlight_colour;
 
     HexEditor();
 
@@ -91,6 +90,8 @@ private:
         float ascii_left_x=0.f;
     };
 
+    size_t m_num_calls=0;
+
     size_t m_offset=INVALID_OFFSET;
     bool m_hex=false;
     bool m_taken_focus=false;
@@ -105,10 +106,12 @@ private:
     ImDrawList *m_draw_list=nullptr;
     Metrics m_metrics;
     HexEditorData *m_data=nullptr;
+    uint32_t m_highlight_colour=0;
 
     void GetMetrics(Metrics *metrics,const ImGuiStyle &style,HexEditorData *data,size_t base_address);
     void DoHexPart(size_t begin_offset,size_t end_offset,size_t base_address);
     void DoAsciiPart(size_t begin_offset,size_t end_offset);
+    void GetChar(uint16_t *ch,bool *editing,const char *id);
     void SetNewOffset(size_t base,int delta,bool invalidate_on_failure);
     char GetDisplayChar(uint8_t value,bool *wasprint=nullptr) const;
 };
