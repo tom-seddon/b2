@@ -148,12 +148,12 @@ void HexEditor::DoImGui(HexEditorData *data,size_t base_address) {
     ImGui::EndChild();
 
     if(m_offset!=INVALID_OFFSET) {
-        this->UpdateOffsetByKey(ImGuiKey_UpArrow,-(int)this->num_columns);
-        this->UpdateOffsetByKey(ImGuiKey_DownArrow,(int)this->num_columns);
-        this->UpdateOffsetByKey(ImGuiKey_LeftArrow,-1);
-        this->UpdateOffsetByKey(ImGuiKey_RightArrow,1);
-        this->UpdateOffsetByKey(ImGuiKey_PageUp,-num_visible_rows*(int)this->num_columns);
-        this->UpdateOffsetByKey(ImGuiKey_PageDown,num_visible_rows*(int)this->num_columns);
+        this->UpdateOffsetByKey(ImGuiKey_UpArrow,-(int)this->num_columns,1);
+        this->UpdateOffsetByKey(ImGuiKey_DownArrow,(int)this->num_columns,1);
+        this->UpdateOffsetByKey(ImGuiKey_LeftArrow,-1,1);
+        this->UpdateOffsetByKey(ImGuiKey_RightArrow,1,1);
+        this->UpdateOffsetByKey(ImGuiKey_PageUp,-(int)this->num_columns,num_visible_rows);
+        this->UpdateOffsetByKey(ImGuiKey_PageDown,(int)this->num_columns,num_visible_rows);
     }
 
     if(m_set_new_offset) {
@@ -504,10 +504,12 @@ void HexEditor::GetChar(uint16_t *ch,bool *editing,const char *id) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void HexEditor::UpdateOffsetByKey(int key,int delta) {
+void HexEditor::UpdateOffsetByKey(int key,int delta,int times) {
     if(!m_set_new_offset) {
         if(ImGui::IsKeyPressed(ImGui::GetKeyIndex(key))) {
-            this->SetNewOffset(m_offset,delta,false);
+            for(int i=0;i<times;++i) {
+                this->SetNewOffset(m_set_new_offset?m_new_offset:m_offset,delta,false);
+            }
         }
     }
 }

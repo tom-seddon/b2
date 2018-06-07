@@ -114,7 +114,7 @@ private:
     void DoHexPart(size_t begin_offset,size_t end_offset,size_t base_address);
     void DoAsciiPart(size_t begin_offset,size_t end_offset);
     void GetChar(uint16_t *ch,bool *editing,const char *id);
-    void UpdateOffsetByKey(int key,int delta);
+    void UpdateOffsetByKey(int key,int delta,int times);
     void SetNewOffset(size_t base,int delta,bool invalidate_on_failure);
     char GetDisplayChar(uint8_t value,bool *wasprint=nullptr) const;
 };
