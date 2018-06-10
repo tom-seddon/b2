@@ -1,5 +1,6 @@
 #include "dear_imgui_hex_editor.h"
 #include <algorithm>
+#include <ctype.h>
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -43,6 +44,8 @@
 
 static const char HEX_CHARS_UC[]="0123456789ABCDEF";
 static const char HEX_CHARS_LC[]="0123456789abcdef";
+
+static const char OPTIONS_POPUP_NAME[]="hex_editor_options";
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -139,49 +142,88 @@ void HexEditor::DoImGui(HexEditorData *data,size_t base_address) {
     m_new_offset=INVALID_OFFSET;
     m_was_TextInput_visible=false;
 
-    ImGui::BeginChild("##scrolling",ImVec2(0,-footer_height),false,ImGuiWindowFlags_NoMove);
-
+    // Main scroll area.
     int first_visible_row;
-    const int num_visible_rows=(std::max)(1,(int)(ImGui::GetContentRegionAvail().y/m_metrics.line_height));
-
-    if(m_next_frame_scroll_y>=0.f) {
-        ImGui::SetScrollY(m_next_frame_scroll_y);
-        m_next_frame_scroll_y=-1.f;
-    }
-
+    int num_visible_rows;
     {
-        m_draw_list=ImGui::GetWindowDrawList();
+        ImGui::BeginChild("##scrolling",ImVec2(0,-footer_height),false,ImGuiWindowFlags_NoMove);
 
-        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding,ImVec2(0,0));
-        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing,ImVec2(0,0));
-        {
-            size_t num_lines=(data->GetSize()+this->num_columns-1)/this->num_columns;
-            IM_ASSERT(num_lines<=INT_MAX);
-            ImGuiListClipper clipper((int)num_lines,m_metrics.line_height);
+        num_visible_rows=(std::max)(1,(int)(ImGui::GetContentRegionAvail().y/m_metrics.line_height));
 
-            first_visible_row=clipper.DisplayStart;
-
-            for(int line_index=clipper.DisplayStart;line_index<clipper.DisplayEnd;++line_index) {
-                size_t line_begin_offset=(size_t)line_index*this->num_columns;
-                ImGui::Text("%0*zX:",m_metrics.num_addr_digits,base_address+line_begin_offset);
-
-                size_t line_end_offset=(std::min)(line_begin_offset+this->num_columns,data_size);
-
-                ImGui::PushID(line_index);
-                this->DoHexPart(line_begin_offset,line_end_offset,base_address);
-                this->DoAsciiPart(line_begin_offset,line_end_offset);
-                ImGui::PopID();
-            }
-
-            clipper.End();
+        if(m_next_frame_scroll_y>=0.f) {
+            ImGui::SetScrollY(m_next_frame_scroll_y);
+            m_next_frame_scroll_y=-1.f;
         }
 
-        ImGui::PopStyleVar(2);
+        {
+            m_draw_list=ImGui::GetWindowDrawList();
 
-        m_draw_list=nullptr;
+            ImGui::PushStyleVar(ImGuiStyleVar_FramePadding,ImVec2(0,0));
+            ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing,ImVec2(0,0));
+            {
+                size_t num_lines=(data->GetSize()+this->num_columns-1)/this->num_columns;
+                IM_ASSERT(num_lines<=INT_MAX);
+                ImGuiListClipper clipper((int)num_lines,m_metrics.line_height);
+
+                first_visible_row=clipper.DisplayStart;
+
+                for(int line_index=clipper.DisplayStart;line_index<clipper.DisplayEnd;++line_index) {
+                    size_t line_begin_offset=(size_t)line_index*this->num_columns;
+                    ImGui::Text("%0*zX:",m_metrics.num_addr_digits,base_address+line_begin_offset);
+
+                    size_t line_end_offset=(std::min)(line_begin_offset+this->num_columns,data_size);
+
+                    ImGui::PushID(line_index);
+                    this->DoHexPart(line_begin_offset,line_end_offset,base_address);
+
+                    if(this->ascii) {
+                        this->DoAsciiPart(line_begin_offset,line_end_offset);
+                    }
+                    ImGui::PopID();
+                }
+
+                clipper.End();
+            }
+
+            ImGui::PopStyleVar(2);
+
+            m_draw_list=nullptr;
+        }
+
+        ImGui::EndChild();
     }
 
-    ImGui::EndChild();
+
+    // Options and stuff.
+    if(ImGui::Button("Options")) {
+        ImGui::OpenPopup(OPTIONS_POPUP_NAME);
+    }
+
+    if(ImGui::BeginPopup(OPTIONS_POPUP_NAME)) {
+        ImGui::Checkbox("Show ASCII",&this->ascii);
+        ImGui::Checkbox("Grey 00s",&this->grey_00s);
+        ImGui::Checkbox("Grey non-printables",&this->grey_nonprintables);
+        ImGui::Checkbox("Upper case",&this->upper_case);
+        ImGui::EndPopup();
+    }
+
+    ImGui::SameLine();
+
+    {
+        ImGui::PushID("address");
+        ImGui::PushItemWidth((m_metrics.num_addr_digits+2)*m_metrics.glyph_width);
+        int flags=ImGuiInputTextFlags_CharsHexadecimal|ImGuiInputTextFlags_EnterReturnsTrue;
+        if(ImGui::InputText("",m_new_offset_input_buffer,sizeof m_new_offset_input_buffer,flags)) {
+            char *ep;
+            unsigned long long value=strtoull(m_new_offset_input_buffer,&ep,16);
+            if(*ep==0||isspace(*ep)) {
+                this->SetNewOffset((size_t)value,0,false);
+                strcpy(m_new_offset_input_buffer,"");
+            }
+        }
+        ImGui::PopItemWidth();
+        ImGui::PopID();
+    }
 
     if(m_offset!=INVALID_OFFSET) {
         this->UpdateOffsetByKey(ImGuiKey_UpArrow,-(int)this->num_columns,1);
@@ -405,14 +447,15 @@ void HexEditor::DoHexPart(size_t begin_offset,size_t end_offset,size_t base_addr
                 hex_chars[value>>4],
                 hex_chars[value&0xf],
                 ' ',
+                0,
             };
 
             ImGui::SameLine(x);
 
-            if(value==0&&this->grey_zeroes) {
+            if(value==0&&this->grey_00s) {
                 ImGui::TextDisabled(text);
             } else {
-                ImGui::TextUnformatted(text,text+sizeof text);
+                ImGui::TextUnformatted(text,text+sizeof text-1);
             }
 
             if(ImGui::IsItemHovered()) {
@@ -451,7 +494,9 @@ void HexEditor::DoAsciiPart(size_t begin_offset,size_t end_offset) {
         uint8_t value=m_data->ReadByte(offset);
 
         bool wasprint;
-        char display_char=this->GetDisplayChar(value,&wasprint);
+        char display_char[2]={
+            this->GetDisplayChar(value,&wasprint),
+        };
 
         if(offset==m_offset) {
             m_draw_list->AddRectFilled(screen_pos,ImVec2(screen_pos.x+m_metrics.glyph_width,screen_pos.y+m_metrics.line_height),m_highlight_colour);
@@ -478,7 +523,11 @@ void HexEditor::DoAsciiPart(size_t begin_offset,size_t end_offset) {
         }
 
         ImGui::SameLine(x);
-        ImGui::Text("%c",display_char);
+        if(!wasprint&&this->grey_nonprintables) {
+            ImGui::TextDisabled(display_char);
+        } else {
+            ImGui::TextUnformatted(display_char);
+        }
 
         if(!editing) {
             if(ImGui::IsItemHovered()) {

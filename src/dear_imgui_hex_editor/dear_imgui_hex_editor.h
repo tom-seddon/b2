@@ -69,9 +69,9 @@ private:
 class HexEditor {
 public:
     bool ascii=true;
-    bool hexii=false;
-    bool grey_zeroes=false;
+    bool grey_00s=false;
     bool upper_case=true;
+    bool grey_nonprintables=true;
     size_t num_columns=16;
 
     HexEditor();
@@ -102,6 +102,7 @@ private:
 
     bool m_set_new_offset=false;
     size_t m_new_offset=INVALID_OFFSET;
+    char m_new_offset_input_buffer[100]={};
 
     // Per-frame working data.
     ImDrawList *m_draw_list=nullptr;
