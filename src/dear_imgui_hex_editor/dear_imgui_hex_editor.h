@@ -90,6 +90,7 @@ private:
         float hex_left_x=0.f;
         float hex_column_width=0.f;
         float ascii_left_x=0.f;
+        uint32_t grey_colour=0;
     };
 
     size_t m_num_calls=0;

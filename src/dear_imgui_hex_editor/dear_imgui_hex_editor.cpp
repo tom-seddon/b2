@@ -284,6 +284,13 @@ void HexEditor::DoImGui(HexEditorData *data,size_t base_address) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+static float GetHalf(float a,float b) {
+    float a_linear=a*a;
+    float b_linear=b*b;
+    float half_linear=(a_linear+b_linear)*0.5f;
+    return sqrtf(half_linear);
+}
+
 void HexEditor::GetMetrics(Metrics *metrics,const ImGuiStyle &style,HexEditorData *data,size_t base_address) {
     (void)style;
 
@@ -303,6 +310,14 @@ void HexEditor::GetMetrics(Metrics *metrics,const ImGuiStyle &style,HexEditorDat
     metrics->hex_column_width=2.5f*metrics->glyph_width;
 
     metrics->ascii_left_x=metrics->hex_left_x+this->num_columns*metrics->hex_column_width+2.f*metrics->glyph_width;
+
+    const ImVec4 &text_colour=style.Colors[ImGuiCol_Text];
+    const ImVec4 &text_disabled_colour=style.Colors[ImGuiCol_TextDisabled];
+    ImVec4 grey_colour(GetHalf(text_colour.x,text_disabled_colour.x),
+                       GetHalf(text_colour.y,text_disabled_colour.y),
+                       GetHalf(text_colour.z,text_disabled_colour.z),
+                       text_colour.w);
+    metrics->grey_colour=ImGui::ColorConvertFloat4ToU32(grey_colour);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -361,7 +376,8 @@ void HexEditor::DoHexPart(size_t begin_offset,size_t end_offset,size_t base_addr
     ImVec2 screen_pos=ImGui::GetCursorScreenPos();
 
     for(size_t offset=begin_offset;offset!=end_offset;++offset) {
-        int value=m_data->ReadByte(offset);
+        const int value=m_data->ReadByte(offset);
+        const bool writeable=value>=0&&m_data->CanWrite(offset);
 
         bool editing;
 
@@ -378,8 +394,6 @@ void HexEditor::DoHexPart(size_t begin_offset,size_t end_offset,size_t base_addr
             } else {
                 ImGui::SameLine(x+m_metrics.glyph_width);
             }
-
-            const bool writeable=value>=0&&m_data->CanWrite(m_offset);
 
             // The TextInput is just a fudgy way of getting some
             // keyboard input, so its flags are a random mishmash of
@@ -467,8 +481,12 @@ void HexEditor::DoHexPart(size_t begin_offset,size_t end_offset,size_t base_addr
 
             ImGui::SameLine(x);
 
-            if(value<0||value==0&&this->grey_00s) {
+            if(!writeable) {
                 ImGui::TextDisabled(text);
+            } else if(value<0||value==0&&this->grey_00s) {
+                ImGui::PushStyleColor(ImGuiCol_Text,m_metrics.grey_colour);
+                ImGui::TextUnformatted(text,text+sizeof text-1);
+                ImGui::PopStyleColor();
             } else {
                 ImGui::TextUnformatted(text,text+sizeof text-1);
             }
@@ -507,7 +525,7 @@ void HexEditor::DoAsciiPart(size_t begin_offset,size_t end_offset) {
 
     for(size_t offset=begin_offset;offset!=end_offset;++offset) {
         const int value=m_data->ReadByte(offset);
-        const bool writeable=value>=0&&m_data->CanWrite(m_offset);
+        const bool writeable=value>=0&&m_data->CanWrite(offset);
 
         bool wasprint;
         char display_char[2]={
@@ -539,8 +557,12 @@ void HexEditor::DoAsciiPart(size_t begin_offset,size_t end_offset) {
         }
 
         ImGui::SameLine(x);
-        if(!wasprint&&this->grey_nonprintables) {
+        if(!writeable) {
             ImGui::TextDisabled(display_char);
+        } else if(!wasprint&&this->grey_nonprintables) {
+            ImGui::PushStyleColor(ImGuiCol_Text,m_metrics.grey_colour);
+            ImGui::TextUnformatted(display_char);
+            ImGui::PopStyleColor();
         } else {
             ImGui::TextUnformatted(display_char);
         }

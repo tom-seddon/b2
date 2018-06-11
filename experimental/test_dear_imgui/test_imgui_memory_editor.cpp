@@ -43,6 +43,14 @@ public:
             return this->HexEditorBufferData::ReadByte(offset);
         }
     }
+
+    bool CanWrite(size_t offset) const override {
+        if(offset>=64&&offset<80) {
+            return false;
+        } else {
+            return true;
+        }
+    }
 protected:
 private:
 };
