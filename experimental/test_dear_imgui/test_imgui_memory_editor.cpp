@@ -27,6 +27,29 @@ static std::unique_ptr<HexEditor> g_hex_editor;
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+class TestBufferData:
+    public HexEditorBufferData
+{
+public:
+    TestBufferData(void *buffer,size_t buffer_size):
+        HexEditorBufferData(buffer,buffer_size)
+    {
+    }
+
+    int ReadByte(size_t offset) override {
+        if(offset>=32&&offset<64) {
+            return -1;
+        } else {
+            return this->HexEditorBufferData::ReadByte(offset);
+        }
+    }
+protected:
+private:
+};
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 static unsigned char ReadBuffer(unsigned char *data,size_t off) {
     (void)data;
 
@@ -89,7 +112,7 @@ void TestImguiMemoryEditor() {
                 g_hex_editor=std::make_unique<HexEditor>();
             }
 
-            HexEditorBufferData buffer_data(g_buffer,sizeof g_buffer);
+            TestBufferData buffer_data(g_buffer,sizeof g_buffer);
             g_hex_editor->DoImGui(&buffer_data);
         }
         ImGui::End();

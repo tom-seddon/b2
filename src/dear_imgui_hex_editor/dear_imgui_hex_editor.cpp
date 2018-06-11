@@ -76,7 +76,7 @@ HexEditorBufferData::HexEditorBufferData(const void *buffer,size_t buffer_size) 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-uint8_t HexEditorBufferData::ReadByte(size_t offset) {
+int HexEditorBufferData::ReadByte(size_t offset) {
     IM_ASSERT(offset<m_buffer_size);
 
     return m_read_buffer[offset];
@@ -95,7 +95,8 @@ void HexEditorBufferData::WriteByte(size_t offset,uint8_t value) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool HexEditorBufferData::CanWrite() const {
+bool HexEditorBufferData::CanWrite(size_t offset) const {
+    (void)offset;
     return !!m_write_buffer;
 }
 
@@ -136,7 +137,6 @@ void HexEditor::DoImGui(HexEditorData *data,size_t base_address) {
     const float footer_height=style.ItemSpacing.y+ImGui::GetFrameHeightWithSpacing();
 
     const size_t data_size=data->GetSize();
-    const bool data_can_write=data->CanWrite();
 
     m_set_new_offset=false;
     m_new_offset=INVALID_OFFSET;
@@ -232,6 +232,13 @@ void HexEditor::DoImGui(HexEditorData *data,size_t base_address) {
         this->UpdateOffsetByKey(ImGuiKey_RightArrow,1,1);
         this->UpdateOffsetByKey(ImGuiKey_PageUp,-(int)this->num_columns,num_visible_rows);
         this->UpdateOffsetByKey(ImGuiKey_PageDown,(int)this->num_columns,num_visible_rows);
+
+        if(ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_Tab))) {
+            m_hex=!m_hex;
+            m_take_focus_next_frame=true;
+        } else if(ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_Escape))) {
+            this->SetNewOffset(INVALID_OFFSET,0,true);
+        }
     }
 
     if(m_set_new_offset) {
@@ -245,7 +252,9 @@ void HexEditor::DoImGui(HexEditorData *data,size_t base_address) {
             m_high_nybble=true;
         }
 
-        if(m_offset!=INVALID_OFFSET) {
+        if(m_offset==INVALID_OFFSET) {
+            m_value=-1;
+        } else {
             m_value=m_data->ReadByte(m_offset);
 
             size_t row=m_offset/this->num_columns;
@@ -352,7 +361,7 @@ void HexEditor::DoHexPart(size_t begin_offset,size_t end_offset,size_t base_addr
     ImVec2 screen_pos=ImGui::GetCursorScreenPos();
 
     for(size_t offset=begin_offset;offset!=end_offset;++offset) {
-        uint8_t value=m_data->ReadByte(offset);
+        int value=m_data->ReadByte(offset);
 
         bool editing;
 
@@ -370,6 +379,8 @@ void HexEditor::DoHexPart(size_t begin_offset,size_t end_offset,size_t base_addr
                 ImGui::SameLine(x+m_metrics.glyph_width);
             }
 
+            const bool writeable=value>=0&&m_data->CanWrite(m_offset);
+
             // The TextInput is just a fudgy way of getting some
             // keyboard input, so its flags are a random mishmash of
             // whatever made this work. I tried to make this a bit
@@ -379,17 +390,10 @@ void HexEditor::DoHexPart(size_t begin_offset,size_t end_offset,size_t base_addr
 
             // Quickly check for a couple of keys it's a pain to
             // handle.
-            //
-            // Tab could be handled in the input text callback, but
-            // might as well do it here...
-            if(ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_Enter))||ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_Tab))) {
+            if(ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_Enter))) {
                 commit=true;
                 editing=false;
-            } else if(ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_Escape))) {
-                this->SetNewOffset(INVALID_OFFSET,0,true);
-                m_hex=true;
-                editing=false;
-            } else {
+            } else if(writeable) {
                 ImWchar ch;
                 this->GetChar(&ch,&editing,"hex_input");
 
@@ -419,10 +423,15 @@ void HexEditor::DoHexPart(size_t begin_offset,size_t end_offset,size_t base_addr
                         printf("%zu - got char: %u, 0x%04X, '%c'\n",m_num_calls,ch,ch,ch>=32&&ch<127?(char)ch:'?');
                     }
                 }
+            } else {
+                editing=false;
             }
 
             if(commit) {
-                m_data->WriteByte(m_offset,m_value);
+                if(writeable) {
+                    IM_ASSERT(m_value>=0&&m_value<256);
+                    m_data->WriteByte(m_offset,(uint8_t)m_value);
+                }
 
                 this->SetNewOffset(m_offset,1,true);
                 m_hex=true;
@@ -443,16 +452,22 @@ void HexEditor::DoHexPart(size_t begin_offset,size_t end_offset,size_t base_addr
                 ImGui::Text("%c",hex_chars[m_value&0xf]);
             }
         } else {
-            char text[]={
-                hex_chars[value>>4],
-                hex_chars[value&0xf],
-                ' ',
-                0,
-            };
+            char text[4];
+
+            if(value>=0) {
+                text[0]=hex_chars[value>>4];
+                text[1]=hex_chars[value&0xf];
+            } else {
+                text[0]='-';
+                text[1]='-';
+            }
+
+            text[2]=' ';
+            text[3]=0;
 
             ImGui::SameLine(x);
 
-            if(value==0&&this->grey_00s) {
+            if(value<0||value==0&&this->grey_00s) {
                 ImGui::TextDisabled(text);
             } else {
                 ImGui::TextUnformatted(text,text+sizeof text-1);
@@ -491,7 +506,8 @@ void HexEditor::DoAsciiPart(size_t begin_offset,size_t end_offset) {
     ImGui::PushItemWidth(m_metrics.glyph_width);
 
     for(size_t offset=begin_offset;offset!=end_offset;++offset) {
-        uint8_t value=m_data->ReadByte(offset);
+        const int value=m_data->ReadByte(offset);
+        const bool writeable=value>=0&&m_data->CanWrite(m_offset);
 
         bool wasprint;
         char display_char[2]={
@@ -503,7 +519,7 @@ void HexEditor::DoAsciiPart(size_t begin_offset,size_t end_offset) {
         }
 
         bool editing;
-        if(offset==m_offset&&!m_hex) {
+        if(offset==m_offset&&!m_hex&&writeable) {
             editing=true;
 
             ImWchar ch;
@@ -638,7 +654,7 @@ void HexEditor::SetNewOffset(size_t base,int delta,bool invalidate_on_failure) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-char HexEditor::GetDisplayChar(uint8_t value,bool *wasprint) const {
+char HexEditor::GetDisplayChar(int value,bool *wasprint) const {
     if(value>=32&&value<127) {
         if(wasprint) {
             *wasprint=true;

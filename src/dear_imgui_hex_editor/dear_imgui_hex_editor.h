@@ -32,9 +32,11 @@ public:
     HexEditorData(HexEditorData &&)=delete;
     HexEditorData &operator=(HexEditorData &&)=delete;
 
-    virtual uint8_t ReadByte(size_t offset)=0;
+    // If result<0, the byte is assumed to be inaccessible.
+    // Inaccessible bytes are never writeable.
+    virtual int ReadByte(size_t offset)=0;
     virtual void WriteByte(size_t offset,uint8_t value)=0;
-    virtual bool CanWrite() const=0;
+    virtual bool CanWrite(size_t offset) const=0;
     virtual size_t GetSize() const=0;
 protected:
 private:
@@ -50,9 +52,9 @@ public:
     HexEditorBufferData(void *buffer,size_t buffer_size);
     HexEditorBufferData(const void *buffer,size_t buffer_size);
 
-    uint8_t ReadByte(size_t offset) override;
+    int ReadByte(size_t offset) override;
     void WriteByte(size_t offset,uint8_t value) override;
-    bool CanWrite() const override;
+    bool CanWrite(size_t offset) const override;
     size_t GetSize() const override;
 protected:
 private:
@@ -97,7 +99,7 @@ private:
     bool m_take_focus_next_frame=true;
     float m_next_frame_scroll_y=-1.f;
 
-    uint8_t m_value=0;
+    int m_value=0;
     bool m_high_nybble=true;
 
     bool m_set_new_offset=false;
@@ -117,7 +119,7 @@ private:
     void GetChar(uint16_t *ch,bool *editing,const char *id);
     void UpdateOffsetByKey(int key,int delta,int times);
     void SetNewOffset(size_t base,int delta,bool invalidate_on_failure);
-    char GetDisplayChar(uint8_t value,bool *wasprint=nullptr) const;
+    char GetDisplayChar(int value,bool *wasprint=nullptr) const;
 };
 
 //////////////////////////////////////////////////////////////////////////
