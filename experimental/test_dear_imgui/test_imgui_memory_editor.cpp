@@ -17,22 +17,24 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+class TestHandler;
 class TestMemoryEditor;
 
 static char g_buffer[711];
-static std::unique_ptr<TestMemoryEditor> g_editor;
+static std::unique_ptr<TestMemoryEditor> g_memory_editor;
 static bool g_hex_editor_open;
+static std::unique_ptr<TestHandler> g_test_handler;
 static std::unique_ptr<HexEditor> g_hex_editor;
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-class TestBufferData:
-    public HexEditorBufferData
+class TestHandler:
+    public HexEditorHandlerWithBufferData
 {
 public:
-    TestBufferData(void *buffer,size_t buffer_size):
-        HexEditorBufferData(buffer,buffer_size)
+    TestHandler(void *buffer,size_t buffer_size):
+        HexEditorHandlerWithBufferData(buffer,buffer_size)
     {
     }
 
@@ -40,11 +42,11 @@ public:
         if(offset>=32&&offset<64) {
             return -1;
         } else {
-            return this->HexEditorBufferData::ReadByte(offset);
+            return this->HexEditorHandlerWithBufferData::ReadByte(offset);
         }
     }
 
-    bool CanWrite(size_t offset) const override {
+    bool CanWrite(size_t offset) override {
         if(offset>=64&&offset<80) {
             return false;
         } else {
@@ -104,24 +106,22 @@ private:
 
 void TestImguiMemoryEditor() {
     // yum
-    if(!g_editor) {
-        g_editor=std::make_unique<TestMemoryEditor>();
+    if(!g_memory_editor) {
+        g_test_handler=std::make_unique<TestHandler>(g_buffer,sizeof g_buffer);
+        g_hex_editor=std::make_unique<HexEditor>(g_test_handler.get());
+
+        g_memory_editor=std::make_unique<TestMemoryEditor>();
     }
 
     ImGui::SetNextWindowSize(ImVec2(700,600),ImGuiCond_FirstUseEver);
-    g_editor->DoImGui();
+    g_memory_editor->DoImGui();
 
     {
         if(ImGui::Begin("Example: tom memory editor",
                         &g_hex_editor_open,
                         ImGuiWindowFlags_NoScrollbar))
         {
-            if(!g_hex_editor) {
-                g_hex_editor=std::make_unique<HexEditor>();
-            }
-
-            TestBufferData buffer_data(g_buffer,sizeof g_buffer);
-            g_hex_editor->DoImGui(&buffer_data);
+            g_hex_editor->DoImGui();
         }
         ImGui::End();
     }

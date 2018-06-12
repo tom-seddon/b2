@@ -21,23 +21,28 @@ struct ImDrawList;
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-class HexEditorData {
+class HexEditorHandler {
 public:
-    HexEditorData();
-    virtual ~HexEditorData()=0;
+    HexEditorHandler();
+    virtual ~HexEditorHandler()=0;
 
-    HexEditorData(const HexEditorData &)=delete;
-    HexEditorData &operator=(const HexEditorData &)=delete;
+    HexEditorHandler(const HexEditorHandler &)=delete;
+    HexEditorHandler &operator=(const HexEditorHandler &)=delete;
 
-    HexEditorData(HexEditorData &&)=delete;
-    HexEditorData &operator=(HexEditorData &&)=delete;
+    HexEditorHandler(HexEditorHandler &&)=delete;
+    HexEditorHandler &operator=(HexEditorHandler &&)=delete;
 
     // If result<0, the byte is assumed to be inaccessible.
     // Inaccessible bytes are never writeable.
+    //
+    // Should support efficient random access to bytes in the current
+    // row.
     virtual int ReadByte(size_t offset)=0;
     virtual void WriteByte(size_t offset,uint8_t value)=0;
-    virtual bool CanWrite(size_t offset) const=0;
-    virtual size_t GetSize() const=0;
+    virtual bool CanWrite(size_t offset)=0;
+    virtual size_t GetSize()=0;
+
+    virtual uintptr_t GetBaseAddress()=0;
 protected:
 private:
 };
@@ -45,17 +50,18 @@ private:
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-class HexEditorBufferData:
-    public HexEditorData
+class HexEditorHandlerWithBufferData:
+    public HexEditorHandler
 {
 public:
-    HexEditorBufferData(void *buffer,size_t buffer_size);
-    HexEditorBufferData(const void *buffer,size_t buffer_size);
+    HexEditorHandlerWithBufferData(void *buffer,size_t buffer_size);
+    HexEditorHandlerWithBufferData(const void *buffer,size_t buffer_size);
 
     int ReadByte(size_t offset) override;
     void WriteByte(size_t offset,uint8_t value) override;
-    bool CanWrite(size_t offset) const override;
-    size_t GetSize() const override;
+    bool CanWrite(size_t offset) override;
+    size_t GetSize() override;
+    virtual uintptr_t GetBaseAddress() override;
 protected:
 private:
     const uint8_t *m_read_buffer;
@@ -76,9 +82,9 @@ public:
     bool grey_nonprintables=true;
     size_t num_columns=16;
 
-    HexEditor();
+    explicit HexEditor(HexEditorHandler *handler);
 
-    void DoImGui(HexEditorData *data,size_t base_address=0);
+    void DoImGui();
 protected:
 private:
     static const size_t INVALID_OFFSET=~(size_t)0;
@@ -92,6 +98,8 @@ private:
         float ascii_left_x=0.f;
         uint32_t grey_colour=0;
     };
+
+    HexEditorHandler *const m_handler;
 
     size_t m_num_calls=0;
 
@@ -107,20 +115,24 @@ private:
     size_t m_new_offset=INVALID_OFFSET;
     char m_new_offset_input_buffer[100]={};
 
+    size_t m_context_offset=INVALID_OFFSET;
+
     // Per-frame working data.
     ImDrawList *m_draw_list=nullptr;
     Metrics m_metrics;
-    HexEditorData *m_data=nullptr;
     uint32_t m_highlight_colour=0;
     bool m_was_TextInput_visible=false;
 
-    void GetMetrics(Metrics *metrics,const ImGuiStyle &style,HexEditorData *data,size_t base_address);
-    void DoHexPart(size_t begin_offset,size_t end_offset,size_t base_address);
+    void GetMetrics(Metrics *metrics,const ImGuiStyle &style);
+    void DoHexPart(size_t begin_offset,size_t end_offset);
     void DoAsciiPart(size_t begin_offset,size_t end_offset);
     void GetChar(uint16_t *ch,bool *editing,const char *id);
     void UpdateOffsetByKey(int key,int delta,int times);
     void SetNewOffset(size_t base,int delta,bool invalidate_on_failure);
     char GetDisplayChar(int value,bool *wasprint=nullptr) const;
+    void OpenContextPopup(size_t offset);
+    void DoOptionsPopup();
+    void DoContextPopup();
 };
 
 //////////////////////////////////////////////////////////////////////////

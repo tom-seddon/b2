@@ -1,6 +1,7 @@
 #include "dear_imgui_hex_editor.h"
 #include <algorithm>
 #include <ctype.h>
+#include <inttypes.h>
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -46,37 +47,38 @@ static const char HEX_CHARS_UC[]="0123456789ABCDEF";
 static const char HEX_CHARS_LC[]="0123456789abcdef";
 
 static const char OPTIONS_POPUP_NAME[]="hex_editor_options";
+static const char CONTEXT_POPUP_NAME[]="hex_editor_context";
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-HexEditorData::HexEditorData() {
+HexEditorHandler::HexEditorHandler() {
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-HexEditorData::~HexEditorData() {
+HexEditorHandler::~HexEditorHandler() {
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-HexEditorBufferData::HexEditorBufferData(void *buffer,size_t buffer_size) {
+HexEditorHandlerWithBufferData::HexEditorHandlerWithBufferData(void *buffer,size_t buffer_size) {
     this->Construct(buffer,buffer,buffer_size);
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-HexEditorBufferData::HexEditorBufferData(const void *buffer,size_t buffer_size) {
+HexEditorHandlerWithBufferData::HexEditorHandlerWithBufferData(const void *buffer,size_t buffer_size) {
     this->Construct(buffer,nullptr,buffer_size);
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-int HexEditorBufferData::ReadByte(size_t offset) {
+int HexEditorHandlerWithBufferData::ReadByte(size_t offset) {
     IM_ASSERT(offset<m_buffer_size);
 
     return m_read_buffer[offset];
@@ -85,7 +87,7 @@ int HexEditorBufferData::ReadByte(size_t offset) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void HexEditorBufferData::WriteByte(size_t offset,uint8_t value) {
+void HexEditorHandlerWithBufferData::WriteByte(size_t offset,uint8_t value) {
     IM_ASSERT(m_write_buffer);
     IM_ASSERT(offset<m_buffer_size);
 
@@ -95,7 +97,7 @@ void HexEditorBufferData::WriteByte(size_t offset,uint8_t value) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool HexEditorBufferData::CanWrite(size_t offset) const {
+bool HexEditorHandlerWithBufferData::CanWrite(size_t offset) {
     (void)offset;
     return !!m_write_buffer;
 }
@@ -103,14 +105,21 @@ bool HexEditorBufferData::CanWrite(size_t offset) const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-size_t HexEditorBufferData::GetSize() const {
+size_t HexEditorHandlerWithBufferData::GetSize() {
     return m_buffer_size;
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void HexEditorBufferData::Construct(const void *read_buffer,void *write_buffer,size_t buffer_size) {
+uintptr_t HexEditorHandlerWithBufferData::GetBaseAddress() {
+    return (uintptr_t)m_read_buffer;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void HexEditorHandlerWithBufferData::Construct(const void *read_buffer,void *write_buffer,size_t buffer_size) {
     m_read_buffer=(const uint8_t *)read_buffer;
     m_write_buffer=(uint8_t *)write_buffer;
     m_buffer_size=buffer_size;
@@ -119,7 +128,9 @@ void HexEditorBufferData::Construct(const void *read_buffer,void *write_buffer,s
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-HexEditor::HexEditor() {
+HexEditor::HexEditor(HexEditorHandler *handler):
+    m_handler(handler)
+{
     m_offset=0;
     m_hex=true;
 }
@@ -127,16 +138,15 @@ HexEditor::HexEditor() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void HexEditor::DoImGui(HexEditorData *data,size_t base_address) {
+void HexEditor::DoImGui() {
     const ImGuiStyle &style=ImGui::GetStyle();
 
-    this->GetMetrics(&m_metrics,style,data,base_address);
-    m_data=data;
+    this->GetMetrics(&m_metrics,style);
     m_highlight_colour=ImGui::GetColorU32(ImGuiCol_TextSelectedBg);
 
     const float footer_height=style.ItemSpacing.y+ImGui::GetFrameHeightWithSpacing();
 
-    const size_t data_size=data->GetSize();
+    const size_t data_size=m_handler->GetSize();
 
     m_set_new_offset=false;
     m_new_offset=INVALID_OFFSET;
@@ -161,20 +171,26 @@ void HexEditor::DoImGui(HexEditorData *data,size_t base_address) {
             ImGui::PushStyleVar(ImGuiStyleVar_FramePadding,ImVec2(0,0));
             ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing,ImVec2(0,0));
             {
-                size_t num_lines=(data->GetSize()+this->num_columns-1)/this->num_columns;
+                size_t num_lines=(m_handler->GetSize()+this->num_columns-1)/this->num_columns;
                 IM_ASSERT(num_lines<=INT_MAX);
                 ImGuiListClipper clipper((int)num_lines,m_metrics.line_height);
 
                 first_visible_row=clipper.DisplayStart;
 
+                uintptr_t base_address=m_handler->GetBaseAddress();
+
+                char fmt[100];
+                snprintf(fmt,sizeof fmt,"%%0*%s:",this->upper_case?PRIXPTR:PRIxPTR);
+
                 for(int line_index=clipper.DisplayStart;line_index<clipper.DisplayEnd;++line_index) {
                     size_t line_begin_offset=(size_t)line_index*this->num_columns;
-                    ImGui::Text("%0*zX:",m_metrics.num_addr_digits,base_address+line_begin_offset);
+
+                    ImGui::Text(fmt,m_metrics.num_addr_digits,base_address+line_begin_offset);
 
                     size_t line_end_offset=(std::min)(line_begin_offset+this->num_columns,data_size);
 
                     ImGui::PushID(line_index);
-                    this->DoHexPart(line_begin_offset,line_end_offset,base_address);
+                    this->DoHexPart(line_begin_offset,line_end_offset);
 
                     if(this->ascii) {
                         this->DoAsciiPart(line_begin_offset,line_end_offset);
@@ -200,10 +216,7 @@ void HexEditor::DoImGui(HexEditorData *data,size_t base_address) {
     }
 
     if(ImGui::BeginPopup(OPTIONS_POPUP_NAME)) {
-        ImGui::Checkbox("Show ASCII",&this->ascii);
-        ImGui::Checkbox("Grey 00s",&this->grey_00s);
-        ImGui::Checkbox("Grey non-printables",&this->grey_nonprintables);
-        ImGui::Checkbox("Upper case",&this->upper_case);
+        this->DoOptionsPopup();
         ImGui::EndPopup();
     }
 
@@ -255,7 +268,7 @@ void HexEditor::DoImGui(HexEditorData *data,size_t base_address) {
         if(m_offset==INVALID_OFFSET) {
             m_value=-1;
         } else {
-            m_value=m_data->ReadByte(m_offset);
+            m_value=m_handler->ReadByte(m_offset);
 
             size_t row=m_offset/this->num_columns;
 
@@ -276,8 +289,6 @@ void HexEditor::DoImGui(HexEditorData *data,size_t base_address) {
         }
     }
 
-    m_data=nullptr;
-
     ++m_num_calls;
 }
 
@@ -291,15 +302,15 @@ static float GetHalf(float a,float b) {
     return sqrtf(half_linear);
 }
 
-void HexEditor::GetMetrics(Metrics *metrics,const ImGuiStyle &style,HexEditorData *data,size_t base_address) {
+void HexEditor::GetMetrics(Metrics *metrics,const ImGuiStyle &style) {
     (void)style;
 
     metrics->num_addr_digits=0;
     {
-        size_t n=base_address+data->GetSize()-1;
-        while(n!=0) {
+        uintptr_t max=m_handler->GetBaseAddress()+(m_handler->GetSize()-1);
+        while(max!=0) {
             ++metrics->num_addr_digits;
-            n>>=4;
+            max>>=4;
         }
     }
 
@@ -360,7 +371,7 @@ static const ImGuiInputTextFlags INPUT_TEXT_FLAGS=(//ImGuiInputTextFlags_CharsHe
                                                    //ImGuiInputTextFlags_CallbackCompletion|
                                                    0);
 
-void HexEditor::DoHexPart(size_t begin_offset,size_t end_offset,size_t base_address) {
+void HexEditor::DoHexPart(size_t begin_offset,size_t end_offset) {
     ImGui::PushID("hex");
     ImGui::PushID((void *)begin_offset);
 
@@ -376,8 +387,8 @@ void HexEditor::DoHexPart(size_t begin_offset,size_t end_offset,size_t base_addr
     ImVec2 screen_pos=ImGui::GetCursorScreenPos();
 
     for(size_t offset=begin_offset;offset!=end_offset;++offset) {
-        const int value=m_data->ReadByte(offset);
-        const bool writeable=value>=0&&m_data->CanWrite(offset);
+        const int value=m_handler->ReadByte(offset);
+        const bool writeable=value>=0&&m_handler->CanWrite(offset);
 
         bool editing;
 
@@ -444,7 +455,7 @@ void HexEditor::DoHexPart(size_t begin_offset,size_t end_offset,size_t base_addr
             if(commit) {
                 if(writeable) {
                     IM_ASSERT(m_value>=0&&m_value<256);
-                    m_data->WriteByte(m_offset,(uint8_t)m_value);
+                    m_handler->WriteByte(m_offset,(uint8_t)m_value);
                 }
 
                 this->SetNewOffset(m_offset,1,true);
@@ -491,9 +502,9 @@ void HexEditor::DoHexPart(size_t begin_offset,size_t end_offset,size_t base_addr
                 ImGui::TextUnformatted(text,text+sizeof text-1);
             }
 
-            if(ImGui::IsItemHovered()) {
-                //printf("hover item: %zx\n",offset);
-                if(ImGui::IsMouseClicked(0)) {
+            if(ImGui::IsMouseClicked(0)) {
+                if(ImGui::IsItemHovered()) {
+                    //printf("hover item: %zx\n",offset);
                     this->SetNewOffset(offset,0,false);
                     m_hex=true;
                     //new_offset=offset;
@@ -501,6 +512,8 @@ void HexEditor::DoHexPart(size_t begin_offset,size_t end_offset,size_t base_addr
                 }
             }
         }
+
+        this->OpenContextPopup(offset);
 
         x+=m_metrics.hex_column_width;
         screen_pos.x+=m_metrics.hex_column_width;
@@ -524,8 +537,8 @@ void HexEditor::DoAsciiPart(size_t begin_offset,size_t end_offset) {
     ImGui::PushItemWidth(m_metrics.glyph_width);
 
     for(size_t offset=begin_offset;offset!=end_offset;++offset) {
-        const int value=m_data->ReadByte(offset);
-        const bool writeable=value>=0&&m_data->CanWrite(offset);
+        const int value=m_handler->ReadByte(offset);
+        const bool writeable=value>=0&&m_handler->CanWrite(offset);
 
         bool wasprint;
         char display_char[2]={
@@ -546,7 +559,7 @@ void HexEditor::DoAsciiPart(size_t begin_offset,size_t end_offset) {
 
             if(editing) {
                 if(ch>=32&&ch<127) {
-                    m_data->WriteByte(m_offset,(uint8_t)ch);
+                    m_handler->WriteByte(m_offset,(uint8_t)ch);
 
                     this->SetNewOffset(m_offset,1,true);
                     m_hex=false;
@@ -576,6 +589,8 @@ void HexEditor::DoAsciiPart(size_t begin_offset,size_t end_offset) {
                 }
             }
         }
+
+        this->OpenContextPopup(offset);
 
         x+=m_metrics.glyph_width;
         screen_pos.x+=m_metrics.glyph_width;
@@ -652,7 +667,7 @@ void HexEditor::SetNewOffset(size_t base,int delta,bool invalidate_on_failure) {
             failed=true;
         }
     } else if(delta>0) {
-        if(base+(size_t)delta<m_data->GetSize()) {
+        if(base+(size_t)delta<m_handler->GetSize()) {
             m_new_offset=base+(size_t)delta;
             m_set_new_offset=true;
             failed=false;
@@ -694,3 +709,32 @@ char HexEditor::GetDisplayChar(int value,bool *wasprint) const {
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
+
+void HexEditor::OpenContextPopup(size_t offset) {
+    if(ImGui::IsMouseClicked(1)) {
+        if(ImGui::IsItemHovered()) {
+            m_context_offset=offset;
+        }
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void HexEditor::DoOptionsPopup() {
+    ImGui::Checkbox("Show ASCII",&this->ascii);
+    ImGui::Checkbox("Grey 00s",&this->grey_00s);
+    ImGui::Checkbox("Grey non-printables",&this->grey_nonprintables);
+    ImGui::Checkbox("Upper case",&this->upper_case);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void HexEditor::DoContextPopup() {
+    ImGui::Text("hola");
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
