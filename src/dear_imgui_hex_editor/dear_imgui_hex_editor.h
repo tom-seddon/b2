@@ -43,6 +43,9 @@ public:
     virtual size_t GetSize()=0;
 
     virtual uintptr_t GetBaseAddress()=0;
+
+    // default impl does nothing.
+    virtual void DoOptionsPopupExtraGui();
 protected:
 private:
 };
@@ -61,12 +64,14 @@ public:
     void WriteByte(size_t offset,uint8_t value) override;
     bool CanWrite(size_t offset) override;
     size_t GetSize() override;
-    virtual uintptr_t GetBaseAddress() override;
+    uintptr_t GetBaseAddress() override;
+    void DoOptionsPopupExtraGui() override;
 protected:
 private:
     const uint8_t *m_read_buffer;
     uint8_t *m_write_buffer;
     size_t m_buffer_size;
+    bool m_show_address=true;
 
     void Construct(const void *read_buffer,void *write_buffer,size_t buffer_size);
 };
@@ -116,6 +121,7 @@ private:
     char m_new_offset_input_buffer[100]={};
 
     size_t m_context_offset=INVALID_OFFSET;
+    bool m_context_hex=false;
 
     // Per-frame working data.
     ImDrawList *m_draw_list=nullptr;
@@ -130,7 +136,7 @@ private:
     void UpdateOffsetByKey(int key,int delta,int times);
     void SetNewOffset(size_t base,int delta,bool invalidate_on_failure);
     char GetDisplayChar(int value,bool *wasprint=nullptr) const;
-    void OpenContextPopup(size_t offset);
+    void OpenContextPopup(bool hex,size_t offset);
     void DoOptionsPopup();
     void DoContextPopup();
 };

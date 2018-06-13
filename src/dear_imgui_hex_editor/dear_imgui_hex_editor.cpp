@@ -64,6 +64,12 @@ HexEditorHandler::~HexEditorHandler() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+void HexEditorHandler::DoOptionsPopupExtraGui() {
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 HexEditorHandlerWithBufferData::HexEditorHandlerWithBufferData(void *buffer,size_t buffer_size) {
     this->Construct(buffer,buffer,buffer_size);
 }
@@ -113,7 +119,18 @@ size_t HexEditorHandlerWithBufferData::GetSize() {
 //////////////////////////////////////////////////////////////////////////
 
 uintptr_t HexEditorHandlerWithBufferData::GetBaseAddress() {
-    return (uintptr_t)m_read_buffer;
+    if(m_show_address) {
+        return (uintptr_t)m_read_buffer;
+    } else {
+        return 0;
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void HexEditorHandlerWithBufferData::DoOptionsPopupExtraGui() {
+    ImGui::Checkbox("Show address",&m_show_address);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -513,7 +530,7 @@ void HexEditor::DoHexPart(size_t begin_offset,size_t end_offset) {
             }
         }
 
-        this->OpenContextPopup(offset);
+        this->OpenContextPopup(true,offset);
 
         x+=m_metrics.hex_column_width;
         screen_pos.x+=m_metrics.hex_column_width;
@@ -590,7 +607,7 @@ void HexEditor::DoAsciiPart(size_t begin_offset,size_t end_offset) {
             }
         }
 
-        this->OpenContextPopup(offset);
+        this->OpenContextPopup(false,offset);
 
         x+=m_metrics.glyph_width;
         screen_pos.x+=m_metrics.glyph_width;
@@ -710,10 +727,32 @@ char HexEditor::GetDisplayChar(int value,bool *wasprint) const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void HexEditor::OpenContextPopup(size_t offset) {
-    if(ImGui::IsMouseClicked(1)) {
-        if(ImGui::IsItemHovered()) {
-            m_context_offset=offset;
+void HexEditor::OpenContextPopup(bool hex,size_t offset) {
+    // The popup ID is relative to the current ID stack, so
+    // opens/closes have to be at the same level. This makes this a
+    // little fiddly...
+    //
+    // See
+    // https://github.com/ocornut/imgui/blob/d57fc7fb970524dbaadb9622704ba666053840c0/imgui.cpp#L5117.
+
+    if(hex!=m_context_hex||m_context_offset!=offset) {
+        // Check for opening popup here.
+        if(ImGui::IsMouseClicked(1)) {
+            if(ImGui::IsItemHovered()) {
+                m_context_offset=offset;
+                m_context_hex=hex;
+
+                ImGui::OpenPopup(CONTEXT_POPUP_NAME);
+            }
+        }
+    }
+
+    if(hex==m_context_hex&&m_context_offset==offset) {
+        if(ImGui::BeginPopup(CONTEXT_POPUP_NAME)) {
+            this->DoContextPopup();
+            ImGui::EndPopup();
+        } else {
+            m_context_offset=INVALID_OFFSET;
         }
     }
 }
@@ -726,13 +765,94 @@ void HexEditor::DoOptionsPopup() {
     ImGui::Checkbox("Grey 00s",&this->grey_00s);
     ImGui::Checkbox("Grey non-printables",&this->grey_nonprintables);
     ImGui::Checkbox("Upper case",&this->upper_case);
+    m_handler->DoOptionsPopupExtraGui();
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+//static int64_t GetValue(const int *bytes,int n,int index,int dindex) {
+//    for(int i=0;i<n;++i) {
+//        if(bytes[i]<0) {
+//            return -1;
+//        }
+//    }
+//
+//    int64_t value=0;
+//
+//    while(n>0) {
+//        value<<=8;
+//        value|=(uint8_t)bytes[index];
+//
+//        index+=dindex;
+//        --n;
+//    }
+//
+//    return value;
+//}
+
+static void ShowValue(int32_t value,const char *prefix,int dec_width,int num_bytes) {
+    char binary[33];
+    {
+        uint32_t mask=1<<(num_bytes*8-1);
+        size_t i=0;
+        IM_ASSERT(num_bytes*8+1<=sizeof binary);
+        while(mask!=0) {
+            IM_ASSERT(i<sizeof binary);
+            binary[i]=(uint32_t)value&mask?'1':'0';
+            mask>>=1;
+            ++i;
+        }
+
+        IM_ASSERT(i<sizeof binary);
+        binary[i++]=0;
+    }
+
+    int prefix_len=(int)strlen(prefix);
+
+    ImGui::Text("%s: %0*" PRId32 " %0*" PRIu32 "u",prefix,dec_width,value,dec_width,(uint32_t)value);
+    ImGui::Text("%*s  0x%0*" PRIx32,prefix_len,"",num_bytes*2,(uint32_t)value);
+    ImGui::Text("%*s  %%%s",prefix_len,"",binary);
+}
+
 void HexEditor::DoContextPopup() {
-    ImGui::Text("hola");
+    int bytes[4];
+    for(size_t i=0,offset=m_context_offset;i<IM_ARRAYSIZE(bytes);++i,++offset) {
+        if(offset<m_handler->GetSize()) {
+            bytes[i]=m_handler->ReadByte(offset);
+        } else {
+            bytes[i]=-1;
+        }
+    }
+
+    int16_t wl=0,wb=0;
+    bool wok=false;
+    int32_t ll=0,lb=0;
+    bool lok=false;
+
+    if(bytes[0]>=0&&bytes[1]>=0) {
+        wl=(int16_t)(bytes[0]|bytes[1]<<8);
+        wb=(int16_t)(bytes[0]<<8|bytes[1]);
+        wok=true;
+
+        if(bytes[2]>=0&&bytes[3]>=0) {
+            ll=bytes[0]|bytes[1]<<8|bytes[2]<<16|bytes[3]<<24;
+            lb=bytes[0]<<24|bytes[1]<<16|bytes[2]<<8|bytes[3];
+            lok=true;
+        }
+    }
+
+    ShowValue((int32_t)(int8_t)bytes[0],"b",3,2);
+
+    if(wok) {
+        ShowValue(wl,"wL",5,2);
+        ShowValue(wb,"wB",5,2);
+    }
+
+    if(lok) {
+        ShowValue(ll,"lL",10,4);
+        ShowValue(lb,"lB",10,4);
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////
