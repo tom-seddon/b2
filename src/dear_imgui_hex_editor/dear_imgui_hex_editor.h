@@ -46,6 +46,13 @@ public:
 
     // default impl does nothing.
     virtual void DoOptionsPopupExtraGui();
+
+    // default impl does nothing.
+    //
+    // The standard popup gui has a bunch of extra stuff in it, and
+    // the extra bits go at the front. Derived class may want to end
+    // its gui with a separator.
+    virtual void DoContextPopupExtraGui(bool hex,size_t offset);
 protected:
 private:
 };

@@ -111,6 +111,10 @@ void TestImguiMemoryEditor() {
         g_hex_editor=std::make_unique<HexEditor>(g_test_handler.get());
 
         g_memory_editor=std::make_unique<TestMemoryEditor>();
+
+        for(size_t i=0;i<sizeof g_buffer;++i) {
+            g_buffer[i]=i<256?(uint8_t)i:(uint8_t)rand();
+        }
     }
 
     ImGui::SetNextWindowSize(ImVec2(700,600),ImGuiCond_FirstUseEver);

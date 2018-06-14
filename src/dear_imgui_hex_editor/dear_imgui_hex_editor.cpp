@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <ctype.h>
 #include <inttypes.h>
+#include <vector>
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -65,6 +66,13 @@ HexEditorHandler::~HexEditorHandler() {
 //////////////////////////////////////////////////////////////////////////
 
 void HexEditorHandler::DoOptionsPopupExtraGui() {
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void HexEditorHandler::DoContextPopupExtraGui(bool hex,size_t offset) {
+    (void)hex,(void)offset;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -810,12 +818,13 @@ static void ShowValue(int32_t value,const char *prefix,int dec_width,int num_byt
 
     int prefix_len=(int)strlen(prefix);
 
-    ImGui::Text("%s: %0*" PRId32 " %0*" PRIu32 "u",prefix,dec_width,value,dec_width,(uint32_t)value);
-    ImGui::Text("%*s  0x%0*" PRIx32,prefix_len,"",num_bytes*2,(uint32_t)value);
+    ImGui::Text("%s: %0*" PRId32 " %0*" PRIu32 "u 0x%0*" PRIx32,prefix,dec_width,value,dec_width,(uint32_t)value,num_bytes*2,(uint32_t)value);
     ImGui::Text("%*s  %%%s",prefix_len,"",binary);
 }
 
 void HexEditor::DoContextPopup() {
+    m_handler->DoContextPopupExtraGui(m_hex,m_context_offset);
+
     int bytes[4];
     for(size_t i=0,offset=m_context_offset;i<IM_ARRAYSIZE(bytes);++i,++offset) {
         if(offset<m_handler->GetSize()) {
@@ -842,7 +851,11 @@ void HexEditor::DoContextPopup() {
         }
     }
 
-    ShowValue((int32_t)(int8_t)bytes[0],"b",3,2);
+    if(bytes[0]>=32&&bytes[0]<127) {
+        ImGui::Text("c: '%c'",(char)bytes[0]);
+    }
+
+    ShowValue((int32_t)(int8_t)bytes[0],"b",3,1);
 
     if(wok) {
         ShowValue(wl,"wL",5,2);
