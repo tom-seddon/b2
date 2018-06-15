@@ -92,10 +92,13 @@ HexEditorHandlerWithBufferData::HexEditorHandlerWithBufferData(const void *buffe
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-int HexEditorHandlerWithBufferData::ReadByte(size_t offset) {
+void HexEditorHandlerWithBufferData::ReadByte(HexEditorByte *byte,size_t offset) {
     IM_ASSERT(offset<m_buffer_size);
 
-    return m_read_buffer[offset];
+    byte->got_value=true;
+    byte->value=m_read_buffer[offset];
+    byte->can_write=!!m_write_buffer;
+    byte->colour=0;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -106,14 +109,6 @@ void HexEditorHandlerWithBufferData::WriteByte(size_t offset,uint8_t value) {
     IM_ASSERT(offset<m_buffer_size);
 
     m_write_buffer[offset]=value;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-bool HexEditorHandlerWithBufferData::CanWrite(size_t offset) {
-    (void)offset;
-    return !!m_write_buffer;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -163,6 +158,13 @@ HexEditor::HexEditor(HexEditorHandler *handler):
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+HexEditor::~HexEditor() {
+    delete[] m_bytes;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 void HexEditor::DoImGui() {
     const ImGuiStyle &style=ImGui::GetStyle();
 
@@ -176,6 +178,13 @@ void HexEditor::DoImGui() {
     m_set_new_offset=false;
     m_new_offset=INVALID_OFFSET;
     m_was_TextInput_visible=false;
+
+    if(this->num_columns>m_num_bytes) {
+        delete[] m_bytes;
+
+        m_num_bytes=this->num_columns;
+        m_bytes=new HexEditorByte[m_num_bytes];
+    }
 
     // Main scroll area.
     int first_visible_row;
@@ -213,6 +222,14 @@ void HexEditor::DoImGui() {
                     ImGui::Text(fmt,m_metrics.num_addr_digits,base_address+line_begin_offset);
 
                     size_t line_end_offset=(std::min)(line_begin_offset+this->num_columns,data_size);
+
+                    {
+                        HexEditorByte *byte=m_bytes;
+                        for(size_t offset=line_begin_offset;offset!=line_end_offset;++offset) {
+                            m_handler->ReadByte(byte++,offset);
+                        }
+                        IM_ASSERT(byte<=m_bytes+m_num_bytes);
+                    }
 
                     ImGui::PushID(line_index);
                     this->DoHexPart(line_begin_offset,line_end_offset);
@@ -287,13 +304,21 @@ void HexEditor::DoImGui() {
         //printf("%zu - clipper = %d -> %d\n",m_num_calls,clipper_display_start,clipper_display_end);
 
         if(m_hex) {
-            m_high_nybble=true;
+            m_editing_high_nybble=true;
         }
 
         if(m_offset==INVALID_OFFSET) {
-            m_value=-1;
+            m_got_edit_value=false;
         } else {
-            m_value=m_handler->ReadByte(m_offset);
+            HexEditorByte byte;
+            m_handler->ReadByte(&byte,m_offset);
+
+            if(byte.got_value&&byte.can_write) {
+                m_got_edit_value=true;
+                m_edit_value=byte.value;
+            } else {
+                m_got_edit_value=false;
+            }
 
             size_t row=m_offset/this->num_columns;
 
@@ -354,6 +379,9 @@ void HexEditor::GetMetrics(Metrics *metrics,const ImGuiStyle &style) {
                        GetHalf(text_colour.z,text_disabled_colour.z),
                        text_colour.w);
     metrics->grey_colour=ImGui::ColorConvertFloat4ToU32(grey_colour);
+
+    metrics->disabled_colour=ImGui::ColorConvertFloat4ToU32(style.Colors[ImGuiCol_TextDisabled]);
+    metrics->text_colour=ImGui::ColorConvertFloat4ToU32(style.Colors[ImGuiCol_Text]);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -384,17 +412,39 @@ static int ReportCharCallback(ImGuiTextEditCallbackData *data) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static const ImGuiInputTextFlags INPUT_TEXT_FLAGS=(//ImGuiInputTextFlags_CharsHexadecimal|
-                                                   //ImGuiInputTextFlags_EnterReturnsTrue|
-                                                   ImGuiInputTextFlags_AutoSelectAll|
-                                                   ImGuiInputTextFlags_NoHorizontalScroll|
-                                                   ImGuiInputTextFlags_AlwaysInsertMode|
-                                                   //ImGuiInputTextFlags_Multiline|
-                                                   //ImGuiInputTextFlags_AllowTabInput|
-                                                   //ImGuiInputTextFlags_CallbackAlways|
-                                                   ImGuiInputTextFlags_CallbackCharFilter|
-                                                   //ImGuiInputTextFlags_CallbackCompletion|
-                                                   0);
+struct TextColourHandler {
+    uint32_t colour=0;
+    bool pushed=false;
+
+    TextColourHandler() {
+    }
+
+    //PushStyleColor(ImGuiCol_Text, GImGui->Style.Colors[ImGuiCol_TextDisabled]);
+
+    ~TextColourHandler() {
+        this->Pop();
+    }
+
+    void BeginColour(uint32_t new_colour) {
+        if(new_colour!=this->colour) {
+            this->Pop();
+
+            ImGui::PushStyleColor(ImGuiCol_Text,new_colour);
+            this->colour=new_colour;
+            this->pushed=true;
+        }
+    }
+
+    void Pop() {
+        if(this->pushed) {
+            ImGui::PopStyleColor(1);
+            this->pushed=false;
+        }
+    }
+};
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
 
 void HexEditor::DoHexPart(size_t begin_offset,size_t end_offset) {
     ImGui::PushID("hex");
@@ -411,137 +461,136 @@ void HexEditor::DoHexPart(size_t begin_offset,size_t end_offset) {
     ImGui::SameLine(x);
     ImVec2 screen_pos=ImGui::GetCursorScreenPos();
 
-    for(size_t offset=begin_offset;offset!=end_offset;++offset) {
-        const int value=m_handler->ReadByte(offset);
-        const bool writeable=value>=0&&m_handler->CanWrite(offset);
+    {
+        TextColourHandler tch;
 
-        bool editing;
+        const HexEditorByte *byte=m_bytes;
+        for(size_t offset=begin_offset;offset!=end_offset;++offset,++byte) {
+            bool editing;
+            bool editable=byte->got_value&&byte->can_write;
 
-        if(offset==m_offset) {
-            m_draw_list->AddRectFilled(screen_pos,ImVec2(screen_pos.x+m_metrics.glyph_width*2.f,screen_pos.y+m_metrics.line_height),m_highlight_colour);
-        }
-
-        if(offset==m_offset&&m_hex) {
-            bool commit=false;
-            editing=true;
-
-            if(m_high_nybble) {
-                ImGui::SameLine(x);
-            } else {
-                ImGui::SameLine(x+m_metrics.glyph_width);
+            if(offset==m_offset) {
+                m_draw_list->AddRectFilled(screen_pos,ImVec2(screen_pos.x+m_metrics.glyph_width*2.f,screen_pos.y+m_metrics.line_height),m_highlight_colour);
             }
 
-            // The TextInput is just a fudgy way of getting some
-            // keyboard input, so its flags are a random mishmash of
-            // whatever made this work. I tried to make this a bit
-            // simpler than the imgui_club hex editor in terms of
-            // fiddling with the input buffer and so on, but whether
-            // it's any clearer overall... I wouldn't like to guess.
+            if(offset==m_offset&&m_hex) {
+                bool commit=false;
+                editing=true;
 
-            // Quickly check for a couple of keys it's a pain to
-            // handle.
-            if(ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_Enter))) {
-                commit=true;
-                editing=false;
-            } else if(writeable) {
-                ImWchar ch;
-                this->GetChar(&ch,&editing,"hex_input");
+                if(m_editing_high_nybble) {
+                    ImGui::SameLine(x);
+                } else {
+                    ImGui::SameLine(x+m_metrics.glyph_width);
+                }
 
-                if(editing) {
-                    if(ch!=0) {
-                        int nybble=-1;
-                        if(ch>='0'&&ch<='9') {
-                            nybble=ch-'0';
-                        } else if(ch>='a'&&ch<='f') {
-                            nybble=ch-'a'+10;
-                        } else if(ch>='A'&&ch<='F') {
-                            nybble=ch-'A'+10;
-                        }
+                // Quickly check for a couple of keys it's a pain to
+                // handle.
+                if(ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_Enter))) {
+                    commit=true;
+                    editing=false;
+                } else if(editable) {
+                    ImWchar ch;
+                    this->GetChar(&ch,&editing,"hex_input");
 
-                        if(nybble>=0) {
-                            if(m_high_nybble) {
-                                m_value&=0x0f;
-                                m_value|=(uint8_t)nybble<<4;
-                                m_high_nybble=false;
-                            } else {
-                                m_value&=0xf0;
-                                m_value|=(uint8_t)nybble;
-                                commit=true;
+                    if(editing) {
+                        if(ch!=0) {
+                            int nybble=-1;
+                            if(ch>='0'&&ch<='9') {
+                                nybble=ch-'0';
+                            } else if(ch>='a'&&ch<='f') {
+                                nybble=ch-'a'+10;
+                            } else if(ch>='A'&&ch<='F') {
+                                nybble=ch-'A'+10;
                             }
-                        }
 
-                        printf("%zu - got char: %u, 0x%04X, '%c'\n",m_num_calls,ch,ch,ch>=32&&ch<127?(char)ch:'?');
+                            if(nybble>=0) {
+                                if(m_editing_high_nybble) {
+                                    m_edit_value&=0x0f;
+                                    m_edit_value|=(uint8_t)nybble<<4;
+                                    m_editing_high_nybble=false;
+                                } else {
+                                    m_edit_value&=0xf0;
+                                    m_edit_value|=(uint8_t)nybble;
+                                    commit=true;
+                                }
+                            }
+
+                            printf("%zu - got char: %u, 0x%04X, '%c'\n",m_num_calls,ch,ch,ch>=32&&ch<127?(char)ch:'?');
+                        }
+                    }
+                } else {
+                    editing=false;
+                }
+
+                if(commit) {
+                    if(editable) {
+                        IM_ASSERT(m_got_edit_value);
+                        IM_ASSERT(m_edit_value>=0&&m_edit_value<256);
+                        m_handler->WriteByte(m_offset,(uint8_t)m_edit_value);
+                    }
+
+                    this->SetNewOffset(m_offset,1,true);
+                    m_hex=true;
+                }
+            } else {
+                editing=false;
+            }
+
+            if(editing) {
+                ImGui::SameLine(x);
+                if(m_editing_high_nybble) {
+                    ImGui::Text("%c",hex_chars[m_edit_value>>4]);
+                    ImGui::SameLine(x+m_metrics.glyph_width);
+                    ImGui::TextDisabled("%c",hex_chars[m_edit_value&0xf]);
+                } else {
+                    ImGui::TextDisabled("%c",hex_chars[m_edit_value>>4]);
+                    ImGui::SameLine(x+m_metrics.glyph_width);
+                    ImGui::Text("%c",hex_chars[m_edit_value&0xf]);
+                }
+            } else {
+                char text[4];
+
+                if(byte->got_value) {
+                    text[0]=hex_chars[byte->value>>4];
+                    text[1]=hex_chars[byte->value&0xf];
+                } else {
+                    text[0]='-';
+                    text[1]='-';
+                }
+
+                text[2]=' ';
+                text[3]=0;
+
+                ImGui::SameLine(x);
+
+                if(!byte->got_value||(byte->colour==0&&!byte->can_write)) {
+                    tch.BeginColour(m_metrics.disabled_colour);
+                } else if(byte->colour==0&&(!byte->got_value||byte->value==0&&this->grey_00s)) {
+                    tch.BeginColour(m_metrics.grey_colour);
+                } else if(byte->colour==0) {
+                    tch.BeginColour(m_metrics.text_colour);
+                } else {
+                    tch.BeginColour(byte->colour);
+                }
+
+                    ImGui::TextUnformatted(text,text+sizeof text-1);
+
+                if(ImGui::IsMouseClicked(0)) {
+                    if(ImGui::IsItemHovered()) {
+                        //printf("hover item: %zx\n",offset);
+                        this->SetNewOffset(offset,0,false);
+                        m_hex=true;
+                        //new_offset=offset;
+                        //got_new_offset=true;
                     }
                 }
-            } else {
-                editing=false;
             }
 
-            if(commit) {
-                if(writeable) {
-                    IM_ASSERT(m_value>=0&&m_value<256);
-                    m_handler->WriteByte(m_offset,(uint8_t)m_value);
-                }
+            this->OpenContextPopup(true,offset);
 
-                this->SetNewOffset(m_offset,1,true);
-                m_hex=true;
-            }
-        } else {
-            editing=false;
+            x+=m_metrics.hex_column_width;
+            screen_pos.x+=m_metrics.hex_column_width;
         }
-
-        if(editing) {
-            ImGui::SameLine(x);
-            if(m_high_nybble) {
-                ImGui::Text("%c",hex_chars[m_value>>4]);
-                ImGui::SameLine(x+m_metrics.glyph_width);
-                ImGui::TextDisabled("%c",hex_chars[m_value&0xf]);
-            } else {
-                ImGui::TextDisabled("%c",hex_chars[m_value>>4]);
-                ImGui::SameLine(x+m_metrics.glyph_width);
-                ImGui::Text("%c",hex_chars[m_value&0xf]);
-            }
-        } else {
-            char text[4];
-
-            if(value>=0) {
-                text[0]=hex_chars[value>>4];
-                text[1]=hex_chars[value&0xf];
-            } else {
-                text[0]='-';
-                text[1]='-';
-            }
-
-            text[2]=' ';
-            text[3]=0;
-
-            ImGui::SameLine(x);
-
-            if(!writeable) {
-                ImGui::TextDisabled(text);
-            } else if(value<0||value==0&&this->grey_00s) {
-                ImGui::PushStyleColor(ImGuiCol_Text,m_metrics.grey_colour);
-                ImGui::TextUnformatted(text,text+sizeof text-1);
-                ImGui::PopStyleColor();
-            } else {
-                ImGui::TextUnformatted(text,text+sizeof text-1);
-            }
-
-            if(ImGui::IsMouseClicked(0)) {
-                if(ImGui::IsItemHovered()) {
-                    //printf("hover item: %zx\n",offset);
-                    this->SetNewOffset(offset,0,false);
-                    m_hex=true;
-                    //new_offset=offset;
-                    //got_new_offset=true;
-                }
-            }
-        }
-
-        this->OpenContextPopup(true,offset);
-
-        x+=m_metrics.hex_column_width;
-        screen_pos.x+=m_metrics.hex_column_width;
     }
 
     ImGui::PopID();
@@ -561,64 +610,78 @@ void HexEditor::DoAsciiPart(size_t begin_offset,size_t end_offset) {
 
     ImGui::PushItemWidth(m_metrics.glyph_width);
 
-    for(size_t offset=begin_offset;offset!=end_offset;++offset) {
-        const int value=m_handler->ReadByte(offset);
-        const bool writeable=value>=0&&m_handler->CanWrite(offset);
+    {
+        TextColourHandler tch;
 
-        bool wasprint;
-        char display_char[2]={
-            this->GetDisplayChar(value,&wasprint),
-        };
+        const HexEditorByte *byte=m_bytes;
+        for(size_t offset=begin_offset;offset!=end_offset;++offset,++byte) {
+            bool editable=byte->got_value&&byte->can_write;
 
-        if(offset==m_offset) {
-            m_draw_list->AddRectFilled(screen_pos,ImVec2(screen_pos.x+m_metrics.glyph_width,screen_pos.y+m_metrics.line_height),m_highlight_colour);
-        }
+            bool wasprint;
+            char display_char[2];
 
-        bool editing;
-        if(offset==m_offset&&!m_hex&&writeable) {
-            editing=true;
+            if(byte->got_value&&byte->value>=32&&byte->value<127) {
+                wasprint=true;
+                display_char[0]=(char)byte->value;
+            } else {
+                wasprint=false;
+                display_char[0]='.';
+            }
 
-            ImWchar ch;
+            display_char[1]=0;
+
+            if(offset==m_offset) {
+                m_draw_list->AddRectFilled(screen_pos,ImVec2(screen_pos.x+m_metrics.glyph_width,screen_pos.y+m_metrics.line_height),m_highlight_colour);
+            }
+
+            bool editing;
+            if(offset==m_offset&&!m_hex&&editable) {
+                editing=true;
+
+                ImWchar ch;
+                ImGui::SameLine(x);
+                this->GetChar(&ch,&editing,"ascii_input");
+
+                if(editing) {
+                    if(ch>=32&&ch<127) {
+                        m_handler->WriteByte(m_offset,(uint8_t)ch);
+
+                        this->SetNewOffset(m_offset,1,true);
+                        m_hex=false;
+                    }
+                }
+            } else {
+                editing=false;
+            }
+
             ImGui::SameLine(x);
-            this->GetChar(&ch,&editing,"ascii_input");
+            if(!byte->got_value||(!byte->can_write&&byte->colour==0)) {
+                tch.BeginColour(m_metrics.disabled_colour);
+            } else if(!wasprint&&this->grey_nonprintables&&byte->colour==0) {
+                tch.BeginColour(m_metrics.grey_colour);
+            } else if(byte->colour==0) {
+                tch.BeginColour(m_metrics.text_colour);
+            } else {
+                tch.BeginColour(byte->colour);
+            }
 
-            if(editing) {
-                if(ch>=32&&ch<127) {
-                    m_handler->WriteByte(m_offset,(uint8_t)ch);
+            ImGui::TextUnformatted(display_char);
 
-                    this->SetNewOffset(m_offset,1,true);
-                    m_hex=false;
+            if(!editing) {
+                if(ImGui::IsItemHovered()) {
+                    if(ImGui::IsMouseClicked(0)) {
+                        printf("%zu - clicked on offset 0x%zx\n",m_num_calls,offset);
+                        this->SetNewOffset(offset,0,false);
+                        m_hex=false;
+                    }
                 }
             }
-        } else {
-            editing=false;
+
+            this->OpenContextPopup(false,offset);
+
+            x+=m_metrics.glyph_width;
+            screen_pos.x+=m_metrics.glyph_width;
         }
-
-        ImGui::SameLine(x);
-        if(!writeable) {
-            ImGui::TextDisabled(display_char);
-        } else if(!wasprint&&this->grey_nonprintables) {
-            ImGui::PushStyleColor(ImGuiCol_Text,m_metrics.grey_colour);
-            ImGui::TextUnformatted(display_char);
-            ImGui::PopStyleColor();
-        } else {
-            ImGui::TextUnformatted(display_char);
-        }
-
-        if(!editing) {
-            if(ImGui::IsItemHovered()) {
-                if(ImGui::IsMouseClicked(0)) {
-                    printf("%zu - clicked on offset 0x%zx\n",m_num_calls,offset);
-                    this->SetNewOffset(offset,0,false);
-                    m_hex=false;
-                }
-            }
-        }
-
-        this->OpenContextPopup(false,offset);
-
-        x+=m_metrics.glyph_width;
-        screen_pos.x+=m_metrics.glyph_width;
     }
 
     ImGui::PopItemWidth();
@@ -629,6 +692,23 @@ void HexEditor::DoAsciiPart(size_t begin_offset,size_t end_offset) {
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
+
+// The TextInput is just a fudgy way of getting some keyboard input,
+// so its flags are a random mishmash of whatever made this work. I
+// tried to make this a bit simpler than the imgui_club hex editor in
+// terms of fiddling with the input buffer and so on, but whether it's
+// any clearer overall... I wouldn't like to guess.
+static const ImGuiInputTextFlags INPUT_TEXT_FLAGS=(//ImGuiInputTextFlags_CharsHexadecimal|
+                                                   //ImGuiInputTextFlags_EnterReturnsTrue|
+                                                   ImGuiInputTextFlags_AutoSelectAll|
+                                                   ImGuiInputTextFlags_NoHorizontalScroll|
+                                                   ImGuiInputTextFlags_AlwaysInsertMode|
+                                                   //ImGuiInputTextFlags_Multiline|
+                                                   //ImGuiInputTextFlags_AllowTabInput|
+                                                   //ImGuiInputTextFlags_CallbackAlways|
+                                                   ImGuiInputTextFlags_CallbackCharFilter|
+                                                   //ImGuiInputTextFlags_CallbackCompletion|
+                                                   0);
 
 void HexEditor::GetChar(uint16_t *ch,bool *editing,const char *id) {
     ImGui::PushID(id);
@@ -710,25 +790,6 @@ void HexEditor::SetNewOffset(size_t base,int delta,bool invalidate_on_failure) {
             m_new_offset=INVALID_OFFSET;
             m_set_new_offset=true;
         }
-    }
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-char HexEditor::GetDisplayChar(int value,bool *wasprint) const {
-    if(value>=32&&value<127) {
-        if(wasprint) {
-            *wasprint=true;
-        }
-
-        return (char)value;
-    } else {
-        if(wasprint) {
-            *wasprint=false;
-        }
-
-        return '.';
     }
 }
 
@@ -825,12 +886,10 @@ static void ShowValue(int32_t value,const char *prefix,int dec_width,int num_byt
 void HexEditor::DoContextPopup() {
     m_handler->DoContextPopupExtraGui(m_hex,m_context_offset);
 
-    int bytes[4];
+    HexEditorByte bytes[4];
     for(size_t i=0,offset=m_context_offset;i<IM_ARRAYSIZE(bytes);++i,++offset) {
         if(offset<m_handler->GetSize()) {
-            bytes[i]=m_handler->ReadByte(offset);
-        } else {
-            bytes[i]=-1;
+            m_handler->ReadByte(&bytes[i],offset);
         }
     }
 
@@ -839,23 +898,23 @@ void HexEditor::DoContextPopup() {
     int32_t ll=0,lb=0;
     bool lok=false;
 
-    if(bytes[0]>=0&&bytes[1]>=0) {
-        wl=(int16_t)(bytes[0]|bytes[1]<<8);
-        wb=(int16_t)(bytes[0]<<8|bytes[1]);
+    if(bytes[0].got_value&&bytes[1].got_value) {
+        wl=(int16_t)(bytes[0].value|bytes[1].value<<8);
+        wb=(int16_t)(bytes[0].value<<8|bytes[1].value);
         wok=true;
 
-        if(bytes[2]>=0&&bytes[3]>=0) {
-            ll=bytes[0]|bytes[1]<<8|bytes[2]<<16|bytes[3]<<24;
-            lb=bytes[0]<<24|bytes[1]<<16|bytes[2]<<8|bytes[3];
+        if(bytes[2].got_value&&bytes[3].got_value) {
+            ll=bytes[0].value|bytes[1].value<<8|bytes[2].value<<16|bytes[3].value<<24;
+            lb=bytes[0].value<<24|bytes[1].value<<16|bytes[2].value<<8|bytes[3].value;
             lok=true;
         }
     }
 
-    if(bytes[0]>=32&&bytes[0]<127) {
-        ImGui::Text("c: '%c'",(char)bytes[0]);
+    if(bytes[0].got_value&&bytes[0].value>=32&&bytes[0].value<127) {
+        ImGui::Text("c: '%c'",(char)bytes[0].value);
     }
 
-    ShowValue((int32_t)(int8_t)bytes[0],"b",3,1);
+    ShowValue((int32_t)(int8_t)bytes[0].value,"b",3,1);
 
     if(wok) {
         ShowValue(wl,"wL",5,2);

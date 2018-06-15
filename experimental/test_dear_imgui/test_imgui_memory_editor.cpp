@@ -38,19 +38,15 @@ public:
     {
     }
 
-    int ReadByte(size_t offset) override {
+    void ReadByte(HexEditorByte *byte,size_t offset) override {
         if(offset>=32&&offset<64) {
-            return -1;
+            byte->got_value=false;
+        } else if(offset>=64&&offset<80) {
+            this->HexEditorHandlerWithBufferData::ReadByte(byte,offset);
+            byte->can_write=false;
+            byte->colour=IM_COL32(255,0,0,255);
         } else {
-            return this->HexEditorHandlerWithBufferData::ReadByte(offset);
-        }
-    }
-
-    bool CanWrite(size_t offset) override {
-        if(offset>=64&&offset<80) {
-            return false;
-        } else {
-            return true;
+            this->HexEditorHandlerWithBufferData::ReadByte(byte,offset);
         }
     }
 protected:
