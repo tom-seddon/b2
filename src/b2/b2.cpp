@@ -349,6 +349,7 @@ struct Options {
     bool reset_windows=false;
     bool vsync=false;
     bool timer=false;
+    std::string config_name;
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -479,6 +480,7 @@ static bool DoCommandLineOptions(
     }
 
     p.AddOption('b',"boot").SetIfPresent(&options->boot).Help("attempt to auto-boot disc");
+    p.AddOption('c',"config").Arg(&options->config_name).Meta("CONFIG").Help("start emulator with configuration CONFIG");
 
     std::map<std::string,int> render_driver_index_by_name;
     std::string render_driver_name;
@@ -931,8 +933,15 @@ static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &init
             return false;
         }
 
-        BeebLoadedConfig default_loaded_config;
-        if(!BeebWindows::LoadConfigByName(&default_loaded_config,BeebWindows::GetDefaultConfigName(),&init_messages)) {
+        std::string initial_config_name;
+        if(!options.config_name.empty()) {
+            initial_config_name=options.config_name;
+        } else {
+            initial_config_name=BeebWindows::GetDefaultConfigName();
+        }
+
+        BeebLoadedConfig initial_loaded_config;
+        if(!BeebWindows::LoadConfigByName(&initial_loaded_config,initial_config_name,&init_messages)) {
             return false;
         }
 
@@ -943,7 +952,7 @@ static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &init
             ASSERT(ia.pixel_format!=SDL_PIXELFORMAT_UNKNOWN);
             ia.sound_device=audio_device;
             ia.sound_spec=audio_spec;
-            ia.default_config=default_loaded_config;
+            ia.default_config=initial_loaded_config;
             ia.name="b2";
             ia.preinit_message_list=init_message_list;
 
