@@ -289,8 +289,10 @@ BeebWindow::~BeebWindow() {
     }
 
 #if RMT_ENABLED
-    ASSERT(g_num_BeebWindow_inits>0);
-    --g_num_BeebWindow_inits;
+    if(g_num_BeebWindow_inits>0) {
+        --g_num_BeebWindow_inits;
+    }
+    
     if(g_num_BeebWindow_inits==0) {
 #if RMT_USE_OPENGL
         if(g_unbind_opengl) {
