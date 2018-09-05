@@ -521,7 +521,7 @@ static bool DoCommandLineOptions(
 #endif
 
     p.AddOption("vsync").SetIfPresent(&options->vsync).Help("use vsync for timing");
-    p.AddOption("timer").ResetIfPresent(&options->timer).Help("use timer for timing");
+    p.AddOption("timer").SetIfPresent(&options->timer).Help("use timer for timing");
 
     p.AddHelpOption(&options->help);
 
