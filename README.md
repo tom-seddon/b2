@@ -28,7 +28,7 @@ If you have trouble with slow startup and poor performance on Windows
 option: `b2 --timer`.
 
 This setting is sticky, and will be saved on exit for future runs. So
-after you've done this one, you can just run it from Windows Explorer
+after you've done this once, you can just run it from Windows Explorer
 in future.
 
 ## OS X
@@ -39,15 +39,6 @@ there.
 ## Linux
 
 Please follow [the building instructions](#building).
-
-## Rolling builds
-
-You can get a Windows or OS X build of the latest buildable code, hot
-off the presses, for good or for ill, from the
-[b2 builds site](http://ffe3.com/b2/ci/).
-
-The builds are sorted newest first, so grab the top one for the
-system of interest, and install as above!
 
 # Guided tour
 
