@@ -3,10 +3,6 @@ sudo: false
 os: osx
 osx_image: xcode9.2
 
-env:
-  global:
-  - secure: z70ZSe8gw9m+680CODuuWpTyr9jBzcsF2hlneZdYNGAKUwzWMavrZYbaxoTlDB239/GE9BAypshucft5U0G89S1oOx8TGR5fbabs7hiUU+W5LRarMuESyCSlkk6zRB0Hl1HOQaPoHEM0TOXTXjn0LF7diu7KK+f/Rafce4pZM1gbUW+kOjVgpk+m7NBg9aUrhM0PGT39pfb+ES/zgihxpfQQu9Tg0vfqwVRzamCs3+0xjX2hfEEwTK+PEgrcxUdscrdkcXqv9Ly/CYDmGGwPuyrJfkaaIQgVmPuslnDPpIYaUq2FmJtdIUT6AnrMeU7gY5peHdACa/UCRwqC/IB+Flamv9afKWAvRu5WpHKSCd04+Phq4A0Y1s9YRhqVFIy9xRWHdSMUX23HmeP/BXT+Z/BulZIcXjUWrmcFuVJY9lvRcQ4Vc1+7ERmPrk7Ckyl+3EEM3ARLOWgddH6rhOk1rnQE1avqxNK9PU3t9gvj1Tsm5vaRDix+o+VcICv8/DaglxAIs+eZZhgGkxY+7i9M/1y5Sr9qpNfTjEgZ7QfoGLZ8WcdxfUgY2rjm4r8C2BPx1P5lSy9H8xZ54NeQkK9aLUTGBtF5OL3Sa06ZbVuchxeygizzieZ/SRM2Qgx5ybTn8+sdGd4nfq1pHgf+Gh8aUqxbKDPiSF6WE7tspFNrdD4=
-
 branches:
   only:
     - master
@@ -35,9 +31,4 @@ deploy:
     file: ${OUTPUT_NAME}
     skip_cleanup: true
     on:
-      branch: build
-  - provider: script
-    script: ftp -u ftp://b2_upload:${FFE3_PASSWORD}@ffe3.com/ffe3.com/b2/ci/${OUTPUT_BASENAME} ${OUTPUT_NAME}
-    on:
       branch: master
-    skip_cleanup: true
