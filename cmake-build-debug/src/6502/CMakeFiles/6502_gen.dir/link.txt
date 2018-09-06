@@ -1,0 +1,1 @@
+/usr/bin/c++  -g -DASSERT_ENABLED=1   CMakeFiles/6502_gen.dir/6502_gen.cpp.o  -o 6502_gen ../shared/libshared_lib.a -lpthread -lrt -luuid 

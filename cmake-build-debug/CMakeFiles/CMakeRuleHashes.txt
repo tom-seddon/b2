@@ -1,0 +1,11 @@
+# Hashes of file build rules.
+09ef68abb47d99c6abaa025eff6ace3e src/6502/6502_internal.inl
+92fc58ee7bfd6e87c955501487d1bb62 submodules/SDL/CMakeFiles/uninstall
+62c475bc001aa580e5cf352aa4f78e1e submodules/SDL/wayland-generated-protocols/pointer-constraints-unstable-v1-client-protocol.h
+c65c57a700a93a8ad13ae45ab5962365 submodules/SDL/wayland-generated-protocols/pointer-constraints-unstable-v1-protocol.c
+480e7fa4ba21c3d6eec4e334c6e34d9c submodules/SDL/wayland-generated-protocols/relative-pointer-unstable-v1-client-protocol.h
+43dff67bd4f661c14e4034b54544f33d submodules/SDL/wayland-generated-protocols/relative-pointer-unstable-v1-protocol.c
+47f000e62161533d3919b87cfaa4957f submodules/SDL/wayland-generated-protocols/wayland-client-protocol.h
+3daa6fa10e6b8fad1c8d643479919e45 submodules/SDL/wayland-generated-protocols/wayland-protocol.c
+fefd0b8ef0fbdcfc0ea3682f7c535dad submodules/SDL/wayland-generated-protocols/xdg-shell-unstable-v6-client-protocol.h
+7b493d4b1a86c269aed0168d999f50bf submodules/SDL/wayland-generated-protocols/xdg-shell-unstable-v6-protocol.c

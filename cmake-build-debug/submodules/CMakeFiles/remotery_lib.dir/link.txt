@@ -1,0 +1,2 @@
+/usr/bin/ar qc libremotery_lib.a  CMakeFiles/remotery_lib.dir/Remotery/lib/Remotery.c.o
+/usr/bin/ranlib libremotery_lib.a

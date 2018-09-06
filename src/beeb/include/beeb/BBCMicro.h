@@ -20,6 +20,7 @@ class DiscImage;
 #include <vector>
 #include "conf.h"
 #include "crtc.h"
+#include "ExtMem.h"
 #include "1770.h"
 #include "6522.h"
 #include <6502/6502.h>
@@ -387,6 +388,7 @@ public:
     // trying to avoid making the debug stuff a friend of this
     // class... though maybe it wouldn't matter?
     const CRTC *DebugGetCRTC() const;
+    const ExtMem *DebugGetExtMem() const;
     const VideoULA *DebugGetVideoULA() const;
     const AddressableLatch DebugGetAddressableLatch() const;
     const R6522 *DebugGetSystemVIA() const;
@@ -403,6 +405,7 @@ public:
     int DebugGetByte(uint32_t addr) const;
 
     void SetMemory(M6502Word addr,uint8_t value);
+    void SetExtMemory(uint32_t addr,uint8_t value);
 
     void DebugHalt(const char *fmt,...) PRINTF_LIKE(2,3);
 
@@ -454,6 +457,8 @@ private:
     //////////////////////////////////////////////////////////////////////////
 
     struct State {
+        ExtMem extMem;
+
         // 6845
         CRTC crtc;
         CRTC::Output crtc_last_output={};

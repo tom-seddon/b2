@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="VcsDirectoryMappings">
+    <mapping directory="$PROJECT_DIR$" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/submodules/Font-Awesome" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/submodules/IconFontCppHeaders" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/submodules/Remotery" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/submodules/SDL" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/submodules/http-parser" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/submodules/imgui" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/submodules/imgui_club" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/submodules/libuv" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/submodules/macdylibbundler" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/submodules/miniz" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/submodules/noc" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/submodules/rapidjson" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/submodules/relacy" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/submodules/sanitizers-cmake" vcs="Git" />
+  </component>
+</project>

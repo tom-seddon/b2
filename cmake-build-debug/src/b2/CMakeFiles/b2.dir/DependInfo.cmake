@@ -1,0 +1,171 @@
+# The set of languages for which implicit dependencies are needed:
+set(CMAKE_DEPENDS_LANGUAGES
+  "C"
+  "CXX"
+  )
+# The set of files for implicit dependencies of each language:
+set(CMAKE_DEPENDS_CHECK_C
+  "/home/benjamin/Documents/b2/src/b2/download_null.c" "/home/benjamin/Documents/b2/cmake-build-debug/src/b2/CMakeFiles/b2.dir/download_null.c.o"
+  "/home/benjamin/Documents/b2/src/b2/native_ui_noc.c" "/home/benjamin/Documents/b2/cmake-build-debug/src/b2/CMakeFiles/b2.dir/native_ui_noc.c.o"
+  )
+set(CMAKE_C_COMPILER_ID "GNU")
+
+# Preprocessor definitions for this target.
+set(CMAKE_TARGET_DEFINITIONS_C
+  "BUILD_TYPE_Debug=1"
+  "HAVE_FFMPEG=1"
+  "IMGUI_DISABLE_OBSOLETE_FUNCTIONS"
+  "IMGUI_INCLUDE_IMGUI_USER_H"
+  "IMGUI_INCLUDE_IMGUI_USER_INL"
+  "IMGUI_OVERRIDE_DRAWVERT_STRUCT_LAYOUT=struct ImDrawVert {ImVec2 pos; ImU32 col; ImVec2 uv;}"
+  "NO_IMGUI_ADDONS"
+  "RMT_ENABLED=1"
+  "RMT_USE_D3D11=0"
+  "RMT_USE_OPENGL=0"
+  "USING_GENERATED_CONFIG_H"
+  "YES_IMGUIDOCK"
+  "YES_IMGUIHELPER"
+  "YES_IMGUIPANELMANAGER"
+  "YES_IMGUITABWINDOW"
+  "YES_IMGUITOOLBAR"
+  "_GNU_SOURCE"
+  )
+
+# The include file search paths:
+set(CMAKE_C_TARGET_INCLUDE_PATH
+  "/usr/include/x86_64-linux-gnu"
+  "submodules/SDL/include"
+  "../src/beeb/include"
+  "../src/shared/h"
+  "../src/6502/h"
+  "../submodules/miniz"
+  "../submodules/Remotery/lib"
+  "../submodules/imgui"
+  "../submodules/imgui_club/imgui_memory_editor"
+  "../submodules/noc"
+  "/usr/include/gtk-2.0"
+  "/usr/include/freetype2"
+  "/usr/include/glib-2.0"
+  "/usr/lib/x86_64-linux-gnu/glib-2.0/include"
+  "/usr/include/atk-1.0"
+  "/usr/include/gdk-pixbuf-2.0"
+  "/usr/include/cairo"
+  "/usr/include/pango-1.0"
+  "/usr/lib/x86_64-linux-gnu/gtk-2.0/include"
+  "../submodules/rapidjson/include"
+  "../submodules/IconFontCppHeaders"
+  "../submodules/libuv/include"
+  "../submodules/http-parser"
+  )
+set(CMAKE_DEPENDS_CHECK_CXX
+  "/home/benjamin/Documents/b2/src/b2/65link.cpp" "/home/benjamin/Documents/b2/cmake-build-debug/src/b2/CMakeFiles/b2.dir/65link.cpp.o"
+  "/home/benjamin/Documents/b2/src/b2/BeebConfig.cpp" "/home/benjamin/Documents/b2/cmake-build-debug/src/b2/CMakeFiles/b2.dir/BeebConfig.cpp.o"
+  "/home/benjamin/Documents/b2/src/b2/BeebKeymap.cpp" "/home/benjamin/Documents/b2/cmake-build-debug/src/b2/CMakeFiles/b2.dir/BeebKeymap.cpp.o"
+  "/home/benjamin/Documents/b2/src/b2/BeebState.cpp" "/home/benjamin/Documents/b2/cmake-build-debug/src/b2/CMakeFiles/b2.dir/BeebState.cpp.o"
+  "/home/benjamin/Documents/b2/src/b2/BeebThread.cpp" "/home/benjamin/Documents/b2/cmake-build-debug/src/b2/CMakeFiles/b2.dir/BeebThread.cpp.o"
+  "/home/benjamin/Documents/b2/src/b2/BeebWindow.cpp" "/home/benjamin/Documents/b2/cmake-build-debug/src/b2/CMakeFiles/b2.dir/BeebWindow.cpp.o"
+  "/home/benjamin/Documents/b2/src/b2/BeebWindows.cpp" "/home/benjamin/Documents/b2/cmake-build-debug/src/b2/CMakeFiles/b2.dir/BeebWindows.cpp.o"
+  "/home/benjamin/Documents/b2/src/b2/CommandContextStackUI.cpp" "/home/benjamin/Documents/b2/cmake-build-debug/src/b2/CMakeFiles/b2.dir/CommandContextStackUI.cpp.o"
+  "/home/benjamin/Documents/b2/src/b2/CommandKeymapsUI.cpp" "/home/benjamin/Documents/b2/cmake-build-debug/src/b2/CMakeFiles/b2.dir/CommandKeymapsUI.cpp.o"
+  "/home/benjamin/Documents/b2/src/b2/ConfigsUI.cpp" "/home/benjamin/Documents/b2/cmake-build-debug/src/b2/CMakeFiles/b2.dir/ConfigsUI.cpp.o"
+  "/home/benjamin/Documents/b2/src/b2/DataRateUI.cpp" "/home/benjamin/Documents/b2/cmake-build-debug/src/b2/CMakeFiles/b2.dir/DataRateUI.cpp.o"
+  "/home/benjamin/Documents/b2/src/b2/DearImguiTestUI.cpp" "/home/benjamin/Documents/b2/cmake-build-debug/src/b2/CMakeFiles/b2.dir/DearImguiTestUI.cpp.o"
+  "/home/benjamin/Documents/b2/src/b2/GenerateThumbnailJob.cpp" "/home/benjamin/Documents/b2/cmake-build-debug/src/b2/CMakeFiles/b2.dir/GenerateThumbnailJob.cpp.o"
+  "/home/benjamin/Documents/b2/src/b2/HTTPMethodsHandler.cpp" "/home/benjamin/Documents/b2/cmake-build-debug/src/b2/CMakeFiles/b2.dir/HTTPMethodsHandler.cpp.o"
+  "/home/benjamin/Documents/b2/src/b2/HTTPServer.cpp" "/home/benjamin/Documents/b2/cmake-build-debug/src/b2/CMakeFiles/b2.dir/HTTPServer.cpp.o"
+  "/home/benjamin/Documents/b2/src/b2/JobQueue.cpp" "/home/benjamin/Documents/b2/cmake-build-debug/src/b2/CMakeFiles/b2.dir/JobQueue.cpp.o"
+  "/home/benjamin/Documents/b2/src/b2/KeymapsUI.cpp" "/home/benjamin/Documents/b2/cmake-build-debug/src/b2/CMakeFiles/b2.dir/KeymapsUI.cpp.o"
+  "/home/benjamin/Documents/b2/src/b2/MemoryDiscImage.cpp" "/home/benjamin/Documents/b2/cmake-build-debug/src/b2/CMakeFiles/b2.dir/MemoryDiscImage.cpp.o"
+  "/home/benjamin/Documents/b2/src/b2/MessageQueue.cpp" "/home/benjamin/Documents/b2/cmake-build-debug/src/b2/CMakeFiles/b2.dir/MessageQueue.cpp.o"
+  "/home/benjamin/Documents/b2/src/b2/Messages.cpp" "/home/benjamin/Documents/b2/cmake-build-debug/src/b2/CMakeFiles/b2.dir/Messages.cpp.o"
+  "/home/benjamin/Documents/b2/src/b2/MessagesUI.cpp" "/home/benjamin/Documents/b2/cmake-build-debug/src/b2/CMakeFiles/b2.dir/MessagesUI.cpp.o"
+  "/home/benjamin/Documents/b2/src/b2/PixelMetadataUI.cpp" "/home/benjamin/Documents/b2/cmake-build-debug/src/b2/CMakeFiles/b2.dir/PixelMetadataUI.cpp.o"
+  "/home/benjamin/Documents/b2/src/b2/Remapper.cpp" "/home/benjamin/Documents/b2/cmake-build-debug/src/b2/CMakeFiles/b2.dir/Remapper.cpp.o"
+  "/home/benjamin/Documents/b2/src/b2/SettingsUI.cpp" "/home/benjamin/Documents/b2/cmake-build-debug/src/b2/CMakeFiles/b2.dir/SettingsUI.cpp.o"
+  "/home/benjamin/Documents/b2/src/b2/TVOutput.cpp" "/home/benjamin/Documents/b2/cmake-build-debug/src/b2/CMakeFiles/b2.dir/TVOutput.cpp.o"
+  "/home/benjamin/Documents/b2/src/b2/Timeline.cpp" "/home/benjamin/Documents/b2/cmake-build-debug/src/b2/CMakeFiles/b2.dir/Timeline.cpp.o"
+  "/home/benjamin/Documents/b2/src/b2/TimelineUI.cpp" "/home/benjamin/Documents/b2/cmake-build-debug/src/b2/CMakeFiles/b2.dir/TimelineUI.cpp.o"
+  "/home/benjamin/Documents/b2/src/b2/TraceUI.cpp" "/home/benjamin/Documents/b2/cmake-build-debug/src/b2/CMakeFiles/b2.dir/TraceUI.cpp.o"
+  "/home/benjamin/Documents/b2/src/b2/VBlankMonitor.cpp" "/home/benjamin/Documents/b2/cmake-build-debug/src/b2/CMakeFiles/b2.dir/VBlankMonitor.cpp.o"
+  "/home/benjamin/Documents/b2/src/b2/VBlankMonitorDefault.cpp" "/home/benjamin/Documents/b2/cmake-build-debug/src/b2/CMakeFiles/b2.dir/VBlankMonitorDefault.cpp.o"
+  "/home/benjamin/Documents/b2/src/b2/VideoWriter.cpp" "/home/benjamin/Documents/b2/cmake-build-debug/src/b2/CMakeFiles/b2.dir/VideoWriter.cpp.o"
+  "/home/benjamin/Documents/b2/src/b2/VideoWriterFFmpeg.cpp" "/home/benjamin/Documents/b2/cmake-build-debug/src/b2/CMakeFiles/b2.dir/VideoWriterFFmpeg.cpp.o"
+  "/home/benjamin/Documents/b2/src/b2/WriteVideoJob.cpp" "/home/benjamin/Documents/b2/cmake-build-debug/src/b2/CMakeFiles/b2.dir/WriteVideoJob.cpp.o"
+  "/home/benjamin/Documents/b2/src/b2/b2.cpp" "/home/benjamin/Documents/b2/cmake-build-debug/src/b2/CMakeFiles/b2.dir/b2.cpp.o"
+  "/home/benjamin/Documents/b2/src/b2/beeb_events.cpp" "/home/benjamin/Documents/b2/cmake-build-debug/src/b2/CMakeFiles/b2.dir/beeb_events.cpp.o"
+  "/home/benjamin/Documents/b2/src/b2/commands.cpp" "/home/benjamin/Documents/b2/cmake-build-debug/src/b2/CMakeFiles/b2.dir/commands.cpp.o"
+  "/home/benjamin/Documents/b2/src/b2/conf.cpp" "/home/benjamin/Documents/b2/cmake-build-debug/src/b2/CMakeFiles/b2.dir/conf.cpp.o"
+  "/home/benjamin/Documents/b2/src/b2/dear_imgui.cpp" "/home/benjamin/Documents/b2/cmake-build-debug/src/b2/CMakeFiles/b2.dir/dear_imgui.cpp.o"
+  "/home/benjamin/Documents/b2/src/b2/debugger.cpp" "/home/benjamin/Documents/b2/cmake-build-debug/src/b2/CMakeFiles/b2.dir/debugger.cpp.o"
+  "/home/benjamin/Documents/b2/src/b2/filters.cpp" "/home/benjamin/Documents/b2/cmake-build-debug/src/b2/CMakeFiles/b2.dir/filters.cpp.o"
+  "/home/benjamin/Documents/b2/src/b2/keymap.cpp" "/home/benjamin/Documents/b2/cmake-build-debug/src/b2/CMakeFiles/b2.dir/keymap.cpp.o"
+  "/home/benjamin/Documents/b2/src/b2/keys.cpp" "/home/benjamin/Documents/b2/cmake-build-debug/src/b2/CMakeFiles/b2.dir/keys.cpp.o"
+  "/home/benjamin/Documents/b2/src/b2/load_save.cpp" "/home/benjamin/Documents/b2/cmake-build-debug/src/b2/CMakeFiles/b2.dir/load_save.cpp.o"
+  "/home/benjamin/Documents/b2/src/b2/misc.cpp" "/home/benjamin/Documents/b2/cmake-build-debug/src/b2/CMakeFiles/b2.dir/misc.cpp.o"
+  "/home/benjamin/Documents/b2/src/b2/native_ui.cpp" "/home/benjamin/Documents/b2/cmake-build-debug/src/b2/CMakeFiles/b2.dir/native_ui.cpp.o"
+  )
+set(CMAKE_CXX_COMPILER_ID "GNU")
+
+# Preprocessor definitions for this target.
+set(CMAKE_TARGET_DEFINITIONS_CXX
+  "BUILD_TYPE_Debug=1"
+  "HAVE_FFMPEG=1"
+  "IMGUI_DISABLE_OBSOLETE_FUNCTIONS"
+  "IMGUI_INCLUDE_IMGUI_USER_H"
+  "IMGUI_INCLUDE_IMGUI_USER_INL"
+  "IMGUI_OVERRIDE_DRAWVERT_STRUCT_LAYOUT=struct ImDrawVert {ImVec2 pos; ImU32 col; ImVec2 uv;}"
+  "NO_IMGUI_ADDONS"
+  "RMT_ENABLED=1"
+  "RMT_USE_D3D11=0"
+  "RMT_USE_OPENGL=0"
+  "USING_GENERATED_CONFIG_H"
+  "YES_IMGUIDOCK"
+  "YES_IMGUIHELPER"
+  "YES_IMGUIPANELMANAGER"
+  "YES_IMGUITABWINDOW"
+  "YES_IMGUITOOLBAR"
+  "_GNU_SOURCE"
+  )
+
+# The include file search paths:
+set(CMAKE_CXX_TARGET_INCLUDE_PATH
+  "/usr/include/x86_64-linux-gnu"
+  "submodules/SDL/include"
+  "../src/beeb/include"
+  "../src/shared/h"
+  "../src/6502/h"
+  "../submodules/miniz"
+  "../submodules/Remotery/lib"
+  "../submodules/imgui"
+  "../submodules/imgui_club/imgui_memory_editor"
+  "../submodules/noc"
+  "/usr/include/gtk-2.0"
+  "/usr/include/freetype2"
+  "/usr/include/glib-2.0"
+  "/usr/lib/x86_64-linux-gnu/glib-2.0/include"
+  "/usr/include/atk-1.0"
+  "/usr/include/gdk-pixbuf-2.0"
+  "/usr/include/cairo"
+  "/usr/include/pango-1.0"
+  "/usr/lib/x86_64-linux-gnu/gtk-2.0/include"
+  "../submodules/rapidjson/include"
+  "../submodules/IconFontCppHeaders"
+  "../submodules/libuv/include"
+  "../submodules/http-parser"
+  )
+
+# Targets to which this target links.
+set(CMAKE_TARGET_LINKED_INFO_FILES
+  "/home/benjamin/Documents/b2/cmake-build-debug/src/beeb/CMakeFiles/beeb_lib.dir/DependInfo.cmake"
+  "/home/benjamin/Documents/b2/cmake-build-debug/src/shared/CMakeFiles/shared_lib.dir/DependInfo.cmake"
+  "/home/benjamin/Documents/b2/cmake-build-debug/src/6502/CMakeFiles/6502_lib.dir/DependInfo.cmake"
+  "/home/benjamin/Documents/b2/cmake-build-debug/submodules/CMakeFiles/remotery_lib.dir/DependInfo.cmake"
+  "/home/benjamin/Documents/b2/cmake-build-debug/submodules/CMakeFiles/imgui_lib.dir/DependInfo.cmake"
+  "/home/benjamin/Documents/b2/cmake-build-debug/submodules/SDL/CMakeFiles/SDL2-static.dir/DependInfo.cmake"
+  "/home/benjamin/Documents/b2/cmake-build-debug/submodules/SDL/CMakeFiles/SDL2main.dir/DependInfo.cmake"
+  "/home/benjamin/Documents/b2/cmake-build-debug/etc/libuv-cmake/CMakeFiles/uv.dir/DependInfo.cmake"
+  "/home/benjamin/Documents/b2/cmake-build-debug/submodules/CMakeFiles/http-parser.dir/DependInfo.cmake"
+  )
+
+# Fortran module output directory.
+set(CMAKE_Fortran_TARGET_MODULE_DIR "")

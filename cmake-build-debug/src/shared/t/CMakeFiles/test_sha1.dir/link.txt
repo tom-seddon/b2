@@ -1,0 +1,1 @@
+/usr/bin/c++  -g -DASSERT_ENABLED=1  -rdynamic CMakeFiles/test_sha1.dir/test_sha1.cpp.o  -o test_sha1 ../libshared_lib.a -lpthread -lrt -luuid 

@@ -1,0 +1,821 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="CMakeRunConfigurationManager" shouldGenerate="true" shouldDeleteObsolete="true" buildAllGenerated="true">
+    <generated>
+      <config projectName="b2" targetName="test_JobQueue" />
+      <config projectName="b2" targetName="test_basic" />
+      <config projectName="b2" targetName="b2" />
+      <config projectName="b2" targetName="6502_gen" />
+      <config projectName="b2" targetName="remotery_lib" />
+      <config projectName="b2" targetName="test_path" />
+      <config projectName="b2" targetName="SDL2-static" />
+      <config projectName="b2" targetName="uv" />
+      <config projectName="b2" targetName="test_backtrace" />
+      <config projectName="b2" targetName="test_enum" />
+      <config projectName="b2" targetName="test_assert" />
+      <config projectName="b2" targetName="test_CommandLineParser" />
+      <config projectName="b2" targetName="beeb_lib" />
+      <config projectName="b2" targetName="uninstall" />
+      <config projectName="b2" targetName="test_sha1" />
+      <config projectName="b2" targetName="lorenz" />
+      <config projectName="b2" targetName="test_log" />
+      <config projectName="b2" targetName="http-parser" />
+      <config projectName="b2" targetName="SDL2main" />
+      <config projectName="b2" targetName="visual6502" />
+      <config projectName="b2" targetName="test_6522" />
+      <config projectName="b2" targetName="test_load_store" />
+      <config projectName="b2" targetName="test_OutputDataBuffer" />
+      <config projectName="b2" targetName="6502_lib" />
+      <config projectName="b2" targetName="shared_lib" />
+      <config projectName="b2" targetName="test_posix_sleep" />
+      <config projectName="b2" targetName="klaus" />
+      <config projectName="b2" targetName="imgui_lib" />
+      <config projectName="b2" targetName="6502_basic_tests" />
+    </generated>
+  </component>
+  <component name="CMakeSettings">
+    <configurations>
+      <configuration PROFILE_NAME="Debug" CONFIG_NAME="Debug" />
+    </configurations>
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="34e45d20-f373-4a13-84b9-9421bfbe0c4e" name="Default Changelist" comment="">
+      <change afterPath="$PROJECT_DIR$/.idea/codeStyles/Project.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/beeb/include/beeb/ExtMem.h" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/beeb/src/ExtMem.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/b2/BeebThread.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/b2/BeebThread.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/b2/BeebThread.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/b2/BeebThread.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/b2/BeebThread.inl" beforeDir="false" afterPath="$PROJECT_DIR$/src/b2/BeebThread.inl" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/b2/BeebWindow.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/b2/BeebWindow.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/b2/BeebWindow.inl" beforeDir="false" afterPath="$PROJECT_DIR$/src/b2/BeebWindow.inl" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/b2/beeb_events.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/b2/beeb_events.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/b2/beeb_events.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/b2/beeb_events.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/b2/beeb_events_types.inl" beforeDir="false" afterPath="$PROJECT_DIR$/src/b2/beeb_events_types.inl" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/b2/debugger.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/b2/debugger.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/b2/debugger.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/b2/debugger.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/beeb/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/beeb/CMakeLists.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/beeb/include/beeb/BBCMicro.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/beeb/include/beeb/BBCMicro.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/beeb/src/BBCMicro.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/beeb/src/BBCMicro.cpp" afterDir="false" />
+    </list>
+    <ignored path="$PROJECT_DIR$/cmake-build-debug/" />
+    <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="ExecutionTargetManager" SELECTED_TARGET="CMakeBuildProfile:Debug" />
+  <component name="FUSProjectUsageTrigger">
+    <session id="1491765541">
+      <usages-collector id="statistics.lifecycle.project">
+        <counts>
+          <entry key="project.closed" value="1" />
+          <entry key="project.open.time.12" value="1" />
+          <entry key="project.opened" value="1" />
+        </counts>
+      </usages-collector>
+      <usages-collector id="statistics.file.extensions.edit">
+        <counts>
+          <entry key="cpp" value="1183" />
+          <entry key="h" value="230" />
+          <entry key="inl" value="18" />
+          <entry key="txt" value="13" />
+        </counts>
+      </usages-collector>
+      <usages-collector id="statistics.file.types.edit">
+        <counts>
+          <entry key="CMakeLists.txt" value="13" />
+          <entry key="ObjectiveC" value="1431" />
+        </counts>
+      </usages-collector>
+      <usages-collector id="statistics.file.extensions.open">
+        <counts>
+          <entry key="cpp" value="11" />
+          <entry key="h" value="14" />
+          <entry key="inl" value="8" />
+          <entry key="txt" value="1" />
+        </counts>
+      </usages-collector>
+      <usages-collector id="statistics.file.types.open">
+        <counts>
+          <entry key="CMakeLists.txt" value="1" />
+          <entry key="ObjectiveC" value="33" />
+        </counts>
+      </usages-collector>
+      <usages-collector id="statistics.cidr.testingFrameworks.usages" />
+    </session>
+  </component>
+  <component name="FileEditorManager">
+    <leaf>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/src/b2/BeebThread.cpp">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="498">
+              <caret line="2083" selection-start-line="2083" selection-end-line="2083" />
+              <folding>
+                <element signature="e#0#26#0" expanded="true" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/src/b2/debugger.cpp">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="232">
+              <caret line="372" selection-start-line="372" selection-end-line="372" />
+              <folding>
+                <element signature="e#0#26#0" expanded="true" />
+                <element signature="e#73#96#0" expanded="true" />
+                <element signature="e#374#398#0" expanded="true" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/src/beeb/src/BBCMicro.cpp">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="348">
+              <caret line="2433" column="59" selection-start-line="2433" selection-start-column="59" selection-end-line="2433" selection-end-column="59" />
+              <folding>
+                <element signature="e#0#26#0" expanded="true" />
+                <element signature="e#16520#16735#0" expanded="true" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/src/b2/BeebThread.h">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="280">
+              <caret line="451" column="21" selection-start-line="451" selection-start-column="21" selection-end-line="451" selection-end-column="21" />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/src/beeb/include/beeb/BBCMicro.h">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="435">
+              <caret line="404" column="33" selection-start-line="404" selection-start-column="33" selection-end-line="404" selection-end-column="33" />
+              <folding>
+                <element signature="e#438#454#0" expanded="true" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/src/beeb/src/ExtMem.cpp">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="55">
+              <caret line="30" column="25" selection-start-line="30" selection-start-column="25" selection-end-line="30" selection-end-column="25" />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/src/beeb/include/beeb/ExtMem.h">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="195">
+              <caret line="13" column="32" selection-start-line="13" selection-start-column="32" selection-end-line="13" selection-end-column="32" />
+              <folding>
+                <element signature="e#45#71#0" expanded="true" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/src/b2/beeb_events.cpp">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="168">
+              <caret line="814" column="45" selection-start-line="814" selection-start-column="35" selection-end-line="814" selection-end-column="45" />
+              <folding>
+                <element signature="e#0#26#0" expanded="true" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/src/b2/beeb_events.h">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="223">
+              <caret line="235" column="21" selection-start-line="235" selection-start-column="21" selection-end-line="235" selection-end-column="21" />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/src/b2/beeb_events_types.inl">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="210">
+              <caret line="14" column="26" selection-start-line="14" selection-start-column="26" selection-end-line="14" selection-end-column="26" />
+            </state>
+          </provider>
+        </entry>
+      </file>
+    </leaf>
+  </component>
+  <component name="FindInProjectRecents">
+    <findStrings>
+      <find>State {</find>
+      <find>crtc</find>
+      <find>m_state.crtc</find>
+      <find>State</find>
+      <find>m_ram</find>
+      <find>InitSt</find>
+      <find>ram_buffer</find>
+      <find>CreateMemoryDebugWindow</find>
+      <find>BeebWindowPopupType_MemoryDebugger1</find>
+      <find>BeebWindowPopupType_MemoryDebugger4</find>
+      <find>MemoryDebugger4</find>
+      <find>MemoryDebugger</find>
+      <find>MemoryDeb</find>
+      <find>Memory D</find>
+      <find>Send(</find>
+      <find>GetM65</find>
+      <find>ThreadHandleMessage</find>
+      <find>ThreadRecordEvent</find>
+      <find>ThreadRe</find>
+      <find>ThreadRecord</find>
+      <find>SetByteHan</find>
+      <find>DebugSetBytesMessage</find>
+      <find>HandleMessage</find>
+      <find>Send</find>
+      <find>m_mq</find>
+      <find>SetExtByte</find>
+      <find>SetByte</find>
+      <find>BeebThreadMessageType_SetByte</find>
+      <find>SetMemory</find>
+      <find>ThreadHandleMe</find>
+    </findStrings>
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="IdeDocumentHistory">
+    <option name="CHANGED_PATHS">
+      <list>
+        <option value="$PROJECT_DIR$/src/beeb/include/beeb/ExtMem.cpp" />
+        <option value="$PROJECT_DIR$/src/beeb/CMakeLists.txt" />
+        <option value="$PROJECT_DIR$/src/b2/debugger.h" />
+        <option value="$PROJECT_DIR$/src/b2/BeebWindow.inl" />
+        <option value="$PROJECT_DIR$/src/b2/BeebWindow.cpp" />
+        <option value="$PROJECT_DIR$/src/beeb/include/beeb/BBCMicro.h" />
+        <option value="$PROJECT_DIR$/src/b2/beeb_events_types.inl" />
+        <option value="$PROJECT_DIR$/src/b2/beeb_events.h" />
+        <option value="$PROJECT_DIR$/src/b2/BeebThread.inl" />
+        <option value="$PROJECT_DIR$/src/b2/BeebThread.h" />
+        <option value="$PROJECT_DIR$/src/b2/beeb_events.cpp" />
+        <option value="$PROJECT_DIR$/src/beeb/include/beeb/ExtMem.h" />
+        <option value="$PROJECT_DIR$/src/beeb/src/ExtMem.cpp" />
+        <option value="$PROJECT_DIR$/src/b2/BeebThread.cpp" />
+        <option value="$PROJECT_DIR$/src/b2/debugger.cpp" />
+        <option value="$PROJECT_DIR$/src/beeb/src/BBCMicro.cpp" />
+      </list>
+    </option>
+  </component>
+  <component name="JsBuildToolGruntFileManager" detection-done="true" sorting="DEFINITION_ORDER" />
+  <component name="JsBuildToolPackageJson" detection-done="true" sorting="DEFINITION_ORDER" />
+  <component name="JsGulpfileManager">
+    <detection-done>true</detection-done>
+    <sorting>DEFINITION_ORDER</sorting>
+  </component>
+  <component name="NodePackageJsonFileManager">
+    <packageJsonPaths>
+      <path value="$PROJECT_DIR$/submodules/Font-Awesome/advanced-options/use-with-node-js/fontawesome-common-types/package.json" />
+      <path value="$PROJECT_DIR$/submodules/Font-Awesome/advanced-options/use-with-node-js/fontawesome-free-brands/package.json" />
+      <path value="$PROJECT_DIR$/submodules/Font-Awesome/advanced-options/use-with-node-js/fontawesome-free-regular/package.json" />
+      <path value="$PROJECT_DIR$/submodules/Font-Awesome/advanced-options/use-with-node-js/fontawesome-free-solid/package.json" />
+      <path value="$PROJECT_DIR$/submodules/Font-Awesome/advanced-options/use-with-node-js/fontawesome-free-webfonts/package.json" />
+      <path value="$PROJECT_DIR$/submodules/Font-Awesome/advanced-options/use-with-node-js/fontawesome/package.json" />
+      <path value="$PROJECT_DIR$/submodules/rapidjson/package.json" />
+    </packageJsonPaths>
+  </component>
+  <component name="ProjectFrameBounds" extendedState="6">
+    <option name="x" value="288" />
+    <option name="y" value="294" />
+    <option name="width" value="1200" />
+    <option name="height" value="654" />
+  </component>
+  <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
+  <component name="ProjectView">
+    <navigator proportions="" version="1">
+      <foldersAlwaysOnTop value="true" />
+    </navigator>
+    <panes>
+      <pane id="Scope" />
+      <pane id="ProjectPane">
+        <subPane>
+          <expand>
+            <path>
+              <item name="b2" type="b2602c69:ProjectViewProjectNode" />
+              <item name="b2" type="462c0819:PsiDirectoryNode" />
+            </path>
+            <path>
+              <item name="b2" type="b2602c69:ProjectViewProjectNode" />
+              <item name="b2" type="462c0819:PsiDirectoryNode" />
+              <item name="src" type="462c0819:PsiDirectoryNode" />
+            </path>
+            <path>
+              <item name="b2" type="b2602c69:ProjectViewProjectNode" />
+              <item name="b2" type="462c0819:PsiDirectoryNode" />
+              <item name="src" type="462c0819:PsiDirectoryNode" />
+              <item name="b2" type="462c0819:PsiDirectoryNode" />
+            </path>
+            <path>
+              <item name="b2" type="b2602c69:ProjectViewProjectNode" />
+              <item name="b2" type="462c0819:PsiDirectoryNode" />
+              <item name="src" type="462c0819:PsiDirectoryNode" />
+              <item name="beeb" type="462c0819:PsiDirectoryNode" />
+            </path>
+            <path>
+              <item name="b2" type="b2602c69:ProjectViewProjectNode" />
+              <item name="b2" type="462c0819:PsiDirectoryNode" />
+              <item name="src" type="462c0819:PsiDirectoryNode" />
+              <item name="beeb" type="462c0819:PsiDirectoryNode" />
+              <item name="include" type="462c0819:PsiDirectoryNode" />
+            </path>
+            <path>
+              <item name="b2" type="b2602c69:ProjectViewProjectNode" />
+              <item name="b2" type="462c0819:PsiDirectoryNode" />
+              <item name="src" type="462c0819:PsiDirectoryNode" />
+              <item name="beeb" type="462c0819:PsiDirectoryNode" />
+              <item name="include" type="462c0819:PsiDirectoryNode" />
+              <item name="beeb" type="462c0819:PsiDirectoryNode" />
+            </path>
+            <path>
+              <item name="b2" type="b2602c69:ProjectViewProjectNode" />
+              <item name="b2" type="462c0819:PsiDirectoryNode" />
+              <item name="src" type="462c0819:PsiDirectoryNode" />
+              <item name="beeb" type="462c0819:PsiDirectoryNode" />
+              <item name="src" type="462c0819:PsiDirectoryNode" />
+            </path>
+          </expand>
+          <select />
+        </subPane>
+      </pane>
+    </panes>
+  </component>
+  <component name="PropertiesComponent">
+    <property name="WebServerToolWindowFactoryState" value="false" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$" />
+    <property name="nodejs_interpreter_path.stuck_in_default_project" value="undefined stuck path" />
+    <property name="nodejs_npm_path_reset_for_default_project" value="true" />
+    <property name="settings.editor.selected.configurable" value="com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable" />
+  </component>
+  <component name="RunDashboard">
+    <option name="ruleStates">
+      <list>
+        <RuleState>
+          <option name="name" value="ConfigurationTypeDashboardGroupingRule" />
+        </RuleState>
+        <RuleState>
+          <option name="name" value="StatusDashboardGroupingRule" />
+        </RuleState>
+      </list>
+    </option>
+  </component>
+  <component name="RunManager" selected="Application.6502_gen">
+    <configuration name="6502_basic_tests" type="CMakeRunConfiguration" factoryName="Application" PASS_PARENT_ENVS_2="true" PROJECT_NAME="b2" TARGET_NAME="6502_basic_tests" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="b2" RUN_TARGET_NAME="6502_basic_tests">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="6502_gen" type="CMakeRunConfiguration" factoryName="Application" PASS_PARENT_ENVS_2="true" PROJECT_NAME="b2" TARGET_NAME="6502_gen" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="b2" RUN_TARGET_NAME="6502_gen">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="6502_lib" type="CMakeRunConfiguration" factoryName="Application" PASS_PARENT_ENVS_2="true" PROJECT_NAME="b2" TARGET_NAME="6502_lib" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="Build All" type="CMakeRunConfiguration" factoryName="Application" PASS_PARENT_ENVS_2="true" CONFIG_NAME="Debug" EXPLICIT_BUILD_TARGET_NAME="all">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="SDL2-static" type="CMakeRunConfiguration" factoryName="Application" PASS_PARENT_ENVS_2="true" PROJECT_NAME="b2" TARGET_NAME="SDL2-static" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="SDL2main" type="CMakeRunConfiguration" factoryName="Application" PASS_PARENT_ENVS_2="true" PROJECT_NAME="b2" TARGET_NAME="SDL2main" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="b2" type="CMakeRunConfiguration" factoryName="Application" PASS_PARENT_ENVS_2="true" PROJECT_NAME="b2" TARGET_NAME="b2" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="b2" RUN_TARGET_NAME="b2">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="beeb_lib" type="CMakeRunConfiguration" factoryName="Application" PASS_PARENT_ENVS_2="true" PROJECT_NAME="b2" TARGET_NAME="beeb_lib" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="http-parser" type="CMakeRunConfiguration" factoryName="Application" PASS_PARENT_ENVS_2="true" PROJECT_NAME="b2" TARGET_NAME="http-parser" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="imgui_lib" type="CMakeRunConfiguration" factoryName="Application" PASS_PARENT_ENVS_2="true" PROJECT_NAME="b2" TARGET_NAME="imgui_lib" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="klaus" type="CMakeRunConfiguration" factoryName="Application" PASS_PARENT_ENVS_2="true" PROJECT_NAME="b2" TARGET_NAME="klaus" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="b2" RUN_TARGET_NAME="klaus">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="lorenz" type="CMakeRunConfiguration" factoryName="Application" PASS_PARENT_ENVS_2="true" PROJECT_NAME="b2" TARGET_NAME="lorenz" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="b2" RUN_TARGET_NAME="lorenz">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="remotery_lib" type="CMakeRunConfiguration" factoryName="Application" PASS_PARENT_ENVS_2="true" PROJECT_NAME="b2" TARGET_NAME="remotery_lib" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="shared_lib" type="CMakeRunConfiguration" factoryName="Application" PASS_PARENT_ENVS_2="true" PROJECT_NAME="b2" TARGET_NAME="shared_lib" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="test_6522" type="CMakeRunConfiguration" factoryName="Application" PASS_PARENT_ENVS_2="true" PROJECT_NAME="b2" TARGET_NAME="test_6522" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="b2" RUN_TARGET_NAME="test_6522">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="test_CommandLineParser" type="CMakeRunConfiguration" factoryName="Application" PASS_PARENT_ENVS_2="true" PROJECT_NAME="b2" TARGET_NAME="test_CommandLineParser" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="b2" RUN_TARGET_NAME="test_CommandLineParser">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="test_JobQueue" type="CMakeRunConfiguration" factoryName="Application" PASS_PARENT_ENVS_2="true" PROJECT_NAME="b2" TARGET_NAME="test_JobQueue" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="b2" RUN_TARGET_NAME="test_JobQueue">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="test_OutputDataBuffer" type="CMakeRunConfiguration" factoryName="Application" PASS_PARENT_ENVS_2="true" PROJECT_NAME="b2" TARGET_NAME="test_OutputDataBuffer" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="b2" RUN_TARGET_NAME="test_OutputDataBuffer">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="test_assert" type="CMakeRunConfiguration" factoryName="Application" PASS_PARENT_ENVS_2="true" PROJECT_NAME="b2" TARGET_NAME="test_assert" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="b2" RUN_TARGET_NAME="test_assert">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="test_backtrace" type="CMakeRunConfiguration" factoryName="Application" PASS_PARENT_ENVS_2="true" PROJECT_NAME="b2" TARGET_NAME="test_backtrace" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="b2" RUN_TARGET_NAME="test_backtrace">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="test_basic" type="CMakeRunConfiguration" factoryName="Application" PASS_PARENT_ENVS_2="true" PROJECT_NAME="b2" TARGET_NAME="test_basic" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="b2" RUN_TARGET_NAME="test_basic">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="test_enum" type="CMakeRunConfiguration" factoryName="Application" PASS_PARENT_ENVS_2="true" PROJECT_NAME="b2" TARGET_NAME="test_enum" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="b2" RUN_TARGET_NAME="test_enum">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="test_load_store" type="CMakeRunConfiguration" factoryName="Application" PASS_PARENT_ENVS_2="true" PROJECT_NAME="b2" TARGET_NAME="test_load_store" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="b2" RUN_TARGET_NAME="test_load_store">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="test_log" type="CMakeRunConfiguration" factoryName="Application" PASS_PARENT_ENVS_2="true" PROJECT_NAME="b2" TARGET_NAME="test_log" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="b2" RUN_TARGET_NAME="test_log">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="test_path" type="CMakeRunConfiguration" factoryName="Application" PASS_PARENT_ENVS_2="true" PROJECT_NAME="b2" TARGET_NAME="test_path" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="b2" RUN_TARGET_NAME="test_path">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="test_posix_sleep" type="CMakeRunConfiguration" factoryName="Application" PASS_PARENT_ENVS_2="true" PROJECT_NAME="b2" TARGET_NAME="test_posix_sleep" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="b2" RUN_TARGET_NAME="test_posix_sleep">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="test_sha1" type="CMakeRunConfiguration" factoryName="Application" PASS_PARENT_ENVS_2="true" PROJECT_NAME="b2" TARGET_NAME="test_sha1" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="b2" RUN_TARGET_NAME="test_sha1">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="uninstall" type="CMakeRunConfiguration" factoryName="Application" PASS_PARENT_ENVS_2="true" PROJECT_NAME="b2" TARGET_NAME="uninstall" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="uv" type="CMakeRunConfiguration" factoryName="Application" PASS_PARENT_ENVS_2="true" PROJECT_NAME="b2" TARGET_NAME="uv" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="visual6502" type="CMakeRunConfiguration" factoryName="Application" PASS_PARENT_ENVS_2="true" PROJECT_NAME="b2" TARGET_NAME="visual6502" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="b2" RUN_TARGET_NAME="visual6502">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <list>
+      <item itemvalue="Application.Build All" />
+      <item itemvalue="Application.uv" />
+      <item itemvalue="Application.6502_gen" />
+      <item itemvalue="Application.6502_lib" />
+      <item itemvalue="Application.6502_basic_tests" />
+      <item itemvalue="Application.klaus" />
+      <item itemvalue="Application.lorenz" />
+      <item itemvalue="Application.visual6502" />
+      <item itemvalue="Application.b2" />
+      <item itemvalue="Application.test_JobQueue" />
+      <item itemvalue="Application.beeb_lib" />
+      <item itemvalue="Application.test_6522" />
+      <item itemvalue="Application.test_OutputDataBuffer" />
+      <item itemvalue="Application.shared_lib" />
+      <item itemvalue="Application.test_assert" />
+      <item itemvalue="Application.test_backtrace" />
+      <item itemvalue="Application.test_basic" />
+      <item itemvalue="Application.test_CommandLineParser" />
+      <item itemvalue="Application.test_enum" />
+      <item itemvalue="Application.test_load_store" />
+      <item itemvalue="Application.test_log" />
+      <item itemvalue="Application.test_path" />
+      <item itemvalue="Application.test_posix_sleep" />
+      <item itemvalue="Application.test_sha1" />
+      <item itemvalue="Application.http-parser" />
+      <item itemvalue="Application.imgui_lib" />
+      <item itemvalue="Application.remotery_lib" />
+      <item itemvalue="Application.SDL2-static" />
+      <item itemvalue="Application.SDL2main" />
+      <item itemvalue="Application.uninstall" />
+    </list>
+  </component>
+  <component name="SvnConfiguration">
+    <configuration />
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="34e45d20-f373-4a13-84b9-9421bfbe0c4e" name="Default Changelist" comment="" />
+      <created>1536066073646</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1536066073646</updated>
+      <workItem from="1536066080840" duration="8161000" />
+    </task>
+    <servers />
+  </component>
+  <component name="TimeTrackingManager">
+    <option name="totallyTimeSpent" value="8161000" />
+  </component>
+  <component name="ToolWindowManager">
+    <frame x="0" y="27" width="1600" height="873" extended-state="6" />
+    <editor active="true" />
+    <layout>
+      <window_info id="Favorites" order="0" side_tool="true" />
+      <window_info content_ui="combo" id="Project" order="1" visible="true" weight="0.25" />
+      <window_info id="Structure" order="2" side_tool="true" weight="0.25" />
+      <window_info anchor="bottom" id="Terminal" order="0" />
+      <window_info anchor="bottom" id="Event Log" order="1" side_tool="true" />
+      <window_info anchor="bottom" id="Version Control" order="2" />
+      <window_info anchor="bottom" id="CMake" order="3" />
+      <window_info anchor="bottom" id="Message" order="4" />
+      <window_info anchor="bottom" id="Find" order="5" />
+      <window_info anchor="bottom" id="Database Changes" order="6" show_stripe_button="false" />
+      <window_info anchor="bottom" id="Run" order="7" />
+      <window_info anchor="bottom" id="Debug" order="8" weight="0.4" />
+      <window_info anchor="bottom" id="Cvs" order="9" weight="0.25" />
+      <window_info anchor="bottom" id="Inspection" order="10" weight="0.4" />
+      <window_info anchor="bottom" id="TODO" order="11" />
+      <window_info anchor="right" id="Database" order="0" />
+      <window_info anchor="right" id="Commander" order="1" weight="0.4" />
+      <window_info anchor="right" id="Ant Build" order="2" weight="0.25" />
+      <window_info anchor="right" content_ui="combo" id="Hierarchy" order="3" weight="0.25" />
+    </layout>
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="1" />
+  </component>
+  <component name="VcsContentAnnotationSettings">
+    <option name="myLimit" value="2678400000" />
+  </component>
+  <component name="editorHistoryManager">
+    <entry file="file://$PROJECT_DIR$/src/beeb/include/beeb/BBCMicro.inl">
+      <provider selected="true" editor-type-id="text-editor" />
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/beeb/include/beeb/conf.h">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-30" />
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/beeb/include/beeb/crtc.inl">
+      <provider selected="true" editor-type-id="text-editor" />
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/beeb/include/beeb/keys.inl">
+      <provider selected="true" editor-type-id="text-editor" />
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/beeb/include/beeb/DiscInterface.inl">
+      <provider selected="true" editor-type-id="text-editor" />
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/beeb/include/beeb/crtc.h">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="75">
+          <caret line="5" lean-forward="true" selection-start-line="5" selection-end-line="6" selection-end-column="17" />
+          <folding>
+            <element signature="e#248#265#0" expanded="true" />
+            <element signature="e#304#333#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/beeb/CMakeLists.txt">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="165">
+          <caret line="11" column="31" selection-start-line="11" selection-start-column="31" selection-end-line="11" selection-end-column="31" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/beeb/include/beeb/VideoULA.h">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-360" />
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/beeb/src/VideoULA.cpp">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-2115">
+          <folding>
+            <element signature="e#0#26#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/submodules/imgui_club/imgui_memory_editor/imgui_memory_editor.h">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-308">
+          <caret line="39" column="7" selection-start-line="39" selection-start-column="7" selection-end-line="39" selection-end-column="7" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/b2/SettingsUI.h">
+      <provider selected="true" editor-type-id="text-editor" />
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/b2/BeebWindow.h">
+      <provider selected="true" editor-type-id="text-editor" />
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/b2/BeebWindow.inl">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="52">
+          <caret line="39" column="13" lean-forward="true" selection-start-line="39" selection-start-column="13" selection-end-line="39" selection-end-column="13" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/b2/BeebWindow.cpp">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="228">
+          <caret line="769" column="111" lean-forward="true" selection-start-line="769" selection-start-column="111" selection-end-line="769" selection-end-column="111" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/b2/debugger.h">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="255">
+          <caret line="17" column="51" selection-start-line="17" selection-start-column="28" selection-end-line="17" selection-end-column="51" />
+          <folding>
+            <element signature="e#330#353#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/beeb/src/crtc.cpp">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="4740">
+          <caret line="322" column="25" selection-start-line="322" selection-start-column="25" selection-end-line="322" selection-end-column="25" />
+          <folding>
+            <element signature="e#0#26#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/b2/BeebState.h">
+      <provider selected="true" editor-type-id="text-editor" />
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/b2/beeb_events.inl">
+      <provider selected="true" editor-type-id="text-editor" />
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/b2/BeebThread.inl">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="495">
+          <caret line="48" column="10" selection-start-line="48" selection-start-column="10" selection-end-line="48" selection-end-column="10" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/b2/DearImguiTestUI.cpp">
+      <provider selected="true" editor-type-id="text-editor" />
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/beeb/include/beeb/ExtMem.h">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="195">
+          <caret line="13" column="32" selection-start-line="13" selection-start-column="32" selection-end-line="13" selection-end-column="32" />
+          <folding>
+            <element signature="e#45#71#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/beeb/src/ExtMem.cpp">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="55">
+          <caret line="30" column="25" selection-start-line="30" selection-start-column="25" selection-end-line="30" selection-end-column="25" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/beeb/include/beeb/BBCMicro.h">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="435">
+          <caret line="404" column="33" selection-start-line="404" selection-start-column="33" selection-end-line="404" selection-end-column="33" />
+          <folding>
+            <element signature="e#438#454#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/b2/beeb_events_types.inl">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="210">
+          <caret line="14" column="26" selection-start-line="14" selection-start-column="26" selection-end-line="14" selection-end-column="26" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/b2/beeb_events.h">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="223">
+          <caret line="235" column="21" selection-start-line="235" selection-start-column="21" selection-end-line="235" selection-end-column="21" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/b2/beeb_events.cpp">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="168">
+          <caret line="814" column="45" selection-start-line="814" selection-start-column="35" selection-end-line="814" selection-end-column="45" />
+          <folding>
+            <element signature="e#0#26#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/b2/BeebThread.h">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="280">
+          <caret line="451" column="21" selection-start-line="451" selection-start-column="21" selection-end-line="451" selection-end-column="21" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/b2/BeebThread.cpp">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="498">
+          <caret line="2083" selection-start-line="2083" selection-end-line="2083" />
+          <folding>
+            <element signature="e#0#26#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/b2/debugger.cpp">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="232">
+          <caret line="372" selection-start-line="372" selection-end-line="372" />
+          <folding>
+            <element signature="e#0#26#0" expanded="true" />
+            <element signature="e#73#96#0" expanded="true" />
+            <element signature="e#374#398#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/beeb/src/BBCMicro.cpp">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="348">
+          <caret line="2433" column="59" selection-start-line="2433" selection-start-column="59" selection-end-line="2433" selection-end-column="59" />
+          <folding>
+            <element signature="e#0#26#0" expanded="true" />
+            <element signature="e#16520#16735#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+  </component>
+</project>

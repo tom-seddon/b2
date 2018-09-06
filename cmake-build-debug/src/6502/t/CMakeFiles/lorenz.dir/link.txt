@@ -1,0 +1,1 @@
+/usr/bin/c++  -g -DASSERT_ENABLED=1  -rdynamic CMakeFiles/lorenz.dir/lorenz.cpp.o  -o lorenz ../../shared/libshared_lib.a ../lib6502_lib.a -lpthread -lrt -luuid 

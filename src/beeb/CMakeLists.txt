@@ -9,6 +9,7 @@ set(SRCS
   ${S}/BBCMicro.cpp ${S}/BBCMicro_private.inl ${I}/BBCMicro.h ${I}/BBCMicro.inl
   ${S}/conf.cpp ${I}/conf.h
   ${S}/crtc.cpp ${I}/crtc.h ${I}/crtc.inl
+  ${S}/ExtMem.cpp ${I}/ExtMem.h
   ${S}/keys.cpp ${I}/keys.h ${I}/keys.inl
   ${S}/OutputData.cpp ${I}/OutputData.h
   ${S}/SN76489.cpp ${I}/SN76489.h

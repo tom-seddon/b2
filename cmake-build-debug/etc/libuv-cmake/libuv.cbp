@@ -1,0 +1,556 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CodeBlocks_project_file>
+	<FileVersion major="1" minor="6"/>
+	<Project>
+		<Option title="libuv"/>
+		<Option makefile_is_custom="1"/>
+		<Option compiler="gcc"/>
+		<Option virtualFolders="CMake Files\;CMake Files\src\;CMake Files\src\6502\;CMake Files\src\6502\t\;CMake Files\src\beeb\;CMake Files\src\beeb\tests\;CMake Files\src\shared\;CMake Files\src\shared\t\;CMake Files\src\b2\;CMake Files\submodules\;CMake Files\submodules\SDL\;CMake Files\submodules\SDL\cmake\;CMake Files\submodules\SDL\include\;CMake Files\submodules\sanitizers-cmake\;CMake Files\submodules\sanitizers-cmake\cmake\;CMake Files\etc\;CMake Files\etc\cmake\;CMake Files\etc\libuv-cmake\;"/>
+		<Build>
+			<Target title="all">
+				<Option working_dir="/home/benjamin/Documents/b2/cmake-build-debug/etc/libuv-cmake"/>
+				<Option type="4"/>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/etc/libuv-cmake/Makefile&quot;  VERBOSE=1 all"/>
+					<CompileFile command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/etc/libuv-cmake/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/etc/libuv-cmake/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/etc/libuv-cmake/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="uv">
+				<Option output="/home/benjamin/Documents/b2/cmake-build-debug/etc/libuv-cmake/libuv.a" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/home/benjamin/Documents/b2/cmake-build-debug/etc/libuv-cmake"/>
+				<Option object_output="./"/>
+				<Option type="2"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add option="-D_LARGEFILE_SOURCE"/>
+					<Add option="-D_FILE_OFFSET_BITS=64"/>
+					<Add option="-D_GNU_SOURCE"/>
+					<Add option="-D_POSIX_C_SOURCE=200112"/>
+					<Add directory="/home/benjamin/Documents/b2/submodules/libuv/include"/>
+					<Add directory="/home/benjamin/Documents/b2/submodules/libuv/src"/>
+					<Add directory="/home/benjamin/Documents/b2/submodules/libuv/src/unix"/>
+					<Add directory="/usr/include/c++/7"/>
+					<Add directory="/usr/include/x86_64-linux-gnu/c++/7"/>
+					<Add directory="/usr/include/c++/7/backward"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include-fixed"/>
+					<Add directory="/usr/include/x86_64-linux-gnu"/>
+					<Add directory="/usr/include"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/etc/libuv-cmake/Makefile&quot;  VERBOSE=1 uv"/>
+					<CompileFile command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/etc/libuv-cmake/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/etc/libuv-cmake/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/etc/libuv-cmake/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="uv/fast">
+				<Option output="/home/benjamin/Documents/b2/cmake-build-debug/etc/libuv-cmake/libuv.a" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/home/benjamin/Documents/b2/cmake-build-debug/etc/libuv-cmake"/>
+				<Option object_output="./"/>
+				<Option type="2"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add option="-D_LARGEFILE_SOURCE"/>
+					<Add option="-D_FILE_OFFSET_BITS=64"/>
+					<Add option="-D_GNU_SOURCE"/>
+					<Add option="-D_POSIX_C_SOURCE=200112"/>
+					<Add directory="/home/benjamin/Documents/b2/submodules/libuv/include"/>
+					<Add directory="/home/benjamin/Documents/b2/submodules/libuv/src"/>
+					<Add directory="/home/benjamin/Documents/b2/submodules/libuv/src/unix"/>
+					<Add directory="/usr/include/c++/7"/>
+					<Add directory="/usr/include/x86_64-linux-gnu/c++/7"/>
+					<Add directory="/usr/include/c++/7/backward"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include-fixed"/>
+					<Add directory="/usr/include/x86_64-linux-gnu"/>
+					<Add directory="/usr/include"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/etc/libuv-cmake/Makefile&quot;  VERBOSE=1 uv/fast"/>
+					<CompileFile command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/etc/libuv-cmake/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/etc/libuv-cmake/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/etc/libuv-cmake/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+		</Build>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/libuv/include/tree.h">
+			<Option target="uv"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/libuv/include/uv-aix.h">
+			<Option target="uv"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/libuv/include/uv-bsd.h">
+			<Option target="uv"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/libuv/include/uv-darwin.h">
+			<Option target="uv"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/libuv/include/uv-errno.h">
+			<Option target="uv"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/libuv/include/uv-linux.h">
+			<Option target="uv"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/libuv/include/uv-sunos.h">
+			<Option target="uv"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/libuv/include/uv-threadpool.h">
+			<Option target="uv"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/libuv/include/uv-unix.h">
+			<Option target="uv"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/libuv/include/uv-version.h">
+			<Option target="uv"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/libuv/include/uv.h">
+			<Option target="uv"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/libuv/src/fs-poll.c">
+			<Option target="uv"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/libuv/src/heap-inl.h">
+			<Option target="uv"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/libuv/src/inet.c">
+			<Option target="uv"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/libuv/src/queue.h">
+			<Option target="uv"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/libuv/src/threadpool.c">
+			<Option target="uv"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/libuv/src/unix/async.c">
+			<Option target="uv"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/libuv/src/unix/atomic-ops.h">
+			<Option target="uv"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/libuv/src/unix/core.c">
+			<Option target="uv"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/libuv/src/unix/dl.c">
+			<Option target="uv"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/libuv/src/unix/fs.c">
+			<Option target="uv"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/libuv/src/unix/getaddrinfo.c">
+			<Option target="uv"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/libuv/src/unix/getnameinfo.c">
+			<Option target="uv"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/libuv/src/unix/internal.h">
+			<Option target="uv"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/libuv/src/unix/linux-core.c">
+			<Option target="uv"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/libuv/src/unix/linux-inotify.c">
+			<Option target="uv"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/libuv/src/unix/linux-syscalls.c">
+			<Option target="uv"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/libuv/src/unix/linux-syscalls.h">
+			<Option target="uv"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/libuv/src/unix/loop-watcher.c">
+			<Option target="uv"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/libuv/src/unix/loop.c">
+			<Option target="uv"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/libuv/src/unix/pipe.c">
+			<Option target="uv"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/libuv/src/unix/poll.c">
+			<Option target="uv"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/libuv/src/unix/process.c">
+			<Option target="uv"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/libuv/src/unix/procfs-exepath.c">
+			<Option target="uv"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/libuv/src/unix/proctitle.c">
+			<Option target="uv"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/libuv/src/unix/signal.c">
+			<Option target="uv"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/libuv/src/unix/spinlock.h">
+			<Option target="uv"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/libuv/src/unix/stream.c">
+			<Option target="uv"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/libuv/src/unix/sysinfo-loadavg.c">
+			<Option target="uv"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/libuv/src/unix/sysinfo-memory.c">
+			<Option target="uv"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/libuv/src/unix/tcp.c">
+			<Option target="uv"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/libuv/src/unix/thread.c">
+			<Option target="uv"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/libuv/src/unix/timer.c">
+			<Option target="uv"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/libuv/src/unix/tty.c">
+			<Option target="uv"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/libuv/src/unix/udp.c">
+			<Option target="uv"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/libuv/src/uv-common.c">
+			<Option target="uv"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/libuv/src/uv-common.h">
+			<Option target="uv"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/libuv/src/uv-data-getter-setters.c">
+			<Option target="uv"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/libuv/src/version.c">
+			<Option target="uv"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/common.txt">
+			<Option virtualFolder="CMake Files\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\src\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/6502/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\src\6502\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/6502/t/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\src\6502\t\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/beeb/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\src\beeb\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/beeb/tests/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\src\beeb\tests\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/shared/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\src\shared\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/shared/t/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\src\shared\t\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/b2/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\src\b2\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\submodules\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\submodules\SDL\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/SDL2.spec.in">
+			<Option virtualFolder="CMake Files\submodules\SDL\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/cmake_uninstall.cmake.in">
+			<Option virtualFolder="CMake Files\submodules\SDL\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/sdl2-config.in">
+			<Option virtualFolder="CMake Files\submodules\SDL\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/sdl2.pc.in">
+			<Option virtualFolder="CMake Files\submodules\SDL\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/cmake/macros.cmake">
+			<Option virtualFolder="CMake Files\submodules\SDL\cmake\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/cmake/sdlchecks.cmake">
+			<Option virtualFolder="CMake Files\submodules\SDL\cmake\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_assert.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_atomic.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_audio.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_bits.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_blendmode.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_clipboard.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_config.h.cmake">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_config_android.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_config_iphoneos.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_config_macosx.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_config_minimal.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_config_pandora.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_config_psp.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_config_windows.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_config_winrt.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_config_wiz.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_copying.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_cpuinfo.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_egl.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_endian.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_error.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_events.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_filesystem.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_gamecontroller.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_gesture.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_haptic.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_hints.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_joystick.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_keyboard.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_keycode.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_loadso.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_log.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_main.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_messagebox.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_mouse.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_mutex.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_name.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_opengl.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_opengl_glext.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_opengles.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_opengles2.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_opengles2_gl2.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_opengles2_gl2ext.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_opengles2_gl2platform.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_opengles2_khrplatform.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_pixels.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_platform.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_power.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_quit.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_rect.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_render.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_revision.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_rwops.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_scancode.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_shape.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_stdinc.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_surface.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_system.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_syswm.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_test.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_test_assert.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_test_common.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_test_compare.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_test_crc32.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_test_font.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_test_fuzzer.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_test_harness.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_test_images.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_test_log.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_test_md5.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_test_memory.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_test_random.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_thread.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_timer.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_touch.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_types.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_version.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_vertex.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_video.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_vulkan.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/begin_code.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/close_code.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/sanitizers-cmake/cmake/FindASan.cmake">
+			<Option virtualFolder="CMake Files\submodules\sanitizers-cmake\cmake\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/sanitizers-cmake/cmake/FindMSan.cmake">
+			<Option virtualFolder="CMake Files\submodules\sanitizers-cmake\cmake\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/sanitizers-cmake/cmake/FindSanitizers.cmake">
+			<Option virtualFolder="CMake Files\submodules\sanitizers-cmake\cmake\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/sanitizers-cmake/cmake/FindTSan.cmake">
+			<Option virtualFolder="CMake Files\submodules\sanitizers-cmake\cmake\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/sanitizers-cmake/cmake/FindUBSan.cmake">
+			<Option virtualFolder="CMake Files\submodules\sanitizers-cmake\cmake\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/sanitizers-cmake/cmake/sanitize-helpers.cmake">
+			<Option virtualFolder="CMake Files\submodules\sanitizers-cmake\cmake\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/etc/cmake/FindFFmpeg.cmake">
+			<Option virtualFolder="CMake Files\etc\cmake\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/etc/libuv-cmake/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\etc\libuv-cmake\"/>
+		</Unit>
+	</Project>
+</CodeBlocks_project_file>

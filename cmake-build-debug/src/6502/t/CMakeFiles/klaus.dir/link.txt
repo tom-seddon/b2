@@ -1,0 +1,1 @@
+/usr/bin/c++  -g -DASSERT_ENABLED=1  -rdynamic CMakeFiles/klaus.dir/klaus.cpp.o  -o klaus ../../shared/libshared_lib.a ../lib6502_lib.a -lpthread -lrt -luuid 

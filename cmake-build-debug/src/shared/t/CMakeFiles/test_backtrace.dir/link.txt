@@ -1,0 +1,1 @@
+/usr/bin/c++  -g -DASSERT_ENABLED=1  -rdynamic CMakeFiles/test_backtrace.dir/test_backtrace.c.o  -o test_backtrace ../libshared_lib.a -lpthread -lrt -luuid 

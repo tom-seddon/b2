@@ -1,0 +1,1169 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CodeBlocks_project_file>
+	<FileVersion major="1" minor="6"/>
+	<Project>
+		<Option title="SDL2"/>
+		<Option makefile_is_custom="1"/>
+		<Option compiler="gcc"/>
+		<Option virtualFolders="CMake Files\;CMake Files\src\;CMake Files\src\6502\;CMake Files\src\6502\t\;CMake Files\src\beeb\;CMake Files\src\beeb\tests\;CMake Files\src\shared\;CMake Files\src\shared\t\;CMake Files\src\b2\;CMake Files\submodules\;CMake Files\submodules\SDL\;CMake Files\submodules\SDL\cmake\;CMake Files\submodules\SDL\include\;CMake Files\submodules\sanitizers-cmake\;CMake Files\submodules\sanitizers-cmake\cmake\;CMake Files\etc\;CMake Files\etc\cmake\;CMake Files\etc\libuv-cmake\;"/>
+		<Build>
+			<Target title="all">
+				<Option working_dir="/home/benjamin/Documents/b2/cmake-build-debug/submodules/SDL"/>
+				<Option type="4"/>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/submodules/SDL/Makefile&quot;  VERBOSE=1 all"/>
+					<CompileFile command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/submodules/SDL/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/submodules/SDL/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/submodules/SDL/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="SDL2main">
+				<Option output="/home/benjamin/Documents/b2/cmake-build-debug/submodules/SDL/libSDL2maind.a" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/home/benjamin/Documents/b2/cmake-build-debug/submodules/SDL"/>
+				<Option object_output="./"/>
+				<Option type="2"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add option="-DUSING_GENERATED_CONFIG_H"/>
+					<Add directory="/home/benjamin/Documents/b2/cmake-build-debug/submodules/SDL/include"/>
+					<Add directory="/home/benjamin/Documents/b2/submodules/SDL/include"/>
+					<Add directory="/usr/include/libdrm"/>
+					<Add directory="/home/benjamin/Documents/b2/cmake-build-debug/submodules/SDL/wayland-generated-protocols"/>
+					<Add directory="/usr/include/dbus-1.0"/>
+					<Add directory="/usr/lib/x86_64-linux-gnu/dbus-1.0/include"/>
+					<Add directory="/usr/include/c++/7"/>
+					<Add directory="/usr/include/x86_64-linux-gnu/c++/7"/>
+					<Add directory="/usr/include/c++/7/backward"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include-fixed"/>
+					<Add directory="/usr/include/x86_64-linux-gnu"/>
+					<Add directory="/usr/include"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/submodules/SDL/Makefile&quot;  VERBOSE=1 SDL2main"/>
+					<CompileFile command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/submodules/SDL/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/submodules/SDL/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/submodules/SDL/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="SDL2main/fast">
+				<Option output="/home/benjamin/Documents/b2/cmake-build-debug/submodules/SDL/libSDL2maind.a" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/home/benjamin/Documents/b2/cmake-build-debug/submodules/SDL"/>
+				<Option object_output="./"/>
+				<Option type="2"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add option="-DUSING_GENERATED_CONFIG_H"/>
+					<Add directory="/home/benjamin/Documents/b2/cmake-build-debug/submodules/SDL/include"/>
+					<Add directory="/home/benjamin/Documents/b2/submodules/SDL/include"/>
+					<Add directory="/usr/include/libdrm"/>
+					<Add directory="/home/benjamin/Documents/b2/cmake-build-debug/submodules/SDL/wayland-generated-protocols"/>
+					<Add directory="/usr/include/dbus-1.0"/>
+					<Add directory="/usr/lib/x86_64-linux-gnu/dbus-1.0/include"/>
+					<Add directory="/usr/include/c++/7"/>
+					<Add directory="/usr/include/x86_64-linux-gnu/c++/7"/>
+					<Add directory="/usr/include/c++/7/backward"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include-fixed"/>
+					<Add directory="/usr/include/x86_64-linux-gnu"/>
+					<Add directory="/usr/include"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/submodules/SDL/Makefile&quot;  VERBOSE=1 SDL2main/fast"/>
+					<CompileFile command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/submodules/SDL/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/submodules/SDL/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/submodules/SDL/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="SDL2-static">
+				<Option output="/home/benjamin/Documents/b2/cmake-build-debug/submodules/SDL/libSDL2d.a" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/home/benjamin/Documents/b2/cmake-build-debug/submodules/SDL"/>
+				<Option object_output="./"/>
+				<Option type="2"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add option="-DUSING_GENERATED_CONFIG_H"/>
+					<Add directory="/home/benjamin/Documents/b2/cmake-build-debug/submodules/SDL/include"/>
+					<Add directory="/home/benjamin/Documents/b2/submodules/SDL/include"/>
+					<Add directory="/usr/include/libdrm"/>
+					<Add directory="/home/benjamin/Documents/b2/cmake-build-debug/submodules/SDL/wayland-generated-protocols"/>
+					<Add directory="/usr/include/dbus-1.0"/>
+					<Add directory="/usr/lib/x86_64-linux-gnu/dbus-1.0/include"/>
+					<Add directory="/usr/include/c++/7"/>
+					<Add directory="/usr/include/x86_64-linux-gnu/c++/7"/>
+					<Add directory="/usr/include/c++/7/backward"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include-fixed"/>
+					<Add directory="/usr/include/x86_64-linux-gnu"/>
+					<Add directory="/usr/include"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/submodules/SDL/Makefile&quot;  VERBOSE=1 SDL2-static"/>
+					<CompileFile command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/submodules/SDL/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/submodules/SDL/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/submodules/SDL/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="SDL2-static/fast">
+				<Option output="/home/benjamin/Documents/b2/cmake-build-debug/submodules/SDL/libSDL2d.a" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/home/benjamin/Documents/b2/cmake-build-debug/submodules/SDL"/>
+				<Option object_output="./"/>
+				<Option type="2"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add option="-DUSING_GENERATED_CONFIG_H"/>
+					<Add directory="/home/benjamin/Documents/b2/cmake-build-debug/submodules/SDL/include"/>
+					<Add directory="/home/benjamin/Documents/b2/submodules/SDL/include"/>
+					<Add directory="/usr/include/libdrm"/>
+					<Add directory="/home/benjamin/Documents/b2/cmake-build-debug/submodules/SDL/wayland-generated-protocols"/>
+					<Add directory="/usr/include/dbus-1.0"/>
+					<Add directory="/usr/lib/x86_64-linux-gnu/dbus-1.0/include"/>
+					<Add directory="/usr/include/c++/7"/>
+					<Add directory="/usr/include/x86_64-linux-gnu/c++/7"/>
+					<Add directory="/usr/include/c++/7/backward"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include-fixed"/>
+					<Add directory="/usr/include/x86_64-linux-gnu"/>
+					<Add directory="/usr/include"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/submodules/SDL/Makefile&quot;  VERBOSE=1 SDL2-static/fast"/>
+					<CompileFile command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/submodules/SDL/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/submodules/SDL/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/submodules/SDL/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="uninstall">
+				<Option working_dir="/home/benjamin/Documents/b2/cmake-build-debug/submodules/SDL"/>
+				<Option type="4"/>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/submodules/SDL/Makefile&quot;  VERBOSE=1 uninstall"/>
+					<CompileFile command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/submodules/SDL/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/submodules/SDL/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/submodules/SDL/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+		</Build>
+		<Unit filename="/home/benjamin/Documents/b2/cmake-build-debug/submodules/SDL/wayland-generated-protocols/pointer-constraints-unstable-v1-client-protocol.h.rule">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/cmake-build-debug/submodules/SDL/wayland-generated-protocols/pointer-constraints-unstable-v1-protocol.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/cmake-build-debug/submodules/SDL/wayland-generated-protocols/pointer-constraints-unstable-v1-protocol.c.rule">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/cmake-build-debug/submodules/SDL/wayland-generated-protocols/relative-pointer-unstable-v1-client-protocol.h.rule">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/cmake-build-debug/submodules/SDL/wayland-generated-protocols/relative-pointer-unstable-v1-protocol.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/cmake-build-debug/submodules/SDL/wayland-generated-protocols/relative-pointer-unstable-v1-protocol.c.rule">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/cmake-build-debug/submodules/SDL/wayland-generated-protocols/wayland-client-protocol.h.rule">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/cmake-build-debug/submodules/SDL/wayland-generated-protocols/wayland-protocol.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/cmake-build-debug/submodules/SDL/wayland-generated-protocols/wayland-protocol.c.rule">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/cmake-build-debug/submodules/SDL/wayland-generated-protocols/xdg-shell-unstable-v6-client-protocol.h.rule">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/cmake-build-debug/submodules/SDL/wayland-generated-protocols/xdg-shell-unstable-v6-protocol.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/cmake-build-debug/submodules/SDL/wayland-generated-protocols/xdg-shell-unstable-v6-protocol.c.rule">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/SDL.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/SDL_assert.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/SDL_dataqueue.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/SDL_dataqueue.h">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/SDL_error.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/SDL_hints.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/SDL_log.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/atomic/SDL_atomic.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/atomic/SDL_spinlock.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/audio/SDL_audio.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/audio/SDL_audiocvt.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/audio/SDL_audiodev.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/audio/SDL_audiotypecvt.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/audio/SDL_mixer.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/audio/SDL_wave.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/audio/SDL_wave.h">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/audio/alsa/SDL_alsa_audio.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/audio/alsa/SDL_alsa_audio.h">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/audio/disk/SDL_diskaudio.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/audio/disk/SDL_diskaudio.h">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/audio/dsp/SDL_dspaudio.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/audio/dsp/SDL_dspaudio.h">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/audio/dummy/SDL_dummyaudio.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/audio/dummy/SDL_dummyaudio.h">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/audio/jack/SDL_jackaudio.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/audio/jack/SDL_jackaudio.h">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/audio/pulseaudio/SDL_pulseaudio.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/audio/pulseaudio/SDL_pulseaudio.h">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/core/linux/SDL_dbus.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/core/linux/SDL_dbus.h">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/core/linux/SDL_evdev.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/core/linux/SDL_evdev.h">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/core/linux/SDL_evdev_kbd.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/core/linux/SDL_evdev_kbd.h">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/core/linux/SDL_fcitx.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/core/linux/SDL_fcitx.h">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/core/linux/SDL_ibus.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/core/linux/SDL_ibus.h">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/core/linux/SDL_ime.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/core/linux/SDL_ime.h">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/core/linux/SDL_udev.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/core/linux/SDL_udev.h">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/core/unix/SDL_poll.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/core/unix/SDL_poll.h">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/cpuinfo/SDL_cpuinfo.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/dynapi/SDL_dynapi.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/dynapi/SDL_dynapi.h">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/events/SDL_clipboardevents.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/events/SDL_dropevents.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/events/SDL_events.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/events/SDL_gesture.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/events/SDL_keyboard.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/events/SDL_mouse.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/events/SDL_quit.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/events/SDL_touch.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/events/SDL_windowevents.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/file/SDL_rwops.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/filesystem/unix/SDL_sysfilesystem.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/haptic/SDL_haptic.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/haptic/linux/SDL_syshaptic.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/joystick/SDL_gamecontroller.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/joystick/SDL_joystick.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/joystick/linux/SDL_sysjoystick.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/joystick/steam/SDL_steamcontroller.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/joystick/steam/SDL_steamcontroller.h">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/libm/e_atan2.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/libm/e_fmod.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/libm/e_log.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/libm/e_log10.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/libm/e_pow.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/libm/e_rem_pio2.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/libm/e_sqrt.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/libm/k_cos.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/libm/k_rem_pio2.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/libm/k_sin.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/libm/k_tan.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/libm/s_atan.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/libm/s_copysign.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/libm/s_cos.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/libm/s_fabs.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/libm/s_floor.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/libm/s_scalbn.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/libm/s_sin.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/libm/s_tan.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/loadso/dlopen/SDL_sysloadso.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/main/dummy/SDL_dummy_main.c">
+			<Option target="SDL2main"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/power/SDL_power.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/power/linux/SDL_syspower.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/render/SDL_d3dmath.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/render/SDL_d3dmath.h">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/render/SDL_render.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/render/SDL_yuv_sw.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/render/direct3d/SDL_render_d3d.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/render/direct3d/SDL_shaders_d3d.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/render/direct3d/SDL_shaders_d3d.h">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/render/direct3d11/SDL_render_d3d11.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/render/direct3d11/SDL_shaders_d3d11.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/render/direct3d11/SDL_shaders_d3d11.h">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/render/opengl/SDL_render_gl.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/render/opengl/SDL_shaders_gl.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/render/opengl/SDL_shaders_gl.h">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/render/opengles/SDL_render_gles.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/render/opengles2/SDL_render_gles2.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/render/opengles2/SDL_shaders_gles2.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/render/opengles2/SDL_shaders_gles2.h">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/render/psp/SDL_render_psp.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/render/software/SDL_blendfillrect.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/render/software/SDL_blendfillrect.h">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/render/software/SDL_blendline.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/render/software/SDL_blendline.h">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/render/software/SDL_blendpoint.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/render/software/SDL_blendpoint.h">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/render/software/SDL_drawline.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/render/software/SDL_drawline.h">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/render/software/SDL_drawpoint.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/render/software/SDL_drawpoint.h">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/render/software/SDL_render_sw.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/render/software/SDL_rotate.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/render/software/SDL_rotate.h">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/stdlib/SDL_getenv.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/stdlib/SDL_iconv.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/stdlib/SDL_malloc.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/stdlib/SDL_qsort.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/stdlib/SDL_stdlib.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/stdlib/SDL_string.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/thread/SDL_thread.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/thread/pthread/SDL_syscond.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/thread/pthread/SDL_sysmutex.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/thread/pthread/SDL_syssem.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/thread/pthread/SDL_systhread.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/thread/pthread/SDL_systls.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/timer/SDL_timer.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/timer/unix/SDL_systimer.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/SDL_RLEaccel.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/SDL_blit.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/SDL_blit.h">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/SDL_blit_0.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/SDL_blit_1.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/SDL_blit_A.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/SDL_blit_N.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/SDL_blit_auto.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/SDL_blit_auto.h">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/SDL_blit_copy.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/SDL_blit_copy.h">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/SDL_blit_slow.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/SDL_blit_slow.h">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/SDL_bmp.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/SDL_clipboard.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/SDL_egl.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/SDL_fillrect.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/SDL_pixels.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/SDL_rect.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/SDL_shape.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/SDL_stretch.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/SDL_surface.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/SDL_video.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/SDL_vulkan_utils.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/SDL_yuv.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/dummy/SDL_nullevents.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/dummy/SDL_nullframebuffer.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/dummy/SDL_nullvideo.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/dummy/SDL_nullvideo.h">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/wayland/SDL_waylandclipboard.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/wayland/SDL_waylandclipboard.h">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/wayland/SDL_waylanddatamanager.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/wayland/SDL_waylanddatamanager.h">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/wayland/SDL_waylanddyn.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/wayland/SDL_waylanddyn.h">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/wayland/SDL_waylandevents.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/wayland/SDL_waylandmouse.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/wayland/SDL_waylandmouse.h">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/wayland/SDL_waylandopengles.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/wayland/SDL_waylandopengles.h">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/wayland/SDL_waylandtouch.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/wayland/SDL_waylandtouch.h">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/wayland/SDL_waylandvideo.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/wayland/SDL_waylandvideo.h">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/wayland/SDL_waylandvulkan.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/wayland/SDL_waylandvulkan.h">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/wayland/SDL_waylandwindow.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/wayland/SDL_waylandwindow.h">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/x11/SDL_x11clipboard.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/x11/SDL_x11clipboard.h">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/x11/SDL_x11dyn.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/x11/SDL_x11dyn.h">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/x11/SDL_x11events.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/x11/SDL_x11events.h">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/x11/SDL_x11framebuffer.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/x11/SDL_x11framebuffer.h">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/x11/SDL_x11keyboard.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/x11/SDL_x11keyboard.h">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/x11/SDL_x11messagebox.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/x11/SDL_x11messagebox.h">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/x11/SDL_x11modes.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/x11/SDL_x11modes.h">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/x11/SDL_x11mouse.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/x11/SDL_x11mouse.h">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/x11/SDL_x11opengl.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/x11/SDL_x11opengl.h">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/x11/SDL_x11opengles.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/x11/SDL_x11opengles.h">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/x11/SDL_x11shape.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/x11/SDL_x11shape.h">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/x11/SDL_x11touch.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/x11/SDL_x11touch.h">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/x11/SDL_x11video.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/x11/SDL_x11video.h">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/x11/SDL_x11vulkan.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/x11/SDL_x11vulkan.h">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/x11/SDL_x11window.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/x11/SDL_x11window.h">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/x11/SDL_x11xinput2.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/x11/SDL_x11xinput2.h">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/x11/edid-parse.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/x11/imKStoUCS.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/x11/imKStoUCS.h">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/yuv2rgb/yuv_rgb.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/yuv2rgb/yuv_rgb.h">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/common.txt">
+			<Option virtualFolder="CMake Files\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\src\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/6502/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\src\6502\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/6502/t/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\src\6502\t\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/beeb/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\src\beeb\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/beeb/tests/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\src\beeb\tests\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/shared/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\src\shared\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/shared/t/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\src\shared\t\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/b2/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\src\b2\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\submodules\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\submodules\SDL\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/SDL2.spec.in">
+			<Option virtualFolder="CMake Files\submodules\SDL\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/cmake_uninstall.cmake.in">
+			<Option virtualFolder="CMake Files\submodules\SDL\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/sdl2-config.in">
+			<Option virtualFolder="CMake Files\submodules\SDL\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/sdl2.pc.in">
+			<Option virtualFolder="CMake Files\submodules\SDL\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/cmake/macros.cmake">
+			<Option virtualFolder="CMake Files\submodules\SDL\cmake\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/cmake/sdlchecks.cmake">
+			<Option virtualFolder="CMake Files\submodules\SDL\cmake\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_assert.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_atomic.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_audio.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_bits.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_blendmode.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_clipboard.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_config.h.cmake">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_config_android.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_config_iphoneos.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_config_macosx.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_config_minimal.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_config_pandora.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_config_psp.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_config_windows.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_config_winrt.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_config_wiz.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_copying.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_cpuinfo.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_egl.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_endian.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_error.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_events.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_filesystem.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_gamecontroller.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_gesture.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_haptic.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_hints.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_joystick.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_keyboard.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_keycode.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_loadso.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_log.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_main.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_messagebox.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_mouse.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_mutex.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_name.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_opengl.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_opengl_glext.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_opengles.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_opengles2.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_opengles2_gl2.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_opengles2_gl2ext.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_opengles2_gl2platform.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_opengles2_khrplatform.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_pixels.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_platform.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_power.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_quit.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_rect.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_render.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_revision.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_rwops.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_scancode.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_shape.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_stdinc.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_surface.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_system.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_syswm.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_test.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_test_assert.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_test_common.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_test_compare.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_test_crc32.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_test_font.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_test_fuzzer.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_test_harness.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_test_images.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_test_log.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_test_md5.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_test_memory.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_test_random.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_thread.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_timer.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_touch.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_types.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_version.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_vertex.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_video.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_vulkan.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/begin_code.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/close_code.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/sanitizers-cmake/cmake/FindASan.cmake">
+			<Option virtualFolder="CMake Files\submodules\sanitizers-cmake\cmake\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/sanitizers-cmake/cmake/FindMSan.cmake">
+			<Option virtualFolder="CMake Files\submodules\sanitizers-cmake\cmake\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/sanitizers-cmake/cmake/FindSanitizers.cmake">
+			<Option virtualFolder="CMake Files\submodules\sanitizers-cmake\cmake\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/sanitizers-cmake/cmake/FindTSan.cmake">
+			<Option virtualFolder="CMake Files\submodules\sanitizers-cmake\cmake\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/sanitizers-cmake/cmake/FindUBSan.cmake">
+			<Option virtualFolder="CMake Files\submodules\sanitizers-cmake\cmake\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/sanitizers-cmake/cmake/sanitize-helpers.cmake">
+			<Option virtualFolder="CMake Files\submodules\sanitizers-cmake\cmake\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/etc/cmake/FindFFmpeg.cmake">
+			<Option virtualFolder="CMake Files\etc\cmake\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/etc/libuv-cmake/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\etc\libuv-cmake\"/>
+		</Unit>
+	</Project>
+</CodeBlocks_project_file>
