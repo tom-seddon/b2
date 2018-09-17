@@ -115,8 +115,6 @@ void SN76489::Write(uint8_t value) {
             // data
             channel->freq&=~0xf;
             channel->freq|=v;
-
-            channel->counter=channel->freq;
         }
     } else {
         Channel *channel=&m_state.channels[m_state.reg>>1];
@@ -134,8 +132,6 @@ void SN76489::Write(uint8_t value) {
             // tone data
             channel->freq&=0xf;
             channel->freq|=v<<4;
-
-            channel->counter=channel->freq;
         }
     }
 }
