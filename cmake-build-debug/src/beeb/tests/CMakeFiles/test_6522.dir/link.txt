@@ -1,0 +1,1 @@
+/usr/bin/c++  -g -DASSERT_ENABLED=1   CMakeFiles/test_6522.dir/test_6522.cpp.o  -o test_6522 ../../shared/libshared_lib.a ../../6502/lib6502_lib.a ../libbeeb_lib.a ../../shared/libshared_lib.a -lpthread -lrt -luuid ../../6502/lib6502_lib.a 

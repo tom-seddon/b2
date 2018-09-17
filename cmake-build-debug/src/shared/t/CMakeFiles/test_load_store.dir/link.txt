@@ -1,0 +1,1 @@
+/usr/bin/c++  -g -DASSERT_ENABLED=1  -rdynamic CMakeFiles/test_load_store.dir/test_load_store.cpp.o  -o test_load_store ../libshared_lib.a -lpthread -lrt -luuid 

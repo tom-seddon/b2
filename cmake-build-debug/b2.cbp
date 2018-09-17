@@ -1,0 +1,3519 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CodeBlocks_project_file>
+	<FileVersion major="1" minor="6"/>
+	<Project>
+		<Option title="b2"/>
+		<Option makefile_is_custom="1"/>
+		<Option compiler="gcc"/>
+		<Option virtualFolders="CMake Files\;CMake Files\src\;CMake Files\src\6502\;CMake Files\src\6502\t\;CMake Files\src\beeb\;CMake Files\src\beeb\tests\;CMake Files\src\shared\;CMake Files\src\shared\t\;CMake Files\src\b2\;CMake Files\submodules\;CMake Files\submodules\SDL\;CMake Files\submodules\SDL\cmake\;CMake Files\submodules\SDL\include\;CMake Files\submodules\sanitizers-cmake\;CMake Files\submodules\sanitizers-cmake\cmake\;CMake Files\etc\;CMake Files\etc\cmake\;CMake Files\etc\libuv-cmake\;"/>
+		<Build>
+			<Target title="all">
+				<Option working_dir="/home/benjamin/Documents/b2/cmake-build-debug"/>
+				<Option type="4"/>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/Makefile&quot;  VERBOSE=1 all"/>
+					<CompileFile command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="install/strip">
+				<Option working_dir="/home/benjamin/Documents/b2/cmake-build-debug"/>
+				<Option type="4"/>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/Makefile&quot;  VERBOSE=1 install/strip"/>
+					<CompileFile command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="install/local">
+				<Option working_dir="/home/benjamin/Documents/b2/cmake-build-debug"/>
+				<Option type="4"/>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/Makefile&quot;  VERBOSE=1 install/local"/>
+					<CompileFile command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="test">
+				<Option working_dir="/home/benjamin/Documents/b2/cmake-build-debug"/>
+				<Option type="4"/>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/Makefile&quot;  VERBOSE=1 test"/>
+					<CompileFile command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="edit_cache">
+				<Option working_dir="/home/benjamin/Documents/b2/cmake-build-debug"/>
+				<Option type="4"/>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/Makefile&quot;  VERBOSE=1 edit_cache"/>
+					<CompileFile command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="rebuild_cache">
+				<Option working_dir="/home/benjamin/Documents/b2/cmake-build-debug"/>
+				<Option type="4"/>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/Makefile&quot;  VERBOSE=1 rebuild_cache"/>
+					<CompileFile command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="install">
+				<Option working_dir="/home/benjamin/Documents/b2/cmake-build-debug"/>
+				<Option type="4"/>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/Makefile&quot;  VERBOSE=1 install"/>
+					<CompileFile command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="list_install_components">
+				<Option working_dir="/home/benjamin/Documents/b2/cmake-build-debug"/>
+				<Option type="4"/>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/Makefile&quot;  VERBOSE=1 list_install_components"/>
+					<CompileFile command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="SDL2main">
+				<Option output="/home/benjamin/Documents/b2/cmake-build-debug/submodules/SDL/libSDL2maind.a" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/home/benjamin/Documents/b2/cmake-build-debug/submodules/SDL"/>
+				<Option object_output="./"/>
+				<Option type="2"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add option="-DUSING_GENERATED_CONFIG_H"/>
+					<Add directory="/home/benjamin/Documents/b2/cmake-build-debug/submodules/SDL/include"/>
+					<Add directory="/home/benjamin/Documents/b2/submodules/SDL/include"/>
+					<Add directory="/usr/include/libdrm"/>
+					<Add directory="/home/benjamin/Documents/b2/cmake-build-debug/submodules/SDL/wayland-generated-protocols"/>
+					<Add directory="/usr/include/dbus-1.0"/>
+					<Add directory="/usr/lib/x86_64-linux-gnu/dbus-1.0/include"/>
+					<Add directory="/usr/include/c++/7"/>
+					<Add directory="/usr/include/x86_64-linux-gnu/c++/7"/>
+					<Add directory="/usr/include/c++/7/backward"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include-fixed"/>
+					<Add directory="/usr/include/x86_64-linux-gnu"/>
+					<Add directory="/usr/include"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/submodules/SDL/Makefile&quot;  VERBOSE=1 SDL2main"/>
+					<CompileFile command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/submodules/SDL/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/submodules/SDL/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/submodules/SDL/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="SDL2main/fast">
+				<Option output="/home/benjamin/Documents/b2/cmake-build-debug/submodules/SDL/libSDL2maind.a" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/home/benjamin/Documents/b2/cmake-build-debug/submodules/SDL"/>
+				<Option object_output="./"/>
+				<Option type="2"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add option="-DUSING_GENERATED_CONFIG_H"/>
+					<Add directory="/home/benjamin/Documents/b2/cmake-build-debug/submodules/SDL/include"/>
+					<Add directory="/home/benjamin/Documents/b2/submodules/SDL/include"/>
+					<Add directory="/usr/include/libdrm"/>
+					<Add directory="/home/benjamin/Documents/b2/cmake-build-debug/submodules/SDL/wayland-generated-protocols"/>
+					<Add directory="/usr/include/dbus-1.0"/>
+					<Add directory="/usr/lib/x86_64-linux-gnu/dbus-1.0/include"/>
+					<Add directory="/usr/include/c++/7"/>
+					<Add directory="/usr/include/x86_64-linux-gnu/c++/7"/>
+					<Add directory="/usr/include/c++/7/backward"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include-fixed"/>
+					<Add directory="/usr/include/x86_64-linux-gnu"/>
+					<Add directory="/usr/include"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/submodules/SDL/Makefile&quot;  VERBOSE=1 SDL2main/fast"/>
+					<CompileFile command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/submodules/SDL/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/submodules/SDL/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/submodules/SDL/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="SDL2-static">
+				<Option output="/home/benjamin/Documents/b2/cmake-build-debug/submodules/SDL/libSDL2d.a" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/home/benjamin/Documents/b2/cmake-build-debug/submodules/SDL"/>
+				<Option object_output="./"/>
+				<Option type="2"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add option="-DUSING_GENERATED_CONFIG_H"/>
+					<Add directory="/home/benjamin/Documents/b2/cmake-build-debug/submodules/SDL/include"/>
+					<Add directory="/home/benjamin/Documents/b2/submodules/SDL/include"/>
+					<Add directory="/usr/include/libdrm"/>
+					<Add directory="/home/benjamin/Documents/b2/cmake-build-debug/submodules/SDL/wayland-generated-protocols"/>
+					<Add directory="/usr/include/dbus-1.0"/>
+					<Add directory="/usr/lib/x86_64-linux-gnu/dbus-1.0/include"/>
+					<Add directory="/usr/include/c++/7"/>
+					<Add directory="/usr/include/x86_64-linux-gnu/c++/7"/>
+					<Add directory="/usr/include/c++/7/backward"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include-fixed"/>
+					<Add directory="/usr/include/x86_64-linux-gnu"/>
+					<Add directory="/usr/include"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/submodules/SDL/Makefile&quot;  VERBOSE=1 SDL2-static"/>
+					<CompileFile command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/submodules/SDL/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/submodules/SDL/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/submodules/SDL/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="SDL2-static/fast">
+				<Option output="/home/benjamin/Documents/b2/cmake-build-debug/submodules/SDL/libSDL2d.a" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/home/benjamin/Documents/b2/cmake-build-debug/submodules/SDL"/>
+				<Option object_output="./"/>
+				<Option type="2"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add option="-DUSING_GENERATED_CONFIG_H"/>
+					<Add directory="/home/benjamin/Documents/b2/cmake-build-debug/submodules/SDL/include"/>
+					<Add directory="/home/benjamin/Documents/b2/submodules/SDL/include"/>
+					<Add directory="/usr/include/libdrm"/>
+					<Add directory="/home/benjamin/Documents/b2/cmake-build-debug/submodules/SDL/wayland-generated-protocols"/>
+					<Add directory="/usr/include/dbus-1.0"/>
+					<Add directory="/usr/lib/x86_64-linux-gnu/dbus-1.0/include"/>
+					<Add directory="/usr/include/c++/7"/>
+					<Add directory="/usr/include/x86_64-linux-gnu/c++/7"/>
+					<Add directory="/usr/include/c++/7/backward"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include-fixed"/>
+					<Add directory="/usr/include/x86_64-linux-gnu"/>
+					<Add directory="/usr/include"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/submodules/SDL/Makefile&quot;  VERBOSE=1 SDL2-static/fast"/>
+					<CompileFile command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/submodules/SDL/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/submodules/SDL/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/submodules/SDL/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="uninstall">
+				<Option working_dir="/home/benjamin/Documents/b2/cmake-build-debug/submodules/SDL"/>
+				<Option type="4"/>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/submodules/SDL/Makefile&quot;  VERBOSE=1 uninstall"/>
+					<CompileFile command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/submodules/SDL/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/submodules/SDL/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/submodules/SDL/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="uv">
+				<Option output="/home/benjamin/Documents/b2/cmake-build-debug/etc/libuv-cmake/libuv.a" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/home/benjamin/Documents/b2/cmake-build-debug/etc/libuv-cmake"/>
+				<Option object_output="./"/>
+				<Option type="2"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add option="-D_LARGEFILE_SOURCE"/>
+					<Add option="-D_FILE_OFFSET_BITS=64"/>
+					<Add option="-D_GNU_SOURCE"/>
+					<Add option="-D_POSIX_C_SOURCE=200112"/>
+					<Add directory="/home/benjamin/Documents/b2/submodules/libuv/include"/>
+					<Add directory="/home/benjamin/Documents/b2/submodules/libuv/src"/>
+					<Add directory="/home/benjamin/Documents/b2/submodules/libuv/src/unix"/>
+					<Add directory="/usr/include/c++/7"/>
+					<Add directory="/usr/include/x86_64-linux-gnu/c++/7"/>
+					<Add directory="/usr/include/c++/7/backward"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include-fixed"/>
+					<Add directory="/usr/include/x86_64-linux-gnu"/>
+					<Add directory="/usr/include"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/etc/libuv-cmake/Makefile&quot;  VERBOSE=1 uv"/>
+					<CompileFile command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/etc/libuv-cmake/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/etc/libuv-cmake/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/etc/libuv-cmake/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="uv/fast">
+				<Option output="/home/benjamin/Documents/b2/cmake-build-debug/etc/libuv-cmake/libuv.a" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/home/benjamin/Documents/b2/cmake-build-debug/etc/libuv-cmake"/>
+				<Option object_output="./"/>
+				<Option type="2"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add option="-D_LARGEFILE_SOURCE"/>
+					<Add option="-D_FILE_OFFSET_BITS=64"/>
+					<Add option="-D_GNU_SOURCE"/>
+					<Add option="-D_POSIX_C_SOURCE=200112"/>
+					<Add directory="/home/benjamin/Documents/b2/submodules/libuv/include"/>
+					<Add directory="/home/benjamin/Documents/b2/submodules/libuv/src"/>
+					<Add directory="/home/benjamin/Documents/b2/submodules/libuv/src/unix"/>
+					<Add directory="/usr/include/c++/7"/>
+					<Add directory="/usr/include/x86_64-linux-gnu/c++/7"/>
+					<Add directory="/usr/include/c++/7/backward"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include-fixed"/>
+					<Add directory="/usr/include/x86_64-linux-gnu"/>
+					<Add directory="/usr/include"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/etc/libuv-cmake/Makefile&quot;  VERBOSE=1 uv/fast"/>
+					<CompileFile command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/etc/libuv-cmake/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/etc/libuv-cmake/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/etc/libuv-cmake/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="6502_gen">
+				<Option output="/home/benjamin/Documents/b2/cmake-build-debug/src/6502/6502_gen" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/home/benjamin/Documents/b2/cmake-build-debug/src/6502"/>
+				<Option object_output="./"/>
+				<Option type="1"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add option="-D_GNU_SOURCE"/>
+					<Add directory="/home/benjamin/Documents/b2/src/shared/h"/>
+					<Add directory="/usr/include/c++/7"/>
+					<Add directory="/usr/include/x86_64-linux-gnu/c++/7"/>
+					<Add directory="/usr/include/c++/7/backward"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include-fixed"/>
+					<Add directory="/usr/include/x86_64-linux-gnu"/>
+					<Add directory="/usr/include"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/6502/Makefile&quot;  VERBOSE=1 6502_gen"/>
+					<CompileFile command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/6502/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/6502/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/6502/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="6502_gen/fast">
+				<Option output="/home/benjamin/Documents/b2/cmake-build-debug/src/6502/6502_gen" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/home/benjamin/Documents/b2/cmake-build-debug/src/6502"/>
+				<Option object_output="./"/>
+				<Option type="1"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add option="-D_GNU_SOURCE"/>
+					<Add directory="/home/benjamin/Documents/b2/src/shared/h"/>
+					<Add directory="/usr/include/c++/7"/>
+					<Add directory="/usr/include/x86_64-linux-gnu/c++/7"/>
+					<Add directory="/usr/include/c++/7/backward"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include-fixed"/>
+					<Add directory="/usr/include/x86_64-linux-gnu"/>
+					<Add directory="/usr/include"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/6502/Makefile&quot;  VERBOSE=1 6502_gen/fast"/>
+					<CompileFile command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/6502/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/6502/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/6502/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="6502_lib">
+				<Option output="/home/benjamin/Documents/b2/cmake-build-debug/src/6502/lib6502_lib.a" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/home/benjamin/Documents/b2/cmake-build-debug/src/6502"/>
+				<Option object_output="./"/>
+				<Option type="2"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add option="-D_GNU_SOURCE"/>
+					<Add directory="/home/benjamin/Documents/b2/cmake-build-debug/src/6502"/>
+					<Add directory="/home/benjamin/Documents/b2/src/6502/h"/>
+					<Add directory="/usr/include/c++/7"/>
+					<Add directory="/usr/include/x86_64-linux-gnu/c++/7"/>
+					<Add directory="/usr/include/c++/7/backward"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include-fixed"/>
+					<Add directory="/usr/include/x86_64-linux-gnu"/>
+					<Add directory="/usr/include"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/6502/Makefile&quot;  VERBOSE=1 6502_lib"/>
+					<CompileFile command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/6502/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/6502/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/6502/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="6502_lib/fast">
+				<Option output="/home/benjamin/Documents/b2/cmake-build-debug/src/6502/lib6502_lib.a" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/home/benjamin/Documents/b2/cmake-build-debug/src/6502"/>
+				<Option object_output="./"/>
+				<Option type="2"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add option="-D_GNU_SOURCE"/>
+					<Add directory="/home/benjamin/Documents/b2/cmake-build-debug/src/6502"/>
+					<Add directory="/home/benjamin/Documents/b2/src/6502/h"/>
+					<Add directory="/usr/include/c++/7"/>
+					<Add directory="/usr/include/x86_64-linux-gnu/c++/7"/>
+					<Add directory="/usr/include/c++/7/backward"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include-fixed"/>
+					<Add directory="/usr/include/x86_64-linux-gnu"/>
+					<Add directory="/usr/include"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/6502/Makefile&quot;  VERBOSE=1 6502_lib/fast"/>
+					<CompileFile command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/6502/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/6502/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/6502/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="visual6502">
+				<Option output="/home/benjamin/Documents/b2/cmake-build-debug/src/6502/t/visual6502" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/home/benjamin/Documents/b2/cmake-build-debug/src/6502/t"/>
+				<Option object_output="./"/>
+				<Option type="1"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add option="-D_GNU_SOURCE"/>
+					<Add directory="/home/benjamin/Documents/b2/src/shared/h"/>
+					<Add directory="/home/benjamin/Documents/b2/src/6502/h"/>
+					<Add directory="/usr/include/c++/7"/>
+					<Add directory="/usr/include/x86_64-linux-gnu/c++/7"/>
+					<Add directory="/usr/include/c++/7/backward"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include-fixed"/>
+					<Add directory="/usr/include/x86_64-linux-gnu"/>
+					<Add directory="/usr/include"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/6502/t/Makefile&quot;  VERBOSE=1 visual6502"/>
+					<CompileFile command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/6502/t/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/6502/t/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/6502/t/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="visual6502/fast">
+				<Option output="/home/benjamin/Documents/b2/cmake-build-debug/src/6502/t/visual6502" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/home/benjamin/Documents/b2/cmake-build-debug/src/6502/t"/>
+				<Option object_output="./"/>
+				<Option type="1"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add option="-D_GNU_SOURCE"/>
+					<Add directory="/home/benjamin/Documents/b2/src/shared/h"/>
+					<Add directory="/home/benjamin/Documents/b2/src/6502/h"/>
+					<Add directory="/usr/include/c++/7"/>
+					<Add directory="/usr/include/x86_64-linux-gnu/c++/7"/>
+					<Add directory="/usr/include/c++/7/backward"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include-fixed"/>
+					<Add directory="/usr/include/x86_64-linux-gnu"/>
+					<Add directory="/usr/include"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/6502/t/Makefile&quot;  VERBOSE=1 visual6502/fast"/>
+					<CompileFile command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/6502/t/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/6502/t/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/6502/t/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="6502_basic_tests">
+				<Option output="/home/benjamin/Documents/b2/cmake-build-debug/src/6502/t/6502_basic_tests" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/home/benjamin/Documents/b2/cmake-build-debug/src/6502/t"/>
+				<Option object_output="./"/>
+				<Option type="1"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add option="-D_GNU_SOURCE"/>
+					<Add directory="/home/benjamin/Documents/b2/src/shared/h"/>
+					<Add directory="/home/benjamin/Documents/b2/src/6502/h"/>
+					<Add directory="/usr/include/c++/7"/>
+					<Add directory="/usr/include/x86_64-linux-gnu/c++/7"/>
+					<Add directory="/usr/include/c++/7/backward"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include-fixed"/>
+					<Add directory="/usr/include/x86_64-linux-gnu"/>
+					<Add directory="/usr/include"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/6502/t/Makefile&quot;  VERBOSE=1 6502_basic_tests"/>
+					<CompileFile command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/6502/t/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/6502/t/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/6502/t/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="6502_basic_tests/fast">
+				<Option output="/home/benjamin/Documents/b2/cmake-build-debug/src/6502/t/6502_basic_tests" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/home/benjamin/Documents/b2/cmake-build-debug/src/6502/t"/>
+				<Option object_output="./"/>
+				<Option type="1"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add option="-D_GNU_SOURCE"/>
+					<Add directory="/home/benjamin/Documents/b2/src/shared/h"/>
+					<Add directory="/home/benjamin/Documents/b2/src/6502/h"/>
+					<Add directory="/usr/include/c++/7"/>
+					<Add directory="/usr/include/x86_64-linux-gnu/c++/7"/>
+					<Add directory="/usr/include/c++/7/backward"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include-fixed"/>
+					<Add directory="/usr/include/x86_64-linux-gnu"/>
+					<Add directory="/usr/include"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/6502/t/Makefile&quot;  VERBOSE=1 6502_basic_tests/fast"/>
+					<CompileFile command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/6502/t/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/6502/t/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/6502/t/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="klaus">
+				<Option output="/home/benjamin/Documents/b2/cmake-build-debug/src/6502/t/klaus" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/home/benjamin/Documents/b2/cmake-build-debug/src/6502/t"/>
+				<Option object_output="./"/>
+				<Option type="1"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add option="-D_GNU_SOURCE"/>
+					<Add directory="/home/benjamin/Documents/b2/src/shared/h"/>
+					<Add directory="/home/benjamin/Documents/b2/src/6502/h"/>
+					<Add directory="/usr/include/c++/7"/>
+					<Add directory="/usr/include/x86_64-linux-gnu/c++/7"/>
+					<Add directory="/usr/include/c++/7/backward"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include-fixed"/>
+					<Add directory="/usr/include/x86_64-linux-gnu"/>
+					<Add directory="/usr/include"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/6502/t/Makefile&quot;  VERBOSE=1 klaus"/>
+					<CompileFile command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/6502/t/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/6502/t/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/6502/t/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="klaus/fast">
+				<Option output="/home/benjamin/Documents/b2/cmake-build-debug/src/6502/t/klaus" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/home/benjamin/Documents/b2/cmake-build-debug/src/6502/t"/>
+				<Option object_output="./"/>
+				<Option type="1"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add option="-D_GNU_SOURCE"/>
+					<Add directory="/home/benjamin/Documents/b2/src/shared/h"/>
+					<Add directory="/home/benjamin/Documents/b2/src/6502/h"/>
+					<Add directory="/usr/include/c++/7"/>
+					<Add directory="/usr/include/x86_64-linux-gnu/c++/7"/>
+					<Add directory="/usr/include/c++/7/backward"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include-fixed"/>
+					<Add directory="/usr/include/x86_64-linux-gnu"/>
+					<Add directory="/usr/include"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/6502/t/Makefile&quot;  VERBOSE=1 klaus/fast"/>
+					<CompileFile command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/6502/t/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/6502/t/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/6502/t/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="lorenz">
+				<Option output="/home/benjamin/Documents/b2/cmake-build-debug/src/6502/t/lorenz" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/home/benjamin/Documents/b2/cmake-build-debug/src/6502/t"/>
+				<Option object_output="./"/>
+				<Option type="1"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add option="-D_GNU_SOURCE"/>
+					<Add directory="/home/benjamin/Documents/b2/src/shared/h"/>
+					<Add directory="/home/benjamin/Documents/b2/src/6502/h"/>
+					<Add directory="/usr/include/c++/7"/>
+					<Add directory="/usr/include/x86_64-linux-gnu/c++/7"/>
+					<Add directory="/usr/include/c++/7/backward"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include-fixed"/>
+					<Add directory="/usr/include/x86_64-linux-gnu"/>
+					<Add directory="/usr/include"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/6502/t/Makefile&quot;  VERBOSE=1 lorenz"/>
+					<CompileFile command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/6502/t/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/6502/t/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/6502/t/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="lorenz/fast">
+				<Option output="/home/benjamin/Documents/b2/cmake-build-debug/src/6502/t/lorenz" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/home/benjamin/Documents/b2/cmake-build-debug/src/6502/t"/>
+				<Option object_output="./"/>
+				<Option type="1"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add option="-D_GNU_SOURCE"/>
+					<Add directory="/home/benjamin/Documents/b2/src/shared/h"/>
+					<Add directory="/home/benjamin/Documents/b2/src/6502/h"/>
+					<Add directory="/usr/include/c++/7"/>
+					<Add directory="/usr/include/x86_64-linux-gnu/c++/7"/>
+					<Add directory="/usr/include/c++/7/backward"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include-fixed"/>
+					<Add directory="/usr/include/x86_64-linux-gnu"/>
+					<Add directory="/usr/include"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/6502/t/Makefile&quot;  VERBOSE=1 lorenz/fast"/>
+					<CompileFile command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/6502/t/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/6502/t/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/6502/t/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="beeb_lib">
+				<Option output="/home/benjamin/Documents/b2/cmake-build-debug/src/beeb/libbeeb_lib.a" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/home/benjamin/Documents/b2/cmake-build-debug/src/beeb"/>
+				<Option object_output="./"/>
+				<Option type="2"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add option="-DBUILD_TYPE_Debug=1"/>
+					<Add option="-D_GNU_SOURCE"/>
+					<Add directory="/home/benjamin/Documents/b2/src/beeb/include"/>
+					<Add directory="/home/benjamin/Documents/b2/src/shared/h"/>
+					<Add directory="/home/benjamin/Documents/b2/src/6502/h"/>
+					<Add directory="/usr/include/c++/7"/>
+					<Add directory="/usr/include/x86_64-linux-gnu/c++/7"/>
+					<Add directory="/usr/include/c++/7/backward"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include-fixed"/>
+					<Add directory="/usr/include/x86_64-linux-gnu"/>
+					<Add directory="/usr/include"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/beeb/Makefile&quot;  VERBOSE=1 beeb_lib"/>
+					<CompileFile command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/beeb/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/beeb/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/beeb/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="beeb_lib/fast">
+				<Option output="/home/benjamin/Documents/b2/cmake-build-debug/src/beeb/libbeeb_lib.a" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/home/benjamin/Documents/b2/cmake-build-debug/src/beeb"/>
+				<Option object_output="./"/>
+				<Option type="2"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add option="-DBUILD_TYPE_Debug=1"/>
+					<Add option="-D_GNU_SOURCE"/>
+					<Add directory="/home/benjamin/Documents/b2/src/beeb/include"/>
+					<Add directory="/home/benjamin/Documents/b2/src/shared/h"/>
+					<Add directory="/home/benjamin/Documents/b2/src/6502/h"/>
+					<Add directory="/usr/include/c++/7"/>
+					<Add directory="/usr/include/x86_64-linux-gnu/c++/7"/>
+					<Add directory="/usr/include/c++/7/backward"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include-fixed"/>
+					<Add directory="/usr/include/x86_64-linux-gnu"/>
+					<Add directory="/usr/include"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/beeb/Makefile&quot;  VERBOSE=1 beeb_lib/fast"/>
+					<CompileFile command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/beeb/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/beeb/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/beeb/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="test_OutputDataBuffer">
+				<Option output="/home/benjamin/Documents/b2/cmake-build-debug/src/beeb/tests/test_OutputDataBuffer" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/home/benjamin/Documents/b2/cmake-build-debug/src/beeb/tests"/>
+				<Option object_output="./"/>
+				<Option type="1"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add option="-DBUILD_TYPE_Debug=1"/>
+					<Add option="-D_GNU_SOURCE"/>
+					<Add directory="/home/benjamin/Documents/b2/src/shared/h"/>
+					<Add directory="/home/benjamin/Documents/b2/src/beeb/include"/>
+					<Add directory="/home/benjamin/Documents/b2/src/6502/h"/>
+					<Add directory="/usr/include/c++/7"/>
+					<Add directory="/usr/include/x86_64-linux-gnu/c++/7"/>
+					<Add directory="/usr/include/c++/7/backward"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include-fixed"/>
+					<Add directory="/usr/include/x86_64-linux-gnu"/>
+					<Add directory="/usr/include"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/beeb/tests/Makefile&quot;  VERBOSE=1 test_OutputDataBuffer"/>
+					<CompileFile command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/beeb/tests/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/beeb/tests/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/beeb/tests/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="test_OutputDataBuffer/fast">
+				<Option output="/home/benjamin/Documents/b2/cmake-build-debug/src/beeb/tests/test_OutputDataBuffer" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/home/benjamin/Documents/b2/cmake-build-debug/src/beeb/tests"/>
+				<Option object_output="./"/>
+				<Option type="1"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add option="-DBUILD_TYPE_Debug=1"/>
+					<Add option="-D_GNU_SOURCE"/>
+					<Add directory="/home/benjamin/Documents/b2/src/shared/h"/>
+					<Add directory="/home/benjamin/Documents/b2/src/beeb/include"/>
+					<Add directory="/home/benjamin/Documents/b2/src/6502/h"/>
+					<Add directory="/usr/include/c++/7"/>
+					<Add directory="/usr/include/x86_64-linux-gnu/c++/7"/>
+					<Add directory="/usr/include/c++/7/backward"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include-fixed"/>
+					<Add directory="/usr/include/x86_64-linux-gnu"/>
+					<Add directory="/usr/include"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/beeb/tests/Makefile&quot;  VERBOSE=1 test_OutputDataBuffer/fast"/>
+					<CompileFile command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/beeb/tests/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/beeb/tests/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/beeb/tests/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="test_6522">
+				<Option output="/home/benjamin/Documents/b2/cmake-build-debug/src/beeb/tests/test_6522" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/home/benjamin/Documents/b2/cmake-build-debug/src/beeb/tests"/>
+				<Option object_output="./"/>
+				<Option type="1"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add option="-DBUILD_TYPE_Debug=1"/>
+					<Add option="-D_GNU_SOURCE"/>
+					<Add directory="/home/benjamin/Documents/b2/src/shared/h"/>
+					<Add directory="/home/benjamin/Documents/b2/src/6502/h"/>
+					<Add directory="/home/benjamin/Documents/b2/src/beeb/include"/>
+					<Add directory="/usr/include/c++/7"/>
+					<Add directory="/usr/include/x86_64-linux-gnu/c++/7"/>
+					<Add directory="/usr/include/c++/7/backward"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include-fixed"/>
+					<Add directory="/usr/include/x86_64-linux-gnu"/>
+					<Add directory="/usr/include"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/beeb/tests/Makefile&quot;  VERBOSE=1 test_6522"/>
+					<CompileFile command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/beeb/tests/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/beeb/tests/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/beeb/tests/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="test_6522/fast">
+				<Option output="/home/benjamin/Documents/b2/cmake-build-debug/src/beeb/tests/test_6522" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/home/benjamin/Documents/b2/cmake-build-debug/src/beeb/tests"/>
+				<Option object_output="./"/>
+				<Option type="1"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add option="-DBUILD_TYPE_Debug=1"/>
+					<Add option="-D_GNU_SOURCE"/>
+					<Add directory="/home/benjamin/Documents/b2/src/shared/h"/>
+					<Add directory="/home/benjamin/Documents/b2/src/6502/h"/>
+					<Add directory="/home/benjamin/Documents/b2/src/beeb/include"/>
+					<Add directory="/usr/include/c++/7"/>
+					<Add directory="/usr/include/x86_64-linux-gnu/c++/7"/>
+					<Add directory="/usr/include/c++/7/backward"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include-fixed"/>
+					<Add directory="/usr/include/x86_64-linux-gnu"/>
+					<Add directory="/usr/include"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/beeb/tests/Makefile&quot;  VERBOSE=1 test_6522/fast"/>
+					<CompileFile command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/beeb/tests/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/beeb/tests/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/beeb/tests/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="shared_lib">
+				<Option output="/home/benjamin/Documents/b2/cmake-build-debug/src/shared/libshared_lib.a" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/home/benjamin/Documents/b2/cmake-build-debug/src/shared"/>
+				<Option object_output="./"/>
+				<Option type="2"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add option="-DBUILD_TYPE_Debug=1"/>
+					<Add option="-D_GNU_SOURCE"/>
+					<Add directory="/home/benjamin/Documents/b2/src/shared/h"/>
+					<Add directory="/usr/include/c++/7"/>
+					<Add directory="/usr/include/x86_64-linux-gnu/c++/7"/>
+					<Add directory="/usr/include/c++/7/backward"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include-fixed"/>
+					<Add directory="/usr/include/x86_64-linux-gnu"/>
+					<Add directory="/usr/include"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/shared/Makefile&quot;  VERBOSE=1 shared_lib"/>
+					<CompileFile command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/shared/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/shared/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/shared/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="shared_lib/fast">
+				<Option output="/home/benjamin/Documents/b2/cmake-build-debug/src/shared/libshared_lib.a" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/home/benjamin/Documents/b2/cmake-build-debug/src/shared"/>
+				<Option object_output="./"/>
+				<Option type="2"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add option="-DBUILD_TYPE_Debug=1"/>
+					<Add option="-D_GNU_SOURCE"/>
+					<Add directory="/home/benjamin/Documents/b2/src/shared/h"/>
+					<Add directory="/usr/include/c++/7"/>
+					<Add directory="/usr/include/x86_64-linux-gnu/c++/7"/>
+					<Add directory="/usr/include/c++/7/backward"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include-fixed"/>
+					<Add directory="/usr/include/x86_64-linux-gnu"/>
+					<Add directory="/usr/include"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/shared/Makefile&quot;  VERBOSE=1 shared_lib/fast"/>
+					<CompileFile command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/shared/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/shared/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/shared/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="test_CommandLineParser">
+				<Option output="/home/benjamin/Documents/b2/cmake-build-debug/src/shared/t/test_CommandLineParser" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/home/benjamin/Documents/b2/cmake-build-debug/src/shared/t"/>
+				<Option object_output="./"/>
+				<Option type="1"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add option="-D_GNU_SOURCE"/>
+					<Add directory="/home/benjamin/Documents/b2/src/shared/h"/>
+					<Add directory="/usr/include/c++/7"/>
+					<Add directory="/usr/include/x86_64-linux-gnu/c++/7"/>
+					<Add directory="/usr/include/c++/7/backward"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include-fixed"/>
+					<Add directory="/usr/include/x86_64-linux-gnu"/>
+					<Add directory="/usr/include"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/shared/t/Makefile&quot;  VERBOSE=1 test_CommandLineParser"/>
+					<CompileFile command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/shared/t/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/shared/t/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/shared/t/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="test_CommandLineParser/fast">
+				<Option output="/home/benjamin/Documents/b2/cmake-build-debug/src/shared/t/test_CommandLineParser" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/home/benjamin/Documents/b2/cmake-build-debug/src/shared/t"/>
+				<Option object_output="./"/>
+				<Option type="1"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add option="-D_GNU_SOURCE"/>
+					<Add directory="/home/benjamin/Documents/b2/src/shared/h"/>
+					<Add directory="/usr/include/c++/7"/>
+					<Add directory="/usr/include/x86_64-linux-gnu/c++/7"/>
+					<Add directory="/usr/include/c++/7/backward"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include-fixed"/>
+					<Add directory="/usr/include/x86_64-linux-gnu"/>
+					<Add directory="/usr/include"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/shared/t/Makefile&quot;  VERBOSE=1 test_CommandLineParser/fast"/>
+					<CompileFile command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/shared/t/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/shared/t/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/shared/t/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="test_assert">
+				<Option output="/home/benjamin/Documents/b2/cmake-build-debug/src/shared/t/test_assert" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/home/benjamin/Documents/b2/cmake-build-debug/src/shared/t"/>
+				<Option object_output="./"/>
+				<Option type="1"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add option="-D_GNU_SOURCE"/>
+					<Add directory="/home/benjamin/Documents/b2/src/shared/h"/>
+					<Add directory="/usr/include/c++/7"/>
+					<Add directory="/usr/include/x86_64-linux-gnu/c++/7"/>
+					<Add directory="/usr/include/c++/7/backward"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include-fixed"/>
+					<Add directory="/usr/include/x86_64-linux-gnu"/>
+					<Add directory="/usr/include"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/shared/t/Makefile&quot;  VERBOSE=1 test_assert"/>
+					<CompileFile command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/shared/t/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/shared/t/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/shared/t/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="test_assert/fast">
+				<Option output="/home/benjamin/Documents/b2/cmake-build-debug/src/shared/t/test_assert" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/home/benjamin/Documents/b2/cmake-build-debug/src/shared/t"/>
+				<Option object_output="./"/>
+				<Option type="1"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add option="-D_GNU_SOURCE"/>
+					<Add directory="/home/benjamin/Documents/b2/src/shared/h"/>
+					<Add directory="/usr/include/c++/7"/>
+					<Add directory="/usr/include/x86_64-linux-gnu/c++/7"/>
+					<Add directory="/usr/include/c++/7/backward"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include-fixed"/>
+					<Add directory="/usr/include/x86_64-linux-gnu"/>
+					<Add directory="/usr/include"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/shared/t/Makefile&quot;  VERBOSE=1 test_assert/fast"/>
+					<CompileFile command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/shared/t/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/shared/t/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/shared/t/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="test_posix_sleep">
+				<Option output="/home/benjamin/Documents/b2/cmake-build-debug/src/shared/t/test_posix_sleep" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/home/benjamin/Documents/b2/cmake-build-debug/src/shared/t"/>
+				<Option object_output="./"/>
+				<Option type="1"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add option="-D_GNU_SOURCE"/>
+					<Add directory="/home/benjamin/Documents/b2/src/shared/h"/>
+					<Add directory="/usr/include/c++/7"/>
+					<Add directory="/usr/include/x86_64-linux-gnu/c++/7"/>
+					<Add directory="/usr/include/c++/7/backward"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include-fixed"/>
+					<Add directory="/usr/include/x86_64-linux-gnu"/>
+					<Add directory="/usr/include"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/shared/t/Makefile&quot;  VERBOSE=1 test_posix_sleep"/>
+					<CompileFile command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/shared/t/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/shared/t/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/shared/t/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="test_posix_sleep/fast">
+				<Option output="/home/benjamin/Documents/b2/cmake-build-debug/src/shared/t/test_posix_sleep" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/home/benjamin/Documents/b2/cmake-build-debug/src/shared/t"/>
+				<Option object_output="./"/>
+				<Option type="1"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add option="-D_GNU_SOURCE"/>
+					<Add directory="/home/benjamin/Documents/b2/src/shared/h"/>
+					<Add directory="/usr/include/c++/7"/>
+					<Add directory="/usr/include/x86_64-linux-gnu/c++/7"/>
+					<Add directory="/usr/include/c++/7/backward"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include-fixed"/>
+					<Add directory="/usr/include/x86_64-linux-gnu"/>
+					<Add directory="/usr/include"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/shared/t/Makefile&quot;  VERBOSE=1 test_posix_sleep/fast"/>
+					<CompileFile command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/shared/t/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/shared/t/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/shared/t/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="test_basic">
+				<Option output="/home/benjamin/Documents/b2/cmake-build-debug/src/shared/t/test_basic" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/home/benjamin/Documents/b2/cmake-build-debug/src/shared/t"/>
+				<Option object_output="./"/>
+				<Option type="1"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add option="-D_GNU_SOURCE"/>
+					<Add directory="/home/benjamin/Documents/b2/src/shared/h"/>
+					<Add directory="/usr/include/c++/7"/>
+					<Add directory="/usr/include/x86_64-linux-gnu/c++/7"/>
+					<Add directory="/usr/include/c++/7/backward"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include-fixed"/>
+					<Add directory="/usr/include/x86_64-linux-gnu"/>
+					<Add directory="/usr/include"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/shared/t/Makefile&quot;  VERBOSE=1 test_basic"/>
+					<CompileFile command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/shared/t/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/shared/t/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/shared/t/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="test_basic/fast">
+				<Option output="/home/benjamin/Documents/b2/cmake-build-debug/src/shared/t/test_basic" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/home/benjamin/Documents/b2/cmake-build-debug/src/shared/t"/>
+				<Option object_output="./"/>
+				<Option type="1"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add option="-D_GNU_SOURCE"/>
+					<Add directory="/home/benjamin/Documents/b2/src/shared/h"/>
+					<Add directory="/usr/include/c++/7"/>
+					<Add directory="/usr/include/x86_64-linux-gnu/c++/7"/>
+					<Add directory="/usr/include/c++/7/backward"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include-fixed"/>
+					<Add directory="/usr/include/x86_64-linux-gnu"/>
+					<Add directory="/usr/include"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/shared/t/Makefile&quot;  VERBOSE=1 test_basic/fast"/>
+					<CompileFile command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/shared/t/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/shared/t/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/shared/t/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="test_backtrace">
+				<Option output="/home/benjamin/Documents/b2/cmake-build-debug/src/shared/t/test_backtrace" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/home/benjamin/Documents/b2/cmake-build-debug/src/shared/t"/>
+				<Option object_output="./"/>
+				<Option type="1"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add option="-D_GNU_SOURCE"/>
+					<Add directory="/home/benjamin/Documents/b2/src/shared/h"/>
+					<Add directory="/usr/include/c++/7"/>
+					<Add directory="/usr/include/x86_64-linux-gnu/c++/7"/>
+					<Add directory="/usr/include/c++/7/backward"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include-fixed"/>
+					<Add directory="/usr/include/x86_64-linux-gnu"/>
+					<Add directory="/usr/include"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/shared/t/Makefile&quot;  VERBOSE=1 test_backtrace"/>
+					<CompileFile command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/shared/t/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/shared/t/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/shared/t/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="test_backtrace/fast">
+				<Option output="/home/benjamin/Documents/b2/cmake-build-debug/src/shared/t/test_backtrace" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/home/benjamin/Documents/b2/cmake-build-debug/src/shared/t"/>
+				<Option object_output="./"/>
+				<Option type="1"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add option="-D_GNU_SOURCE"/>
+					<Add directory="/home/benjamin/Documents/b2/src/shared/h"/>
+					<Add directory="/usr/include/c++/7"/>
+					<Add directory="/usr/include/x86_64-linux-gnu/c++/7"/>
+					<Add directory="/usr/include/c++/7/backward"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include-fixed"/>
+					<Add directory="/usr/include/x86_64-linux-gnu"/>
+					<Add directory="/usr/include"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/shared/t/Makefile&quot;  VERBOSE=1 test_backtrace/fast"/>
+					<CompileFile command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/shared/t/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/shared/t/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/shared/t/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="test_log">
+				<Option output="/home/benjamin/Documents/b2/cmake-build-debug/src/shared/t/test_log" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/home/benjamin/Documents/b2/cmake-build-debug/src/shared/t"/>
+				<Option object_output="./"/>
+				<Option type="1"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add option="-D_GNU_SOURCE"/>
+					<Add directory="/home/benjamin/Documents/b2/src/shared/h"/>
+					<Add directory="/usr/include/c++/7"/>
+					<Add directory="/usr/include/x86_64-linux-gnu/c++/7"/>
+					<Add directory="/usr/include/c++/7/backward"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include-fixed"/>
+					<Add directory="/usr/include/x86_64-linux-gnu"/>
+					<Add directory="/usr/include"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/shared/t/Makefile&quot;  VERBOSE=1 test_log"/>
+					<CompileFile command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/shared/t/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/shared/t/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/shared/t/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="test_log/fast">
+				<Option output="/home/benjamin/Documents/b2/cmake-build-debug/src/shared/t/test_log" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/home/benjamin/Documents/b2/cmake-build-debug/src/shared/t"/>
+				<Option object_output="./"/>
+				<Option type="1"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add option="-D_GNU_SOURCE"/>
+					<Add directory="/home/benjamin/Documents/b2/src/shared/h"/>
+					<Add directory="/usr/include/c++/7"/>
+					<Add directory="/usr/include/x86_64-linux-gnu/c++/7"/>
+					<Add directory="/usr/include/c++/7/backward"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include-fixed"/>
+					<Add directory="/usr/include/x86_64-linux-gnu"/>
+					<Add directory="/usr/include"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/shared/t/Makefile&quot;  VERBOSE=1 test_log/fast"/>
+					<CompileFile command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/shared/t/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/shared/t/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/shared/t/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="test_sha1">
+				<Option output="/home/benjamin/Documents/b2/cmake-build-debug/src/shared/t/test_sha1" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/home/benjamin/Documents/b2/cmake-build-debug/src/shared/t"/>
+				<Option object_output="./"/>
+				<Option type="1"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add option="-D_GNU_SOURCE"/>
+					<Add directory="/home/benjamin/Documents/b2/src/shared/h"/>
+					<Add directory="/usr/include/c++/7"/>
+					<Add directory="/usr/include/x86_64-linux-gnu/c++/7"/>
+					<Add directory="/usr/include/c++/7/backward"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include-fixed"/>
+					<Add directory="/usr/include/x86_64-linux-gnu"/>
+					<Add directory="/usr/include"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/shared/t/Makefile&quot;  VERBOSE=1 test_sha1"/>
+					<CompileFile command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/shared/t/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/shared/t/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/shared/t/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="test_sha1/fast">
+				<Option output="/home/benjamin/Documents/b2/cmake-build-debug/src/shared/t/test_sha1" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/home/benjamin/Documents/b2/cmake-build-debug/src/shared/t"/>
+				<Option object_output="./"/>
+				<Option type="1"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add option="-D_GNU_SOURCE"/>
+					<Add directory="/home/benjamin/Documents/b2/src/shared/h"/>
+					<Add directory="/usr/include/c++/7"/>
+					<Add directory="/usr/include/x86_64-linux-gnu/c++/7"/>
+					<Add directory="/usr/include/c++/7/backward"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include-fixed"/>
+					<Add directory="/usr/include/x86_64-linux-gnu"/>
+					<Add directory="/usr/include"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/shared/t/Makefile&quot;  VERBOSE=1 test_sha1/fast"/>
+					<CompileFile command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/shared/t/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/shared/t/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/shared/t/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="test_enum">
+				<Option output="/home/benjamin/Documents/b2/cmake-build-debug/src/shared/t/test_enum" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/home/benjamin/Documents/b2/cmake-build-debug/src/shared/t"/>
+				<Option object_output="./"/>
+				<Option type="1"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add option="-D_GNU_SOURCE"/>
+					<Add directory="/home/benjamin/Documents/b2/src/shared/h"/>
+					<Add directory="/usr/include/c++/7"/>
+					<Add directory="/usr/include/x86_64-linux-gnu/c++/7"/>
+					<Add directory="/usr/include/c++/7/backward"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include-fixed"/>
+					<Add directory="/usr/include/x86_64-linux-gnu"/>
+					<Add directory="/usr/include"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/shared/t/Makefile&quot;  VERBOSE=1 test_enum"/>
+					<CompileFile command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/shared/t/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/shared/t/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/shared/t/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="test_enum/fast">
+				<Option output="/home/benjamin/Documents/b2/cmake-build-debug/src/shared/t/test_enum" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/home/benjamin/Documents/b2/cmake-build-debug/src/shared/t"/>
+				<Option object_output="./"/>
+				<Option type="1"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add option="-D_GNU_SOURCE"/>
+					<Add directory="/home/benjamin/Documents/b2/src/shared/h"/>
+					<Add directory="/usr/include/c++/7"/>
+					<Add directory="/usr/include/x86_64-linux-gnu/c++/7"/>
+					<Add directory="/usr/include/c++/7/backward"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include-fixed"/>
+					<Add directory="/usr/include/x86_64-linux-gnu"/>
+					<Add directory="/usr/include"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/shared/t/Makefile&quot;  VERBOSE=1 test_enum/fast"/>
+					<CompileFile command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/shared/t/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/shared/t/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/shared/t/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="test_load_store">
+				<Option output="/home/benjamin/Documents/b2/cmake-build-debug/src/shared/t/test_load_store" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/home/benjamin/Documents/b2/cmake-build-debug/src/shared/t"/>
+				<Option object_output="./"/>
+				<Option type="1"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add option="-D_GNU_SOURCE"/>
+					<Add directory="/home/benjamin/Documents/b2/src/shared/h"/>
+					<Add directory="/usr/include/c++/7"/>
+					<Add directory="/usr/include/x86_64-linux-gnu/c++/7"/>
+					<Add directory="/usr/include/c++/7/backward"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include-fixed"/>
+					<Add directory="/usr/include/x86_64-linux-gnu"/>
+					<Add directory="/usr/include"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/shared/t/Makefile&quot;  VERBOSE=1 test_load_store"/>
+					<CompileFile command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/shared/t/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/shared/t/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/shared/t/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="test_load_store/fast">
+				<Option output="/home/benjamin/Documents/b2/cmake-build-debug/src/shared/t/test_load_store" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/home/benjamin/Documents/b2/cmake-build-debug/src/shared/t"/>
+				<Option object_output="./"/>
+				<Option type="1"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add option="-D_GNU_SOURCE"/>
+					<Add directory="/home/benjamin/Documents/b2/src/shared/h"/>
+					<Add directory="/usr/include/c++/7"/>
+					<Add directory="/usr/include/x86_64-linux-gnu/c++/7"/>
+					<Add directory="/usr/include/c++/7/backward"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include-fixed"/>
+					<Add directory="/usr/include/x86_64-linux-gnu"/>
+					<Add directory="/usr/include"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/shared/t/Makefile&quot;  VERBOSE=1 test_load_store/fast"/>
+					<CompileFile command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/shared/t/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/shared/t/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/shared/t/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="test_path">
+				<Option output="/home/benjamin/Documents/b2/cmake-build-debug/src/shared/t/test_path" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/home/benjamin/Documents/b2/cmake-build-debug/src/shared/t"/>
+				<Option object_output="./"/>
+				<Option type="1"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add option="-D_GNU_SOURCE"/>
+					<Add directory="/home/benjamin/Documents/b2/src/shared/h"/>
+					<Add directory="/usr/include/c++/7"/>
+					<Add directory="/usr/include/x86_64-linux-gnu/c++/7"/>
+					<Add directory="/usr/include/c++/7/backward"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include-fixed"/>
+					<Add directory="/usr/include/x86_64-linux-gnu"/>
+					<Add directory="/usr/include"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/shared/t/Makefile&quot;  VERBOSE=1 test_path"/>
+					<CompileFile command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/shared/t/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/shared/t/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/shared/t/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="test_path/fast">
+				<Option output="/home/benjamin/Documents/b2/cmake-build-debug/src/shared/t/test_path" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/home/benjamin/Documents/b2/cmake-build-debug/src/shared/t"/>
+				<Option object_output="./"/>
+				<Option type="1"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add option="-D_GNU_SOURCE"/>
+					<Add directory="/home/benjamin/Documents/b2/src/shared/h"/>
+					<Add directory="/usr/include/c++/7"/>
+					<Add directory="/usr/include/x86_64-linux-gnu/c++/7"/>
+					<Add directory="/usr/include/c++/7/backward"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include-fixed"/>
+					<Add directory="/usr/include/x86_64-linux-gnu"/>
+					<Add directory="/usr/include"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/shared/t/Makefile&quot;  VERBOSE=1 test_path/fast"/>
+					<CompileFile command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/shared/t/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/shared/t/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/shared/t/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="b2">
+				<Option output="/home/benjamin/Documents/b2/cmake-build-debug/src/b2/b2" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/home/benjamin/Documents/b2/cmake-build-debug/src/b2"/>
+				<Option object_output="./"/>
+				<Option type="0"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add option="-DBUILD_TYPE_Debug=1"/>
+					<Add option="-DHAVE_FFMPEG=1"/>
+					<Add option="-DUSING_GENERATED_CONFIG_H"/>
+					<Add option="-D_GNU_SOURCE"/>
+					<Add option="-DRMT_ENABLED=1"/>
+					<Add option="-DRMT_USE_D3D11=0"/>
+					<Add option="-DRMT_USE_OPENGL=0"/>
+					<Add option="-DIMGUI_INCLUDE_IMGUI_USER_H"/>
+					<Add option="-DIMGUI_INCLUDE_IMGUI_USER_INL"/>
+					<Add option="-DNO_IMGUI_ADDONS"/>
+					<Add option="-DIMGUI_DISABLE_OBSOLETE_FUNCTIONS"/>
+					<Add option="-DIMGUI_OVERRIDE_DRAWVERT_STRUCT_LAYOUT=struct ImDrawVert {ImVec2 pos; ImU32 col; ImVec2 uv;}"/>
+					<Add option="-DYES_IMGUIDOCK"/>
+					<Add option="-DYES_IMGUITABWINDOW"/>
+					<Add option="-DYES_IMGUITOOLBAR"/>
+					<Add option="-DYES_IMGUIPANELMANAGER"/>
+					<Add option="-DYES_IMGUIHELPER"/>
+					<Add directory="/usr/include/x86_64-linux-gnu"/>
+					<Add directory="/home/benjamin/Documents/b2/cmake-build-debug/submodules/SDL/include"/>
+					<Add directory="/home/benjamin/Documents/b2/src/beeb/include"/>
+					<Add directory="/home/benjamin/Documents/b2/src/shared/h"/>
+					<Add directory="/home/benjamin/Documents/b2/src/6502/h"/>
+					<Add directory="/home/benjamin/Documents/b2/submodules/miniz"/>
+					<Add directory="/home/benjamin/Documents/b2/submodules/Remotery/lib"/>
+					<Add directory="/home/benjamin/Documents/b2/submodules/imgui"/>
+					<Add directory="/home/benjamin/Documents/b2/submodules/imgui_club/imgui_memory_editor"/>
+					<Add directory="/home/benjamin/Documents/b2/submodules/noc"/>
+					<Add directory="/usr/include/gtk-2.0"/>
+					<Add directory="/usr/include/freetype2"/>
+					<Add directory="/usr/include/glib-2.0"/>
+					<Add directory="/usr/lib/x86_64-linux-gnu/glib-2.0/include"/>
+					<Add directory="/usr/include/atk-1.0"/>
+					<Add directory="/usr/include/gdk-pixbuf-2.0"/>
+					<Add directory="/usr/include/cairo"/>
+					<Add directory="/usr/include/pango-1.0"/>
+					<Add directory="/usr/lib/x86_64-linux-gnu/gtk-2.0/include"/>
+					<Add directory="/home/benjamin/Documents/b2/submodules/rapidjson/include"/>
+					<Add directory="/home/benjamin/Documents/b2/submodules/IconFontCppHeaders"/>
+					<Add directory="/home/benjamin/Documents/b2/submodules/libuv/include"/>
+					<Add directory="/home/benjamin/Documents/b2/submodules/http-parser"/>
+					<Add directory="/usr/include/c++/7"/>
+					<Add directory="/usr/include/x86_64-linux-gnu/c++/7"/>
+					<Add directory="/usr/include/c++/7/backward"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include-fixed"/>
+					<Add directory="/usr/include"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/b2/Makefile&quot;  VERBOSE=1 b2"/>
+					<CompileFile command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/b2/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/b2/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/b2/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="b2/fast">
+				<Option output="/home/benjamin/Documents/b2/cmake-build-debug/src/b2/b2" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/home/benjamin/Documents/b2/cmake-build-debug/src/b2"/>
+				<Option object_output="./"/>
+				<Option type="0"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add option="-DBUILD_TYPE_Debug=1"/>
+					<Add option="-DHAVE_FFMPEG=1"/>
+					<Add option="-DUSING_GENERATED_CONFIG_H"/>
+					<Add option="-D_GNU_SOURCE"/>
+					<Add option="-DRMT_ENABLED=1"/>
+					<Add option="-DRMT_USE_D3D11=0"/>
+					<Add option="-DRMT_USE_OPENGL=0"/>
+					<Add option="-DIMGUI_INCLUDE_IMGUI_USER_H"/>
+					<Add option="-DIMGUI_INCLUDE_IMGUI_USER_INL"/>
+					<Add option="-DNO_IMGUI_ADDONS"/>
+					<Add option="-DIMGUI_DISABLE_OBSOLETE_FUNCTIONS"/>
+					<Add option="-DIMGUI_OVERRIDE_DRAWVERT_STRUCT_LAYOUT=struct ImDrawVert {ImVec2 pos; ImU32 col; ImVec2 uv;}"/>
+					<Add option="-DYES_IMGUIDOCK"/>
+					<Add option="-DYES_IMGUITABWINDOW"/>
+					<Add option="-DYES_IMGUITOOLBAR"/>
+					<Add option="-DYES_IMGUIPANELMANAGER"/>
+					<Add option="-DYES_IMGUIHELPER"/>
+					<Add directory="/usr/include/x86_64-linux-gnu"/>
+					<Add directory="/home/benjamin/Documents/b2/cmake-build-debug/submodules/SDL/include"/>
+					<Add directory="/home/benjamin/Documents/b2/src/beeb/include"/>
+					<Add directory="/home/benjamin/Documents/b2/src/shared/h"/>
+					<Add directory="/home/benjamin/Documents/b2/src/6502/h"/>
+					<Add directory="/home/benjamin/Documents/b2/submodules/miniz"/>
+					<Add directory="/home/benjamin/Documents/b2/submodules/Remotery/lib"/>
+					<Add directory="/home/benjamin/Documents/b2/submodules/imgui"/>
+					<Add directory="/home/benjamin/Documents/b2/submodules/imgui_club/imgui_memory_editor"/>
+					<Add directory="/home/benjamin/Documents/b2/submodules/noc"/>
+					<Add directory="/usr/include/gtk-2.0"/>
+					<Add directory="/usr/include/freetype2"/>
+					<Add directory="/usr/include/glib-2.0"/>
+					<Add directory="/usr/lib/x86_64-linux-gnu/glib-2.0/include"/>
+					<Add directory="/usr/include/atk-1.0"/>
+					<Add directory="/usr/include/gdk-pixbuf-2.0"/>
+					<Add directory="/usr/include/cairo"/>
+					<Add directory="/usr/include/pango-1.0"/>
+					<Add directory="/usr/lib/x86_64-linux-gnu/gtk-2.0/include"/>
+					<Add directory="/home/benjamin/Documents/b2/submodules/rapidjson/include"/>
+					<Add directory="/home/benjamin/Documents/b2/submodules/IconFontCppHeaders"/>
+					<Add directory="/home/benjamin/Documents/b2/submodules/libuv/include"/>
+					<Add directory="/home/benjamin/Documents/b2/submodules/http-parser"/>
+					<Add directory="/usr/include/c++/7"/>
+					<Add directory="/usr/include/x86_64-linux-gnu/c++/7"/>
+					<Add directory="/usr/include/c++/7/backward"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include-fixed"/>
+					<Add directory="/usr/include"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/b2/Makefile&quot;  VERBOSE=1 b2/fast"/>
+					<CompileFile command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/b2/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/b2/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/b2/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="test_JobQueue">
+				<Option output="/home/benjamin/Documents/b2/cmake-build-debug/src/b2/test_JobQueue" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/home/benjamin/Documents/b2/cmake-build-debug/src/b2"/>
+				<Option object_output="./"/>
+				<Option type="1"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add option="-D_GNU_SOURCE"/>
+					<Add directory="/home/benjamin/Documents/b2/src/shared/h"/>
+					<Add directory="/usr/include/c++/7"/>
+					<Add directory="/usr/include/x86_64-linux-gnu/c++/7"/>
+					<Add directory="/usr/include/c++/7/backward"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include-fixed"/>
+					<Add directory="/usr/include/x86_64-linux-gnu"/>
+					<Add directory="/usr/include"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/b2/Makefile&quot;  VERBOSE=1 test_JobQueue"/>
+					<CompileFile command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/b2/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/b2/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/b2/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="test_JobQueue/fast">
+				<Option output="/home/benjamin/Documents/b2/cmake-build-debug/src/b2/test_JobQueue" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/home/benjamin/Documents/b2/cmake-build-debug/src/b2"/>
+				<Option object_output="./"/>
+				<Option type="1"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add option="-D_GNU_SOURCE"/>
+					<Add directory="/home/benjamin/Documents/b2/src/shared/h"/>
+					<Add directory="/usr/include/c++/7"/>
+					<Add directory="/usr/include/x86_64-linux-gnu/c++/7"/>
+					<Add directory="/usr/include/c++/7/backward"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include-fixed"/>
+					<Add directory="/usr/include/x86_64-linux-gnu"/>
+					<Add directory="/usr/include"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/b2/Makefile&quot;  VERBOSE=1 test_JobQueue/fast"/>
+					<CompileFile command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/b2/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/b2/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/src/b2/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="remotery_lib">
+				<Option output="/home/benjamin/Documents/b2/cmake-build-debug/submodules/libremotery_lib.a" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/home/benjamin/Documents/b2/cmake-build-debug/submodules"/>
+				<Option object_output="./"/>
+				<Option type="2"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add option="-DRMT_ENABLED=1"/>
+					<Add option="-DRMT_USE_D3D11=0"/>
+					<Add option="-DRMT_USE_OPENGL=0"/>
+					<Add directory="/home/benjamin/Documents/b2/submodules/Remotery/lib"/>
+					<Add directory="/usr/include/c++/7"/>
+					<Add directory="/usr/include/x86_64-linux-gnu/c++/7"/>
+					<Add directory="/usr/include/c++/7/backward"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include-fixed"/>
+					<Add directory="/usr/include/x86_64-linux-gnu"/>
+					<Add directory="/usr/include"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/submodules/Makefile&quot;  VERBOSE=1 remotery_lib"/>
+					<CompileFile command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/submodules/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/submodules/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/submodules/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="remotery_lib/fast">
+				<Option output="/home/benjamin/Documents/b2/cmake-build-debug/submodules/libremotery_lib.a" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/home/benjamin/Documents/b2/cmake-build-debug/submodules"/>
+				<Option object_output="./"/>
+				<Option type="2"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add option="-DRMT_ENABLED=1"/>
+					<Add option="-DRMT_USE_D3D11=0"/>
+					<Add option="-DRMT_USE_OPENGL=0"/>
+					<Add directory="/home/benjamin/Documents/b2/submodules/Remotery/lib"/>
+					<Add directory="/usr/include/c++/7"/>
+					<Add directory="/usr/include/x86_64-linux-gnu/c++/7"/>
+					<Add directory="/usr/include/c++/7/backward"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include-fixed"/>
+					<Add directory="/usr/include/x86_64-linux-gnu"/>
+					<Add directory="/usr/include"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/submodules/Makefile&quot;  VERBOSE=1 remotery_lib/fast"/>
+					<CompileFile command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/submodules/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/submodules/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/submodules/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="imgui_lib">
+				<Option output="/home/benjamin/Documents/b2/cmake-build-debug/submodules/libimgui_lib.a" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/home/benjamin/Documents/b2/cmake-build-debug/submodules"/>
+				<Option object_output="./"/>
+				<Option type="2"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add option="-DIMGUI_INCLUDE_IMGUI_USER_H"/>
+					<Add option="-DIMGUI_INCLUDE_IMGUI_USER_INL"/>
+					<Add option="-DNO_IMGUI_ADDONS"/>
+					<Add option="-DIMGUI_DISABLE_OBSOLETE_FUNCTIONS"/>
+					<Add option="-DIMGUI_OVERRIDE_DRAWVERT_STRUCT_LAYOUT=struct ImDrawVert {ImVec2 pos; ImU32 col; ImVec2 uv;}"/>
+					<Add option="-DYES_IMGUIDOCK"/>
+					<Add option="-DYES_IMGUITABWINDOW"/>
+					<Add option="-DYES_IMGUITOOLBAR"/>
+					<Add option="-DYES_IMGUIPANELMANAGER"/>
+					<Add option="-DYES_IMGUIHELPER"/>
+					<Add directory="/home/benjamin/Documents/b2/submodules/imgui"/>
+					<Add directory="/usr/include/c++/7"/>
+					<Add directory="/usr/include/x86_64-linux-gnu/c++/7"/>
+					<Add directory="/usr/include/c++/7/backward"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include-fixed"/>
+					<Add directory="/usr/include/x86_64-linux-gnu"/>
+					<Add directory="/usr/include"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/submodules/Makefile&quot;  VERBOSE=1 imgui_lib"/>
+					<CompileFile command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/submodules/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/submodules/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/submodules/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="imgui_lib/fast">
+				<Option output="/home/benjamin/Documents/b2/cmake-build-debug/submodules/libimgui_lib.a" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/home/benjamin/Documents/b2/cmake-build-debug/submodules"/>
+				<Option object_output="./"/>
+				<Option type="2"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add option="-DIMGUI_INCLUDE_IMGUI_USER_H"/>
+					<Add option="-DIMGUI_INCLUDE_IMGUI_USER_INL"/>
+					<Add option="-DNO_IMGUI_ADDONS"/>
+					<Add option="-DIMGUI_DISABLE_OBSOLETE_FUNCTIONS"/>
+					<Add option="-DIMGUI_OVERRIDE_DRAWVERT_STRUCT_LAYOUT=struct ImDrawVert {ImVec2 pos; ImU32 col; ImVec2 uv;}"/>
+					<Add option="-DYES_IMGUIDOCK"/>
+					<Add option="-DYES_IMGUITABWINDOW"/>
+					<Add option="-DYES_IMGUITOOLBAR"/>
+					<Add option="-DYES_IMGUIPANELMANAGER"/>
+					<Add option="-DYES_IMGUIHELPER"/>
+					<Add directory="/home/benjamin/Documents/b2/submodules/imgui"/>
+					<Add directory="/usr/include/c++/7"/>
+					<Add directory="/usr/include/x86_64-linux-gnu/c++/7"/>
+					<Add directory="/usr/include/c++/7/backward"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include-fixed"/>
+					<Add directory="/usr/include/x86_64-linux-gnu"/>
+					<Add directory="/usr/include"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/submodules/Makefile&quot;  VERBOSE=1 imgui_lib/fast"/>
+					<CompileFile command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/submodules/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/submodules/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/submodules/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="http-parser">
+				<Option output="/home/benjamin/Documents/b2/cmake-build-debug/submodules/libhttp-parser.a" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/home/benjamin/Documents/b2/cmake-build-debug/submodules"/>
+				<Option object_output="./"/>
+				<Option type="2"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add directory="/usr/include/c++/7"/>
+					<Add directory="/usr/include/x86_64-linux-gnu/c++/7"/>
+					<Add directory="/usr/include/c++/7/backward"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include-fixed"/>
+					<Add directory="/usr/include/x86_64-linux-gnu"/>
+					<Add directory="/usr/include"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/submodules/Makefile&quot;  VERBOSE=1 http-parser"/>
+					<CompileFile command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/submodules/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/submodules/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/submodules/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="http-parser/fast">
+				<Option output="/home/benjamin/Documents/b2/cmake-build-debug/submodules/libhttp-parser.a" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/home/benjamin/Documents/b2/cmake-build-debug/submodules"/>
+				<Option object_output="./"/>
+				<Option type="2"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add directory="/usr/include/c++/7"/>
+					<Add directory="/usr/include/x86_64-linux-gnu/c++/7"/>
+					<Add directory="/usr/include/c++/7/backward"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include-fixed"/>
+					<Add directory="/usr/include/x86_64-linux-gnu"/>
+					<Add directory="/usr/include"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/submodules/Makefile&quot;  VERBOSE=1 http-parser/fast"/>
+					<CompileFile command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/submodules/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/submodules/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j2 -f &quot;/home/benjamin/Documents/b2/cmake-build-debug/submodules/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+		</Build>
+		<Unit filename="/home/benjamin/Documents/b2/cmake-build-debug/src/6502/6502_internal.inl">
+			<Option target="6502_lib"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/cmake-build-debug/src/6502/6502_internal.inl.rule">
+			<Option target="6502_lib"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/cmake-build-debug/submodules/SDL/wayland-generated-protocols/pointer-constraints-unstable-v1-client-protocol.h.rule">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/cmake-build-debug/submodules/SDL/wayland-generated-protocols/pointer-constraints-unstable-v1-protocol.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/cmake-build-debug/submodules/SDL/wayland-generated-protocols/pointer-constraints-unstable-v1-protocol.c.rule">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/cmake-build-debug/submodules/SDL/wayland-generated-protocols/relative-pointer-unstable-v1-client-protocol.h.rule">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/cmake-build-debug/submodules/SDL/wayland-generated-protocols/relative-pointer-unstable-v1-protocol.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/cmake-build-debug/submodules/SDL/wayland-generated-protocols/relative-pointer-unstable-v1-protocol.c.rule">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/cmake-build-debug/submodules/SDL/wayland-generated-protocols/wayland-client-protocol.h.rule">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/cmake-build-debug/submodules/SDL/wayland-generated-protocols/wayland-protocol.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/cmake-build-debug/submodules/SDL/wayland-generated-protocols/wayland-protocol.c.rule">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/cmake-build-debug/submodules/SDL/wayland-generated-protocols/xdg-shell-unstable-v6-client-protocol.h.rule">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/cmake-build-debug/submodules/SDL/wayland-generated-protocols/xdg-shell-unstable-v6-protocol.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/cmake-build-debug/submodules/SDL/wayland-generated-protocols/xdg-shell-unstable-v6-protocol.c.rule">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/6502/6502_gen.cpp">
+			<Option target="6502_gen"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/6502/6502_gen.inl">
+			<Option target="6502_gen"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/6502/c/6502.c">
+			<Option target="6502_lib"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/6502/h/6502/6502.h">
+			<Option target="6502_lib"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/6502/t/6502_basic_tests.cpp">
+			<Option target="6502_basic_tests"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/6502/t/klaus.cpp">
+			<Option target="klaus"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/6502/t/lorenz.cpp">
+			<Option target="lorenz"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/6502/t/nodenames.h">
+			<Option target="visual6502"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/6502/t/perfect6502.c">
+			<Option target="visual6502"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/6502/t/perfect6502.h">
+			<Option target="visual6502"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/6502/t/segdefs.h">
+			<Option target="visual6502"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/6502/t/transdefs.h">
+			<Option target="visual6502"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/6502/t/visual6502.cpp">
+			<Option target="visual6502"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/b2/65link.cpp">
+			<Option target="b2"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/b2/65link.h">
+			<Option target="b2"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/b2/BeebConfig.cpp">
+			<Option target="b2"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/b2/BeebConfig.h">
+			<Option target="b2"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/b2/BeebKeymap.cpp">
+			<Option target="b2"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/b2/BeebKeymap.h">
+			<Option target="b2"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/b2/BeebState.cpp">
+			<Option target="b2"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/b2/BeebState.h">
+			<Option target="b2"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/b2/BeebThread.cpp">
+			<Option target="b2"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/b2/BeebThread.h">
+			<Option target="b2"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/b2/BeebThread.inl">
+			<Option target="b2"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/b2/BeebWindow.cpp">
+			<Option target="b2"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/b2/BeebWindow.h">
+			<Option target="b2"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/b2/BeebWindow.inl">
+			<Option target="b2"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/b2/BeebWindows.cpp">
+			<Option target="b2"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/b2/BeebWindows.h">
+			<Option target="b2"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/b2/CommandContextStackUI.cpp">
+			<Option target="b2"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/b2/CommandContextStackUI.h">
+			<Option target="b2"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/b2/CommandKeymapsUI.cpp">
+			<Option target="b2"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/b2/CommandKeymapsUI.h">
+			<Option target="b2"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/b2/ConfigsUI.cpp">
+			<Option target="b2"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/b2/ConfigsUI.h">
+			<Option target="b2"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/b2/DataRateUI.cpp">
+			<Option target="b2"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/b2/DataRateUI.h">
+			<Option target="b2"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/b2/DearImguiTestUI.cpp">
+			<Option target="b2"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/b2/DearImguiTestUI.h">
+			<Option target="b2"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/b2/GenerateThumbnailJob.cpp">
+			<Option target="b2"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/b2/GenerateThumbnailJob.h">
+			<Option target="b2"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/b2/HTTPMethodsHandler.cpp">
+			<Option target="b2"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/b2/HTTPMethodsHandler.h">
+			<Option target="b2"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/b2/HTTPServer.cpp">
+			<Option target="b2"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/b2/HTTPServer.h">
+			<Option target="b2"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/b2/JobQueue.cpp">
+			<Option target="b2"/>
+			<Option target="test_JobQueue"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/b2/JobQueue.h">
+			<Option target="b2"/>
+			<Option target="test_JobQueue"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/b2/KeymapsUI.cpp">
+			<Option target="b2"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/b2/KeymapsUI.h">
+			<Option target="b2"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/b2/MemoryDiscImage.cpp">
+			<Option target="b2"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/b2/MemoryDiscImage.h">
+			<Option target="b2"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/b2/MessageQueue.cpp">
+			<Option target="b2"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/b2/MessageQueue.h">
+			<Option target="b2"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/b2/Messages.cpp">
+			<Option target="b2"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/b2/Messages.h">
+			<Option target="b2"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/b2/MessagesUI.cpp">
+			<Option target="b2"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/b2/MessagesUI.h">
+			<Option target="b2"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/b2/PixelMetadataUI.cpp">
+			<Option target="b2"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/b2/PixelMetadataUI.h">
+			<Option target="b2"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/b2/Remapper.cpp">
+			<Option target="b2"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/b2/Remapper.h">
+			<Option target="b2"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/b2/SettingsUI.cpp">
+			<Option target="b2"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/b2/SettingsUI.h">
+			<Option target="b2"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/b2/TVOutput.cpp">
+			<Option target="b2"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/b2/TVOutput.h">
+			<Option target="b2"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/b2/TVOutput.inl">
+			<Option target="b2"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/b2/Timeline.cpp">
+			<Option target="b2"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/b2/Timeline.h">
+			<Option target="b2"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/b2/TimelineUI.cpp">
+			<Option target="b2"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/b2/TimelineUI.h">
+			<Option target="b2"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/b2/TraceUI.cpp">
+			<Option target="b2"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/b2/TraceUI.h">
+			<Option target="b2"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/b2/TraceUI.inl">
+			<Option target="b2"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/b2/VBlankMonitor.cpp">
+			<Option target="b2"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/b2/VBlankMonitor.h">
+			<Option target="b2"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/b2/VBlankMonitorDefault.cpp">
+			<Option target="b2"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/b2/VBlankMonitorDefault.h">
+			<Option target="b2"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/b2/VideoWriter.cpp">
+			<Option target="b2"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/b2/VideoWriter.h">
+			<Option target="b2"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/b2/VideoWriterFFmpeg.cpp">
+			<Option target="b2"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/b2/VideoWriterFFmpeg.h">
+			<Option target="b2"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/b2/WriteVideoJob.cpp">
+			<Option target="b2"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/b2/WriteVideoJob.h">
+			<Option target="b2"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/b2/b2.cpp">
+			<Option target="b2"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/b2/b2.h">
+			<Option target="b2"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/b2/b2.inl">
+			<Option target="b2"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/b2/beeb_events.cpp">
+			<Option target="b2"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/b2/beeb_events.h">
+			<Option target="b2"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/b2/beeb_events.inl">
+			<Option target="b2"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/b2/beeb_events_types.inl">
+			<Option target="b2"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/b2/commands.cpp">
+			<Option target="b2"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/b2/commands.h">
+			<Option target="b2"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/b2/conf.cpp">
+			<Option target="b2"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/b2/conf.h">
+			<Option target="b2"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/b2/dear_imgui.cpp">
+			<Option target="b2"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/b2/dear_imgui.h">
+			<Option target="b2"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/b2/debugger.cpp">
+			<Option target="b2"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/b2/debugger.h">
+			<Option target="b2"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/b2/debugger.inl">
+			<Option target="b2"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/b2/download.h">
+			<Option target="b2"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/b2/download_null.c">
+			<Option target="b2"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/b2/filters.cpp">
+			<Option target="b2"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/b2/filters.h">
+			<Option target="b2"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/b2/keymap.cpp">
+			<Option target="b2"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/b2/keymap.h">
+			<Option target="b2"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/b2/keys.cpp">
+			<Option target="b2"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/b2/keys.h">
+			<Option target="b2"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/b2/keys.inl">
+			<Option target="b2"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/b2/load_save.cpp">
+			<Option target="b2"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/b2/load_save.h">
+			<Option target="b2"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/b2/misc.cpp">
+			<Option target="b2"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/b2/misc.h">
+			<Option target="b2"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/b2/native_ui.cpp">
+			<Option target="b2"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/b2/native_ui.h">
+			<Option target="b2"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/b2/native_ui_noc.c">
+			<Option target="b2"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/b2/native_ui_noc.h">
+			<Option target="b2"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/b2/test_JobQueue.cpp">
+			<Option target="test_JobQueue"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/beeb/include/beeb/1770.h">
+			<Option target="beeb_lib"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/beeb/include/beeb/1770.inl">
+			<Option target="beeb_lib"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/beeb/include/beeb/6522.h">
+			<Option target="beeb_lib"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/beeb/include/beeb/6522.inl">
+			<Option target="beeb_lib"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/beeb/include/beeb/BBCMicro.h">
+			<Option target="beeb_lib"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/beeb/include/beeb/BBCMicro.inl">
+			<Option target="beeb_lib"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/beeb/include/beeb/DiscImage.h">
+			<Option target="beeb_lib"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/beeb/include/beeb/DiscInterface.h">
+			<Option target="beeb_lib"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/beeb/include/beeb/DiscInterface.inl">
+			<Option target="beeb_lib"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/beeb/include/beeb/ExtMem.h">
+			<Option target="beeb_lib"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/beeb/include/beeb/MC146818.h">
+			<Option target="beeb_lib"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/beeb/include/beeb/MC146818.inl">
+			<Option target="beeb_lib"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/beeb/include/beeb/OutputData.h">
+			<Option target="beeb_lib"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/beeb/include/beeb/SN76489.h">
+			<Option target="beeb_lib"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/beeb/include/beeb/Trace.h">
+			<Option target="beeb_lib"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/beeb/include/beeb/VideoULA.h">
+			<Option target="beeb_lib"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/beeb/include/beeb/conf.h">
+			<Option target="beeb_lib"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/beeb/include/beeb/crtc.h">
+			<Option target="beeb_lib"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/beeb/include/beeb/crtc.inl">
+			<Option target="beeb_lib"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/beeb/include/beeb/keys.h">
+			<Option target="beeb_lib"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/beeb/include/beeb/keys.inl">
+			<Option target="beeb_lib"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/beeb/include/beeb/sound.h">
+			<Option target="beeb_lib"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/beeb/include/beeb/teletext.h">
+			<Option target="beeb_lib"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/beeb/include/beeb/teletext.inl">
+			<Option target="beeb_lib"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/beeb/include/beeb/video.h">
+			<Option target="beeb_lib"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/beeb/include/beeb/video.inl">
+			<Option target="beeb_lib"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/beeb/src/1770.cpp">
+			<Option target="beeb_lib"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/beeb/src/6522.cpp">
+			<Option target="beeb_lib"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/beeb/src/BBCMicro.cpp">
+			<Option target="beeb_lib"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/beeb/src/BBCMicro_private.inl">
+			<Option target="beeb_lib"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/beeb/src/DiscImage.cpp">
+			<Option target="beeb_lib"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/beeb/src/DiscInterface.cpp">
+			<Option target="beeb_lib"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/beeb/src/ExtMem.cpp">
+			<Option target="beeb_lib"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/beeb/src/MC146818.cpp">
+			<Option target="beeb_lib"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/beeb/src/OutputData.cpp">
+			<Option target="beeb_lib"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/beeb/src/SN76489.cpp">
+			<Option target="beeb_lib"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/beeb/src/Trace.cpp">
+			<Option target="beeb_lib"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/beeb/src/VideoULA.cpp">
+			<Option target="beeb_lib"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/beeb/src/conf.cpp">
+			<Option target="beeb_lib"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/beeb/src/crtc.cpp">
+			<Option target="beeb_lib"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/beeb/src/keys.cpp">
+			<Option target="beeb_lib"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/beeb/src/sound.cpp">
+			<Option target="beeb_lib"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/beeb/src/teletext.cpp">
+			<Option target="beeb_lib"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/beeb/src/teletext_font.inl">
+			<Option target="beeb_lib"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/beeb/src/video.cpp">
+			<Option target="beeb_lib"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/beeb/tests/test_6522.cpp">
+			<Option target="test_6522"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/beeb/tests/test_OutputDataBuffer.cpp">
+			<Option target="test_OutputDataBuffer"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/shared/c/CommandLineParser.cpp">
+			<Option target="shared_lib"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/shared/c/debug.c">
+			<Option target="shared_lib"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/shared/c/load_store.c">
+			<Option target="shared_lib"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/shared/c/log.cpp">
+			<Option target="shared_lib"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/shared/c/mutex.cpp">
+			<Option target="shared_lib"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/shared/c/path.cpp">
+			<Option target="shared_lib"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/shared/c/path_linux.cpp">
+			<Option target="shared_lib"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/shared/c/path_posix.cpp">
+			<Option target="shared_lib"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/shared/c/relacy.cpp">
+			<Option target="shared_lib"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/shared/c/sha1.cpp">
+			<Option target="shared_lib"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/shared/c/system.cpp">
+			<Option target="shared_lib"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/shared/c/system_linux.cpp">
+			<Option target="shared_lib"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/shared/c/system_posix.c">
+			<Option target="shared_lib"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/shared/c/testing.cpp">
+			<Option target="shared_lib"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/shared/h/shared/CommandLineParser.h">
+			<Option target="shared_lib"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/shared/h/shared/debug.h">
+			<Option target="shared_lib"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/shared/h/shared/enum_decl.h">
+			<Option target="shared_lib"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/shared/h/shared/enum_def.h">
+			<Option target="shared_lib"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/shared/h/shared/enum_end.h">
+			<Option target="shared_lib"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/shared/h/shared/load_store.h">
+			<Option target="shared_lib"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/shared/h/shared/log.h">
+			<Option target="shared_lib"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/shared/h/shared/mutex.h">
+			<Option target="shared_lib"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/shared/h/shared/path.h">
+			<Option target="shared_lib"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/shared/h/shared/popwarn.h">
+			<Option target="shared_lib"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/shared/h/shared/pushwarn_bitfields.h">
+			<Option target="shared_lib"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/shared/h/shared/pushwarn_flexible_struct_member.h">
+			<Option target="shared_lib"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/shared/h/shared/pushwarn_padded_struct.h">
+			<Option target="shared_lib"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/shared/h/shared/relacy.h">
+			<Option target="shared_lib"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/shared/h/shared/sha1.h">
+			<Option target="shared_lib"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/shared/h/shared/system.h">
+			<Option target="shared_lib"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/shared/h/shared/system_specific.h">
+			<Option target="shared_lib"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/shared/h/shared/testing.h">
+			<Option target="shared_lib"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/shared/t/test_CommandLineParser.cpp">
+			<Option target="test_CommandLineParser"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/shared/t/test_assert.c">
+			<Option target="test_assert"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/shared/t/test_backtrace.c">
+			<Option target="test_backtrace"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/shared/t/test_basic.cpp">
+			<Option target="test_basic"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/shared/t/test_enum.c">
+			<Option target="test_enum"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/shared/t/test_load_store.cpp">
+			<Option target="test_load_store"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/shared/t/test_log.cpp">
+			<Option target="test_log"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/shared/t/test_path.cpp">
+			<Option target="test_path"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/shared/t/test_posix_sleep.c">
+			<Option target="test_posix_sleep"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/shared/t/test_sha1.cpp">
+			<Option target="test_sha1"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/Remotery/lib/Remotery.c">
+			<Option target="remotery_lib"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/Remotery/lib/Remotery.h">
+			<Option target="remotery_lib"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/SDL.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/SDL_assert.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/SDL_dataqueue.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/SDL_dataqueue.h">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/SDL_error.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/SDL_hints.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/SDL_log.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/atomic/SDL_atomic.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/atomic/SDL_spinlock.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/audio/SDL_audio.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/audio/SDL_audiocvt.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/audio/SDL_audiodev.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/audio/SDL_audiotypecvt.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/audio/SDL_mixer.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/audio/SDL_wave.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/audio/SDL_wave.h">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/audio/alsa/SDL_alsa_audio.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/audio/alsa/SDL_alsa_audio.h">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/audio/disk/SDL_diskaudio.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/audio/disk/SDL_diskaudio.h">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/audio/dsp/SDL_dspaudio.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/audio/dsp/SDL_dspaudio.h">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/audio/dummy/SDL_dummyaudio.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/audio/dummy/SDL_dummyaudio.h">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/audio/jack/SDL_jackaudio.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/audio/jack/SDL_jackaudio.h">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/audio/pulseaudio/SDL_pulseaudio.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/audio/pulseaudio/SDL_pulseaudio.h">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/core/linux/SDL_dbus.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/core/linux/SDL_dbus.h">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/core/linux/SDL_evdev.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/core/linux/SDL_evdev.h">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/core/linux/SDL_evdev_kbd.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/core/linux/SDL_evdev_kbd.h">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/core/linux/SDL_fcitx.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/core/linux/SDL_fcitx.h">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/core/linux/SDL_ibus.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/core/linux/SDL_ibus.h">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/core/linux/SDL_ime.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/core/linux/SDL_ime.h">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/core/linux/SDL_udev.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/core/linux/SDL_udev.h">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/core/unix/SDL_poll.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/core/unix/SDL_poll.h">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/cpuinfo/SDL_cpuinfo.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/dynapi/SDL_dynapi.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/dynapi/SDL_dynapi.h">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/events/SDL_clipboardevents.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/events/SDL_dropevents.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/events/SDL_events.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/events/SDL_gesture.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/events/SDL_keyboard.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/events/SDL_mouse.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/events/SDL_quit.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/events/SDL_touch.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/events/SDL_windowevents.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/file/SDL_rwops.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/filesystem/unix/SDL_sysfilesystem.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/haptic/SDL_haptic.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/haptic/linux/SDL_syshaptic.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/joystick/SDL_gamecontroller.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/joystick/SDL_joystick.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/joystick/linux/SDL_sysjoystick.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/joystick/steam/SDL_steamcontroller.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/joystick/steam/SDL_steamcontroller.h">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/libm/e_atan2.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/libm/e_fmod.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/libm/e_log.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/libm/e_log10.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/libm/e_pow.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/libm/e_rem_pio2.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/libm/e_sqrt.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/libm/k_cos.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/libm/k_rem_pio2.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/libm/k_sin.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/libm/k_tan.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/libm/s_atan.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/libm/s_copysign.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/libm/s_cos.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/libm/s_fabs.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/libm/s_floor.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/libm/s_scalbn.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/libm/s_sin.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/libm/s_tan.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/loadso/dlopen/SDL_sysloadso.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/main/dummy/SDL_dummy_main.c">
+			<Option target="SDL2main"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/power/SDL_power.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/power/linux/SDL_syspower.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/render/SDL_d3dmath.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/render/SDL_d3dmath.h">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/render/SDL_render.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/render/SDL_yuv_sw.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/render/direct3d/SDL_render_d3d.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/render/direct3d/SDL_shaders_d3d.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/render/direct3d/SDL_shaders_d3d.h">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/render/direct3d11/SDL_render_d3d11.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/render/direct3d11/SDL_shaders_d3d11.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/render/direct3d11/SDL_shaders_d3d11.h">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/render/opengl/SDL_render_gl.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/render/opengl/SDL_shaders_gl.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/render/opengl/SDL_shaders_gl.h">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/render/opengles/SDL_render_gles.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/render/opengles2/SDL_render_gles2.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/render/opengles2/SDL_shaders_gles2.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/render/opengles2/SDL_shaders_gles2.h">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/render/psp/SDL_render_psp.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/render/software/SDL_blendfillrect.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/render/software/SDL_blendfillrect.h">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/render/software/SDL_blendline.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/render/software/SDL_blendline.h">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/render/software/SDL_blendpoint.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/render/software/SDL_blendpoint.h">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/render/software/SDL_drawline.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/render/software/SDL_drawline.h">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/render/software/SDL_drawpoint.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/render/software/SDL_drawpoint.h">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/render/software/SDL_render_sw.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/render/software/SDL_rotate.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/render/software/SDL_rotate.h">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/stdlib/SDL_getenv.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/stdlib/SDL_iconv.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/stdlib/SDL_malloc.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/stdlib/SDL_qsort.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/stdlib/SDL_stdlib.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/stdlib/SDL_string.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/thread/SDL_thread.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/thread/pthread/SDL_syscond.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/thread/pthread/SDL_sysmutex.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/thread/pthread/SDL_syssem.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/thread/pthread/SDL_systhread.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/thread/pthread/SDL_systls.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/timer/SDL_timer.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/timer/unix/SDL_systimer.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/SDL_RLEaccel.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/SDL_blit.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/SDL_blit.h">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/SDL_blit_0.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/SDL_blit_1.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/SDL_blit_A.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/SDL_blit_N.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/SDL_blit_auto.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/SDL_blit_auto.h">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/SDL_blit_copy.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/SDL_blit_copy.h">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/SDL_blit_slow.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/SDL_blit_slow.h">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/SDL_bmp.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/SDL_clipboard.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/SDL_egl.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/SDL_fillrect.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/SDL_pixels.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/SDL_rect.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/SDL_shape.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/SDL_stretch.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/SDL_surface.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/SDL_video.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/SDL_vulkan_utils.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/SDL_yuv.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/dummy/SDL_nullevents.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/dummy/SDL_nullframebuffer.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/dummy/SDL_nullvideo.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/dummy/SDL_nullvideo.h">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/wayland/SDL_waylandclipboard.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/wayland/SDL_waylandclipboard.h">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/wayland/SDL_waylanddatamanager.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/wayland/SDL_waylanddatamanager.h">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/wayland/SDL_waylanddyn.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/wayland/SDL_waylanddyn.h">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/wayland/SDL_waylandevents.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/wayland/SDL_waylandmouse.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/wayland/SDL_waylandmouse.h">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/wayland/SDL_waylandopengles.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/wayland/SDL_waylandopengles.h">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/wayland/SDL_waylandtouch.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/wayland/SDL_waylandtouch.h">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/wayland/SDL_waylandvideo.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/wayland/SDL_waylandvideo.h">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/wayland/SDL_waylandvulkan.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/wayland/SDL_waylandvulkan.h">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/wayland/SDL_waylandwindow.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/wayland/SDL_waylandwindow.h">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/x11/SDL_x11clipboard.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/x11/SDL_x11clipboard.h">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/x11/SDL_x11dyn.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/x11/SDL_x11dyn.h">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/x11/SDL_x11events.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/x11/SDL_x11events.h">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/x11/SDL_x11framebuffer.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/x11/SDL_x11framebuffer.h">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/x11/SDL_x11keyboard.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/x11/SDL_x11keyboard.h">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/x11/SDL_x11messagebox.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/x11/SDL_x11messagebox.h">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/x11/SDL_x11modes.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/x11/SDL_x11modes.h">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/x11/SDL_x11mouse.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/x11/SDL_x11mouse.h">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/x11/SDL_x11opengl.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/x11/SDL_x11opengl.h">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/x11/SDL_x11opengles.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/x11/SDL_x11opengles.h">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/x11/SDL_x11shape.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/x11/SDL_x11shape.h">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/x11/SDL_x11touch.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/x11/SDL_x11touch.h">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/x11/SDL_x11video.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/x11/SDL_x11video.h">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/x11/SDL_x11vulkan.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/x11/SDL_x11vulkan.h">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/x11/SDL_x11window.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/x11/SDL_x11window.h">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/x11/SDL_x11xinput2.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/x11/SDL_x11xinput2.h">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/x11/edid-parse.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/x11/imKStoUCS.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/x11/imKStoUCS.h">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/yuv2rgb/yuv_rgb.c">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/src/video/yuv2rgb/yuv_rgb.h">
+			<Option target="SDL2-static"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/http-parser/http_parser.c">
+			<Option target="http-parser"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/http-parser/http_parser.h">
+			<Option target="http-parser"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/imgui/addons/imgui_user.h">
+			<Option target="imgui_lib"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/imgui/addons/imgui_user.inl">
+			<Option target="imgui_lib"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/imgui/addons/imguidock/imguidock.cpp">
+			<Option target="imgui_lib"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/imgui/addons/imguidock/imguidock.h">
+			<Option target="imgui_lib"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/imgui/addons/imguihelper/imguihelper.cpp">
+			<Option target="imgui_lib"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/imgui/addons/imguihelper/imguihelper.h">
+			<Option target="imgui_lib"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/imgui/addons/imguipanelmanager/imguipanelmanager.cpp">
+			<Option target="imgui_lib"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/imgui/addons/imguipanelmanager/imguipanelmanager.h">
+			<Option target="imgui_lib"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/imgui/addons/imguitabwindow/imguitabwindow.cpp">
+			<Option target="imgui_lib"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/imgui/addons/imguitabwindow/imguitabwindow.h">
+			<Option target="imgui_lib"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/imgui/addons/imguitoolbar/imguitoolbar.cpp">
+			<Option target="imgui_lib"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/imgui/addons/imguitoolbar/imguitoolbar.h">
+			<Option target="imgui_lib"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/imgui/imconfig.h">
+			<Option target="imgui_lib"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/imgui/imgui.cpp">
+			<Option target="imgui_lib"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/imgui/imgui.h">
+			<Option target="imgui_lib"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/imgui/imgui_demo.cpp">
+			<Option target="imgui_lib"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/imgui/imgui_draw.cpp">
+			<Option target="imgui_lib"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/imgui/imgui_internal.h">
+			<Option target="imgui_lib"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/imgui/stb_rect_pack.h">
+			<Option target="imgui_lib"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/imgui/stb_textedit.h">
+			<Option target="imgui_lib"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/imgui/stb_truetype.h">
+			<Option target="imgui_lib"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/libuv/include/tree.h">
+			<Option target="uv"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/libuv/include/uv-aix.h">
+			<Option target="uv"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/libuv/include/uv-bsd.h">
+			<Option target="uv"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/libuv/include/uv-darwin.h">
+			<Option target="uv"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/libuv/include/uv-errno.h">
+			<Option target="uv"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/libuv/include/uv-linux.h">
+			<Option target="uv"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/libuv/include/uv-sunos.h">
+			<Option target="uv"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/libuv/include/uv-threadpool.h">
+			<Option target="uv"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/libuv/include/uv-unix.h">
+			<Option target="uv"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/libuv/include/uv-version.h">
+			<Option target="uv"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/libuv/include/uv.h">
+			<Option target="uv"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/libuv/src/fs-poll.c">
+			<Option target="uv"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/libuv/src/heap-inl.h">
+			<Option target="uv"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/libuv/src/inet.c">
+			<Option target="uv"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/libuv/src/queue.h">
+			<Option target="uv"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/libuv/src/threadpool.c">
+			<Option target="uv"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/libuv/src/unix/async.c">
+			<Option target="uv"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/libuv/src/unix/atomic-ops.h">
+			<Option target="uv"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/libuv/src/unix/core.c">
+			<Option target="uv"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/libuv/src/unix/dl.c">
+			<Option target="uv"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/libuv/src/unix/fs.c">
+			<Option target="uv"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/libuv/src/unix/getaddrinfo.c">
+			<Option target="uv"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/libuv/src/unix/getnameinfo.c">
+			<Option target="uv"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/libuv/src/unix/internal.h">
+			<Option target="uv"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/libuv/src/unix/linux-core.c">
+			<Option target="uv"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/libuv/src/unix/linux-inotify.c">
+			<Option target="uv"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/libuv/src/unix/linux-syscalls.c">
+			<Option target="uv"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/libuv/src/unix/linux-syscalls.h">
+			<Option target="uv"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/libuv/src/unix/loop-watcher.c">
+			<Option target="uv"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/libuv/src/unix/loop.c">
+			<Option target="uv"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/libuv/src/unix/pipe.c">
+			<Option target="uv"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/libuv/src/unix/poll.c">
+			<Option target="uv"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/libuv/src/unix/process.c">
+			<Option target="uv"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/libuv/src/unix/procfs-exepath.c">
+			<Option target="uv"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/libuv/src/unix/proctitle.c">
+			<Option target="uv"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/libuv/src/unix/signal.c">
+			<Option target="uv"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/libuv/src/unix/spinlock.h">
+			<Option target="uv"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/libuv/src/unix/stream.c">
+			<Option target="uv"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/libuv/src/unix/sysinfo-loadavg.c">
+			<Option target="uv"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/libuv/src/unix/sysinfo-memory.c">
+			<Option target="uv"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/libuv/src/unix/tcp.c">
+			<Option target="uv"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/libuv/src/unix/thread.c">
+			<Option target="uv"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/libuv/src/unix/timer.c">
+			<Option target="uv"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/libuv/src/unix/tty.c">
+			<Option target="uv"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/libuv/src/unix/udp.c">
+			<Option target="uv"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/libuv/src/uv-common.c">
+			<Option target="uv"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/libuv/src/uv-common.h">
+			<Option target="uv"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/libuv/src/uv-data-getter-setters.c">
+			<Option target="uv"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/libuv/src/version.c">
+			<Option target="uv"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/common.txt">
+			<Option virtualFolder="CMake Files\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\src\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/6502/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\src\6502\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/6502/t/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\src\6502\t\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/beeb/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\src\beeb\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/beeb/tests/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\src\beeb\tests\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/shared/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\src\shared\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/shared/t/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\src\shared\t\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/src/b2/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\src\b2\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\submodules\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\submodules\SDL\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/SDL2.spec.in">
+			<Option virtualFolder="CMake Files\submodules\SDL\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/cmake_uninstall.cmake.in">
+			<Option virtualFolder="CMake Files\submodules\SDL\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/sdl2-config.in">
+			<Option virtualFolder="CMake Files\submodules\SDL\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/sdl2.pc.in">
+			<Option virtualFolder="CMake Files\submodules\SDL\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/cmake/macros.cmake">
+			<Option virtualFolder="CMake Files\submodules\SDL\cmake\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/cmake/sdlchecks.cmake">
+			<Option virtualFolder="CMake Files\submodules\SDL\cmake\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_assert.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_atomic.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_audio.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_bits.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_blendmode.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_clipboard.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_config.h.cmake">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_config_android.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_config_iphoneos.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_config_macosx.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_config_minimal.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_config_pandora.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_config_psp.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_config_windows.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_config_winrt.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_config_wiz.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_copying.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_cpuinfo.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_egl.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_endian.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_error.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_events.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_filesystem.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_gamecontroller.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_gesture.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_haptic.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_hints.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_joystick.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_keyboard.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_keycode.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_loadso.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_log.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_main.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_messagebox.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_mouse.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_mutex.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_name.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_opengl.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_opengl_glext.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_opengles.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_opengles2.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_opengles2_gl2.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_opengles2_gl2ext.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_opengles2_gl2platform.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_opengles2_khrplatform.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_pixels.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_platform.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_power.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_quit.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_rect.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_render.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_revision.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_rwops.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_scancode.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_shape.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_stdinc.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_surface.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_system.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_syswm.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_test.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_test_assert.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_test_common.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_test_compare.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_test_crc32.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_test_font.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_test_fuzzer.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_test_harness.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_test_images.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_test_log.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_test_md5.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_test_memory.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_test_random.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_thread.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_timer.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_touch.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_types.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_version.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_vertex.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_video.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/SDL_vulkan.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/begin_code.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/SDL/include/close_code.h">
+			<Option virtualFolder="CMake Files\submodules\SDL\include\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/sanitizers-cmake/cmake/FindASan.cmake">
+			<Option virtualFolder="CMake Files\submodules\sanitizers-cmake\cmake\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/sanitizers-cmake/cmake/FindMSan.cmake">
+			<Option virtualFolder="CMake Files\submodules\sanitizers-cmake\cmake\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/sanitizers-cmake/cmake/FindSanitizers.cmake">
+			<Option virtualFolder="CMake Files\submodules\sanitizers-cmake\cmake\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/sanitizers-cmake/cmake/FindTSan.cmake">
+			<Option virtualFolder="CMake Files\submodules\sanitizers-cmake\cmake\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/sanitizers-cmake/cmake/FindUBSan.cmake">
+			<Option virtualFolder="CMake Files\submodules\sanitizers-cmake\cmake\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/submodules/sanitizers-cmake/cmake/sanitize-helpers.cmake">
+			<Option virtualFolder="CMake Files\submodules\sanitizers-cmake\cmake\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/etc/cmake/FindFFmpeg.cmake">
+			<Option virtualFolder="CMake Files\etc\cmake\"/>
+		</Unit>
+		<Unit filename="/home/benjamin/Documents/b2/etc/libuv-cmake/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\etc\libuv-cmake\"/>
+		</Unit>
+	</Project>
+</CodeBlocks_project_file>

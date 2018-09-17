@@ -1,0 +1,1 @@
+/usr/bin/c++  -g -DASSERT_ENABLED=1  -rdynamic CMakeFiles/test_assert.dir/test_assert.c.o  -o test_assert ../libshared_lib.a -lpthread -lrt -luuid 

@@ -1,0 +1,136 @@
+/media/data/.local/share/JetBrains/Toolbox/apps/CLion/ch-0/182.4129.51/bin/cmake/linux/bin/cmake -DCMAKE_BUILD_TYPE=Debug -G "CodeBlocks - Unix Makefiles" /home/benjamin/Documents/b2
+-- LT_VERSION = 0.8.0; LT_AGE = 8; LT_REVISION = 0; LT_CURRENT = 8; LT_RELEASE = 2.0
+-- dynamic libasound -> libasound.so.2
+-- dynamic libjack -> libjack.so.0
+-- dynamic libpulse-simple -> libpulse-simple.so.0
+-- Checking for module 'esound'
+--   No package 'esound' found
+-- Checking for modules 'bcm_host;brcmegl'
+--   No package 'bcm_host' found
+--   No package 'brcmegl' found
+-- dynamic libX11 -> libX11.so.6
+-- dynamic libXext -> libXext.so.6
+-- dynamic libXcursor -> libXcursor.so.1
+-- dynamic libXinerama -> libXinerama.so.1
+-- dynamic libXi -> libXi.so.6
+-- dynamic libXrandr -> libXrandr.so.2
+-- dynamic libXrender -> libXrender.so.1
+-- dynamic libXxf86vm -> libXxf86vm.so.1
+-- Checking for modules 'mirclient>=0.26;mircommon'
+--   No package 'mircommon' found
+-- dynamic libwayland-client -> libwayland-client.so.0
+-- dynamic libwayland-egl -> libwayland-egl.so.1
+-- dynamic libwayland-cursor -> libwayland-cursor.so.0
+-- dynamic libxkbcommon -> libxkbcommon.so.0
+-- Checking for modules 'libdrm;gbm;egl'
+--   No package 'gbm' found
+-- Checking for one of the modules 'ibus-1.0;ibus'
+-- 
+-- SDL2 was configured with the following options:
+-- 
+-- Platform: Linux-4.13.0-46-lowlatency
+-- 64-bit:   TRUE
+-- Compiler: /usr/bin/cc
+-- 
+-- Subsystems:
+--   Atomic:	ON
+--   Audio:	ON
+--   Video:	ON
+--   Render:	ON
+--   Events:	ON
+--   Joystick:	ON
+--   Haptic:	ON
+--   Power:	ON
+--   Threads:	ON
+--   Timers:	ON
+--   File:	ON
+--   Loadso:	ON
+--   CPUinfo:	ON
+--   Filesystem:	ON
+--   Dlopen:	ON
+-- 
+-- Options:
+--   3DNOW                  (Wanted: ON): ON
+--   ALSA                   (Wanted: ON): ON
+--   ALSA_SHARED            (Wanted: ON): ON
+--   ALTIVEC                (Wanted: ON): OFF
+--   ARTS                   (Wanted: ON): OFF
+--   ARTS_SHARED            (Wanted: ON): OFF
+--   ASSEMBLY               (Wanted: ON): ON
+--   ASSERTIONS             (Wanted: auto): auto
+--   CLOCK_GETTIME          (Wanted: OFF): OFF
+--   DIRECTFB_SHARED        (Wanted: OFF): OFF
+--   DIRECTX                (Wanted: OFF): OFF
+--   DISKAUDIO              (Wanted: ON): ON
+--   DUMMYAUDIO             (Wanted: ON): ON
+--   ESD                    (Wanted: ON): OFF
+--   ESD_SHARED             (Wanted: ON): OFF
+--   FUSIONSOUND            (Wanted: OFF): OFF
+--   FUSIONSOUND_SHARED     (Wanted: OFF): OFF
+--   GCC_ATOMICS            (Wanted: ON): ON
+--   INPUT_TSLIB            (Wanted: ON): OFF
+--   JACK                   (Wanted: ON): ON
+--   JACK_SHARED            (Wanted: ON): ON
+--   KMSDRM_SHARED          (Wanted: ON): OFF
+--   LIBC                   (Wanted: ON): ON
+--   LIBSAMPLERATE          (Wanted: ON): OFF
+--   LIBSAMPLERATE_SHARED   (Wanted: ON): OFF
+--   MIR_SHARED             (Wanted: ON): OFF
+--   MMX                    (Wanted: ON): ON
+--   NAS                    (Wanted: ON): OFF
+--   NAS_SHARED             (Wanted: ON): OFF
+--   OSS                    (Wanted: ON): ON
+--   PTHREADS               (Wanted: ON): ON
+--   PTHREADS_SEM           (Wanted: ON): ON
+--   PULSEAUDIO             (Wanted: ON): ON
+--   PULSEAUDIO_SHARED      (Wanted: ON): ON
+--   RENDER_D3D             (Wanted: OFF): OFF
+--   RPATH                  (Wanted: ON): ON
+--   SDL_DLOPEN             (Wanted: ON): ON
+--   SDL_STATIC_PIC         (Wanted: OFF): OFF
+--   SDL_TEST               (Wanted: OFF): OFF
+--   SNDIO                  (Wanted: ON): OFF
+--   SSE                    (Wanted: ON): ON
+--   SSE2                   (Wanted: ON): ON
+--   SSE3                   (Wanted: ON): ON
+--   SSEMATH                (Wanted: ON): OFF
+--   VIDEO_COCOA            (Wanted: OFF): OFF
+--   VIDEO_DIRECTFB         (Wanted: OFF): OFF
+--   VIDEO_DUMMY            (Wanted: ON): ON
+--   VIDEO_KMSDRM           (Wanted: ON): OFF
+--   VIDEO_MIR              (Wanted: ON): OFF
+--   VIDEO_OPENGL           (Wanted: ON): ON
+--   VIDEO_OPENGLES         (Wanted: ON): ON
+--   VIDEO_RPI              (Wanted: ON): OFF
+--   VIDEO_VIVANTE          (Wanted: ON): OFF
+--   VIDEO_VULKAN           (Wanted: ON): OFF
+--   VIDEO_WAYLAND          (Wanted: ON): ON
+--   VIDEO_WAYLAND_QT_TOUCH (Wanted: ON): OFF
+--   VIDEO_X11              (Wanted: ON): ON
+--   VIDEO_X11_XCURSOR      (Wanted: ON): ON
+--   VIDEO_X11_XINERAMA     (Wanted: ON): ON
+--   VIDEO_X11_XINPUT       (Wanted: ON): ON
+--   VIDEO_X11_XRANDR       (Wanted: ON): ON
+--   VIDEO_X11_XSCRNSAVER   (Wanted: ON): OFF
+--   VIDEO_X11_XSHAPE       (Wanted: ON): ON
+--   VIDEO_X11_XVM          (Wanted: ON): ON
+--   WAYLAND_SHARED         (Wanted: ON): ON
+--   X11_SHARED             (Wanted: ON): ON
+-- 
+--  CFLAGS:         -idirafter /home/benjamin/Documents/b2/submodules/SDL/src/video/khronos -DHAVE_LINUX_VERSION_H
+--  EXTRA_CFLAGS:  -D_REENTRANT -msse3 -msse2 -msse -m3dnow -mmmx -Wshadow -fvisibility=hidden -Wdeclaration-after-statement -Werror=declaration-after-statement -Wall 
+--  EXTRA_LDFLAGS: -Wl,--no-undefined;-pthread
+--  EXTRA_LIBS:    m;dl;dbus-1
+-- 
+--  Build Shared Library: OFF
+--  Build Static Library: ON
+--  Build Static Library with Position Independent Code: OFF
+-- 
+-- If something was not detected, although the libraries
+-- were installed, then make sure you have set the
+-- CFLAGS and LDFLAGS environment variables correctly.
+-- 
+-- GTK2 include folder: /usr/include/gtk-2.0/usr/include/freetype2/usr/include/usr/include/glib-2.0/usr/lib/x86_64-linux-gnu/glib-2.0/include/usr/include/atk-1.0/usr/include/gdk-pixbuf-2.0/usr/include/cairo/usr/include/pango-1.0/usr/lib/x86_64-linux-gnu/gtk-2.0/include
+-- Configuring done
+-- Generating done
+-- Build files have been written to: /home/benjamin/Documents/b2/cmake-build-debug

@@ -1,0 +1,1 @@
+/usr/bin/c++  -g -DASSERT_ENABLED=1  -rdynamic CMakeFiles/test_enum.dir/test_enum.c.o  -o test_enum ../libshared_lib.a -lpthread -lrt -luuid 

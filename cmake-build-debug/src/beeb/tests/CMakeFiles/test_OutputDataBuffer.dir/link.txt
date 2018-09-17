@@ -1,0 +1,1 @@
+/usr/bin/c++  -g -DASSERT_ENABLED=1   CMakeFiles/test_OutputDataBuffer.dir/test_OutputDataBuffer.cpp.o  -o test_OutputDataBuffer ../../shared/libshared_lib.a ../libbeeb_lib.a ../../shared/libshared_lib.a -lpthread -lrt -luuid ../../6502/lib6502_lib.a 
