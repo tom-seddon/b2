@@ -903,6 +903,7 @@ static const char MANUAL_SCALE[]="manual_scale";
 static const char POPUPS[]="popups";
 static const char GLOBALS[]="globals";
 static const char VSYNC[]="vsync";
+static const char EXT_MEM[]="ext_mem";
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -1271,6 +1272,8 @@ static bool LoadConfigs(rapidjson::Value *configs_json,Messages *msg) {
             }
         }
 
+        FindBoolMember(&config.ext_mem,config_json,EXT_MEM,msg);
+
         BeebWindows::AddConfig(std::move(config));
     }
 
@@ -1552,27 +1555,32 @@ static void SaveConfigs(JSONWriter<StringStream> *writer) {
                 writer->String(config->disc_interface->name.c_str());
             }
 
-            auto roms_json=ArrayWriter(writer,ROMS);
+            {
+                auto roms_json=ArrayWriter(writer,ROMS);
 
-            for(size_t j=0;j<16;++j) {
-                const BeebConfig::ROM *rom=&config->roms[j];
+                for(size_t j=0;j<16;++j) {
+                    const BeebConfig::ROM *rom=&config->roms[j];
 
-                if(!rom->writeable&&rom->file_name.empty()) {
-                    writer->Null();
-                } else {
-                    auto rom_json=ObjectWriter(writer);
+                    if(!rom->writeable&&rom->file_name.empty()) {
+                        writer->Null();
+                    } else {
+                        auto rom_json=ObjectWriter(writer);
 
-                    if(rom->writeable) {
-                        writer->Key(WRITEABLE);
-                        writer->Bool(rom->writeable);
-                    }
+                        if(rom->writeable) {
+                            writer->Key(WRITEABLE);
+                            writer->Bool(rom->writeable);
+                        }
 
-                    if(!rom->file_name.empty()) {
-                        writer->Key(FILE_NAME);
-                        writer->String(rom->file_name.c_str());
+                        if(!rom->file_name.empty()) {
+                            writer->Key(FILE_NAME);
+                            writer->String(rom->file_name.c_str());
+                        }
                     }
                 }
             }
+
+            writer->Key(EXT_MEM);
+            writer->Bool(config->ext_mem);
 
             return true;
         });

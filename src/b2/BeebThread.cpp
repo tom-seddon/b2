@@ -370,6 +370,18 @@ BeebThread::DebugSetBytesMessage::DebugSetBytesMessage(uint32_t addr_,std::vecto
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_DEBUGGER
+BeebThread::DebugSetExtByteMessage::DebugSetExtByteMessage(uint32_t addr_,uint8_t value_):
+        Message(BeebThreadMessageType_SetExtByte),
+        addr(addr_),
+        value(value_)
+{
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_DEBUGGER
 BeebThread::DebugAsyncCallMessage::DebugAsyncCallMessage(uint16_t addr_,uint8_t a_,uint8_t x_,uint8_t y_,bool c_):
     Message(BeebThreadMessageType_DebugAsyncCall),
     addr(addr_),
@@ -1436,6 +1448,12 @@ void BeebThread::ThreadHandleEvent(ThreadState *ts,
         }
         return;
 
+    case BeebEventType_SetExtByte:
+        {
+            ts->beeb->SetExtMemory(event.data.set_ext_byte.address,event.data.set_ext_byte.value);
+        }
+            return;
+
     case BeebEventType_DebugAsyncCall:
         {
             ts->beeb->DebugSetAsyncCall(event.data.debug_async_call.addr,
@@ -2053,6 +2071,18 @@ bool BeebThread::ThreadHandleMessage(
             auto m=(DebugSetBytesMessage *)message.get();
 
             this->ThreadRecordEvent(ts,BeebEvent::MakeSetBytes(*ts->num_executed_2MHz_cycles,m->addr,std::move(m->values)));
+        }
+        break;
+#endif
+
+#if BBCMICRO_DEBUGGER
+        case BeebThreadMessageType_SetExtByte:
+        {
+            auto m=(DebugSetExtByteMessage *)message.get();
+            //M6502Word address={(uint16_t)msg->u32};
+            //uint8_t value=(uint8_t)msg->data.u64;
+
+            this->ThreadRecordEvent(ts,BeebEvent::MakeSetExtByte(*ts->num_executed_2MHz_cycles,m->addr,m->value));
         }
         break;
 #endif

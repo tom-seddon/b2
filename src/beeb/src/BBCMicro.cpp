@@ -15,6 +15,7 @@
 #include <beeb/keys.h>
 #include <beeb/conf.h>
 #include <beeb/DiscInterface.h>
+#include <beeb/ExtMem.h>
 #include <beeb/Trace.h>
 #include <memory>
 #include <vector>
@@ -275,11 +276,13 @@ BBCMicro::BBCMicro(BBCMicroType type,
                    const std::vector<uint8_t> &nvram_contents,
                    const tm *rtc_time,
                    bool video_nula,
+                   bool ext_mem,
                    uint64_t initial_num_2MHz_cycles):
     m_state(type,nvram_contents,rtc_time,initial_num_2MHz_cycles),
     m_type(type),
     m_disc_interface(def->create_fun()),
-    m_video_nula(video_nula)
+    m_video_nula(video_nula),
+    m_ext_mem(ext_mem)
 {
     this->InitStuff();
 }
@@ -291,7 +294,8 @@ BBCMicro::BBCMicro(const BBCMicro &src):
     m_state(src.m_state),
     m_type(src.m_type),
     m_disc_interface(src.m_disc_interface?src.m_disc_interface->Clone():nullptr),
-    m_video_nula(src.m_video_nula)
+    m_video_nula(src.m_video_nula),
+    m_ext_mem(src.m_ext_mem)
 {
     for(int i=0;i<2;++i) {
         std::shared_ptr<DiscImage> disc_image=DiscImage::Clone(src.GetDiscImage(i));
@@ -2013,6 +2017,21 @@ const CRTC *BBCMicro::DebugGetCRTC() const {
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_DEBUGGER
+
+const ExtMem *BBCMicro::DebugGetExtMem() const {
+    if(m_ext_mem) {
+        return &m_state.ext_mem;
+    } else {
+        return nullptr;
+    }
+}
+
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_DEBUGGER
 const VideoULA *BBCMicro::DebugGetVideoULA() const {
     return &m_state.video_ula;
 }
@@ -2344,6 +2363,18 @@ void BBCMicro::SetMemory(M6502Word addr,uint8_t value) {
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_DEBUGGER
+
+void BBCMicro::SetExtMemory(uint32_t addr, uint8_t value) {
+    ExtMem::WriteMemory(&m_state.ext_mem, addr, value);
+}
+
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_DEBUGGER
+
 void BBCMicro::DebugHalt(const char *fmt,...) {
     if(m_debug) {
         m_debug->is_halted=true;
@@ -2687,6 +2718,19 @@ void BBCMicro::InitStuff() {
         this->SetMMIOFns((uint16_t)(ASYNC_CALL_THUNK_ADDR.w+i),&ReadAsyncCallThunk,nullptr,this);
     }
 #endif
+
+    if(m_ext_mem) {
+        m_state.ext_mem.AllocateBuffer();
+
+        this->SetMMIOFns(0xfc00,nullptr,&ExtMem::WriteAddressL,&m_state.ext_mem);
+        this->SetMMIOFns(0xfc01,nullptr,&ExtMem::WriteAddressH,&m_state.ext_mem);
+        this->SetMMIOFns(0xfc02,&ExtMem::ReadAddressL,nullptr,&m_state.ext_mem);
+        this->SetMMIOFns(0xfc03,&ExtMem::ReadAddressH,nullptr,&m_state.ext_mem);
+
+        for (uint16_t i=0xfd00;i<=0xfdff;++i) {
+            this->SetMMIOFns(i,&ExtMem::ReadData,&ExtMem::WriteData,&m_state.ext_mem);
+        }
+    }
 
     // I/O: VIAs
     for(uint16_t i=0;i<32;++i) {

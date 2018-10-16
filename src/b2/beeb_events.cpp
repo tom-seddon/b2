@@ -588,6 +588,33 @@ const BeebEventSetBytesHandler BeebEventSetBytesHandler::INSTANCE;
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_DEBUGGER
+class BeebEventSetExtByteHandler:
+        public BeebEventValueHandler
+{
+public:
+    static const BeebEventSetExtByteHandler INSTANCE;
+
+    BeebEventSetExtByteHandler():
+            BeebEventValueHandler(0)
+    {
+    }
+
+    void Dump(const BeebEvent *e,Log *log) const override {
+        (void)e;
+
+        log->f("address=$%08x, value=$%02x",e->data.set_byte.address,e->data.set_byte.value);
+    }
+protected:
+private:
+};
+
+const BeebEventSetExtByteHandler BeebEventSetExtByteHandler::INSTANCE;
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_DEBUGGER
 class BeebEventDebugAsyncCallHandler:
     public BeebEventValueHandler
 {
@@ -772,6 +799,20 @@ BeebEvent BeebEvent::MakeSetBytes(uint64_t time_2MHz_cycles,uint32_t address,std
     data.set_bytes->values=std::move(values);
 
     return BeebEvent{BeebEventType_SetBytes,time_2MHz_cycles,data};
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_DEBUGGER
+BeebEvent BeebEvent::MakeSetExtByte(uint64_t time_2MHz_cycles,uint32_t address,uint8_t value) {
+    BeebEventData data={};
+
+    data.set_ext_byte.address=address;
+    data.set_ext_byte.value=value;
+
+    return BeebEvent{BeebEventType_SetExtByte,time_2MHz_cycles,data};
 }
 #endif
 

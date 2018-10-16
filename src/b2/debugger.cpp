@@ -322,6 +322,79 @@ std::unique_ptr<SettingsUI> CreateMemoryDebugWindow(BeebWindow *beeb_window) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+class ExtMemoryDebugWindow:
+    public DebugUI
+{
+public:
+    ExtMemoryDebugWindow() {
+        m_memory_editor.ReadFn=&MemoryEditorRead;
+        m_memory_editor.WriteFn=&MemoryEditorWrite;
+    }
+protected:
+    void HandleDoImGui(CommandContextStack *cc_stack) override {
+        (void)cc_stack;
+
+        bool enabled;
+        uint8_t l,h;
+        {
+            std::unique_lock<Mutex> lock;
+            const BBCMicro *m=m_beeb_thread->LockBeeb(&lock);
+
+            if(const ExtMem *s=m->DebugGetExtMem()) {
+                enabled=true;
+                l=s->GetAddressL();
+                h=s->GetAddressH();
+            } else {
+                enabled=false;
+                h=l=0;//inhibit spurious unused variable warning.
+            }
+        }
+
+        if(enabled) {
+            this->Reg("L",l);
+            this->Reg("H",h);
+
+            m_memory_editor.DrawContents((uint8_t *)this,16777216,0);
+        } else {
+            ImGui::Text("External memory disabled");
+        }
+    }
+private:
+    MemoryEditor m_memory_editor;
+
+    // There's no context parameter :( - so this hijacks the data
+    // parameter for that purpose.
+    static uint8_t MemoryEditorRead(uint8_t *data,size_t off) {
+        auto self=(ExtMemoryDebugWindow *)data;
+
+        ASSERT((uint32_t)off==off);
+
+        std::unique_lock<Mutex> lock;
+        const BBCMicro *m=self->m_beeb_thread->LockBeeb(&lock);
+        const ExtMem *s=m->DebugGetExtMem();
+        return ExtMem::ReadMemory(s,(uint32_t)off);
+    }
+
+    // There's no context parameter :( - so this hijacks the data
+    // parameter for that purpose.
+    static void MemoryEditorWrite(uint8_t *data,size_t off,uint8_t d) {
+        auto self=(ExtMemoryDebugWindow *)data;
+
+        self->m_beeb_thread->Send(std::make_unique<BeebThread::DebugSetExtByteMessage>((uint32_t)off,d));
+    }
+
+    void Reg(const char *name,uint8_t value) {
+        ImGui::Text("%s = $%02x %03d %s",name,value,value,BINARY_BYTE_STRINGS[value]);
+    }
+};
+
+std::unique_ptr<SettingsUI> CreateExtMemoryDebugWindow(BeebWindow *beeb_window) {
+    return CreateDebugUI<ExtMemoryDebugWindow>(beeb_window);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 class DisassemblyDebugWindow:
     public DebugUI
 {

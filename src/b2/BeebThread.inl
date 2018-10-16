@@ -46,6 +46,7 @@ EPN(SetTurboDisc)
 EPN(SetByte)
 EPN(DebugWakeUp)
 EPN(SetBytes)
+EPN(SetExtByte)
 EPN(DebugAsyncCall)
 #endif
 

@@ -217,6 +217,7 @@ std::unique_ptr<BBCMicro> BeebLoadedConfig::CreateBBCMicro(uint64_t initial_num_
                                       this->config.nvram_contents,
                                       &now,
                                       this->config.video_nula,
+                                      this->config.ext_mem,
                                       initial_num_2MHz_cycles);
 
     m->SetOSROM(this->os);

@@ -42,6 +42,7 @@ public:
     std::vector<uint8_t> nvram_contents;
     const DiscInterfaceDef *disc_interface=nullptr;
     bool video_nula=true;
+    bool ext_mem=false;
 protected:
 private:
 };

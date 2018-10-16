@@ -448,6 +448,20 @@ public:
 #endif
 
 #if BBCMICRO_DEBUGGER
+    class DebugSetExtByteMessage:
+            public Message
+    {
+    public:
+        uint32_t addr=0;
+        uint8_t value=0;
+
+        DebugSetExtByteMessage(uint32_t addr,uint8_t value);
+    protected:
+    private:
+    };
+#endif
+
+#if BBCMICRO_DEBUGGER
     class DebugAsyncCallMessage:
         public Message
     {

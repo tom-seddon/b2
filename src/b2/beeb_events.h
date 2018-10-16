@@ -145,6 +145,19 @@ struct BeebEventSetBytesData {
 
 #if BBCMICRO_DEBUGGER
 #include <shared/pshpack1.h>
+struct BeebEventSetExtByteData {
+    uint32_t address;
+    uint8_t value;
+};
+#include <shared/poppack.h>
+#endif
+
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_DEBUGGER
+#include <shared/pshpack1.h>
 struct BeebEventDebugAsyncCall {
     uint16_t addr;
     uint8_t a,x,y;
@@ -171,6 +184,7 @@ union BeebEventData {
 #if BBCMICRO_DEBUGGER
     BeebEventSetByteData set_byte;
     BeebEventSetBytesData *set_bytes;
+    BeebEventSetExtByteData set_ext_byte;
     BeebEventDebugAsyncCall debug_async_call;
 #endif
 };
@@ -219,6 +233,7 @@ public:
 #if BBCMICRO_DEBUGGER
     static BeebEvent MakeSetByte(uint64_t time_2MHz_cycles,uint16_t address,uint8_t value);
     static BeebEvent MakeSetBytes(uint64_t time_2MHz_cycles,uint32_t address,std::vector<uint8_t> values);
+    static BeebEvent MakeSetExtByte(uint64_t time_2MHz_cycles,uint32_t address,uint8_t value);
     static BeebEvent MakeAsyncCall(uint64_t time_2MHz_cycles,uint16_t addr,uint8_t a,uint8_t x,uint8_t y,bool c);
 #endif
 

@@ -136,7 +136,7 @@ protected:
 private:
 };
 
-const DiscInterfaceDef DISC_INTERFACE_ACORN_1770{"Acorn 1770","DFS-2.26.rom",[]() {return new DiscInterfaceAcorn1770;}};
+const DiscInterfaceDef DISC_INTERFACE_ACORN_1770{"Acorn 1770","DFS-2.26.rom",[]() {return new DiscInterfaceAcorn1770;},false};
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -190,7 +190,7 @@ protected:
 private:
 };
 
-static const DiscInterfaceDef DISC_INTERFACE_WATFORD_DDB2{"Watford 1770 (DDB2)","DDFS-1.53.rom",[]() {return new DiscInterfaceWatford1770DDB2;}};
+static const DiscInterfaceDef DISC_INTERFACE_WATFORD_DDB2{"Watford 1770 (DDB2)","DDFS-1.53.rom",[]() {return new DiscInterfaceWatford1770DDB2;},false};
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -248,7 +248,7 @@ protected:
 private:
 };
 
-static const DiscInterfaceDef DISC_INTERFACE_WATFORD_DDB3{"Watford 1770 (DDB3)","DDFS-1.54T.rom",[]() {return new DiscInterfaceWatford1770DDB3;}};
+static const DiscInterfaceDef DISC_INTERFACE_WATFORD_DDB3{"Watford 1770 (DDB3)","DDFS-1.54T.rom",[]() {return new DiscInterfaceWatford1770DDB3;},false};
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -297,7 +297,7 @@ protected:
 private:
 };
 
-static const DiscInterfaceDef DISC_INTERFACE_OPUS{"Opus 1770","OPUS-DDOS-3.45.rom",[]() {return new DiscInterfaceOpus1770;}};
+static const DiscInterfaceDef DISC_INTERFACE_OPUS{"Opus 1770","OPUS-DDOS-3.45.rom",[]() {return new DiscInterfaceOpus1770;},false};
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -540,8 +540,8 @@ private:
     }
 };
 
-static const DiscInterfaceDef DISC_INTERFACE_CHALLENGER_256K{"Opus CHALLENGER 256K","challenger-1.01.rom",[]() {return new DiscInterfaceChallenger(256*1024);}};
-static const DiscInterfaceDef DISC_INTERFACE_CHALLENGER_512K{"Opus CHALLENGER 512K","challenger-1.01.rom",[]() {return new DiscInterfaceChallenger(512*1024);}};
+static const DiscInterfaceDef DISC_INTERFACE_CHALLENGER_256K{"Opus CHALLENGER 256K","challenger-1.01.rom",[]() {return new DiscInterfaceChallenger(256*1024);},true};
+static const DiscInterfaceDef DISC_INTERFACE_CHALLENGER_512K{"Opus CHALLENGER 512K","challenger-1.01.rom",[]() {return new DiscInterfaceChallenger(512*1024);},true};
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -602,7 +602,7 @@ private:
 };
 
 
-const DiscInterfaceDef DISC_INTERFACE_MASTER128{"Master 128","",[]() {return new DiscInterfaceMaster128;}};
+const DiscInterfaceDef DISC_INTERFACE_MASTER128{"Master 128","",[]() {return new DiscInterfaceMaster128;},false};
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
