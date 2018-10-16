@@ -7,6 +7,7 @@
 #include <shared/debug.h>
 #include "SettingsUI.h"
 #include "commands.h"
+#include <beeb/DiscInterface.h>
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -154,7 +155,7 @@ bool ConfigsUI::DoEditConfigGui(const BeebConfig *config,BeebConfig *editable_co
                 ImGuiIDPusher bank_id_pusher(bank);
 
                 ImGui::Separator();
-                
+
                 if(editable_config) {
                     BeebConfig::ROM *editable_rom=&editable_config->roms[bank];
 
@@ -177,6 +178,12 @@ bool ConfigsUI::DoEditConfigGui(const BeebConfig *config,BeebConfig *editable_co
         ImGui::Columns(1);
 
         if(editable_config) {
+            if(!editable_config->disc_interface->uses_1MHz_bus) {
+                if(ImGui::Checkbox("External memory",&editable_config->ext_mem)) {
+                    edited=true;
+                }
+            }
+
             if(occupied!=0xffff) {
                 {
                     ImGuiIDPusher ram_id_pusher("ram");
@@ -233,7 +240,7 @@ void ConfigsUI::DoROMInfoGui(const char *caption,const std::string &file_name,co
     ImGuiIDPusher id_pusher(caption);
 
     ImGui::AlignTextToFramePadding();
-    
+
     ImGui::TextUnformatted(caption);
 
     ImGui::NextColumn();
@@ -260,7 +267,7 @@ bool ConfigsUI::DoROMEditGui(const char *caption,std::string *file_name,bool *wr
 
     // doesn't seem to make any difference.
     //ImGui::AlignFirstTextHeightToWidgets();
-    
+
     ImGui::TextUnformatted(caption);
 
     ImGui::NextColumn();

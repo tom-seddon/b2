@@ -168,6 +168,15 @@ To add a new sideways RAM slot, use one of the `Add RAM` buttons.
 Sideways RAM slots are by default empty but you can use the `...`
 button to load a ROM image on startup.
 
+### External memory
+
+Check the `External memory` box to add a 16MByte paged RAM 1MHz bus
+device. Paging registers are at &FC00 (LSB) and &FC01 (MSB), and the
+corresponding page of the memory appears in page &FD.
+
+(The external RAM can't be enabled in conjunction with theñ Opus
+Challenger disc interface, as both devices use page &FD.)
+
 ## Paste from clipboard
 
 Paste text from the clipboard to the BASIC prompt using `OSRDCH Paste`
