@@ -4,3 +4,4 @@
 beeb_dis.txt
 imgui.ini
 /build/
+/cmake-build-*/

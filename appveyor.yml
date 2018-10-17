@@ -3,7 +3,6 @@ version: '{build}'
 branches:
   only:
     - master
-    - build
 
 image: Visual Studio 2015
 
@@ -34,15 +33,5 @@ deploy:
     artifact: output
     draft: false
     prerelease: false
-    on:
-      branch: build
-  - provider: FTP
-    protocol: sftp
-    host: ffe3.com
-    username: b2_upload
-    password:
-      secure: QxgHPePBfViWoQw+N8f1YU1hRmya/AbC9+XCP2gRLaI=
-    folder: ffe3.com/b2/ci
-    artifact: output
     on:
       branch: master

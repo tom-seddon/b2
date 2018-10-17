@@ -289,8 +289,10 @@ BeebWindow::~BeebWindow() {
     }
 
 #if RMT_ENABLED
-    ASSERT(g_num_BeebWindow_inits>0);
-    --g_num_BeebWindow_inits;
+    if(g_num_BeebWindow_inits>0) {
+        --g_num_BeebWindow_inits;
+    }
+    
     if(g_num_BeebWindow_inits==0) {
 #if RMT_USE_OPENGL
         if(g_unbind_opengl) {
@@ -770,6 +772,10 @@ const BeebWindow::SettingsUIMetadata BeebWindow::ms_settings_uis[]={
     {BeebWindowPopupType_MemoryDebugger2,"Memory Debug 2","toggle_memory_debugger2",&CreateMemoryDebugWindow,},
     {BeebWindowPopupType_MemoryDebugger3,"Memory Debug 3","toggle_memory_debugger3",&CreateMemoryDebugWindow,},
     {BeebWindowPopupType_MemoryDebugger4,"Memory Debug 4","toggle_memory_debugger4",&CreateMemoryDebugWindow,},
+    {BeebWindowPopupType_ExtMemoryDebugger1,"External Memory Debug 1","toggle_ext_memory_debugger1",&CreateExtMemoryDebugWindow,},
+    {BeebWindowPopupType_ExtMemoryDebugger2,"External Memory Debug 2","toggle_ext_memory_debugger2",&CreateExtMemoryDebugWindow,},
+    {BeebWindowPopupType_ExtMemoryDebugger3,"External Memory Debug 3","toggle_ext_memory_debugger3",&CreateExtMemoryDebugWindow,},
+    {BeebWindowPopupType_ExtMemoryDebugger4,"External Memory Debug 4","toggle_ext_memory_debugger4",&CreateExtMemoryDebugWindow,},
     {BeebWindowPopupType_DisassemblyDebugger,"Disassembly Debug","toggle_disassembly_debugger",&CreateDisassemblyDebugWindow,},
     {BeebWindowPopupType_CRTCDebugger,"CRTC Debug","toggle_crtc_debugger",&CreateCRTCDebugWindow,},
     {BeebWindowPopupType_VideoULADebugger,"Video ULA Debug","toggle_video_ula_debugger",&CreateVideoULADebugWindow,},
@@ -1313,6 +1319,13 @@ void BeebWindow::DoDebugMenu() {
             m_occ.DoMenuItemUI("toggle_memory_debugger2");
             m_occ.DoMenuItemUI("toggle_memory_debugger3");
             m_occ.DoMenuItemUI("toggle_memory_debugger4");
+            ImGui::EndMenu();
+        }
+        if(ImGui::BeginMenu("External Memory Debug")) {
+            m_occ.DoMenuItemUI("toggle_ext_memory_debugger1");
+            m_occ.DoMenuItemUI("toggle_ext_memory_debugger2");
+            m_occ.DoMenuItemUI("toggle_ext_memory_debugger3");
+            m_occ.DoMenuItemUI("toggle_ext_memory_debugger4");
             ImGui::EndMenu();
         }
         m_occ.DoMenuItemUI("toggle_disassembly_debugger");
@@ -2695,6 +2708,10 @@ ObjectCommandTable<BeebWindow> BeebWindow::ms_command_table("Beeb Window",{
     GetTogglePopupCommand<BeebWindowPopupType_MemoryDebugger2>(),
     GetTogglePopupCommand<BeebWindowPopupType_MemoryDebugger3>(),
     GetTogglePopupCommand<BeebWindowPopupType_MemoryDebugger4>(),
+    GetTogglePopupCommand<BeebWindowPopupType_ExtMemoryDebugger1>(),
+    GetTogglePopupCommand<BeebWindowPopupType_ExtMemoryDebugger2>(),
+    GetTogglePopupCommand<BeebWindowPopupType_ExtMemoryDebugger3>(),
+    GetTogglePopupCommand<BeebWindowPopupType_ExtMemoryDebugger4>(),
     GetTogglePopupCommand<BeebWindowPopupType_DisassemblyDebugger>(),
     GetTogglePopupCommand<BeebWindowPopupType_CRTCDebugger>(),
     GetTogglePopupCommand<BeebWindowPopupType_VideoULADebugger>(),

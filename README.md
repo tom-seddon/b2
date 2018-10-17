@@ -28,7 +28,7 @@ If you have trouble with slow startup and poor performance on Windows
 option: `b2 --timer`.
 
 This setting is sticky, and will be saved on exit for future runs. So
-after you've done this one, you can just run it from Windows Explorer
+after you've done this once, you can just run it from Windows Explorer
 in future.
 
 ## OS X
@@ -39,15 +39,6 @@ there.
 ## Linux
 
 Please follow [the building instructions](#building).
-
-## Rolling builds
-
-You can get a Windows or OS X build of the latest buildable code, hot
-off the presses, for good or for ill, from the
-[b2 builds site](http://ffe3.com/b2/ci/).
-
-The builds are sorted newest first, so grab the top one for the
-system of interest, and install as above!
 
 # Guided tour
 
@@ -176,6 +167,15 @@ file.
 To add a new sideways RAM slot, use one of the `Add RAM` buttons.
 Sideways RAM slots are by default empty but you can use the `...`
 button to load a ROM image on startup.
+
+### External memory
+
+Check the `External memory` box to add a 16MByte paged RAM 1MHz bus
+device. Paging registers are at &FC00 (LSB) and &FC01 (MSB), and the
+corresponding page of the memory appears in page &FD.
+
+(The external RAM can't be enabled in conjunction with theñ Opus
+Challenger disc interface, as both devices use page &FD.)
 
 ## Paste from clipboard
 
