@@ -2374,7 +2374,6 @@ void BBCMicro::SetExtMemory(uint32_t addr, uint8_t value) {
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_DEBUGGER
-
 void BBCMicro::DebugHalt(const char *fmt,...) {
     if(m_debug) {
         m_debug->is_halted=true;
