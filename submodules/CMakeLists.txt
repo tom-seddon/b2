@@ -121,8 +121,47 @@ endif()
 
 add_library(rapidjson_lib INTERFACE)
 
-target_include_directories(rapidjson_lib INTERFACE
-  ${CMAKE_CURRENT_SOURCE_DIR}/rapidjson/include)
+set(RAPIDJSON_INCLUDE ${CMAKE_CURRENT_SOURCE_DIR}/rapidjson/include)
+
+target_sources(rapidjson_lib INTERFACE
+  ${RAPIDJSON_INCLUDE}/rapidjson/fwd.h
+  ${RAPIDJSON_INCLUDE}/rapidjson/memorystream.h
+  ${RAPIDJSON_INCLUDE}/rapidjson/reader.h
+  ${RAPIDJSON_INCLUDE}/rapidjson/prettywriter.h
+  ${RAPIDJSON_INCLUDE}/rapidjson/ostreamwrapper.h
+  ${RAPIDJSON_INCLUDE}/rapidjson/encodedstream.h
+  ${RAPIDJSON_INCLUDE}/rapidjson/filereadstream.h
+  ${RAPIDJSON_INCLUDE}/rapidjson/cursorstreamwrapper.h
+  ${RAPIDJSON_INCLUDE}/rapidjson/istreamwrapper.h
+  ${RAPIDJSON_INCLUDE}/rapidjson/stringbuffer.h
+  ${RAPIDJSON_INCLUDE}/rapidjson/internal/ieee754.h
+  ${RAPIDJSON_INCLUDE}/rapidjson/internal/strtod.h
+  ${RAPIDJSON_INCLUDE}/rapidjson/internal/swap.h
+  ${RAPIDJSON_INCLUDE}/rapidjson/internal/regex.h
+  ${RAPIDJSON_INCLUDE}/rapidjson/internal/diyfp.h
+  ${RAPIDJSON_INCLUDE}/rapidjson/internal/biginteger.h
+  ${RAPIDJSON_INCLUDE}/rapidjson/internal/strfunc.h
+  ${RAPIDJSON_INCLUDE}/rapidjson/internal/itoa.h
+  ${RAPIDJSON_INCLUDE}/rapidjson/internal/stack.h
+  ${RAPIDJSON_INCLUDE}/rapidjson/internal/dtoa.h
+  ${RAPIDJSON_INCLUDE}/rapidjson/internal/meta.h
+  ${RAPIDJSON_INCLUDE}/rapidjson/internal/pow10.h
+  ${RAPIDJSON_INCLUDE}/rapidjson/encodings.h
+  ${RAPIDJSON_INCLUDE}/rapidjson/schema.h
+  ${RAPIDJSON_INCLUDE}/rapidjson/stream.h
+  ${RAPIDJSON_INCLUDE}/rapidjson/filewritestream.h
+  ${RAPIDJSON_INCLUDE}/rapidjson/rapidjson.h
+  ${RAPIDJSON_INCLUDE}/rapidjson/document.h
+  ${RAPIDJSON_INCLUDE}/rapidjson/allocators.h
+  ${RAPIDJSON_INCLUDE}/rapidjson/writer.h
+  ${RAPIDJSON_INCLUDE}/rapidjson/error/error.h
+  ${RAPIDJSON_INCLUDE}/rapidjson/error/en.h
+  ${RAPIDJSON_INCLUDE}/rapidjson/memorybuffer.h
+  ${RAPIDJSON_INCLUDE}/rapidjson/pointer.h
+  ${RAPIDJSON_INCLUDE}/rapidjson/msinttypes/inttypes.h
+  ${RAPIDJSON_INCLUDE}/rapidjson/msinttypes/stdint.h)
+
+target_include_directories(rapidjson_lib INTERFACE ${RAPIDJSON_INCLUDE})
 
 ##########################################################################
 ##########################################################################
