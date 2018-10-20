@@ -59,6 +59,13 @@ if(${CMAKE_C_COMPILER_ID} MATCHES "GNU|Clang")
     add_definitions("-Werror=incompatible-pointer-types")
     add_definitions("-Werror=int-conversion")
     add_definitions("-Werror=return-type")
+
+    # This is a potentially useful warning, but there seems to be no
+    # way to inhibit it just for poppack.h.
+    #
+    # See also, e.g.,
+    # https://github.com/dotnet/coreclr/pull/16855/commits/f7640e3b1310c9d1e1aa20c7d81fd7a6aa08a32e
+    add_definitions("-Wno-pragma-pack")
   endif()
 
   # There is test data longer than the ISO-mandated 4095 chars.
