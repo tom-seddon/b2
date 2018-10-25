@@ -12,7 +12,7 @@ debugger.
 Prerequisites:
 
 * Xcode
-* [cmake](https://cmake.org/) version 3.5+
+* [cmake](https://cmake.org/) version 3.9+
 
 Initial build steps:
 

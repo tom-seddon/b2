@@ -3,8 +3,7 @@
 Prerequisites:
 
 - Visual Studio 2015
-- [cmake](https://cmake.org/) version 3.5+ on the PATH (I used
-  3.7.0-rc2)
+- [cmake](https://cmake.org/) version 3.9+ on the PATH (I used 3.9.6)
   
 Optional, but recommended:
 
@@ -18,16 +17,14 @@ Initial build steps:
    bunch of output. There may be the odd warning but there should be
    no obvious errors and it should finish with an exit code of 0
    
-3. Load `build\win64\b2.sln` or `build\win32\b2.sln` into Visual
-   Studio 2015
-
-4. Set `b2` as the startup project
-
 General day-to-day build steps:
 
-1. Build
+1. Load `build\win64\b2.sln` or `build\win32\b2.sln` into Visual
+   Studio 2015
 
-2. Run
+2. Build
+
+3. Run
 
 Because of the way cmake works, there are 40+ projects in the
 solution. Even though most are never used, they're still there
