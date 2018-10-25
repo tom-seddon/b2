@@ -292,7 +292,7 @@ BeebWindow::~BeebWindow() {
     if(g_num_BeebWindow_inits>0) {
         --g_num_BeebWindow_inits;
     }
-    
+
     if(g_num_BeebWindow_inits==0) {
 #if RMT_USE_OPENGL
         if(g_unbind_opengl) {
@@ -816,7 +816,7 @@ void BeebWindow::DoSettingsUI() {
                 extra_flags|=(ImGuiWindowFlags)m_popups[ui->type]->GetExtraImGuiWindowFlags();
             }
 
-            if(ImGui::BeginDock(ui->name,&opened,extra_flags,default_size, default_pos)) {
+            if(ImGui::BeginDock(ui->name,&opened,extra_flags,default_size,default_pos)) {
                 if(!m_popups[ui->type]) {
                     m_popups[ui->type]=(*ui->create_fn)(this);
                 }
@@ -1433,34 +1433,55 @@ void BeebWindow::UpdateTVTexture(VBlankRecord *vblank_record) {
     if(video_output->GetConsumerBuffers(&a,&na,&b,&nb)) {
         bool limited=m_beeb_thread->IsSpeedLimited();
 
-        size_t n;
-
-        n=na;
         if(limited) {
-            n=(size_t)std::min((uint64_t)n,num_units_left);
-        }
-        if(update) {
-            m_tv.Update(a,n);
-        }
-        num_units_left-=n;
-
-        n=nb;
-        if(limited) {
-            n=(size_t)std::min((uint64_t)n,num_units_left);
-        }
-        if(update) {
-            m_tv.Update(b,n);
-        }
-        num_units_left-=n;
-
-        if(limited) {
-            ASSERT(num_units>=num_units_left);
-            num_units_consumed=num_units-num_units_left;
-        } else {
-            num_units_consumed=na+nb;
+            if(na+nb>num_units_left) {
+                if(na>num_units_left) {
+                    na=num_units_left;
+                    nb=0;
+                } else {
+                    nb=num_units_left-na;
+                }
+            }
         }
 
-        video_output->Consume(num_units_consumed);
+        size_t num_left;
+        const size_t MAX_UPDATE_SIZE=200;
+
+        // A.
+        num_left=na;
+        while(num_left>0) {
+            size_t n=num_left;
+            if(n>MAX_UPDATE_SIZE) {
+                n=MAX_UPDATE_SIZE;
+            }
+
+            if(update) {
+                m_tv.Update(a,n);
+            }
+
+            a+=n;
+            video_output->Consume(n);
+            num_left-=n;
+        }
+
+        // B.
+        num_left=nb;
+        while(num_left>0) {
+            size_t n=num_left;
+            if(n>MAX_UPDATE_SIZE) {
+                n=MAX_UPDATE_SIZE;
+            }
+
+            if(update) {
+                m_tv.Update(b,n);
+            }
+
+            b+=n;
+            video_output->Consume(n);
+            num_left-=n;
+        }
+
+        num_units_consumed+=na+nb;
     } else {
 #if BBCMICRO_DEBUGGER
         if(update) {
@@ -1738,7 +1759,7 @@ void BeebWindow::SavePosition() {
     BeebWindows::SetLastWindowPlacementData(buf);
 
 #endif
-}
+    }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -1860,7 +1881,7 @@ bool BeebWindow::InitInternal() {
             g_unbind_opengl=1;
 }
 #endif
-    }
+}
     ++g_num_BeebWindow_inits;
 #endif
 

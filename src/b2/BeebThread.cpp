@@ -856,7 +856,6 @@ size_t BeebThread::AudioThreadFillAudioBuffer(float *samples,size_t num_samples,
     float acc=0.f;
     size_t num_units_left=num_sa;
     const SoundDataUnit *unit=sa;
-    size_t num_units_consumed=0;
 
     for(size_t sample_idx=0;sample_idx<num_samples;++sample_idx) {
         uint64_t num_units_=remapper->Step();
@@ -914,14 +913,12 @@ size_t BeebThread::AudioThreadFillAudioBuffer(float *samples,size_t num_samples,
                 }
             }
 
-            num_units_consumed+=num_units;
+            m_sound_output.Consume(num_units);
+            atd->num_consumed_sound_units+=num_units;
         }
 
         dest[sample_idx]=acc;
     }
-
-    atd->num_consumed_sound_units+=num_units_consumed;
-    m_sound_output.Consume(num_units_consumed);
 
     return num_samples;
 }
@@ -2240,8 +2237,6 @@ void BeebThread::ThreadMain(void) {
             }
 
             SoundDataUnit *sunit=sa;
-            size_t num_sunits_produced=0;
-            size_t num_vunits_produced=0;
 
             {
                 VideoDataUnit *vunit;
@@ -2274,11 +2269,11 @@ void BeebThread::ThreadMain(void) {
                                 sunit=nullptr;
                             }
 
-                            ++num_sunits_produced;
+                            m_sound_output.Produce(1);
                         }
                     }
 
-                    num_vunits_produced+=i;
+                    m_video_output.Produce(i);
                 }
 
                 if(!lock.owns_lock()) {
@@ -2314,16 +2309,13 @@ void BeebThread::ThreadMain(void) {
                                 sunit=nullptr;
                             }
 
-                            ++num_sunits_produced;
+                            m_sound_output.Produce(1);
                         }
                     }
 
-                    num_vunits_produced+=i;
+                    m_video_output.Produce(i);
                 }
             }
-
-            m_video_output.Produce(num_vunits_produced);
-            m_sound_output.Produce(num_sunits_produced);
 
             // It's a bit dumb having multiple copies.
             m_num_2MHz_cycles.store(*ts.num_executed_2MHz_cycles,std::memory_order_release);
