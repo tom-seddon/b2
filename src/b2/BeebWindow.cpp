@@ -1430,7 +1430,7 @@ void BeebWindow::UpdateTVTexture(VBlankRecord *vblank_record) {
     }
 #endif
 
-    if(video_output->ConsumerLock(&a,&na,&b,&nb)) {
+    if(video_output->GetConsumerBuffers(&a,&na,&b,&nb)) {
         bool limited=m_beeb_thread->IsSpeedLimited();
 
         size_t n;
@@ -1460,7 +1460,7 @@ void BeebWindow::UpdateTVTexture(VBlankRecord *vblank_record) {
             num_units_consumed=na+nb;
         }
 
-        video_output->ConsumerUnlock(num_units_consumed);
+        video_output->Consume(num_units_consumed);
     } else {
 #if BBCMICRO_DEBUGGER
         if(update) {

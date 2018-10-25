@@ -36,8 +36,8 @@ public:
     RDELETED(OutputDataBuffer(OutputDataBuffer<T> &&));
     RDELETED(OutputDataBuffer &operator=(OutputDataBuffer<T> &&));
 
-    // Grab pointer(s) to storage for up to N items. If any items were
-    // allocated at all, fill *PA_PTR/*NA_PTR with pointer & count of
+    // Grab pointer(s) to buffer(s) for produced items. If any space
+    // is available, fill *PA_PTR/*NA_PTR with pointer & count of
     // first portion, and *PB_PTR/*NB_PTR with pointer & count of
     // second portion, then return true.
     //
@@ -45,12 +45,11 @@ public:
     //
     // If there's no space for any items, return false.
     //
-    // When ProducerLock returns true, call ProducerUnlock to commit
-    // produced items (even if there were 0 of them). There must be
-    // one ProducerUnlock call per ProducerLock.
-    bool ProducerLock(T **pa_ptr,size_t *na_ptr,T **pb_ptr,size_t *nb_ptr,size_t n) {
-        ASSERT(RVAL(m_last_wn)==0);
-
+    // Call Produce to commit items, up to as many as were returned by
+    // GetProducerBuffers (produced items will be available to the
+    // next call to GetConsumerBuffers). Or call GetProducerBuffers
+    // again to get the latest buffer pointers.
+    bool GetProducerBuffers(T **pa_ptr,size_t *na_ptr,T **pb_ptr,size_t *nb_ptr) {
         uint64_t rv=RVAL(m_rv).load(RMO_ACQUIRE);
         uint64_t wv=RVAL(m_wv).load(RMO_ACQUIRE);
 
@@ -62,18 +61,14 @@ public:
             return false;
         }
 
-        if(n>free) {
-            n=free;
-        }
-
         size_t begin_index=(size_t)(wv%SIZE);
-        size_t end_index=begin_index+n;
+        size_t end_index=begin_index+free;
 
         *pa_ptr=m_buf+begin_index;
 
         if(end_index<=SIZE) {
             // No B part.
-            *na_ptr=n;
+            *na_ptr=free;
             *pb_ptr=nullptr;
             *nb_ptr=0;
         } else {
@@ -83,25 +78,24 @@ public:
             *nb_ptr=end_index-SIZE;
         }
 
-        RVAL(m_last_wn)=n;
+        RVAL(m_last_wn)=free;
         return true;
     }
 
-    // Commit N items previously allocated with ProducerAllocate.
-    void ProducerUnlock(size_t n) {
+    // Commit N produced items. The committed items will be included
+    // in the buffer(s) returned by GetConsumerBuffers.
+    void Produce(size_t n) {
         ASSERT(n<=RVAL(m_last_wn));
 
         RVAL(m_wv).fetch_add(n,RMO_ACQ_REL);
-        RVAL(m_last_wn)=0;
+        RVAL(m_last_wn)-=n;
     }
 
-    // Lock all available items for reading. Returns false if there
-    // are no items available, or fills in *PA_PTR/*NA_PTR and
-    // *PB_PTR/*NB_PTR with pointer to and count of items
-    // respectively in each portion.
-    bool ConsumerLock(const T **pa_ptr,size_t *na_ptr,const T **pb_ptr,size_t *nb_ptr) {
-        ASSERT(RVAL(m_last_rn)==0);
-
+    // Get pointer(s) to buffer(s) containing produced items. Returns
+    // false if there are no items available, or fills in
+    // *PA_PTR/*NA_PTR and *PB_PTR/*NB_PTR with pointer to and count
+    // of items respectively in each portion.
+    bool GetConsumerBuffers(const T **pa_ptr,size_t *na_ptr,const T **pb_ptr,size_t *nb_ptr) {
         uint64_t rv=RVAL(m_rv).load(RMO_ACQUIRE);
         uint64_t wv=RVAL(m_wv).load(RMO_ACQUIRE);
 
@@ -134,11 +128,13 @@ public:
         return true;
     }
 
-    void ConsumerUnlock(size_t n) {
+    // Consume N produced items. The consumed items become invalid,
+    // and their space becomes available for the producer's buffer.
+    void Consume(size_t n) {
         ASSERT(n<=RVAL(m_last_rn));
 
         RVAL(m_rv).fetch_add(n,RMO_ACQ_REL);
-        RVAL(m_last_rn)=0;
+        RVAL(m_last_rn)-=n;
     }
 protected:
 private:

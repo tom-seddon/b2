@@ -46,7 +46,7 @@ struct RelacyOutputDataBufferTest:
             for(;;) {
                 uint64_t *pa,*pb;
                 size_t na,nb;
-                if(buf.ProducerLock(&pa,&na,&pb,&nb,2)) {
+                if(buf.GetProducerBuffers(&pa,&na,&pb,&nb)) {
                     for(size_t j=0;j<na;++j) {
                         pa[j]=next++;
                     }
@@ -55,7 +55,7 @@ struct RelacyOutputDataBufferTest:
                         pb[j]=next++;
                     }
 
-                    buf.ProducerUnlock(na+nb);
+                    buf.Produce(na+nb);
 
                     if(next>=num_iterations) {
                         break;
@@ -66,7 +66,7 @@ struct RelacyOutputDataBufferTest:
             for(;;) {
                 const uint64_t *pa,*pb;
                 size_t na,nb;
-                if(buf.ConsumerLock(&pa,&na,&pb,&nb)) {
+                if(buf.GetConsumerBuffers(&pa,&na,&pb,&nb)) {
                     for(size_t j=0;j<na;++j) {
                         RL_ASSERT(pa[j]==next);
                         ++next;
@@ -76,7 +76,7 @@ struct RelacyOutputDataBufferTest:
                         ++next;
                     }
 
-                    buf.ConsumerUnlock(na+nb);
+                    buf.Consume(na+nb);
 
                     if(next>=num_iterations) {
                         break;

@@ -779,7 +779,7 @@ size_t BeebThread::AudioThreadFillAudioBuffer(float *samples,size_t num_samples,
 
     const SoundDataUnit *sa=nullptr,*sb=nullptr;
     size_t num_sa,num_sb;
-    if(!m_sound_output.ConsumerLock(&sa,&num_sa,&sb,&num_sb)) {
+    if(!m_sound_output.GetConsumerBuffers(&sa,&num_sa,&sb,&num_sb)) {
         num_sa=0;
         num_sb=0;
     }
@@ -817,7 +817,7 @@ size_t BeebThread::AudioThreadFillAudioBuffer(float *samples,size_t num_samples,
         } else {
             if(perfect) {
                 // bail out and try again later.
-                m_sound_output.ConsumerUnlock(0);
+                //m_sound_output.ConsumerUnlock(0);
                 return 0;
             }
 
@@ -921,7 +921,7 @@ size_t BeebThread::AudioThreadFillAudioBuffer(float *samples,size_t num_samples,
     }
 
     atd->num_consumed_sound_units+=num_units_consumed;
-    m_sound_output.ConsumerUnlock(num_units_consumed);
+    m_sound_output.Consume(num_units_consumed);
 
     return num_samples;
 }
@@ -2214,28 +2214,29 @@ void BeebThread::ThreadMain(void) {
             VideoDataUnit *va,*vb;
             size_t num_va,num_vb;
             size_t num_video_units=(size_t)num_2MHz_cycles;
-            if(!m_video_output.ProducerLock(&va,&num_va,&vb,&num_vb,num_video_units)) {
+            if(!m_video_output.GetProducerBuffers(&va,&num_va,&vb,&num_vb)) {
                 goto wait_for_message;
             }
 
-            // should really have this as part of the OutputDataBuffer API.
-            if(num_va+num_vb<num_video_units) {
-            unlock_video:;
-                m_video_output.ProducerUnlock(0);
-                goto wait_for_message;
+            if(num_va+num_vb>num_video_units) {
+                if(num_va>num_video_units) {
+                    num_va=num_video_units;
+                    num_vb=0;
+                } else {
+                    num_vb=num_video_units-num_va;
+                }
             }
 
-            size_t num_sound_units=(size_t)((num_2MHz_cycles+(1<<SOUND_CLOCK_SHIFT)-1)>>SOUND_CLOCK_SHIFT);
+            size_t num_sound_units=(size_t)((num_va+num_vb+(1<<SOUND_CLOCK_SHIFT)-1)>>SOUND_CLOCK_SHIFT);
 
             SoundDataUnit *sa,*sb;
             size_t num_sa,num_sb;
-            if(!m_sound_output.ProducerLock(&sa,&num_sa,&sb,&num_sb,num_sound_units)) {
-                goto unlock_video;
+            if(!m_sound_output.GetProducerBuffers(&sa,&num_sa,&sb,&num_sb)) {
+                goto wait_for_message;
             }
 
             if(num_sa+num_sb<num_sound_units) {
-                m_sound_output.ProducerUnlock(0);
-                goto unlock_video;
+                goto wait_for_message;
             }
 
             SoundDataUnit *sunit=sa;
@@ -2321,8 +2322,8 @@ void BeebThread::ThreadMain(void) {
                 }
             }
 
-            m_video_output.ProducerUnlock(num_vunits_produced);
-            m_sound_output.ProducerUnlock(num_sunits_produced);
+            m_video_output.Produce(num_vunits_produced);
+            m_sound_output.Produce(num_sunits_produced);
 
             // It's a bit dumb having multiple copies.
             m_num_2MHz_cycles.store(*ts.num_executed_2MHz_cycles,std::memory_order_release);

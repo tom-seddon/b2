@@ -324,7 +324,7 @@ void WriteVideoJob::ThreadExecute() {
 
             const VideoDataUnit *vp[2];
             size_t vn[2];
-            if(video_output->ConsumerLock(&vp[0],&vn[0],&vp[1],&vn[1])) {
+            if(video_output->GetConsumerBuffers(&vp[0],&vn[0],&vp[1],&vn[1])) {
                 for(size_t i=0;i<2;++i) {
                     const VideoDataUnit *v=vp[i];
                     size_t n=vn[i];
@@ -352,7 +352,7 @@ void WriteVideoJob::ThreadExecute() {
                     }
                 }
 
-                video_output->ConsumerUnlock(vn[0]+vn[1]);
+                video_output->Consume(vn[0]+vn[1]);
             } else {
                 if(num_samples==0&&!replaying) {
                     break;
