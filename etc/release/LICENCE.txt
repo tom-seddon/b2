@@ -13,6 +13,14 @@ Additional credits:
   <bjoern@hoehrmann.de> -
   http://bjoern.hoehrmann.de/utf-8/decoder/dfa/
 
+* 1MHz bus external RAM emulation thanks to
+  https://github.com/TheEnbyperor
+
+* Rather essential SN76489 fix thanks to https://github.com/hexwab
+
+b2 makes use of a number of open source libraries, licences for which
+are also included in this file.
+
 ###########################################################################
 # b2 ######################################################################
 ###########################################################################
