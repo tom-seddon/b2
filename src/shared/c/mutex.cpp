@@ -53,26 +53,27 @@ static void CheckMetadataList() {
 //////////////////////////////////////////////////////////////////////////
 
 Mutex::Mutex():
-    m_metadata_shared_ptr(std::make_shared<MutexFullMetadata>())
+    m_metadata(std::make_shared<MutexFullMetadata>())
 {
     std::call_once(g_mutex_metadata_list_mutex_initialise_once_flag,&InitMutexMetadataListMutex);
 
-    m_metadata=m_metadata_shared_ptr.get();
-    m_metadata->next=m_metadata;
-    m_metadata->prev=m_metadata;
+    m_meta=&m_metadata.get()->meta;
+
+    m_metadata->next=m_metadata.get();
+    m_metadata->prev=m_metadata.get();
     m_metadata->mutex=this;
     m_metadata->metadata_list_mutex=g_mutex_metadata_list_mutex;
 
     std::lock_guard<std::mutex> lock(*g_mutex_metadata_list_mutex);
 
     if(!g_mutex_metadata_head) {
-        g_mutex_metadata_head=m_metadata;
+        g_mutex_metadata_head=m_metadata.get();
     } else {
         m_metadata->prev=g_mutex_metadata_head->prev;
         m_metadata->next=g_mutex_metadata_head;
 
-        m_metadata->prev->next=m_metadata;
-        m_metadata->next->prev=m_metadata;
+        m_metadata->prev->next=m_metadata.get();
+        m_metadata->next->prev=m_metadata.get();
     }
 
     CheckMetadataList();
@@ -85,12 +86,10 @@ Mutex::~Mutex() {
     {
         std::lock_guard<std::mutex> lock(*m_metadata->metadata_list_mutex);
 
-        if(m_metadata==g_mutex_metadata_head)
-        {
+        if(m_metadata.get()==g_mutex_metadata_head) {
             g_mutex_metadata_head=m_metadata->next;
 
-            if(m_metadata==g_mutex_metadata_head)
-            {
+            if(m_metadata.get()==g_mutex_metadata_head) {
                 // this was the last one in the list...
                 g_mutex_metadata_head=nullptr;
             }
@@ -118,45 +117,45 @@ void Mutex::SetName(std::string name) {
 //////////////////////////////////////////////////////////////////////////
 
 const MutexMetadata *Mutex::GetMetadata() const {
-    return &m_metadata->meta;
+    return m_meta;
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void Mutex::lock() {
-    uint64_t a_ticks=GetCurrentTickCount();
-
-    if(!m_mutex.try_lock()) {
-        m_mutex.lock();
-        ++m_metadata->meta.num_contended_locks;
-    }
-
-    ++m_metadata->meta.num_locks;
-    m_metadata->meta.total_lock_wait_ticks+=GetCurrentTickCount()-a_ticks;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-bool Mutex::try_lock() {
-    bool succeeded=m_mutex.try_lock();
-
-    if(succeeded) {
-        ++m_metadata->meta.num_successful_try_locks;
-    }
-
-    ++m_metadata->meta.num_try_locks;
-
-    return succeeded;
-}
+//void Mutex::lock() {
+//    uint64_t a_ticks=GetCurrentTickCount();
+//
+//    if(!m_mutex.try_lock()) {
+//        m_mutex.lock();
+//        ++m_meta->num_contended_locks;
+//    }
+//
+//    ++m_meta->num_locks;
+//    m_meta->total_lock_wait_ticks+=GetCurrentTickCount()-a_ticks;
+//}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void Mutex::unlock() {
-    m_mutex.unlock();
-}
+//bool Mutex::try_lock() {
+//    bool succeeded=m_mutex.try_lock();
+//
+//    if(succeeded) {
+//        ++m_meta->num_successful_try_locks;
+//    }
+//
+//    ++m_meta->num_try_locks;
+//
+//    return succeeded;
+//}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+//void Mutex::unlock() {
+//    m_mutex.unlock();
+//}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
