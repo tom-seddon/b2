@@ -1657,12 +1657,9 @@ bool BBCMicro::Update(VideoDataUnit *video_unit,SoundDataUnit *sound_unit) {
         M6502_SetDeviceNMI(&m_state.cpu,BBCMicroNMIDevice_1770,m_state.fdc.Update().value);
 
         // Update sound.
-        if(m_state.addressable_latch.bits.not_sound_write==0) {
-            m_state.sn76489.Write(m_state.system_via.a.p);
-        }
-
         if((m_state.num_2MHz_cycles&((1<<SOUND_CLOCK_SHIFT)-1))==0) {
-            sound_unit->sn_output=m_state.sn76489.Update();
+            sound_unit->sn_output=m_state.sn76489.Update(!m_state.addressable_latch.bits.not_sound_write,
+                                                         m_state.system_via.a.p);
 
 #if BBCMICRO_ENABLE_DISC_DRIVE_SOUND
             // The disc drive sounds are pretty quiet. 

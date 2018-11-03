@@ -38,7 +38,7 @@ void SN76489::Reset() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-SN76489::Output SN76489::Update() {
+SN76489::Output SN76489::Update(bool write,uint8_t value) {
     Output output;
 
     // Tone channels
@@ -93,20 +93,7 @@ SN76489::Output SN76489::Update() {
         ASSERT(output.ch[3]>=-15&&output.ch[3]<=15);
     }
 
-    if(m_state.write_delay>0) {
-        --m_state.write_delay;
-    }
-
-    return output;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-void SN76489::Write(uint8_t value) {
-    if(m_state.write_delay>0) {
-        // ignore the write...
-    } else {
+    if(write) {
         if(value&0x80) {
             // Latch/data byte
 
@@ -142,9 +129,10 @@ void SN76489::Write(uint8_t value) {
             }
         }
 
-        // 2 cycles at 250KHz = 32 cycles at 4MHz, as per the data sheet.
-        //m_state.write_delay=2;
+        // And the 8us load delay...?
     }
+
+    return output;
 }
 
 //////////////////////////////////////////////////////////////////////////
