@@ -184,10 +184,10 @@ public:
 #include <shared/popwarn.h>
 
     union AddressableLatch {
+        uint8_t value;
         AddressableLatchBits bits;
         BAddressableLatchBits b_bits;
         Master128AddressableLatchBits m128_bits;
-        uint8_t value;
     };
 
     struct BROMSELBits {
@@ -479,10 +479,10 @@ private:
         uint64_t num_2MHz_cycles=0;
 
         // Addressable latch.
-        AddressableLatch addressable_latch={};
+        AddressableLatch addressable_latch={0xff};
 
         // Previous values, for detecting edge transitions.
-        AddressableLatch old_addressable_latch={};
+        AddressableLatch old_addressable_latch={0xff};
 
         M6502 cpu={};
         uint8_t stretched_cycles_left=0;

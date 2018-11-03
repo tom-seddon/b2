@@ -93,6 +93,10 @@ SN76489::Output SN76489::Update() {
         ASSERT(output.ch[3]>=-15&&output.ch[3]<=15);
     }
 
+    if(m_state.write_delay>0) {
+        --m_state.write_delay;
+    }
+
     return output;
 }
 
@@ -100,39 +104,46 @@ SN76489::Output SN76489::Update() {
 //////////////////////////////////////////////////////////////////////////
 
 void SN76489::Write(uint8_t value) {
-    if(value&0x80) {
-        // Latch/data byte
-
-        m_state.reg=value>>4&7;
-        uint8_t v=value&0xf;
-
-        Channel *channel=&m_state.channels[m_state.reg>>1];
-
-        if(m_state.reg&1) {
-            // volume
-            channel->vol=v^0xf;
-        } else {
-            // data
-            channel->freq&=~0xf;
-            channel->freq|=v;
-        }
+    if(m_state.write_delay>0) {
+        // ignore the write...
     } else {
-        Channel *channel=&m_state.channels[m_state.reg>>1];
-        uint8_t v=value&0x3f;
+        if(value&0x80) {
+            // Latch/data byte
 
-        // Data byte
-        if(m_state.reg&1) {
-            // volume
-            channel->vol=(v&0xf)^0xf;
-        } else if(m_state.reg==3<<1) {
-            // noise data
-            channel->freq=v;
-            m_state.noise_seed=1<<14;
+            m_state.reg=value>>4&7;
+            uint8_t v=value&0xf;
+
+            Channel *channel=&m_state.channels[m_state.reg>>1];
+
+            if(m_state.reg&1) {
+                // volume
+                channel->vol=v^0xf;
+            } else {
+                // data
+                channel->freq&=~0xf;
+                channel->freq|=v;
+            }
         } else {
-            // tone data
-            channel->freq&=0xf;
-            channel->freq|=v<<4;
+            Channel *channel=&m_state.channels[m_state.reg>>1];
+            uint8_t v=value&0x3f;
+
+            // Data byte
+            if(m_state.reg&1) {
+                // volume
+                channel->vol=(v&0xf)^0xf;
+            } else if(m_state.reg==3<<1) {
+                // noise data
+                channel->freq=v;
+                m_state.noise_seed=1<<14;
+            } else {
+                // tone data
+                channel->freq&=0xf;
+                channel->freq|=v<<4;
+            }
         }
+
+        // 2 cycles at 250KHz = 32 cycles at 4MHz, as per the data sheet.
+        //m_state.write_delay=2;
     }
 }
 

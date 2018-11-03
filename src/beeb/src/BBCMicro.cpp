@@ -1657,7 +1657,7 @@ bool BBCMicro::Update(VideoDataUnit *video_unit,SoundDataUnit *sound_unit) {
         M6502_SetDeviceNMI(&m_state.cpu,BBCMicroNMIDevice_1770,m_state.fdc.Update().value);
 
         // Update sound.
-        if(m_state.addressable_latch.bits.not_sound_write==0&&m_state.old_addressable_latch.bits.not_sound_write==1) {
+        if(m_state.addressable_latch.bits.not_sound_write==0) {
             m_state.sn76489.Write(m_state.system_via.a.p);
         }
 
