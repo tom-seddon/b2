@@ -61,7 +61,7 @@ private:
         uint8_t reg=0;
         uint8_t noise=0;
         uint16_t noise_seed=1<<14;
-        int8_t write_delay=0;
+        uint8_t write_delay=0;
     };
 
     State m_state;

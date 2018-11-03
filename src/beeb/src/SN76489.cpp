@@ -45,7 +45,7 @@ SN76489::Output SN76489::Update(bool write,uint8_t value) {
     for(size_t i=0;i<3;++i) {
         Channel *channel=&m_state.channels[i];
 
-        if(channel->freq<=1) {
+        if(channel->freq==1) {
             output.ch[i]=(int8_t)channel->vol;
         } else {
             output.ch[i]=channel->vol*channel->output.tone.mul;
@@ -58,6 +58,9 @@ SN76489::Output SN76489::Update(bool write,uint8_t value) {
                 channel->output.tone.mul=-channel->output.tone.mul;
 
                 channel->counter=channel->freq;
+                if(channel->counter==0) {
+                    channel->counter=1024;
+                }
             }
         }
         ASSERT(output.ch[i]>=-15&&output.ch[i]<=15);
@@ -66,8 +69,6 @@ SN76489::Output SN76489::Update(bool write,uint8_t value) {
     // Noise channel
     {
         Channel *channel=&m_state.channels[3];
-
-        uint16_t freq=*m_noise_pointers[channel->freq&3];
 
         if(channel->counter>0) {
             --channel->counter;
@@ -86,7 +87,10 @@ SN76489::Output SN76489::Update(bool write,uint8_t value) {
                 }
             }
 
-            channel->counter=freq;
+            channel->counter=*m_noise_pointers[channel->freq&3];
+            if(channel->counter==0) {
+                channel->counter=1024;
+            }
         }
 
         output.ch[3]=channel->vol*(int8_t)channel->output.noise.value;
@@ -94,42 +98,56 @@ SN76489::Output SN76489::Update(bool write,uint8_t value) {
     }
 
     if(write) {
-        if(value&0x80) {
-            // Latch/data byte
-
-            m_state.reg=value>>4&7;
-            uint8_t v=value&0xf;
-
-            Channel *channel=&m_state.channels[m_state.reg>>1];
-
-            if(m_state.reg&1) {
-                // volume
-                channel->vol=v^0xf;
-            } else {
-                // data
-                channel->freq&=~0xf;
-                channel->freq|=v;
-            }
+        if(m_state.write_delay>0) {
+            // write is lost, presumably?
         } else {
-            Channel *channel=&m_state.channels[m_state.reg>>1];
-            uint8_t v=value&0x3f;
+            m_state.write_delay=2;
 
-            // Data byte
-            if(m_state.reg&1) {
-                // volume
-                channel->vol=(v&0xf)^0xf;
-            } else if(m_state.reg==3<<1) {
-                // noise data
-                channel->freq=v;
-                m_state.noise_seed=1<<14;
+            uint8_t latch_data=value&0x80;
+
+            if(latch_data) {
+                m_state.reg=value>>5&3;
+            }
+
+            if(value&0x80) {
+                // Latch/data byte
+
+                m_state.reg=value>>4&7;
+                uint8_t v=value&0xf;
+
+                Channel *channel=&m_state.channels[m_state.reg>>1];
+
+                if(m_state.reg&1) {
+                    // volume
+                    channel->vol=v^0xf;
+                } else {
+                    // data
+                    channel->freq&=~0xf;
+                    channel->freq|=v;
+                }
             } else {
-                // tone data
-                channel->freq&=0xf;
-                channel->freq|=v<<4;
+                Channel *channel=&m_state.channels[m_state.reg>>1];
+                uint8_t v=value&0x3f;
+
+                // Data byte
+                if(m_state.reg&1) {
+                    // volume
+                    channel->vol=(v&0xf)^0xf;
+                } else if(m_state.reg==3<<1) {
+                    // noise data
+                    channel->freq=v;
+                    m_state.noise_seed=1<<14;
+                } else {
+                    // tone data
+                    channel->freq&=0xf;
+                    channel->freq|=v<<4;
+                }
             }
         }
+    }
 
-        // And the 8us load delay...?
+    if(m_state.write_delay>0) {
+        --m_state.write_delay;
     }
 
     return output;
