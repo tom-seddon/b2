@@ -526,6 +526,7 @@ uint8_t R6522::Update() {
 
     uint8_t any_irqs=this->ifr.value&this->ier.value&0x7f;
 
+#if BBCMICRO_TRACE
     if(any_irqs) {
         if(m_trace) {
             auto ev=(IRQEvent *)m_trace->AllocEvent(IRQ_EVENT);
@@ -533,6 +534,7 @@ uint8_t R6522::Update() {
             ev->ier=this->ier;
         }
     }
+#endif
 
     /* Assert IRQ if necessary. */
     return any_irqs;
