@@ -3,6 +3,14 @@
 #include <beeb/SN76489.h>
 #include <string.h>
 #include <stdio.h>
+#include <beeb/Trace.h>
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_TRACE
+const TraceEventType SN76489::WRITE_EVENT("SN76489WriteEvent",sizeof(WriteEvent));
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -37,6 +45,23 @@ void SN76489::Reset() {
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_TRACE
+
+#define TRACE_EVENT(REG,VALUE) \
+BEGIN_MACRO {\
+if(m_trace) {\
+auto ev=(WriteEvent *)m_trace->AllocEvent(WRITE_EVENT);\
+ev->reg=(REG);\
+ev->value=(VALUE);\
+}\
+} END_MACRO
+
+#else
+
+#define TRACE_EVENT(REG,VALUE) ((void)0)
+
+#endif
 
 SN76489::Output SN76489::Update(bool write,uint8_t value) {
     Output output;
@@ -120,10 +145,12 @@ SN76489::Output SN76489::Update(bool write,uint8_t value) {
                 if(m_state.reg&1) {
                     // volume
                     channel->vol=v^0xf;
+                    TRACE_EVENT(m_state.reg,channel->vol);
                 } else {
                     // data
                     channel->freq&=~0xf;
                     channel->freq|=v;
+                    TRACE_EVENT(m_state.reg,channel->freq);
                 }
             } else {
                 Channel *channel=&m_state.channels[m_state.reg>>1];
@@ -133,14 +160,17 @@ SN76489::Output SN76489::Update(bool write,uint8_t value) {
                 if(m_state.reg&1) {
                     // volume
                     channel->vol=(v&0xf)^0xf;
+                    TRACE_EVENT(m_state.reg,channel->vol);
                 } else if(m_state.reg==3<<1) {
                     // noise data
                     channel->freq=v;
                     m_state.noise_seed=1<<14;
+                    TRACE_EVENT(m_state.reg,channel->freq);
                 } else {
                     // tone data
                     channel->freq&=0xf;
                     channel->freq|=v<<4;
+                    TRACE_EVENT(m_state.reg,channel->freq);
                 }
             }
         }
@@ -152,6 +182,15 @@ SN76489::Output SN76489::Update(bool write,uint8_t value) {
 
     return output;
 }
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_TRACE
+void SN76489::SetTrace(Trace *t) {
+    m_trace=t;
+}
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

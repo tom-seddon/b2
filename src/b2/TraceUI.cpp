@@ -97,6 +97,7 @@ public:
         this->SetMFn(BBCMicro::INSTRUCTION_EVENT,&SaveTraceJob::HandleInstruction);
         this->SetMFn(BBCMicro::INITIAL_EVENT,&SaveTraceJob::HandleInitial);
         this->SetMFn(Trace::STRING_EVENT,&SaveTraceJob::HandleString);
+        this->SetMFn(SN76489::WRITE_EVENT,&SaveTraceJob::HandleSN76489WriteEvent);
 
         {
             TraceStats stats;
@@ -177,6 +178,7 @@ private:
     std::unique_ptr<Log> m_output;
     Messages m_msgs;            // this is quite a big object
     const M6502Config *m_config=nullptr;
+    int m_sound_channel2_value=-1;
     std::atomic<uint64_t> m_num_events_handled{0};
     uint64_t m_num_events=0;
     size_t m_num_bytes_written=0;
@@ -257,6 +259,76 @@ private:
         m_output->s(m_time_prefix);
         LogIndenter indent(m_output.get());
         m_output->s((const char *)e->event);
+        m_output->EnsureBOL();
+    }
+
+    static const char *GetSoundChannelName(uint8_t reg) {
+        static const char *const SOUND_CHANNEL_NAMES[]={"tone 0","tone 1","tone 2","noise",};
+
+        return SOUND_CHANNEL_NAMES[reg>>1&3];
+    }
+
+    static double GetSoundHz(uint16_t value) {
+        if(value==1) {
+            return 0;
+        } else {
+            if(value==0) {
+                value=1024;
+            }
+
+            return 4e6/(32.*value);
+        }
+    }
+
+    void HandleSN76489WriteEvent(const TraceEvent *e) {
+        auto ev=(const SN76489::WriteEvent *)e->event;
+
+        m_output->s(m_time_prefix);
+        LogIndenter indent(m_output.get());
+
+        m_output->f("SN76489 - write ");
+
+        if(ev->reg&1) {
+            m_output->f("%s volume: %u",GetSoundChannelName(ev->reg),ev->value);
+        } else {
+            switch(ev->reg>>1) {
+                case 2:
+                    m_sound_channel2_value=ev->value;
+                    // fall through
+                case 0:
+                case 1:
+                    m_output->f("%s freq: %u (0x%03x) (%.1fHz)",GetSoundChannelName(ev->reg),ev->value,ev->value,GetSoundHz(ev->value));
+                    break;
+
+                case 3:
+                    m_output->s("noise mode: ");
+                    if(ev->value&4) {
+                        m_output->s("white noise");
+                    } else {
+                        m_output->s("periodic noise");
+                    }
+
+                    m_output->f(", %u (",ev->value&3);
+
+                    switch(ev->value&3) {
+                        case 0:
+                        case 1:
+                        case 2:
+                            m_output->f("%.1fHz",GetSoundHz(0x10<<(ev->value&3)));
+                            break;
+
+                        case 3:
+                            if(m_sound_channel2_value<0) {
+                                m_output->s("unknown");
+                            } else {
+                                m_output->f("%.1fHz",GetSoundHz(m_sound_channel2_value));
+                            }
+                            break;
+                    }
+                    break;
+            }
+        }
+
         m_output->EnsureBOL();
     }
 

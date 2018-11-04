@@ -360,6 +360,7 @@ void BBCMicro::SetTrace(std::shared_ptr<Trace> trace,uint32_t trace_flags) {
     m_state.system_via.SetTrace(trace_flags&BBCMicroTraceFlag_SystemVIA?m_trace:nullptr);
     m_state.user_via.SetTrace(trace_flags&BBCMicroTraceFlag_UserVIA?m_trace:nullptr);
     m_state.video_ula.SetTrace(trace_flags&BBCMicroTraceFlag_VideoULA?m_trace:nullptr);
+    m_state.sn76489.SetTrace(trace_flags&BBCMicroTraceFlag_SN76489?m_trace:nullptr);
 
     this->UpdateCPUDataBusFn();
 }

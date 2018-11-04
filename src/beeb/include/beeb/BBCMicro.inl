@@ -34,6 +34,7 @@ EPNV(1770,1<<3)
 EPNV(SystemVIA,1<<4)
 EPNV(UserVIA,1<<5)
 EPNV(VideoULA,1<<6)
+EPNV(SN76489,1<<7)
 EEND()
 #undef ENAME
 
