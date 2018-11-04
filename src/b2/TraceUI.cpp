@@ -94,10 +94,14 @@ public:
     }
 
     void ThreadExecute() {
+        // It would be nice to have the TraceEventType handle the conversion to
+        // strings itself. The INSTRUCTION_EVENT handler has to be able to read
+        // the config stored by the INITIAL_EVENT handler, though...
         this->SetMFn(BBCMicro::INSTRUCTION_EVENT,&SaveTraceJob::HandleInstruction);
         this->SetMFn(BBCMicro::INITIAL_EVENT,&SaveTraceJob::HandleInitial);
         this->SetMFn(Trace::STRING_EVENT,&SaveTraceJob::HandleString);
         this->SetMFn(SN76489::WRITE_EVENT,&SaveTraceJob::HandleSN76489WriteEvent);
+        this->SetMFn(R6522::IRQ_EVENT,&SaveTraceJob::HandleR6522IRQEvent);
 
         {
             TraceStats stats;
@@ -169,6 +173,12 @@ protected:
 private:
     typedef void (SaveTraceJob::*MFn)(const TraceEvent *);
 
+    struct R6522IRQEvent {
+        bool valid=false;
+        uint64_t time;
+        R6522::IRQ ifr,ier;
+    };
+
     std::shared_ptr<Trace> m_trace;
     std::string m_file_name;
     std::shared_ptr<MessageList> m_message_list;
@@ -179,6 +189,9 @@ private:
     Messages m_msgs;            // this is quite a big object
     const M6502Config *m_config=nullptr;
     int m_sound_channel2_value=-1;
+    R6522IRQEvent m_last_6522_irq_event_by_via_id[256];
+    uint64_t m_last_instruction_time=0;
+
     std::atomic<uint64_t> m_num_events_handled{0};
     uint64_t m_num_events=0;
     size_t m_num_bytes_written=0;
@@ -280,6 +293,74 @@ private:
         }
     }
 
+    void PrintVIAIRQ(const char *name,R6522::IRQ irq) {
+        m_output->f("%s: $%02x (%%%s)",name,irq.value,BINARY_BYTE_STRINGS[irq.value]);
+
+        if(irq.value!=0) {
+            m_output->s(":");
+
+            if(irq.bits.t1) {
+                m_output->s(" t1");
+            }
+
+            if(irq.bits.t2) {
+                m_output->s(" t2");
+            }
+
+            if(irq.bits.cb1) {
+                m_output->s(" cb1");
+            }
+
+            if(irq.bits.cb2) {
+                m_output->s(" cb2");
+            }
+
+            if(irq.bits.sr) {
+                m_output->s(" sr");
+            }
+
+            if(irq.bits.ca1) {
+                m_output->s(" ca1");
+            }
+
+            if(irq.bits.ca2) {
+                m_output->s(" ca2");
+            }
+        }
+    }
+
+    void HandleR6522IRQEvent(const TraceEvent *e) {
+        auto ev=(const R6522::IRQEvent *)e->event;
+        R6522IRQEvent *last_ev=&m_last_6522_irq_event_by_via_id[ev->id];
+
+        // Try not to spam the output file with too much useless junk when
+        // interrupts are disabled.
+        if(last_ev->valid) {
+            if(last_ev->time>m_last_instruction_time&&
+               ev->ifr.value==last_ev->ifr.value&&
+               ev->ier.value==last_ev->ier.value)
+            {
+                // skip it...
+                return;
+            }
+        }
+
+        last_ev->valid=true;
+        last_ev->time=e->time;
+        last_ev->ifr=ev->ifr;
+        last_ev->ier=ev->ier;
+
+        m_output->s(m_time_prefix);
+        m_output->f("%s - IRQ state: ",GetBBCMicroVIAIDEnumName(ev->id));
+        LogIndenter indent(m_output.get());
+
+        PrintVIAIRQ("IFR",ev->ifr);
+        m_output->EnsureBOL();
+
+        PrintVIAIRQ("IER",ev->ier);
+        m_output->EnsureBOL();
+    }
+
     void HandleSN76489WriteEvent(const TraceEvent *e) {
         auto ev=(const SN76489::WriteEvent *)e->event;
 
@@ -297,7 +378,7 @@ private:
                     // fall through
                 case 0:
                 case 1:
-                    m_output->f("%s freq: %u (0x%03x) (%.1fHz)",GetSoundChannelName(ev->reg),ev->value,ev->value,GetSoundHz(ev->value));
+                    m_output->f("%s freq: %u ($%03x) (%.1fHz)",GetSoundChannelName(ev->reg),ev->value,ev->value,GetSoundHz(ev->value));
                     break;
 
                 case 3:
@@ -334,6 +415,8 @@ private:
 
     void HandleInstruction(const TraceEvent *e) {
         auto ev=(const BBCMicro::InstructionTraceEvent *)e->event;
+
+        m_last_instruction_time=e->time;
 
         if(!m_config) {
             m_config=&M6502_defined_config;

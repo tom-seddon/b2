@@ -20,6 +20,13 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#if BBCMICRO_TRACE
+const TraceEventType R6522::IRQ_EVENT("R6522IRQEvent",sizeof(IRQEvent));
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 inline void R6522::DoPortHandshakingRead(Port *port,uint8_t pcr_bits,uint8_t irqmask2) {
     /* Always clear Cx1 */
     this->ifr.value&=~(irqmask2<<1);
@@ -93,7 +100,16 @@ void R6522::Reset() {
     this->b.fn=old.b.fn;
     this->b.fn_context=old.b.fn_context;
 
-    this->tag=old.tag;
+    m_id=old.m_id;
+    m_name=old.m_name;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void R6522::SetID(uint8_t id,const char *name) {
+    m_id=id;
+    m_name=name;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -263,7 +279,7 @@ void R6522::Write5(void *via_,M6502Word addr,uint8_t value) {
         via->m_next_pb7=0;
     }
 
-    TRACEF(via->m_trace,"%s - Write T1C-H. T1=%d T1_irq=%d",via->tag,via->m_t1,via->m_t1_irq);
+    TRACEF(via->m_trace,"%s - Write T1C-H. T1=%d T1_irq=%d",via->m_name,via->m_t1,via->m_t1_irq);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -302,7 +318,7 @@ void R6522::Write7(void *via_,M6502Word addr,uint8_t value) {
     /* See V.TIMERS. My model-b notes say Skirmish needs this. */
     via->ifr.bits.t1=0;
 
-    TRACEF(via->m_trace,"%s - Write T1L-H. IFR:" IRQ_FMT,via->tag,IRQ_ARGS(via->ifr));
+    TRACEF(via->m_trace,"%s - Write T1L-H. IFR:" IRQ_FMT,via->m_name,IRQ_ARGS(via->ifr));
 
     via->m_t1lh=value;
 }
@@ -347,7 +363,7 @@ void R6522::Write9(void *via_,M6502Word addr,uint8_t value) {
     via->m_t2=(via->m_t2ll|value<<8)+1;
     via->m_t2_irq=1;
 
-    TRACEF(via->m_trace,"%s - write T2C-H. T2=%d ($%04X)",via->tag,via->m_t2,via->m_t2);
+    TRACEF(via->m_trace,"%s - write T2C-H. T2=%d ($%04X)",via->m_name,via->m_t2,via->m_t2);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -427,7 +443,7 @@ void R6522::WriteD(void *via_,M6502Word addr,uint8_t value) {
 
     via->ifr.value&=~value;
 
-    TRACEF(via->m_trace,"%s - Write IFR. IFR:" IRQ_FMT,via->tag,IRQ_ARGS(via->ifr));
+    TRACEF(via->m_trace,"%s - Write IFR. IFR:" IRQ_FMT,via->m_name,IRQ_ARGS(via->ifr));
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -451,7 +467,7 @@ void R6522::WriteE(void *via_,M6502Word addr,uint8_t value) {
         via->ier.value&=~value;
     }
 
-    TRACEF(via->m_trace,"%s - Write IER. IER:" IRQ_FMT,via->tag,IRQ_ARGS(via->ier));
+    TRACEF(via->m_trace,"%s - Write IER. IER:" IRQ_FMT,via->m_name,IRQ_ARGS(via->ier));
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -486,7 +502,7 @@ uint8_t R6522::Update() {
                 //}
             }
 
-            TRACEF(m_trace,"%s - T1 timed out (continuous=%d). T1 new value: %d ($%04X)",this->tag,m_acr.bits.t1_continuous,m_t1,m_t1);
+            TRACEF(m_trace,"%s - T1 timed out (continuous=%d). T1 new value: %d ($%04X)",m_name,m_acr.bits.t1_continuous,m_t1,m_t1);
         }
     }
 
@@ -497,7 +513,7 @@ uint8_t R6522::Update() {
         {
             if(m_t2--<0) {
                 if(m_t2_irq) {
-                    TRACEF(m_trace,"%s - T2 timed out.",this->tag);
+                    TRACEF(m_trace,"%s - T2 timed out.",m_name);
 
                     this->ifr.bits.t2=1;
                     m_t2_irq=0;
@@ -510,7 +526,13 @@ uint8_t R6522::Update() {
 
     uint8_t any_irqs=this->ifr.value&this->ier.value&0x7f;
 
-    TRACEF_IF(any_irqs,m_trace,"%s - IRQ. IFR:" IRQ_FMT "; IER:" IRQ_FMT,this->tag,IRQ_ARGS(this->ifr),IRQ_ARGS(this->ier));
+    if(any_irqs) {
+        if(m_trace) {
+            auto ev=(IRQEvent *)m_trace->AllocEvent(IRQ_EVENT);
+            ev->ifr=this->ifr;
+            ev->ier=this->ier;
+        }
+    }
 
     /* Assert IRQ if necessary. */
     return any_irqs;

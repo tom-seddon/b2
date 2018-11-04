@@ -6,10 +6,7 @@
 
 #include "conf.h"
 #include <6502/6502.h>
-
-#if BBCMICRO_TRACE
-class Trace;
-#endif
+#include "Trace.h"
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -23,6 +20,7 @@ class Trace;
 
 class R6522 {
 public:
+
 #include <shared/pushwarn_bitfields.h>
     struct PCRBits {
         uint8_t ca1_pos_irq:1;
@@ -73,6 +71,17 @@ public:
         IRQBits bits;
     };
 
+#if BBCMICRO_TRACE
+#include <shared/pshpack1.h>
+    struct IRQEvent {
+        uint8_t id;
+        IRQ ifr,ier;
+    };
+#include <shared/poppack.h>
+
+    static const TraceEventType IRQ_EVENT;
+#endif
+
     /* Cx1 and Cx2 */
 #include <shared/pushwarn_bitfields.h>
     struct Port {
@@ -120,10 +129,10 @@ public:
     IRQ ifr={};
     IRQ ier={};
 
-    /* for me, in the debugger... */
-    const char *tag=nullptr;
-
     void Reset();
+
+    // NAME is copied by pointer and should be a string literal.
+    void SetID(uint8_t id,const char *name);
 
     static void Write0(void *via,M6502Word addr,uint8_t value);
     static void Write1(void *via,M6502Word addr,uint8_t value);
@@ -200,6 +209,9 @@ private:
 #if BBCMICRO_TRACE
     Trace *m_trace=nullptr;
 #endif
+
+    uint8_t m_id=0;
+    const char *m_name=nullptr;
 
     void TickControl(Port *port,uint8_t latching,uint8_t pcr_bits,uint8_t cx2_mask);
     void DoPortHandshakingRead(Port *port,uint8_t pcr_bits,uint8_t irqmask2);
