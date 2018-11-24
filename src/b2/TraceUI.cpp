@@ -764,7 +764,7 @@ void TraceUI::DoImGui(CommandContextStack *cc_stack) {
         ImGui::SameLine();
         ImGuiRadioButton("OSWORD 0",&g_default_settings.stop,TraceUIStopCondition_OSWORD0);
 
-        ImGui::Checkbox("Circular events queue", &g_default_settings.circular);
+        ImGui::Checkbox("Unlimited recording", &g_default_settings.unlimited);
 
         ImGui::TextUnformatted("Flags");
         for(uint32_t i=1;i!=0;i<<=1) {
@@ -809,7 +809,9 @@ void TraceUI::DoImGui(CommandContextStack *cc_stack) {
             c.trace_flags=g_default_settings.flags;
 
             size_t max_num_bytes;
-            if(g_default_settings.circular) {
+            if(g_default_settings.unlimited) {
+                max_num_bytes=SIZE_MAX;
+            } else {
                 // 64MBytes = ~12m cycles, or ~6 sec, with all the flags on,
                 // recorded sitting at the BASIC prompt, producing a ~270MByte
                 // text file.
@@ -818,8 +820,6 @@ void TraceUI::DoImGui(CommandContextStack *cc_stack) {
                 // text file. This ought to be enough to be getting on with,
                 // and the buffer size is not excessive even for 32-bit systems.
                 max_num_bytes=256*1024*1024;
-            } else {
-                max_num_bytes=SIZE_MAX;
             }
 
             beeb_thread->Send(std::make_unique<BeebThread::StartTraceMessage>(c,max_num_bytes));

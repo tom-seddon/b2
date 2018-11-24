@@ -44,13 +44,14 @@ There are two options for stopping the recording.
 (`Return` and `OSWORD 0` often go together, because this works well
 for tracing code CALLed from the BASIC prompt.)
 
-By default, all activity will be recorded, requiring around 10MBytes
-of memory per second of recording. If you leave the tracing on for
-long enough, even on a modern multi-gigabyte PC, eventually you'll run
-out of memory! Tick `Circular events queue` to have the emulator store
-only the last 25-30 seconds of activity - you can leave tracing
-running permanently in this mode, as the amount of data it stores will
-be limited.
+By default, only the last 25-30 seconds of activity will be kept
+(usually corresponding to roughly a 1GByte output file). Tracing can
+be left running indefinitely and the emulator will use a fixed amount
+of memory.
+
+Tick `Unlimited recording` to have the emulator store all events, so
+longer periods can be traced. Each emulated second takes up ~10MBytes
+of RAM and adds ~35MBytes to the output file.
 
 Once a trace has been started and stopped, it can be saved to a file
 using `Save` or `Save (no cycles)`. The output is along these lines:
