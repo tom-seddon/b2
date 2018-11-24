@@ -130,16 +130,6 @@ public:
     static const TraceEventType INSTRUCTION_EVENT;
 #endif
 
-#if BBCMICRO_TRACE
-#include <shared/pshpack1.h>
-    struct InitialTraceEvent {
-        const struct M6502Config *config;
-    };
-#include <shared/poppack.h>
-
-    static const TraceEventType INITIAL_EVENT;
-#endif
-
 #include <shared/pushwarn_bitfields.h>
     struct SystemVIAPBBits {
         uint8_t latch_index:3,latch_value:1,not_joystick0_fire:1,not_joystick1_fire:1;
@@ -342,7 +332,7 @@ public:
 #if BBCMICRO_TRACE
     /* Allocates a new trace (replacing any existing one) and sets it
     * going. */
-    void StartTrace(uint32_t trace_flags);
+    void StartTrace(uint32_t trace_flags,size_t max_num_bytes);
 
     /* If there's a trace, stops it, and returns a shared_ptr to it.
      * Otherwise, returns null. */

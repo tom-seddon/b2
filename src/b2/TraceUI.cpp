@@ -26,6 +26,10 @@
 
 static const std::string RECENT_PATHS_TRACES="traces";
 
+// It's a bit ugly having a single set of default settings, but compared to the
+// old behaviour (per-instance settings, defaults overwritten when dialog
+// closed) this arrangement makes more sense when using the docking UI. Since
+// with the UI docked, it's much more rarely going to be closed.
 static TraceUISettings g_default_settings;
 
 //////////////////////////////////////////////////////////////////////////
@@ -66,7 +70,6 @@ private:
     std::shared_ptr<SaveTraceJob> m_save_trace_job;
     std::vector<uint8_t> m_keys;
 
-    TraceUISettings m_settings;
     bool m_config_changed=false;
 
     int GetKeyIndex(uint8_t beeb_key) const;
@@ -98,7 +101,7 @@ public:
         // strings itself. The INSTRUCTION_EVENT handler has to be able to read
         // the config stored by the INITIAL_EVENT handler, though...
         this->SetMFn(BBCMicro::INSTRUCTION_EVENT,&SaveTraceJob::HandleInstruction);
-        this->SetMFn(BBCMicro::INITIAL_EVENT,&SaveTraceJob::HandleInitial);
+        this->SetMFn(Trace::M6502_CONFIG_EVENT,&SaveTraceJob::HandleM6502Config);
         this->SetMFn(Trace::STRING_EVENT,&SaveTraceJob::HandleString);
         this->SetMFn(SN76489::WRITE_EVENT,&SaveTraceJob::HandleSN76489WriteEvent);
         this->SetMFn(R6522::IRQ_EVENT,&SaveTraceJob::HandleR6522IRQEvent);
@@ -230,8 +233,8 @@ private:
         this_->m_num_bytes_written+=str_len;
     }
 
-    void HandleInitial(const TraceEvent *e) {
-        auto ev=(const BBCMicro::InitialTraceEvent *)e->event;
+    void HandleM6502Config(const TraceEvent *e) {
+        auto ev=(const Trace::M6502ConfigTraceEvent *)e->event;
 
         m_config=ev->config;
     }
@@ -645,8 +648,7 @@ private:
 //////////////////////////////////////////////////////////////////////////
 
 TraceUI::TraceUI(BeebWindow *beeb_window):
-    m_beeb_window(beeb_window),
-    m_settings(g_default_settings)
+    m_beeb_window(beeb_window)
 {
 }
 
@@ -752,15 +754,17 @@ void TraceUI::DoImGui(CommandContextStack *cc_stack) {
         ImGui::AlignTextToFramePadding();
         ImGui::TextUnformatted("Start:");
         ImGui::SameLine();
-        ImGuiRadioButton("Immediate",&m_settings.start,TraceUIStartCondition_Now);
+        ImGuiRadioButton("Immediate",&g_default_settings.start,TraceUIStartCondition_Now);
         ImGui::SameLine();
-        ImGuiRadioButton("Return",&m_settings.start,TraceUIStartCondition_Return);
+        ImGuiRadioButton("Return",&g_default_settings.start,TraceUIStartCondition_Return);
 
         ImGui::TextUnformatted("Stop:");
         ImGui::SameLine();
-        ImGuiRadioButton("By request",&m_settings.stop,TraceUIStopCondition_ByRequest);
+        ImGuiRadioButton("By request",&g_default_settings.stop,TraceUIStopCondition_ByRequest);
         ImGui::SameLine();
-        ImGuiRadioButton("OSWORD 0",&m_settings.stop,TraceUIStopCondition_OSWORD0);
+        ImGuiRadioButton("OSWORD 0",&g_default_settings.stop,TraceUIStopCondition_OSWORD0);
+
+        ImGui::Checkbox("Circular events queue", &g_default_settings.circular);
 
         ImGui::TextUnformatted("Flags");
         for(uint32_t i=1;i!=0;i<<=1) {
@@ -769,13 +773,13 @@ void TraceUI::DoImGui(CommandContextStack *cc_stack) {
                 continue;
             }
 
-            ImGui::CheckboxFlags(name,&m_settings.flags,i);
+            ImGui::CheckboxFlags(name,&g_default_settings.flags,i);
         }
 
         if(ImGui::Button("Start")) {
             TraceConditions c;
 
-            switch(m_settings.start) {
+            switch(g_default_settings.start) {
             default:
                 ASSERT(false);
                 // fall through
@@ -789,7 +793,7 @@ void TraceUI::DoImGui(CommandContextStack *cc_stack) {
                 break;
             }
 
-            switch(m_settings.stop) {
+            switch(g_default_settings.stop) {
             default:
                 ASSERT(false);
                 // fall through
@@ -802,9 +806,23 @@ void TraceUI::DoImGui(CommandContextStack *cc_stack) {
                 break;
             }
 
-            c.trace_flags=m_settings.flags;
+            c.trace_flags=g_default_settings.flags;
 
-            beeb_thread->Send(std::make_unique<BeebThread::StartTraceMessage>(c));
+            size_t max_num_bytes;
+            if(g_default_settings.circular) {
+                // 64MBytes = ~12m cycles, or ~6 sec, with all the flags on,
+                // recorded sitting at the BASIC prompt, producing a ~270MByte
+                // text file.
+                //
+                // 256MBytes, then, ought to be ~25 seconds, and a ~1GByte
+                // text file. This ought to be enough to be getting on with,
+                // and the buffer size is not excessive even for 32-bit systems.
+                max_num_bytes=256*1024*1024;
+            } else {
+                max_num_bytes=SIZE_MAX;
+            }
+
+            beeb_thread->Send(std::make_unique<BeebThread::StartTraceMessage>(c,max_num_bytes));
         }
 
         std::shared_ptr<Trace> last_trace=beeb_thread->GetLastTrace();
@@ -838,8 +856,6 @@ void TraceUI::DoImGui(CommandContextStack *cc_stack) {
 //////////////////////////////////////////////////////////////////////////
 
 bool TraceUI::OnClose() {
-    SetDefaultTraceUISettings(m_settings);
-
     return true;
 }
 

@@ -904,6 +904,7 @@ static const char POPUPS[]="popups";
 static const char GLOBALS[]="globals";
 static const char VSYNC[]="vsync";
 static const char EXT_MEM[]="ext_mem";
+static const char CIRCULAR[]="circular";
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -1286,6 +1287,7 @@ static bool LoadTrace(rapidjson::Value *trace_json,Messages *msg) {
     FindFlagsMember(&settings.flags,trace_json,FLAGS,"trace flag",&GetBBCMicroTraceFlagEnumName,msg);
     FindEnumMember(&settings.start,trace_json,START,"start condition",&GetTraceUIStartConditionEnumName,msg);
     FindEnumMember(&settings.stop,trace_json,STOP,"stop condition",&GetTraceUIStopConditionEnumName,msg);
+    FindBoolMember(&settings.circular,trace_json,CIRCULAR,nullptr);
 
     SetDefaultTraceUISettings(settings);
 
@@ -1648,6 +1650,9 @@ static void SaveTrace(JSONWriter<StringStream> *writer) {
 
         writer->Key(STOP);
         SaveEnum(writer,settings.stop,&GetTraceUIStopConditionEnumName);
+
+        writer->Key(CIRCULAR);
+        writer->Bool(settings.circular);
     }
 }
 

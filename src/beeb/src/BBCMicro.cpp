@@ -52,7 +52,6 @@ const char BBCMicro::PASTE_START_CHAR=' ';
 
 #if BBCMICRO_TRACE
 const TraceEventType BBCMicro::INSTRUCTION_EVENT("BBCMicroInstruction",sizeof(InstructionTraceEvent));
-const TraceEventType BBCMicro::INITIAL_EVENT("BBCMicroInitial",sizeof(InitialTraceEvent));
 #endif
 
 //////////////////////////////////////////////////////////////////////////
@@ -348,8 +347,7 @@ void BBCMicro::SetTrace(std::shared_ptr<Trace> trace,uint32_t trace_flags) {
     if(m_trace) {
         m_trace->SetTime(&m_state.num_2MHz_cycles);
 
-        auto e=(InitialTraceEvent *)m_trace->AllocEvent(INITIAL_EVENT);
-        e->config=m_state.cpu.config;
+        m_trace->AllocM6502ConfigEvent(m_state.cpu.config);
     }
 
     m_state.fdc.SetTrace(trace_flags&BBCMicroTraceFlag_1770?m_trace:nullptr);
@@ -1835,10 +1833,10 @@ void BBCMicro::SetSidewaysRAM(uint8_t bank,std::shared_ptr<const ROMData> data) 
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_TRACE
-void BBCMicro::StartTrace(uint32_t trace_flags) {
+void BBCMicro::StartTrace(uint32_t trace_flags,size_t max_num_bytes) {
     this->StopTrace();
 
-    this->SetTrace(std::make_shared<Trace>(),trace_flags);
+    this->SetTrace(std::make_shared<Trace>(max_num_bytes),trace_flags);
 }
 #endif
 

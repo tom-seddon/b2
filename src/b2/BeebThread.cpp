@@ -228,9 +228,11 @@ BeebThread::SetDiscImageNameAndLoadMethodMessage::SetDiscImageNameAndLoadMethodM
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_TRACE
-BeebThread::StartTraceMessage::StartTraceMessage(const TraceConditions &conditions_):
-    Message(BeebThreadMessageType_StartTrace),
-    conditions(conditions_)
+BeebThread::StartTraceMessage::StartTraceMessage(const TraceConditions &conditions_,
+                                                 size_t max_num_bytes_):
+Message(BeebThreadMessageType_StartTrace),
+conditions(conditions_),
+max_num_bytes(max_num_bytes_)
 {
 }
 #endif
@@ -422,6 +424,7 @@ struct BeebThread::ThreadState {
     BeebLoadedConfig current_config;
 #if BBCMICRO_TRACE
     TraceConditions trace_conditions;
+    size_t trace_max_num_bytes=0;
 #endif
     bool boot=false;
     BeebShiftState fake_shift_state=BeebShiftState_Any;
@@ -1116,7 +1119,7 @@ void BeebThread::ThreadStartTrace(ThreadState *ts) {
 
 #if BBCMICRO_TRACE
 void BeebThread::ThreadBeebStartTrace(ThreadState *ts) {
-    ts->beeb->StartTrace(ts->trace_conditions.trace_flags);
+    ts->beeb->StartTrace(ts->trace_conditions.trace_flags,ts->trace_max_num_bytes);
 }
 #endif
 
@@ -1860,6 +1863,7 @@ bool BeebThread::ThreadHandleMessage(
                 auto m=(StartTraceMessage *)message.get();
 
                 ts->trace_conditions=m->conditions;
+                ts->trace_max_num_bytes=m->max_num_bytes;
             }
 
             this->ThreadStartTrace(ts);

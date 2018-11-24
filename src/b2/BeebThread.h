@@ -282,8 +282,9 @@ public:
     {
     public:
         const TraceConditions conditions;
+        const size_t max_num_bytes;
 
-        explicit StartTraceMessage(const TraceConditions &conditions);
+        explicit StartTraceMessage(const TraceConditions &conditions,size_t max_num_bytes);
     protected:
     private:
     };
