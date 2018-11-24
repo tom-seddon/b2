@@ -126,11 +126,6 @@ public:
     // to its data. The type is used to find its size.
     void *AllocEvent(const TraceEventType &type);
 
-    // Allocate a new event with variable-sized data, and return a
-    // pointer to its data. (The event must have been registered with
-    // a size of 0.)
-    void *AllocEventWithSize(const TraceEventType &type,size_t size);
-
     // TYPE must be the type of event the data was allocated for.
     void CancelEvent(const TraceEventType &type,void *data);
 
@@ -143,13 +138,11 @@ public:
     void PRINTF_LIKE(2,3) AllocStringf(const char *fmt,...);
     void AllocStringv(const char *fmt,va_list v);
     void AllocString(const char *str);
-    char *AllocString2(const char *str,size_t len);
 
     void AllocM6502ConfigEvent(const M6502Config *config);
 
-    // max_size bytes is allocated. Write to it until a call to
-    // Trace_FinishLog (which truncates the allocation appropriately)
-    // or another event is allocated.
+    // max_len bytes is allocated. Call FinishLog to try to truncate the
+    // allocation if possible.
     LogPrinter *GetLogPrinter(size_t max_len);
     void FinishLog(Log *log);
 
@@ -188,6 +181,12 @@ private:
     LogPrinterTrace m_log_printer{this};
     size_t m_max_num_bytes;
     size_t m_chunk_size;
+
+    // Allocate a new event with variable-sized data, and return a
+    // pointer to its data. (The event must have been registered with
+    // a size of 0.)
+    void *AllocEventWithSize(const TraceEventType &type,size_t size);
+    char *AllocString2(const char *str,size_t len);
 
     void *Alloc(uint64_t time,size_t n);
     void Check();

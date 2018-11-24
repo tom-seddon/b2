@@ -18,6 +18,10 @@ static const size_t CHUNK_SIZE=16777216;
 
 static const size_t MAX_TIME_DELTA=127;
 
+static const size_t MAX_EVENT_SIZE=65535;
+
+static_assert(MAX_EVENT_SIZE<=CHUNK_SIZE,"chunks must be large enough for at least one event");
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
@@ -36,10 +40,10 @@ CHECK_SIZEOF(EventHeader,2);
 #include <shared/pshpack1.h>
 struct EventWithSizeHeader {
     EventHeader h;
-    size_t size;
+    uint16_t size;
 };
 #include <shared/poppack.h>
-CHECK_SIZEOF(EventWithSizeHeader,sizeof(EventHeader)+sizeof(size_t));
+CHECK_SIZEOF(EventWithSizeHeader,4);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -62,6 +66,7 @@ TraceEventType::TraceEventType(const char *name,size_t size_,int8_t type_id_):
     size(size_),
     m_name(name)
 {
+    ASSERT(size<=MAX_EVENT_SIZE);
     ASSERT(type_id_>=-1);
     ASSERT(g_trace_next_id<=256);
     ASSERT(!g_trace_event_types[this->type_id]);
@@ -181,31 +186,6 @@ void *Trace::AllocEvent(const TraceEventType &type) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void *Trace::AllocEventWithSize(const TraceEventType &type,size_t size) {
-    ASSERT(type.size==0);
-
-    uint64_t time=m_last_time;
-    if(m_time_ptr) {
-        time=*m_time_ptr;
-    }
-
-    auto h=(EventWithSizeHeader *)this->Alloc(time,sizeof(EventWithSizeHeader)+size);
-
-    h->h.type=type.type_id;
-    h->h.time_delta=(uint8_t)(time-m_last_time);
-    h->h.canceled=0;
-    h->size=size;
-
-    m_last_time=time;
-
-    this->Check();
-
-    return h+1;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 void Trace::CancelEvent(const TraceEventType &type,void *data) {
     if(type.size==0) {
         EventWithSizeHeader *h=(EventWithSizeHeader *)data-1;
@@ -252,24 +232,6 @@ void Trace::AllocString(const char *str) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-char *Trace::AllocString2(const char *str,size_t len) {
-    auto p=(char *)this->AllocEventWithSize(STRING_EVENT,len+1);
-    if(p) {
-        if(str) {
-            memcpy(p,str,len+1);
-        } else {
-            *p=0;
-        }
-    }
-
-    this->Check();
-
-    return p;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 void Trace::AllocM6502ConfigEvent(const M6502Config *config) {
     auto p=(M6502ConfigTraceEvent *)this->AllocEvent(M6502_CONFIG_EVENT);
 
@@ -282,6 +244,10 @@ void Trace::AllocM6502ConfigEvent(const M6502Config *config) {
 //////////////////////////////////////////////////////////////////////////
 
 LogPrinter *Trace::GetLogPrinter(size_t max_len) {
+    if(max_len>MAX_EVENT_SIZE) {
+        max_len=MAX_EVENT_SIZE;
+    }
+
     m_log_data=this->AllocString2(NULL,max_len);
     m_log_len=0;
     m_log_max_len=max_len;
@@ -414,16 +380,67 @@ int Trace::ForEachEvent(ForEachEventFn fn,void *context) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+void *Trace::AllocEventWithSize(const TraceEventType &type,size_t size) {
+    ASSERT(type.size==0);
+
+    if(size>MAX_EVENT_SIZE) {
+        return nullptr;
+    }
+
+    uint64_t time=m_last_time;
+    if(m_time_ptr) {
+        time=*m_time_ptr;
+    }
+
+    auto h=(EventWithSizeHeader *)this->Alloc(time,sizeof(EventWithSizeHeader)+size);
+
+    h->h.type=type.type_id;
+    h->h.time_delta=(uint8_t)(time-m_last_time);
+    h->h.canceled=0;
+    h->size=size;
+
+    m_last_time=time;
+
+    this->Check();
+
+    return h+1;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+char *Trace::AllocString2(const char *str,size_t len) {
+    if(len+1>MAX_EVENT_SIZE) {
+        return nullptr;
+    }
+
+    auto p=(char *)this->AllocEventWithSize(STRING_EVENT,len+1);
+    if(p) {
+        if(str) {
+            memcpy(p,str,len+1);
+        } else {
+            *p=0;
+        }
+    }
+
+    this->Check();
+
+    return p;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 void *Trace::Alloc(uint64_t time,size_t n) {
     //ASSERT(ENABLED(t));
     this->Check();
 
+    if(n>MAX_EVENT_SIZE) {
+        return nullptr;
+    }
+
     if(!m_tail||m_tail->size+n>m_tail->capacity) {
         size_t size=CHUNK_SIZE;
-        if(size<n) {
-            // !!!!
-            size=n;
-        }
 
         const M6502Config *initial_config=nullptr;
         if(m_tail) {
@@ -449,6 +466,7 @@ void *Trace::Alloc(uint64_t time,size_t n) {
                 ASSERT(m_stats.num_events>=old_head->num_events);
                 m_stats.num_events-=old_head->num_events;
 
+                // Could/should maybe reuse the old head instead...
                 free(old_head);
                 old_head=nullptr;
 
@@ -514,19 +532,19 @@ void *Trace::Alloc(uint64_t time,size_t n) {
 
 void Trace::Check() {
 #if ASSERT_ENABLED
-    size_t total_num_used_bytes=0;
-    size_t total_num_allocated_bytes=0;
-    size_t total_num_events=0;
-
-    for(const Chunk *c=m_head;c;c=c->next) {
-        total_num_used_bytes+=c->size;
-        total_num_allocated_bytes+=c->capacity;
-        total_num_events+=c->num_events;
-    }
-
-    ASSERT(total_num_used_bytes==m_stats.num_used_bytes);
-    ASSERT(total_num_allocated_bytes==m_stats.num_allocated_bytes);
-    ASSERT(total_num_events==m_stats.num_events);
+//    size_t total_num_used_bytes=0;
+//    size_t total_num_allocated_bytes=0;
+//    size_t total_num_events=0;
+//
+//    for(const Chunk *c=m_head;c;c=c->next) {
+//        total_num_used_bytes+=c->size;
+//        total_num_allocated_bytes+=c->capacity;
+//        total_num_events+=c->num_events;
+//    }
+//
+//    ASSERT(total_num_used_bytes==m_stats.num_used_bytes);
+//    ASSERT(total_num_allocated_bytes==m_stats.num_allocated_bytes);
+//    ASSERT(total_num_events==m_stats.num_events);
 #endif
 }
 
