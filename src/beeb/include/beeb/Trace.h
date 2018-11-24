@@ -155,7 +155,7 @@ public:
 
     void GetStats(TraceStats *stats) const;
 
-    typedef int (*ForEachEventFn)(Trace *t,const TraceEvent *e,void *context);
+    typedef bool (*ForEachEventFn)(Trace *t,const TraceEvent *e,void *context);
 
     // return true to continue iteration, false to stop it. returns
     // false if iteration was canceled.

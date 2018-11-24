@@ -587,7 +587,7 @@ private:
         m_num_bytes_written+=num_chars;
     }
 
-    static int PrintTrace(Trace *t,const TraceEvent *e,void *context) {
+    static bool PrintTrace(Trace *t,const TraceEvent *e,void *context) {
         (void)t;
 
         auto this_=(SaveTraceJob *)context;
@@ -630,12 +630,12 @@ private:
         this_->m_output->Flush();
 
         if(this_->WasCanceled()) {
-            return 0;
+            return false;
         }
 
         this_->m_num_events_handled.fetch_add(1,std::memory_order_acq_rel);
 
-        return 1;
+        return true;
     }
 
     void SetMFn(const TraceEventType &type,MFn print_mfn) {
