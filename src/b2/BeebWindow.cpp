@@ -819,6 +819,7 @@ void BeebWindow::DoSettingsUI() {
             if(ImGui::BeginDock(ui->name,&opened,extra_flags,default_size,default_pos)) {
                 if(!m_popups[ui->type]) {
                     m_popups[ui->type]=(*ui->create_fn)(this);
+                    ASSERT(!!m_popups[ui->type]);
                 }
 
                 m_popups[ui->type]->DoImGui(&m_cc_stack);
@@ -863,10 +864,11 @@ std::unique_ptr<SettingsUI> BeebWindow::CreateOptionsUI(BeebWindow *beeb_window)
 
 #if TIMELINE_UI_ENABLED
 std::unique_ptr<SettingsUI> BeebWindow::CreateTimelineUI(BeebWindow *beeb_window) {
-    return ::CreateTimelineUI(beeb_window,
-                              beeb_window->GetNewWindowInitArguments(),
-                              beeb_window->m_renderer,
-                              beeb_window->m_pixel_format);
+    return nullptr;
+//    return ::CreateTimelineUI(beeb_window,
+//                              beeb_window->GetNewWindowInitArguments(),
+//                              beeb_window->m_renderer,
+//                              beeb_window->m_pixel_format);
 }
 #endif
 
@@ -1909,18 +1911,12 @@ bool BeebWindow::InitInternal() {
 
     if(!!m_init_arguments.initial_state) {
         // Load initial state, and use parent timeline event ID (whichever it is).
-        m_beeb_thread->Send(std::make_unique<BeebThread::LoadStateMessage>(m_init_arguments.parent_timeline_event_id,m_init_arguments.initial_state));
+        m_beeb_thread->Send(std::make_unique<BeebThread::LoadStateMessage>(m_init_arguments.initial_state));
     } else {
-        if(m_init_arguments.parent_timeline_event_id==0) {
-            // Create new root in timeline using config from init
-            // arguments.
-            m_init_arguments.parent_timeline_event_id=Timeline::AddEvent(0,BeebEvent::MakeRoot(m_init_arguments.default_config));
-        }
-
-        // Start from the requested timeline node.
-        m_beeb_thread->Send(std::make_unique<BeebThread::GoToTimelineNodeMessage>(m_init_arguments.parent_timeline_event_id));
+        std::unique_ptr<BBCMicro> init_beeb=m_init_arguments.default_config.CreateBBCMicro(0);
+        auto init_state=std::make_shared<BeebState>(std::move(init_beeb));
+        m_beeb_thread->Send(std::make_unique<BeebThread::LoadStateMessage>(init_state));
     }
-
 
     if(!m_init_arguments.initially_paused) {
         m_beeb_thread->Send(std::make_unique<BeebThread::PauseMessage>(false));
@@ -2195,7 +2191,7 @@ BeebWindowInitArguments BeebWindow::GetNewWindowInitArguments() const {
     ia.initiating_window_id=SDL_GetWindowID(m_window);
 
     // New window is parent of whatever.
-    ia.parent_timeline_event_id=0;//m_beeb_thread->GetParentTimelineEventId();
+    //ia.parent_timeline_event_id=0;//m_beeb_thread->GetParentTimelineEventId();
 
     return ia;
 }
@@ -2236,16 +2232,16 @@ void BeebWindow::HardReset() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void BeebWindow::LoadLastState() {
-    m_beeb_thread->Send(std::make_unique<BeebThread::LoadLastStateMessage>());
-}
+//void BeebWindow::LoadLastState() {
+//    m_beeb_thread->Send(std::make_unique<BeebThread::LoadLastStateMessage>());
+//}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool BeebWindow::IsLoadLastStateEnabled() const {
-    return m_beeb_thread->GetLastSavedStateTimelineId()!=0;
-}
+//bool BeebWindow::IsLoadLastStateEnabled() const {
+//    return m_beeb_thread->GetLastSavedStateTimelineId()!=0;
+//}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -2339,21 +2335,21 @@ void BeebWindow::PrintSeparator() {
 //////////////////////////////////////////////////////////////////////////
 
 void BeebWindow::DumpTimelineConsole() {
-    Timeline::Dump(&LOG(OUTPUTND));
+//    Timeline::Dump(&LOG(OUTPUTND));
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 void BeebWindow::DumpTimelineDebuger() {
-    Timeline::Dump(&LOG(OUTPUT));
+//    Timeline::Dump(&LOG(OUTPUT));
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 void BeebWindow::CheckTimeline() {
-    Timeline::Check();
+//    Timeline::Check();
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -2688,7 +2684,7 @@ bool BeebWindow::DebugIsHalted() const {
 
 ObjectCommandTable<BeebWindow> BeebWindow::ms_command_table("Beeb Window",{
     {{"hard_reset","Hard Reset"},&BeebWindow::HardReset},
-    {{"load_last_state","Load Last State"},&BeebWindow::LoadLastState,nullptr,&BeebWindow::IsLoadLastStateEnabled},
+//    {{"load_last_state","Load Last State"},&BeebWindow::LoadLastState,nullptr,&BeebWindow::IsLoadLastStateEnabled},
     {{"save_state","Save State"},&BeebWindow::SaveState},
     GetTogglePopupCommand<BeebWindowPopupType_Options>(),
     GetTogglePopupCommand<BeebWindowPopupType_Keymaps>(),

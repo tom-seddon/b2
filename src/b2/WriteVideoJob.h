@@ -19,7 +19,9 @@ class WriteVideoJob:
     public JobQueue::Job
 {
 public:
-    WriteVideoJob(Timeline::ReplayData replay_data,std::unique_ptr<VideoWriter> writer,std::shared_ptr<MessageList> message_list);
+    WriteVideoJob(std::unique_ptr<Timeline> timeline,
+                  std::unique_ptr<VideoWriter> writer,
+                  std::shared_ptr<MessageList> message_list);
     ~WriteVideoJob();
 
     bool WasSuccessful() const;
@@ -31,7 +33,7 @@ public:
 protected:
 private:
     std::shared_ptr<MessageList> m_message_list;
-    Timeline::ReplayData m_replay_data;
+    std::unique_ptr<Timeline> m_timeline;
     std::unique_ptr<VideoWriter> m_writer;
     bool m_success=false;
     std::atomic<uint64_t> m_ticks{0};
@@ -46,6 +48,5 @@ private:
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
-
 
 #endif

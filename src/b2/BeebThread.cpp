@@ -160,9 +160,8 @@ BeebThread::LoadDiscMessage::LoadDiscMessage(int drive_,std::shared_ptr<DiscImag
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-BeebThread::LoadStateMessage::LoadStateMessage(uint64_t parent_timeline_id_,std::shared_ptr<BeebState> state_):
+BeebThread::LoadStateMessage::LoadStateMessage(std::shared_ptr<BeebState> state_):
     Message(BeebThreadMessageType_LoadState),
-    parent_timeline_id(parent_timeline_id_),
     state(std::move(state_))
 {
 }
@@ -170,11 +169,11 @@ BeebThread::LoadStateMessage::LoadStateMessage(uint64_t parent_timeline_id_,std:
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-BeebThread::GoToTimelineNodeMessage::GoToTimelineNodeMessage(uint64_t timeline_id_):
-    Message(BeebThreadMessageType_GoToTimelineNode),
-    timeline_id(timeline_id_)
-{
-}
+//BeebThread::GoToTimelineNodeMessage::GoToTimelineNodeMessage(uint64_t timeline_id_):
+//    Message(BeebThreadMessageType_GoToTimelineNode),
+//    timeline_id(timeline_id_)
+//{
+//}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -188,30 +187,30 @@ BeebThread::SaveStateMessage::SaveStateMessage(bool verbose_):
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-BeebThread::ReplayMessage::ReplayMessage(Timeline::ReplayData replay_data_):
+BeebThread::ReplayMessage::ReplayMessage(std::unique_ptr<Timeline> timeline_):
     Message(BeebThreadMessageType_Replay),
-    replay_data(std::move(replay_data_))
+    timeline(std::move(timeline_))
 {
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-BeebThread::SaveAndReplayFromMessage::SaveAndReplayFromMessage(uint64_t timeline_start_id_):
-    Message(BeebThreadMessageType_SaveAndReplayFrom),
-    timeline_start_id(timeline_start_id_)
-{
-}
+//BeebThread::SaveAndReplayFromMessage::SaveAndReplayFromMessage(uint64_t timeline_start_id_):
+//    Message(BeebThreadMessageType_SaveAndReplayFrom),
+//    timeline_start_id(timeline_start_id_)
+//{
+//}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-BeebThread::SaveAndVideoFromMessage::SaveAndVideoFromMessage(uint64_t timeline_start_id_,std::unique_ptr<VideoWriter> video_writer_):
-    Message(BeebThreadMessageType_SaveAndVideoFrom),
-    timeline_start_id(timeline_start_id_),
-    video_writer(std::move(video_writer_))
-{
-}
+//BeebThread::SaveAndVideoFromMessage::SaveAndVideoFromMessage(uint64_t timeline_start_id_,std::unique_ptr<VideoWriter> video_writer_):
+//    Message(BeebThreadMessageType_SaveAndVideoFrom),
+//    timeline_start_id(timeline_start_id_),
+//    video_writer(std::move(video_writer_))
+//{
+//}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -259,19 +258,19 @@ BeebThread::CloneWindowMessage::CloneWindowMessage(BeebWindowInitArguments init_
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-BeebThread::CloneThisThreadMessage::CloneThisThreadMessage(std::shared_ptr<BeebThread> dest_thread_):
-    Message(BeebThreadMessageType_CloneThisThread),
-    dest_thread(std::move(dest_thread_))
-{
-}
+//BeebThread::CloneThisThreadMessage::CloneThisThreadMessage(std::shared_ptr<BeebThread> dest_thread_):
+//    Message(BeebThreadMessageType_CloneThisThread),
+//    dest_thread(std::move(dest_thread_))
+//{
+//}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-BeebThread::LoadLastStateMessage::LoadLastStateMessage():
-    Message(BeebThreadMessageType_LoadLastState)
-{
-}
+//BeebThread::LoadLastStateMessage::LoadLastStateMessage():
+//    Message(BeebThreadMessageType_LoadLastState)
+//{
+//}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -429,9 +428,9 @@ struct BeebThread::ThreadState {
     bool boot=false;
     BeebShiftState fake_shift_state=BeebShiftState_Any;
 
-    // Replay data. All valid if the thread's m_is_replaying flag is
-    // set.
-    Timeline::ReplayData replay_data;
+    std::unique_ptr<Timeline> record_timeline;
+
+    std::unique_ptr<Timeline> replay_timeline;
     size_t replay_next_index=0;
     uint64_t replay_next_event_cycles=0;
 
@@ -518,7 +517,6 @@ BeebThread::BeebThread(std::shared_ptr<MessageList> message_list,uint32_t sound_
     m_message_list(std::move(message_list))
 {
     m_sound_device_id=sound_device_id;
-    m_sound_freq=sound_freq;
 
     ASSERT(sound_freq>=0);
     m_audio_thread_data=new AudioThreadData((uint64_t)sound_freq,(uint64_t)sound_buffer_size_samples,100);
@@ -717,7 +715,7 @@ std::vector<uint8_t> BeebThread::GetNVRAM() const {
 //////////////////////////////////////////////////////////////////////////
 
 bool BeebThread::HasNVRAM() const {
-    return m_has_vram.load(std::memory_order_acquire);
+    return m_has_nvram.load(std::memory_order_acquire);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -930,29 +928,29 @@ size_t BeebThread::AudioThreadFillAudioBuffer(float *samples,size_t num_samples,
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-float BeebThread::GetBBCVolume() const {
-    return m_bbc_sound_db;
-}
+//float BeebThread::GetBBCVolume() const {
+//    return m_bbc_sound_db;
+//}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 void BeebThread::SetBBCVolume(float db) {
-    this->SetVolume(&m_audio_thread_data->bbc_sound_scale,&m_bbc_sound_db,db);
+    this->SetVolume(&m_audio_thread_data->bbc_sound_scale,db);
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-float BeebThread::GetDiscVolume() const {
-    return m_disc_sound_db;
-}
+//float BeebThread::GetDiscVolume() const {
+//    return m_disc_sound_db;
+//}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 void BeebThread::SetDiscVolume(float db) {
-    this->SetVolume(&m_audio_thread_data->disc_sound_scale,&m_disc_sound_db,db);
+    this->SetVolume(&m_audio_thread_data->disc_sound_scale,db);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -977,28 +975,30 @@ std::vector<BeebThread::AudioCallbackRecord> BeebThread::GetAudioCallbackRecords
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-uint64_t BeebThread::GetParentTimelineEventId() const {
-    std::lock_guard<Mutex> lock(m_mutex);
-
-    return m_parent_timeline_event_id;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-uint64_t BeebThread::GetLastSavedStateTimelineId() const {
-    std::lock_guard<Mutex> lock(m_mutex);
-
-    return m_last_saved_state_timeline_id;
-}
+//uint64_t BeebThread::GetParentTimelineEventId() const {
+//    std::lock_guard<Mutex> lock(m_mutex);
+//
+//    return m_parent_timeline_event_id;
+//}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void BeebThread::ThreadRecordEvent(ThreadState *ts,BeebEvent event) {
+//uint64_t BeebThread::GetLastSavedStateTimelineId() const {
+//    std::lock_guard<Mutex> lock(m_mutex);
+//
+//    return m_last_saved_state_timeline_id;
+//}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BeebThread::ThreadRecordEvent(ThreadState *ts,BeebEvent &&event) {
     this->ThreadHandleEvent(ts,event,false);
 
-    m_parent_timeline_event_id=Timeline::AddEvent(m_parent_timeline_event_id,std::move(event));
+    if(!!ts->record_timeline) {
+        ts->record_timeline->AddEvent(std::move(event));
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -1184,7 +1184,7 @@ void BeebThread::ThreadReplaceBeeb(ThreadState *ts,std::unique_ptr<BBCMicro> bee
         m_audio_thread_data->num_consumed_sound_units=*ts->num_executed_2MHz_cycles>>SOUND_CLOCK_SHIFT;
     }
 
-    m_has_vram.store(ts->beeb->GetNVRAMSize()>0,std::memory_order_release);
+    m_has_nvram.store(ts->beeb->GetNVRAMSize()>0,std::memory_order_release);
 
     // Apply current keypresses to the emulated BBC. Reset fake shift
     // state and boot state first so that the Shift key status is set
@@ -1473,20 +1473,26 @@ void BeebThread::ThreadHandleEvent(ThreadState *ts,
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void BeebThread::ThreadStartReplay(ThreadState *ts,Timeline::ReplayData replay_data) {
-    ts->replay_data=std::move(replay_data);
-    ASSERT(!ts->replay_data.events.empty());
-    ASSERT(ts->replay_data.events[0].be.GetTypeFlags()&BeebEventTypeFlag_Start);
+void BeebThread::ThreadStartReplay(ThreadState *ts,std::unique_ptr<Timeline> timeline) {
+    ts->replay_timeline=std::move(timeline);
 
     ts->replay_next_index=0;
-    ts->replay_next_event_cycles=ts->replay_data.events[0].be.time_2MHz_cycles;
+
+    if(ts->replay_timeline->GetNumEvents()==0) {
+        ts->replay_next_event_cycles=ts->replay_timeline->GetEnd2MHzCycles();
+    } else {
+        ts->replay_next_event_cycles=ts->replay_timeline->GetEventByIndex(0)->time_2MHz_cycles;
+    }
 
     ASSERT(!m_is_replaying);
     m_is_replaying.store(true,std::memory_order_release);
 
-    ts->replay_data.Dump(&ts->log);
+    //ts->replay_data.Dump(&ts->log);
 
     //LOGF(OUTPUT,"replay start.\n");
+
+    // Load initial state.
+    this->ThreadReplaceBeeb(ts,ts->replay_timeline->GetInitialBeebState(),0);
 
     // Replay first event straight away to get things started.
     this->ThreadHandleReplayEvents(ts);
@@ -1506,12 +1512,12 @@ void BeebThread::ThreadStopReplay(ThreadState *ts) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void BeebThread::ThreadLoadState(ThreadState *ts,uint64_t parent_timeline_id,const std::shared_ptr<BeebState> &state) {
+void BeebThread::ThreadLoadState(ThreadState *ts,const std::shared_ptr<BeebState> &state) {
     this->ThreadReplaceBeeb(ts,state->CloneBBCMicro(),0);
 
-    m_parent_timeline_event_id=parent_timeline_id;
-
-    Timeline::DidChange();
+//    m_parent_timeline_event_id=parent_timeline_id;
+//
+//    Timeline::DidChange();
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -1520,36 +1526,43 @@ void BeebThread::ThreadLoadState(ThreadState *ts,uint64_t parent_timeline_id,con
 void BeebThread::ThreadHandleReplayEvents(ThreadState *ts) {
     ASSERT(m_is_replaying);
 
-    ASSERT(ts->replay_next_index<ts->replay_data.events.size());
+//    ASSERT(ts->replay_next_event_cycles<=ts->replay_timeline.GetEnd2MHzCycles());
+//    if(ts->replay_next_event_cycles==ts->replay_timeline.GetEnd2MHzCycles()) {
+//        // Replay done.
+//        this->ThreadStopReplay(ts);
+//        return;
+//    }
 
-    for(;;) {
-        if(ts->replay_next_index>=ts->replay_data.events.size()) {
-            // Replay done.
-            ASSERT(ts->replay_next_index==ts->replay_data.events.size());
-            this->ThreadStopReplay(ts);
-            break;
-        }
+    const BeebEvent *event=nullptr;
 
-        const Timeline::ReplayData::Event *re=&ts->replay_data.events[ts->replay_next_index];
-        if(re->be.time_2MHz_cycles!=ts->replay_next_event_cycles) {
-            // No more events now, but replay is ongoing.
-            ts->replay_next_event_cycles=re->be.time_2MHz_cycles;
-            break;
-        }
+    if(ts->replay_next_index<ts->replay_timeline->GetNumEvents()) {
+        for(;;) {
+            event=ts->replay_timeline->GetEventByIndex(ts->replay_next_index);
 
-        ++ts->replay_next_index;
+            ASSERT(event->time_2MHz_cycles>=ts->replay_next_event_cycles);
 
-        this->ThreadHandleEvent(ts,re->be,true);
-
-        if(re->id==0) {
-            // Event wasn't on timeline, so don't update parent.
-        } else {
-            m_parent_timeline_event_id=re->id;
-
-            if(re->be.GetTypeFlags()&BeebEventTypeFlag_ChangesTimeline) {
-                Timeline::DidChange();
+            if(event->time_2MHz_cycles>ts->replay_next_event_cycles) {
+                // this event is in the future - done.
+                break;
             }
+
+            ++ts->replay_next_index;
+
+            this->ThreadHandleEvent(ts,*event,true);
         }
+    }
+
+    ASSERT(ts->replay_next_event_cycles<=ts->replay_timeline->GetEnd2MHzCycles());
+    if(ts->replay_next_event_cycles==ts->replay_timeline->GetEnd2MHzCycles()) {
+        // Replay is done.
+        this->ThreadStopReplay(ts);
+        return;
+    }
+
+    if(ts->replay_next_index<ts->replay_timeline->GetNumEvents()) {
+        ts->replay_next_event_cycles=ts->replay_timeline->GetEnd2MHzCycles();
+    } else {
+        ts->replay_next_event_cycles=event->time_2MHz_cycles;
     }
 }
 
@@ -1772,7 +1785,10 @@ bool BeebThread::ThreadHandleMessage(
                     }
                 }
 
-                this->ThreadRecordEvent(ts,BeebEvent::MakeLoadDiscImage(*ts->num_executed_2MHz_cycles,m->drive,std::move(m->disc_image)));
+                this->ThreadRecordEvent(ts,
+                                        BeebEvent::MakeLoadDiscImage(*ts->num_executed_2MHz_cycles,
+                                                                     m->drive,
+                                                                     std::move(m->disc_image)));
             }
         }
         break;
@@ -1785,19 +1801,19 @@ bool BeebThread::ThreadHandleMessage(
         }
         break;
 
-    case BeebThreadMessageType_GoToTimelineNode:
-        {
-            if(m_is_replaying) {
-                // ignore
-            } else {
-                auto m=(GoToTimelineNodeMessage *)message.get();
-
-                auto &&replay_data=Timeline::CreateReplay(m->timeline_id,m->timeline_id,&ts->msgs);
-
-                ThreadStartReplay(ts,replay_data);
-            }
-        }
-        break;
+//    case BeebThreadMessageType_GoToTimelineNode:
+//        {
+//            if(m_is_replaying) {
+//                // ignore
+//            } else {
+//                auto m=(GoToTimelineNodeMessage *)message.get();
+//
+//                auto &&replay_data=Timeline::CreateReplay(m->timeline_id,m->timeline_id,&ts->msgs);
+//
+//                ThreadStartReplay(ts,replay_data);
+//            }
+//        }
+//        break;
 
     case BeebThreadMessageType_LoadState:
         {
@@ -1806,20 +1822,20 @@ bool BeebThread::ThreadHandleMessage(
             } else {
                 auto m=(LoadStateMessage *)message.get();
 
-                this->ThreadLoadState(ts,m->parent_timeline_id,m->state);
+                this->ThreadLoadState(ts,m->state);
             }
         }
         break;
 
-    case BeebThreadMessageType_CloneThisThread:
-        {
-            auto m=(CloneThisThreadMessage *)message.get();
-
-            std::shared_ptr<BeebState> state=this->ThreadSaveState(ts);
-
-            m->dest_thread->Send(std::make_unique<LoadStateMessage>(m_parent_timeline_event_id,std::move(state)));
-        }
-        break;
+//    case BeebThreadMessageType_CloneThisThread:
+//        {
+//            auto m=(CloneThisThreadMessage *)message.get();
+//
+//            std::shared_ptr<BeebState> state=this->ThreadSaveState(ts);
+//
+//            m->dest_thread->Send(std::make_unique<LoadStateMessage>(m_parent_timeline_event_id,std::move(state)));
+//        }
+//        break;
 
     case BeebThreadMessageType_CloneWindow:
         {
@@ -1830,8 +1846,8 @@ bool BeebThread::ThreadHandleMessage(
             init_arguments.initially_paused=false;
             init_arguments.initial_state=this->ThreadSaveState(ts);
 
-            ASSERT(init_arguments.parent_timeline_event_id==0);
-            init_arguments.parent_timeline_event_id=m_parent_timeline_event_id;
+//            ASSERT(init_arguments.parent_timeline_event_id==0);
+//            init_arguments.parent_timeline_event_id=m_parent_timeline_event_id;
 
             PushNewWindowMessage(init_arguments);
         }
@@ -1850,7 +1866,7 @@ bool BeebThread::ThreadHandleMessage(
 
             this->ThreadRecordEvent(ts,BeebEvent::MakeSaveState(*ts->num_executed_2MHz_cycles,state));
 
-            m_last_saved_state_timeline_id=m_parent_timeline_event_id;
+//            m_last_saved_state_timeline_id=m_parent_timeline_event_id;
         }
         break;
 
@@ -1888,50 +1904,50 @@ bool BeebThread::ThreadHandleMessage(
         }
         break;
 
-    case BeebThreadMessageType_Replay:
-        {
-            auto m=(ReplayMessage *)message.get();
+//    case BeebThreadMessageType_Replay:
+//        {
+//            auto m=(ReplayMessage *)message.get();
+//
+//            this->ThreadStartReplay(ts,std::move(m->replay_data));
+//        }
+//        break;
 
-            this->ThreadStartReplay(ts,std::move(m->replay_data));
-        }
-        break;
+//    case BeebThreadMessageType_SaveAndReplayFrom:
+//        {
+//            auto m=(SaveAndReplayFromMessage *)message.get();
+//            //uint64_t start_timeline_id=msg->data.u64;
+//
+//            // Add a placeholder event that will serve as the finish event for the replay.
+//            m_parent_timeline_event_id=Timeline::AddEvent(m_parent_timeline_event_id,BeebEvent::MakeNone(*ts->num_executed_2MHz_cycles));
+//
+//            std::shared_ptr<BeebState> state=this->ThreadSaveState(ts);
+//
+//            m_pre_replay_parent_timeline_event_id=m_parent_timeline_event_id;
+//            m_pre_replay_state=state;
+//
+//            auto &&replay_data=Timeline::CreateReplay(m->timeline_start_id,m_parent_timeline_event_id,&ts->msgs);
+//
+//            if(!replay_data.events.empty()) {
+//                this->ThreadStartReplay(ts,replay_data);
+//            }
+//        }
+//        break;
 
-    case BeebThreadMessageType_SaveAndReplayFrom:
-        {
-            auto m=(SaveAndReplayFromMessage *)message.get();
-            //uint64_t start_timeline_id=msg->data.u64;
-
-            // Add a placeholder event that will serve as the finish event for the replay.
-            m_parent_timeline_event_id=Timeline::AddEvent(m_parent_timeline_event_id,BeebEvent::MakeNone(*ts->num_executed_2MHz_cycles));
-
-            std::shared_ptr<BeebState> state=this->ThreadSaveState(ts);
-
-            m_pre_replay_parent_timeline_event_id=m_parent_timeline_event_id;
-            m_pre_replay_state=state;
-
-            auto &&replay_data=Timeline::CreateReplay(m->timeline_start_id,m_parent_timeline_event_id,&ts->msgs);
-
-            if(!replay_data.events.empty()) {
-                this->ThreadStartReplay(ts,replay_data);
-            }
-        }
-        break;
-
-    case BeebThreadMessageType_SaveAndVideoFrom:
-        {
-            auto m=(SaveAndVideoFromMessage *)message.get();
-            //auto ptr=(SaveAndVideoFromMessagePayload  *)msg->data.ptr;
-
-            this->ThreadRecordEvent(ts,BeebEvent::MakeNone(*ts->num_executed_2MHz_cycles));
-
-            auto &&replay_data=Timeline::CreateReplay(m->timeline_start_id,m_parent_timeline_event_id,&ts->msgs);
-
-            if(!replay_data.events.empty()) {
-                auto job=std::make_shared<WriteVideoJob>(std::move(replay_data),std::move(m->video_writer),m_message_list);
-                BeebWindows::AddJob(job);
-            }
-        }
-        break;
+//    case BeebThreadMessageType_SaveAndVideoFrom:
+//        {
+//            auto m=(SaveAndVideoFromMessage *)message.get();
+//            //auto ptr=(SaveAndVideoFromMessagePayload  *)msg->data.ptr;
+//
+//            this->ThreadRecordEvent(ts,BeebEvent::MakeNone(*ts->num_executed_2MHz_cycles));
+//
+//            auto &&replay_data=Timeline::CreateReplay(m->timeline_start_id,m_parent_timeline_event_id,&ts->msgs);
+//
+//            if(!replay_data.events.empty()) {
+//                auto job=std::make_shared<WriteVideoJob>(std::move(replay_data),std::move(m->video_writer),m_message_list);
+//                BeebWindows::AddJob(job);
+//            }
+//        }
+//        break;
 
     case BeebThreadMessageType_SetDiscImageNameAndLoadMethod:
         {
@@ -1944,35 +1960,33 @@ bool BeebThread::ThreadHandleMessage(
         }
         break;
 
-    case BeebThreadMessageType_LoadLastState:
-        {
-            if(m_last_saved_state_timeline_id!=0) {
-                //auto m=(BeebThreadLoadLastStateMessage *)message.get();
-                this->Send(std::make_unique<GoToTimelineNodeMessage>(m_last_saved_state_timeline_id));
-                //this->SendGoToTimelineNodeMessage(id);
-            }
-        }
-        break;
+//    case BeebThreadMessageType_LoadLastState:
+//        {
+//            if(m_last_saved_state_timeline_id!=0) {
+//                //auto m=(BeebThreadLoadLastStateMessage *)message.get();
+//                this->Send(std::make_unique<GoToTimelineNodeMessage>(m_last_saved_state_timeline_id));
+//                //this->SendGoToTimelineNodeMessage(id);
+//            }
+//        }
+//        break;
 
     case BeebThreadMessageType_CancelReplay:
         {
             if(m_is_replaying.load(std::memory_order_acquire)) {
                 this->ThreadStopReplay(ts);
 
-                std::shared_ptr<BeebState> state;
-                uint64_t timeline_id;
+//                uint64_t timeline_id;
 
-                state=std::move(m_pre_replay_state);
-                ASSERT(!m_pre_replay_state);
+                std::shared_ptr<BeebState> state=std::move(m_pre_replay_state);
 
-                timeline_id=m_pre_replay_parent_timeline_event_id;
-                m_pre_replay_parent_timeline_event_id=0;
+//                timeline_id=m_pre_replay_parent_timeline_event_id;
+//                m_pre_replay_parent_timeline_event_id=0;
 
                 if(!!state) {
-                    this->ThreadLoadState(ts,timeline_id,state);
+                    this->ThreadLoadState(ts,state);
                 }
 
-                Timeline::DidChange();
+                //Timeline::DidChange();
             }
         }
         break;
@@ -2339,7 +2353,7 @@ done:
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void BeebThread::SetVolume(float *scale_var,float *db_var,float db) {
+void BeebThread::SetVolume(float *scale_var,float db) {
     if(db>MAX_DB) {
         db=MAX_DB;
     }
@@ -2347,8 +2361,6 @@ void BeebThread::SetVolume(float *scale_var,float *db_var,float db) {
     if(db<MIN_DB) {
         db=MIN_DB;
     }
-
-    *db_var=db;
 
     {
         AudioDeviceLock lock(m_sound_device_id);

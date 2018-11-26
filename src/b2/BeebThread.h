@@ -192,10 +192,9 @@ public:
         public Message
     {
     public:
-        uint64_t parent_timeline_id=0;
         std::shared_ptr<BeebState> state;
 
-        LoadStateMessage(uint64_t parent_timeline_id,std::shared_ptr<BeebState> state);
+        LoadStateMessage(std::shared_ptr<BeebState> state);
     protected:
     private:
     };
@@ -226,40 +225,40 @@ public:
         public Message
     {
     public:
-        Timeline::ReplayData replay_data;
+        std::unique_ptr<Timeline> timeline;
 
-        explicit ReplayMessage(Timeline::ReplayData replay_data);
+        explicit ReplayMessage(std::unique_ptr<Timeline> timeline);
     protected:
     private:
     };
 
-    class SaveAndReplayFromMessage:
-        public Message
-    {
-    public:
-        uint64_t timeline_start_id=0;
+//    class SaveAndReplayFromMessage:
+//        public Message
+//    {
+//    public:
+//        uint64_t timeline_start_id=0;
+//
+//        explicit SaveAndReplayFromMessage(uint64_t timeline_start_id);
+//    protected:
+//    private:
+//    };
 
-        explicit SaveAndReplayFromMessage(uint64_t timeline_start_id);
-    protected:
-    private:
-    };
-
-    // Save current state, start recording video of replay from given
-    // state to new state.
-    //
-    // This doesn't affect the receiver - video recording runs as a
-    // job, and emulation continues.
-    class SaveAndVideoFromMessage:
-        public Message
-    {
-    public:
-        uint64_t timeline_start_id=0;
-        std::unique_ptr<VideoWriter> video_writer;
-
-        SaveAndVideoFromMessage(uint64_t timeline_start_id,std::unique_ptr<VideoWriter> video_writer);
-    protected:
-    private:
-    };
+//    // Save current state, start recording video of replay from given
+//    // state to new state.
+//    //
+//    // This doesn't affect the receiver - video recording runs as a
+//    // job, and emulation continues.
+//    class SaveAndVideoFromMessage:
+//        public Message
+//    {
+//    public:
+//        uint64_t timeline_start_id=0;
+//        std::unique_ptr<VideoWriter> video_writer;
+//
+//        SaveAndVideoFromMessage(uint64_t timeline_start_id,std::unique_ptr<VideoWriter> video_writer);
+//    protected:
+//    private:
+//    };
 
     // Set name and load method for a loaded disc image. (The disc
     // contents don't change.)
@@ -312,28 +311,28 @@ public:
     private:
     };
 
-    // Clone self into existing window. Save this thread's state and
-    // load the resulting state into another thread. (Not sure "clone"
-    // is really the best name for that though...?)
-    class CloneThisThreadMessage:
-        public Message
-    {
-    public:
-        std::shared_ptr<BeebThread> dest_thread;
+//    // Clone self into existing window. Save this thread's state and
+//    // load the resulting state into another thread. (Not sure "clone"
+//    // is really the best name for that though...?)
+//    class CloneThisThreadMessage:
+//        public Message
+//    {
+//    public:
+//        std::shared_ptr<BeebThread> dest_thread;
+//
+//        explicit CloneThisThreadMessage(std::shared_ptr<BeebThread> dest_thread);
+//    protected:
+//    private:
+//    };
 
-        explicit CloneThisThreadMessage(std::shared_ptr<BeebThread> dest_thread);
-    protected:
-    private:
-    };
-
-    class LoadLastStateMessage:
-        public Message
-    {
-    public:
-        LoadLastStateMessage();
-    protected:
-    private:
-    };
+//    class LoadLastStateMessage:
+//        public Message
+//    {
+//    public:
+//        LoadLastStateMessage();
+//    protected:
+//    private:
+//    };
 
     class CancelReplayMessage:
         public Message
@@ -623,19 +622,15 @@ public:
     // produced, at the sound chip rate of 250KHz... see the code.)
     size_t AudioThreadFillAudioBuffer(float *samples,size_t num_samples,bool perfect,void (*fn)(int,float,void *)=nullptr,void *fn_context=nullptr);
 
-    // Get/set BBC volume as attenuation in decibels.
-    float GetBBCVolume() const;
+    // Set sound/disc volume as attenuation in decibels.
     void SetBBCVolume(float db);
-
-    // Get/set disc volume as attenuation in decibels.
-    float GetDiscVolume() const;
     void SetDiscVolume(float db);
 
     // Get info about the previous N audio callbacks.
     std::vector<AudioCallbackRecord> GetAudioCallbackRecords() const;
 
-    uint64_t GetParentTimelineEventId() const;
-    uint64_t GetLastSavedStateTimelineId() const;
+//    uint64_t GetParentTimelineEventId() const;
+//    uint64_t GetLastSavedStateTimelineId() const;
 protected:
 private:
     struct ThreadState;
@@ -649,9 +644,6 @@ private:
     private:
         std::atomic<uint64_t> m_flags[2]={};
     };
-
-    // Pointer to this thread's running BeebState, if it has one.
-    //std::shared_ptr<BeebThreadBeebState> m_beeb_state;
 
     // Safe provided they are accessed through their functions.
     MessageQueue<std::unique_ptr<Message>> m_mq;
@@ -678,7 +670,7 @@ private:
 #endif
     std::atomic<bool> m_is_pasting{false};
     std::atomic<bool> m_is_copying{false};
-    std::atomic<bool> m_has_vram{false};
+    std::atomic<bool> m_has_nvram{false};
 
     //mutable volatile int32_t m_is_paused=1;
 
@@ -691,13 +683,13 @@ private:
 
     // use GetPreviousState/SetPreviousState to modify. Controlled by
     // the global timeline mutex.
-    uint64_t m_parent_timeline_event_id=0;
+    //uint64_t m_parent_timeline_event_id=0;
 
     // Timeline id of last saved state.
-    uint64_t m_last_saved_state_timeline_id=0;
+    //uint64_t m_last_saved_state_timeline_id=0;
 
     // Pre-replay state: original timeline event id, and saved state.
-    uint64_t m_pre_replay_parent_timeline_event_id=0;
+    //uint64_t m_pre_replay_parent_timeline_event_id=0;
     std::shared_ptr<BeebState> m_pre_replay_state;
 
     // Last recorded trace. Controlled by m_mutex.
@@ -719,9 +711,6 @@ private:
     // Audio thread data.
     AudioThreadData *m_audio_thread_data=nullptr;
     uint32_t m_sound_device_id=0;
-    int m_sound_freq=0;
-    float m_bbc_sound_db;
-    float m_disc_sound_db;
 
     //
     std::shared_ptr<MessageList> m_message_list;
@@ -736,7 +725,7 @@ private:
     static bool ThreadStopCopyOnOSWORD0(const BBCMicro *beeb,const M6502 *cpu,void *context);
     static bool ThreadAddCopyData(const BBCMicro *beeb,const M6502 *cpu,void *context);
 
-    void ThreadRecordEvent(ThreadState *ts,BeebEvent event);
+    void ThreadRecordEvent(ThreadState *ts,BeebEvent &&event);
     std::shared_ptr<BeebState> ThreadSaveState(ThreadState *ts);
     void ThreadReplaceBeeb(ThreadState *ts,std::unique_ptr<BBCMicro> beeb,uint32_t flags);
 #if BBCMICRO_TRACE
@@ -752,9 +741,9 @@ private:
     void ThreadSetTurboDisc(ThreadState *ts,bool turbo);
 #endif
     void ThreadHandleEvent(ThreadState *ts,const BeebEvent &event,bool replay);
-    void ThreadStartReplay(ThreadState *ts,Timeline::ReplayData replay_data);
+    void ThreadStartReplay(ThreadState *ts,std::unique_ptr<Timeline> timeline);
     void ThreadStopReplay(ThreadState *ts);
-    void ThreadLoadState(ThreadState *ts,uint64_t parent_timeline_id,const std::shared_ptr<BeebState> &state);
+    void ThreadLoadState(ThreadState *ts,const std::shared_ptr<BeebState> &state);
     void ThreadHandleReplayEvents(ThreadState *ts);
     bool ThreadHandleMessage(ThreadState *ts,std::unique_ptr<Message> message,bool *limit_speed,uint64_t *next_stop_2MHz_cycles);
     void ThreadSetDiscImage(ThreadState *ts,int drive,std::shared_ptr<DiscImage> disc_image);
@@ -763,7 +752,7 @@ private:
     void ThreadStopCopy(ThreadState *ts);
     void ThreadFailCompletionFun(std::unique_ptr<Message> *message_ptr);
     void ThreadMain();
-    void SetVolume(float *scale_var,float *db_var,float db);
+    void SetVolume(float *scale_var,float db);
 
     static bool ThreadWaitForHardReset(const BBCMicro *beeb,const M6502 *cpu,void *context);
 #if HTTP_SERVER

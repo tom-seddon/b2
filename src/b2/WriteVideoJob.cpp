@@ -93,19 +93,15 @@ static void SaveWAV(
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-WriteVideoJob::WriteVideoJob(Timeline::ReplayData replay_data,std::unique_ptr<VideoWriter> writer,std::shared_ptr<MessageList> message_list):
-    m_message_list(std::move(message_list)),
-    m_replay_data(std::move(replay_data)),
-    m_writer(std::move(writer)),
-    m_msg(m_message_list)
+WriteVideoJob::WriteVideoJob(std::unique_ptr<Timeline> timeline,
+                             std::unique_ptr<VideoWriter> writer,
+                             std::shared_ptr<MessageList> message_list):
+m_message_list(std::move(message_list)),
+m_timeline(std::move(timeline)),
+m_writer(std::move(writer)),
+m_msg(m_message_list)
 {
     m_file_name=m_writer->GetFileName();
-
-    // Remove event id markers from the replay data, so the thread
-    // doesn't bother to keep its timeline position up to date.
-    for(auto &&re:m_replay_data.events) {
-        re.id=0;
-    }
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -193,9 +189,10 @@ static void PushBackFloat(int index,float f,void *context) {
 void WriteVideoJob::ThreadExecute() {
     //OutputData *video_output_data=m_beeb_thread->GetVideoOutputData();
 
-    ASSERT(!m_replay_data.events.empty());
-    uint64_t start_cycles=m_replay_data.events[0].be.time_2MHz_cycles;
-    uint64_t finish_cycles=m_replay_data.events.back().be.time_2MHz_cycles;
+    ASSERT(m_timeline->GetNumEvents()>0);
+    uint64_t start_cycles=m_timeline->GetBegin2MHzCycles();
+    uint64_t finish_cycles=m_timeline->GetEnd2MHzCycles();
+
     uint64_t start_ticks=GetCurrentTickCount();
 
     m_cycles_done.store(0,std::memory_order_release);
@@ -270,7 +267,7 @@ void WriteVideoJob::ThreadExecute() {
         bool was_vblank=tv_output.IsInVerticalBlank();
         OutputDataBuffer<VideoDataUnit> *video_output=beeb_thread->GetVideoOutput();
 
-        beeb_thread->Send(std::make_unique<BeebThread::ReplayMessage>(std::move(m_replay_data)));
+        beeb_thread->Send(std::make_unique<BeebThread::ReplayMessage>(std::move(m_timeline)));
 
         beeb_thread->Send(std::make_unique<BeebThread::PauseMessage>(false));
 

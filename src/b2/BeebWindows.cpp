@@ -172,8 +172,8 @@ void BeebWindows::Shutdown() {
         }
     }
 
-    // There probably needs to be a more general mechanism than this.
-    Timeline::DidChange();
+//    // There probably needs to be a more general mechanism than this.
+//    Timeline::DidChange();
 
     delete g_;
     g_=nullptr;
@@ -198,8 +198,8 @@ BeebWindow *BeebWindows::CreateBeebWindow(BeebWindowInitArguments init_arguments
     std::lock_guard<Mutex> lock(g_->windows_mutex);
     g_->windows.push_back(window);
 
-    // There probably needs to be a more general mechanism than this.
-    Timeline::DidChange();
+//    // There probably needs to be a more general mechanism than this.
+//    Timeline::DidChange();
 
     return window;
 }
@@ -244,7 +244,7 @@ void BeebWindows::HandleSDLWindowEvent(const SDL_WindowEvent &event) {
             delete window;
             window=nullptr;
 
-            Timeline::DidChange();
+            //Timeline::DidChange();
         }
         break;
 

@@ -898,11 +898,11 @@ static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &init
     }
 
     {
-        if(!Timeline::Init()) {
-            init_messages.e.f(
-                "FATAL: failed to initialize timeline.\n");
-            return false;
-        }
+//        if(!Timeline::Init()) {
+//            init_messages.e.f(
+//                "FATAL: failed to initialize timeline.\n");
+//            return false;
+//        }
 
         if(!BeebWindows::Init()) {
             init_messages.e.f(
@@ -1134,7 +1134,7 @@ static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &init
         SDL_PauseAudioDevice(audio_device,1);
 
         BeebWindows::Shutdown();
-        Timeline::Shutdown();
+        //Timeline::Shutdown();
 
 #if HTTP_SERVER
         http_server=nullptr;

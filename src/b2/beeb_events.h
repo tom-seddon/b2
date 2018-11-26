@@ -28,9 +28,9 @@ class BeebState;
 class BeebWindow;
 class Log;
 
-namespace Timeline {
-    class Node;
-}
+//namespace Timeline {
+//    class Node;
+//}
 
 #include "conf.h"
 #include <memory>

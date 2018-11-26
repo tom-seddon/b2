@@ -136,7 +136,7 @@ public:
     // and PARENT_TIMELINE_EVENT_ID will be used, as it is the config
     // used for new windows created by Window|New.
     std::shared_ptr<BeebState> initial_state;
-    uint64_t parent_timeline_event_id=0;
+//    uint64_t parent_timeline_event_id=0;
     BeebLoadedConfig default_config;
 
     // Message list to be used to populate the window's message list.
