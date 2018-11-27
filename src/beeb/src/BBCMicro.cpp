@@ -2799,7 +2799,7 @@ void BBCMicro::InitStuff() {
     m_state.system_via.b.fn_context=this;
 
     m_state.system_via.SetID(BBCMicroVIAID_SystemVIA,"SystemVIA");
-    m_state.system_via.SetID(BBCMicroVIAID_UserVIA,"UserVIA");
+    m_state.user_via.SetID(BBCMicroVIAID_UserVIA,"UserVIA");
 
     // Fill in shadow RAM stuff.
     if(m_state.ram_buffer.size()>=65536) {
