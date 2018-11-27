@@ -406,6 +406,10 @@ void R6522::WriteB(void *via_,M6502Word addr,uint8_t value) {
     (void)addr;
 
     via->m_acr.value=value;
+
+    if(via->m_acr.bits.t1_continuous) {
+        via->m_t1_irq=1;
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -489,8 +493,19 @@ uint8_t R6522::Update() {
     /* Count down T1 */
     {
         if(m_t1--<0) {
+//            if(m_id==0) {
+//                volatile int x=99;
+//            } else if(m_id==1) {
+//                volatile int x=99;
+//            }
+
             if(m_t1_irq) {
                 this->ifr.bits.t1=1;
+
+                if(m_acr.bits.t1_output_pb7) {
+                    ASSERT(!(m_t1_pb7&0x7f));
+                    m_t1_pb7^=0x80;
+                }
 
                 if(!m_acr.bits.t1_continuous) {
                     m_t1_irq=0;
@@ -498,11 +513,6 @@ uint8_t R6522::Update() {
             }
 
             m_t1=m_t1ll|m_t1lh<<8;
-
-            if(m_acr.bits.t1_output_pb7) {
-                ASSERT(!(m_t1_pb7&0x7f));
-                m_t1_pb7^=0x80;
-            }
 
             TRACEF(m_trace,"%s - T1 timed out (continuous=%d). T1 new value: %d ($%04X)",m_name,m_acr.bits.t1_continuous,m_t1,m_t1);
         }
