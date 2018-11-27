@@ -15,6 +15,7 @@ class BeebState;
 
 class Timeline {
 public:
+    // Is this one really necessary? Why not just always have a BeebState?
     explicit Timeline(std::unique_ptr<BeebLoadedConfig> initial_config,
                       uint64_t begin_2MHz_cycles);
     explicit Timeline(std::shared_ptr<BeebState> initial_state);

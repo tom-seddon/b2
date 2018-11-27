@@ -1356,20 +1356,20 @@ void BeebThread::ThreadHandleEvent(ThreadState *ts,
         }
         return;
 
-    case BeebEventType_Root:
-        {
-            ts->current_config=event.data.config->config;
-
-            uint32_t flags=BeebThreadReplaceFlag_KeepCurrentDiscs;
-            if(!replay) {
-                flags|=BeebThreadReplaceFlag_ApplyPCState;
-            }
-
-            this->ThreadReplaceBeeb(ts,
-                                    event.data.config->config.CreateBBCMicro(event.time_2MHz_cycles),
-                                    flags);
-        }
-        return;
+//    case BeebEventType_Root:
+//        {
+//            ts->current_config=event.data.config->config;
+//
+//            uint32_t flags=BeebThreadReplaceFlag_KeepCurrentDiscs;
+//            if(!replay) {
+//                flags|=BeebThreadReplaceFlag_ApplyPCState;
+//            }
+//
+//            this->ThreadReplaceBeeb(ts,
+//                                    event.data.config->config.CreateBBCMicro(event.time_2MHz_cycles),
+//                                    flags);
+//        }
+//        return;
 
     case BeebEventType_HardReset:
         {

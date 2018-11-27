@@ -690,13 +690,6 @@ BeebEvent BeebEvent::MakeLoadDiscImage(uint64_t time,int drive,std::shared_ptr<c
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-BeebEvent BeebEvent::MakeRoot(BeebLoadedConfig config) {
-    return MakeConfigEvent(BeebEventType_Root,0,std::move(config));
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 BeebEvent BeebEvent::MakeHardReset(uint64_t time,BeebLoadedConfig loaded_config,bool boot) {
     BeebEventData data={};
 
@@ -954,19 +947,6 @@ BeebEvent BeebEvent::MakeLoadOrSaveStateEvent(BeebEventType type,uint64_t time,s
     data.state=new BeebEventStateData;
 
     data.state->state=std::move(state);
-
-    return BeebEvent{(uint8_t)type,time,data};
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-BeebEvent BeebEvent::MakeConfigEvent(BeebEventType type,uint64_t time,BeebLoadedConfig &&config) {
-    BeebEventData data={};
-
-    data.config=new BeebEventConfigData;
-
-    data.config->config=config;
 
     return BeebEvent{(uint8_t)type,time,data};
 }

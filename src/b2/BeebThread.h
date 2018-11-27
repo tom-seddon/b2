@@ -620,7 +620,11 @@ public:
     //
     // (FN, if non-null, is called back with the float audio data
     // produced, at the sound chip rate of 250KHz... see the code.)
-    size_t AudioThreadFillAudioBuffer(float *samples,size_t num_samples,bool perfect,void (*fn)(int,float,void *)=nullptr,void *fn_context=nullptr);
+    size_t AudioThreadFillAudioBuffer(float *samples,
+                                      size_t num_samples,
+                                      bool perfect,
+                                      void (*fn)(int,float,void *)=nullptr,
+                                      void *fn_context=nullptr);
 
     // Set sound/disc volume as attenuation in decibels.
     void SetBBCVolume(float db);
@@ -628,9 +632,6 @@ public:
 
     // Get info about the previous N audio callbacks.
     std::vector<AudioCallbackRecord> GetAudioCallbackRecords() const;
-
-//    uint64_t GetParentTimelineEventId() const;
-//    uint64_t GetLastSavedStateTimelineId() const;
 protected:
 private:
     struct ThreadState;

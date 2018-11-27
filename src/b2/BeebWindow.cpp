@@ -864,11 +864,9 @@ std::unique_ptr<SettingsUI> BeebWindow::CreateOptionsUI(BeebWindow *beeb_window)
 
 #if TIMELINE_UI_ENABLED
 std::unique_ptr<SettingsUI> BeebWindow::CreateTimelineUI(BeebWindow *beeb_window) {
-    return nullptr;
-//    return ::CreateTimelineUI(beeb_window,
-//                              beeb_window->GetNewWindowInitArguments(),
-//                              beeb_window->m_renderer,
-//                              beeb_window->m_pixel_format);
+    return ::CreateTimelineUI(beeb_window,
+                              beeb_window->m_renderer,
+                              beeb_window->m_pixel_format);
 }
 #endif
 

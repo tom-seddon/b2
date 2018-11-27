@@ -213,8 +213,6 @@ public:
 
     static BeebEvent MakeLoadDiscImage(uint64_t time_2MHz_cycles,int drive,std::shared_ptr<const DiscImage> disc_image);
 
-    static BeebEvent MakeRoot(BeebLoadedConfig config);
-
     static BeebEvent MakeHardReset(uint64_t time_2MHz_cycles,BeebLoadedConfig loaded_config,bool boot);
 
 #if BBCMICRO_TURBO_DISC
@@ -258,7 +256,6 @@ private:
     void Move(BeebEvent *oth);
     void Copy(const BeebEvent &src);
     static BeebEvent MakeLoadOrSaveStateEvent(BeebEventType type,uint64_t time,std::shared_ptr<BeebState> state);
-    static BeebEvent MakeConfigEvent(BeebEventType type,uint64_t time,BeebLoadedConfig &&config);
 };
 #include <shared/poppack.h>
 

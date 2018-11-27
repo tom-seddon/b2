@@ -24,6 +24,7 @@ public:
 
     virtual void DoImGui(CommandContextStack *cc_stack)=0;
 
+    // Return true to have the config saved when this UI window is closed.
     virtual bool OnClose()=0;
 
     // default impl returns false.
