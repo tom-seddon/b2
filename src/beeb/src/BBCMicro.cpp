@@ -1634,6 +1634,10 @@ bool BBCMicro::Update(VideoDataUnit *video_unit,SoundDataUnit *sound_unit) {
         // Update joysticks.
         m_state.system_via.b.p|=1<<4|1<<5;
 
+        // Nothing connected to the user port.
+        m_state.user_via.b.p=255;
+        m_state.user_via.b.c1=1;
+
         // Update IRQs.
         if(m_state.system_via.Update()) {
             M6502_SetDeviceIRQ(&m_state.cpu,BBCMicroIRQDevice_SystemVIA,1);
