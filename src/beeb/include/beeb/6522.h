@@ -95,7 +95,7 @@ public:
 
         /* Px */
     public:
-        uint8_t p;
+        uint8_t p=0xff;
     private:
         uint8_t p_latch;
 
@@ -193,8 +193,8 @@ private:
 
     //uint8_t m_irq_output=0;
 
-    /* next value for pb7 when in T1 output toggle mode */
-    uint8_t m_next_pb7=0;
+    /* T1-driven output value for PB7 */
+    uint8_t m_t1_pb7=0;
 
     /* whether to generate an IRQ on next T2 timeout */
     uint8_t m_t2_irq=0;

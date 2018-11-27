@@ -130,6 +130,12 @@ uint8_t R6522::Read0(void *via_,M6502Word addr) {
         value|=via->b.p&~via->b.ddr;
     }
 
+    // IRB reads always seem to reflect the PB7 output value, when active.
+    if(via->m_acr.bits.t1_output_pb7) {
+        value&=0x7f;
+        value|=via->m_t1_pb7;
+    }
+
     return value;
 }
 
@@ -276,7 +282,7 @@ void R6522::Write5(void *via_,M6502Word addr,uint8_t value) {
     via->m_t1=(via->m_t1ll|via->m_t1lh<<8)+1;
 
     if(via->m_acr.bits.t1_output_pb7) {
-        via->m_next_pb7=0;
+        via->m_t1_pb7=0;
     }
 
     TRACEF(via->m_trace,"%s - Write T1C-H. T1=%d T1_irq=%d",via->m_name,via->m_t1,via->m_t1_irq);
@@ -494,16 +500,17 @@ uint8_t R6522::Update() {
             m_t1=m_t1ll|m_t1lh<<8;
 
             if(m_acr.bits.t1_output_pb7) {
-                //if(this->b.ddr&0x80) {
-                this->b.p&=0x7f;
-                ASSERT(!(m_next_pb7&0x7f));
-                this->b.p|=m_next_pb7;
-                m_next_pb7^=0x80;
-                //}
+                ASSERT(!(m_t1_pb7&0x7f));
+                m_t1_pb7^=0x80;
             }
 
             TRACEF(m_trace,"%s - T1 timed out (continuous=%d). T1 new value: %d ($%04X)",m_name,m_acr.bits.t1_continuous,m_t1,m_t1);
         }
+    }
+
+    /* Set T1 PB7 output */
+    if(m_acr.bits.t1_output_pb7) {
+        this->b.p=(this->b.p&0x7f)|m_t1_pb7;
     }
 
     /* Count down T2 */
