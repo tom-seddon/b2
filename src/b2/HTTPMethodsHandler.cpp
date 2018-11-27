@@ -18,6 +18,7 @@
 #include "MemoryDiscImage.h"
 #include "Messages.h"
 #include <shared/path.h>
+#include "DiscGeometry.h"
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -461,9 +462,18 @@ private:
 
         DiscGeometry geometry;
 
-        if(MemoryDiscImage::FindDiscGeometryFromMIMEType(&geometry,request.content_type.c_str(),request.body.size(),&messages)) {
+        if(FindDiscGeometryFromMIMEType(&geometry,
+                                        request.content_type.c_str(),
+                                        request.body.size(),
+                                        &messages))
+        {
             // ok...
-        } else if(!name.empty()&&MemoryDiscImage::FindDiscGeometryFromFileDetails(&geometry,name.c_str(),request.body.size(),&messages)) {
+        } else if(!name.empty()&&
+                  FindDiscGeometryFromFileDetails(&geometry,
+                                                  name.c_str(),
+                                                  request.body.size(),
+                                                  &messages))
+        {
             // ok...
         } else {
             this->SendMessagesResponse(server,request,message_list);
