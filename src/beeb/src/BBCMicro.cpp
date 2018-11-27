@@ -1678,6 +1678,9 @@ bool BBCMicro::Update(VideoDataUnit *video_unit,SoundDataUnit *sound_unit) {
     // Update CPU.
     if(m_state.stretched_cycles_left>0) {
         --m_state.stretched_cycles_left;
+        if(m_state.stretched_cycles_left==0) {
+            ASSERT(odd_cycle);
+        }
     } else {
         (*m_state.cpu.tfn)(&m_state.cpu);
 
@@ -1685,11 +1688,14 @@ bool BBCMicro::Update(VideoDataUnit *video_unit,SoundDataUnit *sound_unit) {
         if(mmio_page<3) {
             uint8_t num_stretch_cycles=1+odd_cycle;
 
+            uint8_t stretch;
             if(m_state.cpu.read) {
-                m_state.stretched_cycles_left=num_stretch_cycles&m_mmio_stretch[mmio_page][m_state.cpu.abus.b.l];
+                stretch=m_mmio_stretch[mmio_page][m_state.cpu.abus.b.l];
             } else {
-                m_state.stretched_cycles_left=num_stretch_cycles&m_hw_mmio_stretch[mmio_page][m_state.cpu.abus.b.l];
+                stretch=m_hw_mmio_stretch[mmio_page][m_state.cpu.abus.b.l];
             }
+
+            m_state.stretched_cycles_left=num_stretch_cycles&stretch;
         }
     }
 
