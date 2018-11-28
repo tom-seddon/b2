@@ -514,6 +514,7 @@ BeebThread::BeebThread(std::shared_ptr<MessageList> message_list,uint32_t sound_
     this->SetDiscVolume(MAX_DB);
 
     MUTEX_SET_NAME(m_mutex,"BeebThread");
+    m_mq.SetName("BeebThread MQ");
 }
 
 //////////////////////////////////////////////////////////////////////////
