@@ -399,7 +399,7 @@ private:
             return;
         }
 
-        std::unique_ptr<DiscImage> disc_image=LoadDiscImageFromRequestOrSendResponse(server,request,name);
+        std::shared_ptr<DiscImage> disc_image=LoadDiscImageFromRequestOrSendResponse(server,request,name);
         if(!disc_image) {
             return;
         }
@@ -437,7 +437,7 @@ private:
 
         // BBC disc image.
         {
-            std::unique_ptr<DiscImage> disc_image=this->LoadDiscImageFromRequestOrSendResponse(server,request,name);
+            std::shared_ptr<DiscImage> disc_image=this->LoadDiscImageFromRequestOrSendResponse(server,request,name);
             if(!disc_image) {
                 return;
             }
@@ -456,7 +456,7 @@ private:
         server->SendResponse(request,HTTPResponse::BadRequest(request));
     }
 
-    std::unique_ptr<DiscImage> LoadDiscImageFromRequestOrSendResponse(HTTPServer *server,const HTTPRequest &request,const std::string &name) {
+    std::shared_ptr<DiscImage> LoadDiscImageFromRequestOrSendResponse(HTTPServer *server,const HTTPRequest &request,const std::string &name) {
         auto message_list=std::make_shared<MessageList>();
         Messages messages(message_list);
 
@@ -482,7 +482,7 @@ private:
 
         message_list->ClearMessages();
 
-        std::unique_ptr<DiscImage> disc_image=MemoryDiscImage::LoadFromBuffer(name,HTTP_DISC_IMAGE_LOAD_METHOD,request.body.data(),request.body.size(),geometry,&messages);
+        std::shared_ptr<DiscImage> disc_image=MemoryDiscImage::LoadFromBuffer(name,HTTP_DISC_IMAGE_LOAD_METHOD,request.body.data(),request.body.size(),geometry,&messages);
         if(!disc_image) {
             this->SendMessagesResponse(server,request,message_list);
             return nullptr;

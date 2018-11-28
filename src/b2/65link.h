@@ -15,7 +15,7 @@ class Messages;
 
 extern const std::string LOAD_METHOD_65LINK;
 
-std::unique_ptr<DiscImage> LoadDiscImageFrom65LinkFolder(const std::string &path,Messages *messages);
+std::shared_ptr<DiscImage> LoadDiscImageFrom65LinkFolder(const std::string &path,Messages *messages);
 bool SaveDiscImageTo65LinkFolder(const std::shared_ptr<const DiscImage> &disc_image,const std::string &path,Messages *messages);
 
 //////////////////////////////////////////////////////////////////////////

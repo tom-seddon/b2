@@ -150,7 +150,7 @@ static const DiscImageType DISC_IMAGE_TYPES[]={
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void AddDiscImagesFileDialogFilter(FileDialog *fd) {
+std::string GetDiscImageFileDialogPatterns() {
     std::string patterns;
 
     for(const DiscImageType *type=DISC_IMAGE_TYPES;type->ext;++type) {
@@ -162,9 +162,7 @@ void AddDiscImagesFileDialogFilter(FileDialog *fd) {
         patterns+=type->ext;
     }
 
-    patterns+=";*.zip";
-
-    fd->AddFilter("BBC disc images",patterns);
+    return patterns;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -200,6 +198,47 @@ size_t DiscGeometry::GetTotalNumBytes() const {
     }
 
     return n;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool DiscGeometry::GetIndex(size_t *index,
+                            uint8_t side,
+                            uint8_t track,
+                            uint8_t sector,
+                            uint8_t offset) const
+{
+    if(side>=(this->double_sided?2:1)) {
+        return false;
+    }
+
+    if(track>=this->num_tracks) {
+        return false;
+    }
+
+    if(sector>=this->sectors_per_track) {
+        return false;
+    }
+
+    if(offset>=this->bytes_per_sector) {
+        return false;
+    }
+
+    *index=0;
+    *index+=track;              // in tracks
+    if(this->double_sided) {
+        *index*=2;
+        *index+=side;           // adjusted for track interleaving
+    }
+    *index*=this->sectors_per_track; // in sectors
+    *index+=sector;
+    *index*=this->bytes_per_sector;  // in bytes
+    *index+=offset;                             // +offset
+
+    ASSERT(*index<this->GetTotalNumBytes());
+
+    return true;
 }
 
 //////////////////////////////////////////////////////////////////////////

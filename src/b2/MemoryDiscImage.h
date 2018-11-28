@@ -14,11 +14,6 @@ class FileDialog;
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void AddDiscImagesFileDialogFilter(FileDialog *fd);
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 class MemoryDiscImage:
     public DiscImage
 {
@@ -28,11 +23,11 @@ public:
 
     static const uint8_t FILL_BYTE;
 
-    static std::unique_ptr<MemoryDiscImage> LoadFromBuffer(std::string path,std::string load_method,const void *data,size_t data_size,const DiscGeometry &geometry,Messages *msg);
+    static std::shared_ptr<MemoryDiscImage> LoadFromBuffer(std::string path,std::string load_method,const void *data,size_t data_size,const DiscGeometry &geometry,Messages *msg);
 
     // If the load succeeds, the method will be LOAD_METHOD_FILE or
     // LOAD_METHOD_ZIP.
-    static std::unique_ptr<MemoryDiscImage> LoadFromFile(std::string path,Messages *msg);
+    static std::shared_ptr<MemoryDiscImage> LoadFromFile(std::string path,Messages *msg);
 
     ~MemoryDiscImage();
 
@@ -43,17 +38,18 @@ public:
     MemoryDiscImage &operator=(MemoryDiscImage &&)=delete;
 
     bool CanClone() const override;
+    bool CanSave() const override;
+
     std::shared_ptr<DiscImage> Clone() const override;
 
     std::string GetHash() const override;
 
     std::string GetName() const override;
-    void SetName(std::string name) override;
     std::string GetLoadMethod() const override;
-    void SetLoadMethod(std::string load_method) override;
     std::string GetDescription() const override;
     void AddFileDialogFilter(FileDialog *fd) const override;
     bool SaveToFile(const std::string &file_name,Messages *msg) const override;
+    //void SetNameAndLoadMethod(std::string name,std::string load_method);
 
     bool Read(uint8_t *value,uint8_t side,uint8_t track,uint8_t sector,size_t offset) const override;
     bool Write(uint8_t side,uint8_t track,uint8_t sector,size_t offset,uint8_t value) override;
@@ -73,12 +69,9 @@ private:
     // doesn't add a new ref - caller must arrange this.
     MemoryDiscImage(Data *data,std::string name,std::string load_method);
 
-    // Returns true if the address is valid, and *index is then the
-    // address to use - though it may be past the end of the data if
-    // the disc image data is short.
-    bool GetIndex(size_t *index,uint8_t side,uint8_t track,uint8_t sector,size_t offset) const;
     void MakeDataUnique();
     void ReleaseData(Data **data_ptr);
+    void SetName(std::string name);
 };
 
 //////////////////////////////////////////////////////////////////////////

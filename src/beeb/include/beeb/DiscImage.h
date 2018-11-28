@@ -73,6 +73,9 @@ public:
     // default impl returns false.
     virtual bool CanClone() const;
 
+    // default impl returns false.
+    virtual bool CanSave() const;
+
     DiscImageSummary GetSummary() const;
 
     virtual std::shared_ptr<DiscImage> Clone() const=0;
@@ -81,13 +84,11 @@ public:
 
     // The name the disc image was loaded with.
     virtual std::string GetName() const=0;
-    virtual void SetName(std::string name)=0;
 
     // The method used to load the disc image - a string (that ought
     // to be vaguely meaningful to a human). The disc image doesn't do
     // anything with this information except note it.
     virtual std::string GetLoadMethod() const=0;
-    virtual void SetLoadMethod(std::string load_method)=0;
 
     virtual std::string GetDescription() const=0;
 

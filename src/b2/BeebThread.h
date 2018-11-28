@@ -260,21 +260,6 @@ public:
 //    private:
 //    };
 
-    // Set name and load method for a loaded disc image. (The disc
-    // contents don't change.)
-    class SetDiscImageNameAndLoadMethodMessage:
-        public Message
-    {
-    public:
-        int drive=-1;
-        std::string name;
-        std::string load_method;
-
-        SetDiscImageNameAndLoadMethodMessage(int drive,std::string name,std::string load_method);
-    protected:
-    private:
-    };
-
 #if BBCMICRO_TRACE
     class StartTraceMessage:
         public Message

@@ -335,7 +335,7 @@ static bool LoadDiscImageSideDataFrom65LinkFolder(
     return true;
 }
 
-std::unique_ptr<DiscImage> LoadDiscImageFrom65LinkFolder(const std::string &path,Messages *msg) {
+std::shared_ptr<DiscImage> LoadDiscImageFrom65LinkFolder(const std::string &path,Messages *msg) {
     std::vector<uint8_t> side_data[2];
     std::vector<uint8_t> bootopts;
 
@@ -421,7 +421,7 @@ std::unique_ptr<DiscImage> LoadDiscImageFrom65LinkFolder(const std::string &path
 
     //SaveFile(data,"C:/temp/test.dsd",msg);
 
-    std::unique_ptr<DiscImage> disc_image=MemoryDiscImage::LoadFromBuffer(path,LOAD_METHOD_65LINK,data.data(),data.size(),geometry,msg);
+    std::shared_ptr<DiscImage> disc_image=MemoryDiscImage::LoadFromBuffer(path,LOAD_METHOD_65LINK,data.data(),data.size(),geometry,msg);
     return disc_image;
 }
 

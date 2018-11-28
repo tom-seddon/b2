@@ -215,17 +215,6 @@ BeebThread::ReplayMessage::ReplayMessage(std::unique_ptr<Timeline> timeline_):
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-BeebThread::SetDiscImageNameAndLoadMethodMessage::SetDiscImageNameAndLoadMethodMessage(int drive_,std::string name_,std::string load_method_):
-    Message(BeebThreadMessageType_SetDiscImageNameAndLoadMethod),
-    drive(drive_),
-    name(std::move(name_)),
-    load_method(std::move(load_method_))
-{
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 #if BBCMICRO_TRACE
 BeebThread::StartTraceMessage::StartTraceMessage(const TraceConditions &conditions_,
                                                  size_t max_num_bytes_):
@@ -1785,10 +1774,19 @@ bool BeebThread::ThreadHandleMessage(
                     }
                 }
 
-                this->ThreadRecordEvent(ts,
-                                        BeebEvent::MakeLoadDiscImage(*ts->num_executed_2MHz_cycles,
-                                                                     m->drive,
-                                                                     std::move(m->disc_image)));
+                if(m->disc_image->CanClone()) {
+                    this->ThreadRecordEvent(ts,
+                                            BeebEvent::MakeLoadDiscImage(*ts->num_executed_2MHz_cycles,
+                                                                         m->drive,
+                                                                         std::move(m->disc_image)));
+                } else if(!!ts->record_timeline) {
+                    ts->msgs.e.f("Can't load this type of disc image while recording\n");
+                    ts->msgs.i.f("(%s: %s)\n",
+                                 m->disc_image->GetLoadMethod().c_str(),
+                                 m->disc_image->GetName().c_str());
+                } else {
+                    this->ThreadSetDiscImage(ts,m->drive,std::move(m->disc_image));
+                }
             }
         }
         break;
@@ -1948,17 +1946,6 @@ bool BeebThread::ThreadHandleMessage(
 //            }
 //        }
 //        break;
-
-    case BeebThreadMessageType_SetDiscImageNameAndLoadMethod:
-        {
-            auto m=(SetDiscImageNameAndLoadMethodMessage *)message.get();
-
-            if(std::shared_ptr<DiscImage> disc_image=ts->beeb->GetMutableDiscImage(m->drive)) {
-                disc_image->SetName(std::move(m->name));
-                disc_image->SetLoadMethod(std::move(m->load_method));
-            }
-        }
-        break;
 
 //    case BeebThreadMessageType_LoadLastState:
 //        {

@@ -36,7 +36,6 @@ public:
     const void *GetTextureData() const;
 private:
     std::shared_ptr<BeebState> m_state;
-    std::unique_ptr<DiscImage> m_disc_images[NUM_DRIVES];
     TVOutput m_tv_output;
     BBCMicro *m_beeb=nullptr;
     int m_num_frames=2;

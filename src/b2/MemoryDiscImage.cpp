@@ -86,7 +86,7 @@ struct MemoryDiscImage::Data {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-std::unique_ptr<MemoryDiscImage> MemoryDiscImage::LoadFromBuffer(
+std::shared_ptr<MemoryDiscImage> MemoryDiscImage::LoadFromBuffer(
     std::string path,
     std::string load_method,
     const void *data,size_t data_size,
@@ -104,7 +104,7 @@ std::unique_ptr<MemoryDiscImage> MemoryDiscImage::LoadFromBuffer(
         return nullptr;
     }
 
-    return std::unique_ptr<MemoryDiscImage>(new MemoryDiscImage(std::move(path),std::move(load_method),data,data_size,geometry));
+    return std::shared_ptr<MemoryDiscImage>(new MemoryDiscImage(std::move(path),std::move(load_method),data,data_size,geometry));
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -219,7 +219,7 @@ static bool LoadDiscImage(std::vector<uint8_t> *data,
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-std::unique_ptr<MemoryDiscImage> MemoryDiscImage::LoadFromFile(
+std::shared_ptr<MemoryDiscImage> MemoryDiscImage::LoadFromFile(
     std::string path,
     Messages *msg)
 {
@@ -260,7 +260,11 @@ MemoryDiscImage::MemoryDiscImage():
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-MemoryDiscImage::MemoryDiscImage(std::string path,std::string load_method,const void *data,size_t data_size,const DiscGeometry &geometry):
+MemoryDiscImage::MemoryDiscImage(std::string path,
+                                 std::string load_method,
+                                 const void *data,
+                                 size_t data_size,
+                                 const DiscGeometry &geometry):
     m_data(new Data),
     m_load_method(std::move(load_method))
 {
@@ -291,6 +295,13 @@ MemoryDiscImage::~MemoryDiscImage() {
 
 bool MemoryDiscImage::CanClone() const {
     return true;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool MemoryDiscImage::CanSave() const {
+    return m_load_method==LOAD_METHOD_FILE;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -330,15 +341,6 @@ std::string MemoryDiscImage::GetName() const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void MemoryDiscImage::SetName(std::string name) {
-    m_name=std::move(name);
-
-    MUTEX_SET_NAME(m_data->mut,strprintf("MemoryDiscImage: %s",m_name.c_str()));
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 std::string MemoryDiscImage::GetLoadMethod() const {
     return m_load_method;
 }
@@ -346,9 +348,9 @@ std::string MemoryDiscImage::GetLoadMethod() const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void MemoryDiscImage::SetLoadMethod(std::string load_method) {
-    m_load_method=std::move(load_method);
-}
+//void MemoryDiscImage::SetLoadMethod(std::string load_method) {
+//    m_load_method=std::move(load_method);
+//}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -374,18 +376,33 @@ void MemoryDiscImage::AddFileDialogFilter(FileDialog *fd) const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool MemoryDiscImage::SaveToFile(const std::string &file_name,Messages *msg) const {
+bool MemoryDiscImage::SaveToFile(const std::string &file_name,
+                                 Messages *msg) const
+{
     return SaveFile(m_data->data,file_name,msg);
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool MemoryDiscImage::Read(uint8_t *value,uint8_t side,uint8_t track,uint8_t sector,size_t offset) const {
+//void MemoryDiscImage::SetNameAndLoadMethod(std::string name,std::string load_method) {
+//    m_name=std::move(name);
+//    m_load_method=std::move(load_method);
+//}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool MemoryDiscImage::Read(uint8_t *value,
+                           uint8_t side,
+                           uint8_t track,
+                           uint8_t sector,
+                           size_t offset) const
+{
     std::lock_guard<Mutex> lock(m_data->mut);
 
     size_t index;
-    if(!this->GetIndex(&index,side,track,sector,offset)) {
+    if(!m_data->geometry.GetIndex(&index,side,track,sector,offset)) {
         return false;
     }
 
@@ -401,9 +418,14 @@ bool MemoryDiscImage::Read(uint8_t *value,uint8_t side,uint8_t track,uint8_t sec
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool MemoryDiscImage::Write(uint8_t side,uint8_t track,uint8_t sector,size_t offset,uint8_t value) {
+bool MemoryDiscImage::Write(uint8_t side,
+                            uint8_t track,
+                            uint8_t sector,
+                            size_t offset,
+                            uint8_t value)
+{
     size_t index;
-    if(!this->GetIndex(&index,side,track,sector,offset)) {
+    if(!m_data->geometry.GetIndex(&index,side,track,sector,offset)) {
         return false;
     }
 
@@ -428,13 +450,18 @@ bool MemoryDiscImage::Write(uint8_t side,uint8_t track,uint8_t sector,size_t off
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool MemoryDiscImage::GetDiscSectorSize(size_t *size,uint8_t side,uint8_t track,uint8_t sector,bool double_density) const {
+bool MemoryDiscImage::GetDiscSectorSize(size_t *size,
+                                        uint8_t side,
+                                        uint8_t track,
+                                        uint8_t sector,
+                                        bool double_density) const
+{
     if(double_density!=m_data->geometry.double_density) {
         return false;
     }
 
     size_t index;
-    if(!this->GetIndex(&index,side,track,sector,0)) {
+    if(!m_data->geometry.GetIndex(&index,side,track,sector,0)) {
         return false;
     }
 
@@ -447,47 +474,6 @@ bool MemoryDiscImage::GetDiscSectorSize(size_t *size,uint8_t side,uint8_t track,
 
 bool MemoryDiscImage::IsWriteProtected() const {
     return false;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-bool MemoryDiscImage::GetIndex(size_t *index,
-                               uint8_t side,
-                               uint8_t track,
-                               uint8_t sector,
-                               size_t offset) const
-{
-    if(side>=(m_data->geometry.double_sided?2:1)) {
-        return false;
-    }
-
-    if(track>=m_data->geometry.num_tracks) {
-        return false;
-    }
-
-    if(sector>=m_data->geometry.sectors_per_track) {
-        return false;
-    }
-
-    if(offset>=m_data->geometry.bytes_per_sector) {
-        return false;
-    }
-
-    *index=0;
-    *index+=track;              // in tracks
-    if(m_data->geometry.double_sided) {
-        *index*=2;
-        *index+=side;           // adjusted for track interleaving
-    }
-    *index*=m_data->geometry.sectors_per_track; // in sectors
-    *index+=sector;
-    *index*=m_data->geometry.bytes_per_sector;  // in bytes
-    *index+=offset;                             // +offset
-
-    ASSERT(*index<m_data->geometry.GetTotalNumBytes());
-
-    return true;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -532,6 +518,15 @@ void MemoryDiscImage::ReleaseData(Data **data_ptr) {
         delete data;
         data=nullptr;
     }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void MemoryDiscImage::SetName(std::string name) {
+    m_name=std::move(name);
+
+    MUTEX_SET_NAME(m_data->mut,strprintf("MemoryDiscImage: %s",m_name.c_str()));
 }
 
 //////////////////////////////////////////////////////////////////////////

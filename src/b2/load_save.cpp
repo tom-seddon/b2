@@ -313,7 +313,7 @@ static void AddError(Messages *msg,
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static FILE *fopenUTF8(const char *path,const char *mode) {
+FILE *fopenUTF8(const char *path,const char *mode) {
 #if SYSTEM_WINDOWS
 
     return _wfopen(GetWideString(path).c_str(),GetWideString(mode).c_str());
@@ -478,6 +478,53 @@ bool SaveFile(const std::vector<uint8_t> &data,const std::string &path,Messages 
 
 bool SaveTextFile(const std::string &data,const std::string &path,Messages *messages) {
     return SaveFile2(data.c_str(),data.size(),path,messages,"wt");
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool GetFileDetails(size_t *size,bool *can_write,const char *path) {
+    FILE *fp=nullptr;
+    bool good=false;
+    long len;
+
+    fp=fopenUTF8(path,"r+b");
+    if(fp) {
+        *can_write=true;
+    } else {
+        // doesn't exist, or read-only.
+        fp=fopen(path,"rb");
+        if(!fp) {
+            // assume doesn't exist.
+            goto done;
+        }
+
+        *can_write=false;
+    }
+
+    if(fseek(fp,0,SEEK_END)!=0) {
+        goto done;
+    }
+
+    len=ftell(fp);
+    if(len<0) {
+        goto done;
+    }
+
+    if(len>SIZE_MAX) {
+        *size=SIZE_MAX;
+    } else {
+        *size=(size_t)len;
+    }
+
+    good=true;
+done:
+    if(fp!=nullptr) {
+        fclose(fp);
+        fp=nullptr;
+    }
+
+    return good;
 }
 
 //////////////////////////////////////////////////////////////////////////

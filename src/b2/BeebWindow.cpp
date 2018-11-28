@@ -38,6 +38,7 @@
 #include "DearImguiTestUI.h"
 #include "debugger.h"
 #include "HTTPServer.h"
+#include "DirectDiscImage.h"
 
 #ifdef _MSC_VER
 #include <crtdbg.h>
@@ -113,11 +114,16 @@ const char BeebWindow::SDL_WINDOW_DATA_NAME[]="D";
 //////////////////////////////////////////////////////////////////////////
 
 BeebWindow::DriveState::DriveState():
-    open_65link_folder_dialog(RECENT_PATHS_65LINK),
-    open_disc_image_file_dialog(RECENT_PATHS_DISC_IMAGE)
+open_65link_folder_dialog(RECENT_PATHS_65LINK),
+open_disc_image_file_dialog(RECENT_PATHS_DISC_IMAGE),
+open_direct_disc_image_file_dialog(RECENT_PATHS_DISC_IMAGE)
 {
-    AddDiscImagesFileDialogFilter(&this->open_disc_image_file_dialog);
+    const std::string &patterns=GetDiscImageFileDialogPatterns();
+
+    this->open_disc_image_file_dialog.AddFilter("BBC disc images",patterns+";*.zip");
     this->open_disc_image_file_dialog.AddAllFilesFilter();
+
+    this->open_direct_disc_image_file_dialog.AddFilter("BBC disc images",patterns);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -487,23 +493,23 @@ void BeebWindow::HandleSDLMouseMotionEvent(const SDL_MouseMotionEvent &event) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool BeebWindow::LoadDiscImageFile(int drive,const std::string &path) {
-    std::unique_ptr<MemoryDiscImage> disc_image=MemoryDiscImage::LoadFromFile(path,&m_msg);
-    if(!disc_image) {
-        //m_msg.w.f("Failed to load %s: %s\n",path.c_str(),error.c_str());
-        return false;
-    } else {
-        m_beeb_thread->Send(std::make_unique<BeebThread::LoadDiscMessage>(drive,std::move(disc_image),true));
-        return true;
-    }
-}
+//bool BeebWindow::LoadDiscImageFile(int drive,const std::string &path) {
+//    std::unique_ptr<MemoryDiscImage> disc_image=MemoryDiscImage::LoadFromFile(path,&m_msg);
+//    if(!disc_image) {
+//        //m_msg.w.f("Failed to load %s: %s\n",path.c_str(),error.c_str());
+//        return false;
+//    } else {
+//        m_beeb_thread->Send(std::make_unique<BeebThread::LoadDiscMessage>(drive,std::move(disc_image),true));
+//        return true;
+//    }
+//}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 bool BeebWindow::Load65LinkFolder(int drive,const std::string &path) {
     std::string error;
-    std::unique_ptr<DiscImage> disc_image=LoadDiscImageFrom65LinkFolder(path,&m_msg);
+    std::shared_ptr<DiscImage> disc_image=LoadDiscImageFrom65LinkFolder(path,&m_msg);
     if(!disc_image) {
         //m_msg.w.f("Failed to load %s: %s\n",path.c_str(),error.c_str());
         return false;
@@ -1135,8 +1141,27 @@ void BeebWindow::DoFileMenu() {
 
                 FileMenuItem file_item(&d->open_disc_image_file_dialog,"Disc image...","Recent disc image");
                 if(file_item.selected) {
-                    if(this->LoadDiscImageFile(drive,file_item.path)) {
+                    std::shared_ptr<MemoryDiscImage> disc_image=MemoryDiscImage::LoadFromFile(file_item.path,
+                                                                                              &m_msg);
+                    if(!!disc_image) {
+                        m_beeb_thread->Send(std::make_unique<BeebThread::LoadDiscMessage>(drive,
+                                                                                          std::move(disc_image),
+                                                                                          true));
                         file_item.Success();
+                    }
+                }
+
+                FileMenuItem direct_item(&d->open_direct_disc_image_file_dialog,
+                                         "Direct disc image...",
+                                         "Recent direct disc image");
+                if(direct_item.selected) {
+                    std::shared_ptr<DirectDiscImage> disc_image=DirectDiscImage::CreateForFile(direct_item.path,
+                                                                                               &m_msg);
+                    if(!!disc_image) {
+                        m_beeb_thread->Send(std::make_unique<BeebThread::LoadDiscMessage>(drive,
+                                                                                          std::move(disc_image),
+                                                                                          true));
+                        direct_item.Success();
                     }
                 }
 
@@ -1150,13 +1175,13 @@ void BeebWindow::DoFileMenu() {
                 if(!!disc_image) {
                     ImGui::Separator();
 
-                    if(load_method==MemoryDiscImage::LOAD_METHOD_FILE) {
-                        if(ImGui::MenuItem("Save disc image")) {
+                    if(disc_image->CanSave()) {
+                        if(ImGui::MenuItem("Save")) {
                             disc_image->SaveToFile(disc_image->GetName(),&m_msg);
                         }
                     }
 
-                    if(ImGui::MenuItem("Save disc image as...")) {
+                    if(ImGui::MenuItem("Save copy as...")) {
                         SaveFileDialog fd(RECENT_PATHS_DISC_IMAGE);
 
                         disc_image->AddFileDialogFilter(&fd);
@@ -1166,8 +1191,6 @@ void BeebWindow::DoFileMenu() {
                         if(fd.Open(&path)) {
                             if(disc_image->SaveToFile(path,&m_msg)) {
                                 fd.AddLastPathToRecentPaths();
-
-                                m_beeb_thread->Send(std::make_unique<BeebThread::SetDiscImageNameAndLoadMethodMessage>(drive,std::move(path),MemoryDiscImage::LOAD_METHOD_FILE));
                             }
                         }
                     }

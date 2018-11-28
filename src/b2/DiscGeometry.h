@@ -27,6 +27,15 @@ struct DiscGeometry {
                  bool double_density=false);
 
     size_t GetTotalNumBytes() const;
+
+    // Returns true if the address is valid, and *index is then the
+    // index to use - though it may be past the end of the data if
+    // the disc image data is short.
+    bool GetIndex(size_t *index,
+                  uint8_t side,
+                  uint8_t track,
+                  uint8_t sector,
+                  uint8_t offset) const;
 };
 
 bool operator==(const DiscGeometry &a,const DiscGeometry &b);
@@ -34,6 +43,8 @@ bool operator!=(const DiscGeometry &a,const DiscGeometry &b);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
+
+std::string GetDiscImageFileDialogPatterns();
 
 bool FindDiscGeometryFromFileDetails(DiscGeometry *geometry,
                                      const char *file_name,

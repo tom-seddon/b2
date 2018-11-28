@@ -619,7 +619,7 @@ static bool InitSystem(
 //////////////////////////////////////////////////////////////////////////
 
 static bool LoadInitialDiscImages(
-    std::unique_ptr<DiscImage> *init_disc_images,
+    std::shared_ptr<DiscImage> *init_disc_images,
     const Options &options,
     Messages *init_messages)
 {
@@ -892,7 +892,7 @@ static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &init
 
     InitDefaultBeebConfigs();
 
-    std::unique_ptr<DiscImage> init_disc_images[NUM_DRIVES];
+    std::shared_ptr<DiscImage> init_disc_images[NUM_DRIVES];
     if(!LoadInitialDiscImages(init_disc_images,options,&init_messages)) {
         return false;
     }

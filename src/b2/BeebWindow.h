@@ -258,6 +258,7 @@ private:
     struct DriveState {
         FolderDialog open_65link_folder_dialog;
         OpenFileDialog open_disc_image_file_dialog;
+        OpenFileDialog open_direct_disc_image_file_dialog;
 
         DriveState();
     };
@@ -379,7 +380,7 @@ private:
 #endif
 
     bool InitInternal();
-    bool LoadDiscImageFile(int drive,const std::string &path);
+    //bool LoadDiscImageFile(int drive,const std::string &path);
     bool Load65LinkFolder(int drive,const std::string &path);
     void DoOptionsGui();
     //void DoSettingsUI(uint32_t ui_flag,const char *name,std::unique_ptr<SettingsUI> *uptr,std::function<std::unique_ptr<SettingsUI>()> create_fun);
