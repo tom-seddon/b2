@@ -29,7 +29,6 @@ class DiscImage;
 #include "VideoULA.h"
 #include "teletext.h"
 #include "DiscInterface.h"
-#include <shared/mutex.h>
 #include <time.h>
 #include "keys.h"
 #include "video.h"
@@ -113,8 +112,8 @@ protected:
 public:
     ~BBCMicro();
 
-    // The clone has no disc drive callbacks, and no disc access
-    // mutex.
+    bool CanClone() const;
+
     std::unique_ptr<BBCMicro> Clone() const;
 
     typedef std::array<uint8_t,16384> ROMData;
@@ -360,8 +359,6 @@ public:
     // Every time there is a disc access, the disc access flag is set
     // to true. This call retrieves its current value, and sets it to
     // false.
-    //
-    // The disc mutex will be locked if there is one.
     bool GetAndResetDiscAccessFlag();
 
     static const char PASTE_START_CHAR;
@@ -631,14 +628,8 @@ private:
     //////////////////////////////////////////////////////////////////////////
     //////////////////////////////////////////////////////////////////////////
 
-    //mutable std::mutex m_disc_image_mutexes[NUM_DRIVES];
-
-    //DiscDriveCallbacks m_disc_drive_callbacks={};
-
     // This doesn't need to be copied. The event list records its
     // influence.
-    //
-    // Controlled by the disc mutex, if there is one.
     bool m_disc_access=false;
 
 #if VIDEO_TRACK_METADATA
