@@ -221,13 +221,13 @@ public:
     private:
     };
 
-    class ReplayMessage:
+    class StartReplayMessage:
         public Message
     {
     public:
-        std::unique_ptr<Timeline> timeline;
+        size_t timeline_event_index;
 
-        explicit ReplayMessage(std::unique_ptr<Timeline> timeline);
+        explicit StartReplayMessage(size_t timeline_event_index);
     protected:
     private:
     };
@@ -493,7 +493,11 @@ public:
         uint64_t available=0;
     };
 
-    explicit BeebThread(std::shared_ptr<MessageList> message_list,uint32_t sound_device_id,int sound_freq,size_t sound_buffer_size_samples);
+    explicit BeebThread(std::shared_ptr<MessageList> message_list,
+                        uint32_t sound_device_id,
+                        int sound_freq,
+                        size_t sound_buffer_size_samples,
+                        std::vector<BeebEvent> initial_timeline_events);
     ~BeebThread();
 
     // Start/stop the thread.
@@ -631,6 +635,9 @@ private:
         std::atomic<uint64_t> m_flags[2]={};
     };
 
+    // Initialisation-time stuff. Controlled by m_mutex.
+    std::vector<BeebEvent> m_initial_timeline_events;
+
     // Safe provided they are accessed through their functions.
     MessageQueue<std::unique_ptr<Message>> m_mq;
     OutputDataBuffer<VideoDataUnit> m_video_output;
@@ -649,7 +656,7 @@ private:
 #if BBCMICRO_TRACE
     std::atomic<bool> m_is_tracing{false};
 #endif
-    std::atomic<bool> m_is_replaying{false};
+    //std::atomic<bool> m_is_replaying{false};
 #if BBCMICRO_TURBO_DISC
     // Whether turbo disc mode is active.
     std::atomic<bool> m_is_turbo_disc{false};
@@ -727,10 +734,10 @@ private:
     void ThreadSetTurboDisc(ThreadState *ts,bool turbo);
 #endif
     void ThreadHandleEvent(ThreadState *ts,const BeebEvent &event,bool replay);
-    void ThreadStartReplay(ThreadState *ts,std::unique_ptr<Timeline> timeline);
-    void ThreadStopReplay(ThreadState *ts);
+    //void ThreadStartReplay(ThreadState *ts,std::unique_ptr<Timeline> timeline);
+//    void ThreadStopReplay(ThreadState *ts);
     void ThreadLoadState(ThreadState *ts,const std::shared_ptr<BeebState> &state);
-    void ThreadHandleReplayEvents(ThreadState *ts);
+//    void ThreadHandleReplayEvents(ThreadState *ts);
     bool ThreadHandleMessage(ThreadState *ts,std::unique_ptr<Message> message,bool *limit_speed,uint64_t *next_stop_2MHz_cycles);
     void ThreadSetDiscImage(ThreadState *ts,int drive,std::shared_ptr<DiscImage> disc_image);
     void ThreadStartPaste(ThreadState *ts,std::string text);
@@ -739,6 +746,7 @@ private:
     void ThreadFailCompletionFun(std::unique_ptr<Message> *message_ptr);
     void ThreadMain();
     void SetVolume(float *scale_var,float db);
+    bool ThreadIsReplayingOrHalted(ThreadState *ts);
 
     static bool ThreadWaitForHardReset(const BBCMicro *beeb,const M6502 *cpu,void *context);
 #if HTTP_SERVER

@@ -93,11 +93,11 @@ static void SaveWAV(
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-WriteVideoJob::WriteVideoJob(std::unique_ptr<Timeline> timeline,
+WriteVideoJob::WriteVideoJob(std::vector<BeebEvent> events,
                              std::unique_ptr<VideoWriter> writer,
                              std::shared_ptr<MessageList> message_list):
 m_message_list(std::move(message_list)),
-m_timeline(std::move(timeline)),
+m_events(std::move(events)),
 m_writer(std::move(writer)),
 m_msg(m_message_list)
 {
@@ -189,9 +189,9 @@ static void PushBackFloat(int index,float f,void *context) {
 void WriteVideoJob::ThreadExecute() {
     //OutputData *video_output_data=m_beeb_thread->GetVideoOutputData();
 
-    ASSERT(m_timeline->GetNumEvents()>0);
-    uint64_t start_cycles=m_timeline->GetBegin2MHzCycles();
-    uint64_t finish_cycles=m_timeline->GetEnd2MHzCycles();
+    ASSERT(!m_events.empty());
+    uint64_t start_cycles=m_events.begin()->time_2MHz_cycles;
+    uint64_t finish_cycles=m_events.end()->time_2MHz_cycles;
 
     uint64_t start_ticks=GetCurrentTickCount();
 
@@ -255,7 +255,12 @@ void WriteVideoJob::ThreadExecute() {
     }
 
     {
-        beeb_thread=std::make_shared<BeebThread>(m_message_list,0,afmt.freq,NUM_SAMPLES);
+        beeb_thread=std::make_shared<BeebThread>(m_message_list,
+                                                 0,
+                                                 afmt.freq,
+                                                 NUM_SAMPLES,
+                                                 std::move(m_events));
+
         if(!beeb_thread->Start()) {
             this->Error("couldn't start BBC thread");
             goto done;
@@ -267,12 +272,15 @@ void WriteVideoJob::ThreadExecute() {
         bool was_vblank=tv_output.IsInVerticalBlank();
         OutputDataBuffer<VideoDataUnit> *video_output=beeb_thread->GetVideoOutput();
 
-        beeb_thread->Send(std::make_unique<BeebThread::ReplayMessage>(std::move(m_timeline)));
+        beeb_thread->Send(std::make_unique<BeebThread::StartReplayMessage>(0));
 
         beeb_thread->Send(std::make_unique<BeebThread::PauseMessage>(false));
 
         for(;;) {
             uint64_t cycles=beeb_thread->GetEmulated2MHzCycles();
+
+            // TODO - this isn't the right finish condition. Should just keep
+            // going until out of events.
             if(cycles>=finish_cycles) {
                 beeb_thread->Stop();
                 replaying=false;

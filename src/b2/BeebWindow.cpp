@@ -245,11 +245,11 @@ BeebWindow::BeebWindow(BeebWindowInitArguments init_arguments):
     m_message_list=std::make_shared<MessageList>();
     m_msg=Messages(m_message_list);
 
-    m_beeb_thread=std::make_shared<BeebThread>(
-        m_message_list,
-        init_arguments.sound_device,
-        init_arguments.sound_spec.freq,
-        init_arguments.sound_spec.samples);
+    m_beeb_thread=std::make_shared<BeebThread>(m_message_list,
+                                               init_arguments.sound_device,
+                                               init_arguments.sound_spec.freq,
+                                               init_arguments.sound_spec.samples,
+                                               std::vector<BeebEvent>());
 
     if(init_arguments.use_settings) {
         m_settings=init_arguments.settings;
@@ -934,7 +934,7 @@ void BeebWindow::DoPopupUI(uint64_t now,int output_width,int output_height) {
         }
     }
 
-    bool replaying=m_beeb_thread->IsReplaying();
+    bool replaying=false;//m_beeb_thread->IsReplaying();
     bool pasting=m_beeb_thread->IsPasting();
     bool copying=m_beeb_thread->IsCopying();
     if(ValueChanged(&m_leds,m_beeb_thread->GetLEDs())||(m_leds&BBCMicroLEDFlags_AllDrives)||replaying||copying||pasting) {

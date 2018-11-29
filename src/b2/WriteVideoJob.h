@@ -19,7 +19,7 @@ class WriteVideoJob:
     public JobQueue::Job
 {
 public:
-    WriteVideoJob(std::unique_ptr<Timeline> timeline,
+    WriteVideoJob(std::vector<BeebEvent> events,
                   std::unique_ptr<VideoWriter> writer,
                   std::shared_ptr<MessageList> message_list);
     ~WriteVideoJob();
@@ -33,7 +33,7 @@ public:
 protected:
 private:
     std::shared_ptr<MessageList> m_message_list;
-    std::unique_ptr<Timeline> m_timeline;
+    std::vector<BeebEvent> m_events;
     std::unique_ptr<VideoWriter> m_writer;
     bool m_success=false;
     std::atomic<uint64_t> m_ticks{0};

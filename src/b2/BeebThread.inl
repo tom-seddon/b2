@@ -16,12 +16,12 @@ EPN(CloneWindow)
 EPN(HardReset)
 EPN(SetSpeedLimiting)
 EPN(LoadDisc)
-EPN(SetDiscImageNameAndLoadMethod)
+//EPN(SetDiscImageNameAndLoadMethod)
 EPN(SetPaused)
 //EPN(GoToTimelineNode)
 EPN(LoadState)
 EPN(SaveState)
-EPN(Replay)
+EPN(StartReplay)
 //EPN(SaveAndReplayFrom)
 //EPN(SaveAndVideoFrom)
 //EPN(LoadLastState)
@@ -114,3 +114,11 @@ EEND()
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
+
+#define ENAME BeebThreadTimelineState
+EBEGIN()
+EPN(None)
+EPN(Record)
+EPN(Replay)
+EEND()
+#undef ENAME

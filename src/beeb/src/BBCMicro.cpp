@@ -296,7 +296,7 @@ BBCMicro::BBCMicro(const BBCMicro &src):
     m_video_nula(src.m_video_nula),
     m_ext_mem(src.m_ext_mem)
 {
-    for(int i=0;i<2;++i) {
+    for(int i=0;i<NUM_DRIVES;++i) {
         std::shared_ptr<DiscImage> disc_image=DiscImage::Clone(src.GetDiscImage(i));
         this->SetDiscImage(i,std::move(disc_image));
     }
@@ -330,7 +330,26 @@ BBCMicro::~BBCMicro() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+bool BBCMicro::CanClone() const {
+    for(int i=0;i<NUM_DRIVES;++i) {
+        if(!!m_disc_images[i]) {
+            if(!m_disc_images[i]->CanClone()) {
+                return false;
+            }
+        }
+    }
+
+    return true;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 std::unique_ptr<BBCMicro> BBCMicro::Clone() const {
+    if(!this->CanClone()) {
+        return nullptr;
+    }
+
     return std::unique_ptr<BBCMicro>(new BBCMicro(*this));
 }
 
