@@ -249,6 +249,7 @@ BeebWindow::BeebWindow(BeebWindowInitArguments init_arguments):
                                                init_arguments.sound_device,
                                                init_arguments.sound_spec.freq,
                                                init_arguments.sound_spec.samples,
+                                               m_init_arguments.default_config,
                                                std::vector<BeebThread::TimelineEvent>());
 
     if(init_arguments.use_settings) {
@@ -1927,6 +1928,10 @@ bool BeebWindow::InitInternal() {
         m_msg.e.f("Failed to start BBC\n");//: %s",BeebThread_GetError(m_beeb_thread));
         return false;
     }
+
+//    // Need to initialise BeebLoadedConfig here from m_init_arguments.default_config,
+//    // now that the timeline is no longer with us...
+//    ASSERT(false);
 
     if(!!m_init_arguments.initial_state) {
         // Load initial state, and use parent timeline event ID (whichever it is).

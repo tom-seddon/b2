@@ -301,6 +301,7 @@ void BeebThread::HardResetMessage::HardReset(BeebThread *beeb_thread,
         replace_flags|=BeebThreadReplaceFlag_ApplyPCState;
     }
 
+    ts->current_config=loaded_config;
     beeb_thread->ThreadReplaceBeeb(ts,
                                    loaded_config.CreateBBCMicro(*ts->num_executed_2MHz_cycles),
                                    replace_flags);
@@ -1155,8 +1156,10 @@ BeebThread::BeebThread(std::shared_ptr<MessageList> message_list,
                        uint32_t sound_device_id,
                        int sound_freq,
                        size_t sound_buffer_size_samples,
+                       BeebLoadedConfig default_loaded_config,
                        std::vector<TimelineEvent> initial_timeline_events):
 m_initial_timeline_events(std::move(initial_timeline_events)),
+m_default_loaded_config(std::move(default_loaded_config)),
 m_video_output(NUM_VIDEO_UNITS),
 m_sound_output(NUM_AUDIO_UNITS),
 m_message_list(std::move(message_list))
@@ -1792,6 +1795,8 @@ void BeebThread::ThreadStopTrace(ThreadState *ts) {
 //////////////////////////////////////////////////////////////////////////
 
 void BeebThread::ThreadReplaceBeeb(ThreadState *ts,std::unique_ptr<BBCMicro> beeb,uint32_t flags) {
+    ASSERT(!!beeb);
+
     {
 #if BBCMICRO_DEBUGGER
         std::unique_ptr<BBCMicro::DebugState> debug_state;
@@ -1938,8 +1943,7 @@ void BeebThread::ThreadSetKeyState(ThreadState *ts,BeebKey beeb_key,bool state) 
         }
 
         m_effective_key_states.SetState(beeb_key,state);
-
-        //this->ThreadRecordEvent(ts,BeebEvent::MakeKeyState(*ts->num_executed_2MHz_cycles,beeb_key,state));
+        ts->beeb->SetKeyState(beeb_key,state);
 
 #if BBCMICRO_TRACE
         if(ts->trace_conditions.start==BeebThreadStartTraceCondition_NextKeypress) {
@@ -2831,6 +2835,7 @@ void BeebThread::ThreadMain(void) {
         ts.beeb_thread=this;
         ts.msgs=Messages(m_message_list);
         ts.timeline_events=std::move(m_initial_timeline_events);
+        ts.current_config=std::move(m_default_loaded_config);
 
         m_thread_state=&ts;
 

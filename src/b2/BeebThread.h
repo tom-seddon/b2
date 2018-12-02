@@ -605,10 +605,14 @@ public:
         uint64_t available=0;
     };
 
+    // When planning to set up the BeebThread using a saved state,
+    // DEFAULT_LOADED_CONFIG may be default-constructed. In this case hard reset
+    // messages and clone window messages won't work, though.
     explicit BeebThread(std::shared_ptr<MessageList> message_list,
                         uint32_t sound_device_id,
                         int sound_freq,
                         size_t sound_buffer_size_samples,
+                        BeebLoadedConfig default_loaded_config,
                         std::vector<TimelineEvent> initial_timeline_events);
     ~BeebThread();
 
@@ -746,7 +750,9 @@ private:
         std::atomic<uint64_t> m_flags[2]={};
     };
 
-    // Initialisation-time stuff. Controlled by m_mutex.
+    // Initialisation-time stuff. Controlled by m_mutex, but it's not terribly
+    // important as the thread just moves this stuff on initialisation.
+    BeebLoadedConfig m_default_loaded_config;
     std::vector<TimelineEvent> m_initial_timeline_events;
 
     // Safe provided they are accessed through their functions.

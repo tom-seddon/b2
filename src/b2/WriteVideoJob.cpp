@@ -259,6 +259,7 @@ void WriteVideoJob::ThreadExecute() {
                                                  0,
                                                  afmt.freq,
                                                  NUM_SAMPLES,
+                                                 BeebLoadedConfig(),
                                                  std::move(m_events));
 
         if(!beeb_thread->Start()) {
