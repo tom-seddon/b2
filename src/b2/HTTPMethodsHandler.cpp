@@ -528,18 +528,32 @@ private:
         server->SendResponse(request,HTTPResponse::BadRequest(request,"%s",text.c_str()));
     }
 
-    void SendMessage(BeebWindow *beeb_window,HTTPServer *server,const HTTPRequest &request,std::unique_ptr<BeebThread::Message> message) {
-        message->completion_fun=[server,response_data=request.response_data](bool success) {
+    void SendMessage(BeebWindow *beeb_window,
+                     HTTPServer *server,
+                     const HTTPRequest &request,
+                     std::shared_ptr<BeebThread::Message> message)
+    {
+        auto completion_fun=[server,response_data=request.response_data](bool success,
+                                                                         std::string message) {
             LOGF(OUTPUT,"SendMessage completion_fun: connected ID=%" PRIu64 "\n",response_data.connection_id);
+
+            HTTPResponse response;
             if(success) {
-                server->SendResponse(response_data,HTTPResponse::OK());
+                response=HTTPResponse::OK();
             } else {
-                server->SendResponse(response_data,HTTPResponse::ServiceUnavailable());
+                response=HTTPResponse::ServiceUnavailable();
             }
+
+            if(!message.empty()) {
+                response.content_type=HTTP_TEXT_CONTENT_TYPE;
+                response.content_str=std::move(message);
+            }
+
+            server->SendResponse(response_data,response);
         };
 
         std::shared_ptr<BeebThread> beeb_thread=beeb_window->GetBeebThread();
-        beeb_thread->Send(std::move(message));
+        beeb_thread->Send(std::move(message),std::move(completion_fun));
     }
 };
 

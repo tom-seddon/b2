@@ -118,11 +118,13 @@ struct BeebThread::ThreadState {
     std::function<void(std::vector<uint8_t>)> copy_stop_fun;
     std::vector<uint8_t> copy_data;
 
-    std::unique_ptr<BeebThread::Message> reset_message;
+    Message::CompletionFun reset_completion_fun;
     uint64_t reset_timeout_cycles=0;
-    std::unique_ptr<BeebThread::Message> paste_message;
+
+    Message::CompletionFun paste_completion_fun;
+
 #if HTTP_SERVER
-    std::unique_ptr<BeebThread::Message> async_call_message;
+    Message::CompletionFun async_call_completion_fun;
 #endif
 
     Log log{"BEEB  ",LOG(BTHREAD)};
@@ -132,30 +134,50 @@ struct BeebThread::ThreadState {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-BeebThread::Message::~Message() {
-    this->CallCompletionFun(true);
-}
+BeebThread::Message::~Message()=default;
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void BeebThread::Message::CallCompletionFun(bool success) {
-    //if(this->type!=BeebThreadMessageType_Timing) {
-    //    LOGF(OUTPUT,"%s: type=%s, success=%s, got completion_fun=%s\n",__func__,GetBeebThreadMessageTypeEnumName(this->type),BOOL_STR(success),BOOL_STR(!!this->completion_fun));
-    //}
+//void BeebThread::Message::CallCompletionFun(bool success) {
+//    //if(this->type!=BeebThreadMessageType_Timing) {
+//    //    LOGF(OUTPUT,"%s: type=%s, success=%s, got completion_fun=%s\n",__func__,GetBeebThreadMessageTypeEnumName(this->type),BOOL_STR(success),BOOL_STR(!!this->completion_fun));
+//    //}
+//
+//    if(!!this->completion_fun) {
+//        this->completion_fun(success);
+//        this->completion_fun=std::function<void(bool)>();
+//    }
+//}
 
-    if(!!this->completion_fun) {
-        this->completion_fun(success);
-        this->completion_fun=std::function<void(bool)>();
+void BeebThread::Message::CallCompletionFun(CompletionFun *completion_fun,
+                                            bool success,
+                                            const char *message_)
+{
+    if(!!*completion_fun) {
+        std::string message;
+        if(message_) {
+            message.assign(message_);
+        }
+
+        (*completion_fun)(success,std::move(message));
+
+        *completion_fun=CompletionFun();
     }
 }
 
-void BeebThread::Message::ThreadPrepare(std::shared_ptr<Message> *ptr,
+bool BeebThread::Message::ThreadPrepare(std::shared_ptr<Message> *ptr,
+                                        CompletionFun *completion_fun,
                                         BeebThread *beeb_thread,
                                         ThreadState *ts)
 {
-    (void)ptr,(void)beeb_thread,(void)ts;
+    (void)ptr,(void)completion_fun,(void)beeb_thread,(void)ts;
+
+    return true;
 }
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
 
 void BeebThread::Message::ThreadHandle(BeebThread *beeb_thread,
                                        ThreadState *ts) const
@@ -163,55 +185,63 @@ void BeebThread::Message::ThreadHandle(BeebThread *beeb_thread,
     (void)beeb_thread,(void)ts;
 }
 
-bool BeebThread::Message::IgnoreIfReplayingOrHalted(std::shared_ptr<Message> *ptr,
-                                                    BeebThread *beeb_thread,
-                                                    ThreadState *ts)
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool BeebThread::Message::PrepareUnlessReplayingOrHalted(std::shared_ptr<Message> *ptr,
+                                                         CompletionFun *completion_fun,
+                                                         BeebThread *beeb_thread,
+                                                         ThreadState *ts)
 {
-    if(IgnoreIfReplaying(ptr,beeb_thread,ts)) {
-        return true;
+    if(!PrepareUnlessReplaying(ptr,completion_fun,beeb_thread,ts)) {
+        return false;
     }
 
 #if BBCMICRO_DEBUG
     if(ts->beeb) {
         if(ts->beeb->DebugIsHalted()) {
-            ptr->reset();
-            return true;
+            CallCompletionFun(completion_fun,false,"not valid while halted");
+            return false;
         }
     }
 #endif
 
-    return false;
+    return true;
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool BeebThread::Message::IgnoreIfReplaying(std::shared_ptr<Message> *ptr,
-                                            BeebThread *beeb_thread,
-                                            ThreadState *ts)
+bool BeebThread::Message::PrepareUnlessReplaying(std::shared_ptr<Message> *ptr,
+                                                 CompletionFun *completion_fun,
+                                                 BeebThread *beeb_thread,
+                                                 ThreadState *ts)
 {
-    (void)beeb_thread;
+    (void)ptr,(void)beeb_thread;
 
     if(ts->timeline_state==BeebThreadTimelineState_Replay) {
-        ptr->reset();
-        return true;
+        CallCompletionFun(completion_fun,false,"not valid while replaying");
+        return false;
     }
 
-    return false;
+    return true;
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void BeebThread::StopMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
+bool BeebThread::StopMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
+                                            CompletionFun *completion_fun,
                                             BeebThread *beeb_thread,
                                             ThreadState *ts)
 {
-    (void)beeb_thread;
+    (void)completion_fun,(void)beeb_thread;
 
     ptr->reset();
 
     ts->stop=true;
+
+    return true;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -223,11 +253,12 @@ BeebThread::KeyMessage::KeyMessage(BeebKey key_,bool state_):
 {
 }
 
-void BeebThread::KeyMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
+bool BeebThread::KeyMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
+                                           CompletionFun *completion_fun,
                                            BeebThread *beeb_thread,
                                            ThreadState *ts)
 {
-    IgnoreIfReplayingOrHalted(ptr,beeb_thread,ts);
+    return PrepareUnlessReplayingOrHalted(ptr,completion_fun,beeb_thread,ts);
 }
 
 void BeebThread::KeyMessage::ThreadHandle(BeebThread *beeb_thread,
@@ -245,11 +276,12 @@ state(state_)
 {
 }
 
-void BeebThread::KeySymMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
+bool BeebThread::KeySymMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
+                                              CompletionFun *completion_fun,
                                               BeebThread *beeb_thread,
                                               ThreadState *ts)
 {
-    IgnoreIfReplayingOrHalted(ptr,beeb_thread,ts);
+    return PrepareUnlessReplayingOrHalted(ptr,completion_fun,beeb_thread,ts);
 }
 
 void BeebThread::KeySymMessage::ThreadHandle(BeebThread *beeb_thread,
@@ -274,11 +306,12 @@ m_flags(flags)
 {
 }
 
-void BeebThread::HardResetMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
+bool BeebThread::HardResetMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
+                                                 CompletionFun *completion_fun,
                                                  BeebThread *beeb_thread,
                                                  ThreadState *ts)
 {
-    IgnoreIfReplayingOrHalted(ptr,beeb_thread,ts);
+    return PrepareUnlessReplayingOrHalted(ptr,completion_fun,beeb_thread,ts);
 }
 
 void BeebThread::HardResetMessage::ThreadHandle(BeebThread *beeb_thread,
@@ -394,11 +427,12 @@ loaded_config(std::move(loaded_config_))
 {
 }
 
-void BeebThread::HardResetAndChangeConfigMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
+bool BeebThread::HardResetAndChangeConfigMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
+                                                                CompletionFun *completion_fun,
                                                                 BeebThread *beeb_thread,
                                                                 ThreadState *ts)
 {
-    IgnoreIfReplayingOrHalted(ptr,beeb_thread,ts);
+    return PrepareUnlessReplayingOrHalted(ptr,completion_fun,beeb_thread,ts);
 }
 
 void BeebThread::HardResetAndChangeConfigMessage::ThreadHandle(BeebThread *beeb_thread,
@@ -415,26 +449,27 @@ HardResetMessage(flags)
 {
 }
 
-void BeebThread::HardResetAndReloadConfigMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
+bool BeebThread::HardResetAndReloadConfigMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
+                                                                CompletionFun *completion_fun,
                                                                 BeebThread *beeb_thread,
                                                                 ThreadState *ts)
 {
     (void)beeb_thread;
 
-    if(IgnoreIfReplayingOrHalted(ptr,beeb_thread,ts)) {
-        return;
+    if(!PrepareUnlessReplayingOrHalted(ptr,completion_fun,beeb_thread,ts)) {
+        return false;
     }
 
     BeebLoadedConfig reloaded_config;
     if(!BeebLoadedConfig::Load(&reloaded_config,ts->current_config.config,&ts->msgs)) {
-        ptr->reset();
-        return;
+        return false;
     }
 
     reloaded_config.ReuseROMs(ts->current_config);
 
     *ptr=std::make_shared<HardResetAndChangeConfigMessage>(m_flags,
                                                            std::move(reloaded_config));
+    return true;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -445,14 +480,18 @@ BeebThread::SetSpeedLimitingMessage::SetSpeedLimitingMessage(bool limit_speed_):
 {
 }
 
-void BeebThread::SetSpeedLimitingMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
+bool BeebThread::SetSpeedLimitingMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
+                                                        CompletionFun *completion_fun,
                                                         BeebThread *beeb_thread,
                                                         ThreadState *ts)
 {
+    (void)completion_fun;
+
     ts->limit_speed=this->limit_speed;
     beeb_thread->m_limit_speed.store(this->limit_speed,std::memory_order_release);
 
     ptr->reset();
+    return true;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -465,12 +504,13 @@ BeebThread::LoadDiscMessage::LoadDiscMessage(int drive_,std::shared_ptr<DiscImag
 {
 }
 
-void BeebThread::LoadDiscMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
+bool BeebThread::LoadDiscMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
+                                                CompletionFun *completion_fun,
                                                 BeebThread *beeb_thread,
                                                 ThreadState *ts)
 {
-    if(IgnoreIfReplayingOrHalted(ptr,beeb_thread,ts)) {
-        return;
+    if(!PrepareUnlessReplayingOrHalted(ptr,completion_fun,beeb_thread,ts)) {
+        return false;
     }
 
     if(this->verbose) {
@@ -496,19 +536,20 @@ void BeebThread::LoadDiscMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
                          this->disc_image->GetLoadMethod().c_str(),
                          this->disc_image->GetName().c_str());
             ptr->reset();
-            return;
-        } else {
-            ASSERT(ts->timeline_state==BeebThreadTimelineState_None);
-
-            // This doesn't move the disc image pointer, because it can't.
-            //
-            // (There's only supposed to be one owning DiscImage pointer at a time,
-            // but there's no enforcing this, and it doesn't matter here anyway,
-            // because *this will be destroyed soon enough.)
-            beeb_thread->ThreadSetDiscImage(ts,this->drive,this->disc_image);
-            return;
+            return false;
         }
+
+        ASSERT(ts->timeline_state==BeebThreadTimelineState_None);
+
+        // This doesn't move the disc image pointer, because it can't.
+        //
+        // (There's only supposed to be one owning DiscImage pointer at a time,
+        // but there's no enforcing this, and it doesn't matter here anyway,
+        // because *this will be destroyed soon enough.)
+        beeb_thread->ThreadSetDiscImage(ts,this->drive,this->disc_image);
     }
+
+    return true;
 }
 
 void BeebThread::LoadDiscMessage::ThreadHandle(BeebThread *beeb_thread,
@@ -526,13 +567,12 @@ state(std::move(state_))
 {
 }
 
-void BeebThread::LoadStateMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
+bool BeebThread::LoadStateMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
+                                                 CompletionFun *completion_fun,
                                                  BeebThread *beeb_thread,
                                                  ThreadState *ts)
 {
-    if(IgnoreIfReplayingOrHalted(ptr,beeb_thread,ts)) {
-        return;
-    }
+    return PrepareUnlessReplayingOrHalted(ptr,completion_fun,beeb_thread,ts);
 }
 
 void BeebThread::LoadStateMessage::ThreadHandle(BeebThread *beeb_thread,
@@ -562,12 +602,13 @@ BeebThread::SaveStateMessage::SaveStateMessage(bool verbose_):
 {
 }
 
-void BeebThread::SaveStateMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
+bool BeebThread::SaveStateMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
+                                                 CompletionFun *completion_fun,
                                                  BeebThread *beeb_thread,
                                                  ThreadState *ts)
 {
-    if(IgnoreIfReplayingOrHalted(ptr,beeb_thread,ts)) {
-        return;
+    if(!PrepareUnlessReplayingOrHalted(ptr,completion_fun,beeb_thread,ts)) {
+        return false;
     }
 
     // TODO... actually save the state somewhere
@@ -590,7 +631,8 @@ void BeebThread::SaveStateMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
 //    break;
 
 
-    *ptr=nullptr;
+    ptr->reset();
+    return true;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -601,11 +643,14 @@ m_timeline_event_index(timeline_event_index)
 {
 }
 
-void BeebThread::StartReplayMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
+bool BeebThread::StartReplayMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
+                                                   CompletionFun *completion_fun,
                                                    BeebThread *beeb_thread,
                                                    ThreadState *ts)
 {
     ASSERT(false);
+
+    return false;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -640,7 +685,8 @@ max_num_bytes(max_num_bytes_)
 #endif
 
 #if BBCMICRO_TRACE
-void BeebThread::StartTraceMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
+bool BeebThread::StartTraceMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
+                                                  CompletionFun *completion_fun,
                                                   BeebThread *beeb_thread,
                                                   ThreadState *ts)
 {
@@ -649,7 +695,10 @@ void BeebThread::StartTraceMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
 
     beeb_thread->ThreadStartTrace(ts);
 
+    CallCompletionFun(completion_fun,true,nullptr);
+
     ptr->reset();
+    return true;
 }
 #endif
 
@@ -657,13 +706,17 @@ void BeebThread::StartTraceMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_TRACE
-void BeebThread::StopTraceMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
+bool BeebThread::StopTraceMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
+                                                 CompletionFun *completion_fun,
                                                  BeebThread *beeb_thread,
                                                  ThreadState *ts)
 {
     beeb_thread->ThreadStopTrace(ts);
 
+    CallCompletionFun(completion_fun,true,nullptr);
+
     ptr->reset();
+    return true;
 }
 #endif
 
@@ -675,11 +728,12 @@ m_init_arguments(std::move(init_arguments))
 {
 }
 
-void BeebThread::CloneWindowMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
-                                                 BeebThread *beeb_thread,
-                                                 ThreadState *ts)
+bool BeebThread::CloneWindowMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
+                                                   CompletionFun *completion_fun,
+                                                   BeebThread *beeb_thread,
+                                                   ThreadState *ts)
 {
-    (void)ptr;
+    (void)completion_fun;
 
     BeebWindowInitArguments init_arguments=m_init_arguments;
 
@@ -687,6 +741,9 @@ void BeebThread::CloneWindowMessage::ThreadPrepare(std::shared_ptr<Message> *ptr
     init_arguments.initial_state=beeb_thread->ThreadSaveState(ts);
 
     PushNewWindowMessage(init_arguments);
+
+    ptr->reset();
+    return true;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -714,7 +771,8 @@ void BeebThread::CloneWindowMessage::ThreadPrepare(std::shared_ptr<Message> *ptr
 //{
 //}
 
-void BeebThread::CancelReplayMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
+bool BeebThread::CancelReplayMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
+                                                    CompletionFun *completion_fun,
                                                     BeebThread *beeb_thread,
                                                     ThreadState *ts)
 {
@@ -744,6 +802,8 @@ void BeebThread::CancelReplayMessage::ThreadPrepare(std::shared_ptr<Message> *pt
     //
     //                //Timeline::DidChange();
     //            }
+
+    return false;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -754,13 +814,12 @@ BeebThread::SetTurboDiscMessage::SetTurboDiscMessage(bool turbo_):
 {
 }
 
-void BeebThread::SetTurboDiscMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
+bool BeebThread::SetTurboDiscMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
+                                                    CompletionFun *completion_fun,
                                                     BeebThread *beeb_thread,
                                                     ThreadState *ts)
 {
-    if(IgnoreIfReplayingOrHalted(ptr,beeb_thread,ts)) {
-        return;
-    }
+    return PrepareUnlessReplayingOrHalted(ptr,completion_fun,beeb_thread,ts);
 }
 
 void BeebThread::SetTurboDiscMessage::ThreadHandle(BeebThread *beeb_thread,
@@ -777,15 +836,18 @@ m_text(std::make_shared<std::string>(std::move(text)))
 {
 }
 
-void BeebThread::StartPasteMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
+bool BeebThread::StartPasteMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
+                                                  CompletionFun *completion_fun,
                                                   BeebThread *beeb_thread,
                                                   ThreadState *ts)
 {
     // In principle, it ought to be OK to initaite a paste when halted,
     // but it's probably not very useful.
-    if(IgnoreIfReplayingOrHalted(ptr,beeb_thread,ts)) {
-        return;
+    if(!PrepareUnlessReplayingOrHalted(ptr,completion_fun,beeb_thread,ts)) {
+        return false;
     }
+
+    return true;
 }
 
 //case BeebThreadMessageType_StartPaste:
@@ -814,13 +876,12 @@ void BeebThread::StartPasteMessage::ThreadHandle(BeebThread *beeb_thread,
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void BeebThread::StopPasteMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
-                                                  BeebThread *beeb_thread,
-                                                  ThreadState *ts)
+bool BeebThread::StopPasteMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
+                                                 CompletionFun *completion_fun,
+                                                 BeebThread *beeb_thread,
+                                                 ThreadState *ts)
 {
-    if(IgnoreIfReplayingOrHalted(ptr,beeb_thread,ts)) {
-        return;
-    }
+    return PrepareUnlessReplayingOrHalted(ptr,completion_fun,beeb_thread,ts);
 }
 
 void BeebThread::StopPasteMessage::ThreadHandle(BeebThread *beeb_thread,
@@ -840,7 +901,8 @@ BeebThread::StartCopyMessage::StartCopyMessage(std::function<void(std::vector<ui
 {
 }
 
-void BeebThread::StartCopyMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
+bool BeebThread::StartCopyMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
+                                                 CompletionFun *completion_fun,
                                                  BeebThread *beeb_thread,
                                                  ThreadState *ts)
 {
@@ -849,8 +911,8 @@ void BeebThread::StartCopyMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
     // a bit daft whichever way round they went.
 
     if(m_basic) {
-        if(IgnoreIfReplayingOrHalted(ptr,beeb_thread,ts)) {
-            return;
+        if(!PrepareUnlessReplayingOrHalted(ptr,completion_fun,beeb_thread,ts)) {
+            return false;
         }
 
         beeb_thread->ThreadStartPaste(ts,COPY_BASIC);
@@ -876,18 +938,24 @@ void BeebThread::StartCopyMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
     beeb_thread->m_is_copying.store(true,std::memory_order_release);
 
     ptr->reset();
+    return true;
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void BeebThread::StopCopyMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
+bool BeebThread::StopCopyMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
+                                                CompletionFun *completion_fun,
                                                 BeebThread *beeb_thread,
                                                 ThreadState *ts)
 {
-    (void)ptr;
+    (void)completion_fun;
 
     beeb_thread->ThreadStopCopy(ts);
+
+    ptr->reset();
+
+    return true;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -898,13 +966,17 @@ m_pause(pause)
 {
 }
 
-void BeebThread::PauseMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
+bool BeebThread::PauseMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
+                                             CompletionFun *completion_fun,
                                              BeebThread *beeb_thread,
                                              ThreadState *ts)
 {
-    (void)ptr,(void)ts;
+    (void)ptr,(void)completion_fun,(void)ts;
 
     beeb_thread->m_paused=m_pause;
+
+    ptr->reset();
+    return true;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -920,13 +992,12 @@ BeebThread::DebugSetByteMessage::DebugSetByteMessage(uint16_t addr,
 #endif
 
 #if BBCMICRO_DEBUGGER
-void BeebThread::DebugSetByteMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
+bool BeebThread::DebugSetByteMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
+                                                    CompletionFun *completion_fun,
                                                     BeebThread *beeb_thread,
                                                     ThreadState *ts)
 {
-    if(IgnoreIfReplaying(ptr,beeb_thread,ts)) {
-        return;
-    }
+    return PrepareUnlessReplaying(ptr,completion_fun,beeb_thread,ts);
 }
 #endif
 
@@ -955,13 +1026,12 @@ m_values(std::move(values))
 #endif
 
 #if BBCMICRO_DEBUGGER
-void BeebThread::DebugSetBytesMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
+bool BeebThread::DebugSetBytesMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
+                                                     CompletionFun *completion_fun,
                                                      BeebThread *beeb_thread,
                                                      ThreadState *ts)
 {
-    if(IgnoreIfReplaying(ptr,beeb_thread,ts)) {
-        return;
-    }
+    return PrepareUnlessReplaying(ptr,completion_fun,beeb_thread,ts);
 }
 #endif
 
@@ -991,13 +1061,12 @@ m_value(value_)
 #endif
 
 #if BBCMICRO_DEBUGGER
-void BeebThread::DebugSetExtByteMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
+bool BeebThread::DebugSetExtByteMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
+                                                       CompletionFun *completion_fun,
                                                        BeebThread *beeb_thread,
                                                        ThreadState *ts)
 {
-    if(IgnoreIfReplaying(ptr,beeb_thread,ts)) {
-        return;
-    }
+    return PrepareUnlessReplaying(ptr,completion_fun,beeb_thread,ts);
 }
 #endif
 
@@ -1031,11 +1100,13 @@ c(c_)
 #endif
 
 #if BBCMICRO_DEBUGGER
-void BeebThread::DebugAsyncCallMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
+bool BeebThread::DebugAsyncCallMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
+                                                      CompletionFun *completion_fun,
                                                       BeebThread *beeb_thread,
                                                       ThreadState *ts)
 {
     ASSERT(false);
+    return false;
 }
 #endif
 
@@ -1052,15 +1123,17 @@ void BeebThread::DebugAsyncCallMessage::ThreadHandle(BeebThread *beeb_thread,
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_DEBUGGER
-void BeebThread::CustomMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
+bool BeebThread::CustomMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
+                                              CompletionFun *completion_fun,
                                               BeebThread *beeb_thread,
                                               ThreadState *ts)
 {
-    (void)beeb_thread;
+    (void)completion_fun,(void)beeb_thread;
 
     this->ThreadHandleMessage(ts->beeb);
 
     ptr->reset();
+    return true;
 }
 #endif
 
@@ -1072,11 +1145,12 @@ BeebThread::TimingMessage::TimingMessage(uint64_t max_sound_units_):
 {
 }
 
-void BeebThread::TimingMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
+bool BeebThread::TimingMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
+                                              CompletionFun *completion_fun,
                                               BeebThread *beeb_thread,
                                               ThreadState *ts)
 {
-    (void)beeb_thread;
+    (void)completion_fun,(void)beeb_thread;
 
     ts->next_stop_2MHz_cycles=this->max_sound_units<<SOUND_CLOCK_SHIFT;
 
@@ -1086,6 +1160,7 @@ void BeebThread::TimingMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
 #endif
 
     ptr->reset();
+    return true;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -1158,8 +1233,8 @@ BeebThread::BeebThread(std::shared_ptr<MessageList> message_list,
                        size_t sound_buffer_size_samples,
                        BeebLoadedConfig default_loaded_config,
                        std::vector<TimelineEvent> initial_timeline_events):
-m_initial_timeline_events(std::move(initial_timeline_events)),
 m_default_loaded_config(std::move(default_loaded_config)),
+m_initial_timeline_events(std::move(initial_timeline_events)),
 m_video_output(NUM_VIDEO_UNITS),
 m_sound_output(NUM_AUDIO_UNITS),
 m_message_list(std::move(message_list))
@@ -1233,15 +1308,24 @@ OutputDataBuffer<VideoDataUnit> *BeebThread::GetVideoOutput() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void BeebThread::Send(std::unique_ptr<Message> message) {
-    m_mq.ProducerPush(std::move(message));
+void BeebThread::Send(std::shared_ptr<Message> message) {
+    m_mq.ProducerPush(SentMessage{std::move(message)});
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BeebThread::Send(std::shared_ptr<Message> message,
+                      Message::CompletionFun completion_fun)
+{
+    m_mq.ProducerPush(SentMessage{std::move(message),std::move(completion_fun)});
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 void BeebThread::SendTimingMessage(uint64_t max_sound_units) {
-    m_mq.ProducerPushIndexed(0,std::make_unique<TimingMessage>(max_sound_units));
+    m_mq.ProducerPushIndexed(0,SentMessage{std::make_shared<TimingMessage>(max_sound_units)});
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -1824,8 +1908,11 @@ void BeebThread::ThreadReplaceBeeb(ThreadState *ts,std::unique_ptr<BBCMicro> bee
         ts->beeb->SetDebugState(std::move(debug_state));
 #endif
 
-        this->ThreadFailCompletionFun(&ts->reset_message);
-        this->ThreadFailCompletionFun(&ts->paste_message);
+        Message::CallCompletionFun(&ts->reset_completion_fun,false,nullptr);
+        Message::CallCompletionFun(&ts->paste_completion_fun,false,nullptr);
+#if BBCMICRO_DEBUGGER
+        Message::CallCompletionFun(&ts->async_call_completion_fun,false,nullptr);
+#endif
     }
 
     ts->num_executed_2MHz_cycles=ts->beeb->GetNum2MHzCycles();
@@ -2273,45 +2360,45 @@ void BeebThread::ThreadStopCopy(ThreadState *ts) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void BeebThread::ThreadFailCompletionFun(std::unique_ptr<Message> *message_ptr) {
-    if(!!*message_ptr) {
-        (*message_ptr)->CallCompletionFun(false);
-        message_ptr->reset();
-    }
-}
+//void BeebThread::ThreadFailCompletionFun(std::function<void(bool)> *fun) {
+//    if(!!*fun) {
+//        (*fun)(false);
+//        *fun=std::function<void(bool)>();
+//    }
+//}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void BeebThread::ThreadHandleMessage(ThreadState *ts,
-                                     std::shared_ptr<Message> message)
-{
-    if(ts->beeb) {
-        m_leds.store(ts->beeb->GetLEDs(),std::memory_order_release);
-
-#if BBCMICRO_TRACE
-        ts->beeb->GetTraceStats(&m_trace_stats);
-#endif
-    }
-
-    if(ts->boot) {
-        if(ts->beeb->GetAndResetDiscAccessFlag()) {
-            this->ThreadSetBootState(ts,false);
-        }
-    }
-
-    message->ThreadPrepare(&message,this,ts);
-    if(!message) {
-        return;
-    }
-
-    message->ThreadHandle(this,ts);
-
-    if(ts->timeline_state==BeebThreadTimelineState_Record) {
-        TimelineEvent event{*ts->num_executed_2MHz_cycles,std::move(message)};
-        ts->timeline_events.emplace_back(std::move(event));
-    }
-}
+//void BeebThread::ThreadHandleMessage(ThreadState *ts,
+//                                     std::shared_ptr<Message> message)
+//{
+//    if(ts->beeb) {
+//        m_leds.store(ts->beeb->GetLEDs(),std::memory_order_release);
+//
+//#if BBCMICRO_TRACE
+//        ts->beeb->GetTraceStats(&m_trace_stats);
+//#endif
+//    }
+//
+//    if(ts->boot) {
+//        if(ts->beeb->GetAndResetDiscAccessFlag()) {
+//            this->ThreadSetBootState(ts,false);
+//        }
+//    }
+//
+//    message->ThreadPrepare(&message,this,ts);
+//    if(!message) {
+//        return;
+//    }
+//
+//    message->ThreadHandle(this,ts);
+//
+//    if(ts->timeline_state==BeebThreadTimelineState_Record) {
+//        TimelineEvent event{*ts->num_executed_2MHz_cycles,std::move(message)};
+//        ts->timeline_events.emplace_back(std::move(event));
+//    }
+//}
 
 //    switch(message->type) {
 ////    default:
@@ -2844,7 +2931,7 @@ void BeebThread::ThreadMain(void) {
 
     ts.limit_speed=m_limit_speed.load(std::memory_order_acquire);
 
-    std::vector<std::shared_ptr<Message>> messages;
+    std::vector<SentMessage> messages;
 
     for(;;) {
         if(paused||(ts.limit_speed&&ts.next_stop_2MHz_cycles<=*ts.num_executed_2MHz_cycles)) {
@@ -2858,8 +2945,24 @@ void BeebThread::ThreadMain(void) {
         if(!messages.empty()) {
             std::lock_guard<Mutex> lock(m_mutex);
 
-            for(size_t i=0;i<messages.size();++i) {
-                this->ThreadHandleMessage(&ts,std::move(messages[i]));
+            for(auto &&m:messages) {
+                bool prepared=m.message->ThreadPrepare(&m.message,&m.completion_fun,this,&ts);
+                if(!prepared) {
+                    Message::CallCompletionFun(&m.completion_fun,false,nullptr);
+                    continue;
+                }
+
+                if(!!m.message) {
+                    m.message->ThreadHandle(this,&ts);
+
+                    Message::CallCompletionFun(&m.completion_fun,true,nullptr);
+
+                    if(ts.timeline_state==BeebThreadTimelineState_Record) {
+                        TimelineEvent event{*ts.num_executed_2MHz_cycles,std::move(m.message)};
+                        ts.timeline_events.emplace_back(std::move(event));
+                    }
+                }
+
                 if(ts.stop) {
                     goto done;
                 }
@@ -2883,10 +2986,26 @@ void BeebThread::ThreadMain(void) {
 //            }
 //        }
 
+
+
         if(m_is_pasting) {
             if(!ts.beeb->IsPasting()) {
                 m_is_pasting.store(false,std::memory_order_release);
-                ts.paste_message.reset();
+                Message::CallCompletionFun(&ts.paste_completion_fun,true,nullptr);
+            }
+        }
+
+        if(ts.beeb) {
+            m_leds.store(ts.beeb->GetLEDs(),std::memory_order_release);
+
+#if BBCMICRO_TRACE
+            ts.beeb->GetTraceStats(&m_trace_stats);
+#endif
+        }
+
+        if(ts.boot) {
+            if(ts.beeb->GetAndResetDiscAccessFlag()) {
+                this->ThreadSetBootState(&ts,false);
             }
         }
 
@@ -3083,11 +3202,13 @@ bool BeebThread::ThreadWaitForHardReset(const BBCMicro *beeb,const M6502 *cpu,vo
     auto ts=(ThreadState *)context;
 
     // Watch for OSWORD 0, OSRDCH, or 5 seconds.
+    //
+    // TODO - does timeout mean the request actually failed?
     if((cpu->opcode_pc.w==0xfff1&&cpu->a==0)||
        cpu->opcode_pc.w==0xffe0||
        *ts->num_executed_2MHz_cycles>ts->reset_timeout_cycles)
     {
-        ts->reset_message=nullptr;
+        Message::CallCompletionFun(&ts->reset_completion_fun,true,nullptr);
         return false;
     }
 
@@ -3101,10 +3222,7 @@ bool BeebThread::ThreadWaitForHardReset(const BBCMicro *beeb,const M6502 *cpu,vo
 void BeebThread::DebugAsyncCallCallback(bool called,void *context) {
     auto ts=(ThreadState *)context;
 
-    if(!!ts->async_call_message) {
-        ts->async_call_message->CallCompletionFun(called);
-        ts->async_call_message.reset();
-    }
+    Message::CallCompletionFun(&ts->async_call_completion_fun,called,nullptr);
 }
 #endif
 
