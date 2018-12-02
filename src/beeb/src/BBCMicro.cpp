@@ -1996,7 +1996,7 @@ bool BBCMicro::IsPasting() const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void BBCMicro::StartPaste(std::shared_ptr<std::string> text) {
+void BBCMicro::StartPaste(std::shared_ptr<const std::string> text) {
     this->StopPaste();
 
     m_state.hack_flags|=BBCMicroHackFlag_Paste;

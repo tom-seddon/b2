@@ -277,10 +277,10 @@ private:
             return;
         }
 
-        auto message=std::make_unique<BeebThread::HardResetMessage>();
+        auto message=std::make_unique<BeebThread::HardResetAndReloadConfigMessage>(BeebThreadHardResetFlag_Run);
 
-        message->reload_config=true;
-        message->run=true;
+//        message->reload_config=true;
+//        message->run=true;
 
         this->SendMessage(beeb_window,server,request,std::move(message));
     }
@@ -444,10 +444,12 @@ private:
 
             beeb_window->GetBeebThread()->Send(std::make_unique<BeebThread::LoadDiscMessage>(0,std::move(disc_image),true));
 
-            auto message=std::make_unique<BeebThread::HardResetMessage>();
-            message->boot=true;
-            message->reload_config=true;
-            message->run=true;
+            auto message=std::make_unique<BeebThread::HardResetAndReloadConfigMessage>(BeebThreadHardResetFlag_Run|
+                                                                                       BeebThreadHardResetFlag_Boot);
+//            auto message=std::make_unique<BeebThread::HardResetMessage>();
+//            message->boot=true;
+//            message->reload_config=true;
+//            message->run=true;
             this->SendMessage(beeb_window,server,request,std::move(message));
             return;
         }

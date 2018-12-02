@@ -988,9 +988,9 @@ static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &init
                 }
 
                 if(options.boot) {
-                    auto message=std::make_unique<BeebThread::HardResetMessage>();
+                    auto message=std::make_unique<BeebThread::HardResetMessage>(BeebThreadHardResetFlag_Boot);
 
-                    message->boot=true;
+                    //message->boot=true;
 
                     thread->Send(std::move(message));
                 }

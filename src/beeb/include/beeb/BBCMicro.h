@@ -364,7 +364,7 @@ public:
     static const char PASTE_START_CHAR;
 
     bool IsPasting() const;
-    void StartPaste(std::shared_ptr<std::string> text);
+    void StartPaste(std::shared_ptr<const std::string> text);
     void StopPaste();
 
     const M6502 *GetM6502() const;
@@ -522,7 +522,7 @@ private:
         // starting a replay from that state then the rest of the
         // paste needs to be performed.)
         BBCMicroPasteState paste_state=BBCMicroPasteState_None;
-        std::shared_ptr<std::string> paste_text;
+        std::shared_ptr<const std::string> paste_text;
         size_t paste_index=0;
         uint64_t paste_wait_end=0;
 

@@ -249,7 +249,7 @@ BeebWindow::BeebWindow(BeebWindowInitArguments init_arguments):
                                                init_arguments.sound_device,
                                                init_arguments.sound_spec.freq,
                                                init_arguments.sound_spec.samples,
-                                               std::vector<BeebEvent>());
+                                               std::vector<BeebThread::TimelineEvent>());
 
     if(init_arguments.use_settings) {
         m_settings=init_arguments.settings;
@@ -1059,12 +1059,10 @@ void BeebWindow::DoFileMenu() {
                 }
 
                 if(ImGui::MenuItem(config->name.c_str())) {
-                    auto tmp=std::make_unique<BeebLoadedConfig>();
+                    BeebLoadedConfig tmp;
 
-                    if(BeebLoadedConfig::Load(tmp.get(),*config,&m_msg)) {
-                        auto message=std::make_unique<BeebThread::HardResetMessage>();
-
-                        message->loaded_config=std::move(tmp);
+                    if(BeebLoadedConfig::Load(&tmp,*config,&m_msg)) {
+                        auto message=std::make_unique<BeebThread::HardResetAndChangeConfigMessage>(0,std::move(tmp));
 
                         m_beeb_thread->Send(std::move(message));
                     }
@@ -2247,7 +2245,7 @@ void BeebWindow::MaybeSaveConfig(bool save_config) {
 //////////////////////////////////////////////////////////////////////////
 
 void BeebWindow::HardReset() {
-    m_beeb_thread->Send(std::make_unique<BeebThread::HardResetMessage>());
+    m_beeb_thread->Send(std::make_unique<BeebThread::HardResetMessage>(BeebThreadHardResetFlag_Run));
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -2612,7 +2610,6 @@ void BeebWindow::DebugStop() {
 void BeebWindow::DebugRun() {
     std::unique_lock<Mutex> lock;
     BBCMicro *m=m_beeb_thread->LockMutableBeeb(&lock);
-
 
     m->DebugRun();
     m_beeb_thread->Send(std::make_unique<BeebThread::DebugWakeUpMessage>());

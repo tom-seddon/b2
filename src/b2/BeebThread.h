@@ -38,7 +38,7 @@ class TVOutput;
 struct Message;
 class BeebState;
 class MessageList;
-class BeebEvent;
+//class BeebEvent;
 class VideoWriter;
 
 //////////////////////////////////////////////////////////////////////////
@@ -74,13 +74,22 @@ struct TraceConditions {
 //
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
+//
+// The official pointer type for a BeebThread message is shared_ptr<Message>,
+// and the official data structure for the timeline is
+// vector<shared_ptr<TimelineEvent>>. This is very wasteful, and could be
+// improved. Maybe one day I'll get round to doing that.
+//
+// (Since Message objects are immutable, they could at least be potentially
+// pooled.)
+//
+// (Message doesn't derived from enable_shared_from_this.)
 
 class BeebThread {
+    struct ThreadState;
 public:
     class Message {
     public:
-        const BeebThreadMessageType type=BeebThreadMessageType_None;
-
         // completion_fun is called when the message has been handled
         // or when it gets cancelled. (This is used by the HTTP server
         // to delay sending an HTTP response until the message has
@@ -104,15 +113,59 @@ public:
         // when unnecessary. Easy to test for with
         // std::function<>::operator bool, but extra faff with a
         // virtual function.)
+        //
+        // TODO move out of this class. The completion_fun should be
+        // associated with the Send, not the Message.
         std::function<void(bool)> completion_fun;
 
-        bool implicit_success=true;
+        //bool implicit_success=true;
 
-        explicit Message(BeebThreadMessageType type);
+        explicit Message()=default;
         virtual ~Message();
 
         // Calls completion fun (if set) and then resets it.
         void CallCompletionFun(bool success);
+
+        // Translate this, incoming message, into the message that will be
+        // recorded into the timeline. *ptr points to this (and may be the
+        // only pointer to it - exercise care when resetting).
+        //
+        // If this message isn't recordable, apply effect and do a ptr->reset().
+        //
+        // Otherwise, leave *ptr alone, or set *ptr to actual message to use,
+        // which will (either way) cause that message to be ThreadHandle'd and
+        // added to the timeline.
+        //
+        // Default impl does nothing.
+        //
+        // Called on Beeb thread.
+        virtual void ThreadPrepare(std::shared_ptr<Message> *ptr,BeebThread *beeb_thread,ThreadState *ts);
+
+        // Called on the Beeb thread.
+        //
+        // Default impl does nothing.
+        virtual void ThreadHandle(BeebThread *beeb_thread,ThreadState *ts) const;
+    protected:
+        // Standard policies for use from the ThreadPrepare function.
+
+        // Returns true if ignored.
+        static bool IgnoreIfReplayingOrHalted(std::shared_ptr<Message> *ptr,BeebThread *beeb_thread,ThreadState *ts);
+
+        // Returns true if ignored.
+        static bool IgnoreIfReplaying(std::shared_ptr<Message> *ptr,BeebThread *beeb_thread,ThreadState *ts);
+    private:
+    };
+
+    struct TimelineEvent {
+        uint64_t time_2MHz_cycles;
+        std::shared_ptr<Message> message;
+    };
+
+    class StopMessage:
+    public Message
+    {
+    public:
+        void ThreadPrepare(std::shared_ptr<Message> *ptr,BeebThread *beeb_thread,ThreadState *ts) override;
     protected:
     private:
     };
@@ -121,10 +174,13 @@ public:
         public Message
     {
     public:
-        BeebKey key=BeebKey_None;
-        bool state=false;
+        const BeebKey key=BeebKey_None;
+        const bool state=false;
 
         KeyMessage(BeebKey key,bool state);
+
+        void ThreadPrepare(std::shared_ptr<Message> *ptr,BeebThread *beeb_thread,ThreadState *ts) override;
+        void ThreadHandle(BeebThread *beeb_thread,ThreadState *ts) const override;
     protected:
     private:
     };
@@ -133,10 +189,13 @@ public:
         public Message
     {
     public:
-        BeebKeySym key_sym=BeebKeySym_None;
-        bool state=false;
+        const BeebKeySym key_sym=BeebKeySym_None;
+        const bool state=false;
 
         KeySymMessage(BeebKeySym key_sym,bool state);
+
+        void ThreadPrepare(std::shared_ptr<Message> *ptr,BeebThread *beeb_thread,ThreadState *ts) override;
+        void ThreadHandle(BeebThread *beeb_thread,ThreadState *ts) const override;
     protected:
     private:
     };
@@ -145,21 +204,51 @@ public:
         public Message
     {
     public:
-        bool boot=false;
+//        const bool boot=false;
 
-        // if non-null, use this as the new config.
-        std::unique_ptr<BeebLoadedConfig> loaded_config;
+//#if BBCMICRO_DEBUGGER
+//        // if set, set the emulator running after rebooting.
+//        const bool run=false;
+//#endif
 
-        // if set, reload the existing config. (Not much use in
-        // conjunction with loaded_config...)
-        bool reload_config=false;
+        // Flags are a combination of BeebThreadHardResetFlag.
+        explicit HardResetMessage(uint32_t flags);
 
-#if BBCMICRO_DEBUGGER
-        // if set, set the emulator running after rebooting.
-        bool run=false;
-#endif
+        void ThreadPrepare(std::shared_ptr<Message> *ptr,BeebThread *beeb_thread,ThreadState *ts) override;
+        void ThreadHandle(BeebThread *beeb_thread,ThreadState *ts) const override;
+    protected:
+        const uint32_t m_flags=0;
 
-        explicit HardResetMessage();
+        void HardReset(BeebThread *beeb_thread,
+                       ThreadState *ts,
+                       const BeebLoadedConfig &loaded_config) const;
+    private:
+    };
+
+    class HardResetAndChangeConfigMessage:
+    public HardResetMessage
+    {
+    public:
+        const BeebLoadedConfig loaded_config;
+
+        // Flags are a combination of BeebThreadHardResetFlag.
+        explicit HardResetAndChangeConfigMessage(uint32_t flags,
+                                                 BeebLoadedConfig loaded_config);
+
+        void ThreadPrepare(std::shared_ptr<Message> *ptr,BeebThread *beeb_thread,ThreadState *ts) override;
+        void ThreadHandle(BeebThread *beeb_thread,ThreadState *ts) const override;
+    protected:
+    private:
+    };
+
+    class HardResetAndReloadConfigMessage:
+    public HardResetMessage
+    {
+    public:
+        // Flags are a combination of BeebThreadHardResetFlag.
+        explicit HardResetAndReloadConfigMessage(uint32_t flags);
+
+        void ThreadPrepare(std::shared_ptr<Message> *ptr,BeebThread *beeb_thread,ThreadState *ts) override;
     protected:
     private:
     };
@@ -168,9 +257,11 @@ public:
         public Message
     {
     public:
-        bool limit_speed=false;
+        const bool limit_speed=false;
 
         explicit SetSpeedLimitingMessage(bool limit_speed);
+
+        void ThreadPrepare(std::shared_ptr<Message> *ptr,BeebThread *beeb_thread,ThreadState *ts) override;
     protected:
     private:
     };
@@ -179,11 +270,16 @@ public:
         public Message
     {
     public:
-        int drive=-1;
-        std::shared_ptr<DiscImage> disc_image;
-        bool verbose=false;
+        const int drive=-1;
+
+        // this is an owning pointer, being given to the BBCMicro.
+        const std::shared_ptr<DiscImage> disc_image;
+        const bool verbose=false;
 
         LoadDiscMessage(int drive,std::shared_ptr<DiscImage> disc_image,bool verbose);
+
+        void ThreadPrepare(std::shared_ptr<Message> *ptr,BeebThread *beeb_thread,ThreadState *ts) override;
+        void ThreadHandle(BeebThread *beeb_thread,ThreadState *ts) const override;
     protected:
     private:
     };
@@ -192,31 +288,25 @@ public:
         public Message
     {
     public:
-        std::shared_ptr<BeebState> state;
-
         LoadStateMessage(std::shared_ptr<BeebState> state);
+
+        void ThreadPrepare(std::shared_ptr<Message> *ptr,BeebThread *beeb_thread,ThreadState *ts) override;
+        void ThreadHandle(BeebThread *beeb_thread,ThreadState *ts) const override;
     protected:
     private:
-    };
+        const std::shared_ptr<const BeebState> state;
 
-    class GoToTimelineNodeMessage:
-        public Message
-    {
-    public:
-        uint64_t timeline_id=0;
-
-        explicit GoToTimelineNodeMessage(uint64_t timeline_id);
-    protected:
-    private:
     };
 
     class SaveStateMessage:
         public Message
     {
     public:
-        bool verbose=false;
+        const bool verbose=false;
 
         explicit SaveStateMessage(bool verbose);
+
+        void ThreadPrepare(std::shared_ptr<Message> *ptr,BeebThread *beeb_thread,ThreadState *ts) override;
     protected:
     private:
     };
@@ -225,11 +315,12 @@ public:
         public Message
     {
     public:
-        size_t timeline_event_index;
-
         explicit StartReplayMessage(size_t timeline_event_index);
+
+        void ThreadPrepare(std::shared_ptr<Message> *ptr,BeebThread *beeb_thread,ThreadState *ts) override;
     protected:
     private:
+        const size_t m_timeline_event_index;
     };
 
 //    class SaveAndReplayFromMessage:
@@ -269,6 +360,8 @@ public:
         const size_t max_num_bytes;
 
         explicit StartTraceMessage(const TraceConditions &conditions,size_t max_num_bytes);
+
+        void ThreadPrepare(std::shared_ptr<Message> *ptr,BeebThread *beeb_thread,ThreadState *ts) override;
     protected:
     private:
     };
@@ -279,7 +372,7 @@ public:
         public Message
     {
     public:
-        StopTraceMessage();
+        void ThreadPrepare(std::shared_ptr<Message> *ptr,BeebThread *beeb_thread,ThreadState *ts) override;
     protected:
     private:
     };
@@ -289,11 +382,12 @@ public:
         public Message
     {
     public:
-        BeebWindowInitArguments init_arguments;
-
         explicit CloneWindowMessage(BeebWindowInitArguments init_arguments);
+
+        void ThreadPrepare(std::shared_ptr<Message> *ptr,BeebThread *beeb_thread,ThreadState *ts) override;
     protected:
     private:
+        const BeebWindowInitArguments m_init_arguments;
     };
 
 //    // Clone self into existing window. Save this thread's state and
@@ -323,7 +417,7 @@ public:
         public Message
     {
     public:
-        CancelReplayMessage();
+        void ThreadPrepare(std::shared_ptr<Message> *ptr,BeebThread *beeb_thread,ThreadState *ts) override;
     protected:
     private:
     };
@@ -333,9 +427,12 @@ public:
         public Message
     {
     public:
-        bool turbo=false;
+        const bool turbo=false;
 
         explicit SetTurboDiscMessage(bool turbo);
+
+        void ThreadPrepare(std::shared_ptr<Message> *ptr,BeebThread *beeb_thread,ThreadState *ts) override;
+        void ThreadHandle(BeebThread *beeb_thread,ThreadState *ts) const override;
     protected:
     private:
     };
@@ -345,18 +442,21 @@ public:
         public Message
     {
     public:
-        std::string text;
-
         explicit StartPasteMessage(std::string text);
+
+        void ThreadPrepare(std::shared_ptr<Message> *ptr,BeebThread *beeb_thread,ThreadState *ts) override;
+        void ThreadHandle(BeebThread *beeb_thread,ThreadState *ts) const override;
     protected:
     private:
+        std::shared_ptr<const std::string> m_text;
     };
 
     class StopPasteMessage:
         public Message
     {
     public:
-        StopPasteMessage();
+        void ThreadPrepare(std::shared_ptr<Message> *ptr,BeebThread *beeb_thread,ThreadState *ts) override;
+        void ThreadHandle(BeebThread *beeb_thread,ThreadState *ts) const override;
     protected:
     private:
     };
@@ -365,19 +465,20 @@ public:
         public Message
     {
     public:
-        std::function<void(std::vector<uint8_t>)> stop_fun;
-        bool basic=false;
-
         StartCopyMessage(std::function<void(std::vector<uint8_t>)> stop_fun,bool basic);
+
+        void ThreadPrepare(std::shared_ptr<Message> *ptr,BeebThread *beeb_thread,ThreadState *ts) override;
     protected:
     private:
+        std::function<void(std::vector<uint8_t>)> m_stop_fun;
+        bool m_basic=false;
     };
 
     class StopCopyMessage:
         public Message
     {
     public:
-        StopCopyMessage();
+        void ThreadPrepare(std::shared_ptr<Message> *ptr,BeebThread *beeb_thread,ThreadState *ts) override;
     protected:
     private:
     };
@@ -388,7 +489,6 @@ public:
         public Message
     {
     public:
-        DebugWakeUpMessage();
     protected:
     private:
     };
@@ -397,11 +497,12 @@ public:
         public Message
     {
     public:
-        bool pause=false;
-
         explicit PauseMessage(bool pause);
+
+        void ThreadPrepare(std::shared_ptr<Message> *ptr,BeebThread *beeb_thread,ThreadState *ts) override;
     protected:
     private:
+        const bool m_pause=false;
     };
 
 #if BBCMICRO_DEBUGGER
@@ -409,12 +510,14 @@ public:
         public Message
     {
     public:
-        uint16_t addr=0;
-        uint8_t value=0;
-
         DebugSetByteMessage(uint16_t addr,uint8_t value);
+
+        void ThreadPrepare(std::shared_ptr<Message> *ptr,BeebThread *beeb_thread,ThreadState *ts) override;
+        void ThreadHandle(BeebThread *beeb_thread,ThreadState *ts) const override;
     protected:
     private:
+        const uint16_t m_addr=0;
+        const uint8_t m_value=0;
     };
 #endif
 
@@ -423,12 +526,14 @@ public:
         public Message
     {
     public:
-        uint32_t addr=0;
-        std::vector<uint8_t> values;
-
         DebugSetBytesMessage(uint32_t addr,std::vector<uint8_t> values);
+
+        void ThreadPrepare(std::shared_ptr<Message> *ptr,BeebThread *beeb_thread,ThreadState *ts) override;
+        void ThreadHandle(BeebThread *beeb_thread,ThreadState *ts) const override;
     protected:
     private:
+        const uint32_t m_addr=0;
+        const std::vector<uint8_t> m_values;
     };
 #endif
 
@@ -437,12 +542,14 @@ public:
             public Message
     {
     public:
-        uint32_t addr=0;
-        uint8_t value=0;
-
         DebugSetExtByteMessage(uint32_t addr,uint8_t value);
+
+        void ThreadPrepare(std::shared_ptr<Message> *ptr,BeebThread *beeb_thread,ThreadState *ts) override;
+        void ThreadHandle(BeebThread *beeb_thread,ThreadState *ts) const override;
     protected:
     private:
+        const uint32_t m_addr=0;
+        const uint8_t m_value=0;
     };
 #endif
 
@@ -451,11 +558,14 @@ public:
         public Message
     {
     public:
-        uint16_t addr=0;
-        uint8_t a=0,x=0,y=0;
-        bool c=false;
+        const uint16_t addr=0;
+        const uint8_t a=0,x=0,y=0;
+        const bool c=false;
 
         DebugAsyncCallMessage(uint16_t addr,uint8_t a,uint8_t x,uint8_t y,bool c);
+
+        void ThreadPrepare(std::shared_ptr<Message> *ptr,BeebThread *beeb_thread,ThreadState *ts) override;
+        void ThreadHandle(BeebThread *beeb_thread,ThreadState *ts) const override;
     protected:
     private:
     };
@@ -469,7 +579,7 @@ public:
         public Message
     {
     public:
-        CustomMessage();
+        void ThreadPrepare(std::shared_ptr<Message> *ptr,BeebThread *beeb_thread,ThreadState *ts) override;
 
         virtual void ThreadHandleMessage(BBCMicro *beeb)=0;
     protected:
@@ -480,9 +590,11 @@ public:
         public Message
     {
     public:
-        uint64_t max_sound_units=0;
+        const uint64_t max_sound_units=0;
 
         explicit TimingMessage(uint64_t max_sound_units);
+
+        void ThreadPrepare(std::shared_ptr<Message> *ptr,BeebThread *beeb_thread,ThreadState *ts) override;
     protected:
     private:
     };
@@ -497,7 +609,7 @@ public:
                         uint32_t sound_device_id,
                         int sound_freq,
                         size_t sound_buffer_size_samples,
-                        std::vector<BeebEvent> initial_timeline_events);
+                        std::vector<TimelineEvent> initial_timeline_events);
     ~BeebThread();
 
     // Start/stop the thread.
@@ -623,7 +735,6 @@ public:
     std::vector<AudioCallbackRecord> GetAudioCallbackRecords() const;
 protected:
 private:
-    struct ThreadState;
     struct AudioThreadData;
 
     class KeyStates {
@@ -636,10 +747,10 @@ private:
     };
 
     // Initialisation-time stuff. Controlled by m_mutex.
-    std::vector<BeebEvent> m_initial_timeline_events;
+    std::vector<TimelineEvent> m_initial_timeline_events;
 
     // Safe provided they are accessed through their functions.
-    MessageQueue<std::unique_ptr<Message>> m_mq;
+    MessageQueue<std::shared_ptr<Message>> m_mq;
     OutputDataBuffer<VideoDataUnit> m_video_output;
     OutputDataBuffer<SoundDataUnit> m_sound_output;
     KeyStates m_effective_key_states;//includes fake shift
@@ -718,7 +829,7 @@ private:
     static bool ThreadStopCopyOnOSWORD0(const BBCMicro *beeb,const M6502 *cpu,void *context);
     static bool ThreadAddCopyData(const BBCMicro *beeb,const M6502 *cpu,void *context);
 
-    void ThreadRecordEvent(ThreadState *ts,BeebEvent &&event);
+    //void ThreadRecordEvent(ThreadState *ts,BeebEvent &&event);
     std::shared_ptr<BeebState> ThreadSaveState(ThreadState *ts);
     void ThreadReplaceBeeb(ThreadState *ts,std::unique_ptr<BBCMicro> beeb,uint32_t flags);
 #if BBCMICRO_TRACE
@@ -733,20 +844,20 @@ private:
 #if BBCMICRO_TURBO_DISC
     void ThreadSetTurboDisc(ThreadState *ts,bool turbo);
 #endif
-    void ThreadHandleEvent(ThreadState *ts,const BeebEvent &event,bool replay);
+    //void ThreadHandleEvent(ThreadState *ts,const BeebEvent &event,bool replay);
     //void ThreadStartReplay(ThreadState *ts,std::unique_ptr<Timeline> timeline);
 //    void ThreadStopReplay(ThreadState *ts);
     void ThreadLoadState(ThreadState *ts,const std::shared_ptr<BeebState> &state);
 //    void ThreadHandleReplayEvents(ThreadState *ts);
-    bool ThreadHandleMessage(ThreadState *ts,std::unique_ptr<Message> message,bool *limit_speed,uint64_t *next_stop_2MHz_cycles);
+    void ThreadHandleMessage(ThreadState *ts,std::shared_ptr<Message> message);
     void ThreadSetDiscImage(ThreadState *ts,int drive,std::shared_ptr<DiscImage> disc_image);
-    void ThreadStartPaste(ThreadState *ts,std::string text);
+    void ThreadStartPaste(ThreadState *ts,std::shared_ptr<const std::string> text);
     void ThreadStopPaste(ThreadState *ts);
     void ThreadStopCopy(ThreadState *ts);
     void ThreadFailCompletionFun(std::unique_ptr<Message> *message_ptr);
     void ThreadMain();
     void SetVolume(float *scale_var,float db);
-    bool ThreadIsReplayingOrHalted(ThreadState *ts);
+//    bool ThreadIsReplayingOrHalted(ThreadState *ts);
 
     static bool ThreadWaitForHardReset(const BBCMicro *beeb,const M6502 *cpu,void *context);
 #if HTTP_SERVER

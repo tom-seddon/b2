@@ -11,6 +11,7 @@
 #include <SDL.h>
 #include "Timeline.h"
 #include <atomic>
+#include "BeebThread.h"
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -19,7 +20,7 @@ class WriteVideoJob:
     public JobQueue::Job
 {
 public:
-    WriteVideoJob(std::vector<BeebEvent> events,
+    WriteVideoJob(std::vector<BeebThread::TimelineEvent> events,
                   std::unique_ptr<VideoWriter> writer,
                   std::shared_ptr<MessageList> message_list);
     ~WriteVideoJob();
@@ -33,7 +34,7 @@ public:
 protected:
 private:
     std::shared_ptr<MessageList> m_message_list;
-    std::vector<BeebEvent> m_events;
+    std::vector<BeebThread::TimelineEvent> m_events;
     std::unique_ptr<VideoWriter> m_writer;
     bool m_success=false;
     std::atomic<uint64_t> m_ticks{0};

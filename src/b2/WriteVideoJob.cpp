@@ -93,7 +93,7 @@ static void SaveWAV(
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-WriteVideoJob::WriteVideoJob(std::vector<BeebEvent> events,
+WriteVideoJob::WriteVideoJob(std::vector<BeebThread::TimelineEvent> events,
                              std::unique_ptr<VideoWriter> writer,
                              std::shared_ptr<MessageList> message_list):
 m_message_list(std::move(message_list)),
