@@ -353,7 +353,7 @@ bool BeebWindow::GetBeebKeyState(BeebKey key) const {
 void BeebWindow::HandleSDLKeyEvent(const SDL_KeyboardEvent &event) {
     bool state=event.type==SDL_KEYDOWN;
 
-    LOGF(OUTPUT,"%s: key=%s state=%s timestamp=%u\n",__func__,SDL_GetScancodeName(event.keysym.scancode),BOOL_STR(state),event.timestamp);
+    //LOGF(OUTPUT,"%s: key=%s state=%s timestamp=%u\n",__func__,SDL_GetScancodeName(event.keysym.scancode),BOOL_STR(state),event.timestamp);
 
     m_imgui_stuff->SetKeyDown(event.keysym.scancode,state);
 
