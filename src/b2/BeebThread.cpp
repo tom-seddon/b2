@@ -44,6 +44,9 @@ static const int32_t RUN_2MHz_CYCLES=2000;
 static constexpr size_t NUM_VIDEO_UNITS=262144;
 static constexpr size_t NUM_AUDIO_UNITS=NUM_VIDEO_UNITS/2;//(1<<SOUND_CLOCK_SHIFT);
 
+// When recording, how often to save a state.
+static const uint64_t TIMELINE_SAVE_STATE_FREQUENCY_2MHz_CYCLES=2e6;
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
@@ -108,6 +111,7 @@ struct BeebThread::ThreadState {
     BeebThreadTimelineState timeline_state=BeebThreadTimelineState_None;
     uint64_t timeline_end_2MHz_cycles=0;
     std::vector<TimelineEvent> timeline_events;
+    uint64_t timeline_last_save_state_2MHz_cycles=0;
 
     //    std::unique_ptr<Timeline> record_timeline;
     //
@@ -248,9 +252,9 @@ bool BeebThread::StopMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-BeebThread::KeyMessage::KeyMessage(BeebKey key_,bool state_):
-    key(key_),
-    state(state_)
+BeebThread::KeyMessage::KeyMessage(BeebKey key,bool state):
+    m_key(key),
+    m_state(state)
 {
 }
 
@@ -259,22 +263,35 @@ bool BeebThread::KeyMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
                                            BeebThread *beeb_thread,
                                            ThreadState *ts)
 {
-    return PrepareUnlessReplayingOrHalted(ptr,completion_fun,beeb_thread,ts);
+    if(!PrepareUnlessReplayingOrHalted(ptr,completion_fun,beeb_thread,ts)) {
+        return false;
+    }
+
+    if(beeb_thread->m_real_key_states.GetState(m_key)==m_state) {
+        // not an error - just don't duplicate events when the key is held.
+        ptr->reset();
+        return true;
+    }
+
+    return true;
 }
 
 void BeebThread::KeyMessage::ThreadHandle(BeebThread *beeb_thread,
                                           ThreadState *ts) const
 {
-    beeb_thread->ThreadSetKeyState(ts,this->key,this->state);
+    beeb_thread->ThreadSetKeyState(ts,m_key,m_state);
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-BeebThread::KeySymMessage::KeySymMessage(BeebKeySym key_sym_,bool state_):
-key_sym(key_sym_),
-state(state_)
+BeebThread::KeySymMessage::KeySymMessage(BeebKeySym key_sym,bool state):
+m_key_sym(key_sym),
+m_state(state)
 {
+    if(!GetBeebKeyComboForKeySym(&m_key,&m_shift_state,key_sym)) {
+        m_key=BeebKey_None;
+    }
 }
 
 bool BeebThread::KeySymMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
@@ -282,21 +299,30 @@ bool BeebThread::KeySymMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
                                               BeebThread *beeb_thread,
                                               ThreadState *ts)
 {
-    return PrepareUnlessReplayingOrHalted(ptr,completion_fun,beeb_thread,ts);
+    if(!PrepareUnlessReplayingOrHalted(ptr,completion_fun,beeb_thread,ts)) {
+        return false;
+    }
+
+    if(m_key==BeebKey_None) {
+        return false;
+    }
+
+    if(beeb_thread->m_real_key_states.GetState(m_key)==m_state&&
+       ts->fake_shift_state==m_shift_state)
+    {
+        // not an error - just don't duplicate events when the key is held.
+        ptr->reset();
+        return true;
+    }
+
+    return true;
 }
 
 void BeebThread::KeySymMessage::ThreadHandle(BeebThread *beeb_thread,
                                              ThreadState *ts) const
 {
-    BeebKey key;
-    BeebShiftState shift;
-    if(GetBeebKeyComboForKeySym(&key,&shift,this->key_sym)) {
-        beeb_thread->ThreadSetFakeShiftState(ts,shift);
-        beeb_thread->ThreadSetKeyState(ts,key,this->state);
-    } else {
-        // Could arrange for the event not to be recorded. Hardly seems worth
-        // it though.
-    }
+    beeb_thread->ThreadSetFakeShiftState(ts,m_shift_state);
+    beeb_thread->ThreadSetKeyState(ts,m_key,m_state);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -678,9 +704,9 @@ bool BeebThread::StartRecordingMessage::ThreadPrepare(std::shared_ptr<Message> *
     ts->timeline_state=BeebThreadTimelineState_Record;
     ts->timeline_events.clear();
 
-    auto message=std::make_shared<LoadStateMessage>(std::make_unique<BeebState>(ts->beeb->Clone()));
-
-    ts->timeline_events.push_back(TimelineEvent{*ts->num_executed_2MHz_cycles,std::move(message)});
+    bool good_save_state=beeb_thread->ThreadRecordSaveState(ts);
+    (void)good_save_state;
+    ASSERT(good_save_state);
 
     ptr->reset();
     return true;
@@ -694,8 +720,23 @@ bool BeebThread::StopRecordingMessage::ThreadPrepare(std::shared_ptr<Message> *p
                                                      BeebThread *beeb_thread,
                                                      ThreadState *ts)
 {
-    ts->timeline_end_2MHz_cycles=*ts->num_executed_2MHz_cycles;
-    ts->timeline_state=BeebThreadTimelineState_None;
+    beeb_thread->ThreadStopRecording(ts);
+
+    ptr->reset();
+    return true;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool BeebThread::ClearRecordingMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
+                                                      CompletionFun *completion_fun,
+                                                      BeebThread *beeb_thread,
+                                                      ThreadState *ts)
+{
+    beeb_thread->ThreadStopRecording(ts);
+
+    ts->timeline_events.clear();
 
     ptr->reset();
     return true;
@@ -3028,26 +3069,35 @@ void BeebThread::ThreadMain(void) {
             messages.clear();
 
             // Update timeline stuff.
-            switch(ts.timeline_state) {
-                default:
-                    ASSERT(false);
-                    break;
+            if(ts.timeline_state==BeebThreadTimelineState_Record) {
+                m_timeline_state.can_record=true;
+                ASSERT(!ts.timeline_events.empty());
+                ts.timeline_end_2MHz_cycles=*ts.num_executed_2MHz_cycles;
 
-                case BeebThreadTimelineState_None:
-                    m_timeline_state.can_record=ts.beeb->CanClone(&m_timeline_state.non_cloneable_drives);
-                    break;
+                ASSERT(*ts.num_executed_2MHz_cycles>=ts.timeline_last_save_state_2MHz_cycles);
+                if(*ts.num_executed_2MHz_cycles-ts.timeline_last_save_state_2MHz_cycles>=TIMELINE_SAVE_STATE_FREQUENCY_2MHz_CYCLES) {
+                    if(!this->ThreadRecordSaveState(&ts)) {
+                        // ugh, something went wrong :(
+                        this->ThreadStopRecording(&ts);
+                        ts.msgs.e.f("Internal error - failed to save state.\n");
+                    } else {
+                        ts.timeline_last_save_state_2MHz_cycles=*ts.num_executed_2MHz_cycles;
+                    }
+                }
+            }
 
-                case BeebThreadTimelineState_Record:
-                    ASSERT(!ts.timeline_events.empty());
-                    m_timeline_state.begin_2MHz_cycles=ts.timeline_events[0].time_2MHz_cycles;
-                    m_timeline_state.end_2MHz_cycles=*ts.num_executed_2MHz_cycles;
-                    break;
-
-                case BeebThreadTimelineState_Replay:
-                    break;
+            if(ts.timeline_state==BeebThreadTimelineState_None) {
+                m_timeline_state.can_record=ts.beeb->CanClone(&m_timeline_state.non_cloneable_drives);
             }
 
             m_timeline_state.num_events=ts.timeline_events.size();
+            if(m_timeline_state.num_events>0) {
+                m_timeline_state.begin_2MHz_cycles=ts.timeline_events[0].time_2MHz_cycles;
+                m_timeline_state.end_2MHz_cycles=ts.timeline_end_2MHz_cycles;
+            } else {
+                m_timeline_state.begin_2MHz_cycles=0;
+                m_timeline_state.end_2MHz_cycles=m_timeline_state.begin_2MHz_cycles;
+            }
             m_timeline_state.current_2MHz_cycles=*ts.num_executed_2MHz_cycles;
             m_timeline_state.state=ts.timeline_state;
         }
@@ -3067,8 +3117,6 @@ void BeebThread::ThreadMain(void) {
 //            }
 //        }
 
-
-
         if(m_is_pasting) {
             if(!ts.beeb->IsPasting()) {
                 m_is_pasting.store(false,std::memory_order_release);
@@ -3076,6 +3124,7 @@ void BeebThread::ThreadMain(void) {
             }
         }
 
+        // TODO - can ts.beeb actually ever be null? I can't remember...
         if(ts.beeb) {
             m_leds.store(ts.beeb->GetLEDs(),std::memory_order_release);
 
@@ -3249,6 +3298,31 @@ void BeebThread::SetVolume(float *scale_var,float db) {
 
         *scale_var=powf(10.f,db/20.f);
     }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool BeebThread::ThreadRecordSaveState(ThreadState *ts) {
+    std::unique_ptr<BBCMicro> clone=ts->beeb->Clone();
+    if(!clone) {
+        return false;
+    }
+
+    auto message=std::make_shared<LoadStateMessage>(std::make_unique<BeebState>(std::move(clone)));
+
+    ts->timeline_events.push_back(TimelineEvent{*ts->num_executed_2MHz_cycles,std::move(message)});
+    ts->timeline_last_save_state_2MHz_cycles=*ts->num_executed_2MHz_cycles;
+
+    return true;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BeebThread::ThreadStopRecording(ThreadState *ts) {
+    ts->timeline_end_2MHz_cycles=*ts->num_executed_2MHz_cycles;
+    ts->timeline_state=BeebThreadTimelineState_None;
 }
 
 //////////////////////////////////////////////////////////////////////////

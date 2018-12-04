@@ -900,7 +900,9 @@ public:
                 if(duration>0) {
                     // Clear
                     ImGui::SameLine();
-                    ImGui::Button(ICON_FA_TIMES);
+                    if(ImGui::Button(ICON_FA_TIMES)) {
+                        beeb_thread->Send(std::make_shared<BeebThread::ClearRecordingMessage>());
+                    }
                 }
 
                 if(!timeline_state.can_record) {

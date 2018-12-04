@@ -80,8 +80,8 @@ struct TraceConditions {
 // vector<shared_ptr<TimelineEvent>>. This is very wasteful, and could be
 // improved. Maybe one day I'll get round to doing that.
 //
-// (Since Message objects are immutable, they could at least be potentially
-// pooled.)
+// (Since Message objects are immutable once Prepare'd, messages that don't
+// require a mutating Prepare step could at least be potentially pooled.)
 //
 // (Message doesn't derived from enable_shared_from_this.)
 
@@ -203,9 +203,6 @@ public:
         public Message
     {
     public:
-        const BeebKey key=BeebKey_None;
-        const bool state=false;
-
         KeyMessage(BeebKey key,bool state);
 
         bool ThreadPrepare(std::shared_ptr<Message> *ptr,
@@ -215,14 +212,14 @@ public:
         void ThreadHandle(BeebThread *beeb_thread,ThreadState *ts) const override;
     protected:
     private:
+        const BeebKey m_key=BeebKey_None;
+        const bool m_state=false;
     };
 
     class KeySymMessage:
         public Message
     {
     public:
-        const BeebKeySym key_sym=BeebKeySym_None;
-        const bool state=false;
 
         KeySymMessage(BeebKeySym key_sym,bool state);
 
@@ -233,6 +230,10 @@ public:
         void ThreadHandle(BeebThread *beeb_thread,ThreadState *ts) const override;
     protected:
     private:
+        const BeebKeySym m_key_sym=BeebKeySym_None;
+        const bool m_state=false;
+        BeebKey m_key=BeebKey_None;
+        BeebShiftState m_shift_state=BeebShiftState_Any;
     };
 
     class HardResetMessage:
@@ -319,7 +320,11 @@ public:
     public:
         const int drive=-1;
 
-        // this is an owning pointer, being given to the BBCMicro.
+        // This is an owning pointer. If the disc image isn't cloneable, it'll
+        // be given to the BBCMicro, and the LoadDiscMessage will always be
+        // destroyed; if it is cloneable, a clone of it will be made, and the
+        // clone given to the BBCMicro. (The LOadDiscMessage may or may not then
+        // stick around, depending on whether there's a recording being made.)
         const std::shared_ptr<DiscImage> disc_image;
         const bool verbose=false;
 
@@ -395,6 +400,18 @@ public:
     };
 
     class StopRecordingMessage:
+    public Message
+    {
+    public:
+        bool ThreadPrepare(std::shared_ptr<Message> *ptr,
+                           CompletionFun *completion_fun,
+                           BeebThread *beeb_thread,
+                           ThreadState *ts) override;
+    protected:
+    private:
+    };
+
+    class ClearRecordingMessage:
     public Message
     {
     public:
@@ -1014,6 +1031,8 @@ private:
     void ThreadMain();
     void SetVolume(float *scale_var,float db);
 //    bool ThreadIsReplayingOrHalted(ThreadState *ts);
+    bool ThreadRecordSaveState(ThreadState *ts);
+    void ThreadStopRecording(ThreadState *ts);
 
     static bool ThreadWaitForHardReset(const BBCMicro *beeb,const M6502 *cpu,void *context);
 #if HTTP_SERVER
