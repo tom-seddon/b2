@@ -619,7 +619,7 @@ private:
 
     uint8_t *m_ram=nullptr;
 
-    std::vector<float> m_disc_drive_sounds[DiscDriveSound_EndValue];
+    const std::vector<float> *m_disc_drive_sounds[DiscDriveSound_EndValue];
 
     void (*m_default_handle_cpu_data_bus_fn)(BBCMicro *)=nullptr;
 

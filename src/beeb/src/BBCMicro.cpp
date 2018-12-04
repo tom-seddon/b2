@@ -3097,7 +3097,7 @@ void BBCMicro::InitDiscDriveSounds(DiscDriveType type) {
     }
 
     for(size_t i=0;i<DiscDriveSound_EndValue;++i) {
-        m_disc_drive_sounds[i]=it->second[i];
+        m_disc_drive_sounds[i]=&it->second[i];
     }
 }
 #endif
@@ -3158,7 +3158,7 @@ float BBCMicro::UpdateDiscDriveSound(DiscDrive *dd) {
 
     if(dd->spin_sound!=DiscDriveSound_EndValue) {
         ASSERT(dd->spin_sound>=0&&dd->spin_sound<DiscDriveSound_EndValue);
-        const std::vector<float> *spin_sound=&m_disc_drive_sounds[dd->spin_sound];
+        const std::vector<float> *spin_sound=m_disc_drive_sounds[dd->spin_sound];
 
         acc+=(*spin_sound)[dd->spin_sound_index];
 
@@ -3185,7 +3185,7 @@ float BBCMicro::UpdateDiscDriveSound(DiscDrive *dd) {
     }
 
     if(dd->seek_sound!=DiscDriveSound_EndValue) {
-        const std::vector<float> *seek_sound=&m_disc_drive_sounds[dd->seek_sound];
+        const std::vector<float> *seek_sound=m_disc_drive_sounds[dd->seek_sound];
 
         acc+=(*seek_sound)[dd->seek_sound_index];
 
@@ -3194,7 +3194,7 @@ float BBCMicro::UpdateDiscDriveSound(DiscDrive *dd) {
             dd->seek_sound=DiscDriveSound_EndValue;
         }
     } else if(dd->step_sound_index>=0) {
-        const std::vector<float> *step_sound=&m_disc_drive_sounds[DiscDriveSound_Step];
+        const std::vector<float> *step_sound=m_disc_drive_sounds[DiscDriveSound_Step];
 
         // check for end first as the playback position is adjusted in
         // StepSound.
