@@ -382,6 +382,30 @@ public:
         const size_t m_timeline_event_index;
     };
 
+    class StartRecordingMessage:
+    public Message
+    {
+    public:
+        bool ThreadPrepare(std::shared_ptr<Message> *ptr,
+                           CompletionFun *completion_fun,
+                           BeebThread *beeb_thread,
+                           ThreadState *ts) override;
+    protected:
+    private:
+    };
+
+    class StopRecordingMessage:
+    public Message
+    {
+    public:
+        bool ThreadPrepare(std::shared_ptr<Message> *ptr,
+                           CompletionFun *completion_fun,
+                           BeebThread *beeb_thread,
+                           ThreadState *ts) override;
+    protected:
+    private:
+    };
+
 //    class SaveAndReplayFromMessage:
 //        public Message
 //    {
@@ -706,6 +730,17 @@ public:
     private:
     };
 
+    // there's probably a few too many things called 'TimelineState' now...
+    struct TimelineState {
+        BeebThreadTimelineState state=BeebThreadTimelineState_None;
+        uint64_t begin_2MHz_cycles=0;
+        uint64_t end_2MHz_cycles=0;
+        uint64_t current_2MHz_cycles=0;
+        size_t num_events=0;
+        bool can_record=true;
+        uint32_t non_cloneable_drives=0;
+    };
+
     struct AudioCallbackRecord {
         uint64_t time=0;
         uint64_t needed=0;
@@ -845,6 +880,9 @@ public:
 
     // Get info about the previous N audio callbacks.
     std::vector<AudioCallbackRecord> GetAudioCallbackRecords() const;
+
+    //
+    void GetTimelineState(TimelineState *timeline_state) const;
 protected:
 private:
     struct AudioThreadData;
@@ -895,6 +933,9 @@ private:
     std::atomic<bool> m_is_copying{false};
     std::atomic<bool> m_has_nvram{false};
 
+    // Controlled by m_mutex.
+    TimelineState m_timeline_state;
+
     //mutable volatile int32_t m_is_paused=1;
 
     mutable Mutex m_mutex;
@@ -937,10 +978,6 @@ private:
 
     //
     std::shared_ptr<MessageList> m_message_list;
-
-#if BBCMICRO_DEBUGGER
-    M6502 m_6502_state={};
-#endif
 
 #if BBCMICRO_TRACE
     static bool ThreadStopTraceOnOSWORD0(const BBCMicro *beeb,const M6502 *cpu,void *context);

@@ -142,7 +142,7 @@ std::string Get2MHzCyclesString(uint64_t num_2MHz_cycles) {
 
     uint64_t minutes=n;
 
-    snprintf(str,sizeof str,"%" PRIu64 " min %02u sec %03u ms %03u.%d usec",minutes,secs,ms,us,cycles?5:0);
+    snprintf(str,sizeof str,"%" PRIu64 " min %02u sec %03u ms %03u.%d \xc2\xb5s",minutes,secs,ms,us,cycles?5:0);
 
     return str;
 }

@@ -330,23 +330,31 @@ BBCMicro::~BBCMicro() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool BBCMicro::CanClone() const {
+bool BBCMicro::CanClone(uint32_t *non_cloneable_drives) const {
+    bool can_clone=true;
+    uint32_t drives=0;
+
     for(int i=0;i<NUM_DRIVES;++i) {
         if(!!m_disc_images[i]) {
             if(!m_disc_images[i]->CanClone()) {
-                return false;
+                drives|=1<<i;
+                can_clone=false;
             }
         }
     }
 
-    return true;
+    if(non_cloneable_drives) {
+        *non_cloneable_drives=drives;
+    }
+
+    return can_clone;
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 std::unique_ptr<BBCMicro> BBCMicro::Clone() const {
-    if(!this->CanClone()) {
+    if(!this->CanClone(nullptr)) {
         return nullptr;
     }
 

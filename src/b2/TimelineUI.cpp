@@ -7,12 +7,12 @@
 //#include <vector>
 //#include <SDL.h>
 //#include <map>
-//#include "misc.h"
+#include "misc.h"
 //#include "GenerateThumbnailJob.h"
 //#include "BeebState.h"
 //#include <shared/debug.h>
 //#include "BeebWindows.h"
-//#include "BeebThread.h"
+#include "BeebThread.h"
 //#include <beeb/DiscImage.h>
 //#include "BeebWindow.h"
 //#include "b2.h"
@@ -24,6 +24,7 @@
 //#include "Timeline.h"
 //#include <float.h>
 #include "SettingsUI.h"
+#include <IconsFontAwesome5.h>
 //
 ////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////
@@ -869,7 +870,109 @@ public:
     }
 
     void DoImGui(CommandContextStack *cc_stack) override {
-        ImGui::Text("Hello");
+        auto beeb_thread=m_beeb_window->GetBeebThread();
+
+        BeebThread::TimelineState timeline_state;
+        beeb_thread->GetTimelineState(&timeline_state);
+
+        ImGui::Text("Timeline State: %s",GetBeebThreadTimelineStateEnumName(timeline_state.state));
+
+        // Back, Stop, Play/Pause, Forward
+        //
+        // https://fontawesome.com/icons?d=gallery
+
+        switch(timeline_state.state) {
+            default:
+                ASSERT(false);
+                // fall through
+            case BeebThreadTimelineState_None:
+            {
+                ASSERT(timeline_state.end_2MHz_cycles>=timeline_state.begin_2MHz_cycles);
+                uint64_t duration=timeline_state.end_2MHz_cycles-timeline_state.begin_2MHz_cycles;
+
+                // Record
+                if(timeline_state.can_record) {
+                    if(ImGui::Button(ICON_FA_CIRCLE)) {
+                        beeb_thread->Send(std::make_shared<BeebThread::StartRecordingMessage>());
+                    }
+                }
+
+                if(duration>0) {
+                    // Clear
+                    ImGui::SameLine();
+                    ImGui::Button(ICON_FA_TIMES);
+                }
+
+                if(!timeline_state.can_record) {
+                    std::string message="Recording disabled due to non-cloneable drives:";
+                    for(int i=0;i<NUM_DRIVES;++i) {
+                        if(timeline_state.non_cloneable_drives&1<<i) {
+                            message+=strprintf(" %d",i);
+                        }
+                    }
+
+                    ImGui::TextUnformatted(message.c_str());
+                }
+            }
+                break;
+
+            case BeebThreadTimelineState_Replay:
+            {
+                // Stop
+                if(ImGui::Button(ICON_FA_STOP)) {
+                }
+
+                // Pause
+                ImGui::SameLine();
+                ImGui::Button(ICON_FA_PAUSE);
+            }
+                break;
+
+            case BeebThreadTimelineState_Record:
+            {
+                // Stop
+                if(ImGui::Button(ICON_FA_STOP)) {
+                    beeb_thread->Send(std::make_shared<BeebThread::StopRecordingMessage>());
+                }
+            }
+                break;
+        }
+
+//        // buttons
+//        ImGui::Button(ICON_FA_STEP_BACKWARD);
+//        ImGui::SameLine();
+//        ImGui::Button(ICON_FA_STOP);
+//        ImGui::SameLine();
+//        ImGui::Button(ICON_FA_PLAY);
+//        ImGui::SameLine();
+//        ImGui::Button(ICON_FA_PAUSE);
+//        ImGui::SameLine();
+//        ImGui::Button(ICON_FA_STEP_FORWARD);
+//        ImGui::SameLine();
+
+        switch(timeline_state.state) {
+            default:
+                ASSERT(false);
+                // fall through
+            case BeebThreadTimelineState_None:
+                // fall through
+            case BeebThreadTimelineState_Record:
+            {
+                ASSERT(timeline_state.end_2MHz_cycles>=timeline_state.begin_2MHz_cycles);
+                uint64_t duration=timeline_state.end_2MHz_cycles-timeline_state.begin_2MHz_cycles;
+                if(duration==0) {
+                    ImGui::Text("No recording.");
+                } else {
+                    ImGui::Text("Recorded: %zu events, %s",
+                                timeline_state.num_events,
+                                Get2MHzCyclesString(duration).c_str());
+                }
+            }
+                break;
+
+            case BeebThreadTimelineState_Replay:
+                break;
+        }
     }
 
     bool OnClose() override {

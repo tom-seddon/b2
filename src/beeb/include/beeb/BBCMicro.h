@@ -112,7 +112,10 @@ protected:
 public:
     ~BBCMicro();
 
-    bool CanClone() const;
+    // Sets *NON_CLONEABLE_DRIVES bit i, if drive i isn't cloneable.
+    // (This is a scrappy mechanism that will improve over time as further
+    // impediments to cloneability are added.)
+    bool CanClone(uint32_t *non_cloneable_drives) const;
 
     std::unique_ptr<BBCMicro> Clone() const;
 

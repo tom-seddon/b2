@@ -106,6 +106,7 @@ struct BeebThread::ThreadState {
     bool limit_speed=true;
 
     BeebThreadTimelineState timeline_state=BeebThreadTimelineState_None;
+    uint64_t timeline_end_2MHz_cycles=0;
     std::vector<TimelineEvent> timeline_events;
 
     //    std::unique_ptr<Timeline> record_timeline;
@@ -547,6 +548,7 @@ bool BeebThread::LoadDiscMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
         // but there's no enforcing this, and it doesn't matter here anyway,
         // because *this will be destroyed soon enough.)
         beeb_thread->ThreadSetDiscImage(ts,this->drive,this->disc_image);
+        ptr->reset();
     }
 
     return true;
@@ -651,6 +653,52 @@ bool BeebThread::StartReplayMessage::ThreadPrepare(std::shared_ptr<Message> *ptr
     ASSERT(false);
 
     return false;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool BeebThread::StartRecordingMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
+                                                      CompletionFun *completion_fun,
+                                                      BeebThread *beeb_thread,
+                                                      ThreadState *ts)
+{
+    if(!PrepareUnlessReplaying(ptr,completion_fun,beeb_thread,ts)) {
+        return false;
+    }
+
+    if(ts->timeline_state!=BeebThreadTimelineState_None) {
+        return false;
+    }
+
+    if(!ts->beeb->CanClone(nullptr)) {
+        return false;
+    }
+
+    ts->timeline_state=BeebThreadTimelineState_Record;
+    ts->timeline_events.clear();
+
+    auto message=std::make_shared<LoadStateMessage>(std::make_unique<BeebState>(ts->beeb->Clone()));
+
+    ts->timeline_events.push_back(TimelineEvent{*ts->num_executed_2MHz_cycles,std::move(message)});
+
+    ptr->reset();
+    return true;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool BeebThread::StopRecordingMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
+                                                     CompletionFun *completion_fun,
+                                                     BeebThread *beeb_thread,
+                                                     ThreadState *ts)
+{
+    ts->timeline_end_2MHz_cycles=*ts->num_executed_2MHz_cycles;
+    ts->timeline_state=BeebThreadTimelineState_None;
+
+    ptr->reset();
+    return true;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -1704,6 +1752,15 @@ std::vector<BeebThread::AudioCallbackRecord> BeebThread::GetAudioCallbackRecords
     }
 
     return records;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BeebThread::GetTimelineState(TimelineState *timeline_state) const {
+    std::lock_guard<Mutex> lock(m_mutex);
+
+    *timeline_state=m_timeline_state;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -2969,6 +3026,30 @@ void BeebThread::ThreadMain(void) {
             }
 
             messages.clear();
+
+            // Update timeline stuff.
+            switch(ts.timeline_state) {
+                default:
+                    ASSERT(false);
+                    break;
+
+                case BeebThreadTimelineState_None:
+                    m_timeline_state.can_record=ts.beeb->CanClone(&m_timeline_state.non_cloneable_drives);
+                    break;
+
+                case BeebThreadTimelineState_Record:
+                    ASSERT(!ts.timeline_events.empty());
+                    m_timeline_state.begin_2MHz_cycles=ts.timeline_events[0].time_2MHz_cycles;
+                    m_timeline_state.end_2MHz_cycles=*ts.num_executed_2MHz_cycles;
+                    break;
+
+                case BeebThreadTimelineState_Replay:
+                    break;
+            }
+
+            m_timeline_state.num_events=ts.timeline_events.size();
+            m_timeline_state.current_2MHz_cycles=*ts.num_executed_2MHz_cycles;
+            m_timeline_state.state=ts.timeline_state;
         }
 
         uint64_t stop_2MHz_cycles=ts.next_stop_2MHz_cycles;
