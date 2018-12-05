@@ -40,6 +40,7 @@ class BeebState;
 class MessageList;
 //class BeebEvent;
 class VideoWriter;
+class GenerateThumbnailJob;
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -140,7 +141,8 @@ public:
         //
         // Otherwise, leave *PTR alone, or set *PTR to actual message to use,
         // which will (either way) cause that message to be ThreadHandle'd and
-        // added to the timeline.
+        // added to the timeline. It will be ThreadHandle'd again (but not
+        // ThreadPrepare'd...) when replayed.
         //
         // COMPLETION_FUN, if non-null, points to the completion fun to be
         // called when the message completes for the first time. ('completion'
@@ -339,11 +341,24 @@ public:
     private:
     };
 
-    class LoadStateMessage:
-        public Message
+    // Any kind of message that has a BeebState.
+    class BeebStateMessage:
+    public Message
     {
     public:
-        LoadStateMessage(std::shared_ptr<BeebState> state);
+        explicit BeebStateMessage(std::shared_ptr<BeebState> state);
+
+        const std::shared_ptr<const BeebState> &GetBeebState() const;
+    protected:
+    private:
+        const std::shared_ptr<const BeebState> m_state;
+    };
+
+    class LoadStateMessage:
+        public BeebStateMessage
+    {
+    public:
+        explicit LoadStateMessage(std::shared_ptr<BeebState> state);
 
         bool ThreadPrepare(std::shared_ptr<Message> *ptr,
                            CompletionFun *completion_fun,
@@ -352,8 +367,6 @@ public:
         void ThreadHandle(BeebThread *beeb_thread,ThreadState *ts) const override;
     protected:
     private:
-        const std::shared_ptr<const BeebState> state;
-
     };
 
     class SaveStateMessage:
@@ -747,6 +760,44 @@ public:
     private:
     };
 
+    // This message is unusual. The caller should keep a reference to it, and
+    // poll IsComplete at intervals. Once IsComplete returns true, check
+    // GetTextureData and GetActualTime2MHzCycles to find out the details.
+    class GenerateThumbnailFromTimelineMessage:
+    public Message
+    {
+    public:
+        explicit GenerateThumbnailFromTimelineMessage(uint64_t time_2MHz_cycles,
+                                                      const SDL_PixelFormat *pixel_format);
+
+        bool ThreadPrepare(std::shared_ptr<Message> *ptr,
+                           CompletionFun *completion_fun,
+                           BeebThread *beeb_thread,
+                           ThreadState *ts) override;
+
+        bool IsComplete() const;
+
+        uint64_t GetActualTime2MHzCycles() const;
+        const void *GetTextureData() const;
+    protected:
+    private:
+        enum State {
+            State_Init,
+            State_WaitForJob,
+            State_Complete,
+        };
+
+        const uint64_t m_time_2MHz_cycles=0;
+        const SDL_PixelFormat *const m_pixel_format=nullptr;
+
+        mutable Mutex m_mutex;
+        mutable State m_state=State_Init;
+        uint64_t m_actual_time_2MHz_cycles=0;
+        std::shared_ptr<GenerateThumbnailJob> m_generate_thumbnail_job;
+
+        void UpdateCompletionStatusLocked() const;
+    };
+
     // there's probably a few too many things called 'TimelineState' now...
     struct TimelineState {
         BeebThreadTimelineState state=BeebThreadTimelineState_None;
@@ -1033,6 +1084,8 @@ private:
 //    bool ThreadIsReplayingOrHalted(ThreadState *ts);
     bool ThreadRecordSaveState(ThreadState *ts);
     void ThreadStopRecording(ThreadState *ts);
+    void ThreadClearRecording(ThreadState *ts);
+    void ThreadCheckTimeline(ThreadState *ts);
 
     static bool ThreadWaitForHardReset(const BBCMicro *beeb,const M6502 *cpu,void *context);
 #if HTTP_SERVER
