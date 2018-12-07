@@ -40,7 +40,6 @@ class BeebState;
 class MessageList;
 //class BeebEvent;
 class VideoWriter;
-class GenerateThumbnailJob;
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -352,6 +351,11 @@ public:
     protected:
     private:
         const std::shared_ptr<const BeebState> m_state;
+    };
+
+    struct TimelineBeebStateEvent {
+        uint64_t time_2MHz_cycles;
+        std::shared_ptr<BeebStateMessage> message;
     };
 
     class LoadStateMessage:
@@ -760,44 +764,6 @@ public:
     private:
     };
 
-    // This message is unusual. The caller should keep a reference to it, and
-    // poll IsComplete at intervals. Once IsComplete returns true, check
-    // GetTextureData and GetActualTime2MHzCycles to find out the details.
-    class GenerateThumbnailFromTimelineMessage:
-    public Message
-    {
-    public:
-        explicit GenerateThumbnailFromTimelineMessage(uint64_t time_2MHz_cycles,
-                                                      const SDL_PixelFormat *pixel_format);
-
-        bool ThreadPrepare(std::shared_ptr<Message> *ptr,
-                           CompletionFun *completion_fun,
-                           BeebThread *beeb_thread,
-                           ThreadState *ts) override;
-
-        bool IsComplete() const;
-
-        uint64_t GetActualTime2MHzCycles() const;
-        const void *GetTextureData() const;
-    protected:
-    private:
-        enum State {
-            State_Init,
-            State_WaitForJob,
-            State_Complete,
-        };
-
-        const uint64_t m_time_2MHz_cycles=0;
-        const SDL_PixelFormat *const m_pixel_format=nullptr;
-
-        mutable Mutex m_mutex;
-        mutable State m_state=State_Init;
-        uint64_t m_actual_time_2MHz_cycles=0;
-        std::shared_ptr<GenerateThumbnailJob> m_generate_thumbnail_job;
-
-        void UpdateCompletionStatusLocked() const;
-    };
-
     // there's probably a few too many things called 'TimelineState' now...
     struct TimelineState {
         BeebThreadTimelineState state=BeebThreadTimelineState_None;
@@ -805,6 +771,7 @@ public:
         uint64_t end_2MHz_cycles=0;
         uint64_t current_2MHz_cycles=0;
         size_t num_events=0;
+        size_t num_beeb_state_events=0;
         bool can_record=true;
         uint32_t non_cloneable_drives=0;
     };
@@ -951,6 +918,9 @@ public:
 
     //
     void GetTimelineState(TimelineState *timeline_state) const;
+    void GetTimelineBeebStateEvents(std::vector<TimelineBeebStateEvent> *timeline_beeb_state_events,
+                                    size_t begin_index,
+                                    size_t end_index);
 protected:
 private:
     struct AudioThreadData;
@@ -1003,6 +973,7 @@ private:
 
     // Controlled by m_mutex.
     TimelineState m_timeline_state;
+    std::vector<TimelineBeebStateEvent> m_timeline_beeb_state_events_copy;
 
     //mutable volatile int32_t m_is_paused=1;
 

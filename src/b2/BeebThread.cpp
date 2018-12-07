@@ -112,9 +112,8 @@ struct BeebThread::ThreadState {
     BeebThreadTimelineState timeline_state=BeebThreadTimelineState_None;
     uint64_t timeline_end_2MHz_cycles=0;
     std::vector<TimelineEvent> timeline_events;
-
-    // This just records the time for each saved state.
-    std::vector<uint64_t> timeline_beeb_state_times_2MHz_cycles;
+    std::vector<TimelineBeebStateEvent> timeline_beeb_state_events;
+    bool timeline_beeb_state_events_dirty=true;
 
     //    std::unique_ptr<Timeline> record_timeline;
     //
@@ -1268,142 +1267,15 @@ void BeebThread::ThreadCheckTimeline(ThreadState *ts) {
             }
 
             if(!!std::dynamic_pointer_cast<BeebStateMessage>(e->message)) {
-                ASSERT(beeb_state_index<ts->timeline_beeb_state_times_2MHz_cycles.size());
-                ASSERT(ts->timeline_beeb_state_times_2MHz_cycles[beeb_state_index]==e->time_2MHz_cycles);
+                ASSERT(beeb_state_index<ts->timeline_beeb_state_events.size());
+                const TimelineBeebStateEvent *bse=&ts->timeline_beeb_state_events[beeb_state_index];
+                ASSERT(bse->time_2MHz_cycles==e->time_2MHz_cycles);
+                ASSERT(bse->message==e->message);
                 ++beeb_state_index;
             }
         }
 
-        ASSERT(beeb_state_index==ts->timeline_beeb_state_times_2MHz_cycles.size());
-    }
-}
-
-BeebThread::GenerateThumbnailFromTimelineMessage::GenerateThumbnailFromTimelineMessage(uint64_t time_2MHz_cycles,
-                                                                                       const SDL_PixelFormat *pixel_format):
-m_time_2MHz_cycles(time_2MHz_cycles),
-m_pixel_format(pixel_format)
-{
-}
-
-bool BeebThread::GenerateThumbnailFromTimelineMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
-                                                                     CompletionFun *completion_fun,
-                                                                     BeebThread *beeb_thread,
-                                                                     ThreadState *ts)
-{
-    std::lock_guard<Mutex> lock(m_mutex);
-
-    ASSERT(m_state==State_Init);
-
-    if(ts->timeline_events.empty()) {
-        m_state=State_Complete;
-        return false;
-    }
-
-    beeb_thread->ThreadCheckTimeline(ts);
-
-    auto &&time_it=std::lower_bound(ts->timeline_beeb_state_times_2MHz_cycles.begin(),
-                               ts->timeline_beeb_state_times_2MHz_cycles.end(),
-                               m_time_2MHz_cycles,
-                               [](uint64_t event_time,uint64_t time) {
-                                   return event_time<time;
-                               });
-    if(time_it==ts->timeline_beeb_state_times_2MHz_cycles.end()) {
-        m_state=State_Complete;
-        return false;
-    }
-
-    if(time_it!=ts->timeline_beeb_state_times_2MHz_cycles.begin()) {
-        // pick the closer
-
-        ASSERT(m_time_2MHz_cycles>=*(time_it-1));
-        uint64_t a=m_time_2MHz_cycles-*(time_it-1);
-
-        ASSERT(*time_it>=m_time_2MHz_cycles);
-        uint64_t b=*time_it-m_time_2MHz_cycles;
-
-        if(a<b) {
-            --time_it;
-        }
-    }
-
-    m_actual_time_2MHz_cycles=*time_it;
-
-    auto &&event_it=std::lower_bound(ts->timeline_events.begin(),
-                                     ts->timeline_events.end(),
-                                     m_actual_time_2MHz_cycles,
-                                     [](const TimelineEvent &event,uint64_t time) {
-                                         return event.time_2MHz_cycles<time;
-                                     });
-    ASSERT(event_it!=ts->timeline_events.end());
-    ASSERT(event_it->time_2MHz_cycles==m_actual_time_2MHz_cycles);
-
-    auto &&beeb_state_event=std::dynamic_pointer_cast<BeebStateMessage>(event_it->message);
-
-    m_generate_thumbnail_job=std::make_shared<GenerateThumbnailJob>();
-
-    if(!m_generate_thumbnail_job->Init(beeb_state_event->GetBeebState(),
-                                       NUM_THUMBNAIL_RENDER_FRAMES,
-                                       m_pixel_format))
-    {
-        return false;
-    }
-
-    BeebWindows::AddJob(m_generate_thumbnail_job);
-    m_state=State_WaitForJob;
-
-    ptr->reset();
-
-    return true;
-}
-
-bool BeebThread::GenerateThumbnailFromTimelineMessage::IsComplete() const {
-    std::lock_guard<Mutex> lock(m_mutex);
-
-    this->UpdateCompletionStatusLocked();
-
-    return m_state==State_Complete;
-}
-
-uint64_t BeebThread::GenerateThumbnailFromTimelineMessage::GetActualTime2MHzCycles() const {
-    std::lock_guard<Mutex> lock(m_mutex);
-
-    this->UpdateCompletionStatusLocked();
-
-    if(m_state==State_Complete) {
-        return m_actual_time_2MHz_cycles;
-    } else {
-        return 0;
-    }
-}
-
-const void *BeebThread::GenerateThumbnailFromTimelineMessage::GetTextureData() const {
-    std::lock_guard<Mutex> lock(m_mutex);
-
-    this->UpdateCompletionStatusLocked();
-
-    if(m_state==State_Complete&&!!m_generate_thumbnail_job) {
-        return m_generate_thumbnail_job->GetTextureData();
-    } else {
-        return nullptr;
-    }
-}
-
-void BeebThread::GenerateThumbnailFromTimelineMessage::UpdateCompletionStatusLocked() const {
-    switch(m_state) {
-        default:
-            ASSERT(false);
-            // fall through
-        case State_Init:
-            break;
-
-        case State_WaitForJob:
-            if(m_generate_thumbnail_job->IsFinished()) {
-                m_state=State_Complete;
-            }
-            break;
-
-        case State_Complete:
-            break;
+        ASSERT(beeb_state_index==ts->timeline_beeb_state_events.size());
     }
 }
 
@@ -1957,6 +1829,26 @@ void BeebThread::GetTimelineState(TimelineState *timeline_state) const {
     std::lock_guard<Mutex> lock(m_mutex);
 
     *timeline_state=m_timeline_state;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BeebThread::GetTimelineBeebStateEvents(std::vector<TimelineBeebStateEvent> *timeline_beeb_state_events,
+                                            size_t begin_index,
+                                            size_t end_index)
+{
+    ASSERT(end_index>=begin_index);
+
+    std::lock_guard<Mutex> lock(m_mutex);
+
+    size_t n=end_index-begin_index;
+
+    timeline_beeb_state_events->clear();
+    timeline_beeb_state_events->reserve(n);
+    for(size_t i=0;i<n;++i) {
+        timeline_beeb_state_events->emplace_back(m_timeline_beeb_state_events_copy[begin_index+i]);
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -3177,10 +3069,13 @@ void BeebThread::ThreadMain(void) {
         ts.timeline_events=std::move(m_initial_timeline_events);
 
         for(const TimelineEvent &event:ts.timeline_events) {
-            if(!!std::dynamic_pointer_cast<BeebStateMessage>(event.message)) {
-                ts.timeline_beeb_state_times_2MHz_cycles.push_back(event.time_2MHz_cycles);
+            auto &&beeb_state_message=std::dynamic_pointer_cast<BeebStateMessage>(event.message);
+            if(!!beeb_state_message) {
+                ts.timeline_beeb_state_events.push_back({event.time_2MHz_cycles,std::move(beeb_state_message)});
             }
         }
+
+        this->ThreadCheckTimeline(&ts);
 
         ts.current_config=std::move(m_default_loaded_config);
 
@@ -3230,22 +3125,20 @@ void BeebThread::ThreadMain(void) {
 
             messages.clear();
 
-            // Update timeline stuff.
+            // Update ThreadState timeline stuff.
             if(ts.timeline_state==BeebThreadTimelineState_Record) {
-                m_timeline_state.can_record=true;
-
                 ASSERT(!ts.timeline_events.empty());
                 ts.timeline_end_2MHz_cycles=*ts.num_executed_2MHz_cycles;
 
-                if(ts.timeline_beeb_state_times_2MHz_cycles.empty()) {
+                if(ts.timeline_beeb_state_events.empty()) {
                     // The timeline always starts off with a save state
                     // message, so this case can't happen. But in the long
                     // run, this may change.
                     ASSERT(false);
                 } else {
-                    uint64_t last_time_time_2MHz_cycles=ts.timeline_beeb_state_times_2MHz_cycles.back();
-                    ASSERT(*ts.num_executed_2MHz_cycles>=last_time_time_2MHz_cycles);
-                    if(*ts.num_executed_2MHz_cycles-last_time_time_2MHz_cycles>=TIMELINE_SAVE_STATE_FREQUENCY_2MHz_CYCLES) {
+                    uint64_t last_beeb_state_time_2MHz_cycles=ts.timeline_beeb_state_events.back().time_2MHz_cycles;
+                    ASSERT(*ts.num_executed_2MHz_cycles>=last_beeb_state_time_2MHz_cycles);
+                    if(*ts.num_executed_2MHz_cycles-last_beeb_state_time_2MHz_cycles>=TIMELINE_SAVE_STATE_FREQUENCY_2MHz_CYCLES) {
                         if(!this->ThreadRecordSaveState(&ts)) {
                             // ugh, something went wrong :(
                             this->ThreadStopRecording(&ts);
@@ -3255,18 +3148,29 @@ void BeebThread::ThreadMain(void) {
                 }
             }
 
+            // Update m_timeline_state.
+            if(ts.timeline_beeb_state_events_dirty) {
+                m_timeline_beeb_state_events_copy=ts.timeline_beeb_state_events;
+                ts.timeline_beeb_state_events_dirty=false;
+            }
+
             if(ts.timeline_state==BeebThreadTimelineState_None) {
                 m_timeline_state.can_record=ts.beeb->CanClone(&m_timeline_state.non_cloneable_drives);
+            } else {
+                m_timeline_state.can_record=false;
             }
 
             m_timeline_state.num_events=ts.timeline_events.size();
             if(m_timeline_state.num_events>0) {
                 m_timeline_state.begin_2MHz_cycles=ts.timeline_events[0].time_2MHz_cycles;
                 m_timeline_state.end_2MHz_cycles=ts.timeline_end_2MHz_cycles;
+                m_timeline_state.num_beeb_state_events=ts.timeline_beeb_state_events.size();
             } else {
                 m_timeline_state.begin_2MHz_cycles=0;
                 m_timeline_state.end_2MHz_cycles=m_timeline_state.begin_2MHz_cycles;
+                m_timeline_state.num_beeb_state_events=0;
             }
+            
             m_timeline_state.current_2MHz_cycles=*ts.num_executed_2MHz_cycles;
             m_timeline_state.state=ts.timeline_state;
         }
@@ -3484,8 +3388,9 @@ bool BeebThread::ThreadRecordSaveState(ThreadState *ts) {
 
     uint64_t time=*ts->num_executed_2MHz_cycles;
 
-    ts->timeline_events.push_back(TimelineEvent{time,std::move(message)});
-    ts->timeline_beeb_state_times_2MHz_cycles.push_back(time);
+    ts->timeline_events.push_back(TimelineEvent{time,message});
+    ts->timeline_beeb_state_events.push_back(TimelineBeebStateEvent{time,message});
+    ts->timeline_beeb_state_events_dirty=true;
 
     this->ThreadCheckTimeline(ts);
 
@@ -3507,7 +3412,7 @@ void BeebThread::ThreadClearRecording(ThreadState *ts) {
     this->ThreadStopRecording(ts);
 
     ts->timeline_events.clear();
-    ts->timeline_beeb_state_times_2MHz_cycles.clear();
+    ts->timeline_beeb_state_events.clear();
 }
 
 //////////////////////////////////////////////////////////////////////////

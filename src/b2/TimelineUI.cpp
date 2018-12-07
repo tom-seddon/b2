@@ -8,10 +8,10 @@
 //#include <SDL.h>
 //#include <map>
 #include "misc.h"
-//#include "GenerateThumbnailJob.h"
+#include "GenerateThumbnailJob.h"
 //#include "BeebState.h"
 //#include <shared/debug.h>
-//#include "BeebWindows.h"
+#include "BeebWindows.h"
 #include "BeebThread.h"
 //#include <beeb/DiscImage.h>
 //#include "BeebWindow.h"
@@ -29,13 +29,13 @@
 ////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////
 //
-//#include <shared/enum_decl.h>
-//#include "TimelineUI_private.inl"
-//#include <shared/enum_end.h>
-//
-//#include <shared/enum_def.h>
-//#include "TimelineUI_private.inl"
-//#include <shared/enum_end.h>
+#include <shared/enum_decl.h>
+#include "TimelineUI_private.inl"
+#include <shared/enum_end.h>
+
+#include <shared/enum_def.h>
+#include "TimelineUI_private.inl"
+#include <shared/enum_end.h>
 //
 ////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////
@@ -859,6 +859,13 @@
 class TimelineUI:
 public SettingsUI
 {
+    struct Thumbnail {
+        uint64_t time_cycles;
+        ThumbnailState state=ThumbnailState_Start;
+        std::shared_ptr<GenerateThumbnailJob> job;
+        bool used=false;
+        SDLUniquePtr<SDL_Texture> texture;
+    };
 public:
     explicit TimelineUI(BeebWindow *beeb_window,
                         SDL_Renderer *renderer,
@@ -940,18 +947,6 @@ public:
                 break;
         }
 
-//        // buttons
-//        ImGui::Button(ICON_FA_STEP_BACKWARD);
-//        ImGui::SameLine();
-//        ImGui::Button(ICON_FA_STOP);
-//        ImGui::SameLine();
-//        ImGui::Button(ICON_FA_PLAY);
-//        ImGui::SameLine();
-//        ImGui::Button(ICON_FA_PAUSE);
-//        ImGui::SameLine();
-//        ImGui::Button(ICON_FA_STEP_FORWARD);
-//        ImGui::SameLine();
-
         switch(timeline_state.state) {
             default:
                 ASSERT(false);
@@ -975,6 +970,216 @@ public:
             case BeebThreadTimelineState_Replay:
                 break;
         }
+
+        ImVec2 thumbnail_size(TV_TEXTURE_WIDTH/3,TV_TEXTURE_HEIGHT/3);
+        ImVec2 gap_size(20,10);
+        ImVec2 cell_size=thumbnail_size+gap_size;
+
+        //std::vector<BeebThread::TimelineBeebStateEvent> beeb_state_events;
+
+
+//        ASSERT(timeline_state.end_2MHz_cycles>=timeline_state.begin_2MHz_cycles);
+//        int num_seconds=(timeline_state.end_2MHz_cycles-timeline_state.begin_2MHz_cycles+1999999)/2000000;
+//
+//        int num_columns=(int)ceil(ImGui::GetContentRegionAvailWidth()/(cell_size.x));
+//        int num_rows=(int)ceil((double)num_seconds/num_columns);
+//
+//        ImGui::Text("num_seconds=%d num_columns=%d num_rows=%d",num_seconds,num_columns,num_rows);
+//
+//        char cycles_str[MAX_UINT64_THOUSANDS_LEN];
+//
+//        GetThousandsString(cycles_str,timeline_state.begin_2MHz_cycles);
+//        ImGui::Text("begin: %s (%s)",cycles_str,Get2MHzCyclesString(timeline_state.begin_2MHz_cycles).c_str());
+//
+//        GetThousandsString(cycles_str,timeline_state.end_2MHz_cycles);
+//        ImGui::Text("end: %s (%s)",cycles_str,Get2MHzCyclesString(timeline_state.end_2MHz_cycles).c_str());
+
+        ImGui::Text("%zu thumbnails; %zu textures",m_thumbnail_by_time_2MHz_cycles.size(),m_thumbnail_textures.size());
+
+        ImGui::BeginChild("timeline_container",
+                          ImVec2(0,0),
+                          true,//border
+                          ImGuiWindowFlags_AlwaysVerticalScrollbar);
+        float scroll_y=ImGui::GetScrollY();
+        {
+            ImGui::BeginChild("timeline",
+                              ImVec2(0,timeline_state.num_beeb_state_events*cell_size.y),
+                              false,//border
+                              0);
+
+            // not too concerned about overflow here...
+            int display_row_begin,display_row_end;
+            ImGui::CalcListClipping((int)timeline_state.num_beeb_state_events,
+                                    cell_size.y,
+                                    &display_row_begin,
+                                    &display_row_end);
+
+            std::vector<BeebThread::TimelineBeebStateEvent> beeb_state_events;
+            beeb_thread->GetTimelineBeebStateEvents(&beeb_state_events,
+                                                    (size_t)display_row_begin,
+                                                    (size_t)display_row_end);
+
+            for(auto &&it:m_thumbnail_by_time_2MHz_cycles) {
+                it.second.used=false;
+            }
+
+            for(size_t i=0;i<beeb_state_events.size();++i) {
+                const BeebThread::TimelineBeebStateEvent *e=&beeb_state_events[i];
+                int row=display_row_begin+(int)i;
+
+                ImGui::SetCursorPos(ImVec2(0.f,row*cell_size.y));
+//                ImGui::Text("Row %d",row);
+
+                char cycles_str[MAX_UINT64_THOUSANDS_LEN];
+                GetThousandsString(cycles_str,e->time_2MHz_cycles);
+
+                ImGui::Text("%s (%s)",cycles_str,Get2MHzCyclesString(e->time_2MHz_cycles).c_str());
+
+                Thumbnail *thumbnail=&m_thumbnail_by_time_2MHz_cycles[e->time_2MHz_cycles];
+                thumbnail->used=true;
+                switch(thumbnail->state) {
+                    case ThumbnailState_Start:
+                    {
+                        ASSERT(!thumbnail->job);
+                        thumbnail->job=std::make_shared<GenerateThumbnailJob>();
+                        if(!thumbnail->job->Init(e->message->GetBeebState(),NUM_THUMBNAIL_RENDER_FRAMES,m_pixel_format)) {
+                            thumbnail->state=ThumbnailState_Error;
+                        } else {
+                            BeebWindows::AddJob(thumbnail->job);
+                            thumbnail->state=ThumbnailState_WaitForThumbnailJob;
+                        }
+                    }
+                        break;
+
+                    case ThumbnailState_WaitForThumbnailJob:
+                    {
+                        if(!thumbnail->job->IsFinished()) {
+                            break;
+                        }
+
+                        std::shared_ptr<GenerateThumbnailJob> job=std::move(thumbnail->job);
+
+                        if(job->WasCanceled()) {
+                            thumbnail->state=ThumbnailState_Error;
+                            break;
+                        }
+
+                        const void *texture_data=job->GetTextureData();
+                        if(!texture_data) {
+                            thumbnail->state=ThumbnailState_Error;
+                            break;
+                        }
+
+                        SDLUniquePtr<SDL_Texture> texture=this->GetThumbnailTexture();
+                        if(!texture) {
+                            thumbnail->state=ThumbnailState_Error;
+                            break;
+                        }
+
+                        if(SDL_UpdateTexture(texture.get(),
+                                             nullptr,
+                                             texture_data,
+                                             TV_TEXTURE_WIDTH*4)<0)
+                        {
+
+                            thumbnail->state=ThumbnailState_Error;
+                            break;
+                        }
+
+                        thumbnail->texture=std::move(texture);
+                        thumbnail->state=ThumbnailState_Ready;
+                    }
+                        break;
+
+                    case ThumbnailState_Ready:
+                        break;
+
+                    case ThumbnailState_Error:
+                        break;
+                }
+
+                switch(thumbnail->state) {
+                    case ThumbnailState_Start:
+                    case ThumbnailState_WaitForThumbnailJob:
+                        ImGui::TextUnformatted("...");
+                        break;
+
+                    case ThumbnailState_Ready:
+                        ImGui::Image(thumbnail->texture.get(),thumbnail_size);
+                        break;
+
+                    case ThumbnailState_Error:
+                        ImGui::TextUnformatted(":(");
+                        break;
+                }
+            }
+
+            {
+                auto &&it=m_thumbnail_by_time_2MHz_cycles.begin();
+                while(it!=m_thumbnail_by_time_2MHz_cycles.end()) {
+                    auto it_next=it;
+                    ++it_next;
+
+                    if(!it->second.used) {
+                        this->ReturnThumbnailTexture(std::move(it->second.texture));
+                        m_thumbnail_by_time_2MHz_cycles.erase(it);
+                    }
+
+                    it=it_next;
+                }
+            }
+
+            //    SDL_Texture *thumbnail_texture=nullptr;
+            //    if(te_data->thumbnail_texture_raw) {
+            //        thumbnail_texture=te_data->thumbnail_texture_raw;
+            //    } else if(!!te_data->thumbnail_texture) {
+            //        thumbnail_texture=te_data->thumbnail_texture.get();
+            //    }
+            //
+            //    if(thumbnail_texture) {
+            //        ImVec2 pos=ImGui::GetCursorScreenPos();
+            //        pos.x+=THUMBNAIL_X;
+            //        ImGui::SetCursorScreenPos(pos);
+            //
+            //        ImGui::Image(thumbnail_texture,THUMBNAIL_SIZE);
+            //    } else {
+            //        ImGui::BeginChild("thumbnail_placeholder",THUMBNAIL_SIZE);
+            //        ImGui::TextUnformatted(text);
+            //        ImGui::EndChild();
+            //    }
+
+////            int top_row=(int)floor(scroll_y/cell_size.y);
+////            int bottom_row=(int)ceil(scroll_y+
+//
+//            ImGuiListClipper clipper(num_rows,cell_size.y);
+//
+//            while(clipper.Step()) {
+//                for(int display_row=clipper.DisplayStart;display_row<clipper.DisplayEnd;++display_row) {
+//                    for(int column=0;column<num_columns;++column) {
+//                        int second=display_row*num_columns+column;
+//                        if(second>=num_seconds) {
+//                            break;
+//                        }
+//
+//                        ImGui::SetCursorPos(ImVec2(column*cell_size.x,display_row*cell_size.y));
+//
+//                        //ImGui::Button
+//                        ImGui::Text("C%d R%d",column,display_row);
+//                    }
+//                }
+//            }
+
+//            ImGui::SetCursorPos(ImVec2(0,scroll_y));
+//            ImGui::Text("scroll_y=%.3f Window=%.3f x %.3f",scroll_y,ImGui::GetWindowWidth(),ImGui::GetWindowHeight());
+//            ImGui::Text("Content Region Min=(%.1f, %.1f)",ImGui::GetWindowContentRegionMin().x,ImGui::GetWindowContentRegionMin().y);
+//            ImGui::Text("Content Region Max=(%.1f, %.1f)",ImGui::GetWindowContentRegionMax().x,ImGui::GetWindowContentRegionMax().y);
+//            ImGui::Text("Content Region Avail=(%.1f, %.1f)",ImGui::GetContentRegionAvail().x,ImGui::GetContentRegionAvail().y);
+//            ImGui::Text("Scroll Max=(%.1f, %.1f)",ImGui::GetScrollMaxX(),ImGui::GetScrollMaxY());
+
+            ImGui::EndChild();
+        }
+        ImGui::EndChild();
+
     }
 
     bool OnClose() override {
@@ -982,10 +1187,73 @@ public:
     }
 protected:
 private:
+    std::map<uint64_t,Thumbnail> m_thumbnail_by_time_2MHz_cycles;
+    std::vector<SDLUniquePtr<SDL_Texture>> m_thumbnail_textures;
+
     BeebWindow *m_beeb_window=nullptr;
     SDL_Renderer *m_renderer=nullptr;
     const SDL_PixelFormat *m_pixel_format=nullptr;
+
+    SDLUniquePtr<SDL_Texture> GetThumbnailTexture() {
+        SDLUniquePtr<SDL_Texture> texture;
+
+        if(m_thumbnail_textures.empty()) {
+            SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY,"linear");
+            texture=SDLUniquePtr<SDL_Texture>(SDL_CreateTexture(m_renderer,
+                                                                m_pixel_format->format,
+                                                                SDL_TEXTUREACCESS_STATIC,
+                                                                TV_TEXTURE_WIDTH,
+                                                                TV_TEXTURE_HEIGHT));
+            if(!texture) {
+                return nullptr;
+            }
+        } else {
+            texture=std::move(m_thumbnail_textures.back());
+            m_thumbnail_textures.pop_back();
+        }
+
+        return texture;
+    }
+
+    void ReturnThumbnailTexture(SDLUniquePtr<SDL_Texture> texture) {
+        m_thumbnail_textures.push_back(std::move(texture));
+    }
 };
+
+//bool TimelineUI::UpdateThumbnailTexture(TreeEventData *te_data,const void *pixels) {
+//    if(!te_data->thumbnail_texture) {
+//        te_data->thumbnail_texture=this->GetThumbnailTexture();
+//        ASSERT(!!te_data->thumbnail_texture);
+//    }
+//
+//    if(SDL_UpdateTexture(te_data->thumbnail_texture.get(),nullptr,pixels,TV_TEXTURE_WIDTH*4)<0) {
+//        ThumbnailError(te_data,"failed to update texture");
+//        return false;
+//    }
+//
+//    te_data->thumbnail_last_update_ticks=GetCurrentTickCount();
+//
+//    return true;
+//}
+//
+////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////
+//
+//SDLUniquePtr<SDL_Texture> TimelineUI::GetThumbnailTexture() {
+//    SDLUniquePtr<SDL_Texture> texture;
+//
+//    if(m_thumbnail_textures.empty()) {
+//        SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY,"linear");
+//        texture=SDLUniquePtr<SDL_Texture>(SDL_CreateTexture(m_renderer,m_pixel_format->format,SDL_TEXTUREACCESS_STATIC,TV_TEXTURE_WIDTH,TV_TEXTURE_HEIGHT));
+//        if(!texture) {
+//            return nullptr;
+//        }
+//    } else {
+//        texture=std::move(m_thumbnail_textures.back());
+//        m_thumbnail_textures.pop_back();
+//    }
+//
+//    return texture;
 
 ////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////
