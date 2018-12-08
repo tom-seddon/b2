@@ -592,8 +592,10 @@ void BeebThread::LoadDiscMessage::ThreadHandle(BeebThread *beeb_thread,
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-BeebThread::BeebStateMessage::BeebStateMessage(std::shared_ptr<BeebState> state):
-m_state(std::move(state))
+BeebThread::BeebStateMessage::BeebStateMessage(std::shared_ptr<BeebState> state,
+                                               bool user_initiated):
+m_state(std::move(state)),
+m_user_initiated(user_initiated)
 {
 }
 
@@ -601,11 +603,24 @@ const std::shared_ptr<const BeebState> &BeebThread::BeebStateMessage::GetBeebSta
     return m_state;
 }
 
+//void BeebThread::BeebStateMessage::SetBeebState(std::shared_ptr<BeebState> state) {
+//    ASSERT(!m_state);
+//
+//    m_state=std::move(state);
+//}
+
+void BeebThread::BeebStateMessage::ThreadHandle(BeebThread *beeb_thread,
+                                                ThreadState *ts) const
+{
+    beeb_thread->ThreadReplaceBeeb(ts,this->GetBeebState()->CloneBBCMicro(),0);
+}
+
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-BeebThread::LoadStateMessage::LoadStateMessage(std::shared_ptr<BeebState> state_):
-BeebStateMessage(std::move(state_))
+BeebThread::LoadStateMessage::LoadStateMessage(std::shared_ptr<BeebState> state):
+BeebStateMessage(std::move(state),true)
 {
 }
 
@@ -617,17 +632,11 @@ bool BeebThread::LoadStateMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
     return PrepareUnlessReplayingOrHalted(ptr,completion_fun,beeb_thread,ts);
 }
 
-void BeebThread::LoadStateMessage::ThreadHandle(BeebThread *beeb_thread,
-                                                ThreadState *ts) const
-{
-    beeb_thread->ThreadReplaceBeeb(ts,this->GetBeebState()->CloneBBCMicro(),0);
-}
-
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-BeebThread::SaveStateMessage::SaveStateMessage(bool verbose_):
-    verbose(verbose_)
+BeebThread::SaveStateMessage::SaveStateMessage(bool verbose):
+    m_verbose(verbose)
 {
 }
 
@@ -640,27 +649,17 @@ bool BeebThread::SaveStateMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
         return false;
     }
 
-    // TODO... actually save the state somewhere
+    auto &&state=std::make_shared<BeebState>(ts->beeb->Clone());
 
-//case BeebThreadMessageType_SaveState:
-//    {
-//        auto m=(SaveStateMessage *)message.get();
-//
-//        std::shared_ptr<BeebState> state=this->ThreadSaveState(ts);
-//
-//        if(m->verbose) {
-//            std::string time_str=Get2MHzCyclesString(state->GetEmulated2MHzCycles());
-//            ts->msgs.i.f("Saved state: %s\n",time_str.c_str());
-//        }
-//
-//        this->ThreadRecordEvent(ts,BeebEvent::MakeSaveState(*ts->num_executed_2MHz_cycles,state));
-//
-//        //            m_last_saved_state_timeline_id=m_parent_timeline_event_id;
-//    }
-//    break;
+    uint64_t num_cycles=state->GetEmulated2MHzCycles();
 
+    if(m_verbose) {
+        std::string time_str=Get2MHzCyclesString(num_cycles);
+        ts->msgs.i.f("Saved state: %s\n",time_str.c_str());
+    }
 
-    ptr->reset();
+    *ptr=std::make_shared<BeebStateMessage>(std::move(state),true);
+
     return true;
 }
 
@@ -706,7 +705,7 @@ bool BeebThread::StartRecordingMessage::ThreadPrepare(std::shared_ptr<Message> *
 
     ts->timeline_state=BeebThreadTimelineState_Record;
 
-    bool good_save_state=beeb_thread->ThreadRecordSaveState(ts);
+    bool good_save_state=beeb_thread->ThreadRecordSaveState(ts,true);
     (void)good_save_state;
     ASSERT(good_save_state);
 
@@ -3139,7 +3138,7 @@ void BeebThread::ThreadMain(void) {
                     uint64_t last_beeb_state_time_2MHz_cycles=ts.timeline_beeb_state_events.back().time_2MHz_cycles;
                     ASSERT(*ts.num_executed_2MHz_cycles>=last_beeb_state_time_2MHz_cycles);
                     if(*ts.num_executed_2MHz_cycles-last_beeb_state_time_2MHz_cycles>=TIMELINE_SAVE_STATE_FREQUENCY_2MHz_CYCLES) {
-                        if(!this->ThreadRecordSaveState(&ts)) {
+                        if(!this->ThreadRecordSaveState(&ts,true)) {
                             // ugh, something went wrong :(
                             this->ThreadStopRecording(&ts);
                             ts.msgs.e.f("Internal error - failed to save state.\n");
@@ -3376,7 +3375,7 @@ void BeebThread::SetVolume(float *scale_var,float db) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool BeebThread::ThreadRecordSaveState(ThreadState *ts) {
+bool BeebThread::ThreadRecordSaveState(ThreadState *ts,bool user_initiated) {
     this->ThreadCheckTimeline(ts);
 
     std::unique_ptr<BBCMicro> clone=ts->beeb->Clone();
@@ -3384,7 +3383,8 @@ bool BeebThread::ThreadRecordSaveState(ThreadState *ts) {
         return false;
     }
 
-    auto message=std::make_shared<LoadStateMessage>(std::make_unique<BeebState>(std::move(clone)));
+    auto message=std::make_shared<BeebStateMessage>(std::make_unique<BeebState>(std::move(clone)),
+                                                    user_initiated);
 
     uint64_t time=*ts->num_executed_2MHz_cycles;
 

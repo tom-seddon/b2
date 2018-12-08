@@ -345,12 +345,25 @@ public:
     public Message
     {
     public:
-        explicit BeebStateMessage(std::shared_ptr<BeebState> state);
+        BeebStateMessage()=default;
+        explicit BeebStateMessage(std::shared_ptr<BeebState> state,
+                                  bool user_initiated);
 
         const std::shared_ptr<const BeebState> &GetBeebState() const;
+
+        // true if this state was created due to user interaction, rather than
+        // something that happened behind the scenes.
+        bool WasUserInitiated() const;
+
+        // There are various options, but these messages are for now handled
+        // by reloading the state.
+        void ThreadHandle(BeebThread *beeb_thread,ThreadState *ts) const override;
     protected:
+//        void SetBeebState(std::shared_ptr<BeebState> state);
+//        void SetAutomatic(bool automatic);
     private:
-        const std::shared_ptr<const BeebState> m_state;
+        std::shared_ptr<const BeebState> m_state;
+        const bool m_user_initiated;
     };
 
     struct TimelineBeebStateEvent {
@@ -368,7 +381,6 @@ public:
                            CompletionFun *completion_fun,
                            BeebThread *beeb_thread,
                            ThreadState *ts) override;
-        void ThreadHandle(BeebThread *beeb_thread,ThreadState *ts) const override;
     protected:
     private:
     };
@@ -377,8 +389,6 @@ public:
         public Message
     {
     public:
-        const bool verbose=false;
-
         explicit SaveStateMessage(bool verbose);
 
         bool ThreadPrepare(std::shared_ptr<Message> *ptr,
@@ -387,6 +397,7 @@ public:
                            ThreadState *ts) override;
     protected:
     private:
+        bool m_verbose=false;
     };
 
     class StartReplayMessage:
@@ -1053,7 +1064,7 @@ private:
     void ThreadMain();
     void SetVolume(float *scale_var,float db);
 //    bool ThreadIsReplayingOrHalted(ThreadState *ts);
-    bool ThreadRecordSaveState(ThreadState *ts);
+    bool ThreadRecordSaveState(ThreadState *ts,bool user_initiated);
     void ThreadStopRecording(ThreadState *ts);
     void ThreadClearRecording(ThreadState *ts);
     void ThreadCheckTimeline(ThreadState *ts);
