@@ -52,6 +52,8 @@ add_executable(b2 MACOSX_BUNDLE
   HTTPMethodsHandler.cpp HTTPMethodsHandler.h
   DiscGeometry.cpp DiscGeometry.h
   DirectDiscImage.cpp DirectDiscImage.h
+  SavedStatesUI.cpp SavedStatesUI.h
+  ThumbnailsUI.cpp ThumbnailsUI.h ThumbnailsUI_private.inl
   )
 
 ##########################################################################

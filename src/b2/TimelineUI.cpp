@@ -9,7 +9,7 @@
 //#include <map>
 #include "misc.h"
 #include "GenerateThumbnailJob.h"
-//#include "BeebState.h"
+#include "BeebState.h"
 //#include <shared/debug.h>
 #include "BeebWindows.h"
 #include "BeebThread.h"
@@ -25,6 +25,7 @@
 //#include <float.h>
 #include "SettingsUI.h"
 #include <IconsFontAwesome5.h>
+#include "ThumbnailsUI.h"
 //
 ////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////
@@ -859,20 +860,12 @@
 class TimelineUI:
 public SettingsUI
 {
-    struct Thumbnail {
-        uint64_t time_cycles;
-        ThumbnailState state=ThumbnailState_Start;
-        std::shared_ptr<GenerateThumbnailJob> job;
-        bool used=false;
-        SDLUniquePtr<SDL_Texture> texture;
-    };
 public:
     explicit TimelineUI(BeebWindow *beeb_window,
                         SDL_Renderer *renderer,
                         const SDL_PixelFormat *pixel_format):
     m_beeb_window(beeb_window),
-    m_renderer(renderer),
-    m_pixel_format(pixel_format)
+    m_thumbnails(renderer,pixel_format)
     {
     }
 
@@ -971,9 +964,9 @@ public:
                 break;
         }
 
-        ImVec2 thumbnail_size(TV_TEXTURE_WIDTH/3,TV_TEXTURE_HEIGHT/3);
-        ImVec2 gap_size(20,10);
-        ImVec2 cell_size=thumbnail_size+gap_size;
+        const ImVec2 THUMBNAIL_SIZE=m_thumbnails.GetThumbnailSize();
+        const float GAP_HEIGHT=20;
+        const float CELL_HEIGHT=THUMBNAIL_SIZE.y+2*ImGui::GetTextLineHeight()+GAP_HEIGHT;
 
         //std::vector<BeebThread::TimelineBeebStateEvent> beeb_state_events;
 
@@ -994,7 +987,9 @@ public:
 //        GetThousandsString(cycles_str,timeline_state.end_2MHz_cycles);
 //        ImGui::Text("end: %s (%s)",cycles_str,Get2MHzCyclesString(timeline_state.end_2MHz_cycles).c_str());
 
-        ImGui::Text("%zu thumbnails; %zu textures",m_thumbnail_by_time_2MHz_cycles.size(),m_thumbnail_textures.size());
+        ImGui::Text("%zu thumbnails; %zu textures",
+                    m_thumbnails.GetNumThumbnails(),
+                    m_thumbnails.GetNumTextures());
 
         ImGui::BeginChild("timeline_container",
                           ImVec2(0,0),
@@ -1003,14 +998,14 @@ public:
         float scroll_y=ImGui::GetScrollY();
         {
             ImGui::BeginChild("timeline",
-                              ImVec2(0,timeline_state.num_beeb_state_events*cell_size.y),
+                              ImVec2(0,timeline_state.num_beeb_state_events*CELL_HEIGHT),
                               false,//border
                               0);
 
             // not too concerned about overflow here...
             int display_row_begin,display_row_end;
             ImGui::CalcListClipping((int)timeline_state.num_beeb_state_events,
-                                    cell_size.y,
+                                    CELL_HEIGHT,
                                     &display_row_begin,
                                     &display_row_end);
 
@@ -1019,15 +1014,11 @@ public:
                                                     (size_t)display_row_begin,
                                                     (size_t)display_row_end);
 
-            for(auto &&it:m_thumbnail_by_time_2MHz_cycles) {
-                it.second.used=false;
-            }
-
             for(size_t i=0;i<beeb_state_events.size();++i) {
                 const BeebThread::TimelineBeebStateEvent *e=&beeb_state_events[i];
                 int row=display_row_begin+(int)i;
 
-                ImGui::SetCursorPos(ImVec2(0.f,row*cell_size.y));
+                ImGui::SetCursorPos(ImVec2(0.f,row*CELL_HEIGHT));
 //                ImGui::Text("Row %d",row);
 
                 char cycles_str[MAX_UINT64_THOUSANDS_LEN];
@@ -1035,151 +1026,20 @@ public:
 
                 ImGui::Text("%s (%s)",cycles_str,Get2MHzCyclesString(e->time_2MHz_cycles).c_str());
 
-                Thumbnail *thumbnail=&m_thumbnail_by_time_2MHz_cycles[e->time_2MHz_cycles];
-                thumbnail->used=true;
-                switch(thumbnail->state) {
-                    case ThumbnailState_Start:
-                    {
-                        ASSERT(!thumbnail->job);
-                        thumbnail->job=std::make_shared<GenerateThumbnailJob>();
-                        if(!thumbnail->job->Init(e->message->GetBeebState(),NUM_THUMBNAIL_RENDER_FRAMES,m_pixel_format)) {
-                            thumbnail->state=ThumbnailState_Error;
-                        } else {
-                            BeebWindows::AddJob(thumbnail->job);
-                            thumbnail->state=ThumbnailState_WaitForThumbnailJob;
-                        }
-                    }
-                        break;
-
-                    case ThumbnailState_WaitForThumbnailJob:
-                    {
-                        if(!thumbnail->job->IsFinished()) {
-                            break;
-                        }
-
-                        std::shared_ptr<GenerateThumbnailJob> job=std::move(thumbnail->job);
-
-                        if(job->WasCanceled()) {
-                            thumbnail->state=ThumbnailState_Error;
-                            break;
-                        }
-
-                        const void *texture_data=job->GetTextureData();
-                        if(!texture_data) {
-                            thumbnail->state=ThumbnailState_Error;
-                            break;
-                        }
-
-                        SDLUniquePtr<SDL_Texture> texture=this->GetThumbnailTexture();
-                        if(!texture) {
-                            thumbnail->state=ThumbnailState_Error;
-                            break;
-                        }
-
-                        if(SDL_UpdateTexture(texture.get(),
-                                             nullptr,
-                                             texture_data,
-                                             TV_TEXTURE_WIDTH*4)<0)
-                        {
-
-                            thumbnail->state=ThumbnailState_Error;
-                            break;
-                        }
-
-                        thumbnail->texture=std::move(texture);
-                        thumbnail->state=ThumbnailState_Ready;
-                    }
-                        break;
-
-                    case ThumbnailState_Ready:
-                        break;
-
-                    case ThumbnailState_Error:
-                        break;
+                const std::string &name=e->message->GetBeebState()->GetName();
+                if(name.empty()) {
+                    ImGui::TextUnformatted("(no name)");
+                } else {
+                    ImGui::Text("Name: %s",name.c_str());
                 }
 
-                switch(thumbnail->state) {
-                    case ThumbnailState_Start:
-                    case ThumbnailState_WaitForThumbnailJob:
-                        ImGui::TextUnformatted("...");
-                        break;
-
-                    case ThumbnailState_Ready:
-                        ImGui::Image(thumbnail->texture.get(),thumbnail_size);
-                        break;
-
-                    case ThumbnailState_Error:
-                        ImGui::TextUnformatted(":(");
-                        break;
-                }
+                m_thumbnails.Thumbnail(e->message->GetBeebState());
             }
-
-            {
-                auto &&it=m_thumbnail_by_time_2MHz_cycles.begin();
-                while(it!=m_thumbnail_by_time_2MHz_cycles.end()) {
-                    auto it_next=it;
-                    ++it_next;
-
-                    if(!it->second.used) {
-                        this->ReturnThumbnailTexture(std::move(it->second.texture));
-                        m_thumbnail_by_time_2MHz_cycles.erase(it);
-                    }
-
-                    it=it_next;
-                }
-            }
-
-            //    SDL_Texture *thumbnail_texture=nullptr;
-            //    if(te_data->thumbnail_texture_raw) {
-            //        thumbnail_texture=te_data->thumbnail_texture_raw;
-            //    } else if(!!te_data->thumbnail_texture) {
-            //        thumbnail_texture=te_data->thumbnail_texture.get();
-            //    }
-            //
-            //    if(thumbnail_texture) {
-            //        ImVec2 pos=ImGui::GetCursorScreenPos();
-            //        pos.x+=THUMBNAIL_X;
-            //        ImGui::SetCursorScreenPos(pos);
-            //
-            //        ImGui::Image(thumbnail_texture,THUMBNAIL_SIZE);
-            //    } else {
-            //        ImGui::BeginChild("thumbnail_placeholder",THUMBNAIL_SIZE);
-            //        ImGui::TextUnformatted(text);
-            //        ImGui::EndChild();
-            //    }
-
-////            int top_row=(int)floor(scroll_y/cell_size.y);
-////            int bottom_row=(int)ceil(scroll_y+
-//
-//            ImGuiListClipper clipper(num_rows,cell_size.y);
-//
-//            while(clipper.Step()) {
-//                for(int display_row=clipper.DisplayStart;display_row<clipper.DisplayEnd;++display_row) {
-//                    for(int column=0;column<num_columns;++column) {
-//                        int second=display_row*num_columns+column;
-//                        if(second>=num_seconds) {
-//                            break;
-//                        }
-//
-//                        ImGui::SetCursorPos(ImVec2(column*cell_size.x,display_row*cell_size.y));
-//
-//                        //ImGui::Button
-//                        ImGui::Text("C%d R%d",column,display_row);
-//                    }
-//                }
-//            }
-
-//            ImGui::SetCursorPos(ImVec2(0,scroll_y));
-//            ImGui::Text("scroll_y=%.3f Window=%.3f x %.3f",scroll_y,ImGui::GetWindowWidth(),ImGui::GetWindowHeight());
-//            ImGui::Text("Content Region Min=(%.1f, %.1f)",ImGui::GetWindowContentRegionMin().x,ImGui::GetWindowContentRegionMin().y);
-//            ImGui::Text("Content Region Max=(%.1f, %.1f)",ImGui::GetWindowContentRegionMax().x,ImGui::GetWindowContentRegionMax().y);
-//            ImGui::Text("Content Region Avail=(%.1f, %.1f)",ImGui::GetContentRegionAvail().x,ImGui::GetContentRegionAvail().y);
-//            ImGui::Text("Scroll Max=(%.1f, %.1f)",ImGui::GetScrollMaxX(),ImGui::GetScrollMaxY());
-
             ImGui::EndChild();
         }
         ImGui::EndChild();
 
+        m_thumbnails.Update();
     }
 
     bool OnClose() override {
@@ -1187,37 +1047,8 @@ public:
     }
 protected:
 private:
-    std::map<uint64_t,Thumbnail> m_thumbnail_by_time_2MHz_cycles;
-    std::vector<SDLUniquePtr<SDL_Texture>> m_thumbnail_textures;
-
     BeebWindow *m_beeb_window=nullptr;
-    SDL_Renderer *m_renderer=nullptr;
-    const SDL_PixelFormat *m_pixel_format=nullptr;
-
-    SDLUniquePtr<SDL_Texture> GetThumbnailTexture() {
-        SDLUniquePtr<SDL_Texture> texture;
-
-        if(m_thumbnail_textures.empty()) {
-            SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY,"linear");
-            texture=SDLUniquePtr<SDL_Texture>(SDL_CreateTexture(m_renderer,
-                                                                m_pixel_format->format,
-                                                                SDL_TEXTUREACCESS_STATIC,
-                                                                TV_TEXTURE_WIDTH,
-                                                                TV_TEXTURE_HEIGHT));
-            if(!texture) {
-                return nullptr;
-            }
-        } else {
-            texture=std::move(m_thumbnail_textures.back());
-            m_thumbnail_textures.pop_back();
-        }
-
-        return texture;
-    }
-
-    void ReturnThumbnailTexture(SDLUniquePtr<SDL_Texture> texture) {
-        m_thumbnail_textures.push_back(std::move(texture));
-    }
+    ThumbnailsUI m_thumbnails;
 };
 
 //bool TimelineUI::UpdateThumbnailTexture(TreeEventData *te_data,const void *pixels) {
