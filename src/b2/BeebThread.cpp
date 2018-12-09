@@ -288,7 +288,6 @@ void BeebThread::KeyMessage::ThreadHandle(BeebThread *beeb_thread,
 //////////////////////////////////////////////////////////////////////////
 
 BeebThread::KeySymMessage::KeySymMessage(BeebKeySym key_sym,bool state):
-m_key_sym(key_sym),
 m_state(state)
 {
     if(!GetBeebKeyComboForKeySym(&m_key,&m_shift_state,key_sym)) {

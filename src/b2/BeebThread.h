@@ -231,7 +231,6 @@ public:
         void ThreadHandle(BeebThread *beeb_thread,ThreadState *ts) const override;
     protected:
     private:
-        const BeebKeySym m_key_sym=BeebKeySym_None;
         const bool m_state=false;
         BeebKey m_key=BeebKey_None;
         BeebShiftState m_shift_state=BeebShiftState_Any;
