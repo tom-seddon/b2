@@ -657,6 +657,8 @@ bool BeebThread::SaveStateMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
         ts->msgs.i.f("Saved state: %s\n",time_str.c_str());
     }
 
+    BeebWindows::AddSavedState(state);
+
     *ptr=std::make_shared<BeebStateMessage>(std::move(state),true);
 
     return true;

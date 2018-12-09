@@ -23,8 +23,12 @@ LOG_EXTERN(OUTPUT);
 //////////////////////////////////////////////////////////////////////////
 
 struct BeebWindowsState {
-    // This mutex must be taken when adding to or removing from
-    // m_windows.
+    // This mutex must be taken when creating or destroying a window. The
+    // locking here is a bit careless - this only exists for the benefit of
+    // the audio thread, which needs to run through the windows list.
+    //
+    // (All other accesses to the windows list are from the main thread only,
+    // so no locking necessary.)
     Mutex windows_mutex;
     std::vector<BeebWindow *> windows;
 
@@ -38,6 +42,10 @@ struct BeebWindowsState {
     JobQueue job_queue;
 
     uint32_t default_ui_flags=0;
+
+    // This mutex must be taken when manipulating saved_states.
+    Mutex saved_states_mutex;
+    std::vector<std::shared_ptr<const BeebState>> saved_states;
 };
 
 static BeebWindowsState *g_;
@@ -149,7 +157,8 @@ bool BeebWindows::Init() {
 
     g_=new BeebWindowsState;
 
-    MUTEX_SET_NAME(g_->windows_mutex,"BeebWindows windows_mutex");
+    MUTEX_SET_NAME(g_->windows_mutex,"BeebWindows windows mutex");
+    MUTEX_SET_NAME(g_->saved_states_mutex,"BeebWindows saved states mutex");
 
     ResetDefaultConfig();
 
@@ -170,6 +179,12 @@ void BeebWindows::Shutdown() {
         for(BeebWindow *window:g_->windows) {
             delete window;
         }
+    }
+
+    {
+        std::lock_guard<Mutex> lock(g_->saved_states_mutex);
+
+        g_->saved_states.clear();
     }
 
 //    // There probably needs to be a more general mechanism than this.
@@ -625,3 +640,37 @@ void BeebWindows::SetDefaultBeebKeymap(const BeebKeymap *keymap) {
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
+
+size_t BeebWindows::GetNumSavedStates() {
+    std::lock_guard<Mutex> lock(g_->saved_states_mutex);
+
+    return g_->saved_states.size();
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+std::vector<std::shared_ptr<const BeebState>> BeebWindows::GetSavedState(size_t begin_index,
+                                                                         size_t end_index)
+{
+    std::lock_guard<Mutex> lock(g_->saved_states_mutex);
+
+    ASSERT(begin_index<PTRDIFF_MAX);
+    ASSERT(begin_index<g_->saved_states.size());
+    ASSERT(end_index<PTRDIFF_MAX);
+    ASSERT(end_index<g_->saved_states.size());
+    ASSERT(begin_index<=end_index);
+
+    std::vector<std::shared_ptr<const BeebState>> result(g_->saved_states.begin()+(ptrdiff_t)begin_index,
+                                                         g_->saved_states.end()+(ptrdiff_t)end_index);
+    return result;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BeebWindows::AddSavedState(std::shared_ptr<const BeebState> saved_state) {
+    std::lock_guard<Mutex> lock(g_->saved_states_mutex);
+
+    g_->saved_states.push_back(std::move(saved_state));
+}
