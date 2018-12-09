@@ -1605,13 +1605,8 @@ bool BBCMicro::Update(VideoDataUnit *video_unit,SoundDataUnit *sound_unit) {
                 //(m_state.video_ula.*VideoULA::EMIT_MFNS[m_state.video_ula.control.bits.line_width])(hu);
 
                 if(m_state.cursor_pattern&1) {
-                    VideoDataBitmapPixel *pixel=video_unit->bitmap.pixels;
-                    for(size_t i=0;i<sizeof video_unit->bitmap.pixels;++i) {
-                        pixel->r=~pixel->r;
-                        pixel->g=~pixel->g;
-                        pixel->b=~pixel->b;
-                        ++pixel;
-                    }
+                    video_unit->values[0]^=0x0fff0fff0fff0fffull;
+                    video_unit->values[1]^=0x0fff0fff0fff0fffull;
                 }
             } else {
                 video_unit->type.x=VideoDataType_Nothing^(m_state.cursor_pattern&1);
