@@ -17,11 +17,6 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-#define TV_OUTPUT_ONE_BIG_TABLE 0
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 union VideoDataUnit;
 struct SDL_PixelFormat;
 #if VIDEO_TRACK_METADATA
@@ -50,8 +45,6 @@ public:
 
     // returns number of us consumed.
     void Update(const VideoDataUnit *units,size_t num_units);
-
-    void UpdateOneUnit(const VideoDataUnit *unit,float amt);
 
 #if BBCMICRO_DEBUGGER
     void AddBeamMarker();
@@ -104,13 +97,9 @@ private:
 
     double m_gamma=2.2;
 
-#if TV_OUTPUT_ONE_BIG_TABLE
-    uint32_t m_rgbs[4096]={};
-#else
     uint32_t m_rs[16]={};
     uint32_t m_gs[16]={};
     uint32_t m_bs[16]={};
-#endif
 
     void InitPalette(size_t palette,double fa);
     void InitPalette();

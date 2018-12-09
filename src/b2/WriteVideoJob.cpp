@@ -338,8 +338,8 @@ void WriteVideoJob::ThreadExecute() {
                     ASSERT((n&1)==0);
 
                     for(size_t j=0;j<n;++j) {
-                        tv_output.UpdateOneUnit(v++,1.f);
-                        tv_output.UpdateOneUnit(v++,1.f);
+                        tv_output.Update(v,2);
+                        v+=2;
 
                         bool is_vblank=tv_output.IsInVerticalBlank();
                         if(is_vblank&&!was_vblank) {
