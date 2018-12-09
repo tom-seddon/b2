@@ -1,8 +1,5 @@
 #include <shared/system.h>
 #include "TimelineUI.h"
-
-#if TIMELINE_UI_ENABLED
-
 #include "dear_imgui.h"
 //#include <vector>
 //#include <SDL.h>
@@ -1095,5 +1092,3 @@ std::unique_ptr<SettingsUI> CreateTimelineUI(BeebWindow *beeb_window,
 {
     return std::make_unique<TimelineUI>(beeb_window,renderer,pixel_format);
 }
-
-#endif

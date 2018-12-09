@@ -759,9 +759,7 @@ const BeebWindow::SettingsUIMetadata BeebWindow::ms_settings_uis[]={
     {BeebWindowPopupType_CommandKeymaps,"Command Keys","toggle_command_keymaps",&CreateCommandKeymapsUI},
     {BeebWindowPopupType_Options,"Options","toggle_emulator_options",&BeebWindow::CreateOptionsUI},
     {BeebWindowPopupType_Messages,"Messages","toggle_messages",&CreateMessagesUI},
-#if TIMELINE_UI_ENABLED
     {BeebWindowPopupType_Timeline,"Timeline","toggle_timeline",&BeebWindow::CreateTimelineUI},
-#endif
     {BeebWindowPopupType_Configs,"Configurations","toggle_configurations",&CreateConfigsUI},
 #if BBCMICRO_TRACE
     {BeebWindowPopupType_Trace,"Tracing","toggle_event_trace",&CreateTraceUI},
@@ -869,13 +867,11 @@ std::unique_ptr<SettingsUI> BeebWindow::CreateOptionsUI(BeebWindow *beeb_window)
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-#if TIMELINE_UI_ENABLED
 std::unique_ptr<SettingsUI> BeebWindow::CreateTimelineUI(BeebWindow *beeb_window) {
     return ::CreateTimelineUI(beeb_window,
                               beeb_window->m_renderer,
                               beeb_window->m_pixel_format);
 }
-#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -1282,9 +1278,7 @@ void BeebWindow::DoToolsMenu() {
         m_occ.DoMenuItemUI("toggle_keyboard_layout");
         m_occ.DoMenuItemUI("toggle_command_keymaps");
         m_occ.DoMenuItemUI("toggle_messages");
-#if TIMELINE_UI_ENABLED
         m_occ.DoMenuItemUI("toggle_timeline");
-#endif
         m_occ.DoMenuItemUI("toggle_configurations");
 
         // if(ImGui::MenuItem("Dump states")) {
@@ -2711,9 +2705,7 @@ ObjectCommandTable<BeebWindow> BeebWindow::ms_command_table("Beeb Window",{
     {{"save_state","Save State"},&BeebWindow::SaveState},
     GetTogglePopupCommand<BeebWindowPopupType_Options>(),
     GetTogglePopupCommand<BeebWindowPopupType_Keymaps>(),
-#if TIMELINE_UI_ENABLED
     GetTogglePopupCommand<BeebWindowPopupType_Timeline>(),
-#endif
     GetTogglePopupCommand<BeebWindowPopupType_Messages>(),
     GetTogglePopupCommand<BeebWindowPopupType_Configs>(),
 #if BBCMICRO_TRACE

@@ -447,9 +447,7 @@ private:
 #endif
 
     static std::unique_ptr<SettingsUI> CreateOptionsUI(BeebWindow *beeb_window);
-#if TIMELINE_UI_ENABLED
     static std::unique_ptr<SettingsUI> CreateTimelineUI(BeebWindow *beeb_window);
-#endif
     static std::unique_ptr<SettingsUI> CreateCommandContextStackUI(BeebWindow *beeb_window);
 
     static ObjectCommandTable<BeebWindow> ms_command_table;
