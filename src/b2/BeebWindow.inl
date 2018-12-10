@@ -61,6 +61,7 @@ EPN(VideoULADebugger)
 EPN(SystemVIADebugger)
 EPN(UserVIADebugger)
 EPN(NVRAMDebugger)
+EPN(SavedStates)
 
 // must be last
 EQPN(MaxValue)

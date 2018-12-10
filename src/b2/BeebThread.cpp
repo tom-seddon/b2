@@ -591,7 +591,7 @@ void BeebThread::LoadDiscMessage::ThreadHandle(BeebThread *beeb_thread,
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-BeebThread::BeebStateMessage::BeebStateMessage(std::shared_ptr<BeebState> state,
+BeebThread::BeebStateMessage::BeebStateMessage(std::shared_ptr<const BeebState> state,
                                                bool user_initiated):
 m_state(std::move(state)),
 m_user_initiated(user_initiated)
@@ -611,15 +611,18 @@ const std::shared_ptr<const BeebState> &BeebThread::BeebStateMessage::GetBeebSta
 void BeebThread::BeebStateMessage::ThreadHandle(BeebThread *beeb_thread,
                                                 ThreadState *ts) const
 {
-    beeb_thread->ThreadReplaceBeeb(ts,this->GetBeebState()->CloneBBCMicro(),0);
+    (void)beeb_thread,(void)ts;
+    //beeb_thread->ThreadReplaceBeeb(ts,this->GetBeebState()->CloneBBCMicro(),0);
 }
 
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-BeebThread::LoadStateMessage::LoadStateMessage(std::shared_ptr<BeebState> state):
-BeebStateMessage(std::move(state),true)
+BeebThread::LoadStateMessage::LoadStateMessage(std::shared_ptr<const BeebState> state,
+                                               bool verbose):
+BeebStateMessage(std::move(state),true),
+m_verbose(verbose)
 {
 }
 
@@ -628,7 +631,141 @@ bool BeebThread::LoadStateMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
                                                  BeebThread *beeb_thread,
                                                  ThreadState *ts)
 {
-    return PrepareUnlessReplayingOrHalted(ptr,completion_fun,beeb_thread,ts);
+    if(!PrepareUnlessReplayingOrHalted(ptr,completion_fun,beeb_thread,ts)) {
+        if(m_verbose) {
+            ts->msgs.e.f("Can't load a saved state while replaying or halted.\n");
+        }
+
+        return false;
+    }
+
+    return true;
+}
+
+void BeebThread::LoadStateMessage::ThreadHandle(BeebThread *beeb_thread,
+                                                ThreadState *ts) const
+{
+    beeb_thread->ThreadReplaceBeeb(ts,this->GetBeebState()->CloneBBCMicro(),0);
+}
+//
+//
+//
+//    if(ts->timeline_state==BeebThreadTimelineState_None) {
+//        // If not recording, just replace the state and off it goes.
+//
+//        return true;
+//    } else if(ts->timeline_state==BeebThreadTimelineState_Record) {
+//
+//        //
+//        auto &&it=std::find_if(ts->timeline_beeb_state_events.begin(),
+//                               ts->timeline_beeb_state_events.end(),
+//                               [this](const TimelineBeebStateEvent &event) {
+//                                   return event.message->GetBeebState()==m_
+//                               });
+//
+//           ts->timeline_beeb_state_events
+//
+//    } else {
+//        ASSERT(false);
+//    }
+//
+//    *ptr=std::make_shared<BeebStateMessage>(this->GetBeebState(),true);
+//    return true;
+//}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BeebThread::ThreadDeleteTimelineState(ThreadState *ts,
+                                           const std::shared_ptr<const BeebState> &state,
+                                           bool delete_subsequent_events)
+{
+    auto &&states_it=ts->timeline_beeb_state_events.begin();
+    while(states_it!=ts->timeline_beeb_state_events.end()) {
+        if(states_it->message->GetBeebState()==state) {
+            break;
+        }
+        ++states_it;
+    }
+    if(states_it==ts->timeline_beeb_state_events.end()) {
+        // hmm
+        return;
+    }
+
+    // find this in the main timeline events too.
+    auto &&events_it=ts->timeline_events.begin();
+    while(events_it!=ts->timeline_events.end()) {
+        if(events_it->message==states_it->message) {
+            break;
+        }
+        ++events_it;
+    }
+    ASSERT(events_it!=ts->timeline_events.end());
+
+    if(delete_subsequent_events) {
+        ts->timeline_beeb_state_events.erase(states_it+1,ts->timeline_beeb_state_events.end());
+        ts->timeline_events.erase(events_it+1,ts->timeline_events.end());
+        ts->timeline_end_2MHz_cycles=ts->timeline_events.back().time_2MHz_cycles;
+    } else {
+        ts->timeline_beeb_state_events.erase(states_it);
+        ts->timeline_events.erase(events_it);
+    }
+
+    ts->timeline_beeb_state_events_dirty=true;
+
+    this->ThreadCheckTimeline(ts);
+}
+
+BeebThread::LoadTimelineStateMessage::LoadTimelineStateMessage(std::shared_ptr<const BeebState> state,
+                                                               bool verbose):
+BeebStateMessage(std::move(state),true),
+m_verbose(verbose)
+{
+}
+
+bool BeebThread::LoadTimelineStateMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
+                                                         CompletionFun *completion_fun,
+                                                         BeebThread *beeb_thread,
+                                                         ThreadState *ts)
+{
+    if(!PrepareUnlessReplayingOrHalted(ptr,completion_fun,beeb_thread,ts)) {
+        if(m_verbose) {
+            ts->msgs.e.f("Can't load a saved state while replaying or halted.\n");
+        }
+
+        return false;
+    }
+
+    if(ts->timeline_state==BeebThreadTimelineState_Record) {
+        beeb_thread->ThreadDeleteTimelineState(ts,this->GetBeebState(),true);
+    }
+
+    beeb_thread->ThreadReplaceBeeb(ts,this->GetBeebState()->CloneBBCMicro(),0);
+
+    ptr->reset();
+    return true;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+BeebThread::DeleteTimelineStateMessage::DeleteTimelineStateMessage(std::shared_ptr<const BeebState> state):
+BeebStateMessage(std::move(state),true)
+{
+}
+
+bool BeebThread::DeleteTimelineStateMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
+                                                           CompletionFun *completion_fun,
+                                                           BeebThread *beeb_thread,
+                                                           ThreadState *ts)
+{
+    if(!PrepareUnlessReplaying(ptr,completion_fun,beeb_thread,ts)) {
+        return false;
+    }
+
+    beeb_thread->ThreadDeleteTimelineState(ts,this->GetBeebState(),false);
+    ptr->reset();
+    return true;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -649,11 +786,10 @@ bool BeebThread::SaveStateMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
     }
 
     auto &&state=std::make_shared<BeebState>(ts->beeb->Clone());
-
-    uint64_t num_cycles=state->GetEmulated2MHzCycles();
+    state->SetName(GetTimeString(GetUTCTimeNow()));
 
     if(m_verbose) {
-        std::string time_str=Get2MHzCyclesString(num_cycles);
+        std::string time_str=Get2MHzCyclesString(state->GetEmulated2MHzCycles());
         ts->msgs.i.f("Saved state: %s\n",time_str.c_str());
     }
 
@@ -1276,6 +1412,8 @@ void BeebThread::ThreadCheckTimeline(ThreadState *ts) {
         }
 
         ASSERT(beeb_state_index==ts->timeline_beeb_state_events.size());
+
+        ASSERT(ts->timeline_end_2MHz_cycles>=ts->timeline_events.back().time_2MHz_cycles);
     }
 }
 
@@ -1834,21 +1972,23 @@ void BeebThread::GetTimelineState(TimelineState *timeline_state) const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void BeebThread::GetTimelineBeebStateEvents(std::vector<TimelineBeebStateEvent> *timeline_beeb_state_events,
-                                            size_t begin_index,
-                                            size_t end_index)
+std::vector<BeebThread::TimelineBeebStateEvent>
+BeebThread::GetTimelineBeebStateEvents(size_t begin_index,
+                                       size_t end_index)
 {
     ASSERT(end_index>=begin_index);
 
     std::lock_guard<Mutex> lock(m_mutex);
 
-    size_t n=end_index-begin_index;
+    ASSERT(begin_index<=PTRDIFF_MAX);
+    ASSERT(begin_index<=m_timeline_beeb_state_events_copy.size());
+    ASSERT(end_index<=PTRDIFF_MAX);
+    ASSERT(end_index<=m_timeline_beeb_state_events_copy.size());
+    ASSERT(begin_index<=end_index);
 
-    timeline_beeb_state_events->clear();
-    timeline_beeb_state_events->reserve(n);
-    for(size_t i=0;i<n;++i) {
-        timeline_beeb_state_events->emplace_back(m_timeline_beeb_state_events_copy[begin_index+i]);
-    }
+    std::vector<TimelineBeebStateEvent> result(m_timeline_beeb_state_events_copy.begin()+(ptrdiff_t)begin_index,
+                                               m_timeline_beeb_state_events_copy.begin()+(ptrdiff_t)end_index);
+    return result;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -3136,13 +3276,18 @@ void BeebThread::ThreadMain(void) {
                     // run, this may change.
                     ASSERT(false);
                 } else {
-                    uint64_t last_beeb_state_time_2MHz_cycles=ts.timeline_beeb_state_events.back().time_2MHz_cycles;
-                    ASSERT(*ts.num_executed_2MHz_cycles>=last_beeb_state_time_2MHz_cycles);
-                    if(*ts.num_executed_2MHz_cycles-last_beeb_state_time_2MHz_cycles>=TIMELINE_SAVE_STATE_FREQUENCY_2MHz_CYCLES) {
-                        if(!this->ThreadRecordSaveState(&ts,true)) {
-                            // ugh, something went wrong :(
-                            this->ThreadStopRecording(&ts);
-                            ts.msgs.e.f("Internal error - failed to save state.\n");
+                    const TimelineBeebStateEvent &last_event=ts.timeline_beeb_state_events.back();
+                    ASSERT(*ts.num_executed_2MHz_cycles>=last_event.time_2MHz_cycles);
+                    if(*ts.num_executed_2MHz_cycles-last_event.time_2MHz_cycles>=TIMELINE_SAVE_STATE_FREQUENCY_2MHz_CYCLES) {
+                        if(last_event.message==ts.timeline_events.back().message) {
+                            // There have been no events since the last save
+                            // event. Don't bother saving a new one.
+                        } else {
+                            if(!this->ThreadRecordSaveState(&ts,true)) {
+                                // ugh, something went wrong :(
+                                this->ThreadStopRecording(&ts);
+                                ts.msgs.e.f("Internal error - failed to save state.\n");
+                            }
                         }
                     }
                 }

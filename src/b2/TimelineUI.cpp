@@ -963,7 +963,7 @@ public:
 
         const ImVec2 THUMBNAIL_SIZE=m_thumbnails.GetThumbnailSize();
         const float GAP_HEIGHT=20;
-        const float CELL_HEIGHT=THUMBNAIL_SIZE.y+2*ImGui::GetTextLineHeight()+GAP_HEIGHT;
+        const float CELL_HEIGHT=THUMBNAIL_SIZE.y+3*ImGui::GetTextLineHeight()+GAP_HEIGHT;
 
         //std::vector<BeebThread::TimelineBeebStateEvent> beeb_state_events;
 
@@ -1006,13 +1006,14 @@ public:
                                     &display_row_begin,
                                     &display_row_end);
 
-            std::vector<BeebThread::TimelineBeebStateEvent> beeb_state_events;
-            beeb_thread->GetTimelineBeebStateEvents(&beeb_state_events,
-                                                    (size_t)display_row_begin,
+            std::vector<BeebThread::TimelineBeebStateEvent> beeb_state_events=
+            beeb_thread->GetTimelineBeebStateEvents((size_t)display_row_begin,
                                                     (size_t)display_row_end);
 
             for(size_t i=0;i<beeb_state_events.size();++i) {
                 const BeebThread::TimelineBeebStateEvent *e=&beeb_state_events[i];
+                ImGuiIDPusher pusher(e->message.get());
+                const std::shared_ptr<const BeebState> state=e->message->GetBeebState();
                 int row=display_row_begin+(int)i;
 
                 ImGui::SetCursorPos(ImVec2(0.f,row*CELL_HEIGHT));
@@ -1021,9 +1022,20 @@ public:
                 char cycles_str[MAX_UINT64_THOUSANDS_LEN];
                 GetThousandsString(cycles_str,e->time_2MHz_cycles);
 
+                if(ImGuiConfirmButton("Load")) {
+                    beeb_thread->Send(std::make_shared<BeebThread::LoadTimelineStateMessage>(state,
+                                                                                             true));
+                }
+
+                ImGui::SameLine();
+
+                if(ImGuiConfirmButton("Delete")) {
+                    beeb_thread->Send(std::make_shared<BeebThread::DeleteTimelineStateMessage>(state));
+                }
+
                 ImGui::Text("%s (%s)",cycles_str,Get2MHzCyclesString(e->time_2MHz_cycles).c_str());
 
-                const std::string &name=e->message->GetBeebState()->GetName();
+                const std::string &name=state->GetName();
                 if(name.empty()) {
                     ImGui::TextUnformatted("(no name)");
                 } else {

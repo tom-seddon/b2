@@ -285,24 +285,26 @@ bool ImGuiMenuItemFlag(const char* label,const char* shortcut,uint32_t *selected
 
 bool ImGuiButton(const char *label,bool enabled=true);
 
+bool ImGuiConfirmButton(const char *label);
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-template<class ObjectTypePtr,class ObjectType,class ResultType,class ArgumentType>
-void ImGuiSliderGetSet(const char *label,
-    ObjectTypePtr &&object,
-    ResultType (ObjectType::*get_mfn)() const,
-    void (ObjectType::*set_mfn)(ArgumentType),
-    float mini,
-    float maxi,
-    const char *display_format)
-{
-    auto value=static_cast<float>((object->*get_mfn)());
-
-    if(ImGui::SliderFloat(label,&value,mini,maxi,display_format)) {
-        (object->*set_mfn)(value);
-    }
-}
+//template<class ObjectTypePtr,class ObjectType,class ResultType,class ArgumentType>
+//void ImGuiSliderGetSet(const char *label,
+//    ObjectTypePtr &&object,
+//    ResultType (ObjectType::*get_mfn)() const,
+//    void (ObjectType::*set_mfn)(ArgumentType),
+//    float mini,
+//    float maxi,
+//    const char *display_format)
+//{
+//    auto value=static_cast<float>((object->*get_mfn)());
+//
+//    if(ImGui::SliderFloat(label,&value,mini,maxi,display_format)) {
+//        (object->*set_mfn)(value);
+//    }
+//}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -312,10 +314,48 @@ static constexpr float DEFAULT_PLOT_SCALE_MAX=FLT_MAX;
 static const ImVec2 DEFAULT_PLOT_GRAPH_SIZE(0.f,0.f);
 static const ImVec2 DEFAULT_PLOT_MARKERS(0.f,0.f);
 
-void ImGuiPlotLines(const char* label,const float* values,int values_count,int values_offset=0,const char* overlay_text=NULL,float scale_min=DEFAULT_PLOT_SCALE_MIN,float scale_max=DEFAULT_PLOT_SCALE_MAX,ImVec2 graph_size=ImVec2(0,0),ImVec2 markers=DEFAULT_PLOT_MARKERS,int stride=sizeof(float));
-void ImGuiPlotLines(const char* label,float (*values_getter)(void* data,int idx),void* data,int values_count,int values_offset=0,const char* overlay_text=NULL,float scale_min=DEFAULT_PLOT_SCALE_MIN,float scale_max=DEFAULT_PLOT_SCALE_MAX,ImVec2 graph_size=DEFAULT_PLOT_GRAPH_SIZE,ImVec2 markers=DEFAULT_PLOT_MARKERS);
-void ImGuiPlotHistogram(const char* label,const float* values,int values_count,int values_offset=0,const char* overlay_text=NULL,float scale_min=DEFAULT_PLOT_SCALE_MIN,float scale_max=DEFAULT_PLOT_SCALE_MAX,ImVec2 graph_size=ImVec2(0,0),ImVec2 markers=DEFAULT_PLOT_MARKERS,int stride=sizeof(float));
-void ImGuiPlotHistogram(const char* label,float (*values_getter)(void* data,int idx),void* data,int values_count,int values_offset=0,const char* overlay_text=NULL,float scale_min=DEFAULT_PLOT_SCALE_MIN,float scale_max=DEFAULT_PLOT_SCALE_MAX,ImVec2 graph_size=DEFAULT_PLOT_GRAPH_SIZE,ImVec2 markers=DEFAULT_PLOT_MARKERS);
+void ImGuiPlotLines(const char* label,
+                    const float* values,
+                    int values_count,
+                    int values_offset=0,
+                    const char* overlay_text=NULL,
+                    float scale_min=DEFAULT_PLOT_SCALE_MIN,
+                    float scale_max=DEFAULT_PLOT_SCALE_MAX,
+                    ImVec2 graph_size=ImVec2(0,0),
+                    ImVec2 markers=DEFAULT_PLOT_MARKERS,
+                    int stride=sizeof(float));
+
+void ImGuiPlotLines(const char* label,
+                    float (*values_getter)(void* data,int idx),
+                    void* data,
+                    int values_count,
+                    int values_offset=0,
+                    const char* overlay_text=NULL,
+                    float scale_min=DEFAULT_PLOT_SCALE_MIN,
+                    float scale_max=DEFAULT_PLOT_SCALE_MAX,
+                    ImVec2 graph_size=DEFAULT_PLOT_GRAPH_SIZE,
+                    ImVec2 markers=DEFAULT_PLOT_MARKERS);
+
+void ImGuiPlotHistogram(const char* label,
+                        const float* values,
+                        int values_count,
+                        int values_offset=0,
+                        const char* overlay_text=NULL,
+                        float scale_min=DEFAULT_PLOT_SCALE_MIN,
+                        float scale_max=DEFAULT_PLOT_SCALE_MAX,
+                        ImVec2 graph_size=ImVec2(0,0),
+                        ImVec2 markers=DEFAULT_PLOT_MARKERS,
+                        int stride=sizeof(float));
+
+void ImGuiPlotHistogram(const char* label,
+                        float (*values_getter)(void* data,int idx),
+                        void* data,int values_count,
+                        int values_offset=0,
+                        const char* overlay_text=NULL,
+                        float scale_min=DEFAULT_PLOT_SCALE_MIN,
+                        float scale_max=DEFAULT_PLOT_SCALE_MAX,
+                        ImVec2 graph_size=DEFAULT_PLOT_GRAPH_SIZE,
+                        ImVec2 markers=DEFAULT_PLOT_MARKERS);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

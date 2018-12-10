@@ -39,6 +39,7 @@
 #include "debugger.h"
 #include "HTTPServer.h"
 #include "DirectDiscImage.h"
+#include "SavedStatesUI.h"
 
 #ifdef _MSC_VER
 #include <crtdbg.h>
@@ -760,6 +761,7 @@ const BeebWindow::SettingsUIMetadata BeebWindow::ms_settings_uis[]={
     {BeebWindowPopupType_Options,"Options","toggle_emulator_options",&BeebWindow::CreateOptionsUI},
     {BeebWindowPopupType_Messages,"Messages","toggle_messages",&CreateMessagesUI},
     {BeebWindowPopupType_Timeline,"Timeline","toggle_timeline",&BeebWindow::CreateTimelineUI},
+    {BeebWindowPopupType_SavedStates,"Saved states","toggle_saved_states",&BeebWindow::CreateSavedStatesUI},
     {BeebWindowPopupType_Configs,"Configurations","toggle_configurations",&CreateConfigsUI},
 #if BBCMICRO_TRACE
     {BeebWindowPopupType_Trace,"Tracing","toggle_event_trace",&CreateTraceUI},
@@ -871,6 +873,15 @@ std::unique_ptr<SettingsUI> BeebWindow::CreateTimelineUI(BeebWindow *beeb_window
     return ::CreateTimelineUI(beeb_window,
                               beeb_window->m_renderer,
                               beeb_window->m_pixel_format);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+std::unique_ptr<SettingsUI> BeebWindow::CreateSavedStatesUI(BeebWindow *beeb_window) {
+    return ::CreateSavedStatesUI(beeb_window,
+                                 beeb_window->m_renderer,
+                                 beeb_window->m_pixel_format);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -1279,6 +1290,7 @@ void BeebWindow::DoToolsMenu() {
         m_occ.DoMenuItemUI("toggle_command_keymaps");
         m_occ.DoMenuItemUI("toggle_messages");
         m_occ.DoMenuItemUI("toggle_timeline");
+        m_occ.DoMenuItemUI("toggle_saved_states");
         m_occ.DoMenuItemUI("toggle_configurations");
 
         // if(ImGui::MenuItem("Dump states")) {
@@ -1929,11 +1941,13 @@ bool BeebWindow::InitInternal() {
 
     if(!!m_init_arguments.initial_state) {
         // Load initial state, and use parent timeline event ID (whichever it is).
-        m_beeb_thread->Send(std::make_unique<BeebThread::LoadStateMessage>(m_init_arguments.initial_state));
+        m_beeb_thread->Send(std::make_unique<BeebThread::LoadStateMessage>(m_init_arguments.initial_state,
+                                                                           false));
     } else {
         std::unique_ptr<BBCMicro> init_beeb=m_init_arguments.default_config.CreateBBCMicro(0);
         auto init_state=std::make_shared<BeebState>(std::move(init_beeb));
-        m_beeb_thread->Send(std::make_unique<BeebThread::LoadStateMessage>(init_state));
+        m_beeb_thread->Send(std::make_unique<BeebThread::LoadStateMessage>(init_state,
+                                                                           false));
     }
 
     if(!m_init_arguments.initially_paused) {
@@ -2706,6 +2720,7 @@ ObjectCommandTable<BeebWindow> BeebWindow::ms_command_table("Beeb Window",{
     GetTogglePopupCommand<BeebWindowPopupType_Options>(),
     GetTogglePopupCommand<BeebWindowPopupType_Keymaps>(),
     GetTogglePopupCommand<BeebWindowPopupType_Timeline>(),
+    GetTogglePopupCommand<BeebWindowPopupType_SavedStates>(),
     GetTogglePopupCommand<BeebWindowPopupType_Messages>(),
     GetTogglePopupCommand<BeebWindowPopupType_Configs>(),
 #if BBCMICRO_TRACE

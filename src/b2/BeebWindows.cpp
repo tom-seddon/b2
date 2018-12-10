@@ -650,19 +650,19 @@ size_t BeebWindows::GetNumSavedStates() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-std::vector<std::shared_ptr<const BeebState>> BeebWindows::GetSavedState(size_t begin_index,
-                                                                         size_t end_index)
+std::vector<std::shared_ptr<const BeebState>> BeebWindows::GetSavedStates(size_t begin_index,
+                                                                          size_t end_index)
 {
     std::lock_guard<Mutex> lock(g_->saved_states_mutex);
 
-    ASSERT(begin_index<PTRDIFF_MAX);
-    ASSERT(begin_index<g_->saved_states.size());
-    ASSERT(end_index<PTRDIFF_MAX);
-    ASSERT(end_index<g_->saved_states.size());
+    ASSERT(begin_index<=PTRDIFF_MAX);
+    ASSERT(begin_index<=g_->saved_states.size());
+    ASSERT(end_index<=PTRDIFF_MAX);
+    ASSERT(end_index<=g_->saved_states.size());
     ASSERT(begin_index<=end_index);
 
     std::vector<std::shared_ptr<const BeebState>> result(g_->saved_states.begin()+(ptrdiff_t)begin_index,
-                                                         g_->saved_states.end()+(ptrdiff_t)end_index);
+                                                         g_->saved_states.begin()+(ptrdiff_t)end_index);
     return result;
 }
 
@@ -673,4 +673,16 @@ void BeebWindows::AddSavedState(std::shared_ptr<const BeebState> saved_state) {
     std::lock_guard<Mutex> lock(g_->saved_states_mutex);
 
     g_->saved_states.push_back(std::move(saved_state));
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BeebWindows::DeleteSavedState(std::shared_ptr<const BeebState> saved_state) {
+    std::lock_guard<Mutex> lock(g_->saved_states_mutex);
+
+    g_->saved_states.erase(std::remove(g_->saved_states.begin(),
+                                       g_->saved_states.end(),
+                                       saved_state),
+                           g_->saved_states.end());
 }

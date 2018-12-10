@@ -982,6 +982,31 @@ bool ImGuiButton(const char *label,bool enabled) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+static const char CONFIRM_BUTTON_POPUP[]="confirm_popup";
+
+bool ImGuiConfirmButton(const char *label) {
+    bool click=false;
+
+    ImGuiIDPusher pusher(label);
+
+    if(ImGui::Button(label)) {
+        ImGui::OpenPopup(CONFIRM_BUTTON_POPUP);
+    }
+
+    if(ImGui::BeginPopup(CONFIRM_BUTTON_POPUP)) {
+        if(ImGui::Button("Confirm")) {
+            click=true;
+            ImGui::CloseCurrentPopup();
+        }
+        ImGui::EndPopup();
+    }
+
+    return click;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 // Lame mostly copy-paste.
 
 static void PlotEx2(
@@ -1127,24 +1152,60 @@ static float Plot2_ArrayGetter(void* data,int idx) {
     return v;
 }
 
-void ImGuiPlotLines(const char* label,const float* values,int values_count,int values_offset,const char* overlay_text,float scale_min,float scale_max,ImVec2 graph_size,ImVec2 markers,int stride)
+void ImGuiPlotLines(const char* label,
+                    const float* values,
+                    int values_count,
+                    int values_offset,
+                    const char* overlay_text,
+                    float scale_min,
+                    float scale_max,
+                    ImVec2 graph_size,
+                    ImVec2 markers,
+                    int stride)
 {
     ImGuiPlotArrayGetterData2 data(values,stride);
     PlotEx2(ImGuiPlotType_Lines,label,&Plot2_ArrayGetter,(void*)&data,values_count,values_offset,overlay_text,scale_min,scale_max,graph_size,markers);
 }
 
-void ImGuiPlotLines(const char* label,float (*values_getter)(void* data,int idx),void* data,int values_count,int values_offset,const char* overlay_text,float scale_min,float scale_max,ImVec2 graph_size,ImVec2 markers)
+void ImGuiPlotLines(const char* label,
+                    float (*values_getter)(void* data,int idx),
+                    void* data,
+                    int values_count,
+                    int values_offset,
+                    const char* overlay_text,
+                    float scale_min,
+                    float scale_max,
+                    ImVec2 graph_size,
+                    ImVec2 markers)
 {
     PlotEx2(ImGuiPlotType_Lines,label,values_getter,data,values_count,values_offset,overlay_text,scale_min,scale_max,graph_size,markers);
 }
 
-void ImGuiPlotHistogram(const char* label,const float* values,int values_count,int values_offset,const char* overlay_text,float scale_min,float scale_max,ImVec2 graph_size,ImVec2 markers,int stride)
+void ImGuiPlotHistogram(const char* label,
+                        const float* values,
+                        int values_count,
+                        int values_offset,
+                        const char* overlay_text,
+                        float scale_min,
+                        float scale_max,
+                        ImVec2 graph_size,
+                        ImVec2 markers,
+                        int stride)
 {
     ImGuiPlotArrayGetterData2 data(values,stride);
     PlotEx2(ImGuiPlotType_Histogram,label,&Plot2_ArrayGetter,(void*)&data,values_count,values_offset,overlay_text,scale_min,scale_max,graph_size,markers);
 }
 
-void ImGuiPlotHistogram(const char* label,float (*values_getter)(void* data,int idx),void* data,int values_count,int values_offset,const char* overlay_text,float scale_min,float scale_max,ImVec2 graph_size,ImVec2 markers)
+void ImGuiPlotHistogram(const char* label,
+                        float (*values_getter)(void* data,int idx),
+                        void* data,
+                        int values_count,
+                        int values_offset,
+                        const char* overlay_text,
+                        float scale_min,
+                        float scale_max,
+                        ImVec2 graph_size,
+                        ImVec2 markers)
 {
     PlotEx2(ImGuiPlotType_Histogram,label,values_getter,data,values_count,values_offset,overlay_text,scale_min,scale_max,graph_size,markers);
 }

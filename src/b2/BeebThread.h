@@ -345,7 +345,7 @@ public:
     {
     public:
         BeebStateMessage()=default;
-        explicit BeebStateMessage(std::shared_ptr<BeebState> state,
+        explicit BeebStateMessage(std::shared_ptr<const BeebState> state,
                                   bool user_initiated);
 
         const std::shared_ptr<const BeebState> &GetBeebState() const;
@@ -354,8 +354,9 @@ public:
         // something that happened behind the scenes.
         bool WasUserInitiated() const;
 
-        // There are various options, but these messages are for now handled
-        // by reloading the state.
+        // This is a no-op. Whether saving or replaying, the current state is
+        // the same. (At least... in principle. Maybe a check would be
+        // worthwhile.)
         void ThreadHandle(BeebThread *beeb_thread,ThreadState *ts) const override;
     protected:
 //        void SetBeebState(std::shared_ptr<BeebState> state);
@@ -370,11 +371,49 @@ public:
         std::shared_ptr<BeebStateMessage> message;
     };
 
+    // Load a random state from the saved states list. When recording, the
+    // event is recorded as-is.
     class LoadStateMessage:
         public BeebStateMessage
     {
     public:
-        explicit LoadStateMessage(std::shared_ptr<BeebState> state);
+        explicit LoadStateMessage(std::shared_ptr<const BeebState> state,
+                                  bool verbose);
+
+        bool ThreadPrepare(std::shared_ptr<Message> *ptr,
+                           CompletionFun *completion_fun,
+                           BeebThread *beeb_thread,
+                           ThreadState *ts) override;
+
+        void ThreadHandle(BeebThread *beeb_thread,ThreadState *ts) const override;
+    protected:
+    private:
+        bool m_verbose=false;
+    };
+
+    // Load a state from the timeline states list. When recording, the timeline
+    // is rewound to that point.
+    class LoadTimelineStateMessage:
+    public BeebStateMessage
+    {
+    public:
+        explicit LoadTimelineStateMessage(std::shared_ptr<const BeebState> state,
+                                          bool verbose);
+
+        bool ThreadPrepare(std::shared_ptr<Message> *ptr,
+                           CompletionFun *completion_fun,
+                           BeebThread *beeb_thread,
+                           ThreadState *ts) override;
+    protected:
+    private:
+        bool m_verbose=false;
+    };
+
+    class DeleteTimelineStateMessage:
+    public BeebStateMessage
+    {
+    public:
+        explicit DeleteTimelineStateMessage(std::shared_ptr<const BeebState> state);
 
         bool ThreadPrepare(std::shared_ptr<Message> *ptr,
                            CompletionFun *completion_fun,
@@ -928,9 +967,8 @@ public:
 
     //
     void GetTimelineState(TimelineState *timeline_state) const;
-    void GetTimelineBeebStateEvents(std::vector<TimelineBeebStateEvent> *timeline_beeb_state_events,
-                                    size_t begin_index,
-                                    size_t end_index);
+    std::vector<BeebThread::TimelineBeebStateEvent> GetTimelineBeebStateEvents(size_t begin_index,
+                                                                               size_t end_index);
 protected:
 private:
     struct AudioThreadData;
@@ -1067,6 +1105,9 @@ private:
     void ThreadStopRecording(ThreadState *ts);
     void ThreadClearRecording(ThreadState *ts);
     void ThreadCheckTimeline(ThreadState *ts);
+    void ThreadDeleteTimelineState(ThreadState *ts,
+                                   const std::shared_ptr<const BeebState> &state,
+                                   bool delete_subsequent_events);
 
     static bool ThreadWaitForHardReset(const BBCMicro *beeb,const M6502 *cpu,void *context);
 #if HTTP_SERVER
