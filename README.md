@@ -51,12 +51,17 @@ Computer 32K` message should appear straight away.
 ## Load a disc
 
 Go to `Drive 0` or `Drive 1` on the `File` menu to load a disc. Use
-the `Disc image` option to select an `SSD` file, then hit Shift+Break
-(PC Shift + PC F11) to start it.
+the `Disc image...` or `Direct disc image...` option to select an .ssd
+file, then hit Shift+Break (PC Shift + PC F11) to start it.
 
-Changing the BBC disc image doesn't affect the file on the PC disk -
-after loading a disc image, there are additional `Save disc image` and
-`Save disc image as...` options you can use to do this manually.
+`Disc image...` loads the file into memory. It isn't updated when
+changes are made in the emulator (use `Save` to do that), and changes
+made to the file won't be seen in the emulator (reload the disc image
+for that).
+
+`Direct disc image...` accesses the file directly for each read or
+write. Any changes made in the emulator are immediately made to the
+file, and vice versa.
 
 ## Change config
 
