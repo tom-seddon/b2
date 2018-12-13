@@ -24,7 +24,7 @@ add_executable(b2 MACOSX_BUNDLE
   JobQueue.cpp JobQueue.h
   GenerateThumbnailJob.cpp GenerateThumbnailJob.h
   BeebWindow.cpp BeebWindow.h BeebWindow.inl
-  TimelineUI.cpp TimelineUI.h TimelineUI_private.inl
+  TimelineUI.cpp TimelineUI.h
   beeb_events.cpp beeb_events.h beeb_events.inl beeb_events_types.inl
   load_save.cpp load_save.h load_save.inl
   Messages.cpp Messages.h
@@ -36,7 +36,6 @@ add_executable(b2 MACOSX_BUNDLE
   DataRateUI.cpp DataRateUI.h
   VideoWriter.cpp VideoWriter.h
   WriteVideoJob.cpp WriteVideoJob.h
-  Timeline.cpp Timeline.h
   VBlankMonitor.cpp VBlankMonitor.h
   VBlankMonitorDefault.cpp VBlankMonitorDefault.h
   MessageQueue.cpp MessageQueue.h

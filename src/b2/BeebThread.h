@@ -21,7 +21,6 @@
 #include <beeb/BBCMicro.h>
 #include <atomic>
 #include "BeebConfig.h"
-#include "Timeline.h"
 #include "BeebWindow.h"
 #include "MessageQueue.h"
 
@@ -489,34 +488,6 @@ public:
     private:
     };
 
-//    class SaveAndReplayFromMessage:
-//        public Message
-//    {
-//    public:
-//        uint64_t timeline_start_id=0;
-//
-//        explicit SaveAndReplayFromMessage(uint64_t timeline_start_id);
-//    protected:
-//    private:
-//    };
-
-//    // Save current state, start recording video of replay from given
-//    // state to new state.
-//    //
-//    // This doesn't affect the receiver - video recording runs as a
-//    // job, and emulation continues.
-//    class SaveAndVideoFromMessage:
-//        public Message
-//    {
-//    public:
-//        uint64_t timeline_start_id=0;
-//        std::unique_ptr<VideoWriter> video_writer;
-//
-//        SaveAndVideoFromMessage(uint64_t timeline_start_id,std::unique_ptr<VideoWriter> video_writer);
-//    protected:
-//    private:
-//    };
-
 #if BBCMICRO_TRACE
     class StartTraceMessage:
         public Message
@@ -564,29 +535,6 @@ public:
     private:
         const BeebWindowInitArguments m_init_arguments;
     };
-
-//    // Clone self into existing window. Save this thread's state and
-//    // load the resulting state into another thread. (Not sure "clone"
-//    // is really the best name for that though...?)
-//    class CloneThisThreadMessage:
-//        public Message
-//    {
-//    public:
-//        std::shared_ptr<BeebThread> dest_thread;
-//
-//        explicit CloneThisThreadMessage(std::shared_ptr<BeebThread> dest_thread);
-//    protected:
-//    private:
-//    };
-
-//    class LoadLastStateMessage:
-//        public Message
-//    {
-//    public:
-//        LoadLastStateMessage();
-//    protected:
-//    private:
-//    };
 
     class CancelReplayMessage:
         public Message

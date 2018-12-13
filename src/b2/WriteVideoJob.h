@@ -4,12 +4,10 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-#include "VideoWriter.h"
+class VideoWriter;
 #include "Messages.h"
 #include "JobQueue.h"
 #include <memory>
-#include <SDL.h>
-#include "Timeline.h"
 #include <atomic>
 #include "BeebThread.h"
 

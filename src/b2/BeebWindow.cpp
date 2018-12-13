@@ -30,7 +30,6 @@
 #include "TraceUI.h"
 #include <IconsFontAwesome5.h>
 #include "DataRateUI.h"
-#include "Timeline.h"
 #include <shared/path.h>
 #include "CommandContextStackUI.h"
 #include "CommandKeymapsUI.h"

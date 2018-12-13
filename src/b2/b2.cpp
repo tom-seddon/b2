@@ -32,7 +32,6 @@
 #include "b2.h"
 #include "VideoWriterMF.h"
 #include "VideoWriterFFmpeg.h"
-#include "Timeline.h"
 #include <beeb/BBCMicro.h>
 #include <atomic>
 #include <shared/system_specific.h>
