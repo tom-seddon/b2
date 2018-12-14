@@ -24,6 +24,7 @@ struct ThumbnailsUI::Thumbnail {
     std::shared_ptr<GenerateThumbnailJob> job;
     bool in_use=false;
     SDLUniquePtr<SDL_Texture> texture;
+    std::string error;
 };
 
 ////////////////////////////////////////////////////////////////////////////
@@ -94,23 +95,23 @@ void ThumbnailsUI::Thumbnail(const std::shared_ptr<const BeebState> &beeb_state)
 
             if(job->WasCanceled()) {
                 t->state=ThumbnailState_Error;
+                t->error="Canceled";
                 break;
             }
 
             const void *texture_data=job->GetTextureData();
-            if(!texture_data) {
-                t->state=ThumbnailState_Error;
-                break;
-            }
+            ASSERT(texture_data);
 
             SDLUniquePtr<SDL_Texture> texture=this->GetTexture();
             if(!texture) {
                 t->state=ThumbnailState_Error;
+                t->error=std::string("Failed to create texture: ")+SDL_GetError();
                 break;
             }
 
             if(SDL_UpdateTexture(texture.get(),nullptr,texture_data,TV_TEXTURE_WIDTH*4)<0) {
                 t->state=ThumbnailState_Error;
+                t->error=std::string("Failed to initialise texture: ")+SDL_GetError();
                 break;
             }
 
@@ -129,15 +130,32 @@ void ThumbnailsUI::Thumbnail(const std::shared_ptr<const BeebState> &beeb_state)
     switch(t->state) {
         case ThumbnailState_Start:
         case ThumbnailState_WaitForJob:
-            ImGui::TextUnformatted("...");
+            ImGui::TextUnformatted("Creating preview...");
             break;
 
         case ThumbnailState_Ready:
+        {
+            static const char THUMBNAIL_POPUP[]="thumbnail_popup";
+
+            ImGuiIDPusher pusher(t);
+
             ImGui::Image(t->texture.get(),this->GetThumbnailSize());
+
+            if(ImGui::IsItemClicked()) {
+                ImGui::OpenPopup(THUMBNAIL_POPUP);
+            }
+
+            if(ImGui::BeginPopup(THUMBNAIL_POPUP)) {
+                int w,h;
+                SDL_QueryTexture(t->texture.get(),nullptr,nullptr,&w,&h);
+                ImGui::Image(t->texture.get(),ImVec2(w,h));
+                ImGui::EndPopup();
+            }
+        }
             break;
 
         case ThumbnailState_Error:
-            ImGui::TextUnformatted(":(");
+            ImGui::TextUnformatted(t->error.c_str());
             break;
     }
 }

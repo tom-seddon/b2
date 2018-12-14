@@ -57,11 +57,6 @@ const std::string MemoryDiscImage::LOAD_METHOD_ZIP="zip";
 // MemoryDiscImage is not the only ref, a duplicate will be made, and
 // the duplicate modified, meaning concurrent reads can proceed.
 //
-// But it's locked for both for now. Lame (until proven otherwise).
-// The locking in general isn't very clever anyway... but I don't
-// think this is a big deal. It's not the end of the world if
-// emulation is less efficient when there's disk access going on.
-
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 

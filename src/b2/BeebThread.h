@@ -91,45 +91,12 @@ public:
     public:
         typedef std::function<void(bool,std::string)> CompletionFun;
 
-//        // completion_fun is called when the message has been handled
-//        // or when it gets cancelled. (This is used by the HTTP server
-//        // to delay sending an HTTP response until the message has
-//        // been handled.)
-//        //
-//        // The parameter indicates whether the message was handled
-//        // (true) or cancelled (false).
-//        //
-//        // When the Message is destroyed, if completion_fun is set it
-//        // will be called with the value of this->implicit_success
-//        // (which is by default true). Alternatively, it can be called
-//        // manually using CallCompletionFun.
-//        //
-//        // (Random notes: main other option here might be a virtual
-//        // function, and the HTTP server could derive new message
-//        // types that send a response on completion, perhaps using
-//        // CRTP. But virtual functions are harder to call
-//        // automatically from the destructor. And in some case there's
-//        // extra overhead involved in working out when the message has
-//        // been handled - e.g., when resetting - that could be avoided
-//        // when unnecessary. Easy to test for with
-//        // std::function<>::operator bool, but extra faff with a
-//        // virtual function.)
-//        //
-//        // TODO move out of this class. The completion_fun should be
-//        // associated with the Send, not the Message.
-//        std::function<void(bool)> completion_fun;
-
-        //bool implicit_success=true;
-
         explicit Message()=default;
         virtual ~Message()=0;
 
         static void CallCompletionFun(CompletionFun *completion_fun,
                                       bool success,
                                       const char *message);
-
-//        // Calls completion fun (if set) and then resets it.
-//        void CallCompletionFun(bool success);
 
         // Translate this, incoming message, into the message that will be
         // recorded into the timeline. *PTR points to this (and may be the
@@ -167,8 +134,6 @@ public:
         // Standard policies for use from the ThreadPrepare function.
 
         // Returns false if ignored.
-        //
-        // The l
         static bool PrepareUnlessReplayingOrHalted(std::shared_ptr<Message> *ptr,
                                                    CompletionFun *completion_fun,
                                                    BeebThread *beeb_thread,
@@ -239,13 +204,6 @@ public:
         public Message
     {
     public:
-//        const bool boot=false;
-
-//#if BBCMICRO_DEBUGGER
-//        // if set, set the emulator running after rebooting.
-//        const bool run=false;
-//#endif
-
         // Flags are a combination of BeebThreadHardResetFlag.
         explicit HardResetMessage(uint32_t flags);
 
@@ -322,7 +280,7 @@ public:
         // This is an owning pointer. If the disc image isn't cloneable, it'll
         // be given to the BBCMicro, and the LoadDiscMessage will always be
         // destroyed; if it is cloneable, a clone of it will be made, and the
-        // clone given to the BBCMicro. (The LOadDiscMessage may or may not then
+        // clone given to the BBCMicro. (The LoadDiscMessage may or may not then
         // stick around, depending on whether there's a recording being made.)
         const std::shared_ptr<DiscImage> disc_image;
         const bool verbose=false;
@@ -358,8 +316,6 @@ public:
         // worthwhile.)
         void ThreadHandle(BeebThread *beeb_thread,ThreadState *ts) const override;
     protected:
-//        void SetBeebState(std::shared_ptr<BeebState> state);
-//        void SetAutomatic(bool automatic);
     private:
         std::shared_ptr<const BeebState> m_state;
         const bool m_user_initiated;
