@@ -33,6 +33,8 @@ public:
 
         ImGui::Text("Timeline State: %s",GetBeebThreadTimelineStateEnumName(timeline_state.state));
 
+        ImGui::Checkbox("Follow new events",&m_follow);
+
         // Back, Stop, Play/Pause, Forward
         //
         // https://fontawesome.com/icons?d=gallery
@@ -151,12 +153,19 @@ public:
                           ImVec2(0,0),
                           true,//border
                           ImGuiWindowFlags_AlwaysVerticalScrollbar);
+
+        ImVec2 timeline_size(0,timeline_state.num_beeb_state_events*CELL_HEIGHT);
+
+        if(m_follow) {
+            if(timeline_state.state==BeebThreadTimelineState_Record) {
+                ImGui::SetScrollY(timeline_size.y);
+            }
+        }
+
         float scroll_y=ImGui::GetScrollY();
+
         {
-            ImGui::BeginChild("timeline",
-                              ImVec2(0,timeline_state.num_beeb_state_events*CELL_HEIGHT),
-                              false,//border
-                              0);
+            ImGui::BeginChild("timeline",timeline_size,false,0);//false = no border
 
             // not too concerned about overflow here...
             int display_row_begin,display_row_end;
@@ -217,6 +226,7 @@ protected:
 private:
     BeebWindow *m_beeb_window=nullptr;
     ThumbnailsUI m_thumbnails;
+    bool m_follow=true;
 };
 
 ////////////////////////////////////////////////////////////////////////////
