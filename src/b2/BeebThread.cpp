@@ -1889,15 +1889,14 @@ std::vector<BeebThread::TimelineBeebStateEvent>
 BeebThread::GetTimelineBeebStateEvents(size_t begin_index,
                                        size_t end_index)
 {
+    ASSERT(begin_index<=PTRDIFF_MAX);
+    ASSERT(end_index<=PTRDIFF_MAX);
     ASSERT(end_index>=begin_index);
 
     std::lock_guard<Mutex> lock(m_mutex);
 
-    ASSERT(begin_index<=PTRDIFF_MAX);
-    ASSERT(begin_index<=m_timeline_beeb_state_events_copy.size());
-    ASSERT(end_index<=PTRDIFF_MAX);
-    ASSERT(end_index<=m_timeline_beeb_state_events_copy.size());
-    ASSERT(begin_index<=end_index);
+    begin_index=std::min(begin_index,m_timeline_beeb_state_events_copy.size());
+    end_index=std::min(end_index,m_timeline_beeb_state_events_copy.size());
 
     std::vector<TimelineBeebStateEvent> result(m_timeline_beeb_state_events_copy.begin()+(ptrdiff_t)begin_index,
                                                m_timeline_beeb_state_events_copy.begin()+(ptrdiff_t)end_index);

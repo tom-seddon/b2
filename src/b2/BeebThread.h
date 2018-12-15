@@ -872,6 +872,9 @@ public:
 
     //
     void GetTimelineState(TimelineState *timeline_state) const;
+
+    // May return fewer items than requested, if the indexes (presumably
+    // calculated from the TimelineState values...) turn out to be outdated.
     std::vector<BeebThread::TimelineBeebStateEvent> GetTimelineBeebStateEvents(size_t begin_index,
                                                                                size_t end_index);
 protected:
