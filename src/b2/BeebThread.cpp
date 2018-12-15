@@ -90,6 +90,20 @@ static const float VOLUMES_TABLE[]={
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+// Holds a starting state event, and a list of subsequent non-state events.
+struct BeebThread::TimelineEventList {
+    TimelineBeebStateEvent state_event;
+    std::vector<TimelineEvent> events;
+
+    TimelineEventList()=default;
+
+    // Moving is fine. Copying isn't!
+    TimelineEventList(const TimelineEventList &)=delete;
+    TimelineEventList &operator=(const TimelineEventList &)=delete;
+    TimelineEventList(TimelineEventList &&)=default;
+    TimelineEventList &operator=(TimelineEventList &&)=default;
+};
+
 struct BeebThread::ThreadState {
     bool stop=false;
 
@@ -110,15 +124,7 @@ struct BeebThread::ThreadState {
 
     BeebThreadTimelineState timeline_state=BeebThreadTimelineState_None;
     uint64_t timeline_end_2MHz_cycles=0;
-    std::vector<TimelineEvent> timeline_events;
-    std::vector<TimelineBeebStateEvent> timeline_beeb_state_events;
-    bool timeline_beeb_state_events_dirty=true;
-
-    //    std::unique_ptr<Timeline> record_timeline;
-    //
-    //    std::unique_ptr<Timeline> replay_timeline;
-    //    size_t replay_next_index=0;
-    //    uint64_t replay_next_event_cycles=0;
+    std::vector<TimelineEventList> timeline_event_lists;
 
     bool copy_basic=false;
     std::function<void(std::vector<uint8_t>)> copy_stop_fun;
@@ -527,12 +533,6 @@ const std::shared_ptr<const BeebState> &BeebThread::BeebStateMessage::GetBeebSta
     return m_state;
 }
 
-//void BeebThread::BeebStateMessage::SetBeebState(std::shared_ptr<BeebState> state) {
-//    ASSERT(!m_state);
-//
-//    m_state=std::move(state);
-//}
-
 void BeebThread::BeebStateMessage::ThreadHandle(BeebThread *beeb_thread,
                                                 ThreadState *ts) const
 {
@@ -577,41 +577,92 @@ void BeebThread::LoadStateMessage::ThreadHandle(BeebThread *beeb_thread,
 //////////////////////////////////////////////////////////////////////////
 
 void BeebThread::ThreadDeleteTimelineState(ThreadState *ts,
-                                           const std::shared_ptr<const BeebState> &state,
-                                           bool delete_subsequent_events)
+                                           const std::shared_ptr<const BeebState> &state)
 {
-    auto &&states_it=ts->timeline_beeb_state_events.begin();
-    while(states_it!=ts->timeline_beeb_state_events.end()) {
-        if(states_it->message->GetBeebState()==state) {
+    this->ThreadCheckTimeline(ts);
+
+    auto it=ts->timeline_event_lists.begin();
+    while(it!=ts->timeline_event_lists.end()) {
+        if(it->state_event.message->GetBeebState()==state) {
             break;
         }
-        ++states_it;
+
+        ++it;
     }
-    if(states_it==ts->timeline_beeb_state_events.end()) {
-        // hmm
+
+    if(it==ts->timeline_event_lists.end()) {
+        // Umm...
         return;
     }
 
-    // find this in the main timeline events too.
-    auto &&events_it=ts->timeline_events.begin();
-    while(events_it!=ts->timeline_events.end()) {
-        if(events_it->message==states_it->message) {
+    if(it==ts->timeline_event_lists.begin()) {
+        // This list's events are going away.
+        m_timeline_state.num_events-=it->events.size();
+    } else {
+        // Join events to previous state.
+        auto prev_it=it-1;
+        prev_it->events.insert(prev_it->events.end(),
+                               std::make_move_iterator(it->events.begin()),
+                               std::make_move_iterator(it->events.end()));
+    }
+
+    // Account for removal of this state.
+    --m_timeline_state.num_events;
+
+    // Remove the copy.
+    const ptrdiff_t index=it-ts->timeline_event_lists.begin();
+    ASSERT(m_timeline_beeb_state_events_copy[(size_t)index].time_2MHz_cycles==it->state_event.time_2MHz_cycles);
+    ASSERT(m_timeline_beeb_state_events_copy[(size_t)index].message==it->state_event.message);
+    m_timeline_beeb_state_events_copy.erase(m_timeline_beeb_state_events_copy.begin()+index);
+
+    it=ts->timeline_event_lists.erase(it);
+
+    this->ThreadCheckTimeline(ts);
+}
+
+void BeebThread::ThreadTruncateTimeline(ThreadState *ts,
+                                        const std::shared_ptr<const BeebState> &state)
+{
+    this->ThreadCheckTimeline(ts);
+
+    auto it=ts->timeline_event_lists.begin();
+    while(it!=ts->timeline_event_lists.end()) {
+        if(it->state_event.message->GetBeebState()==state) {
             break;
         }
-        ++events_it;
-    }
-    ASSERT(events_it!=ts->timeline_events.end());
 
-    if(delete_subsequent_events) {
-        ts->timeline_beeb_state_events.erase(states_it+1,ts->timeline_beeb_state_events.end());
-        ts->timeline_events.erase(events_it+1,ts->timeline_events.end());
-        ts->timeline_end_2MHz_cycles=ts->timeline_events.back().time_2MHz_cycles;
-    } else {
-        ts->timeline_beeb_state_events.erase(states_it);
-        ts->timeline_events.erase(events_it);
+        ++it;
     }
 
-    ts->timeline_beeb_state_events_dirty=true;
+    if(it==ts->timeline_event_lists.end()) {
+        // Umm...
+        return;
+    }
+
+    const ptrdiff_t state_events_copy_index=it-ts->timeline_event_lists.begin();
+    ASSERT(m_timeline_beeb_state_events_copy[(size_t)state_events_copy_index].time_2MHz_cycles==it->state_event.time_2MHz_cycles);
+    ASSERT(m_timeline_beeb_state_events_copy[(size_t)state_events_copy_index].message==it->state_event.message);
+
+    // Account for removal of this state's events.
+    m_timeline_state.num_events-=it->events.size();
+
+    // Account for removal of subsequent states and their events.
+    for(auto it2=it+1;it2!=ts->timeline_event_lists.end();++it2) {
+        m_timeline_state.num_events-=1+it2->events.size();
+    }
+
+    // Remove this state's events.
+    it->events.clear();
+
+    // Remove subsequent states.
+    ts->timeline_event_lists.erase(it+1,ts->timeline_event_lists.end());
+
+    // The given state is now the end of the timeline.
+    ts->timeline_end_2MHz_cycles=it->state_event.time_2MHz_cycles;
+
+    // Truncate the copy list as well. (+1 because the index'th state is kept)
+    m_timeline_beeb_state_events_copy.erase(m_timeline_beeb_state_events_copy.begin()+state_events_copy_index+1,
+                                            m_timeline_beeb_state_events_copy.end());
 
     this->ThreadCheckTimeline(ts);
 }
@@ -637,7 +688,7 @@ bool BeebThread::LoadTimelineStateMessage::ThreadPrepare(std::shared_ptr<Message
     }
 
     if(ts->timeline_state==BeebThreadTimelineState_Record) {
-        beeb_thread->ThreadDeleteTimelineState(ts,this->GetBeebState(),true);
+        beeb_thread->ThreadTruncateTimeline(ts,this->GetBeebState());
     }
 
     beeb_thread->ThreadReplaceBeeb(ts,this->GetBeebState()->CloneBBCMicro(),0);
@@ -663,7 +714,7 @@ bool BeebThread::DeleteTimelineStateMessage::ThreadPrepare(std::shared_ptr<Messa
         return false;
     }
 
-    beeb_thread->ThreadDeleteTimelineState(ts,this->GetBeebState(),false);
+    beeb_thread->ThreadDeleteTimelineState(ts,this->GetBeebState());
     ptr->reset();
     return true;
 }
@@ -1251,29 +1302,46 @@ bool BeebThread::TimingMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
 //////////////////////////////////////////////////////////////////////////
 
 void BeebThread::ThreadCheckTimeline(ThreadState *ts) {
-    if(!ts->timeline_events.empty()) {
-        size_t beeb_state_index=0;
+    size_t num_events=0;
 
-        for(size_t event_idx=0;event_idx<ts->timeline_events.size();++event_idx) {
-            const TimelineEvent *e=&ts->timeline_events[event_idx];
+    ASSERT(ts->timeline_event_lists.size()==m_timeline_beeb_state_events_copy.size());
 
-            if(event_idx>0) {
-                ASSERT(e->time_2MHz_cycles>=ts->timeline_events[event_idx-1].time_2MHz_cycles);
+    if(!ts->timeline_event_lists.empty()) {
+        const TimelineEventList *pe=nullptr;
+        for(size_t i=0;i<ts->timeline_event_lists.size();++i) {
+            const TimelineEventList *e=&ts->timeline_event_lists[i];
+
+            ASSERT(e->state_event.time_2MHz_cycles==m_timeline_beeb_state_events_copy[i].time_2MHz_cycles);
+            ASSERT(e->state_event.message==m_timeline_beeb_state_events_copy[i].message);
+
+            num_events+=1+e->events.size();
+
+            if(pe) {
+                ASSERT(e->state_event.time_2MHz_cycles>=pe->state_event.time_2MHz_cycles);
+
+                for(size_t j=0;j<pe->events.size();++j) {
+                    ASSERT(pe->events[j].time_2MHz_cycles<=e->state_event.time_2MHz_cycles);
+                }
             }
 
-            if(!!std::dynamic_pointer_cast<BeebStateMessage>(e->message)) {
-                ASSERT(beeb_state_index<ts->timeline_beeb_state_events.size());
-                const TimelineBeebStateEvent *bse=&ts->timeline_beeb_state_events[beeb_state_index];
-                ASSERT(bse->time_2MHz_cycles==e->time_2MHz_cycles);
-                ASSERT(bse->message==e->message);
-                ++beeb_state_index;
+            for(size_t j=0;j<e->events.size();++j) {
+                ASSERT(e->events[j].time_2MHz_cycles>=e->state_event.time_2MHz_cycles);
+                if(j>0) {
+                    ASSERT(e->events[j].time_2MHz_cycles>=e->events[j-1].time_2MHz_cycles);
+                }
             }
+
+            pe=e;
         }
 
-        ASSERT(beeb_state_index==ts->timeline_beeb_state_events.size());
-
-        ASSERT(ts->timeline_end_2MHz_cycles>=ts->timeline_events.back().time_2MHz_cycles);
+        if(pe->events.empty()) {
+            ASSERT(ts->timeline_end_2MHz_cycles>=pe->state_event.time_2MHz_cycles);
+        } else {
+            ASSERT(ts->timeline_end_2MHz_cycles>=pe->events.back().time_2MHz_cycles);
+        }
     }
+
+    ASSERT(m_timeline_state.num_events==num_events);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -2237,14 +2305,24 @@ void BeebThread::ThreadMain(void) {
 
         ts.beeb_thread=this;
         ts.msgs=Messages(m_message_list);
-        ts.timeline_events=std::move(m_initial_timeline_events);
 
-        for(const TimelineEvent &event:ts.timeline_events) {
+        for(TimelineEvent &event:m_initial_timeline_events) {
             auto &&beeb_state_message=std::dynamic_pointer_cast<BeebStateMessage>(event.message);
+
             if(!!beeb_state_message) {
-                ts.timeline_beeb_state_events.push_back({event.time_2MHz_cycles,std::move(beeb_state_message)});
+                TimelineEventList list;
+                list.state_event={event.time_2MHz_cycles,std::move(beeb_state_message)};
+
+                ts.timeline_event_lists.push_back(std::move(list));
+            } else {
+                ASSERT(!ts.timeline_event_lists.empty());
+                ts.timeline_event_lists.back().events.push_back(std::move(event));
             }
+
+            ++m_timeline_state.num_events;
         }
+
+        m_initial_timeline_events.clear();
 
         this->ThreadCheckTimeline(&ts);
 
@@ -2284,8 +2362,10 @@ void BeebThread::ThreadMain(void) {
                     Message::CallCompletionFun(&m.completion_fun,true,nullptr);
 
                     if(ts.timeline_state==BeebThreadTimelineState_Record) {
+                        ASSERT(!ts.timeline_event_lists.empty());
                         TimelineEvent event{*ts.num_executed_2MHz_cycles,std::move(m.message)};
-                        ts.timeline_events.emplace_back(std::move(event));
+                        ts.timeline_event_lists.back().events.emplace_back(std::move(event));
+                        ++m_timeline_state.num_events;
                     }
                 }
 
@@ -2298,36 +2378,24 @@ void BeebThread::ThreadMain(void) {
 
             // Update ThreadState timeline stuff.
             if(ts.timeline_state==BeebThreadTimelineState_Record) {
-                ASSERT(!ts.timeline_events.empty());
+                ASSERT(!ts.timeline_event_lists.empty());
                 ts.timeline_end_2MHz_cycles=*ts.num_executed_2MHz_cycles;
 
-                if(ts.timeline_beeb_state_events.empty()) {
-                    // The timeline always starts off with a save state
-                    // message, so this case can't happen. But in the long
-                    // run, this may change.
-                    ASSERT(false);
-                } else {
-                    const TimelineBeebStateEvent &last_event=ts.timeline_beeb_state_events.back();
-                    ASSERT(*ts.num_executed_2MHz_cycles>=last_event.time_2MHz_cycles);
-                    if(*ts.num_executed_2MHz_cycles-last_event.time_2MHz_cycles>=TIMELINE_SAVE_STATE_FREQUENCY_2MHz_CYCLES) {
-                        if(last_event.message==ts.timeline_events.back().message) {
-                            // There have been no events since the last save
-                            // event. Don't bother saving a new one.
-                        } else {
-                            if(!this->ThreadRecordSaveState(&ts,true)) {
-                                // ugh, something went wrong :(
-                                this->ThreadStopRecording(&ts);
-                                ts.msgs.e.f("Internal error - failed to save state.\n");
-                            }
+                const TimelineEventList *list=&ts.timeline_event_lists.back();
+
+                ASSERT(*ts.num_executed_2MHz_cycles>=list->state_event.time_2MHz_cycles);
+                if(*ts.num_executed_2MHz_cycles-list->state_event.time_2MHz_cycles>=TIMELINE_SAVE_STATE_FREQUENCY_2MHz_CYCLES) {
+                    if(list->events.empty()) {
+                        // There have been no events since the last save
+                        // event. Don't bother saving a new one.
+                    } else {
+                        if(!this->ThreadRecordSaveState(&ts,true)) {
+                            // ugh, something went wrong :(
+                            this->ThreadStopRecording(&ts);
+                            ts.msgs.e.f("Internal error - failed to save state.\n");
                         }
                     }
                 }
-            }
-
-            // Update m_timeline_state.
-            if(ts.timeline_beeb_state_events_dirty) {
-                m_timeline_beeb_state_events_copy=ts.timeline_beeb_state_events;
-                ts.timeline_beeb_state_events_dirty=false;
             }
 
             if(ts.timeline_state==BeebThreadTimelineState_None) {
@@ -2336,15 +2404,16 @@ void BeebThread::ThreadMain(void) {
                 m_timeline_state.can_record=false;
             }
 
-            m_timeline_state.num_events=ts.timeline_events.size();
-            if(m_timeline_state.num_events>0) {
-                m_timeline_state.begin_2MHz_cycles=ts.timeline_events[0].time_2MHz_cycles;
-                m_timeline_state.end_2MHz_cycles=ts.timeline_end_2MHz_cycles;
-                m_timeline_state.num_beeb_state_events=ts.timeline_beeb_state_events.size();
-            } else {
+            //m_timeline_state.num_events=ts.timeline_events.size();
+            if(ts.timeline_event_lists.empty()) {
+                ASSERT(m_timeline_state.num_events==0);
                 m_timeline_state.begin_2MHz_cycles=0;
                 m_timeline_state.end_2MHz_cycles=m_timeline_state.begin_2MHz_cycles;
                 m_timeline_state.num_beeb_state_events=0;
+            } else {
+                m_timeline_state.begin_2MHz_cycles=ts.timeline_event_lists[0].state_event.time_2MHz_cycles;
+                m_timeline_state.end_2MHz_cycles=ts.timeline_end_2MHz_cycles;
+                m_timeline_state.num_beeb_state_events=ts.timeline_event_lists.size();
             }
             
             m_timeline_state.current_2MHz_cycles=*ts.num_executed_2MHz_cycles;
@@ -2565,9 +2634,14 @@ bool BeebThread::ThreadRecordSaveState(ThreadState *ts,bool user_initiated) {
 
     uint64_t time=*ts->num_executed_2MHz_cycles;
 
-    ts->timeline_events.push_back(TimelineEvent{time,message});
-    ts->timeline_beeb_state_events.push_back(TimelineBeebStateEvent{time,message});
-    ts->timeline_beeb_state_events_dirty=true;
+    TimelineEventList list;
+    list.state_event={time,std::move(message)};
+
+    m_timeline_beeb_state_events_copy.push_back(list.state_event);
+
+    ts->timeline_event_lists.push_back(std::move(list));
+
+    ++m_timeline_state.num_events;
 
     this->ThreadCheckTimeline(ts);
 
@@ -2586,10 +2660,15 @@ void BeebThread::ThreadStopRecording(ThreadState *ts) {
 //////////////////////////////////////////////////////////////////////////
 
 void BeebThread::ThreadClearRecording(ThreadState *ts) {
+    this->ThreadCheckTimeline(ts);
+
     this->ThreadStopRecording(ts);
 
-    ts->timeline_events.clear();
-    ts->timeline_beeb_state_events.clear();
+    ts->timeline_event_lists.clear();
+    m_timeline_state.num_events=0;
+    m_timeline_beeb_state_events_copy.clear();
+
+    this->ThreadCheckTimeline(ts);
 }
 
 //////////////////////////////////////////////////////////////////////////

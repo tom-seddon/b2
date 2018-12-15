@@ -85,6 +85,7 @@ struct TraceConditions {
 // (Message doesn't derived from enable_shared_from_this.)
 
 class BeebThread {
+    struct TimelineEventList;
     struct ThreadState;
 public:
     class Message {
@@ -993,9 +994,9 @@ private:
 #endif
     //void ThreadHandleEvent(ThreadState *ts,const BeebEvent &event,bool replay);
     //void ThreadStartReplay(ThreadState *ts,std::unique_ptr<Timeline> timeline);
-//    void ThreadStopReplay(ThreadState *ts);
+    //void ThreadStopReplay(ThreadState *ts);
     void ThreadLoadState(ThreadState *ts,const std::shared_ptr<BeebState> &state);
-//    void ThreadHandleReplayEvents(ThreadState *ts);
+    //void ThreadHandleReplayEvents(ThreadState *ts);
     //void ThreadHandleMessage(ThreadState *ts,std::shared_ptr<Message> message);
     void ThreadSetDiscImage(ThreadState *ts,int drive,std::shared_ptr<DiscImage> disc_image);
     void ThreadStartPaste(ThreadState *ts,std::shared_ptr<const std::string> text);
@@ -1004,14 +1005,19 @@ private:
     void ThreadFailCompletionFun(std::function<void(bool)> *fun);
     void ThreadMain();
     void SetVolume(float *scale_var,float db);
-//    bool ThreadIsReplayingOrHalted(ThreadState *ts);
+    //bool ThreadIsReplayingOrHalted(ThreadState *ts);
     bool ThreadRecordSaveState(ThreadState *ts,bool user_initiated);
     void ThreadStopRecording(ThreadState *ts);
     void ThreadClearRecording(ThreadState *ts);
     void ThreadCheckTimeline(ThreadState *ts);
-    void ThreadDeleteTimelineState(ThreadState *ts,
-                                   const std::shared_ptr<const BeebState> &state,
-                                   bool delete_subsequent_events);
+    //size_t ThreadFindTimelineBeebState(ThreadState *ts,const std::shared_ptr<const BeebState> &state);
+
+    // Delete one timeline save state event, leaving the timeline as intact as
+    // possible.
+    void ThreadDeleteTimelineState(ThreadState *ts,const std::shared_ptr<const BeebState> &state);
+
+    // Truncate the timeline. STATE is the new end.
+    void ThreadTruncateTimeline(ThreadState *ts,const std::shared_ptr<const BeebState> &state);
 
     static bool ThreadWaitForHardReset(const BBCMicro *beeb,const M6502 *cpu,void *context);
 #if HTTP_SERVER
