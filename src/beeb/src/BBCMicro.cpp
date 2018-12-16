@@ -727,70 +727,66 @@ uint8_t BBCMicro::Read1770ControlRegister(void *m_,M6502Word a) {
 
 #if BBCMICRO_TRACE
 void BBCMicro::TracePortB(SystemVIAPB pb) {
-    if(m_trace) {
-        {
-            Log log("",m_trace->GetLogPrinter(1000));
+    Log log("",m_trace->GetLogPrinter(1000));
 
-            log.f("PORTB - PB = $%02X (%%%s): ",pb.value,BINARY_BYTE_STRINGS[pb.value]);
+    log.f("PORTB - PB = $%02X (%%%s): ",pb.value,BINARY_BYTE_STRINGS[pb.value]);
 
-            if(m_type==BBCMicroType_Master) {
-                log.f("RTC AS=%u; RTC CS=%u; ",pb.m128_bits.rtc_address_strobe,pb.m128_bits.rtc_chip_select);
-            }
-
-            const char *name=nullptr;
-            bool value=pb.bits.latch_value;
-
-            switch(pb.bits.latch_index) {
-            case 0:
-                name="Sound Write";
-                value=!value;
-            print_bool:;
-                log.f("%s=%s\n",name,BOOL_STR(value));
-                break;
-
-            case 1:
-                name=m_type==BBCMicroType_Master?"RTC Read":"Speech Read";
-                goto print_bool;
-
-            case 2:
-                name=m_type==BBCMicroType_Master?"RTC DS":"Speech Write";
-                goto print_bool;
-
-            case 3:
-                name="KB Read";
-                goto print_bool;
-
-            case 4:
-            case 5:
-                log.f("Screen Wrap Adjustment=$%04x\n",SCREEN_WRAP_ADJUSTMENTS[m_state.addressable_latch.bits.screen_base]);
-                break;
-
-            case 6:
-                name="Caps Lock LED";
-                goto print_bool;
-
-            case 7:
-                name="Shift Lock LED";
-                goto print_bool;
-            }
-
-            m_trace->FinishLog(&log);
-        }
-
-        //Trace_AllocStringf(m_trace,
-        //    "PORTB - PB = $%02X (
-        //    "PORTB - PB = $%02X (Latch = $%02X - Snd=%d; Kb=%d; Caps=%d; Shf=%d; RTCdat=%d; RTCrd=%d) (RTCsel=%d; RTCaddr=%d)",
-        //    pb.value,
-        //    m_state.addressable_latch.value,
-        //    !m_state.addressable_latch.bits.not_sound_write,
-        //    !m_state.addressable_latch.bits.not_kb_write,
-        //    m_state.addressable_latch.bits.caps_lock_led,
-        //    m_state.addressable_latch.bits.shift_lock_led,
-        //    m_state.addressable_latch.m128_bits.rtc_data_strobe,
-        //    m_state.addressable_latch.m128_bits.rtc_read,
-        //    pb.m128_bits.rtc_chip_select,
-        //    pb.m128_bits.rtc_address_strobe);
+    if(m_type==BBCMicroType_Master) {
+        log.f("RTC AS=%u; RTC CS=%u; ",pb.m128_bits.rtc_address_strobe,pb.m128_bits.rtc_chip_select);
     }
+
+    const char *name=nullptr;
+    bool value=pb.bits.latch_value;
+
+    switch(pb.bits.latch_index) {
+        case 0:
+            name="Sound Write";
+            value=!value;
+        print_bool:;
+            log.f("%s=%s\n",name,BOOL_STR(value));
+            break;
+
+        case 1:
+            name=m_type==BBCMicroType_Master?"RTC Read":"Speech Read";
+            goto print_bool;
+
+        case 2:
+            name=m_type==BBCMicroType_Master?"RTC DS":"Speech Write";
+            goto print_bool;
+
+        case 3:
+            name="KB Read";
+            goto print_bool;
+
+        case 4:
+        case 5:
+            log.f("Screen Wrap Adjustment=$%04x\n",SCREEN_WRAP_ADJUSTMENTS[m_state.addressable_latch.bits.screen_base]);
+            break;
+
+        case 6:
+            name="Caps Lock LED";
+            goto print_bool;
+
+        case 7:
+            name="Shift Lock LED";
+            goto print_bool;
+    }
+
+    m_trace->FinishLog(&log);
+
+    //Trace_AllocStringf(m_trace,
+    //    "PORTB - PB = $%02X (
+    //    "PORTB - PB = $%02X (Latch = $%02X - Snd=%d; Kb=%d; Caps=%d; Shf=%d; RTCdat=%d; RTCrd=%d) (RTCsel=%d; RTCaddr=%d)",
+    //    pb.value,
+    //    m_state.addressable_latch.value,
+    //    !m_state.addressable_latch.bits.not_sound_write,
+    //    !m_state.addressable_latch.bits.not_kb_write,
+    //    m_state.addressable_latch.bits.caps_lock_led,
+    //    m_state.addressable_latch.bits.shift_lock_led,
+    //    m_state.addressable_latch.m128_bits.rtc_data_strobe,
+    //    m_state.addressable_latch.m128_bits.rtc_read,
+    //    pb.m128_bits.rtc_chip_select,
+    //    pb.m128_bits.rtc_address_strobe);
 }
 #endif
 
@@ -813,7 +809,11 @@ void BBCMicro::HandleSystemVIAB(R6522 *via,uint8_t value,uint8_t old_value,void 
     }
 
 #if BBCMICRO_TRACE
-    m->TracePortB(pb);
+    if(m->m_trace) {
+        if(m->m_trace_flags&BBCMicroTraceFlag_SystemVIA) {
+            m->TracePortB(pb);
+        }
+    }
 #endif
 
     if(pb.m128_bits.rtc_chip_select) {
