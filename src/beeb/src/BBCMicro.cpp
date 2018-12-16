@@ -3015,15 +3015,18 @@ bool BBCMicro::IsWriteProtected() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool BBCMicro::GetByte(uint8_t *value,uint8_t track,uint8_t sector,size_t offset) {
+bool BBCMicro::GetByte(uint8_t *value,uint8_t sector,size_t offset) {
     if(DiscDrive *dd=this->GetDiscDrive()) {
         m_disc_access=true;
 
-        if(dd->track==track) {
-            if(m_disc_images[m_state.disc_control.drive]) {
-                if(m_disc_images[m_state.disc_control.drive]->Read(value,m_state.disc_control.side,track,sector,offset)) {
-                    return true;
-                }
+        if(m_disc_images[m_state.disc_control.drive]) {
+            if(m_disc_images[m_state.disc_control.drive]->Read(value,
+                                                               m_state.disc_control.side,
+                                                               dd->track,
+                                                               sector,
+                                                               offset))
+            {
+                return true;
             }
         }
     }
@@ -3034,15 +3037,18 @@ bool BBCMicro::GetByte(uint8_t *value,uint8_t track,uint8_t sector,size_t offset
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool BBCMicro::SetByte(uint8_t track,uint8_t sector,size_t offset,uint8_t value) {
+bool BBCMicro::SetByte(uint8_t sector,size_t offset,uint8_t value) {
     if(DiscDrive *dd=this->GetDiscDrive()) {
         m_disc_access=true;
 
-        if(dd->track==track) {
-            if(m_disc_images[m_state.disc_control.drive]) {
-                if(m_disc_images[m_state.disc_control.drive]->Write(m_state.disc_control.side,track,sector,offset,value)) {
-                    return true;
-                }
+        if(m_disc_images[m_state.disc_control.drive]) {
+            if(m_disc_images[m_state.disc_control.drive]->Write(m_state.disc_control.side,
+                                                                dd->track,
+                                                                sector,
+                                                                offset,
+                                                                value))
+            {
+                return true;
             }
         }
     }
@@ -3053,16 +3059,15 @@ bool BBCMicro::SetByte(uint8_t track,uint8_t sector,size_t offset,uint8_t value)
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool BBCMicro::GetSectorDetails(uint8_t *side,size_t *size,uint8_t track,uint8_t sector,bool double_density) {
+bool BBCMicro::GetSectorDetails(uint8_t *track,uint8_t *side,size_t *size,uint8_t sector,bool double_density) {
     if(DiscDrive *dd=this->GetDiscDrive()) {
         m_disc_access=true;
 
-        if(dd->track==track) {
-            if(m_disc_images[m_state.disc_control.drive]) {
-                if(m_disc_images[m_state.disc_control.drive]->GetDiscSectorSize(size,m_state.disc_control.side,track,sector,double_density)) {
-                    *side=m_state.disc_control.side;
-                    return true;
-                }
+        if(m_disc_images[m_state.disc_control.drive]) {
+            if(m_disc_images[m_state.disc_control.drive]->GetDiscSectorSize(size,m_state.disc_control.side,dd->track,sector,double_density)) {
+                *track=dd->track;
+                *side=m_state.disc_control.side;
+                return true;
             }
         }
     }

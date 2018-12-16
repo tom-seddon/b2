@@ -724,9 +724,9 @@ private:
     void SpinUp() override;
     void SpinDown() override;
     bool IsWriteProtected() override;
-    bool GetByte(uint8_t *value,uint8_t track,uint8_t sector,size_t offset) override;
-    bool SetByte(uint8_t track,uint8_t sector,size_t offset,uint8_t value) override;
-    bool GetSectorDetails(uint8_t *side,size_t *size,uint8_t track,uint8_t sector,bool double_density) override;
+    bool GetByte(uint8_t *value,uint8_t sector,size_t offset) override;
+    bool SetByte(uint8_t sector,size_t offset,uint8_t value) override;
+    bool GetSectorDetails(uint8_t *track,uint8_t *side,size_t *size,uint8_t sector,bool double_density) override;
     DiscDrive *GetDiscDrive();
 #if BBCMICRO_ENABLE_DISC_DRIVE_SOUND
     void InitDiscDriveSounds(DiscDriveType type);

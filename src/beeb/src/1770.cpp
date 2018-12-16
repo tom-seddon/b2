@@ -92,7 +92,7 @@ WD1770Handler::~WD1770Handler() {
 
 void WD1770::SpinUp() {
     m_handler->SpinUp();
-    m_is_motor_on=true;
+    m_status.bits.motor_on=1;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -100,7 +100,7 @@ void WD1770::SpinUp() {
 
 void WD1770::SpinDown() {
     m_handler->SpinDown();
-    m_is_motor_on=false;
+    m_status.bits.motor_on=0;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -174,8 +174,10 @@ WD1770::WD1770() {
 //////////////////////////////////////////////////////////////////////////
 
 void WD1770::ResetStatusRegister() {
+    uint8_t motor_was_on=m_status.bits.motor_on;
+
     m_status.value=0;
-    m_status.bits.motor_on=m_is_motor_on;
+    m_status.bits.motor_on=motor_was_on;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -293,7 +295,7 @@ void WD1770::DoSpinUp(int h,WD1770State state) {
     }
 #endif
 
-    if(h==0&&!m_is_motor_on) {
+    if(h==0&&!m_status.bits.motor_on) {
         this->SpinUp();
         m_wait_us=INDEX_PULSES_uS(6);
         this->SetState(WD1770State_WaitForSpinUp);
@@ -651,7 +653,12 @@ int WD1770::DoTypeIIFindSector() {
     //}
 
     uint8_t side;
-    if(!m_handler->GetSectorDetails(&side,&m_sector_size,m_track,m_sector,m_dden)) {
+    uint8_t track;
+    if(!m_handler->GetSectorDetails(&track,&side,&m_sector_size,m_sector,m_dden)) {
+        goto rnf;
+    }
+
+    if(track!=m_track) {
         goto rnf;
     }
 
@@ -770,7 +777,7 @@ WD1770::Pins WD1770::Update() {
     switch(m_state) {
     case WD1770State_BeginIdle:
         {
-            if(m_is_motor_on) {
+            if(m_status.bits.motor_on) {
                 this->Wait(INDEX_PULSES_uS(10),WD1770State_SpinDown);
             } else {
                 m_state=WD1770State_IdleWithMotorOff;
@@ -1004,7 +1011,7 @@ WD1770::Pins WD1770::Update() {
             //    break;
             //}
 
-            if(!m_handler->GetByte(&m_data,m_track,m_sector,m_offset)) {
+            if(!m_handler->GetByte(&m_data,m_sector,m_offset)) {
                 this->SetState(WD1770State_RecordNotFound);
                 break;
             }
@@ -1133,7 +1140,7 @@ WD1770::Pins WD1770::Update() {
             m_sector_data[m_offset]=value;
 #endif
 
-            if(!m_handler->SetByte(m_track,m_sector,m_offset,value)) {
+            if(!m_handler->SetByte(m_sector,m_offset,value)) {
                 value=0;
                 m_status.bits.lost_or_track0=1;
 
@@ -1168,9 +1175,13 @@ WD1770::Pins WD1770::Update() {
 
     case WD1770State_ReadAddressFindSector:
         {
+            // This just picks up whichever sector comes round next - here,
+            // assumed to be always sector 0.
+
+            uint8_t track;
             uint8_t side;
             size_t size;
-            if(!m_handler->GetSectorDetails(&side,&size,m_track,0,m_dden)) {
+            if(!m_handler->GetSectorDetails(&track,&side,&size,0,m_dden)) {
                 this->SetState(WD1770State_RecordNotFound);
                 break;
             }
@@ -1198,9 +1209,9 @@ WD1770::Pins WD1770::Update() {
                 break;
             }
 
-            m_address[0]=m_track;
+            m_address[0]=track;
             m_address[1]=side;
-            m_address[2]=m_sector;
+            m_address[2]=0;
             // 3 set above
             m_address[4]=0;//bogus CRC
             m_address[5]=0;//bogus CRC

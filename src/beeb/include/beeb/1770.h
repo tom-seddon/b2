@@ -50,9 +50,10 @@ public:
 
     virtual bool IsWriteProtected()=0;
 
-    virtual bool GetByte(uint8_t *value,uint8_t track,uint8_t sector,size_t offset)=0;
-    virtual bool SetByte(uint8_t track,uint8_t sector,size_t offset,uint8_t value)=0;
-    virtual bool GetSectorDetails(uint8_t *side,size_t *size,uint8_t track,uint8_t sector,bool double_density)=0;
+    // These always operate on the current track.
+    virtual bool GetByte(uint8_t *value,uint8_t sector,size_t offset)=0;
+    virtual bool SetByte(uint8_t track,size_t offset,uint8_t value)=0;
+    virtual bool GetSectorDetails(uint8_t *track,uint8_t *side,size_t *size,uint8_t sector,bool double_density)=0;
 protected:
     WD1770Handler(const WD1770Handler &)=default;
     WD1770Handler &operator=(const WD1770Handler &)=default;
@@ -214,8 +215,6 @@ private:
     bool m_turbo=false;
     WD1770TurboState m_turbo_state=WD1770TurboState_None;
 #endif
-
-    bool m_is_motor_on=false;
 
     void ResetStatusRegister();
     //bool IsTrack0();
