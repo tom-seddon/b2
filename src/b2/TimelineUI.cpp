@@ -125,7 +125,10 @@ public:
 
         const ImVec2 THUMBNAIL_SIZE=m_thumbnails.GetThumbnailSize();
         const float GAP_HEIGHT=20;
-        const float CELL_HEIGHT=THUMBNAIL_SIZE.y+3*ImGui::GetTextLineHeight()+GAP_HEIGHT;
+
+        // The +3 is to accommodate the separator. Should probably calculate
+        // the size perfectly, but I'm not sure how...
+        const float CELL_HEIGHT=THUMBNAIL_SIZE.y+3*ImGui::GetTextLineHeight()+GAP_HEIGHT+3;
 
         //std::vector<BeebThread::TimelineBeebStateEvent> beeb_state_events;
 
@@ -190,6 +193,10 @@ public:
 
                 char cycles_str[MAX_UINT64_THOUSANDS_LEN];
                 GetThousandsString(cycles_str,e->time_2MHz_cycles);
+
+                if(i>0) {
+                    ImGui::Separator();
+                }
 
                 if(ImGuiConfirmButton("Load")) {
                     beeb_thread->Send(std::make_shared<BeebThread::LoadTimelineStateMessage>(state,
