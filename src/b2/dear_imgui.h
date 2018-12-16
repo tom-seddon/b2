@@ -285,7 +285,7 @@ bool ImGuiMenuItemFlag(const char* label,const char* shortcut,uint32_t *selected
 
 bool ImGuiButton(const char *label,bool enabled=true);
 
-bool ImGuiConfirmButton(const char *label);
+bool ImGuiConfirmButton(const char *label,bool needs_confirm=true);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

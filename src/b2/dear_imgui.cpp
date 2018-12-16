@@ -984,24 +984,28 @@ bool ImGuiButton(const char *label,bool enabled) {
 
 static const char CONFIRM_BUTTON_POPUP[]="confirm_popup";
 
-bool ImGuiConfirmButton(const char *label) {
-    bool click=false;
+bool ImGuiConfirmButton(const char *label,bool needs_confirm) {
+    if(needs_confirm) {
+        bool click=false;
 
-    ImGuiIDPusher pusher(label);
+        ImGuiIDPusher pusher(label);
 
-    if(ImGui::Button(label)) {
-        ImGui::OpenPopup(CONFIRM_BUTTON_POPUP);
-    }
-
-    if(ImGui::BeginPopup(CONFIRM_BUTTON_POPUP)) {
-        if(ImGui::Button("Confirm")) {
-            click=true;
-            ImGui::CloseCurrentPopup();
+        if(ImGui::Button(label)) {
+            ImGui::OpenPopup(CONFIRM_BUTTON_POPUP);
         }
-        ImGui::EndPopup();
-    }
 
-    return click;
+        if(ImGui::BeginPopup(CONFIRM_BUTTON_POPUP)) {
+            if(ImGui::Button("Confirm")) {
+                click=true;
+                ImGui::CloseCurrentPopup();
+            }
+            ImGui::EndPopup();
+        }
+
+        return click;
+    } else {
+        return ImGui::Button(label);
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////
