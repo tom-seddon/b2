@@ -226,8 +226,6 @@ public:
     public HardResetMessage
     {
     public:
-        const BeebLoadedConfig loaded_config;
-
         // Flags are a combination of BeebThreadHardResetFlag.
         explicit HardResetAndChangeConfigMessage(uint32_t flags,
                                                  BeebLoadedConfig loaded_config);
@@ -239,6 +237,7 @@ public:
         void ThreadHandle(BeebThread *beeb_thread,ThreadState *ts) const override;
     protected:
     private:
+        const BeebLoadedConfig m_loaded_config;
     };
 
     class HardResetAndReloadConfigMessage:
@@ -260,8 +259,6 @@ public:
         public Message
     {
     public:
-        const bool limit_speed=false;
-
         explicit SetSpeedLimitingMessage(bool limit_speed);
 
         bool ThreadPrepare(std::shared_ptr<Message> *ptr,
@@ -270,22 +267,13 @@ public:
                            ThreadState *ts) override;
     protected:
     private:
+        const bool m_limit_speed=false;
     };
 
     class LoadDiscMessage:
         public Message
     {
     public:
-        const int drive=-1;
-
-        // This is an owning pointer. If the disc image isn't cloneable, it'll
-        // be given to the BBCMicro, and the LoadDiscMessage will always be
-        // destroyed; if it is cloneable, a clone of it will be made, and the
-        // clone given to the BBCMicro. (The LoadDiscMessage may or may not then
-        // stick around, depending on whether there's a recording being made.)
-        const std::shared_ptr<DiscImage> disc_image;
-        const bool verbose=false;
-
         LoadDiscMessage(int drive,std::shared_ptr<DiscImage> disc_image,bool verbose);
 
         bool ThreadPrepare(std::shared_ptr<Message> *ptr,
@@ -295,6 +283,14 @@ public:
         void ThreadHandle(BeebThread *beeb_thread,ThreadState *ts) const override;
     protected:
     private:
+        const int m_drive=-1;
+        // This is an owning pointer. If the disc image isn't cloneable, it'll
+        // be given to the BBCMicro, and the LoadDiscMessage will always be
+        // destroyed; if it is cloneable, a clone of it will be made, and the
+        // clone given to the BBCMicro. (The LoadDiscMessage may or may not then
+        // stick around, depending on whether there's a recording being made.)
+        const std::shared_ptr<DiscImage> m_disc_image;
+        const bool m_verbose=false;
     };
 
     // Any kind of message that has a BeebState.
@@ -409,6 +405,18 @@ public:
         std::shared_ptr<const BeebState> m_start_state;
     };
 
+    class StopReplayMessage:
+    public Message
+    {
+    public:
+        bool ThreadPrepare(std::shared_ptr<Message> *ptr,
+                           CompletionFun *completion_fun,
+                           BeebThread *beeb_thread,
+                           ThreadState *ts) override;
+    protected:
+    private:
+    };
+
     class StartRecordingMessage:
     public Message
     {
@@ -450,9 +458,6 @@ public:
         public Message
     {
     public:
-        const TraceConditions conditions;
-        const size_t max_num_bytes;
-
         explicit StartTraceMessage(const TraceConditions &conditions,size_t max_num_bytes);
 
         bool ThreadPrepare(std::shared_ptr<Message> *ptr,
@@ -461,6 +466,8 @@ public:
                            ThreadState *ts) override;
     protected:
     private:
+        const TraceConditions m_conditions;
+        const size_t m_max_num_bytes;
     };
 #endif
 
@@ -493,25 +500,11 @@ public:
         const BeebWindowInitArguments m_init_arguments;
     };
 
-    class StopReplayMessage:
-        public Message
-    {
-    public:
-        bool ThreadPrepare(std::shared_ptr<Message> *ptr,
-                           CompletionFun *completion_fun,
-                           BeebThread *beeb_thread,
-                           ThreadState *ts) override;
-    protected:
-    private:
-    };
-
 #if BBCMICRO_TURBO_DISC
     class SetTurboDiscMessage:
         public Message
     {
     public:
-        const bool turbo=false;
-
         explicit SetTurboDiscMessage(bool turbo);
 
         bool ThreadPrepare(std::shared_ptr<Message> *ptr,
@@ -521,6 +514,7 @@ public:
         void ThreadHandle(BeebThread *beeb_thread,ThreadState *ts) const override;
     protected:
     private:
+        const bool m_turbo=false;
     };
 #endif
 
@@ -668,10 +662,6 @@ public:
         public Message
     {
     public:
-        const uint16_t addr=0;
-        const uint8_t a=0,x=0,y=0;
-        const bool c=false;
-
         DebugAsyncCallMessage(uint16_t addr,uint8_t a,uint8_t x,uint8_t y,bool c);
 
         bool ThreadPrepare(std::shared_ptr<Message> *ptr,
@@ -681,6 +671,9 @@ public:
         void ThreadHandle(BeebThread *beeb_thread,ThreadState *ts) const override;
     protected:
     private:
+        const uint16_t m_addr=0;
+        const uint8_t m_a=0,m_x=0,m_y=0;
+        const bool m_c=false;
     };
 #endif
 
@@ -706,8 +699,6 @@ public:
         public Message
     {
     public:
-        const uint64_t max_sound_units=0;
-
         explicit TimingMessage(uint64_t max_sound_units);
 
         bool ThreadPrepare(std::shared_ptr<Message> *ptr,
@@ -716,6 +707,7 @@ public:
                            ThreadState *ts) override;
     protected:
     private:
+        const uint64_t m_max_sound_units=0;
     };
 
     // there's probably a few too many things called 'TimelineState' now...
@@ -800,12 +792,6 @@ public:
     // Get the speed limiting flag, as set by SendSetSpeedLimitingMessage.
     bool IsSpeedLimited() const;
 
-    // Get number of events in the event log.
-    //uint32_t GetNumSavedEvents() const;
-
-    // Get debug flags, as set by SendDebugFlagsMessage.
-    uint32_t GetDebugFlags() const;
-
     // Get pause state as set by SetPaused.
     bool IsPaused() const;
 
@@ -832,9 +818,6 @@ public:
 
     // Get a shared_ptr to the last recorded trace, if there is one.
     std::shared_ptr<Trace> GetLastTrace();
-
-    // Returns true if events are being replayed.
-    bool IsReplaying() const;
 
     // Call to produce more audio and send timing messages to the
     // thread.
@@ -980,7 +963,6 @@ private:
     static bool ThreadStopCopyOnOSWORD0(const BBCMicro *beeb,const M6502 *cpu,void *context);
     static bool ThreadAddCopyData(const BBCMicro *beeb,const M6502 *cpu,void *context);
 
-    //void ThreadRecordEvent(ThreadState *ts,BeebEvent &&event);
     std::shared_ptr<BeebState> ThreadSaveState(ThreadState *ts);
     void ThreadReplaceBeeb(ThreadState *ts,std::unique_ptr<BBCMicro> beeb,uint32_t flags);
 #if BBCMICRO_TRACE
@@ -995,25 +977,16 @@ private:
 #if BBCMICRO_TURBO_DISC
     void ThreadSetTurboDisc(ThreadState *ts,bool turbo);
 #endif
-    //void ThreadHandleEvent(ThreadState *ts,const BeebEvent &event,bool replay);
-    //void ThreadStartReplay(ThreadState *ts,std::unique_ptr<Timeline> timeline);
-    //void ThreadStopReplay(ThreadState *ts);
     void ThreadLoadState(ThreadState *ts,const std::shared_ptr<BeebState> &state);
-    //void ThreadHandleReplayEvents(ThreadState *ts);
-    //void ThreadHandleMessage(ThreadState *ts,std::shared_ptr<Message> message);
     void ThreadSetDiscImage(ThreadState *ts,int drive,std::shared_ptr<DiscImage> disc_image);
     void ThreadStartPaste(ThreadState *ts,std::shared_ptr<const std::string> text);
-    void ThreadStopPaste(ThreadState *ts);
     void ThreadStopCopy(ThreadState *ts);
-    void ThreadFailCompletionFun(std::function<void(bool)> *fun);
     void ThreadMain();
     void SetVolume(float *scale_var,float db);
-    //bool ThreadIsReplayingOrHalted(ThreadState *ts);
     bool ThreadRecordSaveState(ThreadState *ts,bool user_initiated);
     void ThreadStopRecording(ThreadState *ts);
     void ThreadClearRecording(ThreadState *ts);
     void ThreadCheckTimeline(ThreadState *ts);
-    //size_t ThreadFindTimelineBeebState(ThreadState *ts,const std::shared_ptr<const BeebState> &state);
 
     // Delete one timeline save state event, leaving the timeline as intact as
     // possible.
