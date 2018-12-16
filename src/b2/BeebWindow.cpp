@@ -941,10 +941,17 @@ void BeebWindow::DoPopupUI(uint64_t now,int output_width,int output_height) {
         }
     }
 
-    bool replaying=false;//m_beeb_thread->IsReplaying();
+    BeebThread::TimelineState timeline_state;
+    m_beeb_thread->GetTimelineState(&timeline_state);
+
     bool pasting=m_beeb_thread->IsPasting();
     bool copying=m_beeb_thread->IsCopying();
-    if(ValueChanged(&m_leds,m_beeb_thread->GetLEDs())||(m_leds&BBCMicroLEDFlags_AllDrives)||replaying||copying||pasting) {
+    if(ValueChanged(&m_leds,m_beeb_thread->GetLEDs())||
+       (m_leds&BBCMicroLEDFlags_AllDrives)||
+       timeline_state.state!=BeebThreadTimelineState_None||
+       copying||
+       pasting)
+    {
         m_leds_popup_ui_active=true;
         m_leds_popup_ticks=now;
         //LOGF(OUTPUT,"leds now: 0x%x\n",m_leds);
@@ -973,14 +980,28 @@ void BeebWindow::DoPopupUI(uint64_t now,int output_width,int output_height) {
 
             colour_pusher.Push(ImGuiCol_CheckMark,ImVec4(0.f,1.f,0.f,1.f));
 
-            //ImGui::SameLine();
-            ImGuiLED(replaying,"Replay");
+            switch(timeline_state.state) {
+                case BeebThreadTimelineState_None:
+                    ImGuiLED(false,"Replay");
+                    break;
 
-            if(replaying) {
-                ImGui::SameLine();
-                if(ImGui::Button("Stop")) {
-                    m_beeb_thread->Send(std::make_unique<BeebThread::StopReplayMessage>());
-                }
+                case BeebThreadTimelineState_Replay:
+                    ImGuiLED(true,"Replay");
+                    ImGui::SameLine();
+                    if(ImGui::Button("Stop")) {
+                        m_beeb_thread->Send(std::make_unique<BeebThread::StopReplayMessage>());
+                    }
+                    break;
+
+                case BeebThreadTimelineState_Record:
+                    colour_pusher.Push(ImGuiCol_CheckMark,ImVec4(1.f,0.f,0.f,1.f));
+                    ImGuiLED(true,"Record");
+                    ImGui::SameLine();
+                    if(ImGuiConfirmButton("Stop")) {
+                        m_beeb_thread->Send(std::make_shared<BeebThread::StopRecordingMessage>());
+                    }
+                    colour_pusher.Pop();
+                    break;
             }
 
             ImGui::SameLine();

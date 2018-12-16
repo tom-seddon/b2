@@ -182,6 +182,8 @@ public:
     // returns *this.
     ImGuiStyleColourPusher &Push(ImGuiCol idx,const ImVec4& col);
 
+    void Pop(int count=1);
+
     // standard things...
     void PushDisabledButtonColours();
     void PushDefaultButtonColours();
