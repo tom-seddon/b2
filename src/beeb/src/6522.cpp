@@ -547,6 +547,7 @@ uint8_t R6522::Update() {
     if(any_irqs) {
         if(m_trace) {
             auto ev=(IRQEvent *)m_trace->AllocEvent(IRQ_EVENT);
+            ev->id=m_id;
             ev->ifr=this->ifr;
             ev->ier=this->ier;
         }
