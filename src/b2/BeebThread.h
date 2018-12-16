@@ -398,7 +398,7 @@ public:
         public Message
     {
     public:
-        explicit StartReplayMessage(size_t timeline_event_index);
+        explicit StartReplayMessage(std::shared_ptr<const BeebState> start_state);
 
         bool ThreadPrepare(std::shared_ptr<Message> *ptr,
                            CompletionFun *completion_fun,
@@ -406,7 +406,7 @@ public:
                            ThreadState *ts) override;
     protected:
     private:
-        const size_t m_timeline_event_index;
+        std::shared_ptr<const BeebState> m_start_state;
     };
 
     class StartRecordingMessage:
@@ -493,7 +493,7 @@ public:
         const BeebWindowInitArguments m_init_arguments;
     };
 
-    class CancelReplayMessage:
+    class StopReplayMessage:
         public Message
     {
     public:
@@ -1021,6 +1021,19 @@ private:
 
     // Truncate the timeline. STATE is the new end.
     void ThreadTruncateTimeline(ThreadState *ts,const std::shared_ptr<const BeebState> &state);
+
+    bool ThreadFindTimelineEventListIndexByBeebState(ThreadState *ts,
+                                                     size_t *index,
+                                                     const std::shared_ptr<const BeebState> &state);
+
+    // Get next un-replayed replay event.
+    const TimelineEvent *ThreadGetNextReplayEvent(ThreadState *ts);
+
+    // Advance to next replay event - i.e., past the one that
+    // ThreadGetNextReplayEvent returns.
+    void ThreadNextReplayEvent(ThreadState *ts);
+
+    void ThreadStopReplay(ThreadState *ts);
 
     static bool ThreadWaitForHardReset(const BBCMicro *beeb,const M6502 *cpu,void *context);
 #if HTTP_SERVER

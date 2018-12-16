@@ -978,8 +978,8 @@ void BeebWindow::DoPopupUI(uint64_t now,int output_width,int output_height) {
 
             if(replaying) {
                 ImGui::SameLine();
-                if(ImGui::Button("Cancel")) {
-                    m_beeb_thread->Send(std::make_unique<BeebThread::CancelReplayMessage>());
+                if(ImGui::Button("Stop")) {
+                    m_beeb_thread->Send(std::make_unique<BeebThread::StopReplayMessage>());
                 }
             }
 

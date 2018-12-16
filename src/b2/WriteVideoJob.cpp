@@ -273,7 +273,11 @@ void WriteVideoJob::ThreadExecute() {
         bool was_vblank=tv_output.IsInVerticalBlank();
         OutputDataBuffer<VideoDataUnit> *video_output=beeb_thread->GetVideoOutput();
 
-        beeb_thread->Send(std::make_unique<BeebThread::StartReplayMessage>(0));
+        this->Error("todo - finish code");
+        goto done;
+
+        ASSERT(false);//TODO - fix
+        //beeb_thread->Send(std::make_unique<BeebThread::StartReplayMessage>());
 
         beeb_thread->Send(std::make_unique<BeebThread::PauseMessage>(false));
 

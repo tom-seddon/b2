@@ -31,6 +31,9 @@ public:
         BeebThread::TimelineState timeline_state;
         beeb_thread->GetTimelineState(&timeline_state);
 
+        ASSERT(timeline_state.end_2MHz_cycles>=timeline_state.begin_2MHz_cycles);
+        const uint64_t timeline_duration=timeline_state.end_2MHz_cycles-timeline_state.begin_2MHz_cycles;
+
         ImGui::Text("Timeline State: %s",GetBeebThreadTimelineStateEnumName(timeline_state.state));
 
         ImGui::Checkbox("Follow new events",&m_follow);
@@ -50,7 +53,7 @@ public:
 
                 // Record
                 if(timeline_state.can_record) {
-                    if(ImGui::Button(ICON_FA_CIRCLE)) {
+                    if(ImGuiConfirmButton("Record",timeline_duration>0)) {
                         beeb_thread->Send(std::make_shared<BeebThread::StartRecordingMessage>());
                     }
                 }
@@ -58,7 +61,7 @@ public:
                 if(duration>0) {
                     // Clear
                     ImGui::SameLine();
-                    if(ImGui::Button(ICON_FA_TIMES)) {
+                    if(ImGuiConfirmButton("Delete")) {
                         beeb_thread->Send(std::make_shared<BeebThread::ClearRecordingMessage>());
                     }
                 }
@@ -79,19 +82,19 @@ public:
             case BeebThreadTimelineState_Replay:
             {
                 // Stop
-                if(ImGui::Button(ICON_FA_STOP)) {
+                if(ImGui::Button("Stop")) {
                 }
 
                 // Pause
                 ImGui::SameLine();
-                ImGui::Button(ICON_FA_PAUSE);
+                ImGui::Button("Pause");
             }
                 break;
 
             case BeebThreadTimelineState_Record:
             {
                 // Stop
-                if(ImGui::Button(ICON_FA_STOP)) {
+                if(ImGui::Button("Stop")) {
                     beeb_thread->Send(std::make_shared<BeebThread::StopRecordingMessage>());
                 }
             }
@@ -106,14 +109,12 @@ public:
                 // fall through
             case BeebThreadTimelineState_Record:
             {
-                ASSERT(timeline_state.end_2MHz_cycles>=timeline_state.begin_2MHz_cycles);
-                uint64_t duration=timeline_state.end_2MHz_cycles-timeline_state.begin_2MHz_cycles;
-                if(duration==0) {
+                if(timeline_duration==0) {
                     ImGui::Text("No recording.");
                 } else {
                     ImGui::Text("Recorded: %zu events, %s",
                                 timeline_state.num_events,
-                                Get2MHzCyclesString(duration).c_str());
+                                Get2MHzCyclesString(timeline_duration).c_str());
                 }
             }
                 break;
@@ -199,6 +200,12 @@ public:
 
                 if(ImGuiConfirmButton("Delete")) {
                     beeb_thread->Send(std::make_shared<BeebThread::DeleteTimelineStateMessage>(state));
+                }
+
+                ImGui::SameLine();
+
+                if(ImGui::Button("Replay")) {
+                    beeb_thread->Send(std::make_shared<BeebThread::StartReplayMessage>(state));
                 }
 
                 ImGui::Text("%s (%s)",cycles_str,Get2MHzCyclesString(e->time_2MHz_cycles).c_str());
