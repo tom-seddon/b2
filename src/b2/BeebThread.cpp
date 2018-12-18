@@ -686,7 +686,9 @@ bool BeebThread::LoadTimelineStateMessage::ThreadPrepare(std::shared_ptr<Message
         beeb_thread->ThreadTruncateTimeline(ts,this->GetBeebState());
     }
 
-    beeb_thread->ThreadReplaceBeeb(ts,this->GetBeebState()->CloneBBCMicro(),0);
+    beeb_thread->ThreadReplaceBeeb(ts,
+                                   this->GetBeebState()->CloneBBCMicro(),
+                                   BeebThreadReplaceFlag_ResetKeyState);
 
     ptr->reset();
     return true;
@@ -2714,13 +2716,13 @@ void BeebThread::ThreadTruncateTimeline(ThreadState *ts,
     list->events.clear();
 
     // Remove subsequent states.
-    ts->timeline_event_lists.erase(ts->timeline_event_lists.begin()+(ptrdiff_t)index,
+    ts->timeline_event_lists.erase(ts->timeline_event_lists.begin()+(ptrdiff_t)index+1,
                                    ts->timeline_event_lists.end());
 
     // The given state is now the end of the timeline.
     ts->timeline_end_event.time_2MHz_cycles=list->state_event.time_2MHz_cycles;
 
-    // Truncate the copy list as well. (+1 because the index'th state is kept)
+    // Truncate the copy list as well.
     m_timeline_beeb_state_events_copy.erase(m_timeline_beeb_state_events_copy.begin()+(ptrdiff_t)index+1,
                                             m_timeline_beeb_state_events_copy.end());
 
