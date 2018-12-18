@@ -43,7 +43,6 @@ public:
 
     // Get clone of BBCMicro with this state's state. Its DiscDrive
     // and NVRAM callbacks are indeterminate.
-
     std::unique_ptr<BBCMicro> CloneBBCMicro() const;
 
     BBCMicroType GetBBCMicroType() const;

@@ -27,8 +27,15 @@ public:
     void DoImGui(CommandContextStack *cc_stack) override {
         (void)cc_stack;
 
+        const std::shared_ptr<BeebThread> &beeb_thread=m_beeb_window->GetBeebThread();
+
+        BeebThread::TimelineState timeline_state;
+        beeb_thread->GetTimelineState(&timeline_state);
+
         // not too concerned about overflow here.
         int num_states=(int)BeebWindows::GetNumSavedStates();
+
+        bool can_load=timeline_state.state==BeebThreadTimelineState_None;
 
         // Buttons
         // Name
@@ -63,9 +70,15 @@ public:
 
                         ImGui::SameLine();
 
-                        if(ImGuiConfirmButton("Load")) {
-                            std::shared_ptr<BeebThread> beeb_thread=m_beeb_window->GetBeebThread();
-                            beeb_thread->Send(std::make_shared<BeebThread::LoadStateMessage>(s,true));
+                        if(can_load) {
+                            if(ImGuiConfirmButton("Load")) {
+                                std::shared_ptr<BeebThread> beeb_thread=m_beeb_window->GetBeebThread();
+                                beeb_thread->Send(std::make_shared<BeebThread::LoadStateMessage>(s,true));
+                            }
+                        } else {
+                            ImGuiStyleColourPusher pusher;
+                            pusher.PushDisabledButtonColours();
+                            ImGui::Button("Load");
                         }
 
                         // Name

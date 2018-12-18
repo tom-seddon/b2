@@ -419,7 +419,7 @@ void BeebThread::HardResetMessage::HardReset(BeebThread *beeb_thread,
     }
 
     if(ts->timeline_state!=BeebThreadTimelineState_Replay) {
-        replace_flags|=BeebThreadReplaceFlag_ApplyPCState;
+        replace_flags|=BeebThreadReplaceFlag_ResetKeyState;
     }
 
     ts->current_config=loaded_config;
@@ -645,16 +645,15 @@ bool BeebThread::LoadStateMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
         return false;
     }
 
+    if(ts->timeline_state==BeebThreadTimelineState_Record) {
+        return false;
+    }
+
+    beeb_thread->ThreadReplaceBeeb(ts,
+                                   this->GetBeebState()->CloneBBCMicro(),
+                                   BeebThreadReplaceFlag_ResetKeyState);
+
     return true;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-void BeebThread::LoadStateMessage::ThreadHandle(BeebThread *beeb_thread,
-                                                ThreadState *ts) const
-{
-    beeb_thread->ThreadReplaceBeeb(ts,this->GetBeebState()->CloneBBCMicro(),0);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -1961,11 +1960,10 @@ void BeebThread::ThreadReplaceBeeb(ThreadState *ts,std::unique_ptr<BBCMicro> bee
     this->ThreadSetBootState(ts,false);
     this->ThreadSetFakeShiftState(ts,BeebShiftState_Any);
 
-    if(flags&BeebThreadReplaceFlag_ApplyPCState) {
+    if(flags&BeebThreadReplaceFlag_ResetKeyState) {
         // Set BBC state from shadow state.
         for(int i=0;i<128;++i) {
-            bool state=this->GetKeyState((BeebKey)i);
-            this->ThreadSetKeyState(ts,(BeebKey)i,state);
+            this->ThreadSetKeyState(ts,(BeebKey)i,false);
         }
     } else {
         // Set shadow state from BBC state.
@@ -2138,17 +2136,6 @@ void BeebThread::ThreadSetBootState(ThreadState *ts,bool state) {
 
 void BeebThread::ThreadUpdateShiftKeyState(ThreadState *ts) {
     this->ThreadSetKeyState(ts,BeebKey_Shift,m_real_key_states.GetState(BeebKey_Shift));
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-void BeebThread::ThreadLoadState(ThreadState *ts,const std::shared_ptr<BeebState> &state) {
-    this->ThreadReplaceBeeb(ts,state->CloneBBCMicro(),0);
-
-    //    m_parent_timeline_event_id=parent_timeline_id;
-    //
-    //    Timeline::DidChange();
 }
 
 //////////////////////////////////////////////////////////////////////////

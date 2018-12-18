@@ -323,8 +323,7 @@ public:
         std::shared_ptr<BeebStateMessage> message;
     };
 
-    // Load a random state from the saved states list. When recording, the
-    // event is recorded as-is.
+    // Load a random state from the saved states list.
     class LoadStateMessage:
         public BeebStateMessage
     {
@@ -336,8 +335,6 @@ public:
                            CompletionFun *completion_fun,
                            BeebThread *beeb_thread,
                            ThreadState *ts) override;
-
-        void ThreadHandle(BeebThread *beeb_thread,ThreadState *ts) const override;
     protected:
     private:
         bool m_verbose=false;
@@ -948,7 +945,6 @@ private:
     void ThreadSetFakeShiftState(ThreadState *ts,BeebShiftState state);
     void ThreadSetBootState(ThreadState *ts,bool state);
     void ThreadUpdateShiftKeyState(ThreadState *ts);
-    void ThreadLoadState(ThreadState *ts,const std::shared_ptr<BeebState> &state);
     void ThreadSetDiscImage(ThreadState *ts,int drive,std::shared_ptr<DiscImage> disc_image);
     void ThreadStartPaste(ThreadState *ts,std::shared_ptr<const std::string> text);
     void ThreadStopCopy(ThreadState *ts);

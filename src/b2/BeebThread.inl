@@ -37,16 +37,9 @@ EEND()
 #define ENAME BeebThreadReplaceFlag
 EBEGIN()
 
-// If set, take current options/state and apply them to the new
-// BBCMicro. Use this flag when the replace is due to a user action.
-//
-// Otherwise, take options from the new BBCMicro and overwrite the
-// user settings/state with that. Use this flag when the replace is
-// due to replaying events.
-//
-// (This only applies to options that affect reproducability - key
-// state, turbo disc, etc.)
-EPNV(ApplyPCState,1<<0)
+// If set, copy new key state from current key state. Othewise, use
+// state's key state.
+EPNV(ResetKeyState,1<<0)
 
 // Do the hold-down-SHIFT autoboot thing.
 EPNV(Autoboot,1<<1)
