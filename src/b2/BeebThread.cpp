@@ -15,7 +15,6 @@
 #include "b2.h"
 #include "TVOutput.h"
 #include "misc.h"
-#include "beeb_events.h"
 #include "Messages.h"
 #include <beeb/Trace.h>
 #include "keys.h"
