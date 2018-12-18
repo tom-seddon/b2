@@ -17,12 +17,6 @@ EPN(SpinDown)
 // Wait for WAIT_US microseconds. Then go to NEXT_STATE.
 EPN(Wait)
 
-#if BBCMICRO_TURBO_DISC
-// Wait for the turbo state to become Done. Then reset turbo state to
-// None and go to NEXT_STATE.
-EPN(TurboWait)
-#endif
-
 // Wait for WAIT_US microseconds. Then set the SPIN-UP status flag and
 // go to NEXT_STATE.
 EPN(WaitForSpinUp)
@@ -126,30 +120,6 @@ EPN(UnsupportedCommand)
 
 EEND()
 #undef ENAME
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-#if BBCMICRO_TURBO_DISC
-
-#define ENAME WD1770TurboState
-EBEGIN()
-EPN(None)
-
-// 1770 has set DRQ and is waiting for the CPU to read/write byte.
-EPN(WaitForCPU)
-
-// CPU has read byte and 1770 is waiting in the TurboWait state for it
-// to finish the NMI routine.
-EPN(WaitForAck)
-
-// CPU has returned from the NMI routine and the 1770 can leave the
-// TurboWait state.
-EPN(Done)
-EEND()
-#undef ENAME
-
-#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

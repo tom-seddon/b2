@@ -1731,39 +1731,6 @@ bool BBCMicro::Update(VideoDataUnit *video_unit,SoundDataUnit *sound_unit) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-#if BBCMICRO_TURBO_DISC
-bool BBCMicro::GetTurboDisc() {
-    return !!m_state.fdc.IsTurbo();
-}
-#endif
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-#if BBCMICRO_TURBO_DISC
-void BBCMicro::HandleTurboRTI(M6502 *cpu) {
-    BBCMicro *m=(BBCMicro *)cpu->context;
-
-    ASSERT(m->m_state.fdc.IsTurbo());
-    m->m_state.fdc.TurboAck();
-}
-#endif
-
-#if BBCMICRO_TURBO_DISC
-void BBCMicro::SetTurboDisc(int turbo) {
-    if(turbo) {
-        m_state.cpu.rti_fn=&HandleTurboRTI;
-    } else {
-        m_state.cpu.rti_fn=NULL;
-    }
-
-    m_state.fdc.SetTurbo(!!turbo);
-}
-#endif
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 #if BBCMICRO_ENABLE_DISC_DRIVE_SOUND
 void BBCMicro::SetDiscDriveSound(DiscDriveType type,DiscDriveSound sound,std::vector<float> samples) {
     ASSERT(sound>=0&&sound<DiscDriveSound_EndValue);
@@ -2899,10 +2866,6 @@ void BBCMicro::InitStuff() {
 
     // Page in current ROM bank and sort out ACCCON.
     this->InitROMPages();
-
-#if BBCMICRO_TURBO_DISC
-    this->SetTurboDisc(m_state.fdc.IsTurbo());
-#endif
 
 #if BBCMICRO_ENABLE_DISC_DRIVE_SOUND
     switch(m_type) {

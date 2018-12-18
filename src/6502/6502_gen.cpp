@@ -864,11 +864,6 @@ private:
             // Handle JMP. This is a special case as it involves a
             // word copy.
             P("s->pc=s->ad;\n");
-        } else if(c->action=="rti") {
-            // Call the RTI callback.
-            P("if(s->rti_fn) {\n");
-            P("(*s->rti_fn)(s);\n");
-            P("}\n");
         } else {
             ASSERT(false);
         }
@@ -1232,7 +1227,7 @@ static std::vector<InstrGen> GetAll() {
             Rd("sp++","data",nullptr),
             Rd("sp++","p",nullptr),
             Rd("sp++","pcl",nullptr),
-            Rd("sp","pch","rti")
+            Rd("sp","pch",nullptr),
         });
 
         G("JMP_ABS","JMP absolute",{

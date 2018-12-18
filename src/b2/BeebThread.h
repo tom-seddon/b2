@@ -500,24 +500,6 @@ public:
         const BeebWindowInitArguments m_init_arguments;
     };
 
-#if BBCMICRO_TURBO_DISC
-    class SetTurboDiscMessage:
-        public Message
-    {
-    public:
-        explicit SetTurboDiscMessage(bool turbo);
-
-        bool ThreadPrepare(std::shared_ptr<Message> *ptr,
-                           CompletionFun *completion_fun,
-                           BeebThread *beeb_thread,
-                           ThreadState *ts) override;
-        void ThreadHandle(BeebThread *beeb_thread,ThreadState *ts) const override;
-    protected:
-    private:
-        const bool m_turbo=false;
-    };
-#endif
-
     class StartPasteMessage:
         public Message
     {
@@ -768,10 +750,6 @@ public:
 
     void SendTimingMessage(uint64_t max_sound_units);
 
-#if BBCMICRO_TURBO_DISC
-    bool IsTurboDisc() const;
-#endif
-
     bool IsPasting() const;
 
     bool IsCopying() const;
@@ -902,10 +880,6 @@ private:
     std::atomic<bool> m_is_tracing{false};
 #endif
     //std::atomic<bool> m_is_replaying{false};
-#if BBCMICRO_TURBO_DISC
-    // Whether turbo disc mode is active.
-    std::atomic<bool> m_is_turbo_disc{false};
-#endif
     std::atomic<bool> m_is_pasting{false};
     std::atomic<bool> m_is_copying{false};
     std::atomic<bool> m_has_nvram{false};
@@ -974,9 +948,6 @@ private:
     void ThreadSetFakeShiftState(ThreadState *ts,BeebShiftState state);
     void ThreadSetBootState(ThreadState *ts,bool state);
     void ThreadUpdateShiftKeyState(ThreadState *ts);
-#if BBCMICRO_TURBO_DISC
-    void ThreadSetTurboDisc(ThreadState *ts,bool turbo);
-#endif
     void ThreadLoadState(ThreadState *ts,const std::shared_ptr<BeebState> &state);
     void ThreadSetDiscImage(ThreadState *ts,int drive,std::shared_ptr<DiscImage> disc_image);
     void ThreadStartPaste(ThreadState *ts,std::shared_ptr<const std::string> text);

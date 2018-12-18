@@ -122,14 +122,6 @@ For best results, leave these options on.
 For (inauthentic!) 1:1 pixel output, switch them off and set a manual
 scale of 1.0, or 2.0, and so on.
 
-### Turbo disc
-
-Click `Turbo disc` to activate turbo disc mode. Turbo disc mode
-improves disc read/write throughput by 2-3x, and further improves
-speed by turning off emulation of seek times and internal disc delays.
-
-**Turbo disc mode is experimental**
-
 ## Customize keyboard layout
 
 Click `Tools` > `Keyboard layout...` to bring up the keyboard layout

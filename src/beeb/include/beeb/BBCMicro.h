@@ -303,11 +303,6 @@ public:
     // *SOUND_UNIT was filled in.
     //bool Update(VideoDataUnit *unit0,VideoDataUnit *unit1,SoundDataUnit *sound_unit);
 
-#if BBCMICRO_TURBO_DISC
-    bool GetTurboDisc();
-    void SetTurboDisc(int turbo);
-#endif
-
 #if BBCMICRO_ENABLE_DISC_DRIVE_SOUND
     // The disc drive sounds are used by all BBCMicro objects created
     // after they're set.
@@ -715,7 +710,6 @@ private:
     void FinishAsyncCall(bool called);
 #endif
     static void HandleCPUDataBusWithHacks(BBCMicro *m);
-    static void HandleTurboRTI(M6502 *cpu);
 
     // 1770 handler stuff.
     bool IsTrack0() override;

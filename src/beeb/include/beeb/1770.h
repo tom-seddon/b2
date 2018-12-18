@@ -163,12 +163,6 @@ public:
 
     Pins Update();
 
-#if BBCMICRO_TURBO_DISC
-    bool IsTurbo() const;
-    void SetTurbo(bool turbo);
-    void TurboAck();
-#endif
-
     void Set1772(bool is1772);
     void SetNoINTRQ(bool no_intrq);
 protected:
@@ -211,11 +205,6 @@ private:
     Trace *m_trace=nullptr;
 #endif
 
-#if BBCMICRO_TURBO_DISC
-    bool m_turbo=false;
-    WD1770TurboState m_turbo_state=WD1770TurboState_None;
-#endif
-
     void ResetStatusRegister();
     //bool IsTrack0();
     //void StepOut();
@@ -225,10 +214,6 @@ private:
     void SpinDown();
     int GetStepRate(uint8_t index) const;
     void SetState(WD1770State state);
-#if BBCMICRO_TURBO_DISC
-    void SetTurboState(WD1770TurboState turbo_state);
-    bool ChangeTurboState(WD1770TurboState old_state,WD1770TurboState new_state);
-#endif
     void Print1770Registers(Log *log);
     void SetDRQ(bool value);
     void SetINTRQ(bool value);
@@ -238,8 +223,6 @@ private:
     void DoTypeIII(WD1770State state);
     void DoTypeIV();
     void Wait(int us,WD1770State next_state);
-    void TurboAckWait(int us,WD1770State next_state);
-    void TurboShortWait(int us,int turbo_us,WD1770State next_state);
     void DoTypeIIOrTypeIIIDelay(WD1770State next_state);
     int DoTypeIIFindSector();
     void DoTypeIINextByte(WD1770State next_byte_state,WD1770State next_sector_state);

@@ -970,34 +970,6 @@ bool BeebThread::CloneWindowMessage::ThreadPrepare(std::shared_ptr<Message> *ptr
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-BeebThread::SetTurboDiscMessage::SetTurboDiscMessage(bool turbo):
-    m_turbo(turbo)
-{
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-bool BeebThread::SetTurboDiscMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
-                                                    CompletionFun *completion_fun,
-                                                    BeebThread *beeb_thread,
-                                                    ThreadState *ts)
-{
-    return PrepareUnlessReplayingOrHalted(ptr,completion_fun,beeb_thread,ts);
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-void BeebThread::SetTurboDiscMessage::ThreadHandle(BeebThread *beeb_thread,
-                                                   ThreadState *ts) const
-{
-    beeb_thread->ThreadSetTurboDisc(ts,m_turbo);
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 BeebThread::StartPasteMessage::StartPasteMessage(std::string text):
 m_text(std::make_shared<std::string>(std::move(text)))
 {
@@ -1484,15 +1456,6 @@ void BeebThread::Send(std::shared_ptr<Message> message,
 void BeebThread::SendTimingMessage(uint64_t max_sound_units) {
     m_mq.ProducerPushIndexed(0,SentMessage{std::make_shared<TimingMessage>(max_sound_units)});
 }
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-#if BBCMICRO_TURBO_DISC
-bool BeebThread::IsTurboDisc() const {
-    return m_is_turbo_disc.load(std::memory_order_acquire);
-}
-#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -2005,16 +1968,12 @@ void BeebThread::ThreadReplaceBeeb(ThreadState *ts,std::unique_ptr<BBCMicro> bee
             bool state=this->GetKeyState((BeebKey)i);
             this->ThreadSetKeyState(ts,(BeebKey)i,state);
         }
-
-        ts->beeb->SetTurboDisc(m_is_turbo_disc);
     } else {
         // Set shadow state from BBC state.
         for(int i=0;i<128;++i) {
             bool state=!!ts->beeb->GetKeyState((BeebKey)i);
             this->ThreadSetKeyState(ts,(BeebKey)i,state);
         }
-
-        m_is_turbo_disc.store(ts->beeb->GetTurboDisc(),std::memory_order_release);
     }
 
     if(flags&BeebThreadReplaceFlag_KeepCurrentDiscs) {
@@ -2181,17 +2140,6 @@ void BeebThread::ThreadSetBootState(ThreadState *ts,bool state) {
 void BeebThread::ThreadUpdateShiftKeyState(ThreadState *ts) {
     this->ThreadSetKeyState(ts,BeebKey_Shift,m_real_key_states.GetState(BeebKey_Shift));
 }
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-#if BBCMICRO_TURBO_DISC
-void BeebThread::ThreadSetTurboDisc(ThreadState *ts,bool turbo) {
-    ts->beeb->SetTurboDisc(turbo);
-
-    m_is_turbo_disc.store(turbo,std::memory_order_release);
-}
-#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

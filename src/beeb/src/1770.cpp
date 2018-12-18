@@ -55,9 +55,6 @@ BEGIN_MACRO {\
 static const int STEP_RATES_uS_1770[]={6000,12000,20000,30000};
 static const int SETTLE_uS_1770=30000;
 
-static const int STEP_RATE_uS_TURBO=100;
-static const int SETTLE_uS_TURBO=100;
-
 // The data sheet has these as (2,3,5,6), but just about every other
 // reference has 2,3,6,12.
 static const int STEP_RATES_uS_1772[]={2000,3000,6000,12000};
@@ -127,45 +124,6 @@ void WD1770::SetState(WD1770State state) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-#if BBCMICRO_TURBO_DISC
-void WD1770::SetTurboState(WD1770TurboState turbo_state) {
-    if(!m_turbo) {
-        return;
-    }
-
-    if(turbo_state!=m_turbo_state) {
-        BEGIN_LOG_TRACE(this,1000) {
-            log->f("turbo_state change: was %s, now %s\n",GetWD1770TurboStateEnumName(m_turbo_state),GetWD1770TurboStateEnumName(turbo_state));
-        } END_LOG_TRACE();
-    }
-
-    m_turbo_state=turbo_state;
-}
-#endif
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-#if BBCMICRO_TURBO_DISC
-// if current state is old_state, change to new_state and return true;
-// else, return false.
-bool WD1770::ChangeTurboState(WD1770TurboState old_state,WD1770TurboState new_state) {
-    if(!m_turbo) {
-        return false;
-    }
-
-    if(m_turbo_state==old_state) {
-        this->SetTurboState(new_state);
-        return true;
-    } else {
-        return false;
-    }
-}
-#endif
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 WD1770::WD1770() {
     this->Reset();
 }
@@ -194,10 +152,6 @@ void WD1770::Reset() {
     m_pins.value=0;
 
     m_state=WD1770State_BeginIdle;
-
-#if BBCMICRO_TURBO_DISC
-    m_turbo_state=WD1770TurboState_None;
-#endif
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -247,10 +201,6 @@ void WD1770::Print1770Registers(Log *log) {
     }
 
     log->f("); DRQ=%d INTRQ=%d",m_pins.bits.drq,m_pins.bits.intrq);
-
-#if BBCMICRO_TURBO_DISC
-    log->f("; turbo_state: %s",GetWD1770TurboStateEnumName(m_turbo_state));
-#endif
 }
 
 
@@ -287,14 +237,6 @@ void WD1770::SetINTRQ(bool value) {
 //////////////////////////////////////////////////////////////////////////
 
 void WD1770::DoSpinUp(int h,WD1770State state) {
-#if BBCMICRO_TURBO_DISC
-    if(m_turbo) {
-        // fingers crossed nothing actually waits for this delay...
-        this->SpinUp();
-        goto spinning;
-    }
-#endif
-
     if(h==0&&!m_status.bits.motor_on) {
         this->SpinUp();
         m_wait_us=INDEX_PULSES_uS(6);
@@ -302,11 +244,6 @@ void WD1770::DoSpinUp(int h,WD1770State state) {
         m_next_state=state;
         m_status.bits.deleted_or_spinup=0;
     } else {
-#if BBCMICRO_TURBO_DISC
-        spinning:
-#else
-        ;//fix VC++ indentation bug
-#endif
         this->SetState(state);
         m_status.bits.deleted_or_spinup=1;
     }
@@ -384,9 +321,6 @@ void WD1770::DoTypeIV() {
         m_command.bits_iv._);
 
     if(m_status.bits.busy) {
-#if BBCMICRO_TURBO_DISC
-        this->SetTurboState(WD1770TurboState_None);
-#endif
         m_status.bits.busy=0;
         this->SetState(WD1770State_BeginIdle);
     } else {
@@ -517,10 +451,6 @@ void WD1770::Write3(void *fdc_,M6502Word addr,uint8_t value) {
 
     fdc->SetDRQ(0);
 
-#if BBCMICRO_TURBO_DISC
-    fdc->ChangeTurboState(WD1770TurboState_WaitForCPU,WD1770TurboState_WaitForAck);
-#endif
-
     fdc->m_data=value;
 }
 
@@ -565,10 +495,6 @@ uint8_t WD1770::Read3(void *fdc_,M6502Word addr) {
 
     fdc->SetDRQ(0);
 
-#if BBCMICRO_TURBO_DISC
-    fdc->ChangeTurboState(WD1770TurboState_WaitForCPU,WD1770TurboState_WaitForAck);
-#endif
-
     return fdc->m_data;
 }
 
@@ -584,57 +510,11 @@ void WD1770::Wait(int us,WD1770State next_state) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void WD1770::TurboAckWait(int us,WD1770State next_state) {
-#if BBCMICRO_TURBO_DISC
-
-    if(m_turbo) {
-        m_wait_us=us;
-        m_state=WD1770State_TurboWait;
-        m_next_state=next_state;
-    } else {
-        this->Wait(us,next_state);
-    }
-
-#else
-
-    this->Wait(us,next_state);
-
-#endif
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-void WD1770::TurboShortWait(int us,int turbo_us,WD1770State next_state) {
-#if BBCMICRO_TURBO_DISC
-
-    this->Wait(m_turbo?turbo_us:us,next_state);
-
-#else
-
-    (void)turbo_us;
-
-    this->Wait(us,next_state);
-
-#endif
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 // If the command's E bit is set, delay 30ms and go to next_state.
 // Otherwise, go to next_state immediately.
 void WD1770::DoTypeIIOrTypeIIIDelay(WD1770State next_state) {
 #if WD1770_SAVE_SECTOR_DATA
     memset(m_sector_data,0,sizeof m_sector_data);
-#endif
-
-#if BBCMICRO_TURBO_DISC
-    if(m_turbo) {
-        // Hopefully nobody actually waits for this.
-        m_state=next_state;
-        return;
-    }
 #endif
 
     if(m_command.bits_ii.e) {
@@ -888,7 +768,7 @@ WD1770::Pins WD1770::Update() {
             }
 
             int step_rate_us=this->GetStepRate(m_command.bits_i.r);
-            this->TurboShortWait(step_rate_us,STEP_RATE_uS_TURBO,m_next_state);
+            this->Wait(step_rate_us,m_next_state);
         }
         break;
 
@@ -921,26 +801,12 @@ WD1770::Pins WD1770::Update() {
         }
         break;
 
-#if BBCMICRO_TURBO_DISC
-    case WD1770State_TurboWait:
-        {
-            if(!m_turbo) {
-                // Turbo mode became disabled - switch to a normal wait.
-                m_state=WD1770State_Wait;
-            } if(this->ChangeTurboState(WD1770TurboState_Done,WD1770TurboState_None)) {
-                m_state=m_next_state;
-                m_next_state=WD1770State_BeginIdle;
-            }
-        }
-        break;
-#endif
-
     case WD1770State_FinishTypeI:
         {
             this->UpdateTrack0Status();
 
             if(m_command.bits_i.v) {
-                this->TurboShortWait(SETTLE_uS_1770,SETTLE_uS_TURBO,WD1770State_FinishCommand);
+                this->Wait(SETTLE_uS_1770,WD1770State_FinishCommand);
             } else {
                 m_state=WD1770State_FinishCommand;
             }
@@ -1050,12 +916,7 @@ WD1770::Pins WD1770::Update() {
 
             this->SetDRQ(1);
 
-#if BBCMICRO_TURBO_DISC
-            ASSERT(m_turbo_state==WD1770TurboState_None);
-            this->SetTurboState(WD1770TurboState_WaitForCPU);
-#endif
-
-            this->TurboAckWait(uS_PER_BYTE,WD1770State_ReadSectorNextByte);
+            this->Wait(uS_PER_BYTE,WD1770State_ReadSectorNextByte);
         }
         break;
 
@@ -1078,8 +939,6 @@ WD1770::Pins WD1770::Update() {
                 break;
             }
 
-            // sadly, this delay is necessary even in turbo mode due
-            // to Watford DDFS's 240usec delay loop.
             this->Wait(2*uS_PER_BYTE,WD1770State_WriteSectorSetFirstDRQ);
         }
         break;
@@ -1087,12 +946,7 @@ WD1770::Pins WD1770::Update() {
     case WD1770State_WriteSectorSetFirstDRQ:
         {
             this->SetDRQ(1);
-#if BBCMICRO_TURBO_DISC
-            ASSERT(m_turbo_state==WD1770TurboState_None);
-            this->SetTurboState(WD1770TurboState_WaitForCPU);
-#endif
-
-            this->TurboAckWait(9*uS_PER_BYTE,WD1770State_WriteSectorReceiveFirstDataByte);
+            this->Wait(9*uS_PER_BYTE,WD1770State_WriteSectorReceiveFirstDataByte);
         }
         break;
 
@@ -1157,12 +1011,7 @@ WD1770::Pins WD1770::Update() {
         {
             this->SetDRQ(1);
 
-#if BBCMICRO_TURBO_DISC
-            ASSERT(m_turbo_state==WD1770TurboState_None);
-            this->SetTurboState(WD1770TurboState_WaitForCPU);
-#endif
-
-            this->TurboAckWait(uS_PER_BYTE,WD1770State_WriteSectorWriteByte);
+            this->Wait(uS_PER_BYTE,WD1770State_WriteSectorWriteByte);
         }
         break;
 #endif
@@ -1244,14 +1093,9 @@ WD1770::Pins WD1770::Update() {
 
             this->SetDRQ(1);
 
-#if BBCMICRO_TURBO_DISC
-            ASSERT(m_turbo_state==WD1770TurboState_None);
-            this->SetTurboState(WD1770TurboState_WaitForCPU);
-#endif
-
             ++m_offset;
 
-            this->TurboAckWait(uS_PER_BYTE,WD1770State_ReadAddressNextByte);
+            this->Wait(uS_PER_BYTE,WD1770State_ReadAddressNextByte);
         }
         break;
 
@@ -1281,34 +1125,6 @@ done:;
 
     return m_pins;
 }
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-#if BBCMICRO_TURBO_DISC
-bool WD1770::IsTurbo() const {
-    return m_turbo;
-}
-#endif
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-#if BBCMICRO_TURBO_DISC
-void WD1770::SetTurbo(bool turbo) {
-    m_turbo=turbo;
-    m_turbo_state=WD1770TurboState_None;
-}
-#endif
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-#if BBCMICRO_TURBO_DISC
-void WD1770::TurboAck() {
-    this->ChangeTurboState(WD1770TurboState_WaitForAck,WD1770TurboState_Done);
-}
-#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

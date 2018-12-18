@@ -174,16 +174,6 @@ void BeebWindow::OptionsUI::DoImGui(CommandContextStack *cc_stack) {
         }
     }
 
-    {
-        bool value=beeb_thread->IsTurboDisc();
-        if(ImGui::Checkbox("Turbo disc",&value)) {
-            beeb_thread->Send(std::make_unique<BeebThread::SetTurboDiscMessage>(value));
-        }
-    }
-
-    //m_beeb_window->DoOptionsCheckbox("Limit speed",&BeebThread::IsSpeedLimited,&BeebThread::SendSetSpeedLimitingMessage);
-    //m_beeb_window->DoOptionsCheckbox("Turbo disc",&BeebThread::IsTurboDisc,&BeebThread::SendSetTurboDiscMessage);
-
     ImGui::Checkbox("Correct aspect ratio",&settings->correct_aspect_ratio);
 
     ImGui::Checkbox("Auto scale",&settings->display_auto_scale);
