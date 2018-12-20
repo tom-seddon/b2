@@ -1021,7 +1021,7 @@ static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &init
                 SaveKeyWindowSettings();
 #endif
                 goto done;
-                }
+            }
 
             switch(event.type) {
             case SDL_WINDOWEVENT:

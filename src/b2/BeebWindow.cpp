@@ -168,9 +168,30 @@ void BeebWindow::OptionsUI::DoImGui(CommandContextStack *cc_stack) {
     }
 
     {
-        bool value=beeb_thread->IsSpeedLimited();
-        if(ImGui::Checkbox("Limit speed",&value)) {
-            beeb_thread->Send(std::make_unique<BeebThread::SetSpeedLimitingMessage>(value));
+        float speed_scale=beeb_thread->GetSpeedScale();
+        bool limit_speed=beeb_thread->IsSpeedLimited();
+
+        if(ImGui::Checkbox("Limit Speed",&limit_speed)) {
+            beeb_thread->Send(std::make_shared<BeebThread::SetSpeedLimitedMessage>(limit_speed));
+        }
+
+        if(limit_speed) {
+            ImGui::SameLine();
+
+            bool changed=false;
+
+            if(ImGui::Button("1x")) {
+                speed_scale=1.f;
+                changed=true;
+            }
+
+            if(ImGui::SliderFloat("Speed scale",&speed_scale,0.f,2.f)) {
+                changed=true;
+            }
+
+            if(changed) {
+                beeb_thread->Send(std::make_shared<BeebThread::SetSpeedScaleMessage>(speed_scale));
+            }
         }
     }
 
@@ -1469,18 +1490,28 @@ void BeebWindow::UpdateTVTexture(VBlankRecord *vblank_record) {
 #endif
 
     if(video_output->GetConsumerBuffers(&a,&na,&b,&nb)) {
-        bool limited=m_beeb_thread->IsSpeedLimited();
 
-        if(limited) {
-            if(na+nb>num_units_left) {
-                if(na>num_units_left) {
-                    na=num_units_left;
-                    nb=0;
-                } else {
-                    nb=num_units_left-na;
-                }
-            }
-        }
+        // This was introduced in 8b9db5d ("When speed limited, consume video
+        // data based on real time passed"), causing a problem with the later
+        // speed slider: because real time was a factor, the maximum speed
+        // possible was 1x.
+        //
+        // I don't remember what the point of this bit was anyway. Data is
+        // being produced at the appropriate rate already, so why not always
+        // consume all of it?
+
+//        bool limited=m_beeb_thread->IsSpeedLimited();
+//
+//        if(limited) {
+//            if(na+nb>num_units_left) {
+//                if(na>num_units_left) {
+//                    na=num_units_left;
+//                    nb=0;
+//                } else {
+//                    nb=num_units_left-na;
+//                }
+//            }
+//        }
 
         size_t num_left;
         const size_t MAX_UPDATE_SIZE=200;

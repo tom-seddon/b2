@@ -124,7 +124,6 @@ struct BeebThread::ThreadState {
 #endif
     bool boot=false;
     BeebShiftState fake_shift_state=BeebShiftState_Any;
-    bool limit_speed=true;
 
     BeebThreadTimelineState timeline_state=BeebThreadTimelineState_None;
 
@@ -157,6 +156,7 @@ struct BeebThread::ThreadState {
 //////////////////////////////////////////////////////////////////////////
 
 struct BeebThread::AudioThreadData {
+    uint64_t sound_freq;
     Remapper remapper;
     uint64_t num_consumed_sound_units=0;
     float bbc_sound_scale=1.f;
@@ -176,9 +176,10 @@ struct BeebThread::AudioThreadData {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-BeebThread::AudioThreadData::AudioThreadData(uint64_t sound_freq,
+BeebThread::AudioThreadData::AudioThreadData(uint64_t sound_freq_,
                                              uint64_t sound_buffer_size_samples_,
                                              size_t max_num_records):
+sound_freq(sound_freq_),
 remapper(sound_freq,SOUND_CLOCK_HZ),
 sound_buffer_size_samples(sound_buffer_size_samples_)
 {
@@ -501,23 +502,55 @@ bool BeebThread::HardResetAndReloadConfigMessage::ThreadPrepare(std::shared_ptr<
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-BeebThread::SetSpeedLimitingMessage::SetSpeedLimitingMessage(bool limit_speed):
-    m_limit_speed(limit_speed)
+BeebThread::SetSpeedLimitedMessage::SetSpeedLimitedMessage(bool limited):
+m_limited(limited)
 {
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool BeebThread::SetSpeedLimitingMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
-                                                        CompletionFun *completion_fun,
-                                                        BeebThread *beeb_thread,
-                                                        ThreadState *ts)
+bool BeebThread::SetSpeedLimitedMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
+                                                       CompletionFun *completion_fun,
+                                                       BeebThread *beeb_thread,
+                                                       ThreadState *ts)
+{
+    (void)ptr,(void)completion_fun,(void)ts;
+
+    beeb_thread->m_is_speed_limited.store(m_limited,std::memory_order_release);
+
+    ptr->reset();
+    return true;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+BeebThread::SetSpeedScaleMessage::SetSpeedScaleMessage(float scale):
+    m_scale(scale)
+{
+    //ASSERT(m_scale>=0.0&&m_scale<=1.0);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool BeebThread::SetSpeedScaleMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
+                                                     CompletionFun *completion_fun,
+                                                     BeebThread *beeb_thread,
+                                                     ThreadState *ts)
 {
     (void)completion_fun;
 
-    ts->limit_speed=m_limit_speed;
-    beeb_thread->m_limit_speed.store(m_limit_speed,std::memory_order_release);
+    beeb_thread->m_speed_scale.store(m_scale,std::memory_order_release);
+
+    SDL_LockAudio();
+
+    // This resets the error, but I'm really not bothered.
+    beeb_thread->m_audio_thread_data->remapper=Remapper(beeb_thread->m_audio_thread_data->sound_freq,
+                                                        SOUND_CLOCK_HZ*m_scale);
+
+    SDL_UnlockAudio();
 
     ptr->reset();
     return true;
@@ -1313,7 +1346,13 @@ bool BeebThread::TimingMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
 {
     (void)completion_fun,(void)beeb_thread;
 
+    uint64_t old=ts->next_stop_2MHz_cycles;
     ts->next_stop_2MHz_cycles=m_max_sound_units<<SOUND_CLOCK_SHIFT;
+
+    // The new next stop can be sooner than the old next stop when the speed
+    // limit is being reduced.
+
+    //printf("%s: was %" PRIu64 ", now %" PRIu64 " (%" PRId64 ")\n",__func__,old,ts->next_stop_2MHz_cycles,ts->next_stop_2MHz_cycles-old);
 
 #if LOGGING
     beeb_thread->m_audio_thread_data->num_executed_cycles.store(*ts->num_executed_2MHz_cycles,
@@ -1510,7 +1549,14 @@ const volatile TraceStats *BeebThread::GetTraceStats() const {
 //////////////////////////////////////////////////////////////////////////
 
 bool BeebThread::IsSpeedLimited() const {
-    return m_limit_speed.load(std::memory_order_acquire);
+    return m_is_speed_limited.load(std::memory_order_acquire);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+float BeebThread::GetSpeedScale() const {
+    return m_speed_scale.load(std::memory_order_acquire);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -1591,7 +1637,14 @@ std::shared_ptr<Trace> BeebThread::GetLastTrace() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-size_t BeebThread::AudioThreadFillAudioBuffer(float *samples,size_t num_samples,bool perfect,void (*fn)(int,float,void *),void *fn_context) {
+size_t BeebThread::AudioThreadFillAudioBuffer(float *samples,
+                                              size_t num_samples,
+                                              bool perfect,
+                                              void (*fn)(int,
+                                                         float,
+                                                         void *),
+                                              void *fn_context)
+{
     AudioThreadData *const atd=m_audio_thread_data;
     uint64_t now_ticks=GetCurrentTickCount();
 
@@ -1645,11 +1698,13 @@ size_t BeebThread::AudioThreadFillAudioBuffer(float *samples,size_t num_samples,
         record->available=units_available;
     }
 
+    uint64_t max_sound_units;
     if(limit_speed) {
-        this->SendTimingMessage(atd->num_consumed_sound_units+units_needed_future);
+        max_sound_units=atd->num_consumed_sound_units+units_needed_future;
     } else {
-        this->SendTimingMessage(UINT64_MAX);
+        max_sound_units=UINT64_MAX;
     }
+    this->SendTimingMessage(max_sound_units);
 
     if(units_available==0) {
         // Can't really do much with this...
@@ -1702,6 +1757,7 @@ size_t BeebThread::AudioThreadFillAudioBuffer(float *samples,size_t num_samples,
     float acc=0.f;
     size_t num_units_left=num_sa;
     const SoundDataUnit *unit=sa;
+    uint64_t num_consumed_sound_units=0;
 
     for(size_t sample_idx=0;sample_idx<num_samples;++sample_idx) {
         uint64_t num_units_=remapper->Step();
@@ -1760,11 +1816,14 @@ size_t BeebThread::AudioThreadFillAudioBuffer(float *samples,size_t num_samples,
             }
 
             m_sound_output.Consume(num_units);
-            atd->num_consumed_sound_units+=num_units;
+            num_consumed_sound_units+=num_units;
         }
 
         dest[sample_idx]=acc;
     }
+
+    atd->num_consumed_sound_units+=num_consumed_sound_units;
+    //printf("%s: needed now=%" PRIu64 "; available=%" PRIu64 "; consumed=%" PRIu64 "; needed future=%" PRIu64 "\n",__func__,units_needed_now,units_available,num_consumed_sound_units,units_needed_future);
 
     return num_samples;
 }
@@ -2235,20 +2294,30 @@ void BeebThread::ThreadMain(void) {
         paused=m_paused;
     }
 
-    ts.limit_speed=m_limit_speed.load(std::memory_order_acquire);
-
     std::vector<SentMessage> messages;
+    size_t total_num_audio_units_produced=0;
 
+    int handle_messages_reason;
     for(;;) {
-        if(paused||(ts.limit_speed&&ts.next_stop_2MHz_cycles<=*ts.num_executed_2MHz_cycles)) {
-        wait_for_message:
+        handle_messages_reason=-1;
+    handle_messages:
+        const char *what;
+        if(paused||
+           (m_is_speed_limited.load(std::memory_order_acquire)&&
+            ts.next_stop_2MHz_cycles<=*ts.num_executed_2MHz_cycles))
+        {
             rmt_ScopedCPUSample(MessageQueueWaitForMessage,0);
             m_mq.ConsumerWaitForMessages(&messages);
+            what="waited";
         } else {
             m_mq.ConsumerPollForMessages(&messages);
+            what="polled";
         }
 
-        uint64_t stop_2MHz_cycles=ts.next_stop_2MHz_cycles;
+        //printf("%s: %s/%d: %zu message(s), cycles=%" PRIu64 ", stop=%" PRIu64 ", total_num_audio_units_produced=%zu\n",__func__,what,handle_messages_reason,messages.size(),ts.num_executed_2MHz_cycles?*ts.num_executed_2MHz_cycles:0,ts.next_stop_2MHz_cycles,total_num_audio_units_produced);
+        total_num_audio_units_produced=0;
+
+        uint64_t stop_2MHz_cycles;
 
         //if(!messages.empty())
         {
@@ -2278,6 +2347,8 @@ void BeebThread::ThreadMain(void) {
                     goto done;
                 }
             }
+
+            stop_2MHz_cycles=ts.next_stop_2MHz_cycles;
 
             messages.clear();
 
@@ -2413,7 +2484,8 @@ void BeebThread::ThreadMain(void) {
             size_t num_va,num_vb;
             size_t num_video_units=(size_t)num_2MHz_cycles;
             if(!m_video_output.GetProducerBuffers(&va,&num_va,&vb,&num_vb)) {
-                goto wait_for_message;
+                handle_messages_reason=0;
+                goto handle_messages;
             }
 
             if(num_va+num_vb>num_video_units) {
@@ -2430,14 +2502,18 @@ void BeebThread::ThreadMain(void) {
             SoundDataUnit *sa,*sb;
             size_t num_sa,num_sb;
             if(!m_sound_output.GetProducerBuffers(&sa,&num_sa,&sb,&num_sb)) {
-                goto wait_for_message;
+                handle_messages_reason=1;
+                goto handle_messages;
             }
 
             if(num_sa+num_sb<num_sound_units) {
-                goto wait_for_message;
+                handle_messages_reason=2;
+                goto handle_messages;
             }
 
             SoundDataUnit *sunit=sa;
+
+            total_num_audio_units_produced+=num_sound_units;
 
             {
                 VideoDataUnit *vunit;

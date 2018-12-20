@@ -103,7 +103,7 @@ saved state.
 ## Options
 
 Use `Tools` > `Options...` to bring up the options dialog, letting you
-fiddle with screen size and speed limiting and stuff.
+fiddle with screen size, emulated speed, and so on.
 
 ### Display options
 

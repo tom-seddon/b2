@@ -255,11 +255,11 @@ public:
     private:
     };
 
-    class SetSpeedLimitingMessage:
-        public Message
+    class SetSpeedLimitedMessage:
+    public Message
     {
     public:
-        explicit SetSpeedLimitingMessage(bool limit_speed);
+        explicit SetSpeedLimitedMessage(bool limited);
 
         bool ThreadPrepare(std::shared_ptr<Message> *ptr,
                            CompletionFun *completion_fun,
@@ -267,7 +267,22 @@ public:
                            ThreadState *ts) override;
     protected:
     private:
-        const bool m_limit_speed=false;
+        const bool m_limited=false;
+    };
+
+    class SetSpeedScaleMessage:
+        public Message
+    {
+    public:
+        explicit SetSpeedScaleMessage(float scale);
+
+        bool ThreadPrepare(std::shared_ptr<Message> *ptr,
+                           CompletionFun *completion_fun,
+                           BeebThread *beeb_thread,
+                           ThreadState *ts) override;
+    protected:
+    private:
+        const float m_scale=1.f;
     };
 
     class LoadDiscMessage:
@@ -764,8 +779,10 @@ public:
     // Get trace stats, or nullptr if there's no trace.
     const volatile TraceStats *GetTraceStats() const;
 
-    // Get the speed limiting flag, as set by SendSetSpeedLimitingMessage.
     bool IsSpeedLimited() const;
+
+    // Get the speed scale.
+    float GetSpeedScale() const;
 
     // Get pause state as set by SetPaused.
     bool IsPaused() const;
@@ -871,7 +888,8 @@ private:
     //
     // Safe provided they are updated atomically.
     std::atomic<uint64_t> m_num_2MHz_cycles{0};
-    std::atomic<bool> m_limit_speed{true};
+    std::atomic<bool> m_is_speed_limited{true};
+    std::atomic<float> m_speed_scale{1.0};
     std::atomic<uint32_t> m_leds{0};
 #if BBCMICRO_TRACE
     std::atomic<bool> m_is_tracing{false};
