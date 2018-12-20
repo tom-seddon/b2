@@ -405,7 +405,8 @@ private:
                             if(m_sound_channel2_value<0) {
                                 m_output->s("unknown");
                             } else {
-                                m_output->f("%.1fHz",GetSoundHz(m_sound_channel2_value));
+                                ASSERT(m_sound_channel2_value<65536);
+                                m_output->f("%.1fHz",GetSoundHz((uint16_t)m_sound_channel2_value));
                             }
                             break;
                     }

@@ -44,7 +44,7 @@ static constexpr size_t NUM_VIDEO_UNITS=262144;
 static constexpr size_t NUM_AUDIO_UNITS=NUM_VIDEO_UNITS/2;//(1<<SOUND_CLOCK_SHIFT);
 
 // When recording, how often to save a state.
-static const uint64_t TIMELINE_SAVE_STATE_FREQUENCY_2MHz_CYCLES=2e6;
+static const uint64_t TIMELINE_SAVE_STATE_FREQUENCY_2MHz_CYCLES=(uint64_t)2e6;
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -540,7 +540,7 @@ bool BeebThread::SetSpeedScaleMessage::ThreadPrepare(std::shared_ptr<Message> *p
                                                      BeebThread *beeb_thread,
                                                      ThreadState *ts)
 {
-    (void)completion_fun;
+    (void)completion_fun,(void)ts;
 
     beeb_thread->m_speed_scale.store(m_scale,std::memory_order_release);
 
@@ -549,7 +549,7 @@ bool BeebThread::SetSpeedScaleMessage::ThreadPrepare(std::shared_ptr<Message> *p
 
         // This resets the error, but I'm really not bothered.
         beeb_thread->m_audio_thread_data->remapper=Remapper(beeb_thread->m_audio_thread_data->sound_freq,
-                                                            SOUND_CLOCK_HZ*m_scale);
+                                                            (uint64_t)(SOUND_CLOCK_HZ*m_scale));
     }
 
     ptr->reset();
@@ -803,7 +803,7 @@ bool BeebThread::StartReplayMessage::ThreadPrepare(std::shared_ptr<Message> *ptr
                                                    BeebThread *beeb_thread,
                                                    ThreadState *ts)
 {
-    (void)completion_fun;
+    (void)ptr,(void)completion_fun;
 
     if(ts->timeline_state==BeebThreadTimelineState_Record) {
         // Not valid in record mode.
@@ -851,6 +851,8 @@ bool BeebThread::StopReplayMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
                                                   BeebThread *beeb_thread,
                                                   ThreadState *ts)
 {
+    (void)ptr,(void)completion_fun;
+
     if(ts->timeline_state!=BeebThreadTimelineState_Replay) {
         return false;
     }
@@ -900,6 +902,8 @@ bool BeebThread::StopRecordingMessage::ThreadPrepare(std::shared_ptr<Message> *p
                                                      BeebThread *beeb_thread,
                                                      ThreadState *ts)
 {
+    (void)completion_fun;
+
     beeb_thread->ThreadStopRecording(ts);
 
     ptr->reset();
@@ -914,6 +918,8 @@ bool BeebThread::ClearRecordingMessage::ThreadPrepare(std::shared_ptr<Message> *
                                                       BeebThread *beeb_thread,
                                                       ThreadState *ts)
 {
+    (void)completion_fun;
+
     beeb_thread->ThreadClearRecording(ts);
 
     ptr->reset();
@@ -1346,7 +1352,7 @@ bool BeebThread::TimingMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
 {
     (void)completion_fun,(void)beeb_thread;
 
-    uint64_t old=ts->next_stop_2MHz_cycles;
+    //uint64_t old=ts->next_stop_2MHz_cycles;
     ts->next_stop_2MHz_cycles=m_max_sound_units<<SOUND_CLOCK_SHIFT;
 
     // The new next stop can be sooner than the old next stop when the speed

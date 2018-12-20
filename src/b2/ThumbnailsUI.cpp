@@ -47,7 +47,7 @@ ThumbnailsUI::~ThumbnailsUI() {
 ////////////////////////////////////////////////////////////////////////////
 
 ImVec2 ThumbnailsUI::GetThumbnailSize() const {
-    return ImVec2(TV_TEXTURE_WIDTH/3.0,TV_TEXTURE_HEIGHT/3.0);
+    return ImVec2(TV_TEXTURE_WIDTH/3.f,TV_TEXTURE_HEIGHT/3.f);
 }
 
 ////////////////////////////////////////////////////////////////////////////
@@ -148,7 +148,7 @@ void ThumbnailsUI::Thumbnail(const std::shared_ptr<const BeebState> &beeb_state)
             if(ImGui::BeginPopup(THUMBNAIL_POPUP)) {
                 int w,h;
                 SDL_QueryTexture(t->texture.get(),nullptr,nullptr,&w,&h);
-                ImGui::Image(t->texture.get(),ImVec2(w,h));
+                ImGui::Image(t->texture.get(),ImVec2((float)w,(float)h));
                 ImGui::EndPopup();
             }
         }

@@ -281,7 +281,7 @@ void Trace::FinishLog(Log *log) {
     size_t delta=m_log_max_len-m_log_len;
 
     ASSERT(h->size>=delta);
-    h->size-=delta;
+    h->size-=(uint16_t)delta;
 
     ASSERT(m_tail->size>=delta);
     m_tail->size-=delta;
@@ -397,7 +397,7 @@ void *Trace::AllocEventWithSize(const TraceEventType &type,size_t size) {
     h->h.type=type.type_id;
     h->h.time_delta=(uint8_t)(time-m_last_time);
     h->h.canceled=0;
-    h->size=size;
+    h->size=(uint16_t)size;
 
     m_last_time=time;
 

@@ -207,7 +207,7 @@ bool DiscGeometry::GetIndex(size_t *index,
                             uint8_t side,
                             uint8_t track,
                             uint8_t sector,
-                            uint8_t offset) const
+                            size_t offset) const
 {
     if(side>=(this->double_sided?2:1)) {
         return false;

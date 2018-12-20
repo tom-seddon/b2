@@ -26,6 +26,8 @@ public:
     }
 
     void DoImGui(CommandContextStack *cc_stack) override {
+        (void)cc_stack;
+
         auto beeb_thread=m_beeb_window->GetBeebThread();
 
         BeebThread::TimelineState timeline_state;
@@ -165,8 +167,6 @@ public:
                 ImGui::SetScrollY(timeline_size.y);
             }
         }
-
-        float scroll_y=ImGui::GetScrollY();
 
         {
             ImGui::BeginChild("timeline",timeline_size,false,0);//false = no border

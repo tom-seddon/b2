@@ -61,7 +61,7 @@ public:
                                                                                                            (size_t)row_end);
                     for(size_t i=0;i<saved_states.size();++i) {
                         const std::shared_ptr<const BeebState> &s=saved_states[i];
-                        ImGuiIDPusher pusher(s.get());
+                        ImGuiIDPusher id_pusher(s.get());
 
                         // Buttons
                         if(ImGuiConfirmButton("Delete")) {
@@ -72,12 +72,11 @@ public:
 
                         if(can_load) {
                             if(ImGuiConfirmButton("Load")) {
-                                std::shared_ptr<BeebThread> beeb_thread=m_beeb_window->GetBeebThread();
                                 beeb_thread->Send(std::make_shared<BeebThread::LoadStateMessage>(s,true));
                             }
                         } else {
-                            ImGuiStyleColourPusher pusher;
-                            pusher.PushDisabledButtonColours();
+                            ImGuiStyleColourPusher colour_pusher;
+                            colour_pusher.PushDisabledButtonColours();
                             ImGui::Button("Load");
                         }
 

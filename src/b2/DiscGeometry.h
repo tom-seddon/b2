@@ -35,7 +35,7 @@ struct DiscGeometry {
                   uint8_t side,
                   uint8_t track,
                   uint8_t sector,
-                  uint8_t offset) const;
+                  size_t offset) const;
 };
 
 bool operator==(const DiscGeometry &a,const DiscGeometry &b);

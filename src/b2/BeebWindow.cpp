@@ -1178,11 +1178,11 @@ void BeebWindow::DoFileMenu() {
 
                 FileMenuItem file_item(&d->open_disc_image_file_dialog,"Disc image...","Recent disc image");
                 if(file_item.selected) {
-                    std::shared_ptr<MemoryDiscImage> disc_image=MemoryDiscImage::LoadFromFile(file_item.path,
+                    std::shared_ptr<MemoryDiscImage> new_disc_image=MemoryDiscImage::LoadFromFile(file_item.path,
                                                                                               &m_msg);
-                    if(!!disc_image) {
+                    if(!!new_disc_image) {
                         m_beeb_thread->Send(std::make_unique<BeebThread::LoadDiscMessage>(drive,
-                                                                                          std::move(disc_image),
+                                                                                          std::move(new_disc_image),
                                                                                           true));
                         file_item.Success();
                     }
@@ -1192,11 +1192,11 @@ void BeebWindow::DoFileMenu() {
                                          "Direct disc image...",
                                          "Recent direct disc image");
                 if(direct_item.selected) {
-                    std::shared_ptr<DirectDiscImage> disc_image=DirectDiscImage::CreateForFile(direct_item.path,
+                    std::shared_ptr<DirectDiscImage> new_disc_image=DirectDiscImage::CreateForFile(direct_item.path,
                                                                                                &m_msg);
-                    if(!!disc_image) {
+                    if(!!new_disc_image) {
                         m_beeb_thread->Send(std::make_unique<BeebThread::LoadDiscMessage>(drive,
-                                                                                          std::move(disc_image),
+                                                                                          std::move(new_disc_image),
                                                                                           true));
                         direct_item.Success();
                     }
@@ -1474,8 +1474,8 @@ bool BeebWindow::DoWindowMenu() {
 void BeebWindow::UpdateTVTexture(VBlankRecord *vblank_record) {
     OutputDataBuffer<VideoDataUnit> *video_output=m_beeb_thread->GetVideoOutput();
 
-    uint64_t num_units=(uint64_t)(GetSecondsFromTicks(vblank_record->num_ticks)*1e6)*2;
-    uint64_t num_units_left=num_units;
+    //uint64_t num_units=(uint64_t)(GetSecondsFromTicks(vblank_record->num_ticks)*1e6)*2;
+    //uint64_t num_units_left=num_units;
 
     const VideoDataUnit *a,*b;
     size_t na,nb;
