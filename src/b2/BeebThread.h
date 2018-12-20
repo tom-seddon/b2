@@ -154,7 +154,7 @@ public:
     };
 
     class StopMessage:
-    public Message
+        public Message
     {
     public:
         bool ThreadPrepare(std::shared_ptr<Message> *ptr,
@@ -223,7 +223,7 @@ public:
     };
 
     class HardResetAndChangeConfigMessage:
-    public HardResetMessage
+        public HardResetMessage
     {
     public:
         // Flags are a combination of BeebThreadHardResetFlag.
@@ -241,7 +241,7 @@ public:
     };
 
     class HardResetAndReloadConfigMessage:
-    public HardResetMessage
+        public HardResetMessage
     {
     public:
         // Flags are a combination of BeebThreadHardResetFlag.
@@ -256,7 +256,7 @@ public:
     };
 
     class SetSpeedLimitedMessage:
-    public Message
+        public Message
     {
     public:
         explicit SetSpeedLimitedMessage(bool limited);
@@ -310,7 +310,7 @@ public:
 
     // Any kind of message that has a BeebState.
     class BeebStateMessage:
-    public Message
+        public Message
     {
     public:
         BeebStateMessage()=default;
@@ -358,7 +358,7 @@ public:
     // Load a state from the timeline states list. When recording, the timeline
     // is rewound to that point.
     class LoadTimelineStateMessage:
-    public BeebStateMessage
+        public BeebStateMessage
     {
     public:
         explicit LoadTimelineStateMessage(std::shared_ptr<const BeebState> state,
@@ -374,7 +374,7 @@ public:
     };
 
     class DeleteTimelineStateMessage:
-    public BeebStateMessage
+        public BeebStateMessage
     {
     public:
         explicit DeleteTimelineStateMessage(std::shared_ptr<const BeebState> state);
@@ -418,7 +418,7 @@ public:
     };
 
     class StopReplayMessage:
-    public Message
+        public Message
     {
     public:
         bool ThreadPrepare(std::shared_ptr<Message> *ptr,
@@ -430,7 +430,7 @@ public:
     };
 
     class StartRecordingMessage:
-    public Message
+        public Message
     {
     public:
         bool ThreadPrepare(std::shared_ptr<Message> *ptr,
@@ -442,7 +442,7 @@ public:
     };
 
     class StopRecordingMessage:
-    public Message
+        public Message
     {
     public:
         bool ThreadPrepare(std::shared_ptr<Message> *ptr,
@@ -454,7 +454,7 @@ public:
     };
 
     class ClearRecordingMessage:
-    public Message
+        public Message
     {
     public:
         bool ThreadPrepare(std::shared_ptr<Message> *ptr,
@@ -634,7 +634,7 @@ public:
 
 #if BBCMICRO_DEBUGGER
     class DebugSetExtByteMessage:
-    public Message
+        public Message
     {
     public:
         DebugSetExtByteMessage(uint32_t addr,uint8_t value);
