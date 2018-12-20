@@ -544,13 +544,13 @@ bool BeebThread::SetSpeedScaleMessage::ThreadPrepare(std::shared_ptr<Message> *p
 
     beeb_thread->m_speed_scale.store(m_scale,std::memory_order_release);
 
-    SDL_LockAudio();
+    {
+        AudioDeviceLock lock(beeb_thread->m_sound_device_id);
 
-    // This resets the error, but I'm really not bothered.
-    beeb_thread->m_audio_thread_data->remapper=Remapper(beeb_thread->m_audio_thread_data->sound_freq,
-                                                        SOUND_CLOCK_HZ*m_scale);
-
-    SDL_UnlockAudio();
+        // This resets the error, but I'm really not bothered.
+        beeb_thread->m_audio_thread_data->remapper=Remapper(beeb_thread->m_audio_thread_data->sound_freq,
+                                                            SOUND_CLOCK_HZ*m_scale);
+    }
 
     ptr->reset();
     return true;
