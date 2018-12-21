@@ -982,12 +982,12 @@ static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &init
 
                 for(int i=0;i<NUM_DRIVES;++i) {
                     if(!!init_disc_images[i]) {
-                        thread->Send(std::make_unique<BeebThread::LoadDiscMessage>(i,std::move(init_disc_images[i]),true));
+                        thread->Send(std::make_shared<BeebThread::LoadDiscMessage>(i,std::move(init_disc_images[i]),true));
                     }
                 }
 
                 if(options.boot) {
-                    auto message=std::make_unique<BeebThread::HardResetMessage>(BeebThreadHardResetFlag_Boot);
+                    auto message=std::make_shared<BeebThread::HardResetMessage>(BeebThreadHardResetFlag_Boot);
 
                     //message->boot=true;
 

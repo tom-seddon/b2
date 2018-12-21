@@ -280,8 +280,8 @@ void WriteVideoJob::ThreadExecute() {
         bool was_vblank=tv_output.IsInVerticalBlank();
         OutputDataBuffer<VideoDataUnit> *video_output=beeb_thread->GetVideoOutput();
 
-        beeb_thread->Send(std::make_unique<BeebThread::StartReplayMessage>(start_state));
-        beeb_thread->Send(std::make_unique<BeebThread::PauseMessage>(false));
+        beeb_thread->Send(std::make_shared<BeebThread::StartReplayMessage>(start_state));
+        beeb_thread->Send(std::make_shared<BeebThread::PauseMessage>(false));
 
         for(;;) {
             uint64_t cycles=beeb_thread->GetEmulated2MHzCycles();

@@ -311,7 +311,7 @@ private:
     static void MemoryEditorWrite(uint8_t *data,size_t off,uint8_t d) {
         auto self=(MemoryDebugWindow *)data;
 
-        self->m_beeb_thread->Send(std::make_unique<BeebThread::DebugSetByteMessage>((uint16_t)off,d));
+        self->m_beeb_thread->Send(std::make_shared<BeebThread::DebugSetByteMessage>((uint16_t)off,d));
     }
 };
 
@@ -380,7 +380,7 @@ private:
     static void MemoryEditorWrite(uint8_t *data,size_t off,uint8_t d) {
         auto self=(ExtMemoryDebugWindow *)data;
 
-        self->m_beeb_thread->Send(std::make_unique<BeebThread::DebugSetExtByteMessage>((uint32_t)off,d));
+        self->m_beeb_thread->Send(std::make_shared<BeebThread::DebugSetExtByteMessage>((uint32_t)off,d));
     }
 
     void Reg(const char *name,uint8_t value) {

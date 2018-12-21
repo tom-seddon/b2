@@ -277,7 +277,7 @@ private:
             return;
         }
 
-        auto message=std::make_unique<BeebThread::HardResetAndReloadConfigMessage>(BeebThreadHardResetFlag_Run);
+        auto message=std::make_shared<BeebThread::HardResetAndReloadConfigMessage>(BeebThreadHardResetFlag_Run);
 
 //        message->reload_config=true;
 //        message->run=true;
@@ -313,7 +313,7 @@ private:
 
         FixBBCASCIINewlines(&ascii);
 
-        this->SendMessage(beeb_window,server,request,std::make_unique<BeebThread::StartPasteMessage>(std::move(ascii)));
+        this->SendMessage(beeb_window,server,request,std::make_shared<BeebThread::StartPasteMessage>(std::move(ascii)));
     }
 
     void HandlePokeRequest(HTTPServer *server,HTTPRequest &&request,const std::vector<std::string> &path_parts,size_t command_index) {
@@ -327,7 +327,7 @@ private:
             return;
         }
 
-        this->SendMessage(beeb_window,server,request,std::make_unique<BeebThread::DebugSetBytesMessage>(addr,std::move(request.body)));
+        this->SendMessage(beeb_window,server,request,std::make_shared<BeebThread::DebugSetBytesMessage>(addr,std::move(request.body)));
     }
 
     void HandlePeekRequest(HTTPServer *server,HTTPRequest &&request,const std::vector<std::string> &path_parts,size_t command_index) {
@@ -378,7 +378,7 @@ private:
             return;
         }
 
-        this->SendMessage(beeb_window,server,request,std::make_unique<BeebThread::DebugAsyncCallMessage>(addr,a,x,y,c));
+        this->SendMessage(beeb_window,server,request,std::make_shared<BeebThread::DebugAsyncCallMessage>(addr,a,x,y,c));
     }
 
     void HandleMountRequest(HTTPServer *server,HTTPRequest &&request,const std::vector<std::string> &path_parts,size_t command_index) {
@@ -404,7 +404,7 @@ private:
             return;
         }
 
-        this->SendMessage(beeb_window,server,request,std::make_unique<BeebThread::LoadDiscMessage>((int)drive,std::move(disc_image),true));
+        this->SendMessage(beeb_window,server,request,std::make_shared<BeebThread::LoadDiscMessage>((int)drive,std::move(disc_image),true));
     }
 
     void HandleRunRequest(HTTPServer *server,HTTPRequest &&request,const std::vector<std::string> &path_parts,size_t command_index) {
@@ -429,8 +429,8 @@ private:
                 uint32_t addr=request.body[0]|(uint32_t)(request.body[1]<<8)|0xffff0000u;
                 request.body.erase(request.body.begin(),request.body.begin()+2);
 
-                beeb_window->GetBeebThread()->Send(std::make_unique<BeebThread::DebugSetBytesMessage>(addr,std::move(request.body)));
-                this->SendMessage(beeb_window,server,request,std::make_unique<BeebThread::DebugAsyncCallMessage>(addr&0xffff,0,0,0,false));
+                beeb_window->GetBeebThread()->Send(std::make_shared<BeebThread::DebugSetBytesMessage>(addr,std::move(request.body)));
+                this->SendMessage(beeb_window,server,request,std::make_shared<BeebThread::DebugAsyncCallMessage>(addr&0xffff,0,0,0,false));
                 return;
             }
         }
@@ -442,14 +442,10 @@ private:
                 return;
             }
 
-            beeb_window->GetBeebThread()->Send(std::make_unique<BeebThread::LoadDiscMessage>(0,std::move(disc_image),true));
+            beeb_window->GetBeebThread()->Send(std::make_shared<BeebThread::LoadDiscMessage>(0,std::move(disc_image),true));
 
-            auto message=std::make_unique<BeebThread::HardResetAndReloadConfigMessage>(BeebThreadHardResetFlag_Run|
+            auto message=std::make_shared<BeebThread::HardResetAndReloadConfigMessage>(BeebThreadHardResetFlag_Run|
                                                                                        BeebThreadHardResetFlag_Boot);
-//            auto message=std::make_unique<BeebThread::HardResetMessage>();
-//            message->boot=true;
-//            message->reload_config=true;
-//            message->run=true;
             this->SendMessage(beeb_window,server,request,std::move(message));
             return;
         }

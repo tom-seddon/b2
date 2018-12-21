@@ -1487,7 +1487,7 @@ bool BeebThread::Start() {
 
 void BeebThread::Stop() {
     if(m_thread.joinable()) {
-        this->Send(std::make_unique<StopMessage>());
+        this->Send(std::make_shared<StopMessage>());
         m_thread.join();
     }
 }

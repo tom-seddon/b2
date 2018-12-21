@@ -823,7 +823,7 @@ void TraceUI::DoImGui(CommandContextStack *cc_stack) {
                 max_num_bytes=256*1024*1024;
             }
 
-            beeb_thread->Send(std::make_unique<BeebThread::StartTraceMessage>(c,max_num_bytes));
+            beeb_thread->Send(std::make_shared<BeebThread::StartTraceMessage>(c,max_num_bytes));
         }
 
         std::shared_ptr<Trace> last_trace=beeb_thread->GetLastTrace();
@@ -846,7 +846,7 @@ void TraceUI::DoImGui(CommandContextStack *cc_stack) {
         }
     } else {
         if(ImGui::Button("Stop")) {
-            beeb_thread->Send(std::make_unique<BeebThread::StopTraceMessage>());
+            beeb_thread->Send(std::make_shared<BeebThread::StopTraceMessage>());
         }
 
         DoTraceStatsImGui(running_stats);
