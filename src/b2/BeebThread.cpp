@@ -1275,7 +1275,6 @@ BeebThread::DebugAsyncCallMessage::DebugAsyncCallMessage(uint16_t addr,
     m_y(y),
     m_c(c)
 {
-    //this->implicit_success=false;
 }
 #endif
 
@@ -1288,8 +1287,11 @@ bool BeebThread::DebugAsyncCallMessage::ThreadPrepare(std::shared_ptr<Message> *
                                                       BeebThread *beeb_thread,
                                                       ThreadState *ts)
 {
-    ASSERT(false);
-    return false;
+    if(!this->PrepareUnlessReplayingOrHalted(ptr,completion_fun,beeb_thread,ts)) {
+        return false;
+    }
+
+    return true;
 }
 #endif
 
@@ -1300,8 +1302,7 @@ bool BeebThread::DebugAsyncCallMessage::ThreadPrepare(std::shared_ptr<Message> *
 void BeebThread::DebugAsyncCallMessage::ThreadHandle(BeebThread *beeb_thread,
                                                      ThreadState *ts) const
 {
-    ASSERT(false);
-    //ts->beeb->DebugSetAsyncCall(this->addr,this->a,this->x,this->y,this->c,);
+    ts->beeb->DebugSetAsyncCall(m_addr,m_a,m_x,m_y,m_c,&BeebThread::DebugAsyncCallCallback,ts);
 }
 #endif
 
