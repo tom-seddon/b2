@@ -1302,6 +1302,8 @@ bool BeebThread::DebugAsyncCallMessage::ThreadPrepare(std::shared_ptr<Message> *
 void BeebThread::DebugAsyncCallMessage::ThreadHandle(BeebThread *beeb_thread,
                                                      ThreadState *ts) const
 {
+    (void)beeb_thread;
+
     ts->beeb->DebugSetAsyncCall(m_addr,m_a,m_x,m_y,m_c,&BeebThread::DebugAsyncCallCallback,ts);
 }
 #endif

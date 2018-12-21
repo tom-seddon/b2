@@ -16,6 +16,8 @@
 
 static const std::string RECENT_PATHS_VIDEO("video");
 
+static const char VIDEO_FORMATS_POPUP[]="video_formats_popup";
+
 ////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////
 
@@ -225,7 +227,33 @@ public:
                     ImGui::SameLine();
 
                     if(ImGui::Button("Video")) {
-                        this->DoVideo(state);
+                        ImGui::OpenPopup(VIDEO_FORMATS_POPUP);
+                    }
+
+                    if(ImGui::BeginPopup(VIDEO_FORMATS_POPUP)) {
+                        for(size_t format_index=0;format_index<GetNumVideoWriterFormats();++format_index) {
+                            const VideoWriterFormat *format=GetVideoWriterFormatByIndex(format_index);
+                            if(ImGui::Button(format->description.c_str())) {
+                                ImGui::CloseCurrentPopup();
+
+                                SaveFileDialog fd(RECENT_PATHS_VIDEO);
+                                fd.AddFilter(format->description,{format->extension});
+
+                                std::string path;
+                                if(fd.Open(&path)) {
+                                    fd.AddLastPathToRecentPaths();
+
+                                    std::unique_ptr<VideoWriter> video_writer=CreateVideoWriter(m_beeb_window->GetMessageList(),
+                                                                                                std::move(path),
+                                                                                                format_index);
+                                    auto message=std::make_shared<BeebThread::CreateTimelineVideoMessage>(state,
+                                                                                                          std::move(video_writer));
+                                    m_beeb_window->GetBeebThread()->Send(std::move(message));
+                                }
+                            }
+                        }
+
+                        ImGui::EndPopup();
                     }
                 }
 
@@ -255,28 +283,6 @@ private:
     BeebWindow *m_beeb_window=nullptr;
     ThumbnailsUI m_thumbnails;
     bool m_follow=true;
-
-    void DoVideo(const std::shared_ptr<const BeebState> &state) {
-        std::unique_ptr<VideoWriter> video_writer=CreateVideoWriter(m_beeb_window->GetMessageList());
-
-        SaveFileDialog fd(RECENT_PATHS_VIDEO);
-        video_writer->AddFileDialogFilters(&fd);
-        fd.AddAllFilesFilter();
-
-        std::string path;
-        if(fd.Open(&path)) {
-            fd.AddLastPathToRecentPaths();
-
-#pragma warning blah blah blah
-            video_writer->SetFileType(0);//fd.GetFilterIndex());
-            video_writer->SetFileName(path);
-
-            auto message=std::make_unique<BeebThread::CreateTimelineVideoMessage>(state,
-                                                                                  std::move(video_writer));
-            m_beeb_window->GetBeebThread()->Send(std::move(message));
-
-        }
-    }
 };
 
 ////////////////////////////////////////////////////////////////////////////

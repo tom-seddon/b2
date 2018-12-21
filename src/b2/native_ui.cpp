@@ -271,18 +271,7 @@ void FileDialog::AddFilter(std::string title,std::vector<std::string> patterns) 
 //////////////////////////////////////////////////////////////////////////
 
 void FileDialog::AddAllFilesFilter() {
-#if SYSTEM_OSX
-
-    // the initial "*." is actually ignored - this due to the way noc
-    // deals with OS X's file dialog only accepting extensions, rather
-    // than file patterns.
     this->AddFilter("All files",{".*"});
-
-#else
-
-    this->AddFilter("All files","*");
-
-#endif
 }
 
 //////////////////////////////////////////////////////////////////////////
