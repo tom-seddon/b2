@@ -93,7 +93,7 @@ std::string DirectDiscImage::GetDescription() const {
 void DirectDiscImage::AddFileDialogFilter(FileDialog *fd) const {
     if(const char *ext=GetExtensionFromDiscGeometry(m_geometry)) {
         std::string pattern=std::string("*")+ext;
-        fd->AddFilter("BBC disc image",pattern);
+        fd->AddFilter("BBC disc image",{pattern});
     }
 }
 

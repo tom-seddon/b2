@@ -57,12 +57,12 @@ struct DiscImageType {
     size_t num_possible_geometries;
 };
 
-static const char SSD_EXT[]=".ssd";
-static const char DSD_EXT[]=".dsd";
-static const char SDD_EXT[]=".sdd";
-static const char DDD_EXT[]=".ddd";
-static const char ADM_EXT[]=".adm";
-static const char ADL_EXT[]=".adl";
+#define SSD_EXT ".ssd"
+#define DSD_EXT ".dsd"
+#define SDD_EXT ".sdd"
+#define DDD_EXT ".ddd"
+#define ADM_EXT ".adm"
+#define ADL_EXT ".adl"
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -147,23 +147,14 @@ static const DiscImageType DISC_IMAGE_TYPES[]={
     {},
 };
 
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-std::string GetDiscImageFileDialogPatterns() {
-    std::string patterns;
-
-    for(const DiscImageType *type=DISC_IMAGE_TYPES;type->ext;++type) {
-        if(!patterns.empty()) {
-            patterns+=";";
-        }
-
-        patterns+="*";
-        patterns+=type->ext;
-    }
-
-    return patterns;
-}
+const std::vector<std::string> DISC_IMAGE_EXTENSIONS={
+    SSD_EXT,
+    DSD_EXT,
+    SDD_EXT,
+    DDD_EXT,
+    ADM_EXT,
+    ADL_EXT,
+};
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

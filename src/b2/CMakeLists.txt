@@ -200,8 +200,7 @@ endif()
 
 if(OSX)
   target_sources(b2 PRIVATE
-    native_ui.mm
-    native_ui_noc.m
+    native_ui_osx.mm native_ui_osx.h
     load_save.mm)
 else()
   target_sources(b2 PRIVATE
@@ -240,6 +239,14 @@ if(HAVE_FFMPEG)
   target_link_libraries(b2 PRIVATE ${FFMPEG_LIBRARIES})
   target_include_directories(b2 PRIVATE ${FFMPEG_INCLUDE_DIRS})
   target_compile_definitions(b2 PRIVATE ${FFMPEG_DEFINITIONS} -DHAVE_FFMPEG=1)
+endif()
+
+##########################################################################
+##########################################################################
+
+# AVFoundation video writer.
+if(OSX)
+  target_sources(b2 PRIVATE VideoWriterAVFoundation.mm VideoWriterAVFoundation.h)
 endif()
 
 ##########################################################################

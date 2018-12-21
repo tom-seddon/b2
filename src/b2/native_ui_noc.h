@@ -18,16 +18,21 @@
 //////////////////////////////////////////////////////////////////////////
 
 #if SYSTEM_WINDOWS
+#define USE_NOC 1
 #define NOC_FILE_DIALOG_WIN32
 #elif SYSTEM_OSX
-#define NOC_FILE_DIALOG_OSX
+#define USE_NOC 0
+//#define NOC_FILE_DIALOG_OSX
 #elif SYSTEM_LINUX
+#define USE_NOC 1
 #define NOC_FILE_DIALOG_GTK
 #else
 #error
 #endif
 
+#if USE_NOC
 #include <noc_file_dialog.h>
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

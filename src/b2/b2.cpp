@@ -792,7 +792,7 @@ static void SaveKeyWindowSettings() {
             if(window_nswindow==key_nswindow) {
                 window->SaveSettings();
                 break;
-}
+            }
         }
     }
 }

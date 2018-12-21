@@ -867,7 +867,7 @@ void TraceUI::SaveButton(const char *label,const std::shared_ptr<Trace> &last_tr
     if(ImGui::Button(label)) {
         SaveFileDialog fd(RECENT_PATHS_TRACES);
 
-        fd.AddFilter("Text files","*.txt");
+        fd.AddFilter("Text files",{".txt"});
         fd.AddAllFilesFilter();
 
         std::string path;

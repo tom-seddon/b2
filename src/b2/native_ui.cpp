@@ -11,7 +11,7 @@
 #include "native_ui_noc.h"
 
 #if SYSTEM_OSX
-void MessageBox(const std::string &title,const std::string &text);
+#include "native_ui_osx.h"
 #elif SYSTEM_LINUX
 #include <gtk/gtk.h>
 #endif
@@ -48,7 +48,6 @@ void FailureMessageBox(const std::string &title,const std::shared_ptr<MessageLis
             }
         }
     }
-
 
     std::string text;
 
@@ -238,36 +237,34 @@ bool SelectorDialog::Open(std::string *path) {
         }
     }
 
-    const char *r=this->HandleOpen();
-    if(r) {
-        m_last_path=r;
-        *path=m_last_path;
-        return true;
-    } else {
+    std::string result=this->HandleOpen();
+    if(result.empty()) {
         m_last_path.clear();
         return false;
+    } else {
+        m_last_path=result;
+        *path=m_last_path;
+        return true;
     }
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-FileDialog::FileDialog(std::string tag,int noc_flags):
-    SelectorDialog(std::move(tag)),
-    m_noc_flags(noc_flags)
+FileDialog::FileDialog(std::string tag):
+    SelectorDialog(std::move(tag))
 {
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void FileDialog::AddFilter(std::string title,const std::string &patterns) {
-    std::string filter=std::move(title);
-    filter.push_back(0);
-    filter.append(patterns);
-    filter.push_back(0);
-
-    m_filters.append(filter);
+void FileDialog::AddFilter(std::string title,std::vector<std::string> patterns) {
+    for(const std::string &pattern:patterns) {
+        ASSERT(!pattern.empty());
+        ASSERT(pattern[0]=='.');
+    }
+    m_filters.push_back({std::move(title),std::move(patterns)});
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -279,7 +276,7 @@ void FileDialog::AddAllFilesFilter() {
     // the initial "*." is actually ignored - this due to the way noc
     // deals with OS X's file dialog only accepting extensions, rather
     // than file patterns.
-    this->AddFilter("All files","*.*");
+    this->AddFilter("All files",{".*"});
 
 #else
 
@@ -291,49 +288,153 @@ void FileDialog::AddAllFilesFilter() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-int FileDialog::GetFilterIndex() const {
-    return m_filter_index;
-}
+//int FileDialog::GetFilterIndex() const {
+//    return m_filter_index;
+//}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-const char *FileDialog::HandleOpen() {
-    std::string default_name=PathGetName(m_last_path);
-    std::string default_folder=PathGetFolder(m_last_path);
-
-    LOGF(OUTPUT,"%s: ",__func__);
-    {
-        LOG_EXTERN(OUTPUT);
-        LOGI(OUTPUT);
-        LOGF(OUTPUT,"Last path: ``%s''\n",m_last_path.c_str());
-        LOGF(OUTPUT,"Default folder: ``%s''\n",default_folder.c_str());
-        LOGF(OUTPUT,"Default name: ``%s''\n",default_name.c_str());
-    }
-
-    const char *r=noc_file_dialog_open(m_noc_flags,m_filters.c_str(),
-                                       GetCStr(default_folder),
-                                       GetCStr(default_name));
-
-    m_filter_index=noc_file_dialog_get_filter_index();
-
-    return r;
-}
+//const char *FileDialog::HandleOpen() {
+//    std::string default_name=PathGetName(m_last_path);
+//    std::string default_folder=PathGetFolder(m_last_path);
+//
+//    LOGF(OUTPUT,"%s: ",__func__);
+//    {
+//        LOG_EXTERN(OUTPUT);
+//        LOGI(OUTPUT);
+//        LOGF(OUTPUT,"Last path: ``%s''\n",m_last_path.c_str());
+//        LOGF(OUTPUT,"Default folder: ``%s''\n",default_folder.c_str());
+//        LOGF(OUTPUT,"Default name: ``%s''\n",default_name.c_str());
+//    }
+//
+//
+//
+//    const char *r=noc_file_dialog_open(m_noc_flags,m_filters.c_str(),
+//                                       GetCStr(default_folder),
+//                                       GetCStr(default_name));
+//
+//    m_filter_index=noc_file_dialog_get_filter_index();
+//
+//    return r;
+//}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 OpenFileDialog::OpenFileDialog(std::string tag):
-    FileDialog(std::move(tag),NOC_FILE_DIALOG_OPEN)
+    FileDialog(std::move(tag))
 {
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if USE_NOC
+static std::string DoNOC(int noc_flags,
+                         const std::vector<FileDialog::Filter> &filters,
+                         const std::string &last_path)
+{
+    std::string noc_filters;
+    for(const FileDialog::Filter &filter:filters) {
+        noc_filters.append(filter.title);
+        noc_filters.push_back(0);
+        for(size_t i=0;i<filter.extensions.size();++i) {
+            if(i>0) {
+                noc_filters.push_back(';');
+            }
+            noc_filters.append("*");
+            noc_filters.append(filter.extensions[i]);
+        }
+        noc_filters.push_back(0);
+    }
+
+    const char *r=noc_file_dialog_open(noc_flags,
+                                       noc_filters.empty()?nullptr:noc_filters.c_str(),
+                                       GetCStr(PathGetFolder(last_path)),
+                                       GetCStr(PathGetName(last_path)));
+    if(r) {
+        return r;
+    } else {
+        return "";
+    }
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if SYSTEM_OSX
+static std::vector<std::string> GetOSXFileTypes(const std::vector<FileDialog::Filter> &filters) {
+    std::vector<std::string> types;
+    for(const FileDialog::Filter &filter:filters) {
+        for(const std::string &extension:filter.extensions) {
+            ASSERT(extension[0]=='.');
+            types.push_back(extension.substr(1));
+        }
+    }
+
+    // Or maybe the open dialog does this for you??
+    std::sort(types.begin(),types.end());
+    types.erase(std::unique(types.begin(),types.end()),types.end());
+
+    return types;
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+std::string OpenFileDialog::HandleOpen() {
+    LOGF(OUTPUT,"%s: ",__func__);
+    {
+        LOG_EXTERN(OUTPUT);
+        LOGI(OUTPUT);
+        LOGF(OUTPUT,"Last path: ``%s''\n",m_last_path.c_str());
+//        LOGF(OUTPUT,"Default folder: ``%s''\n",default_folder.c_str());
+//        LOGF(OUTPUT,"Default name: ``%s''\n",default_name.c_str());
+    }
+
+#if SYSTEM_OSX
+
+    std::string r=OpenFileDialogOSX(GetOSXFileTypes(m_filters),m_last_path);
+    return r;
+
+#else
+
+    return DoNOC(NOC_FILE_DIALOG_OPEN,
+                 m_filters,
+                 m_last_path);
+
+#endif
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 SaveFileDialog::SaveFileDialog(std::string tag):
-    FileDialog(std::move(tag),NOC_FILE_DIALOG_SAVE|NOC_FILE_DIALOG_OVERWRITE_CONFIRMATION)
+    FileDialog(std::move(tag))//,NOC_FILE_DIALOG_SAVE|NOC_FILE_DIALOG_OVERWRITE_CONFIRMATION)
 {
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+std::string SaveFileDialog::HandleOpen() {
+
+#if SYSTEM_OSX
+
+    std::string r=SaveFileDialogOSX(GetOSXFileTypes(m_filters),m_last_path);
+    return r;
+
+#else
+
+    return DoNOC(NOC_FILE_DIALOG_SAVE|NOC_FILE_DIALOG_OVERWRITE_CONFIRMATION,
+                 m_filters,
+                 m_last_path);
+
+#endif
+
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -347,10 +448,18 @@ FolderDialog::FolderDialog(std::string tag):
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-const char *FolderDialog::HandleOpen() {
-    const char *default_path=GetCStr(m_last_path);
-    const char *r=noc_file_dialog_open(NOC_FILE_DIALOG_DIR,nullptr,default_path,nullptr);
+std::string FolderDialog::HandleOpen() {
+
+#if SYSTEM_OSX
+
+    std::string r=SelectFolderDialogOSX(m_last_path);
     return r;
+
+#else
+
+    return DoNOC(NOC_FILE_DIALOG_DIR,{},m_last_path);
+
+#endif
 }
 
 //////////////////////////////////////////////////////////////////////////

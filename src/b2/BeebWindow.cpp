@@ -118,12 +118,13 @@ open_65link_folder_dialog(RECENT_PATHS_65LINK),
 open_disc_image_file_dialog(RECENT_PATHS_DISC_IMAGE),
 open_direct_disc_image_file_dialog(RECENT_PATHS_DISC_IMAGE)
 {
-    const std::string &patterns=GetDiscImageFileDialogPatterns();
+    std::vector<std::string> extensions=DISC_IMAGE_EXTENSIONS;
+    extensions.push_back(".zip");
 
-    this->open_disc_image_file_dialog.AddFilter("BBC disc images",patterns+";*.zip");
+    this->open_disc_image_file_dialog.AddFilter("BBC disc images",extensions);
     this->open_disc_image_file_dialog.AddAllFilesFilter();
 
-    this->open_direct_disc_image_file_dialog.AddFilter("BBC disc images",patterns);
+    this->open_direct_disc_image_file_dialog.AddFilter("BBC disc images",DISC_IMAGE_EXTENSIONS);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -1253,7 +1254,7 @@ void BeebWindow::DoFileMenu() {
         if(ImGui::MenuItem("Save NVRAM...",nullptr,false,m_beeb_thread->HasNVRAM())) {
             SaveFileDialog fd(RECENT_PATHS_NVRAM);
 
-            fd.AddFilter("BBC NVRAM data","*.bbcnvram");
+            fd.AddFilter("BBC NVRAM data",{".bbcnvram"});
             fd.AddAllFilesFilter();
 
             std::string file_name;
@@ -1269,7 +1270,7 @@ void BeebWindow::DoFileMenu() {
         //if(ImGui::MenuItem("Save RAM...")) {
         //    SaveFileDialog fd(RECENT_PATHS_RAM);
 
-        //    fd.AddFilter("BBC RAM","*.bbcram");
+        //    fd.AddFilter("BBC RAM",".bbcram");
         //    fd.AddAllFilesFilter();
 
         //    std::string file_name;

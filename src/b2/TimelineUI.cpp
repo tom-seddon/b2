@@ -267,7 +267,8 @@ private:
         if(fd.Open(&path)) {
             fd.AddLastPathToRecentPaths();
 
-            video_writer->SetFileType(fd.GetFilterIndex());
+#pragma warning blah blah blah
+            video_writer->SetFileType(0);//fd.GetFilterIndex());
             video_writer->SetFileName(path);
 
             auto message=std::make_unique<BeebThread::CreateTimelineVideoMessage>(state,
