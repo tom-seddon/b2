@@ -63,6 +63,8 @@ public:
 
     virtual bool WriteSound(const void *data,size_t data_size_bytes)=0;
     virtual bool WriteVideo(const void *data)=0;
+
+    std::shared_ptr<MessageList> GetMessageList() const;
 protected:
     int m_file_type=-1;
     std::string m_file_name;

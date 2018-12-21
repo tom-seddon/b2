@@ -18,9 +18,8 @@ class WriteVideoJob:
     public JobQueue::Job
 {
 public:
-    WriteVideoJob(std::vector<BeebThread::TimelineEvent> events,
-                  std::unique_ptr<VideoWriter> writer,
-                  std::shared_ptr<MessageList> message_list);
+    WriteVideoJob(BeebThread::TimelineEventList event_list,
+                  std::unique_ptr<VideoWriter> writer);
     ~WriteVideoJob();
 
     bool WasSuccessful() const;
@@ -31,8 +30,7 @@ public:
     void ThreadExecute() override;
 protected:
 private:
-    std::shared_ptr<MessageList> m_message_list;
-    std::vector<BeebThread::TimelineEvent> m_events;
+    BeebThread::TimelineEventList m_event_list;
     std::unique_ptr<VideoWriter> m_writer;
     bool m_success=false;
     std::atomic<uint64_t> m_ticks{0};

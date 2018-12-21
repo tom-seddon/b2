@@ -120,23 +120,12 @@ public:
     bool initially_paused=false;
 
     // When INITIAL_STATE is non-null, it is used as the initial state
-    // for the window, and PARENT_TIMELINE_EVENT_ID is the parent
-    // event id. (This is used to split the timeline at a non-start
-    // event, without having to introduce a new start event.)
+    // for the window; otherwise, DEFAULT_CONFIG will be used as the
+    // config to start with.
     //
-    // When INITIAL_STATE is null, but PARENT_TIMELINE_EVENT_ID is
-    // non-zero, PARENT_TIMELINE_EVENT_ID is the event to load the
-    // state from. (It must be a start event.)
-    //
-    // Otherwise (INITIAL_STATE==null, PARENT_TIMELINE_EVENT_ID==0),
-    // DEFAULT_CONFIG holds the config to start with, and a new root
-    // node will be created to start the timeline.
-    //
-    // DEFAULT_CONFIG must always be valid, even when INITIAL_STATE
-    // and PARENT_TIMELINE_EVENT_ID will be used, as it is the config
-    // used for new windows created by Window|New.
+    // DEFAULT_CONFIG must always be valid, as it is the config used
+    // for new windows created by Window|New.
     std::shared_ptr<BeebState> initial_state;
-//    uint64_t parent_timeline_event_id=0;
     BeebLoadedConfig default_config;
 
     // Message list to be used to populate the window's message list.
@@ -214,11 +203,6 @@ public:
     void UpdateTitle();
 
     void BeebKeymapWillBeDeleted(BeebKeymap *keymap);
-
-    // If this BeebWindow has a SDL_Texture holding the current
-    // display contents that's suitable for rendering with the given
-    // SDL_Renderer, return a pointer to it. Otherwise, nullptr.
-    SDL_Texture *GetTextureForRenderer(SDL_Renderer *renderer) const;
 
     // If this BeebWindow's texture data has changed since the last
     // time this function was called with the given version object, or

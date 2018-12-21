@@ -28,6 +28,7 @@
 #include "BeebWindow.h"
 #include <Remotery.h>
 #include "GenerateThumbnailJob.h"
+#include "VideoWriter.h"
 
 #include <shared/enum_def.h>
 #include "BeebThread.inl"
@@ -86,23 +87,6 @@ static const float VOLUMES_TABLE[]={
     -1.00000f,-0.79433f,-0.63096f,-0.50119f,-0.39811f,-0.31623f,-0.25119f,-0.19953f,-0.15849f,-0.12589f,-0.10000f,-0.07943f,-0.06310f,-0.05012f,-0.03981f,
     0.00000f,
     0.03981f,  0.05012f, 0.06310f, 0.07943f, 0.10000f, 0.12589f, 0.15849f, 0.19953f, 0.25119f, 0.31623f, 0.39811f, 0.50119f, 0.63096f, 0.79433f, 1.00000f,
-};
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-// Holds a starting state event, and a list of subsequent non-state events.
-struct BeebThread::TimelineEventList {
-    TimelineBeebStateEvent state_event;
-    std::vector<TimelineEvent> events;
-
-    TimelineEventList()=default;
-
-    // Moving is fine. Copying isn't!
-    TimelineEventList(const TimelineEventList &)=delete;
-    TimelineEventList &operator=(const TimelineEventList &)=delete;
-    TimelineEventList(TimelineEventList &&)=default;
-    TimelineEventList &operator=(TimelineEventList &&)=default;
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -549,7 +533,7 @@ bool BeebThread::SetSpeedScaleMessage::ThreadPrepare(std::shared_ptr<Message> *p
 
         // This resets the error, but I'm really not bothered.
         beeb_thread->m_audio_thread_data->remapper=Remapper(beeb_thread->m_audio_thread_data->sound_freq,
-                                                            (uint64_t)(SOUND_CLOCK_HZ*m_scale));
+            (uint64_t)(SOUND_CLOCK_HZ*m_scale));
     }
 
     ptr->reset();
@@ -819,9 +803,11 @@ bool BeebThread::StartReplayMessage::ThreadPrepare(std::shared_ptr<Message> *ptr
     }
 
     if(ts->timeline_state==BeebThreadTimelineState_None) {
-        // TODO - how to get the TVOutput here? Don't remember what I had
-        // planned originally...
-        ts->timeline_replay_old_state=std::make_shared<BeebState>(ts->beeb->Clone());
+        if(ts->beeb) {
+            // TODO - how to get the TVOutput here? Don't remember what I had
+            // planned originally...
+            ts->timeline_replay_old_state=std::make_shared<BeebState>(ts->beeb->Clone());
+        }
     }
 
     ts->timeline_state=BeebThreadTimelineState_Replay;
@@ -1322,6 +1308,48 @@ void BeebThread::DebugAsyncCallMessage::ThreadHandle(BeebThread *beeb_thread,
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+BeebThread::CreateTimelineVideoMessage::CreateTimelineVideoMessage(std::shared_ptr<const BeebState> state,
+                                                                   std::unique_ptr<VideoWriter> video_writer):
+    m_state(std::move(state)),
+    m_video_writer(std::move(video_writer))
+{
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool BeebThread::CreateTimelineVideoMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
+                                                           CompletionFun *completion_fun,
+                                                           BeebThread *beeb_thread,
+                                                           ThreadState *ts)
+{
+    (void)completion_fun;
+
+    size_t index;
+    if(!beeb_thread->ThreadFindTimelineEventListIndexByBeebState(ts,&index,m_state)) {
+        return false;
+    }
+
+    TimelineEventList video_event_list;
+    video_event_list.state_event=ts->timeline_event_lists[index].state_event;
+    for(size_t i=index;i<ts->timeline_event_lists.size();++i) {
+        const TimelineEventList *list=&ts->timeline_event_lists[i];
+        video_event_list.events.insert(video_event_list.events.end(),
+                                       list->events.begin(),
+                                       list->events.end());
+    }
+
+    auto job=std::make_shared<WriteVideoJob>(std::move(video_event_list),
+                                             std::move(m_video_writer));
+    BeebWindows::AddJob(job);
+
+    ptr->reset();
+    return true;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 #if BBCMICRO_DEBUGGER
 bool BeebThread::CustomMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
                                               CompletionFun *completion_fun,
@@ -1344,6 +1372,9 @@ BeebThread::TimingMessage::TimingMessage(uint64_t max_sound_units):
     m_max_sound_units(max_sound_units)
 {
 }
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
 
 bool BeebThread::TimingMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
                                               CompletionFun *completion_fun,
@@ -1406,9 +1437,9 @@ BeebThread::BeebThread(std::shared_ptr<MessageList> message_list,
                        int sound_freq,
                        size_t sound_buffer_size_samples,
                        BeebLoadedConfig default_loaded_config,
-                       std::vector<TimelineEvent> initial_timeline_events):
+                       std::vector<TimelineEventList> initial_timeline_event_lists):
     m_default_loaded_config(std::move(default_loaded_config)),
-    m_initial_timeline_events(std::move(initial_timeline_events)),
+    m_initial_timeline_event_lists(std::move(initial_timeline_event_lists)),
     m_video_output(NUM_VIDEO_UNITS),
     m_sound_output(NUM_AUDIO_UNITS),
     m_message_list(std::move(message_list))
@@ -2272,24 +2303,19 @@ void BeebThread::ThreadMain(void) {
 
         ts.beeb_thread=this;
         ts.msgs=Messages(m_message_list);
+        ts.timeline_event_lists=std::move(m_initial_timeline_event_lists);
 
-        for(TimelineEvent &event:m_initial_timeline_events) {
-            auto &&beeb_state_message=std::dynamic_pointer_cast<BeebStateMessage>(event.message);
+        m_timeline_state.num_beeb_state_events=ts.timeline_event_lists.size();
 
-            if(!!beeb_state_message) {
-                TimelineEventList list;
-                list.state_event={event.time_2MHz_cycles,std::move(beeb_state_message)};
-
-                ts.timeline_event_lists.push_back(std::move(list));
-            } else {
-                ASSERT(!ts.timeline_event_lists.empty());
-                ts.timeline_event_lists.back().events.push_back(std::move(event));
-            }
-
-            ++m_timeline_state.num_events;
+        m_timeline_state.num_events=0;
+        for(const TimelineEventList &list:ts.timeline_event_lists) {
+            m_timeline_state.num_events+=1+list.events.size();
+            m_timeline_beeb_state_events_copy.push_back(list.state_event);
         }
 
-        m_initial_timeline_events.clear();
+        if(!ts.timeline_event_lists.empty()) {
+            ts.timeline_end_event.time_2MHz_cycles=ts.timeline_event_lists.back().events.back().time_2MHz_cycles;
+        }
 
         this->ThreadCheckTimeline(&ts);
 
@@ -2883,8 +2909,11 @@ void BeebThread::ThreadNextReplayEvent(ThreadState *ts) {
 
 void BeebThread::ThreadStopReplay(ThreadState *ts) {
     ts->timeline_state=BeebThreadTimelineState_None;
-    this->ThreadReplaceBeeb(ts,ts->timeline_replay_old_state->CloneBBCMicro(),0);
-    ts->timeline_replay_old_state.reset();
+
+    if(!!ts->timeline_replay_old_state) {
+        this->ThreadReplaceBeeb(ts,ts->timeline_replay_old_state->CloneBBCMicro(),0);
+        ts->timeline_replay_old_state.reset();
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////

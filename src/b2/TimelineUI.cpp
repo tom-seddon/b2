@@ -9,19 +9,25 @@
 #include "SettingsUI.h"
 #include <IconsFontAwesome5.h>
 #include "ThumbnailsUI.h"
+#include "VideoWriter.h"
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+static const std::string RECENT_PATHS_VIDEO("video");
 
 ////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////
 
 class TimelineUI:
-public SettingsUI
+    public SettingsUI
 {
 public:
     explicit TimelineUI(BeebWindow *beeb_window,
                         SDL_Renderer *renderer,
                         const SDL_PixelFormat *pixel_format):
-    m_beeb_window(beeb_window),
-    m_thumbnails(renderer,pixel_format)
+        m_beeb_window(beeb_window),
+        m_thumbnails(renderer,pixel_format)
     {
     }
 
@@ -45,10 +51,10 @@ public:
         // https://fontawesome.com/icons?d=gallery
 
         switch(timeline_state.state) {
-            default:
-                ASSERT(false);
-                // fall through
-            case BeebThreadTimelineState_None:
+        default:
+            ASSERT(false);
+            // fall through
+        case BeebThreadTimelineState_None:
             {
                 ASSERT(timeline_state.end_2MHz_cycles>=timeline_state.begin_2MHz_cycles);
                 uint64_t duration=timeline_state.end_2MHz_cycles-timeline_state.begin_2MHz_cycles;
@@ -79,9 +85,9 @@ public:
                     ImGui::TextUnformatted(message.c_str());
                 }
             }
-                break;
+            break;
 
-            case BeebThreadTimelineState_Replay:
+        case BeebThreadTimelineState_Replay:
             {
                 // Stop
                 if(ImGui::Button("Stop")) {
@@ -91,25 +97,25 @@ public:
                 ImGui::SameLine();
                 ImGui::Button("Pause");
             }
-                break;
+            break;
 
-            case BeebThreadTimelineState_Record:
+        case BeebThreadTimelineState_Record:
             {
                 // Stop
                 if(ImGui::Button("Stop")) {
                     beeb_thread->Send(std::make_shared<BeebThread::StopRecordingMessage>());
                 }
             }
-                break;
+            break;
         }
 
         switch(timeline_state.state) {
-            default:
-                ASSERT(false);
-                // fall through
-            case BeebThreadTimelineState_None:
-                // fall through
-            case BeebThreadTimelineState_Record:
+        default:
+            ASSERT(false);
+            // fall through
+        case BeebThreadTimelineState_None:
+            // fall through
+        case BeebThreadTimelineState_Record:
             {
                 if(timeline_duration==0) {
                     ImGui::Text("No recording.");
@@ -119,10 +125,10 @@ public:
                                 Get2MHzCyclesString(timeline_duration).c_str());
                 }
             }
-                break;
+            break;
 
-            case BeebThreadTimelineState_Replay:
-                break;
+        case BeebThreadTimelineState_Replay:
+            break;
         }
 
         const ImVec2 THUMBNAIL_SIZE=m_thumbnails.GetThumbnailSize();
@@ -179,8 +185,8 @@ public:
                                     &display_row_end);
 
             std::vector<BeebThread::TimelineBeebStateEvent> beeb_state_events=
-            beeb_thread->GetTimelineBeebStateEvents((size_t)display_row_begin,
-                                                    (size_t)display_row_end);
+                beeb_thread->GetTimelineBeebStateEvents((size_t)display_row_begin,
+                (size_t)display_row_end);
 
             for(size_t i=0;i<beeb_state_events.size();++i) {
                 const BeebThread::TimelineBeebStateEvent *e=&beeb_state_events[i];
@@ -189,7 +195,7 @@ public:
                 int row=display_row_begin+(int)i;
 
                 ImGui::SetCursorPos(ImVec2(0.f,row*CELL_HEIGHT));
-//                ImGui::Text("Row %d",row);
+                //                ImGui::Text("Row %d",row);
 
                 char cycles_str[MAX_UINT64_THOUSANDS_LEN];
                 GetThousandsString(cycles_str,e->time_2MHz_cycles);
@@ -213,6 +219,14 @@ public:
 
                 if(ImGui::Button("Replay")) {
                     beeb_thread->Send(std::make_shared<BeebThread::StartReplayMessage>(state));
+                }
+
+                if(CanCreateVideoWriter()) {
+                    ImGui::SameLine();
+
+                    if(ImGui::Button("Video")) {
+                        this->DoVideo(state);
+                    }
                 }
 
                 ImGui::Text("%s (%s)",cycles_str,Get2MHzCyclesString(e->time_2MHz_cycles).c_str());
@@ -241,6 +255,27 @@ private:
     BeebWindow *m_beeb_window=nullptr;
     ThumbnailsUI m_thumbnails;
     bool m_follow=true;
+
+    void DoVideo(const std::shared_ptr<const BeebState> &state) {
+        std::unique_ptr<VideoWriter> video_writer=CreateVideoWriter(m_beeb_window->GetMessageList());
+
+        SaveFileDialog fd(RECENT_PATHS_VIDEO);
+        video_writer->AddFileDialogFilters(&fd);
+        fd.AddAllFilesFilter();
+
+        std::string path;
+        if(fd.Open(&path)) {
+            fd.AddLastPathToRecentPaths();
+
+            video_writer->SetFileType(fd.GetFilterIndex());
+            video_writer->SetFileName(path);
+
+            auto message=std::make_unique<BeebThread::CreateTimelineVideoMessage>(state,
+                                                                                  std::move(video_writer));
+            m_beeb_window->GetBeebThread()->Send(std::move(message));
+
+        }
+    }
 };
 
 ////////////////////////////////////////////////////////////////////////////

@@ -261,7 +261,7 @@ BeebWindow::BeebWindow(BeebWindowInitArguments init_arguments):
                                                init_arguments.sound_spec.freq,
                                                init_arguments.sound_spec.samples,
                                                m_init_arguments.default_config,
-                                               std::vector<BeebThread::TimelineEvent>());
+                                               std::vector<BeebThread::TimelineEventList>());
 
     if(init_arguments.use_settings) {
         m_settings=init_arguments.settings;
@@ -2117,17 +2117,6 @@ void BeebWindow::BeebKeymapWillBeDeleted(BeebKeymap *keymap) {
     if(m_keymap==keymap) {
         m_keymap=&DEFAULT_KEYMAP;
     }
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-SDL_Texture *BeebWindow::GetTextureForRenderer(SDL_Renderer *renderer) const {
-    if(renderer!=m_renderer) {
-        return nullptr;
-    }
-
-    return m_tv_texture;
 }
 
 //////////////////////////////////////////////////////////////////////////

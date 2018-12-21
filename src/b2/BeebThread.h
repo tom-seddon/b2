@@ -21,8 +21,8 @@
 #include <beeb/BBCMicro.h>
 #include <atomic>
 #include "BeebConfig.h"
-#include "BeebWindow.h"
 #include "MessageQueue.h"
+#include "BeebWindow.h"
 
 #include <shared/enum_decl.h>
 #include "BeebThread.inl"
@@ -85,7 +85,6 @@ struct TraceConditions {
 // (Message doesn't derived from enable_shared_from_this.)
 
 class BeebThread {
-    struct TimelineEventList;
     struct ThreadState;
 public:
     class Message {
@@ -151,6 +150,27 @@ public:
     struct TimelineEvent {
         uint64_t time_2MHz_cycles;
         std::shared_ptr<Message> message;
+    };
+
+    class BeebStateMessage;
+
+    struct TimelineBeebStateEvent {
+        uint64_t time_2MHz_cycles;
+        std::shared_ptr<BeebStateMessage> message;
+    };
+
+    // Holds a starting state event, and a list of subsequent non-state events.
+    struct TimelineEventList {
+        TimelineBeebStateEvent state_event;
+        std::vector<TimelineEvent> events;
+
+        TimelineEventList()=default;
+
+        // Moving is fine. Copying isn't!
+        TimelineEventList(const TimelineEventList &)=delete;
+        TimelineEventList &operator=(const TimelineEventList &)=delete;
+        TimelineEventList(TimelineEventList &&)=default;
+        TimelineEventList &operator=(TimelineEventList &&)=default;
     };
 
     class StopMessage:
@@ -331,11 +351,6 @@ public:
     private:
         std::shared_ptr<const BeebState> m_state;
         const bool m_user_initiated;
-    };
-
-    struct TimelineBeebStateEvent {
-        uint64_t time_2MHz_cycles;
-        std::shared_ptr<BeebStateMessage> message;
     };
 
     // Load a random state from the saved states list.
@@ -671,6 +686,23 @@ public:
     };
 #endif
 
+    class CreateTimelineVideoMessage:
+        public Message
+    {
+    public:
+        CreateTimelineVideoMessage(std::shared_ptr<const BeebState> state,
+                                   std::unique_ptr<VideoWriter> video_writer);
+
+        bool ThreadPrepare(std::shared_ptr<Message> *ptr,
+                           CompletionFun *completion_fun,
+                           BeebThread *beeb_thread,
+                           ThreadState *ts) override;
+    protected:
+    private:
+        std::shared_ptr<const BeebState> m_state;
+        std::unique_ptr<VideoWriter> m_video_writer;
+    };
+
     // Somewhat open-ended extension mechanism.
     //
     // This does the bare minimum needed for the HTTP stuff to hang
@@ -730,7 +762,7 @@ public:
                         int sound_freq,
                         size_t sound_buffer_size_samples,
                         BeebLoadedConfig default_loaded_config,
-                        std::vector<TimelineEvent> initial_timeline_events);
+                        std::vector<TimelineEventList> initial_timeline_event_lists);
     ~BeebThread();
 
     // Start/stop the thread.
@@ -873,7 +905,7 @@ private:
     // Initialisation-time stuff. Controlled by m_mutex, but it's not terribly
     // important as the thread just moves this stuff on initialisation.
     BeebLoadedConfig m_default_loaded_config;
-    std::vector<TimelineEvent> m_initial_timeline_events;
+    std::vector<TimelineEventList> m_initial_timeline_event_lists;
 
     // Safe provided they are accessed through their functions.
     MessageQueue<SentMessage> m_mq;
