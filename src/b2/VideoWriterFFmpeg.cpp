@@ -616,6 +616,8 @@ bool InitFFmpeg(Messages *messages) {
 
     LOGF(FFMPEG,"Audio format: %dHz\n",g_audio_spec.freq);
 
+    LOGF(FFMPEG,"Video output formats:\n");
+
     for(int size_scale=1;size_scale<=2;++size_scale) {
         VideoWriterFFmpegFormat f;
 
@@ -628,11 +630,13 @@ bool InitFFmpeg(Messages *messages) {
         f.vwf.description=strprintf("%dx%d %s (%s %.1fMb/sec; %s %.1fKb/sec)",
                                     TV_TEXTURE_WIDTH*size_scale,
                                     TV_TEXTURE_HEIGHT*size_scale,
-                                    output_format->long_name,
+                                    output_format->name,
                                     g_vcodec->name,
                                     f.vbitrate/1e6,
                                     g_acodec->name,
-                                    f.abitrate/1e6);
+                                    f.abitrate/1e3);
+
+        LOGF(FFMPEG,"    %zu. %s\n",g_formats.size()+1,f.vwf.description.c_str());
 
         g_formats.push_back(std::move(f));
     }

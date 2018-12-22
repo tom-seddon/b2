@@ -95,6 +95,10 @@ size_t GetNumVideoWriterFormats() {
 
     return GetNumVideoWriterMFFormats();
 
+#elif HAVE_FFMPEG
+
+    return GetNumVideoWriterFFmpegFormats();
+
 #else
 
     return 0;
@@ -111,6 +115,10 @@ const VideoWriterFormat *GetVideoWriterFormatByIndex(size_t index) {
 #if SYSTEM_WINDOWS
 
     return GetVideoWriterMFFormatByIndex(index);
+
+#elif HAVE_FFMPEG
+
+    return GetVideoWriterFFmpegFormatByIndex(index);
 
 #else
 
