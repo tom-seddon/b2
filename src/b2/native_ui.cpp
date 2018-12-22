@@ -12,6 +12,8 @@
 
 #if SYSTEM_OSX
 #include "native_ui_osx.h"
+#elif SYSTEM_WINDOWS
+#include "native_ui_windows.h"
 #elif SYSTEM_LINUX
 #include <gtk/gtk.h>
 #endif
@@ -127,6 +129,7 @@ void SetRecentPathsByTag(std::string tag,RecentPaths recents) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#if USE_NOC
 static const char *GetCStr(const std::string &str) {
     if(str.empty()) {
         return nullptr;
@@ -134,6 +137,7 @@ static const char *GetCStr(const std::string &str) {
         return str.c_str();
     }
 }
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -260,6 +264,7 @@ FileDialog::FileDialog(std::string tag):
 //////////////////////////////////////////////////////////////////////////
 
 void FileDialog::AddFilter(std::string title,std::vector<std::string> patterns) {
+    ASSERT(!patterns.empty());
     for(const std::string &pattern:patterns) {
         ASSERT(!pattern.empty());
         ASSERT(pattern[0]=='.');
@@ -380,13 +385,18 @@ std::string OpenFileDialog::HandleOpen() {
         LOG_EXTERN(OUTPUT);
         LOGI(OUTPUT);
         LOGF(OUTPUT,"Last path: ``%s''\n",m_last_path.c_str());
-//        LOGF(OUTPUT,"Default folder: ``%s''\n",default_folder.c_str());
-//        LOGF(OUTPUT,"Default name: ``%s''\n",default_name.c_str());
+        //        LOGF(OUTPUT,"Default folder: ``%s''\n",default_folder.c_str());
+        //        LOGF(OUTPUT,"Default name: ``%s''\n",default_name.c_str());
     }
 
 #if SYSTEM_OSX
 
     std::string r=OpenFileDialogOSX(GetOSXFileTypes(m_filters),m_last_path);
+    return r;
+
+#elif SYSTEM_WINDOWS
+
+    std::string r=OpenFileDialogWindows(m_filters,m_last_path);
     return r;
 
 #else
@@ -416,6 +426,11 @@ std::string SaveFileDialog::HandleOpen() {
     std::string r=SaveFileDialogOSX(GetOSXFileTypes(m_filters),m_last_path);
     return r;
 
+#elif SYSTEM_WINDOWS
+
+    std::string r=SaveFileDialogWindows(m_filters,m_last_path);
+    return r;
+
 #else
 
     return DoNOC(NOC_FILE_DIALOG_SAVE|NOC_FILE_DIALOG_OVERWRITE_CONFIRMATION,
@@ -442,6 +457,11 @@ std::string FolderDialog::HandleOpen() {
 #if SYSTEM_OSX
 
     std::string r=SelectFolderDialogOSX(m_last_path);
+    return r;
+
+#elif SYSTEM_WINDOWS
+
+    std::string r=SelectFolderDialogWindows(m_last_path);
     return r;
 
 #else

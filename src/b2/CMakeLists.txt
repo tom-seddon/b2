@@ -202,9 +202,12 @@ if(OSX)
   target_sources(b2 PRIVATE
     native_ui_osx.mm native_ui_osx.h
     load_save.mm)
-else()
+elseif(WIN32)
   target_sources(b2 PRIVATE
-    native_ui_noc.c)
+    native_ui_windows.cpp native_ui_windows.h)
+else()
+  target_sources(b2 PRIVATE native_ui_noc.c)
+  target_link_libraries(b2 PRIVATE noc_lib)
 endif()
 
 ##########################################################################
@@ -265,7 +268,6 @@ target_link_libraries(b2 PRIVATE
   remotery_lib
   imgui_lib
   imgui_memory_editor_lib
-  noc_lib
   rapidjson_lib
   IconFontCppHeaders_lib
   )

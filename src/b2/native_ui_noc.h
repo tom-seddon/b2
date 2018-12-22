@@ -18,8 +18,8 @@
 //////////////////////////////////////////////////////////////////////////
 
 #if SYSTEM_WINDOWS
-#define USE_NOC 1
-#define NOC_FILE_DIALOG_WIN32
+#define USE_NOC 0
+//#define NOC_FILE_DIALOG_WIN32
 #elif SYSTEM_OSX
 #define USE_NOC 0
 //#define NOC_FILE_DIALOG_OSX

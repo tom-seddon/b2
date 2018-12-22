@@ -1,4 +1,5 @@
 #include <shared/system.h>
+#include <shared/path.h>
 #include "TimelineUI.h"
 #include "dear_imgui.h"
 #include "misc.h"
@@ -242,6 +243,10 @@ public:
                                 std::string path;
                                 if(fd.Open(&path)) {
                                     fd.AddLastPathToRecentPaths();
+
+                                    if(PathGetExtension(path).empty()) {
+                                        path+=format->extension;
+                                    }
 
                                     std::unique_ptr<VideoWriter> video_writer=CreateVideoWriter(m_beeb_window->GetMessageList(),
                                                                                                 std::move(path),
