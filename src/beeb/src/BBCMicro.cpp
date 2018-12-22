@@ -337,7 +337,7 @@ bool BBCMicro::CanClone(uint32_t *non_cloneable_drives) const {
     for(int i=0;i<NUM_DRIVES;++i) {
         if(!!m_disc_images[i]) {
             if(!m_disc_images[i]->CanClone()) {
-                drives|=1<<i;
+                drives|=1u<<i;
                 can_clone=false;
             }
         }
@@ -1037,7 +1037,8 @@ void BBCMicro::SetTeletextDebug(bool teletext_debug) {
 uint8_t BBCMicro::ReadAsyncCallThunk(void *m_,M6502Word a) {
     auto m=(BBCMicro *)m_;
 
-    size_t offset=a.w-ASYNC_CALL_THUNK_ADDR.w;
+    ASSERT(a.w>=ASYNC_CALL_THUNK_ADDR.w);
+    size_t offset=(size_t)(a.w-ASYNC_CALL_THUNK_ADDR.w);
     ASSERT(offset<sizeof m->m_state.async_call_thunk_buf);
 
     LOGF(OUTPUT,"%s: type=%u a=$%04x v=$%02x cycles=%" PRIu64 "\n",__func__,m->m_state.cpu.read,a.w,m->m_state.async_call_thunk_buf[offset],m->m_state.num_2MHz_cycles);
@@ -1290,7 +1291,7 @@ void BBCMicro::HandleCPUDataBusWithHacks(BBCMicro *m) {
                 *p++=0x68;//pla
                 *p++=0x40;//rti
 
-                ASSERT(p-m->m_state.async_call_thunk_buf<=sizeof m->m_state.async_call_thunk_buf);
+                ASSERT((size_t)(p-m->m_state.async_call_thunk_buf)<=sizeof m->m_state.async_call_thunk_buf);
             }
 
             m->FinishAsyncCall(true);

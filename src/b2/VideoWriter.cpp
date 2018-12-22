@@ -10,9 +10,9 @@
 VideoWriter::VideoWriter(std::shared_ptr<MessageList> message_list,
                          std::string file_name,
                          size_t format_index):
-    m_msg(message_list),
+    m_format_index(format_index),
     m_file_name(std::move(file_name)),
-    m_format_index(format_index)
+    m_msg(message_list)
 {
 }
 
@@ -74,7 +74,9 @@ std::unique_ptr<VideoWriter> CreateVideoWriter(std::shared_ptr<MessageList> mess
 
 #elif HAVE_FFMPEG
 
-    return CreateVideoWriterFFmpeg(message_list);
+    return CreateVideoWriterFFmpeg(std::move(message_list),
+                                   std::move(file_name),
+                                   format_index);
 
 #else
 

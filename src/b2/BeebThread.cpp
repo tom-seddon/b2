@@ -2333,10 +2333,12 @@ void BeebThread::ThreadMain(void) {
     size_t total_num_audio_units_produced=0;
 
     int handle_messages_reason;
+    (void)handle_messages_reason;
     for(;;) {
         handle_messages_reason=-1;
     handle_messages:
         const char *what;
+        (void)what;
         if(paused||
             (m_is_speed_limited.load(std::memory_order_acquire)&&
              ts.next_stop_2MHz_cycles<=*ts.num_executed_2MHz_cycles))

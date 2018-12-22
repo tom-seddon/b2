@@ -5,7 +5,8 @@ The build process is somewhat similar on both platforms.
 I do some of the development on OS X, so the OS X version should work
 well.
 
-The Linux version is most politely described as "experimental".
+The Linux version is most politely described as "experimental". I've
+only tested it on Ubuntu, on a machine without working sound output.
 
 Prerequisites for both:
 
@@ -26,9 +27,15 @@ Optional Linux dependencies needed for video writing: (the project
 will build without these, but video writing won't work)
 
 - `libx264-dev` apt package
-- `FFmpeg` ver 57 or better (the Ubuntu package is ver 56. I built it
-  from [the FFmpeg github repo](https://github.com/FFmpeg/FFmpeg) with
+- `FFmpeg` libs: libavcodec 58+, libavformat 58+, libavutil 56+,
+  libswresample 3+, libswscale 5+. Not sure about the version
+  numbering here, but this seems to correspond to FFmpeg 4.1. (Watch
+  out for older package manager versions of FFmpeg - but it's easy to
+  build from
+  [the FFmpeg github repo](https://github.com/FFmpeg/FFmpeg). I used
   configure options `--enable-libx264 --enable-gpl --enable-shared`)
+
+
 
 Initial setup steps:
 

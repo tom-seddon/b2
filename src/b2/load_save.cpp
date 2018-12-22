@@ -511,7 +511,7 @@ bool GetFileDetails(size_t *size,bool *can_write,const char *path) {
         goto done;
     }
 
-    if(len>SIZE_MAX) {
+    if((unsigned long)len>SIZE_MAX) {
         *size=SIZE_MAX;
     } else {
         *size=(size_t)len;
@@ -666,7 +666,7 @@ static bool FindFloatMember(float *value,rapidjson::Value *object,const char *ke
 
 template<class T>
 static void SaveBitIndexedFlags(JSONWriter<StringStream> *writer,T flags,const char *(*get_name_fn)(int)) {
-    for(int i=0;i<sizeof(T)*CHAR_BIT;++i) {
+    for(int i=0;i<(int)(sizeof(T)*CHAR_BIT);++i) {
         const char *name=(*get_name_fn)(i);
         if(name[0]=='?') {
             continue;

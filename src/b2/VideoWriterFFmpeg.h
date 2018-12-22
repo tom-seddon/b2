@@ -8,6 +8,7 @@
 class VideoWriter;
 class MessageList;
 class Messages;
+struct VideoWriterFormat;
 
 #include <memory>
 
@@ -16,12 +17,20 @@ class Messages;
 
 bool CanCreateVideoWriterFFmpeg();
 
-std::unique_ptr<VideoWriter> CreateVideoWriterFFmpeg(std::shared_ptr<MessageList> message_list);
+std::unique_ptr<VideoWriter> CreateVideoWriterFFmpeg(std::shared_ptr<MessageList> message_list,
+                                                     std::string file_name,
+                                                     size_t format_index);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 bool InitFFmpeg(Messages *messages);
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+size_t GetNumVideoWriterFFmpegFormats();
+const VideoWriterFormat *GetVideoWriterFFmpegFormatByIndex(size_t index);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

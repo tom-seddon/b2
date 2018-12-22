@@ -80,7 +80,7 @@ public:
                 if(!timeline_state.can_record) {
                     std::string message="Recording disabled due to non-cloneable drives:";
                     for(int i=0;i<NUM_DRIVES;++i) {
-                        if(timeline_state.non_cloneable_drives&1<<i) {
+                        if(timeline_state.non_cloneable_drives&1u<<i) {
                             message+=strprintf(" %d",i);
                         }
                     }
