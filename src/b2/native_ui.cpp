@@ -8,14 +8,12 @@
 #include <shared/system_specific.h>
 #include <shared/log.h>
 
-#include "native_ui_noc.h"
-
 #if SYSTEM_OSX
 #include "native_ui_osx.h"
 #elif SYSTEM_WINDOWS
 #include "native_ui_windows.h"
 #elif SYSTEM_LINUX
-#include <gtk/gtk.h>
+#include "native_ui_gtk.h"
 #endif
 
 //////////////////////////////////////////////////////////////////////////
@@ -69,28 +67,9 @@ void FailureMessageBox(const std::string &title,const std::shared_ptr<MessageLis
 
     MessageBox(nullptr,text.c_str(),title.c_str(),MB_ICONERROR);
 
-#elif SYSTEM_OSX
+#elif SYSTEM_OSX||SYSTEM_LINUX
 
     MessageBox(title,text);
-
-#elif SYSTEM_LINUX
-
-    // Doesn't seem to be any way to apply a title with GTK.
-    (void)title;
-
-    gtk_init_check(nullptr,nullptr);
-
-    GtkWidget *dialog=gtk_message_dialog_new(nullptr,
-                                             GTK_DIALOG_MODAL,
-                                             GTK_MESSAGE_ERROR,
-                                             GTK_BUTTONS_OK,
-                                             "%s",
-                                             title.c_str());
-    gtk_message_dialog_format_secondary_text(GTK_MESSAGE_DIALOG(dialog),
-                                             "%s",
-                                             text.c_str());
-    gtk_dialog_run(GTK_DIALOG(dialog));
-    gtk_widget_destroy(dialog);
 
 #else
 
@@ -125,19 +104,6 @@ RecentPaths *GetRecentPathsByTag(const std::string &tag) {
 void SetRecentPathsByTag(std::string tag,RecentPaths recents) {
     g_recent_paths_by_tag[std::move(tag)]=std::move(recents);
 }
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-#if USE_NOC
-static const char *GetCStr(const std::string &str) {
-    if(str.empty()) {
-        return nullptr;
-    } else {
-        return str.c_str();
-    }
-}
-#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -282,78 +248,10 @@ void FileDialog::AddAllFilesFilter() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-//int FileDialog::GetFilterIndex() const {
-//    return m_filter_index;
-//}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-//const char *FileDialog::HandleOpen() {
-//    std::string default_name=PathGetName(m_last_path);
-//    std::string default_folder=PathGetFolder(m_last_path);
-//
-//    LOGF(OUTPUT,"%s: ",__func__);
-//    {
-//        LOG_EXTERN(OUTPUT);
-//        LOGI(OUTPUT);
-//        LOGF(OUTPUT,"Last path: ``%s''\n",m_last_path.c_str());
-//        LOGF(OUTPUT,"Default folder: ``%s''\n",default_folder.c_str());
-//        LOGF(OUTPUT,"Default name: ``%s''\n",default_name.c_str());
-//    }
-//
-//
-//
-//    const char *r=noc_file_dialog_open(m_noc_flags,m_filters.c_str(),
-//                                       GetCStr(default_folder),
-//                                       GetCStr(default_name));
-//
-//    m_filter_index=noc_file_dialog_get_filter_index();
-//
-//    return r;
-//}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 OpenFileDialog::OpenFileDialog(std::string tag):
     FileDialog(std::move(tag))
 {
 }
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-#if USE_NOC
-static std::string DoNOC(int noc_flags,
-                         const std::vector<FileDialog::Filter> &filters,
-                         const std::string &last_path)
-{
-    std::string noc_filters;
-    for(const FileDialog::Filter &filter:filters) {
-        noc_filters.append(filter.title);
-        noc_filters.push_back(0);
-        for(size_t i=0;i<filter.extensions.size();++i) {
-            if(i>0) {
-                noc_filters.push_back(';');
-            }
-            noc_filters.append("*");
-            noc_filters.append(filter.extensions[i]);
-        }
-        noc_filters.push_back(0);
-    }
-
-    const char *r=noc_file_dialog_open(noc_flags,
-                                       noc_filters.empty()?nullptr:noc_filters.c_str(),
-                                       GetCStr(PathGetFolder(last_path)),
-                                       GetCStr(PathGetName(last_path)));
-    if(r) {
-        return r;
-    } else {
-        return "";
-    }
-}
-#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -401,9 +299,8 @@ std::string OpenFileDialog::HandleOpen() {
 
 #else
 
-    return DoNOC(NOC_FILE_DIALOG_OPEN,
-                 m_filters,
-                 m_last_path);
+    std::string r=OpenFileDialogGTK(m_filters,m_last_path);
+    return r;
 
 #endif
 }
@@ -412,7 +309,7 @@ std::string OpenFileDialog::HandleOpen() {
 //////////////////////////////////////////////////////////////////////////
 
 SaveFileDialog::SaveFileDialog(std::string tag):
-    FileDialog(std::move(tag))//,NOC_FILE_DIALOG_SAVE|NOC_FILE_DIALOG_OVERWRITE_CONFIRMATION)
+    FileDialog(std::move(tag))
 {
 }
 
@@ -433,9 +330,8 @@ std::string SaveFileDialog::HandleOpen() {
 
 #else
 
-    return DoNOC(NOC_FILE_DIALOG_SAVE|NOC_FILE_DIALOG_OVERWRITE_CONFIRMATION,
-                 m_filters,
-                 m_last_path);
+    std::string r=SaveFileDialogGTK(m_filters,m_last_path);
+    return r;
 
 #endif
 
@@ -466,7 +362,8 @@ std::string FolderDialog::HandleOpen() {
 
 #else
 
-    return DoNOC(NOC_FILE_DIALOG_DIR,{},m_last_path);
+    std::string r=SelectFolderDialogGTK(m_last_path);
+    return r;
 
 #endif
 }

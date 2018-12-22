@@ -162,6 +162,14 @@ endif()
 ##########################################################################
 ##########################################################################
 
+if(LINUX)
+  find_package(GTK2 2.0 REQUIRED gtk)
+  message(STATUS "GTK2 include folder: " ${GTK2_INCLUDE_DIRS})
+endif()
+
+##########################################################################
+##########################################################################
+
 set(LIBUVDIR ${CMAKE_CURRENT_SOURCE_DIR}/submodules/libuv)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/etc/libuv-cmake)
 

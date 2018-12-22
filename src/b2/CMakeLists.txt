@@ -20,7 +20,6 @@ add_executable(b2 MACOSX_BUNDLE
   conf.cpp conf.h
   keys.cpp keys.h keys.inl
   BeebState.cpp BeebState.h
-  native_ui_noc.h
   JobQueue.cpp JobQueue.h
   GenerateThumbnailJob.cpp GenerateThumbnailJob.h
   BeebWindow.cpp BeebWindow.h BeebWindow.inl
@@ -53,6 +52,10 @@ add_executable(b2 MACOSX_BUNDLE
   SavedStatesUI.cpp SavedStatesUI.h
   ThumbnailsUI.cpp ThumbnailsUI.h ThumbnailsUI_private.inl
   )
+
+if(OSX)
+  target_sources(b2 PRIVATE load_save.mm)
+endif()
 
 ##########################################################################
 ##########################################################################
@@ -196,18 +199,18 @@ endif()
 ##########################################################################
 ##########################################################################
 
-# NOC. Also, on OS X, other UI-related Objective C(++) stuff.
+# Native UI stuff.
 
 if(OSX)
-  target_sources(b2 PRIVATE
-    native_ui_osx.mm native_ui_osx.h
-    load_save.mm)
+  target_sources(b2 PRIVATE native_ui_osx.mm native_ui_osx.h)
 elseif(WIN32)
   target_sources(b2 PRIVATE
     native_ui_windows.cpp native_ui_windows.h)
-else()
-  target_sources(b2 PRIVATE native_ui_noc.c)
-  target_link_libraries(b2 PRIVATE noc_lib)
+elseif(LINUX)
+  target_compile_definitions(b2 PRIVATE ${GTK2_DEFINITIONS})
+  target_include_directories(b2 PRIVATE ${GTK2_INCLUDE_DIRS})
+  target_link_libraries(b2 PRIVATE ${GTK2_LIBRARIES})
+  target_sources(b2 PRIVATE native_ui_gtk.cpp native_ui_gtk.h)
 endif()
 
 ##########################################################################

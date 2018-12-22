@@ -104,21 +104,6 @@ target_compile_definitions(remotery_lib PUBLIC RMT_ENABLED=1 RMT_USE_D3D11=0 RMT
 ##########################################################################
 ##########################################################################
 
-add_library(noc_lib INTERFACE)
-target_include_directories(noc_lib INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/noc)
-if(UNIX)
-  if(NOT OSX)
-    find_package(GTK2 2.0 REQUIRED gtk)
-    message(STATUS "GTK2 include folder: " ${GTK2_INCLUDE_DIRS})
-    target_compile_definitions(noc_lib INTERFACE ${GTK2_DEFINITIONS})
-    target_include_directories(noc_lib INTERFACE ${GTK2_INCLUDE_DIRS})
-    target_link_libraries(noc_lib INTERFACE ${GTK2_LIBRARIES})
-  endif()
-endif()
-	
-##########################################################################
-##########################################################################
-
 add_library(rapidjson_lib INTERFACE)
 
 set(RAPIDJSON_INCLUDE ${CMAKE_CURRENT_SOURCE_DIR}/rapidjson/include)
