@@ -123,6 +123,13 @@ elseif(MSVC)
 
   # Remove annoying deprecation nonsense.
   add_definitions("-D_CRT_SECURE_NO_WARNINGS")
+
+  # Enable multithreaded compiles. (There's an actual msbuild flag for
+  # this, but CMake doesn't seem to support it.)
+  #
+  # https://randomascii.wordpress.com/2014/03/22/make-vc-compiles-fast-through-parallel-compilation/
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /MP")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP")
 endif()
 
 ##########################################################################

@@ -104,7 +104,7 @@ set(SDL2_INCLUDE_DIR ${CMAKE_BINARY_DIR}/submodules/SDL/include)
 # appears to be impossible to access, because all the SDL headers just
 # do ``#include "SDL_config.h"''. So they get the original header.
 #
-# (This doesn't cause much of a problem of Windows on OS X, because
+# (This doesn't cause much of a problem of Windows or OS X, because
 # the set of libraries is known and there aren't any significant
 # options. But this means a couple of things go missing from the
 # public API on Linux , because it doesn't have the
