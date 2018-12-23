@@ -3,6 +3,7 @@
 #include "VideoWriter.h"
 #include "VideoWriterMF.h"
 #include "VideoWriterFFmpeg.h"
+#include "VideoWriterAVFoundation.h"
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -72,6 +73,12 @@ std::unique_ptr<VideoWriter> CreateVideoWriter(std::shared_ptr<MessageList> mess
                                std::move(file_name),
                                format_index);
 
+//#elif SYSTEM_OSX
+//
+//    return CreateVideoWriterAVFoundation(std::move(message_list),
+//                                         std::move(file_name),
+//                                         format_index);
+//
 #elif HAVE_FFMPEG
 
     return CreateVideoWriterFFmpeg(std::move(message_list),
@@ -95,6 +102,10 @@ size_t GetNumVideoWriterFormats() {
 
     return GetNumVideoWriterMFFormats();
 
+//#elif SYSTEM_OSX
+//
+//    return GetNumVideoWriterAVFoundationFormats();
+//
 #elif HAVE_FFMPEG
 
     return GetNumVideoWriterFFmpegFormats();
@@ -116,6 +127,10 @@ const VideoWriterFormat *GetVideoWriterFormatByIndex(size_t index) {
 
     return GetVideoWriterMFFormatByIndex(index);
 
+//#elif SYSTEM_OSX
+//
+//    return GetVideoWriterAVFoundationFormatByIndex(index);
+//
 #elif HAVE_FFMPEG
 
     return GetVideoWriterFFmpegFormatByIndex(index);
