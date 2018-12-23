@@ -81,7 +81,16 @@ static void AddFilters(GtkWidget *gdialog,
     for(const OpenFileDialog::Filter &filter:filters) {
         GtkFileFilter *gfilter=gtk_file_filter_new();
 
-        gtk_file_filter_set_name(gfilter,filter.title.c_str());
+        std::string name=filter.title+" (";
+        for(size_t i=0;i<filter.extensions.size();++i) {
+            if(i>0) {
+                name+="; ";
+            }
+            name+="*"+filter.extensions[i];
+        }
+        name+=")";
+
+        gtk_file_filter_set_name(gfilter,name.c_str());
 
         for(const std::string &extension:filter.extensions) {
             gtk_file_filter_add_pattern(gfilter,("*"+extension).c_str());
