@@ -363,8 +363,7 @@ std::string MemoryDiscImage::GetDescription() const {
 
 void MemoryDiscImage::AddFileDialogFilter(FileDialog *fd) const {
     if(const char *ext=GetExtensionFromDiscGeometry(m_data->geometry)) {
-        std::string pattern=std::string("*")+ext;
-        fd->AddFilter("BBC disc image",{pattern});
+        fd->AddFilter("BBC disc image",{ext});
     }
 }
 
