@@ -55,7 +55,7 @@ Initial setup:
    goes wrong it should stop with a `CMake Error` that will hopefully
    explain things
 
-ay-to-day build steps:
+Day-to-day build steps:
 
 1. Change to build folder.
 
