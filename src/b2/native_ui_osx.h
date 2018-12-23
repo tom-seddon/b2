@@ -15,10 +15,10 @@ void MessageBox(const std::string &title,const std::string &text);
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-std::string OpenFileDialogOSX(const std::vector<std::string> &types,
+std::string OpenFileDialogOSX(const std::vector<OpenFileDialog::Filter> &filters,
                               const std::string &default_path);
 
-std::string SaveFileDialogOSX(const std::vector<std::string> &types,
+std::string SaveFileDialogOSX(const std::vector<OpenFileDialog::Filter> &filters,
                               const std::string &default_path);
 
 std::string SelectFolderDialogOSX(const std::string &default_path);

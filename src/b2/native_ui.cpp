@@ -256,27 +256,6 @@ OpenFileDialog::OpenFileDialog(std::string tag):
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-#if SYSTEM_OSX
-static std::vector<std::string> GetOSXFileTypes(const std::vector<FileDialog::Filter> &filters) {
-    std::vector<std::string> types;
-    for(const FileDialog::Filter &filter:filters) {
-        for(const std::string &extension:filter.extensions) {
-            ASSERT(extension[0]=='.');
-            types.push_back(extension.substr(1));
-        }
-    }
-
-    // Or maybe the open dialog does this for you??
-    std::sort(types.begin(),types.end());
-    types.erase(std::unique(types.begin(),types.end()),types.end());
-
-    return types;
-}
-#endif
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 std::string OpenFileDialog::HandleOpen() {
     LOGF(OUTPUT,"%s: ",__func__);
     {
@@ -289,18 +268,15 @@ std::string OpenFileDialog::HandleOpen() {
 
 #if SYSTEM_OSX
 
-    std::string r=OpenFileDialogOSX(GetOSXFileTypes(m_filters),m_last_path);
-    return r;
+    return OpenFileDialogOSX(m_filters,m_last_path);
 
 #elif SYSTEM_WINDOWS
 
-    std::string r=OpenFileDialogWindows(m_filters,m_last_path);
-    return r;
+    return OpenFileDialogWindows(m_filters,m_last_path);
 
 #else
 
-    std::string r=OpenFileDialogGTK(m_filters,m_last_path);
-    return r;
+    return OpenFileDialogGTK(m_filters,m_last_path);
 
 #endif
 }
@@ -320,18 +296,15 @@ std::string SaveFileDialog::HandleOpen() {
 
 #if SYSTEM_OSX
 
-    std::string r=SaveFileDialogOSX(GetOSXFileTypes(m_filters),m_last_path);
-    return r;
+    return SaveFileDialogOSX(m_filters,m_last_path);
 
 #elif SYSTEM_WINDOWS
 
-    std::string r=SaveFileDialogWindows(m_filters,m_last_path);
-    return r;
+    return SaveFileDialogWindows(m_filters,m_last_path);
 
 #else
 
-    std::string r=SaveFileDialogGTK(m_filters,m_last_path);
-    return r;
+    return SaveFileDialogGTK(m_filters,m_last_path);
 
 #endif
 

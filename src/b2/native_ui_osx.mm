@@ -1,7 +1,9 @@
 #include <shared/system.h>
+#include <shared/debug.h>
 #import <Foundation/Foundation.h>
 #import <AppKit/AppKit.h>
 #include <string>
+#include "native_ui.h"
 #include "native_ui_osx.h"
 #include <vector>
 
@@ -81,19 +83,24 @@ static std::string RunModal(NSSavePanel *panel) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static std::string DoFileDialogOSX(const std::vector<std::string> &types,
+static std::string DoFileDialogOSX(const std::vector<OpenFileDialog::Filter> &filters,
                                    const std::string &default_path,
                                    NSSavePanel *panel)
 {
     SetDefaultPath(panel,default_path);
 
-    if(!types.empty()) {
-        NSMutableArray<NSString *> *types_array=[NSMutableArray array];
-        for(const std::string &type:types) {
-            [types_array addObject:[NSString stringWithUTF8String:type.c_str()]];
+    if(!filters.empty()) {
+        NSMutableArray<NSString *> *types=[NSMutableArray array];
+
+        for(const OpenFileDialog::Filter &filter:filters) {
+            for(const std::string &extension:filter.extensions) {
+                ASSERT(!extension.empty());
+                ASSERT(extension[0]=='.');
+                [types addObject:[NSString stringWithUTF8String:extension.substr(1).c_str()]];
+            }
         }
 
-        [panel setAllowedFileTypes:types_array];
+        [panel setAllowedFileTypes:types];
     }
 
     return RunModal(panel);
@@ -102,12 +109,12 @@ static std::string DoFileDialogOSX(const std::vector<std::string> &types,
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-std::string OpenFileDialogOSX(const std::vector<std::string> &types,
+std::string OpenFileDialogOSX(const std::vector<OpenFileDialog::Filter> &filters,
                               const std::string &default_path)
 {
     auto pool=[[NSAutoreleasePool alloc] init];
 
-    std::string result=DoFileDialogOSX(types,default_path,[NSOpenPanel openPanel]);
+    std::string result=DoFileDialogOSX(filters,default_path,[NSOpenPanel openPanel]);
 
     [pool release];
     pool=nil;
@@ -118,12 +125,12 @@ std::string OpenFileDialogOSX(const std::vector<std::string> &types,
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-std::string SaveFileDialogOSX(const std::vector<std::string> &types,
+std::string SaveFileDialogOSX(const std::vector<OpenFileDialog::Filter> &filters,
                               const std::string &default_path)
 {
     auto pool=[[NSAutoreleasePool alloc] init];
 
-    std::string result=DoFileDialogOSX(types,default_path,[NSSavePanel savePanel]);
+    std::string result=DoFileDialogOSX(filters,default_path,[NSSavePanel savePanel]);
 
     [pool release];
     pool=nil;
