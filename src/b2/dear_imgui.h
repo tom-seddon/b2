@@ -19,7 +19,10 @@
 
 #pragma GCC diagnostic ignored "-Wsign-conversion"
 #pragma GCC diagnostic ignored "-Wunused-parameter"
+
+#if (defined __GNUC__)&&!(defined __clang__)
 #pragma GCC diagnostic ignored "-Wmisleading-indentation"
+#endif
 
 #ifdef __clang__
 #pragma GCC diagnostic ignored "-Wunknown-warning-option"

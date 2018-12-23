@@ -131,7 +131,9 @@ static int PRINTF_LIKE(3,4) wrap_vsnprintf(char *buf,size_t buf_size,const char 
 #ifdef __GNUC__
 #pragma GCC diagnostic push
 //#pragma GCC diagnostic ignored "-Wunknown-warning-option"
+#ifndef __clang__
 #pragma GCC diagnostic ignored "-Wformat-truncation"
+#endif
 #endif
 
 static void
