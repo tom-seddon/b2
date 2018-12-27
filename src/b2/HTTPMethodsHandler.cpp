@@ -271,18 +271,35 @@ private:
 
     void HandleResetRequest(HTTPServer *server,HTTPRequest &&request,const std::vector<std::string> &path_parts,size_t command_index) {
         BeebWindow *beeb_window;
+        std::string config_name;
         if(!this->ParseArgsOrSendResponse(server,request,path_parts,command_index,
                                           "window",nullptr,&beeb_window,
+                                          "std::string","config",&config_name,
                                           nullptr)) {
             return;
         }
 
-        auto message=std::make_shared<BeebThread::HardResetAndReloadConfigMessage>(BeebThreadHardResetFlag_Run);
+        if(!config_name.empty()) {
+            auto message_list=std::make_shared<MessageList>();
+            Messages messages(message_list);
+
+            BeebLoadedConfig loaded_config;
+            if(!BeebWindows::LoadConfigByName(&loaded_config,config_name,&messages)) {
+                this->SendMessagesResponse(server,request,message_list);
+                return;
+            }
+
+            auto config_message=std::make_shared<BeebThread::HardResetAndChangeConfigMessage>(BeebThreadHardResetFlag_Run,
+                                                                                              std::move(loaded_config));
+            beeb_window->GetBeebThread()->Send(std::move(config_message));
+        }
+
+        auto reset_message=std::make_shared<BeebThread::HardResetAndReloadConfigMessage>(BeebThreadHardResetFlag_Run);
 
 //        message->reload_config=true;
 //        message->run=true;
 
-        this->SendMessage(beeb_window,server,request,std::move(message));
+        this->SendMessage(beeb_window,server,request,std::move(reset_message));
     }
 
     void HandlePasteRequest(HTTPServer *server,HTTPRequest &&request,const std::vector<std::string> &path_parts,size_t command_index) {

@@ -188,10 +188,19 @@ Generally this will be one of `200 OK` (success), `400 Bad Request` or
 `404 Not Found` (invalid request), or `503 Service Unavailable` (request
 was valid but couldn't be fulfilled).
 
-### `reset/WIN` ###
+### `reset/WIN?config=CONFIG` ###
 
 Reset the BBC. This is equivalent to a power-on reset. Memory is wiped
 but mounted discs are retained.
+
+`CONFIG`, if specified, is name of the config to used, as seen in the
+`File` > `Change config` menu. The current config is used if not
+specified.
+
+Escaping the config name can be a pain. curl can do this for you on
+the command line with the `-G` and `--data-urlencode` options, e.g.:
+
+    curl -G 'http://localhost:48075/reset/b2' --data-urlencode "config=Master 128 (MOS 3.20)"
 
 ### `paste/WIN` ###
 
