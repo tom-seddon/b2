@@ -1041,7 +1041,7 @@ uint8_t BBCMicro::ReadAsyncCallThunk(void *m_,M6502Word a) {
     size_t offset=(size_t)(a.w-ASYNC_CALL_THUNK_ADDR.w);
     ASSERT(offset<sizeof m->m_state.async_call_thunk_buf);
 
-    LOGF(OUTPUT,"%s: type=%u a=$%04x v=$%02x cycles=%" PRIu64 "\n",__func__,m->m_state.cpu.read,a.w,m->m_state.async_call_thunk_buf[offset],m->m_state.num_2MHz_cycles);
+    //LOGF(OUTPUT,"%s: type=%u a=$%04x v=$%02x cycles=%" PRIu64 "\n",__func__,m->m_state.cpu.read,a.w,m->m_state.async_call_thunk_buf[offset],m->m_state.num_2MHz_cycles);
 
     return m->m_state.async_call_thunk_buf[offset];
 }
