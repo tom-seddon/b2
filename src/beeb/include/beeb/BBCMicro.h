@@ -42,6 +42,19 @@ class DiscImage;
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+class BeebLinkHandler {
+public:
+    BeebLinkHandler()=default;
+    virtual ~BeebLinkHandler();
+
+    virtual void GotRequestPacket(uint8_t type,std::vector<uint8_t> payload)=0;
+protected:
+private:
+};
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 class BBCMicro:
     private WD1770Handler
 {
@@ -106,8 +119,7 @@ public:
              const tm *rtc_time,
              bool video_nula,
              bool ext_mem,
-             R6522::Port::ChangeFn user_port_change_fn,
-             void *user_port_change_context,
+             BeebLinkHandler *beeblink_handler,
              uint64_t initial_num_2MHz_cycles);
 protected:
     BBCMicro(const BBCMicro &src);
@@ -436,6 +448,8 @@ public:
     // fashion.
     void DebugSetAsyncCall(uint16_t address,uint8_t a,uint8_t x,uint8_t y,bool c,DebugAsyncCallFn fn,void *context);
 #endif
+
+    void SendBeebLinkResponse(uint8_t type,std::vector<uint8_t> payload);
 protected:
 private:
     //////////////////////////////////////////////////////////////////////////
@@ -479,6 +493,8 @@ private:
         bool resetting=false;
 
         R6522 system_via;
+        uint8_t old_system_via_pb;
+
         R6522 user_via;
 
         ROMSEL romsel={};
@@ -664,7 +680,9 @@ private:
     void *m_async_call_context=nullptr;
 #endif
 
-    void InitStuff(R6522::Port::ChangeFn user_port_change_fn,void *user_port_change_context);
+    BeebLinkHandler *m_beeblink_handler=nullptr;
+
+    void InitStuff();
     void SetOSPages(uint8_t dest_page,uint8_t src_page,uint8_t num_pages);
     void SetROMPages(uint8_t bank,uint8_t page,size_t src_page,size_t num_pages);
 #if BBCMICRO_TRACE
@@ -690,7 +708,6 @@ private:
 #if BBCMICRO_TRACE
     void TracePortB(SystemVIAPB pb);
 #endif
-    static void HandleSystemVIAB(R6522 *via,uint8_t value,uint8_t old_value,void *m_);
     static void WriteUnmappedMMIO(void *m_,M6502Word a,uint8_t value);
     static uint8_t ReadUnmappedMMIO(void *m_,M6502Word a);
     static uint8_t ReadROMMMIO(void *m_,M6502Word a);

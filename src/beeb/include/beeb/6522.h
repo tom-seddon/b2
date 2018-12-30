@@ -111,11 +111,6 @@ public:
     private:
         uint8_t old_c2;
         uint8_t pulse;
-    public:
-        /* Callback */
-        typedef void (*ChangeFn)(R6522 *via,uint8_t value,uint8_t old_value,void *context);
-        ChangeFn fn;
-        void *fn_context;
 
         friend class R6522;
 #if BBCMICRO_DEBUGGER
@@ -171,10 +166,6 @@ public:
     // Get current PCR value, no side-effects.
     PCR GetPCR() const;
 
-    // Annoying hack for BeebLink - set CB1=1 when the handshaking next causes
-    // CB2 to go to 1. This only happens once.
-    void ResetPostHandshakeCB1();
-
     // returns IRQ flag: true = IRQ, false = no IRQ
     uint8_t Update();
 
@@ -212,8 +203,6 @@ private:
 
     /* old value of port B, for use when counting PB6 pulses. */
     uint8_t m_old_pb=0;
-
-    bool m_reset_post_handshake_cb1=false;
 
 #if BBCMICRO_TRACE
     Trace *m_trace=nullptr;

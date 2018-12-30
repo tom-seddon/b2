@@ -1031,7 +1031,6 @@ private:
 #if HTTP_SERVER
     static void DebugAsyncCallCallback(bool called,void *context);
 #endif
-    static void HandleBeebLinkUserPortWrite(R6522 *via,uint8_t value,uint8_t old_value,void *context);
 };
 
 //////////////////////////////////////////////////////////////////////////

@@ -133,9 +133,6 @@ struct BeebThread::ThreadState {
     Message::CompletionFun async_call_completion_fun;
 #endif
 
-    std::unique_ptr<BeebLink> beeblink;
-    bool beeblink_reset_cb1=false;
-
     Log log{"BEEB  ",LOG(BTHREAD)};
     Messages msgs;
 };
@@ -415,18 +412,6 @@ void BeebThread::HardResetMessage::HardReset(BeebThread *beeb_thread,
 
     tm now=GetLocalTimeNow();
 
-    R6522::Port::ChangeFn user_port_change_fn=nullptr;
-    void *user_port_change_context=nullptr;
-    if(ts->current_config.config.beeblink) {
-        user_port_change_fn=&HandleBeebLinkUserPortWrite;
-        user_port_change_context=ts;
-        if(!ts->beeblink) {
-            ts->beeblink=std::make_unique<BeebLink>();
-        }
-    } else {
-        ts->beeblink.reset();
-    }
-
     uint64_t num_2MHz_cycles=0;
     if(ts->num_executed_2MHz_cycles) {
         num_2MHz_cycles=*ts->num_executed_2MHz_cycles;
@@ -438,8 +423,7 @@ void BeebThread::HardResetMessage::HardReset(BeebThread *beeb_thread,
                                          &now,
                                          ts->current_config.config.video_nula,
                                          ts->current_config.config.ext_mem,
-                                         user_port_change_fn,
-                                         user_port_change_context,
+                                         nullptr,//TODO
                                          num_2MHz_cycles);
 
     beeb->SetOSROM(ts->current_config.os);
@@ -3007,30 +2991,6 @@ void BeebThread::DebugAsyncCallCallback(bool called,void *context) {
     Message::CallCompletionFun(&ts->async_call_completion_fun,called,nullptr);
 }
 #endif
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-void BeebThread::HandleBeebLinkUserPortWrite(R6522 *via,uint8_t value,uint8_t old_value,void *context) {
-    auto ts=(ThreadState *)context;
-
-    ASSERT(!!ts->beeblink);
-
-    R6522::PCR pcr=via->GetPCR();
-    if(pcr.bits.cb2_mode==R6522Cx2Control_Output_Handshake) {
-        int avr_value=ts->beeblink->HandleWrite(value);
-        if(avr_value>=0) {
-            ASSERT(avr_value<256);
-            via->b.p=(uint8_t)avr_value;//write data
-            via->b.c1=0;
-            via->ResetPostHandshakeCB1();
-        } else {
-            // AVR not in server->beeb mode, or data not ready yet.
-        }
-    } else {
-        ts->beeblink->Reset();
-    }
-}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

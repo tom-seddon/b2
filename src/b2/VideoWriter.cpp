@@ -87,7 +87,7 @@ std::unique_ptr<VideoWriter> CreateVideoWriter(std::shared_ptr<MessageList> mess
 
 #else
 
-    (void)message_list;
+    (void)message_list,(void)file_name,(void)format_index;
 
     return nullptr;
 

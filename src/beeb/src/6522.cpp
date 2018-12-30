@@ -28,15 +28,7 @@ const TraceEventType R6522::IRQ_EVENT("R6522IRQEvent",sizeof(IRQEvent));
 //////////////////////////////////////////////////////////////////////////
 
 inline void R6522::UpdatePortPins(Port *port) {
-    uint8_t old_p=port->p;
-
     port->p=(port->p&~port->ddr)|(port->or_&port->ddr);
-
-    if(port->p!=old_p) {
-        if(port->fn) {
-            (*port->fn)(this,port->p,old_p,port->fn_context);
-        }
-    }
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -46,12 +38,6 @@ void R6522::Reset() {
     R6522 old=*this;
 
     *this=R6522();
-
-    this->a.fn=old.a.fn;
-    this->a.fn_context=old.a.fn_context;
-
-    this->b.fn=old.b.fn;
-    this->b.fn_context=old.b.fn_context;
 
     m_id=old.m_id;
     m_name=old.m_name;
@@ -494,30 +480,12 @@ void R6522::WriteE(void *via_,M6502Word addr,uint8_t value) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void R6522::ResetPostHandshakeCB1() {
-    m_reset_post_handshake_cb1=true;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 uint8_t R6522::Update() {
     /* CA1/CA2 */
     TickControl(&this->a,m_acr.bits.pa_latching,m_pcr.value>>0,R6522IRQMask_CA2);
 
     /* CB1/CB2 */
     TickControl(&this->b,m_acr.bits.pb_latching,m_pcr.value>>4,R6522IRQMask_CB2);
-
-    if(m_reset_post_handshake_cb1) {
-        if(m_pcr.bits.cb2_mode==R6522Cx2Control_Output_Handshake) {
-            if(this->b.c2==1&&this->b.c1==0) {
-                this->b.c1=1;
-                m_reset_post_handshake_cb1=false;
-            }
-        } else {
-            m_reset_post_handshake_cb1=false;
-        }
-    }
 
     /* Count down T1 */
     {

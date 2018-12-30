@@ -276,16 +276,16 @@ BBCMicro::BBCMicro(BBCMicroType type,
                    const tm *rtc_time,
                    bool video_nula,
                    bool ext_mem,
-                   R6522::Port::ChangeFn user_port_change_fn,
-                   void *user_port_change_context,
+                   BeebLinkHandler *beeblink_handler,
                    uint64_t initial_num_2MHz_cycles):
-    m_state(type,nvram_contents,rtc_time,initial_num_2MHz_cycles),
-    m_type(type),
-    m_disc_interface(def->create_fun()),
-    m_video_nula(video_nula),
-    m_ext_mem(ext_mem)
+m_state(type,nvram_contents,rtc_time,initial_num_2MHz_cycles),
+m_type(type),
+m_disc_interface(def->create_fun()),
+m_video_nula(video_nula),
+m_ext_mem(ext_mem),
+m_beeblink_handler(beeblink_handler)
 {
-    this->InitStuff(user_port_change_fn,user_port_change_context);
+    this->InitStuff();
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -305,7 +305,7 @@ BBCMicro::BBCMicro(const BBCMicro &src):
         this->SetDiscImage(i,std::move(disc_image));
     }
 
-    this->InitStuff(nullptr,nullptr);
+    this->InitStuff();
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -350,7 +350,7 @@ bool BBCMicro::CanClone(uint32_t *non_cloneable_drives,
         }
     }
 
-    if(m_state.user_via.b.fn) {
+    if(m_beeblink_handler) {
         can_clone=false;
     }
 
@@ -359,7 +359,7 @@ bool BBCMicro::CanClone(uint32_t *non_cloneable_drives,
     }
 
     if(non_cloneable_user_port_device) {
-        *non_cloneable_user_port_device=!!m_state.user_via.b.fn;
+        *non_cloneable_user_port_device=!!m_beeblink_handler;
     }
 
     return can_clone;
@@ -804,57 +804,6 @@ void BBCMicro::TracePortB(SystemVIAPB pb) {
     //    pb.m128_bits.rtc_address_strobe);
 }
 #endif
-
-void BBCMicro::HandleSystemVIAB(R6522 *via,uint8_t value,uint8_t old_value,void *m_) {
-    (void)via,(void)old_value;
-
-    auto m=(BBCMicro *)m_;
-
-    SystemVIAPB pb;
-    pb.value=value;
-
-    SystemVIAPB old_pb;
-    old_pb.value=old_value;
-
-    uint8_t mask=1<<pb.bits.latch_index;
-
-    m->m_state.addressable_latch.value&=~mask;
-    if(pb.bits.latch_value) {
-        m->m_state.addressable_latch.value|=mask;
-    }
-
-#if BBCMICRO_TRACE
-    if(m->m_trace) {
-        if(m->m_trace_flags&BBCMicroTraceFlag_SystemVIA) {
-            m->TracePortB(pb);
-        }
-    }
-#endif
-
-    if(pb.m128_bits.rtc_chip_select) {
-        uint8_t x=m->m_state.system_via.a.p;
-
-        if(old_pb.m128_bits.rtc_address_strobe==1&&pb.m128_bits.rtc_address_strobe==0) {
-            m->m_state.rtc.SetAddress(x);
-        }
-
-        AddressableLatch test;
-        test.value=m->m_state.old_addressable_latch.value^m->m_state.addressable_latch.value;
-        if(test.m128_bits.rtc_data_strobe) {
-            if(m->m_state.addressable_latch.m128_bits.rtc_data_strobe) {
-                // 0->1
-                if(m->m_state.addressable_latch.m128_bits.rtc_read) {
-                    m->m_state.system_via.a.p=m->m_state.rtc.Read();
-                }
-            } else {
-                // 1->0
-                if(!m->m_state.addressable_latch.m128_bits.rtc_read) {
-                    m->m_state.rtc.SetData(x);
-                }
-            }
-        }
-    }
-}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -1672,11 +1621,9 @@ bool BBCMicro::Update(VideoDataUnit *video_unit,SoundDataUnit *sound_unit) {
         // Update joysticks.
         m_state.system_via.b.p|=1<<4|1<<5;
 
-        if(!m_state.user_via.b.fn) {
-            // Nothing connected to the user port.
-            m_state.user_via.b.p=255;
-            m_state.user_via.b.c1=1;
-        }
+        // Nothing connected to the user port.
+        m_state.user_via.b.p=255;
+        m_state.user_via.b.c1=1;
 
         // Update IRQs.
         if(m_state.system_via.Update()) {
@@ -1689,6 +1636,56 @@ bool BBCMicro::Update(VideoDataUnit *video_unit,SoundDataUnit *sound_unit) {
             M6502_SetDeviceIRQ(&m_state.cpu,BBCMicroIRQDevice_UserVIA,1);
         } else {
             M6502_SetDeviceIRQ(&m_state.cpu,BBCMicroIRQDevice_UserVIA,0);
+        }
+
+        // Update slow data bus stuff.
+        if(m_state.old_system_via_pb!=m_state.system_via.b.p) {
+            SystemVIAPB pb;
+            pb.value=m_state.system_via.b.p;
+
+            SystemVIAPB old_pb;
+            old_pb.value=m_state.old_system_via_pb;
+
+            uint8_t mask=1<<pb.bits.latch_index;
+
+            m_state.addressable_latch.value&=~mask;
+            if(pb.bits.latch_value) {
+                m_state.addressable_latch.value|=mask;
+            }
+
+#if BBCMICRO_TRACE
+            if(m_trace) {
+                if(m_trace_flags&BBCMicroTraceFlag_SystemVIA) {
+                    TracePortB(pb);
+                }
+            }
+#endif
+
+            if(pb.m128_bits.rtc_chip_select) {
+                uint8_t x=m_state.system_via.a.p;
+
+                if(old_pb.m128_bits.rtc_address_strobe==1&&pb.m128_bits.rtc_address_strobe==0) {
+                    m_state.rtc.SetAddress(x);
+                }
+
+                AddressableLatch test;
+                test.value=m_state.old_addressable_latch.value^m_state.addressable_latch.value;
+                if(test.m128_bits.rtc_data_strobe) {
+                    if(m_state.addressable_latch.m128_bits.rtc_data_strobe) {
+                        // 0->1
+                        if(m_state.addressable_latch.m128_bits.rtc_read) {
+                            m_state.system_via.a.p=m_state.rtc.Read();
+                        }
+                    } else {
+                        // 1->0
+                        if(!m_state.addressable_latch.m128_bits.rtc_read) {
+                            m_state.rtc.SetData(x);
+                        }
+                    }
+                }
+            }
+
+            m_state.old_system_via_pb=m_state.system_via.b.p;
         }
 
         // Update RTC.
@@ -2678,7 +2675,7 @@ void BBCMicro::SetDebugStepType(BBCMicroStepType step_type) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void BBCMicro::InitStuff(R6522::Port::ChangeFn user_port_change_fn,void *user_port_change_context) {
+void BBCMicro::InitStuff() {
     CHECK_SIZEOF(AddressableLatch,1);
     CHECK_SIZEOF(ROMSEL,1);
     CHECK_SIZEOF(ACCCON,1);
@@ -2807,17 +2804,10 @@ void BBCMicro::InitStuff(R6522::Port::ChangeFn user_port_change_fn,void *user_po
         this->SetMMIOCycleStretch(a,1);
     }
 
-    // VIA callbacks.
-    m_state.system_via.b.fn=&HandleSystemVIAB;
-    m_state.system_via.b.fn_context=this;
-
-    if(user_port_change_fn) {
-        m_state.user_via.b.fn=user_port_change_fn;
-        m_state.user_via.b.fn_context=user_port_change_context;
-    }
-
     m_state.system_via.SetID(BBCMicroVIAID_SystemVIA,"SystemVIA");
     m_state.user_via.SetID(BBCMicroVIAID_UserVIA,"UserVIA");
+
+    m_state.old_system_via_pb=m_state.system_via.b.p;
 
     // Fill in shadow RAM stuff.
     if(m_state.ram_buffer.size()>=65536) {
