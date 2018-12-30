@@ -27,56 +27,6 @@ const TraceEventType R6522::IRQ_EVENT("R6522IRQEvent",sizeof(IRQEvent));
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-inline void R6522::DoPortHandshakingRead(Port *port,uint8_t pcr_bits,uint8_t irqmask2) {
-    /* Always clear Cx1 */
-    this->ifr.value&=~(irqmask2<<1);
-
-    switch(pcr_bits&7) {
-    case R6522Cx2Control_Input_IndIRQNegEdge:
-    case R6522Cx2Control_Input_IndIRQPosEdge:
-    case R6522Cx2Control_Output_Low:
-    case R6522Cx2Control_Output_High:
-        /* Leave Cx2 */
-        break;
-
-    case R6522Cx2Control_Input_NegEdge:
-    case R6522Cx2Control_Input_PosEdge:
-    case R6522Cx2Control_Output_Handshake:
-        /* Clear Cx2 */
-        this->ifr.value&=~irqmask2;
-        break;
-
-    case R6522Cx2Control_Output_Pulse:
-        /* Clear Cx2 and prepare for the pulse */
-        this->ifr.value&=~irqmask2;
-        port->pulse=2;
-        break;
-    }
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-inline void R6522::DoPortHandshakingWrite(Port *port,
-                                          uint8_t pcr_bits,
-                                          uint8_t irqmask2)
-{
-    switch(pcr_bits&7) {
-        case R6522Cx2Control_Output_Handshake:
-            this->ifr.value&=~irqmask2;
-            break;
-
-        case R6522Cx2Control_Output_Pulse:
-            this->ifr.value&=~irqmask2;
-            port->pulse=2;
-            break;
-
-    }
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 inline void R6522::UpdatePortPins(Port *port) {
     uint8_t old_p=port->p;
 
@@ -123,8 +73,6 @@ uint8_t R6522::Read0(void *via_,M6502Word addr) {
     auto via=(R6522 *)via_;
     (void)addr;
 
-    via->DoPortHandshakingRead(&via->b,via->m_pcr.value>>4,R6522IRQMask_CB2);
-
     uint8_t value=via->b.or_&via->b.ddr;
 
     if(via->m_acr.bits.pb_latching) {
@@ -139,6 +87,13 @@ uint8_t R6522::Read0(void *via_,M6502Word addr) {
         value|=via->m_t1_pb7;
     }
 
+    // Clear port B interrupt flags.
+    via->ifr.bits.cb1=0;
+    if((via->m_pcr.bits.cb2_mode&5)==1) {
+        // One of the independent interrupt input modes.
+        via->ifr.bits.cb2=0;
+    }
+
     return value;
 }
 
@@ -149,9 +104,26 @@ void R6522::Write0(void *via_,M6502Word addr,uint8_t value) {
 
     via->b.or_=value;
 
-    via->DoPortHandshakingWrite(&via->b,via->m_pcr.value>>4,R6522IRQMask_CB2);
-
     via->UpdatePortPins(&via->b);
+
+    // Clear port B interrupt flags.
+    via->ifr.bits.cb1=0;
+    if((via->m_pcr.bits.cb2_mode&5)==1) {
+        // One of the independent interrupt input modes.
+        via->ifr.bits.cb2=0;
+    }
+
+    // Write handshaking.
+    switch(via->m_pcr.bits.ca2_mode) {
+        case R6522Cx2Control_Output_Handshake:
+            via->b.c2=0;
+            break;
+
+        case R6522Cx2Control_Output_Pulse:
+            via->b.c2=0;
+            via->b.pulse=2;
+            break;
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -174,7 +146,24 @@ uint8_t R6522::Read1(void *via_,M6502Word addr) {
     auto via=(R6522 *)via_;
     (void)addr;
 
-    via->DoPortHandshakingRead(&via->a,via->m_pcr.value>>0,R6522IRQMask_CA2);
+    // Clear port A interrupt flags.
+    via->ifr.bits.ca1=0;
+    if((via->m_pcr.bits.ca2_mode&5)==1) {
+        // One of the independent interrupt input modes.
+        via->ifr.bits.ca2=0;
+    }
+
+    // Read handshaking.
+    switch(via->m_pcr.bits.ca2_mode) {
+        case R6522Cx2Control_Output_Handshake:
+            via->a.c2=0;
+            break;
+
+        case R6522Cx2Control_Output_Pulse:
+            via->a.c2=0;
+            via->a.pulse=2;
+            break;
+    }
 
     return R6522::ReadF(via,addr);
 }
@@ -186,8 +175,6 @@ void R6522::WriteF(void *via_,M6502Word addr,uint8_t value) {
 
     via->a.or_=value;
 
-    via->DoPortHandshakingWrite(&via->a,via->m_pcr.value>>0,R6522IRQMask_CA2);
-
     via->UpdatePortPins(&via->a);
 }
 
@@ -196,9 +183,26 @@ void R6522::Write1(void *via_,M6502Word addr,uint8_t value) {
     auto via=(R6522 *)via_;
     (void)addr;
 
-    WriteF(via,addr,value);
+    // Clear port A interrupt flags.
+    via->ifr.bits.ca1=0;
+    if((via->m_pcr.bits.ca2_mode&5)==1) {
+        // One of the independent interrupt input modes.
+        via->ifr.bits.ca2=0;
+    }
 
-    via->UpdatePortPins(&via->a);
+    // Write handshaking.
+    switch(via->m_pcr.bits.ca2_mode) {
+        case R6522Cx2Control_Output_Handshake:
+            via->a.c2=0;
+            break;
+
+        case R6522Cx2Control_Output_Pulse:
+            via->a.c2=0;
+            via->a.pulse=2;
+            break;
+    }
+
+    WriteF(via,addr,value);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -504,6 +508,17 @@ uint8_t R6522::Update() {
     /* CB1/CB2 */
     TickControl(&this->b,m_acr.bits.pb_latching,m_pcr.value>>4,R6522IRQMask_CB2);
 
+    if(m_reset_post_handshake_cb1) {
+        if(m_pcr.bits.cb2_mode==R6522Cx2Control_Output_Handshake) {
+            if(this->b.c2==1&&this->b.c1==0) {
+                this->b.c1=1;
+                m_reset_post_handshake_cb1=false;
+            }
+        } else {
+            m_reset_post_handshake_cb1=false;
+        }
+    }
+
     /* Count down T1 */
     {
         if(m_t1--<0) {
@@ -656,11 +671,6 @@ void R6522::TickControl(Port *port,
                 if(port->c1==0) {
                     // Data taken -> not data ready.
                     port->c2=1;
-
-                    if(m_reset_post_handshake_cb1) {
-                        port->c1=1;
-                        m_reset_post_handshake_cb1=false;
-                    }
                 }
                 break;
         }

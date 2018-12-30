@@ -223,8 +223,6 @@ private:
     const char *m_name=nullptr;
 
     void TickControl(Port *port,uint8_t latching,uint8_t pcr_bits,uint8_t cx2_mask);
-    void DoPortHandshakingRead(Port *port,uint8_t pcr_bits,uint8_t irqmask2);
-    void DoPortHandshakingWrite(Port *port,uint8_t pcr_bits,uint8_t irqmask2);
     void UpdatePortPins(Port *port);
 
 #if BBCMICRO_DEBUGGER
