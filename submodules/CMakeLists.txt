@@ -3,7 +3,11 @@ cmake_minimum_required(VERSION 3.5)
 ##########################################################################
 ##########################################################################
 
-# add_subdirectory(curl)
+option(BUILD_CURL_EXE "" OFF)
+option(CURL_STATICLIB "" ON)
+option(BUILD_TESTING "" OFF)
+
+add_subdirectory(curl)
 
 # # Presumably you're *supposed* to use generator expressions for this
 # # sort of thing, like $<TARGET_PROPERTY:SOURCE_DIR>. But that didn't
