@@ -55,7 +55,7 @@ double GetDoubleClickIntervalSeconds() {
 static void SetDefaultPath(NSSavePanel *panel,const std::string &default_path) {
     if(!default_path.empty()) {
         auto default_url=[NSURL fileURLWithPath:[NSString stringWithUTF8String:default_path.c_str()]];
-        [panel setDirectoryURL:default_url];
+        [panel setDirectoryURL:[default_url URLByDeletingLastPathComponent]];
         [panel setNameFieldStringValue:default_url.lastPathComponent];
     }
 }
@@ -90,17 +90,33 @@ static std::string DoFileDialogOSX(const std::vector<OpenFileDialog::Filter> &fi
     SetDefaultPath(panel,default_path);
 
     if(!filters.empty()) {
-        NSMutableArray<NSString *> *types=[NSMutableArray array];
-
+        // Special handling for ".*". The OS X dialog doesn't work quite like
+        // the Windows one.
+        bool all_files=false;
         for(const OpenFileDialog::Filter &filter:filters) {
             for(const std::string &extension:filter.extensions) {
-                ASSERT(!extension.empty());
-                ASSERT(extension[0]=='.');
-                [types addObject:[NSString stringWithUTF8String:extension.substr(1).c_str()]];
+                if(extension==".*") {
+                    all_files=true;
+                    break;
+                }
             }
         }
 
-        [panel setAllowedFileTypes:types];
+        if(all_files) {
+            // This is the default, so do nothing.
+        } else {
+            NSMutableArray<NSString *> *types=[NSMutableArray array];
+
+            for(const OpenFileDialog::Filter &filter:filters) {
+                for(const std::string &extension:filter.extensions) {
+                    ASSERT(!extension.empty());
+                    ASSERT(extension[0]=='.');
+                    [types addObject:[NSString stringWithUTF8String:extension.substr(1).c_str()]];
+                }
+            }
+
+            [panel setAllowedFileTypes:types];
+        }
     }
 
     return RunModal(panel);
