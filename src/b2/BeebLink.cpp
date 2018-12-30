@@ -1,11 +1,11 @@
 #include <shared/system.h>
 #include <shared/debug.h>
 #include <shared/log.h>
-#include "beeblink.h"
+#include "BeebLink.h"
 #include <curl/curl.h>
 
 #include <shared/enum_def.h>
-#include "beeblink.inl"
+#include "BeebLink.inl"
 #include <shared/enum_end.h>
 
 //////////////////////////////////////////////////////////////////////////

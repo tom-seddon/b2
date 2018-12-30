@@ -15,7 +15,7 @@
 //////////////////////////////////////////////////////////////////////////
 
 #include <shared/enum_decl.h>
-#include "beeblink.inl"
+#include "BeebLink.inl"
 #include <shared/enum_end.h>
 
 class BeebLink {
