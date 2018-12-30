@@ -952,6 +952,7 @@ static const char GLOBALS[]="globals";
 static const char VSYNC[]="vsync";
 static const char EXT_MEM[]="ext_mem";
 static const char UNLIMITED[]="unlimited";
+static const char BEEBLINK[]="beeblink";
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -1321,6 +1322,7 @@ static bool LoadConfigs(rapidjson::Value *configs_json,Messages *msg) {
         }
 
         FindBoolMember(&config.ext_mem,config_json,EXT_MEM,msg);
+        FindBoolMember(&config.beeblink,config_json,BEEBLINK,msg);
 
         BeebWindows::AddConfig(std::move(config));
     }
@@ -1630,6 +1632,9 @@ static void SaveConfigs(JSONWriter<StringStream> *writer) {
 
             writer->Key(EXT_MEM);
             writer->Bool(config->ext_mem);
+
+            writer->Key(BEEBLINK);
+            writer->Bool(config->beeblink);
 
             return true;
         });

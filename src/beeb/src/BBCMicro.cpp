@@ -276,6 +276,8 @@ BBCMicro::BBCMicro(BBCMicroType type,
                    const tm *rtc_time,
                    bool video_nula,
                    bool ext_mem,
+                   R6522::Port::ChangeFn user_port_change_fn,
+                   void *user_port_change_context,
                    uint64_t initial_num_2MHz_cycles):
     m_state(type,nvram_contents,rtc_time,initial_num_2MHz_cycles),
     m_type(type),
@@ -283,7 +285,7 @@ BBCMicro::BBCMicro(BBCMicroType type,
     m_video_nula(video_nula),
     m_ext_mem(ext_mem)
 {
-    this->InitStuff();
+    this->InitStuff(user_port_change_fn,user_port_change_context);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -296,12 +298,14 @@ BBCMicro::BBCMicro(const BBCMicro &src):
     m_video_nula(src.m_video_nula),
     m_ext_mem(src.m_ext_mem)
 {
+    ASSERT(src.CanClone(nullptr,nullptr));
+
     for(int i=0;i<NUM_DRIVES;++i) {
         std::shared_ptr<DiscImage> disc_image=DiscImage::Clone(src.GetDiscImage(i));
         this->SetDiscImage(i,std::move(disc_image));
     }
 
-    this->InitStuff();
+    this->InitStuff(nullptr,nullptr);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -330,7 +334,9 @@ BBCMicro::~BBCMicro() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool BBCMicro::CanClone(uint32_t *non_cloneable_drives) const {
+bool BBCMicro::CanClone(uint32_t *non_cloneable_drives,
+                        bool *non_cloneable_user_port_device) const
+{
     bool can_clone=true;
     uint32_t drives=0;
 
@@ -339,12 +345,21 @@ bool BBCMicro::CanClone(uint32_t *non_cloneable_drives) const {
             if(!m_disc_images[i]->CanClone()) {
                 drives|=1u<<i;
                 can_clone=false;
+                break;
             }
         }
     }
 
+    if(m_state.user_via.b.fn) {
+        can_clone=false;
+    }
+
     if(non_cloneable_drives) {
         *non_cloneable_drives=drives;
+    }
+
+    if(non_cloneable_user_port_device) {
+        *non_cloneable_user_port_device=!!m_state.user_via.b.fn;
     }
 
     return can_clone;
@@ -354,7 +369,7 @@ bool BBCMicro::CanClone(uint32_t *non_cloneable_drives) const {
 //////////////////////////////////////////////////////////////////////////
 
 std::unique_ptr<BBCMicro> BBCMicro::Clone() const {
-    if(!this->CanClone(nullptr)) {
+    if(!this->CanClone(nullptr,nullptr)) {
         return nullptr;
     }
 
@@ -1657,9 +1672,11 @@ bool BBCMicro::Update(VideoDataUnit *video_unit,SoundDataUnit *sound_unit) {
         // Update joysticks.
         m_state.system_via.b.p|=1<<4|1<<5;
 
-        // Nothing connected to the user port.
-        m_state.user_via.b.p=255;
-        m_state.user_via.b.c1=1;
+        if(!m_state.user_via.b.fn) {
+            // Nothing connected to the user port.
+            m_state.user_via.b.p=255;
+            m_state.user_via.b.c1=1;
+        }
 
         // Update IRQs.
         if(m_state.system_via.Update()) {
@@ -2661,7 +2678,7 @@ void BBCMicro::SetDebugStepType(BBCMicroStepType step_type) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void BBCMicro::InitStuff() {
+void BBCMicro::InitStuff(R6522::Port::ChangeFn user_port_change_fn,void *user_port_change_context) {
     CHECK_SIZEOF(AddressableLatch,1);
     CHECK_SIZEOF(ROMSEL,1);
     CHECK_SIZEOF(ACCCON,1);
@@ -2793,6 +2810,11 @@ void BBCMicro::InitStuff() {
     // VIA callbacks.
     m_state.system_via.b.fn=&HandleSystemVIAB;
     m_state.system_via.b.fn_context=this;
+
+    if(user_port_change_fn) {
+        m_state.user_via.b.fn=user_port_change_fn;
+        m_state.user_via.b.fn_context=user_port_change_context;
+    }
 
     m_state.system_via.SetID(BBCMicroVIAID_SystemVIA,"SystemVIA");
     m_state.user_via.SetID(BBCMicroVIAID_UserVIA,"UserVIA");

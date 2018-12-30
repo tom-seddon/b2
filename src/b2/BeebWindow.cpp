@@ -1972,10 +1972,7 @@ bool BeebWindow::InitInternal() {
         m_beeb_thread->Send(std::make_shared<BeebThread::LoadStateMessage>(m_init_arguments.initial_state,
                                                                            false));
     } else {
-        std::unique_ptr<BBCMicro> init_beeb=m_init_arguments.default_config.CreateBBCMicro(0);
-        auto init_state=std::make_shared<BeebState>(std::move(init_beeb));
-        m_beeb_thread->Send(std::make_shared<BeebThread::LoadStateMessage>(init_state,
-                                                                           false));
+        m_beeb_thread->Send(std::make_shared<BeebThread::HardResetAndChangeConfigMessage>(0,m_init_arguments.default_config));
     }
 
     if(!m_init_arguments.initially_paused) {

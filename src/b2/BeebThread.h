@@ -39,6 +39,7 @@ class BeebState;
 class MessageList;
 //class BeebEvent;
 class VideoWriter;
+class R6522;
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -746,6 +747,7 @@ public:
         size_t num_beeb_state_events=0;
         bool can_record=true;
         uint32_t non_cloneable_drives=0;
+        bool non_cloneable_beeblink=false;
     };
 
     struct AudioCallbackRecord {
@@ -1029,6 +1031,7 @@ private:
 #if HTTP_SERVER
     static void DebugAsyncCallCallback(bool called,void *context);
 #endif
+    static void HandleBeebLinkUserPortWrite(R6522 *via,uint8_t value,uint8_t old_value,void *context);
 };
 
 //////////////////////////////////////////////////////////////////////////

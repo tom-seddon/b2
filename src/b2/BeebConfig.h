@@ -43,6 +43,7 @@ public:
     const DiscInterfaceDef *disc_interface=nullptr;
     bool video_nula=true;
     bool ext_mem=false;
+    bool beeblink=false;
 protected:
 private:
 };
@@ -73,10 +74,6 @@ public:
 
     static bool Load(BeebLoadedConfig *dest,const BeebConfig &src,Messages *msg);
 
-    // No disc or NVRAM callbacks are set.
-    std::unique_ptr<BBCMicro> CreateBBCMicro(uint64_t initial_num_2MHz_cycles) const;
-
-    //
     void ReuseROMs(const BeebLoadedConfig &oth);
 protected:
 private:

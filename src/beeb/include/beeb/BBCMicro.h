@@ -106,16 +106,21 @@ public:
              const tm *rtc_time,
              bool video_nula,
              bool ext_mem,
+             R6522::Port::ChangeFn user_port_change_fn,
+             void *user_port_change_context,
              uint64_t initial_num_2MHz_cycles);
 protected:
     BBCMicro(const BBCMicro &src);
 public:
     ~BBCMicro();
 
-    // Sets *NON_CLONEABLE_DRIVES bit i, if drive i isn't cloneable.
+    // Sets *NON_CLONEABLE_DRIVES bit i, if drive i isn't cloneable. Sets
+    // *USER_PORT to true if the user port device prohibits cloning.
+    //
     // (This is a scrappy mechanism that will improve over time as further
     // impediments to cloneability are added.)
-    bool CanClone(uint32_t *non_cloneable_drives) const;
+    bool CanClone(uint32_t *non_cloneable_drives,
+                  bool *non_cloneable_user_port_device) const;
 
     std::unique_ptr<BBCMicro> Clone() const;
 
@@ -659,7 +664,7 @@ private:
     void *m_async_call_context=nullptr;
 #endif
 
-    void InitStuff();
+    void InitStuff(R6522::Port::ChangeFn user_port_change_fn,void *user_port_change_context);
     void SetOSPages(uint8_t dest_page,uint8_t src_page,uint8_t num_pages);
     void SetROMPages(uint8_t bank,uint8_t page,size_t src_page,size_t num_pages);
 #if BBCMICRO_TRACE

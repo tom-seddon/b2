@@ -57,16 +57,19 @@ inline void R6522::DoPortHandshakingRead(Port *port,uint8_t pcr_bits,uint8_t irq
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-inline void R6522::DoPortHandshakingWrite(Port *port,uint8_t pcr_bits,uint8_t irqmask2) {
+inline void R6522::DoPortHandshakingWrite(Port *port,
+                                          uint8_t pcr_bits,
+                                          uint8_t irqmask2)
+{
     switch(pcr_bits&7) {
-    case R6522Cx2Control_Output_Handshake:
-        this->ifr.value&=~irqmask2;
-        break;
+        case R6522Cx2Control_Output_Handshake:
+            this->ifr.value&=~irqmask2;
+            break;
 
-    case R6522Cx2Control_Output_Pulse:
-        this->ifr.value&=~irqmask2;
-        port->pulse=2;
-        break;
+        case R6522Cx2Control_Output_Pulse:
+            this->ifr.value&=~irqmask2;
+            port->pulse=2;
+            break;
 
     }
 }
@@ -430,6 +433,10 @@ void R6522::WriteC(void *via_,M6502Word addr,uint8_t value) {
     via->m_pcr.value=value;
 }
 
+R6522::PCR R6522::GetPCR() const {
+    return m_pcr;
+}
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
@@ -478,6 +485,13 @@ void R6522::WriteE(void *via_,M6502Word addr,uint8_t value) {
     }
 
     TRACEF(via->m_trace,"%s - Write IER. IER:" IRQ_FMT,via->m_name,IRQ_ARGS(via->ier));
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void R6522::ResetPostHandshakeCB1() {
+    m_reset_post_handshake_cb1=true;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -570,7 +584,11 @@ void R6522::SetTrace(Trace *trace) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void R6522::TickControl(Port *port,uint8_t latching,uint8_t pcr_bits,uint8_t cx2_mask) {
+void R6522::TickControl(Port *port,
+                        uint8_t latching,
+                        uint8_t pcr_bits,
+                        uint8_t cx2_mask)
+{
     /* Check for Cx1 */
     {
         /* port->old_c1!=port->c1&&port->c1==(pcr_bits&1) */
@@ -590,14 +608,13 @@ void R6522::TickControl(Port *port,uint8_t latching,uint8_t pcr_bits,uint8_t cx2
         if(code==2||code==5) {
             ASSERT(((pcr_bits&1)&&!port->old_c1&&port->c1)||(!(pcr_bits&1)&&port->old_c1&&!port->c1));
 
+            // cx2_mask<<1 is the mask for Cx1.
             this->ifr.value|=cx2_mask<<1;
 
             if(latching) {
                 port->p_latch=port->p;
             }
         }
-
-        port->old_c1=port->c1;
     }
 
     /* Do Cx2 */
@@ -635,14 +652,22 @@ void R6522::TickControl(Port *port,uint8_t latching,uint8_t pcr_bits,uint8_t cx2
             port->c2=0;
             break;
 
-            /* deliberately leaving this in for the warning, as I
-            * haven't done it yet... */
-            /* case R6522Cx2Control_Handshake: */
-            /*     break; */
-        }
+            case R6522Cx2Control_Output_Handshake:
+                if(port->c1==0) {
+                    // Data taken -> not data ready.
+                    port->c2=1;
 
-        port->old_c2=port->c2;
+                    if(m_reset_post_handshake_cb1) {
+                        port->c1=1;
+                        m_reset_post_handshake_cb1=false;
+                    }
+                }
+                break;
+        }
     }
+
+    port->old_c2=port->c2;
+    port->old_c1=port->c1;
 }
 
 //////////////////////////////////////////////////////////////////////////

@@ -205,45 +205,6 @@ bool BeebLoadedConfig::Load(
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-std::unique_ptr<BBCMicro> BeebLoadedConfig::CreateBBCMicro(uint64_t initial_num_2MHz_cycles) const {
-    if(!this->os) {
-        return nullptr;
-    }
-
-    tm now=GetLocalTimeNow();
-
-    auto m=std::make_unique<BBCMicro>((BBCMicroType)this->config.beeb_type,
-                                      this->config.disc_interface,
-                                      this->config.nvram_contents,
-                                      &now,
-                                      this->config.video_nula,
-                                      this->config.ext_mem,
-                                      initial_num_2MHz_cycles);
-
-    m->SetOSROM(this->os);
-
-    for(uint8_t i=0;i<16;++i) {
-        if(this->config.roms[i].writeable) {
-            if(!!this->roms[i]) {
-                m->SetSidewaysRAM(i,this->roms[i]);
-            } else {
-                m->SetSidewaysRAM(i,nullptr);
-            }
-        } else {
-            if(!!this->roms[i]) {
-                m->SetSidewaysROM(i,this->roms[i]);
-            } else {
-                m->SetSidewaysROM(i,nullptr);
-            }
-        }
-    }
-
-    return m;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 // This is a bit stupid, but not a very common occurrence.
 //
 // Also, PCs are fast...

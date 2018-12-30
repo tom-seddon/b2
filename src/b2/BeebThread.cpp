@@ -29,6 +29,7 @@
 #include <Remotery.h>
 #include "GenerateThumbnailJob.h"
 #include "VideoWriter.h"
+#include "BeebLink.h"
 
 #include <shared/enum_def.h>
 #include "BeebThread.inl"
@@ -131,6 +132,9 @@ struct BeebThread::ThreadState {
 #if HTTP_SERVER
     Message::CompletionFun async_call_completion_fun;
 #endif
+
+    std::unique_ptr<BeebLink> beeblink;
+    bool beeblink_reset_cb1=false;
 
     Log log{"BEEB  ",LOG(BTHREAD)};
     Messages msgs;
@@ -408,9 +412,55 @@ void BeebThread::HardResetMessage::HardReset(BeebThread *beeb_thread,
     }
 
     ts->current_config=loaded_config;
-    beeb_thread->ThreadReplaceBeeb(ts,
-                                   loaded_config.CreateBBCMicro(*ts->num_executed_2MHz_cycles),
-                                   replace_flags);
+
+    tm now=GetLocalTimeNow();
+
+    R6522::Port::ChangeFn user_port_change_fn=nullptr;
+    void *user_port_change_context=nullptr;
+    if(ts->current_config.config.beeblink) {
+        user_port_change_fn=&HandleBeebLinkUserPortWrite;
+        user_port_change_context=ts;
+        if(!ts->beeblink) {
+            ts->beeblink=std::make_unique<BeebLink>();
+        }
+    } else {
+        ts->beeblink.reset();
+    }
+
+    uint64_t num_2MHz_cycles=0;
+    if(ts->num_executed_2MHz_cycles) {
+        num_2MHz_cycles=*ts->num_executed_2MHz_cycles;
+    }
+
+    auto beeb=std::make_unique<BBCMicro>((BBCMicroType)ts->current_config.config.beeb_type,
+                                         ts->current_config.config.disc_interface,
+                                         ts->current_config.config.nvram_contents,
+                                         &now,
+                                         ts->current_config.config.video_nula,
+                                         ts->current_config.config.ext_mem,
+                                         user_port_change_fn,
+                                         user_port_change_context,
+                                         num_2MHz_cycles);
+
+    beeb->SetOSROM(ts->current_config.os);
+
+    for(uint8_t i=0;i<16;++i) {
+        if(ts->current_config.config.roms[i].writeable) {
+            if(!!ts->current_config.roms[i]) {
+                beeb->SetSidewaysRAM(i,ts->current_config.roms[i]);
+            } else {
+                beeb->SetSidewaysRAM(i,nullptr);
+            }
+        } else {
+            if(!!ts->current_config.roms[i]) {
+                beeb->SetSidewaysROM(i,ts->current_config.roms[i]);
+            } else {
+                beeb->SetSidewaysROM(i,nullptr);
+            }
+        }
+    }
+
+    beeb_thread->ThreadReplaceBeeb(ts,std::move(beeb),replace_flags);
 
 #if BBCMICRO_DEBUGGER
     if(m_flags&BeebThreadHardResetFlag_Run) {
@@ -864,7 +914,7 @@ bool BeebThread::StartRecordingMessage::ThreadPrepare(std::shared_ptr<Message> *
         return false;
     }
 
-    if(!ts->beeb->CanClone(nullptr)) {
+    if(!ts->beeb->CanClone(nullptr,nullptr)) {
         return false;
     }
 
@@ -2001,6 +2051,10 @@ bool BeebThread::ThreadAddCopyData(const BBCMicro *beeb,const M6502 *cpu,void *c
 std::shared_ptr<BeebState> BeebThread::ThreadSaveState(ThreadState *ts) {
     std::unique_ptr<BBCMicro> clone_beeb=ts->beeb->Clone();
 
+    if(!clone_beeb) {
+        return nullptr;
+    }
+
     auto state=std::make_shared<BeebState>(std::move(clone_beeb));
     return state;
 }
@@ -2392,7 +2446,8 @@ void BeebThread::ThreadMain(void) {
             // Update ThreadState timeline stuff.
             switch(ts.timeline_state) {
             case BeebThreadTimelineState_None:
-                m_timeline_state.can_record=ts.beeb->CanClone(&m_timeline_state.non_cloneable_drives);
+                m_timeline_state.can_record=ts.beeb->CanClone(&m_timeline_state.non_cloneable_drives,
+                                                              &m_timeline_state.non_cloneable_beeblink);
                 break;
 
             case BeebThreadTimelineState_Record:
@@ -2952,6 +3007,30 @@ void BeebThread::DebugAsyncCallCallback(bool called,void *context) {
     Message::CallCompletionFun(&ts->async_call_completion_fun,called,nullptr);
 }
 #endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BeebThread::HandleBeebLinkUserPortWrite(R6522 *via,uint8_t value,uint8_t old_value,void *context) {
+    auto ts=(ThreadState *)context;
+
+    ASSERT(!!ts->beeblink);
+
+    R6522::PCR pcr=via->GetPCR();
+    if(pcr.bits.cb2_mode==R6522Cx2Control_Output_Handshake) {
+        int avr_value=ts->beeblink->HandleWrite(value);
+        if(avr_value>=0) {
+            ASSERT(avr_value<256);
+            via->b.p=(uint8_t)avr_value;//write data
+            via->b.c1=0;
+            via->ResetPostHandshakeCB1();
+        } else {
+            // AVR not in server->beeb mode, or data not ready yet.
+        }
+    } else {
+        ts->beeblink->Reset();
+    }
+}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

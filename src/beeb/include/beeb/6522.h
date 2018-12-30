@@ -168,6 +168,13 @@ public:
     static uint8_t ReadE(void *via,M6502Word addr);
     static uint8_t ReadF(void *via,M6502Word addr);
 
+    // Get current PCR value, no side-effects.
+    PCR GetPCR() const;
+
+    // Annoying hack for BeebLink - set CB1=1 when the handshaking next causes
+    // CB2 to go to 1. This only happens once.
+    void ResetPostHandshakeCB1();
+
     // returns IRQ flag: true = IRQ, false = no IRQ
     uint8_t Update();
 
@@ -205,6 +212,8 @@ private:
 
     /* old value of port B, for use when counting PB6 pulses. */
     uint8_t m_old_pb=0;
+
+    bool m_reset_post_handshake_cb1=false;
 
 #if BBCMICRO_TRACE
     Trace *m_trace=nullptr;
