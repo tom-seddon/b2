@@ -7,6 +7,17 @@ enable_testing()
 ##########################################################################
 ##########################################################################
 
+if(DEFINED RELEASE_NAME)
+  set(INCLUDE_EXPERIMENTAL OFF)
+  option(LIBUV_BUILD_TESTS "" OFF)
+else()
+  set(INCLUDE_EXPERIMENTAL ON)
+  option(LIBUV_BUILD_TESTS "" ON)
+endif()
+
+##########################################################################
+##########################################################################
+
 # https://cmake.org/Wiki/CMake_FAQ#How_can_I_extend_the_build_modes_with_a_custom_made_one_.3F
 
 set(CMAKE_CXX_FLAGS_FINAL ${CMAKE_CXX_FLAGS_RELWITHDEBINFO})
