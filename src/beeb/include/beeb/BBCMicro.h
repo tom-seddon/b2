@@ -14,6 +14,8 @@ class Trace;
 struct TraceStats;
 class TraceEventType;
 class DiscImage;
+class BeebLinkHandler;
+class BeebLink;
 
 #include <array>
 #include <memory>
@@ -38,19 +40,6 @@ class DiscImage;
 #include <shared/enum_end.h>
 
 #define BBCMicroLEDFlags_AllDrives (255u*BBCMicroLEDFlag_Drive0)
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-class BeebLinkHandler {
-public:
-    BeebLinkHandler()=default;
-    virtual ~BeebLinkHandler();
-
-    virtual void GotRequestPacket(uint8_t type,std::vector<uint8_t> payload)=0;
-protected:
-private:
-};
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -680,7 +669,10 @@ private:
     void *m_async_call_context=nullptr;
 #endif
 
+    // To avoid a lot of hassle, the state can't be saved while BeebLink is
+    // active - so none of this stuff participates.
     BeebLinkHandler *m_beeblink_handler=nullptr;
+    std::unique_ptr<BeebLink> m_beeblink;
 
     void InitStuff();
     void SetOSPages(uint8_t dest_page,uint8_t src_page,uint8_t num_pages);

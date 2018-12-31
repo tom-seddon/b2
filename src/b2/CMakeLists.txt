@@ -51,7 +51,7 @@ add_executable(b2 MACOSX_BUNDLE
   DirectDiscImage.cpp DirectDiscImage.h
   SavedStatesUI.cpp SavedStatesUI.h
   ThumbnailsUI.cpp ThumbnailsUI.h ThumbnailsUI_private.inl
-  BeebLink.cpp BeebLink.h BeebLink.inl
+  BeebLinkHTTPHandler.cpp BeebLinkHTTPHandler.h
   )
 
 if(OSX)

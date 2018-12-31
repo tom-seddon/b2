@@ -29,7 +29,7 @@
 #include <Remotery.h>
 #include "GenerateThumbnailJob.h"
 #include "VideoWriter.h"
-#include "BeebLink.h"
+#include "BeebLinkHTTPHandler.h"
 
 #include <shared/enum_def.h>
 #include "BeebThread.inl"
@@ -137,6 +137,8 @@ struct BeebThread::ThreadState {
 #if HTTP_SERVER
     Message::CompletionFun async_call_completion_fun;
 #endif
+
+    std::unique_ptr<BeebLinkHTTPHandler> beeblink_handler;
 
     Log log{"BEEB  ",LOG(BTHREAD)};
     Messages msgs;
@@ -422,13 +424,21 @@ void BeebThread::HardResetMessage::HardReset(BeebThread *beeb_thread,
         num_2MHz_cycles=*ts->num_executed_2MHz_cycles;
     }
 
+    if(ts->current_config.config.beeblink) {
+        if(!ts->beeblink_handler) {
+            std::string sender_id=strprintf("%" PRIu64,beeb_thread->m_uid);
+            ts->beeblink_handler=std::make_unique<BeebLinkHTTPHandler>(beeb_thread,
+                                                                       std::move(sender_id));
+        }
+    }
+
     auto beeb=std::make_unique<BBCMicro>((BBCMicroType)ts->current_config.config.beeb_type,
                                          ts->current_config.config.disc_interface,
                                          ts->current_config.config.nvram_contents,
                                          &now,
                                          ts->current_config.config.video_nula,
                                          ts->current_config.config.ext_mem,
-                                         nullptr,//TODO
+                                         ts->beeblink_handler.get(),
                                          num_2MHz_cycles);
 
     beeb->SetOSROM(ts->current_config.os);

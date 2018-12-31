@@ -21,6 +21,7 @@ set(SRCS
   ${S}/Trace.cpp ${I}/Trace.h
   ${S}/MC146818.cpp ${I}/MC146818.h ${I}/MC146818.inl
   ${S}/DiscImage.cpp ${I}/DiscImage.h
+  ${S}/BeebLink.cpp ${I}/BeebLink.h ${I}/BeebLink.inl
   )
 
 if(MSVC)

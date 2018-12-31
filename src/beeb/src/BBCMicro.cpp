@@ -24,6 +24,7 @@
 #include <limits.h>
 #include <algorithm>
 #include <inttypes.h>
+#include <beeb/BeebLink.h>
 
 #include <shared/enum_decl.h>
 #include "BBCMicro_private.inl"
@@ -401,6 +402,10 @@ void BBCMicro::SetTrace(std::shared_ptr<Trace> trace,uint32_t trace_flags) {
     m_state.user_via.SetTrace(trace_flags&BBCMicroTraceFlag_UserVIA?m_trace:nullptr);
     m_state.video_ula.SetTrace(trace_flags&BBCMicroTraceFlag_VideoULA?m_trace:nullptr);
     m_state.sn76489.SetTrace(trace_flags&BBCMicroTraceFlag_SN76489?m_trace:nullptr);
+
+    if(!!m_beeblink) {
+        m_beeblink->SetTrace(trace_flags&BBCMicroTraceFlag_BeebLink?m_trace:nullptr);
+    }
 
     this->UpdateCPUDataBusFn();
 }
@@ -1621,9 +1626,14 @@ bool BBCMicro::Update(VideoDataUnit *video_unit,SoundDataUnit *sound_unit) {
         // Update joysticks.
         m_state.system_via.b.p|=1<<4|1<<5;
 
-        // Nothing connected to the user port.
-        m_state.user_via.b.p=255;
-        m_state.user_via.b.c1=1;
+        if(m_beeblink_handler) {
+            // Update BeebLink.
+            m_beeblink->Update(&m_state.user_via);
+        } else {
+            // Nothing connected to the user port.
+            m_state.user_via.b.p=255;
+            m_state.user_via.b.c1=1;
+        }
 
         // Update IRQs.
         if(m_state.system_via.Update()) {
@@ -1638,7 +1648,7 @@ bool BBCMicro::Update(VideoDataUnit *video_unit,SoundDataUnit *sound_unit) {
             M6502_SetDeviceIRQ(&m_state.cpu,BBCMicroIRQDevice_UserVIA,0);
         }
 
-        // Update slow data bus stuff.
+        // Update addressable latch and RTC.
         if(m_state.old_system_via_pb!=m_state.system_via.b.p) {
             SystemVIAPB pb;
             pb.value=m_state.system_via.b.p;
@@ -2796,9 +2806,6 @@ void BBCMicro::InitStuff() {
         m_state.fdc.SetHandler(nullptr);
     }
 
-#if BBCMICRO_DEBUGGER
-#endif
-
     // I/O: additional cycle-stretched regions.
     for(uint16_t a=0xfe00;a<0xfe20;++a) {
         this->SetMMIOCycleStretch(a,1);
@@ -2826,6 +2833,10 @@ void BBCMicro::InitStuff() {
         for(size_t i=0;i<256;++i) {
             m_pc_pages[i]=&m_pages;
         }
+    }
+
+    if(m_beeblink_handler) {
+        m_beeblink=std::make_unique<BeebLink>(m_beeblink_handler);
     }
 
     this->UpdateCPUDataBusFn();
