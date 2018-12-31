@@ -904,6 +904,8 @@ private:
         Message::CompletionFun completion_fun;
     };
 
+    const uint64_t m_uid=0;
+
     // Initialisation-time stuff. Controlled by m_mutex, but it's not terribly
     // important as the thread just moves this stuff on initialisation.
     BeebLoadedConfig m_default_loaded_config;

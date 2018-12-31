@@ -51,6 +51,11 @@ static const uint64_t TIMELINE_SAVE_STATE_FREQUENCY_2MHz_CYCLES=(uint64_t)2e6;
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+static std::atomic<uint64_t> g_next_uid{1};
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 #ifdef _DEBUG
 #define LOGGING 0
 #define LOGGING_FREQUENCY_SECONDS (1.)
@@ -1475,11 +1480,12 @@ BeebThread::BeebThread(std::shared_ptr<MessageList> message_list,
                        size_t sound_buffer_size_samples,
                        BeebLoadedConfig default_loaded_config,
                        std::vector<TimelineEventList> initial_timeline_event_lists):
-    m_default_loaded_config(std::move(default_loaded_config)),
-    m_initial_timeline_event_lists(std::move(initial_timeline_event_lists)),
-    m_video_output(NUM_VIDEO_UNITS),
-    m_sound_output(NUM_AUDIO_UNITS),
-    m_message_list(std::move(message_list))
+m_uid(g_next_uid++),
+m_default_loaded_config(std::move(default_loaded_config)),
+m_initial_timeline_event_lists(std::move(initial_timeline_event_lists)),
+m_video_output(NUM_VIDEO_UNITS),
+m_sound_output(NUM_AUDIO_UNITS),
+m_message_list(std::move(message_list))
 {
     m_sound_device_id=sound_device_id;
 
