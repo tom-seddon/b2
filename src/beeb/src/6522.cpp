@@ -28,7 +28,16 @@ const TraceEventType R6522::IRQ_EVENT("R6522IRQEvent",sizeof(IRQEvent));
 //////////////////////////////////////////////////////////////////////////
 
 inline void R6522::UpdatePortPins(Port *port) {
+    uint8_t old_p=port->p;
+
     port->p=(port->p&~port->ddr)|(port->or_&port->ddr);
+
+    TRACEF_IF(old_p!=port->p,m_trace,
+              "Port value now: %03u ($%02x) (%%%s) ('%c')",
+              port->p,
+              port->p,
+              BINARY_BYTE_STRINGS[port->p],
+              port->p>=32&&port->p<127?(char)port->p:'?');
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -99,15 +108,22 @@ void R6522::Write0(void *via_,M6502Word addr,uint8_t value) {
         // One of the independent interrupt input modes.
     } else {
         via->ifr.bits.cb2=0;
+
+        TRACEF(via->m_trace,"%s - Write ORB. Reset IFR CB2.",via->m_name);
     }
 
     // Write handshaking.
     switch(via->m_pcr.bits.cb2_mode) {
         case R6522Cx2Control_Output_Handshake:
+            TRACEF(via->m_trace,"%s - Write ORB, output handshake. CB2=0 (was %u). (FYI: CB1=%u)",
+                   via->m_name,
+                   via->b.c2,
+                   via->b.c1);
             via->b.c2=0;
             break;
 
         case R6522Cx2Control_Output_Pulse:
+            TRACEF(via->m_trace,"%s - Write ORB, output pulse. CB2=0.",via->m_name);
             via->b.c2=0;
             via->b.pulse=2;
             break;
@@ -484,10 +500,10 @@ void R6522::WriteE(void *via_,M6502Word addr,uint8_t value) {
 
 uint8_t R6522::Update() {
     /* CA1/CA2 */
-    TickControl(&this->a,m_acr.bits.pa_latching,m_pcr.value>>0,R6522IRQMask_CA2);
+    TickControl(&this->a,m_acr.bits.pa_latching,m_pcr.value>>0,R6522IRQMask_CA2,'A');
 
     /* CB1/CB2 */
-    TickControl(&this->b,m_acr.bits.pb_latching,m_pcr.value>>4,R6522IRQMask_CB2);
+    TickControl(&this->b,m_acr.bits.pb_latching,m_pcr.value>>4,R6522IRQMask_CB2,'B');
 
     /* Count down T1 */
     {
@@ -572,12 +588,15 @@ void R6522::SetTrace(Trace *trace) {
 void R6522::TickControl(Port *port,
                         uint8_t latching,
                         uint8_t pcr_bits,
-                        uint8_t cx2_mask)
+                        uint8_t cx2_mask,
+                        char c)
 {
     /* Check for Cx1 */
     {
         /* port->old_c1!=port->c1&&port->c1==(pcr_bits&1) */
-        uint8_t code=(port->c1|(port->old_c1<<1)|(pcr_bits<<2))&7;
+        ASSERT(port->c1==0||port->c1==1);
+        ASSERT(port->old_c1==0||port->old_c1==1);
+        uint8_t code=(port->c1|port->old_c1<<1|pcr_bits<<2)&7;
 
         // PCRb0 oc1 c1   res
         // ----- --- ---  ---
@@ -592,6 +611,10 @@ void R6522::TickControl(Port *port,
 
         if(code==2||code==5) {
             ASSERT(((pcr_bits&1)&&!port->old_c1&&port->c1)||(!(pcr_bits&1)&&port->old_c1&&!port->c1));
+
+            TRACEF(m_trace,
+                   "C%c1: was %u, now %u, setting IFR mask 0x%02x. (FYI: latching=%u)",
+                   c,port->old_c1,port->c1,cx2_mask<<1,latching);
 
             // cx2_mask<<1 is the mask for Cx1.
             this->ifr.value|=cx2_mask<<1;

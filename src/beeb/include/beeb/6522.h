@@ -211,7 +211,7 @@ private:
     uint8_t m_id=0;
     const char *m_name=nullptr;
 
-    void TickControl(Port *port,uint8_t latching,uint8_t pcr_bits,uint8_t cx2_mask);
+    void TickControl(Port *port,uint8_t latching,uint8_t pcr_bits,uint8_t cx2_mask,char c);
     void UpdatePortPins(Port *port);
 
 #if BBCMICRO_DEBUGGER
