@@ -77,6 +77,7 @@ uint8_t R6522::Read0(void *via_,M6502Word addr) {
     via->ifr.bits.cb1=0;
     if((via->m_pcr.bits.cb2_mode&5)==1) {
         // One of the independent interrupt input modes.
+    } else {
         via->ifr.bits.cb2=0;
     }
 
@@ -96,6 +97,7 @@ void R6522::Write0(void *via_,M6502Word addr,uint8_t value) {
     via->ifr.bits.cb1=0;
     if((via->m_pcr.bits.cb2_mode&5)==1) {
         // One of the independent interrupt input modes.
+    } else {
         via->ifr.bits.cb2=0;
     }
 
