@@ -88,10 +88,10 @@ public:
     private:
         /* ORx */
         /* (`or' conflicts with iso646) */
-        uint8_t or_;
+        uint8_t or_=0;
 
         /* DDRx */
-        uint8_t ddr;
+        uint8_t ddr=0;
 
         /* Px */
     public:
@@ -101,16 +101,16 @@ public:
 
         /* Cx1 */
     public:
-        uint8_t c1;
+        uint8_t c1=0;
     private:
-        uint8_t old_c1;
+        uint8_t old_c1=0;
 
         /* Cx2 */
     public:
-        uint8_t c2;
+        uint8_t c2=0;
     private:
-        uint8_t old_c2;
-        uint8_t pulse;
+        uint8_t old_c2=0;
+        uint8_t pulse=0;
 
         friend class R6522;
 #if BBCMICRO_DEBUGGER
