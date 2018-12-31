@@ -102,7 +102,7 @@ void R6522::Write0(void *via_,M6502Word addr,uint8_t value) {
     }
 
     // Write handshaking.
-    switch(via->m_pcr.bits.ca2_mode) {
+    switch(via->m_pcr.bits.cb2_mode) {
         case R6522Cx2Control_Output_Handshake:
             via->b.c2=0;
             break;
