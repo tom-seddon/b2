@@ -134,6 +134,7 @@ public:
     LogPrinter *GetPrinter() const;
     void SetPrinter(LogPrinter *printer);
 
+    const char *GetPrefix() const;
     void SetPrefix(const char *prefix);
 
     const std::string &GetTag() const;
