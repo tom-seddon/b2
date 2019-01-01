@@ -274,6 +274,7 @@ target_link_libraries(b2 PRIVATE
   imgui_memory_editor_lib
   rapidjson_lib
   IconFontCppHeaders_lib
+  libcurl
   )
 
 ##########################################################################

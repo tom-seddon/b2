@@ -438,7 +438,7 @@ public:
     void DebugSetAsyncCall(uint16_t address,uint8_t a,uint8_t x,uint8_t y,bool c,DebugAsyncCallFn fn,void *context);
 #endif
 
-    void SendBeebLinkResponse(uint8_t type,std::vector<uint8_t> payload);
+    void SendBeebLinkResponse(std::vector<uint8_t> data);
 protected:
 private:
     //////////////////////////////////////////////////////////////////////////

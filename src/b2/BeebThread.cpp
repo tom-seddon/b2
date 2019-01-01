@@ -429,6 +429,11 @@ void BeebThread::HardResetMessage::HardReset(BeebThread *beeb_thread,
             std::string sender_id=strprintf("%" PRIu64,beeb_thread->m_uid);
             ts->beeblink_handler=std::make_unique<BeebLinkHTTPHandler>(beeb_thread,
                                                                        std::move(sender_id));
+
+            if(!ts->beeblink_handler->Init(&ts->msgs)) {
+                // Ugh. Just give up.
+                ts->beeblink_handler.reset();
+            }
         }
     }
 
@@ -1447,6 +1452,31 @@ bool BeebThread::TimingMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
     beeb_thread->m_audio_thread_data->num_executed_cycles.store(*ts->num_executed_2MHz_cycles,
                                                                 std::memory_order_release);
 #endif
+
+    ptr->reset();
+    return true;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+BeebThread::BeebLinkResponseMessage::BeebLinkResponseMessage(std::vector<uint8_t> data):
+m_data(std::move(data))
+{
+}
+
+bool BeebThread::BeebLinkResponseMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
+                                                        CompletionFun *completion_fun,
+                                                        BeebThread *beeb_thread,
+                                                        ThreadState *ts)
+{
+    (void)completion_fun,(void)beeb_thread;
+    
+    if(ts->timeline_state!=BeebThreadTimelineState_None) {
+        return false;
+    }
+
+    ts->beeb->SendBeebLinkResponse(std::move(m_data));
 
     ptr->reset();
     return true;

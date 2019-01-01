@@ -6,8 +6,11 @@
 
 #include <beeb/BeebLink.h>
 #include <string>
+#include <thread>
+#include <vector>
 
 class BeebThread;
+class Messages;
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -18,12 +21,25 @@ public BeebLinkHandler
 public:
     explicit BeebLinkHTTPHandler(BeebThread *beeb_thread,
                                  std::string sender_id);
+    ~BeebLinkHTTPHandler();
 
-    void GotRequestPacket(uint8_t type,const std::vector<uint8_t> &payload) override;
+    bool Init(Messages *msg);
+
+    bool GotRequestPacket(std::vector<uint8_t> data) override;
 protected:
 private:
-    BeebThread *m_beeb_thread;
+    struct ThreadState;
+
+    std::unique_ptr<ThreadState> m_ts;
     std::string m_sender_id;
+    std::thread m_thread;
+
+    static void Thread(ThreadState *ts);
+
+    BeebLinkHTTPHandler(const BeebLinkHTTPHandler &)=delete;
+    BeebLinkHTTPHandler &operator=(const BeebLinkHTTPHandler &)=delete;
+    BeebLinkHTTPHandler(BeebLinkHTTPHandler &&)=delete;
+    BeebLinkHTTPHandler &operator=(BeebLinkHTTPHandler &&)=delete;
 };
 
 //////////////////////////////////////////////////////////////////////////

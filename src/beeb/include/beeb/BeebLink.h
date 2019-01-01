@@ -14,6 +14,12 @@ class R6522;
 //
 // "BeebLink" is not two words.
 //
+// Packets are vectors of 1+ byte(s), roughly following the AVR<->PC format:
+// first byte is the packet type, then the payload, if any.
+//
+// Packet type bit 7 may or may not be set - payload size is never included
+// in either case, as it can be inferred from the size of the vector.
+//
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
@@ -29,8 +35,7 @@ public:
     BeebLinkHandler()=default;
     virtual ~BeebLinkHandler();
 
-    virtual void GotRequestPacket(uint8_t type,
-                                  const std::vector<uint8_t> &payload)=0;
+    virtual bool GotRequestPacket(std::vector<uint8_t> data)=0;
 protected:
 private:
 };
@@ -40,10 +45,15 @@ private:
 
 class BeebLink {
 public:
+    static std::vector<uint8_t> GetErrorResponsePacketData(uint8_t code,
+                                                           const char *message);
+
     explicit BeebLink(BeebLinkHandler *handler);
     ~BeebLink();
 
     void Update(R6522 *via);
+
+    void SendResponse(std::vector<uint8_t> data);
 
 #if BBCMICRO_TRACE
     void SetTrace(Trace *trace);
@@ -56,11 +66,12 @@ private:
     BeebLinkState m_next_state;
     uint32_t m_state_counter;
 
-    uint8_t m_type;
-    uint8_t m_size_bytes[4];
-    uint32_t m_size;
-    std::vector<uint8_t> m_payload;
-    size_t m_index;
+    std::vector<uint8_t> m_data;
+
+    size_t m_index=0;
+
+    uint8_t m_type_byte=0;
+    uint8_t m_size_bytes[4]={};
 
 #if BBCMICRO_TRACE
     Trace *m_trace=nullptr;
@@ -72,8 +83,7 @@ private:
 
     // Return value is first byte of response.
     uint8_t HandleBeebToServerPayload();
-    void HandleRequestAVR();
-    void ErrorResponse(uint8_t code,const char *message);
+    void HandleReceivedData();
     void Stall();
 };
 

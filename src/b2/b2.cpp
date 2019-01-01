@@ -37,6 +37,7 @@
 #include <shared/system_specific.h>
 #include "HTTPServer.h"
 #include "HTTPMethodsHandler.h"
+#include <curl/curl.h>
 
 #include <shared/enum_decl.h>
 #include "b2.inl"
@@ -825,6 +826,15 @@ static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &init
         }
     }
 #endif
+
+    // https://curl.haxx.se/libcurl/c/curl_global_init.html
+    {
+        CURLcode r=curl_global_init(CURL_GLOBAL_DEFAULT);
+        if(r!=0) {
+            init_messages.e.f("Failed to initialise libcurl: %s\n",curl_easy_strerror(r));
+            return false;
+        }
+    }
 
     Options options;
     if(!InitializeOptions(&options,&init_messages)) {

@@ -737,6 +737,21 @@ public:
         const uint64_t m_max_sound_units=0;
     };
 
+    class BeebLinkResponseMessage:
+    public Message
+    {
+    public:
+        explicit BeebLinkResponseMessage(std::vector<uint8_t> data);
+
+        bool ThreadPrepare(std::shared_ptr<Message> *ptr,
+                           CompletionFun *completion_fun,
+                           BeebThread *beeb_thread,
+                           ThreadState *ts) override;
+    protected:
+    private:
+        std::vector<uint8_t> m_data;
+    };
+
     // there's probably a few too many things called 'TimelineState' now...
     struct TimelineState {
         BeebThreadTimelineState state=BeebThreadTimelineState_None;
