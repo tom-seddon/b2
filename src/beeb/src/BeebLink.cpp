@@ -333,8 +333,12 @@ void BeebLink::Update(R6522 *via) {
 
 void BeebLink::SendResponse(std::vector<uint8_t> data) {
     ASSERT(m_state==BeebLinkState_WaitForServerResponse);
-    m_data=std::move(data);
-    m_state=BeebLinkState_SendPacketHeaderToBeeb_WaitForBeebReady;
+    if(m_state!=BeebLinkState_WaitForServerResponse) {
+        // I don't know what you can really do in this case.
+    } else {
+        m_data=std::move(data);
+        m_state=BeebLinkState_SendPacketHeaderToBeeb_WaitForBeebReady;
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////
