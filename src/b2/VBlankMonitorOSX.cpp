@@ -68,7 +68,7 @@ public:
         }
 
         if(num_ids==0) {
-            return nullptr;
+            display_id=CGMainDisplayID();
         }
 
         for(auto &&display:m_displays) {
