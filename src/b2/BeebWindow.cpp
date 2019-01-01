@@ -12,7 +12,6 @@
 #include "keys.h"
 #include <algorithm>
 #include "MemoryDiscImage.h"
-#include "65link.h"
 #include "BeebWindows.h"
 #include <beeb/BBCMicro.h>
 #include <SDL_syswm.h>
@@ -88,7 +87,6 @@ static const double LEDS_POPUP_TIME_SECONDS=1.;
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static const std::string RECENT_PATHS_65LINK="65link";
 static const std::string RECENT_PATHS_DISC_IMAGE="disc_image";
 //static const std::string RECENT_PATHS_RAM="ram";
 static const std::string RECENT_PATHS_NVRAM="nvram";
@@ -114,7 +112,6 @@ const char BeebWindow::SDL_WINDOW_DATA_NAME[]="D";
 //////////////////////////////////////////////////////////////////////////
 
 BeebWindow::DriveState::DriveState():
-open_65link_folder_dialog(RECENT_PATHS_65LINK),
 open_disc_image_file_dialog(RECENT_PATHS_DISC_IMAGE),
 open_direct_disc_image_file_dialog(RECENT_PATHS_DISC_IMAGE)
 {
@@ -505,18 +502,6 @@ void BeebWindow::HandleSDLMouseMotionEvent(const SDL_MouseMotionEvent &event) {
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
-
-bool BeebWindow::Load65LinkFolder(int drive,const std::string &path) {
-    std::string error;
-    std::shared_ptr<DiscImage> disc_image=LoadDiscImageFrom65LinkFolder(path,&m_msg);
-    if(!disc_image) {
-        //m_msg.w.f("Failed to load %s: %s\n",path.c_str(),error.c_str());
-        return false;
-    } else {
-        m_beeb_thread->Send(std::make_shared<BeebThread::LoadDiscMessage>(drive,std::move(disc_image),true));
-        return true;
-    }
-}
 
 class FileMenuItem {
 public:
@@ -1189,13 +1174,6 @@ void BeebWindow::DoFileMenu() {
                     }
                 }
 
-                FileMenuItem folder_item(&d->open_65link_folder_dialog,"65Link folder...","Recent 65Link folder");
-                if(folder_item.selected) {
-                    if(this->Load65LinkFolder(drive,folder_item.path)) {
-                        folder_item.Success();
-                    }
-                }
-
                 if(!!disc_image) {
                     ImGui::Separator();
 
@@ -1214,17 +1192,6 @@ void BeebWindow::DoFileMenu() {
                         std::string path;
                         if(fd.Open(&path)) {
                             if(disc_image->SaveToFile(path,&m_msg)) {
-                                fd.AddLastPathToRecentPaths();
-                            }
-                        }
-                    }
-
-                    if(ImGui::MenuItem("Export 65Link folder...")) {
-                        FolderDialog fd(RECENT_PATHS_65LINK);
-
-                        std::string path;
-                        if(fd.Open(&path)) {
-                            if(SaveDiscImageTo65LinkFolder(disc_image,path,&m_msg)) {
                                 fd.AddLastPathToRecentPaths();
                             }
                         }
@@ -2307,7 +2274,6 @@ void BeebWindow::Exit() {
 void BeebWindow::CleanUpRecentFilesLists() {
     size_t n=0;
 
-    n+=CleanUpRecentPaths(RECENT_PATHS_65LINK,&PathIsFolderOnDisk);
     n+=CleanUpRecentPaths(RECENT_PATHS_DISC_IMAGE,&PathIsFileOnDisk);
     n+=CleanUpRecentPaths(RECENT_PATHS_NVRAM,&PathIsFileOnDisk);
 

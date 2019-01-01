@@ -13,7 +13,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include "65link.h"
 #include "MemoryDiscImage.h"
 #include <inttypes.h>
 #include "VBlankMonitor.h"
@@ -476,7 +475,7 @@ static bool DoCommandLineOptions(
     p.SetLogs(&init_messages->i,&init_messages->e);
 
     for(int drive=0;drive<NUM_DRIVES;++drive) {
-        p.AddOption((char)('0'+drive)).Arg(&options->discs[drive]).Meta("PATH").Help("load drive "+std::to_string(drive)+" from PATH - an SSD/DSD file, or 65Link volume/drive folder");
+        p.AddOption((char)('0'+drive)).Arg(&options->discs[drive]).Meta("FILE").Help("load drive "+std::to_string(drive)+" from disc image FILE");
     }
 
     p.AddOption('b',"boot").SetIfPresent(&options->boot).Help("attempt to auto-boot disc");
@@ -628,11 +627,7 @@ static bool LoadInitialDiscImages(
             continue;
         }
 
-        if(PathIsFolderOnDisk(options.discs[i])) {
-            init_disc_images[i]=LoadDiscImageFrom65LinkFolder(options.discs[i],init_messages);
-        } else {
-            init_disc_images[i]=MemoryDiscImage::LoadFromFile(options.discs[i],init_messages);
-        }
+        init_disc_images[i]=MemoryDiscImage::LoadFromFile(options.discs[i],init_messages);
 
         if(!init_disc_images[i]) {
             return false;
