@@ -285,9 +285,11 @@ void BeebLinkHTTPHandler::Thread(ThreadState *ts) {
                 long status;
                 curl_easy_getinfo(ts->curl,CURLINFO_RESPONSE_CODE,&status);
             } else {
-                ts->log->f("Request failed: %s: %s\n",
-                           curl_easy_strerror(perform_result),
-                           curl_error_buffer);
+                if(ts->log) {
+                    ts->log->f("Request failed: %s: %s\n",
+                               curl_easy_strerror(perform_result),
+                               curl_error_buffer);
+                }
 
                 server_to_beeb_data=BeebLink::GetErrorResponsePacketData(255,
                                                                          "HTTP request failed");
