@@ -13,8 +13,11 @@
 
 LOG_EXTERN(BEEBLINK);
 
-// This should probably be a runtime option...
-#define VERBOSE_CURL 1
+// This is a dummy log. It's never used for printing, only for
+// initialising each HTTP thread's log. Since it's a global, it gets an
+// entry in the global table, so it can interact with the command line
+// options.
+LOG_TAGGED_DEFINE(BEEBLINK_HTTP,"beeblink_http","",&log_printer_stdout_and_debugger,false)
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -129,11 +132,11 @@ bool BeebLinkHTTPHandler::Init(Messages *msg) {
         std::string prefix=std::string(LOG(BEEBLINK).GetPrefix())+": HTTP "+m_sender_id;
         m_ts->log=std::make_unique<Log>(prefix.c_str(),LOG(BEEBLINK).GetPrinter(),true);
 
-#if VERBOSE_CURL
-        curl_easy_setopt(m_ts->curl,CURLOPT_DEBUGFUNCTION,&CurlDebugFunction);
-        curl_easy_setopt(m_ts->curl,CURLOPT_DEBUGDATA,m_ts->log.get());
-        curl_easy_setopt(m_ts->curl,CURLOPT_VERBOSE,1L);
-#endif
+        if(LOG(BEEBLINK_HTTP).enabled) {
+            curl_easy_setopt(m_ts->curl,CURLOPT_DEBUGFUNCTION,&CurlDebugFunction);
+            curl_easy_setopt(m_ts->curl,CURLOPT_DEBUGDATA,m_ts->log.get());
+            curl_easy_setopt(m_ts->curl,CURLOPT_VERBOSE,1L);
+        }
     }
 
     // see notes regarding DNS timeouts in https://curl.haxx.se/libcurl/c/CURLOPT_NOSIGNAL.html
