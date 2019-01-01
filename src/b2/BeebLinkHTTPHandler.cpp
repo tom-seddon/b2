@@ -130,7 +130,7 @@ bool BeebLinkHTTPHandler::Init(Messages *msg) {
 
     if(LOG(BEEBLINK).enabled) {
         std::string prefix=std::string(LOG(BEEBLINK).GetPrefix())+": HTTP "+m_sender_id;
-        m_ts->log=std::make_unique<Log>(prefix.c_str(),LOG(BEEBLINK).GetPrinter(),true);
+        m_ts->log=std::make_unique<Log>(prefix.c_str(),LOG(BEEBLINK).GetLogPrinter(),true);
 
         if(LOG(BEEBLINK_HTTP).enabled) {
             curl_easy_setopt(m_ts->curl,CURLOPT_DEBUGFUNCTION,&CurlDebugFunction);
@@ -256,7 +256,9 @@ void BeebLinkHTTPHandler::Thread(ThreadState *ts) {
             ASSERT(!ts->beeb_to_server_data.empty());
             std::vector<uint8_t> beeb_to_server_data=std::move(ts->beeb_to_server_data);
 
-            CurlReadPayloadFunctionState readdata={&beeb_to_server_data};
+            CurlReadPayloadFunctionState readdata;
+            readdata.payload=&beeb_to_server_data;
+
             curl_easy_setopt(ts->curl,CURLOPT_READFUNCTION,&CurlReadPayloadFunction);
             curl_easy_setopt(ts->curl,CURLOPT_READDATA,&readdata);
 

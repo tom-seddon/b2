@@ -259,7 +259,7 @@ LogPrinter *Trace::GetLogPrinter(size_t max_len) {
 //////////////////////////////////////////////////////////////////////////
 
 void Trace::FinishLog(Log *log) {
-    ASSERT(log->GetPrinter()==&m_log_printer);
+    ASSERT(log->GetLogPrinter()==&m_log_printer);
     ASSERT(m_last_alloc);
 
     log->Flush();

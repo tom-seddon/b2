@@ -2,7 +2,6 @@
 #include <shared/debug.h>
 #include <shared/log.h>
 #include <beeb/BeebLink.h>
-#include <curl/curl.h>
 #include <beeb/6522.h>
 
 #include <shared/enum_def.h>
