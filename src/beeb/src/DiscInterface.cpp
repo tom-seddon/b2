@@ -629,9 +629,12 @@ const DiscInterfaceDef *FindDiscInterfaceByName(const char *name) {
         }
     }
 
+    if(DISC_INTERFACE_MASTER128.name==name) {
+        return &DISC_INTERFACE_MASTER128;
+    }
+
     return nullptr;
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
-

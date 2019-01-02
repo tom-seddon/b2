@@ -937,17 +937,22 @@ static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &init
             return false;
         }
 
+        BeebLoadedConfig initial_loaded_config;
         std::string initial_config_name;
         if(!options.config_name.empty()) {
-            initial_config_name=options.config_name;
+            if(!BeebWindows::LoadConfigByName(&initial_loaded_config,initial_config_name,&init_messages)) {
+                return false;
+            }
         } else {
-            initial_config_name=BeebWindows::GetDefaultConfigName();
+            if(!BeebWindows::LoadConfigByName(&initial_loaded_config,BeebWindows::GetDefaultConfigName(),&init_messages)) {
+                // Don't give up straight away - try to load one of the stock configs.
+                if(!BeebLoadedConfig::Load(&initial_loaded_config,*GetDefaultBeebConfigByIndex(0),&init_messages)) {
+                    // ugh, OK.
+                    return false;
+                }
+            }
         }
 
-        BeebLoadedConfig initial_loaded_config;
-        if(!BeebWindows::LoadConfigByName(&initial_loaded_config,initial_config_name,&init_messages)) {
-            return false;
-        }
 
         BeebWindowInitArguments ia;
         {

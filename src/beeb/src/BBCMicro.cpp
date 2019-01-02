@@ -277,7 +277,7 @@ BBCMicro::BBCMicro(BBCMicroType type,
                    uint64_t initial_num_2MHz_cycles):
 m_state(type,nvram_contents,rtc_time,initial_num_2MHz_cycles),
 m_type(type),
-m_disc_interface(def->create_fun()),
+m_disc_interface(def?def->create_fun():nullptr),
 m_video_nula(video_nula),
 m_ext_mem(ext_mem),
 m_beeblink_handler(beeblink_handler)
