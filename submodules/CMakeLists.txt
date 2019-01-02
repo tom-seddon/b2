@@ -3,24 +3,6 @@ cmake_minimum_required(VERSION 3.5)
 ##########################################################################
 ##########################################################################
 
-option(BUILD_CURL_EXE "" OFF)
-option(BUILD_SHARED_LIBS "" OFF)
-option(BUILD_TESTING "" OFF)
-
-add_subdirectory(curl)
-
-# # Presumably you're *supposed* to use generator expressions for this
-# # sort of thing, like $<TARGET_PROPERTY:SOURCE_DIR>. But that didn't
-# # work when I tried it.
-# target_include_directories(libcurl INTERFACE
-#   ${CMAKE_CURRENT_SOURCE_DIR}/curl/include
-#   ${CMAKE_CURRENT_BINARY_DIR}/curl/include/curl)
-
-# set(HAVE_LIBCURL ON)
-
-##########################################################################
-##########################################################################
-
 add_library(miniz_lib INTERFACE)
 target_include_directories(miniz_lib INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/miniz)
 

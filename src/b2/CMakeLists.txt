@@ -273,7 +273,6 @@ target_link_libraries(b2 PRIVATE
   imgui_memory_editor_lib
   rapidjson_lib
   IconFontCppHeaders_lib
-  libcurl
   )
 
 ##########################################################################
@@ -289,7 +288,7 @@ target_link_libraries(b2 PRIVATE ${SDL2_LIBRARY})
 ##########################################################################
 
 if(HAVE_LIBCURL)
-  target_link_libraries(b2 PRIVATE libcurl)
+  target_link_libraries(b2 PRIVATE ${LIBCURL_TARGET})
 endif()
 
 ##########################################################################

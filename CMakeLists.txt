@@ -83,7 +83,52 @@ endif()
 
 ##########################################################################
 ##########################################################################
+#
+# (Even though Windows libcurl is part of submodules, the
+# configuration process sets some variables, and find_package (as used
+# on OS X/Linux) doesn't seem to have any analogue of PARENT_SCOPE. So
+# it's massively easier to do all this stuff in the top-level
+# CMakeLists.txt.)
+#
+# The OS X version works fine when built with the repo's copy of
+# libcurl, and the result is easily stepped through in Xcode - but the
+# libcurl CMakeLists.txt takes, like, 15 minutes to run. Might as well
+# use the system libcurl, given that it ships with OS X and is
+# probably tuned for the system SSL and so on.
 
+if(WIN32)
+  option(BUILD_CURL_EXE "" OFF)
+  option(BUILD_SHARED_LIBS "" OFF)
+  option(BUILD_TESTING "" OFF)
+
+  add_subdirectory(${CMAKE_SOURCE_DIR}/submodules/curl)
+  set(HAVE_LIBCURL ON)
+  set(LIBCURL_TARGET libcurl)
+else()
+  find_package(CURL 7
+    COMPONENTS HTTP)
+  if(NOT CURL_FOUND)
+    set(HAVE_LIBCURL OFF)
+  else()
+    set(HAVE_LIBCURL ON)
+    set(LIBCURL_TARGET CURL::libcurl)
+  endif()
+  
+  if(NOT HAVE_LIBCURL)
+    message(WARNING "libcurl not found - no BeebLink support")
+  endif()
+endif()
+
+message(STATUS "libcurl found: ${HAVE_LIBCURL}")
+
+
+##########################################################################
+##########################################################################
+#
+# (Even though SDL is part of submodules, the configuration process
+# sets some variables, so it's massively easier to do it in the
+# top-level CMakeLists.txt.)
+# 
 # Use the SDL submodule, but set the variables up so it looks like it
 # was found by FindSDL2. It doesn't look like the SDL2 cmake build
 # process is designed for this, so this is a bit of a hack.
@@ -168,6 +213,10 @@ if(LINUX)
   else()
     set(HAVE_FFMPEG ON)
   endif()
+
+  if(NOT HAVE_FFMPEG)
+    message(WARNING "ffmpeg not found - no video writing support")
+  endif()
 endif()
 
 ##########################################################################
@@ -196,6 +245,15 @@ set(HAVE_LIBUV ON)
 ##########################################################################
 ##########################################################################
 
+add_subdirectory(submodules)
+add_subdirectory(src)
+if(INCLUDE_EXPERIMENTAL)
+  add_subdirectory(experimental)
+endif()
+
+##########################################################################
+##########################################################################
+
 # It's handy to have the non-project CMakeLists.txt files somewhere in the VS
 # solution.
 #
@@ -204,13 +262,10 @@ set(HAVE_LIBUV ON)
 # This doesn't interact brilliantly with DPack, which strips off the paths
 # in its files list, but Ctrl+, works OK.
 
-add_subdirectory(src)
 target_sources(b2 PRIVATE ${CMAKE_CURRENT_LIST_DIR}/src/CMakeLists.txt ${CMAKE_CURRENT_LIST_DIR}/common.txt)
 
-add_subdirectory(submodules)
 target_sources(b2 PRIVATE ${CMAKE_CURRENT_LIST_DIR}/submodules/CMakeLists.txt)
 
 if(INCLUDE_EXPERIMENTAL)
-  add_subdirectory(experimental)
-	target_sources(b2 PRIVATE ${CMAKE_CURRENT_LIST_DIR}/experimental/CMakeLists.txt)
+  target_sources(b2 PRIVATE ${CMAKE_CURRENT_LIST_DIR}/experimental/CMakeLists.txt)
 endif()
