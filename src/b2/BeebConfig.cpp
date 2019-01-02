@@ -129,7 +129,7 @@ void InitDefaultBeebConfigs() {
             config.roms[5].writeable=true;
             config.roms[4].writeable=true;
 
-            config.nvram_contents.resize(50);
+            config.nvram_contents=GetDefaultNVRAMContents();
 
             // *CONFIGURE settings:
             config.nvram_contents[5]=0xC9;//LANG 12; FS 9
@@ -173,6 +173,27 @@ const BeebConfig *GetDefaultBeebConfigByIndex(size_t index) {
     ASSERT(index<g_default_configs.size());
 
     return &g_default_configs[index];
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+std::vector<uint8_t> GetDefaultNVRAMContents() {
+    std::vector<uint8_t> nvram;
+    nvram.resize(50);
+
+    nvram[5]=0xC9;//LANG 12; FS 9
+    nvram[6]=0xFF;//INSERT 0 ... INSERT 7
+    nvram[7]=0xFF;//INSERT 8 ... INSERT 15
+    nvram[10]=0x17;//MODE 7; SHADOW 0; TV 0 1
+    nvram[11]=0x80;//FLOPPY
+    nvram[12]=55;//DELAY 55
+    nvram[13]=3;//REPEAT 3
+    nvram[14]=0x00;
+    nvram[15]=0x00;
+    nvram[16]=2;//LOUD
+
+    return nvram;
 }
 
 //////////////////////////////////////////////////////////////////////////

@@ -248,11 +248,7 @@ num_2MHz_cycles(initial_num_2MHz_cycles)
     case BBCMicroType_Master:
         this->ram_buffer.resize(65536);
         M6502_Init(&this->cpu,&M6502_cmos6502_config);
-
-        if(nvram_contents.size()==MC146818::RAM_SIZE) {
-            this->rtc.SetRAMContents(nvram_contents.data());
-            //memcpy(&this->rtc.regs.bits.ram,nvram_contents.data(),nvram_contents.size());
-        }
+        this->rtc.SetRAMContents(nvram_contents);
 
         if(rtc_time) {
             this->rtc.SetTime(rtc_time);

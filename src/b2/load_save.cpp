@@ -268,6 +268,7 @@ static std::string GetHexStringFromData(const std::vector<uint8_t> &data) {
     return hex;
 }
 
+// TODO - should really clear the vector out if there's an error...
 static bool GetDataFromHexString(std::vector<uint8_t> *data,const std::string &str) {
     if(str.size()%2!=0) {
         return false;
@@ -953,6 +954,7 @@ static const char VSYNC[]="vsync";
 static const char EXT_MEM[]="ext_mem";
 static const char UNLIMITED[]="unlimited";
 static const char BEEBLINK[]="beeblink";
+static const char NVRAM[]="nvram";
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -1324,6 +1326,13 @@ static bool LoadConfigs(rapidjson::Value *configs_json,Messages *msg) {
         FindBoolMember(&config.ext_mem,config_json,EXT_MEM,msg);
         FindBoolMember(&config.beeblink,config_json,BEEBLINK,msg);
 
+        std::string nvram;
+        if(FindStringMember(&nvram,config_json,NVRAM,nullptr)) {
+            if(!GetDataFromHexString(&config.nvram_contents,nvram)) {
+                config.nvram_contents.clear();
+            }
+        }
+
         BeebWindows::AddConfig(std::move(config));
     }
 
@@ -1635,6 +1644,11 @@ static void SaveConfigs(JSONWriter<StringStream> *writer) {
 
             writer->Key(BEEBLINK);
             writer->Bool(config->beeblink);
+
+            if(!config->nvram_contents.empty()) {
+                writer->Key(NVRAM);
+                writer->String(GetHexStringFromData(config->nvram_contents).c_str());
+            }
 
             return true;
         });

@@ -283,8 +283,16 @@ const uint8_t *MC146818::GetRAM() const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void MC146818::SetRAMContents(const uint8_t *data) {
-    memcpy(m_regs.bits.ram,data,RAM_SIZE);
+void MC146818::SetRAMContents(const std::vector<uint8_t> &data) {
+    size_t i;
+
+    for(i=0;i<data.size()&&i<RAM_SIZE;++i) {
+        m_regs.bits.ram[i]=data[i];
+    }
+
+    for(;i<RAM_SIZE;++i) {
+        m_regs.bits.ram[i]=0;
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////
