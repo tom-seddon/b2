@@ -24,9 +24,6 @@ public:
     static const std::string DEFAULT_URL;
 
     // Settings shared between all HTTP handlers.
-    static bool GetHTTPVerbose();
-    static void SetHTTPVerbose(bool verbose);
-
     static void SetServerURLs(std::vector<std::string> urls);
     static std::vector<std::string> GetServerURLs();
 

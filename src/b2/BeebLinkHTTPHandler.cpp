@@ -66,26 +66,7 @@ struct BeebLinkHTTPHandler::ThreadState {
 //////////////////////////////////////////////////////////////////////////
 
 static Mutex g_mutex;
-static bool g_http_verbose;
 static std::vector<std::string> g_server_urls;
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-bool BeebLinkHTTPHandler::GetHTTPVerbose() {
-    std::lock_guard<Mutex> lock(g_mutex);
-
-    return g_http_verbose;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-void BeebLinkHTTPHandler::SetHTTPVerbose(bool verbose) {
-    std::lock_guard<Mutex> lock(g_mutex);
-
-    g_http_verbose=verbose;
-}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -322,7 +303,6 @@ void BeebLinkHTTPHandler::Thread(ThreadState *ts) {
             if(ts->url.empty()) {
                 urls=GetServerURLs();
                 urls.insert(urls.begin(),DEFAULT_URL);
-
             } else {
                 urls.push_back(ts->url);
             }
@@ -354,7 +334,10 @@ void BeebLinkHTTPHandler::Thread(ThreadState *ts) {
                 curl_easy_setopt(ts->curl,CURLOPT_WRITEFUNCTION,&CurlWriteCallback);
                 curl_easy_setopt(ts->curl,CURLOPT_WRITEDATA,&server_to_beeb_data);
 
-                curl_easy_setopt(ts->curl,CURLOPT_VERBOSE,(long)GetHTTPVerbose());
+                // No harm in configuring this every time. Perhaps
+                // there should be somewhere in the UI for the logs to
+                // go?
+                curl_easy_setopt(ts->curl,CURLOPT_VERBOSE,(long)LOG(BEEBLINK_HTTP).enabled);
 
                 curl_easy_setopt(ts->curl,CURLOPT_HTTPHEADER,headers);
 
