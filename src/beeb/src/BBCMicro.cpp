@@ -1792,22 +1792,11 @@ uint32_t BBCMicro::GetLEDs() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-const uint8_t *BBCMicro::GetNVRAM() const {
+std::vector<uint8_t> BBCMicro::GetNVRAM() const {
     if(m_has_rtc) {
-        return m_state.rtc.GetRAM();
+        return m_state.rtc.GetRAMContents();
     } else {
-        return NULL;
-    }
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-size_t BBCMicro::GetNVRAMSize() const {
-    if(m_has_rtc) {
-        return MC146818::RAM_SIZE;
-    } else {
-        return 0;
+        return std::vector<uint8_t>();
     }
 }
 

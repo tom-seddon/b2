@@ -319,9 +319,7 @@ public:
 
     uint32_t GetLEDs();
 
-    // Get the buffer size from GetNVRAMSize.
-    const uint8_t *GetNVRAM() const;
-    size_t GetNVRAMSize() const;
+    std::vector<uint8_t> GetNVRAM() const;
 
     // The shared_ptr is copied.
     void SetOSROM(std::shared_ptr<const ROMData> data);

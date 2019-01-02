@@ -1253,20 +1253,18 @@ protected:
     void HandleDoImGui(CommandContextStack *cc_stack) override {
         (void)cc_stack;
 
-        uint8_t nvram[256];
-        size_t nvram_size;
+        std::vector<uint8_t> nvram;
         {
             std::unique_lock<Mutex> lock;
             const BBCMicro *m=m_beeb_thread->LockBeeb(&lock);
 
-            nvram_size=(std::min)(m->GetNVRAMSize(),sizeof nvram);
-            memcpy(nvram,m->GetNVRAM(),nvram_size);
+            nvram=m->GetNVRAM();
         }
 
-        if(nvram_size==0) {
+        if(nvram.empty()) {
             ImGui::Text("This computer has no non-volatile RAM.");
-        } else if(nvram_size<50) {
-            ImGui::Text("%zu bytes of non-volatile RAM.",nvram_size);
+        } else if(nvram.size()<50) {
+            ImGui::Text("%zu bytes of non-volatile RAM.",nvram.size());
         } else {
             ImGui::Text("Econet station number: $%02X\n",nvram[0]);
             ImGui::Text("File server station number: $%02X\n",nvram[1]);

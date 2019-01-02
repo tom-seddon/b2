@@ -1721,12 +1721,7 @@ bool BeebThread::GetKeyState(BeebKey beeb_key) const {
 std::vector<uint8_t> BeebThread::GetNVRAM() const {
     std::lock_guard<Mutex> lock(m_mutex);
 
-    std::vector<uint8_t> nvram;
-    nvram.resize(m_thread_state->beeb->GetNVRAMSize());
-    if(!nvram.empty()) {
-        memcpy(nvram.data(),m_thread_state->beeb->GetNVRAM(),nvram.size());
-    }
-
+    std::vector<uint8_t> nvram=m_thread_state->beeb->GetNVRAM();
     return nvram;
 }
 
@@ -2138,7 +2133,7 @@ void BeebThread::ThreadReplaceBeeb(ThreadState *ts,std::unique_ptr<BBCMicro> bee
         m_audio_thread_data->num_consumed_sound_units=*ts->num_executed_2MHz_cycles>>SOUND_CLOCK_SHIFT;
     }
 
-    m_has_nvram.store(ts->beeb->GetNVRAMSize()>0,std::memory_order_release);
+    m_has_nvram.store(!ts->beeb->GetNVRAM().empty(),std::memory_order_release);
 
     // Apply current keypresses to the emulated BBC. Reset fake shift
     // state and boot state first so that the Shift key status is set

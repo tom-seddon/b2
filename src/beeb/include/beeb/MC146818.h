@@ -138,8 +138,7 @@ public:
     // comes from the address register.
     void SetData(uint8_t value);
 
-    // Get pointer to first byte of the RAM_SIZE bytes of RAM.
-    const uint8_t *GetRAM() const;
+    std::vector<uint8_t> GetRAMContents() const;
 
     // Set RAM contents. If DATA is the wrong size, the RTC RAM will
     // be zero-padded, or the excess ignored.
