@@ -51,6 +51,7 @@ add_executable(b2 MACOSX_BUNDLE
   SavedStatesUI.cpp SavedStatesUI.h
   ThumbnailsUI.cpp ThumbnailsUI.h ThumbnailsUI_private.inl
   BeebLinkHTTPHandler.cpp BeebLinkHTTPHandler.h
+  BeebLinkUI.cpp BeebLinkUI.h
   )
 
 if(OSX)

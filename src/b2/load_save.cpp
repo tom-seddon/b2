@@ -25,6 +25,7 @@
 #endif
 #include <beeb/BBCMicro.h>
 #include "b2.h"
+#include "BeebLinkHTTPHandler.h"
 
 #include <shared/enum_def.h>
 #include "load_save.inl"
@@ -954,6 +955,7 @@ static const char VSYNC[]="vsync";
 static const char EXT_MEM[]="ext_mem";
 static const char UNLIMITED[]="unlimited";
 static const char BEEBLINK[]="beeblink";
+static const char URLS[]="urls";
 static const char NVRAM[]="nvram";
 
 //////////////////////////////////////////////////////////////////////////
@@ -1352,6 +1354,25 @@ static bool LoadTrace(rapidjson::Value *trace_json,Messages *msg) {
     return true;
 }
 
+static bool LoadBeebLink(rapidjson::Value *beeblink_json,Messages *msg) {
+    std::vector<std::string> urls;
+
+    rapidjson::Value urls_json;
+    FindArrayMember(&urls_json,beeblink_json,URLS,msg);
+    for(rapidjson::SizeType url_idx=0;url_idx<urls_json.Size();++url_idx) {
+        if(!urls_json[url_idx].IsString()) {
+            msg->e.f("not a string: %s.%s[%u]\n",BEEBLINK,URLS,url_idx);
+            continue;
+        }
+
+        urls.push_back(urls_json[url_idx].GetString());
+    }
+
+    BeebLinkHTTPHandler::SetServerURLs(urls);
+
+    return true;
+}
+
 static bool LoadDockConfig(Messages *msg) {
     std::string fname=GetDockLayoutFileName();
     if(fname.empty()) {
@@ -1438,6 +1459,15 @@ bool LoadGlobalConfig(Messages *msg)
         LOGF(LOADSAVE,"Loading trace.\n");
 
         if(!LoadTrace(&trace,msg)) {
+            return false;
+        }
+    }
+
+    rapidjson::Value beeblink;
+    if(FindObjectMember(&beeblink,doc.get(),BEEBLINK,msg)) {
+        LOGF(LOADSAVE,"Loading BeebLink.\n");
+
+        if(!LoadBeebLink(&beeblink,msg)) {
             return false;
         }
     }
@@ -1722,6 +1752,22 @@ static void SaveTrace(JSONWriter<StringStream> *writer) {
     }
 }
 
+static void SaveBeebLink(JSONWriter<StringStream> *writer) {
+    std::vector<std::string> urls=BeebLinkHTTPHandler::GetServerURLs();
+
+    {
+        auto beeblink_json=ObjectWriter(writer,BEEBLINK);
+
+        {
+            auto urls_json=ArrayWriter(writer,URLS);
+
+            for(const std::string &url:urls) {
+                writer->String(url.c_str());
+            }
+        }
+    }
+}
+
 bool SaveGlobalConfig(Messages *messages) {
     std::string fname=GetConfigFileName();
     if(fname.empty()) {
@@ -1756,6 +1802,8 @@ bool SaveGlobalConfig(Messages *messages) {
         SaveWindows(&writer);
 
         SaveTrace(&writer);
+
+        SaveBeebLink(&writer);
 
         SaveConfigs(&writer);
     }

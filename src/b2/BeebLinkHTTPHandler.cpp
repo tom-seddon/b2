@@ -7,6 +7,9 @@
 #include "Messages.h"
 #include "misc.h"
 #include "BeebThread.h"
+#include "BeebWindows.h"
+#include <shared/mutex.h>
+#include "Messages.h"
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -22,7 +25,14 @@ LOG_TAGGED_DEFINE(BEEBLINK_HTTP,"beeblink_http","",&log_printer_stdout_and_debug
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+const std::string BeebLinkHTTPHandler::DEFAULT_URL="http://127.0.0.1:48875/request";
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 struct BeebLinkHTTPHandler::ThreadState {
+    // Shared stuff
+
     Mutex mutex;
     ConditionVariable cv;
 
@@ -34,6 +44,8 @@ struct BeebLinkHTTPHandler::ThreadState {
 
     std::vector<uint8_t> beeb_to_server_data;
 
+    // Used by the thread once it's running.
+
     std::string sender_id;
 
     CURL *curl=nullptr;
@@ -41,18 +53,70 @@ struct BeebLinkHTTPHandler::ThreadState {
     std::unique_ptr<Log> log;
 
     BeebThread *beeb_thread=nullptr;
+
+    std::shared_ptr<MessageList> message_list;
+
+    // Internal thread stuff.
+
+    // set to the URL to use, once one has been found.
+    std::string url;
 };
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+static Mutex g_mutex;
+static bool g_http_verbose;
+static std::vector<std::string> g_server_urls;
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool BeebLinkHTTPHandler::GetHTTPVerbose() {
+    std::lock_guard<Mutex> lock(g_mutex);
+
+    return g_http_verbose;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BeebLinkHTTPHandler::SetHTTPVerbose(bool verbose) {
+    std::lock_guard<Mutex> lock(g_mutex);
+
+    g_http_verbose=verbose;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BeebLinkHTTPHandler::SetServerURLs(std::vector<std::string> urls) {
+    std::lock_guard<Mutex> lock(g_mutex);
+
+    g_server_urls=std::move(urls);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+std::vector<std::string> BeebLinkHTTPHandler::GetServerURLs() {
+    std::lock_guard<Mutex> lock(g_mutex);
+
+    return g_server_urls;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 BeebLinkHTTPHandler::BeebLinkHTTPHandler(BeebThread *beeb_thread,
-                                         std::string sender_id):
-m_ts(std::make_unique<ThreadState>()),
-m_sender_id(std::move(sender_id))
+                                         std::string sender_id,
+                                         std::shared_ptr<MessageList> message_list):
+    m_ts(std::make_unique<ThreadState>()),
+    m_sender_id(std::move(sender_id))
 {
     MUTEX_SET_NAME(m_ts->mutex,"BeebLinkHTTPHandler "+sender_id);
     m_ts->beeb_thread=beeb_thread;
+    m_ts->message_list=std::move(message_list);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -122,7 +186,7 @@ static void CurlDebugFunction(CURL *handle,
 bool BeebLinkHTTPHandler::Init(Messages *msg) {
     m_ts->curl=curl_easy_init();
     if(!m_ts->curl) {
-        msg->e.f("Failed to create libcurl object\n");
+        msg->e.f("BeebLink - libcurl initialisation failed.\n");
         return false;
     }
 
@@ -132,11 +196,8 @@ bool BeebLinkHTTPHandler::Init(Messages *msg) {
         std::string prefix=std::string(LOG(BEEBLINK).GetPrefix())+": HTTP "+m_sender_id;
         m_ts->log=std::make_unique<Log>(prefix.c_str(),LOG(BEEBLINK).GetLogPrinter(),true);
 
-        if(LOG(BEEBLINK_HTTP).enabled) {
-            curl_easy_setopt(m_ts->curl,CURLOPT_DEBUGFUNCTION,&CurlDebugFunction);
-            curl_easy_setopt(m_ts->curl,CURLOPT_DEBUGDATA,m_ts->log.get());
-            curl_easy_setopt(m_ts->curl,CURLOPT_VERBOSE,1L);
-        }
+        curl_easy_setopt(m_ts->curl,CURLOPT_DEBUGFUNCTION,&CurlDebugFunction);
+        curl_easy_setopt(m_ts->curl,CURLOPT_DEBUGDATA,m_ts->log.get());
     }
 
     // see notes regarding DNS timeouts in https://curl.haxx.se/libcurl/c/CURLOPT_NOSIGNAL.html
@@ -225,6 +286,8 @@ static size_t CurlWriteCallback(char *ptr,
 //////////////////////////////////////////////////////////////////////////
 
 void BeebLinkHTTPHandler::Thread(ThreadState *ts) {
+    Messages msg(ts->message_list);
+
     SetCurrentThreadNamef("%s BLHTTP",ts->sender_id.c_str());
 
     char curl_error_buffer[CURL_ERROR_SIZE];
@@ -235,6 +298,8 @@ void BeebLinkHTTPHandler::Thread(ThreadState *ts) {
     curl_slist *headers=nullptr;
     headers=curl_slist_append(headers,"Content-Type: application-binary");
     headers=curl_slist_append(headers,sender_id_header.c_str());
+
+    bool show_errors=true;
 
     for(;;) {
         std::unique_lock<Mutex> lock(ts->mutex);
@@ -248,54 +313,102 @@ void BeebLinkHTTPHandler::Thread(ThreadState *ts) {
         }
 
         if(ts->busy) {
-            curl_easy_setopt(ts->curl,CURLOPT_URL,"http://127.0.0.1:48875/");
+            bool done=false;
+            std::vector<uint8_t> server_to_beeb_data;
 
-            curl_easy_setopt(ts->curl,CURLOPT_POST,1L);
-            curl_easy_setopt(ts->curl,CURLOPT_CUSTOMREQUEST,"POST");
+            std::vector<std::string> urls;
+            std::vector<CURLcode> results;
+
+            if(ts->url.empty()) {
+                urls=GetServerURLs();
+                urls.insert(urls.begin(),DEFAULT_URL);
+
+            } else {
+                urls.push_back(ts->url);
+            }
+
+            results.resize(urls.size(),CURLE_OK);
+
+            size_t url_index=0;
 
             ASSERT(!ts->beeb_to_server_data.empty());
             std::vector<uint8_t> beeb_to_server_data=std::move(ts->beeb_to_server_data);
 
-            CurlReadPayloadFunctionState readdata;
-            readdata.payload=&beeb_to_server_data;
+            do {
+                curl_easy_setopt(ts->curl,CURLOPT_URL,urls[url_index].c_str());
 
-            curl_easy_setopt(ts->curl,CURLOPT_READFUNCTION,&CurlReadPayloadFunction);
-            curl_easy_setopt(ts->curl,CURLOPT_READDATA,&readdata);
+                curl_easy_setopt(ts->curl,CURLOPT_POST,1L);
+                curl_easy_setopt(ts->curl,CURLOPT_CUSTOMREQUEST,"POST");
 
-            ASSERT(!beeb_to_server_data.empty());
-            auto postfieldsize_large=(curl_off_t)beeb_to_server_data.size();
-            //printf("xxx %zu %" PRIu64 " %" PRIu64 "\n",sizeof(curl_off_t),(uint64_t)beeb_to_server_data.size(),(uint64_t)postfieldsize_large);
-            curl_easy_setopt(ts->curl,CURLOPT_POSTFIELDSIZE_LARGE,postfieldsize_large);
+                CurlReadPayloadFunctionState readdata;
+                readdata.payload=&beeb_to_server_data;
 
-            std::vector<uint8_t> server_to_beeb_data;
-            curl_easy_setopt(ts->curl,CURLOPT_WRITEFUNCTION,&CurlWriteCallback);
-            curl_easy_setopt(ts->curl,CURLOPT_WRITEDATA,&server_to_beeb_data);
+                curl_easy_setopt(ts->curl,CURLOPT_READFUNCTION,&CurlReadPayloadFunction);
+                curl_easy_setopt(ts->curl,CURLOPT_READDATA,&readdata);
 
-            curl_easy_setopt(ts->curl,CURLOPT_HTTPHEADER,headers);
+                ASSERT(!beeb_to_server_data.empty());
+                auto postfieldsize_large=(curl_off_t)beeb_to_server_data.size();
+                //printf("xxx %zu %" PRIu64 " %" PRIu64 "\n",sizeof(curl_off_t),(uint64_t)beeb_to_server_data.size(),(uint64_t)postfieldsize_large);
+                curl_easy_setopt(ts->curl,CURLOPT_POSTFIELDSIZE_LARGE,postfieldsize_large);
 
-            if(ts->log) {
-                ts->log->f("curl_easy_perform...\n");
-            }
+                curl_easy_setopt(ts->curl,CURLOPT_WRITEFUNCTION,&CurlWriteCallback);
+                curl_easy_setopt(ts->curl,CURLOPT_WRITEDATA,&server_to_beeb_data);
 
-            CURLcode perform_result=curl_easy_perform(ts->curl);
+                curl_easy_setopt(ts->curl,CURLOPT_VERBOSE,(long)GetHTTPVerbose());
 
-            if(ts->log) {
-                ts->log->f("curl_easy_perform returned: %d\n",(int)perform_result);
-            }
+                curl_easy_setopt(ts->curl,CURLOPT_HTTPHEADER,headers);
 
-            if(perform_result==CURLE_OK) {
-                long status;
-                curl_easy_getinfo(ts->curl,CURLINFO_RESPONSE_CODE,&status);
-            } else {
                 if(ts->log) {
-                    ts->log->f("Request failed: %s: %s\n",
-                               curl_easy_strerror(perform_result),
-                               curl_error_buffer);
+                    ts->log->f("curl_easy_perform...\n");
                 }
 
-                server_to_beeb_data=BeebLink::GetErrorResponsePacketData(255,
-                                                                         "HTTP request failed");
-            }
+                CURLcode perform_result=curl_easy_perform(ts->curl);
+
+                if(ts->log) {
+                    ts->log->f("curl_easy_perform returned: %d\n",(int)perform_result);
+                }
+
+                if(perform_result==CURLE_OK) {
+                    long status;
+                    curl_easy_getinfo(ts->curl,CURLINFO_RESPONSE_CODE,&status);
+
+                    if(ts->url.empty()) {
+                        ts->url=urls[url_index];
+                    }
+
+                    done=true;
+
+                    // Now it's working, show any errors that appear
+                    // in future.
+                    show_errors=true;
+                } else {
+                    if(ts->log) {
+                        ts->log->f("Request failed: %s: %s\n",
+                                   curl_easy_strerror(perform_result),
+                                   curl_error_buffer);
+                    }
+
+                    results[url_index]=perform_result;
+
+                    // Try next URL in the list...
+                    ++url_index;
+                    ASSERT(url_index<=urls.size());
+                    if(url_index==urls.size()) {
+                        server_to_beeb_data=BeebLink::GetErrorResponsePacketData(255,
+                                                                                 "HTTP request failed");
+
+                        if(show_errors) {
+                            for(size_t i=0;i<urls.size();++i) {
+                                msg.e.f("BeebLink - failed to connect to %s\n",urls[i].c_str());
+                                msg.i.f("(error: %s)\n",curl_easy_strerror(results[i]));
+                            }
+                        }
+
+                        show_errors=false;//don't spam!
+                        done=true;
+                    }
+                }
+            } while(!done);
 
             ASSERT(!server_to_beeb_data.empty());
             ASSERT(ts->beeb_thread);

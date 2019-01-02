@@ -8,7 +8,9 @@
 #include <string>
 #include <thread>
 #include <vector>
+#include <memory>
 
+class MessageList;
 class BeebThread;
 class Messages;
 
@@ -19,8 +21,18 @@ class BeebLinkHTTPHandler:
 public BeebLinkHandler
 {
 public:
+    static const std::string DEFAULT_URL;
+
+    // Settings shared between all HTTP handlers.
+    static bool GetHTTPVerbose();
+    static void SetHTTPVerbose(bool verbose);
+
+    static void SetServerURLs(std::vector<std::string> urls);
+    static std::vector<std::string> GetServerURLs();
+
     explicit BeebLinkHTTPHandler(BeebThread *beeb_thread,
-                                 std::string sender_id);
+                                 std::string sender_id,
+                                 std::shared_ptr<MessageList> message_list);
     ~BeebLinkHTTPHandler();
 
     bool Init(Messages *msg);

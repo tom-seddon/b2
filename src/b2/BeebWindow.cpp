@@ -38,6 +38,7 @@
 #include "HTTPServer.h"
 #include "DirectDiscImage.h"
 #include "SavedStatesUI.h"
+#include "BeebLinkUI.h"
 
 #ifdef _MSC_VER
 #include <crtdbg.h>
@@ -743,7 +744,7 @@ const BeebWindow::SettingsUIMetadata BeebWindow::ms_settings_uis[]={
     {BeebWindowPopupType_Options,"Options","toggle_emulator_options",&BeebWindow::CreateOptionsUI},
     {BeebWindowPopupType_Messages,"Messages","toggle_messages",&CreateMessagesUI},
     {BeebWindowPopupType_Timeline,"Timeline","toggle_timeline",&BeebWindow::CreateTimelineUI},
-    {BeebWindowPopupType_SavedStates,"Saved states","toggle_saved_states",&BeebWindow::CreateSavedStatesUI},
+    {BeebWindowPopupType_SavedStates,"Saved States","toggle_saved_states",&BeebWindow::CreateSavedStatesUI},
     {BeebWindowPopupType_Configs,"Configurations","toggle_configurations",&CreateConfigsUI},
 #if BBCMICRO_TRACE
     {BeebWindowPopupType_Trace,"Tracing","toggle_event_trace",&CreateTraceUI},
@@ -772,6 +773,7 @@ const BeebWindow::SettingsUIMetadata BeebWindow::ms_settings_uis[]={
     {BeebWindowPopupType_UserVIADebugger,"User VIA Debug","toggle_user_via_debugger",&CreateUserVIADebugWindow,},
     {BeebWindowPopupType_NVRAMDebugger,"NVRAM Debug","toggle_nvram_debugger",&CreateNVRAMDebugWindow,},
 #endif
+    {BeebWindowPopupType_BeebLink,"BeebLink Options","toggle_beeblink_options",&CreateBeebLinkUI},
 
     // Keep this one at the end, because the command context stack is
     // updated as it goes...
@@ -1277,6 +1279,7 @@ void BeebWindow::DoToolsMenu() {
         m_occ.DoMenuItemUI("toggle_timeline");
         m_occ.DoMenuItemUI("toggle_saved_states");
         m_occ.DoMenuItemUI("toggle_configurations");
+        m_occ.DoMenuItemUI("toggle_beeblink_options");
 
         // if(ImGui::MenuItem("Dump states")) {
         //     std::vector<std::shared_ptr<BeebState>> all_states=BeebState::GetAllStates();
@@ -2718,6 +2721,7 @@ ObjectCommandTable<BeebWindow> BeebWindow::ms_command_table("Beeb Window",{
     GetTogglePopupCommand<BeebWindowPopupType_SystemVIADebugger>(),
     GetTogglePopupCommand<BeebWindowPopupType_UserVIADebugger>(),
     GetTogglePopupCommand<BeebWindowPopupType_NVRAMDebugger>(),
+    GetTogglePopupCommand<BeebWindowPopupType_BeebLink>(),
 
     {CommandDef("debug_stop","Stop").Shortcut(SDLK_F5|PCKeyModifier_Shift),&BeebWindow::DebugStop,nullptr,&BeebWindow::DebugIsStopEnabled},
     {CommandDef("debug_run","Run").Shortcut(SDLK_F5),&BeebWindow::DebugRun,nullptr,&BeebWindow::DebugIsRunEnabled},

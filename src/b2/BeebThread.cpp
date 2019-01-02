@@ -428,7 +428,8 @@ void BeebThread::HardResetMessage::HardReset(BeebThread *beeb_thread,
         if(!ts->beeblink_handler) {
             std::string sender_id=strprintf("%" PRIu64,beeb_thread->m_uid);
             ts->beeblink_handler=std::make_unique<BeebLinkHTTPHandler>(beeb_thread,
-                                                                       std::move(sender_id));
+                                                                       std::move(sender_id),
+                                                                       beeb_thread->m_message_list);
 
             if(!ts->beeblink_handler->Init(&ts->msgs)) {
                 // Ugh. Just give up.
