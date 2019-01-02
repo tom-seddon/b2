@@ -230,7 +230,7 @@ bool ImGuiStuff::Init() {
     ImFontConfig fa_config;
     fa_config.MergeMode=true;
     fa_config.PixelSnapH=true;
-    io.Fonts->AddFontFromFileTTF(GetAssetPath(FAS_FILE_NAME).c_str(),16.f,&fa_config,FA_ICONS_RANGES);
+    io.Fonts->AddFontFromFileTTF(GetAssetPath(FAS_FILE_NAME).c_str(),12.f,&fa_config,FA_ICONS_RANGES);
 
     unsigned char *pixels;
     int width,height;
