@@ -188,7 +188,7 @@ public:
     void Pop(int count=1);
 
     // standard things...
-    void PushDisabledButtonColours();
+    void PushDisabledButtonColours(bool disabled=true);
     void PushDefaultButtonColours();
 
     void PushDefault(ImGuiCol idx0,ImGuiCol idx1=ImGuiCol_COUNT,ImGuiCol idx2=ImGuiCol_COUNT,ImGuiCol idx3=ImGuiCol_COUNT);

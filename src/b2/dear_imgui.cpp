@@ -687,11 +687,15 @@ void ImGuiStyleColourPusher::PushDefault(ImGuiCol idx0,ImGuiCol idx1,ImGuiCol id
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void ImGuiStyleColourPusher::PushDisabledButtonColours() {
-    this->Push(ImGuiCol_Text,DISABLED_BUTTON_TEXT_COLOUR);
-    this->Push(ImGuiCol_Button,DISABLED_BUTTON_COLOUR);
-    this->Push(ImGuiCol_ButtonHovered,DISABLED_BUTTON_HOVERED_COLOUR);
-    this->Push(ImGuiCol_ButtonActive,DISABLED_BUTTON_ACTIVE_COLOUR);
+void ImGuiStyleColourPusher::PushDisabledButtonColours(bool disabled) {
+    if(disabled) {
+        this->Push(ImGuiCol_Text,DISABLED_BUTTON_TEXT_COLOUR);
+        this->Push(ImGuiCol_Button,DISABLED_BUTTON_COLOUR);
+        this->Push(ImGuiCol_ButtonHovered,DISABLED_BUTTON_HOVERED_COLOUR);
+        this->Push(ImGuiCol_ButtonActive,DISABLED_BUTTON_ACTIVE_COLOUR);
+    } else {
+        this->PushDefaultButtonColours();
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////
