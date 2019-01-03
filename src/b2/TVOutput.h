@@ -62,6 +62,10 @@ public:
     // returns pointer to TVOutput's copy of the pixel format.
     const SDL_PixelFormat *GetPixelFormat() const;
 
+    // returns false, *X and *Y untouched, if beam is outside the
+    // visible area.
+    bool GetBeamPosition(size_t *x,size_t *y) const;
+
     bool IsInVerticalBlank() const;
 
     double GetGamma() const;

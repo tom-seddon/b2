@@ -156,8 +156,8 @@ Additional debug options can be found in `Tools` > `Options` in the
 `Teletext debug` will overlay the teletext display with the value of
 the character in each cell.
 
-`Show TV beam position` will show (with a little white dot) where the
-TV beam is when the emulator is stopped in the debugger.
+`Show TV beam position` will indicate where the TV beam, with a line
+starting just after its current position.
 
 # Other debugger stuff
 
