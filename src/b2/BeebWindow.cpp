@@ -1513,6 +1513,7 @@ void BeebWindow::UpdateTVTexture(VBlankRecord *vblank_record) {
                         }
                     }
 
+#if BBCMICRO_DEBUGGER
                     if(m_show_beam_position) {
                         size_t x,y;
                         if(m_tv.GetBeamPosition(&x,&y)) {
@@ -1530,6 +1531,7 @@ void BeebWindow::UpdateTVTexture(VBlankRecord *vblank_record) {
                             }
                         }
                     }
+#endif
 
                     SDL_UnlockTexture(m_tv_texture);
                 }
