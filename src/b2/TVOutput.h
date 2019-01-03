@@ -47,7 +47,6 @@ public:
     void Update(const VideoDataUnit *units,size_t num_units);
 
 #if BBCMICRO_DEBUGGER
-    void AddBeamMarker();
     void FillWithTestPattern();
 #endif
 

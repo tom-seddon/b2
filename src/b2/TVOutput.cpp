@@ -445,17 +445,6 @@ line1[INDEX]=line0[INDEX]=(uint32_t)r##INDEX<<m_rshift|(uint32_t)g##INDEX<<m_gsh
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_DEBUGGER
-void TVOutput::AddBeamMarker() {
-    if(m_x<TV_TEXTURE_WIDTH&&m_y<TV_TEXTURE_HEIGHT) {
-        m_texture_data[m_x+m_y*TV_TEXTURE_WIDTH]=0xffffffff;
-    }
-}
-#endif
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-#if BBCMICRO_DEBUGGER
 
 static const uint8_t DIGITS[10][13]={
     {0x00,0x00,0x04,0x0A,0x11,0x11,0x11,0x11,0x11,0x0A,0x04,0x00,0x00,},// 48 (0x30) '0'

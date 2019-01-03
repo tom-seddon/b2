@@ -113,8 +113,8 @@ const char BeebWindow::SDL_WINDOW_DATA_NAME[]="D";
 //////////////////////////////////////////////////////////////////////////
 
 BeebWindow::DriveState::DriveState():
-open_disc_image_file_dialog(RECENT_PATHS_DISC_IMAGE),
-open_direct_disc_image_file_dialog(RECENT_PATHS_DISC_IMAGE)
+    open_disc_image_file_dialog(RECENT_PATHS_DISC_IMAGE),
+    open_direct_disc_image_file_dialog(RECENT_PATHS_DISC_IMAGE)
 {
     std::vector<std::string> extensions=DISC_IMAGE_EXTENSIONS;
     extensions.push_back(".zip");
@@ -932,7 +932,7 @@ void BeebWindow::DoPopupUI(uint64_t now,int output_width,int output_height) {
     bool pasting=m_beeb_thread->IsPasting();
     bool copying=m_beeb_thread->IsCopying();
     if(ValueChanged(&m_leds,m_beeb_thread->GetLEDs())||
-       (m_leds&BBCMicroLEDFlags_AllDrives)||
+        (m_leds&BBCMicroLEDFlags_AllDrives)||
        timeline_state.state!=BeebThreadTimelineState_None||
        copying||
        pasting)
@@ -966,27 +966,27 @@ void BeebWindow::DoPopupUI(uint64_t now,int output_width,int output_height) {
             colour_pusher.Push(ImGuiCol_CheckMark,ImVec4(0.f,1.f,0.f,1.f));
 
             switch(timeline_state.state) {
-                case BeebThreadTimelineState_None:
-                    ImGuiLED(false,"Replay");
-                    break;
+            case BeebThreadTimelineState_None:
+                ImGuiLED(false,"Replay");
+                break;
 
-                case BeebThreadTimelineState_Replay:
-                    ImGuiLED(true,"Replay");
-                    ImGui::SameLine();
-                    if(ImGui::Button("Stop")) {
-                        m_beeb_thread->Send(std::make_shared<BeebThread::StopReplayMessage>());
-                    }
-                    break;
+            case BeebThreadTimelineState_Replay:
+                ImGuiLED(true,"Replay");
+                ImGui::SameLine();
+                if(ImGui::Button("Stop")) {
+                    m_beeb_thread->Send(std::make_shared<BeebThread::StopReplayMessage>());
+                }
+                break;
 
-                case BeebThreadTimelineState_Record:
-                    colour_pusher.Push(ImGuiCol_CheckMark,ImVec4(1.f,0.f,0.f,1.f));
-                    ImGuiLED(true,"Record");
-                    ImGui::SameLine();
-                    if(ImGuiConfirmButton("Stop")) {
-                        m_beeb_thread->Send(std::make_shared<BeebThread::StopRecordingMessage>());
-                    }
-                    colour_pusher.Pop();
-                    break;
+            case BeebThreadTimelineState_Record:
+                colour_pusher.Push(ImGuiCol_CheckMark,ImVec4(1.f,0.f,0.f,1.f));
+                ImGuiLED(true,"Record");
+                ImGui::SameLine();
+                if(ImGuiConfirmButton("Stop")) {
+                    m_beeb_thread->Send(std::make_shared<BeebThread::StopRecordingMessage>());
+                }
+                colour_pusher.Pop();
+                break;
             }
 
             ImGui::SameLine();
@@ -1153,7 +1153,7 @@ void BeebWindow::DoFileMenu() {
                 FileMenuItem file_item(&d->open_disc_image_file_dialog,"Disc image...","Recent disc image");
                 if(file_item.selected) {
                     std::shared_ptr<MemoryDiscImage> new_disc_image=MemoryDiscImage::LoadFromFile(file_item.path,
-                                                                                              &m_msg);
+                                                                                                  &m_msg);
                     if(!!new_disc_image) {
                         m_beeb_thread->Send(std::make_shared<BeebThread::LoadDiscMessage>(drive,
                                                                                           std::move(new_disc_image),
@@ -1167,7 +1167,7 @@ void BeebWindow::DoFileMenu() {
                                          "Recent direct disc image");
                 if(direct_item.selected) {
                     std::shared_ptr<DirectDiscImage> new_disc_image=DirectDiscImage::CreateForFile(direct_item.path,
-                                                                                               &m_msg);
+                                                                                                   &m_msg);
                     if(!!new_disc_image) {
                         m_beeb_thread->Send(std::make_shared<BeebThread::LoadDiscMessage>(drive,
                                                                                           std::move(new_disc_image),
@@ -1417,124 +1417,91 @@ void BeebWindow::UpdateTVTexture(VBlankRecord *vblank_record) {
 #endif
 
     if(video_output->GetConsumerBuffers(&a,&na,&b,&nb)) {
+        if(!update) {
+            // Discard...
+            video_output->Consume(na+nb);
+        } else {
+            size_t num_left;
+            const size_t MAX_UPDATE_SIZE=200;
 
-        // This was introduced in 8b9db5d ("When speed limited, consume video
-        // data based on real time passed"), causing a problem with the later
-        // speed slider: because real time was a factor, the maximum speed
-        // possible was 1x.
-        //
-        // I don't remember what the point of this bit was anyway. Data is
-        // being produced at the appropriate rate already, so why not always
-        // consume all of it?
+            // A.
+            num_left=na;
+            while(num_left>0) {
+                size_t n=num_left;
+                if(n>MAX_UPDATE_SIZE) {
+                    n=MAX_UPDATE_SIZE;
+                }
 
-//        bool limited=m_beeb_thread->IsSpeedLimited();
-//
-//        if(limited) {
-//            if(na+nb>num_units_left) {
-//                if(na>num_units_left) {
-//                    na=num_units_left;
-//                    nb=0;
-//                } else {
-//                    nb=num_units_left-na;
-//                }
-//            }
-//        }
-
-        size_t num_left;
-        const size_t MAX_UPDATE_SIZE=200;
-
-        // A.
-        num_left=na;
-        while(num_left>0) {
-            size_t n=num_left;
-            if(n>MAX_UPDATE_SIZE) {
-                n=MAX_UPDATE_SIZE;
-            }
-
-            if(update) {
                 m_tv.Update(a,n);
+
+                a+=n;
+                video_output->Consume(n);
+                num_left-=n;
             }
 
-            a+=n;
-            video_output->Consume(n);
-            num_left-=n;
-        }
+            // B.
+            num_left=nb;
+            while(num_left>0) {
+                size_t n=num_left;
+                if(n>MAX_UPDATE_SIZE) {
+                    n=MAX_UPDATE_SIZE;
+                }
 
-        // B.
-        num_left=nb;
-        while(num_left>0) {
-            size_t n=num_left;
-            if(n>MAX_UPDATE_SIZE) {
-                n=MAX_UPDATE_SIZE;
-            }
-
-            if(update) {
                 m_tv.Update(b,n);
-            }
 
-            b+=n;
-            video_output->Consume(n);
-            num_left-=n;
+                b+=n;
+                video_output->Consume(n);
+                num_left-=n;
+            }
         }
 
         num_units_consumed+=na+nb;
-    } else {
-        update=false;
-        //#if BBCMICRO_DEBUGGER
-        //        if(update) {
-        //            if(m_show_beam_position) {
-        //                m_tv.AddBeamMarker();
-        //            }
-        //        }
-        //#endif
     }
 
     vblank_record->num_video_units=num_units_consumed;
 
-    if(update) {
-        if(m_tv_texture) {
-            if(const void *src_pixels=m_tv.GetTextureData(nullptr)) {
-                void *dest_pixels;
-                int dest_pitch;
-                if(SDL_LockTexture(m_tv_texture,nullptr,&dest_pixels,&dest_pitch)==0) {
-                    ASSERT(dest_pitch>0);
-                    size_t src_pitch=(int)TV_TEXTURE_WIDTH*4;
+    if(m_tv_texture) {
+        if(const void *src_pixels=m_tv.GetTextureData(nullptr)) {
+            void *dest_pixels;
+            int dest_pitch;
+            if(SDL_LockTexture(m_tv_texture,nullptr,&dest_pixels,&dest_pitch)==0) {
+                ASSERT(dest_pitch>0);
+                size_t src_pitch=(int)TV_TEXTURE_WIDTH*4;
 
-                    if(src_pitch==(size_t)dest_pitch) {
-                        memcpy(dest_pixels,src_pixels,TV_TEXTURE_HEIGHT*TV_TEXTURE_WIDTH*4);
-                    } else {
-                        auto dest=(char *)dest_pixels;
-                        auto src=(const char *)src_pixels;
+                if(src_pitch==(size_t)dest_pitch) {
+                    memcpy(dest_pixels,src_pixels,TV_TEXTURE_HEIGHT*TV_TEXTURE_WIDTH*4);
+                } else {
+                    auto dest=(char *)dest_pixels;
+                    auto src=(const char *)src_pixels;
 
-                        for(size_t y=0;y<TV_TEXTURE_HEIGHT;++y) {
-                            memcpy(dest,src,src_pitch);
-                            dest+=dest_pitch;
-                            src+=src_pitch;
-                        }
+                    for(size_t y=0;y<TV_TEXTURE_HEIGHT;++y) {
+                        memcpy(dest,src,src_pitch);
+                        dest+=dest_pitch;
+                        src+=src_pitch;
                     }
+                }
 
 #if BBCMICRO_DEBUGGER
-                    if(m_show_beam_position) {
-                        size_t x,y;
-                        if(m_tv.GetBeamPosition(&x,&y)) {
-                            // Sneak it in on top. Don't read from the
-                            // locked data.
+                if(m_show_beam_position) {
+                    size_t x,y;
+                    if(m_tv.GetBeamPosition(&x,&y)) {
+                        // Sneak it in on top. Don't read from the
+                        // locked data.
 
-                            //if(m_pixel_format->format==SDL_PIXELFORMAT_ARGB8888) {
-                            //} else {
-                            auto dest=(uint32_t *)((char *)dest_pixels+y*(size_t)dest_pitch);
-                            auto src=(const uint32_t *)((const char *)src_pixels+y*src_pitch);
-                            uint32_t mask=m_pixel_format->Rmask|m_pixel_format->Gmask|m_pixel_format->Bmask;
+                        //if(m_pixel_format->format==SDL_PIXELFORMAT_ARGB8888) {
+                        //} else {
+                        auto dest=(uint32_t *)((char *)dest_pixels+y*(size_t)dest_pitch);
+                        auto src=(const uint32_t *)((const char *)src_pixels+y*src_pitch);
+                        uint32_t mask=m_pixel_format->Rmask|m_pixel_format->Gmask|m_pixel_format->Bmask;
 
-                            for(size_t i=x;i<TV_TEXTURE_WIDTH;++i) {
-                                dest[i]=src[i]^mask;
-                            }
+                        for(size_t i=x;i<TV_TEXTURE_WIDTH;++i) {
+                            dest[i]=src[i]^mask;
                         }
                     }
+                }
 #endif
 
-                    SDL_UnlockTexture(m_tv_texture);
-                }
+                SDL_UnlockTexture(m_tv_texture);
             }
         }
     }
@@ -1798,7 +1765,7 @@ void BeebWindow::SavePosition() {
     BeebWindows::SetLastWindowPlacementData(buf);
 
 #endif
-    }
+}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -1920,7 +1887,7 @@ bool BeebWindow::InitInternal() {
             g_unbind_opengl=1;
 }
 #endif
-}
+    }
     ++g_num_BeebWindow_inits;
 #endif
 
@@ -2721,60 +2688,60 @@ bool BeebWindow::SaveDefaultNVRAMIsEnabled() const {
 
 ObjectCommandTable<BeebWindow> BeebWindow::ms_command_table("Beeb Window",{
     {{"hard_reset","Hard Reset"},&BeebWindow::HardReset},
-//    {{"load_last_state","Load Last State"},&BeebWindow::LoadLastState,nullptr,&BeebWindow::IsLoadLastStateEnabled},
-    {{"save_state","Save State"},&BeebWindow::SaveState},
-    GetTogglePopupCommand<BeebWindowPopupType_Options>(),
-    GetTogglePopupCommand<BeebWindowPopupType_Keymaps>(),
-    GetTogglePopupCommand<BeebWindowPopupType_Timeline>(),
-    GetTogglePopupCommand<BeebWindowPopupType_SavedStates>(),
-    GetTogglePopupCommand<BeebWindowPopupType_Messages>(),
-    GetTogglePopupCommand<BeebWindowPopupType_Configs>(),
-#if BBCMICRO_TRACE
-    GetTogglePopupCommand<BeebWindowPopupType_Trace>(),
-#endif
-    GetTogglePopupCommand<BeebWindowPopupType_AudioCallback>(),
-    GetTogglePopupCommand<BeebWindowPopupType_CommandContextStack>(),
-    GetTogglePopupCommand<BeebWindowPopupType_CommandKeymaps>(),
-    {CommandDef("exit","Exit").MustConfirm(),&BeebWindow::Exit},
-    {CommandDef("clean_up_recent_files_lists","Clean up recent files lists").MustConfirm(),&BeebWindow::CleanUpRecentFilesLists},
-    {CommandDef("reset_dock_windows","Reset dock windows").MustConfirm(),&BeebWindow::ResetDockWindows},
-#if SYSTEM_WINDOWS
-    {{"clear_console","Clear Win32 console"},&BeebWindow::ClearConsole},
-#endif
-    {{"print_separator","Print stdout separator"},&BeebWindow::PrintSeparator},
-    {{"paste","OSRDCH Paste"},&BeebWindow::Paste,&BeebWindow::IsPasteTicked},
-    {{"paste_return","OSRDCH Paste (+Return)"},&BeebWindow::PasteThenReturn,&BeebWindow::IsPasteTicked},
-    {{"toggle_copy_oswrch_text","OSWRCH Copy Text"},&BeebWindow::CopyOSWRCH<true>,&BeebWindow::IsCopyOSWRCHTicked},
-    {{"copy_basic","Copy BASIC listing"},&BeebWindow::CopyBASIC,&BeebWindow::IsCopyOSWRCHTicked,&BeebWindow::IsCopyBASICEnabled},
-#if VIDEO_TRACK_METADATA
-    GetTogglePopupCommand<BeebWindowPopupType_PixelMetadata>(),
-#endif
-#if ENABLE_IMGUI_TEST
-    GetTogglePopupCommand<BeebWindowPopupType_DearImguiTest>(),
-#endif
-#if BBCMICRO_DEBUGGER
-    GetTogglePopupCommand<BeebWindowPopupType_6502Debugger>(),
-    GetTogglePopupCommand<BeebWindowPopupType_MemoryDebugger1>(),
-    GetTogglePopupCommand<BeebWindowPopupType_MemoryDebugger2>(),
-    GetTogglePopupCommand<BeebWindowPopupType_MemoryDebugger3>(),
-    GetTogglePopupCommand<BeebWindowPopupType_MemoryDebugger4>(),
-    GetTogglePopupCommand<BeebWindowPopupType_ExtMemoryDebugger1>(),
-    GetTogglePopupCommand<BeebWindowPopupType_ExtMemoryDebugger2>(),
-    GetTogglePopupCommand<BeebWindowPopupType_ExtMemoryDebugger3>(),
-    GetTogglePopupCommand<BeebWindowPopupType_ExtMemoryDebugger4>(),
-    GetTogglePopupCommand<BeebWindowPopupType_DisassemblyDebugger>(),
-    GetTogglePopupCommand<BeebWindowPopupType_CRTCDebugger>(),
-    GetTogglePopupCommand<BeebWindowPopupType_VideoULADebugger>(),
-    GetTogglePopupCommand<BeebWindowPopupType_SystemVIADebugger>(),
-    GetTogglePopupCommand<BeebWindowPopupType_UserVIADebugger>(),
-    GetTogglePopupCommand<BeebWindowPopupType_NVRAMDebugger>(),
-    GetTogglePopupCommand<BeebWindowPopupType_BeebLink>(),
+    //    {{"load_last_state","Load Last State"},&BeebWindow::LoadLastState,nullptr,&BeebWindow::IsLoadLastStateEnabled},
+        {{"save_state","Save State"},&BeebWindow::SaveState},
+        GetTogglePopupCommand<BeebWindowPopupType_Options>(),
+        GetTogglePopupCommand<BeebWindowPopupType_Keymaps>(),
+        GetTogglePopupCommand<BeebWindowPopupType_Timeline>(),
+        GetTogglePopupCommand<BeebWindowPopupType_SavedStates>(),
+        GetTogglePopupCommand<BeebWindowPopupType_Messages>(),
+        GetTogglePopupCommand<BeebWindowPopupType_Configs>(),
+    #if BBCMICRO_TRACE
+        GetTogglePopupCommand<BeebWindowPopupType_Trace>(),
+    #endif
+        GetTogglePopupCommand<BeebWindowPopupType_AudioCallback>(),
+        GetTogglePopupCommand<BeebWindowPopupType_CommandContextStack>(),
+        GetTogglePopupCommand<BeebWindowPopupType_CommandKeymaps>(),
+        {CommandDef("exit","Exit").MustConfirm(),&BeebWindow::Exit},
+        {CommandDef("clean_up_recent_files_lists","Clean up recent files lists").MustConfirm(),&BeebWindow::CleanUpRecentFilesLists},
+        {CommandDef("reset_dock_windows","Reset dock windows").MustConfirm(),&BeebWindow::ResetDockWindows},
+    #if SYSTEM_WINDOWS
+        {{"clear_console","Clear Win32 console"},&BeebWindow::ClearConsole},
+    #endif
+        {{"print_separator","Print stdout separator"},&BeebWindow::PrintSeparator},
+        {{"paste","OSRDCH Paste"},&BeebWindow::Paste,&BeebWindow::IsPasteTicked},
+        {{"paste_return","OSRDCH Paste (+Return)"},&BeebWindow::PasteThenReturn,&BeebWindow::IsPasteTicked},
+        {{"toggle_copy_oswrch_text","OSWRCH Copy Text"},&BeebWindow::CopyOSWRCH<true>,&BeebWindow::IsCopyOSWRCHTicked},
+        {{"copy_basic","Copy BASIC listing"},&BeebWindow::CopyBASIC,&BeebWindow::IsCopyOSWRCHTicked,&BeebWindow::IsCopyBASICEnabled},
+    #if VIDEO_TRACK_METADATA
+        GetTogglePopupCommand<BeebWindowPopupType_PixelMetadata>(),
+    #endif
+    #if ENABLE_IMGUI_TEST
+        GetTogglePopupCommand<BeebWindowPopupType_DearImguiTest>(),
+    #endif
+    #if BBCMICRO_DEBUGGER
+        GetTogglePopupCommand<BeebWindowPopupType_6502Debugger>(),
+        GetTogglePopupCommand<BeebWindowPopupType_MemoryDebugger1>(),
+        GetTogglePopupCommand<BeebWindowPopupType_MemoryDebugger2>(),
+        GetTogglePopupCommand<BeebWindowPopupType_MemoryDebugger3>(),
+        GetTogglePopupCommand<BeebWindowPopupType_MemoryDebugger4>(),
+        GetTogglePopupCommand<BeebWindowPopupType_ExtMemoryDebugger1>(),
+        GetTogglePopupCommand<BeebWindowPopupType_ExtMemoryDebugger2>(),
+        GetTogglePopupCommand<BeebWindowPopupType_ExtMemoryDebugger3>(),
+        GetTogglePopupCommand<BeebWindowPopupType_ExtMemoryDebugger4>(),
+        GetTogglePopupCommand<BeebWindowPopupType_DisassemblyDebugger>(),
+        GetTogglePopupCommand<BeebWindowPopupType_CRTCDebugger>(),
+        GetTogglePopupCommand<BeebWindowPopupType_VideoULADebugger>(),
+        GetTogglePopupCommand<BeebWindowPopupType_SystemVIADebugger>(),
+        GetTogglePopupCommand<BeebWindowPopupType_UserVIADebugger>(),
+        GetTogglePopupCommand<BeebWindowPopupType_NVRAMDebugger>(),
+        GetTogglePopupCommand<BeebWindowPopupType_BeebLink>(),
 
-    {CommandDef("debug_stop","Stop").Shortcut(SDLK_F5|PCKeyModifier_Shift),&BeebWindow::DebugStop,nullptr,&BeebWindow::DebugIsStopEnabled},
-    {CommandDef("debug_run","Run").Shortcut(SDLK_F5),&BeebWindow::DebugRun,nullptr,&BeebWindow::DebugIsRunEnabled},
-    {CommandDef("debug_step_over","Step Over").Shortcut(SDLK_F10),&BeebWindow::DebugStepOver,nullptr,&BeebWindow::DebugIsRunEnabled},
-    {CommandDef("debug_step_in","Step In").Shortcut(SDLK_F11),&BeebWindow::DebugStepIn,nullptr,&BeebWindow::DebugIsRunEnabled},
-#endif
-    {CommandDef("save_default_nvram","Save default NVRAM"),&BeebWindow::SaveDefaultNVRAM,nullptr,&BeebWindow::SaveDefaultNVRAMIsEnabled},
-    {CommandDef("reset_default_nvram","Reset default NVRAM").MustConfirm(),&BeebWindow::ResetDefaultNVRAM,nullptr,&BeebWindow::SaveDefaultNVRAMIsEnabled},
+        {CommandDef("debug_stop","Stop").Shortcut(SDLK_F5|PCKeyModifier_Shift),&BeebWindow::DebugStop,nullptr,&BeebWindow::DebugIsStopEnabled},
+        {CommandDef("debug_run","Run").Shortcut(SDLK_F5),&BeebWindow::DebugRun,nullptr,&BeebWindow::DebugIsRunEnabled},
+        {CommandDef("debug_step_over","Step Over").Shortcut(SDLK_F10),&BeebWindow::DebugStepOver,nullptr,&BeebWindow::DebugIsRunEnabled},
+        {CommandDef("debug_step_in","Step In").Shortcut(SDLK_F11),&BeebWindow::DebugStepIn,nullptr,&BeebWindow::DebugIsRunEnabled},
+    #endif
+        {CommandDef("save_default_nvram","Save default NVRAM"),&BeebWindow::SaveDefaultNVRAM,nullptr,&BeebWindow::SaveDefaultNVRAMIsEnabled},
+        {CommandDef("reset_default_nvram","Reset default NVRAM").MustConfirm(),&BeebWindow::ResetDefaultNVRAM,nullptr,&BeebWindow::SaveDefaultNVRAMIsEnabled},
 });
