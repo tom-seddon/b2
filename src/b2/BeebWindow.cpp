@@ -256,9 +256,9 @@ BeebWindow::BeebWindow(BeebWindowInitArguments init_arguments):
     m_msg=Messages(m_message_list);
 
     m_beeb_thread=std::make_shared<BeebThread>(m_message_list,
-                                               init_arguments.sound_device,
-                                               init_arguments.sound_spec.freq,
-                                               init_arguments.sound_spec.samples,
+                                               m_init_arguments.sound_device,
+                                               m_init_arguments.sound_spec.freq,
+                                               m_init_arguments.sound_spec.samples,
                                                m_init_arguments.default_config,
                                                std::vector<BeebThread::TimelineEventList>());
 
@@ -1500,9 +1500,10 @@ void BeebWindow::UpdateTVTexture(VBlankRecord *vblank_record) {
                 void *dest_pixels;
                 int dest_pitch;
                 if(SDL_LockTexture(m_tv_texture,nullptr,&dest_pixels,&dest_pitch)==0) {
-                    int src_pitch=(int)TV_TEXTURE_WIDTH*4;
+                    ASSERT(dest_pitch>0);
+                    size_t src_pitch=(int)TV_TEXTURE_WIDTH*4;
 
-                    if(src_pitch==dest_pitch) {
+                    if(src_pitch==(size_t)dest_pitch) {
                         memcpy(dest_pixels,src_pixels,TV_TEXTURE_HEIGHT*TV_TEXTURE_WIDTH*4);
                     } else {
                         auto dest=(char *)dest_pixels;
@@ -1523,7 +1524,7 @@ void BeebWindow::UpdateTVTexture(VBlankRecord *vblank_record) {
 
                             //if(m_pixel_format->format==SDL_PIXELFORMAT_ARGB8888) {
                             //} else {
-                            auto dest=(uint32_t *)((char *)dest_pixels+y*dest_pitch);
+                            auto dest=(uint32_t *)((char *)dest_pixels+y*(size_t)dest_pitch);
                             auto src=(const uint32_t *)((const char *)src_pixels+y*src_pitch);
                             uint32_t mask=m_pixel_format->Rmask|m_pixel_format->Gmask|m_pixel_format->Bmask;
 
@@ -1939,23 +1940,53 @@ bool BeebWindow::InitInternal() {
         return false;
     }
 
-    //m_beeb_thread=BeebThread_Alloc();
-
     if(!m_beeb_thread->Start()) {
         m_msg.e.f("Failed to start BBC\n");//: %s",BeebThread_GetError(m_beeb_thread));
         return false;
     }
 
-//    // Need to initialise BeebLoadedConfig here from m_init_arguments.default_config,
-//    // now that the timeline is no longer with us...
-//    ASSERT(false);
-
     if(!!m_init_arguments.initial_state) {
-        // Load initial state, and use parent timeline event ID (whichever it is).
+        // Load initial state.
         m_beeb_thread->Send(std::make_shared<BeebThread::LoadStateMessage>(m_init_arguments.initial_state,
                                                                            false));
+
+        for(int i=0;i<NUM_DRIVES;++i) {
+            ASSERT(!m_init_arguments.init_disc_images[i]);
+            m_init_arguments.init_disc_images[i].reset();
+        }
+
+        ASSERT(!m_init_arguments.boot);
+        m_init_arguments.boot=false;
     } else {
         m_beeb_thread->Send(std::make_shared<BeebThread::HardResetAndChangeConfigMessage>(0,m_init_arguments.default_config));
+
+        // If there were any discs mounted, or there's any booting needed,
+        // another reboot will be necessary. This can't all be done with one
+        // HardReset message, because until the first one there's no BBCMicro
+        // object. <<rolleyes smiley>>
+        uint32_t flags=0;
+        bool again=false;
+
+        // Mount initial discs.
+        for(int i=0;i<NUM_DRIVES;++i) {
+            if(!!m_init_arguments.init_disc_images[i]) {
+                auto message=std::make_shared<BeebThread::LoadDiscMessage>(i,
+                                                                           std::move(m_init_arguments.init_disc_images[i]),
+                                                                           true);
+                m_beeb_thread->Send(std::move(message));
+                again=true;
+            }
+        }
+
+        if(m_init_arguments.boot) {
+            flags|=BeebThreadHardResetFlag_Boot;
+            again=true;
+            m_init_arguments.boot=false;
+        }
+
+        if(flags!=0) {
+            m_beeb_thread->Send(std::make_shared<BeebThread::HardResetAndChangeConfigMessage>(flags,m_init_arguments.default_config));
+        }
     }
 
     if(!m_init_arguments.initially_paused) {

@@ -5,7 +5,7 @@ cmake_minimum_required(VERSION 3.5)
 
 add_executable(b2 MACOSX_BUNDLE
   b2.cpp b2.h b2.inl
-  BeebThread.cpp BeebThread.h BeebThread.inl
+  BeebThread.cpp BeebThread.h BeebThread.inl BeebThread_private.inl
   BeebWindows.cpp BeebWindows.h 
   dear_imgui.cpp dear_imgui.h
   download.h

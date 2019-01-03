@@ -896,11 +896,6 @@ static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &init
 
     InitDefaultBeebConfigs();
 
-    std::shared_ptr<DiscImage> init_disc_images[NUM_DRIVES];
-    if(!LoadInitialDiscImages(init_disc_images,options,&init_messages)) {
-        return false;
-    }
-
     {
 //        if(!Timeline::Init()) {
 //            init_messages.e.f(
@@ -952,7 +947,6 @@ static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &init
             }
         }
 
-
         BeebWindowInitArguments ia;
         {
             ia.render_driver_index=options.render_driver_index;
@@ -971,38 +965,17 @@ static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &init
 #endif
 
             ia.reset_windows=options.reset_windows;
-        }
 
-        {
-            BeebWindow *init_beeb_window=BeebWindows::CreateBeebWindow(ia);
-
-            if(!init_beeb_window) {
-                init_messages.e.f(
-                    "FATAL: failed to open initial window.\n");
+            if(!LoadInitialDiscImages(ia.init_disc_images,options,&init_messages)) {
                 return false;
             }
 
-            // 
-            // Or does this want to be part of the window init
-            // arguments??? That becomes a bit inconvenient, though,
-            // because unique_ptr is moveable and not copyable...
-            {
-                std::shared_ptr<BeebThread> thread=init_beeb_window->GetBeebThread();
+            ia.boot=options.boot;
+        }
 
-                for(int i=0;i<NUM_DRIVES;++i) {
-                    if(!!init_disc_images[i]) {
-                        thread->Send(std::make_shared<BeebThread::LoadDiscMessage>(i,std::move(init_disc_images[i]),true));
-                    }
-                }
-
-                if(options.boot) {
-                    auto message=std::make_shared<BeebThread::HardResetMessage>(BeebThreadHardResetFlag_Boot);
-
-                    //message->boot=true;
-
-                    thread->Send(std::move(message));
-                }
-            }
+        if(!BeebWindows::CreateBeebWindow(ia)) {
+            init_messages.e.f("FATAL: failed to open initial window.\n");
+            return false;
         }
 
         // not needed any more.

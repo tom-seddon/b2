@@ -233,7 +233,7 @@ public:
                            CompletionFun *completion_fun,
                            BeebThread *beeb_thread,
                            ThreadState *ts) override;
-        void ThreadHandle(BeebThread *beeb_thread,ThreadState *ts) const=0;
+        void ThreadHandle(BeebThread *beeb_thread,ThreadState *ts) const override=0;
     protected:
         const uint32_t m_flags=0;
 
@@ -274,8 +274,8 @@ public:
                            CompletionFun *completion_fun,
                            BeebThread *beeb_thread,
                            ThreadState *ts) override;
-        void HardResetAndReloadConfigMessage::ThreadHandle(BeebThread *beeb_thread,
-                                                           ThreadState *ts) const override;
+        void ThreadHandle(BeebThread *beeb_thread,
+                          ThreadState *ts) const override;
     protected:
     private:
     };

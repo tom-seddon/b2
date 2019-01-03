@@ -24,6 +24,7 @@ class BeebState;
 class CommandContextStackUI;
 class CommandKeymapsUI;
 class SettingsUI;
+class DiscImage;
 
 #include "keys.h"
 #include "dear_imgui.h"
@@ -75,6 +76,8 @@ struct BeebWindowSettings {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+// TODO - there are items that only apply to the first window, and they should
+// probably go somewhere else...
 struct BeebWindowInitArguments {
 public:
     // Index of SDL render driver, as supplied to SDL_CreateRenderer.
@@ -154,6 +157,14 @@ public:
     // SETTINGS. Otherwise, use BeebWindow::defaults.
     bool use_settings=false;
     BeebWindowSettings settings;
+
+    // Initial disc images, if any, for the drives. Only set for the first
+    // window created - the values come from the -0/-1 command line options.
+    std::shared_ptr<DiscImage> init_disc_images[NUM_DRIVES];
+
+    // If set, try to autoboot. Only set for the first window created - the
+    // value comes from the --boot command line option.
+    bool boot=false;
 };
 
 //////////////////////////////////////////////////////////////////////////

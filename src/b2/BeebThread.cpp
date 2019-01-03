@@ -35,6 +35,14 @@
 #include "BeebThread.inl"
 #include <shared/enum_end.h>
 
+#include <shared/enum_decl.h>
+#include "BeebThread_private.inl"
+#include <shared/enum_end.h>
+
+#include <shared/enum_def.h>
+#include "BeebThread_private.inl"
+#include <shared/enum_end.h>
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
