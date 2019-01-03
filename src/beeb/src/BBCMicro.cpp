@@ -337,7 +337,7 @@ uint32_t BBCMicro::GetCloneImpediments() const {
     for(int i=0;i<NUM_DRIVES;++i) {
         if(!!m_disc_images[i]) {
             if(!m_disc_images[i]->CanClone()) {
-                result|=BBCMicroCloneImpediment_Drive0<<i;
+                result|=(uint32_t)BBCMicroCloneImpediment_Drive0<<i;
             }
         }
     }

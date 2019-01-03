@@ -105,7 +105,7 @@ std::string GetCloneImpedimentsDescription(uint32_t impediments) {
     } else {
         std::string r;
         for(int i=0;i<NUM_DRIVES;++i) {
-            if(impediments&BBCMicroCloneImpediment_Drive0<<i) {
+            if(impediments&(uint32_t)BBCMicroCloneImpediment_Drive0<<i) {
                 if(!r.empty()) {
                     r+=", ";
                 }
