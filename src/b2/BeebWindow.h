@@ -387,6 +387,7 @@ private:
     void MaybeSaveConfig(bool save_config);
     void HardReset();
     void SaveState();
+    bool SaveStateIsEnabled() const;
     bool HandleBeebKey(const SDL_Keysym &keysym,bool state);
     bool RecreateTexture();
     void Exit();

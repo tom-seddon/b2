@@ -99,6 +99,37 @@ std::string GetFlagsString(uint32_t value,const char *(*get_name_fn)(int)) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+std::string GetCloneImpedimentsDescription(uint32_t impediments) {
+    if(impediments==0) {
+        return "none";
+    } else {
+        std::string r;
+        for(int i=0;i<NUM_DRIVES;++i) {
+            if(impediments&BBCMicroCloneImpediment_Drive0<<i) {
+                if(!r.empty()) {
+                    r+=", ";
+                }
+
+                r+=strprintf("drive %d",i);
+            }
+        }
+
+        if(impediments&BBCMicroCloneImpediment_BeebLink) {
+            if(!r.empty()) {
+                r+=", ";
+            }
+
+            r+="BeebLink";
+        }
+
+        return r;
+    }
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 std::string GetMicrosecondsString(uint64_t num_microseconds) {
     char str[500];
 

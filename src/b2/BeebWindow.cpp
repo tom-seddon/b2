@@ -2252,6 +2252,13 @@ void BeebWindow::SaveState() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+bool BeebWindow::SaveStateIsEnabled() const {
+    return m_beeb_thread->GetBBCMicroCloneImpediments()==0;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 bool BeebWindow::RecreateTexture() {
     if(m_tv_texture) {
         SDL_DestroyTexture(m_tv_texture);
@@ -2689,7 +2696,7 @@ bool BeebWindow::SaveDefaultNVRAMIsEnabled() const {
 ObjectCommandTable<BeebWindow> BeebWindow::ms_command_table("Beeb Window",{
     {{"hard_reset","Hard Reset"},&BeebWindow::HardReset},
     //    {{"load_last_state","Load Last State"},&BeebWindow::LoadLastState,nullptr,&BeebWindow::IsLoadLastStateEnabled},
-        {{"save_state","Save State"},&BeebWindow::SaveState},
+        {{"save_state","Save State"},&BeebWindow::SaveState,nullptr,&BeebWindow::SaveStateIsEnabled},
         GetTogglePopupCommand<BeebWindowPopupType_Options>(),
         GetTogglePopupCommand<BeebWindowPopupType_Keymaps>(),
         GetTogglePopupCommand<BeebWindowPopupType_Timeline>(),

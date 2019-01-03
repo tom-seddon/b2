@@ -827,6 +827,12 @@ bool BeebThread::SaveStateMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
                                                  BeebThread *beeb_thread,
                                                  ThreadState *ts)
 {
+    uint32_t impediments=ts->beeb->GetCloneImpediments();
+    if(impediments!=0) {
+        ts->msgs.e.f("Can't save state, due to: %s\n",GetCloneImpedimentsDescription(impediments).c_str());
+        return false;
+    }
+
     if(!PrepareUnlessReplayingOrHalted(ptr,completion_fun,beeb_thread,ts)) {
         return false;
     }
@@ -939,7 +945,9 @@ bool BeebThread::StartRecordingMessage::ThreadPrepare(std::shared_ptr<Message> *
         return false;
     }
 
-    if(!ts->beeb->CanClone(nullptr,nullptr)) {
+    uint32_t impediments=ts->beeb->GetCloneImpediments();
+    if(impediments!=0) {
+        ts->msgs.e.f("Can't record, due to: %s\n",GetCloneImpedimentsDescription(impediments).c_str());
         return false;
     }
 
@@ -1482,7 +1490,7 @@ bool BeebThread::TimingMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
 //////////////////////////////////////////////////////////////////////////
 
 BeebThread::BeebLinkResponseMessage::BeebLinkResponseMessage(std::vector<uint8_t> data):
-m_data(std::move(data))
+    m_data(std::move(data))
 {
 }
 
@@ -1492,7 +1500,7 @@ bool BeebThread::BeebLinkResponseMessage::ThreadPrepare(std::shared_ptr<Message>
                                                         ThreadState *ts)
 {
     (void)completion_fun,(void)beeb_thread;
-    
+
     if(ts->timeline_state!=BeebThreadTimelineState_None) {
         return false;
     }
@@ -1541,12 +1549,12 @@ BeebThread::BeebThread(std::shared_ptr<MessageList> message_list,
                        size_t sound_buffer_size_samples,
                        BeebLoadedConfig default_loaded_config,
                        std::vector<TimelineEventList> initial_timeline_event_lists):
-m_uid(g_next_uid++),
-m_default_loaded_config(std::move(default_loaded_config)),
-m_initial_timeline_event_lists(std::move(initial_timeline_event_lists)),
-m_video_output(NUM_VIDEO_UNITS),
-m_sound_output(NUM_AUDIO_UNITS),
-m_message_list(std::move(message_list))
+    m_uid(g_next_uid++),
+    m_default_loaded_config(std::move(default_loaded_config)),
+    m_initial_timeline_event_lists(std::move(initial_timeline_event_lists)),
+    m_video_output(NUM_VIDEO_UNITS),
+    m_sound_output(NUM_AUDIO_UNITS),
+    m_message_list(std::move(message_list))
 {
     m_sound_device_id=sound_device_id;
 
@@ -1757,6 +1765,13 @@ bool BeebThread::HasNVRAM() const {
 
 BBCMicroType BeebThread::GetBBCMicroType() const {
     return m_beeb_type.load(std::memory_order_acquire);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+uint32_t BeebThread::GetBBCMicroCloneImpediments() const {
+    return m_clone_impediments.load(std::memory_order_acquire);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -2497,11 +2512,15 @@ void BeebThread::ThreadMain(void) {
 
             messages.clear();
 
+            uint32_t clone_impediments=ts.beeb->GetCloneImpediments();
+
+            m_clone_impediments.store(clone_impediments,std::memory_order_release);
+
             // Update ThreadState timeline stuff.
             switch(ts.timeline_state) {
             case BeebThreadTimelineState_None:
-                m_timeline_state.can_record=ts.beeb->CanClone(&m_timeline_state.non_cloneable_drives,
-                                                              &m_timeline_state.non_cloneable_beeblink);
+                m_timeline_state.clone_impediments=clone_impediments;
+                m_timeline_state.can_record=m_timeline_state.clone_impediments==0;
                 break;
 
             case BeebThreadTimelineState_Record:

@@ -764,9 +764,8 @@ public:
         uint64_t current_2MHz_cycles=0;
         size_t num_events=0;
         size_t num_beeb_state_events=0;
-        bool can_record=true;
-        uint32_t non_cloneable_drives=0;
-        bool non_cloneable_beeblink=false;
+        bool can_record=false;
+        uint32_t clone_impediments=0;
     };
 
     struct AudioCallbackRecord {
@@ -859,6 +858,8 @@ public:
     bool HasNVRAM() const;
 
     BBCMicroType GetBBCMicroType() const;
+
+    uint32_t GetBBCMicroCloneImpediments() const;
 
     // Forget about the last recorded trace.
     void ClearLastTrace();
@@ -956,6 +957,7 @@ private:
     std::atomic<bool> m_is_copying{false};
     std::atomic<bool> m_has_nvram{false};
     std::atomic<BBCMicroType> m_beeb_type{BBCMicroType_B};
+    std::atomic<uint32_t> m_clone_impediments{0};
 
     // Controlled by m_mutex.
     TimelineState m_timeline_state;

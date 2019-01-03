@@ -115,13 +115,8 @@ protected:
 public:
     ~BBCMicro();
 
-    // Sets *NON_CLONEABLE_DRIVES bit i, if drive i isn't cloneable. Sets
-    // *USER_PORT to true if the user port device prohibits cloning.
-    //
-    // (This is a scrappy mechanism that will improve over time as further
-    // impediments to cloneability are added.)
-    bool CanClone(uint32_t *non_cloneable_drives,
-                  bool *non_cloneable_user_port_device) const;
+    // result is a combination of BBCMicroCloneImpediment.
+    uint32_t GetCloneImpediments() const;
 
     std::unique_ptr<BBCMicro> Clone() const;
 

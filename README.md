@@ -54,10 +54,10 @@ Go to `Drive 0` or `Drive 1` on the `File` menu to load a disc. Use
 the `Disc image...` or `Direct disc image...` option to select an .ssd
 file, then hit Shift+Break (PC Shift + PC F11) to start it.
 
-`Disc image...` loads the file into memory. It isn't updated when
-changes are made in the emulator (use `Save` to do that), and changes
-made to the file won't be seen in the emulator (reload the disc image
-for that).
+`Disc image...` loads the file into memory. The file isn't updated
+when changes are made in the emulator (use `Save` to do that), and
+changes made to the file won't be seen in the emulator (reload the
+disc image for that).
 
 `Direct disc image...` accesses the file directly for each read or
 write. Any changes made in the emulator are immediately made to the
@@ -83,22 +83,39 @@ Shift+0 gives you `)` and so on. `Default UK` is for UK-style
 keyboards, and `Default US` is for US-style keyboards. For US-style
 keyboards, press ` to get the pound sign.
   
-## Undo/redo
+## Save states
 
 Use `File` > `Save state` to save your place, and `File` > `Load last
-state` to reload it. All state is saved, including disc contents.
+state` to reload it. (All state is saved, including disc contents.)
+Use `Tools` > `Saved states` to see the list of states saved; click
+`Load` to reload one, or `Delete` to delete it.
 
-Use `Tools` > `Timeline...` to visualise the saved states. The
-timeline is shown as a tree of rounded boxes (saved states) and square
-boxes (open windows), with arrows showing the relationships.
+Because the disc contents are outside the emulator's control, you
+can't save a state when a direct disc image is loaded.
 
-Click `Load` to load an old state, `Clone` to create a new window
-starting from that state, `Replay` to watch a replay from that state
-to the current state, or (*Windows/Linux only*) `Video` to save a
-video replay. (Video is MP4: 800Kbps H264 video + 128Kbps AAC audio.)
+## Timeline
 
-If the timeline becomes too full of junk, click `Delete` to delete a
-saved state.
+Use the timeline functionality to record a sequence of events for
+later playback. *This functionality is a work in progress* - so it's
+not super useful yet. But, on Windows and Linux, having recorded a
+timeline, you have the option of creating a video from it.
+
+Use `Tools` > `Timeline...` to show the Timeline window. Click
+`Record` to start recording; events are recorded to the timeline,
+along with occasional saved states. Reload a saved state from the
+timeline to rewind the timeline back to that point and continue
+recording.
+
+Having recorded a timeline, click the `Video` button to produce a
+video starting from that point. There are two output formats
+available: 50Hz 1:1 BBC pixels, and 50Hz 2:1 BBC pixels. Note that the
+2:1 output does nothing advanced; it's just there so that when
+uploaded to YouTube it comes out as a 1080p50 video.
+
+Click `Replay` to play the timeline back. 
+
+As with save states, some functionality may cause recording to be
+disabled.
 
 ## Options
 

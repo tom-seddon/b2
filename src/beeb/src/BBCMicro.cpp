@@ -295,7 +295,7 @@ BBCMicro::BBCMicro(const BBCMicro &src):
     m_video_nula(src.m_video_nula),
     m_ext_mem(src.m_ext_mem)
 {
-    ASSERT(src.CanClone(nullptr,nullptr));
+    ASSERT(src.GetCloneImpediments()==0);
 
     for(int i=0;i<NUM_DRIVES;++i) {
         std::shared_ptr<DiscImage> disc_image=DiscImage::Clone(src.GetDiscImage(i));
@@ -331,42 +331,29 @@ BBCMicro::~BBCMicro() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool BBCMicro::CanClone(uint32_t *non_cloneable_drives,
-                        bool *non_cloneable_user_port_device) const
-{
-    bool can_clone=true;
-    uint32_t drives=0;
+uint32_t BBCMicro::GetCloneImpediments() const {
+    uint32_t result=0;
 
     for(int i=0;i<NUM_DRIVES;++i) {
         if(!!m_disc_images[i]) {
             if(!m_disc_images[i]->CanClone()) {
-                drives|=1u<<i;
-                can_clone=false;
-                break;
+                result|=BBCMicroCloneImpediment_Drive0<<i;
             }
         }
     }
 
     if(m_beeblink_handler) {
-        can_clone=false;
+        result|=BBCMicroCloneImpediment_BeebLink;
     }
 
-    if(non_cloneable_drives) {
-        *non_cloneable_drives=drives;
-    }
-
-    if(non_cloneable_user_port_device) {
-        *non_cloneable_user_port_device=!!m_beeblink_handler;
-    }
-
-    return can_clone;
+    return result;
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 std::unique_ptr<BBCMicro> BBCMicro::Clone() const {
-    if(!this->CanClone(nullptr,nullptr)) {
+    if(this->GetCloneImpediments()!=0) {
         return nullptr;
     }
 

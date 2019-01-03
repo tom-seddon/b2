@@ -78,20 +78,7 @@ public:
                 }
 
                 if(!timeline_state.can_record) {
-                    if(timeline_state.non_cloneable_drives!=0) {
-                        std::string message="Recording disabled due to non-cloneable drives:";
-                        for(int i=0;i<NUM_DRIVES;++i) {
-                            if(timeline_state.non_cloneable_drives&1u<<i) {
-                                message+=strprintf(" %d",i);
-                            }
-                        }
-
-                        ImGui::TextUnformatted(message.c_str());
-                    }
-
-                    if(timeline_state.non_cloneable_beeblink) {
-                        ImGui::TextUnformatted("Recording disabled due to BeebLink");
-                    }
+                    ImGui::Text("Recording disabled due to: %s",GetCloneImpedimentsDescription(timeline_state.clone_impediments).c_str());
                 }
             }
             break;
