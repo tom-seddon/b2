@@ -938,9 +938,8 @@ static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &init
         }
 
         BeebLoadedConfig initial_loaded_config;
-        std::string initial_config_name;
         if(!options.config_name.empty()) {
-            if(!BeebWindows::LoadConfigByName(&initial_loaded_config,initial_config_name,&init_messages)) {
+            if(!BeebWindows::LoadConfigByName(&initial_loaded_config,options.config_name,&init_messages)) {
                 return false;
             }
         } else {
