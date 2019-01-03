@@ -428,6 +428,9 @@ private:
     bool DebugIsHalted() const;
 #endif
 
+    void SaveDefaultNVRAM();
+    bool SaveDefaultNVRAMIsEnabled() const;
+
     static std::unique_ptr<SettingsUI> CreateOptionsUI(BeebWindow *beeb_window);
     static std::unique_ptr<SettingsUI> CreateTimelineUI(BeebWindow *beeb_window);
     static std::unique_ptr<SettingsUI> CreateSavedStatesUI(BeebWindow *beeb_window);

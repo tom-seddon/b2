@@ -386,16 +386,13 @@ bool BeebThread::HardResetMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
                                                  BeebThread *beeb_thread,
                                                  ThreadState *ts)
 {
-    return PrepareUnlessReplayingOrHalted(ptr,completion_fun,beeb_thread,ts);
-}
+    if(!PrepareUnlessReplayingOrHalted(ptr,completion_fun,beeb_thread,ts)) {
+        return false;
+    }
 
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
 
-void BeebThread::HardResetMessage::ThreadHandle(BeebThread *beeb_thread,
-                                                ThreadState *ts) const
-{
-    this->HardReset(beeb_thread,ts,ts->current_config);
+
+    return true;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -403,7 +400,8 @@ void BeebThread::HardResetMessage::ThreadHandle(BeebThread *beeb_thread,
 
 void BeebThread::HardResetMessage::HardReset(BeebThread *beeb_thread,
                                              ThreadState *ts,
-                                             const BeebLoadedConfig &loaded_config) const
+                                             const BeebLoadedConfig &loaded_config,
+                                             const std::vector<uint8_t> &nvram_contents) const
 {
     uint32_t replace_flags=BeebThreadReplaceFlag_KeepCurrentDiscs;
 
@@ -440,7 +438,7 @@ void BeebThread::HardResetMessage::HardReset(BeebThread *beeb_thread,
 
     auto beeb=std::make_unique<BBCMicro>((BBCMicroType)ts->current_config.config.beeb_type,
                                          ts->current_config.config.disc_interface,
-                                         ts->current_config.config.nvram_contents,
+                                         nvram_contents,
                                          &now,
                                          ts->current_config.config.video_nula,
                                          ts->current_config.config.ext_mem,
@@ -480,7 +478,8 @@ void BeebThread::HardResetMessage::HardReset(BeebThread *beeb_thread,
 BeebThread::HardResetAndChangeConfigMessage::HardResetAndChangeConfigMessage(uint32_t flags,
                                                                              BeebLoadedConfig loaded_config):
     HardResetMessage(flags),
-    m_loaded_config(std::move(loaded_config))
+    m_loaded_config(std::move(loaded_config)),
+    m_nvram_contents(GetDefaultNVRAMContents(m_loaded_config.config.beeb_type))
 {
 }
 
@@ -501,7 +500,7 @@ bool BeebThread::HardResetAndChangeConfigMessage::ThreadPrepare(std::shared_ptr<
 void BeebThread::HardResetAndChangeConfigMessage::ThreadHandle(BeebThread *beeb_thread,
                                                                ThreadState *ts) const
 {
-    this->HardReset(beeb_thread,ts,m_loaded_config);
+    this->HardReset(beeb_thread,ts,m_loaded_config,m_nvram_contents);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -536,6 +535,17 @@ bool BeebThread::HardResetAndReloadConfigMessage::ThreadPrepare(std::shared_ptr<
     *ptr=std::make_shared<HardResetAndChangeConfigMessage>(m_flags,
                                                            std::move(reloaded_config));
     return true;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BeebThread::HardResetAndReloadConfigMessage::ThreadHandle(BeebThread *beeb_thread,
+                                                               ThreadState *ts) const
+{
+    // should never happen - ThreadPrepare replaces this with a
+    // HardResetAndChangeConfigMessage.
+    ASSERT(false);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -1735,6 +1745,13 @@ bool BeebThread::HasNVRAM() const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+BBCMicroType BeebThread::GetBBCMicroType() const {
+    return m_beeb_type.load(std::memory_order_acquire);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 void BeebThread::ClearLastTrace() {
     std::lock_guard<Mutex> lock(m_mutex);
 
@@ -2134,6 +2151,7 @@ void BeebThread::ThreadReplaceBeeb(ThreadState *ts,std::unique_ptr<BBCMicro> bee
     }
 
     m_has_nvram.store(!ts->beeb->GetNVRAM().empty(),std::memory_order_release);
+    m_beeb_type.store(ts->beeb->GetType(),std::memory_order_release);
 
     // Apply current keypresses to the emulated BBC. Reset fake shift
     // state and boot state first so that the Shift key status is set

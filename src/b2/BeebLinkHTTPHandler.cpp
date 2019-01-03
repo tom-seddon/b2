@@ -336,7 +336,7 @@ void BeebLinkHTTPHandler::Thread(ThreadState *ts) {
 
                 // No harm in configuring this every time. Perhaps
                 // there should be somewhere in the UI for the logs to
-                // go?
+                // go, making this possibly a useful runtime toggle?
                 curl_easy_setopt(ts->curl,CURLOPT_VERBOSE,(long)LOG(BEEBLINK_HTTP).enabled);
 
                 curl_easy_setopt(ts->curl,CURLOPT_HTTPHEADER,headers);

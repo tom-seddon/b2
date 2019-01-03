@@ -1206,42 +1206,9 @@ void BeebWindow::DoFileMenu() {
 
         ImGui::Separator();
 
-        if(ImGui::MenuItem("Save NVRAM...",nullptr,false,m_beeb_thread->HasNVRAM())) {
-            SaveFileDialog fd(RECENT_PATHS_NVRAM);
+        m_occ.DoMenuItemUI("save_default_nvram");
 
-            fd.AddFilter("BBC NVRAM data",{".bbcnvram"});
-            fd.AddAllFilesFilter();
-
-            std::string file_name;
-            if(fd.Open(&file_name)) {
-                std::vector<uint8_t> nvram=m_beeb_thread->GetNVRAM();
-
-                if(SaveFile(nvram,file_name,&m_msg)) {
-                    fd.AddLastPathToRecentPaths();
-                }
-            }
-        }
-
-        //if(ImGui::MenuItem("Save RAM...")) {
-        //    SaveFileDialog fd(RECENT_PATHS_RAM);
-
-        //    fd.AddFilter("BBC RAM",".bbcram");
-        //    fd.AddAllFilesFilter();
-
-        //    std::string file_name;
-        //    if(fd.Open(&file_name)) {
-        //        BBCMicro *beeb=m_beeb_thread->Pause(BeebWindowPauser_SaveRAM);
-
-        //        size_t ram_size=BBCMicro_GetType(beeb)->ram_size;
-        //        const uint8_t *ram=BBCMicro_GetRAM(beeb);
-
-        //        if(SaveFile(ram,ram_size,file_name,&m_msg)) {
-        //            fd.AddLastPathToRecentPaths();
-        //        }
-
-        //        m_beeb_thread->Resume(BeebWindowPauser_SaveRAM,&beeb);
-        //    }
-        //}
+        ImGui::Separator();
 
         m_occ.DoMenuItemUI("load_last_state");
         m_occ.DoMenuItemUI("save_state");
@@ -2229,7 +2196,7 @@ void BeebWindow::MaybeSaveConfig(bool save_config) {
 //////////////////////////////////////////////////////////////////////////
 
 void BeebWindow::HardReset() {
-    m_beeb_thread->Send(std::make_shared<BeebThread::HardResetMessage>(BeebThreadHardResetFlag_Run));
+    m_beeb_thread->Send(std::make_shared<BeebThread::HardResetAndReloadConfigMessage>(BeebThreadHardResetFlag_Run));
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -2669,6 +2636,26 @@ bool BeebWindow::DebugIsHalted() const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+void BeebWindow::SaveDefaultNVRAM() {
+    std::vector<uint8_t> nvram=m_beeb_thread->GetNVRAM();
+    if(!nvram.empty()) {
+        BBCMicroType type=m_beeb_thread->GetBBCMicroType();
+        SetDefaultNVRAMContents(type,std::move(nvram));
+    }
+
+    this->MaybeSaveConfig(true);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool BeebWindow::SaveDefaultNVRAMIsEnabled() const {
+    return m_beeb_thread->HasNVRAM();
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 ObjectCommandTable<BeebWindow> BeebWindow::ms_command_table("Beeb Window",{
     {{"hard_reset","Hard Reset"},&BeebWindow::HardReset},
 //    {{"load_last_state","Load Last State"},&BeebWindow::LoadLastState,nullptr,&BeebWindow::IsLoadLastStateEnabled},
@@ -2728,4 +2715,5 @@ ObjectCommandTable<BeebWindow> BeebWindow::ms_command_table("Beeb Window",{
     {CommandDef("debug_step_over","Step Over").Shortcut(SDLK_F10),&BeebWindow::DebugStepOver,nullptr,&BeebWindow::DebugIsRunEnabled},
     {CommandDef("debug_step_in","Step In").Shortcut(SDLK_F11),&BeebWindow::DebugStepIn,nullptr,&BeebWindow::DebugIsRunEnabled},
 #endif
+    {CommandDef("save_default_nvram","Save default NVRAM"),&BeebWindow::SaveDefaultNVRAM,nullptr,&BeebWindow::SaveDefaultNVRAMIsEnabled},
 });

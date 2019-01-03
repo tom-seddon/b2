@@ -1328,13 +1328,6 @@ static bool LoadConfigs(rapidjson::Value *configs_json,Messages *msg) {
         FindBoolMember(&config.ext_mem,config_json,EXT_MEM,msg);
         FindBoolMember(&config.beeblink,config_json,BEEBLINK,msg);
 
-        std::string nvram;
-        if(FindStringMember(&nvram,config_json,NVRAM,nullptr)) {
-            if(!GetDataFromHexString(&config.nvram_contents,nvram)) {
-                config.nvram_contents.clear();
-            }
-        }
-
         BeebWindows::AddConfig(std::move(config));
     }
 
@@ -1369,6 +1362,21 @@ static bool LoadBeebLink(rapidjson::Value *beeblink_json,Messages *msg) {
     }
 
     BeebLinkHTTPHandler::SetServerURLs(urls);
+
+    return true;
+}
+
+static bool LoadNVRAM(rapidjson::Value *nvram_json,Messages *msg) {
+    std::string hex;
+    std::vector<uint8_t> data;
+
+    // TODO - should this be more data driven?
+
+    if(FindStringMember(&hex,nvram_json,GetBBCMicroTypeEnumName(BBCMicroType_Master),msg)) {
+        if(GetDataFromHexString(&data,hex)) {
+            SetDefaultNVRAMContents(BBCMicroType_Master,std::move(data));
+        }
+    }
 
     return true;
 }
@@ -1468,6 +1476,15 @@ bool LoadGlobalConfig(Messages *msg)
         LOGF(LOADSAVE,"Loading BeebLink.\n");
 
         if(!LoadBeebLink(&beeblink,msg)) {
+            return false;
+        }
+    }
+
+    rapidjson::Value nvram;
+    if(FindObjectMember(&nvram,doc.get(),NVRAM,msg)) {
+        LOGF(LOADSAVE,"Loading NVRAM.\n");
+
+        if(!LoadNVRAM(&nvram,msg)) {
             return false;
         }
     }
@@ -1675,17 +1692,22 @@ static void SaveConfigs(JSONWriter<StringStream> *writer) {
             writer->Key(BEEBLINK);
             writer->Bool(config->beeblink);
 
-            if(!config->nvram_contents.empty()) {
-                writer->Key(NVRAM);
-                writer->String(GetHexStringFromData(config->nvram_contents).c_str());
-            }
-
             return true;
         });
     }
 
     writer->Key(DEFAULT_CONFIG);
     writer->String(BeebWindows::GetDefaultConfigName().c_str());
+}
+
+static void SaveNVRAM(JSONWriter<StringStream> *writer) {
+    {
+        auto nvram_json=ObjectWriter(writer,NVRAM);
+
+        // Should this be more data-driven?
+        writer->Key(GetBBCMicroTypeEnumName(BBCMicroType_Master));
+        writer->String(GetHexStringFromData(GetDefaultNVRAMContents(BBCMicroType_Master)).c_str());
+    }
 }
 
 static void SaveWindows(JSONWriter<StringStream> *writer) {
@@ -1806,6 +1828,8 @@ bool SaveGlobalConfig(Messages *messages) {
         SaveBeebLink(&writer);
 
         SaveConfigs(&writer);
+
+        SaveNVRAM(&writer);
     }
 
     if(!SaveTextFile(json,fname,messages)) {

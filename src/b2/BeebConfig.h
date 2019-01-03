@@ -35,11 +35,10 @@ public:
 
     std::string name;
 
-    int beeb_type=-1;
+    int beeb_type=-1;//BBCMicroType
     std::string os_file_name;
     ROM roms[16];
     uint8_t keyboard_links=0;
-    std::vector<uint8_t> nvram_contents;
     const DiscInterfaceDef *disc_interface=nullptr;
     bool video_nula=true;
     bool ext_mem=false;
@@ -49,9 +48,12 @@ private:
 };
 
 void InitDefaultBeebConfigs();
+
 size_t GetNumDefaultBeebConfigs();
 const BeebConfig *GetDefaultBeebConfigByIndex(size_t index);
-std::vector<uint8_t> GetDefaultNVRAMContents();
+
+std::vector<uint8_t> GetDefaultNVRAMContents(int beeb_type);
+void SetDefaultNVRAMContents(int beeb_type,std::vector<uint8_t> nvram_contents);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

@@ -181,6 +181,17 @@ Tick the `BeebLink` box to add an emulated
 emulated user port. For more details, see the
 [BeebLink notes](./docs/BeebLink.md).
 
+## Non-volatile RAM
+
+The Master 128 has non-volatile RAM. If you're using an emulated
+Master 128, use `File` > `Save default NVRAM` to save the current
+non-volatile RAM state to the config file, so it'll be restored on the
+next run.
+
+The saved contents will also be restored on the next `File` > `Hard
+reset`, or when using `File` > `Change config' to change to a Master
+128 config.
+
 ## Paste from clipboard
 
 Paste text from the clipboard to the BASIC prompt using `OSRDCH Paste`

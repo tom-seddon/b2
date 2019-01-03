@@ -233,13 +233,14 @@ public:
                            CompletionFun *completion_fun,
                            BeebThread *beeb_thread,
                            ThreadState *ts) override;
-        void ThreadHandle(BeebThread *beeb_thread,ThreadState *ts) const override;
+        void ThreadHandle(BeebThread *beeb_thread,ThreadState *ts) const=0;
     protected:
         const uint32_t m_flags=0;
 
         void HardReset(BeebThread *beeb_thread,
                        ThreadState *ts,
-                       const BeebLoadedConfig &loaded_config) const;
+                       const BeebLoadedConfig &loaded_config,
+                       const std::vector<uint8_t> &nvram_contents) const;
     private:
     };
 
@@ -259,6 +260,7 @@ public:
     protected:
     private:
         const BeebLoadedConfig m_loaded_config;
+        const std::vector<uint8_t> m_nvram_contents;
     };
 
     class HardResetAndReloadConfigMessage:
@@ -272,6 +274,8 @@ public:
                            CompletionFun *completion_fun,
                            BeebThread *beeb_thread,
                            ThreadState *ts) override;
+        void HardResetAndReloadConfigMessage::ThreadHandle(BeebThread *beeb_thread,
+                                                           ThreadState *ts) const override;
     protected:
     private:
     };
@@ -738,7 +742,7 @@ public:
     };
 
     class BeebLinkResponseMessage:
-    public Message
+        public Message
     {
     public:
         explicit BeebLinkResponseMessage(std::vector<uint8_t> data);
@@ -854,6 +858,8 @@ public:
     // Returns true if the emulated computer has NVRAM.
     bool HasNVRAM() const;
 
+    BBCMicroType GetBBCMicroType() const;
+
     // Forget about the last recorded trace.
     void ClearLastTrace();
 
@@ -949,12 +955,12 @@ private:
     std::atomic<bool> m_is_pasting{false};
     std::atomic<bool> m_is_copying{false};
     std::atomic<bool> m_has_nvram{false};
+    std::atomic<BBCMicroType> m_beeb_type{BBCMicroType_B};
 
     // Controlled by m_mutex.
     TimelineState m_timeline_state;
     std::vector<TimelineBeebStateEvent> m_timeline_beeb_state_events_copy;
-
-    //mutable volatile int32_t m_is_paused=1;
+    std::string m_config_name;
 
     mutable Mutex m_mutex;
 
@@ -962,17 +968,6 @@ private:
 
     // Main thread must take mutex to access.
     ThreadState *m_thread_state=nullptr;
-
-    // use GetPreviousState/SetPreviousState to modify. Controlled by
-    // the global timeline mutex.
-    //uint64_t m_parent_timeline_event_id=0;
-
-    // Timeline id of last saved state.
-    //uint64_t m_last_saved_state_timeline_id=0;
-
-    // Pre-replay state: original timeline event id, and saved state.
-    //uint64_t m_pre_replay_parent_timeline_event_id=0;
-    std::shared_ptr<BeebState> m_pre_replay_state;
 
     // Last recorded trace. Controlled by m_mutex.
     std::shared_ptr<Trace> m_last_trace;
