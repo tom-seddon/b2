@@ -346,7 +346,7 @@ private:
     uint64_t m_leds_popup_ticks=0;
 
 #if BBCMICRO_DEBUGGER
-    bool m_show_beam_position=true;
+    bool m_show_beam_position=false;
     bool m_test_pattern=false;
     mutable bool m_debug_halted=false;
     mutable bool m_got_debug_halted=false;
