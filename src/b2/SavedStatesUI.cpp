@@ -43,7 +43,7 @@ public:
         // Drive 1:
         // <<Image>>
 
-        float row_height=(2+NUM_DRIVES)*ImGui::GetTextLineHeight()+m_thumbnails.GetThumbnailSize().y+20;
+        float row_height=(2+NUM_DRIVES)*ImGui::GetTextLineHeight()+m_thumbnails.GetThumbnailSize().y+25;
 
         ImGui::Text("%d saved states",num_states);
 
