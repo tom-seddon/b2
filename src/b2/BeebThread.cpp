@@ -543,6 +543,8 @@ bool BeebThread::HardResetAndReloadConfigMessage::ThreadPrepare(std::shared_ptr<
 void BeebThread::HardResetAndReloadConfigMessage::ThreadHandle(BeebThread *beeb_thread,
                                                                ThreadState *ts) const
 {
+    (void)beeb_thread,(void)ts;
+
     // should never happen - ThreadPrepare replaces this with a
     // HardResetAndChangeConfigMessage.
     ASSERT(false);
