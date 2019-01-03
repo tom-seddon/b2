@@ -346,7 +346,7 @@ void CommandContext::DoButton(const char *name) {
     }
 
     if(command->m_must_confirm) {
-        // bleargh...
+        // TODO - use ImGuiConfirmButton.
     } else if(const bool *ticked=command->IsTicked(m_object)) {
         if(ImGui::RadioButton(command->m_text.c_str(),*ticked)) {
             command->Execute(m_object);
