@@ -1260,8 +1260,14 @@ void BeebWindow::DoToolsMenu() {
         // }
 
         ImGui::Separator();
+
+        // Is there somewhere better for this?
+        m_occ.DoMenuItemUI("reset_default_nvram");
+
+        ImGui::Separator();
         m_occ.DoMenuItemUI("clean_up_recent_files_lists");
         m_occ.DoMenuItemUI("reset_dock_windows");
+
         ImGui::EndMenu();
     }
 }
@@ -2636,6 +2642,14 @@ bool BeebWindow::DebugIsHalted() const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+void BeebWindow::ResetDefaultNVRAM() {
+    BBCMicroType type=m_beeb_thread->GetBBCMicroType();
+    ResetDefaultNVRAMContents(type);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 void BeebWindow::SaveDefaultNVRAM() {
     std::vector<uint8_t> nvram=m_beeb_thread->GetNVRAM();
     if(!nvram.empty()) {
@@ -2716,4 +2730,5 @@ ObjectCommandTable<BeebWindow> BeebWindow::ms_command_table("Beeb Window",{
     {CommandDef("debug_step_in","Step In").Shortcut(SDLK_F11),&BeebWindow::DebugStepIn,nullptr,&BeebWindow::DebugIsRunEnabled},
 #endif
     {CommandDef("save_default_nvram","Save default NVRAM"),&BeebWindow::SaveDefaultNVRAM,nullptr,&BeebWindow::SaveDefaultNVRAMIsEnabled},
+    {CommandDef("reset_default_nvram","Reset default NVRAM").MustConfirm(),&BeebWindow::ResetDefaultNVRAM,nullptr,&BeebWindow::SaveDefaultNVRAMIsEnabled},
 });

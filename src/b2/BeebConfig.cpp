@@ -52,25 +52,28 @@ static std::shared_ptr<BeebRomData> LoadROM(
 
 static std::vector<BeebConfig> g_default_configs;
 
-static std::vector<uint8_t> g_default_master_nvram_contents={
-    0x00,// 0
-    0x00,// 1
-    0x00,// 2
-    0x00,// 3
-    0x00,// 4
-    0xC9,// 5 - LANG 12; FS 9
-    0xFF,// 6 - INSERT 0 ... INSERT 7
-    0xFF,// 7 - INSERT 8 ... INSERT 15
-    0x00,// 8
-    0x00,// 9
-    0x17,//10 - MODE 7; SHADOW 0; TV 0 1
-    0x80,//11 - FLOPPY
-      55,//12 - DELAY 55
-    0x03,//13 - REPEAT 3
-    0x00,//14
-    0x00,//15
-    0x02,//16 - LOUD
-};
+static std::vector<uint8_t> GetDefaultMasterNVRAM() {
+    std::vector<uint8_t> nvram;
+
+    nvram.resize(50);
+
+    nvram[5]=0xC9;// 5 - LANG 12; FS 9
+    nvram[6]=0xFF;// 6 - INSERT 0 ... INSERT 7
+    nvram[7]=0xFF;// 7 - INSERT 8 ... INSERT 15
+    nvram[8]=0x00;// 8
+    nvram[9]=0x00;// 9
+    nvram[10]=0x17;//10 - MODE 7; SHADOW 0; TV 0 1
+    nvram[11]=0x80;//11 - FLOPPY
+    nvram[12]=55;//12 - DELAY 55
+    nvram[13]=0x03;//13 - REPEAT 3
+    nvram[14]=0x00;//14
+    nvram[15]=0x00;//15
+    nvram[16]=0x02;//16 - LOUD
+
+    return nvram;
+}
+
+static std::vector<uint8_t> g_default_master_nvram_contents=GetDefaultMasterNVRAM();
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -189,6 +192,15 @@ std::vector<uint8_t> GetDefaultNVRAMContents(int beeb_type) {
         return g_default_master_nvram_contents;
     } else {
         return std::vector<uint8_t>();
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void ResetDefaultNVRAMContents(int beeb_type) {
+    if(beeb_type==BBCMicroType_Master) {
+        g_default_master_nvram_contents=GetDefaultMasterNVRAM();
     }
 }
 

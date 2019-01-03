@@ -428,6 +428,7 @@ private:
     bool DebugIsHalted() const;
 #endif
 
+    void ResetDefaultNVRAM();
     void SaveDefaultNVRAM();
     bool SaveDefaultNVRAMIsEnabled() const;
 

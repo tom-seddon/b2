@@ -188,6 +188,11 @@ Master 128, use `File` > `Save default NVRAM` to save the current
 non-volatile RAM state to the config file, so it'll be restored on the
 next run.
 
+Use `Tools` > `Reset default NVRAM` to reset to default settings.
+(This may be preferable to using the MOS's reset functionality, should
+it be needed, because these default settings aren't completely
+useless...)
+
 The saved contents will also be restored on the next `File` > `Hard
 reset`, or when using `File` > `Change config' to change to a Master
 128 config.

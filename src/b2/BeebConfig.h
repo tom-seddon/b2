@@ -53,6 +53,7 @@ size_t GetNumDefaultBeebConfigs();
 const BeebConfig *GetDefaultBeebConfigByIndex(size_t index);
 
 std::vector<uint8_t> GetDefaultNVRAMContents(int beeb_type);
+void ResetDefaultNVRAMContents(int beeb_type);
 void SetDefaultNVRAMContents(int beeb_type,std::vector<uint8_t> nvram_contents);
 
 //////////////////////////////////////////////////////////////////////////
