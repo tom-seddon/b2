@@ -1292,9 +1292,6 @@ void BeebWindow::DoDebugMenu() {
         }
 #endif
 
-        m_occ.DoMenuItemUI("dump_timeline_console");
-        m_occ.DoMenuItemUI("dump_timeline_debugger");
-        m_occ.DoMenuItemUI("check_timeline");
 #if VIDEO_TRACK_METADATA
         m_occ.DoMenuItemUI("toggle_pixel_metadata");
 #endif
@@ -2366,27 +2363,6 @@ void BeebWindow::PrintSeparator() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void BeebWindow::DumpTimelineConsole() {
-//    Timeline::Dump(&LOG(OUTPUTND));
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-void BeebWindow::DumpTimelineDebuger() {
-//    Timeline::Dump(&LOG(OUTPUT));
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-void BeebWindow::CheckTimeline() {
-//    Timeline::Check();
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 template<BeebWindowPopupType POPUP_TYPE>
 void BeebWindow::TogglePopupCommand() {
     m_settings.popups^=(uint64_t)1<<POPUP_TYPE;
@@ -2764,9 +2740,6 @@ ObjectCommandTable<BeebWindow> BeebWindow::ms_command_table("Beeb Window",{
     {{"clear_console","Clear Win32 console"},&BeebWindow::ClearConsole},
 #endif
     {{"print_separator","Print stdout separator"},&BeebWindow::PrintSeparator},
-    {{"dump_timeline_console","Dump timeline to console only"},&BeebWindow::DumpTimelineConsole},
-    {{"dump_timeline_debugger","Dump timeline to console+debugger"},&BeebWindow::DumpTimelineDebuger},
-    {{"check_timeline","Check timeline"},&BeebWindow::CheckTimeline},
     {{"paste","OSRDCH Paste"},&BeebWindow::Paste,&BeebWindow::IsPasteTicked},
     {{"paste_return","OSRDCH Paste (+Return)"},&BeebWindow::PasteThenReturn,&BeebWindow::IsPasteTicked},
     {{"toggle_copy_oswrch_text","OSWRCH Copy Text"},&BeebWindow::CopyOSWRCH<true>,&BeebWindow::IsCopyOSWRCHTicked},

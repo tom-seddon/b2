@@ -374,9 +374,6 @@ private:
 #endif
 
     bool InitInternal();
-    //bool LoadDiscImageFile(int drive,const std::string &path);
-    void DoOptionsGui();
-    //void DoSettingsUI(uint32_t ui_flag,const char *name,std::unique_ptr<SettingsUI> *uptr,std::function<std::unique_ptr<SettingsUI>()> create_fun);
     bool DoImGui(uint64_t ticks);
     bool DoMenuUI();
     void DoSettingsUI();
@@ -389,8 +386,6 @@ private:
     BeebWindowInitArguments GetNewWindowInitArguments() const;
     void MaybeSaveConfig(bool save_config);
     void HardReset();
-    void LoadLastState();
-    bool IsLoadLastStateEnabled() const;
     void SaveState();
     bool HandleBeebKey(const SDL_Keysym &keysym,bool state);
     bool RecreateTexture();
@@ -399,9 +394,6 @@ private:
     void ResetDockWindows();
     void ClearConsole();
     void PrintSeparator();
-    void DumpTimelineConsole();
-    void DumpTimelineDebuger();
-    void CheckTimeline();
     void UpdateTVTexture(VBlankRecord *vblank_record);
     VBlankRecord *NewVBlankRecord(uint64_t ticks);
     void DoBeebDisplayUI();
