@@ -140,7 +140,6 @@ private:
     bool m_adj=false;//set if in the adjustment period
     M6502Word m_line_addr={};
     M6502Word m_char_addr={};
-    uint8_t m_delay=0;// display enable delay for current scanline
 
 #if BBCMICRO_TRACE
     Trace *m_trace=nullptr;

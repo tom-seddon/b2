@@ -98,6 +98,15 @@ void CRTC::WriteData(void *c_,M6502Word a,uint8_t value) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+// These delays are in video data half units, assuming 1MHz. The delays are
+// halved when the 6845 is running at 2MHz.
+static const unsigned DELAYS[]={
+    0,//0us
+    2,//1us
+    4,//2us
+    1000000,//i.e., infinity
+};
+
 CRTC::Output CRTC::Update(uint8_t fast_6845) {
     // these just need to go somewhere...
     CHECK_SIZEOF(RegisterBits,18);
@@ -106,6 +115,7 @@ CRTC::Output CRTC::Update(uint8_t fast_6845) {
     CHECK_SIZEOF(R8,1);
     CHECK_SIZEOF(R10,1);
     CHECK_SIZEOF(Output,4);
+    ASSERT(fast_6845==0||fast_6845==1);
 
     Output output={};
 
@@ -118,6 +128,8 @@ CRTC::Output CRTC::Update(uint8_t fast_6845) {
         }
         return output;
     }
+
+    const unsigned delay=DELAYS[m_registers.bits.r8.bits.d]>>fast_6845;
 
     if(m_vsync_left>0) {
         // vysnc line
@@ -159,7 +171,8 @@ CRTC::Output CRTC::Update(uint8_t fast_6845) {
         //
         // - On my M128, Mode 0/1/2/3 are 1 column to the left of Mode
         //   4/5/6... which I'm just going to pretend I didn't notice
-        if(m_column>=m_delay&&m_column<m_registers.values[1]+m_delay) {
+
+        if(m_column>=delay&&m_column<m_registers.values[1]+delay) {
             output.display=1;
 
             output.raster=m_raster;
@@ -211,24 +224,6 @@ CRTC::Output CRTC::Update(uint8_t fast_6845) {
 
         // advance to next scanline.
         m_column=0;
-
-        m_delay=m_registers.bits.r8.bits.d;
-        if(m_delay==3) {
-            m_delay=255;
-        } else if(!fast_6845) {
-            // This is a bodge to fix Mode 7 (the delay in all other
-            // modes is by default 0).
-            //
-            // Without the scaling, a 1 cycle 6845 delay will shift
-            // the output by only half a 6845 column in slow clock
-            // mode, because the video output effectively always runs
-            // at 2MHz (since one VideoDataUnit = 0.5us) even when the
-            // 6845 is running at 1MHz. But there needs to be a shift
-            // of 1 full column to put Mode 7 in the right place.
-            //
-            // See the skew notes above too.
-            m_delay*=2;
-        }
 
         // keep the vsync counter going.
         if(m_vsync_left>0) {
@@ -288,7 +283,7 @@ CRTC::Output CRTC::Update(uint8_t fast_6845) {
         }
 
         TRACEF_IF(m_trace_scanline,m_trace,"6845 - start of scanline %u: CRTC addr: $%04X; delay: %u; raster: %u; row: %u; vsync_left: %u; adj: %s\n",
-                  m_trace_scanline,m_line_addr.w,m_delay,m_raster,m_row,m_vsync_left,BOOL_STR(m_adj));
+                  m_trace_scanline,m_line_addr.w,delay,m_raster,m_row,m_vsync_left,BOOL_STR(m_adj));
     } else {
         // advance to next column in row.
         ++m_column;
