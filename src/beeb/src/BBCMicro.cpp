@@ -1899,19 +1899,6 @@ void BBCMicro::SetMMIOFns(uint16_t addr,ReadMMIOFn read_fn,WriteMMIOFn write_fn,
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void BBCMicro::SetMMIOCycleStretch(uint16_t addr,bool stretch) {
-    ASSERT(addr>=0xfc00&&addr<=0xfeff);
-
-    M6502Word tmp;
-    tmp.w=addr;
-    tmp.b.h-=0xfc;
-
-    m_hw_mmio_stretch[tmp.b.h][tmp.b.l]=stretch?0xff:0x00;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 std::shared_ptr<DiscImage> BBCMicro::GetMutableDiscImage(int drive) {
     if(drive>=0&&drive<NUM_DRIVES) {
         return m_disc_images[drive];
@@ -2709,7 +2696,6 @@ void BBCMicro::InitStuff() {
     // initially no I/O
     for(uint16_t i=0xfc00;i<0xff00;++i) {
         this->SetMMIOFns(i,nullptr,nullptr,nullptr);
-        this->SetMMIOCycleStretch(i,i<0xfe00);
     }
 
 #if BBCMICRO_DEBUGGER
@@ -2734,16 +2720,14 @@ void BBCMicro::InitStuff() {
     // I/O: VIAs
     for(uint16_t i=0;i<32;++i) {
         this->SetMMIOFns(0xfe40+i,g_R6522_read_fns[i&15],g_R6522_write_fns[i&15],&m_state.system_via);
-        this->SetMMIOCycleStretch(0xfe40+i,1);
-
         this->SetMMIOFns(0xfe60+i,g_R6522_read_fns[i&15],g_R6522_write_fns[i&15],&m_state.user_via);
-        this->SetMMIOCycleStretch(0xfe60+i,1);
     }
 
     // I/O: 6845
     for(int i=0;i<8;i+=2) {
         this->SetMMIOFns((uint16_t)(0xfe00+i+0),&CRTC::ReadAddress,&CRTC::WriteAddress,&m_state.crtc);
         this->SetMMIOFns((uint16_t)(0xfe00+i+1),&CRTC::ReadData,&CRTC::WriteData,&m_state.crtc);
+
     }
 
     // I/O: Video ULA
@@ -2773,10 +2757,6 @@ void BBCMicro::InitStuff() {
 
         for(int i=0;i<4;++i) {
             this->SetMMIOFns((uint16_t)(m_disc_interface->fdc_addr+i),g_WD1770_read_fns[i],g_WD1770_write_fns[i],&m_state.fdc);
-
-            if(m_disc_interface->flags&DiscInterfaceFlag_CycleStretch) {
-                this->SetMMIOCycleStretch((uint16_t)(m_disc_interface->fdc_addr+i),1);
-            }
         }
 
         this->SetMMIOFns(m_disc_interface->control_addr,&Read1770ControlRegister,&Write1770ControlRegister,this);
@@ -2784,11 +2764,6 @@ void BBCMicro::InitStuff() {
         m_disc_interface->InstallExtraHardware(this);
     } else {
         m_state.fdc.SetHandler(nullptr);
-    }
-
-    // I/O: additional cycle-stretched regions.
-    for(uint16_t a=0xfe00;a<0xfe20;++a) {
-        this->SetMMIOCycleStretch(a,1);
     }
 
     m_state.system_via.SetID(BBCMicroVIAID_SystemVIA,"SystemVIA");
@@ -2866,6 +2841,35 @@ void BBCMicro::InitStuff() {
         m_teletext_bases[0]=0x7c00;
         m_teletext_bases[1]=0x7c00;
         goto romsel_and_acccon;
+    }
+
+    for(M6502Word a={0};a.b.h<3;++a.w) {
+        bool stretch;
+
+        switch(a.b.h) {
+            case 0:
+            case 1:
+                // FRED/JIM
+                stretch=true;
+                break;
+
+            case 2:
+                // SHEILA
+                if(a.b.l>=0x00&&a.b.l<=0x1f) {
+                    stretch=true;
+                } else if(a.b.l>=0x28&&a.b.l<=0x2b) {
+                    stretch=m_type==BBCMicroType_Master;
+                } else if(a.b.l>=0x40&&a.b.l<=0x7f) {
+                    stretch=true;
+                } else if(a.b.l>=0xc0&&a.b.l<=0xdf) {
+                    stretch=m_type!=BBCMicroType_Master;
+                } else {
+                    stretch=false;
+                }
+                break;
+        }
+
+        m_hw_mmio_stretch[a.b.h][a.b.l]=stretch?0xff:0x00;
     }
 
     // Page in current ROM bank and sort out ACCCON.

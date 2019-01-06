@@ -346,7 +346,6 @@ public:
     void AddInstructionFn(InstructionFn fn,void *context);
 
     void SetMMIOFns(uint16_t addr,ReadMMIOFn read_fn,WriteMMIOFn write_fn,void *context);
-    void SetMMIOCycleStretch(uint16_t addr,bool stretch);
 
     std::shared_ptr<DiscImage> GetMutableDiscImage(int drive);
     std::shared_ptr<const DiscImage> GetDiscImage(int drive) const;

@@ -337,7 +337,7 @@ class DiscInterfaceChallenger:
 {
     static const uint16_t FDC_ADDR=0xfcf8;
     static const uint16_t CONTROL_ADDR=0xfcfc;
-    static const uint32_t FLAGS=DiscInterfaceFlag_CycleStretch|DiscInterfaceFlag_NoINTRQ;
+    static const uint32_t FLAGS=DiscInterfaceFlag_NoINTRQ;
     static const bool STRETCH=true;
     static const bool INTRQ=false;
 public:
@@ -551,7 +551,7 @@ class DiscInterfaceMaster128:
 {
 public:
     DiscInterfaceMaster128():
-        DiscInterface(0xfe28,0xfe24,DiscInterfaceFlag_CycleStretch)
+        DiscInterface(0xfe28,0xfe24,0)
     {
     }
 
