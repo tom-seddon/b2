@@ -9,6 +9,10 @@
 #include <beeb/crtc.inl>
 #include <shared/enum_end.h>
 
+// https://stardot.org.uk/forums/viewtopic.php?f=4&t=14971
+
+// https://stardot.org.uk/forums/viewtopic.php?f=57&t=14988
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
@@ -100,15 +104,6 @@ void CRTC::WriteData(void *c_,M6502Word a,uint8_t value) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-// These delays are in video data half units, assuming 1MHz. The delays are
-// halved when the 6845 is running at 2MHz.
-static const unsigned DELAYS[]={
-    0,//0us
-    2,//1us
-    4,//2us
-    1000000,//i.e., infinity
-};
-
 CRTC::Output CRTC::Update(uint8_t fast_6845) {
     // these just need to go somewhere...
     CHECK_SIZEOF(RegisterBits,18);
@@ -118,8 +113,6 @@ CRTC::Output CRTC::Update(uint8_t fast_6845) {
     CHECK_SIZEOF(R10,1);
     CHECK_SIZEOF(Output,4);
     ASSERT(fast_6845==0||fast_6845==1);
-
-    const unsigned delay=DELAYS[m_registers.bits.r8.bits.d]>>fast_6845;
 
     ++m_num_updates;
 
