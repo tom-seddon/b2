@@ -235,7 +235,7 @@ CRTC::Output CRTC::Update(uint8_t fast_6845) {
         // Display is never produced in the last column.
     } else {
         if(m_hdisp&&m_vdisp) {
-            output.display=1;
+            output.display=m_registers.bits.r8.bits.d!=3;
 
             m_char_addr.w&=0x3fff;
 
