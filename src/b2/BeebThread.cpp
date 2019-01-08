@@ -2133,6 +2133,7 @@ std::shared_ptr<BeebState> BeebThread::ThreadSaveState(ThreadState *ts) {
 void BeebThread::ThreadReplaceBeeb(ThreadState *ts,std::unique_ptr<BBCMicro> beeb,uint32_t flags) {
     ASSERT(!!beeb);
 
+    std::shared_ptr<DiscImage> old_disc_images[NUM_DRIVES];
     {
 #if BBCMICRO_DEBUGGER
         std::unique_ptr<BBCMicro::DebugState> debug_state;
@@ -2142,6 +2143,13 @@ void BeebThread::ThreadReplaceBeeb(ThreadState *ts,std::unique_ptr<BBCMicro> bee
 #if BBCMICRO_DEBUGGER
             debug_state=ts->beeb->TakeDebugState();
 #endif
+
+            if(flags&BeebThreadReplaceFlag_KeepCurrentDiscs) {
+                for(int i=0;i<NUM_DRIVES;++i) {
+                    old_disc_images[i]=ts->beeb->TakeDiscImage(i);
+                }
+            }
+
             delete ts->beeb;
             ts->beeb=nullptr;
         }
@@ -2199,7 +2207,7 @@ void BeebThread::ThreadReplaceBeeb(ThreadState *ts,std::unique_ptr<BBCMicro> bee
 
     if(flags&BeebThreadReplaceFlag_KeepCurrentDiscs) {
         for(int i=0;i<NUM_DRIVES;++i) {
-            this->ThreadSetDiscImage(ts,i,DiscImage::Clone(m_disc_images[i]));
+            this->ThreadSetDiscImage(ts,i,std::move(old_disc_images[i]));
         }
     } else {
         for(int i=0;i<NUM_DRIVES;++i) {

@@ -13,22 +13,6 @@ class Messages;
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 //
-// Base class for disc images.
-//
-// This hasn't really ended up paying its way, but as a (pretty much)
-// abstract class it's not causing enough problems to warrant its
-// removal just yet.
-//
-// (The original intention was that there would be at least a derived
-// class that operated directly on a disc image file using
-// fgetc/fputc/etc., while trying to be careful wrt file locking, so
-// you could have a disc image loaded that could be rewritten by
-// BeebAsm and the changes seen in the emulator straight away. This
-// may still come to pass...)
-//
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-//
 // There are two types of DiscImage pointer:
 //
 // 1. Owning pointer: shared_ptr<DiscImage>. There should be at most

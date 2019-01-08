@@ -1899,9 +1899,10 @@ void BBCMicro::SetMMIOFns(uint16_t addr,ReadMMIOFn read_fn,WriteMMIOFn write_fn,
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-std::shared_ptr<DiscImage> BBCMicro::GetMutableDiscImage(int drive) {
+std::shared_ptr<DiscImage> BBCMicro::TakeDiscImage(int drive) {
     if(drive>=0&&drive<NUM_DRIVES) {
-        return m_disc_images[drive];
+        std::shared_ptr<DiscImage> tmp=std::move(m_disc_images[drive]);
+        return tmp;
     } else {
         return nullptr;
     }

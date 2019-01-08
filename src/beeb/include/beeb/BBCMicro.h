@@ -347,7 +347,8 @@ public:
 
     void SetMMIOFns(uint16_t addr,ReadMMIOFn read_fn,WriteMMIOFn write_fn,void *context);
 
-    std::shared_ptr<DiscImage> GetMutableDiscImage(int drive);
+    // The pointer is moved into the result.
+    std::shared_ptr<DiscImage> TakeDiscImage(int drive);
     std::shared_ptr<const DiscImage> GetDiscImage(int drive) const;
 
     void SetDiscImage(int drive,std::shared_ptr<DiscImage> disc_image);

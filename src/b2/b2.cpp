@@ -37,6 +37,7 @@
 #include "HTTPServer.h"
 #include "HTTPMethodsHandler.h"
 #include <curl/curl.h>
+#include "DirectDiscImage.h"
 
 #include <shared/enum_decl.h>
 #include "b2.inl"
@@ -336,6 +337,7 @@ static uint32_t GetPixelFormatForRenderer(int index) {
 struct Options {
     bool verbose=false;
     std::string discs[NUM_DRIVES];
+    bool direct_disc[NUM_DRIVES]={};
     int render_driver_index=-1;
     int audio_hz=DEFAULT_AUDIO_HZ;
     int audio_buffer_size=DEFAULT_AUDIO_BUFFER_SIZE;
@@ -476,6 +478,8 @@ static bool DoCommandLineOptions(
 
     for(int drive=0;drive<NUM_DRIVES;++drive) {
         p.AddOption((char)('0'+drive)).Arg(&options->discs[drive]).Meta("FILE").Help("load drive "+std::to_string(drive)+" from disc image FILE");
+
+        p.AddOption(0,strprintf("%d-direct",drive)).SetIfPresent(&options->direct_disc[drive]).Help(strprintf("if -%d specified, load a direct disc image",drive));
     }
 
     p.AddOption('b',"boot").SetIfPresent(&options->boot).Help("attempt to auto-boot disc");
@@ -609,29 +613,6 @@ static bool InitSystem(
 
         g_fill_audio_buffer_data.spec=*got_spec;
         g_fill_audio_buffer_data.device=*device_id;
-    }
-
-    return true;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-static bool LoadInitialDiscImages(
-    std::shared_ptr<DiscImage> *init_disc_images,
-    const Options &options,
-    Messages *init_messages)
-{
-    for(int i=0;i<NUM_DRIVES;++i) {
-        if(options.discs[i].empty()) {
-            continue;
-        }
-
-        init_disc_images[i]=MemoryDiscImage::LoadFromFile(options.discs[i],init_messages);
-
-        if(!init_disc_images[i]) {
-            return false;
-        }
     }
 
     return true;
@@ -966,8 +947,20 @@ static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &init
 
             ia.reset_windows=options.reset_windows;
 
-            if(!LoadInitialDiscImages(ia.init_disc_images,options,&init_messages)) {
-                return false;
+            for(int i=0;i<NUM_DRIVES;++i) {
+                if(options.discs[i].empty()) {
+                    continue;
+                }
+
+                if(options.direct_disc[i]) {
+                    ia.init_disc_images[i]=DirectDiscImage::CreateForFile(options.discs[i],&init_messages);
+                } else {
+                    ia.init_disc_images[i]=MemoryDiscImage::LoadFromFile(options.discs[i],&init_messages);
+                }
+
+                if(!ia.init_disc_images[i]) {
+                    return false;
+                }
             }
 
             ia.boot=options.boot;
