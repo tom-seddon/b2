@@ -21,8 +21,11 @@
 struct TraceUISettings {
     TraceUIStartCondition start=TraceUIStartCondition_Now;
     TraceUIStopCondition stop=TraceUIStopCondition_ByRequest;
+    uint16_t start_address=0;
+    uint64_t stop_num_cycles=0;
     uint32_t flags=0;
     bool unlimited=false;
+    TraceUICyclesOutput cycles_output=TraceUICyclesOutput_Relative;
 };
 
 TraceUISettings GetDefaultTraceUISettings();

@@ -70,11 +70,15 @@ private:
     std::shared_ptr<SaveTraceJob> m_save_trace_job;
     std::vector<uint8_t> m_keys;
 
+    char m_stop_num_cycles_str[100]={};
+    char m_start_address_str[100]={};
+
     bool m_config_changed=false;
 
     int GetKeyIndex(uint8_t beeb_key) const;
+    void ResetTextBoxes();
+
     static bool GetBeebKeyName(void *data,int idx,const char **out_text);
-    void SaveButton(const char *label,const std::shared_ptr<Trace> &last_trace,bool cycles);
 #endif
 };
 
@@ -88,10 +92,10 @@ public:
     explicit SaveTraceJob(std::shared_ptr<Trace> trace,
         std::string file_name,
         std::shared_ptr<MessageList> message_list,
-        bool cycles):
+        TraceUICyclesOutput cycles_output):
         m_trace(std::move(trace)),
         m_file_name(std::move(file_name)),
-        m_cycles(cycles),
+        m_cycles_output(cycles_output),
         m_msgs(message_list)
     {
     }
@@ -185,7 +189,7 @@ private:
     std::shared_ptr<Trace> m_trace;
     std::string m_file_name;
     std::shared_ptr<MessageList> m_message_list;
-    bool m_cycles=true;
+    TraceUICyclesOutput m_cycles_output=TraceUICyclesOutput_Relative;
     MFn m_mfns[256]={};
     bool m_mfns_ok=true;
     std::unique_ptr<Log> m_output;
@@ -194,6 +198,8 @@ private:
     int m_sound_channel2_value=-1;
     R6522IRQEvent m_last_6522_irq_event_by_via_id[256];
     uint64_t m_last_instruction_time=0;
+    bool m_got_first_event_time=false;
+    uint64_t m_first_event_time=0;
 
     std::atomic<uint64_t> m_num_events_handled{0};
     uint64_t m_num_events=0;
@@ -596,11 +602,25 @@ private:
         {
             char *c=this_->m_time_prefix;
 
-            if(this_->m_cycles) {
+            if(this_->m_cycles_output!=TraceUICyclesOutput_None) {
+
+                uint64_t time=e->time;
+                if(this_->m_cycles_output==TraceUICyclesOutput_Relative) {
+                    if(!this_->m_got_first_event_time) {
+                        this_->m_got_first_event_time=true;
+                        this_->m_first_event_time=e->time;
+                    }
+
+                    time-=this_->m_first_event_time;
+                }
+
                 char zero=' ';
+                if(time==0) {
+                    zero='0';
+                }
 
                 for(uint64_t value=this_->m_time_initial_value;value!=0;value/=10) {
-                    uint64_t digit=e->time/value%10;
+                    uint64_t digit=time/value%10;
 
                     if(digit!=0) {
                         *c++=(char)('0'+digit);
@@ -612,7 +632,6 @@ private:
 
                 *c++=' ';
                 *c++=' ';
-
             }
 
             this_->m_time_prefix_len=(size_t)(c-this_->m_time_prefix);
@@ -651,19 +670,7 @@ private:
 TraceUI::TraceUI(BeebWindow *beeb_window):
     m_beeb_window(beeb_window)
 {
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-int TraceUI::GetKeyIndex(uint8_t beeb_key) const {
-    for(size_t i=0;i<m_keys.size();++i) {
-        if(m_keys[i]==beeb_key) {
-            return (int)i;
-        }
-    }
-
-    return -1;
+    this->ResetTextBoxes();
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -696,18 +703,6 @@ static void DoTraceStatsImGui(const volatile TraceStats *stats) {
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
-
-bool TraceUI::GetBeebKeyName(void *data,int idx,const char **out_text) {
-    auto this_=(TraceUI *)data;
-
-    if(idx>=0&&(size_t)idx<this_->m_keys.size()) {
-        *out_text=::GetBeebKeyName((BeebKey)this_->m_keys[(size_t)idx]);
-        ASSERT(*out_text);
-        return true;
-    } else {
-        return false;
-    }
-}
 
 void TraceUI::DoImGui(CommandContextStack *cc_stack) {
     (void)cc_stack;
@@ -754,18 +749,45 @@ void TraceUI::DoImGui(CommandContextStack *cc_stack) {
     if(!running_stats) {
         ImGui::AlignTextToFramePadding();
         ImGui::TextUnformatted("Start:");
-        ImGui::SameLine();
         ImGuiRadioButton("Immediate",&g_default_settings.start,TraceUIStartCondition_Now);
-        ImGui::SameLine();
         ImGuiRadioButton("Return",&g_default_settings.start,TraceUIStartCondition_Return);
+        ImGuiRadioButton("Instruction",&g_default_settings.start,TraceUIStartCondition_Instruction);
+        if(g_default_settings.start==TraceUIStartCondition_Instruction) {
+            if(ImGui::InputText("Address (hex)",
+                                m_start_address_str,
+                                sizeof m_start_address_str,
+                                ImGuiInputTextFlags_CharsHexadecimal|ImGuiInputTextFlags_EnterReturnsTrue))
+            {
+                if(!GetUInt16FromString(&g_default_settings.start_address,
+                                        m_start_address_str,
+                                        16))
+                {
+                    this->ResetTextBoxes();
+                }
+            }
+        }
+
+        ImGui::Spacing();
 
         ImGui::TextUnformatted("Stop:");
-        ImGui::SameLine();
         ImGuiRadioButton("By request",&g_default_settings.stop,TraceUIStopCondition_ByRequest);
-        ImGui::SameLine();
         ImGuiRadioButton("OSWORD 0",&g_default_settings.stop,TraceUIStopCondition_OSWORD0);
+        ImGuiRadioButton("Cycle count",&g_default_settings.stop,TraceUIStopCondition_NumCycles);
+        if(g_default_settings.stop==TraceUIStopCondition_NumCycles) {
+            if(ImGui::InputText("Cycles",
+                                m_stop_num_cycles_str,
+                                sizeof m_stop_num_cycles_str,
+                                ImGuiInputTextFlags_EnterReturnsTrue))
+            {
+                if(!GetUInt64FromString(&g_default_settings.stop_num_cycles,
+                                        m_stop_num_cycles_str))
+                {
+                    this->ResetTextBoxes();
+                }
+            }
+        }
 
-        ImGui::Checkbox("Unlimited recording", &g_default_settings.unlimited);
+        ImGui::Spacing();
 
         ImGui::TextUnformatted("Flags");
         for(uint32_t i=1;i!=0;i<<=1) {
@@ -776,6 +798,10 @@ void TraceUI::DoImGui(CommandContextStack *cc_stack) {
 
             ImGui::CheckboxFlags(name,&g_default_settings.flags,i);
         }
+
+        ImGui::Spacing();
+
+        ImGui::Checkbox("Unlimited recording", &g_default_settings.unlimited);
 
         if(ImGui::Button("Start")) {
             TraceConditions c;
@@ -790,8 +816,13 @@ void TraceUI::DoImGui(CommandContextStack *cc_stack) {
 
             case TraceUIStartCondition_Return:
                 c.start=BeebThreadStartTraceCondition_NextKeypress;
-                c.beeb_key=BeebKey_Return;
+                c.start_key=BeebKey_Return;
                 break;
+
+                case TraceUIStartCondition_Instruction:
+                    c.start=BeebThreadStartTraceCondition_Instruction;
+                    c.start_address=g_default_settings.start_address;
+                    break;
             }
 
             switch(g_default_settings.stop) {
@@ -805,6 +836,11 @@ void TraceUI::DoImGui(CommandContextStack *cc_stack) {
             case TraceUIStopCondition_OSWORD0:
                 c.stop=BeebThreadStopTraceCondition_OSWORD0;
                 break;
+
+                case TraceUIStopCondition_NumCycles:
+                    c.stop=BeebThreadStopTraceCondition_NumCycles;
+                    c.stop_num_cycles=g_default_settings.stop_num_cycles;
+                    break;
             }
 
             c.trace_flags=g_default_settings.flags;
@@ -834,10 +870,28 @@ void TraceUI::DoImGui(CommandContextStack *cc_stack) {
 
             DoTraceStatsImGui(&stats);
 
-            this->SaveButton("Save...",last_trace,true);
-            ImGui::SameLine();
+            ImGui::TextUnformatted("Cycles output:");
+            ImGuiRadioButton("Absolute",&g_default_settings.cycles_output,TraceUICyclesOutput_Absolute);
+            ImGuiRadioButton("Relative",&g_default_settings.cycles_output,TraceUICyclesOutput_Relative);
+            ImGuiRadioButton("None",&g_default_settings.cycles_output,TraceUICyclesOutput_None);
 
-            this->SaveButton("Save (no cycles)...",last_trace,false);
+            if(ImGui::Button("Save...")) {
+                SaveFileDialog fd(RECENT_PATHS_TRACES);
+
+                fd.AddFilter("Text files",{".txt"});
+                fd.AddAllFilesFilter();
+
+                std::string path;
+                if(fd.Open(&path)) {
+                    fd.AddLastPathToRecentPaths();
+                    m_save_trace_job=std::make_shared<SaveTraceJob>(last_trace,
+                                                                    path,
+                                                                    m_beeb_window->GetMessageList(),
+                                                                    g_default_settings.cycles_output);
+                    BeebWindows::AddJob(m_save_trace_job);
+                }
+            }
+
             ImGui::SameLine();
 
             if(ImGui::Button("Clear")) {
@@ -863,21 +917,44 @@ bool TraceUI::OnClose() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void TraceUI::SaveButton(const char *label,const std::shared_ptr<Trace> &last_trace,bool cycles) {
-    if(ImGui::Button(label)) {
-        SaveFileDialog fd(RECENT_PATHS_TRACES);
-
-        fd.AddFilter("Text files",{".txt"});
-        fd.AddAllFilesFilter();
-
-        std::string path;
-        if(fd.Open(&path)) {
-            fd.AddLastPathToRecentPaths();
-            m_save_trace_job=std::make_shared<SaveTraceJob>(last_trace,path,m_beeb_window->GetMessageList(),cycles);
-            BeebWindows::AddJob(m_save_trace_job);
+int TraceUI::GetKeyIndex(uint8_t beeb_key) const {
+    for(size_t i=0;i<m_keys.size();++i) {
+        if(m_keys[i]==beeb_key) {
+            return (int)i;
         }
     }
 
+    return -1;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void TraceUI::ResetTextBoxes() {
+    snprintf(m_start_address_str,
+             sizeof m_start_address_str,
+             "%x",
+             g_default_settings.start_address);
+
+    snprintf(m_stop_num_cycles_str,
+             sizeof m_stop_num_cycles_str,
+             "%" PRIu64,
+             g_default_settings.stop_num_cycles);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool TraceUI::GetBeebKeyName(void *data,int idx,const char **out_text) {
+    auto this_=(TraceUI *)data;
+
+    if(idx>=0&&(size_t)idx<this_->m_keys.size()) {
+        *out_text=::GetBeebKeyName((BeebKey)this_->m_keys[(size_t)idx]);
+        ASSERT(*out_text);
+        return true;
+    } else {
+        return false;
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////

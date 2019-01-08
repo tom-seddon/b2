@@ -661,6 +661,19 @@ static bool FindFloatMember(float *value,rapidjson::Value *object,const char *ke
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+static bool FindUInt64Member(uint64_t *value,rapidjson::Value *object,const char *key,Messages *msg) {
+    rapidjson::Value tmp;
+    if(!FindMember(&tmp,object,key,msg,&rapidjson::Value::IsNumber,"number")) {
+        return false;
+    }
+
+    *value=tmp.GetUint64();
+    return true;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 // Bit-indexed flags are flags where the enum values relate to the bit
 // indexes rather than the mask values.
 //
@@ -957,6 +970,9 @@ static const char UNLIMITED[]="unlimited";
 static const char BEEBLINK[]="beeblink";
 static const char URLS[]="urls";
 static const char NVRAM[]="nvram";
+static const char START_ADDRESS[]="start_address";
+static const char STOP_NUM_CYCLES[]="stop_num_cycles";
+static const char CYCLES_OUTPUT[]="cycles_output";
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -1341,6 +1357,12 @@ static bool LoadTrace(rapidjson::Value *trace_json,Messages *msg) {
     FindEnumMember(&settings.start,trace_json,START,"start condition",&GetTraceUIStartConditionEnumName,msg);
     FindEnumMember(&settings.stop,trace_json,STOP,"stop condition",&GetTraceUIStopConditionEnumName,msg);
     FindBoolMember(&settings.unlimited,trace_json,UNLIMITED,nullptr);
+    FindEnumMember(&settings.cycles_output,trace_json,CYCLES_OUTPUT,"cycles output",&GetTraceUICyclesOutputEnumName,msg);
+    FindUInt64Member(&settings.stop_num_cycles,trace_json,STOP_NUM_CYCLES,nullptr);
+
+    uint64_t start_address;
+    FindUInt64Member(&start_address,trace_json,START_ADDRESS,nullptr);
+    settings.start_address=(uint16_t)start_address;
 
     SetDefaultTraceUISettings(settings);
 
@@ -1771,6 +1793,15 @@ static void SaveTrace(JSONWriter<StringStream> *writer) {
 
         writer->Key(UNLIMITED);
         writer->Bool(settings.unlimited);
+
+        writer->Key(START_ADDRESS);
+        writer->Uint64(settings.start_address);
+
+        writer->Key(STOP_NUM_CYCLES);
+        writer->Uint64(settings.stop_num_cycles);
+
+        writer->Key(CYCLES_OUTPUT);
+        SaveEnum(writer,settings.cycles_output,&GetTraceUICyclesOutputEnumName);
     }
 }
 

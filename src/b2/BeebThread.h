@@ -50,9 +50,11 @@ class R6522;
 
 struct TraceConditions {
     BeebThreadStartTraceCondition start=BeebThreadStartTraceCondition_Immediate;
-    int8_t beeb_key=-1;
+    int8_t start_key=-1;
+    uint16_t start_address=0;
 
     BeebThreadStopTraceCondition stop=BeebThreadStopTraceCondition_ByRequest;
+    uint64_t stop_num_cycles=0;
 
     uint32_t trace_flags=0;
 };
@@ -995,7 +997,8 @@ private:
     std::shared_ptr<MessageList> m_message_list;
 
 #if BBCMICRO_TRACE
-    static bool ThreadStopTraceOnOSWORD0(const BBCMicro *beeb,const M6502 *cpu,void *context);
+    static bool ThreadStartTraceOnCondition(const BBCMicro *beeb,const M6502 *cpu,void *context);
+    static bool ThreadStopTraceOnCondition(const BBCMicro *beeb,const M6502 *cpu,void *context);
 #endif
     static bool ThreadStopCopyOnOSWORD0(const BBCMicro *beeb,const M6502 *cpu,void *context);
     static bool ThreadAddCopyData(const BBCMicro *beeb,const M6502 *cpu,void *context);

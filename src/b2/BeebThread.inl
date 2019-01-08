@@ -15,6 +15,7 @@ EEND()
 EBEGIN()
 EPN(Immediate)
 EPN(NextKeypress)
+EPN(Instruction)
 EEND()
 #undef ENAME
 #endif
@@ -27,9 +28,13 @@ EEND()
 EBEGIN()
 EPN(ByRequest)
 EPN(OSWORD0)
+EPN(NumCycles)
 EEND()
 #undef ENAME
 #endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
 
 #define ENAME BeebThreadTimelineState
 EBEGIN()
