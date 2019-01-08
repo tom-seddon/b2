@@ -26,8 +26,7 @@ public:
 
     void HSync();
 
-    /* odd_frame is specifically 1 (odd frame) or 0 (even frame). */
-    void VSync(uint8_t odd_frame);
+    void VSync();
 
 #if BBCMICRO_DEBUGGER
     bool IsDebug() const;

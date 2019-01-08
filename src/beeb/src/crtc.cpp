@@ -119,8 +119,6 @@ CRTC::Output CRTC::Update(uint8_t fast_6845) {
 
     Output output={};
 
-    output.odd_frame=m_num_frames&1;
-
     if(m_interlace_delay>0) {
         --m_interlace_delay;
         if(m_interlace_delay==0) {

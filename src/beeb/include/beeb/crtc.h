@@ -33,9 +33,6 @@ public:
         // Value of cudisp output.
         uint32_t cudisp:1;
 
-        // Whether this is an odd or even frame.
-        uint32_t odd_frame:1;
-
         // 6845 address to fetch from, if FETCH set.
         uint32_t address:14;
 

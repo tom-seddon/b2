@@ -1486,7 +1486,7 @@ bool BBCMicro::Update(VideoDataUnit *video_unit,SoundDataUnit *sound_unit) {
                 m_state.last_frame_2MHz_cycles=m_state.num_2MHz_cycles-m_state.last_vsync_2MHz_cycles;
                 m_state.last_vsync_2MHz_cycles=m_state.num_2MHz_cycles;
 
-                m_state.saa5050.VSync(output.odd_frame);
+                m_state.saa5050.VSync();
             }
         } else if(output.display) {
             uint16_t addr=(uint16_t)output.address;
