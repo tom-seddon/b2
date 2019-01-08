@@ -121,19 +121,17 @@ CRTC::Output CRTC::Update(uint8_t fast_6845) {
 
     const unsigned delay=DELAYS[m_registers.bits.r8.bits.d]>>fast_6845;
 
-//    Output output={};
-
     // The interlace delay counter appears to be special.
-    if(m_interlace_delay_counter!=255) {
+    if(m_interlace_delay_counter>=0) {
         ++m_interlace_delay_counter;
-        if(m_interlace_delay_counter!=1+m_registers.values[0]/2) {
+        if(m_interlace_delay_counter!=1+(m_registers.values[0]>>1)) {
             return {};
         }
 
-        m_interlace_delay_counter=255;
+        m_interlace_delay_counter=-1;
     }
 
-    // Horizontal.
+    // Horizontal sync counter.
     if(m_hsync_counter>=0) {
         ++m_hsync_counter;
         if(m_hsync_counter==m_registers.bits.nsw.bits.wh) {
@@ -145,22 +143,55 @@ CRTC::Output CRTC::Update(uint8_t fast_6845) {
         }
     }
 
-    if(m_column==m_registers.values[1]) {
-        m_hdisp=false;
+    // Vertical displayed.
+    if(m_row==m_registers.values[6]) {
+        m_vdisp=false;
     }
 
+    // Handle column 0.
+    if(m_column==0) {
+        if(m_vsync_counter>=0) {
+            ++m_vsync_counter;
+
+            uint8_t wv=m_registers.bits.nsw.bits.wv;
+            if(wv==0) {
+                wv=16;
+            }
+
+            if(m_vsync_counter==wv) {
+                m_vsync_counter=-1;
+            }
+        } else if(m_row==m_registers.values[7]&&m_raster==0) {
+            m_vsync_counter=0;
+
+            if(m_registers.bits.r8.bits.s) {
+                m_interlace_delay_counter=0;
+                return {};
+            }
+        }
+    }
+
+    // Produce output.
+    Output output={};
+
+    output.vsync=m_vsync_counter>=0;
+    output.hsync=m_hsync_counter>=0&&!output.vsync;
+
+    // Handle column N-1.
     if(m_column==m_registers.values[0]) {
         m_hdisp=true;
+
+        if(m_adj_counter<0) {
+            if(m_row==m_registers.values[4]&&m_raster==m_registers.values[9]) {
+                m_adj_counter=0;
+            }
+        }
 
         if(m_raster==m_registers.values[9]) {
         next_row:
             m_raster=0;
             ++m_row;
-
-            m_line_addr.w+=m_registers.values[1];
-            m_char_addr.w=m_line_addr.w;
         } else {
-
             if(m_registers.bits.r8.bits.v&&m_registers.bits.r8.bits.s) {
                 // Interlace sync and video
 
@@ -182,12 +213,6 @@ CRTC::Output CRTC::Update(uint8_t fast_6845) {
         m_column=0;
         m_char_addr=m_line_addr;
 
-        if(m_adj_counter<0) {
-            if(m_row==m_registers.values[4]) {
-                m_adj_counter=0;
-            }
-        }
-
         if(m_adj_counter>=0) {
             if(m_adj_counter==m_registers.values[5]) {
                 m_line_addr.b.h=m_registers.values[12];
@@ -206,55 +231,42 @@ CRTC::Output CRTC::Update(uint8_t fast_6845) {
                 ++m_adj_counter;
             }
         }
-    }
 
-    if(m_column==0) {
-        if(m_vsync_counter>=0) {
-            ++m_vsync_counter;
+        // Display is never produced in the last column.
+    } else {
+        if(m_hdisp&&m_vdisp) {
+            output.display=1;
 
-            uint8_t wv=m_registers.bits.nsw.bits.wv;
-            if(wv==0) {
-                wv=16;
+            m_char_addr.w&=0x3fff;
+
+            output.address=m_char_addr.w;
+            ASSERT(output.address==m_char_addr.w);
+
+            output.raster=m_raster;
+            ASSERT(output.raster==m_raster);
+        }
+
+        ++m_char_addr.w;
+        ++m_column;
+
+        // Horizontal displayed.
+        if(m_column==m_registers.values[1]) {
+            m_hdisp=false;
+
+            // The 6845 appears to do this at this point - try, e.g.,
+            // MODE1:?&FE00=1:?&FE01=128
+            if(m_raster==m_registers.values[9]) {
+                m_line_addr.w+=m_registers.values[1];
+                m_char_addr.w=m_line_addr.w;
             }
-
-            if(m_vsync_counter==wv) {
-                m_vsync_counter=-1;
-            }
-        } else if(m_row==m_registers.values[7]&&m_raster==0) {
-            m_vsync_counter=0;
-
-            //            if(m_registers.bits.r8.bits.s) {
-            //                m_interlace_delay_counter=0;
-            //                return {};
-            //            }
         }
     }
+
 
     // Vertical.
     if(m_row==m_registers.values[6]) {
         m_vdisp=false;
     }
-
-    Output output={};
-
-    output.vsync=m_vsync_counter>=0;
-    output.hsync=m_hsync_counter>=0&&!output.vsync;
-
-    if(m_hdisp&&m_vdisp) {
-        output.display=1;
-
-        m_char_addr.w&=0x3fff;
-
-        output.address=m_char_addr.w;
-        ASSERT(output.address==m_char_addr.w);
-
-        output.raster=m_raster;
-        ASSERT(output.raster==m_raster);
-
-        ++m_char_addr.w;
-    }
-
-    ++m_column;
 
     return output;
 }

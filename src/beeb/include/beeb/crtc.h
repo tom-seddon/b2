@@ -128,7 +128,7 @@ private:
     // incremented on each field - used for even/odd and cursor blink
     // timing, so wraparound is no problem
     uint8_t m_num_frames=0;
-    uint8_t m_interlace_delay_counter=255;
+    int m_interlace_delay_counter=-1;
     uint8_t m_column=0;//character column
     uint8_t m_row=0;//character row
     uint8_t m_raster=0;//scanline in character
