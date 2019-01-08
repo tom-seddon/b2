@@ -243,12 +243,11 @@ CRTC::Output CRTC::Update(uint8_t fast_6845) {
         // Display is never produced in the last column.
     } else {
         if(m_hdisp&&m_vdisp) {
-            output.display=m_registers.bits.r8.bits.d!=3;
-
-            m_char_addr.w&=0x3fff;
+            if(m_registers.bits.r8.bits.d!=3) {
+                m_skewed_display|=(2>>fast_6845)<<m_registers.bits.r8.bits.d;
+            }
 
             output.address=m_char_addr.w;
-            ASSERT(output.address==m_char_addr.w);
 
             output.raster=m_raster;
             ASSERT(output.raster==m_raster);
@@ -280,7 +279,13 @@ CRTC::Output CRTC::Update(uint8_t fast_6845) {
             }
         }
 
-        ++m_char_addr.w;
+        output.display=m_skewed_display&1;
+        m_skewed_display>>=1;
+
+        if(output.display) {
+            ++m_char_addr.w;
+        }
+
         ++m_column;
 
         // Horizontal displayed.
