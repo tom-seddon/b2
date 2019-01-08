@@ -128,13 +128,16 @@ private:
     // incremented on each field - used for even/odd and cursor blink
     // timing, so wraparound is no problem
     uint8_t m_num_frames=0;
-    uint8_t m_interlace_delay=0;
+    uint8_t m_interlace_delay_counter=255;
     uint8_t m_column=0;//character column
     uint8_t m_row=0;//character row
     uint8_t m_raster=0;//scanline in character
-    uint8_t m_vsync_left=0;//vsync counter
-    uint8_t m_hsync_left=0;//hsync counter
-    bool m_adj=false;//set if in the adjustment period
+    int8_t m_vsync_counter=-1;//vsync counter
+    int8_t m_hsync_counter=-1;//hsync counter
+    int8_t m_adj_counter=-1;
+    //bool m_adj=false;//set if in the adjustment period
+    bool m_hdisp=true;
+    bool m_vdisp=true;
     M6502Word m_line_addr={};
     M6502Word m_char_addr={};
 
