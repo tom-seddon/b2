@@ -748,7 +748,7 @@ void TraceUI::DoImGui(CommandContextStack *cc_stack) {
 
     if(!running_stats) {
         ImGui::AlignTextToFramePadding();
-        ImGui::TextUnformatted("Start:");
+        ImGui::TextUnformatted("Start condition");
         ImGuiRadioButton("Immediate",&g_default_settings.start,TraceUIStartCondition_Now);
         ImGuiRadioButton("Return",&g_default_settings.start,TraceUIStartCondition_Return);
         ImGuiRadioButton("Instruction",&g_default_settings.start,TraceUIStartCondition_Instruction);
@@ -769,7 +769,7 @@ void TraceUI::DoImGui(CommandContextStack *cc_stack) {
 
         ImGui::Spacing();
 
-        ImGui::TextUnformatted("Stop:");
+        ImGui::TextUnformatted("Stop condition");
         ImGuiRadioButton("By request",&g_default_settings.stop,TraceUIStopCondition_ByRequest);
         ImGuiRadioButton("OSWORD 0",&g_default_settings.stop,TraceUIStopCondition_OSWORD0);
         ImGuiRadioButton("Cycle count",&g_default_settings.stop,TraceUIStopCondition_NumCycles);
@@ -789,7 +789,7 @@ void TraceUI::DoImGui(CommandContextStack *cc_stack) {
 
         ImGui::Spacing();
 
-        ImGui::TextUnformatted("Flags");
+        ImGui::TextUnformatted("Other traces");
         for(uint32_t i=1;i!=0;i<<=1) {
             const char *name=GetBBCMicroTraceFlagEnumName((int)i);
             if(name[0]=='?') {
@@ -801,6 +801,7 @@ void TraceUI::DoImGui(CommandContextStack *cc_stack) {
 
         ImGui::Spacing();
 
+        ImGui::TextUnformatted("Other settings");
         ImGui::Checkbox("Unlimited recording", &g_default_settings.unlimited);
 
         if(ImGui::Button("Start")) {
