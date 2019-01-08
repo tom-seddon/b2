@@ -138,15 +138,12 @@ private:
     bool m_vdisp=true;
     M6502Word m_line_addr={};
     M6502Word m_char_addr={};
+    uint32_t m_num_updates=0;
 
 #if BBCMICRO_TRACE
     Trace *m_trace=nullptr;
-    uint32_t m_trace_scanline=0;
     bool m_trace_scanlines=false;
 #endif
-
-    void NextRaster();
-    void StartOfFrame();
 
 #if BBCMICRO_DEBUGGER
     friend class CRTCDebugWindow;
