@@ -33,6 +33,10 @@
 // HSync: hsync is active. Ignore pixels[1...].
 //
 // VSync: vsync is active. Ignore pixels[1...].
+//
+// (In fact, hsync and vsync are independent of pixel output, but this isn't
+// modeled properly... tsk...)
+
 
 struct VideoDataBitmapPixel {
     uint16_t b:4;

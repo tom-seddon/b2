@@ -19,24 +19,22 @@ class Trace;
 class CRTC {
 public:
     struct Output {
-        // Value of hsync output. If !display, display is off, for
-        // whatever resaon.
+        // Value of hsync output.
         uint32_t hsync:1;
 
         // Value of vsync output.
         uint32_t vsync:1;
 
-        // If !hsync && !vsync && display, fetch from ADDRESS/ROW and use
-        // as display data.
+        // If display, fetch from ADDRESS/RASTER and use as display data.
         uint32_t display:1;
 
         // Value of cudisp output.
         uint32_t cudisp:1;
 
-        // 6845 address to fetch from, if FETCH set.
+        // 6845 address to fetch from, if DISPLAY set.
         uint32_t address:14;
 
-        // Current character row, if FETCH set.
+        // Current character row, if DISPLAY set.
         uint32_t raster:5;
     };
 

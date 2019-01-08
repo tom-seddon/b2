@@ -1477,9 +1477,7 @@ bool BBCMicro::Update(VideoDataUnit *video_unit,SoundDataUnit *sound_unit) {
 
         if(output.hsync) {
             if(!m_state.crtc_last_output.hsync) {
-                if(output.display) {
-                    m_state.saa5050.HSync();
-                }
+                m_state.saa5050.HSync();
             }
         } else if(output.vsync) {
             if(!m_state.crtc_last_output.vsync) {
