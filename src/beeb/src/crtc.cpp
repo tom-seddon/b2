@@ -244,6 +244,32 @@ CRTC::Output CRTC::Update(uint8_t fast_6845) {
 
             output.raster=m_raster;
             ASSERT(output.raster==m_raster);
+
+            if(m_char_addr.b.h==m_registers.bits.cursorh&&
+               m_char_addr.b.l==m_registers.bits.cursorl&&
+               m_raster>=m_registers.bits.ncstart.bits.start&&
+               m_raster<m_registers.bits.ncend&&
+               m_registers.bits.r8.bits.c!=3)
+            {
+                switch((CRTCCursorMode)m_registers.bits.ncstart.bits.mode) {
+                    case CRTCCursorMode_On:
+                        output.cudisp=1;
+                        break;
+
+                    case CRTCCursorMode_Off:
+                        break;
+
+                    case CRTCCursorMode_Blink16:
+                        // 8 frames on, 8 frames off
+                        output.cudisp=(uint32_t)m_num_frames>>3;
+                        break;
+
+                    case CRTCCursorMode_Blink32:
+                        // 16 frames on, 16 frames off
+                        output.cudisp=(uint32_t)m_num_frames>>4;
+                        break;
+                }
+            }
         }
 
         ++m_char_addr.w;
