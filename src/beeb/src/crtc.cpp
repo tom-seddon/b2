@@ -177,15 +177,15 @@ CRTC::Output CRTC::Update(uint8_t fast_6845) {
     output.vsync=m_vsync_counter>=0;
     output.hsync=m_hsync_counter>=0&&!output.vsync;
 
+    if(m_adj_counter<0) {
+        if(m_row==m_registers.values[4]&&m_raster==m_registers.values[9]) {
+            m_adj_counter=0;
+        }
+    }
+
     // Handle column N-1.
     if(m_column==m_registers.values[0]) {
         m_hdisp=true;
-
-        if(m_adj_counter<0) {
-            if(m_row==m_registers.values[4]&&m_raster==m_registers.values[9]) {
-                m_adj_counter=0;
-            }
-        }
 
         if(m_raster==m_registers.values[9]) {
         next_row:
