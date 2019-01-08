@@ -63,7 +63,7 @@ static const int BACK_PORCH_CYCLES=2*8;
 static const int SCAN_OUT_CYCLES=2*52;
 static const int SCANLINE_CYCLES=HORIZONTAL_RETRACE_CYCLES+BACK_PORCH_CYCLES+SCAN_OUT_CYCLES;
 static_assert(SCANLINE_CYCLES==128,"one scanline must be 64us");
-static const int VERTICAL_RETRACE_SCANLINES=10;
+static const int VERTICAL_RETRACE_SCANLINES=12;
 
 static const int HEIGHT_SCALE=2;
 
