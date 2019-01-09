@@ -7,7 +7,7 @@
 struct ROM;
 struct DiscDriveCallbacks;
 class Log;
-union VideoDataUnit;
+struct VideoDataUnit;
 struct SoundDataUnit;
 struct DiscInterfaceDef;
 class Trace;

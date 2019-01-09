@@ -17,7 +17,7 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-union VideoDataUnit;
+struct VideoDataUnit;
 struct SDL_PixelFormat;
 #if VIDEO_TRACK_METADATA
 struct VideoDataUnitMetadata;
@@ -67,6 +67,8 @@ public:
 
     bool IsInVerticalBlank() const;
 
+    // TODO - nothing actually uses this! There should probably be a slider
+    // somewhere, or something...
     double GetGamma() const;
     void SetGamma(double gamma);
 protected:
@@ -81,7 +83,6 @@ private:
     int m_state_timer=0;
     size_t m_num_fields=0;
 
-    uint32_t m_palette[2][64]={};
     uint32_t m_rshift=0,m_gshift=0,m_bshift=0,m_alpha=0;
 
     SDL_PixelFormat *m_pixel_format=nullptr;
@@ -98,11 +99,15 @@ private:
     size_t num_renders;
 #endif
 
-    double m_gamma=2.2;
-
     uint32_t m_rs[16]={};
     uint32_t m_gs[16]={};
     uint32_t m_bs[16]={};
+
+    double m_gamma=2.2;
+
+    // m_blend[i][j] is gamma-corrected 8-bit blend of 1/3 i<<4|i and
+    // 2/3 j<<4|j.
+    uint8_t m_blend[16][16]={};
 
     void InitPalette(size_t palette,double fa);
     void InitPalette();

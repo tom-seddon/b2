@@ -60,6 +60,18 @@ static const uint8_t TELETEXT_FONT[96][10][3]={
 static const uint8_t FRAMES_PER_SECOND=50;
 static const uint8_t NUM_FLASH_OFF_FRAMES=16;
 
+// Eventually this will be configurable...
+static const VideoDataPixel PALETTE[]={
+    {{0,0,0,}},
+    {{0,0,15,}},
+    {{0,15,0,}},
+    {{0,15,15,}},
+    {{15,0,0,}},
+    {{15,0,15,}},
+    {{15,15,0,}},
+    {{15,15,15,}},
+};
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
@@ -337,12 +349,17 @@ void SAA5050::Byte(uint8_t value) {
 #endif
 }
 
-void SAA5050::EmitVideoDataUnit(VideoDataUnit *unit) {
-    unit->teletext.type.x=VideoDataType_Teletext;
-    unit->teletext.colours[0]=m_data_colours[0];
-    unit->teletext.colours[1]=m_data_colours[1];
-    unit->teletext.data0=(uint8_t)m_data0;
-    unit->teletext.data1=(uint8_t)m_data1;
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void SAA5050::EmitPixels(VideoDataUnitPixels *pixels) {
+    pixels->pixels[0]=PALETTE[m_data_colours[0]];
+    pixels->pixels[0].bits.x=VideoDataType_Teletext;
+
+    pixels->pixels[1]=PALETTE[m_data_colours[1]];
+
+    pixels->pixels[2].all=(uint8_t)m_data0;
+    pixels->pixels[3].all=(uint8_t)m_data1;
 
     m_data0>>=6;
     m_data1>>=6;

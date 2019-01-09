@@ -4,9 +4,11 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-union VideoDataUnit;
+union VideoDataUnitPixels;
 
 #include "conf.h"
+
+#include "video.h"
 
 #include <shared/enum_decl.h>
 #include "teletext.inl"
@@ -22,7 +24,7 @@ public:
     void Byte(uint8_t byte);
 
     // One char is 2 units wide.
-    void EmitVideoDataUnit(VideoDataUnit *unit);
+    void EmitPixels(VideoDataUnitPixels *pixels);
 
     void StartOfLine();
     void EndOfLine();
@@ -41,7 +43,7 @@ private:
 
     // Data to use for the current cell - 16 pixel bitmap, and
     // foreground/background colours.
-    uint8_t m_data_colours[2];
+    uint8_t m_data_colours[2];//TODO - doesn't need to be an array...
     uint16_t m_data0=0;
     uint16_t m_data1=0;
 

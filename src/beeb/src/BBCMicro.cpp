@@ -1554,43 +1554,49 @@ bool BBCMicro::Update(VideoDataUnit *video_unit,SoundDataUnit *sound_unit) {
     }
 
     // Update display output.
+#if VIDEO_TRACK_METADATA
+    video_unit->metadata.flags=0;
+#endif
+
     if(m_state.crtc_last_output.hsync) {
-        video_unit->type.x=VideoDataType_HSync;
+        video_unit->pixels.pixels[0].bits.x=VideoDataType_HSync;
     } else if(m_state.crtc_last_output.vsync) {
-        video_unit->type.x=VideoDataType_VSync;
+        video_unit->pixels.pixels[0].bits.x=VideoDataType_VSync;
     } else if(m_state.crtc_last_output.display) {
         if(m_state.video_ula.control.bits.teletext) {
-            m_state.saa5050.EmitVideoDataUnit(video_unit);
+            m_state.saa5050.EmitPixels(&video_unit->pixels);
 #if VIDEO_TRACK_METADATA
-            video_unit->teletext.metadata.addr=m_last_video_access_address;
+            video_unit->metadata.flags|=VideoDataUnitMetadataFlag_HasAddress;
+            video_unit->metadata.address=m_last_video_access_address;
 #endif
 
             if(m_state.cursor_pattern&1) {
-                video_unit->teletext.colours[0]^=7;
-                video_unit->teletext.colours[1]^=7;
+                video_unit->pixels.pixels[0].all^=0x0fff;
+                video_unit->pixels.pixels[1].all^=0x0fff;
             }
         } else {
             if(m_state.crtc_last_output.raster<8) {
-                m_state.video_ula.EmitPixels(video_unit);
+                m_state.video_ula.EmitPixels(&video_unit->pixels);
 #if VIDEO_TRACK_METADATA
-                video_unit->bitmap.metadata.addr=m_last_video_access_address;
+                video_unit->metadata.flags|=VideoDataUnitMetadataFlag_HasAddress;
+                video_unit->metadata.address=m_last_video_access_address;
 #endif
                 //(m_state.video_ula.*VideoULA::EMIT_MFNS[m_state.video_ula.control.bits.line_width])(hu);
 
                 if(m_state.cursor_pattern&1) {
-                    video_unit->values[0]^=0x0fff0fff0fff0fffull;
-                    video_unit->values[1]^=0x0fff0fff0fff0fffull;
+                    video_unit->pixels.values[0]^=0x0fff0fff0fff0fffull;
+                    video_unit->pixels.values[1]^=0x0fff0fff0fff0fffull;
                 }
             } else {
                 if(m_state.cursor_pattern&1) {
-                    video_unit->values[1]=video_unit->values[0]=0x0fff0fff0fff0fffull;
+                    video_unit->pixels.values[1]=video_unit->pixels.values[0]=0x0fff0fff0fff0fffull;
                 } else {
-                    video_unit->values[1]=video_unit->values[0]=0;
+                    video_unit->pixels.values[1]=video_unit->pixels.values[0]=0;
                 }
             }
         }
     } else {
-        video_unit->values[1]=video_unit->values[0]=0;
+        video_unit->pixels.values[1]=video_unit->pixels.values[0]=0;
     }
 
     if(odd_cycle) {

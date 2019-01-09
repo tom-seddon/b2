@@ -1,12 +1,41 @@
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 #define ENAME VideoDataType
 EBEGIN()
+// Bitmap modes, blank/cursor-only areas
 EPNV(Bitmap16MHz,0)
-EPNV(Teletext,1)
-EPNV(Bitmap12MHz,2)//Video NuLA only - should really use it for Teletext too, though...
-EPNV(HSync,3)
-EPNV(VSync,4)
+
+// Video NuLA attribute modes
+EPN(Bitmap12MHz)
+
+// Teletext - same output scaling as 12MHz modes, but a different encoding, to
+// get the higher-resolution-looking characters. (This should really be done
+// at the TVOutput end... maybe one day...)
+EPN(Teletext)
+
+// HSync on.
+EPN(HSync)
+
+// VSync on.
+EPN(VSync)
 EEND()
 #undef ENAME
 
 // Ensure a memset(x,0,sizeof *x) (or similar) produces blank pixels.
 static_assert(VideoDataType_Bitmap16MHz==0,"");
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if VIDEO_TRACK_METADATA
+#define ENAME VideoDataUnitMetadataFlag
+EBEGIN()
+EPNV(HasAddress,1<<0)
+EEND()
+#undef ENAME
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+

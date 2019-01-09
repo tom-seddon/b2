@@ -16,75 +16,62 @@
 // Holds 0.5us of video output data: 8 Mode 0/3 pixels, 4 Mode 1/4/6
 // pixels, 2 Mode 2/5 pixels, 1 "Mode 8" pixel, 0.5 Mode 7 glyphs.
 //
-// When type.x==0, the 8 words are the 12 bpp colour
-// data for the 8 pixels.
+// Extra data is squeezed into the `x' bits of each pixel. This
+// is a bit tiresome, but it simplifies the Video ULA code quite a lot to have
+// each pixel as a copyable value struct, rather than packed as 12 bits in a
+// bitfield or whatever.
 //
+// X bits encoding:
+//
+// pixels[0] - unit type
+//
+// Teletext encoding (when pixels[0].x==VideoDataType_Teletext)
+//
+// pixels[0].rgb - background
+// pixels[1].rgb - foreground
+// pixels[2]. gb - scanline 0 data
+// pixels[3]. gb - scanline 1 data
+
 // <pre>
 //   f   e   d   c   b   a   9   8   7   6   5   4   3   2   1   0
 // +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
-// | 0   0   0   0 |      red      |     green     |      blue     |
+// |       x       |      red      |     green     |      blue     |
 // +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
 // </pre>
-//
-// Otherwise: the type is (VideoDataType)type.x:
-//
-// Teletext: teletext data for this column over two half-scanlines.
-//
-// HSync: hsync is active. Ignore pixels[1...].
-//
-// VSync: vsync is active. Ignore pixels[1...].
-//
-// (In fact, hsync and vsync are independent of pixel output, but this isn't
-// modeled properly... tsk...)
-
-
-struct VideoDataBitmapPixel {
+struct VideoDataPixelBits {
     uint16_t b:4;
     uint16_t g:4;
     uint16_t r:4;
     uint16_t x:4;
 };
 
-CHECK_SIZEOF(VideoDataBitmapPixel,2);
+union VideoDataPixel {
+    VideoDataPixelBits bits;
+    uint16_t all;
+};
+CHECK_SIZEOF(VideoDataPixel,2);
+
+union VideoDataUnitPixels {
+    VideoDataPixel pixels[8];
+    uint64_t values[2];
+};
 
 #if VIDEO_TRACK_METADATA
 struct VideoDataUnitMetadata {
-    uint16_t addr;
+    uint8_t flags=0;
+    uint16_t address=0;
 };
-
-static const VideoDataUnitMetadata NULL_VIDEO_METADATA={
-    0xffff,//addr
-};
-
 #endif
 
-struct VideoDataTeletextUnit {
-    VideoDataBitmapPixel type;
-    uint8_t colours[2];
-    uint8_t data0,data1;
+struct VideoDataUnit {
+    VideoDataUnitPixels pixels;
 #if VIDEO_TRACK_METADATA
     VideoDataUnitMetadata metadata;
 #endif
 };
 
-struct VideoDataBitmapUnit {
-    VideoDataBitmapPixel pixels[8];
 #if VIDEO_TRACK_METADATA
-    VideoDataUnitMetadata metadata;
-#endif
-};
-
-#include <shared/pshpack1.h>
-union VideoDataUnit {
-    uint64_t values[2];
-    VideoDataBitmapPixel type;
-    VideoDataBitmapUnit bitmap;
-    VideoDataTeletextUnit teletext;
-};
-#include <shared/poppack.h>
-
-#if VIDEO_TRACK_METADATA
-CHECK_SIZEOF(VideoDataUnit,18);
+CHECK_SIZEOF(VideoDataUnit,24);
 #else
 CHECK_SIZEOF(VideoDataUnit,16);
 #endif
