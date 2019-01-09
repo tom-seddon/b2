@@ -241,7 +241,7 @@ CRTC::Output CRTC::Update(uint8_t fast_6845) {
     } else {
         if(m_hdisp&&m_vdisp) {
             if(m_registers.bits.r8.bits.d!=3) {
-                m_skewed_display|=1;//(2>>fast_6845)<<m_registers.bits.r8.bits.d;
+                m_skewed_display|=1<<m_registers.bits.r8.bits.d;
             }
 
             output.address=m_char_addr.w;
@@ -257,7 +257,7 @@ CRTC::Output CRTC::Update(uint8_t fast_6845) {
             {
                 switch((CRTCCursorMode)m_registers.bits.ncstart.bits.mode) {
                     case CRTCCursorMode_On:
-                        output.cudisp=1;
+                        m_skewed_cudisp|=1;//<<m_registers.bits.r8.bits.c;
                         break;
 
                     case CRTCCursorMode_Off:
@@ -265,12 +265,16 @@ CRTC::Output CRTC::Update(uint8_t fast_6845) {
 
                     case CRTCCursorMode_Blink16:
                         // 8 frames on, 8 frames off
-                        output.cudisp=(uint32_t)m_num_frames>>3;
+                        if((m_num_frames&8)!=0) {
+                            m_skewed_cudisp|=1;//<<m_registers.bits.r8.bits.c;
+                        }
                         break;
 
                     case CRTCCursorMode_Blink32:
                         // 16 frames on, 16 frames off
-                        output.cudisp=(uint32_t)m_num_frames>>4;
+                        if((m_num_frames&16)!=0) {
+                            m_skewed_cudisp|=1;//<<m_registers.bits.r8.bits.c;
+                        }
                         break;
                 }
             }
@@ -279,9 +283,10 @@ CRTC::Output CRTC::Update(uint8_t fast_6845) {
         output.display=m_skewed_display&1;
         m_skewed_display>>=1;
 
-        if(output.display) {
-            ++m_char_addr.w;
-        }
+        output.cudisp=m_skewed_cudisp&1;
+        m_skewed_cudisp>>=1;
+
+        ++m_char_addr.w;
 
         ++m_column;
 

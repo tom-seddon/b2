@@ -1419,17 +1419,10 @@ void BBCMicro::HandleCPUDataBusWithHacks(BBCMicro *m) {
 //
 // Bit 7 control the first column, bit 6 controls the second column,
 // and bit 7 controls the 3rd and 4th.
-//
-// Type 2 is the one used in Mode 7. The pattern in the table here is
-// wrong - it's been shifted one column to the left, so the cursor
-// appears in the right place. (I assumed this was something to do
-// with the Mode 7 delay, and how the emulator doesn't handle this
-// properly, but the OS sets the cursor delay to 2! So... I'm
-// confused.)
 static const uint8_t CURSOR_PATTERNS[8]={
     0+0+0+0,
     0+0+4+8,
-    1+0+0+0,//0+2+0+0,
+    0+2+0+0,
     0+2+4+8,
     1+0+0+0,
     1+0+4+8,
@@ -1475,80 +1468,86 @@ bool BBCMicro::Update(VideoDataUnit *video_unit,SoundDataUnit *sound_unit) {
         m_state.system_via.a.c1=output.vsync;
         m_state.cursor_pattern>>=1;
 
-        if(output.vsync) {
-            if(!m_state.crtc_last_output.vsync) {
-                m_state.last_frame_2MHz_cycles=m_state.num_2MHz_cycles-m_state.last_vsync_2MHz_cycles;
-                m_state.last_vsync_2MHz_cycles=m_state.num_2MHz_cycles;
+        uint16_t addr=(uint16_t)output.address;
 
-                m_state.saa5050.VSync();
-            }
+        if(addr&0x2000) {
+            addr=(addr&0x3ff)|m_teletext_bases[addr>>11&1];
         } else {
-            if(output.display) {
-                uint16_t addr=(uint16_t)output.address;
+            if(addr&0x1000) {
+                addr-=SCREEN_WRAP_ADJUSTMENTS[m_state.addressable_latch.bits.screen_base];
+                addr&=~0x1000;
+            }
 
-                if(addr&0x2000) {
-                    addr=(addr&0x3ff)|m_teletext_bases[addr>>11&1];
-                } else {
-                    if(addr&0x1000) {
-                        addr-=SCREEN_WRAP_ADJUSTMENTS[m_state.addressable_latch.bits.screen_base];
-                        addr&=~0x1000;
-                    }
+            addr<<=3;
 
-                    addr<<=3;
+            // When output.raster>=8, this address is bogus. There's a
+            // check later.
+            addr|=output.raster&7;
+        }
 
-                    // When output.raster>=8, this address is bogus. There's a
-                    // check later.
-                    addr|=output.raster&7;
+        ASSERTF(addr<32768,"output: hsync=%u vsync=%u display=%u address=0x%x raster=%u; addr=0x%x; latch screen_base=%u\n",
+                output.hsync,output.vsync,output.display,output.address,output.raster,
+                addr,
+                m_state.addressable_latch.bits.screen_base);
+        addr|=m_state.shadow_select_mask;
+
+        // Teletext update.
+        if(odd_cycle) {
+            if(output.vsync) {
+                if(!m_state.crtc_last_output.vsync) {
+                    m_state.last_frame_2MHz_cycles=m_state.num_2MHz_cycles-m_state.last_vsync_2MHz_cycles;
+                    m_state.last_vsync_2MHz_cycles=m_state.num_2MHz_cycles;
+
+                    m_state.saa5050.VSync();
                 }
+            }
 
-                ASSERTF(addr<32768,"output: hsync=%u vsync=%u display=%u address=0x%x raster=%u; addr=0x%x; latch screen_base=%u\n",
-                        output.hsync,output.vsync,output.display,output.address,output.raster,
-                        addr,
-                        m_state.addressable_latch.bits.screen_base);
-                addr|=m_state.shadow_select_mask;
-                if(m_state.video_ula.control.bits.teletext) {
-                    if(!m_state.crtc_last_output.display) {
-                        m_state.saa5050.StartOfLine();
-                    }
-                    m_state.saa5050.Byte(m_ram[addr]);
-                } else {
-                    if(!m_state.crtc_last_output.display) {
-                        m_state.video_ula.DisplayEnabled();
-                    }
-
-                    m_state.video_ula.Byte(m_ram[addr]);
-                }
-
-                if(output.cudisp) {
-                    m_state.cursor_pattern=CURSOR_PATTERNS[m_state.video_ula.control.bits.cursor];
-                }
-
-#if VIDEO_TRACK_METADATA
-                m_last_video_access_address=addr;
-#endif
-            } else {
-                if(m_state.crtc_last_output.display) {
-                    // The hsync output is linked up to the SAA505's GLR
-                    // ("General line reset") pin, which sounds like it should
-                    // do line stuff. The data sheet is a bit vague, though:
-                    // "required for internal synchnorization of remote control
-                    // data signals"...??
-                    //
-                    // https://github.com/mist-devel/mist-board/blob/f6cc6ff597c22bdd8b002c04c331619a9767eae0/cores/bbc/rtl/saa5050/saa5050.v
-                    // seems to ignore it completely, and does everything based
-                    // on the LOSE pin, connected to 6845 DISPEN/DISPTMSG. So
-                    // that's what this does...
-                    //
-                    // (Evidence in favour of this: normally, R5 doesn't affect
-                    // the teletext chars, even though it must vary the number
-                    // of hsyncs between vsync and the first visible scanline.
-                    // But after setting R6=255, changing R5 does have an
-                    // affect, suggesting that DISPTMSG transitions are being
-                    // counted and hsyncs aren't.)
+            if(m_state.video_ula.control.bits.teletext) {
+                // Teletext line boundary stuff.
+                //
+                // The hsync output is linked up to the SAA505's GLR
+                // ("General line reset") pin, which sounds like it should
+                // do line stuff. The data sheet is a bit vague, though:
+                // "required for internal synchnorization of remote control
+                // data signals"...??
+                //
+                // https://github.com/mist-devel/mist-board/blob/f6cc6ff597c22bdd8b002c04c331619a9767eae0/cores/bbc/rtl/saa5050/saa5050.v
+                // seems to ignore it completely, and does everything based
+                // on the LOSE pin, connected to 6845 DISPEN/DISPTMSG. So
+                // that's what this does...
+                //
+                // (Evidence in favour of this: normally, R5 doesn't affect
+                // the teletext chars, even though it must vary the number
+                // of hsyncs between vsync and the first visible scanline.
+                // But after setting R6=255, changing R5 does have an
+                // affect, suggesting that DISPTMSG transitions are being
+                // counted and hsyncs aren't.)
+                if(output.display&&!m_state.crtc_last_output.display) {
+                    m_state.saa5050.StartOfLine();
+                } else if(!output.display&&m_state.crtc_last_output.display) {
                     m_state.saa5050.EndOfLine();
                 }
             }
+
+            m_state.saa5050.Byte(m_state.saa5050_byte);
+            m_state.saa5050_byte=m_ram[addr];
         }
+
+        if(!m_state.video_ula.control.bits.teletext) {
+            if(!m_state.crtc_last_output.display) {
+                m_state.video_ula.DisplayEnabled();
+            }
+
+            m_state.video_ula.Byte(m_ram[addr]);
+        }
+
+        if(output.cudisp) {
+            m_state.cursor_pattern=CURSOR_PATTERNS[m_state.video_ula.control.bits.cursor];
+        }
+
+#if VIDEO_TRACK_METADATA
+        m_last_video_access_address=addr;
+#endif
 
         m_state.crtc_last_output=output;
     }

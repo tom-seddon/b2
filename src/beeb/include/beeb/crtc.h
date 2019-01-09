@@ -140,6 +140,7 @@ private:
     M6502Word m_char_addr={};
     uint32_t m_num_updates=0;
     uint8_t m_skewed_display=0;
+    uint8_t m_skewed_cudisp=0;
 
 #if BBCMICRO_TRACE
     Trace *m_trace=nullptr;
