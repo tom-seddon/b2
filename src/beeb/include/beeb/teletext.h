@@ -24,7 +24,8 @@ public:
     // One char is 2 units wide.
     void EmitVideoDataUnit(VideoDataUnit *unit);
 
-    void HSync();
+    void StartOfLine();
+    void EndOfLine();
 
     void VSync();
 
