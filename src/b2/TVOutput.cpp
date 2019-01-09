@@ -131,6 +131,16 @@ void TVOutput::Update(const VideoDataUnit *units,size_t num_units) {
 
             case TVOutputState_Scanout:
             {
+                if(unit->pixels.pixels[1].bits.x&VideoDataUnitFlag_VSync) {
+                    m_state=TVOutputState_VerticalRetrace;
+                    break;
+                }
+
+                if(unit->pixels.pixels[1].bits.x&VideoDataUnitFlag_HSync) {
+                    m_state=TVOutputState_HorizontalRetrace;
+                    break;
+                }
+
                 switch(unit->pixels.pixels[0].bits.x) {
                     default:
                     {
@@ -177,18 +187,6 @@ void TVOutput::Update(const VideoDataUnit *units,size_t num_units) {
 #endif
                         }
                         m_x+=8;
-                    }
-                        break;
-
-                    case VideoDataType_HSync:
-                    {
-                        m_state=TVOutputState_HorizontalRetrace;
-                    }
-                        break;
-
-                    case VideoDataType_VSync:
-                    {
-                        m_state=TVOutputState_VerticalRetrace;
                     }
                         break;
 

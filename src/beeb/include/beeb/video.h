@@ -19,11 +19,14 @@
 // Extra data is squeezed into the `x' bits of each pixel. This
 // is a bit tiresome, but it simplifies the Video ULA code quite a lot to have
 // each pixel as a copyable value struct, rather than packed as 12 bits in a
-// bitfield or whatever.
+// bitfield or whatever. (Trying to also keep the -O0 build from being too
+// disastrous - though PCs are so fast these days that I don't seem to have
+// to bother too much.)
 //
 // X bits encoding:
 //
 // pixels[0] - unit type
+// pixels[1] - flags (combination of VideoDataUnitFlag)
 //
 // Teletext encoding (when pixels[0].x==VideoDataType_Teletext)
 //
@@ -58,7 +61,7 @@ union VideoDataUnitPixels {
 
 #if VIDEO_TRACK_METADATA
 struct VideoDataUnitMetadata {
-    uint8_t flags=0;
+    uint8_t flags=0;//combination of VideoDataUnitMetadataFlag
     uint16_t address=0;
 };
 #endif

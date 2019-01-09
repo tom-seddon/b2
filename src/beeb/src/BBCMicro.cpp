@@ -1558,11 +1558,7 @@ bool BBCMicro::Update(VideoDataUnit *video_unit,SoundDataUnit *sound_unit) {
     video_unit->metadata.flags=0;
 #endif
 
-    if(m_state.crtc_last_output.hsync) {
-        video_unit->pixels.pixels[0].bits.x=VideoDataType_HSync;
-    } else if(m_state.crtc_last_output.vsync) {
-        video_unit->pixels.pixels[0].bits.x=VideoDataType_VSync;
-    } else if(m_state.crtc_last_output.display) {
+    if(m_state.crtc_last_output.display) {
         if(m_state.video_ula.control.bits.teletext) {
             m_state.saa5050.EmitPixels(&video_unit->pixels);
 #if VIDEO_TRACK_METADATA
@@ -1597,6 +1593,16 @@ bool BBCMicro::Update(VideoDataUnit *video_unit,SoundDataUnit *sound_unit) {
         }
     } else {
         video_unit->pixels.values[1]=video_unit->pixels.values[0]=0;
+    }
+
+    video_unit->pixels.pixels[1].bits.x=0;
+
+    if(m_state.crtc_last_output.hsync) {
+        video_unit->pixels.pixels[1].bits.x|=VideoDataUnitFlag_HSync;
+    }
+
+    if(m_state.crtc_last_output.vsync) {
+        video_unit->pixels.pixels[1].bits.x|=VideoDataUnitFlag_VSync;
     }
 
     if(odd_cycle) {
