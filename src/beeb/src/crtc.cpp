@@ -241,7 +241,7 @@ CRTC::Output CRTC::Update(uint8_t fast_6845) {
     } else {
         if(m_hdisp&&m_vdisp) {
             if(m_registers.bits.r8.bits.d!=3) {
-                m_skewed_display|=(2>>fast_6845)<<m_registers.bits.r8.bits.d;
+                m_skewed_display|=1;//(2>>fast_6845)<<m_registers.bits.r8.bits.d;
             }
 
             output.address=m_char_addr.w;
