@@ -97,6 +97,8 @@ void CRTC::WriteData(void *c_,M6502Word a,uint8_t value) {
 
     uint16_t reg=CRTC_REGISTERS[c->m_address];
     if(reg&CrtcRegister_CanWrite) {
+        TRACEF_IF(c->m_trace_scanlines,c->m_trace,"6845 - %u - R%u was %u ($%02x), now %u ($%02x)",c->m_num_updates,c->m_address,c->m_registers.values[c->m_address],c->m_registers.values[c->m_address],value&reg,value&reg);
+
         c->m_registers.values[c->m_address]=value&reg;
     }
 }
@@ -184,6 +186,8 @@ CRTC::Output CRTC::Update(uint8_t fast_6845) {
 
     // Handle column N-1.
     if(m_column==m_registers.values[0]) {
+        TRACEF_IF(m_trace_scanlines,m_trace,"6845 - %u - end of scanline: raster: %u (R9=%u); row: %u (R4=%u); vsync_counter: %d; adj counter: %d",m_num_updates,m_raster,m_registers.values[9],m_row,m_registers.values[4],m_vsync_counter,m_adj_counter);
+
         m_hdisp=true;
 
         if(m_raster==m_registers.values[9]) {
