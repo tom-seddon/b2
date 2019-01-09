@@ -180,7 +180,8 @@ void VideoULA::EmitPixels(union VideoDataUnit *unit) {
 
     if(m_blanking_counter>0) {
         m_blanking_counter-=1+this->control.bits.fast_6845;
-        unit->type.x=VideoDataType_Nothing;
+
+        unit->values[1]=unit->values[0]=0;
     }
 }
 
@@ -420,7 +421,7 @@ void VideoULA::Emit16MHz(VideoDataUnit *unit) {
 void VideoULA::EmitNuLAAttributeMode0(VideoDataUnit *unit) {
     VideoDataBitmapPixel pixel;
 
-    unit->type.x=VideoDataType_NuLAAttribute;
+    unit->type.x=VideoDataType_Bitmap12MHz;
 
     pixel=this->ShiftAttributeMode0();
     unit->bitmap.pixels[1]=pixel;
@@ -447,7 +448,7 @@ void VideoULA::EmitNuLAAttributeMode0(VideoDataUnit *unit) {
 void VideoULA::EmitNuLAAttributeMode1(VideoDataUnit *unit) {
     VideoDataBitmapPixel pixel;
 
-    unit->type.x=VideoDataType_NuLAAttribute;
+    unit->type.x=VideoDataType_Bitmap12MHz;
 
     pixel=this->ShiftAttributeMode1();
     unit->bitmap.pixels[1]=pixel;
@@ -468,7 +469,7 @@ void VideoULA::EmitNuLAAttributeMode1(VideoDataUnit *unit) {
 void VideoULA::EmitNuLAAttributeMode4(VideoDataUnit *unit) {
     VideoDataBitmapPixel pixel;
 
-    unit->type.x=VideoDataType_NuLAAttribute;
+    unit->type.x=VideoDataType_Bitmap12MHz;
 
     pixel=this->ShiftAttributeMode0();
     unit->bitmap.pixels[1]=pixel;
@@ -489,7 +490,7 @@ void VideoULA::EmitNuLAAttributeMode4(VideoDataUnit *unit) {
 void VideoULA::EmitNuLAAttributeTextMode4(VideoDataUnit *unit) {
     VideoDataBitmapPixel pixel;
 
-    unit->type.x=VideoDataType_NuLAAttribute;
+    unit->type.x=VideoDataType_Bitmap12MHz;
 
     pixel=this->ShiftAttributeText();
     unit->bitmap.pixels[1]=pixel;
@@ -510,7 +511,7 @@ void VideoULA::EmitNuLAAttributeTextMode4(VideoDataUnit *unit) {
 void VideoULA::EmitNuLAAttributeTextMode0(VideoDataUnit *unit) {
     VideoDataBitmapPixel pixel;
 
-    unit->type.x=VideoDataType_NuLAAttribute;
+    unit->type.x=VideoDataType_Bitmap12MHz;
 
     pixel=this->ShiftAttributeText();
     unit->bitmap.pixels[1]=pixel;
@@ -535,7 +536,7 @@ void VideoULA::EmitNuLAAttributeTextMode0(VideoDataUnit *unit) {
 //////////////////////////////////////////////////////////////////////////
 
 void VideoULA::EmitNothing(VideoDataUnit *unit) {
-    unit->type.x=VideoDataType_Nothing;
+    unit->values[1]=unit->values[0]=0;
 }
 
 //////////////////////////////////////////////////////////////////////////

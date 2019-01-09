@@ -131,7 +131,7 @@ void TVOutput::Update(const VideoDataUnit *units,size_t num_units) {
             case TVOutputState_Scanout:
             {
                 switch(unit->type.x) {
-                    case VideoDataType_Data:
+                    case VideoDataType_Bitmap16MHz:
                     {
                         if(m_x<TV_TEXTURE_WIDTH&&m_y<TV_TEXTURE_HEIGHT) {
 
@@ -202,50 +202,6 @@ void TVOutput::Update(const VideoDataUnit *units,size_t num_units) {
                     case VideoDataType_VSync:
                     {
                         m_state=TVOutputState_VerticalRetrace;
-                    }
-                        break;
-
-                    case VideoDataType_Nothing:
-                    {
-                        if(m_x<TV_TEXTURE_WIDTH&&m_y<TV_TEXTURE_HEIGHT) {
-                            uint32_t *line=m_line+m_x;
-
-                            line[7]=line[6]=line[5]=line[4]=line[3]=line[2]=line[1]=line[0]=m_palette[0][NOTHING_PALETTE_INDEX];
-
-                            line+=TV_TEXTURE_WIDTH;
-                            line[7]=line[6]=line[5]=line[4]=line[3]=line[2]=line[1]=line[0]=m_palette[0][NOTHING_PALETTE_INDEX];
-
-#if VIDEO_TRACK_METADATA
-                            VideoDataUnitMetadata *metadata_line=m_metadata_line+m_x;
-
-                            metadata_line[7]=metadata_line[6]=metadata_line[5]=metadata_line[4]=metadata_line[3]=metadata_line[2]=metadata_line[1]=metadata_line[0]=NULL_VIDEO_METADATA;
-                            metadata_line+=TV_TEXTURE_WIDTH;
-                            metadata_line[7]=metadata_line[6]=metadata_line[5]=metadata_line[4]=metadata_line[3]=metadata_line[2]=metadata_line[1]=metadata_line[0]=NULL_VIDEO_METADATA;
-#endif
-                        }
-                        m_x+=8;
-                    }
-                        break;
-
-                    case VideoDataType_Cursor:
-                    {
-                        if(m_x<TV_TEXTURE_WIDTH&&m_y<TV_TEXTURE_HEIGHT) {
-                            uint32_t *line=m_line+m_x;
-
-                            line[7]=line[6]=line[5]=line[4]=line[3]=line[2]=line[1]=line[0]=m_palette[0][7];
-
-                            line+=TV_TEXTURE_WIDTH;
-                            line[7]=line[6]=line[5]=line[4]=line[3]=line[2]=line[1]=line[0]=m_palette[0][7];
-
-#if VIDEO_TRACK_METADATA
-                            VideoDataUnitMetadata *metadata_line=m_metadata_line+m_x;
-
-                            metadata_line[7]=metadata_line[6]=metadata_line[5]=metadata_line[4]=metadata_line[3]=metadata_line[2]=metadata_line[1]=metadata_line[0]=NULL_VIDEO_METADATA;
-                            metadata_line+=TV_TEXTURE_WIDTH;
-                            metadata_line[7]=metadata_line[6]=metadata_line[5]=metadata_line[4]=metadata_line[3]=metadata_line[2]=metadata_line[1]=metadata_line[0]=NULL_VIDEO_METADATA;
-#endif
-                        }
-                        m_x+=8;
                     }
                         break;
 
@@ -328,7 +284,7 @@ void TVOutput::Update(const VideoDataUnit *units,size_t num_units) {
                     }
                         break;
 
-                    case VideoDataType_NuLAAttribute:
+                    case VideoDataType_Bitmap12MHz:
                     {
                         if(m_x<TV_TEXTURE_WIDTH&&m_y<TV_TEXTURE_HEIGHT) {
                             uint32_t *line0=m_line+m_x;

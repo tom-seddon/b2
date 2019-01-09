@@ -1560,11 +1560,15 @@ bool BBCMicro::Update(VideoDataUnit *video_unit,SoundDataUnit *sound_unit) {
                     video_unit->values[1]^=0x0fff0fff0fff0fffull;
                 }
             } else {
-                video_unit->type.x=VideoDataType_Nothing^(m_state.cursor_pattern&1);
+                if(m_state.cursor_pattern&1) {
+                    video_unit->values[1]=video_unit->values[0]=0x0fff0fff0fff0fffull;
+                } else {
+                    video_unit->values[1]=video_unit->values[0]=0;
+                }
             }
         }
     } else {
-        video_unit->type.x=VideoDataType_Nothing;
+        video_unit->values[1]=video_unit->values[0]=0;
     }
 
     if(odd_cycle) {
