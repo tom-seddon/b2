@@ -196,23 +196,26 @@ void TVOutput::Update(const VideoDataUnit *units,size_t num_units) {
                             uint32_t *line0=m_line+m_x;
                             uint32_t *line1=line0+TV_TEXTURE_WIDTH;
 
-                            const VideoDataPixel p00=unit->pixels.pixels[unit->pixels.pixels[2].bits.b&1];
-                            const VideoDataPixel p01=unit->pixels.pixels[unit->pixels.pixels[3].bits.b&1];
+                            uint16_t p_0=unit->pixels.pixels[2].all;
+                            uint16_t p_1=unit->pixels.pixels[3].all;
 
-                            const VideoDataPixel p10=unit->pixels.pixels[unit->pixels.pixels[2].bits.b>>1&1];
-                            const VideoDataPixel p11=unit->pixels.pixels[unit->pixels.pixels[3].bits.b>>1&1];
+                            const VideoDataPixel p00=unit->pixels.pixels[p_0&1];
+                            const VideoDataPixel p01=unit->pixels.pixels[p_1&1];
 
-                            const VideoDataPixel p20=unit->pixels.pixels[unit->pixels.pixels[2].bits.b>>2&1];
-                            const VideoDataPixel p21=unit->pixels.pixels[unit->pixels.pixels[3].bits.b>>2&1];
+                            const VideoDataPixel p10=unit->pixels.pixels[p_0>>1&1];
+                            const VideoDataPixel p11=unit->pixels.pixels[p_1>>1&1];
 
-                            const VideoDataPixel p30=unit->pixels.pixels[unit->pixels.pixels[2].bits.b>>3];
-                            const VideoDataPixel p31=unit->pixels.pixels[unit->pixels.pixels[3].bits.b>>3];
+                            const VideoDataPixel p20=unit->pixels.pixels[p_0>>2&1];
+                            const VideoDataPixel p21=unit->pixels.pixels[p_1>>2&1];
 
-                            const VideoDataPixel p40=unit->pixels.pixels[unit->pixels.pixels[2].bits.g&1];
-                            const VideoDataPixel p41=unit->pixels.pixels[unit->pixels.pixels[3].bits.g&1];
+                            const VideoDataPixel p30=unit->pixels.pixels[p_0>>3&1];
+                            const VideoDataPixel p31=unit->pixels.pixels[p_1>>3&1];
 
-                            const VideoDataPixel p50=unit->pixels.pixels[unit->pixels.pixels[2].bits.g>>1&1];
-                            const VideoDataPixel p51=unit->pixels.pixels[unit->pixels.pixels[3].bits.g>>1&1];
+                            const VideoDataPixel p40=unit->pixels.pixels[p_0>>4&1];
+                            const VideoDataPixel p41=unit->pixels.pixels[p_1>>4&1];
+
+                            const VideoDataPixel p50=unit->pixels.pixels[p_0>>5&1];
+                            const VideoDataPixel p51=unit->pixels.pixels[p_1>>5&1];
 
                             // 000
                             uint32_t r00=m_rs[p00.bits.r];
