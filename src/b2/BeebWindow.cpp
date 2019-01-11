@@ -232,6 +232,9 @@ void BeebWindow::OptionsUI::DoImGui(CommandContextStack *cc_stack) {
                 m_beeb_window->m_tv.FillWithTestPattern();
             }
         }
+
+        ImGui::Checkbox("Show 0.5 usec markers",&m_beeb_window->m_tv.show_half_usec_markers);
+        ImGui::Checkbox("Show 1.0 usec markers",&m_beeb_window->m_tv.show_usec_markers);
     }
 #endif
 }

@@ -141,6 +141,9 @@ void TVOutput::Update(const VideoDataUnit *units,size_t num_units) {
                     break;
                 }
 
+                uint32_t *line0;
+                uint32_t *line1;
+
                 switch(unit->pixels.pixels[0].bits.x) {
                     default:
                     {
@@ -151,8 +154,8 @@ void TVOutput::Update(const VideoDataUnit *units,size_t num_units) {
                     case VideoDataType_Bitmap16MHz:
                     {
                         if(m_x<TV_TEXTURE_WIDTH&&m_y<TV_TEXTURE_HEIGHT) {
-                            uint32_t *line0=m_line+m_x;
-                            uint32_t *line1=line0+TV_TEXTURE_WIDTH;
+                            line0=m_line+m_x;
+                            line1=line0+TV_TEXTURE_WIDTH;
 
                             const VideoDataPixel p0=unit->pixels.pixels[0];
                             line1[0]=line0[0]=m_rs[p0.bits.r]|m_gs[p0.bits.g]|m_bs[p0.bits.b];
@@ -186,15 +189,14 @@ void TVOutput::Update(const VideoDataUnit *units,size_t num_units) {
                             metadata_line[7]=metadata_line[6]=metadata_line[5]=metadata_line[4]=metadata_line[3]=metadata_line[2]=metadata_line[1]=metadata_line[0]=unit->metadata;
 #endif
                         }
-                        m_x+=8;
                     }
                         break;
 
                     case VideoDataType_Teletext:
                     {
                         if(m_x<TV_TEXTURE_WIDTH&&m_y<TV_TEXTURE_HEIGHT) {
-                            uint32_t *line0=m_line+m_x;
-                            uint32_t *line1=line0+TV_TEXTURE_WIDTH;
+                            line0=m_line+m_x;
+                            line1=line0+TV_TEXTURE_WIDTH;
 
                             uint16_t p_0=unit->pixels.pixels[2].all;
                             uint16_t p_1=unit->pixels.pixels[3].all;
@@ -315,15 +317,14 @@ void TVOutput::Update(const VideoDataUnit *units,size_t num_units) {
                             metadata_line[7]=metadata_line[6]=metadata_line[5]=metadata_line[4]=metadata_line[3]=metadata_line[2]=metadata_line[1]=metadata_line[0]=unit->metadata;
 #endif
                         }
-                        m_x+=8;
                     }
                         break;
 
                     case VideoDataType_Bitmap12MHz:
                     {
                         if(m_x<TV_TEXTURE_WIDTH&&m_y<TV_TEXTURE_HEIGHT) {
-                            uint32_t *line0=m_line+m_x;
-                            uint32_t *line1=line0+TV_TEXTURE_WIDTH;
+                            line0=m_line+m_x;
+                            line1=line0+TV_TEXTURE_WIDTH;
 
                             const VideoDataPixel p0=unit->pixels.pixels[0];
                             const VideoDataPixel p1=unit->pixels.pixels[1];
@@ -389,10 +390,23 @@ void TVOutput::Update(const VideoDataUnit *units,size_t num_units) {
                             metadata_line[7]=metadata_line[6]=metadata_line[5]=metadata_line[4]=metadata_line[3]=metadata_line[2]=metadata_line[1]=metadata_line[0]=unit->metadata;
 #endif
                         }
-                        m_x+=8;
                     }
                         break;
                 }
+
+                if(this->show_usec_markers&&(m_x&15)==0) {
+                    if(m_x<TV_TEXTURE_WIDTH&&m_y<TV_TEXTURE_HEIGHT) {
+                        line0[0]^=m_usec_marker_xor;
+                        line1[0]^=m_usec_marker_xor;
+                    }
+                } else if(this->show_half_usec_markers) {
+                    if(m_x<TV_TEXTURE_WIDTH&&m_y<TV_TEXTURE_HEIGHT) {
+                        line0[0]^=m_half_usec_marker_xor;
+                        line1[0]^=m_half_usec_marker_xor;
+                    }
+                }
+
+                m_x+=8;
 
                 if(m_state_timer++>=SCAN_OUT_CYCLES) {
                     m_state=TVOutputState_HorizontalRetrace;
@@ -638,6 +652,9 @@ void TVOutput::InitPalette() {
     m_gshift=m_pixel_format->Gshift;
     m_bshift=m_pixel_format->Bshift;
     m_alpha=SDL_MapRGBA(m_pixel_format,0,0,0,255);
+
+    m_usec_marker_xor=0x80u<<m_gshift|0x80u<<m_bshift;
+    m_half_usec_marker_xor=0x80u<<m_rshift;
 }
 
 //////////////////////////////////////////////////////////////////////////

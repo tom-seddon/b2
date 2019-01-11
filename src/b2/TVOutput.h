@@ -38,6 +38,9 @@ struct VideoDataUnitMetadata;
 
 class TVOutput {
 public:
+    bool show_usec_markers=false;
+    bool show_half_usec_markers=false;
+
     TVOutput();
     ~TVOutput();
 
@@ -108,6 +111,9 @@ private:
     // m_blend[i][j] is gamma-corrected 8-bit blend of 1/3 i<<4|i and
     // 2/3 j<<4|j.
     uint8_t m_blend[16][16]={};
+
+    uint32_t m_usec_marker_xor=0;
+    uint32_t m_half_usec_marker_xor=0;
 
     void InitPalette(size_t palette,double fa);
     void InitPalette();
