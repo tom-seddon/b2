@@ -257,7 +257,7 @@ CRTC::Output CRTC::Update(uint8_t fast_6845) {
             {
                 switch((CRTCCursorMode)m_registers.bits.ncstart.bits.mode) {
                     case CRTCCursorMode_On:
-                        m_skewed_cudisp|=1;//<<m_registers.bits.r8.bits.c;
+                        m_skewed_cudisp|=1<<m_registers.bits.r8.bits.c;
                         break;
 
                     case CRTCCursorMode_Off:
@@ -266,14 +266,14 @@ CRTC::Output CRTC::Update(uint8_t fast_6845) {
                     case CRTCCursorMode_Blink16:
                         // 8 frames on, 8 frames off
                         if((m_num_frames&8)!=0) {
-                            m_skewed_cudisp|=1;//<<m_registers.bits.r8.bits.c;
+                            m_skewed_cudisp|=1<<m_registers.bits.r8.bits.c;
                         }
                         break;
 
                     case CRTCCursorMode_Blink32:
                         // 16 frames on, 16 frames off
                         if((m_num_frames&16)!=0) {
-                            m_skewed_cudisp|=1;//<<m_registers.bits.r8.bits.c;
+                            m_skewed_cudisp|=1<<m_registers.bits.r8.bits.c;
                         }
                         break;
                 }

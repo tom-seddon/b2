@@ -451,7 +451,7 @@ private:
         // Video output
         VideoULA video_ula;
         SAA5050 saa5050;
-        uint8_t saa5050_byte=0;
+        uint8_t ic15_byte=0;
 
         // 0x8000 to display shadow RAM; 0x0000 to display normal RAM.
         uint16_t shadow_select_mask=0x0000;

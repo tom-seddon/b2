@@ -1529,8 +1529,8 @@ bool BBCMicro::Update(VideoDataUnit *video_unit,SoundDataUnit *sound_unit) {
                 }
             }
 
-            m_state.saa5050.Byte(m_state.saa5050_byte);
-            m_state.saa5050_byte=m_ram[addr];
+            m_state.saa5050.Byte(m_state.ic15_byte);
+            m_state.ic15_byte=m_ram[addr];
         }
 
         if(!m_state.video_ula.control.bits.teletext) {

@@ -37,15 +37,18 @@ public:
 #endif
 protected:
 private:
+    struct Output {
+        uint8_t fg,bg,data0,data1;
+    };
+
     // Teletext
     uint8_t m_raster=0;
     uint8_t m_frame=0;
 
-    // Data to use for the current cell - 16 pixel bitmap, and
-    // foreground/background colours.
-    uint8_t m_data_colours[2];//TODO - doesn't need to be an array...
-    uint16_t m_data0=0;
-    uint16_t m_data1=0;
+    // Output buffers.
+    Output m_output[8]={};
+    uint8_t m_write_index=4;
+    uint8_t m_read_index=0;
 
     // Current character set data.
     uint8_t m_charset=0;

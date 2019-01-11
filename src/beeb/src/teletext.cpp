@@ -27,6 +27,10 @@
 // 3. Seems there are bugs anyway, e.g.,
 // http://www.stardot.org.uk/forums/viewtopic.php?f=53&p=163095&sid=2cced0ed559a6a56acda6e491133914f#p163092
 //
+// The data sheet says the LOSE to display on time is "typically" 2.6 usec -
+// here modeled by a buffer that delays 4 VideoDataUnits, i.e., 2 usec,
+// between processing and output.
+//
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
@@ -180,16 +184,16 @@ SAA5050::SAA5050() {
 void SAA5050::Byte(uint8_t value) {
     value&=0x7f;
 
+    uint16_t data0,data1;
+
     if(value<32) {
         if(m_conceal||!m_hold) {
-            m_data0=0;
-            m_data1=0;
+            data0=0;
+            data1=0;
         } else {
-            m_data0=m_last_graphics_data0;
-            m_data1=m_last_graphics_data1;
+            data0=m_last_graphics_data0;
+            data1=m_last_graphics_data1;
         }
-        m_data_colours[0]=m_bg;
-        m_data_colours[1]=m_fg;
 
         switch(value) {
         case 0x00:
@@ -287,19 +291,19 @@ void SAA5050::Byte(uint8_t value) {
 
         case 0x1c:
             // Black Background
-            m_data_colours[0]=m_bg=0;
+            m_bg=0;
             break;
 
         case 0x1d:
             // New Background
-            m_data_colours[0]=m_bg=m_fg;
+            m_bg=m_fg;
             break;
 
         case 0x1e:
             // Hold Graphics
             m_hold=true;
-            m_data0=m_last_graphics_data0;
-            m_data1=m_last_graphics_data1;
+            data0=m_last_graphics_data0;
+            data1=m_last_graphics_data1;
             break;
 
         case 0x1f:
@@ -319,20 +323,17 @@ void SAA5050::Byte(uint8_t value) {
         uint8_t glyph_raster=(m_raster+m_raster_offset)>>m_raster_shift;
 
         if(glyph_raster<20&&m_flash&&!m_conceal) {
-            m_data0=teletext_font[1][m_charset][value-32][glyph_raster];
-            m_data1=teletext_font[1][m_charset][value-32][glyph_raster+(1>>m_raster_shift)];
+            data0=teletext_font[1][m_charset][value-32][glyph_raster];
+            data1=teletext_font[1][m_charset][value-32][glyph_raster+(1>>m_raster_shift)];
         } else {
-            m_data0=0;
-            m_data1=0;
+            data0=0;
+            data1=0;
         }
-
-        m_data_colours[0]=m_bg;
-        m_data_colours[1]=m_fg;
 
         if(value&0x20&&m_charset!=TeletextCharset_Alpha) {
             if(!m_conceal) {
-                m_last_graphics_data0=m_data0;
-                m_last_graphics_data1=m_data1;
+                m_last_graphics_data0=data0;
+                m_last_graphics_data1=data1;
             }
         }
     }
@@ -341,28 +342,46 @@ void SAA5050::Byte(uint8_t value) {
     if(m_debug) {
         size_t ch=value&0x7f;
         size_t row=m_raster/2;
-        m_data0&=teletext_debug_font_bgmask[ch][row];
-        m_data0|=teletext_debug_font[ch][row];
-        m_data1&=teletext_debug_font_bgmask[ch][row];
-        m_data1|=teletext_debug_font[ch][row];
+        data0&=teletext_debug_font_bgmask[ch][row];
+        data0|=teletext_debug_font[ch][row];
+        data1&=teletext_debug_font_bgmask[ch][row];
+        data1|=teletext_debug_font[ch][row];
     }
 #endif
+
+    ASSERT((m_write_index&1)==0);
+    Output *output=&m_output[m_write_index];
+
+    output->fg=m_fg;
+    output->bg=m_bg;
+    output->data0=data0;
+    output->data1=data1;
+
+    ++output;
+
+    output->fg=m_fg;
+    output->bg=m_bg;
+    output->data0=data0>>6;
+    output->data1=data1>>6;
+
+    m_write_index=(m_write_index+2)&7;
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 void SAA5050::EmitPixels(VideoDataUnitPixels *pixels) {
-    pixels->pixels[0]=PALETTE[m_data_colours[0]];
+    Output *output=&m_output[m_read_index];
+
+    pixels->pixels[0]=PALETTE[output->bg];
     pixels->pixels[0].bits.x=VideoDataType_Teletext;
 
-    pixels->pixels[1]=PALETTE[m_data_colours[1]];
+    pixels->pixels[1]=PALETTE[output->fg];
 
-    pixels->pixels[2].all=(uint8_t)m_data0;
-    pixels->pixels[3].all=(uint8_t)m_data1;
+    pixels->pixels[2].all=output->data0;
+    pixels->pixels[3].all=output->data1;
 
-    m_data0>>=6;
-    m_data1>>=6;
+    m_read_index=(m_read_index+1)&7;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -379,6 +398,11 @@ void SAA5050::StartOfLine() {
     m_hold=false;
     m_flash=true;
     m_raster_shift=0;
+
+    m_read_index=0;
+    m_write_index=4;
+
+    memset(m_output,0,sizeof m_output);
 }
 
 //////////////////////////////////////////////////////////////////////////
