@@ -139,6 +139,16 @@ For best results, leave these options on.
 For (inauthentic!) 1:1 pixel output, switch them off and set a manual
 scale of 1.0, or 2.0, and so on.
 
+### Sound options
+
+`BBC volume` controls BBC sound chip volume. `Disc volume` controls
+volume of the disc drive noises.
+
+When `Power-on tone` is unticked, the Brrrr... power-on tone will be
+silenced. This is not very authentic! - but it might make things a bit
+less annoying when you find yourself hearing it a lot. (You will still
+get the beep.)
+
 ## Customize keyboard layout
 
 Click `Tools` > `Keyboard layout...` to bring up the keyboard layout

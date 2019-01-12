@@ -32,7 +32,7 @@ public:
 
     SN76489();
 
-    void Reset();
+    void Reset(bool tone);
     void Fixup(const SN76489 *src);
 
     Output Update(bool write,uint8_t value);

@@ -51,6 +51,10 @@ EEND()
 EBEGIN()
 EPNV(Boot,1<<0)
 EPNV(Run,1<<1)
+
+// this is the opposite of the logic used everywhere else, the idea being
+// that this flag, like the others, can be 0 = default.
+EPNV(NoPowerOnTone,1<<2)
 EEND()
 #undef ENAME
 

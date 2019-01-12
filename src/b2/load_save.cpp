@@ -973,6 +973,7 @@ static const char NVRAM[]="nvram";
 static const char START_ADDRESS[]="start_address";
 static const char STOP_NUM_CYCLES[]="stop_num_cycles";
 static const char CYCLES_OUTPUT[]="cycles_output";
+static const char POWER_ON_TONE[]="power_on_tone";
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -1269,6 +1270,7 @@ static bool LoadWindows(rapidjson::Value *windows,Messages *msg) {
     FindBoolMember(&BeebWindows::defaults.correct_aspect_ratio,windows,CORRECT_ASPECT_RATIO,nullptr);
     FindBoolMember(&BeebWindows::defaults.display_auto_scale,windows,AUTO_SCALE,nullptr);
     FindFloatMember(&BeebWindows::defaults.display_manual_scale,windows,MANUAL_SCALE,nullptr);
+    FindBoolMember(&BeebWindows::defaults.power_on_tone,windows,POWER_ON_TONE,nullptr);
 
     {
         std::string keymap_name;
@@ -1770,6 +1772,9 @@ static void SaveWindows(JSONWriter<StringStream> *writer) {
 
         writer->Key(MANUAL_SCALE);
         writer->Double(BeebWindows::defaults.display_manual_scale);
+
+        writer->Key(POWER_ON_TONE);
+        writer->Bool(BeebWindows::defaults.power_on_tone);
     }
 }
 

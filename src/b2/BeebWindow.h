@@ -66,6 +66,7 @@ struct BeebWindowSettings {
 
     float bbc_volume=0.f;
     float disc_volume=0.f;
+    bool power_on_tone=true;
 
     bool display_auto_scale=true;
     bool correct_aspect_ratio=true;
@@ -435,6 +436,8 @@ private:
     void ResetDefaultNVRAM();
     void SaveDefaultNVRAM();
     bool SaveDefaultNVRAMIsEnabled() const;
+
+    uint32_t GetHardResetFlags(uint32_t flags=0) const;
 
     static std::unique_ptr<SettingsUI> CreateOptionsUI(BeebWindow *beeb_window);
     static std::unique_ptr<SettingsUI> CreateTimelineUI(BeebWindow *beeb_window);

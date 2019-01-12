@@ -227,6 +227,7 @@ BBCMicro::MemoryPages::MemoryPages() {
 
 BBCMicro::State::State(const BBCMicroType type,
                        const std::vector<uint8_t> &nvram_contents,
+                       bool power_on_tone,
                        const tm *rtc_time,
                        uint64_t initial_num_2MHz_cycles):
 num_2MHz_cycles(initial_num_2MHz_cycles)
@@ -261,7 +262,7 @@ num_2MHz_cycles(initial_num_2MHz_cycles)
     //    DiscDrive_Init(&this->drives[i],i);
     //}
 
-    this->sn76489.Reset();
+    this->sn76489.Reset(power_on_tone);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -273,9 +274,14 @@ BBCMicro::BBCMicro(BBCMicroType type,
                    const tm *rtc_time,
                    bool video_nula,
                    bool ext_mem,
+                   bool power_on_tone,
                    BeebLinkHandler *beeblink_handler,
                    uint64_t initial_num_2MHz_cycles):
-m_state(type,nvram_contents,rtc_time,initial_num_2MHz_cycles),
+m_state(type,
+        nvram_contents,
+        power_on_tone,
+        rtc_time,
+        initial_num_2MHz_cycles),
 m_type(type),
 m_disc_interface(def?def->create_fun():nullptr),
 m_video_nula(video_nula),
@@ -1508,7 +1514,7 @@ bool BBCMicro::Update(VideoDataUnit *video_unit,SoundDataUnit *sound_unit) {
                 // The hsync output is linked up to the SAA505's GLR
                 // ("General line reset") pin, which sounds like it should
                 // do line stuff. The data sheet is a bit vague, though:
-                // "required for internal synchnorization of remote control
+                // "required for internal synchronization of remote control
                 // data signals"...??
                 //
                 // https://github.com/mist-devel/mist-board/blob/f6cc6ff597c22bdd8b002c04c331619a9767eae0/cores/bbc/rtl/saa5050/saa5050.v

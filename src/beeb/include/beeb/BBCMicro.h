@@ -108,6 +108,7 @@ public:
              const tm *rtc_time,
              bool video_nula,
              bool ext_mem,
+             bool power_on_tone,
              BeebLinkHandler *beeblink_handler,
              uint64_t initial_num_2MHz_cycles);
 protected:
@@ -541,7 +542,11 @@ private:
         int async_call_timeout=0;
 #endif
 
-        explicit State(BBCMicroType type,const std::vector<uint8_t> &nvram_contents,const tm *rtc_time,uint64_t initial_num_2MHz_cycles);
+        explicit State(BBCMicroType type,
+                       const std::vector<uint8_t> &nvram_contents,
+                       bool power_on_tone,
+                       const tm *rtc_time,
+                       uint64_t initial_num_2MHz_cycles);
     };
 
     State m_state;

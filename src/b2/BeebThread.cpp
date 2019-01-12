@@ -452,6 +452,7 @@ void BeebThread::HardResetMessage::HardReset(BeebThread *beeb_thread,
                                          &now,
                                          ts->current_config.config.video_nula,
                                          ts->current_config.config.ext_mem,
+                                         m_flags&BeebThreadHardResetFlag_NoPowerOnTone?false:true,
                                          ts->beeblink_handler.get(),
                                          num_2MHz_cycles);
 

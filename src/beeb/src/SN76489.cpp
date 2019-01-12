@@ -23,13 +23,13 @@ const uint16_t SN76489::NOISE2=0x40;
 //////////////////////////////////////////////////////////////////////////
 
 SN76489::SN76489() {
-    this->Reset();
+    this->Reset(true);
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void SN76489::Reset() {
+void SN76489::Reset(bool tone) {
     m_state=State();
     m_state.noise_seed=1<<14;
 
@@ -37,7 +37,7 @@ void SN76489::Reset() {
         Channel *c=&m_state.channels[i];
 
         c->freq=1023;
-        c->vol=15;
+        c->vol=tone?15:0;
 
         memset(&c->output,0xff,sizeof c->output);
     }
