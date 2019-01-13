@@ -427,7 +427,7 @@ void TVOutput::Update(const VideoDataUnit *units,size_t num_units) {
 #if VIDEO_TRACK_METADATA
                 m_metadata_line+=TV_TEXTURE_WIDTH*HEIGHT_SCALE;
 #endif
-                m_state_timer=1;
+                m_state_timer=2;//+1 for Scanout; +1 for this state
                 m_state=TVOutputState_HorizontalRetraceWait;
                 break;
 
