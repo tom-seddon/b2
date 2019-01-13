@@ -172,6 +172,18 @@ CRTC::Output CRTC::Update(uint8_t fast_6845) {
         TRACEF_IF(m_trace_scanlines,m_trace,"6845 - %u - start of scanline: CRTC addr: $%04X; raster: %u; row: %u; vsync_counter: %d; adj counter: %d",m_num_updates,m_line_addr.w,m_raster,m_row,m_vsync_counter,m_adj_counter);
     }
 
+    // Horizontal displayed.
+    if(m_column==m_registers.values[1]) {
+        m_hdisp=false;
+
+        // The 6845 appears to do this at this point - try, e.g.,
+        // MODE1:?&FE00=1:?&FE01=128
+        if(m_raster==m_registers.values[9]) {
+            m_line_addr.w+=m_registers.values[1];
+            m_char_addr.w=m_line_addr.w;
+        }
+    }
+
     // Produce output.
     Output output={};
 
@@ -289,18 +301,6 @@ CRTC::Output CRTC::Update(uint8_t fast_6845) {
         ++m_char_addr.w;
 
         ++m_column;
-
-        // Horizontal displayed.
-        if(m_column==m_registers.values[1]) {
-            m_hdisp=false;
-
-            // The 6845 appears to do this at this point - try, e.g.,
-            // MODE1:?&FE00=1:?&FE01=128
-            if(m_raster==m_registers.values[9]) {
-                m_line_addr.w+=m_registers.values[1];
-                m_char_addr.w=m_line_addr.w;
-            }
-        }
     }
 
 
