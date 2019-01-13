@@ -43,6 +43,8 @@ void PixelMetadataUI::DoImGui(CommandContextStack *cc_stack) {
         if(m->flags&VideoDataUnitMetadataFlag_HasAddress) {
             ImGui::Text("Address: $%04X",m->address);
         }
+
+        ImGui::Text("%s cycle",m->flags&VideoDataUnitMetadataFlag_OddCycle?"Odd":"Even");
     }
 }
 

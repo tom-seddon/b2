@@ -40,6 +40,7 @@ EEND()
 #define ENAME VideoDataUnitMetadataFlag
 EBEGIN()
 EPNV(HasAddress,1<<0)
+EPNV(OddCycle,1<<1)
 EEND()
 #undef ENAME
 #endif

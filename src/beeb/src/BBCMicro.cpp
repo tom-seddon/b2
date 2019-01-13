@@ -1561,6 +1561,10 @@ bool BBCMicro::Update(VideoDataUnit *video_unit,SoundDataUnit *sound_unit) {
     // Update display output.
 #if VIDEO_TRACK_METADATA
     video_unit->metadata.flags=0;
+
+    if(odd_cycle) {
+        video_unit->metadata.flags|=VideoDataUnitMetadataFlag_OddCycle;
+    }
 #endif
 
     if(m_state.crtc_last_output.display) {
