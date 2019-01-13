@@ -41,6 +41,10 @@ EEND()
 EBEGIN()
 EPNV(HasAddress,1<<0)
 EPNV(OddCycle,1<<1)
+EPNV(HasValue,1<<2)
+EPNV(6845Raster0,1<<3)
+EPNV(6845DISPEN,1<<4)
+EPNV(6845CUDISP,1<<5)
 EEND()
 #undef ENAME
 #endif

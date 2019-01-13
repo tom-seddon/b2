@@ -99,7 +99,7 @@ void ThumbnailsUI::Thumbnail(const std::shared_ptr<const BeebState> &beeb_state)
                 break;
             }
 
-            const void *texture_data=job->GetTextureData();
+            const void *texture_data=job->GetTexturePixels();
             ASSERT(texture_data);
 
             SDLUniquePtr<SDL_Texture> texture=this->GetTexture();

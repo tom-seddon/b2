@@ -19,9 +19,6 @@
 
 struct VideoDataUnit;
 struct SDL_PixelFormat;
-#if VIDEO_TRACK_METADATA
-struct VideoDataUnitMetadata;
-#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -40,6 +37,7 @@ class TVOutput {
 public:
     bool show_usec_markers=false;
     bool show_half_usec_markers=false;
+    bool show_6845_debug_markers=false;
 
     TVOutput();
     ~TVOutput();
@@ -55,10 +53,10 @@ public:
 
     // *data_version (optional) is set to texture data version, incremented on
     // each vblank. (Between vblanks, the buffer contains a partially scanned-out frame.)
-    const void *GetTextureData(uint64_t *texture_data_version) const;
+    const void *GetTexturePixels(uint64_t *texture_data_version) const;
 
 #if VIDEO_TRACK_METADATA
-    const VideoDataUnitMetadata *GetTextureMetadata() const;
+    const VideoDataUnit *GetTextureUnits() const;
 #endif
 
     // returns pointer to TVOutput's copy of the pixel format.
@@ -77,9 +75,9 @@ public:
 protected:
 private:
     TVOutputState m_state=TVOutputState_VerticalRetrace;
-    uint32_t *m_line=nullptr;
+    uint32_t *m_pixels_line=nullptr;
 #if VIDEO_TRACK_METADATA
-    VideoDataUnitMetadata *m_metadata_line=nullptr;
+    VideoDataUnit *m_units_line=nullptr;
 #endif
     size_t m_x=0;
     size_t m_y=0;
@@ -91,9 +89,9 @@ private:
     SDL_PixelFormat *m_pixel_format=nullptr;
 
     // TV - output texture and its properties
-    std::vector<uint32_t> m_texture_data;
+    std::vector<uint32_t> m_texture_pixels;
 #if VIDEO_TRACK_METADATA
-    std::vector<VideoDataUnitMetadata> m_texture_metadata;
+    std::vector<VideoDataUnit> m_texture_units;
 #endif
     uint64_t m_texture_data_version=1;
 
@@ -114,6 +112,8 @@ private:
 
     uint32_t m_usec_marker_xor=0;
     uint32_t m_half_usec_marker_xor=0;
+    uint32_t m_6845_raster0_marker_xor=0;
+    uint32_t m_6845_dispen_marker_xor=0;
 
     void InitPalette(size_t palette,double fa);
     void InitPalette();

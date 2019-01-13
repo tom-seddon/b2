@@ -221,8 +221,9 @@ void BeebWindow::OptionsUI::DoImGui(CommandContextStack *cc_stack) {
         {
             std::unique_lock<Mutex> lock;
             BBCMicro *m=m_beeb_window->m_beeb_thread->LockMutableBeeb(&lock);
+            bool debug;
 
-            bool debug=m->GetTeletextDebug();
+            debug=m->GetTeletextDebug();
             if(ImGui::Checkbox("Teletext debug",&debug)) {
                 m->SetTeletextDebug(debug);
             }
@@ -235,8 +236,11 @@ void BeebWindow::OptionsUI::DoImGui(CommandContextStack *cc_stack) {
             }
         }
 
-        ImGui::Checkbox("Show 0.5 usec markers",&m_beeb_window->m_tv.show_half_usec_markers);
-        ImGui::Checkbox("Show 1.0 usec markers",&m_beeb_window->m_tv.show_usec_markers);
+        ImGui::Checkbox("1.0 usec",&m_beeb_window->m_tv.show_usec_markers);
+        ImGui::SameLine();
+        ImGui::Checkbox("0.5 usec",&m_beeb_window->m_tv.show_half_usec_markers);
+
+        ImGui::Checkbox("6845 debug markers",&m_beeb_window->m_tv.show_6845_debug_markers);
     }
 #endif
 }
@@ -1467,7 +1471,7 @@ void BeebWindow::UpdateTVTexture(VBlankRecord *vblank_record) {
     vblank_record->num_video_units=num_units_consumed;
 
     if(m_tv_texture) {
-        if(const void *src_pixels=m_tv.GetTextureData(nullptr)) {
+        if(const void *src_pixels=m_tv.GetTexturePixels(nullptr)) {
             void *dest_pixels;
             int dest_pitch;
             if(SDL_LockTexture(m_tv_texture,nullptr,&dest_pixels,&dest_pitch)==0) {
@@ -1604,7 +1608,7 @@ void BeebWindow::DoBeebDisplayUI() {
 
 #if VIDEO_TRACK_METADATA
 
-            m_got_mouse_pixel_metadata=false;
+            m_got_mouse_pixel_unit=false;
 
             if(ImGui::IsItemHovered()) {
                 ImVec2 mouse_pos=ImGui::GetMousePos();
@@ -1617,15 +1621,12 @@ void BeebWindow::DoBeebDisplayUI() {
                     int x=(int)(tx*TV_TEXTURE_WIDTH);
                     int y=(int)(ty*TV_TEXTURE_HEIGHT);
 
-
                     ASSERT(x>=0&&x<TV_TEXTURE_WIDTH);
                     ASSERT(y>=0&&y<TV_TEXTURE_HEIGHT);
 
-                    m_got_mouse_pixel_metadata=true;
-
-                    const VideoDataUnitMetadata *metadata=m_tv.GetTextureMetadata();
-                    m_mouse_pixel_metadata=metadata[y*TV_TEXTURE_WIDTH+x];
-                    m_got_mouse_pixel_metadata=true;
+                    const VideoDataUnit *units=m_tv.GetTextureUnits();
+                    m_mouse_pixel_unit=units[y*TV_TEXTURE_WIDTH+x];
+                    m_got_mouse_pixel_unit=true;
                 }
             }
 #endif
@@ -2098,7 +2099,7 @@ bool BeebWindow::GetTextureData(BeebWindowTextureDataVersion *version,
                                 const SDL_PixelFormat **format_ptr,const void **pixels_ptr) const
 {
     uint64_t v;
-    *pixels_ptr=m_tv.GetTextureData(&v);
+    *pixels_ptr=m_tv.GetTexturePixels(&v);
     if(v==version->version) {
         return false;
     }
@@ -2178,9 +2179,9 @@ void BeebWindow::SetCurrentKeymap(const BeebKeymap *keymap) {
 //////////////////////////////////////////////////////////////////////////
 
 #if VIDEO_TRACK_METADATA
-const VideoDataUnitMetadata *BeebWindow::GetMetadataForMousePixel() const {
-    if(m_got_mouse_pixel_metadata) {
-        return &m_mouse_pixel_metadata;
+const VideoDataUnit *BeebWindow::GetVideoDataUnitForMousePixel() const {
+    if(m_got_mouse_pixel_unit) {
+        return &m_mouse_pixel_unit;
     } else {
         return nullptr;
     }

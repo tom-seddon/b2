@@ -1467,6 +1467,14 @@ bool BBCMicro::Update(VideoDataUnit *video_unit,SoundDataUnit *sound_unit) {
 
     ++m_state.num_2MHz_cycles;
 
+#if VIDEO_TRACK_METADATA
+    video_unit->metadata.flags=0;
+
+    if(odd_cycle) {
+        video_unit->metadata.flags|=VideoDataUnitMetadataFlag_OddCycle;
+    }
+#endif
+
     // Update video hardware.
     if(m_state.video_ula.control.bits.fast_6845|odd_cycle) {
         CRTC::Output output=m_state.crtc.Update(m_state.video_ula.control.bits.fast_6845);
@@ -1528,15 +1536,31 @@ bool BBCMicro::Update(VideoDataUnit *video_unit,SoundDataUnit *sound_unit) {
                 // But after setting R6=255, changing R5 does have an
                 // affect, suggesting that DISPTMSG transitions are being
                 // counted and hsyncs aren't.)
-                if(output.display&&!m_state.crtc_last_output.display) {
-                    m_state.saa5050.StartOfLine();
-                } else if(!output.display&&m_state.crtc_last_output.display) {
-                    m_state.saa5050.EndOfLine();
+                if(output.display) {
+                    if(!m_state.crtc_last_output.display) {
+                        m_state.saa5050.StartOfLine();
+                    }
+                } else {
+                    //m_state.ic15_byte|=0x40;
+
+                    if(m_state.crtc_last_output.display) {
+                        m_state.saa5050.EndOfLine();
+                    }
                 }
             }
 
             m_state.saa5050.Byte(m_state.ic15_byte);
-            m_state.ic15_byte=m_ram[addr];
+
+            if(output.address&0x2000) {
+                m_state.ic15_byte=m_ram[addr];
+            } else {
+                m_state.ic15_byte=0;
+            }
+
+#if VIDEO_TRACK_METADATA
+            video_unit->metadata.flags|=VideoDataUnitMetadataFlag_HasValue;
+            video_unit->metadata.value=m_state.ic15_byte;
+#endif
         }
 
         if(!m_state.video_ula.control.bits.teletext) {
@@ -1544,7 +1568,13 @@ bool BBCMicro::Update(VideoDataUnit *video_unit,SoundDataUnit *sound_unit) {
                 m_state.video_ula.DisplayEnabled();
             }
 
-            m_state.video_ula.Byte(m_ram[addr]);
+            uint8_t value=m_ram[addr];
+            m_state.video_ula.Byte(value);
+
+#if VIDEO_TRACK_METADATA
+            video_unit->metadata.flags|=VideoDataUnitMetadataFlag_HasValue;
+            video_unit->metadata.value=value;
+#endif
         }
 
         if(output.cudisp) {
@@ -1559,15 +1589,21 @@ bool BBCMicro::Update(VideoDataUnit *video_unit,SoundDataUnit *sound_unit) {
     }
 
     // Update display output.
+    if(m_state.crtc_last_output.display) {
 #if VIDEO_TRACK_METADATA
-    video_unit->metadata.flags=0;
+        if(m_state.crtc_last_output.raster==0) {
+            video_unit->metadata.flags|=VideoDataUnitMetadataFlag_6845Raster0;
+        }
 
-    if(odd_cycle) {
-        video_unit->metadata.flags|=VideoDataUnitMetadataFlag_OddCycle;
-    }
+        if(m_state.crtc_last_output.display) {
+            video_unit->metadata.flags|=VideoDataUnitMetadataFlag_6845DISPEN;
+        }
+
+        if(m_state.crtc_last_output.cudisp) {
+            video_unit->metadata.flags|=VideoDataUnitMetadataFlag_6845CUDISP;
+        }
 #endif
 
-    if(m_state.crtc_last_output.display) {
         if(m_state.video_ula.control.bits.teletext) {
             m_state.saa5050.EmitPixels(&video_unit->pixels);
 #if VIDEO_TRACK_METADATA

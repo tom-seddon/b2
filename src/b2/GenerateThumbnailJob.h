@@ -39,7 +39,7 @@ public:
     
     void ThreadExecute() override;
 
-    const void *GetTextureData() const;
+    const void *GetTexturePixels() const;
 private:
     std::shared_ptr<const BeebState> m_beeb_state;
     std::unique_ptr<BBCMicro> m_beeb;

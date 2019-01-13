@@ -43,9 +43,9 @@ bool TVOutput::InitTexture(const SDL_PixelFormat *pixel_format) {
     ASSERT(!m_pixel_format);
     m_pixel_format=ClonePixelFormat(pixel_format);
 
-    m_texture_data.resize(TV_TEXTURE_WIDTH*TV_TEXTURE_HEIGHT);
+    m_texture_pixels.resize(TV_TEXTURE_WIDTH*TV_TEXTURE_HEIGHT);
 #if VIDEO_TRACK_METADATA
-    m_texture_metadata.resize(m_texture_data.size());
+    m_texture_units.resize(m_texture_pixels.size());
 #endif
 
     this->InitPalette();
@@ -103,9 +103,9 @@ void TVOutput::Update(const VideoDataUnit *units,size_t num_units) {
                 m_state=TVOutputState_VerticalRetraceWait;
                 m_x=0;
                 m_y=0;
-                m_line=m_texture_data.data();
+                m_pixels_line=m_texture_pixels.data();
 #if VIDEO_TRACK_METADATA
-                m_metadata_line=m_texture_metadata.data();
+                m_units_line=m_texture_units.data();
 #endif
 
                 // "Fun" (translation: brain-eating) fake interlace
@@ -141,8 +141,8 @@ void TVOutput::Update(const VideoDataUnit *units,size_t num_units) {
                     break;
                 }
 
-                uint32_t *line0;
-                uint32_t *line1;
+                uint32_t *pixels0;
+                uint32_t *pixels1;
 
                 switch(unit->pixels.pixels[0].bits.x) {
                     default:
@@ -154,39 +154,39 @@ void TVOutput::Update(const VideoDataUnit *units,size_t num_units) {
                     case VideoDataType_Bitmap16MHz:
                     {
                         if(m_x<TV_TEXTURE_WIDTH&&m_y<TV_TEXTURE_HEIGHT) {
-                            line0=m_line+m_x;
-                            line1=line0+TV_TEXTURE_WIDTH;
+                            pixels0=m_pixels_line+m_x;
+                            pixels1=pixels0+TV_TEXTURE_WIDTH;
 
                             const VideoDataPixel p0=unit->pixels.pixels[0];
-                            line1[0]=line0[0]=m_rs[p0.bits.r]|m_gs[p0.bits.g]|m_bs[p0.bits.b];
+                            pixels1[0]=pixels0[0]=m_rs[p0.bits.r]|m_gs[p0.bits.g]|m_bs[p0.bits.b];
 
                             const VideoDataPixel p1=unit->pixels.pixels[1];
-                            line1[1]=line0[1]=m_rs[p1.bits.r]|m_gs[p1.bits.g]|m_bs[p1.bits.b];
+                            pixels1[1]=pixels0[1]=m_rs[p1.bits.r]|m_gs[p1.bits.g]|m_bs[p1.bits.b];
 
                             const VideoDataPixel p2=unit->pixels.pixels[2];
-                            line1[2]=line0[2]=m_rs[p2.bits.r]|m_gs[p2.bits.g]|m_bs[p2.bits.b];
+                            pixels1[2]=pixels0[2]=m_rs[p2.bits.r]|m_gs[p2.bits.g]|m_bs[p2.bits.b];
 
                             const VideoDataPixel p3=unit->pixels.pixels[3];
-                            line1[3]=line0[3]=m_rs[p3.bits.r]|m_gs[p3.bits.g]|m_bs[p3.bits.b];
+                            pixels1[3]=pixels0[3]=m_rs[p3.bits.r]|m_gs[p3.bits.g]|m_bs[p3.bits.b];
 
                             const VideoDataPixel p4=unit->pixels.pixels[4];
-                            line1[4]=line0[4]=m_rs[p4.bits.r]|m_gs[p4.bits.g]|m_bs[p4.bits.b];
+                            pixels1[4]=pixels0[4]=m_rs[p4.bits.r]|m_gs[p4.bits.g]|m_bs[p4.bits.b];
 
                             const VideoDataPixel p5=unit->pixels.pixels[5];
-                            line1[5]=line0[5]=m_rs[p5.bits.r]|m_gs[p5.bits.g]|m_bs[p5.bits.b];
+                            pixels1[5]=pixels0[5]=m_rs[p5.bits.r]|m_gs[p5.bits.g]|m_bs[p5.bits.b];
 
                             const VideoDataPixel p6=unit->pixels.pixels[6];
-                            line1[6]=line0[6]=m_rs[p6.bits.r]|m_gs[p6.bits.g]|m_bs[p6.bits.b];
+                            pixels1[6]=pixels0[6]=m_rs[p6.bits.r]|m_gs[p6.bits.g]|m_bs[p6.bits.b];
 
                             const VideoDataPixel p7=unit->pixels.pixels[7];
-                            line1[7]=line0[7]=m_rs[p7.bits.r]|m_gs[p7.bits.g]|m_bs[p7.bits.b];
+                            pixels1[7]=pixels0[7]=m_rs[p7.bits.r]|m_gs[p7.bits.g]|m_bs[p7.bits.b];
 
 #if VIDEO_TRACK_METADATA
-                            VideoDataUnitMetadata *metadata_line=m_metadata_line+m_x;
-                            metadata_line[7]=metadata_line[6]=metadata_line[5]=metadata_line[4]=metadata_line[3]=metadata_line[2]=metadata_line[1]=metadata_line[0]=unit->metadata;
+                            VideoDataUnit *units0=m_units_line+m_x;
+                            units0[7]=units0[6]=units0[5]=units0[4]=units0[3]=units0[2]=units0[1]=units0[0]=*unit;
 
-                            metadata_line+=TV_TEXTURE_WIDTH;
-                            metadata_line[7]=metadata_line[6]=metadata_line[5]=metadata_line[4]=metadata_line[3]=metadata_line[2]=metadata_line[1]=metadata_line[0]=unit->metadata;
+                            VideoDataUnit *units1=units0+TV_TEXTURE_WIDTH;
+                            units1[7]=units1[6]=units1[5]=units1[4]=units1[3]=units1[2]=units1[1]=units1[0]=*unit;
 #endif
                         }
                     }
@@ -195,8 +195,8 @@ void TVOutput::Update(const VideoDataUnit *units,size_t num_units) {
                     case VideoDataType_Teletext:
                     {
                         if(m_x<TV_TEXTURE_WIDTH&&m_y<TV_TEXTURE_HEIGHT) {
-                            line0=m_line+m_x;
-                            line1=line0+TV_TEXTURE_WIDTH;
+                            pixels0=m_pixels_line+m_x;
+                            pixels1=pixels0+TV_TEXTURE_WIDTH;
 
                             uint16_t p_0=unit->pixels.pixels[2].all;
                             uint16_t p_1=unit->pixels.pixels[3].all;
@@ -291,30 +291,30 @@ void TVOutput::Update(const VideoDataUnit *units,size_t num_units) {
                             uint32_t g71=m_gs[p51.bits.g];
                             uint32_t b71=m_bs[p51.bits.b];
 
-                            line0[0]=r00|g00|b00;
-                            line0[1]=r10|g10|b10;
-                            line0[2]=r20|g20|b20;
-                            line0[3]=r30|g30|b30;
-                            line0[4]=r40|g40|b40;
-                            line0[5]=r50|g50|b50;
-                            line0[6]=r60|g60|b60;
-                            line0[7]=r70|g70|b70;
+                            pixels0[0]=r00|g00|b00;
+                            pixels0[1]=r10|g10|b10;
+                            pixels0[2]=r20|g20|b20;
+                            pixels0[3]=r30|g30|b30;
+                            pixels0[4]=r40|g40|b40;
+                            pixels0[5]=r50|g50|b50;
+                            pixels0[6]=r60|g60|b60;
+                            pixels0[7]=r70|g70|b70;
 
-                            line1[0]=r01|g01|b01;
-                            line1[1]=r11|g11|b11;
-                            line1[2]=r21|g21|b21;
-                            line1[3]=r31|g31|b31;
-                            line1[4]=r41|g41|b41;
-                            line1[5]=r51|g51|b51;
-                            line1[6]=r61|g61|b61;
-                            line1[7]=r71|g71|b71;
+                            pixels1[0]=r01|g01|b01;
+                            pixels1[1]=r11|g11|b11;
+                            pixels1[2]=r21|g21|b21;
+                            pixels1[3]=r31|g31|b31;
+                            pixels1[4]=r41|g41|b41;
+                            pixels1[5]=r51|g51|b51;
+                            pixels1[6]=r61|g61|b61;
+                            pixels1[7]=r71|g71|b71;
 
 #if VIDEO_TRACK_METADATA
-                            VideoDataUnitMetadata *metadata_line=m_metadata_line+m_x;
-                            metadata_line[7]=metadata_line[6]=metadata_line[5]=metadata_line[4]=metadata_line[3]=metadata_line[2]=metadata_line[1]=metadata_line[0]=unit->metadata;
+                            VideoDataUnit *units0=m_units_line+m_x;
+                            units0[7]=units0[6]=units0[5]=units0[4]=units0[3]=units0[2]=units0[1]=units0[0]=*unit;
 
-                            metadata_line+=TV_TEXTURE_WIDTH;
-                            metadata_line[7]=metadata_line[6]=metadata_line[5]=metadata_line[4]=metadata_line[3]=metadata_line[2]=metadata_line[1]=metadata_line[0]=unit->metadata;
+                            VideoDataUnit *units1=units0+TV_TEXTURE_WIDTH;
+                            units1[7]=units1[6]=units1[5]=units1[4]=units1[3]=units1[2]=units1[1]=units1[0]=*unit;
 #endif
                         }
                     }
@@ -323,8 +323,8 @@ void TVOutput::Update(const VideoDataUnit *units,size_t num_units) {
                     case VideoDataType_Bitmap12MHz:
                     {
                         if(m_x<TV_TEXTURE_WIDTH&&m_y<TV_TEXTURE_HEIGHT) {
-                            line0=m_line+m_x;
-                            line1=line0+TV_TEXTURE_WIDTH;
+                            pixels0=m_pixels_line+m_x;
+                            pixels1=pixels0+TV_TEXTURE_WIDTH;
 
                             const VideoDataPixel p0=unit->pixels.pixels[0];
                             const VideoDataPixel p1=unit->pixels.pixels[1];
@@ -373,21 +373,21 @@ void TVOutput::Update(const VideoDataUnit *units,size_t num_units) {
                             uint32_t g7=m_gs[p5.bits.g];
                             uint32_t b7=m_bs[p5.bits.b];
 
-                            line1[0]=line0[0]=r0|g0|b0;
-                            line1[1]=line0[1]=r1|g1|b1;
-                            line1[2]=line0[2]=r2|g2|b2;
-                            line1[3]=line0[3]=r3|g3|b3;
-                            line1[4]=line0[4]=r4|g4|b4;
-                            line1[5]=line0[5]=r5|g5|b5;
-                            line1[6]=line0[6]=r6|g6|b6;
-                            line1[7]=line0[7]=r7|g7|b7;
+                            pixels1[0]=pixels0[0]=r0|g0|b0;
+                            pixels1[1]=pixels0[1]=r1|g1|b1;
+                            pixels1[2]=pixels0[2]=r2|g2|b2;
+                            pixels1[3]=pixels0[3]=r3|g3|b3;
+                            pixels1[4]=pixels0[4]=r4|g4|b4;
+                            pixels1[5]=pixels0[5]=r5|g5|b5;
+                            pixels1[6]=pixels0[6]=r6|g6|b6;
+                            pixels1[7]=pixels0[7]=r7|g7|b7;
 
 #if VIDEO_TRACK_METADATA
-                            VideoDataUnitMetadata *metadata_line=m_metadata_line+m_x;
-                            metadata_line[7]=metadata_line[6]=metadata_line[5]=metadata_line[4]=metadata_line[3]=metadata_line[2]=metadata_line[1]=metadata_line[0]=unit->metadata;
+                            VideoDataUnit *units0=m_units_line+m_x;
+                            units0[7]=units0[6]=units0[5]=units0[4]=units0[3]=units0[2]=units0[1]=units0[0]=*unit;
 
-                            metadata_line+=TV_TEXTURE_WIDTH;
-                            metadata_line[7]=metadata_line[6]=metadata_line[5]=metadata_line[4]=metadata_line[3]=metadata_line[2]=metadata_line[1]=metadata_line[0]=unit->metadata;
+                            VideoDataUnit *units1=units0+TV_TEXTURE_WIDTH;
+                            units1[7]=units1[6]=units1[5]=units1[4]=units1[3]=units1[2]=units1[1]=units1[0]=*unit;
 #endif
                         }
                     }
@@ -396,16 +396,47 @@ void TVOutput::Update(const VideoDataUnit *units,size_t num_units) {
 
                 if(this->show_usec_markers&&(m_x&15)==0) {
                     if(m_x<TV_TEXTURE_WIDTH&&m_y<TV_TEXTURE_HEIGHT) {
-                        line0[0]^=m_usec_marker_xor;
-                        line1[0]^=m_usec_marker_xor;
+                        pixels0[0]^=m_usec_marker_xor;
+                        pixels1[0]^=m_usec_marker_xor;
                     }
                 } else if(this->show_half_usec_markers) {
                     if(m_x<TV_TEXTURE_WIDTH&&m_y<TV_TEXTURE_HEIGHT) {
-                        line0[0]^=m_half_usec_marker_xor;
-                        line1[0]^=m_half_usec_marker_xor;
+                        pixels0[0]^=m_half_usec_marker_xor;
+                        pixels1[0]^=m_half_usec_marker_xor;
                     }
                 }
 
+#if VIDEO_TRACK_METADATA
+                if(this->show_6845_debug_markers) {
+                    if(unit->metadata.flags&VideoDataUnitMetadataFlag_6845Raster0) {
+                        if(m_x<TV_TEXTURE_WIDTH&&m_y<TV_TEXTURE_HEIGHT) {
+                            pixels0[0]^=m_6845_raster0_marker_xor;
+                            pixels0[1]^=m_6845_raster0_marker_xor;
+                            pixels0[2]^=m_6845_raster0_marker_xor;
+                            pixels0[3]^=m_6845_raster0_marker_xor;
+                            pixels0[4]^=m_6845_raster0_marker_xor;
+                            pixels0[5]^=m_6845_raster0_marker_xor;
+                            pixels0[6]^=m_6845_raster0_marker_xor;
+                            pixels0[7]^=m_6845_raster0_marker_xor;
+                        }
+                    }
+
+                    if(unit->metadata.flags&VideoDataUnitMetadataFlag_6845DISPEN) {
+                        if(m_x<TV_TEXTURE_WIDTH&&m_y<TV_TEXTURE_HEIGHT) {
+                            pixels0[0]^=m_6845_dispen_marker_xor;
+                            pixels0[2]^=m_6845_dispen_marker_xor;
+                            pixels0[4]^=m_6845_dispen_marker_xor;
+                            pixels0[6]^=m_6845_dispen_marker_xor;
+
+                            pixels1[1]^=m_6845_dispen_marker_xor;
+                            pixels1[3]^=m_6845_dispen_marker_xor;
+                            pixels1[5]^=m_6845_dispen_marker_xor;
+                            pixels1[7]^=m_6845_dispen_marker_xor;
+                        }
+                    }
+                }
+#endif
+                
                 m_x+=8;
 
                 if(m_state_timer++>=SCAN_OUT_CYCLES) {
@@ -423,9 +454,9 @@ void TVOutput::Update(const VideoDataUnit *units,size_t num_units) {
                     m_state=TVOutputState_VerticalRetrace;
                     break;
                 }
-                m_line+=TV_TEXTURE_WIDTH*HEIGHT_SCALE;
+                m_pixels_line+=TV_TEXTURE_WIDTH*HEIGHT_SCALE;
 #if VIDEO_TRACK_METADATA
-                m_metadata_line+=TV_TEXTURE_WIDTH*HEIGHT_SCALE;
+                m_units_line+=TV_TEXTURE_WIDTH*HEIGHT_SCALE;
 #endif
                 m_state_timer=2;//+1 for Scanout; +1 for this state
                 m_state=TVOutputState_HorizontalRetraceWait;
@@ -481,8 +512,8 @@ static const uint8_t DIGITS[10][13]={
 };
 
 void TVOutput::FillWithTestPattern() {
-    m_texture_data.clear();
-    m_texture_data.reserve(TV_TEXTURE_WIDTH*TV_TEXTURE_HEIGHT);
+    m_texture_pixels.clear();
+    m_texture_pixels.reserve(TV_TEXTURE_WIDTH*TV_TEXTURE_HEIGHT);
 
     uint32_t palette[8];
     for(size_t i=0;i<8;++i) {
@@ -492,9 +523,9 @@ void TVOutput::FillWithTestPattern() {
     for(int y=0;y<TV_TEXTURE_HEIGHT;++y) {
         for(int x=0;x<TV_TEXTURE_WIDTH;++x) {
             if((x^y)&1) {
-                m_texture_data.push_back(palette[1]);
+                m_texture_pixels.push_back(palette[1]);
             } else {
-                m_texture_data.push_back(palette[3]);
+                m_texture_pixels.push_back(palette[3]);
             }
         }
     }
@@ -505,13 +536,13 @@ void TVOutput::FillWithTestPattern() {
         uint32_t colour=colours[i];
 
         for(size_t x=i;x<TV_TEXTURE_WIDTH-i;++x) {
-            m_texture_data[i*TV_TEXTURE_WIDTH+x]=colour;
-            m_texture_data[(TV_TEXTURE_HEIGHT-1-i)*TV_TEXTURE_WIDTH+x]=colour;
+            m_texture_pixels[i*TV_TEXTURE_WIDTH+x]=colour;
+            m_texture_pixels[(TV_TEXTURE_HEIGHT-1-i)*TV_TEXTURE_WIDTH+x]=colour;
         }
 
         for(size_t y=i;y<TV_TEXTURE_HEIGHT-i;++y) {
-            m_texture_data[y*TV_TEXTURE_WIDTH+i]=colour;
-            m_texture_data[y*TV_TEXTURE_WIDTH+TV_TEXTURE_WIDTH-1-i]=colour;
+            m_texture_pixels[y*TV_TEXTURE_WIDTH+i]=colour;
+            m_texture_pixels[y*TV_TEXTURE_WIDTH+TV_TEXTURE_WIDTH-1-i]=colour;
         }
     }
 
@@ -527,7 +558,7 @@ void TVOutput::FillWithTestPattern() {
                         break;
                     }
 
-                    uint32_t *line=&m_texture_data[cx+(cy+gy)*TV_TEXTURE_WIDTH];
+                    uint32_t *line=&m_texture_pixels[cx+(cy+gy)*TV_TEXTURE_WIDTH];
                     uint8_t row=*digit++;
 
                     for(size_t gx=0;gx<6;++gx) {
@@ -551,20 +582,20 @@ void TVOutput::FillWithTestPattern() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-const void *TVOutput::GetTextureData(uint64_t *texture_data_version) const {
+const void *TVOutput::GetTexturePixels(uint64_t *texture_data_version) const {
     if(texture_data_version) {
         *texture_data_version=m_texture_data_version;
     }
 
-    return m_texture_data.data();
+    return m_texture_pixels.data();
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 #if VIDEO_TRACK_METADATA
-const VideoDataUnitMetadata *TVOutput::GetTextureMetadata() const {
-    return m_texture_metadata.data();
+const VideoDataUnit *TVOutput::GetTextureUnits() const {
+    return m_texture_units.data();
 }
 #endif
 
@@ -655,6 +686,8 @@ void TVOutput::InitPalette() {
 
     m_usec_marker_xor=0x80u<<m_gshift|0x80u<<m_bshift;
     m_half_usec_marker_xor=0x80u<<m_rshift;
+    m_6845_raster0_marker_xor=0x80u<<m_rshift|0x80u<<m_gshift;
+    m_6845_dispen_marker_xor=0x80u<<m_rshift|0x80u<<m_gshift|0x80u<<m_bshift;
 }
 
 //////////////////////////////////////////////////////////////////////////

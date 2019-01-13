@@ -348,7 +348,7 @@ void WriteVideoJob::ThreadExecute() {
 
                         bool is_vblank=tv_output.IsInVerticalBlank();
                         if(is_vblank&&!was_vblank) {
-                            const void *data=tv_output.GetTextureData(nullptr);
+                            const void *data=tv_output.GetTexturePixels(nullptr);
 
                             if(!m_writer->WriteVideo(data)) {
                                 goto done;

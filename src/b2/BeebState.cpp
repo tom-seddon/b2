@@ -91,7 +91,7 @@ BeebState::BeebState(std::unique_ptr<BBCMicro> beeb,const TVOutput *tv):
 {
     if(tv) {
         m_tv_texture_data.resize(TV_TEXTURE_WIDTH*TV_TEXTURE_HEIGHT);
-        memcpy(m_tv_texture_data.data(),tv->GetTextureData(nullptr),TV_TEXTURE_WIDTH*TV_TEXTURE_HEIGHT*4);
+        memcpy(m_tv_texture_data.data(),tv->GetTexturePixels(nullptr),TV_TEXTURE_WIDTH*TV_TEXTURE_HEIGHT*4);
     }
 }
 

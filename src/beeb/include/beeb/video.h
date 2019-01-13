@@ -62,6 +62,7 @@ union VideoDataUnitPixels {
 #if VIDEO_TRACK_METADATA
 struct VideoDataUnitMetadata {
     uint8_t flags=0;//combination of VideoDataUnitMetadataFlag
+    uint8_t value=0;
     uint16_t address=0;
 };
 #endif
