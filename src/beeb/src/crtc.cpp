@@ -189,6 +189,7 @@ CRTC::Output CRTC::Update(uint8_t fast_6845) {
 
     output.vsync=m_vsync_counter>=0;
     output.hsync=m_hsync_counter>=0&&!output.vsync;
+    output.address=m_char_addr.w;
 
     if(m_adj_counter<0) {
         if(m_row==m_registers.values[4]&&m_raster==m_registers.values[9]) {
@@ -256,8 +257,6 @@ CRTC::Output CRTC::Update(uint8_t fast_6845) {
                 m_skewed_display|=1<<m_registers.bits.r8.bits.d;
             }
 
-            output.address=m_char_addr.w;
-
             output.raster=m_raster;
             ASSERT(output.raster==m_raster);
 
@@ -299,9 +298,10 @@ CRTC::Output CRTC::Update(uint8_t fast_6845) {
         m_skewed_cudisp>>=1;
 
         ++m_char_addr.w;
-
+        
         ++m_column;
     }
+
 
 
     // Vertical.

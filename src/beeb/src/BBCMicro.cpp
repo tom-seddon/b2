@@ -1581,9 +1581,10 @@ bool BBCMicro::Update(VideoDataUnit *video_unit,SoundDataUnit *sound_unit) {
             m_state.cursor_pattern=CURSOR_PATTERNS[m_state.video_ula.control.bits.cursor];
         }
 
-#if VIDEO_TRACK_METADATA
         m_last_video_access_address=addr;
-#endif
+
+        video_unit->metadata.flags|=VideoDataUnitMetadataFlag_HasAddress;
+        video_unit->metadata.address=m_last_video_access_address;
 
         m_state.crtc_last_output=output;
     }
@@ -1606,10 +1607,6 @@ bool BBCMicro::Update(VideoDataUnit *video_unit,SoundDataUnit *sound_unit) {
 
         if(m_state.video_ula.control.bits.teletext) {
             m_state.saa5050.EmitPixels(&video_unit->pixels);
-#if VIDEO_TRACK_METADATA
-            video_unit->metadata.flags|=VideoDataUnitMetadataFlag_HasAddress;
-            video_unit->metadata.address=m_last_video_access_address;
-#endif
 
             if(m_state.cursor_pattern&1) {
                 video_unit->pixels.pixels[0].all^=0x0fff;
@@ -1618,11 +1615,6 @@ bool BBCMicro::Update(VideoDataUnit *video_unit,SoundDataUnit *sound_unit) {
         } else {
             if(m_state.crtc_last_output.raster<8) {
                 m_state.video_ula.EmitPixels(&video_unit->pixels);
-#if VIDEO_TRACK_METADATA
-                video_unit->metadata.flags|=VideoDataUnitMetadataFlag_HasAddress;
-                video_unit->metadata.address=m_last_video_access_address;
-#endif
-                //(m_state.video_ula.*VideoULA::EMIT_MFNS[m_state.video_ula.control.bits.line_width])(hu);
 
                 if(m_state.cursor_pattern&1) {
                     video_unit->pixels.values[0]^=0x0fff0fff0fff0fffull;
