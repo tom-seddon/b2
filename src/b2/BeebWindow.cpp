@@ -229,7 +229,7 @@ void BeebWindow::OptionsUI::DoImGui(CommandContextStack *cc_stack) {
             }
         }
 
-        ImGui::Checkbox("Show TV beam position",&m_beeb_window->m_show_beam_position);
+        ImGui::Checkbox("Show TV beam position",&m_beeb_window->m_tv.show_beam_position);
         if(ImGui::Checkbox("Test pattern",&m_beeb_window->m_test_pattern)) {
             if(m_beeb_window->m_test_pattern) {
                 m_beeb_window->m_tv.FillWithTestPattern();
@@ -1471,48 +1471,11 @@ void BeebWindow::UpdateTVTexture(VBlankRecord *vblank_record) {
     vblank_record->num_video_units=num_units_consumed;
 
     if(m_tv_texture) {
-        if(const void *src_pixels=m_tv.GetTexturePixels(nullptr)) {
-            void *dest_pixels;
-            int dest_pitch;
-            if(SDL_LockTexture(m_tv_texture,nullptr,&dest_pixels,&dest_pitch)==0) {
-                ASSERT(dest_pitch>0);
-                size_t src_pitch=(int)TV_TEXTURE_WIDTH*4;
-
-                if(src_pitch==(size_t)dest_pitch) {
-                    memcpy(dest_pixels,src_pixels,TV_TEXTURE_HEIGHT*TV_TEXTURE_WIDTH*4);
-                } else {
-                    auto dest=(char *)dest_pixels;
-                    auto src=(const char *)src_pixels;
-
-                    for(size_t y=0;y<TV_TEXTURE_HEIGHT;++y) {
-                        memcpy(dest,src,src_pitch);
-                        dest+=dest_pitch;
-                        src+=src_pitch;
-                    }
-                }
-
-#if BBCMICRO_DEBUGGER
-                if(m_show_beam_position) {
-                    size_t x,y;
-                    if(m_tv.GetBeamPosition(&x,&y)) {
-                        // Sneak it in on top. Don't read from the
-                        // locked data.
-
-                        //if(m_pixel_format->format==SDL_PIXELFORMAT_ARGB8888) {
-                        //} else {
-                        auto dest=(uint32_t *)((char *)dest_pixels+y*(size_t)dest_pitch);
-                        auto src=(const uint32_t *)((const char *)src_pixels+y*src_pitch);
-                        uint32_t mask=m_pixel_format->Rmask|m_pixel_format->Gmask|m_pixel_format->Bmask;
-
-                        for(size_t i=x;i<TV_TEXTURE_WIDTH;++i) {
-                            dest[i]=src[i]^mask;
-                        }
-                    }
-                }
-#endif
-
-                SDL_UnlockTexture(m_tv_texture);
-            }
+        void *dest_pixels;
+        int dest_pitch;
+        if(SDL_LockTexture(m_tv_texture,nullptr,&dest_pixels,&dest_pitch)==0) {
+            m_tv.CopyTexturePixels(dest_pixels,(size_t)dest_pitch);
+            SDL_UnlockTexture(m_tv_texture);
         }
     }
 }

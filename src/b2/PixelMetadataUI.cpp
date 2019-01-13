@@ -42,6 +42,8 @@ void PixelMetadataUI::DoImGui(CommandContextStack *cc_stack) {
     if(const VideoDataUnit *unit=m_beeb_window->GetVideoDataUnitForMousePixel()) {
         if(unit->metadata.flags&VideoDataUnitMetadataFlag_HasAddress) {
             ImGui::Text("Address: $%04X",unit->metadata.address);
+        } else {
+            ImGui::TextUnformatted("Address:");
         }
 
         if(unit->metadata.flags&VideoDataUnitMetadataFlag_HasValue) {
@@ -58,6 +60,8 @@ void PixelMetadataUI::DoImGui(CommandContextStack *cc_stack) {
             str[3]=0;
 
             ImGui::Text("Value: %s %-3u ($%02x) (%%%s)",str,x,x,BINARY_BYTE_STRINGS[x]);
+        } else {
+            ImGui::TextUnformatted("Value:");
         }
 
         ImGui::Text("%s cycle",unit->metadata.flags&VideoDataUnitMetadataFlag_OddCycle?"Odd":"Even");

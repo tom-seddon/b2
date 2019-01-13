@@ -38,6 +38,7 @@ public:
     bool show_usec_markers=false;
     bool show_half_usec_markers=false;
     bool show_6845_debug_markers=false;
+    bool show_beam_position=false;
 
     TVOutput();
     ~TVOutput();
@@ -54,6 +55,8 @@ public:
     // *data_version (optional) is set to texture data version, incremented on
     // each vblank. (Between vblanks, the buffer contains a partially scanned-out frame.)
     const void *GetTexturePixels(uint64_t *texture_data_version) const;
+
+    void CopyTexturePixels(void *dest_pixels,size_t dest_pitch) const;
 
 #if VIDEO_TRACK_METADATA
     const VideoDataUnit *GetTextureUnits() const;
