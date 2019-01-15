@@ -846,7 +846,10 @@ void BeebWindow::DoSettingsUI() {
             }
         } else {
             if(m_popups[ui->type]) {
-                this->MaybeSaveConfig(m_popups[ui->type]->OnClose());
+                if(m_popups[ui->type]->OnClose()) {
+                    this->SaveConfig();
+                }
+                
                 m_popups[ui->type]=nullptr;
             }
         }
@@ -1226,6 +1229,8 @@ void BeebWindow::DoFileMenu() {
 
         m_occ.DoMenuItemUI("load_last_state");
         m_occ.DoMenuItemUI("save_state");
+        ImGui::Separator();
+        m_occ.DoMenuItemUI("save_config");
         ImGui::Separator();
         m_occ.DoMenuItemUI("exit");
         ImGui::EndMenu();
@@ -2199,19 +2204,6 @@ BeebWindowInitArguments BeebWindow::GetNewWindowInitArguments() const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void BeebWindow::MaybeSaveConfig(bool save_config) {
-    if(save_config) {
-        this->SaveSettings();
-
-        SaveGlobalConfig(&m_msg);
-
-        m_msg.i.f("Configuration saved.\n");
-    }
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 void BeebWindow::HardReset() {
     m_beeb_thread->Send(std::make_shared<BeebThread::HardResetAndReloadConfigMessage>(BeebThreadHardResetFlag_Run));
 }
@@ -2654,7 +2646,7 @@ void BeebWindow::SaveDefaultNVRAM() {
         SetDefaultNVRAMContents(type,std::move(nvram));
     }
 
-    this->MaybeSaveConfig(true);
+    this->SaveConfig();
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -2662,6 +2654,17 @@ void BeebWindow::SaveDefaultNVRAM() {
 
 bool BeebWindow::SaveDefaultNVRAMIsEnabled() const {
     return m_beeb_thread->HasNVRAM();
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BeebWindow::SaveConfig() {
+    this->SaveSettings();
+
+    SaveGlobalConfig(&m_msg);
+
+    m_msg.i.f("Configuration saved.\n");
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -2725,4 +2728,5 @@ ObjectCommandTable<BeebWindow> BeebWindow::ms_command_table("Beeb Window",{
     #endif
         {CommandDef("save_default_nvram","Save default NVRAM"),&BeebWindow::SaveDefaultNVRAM,nullptr,&BeebWindow::SaveDefaultNVRAMIsEnabled},
         {CommandDef("reset_default_nvram","Reset default NVRAM").MustConfirm(),&BeebWindow::ResetDefaultNVRAM,nullptr,&BeebWindow::SaveDefaultNVRAMIsEnabled},
+    {CommandDef("save_config","Save config"),&BeebWindow::SaveConfig},
 });
