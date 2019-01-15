@@ -242,7 +242,9 @@ void BeebWindow::OptionsUI::DoImGui(CommandContextStack *cc_stack) {
         ImGui::SameLine();
         ImGui::Checkbox("0.5 usec",&m_beeb_window->m_tv.show_half_usec_markers);
 
-        ImGui::Checkbox("6845 debug markers",&m_beeb_window->m_tv.show_6845_debug_markers);
+        ImGui::Checkbox("6845 rows",&m_beeb_window->m_tv.show_6845_row_markers);
+        ImGui::SameLine();
+        ImGui::Checkbox("6845 DISPEN",&m_beeb_window->m_tv.show_6845_dispen_markers);
     }
 #endif
 }

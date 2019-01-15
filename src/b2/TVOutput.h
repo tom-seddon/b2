@@ -37,7 +37,8 @@ class TVOutput {
 public:
     bool show_usec_markers=false;
     bool show_half_usec_markers=false;
-    bool show_6845_debug_markers=false;
+    bool show_6845_row_markers=false;
+    bool show_6845_dispen_markers=false;
     bool show_beam_position=false;
 
     TVOutput();

@@ -408,7 +408,10 @@ void TVOutput::Update(const VideoDataUnit *units,size_t num_units) {
                 }
 
 #if VIDEO_TRACK_METADATA
-                if(this->show_6845_debug_markers) {
+                // TODO - do this stuff as a postprocess in
+                // CopyTexturePixels?
+                
+                if(this->show_6845_row_markers) {
                     if(unit->metadata.flags&VideoDataUnitMetadataFlag_6845Raster0) {
                         if(m_x<TV_TEXTURE_WIDTH&&m_y<TV_TEXTURE_HEIGHT) {
                             pixels0[0]^=m_6845_raster0_marker_xor;
@@ -421,7 +424,9 @@ void TVOutput::Update(const VideoDataUnit *units,size_t num_units) {
                             pixels0[7]^=m_6845_raster0_marker_xor;
                         }
                     }
+                }
 
+                if(this->show_6845_dispen_markers) {
                     if(unit->metadata.flags&VideoDataUnitMetadataFlag_6845DISPEN) {
                         if(m_x<TV_TEXTURE_WIDTH&&m_y<TV_TEXTURE_HEIGHT) {
                             pixels0[0]^=m_6845_dispen_marker_xor;
@@ -599,8 +604,7 @@ void TVOutput::CopyTexturePixels(void *dest_pixels,size_t dest_pitch_bytes) cons
         }
     }
 
-    {
-
+    if(this->show_usec_markers||this->show_half_usec_markers) {
         for(size_t x=0;x<TV_TEXTURE_WIDTH;x+=8) {
             char *dest=(char*)((uint32_t *)dest_pixels+x);
             const char *src=(const char *)(m_texture_pixels.data()+x);
@@ -625,7 +629,8 @@ void TVOutput::CopyTexturePixels(void *dest_pixels,size_t dest_pitch_bytes) cons
 
     if(this->show_usec_markers||
        this->show_half_usec_markers||
-       this->show_6845_debug_markers)
+       this->show_6845_dispen_markers||
+       this->show_6845_row_markers)
     {
         uint32_t bg=m_alpha;
         uint32_t fg=0xffu<<m_rshift|0xffu<<m_gshift|0xffu<<m_bshift;
