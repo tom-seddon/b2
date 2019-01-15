@@ -212,7 +212,9 @@ void BeebWindow::OptionsUI::DoImGui(CommandContextStack *cc_stack) {
         beeb_thread->SetDiscVolume(settings->disc_volume);
     }
 
-    ImGui::Checkbox("Power-on tone",&settings->power_on_tone);
+    if(ImGui::Checkbox("Power-on tone",&settings->power_on_tone)) {
+        beeb_thread->SetPowerOnTone(settings->power_on_tone);
+    }
 
     ImGui::NewLine();
 
@@ -279,6 +281,7 @@ BeebWindow::BeebWindow(BeebWindowInitArguments init_arguments):
 
     m_beeb_thread->SetBBCVolume(m_settings.bbc_volume);
     m_beeb_thread->SetDiscVolume(m_settings.disc_volume);
+    m_beeb_thread->SetPowerOnTone(m_settings.power_on_tone);
 
     m_blend_amt=1.f;
 }
@@ -1084,8 +1087,7 @@ void BeebWindow::DoFileMenu() {
                     BeebLoadedConfig tmp;
 
                     if(BeebLoadedConfig::Load(&tmp,*config,&m_msg)) {
-                        auto message=std::make_shared<BeebThread::HardResetAndChangeConfigMessage>(this->GetHardResetFlags(),
-                                                                                                   std::move(tmp));
+                        auto message=std::make_shared<BeebThread::HardResetAndChangeConfigMessage>(0,std::move(tmp));
 
                         m_beeb_thread->Send(std::move(message));
                     }
@@ -1894,8 +1896,7 @@ bool BeebWindow::InitInternal() {
         ASSERT(!m_init_arguments.boot);
         m_init_arguments.boot=false;
     } else {
-        m_beeb_thread->Send(std::make_shared<BeebThread::HardResetAndChangeConfigMessage>(this->GetHardResetFlags(),
-                                                                                          m_init_arguments.default_config));
+        m_beeb_thread->Send(std::make_shared<BeebThread::HardResetAndChangeConfigMessage>(0,m_init_arguments.default_config));
 
         // If there were any discs mounted, or there's any booting needed,
         // another reboot will be necessary. This can't all be done with one
@@ -1922,8 +1923,7 @@ bool BeebWindow::InitInternal() {
         }
 
         if(flags!=0) {
-            m_beeb_thread->Send(std::make_shared<BeebThread::HardResetAndChangeConfigMessage>(this->GetHardResetFlags(flags),
-                                                                                              m_init_arguments.default_config));
+            m_beeb_thread->Send(std::make_shared<BeebThread::HardResetAndChangeConfigMessage>(flags,m_init_arguments.default_config));
         }
     }
 
@@ -2211,7 +2211,7 @@ void BeebWindow::MaybeSaveConfig(bool save_config) {
 //////////////////////////////////////////////////////////////////////////
 
 void BeebWindow::HardReset() {
-    m_beeb_thread->Send(std::make_shared<BeebThread::HardResetAndReloadConfigMessage>(this->GetHardResetFlags(BeebThreadHardResetFlag_Run)));
+    m_beeb_thread->Send(std::make_shared<BeebThread::HardResetAndReloadConfigMessage>(BeebThreadHardResetFlag_Run));
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -2660,17 +2660,6 @@ void BeebWindow::SaveDefaultNVRAM() {
 
 bool BeebWindow::SaveDefaultNVRAMIsEnabled() const {
     return m_beeb_thread->HasNVRAM();
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-uint32_t BeebWindow::GetHardResetFlags(uint32_t flags) const {
-    if(!m_settings.power_on_tone) {
-        flags|=BeebThreadHardResetFlag_NoPowerOnTone;
-    }
-
-    return flags;
 }
 
 //////////////////////////////////////////////////////////////////////////

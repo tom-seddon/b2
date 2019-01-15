@@ -452,7 +452,7 @@ void BeebThread::HardResetMessage::HardReset(BeebThread *beeb_thread,
                                          &now,
                                          ts->current_config.config.video_nula,
                                          ts->current_config.config.ext_mem,
-                                         m_flags&BeebThreadHardResetFlag_NoPowerOnTone?false:true,
+                                         beeb_thread->m_power_on_tone.load(std::memory_order_acquire),
                                          ts->beeblink_handler.get(),
                                          num_2MHz_cycles);
 
@@ -2002,6 +2002,13 @@ void BeebThread::SetBBCVolume(float db) {
 
 void BeebThread::SetDiscVolume(float db) {
     this->SetVolume(&m_audio_thread_data->disc_sound_scale,db);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BeebThread::SetPowerOnTone(bool power_on_tone) {
+    m_power_on_tone.store(power_on_tone,std::memory_order_release);
 }
 
 //////////////////////////////////////////////////////////////////////////

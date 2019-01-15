@@ -436,8 +436,6 @@ private:
     void SaveDefaultNVRAM();
     bool SaveDefaultNVRAMIsEnabled() const;
 
-    uint32_t GetHardResetFlags(uint32_t flags=0) const;
-
     static std::unique_ptr<SettingsUI> CreateOptionsUI(BeebWindow *beeb_window);
     static std::unique_ptr<SettingsUI> CreateTimelineUI(BeebWindow *beeb_window);
     static std::unique_ptr<SettingsUI> CreateSavedStatesUI(BeebWindow *beeb_window);

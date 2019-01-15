@@ -900,6 +900,8 @@ public:
     void SetBBCVolume(float db);
     void SetDiscVolume(float db);
 
+    void SetPowerOnTone(bool power_on_tone);
+
     // Get info about the previous N audio callbacks.
     std::vector<AudioCallbackRecord> GetAudioCallbackRecords() const;
 
@@ -960,6 +962,7 @@ private:
     std::atomic<bool> m_has_nvram{false};
     std::atomic<BBCMicroType> m_beeb_type{BBCMicroType_B};
     std::atomic<uint32_t> m_clone_impediments{0};
+    std::atomic<bool> m_power_on_tone{true};
 
     // Controlled by m_mutex.
     TimelineState m_timeline_state;
