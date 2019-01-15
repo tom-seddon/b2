@@ -2365,6 +2365,7 @@ void BeebThread::ThreadStopTrace(ThreadState *ts) {
 
     std::shared_ptr<Trace> last_trace=ts->beeb->StopTrace();
 
+    ts->trace_state=BeebThreadTraceState_None;
     ts->trace_conditions=TraceConditions();
 
     m_last_trace=last_trace;
