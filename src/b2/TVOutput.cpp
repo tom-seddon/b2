@@ -78,7 +78,9 @@ static const int SCANLINE_CYCLES=HORIZONTAL_RETRACE_CYCLES+BACK_PORCH_CYCLES+SCA
 static_assert(SCANLINE_CYCLES==128,"one scanline must be 64us");
 static const int VERTICAL_RETRACE_SCANLINES=12;
 
+// HEIGHT_SCALE will go away, when I get a moment to do it.
 static const int HEIGHT_SCALE=2;
+static_assert(HEIGHT_SCALE==2,"");
 
 // If this many lines are scanned without a vertical retrace, the TV
 // retraces anyway.
@@ -407,42 +409,6 @@ void TVOutput::Update(const VideoDataUnit *units,size_t num_units) {
                         break;
                 }
 
-#if VIDEO_TRACK_METADATA
-                // TODO - do this stuff as a postprocess in
-                // CopyTexturePixels?
-                
-                if(this->show_6845_row_markers) {
-                    if(unit->metadata.flags&VideoDataUnitMetadataFlag_6845Raster0) {
-                        if(m_x<TV_TEXTURE_WIDTH&&m_y<TV_TEXTURE_HEIGHT) {
-                            pixels0[0]^=m_6845_raster0_marker_xor;
-                            pixels0[1]^=m_6845_raster0_marker_xor;
-                            pixels0[2]^=m_6845_raster0_marker_xor;
-                            pixels0[3]^=m_6845_raster0_marker_xor;
-                            pixels0[4]^=m_6845_raster0_marker_xor;
-                            pixels0[5]^=m_6845_raster0_marker_xor;
-                            pixels0[6]^=m_6845_raster0_marker_xor;
-                            pixels0[7]^=m_6845_raster0_marker_xor;
-                        }
-                    }
-                }
-
-                if(this->show_6845_dispen_markers) {
-                    if(unit->metadata.flags&VideoDataUnitMetadataFlag_6845DISPEN) {
-                        if(m_x<TV_TEXTURE_WIDTH&&m_y<TV_TEXTURE_HEIGHT) {
-                            pixels0[0]^=m_6845_dispen_marker_xor;
-                            pixels0[2]^=m_6845_dispen_marker_xor;
-                            pixels0[4]^=m_6845_dispen_marker_xor;
-                            pixels0[6]^=m_6845_dispen_marker_xor;
-
-                            pixels1[1]^=m_6845_dispen_marker_xor;
-                            pixels1[3]^=m_6845_dispen_marker_xor;
-                            pixels1[5]^=m_6845_dispen_marker_xor;
-                            pixels1[7]^=m_6845_dispen_marker_xor;
-                        }
-                    }
-                }
-#endif
-
                 m_x+=8;
 
                 if(m_state_timer++>=SCAN_OUT_CYCLES) {
@@ -627,6 +593,23 @@ void TVOutput::CopyTexturePixels(void *dest_pixels,size_t dest_pitch_bytes) cons
         }
     }
 
+#if VIDEO_TRACK_METADATA
+    // It's best to do this stuff as a postprocess, so it can be toggled
+    // while the emulation is paused.
+    this->AddMetadataMarkers(dest_pixels,
+                             dest_pitch_bytes,
+                             this->show_6845_row_markers,
+                             VideoDataUnitMetadataFlag_6845Raster0,
+                             m_6845_raster0_marker_xor);
+
+    this->AddMetadataMarkers(dest_pixels,
+                             dest_pitch_bytes,
+                             this->show_6845_dispen_markers,
+                             VideoDataUnitMetadataFlag_6845DISPEN,
+                             m_6845_dispen_marker_xor);
+#endif
+
+
     if(this->show_usec_markers||
        this->show_half_usec_markers||
        this->show_6845_dispen_markers||
@@ -640,7 +623,6 @@ void TVOutput::CopyTexturePixels(void *dest_pixels,size_t dest_pitch_bytes) cons
             size_t tens=column/10%10;
             size_t units=column%10;
             char *dest_bytes=(char *)((uint32_t *)dest_pixels+x+3);
-
 
             for(size_t y=0;y<13;++y) {
                 auto dest=(uint32_t *)dest_bytes;
@@ -682,8 +664,6 @@ void TVOutput::CopyTexturePixels(void *dest_pixels,size_t dest_pitch_bytes) cons
     }
 #endif
 }
-
-
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -782,9 +762,34 @@ void TVOutput::InitPalette() {
     m_usec_marker_xor=0x80u<<m_gshift|0x80u<<m_bshift;
     m_half_usec_marker_xor=0x80u<<m_rshift;
     m_6845_raster0_marker_xor=0x80u<<m_rshift|0x80u<<m_gshift;
-    m_6845_dispen_marker_xor=0x80u<<m_rshift|0x80u<<m_gshift|0x80u<<m_bshift;
+    m_6845_dispen_marker_xor=0x80u<<m_rshift|0x80u<<m_bshift;
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+void TVOutput::AddMetadataMarkers(void *dest_pixels,
+                                  size_t dest_pitch_bytes,
+                                  bool add,
+                                  uint8_t metadata_flag,
+                                  uint32_t xor_value) const
+{
+    if(!add) {
+        return;
+    }
+
+    for(size_t y=0;y<TV_TEXTURE_HEIGHT;y+=2) {
+        auto dest=(uint32_t *)((char *)dest_pixels+y*dest_pitch_bytes);
+        const uint32_t *src=m_texture_pixels.data()+y*TV_TEXTURE_WIDTH;
+        const VideoDataUnit *unit=m_texture_units.data()+y*TV_TEXTURE_WIDTH;
+
+        for(size_t x=0;x<TV_TEXTURE_WIDTH;++x) {
+            if(unit++->metadata.flags&metadata_flag) {
+                dest[x]=src[x]^xor_value;
+            }
+        }
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
