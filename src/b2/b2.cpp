@@ -580,6 +580,8 @@ static bool InitSystem(
         return false;
     }
 
+    SDL_EnableScreenSaver();
+
     // Allocate user events
     g_first_event_type=SDL_RegisterEvents(SDLEventType_Count);
 
