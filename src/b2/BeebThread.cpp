@@ -2083,7 +2083,7 @@ bool BeebThread::ThreadStartTraceOnCondition(const BBCMicro *beeb,
 
                 case BeebThreadStartTraceCondition_Instruction:
                     // ugh.
-                    if(cpu->pc.w==(uint16_t)(ts->trace_conditions.start_address+1)) {
+                    if(cpu->abus.w==ts->trace_conditions.start_address) {
                         ts->beeb_thread->ThreadBeebStartTrace(ts);
                         return false;
                     }
