@@ -41,7 +41,11 @@ void PixelMetadataUI::DoImGui(CommandContextStack *cc_stack) {
 
     if(const VideoDataUnit *unit=m_beeb_window->GetVideoDataUnitForMousePixel()) {
         if(unit->metadata.flags&VideoDataUnitMetadataFlag_HasAddress) {
-            ImGui::Text("Address: $%04X",unit->metadata.address);
+            if(unit->metadata.address&0x8000) {
+                ImGui::Text("Address: $%04X (shadow)",unit->metadata.address&0x7fff);
+            } else {
+                ImGui::Text("Address: $%04X",unit->metadata.address);
+            }
         } else {
             ImGui::TextUnformatted("Address:");
         }
