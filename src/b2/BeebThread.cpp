@@ -1069,7 +1069,7 @@ bool BeebThread::CloneWindowMessage::ThreadPrepare(std::shared_ptr<Message> *ptr
 
     BeebWindowInitArguments init_arguments=m_init_arguments;
 
-    init_arguments.initially_paused=false;
+    //init_arguments.initially_paused=false;
     init_arguments.initial_state=beeb_thread->ThreadSaveState(ts);
 
     PushNewWindowMessage(init_arguments);
@@ -1206,26 +1206,26 @@ bool BeebThread::StopCopyMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-BeebThread::PauseMessage::PauseMessage(bool pause):
-    m_pause(pause)
-{
-}
+//BeebThread::PauseMessage::PauseMessage(bool pause):
+//    m_pause(pause)
+//{
+//}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool BeebThread::PauseMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
-                                             CompletionFun *completion_fun,
-                                             BeebThread *beeb_thread,
-                                             ThreadState *ts)
-{
-    (void)ptr,(void)completion_fun,(void)ts;
-
-    beeb_thread->m_paused=m_pause;
-
-    ptr->reset();
-    return true;
-}
+//bool BeebThread::PauseMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
+//                                             CompletionFun *completion_fun,
+//                                             BeebThread *beeb_thread,
+//                                             ThreadState *ts)
+//{
+//    (void)ptr,(void)completion_fun,(void)ts;
+//
+//    beeb_thread->m_paused=m_pause;
+//
+//    ptr->reset();
+//    return true;
+//}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -1714,11 +1714,11 @@ float BeebThread::GetSpeedScale() const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool BeebThread::IsPaused() const {
-    std::lock_guard<Mutex> lock(m_mutex);
-
-    return m_paused;
-}
+//bool BeebThread::IsPaused() const {
+//    std::lock_guard<Mutex> lock(m_mutex);
+//
+//    return m_paused;
+//}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -2299,7 +2299,7 @@ void BeebThread::ThreadReplaceBeeb(ThreadState *ts,std::unique_ptr<BBCMicro> bee
     ts->beeb->GetAndResetDiscAccessFlag();
     this->ThreadSetBootState(ts,!!(flags&BeebThreadReplaceFlag_Autoboot));
 
-    m_paused=false;
+    //m_paused=false;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -2513,7 +2513,6 @@ void BeebThread::ThreadStopCopy(ThreadState *ts) {
 
 void BeebThread::ThreadMain(void) {
     ThreadState ts;
-    bool paused;
 
     {
         std::lock_guard<Mutex> lock(m_mutex);
@@ -2541,8 +2540,6 @@ void BeebThread::ThreadMain(void) {
         ts.current_config=std::move(m_default_loaded_config);
 
         m_thread_state=&ts;
-
-        paused=m_paused;
     }
 
     std::vector<SentMessage> messages;
@@ -2553,8 +2550,16 @@ void BeebThread::ThreadMain(void) {
     for(;;) {
         handle_messages_reason=-1;
     handle_messages:
+        bool paused=false;
+        if(!ts.beeb) {
+            paused=true;
+        } else if(ts.beeb->DebugIsHalted()) {
+            paused=true;
+        }
+
         const char *what;
         (void)what;
+
         if(paused||
             (m_is_speed_limited.load(std::memory_order_acquire)&&
              ts.next_stop_2MHz_cycles<=*ts.num_executed_2MHz_cycles))
@@ -2719,13 +2724,6 @@ void BeebThread::ThreadMain(void) {
                 this->ThreadSetBootState(&ts,false);
             }
         }
-
-        paused=m_paused;
-#if BBCMICRO_DEBUGGER
-        if(ts.beeb->DebugIsHalted()) {
-            paused=true;
-        }
-#endif
 
         if(!paused&&stop_2MHz_cycles>*ts.num_executed_2MHz_cycles) {
             rmt_ScopedCPUSample(BeebUpdate,0);

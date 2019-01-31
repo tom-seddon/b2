@@ -159,12 +159,12 @@ void BeebWindow::OptionsUI::DoImGui(CommandContextStack *cc_stack) {
     const std::shared_ptr<BeebThread> &beeb_thread=m_beeb_window->m_beeb_thread;
     BeebWindowSettings *settings=&m_beeb_window->m_settings;
 
-    {
-        bool paused=m_beeb_window->m_beeb_thread->IsPaused();
-        if(ImGui::Checkbox("Paused",&paused)) {
-            beeb_thread->Send(std::make_shared<BeebThread::PauseMessage>(paused));
-        }
-    }
+//    {
+//        bool paused=m_beeb_window->m_beeb_thread->IsPaused();
+//        if(ImGui::Checkbox("Paused",&paused)) {
+//            beeb_thread->Send(std::make_shared<BeebThread::PauseMessage>(paused));
+//        }
+//    }
 
     {
         float speed_scale=beeb_thread->GetSpeedScale();
@@ -1934,9 +1934,9 @@ bool BeebWindow::InitInternal() {
         }
     }
 
-    if(!m_init_arguments.initially_paused) {
-        m_beeb_thread->Send(std::make_shared<BeebThread::PauseMessage>(false));
-    }
+//    if(!m_init_arguments.initially_paused) {
+//        m_beeb_thread->Send(std::make_shared<BeebThread::PauseMessage>(false));
+//    }
 
     if(reset_windows) {
         m_imgui_stuff->ResetDockContext();

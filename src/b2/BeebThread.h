@@ -601,20 +601,20 @@ public:
     private:
     };
 
-    class PauseMessage:
-        public Message
-    {
-    public:
-        explicit PauseMessage(bool pause);
-
-        bool ThreadPrepare(std::shared_ptr<Message> *ptr,
-                           CompletionFun *completion_fun,
-                           BeebThread *beeb_thread,
-                           ThreadState *ts) override;
-    protected:
-    private:
-        const bool m_pause=false;
-    };
+//    class PauseMessage:
+//        public Message
+//    {
+//    public:
+//        explicit PauseMessage(bool pause);
+//
+//        bool ThreadPrepare(std::shared_ptr<Message> *ptr,
+//                           CompletionFun *completion_fun,
+//                           BeebThread *beeb_thread,
+//                           ThreadState *ts) override;
+//    protected:
+//    private:
+//        const bool m_pause=false;
+//    };
 
 #if BBCMICRO_DEBUGGER
     class DebugSetByteMessage:
@@ -838,8 +838,8 @@ public:
     // Get the speed scale.
     float GetSpeedScale() const;
 
-    // Get pause state as set by SetPaused.
-    bool IsPaused() const;
+//    // Get pause state as set by SetPaused.
+//    bool IsPaused() const;
 
     // Get the disc image pointer for the given drive, using the given
     // lock object to take a lock on the disc access mutex.
@@ -971,7 +971,7 @@ private:
 
     mutable Mutex m_mutex;
 
-    bool m_paused=true;
+    //bool m_paused=true;
 
     // Main thread must take mutex to access.
     ThreadState *m_thread_state=nullptr;

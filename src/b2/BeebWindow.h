@@ -115,13 +115,13 @@ public:
 
 #endif
 
-    // If set, the emulator is initially paused.
-    //
-    // (This isn't actually terribly useful, because there's no way to
-    // then unpause it from the public API - but the flag has to go
-    // somewhere, and it has to funnel through CreateBeebWindow, so...
-    // here it is.)
-    bool initially_paused=false;
+//    // If set, the emulator is initially paused.
+//    //
+//    // (This isn't actually terribly useful, because there's no way to
+//    // then unpause it from the public API - but the flag has to go
+//    // somewhere, and it has to funnel through CreateBeebWindow, so...
+//    // here it is.)
+//    bool initially_paused=false;
 
     // When INITIAL_STATE is non-null, it is used as the initial state
     // for the window; otherwise, DEFAULT_CONFIG will be used as the
