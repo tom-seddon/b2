@@ -149,6 +149,21 @@ silenced. This is not very authentic! - but it might make things a bit
 less annoying when you find yourself hearing it a lot. (You will still
 get the beep.)
 
+## Customize keyboard keys
+
+`Tools` > `Command Keys...` lets you select shortcut keys for many of
+the menu options and window buttons.
+
+By default, BBC keys take priority. If a key is both a shortcut key
+and a BBC key, its shortcut will be ignored. Tick `Edit` > `Prioritize
+command keys` to change this, so the emulator will process shortcut
+keys before processing BBC keys.
+
+(The results aren't always perfect. For example, suppose you assign
+Shift+F5 to a command, and then use that combination: when you press
+Shift, the emulated BBC will see the Shift press, even though the F5
+will then be ignored when the emulator recognises the combination.)
+
 ## Customize keyboard layout
 
 Click `Tools` > `Keyboard layout...` to bring up the keyboard layout
@@ -170,8 +185,10 @@ create a new character map, copy one of the character maps.)
 (The BBC keyboard map always shows the Master 128 keypad, but this
 only has an effect in Master 128 mode.)
 
-At the top of the list you can also configure the (limited number of)
-keyboard shortcuts available for emulator functions.
+Each keymap also has a `Prioritize command keys` checkbox, which is
+the setting for the `Edit` > `Prioritize command keys` option (see
+above) when the keymaps is first selected. (You can use the menu item
+to change it afterwards.)
 
 ## Customize configurations
 

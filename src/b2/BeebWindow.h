@@ -293,6 +293,7 @@ private:
     SDL_AudioDeviceID m_sound_device=0;
 
     const BeebKeymap *m_keymap=nullptr;
+    bool m_prefer_shortcuts=false;
 
     // number of emulated us that had passed at the time of the last
     // title update.
@@ -437,6 +438,11 @@ private:
     bool SaveDefaultNVRAMIsEnabled() const;
 
     void SaveConfig();
+
+    void TogglePrioritizeCommandShortcuts();
+    bool IsPrioritizeCommandShortcutsTicked() const;
+
+    void ShowPrioritizeCommandShortcutsStatus();
 
     static std::unique_ptr<SettingsUI> CreateOptionsUI(BeebWindow *beeb_window);
     static std::unique_ptr<SettingsUI> CreateTimelineUI(BeebWindow *beeb_window);

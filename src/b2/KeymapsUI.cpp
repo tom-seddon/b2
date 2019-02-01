@@ -870,7 +870,7 @@ bool KeymapsUI::DoEditKeymapGui(const BeebKeymap *keymap,BeebKeymap *editable_ke
 
         {
             bool prefer=keymap->GetPreferShortcuts();
-            if(ImGui::Checkbox("Prioritize command shortcuts",&prefer)) {
+            if(ImGui::Checkbox("Prioritize command keys",&prefer)) {
                 if(editable_keymap) {
                     editable_keymap->SetPreferShortcuts(prefer);
                     m_edited=true;

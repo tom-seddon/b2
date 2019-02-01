@@ -386,8 +386,6 @@ void BeebWindow::HandleSDLKeyEvent(const SDL_KeyboardEvent &event) {
         return;
     }
 
-    bool prefer_shortcuts=m_keymap->GetPreferShortcuts();
-
     bool got_ccs=false;
     if(m_cc_stack.GetNumCCs()>1) {
         got_ccs=true;
@@ -398,7 +396,7 @@ void BeebWindow::HandleSDLKeyEvent(const SDL_KeyboardEvent &event) {
         keycode=(uint32_t)event.keysym.sym|GetPCKeyModifiersFromSDLKeymod(event.keysym.mod);
     }
 
-    if((prefer_shortcuts||got_ccs)&&keycode!=0) {
+    if((m_prefer_shortcuts||got_ccs)&&keycode!=0) {
         if(m_cc_stack.ExecuteCommandsForPCKey(keycode)) {
             // The emulator may later get key up messages for this
             // key, but that is (ought to be...) OK.
@@ -417,7 +415,7 @@ void BeebWindow::HandleSDLKeyEvent(const SDL_KeyboardEvent &event) {
         return;
     }
 
-    if(!prefer_shortcuts&&keycode!=0) {
+    if(!m_prefer_shortcuts&&keycode!=0) {
         if(m_cc_stack.ExecuteCommandsForPCKey(keycode)) {
             return;
         }
@@ -1118,6 +1116,9 @@ void BeebWindow::DoFileMenu() {
 
                 if(ImGui::MenuItem(keymap->GetName().c_str(),keymap->IsKeySymMap()?KEYMAP_KEYSYMS_KEYMAP_ICON:KEYMAP_SCANCODES_KEYMAP_ICON,m_keymap==keymap)) {
                     m_keymap=keymap;
+                    m_prefer_shortcuts=m_keymap->GetPreferShortcuts();
+                    m_msg.i.f("Keymap: %s\n",m_keymap->GetName().c_str());
+                    this->ShowPrioritizeCommandShortcutsStatus();
                 }
 
                 return true;
@@ -1248,6 +1249,10 @@ void BeebWindow::DoEditMenu() {
         //m_occ.DoMenuItemUI("toggle_copy_oswrch_binary");
         m_occ.DoMenuItemUI("paste");
         m_occ.DoMenuItemUI("paste_return");
+
+        ImGui::Separator();
+
+        m_occ.DoMenuItemUI("toggle_prioritize_shortcuts");
 
         ImGui::EndMenu();
     }
@@ -2670,63 +2675,91 @@ void BeebWindow::SaveConfig() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+void BeebWindow::TogglePrioritizeCommandShortcuts() {
+    m_prefer_shortcuts=!m_prefer_shortcuts;
+
+    this->ShowPrioritizeCommandShortcutsStatus();
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BeebWindow::ShowPrioritizeCommandShortcutsStatus() {
+    if(m_prefer_shortcuts) {
+        m_msg.i.f("Prioritize command keys\n");
+    } else {
+        m_msg.i.f("Prioritize BBC keys\n");
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool BeebWindow::IsPrioritizeCommandShortcutsTicked() const {
+    return m_prefer_shortcuts;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 ObjectCommandTable<BeebWindow> BeebWindow::ms_command_table("Beeb Window",{
     {{"hard_reset","Hard Reset"},&BeebWindow::HardReset},
     //    {{"load_last_state","Load Last State"},&BeebWindow::LoadLastState,nullptr,&BeebWindow::IsLoadLastStateEnabled},
-        {{"save_state","Save State"},&BeebWindow::SaveState,nullptr,&BeebWindow::SaveStateIsEnabled},
-        GetTogglePopupCommand<BeebWindowPopupType_Options>(),
-        GetTogglePopupCommand<BeebWindowPopupType_Keymaps>(),
-        GetTogglePopupCommand<BeebWindowPopupType_Timeline>(),
-        GetTogglePopupCommand<BeebWindowPopupType_SavedStates>(),
-        GetTogglePopupCommand<BeebWindowPopupType_Messages>(),
-        GetTogglePopupCommand<BeebWindowPopupType_Configs>(),
-    #if BBCMICRO_TRACE
-        GetTogglePopupCommand<BeebWindowPopupType_Trace>(),
-    #endif
-        GetTogglePopupCommand<BeebWindowPopupType_AudioCallback>(),
-        GetTogglePopupCommand<BeebWindowPopupType_CommandContextStack>(),
-        GetTogglePopupCommand<BeebWindowPopupType_CommandKeymaps>(),
-        {CommandDef("exit","Exit").MustConfirm(),&BeebWindow::Exit},
-        {CommandDef("clean_up_recent_files_lists","Clean up recent files lists").MustConfirm(),&BeebWindow::CleanUpRecentFilesLists},
-        {CommandDef("reset_dock_windows","Reset dock windows").MustConfirm(),&BeebWindow::ResetDockWindows},
-    #if SYSTEM_WINDOWS
-        {{"clear_console","Clear Win32 console"},&BeebWindow::ClearConsole},
-    #endif
-        {{"print_separator","Print stdout separator"},&BeebWindow::PrintSeparator},
-        {{"paste","OSRDCH Paste"},&BeebWindow::Paste,&BeebWindow::IsPasteTicked},
-        {{"paste_return","OSRDCH Paste (+Return)"},&BeebWindow::PasteThenReturn,&BeebWindow::IsPasteTicked},
-        {{"toggle_copy_oswrch_text","OSWRCH Copy Text"},&BeebWindow::CopyOSWRCH<true>,&BeebWindow::IsCopyOSWRCHTicked},
-        {{"copy_basic","Copy BASIC listing"},&BeebWindow::CopyBASIC,&BeebWindow::IsCopyOSWRCHTicked,&BeebWindow::IsCopyBASICEnabled},
-    #if VIDEO_TRACK_METADATA
-        GetTogglePopupCommand<BeebWindowPopupType_PixelMetadata>(),
-    #endif
-    #if ENABLE_IMGUI_TEST
-        GetTogglePopupCommand<BeebWindowPopupType_DearImguiTest>(),
-    #endif
-    #if BBCMICRO_DEBUGGER
-        GetTogglePopupCommand<BeebWindowPopupType_6502Debugger>(),
-        GetTogglePopupCommand<BeebWindowPopupType_MemoryDebugger1>(),
-        GetTogglePopupCommand<BeebWindowPopupType_MemoryDebugger2>(),
-        GetTogglePopupCommand<BeebWindowPopupType_MemoryDebugger3>(),
-        GetTogglePopupCommand<BeebWindowPopupType_MemoryDebugger4>(),
-        GetTogglePopupCommand<BeebWindowPopupType_ExtMemoryDebugger1>(),
-        GetTogglePopupCommand<BeebWindowPopupType_ExtMemoryDebugger2>(),
-        GetTogglePopupCommand<BeebWindowPopupType_ExtMemoryDebugger3>(),
-        GetTogglePopupCommand<BeebWindowPopupType_ExtMemoryDebugger4>(),
-        GetTogglePopupCommand<BeebWindowPopupType_DisassemblyDebugger>(),
-        GetTogglePopupCommand<BeebWindowPopupType_CRTCDebugger>(),
-        GetTogglePopupCommand<BeebWindowPopupType_VideoULADebugger>(),
-        GetTogglePopupCommand<BeebWindowPopupType_SystemVIADebugger>(),
-        GetTogglePopupCommand<BeebWindowPopupType_UserVIADebugger>(),
-        GetTogglePopupCommand<BeebWindowPopupType_NVRAMDebugger>(),
-        GetTogglePopupCommand<BeebWindowPopupType_BeebLink>(),
+    {{"save_state","Save State"},&BeebWindow::SaveState,nullptr,&BeebWindow::SaveStateIsEnabled},
+    GetTogglePopupCommand<BeebWindowPopupType_Options>(),
+    GetTogglePopupCommand<BeebWindowPopupType_Keymaps>(),
+    GetTogglePopupCommand<BeebWindowPopupType_Timeline>(),
+    GetTogglePopupCommand<BeebWindowPopupType_SavedStates>(),
+    GetTogglePopupCommand<BeebWindowPopupType_Messages>(),
+    GetTogglePopupCommand<BeebWindowPopupType_Configs>(),
+#if BBCMICRO_TRACE
+    GetTogglePopupCommand<BeebWindowPopupType_Trace>(),
+#endif
+    GetTogglePopupCommand<BeebWindowPopupType_AudioCallback>(),
+    GetTogglePopupCommand<BeebWindowPopupType_CommandContextStack>(),
+    GetTogglePopupCommand<BeebWindowPopupType_CommandKeymaps>(),
+    {CommandDef("exit","Exit").MustConfirm(),&BeebWindow::Exit},
+    {CommandDef("clean_up_recent_files_lists","Clean up recent files lists").MustConfirm(),&BeebWindow::CleanUpRecentFilesLists},
+    {CommandDef("reset_dock_windows","Reset dock windows").MustConfirm(),&BeebWindow::ResetDockWindows},
+#if SYSTEM_WINDOWS
+    {{"clear_console","Clear Win32 console"},&BeebWindow::ClearConsole},
+#endif
+    {{"print_separator","Print stdout separator"},&BeebWindow::PrintSeparator},
+    {{"paste","OSRDCH Paste"},&BeebWindow::Paste,&BeebWindow::IsPasteTicked},
+    {{"paste_return","OSRDCH Paste (+Return)"},&BeebWindow::PasteThenReturn,&BeebWindow::IsPasteTicked},
+    {{"toggle_copy_oswrch_text","OSWRCH Copy Text"},&BeebWindow::CopyOSWRCH<true>,&BeebWindow::IsCopyOSWRCHTicked},
+    {{"copy_basic","Copy BASIC listing"},&BeebWindow::CopyBASIC,&BeebWindow::IsCopyOSWRCHTicked,&BeebWindow::IsCopyBASICEnabled},
+#if VIDEO_TRACK_METADATA
+    GetTogglePopupCommand<BeebWindowPopupType_PixelMetadata>(),
+#endif
+#if ENABLE_IMGUI_TEST
+    GetTogglePopupCommand<BeebWindowPopupType_DearImguiTest>(),
+#endif
+#if BBCMICRO_DEBUGGER
+    GetTogglePopupCommand<BeebWindowPopupType_6502Debugger>(),
+    GetTogglePopupCommand<BeebWindowPopupType_MemoryDebugger1>(),
+    GetTogglePopupCommand<BeebWindowPopupType_MemoryDebugger2>(),
+    GetTogglePopupCommand<BeebWindowPopupType_MemoryDebugger3>(),
+    GetTogglePopupCommand<BeebWindowPopupType_MemoryDebugger4>(),
+    GetTogglePopupCommand<BeebWindowPopupType_ExtMemoryDebugger1>(),
+    GetTogglePopupCommand<BeebWindowPopupType_ExtMemoryDebugger2>(),
+    GetTogglePopupCommand<BeebWindowPopupType_ExtMemoryDebugger3>(),
+    GetTogglePopupCommand<BeebWindowPopupType_ExtMemoryDebugger4>(),
+    GetTogglePopupCommand<BeebWindowPopupType_DisassemblyDebugger>(),
+    GetTogglePopupCommand<BeebWindowPopupType_CRTCDebugger>(),
+    GetTogglePopupCommand<BeebWindowPopupType_VideoULADebugger>(),
+    GetTogglePopupCommand<BeebWindowPopupType_SystemVIADebugger>(),
+    GetTogglePopupCommand<BeebWindowPopupType_UserVIADebugger>(),
+    GetTogglePopupCommand<BeebWindowPopupType_NVRAMDebugger>(),
+    GetTogglePopupCommand<BeebWindowPopupType_BeebLink>(),
 
-        {CommandDef("debug_stop","Stop").Shortcut(SDLK_F5|PCKeyModifier_Shift),&BeebWindow::DebugStop,nullptr,&BeebWindow::DebugIsStopEnabled},
-        {CommandDef("debug_run","Run").Shortcut(SDLK_F5),&BeebWindow::DebugRun,nullptr,&BeebWindow::DebugIsRunEnabled},
-        {CommandDef("debug_step_over","Step Over").Shortcut(SDLK_F10),&BeebWindow::DebugStepOver,nullptr,&BeebWindow::DebugIsRunEnabled},
-        {CommandDef("debug_step_in","Step In").Shortcut(SDLK_F11),&BeebWindow::DebugStepIn,nullptr,&BeebWindow::DebugIsRunEnabled},
-    #endif
-        {CommandDef("save_default_nvram","Save default NVRAM"),&BeebWindow::SaveDefaultNVRAM,nullptr,&BeebWindow::SaveDefaultNVRAMIsEnabled},
-        {CommandDef("reset_default_nvram","Reset default NVRAM").MustConfirm(),&BeebWindow::ResetDefaultNVRAM,nullptr,&BeebWindow::SaveDefaultNVRAMIsEnabled},
+    {CommandDef("debug_stop","Stop").Shortcut(SDLK_F5|PCKeyModifier_Shift),&BeebWindow::DebugStop,nullptr,&BeebWindow::DebugIsStopEnabled},
+    {CommandDef("debug_run","Run").Shortcut(SDLK_F5),&BeebWindow::DebugRun,nullptr,&BeebWindow::DebugIsRunEnabled},
+    {CommandDef("debug_step_over","Step Over").Shortcut(SDLK_F10),&BeebWindow::DebugStepOver,nullptr,&BeebWindow::DebugIsRunEnabled},
+    {CommandDef("debug_step_in","Step In").Shortcut(SDLK_F11),&BeebWindow::DebugStepIn,nullptr,&BeebWindow::DebugIsRunEnabled},
+#endif
+    {CommandDef("save_default_nvram","Save default NVRAM"),&BeebWindow::SaveDefaultNVRAM,nullptr,&BeebWindow::SaveDefaultNVRAMIsEnabled},
+    {CommandDef("reset_default_nvram","Reset default NVRAM").MustConfirm(),&BeebWindow::ResetDefaultNVRAM,nullptr,&BeebWindow::SaveDefaultNVRAMIsEnabled},
     {CommandDef("save_config","Save config"),&BeebWindow::SaveConfig},
+    {CommandDef("toggle_prioritize_shortcuts","Prioritize command keys"),&BeebWindow::TogglePrioritizeCommandShortcuts,&BeebWindow::IsPrioritizeCommandShortcutsTicked,nullptr},
 });
