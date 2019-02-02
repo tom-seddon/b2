@@ -63,24 +63,30 @@ class BeebThreadPeekMessage:
     public BeebThread::CustomMessage
 {
 public:
-    BeebThreadPeekMessage(uint32_t addr,uint64_t count,HTTPServer *server,HTTPRequest &&request):
-        m_addr(addr),
-        m_count(count),
-        m_server(server),
-        m_response_data(request.response_data)
+    BeebThreadPeekMessage(uint32_t addr,
+                          uint32_t dpo,
+                          uint64_t count,
+                          HTTPServer *server,
+                          HTTPRequest &&request):
+    m_addr(addr),
+    m_dpo(dpo),
+    m_count(count),
+    m_server(server),
+    m_response_data(request.response_data)
     {
         LOGF(OUTPUT,"BeebThreadPeekMessage: this=%p\n",(void *)this);
     }
 
     void ThreadHandleMessage(BBCMicro *beeb) override {
         HTTPResponse m_response;
-        uint32_t addr=m_addr;
+        M6502Word addr={(uint16_t)m_addr};
 
         std::vector<uint8_t> data;
         data.reserve(m_count);
 
         for(uint64_t i=0;i<m_count;++i) {
-            int value=beeb->DebugGetByte(addr++);
+            int value=beeb->DebugGetByte(addr,m_dpo);
+            ++addr.w;
 
             data.push_back((uint8_t)value);
         }
@@ -90,7 +96,8 @@ public:
     }
 protected:
 private:
-    uint32_t m_addr=0;
+    uint16_t m_addr={};
+    uint32_t m_dpo=0;
     uint64_t m_count=0;
     HTTPServer *m_server=nullptr;
     HTTPResponseData m_response_data;
@@ -344,7 +351,7 @@ private:
             return;
         }
 
-        this->SendMessage(beeb_window,server,request,std::make_shared<BeebThread::DebugSetBytesMessage>(addr,std::move(request.body)));
+        this->SendMessage(beeb_window,server,request,std::make_shared<BeebThread::DebugSetBytesMessage>(addr,0,std::move(request.body)));
     }
 
     void HandlePeekRequest(HTTPServer *server,HTTPRequest &&request,const std::vector<std::string> &path_parts,size_t command_index) {
@@ -375,7 +382,11 @@ private:
             }
         }
 
-        beeb_window->GetBeebThread()->Send(std::make_unique<BeebThreadPeekMessage>(begin,end-begin,server,std::move(request)));
+        beeb_window->GetBeebThread()->Send(std::make_unique<BeebThreadPeekMessage>(begin,
+                                                                                   0,//dpo
+                                                                                   end-begin,
+                                                                                   server,
+                                                                                   std::move(request)));
     }
 
     void HandleCallRequest(HTTPServer *server,HTTPRequest &&request,const std::vector<std::string> &path_parts,size_t command_index) {
@@ -446,7 +457,7 @@ private:
                 uint32_t addr=request.body[0]|(uint32_t)(request.body[1]<<8)|0xffff0000u;
                 request.body.erase(request.body.begin(),request.body.begin()+2);
 
-                beeb_window->GetBeebThread()->Send(std::make_shared<BeebThread::DebugSetBytesMessage>(addr,std::move(request.body)));
+                beeb_window->GetBeebThread()->Send(std::make_shared<BeebThread::DebugSetBytesMessage>(addr,0,std::move(request.body)));
                 this->SendMessage(beeb_window,server,request,std::make_shared<BeebThread::DebugAsyncCallMessage>(addr&0xffff,0,0,0,false));
                 return;
             }

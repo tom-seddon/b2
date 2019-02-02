@@ -384,11 +384,8 @@ public:
 
     void DebugCopyMemory(void *bytes_dest,DebugState::ByteDebugFlags *debug_dest,M6502Word addr_,uint16_t num_bytes) const;
 
-    // Uses addressing scheme described in
-    // http://mdfs.net/Docs/Comp/BBC/MemAddrs. Returns <0 if the
-    // address isn't accessible.
-    void DebugSetByte(uint32_t addr,uint8_t value);
-    int DebugGetByte(uint32_t addr) const;
+    void DebugSetByte(M6502Word addr,uint32_t dpo,uint8_t value);
+    int DebugGetByte(M6502Word addr,uint32_t dpo) const;
 
     void SetMemory(M6502Word addr,uint8_t value);
     void SetExtMemory(uint32_t addr,uint8_t value);
@@ -573,6 +570,7 @@ private:
     //////////////////////////////////////////////////////////////////////////
     //////////////////////////////////////////////////////////////////////////
 
+    uint32_t m_dpo_mask=0;
     bool m_has_rtc=false;
     void (*m_handle_cpu_data_bus_fn)(BBCMicro *)=nullptr;
     UpdateROMSELPagesFn m_update_romsel_pages_fn=nullptr;
@@ -718,8 +716,8 @@ private:
     void UpdateDebugPages(MemoryPages *pages);
     void UpdateDebugState();
     void SetDebugStepType(BBCMicroStepType step_type);
-    void DebugGetBytePointers(uint8_t **write_ptr,const uint8_t **read_ptr,uint16_t *debug_page,uint32_t full_addr);
     void FinishAsyncCall(bool called);
+    void DebugGetPointers(uint8_t **w_ptr,const uint8_t **r_ptr,M6502Word addr,uint32_t dpo);
 #endif
     static void HandleCPUDataBusWithHacks(BBCMicro *m);
 

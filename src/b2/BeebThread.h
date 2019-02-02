@@ -640,7 +640,7 @@ public:
         public Message
     {
     public:
-        DebugSetBytesMessage(uint32_t addr,std::vector<uint8_t> values);
+        DebugSetBytesMessage(uint32_t addr,uint32_t dpo,std::vector<uint8_t> values);
 
         bool ThreadPrepare(std::shared_ptr<Message> *ptr,
                            CompletionFun *completion_fun,
@@ -650,6 +650,7 @@ public:
     protected:
     private:
         const uint32_t m_addr=0;
+        const uint32_t m_dpo=0;
         const std::vector<uint8_t> m_values;
     };
 #endif

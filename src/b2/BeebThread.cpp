@@ -1272,9 +1272,11 @@ void BeebThread::DebugSetByteMessage::ThreadHandle(BeebThread *beeb_thread,
 
 #if BBCMICRO_DEBUGGER
 BeebThread::DebugSetBytesMessage::DebugSetBytesMessage(uint32_t addr,
+                                                       uint32_t dpo,
                                                        std::vector<uint8_t> values):
-    m_addr(addr),
-    m_values(std::move(values))
+m_addr(addr),
+m_dpo(dpo),
+m_values(std::move(values))
 {
 }
 #endif
@@ -1301,10 +1303,11 @@ void BeebThread::DebugSetBytesMessage::ThreadHandle(BeebThread *beeb_thread,
 {
     (void)beeb_thread;
 
-    uint32_t addr=m_addr;
+    M6502Word addr={(uint16_t)m_addr};
 
     for(uint8_t value:m_values) {
-        ts->beeb->DebugSetByte(addr++,value);
+        ts->beeb->DebugSetByte(addr,m_dpo,value);
+        ++addr.w;
     }
 }
 #endif
