@@ -180,6 +180,7 @@ void DebugUI::ReadByte(uint8_t *value,
 
 void DebugUI::DoDebugPageOverrideImGui() {
     static const char ROM_POPUP[]="rom_popup";
+    static const char SHADOW_POPUP[]="shadow_popup";
     static const char ANDY_POPUP[]="andy_popup";
     static const char HAZEL_POPUP[]="hazel_popup";
     static const char OS_POPUP[]="os_popup";
@@ -232,6 +233,8 @@ void DebugUI::DoDebugPageOverrideImGui() {
             ImGui::EndPopup();
         }
     }
+
+    this->DoDebugPageOverrideFlagImGui(dpo_mask,dpo_current,"Shadow",SHADOW_POPUP,BBCMicroDebugPagingOverride_OverrideShadow,BBCMicroDebugPagingOverride_Shadow);
 
     this->DoDebugPageOverrideFlagImGui(dpo_mask,dpo_current,"ANDY",ANDY_POPUP,BBCMicroDebugPagingOverride_OverrideANDY,BBCMicroDebugPagingOverride_ANDY);
 
