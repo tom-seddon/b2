@@ -203,9 +203,9 @@ void DebugUI::DoDebugPageOverrideImGui() {
         ImGui::SameLine();
 
         if(m_dpo&BBCMicroDebugPagingOverride_OverrideROM) {
-            ImGui::Text("Force %02X",m_dpo&BBCMicroDebugPagingOverride_ROM);
+            ImGui::Text("%x!",m_dpo&BBCMicroDebugPagingOverride_ROM);
         } else {
-            ImGui::Text("%02X",dpo_current&BBCMicroDebugPagingOverride_ROM);
+            ImGui::Text("%x",dpo_current&BBCMicroDebugPagingOverride_ROM);
         }
 
         if(ImGui::BeginPopup(ROM_POPUP)) {
@@ -263,7 +263,7 @@ void DebugUI::DoDebugPageOverrideFlagImGui(uint32_t mask,
     ImGui::SameLine();
 
     if(m_dpo&override_mask) {
-        ImGui::Text("force %s",m_dpo&flag_mask?"on":"off");
+        ImGui::Text("%s!",m_dpo&flag_mask?"on":"off");
     } else {
         ImGui::Text("%s",current&flag_mask?"on":"off");
     }
