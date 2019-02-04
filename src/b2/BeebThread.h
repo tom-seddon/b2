@@ -621,7 +621,7 @@ public:
         public Message
     {
     public:
-        DebugSetByteMessage(uint16_t addr,uint8_t value);
+        DebugSetByteMessage(uint16_t addr,uint32_t dpo,uint8_t value);
 
         bool ThreadPrepare(std::shared_ptr<Message> *ptr,
                            CompletionFun *completion_fun,
@@ -631,6 +631,7 @@ public:
     protected:
     private:
         const uint16_t m_addr=0;
+        const uint32_t m_dpo=0;
         const uint8_t m_value=0;
     };
 #endif

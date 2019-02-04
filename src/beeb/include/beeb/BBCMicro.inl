@@ -161,8 +161,8 @@ EPNV(HAZEL,1<<7)
 EPNV(OverrideHAZEL,1<<8)
 EPNV(Shadow,1<<9)
 EPNV(OverrideShadow,1<<10)
-EPNV(IO,1<<11)
-EPNV(OverrideIO,1<<12)
+EPNV(OS,1<<11)
+EPNV(OverrideOS,1<<12)
 EEND()
 #undef ENAME
 #endif

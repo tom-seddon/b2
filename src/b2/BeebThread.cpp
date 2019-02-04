@@ -1232,9 +1232,11 @@ bool BeebThread::StopCopyMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
 
 #if BBCMICRO_DEBUGGER
 BeebThread::DebugSetByteMessage::DebugSetByteMessage(uint16_t addr,
+                                                     uint32_t dpo,
                                                      uint8_t value):
-    m_addr(addr),
-    m_value(value)
+m_addr(addr),
+m_dpo(dpo),
+m_value(value)
 {
 }
 #endif
@@ -1263,7 +1265,7 @@ void BeebThread::DebugSetByteMessage::ThreadHandle(BeebThread *beeb_thread,
 
     M6502Word addr={m_addr};
 
-    ts->beeb->SetMemory(addr,m_value);
+    ts->beeb->DebugSetBytes(addr,m_dpo,&m_value,1);
 }
 #endif
 
@@ -1303,12 +1305,17 @@ void BeebThread::DebugSetBytesMessage::ThreadHandle(BeebThread *beeb_thread,
 {
     (void)beeb_thread;
 
-    M6502Word addr={(uint16_t)m_addr};
-
-    for(uint8_t value:m_values) {
-        ts->beeb->DebugSetByte(addr,m_dpo,value);
-        ++addr.w;
-    }
+    ts->beeb->DebugSetBytes({(uint16_t)m_addr},m_dpo,m_values.data(),m_values.size());
+//
+//    M6502Word addr={(uint16_t)m_addr};
+//
+//    for(uint8_t value:m_values) {
+//        ts->beeb->DebugSetByte(
+//        const BBCMicro::BigPage *bp=ts->beeb->DebugGetBigPageForAddress(addr,m_dpo);
+//        bp->
+//        ts->beeb->DebugSetByte(addr,m_dpo,value);
+//        ++addr.w;
+//    }
 }
 #endif
 

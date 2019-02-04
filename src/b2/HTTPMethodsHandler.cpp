@@ -82,14 +82,9 @@ public:
         M6502Word addr={(uint16_t)m_addr};
 
         std::vector<uint8_t> data;
-        data.reserve(m_count);
+        data.resize(m_count);
 
-        for(uint64_t i=0;i<m_count;++i) {
-            int value=beeb->DebugGetByte(addr,m_dpo);
-            ++addr.w;
-
-            data.push_back((uint8_t)value);
-        }
+        beeb->DebugGetBytes(data.data(),data.size(),addr,m_dpo);
 
         HTTPResponse response(HTTP_OCTET_STREAM_CONTENT_TYPE,std::move(data));
         m_server->SendResponse(m_response_data,std::move(response));

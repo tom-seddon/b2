@@ -47,12 +47,18 @@ class BeebLink;
 class BBCMicro:
     private WD1770Handler
 {
+    static constexpr uint8_t NUM_BIG_PAGES=84;
 public:
     static const uint16_t SCREEN_WRAP_ADJUSTMENTS[];
 
     union ACCCON;
     typedef void (*UpdateROMSELPagesFn)(BBCMicro *);
     typedef void (*UpdateACCCONPagesFn)(BBCMicro *,const ACCCON *);
+
+    static constexpr size_t BIG_PAGE_SIZE_BYTES=4096;
+    static constexpr size_t BIG_PAGE_OFFSET_MASK=4095;
+
+    static constexpr size_t BIG_PAGE_SIZE_PAGES=BIG_PAGE_SIZE_BYTES/256u;
 
 #if BBCMICRO_DEBUGGER
     struct HardwareDebugState {
@@ -86,19 +92,34 @@ public:
 
         static_assert(sizeof(ByteDebugFlags)==1,"");
 
-        static const uint16_t NUM_DEBUG_FLAGS_PAGES=256+16*64+64;
-
         // No attempt made to minimize this stuff... it doesn't go into
         // the saved states, so whatever.
-        ByteDebugFlags pages[NUM_DEBUG_FLAGS_PAGES][256]={};
-        //Breakpoint *indexes[NUM_DEBUG_FLAGS_PAGES][256]={};
+        ByteDebugFlags big_pages_debug_flags[NUM_BIG_PAGES][BIG_PAGE_SIZE_BYTES]={};
 
         std::vector<ByteDebugFlags *> temp_execute_breakpoints;
-        //std::vector<Breakpoint *> breakpoints;
 
         char halt_reason[1000];
     };
 #endif
+
+    struct BigPage {
+        // if non-NULL, points to BIG_PAGE_SIZE_BYTES bytes. NULL if this
+        // big page isn't readable.
+        const uint8_t *r=nullptr;
+
+        // if non-NULL, points to BIG_PAGE_SIZE_BYTES bytes. NULL if this
+        // big page isn't writeable.
+        uint8_t *w=nullptr;
+
+#if BBCMICRO_DEBUGGER
+        // if non-NULL, points to BIG_PAGE_SIZE_BYTES values. NULL if this
+        // BBCMicro has no associated DebugState.
+        DebugState::ByteDebugFlags *debug=nullptr;
+#endif
+
+        uint8_t index=0;
+        char code=0;
+    };
 
     // nvram_contents and rtc_time are ignored if the BBCMicro doesn't
     // support such things.
@@ -222,10 +243,8 @@ public:
         const uint8_t *r[256]={};
 #if BBCMICRO_DEBUGGER
         DebugState::ByteDebugFlags *debug[256]={};
-        uint16_t debug_page_index[256];
+        const BigPage *bp[256]={};
 #endif
-
-        MemoryPages();
     };
 
     typedef uint8_t (*ReadMMIOFn)(void *,union M6502Word);
@@ -380,12 +399,27 @@ public:
     const R6522 *DebugGetSystemVIA() const;
     const R6522 *DebugGetUserVIA() const;
 
-    uint16_t DebugGetFlatPage(uint8_t page) const;
+    //uint16_t DebugGetFlatPage(uint8_t page) const;
 
-    void DebugCopyMemory(void *bytes_dest,DebugState::ByteDebugFlags *debug_dest,M6502Word addr_,uint16_t num_bytes) const;
+    const BigPage *DebugGetBigPage(uint8_t page,uint32_t dpo) const;
 
-    void DebugSetByte(M6502Word addr,uint32_t dpo,uint8_t value);
-    int DebugGetByte(M6502Word addr,uint32_t dpo) const;
+    void DebugGetBytes(uint8_t *bytes,size_t num_bytes,M6502Word addr,uint32_t dpo);
+    void DebugSetBytes(M6502Word addr,uint32_t dpo,const uint8_t *bytes,size_t num_bytes);
+
+//    void DebugSetByte(uint8_t big_page,uint16_t offset,uint8_t value);
+//    int DebugGetByte(uint8_t big_page,uint16_t offset) const;
+
+//    // Copy block of memory, plus the debug flags for it, if desired. But even
+//    // when the debug flags aren't interesting, this is still quicker than
+//    // calling DebugGetByte in a loop.
+//    void DebugCopyMemory(void *bytes_dest,
+//                         DebugState::ByteDebugFlags *debug_dest,
+//                         M6502Word addr,
+//                         uint32_t dpo,
+//                         size_t num_bytes) const;
+//
+//    void DebugSetByte(M6502Word addr,uint32_t dpo,uint8_t value);
+//    int DebugGetByte(M6502Word addr,uint32_t dpo) const;
 
     void SetMemory(M6502Word addr,uint8_t value);
     void SetExtMemory(uint32_t addr,uint8_t value);
@@ -407,7 +441,7 @@ public:
 
     void DebugStepIn();
 
-    static char DebugGetFlatPageCode(uint16_t flat_page);
+    //static char DebugGetFlatPageCode(uint16_t flat_page);
 
     bool HasDebugState() const;
     std::unique_ptr<DebugState> TakeDebugState();
@@ -427,6 +461,13 @@ public:
     // made, or with called=false if it doesn't happen in a timely
     // fashion.
     void DebugSetAsyncCall(uint16_t address,uint8_t a,uint8_t x,uint8_t y,bool c,DebugAsyncCallFn fn,void *context);
+
+    uint32_t DebugGetPageOverrideMask() const;
+
+    // Ugly terminology - returns the current paging state, expressed as
+    // a combination of paging override flags. None of the override bits are
+    // set, but the actual flags are set appropriately.
+    uint32_t DebugGetCurrentPageOverride() const;
 #endif
 
     void SendBeebLinkResponse(std::vector<uint8_t> data);
@@ -570,6 +611,7 @@ private:
     //////////////////////////////////////////////////////////////////////////
     //////////////////////////////////////////////////////////////////////////
 
+    BigPage m_big_pages[NUM_BIG_PAGES];
     uint32_t m_dpo_mask=0;
     bool m_has_rtc=false;
     void (*m_handle_cpu_data_bus_fn)(BBCMicro *)=nullptr;
@@ -671,18 +713,12 @@ private:
     std::unique_ptr<BeebLink> m_beeblink;
 
     void InitStuff();
-    void SetOSPages(uint8_t dest_page,uint8_t src_page,uint8_t num_pages);
-    void SetROMPages(uint8_t bank,uint8_t page,size_t src_page,size_t num_pages);
+    //void SetOSPages(uint8_t dest_page,uint8_t src_page,uint8_t dest_big_page_index);
+    void SetROMPages(uint8_t bank,uint8_t num_skipped_big_pages);
 #if BBCMICRO_TRACE
     void SetTrace(std::shared_ptr<Trace> trace,uint32_t trace_flags);
 #endif
-    void SetPages(uint8_t page_,size_t num_pages,
-                  const uint8_t *read_data,size_t read_page_stride,
-                  uint8_t *write_data,size_t write_page_stride
-#if BBCMICRO_DEBUGGER/////////////////////////////////////////////////////////<--note
-                  ,uint16_t debug_page////////////////////////////////////////<--note
-#endif////////////////////////////////////////////////////////////////////////<--note
-    );////////////////////////////////////////////////////////////////////////<--note
+    void SetPages(MemoryPages *pages0,MemoryPages *pages1,uint8_t big_page_index,uint8_t num_big_pages,uint8_t page);
     static void UpdateBROMSELPages(BBCMicro *m);
     static void UpdateBPlusACCCONPages(BBCMicro *m,const ACCCON *old);
     static void UpdateBACCCONPages(BBCMicro *m,const ACCCON *old);
@@ -690,7 +726,10 @@ private:
     static void UpdateMaster128ROMSELPages(BBCMicro *m);
     static bool DoesMOSUseShadow(ACCCON acccon);
     static void UpdateMaster128ACCCONPages(BBCMicro *m,const ACCCON *old_);
-    void InitROMPages();
+    void InitSomeBigPages(uint8_t big_page_index,uint8_t num_big_pages,const uint8_t *r,uint8_t *w,char code);
+    void InitShadowBigPages(uint8_t big_page_index,uint8_t num_big_pages,char code);
+    void InitSidewaysROMBigPages(uint8_t rom);
+    void InitBigPages();
     static void Write1770ControlRegister(void *m_,M6502Word a,uint8_t value);
     static uint8_t Read1770ControlRegister(void *m_,M6502Word a);
 #if BBCMICRO_TRACE
@@ -717,9 +756,9 @@ private:
     void UpdateDebugState();
     void SetDebugStepType(BBCMicroStepType step_type);
     void FinishAsyncCall(bool called);
-    void DebugGetPointers(uint8_t **w_ptr,const uint8_t **r_ptr,M6502Word addr,uint32_t dpo);
 #endif
     static void HandleCPUDataBusWithHacks(BBCMicro *m);
+    static void CheckMemoryPages(const MemoryPages *pages,bool non_null);
 
     // 1770 handler stuff.
     bool IsTrack0() override;
