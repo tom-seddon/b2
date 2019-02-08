@@ -2392,7 +2392,7 @@ const BBCMicro::BigPage *BBCMicro::DebugGetBigPage(uint8_t page,uint32_t dpo) co
 
     // Don't look too closely at the logic of this...
 
-    uint8_t big_page_index;
+    const BigPage *bp;
 
     if(page>=0xfc&&page<0xff) {
         if((dpo&BBCMicroDebugPagingOverride_OverrideOS)&&
@@ -2411,7 +2411,13 @@ const BBCMicro::BigPage *BBCMicro::DebugGetBigPage(uint8_t page,uint32_t dpo) co
             case 0x2: // 0x2000-0x2fff
             no_overrides:
             {
-                big_page_index=page>>4;
+                if(m_pc_pages) {
+                    // TODO - should be the option of taking instruction address
+                    // into account!
+                    bp=m_pc_pages[0]->bp[page];
+                } else {
+                    bp=m_pages.bp[page];
+                }
                 break;
             }
 
@@ -2422,29 +2428,28 @@ const BBCMicro::BigPage *BBCMicro::DebugGetBigPage(uint8_t page,uint32_t dpo) co
             case 0x7: // 0x7000-0x7fff
                 if(dpo&BBCMicroDebugPagingOverride_OverrideShadow) {
                     if(dpo&BBCMicroDebugPagingOverride_Shadow) {
-                        big_page_index=SHADOW_BIG_PAGE_INDEX+((page>>4)-3);
+                        bp=&m_big_pages[SHADOW_BIG_PAGE_INDEX+((page>>4)-3)];
                         break;
                     } else {
-                        big_page_index=page>>4;
-                        break;
+                        bp=&m_big_pages[page>>4];
                     }
                 } else {
                     goto no_overrides;
                 }
-
+                
             case 0x8: // 0x8000-0x8fff // ANDY in M128/B+
             maybe_andy:
                 if(dpo&BBCMicroDebugPagingOverride_OverrideANDY) {
                     if(dpo&BBCMicroDebugPagingOverride_ANDY) {
                         // don't mask, just subtract - it's 4K on the Master, but 12K on the
                         // B+.
-                        big_page_index=ANDY_BIG_PAGE_INDEX+((page>>4)-0x08);
+                        bp=&m_big_pages[ANDY_BIG_PAGE_INDEX+((page>>4)-0x08)];
                         break;
                     } else {
                         goto sideways_rom;
                     }
                 } else {
-                    goto no_overrides;
+                    goto sideways_rom;
                 }
 
             case 0x9: // 0x9000-0x9fff // ANDY in B+ only
@@ -2457,23 +2462,25 @@ const BBCMicro::BigPage *BBCMicro::DebugGetBigPage(uint8_t page,uint32_t dpo) co
 
             case 0xb: // 0xb000-0xbfff
             sideways_rom:
+            {
                 if(dpo&BBCMicroDebugPagingOverride_OverrideROM) {
-                    big_page_index=ROM0_BIG_PAGE_INDEX+(dpo&BBCMicroDebugPagingOverride_ROM)*NUM_ROM_BIG_PAGES;
+                    bp=&m_big_pages[ROM0_BIG_PAGE_INDEX+(dpo&BBCMicroDebugPagingOverride_ROM)*NUM_ROM_BIG_PAGES];
                     break;
                 } else {
                     goto no_overrides;
                 }
+            }
 
             case 0xc: // 0xc000-0xcfff
             case 0xd: // 0xd000-0xdfff
                 if((dpo&BBCMicroDebugPagingOverride_OverrideHAZEL)&&
                    (dpo&BBCMicroDebugPagingOverride_HAZEL))
                 {
-                    big_page_index=HAZEL_BIG_PAGE_INDEX+((page>>4)-0x0c);
+                    bp=&m_big_pages[HAZEL_BIG_PAGE_INDEX+((page>>4)-0x0c)];
                     break;
                 } else {
                 os:
-                    big_page_index=MOS_BIG_PAGE_INDEX+((page>>4)-0x0c);
+                    bp=&m_big_pages[MOS_BIG_PAGE_INDEX+((page>>4)-0x0c)];
                     break;
                 }
 
@@ -2483,8 +2490,7 @@ const BBCMicro::BigPage *BBCMicro::DebugGetBigPage(uint8_t page,uint32_t dpo) co
         }
     }
 
-    ASSERT(big_page_index<NUM_BIG_PAGES);
-    const BigPage *bp=&m_big_pages[big_page_index];
+    ASSERT(bp>=m_big_pages&&bp<m_big_pages+NUM_BIG_PAGES);
     return bp;
 }
 
