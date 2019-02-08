@@ -362,6 +362,7 @@ void BBCMicro::SetPages(MemoryPages *pages0,
                         uint8_t num_big_pages,
                         uint8_t dest_big_page_index)
 {
+
     ASSERT(dest_big_page_index<16);
     uint8_t page=dest_big_page_index<<4;
 
@@ -852,11 +853,13 @@ void BBCMicro::InitBigPages() {
                    5,
                    0x3);
 
-    this->SetPages(m_shadow_pages,
-                   nullptr,
-                   SHADOW_BIG_PAGE_INDEX,
-                   NUM_SHADOW_BIG_PAGES,
-                   0x3);
+    if(m_shadow_pages) {
+        this->SetPages(m_shadow_pages,
+                       nullptr,
+                       SHADOW_BIG_PAGE_INDEX,
+                       NUM_SHADOW_BIG_PAGES,
+                       0x3);
+    }
 
     // Pages 0x80-0xbf.
     (*m_update_romsel_pages_fn)(this);
@@ -2394,6 +2397,7 @@ const BBCMicro::BigPage *BBCMicro::DebugGetBigPage(uint8_t page,uint32_t dpo) co
 
     const BigPage *bp;
 
+    // Handle the IO region special case first.
     if(page>=0xfc&&page<0xff) {
         if((dpo&BBCMicroDebugPagingOverride_OverrideOS)&&
            (dpo&BBCMicroDebugPagingOverride_OS))
@@ -2432,11 +2436,12 @@ const BBCMicro::BigPage *BBCMicro::DebugGetBigPage(uint8_t page,uint32_t dpo) co
                         break;
                     } else {
                         bp=&m_big_pages[page>>4];
+                        break;
                     }
                 } else {
                     goto no_overrides;
                 }
-                
+
             case 0x8: // 0x8000-0x8fff // ANDY in M128/B+
             maybe_andy:
                 if(dpo&BBCMicroDebugPagingOverride_OverrideANDY) {
@@ -2464,7 +2469,7 @@ const BBCMicro::BigPage *BBCMicro::DebugGetBigPage(uint8_t page,uint32_t dpo) co
             sideways_rom:
             {
                 if(dpo&BBCMicroDebugPagingOverride_OverrideROM) {
-                    bp=&m_big_pages[ROM0_BIG_PAGE_INDEX+(dpo&BBCMicroDebugPagingOverride_ROM)*NUM_ROM_BIG_PAGES];
+                    bp=&m_big_pages[ROM0_BIG_PAGE_INDEX+(dpo&BBCMicroDebugPagingOverride_ROM)*NUM_ROM_BIG_PAGES+((page>>4)-0x08)];
                     break;
                 } else {
                     goto no_overrides;
@@ -2473,19 +2478,21 @@ const BBCMicro::BigPage *BBCMicro::DebugGetBigPage(uint8_t page,uint32_t dpo) co
 
             case 0xc: // 0xc000-0xcfff
             case 0xd: // 0xd000-0xdfff
-                if((dpo&BBCMicroDebugPagingOverride_OverrideHAZEL)&&
-                   (dpo&BBCMicroDebugPagingOverride_HAZEL))
-                {
-                    bp=&m_big_pages[HAZEL_BIG_PAGE_INDEX+((page>>4)-0x0c)];
-                    break;
+                if((dpo&BBCMicroDebugPagingOverride_OverrideHAZEL)) {
+                    if(dpo&BBCMicroDebugPagingOverride_HAZEL) {
+                        bp=&m_big_pages[HAZEL_BIG_PAGE_INDEX+((page>>4)-0x0c)];
+                        break;
+                    } else {
+                    os:
+                        bp=&m_big_pages[MOS_BIG_PAGE_INDEX+((page>>4)-0x0c)];
+                        break;
+                    }
                 } else {
-                os:
-                    bp=&m_big_pages[MOS_BIG_PAGE_INDEX+((page>>4)-0x0c)];
-                    break;
+                    goto no_overrides;
                 }
 
-            case 0xe: // 0xe000-0xffff
-            case 0xf: // 0xf000-0xffff
+            case 0xe: // 0xe000-0xefff
+            case 0xf: // 0xf000-0xfbff, 0xff00-0xfeff
                 goto os;
         }
     }

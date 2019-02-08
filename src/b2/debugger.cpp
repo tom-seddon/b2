@@ -662,7 +662,7 @@ protected:
                 this->ReadByte(&operand.b.l,nullptr,nullptr,addr++);
             }
             if(di->num_bytes>=3) {
-                this->ReadByte(&operand.b.l,nullptr,nullptr,addr++);
+                this->ReadByte(&operand.b.h,nullptr,nullptr,addr++);
             }
 
             ImGuiStyleColourPusher pusher;
