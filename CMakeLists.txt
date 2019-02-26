@@ -248,13 +248,11 @@ set(HAVE_LIBUV ON)
 add_subdirectory(submodules)
 add_subdirectory(src)
 target_sources(b2 PRIVATE ${CMAKE_CURRENT_LIST_DIR}/src/CMakeLists.txt ${CMAKE_CURRENT_LIST_DIR}/common.txt)
-
-add_subdirectory(submodules)
 target_sources(b2 PRIVATE ${CMAKE_CURRENT_LIST_DIR}/submodules/CMakeLists.txt)
 
 if(INCLUDE_EXPERIMENTAL)
   add_subdirectory(experimental)
-	target_sources(b2 PRIVATE ${CMAKE_CURRENT_LIST_DIR}/experimental/CMakeLists.txt)
+  target_sources(b2 PRIVATE ${CMAKE_CURRENT_LIST_DIR}/experimental/CMakeLists.txt)
 endif()
 
 ##########################################################################
