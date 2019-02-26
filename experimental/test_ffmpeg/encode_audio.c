@@ -139,7 +139,7 @@ int main(int argc, char **argv)
     filename = argv[1];
 
     /* register all the codecs */
-    avcodec_register_all();
+    //avcodec_register_all();
 
     /* find the MP2 encoder */
     codec = avcodec_find_encoder(AV_CODEC_ID_MP2);

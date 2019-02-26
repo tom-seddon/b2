@@ -5,16 +5,19 @@ The build process is somewhat similar on both platforms.
 I do some of the development on OS X, so the OS X version should work
 well.
 
-The Linux version is most politely described as "experimental".
+The Linux version is most politely described as "experimental". I've
+only tested it on Ubuntu, on a machine without working sound output.
 
-Prerequisites for both:
+# OS X prerequisites
 
-- gcc, g++, make (on OS X you get these with Xcode)
-- Python 2.x (on OS X this comes with the system)
-- [cmake](https://cmake.org/) version 3.5+ on the PATH (I built it from [the CMake github repo](https://github.com/Kitware/CMake))
-- [ninja](https://ninja-build.org/) (build from the [Ninja github repo](https://github.com/ninja-build/ninja), install from MacPorts, etc.)
+- Xcode
 
-Additional Linux apt package dependencies:
+# Linux prerequisites
+
+- gcc and g++, or clang
+- Python 2.x
+
+Additional apt package dependencies:
 
 - `uuid-dev`
 - `libgtk2.0-dev`
@@ -22,15 +25,29 @@ Additional Linux apt package dependencies:
 - `libpulse-dev`
 - `libgles1-mesa-dev`
 
-Optional Linux dependencies needed for video writing: (the project
-will build without these, but video writing won't work)
+There are additional dependencies for video writing, which are
+optional. The project will build without these, but video writing
+won't be available.
 
 - `libx264-dev` apt package
-- `FFmpeg` ver 57 or better (the Ubuntu package is ver 56. I built it
-  from [the FFmpeg github repo](https://github.com/FFmpeg/FFmpeg) with
-  configure options `--enable-libx264 --enable-gpl --enable-shared`)
+- `FFmpeg` libs: libavcodec 58+, libavformat 58+, libavutil 56+,
+  libswresample 3+, libswscale 5+ - not sure about the version
+  numbering here, but this seems to correspond to FFmpeg 4.1.
+  
+Watch out for older package manager versions of FFmpeg! It's easy to
+build from [the FFmpeg github repo](https://github.com/FFmpeg/FFmpeg),
+though. (I used configure options `--enable-libx264 --enable-gpl
+--enable-shared`. I had to re-run `ldconfig` after doing `make
+install` so the system could find the new libraries.)
 
-Initial setup steps:
+# Common prerequisites
+
+- [cmake](https://cmake.org/) version 3.9+ on the PATH (I built it from [the CMake github repo](https://github.com/Kitware/CMake))
+- [ninja](https://ninja-build.org/) (build from the [Ninja github repo](https://github.com/ninja-build/ninja), install from MacPorts, etc.)
+
+# Building
+
+Initial setup:
 
 1. Open terminal and change to working copy folder
 
@@ -38,7 +55,7 @@ Initial setup steps:
    goes wrong it should stop with a `CMake Error` that will hopefully
    explain things
 
-General day-to-day build steps:
+Day-to-day build steps:
 
 1. Change to build folder.
 

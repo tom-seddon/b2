@@ -34,6 +34,8 @@ EPNV(1770,1<<3)
 EPNV(SystemVIA,1<<4)
 EPNV(UserVIA,1<<5)
 EPNV(VideoULA,1<<6)
+EPNV(SN76489,1<<7)
+EPNV(BeebLink,1<<8)
 EEND()
 #undef ENAME
 
@@ -106,12 +108,12 @@ EEND()
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_DEBUGGER
-#define ENAME BBCMicroDebugByteFlag
-EBEGIN()
-EPNV(BreakExecute,1<<0)
-EPNV(BreakRead,1<<1)
-EPNV(BreakWrite,1<<2)
-EEND()
+//#define ENAME BBCMicroDebugByteFlag
+//EBEGIN()
+//EPNV(BreakExecute,1<<0)
+//EPNV(BreakRead,1<<1)
+//EPNV(BreakWrite,1<<2)
+//EEND()
 #undef ENAME
 
 #define ENAME BBCMicroStepType
@@ -122,4 +124,45 @@ EPN(StepIntoIRQHandler)
 EEND()
 #undef ENAME
 
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#define ENAME BBCMicroVIAID
+EBEGIN()
+EPN(SystemVIA)
+EPN(UserVIA)
+EEND()
+#undef ENAME
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#define ENAME BBCMicroCloneImpediment
+EBEGIN()
+EPNV(BeebLink,1<<0)
+EPNV(Drive0,1<<24)
+// ...up to DriveN, which is Drive0<<(NUM_DRIVES-1)
+EEND()
+#undef ENAME
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_DEBUGGER
+#define ENAME BBCMicroDebugPagingOverride
+EBEGIN()
+EPNV(ROM,15)
+EPNV(OverrideROM,1<<4)
+EPNV(ANDY,1<<5)
+EPNV(OverrideANDY,1<<6)
+EPNV(HAZEL,1<<7)
+EPNV(OverrideHAZEL,1<<8)
+EPNV(Shadow,1<<9)
+EPNV(OverrideShadow,1<<10)
+EPNV(OS,1<<11)
+EPNV(OverrideOS,1<<12)
+EEND()
+#undef ENAME
 #endif

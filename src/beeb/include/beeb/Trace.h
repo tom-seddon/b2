@@ -38,6 +38,8 @@
 #include <shared/log.h>
 #include <string>
 
+struct M6502Config;
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
@@ -95,10 +97,19 @@ class Trace:
     public std::enable_shared_from_this<Trace>
 {
 public:
+#include <shared/pshpack1.h>
+    struct M6502ConfigTraceEvent {
+        const M6502Config *config;
+    };
+#include <shared/poppack.h>
+
     static const TraceEventType STRING_EVENT;
     static const TraceEventType DISCONTINUITY_EVENT;
+    static const TraceEventType M6502_CONFIG_EVENT;
 
-    Trace();
+    // max_num_bytes is approximate - actual consumption may be greater.
+    // Supply SIZE_MAX to just have the data grow indefinitely.
+    explicit Trace(size_t max_num_bytes);
     ~Trace();
 
     Trace(const Trace &)=delete;
@@ -115,11 +126,6 @@ public:
     // to its data. The type is used to find its size.
     void *AllocEvent(const TraceEventType &type);
 
-    // Allocate a new event with variable-sized data, and return a
-    // pointer to its data. (The event must have been registered with
-    // a size of 0.)
-    void *AllocEventWithSize(const TraceEventType &type,size_t size);
-
     // TYPE must be the type of event the data was allocated for.
     void CancelEvent(const TraceEventType &type,void *data);
 
@@ -132,17 +138,17 @@ public:
     void PRINTF_LIKE(2,3) AllocStringf(const char *fmt,...);
     void AllocStringv(const char *fmt,va_list v);
     void AllocString(const char *str);
-    char *AllocString2(const char *str,size_t len);
 
-    // max_size bytes is allocated. Write to it until a call to
-    // Trace_FinishLog (which truncates the allocation appropriately)
-    // or another event is allocated.
+    void AllocM6502ConfigEvent(const M6502Config *config);
+
+    // max_len bytes is allocated. Call FinishLog to try to truncate the
+    // allocation if possible.
     LogPrinter *GetLogPrinter(size_t max_len);
     void FinishLog(Log *log);
 
     void GetStats(TraceStats *stats) const;
 
-    typedef int (*ForEachEventFn)(Trace *t,const TraceEvent *e,void *context);
+    typedef bool (*ForEachEventFn)(Trace *t,const TraceEvent *e,void *context);
 
     // return true to continue iteration, false to stop it. returns
     // false if iteration was canceled.
@@ -172,9 +178,18 @@ private:
     char *m_log_data=nullptr;
     size_t m_log_len=0;
     size_t m_log_max_len=0;
-    LogPrinterTrace m_log_printer;
+    LogPrinterTrace m_log_printer{this};
+    size_t m_max_num_bytes;
+    size_t m_chunk_size;
+
+    // Allocate a new event with variable-sized data, and return a
+    // pointer to its data. (The event must have been registered with
+    // a size of 0.)
+    void *AllocEventWithSize(const TraceEventType &type,size_t size);
+    char *AllocString2(const char *str,size_t len);
 
     void *Alloc(uint64_t time,size_t n);
+    void Check();
     static void PrintToTraceLog(const char *str,size_t str_len,void *data);
 };
 

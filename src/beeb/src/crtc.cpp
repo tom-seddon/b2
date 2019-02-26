@@ -1,6 +1,6 @@
 #include <shared/system.h>
 #include <shared/debug.h>
-#include <6502/6502.h>
+#include <beeb/6502.h>
 #include <string.h>
 #include <beeb/crtc.h>
 #include <beeb/Trace.h>
@@ -8,6 +8,10 @@
 #include <shared/enum_def.h>
 #include <beeb/crtc.inl>
 #include <shared/enum_end.h>
+
+// https://stardot.org.uk/forums/viewtopic.php?f=4&t=14971
+
+// https://stardot.org.uk/forums/viewtopic.php?f=57&t=14988
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -41,6 +45,8 @@ static const uint16_t CRTC_REGISTERS[32]={
     CrtcRegister_CanRead,//16
     CrtcRegister_CanRead,//17
 };
+
+static const uint8_t RASTER_MASK=0x1f;
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -91,6 +97,8 @@ void CRTC::WriteData(void *c_,M6502Word a,uint8_t value) {
 
     uint16_t reg=CRTC_REGISTERS[c->m_address];
     if(reg&CrtcRegister_CanWrite) {
+        TRACEF_IF(c->m_trace_scanlines,c->m_trace,"6845 - %u - R%u was %u ($%02x), now %u ($%02x)",c->m_num_updates,c->m_address,c->m_registers.values[c->m_address],c->m_registers.values[c->m_address],value&reg,value&reg);
+
         c->m_registers.values[c->m_address]=value&reg;
     }
 }
@@ -106,79 +114,158 @@ CRTC::Output CRTC::Update(uint8_t fast_6845) {
     CHECK_SIZEOF(R8,1);
     CHECK_SIZEOF(R10,1);
     CHECK_SIZEOF(Output,4);
+    ASSERT(fast_6845==0||fast_6845==1);
 
-    Output output={};
+    ++m_num_updates;
 
-    output.odd_frame=m_num_frames&1;
-
-    if(m_interlace_delay>0) {
-        --m_interlace_delay;
-        if(m_interlace_delay==0) {
-            output.vsync=1;
+    // The interlace delay counter appears to be special.
+    if(m_interlace_delay_counter>=0) {
+        ++m_interlace_delay_counter;
+        if(m_interlace_delay_counter!=1+(m_registers.values[0]>>1)) {
+            return {};
         }
-        return output;
+
+        TRACEF_IF(m_trace_scanlines,m_trace,"6845 - %u - interlace delay counter done.",m_num_updates);
+        m_interlace_delay_counter=-1;
     }
 
-    if(m_vsync_left>0) {
-        // vysnc line
-        ASSERT(m_hsync_left==0);
-        output.vsync=1;
-    } else if(m_hsync_left>0) {
-        // hblank region
-        output.hsync=1;
-        output.display=m_row<m_registers.values[6]&&!m_adj;
-        //m_nadj_left==0;//m_registers.bits.r8.bits.d!=3;
-        --m_hsync_left;
-    } else if(m_row>=m_registers.values[6]) {
-        // Off the bottom of the screen.
+    // Horizontal sync counter.
+    if(m_hsync_counter>=0) {
+        ++m_hsync_counter;
+        if(m_hsync_counter==m_registers.bits.nsw.bits.wh) {
+            m_hsync_counter=-1;
+        }
     } else {
-        // Skew-related(?) notes that need revisiting once I'm no
-        // longer sick of it:
-        //
-        // - The display skew is set to account for Mode 7, which has
-        //   some kind of 1-char delay between input and output. So
-        //   there should probably also be a 1-byte buffer in BBCMicro
-        //   to simulate this.
-        // 
-        //   That would push the screen one to the right. But that
-        //   could be offset by handling the address generation
-        //   properly here - if dispen were delayed, but the address
-        //   weren't, then each row would be positioned where it
-        //   should be
-        //
-        // - The cursor generation ought to be affected by the cursor
-        //   delay, which at the moment it isn't (but since it's
-        //   skewed too, along with the address calculation, it all
-        //   hangs together)
-        // 
-        // - On my M128, Mode 7 is still 1 char further to the right
-        //   than Mode 4/5/6 - where does this come from? Is this the
-        //   extra char from the hsync position (which in Mode7 is 51,
-        //   rather than 49, even though the skew is only 1)? Or maybe
-        //   I'm completely wrong?
-        //
-        // - On my M128, Mode 0/1/2/3 are 1 column to the left of Mode
-        //   4/5/6... which I'm just going to pretend I didn't notice
-        if(m_column>=m_delay&&m_column<m_registers.values[1]+m_delay) {
-            output.display=1;
+        if(m_column==m_registers.values[2]) {
+            m_hsync_counter=0;
+        }
+    }
 
-            output.raster=m_raster;
-            ASSERT(output.raster==m_raster);
+    // Vertical displayed.
+    if(m_row==m_registers.values[6]) {
+        m_vdisp=false;
+    }
 
-            output.address=m_char_addr.w;
-            ASSERT(output.address==m_char_addr.w);
+    // Handle column 0.
+    if(m_column==0) {
+        if(m_vsync_counter>=0) {
+            ++m_vsync_counter;
 
+            uint8_t wv=m_registers.bits.nsw.bits.wv;
+            if(wv==0) {
+                wv=16;
+            }
+
+            if(m_vsync_counter==wv) {
+                m_vsync_counter=-1;
+            }
+        } else if(m_row==m_registers.values[7]&&m_raster==0) {
+            m_vsync_counter=0;
+            m_num_updates=0;
+
+            if(m_registers.bits.r8.bits.s) {
+                m_interlace_delay_counter=0;
+                return {};
+            }
+        }
+
+        TRACEF_IF(m_trace_scanlines,m_trace,"6845 - %u - start of scanline: CRTC addr: $%04X; raster: %u; row: %u; vsync_counter: %d; adj counter: %d",m_num_updates,m_line_addr.w,m_raster,m_row,m_vsync_counter,m_adj_counter);
+    }
+
+    // Horizontal displayed.
+    if(m_column==m_registers.values[1]) {
+        m_hdisp=false;
+
+        // The 6845 appears to do this at this point - try, e.g.,
+        // MODE1:?&FE00=1:?&FE01=128
+        if(m_raster==m_registers.values[9]) {
+            m_line_addr.w+=m_registers.values[1];
+            m_char_addr.w=m_line_addr.w;
+        }
+    }
+
+    // Produce output.
+    Output output={};
+
+    output.vsync=m_vsync_counter>=0;
+    output.hsync=m_hsync_counter>=0&&!output.vsync;
+    output.address=m_char_addr.w;
+
+    if(m_adj_counter<0) {
+        if(m_row==m_registers.values[4]&&m_raster==m_registers.values[9]) {
+            m_adj_counter=0;
+        }
+    }
+
+    // Handle column N-1.
+    if(m_column==m_registers.values[0]) {
+        TRACEF_IF(m_trace_scanlines,m_trace,"6845 - %u - end of scanline: raster: %u (R9=%u); row: %u (R4=%u); vsync_counter: %d; adj counter: %d",m_num_updates,m_raster,m_registers.values[9],m_row,m_registers.values[4],m_vsync_counter,m_adj_counter);
+
+        m_hdisp=true;
+
+        if(m_raster==m_registers.values[9]) {
+        next_row:
+            m_raster=0;
+            ++m_row;
+        } else {
+            if(m_registers.bits.r8.bits.v&&m_registers.bits.r8.bits.s) {
+                // Interlace sync and video
+
+                // Judging by MODE7:?&FE00=9:?&FE01=17, the real hardware
+                // must do something similar?
+                if(m_raster+1==m_registers.values[9]) {
+                    goto next_row;
+                }
+
+                m_raster+=2;
+            } else {
+                // Interlace sync, no interlace
+                ++m_raster;
+            }
+
+            m_raster&=RASTER_MASK;
+        }
+
+        m_column=0;
+        m_char_addr=m_line_addr;
+
+        if(m_adj_counter>=0) {
+            if(m_adj_counter==m_registers.values[5]) {
+                m_line_addr.b.h=m_registers.values[12];
+                m_line_addr.b.l=m_registers.values[13];
+
+                m_char_addr=m_line_addr;
+
+                m_adj_counter=-1;
+                m_row=0;
+                m_raster=0;
+                m_vdisp=true;
+                m_hdisp=true;
+                m_column=0;
+                ++m_num_frames;
+
+                TRACEF(m_trace,"6845 - %u - start of frame. CRTC address: $%04X",m_num_updates,m_line_addr.w);
+            } else {
+                ++m_adj_counter;
+            }
+        }
+
+        // Display is never produced in the last column.
+    } else {
+        if(m_hdisp&&m_vdisp) {
+            if(m_registers.bits.r8.bits.d!=3) {
+                m_skewed_display|=1<<m_registers.bits.r8.bits.d;
+            }
+            
             if(m_char_addr.b.h==m_registers.bits.cursorh&&
-                m_char_addr.b.l==m_registers.bits.cursorl&&
-                output.raster>=m_registers.bits.ncstart.bits.start&&
-                output.raster<m_registers.bits.ncend)
+               m_char_addr.b.l==m_registers.bits.cursorl&&
+               m_raster>=m_registers.bits.ncstart.bits.start&&
+               m_raster<m_registers.bits.ncend&&
+               m_registers.bits.r8.bits.c!=3)
             {
-                if(m_registers.bits.r8.bits.c==3) {
-                    // No cursor output in this case.
-                } else {
-                    switch((CRTCCursorMode)m_registers.bits.ncstart.bits.mode) {
+                switch((CRTCCursorMode)m_registers.bits.ncstart.bits.mode) {
                     case CRTCCursorMode_On:
-                        output.cudisp=1;
+                        m_skewed_cudisp|=1<<m_registers.bits.r8.bits.c;
                         break;
 
                     case CRTCCursorMode_Off:
@@ -186,121 +273,43 @@ CRTC::Output CRTC::Update(uint8_t fast_6845) {
 
                     case CRTCCursorMode_Blink16:
                         // 8 frames on, 8 frames off
-                        output.cudisp=(uint32_t)m_num_frames>>3;
+                        if((m_num_frames&8)!=0) {
+                            m_skewed_cudisp|=1<<m_registers.bits.r8.bits.c;
+                        }
                         break;
 
                     case CRTCCursorMode_Blink32:
                         // 16 frames on, 16 frames off
-                        output.cudisp=(uint32_t)m_num_frames>>4;
+                        if((m_num_frames&16)!=0) {
+                            m_skewed_cudisp|=1<<m_registers.bits.r8.bits.c;
+                        }
                         break;
-                    }
                 }
             }
 
-            ++m_char_addr.w;
-            m_char_addr.w&=0x3fff;
         }
+
+        output.raster=m_raster;
+        ASSERT(output.raster==m_raster);
+
+        output.display=m_skewed_display&1;
+        m_skewed_display>>=1;
+
+        output.cudisp=m_skewed_cudisp&1;
+        m_skewed_cudisp>>=1;
+
+        ++m_char_addr.w;
+        
+        ++m_column;
     }
 
-    if(m_column>=m_registers.values[0]) {
-#if BBCMICRO_TRACE
-        TRACEF_IF(m_trace_scanlines,m_trace,"6845 - scanline end: %u\n",m_trace_scanline);
 
-        ++m_trace_scanline;
-#endif
 
-        // advance to next scanline.
-        m_column=0;
-
-        m_delay=m_registers.bits.r8.bits.d;
-        if(m_delay==3) {
-            m_delay=255;
-        } else if(!fast_6845) {
-            // This is a bodge to fix Mode 7 (the delay in all other
-            // modes is by default 0).
-            //
-            // Without the scaling, a 1 cycle 6845 delay will shift
-            // the output by only half a 6845 column in slow clock
-            // mode, because the video output effectively always runs
-            // at 2MHz (since one VideoDataUnit = 0.5us) even when the
-            // 6845 is running at 1MHz. But there needs to be a shift
-            // of 1 full column to put Mode 7 in the right place.
-            //
-            // See the skew notes above too.
-            m_delay*=2;
-        }
-
-        // keep the vsync counter going.
-        if(m_vsync_left>0) {
-            --m_vsync_left;
-        }
-
-        if(m_adj) {
-            this->NextRaster();
-            
-            if(m_raster>=m_registers.values[5]) {
-                m_adj=false;
-                this->StartOfFrame();
-            }
-        } else if(m_raster<m_registers.values[9]) {
-            this->NextRaster();
-        } else {
-            m_raster=0;
-
-            ++m_row;
-
-            if(m_row==m_registers.values[7]) {
-                m_hsync_left=0;
-
-                if(m_registers.bits.r8.bits.s) {//&&m_odd_frame) {
-                    m_interlace_delay=(m_registers.values[0]+1)/2;
-                } else {
-                    output.vsync=1;
-                }
-
-                // TODO - is this the right time to do this?
-                ++m_num_frames;
-
-                m_vsync_left=m_registers.bits.nsw.bits.wv;
-                if(m_vsync_left==0) {
-                    m_vsync_left=16;
-                }
-
-                TRACEF_IF(m_trace_scanlines,m_trace,"6845 - vsync begin: %u scanline(s)\n",m_vsync_left);
-            }
-
-            // calculate next start address.
-            m_line_addr.w+=m_registers.values[1];
-            m_line_addr.w&=0x3fff;
-
-            m_char_addr=m_line_addr;
-
-            if(m_row==m_registers.values[4]+1) {
-                if(m_registers.values[5]==0) {
-                    this->StartOfFrame();
-                } else {
-                    m_adj=true;
-                }
-            }
-            
-            ASSERT(!(m_line_addr.b.h&~0x3f));
-
-        }
-
-        TRACEF_IF(m_trace_scanline,m_trace,"6845 - start of scanline %u: CRTC addr: $%04X; delay: %u; raster: %u; row: %u; vsync_left: %u; adj: %s\n",
-                  m_trace_scanline,m_line_addr.w,m_delay,m_raster,m_row,m_vsync_left,BOOL_STR(m_adj));
-    } else {
-        // advance to next column in row.
-        ++m_column;
-
-        if(m_column==m_registers.values[2]) {
-            if(m_vsync_left>0) {
-                // ignore the hblank in this situation.
-            } else {
-                m_hsync_left=m_registers.bits.nsw.bits.wh;
-
-                TRACEF_IF(m_trace_scanlines,m_trace,"6845 - hblank begin.\n");
-            }
+    // Vertical.
+    if(m_vdisp) {
+        if(m_row==m_registers.values[6]) {
+            TRACEF(m_trace,"6845 - %u - end of visible display.",m_num_updates);
+            m_vdisp=false;
         }
     }
 
@@ -316,40 +325,6 @@ void CRTC::SetTrace(Trace *t,bool trace_scanlines) {
     m_trace_scanlines=trace_scanlines;
 }
 #endif
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-void CRTC::NextRaster() {
-    m_char_addr.w=m_line_addr.w;
-
-    if(m_registers.bits.r8.bits.v&&m_registers.bits.r8.bits.s) {
-        // Interlace sync and video
-        m_raster+=2;
-    } else {
-        // Interlace sync, no interlace
-        ++m_raster;
-    }
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-void CRTC::StartOfFrame() {
-    m_line_addr.b.h=m_registers.values[12];
-    m_line_addr.b.l=m_registers.values[13];
-
-    m_char_addr=m_line_addr;
-
-    m_row=0;
-    m_raster=0;
-    
-#if BBCMICRO_TRACE
-    m_trace_scanline=0;
-
-    TRACEF(m_trace,"6845 - start of frame. CRTC address: $%04X\n",m_line_addr.w);
-#endif
-}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

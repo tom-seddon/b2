@@ -8,12 +8,12 @@
 #include <shared/system_specific.h>
 #include <shared/log.h>
 
-#include "native_ui_noc.h"
-
 #if SYSTEM_OSX
-void MessageBox(const std::string &title,const std::string &text);
+#include "native_ui_osx.h"
+#elif SYSTEM_WINDOWS
+#include "native_ui_windows.h"
 #elif SYSTEM_LINUX
-#include <gtk/gtk.h>
+#include "native_ui_gtk.h"
 #endif
 
 //////////////////////////////////////////////////////////////////////////
@@ -49,7 +49,6 @@ void FailureMessageBox(const std::string &title,const std::shared_ptr<MessageLis
         }
     }
 
-
     std::string text;
 
     if(!last_error.empty()) {
@@ -68,28 +67,9 @@ void FailureMessageBox(const std::string &title,const std::shared_ptr<MessageLis
 
     MessageBox(nullptr,text.c_str(),title.c_str(),MB_ICONERROR);
 
-#elif SYSTEM_OSX
+#elif SYSTEM_OSX||SYSTEM_LINUX
 
     MessageBox(title,text);
-
-#elif SYSTEM_LINUX
-
-    // Doesn't seem to be any way to apply a title with GTK.
-    (void)title;
-
-    gtk_init_check(nullptr,nullptr);
-
-    GtkWidget *dialog=gtk_message_dialog_new(nullptr,
-                                             GTK_DIALOG_MODAL,
-                                             GTK_MESSAGE_ERROR,
-                                             GTK_BUTTONS_OK,
-                                             "%s",
-                                             title.c_str());
-    gtk_message_dialog_format_secondary_text(GTK_MESSAGE_DIALOG(dialog),
-                                             "%s",
-                                             text.c_str());
-    gtk_dialog_run(GTK_DIALOG(dialog));
-    gtk_widget_destroy(dialog);
 
 #else
 
@@ -123,17 +103,6 @@ RecentPaths *GetRecentPathsByTag(const std::string &tag) {
 
 void SetRecentPathsByTag(std::string tag,RecentPaths recents) {
     g_recent_paths_by_tag[std::move(tag)]=std::move(recents);
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-static const char *GetCStr(const std::string &str) {
-    if(str.empty()) {
-        return nullptr;
-    } else {
-        return str.c_str();
-    }
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -238,52 +207,76 @@ bool SelectorDialog::Open(std::string *path) {
         }
     }
 
-    const char *r=this->HandleOpen();
-    if(r) {
-        m_last_path=r;
-        *path=m_last_path;
-        return true;
-    } else {
+    std::string result=this->HandleOpen();
+    if(result.empty()) {
         m_last_path.clear();
         return false;
+    } else {
+        m_last_path=result;
+        *path=m_last_path;
+        return true;
     }
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-FileDialog::FileDialog(std::string tag,int noc_flags):
-    SelectorDialog(std::move(tag)),
-    m_noc_flags(noc_flags)
+FileDialog::FileDialog(std::string tag):
+    SelectorDialog(std::move(tag))
 {
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void FileDialog::AddFilter(std::string title,const std::string &patterns) {
-    std::string filter=std::move(title);
-    filter.push_back(0);
-    filter.append(patterns);
-    filter.push_back(0);
-
-    m_filters.append(filter);
+void FileDialog::AddFilter(std::string title,std::vector<std::string> patterns) {
+    ASSERT(!patterns.empty());
+    for(const std::string &pattern:patterns) {
+        ASSERT(!pattern.empty());
+        ASSERT(pattern[0]=='.');
+    }
+    m_filters.push_back({std::move(title),std::move(patterns)});
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 void FileDialog::AddAllFilesFilter() {
+    this->AddFilter("All files",{".*"});
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+OpenFileDialog::OpenFileDialog(std::string tag):
+    FileDialog(std::move(tag))
+{
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+std::string OpenFileDialog::HandleOpen() {
+    LOGF(OUTPUT,"%s: ",__func__);
+    {
+        LOG_EXTERN(OUTPUT);
+        LOGI(OUTPUT);
+        LOGF(OUTPUT,"Last path: ``%s''\n",m_last_path.c_str());
+        //        LOGF(OUTPUT,"Default folder: ``%s''\n",default_folder.c_str());
+        //        LOGF(OUTPUT,"Default name: ``%s''\n",default_name.c_str());
+    }
+
 #if SYSTEM_OSX
 
-    // the initial "*." is actually ignored - this due to the way noc
-    // deals with OS X's file dialog only accepting extensions, rather
-    // than file patterns.
-    this->AddFilter("All files","*.*");
+    return OpenFileDialogOSX(m_filters,m_last_path);
+
+#elif SYSTEM_WINDOWS
+
+    return OpenFileDialogWindows(m_filters,m_last_path);
 
 #else
 
-    this->AddFilter("All files","*");
+    return OpenFileDialogGTK(m_filters,m_last_path);
 
 #endif
 }
@@ -291,49 +284,30 @@ void FileDialog::AddAllFilesFilter() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-int FileDialog::GetFilterIndex() const {
-    return m_filter_index;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-const char *FileDialog::HandleOpen() {
-    std::string default_name=PathGetName(m_last_path);
-    std::string default_folder=PathGetFolder(m_last_path);
-
-    LOGF(OUTPUT,"%s: ",__func__);
-    {
-        LOG_EXTERN(OUTPUT);
-        LOGI(OUTPUT);
-        LOGF(OUTPUT,"Last path: ``%s''\n",m_last_path.c_str());
-        LOGF(OUTPUT,"Default folder: ``%s''\n",default_folder.c_str());
-        LOGF(OUTPUT,"Default name: ``%s''\n",default_name.c_str());
-    }
-
-    const char *r=noc_file_dialog_open(m_noc_flags,m_filters.c_str(),
-                                       GetCStr(default_folder),
-                                       GetCStr(default_name));
-
-    m_filter_index=noc_file_dialog_get_filter_index();
-
-    return r;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-OpenFileDialog::OpenFileDialog(std::string tag):
-    FileDialog(std::move(tag),NOC_FILE_DIALOG_OPEN)
-{
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 SaveFileDialog::SaveFileDialog(std::string tag):
-    FileDialog(std::move(tag),NOC_FILE_DIALOG_SAVE|NOC_FILE_DIALOG_OVERWRITE_CONFIRMATION)
+    FileDialog(std::move(tag))
 {
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+std::string SaveFileDialog::HandleOpen() {
+
+#if SYSTEM_OSX
+
+    return SaveFileDialogOSX(m_filters,m_last_path);
+
+#elif SYSTEM_WINDOWS
+
+    return SaveFileDialogWindows(m_filters,m_last_path);
+
+#else
+
+    return SaveFileDialogGTK(m_filters,m_last_path);
+
+#endif
+
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -347,10 +321,24 @@ FolderDialog::FolderDialog(std::string tag):
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-const char *FolderDialog::HandleOpen() {
-    const char *default_path=GetCStr(m_last_path);
-    const char *r=noc_file_dialog_open(NOC_FILE_DIALOG_DIR,nullptr,default_path,nullptr);
+std::string FolderDialog::HandleOpen() {
+
+#if SYSTEM_OSX
+
+    std::string r=SelectFolderDialogOSX(m_last_path);
     return r;
+
+#elif SYSTEM_WINDOWS
+
+    std::string r=SelectFolderDialogWindows(m_last_path);
+    return r;
+
+#else
+
+    std::string r=SelectFolderDialogGTK(m_last_path);
+    return r;
+
+#endif
 }
 
 //////////////////////////////////////////////////////////////////////////

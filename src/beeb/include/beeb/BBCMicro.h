@@ -7,13 +7,15 @@
 struct ROM;
 struct DiscDriveCallbacks;
 class Log;
-union VideoDataUnit;
+struct VideoDataUnit;
 struct SoundDataUnit;
 struct DiscInterfaceDef;
 class Trace;
 struct TraceStats;
 class TraceEventType;
 class DiscImage;
+class BeebLinkHandler;
+class BeebLink;
 
 #include <array>
 #include <memory>
@@ -23,13 +25,12 @@ class DiscImage;
 #include "ExtMem.h"
 #include "1770.h"
 #include "6522.h"
-#include <6502/6502.h>
+#include "6502.h"
 #include "SN76489.h"
 #include "MC146818.h"
 #include "VideoULA.h"
 #include "teletext.h"
 #include "DiscInterface.h"
-#include <shared/mutex.h>
 #include <time.h>
 #include "keys.h"
 #include "video.h"
@@ -46,12 +47,18 @@ class DiscImage;
 class BBCMicro:
     private WD1770Handler
 {
+    static constexpr uint8_t NUM_BIG_PAGES=84;
 public:
     static const uint16_t SCREEN_WRAP_ADJUSTMENTS[];
 
     union ACCCON;
     typedef void (*UpdateROMSELPagesFn)(BBCMicro *);
     typedef void (*UpdateACCCONPagesFn)(BBCMicro *,const ACCCON *);
+
+    static constexpr size_t BIG_PAGE_SIZE_BYTES=4096;
+    static constexpr size_t BIG_PAGE_OFFSET_MASK=4095;
+
+    static constexpr size_t BIG_PAGE_SIZE_PAGES=BIG_PAGE_SIZE_BYTES/256u;
 
 #if BBCMICRO_DEBUGGER
     struct HardwareDebugState {
@@ -85,19 +92,34 @@ public:
 
         static_assert(sizeof(ByteDebugFlags)==1,"");
 
-        static const uint16_t NUM_DEBUG_FLAGS_PAGES=256+16*64+64;
-
         // No attempt made to minimize this stuff... it doesn't go into
         // the saved states, so whatever.
-        ByteDebugFlags pages[NUM_DEBUG_FLAGS_PAGES][256]={};
-        //Breakpoint *indexes[NUM_DEBUG_FLAGS_PAGES][256]={};
+        ByteDebugFlags big_pages_debug_flags[NUM_BIG_PAGES][BIG_PAGE_SIZE_BYTES]={};
 
         std::vector<ByteDebugFlags *> temp_execute_breakpoints;
-        //std::vector<Breakpoint *> breakpoints;
 
         char halt_reason[1000];
     };
 #endif
+
+    struct BigPage {
+        // if non-NULL, points to BIG_PAGE_SIZE_BYTES bytes. NULL if this
+        // big page isn't readable.
+        const uint8_t *r=nullptr;
+
+        // if non-NULL, points to BIG_PAGE_SIZE_BYTES bytes. NULL if this
+        // big page isn't writeable.
+        uint8_t *w=nullptr;
+
+#if BBCMICRO_DEBUGGER
+        // if non-NULL, points to BIG_PAGE_SIZE_BYTES values. NULL if this
+        // BBCMicro has no associated DebugState.
+        DebugState::ByteDebugFlags *debug=nullptr;
+#endif
+
+        uint8_t index=0;
+        char code=0;
+    };
 
     // nvram_contents and rtc_time are ignored if the BBCMicro doesn't
     // support such things.
@@ -107,14 +129,17 @@ public:
              const tm *rtc_time,
              bool video_nula,
              bool ext_mem,
+             bool power_on_tone,
+             BeebLinkHandler *beeblink_handler,
              uint64_t initial_num_2MHz_cycles);
 protected:
     BBCMicro(const BBCMicro &src);
 public:
     ~BBCMicro();
 
-    // The clone has no disc drive callbacks, and no disc access
-    // mutex.
+    // result is a combination of BBCMicroCloneImpediment.
+    uint32_t GetCloneImpediments() const;
+
     std::unique_ptr<BBCMicro> Clone() const;
 
     typedef std::array<uint8_t,16384> ROMData;
@@ -128,16 +153,6 @@ public:
 #include <shared/poppack.h>
 
     static const TraceEventType INSTRUCTION_EVENT;
-#endif
-
-#if BBCMICRO_TRACE
-#include <shared/pshpack1.h>
-    struct InitialTraceEvent {
-        const struct M6502Config *config;
-    };
-#include <shared/poppack.h>
-
-    static const TraceEventType INITIAL_EVENT;
 #endif
 
 #include <shared/pushwarn_bitfields.h>
@@ -184,10 +199,10 @@ public:
 #include <shared/popwarn.h>
 
     union AddressableLatch {
+        uint8_t value;
         AddressableLatchBits bits;
         BAddressableLatchBits b_bits;
         Master128AddressableLatchBits m128_bits;
-        uint8_t value;
     };
 
     struct BROMSELBits {
@@ -223,24 +238,22 @@ public:
         Master128ACCCONBits m128_bits;
     };
 
-    struct MemoryPages {
-        uint8_t *w[256]={};
-        const uint8_t *r[256]={};
+    struct MemoryBigPages {
+        uint8_t *w[16]={};
+        const uint8_t *r[16]={};
 #if BBCMICRO_DEBUGGER
-        DebugState::ByteDebugFlags *debug[256]={};
-        uint16_t debug_page_index[256];
+        DebugState::ByteDebugFlags *debug[16]={};
+        const BigPage *bp[16]={};
 #endif
-
-        MemoryPages();
     };
 
-    typedef uint8_t (*ReadMMIOFn)(void *,union M6502Word);
+    typedef uint8_t (*ReadMMIOFn)(void *,M6502Word);
     //struct ReadMMIO {
     //    ReadMMIOFn fn;
     //    void *obj;
     //};
 
-    typedef void (*WriteMMIOFn)(void *,union M6502Word,uint8_t value);
+    typedef void (*WriteMMIOFn)(void *,M6502Word,uint8_t value);
     //struct WriteMMIO {
     //    WriteMMIOFn fn;
     //    void *obj;
@@ -311,11 +324,6 @@ public:
     // *SOUND_UNIT was filled in.
     //bool Update(VideoDataUnit *unit0,VideoDataUnit *unit1,SoundDataUnit *sound_unit);
 
-#if BBCMICRO_TURBO_DISC
-    bool GetTurboDisc();
-    void SetTurboDisc(int turbo);
-#endif
-
 #if BBCMICRO_ENABLE_DISC_DRIVE_SOUND
     // The disc drive sounds are used by all BBCMicro objects created
     // after they're set.
@@ -326,9 +334,7 @@ public:
 
     uint32_t GetLEDs();
 
-    // Get the buffer size from GetNVRAMSize.
-    const uint8_t *GetNVRAM() const;
-    size_t GetNVRAMSize() const;
+    std::vector<uint8_t> GetNVRAM() const;
 
     // The shared_ptr is copied.
     void SetOSROM(std::shared_ptr<const ROMData> data);
@@ -342,7 +348,7 @@ public:
 #if BBCMICRO_TRACE
     /* Allocates a new trace (replacing any existing one) and sets it
     * going. */
-    void StartTrace(uint32_t trace_flags);
+    void StartTrace(uint32_t trace_flags,size_t max_num_bytes);
 
     /* If there's a trace, stops it, and returns a shared_ptr to it.
      * Otherwise, returns null. */
@@ -360,9 +366,9 @@ public:
     void AddInstructionFn(InstructionFn fn,void *context);
 
     void SetMMIOFns(uint16_t addr,ReadMMIOFn read_fn,WriteMMIOFn write_fn,void *context);
-    void SetMMIOCycleStretch(uint16_t addr,bool stretch);
 
-    std::shared_ptr<DiscImage> GetMutableDiscImage(int drive);
+    // The pointer is moved into the result.
+    std::shared_ptr<DiscImage> TakeDiscImage(int drive);
     std::shared_ptr<const DiscImage> GetDiscImage(int drive) const;
 
     void SetDiscImage(int drive,std::shared_ptr<DiscImage> disc_image);
@@ -370,14 +376,12 @@ public:
     // Every time there is a disc access, the disc access flag is set
     // to true. This call retrieves its current value, and sets it to
     // false.
-    //
-    // The disc mutex will be locked if there is one.
     bool GetAndResetDiscAccessFlag();
 
     static const char PASTE_START_CHAR;
 
     bool IsPasting() const;
-    void StartPaste(std::shared_ptr<std::string> text);
+    void StartPaste(std::shared_ptr<const std::string> text);
     void StopPaste();
 
     const M6502 *GetM6502() const;
@@ -395,15 +399,27 @@ public:
     const R6522 *DebugGetSystemVIA() const;
     const R6522 *DebugGetUserVIA() const;
 
-    uint16_t DebugGetFlatPage(uint8_t page) const;
+    //uint16_t DebugGetFlatPage(uint8_t page) const;
 
-    void DebugCopyMemory(void *bytes_dest,DebugState::ByteDebugFlags *debug_dest,M6502Word addr_,uint16_t num_bytes) const;
+    const BigPage *DebugGetBigPage(uint8_t page,uint32_t dpo) const;
 
-    // Uses addressing scheme described in
-    // http://mdfs.net/Docs/Comp/BBC/MemAddrs. Returns <0 if the
-    // address isn't accessible.
-    void DebugSetByte(uint32_t addr,uint8_t value);
-    int DebugGetByte(uint32_t addr) const;
+    void DebugGetBytes(uint8_t *bytes,size_t num_bytes,M6502Word addr,uint32_t dpo);
+    void DebugSetBytes(M6502Word addr,uint32_t dpo,const uint8_t *bytes,size_t num_bytes);
+
+//    void DebugSetByte(uint8_t big_page,uint16_t offset,uint8_t value);
+//    int DebugGetByte(uint8_t big_page,uint16_t offset) const;
+
+//    // Copy block of memory, plus the debug flags for it, if desired. But even
+//    // when the debug flags aren't interesting, this is still quicker than
+//    // calling DebugGetByte in a loop.
+//    void DebugCopyMemory(void *bytes_dest,
+//                         DebugState::ByteDebugFlags *debug_dest,
+//                         M6502Word addr,
+//                         uint32_t dpo,
+//                         size_t num_bytes) const;
+//
+//    void DebugSetByte(M6502Word addr,uint32_t dpo,uint8_t value);
+//    int DebugGetByte(M6502Word addr,uint32_t dpo) const;
 
     void SetMemory(M6502Word addr,uint8_t value);
     void SetExtMemory(uint32_t addr,uint8_t value);
@@ -415,9 +431,9 @@ public:
 
     void DebugRun();
 
-    DebugState::ByteDebugFlags DebugGetByteFlags(M6502Word addr) const;
+    //DebugState::ByteDebugFlags DebugGetByteFlags(M6502Word addr) const;
 
-    void DebugSetByteFlags(M6502Word addr,DebugState::ByteDebugFlags flags);
+    //void DebugSetByteFlags(M6502Word addr,DebugState::ByteDebugFlags flags);
 
     // Temp breakpoints are automatically removed when the BBCMicro is
     // halted.
@@ -425,7 +441,7 @@ public:
 
     void DebugStepIn();
 
-    static char DebugGetFlatPageCode(uint16_t flat_page);
+    //static char DebugGetFlatPageCode(uint16_t flat_page);
 
     bool HasDebugState() const;
     std::unique_ptr<DebugState> TakeDebugState();
@@ -445,7 +461,16 @@ public:
     // made, or with called=false if it doesn't happen in a timely
     // fashion.
     void DebugSetAsyncCall(uint16_t address,uint8_t a,uint8_t x,uint8_t y,bool c,DebugAsyncCallFn fn,void *context);
+
+    uint32_t DebugGetPageOverrideMask() const;
+
+    // Ugly terminology - returns the current paging state, expressed as
+    // a combination of paging override flags. None of the override bits are
+    // set, but the actual flags are set appropriately.
+    uint32_t DebugGetCurrentPageOverride() const;
 #endif
+
+    void SendBeebLinkResponse(std::vector<uint8_t> data);
 protected:
 private:
     //////////////////////////////////////////////////////////////////////////
@@ -465,7 +490,7 @@ private:
         // Video output
         VideoULA video_ula;
         SAA5050 saa5050;
-        uint8_t saa5050_byte=0;
+        uint8_t ic15_byte=0;
 
         // 0x8000 to display shadow RAM; 0x0000 to display normal RAM.
         uint16_t shadow_select_mask=0x0000;
@@ -479,16 +504,18 @@ private:
         uint64_t num_2MHz_cycles=0;
 
         // Addressable latch.
-        AddressableLatch addressable_latch={};
+        AddressableLatch addressable_latch={0xff};
 
         // Previous values, for detecting edge transitions.
-        AddressableLatch old_addressable_latch={};
+        AddressableLatch old_addressable_latch={0xff};
 
         M6502 cpu={};
         uint8_t stretched_cycles_left=0;
         bool resetting=false;
 
         R6522 system_via;
+        uint8_t old_system_via_pb;
+
         R6522 user_via;
 
         ROMSEL romsel={};
@@ -535,7 +562,7 @@ private:
         // starting a replay from that state then the rest of the
         // paste needs to be performed.)
         BBCMicroPasteState paste_state=BBCMicroPasteState_None;
-        std::shared_ptr<std::string> paste_text;
+        std::shared_ptr<const std::string> paste_text;
         size_t paste_index=0;
         uint64_t paste_wait_end=0;
 
@@ -553,7 +580,11 @@ private:
         int async_call_timeout=0;
 #endif
 
-        explicit State(BBCMicroType type,const std::vector<uint8_t> &nvram_contents,const tm *rtc_time,uint64_t initial_num_2MHz_cycles);
+        explicit State(BBCMicroType type,
+                       const std::vector<uint8_t> &nvram_contents,
+                       bool power_on_tone,
+                       const tm *rtc_time,
+                       uint64_t initial_num_2MHz_cycles);
     };
 
     State m_state;
@@ -580,21 +611,23 @@ private:
     //////////////////////////////////////////////////////////////////////////
     //////////////////////////////////////////////////////////////////////////
 
+    BigPage m_big_pages[NUM_BIG_PAGES];
+    uint32_t m_dpo_mask=0;
     bool m_has_rtc=false;
     void (*m_handle_cpu_data_bus_fn)(BBCMicro *)=nullptr;
     UpdateROMSELPagesFn m_update_romsel_pages_fn=nullptr;
     UpdateACCCONPagesFn m_update_acccon_pages_fn=nullptr;
 
     // Memory
-    MemoryPages m_pages={};
+    MemoryBigPages m_main_mem_big_pages={};
 
     // B+ and later only - read/write pages that include the shadow
     // screen RAM.
-    MemoryPages *m_shadow_pages=nullptr;
+    MemoryBigPages *m_shadow_mem_big_pages=nullptr;
 
     // B+ and later only - points to the MemoryPages to use. Index
-    // using the MSB of the address of the last opcode fetch.
-    const MemoryPages **m_pc_pages=nullptr;//[256]
+    // using the page of the address of the last opcode fetch.
+    const MemoryBigPages **m_pc_big_pages=nullptr;//[16]
 
     // [0] is for page FC, [1] for FD and [2] for FE.
     //
@@ -629,7 +662,7 @@ private:
 
     uint8_t *m_ram=nullptr;
 
-    std::vector<float> m_disc_drive_sounds[DiscDriveSound_EndValue];
+    const std::vector<float> *m_disc_drive_sounds[DiscDriveSound_EndValue];
 
     void (*m_default_handle_cpu_data_bus_fn)(BBCMicro *)=nullptr;
 
@@ -641,14 +674,8 @@ private:
     //////////////////////////////////////////////////////////////////////////
     //////////////////////////////////////////////////////////////////////////
 
-    //mutable std::mutex m_disc_image_mutexes[NUM_DRIVES];
-
-    //DiscDriveCallbacks m_disc_drive_callbacks={};
-
     // This doesn't need to be copied. The event list records its
     // influence.
-    //
-    // Controlled by the disc mutex, if there is one.
     bool m_disc_access=false;
 
 #if VIDEO_TRACK_METADATA
@@ -680,19 +707,18 @@ private:
     void *m_async_call_context=nullptr;
 #endif
 
+    // To avoid a lot of hassle, the state can't be saved while BeebLink is
+    // active - so none of this stuff participates.
+    BeebLinkHandler *m_beeblink_handler=nullptr;
+    std::unique_ptr<BeebLink> m_beeblink;
+
     void InitStuff();
-    void SetOSPages(uint8_t dest_page,uint8_t src_page,uint8_t num_pages);
-    void SetROMPages(uint8_t bank,uint8_t page,size_t src_page,size_t num_pages);
+    //void SetOSPages(uint8_t dest_page,uint8_t src_page,uint8_t dest_big_page_index);
+    void SetROMPages(uint8_t bank,uint8_t num_skipped_big_pages);
 #if BBCMICRO_TRACE
     void SetTrace(std::shared_ptr<Trace> trace,uint32_t trace_flags);
 #endif
-    void SetPages(uint8_t page_,size_t num_pages,
-                  const uint8_t *read_data,size_t read_page_stride,
-                  uint8_t *write_data,size_t write_page_stride
-#if BBCMICRO_DEBUGGER/////////////////////////////////////////////////////////<--note
-                  ,uint16_t debug_page////////////////////////////////////////<--note
-#endif////////////////////////////////////////////////////////////////////////<--note
-    );////////////////////////////////////////////////////////////////////////<--note
+    void SetBigPages(MemoryBigPages *pages0,MemoryBigPages *pages1,uint8_t big_page_index,uint8_t num_big_pages,uint8_t mem_big_page_index);
     static void UpdateBROMSELPages(BBCMicro *m);
     static void UpdateBPlusACCCONPages(BBCMicro *m,const ACCCON *old);
     static void UpdateBACCCONPages(BBCMicro *m,const ACCCON *old);
@@ -700,13 +726,15 @@ private:
     static void UpdateMaster128ROMSELPages(BBCMicro *m);
     static bool DoesMOSUseShadow(ACCCON acccon);
     static void UpdateMaster128ACCCONPages(BBCMicro *m,const ACCCON *old_);
-    void InitROMPages();
+    void InitSomeBigPages(uint8_t big_page_index,uint8_t num_big_pages,const uint8_t *r,uint8_t *w,char code);
+    void InitShadowBigPages(uint8_t big_page_index,uint8_t num_big_pages,char code);
+    void InitSidewaysROMBigPages(uint8_t rom);
+    void InitBigPages();
     static void Write1770ControlRegister(void *m_,M6502Word a,uint8_t value);
     static uint8_t Read1770ControlRegister(void *m_,M6502Word a);
 #if BBCMICRO_TRACE
     void TracePortB(SystemVIAPB pb);
 #endif
-    static void HandleSystemVIAB(R6522 *via,uint8_t value,uint8_t old_value,void *m_);
     static void WriteUnmappedMMIO(void *m_,M6502Word a,uint8_t value);
     static uint8_t ReadUnmappedMMIO(void *m_,M6502Word a);
     static uint8_t ReadROMMMIO(void *m_,M6502Word a);
@@ -724,14 +752,13 @@ private:
 #if BBCMICRO_DEBUGGER
     static void HandleCPUDataBusMainRAMOnlyDebug(BBCMicro *m);
     static void HandleCPUDataBusWithShadowRAMDebug(BBCMicro *m);
-    void UpdateDebugPages(MemoryPages *pages);
+    void UpdateDebugBigPages(MemoryBigPages *mem_big_pages);
     void UpdateDebugState();
     void SetDebugStepType(BBCMicroStepType step_type);
-    void DebugGetBytePointers(uint8_t **write_ptr,const uint8_t **read_ptr,uint16_t *debug_page,uint32_t full_addr);
     void FinishAsyncCall(bool called);
 #endif
     static void HandleCPUDataBusWithHacks(BBCMicro *m);
-    static void HandleTurboRTI(M6502 *cpu);
+    static void CheckMemoryBigPages(const MemoryBigPages *pages,bool non_null);
 
     // 1770 handler stuff.
     bool IsTrack0() override;
@@ -740,9 +767,9 @@ private:
     void SpinUp() override;
     void SpinDown() override;
     bool IsWriteProtected() override;
-    bool GetByte(uint8_t *value,uint8_t track,uint8_t sector,size_t offset) override;
-    bool SetByte(uint8_t track,uint8_t sector,size_t offset,uint8_t value) override;
-    bool GetSectorDetails(uint8_t *side,size_t *size,uint8_t track,uint8_t sector,bool double_density) override;
+    bool GetByte(uint8_t *value,uint8_t sector,size_t offset) override;
+    bool SetByte(uint8_t sector,size_t offset,uint8_t value) override;
+    bool GetSectorDetails(uint8_t *track,uint8_t *side,size_t *size,uint8_t sector,bool double_density) override;
     DiscDrive *GetDiscDrive();
 #if BBCMICRO_ENABLE_DISC_DRIVE_SOUND
     void InitDiscDriveSounds(DiscDriveType type);

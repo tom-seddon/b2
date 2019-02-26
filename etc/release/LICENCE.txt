@@ -1,4 +1,4 @@
-b2 Copyright (C) 2017 Tom Seddon <modelb@bbcmicro.com>
+b2 Copyright (C) 2017-2018 Tom Seddon <modelb@bbcmicro.com>
 
 This program comes with ABSOLUTELY NO WARRANTY. This is free software,
 and you are welcome to redistribute it under certain conditions;
@@ -8,6 +8,18 @@ Additional credits:
 
 * SN76489 reverse engineering by John Kortink -
   http://zeridajh.org/articles/various/sn76489/index.htm
+
+* UTF-8 decoder copyright (c) 2008-2009 Bjoern Hoehrmann
+  <bjoern@hoehrmann.de> -
+  http://bjoern.hoehrmann.de/utf-8/decoder/dfa/
+
+* 1MHz bus external RAM emulation thanks to
+  https://github.com/TheEnbyperor
+
+* Rather essential SN76489 fix thanks to https://github.com/hexwab
+
+b2 makes use of a number of open source libraries, licences for which
+are also included in this file.
 
 ###########################################################################
 # b2 ######################################################################
@@ -692,7 +704,7 @@ Public License instead of this License.  But first, please read
 # Font Awesome ############################################################
 ###########################################################################
 
-Font Awesome by Dave Gandy - http://fontawesome.io".
+Font Awesome by Dave Gandy - http://fontawesome.io.
 
 ###########################################################################
 # Icon Font C++ Headers ###################################################

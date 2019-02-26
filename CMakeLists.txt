@@ -1,7 +1,19 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.9)
 set(CMAKE_CONFIGURATION_TYPES Debug RelWithDebInfo Final)
 project(b2)
+set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT b2)
 enable_testing()
+
+##########################################################################
+##########################################################################
+
+if(DEFINED RELEASE_NAME)
+  set(INCLUDE_EXPERIMENTAL OFF)
+  option(LIBUV_BUILD_TESTS "" OFF)
+else()
+  set(INCLUDE_EXPERIMENTAL ON)
+  option(LIBUV_BUILD_TESTS "" ON)
+endif()
 
 ##########################################################################
 ##########################################################################
@@ -71,7 +83,52 @@ endif()
 
 ##########################################################################
 ##########################################################################
+#
+# (Even though Windows libcurl is part of submodules, the
+# configuration process sets some variables, and find_package (as used
+# on OS X/Linux) doesn't seem to have any analogue of PARENT_SCOPE. So
+# it's massively easier to do all this stuff in the top-level
+# CMakeLists.txt.)
+#
+# The OS X version works fine when built with the repo's copy of
+# libcurl, and the result is easily stepped through in Xcode - but the
+# libcurl CMakeLists.txt takes, like, 15 minutes to run. Might as well
+# use the system libcurl, given that it ships with OS X and is
+# probably tuned for the system SSL and so on.
 
+if(WIN32)
+  option(BUILD_CURL_EXE "" OFF)
+  option(BUILD_SHARED_LIBS "" OFF)
+  option(BUILD_TESTING "" OFF)
+
+  add_subdirectory(${CMAKE_SOURCE_DIR}/submodules/curl)
+  set(HAVE_LIBCURL ON)
+  set(LIBCURL_TARGET libcurl)
+else()
+  find_package(CURL 7
+    COMPONENTS HTTP)
+  if(NOT CURL_FOUND)
+    set(HAVE_LIBCURL OFF)
+  else()
+    set(HAVE_LIBCURL ON)
+    set(LIBCURL_TARGET CURL::libcurl)
+  endif()
+  
+  if(NOT HAVE_LIBCURL)
+    message(WARNING "libcurl not found - no BeebLink support")
+  endif()
+endif()
+
+message(STATUS "libcurl found: ${HAVE_LIBCURL}")
+
+
+##########################################################################
+##########################################################################
+#
+# (Even though SDL is part of submodules, the configuration process
+# sets some variables, so it's massively easier to do it in the
+# top-level CMakeLists.txt.)
+# 
 # Use the SDL submodule, but set the variables up so it looks like it
 # was found by FindSDL2. It doesn't look like the SDL2 cmake build
 # process is designed for this, so this is a bit of a hack.
@@ -103,7 +160,7 @@ set(SDL2_INCLUDE_DIR ${CMAKE_BINARY_DIR}/submodules/SDL/include)
 # appears to be impossible to access, because all the SDL headers just
 # do ``#include "SDL_config.h"''. So they get the original header.
 #
-# (This doesn't cause much of a problem of Windows on OS X, because
+# (This doesn't cause much of a problem of Windows or OS X, because
 # the set of libraries is known and there aren't any significant
 # options. But this means a couple of things go missing from the
 # public API on Linux , because it doesn't have the
@@ -147,11 +204,27 @@ if(LINUX)
   find_package(FFmpeg
     COMPONENTS AVCODEC AVFORMAT AVUTIL SWRESAMPLE SWSCALE)
 
-  if(AVCODEC_VERSION VERSION_LESS 57)
-    set(HAVE_FFMPEG OFF)
+  set(HAVE_FFMPEG OFF)
+  if(AVCODEC_VERSION VERSION_LESS 58)
+  elseif(AVFORMAT_VERSION VERSION_LESS 58)
+  elseif(AVUTIL_VERSION VERSION_LESS 56)
+  elseif(SWRESAMPLE_VERSION VERSION_LESS 3)
+  elseif(SWSCALE_VERSION VERSION_LESS 5)
   else()
     set(HAVE_FFMPEG ON)
   endif()
+
+  if(NOT HAVE_FFMPEG)
+    message(WARNING "ffmpeg not found - no video writing support")
+  endif()
+endif()
+
+##########################################################################
+##########################################################################
+
+if(LINUX)
+  find_package(GTK2 2.0 REQUIRED gtk)
+  message(STATUS "GTK2 include folder: " ${GTK2_INCLUDE_DIRS})
 endif()
 
 ##########################################################################
@@ -172,14 +245,7 @@ set(HAVE_LIBUV ON)
 ##########################################################################
 ##########################################################################
 
-# It's handy to have the non-project CMakeLists.txt files somewhere in the VS
-# solution.
-#
-# There's nowhere particularly good for them, so just put them in b2.
-#
-# This doesn't interact brilliantly with DPack, which strips off the paths
-# in its files list, but Ctrl+, works OK.
-
+add_subdirectory(submodules)
 add_subdirectory(src)
 target_sources(b2 PRIVATE ${CMAKE_CURRENT_LIST_DIR}/src/CMakeLists.txt ${CMAKE_CURRENT_LIST_DIR}/common.txt)
 
@@ -189,4 +255,23 @@ target_sources(b2 PRIVATE ${CMAKE_CURRENT_LIST_DIR}/submodules/CMakeLists.txt)
 if(INCLUDE_EXPERIMENTAL)
   add_subdirectory(experimental)
 	target_sources(b2 PRIVATE ${CMAKE_CURRENT_LIST_DIR}/experimental/CMakeLists.txt)
+endif()
+
+##########################################################################
+##########################################################################
+
+# It's handy to have the non-project CMakeLists.txt files somewhere in the VS
+# solution.
+#
+# There's nowhere particularly good for them, so just put them in b2.
+#
+# This doesn't interact brilliantly with DPack, which strips off the paths
+# in its files list, but Ctrl+, works OK.
+
+target_sources(b2 PRIVATE ${CMAKE_CURRENT_LIST_DIR}/src/CMakeLists.txt ${CMAKE_CURRENT_LIST_DIR}/common.txt)
+
+target_sources(b2 PRIVATE ${CMAKE_CURRENT_LIST_DIR}/submodules/CMakeLists.txt)
+
+if(INCLUDE_EXPERIMENTAL)
+  target_sources(b2 PRIVATE ${CMAKE_CURRENT_LIST_DIR}/experimental/CMakeLists.txt)
 endif()

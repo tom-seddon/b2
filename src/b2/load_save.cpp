@@ -25,6 +25,7 @@
 #endif
 #include <beeb/BBCMicro.h>
 #include "b2.h"
+#include "BeebLinkHTTPHandler.h"
 
 #include <shared/enum_def.h>
 #include "load_save.inl"
@@ -268,6 +269,7 @@ static std::string GetHexStringFromData(const std::vector<uint8_t> &data) {
     return hex;
 }
 
+// TODO - should really clear the vector out if there's an error...
 static bool GetDataFromHexString(std::vector<uint8_t> *data,const std::string &str) {
     if(str.size()%2!=0) {
         return false;
@@ -313,7 +315,7 @@ static void AddError(Messages *msg,
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static FILE *fopenUTF8(const char *path,const char *mode) {
+FILE *fopenUTF8(const char *path,const char *mode) {
 #if SYSTEM_WINDOWS
 
     return _wfopen(GetWideString(path).c_str(),GetWideString(mode).c_str());
@@ -483,6 +485,53 @@ bool SaveTextFile(const std::string &data,const std::string &path,Messages *mess
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+bool GetFileDetails(size_t *size,bool *can_write,const char *path) {
+    FILE *fp=nullptr;
+    bool good=false;
+    long len;
+
+    fp=fopenUTF8(path,"r+b");
+    if(fp) {
+        *can_write=true;
+    } else {
+        // doesn't exist, or read-only.
+        fp=fopen(path,"rb");
+        if(!fp) {
+            // assume doesn't exist.
+            goto done;
+        }
+
+        *can_write=false;
+    }
+
+    if(fseek(fp,0,SEEK_END)!=0) {
+        goto done;
+    }
+
+    len=ftell(fp);
+    if(len<0) {
+        goto done;
+    }
+
+    if((unsigned long)len>SIZE_MAX) {
+        *size=SIZE_MAX;
+    } else {
+        *size=(size_t)len;
+    }
+
+    good=true;
+done:
+    if(fp!=nullptr) {
+        fclose(fp);
+        fp=nullptr;
+    }
+
+    return good;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 // RapidJSON-friendly stream class that writes its output into a
 // std::string.
 
@@ -612,6 +661,19 @@ static bool FindFloatMember(float *value,rapidjson::Value *object,const char *ke
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+static bool FindUInt64Member(uint64_t *value,rapidjson::Value *object,const char *key,Messages *msg) {
+    rapidjson::Value tmp;
+    if(!FindMember(&tmp,object,key,msg,&rapidjson::Value::IsNumber,"number")) {
+        return false;
+    }
+
+    *value=tmp.GetUint64();
+    return true;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 // Bit-indexed flags are flags where the enum values relate to the bit
 // indexes rather than the mask values.
 //
@@ -619,7 +681,7 @@ static bool FindFloatMember(float *value,rapidjson::Value *object,const char *ke
 
 template<class T>
 static void SaveBitIndexedFlags(JSONWriter<StringStream> *writer,T flags,const char *(*get_name_fn)(int)) {
-    for(int i=0;i<sizeof(T)*CHAR_BIT;++i) {
+    for(int i=0;i<(int)(sizeof(T)*CHAR_BIT);++i) {
         const char *name=(*get_name_fn)(i);
         if(name[0]=='?') {
             continue;
@@ -904,6 +966,14 @@ static const char POPUPS[]="popups";
 static const char GLOBALS[]="globals";
 static const char VSYNC[]="vsync";
 static const char EXT_MEM[]="ext_mem";
+static const char UNLIMITED[]="unlimited";
+static const char BEEBLINK[]="beeblink";
+static const char URLS[]="urls";
+static const char NVRAM[]="nvram";
+static const char START_ADDRESS[]="start_address";
+static const char STOP_NUM_CYCLES[]="stop_num_cycles";
+static const char CYCLES_OUTPUT[]="cycles_output";
+static const char POWER_ON_TONE[]="power_on_tone";
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -1200,6 +1270,7 @@ static bool LoadWindows(rapidjson::Value *windows,Messages *msg) {
     FindBoolMember(&BeebWindows::defaults.correct_aspect_ratio,windows,CORRECT_ASPECT_RATIO,nullptr);
     FindBoolMember(&BeebWindows::defaults.display_auto_scale,windows,AUTO_SCALE,nullptr);
     FindFloatMember(&BeebWindows::defaults.display_manual_scale,windows,MANUAL_SCALE,nullptr);
+    FindBoolMember(&BeebWindows::defaults.power_on_tone,windows,POWER_ON_TONE,nullptr);
 
     {
         std::string keymap_name;
@@ -1273,6 +1344,7 @@ static bool LoadConfigs(rapidjson::Value *configs_json,Messages *msg) {
         }
 
         FindBoolMember(&config.ext_mem,config_json,EXT_MEM,msg);
+        FindBoolMember(&config.beeblink,config_json,BEEBLINK,msg);
 
         BeebWindows::AddConfig(std::move(config));
     }
@@ -1286,8 +1358,49 @@ static bool LoadTrace(rapidjson::Value *trace_json,Messages *msg) {
     FindFlagsMember(&settings.flags,trace_json,FLAGS,"trace flag",&GetBBCMicroTraceFlagEnumName,msg);
     FindEnumMember(&settings.start,trace_json,START,"start condition",&GetTraceUIStartConditionEnumName,msg);
     FindEnumMember(&settings.stop,trace_json,STOP,"stop condition",&GetTraceUIStopConditionEnumName,msg);
+    FindBoolMember(&settings.unlimited,trace_json,UNLIMITED,nullptr);
+    FindEnumMember(&settings.cycles_output,trace_json,CYCLES_OUTPUT,"cycles output",&GetTraceUICyclesOutputEnumName,msg);
+    FindUInt64Member(&settings.stop_num_cycles,trace_json,STOP_NUM_CYCLES,nullptr);
+
+    uint64_t start_address;
+    FindUInt64Member(&start_address,trace_json,START_ADDRESS,nullptr);
+    settings.start_address=(uint16_t)start_address;
 
     SetDefaultTraceUISettings(settings);
+
+    return true;
+}
+
+static bool LoadBeebLink(rapidjson::Value *beeblink_json,Messages *msg) {
+    std::vector<std::string> urls;
+
+    rapidjson::Value urls_json;
+    FindArrayMember(&urls_json,beeblink_json,URLS,msg);
+    for(rapidjson::SizeType url_idx=0;url_idx<urls_json.Size();++url_idx) {
+        if(!urls_json[url_idx].IsString()) {
+            msg->e.f("not a string: %s.%s[%u]\n",BEEBLINK,URLS,url_idx);
+            continue;
+        }
+
+        urls.push_back(urls_json[url_idx].GetString());
+    }
+
+    BeebLinkHTTPHandler::SetServerURLs(urls);
+
+    return true;
+}
+
+static bool LoadNVRAM(rapidjson::Value *nvram_json,Messages *msg) {
+    std::string hex;
+    std::vector<uint8_t> data;
+
+    // TODO - should this be more data driven?
+
+    if(FindStringMember(&hex,nvram_json,GetBBCMicroTypeEnumName(BBCMicroType_Master),msg)) {
+        if(GetDataFromHexString(&data,hex)) {
+            SetDefaultNVRAMContents(BBCMicroType_Master,std::move(data));
+        }
+    }
 
     return true;
 }
@@ -1378,6 +1491,24 @@ bool LoadGlobalConfig(Messages *msg)
         LOGF(LOADSAVE,"Loading trace.\n");
 
         if(!LoadTrace(&trace,msg)) {
+            return false;
+        }
+    }
+
+    rapidjson::Value beeblink;
+    if(FindObjectMember(&beeblink,doc.get(),BEEBLINK,msg)) {
+        LOGF(LOADSAVE,"Loading BeebLink.\n");
+
+        if(!LoadBeebLink(&beeblink,msg)) {
+            return false;
+        }
+    }
+
+    rapidjson::Value nvram;
+    if(FindObjectMember(&nvram,doc.get(),NVRAM,msg)) {
+        LOGF(LOADSAVE,"Loading NVRAM.\n");
+
+        if(!LoadNVRAM(&nvram,msg)) {
             return false;
         }
     }
@@ -1582,12 +1713,25 @@ static void SaveConfigs(JSONWriter<StringStream> *writer) {
             writer->Key(EXT_MEM);
             writer->Bool(config->ext_mem);
 
+            writer->Key(BEEBLINK);
+            writer->Bool(config->beeblink);
+
             return true;
         });
     }
 
     writer->Key(DEFAULT_CONFIG);
     writer->String(BeebWindows::GetDefaultConfigName().c_str());
+}
+
+static void SaveNVRAM(JSONWriter<StringStream> *writer) {
+    {
+        auto nvram_json=ObjectWriter(writer,NVRAM);
+
+        // Should this be more data-driven?
+        writer->Key(GetBBCMicroTypeEnumName(BBCMicroType_Master));
+        writer->String(GetHexStringFromData(GetDefaultNVRAMContents(BBCMicroType_Master)).c_str());
+    }
 }
 
 static void SaveWindows(JSONWriter<StringStream> *writer) {
@@ -1628,6 +1772,9 @@ static void SaveWindows(JSONWriter<StringStream> *writer) {
 
         writer->Key(MANUAL_SCALE);
         writer->Double(BeebWindows::defaults.display_manual_scale);
+
+        writer->Key(POWER_ON_TONE);
+        writer->Bool(BeebWindows::defaults.power_on_tone);
     }
 }
 
@@ -1648,6 +1795,34 @@ static void SaveTrace(JSONWriter<StringStream> *writer) {
 
         writer->Key(STOP);
         SaveEnum(writer,settings.stop,&GetTraceUIStopConditionEnumName);
+
+        writer->Key(UNLIMITED);
+        writer->Bool(settings.unlimited);
+
+        writer->Key(START_ADDRESS);
+        writer->Uint64(settings.start_address);
+
+        writer->Key(STOP_NUM_CYCLES);
+        writer->Uint64(settings.stop_num_cycles);
+
+        writer->Key(CYCLES_OUTPUT);
+        SaveEnum(writer,settings.cycles_output,&GetTraceUICyclesOutputEnumName);
+    }
+}
+
+static void SaveBeebLink(JSONWriter<StringStream> *writer) {
+    std::vector<std::string> urls=BeebLinkHTTPHandler::GetServerURLs();
+
+    {
+        auto beeblink_json=ObjectWriter(writer,BEEBLINK);
+
+        {
+            auto urls_json=ArrayWriter(writer,URLS);
+
+            for(const std::string &url:urls) {
+                writer->String(url.c_str());
+            }
+        }
     }
 }
 
@@ -1686,7 +1861,11 @@ bool SaveGlobalConfig(Messages *messages) {
 
         SaveTrace(&writer);
 
+        SaveBeebLink(&writer);
+
         SaveConfigs(&writer);
+
+        SaveNVRAM(&writer);
     }
 
     if(!SaveTextFile(json,fname,messages)) {

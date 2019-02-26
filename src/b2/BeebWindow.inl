@@ -12,16 +12,6 @@ EEND()
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-#define ENAME BeebWindowDiscType
-EBEGIN()
-EPN(ImageFile)
-EPN(65LinkFolder)
-EEND()
-#undef ENAME
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 // These values are saved by name into the config file, so their names
 // need to remain consistent. Additionally, they're always defined,
 // even when the corresponding feature is #if'd out, so that settings
@@ -61,6 +51,8 @@ EPN(VideoULADebugger)
 EPN(SystemVIADebugger)
 EPN(UserVIADebugger)
 EPN(NVRAMDebugger)
+EPN(SavedStates)
+EPN(BeebLink)
 
 // must be last
 EQPN(MaxValue)

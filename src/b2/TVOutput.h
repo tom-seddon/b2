@@ -17,16 +17,8 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-#define TV_OUTPUT_ONE_BIG_TABLE 0
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-union VideoDataUnit;
+struct VideoDataUnit;
 struct SDL_PixelFormat;
-#if VIDEO_TRACK_METADATA
-struct VideoDataUnitMetadata;
-#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -43,6 +35,12 @@ struct VideoDataUnitMetadata;
 
 class TVOutput {
 public:
+    bool show_usec_markers=false;
+    bool show_half_usec_markers=false;
+    bool show_6845_row_markers=false;
+    bool show_6845_dispen_markers=false;
+    bool show_beam_position=false;
+
     TVOutput();
     ~TVOutput();
 
@@ -51,49 +49,53 @@ public:
     // returns number of us consumed.
     void Update(const VideoDataUnit *units,size_t num_units);
 
-    void UpdateOneUnit(const VideoDataUnit *unit,float amt);
-
 #if BBCMICRO_DEBUGGER
-    void AddBeamMarker();
     void FillWithTestPattern();
 #endif
 
     // *data_version (optional) is set to texture data version, incremented on
     // each vblank. (Between vblanks, the buffer contains a partially scanned-out frame.)
-    const void *GetTextureData(uint64_t *texture_data_version) const;
+    const void *GetTexturePixels(uint64_t *texture_data_version) const;
+
+    void CopyTexturePixels(void *dest_pixels,size_t dest_pitch) const;
 
 #if VIDEO_TRACK_METADATA
-    const VideoDataUnitMetadata *GetTextureMetadata() const;
+    const VideoDataUnit *GetTextureUnits() const;
 #endif
 
     // returns pointer to TVOutput's copy of the pixel format.
     const SDL_PixelFormat *GetPixelFormat() const;
 
+    // returns false, *X and *Y untouched, if beam is outside the
+    // visible area.
+    bool GetBeamPosition(size_t *x,size_t *y) const;
+
     bool IsInVerticalBlank() const;
 
+    // TODO - nothing actually uses this! There should probably be a slider
+    // somewhere, or something...
     double GetGamma() const;
     void SetGamma(double gamma);
 protected:
 private:
     TVOutputState m_state=TVOutputState_VerticalRetrace;
-    uint32_t *m_line=nullptr;
+    uint32_t *m_pixels_line=nullptr;
 #if VIDEO_TRACK_METADATA
-    VideoDataUnitMetadata *m_metadata_line=nullptr;
+    VideoDataUnit *m_units_line=nullptr;
 #endif
     size_t m_x=0;
     size_t m_y=0;
     int m_state_timer=0;
     size_t m_num_fields=0;
 
-    uint32_t m_palette[2][64]={};
     uint32_t m_rshift=0,m_gshift=0,m_bshift=0,m_alpha=0;
 
     SDL_PixelFormat *m_pixel_format=nullptr;
 
     // TV - output texture and its properties
-    std::vector<uint32_t> m_texture_data;
+    std::vector<uint32_t> m_texture_pixels;
 #if VIDEO_TRACK_METADATA
-    std::vector<VideoDataUnitMetadata> m_texture_metadata;
+    std::vector<VideoDataUnit> m_texture_units;
 #endif
     uint64_t m_texture_data_version=1;
 
@@ -102,18 +104,24 @@ private:
     size_t num_renders;
 #endif
 
-    double m_gamma=2.2;
-
-#if TV_OUTPUT_ONE_BIG_TABLE
-    uint32_t m_rgbs[4096]={};
-#else
     uint32_t m_rs[16]={};
     uint32_t m_gs[16]={};
     uint32_t m_bs[16]={};
-#endif
+
+    double m_gamma=2.2;
+
+    // m_blend[i][j] is gamma-corrected 8-bit blend of 1/3 i<<4|i and
+    // 2/3 j<<4|j.
+    uint8_t m_blend[16][16]={};
+
+    uint32_t m_usec_marker_xor=0;
+    uint32_t m_half_usec_marker_xor=0;
+    uint32_t m_6845_raster0_marker_xor=0;
+    uint32_t m_6845_dispen_marker_xor=0;
 
     void InitPalette(size_t palette,double fa);
     void InitPalette();
+    void AddMetadataMarkers(void *dest_pixels,size_t dest_pitch_bytes,bool add,uint8_t metadata_flag,uint32_t xor_value) const;
 };
 
 //////////////////////////////////////////////////////////////////////////

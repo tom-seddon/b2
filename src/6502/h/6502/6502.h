@@ -13,6 +13,8 @@ struct M6502;
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#if !M6502WORD_DEFINED
+
 /* This struct never aliases anything in 6502 memory - it needs to be
  * the right way round for the host system. (It should probably be
  * called M6502HostWord, or something...) */
@@ -25,6 +27,8 @@ union M6502Word {
     struct M6502WordBytes b;
 };
 typedef union M6502Word M6502Word;
+
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -301,8 +305,6 @@ struct M6502 {
     uint8_t d1x1:1;             /* (internal) D1x1, active low */
 
     // (57-58)
-
-    M6502Fn rti_fn;
 
     /* Pointer to the config object this 6502 was initialised with. */
     const M6502Config *config;

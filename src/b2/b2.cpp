@@ -13,7 +13,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include "65link.h"
 #include "MemoryDiscImage.h"
 #include <inttypes.h>
 #include "VBlankMonitor.h"
@@ -32,12 +31,13 @@
 #include "b2.h"
 #include "VideoWriterMF.h"
 #include "VideoWriterFFmpeg.h"
-#include "Timeline.h"
 #include <beeb/BBCMicro.h>
 #include <atomic>
 #include <shared/system_specific.h>
 #include "HTTPServer.h"
 #include "HTTPMethodsHandler.h"
+#include <curl/curl.h>
+#include "DirectDiscImage.h"
 
 #include <shared/enum_decl.h>
 #include "b2.inl"
@@ -337,6 +337,7 @@ static uint32_t GetPixelFormatForRenderer(int index) {
 struct Options {
     bool verbose=false;
     std::string discs[NUM_DRIVES];
+    bool direct_disc[NUM_DRIVES]={};
     int render_driver_index=-1;
     int audio_hz=DEFAULT_AUDIO_HZ;
     int audio_buffer_size=DEFAULT_AUDIO_BUFFER_SIZE;
@@ -476,7 +477,9 @@ static bool DoCommandLineOptions(
     p.SetLogs(&init_messages->i,&init_messages->e);
 
     for(int drive=0;drive<NUM_DRIVES;++drive) {
-        p.AddOption((char)('0'+drive)).Arg(&options->discs[drive]).Meta("PATH").Help("load drive "+std::to_string(drive)+" from PATH - an SSD/DSD file, or 65Link volume/drive folder");
+        p.AddOption((char)('0'+drive)).Arg(&options->discs[drive]).Meta("FILE").Help("load drive "+std::to_string(drive)+" from disc image FILE");
+
+        p.AddOption(0,strprintf("%d-direct",drive)).SetIfPresent(&options->direct_disc[drive]).Help(strprintf("if -%d specified, load a direct disc image",drive));
     }
 
     p.AddOption('b',"boot").SetIfPresent(&options->boot).Help("attempt to auto-boot disc");
@@ -577,6 +580,8 @@ static bool InitSystem(
         return false;
     }
 
+    SDL_EnableScreenSaver();
+
     // Allocate user events
     g_first_event_type=SDL_RegisterEvents(SDLEventType_Count);
 
@@ -610,33 +615,6 @@ static bool InitSystem(
 
         g_fill_audio_buffer_data.spec=*got_spec;
         g_fill_audio_buffer_data.device=*device_id;
-    }
-
-    return true;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-static bool LoadInitialDiscImages(
-    std::unique_ptr<DiscImage> *init_disc_images,
-    const Options &options,
-    Messages *init_messages)
-{
-    for(int i=0;i<NUM_DRIVES;++i) {
-        if(options.discs[i].empty()) {
-            continue;
-        }
-
-        if(PathIsFolderOnDisk(options.discs[i])) {
-            init_disc_images[i]=LoadDiscImageFrom65LinkFolder(options.discs[i],init_messages);
-        } else {
-            init_disc_images[i]=MemoryDiscImage::LoadFromFile(options.discs[i],init_messages);
-        }
-
-        if(!init_disc_images[i]) {
-            return false;
-        }
     }
 
     return true;
@@ -793,7 +771,7 @@ static void SaveKeyWindowSettings() {
             if(window_nswindow==key_nswindow) {
                 window->SaveSettings();
                 break;
-}
+            }
         }
     }
 }
@@ -826,6 +804,15 @@ static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &init
         }
     }
 #endif
+
+    // https://curl.haxx.se/libcurl/c/curl_global_init.html
+    {
+        CURLcode r=curl_global_init(CURL_GLOBAL_DEFAULT);
+        if(r!=0) {
+            init_messages.e.f("Failed to initialise libcurl: %s\n",curl_easy_strerror(r));
+            return false;
+        }
+    }
 
     Options options;
     if(!InitializeOptions(&options,&init_messages)) {
@@ -892,17 +879,12 @@ static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &init
 
     InitDefaultBeebConfigs();
 
-    std::unique_ptr<DiscImage> init_disc_images[NUM_DRIVES];
-    if(!LoadInitialDiscImages(init_disc_images,options,&init_messages)) {
-        return false;
-    }
-
     {
-        if(!Timeline::Init()) {
-            init_messages.e.f(
-                "FATAL: failed to initialize timeline.\n");
-            return false;
-        }
+//        if(!Timeline::Init()) {
+//            init_messages.e.f(
+//                "FATAL: failed to initialize timeline.\n");
+//            return false;
+//        }
 
         if(!BeebWindows::Init()) {
             init_messages.e.f(
@@ -933,16 +915,19 @@ static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &init
             return false;
         }
 
-        std::string initial_config_name;
-        if(!options.config_name.empty()) {
-            initial_config_name=options.config_name;
-        } else {
-            initial_config_name=BeebWindows::GetDefaultConfigName();
-        }
-
         BeebLoadedConfig initial_loaded_config;
-        if(!BeebWindows::LoadConfigByName(&initial_loaded_config,initial_config_name,&init_messages)) {
-            return false;
+        if(!options.config_name.empty()) {
+            if(!BeebWindows::LoadConfigByName(&initial_loaded_config,options.config_name,&init_messages)) {
+                return false;
+            }
+        } else {
+            if(!BeebWindows::LoadConfigByName(&initial_loaded_config,BeebWindows::GetDefaultConfigName(),&init_messages)) {
+                // Don't give up straight away - try to load one of the stock configs.
+                if(!BeebLoadedConfig::Load(&initial_loaded_config,*GetDefaultBeebConfigByIndex(0),&init_messages)) {
+                    // ugh, OK.
+                    return false;
+                }
+            }
         }
 
         BeebWindowInitArguments ia;
@@ -963,38 +948,29 @@ static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &init
 #endif
 
             ia.reset_windows=options.reset_windows;
+
+            for(int i=0;i<NUM_DRIVES;++i) {
+                if(options.discs[i].empty()) {
+                    continue;
+                }
+
+                if(options.direct_disc[i]) {
+                    ia.init_disc_images[i]=DirectDiscImage::CreateForFile(options.discs[i],&init_messages);
+                } else {
+                    ia.init_disc_images[i]=MemoryDiscImage::LoadFromFile(options.discs[i],&init_messages);
+                }
+
+                if(!ia.init_disc_images[i]) {
+                    return false;
+                }
+            }
+
+            ia.boot=options.boot;
         }
 
-        {
-            BeebWindow *init_beeb_window=BeebWindows::CreateBeebWindow(ia);
-
-            if(!init_beeb_window) {
-                init_messages.e.f(
-                    "FATAL: failed to open initial window.\n");
-                return false;
-            }
-
-            // 
-            // Or does this want to be part of the window init
-            // arguments??? That becomes a bit inconvenient, though,
-            // because unique_ptr is moveable and not copyable...
-            {
-                std::shared_ptr<BeebThread> thread=init_beeb_window->GetBeebThread();
-
-                for(int i=0;i<NUM_DRIVES;++i) {
-                    if(!!init_disc_images[i]) {
-                        thread->Send(std::make_unique<BeebThread::LoadDiscMessage>(i,std::move(init_disc_images[i]),true));
-                    }
-                }
-
-                if(options.boot) {
-                    auto message=std::make_unique<BeebThread::HardResetMessage>();
-
-                    message->boot=true;
-
-                    thread->Send(std::move(message));
-                }
-            }
+        if(!BeebWindows::CreateBeebWindow(ia)) {
+            init_messages.e.f("FATAL: failed to open initial window.\n");
+            return false;
         }
 
         // not needed any more.
@@ -1022,7 +998,7 @@ static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &init
                 SaveKeyWindowSettings();
 #endif
                 goto done;
-                }
+            }
 
             switch(event.type) {
             case SDL_WINDOWEVENT:
@@ -1134,7 +1110,7 @@ static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &init
         SDL_PauseAudioDevice(audio_device,1);
 
         BeebWindows::Shutdown();
-        Timeline::Shutdown();
+        //Timeline::Shutdown();
 
 #if HTTP_SERVER
         http_server=nullptr;

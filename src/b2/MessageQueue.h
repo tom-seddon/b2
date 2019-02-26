@@ -24,6 +24,10 @@ class MessageQueue {
 public:
     MessageQueue()=default;
 
+    void SetName(std::string name) {
+        MUTEX_SET_NAME(m_mutex,name+" mutex");
+    }
+
     // Pushed messages are retrieved in the order they were submitted.
     void ProducerPush(T message) {
         std::lock_guard<Mutex> lock(m_mutex);

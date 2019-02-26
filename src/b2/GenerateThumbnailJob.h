@@ -27,21 +27,29 @@ class GenerateThumbnailJob:
     public JobQueue::Job
 {
 public:
-    ~GenerateThumbnailJob();
+    //GenerateThumbnailJob()=default;
 
-    bool Init(std::unique_ptr<BBCMicro> beeb,int num_frames,const SDL_PixelFormat *pixel_format);
+    bool Init(std::unique_ptr<BBCMicro> beeb,
+              int num_frames,
+              const SDL_PixelFormat *pixel_format);
+
+    bool Init(std::shared_ptr<const BeebState> beeb_state,
+              int num_frames,
+              const SDL_PixelFormat *pixel_format);
     
     void ThreadExecute() override;
 
-    const void *GetTextureData() const;
+    const void *GetTexturePixels() const;
 private:
-    std::shared_ptr<BeebState> m_state;
-    std::unique_ptr<DiscImage> m_disc_images[NUM_DRIVES];
+    std::shared_ptr<const BeebState> m_beeb_state;
+    std::unique_ptr<BBCMicro> m_beeb;
     TVOutput m_tv_output;
-    BBCMicro *m_beeb=nullptr;
     int m_num_frames=2;
     
-    void Tick();
+    bool Init(std::unique_ptr<BBCMicro> *beeb,
+              std::shared_ptr<const BeebState> *beeb_state,
+              int num_frames,
+              const SDL_PixelFormat *pixel_format);
 };
 
 //////////////////////////////////////////////////////////////////////////

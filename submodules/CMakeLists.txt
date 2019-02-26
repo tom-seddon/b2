@@ -3,20 +3,6 @@ cmake_minimum_required(VERSION 3.5)
 ##########################################################################
 ##########################################################################
 
-# add_subdirectory(curl)
-
-# # Presumably you're *supposed* to use generator expressions for this
-# # sort of thing, like $<TARGET_PROPERTY:SOURCE_DIR>. But that didn't
-# # work when I tried it.
-# target_include_directories(libcurl INTERFACE
-#   ${CMAKE_CURRENT_SOURCE_DIR}/curl/include
-#   ${CMAKE_CURRENT_BINARY_DIR}/curl/include/curl)
-
-# set(HAVE_LIBCURL ON)
-
-##########################################################################
-##########################################################################
-
 add_library(miniz_lib INTERFACE)
 target_include_directories(miniz_lib INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/miniz)
 
@@ -107,25 +93,49 @@ target_compile_definitions(remotery_lib PUBLIC RMT_ENABLED=1 RMT_USE_D3D11=0 RMT
 ##########################################################################
 ##########################################################################
 
-add_library(noc_lib INTERFACE)
-target_include_directories(noc_lib INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/noc)
-if(UNIX)
-  if(NOT OSX)
-    find_package(GTK2 2.0 REQUIRED gtk)
-    message(STATUS "GTK2 include folder: " ${GTK2_INCLUDE_DIRS})
-    target_compile_definitions(noc_lib INTERFACE ${GTK2_DEFINITIONS})
-    target_include_directories(noc_lib INTERFACE ${GTK2_INCLUDE_DIRS})
-    target_link_libraries(noc_lib INTERFACE ${GTK2_LIBRARIES})
-  endif()
-endif()
-	
-##########################################################################
-##########################################################################
-
 add_library(rapidjson_lib INTERFACE)
 
-target_include_directories(rapidjson_lib INTERFACE
-  ${CMAKE_CURRENT_SOURCE_DIR}/rapidjson/include)
+set(RAPIDJSON_INCLUDE ${CMAKE_CURRENT_SOURCE_DIR}/rapidjson/include)
+
+target_sources(rapidjson_lib INTERFACE
+  ${RAPIDJSON_INCLUDE}/rapidjson/fwd.h
+  ${RAPIDJSON_INCLUDE}/rapidjson/memorystream.h
+  ${RAPIDJSON_INCLUDE}/rapidjson/reader.h
+  ${RAPIDJSON_INCLUDE}/rapidjson/prettywriter.h
+  ${RAPIDJSON_INCLUDE}/rapidjson/ostreamwrapper.h
+  ${RAPIDJSON_INCLUDE}/rapidjson/encodedstream.h
+  ${RAPIDJSON_INCLUDE}/rapidjson/filereadstream.h
+  ${RAPIDJSON_INCLUDE}/rapidjson/cursorstreamwrapper.h
+  ${RAPIDJSON_INCLUDE}/rapidjson/istreamwrapper.h
+  ${RAPIDJSON_INCLUDE}/rapidjson/stringbuffer.h
+  ${RAPIDJSON_INCLUDE}/rapidjson/internal/ieee754.h
+  ${RAPIDJSON_INCLUDE}/rapidjson/internal/strtod.h
+  ${RAPIDJSON_INCLUDE}/rapidjson/internal/swap.h
+  ${RAPIDJSON_INCLUDE}/rapidjson/internal/regex.h
+  ${RAPIDJSON_INCLUDE}/rapidjson/internal/diyfp.h
+  ${RAPIDJSON_INCLUDE}/rapidjson/internal/biginteger.h
+  ${RAPIDJSON_INCLUDE}/rapidjson/internal/strfunc.h
+  ${RAPIDJSON_INCLUDE}/rapidjson/internal/itoa.h
+  ${RAPIDJSON_INCLUDE}/rapidjson/internal/stack.h
+  ${RAPIDJSON_INCLUDE}/rapidjson/internal/dtoa.h
+  ${RAPIDJSON_INCLUDE}/rapidjson/internal/meta.h
+  ${RAPIDJSON_INCLUDE}/rapidjson/internal/pow10.h
+  ${RAPIDJSON_INCLUDE}/rapidjson/encodings.h
+  ${RAPIDJSON_INCLUDE}/rapidjson/schema.h
+  ${RAPIDJSON_INCLUDE}/rapidjson/stream.h
+  ${RAPIDJSON_INCLUDE}/rapidjson/filewritestream.h
+  ${RAPIDJSON_INCLUDE}/rapidjson/rapidjson.h
+  ${RAPIDJSON_INCLUDE}/rapidjson/document.h
+  ${RAPIDJSON_INCLUDE}/rapidjson/allocators.h
+  ${RAPIDJSON_INCLUDE}/rapidjson/writer.h
+  ${RAPIDJSON_INCLUDE}/rapidjson/error/error.h
+  ${RAPIDJSON_INCLUDE}/rapidjson/error/en.h
+  ${RAPIDJSON_INCLUDE}/rapidjson/memorybuffer.h
+  ${RAPIDJSON_INCLUDE}/rapidjson/pointer.h
+  ${RAPIDJSON_INCLUDE}/rapidjson/msinttypes/inttypes.h
+  ${RAPIDJSON_INCLUDE}/rapidjson/msinttypes/stdint.h)
+
+target_include_directories(rapidjson_lib INTERFACE ${RAPIDJSON_INCLUDE})
 
 ##########################################################################
 ##########################################################################

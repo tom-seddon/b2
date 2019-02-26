@@ -1,13 +1,11 @@
 cmake_minimum_required(VERSION 3.5)
-include(BundleUtilities)
 
 ##########################################################################
 ##########################################################################
 
 add_executable(b2 MACOSX_BUNDLE
   b2.cpp b2.h b2.inl
-  65link.cpp 65link.h
-  BeebThread.cpp BeebThread.h BeebThread.inl
+  BeebThread.cpp BeebThread.h BeebThread.inl BeebThread_private.inl
   BeebWindows.cpp BeebWindows.h 
   dear_imgui.cpp dear_imgui.h
   download.h
@@ -21,13 +19,11 @@ add_executable(b2 MACOSX_BUNDLE
   conf.cpp conf.h
   keys.cpp keys.h keys.inl
   BeebState.cpp BeebState.h
-  native_ui_noc.h
   JobQueue.cpp JobQueue.h
   GenerateThumbnailJob.cpp GenerateThumbnailJob.h
   BeebWindow.cpp BeebWindow.h BeebWindow.inl
   TimelineUI.cpp TimelineUI.h
-  beeb_events.cpp beeb_events.h beeb_events.inl beeb_events_types.inl
-  load_save.cpp load_save.h
+  load_save.cpp load_save.h load_save.inl
   Messages.cpp Messages.h
   ConfigsUI.cpp ConfigsUI.h
   BeebConfig.cpp BeebConfig.h
@@ -37,7 +33,6 @@ add_executable(b2 MACOSX_BUNDLE
   DataRateUI.cpp DataRateUI.h
   VideoWriter.cpp VideoWriter.h
   WriteVideoJob.cpp WriteVideoJob.h
-  Timeline.cpp Timeline.h
   VBlankMonitor.cpp VBlankMonitor.h
   VBlankMonitorDefault.cpp VBlankMonitorDefault.h
   MessageQueue.cpp MessageQueue.h
@@ -51,7 +46,17 @@ add_executable(b2 MACOSX_BUNDLE
   debugger.cpp debugger.h debugger.inl
   HTTPServer.cpp HTTPServer.h
   HTTPMethodsHandler.cpp HTTPMethodsHandler.h
+  DiscGeometry.cpp DiscGeometry.h
+  DirectDiscImage.cpp DirectDiscImage.h
+  SavedStatesUI.cpp SavedStatesUI.h
+  ThumbnailsUI.cpp ThumbnailsUI.h ThumbnailsUI_private.inl
+  BeebLinkHTTPHandler.cpp BeebLinkHTTPHandler.h
+  BeebLinkUI.cpp BeebLinkUI.h
   )
+
+if(OSX)
+  target_sources(b2 PRIVATE load_save.mm)
+endif()
 
 ##########################################################################
 ##########################################################################
@@ -195,16 +200,18 @@ endif()
 ##########################################################################
 ##########################################################################
 
-# NOC. Also, on OS X, other UI-related Objective C(++) stuff.
+# Native UI stuff.
 
 if(OSX)
+  target_sources(b2 PRIVATE native_ui_osx.mm native_ui_osx.h)
+elseif(WIN32)
   target_sources(b2 PRIVATE
-    native_ui.mm
-    native_ui_noc.m
-    load_save.mm)
-else()
-  target_sources(b2 PRIVATE
-    native_ui_noc.c)
+    native_ui_windows.cpp native_ui_windows.h)
+elseif(LINUX)
+  target_compile_definitions(b2 PRIVATE ${GTK2_DEFINITIONS})
+  target_include_directories(b2 PRIVATE ${GTK2_INCLUDE_DIRS})
+  target_link_libraries(b2 PRIVATE ${GTK2_LIBRARIES})
+  target_sources(b2 PRIVATE native_ui_gtk.cpp native_ui_gtk.h)
 endif()
 
 ##########################################################################
@@ -244,6 +251,14 @@ endif()
 ##########################################################################
 ##########################################################################
 
+# AVFoundation video writer.
+if(OSX)
+  target_sources(b2 PRIVATE VideoWriterAVFoundation.mm VideoWriterAVFoundation.h)
+endif()
+
+##########################################################################
+##########################################################################
+
 add_sanitizers(b2)
 
 ##########################################################################
@@ -257,7 +272,6 @@ target_link_libraries(b2 PRIVATE
   remotery_lib
   imgui_lib
   imgui_memory_editor_lib
-  noc_lib
   rapidjson_lib
   IconFontCppHeaders_lib
   )
@@ -275,7 +289,7 @@ target_link_libraries(b2 PRIVATE ${SDL2_LIBRARY})
 ##########################################################################
 
 if(HAVE_LIBCURL)
-  target_link_libraries(b2 PRIVATE libcurl)
+  target_link_libraries(b2 PRIVATE ${LIBCURL_TARGET})
 endif()
 
 ##########################################################################

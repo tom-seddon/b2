@@ -75,7 +75,7 @@ public:
 
     bool Open(std::string *path);
 protected:
-    virtual const char *HandleOpen()=0;
+    virtual std::string HandleOpen()=0;
 
     std::string m_last_path;
 private:
@@ -89,21 +89,23 @@ class FileDialog:
     public SelectorDialog
 {
 public:
-    explicit FileDialog(std::string tag,int noc_flags);
+    struct Filter {
+        std::string title;
 
-    // PATTERNS should be ;-separated list of patterns.
-    void AddFilter(std::string title,const std::string &patterns);
+        // Each extension must start with a '.', for symmetry with
+        // PathGetExtension and so on.
+        std::vector<std::string> extensions;
+    };
+
+    explicit FileDialog(std::string tag);
+
+    void AddFilter(std::string title,const std::vector<std::string> extensions);
     void AddAllFilesFilter();
-
-    int GetFilterIndex() const;
 protected:
-    const char *HandleOpen() override;
-private:
     std::string m_default_dir;
     std::string m_default_name;
-    std::string m_filters;
-    int m_noc_flags=0;
-    int m_filter_index=-1;
+    std::vector<Filter> m_filters;
+private:
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -115,6 +117,7 @@ class OpenFileDialog:
 public:
     explicit OpenFileDialog(std::string tag);
 protected:
+    std::string HandleOpen() override;
 private:
 };
 
@@ -127,6 +130,7 @@ class SaveFileDialog:
 public:
     explicit SaveFileDialog(std::string tag);
 protected:
+    std::string HandleOpen() override;
 private:
 };
 
@@ -139,7 +143,7 @@ class FolderDialog:
 public:
     explicit FolderDialog(std::string tag);
 protected:
-    const char *HandleOpen() override;
+    std::string HandleOpen() override;
 private:
 };
 

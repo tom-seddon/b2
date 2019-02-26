@@ -8,6 +8,7 @@
 #include <shared/debug.h>
 #include "Remapper.h"
 #include <shared/log.h>
+#include "misc.h"
 
 extern "C" {
 #include <libavformat/avformat.h>
@@ -24,6 +25,17 @@ extern "C" {
 static const int FPS=50;
 
 static const char FORMAT[]="mp4";
+
+// Should really copy this arrangement for the Windows version...
+struct VideoWriterFFmpegFormat {
+    VideoWriterFormat vwf;
+    int vwidth;
+    int vheight;
+    int64_t vbitrate;
+    int64_t abitrate;
+};
+
+static std::vector<VideoWriterFFmpegFormat> g_formats;
 
 static bool g_can_write_video=false;
 
@@ -46,8 +58,12 @@ class VideoWriterFFmpeg:
     public VideoWriter
 {
 public:
-    VideoWriterFFmpeg(std::shared_ptr<MessageList> message_list):
-        VideoWriter(std::move(message_list))
+    VideoWriterFFmpeg(std::shared_ptr<MessageList> message_list,
+                      std::string file_name,
+                      size_t format_index):
+        VideoWriter(std::move(message_list),
+                    std::move(file_name),
+                    format_index)
     {
     }
 
@@ -88,12 +104,9 @@ public:
         }
     }
 
-    void AddFileDialogFilters(FileDialog *fd) const override {
-        fd->AddFilter("MPEG-4 (H264/AAC)","*.mp4");
-    }
-
     bool BeginWrite() override {
         int rc;
+        const VideoWriterFFmpegFormat *format=&g_formats[m_format_index];
         
         rc=avformat_alloc_output_context2(&m_ofcontext,
                                           nullptr,
@@ -128,9 +141,9 @@ public:
             return this->Error(0,"avcodec_alloc_context3 (video)");
         }
 
-        m_vcontext->bit_rate=800000;
-        m_vcontext->width=TV_TEXTURE_WIDTH;
-        m_vcontext->height=TV_TEXTURE_HEIGHT;
+        m_vcontext->bit_rate=format->vbitrate;
+        m_vcontext->width=format->vwidth;
+        m_vcontext->height=format->vheight;
         m_vcontext->time_base=m_vstream->time_base;
         m_vcontext->gop_size=12;//???
         m_vcontext->pix_fmt=g_vcodec->pix_fmts[0];
@@ -168,7 +181,7 @@ public:
             return this->Error(0,"avcodec_alloc_context3 (audio)");
         }
 
-        m_acontext->bit_rate=128000;
+        m_acontext->bit_rate=format->abitrate;
         m_acontext->sample_rate=g_audio_spec.freq;
         m_acontext->sample_fmt=g_aformat;
         m_acontext->channel_layout=AV_CH_LAYOUT_MONO;
@@ -216,8 +229,8 @@ public:
         m_swscontext=sws_getContext(TV_TEXTURE_WIDTH,
                                     TV_TEXTURE_HEIGHT,
                                     AV_PIX_FMT_BGRA,
-                                    TV_TEXTURE_WIDTH,
-                                    TV_TEXTURE_HEIGHT,
+                                    m_vframe->width,
+                                    m_vframe->height,
                                     (AVPixelFormat)m_vframe->format,
                                     SWS_POINT,
                                     nullptr,
@@ -328,16 +341,16 @@ public:
             return this->Error(rc,"av_frame_make_writable (video)");
         }
 
-        const uint8_t *slices[]={
+        const uint8_t *src_slices[]={
             (const uint8_t *)data,
         };
 
-        const int strides[]={
+        const int src_strides[]={
             TV_TEXTURE_WIDTH*4,
         };
         
         sws_scale(m_swscontext,
-                  slices,strides,0,TV_TEXTURE_HEIGHT,
+                  src_slices,src_strides,0,TV_TEXTURE_HEIGHT,
                   m_vframe->data,m_vframe->linesize);
 
         m_vframe->pts=m_vpts;
@@ -496,12 +509,17 @@ bool CanCreateVideoWriterFFmpeg() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-std::unique_ptr<VideoWriter> CreateVideoWriterFFmpeg(std::shared_ptr<MessageList> message_list) {
+std::unique_ptr<VideoWriter> CreateVideoWriterFFmpeg(std::shared_ptr<MessageList> message_list,
+                                                     std::string file_name,
+                                                     size_t format_index)
+{
     if(!CanCreateVideoWriterFFmpeg()) {
         return nullptr;
     }
     
-    return std::make_unique<VideoWriterFFmpeg>(message_list);
+    return std::make_unique<VideoWriterFFmpeg>(std::move(message_list),
+                                               std::move(file_name),
+                                               format_index);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -556,44 +574,13 @@ static int FindBestSampleRate(AVCodec *codec,
     return best;
 }
 
-static int LockMgrCallback(void **mutex_,AVLockOp op) {
-    std::mutex **mutex=(std::mutex **)mutex_;
-    
-    switch(op) {
-    case AV_LOCK_CREATE:
-        ASSERT(!*mutex);
-        *mutex=new std::mutex;
-        break;
-
-    case AV_LOCK_OBTAIN:
-        (*mutex)->lock();
-        break;
-
-    case AV_LOCK_RELEASE:
-        (*mutex)->unlock();
-        break;
-
-    case AV_LOCK_DESTROY:
-        delete *mutex;
-        *mutex=nullptr;
-        break;
-    }
-
-    return 0;
-}
-
 bool InitFFmpeg(Messages *messages) {
-    av_lockmgr_register(&LockMgrCallback);
+    const AVOutputFormat *output_format=av_guess_format(FORMAT,nullptr,nullptr);
     
-    av_register_all();
-    avcodec_register_all();
+    g_acodec=avcodec_find_encoder(output_format->audio_codec);
+    g_vcodec=avcodec_find_encoder(output_format->video_codec);
 
-    const AVOutputFormat *f=av_guess_format(FORMAT,nullptr,nullptr);
-    
-    g_acodec=avcodec_find_encoder(f->audio_codec);
-    g_vcodec=avcodec_find_encoder(f->video_codec);
-
-    if(!f||!g_acodec||!g_vcodec) {
+    if(!output_format||!g_acodec||!g_vcodec) {
         // The repercussions of this: the Video button just does
         // nothing. Which is a bit lame. Need a better mechanism for
         // handling this...
@@ -603,8 +590,9 @@ bool InitFFmpeg(Messages *messages) {
         return true;
     }
 
-    if(f->flags&AVFMT_NOFILE) {
-        messages->e.f("FFmpeg: %s format doesn't support writing to file\n",FORMAT);
+    if(output_format->flags&AVFMT_NOFILE) {
+        messages->e.f("FFmpeg: %s format doesn't support writing to file\n",
+                      output_format->long_name);
         goto bad;
     }
 
@@ -628,9 +616,45 @@ bool InitFFmpeg(Messages *messages) {
 
     LOGF(FFMPEG,"Audio format: %dHz\n",g_audio_spec.freq);
 
+    LOGF(FFMPEG,"Video output formats:\n");
+
+    for(int size_scale=1;size_scale<=2;++size_scale) {
+        VideoWriterFFmpegFormat f;
+
+        f.vwidth=TV_TEXTURE_WIDTH*size_scale;
+        f.vheight=TV_TEXTURE_HEIGHT*size_scale;
+        f.vbitrate=4000000;
+        f.abitrate=128000;
+
+        f.vwf.extension=std::string(".")+FORMAT;
+        f.vwf.description=strprintf("%dx%d %s (%s %.1fMb/sec; %s %.1fKb/sec)",
+                                    TV_TEXTURE_WIDTH*size_scale,
+                                    TV_TEXTURE_HEIGHT*size_scale,
+                                    output_format->name,
+                                    g_vcodec->name,
+                                    f.vbitrate/1e6,
+                                    g_acodec->name,
+                                    f.abitrate/1e3);
+
+        LOGF(FFMPEG,"    %zu. %s\n",g_formats.size()+1,f.vwf.description.c_str());
+
+        g_formats.push_back(std::move(f));
+    }
+
     g_can_write_video=true;
     return true;
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
+
+size_t GetNumVideoWriterFFmpegFormats() {
+    return g_formats.size();
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+const VideoWriterFormat *GetVideoWriterFFmpegFormatByIndex(size_t index) {
+    return &g_formats[index].vwf;
+}

@@ -1,6 +1,5 @@
 #ifndef HEADER_955877FE3EF348158B5DE057F21184C7
 #define HEADER_955877FE3EF348158B5DE057F21184C7
-#include <shared/cpp_begin.h>
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -12,6 +11,7 @@ class Trace;
 
 #include "conf.h"
 #include <time.h>
+#include <vector>
 
 #include <shared/enum_decl.h>
 #include "MC146818.inl"
@@ -138,11 +138,11 @@ public:
     // comes from the address register.
     void SetData(uint8_t value);
 
-    // Get pointer to first byte of the RAM_SIZE bytes of RAM.
-    const uint8_t *GetRAM() const;
+    std::vector<uint8_t> GetRAMContents() const;
 
-    // Set RAM contents. DATA must point to RAM_SIZE bytes.
-    void SetRAMContents(const uint8_t *data);
+    // Set RAM contents. If DATA is the wrong size, the RTC RAM will
+    // be zero-padded, or the excess ignored.
+    void SetRAMContents(const std::vector<uint8_t> &data);
 
     // The clock runs at emulated speed, rather than being tied to the
     // host clock.
@@ -171,5 +171,4 @@ CHECK_SIZEOF(MC146818::Registers,64);
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-#include <shared/cpp_end.h>
 #endif

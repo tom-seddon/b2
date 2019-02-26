@@ -402,11 +402,11 @@ private:
         std::string key;
         std::string *value=nullptr;
 
-        // This is crap... makes it far too hard to support pipelined
-        // requests and whatnot. Eventually this will probably become
-        // std::vector<HTTPRequest>, or
-        // std::vector<std::unique_ptr<HTTPRequest>>, something like
-        // that.
+        // Should this be std::vector<HTTPRequest>, or some similar equivalent?
+        // My notes say yes, but I'm not so sure any more - pipelining ain't so
+        // good for non-idempotent requests, and the Wikipedia article sounds a
+        // not-very-positive note...
+        // (https://en.wikipedia.org/wiki/HTTP_pipelining)
         HTTPRequest request;
 
         bool keep_alive=false;

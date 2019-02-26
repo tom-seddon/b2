@@ -93,19 +93,13 @@ static void SaveWAV(
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-WriteVideoJob::WriteVideoJob(Timeline::ReplayData replay_data,std::unique_ptr<VideoWriter> writer,std::shared_ptr<MessageList> message_list):
-    m_message_list(std::move(message_list)),
-    m_replay_data(std::move(replay_data)),
+WriteVideoJob::WriteVideoJob(BeebThread::TimelineEventList event_list,
+                             std::unique_ptr<VideoWriter> writer):
+    m_event_list(std::move(event_list)),
     m_writer(std::move(writer)),
-    m_msg(m_message_list)
+    m_msg(m_writer->GetMessageList())
 {
     m_file_name=m_writer->GetFileName();
-
-    // Remove event id markers from the replay data, so the thread
-    // doesn't bother to keep its timeline position up to date.
-    for(auto &&re:m_replay_data.events) {
-        re.id=0;
-    }
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -193,9 +187,11 @@ static void PushBackFloat(int index,float f,void *context) {
 void WriteVideoJob::ThreadExecute() {
     //OutputData *video_output_data=m_beeb_thread->GetVideoOutputData();
 
-    ASSERT(!m_replay_data.events.empty());
-    uint64_t start_cycles=m_replay_data.events[0].be.time_2MHz_cycles;
-    uint64_t finish_cycles=m_replay_data.events.back().be.time_2MHz_cycles;
+    ASSERT(!m_event_list.events.empty());
+    uint64_t start_cycles=m_event_list.state_event.time_2MHz_cycles;
+    uint64_t finish_cycles=m_event_list.events.back().time_2MHz_cycles;
+    ASSERT(finish_cycles>=start_cycles);
+
     uint64_t start_ticks=GetCurrentTickCount();
 
     m_cycles_done.store(0,std::memory_order_release);
@@ -208,6 +204,12 @@ void WriteVideoJob::ThreadExecute() {
     static const size_t NUM_SAMPLES=4096;
     TVOutput tv_output;
     std::shared_ptr<BeebThread> beeb_thread;
+    std::shared_ptr<const BeebState> start_state;
+    std::vector<BeebThread::TimelineEventList> event_lists;
+
+    if(!m_writer->BeginWrite()) {
+        goto done;
+    }
 
 #if WAV
     std::vector<uint8_t> wav_float_data,wav_pcm_data,wav_full_float_data[1+NUM_CHANNELS];
@@ -257,12 +259,20 @@ void WriteVideoJob::ThreadExecute() {
         }
     }
 
-    {
-        beeb_thread=std::make_shared<BeebThread>(m_message_list,0,afmt.freq,NUM_SAMPLES);
-        if(!beeb_thread->Start()) {
-            this->Error("couldn't start BBC thread");
-            goto done;
-        }
+    start_state=m_event_list.state_event.message->GetBeebState();
+
+    event_lists.push_back(std::move(m_event_list));
+
+    beeb_thread=std::make_shared<BeebThread>(m_msg.GetMessageList(),
+                                             0,
+                                             afmt.freq,
+                                             NUM_SAMPLES,
+                                             BeebLoadedConfig(),
+                                             std::move(event_lists));
+
+    if(!beeb_thread->Start()) {
+        this->Error("couldn't start BBC thread");
+        goto done;
     }
 
     {
@@ -270,12 +280,14 @@ void WriteVideoJob::ThreadExecute() {
         bool was_vblank=tv_output.IsInVerticalBlank();
         OutputDataBuffer<VideoDataUnit> *video_output=beeb_thread->GetVideoOutput();
 
-        beeb_thread->Send(std::make_unique<BeebThread::ReplayMessage>(std::move(m_replay_data)));
-
-        beeb_thread->Send(std::make_unique<BeebThread::PauseMessage>(false));
+        beeb_thread->Send(std::make_shared<BeebThread::StartReplayMessage>(start_state));
+        //beeb_thread->Send(std::make_shared<BeebThread::PauseMessage>(false));
 
         for(;;) {
             uint64_t cycles=beeb_thread->GetEmulated2MHzCycles();
+
+            // TODO - this isn't the right finish condition. Should just keep
+            // going until out of events.
             if(cycles>=finish_cycles) {
                 beeb_thread->Stop();
                 replaying=false;
@@ -291,9 +303,9 @@ void WriteVideoJob::ThreadExecute() {
                 float *dest=(float *)audio_buf.data();
                 num_samples=tmp->AudioThreadFillAudioBuffer(dest,NUM_SAMPLES,true,
 #if WAV
-                    &PushBackFloat,&wav_full_float_data
+                                                            &PushBackFloat,&wav_full_float_data
 #else
-                    nullptr,nullptr
+                                                            nullptr,nullptr
 #endif
                 );
             }
@@ -324,7 +336,7 @@ void WriteVideoJob::ThreadExecute() {
 
             const VideoDataUnit *vp[2];
             size_t vn[2];
-            if(video_output->ConsumerLock(&vp[0],&vn[0],&vp[1],&vn[1])) {
+            if(video_output->GetConsumerBuffers(&vp[0],&vn[0],&vp[1],&vn[1])) {
                 for(size_t i=0;i<2;++i) {
                     const VideoDataUnit *v=vp[i];
                     size_t n=vn[i];
@@ -332,14 +344,13 @@ void WriteVideoJob::ThreadExecute() {
                     ASSERT((n&1)==0);
 
                     for(size_t j=0;j<n;++j) {
-                        tv_output.UpdateOneUnit(v++,1.f);
-                        tv_output.UpdateOneUnit(v++,1.f);
+                        tv_output.Update(v++,1);
 
                         bool is_vblank=tv_output.IsInVerticalBlank();
                         if(is_vblank&&!was_vblank) {
-                            const void *data=tv_output.GetTextureData(nullptr);
+                            const void *data=tv_output.GetTexturePixels(nullptr);
 
-                            if(!m_writer->WriteVideo(data)) { 
+                            if(!m_writer->WriteVideo(data)) {
                                 goto done;
                             }
 
@@ -352,7 +363,7 @@ void WriteVideoJob::ThreadExecute() {
                     }
                 }
 
-                video_output->ConsumerUnlock(vn[0]+vn[1]);
+                video_output->Consume(vn[0]+vn[1]);
             } else {
                 if(num_samples==0&&!replaying) {
                     break;

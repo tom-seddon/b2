@@ -35,21 +35,26 @@ public:
 
     std::string name;
 
-    int beeb_type=-1;
+    int beeb_type=-1;//BBCMicroType
     std::string os_file_name;
     ROM roms[16];
     uint8_t keyboard_links=0;
-    std::vector<uint8_t> nvram_contents;
     const DiscInterfaceDef *disc_interface=nullptr;
     bool video_nula=true;
     bool ext_mem=false;
+    bool beeblink=false;
 protected:
 private:
 };
 
 void InitDefaultBeebConfigs();
+
 size_t GetNumDefaultBeebConfigs();
 const BeebConfig *GetDefaultBeebConfigByIndex(size_t index);
+
+std::vector<uint8_t> GetDefaultNVRAMContents(int beeb_type);
+void ResetDefaultNVRAMContents(int beeb_type);
+void SetDefaultNVRAMContents(int beeb_type,std::vector<uint8_t> nvram_contents);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -73,10 +78,6 @@ public:
 
     static bool Load(BeebLoadedConfig *dest,const BeebConfig &src,Messages *msg);
 
-    // No disc or NVRAM callbacks are set.
-    std::unique_ptr<BBCMicro> CreateBBCMicro(uint64_t initial_num_2MHz_cycles) const;
-
-    //
     void ReuseROMs(const BeebLoadedConfig &oth);
 protected:
 private:

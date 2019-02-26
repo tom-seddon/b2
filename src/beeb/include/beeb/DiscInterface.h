@@ -89,8 +89,6 @@ extern const DiscInterfaceDef DISC_INTERFACE_MASTER128;
 // ends with NULL.
 extern const DiscInterfaceDef *const ALL_DISC_INTERFACES[];
 
-// Finds an entry in the ALL_DISC_INTERFACES list by name, or NULL if
-// not found.
 const DiscInterfaceDef *FindDiscInterfaceByName(const char *name);
 
 //////////////////////////////////////////////////////////////////////////

@@ -24,6 +24,7 @@ class BeebState;
 class CommandContextStackUI;
 class CommandKeymapsUI;
 class SettingsUI;
+class DiscImage;
 
 #include "keys.h"
 #include "dear_imgui.h"
@@ -65,6 +66,7 @@ struct BeebWindowSettings {
 
     float bbc_volume=0.f;
     float disc_volume=0.f;
+    bool power_on_tone=true;
 
     bool display_auto_scale=true;
     bool correct_aspect_ratio=true;
@@ -75,6 +77,8 @@ struct BeebWindowSettings {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+// TODO - there are items that only apply to the first window, and they should
+// probably go somewhere else...
 struct BeebWindowInitArguments {
 public:
     // Index of SDL render driver, as supplied to SDL_CreateRenderer.
@@ -111,32 +115,21 @@ public:
 
 #endif
 
-    // If set, the emulator is initially paused.
-    //
-    // (This isn't actually terribly useful, because there's no way to
-    // then unpause it from the public API - but the flag has to go
-    // somewhere, and it has to funnel through CreateBeebWindow, so...
-    // here it is.)
-    bool initially_paused=false;
+//    // If set, the emulator is initially paused.
+//    //
+//    // (This isn't actually terribly useful, because there's no way to
+//    // then unpause it from the public API - but the flag has to go
+//    // somewhere, and it has to funnel through CreateBeebWindow, so...
+//    // here it is.)
+//    bool initially_paused=false;
 
     // When INITIAL_STATE is non-null, it is used as the initial state
-    // for the window, and PARENT_TIMELINE_EVENT_ID is the parent
-    // event id. (This is used to split the timeline at a non-start
-    // event, without having to introduce a new start event.)
+    // for the window; otherwise, DEFAULT_CONFIG will be used as the
+    // config to start with.
     //
-    // When INITIAL_STATE is null, but PARENT_TIMELINE_EVENT_ID is
-    // non-zero, PARENT_TIMELINE_EVENT_ID is the event to load the
-    // state from. (It must be a start event.)
-    //
-    // Otherwise (INITIAL_STATE==null, PARENT_TIMELINE_EVENT_ID==0),
-    // DEFAULT_CONFIG holds the config to start with, and a new root
-    // node will be created to start the timeline.
-    //
-    // DEFAULT_CONFIG must always be valid, even when INITIAL_STATE
-    // and PARENT_TIMELINE_EVENT_ID will be used, as it is the config
-    // used for new windows created by Window|New.
+    // DEFAULT_CONFIG must always be valid, as it is the config used
+    // for new windows created by Window|New.
     std::shared_ptr<BeebState> initial_state;
-    uint64_t parent_timeline_event_id=0;
     BeebLoadedConfig default_config;
 
     // Message list to be used to populate the window's message list.
@@ -165,6 +158,14 @@ public:
     // SETTINGS. Otherwise, use BeebWindow::defaults.
     bool use_settings=false;
     BeebWindowSettings settings;
+
+    // Initial disc images, if any, for the drives. Only set for the first
+    // window created - the values come from the -0/-1 command line options.
+    std::shared_ptr<DiscImage> init_disc_images[NUM_DRIVES];
+
+    // If set, try to autoboot. Only set for the first window created - the
+    // value comes from the --boot command line option.
+    bool boot=false;
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -215,11 +216,6 @@ public:
 
     void BeebKeymapWillBeDeleted(BeebKeymap *keymap);
 
-    // If this BeebWindow has a SDL_Texture holding the current
-    // display contents that's suitable for rendering with the given
-    // SDL_Renderer, return a pointer to it. Otherwise, nullptr.
-    SDL_Texture *GetTextureForRenderer(SDL_Renderer *renderer) const;
-
     // If this BeebWindow's texture data has changed since the last
     // time this function was called with the given version object, or
     // if it's the first time of calling with the given version
@@ -249,15 +245,15 @@ public:
     void SetCurrentKeymap(const BeebKeymap *keymap);
 
 #if VIDEO_TRACK_METADATA
-    const VideoDataUnitMetadata *GetMetadataForMousePixel() const;
+    const VideoDataUnit *GetVideoDataUnitForMousePixel() const;
 #endif
 protected:
 private:
     struct SettingsUIMetadata;
 
     struct DriveState {
-        FolderDialog open_65link_folder_dialog;
         OpenFileDialog open_disc_image_file_dialog;
+        OpenFileDialog open_direct_disc_image_file_dialog;
 
         DriveState();
     };
@@ -297,6 +293,7 @@ private:
     SDL_AudioDeviceID m_sound_device=0;
 
     const BeebKeymap *m_keymap=nullptr;
+    bool m_prefer_shortcuts=false;
 
     // number of emulated us that had passed at the time of the last
     // title update.
@@ -351,7 +348,6 @@ private:
     uint64_t m_leds_popup_ticks=0;
 
 #if BBCMICRO_DEBUGGER
-    bool m_show_beam_position=true;
     bool m_test_pattern=false;
     mutable bool m_debug_halted=false;
     mutable bool m_got_debug_halted=false;
@@ -363,8 +359,8 @@ private:
     uint64_t m_msg_last_num_errors_and_warnings_printed=0;
     ObjectCommandContext<BeebWindow> m_occ;
 #if VIDEO_TRACK_METADATA
-    bool m_got_mouse_pixel_metadata=false;
-    VideoDataUnitMetadata m_mouse_pixel_metadata={};
+    bool m_got_mouse_pixel_unit=false;
+    VideoDataUnit m_mouse_pixel_unit={};
 #endif
 
     SDL_Point m_mouse_pos={-1,-1};
@@ -379,10 +375,6 @@ private:
 #endif
 
     bool InitInternal();
-    bool LoadDiscImageFile(int drive,const std::string &path);
-    bool Load65LinkFolder(int drive,const std::string &path);
-    void DoOptionsGui();
-    //void DoSettingsUI(uint32_t ui_flag,const char *name,std::unique_ptr<SettingsUI> *uptr,std::function<std::unique_ptr<SettingsUI>()> create_fun);
     bool DoImGui(uint64_t ticks);
     bool DoMenuUI();
     void DoSettingsUI();
@@ -395,9 +387,8 @@ private:
     BeebWindowInitArguments GetNewWindowInitArguments() const;
     void MaybeSaveConfig(bool save_config);
     void HardReset();
-    void LoadLastState();
-    bool IsLoadLastStateEnabled() const;
     void SaveState();
+    bool SaveStateIsEnabled() const;
     bool HandleBeebKey(const SDL_Keysym &keysym,bool state);
     bool RecreateTexture();
     void Exit();
@@ -405,9 +396,6 @@ private:
     void ResetDockWindows();
     void ClearConsole();
     void PrintSeparator();
-    void DumpTimelineConsole();
-    void DumpTimelineDebuger();
-    void CheckTimeline();
     void UpdateTVTexture(VBlankRecord *vblank_record);
     VBlankRecord *NewVBlankRecord(uint64_t ticks);
     void DoBeebDisplayUI();
@@ -445,10 +433,20 @@ private:
     bool DebugIsHalted() const;
 #endif
 
+    void ResetDefaultNVRAM();
+    void SaveDefaultNVRAM();
+    bool SaveDefaultNVRAMIsEnabled() const;
+
+    void SaveConfig();
+
+    void TogglePrioritizeCommandShortcuts();
+    bool IsPrioritizeCommandShortcutsTicked() const;
+
+    void ShowPrioritizeCommandShortcutsStatus();
+
     static std::unique_ptr<SettingsUI> CreateOptionsUI(BeebWindow *beeb_window);
-#if TIMELINE_UI_ENABLED
     static std::unique_ptr<SettingsUI> CreateTimelineUI(BeebWindow *beeb_window);
-#endif
+    static std::unique_ptr<SettingsUI> CreateSavedStatesUI(BeebWindow *beeb_window);
     static std::unique_ptr<SettingsUI> CreateCommandContextStackUI(BeebWindow *beeb_window);
 
     static ObjectCommandTable<BeebWindow> ms_command_table;

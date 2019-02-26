@@ -131,9 +131,10 @@ public:
      */
     void PRINTF_LIKE(2,3) EnsureBOL(const char *fmt=nullptr,...);
 
-    LogPrinter *GetPrinter() const;
-    void SetPrinter(LogPrinter *printer);
+    LogPrinter *GetLogPrinter() const;
+    void SetLogPrinter(LogPrinter *printer);
 
+    const char *GetPrefix() const;
     void SetPrefix(const char *prefix);
 
     const std::string &GetTag() const;

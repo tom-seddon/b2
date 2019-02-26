@@ -6,7 +6,7 @@
 
 #include "video.h"
 
-union VideoDataUnit;
+union VideoDataUnitPixels;
 union M6502Word;
 class Trace;
 
@@ -58,7 +58,7 @@ public:
 
     void Byte(uint8_t byte);
 
-    void EmitPixels(VideoDataUnit *unit);
+    void EmitPixels(VideoDataUnitPixels *pixels);
 
 #if BBCMICRO_TRACE
     void SetTrace(Trace *t);
@@ -67,11 +67,11 @@ protected:
 private:
     union PixelBuffer {
         uint64_t values[4];
-        VideoDataBitmapPixel pixels[16];
+        VideoDataPixel pixels[16];
     };
 
     uint8_t m_palette[16]={};
-    VideoDataBitmapPixel m_output_palette[16]={};
+    VideoDataPixel m_output_palette[16]={};
     uint8_t m_work_byte=0;
     uint8_t m_original_byte=0;
     uint8_t m_flash[16]={};
@@ -89,24 +89,24 @@ private:
 #endif
 
     void ResetNuLAState();
-    VideoDataBitmapPixel GetPalette(uint8_t index);
-    VideoDataBitmapPixel Shift();
-    VideoDataBitmapPixel ShiftAttributeMode0();
-    VideoDataBitmapPixel ShiftAttributeMode1();
-    VideoDataBitmapPixel ShiftAttributeText();
+    VideoDataPixel GetPalette(uint8_t index);
+    VideoDataPixel Shift();
+    VideoDataPixel ShiftAttributeMode0();
+    VideoDataPixel ShiftAttributeMode1();
+    VideoDataPixel ShiftAttributeText();
 
-    void Emit2MHz(VideoDataUnit *hu);
-    void Emit4MHz(VideoDataUnit *hu);
-    void Emit8MHz(VideoDataUnit *hu);
-    void Emit16MHz(VideoDataUnit *hu);
-    void EmitNuLAAttributeMode0(VideoDataUnit *hu);
-    void EmitNuLAAttributeMode1(VideoDataUnit *hu);
-    void EmitNuLAAttributeMode4(VideoDataUnit *hu);
-    void EmitNuLAAttributeTextMode4(VideoDataUnit *hu);
-    void EmitNuLAAttributeTextMode0(VideoDataUnit *hu);
-    void EmitNothing(VideoDataUnit *hu);
+    void Emit2MHz(VideoDataUnitPixels *pixels);
+    void Emit4MHz(VideoDataUnitPixels *pixels);
+    void Emit8MHz(VideoDataUnitPixels *pixels);
+    void Emit16MHz(VideoDataUnitPixels *pixels);
+    void EmitNuLAAttributeMode0(VideoDataUnitPixels *pixels);
+    void EmitNuLAAttributeMode1(VideoDataUnitPixels *pixels);
+    void EmitNuLAAttributeMode4(VideoDataUnitPixels *pixels);
+    void EmitNuLAAttributeTextMode4(VideoDataUnitPixels *pixels);
+    void EmitNuLAAttributeTextMode0(VideoDataUnitPixels *pixels);
+    void EmitNothing(VideoDataUnitPixels *pixels);
 
-    typedef void (VideoULA::*EmitMFn)(union VideoDataUnit *);
+    typedef void (VideoULA::*EmitMFn)(VideoDataUnitPixels *);
     static const EmitMFn EMIT_MFNS[4][2][4];
     //static const EmitMFn NULA_EMIT_MFNS[2][4];
 

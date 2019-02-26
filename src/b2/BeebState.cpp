@@ -46,6 +46,20 @@ std::unique_ptr<BBCMicro> BeebState::CloneBBCMicro() const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+BBCMicroType BeebState::GetBBCMicroType() const {
+    return m_beeb->GetType();
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+std::shared_ptr<const DiscImage> BeebState::GetDiscImageByDrive(int drive) const {
+    return m_beeb->GetDiscImage(drive);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 const void *BeebState::GetTVTextureData() const {
     if(m_tv_texture_data.empty()) {
         return nullptr;
@@ -77,7 +91,7 @@ BeebState::BeebState(std::unique_ptr<BBCMicro> beeb,const TVOutput *tv):
 {
     if(tv) {
         m_tv_texture_data.resize(TV_TEXTURE_WIDTH*TV_TEXTURE_HEIGHT);
-        memcpy(m_tv_texture_data.data(),tv->GetTextureData(nullptr),TV_TEXTURE_WIDTH*TV_TEXTURE_HEIGHT*4);
+        memcpy(m_tv_texture_data.data(),tv->GetTexturePixels(nullptr),TV_TEXTURE_WIDTH*TV_TEXTURE_HEIGHT*4);
     }
 }
 

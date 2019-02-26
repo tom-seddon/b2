@@ -42,9 +42,11 @@ std::string strprintfv(const char *fmt,va_list v);
 
 std::string GetFlagsString(uint32_t value,const char *(*get_name_fn)(int));
 
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+std::string GetCloneImpedimentsDescription(uint32_t impediments);
 std::string GetMicrosecondsString(uint64_t num_microseconds);
 std::string Get2MHzCyclesString(uint64_t num_2MHz_cycles);
 
@@ -100,7 +102,7 @@ static T ValueChanged(T *value_ptr,T &&new_value) {
     T change=*value_ptr^new_value;
 
     *value_ptr=new_value;
-    
+
     return change;
 }
 

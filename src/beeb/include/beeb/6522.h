@@ -5,11 +5,8 @@
 //////////////////////////////////////////////////////////////////////////
 
 #include "conf.h"
-#include <6502/6502.h>
-
-#if BBCMICRO_TRACE
-class Trace;
-#endif
+#include "6502.h"
+#include "Trace.h"
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -23,6 +20,7 @@ class Trace;
 
 class R6522 {
 public:
+
 #include <shared/pushwarn_bitfields.h>
     struct PCRBits {
         uint8_t ca1_pos_irq:1;
@@ -73,40 +71,46 @@ public:
         IRQBits bits;
     };
 
+#if BBCMICRO_TRACE
+#include <shared/pshpack1.h>
+    struct IRQEvent {
+        uint8_t id;
+        IRQ ifr,ier;
+    };
+#include <shared/poppack.h>
+
+    static const TraceEventType IRQ_EVENT;
+#endif
+
     /* Cx1 and Cx2 */
 #include <shared/pushwarn_bitfields.h>
     struct Port {
     private:
         /* ORx */
         /* (`or' conflicts with iso646) */
-        uint8_t or_;
+        uint8_t or_=0;
 
         /* DDRx */
-        uint8_t ddr;
+        uint8_t ddr=0;
 
         /* Px */
     public:
-        uint8_t p;
+        uint8_t p=0xff;
     private:
         uint8_t p_latch;
 
         /* Cx1 */
     public:
-        uint8_t c1;
+        uint8_t c1=0;
     private:
-        uint8_t old_c1;
+        uint8_t old_c1=0;
 
         /* Cx2 */
     public:
-        uint8_t c2;
+        uint8_t c2=0;
     private:
-        uint8_t old_c2;
-        uint8_t pulse;
-    public:
-        /* Callback */
-        typedef void (*ChangeFn)(R6522 *via,uint8_t value,uint8_t old_value,void *context);
-        ChangeFn fn;
-        void *fn_context;
+        uint8_t old_c2=0;
+        uint8_t pulse=0;
 
         friend class R6522;
 #if BBCMICRO_DEBUGGER
@@ -120,10 +124,10 @@ public:
     IRQ ifr={};
     IRQ ier={};
 
-    /* for me, in the debugger... */
-    const char *tag=nullptr;
-
     void Reset();
+
+    // NAME is copied by pointer and should be a string literal.
+    void SetID(uint8_t id,const char *name);
 
     static void Write0(void *via,M6502Word addr,uint8_t value);
     static void Write1(void *via,M6502Word addr,uint8_t value);
@@ -159,6 +163,9 @@ public:
     static uint8_t ReadE(void *via,M6502Word addr);
     static uint8_t ReadF(void *via,M6502Word addr);
 
+    // Get current PCR value, no side-effects.
+    PCR GetPCR() const;
+
     // returns IRQ flag: true = IRQ, false = no IRQ
     uint8_t Update();
 
@@ -184,8 +191,8 @@ private:
 
     //uint8_t m_irq_output=0;
 
-    /* next value for pb7 when in T1 output toggle mode */
-    uint8_t m_next_pb7=0;
+    /* T1-driven output value for PB7 */
+    uint8_t m_t1_pb7=0;
 
     /* whether to generate an IRQ on next T2 timeout */
     uint8_t m_t2_irq=0;
@@ -201,9 +208,10 @@ private:
     Trace *m_trace=nullptr;
 #endif
 
-    void TickControl(Port *port,uint8_t latching,uint8_t pcr_bits,uint8_t cx2_mask);
-    void DoPortHandshakingRead(Port *port,uint8_t pcr_bits,uint8_t irqmask2);
-    void DoPortHandshakingWrite(Port *port,uint8_t pcr_bits,uint8_t irqmask2);
+    uint8_t m_id=0;
+    const char *m_name=nullptr;
+
+    void TickControl(Port *port,uint8_t latching,uint8_t pcr_bits,uint8_t cx2_mask,char c);
     void UpdatePortPins(Port *port);
 
 #if BBCMICRO_DEBUGGER

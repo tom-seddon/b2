@@ -52,6 +52,29 @@ static std::shared_ptr<BeebRomData> LoadROM(
 
 static std::vector<BeebConfig> g_default_configs;
 
+static std::vector<uint8_t> GetDefaultMasterNVRAM() {
+    std::vector<uint8_t> nvram;
+
+    nvram.resize(50);
+
+    nvram[5]=0xC9;// 5 - LANG 12; FS 9
+    nvram[6]=0xFF;// 6 - INSERT 0 ... INSERT 7
+    nvram[7]=0xFF;// 7 - INSERT 8 ... INSERT 15
+    nvram[8]=0x00;// 8
+    nvram[9]=0x00;// 9
+    nvram[10]=0x17;//10 - MODE 7; SHADOW 0; TV 0 1
+    nvram[11]=0x80;//11 - FLOPPY
+    nvram[12]=55;//12 - DELAY 55
+    nvram[13]=0x03;//13 - REPEAT 3
+    nvram[14]=0x00;//14
+    nvram[15]=0x00;//15
+    nvram[16]=0x02;//16 - LOUD
+
+    return nvram;
+}
+
+static std::vector<uint8_t> g_default_master_nvram_contents=GetDefaultMasterNVRAM();
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
@@ -129,20 +152,6 @@ void InitDefaultBeebConfigs() {
             config.roms[5].writeable=true;
             config.roms[4].writeable=true;
 
-            config.nvram_contents.resize(50);
-
-            // *CONFIGURE settings:
-            config.nvram_contents[5]=0xC9;//LANG 12; FS 9
-            config.nvram_contents[6]=0xFF;//INSERT 0 ... INSERT 7
-            config.nvram_contents[7]=0xFF;//INSERT 8 ... INSERT 15
-            config.nvram_contents[10]=0x17;//MODE 7; SHADOW 0; TV 0 1
-            config.nvram_contents[11]=0x80;//FLOPPY
-            config.nvram_contents[12]=55;//DELAY 55
-            config.nvram_contents[13]=3;//REPEAT 3
-            config.nvram_contents[14]=0x00;
-            config.nvram_contents[15]=0x00;
-            config.nvram_contents[16]=2;//LOUD
-
             g_default_configs.push_back(config);
         }
     }
@@ -178,6 +187,35 @@ const BeebConfig *GetDefaultBeebConfigByIndex(size_t index) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+std::vector<uint8_t> GetDefaultNVRAMContents(int beeb_type) {
+    if(beeb_type==BBCMicroType_Master) {
+        return g_default_master_nvram_contents;
+    } else {
+        return std::vector<uint8_t>();
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void ResetDefaultNVRAMContents(int beeb_type) {
+    if(beeb_type==BBCMicroType_Master) {
+        g_default_master_nvram_contents=GetDefaultMasterNVRAM();
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void SetDefaultNVRAMContents(int beeb_type,std::vector<uint8_t> nvram_contents) {
+    if(beeb_type==BBCMicroType_Master) {
+        g_default_master_nvram_contents=std::move(nvram_contents);
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 bool BeebLoadedConfig::Load(
     BeebLoadedConfig *dest,
     const BeebConfig &src,
@@ -200,45 +238,6 @@ bool BeebLoadedConfig::Load(
     }
 
     return true;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-std::unique_ptr<BBCMicro> BeebLoadedConfig::CreateBBCMicro(uint64_t initial_num_2MHz_cycles) const {
-    if(!this->os) {
-        return nullptr;
-    }
-
-    tm now=GetLocalTimeNow();
-
-    auto m=std::make_unique<BBCMicro>((BBCMicroType)this->config.beeb_type,
-                                      this->config.disc_interface,
-                                      this->config.nvram_contents,
-                                      &now,
-                                      this->config.video_nula,
-                                      this->config.ext_mem,
-                                      initial_num_2MHz_cycles);
-
-    m->SetOSROM(this->os);
-
-    for(uint8_t i=0;i<16;++i) {
-        if(this->config.roms[i].writeable) {
-            if(!!this->roms[i]) {
-                m->SetSidewaysRAM(i,this->roms[i]);
-            } else {
-                m->SetSidewaysRAM(i,nullptr);
-            }
-        } else {
-            if(!!this->roms[i]) {
-                m->SetSidewaysROM(i,this->roms[i]);
-            } else {
-                m->SetSidewaysROM(i,nullptr);
-            }
-        }
-    }
-
-    return m;
 }
 
 //////////////////////////////////////////////////////////////////////////

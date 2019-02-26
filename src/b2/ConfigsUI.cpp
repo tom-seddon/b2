@@ -184,6 +184,10 @@ bool ConfigsUI::DoEditConfigGui(const BeebConfig *config,BeebConfig *editable_co
                 }
             }
 
+            if(ImGui::Checkbox("BeebLink",&editable_config->beeblink)) {
+                edited=true;
+            }
+
             if(occupied!=0xffff) {
                 {
                     ImGuiIDPusher ram_id_pusher("ram");

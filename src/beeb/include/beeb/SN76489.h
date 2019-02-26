@@ -4,19 +4,42 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#include "conf.h"
+#include "Trace.h"
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 class SN76489 {
 public:
+#if BBCMICRO_TRACE
+#include <shared/pshpack1.h>
+    struct WriteEvent {
+        // Internal register number.
+        uint16_t reg:3;
+
+        // New value for register.
+        uint16_t value:10;
+    };
+#include <shared/poppack.h>
+
+    static const TraceEventType WRITE_EVENT;
+#endif
+
     struct Output {
         int8_t ch[4];
     };
 
     SN76489();
 
-    void Reset();
+    void Reset(bool tone);
     void Fixup(const SN76489 *src);
 
-    Output Update();
-    void Write(uint8_t value);
+    Output Update(bool write,uint8_t value);
+
+#if BBCMICRO_TRACE
+    void SetTrace(Trace *t);
+#endif
 protected:
 private:
     static const uint16_t NOISE0;
@@ -62,10 +85,14 @@ private:
         uint8_t reg=0;
         uint8_t noise=0;
         uint16_t noise_seed=1<<14;
+        uint8_t write_delay=0;
     };
 
     State m_state;
     const uint16_t *const m_noise_pointers[4]={&NOISE0,&NOISE1,&NOISE2,&m_state.channels[2].freq};
+#if BBCMICRO_TRACE
+    Trace *m_trace;
+#endif
 
     uint8_t NextWhiteNoiseBit();
     uint8_t NextPeriodicNoiseBit();

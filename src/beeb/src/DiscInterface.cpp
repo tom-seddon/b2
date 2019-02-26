@@ -2,7 +2,7 @@
 #include <beeb/DiscInterface.h>
 #include <string.h>
 #include <beeb/BBCMicro.h>
-#include <6502/6502.h>
+#include <beeb/6502.h>
 #include <stdlib.h>
 #include <shared/debug.h>
 #include <memory>
@@ -337,7 +337,7 @@ class DiscInterfaceChallenger:
 {
     static const uint16_t FDC_ADDR=0xfcf8;
     static const uint16_t CONTROL_ADDR=0xfcfc;
-    static const uint32_t FLAGS=DiscInterfaceFlag_CycleStretch|DiscInterfaceFlag_NoINTRQ;
+    static const uint32_t FLAGS=DiscInterfaceFlag_NoINTRQ;
     static const bool STRETCH=true;
     static const bool INTRQ=false;
 public:
@@ -551,7 +551,7 @@ class DiscInterfaceMaster128:
 {
 public:
     DiscInterfaceMaster128():
-        DiscInterface(0xfe28,0xfe24,DiscInterfaceFlag_CycleStretch)
+        DiscInterface(0xfe28,0xfe24,0)
     {
     }
 
@@ -629,9 +629,12 @@ const DiscInterfaceDef *FindDiscInterfaceByName(const char *name) {
         }
     }
 
+    if(DISC_INTERFACE_MASTER128.name==name) {
+        return &DISC_INTERFACE_MASTER128;
+    }
+
     return nullptr;
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
-

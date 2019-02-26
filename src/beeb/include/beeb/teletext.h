@@ -4,9 +4,11 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-union VideoDataUnit;
+union VideoDataUnitPixels;
 
 #include "conf.h"
+
+#include "video.h"
 
 #include <shared/enum_decl.h>
 #include "teletext.inl"
@@ -19,15 +21,15 @@ class SAA5050 {
 public:
     SAA5050();
 
-    void Byte(uint8_t byte);
+    void Byte(uint8_t byte,uint8_t dispen);
 
     // One char is 2 units wide.
-    void EmitVideoDataUnit(VideoDataUnit *unit);
+    void EmitPixels(VideoDataUnitPixels *pixels);
 
-    void HSync();
+    void StartOfLine();
+    void EndOfLine();
 
-    /* odd_frame is specifically 1 (odd frame) or 0 (even frame). */
-    void VSync(uint8_t odd_frame);
+    void VSync();
 
 #if BBCMICRO_DEBUGGER
     bool IsDebug() const;
@@ -35,15 +37,18 @@ public:
 #endif
 protected:
 private:
+    struct Output {
+        uint8_t fg,bg,data0,data1;
+    };
+
     // Teletext
     uint8_t m_raster=0;
     uint8_t m_frame=0;
 
-    // Data to use for the current cell - 16 pixel bitmap, and
-    // foreground/background colours.
-    uint8_t m_data_colours[2];
-    uint16_t m_data0=0;
-    uint16_t m_data1=0;
+    // Output buffers.
+    Output m_output[8]={};
+    uint8_t m_write_index=4;
+    uint8_t m_read_index=0;
 
     // Current character set data.
     uint8_t m_charset=0;

@@ -56,6 +56,12 @@ class DebugUI:
     public SettingsUI
 {
 public:
+    ~DebugUI() {
+        for(int i=0;i<16;++i) {
+            delete m_debug_big_pages[i];
+        }
+    }
+
     bool OnClose() override {
         return false;
     }
@@ -66,90 +72,273 @@ public:
     }
 
     void DoImGui(CommandContextStack *cc_stack) final {
-        for(size_t i=0;i<256;++i) {
-            if(m_pages[i]) {
-                m_pages[i]->valid=false;
+        for(size_t i=0;i<16;++i) {
+            if(DebugBigPage *dbp=m_debug_big_pages[i]) {
+                dbp->bp=nullptr;
+                ++dbp->idle_count;
             }
         }
 
         this->HandleDoImGui(cc_stack);
     }
 protected:
+    struct DebugBigPage {
+        const BBCMicro::BigPage *bp=nullptr;
+
+        // points to this->ram_buffer, or NULL.
+        const uint8_t *r=nullptr;
+        uint8_t *w=nullptr;
+
+        // points to this->debug_buffer, or NULL.
+        BBCMicro::DebugState::ByteDebugFlags *debug=nullptr;
+
+        uint8_t ram_buffer[BBCMicro::BIG_PAGE_SIZE_BYTES]={};
+        BBCMicro::DebugState::ByteDebugFlags debug_buffer[BBCMicro::BIG_PAGE_SIZE_BYTES]={};
+        uint32_t idle_count=0;//eventually, for discarding...
+    };
+
     std::shared_ptr<BeebThread> m_beeb_thread;
 
-    uint8_t GetByte(uint16_t addr);
-    uint16_t GetDebugPage(uint16_t addr);
-    BBCMicro::DebugState::ByteDebugFlags GetDebugFlags(uint16_t addr);
+    void ReadByte(uint8_t *value,
+                  BBCMicro::DebugState::ByteDebugFlags *flags,
+                  const DebugBigPage **dbp_ptr,
+                  uint16_t addr);
+
+    void DoDebugPageOverrideImGui();
 
     virtual void HandleDoImGui(CommandContextStack *cc_stack)=0;
 private:
-    struct Page {
-        uint8_t ram[256]={};
-        BBCMicro::DebugState::ByteDebugFlags debug[256]={};
-        uint16_t flat_page=0;
-        bool valid=false;
-    };
+    DebugBigPage *m_debug_big_pages[16]={};
+    uint32_t m_dpo=0;
 
-    std::unique_ptr<Page> m_pages[256];
-
-    void PrepareForRead(M6502Word addr);
+    void DoDebugPageOverrideFlagImGui(uint32_t mask,
+                                      uint32_t current,
+                                      const char *name,
+                                      const char *popup_name,
+                                      uint32_t override_flag,
+                                      uint32_t flag);
+    const DebugBigPage *PrepareForRead(M6502Word addr);
 };
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-uint8_t DebugUI::GetByte(uint16_t addr_) {
+void DebugUI::ReadByte(uint8_t *value,
+                       BBCMicro::DebugState::ByteDebugFlags *flags,
+                       const DebugBigPage **dbp_ptr,
+                       uint16_t addr_)
+{
     M6502Word addr={addr_};
 
-    this->PrepareForRead(addr);
+    const DebugBigPage *dbp=this->PrepareForRead(addr);
 
-    return m_pages[addr.b.h]->ram[addr.b.l];
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-uint16_t DebugUI::GetDebugPage(uint16_t addr_) {
-    M6502Word addr={addr_};
-
-    this->PrepareForRead(addr);
-
-    return m_pages[addr.b.h]->flat_page;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-BBCMicro::DebugState::ByteDebugFlags DebugUI::GetDebugFlags(uint16_t addr_) {
-    M6502Word addr={addr_};
-
-    this->PrepareForRead(addr);
-
-    return m_pages[addr.b.h]->debug[addr.b.l];
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-void DebugUI::PrepareForRead(M6502Word addr) {
-    Page *page=m_pages[addr.b.h].get();
-
-    if(!page) {
-        m_pages[addr.b.h]=std::make_unique<Page>();
-        page=m_pages[addr.b.h].get();
+    if(dbp_ptr) {
+        *dbp_ptr=dbp;
     }
 
-    if(!page->valid) {
-        addr.b.l=0;
+    if(value) {
+        if(dbp->r) {
+            *value=dbp->r[addr.w&BBCMicro::BIG_PAGE_OFFSET_MASK];
+        } else {
+            *value=0;
+        }
+    }
+
+    if(flags) {
+        if(dbp->debug) {
+            *flags=dbp->debug[addr.w&BBCMicro::BIG_PAGE_OFFSET_MASK];
+        } else {
+            *flags={};
+        }
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+//uint16_t DebugUI::GetDebugPage(uint16_t addr_) {
+//    M6502Word addr={addr_};
+//
+//    this->PrepareForRead(addr);
+//
+//    return m_pages[addr.b.h]->flat_page;
+//}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+//BBCMicro::DebugState::ByteDebugFlags DebugUI::GetDebugFlags(uint16_t addr_) {
+//    M6502Word addr={addr_};
+//
+//    this->PrepareForRead(addr);
+//
+//    return m_pages[addr.b.h]->debug[addr.b.l];
+//}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void DebugUI::DoDebugPageOverrideImGui() {
+    static const char ROM_POPUP[]="rom_popup";
+    static const char SHADOW_POPUP[]="shadow_popup";
+    static const char ANDY_POPUP[]="andy_popup";
+    static const char HAZEL_POPUP[]="hazel_popup";
+    static const char OS_POPUP[]="os_popup";
+
+    uint32_t dpo_mask;
+    uint32_t dpo_current;
+    {
+        std::unique_lock<Mutex> lock;
+        const BBCMicro *m=m_beeb_thread->LockBeeb(&lock);
+        dpo_mask=m->DebugGetPageOverrideMask();
+        dpo_current=m->DebugGetCurrentPageOverride();
+    }
+
+    // ROM.
+    if(dpo_mask&BBCMicroDebugPagingOverride_OverrideROM) {
+        if(ImGui::Button("ROM")) {
+            ImGui::OpenPopup(ROM_POPUP);
+        }
+
+        ImGui::SameLine();
+
+        if(m_dpo&BBCMicroDebugPagingOverride_OverrideROM) {
+            ImGui::Text("%x!",m_dpo&BBCMicroDebugPagingOverride_ROM);
+        } else {
+            ImGui::Text("%x",dpo_current&BBCMicroDebugPagingOverride_ROM);
+        }
+
+        if(ImGui::BeginPopup(ROM_POPUP)) {
+            if(ImGui::Button("Use current")) {
+                m_dpo&=~(uint32_t)BBCMicroDebugPagingOverride_OverrideROM;
+                m_dpo&=~(uint32_t)BBCMicroDebugPagingOverride_ROM;
+                ImGui::CloseCurrentPopup();
+            }
+
+            ImGui::Text("Force");
+
+            for(uint8_t i=0;i<16;++i) {
+                ImGui::SameLine();
+
+                char text[10];
+                snprintf(text,sizeof text,"%X",i);
+
+                if(ImGui::Button(text)) {
+                    m_dpo|=BBCMicroDebugPagingOverride_OverrideROM;
+                    m_dpo=(m_dpo&~(uint32_t)BBCMicroDebugPagingOverride_ROM)|i;
+                    ImGui::CloseCurrentPopup();
+                }
+            }
+
+            ImGui::EndPopup();
+        }
+    }
+
+    this->DoDebugPageOverrideFlagImGui(dpo_mask,dpo_current,"Shadow",SHADOW_POPUP,BBCMicroDebugPagingOverride_OverrideShadow,BBCMicroDebugPagingOverride_Shadow);
+
+    this->DoDebugPageOverrideFlagImGui(dpo_mask,dpo_current,"ANDY",ANDY_POPUP,BBCMicroDebugPagingOverride_OverrideANDY,BBCMicroDebugPagingOverride_ANDY);
+
+    this->DoDebugPageOverrideFlagImGui(dpo_mask,dpo_current,"HAZEL",HAZEL_POPUP,BBCMicroDebugPagingOverride_OverrideHAZEL,BBCMicroDebugPagingOverride_HAZEL);
+
+    this->DoDebugPageOverrideFlagImGui(dpo_mask,dpo_current,"OS",OS_POPUP,BBCMicroDebugPagingOverride_OverrideOS,BBCMicroDebugPagingOverride_OS);
+}
+
+void DebugUI::DoDebugPageOverrideFlagImGui(uint32_t mask,
+                                           uint32_t current,
+                                           const char *name,
+                                           const char *popup_name,
+                                           uint32_t override_mask,
+                                           uint32_t flag_mask)
+{
+    if(!(mask&override_mask)) {
+        return;
+    }
+
+    ImGui::SameLine();
+
+    if(ImGui::Button(name)) {
+        ImGui::OpenPopup(popup_name);
+    }
+
+    ImGui::SameLine();
+
+    if(m_dpo&override_mask) {
+        ImGui::Text("%s!",m_dpo&flag_mask?"on":"off");
+    } else {
+        ImGui::Text("%s",current&flag_mask?"on":"off");
+    }
+
+    if(ImGui::BeginPopup(popup_name)) {
+        if(ImGui::Button("Use current")) {
+            m_dpo&=~override_mask;
+            m_dpo&=~flag_mask;
+            ImGui::CloseCurrentPopup();
+        }
+
+        if(ImGui::Button("Force on")) {
+            m_dpo|=override_mask;
+            m_dpo|=flag_mask;
+            ImGui::CloseCurrentPopup();
+        }
+
+        if(ImGui::Button("Force off")) {
+            m_dpo|=override_mask;
+            m_dpo&=~flag_mask;
+            ImGui::CloseCurrentPopup();
+        }
+
+        ImGui::EndPopup();
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+const DebugUI::DebugBigPage *DebugUI::PrepareForRead(M6502Word addr) {
+    uint8_t dbp_index=addr.b.h>>4;
+    DebugBigPage *dbp=m_debug_big_pages[dbp_index];
+
+    if(!dbp) {
+        dbp=new DebugBigPage;
+        m_debug_big_pages[dbp_index]=dbp;
+    }
+
+    if(!dbp->bp) {
+        dbp->idle_count=0;
 
         std::unique_lock<Mutex> lock;
         const BBCMicro *m=m_beeb_thread->LockBeeb(&lock);
 
-        page->flat_page=m->DebugGetFlatPage(addr.b.h);
-        m->DebugCopyMemory(page->ram,page->debug,addr,256);
+        dbp->bp=m->DebugGetBigPage(addr.b.h,m_dpo);
+        ASSERT(dbp->bp);
 
-        page->valid=true;
+        if(dbp->bp->r) {
+            memcpy(dbp->ram_buffer,
+                   dbp->bp->r,
+                   BBCMicro::BIG_PAGE_SIZE_BYTES);
+            dbp->r=dbp->ram_buffer;
+        } else {
+            dbp->r=nullptr;
+        }
+
+        if(dbp->bp->w&&dbp->bp->r) {
+            dbp->w=dbp->ram_buffer;
+        } else {
+            dbp->w=nullptr;
+        }
+
+        if(dbp->bp->debug) {
+            memcpy(dbp->debug_buffer,
+                   dbp->bp->debug,
+                   BBCMicro::BIG_PAGE_SIZE_BYTES*sizeof(BBCMicro::DebugState::ByteDebugFlags));
+            dbp->debug=dbp->debug_buffer;
+        } else {
+            dbp->debug=nullptr;
+        }
+
     }
+
+    return dbp;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -298,7 +487,10 @@ private:
         auto self=(MemoryDebugWindow *)data;
 
         ASSERT((uint16_t)off==off);
-        return self->GetByte((uint16_t)off);
+
+        uint8_t value;
+        self->ReadByte(&value,nullptr,nullptr,(uint16_t)off);
+        return value;
     }
 
     // There's no context parameter :( - so this hijacks the data
@@ -306,7 +498,7 @@ private:
     static void MemoryEditorWrite(uint8_t *data,size_t off,uint8_t d) {
         auto self=(MemoryDebugWindow *)data;
 
-        self->m_beeb_thread->Send(std::make_unique<BeebThread::DebugSetByteMessage>((uint16_t)off,d));
+        self->m_beeb_thread->Send(std::make_shared<BeebThread::DebugSetByteMessage>((uint16_t)off,0,d));
     }
 };
 
@@ -375,7 +567,7 @@ private:
     static void MemoryEditorWrite(uint8_t *data,size_t off,uint8_t d) {
         auto self=(ExtMemoryDebugWindow *)data;
 
-        self->m_beeb_thread->Send(std::make_unique<BeebThread::DebugSetExtByteMessage>((uint32_t)off,d));
+        self->m_beeb_thread->Send(std::make_shared<BeebThread::DebugSetExtByteMessage>((uint32_t)off,d));
     }
 
     void Reg(const char *name,uint8_t value) {
@@ -428,6 +620,8 @@ protected:
 
         float maxY=ImGui::GetCurrentWindow()->Size.y;//-ImGui::GetTextLineHeight()-GImGui->Style.WindowPadding.y*2.f;
 
+        this->DoDebugPageOverrideImGui();
+
         m_occ.DoToggleCheckboxUI("toggle_track_pc");
 
         m_occ.DoButton("go_back");
@@ -456,19 +650,19 @@ protected:
 
             ImGuiIDPusher id_pusher(addr);
 
-            uint8_t opcode=this->GetByte(addr);
-            BBCMicro::DebugState::ByteDebugFlags debug_flags=this->GetDebugFlags(addr);
-            uint16_t debug_flat_page=this->GetDebugPage(addr);
-            ++addr;
+            uint8_t opcode;
+            BBCMicro::DebugState::ByteDebugFlags debug_flags;
+            const DebugBigPage *dbp=nullptr;
+            this->ReadByte(&opcode,&debug_flags,&dbp,addr++);
 
             const M6502DisassemblyInfo *di=&config->disassembly_info[opcode];
 
             M6502Word operand={};
             if(di->num_bytes>=2) {
-                operand.b.l=this->GetByte(addr++);
+                this->ReadByte(&operand.b.l,nullptr,nullptr,addr++);
             }
             if(di->num_bytes>=3) {
-                operand.b.h=this->GetByte(addr++);
+                this->ReadByte(&operand.b.h,nullptr,nullptr,addr++);
             }
 
             ImGuiStyleColourPusher pusher;
@@ -482,10 +676,10 @@ protected:
                 if(ImGui::Checkbox("",&break_execute)) {
                     debug_flags.bits.break_execute=break_execute;
 
-                    std::unique_lock<Mutex> lock;
-                    BBCMicro *m=m_beeb_thread->LockMutableBeeb(&lock);
-
-                    m->DebugSetByteFlags(line_addr,debug_flags);
+//                    std::unique_lock<Mutex> lock;
+//                    BBCMicro *m=m_beeb_thread->LockMutableBeeb(&lock);
+//
+//                    m->DebugSetByteFlags(line_addr,debug_flags);
                 }
 
                 ImGui::SameLine();
@@ -493,7 +687,7 @@ protected:
 
             char prefix[3];
             if(has_debug_state) {
-                prefix[0]=BBCMicro::DebugGetFlatPageCode(debug_flat_page);
+                prefix[0]=dbp->bp->code;
                 prefix[1]='.';
                 prefix[2]=0;
             } else {
@@ -628,12 +822,13 @@ private:
 
     void DoIndirect(uint16_t address,uint16_t mask,uint16_t post_index) {
         M6502Word addr;
-        addr.b.l=this->GetByte(address);
+
+        this->ReadByte(&addr.b.l,nullptr,nullptr,address);
 
         ++address;
         address&=mask;
 
-        addr.b.h=this->GetByte(address);
+        this->ReadByte(&addr.b.h,nullptr,nullptr,address);
 
         addr.w+=post_index;
 
@@ -753,13 +948,13 @@ private:
         for(int i=0;i<n;++i) {
             uint8_t opcode;
 
-            opcode=this->GetByte(m_addr-1);
+            this->ReadByte(&opcode,nullptr,nullptr,m_addr-1);
             if(config->disassembly_info[opcode].num_bytes==1) {
                 --m_addr;
                 return;
             }
 
-            opcode=this->GetByte(m_addr-2);
+            this->ReadByte(&opcode,nullptr,nullptr,m_addr-2);
             if(config->disassembly_info[opcode].num_bytes==2) {
                 m_addr-=2;
                 return;
@@ -771,7 +966,8 @@ private:
 
     void Down(const M6502Config *config,int n) {
         for(int i=0;i<n;++i) {
-            uint8_t opcode=this->GetByte(m_addr);
+            uint8_t opcode;
+            this->ReadByte(&opcode,nullptr,nullptr,m_addr);
             m_addr+=config->disassembly_info[opcode].num_bytes;
         }
     }
@@ -1248,20 +1444,18 @@ protected:
     void HandleDoImGui(CommandContextStack *cc_stack) override {
         (void)cc_stack;
 
-        uint8_t nvram[256];
-        size_t nvram_size;
+        std::vector<uint8_t> nvram;
         {
             std::unique_lock<Mutex> lock;
             const BBCMicro *m=m_beeb_thread->LockBeeb(&lock);
 
-            nvram_size=(std::min)(m->GetNVRAMSize(),sizeof nvram);
-            memcpy(nvram,m->GetNVRAM(),nvram_size);
+            nvram=m->GetNVRAM();
         }
 
-        if(nvram_size==0) {
+        if(nvram.empty()) {
             ImGui::Text("This computer has no non-volatile RAM.");
-        } else if(nvram_size<50) {
-            ImGui::Text("%zu bytes of non-volatile RAM.",nvram_size);
+        } else if(nvram.size()<50) {
+            ImGui::Text("%zu bytes of non-volatile RAM.",nvram.size());
         } else {
             ImGui::Text("Econet station number: $%02X\n",nvram[0]);
             ImGui::Text("File server station number: $%02X\n",nvram[1]);

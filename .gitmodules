@@ -40,3 +40,6 @@
 [submodule "submodules/http-parser"]
 	path = submodules/http-parser
 	url = https://github.com/tom-seddon/http-parser
+[submodule "submodules/curl"]
+	path = submodules/curl
+	url = https://github.com/tom-seddon/curl

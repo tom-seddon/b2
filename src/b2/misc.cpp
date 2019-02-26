@@ -99,6 +99,37 @@ std::string GetFlagsString(uint32_t value,const char *(*get_name_fn)(int)) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+std::string GetCloneImpedimentsDescription(uint32_t impediments) {
+    if(impediments==0) {
+        return "none";
+    } else {
+        std::string r;
+        for(int i=0;i<NUM_DRIVES;++i) {
+            if(impediments&(uint32_t)BBCMicroCloneImpediment_Drive0<<i) {
+                if(!r.empty()) {
+                    r+=", ";
+                }
+
+                r+=strprintf("drive %d",i);
+            }
+        }
+
+        if(impediments&BBCMicroCloneImpediment_BeebLink) {
+            if(!r.empty()) {
+                r+=", ";
+            }
+
+            r+="BeebLink";
+        }
+
+        return r;
+    }
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 std::string GetMicrosecondsString(uint64_t num_microseconds) {
     char str[500];
 
@@ -142,7 +173,7 @@ std::string Get2MHzCyclesString(uint64_t num_2MHz_cycles) {
 
     uint64_t minutes=n;
 
-    snprintf(str,sizeof str,"%" PRIu64 " min %02u sec %03u ms %03u.%d usec",minutes,secs,ms,us,cycles?5:0);
+    snprintf(str,sizeof str,"%" PRIu64 " min %02u sec %03u ms %03u.%d \xc2\xb5s",minutes,secs,ms,us,cycles?5:0);
 
     return str;
 }

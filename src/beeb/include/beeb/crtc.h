@@ -5,7 +5,7 @@
 //////////////////////////////////////////////////////////////////////////
 
 #include "conf.h"
-#include <6502/6502.h>
+#include "6502.h"
 
 class Trace;
 
@@ -19,27 +19,22 @@ class Trace;
 class CRTC {
 public:
     struct Output {
-        // Value of hsync output. If !display, display is off, for
-        // whatever resaon.
+        // Value of hsync output.
         uint32_t hsync:1;
 
         // Value of vsync output.
         uint32_t vsync:1;
 
-        // If !hsync && !vsync && display, fetch from ADDRESS/ROW and use
-        // as display data.
+        // If display, fetch from ADDRESS/RASTER and use as display data.
         uint32_t display:1;
 
         // Value of cudisp output.
         uint32_t cudisp:1;
 
-        // Whether this is an odd or even frame.
-        uint32_t odd_frame:1;
-
-        // 6845 address to fetch from, if FETCH set.
+        // 6845 address to fetch from, if DISPLAY set.
         uint32_t address:14;
 
-        // Current character row, if FETCH set.
+        // Current character row, if DISPLAY set.
         uint32_t raster:5;
     };
 
@@ -131,25 +126,26 @@ private:
     // incremented on each field - used for even/odd and cursor blink
     // timing, so wraparound is no problem
     uint8_t m_num_frames=0;
-    uint8_t m_interlace_delay=0;
+    int m_interlace_delay_counter=-1;
     uint8_t m_column=0;//character column
     uint8_t m_row=0;//character row
     uint8_t m_raster=0;//scanline in character
-    uint8_t m_vsync_left=0;//vsync counter
-    uint8_t m_hsync_left=0;//hsync counter
-    bool m_adj=false;//set if in the adjustment period
+    int8_t m_vsync_counter=-1;//vsync counter
+    int8_t m_hsync_counter=-1;//hsync counter
+    int8_t m_adj_counter=-1;
+    //bool m_adj=false;//set if in the adjustment period
+    bool m_hdisp=true;
+    bool m_vdisp=true;
     M6502Word m_line_addr={};
     M6502Word m_char_addr={};
-    uint8_t m_delay=0;// display enable delay for current scanline
+    uint32_t m_num_updates=0;
+    uint8_t m_skewed_display=0;
+    uint8_t m_skewed_cudisp=0;
 
 #if BBCMICRO_TRACE
     Trace *m_trace=nullptr;
-    uint32_t m_trace_scanline=0;
     bool m_trace_scanlines=false;
 #endif
-
-    void NextRaster();
-    void StartOfFrame();
 
 #if BBCMICRO_DEBUGGER
     friend class CRTCDebugWindow;

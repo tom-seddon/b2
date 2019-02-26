@@ -127,10 +127,8 @@ public:
 
     void *GetDisplayDataForPoint(int x,int y) const {
         POINT pt={x,y};
-        HMONITOR hmonitor=MonitorFromPoint(pt,MONITOR_DEFAULTTONULL);
-        if(!hmonitor) {
-            return nullptr;
-        }
+
+        HMONITOR hmonitor=MonitorFromPoint(pt,MONITOR_DEFAULTTONEAREST);
 
         for(auto &&display:m_displays) {
             if(display->hmonitor==hmonitor) {

@@ -54,9 +54,33 @@ public:
     // anything, so...
     const MutexMetadata *GetMetadata() const;
 
-    void lock();
-    bool try_lock();
-    void unlock();
+    void lock() {
+        uint64_t a_ticks=GetCurrentTickCount();
+
+        if(!m_mutex.try_lock()) {
+            m_mutex.lock();
+            ++m_meta->num_contended_locks;
+        }
+
+        ++m_meta->num_locks;
+        m_meta->total_lock_wait_ticks+=GetCurrentTickCount()-a_ticks;
+    }
+
+    bool try_lock() {
+        bool succeeded=m_mutex.try_lock();
+
+        if(succeeded) {
+            ++m_meta->num_successful_try_locks;
+        }
+
+        ++m_meta->num_try_locks;
+
+        return succeeded;
+    }
+
+    void unlock() {
+        m_mutex.unlock();
+    }
 
     static std::vector<std::shared_ptr<const MutexMetadata>> GetAllMetadata();
 protected:
@@ -66,11 +90,11 @@ private:
     // The mutex has a shared_ptr to its MutexFullMetadata, so there's
     // no problem if the mutex goes away with a pointer to its
     // metadata still in a list returned by GetAllMetadata.
-    std::shared_ptr<MutexFullMetadata> m_metadata_shared_ptr;
+    std::shared_ptr<MutexFullMetadata> m_metadata;
 
-    // This is just the value of m_metadata_shared_ptr.get(), in an
-    // attempt to avoid atrocious debug build performance.
-    MutexFullMetadata *m_metadata=nullptr;
+    // This is just the value of &m_metadata_shared_ptr.get()->meta,
+    // in an attempt to avoid atrocious debug build performance.
+    MutexMetadata *m_meta=nullptr;
 };
 
 #define MUTEX_SET_NAME(MUTEX,NAME) ((MUTEX).SetName((NAME)))

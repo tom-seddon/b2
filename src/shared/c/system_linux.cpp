@@ -133,15 +133,17 @@ static void GetBacktraceSymbols(char **symbols,
     size_t first_allocated=argv.size();
 
     for(size_t index:indexes) {
+        // This appears to be how to get good backtraces for ASLR/PIE
+        // on Linux. See, e.g.,
+        // https://github.com/scylladb/seastar/issues/334
+        uint64_t offset=(uint64_t)(uintptr_t)addresses[index]-module.begin;
         char *tmp;
-        if(asprintf(&tmp,"%p",addresses[index])==-1) {
+        if(asprintf(&tmp,"%" PRIx64,offset)==-1) {
             goto done;
         }
         
         argv.push_back(tmp);
     }
-
-    argv.push_back(nullptr);
 
     /* for(int i=0;i<num_addresses;++i) { */
     /*     printf("%d. %p\n",i,addresses[i]); */
@@ -150,11 +152,12 @@ static void GetBacktraceSymbols(char **symbols,
 #if DEBUG_ADDR2LINE
     for(const char *arg:argv) {
         printf("%s ",arg);
-        //printf("new argv[%d]: %s\n",i,argv[i]);
     }
     printf("\n");
 #endif
     
+    argv.push_back(nullptr);
+
     if(pipe(fds)==-1) {
         goto done;
     }
@@ -279,7 +282,8 @@ char **GetBacktraceSymbols(void *const *addresses,int num_addresses) {
     
 #if DEBUG_ADDR2LINE
     printf("----------------------------------------------------------------------\n");
-    printf("%s\n",maps);
+    // fingers crossed no overflow.
+    printf("%.*s\n",(int)maps.size(),maps.data());
     printf("----------------------------------------------------------------------\n");
 #endif
 
@@ -318,7 +322,7 @@ char **GetBacktraceSymbols(void *const *addresses,int num_addresses) {
             modules.push_back(module);
 
 #if DEBUG_ADDR2LINE
-            printf("%s:\n",module.name);
+            printf("%s:\n",module.name.c_str());
             printf("    From: 0x%" PRIx64 "\n",module.begin);
             printf("    To: 0x%" PRIx64 " (+%" PRIu64 ")\n",module.end,module.end-module.begin);
 #endif

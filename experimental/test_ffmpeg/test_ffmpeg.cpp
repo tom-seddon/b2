@@ -254,10 +254,12 @@ static void PrintFlags(T value,const char *(*get_name_fn)(T)) {
 static void DumpCodecsBrief(const char *type_name,AVMediaType type) {
     std::vector<const char *> names;
 
-    AVCodec *c=nullptr;
-    while((c=av_codec_next(c))!=nullptr) {
-        if(c->type==type) {
-            names.push_back(c->name);
+    {
+        void *opaque=nullptr;
+        while(const AVCodec *c=av_codec_iterate(&opaque)) {
+            if(c->type==type) {
+                names.push_back(c->name);
+            }
         }
     }
 
@@ -320,7 +322,7 @@ static char *GetSampleRateString(char *buf,int n,int hz) {
     return nullptr;
 }
 
-static void DumpCodecVerbose(AVCodec *c) {
+static void DumpCodecVerbose(const AVCodec *c) {
     if(!c) {
         LOGF(OUT,"(none)\n");
     } else {
@@ -362,9 +364,8 @@ static void DumpCodecVerbose(AVCodec *c) {
 }
 
 static void DumpCodecsVerbose() {
-    AVCodec *c=nullptr;
-
-    while((c=av_codec_next(c))!=nullptr) {
+    void *opaque=nullptr;
+    while(const AVCodec *c=av_codec_iterate(&opaque)) {
         DumpCodecVerbose(c);
     }
 }
@@ -373,9 +374,8 @@ static void DumpCodecsVerbose() {
 //////////////////////////////////////////////////////////////////////////
 
 static const char *GetAVCodecNameById(AVCodecID id) {
-    AVCodec *c=nullptr;
-
-    while((c=av_codec_next(c))!=nullptr) {
+    void *opaque=nullptr;
+    while(const AVCodec *c=av_codec_iterate(&opaque)) {
         if(c->id==id) {
             return c->name;
         }
@@ -385,9 +385,8 @@ static const char *GetAVCodecNameById(AVCodecID id) {
 }
 
 static void DumpFormatsVerbose() {
-    AVOutputFormat *f=nullptr;
-
-    while((f=av_oformat_next(f))!=nullptr) {
+    void *opaque=nullptr;
+    while(const AVOutputFormat *f=av_muxer_iterate(&opaque)) {
         LOGF(OUT,"%s: ",f->name);
         LOGI(OUT);
         LOGF(OUT,"%s\n",f->long_name);
@@ -404,9 +403,9 @@ static void DumpFormatsVerbose() {
 
 static void DumpFormatsBrief() {
     std::vector<const char *> names;
-    
-    AVOutputFormat *f=nullptr;
-    while((f=av_oformat_next(f))!=nullptr) {
+
+    void *opaque=nullptr;
+    while(const AVOutputFormat *f=av_muxer_iterate(&opaque)) {
         names.push_back(f->name);
     }
 
@@ -615,9 +614,6 @@ int main(int argc,char *argv[]) {
     if(!DoOptions(&options,argc,argv)) {
         return 1;
     }
-
-    av_register_all();
-    avcodec_register_all();
 
     if(options.verbose) {
         LOG(VOUT).Enable();
@@ -1154,10 +1150,7 @@ int main(int argc,char *argv[]) {
                             i<aframe->nb_samples;
                             ++i)
                         {
-                            for(int j=0;
-                                j<av_frame_get_channels(aframe);
-                                ++j)
-                            {
+                            for(int j=0;j<aframe->channels;++j) {
                                 const float *ch=(float *)aframe->data[j];
                                 
                                 fwrite(&ch[i],4,1,audio_output_file);

@@ -112,12 +112,23 @@ static const LONGLONG TICKS_PER_FRAME=(LONGLONG)(TICKS_PER_SEC/FPS);
 static const UINT32 VIDEO_AVG_BITRATE=4000000;
 static const UINT32 AUDIO_AVG_BYTES_PER_SECOND=24000;
 
+static const std::string FORMAT_DESCRIPTION=strprintf("MPEG-4 (H264 %.1fMb/sec; AAC %.1fKb/sec)",VIDEO_AVG_BITRATE/1.e6,AUDIO_AVG_BYTES_PER_SECOND*8/1.e3);
+
+static const VideoWriterFormat FORMATS[]={
+    {".mp4",strprintf("%dx%d ",TV_TEXTURE_WIDTH,TV_TEXTURE_HEIGHT)+FORMAT_DESCRIPTION},
+    {".mp4",strprintf("%dx%d ",TV_TEXTURE_WIDTH*2,TV_TEXTURE_HEIGHT*2)+FORMAT_DESCRIPTION},
+};
+
 class VideoWriterMF:
     public VideoWriter
 {
 public:
-    VideoWriterMF(std::shared_ptr<MessageList> message_list):
-        VideoWriter(std::move(message_list))
+    VideoWriterMF(std::shared_ptr<MessageList> message_list,
+                  std::string file_name,
+                  size_t format_index):
+        VideoWriter(std::move(message_list),
+                    std::move(file_name),
+                    format_index)
     {
         m_afmt.wFormatTag=WAVE_FORMAT_PCM;
         m_afmt.nChannels=1;
@@ -127,20 +138,11 @@ public:
         m_afmt.nAvgBytesPerSec=m_afmt.nSamplesPerSec*m_afmt.nBlockAlign;
     }
 
-    void AddFileDialogFilters(FileDialog *fd) const override {
-        static const char MASK[]="*.mp4";
-
-        std::string description=strprintf("MPEG-4 (H264 %.1fMb/sec; AAC %.1fKb/sec)",VIDEO_AVG_BITRATE/1.e6,AUDIO_AVG_BYTES_PER_SECOND*8/1.e3);
-
-        fd->AddFilter(strprintf("%dx%d %s",TV_TEXTURE_WIDTH,TV_TEXTURE_HEIGHT,description.c_str()),MASK);
-        fd->AddFilter(strprintf("%dx%d %s",2*TV_TEXTURE_WIDTH,2*TV_TEXTURE_HEIGHT,description.c_str()),MASK);
-    }
-
     bool BeginWrite() override {
         HRESULT hr;
 
         UINT width,height;
-        if(m_file_type==1) {
+        if(m_format_index==1) {
             // 2x
             width=2*TV_TEXTURE_WIDTH;
             height=2*TV_TEXTURE_HEIGHT;
@@ -164,7 +166,7 @@ public:
             return false;
         }
 
-        std::wstring file_name=GetWideStringFromUTF8String(this->GetFileName().c_str());
+        std::wstring file_name=GetWideStringFromUTF8String(m_file_name.c_str());
         hr=MFCreateSinkWriterFromURL(file_name.c_str(),nullptr,sink_writer_attributes,&m_sink_writer);
         if(FAILED(hr)) {
             return this->Error(hr,"MFCreateSinkWriterFromURL");
@@ -460,7 +462,7 @@ private:
             va_end(v);
         }
 
-        m_msg.e.f("failed to save video to: %s\n",this->GetFileName().c_str());
+        m_msg.e.f("failed to save video to: %s\n",m_file_name.c_str());
         m_msg.i.f("(%s failed: %s)\n",msg,GetErrorDescription(hr));
 
         free(msg);
@@ -481,8 +483,13 @@ private:
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-std::unique_ptr<VideoWriter> CreateVideoWriterMF(std::shared_ptr<MessageList> message_list) {
-    return std::make_unique<VideoWriterMF>(message_list);
+std::unique_ptr<VideoWriter> CreateVideoWriterMF(std::shared_ptr<MessageList> message_list,
+                                                 std::string file_name,
+                                                 size_t format_index)
+{
+    return std::make_unique<VideoWriterMF>(std::move(message_list),
+                                           std::move(file_name),
+                                           format_index);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -499,6 +506,20 @@ bool InitMF(Messages *messages) {
     }
 
     return true;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+size_t GetNumVideoWriterMFFormats() {
+    return sizeof FORMATS/sizeof FORMATS[0];
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+const VideoWriterFormat *GetVideoWriterMFFormatByIndex(size_t index) {
+    return &FORMATS[index];
 }
 
 //////////////////////////////////////////////////////////////////////////

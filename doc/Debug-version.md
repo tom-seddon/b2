@@ -44,6 +44,15 @@ There are two options for stopping the recording.
 (`Return` and `OSWORD 0` often go together, because this works well
 for tracing code CALLed from the BASIC prompt.)
 
+By default, only the last 25-30 seconds of activity will be kept
+(usually corresponding to roughly a 1GByte output file). Tracing can
+be left running indefinitely and the emulator will use a fixed amount
+of memory.
+
+Tick `Unlimited recording` to have the emulator store all events, so
+longer periods can be traced. Each emulated second takes up ~10MBytes
+of RAM and adds ~35MBytes to the output file.
+
 Once a trace has been started and stopped, it can be saved to a file
 using `Save` or `Save (no cycles)`. The output is along these lines:
 
@@ -147,8 +156,8 @@ Additional debug options can be found in `Tools` > `Options` in the
 `Teletext debug` will overlay the teletext display with the value of
 the character in each cell.
 
-`Show TV beam position` will show (with a little white dot) where the
-TV beam is when the emulator is stopped in the debugger.
+`Show TV beam position` will indicate where the TV beam, with a line
+starting just after its current position.
 
 # Other debugger stuff
 
@@ -179,10 +188,19 @@ Generally this will be one of `200 OK` (success), `400 Bad Request` or
 `404 Not Found` (invalid request), or `503 Service Unavailable` (request
 was valid but couldn't be fulfilled).
 
-### `reset/WIN` ###
+### `reset/WIN?config=CONFIG` ###
 
 Reset the BBC. This is equivalent to a power-on reset. Memory is wiped
 but mounted discs are retained.
+
+`CONFIG`, if specified, is name of the config to used, as seen in the
+`File` > `Change config` menu. The current config is used if not
+specified.
+
+Escaping the config name can be a pain. curl can do this for you on
+the command line with the `-G` and `--data-urlencode` options, e.g.:
+
+    curl -G 'http://localhost:48075/reset/b2' --data-urlencode "config=Master 128 (MOS 3.20)"
 
 ### `paste/WIN` ###
 

@@ -15,15 +15,12 @@ class FileDialog;
 
 // Base class for video writer.
 //
-// 1. Call AddFileDialogFilters to add appropriate filters to a save
-// file dialog, then use the file dialog to pick a name. Call
-// SetFileDialog to set the name.
+// 1. Create. Specify file name and output format index.
 //
-// 2. Call BeginWrite to set things in motion. Appropriate formats
-// will be chosen.
+// 2. Call BeginWrite to set things in motion. 
 //
 // 3. Call GetAudioFormat and GetVideoFormat to find the audio and
-// video formats chosen.
+// video formats actually chosen.
 //
 // 4. Call WriteSound and WriteVideo to write sound and video data.
 // For WriteSound, supply any amount of sound data; for WriteVideo,
@@ -37,7 +34,9 @@ class FileDialog;
 
 class VideoWriter {
 public:
-    VideoWriter(std::shared_ptr<MessageList> message_list);
+    VideoWriter(std::shared_ptr<MessageList> message_list,
+                std::string file_name,
+                size_t format_index);
     virtual ~VideoWriter()=0;
 
     VideoWriter(VideoWriter &&)=delete;
@@ -45,13 +44,7 @@ public:
     VideoWriter(const VideoWriter &)=delete;
     VideoWriter &operator=(const VideoWriter &)=delete;
 
-    virtual void AddFileDialogFilters(FileDialog *fd) const=0;
-
-    std::string GetFileName() const;
-    void SetFileName(std::string file_name);
-
-    int GetFileType() const;
-    void SetFileType(int file_type);
+    const std::string &GetFileName() const;
 
     virtual bool BeginWrite()=0;
     virtual bool EndWrite()=0;
@@ -63,9 +56,11 @@ public:
 
     virtual bool WriteSound(const void *data,size_t data_size_bytes)=0;
     virtual bool WriteVideo(const void *data)=0;
+
+    std::shared_ptr<MessageList> GetMessageList() const;
 protected:
-    int m_file_type=-1;
-    std::string m_file_name;
+    const size_t m_format_index;
+    const std::string m_file_name;
     Messages m_msg;
     void *m_window=nullptr;//HWND, NSWindow *, whatever
 private:
@@ -74,8 +69,17 @@ private:
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+struct VideoWriterFormat {
+    std::string extension;
+    std::string description;
+};
+
+size_t GetNumVideoWriterFormats();
+const VideoWriterFormat *GetVideoWriterFormatByIndex(size_t index);
 bool CanCreateVideoWriter();
-std::unique_ptr<VideoWriter> CreateVideoWriter(std::shared_ptr<MessageList> message_list);
+std::unique_ptr<VideoWriter> CreateVideoWriter(std::shared_ptr<MessageList> message_list,
+                                               std::string file_name,
+                                               size_t format_index);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
