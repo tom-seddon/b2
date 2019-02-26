@@ -100,13 +100,10 @@ static const int ASYNC_CALL_TIMEOUT=1000000;
 // data, etc.), as it's only fetched when the paging registers are changed,
 // rather than for every instruction.
 //
-// Big pages are only really a concept in this flattened view of the memory,
-// but they are used in a couple of places to refer to 6502 addresses when the
-// 4K resolution makes sense, treating the 6502 memory map as 16 big pages.
-//
-// TODO: The M6502Word 8/8 MSB/LSB split makes sense for the 6502 emulation.
-// But for the BBC-specific bits, perhaps an additional union member, with a
-// 4/12 big page/offset split, would be useful...
+// The BBC memory map is also divided into big pages, so things match up - the
+// terminology is a bit slack but usually a 'big page' refers to one of the
+// big pages in the list above, and a 'memory/mem big page' refers to a big
+// page in the 6502 address space.
 
 //static constexpr size_t BIG_PAGE_SIZE_BYTES=4096;
 //static constexpr size_t BIG_PAGE_OFFSET_MASK=4095;
@@ -280,11 +277,11 @@ BBCMicro::~BBCMicro() {
 
     //SetROMContents(this,&m_state.os,nullptr,0);
 
-    delete m_shadow_pages;
-    m_shadow_pages=nullptr;
+    delete m_shadow_mem_big_pages;
+    m_shadow_mem_big_pages=nullptr;
 
-    delete[] m_pc_pages;
-    m_pc_pages=nullptr;
+    delete[] m_pc_big_pages;
+    m_pc_big_pages=nullptr;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -356,15 +353,14 @@ void BBCMicro::SetTrace(std::shared_ptr<Trace> trace,uint32_t trace_flags) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void BBCMicro::SetPages(MemoryPages *pages0,
-                        MemoryPages *pages1,
-                        uint8_t big_page_index,
-                        uint8_t num_big_pages,
-                        uint8_t dest_big_page_index)
+void BBCMicro::SetBigPages(MemoryBigPages *big_pages0,
+                           MemoryBigPages *big_pages1,
+                           uint8_t big_page_index,
+                           uint8_t num_big_pages,
+                           uint8_t mem_big_page_index)
 {
 
-    ASSERT(dest_big_page_index<16);
-    uint8_t page=dest_big_page_index<<4;
+    ASSERT(mem_big_page_index<16);
 
     for(uint8_t i=0;i<num_big_pages;++i) {
         const BigPage *bp=&m_big_pages[big_page_index+i];
@@ -384,40 +380,24 @@ void BBCMicro::SetPages(MemoryPages *pages0,
         DebugState::ByteDebugFlags *debug=m_debug->big_pages_debug_flags[bp->index];
 #endif
 
-        if(pages0&&pages1) {
-            for(size_t j=0;j<BIG_PAGE_SIZE_PAGES;++j) {
-                pages0->r[page]=pages1->r[page]=r;
-                r+=256;
-
-                pages0->w[page]=pages1->w[page]=w;
-                w+=256;
+        if(big_pages0) {
+            big_pages0->r[mem_big_page_index+i]=r;
+            big_pages0->w[mem_big_page_index+i]=w;
 
 #if BBCMICRO_DEBUGGER
-                pages0->debug[page]=pages1->debug[page]=debug;
-                debug+=256;
-
-                pages0->bp[page]=pages1->bp[page]=bp;
+            big_pages0->debug[mem_big_page_index+i]=debug;
+            big_pages0->bp[mem_big_page_index+i]=bp;
 #endif
+        }
 
-                ++page;
-            }
-        } else {
-            for(size_t j=0;j<BIG_PAGE_SIZE_PAGES;++j) {
-                pages0->r[page]=r;
-                r+=256;
-
-                pages0->w[page]=w;
-                w+=256;
+        if(big_pages1) {
+            big_pages1->r[mem_big_page_index+i]=r;
+            big_pages1->w[mem_big_page_index+i]=w;
 
 #if BBCMICRO_DEBUGGER
-                pages0->debug[page]=debug;
-                debug+=256;
-
-                pages0->bp[page]=bp;
+            big_pages1->debug[mem_big_page_index+i]=debug;
+            big_pages1->bp[mem_big_page_index+i]=bp;
 #endif
-
-                ++page;
-            }
         }
     }
 }
@@ -517,11 +497,11 @@ void BBCMicro::SetROMPages(uint8_t rom,uint8_t num_skipped_big_pages) {
     ASSERT(rom<16);
     ASSERT(num_skipped_big_pages<NUM_ROM_BIG_PAGES);
 
-    this->SetPages(&m_pages,
-                   m_shadow_pages,
-                   ROM0_BIG_PAGE_INDEX+rom*NUM_ROM_BIG_PAGES+num_skipped_big_pages,
-                   NUM_ROM_BIG_PAGES-num_skipped_big_pages,
-                   0x08+num_skipped_big_pages);
+    this->SetBigPages(&m_main_mem_big_pages,
+                      m_shadow_mem_big_pages,
+                      ROM0_BIG_PAGE_INDEX+rom*NUM_ROM_BIG_PAGES+num_skipped_big_pages,
+                      NUM_ROM_BIG_PAGES-num_skipped_big_pages,
+                      0x08+num_skipped_big_pages);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -545,12 +525,11 @@ void BBCMicro::UpdateBACCCONPages(BBCMicro *m,const ACCCON *old) {
 
 void BBCMicro::UpdateBPlusROMSELPages(BBCMicro *m) {
     if(m->m_state.romsel.bplus_bits.ram) {
-        m->SetPages(&m->m_pages,
-                    m->m_shadow_pages,
-                    BPLUS_RAM_BIG_PAGE_INDEX,
-                    NUM_BPLUS_RAM_BIG_PAGES,
-                    0x08);
-
+        m->SetBigPages(&m->m_main_mem_big_pages,
+                       m->m_shadow_mem_big_pages,
+                       BPLUS_RAM_BIG_PAGE_INDEX,
+                       NUM_BPLUS_RAM_BIG_PAGES,
+                       0x08);
         m->SetROMPages(m->m_state.romsel.bplus_bits.pr,NUM_BPLUS_RAM_BIG_PAGES);
     } else {
         m->SetROMPages(m->m_state.romsel.bplus_bits.pr,0);
@@ -563,25 +542,22 @@ void BBCMicro::UpdateBPlusROMSELPages(BBCMicro *m) {
 void BBCMicro::UpdateBPlusACCCONPages(BBCMicro *m,const ACCCON *old) {
     (void)old;
 
-    const MemoryPages *pages;
+    const MemoryBigPages *mem_big_pages;
     if(m->m_state.acccon.bplus_bits.shadow) {
-        pages=m->m_shadow_pages;
+        mem_big_pages=m->m_shadow_mem_big_pages;
         m->m_state.shadow_select_mask=0x8000;
     } else {
-        pages=&m->m_pages;
+        mem_big_pages=&m->m_main_mem_big_pages;
         m->m_state.shadow_select_mask=0x0000;
     }
 
     // This is what BeebEm does! Also mentioned in passing in
     // http://beebwiki.mdfs.net/Paged_ROM - the NAUG on the other hand
     // says nothing.
-    for(uint8_t i=0xa0;i<0xb0;++i) {
-        m->m_pc_pages[i]=pages;
-    }
+    m->m_pc_big_pages[0x0a]=mem_big_pages;
 
-    for(uint8_t i=0xc0;i<0xe0;++i) {
-        m->m_pc_pages[i]=pages;
-    }
+    m->m_pc_big_pages[0x0c]=mem_big_pages;
+    m->m_pc_big_pages[0x0d]=mem_big_pages;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -589,11 +565,11 @@ void BBCMicro::UpdateBPlusACCCONPages(BBCMicro *m,const ACCCON *old) {
 
 void BBCMicro::UpdateMaster128ROMSELPages(BBCMicro *m) {
     if(m->m_state.romsel.m128_bits.ram) {
-        m->SetPages(&m->m_pages,
-                    m->m_shadow_pages,
-                    ANDY_BIG_PAGE_INDEX,
-                    NUM_ANDY_BIG_PAGES,
-                    0x08);
+        m->SetBigPages(&m->m_main_mem_big_pages,
+                       m->m_shadow_mem_big_pages,
+                       ANDY_BIG_PAGE_INDEX,
+                       NUM_ANDY_BIG_PAGES,
+                       0x08);
 
         m->SetROMPages(m->m_state.romsel.m128_bits.pm,NUM_ANDY_BIG_PAGES);
     } else {
@@ -639,18 +615,18 @@ void BBCMicro::UpdateMaster128ACCCONPages(BBCMicro *m,const ACCCON *old_) {
         ASSERT(m->m_state.acccon.m128_bits.y!=old.m128_bits.y);
         if(m->m_state.acccon.m128_bits.y) {
             // 8K FS RAM at 0xC000
-            m->SetPages(&m->m_pages,
-                        m->m_shadow_pages,
-                        HAZEL_BIG_PAGE_INDEX,
-                        NUM_HAZEL_BIG_PAGES,
-                        0x0c);
+            m->SetBigPages(&m->m_main_mem_big_pages,
+                           m->m_shadow_mem_big_pages,
+                           HAZEL_BIG_PAGE_INDEX,
+                           NUM_HAZEL_BIG_PAGES,
+                           0x0c);
         } else {
             // MOS at 0xC0000
-            m->SetPages(&m->m_pages,
-                        m->m_shadow_pages,
-                        MOS_BIG_PAGE_INDEX,
-                        NUM_HAZEL_BIG_PAGES,
-                        0x0c);
+            m->SetBigPages(&m->m_main_mem_big_pages,
+                           m->m_shadow_mem_big_pages,
+                           MOS_BIG_PAGE_INDEX,
+                           NUM_HAZEL_BIG_PAGES,
+                           0x0c);
         }
     }
 
@@ -661,32 +637,32 @@ void BBCMicro::UpdateMaster128ACCCONPages(BBCMicro *m,const ACCCON *old_) {
     int old_mos_shadow=DoesMOSUseShadow(old);
 
     if(usr_shadow!=old_usr_shadow||mos_shadow!=old_mos_shadow) {
-        const MemoryPages *usr_pages;
+        const MemoryBigPages *usr_mem_big_pages;
         if(usr_shadow) {
-            usr_pages=m->m_shadow_pages;
+            usr_mem_big_pages=m->m_shadow_mem_big_pages;
         } else {
-            usr_pages=&m->m_pages;
+            usr_mem_big_pages=&m->m_main_mem_big_pages;
         }
 
-        const MemoryPages *mos_pages;
+        const MemoryBigPages *mos_mem_big_pages;
         if(mos_shadow) {
-            mos_pages=m->m_shadow_pages;
+            mos_mem_big_pages=m->m_shadow_mem_big_pages;
         } else {
-            mos_pages=&m->m_pages;
+            mos_mem_big_pages=&m->m_main_mem_big_pages;
         }
 
         size_t page=0;
 
-        while(page<0xc0) {
-            m->m_pc_pages[page++]=usr_pages;
+        while(page<0xc) {
+            m->m_pc_big_pages[page++]=usr_mem_big_pages;
         }
 
-        while(page<0xe0) {
-            m->m_pc_pages[page++]=mos_pages;
+        while(page<0xe) {
+            m->m_pc_big_pages[page++]=mos_mem_big_pages;
         }
 
-        while(page<0x100) {
-            m->m_pc_pages[page++]=usr_pages;
+        while(page<0x10) {
+            m->m_pc_big_pages[page++]=usr_mem_big_pages;
         }
     }
 
@@ -801,10 +777,10 @@ void BBCMicro::InitBigPages() {
         m_big_pages[i]={};
     }
 
-    m_pages=MemoryPages();
+    m_main_mem_big_pages=MemoryBigPages();
 
-    if(m_shadow_pages) {
-        *m_shadow_pages=MemoryPages();
+    if(m_shadow_mem_big_pages) {
+        *m_shadow_mem_big_pages=MemoryBigPages();
     }
 
     this->InitSomeBigPages(MAIN_BIG_PAGE_INDEX,
@@ -840,21 +816,21 @@ void BBCMicro::InitBigPages() {
     // Reconfigure the paging.
 
     // Pages 0x00-0x30.
-    this->SetPages(&m_pages,
-                   m_shadow_pages,
-                   MAIN_BIG_PAGE_INDEX,
-                   3,
-                   0x0);
+    this->SetBigPages(&m_main_mem_big_pages,
+                      m_shadow_mem_big_pages,
+                      MAIN_BIG_PAGE_INDEX,
+                      3,
+                      0x0);
 
     // Pages 0x30-0x7f.
-    this->SetPages(&m_pages,
+    this->SetBigPages(&m_main_mem_big_pages,
                    nullptr,
                    MAIN_BIG_PAGE_INDEX+3,
                    5,
                    0x3);
 
-    if(m_shadow_pages) {
-        this->SetPages(m_shadow_pages,
+    if(m_shadow_mem_big_pages) {
+        this->SetBigPages(m_shadow_mem_big_pages,
                        nullptr,
                        SHADOW_BIG_PAGE_INDEX,
                        NUM_SHADOW_BIG_PAGES,
@@ -865,18 +841,18 @@ void BBCMicro::InitBigPages() {
     (*m_update_romsel_pages_fn)(this);
 
     // Pages 0xc0-0xff.
-    this->SetPages(&m_pages,
-                   m_shadow_pages,
-                   MOS_BIG_PAGE_INDEX,
-                   NUM_MOS_BIG_PAGES,
-                   0xc);
+    this->SetBigPages(&m_main_mem_big_pages,
+                      m_shadow_mem_big_pages,
+                      MOS_BIG_PAGE_INDEX,
+                      NUM_MOS_BIG_PAGES,
+                      0xc);
 
     // Update ACCCON last - updating the OS pages may have
     // made a mess on the M128.
     (*m_update_acccon_pages_fn)(this,nullptr);
 
-    CheckMemoryPages(&m_pages,true);
-    CheckMemoryPages(m_shadow_pages,true);
+    CheckMemoryBigPages(&m_main_mem_big_pages,true);
+    CheckMemoryBigPages(m_shadow_mem_big_pages,true);
 
     this->UpdateDebugState();
 }
@@ -1009,7 +985,8 @@ uint8_t BBCMicro::ReadUnmappedMMIO(void *m_,M6502Word a) {
 uint8_t BBCMicro::ReadROMMMIO(void *m_,M6502Word a) {
     auto m=(BBCMicro *)m_;
 
-    return m->m_pages.r[a.b.h][a.b.l];
+    //return m->m_pages.r[a.b.h][a.b.l];
+    return m->m_main_mem_big_pages.r[a.p.p][a.p.o];
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -1258,7 +1235,7 @@ void BBCMicro::HandleCPUDataBusMainRAMOnly(BBCMicro *m) {
             void *context=m->m_mmio_fn_contexts[mmio_page][m->m_state.cpu.abus.b.l];
             m->m_state.cpu.dbus=(*fn)(context,m->m_state.cpu.abus);
         } else {
-            m->m_state.cpu.dbus=m->m_pages.r[m->m_state.cpu.abus.b.h][m->m_state.cpu.abus.b.l];
+            m->m_state.cpu.dbus=m->m_main_mem_big_pages.r[m->m_state.cpu.abus.p.p][m->m_state.cpu.abus.p.o];
         }
     } else {
         if(mmio_page<3) {
@@ -1266,7 +1243,7 @@ void BBCMicro::HandleCPUDataBusMainRAMOnly(BBCMicro *m) {
             void *context=m->m_hw_mmio_fn_contexts[mmio_page][m->m_state.cpu.abus.b.l];
             (*fn)(context,m->m_state.cpu.abus,m->m_state.cpu.dbus);
         } else {
-            m->m_pages.w[m->m_state.cpu.abus.b.h][m->m_state.cpu.abus.b.l]=m->m_state.cpu.dbus;
+            m->m_main_mem_big_pages.w[m->m_state.cpu.abus.p.p][m->m_state.cpu.abus.p.o]=m->m_state.cpu.dbus;
         }
     }
 }
@@ -1283,10 +1260,10 @@ void BBCMicro::HandleCPUDataBusMainRAMOnlyDebug(BBCMicro *m) {
             void *context=m->m_mmio_fn_contexts[mmio_page][m->m_state.cpu.abus.b.l];
             m->m_state.cpu.dbus=(*fn)(context,m->m_state.cpu.abus);
         } else {
-            m->m_state.cpu.dbus=m->m_pages.r[m->m_state.cpu.abus.b.h][m->m_state.cpu.abus.b.l];
+            m->m_state.cpu.dbus=m->m_main_mem_big_pages.r[m->m_state.cpu.abus.p.p][m->m_state.cpu.abus.p.o];
         }
 
-        DebugState::ByteDebugFlags *flags=&m->m_pages.debug[m->m_state.cpu.abus.b.h][m->m_state.cpu.abus.b.l];
+        DebugState::ByteDebugFlags *flags=&m->m_main_mem_big_pages.debug[m->m_state.cpu.abus.p.p][m->m_state.cpu.abus.p.o];
         if(flags->value!=0) {
             m->HandleReadByteDebugFlags(read,flags);
         }
@@ -1300,10 +1277,10 @@ void BBCMicro::HandleCPUDataBusMainRAMOnlyDebug(BBCMicro *m) {
             void *context=m->m_hw_mmio_fn_contexts[mmio_page][m->m_state.cpu.abus.b.l];
             (*fn)(context,m->m_state.cpu.abus,m->m_state.cpu.dbus);
         } else {
-            m->m_pages.w[m->m_state.cpu.abus.b.h][m->m_state.cpu.abus.b.l]=m->m_state.cpu.dbus;
+            m->m_main_mem_big_pages.w[m->m_state.cpu.abus.p.p][m->m_state.cpu.abus.p.o]=m->m_state.cpu.dbus;
         }
 
-        if(m->m_pages.debug[m->m_state.cpu.abus.b.h][m->m_state.cpu.abus.b.l].bits.break_write) {
+        if(m->m_main_mem_big_pages.debug[m->m_state.cpu.abus.p.p][m->m_state.cpu.abus.p.o].bits.break_write) {
             m->DebugHalt("data write: $%04x",m->m_state.cpu.abus.w);
         }
     }
@@ -1321,7 +1298,7 @@ void BBCMicro::HandleCPUDataBusWithShadowRAM(BBCMicro *m) {
             void *context=m->m_mmio_fn_contexts[mmio_page][m->m_state.cpu.abus.b.l];
             m->m_state.cpu.dbus=(*fn)(context,m->m_state.cpu.abus);
         } else {
-            m->m_state.cpu.dbus=m->m_pc_pages[m->m_state.cpu.opcode_pc.b.h]->r[m->m_state.cpu.abus.b.h][m->m_state.cpu.abus.b.l];
+            m->m_state.cpu.dbus=m->m_pc_big_pages[m->m_state.cpu.opcode_pc.p.p]->r[m->m_state.cpu.abus.p.p][m->m_state.cpu.abus.p.o];
         }
     } else {
         if(mmio_page<3) {
@@ -1329,7 +1306,7 @@ void BBCMicro::HandleCPUDataBusWithShadowRAM(BBCMicro *m) {
             void *context=m->m_hw_mmio_fn_contexts[mmio_page][m->m_state.cpu.abus.b.l];
             (*fn)(context,m->m_state.cpu.abus,m->m_state.cpu.dbus);
         } else {
-            m->m_pc_pages[m->m_state.cpu.opcode_pc.b.h]->w[m->m_state.cpu.abus.b.h][m->m_state.cpu.abus.b.l]=m->m_state.cpu.dbus;
+            m->m_pc_big_pages[m->m_state.cpu.opcode_pc.p.p]->w[m->m_state.cpu.abus.p.p][m->m_state.cpu.abus.p.o]=m->m_state.cpu.dbus;
         }
     }
 }
@@ -1346,10 +1323,10 @@ void BBCMicro::HandleCPUDataBusWithShadowRAMDebug(BBCMicro *m) {
             void *context=m->m_mmio_fn_contexts[mmio_page][m->m_state.cpu.abus.b.l];
             m->m_state.cpu.dbus=(*fn)(context,m->m_state.cpu.abus);
         } else {
-            m->m_state.cpu.dbus=m->m_pc_pages[m->m_state.cpu.opcode_pc.b.h]->r[m->m_state.cpu.abus.b.h][m->m_state.cpu.abus.b.l];
+            m->m_state.cpu.dbus=m->m_pc_big_pages[m->m_state.cpu.opcode_pc.p.p]->r[m->m_state.cpu.abus.p.p][m->m_state.cpu.abus.p.o];
         }
 
-        DebugState::ByteDebugFlags *flags=&m->m_pc_pages[m->m_state.cpu.opcode_pc.b.h]->debug[m->m_state.cpu.abus.b.h][m->m_state.cpu.abus.b.l];
+        DebugState::ByteDebugFlags *flags=&m->m_pc_big_pages[m->m_state.cpu.opcode_pc.p.p]->debug[m->m_state.cpu.abus.p.p][m->m_state.cpu.abus.p.o];
         if(flags->value!=0) {
             m->HandleReadByteDebugFlags(read,flags);
         }
@@ -1363,10 +1340,10 @@ void BBCMicro::HandleCPUDataBusWithShadowRAMDebug(BBCMicro *m) {
             void *context=m->m_hw_mmio_fn_contexts[mmio_page][m->m_state.cpu.abus.b.l];
             (*fn)(context,m->m_state.cpu.abus,m->m_state.cpu.dbus);
         } else {
-            m->m_pc_pages[m->m_state.cpu.opcode_pc.b.h]->w[m->m_state.cpu.abus.b.h][m->m_state.cpu.abus.b.l]=m->m_state.cpu.dbus;
+            m->m_pc_big_pages[m->m_state.cpu.opcode_pc.p.p]->w[m->m_state.cpu.abus.p.p][m->m_state.cpu.abus.p.o]=m->m_state.cpu.dbus;
         }
 
-        if(m->m_pc_pages[m->m_state.cpu.opcode_pc.b.h]->debug[m->m_state.cpu.abus.b.h][m->m_state.cpu.abus.b.l].bits.break_write) {
+        if(m->m_pc_big_pages[m->m_state.cpu.opcode_pc.p.p]->debug[m->m_state.cpu.abus.p.p][m->m_state.cpu.abus.p.o].bits.break_write) {
             m->DebugHalt("data write: $%04x",m->m_state.cpu.abus.w);
         }
     }
@@ -1598,14 +1575,14 @@ void BBCMicro::HandleCPUDataBusWithHacks(BBCMicro *m) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void BBCMicro::CheckMemoryPages(const MemoryPages *pages,bool non_null) {
-    if(pages) {
-        for(size_t i=0;i<256;++i) {
-            ASSERT(!!pages->r[i]==non_null);
-            ASSERT(!!pages->w[i]==non_null);
+void BBCMicro::CheckMemoryBigPages(const MemoryBigPages *mem_big_pages,bool non_null) {
+    if(mem_big_pages) {
+        for(size_t i=0;i<16;++i) {
+            ASSERT(!!mem_big_pages->r[i]==non_null);
+            ASSERT(!!mem_big_pages->w[i]==non_null);
 #if BBCMICRO_DEBUGGER
-            ASSERT(!!pages->debug[i]==non_null);
-            ASSERT(!!pages->bp[i]==non_null);
+            ASSERT(!!mem_big_pages->debug[i]==non_null);
+            ASSERT(!!mem_big_pages->bp[i]==non_null);
 #endif
         }
     }
@@ -2414,12 +2391,12 @@ const BBCMicro::BigPage *BBCMicro::DebugGetBigPage(uint8_t page,uint32_t dpo) co
             case 0x2: // 0x2000-0x2fff
             no_overrides:
             {
-                if(m_pc_pages) {
+                if(m_pc_big_pages) {
                     // TODO - should be the option of taking instruction address
                     // into account!
-                    bp=m_pc_pages[0]->bp[page];
+                    bp=m_pc_big_pages[0]->bp[page>>4];
                 } else {
-                    bp=m_pages.bp[page];
+                    bp=m_main_mem_big_pages.bp[page>>4];
                 }
                 break;
             }
@@ -2663,34 +2640,34 @@ void BBCMicro::DebugRun() {
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_DEBUGGER
-BBCMicro::DebugState::ByteDebugFlags BBCMicro::DebugGetByteFlags(M6502Word addr) const {
-    if(!m_debug) {
-        return DUMMY_BYTE_DEBUG_FLAGS;
-    }
-
-    if(m_pc_pages) {
-        return m_pc_pages[m_state.cpu.opcode_pc.b.h]->debug[addr.b.h][addr.b.l];
-    } else {
-        return m_pages.debug[addr.b.h][addr.b.l];
-    }
-}
+//BBCMicro::DebugState::ByteDebugFlags BBCMicro::DebugGetByteFlags(M6502Word addr) const {
+//    if(!m_debug) {
+//        return DUMMY_BYTE_DEBUG_FLAGS;
+//    }
+//
+//    if(m_pc_big_pages) {
+//        return m_pc_pages[m_state.cpu.opcode_pc.b.h]->debug[addr.b.h][addr.b.l];
+//    } else {
+//        return m_pages.debug[addr.b.h][addr.b.l];
+//    }
+//}
 #endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_DEBUGGER
-void BBCMicro::DebugSetByteFlags(M6502Word addr,DebugState::ByteDebugFlags flags) {
-    if(!m_debug) {
-        return;
-    }
-
-    if(m_pc_pages) {
-        m_pc_pages[m_state.cpu.opcode_pc.b.h]->debug[addr.b.h][addr.b.l]=flags;
-    } else {
-        m_pages.debug[addr.b.h][addr.b.l]=flags;
-    }
-}
+//void BBCMicro::DebugSetByteFlags(M6502Word addr,DebugState::ByteDebugFlags flags) {
+//    if(!m_debug) {
+//        return;
+//    }
+//
+//    if(m_pc_pages) {
+//        m_pc_pages[m_state.cpu.opcode_pc.b.h]->debug[addr.b.h][addr.b.l]=flags;
+//    } else {
+//        m_pages.debug[addr.b.h][addr.b.l]=flags;
+//    }
+//}
 #endif
 
 //////////////////////////////////////////////////////////////////////////
@@ -2702,21 +2679,23 @@ void BBCMicro::DebugAddTempBreakpoint(M6502Word addr) {
         return;
     }
 
-    DebugState::ByteDebugFlags *flags;
-    if(m_pc_pages) {
-        flags=&m_pc_pages[m_state.cpu.opcode_pc.b.h]->debug[addr.b.h][addr.b.l];
-    } else {
-        flags=&m_pages.debug[addr.b.h][addr.b.l];
-    }
+    ASSERT(false);
 
-    if(flags->bits.temp_execute) {
-        ASSERT(std::find(m_debug->temp_execute_breakpoints.begin(),
-                         m_debug->temp_execute_breakpoints.end(),
-                         flags)!=m_debug->temp_execute_breakpoints.end());
-    } else {
-        flags->bits.temp_execute=1;
-        m_debug->temp_execute_breakpoints.push_back(flags);
-    }
+//    DebugState::ByteDebugFlags *flags;
+//    if(m_pc_pages) {
+//        flags=&m_pc_pages[m_state.cpu.opcode_pc.b.h]->debug[addr.b.h][addr.b.l];
+//    } else {
+//        flags=&m_pages.debug[addr.b.h][addr.b.l];
+//    }
+//
+//    if(flags->bits.temp_execute) {
+//        ASSERT(std::find(m_debug->temp_execute_breakpoints.begin(),
+//                         m_debug->temp_execute_breakpoints.end(),
+//                         flags)!=m_debug->temp_execute_breakpoints.end());
+//    } else {
+//        flags->bits.temp_execute=1;
+//        m_debug->temp_execute_breakpoints.push_back(flags);
+//    }
 }
 #endif
 
@@ -2911,14 +2890,13 @@ void BBCMicro::SendBeebLinkResponse(std::vector<uint8_t> data) {
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_DEBUGGER
-void BBCMicro::UpdateDebugPages(MemoryPages *pages) {
-    for(size_t i=0;i<256;++i) {
+void BBCMicro::UpdateDebugBigPages(MemoryBigPages *mem_big_pages) {
+    for(size_t i=0;i<16;++i) {
         if(m_debug) {
-            ASSERT(pages->bp[i]);
-            uint16_t offset=(i<<8)&BIG_PAGE_OFFSET_MASK;
-            pages->debug[i]=m_debug->big_pages_debug_flags[pages->bp[i]->index]+offset;
+            ASSERT(mem_big_pages->bp[i]);
+            mem_big_pages->debug[i]=m_debug->big_pages_debug_flags[mem_big_pages->bp[i]->index];
         } else {
-            pages->debug[i]=nullptr;
+            mem_big_pages->debug[i]=nullptr;
         }
     }
 }
@@ -2932,11 +2910,11 @@ void BBCMicro::UpdateDebugState() {
     this->UpdateCPUDataBusFn();
 
     // Update the debug page pointers.
-    if(m_shadow_pages) {
-        this->UpdateDebugPages(m_shadow_pages);
+    if(m_shadow_mem_big_pages) {
+        this->UpdateDebugBigPages(m_shadow_mem_big_pages);
     }
 
-    this->UpdateDebugPages(&m_pages);
+    this->UpdateDebugBigPages(&m_main_mem_big_pages);
 }
 #endif
 
@@ -3079,7 +3057,7 @@ void BBCMicro::InitStuff() {
 
     // Fill in shadow RAM stuff.
     if(m_state.ram_buffer.size()>=65536) {
-        m_shadow_pages=new MemoryPages(m_pages);
+        m_shadow_mem_big_pages=new MemoryBigPages(m_main_mem_big_pages);
 
 //        for(uint8_t page=0x30;page<0x80;++page) {
 //            m_shadow_pages->r[page]+=0x8000;
@@ -3089,10 +3067,10 @@ void BBCMicro::InitStuff() {
 //#endif
 //        }
 
-        m_pc_pages=new const MemoryPages *[256];
+        m_pc_big_pages=new const MemoryBigPages *[16];
 
-        for(size_t i=0;i<256;++i) {
-            m_pc_pages[i]=&m_pages;
+        for(size_t i=0;i<16;++i) {
+            m_pc_big_pages[i]=&m_main_mem_big_pages;
         }
     }
 

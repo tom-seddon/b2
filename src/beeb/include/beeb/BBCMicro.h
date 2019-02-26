@@ -238,22 +238,22 @@ public:
         Master128ACCCONBits m128_bits;
     };
 
-    struct MemoryPages {
-        uint8_t *w[256]={};
-        const uint8_t *r[256]={};
+    struct MemoryBigPages {
+        uint8_t *w[16]={};
+        const uint8_t *r[16]={};
 #if BBCMICRO_DEBUGGER
-        DebugState::ByteDebugFlags *debug[256]={};
-        const BigPage *bp[256]={};
+        DebugState::ByteDebugFlags *debug[16]={};
+        const BigPage *bp[16]={};
 #endif
     };
 
-    typedef uint8_t (*ReadMMIOFn)(void *,union M6502Word);
+    typedef uint8_t (*ReadMMIOFn)(void *,M6502Word);
     //struct ReadMMIO {
     //    ReadMMIOFn fn;
     //    void *obj;
     //};
 
-    typedef void (*WriteMMIOFn)(void *,union M6502Word,uint8_t value);
+    typedef void (*WriteMMIOFn)(void *,M6502Word,uint8_t value);
     //struct WriteMMIO {
     //    WriteMMIOFn fn;
     //    void *obj;
@@ -431,9 +431,9 @@ public:
 
     void DebugRun();
 
-    DebugState::ByteDebugFlags DebugGetByteFlags(M6502Word addr) const;
+    //DebugState::ByteDebugFlags DebugGetByteFlags(M6502Word addr) const;
 
-    void DebugSetByteFlags(M6502Word addr,DebugState::ByteDebugFlags flags);
+    //void DebugSetByteFlags(M6502Word addr,DebugState::ByteDebugFlags flags);
 
     // Temp breakpoints are automatically removed when the BBCMicro is
     // halted.
@@ -619,15 +619,15 @@ private:
     UpdateACCCONPagesFn m_update_acccon_pages_fn=nullptr;
 
     // Memory
-    MemoryPages m_pages={};
+    MemoryBigPages m_main_mem_big_pages={};
 
     // B+ and later only - read/write pages that include the shadow
     // screen RAM.
-    MemoryPages *m_shadow_pages=nullptr;
+    MemoryBigPages *m_shadow_mem_big_pages=nullptr;
 
     // B+ and later only - points to the MemoryPages to use. Index
-    // using the MSB of the address of the last opcode fetch.
-    const MemoryPages **m_pc_pages=nullptr;//[256]
+    // using the page of the address of the last opcode fetch.
+    const MemoryBigPages **m_pc_big_pages=nullptr;//[16]
 
     // [0] is for page FC, [1] for FD and [2] for FE.
     //
@@ -718,7 +718,7 @@ private:
 #if BBCMICRO_TRACE
     void SetTrace(std::shared_ptr<Trace> trace,uint32_t trace_flags);
 #endif
-    void SetPages(MemoryPages *pages0,MemoryPages *pages1,uint8_t big_page_index,uint8_t num_big_pages,uint8_t page);
+    void SetBigPages(MemoryBigPages *pages0,MemoryBigPages *pages1,uint8_t big_page_index,uint8_t num_big_pages,uint8_t mem_big_page_index);
     static void UpdateBROMSELPages(BBCMicro *m);
     static void UpdateBPlusACCCONPages(BBCMicro *m,const ACCCON *old);
     static void UpdateBACCCONPages(BBCMicro *m,const ACCCON *old);
@@ -752,13 +752,13 @@ private:
 #if BBCMICRO_DEBUGGER
     static void HandleCPUDataBusMainRAMOnlyDebug(BBCMicro *m);
     static void HandleCPUDataBusWithShadowRAMDebug(BBCMicro *m);
-    void UpdateDebugPages(MemoryPages *pages);
+    void UpdateDebugBigPages(MemoryBigPages *mem_big_pages);
     void UpdateDebugState();
     void SetDebugStepType(BBCMicroStepType step_type);
     void FinishAsyncCall(bool called);
 #endif
     static void HandleCPUDataBusWithHacks(BBCMicro *m);
-    static void CheckMemoryPages(const MemoryPages *pages,bool non_null);
+    static void CheckMemoryBigPages(const MemoryBigPages *pages,bool non_null);
 
     // 1770 handler stuff.
     bool IsTrack0() override;

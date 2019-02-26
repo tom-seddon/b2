@@ -676,10 +676,10 @@ protected:
                 if(ImGui::Checkbox("",&break_execute)) {
                     debug_flags.bits.break_execute=break_execute;
 
-                    std::unique_lock<Mutex> lock;
-                    BBCMicro *m=m_beeb_thread->LockMutableBeeb(&lock);
-
-                    m->DebugSetByteFlags(line_addr,debug_flags);
+//                    std::unique_lock<Mutex> lock;
+//                    BBCMicro *m=m_beeb_thread->LockMutableBeeb(&lock);
+//
+//                    m->DebugSetByteFlags(line_addr,debug_flags);
                 }
 
                 ImGui::SameLine();
