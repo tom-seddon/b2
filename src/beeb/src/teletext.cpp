@@ -181,7 +181,7 @@ SAA5050::SAA5050() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void SAA5050::Byte(uint8_t value) {
+void SAA5050::Byte(uint8_t value,uint8_t dispen) {
     value&=0x7f;
 
     uint16_t data0,data1;
@@ -348,6 +348,11 @@ void SAA5050::Byte(uint8_t value) {
         data1|=teletext_debug_font[ch][row];
     }
 #endif
+
+    if(!dispen) {
+        data0=0;
+        data1=0;
+    }
 
     ASSERT((m_write_index&1)==0);
     Output *output=&m_output[m_write_index];

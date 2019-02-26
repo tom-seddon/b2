@@ -256,10 +256,7 @@ CRTC::Output CRTC::Update(uint8_t fast_6845) {
             if(m_registers.bits.r8.bits.d!=3) {
                 m_skewed_display|=1<<m_registers.bits.r8.bits.d;
             }
-
-            output.raster=m_raster;
-            ASSERT(output.raster==m_raster);
-
+            
             if(m_char_addr.b.h==m_registers.bits.cursorh&&
                m_char_addr.b.l==m_registers.bits.cursorl&&
                m_raster>=m_registers.bits.ncstart.bits.start&&
@@ -289,7 +286,11 @@ CRTC::Output CRTC::Update(uint8_t fast_6845) {
                         break;
                 }
             }
+
         }
+
+        output.raster=m_raster;
+        ASSERT(output.raster==m_raster);
 
         output.display=m_skewed_display&1;
         m_skewed_display>>=1;
