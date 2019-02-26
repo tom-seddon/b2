@@ -22,6 +22,7 @@ set(SRCS
   ${S}/MC146818.cpp ${I}/MC146818.h ${I}/MC146818.inl
   ${S}/DiscImage.cpp ${I}/DiscImage.h
   ${S}/BeebLink.cpp ${I}/BeebLink.h ${I}/BeebLink.inl
+  ${S}/6502.cpp ${I}/6502.h
   )
 
 if(MSVC)

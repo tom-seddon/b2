@@ -2,7 +2,7 @@
 #include <beeb/DiscInterface.h>
 #include <string.h>
 #include <beeb/BBCMicro.h>
-#include <6502/6502.h>
+#include <beeb/6502.h>
 #include <stdlib.h>
 #include <shared/debug.h>
 #include <memory>

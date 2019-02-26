@@ -25,7 +25,7 @@ class BeebLink;
 #include "ExtMem.h"
 #include "1770.h"
 #include "6522.h"
-#include <6502/6502.h>
+#include "6502.h"
 #include "SN76489.h"
 #include "MC146818.h"
 #include "VideoULA.h"

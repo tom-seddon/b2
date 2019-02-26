@@ -6,7 +6,7 @@
 //////////////////////////////////////////////////////////////////////////
 
 #include "conf.h"
-#include <6502/6502.h>
+#include "6502.h"
 
 struct DiscDrive;
 class DiscInterface;

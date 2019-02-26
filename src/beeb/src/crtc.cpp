@@ -1,6 +1,6 @@
 #include <shared/system.h>
 #include <shared/debug.h>
-#include <6502/6502.h>
+#include <beeb/6502.h>
 #include <string.h>
 #include <beeb/crtc.h>
 #include <beeb/Trace.h>
