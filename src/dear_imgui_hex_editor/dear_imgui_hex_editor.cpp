@@ -78,6 +78,13 @@ void HexEditorHandler::DoContextPopupExtraGui(bool hex,size_t offset) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+void HexEditorHandler::DebugPrint(const char *fmt,...) {
+    (void)fmt;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 HexEditorHandlerWithBufferData::HexEditorHandlerWithBufferData(void *buffer,size_t buffer_size) {
     this->Construct(buffer,buffer,buffer_size);
 }
@@ -300,8 +307,8 @@ void HexEditor::DoImGui() {
         m_offset=m_new_offset;
         m_take_focus_next_frame=true;
 
-        printf("%zu - set new offset: now 0x%zx\n",m_num_calls,m_offset);
-        //printf("%zu - clipper = %d -> %d\n",m_num_calls,clipper_display_start,clipper_display_end);
+        m_handler->DebugPrint("%zu - set new offset: now 0x%zx\n",m_num_calls,m_offset);
+        //m_handler->DebugPrint("%zu - clipper = %d -> %d\n",m_num_calls,clipper_display_start,clipper_display_end);
 
         if(m_hex) {
             m_editing_high_nybble=true;
@@ -325,10 +332,10 @@ void HexEditor::DoImGui() {
             if(row<first_visible_row) {
                 m_next_frame_scroll_y=row*m_metrics.line_height;
             } else if(row>=first_visible_row+num_visible_rows) {
-                m_next_frame_scroll_y=(row-(num_visible_rows-1))*m_metrics.line_height;
+                m_next_frame_scroll_y=(row-((size_t)num_visible_rows-1u))*m_metrics.line_height;
             }
 
-            //printf("row=%zu, clipper start=%d, clipper end=%d, scroll next frame=%f\n",row,clipper_display_start,clipper_display_end,m_next_frame_scroll_y);
+            //m_handler->DebugPrint("row=%zu, clipper start=%d, clipper end=%d, scroll next frame=%f\n",row,clipper_display_start,clipper_display_end,m_next_frame_scroll_y);
         }
     } else {
         if(m_offset!=INVALID_OFFSET) {
@@ -515,7 +522,7 @@ void HexEditor::DoHexPart(size_t begin_offset,size_t end_offset) {
                                 }
                             }
 
-                            printf("%zu - got char: %u, 0x%04X, '%c'\n",m_num_calls,ch,ch,ch>=32&&ch<127?(char)ch:'?');
+                            m_handler->DebugPrint("%zu - got char: %u, 0x%04X, '%c'\n",m_num_calls,ch,ch,ch>=32&&ch<127?(char)ch:'?');
                         }
                     }
                 } else {
@@ -525,7 +532,7 @@ void HexEditor::DoHexPart(size_t begin_offset,size_t end_offset) {
                 if(commit) {
                     if(editable) {
                         IM_ASSERT(m_got_edit_value);
-                        IM_ASSERT(m_edit_value>=0&&m_edit_value<256);
+                        //IM_ASSERT(m_edit_value>=0&&m_edit_value<256);
                         m_handler->WriteByte(m_offset,(uint8_t)m_edit_value);
                     }
 
@@ -565,7 +572,7 @@ void HexEditor::DoHexPart(size_t begin_offset,size_t end_offset) {
 
                 if(!byte->got_value||(byte->colour==0&&!byte->can_write)) {
                     tch.BeginColour(m_metrics.disabled_colour);
-                } else if(byte->colour==0&&(!byte->got_value||byte->value==0&&this->grey_00s)) {
+                } else if(byte->colour==0&&(!byte->got_value||(byte->value==0&&this->grey_00s))) {
                     tch.BeginColour(m_metrics.grey_colour);
                 } else if(byte->colour==0) {
                     tch.BeginColour(m_metrics.text_colour);
@@ -577,7 +584,7 @@ void HexEditor::DoHexPart(size_t begin_offset,size_t end_offset) {
 
                 if(ImGui::IsMouseClicked(0)) {
                     if(ImGui::IsItemHovered()) {
-                        //printf("hover item: %zx\n",offset);
+                        //m_handler->DebugPrint("hover item: %zx\n",offset);
                         this->SetNewOffset(offset,0,false);
                         m_hex=true;
                         //new_offset=offset;
@@ -670,7 +677,7 @@ void HexEditor::DoAsciiPart(size_t begin_offset,size_t end_offset) {
             if(!editing) {
                 if(ImGui::IsItemHovered()) {
                     if(ImGui::IsMouseClicked(0)) {
-                        printf("%zu - clicked on offset 0x%zx\n",m_num_calls,offset);
+                        m_handler->DebugPrint("%zu - clicked on offset 0x%zx\n",m_num_calls,offset);
                         this->SetNewOffset(offset,0,false);
                         m_hex=false;
                     }
@@ -732,7 +739,7 @@ void HexEditor::GetChar(uint16_t *ch,bool *editing,const char *id) {
     ImGui::InputText("",text,sizeof text,INPUT_TEXT_FLAGS,&ReportCharCallback,ch);
 
     if(!take_focus_this_frame&&!m_set_new_offset&&!ImGui::IsItemActive()) {
-        printf("%zu - m_offset=0x%zx: InputText inactive. Invalidating offset.\n",m_num_calls,m_offset);
+        m_handler->DebugPrint("%zu - m_offset=0x%zx: InputText inactive. Invalidating offset.\n",m_num_calls,m_offset);
         this->SetNewOffset(INVALID_OFFSET,0,false);
         *editing=false;
     }
@@ -765,7 +772,7 @@ void HexEditor::SetNewOffset(size_t base,int delta,bool invalidate_on_failure) {
 
     if(delta<0) {
         if(base>=(size_t)-delta) {
-            m_new_offset=base+delta;
+            m_new_offset=base-(size_t)-delta;
             m_set_new_offset=true;
             failed=false;
         } else {

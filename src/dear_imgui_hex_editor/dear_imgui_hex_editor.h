@@ -22,6 +22,15 @@ struct ImDrawList;
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+// b2 uses system.h, but the test projects don't (though I really don't
+// remember why any more...)
+#ifndef PRINTF_LIKE
+#define PRINTF_LIKE(A,B)
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 struct HexEditorByte {
     // if false, all other fields are ignored.
     bool got_value=false;
@@ -62,6 +71,9 @@ public:
     // the extra bits go at the front. Derived class may want to end
     // its gui with a separator.
     virtual void DoContextPopupExtraGui(bool hex,size_t offset);
+
+    // default impl does nothing.
+    virtual void DebugPrint(const char *fmt,...) PRINTF_LIKE(2,3);
 protected:
 private:
 };

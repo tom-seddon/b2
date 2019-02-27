@@ -20,7 +20,7 @@
 class TestHandler;
 class TestMemoryEditor;
 
-static char g_buffer[711];
+static uint8_t g_buffer[711];
 static std::unique_ptr<TestMemoryEditor> g_memory_editor;
 static bool g_hex_editor_open;
 static std::unique_ptr<TestHandler> g_test_handler;
@@ -48,6 +48,14 @@ public:
         } else {
             this->HexEditorHandlerWithBufferData::ReadByte(byte,offset);
         }
+    }
+
+    void DebugPrint(const char *fmt,...) override {
+        va_list v;
+
+        va_start(v,fmt);
+        vprintf(fmt,v);
+        va_end(v);
     }
 protected:
 private:
