@@ -288,18 +288,20 @@ void HexEditor::DoImGui() {
     }
 
     if(m_offset!=INVALID_OFFSET) {
-        this->UpdateOffsetByKey(ImGuiKey_UpArrow,-(int)this->num_columns,1);
-        this->UpdateOffsetByKey(ImGuiKey_DownArrow,(int)this->num_columns,1);
-        this->UpdateOffsetByKey(ImGuiKey_LeftArrow,-1,1);
-        this->UpdateOffsetByKey(ImGuiKey_RightArrow,1,1);
-        this->UpdateOffsetByKey(ImGuiKey_PageUp,-(int)this->num_columns,num_visible_rows);
-        this->UpdateOffsetByKey(ImGuiKey_PageDown,(int)this->num_columns,num_visible_rows);
+        if(ImGui::IsWindowFocused()) {
+            this->UpdateOffsetByKey(ImGuiKey_UpArrow,-(int)this->num_columns,1);
+            this->UpdateOffsetByKey(ImGuiKey_DownArrow,(int)this->num_columns,1);
+            this->UpdateOffsetByKey(ImGuiKey_LeftArrow,-1,1);
+            this->UpdateOffsetByKey(ImGuiKey_RightArrow,1,1);
+            this->UpdateOffsetByKey(ImGuiKey_PageUp,-(int)this->num_columns,num_visible_rows);
+            this->UpdateOffsetByKey(ImGuiKey_PageDown,(int)this->num_columns,num_visible_rows);
 
-        if(ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_Tab))) {
-            m_hex=!m_hex;
-            m_take_focus_next_frame=true;
-        } else if(ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_Escape))) {
-            this->SetNewOffset(INVALID_OFFSET,0,true);
+            if(ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_Tab))) {
+                m_hex=!m_hex;
+                m_take_focus_next_frame=true;
+            } else if(ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_Escape))) {
+                this->SetNewOffset(INVALID_OFFSET,0,true);
+            }
         }
     }
 

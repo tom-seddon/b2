@@ -7,6 +7,7 @@
 #include "BeebWindow.h"
 #include "BeebThread.h"
 #include <shared/log.h>
+#include <dear_imgui_hex_editor.h>
 
 // Ugh, ugh, ugh.
 #ifdef __GNUC__
@@ -20,6 +21,15 @@
 
 #include <unordered_map>
 #include <algorithm>
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+// if true, use dear_imgui_hex_editor_lib (newer, designed with b2 in mind)
+// rather than imgui_memory_editor_lib (part of dear_imgui_club).
+//
+// In the long run, this flag will go away...
+#define HEX_EDITOR_LIB 1
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -99,7 +109,7 @@ protected:
 
     std::shared_ptr<BeebThread> m_beeb_thread;
 
-    void ReadByte(uint8_t *value,
+    bool ReadByte(uint8_t *value,
                   BBCMicro::DebugState::ByteDebugFlags *flags,
                   const DebugBigPage **dbp_ptr,
                   uint16_t addr);
@@ -123,12 +133,13 @@ private:
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void DebugUI::ReadByte(uint8_t *value,
+bool DebugUI::ReadByte(uint8_t *value,
                        BBCMicro::DebugState::ByteDebugFlags *flags,
                        const DebugBigPage **dbp_ptr,
                        uint16_t addr_)
 {
     M6502Word addr={addr_};
+    bool readable;
 
     const DebugBigPage *dbp=this->PrepareForRead(addr);
 
@@ -136,12 +147,18 @@ void DebugUI::ReadByte(uint8_t *value,
         *dbp_ptr=dbp;
     }
 
-    if(value) {
-        if(dbp->r) {
+    if(dbp->r) {
+        if(value) {
             *value=dbp->r[addr.w&BBCMicro::BIG_PAGE_OFFSET_MASK];
-        } else {
+        }
+
+        readable=true;
+    } else {
+        if(value) {
             *value=0;
         }
+
+        readable=false;
     }
 
     if(flags) {
@@ -151,6 +168,8 @@ void DebugUI::ReadByte(uint8_t *value,
             *flags={};
         }
     }
+
+    return readable;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -464,6 +483,67 @@ std::unique_ptr<SettingsUI> Create6502DebugWindow(BeebWindow *beeb_window) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#if HEX_EDITOR_LIB
+
+class MemoryDebugWindow:
+public DebugUI
+{
+public:
+    MemoryDebugWindow():
+    m_handler(this),
+    m_hex_editor(&m_handler)
+    {
+    }
+protected:
+    void HandleDoImGui(CommandContextStack *cc_stack) override {
+        (void)cc_stack;
+
+        this->DoDebugPageOverrideImGui();
+
+        m_hex_editor.DoImGui();
+    }
+private:
+    class Handler:
+    public HexEditorHandler
+    {
+    public:
+        explicit Handler(MemoryDebugWindow *window):
+        m_window(window)
+        {
+        }
+
+        void ReadByte(HexEditorByte *byte,size_t offset) override {
+            BBCMicro::DebugState::ByteDebugFlags debug_flags;
+            byte->got_value=m_window->ReadByte(&byte->value,
+                                               &debug_flags,
+                                               nullptr,
+                                               (uint16_t)offset);
+
+            // TODO - set colour based on breakpoints.
+        }
+
+        void WriteByte(size_t offset,uint8_t value) override {
+            // ...
+        }
+
+        size_t GetSize() override {
+            return 65536;
+        }
+
+        uintptr_t GetBaseAddress() override {
+            return 0;
+        }
+    protected:
+    private:
+        MemoryDebugWindow *const m_window;
+    };
+
+    Handler m_handler;
+    HexEditor m_hex_editor;
+};
+
+#else
+
 class MemoryDebugWindow:
     public DebugUI
 {
@@ -501,6 +581,8 @@ private:
         self->m_beeb_thread->Send(std::make_shared<BeebThread::DebugSetByteMessage>((uint16_t)off,0,d));
     }
 };
+
+#endif
 
 std::unique_ptr<SettingsUI> CreateMemoryDebugWindow(BeebWindow *beeb_window) {
     return CreateDebugUI<MemoryDebugWindow>(beeb_window);
