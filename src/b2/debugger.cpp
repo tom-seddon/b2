@@ -1514,4 +1514,79 @@ std::unique_ptr<SettingsUI> CreateNVRAMDebugWindow(BeebWindow *beeb_window) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+class SN76489DebugWindow:
+public DebugUI
+{
+public:
+protected:
+    void HandleDoImGui(CommandContextStack *cc_stack) override {
+        (void)cc_stack;
+
+        SN76489::ChannelValues values[4];
+        uint16_t seed;
+        {
+            std::unique_lock<Mutex> lock;
+            const BBCMicro *m=m_beeb_thread->LockBeeb(&lock);
+            const SN76489 *sn=m->DebugGetSN76489();
+            sn->GetState(values,&seed);
+        }
+
+        Tone(values[0],0);
+        Tone(values[1],1);
+        Tone(values[2],2);
+
+        {
+            const char *type;
+            if(values[3].freq&4) {
+                type="White";
+            } else {
+                type="Periodic";
+            }
+
+            uint16_t sn_freq;
+            const char *suffix="";
+            switch(values[3].freq&3) {
+                case 0:
+                    sn_freq=0x10;
+                    break;
+
+                case 1:
+                    sn_freq=0x20;
+                    break;
+
+                case 2:
+                    sn_freq=0x40;
+                    break;
+
+                case 3:
+                    suffix=" (Tone 2)";
+                    sn_freq=values[2].freq;
+                    break;
+            }
+
+            ImGui::Text("Noise : vol=%-2d freq=%-5u (0x%04x) (%uHz)",
+                        values[3].vol,sn_freq,sn_freq,GetHz(sn_freq));
+            ImGui::Text("        %s%s",type,suffix);
+            ImGui::Text("        seed: $%04x %%%s%s",
+                        seed,BINARY_BYTE_STRINGS[seed>>8],BINARY_BYTE_STRINGS[seed&0xff]);
+        }
+    }
+private:
+    static uint32_t GetHz(uint16_t sn_freq) {
+        return 4000000/(sn_freq*32);
+    }
+
+    static void Tone(const SN76489::ChannelValues &values,int n) {
+        ImGui::Text("Tone %d: vol=%-2d freq=%-5u (0x%04x) (%uHz)",
+                    n,values.vol,values.freq,values.freq,GetHz(values.freq));
+    }
+};
+
+std::unique_ptr<SettingsUI> CreateSN76489DebugWindow(BeebWindow *beeb_window) {
+    return CreateDebugUI<SN76489DebugWindow>(beeb_window);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 #endif

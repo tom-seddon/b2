@@ -26,6 +26,15 @@ public:
     static const TraceEventType WRITE_EVENT;
 #endif
 
+    struct ChannelValues {
+        // Frequency value, as set by the %1xx0xxxx and %0xxxxxxx
+        // commands.
+        uint16_t freq=0;
+
+        // Volume, as set by the %1xx1xxxx command. 15=max.
+        uint8_t vol=0;
+    };
+
     struct Output {
         int8_t ch[4];
     };
@@ -40,6 +49,9 @@ public:
 #if BBCMICRO_TRACE
     void SetTrace(Trace *t);
 #endif
+
+    // CHANNELS should point to an array of 4.
+    void GetState(ChannelValues *channels,uint16_t *noise_seed) const;
 protected:
 private:
     static const uint16_t NOISE0;
@@ -64,15 +76,10 @@ private:
     };
 
     struct Channel {
-        // Frequency value, as set by the %1xx0xxxx and %0xxxxxxx
-        // commands.
-        uint16_t freq=0;
+        ChannelValues values;
 
         // Output counter. Runs from 0-freq.
         uint16_t counter=0;
-
-        // Volume, as set by the %1xx1xxxx command. 15=max.
-        uint8_t vol=0;
 
         // Current output value.
         ChannelOutput output={};
@@ -89,7 +96,7 @@ private:
     };
 
     State m_state;
-    const uint16_t *const m_noise_pointers[4]={&NOISE0,&NOISE1,&NOISE2,&m_state.channels[2].freq};
+    const uint16_t *const m_noise_pointers[4]={&NOISE0,&NOISE1,&NOISE2,&m_state.channels[2].values.freq};
 #if BBCMICRO_TRACE
     Trace *m_trace;
 #endif

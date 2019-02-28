@@ -398,6 +398,7 @@ public:
     const AddressableLatch DebugGetAddressableLatch() const;
     const R6522 *DebugGetSystemVIA() const;
     const R6522 *DebugGetUserVIA() const;
+    const SN76489 *DebugGetSN76489() const;
 
     //uint16_t DebugGetFlatPage(uint8_t page) const;
 

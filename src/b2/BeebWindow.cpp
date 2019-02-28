@@ -784,6 +784,7 @@ const BeebWindow::SettingsUIMetadata BeebWindow::ms_settings_uis[]={
     {BeebWindowPopupType_SystemVIADebugger,"System VIA Debug","toggle_system_via_debugger",&CreateSystemVIADebugWindow,},
     {BeebWindowPopupType_UserVIADebugger,"User VIA Debug","toggle_user_via_debugger",&CreateUserVIADebugWindow,},
     {BeebWindowPopupType_NVRAMDebugger,"NVRAM Debug","toggle_nvram_debugger",&CreateNVRAMDebugWindow,},
+    {BeebWindowPopupType_SN76489Debugger,"SN76489 Debug","toggle_sn76489_debugger",&CreateSN76489DebugWindow,},
 #endif
     {BeebWindowPopupType_BeebLink,"BeebLink Options","toggle_beeblink_options",&CreateBeebLinkUI},
 
@@ -1344,6 +1345,7 @@ void BeebWindow::DoDebugMenu() {
         m_occ.DoMenuItemUI("toggle_system_via_debugger");
         m_occ.DoMenuItemUI("toggle_user_via_debugger");
         m_occ.DoMenuItemUI("toggle_nvram_debugger");
+        m_occ.DoMenuItemUI("toggle_sn76489_debugger");
 
         ImGui::Separator();
 
@@ -2752,6 +2754,7 @@ ObjectCommandTable<BeebWindow> BeebWindow::ms_command_table("Beeb Window",{
     GetTogglePopupCommand<BeebWindowPopupType_UserVIADebugger>(),
     GetTogglePopupCommand<BeebWindowPopupType_NVRAMDebugger>(),
     GetTogglePopupCommand<BeebWindowPopupType_BeebLink>(),
+    GetTogglePopupCommand<BeebWindowPopupType_SN76489Debugger>(),
 
     {CommandDef("debug_stop","Stop").Shortcut(SDLK_F5|PCKeyModifier_Shift),&BeebWindow::DebugStop,nullptr,&BeebWindow::DebugIsStopEnabled},
     {CommandDef("debug_run","Run").Shortcut(SDLK_F5),&BeebWindow::DebugRun,nullptr,&BeebWindow::DebugIsRunEnabled},

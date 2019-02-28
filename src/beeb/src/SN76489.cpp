@@ -34,12 +34,12 @@ void SN76489::Reset(bool tone) {
     m_state.noise_seed=1<<14;
 
     for(size_t i=0;i<4;++i) {
-        Channel *c=&m_state.channels[i];
+        Channel *channel=&m_state.channels[i];
 
-        c->freq=1023;
-        c->vol=tone?15:0;
+        channel->values.freq=1023;
+        channel->values.vol=tone?15:0;
 
-        memset(&c->output,0xff,sizeof c->output);
+        memset(&channel->output,0xff,sizeof channel->output);
     }
 }
 
@@ -70,10 +70,10 @@ SN76489::Output SN76489::Update(bool write,uint8_t value) {
     for(size_t i=0;i<3;++i) {
         Channel *channel=&m_state.channels[i];
 
-        if(channel->freq==1) {
-            output.ch[i]=(int8_t)channel->vol;
+        if(channel->values.freq==1) {
+            output.ch[i]=(int8_t)channel->values.vol;
         } else {
-            output.ch[i]=channel->vol*channel->output.tone.mul;
+            output.ch[i]=channel->values.vol*channel->output.tone.mul;
 
             if(channel->counter>0) {
                 --channel->counter;
@@ -82,7 +82,7 @@ SN76489::Output SN76489::Update(bool write,uint8_t value) {
             if(channel->counter==0) {
                 channel->output.tone.mul=-channel->output.tone.mul;
 
-                channel->counter=channel->freq;
+                channel->counter=channel->values.freq;
                 if(channel->counter==0) {
                     channel->counter=1024;
                 }
@@ -103,7 +103,7 @@ SN76489::Output SN76489::Update(bool write,uint8_t value) {
             channel->output.noise.toggle=!channel->output.noise.toggle;
 
             if(channel->output.noise.toggle) {
-                if(channel->freq&4) {
+                if(channel->values.freq&4) {
                     // White noise
                     channel->output.noise.value=this->NextWhiteNoiseBit();
                 } else {
@@ -112,13 +112,13 @@ SN76489::Output SN76489::Update(bool write,uint8_t value) {
                 }
             }
 
-            channel->counter=*m_noise_pointers[channel->freq&3];
+            channel->counter=*m_noise_pointers[channel->values.freq&3];
             if(channel->counter==0) {
                 channel->counter=1024;
             }
         }
 
-        output.ch[3]=channel->vol*(int8_t)channel->output.noise.value;
+        output.ch[3]=channel->values.vol*(int8_t)channel->output.noise.value;
         ASSERT(output.ch[3]>=-15&&output.ch[3]<=15);
     }
 
@@ -144,13 +144,13 @@ SN76489::Output SN76489::Update(bool write,uint8_t value) {
 
                 if(m_state.reg&1) {
                     // volume
-                    channel->vol=v^0xf;
-                    TRACE_EVENT(m_state.reg,channel->vol);
+                    channel->values.vol=v^0xf;
+                    TRACE_EVENT(m_state.reg,channel->values.vol);
                 } else {
                     // data
-                    channel->freq&=~0xf;
-                    channel->freq|=v;
-                    TRACE_EVENT(m_state.reg,channel->freq);
+                    channel->values.freq&=~0xf;
+                    channel->values.freq|=v;
+                    TRACE_EVENT(m_state.reg,channel->values.freq);
                 }
             } else {
                 Channel *channel=&m_state.channels[m_state.reg>>1];
@@ -159,18 +159,18 @@ SN76489::Output SN76489::Update(bool write,uint8_t value) {
                 // Data byte
                 if(m_state.reg&1) {
                     // volume
-                    channel->vol=(v&0xf)^0xf;
-                    TRACE_EVENT(m_state.reg,channel->vol);
+                    channel->values.vol=(v&0xf)^0xf;
+                    TRACE_EVENT(m_state.reg,channel->values.vol);
                 } else if(m_state.reg==3<<1) {
                     // noise data
-                    channel->freq=v;
+                    channel->values.freq=v;
                     m_state.noise_seed=1<<14;
-                    TRACE_EVENT(m_state.reg,channel->freq);
+                    TRACE_EVENT(m_state.reg,channel->values.freq);
                 } else {
                     // tone data
-                    channel->freq&=0xf;
-                    channel->freq|=v<<4;
-                    TRACE_EVENT(m_state.reg,channel->freq);
+                    channel->values.freq&=0xf;
+                    channel->values.freq|=v<<4;
+                    TRACE_EVENT(m_state.reg,channel->values.freq);
                 }
             }
         }
@@ -191,6 +191,17 @@ void SN76489::SetTrace(Trace *t) {
     m_trace=t;
 }
 #endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void SN76489::GetState(ChannelValues *channels,uint16_t *noise_seed) const {
+    channels[0]=m_state.channels[0].values;
+    channels[1]=m_state.channels[1].values;
+    channels[2]=m_state.channels[2].values;
+    channels[3]=m_state.channels[3].values;
+    *noise_seed=m_state.noise_seed;
+}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
