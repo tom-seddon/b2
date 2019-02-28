@@ -18,9 +18,9 @@ add_library(imgui_lib STATIC
   ${IMGUI__FOLDER}/imgui_draw.cpp
   ${IMGUI__FOLDER}/imgui.h
   ${IMGUI__FOLDER}/imgui_internal.h
-  ${IMGUI__FOLDER}/stb_rect_pack.h
-  ${IMGUI__FOLDER}/stb_textedit.h
-  ${IMGUI__FOLDER}/stb_truetype.h
+  ${IMGUI__FOLDER}/imstb_rectpack.h
+  ${IMGUI__FOLDER}/imstb_textedit.h
+  ${IMGUI__FOLDER}/imstb_truetype.h
   ${IMGUI__FOLDER}/addons/imgui_user.h
   ${IMGUI__FOLDER}/addons/imgui_user.inl)
 

@@ -396,7 +396,7 @@ void HexEditor::GetMetrics(Metrics *metrics,const ImGuiStyle &style) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static int ReportCharCallback(ImGuiTextEditCallbackData *data) {
+static int ReportCharCallback(ImGuiInputTextCallbackData *data) {
     ImWchar *ch=(ImWchar *)data->UserData;
 
     switch(data->EventFlag) {

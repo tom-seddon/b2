@@ -13,6 +13,8 @@
 #ifdef __GNUC__
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wsign-conversion"
+#pragma GCC diagnostic ignored "-Wswitch"
+#pragma GCC diagnostic ignored "-Wunused-parameter"
 #endif
 #include <imgui_memory_editor.h>
 #ifdef __GNUC__
@@ -633,7 +635,7 @@ private:
 
     // There's no context parameter :( - so this hijacks the data
     // parameter for that purpose.
-    static uint8_t MemoryEditorRead(uint8_t *data,size_t off) {
+    static uint8_t MemoryEditorRead(const MemoryEditor::u8 *data,size_t off) {
         auto self=(ExtMemoryDebugWindow *)data;
 
         ASSERT((uint32_t)off==off);
@@ -646,7 +648,7 @@ private:
 
     // There's no context parameter :( - so this hijacks the data
     // parameter for that purpose.
-    static void MemoryEditorWrite(uint8_t *data,size_t off,uint8_t d) {
+    static void MemoryEditorWrite(MemoryEditor::u8 *data,size_t off,uint8_t d) {
         auto self=(ExtMemoryDebugWindow *)data;
 
         self->m_beeb_thread->Send(std::make_shared<BeebThread::DebugSetExtByteMessage>((uint32_t)off,d));
@@ -871,7 +873,7 @@ protected:
             }
         }
 
-        {
+        if(ImGui::IsWindowFocused()) {
             ImGuiIO& io=ImGui::GetIO();
 
             m_wheel+=io.MouseWheel;
