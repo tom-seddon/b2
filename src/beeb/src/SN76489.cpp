@@ -151,6 +151,11 @@ SN76489::Output SN76489::Update(bool write,uint8_t value) {
                     channel->values.freq&=~0xf;
                     channel->values.freq|=v;
                     TRACE_EVENT(m_state.reg,channel->values.freq);
+
+                    if(m_state.reg==3<<1) {
+                        // noise data
+                        m_state.noise_seed=1<<14;
+                    }
                 }
             } else {
                 Channel *channel=&m_state.channels[m_state.reg>>1];
