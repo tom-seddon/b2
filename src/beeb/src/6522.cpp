@@ -632,6 +632,9 @@ void R6522::TickControl(Port *port,
         case R6522Cx2Control_Input_IndIRQNegEdge:
         case R6522Cx2Control_Input_NegEdge:
             if(port->old_c2&&!port->c2) {
+                TRACEF(m_trace,
+                       "C%c2: was %u, now %u, setting IFR mask 0x%02x. (FYI: mode=%s)",
+                       c,port->old_c2,port->c2,cx2_mask,GetR6522Cx2ControlEnumName(cx2_control));
                 this->ifr.value|=cx2_mask;
             }
             break;
@@ -639,6 +642,9 @@ void R6522::TickControl(Port *port,
         case R6522Cx2Control_Input_IndIRQPosEdge:
         case R6522Cx2Control_Input_PosEdge:
             if(!port->old_c2&&port->c2) {
+                TRACEF(m_trace,
+                       "C%c2: was %u, now %u, setting IFR mask 0x%02x. (FYI: mode=%s)",
+                       c,port->old_c2,port->c2,cx2_mask,GetR6522Cx2ControlEnumName(cx2_control));
                 this->ifr.value|=cx2_mask;
             }
             break;
