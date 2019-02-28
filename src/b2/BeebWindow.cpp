@@ -1229,7 +1229,7 @@ void BeebWindow::DoFileMenu() {
 
         ImGui::Separator();
 
-        m_occ.DoMenuItemUI("load_last_state");
+        //m_occ.DoMenuItemUI("load_last_state");
         m_occ.DoMenuItemUI("save_state");
         ImGui::Separator();
         m_occ.DoMenuItemUI("save_config");

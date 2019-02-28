@@ -365,6 +365,9 @@ void CommandContext::DoButton(const char *name) {
 void CommandContext::DoMenuItemUI(const char *name) {
     Command *command=m_table->FindCommandByName(name);
     if(!command) {
+        char dummy[100];
+        snprintf(dummy,sizeof dummy,"?? - %s",name);
+        ImGui::MenuItem(dummy);
         return;
     }
 
