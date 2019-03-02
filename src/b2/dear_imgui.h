@@ -91,10 +91,6 @@ public:
     void SetKeyDown(uint32_t scancode,bool state);
     void AddInputCharactersUTF8(const char *text);
 
-    bool WantCaptureMouse() const;
-    bool WantCaptureKeyboard() const;
-    bool WantTextInput() const;
-
     bool LoadDockContext(const std::string &config);
     std::string SaveDockContext() const;
     void ResetDockContext();
@@ -113,9 +109,6 @@ private:
     uint64_t m_last_new_frame_ticks=0;
     int m_next_wheel=0;
     ImFontAtlas *m_original_font_atlas=nullptr;
-    bool m_want_capture_mouse=false;
-    bool m_want_capture_keyboard=false;
-    bool m_want_text_input=false;
     std::string m_imgui_ini_path;
     std::string m_imgui_log_txt_path;
     SDL_Cursor *m_cursors[ImGuiMouseCursor_COUNT]={};

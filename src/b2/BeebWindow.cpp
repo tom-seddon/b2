@@ -584,7 +584,7 @@ bool BeebWindow::DoImGui(uint64_t ticks) {
     // because the BBC display panel is handled by separate code - this will
     // probably get fixed eventually.
     //
-    // (The BBC display panel currently never has any commands.)
+    // The BBC display panel never has any dear imgui text widgets in it.
     bool beeb_focus=false;
 
     // Set the window padding to 0x0, so that the docking stuff, which
