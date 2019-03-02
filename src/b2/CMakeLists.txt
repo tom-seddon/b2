@@ -38,7 +38,6 @@ add_executable(b2 MACOSX_BUNDLE
   MessageQueue.cpp MessageQueue.h
   BeebKeymap.cpp BeebKeymap.h
   commands.cpp commands.h
-  CommandContextStackUI.cpp CommandContextStackUI.h
   CommandKeymapsUI.cpp CommandKeymapsUI.h
   SettingsUI.cpp SettingsUI.h
   PixelMetadataUI.cpp PixelMetadataUI.h

@@ -241,106 +241,28 @@ private:
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+// Links a CommandTable with its object's self pointer.
+//
+// (Not a great name for it - should really be BoundCommandTable, or something.)
 class CommandContext {
 public:
+    CommandContext()=default;
     CommandContext(void *object,const CommandTable *table);
 
-    CommandContext(const CommandContext &)=delete;
-    CommandContext &operator=(const CommandContext &)=delete;
-
-    CommandContext(CommandContext &&)=delete;
-    CommandContext &operator=(CommandContext &&)=delete;
-
-    void Reset();
-
-    void DoButton(const char *name);
-    void DoMenuItemUI(const char *name);
+    void DoButton(const char *name) const;
+    void DoMenuItemUI(const char *name) const;
 
     // The check reflects the tick status, and the command is assumed to toggle that state.
-    void DoToggleCheckboxUI(const char *name);
+    void DoToggleCheckboxUI(const char *name) const;
+
+    // When the context isn't bound, does nothing and returns false.
     bool ExecuteCommandsForPCKey(uint32_t keycode) const;
 
-    const CommandTable *GetCommandTable() const;
+    bool IsBound() const;
 protected:
 private:
     void *m_object=nullptr;
     const CommandTable *m_table=nullptr;
-};
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-// This object does three things:
-//
-// 1. ensure a (non-templated) CommandContext is created in a
-// type-safe fashion
-//
-// 2. creates a shareable CommandContext that can outlive the
-// ObjectCommandContext. The context stack is only updated during the
-// imgui step, but its contents have to stick around past that, so it
-// can be handled by the SDL key event handler. This means that the
-// CommandContext objects need to be able to outlive (if hopefully
-// only briefly) the ObjectCommandContext they come from
-//
-// 3. calls Reset on its CommandContext on destruction, so that the
-// CommandContext knows that its ObjectCommandContext has gone away
-//
-// (If point 2 weren't an issue, this could be simpler. Perhaps
-// keyboard shortcuts could/should be handled by the dear imgui
-// keyboard stuff instead?)
-
-template<class T>
-class ObjectCommandContext {
-public:
-    const std::shared_ptr<CommandContext> cc;
-
-    ObjectCommandContext(T *object,const ObjectCommandTable<T> *table):
-        cc(std::make_shared<CommandContext>(object,table))
-    {
-    }
-
-    ~ObjectCommandContext() {
-        this->cc->Reset();
-    }
-
-    void DoButton(const char *name) const {
-        this->cc->DoButton(name);
-    }
-
-    void DoMenuItemUI(const char *name) const {
-        this->cc->DoMenuItemUI(name);
-    }
-
-    void DoToggleCheckboxUI(const char *name) const {
-        this->cc->DoToggleCheckboxUI(name);
-    }
-protected:
-private:
-};
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-class CommandContextStack {
-public:
-    template<class T>
-    void Push(const ObjectCommandContext<T> &occ,bool force=false) {
-        this->Push(occ.cc,force);
-    }
-
-    void Reset();
-
-    void Push(const std::shared_ptr<CommandContext> &cc,bool force=false);
-
-    size_t GetNumCCs() const;
-
-    // index 0 is top of stack.
-    const std::shared_ptr<CommandContext> &GetCCByIndex(size_t index) const;
-
-    bool ExecuteCommandsForPCKey(uint32_t keycode) const;
-protected:
-private:
-    std::vector<std::shared_ptr<CommandContext>> m_ccs;
 };
 
 //////////////////////////////////////////////////////////////////////////

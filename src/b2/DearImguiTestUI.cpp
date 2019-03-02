@@ -14,11 +14,9 @@ class DearImguiTestUI:
     public SettingsUI
 {
 public:
-    void DoImGui(CommandContextStack *cc_stack) override;
+    void DoImGui() override;
 
     bool OnClose() override;
-
-    bool WantsKeyboardFocus() const override;
 protected:
 private:
     void DoDock(const char *slot_name,ImGuiDockSlot slot);
@@ -27,9 +25,7 @@ private:
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void DearImguiTestUI::DoImGui(CommandContextStack *cc_stack) {
-    (void)cc_stack;
-
+void DearImguiTestUI::DoImGui() {
 //    ImGui::BeginDockspace();
 //
 //#define TW(X) (this->DoDock(#X,ImGuiDockSlot_##X))
@@ -48,13 +44,6 @@ void DearImguiTestUI::DoImGui(CommandContextStack *cc_stack) {
 //////////////////////////////////////////////////////////////////////////
 
 bool DearImguiTestUI::OnClose() {
-    return false;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-bool DearImguiTestUI::WantsKeyboardFocus() const {
     return false;
 }
 

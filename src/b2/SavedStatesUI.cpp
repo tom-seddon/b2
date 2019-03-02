@@ -24,9 +24,7 @@ public:
     {
     }
 
-    void DoImGui(CommandContextStack *cc_stack) override {
-        (void)cc_stack;
-
+    void DoImGui() override {
         const std::shared_ptr<BeebThread> &beeb_thread=m_beeb_window->GetBeebThread();
 
         BeebThread::TimelineState timeline_state;

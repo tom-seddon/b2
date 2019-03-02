@@ -23,7 +23,7 @@ class ConfigsUI:
 public:
     ConfigsUI();
 
-    void DoImGui(CommandContextStack *cc_stack) override;
+    void DoImGui() override;
 
     bool OnClose() override;
 protected:
@@ -47,9 +47,7 @@ ConfigsUI::ConfigsUI() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void ConfigsUI::DoImGui(CommandContextStack *cc_stack) {
-    (void)cc_stack;
-
+void ConfigsUI::DoImGui() {
     BeebWindows::ForEachConfig([&](const BeebConfig *config,BeebConfig *editable_config) {
         return this->DoEditConfigGui(config,editable_config);
     });

@@ -30,7 +30,6 @@
 #include <IconsFontAwesome5.h>
 #include "DataRateUI.h"
 #include <shared/path.h>
-#include "CommandContextStackUI.h"
 #include "CommandKeymapsUI.h"
 #include "PixelMetadataUI.h"
 #include "DearImguiTestUI.h"
@@ -134,7 +133,7 @@ class BeebWindow::OptionsUI:
 public:
     explicit OptionsUI(BeebWindow *beeb_window);
 
-    void DoImGui(CommandContextStack *cc_stack) override;
+    void DoImGui() override;
 
     bool OnClose() override;
 protected:
@@ -153,9 +152,7 @@ BeebWindow::OptionsUI::OptionsUI(BeebWindow *beeb_window):
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void BeebWindow::OptionsUI::DoImGui(CommandContextStack *cc_stack) {
-    (void)cc_stack;
-
+void BeebWindow::OptionsUI::DoImGui() {
     const std::shared_ptr<BeebThread> &beeb_thread=m_beeb_window->m_beeb_thread;
     BeebWindowSettings *settings=&m_beeb_window->m_settings;
 
@@ -260,8 +257,7 @@ bool BeebWindow::OptionsUI::OnClose() {
 //////////////////////////////////////////////////////////////////////////
 
 BeebWindow::BeebWindow(BeebWindowInitArguments init_arguments):
-    m_init_arguments(std::move(init_arguments)),
-    m_occ(this,&ms_command_table)
+    m_init_arguments(std::move(init_arguments))
 {
     m_name=m_init_arguments.name;
 
@@ -369,57 +365,8 @@ bool BeebWindow::GetBeebKeyState(BeebKey key) const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-// TODO - nasty, hacky logic dating from when the BBC display was a
-// special case. It doesn't even work properly. Now that the BBC has a
-// dear imgui window, like everything else, it can probably be
-// improved.
-
 void BeebWindow::HandleSDLKeyEvent(const SDL_KeyboardEvent &event) {
-    bool state=event.type==SDL_KEYDOWN;
-
-    //LOGF(OUTPUT,"%s: key=%s state=%s timestamp=%u\n",__func__,SDL_GetScancodeName(event.keysym.scancode),BOOL_STR(state),event.timestamp);
-
-    m_imgui_stuff->SetKeyDown(event.keysym.scancode,state);
-
-    if(m_imgui_has_kb_focus) {
-        // Let dear imgui have the keypress.
-        return;
-    }
-
-    bool got_ccs=false;
-    if(m_cc_stack.GetNumCCs()>1) {
-        got_ccs=true;
-    }
-
-    uint32_t keycode=0;
-    if(state) {
-        keycode=(uint32_t)event.keysym.sym|GetPCKeyModifiersFromSDLKeymod(event.keysym.mod);
-    }
-
-    if((m_prefer_shortcuts||got_ccs)&&keycode!=0) {
-        if(m_cc_stack.ExecuteCommandsForPCKey(keycode)) {
-            // The emulator may later get key up messages for this
-            // key, but that is (ought to be...) OK.
-            return;
-        }
-
-        if(got_ccs) {
-            // a command context has the focus. Don't let the keypress
-            // get through to the emulator.
-            return;
-        }
-    }
-
-    if(this->HandleBeebKey(event.keysym,state)) {
-        // The emulated BBC ate the keypress.
-        return;
-    }
-
-    if(!m_prefer_shortcuts&&keycode!=0) {
-        if(m_cc_stack.ExecuteCommandsForPCKey(keycode)) {
-            return;
-        }
-    }
+    m_sdl_keyboard_events.push_back(event);
 }
 
 bool BeebWindow::HandleBeebKey(const SDL_Keysym &keysym,bool state) {
@@ -609,29 +556,36 @@ static size_t CleanUpRecentPaths(const std::string &tag,bool (*exists_fn)(const 
 //////////////////////////////////////////////////////////////////////////
 
 bool BeebWindow::DoImGui(uint64_t ticks) {
-    //const uint64_t now=GetCurrentTickCount();
-
     int output_width,output_height;
     SDL_GetRendererOutputSize(m_renderer,&output_width,&output_height);
 
     bool keep_window=true;
 
-    m_imgui_has_kb_focus=false;
-
 #if BBCMICRO_DEBUGGER
     m_got_debug_halted=false;
 #endif
 
-    m_cc_stack.Reset();
-    m_cc_stack.Push(m_occ,true);//true=force push
+    for(const SDL_KeyboardEvent &event:m_sdl_keyboard_events) {
+        bool state=event.type==SDL_KEYDOWN;
 
-    if(m_imgui_stuff->WantCaptureKeyboard()) {
-        m_imgui_has_kb_focus=true;
+        //LOGF(OUTPUT,"%s: key=%s state=%s timestamp=%u\n",__func__,SDL_GetScancodeName(event.keysym.scancode),BOOL_STR(state),event.timestamp);
+
+        m_imgui_stuff->SetKeyDown(event.keysym.scancode,state);
     }
 
-    if(m_imgui_stuff->WantTextInput()) {
-        m_imgui_has_kb_focus=true;
-    }
+    // Command contexts to try, in order of preference.
+    CommandContext ccs[]={
+        {},//panel that has focus - if any
+        CommandContext(this,&ms_command_table),//for this window
+    };
+    static const size_t num_ccs=sizeof ccs/sizeof ccs[0];
+
+    // Set if the BBC display panel has focus. This isn't entirely regular,
+    // because the BBC display panel is handled by separate code - this will
+    // probably get fixed eventually.
+    //
+    // (The BBC display panel currently never has any commands.)
+    bool beeb_focus=false;
 
     // Set the window padding to 0x0, so that the docking stuff, which
     // makes its own child windows, ends up tightly aligned to the
@@ -682,9 +636,9 @@ bool BeebWindow::DoImGui(uint64_t ticks) {
                 {
                     ImGuiStyleVarPusher vpusher2(ImGuiStyleVar_WindowPadding,IMGUI_DEFAULT_STYLE.WindowPadding);
 
-                    this->DoSettingsUI();
+                    ccs[0]=this->DoSettingsUI();
 
-                    this->DoBeebDisplayUI();
+                    beeb_focus=this->DoBeebDisplayUI();
                 }
                 ImGui::EndDockspace();
 
@@ -714,7 +668,61 @@ bool BeebWindow::DoImGui(uint64_t ticks) {
         }
     }
 
+    // Handle input as appropriate.
+    //
+    // TODO - could the command key stuff use dear imgui functionality instead?
+    {
+        for(const SDL_KeyboardEvent &event:m_sdl_keyboard_events) {
+            uint32_t keycode=0;
+            bool state=false;
+            if(event.type==SDL_KEYDOWN) {
+                keycode=(uint32_t)event.keysym.sym|GetPCKeyModifiersFromSDLKeymod(event.keysym.mod);
+                state=true;
+            }
+
+            if(beeb_focus) {
+                bool handled=false;
+
+                if(m_prefer_shortcuts) {
+                    handled=this->HandleCommandKey(keycode,ccs,num_ccs);
+                }
+
+                if(!handled) {
+                    handled=this->HandleBeebKey(event.keysym,state);
+                }
+
+                if(!m_prefer_shortcuts) {
+                    if(!handled) {
+                        handled=this->HandleCommandKey(keycode,ccs,num_ccs);
+                    }
+                }
+            } else {
+                this->HandleCommandKey(keycode,ccs,num_ccs);
+            }
+        }
+    }
+
+    m_sdl_keyboard_events.clear();
+
     return keep_window;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool BeebWindow::HandleCommandKey(uint32_t keycode,
+                                  const CommandContext *ccs,
+                                  size_t num_ccs)
+{
+    if(keycode!=0) {
+        for(size_t i=0;i<num_ccs;++i) {
+            if(ccs[i].ExecuteCommandsForPCKey(keycode)) {
+                return true;
+            }
+        }
+    }
+
+    return false;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -788,14 +796,6 @@ const BeebWindow::SettingsUIMetadata BeebWindow::ms_settings_uis[]={
 #endif
     {BeebWindowPopupType_BeebLink,"BeebLink Options","toggle_beeblink_options",&CreateBeebLinkUI},
 
-    // Keep this one at the end, because the command context stack is
-    // updated as it goes...
-    //
-    // (Could maybe rearrange things so that this can display the
-    // previous frame's stack... but it hardly seems worth the
-    // bother.)
-    {BeebWindowPopupType_CommandContextStack,"Command Context Stack","toggle_cc_stack",&BeebWindow::CreateCommandContextStackUI},
-
     // terminator
     {BeebWindowPopupType_MaxValue},
 };
@@ -803,10 +803,14 @@ const BeebWindow::SettingsUIMetadata BeebWindow::ms_settings_uis[]={
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void BeebWindow::DoSettingsUI() {
+CommandContext BeebWindow::DoSettingsUI() {
+    CommandContext cc;
+
     for(const SettingsUIMetadata *ui=ms_settings_uis;ui->type!=BeebWindowPopupType_MaxValue;++ui) {
         uint64_t mask=(uint64_t)1<<ui->type;
         bool opened=!!(m_settings.popups&mask);
+
+        SettingsUI *popup=m_popups[ui->type].get();
 
         if(opened) {
             ImGui::SetNextDock(ImGuiDockSlot_None);
@@ -816,21 +820,28 @@ void BeebWindow::DoSettingsUI() {
             // The extra flags could be wrong for the first frame
             // after the window is created.
             ImGuiWindowFlags extra_flags=0;
-            if(m_popups[ui->type]) {
-                extra_flags|=(ImGuiWindowFlags)m_popups[ui->type]->GetExtraImGuiWindowFlags();
+            if(popup) {
+                extra_flags|=(ImGuiWindowFlags)popup->GetExtraImGuiWindowFlags();
             }
 
             if(ImGui::BeginDock(ui->name,&opened,extra_flags,default_size,default_pos)) {
-                if(!m_popups[ui->type]) {
+                if(!popup) {
                     m_popups[ui->type]=(*ui->create_fn)(this);
                     ASSERT(!!m_popups[ui->type]);
+                    popup=m_popups[ui->type].get();
                 }
 
-                m_popups[ui->type]->DoImGui(&m_cc_stack);
-
-                if(m_popups[ui->type]->WantsKeyboardFocus()) {
-                    m_imgui_has_kb_focus=true;
+                if(ImGui::IsWindowFocused(ImGuiFocusedFlags_ChildWindows)) {
+                    if(const CommandTable *table=popup->GetCommandTable()) {
+                        cc=CommandContext(popup,table);
+                    }
                 }
+
+                popup->DoImGui();
+
+//                if(m_popups[ui->type]->WantsKeyboardFocus()) {
+//                    m_imgui_has_kb_focus=true;
+//                }
 
                 m_settings.popups|=mask;
             }
@@ -857,6 +868,8 @@ void BeebWindow::DoSettingsUI() {
     if(ValueChanged(&m_msg_last_num_errors_and_warnings_printed,m_message_list->GetNumErrorsAndWarningsPrinted())) {
         m_settings.popups|=1<<BeebWindowPopupType_Messages;
     }
+
+    return cc;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -882,13 +895,6 @@ std::unique_ptr<SettingsUI> BeebWindow::CreateSavedStatesUI(BeebWindow *beeb_win
     return ::CreateSavedStatesUI(beeb_window,
                                  beeb_window->m_renderer,
                                  beeb_window->m_pixel_format);
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-std::unique_ptr<SettingsUI> BeebWindow::CreateCommandContextStackUI(BeebWindow *beeb_window) {
-    return std::make_unique<CommandContextStackUI>(&beeb_window->m_cc_stack);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -1075,7 +1081,7 @@ void BeebWindow::DoPopupUI(uint64_t now,int output_width,int output_height) {
 
 void BeebWindow::DoFileMenu() {
     if(ImGui::BeginMenu("File")) {
-        m_occ.DoMenuItemUI("hard_reset");
+        m_cc.DoMenuItemUI("hard_reset");
 
         if(ImGui::BeginMenu("Change config")) {
             bool seen_first_custom=false;
@@ -1225,16 +1231,16 @@ void BeebWindow::DoFileMenu() {
 
         ImGui::Separator();
 
-        m_occ.DoMenuItemUI("save_default_nvram");
+        m_cc.DoMenuItemUI("save_default_nvram");
 
         ImGui::Separator();
 
-        //m_occ.DoMenuItemUI("load_last_state");
-        m_occ.DoMenuItemUI("save_state");
+        //m_cc.DoMenuItemUI("load_last_state");
+        m_cc.DoMenuItemUI("save_state");
         ImGui::Separator();
-        m_occ.DoMenuItemUI("save_config");
+        m_cc.DoMenuItemUI("save_config");
         ImGui::Separator();
-        m_occ.DoMenuItemUI("exit");
+        m_cc.DoMenuItemUI("exit");
         ImGui::EndMenu();
     }
 }
@@ -1244,16 +1250,16 @@ void BeebWindow::DoFileMenu() {
 
 void BeebWindow::DoEditMenu() {
     if(ImGui::BeginMenu("Edit")) {
-        m_occ.DoMenuItemUI("toggle_copy_oswrch_text");
-        m_occ.DoMenuItemUI("copy_basic");
+        m_cc.DoMenuItemUI("toggle_copy_oswrch_text");
+        m_cc.DoMenuItemUI("copy_basic");
 
-        //m_occ.DoMenuItemUI("toggle_copy_oswrch_binary");
-        m_occ.DoMenuItemUI("paste");
-        m_occ.DoMenuItemUI("paste_return");
+        //m_cc.DoMenuItemUI("toggle_copy_oswrch_binary");
+        m_cc.DoMenuItemUI("paste");
+        m_cc.DoMenuItemUI("paste_return");
 
         ImGui::Separator();
 
-        m_occ.DoMenuItemUI("toggle_prioritize_shortcuts");
+        m_cc.DoMenuItemUI("toggle_prioritize_shortcuts");
 
         ImGui::EndMenu();
     }
@@ -1264,14 +1270,14 @@ void BeebWindow::DoEditMenu() {
 
 void BeebWindow::DoToolsMenu() {
     if(ImGui::BeginMenu("Tools")) {
-        m_occ.DoMenuItemUI("toggle_emulator_options");
-        m_occ.DoMenuItemUI("toggle_keyboard_layout");
-        m_occ.DoMenuItemUI("toggle_command_keymaps");
-        m_occ.DoMenuItemUI("toggle_messages");
-        m_occ.DoMenuItemUI("toggle_timeline");
-        m_occ.DoMenuItemUI("toggle_saved_states");
-        m_occ.DoMenuItemUI("toggle_configurations");
-        m_occ.DoMenuItemUI("toggle_beeblink_options");
+        m_cc.DoMenuItemUI("toggle_emulator_options");
+        m_cc.DoMenuItemUI("toggle_keyboard_layout");
+        m_cc.DoMenuItemUI("toggle_command_keymaps");
+        m_cc.DoMenuItemUI("toggle_messages");
+        m_cc.DoMenuItemUI("toggle_timeline");
+        m_cc.DoMenuItemUI("toggle_saved_states");
+        m_cc.DoMenuItemUI("toggle_configurations");
+        m_cc.DoMenuItemUI("toggle_beeblink_options");
 
         // if(ImGui::MenuItem("Dump states")) {
         //     std::vector<std::shared_ptr<BeebState>> all_states=BeebState::GetAllStates();
@@ -1287,11 +1293,11 @@ void BeebWindow::DoToolsMenu() {
         ImGui::Separator();
 
         // Is there somewhere better for this?
-        m_occ.DoMenuItemUI("reset_default_nvram");
+        m_cc.DoMenuItemUI("reset_default_nvram");
 
         ImGui::Separator();
-        m_occ.DoMenuItemUI("clean_up_recent_files_lists");
-        m_occ.DoMenuItemUI("reset_dock_windows");
+        m_cc.DoMenuItemUI("clean_up_recent_files_lists");
+        m_cc.DoMenuItemUI("reset_dock_windows");
 
         ImGui::EndMenu();
     }
@@ -1304,55 +1310,55 @@ void BeebWindow::DoDebugMenu() {
 #if ENABLE_DEBUG_MENU
     if(ImGui::BeginMenu("Debug")) {
 #if ENABLE_IMGUI_TEST
-        m_occ.DoMenuItemUI("toggle_dear_imgui_test");
+        m_cc.DoMenuItemUI("toggle_dear_imgui_test");
 #endif
-        m_occ.DoMenuItemUI("toggle_event_trace");
-        m_occ.DoMenuItemUI("toggle_date_rate");
-        m_occ.DoMenuItemUI("toggle_cc_stack");
+        m_cc.DoMenuItemUI("toggle_event_trace");
+        m_cc.DoMenuItemUI("toggle_date_rate");
+        m_cc.DoMenuItemUI("toggle_cc_stack");
 
 #if SYSTEM_WINDOWS
         if(GetConsoleWindow()) {
-            m_occ.DoMenuItemUI("clear_console");
-            m_occ.DoMenuItemUI("print_separator");
+            m_cc.DoMenuItemUI("clear_console");
+            m_cc.DoMenuItemUI("print_separator");
         }
 #endif
 
 #if VIDEO_TRACK_METADATA
-        m_occ.DoMenuItemUI("toggle_pixel_metadata");
+        m_cc.DoMenuItemUI("toggle_pixel_metadata");
 #endif
 
 #if BBCMICRO_DEBUGGER
         ImGui::Separator();
 
-        m_occ.DoMenuItemUI("toggle_6502_debugger");
+        m_cc.DoMenuItemUI("toggle_6502_debugger");
         if(ImGui::BeginMenu("Memory Debug")) {
-            m_occ.DoMenuItemUI("toggle_memory_debugger1");
-            m_occ.DoMenuItemUI("toggle_memory_debugger2");
-            m_occ.DoMenuItemUI("toggle_memory_debugger3");
-            m_occ.DoMenuItemUI("toggle_memory_debugger4");
+            m_cc.DoMenuItemUI("toggle_memory_debugger1");
+            m_cc.DoMenuItemUI("toggle_memory_debugger2");
+            m_cc.DoMenuItemUI("toggle_memory_debugger3");
+            m_cc.DoMenuItemUI("toggle_memory_debugger4");
             ImGui::EndMenu();
         }
         if(ImGui::BeginMenu("External Memory Debug")) {
-            m_occ.DoMenuItemUI("toggle_ext_memory_debugger1");
-            m_occ.DoMenuItemUI("toggle_ext_memory_debugger2");
-            m_occ.DoMenuItemUI("toggle_ext_memory_debugger3");
-            m_occ.DoMenuItemUI("toggle_ext_memory_debugger4");
+            m_cc.DoMenuItemUI("toggle_ext_memory_debugger1");
+            m_cc.DoMenuItemUI("toggle_ext_memory_debugger2");
+            m_cc.DoMenuItemUI("toggle_ext_memory_debugger3");
+            m_cc.DoMenuItemUI("toggle_ext_memory_debugger4");
             ImGui::EndMenu();
         }
-        m_occ.DoMenuItemUI("toggle_disassembly_debugger");
-        m_occ.DoMenuItemUI("toggle_crtc_debugger");
-        m_occ.DoMenuItemUI("toggle_video_ula_debugger");
-        m_occ.DoMenuItemUI("toggle_system_via_debugger");
-        m_occ.DoMenuItemUI("toggle_user_via_debugger");
-        m_occ.DoMenuItemUI("toggle_nvram_debugger");
-        m_occ.DoMenuItemUI("toggle_sn76489_debugger");
+        m_cc.DoMenuItemUI("toggle_disassembly_debugger");
+        m_cc.DoMenuItemUI("toggle_crtc_debugger");
+        m_cc.DoMenuItemUI("toggle_video_ula_debugger");
+        m_cc.DoMenuItemUI("toggle_system_via_debugger");
+        m_cc.DoMenuItemUI("toggle_user_via_debugger");
+        m_cc.DoMenuItemUI("toggle_nvram_debugger");
+        m_cc.DoMenuItemUI("toggle_sn76489_debugger");
 
         ImGui::Separator();
 
-        m_occ.DoMenuItemUI("debug_stop");
-        m_occ.DoMenuItemUI("debug_run");
-        m_occ.DoMenuItemUI("debug_step_over");
-        m_occ.DoMenuItemUI("debug_step_in");
+        m_cc.DoMenuItemUI("debug_stop");
+        m_cc.DoMenuItemUI("debug_run");
+        m_cc.DoMenuItemUI("debug_step_over");
+        m_cc.DoMenuItemUI("debug_step_in");
 
 #endif
 
@@ -1519,8 +1525,9 @@ BeebWindow::VBlankRecord *BeebWindow::NewVBlankRecord(uint64_t ticks) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void BeebWindow::DoBeebDisplayUI() {
+bool BeebWindow::DoBeebDisplayUI() {
     //bool opened=m_imgui_stuff->AreAnyDocksDocked();
+    bool focus=false;
 
     double scale_x;
     if(m_settings.correct_aspect_ratio) {
@@ -1546,6 +1553,8 @@ void BeebWindow::DoBeebDisplayUI() {
 
     if(ImGui::BeginDock("Display",nullptr,flags)) {
         ImVec2 padding=GImGui->Style.WindowPadding;
+
+        focus=ImGui::IsWindowFocused(ImGuiFocusedFlags_ChildWindows);
 
         ImGuiStyleVarPusher vpusher(ImGuiStyleVar_WindowPadding,ImVec2(0.f,0.f));
         if(m_tv_texture) {
@@ -1609,9 +1618,11 @@ void BeebWindow::DoBeebDisplayUI() {
                 }
             }
 #endif
+        }
     }
-}
     ImGui::EndDock();
+
+    return focus;
 }
 
 //////////////////////////////////////////////////////////////////////////

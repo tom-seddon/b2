@@ -4,7 +4,7 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-class CommandContextStack;
+class CommandTable;
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -22,13 +22,13 @@ public:
     // default impl returns 0.
     virtual uint32_t GetExtraImGuiWindowFlags() const;
 
-    virtual void DoImGui(CommandContextStack *cc_stack)=0;
+    virtual void DoImGui()=0;
 
     // Return true to have the config saved when this UI window is closed.
     virtual bool OnClose()=0;
 
-    // default impl returns false.
-    virtual bool WantsKeyboardFocus() const;
+    // default impl returns NULL.
+    virtual const CommandTable *GetCommandTable() const;
 protected:
 private:
 };

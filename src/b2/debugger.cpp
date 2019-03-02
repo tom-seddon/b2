@@ -83,7 +83,7 @@ public:
         m_beeb_thread=std::move(beeb_thread);
     }
 
-    void DoImGui(CommandContextStack *cc_stack) final {
+    void DoImGui() final {
         for(size_t i=0;i<16;++i) {
             if(DebugBigPage *dbp=m_debug_big_pages[i]) {
                 dbp->bp=nullptr;
@@ -91,7 +91,7 @@ public:
             }
         }
 
-        this->HandleDoImGui(cc_stack);
+        this->HandleDoImGui();
     }
 protected:
     struct DebugBigPage {
@@ -118,7 +118,7 @@ protected:
 
     void DoDebugPageOverrideImGui();
 
-    virtual void HandleDoImGui(CommandContextStack *cc_stack)=0;
+    virtual void HandleDoImGui()=0;
 private:
     DebugBigPage *m_debug_big_pages[16]={};
     uint32_t m_dpo=0;
@@ -399,8 +399,7 @@ public:
         }
     }
 protected:
-    void HandleDoImGui(CommandContextStack *cc_stack) override {
-        (void)cc_stack;
+    void HandleDoImGui() override {
         //m_beeb_thread->SendUpdate6502StateMessage();
 
         bool halted;
@@ -497,9 +496,7 @@ public:
     {
     }
 protected:
-    void HandleDoImGui(CommandContextStack *cc_stack) override {
-        (void)cc_stack;
-
+    void HandleDoImGui() override {
         this->DoDebugPageOverrideImGui();
 
         m_hex_editor.DoImGui();
@@ -555,9 +552,7 @@ public:
         m_memory_editor.WriteFn=&MemoryEditorWrite;
     }
 protected:
-    void HandleDoImGui(CommandContextStack *cc_stack) override {
-        (void)cc_stack;
-
+    void HandleDoImGui() override {
         m_memory_editor.DrawContents((uint8_t *)this,65536,0);
     }
 private:
@@ -602,9 +597,7 @@ public:
         m_memory_editor.WriteFn=&MemoryEditorWrite;
     }
 protected:
-    void HandleDoImGui(CommandContextStack *cc_stack) override {
-        (void)cc_stack;
-
+    void HandleDoImGui() override {
         bool enabled;
         uint8_t l,h;
         {
@@ -670,11 +663,6 @@ class DisassemblyDebugWindow:
     public DebugUI
 {
 public:
-    DisassemblyDebugWindow():
-        m_occ(this,&ms_command_table)
-    {
-    }
-
     uint32_t GetExtraImGuiWindowFlags() const override {
         // The bottom line of the disassembly should just be clipped
         // if it runs off the bottom... only drawing whole lines just
@@ -682,9 +670,13 @@ public:
         // automatically adds a scroll bar. And that's even weirder.
         return ImGuiWindowFlags_NoScrollbar|ImGuiWindowFlags_NoScrollWithMouse;
     }
+
+    const CommandTable *GetCommandTable() const override {
+        return &ms_command_table;
+    }
 protected:
-    void HandleDoImGui(CommandContextStack *cc_stack) override {
-        cc_stack->Push(m_occ);
+    void HandleDoImGui() override {
+        CommandContext cc(this,this->GetCommandTable());
 
         const M6502Config *config;
         uint16_t pc;
@@ -706,9 +698,9 @@ protected:
 
         this->DoDebugPageOverrideImGui();
 
-        m_occ.DoToggleCheckboxUI("toggle_track_pc");
+        cc.DoToggleCheckboxUI("toggle_track_pc");
 
-        m_occ.DoButton("go_back");
+        cc.DoButton("go_back");
 
         if(ImGui::InputText("Address",
                             m_address_text,sizeof m_address_text,
@@ -894,7 +886,6 @@ protected:
 private:
     static const char IND_PREFIX[];
 
-    ObjectCommandContext<DisassemblyDebugWindow> m_occ;
     uint16_t m_addr=0;
     bool m_track_pc=true;
     char m_address_text[100]={};
@@ -1090,9 +1081,7 @@ class CRTCDebugWindow:
 {
 public:
 protected:
-    void HandleDoImGui(CommandContextStack *cc_stack) override {
-        (void)cc_stack;
-
+    void HandleDoImGui() override {
         CRTC::Registers registers;
         uint8_t address;
         uint16_t cursor_address;
@@ -1163,9 +1152,7 @@ class VideoULADebugWindow:
 {
 public:
 protected:
-    void HandleDoImGui(CommandContextStack *cc_stack) override {
-        (void)cc_stack;
-
+    void HandleDoImGui() override {
         VideoULA::Control control;
         uint8_t palette[16];
 
@@ -1421,9 +1408,7 @@ class SystemVIADebugWindow:
 {
 public:
 protected:
-    void HandleDoImGui(CommandContextStack *cc_stack) override {
-        (void)cc_stack;
-
+    void HandleDoImGui() override {
         State state;
         BBCMicro::AddressableLatch latch;
         BBCMicroType type;
@@ -1494,9 +1479,7 @@ class UserVIADebugWindow:
 {
 public:
 protected:
-    void HandleDoImGui(CommandContextStack *cc_stack) override {
-        (void)cc_stack;
-
+    void HandleDoImGui() override {
         State state;
         bool has_debug_state;
         BBCMicro::HardwareDebugState hw;
@@ -1525,9 +1508,7 @@ class NVRAMDebugWindow:
 {
 public:
 protected:
-    void HandleDoImGui(CommandContextStack *cc_stack) override {
-        (void)cc_stack;
-
+    void HandleDoImGui() override {
         std::vector<uint8_t> nvram;
         {
             std::unique_lock<Mutex> lock;
@@ -1603,9 +1584,7 @@ public DebugUI
 {
 public:
 protected:
-    void HandleDoImGui(CommandContextStack *cc_stack) override {
-        (void)cc_stack;
-
+    void HandleDoImGui() override {
         SN76489::ChannelValues values[4];
         uint16_t seed;
         {

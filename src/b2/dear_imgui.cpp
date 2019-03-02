@@ -87,6 +87,11 @@ ImGuiStuff::~ImGuiStuff() {
         ImGui::DestroyDockContext(m_dock_context);
         m_dock_context=nullptr;
 
+        if(m_in_frame) {
+            ImGui::EndFrame();
+            m_in_frame=false;
+        }
+
         ImGuiIO &io=ImGui::GetIO();
 
         delete io.Fonts;
@@ -344,6 +349,7 @@ void ImGuiStuff::NewFrame(bool got_mouse_focus) {
     }
 
     ImGui::NewFrame();
+    m_in_frame=true;
 
     m_want_capture_keyboard=io.WantCaptureKeyboard;
     m_want_capture_mouse=io.WantCaptureMouse;
@@ -360,6 +366,7 @@ void ImGuiStuff::Render() {
     ImGuiContextSetter setter(this);
 
     ImGui::Render();
+    m_in_frame=false;
 
 #if STORE_DRAWLISTS
     m_draw_lists.clear();

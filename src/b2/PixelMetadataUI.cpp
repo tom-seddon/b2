@@ -17,7 +17,7 @@ class PixelMetadataUI:
 public:
     explicit PixelMetadataUI(BeebWindow *beeb_window);
 
-    void DoImGui(CommandContextStack *cc_stack) override;
+    void DoImGui() override;
 
     bool OnClose() override;
 protected:
@@ -36,9 +36,7 @@ PixelMetadataUI::PixelMetadataUI(BeebWindow *beeb_window):
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void PixelMetadataUI::DoImGui(CommandContextStack *cc_stack) {
-    (void)cc_stack;
-
+void PixelMetadataUI::DoImGui() {
     if(const VideoDataUnit *unit=m_beeb_window->GetVideoDataUnitForMousePixel()) {
         if(unit->metadata.flags&VideoDataUnitMetadataFlag_HasAddress) {
             if(unit->metadata.address&0x8000) {

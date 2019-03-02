@@ -16,7 +16,7 @@ class DataRateUI:
 public:
     explicit DataRateUI(BeebWindow *beeb_window);
 
-    void DoImGui(CommandContextStack *cc_stack) override;
+    void DoImGui() override;
 
     bool OnClose() override;
 protected:
@@ -104,9 +104,7 @@ static void MutexMetadataUI(const MutexMetadata *m) {
 }
 #endif
 
-void DataRateUI::DoImGui(CommandContextStack *cc_stack) {
-    (void)cc_stack;
-
+void DataRateUI::DoImGui() {
     std::shared_ptr<BeebThread> beeb_thread=m_beeb_window->GetBeebThread();
 
     ImGui::Separator();

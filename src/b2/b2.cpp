@@ -1100,7 +1100,7 @@ static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &init
                 }
                 break;
             }
-            }
+        }
 
     done:;
         ;//<-- fix Visual Studio autoformat bug

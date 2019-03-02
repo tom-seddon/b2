@@ -45,14 +45,14 @@ class MessagesUI:
 public:
     MessagesUI(std::shared_ptr<MessageList> message_list);
 
-    void DoImGui(CommandContextStack *cc_stack) override;
+    void DoImGui() override;
 
     bool OnClose() override;
+
+    const CommandTable *GetCommandTable() const override;
 protected:
 private:
     std::shared_ptr<MessageList> m_message_list;
-
-    ObjectCommandContext<MessagesUI> m_occ;
 
     void Copy();
     void Clear();
@@ -72,22 +72,22 @@ ObjectCommandTable<MessagesUI> MessagesUI::ms_command_table("Messages Window",{
 //////////////////////////////////////////////////////////////////////////
 
 MessagesUI::MessagesUI(std::shared_ptr<MessageList> message_list):
-    m_message_list(std::move(message_list)),
-    m_occ(this,&ms_command_table)
+    m_message_list(std::move(message_list))
 {
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void MessagesUI::DoImGui(CommandContextStack *cc_stack) {
-    cc_stack->Push(m_occ);
+void MessagesUI::DoImGui() {
+    CommandContext cc(this,this->GetCommandTable());
+    //cc_stack->Push(m_occ);
 
-    m_occ.DoButton("clear");
+    cc.DoButton("clear");
 
     ImGui::SameLine();
 
-    m_occ.DoButton("copy");
+    cc.DoButton("copy");
 
     ImGui::BeginChild("",ImVec2(),true);
 
@@ -101,6 +101,13 @@ void MessagesUI::DoImGui(CommandContextStack *cc_stack) {
 
 bool MessagesUI::OnClose() {
     return false;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+const CommandTable *MessagesUI::GetCommandTable() const {
+    return &ms_command_table;
 }
 
 //////////////////////////////////////////////////////////////////////////

@@ -18,9 +18,7 @@ public:
     BeebLinkUI() {
     }
 
-    void DoImGui(CommandContextStack *cc_stack) override {
-        (void)cc_stack;
-
+    void DoImGui() override {
         std::vector<std::string> urls=BeebLinkHTTPHandler::GetServerURLs();
 
         ASSERT(urls.size()<=INT_MAX);

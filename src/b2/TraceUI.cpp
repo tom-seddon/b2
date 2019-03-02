@@ -58,7 +58,7 @@ public:
 #if BBCMICRO_TRACE
     TraceUI(BeebWindow *beeb_window);
 
-    void DoImGui(CommandContextStack *cc_stack) override;
+    void DoImGui() override;
     bool OnClose() override;
 protected:
 private:
@@ -704,9 +704,7 @@ static void DoTraceStatsImGui(const volatile TraceStats *stats) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void TraceUI::DoImGui(CommandContextStack *cc_stack) {
-    (void)cc_stack;
-
+void TraceUI::DoImGui() {
     std::shared_ptr<BeebThread> beeb_thread=m_beeb_window->GetBeebThread();
 
     if(m_save_trace_job) {

@@ -21,7 +21,6 @@ class TraceUI;
 class NVRAMUI;
 class DataRateUI;
 class BeebState;
-class CommandContextStackUI;
 class CommandKeymapsUI;
 class SettingsUI;
 class DiscImage;
@@ -318,13 +317,16 @@ private:
     // you can press per unit time.
     std::map<uint32_t,std::set<BeebKeySym>> m_beeb_keysyms_by_keycode;
 
+    // Buffer for SDL keyboard events, so they can be handled as part of
+    // the usual update.
+    std::vector<SDL_KeyboardEvent> m_sdl_keyboard_events;
+
     BeebWindowSettings m_settings;
 
     //
     //bool m_ui=false;
     bool m_pushed_window_padding=false;
     ImGuiStuff *m_imgui_stuff=nullptr;
-    bool m_imgui_has_kb_focus=false;
 
 #if ENABLE_IMGUI_DEMO
     bool m_imgui_demo=false;
@@ -333,8 +335,6 @@ private:
 #if STORE_DRAWLISTS
     bool m_imgui_drawlists=false;
 #endif
-
-    CommandContextStack m_cc_stack;
 
     std::vector<std::string> m_display_size_options;
 
@@ -357,7 +357,6 @@ private:
     std::shared_ptr<MessageList> m_message_list;
     uint64_t m_msg_last_num_messages_printed=0;
     uint64_t m_msg_last_num_errors_and_warnings_printed=0;
-    ObjectCommandContext<BeebWindow> m_occ;
 #if VIDEO_TRACK_METADATA
     bool m_got_mouse_pixel_unit=false;
     VideoDataUnit m_mouse_pixel_unit={};
@@ -374,10 +373,13 @@ private:
     std::vector<HTTPPoke> m_http_pokes;
 #endif
 
+    const CommandContext m_cc{this,&ms_command_table};
+
     bool InitInternal();
     bool DoImGui(uint64_t ticks);
+    bool HandleCommandKey(uint32_t keycode,const CommandContext *ccs,size_t num_ccs);
     bool DoMenuUI();
-    void DoSettingsUI();
+    CommandContext DoSettingsUI();
     void DoPopupUI(uint64_t now,int output_width,int output_height);
     void DoFileMenu();
     void DoEditMenu();
@@ -398,7 +400,7 @@ private:
     void PrintSeparator();
     void UpdateTVTexture(VBlankRecord *vblank_record);
     VBlankRecord *NewVBlankRecord(uint64_t ticks);
-    void DoBeebDisplayUI();
+    bool DoBeebDisplayUI();
 
     template<BeebWindowPopupType>
     void TogglePopupCommand();
@@ -447,7 +449,6 @@ private:
     static std::unique_ptr<SettingsUI> CreateOptionsUI(BeebWindow *beeb_window);
     static std::unique_ptr<SettingsUI> CreateTimelineUI(BeebWindow *beeb_window);
     static std::unique_ptr<SettingsUI> CreateSavedStatesUI(BeebWindow *beeb_window);
-    static std::unique_ptr<SettingsUI> CreateCommandContextStackUI(BeebWindow *beeb_window);
 
     static ObjectCommandTable<BeebWindow> ms_command_table;
     static const SettingsUIMetadata ms_settings_uis[];

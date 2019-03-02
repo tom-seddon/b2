@@ -258,7 +258,6 @@ void HexEditor::DoImGui() {
         ImGui::EndChild();
     }
 
-
     // Options and stuff.
     if(ImGui::Button("Options")) {
         ImGui::OpenPopup(OPTIONS_POPUP_NAME);

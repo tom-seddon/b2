@@ -108,6 +108,7 @@ private:
     ImGuiContext *m_context=nullptr;
     ImGui::DockContext *m_dock_context=nullptr;
     bool m_reset_dock_context=false;
+    bool m_in_frame=false;
     struct SDL_Texture *m_font_texture=nullptr;
     uint64_t m_last_new_frame_ticks=0;
     int m_next_wheel=0;

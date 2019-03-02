@@ -27,9 +27,7 @@ public:
         });
     }
 
-    void DoImGui(CommandContextStack *cc_stack) override {
-        (void)cc_stack;
-
+    void DoImGui() override {
         m_wants_keyboard_focus=false;
 
         float extra=(GImGui->Style.FramePadding.x+GImGui->Style.FrameRounding)*2.f;
@@ -108,10 +106,6 @@ public:
                 });
             }
         });
-    }
-
-    bool WantsKeyboardFocus() const override {
-        return m_wants_keyboard_focus;
     }
 
     bool OnClose() override {
