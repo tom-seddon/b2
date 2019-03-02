@@ -641,6 +641,11 @@ public:
         public Message
     {
     public:
+        // TODO - I can't remember why addr is 32 bits here, but 16 bits in
+        // DebugSetByteMessage :( - might be a relic of when using JGH's
+        // addressing scheme?
+        //
+        // Probably worth keeping, as there'll be Tube support one day...
         DebugSetBytesMessage(uint32_t addr,uint32_t dpo,std::vector<uint8_t> values);
 
         bool ThreadPrepare(std::shared_ptr<Message> *ptr,
