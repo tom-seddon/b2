@@ -1033,13 +1033,13 @@ private:
             this->ReadByte(&opcode,nullptr,m_addr-1);
             if(config->disassembly_info[opcode].num_bytes==1) {
                 --m_addr;
-                return;
+                continue;
             }
 
             this->ReadByte(&opcode,nullptr,m_addr-2);
             if(config->disassembly_info[opcode].num_bytes==2) {
                 m_addr-=2;
-                return;
+                continue;
             }
 
             m_addr-=3;
