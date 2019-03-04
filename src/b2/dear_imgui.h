@@ -98,6 +98,7 @@ public:
 #if STORE_DRAWLISTS
     void DoStoredDrawListWindow();
 #endif
+    void DoDebugWindow();
 protected:
 private:
     SDL_Renderer *m_renderer=nullptr;

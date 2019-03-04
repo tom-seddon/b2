@@ -551,6 +551,21 @@ void ImGuiStuff::DoStoredDrawListWindow() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+static void DoImGuiWindowText(const char *name,const ImGuiWindow *window) {
+    ImGui::Text("%s: %s",name,window?window->Name:"*none*");
+}
+
+void ImGuiStuff::DoDebugWindow() {
+    if(ImGui::Begin("Debug")) {
+        DoImGuiWindowText("NavWindow",GImGui->NavWindow);
+        DoImGuiWindowText("HoveredWindow",GImGui->HoveredWindow);
+    }
+    ImGui::End();
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 ImGuiIDPusher::ImGuiIDPusher(const char* str_id) {
     ImGui::PushID(str_id);
 }
