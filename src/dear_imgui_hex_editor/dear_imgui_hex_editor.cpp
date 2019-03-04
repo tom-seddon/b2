@@ -868,7 +868,7 @@ void HexEditor::DoOptionsPopup() {
 //    return value;
 //}
 
-static void ShowValue(int32_t value,const char *prefix,int dec_width,int num_bytes) {
+static void ShowValue(int32_t value,const char *prefix,int num_bytes) {
     char binary[33];
     {
         uint32_t mask=1<<(num_bytes*8-1);
@@ -885,9 +885,18 @@ static void ShowValue(int32_t value,const char *prefix,int dec_width,int num_byt
         binary[i++]=0;
     }
 
+    uint32_t uvalue=(uint32_t)value;
+    if(num_bytes<4) {
+        uvalue&=(1<<num_bytes*8)-1;
+    }
+
     int prefix_len=(int)strlen(prefix);
 
-    ImGui::Text("%s: %0*" PRId32 " %0*" PRIu32 "u 0x%0*" PRIx32,prefix,dec_width,value,dec_width,(uint32_t)value,num_bytes*2,(uint32_t)value);
+    ImGui::Text("%s: %" PRId32 " %" PRIu32 "u 0x%0*" PRIx32,
+                prefix,
+                value,
+                uvalue,
+                num_bytes*2,uvalue);
     ImGui::Text("%*s  %%%s",prefix_len,"",binary);
 }
 
@@ -922,16 +931,16 @@ void HexEditor::DoContextPopup() {
         ImGui::Text("c: '%c'",(char)bytes[0].value);
     }
 
-    ShowValue((int32_t)(int8_t)bytes[0].value,"b",3,1);
+    ShowValue((int8_t)bytes[0].value,"b",1);
 
     if(wok) {
-        ShowValue(wl,"wL",5,2);
-        ShowValue(wb,"wB",5,2);
+        ShowValue(wl,"wL",2);
+        ShowValue(wb,"wB",2);
     }
 
     if(lok) {
-        ShowValue(ll,"lL",10,4);
-        ShowValue(lb,"lB",10,4);
+        ShowValue(ll,"lL",4);
+        ShowValue(lb,"lB",4);
     }
 }
 
