@@ -173,6 +173,8 @@ HexEditor::~HexEditor() {
 //////////////////////////////////////////////////////////////////////////
 
 void HexEditor::DoImGui() {
+    ImGui::BeginChild("hex");
+
     const ImGuiStyle &style=ImGui::GetStyle();
 
     this->GetMetrics(&m_metrics,style);
@@ -287,7 +289,7 @@ void HexEditor::DoImGui() {
     }
 
     if(m_offset!=INVALID_OFFSET) {
-        if(ImGui::IsWindowFocused()) {
+        if(ImGui::IsWindowFocused(ImGuiFocusedFlags_ChildWindows)) {
             this->UpdateOffsetByKey(ImGuiKey_UpArrow,-(int)this->num_columns,1);
             this->UpdateOffsetByKey(ImGuiKey_DownArrow,(int)this->num_columns,1);
             this->UpdateOffsetByKey(ImGuiKey_LeftArrow,-1,1);
@@ -297,7 +299,7 @@ void HexEditor::DoImGui() {
 
             if(ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_Tab))) {
                 m_hex=!m_hex;
-                m_take_focus_next_frame=true;
+                m_input_take_focus_next_frame=true;
             } else if(ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_Escape))) {
                 this->SetNewOffset(INVALID_OFFSET,0,true);
             }
@@ -306,7 +308,7 @@ void HexEditor::DoImGui() {
 
     if(m_set_new_offset) {
         m_offset=m_new_offset;
-        m_take_focus_next_frame=true;
+        m_input_take_focus_next_frame=true;
 
         m_handler->DebugPrint("%zu - set new offset: now 0x%zx\n",m_num_calls,m_offset);
         //m_handler->DebugPrint("%zu - clipper = %d -> %d\n",m_num_calls,clipper_display_start,clipper_display_end);
@@ -342,11 +344,12 @@ void HexEditor::DoImGui() {
         if(m_offset!=INVALID_OFFSET) {
             if(!m_was_TextInput_visible) {
                 // sort out TextInput again when it next becomes visible.
-                m_take_focus_next_frame=true;
+                m_input_take_focus_next_frame=true;
             }
         }
     }
 
+    ImGui::EndChild();
     ++m_num_calls;
 }
 
@@ -581,11 +584,11 @@ void HexEditor::DoHexPart(size_t begin_offset,size_t end_offset) {
                     tch.BeginColour(byte->colour);
                 }
 
-                    ImGui::TextUnformatted(text,text+sizeof text-1);
+                ImGui::TextUnformatted(text,text+sizeof text-1);
 
                 if(ImGui::IsMouseClicked(0)) {
                     if(ImGui::IsItemHovered()) {
-                        //m_handler->DebugPrint("hover item: %zx\n",offset);
+                        m_handler->DebugPrint("hover item: %zx\n",offset);
                         this->SetNewOffset(offset,0,false);
                         m_hex=true;
                         //new_offset=offset;
@@ -676,8 +679,8 @@ void HexEditor::DoAsciiPart(size_t begin_offset,size_t end_offset) {
             ImGui::TextUnformatted(display_char);
 
             if(!editing) {
-                if(ImGui::IsItemHovered()) {
-                    if(ImGui::IsMouseClicked(0)) {
+                if(ImGui::IsMouseClicked(0)) {
+                    if(ImGui::IsItemHovered()) {
                         m_handler->DebugPrint("%zu - clicked on offset 0x%zx\n",m_num_calls,offset);
                         this->SetNewOffset(offset,0,false);
                         m_hex=false;
@@ -722,12 +725,14 @@ void HexEditor::GetChar(uint16_t *ch,bool *editing,const char *id) {
     ImGui::PushID(id);
 
     bool take_focus_this_frame;
-    if(m_take_focus_next_frame) {
+    if(m_input_take_focus_next_frame) {
         ImGui::SetKeyboardFocusHere();
         ImGui::CaptureKeyboardFromApp(true);
 
+        m_handler->DebugPrint("Taking focus.\n");
+
         take_focus_this_frame=true;
-        m_take_focus_next_frame=false;
+        m_input_take_focus_next_frame=false;
     } else {
         take_focus_this_frame=false;
     }
