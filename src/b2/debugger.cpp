@@ -1643,6 +1643,9 @@ protected:
     }
 private:
     static uint32_t GetHz(uint16_t sn_freq) {
+        if(sn_freq==0) {
+            sn_freq=1024;
+        }
         return 4000000/(sn_freq*32);
     }
 
