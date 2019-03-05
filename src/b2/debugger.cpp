@@ -583,6 +583,11 @@ private:
             LOGV(HEXEDIT,fmt,v);
             va_end(v);
         }
+
+        void DoContextPopupExtraGui(bool hex,size_t offset) override {
+            m_window->DoByteDebugGui((uint32_t)offset);
+            this->HexEditorHandler::DoContextPopupExtraGui(hex,offset);
+        }
     protected:
     private:
         MemoryDebugWindow *const m_window;
