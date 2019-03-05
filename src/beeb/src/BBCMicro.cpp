@@ -144,6 +144,31 @@ static constexpr uint8_t NUM_BIG_PAGES=MOS_BIG_PAGE_INDEX+NUM_MOS_BIG_PAGES;
 
 static const BBCMicro::DebugState::ByteDebugFlags DUMMY_BYTE_DEBUG_FLAGS={};
 
+static const BBCMicro::BigPageType g_rom_big_page_types[16]={
+    {'0',"ROM 0"},
+    {'1',"ROM 1"},
+    {'2',"ROM 2"},
+    {'3',"ROM 3"},
+    {'4',"ROM 4"},
+    {'5',"ROM 5"},
+    {'6',"ROM 6"},
+    {'7',"ROM 7"},
+    {'8',"ROM 8"},
+    {'9',"ROM 9"},
+    {'a',"ROM a"},
+    {'b',"ROM b"},
+    {'c',"ROM c"},
+    {'d',"ROM d"},
+    {'e',"ROM e"},
+    {'f',"ROM f"},
+};
+
+static const BBCMicro::BigPageType g_main_ram_type={'m',"Main RAM"};
+static const BBCMicro::BigPageType g_shadow_ram_type={'s',"Shadow RAM"};
+static const BBCMicro::BigPageType g_andy_type={'n',"ANDY"};
+static const BBCMicro::BigPageType g_hazel_type={'h',"HAZEL"};
+static const BBCMicro::BigPageType g_mos_type={'o',"MOS ROM"};
+
 #endif
 
 //////////////////////////////////////////////////////////////////////////
@@ -696,8 +721,10 @@ void BBCMicro::InitSomeBigPages(uint8_t big_page_index,
                                 uint8_t num_big_pages,
                                 const uint8_t *r,
                                 uint8_t *w,
-                                char code)
+                                const BigPageType *type)
 {
+    ASSERT(type);
+
     for(size_t i=0;i<num_big_pages;++i) {
         BigPage *bp=&m_big_pages[big_page_index+i];
 
@@ -716,14 +743,14 @@ void BBCMicro::InitSomeBigPages(uint8_t big_page_index,
             w+=BIG_PAGE_SIZE_BYTES;
         }
 
-        ASSERT(bp->code==0);
-        bp->code=code;
+        ASSERT(!bp->type);
+        bp->type=type;
     }
 }
 
 void BBCMicro::InitShadowBigPages(uint8_t big_page_index,
                                   uint8_t num_big_pages,
-                                  char code)
+                                  const BigPageType *type)
 {
     ASSERT(big_page_index>=ANDY_BIG_PAGE_INDEX&&
            big_page_index+num_big_pages<=ANDY_BIG_PAGE_INDEX+8);
@@ -735,40 +762,38 @@ void BBCMicro::InitShadowBigPages(uint8_t big_page_index,
         actual_big_page_index-=ANDY_BIG_PAGE_INDEX;
 
         // override the code.
-        code='m';
+        type=&g_main_ram_type;
     }
 
     this->InitSomeBigPages(big_page_index,
                            num_big_pages,
                            m_state.ram_buffer.data()+actual_big_page_index*BIG_PAGE_SIZE_BYTES,
                            m_state.ram_buffer.data()+actual_big_page_index*BIG_PAGE_SIZE_BYTES,
-                           code);
+                           type);
 }
 
 void BBCMicro::InitSidewaysROMBigPages(uint8_t rom) {
     ASSERT(rom<16);
     uint8_t big_page_index=ROM0_BIG_PAGE_INDEX+rom*NUM_ROM_BIG_PAGES;
 
-    char code="0123456789abcdef"[rom];
-
     if(!!m_state.sideways_rom_buffers[rom]) {
         this->InitSomeBigPages(big_page_index,
                                NUM_ROM_BIG_PAGES,
                                m_state.sideways_rom_buffers[rom]->data(),
                                nullptr,
-                               code);
+                               &g_rom_big_page_types[rom]);
     } else if(!m_state.sideways_ram_buffers[rom].empty()) {
         this->InitSomeBigPages(big_page_index,
                                NUM_ROM_BIG_PAGES,
                                m_state.sideways_ram_buffers[rom].data(),
                                m_state.sideways_ram_buffers[rom].data(),
-                               code);
+                               &g_rom_big_page_types[rom]);
     } else {
         this->InitSomeBigPages(big_page_index,
                                NUM_ROM_BIG_PAGES,
                                nullptr,
                                nullptr,
-                               code);
+                               &g_rom_big_page_types[rom]);
     }
 }
 
@@ -787,16 +812,16 @@ void BBCMicro::InitBigPages() {
                            NUM_MAIN_BIG_PAGES,
                            m_state.ram_buffer.data()+MAIN_BIG_PAGE_INDEX*BIG_PAGE_SIZE_BYTES,
                            m_state.ram_buffer.data()+MAIN_BIG_PAGE_INDEX*BIG_PAGE_SIZE_BYTES,
-                           'm');
+                           &g_main_ram_type);
 
-    this->InitShadowBigPages(ANDY_BIG_PAGE_INDEX,NUM_ANDY_BIG_PAGES,'n');
+    this->InitShadowBigPages(ANDY_BIG_PAGE_INDEX,NUM_ANDY_BIG_PAGES,&g_andy_type);
 
     // HAZEL doesn't exist on the B+ - that region is part of ANDY.
     this->InitShadowBigPages(HAZEL_BIG_PAGE_INDEX,
                              NUM_HAZEL_BIG_PAGES,
-                             m_type==BBCMicroType_Master?'h':'n');
+                             m_type==BBCMicroType_Master?&g_hazel_type:&g_andy_type);
 
-    this->InitShadowBigPages(SHADOW_BIG_PAGE_INDEX,NUM_SHADOW_BIG_PAGES,'s');
+    this->InitShadowBigPages(SHADOW_BIG_PAGE_INDEX,NUM_SHADOW_BIG_PAGES,&g_shadow_ram_type);
 
     for(size_t i=0;i<16;++i) {
         this->InitSidewaysROMBigPages(i);
@@ -806,11 +831,11 @@ void BBCMicro::InitBigPages() {
                            NUM_ROM_BIG_PAGES,
                            !!m_state.os_buffer?m_state.os_buffer->data():nullptr,
                            nullptr,
-                           'o');
+                           &g_mos_type);
 
     for(uint8_t i=0;i<NUM_BIG_PAGES;++i) {
         ASSERT(m_big_pages[i].index==i);
-        ASSERT(m_big_pages[i].code!=0);
+        ASSERT(m_big_pages[i].type);
     }
 
     // Reconfigure the paging.

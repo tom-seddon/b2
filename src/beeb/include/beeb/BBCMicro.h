@@ -102,6 +102,14 @@ public:
     };
 #endif
 
+    struct BigPageType {
+        // Single char syntax for use when entering addresses in the debugger.
+        char code=0;
+
+        // More elaborate description, printed in UI.
+        std::string description;
+    };
+
     struct BigPage {
         // if non-NULL, points to BIG_PAGE_SIZE_BYTES bytes. NULL if this
         // big page isn't readable.
@@ -118,7 +126,8 @@ public:
 #endif
 
         uint8_t index=0;
-        char code=0;
+
+        const BigPageType *type=nullptr;
     };
 
     // nvram_contents and rtc_time are ignored if the BBCMicro doesn't
@@ -727,8 +736,8 @@ private:
     static void UpdateMaster128ROMSELPages(BBCMicro *m);
     static bool DoesMOSUseShadow(ACCCON acccon);
     static void UpdateMaster128ACCCONPages(BBCMicro *m,const ACCCON *old_);
-    void InitSomeBigPages(uint8_t big_page_index,uint8_t num_big_pages,const uint8_t *r,uint8_t *w,char code);
-    void InitShadowBigPages(uint8_t big_page_index,uint8_t num_big_pages,char code);
+    void InitSomeBigPages(uint8_t big_page_index,uint8_t num_big_pages,const uint8_t *r,uint8_t *w,const BigPageType *type);
+    void InitShadowBigPages(uint8_t big_page_index,uint8_t num_big_pages,const BigPageType *type);
     void InitSidewaysROMBigPages(uint8_t rom);
     void InitBigPages();
     static void Write1770ControlRegister(void *m_,M6502Word a,uint8_t value);

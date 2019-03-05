@@ -68,31 +68,13 @@ class DebugUI:
     public SettingsUI
 {
 public:
-    ~DebugUI() {
-        for(int i=0;i<16;++i) {
-            delete m_debug_big_pages[i];
-        }
-    }
+    ~DebugUI();
 
-    bool OnClose() override {
-        return false;
-    }
+    bool OnClose() override;
 
-    void SetBeebThread(std::shared_ptr<BeebThread> beeb_thread) {
-        ASSERT(!m_beeb_thread);
-        m_beeb_thread=std::move(beeb_thread);
-    }
+    void SetBeebThread(std::shared_ptr<BeebThread> beeb_thread);
 
-    void DoImGui() final {
-        for(size_t i=0;i<16;++i) {
-            if(DebugBigPage *dbp=m_debug_big_pages[i]) {
-                dbp->bp=nullptr;
-                ++dbp->idle_count;
-            }
-        }
-
-        this->HandleDoImGui();
-    }
+    void DoImGui() final;
 protected:
     struct DebugBigPage {
         const BBCMicro::BigPage *bp=nullptr;
@@ -121,6 +103,8 @@ protected:
     void DoDebugPageOverrideImGui();
 
     virtual void HandleDoImGui()=0;
+
+    void DoByteDebugGui(uint32_t addr);
 private:
     DebugBigPage *m_debug_big_pages[16]={};
 
@@ -131,6 +115,44 @@ private:
                                       uint32_t override_flag,
                                       uint32_t flag);
 };
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+DebugUI::~DebugUI() {
+    for(int i=0;i<16;++i) {
+        delete m_debug_big_pages[i];
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool DebugUI::OnClose() {
+    return false;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void DebugUI::SetBeebThread(std::shared_ptr<BeebThread> beeb_thread) {
+    ASSERT(!m_beeb_thread);
+    m_beeb_thread=std::move(beeb_thread);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void DebugUI::DoImGui() {
+    for(size_t i=0;i<16;++i) {
+        if(DebugBigPage *dbp=m_debug_big_pages[i]) {
+            dbp->bp=nullptr;
+            ++dbp->idle_count;
+        }
+    }
+
+    this->HandleDoImGui();
+}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -302,6 +324,26 @@ void DebugUI::DoDebugPageOverrideImGui() {
 
     this->DoDebugPageOverrideFlagImGui(dpo_mask,dpo_current,"OS",OS_POPUP,BBCMicroDebugPagingOverride_OverrideOS,BBCMicroDebugPagingOverride_OS);
 }
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void DebugUI::DoByteDebugGui(uint32_t addr) {
+    ImGui::Text("Address: $%04x",(uint16_t)addr);
+
+    const DebugBigPage *dbp=this->GetDebugBigPageForAddress({(uint16_t)addr});
+    if(!dbp) {
+        ImGui::Text("Byte: *unknown*");
+    } else {
+        ImGui::Text("Byte: %c.$%04x (%s)",
+                    dbp->bp->type->code,
+                    (uint16_t)addr,
+                    dbp->bp->type->description.c_str());
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
 
 void DebugUI::DoDebugPageOverrideFlagImGui(uint32_t mask,
                                            uint32_t current,
