@@ -914,7 +914,7 @@ protected:
             }
         }
 
-        if(ImGui::IsWindowFocused()) {
+        if(ImGui::IsWindowHovered()) {
             ImGuiIO& io=ImGui::GetIO();
 
             m_wheel+=io.MouseWheel;
