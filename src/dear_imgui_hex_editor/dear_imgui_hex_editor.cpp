@@ -535,9 +535,10 @@ void HexEditor::DoHexPart(size_t begin_offset,size_t end_offset) {
 
                 if(commit) {
                     if(editable) {
-                        IM_ASSERT(m_got_edit_value);
-                        //IM_ASSERT(m_edit_value>=0&&m_edit_value<256);
-                        m_handler->WriteByte(m_offset,(uint8_t)m_edit_value);
+                        if(m_got_edit_value) {
+                            //IM_ASSERT(m_edit_value>=0&&m_edit_value<256);
+                            m_handler->WriteByte(m_offset,(uint8_t)m_edit_value);
+                        }
                     }
 
                     this->SetNewOffset(m_offset,1,true);
