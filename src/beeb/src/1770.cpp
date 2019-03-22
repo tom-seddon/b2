@@ -939,7 +939,7 @@ WD1770::Pins WD1770::Update() {
                 break;
             }
 
-            this->Wait(2*uS_PER_BYTE,WD1770State_WriteSectorSetFirstDRQ);
+            this->Wait(300,WD1770State_WriteSectorSetFirstDRQ);
         }
         break;
 
