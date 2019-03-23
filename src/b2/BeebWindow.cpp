@@ -1556,6 +1556,11 @@ bool BeebWindow::DoBeebDisplayUI() {
     }
 
     if(ImGui::BeginDock("Display",nullptr,flags)) {
+
+        if(ImGui::IsWindowAppearing()) {
+            ImGui::FocusWindow(GImGui->CurrentWindow);
+        }
+
         ImVec2 padding=GImGui->Style.WindowPadding;
 
         focus=ImGui::IsWindowFocused(ImGuiFocusedFlags_ChildWindows);

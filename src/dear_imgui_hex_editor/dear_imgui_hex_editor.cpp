@@ -158,8 +158,6 @@ void HexEditorHandlerWithBufferData::Construct(const void *read_buffer,void *wri
 HexEditor::HexEditor(HexEditorHandler *handler):
     m_handler(handler)
 {
-    m_offset=0;
-    m_hex=true;
 }
 
 //////////////////////////////////////////////////////////////////////////

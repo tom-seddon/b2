@@ -139,7 +139,7 @@ private:
     size_t m_num_calls=0;
 
     size_t m_offset=INVALID_OFFSET;
-    bool m_hex=false;
+    bool m_hex=true;
     bool m_input_take_focus_next_frame=true;
     float m_next_frame_scroll_y=-1.f;
 
