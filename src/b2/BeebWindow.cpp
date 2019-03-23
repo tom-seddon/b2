@@ -625,7 +625,6 @@ bool BeebWindow::DoImGui(uint64_t ticks) {
                          ImGuiWindowFlags_NoMove|
                          ImGuiWindowFlags_NoScrollbar|
                          ImGuiWindowFlags_NoSavedSettings|
-                         ImGuiWindowFlags_NoInputs|
                          ImGuiWindowFlags_NoBringToFrontOnFocus)))
         {
             {
