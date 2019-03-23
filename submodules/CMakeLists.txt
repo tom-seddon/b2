@@ -18,11 +18,14 @@ add_library(imgui_lib STATIC
   ${IMGUI__FOLDER}/imgui_draw.cpp
   ${IMGUI__FOLDER}/imgui.h
   ${IMGUI__FOLDER}/imgui_internal.h
+  ${IMGUI__FOLDER}/imgui_widgets.cpp
   ${IMGUI__FOLDER}/imstb_rectpack.h
   ${IMGUI__FOLDER}/imstb_textedit.h
   ${IMGUI__FOLDER}/imstb_truetype.h
   ${IMGUI__FOLDER}/addons/imgui_user.h
   ${IMGUI__FOLDER}/addons/imgui_user.inl)
+
+set_source_files_properties(${IMGUI__FOLDER}/imgui_widgets.cpp PROPERTIES HEADER_FILE_ONLY TRUE)
 
 target_include_directories(imgui_lib PUBLIC ${IMGUI__FOLDER})
 target_compile_definitions(imgui_lib PUBLIC IMGUI_INCLUDE_IMGUI_USER_H IMGUI_INCLUDE_IMGUI_USER_INL NO_IMGUI_ADDONS)
