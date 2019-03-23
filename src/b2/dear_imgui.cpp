@@ -552,13 +552,60 @@ void ImGuiStuff::DoStoredDrawListWindow() {
 //////////////////////////////////////////////////////////////////////////
 
 static void DoImGuiWindowText(const char *name,const ImGuiWindow *window) {
-    ImGui::Text("%s: %s",name,window?window->Name:"*none*");
+    if(window) {
+        ImGui::Text("%s: %s (0x%x)",name,window->Name,window->ID);
+    } else {
+        ImGui::Text("%s: *none*",name);
+    }
 }
 
 void ImGuiStuff::DoDebugWindow() {
     if(ImGui::Begin("Debug")) {
         DoImGuiWindowText("NavWindow",GImGui->NavWindow);
+        ImGui::Text("NavID: 0x%x (alive=%s)",GImGui->NavId,BOOL_STR(GImGui->NavIdIsAlive));
+
+        ImGui::Separator();
+
         DoImGuiWindowText("HoveredWindow",GImGui->HoveredWindow);
+        ImGui::Text("HoveredID: 0x%x",GImGui->HoveredId);
+
+        ImGui::Separator();
+
+        DoImGuiWindowText("ActiveIdWindow",GImGui->ActiveIdWindow);
+        ImGui::Text("ActiveID: 0x%x (alive=%s)",GImGui->ActiveId,BOOL_STR(GImGui->ActiveIdIsAlive));
+
+//        if (window != ignore_window && window->WasActive && !(window->Flags & ImGuiWindowFlags_ChildWindow))
+//            if ((window->Flags & (ImGuiWindowFlags_NoMouseInputs | ImGuiWindowFlags_NoNavInputs)) != (ImGuiWindowFlags_NoMouseInputs | ImGuiWindowFlags_NoNavInputs))
+//            {
+//                ImGuiWindow* focus_window = NavRestoreLastChildNavWindow(window);
+//                FocusWindow(focus_window);
+//                return;
+//            }
+
+        ImGui::Text("IsAnyItemFocused: %s",BOOL_STR(ImGui::IsAnyItemFocused()));
+
+        ImGui::Separator();
+
+        if(ImGui::CollapsingHeader("WindowsFocusOrder")) {
+            for(int i=0;i<GImGui->WindowsFocusOrder.size();++i) {
+                //ImGuiIDPusher id_pusher(i);
+
+                ImGuiWindow *w=GImGui->WindowsFocusOrder[i];
+                ImGui::Text("%-2d. %s",i,w->Name);
+                if(ImGui::IsItemHovered()) {
+                    ImGui::BeginTooltip();
+                    ImGui::Text("Name: %s",w->Name);
+                    ImGui::Text("ID: 0x%x",w->ID);
+                    ImGui::Text("WasActive: %s",BOOL_STR(w->WasActive));
+                    ImGui::Text("Flags: Child: %s",BOOL_STR(w->Flags&ImGuiWindowFlags_ChildWindow));
+                    ImGui::Text("       NoMouseInputs: %s",BOOL_STR(w->Flags&ImGuiWindowFlags_NoMouseInputs));
+                    ImGui::Text("       NoNavInputs: %s",BOOL_STR(w->Flags&ImGuiWindowFlags_NoNavInputs));
+                    ImGui::Text("NavLastIDs: Main: 0x%x",w->NavLastIds[0]);
+                    ImGui::Text("            Menu: 0x%x",w->NavLastIds[1]);
+                    ImGui::EndTooltip();
+                }
+            }
+        }
     }
     ImGui::End();
 }
