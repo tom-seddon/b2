@@ -414,6 +414,7 @@ void SAA5050::StartOfLine() {
 //////////////////////////////////////////////////////////////////////////
 
 void SAA5050::EndOfLine() {
+    m_bg=0;
     m_raster+=2;
     if(m_raster>=20) {
         m_raster-=20;
