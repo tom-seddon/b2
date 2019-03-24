@@ -76,6 +76,8 @@ public:
 
     void DoImGui() final;
 protected:
+    // TODO - this stuff should really be shared between all DebugUIs referring
+    // to a particular BeebWindow.
     struct DebugBigPage {
         const BBCMicro::BigPage *bp=nullptr;
 
