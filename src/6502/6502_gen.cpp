@@ -1372,6 +1372,12 @@ static void GenerateConfig(std::set<std::string> *tfns,std::set<std::string> *if
         "bcc","bcs","beq","bne","bvc","bvs","bmi","bpl",
     };
 
+    const std::set<std::string> BRANCH={
+        "jmp","jsr",
+        "bra",
+        "bcc","bcs","beq","bne","bvc","bvs","bmi","bpl",
+    };
+
     //const std::map<
 
     P("static const M6502DisassemblyInfo %s[256]={\n",di_name.c_str());
@@ -1382,16 +1388,19 @@ static void GenerateConfig(std::set<std::string> *tfns,std::set<std::string> *if
 
         std::string mnemonic=instr->GetDisassemblyMnemonic();
 
-        int always_step_in=ALWAYS_STEP_IN.count(mnemonic)>0;
+        bool always_step_in=ALWAYS_STEP_IN.count(mnemonic)>0;
+
+        bool branch=BRANCH.count(mnemonic)>0;
 
         ASSERT(mnemonic.size()==3);
-        P("[0x%02zx]={.mnemonic=\"%s\",.mode=%s,.num_bytes=%u,.undocumented=%d,.always_step_in=%d},\n",
+        P("[0x%02zx]={.mnemonic=\"%s\",.mode=%s,.num_bytes=%u,.undocumented=%d,.always_step_in=%d,.branch=%d},\n",
           i,
           mnemonic.c_str(),
           mode.c_str(),
           instr->GetNumBytes(),
           instr->undocumented,
-          always_step_in);
+          always_step_in,
+          branch);
     }
     P("};\n");
     P("\n");

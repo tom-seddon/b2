@@ -137,6 +137,9 @@ struct M6502DisassemblyInfo {
     // Set if the debugger should actually do a step in when stepping
     // over this instruction.
     uint8_t always_step_in:1;
+
+    // Set if this is a branch instruction of some kind.
+    uint8_t branch:1;
 };
 typedef struct M6502DisassemblyInfo M6502DisassemblyInfo;
 

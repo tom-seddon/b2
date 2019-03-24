@@ -2353,7 +2353,7 @@ void BeebThread::ThreadStartTrace(ThreadState *ts) {
             break;
     }
 
-    memset(&m_trace_stats,0,sizeof m_trace_stats);
+    m_trace_stats={};
     m_is_tracing.store(true,std::memory_order_release);
     m_last_trace=nullptr;
 }
@@ -2377,7 +2377,7 @@ void BeebThread::ThreadBeebStartTrace(ThreadState *ts) {
 void BeebThread::ThreadStopTrace(ThreadState *ts) {
     ASSERT(ts->beeb);
 
-    memset(&m_trace_stats,0,sizeof m_trace_stats);
+    m_trace_stats={};
     m_is_tracing.store(false,std::memory_order_release);
 
     std::shared_ptr<Trace> last_trace=ts->beeb->StopTrace();

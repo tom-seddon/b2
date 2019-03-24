@@ -144,7 +144,7 @@ static constexpr uint8_t NUM_BIG_PAGES=MOS_BIG_PAGE_INDEX+NUM_MOS_BIG_PAGES;
 
 static const BBCMicro::DebugState::ByteDebugFlags DUMMY_BYTE_DEBUG_FLAGS={};
 
-static const BBCMicro::BigPageType g_rom_big_page_types[16]={
+const BBCMicro::BigPageType BBCMicro::ROM_BIG_PAGE_TYPES[16]={
     {'0',"ROM 0"},
     {'1',"ROM 1"},
     {'2',"ROM 2"},
@@ -163,11 +163,12 @@ static const BBCMicro::BigPageType g_rom_big_page_types[16]={
     {'f',"ROM f"},
 };
 
-static const BBCMicro::BigPageType g_main_ram_type={'m',"Main RAM"};
-static const BBCMicro::BigPageType g_shadow_ram_type={'s',"Shadow RAM"};
-static const BBCMicro::BigPageType g_andy_type={'n',"ANDY"};
-static const BBCMicro::BigPageType g_hazel_type={'h',"HAZEL"};
-static const BBCMicro::BigPageType g_mos_type={'o',"MOS ROM"};
+const BBCMicro::BigPageType BBCMicro::MAIN_RAM_BIG_PAGE_TYPE={'m',"Main RAM"};
+const BBCMicro::BigPageType BBCMicro::SHADOW_RAM_BIG_PAGE_TYPE={'s',"Shadow RAM"};
+const BBCMicro::BigPageType BBCMicro::ANDY_BIG_PAGE_TYPE={'n',"ANDY"};
+const BBCMicro::BigPageType BBCMicro::HAZEL_BIG_PAGE_TYPE={'h',"HAZEL"};
+const BBCMicro::BigPageType BBCMicro::MOS_BIG_PAGE_TYPE={'o',"MOS ROM"};
+const BBCMicro::BigPageType BBCMicro::IO_BIG_PAGE_TYPE={'i',"I/O area"};
 
 #endif
 
@@ -353,8 +354,6 @@ void BBCMicro::SetTrace(std::shared_ptr<Trace> trace,uint32_t trace_flags) {
 
     if(m_trace) {
         m_trace->SetTime(&m_state.num_2MHz_cycles);
-
-        m_trace->AllocM6502ConfigEvent(m_state.cpu.config);
     }
 
     m_state.fdc.SetTrace(trace_flags&BBCMicroTraceFlag_1770?m_trace:nullptr);
@@ -617,11 +616,11 @@ void BBCMicro::UpdateMaster128ROMSELPages(BBCMicro *m) {
 //
 // MOS Shadow = (Y AND X) OR (NOT Y AND E)
 
-bool BBCMicro::DoesMOSUseShadow(ACCCON acccon) {
-    if(acccon.m128_bits.y) {
-        return acccon.m128_bits.x;
+bool BBCMicro::DoesMOSUseShadow(Master128ACCCONBits acccon_m128_bits) {
+    if(acccon_m128_bits.y) {
+        return acccon_m128_bits.x;
     } else {
-        return acccon.m128_bits.e;
+        return acccon_m128_bits.e;
     }
 }
 
@@ -656,10 +655,10 @@ void BBCMicro::UpdateMaster128ACCCONPages(BBCMicro *m,const ACCCON *old_) {
     }
 
     int usr_shadow=!!m->m_state.acccon.m128_bits.x;
-    int mos_shadow=DoesMOSUseShadow(m->m_state.acccon);
+    int mos_shadow=DoesMOSUseShadow(m->m_state.acccon.m128_bits);
 
     int old_usr_shadow=!!old.m128_bits.x;
-    int old_mos_shadow=DoesMOSUseShadow(old);
+    int old_mos_shadow=DoesMOSUseShadow(old.m128_bits);
 
     if(usr_shadow!=old_usr_shadow||mos_shadow!=old_mos_shadow) {
         const MemoryBigPages *usr_mem_big_pages;
@@ -762,7 +761,7 @@ void BBCMicro::InitShadowBigPages(uint8_t big_page_index,
         actual_big_page_index-=ANDY_BIG_PAGE_INDEX;
 
         // override the code.
-        type=&g_main_ram_type;
+        type=&MAIN_RAM_BIG_PAGE_TYPE;
     }
 
     this->InitSomeBigPages(big_page_index,
@@ -781,19 +780,19 @@ void BBCMicro::InitSidewaysROMBigPages(uint8_t rom) {
                                NUM_ROM_BIG_PAGES,
                                m_state.sideways_rom_buffers[rom]->data(),
                                nullptr,
-                               &g_rom_big_page_types[rom]);
+                               &ROM_BIG_PAGE_TYPES[rom]);
     } else if(!m_state.sideways_ram_buffers[rom].empty()) {
         this->InitSomeBigPages(big_page_index,
                                NUM_ROM_BIG_PAGES,
                                m_state.sideways_ram_buffers[rom].data(),
                                m_state.sideways_ram_buffers[rom].data(),
-                               &g_rom_big_page_types[rom]);
+                               &ROM_BIG_PAGE_TYPES[rom]);
     } else {
         this->InitSomeBigPages(big_page_index,
                                NUM_ROM_BIG_PAGES,
                                nullptr,
                                nullptr,
-                               &g_rom_big_page_types[rom]);
+                               &ROM_BIG_PAGE_TYPES[rom]);
     }
 }
 
@@ -812,16 +811,16 @@ void BBCMicro::InitBigPages() {
                            NUM_MAIN_BIG_PAGES,
                            m_state.ram_buffer.data()+MAIN_BIG_PAGE_INDEX*BIG_PAGE_SIZE_BYTES,
                            m_state.ram_buffer.data()+MAIN_BIG_PAGE_INDEX*BIG_PAGE_SIZE_BYTES,
-                           &g_main_ram_type);
+                           &MAIN_RAM_BIG_PAGE_TYPE);
 
-    this->InitShadowBigPages(ANDY_BIG_PAGE_INDEX,NUM_ANDY_BIG_PAGES,&g_andy_type);
+    this->InitShadowBigPages(ANDY_BIG_PAGE_INDEX,NUM_ANDY_BIG_PAGES,&ANDY_BIG_PAGE_TYPE);
 
     // HAZEL doesn't exist on the B+ - that region is part of ANDY.
     this->InitShadowBigPages(HAZEL_BIG_PAGE_INDEX,
                              NUM_HAZEL_BIG_PAGES,
-                             m_type==BBCMicroType_Master?&g_hazel_type:&g_andy_type);
+                             m_type==BBCMicroType_Master?&HAZEL_BIG_PAGE_TYPE:&ANDY_BIG_PAGE_TYPE);
 
-    this->InitShadowBigPages(SHADOW_BIG_PAGE_INDEX,NUM_SHADOW_BIG_PAGES,&g_shadow_ram_type);
+    this->InitShadowBigPages(SHADOW_BIG_PAGE_INDEX,NUM_SHADOW_BIG_PAGES,&SHADOW_RAM_BIG_PAGE_TYPE);
 
     for(size_t i=0;i<16;++i) {
         this->InitSidewaysROMBigPages(i);
@@ -831,7 +830,7 @@ void BBCMicro::InitBigPages() {
                            NUM_ROM_BIG_PAGES,
                            !!m_state.os_buffer?m_state.os_buffer->data():nullptr,
                            nullptr,
-                           &g_mos_type);
+                           &MOS_BIG_PAGE_TYPE);
 
     for(uint8_t i=0;i<NUM_BIG_PAGES;++i) {
         ASSERT(m_big_pages[i].index==i);
@@ -1035,6 +1034,10 @@ void BBCMicro::WriteROMSEL(void *m_,M6502Word a,uint8_t value) {
         m->m_state.romsel.value=value&m->m_romsel_mask;
 
         (*m->m_update_romsel_pages_fn)(m);
+
+        if(m->m_trace) {
+            m->m_trace->AllocWriteROMSELEvent(value);
+        }
     }
 }
 
@@ -1061,6 +1064,10 @@ void BBCMicro::WriteACCCON(void *m_,M6502Word a,uint8_t value) {
         m->m_state.acccon.value=value&m->m_acccon_mask;
 
         (*m->m_update_acccon_pages_fn)(m,&old);
+
+        if(m->m_trace) {
+            m->m_trace->AllocWriteACCCONEvent(value);
+        }
     }
 }
 
@@ -2112,7 +2119,11 @@ void BBCMicro::SetSidewaysRAM(uint8_t bank,std::shared_ptr<const ROMData> data) 
 void BBCMicro::StartTrace(uint32_t trace_flags,size_t max_num_bytes) {
     this->StopTrace();
 
-    this->SetTrace(std::make_shared<Trace>(max_num_bytes),trace_flags);
+    this->SetTrace(std::make_shared<Trace>(max_num_bytes,
+                                           m_type,
+                                           m_state.romsel.value,
+                                           m_state.acccon.value),
+                   trace_flags);
 }
 #endif
 

@@ -110,6 +110,17 @@ public:
         std::string description;
     };
 
+    static const BigPageType ROM_BIG_PAGE_TYPES[16];
+    static const BigPageType MAIN_RAM_BIG_PAGE_TYPE;
+    static const BigPageType SHADOW_RAM_BIG_PAGE_TYPE;
+    static const BigPageType ANDY_BIG_PAGE_TYPE;
+    static const BigPageType HAZEL_BIG_PAGE_TYPE;
+    static const BigPageType MOS_BIG_PAGE_TYPE;
+
+    // This is just to keep things regular. There aren't currently any big
+    // pages actually of this type.
+    static const BigPageType IO_BIG_PAGE_TYPE;
+
     struct BigPage {
         // if non-NULL, points to BIG_PAGE_SIZE_BYTES bytes. NULL if this
         // big page isn't readable.
@@ -240,6 +251,8 @@ public:
     struct Master128ACCCONBits {
         uint8_t d:1,e:1,x:1,y:1,itu:1,ifj:1,tst:1,irr:1;
     };
+
+    static bool DoesMOSUseShadow(Master128ACCCONBits acccon_m128_bits);
 
     union ACCCON {
         uint8_t value;
@@ -734,7 +747,6 @@ private:
     static void UpdateBACCCONPages(BBCMicro *m,const ACCCON *old);
     static void UpdateBPlusROMSELPages(BBCMicro *m);
     static void UpdateMaster128ROMSELPages(BBCMicro *m);
-    static bool DoesMOSUseShadow(ACCCON acccon);
     static void UpdateMaster128ACCCONPages(BBCMicro *m,const ACCCON *old_);
     void InitSomeBigPages(uint8_t big_page_index,uint8_t num_big_pages,const uint8_t *r,uint8_t *w,const BigPageType *type);
     void InitShadowBigPages(uint8_t big_page_index,uint8_t num_big_pages,const BigPageType *type);

@@ -51,7 +51,8 @@ CHECK_SIZEOF(EventWithSizeHeader,4);
 enum {
     STRING_EVENT_ID,
     DISCONTINUITY_EVENT_ID,
-    M6502_CONFIG_EVENT_ID,
+    WRITE_ROMSEL_EVENT_ID,
+    WRITE_ACCCON_EVENT_ID,
     FIRST_CUSTOM_EVENT_ID,
 };
 
@@ -110,7 +111,8 @@ const TraceEventType Trace::DISCONTINUITY_EVENT("_discontinuity",sizeof(Disconti
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-const TraceEventType Trace::M6502_CONFIG_EVENT("_config",sizeof(M6502ConfigTraceEvent),M6502_CONFIG_EVENT_ID);
+const TraceEventType Trace::WRITE_ROMSEL_EVENT("_write_romsel",sizeof(WriteTraceEvent),WRITE_ROMSEL_EVENT_ID);
+const TraceEventType Trace::WRITE_ACCCON_EVENT("_write_acccon",sizeof(WriteTraceEvent),WRITE_ACCCON_EVENT_ID);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -123,17 +125,23 @@ struct Trace::Chunk {
     size_t num_events;
 
     uint64_t initial_time;
-    const M6502Config *initial_config;
-
     uint64_t last_time;
-    const M6502Config *last_config;
+
+    uint8_t initial_romsel_value;
+    uint8_t initial_acccon_value;
 };
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-Trace::Trace(size_t max_num_bytes):
-m_max_num_bytes(max_num_bytes)
+Trace::Trace(size_t max_num_bytes,
+             int bbc_micro_type,
+             uint8_t initial_romsel_value,
+             uint8_t initial_acccon_value):
+m_max_num_bytes(max_num_bytes),
+m_bbc_micro_type(bbc_micro_type),
+m_romsel_value(initial_romsel_value),
+m_acccon_value(initial_acccon_value)
 {
 }
 
@@ -232,12 +240,21 @@ void Trace::AllocString(const char *str) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void Trace::AllocM6502ConfigEvent(const M6502Config *config) {
-    auto p=(M6502ConfigTraceEvent *)this->AllocEvent(M6502_CONFIG_EVENT);
+void Trace::AllocWriteROMSELEvent(uint8_t value) {
+    auto ev=(WriteTraceEvent *)this->AllocEvent(WRITE_ROMSEL_EVENT);
 
-    p->config=config;
+    ev->value=value;
+    m_romsel_value=value;
+}
 
-    m_tail->last_config=config;
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void Trace::AllocWriteACCCONEvent(uint8_t value) {
+    auto ev=(WriteTraceEvent *)this->AllocEvent(WRITE_ACCCON_EVENT);
+
+    ev->value=value;
+    m_acccon_value=value;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -306,6 +323,35 @@ void Trace::GetStats(TraceStats *stats) const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+int Trace::GetBBCMicroType() const {
+    return m_bbc_micro_type;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+uint8_t Trace::GetInitialROMSELValue() const {
+    if(m_head) {
+        return m_head->initial_romsel_value;
+    } else {
+        return m_romsel_value;
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+uint8_t Trace::GetInitialACCCONValue() const {
+    if(m_head) {
+        return m_head->initial_acccon_value;
+    } else {
+        return m_acccon_value;
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 int Trace::ForEachEvent(ForEachEventFn fn,void *context) {
     if(!m_head) {
         return 1;
@@ -318,17 +364,6 @@ int Trace::ForEachEvent(ForEachEventFn fn,void *context) {
     while(c) {
         const uint8_t *p=(uint8_t *)(c+1);
         const uint8_t *end=p+c->size;
-
-        if(c->initial_config) {
-            M6502ConfigTraceEvent event={c->initial_config};
-            e.event=&event;
-            e.size=sizeof(M6502ConfigTraceEvent);
-            // leave e.time as-is
-            e.type=&M6502_CONFIG_EVENT;
-            if(!(*fn)(this,&e,context)) {
-                return 0;
-            }
-        }
 
         while(p<end) {
             const EventHeader *h=(const EventHeader *)p;
@@ -442,11 +477,6 @@ void *Trace::Alloc(uint64_t time,size_t n) {
     if(!m_tail||m_tail->size+n>m_tail->capacity) {
         size_t size=CHUNK_SIZE;
 
-        const M6502Config *initial_config=nullptr;
-        if(m_tail) {
-            initial_config=m_tail->last_config;
-        }
-
         if(m_stats.num_allocated_bytes+size>m_max_num_bytes) {
             if(m_head==m_tail) {
                 // Always leave at least one used chunk around.
@@ -478,7 +508,6 @@ void *Trace::Alloc(uint64_t time,size_t n) {
 
         memset(c,0,sizeof *c);
         c->capacity=size;
-        c->initial_config=c->last_config=initial_config;
         c->initial_time=c->last_time=time;
 
         if(!m_head) {

@@ -105,7 +105,8 @@ public:
         // strings itself. The INSTRUCTION_EVENT handler has to be able to read
         // the config stored by the INITIAL_EVENT handler, though...
         this->SetMFn(BBCMicro::INSTRUCTION_EVENT,&SaveTraceJob::HandleInstruction);
-        this->SetMFn(Trace::M6502_CONFIG_EVENT,&SaveTraceJob::HandleM6502Config);
+        this->SetMFn(Trace::WRITE_ROMSEL_EVENT,&SaveTraceJob::HandleWriteROMSEL);
+        this->SetMFn(Trace::WRITE_ACCCON_EVENT,&SaveTraceJob::HandleWriteACCCON);
         this->SetMFn(Trace::STRING_EVENT,&SaveTraceJob::HandleString);
         this->SetMFn(SN76489::WRITE_EVENT,&SaveTraceJob::HandleSN76489WriteEvent);
         this->SetMFn(R6522::IRQ_EVENT,&SaveTraceJob::HandleR6522IRQEvent);
@@ -147,6 +148,25 @@ public:
         m_output=std::make_unique<Log>("",&printer);
 
         uint64_t start_ticks=GetCurrentTickCount();
+
+        m_type=(BBCMicroType)m_trace->GetBBCMicroType();
+        switch(m_type) {
+            default:
+                ASSERT(false);
+                // fall through
+            case BBCMicroType_B:
+            case BBCMicroType_BPlus:
+                m_config=&M6502_nmos6502_config;
+                break;
+
+            case BBCMicroType_Master:
+                m_config=&M6502_cmos6502_config;
+                break;
+        }
+
+        m_romsel.value=m_trace->GetInitialROMSELValue();
+        m_acccon.value=m_trace->GetInitialACCCONValue();
+        this->InitBigPages();
 
         if(m_trace->ForEachEvent(&PrintTrace,this)) {
             m_msgs.i.f(
@@ -194,12 +214,29 @@ private:
     bool m_mfns_ok=true;
     std::unique_ptr<Log> m_output;
     Messages m_msgs;            // this is quite a big object
+    BBCMicroType m_type=BBCMicroType_B;
     const M6502Config *m_config=nullptr;
     int m_sound_channel2_value=-1;
     R6522IRQEvent m_last_6522_irq_event_by_via_id[256];
     uint64_t m_last_instruction_time=0;
     bool m_got_first_event_time=false;
     uint64_t m_first_event_time=0;
+    BBCMicro::ROMSEL m_romsel={};
+    BBCMicro::ACCCON m_acccon={};
+
+    // Big pages for use when user code is accessing memory.
+    const BBCMicro::BigPageType *m_usr_big_pages[16]={};
+
+    // Big pages for user when MOS code is accessing memory.
+    const BBCMicro::BigPageType *m_mos_big_pages[16]={};
+
+    // Index by top 4 bits of PC. Each entry points to m_usr_big_pages (code
+    // in this big page counts as user code) or m_mos_big_pages (code in this
+    // big page counts as MOS code).
+    const BBCMicro::BigPageType **m_pc_big_pages[16]={};
+
+    // true if $fc00...$feff is I/O area.
+    bool m_io=true;
 
     std::atomic<uint64_t> m_num_events_handled{0};
     uint64_t m_num_events=0;
@@ -239,12 +276,6 @@ private:
         this_->m_num_bytes_written+=str_len;
     }
 
-    void HandleM6502Config(const TraceEvent *e) {
-        auto ev=(const Trace::M6502ConfigTraceEvent *)e->event;
-
-        m_config=ev->config;
-    }
-
     static char *AddByte(char *c,const char *prefix,uint8_t value,const char *suffix) {
         while((*c=*prefix++)!=0) {
             ++c;
@@ -265,6 +296,31 @@ private:
             ++c;
         }
 
+        *c++=HEX_CHARS_LC[value>>12];
+        *c++=HEX_CHARS_LC[value>>8&15];
+        *c++=HEX_CHARS_LC[value>>4&15];
+        *c++=HEX_CHARS_LC[value&15];
+
+        while((*c=*suffix++)!=0) {
+            ++c;
+        }
+
+        return c;
+    }
+
+    char *AddAddress(char *c,const char *prefix,uint16_t pc,uint16_t value,const char *suffix) {
+        while((*c=*prefix++)!=0) {
+            ++c;
+        }
+
+        if(value>=0xfc00&&value<=0xfeff&&m_io) {
+            // annoying special case.
+            *c++='i';
+        } else {
+            *c++=m_pc_big_pages[pc>>12][value>>12]->code;
+        }
+
+        *c++='.';
         *c++=HEX_CHARS_LC[value>>12];
         *c++=HEX_CHARS_LC[value>>8&15];
         *c++=HEX_CHARS_LC[value>>4&15];
@@ -446,7 +502,7 @@ private:
             c+=m_time_prefix_len;
         }
 
-        c=AddWord(c,"",ev->pc,":");
+        c=AddAddress(c,"",0,ev->pc,":");
 
         *c++=i->undocumented?'*':' ';
 
@@ -460,13 +516,13 @@ private:
         // This logic is a bit gnarly, and probably wants hiding away
         // somewhere closer to the 6502 code.
         switch(i->mode) {
-        default:
-            ASSERT(0);
-            // fall through
-        case M6502AddrMode_IMP:
-            break;
+            default:
+                ASSERT(0);
+                // fall through
+            case M6502AddrMode_IMP:
+                break;
 
-        case M6502AddrMode_REL:
+            case M6502AddrMode_REL:
             {
                 uint16_t tmp;
 
@@ -479,74 +535,83 @@ private:
                 c=AddWord(c,"$",tmp,"");
                 //c+=sprintf(c,"$%04X",tmp);
             }
-            break;
+                break;
 
-        case M6502AddrMode_IMM:
-            c=AddByte(c,"#$",ev->data,"");
-            break;
+            case M6502AddrMode_IMM:
+                c=AddByte(c,"#$",ev->data,"");
+                break;
 
-        case M6502AddrMode_ZPG:
-            c=AddByte(c,"$",(uint8_t)ev->ad,"");
-            break;
+            case M6502AddrMode_ZPG:
+                c=AddByte(c,"$",(uint8_t)ev->ad,"");
+                c=AddAddress(c," [",ev->pc,(uint8_t)ev->ad,"]");
+                break;
 
-        case M6502AddrMode_ZPX:
-            c=AddByte(c,"$",(uint8_t)ev->ad,",X");
-            c=AddByte(c," [$",(uint8_t)(ev->ad+ev->x),"]");
-            break;
+            case M6502AddrMode_ZPX:
+                c=AddByte(c,"$",(uint8_t)ev->ad,",X");
+                c=AddAddress(c," [",ev->pc,(uint8_t)(ev->ad+ev->x),"]");
+                break;
 
-        case M6502AddrMode_ZPY:
-            c=AddByte(c,"$",(uint8_t)ev->ad,",Y");
-            c=AddByte(c," [$",(uint8_t)(ev->ad+ev->y),"]");
-            break;
+            case M6502AddrMode_ZPY:
+                c=AddByte(c,"$",(uint8_t)ev->ad,",Y");
+                c=AddAddress(c," [",ev->pc,(uint8_t)(ev->ad+ev->y),"]");
+                break;
 
-        case M6502AddrMode_ABS:
-            c=AddWord(c,"$",ev->ad,"");
-            break;
+            case M6502AddrMode_ABS:
+                c=AddWord(c,"$",ev->ad,"");
+                if(i->branch) {
+                    // don't add the address for JSR/JMP - for
+                    // consistency with Bxx and JMP indirect. The addresses
+                    // aren't useful anyway, since the next line shows where
+                    // execution ended up.
+                } else {
+                    c=AddAddress(c," [",ev->pc,ev->ad,"]");
+                }
+                break;
 
-        case M6502AddrMode_ABX:
-            c=AddWord(c,"$",ev->ad,",X");
-            c=AddWord(c," [$",(uint16_t)(ev->ad+ev->x),"]");
-            break;
+            case M6502AddrMode_ABX:
+                c=AddWord(c,"$",ev->ad,",X");
+                c=AddAddress(c," [",ev->pc,(uint16_t)(ev->ad+ev->x),"]");
+                break;
 
-        case M6502AddrMode_ABY:
-            c=AddWord(c,"$",ev->ad,",Y");
-            c=AddWord(c," [$",(uint16_t)(ev->ad+ev->y),"]");
-            break;
+            case M6502AddrMode_ABY:
+                c=AddWord(c,"$",ev->ad,",Y");
+                c=AddAddress(c," [",ev->pc,(uint16_t)(ev->ad+ev->y),"]");
+                break;
 
-        case M6502AddrMode_INX:
-            c=AddByte(c,"($",(uint8_t)ev->ia,",X)");
-            c=AddWord(c," [$",ev->ad,"]");
-            break;
+            case M6502AddrMode_INX:
+                c=AddByte(c,"($",(uint8_t)ev->ia,",X)");
+                c=AddAddress(c," [",ev->pc,ev->ad,"]");
+                break;
 
-        case M6502AddrMode_INY:
-            c=AddByte(c,"($",(uint8_t)ev->ia,"),Y");
-            c=AddWord(c," [$",ev->ad+ev->y,"]");
-            break;
+            case M6502AddrMode_INY:
+                c=AddByte(c,"($",(uint8_t)ev->ia,"),Y");
+                c=AddAddress(c," [",ev->pc,ev->ad,"]");
+                break;
 
-        case M6502AddrMode_IND:
-            c=AddWord(c,"($",ev->ia,")");
-            // the effective address isn't stored anywhere - it's
-            // loaded straight into the program counter. But it's not
-            // really a problem... a JMP is easy to follow.
-            break;
+            case M6502AddrMode_IND:
+                c=AddWord(c,"($",ev->ia,")");
+                // the effective address isn't stored anywhere - it's
+                // loaded straight into the program counter. But it's not
+                // really a problem... a JMP is easy to follow.
+                break;
 
-        case M6502AddrMode_ACC:
-            *c++='A';
-            break;
+            case M6502AddrMode_ACC:
+                *c++='A';
+                break;
 
-        case M6502AddrMode_INZ:
+            case M6502AddrMode_INZ:
             {
                 c=AddByte(c,"($",(uint8_t)ev->ia,")");
-                c=AddWord(c," [$",ev->ad,"]");
+                c=AddAddress(c," [",ev->pc,ev->ad,"]");
             }
-            break;
+                break;
 
-        case M6502AddrMode_INDX:
-            c=AddWord(c,"($",ev->ia,",X)");
-            // the effective address isn't stored anywhere - it's
-            // loaded straight into the program counter. But it's not
-            // really a problem... a JMP is easy to follow.
-            break;
+            case M6502AddrMode_INDX:
+                c=AddWord(c,"($",ev->ia,",X)");
+                // the effective address isn't stored anywhere - it's
+                // loaded straight into the program counter. But it's not
+                // really a problem... a JMP is easy to follow.
+                break;
         }
 
         M6502P p;
@@ -592,6 +657,170 @@ private:
         fwrite(line,1,num_chars,m_f);
         //m_output.s(line);
         m_num_bytes_written+=num_chars;
+    }
+
+    void HandleWriteROMSEL(const TraceEvent *e) {
+        auto ev=(const Trace::WriteTraceEvent *)e->event;
+
+        m_romsel.value=ev->value;
+
+        this->UpdateBigPages();
+    }
+
+    void HandleWriteACCCON(const TraceEvent *e) {
+        auto ev=(const Trace::WriteTraceEvent *)e->event;
+
+        m_acccon.value=ev->value;
+
+        this->UpdateBigPages();
+    }
+
+    void InitBigPages() {
+        switch(m_type) {
+            case BBCMicroType_B:
+                for(size_t i=0;i<16;++i) {
+                    m_pc_big_pages[i]=m_usr_big_pages;
+                }
+                break;
+
+            case BBCMicroType_BPlus:
+                for(size_t i=0;i<16;++i) {
+                    m_pc_big_pages[i]=m_usr_big_pages;
+                }
+
+                m_pc_big_pages[0xa]=m_mos_big_pages;
+                m_pc_big_pages[0xc]=m_mos_big_pages;
+                m_pc_big_pages[0xd]=m_mos_big_pages;
+                break;
+
+            case BBCMicroType_Master:
+                for(size_t i=0;i<16;++i) {
+                    m_pc_big_pages[i]=m_usr_big_pages;
+                }
+
+                m_pc_big_pages[0xc]=m_mos_big_pages;
+                m_pc_big_pages[0xd]=m_mos_big_pages;
+                break;
+        }
+
+        this->UpdateBigPages();
+    }
+
+    void UpdateBigPages() {
+        switch(m_type) {
+            case BBCMicroType_B:
+                this->UpdateBigPagesB();
+                break;
+
+            case BBCMicroType_BPlus:
+                this->UpdateBigPagesBPlus();
+                break;
+
+            case BBCMicroType_Master:
+                this->UpdateBigPagesMaster();
+                break;
+        }
+    }
+
+    void UpdateBigPagesB() {
+        // 0x0000 - 0x7fff
+        for(size_t i=0x0;i<0x8;++i) {
+            m_usr_big_pages[i]=&BBCMicro::MAIN_RAM_BIG_PAGE_TYPE;
+        }
+
+        // 0x8000-0xbfff
+        for(size_t i=0x8;i<0xc;++i) {
+            m_usr_big_pages[i]=&BBCMicro::ROM_BIG_PAGE_TYPES[m_romsel.b_bits.pr];
+        }
+
+        // 0xc000-0xffff
+        for(size_t i=0xc;i<0x10;++i) {
+            m_usr_big_pages[i]=&BBCMicro::MOS_BIG_PAGE_TYPE;
+        }
+
+        m_io=true;
+    }
+
+    void UpdateBigPagesBPlus() {
+        // 0x0000-0x2fff
+        for(size_t i=0x0;i<0x3;++i) {
+            m_usr_big_pages[i]=m_mos_big_pages[i]=&BBCMicro::MAIN_RAM_BIG_PAGE_TYPE;
+        }
+
+        // 0x3000-0x7fff
+        for(size_t i=0x3;i<0x8;++i) {
+            m_usr_big_pages[i]=&BBCMicro::MAIN_RAM_BIG_PAGE_TYPE;
+            m_mos_big_pages[i]=&BBCMicro::SHADOW_RAM_BIG_PAGE_TYPE;
+        }
+
+        // 0x8000-0xafff
+        for(size_t i=0x8;i<0xb;++i) {
+            const BBCMicro::BigPageType *type;
+            if(m_romsel.bplus_bits.ram) {
+                type=&BBCMicro::ANDY_BIG_PAGE_TYPE;
+            } else {
+                type=&BBCMicro::ROM_BIG_PAGE_TYPES[m_romsel.bplus_bits.pr];
+            }
+
+            m_usr_big_pages[i]=m_mos_big_pages[i]=type;
+        }
+
+        m_usr_big_pages[0xb]=m_mos_big_pages[0xb]=&BBCMicro::ROM_BIG_PAGE_TYPES[m_romsel.bplus_bits.pr];
+
+        // 0xc000-0xffff
+        for(size_t i=0xc;i<0x10;++i) {
+            m_usr_big_pages[i]=m_mos_big_pages[i]=&BBCMicro::MOS_BIG_PAGE_TYPE;
+        }
+
+        //
+
+        m_io=true;
+    }
+
+    void UpdateBigPagesMaster() {
+        // 0x0000-0x2fff
+        for(size_t i=0x0;i<0x3;++i) {
+            m_usr_big_pages[i]=m_mos_big_pages[i]=&BBCMicro::MAIN_RAM_BIG_PAGE_TYPE;
+        }
+
+        // 0x3000-0x7fff
+        for(size_t i=0x3;i<0x8;++i) {
+            if(m_acccon.m128_bits.e) {
+                m_usr_big_pages[i]=&BBCMicro::SHADOW_RAM_BIG_PAGE_TYPE;
+            } else {
+                m_usr_big_pages[i]=&BBCMicro::MAIN_RAM_BIG_PAGE_TYPE;
+            }
+
+            if(BBCMicro::DoesMOSUseShadow(m_acccon.m128_bits)) {
+                m_mos_big_pages[i]=&BBCMicro::SHADOW_RAM_BIG_PAGE_TYPE;
+            } else {
+                m_mos_big_pages[i]=&BBCMicro::MAIN_RAM_BIG_PAGE_TYPE;
+            }
+        }
+
+        // 0x8000-0xbfff
+        for(size_t i=0x8;i<0xc;++i) {
+            m_usr_big_pages[i]=m_mos_big_pages[i]=&BBCMicro::ROM_BIG_PAGE_TYPES[m_romsel.m128_bits.pm];
+        }
+
+        // 0x8000 (ANDY)
+        if(m_romsel.m128_bits.ram) {
+            m_usr_big_pages[0x8]=m_mos_big_pages[0x8]=&BBCMicro::ANDY_BIG_PAGE_TYPE;
+        }
+
+        // 0xc000-0xffff
+        for(size_t i=0xc;i<0x10;++i) {
+            m_usr_big_pages[i]=m_mos_big_pages[i]=&BBCMicro::MOS_BIG_PAGE_TYPE;
+        }
+
+        // 0xc000-0xdfff (HAZEL)
+        if(m_acccon.m128_bits.y) {
+            for(size_t i=0xc;i<0xe;++i) {
+                m_usr_big_pages[i]=m_mos_big_pages[i]=&BBCMicro::HAZEL_BIG_PAGE_TYPE;
+            }
+        }
+
+        m_io=m_acccon.m128_bits.tst==0;
     }
 
     static bool PrintTrace(Trace *t,const TraceEvent *e,void *context) {

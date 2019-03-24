@@ -57,22 +57,29 @@ Once a trace has been started and stopped, it can be saved to a file
 using `Save` or `Save (no cycles)`. The output is along these lines:
 
 ```
-2862490128  1591: ldy #$28                 A=c0 X=0a Y=28 S=f2 P=nVdizc (D=28)
-2862490130  1593: lda ($92),Y [$6719]      A=ca X=0a Y=28 S=f2 P=NVdizc (D=ca)
-2862490136  1595: and #$f0                 A=c0 X=0a Y=28 S=f2 P=NVdizc (D=f0)
-2862490138  1597: sta ($92),Y [$6719]      A=c0 X=0a Y=28 S=f2 P=NVdizc (D=c0)
-2862490144  1599: inc $92                  A=c0 X=0a Y=28 S=f2 P=NVdizc (D=f2)
-2862490149  159b: lda #$07                 A=07 X=0a Y=28 S=f2 P=nVdizc (D=07)
-2862490151  159d: bit $92                  A=07 X=0a Y=28 S=f2 P=NVdizc (D=f2)
-2862490154  159f: bne $15b3                A=07 X=0a Y=28 S=f2 P=NVdizc (D=01)
-2862490157  15b3: dex                      A=07 X=09 Y=28 S=f2 P=nVdizc (D=f0)
-2862490159  15b4: beq $15b9                A=07 X=09 Y=28 S=f2 P=nVdizc (D=00)
-2862490161  15b6: jmp $1569                A=07 X=09 Y=28 S=f2 P=nVdizc (D=00)
+      63  m.17cc: lda #$81                 A=81 X=65 Y=00 S=f0 P=Nvdizc (D=81)
+      65  m.17ce: ldy #$ff                 A=81 X=65 Y=ff S=f0 P=Nvdizc (D=ff)
+      67  m.17d0: jsr $1bba                A=81 X=65 Y=ff S=ee P=Nvdizc (D=17)
+      73  m.1bba: stx $1b8f [m.1b8f]       A=81 X=65 Y=ff S=ee P=Nvdizc (D=65)
+      77  m.1bbd: ldx #$04                 A=81 X=04 Y=ff S=ee P=nvdizc (D=04)
+      79  m.1bbf: jmp $1b75                A=81 X=04 Y=ff S=ee P=nvdizc (D=04)
+      82  m.1b75: sta $1b91 [m.1b91]       A=81 X=04 Y=ff S=ee P=nvdizc (D=81)
+      86  m.1b78: lda $f4 [m.00f4]         A=04 X=04 Y=ff S=ee P=nvdizc (D=04)
+      89  m.1b7a: pha                      A=04 X=04 Y=ff S=ed P=nvdizc (D=04)
+      92  m.1b7b: lda #$05                 A=05 X=04 Y=ff S=ed P=nvdizc (D=05)
+      94  m.1b7d: sta $f4 [m.00f4]         A=05 X=04 Y=ff S=ed P=nvdizc (D=05)
+      97  m.1b7f: sta $fe30 [i.fe30]       A=05 X=04 Y=ff S=ed P=nvdizc (D=05)
 ```
 
-The first column is the cycle count - then address, instruction,
-effective address (when not staticaly obvious), and register values
-after the instruction is complete.
+The first column is the cycle count - then instruction address,
+instruction, effective address, and register values after the
+instruction is complete.
+
+The instruction address and effective address are annotated with some
+indication of which bank was actually accessed: `m` for main RAM, `s`
+for shadow RAM, `0`-`f` for paged ROMs, `h` for HAZEL` (Master 128
+only), `n` for ANDY (Master 128/B+ only), `o` for the OS ROM and `i`
+for I/O area (only relevant on Master 128).
 
 The bracketed `D` value is the value of the emulated CPU's internal
 data register. For read or read-modify-write instructions, this is the
@@ -83,10 +90,14 @@ Tick the `Flags` checkboxes to get additional hardware state output in
 the file:
 
 ```
-2862491406  6845 - hblank begin.
-2862491407  1689: bne $2604                A=00 X=0f Y=00 S=f1 P=NVdIZc (D=09)
-2862491408  UserVIA - T1 timed out (continuous=1). T1 new value: 15070 ($3ADE)
-2862491408  UserVIA - IRQ. IFR: t1; IER: t1 t2
+   24939  m.21f5: stx $fe40 [i.fe40]       A=e3 X=00 Y=03 S=da P=nvdIZc (D=00)
+   24944  Port value now: 048 ($30) (%00110000) ('0')
+   24944  SystemVIA - Write ORB. Reset IFR CB2.
+   24945  m.21f8: lda $fe40 [i.fe40]       A=30 X=00 Y=03 S=da P=nvdIzc (D=30)
+   24946  PORTB - PB = $30 (%00110000): RTC AS=0; RTC CS=0; Sound Write=true
+   24950  SN76489 - write noise mode: periodic noise, 3 (unknown
+   24951  m.21fb: ora #$08                 A=38 X=00 Y=03 S=da P=nvdIzc (D=08)
+   24953  m.21fd: sta $fe40 [i.fe40]       A=38 X=00 Y=03 S=da P=nvdIzc (D=38)
 ```
 
 `Save (no cycles)` produces output with no cycle count column. This

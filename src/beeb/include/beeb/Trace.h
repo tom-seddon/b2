@@ -98,18 +98,25 @@ class Trace:
 {
 public:
 #include <shared/pshpack1.h>
-    struct M6502ConfigTraceEvent {
-        const M6502Config *config;
+    struct WriteTraceEvent {
+        uint8_t value;
     };
 #include <shared/poppack.h>
 
     static const TraceEventType STRING_EVENT;
     static const TraceEventType DISCONTINUITY_EVENT;
-    static const TraceEventType M6502_CONFIG_EVENT;
+    static const TraceEventType WRITE_ROMSEL_EVENT;
+    static const TraceEventType WRITE_ACCCON_EVENT;
 
     // max_num_bytes is approximate - actual consumption may be greater.
     // Supply SIZE_MAX to just have the data grow indefinitely.
-    explicit Trace(size_t max_num_bytes);
+    //
+    // bbc_micro_type is actually a BBCMicroType value - I made a mess of the
+    // header structure here :(
+    explicit Trace(size_t max_num_bytes,
+                   int bbc_micro_type,
+                   uint8_t initial_romsel_value,
+                   uint8_t initial_acccon_value);
     ~Trace();
 
     Trace(const Trace &)=delete;
@@ -139,7 +146,10 @@ public:
     void AllocStringv(const char *fmt,va_list v);
     void AllocString(const char *str);
 
-    void AllocM6502ConfigEvent(const M6502Config *config);
+    // Allocate events for ROMSEL/ACCCON writes. These need special handling so
+    // the initial values can be correctly maintained.
+    void AllocWriteROMSELEvent(uint8_t value);
+    void AllocWriteACCCONEvent(uint8_t value);
 
     // max_len bytes is allocated. Call FinishLog to try to truncate the
     // allocation if possible.
@@ -147,6 +157,10 @@ public:
     void FinishLog(Log *log);
 
     void GetStats(TraceStats *stats) const;
+
+    int GetBBCMicroType() const;
+    uint8_t GetInitialROMSELValue() const;
+    uint8_t GetInitialACCCONValue() const;
 
     typedef bool (*ForEachEventFn)(Trace *t,const TraceEvent *e,void *context);
 
@@ -181,6 +195,10 @@ private:
     LogPrinterTrace m_log_printer{this};
     size_t m_max_num_bytes;
     size_t m_chunk_size;
+
+    const int m_bbc_micro_type=-1;
+    uint8_t m_romsel_value=0;
+    uint8_t m_acccon_value=0;
 
     // Allocate a new event with variable-sized data, and return a
     // pointer to its data. (The event must have been registered with
