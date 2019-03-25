@@ -163,6 +163,9 @@ private:
     HexEditorByte *m_bytes=nullptr;
     size_t m_num_bytes=0;
 
+    float m_style_frame_padding_x,m_style_frame_padding_y;
+    float m_style_item_spacing_x,m_style_item_spacing_y;
+
     void GetMetrics(Metrics *metrics,const ImGuiStyle &style);
     void DoHexPart(size_t begin_offset,size_t end_offset);
     void DoAsciiPart(size_t begin_offset,size_t end_offset);

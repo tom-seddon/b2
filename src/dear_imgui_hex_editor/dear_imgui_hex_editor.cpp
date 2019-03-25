@@ -178,6 +178,12 @@ void HexEditor::DoImGui() {
     this->GetMetrics(&m_metrics,style);
     m_highlight_colour=ImGui::GetColorU32(ImGuiCol_TextSelectedBg);
 
+    m_style_frame_padding_x=style.FramePadding.x;
+    m_style_frame_padding_y=style.FramePadding.y;
+
+    m_style_item_spacing_x=style.ItemSpacing.x;
+    m_style_item_spacing_y=style.ItemSpacing.y;
+
     const float footer_height=style.ItemSpacing.y+ImGui::GetFrameHeightWithSpacing();
 
     const size_t data_size=m_handler->GetSize();
@@ -830,7 +836,21 @@ void HexEditor::OpenContextPopup(bool hex,size_t offset) {
 
     if(hex==m_context_hex&&m_context_offset==offset) {
         if(ImGui::BeginPopup(CONTEXT_POPUP_NAME)) {
+            ImGui::PushStyleVar(ImGuiStyleVar_FramePadding,
+                                ImVec2(m_style_frame_padding_x,
+                                       m_style_frame_padding_y));
+
+            ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing,
+                                ImVec2(m_style_item_spacing_x,
+                                       m_style_item_spacing_y));
+
+            ImGui::PushStyleColor(ImGuiCol_Text,m_metrics.text_colour);
+
             this->DoContextPopup();
+
+            ImGui::PopStyleColor(1);
+            ImGui::PopStyleVar(2);
+
             ImGui::EndPopup();
         } else {
             m_context_offset=INVALID_OFFSET;
