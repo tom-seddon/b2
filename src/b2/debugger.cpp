@@ -115,7 +115,12 @@ protected:
 
     virtual void HandleDoImGui()=0;
 
-    void DoByteDebugGui(uint32_t addr);
+    // If mouse clicked 2 and last item (whatever it was...) hovered, pops up
+    // a popup for that byte with at least the DoByteDebugGui stuff.
+    void DoBytePopupGui(M6502Word addr);
+
+    // Address info, checkboxes for breakpoint flags, etc.
+    void DoByteDebugGui(M6502Word addr);
 private:
     DebugBigPage *m_debug_big_pages[16]={};
 
@@ -360,12 +365,44 @@ void DebugUI::DoDebugPageOverrideImGui() {
     this->DoDebugPageOverrideFlagImGui(dpo_mask,dpo_current,"OS",OS_POPUP,BBCMicroDebugPagingOverride_OverrideOS,BBCMicroDebugPagingOverride_OS);
 }
 
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void DebugUI::DoByteDebugGui(uint32_t addr_) {
-    M6502Word addr={(uint16_t)addr_};
+void DebugUI::DoBytePopupGui(M6502Word addr) {
+    static const char CONTEXT_POPUP_NAME[]="debug_ui_byte_context";
 
+    ImGuiIDPusher pusher(addr.w);
+
+    // Check for opening popup here.
+    if(ImGui::IsMouseClicked(1)) {
+        if(ImGui::IsItemHovered()) {
+            ImGui::OpenPopup(CONTEXT_POPUP_NAME);
+        }
+    }
+
+    if(ImGui::BeginPopup(CONTEXT_POPUP_NAME)) {
+        const DebugBigPage *dbp=this->GetDebugBigPageForAddress(addr);
+
+        this->DoByteDebugGui(addr);
+
+        ImGui::Separator();
+
+        if(dbp->r) {
+            uint8_t value=dbp->r[addr.p.o];
+            ImGui::Text("Value: %-3d %-3uu ($%02x) (%%%s)",(int8_t)value,value,value,BINARY_BYTE_STRINGS[value]);
+        } else {
+            ImGui::TextUnformatted("Value: --");
+        }
+
+        ImGui::EndPopup();
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void DebugUI::DoByteDebugGui(M6502Word addr) {
     ImGui::Text("Address: $%04x",addr.w);
 
     const DebugBigPage *dbp=this->GetDebugBigPageForAddress(addr);
@@ -698,7 +735,7 @@ private:
         }
 
         void DoContextPopupExtraGui(bool hex,size_t offset) override {
-            m_window->DoByteDebugGui((uint32_t)offset);
+            m_window->DoByteDebugGui({(uint16_t)offset});
             ImGui::Separator();
             this->HexEditorHandler::DoContextPopupExtraGui(hex,offset);
         }
@@ -900,6 +937,7 @@ protected:
             uint8_t addr_flags;
             uint8_t byte_flags;
             this->ReadByte(&opcode,&addr_flags,&byte_flags,addr++);
+            char ascii[4];
 
             const M6502DisassemblyInfo *di=&config->disassembly_info[opcode];
 
@@ -940,18 +978,81 @@ protected:
 //                prefix[0]=0;
 //            }
 
-            ImGui::Text("%04x  %c%c %c%c %c%c  %c%c%c  %s ",
-                        line_addr.w,
-                        HEX_CHARS_LC[opcode>>4&15],
-                        HEX_CHARS_LC[opcode&15],
-                        di->num_bytes>=2?HEX_CHARS_LC[operand.b.l>>4&15]:' ',
-                        di->num_bytes>=2?HEX_CHARS_LC[operand.b.l&15]:' ',
-                        di->num_bytes>=3?HEX_CHARS_LC[operand.b.h>>4&15]:' ',
-                        di->num_bytes>=3?HEX_CHARS_LC[operand.b.h&15]:' ',
-                        opcode>=32&&opcode<127?opcode:' ',
-                        operand.b.l>=32&&operand.b.l<127?operand.b.l:' ',
-                        operand.b.h>=32&&operand.b.h<127?operand.b.h:' ',
-                        di->mnemonic);
+            ImGui::Text("%04x",line_addr.w);
+
+            ImGui::SameLine();
+
+            ImGui::TextUnformatted("  ");
+
+            ImGui::SameLine();
+
+            ImGui::Text("%02x",opcode);
+            this->DoBytePopupGui(line_addr);
+            if(opcode>=32&&opcode<127) {
+                ascii[0]=(char)opcode;
+            } else {
+                ascii[0]=' ';
+            }
+
+            ImGui::SameLine();
+
+            if(di->num_bytes>=2) {
+                ImGui::Text("%02x",operand.b.l);
+                this->DoBytePopupGui({(uint16_t)(line_addr.w+1u)});
+                if(operand.b.l>=32&&operand.b.l<127) {
+                    ascii[1]=(char)operand.b.l;
+                } else {
+                    ascii[1]=' ';
+                }
+            } else {
+                ImGui::TextUnformatted("  ");
+                ascii[1]=' ';
+            }
+
+            ImGui::SameLine();
+
+            if(di->num_bytes>=3) {
+                ImGui::Text("%02x",operand.b.h);
+                this->DoBytePopupGui({(uint16_t)(line_addr.w+2u)});
+                if(operand.b.h>=32&&operand.b.h<127) {
+                    ascii[2]=(char)operand.b.h;
+                } else {
+                    ascii[2]=' ';
+                }
+            } else {
+                ImGui::TextUnformatted("  ");
+                ascii[2]=' ';
+            }
+
+            ImGui::SameLine();
+
+            ImGui::TextUnformatted("  ");
+
+            ImGui::SameLine();
+
+            ascii[3]=0;
+            ImGui::TextUnformatted(ascii);
+
+            ImGui::SameLine();
+
+            ImGui::TextUnformatted("  ");
+
+            ImGui::SameLine();
+
+            ImGui::Text("%s ",di->mnemonic);
+
+//            ImGui::Text("%04x  %c%c %c%c %c%c  %c%c%c  %s ",
+//                        line_addr.w,
+//                        HEX_CHARS_LC[opcode>>4&15],
+//                        HEX_CHARS_LC[opcode&15],
+//                        di->num_bytes>=2?HEX_CHARS_LC[operand.b.l>>4&15]:' ',
+//                        di->num_bytes>=2?HEX_CHARS_LC[operand.b.l&15]:' ',
+//                        di->num_bytes>=3?HEX_CHARS_LC[operand.b.h>>4&15]:' ',
+//                        di->num_bytes>=3?HEX_CHARS_LC[operand.b.h&15]:' ',
+//                        opcode>=32&&opcode<127?opcode:' ',
+//                        operand.b.l>=32&&operand.b.l<127?operand.b.l:' ',
+//                        operand.b.h>=32&&operand.b.h<127?operand.b.h:' ',
+//                        di->mnemonic);
 
             switch(di->mode) {
             default:
