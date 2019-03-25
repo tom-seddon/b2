@@ -66,6 +66,11 @@ public:
         R6522::IRQ user_via_irq_breakpoints={};
     };
 
+    //
+    struct ByteBreakpoint {
+
+    };
+
     struct DebugState {
         static const uint16_t INVALID_PAGE_INDEX=0xffff;
         
@@ -73,30 +78,33 @@ public:
             uint64_t id=0;
         };
 
-        struct ByteDebugFlagBits {
-            uint8_t break_execute:1;
-            uint8_t temp_execute:1;
-            uint8_t break_read:1;
-            uint8_t break_write:1;
-        };
-
-        union ByteDebugFlags {
-            uint8_t value;
-            ByteDebugFlagBits bits;
-        };
-
         bool is_halted=false;
         BBCMicroStepType step_type=BBCMicroStepType_None;
 
         HardwareDebugState hw;
 
-        static_assert(sizeof(ByteDebugFlags)==1,"");
-
         // No attempt made to minimize this stuff... it doesn't go into
         // the saved states, so whatever.
-        ByteDebugFlags big_pages_debug_flags[NUM_BIG_PAGES][BIG_PAGE_SIZE_BYTES]={};
 
-        std::vector<ByteDebugFlags *> temp_execute_breakpoints;
+        // Byte-specific breakpoint flags.
+        uint8_t big_pages_debug_flags[NUM_BIG_PAGES][BIG_PAGE_SIZE_BYTES]={};
+
+        // Address-specific breakpoint flags.
+        uint8_t address_debug_flags[65536]={};
+
+        bool breakpoints_lists_valid=false;
+
+        // List of all addresses that have address breakpoints associated with
+        // them.
+        std::vector<M6502Word> addr_breakpoints;
+
+        // List of temp execute breakpoints to be reset on a halt. Each entry is
+        // a pointer to one of the bytes in big_pages_debug_flags or
+        // address_debug_flags.
+        //
+        // Entries are added to this list, but not removed - there's not really
+        // much point.
+        std::vector<uint8_t *> temp_execute_breakpoints;
 
         char halt_reason[1000];
     };
@@ -133,9 +141,11 @@ public:
 #if BBCMICRO_DEBUGGER
         // if non-NULL, points to BIG_PAGE_SIZE_BYTES values. NULL if this
         // BBCMicro has no associated DebugState.
-        DebugState::ByteDebugFlags *debug=nullptr;
+        uint8_t *debug=nullptr;
 #endif
 
+        // Index of this big page, from 0 (inclusive) to NUM_BIG_PAGES
+        // (exclusive).
         uint8_t index=0;
 
         const BigPageType *type=nullptr;
@@ -260,11 +270,12 @@ public:
         Master128ACCCONBits m128_bits;
     };
 
+    // w[i], r[i] and debug[i] point to the corresponding members of bp[i].
     struct MemoryBigPages {
         uint8_t *w[16]={};
         const uint8_t *r[16]={};
 #if BBCMICRO_DEBUGGER
-        DebugState::ByteDebugFlags *debug[16]={};
+        uint8_t *debug[16]={};
         const BigPage *bp[16]={};
 #endif
     };
@@ -424,7 +435,21 @@ public:
 
     //uint16_t DebugGetFlatPage(uint8_t page) const;
 
-    const BigPage *DebugGetBigPage(uint8_t page,uint32_t dpo) const;
+    // Given address, return the BigPage for the memory there, taking
+    // the debug page overrides into account.
+    const BigPage *DebugGetBigPageForAddress(M6502Word addr,uint32_t dpo) const;
+
+    // Get/set per-byte debug flags for one byte.
+    uint8_t DebugGetByteDebugFlags(const BigPage *big_page,uint32_t offset) const;
+    void DebugSetByteDebugFlags(const BigPage *big_page,uint32_t offset,uint8_t flags);
+
+    // Returns pointer to per-address debug flags for the entire given mem big
+    // page.
+    const uint8_t *DebugGetAddressDebugFlagsForMemBigPage(uint8_t mem_big_page) const;
+
+    // Get/set per-address byte debug flags for one address.
+    uint8_t DebugGetAddressDebugFlags(M6502Word addr) const;
+    void DebugSetAddressDebugFlags(M6502Word addr,uint8_t flags) const;
 
     void DebugGetBytes(uint8_t *bytes,size_t num_bytes,M6502Word addr,uint32_t dpo);
     void DebugSetBytes(M6502Word addr,uint32_t dpo,const uint8_t *bytes,size_t num_bytes);
@@ -457,10 +482,6 @@ public:
     //DebugState::ByteDebugFlags DebugGetByteFlags(M6502Word addr) const;
 
     //void DebugSetByteFlags(M6502Word addr,DebugState::ByteDebugFlags flags);
-
-    // Temp breakpoints are automatically removed when the BBCMicro is
-    // halted.
-    void DebugAddTempBreakpoint(M6502Word addr);
 
     void DebugStepIn();
 
@@ -766,7 +787,7 @@ private:
     static void WriteACCCON(void *m_,M6502Word a,uint8_t value);
 #if BBCMICRO_DEBUGGER
     static uint8_t ReadAsyncCallThunk(void *m_,M6502Word a);
-    void HandleReadByteDebugFlags(uint8_t read,DebugState::ByteDebugFlags *flags);
+    void HandleReadByteDebugFlags(uint8_t read,uint8_t flags);
     void HandleInterruptBreakpoints();
 #endif
     static void HandleCPUDataBusMainRAMOnly(BBCMicro *m);

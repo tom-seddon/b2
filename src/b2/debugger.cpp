@@ -83,14 +83,22 @@ protected:
 
         // points to this->ram_buffer, or NULL.
         const uint8_t *r=nullptr;
-        uint8_t *w=nullptr;
 
-        // points to this->debug_buffer, or NULL.
-        BBCMicro::DebugState::ByteDebugFlags *debug=nullptr;
+        bool writeable=false;
+
+        // points to this->XXX_buffer, or NULL.
+        const uint8_t *byte_flags=nullptr;
+
+        // The address flags are per-address, not per big page - it's just
+        // convenient to have them as part of the same struct.
+        const uint8_t *addr_flags=nullptr;
 
         uint8_t ram_buffer[BBCMicro::BIG_PAGE_SIZE_BYTES]={};
-        BBCMicro::DebugState::ByteDebugFlags debug_buffer[BBCMicro::BIG_PAGE_SIZE_BYTES]={};
+        uint8_t addr_flags_buffer[BBCMicro::BIG_PAGE_SIZE_BYTES]={};
+        uint8_t byte_flags_buffer[BBCMicro::BIG_PAGE_SIZE_BYTES]={};
+
         uint32_t idle_count=0;//eventually, for discarding...
+        bool invalidated=false;//if true, grab everything again
     };
 
     std::shared_ptr<BeebThread> m_beeb_thread;
@@ -99,7 +107,8 @@ protected:
     const DebugBigPage *GetDebugBigPageForAddress(M6502Word addr);
 
     bool ReadByte(uint8_t *value,
-                  BBCMicro::DebugState::ByteDebugFlags *flags,
+                  uint8_t *address_flags,
+                  uint8_t *byte_flags,
                   uint16_t addr);
 
     void DoDebugPageOverrideImGui();
@@ -110,12 +119,20 @@ protected:
 private:
     DebugBigPage *m_debug_big_pages[16]={};
 
+    bool DoDebugByteFlagsGui(const char *str,
+                             uint8_t *flags);
+    void DoDebugByteFlagGui(bool *changed,
+                            uint8_t *flags,
+                            const char *prefix,
+                            const char *suffix,
+                            uint8_t mask);
     void DoDebugPageOverrideFlagImGui(uint32_t mask,
                                       uint32_t current,
                                       const char *name,
                                       const char *popup_name,
                                       uint32_t override_flag,
                                       uint32_t flag);
+    void Invalidate(const DebugBigPage *dbp);
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -167,13 +184,14 @@ const DebugUI::DebugBigPage *DebugUI::GetDebugBigPageForAddress(M6502Word addr) 
         m_debug_big_pages[addr.p.p]=dbp;
     }
 
-    if(!dbp->bp) {
+    if(!dbp->bp||dbp->invalidated) {
         dbp->idle_count=0;
+        dbp->invalidated=false;
 
         std::unique_lock<Mutex> lock;
         const BBCMicro *m=m_beeb_thread->LockBeeb(&lock);
 
-        dbp->bp=m->DebugGetBigPage(addr.b.h,m_dpo);
+        dbp->bp=m->DebugGetBigPageForAddress(addr,m_dpo);
         ASSERT(dbp->bp);
 
         if(dbp->bp->r) {
@@ -186,20 +204,26 @@ const DebugUI::DebugBigPage *DebugUI::GetDebugBigPageForAddress(M6502Word addr) 
         }
 
         if(dbp->bp->w&&dbp->bp->r) {
-            dbp->w=dbp->ram_buffer;
+            dbp->writeable=true;
         } else {
-            dbp->w=nullptr;
+            dbp->writeable=false;
         }
 
         if(dbp->bp->debug) {
-            memcpy(dbp->debug_buffer,
+            memcpy(dbp->byte_flags_buffer,
                    dbp->bp->debug,
-                   BBCMicro::BIG_PAGE_SIZE_BYTES*sizeof(BBCMicro::DebugState::ByteDebugFlags));
-            dbp->debug=dbp->debug_buffer;
+                   BBCMicro::BIG_PAGE_SIZE_BYTES*sizeof(uint8_t));
+            dbp->byte_flags=dbp->byte_flags_buffer;
         } else {
-            dbp->debug=nullptr;
+            dbp->byte_flags=nullptr;
         }
 
+        if(const uint8_t *addr_flags=m->DebugGetAddressDebugFlagsForMemBigPage(addr.p.p)) {
+            memcpy(dbp->addr_flags_buffer,addr_flags,4096);
+            dbp->addr_flags=dbp->addr_flags_buffer;
+        } else {
+            dbp->addr_flags=nullptr;
+        }
     }
 
     return dbp;
@@ -209,7 +233,8 @@ const DebugUI::DebugBigPage *DebugUI::GetDebugBigPageForAddress(M6502Word addr) 
 //////////////////////////////////////////////////////////////////////////
 
 bool DebugUI::ReadByte(uint8_t *value,
-                       BBCMicro::DebugState::ByteDebugFlags *flags,
+                       uint8_t *addr_flags,
+                       uint8_t *byte_flags,
                        uint16_t addr_)
 {
     M6502Word addr={addr_};
@@ -226,11 +251,19 @@ bool DebugUI::ReadByte(uint8_t *value,
 
     *value=dbp->r[addr.p.o];
 
-    if(flags) {
-        if(dbp->debug) {
-            *flags=dbp->debug[addr.p.o];
+    if(addr_flags) {
+        if(dbp->addr_flags) {
+            *addr_flags=dbp->addr_flags[addr.p.o];
         } else {
-            *flags={};
+            *addr_flags=0;
+        }
+    }
+
+    if(byte_flags) {
+        if(dbp->byte_flags) {
+            *byte_flags=dbp->byte_flags[addr.p.o];
+        } else {
+            *byte_flags=0;
         }
     }
 
@@ -330,17 +363,87 @@ void DebugUI::DoDebugPageOverrideImGui() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void DebugUI::DoByteDebugGui(uint32_t addr) {
-    ImGui::Text("Address: $%04x",(uint16_t)addr);
+void DebugUI::DoByteDebugGui(uint32_t addr_) {
+    M6502Word addr={(uint16_t)addr_};
 
-    const DebugBigPage *dbp=this->GetDebugBigPageForAddress({(uint16_t)addr});
+    ImGui::Text("Address: $%04x",addr.w);
+
+    const DebugBigPage *dbp=this->GetDebugBigPageForAddress(addr);
     if(!dbp) {
+        ImGui::Separator();
         ImGui::Text("Byte: *unknown*");
     } else {
-        ImGui::Text("Byte: %c.$%04x (%s)",
-                    dbp->bp->type->code,
-                    (uint16_t)addr,
+        if(dbp->addr_flags) {
+            char addr_str[10];
+            snprintf(addr_str,sizeof addr_str,"$%04x",addr.w);
+
+            uint8_t addr_flags=dbp->addr_flags[addr.p.o];
+            if(this->DoDebugByteFlagsGui(addr_str,&addr_flags)) {
+                std::unique_lock<Mutex> lock;
+                BBCMicro *m=m_beeb_thread->LockMutableBeeb(&lock);
+                m->DebugSetAddressDebugFlags(addr,addr_flags);
+                this->Invalidate(dbp);
+            }
+        }
+
+        ImGui::Separator();
+
+        char byte_str[10];
+        snprintf(byte_str,sizeof byte_str,"%c.%04x",dbp->bp->type->code,addr.w);
+
+        ImGui::Text("Byte: %s (%s)",
+                    byte_str,
                     dbp->bp->type->description.c_str());
+
+        if(dbp->byte_flags) {
+            uint8_t byte_flags=dbp->byte_flags[addr.p.o];
+            if(this->DoDebugByteFlagsGui(byte_str,&byte_flags)) {
+                std::unique_lock<Mutex> lock;
+                BBCMicro *m=m_beeb_thread->LockMutableBeeb(&lock);
+                m->DebugSetByteDebugFlags(dbp->bp,addr.p.o,byte_flags);
+                this->Invalidate(dbp);
+            }
+        }
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool DebugUI::DoDebugByteFlagsGui(const char *str,
+                                  uint8_t *flags)
+{
+    bool changed=false;
+
+    this->DoDebugByteFlagGui(&changed,flags,"Break on read",str,BBCMicroByteDebugFlag_BreakRead);
+    this->DoDebugByteFlagGui(&changed,flags,"Break on write",str,BBCMicroByteDebugFlag_BreakWrite);
+    this->DoDebugByteFlagGui(&changed,flags,"Break on execute",str,BBCMicroByteDebugFlag_BreakExecute);
+
+    return changed;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void DebugUI::DoDebugByteFlagGui(bool *changed,
+                                 uint8_t *flags,
+                                 const char *prefix,
+                                 const char *suffix,
+                                 uint8_t mask)
+{
+    bool flag=!!(*flags&mask);
+
+    char label[1000];//1000 = large enough
+    snprintf(label,sizeof label,"%s %s",prefix,suffix);
+
+    if(ImGui::Checkbox(label,&flag)) {
+        if(flag) {
+            *flags|=mask;
+        } else {
+            *flags&=~mask;
+        }
+
+        *changed=true;
     }
 }
 
@@ -393,6 +496,14 @@ void DebugUI::DoDebugPageOverrideFlagImGui(uint32_t mask,
 
         ImGui::EndPopup();
     }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void DebugUI::Invalidate(const DebugBigPage *dbp) {
+    // This function just happens to know that this is an OK thing to do.
+    const_cast<DebugBigPage *>(dbp)->invalidated=true;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -556,7 +667,7 @@ private:
             } else {
                 byte->got_value=true;
                 byte->value=dbp->r[addr.p.o];
-                byte->can_write=!!dbp->w;
+                byte->can_write=dbp->writeable;
             }
         }
 
@@ -588,6 +699,7 @@ private:
 
         void DoContextPopupExtraGui(bool hex,size_t offset) override {
             m_window->DoByteDebugGui((uint32_t)offset);
+            ImGui::Separator();
             this->HexEditorHandler::DoContextPopupExtraGui(hex,offset);
         }
     protected:
@@ -785,17 +897,18 @@ protected:
             ImGuiIDPusher id_pusher(addr);
 
             uint8_t opcode;
-            BBCMicro::DebugState::ByteDebugFlags debug_flags;
-            this->ReadByte(&opcode,&debug_flags,addr++);
+            uint8_t addr_flags;
+            uint8_t byte_flags;
+            this->ReadByte(&opcode,&addr_flags,&byte_flags,addr++);
 
             const M6502DisassemblyInfo *di=&config->disassembly_info[opcode];
 
             M6502Word operand={};
             if(di->num_bytes>=2) {
-                this->ReadByte(&operand.b.l,nullptr,addr++);
+                this->ReadByte(&operand.b.l,nullptr,nullptr,addr++);
             }
             if(di->num_bytes>=3) {
-                this->ReadByte(&operand.b.h,nullptr,addr++);
+                this->ReadByte(&operand.b.h,nullptr,nullptr,addr++);
             }
 
             ImGuiStyleColourPusher pusher;
@@ -804,19 +917,19 @@ protected:
                 pusher.Push(ImGuiCol_Text,ImVec4(1.f,1.f,0.f,1.f));
             }
 
-            if(has_debug_state) {
-                bool break_execute=!!debug_flags.bits.break_execute;
-                if(ImGui::Checkbox("",&break_execute)) {
-                    debug_flags.bits.break_execute=break_execute;
-
-//                    std::unique_lock<Mutex> lock;
-//                    BBCMicro *m=m_beeb_thread->LockMutableBeeb(&lock);
+//            if(has_debug_state) {
+//                bool break_execute=!!debug_flags.bits.break_execute;
+//                if(ImGui::Checkbox("",&break_execute)) {
+//                    debug_flags.bits.break_execute=break_execute;
 //
-//                    m->DebugSetByteFlags(line_addr,debug_flags);
-                }
-
-                ImGui::SameLine();
-            }
+////                    std::unique_lock<Mutex> lock;
+////                    BBCMicro *m=m_beeb_thread->LockMutableBeeb(&lock);
+////
+////                    m->DebugSetByteFlags(line_addr,debug_flags);
+//                }
+//
+//                ImGui::SameLine();
+//            }
 
 //            char prefix[3];
 //            if(has_debug_state) {
@@ -954,12 +1067,12 @@ private:
     void DoIndirect(uint16_t address,uint16_t mask,uint16_t post_index) {
         M6502Word addr;
 
-        this->ReadByte(&addr.b.l,nullptr,address);
+        this->ReadByte(&addr.b.l,nullptr,nullptr,address);
 
         ++address;
         address&=mask;
 
-        this->ReadByte(&addr.b.h,nullptr,address);
+        this->ReadByte(&addr.b.h,nullptr,nullptr,address);
 
         addr.w+=post_index;
 
@@ -1079,13 +1192,13 @@ private:
         for(int i=0;i<n;++i) {
             uint8_t opcode;
 
-            this->ReadByte(&opcode,nullptr,m_addr-1);
+            this->ReadByte(&opcode,nullptr,nullptr,m_addr-1);
             if(config->disassembly_info[opcode].num_bytes==1) {
                 --m_addr;
                 continue;
             }
 
-            this->ReadByte(&opcode,nullptr,m_addr-2);
+            this->ReadByte(&opcode,nullptr,nullptr,m_addr-2);
             if(config->disassembly_info[opcode].num_bytes==2) {
                 m_addr-=2;
                 continue;
@@ -1098,7 +1211,7 @@ private:
     void Down(const M6502Config *config,int n) {
         for(int i=0;i<n;++i) {
             uint8_t opcode;
-            this->ReadByte(&opcode,nullptr,m_addr);
+            this->ReadByte(&opcode,nullptr,nullptr,m_addr);
             m_addr+=config->disassembly_info[opcode].num_bytes;
         }
     }

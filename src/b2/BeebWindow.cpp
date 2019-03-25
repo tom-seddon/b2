@@ -2589,8 +2589,15 @@ void BeebWindow::DebugStepOver() {
     if(di->always_step_in) {
         this->DebugStepInLocked(m);
     } else {
+        // Try to put a breakpoint on the actual next instruction, rather than
+        // its address.
         M6502Word next_pc={(uint16_t)(s->opcode_pc.w+di->num_bytes)};
-        m->DebugAddTempBreakpoint(next_pc);
+        const BBCMicro::BigPage *big_page=m->DebugGetBigPageForAddress(next_pc,m->DebugGetCurrentPageOverride());
+
+        uint8_t flags=m->DebugGetByteDebugFlags(big_page,next_pc.p.o);
+        flags|=BBCMicroByteDebugFlag_TempBreakExecute;
+        m->DebugSetByteDebugFlags(big_page,next_pc.p.o,flags);
+
         m->DebugRun();
         m_beeb_thread->Send(std::make_shared<BeebThread::DebugWakeUpMessage>());
     }

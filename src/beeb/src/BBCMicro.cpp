@@ -142,8 +142,6 @@ static constexpr uint8_t NUM_BIG_PAGES=MOS_BIG_PAGE_INDEX+NUM_MOS_BIG_PAGES;
 
 #if BBCMICRO_DEBUGGER
 
-static const BBCMicro::DebugState::ByteDebugFlags DUMMY_BYTE_DEBUG_FLAGS={};
-
 const BBCMicro::BigPageType BBCMicro::ROM_BIG_PAGE_TYPES[16]={
     {'0',"ROM 0"},
     {'1',"ROM 1"},
@@ -383,8 +381,8 @@ void BBCMicro::SetBigPages(MemoryBigPages *big_pages0,
                            uint8_t num_big_pages,
                            uint8_t mem_big_page_index)
 {
-
-    ASSERT(mem_big_page_index<16);
+    ASSERT(big_page_index+num_big_pages<=NUM_BIG_PAGES);
+    ASSERT(mem_big_page_index+num_big_pages<=16);
 
     for(uint8_t i=0;i<num_big_pages;++i) {
         const BigPage *bp=&m_big_pages[big_page_index+i];
@@ -399,17 +397,12 @@ void BBCMicro::SetBigPages(MemoryBigPages *big_pages0,
             w=g_unmapped_writes;
         }
 
-#if BBCMICRO_DEBUGGER
-        ASSERT(bp->index<NUM_BIG_PAGES);
-        DebugState::ByteDebugFlags *debug=m_debug->big_pages_debug_flags[bp->index];
-#endif
-
         if(big_pages0) {
             big_pages0->r[mem_big_page_index+i]=r;
             big_pages0->w[mem_big_page_index+i]=w;
 
 #if BBCMICRO_DEBUGGER
-            big_pages0->debug[mem_big_page_index+i]=debug;
+            big_pages0->debug[mem_big_page_index+i]=bp->debug;
             big_pages0->bp[mem_big_page_index+i]=bp;
 #endif
         }
@@ -419,7 +412,7 @@ void BBCMicro::SetBigPages(MemoryBigPages *big_pages0,
             big_pages1->w[mem_big_page_index+i]=w;
 
 #if BBCMICRO_DEBUGGER
-            big_pages1->debug[mem_big_page_index+i]=debug;
+            big_pages1->debug[mem_big_page_index+i]=bp->debug;
             big_pages1->bp[mem_big_page_index+i]=bp;
 #endif
         }
@@ -1206,18 +1199,18 @@ uint8_t BBCMicro::ReadAsyncCallThunk(void *m_,M6502Word a) {
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_DEBUGGER
-void BBCMicro::HandleReadByteDebugFlags(uint8_t read,DebugState::ByteDebugFlags *flags) {
-    if(flags->bits.break_execute) {
+void BBCMicro::HandleReadByteDebugFlags(uint8_t read,uint8_t flags) {
+    if(flags&BBCMicroByteDebugFlag_BreakExecute) {
         if(read==M6502ReadType_Opcode) {
             this->DebugHalt("execute: $%04x",m_state.cpu.abus.w);
         }
-    } else if(flags->bits.temp_execute) {
+    } else if(flags&BBCMicroByteDebugFlag_TempBreakExecute) {
         if(read==M6502ReadType_Opcode) {
             this->DebugHalt("single step");
         }
     }
 
-    if(flags->bits.break_read) {
+    if(flags&BBCMicroByteDebugFlag_BreakRead) {
         if(read<=M6502ReadType_LastInterestingDataRead) {
             this->DebugHalt("data read: $%04x",m_state.cpu.abus.w);
         }
@@ -1295,8 +1288,9 @@ void BBCMicro::HandleCPUDataBusMainRAMOnlyDebug(BBCMicro *m) {
             m->m_state.cpu.dbus=m->m_main_mem_big_pages.r[m->m_state.cpu.abus.p.p][m->m_state.cpu.abus.p.o];
         }
 
-        DebugState::ByteDebugFlags *flags=&m->m_main_mem_big_pages.debug[m->m_state.cpu.abus.p.p][m->m_state.cpu.abus.p.o];
-        if(flags->value!=0) {
+        uint8_t flags=(m->m_debug->address_debug_flags[m->m_state.cpu.abus.w]|
+                       m->m_main_mem_big_pages.debug[m->m_state.cpu.abus.p.p][m->m_state.cpu.abus.p.o]);
+        if(flags!=0) {
             m->HandleReadByteDebugFlags(read,flags);
         }
 
@@ -1312,7 +1306,10 @@ void BBCMicro::HandleCPUDataBusMainRAMOnlyDebug(BBCMicro *m) {
             m->m_main_mem_big_pages.w[m->m_state.cpu.abus.p.p][m->m_state.cpu.abus.p.o]=m->m_state.cpu.dbus;
         }
 
-        if(m->m_main_mem_big_pages.debug[m->m_state.cpu.abus.p.p][m->m_state.cpu.abus.p.o].bits.break_write) {
+        uint8_t flags=(m->m_debug->address_debug_flags[m->m_state.cpu.abus.w]|
+                       m->m_main_mem_big_pages.debug[m->m_state.cpu.abus.p.p][m->m_state.cpu.abus.p.o]);
+
+        if(flags&BBCMicroByteDebugFlag_BreakWrite) {
             m->DebugHalt("data write: $%04x",m->m_state.cpu.abus.w);
         }
     }
@@ -1358,8 +1355,9 @@ void BBCMicro::HandleCPUDataBusWithShadowRAMDebug(BBCMicro *m) {
             m->m_state.cpu.dbus=m->m_pc_big_pages[m->m_state.cpu.opcode_pc.p.p]->r[m->m_state.cpu.abus.p.p][m->m_state.cpu.abus.p.o];
         }
 
-        DebugState::ByteDebugFlags *flags=&m->m_pc_big_pages[m->m_state.cpu.opcode_pc.p.p]->debug[m->m_state.cpu.abus.p.p][m->m_state.cpu.abus.p.o];
-        if(flags->value!=0) {
+        uint8_t flags=(m->m_debug->address_debug_flags[m->m_state.cpu.abus.w]|
+                       m->m_pc_big_pages[m->m_state.cpu.opcode_pc.p.p]->debug[m->m_state.cpu.abus.p.p][m->m_state.cpu.abus.p.o]);
+        if(flags!=0) {
             m->HandleReadByteDebugFlags(read,flags);
         }
 
@@ -1375,7 +1373,10 @@ void BBCMicro::HandleCPUDataBusWithShadowRAMDebug(BBCMicro *m) {
             m->m_pc_big_pages[m->m_state.cpu.opcode_pc.p.p]->w[m->m_state.cpu.abus.p.p][m->m_state.cpu.abus.p.o]=m->m_state.cpu.dbus;
         }
 
-        if(m->m_pc_big_pages[m->m_state.cpu.opcode_pc.p.p]->debug[m->m_state.cpu.abus.p.p][m->m_state.cpu.abus.p.o].bits.break_write) {
+        uint8_t flags=(m->m_debug->address_debug_flags[m->m_state.cpu.abus.w]|
+                       m->m_pc_big_pages[m->m_state.cpu.opcode_pc.p.p]->debug[m->m_state.cpu.abus.p.p][m->m_state.cpu.abus.p.o]);
+
+        if(flags&BBCMicroByteDebugFlag_BreakWrite) {
             m->DebugHalt("data write: $%04x",m->m_state.cpu.abus.w);
         }
     }
@@ -1403,7 +1404,7 @@ void BBCMicro::HandleCPUDataBusWithHacks(BBCMicro *m) {
             {
                 M6502P p=M6502_GetP(&m->m_state.cpu);
 
-                const BigPage *bp=m->DebugGetBigPage(m->m_state.cpu.s.b.h,0);
+                const BigPage *bp=m->DebugGetBigPageForAddress(m->m_state.cpu.s,0);
 
                 // Add the thunk call address that the IRQ routine will RTI to.
                 bp->w[m->m_state.cpu.s.w&BIG_PAGE_OFFSET_MASK]=m->m_state.cpu.pc.b.h;
@@ -1582,7 +1583,11 @@ void BBCMicro::HandleCPUDataBusWithHacks(BBCMicro *m) {
                         ASSERT(m->m_state.cpu.read==M6502ReadType_Interrupt);
                         // The instruction was interrupted, so set a temp
                         // breakpoint in the right place.
-                        m->DebugAddTempBreakpoint(m->m_state.cpu.pc);
+                        uint8_t flags=m->DebugGetAddressDebugFlags(m->m_state.cpu.pc);
+
+                        flags|=BBCMicroByteDebugFlag_TempBreakExecute;
+
+                        m->DebugSetAddressDebugFlags(m->m_state.cpu.pc,flags);
                     }
 
                     m->SetDebugStepType(BBCMicroStepType_None);
@@ -1613,8 +1618,12 @@ void BBCMicro::CheckMemoryBigPages(const MemoryBigPages *mem_big_pages,bool non_
             ASSERT(!!mem_big_pages->r[i]==non_null);
             ASSERT(!!mem_big_pages->w[i]==non_null);
 #if BBCMICRO_DEBUGGER
-            ASSERT(!!mem_big_pages->debug[i]==non_null);
             ASSERT(!!mem_big_pages->bp[i]==non_null);
+            if(mem_big_pages->bp[i]) {
+                ASSERT(mem_big_pages->debug[i]==mem_big_pages->bp[i]->debug);
+            } else {
+                ASSERT(!mem_big_pages->debug[i]);
+            }
 #endif
         }
     }
@@ -2411,7 +2420,9 @@ void BBCMicro::FinishAsyncCall(bool called) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-const BBCMicro::BigPage *BBCMicro::DebugGetBigPage(uint8_t page,uint32_t dpo) const {
+const BBCMicro::BigPage *BBCMicro::DebugGetBigPageForAddress(M6502Word addr,
+                                                             uint32_t dpo) const
+{
     dpo&=m_dpo_mask;
 
     // Don't look too closely at the logic of this...
@@ -2419,7 +2430,7 @@ const BBCMicro::BigPage *BBCMicro::DebugGetBigPage(uint8_t page,uint32_t dpo) co
     const BigPage *bp;
 
     // Handle the IO region special case first.
-    if(page>=0xfc&&page<0xff) {
+    if(addr.b.h>=0xfc&&addr.b.h<0xff) {
         if((dpo&BBCMicroDebugPagingOverride_OverrideOS)&&
            (dpo&BBCMicroDebugPagingOverride_OS))
         {
@@ -2430,7 +2441,7 @@ const BBCMicro::BigPage *BBCMicro::DebugGetBigPage(uint8_t page,uint32_t dpo) co
             //return nullptr;
         }
     } else {
-        switch(page>>4) {
+        switch(addr.p.p) {
             case 0x0: // 0x0000-0x0fff
             case 0x1: // 0x1000-0x1fff
             case 0x2: // 0x2000-0x2fff
@@ -2439,9 +2450,9 @@ const BBCMicro::BigPage *BBCMicro::DebugGetBigPage(uint8_t page,uint32_t dpo) co
                 if(m_pc_big_pages) {
                     // TODO - should be the option of taking instruction address
                     // into account!
-                    bp=m_pc_big_pages[0]->bp[page>>4];
+                    bp=m_pc_big_pages[0]->bp[addr.p.p];
                 } else {
-                    bp=m_main_mem_big_pages.bp[page>>4];
+                    bp=m_main_mem_big_pages.bp[addr.p.p];
                 }
                 break;
             }
@@ -2453,10 +2464,10 @@ const BBCMicro::BigPage *BBCMicro::DebugGetBigPage(uint8_t page,uint32_t dpo) co
             case 0x7: // 0x7000-0x7fff
                 if(dpo&BBCMicroDebugPagingOverride_OverrideShadow) {
                     if(dpo&BBCMicroDebugPagingOverride_Shadow) {
-                        bp=&m_big_pages[SHADOW_BIG_PAGE_INDEX+((page>>4)-3)];
+                        bp=&m_big_pages[SHADOW_BIG_PAGE_INDEX+(addr.p.p-3)];
                         break;
                     } else {
-                        bp=&m_big_pages[page>>4];
+                        bp=&m_big_pages[addr.p.p];
                         break;
                     }
                 } else {
@@ -2469,7 +2480,7 @@ const BBCMicro::BigPage *BBCMicro::DebugGetBigPage(uint8_t page,uint32_t dpo) co
                     if(dpo&BBCMicroDebugPagingOverride_ANDY) {
                         // don't mask, just subtract - it's 4K on the Master, but 12K on the
                         // B+.
-                        bp=&m_big_pages[ANDY_BIG_PAGE_INDEX+((page>>4)-0x08)];
+                        bp=&m_big_pages[ANDY_BIG_PAGE_INDEX+(addr.p.p-0x08)];
                         break;
                     } else {
                         goto sideways_rom;
@@ -2490,7 +2501,7 @@ const BBCMicro::BigPage *BBCMicro::DebugGetBigPage(uint8_t page,uint32_t dpo) co
             sideways_rom:
             {
                 if(dpo&BBCMicroDebugPagingOverride_OverrideROM) {
-                    bp=&m_big_pages[ROM0_BIG_PAGE_INDEX+(dpo&BBCMicroDebugPagingOverride_ROM)*NUM_ROM_BIG_PAGES+((page>>4)-0x08)];
+                    bp=&m_big_pages[ROM0_BIG_PAGE_INDEX+(dpo&BBCMicroDebugPagingOverride_ROM)*NUM_ROM_BIG_PAGES+(addr.p.p-0x08)];
                     break;
                 } else {
                     goto no_overrides;
@@ -2501,11 +2512,11 @@ const BBCMicro::BigPage *BBCMicro::DebugGetBigPage(uint8_t page,uint32_t dpo) co
             case 0xd: // 0xd000-0xdfff
                 if((dpo&BBCMicroDebugPagingOverride_OverrideHAZEL)) {
                     if(dpo&BBCMicroDebugPagingOverride_HAZEL) {
-                        bp=&m_big_pages[HAZEL_BIG_PAGE_INDEX+((page>>4)-0x0c)];
+                        bp=&m_big_pages[HAZEL_BIG_PAGE_INDEX+(addr.p.p-0x0c)];
                         break;
                     } else {
                     os:
-                        bp=&m_big_pages[MOS_BIG_PAGE_INDEX+((page>>4)-0x0c)];
+                        bp=&m_big_pages[MOS_BIG_PAGE_INDEX+(addr.p.p-0x0c)];
                         break;
                     }
                 } else {
@@ -2525,13 +2536,87 @@ const BBCMicro::BigPage *BBCMicro::DebugGetBigPage(uint8_t page,uint32_t dpo) co
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+uint8_t BBCMicro::DebugGetByteDebugFlags(const BigPage *big_page,
+                                         uint32_t offset) const
+{
+    ASSERT(offset<BIG_PAGE_SIZE_BYTES);
+
+    if(big_page->debug) {
+        return big_page->debug[offset&BIG_PAGE_OFFSET_MASK];
+    } else {
+        return 0;
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BBCMicro::DebugSetByteDebugFlags(const BigPage *big_page,
+                                      uint32_t offset,
+                                      uint8_t flags)
+{
+    ASSERT(offset<BIG_PAGE_SIZE_BYTES);
+
+    if(big_page->debug) {
+        uint8_t *byte_flags=&big_page->debug[offset&BIG_PAGE_OFFSET_MASK];
+
+        *byte_flags=flags;
+
+        if(flags&BBCMicroByteDebugFlag_TempBreakExecute) {
+            m_debug->temp_execute_breakpoints.push_back(byte_flags);
+        }
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+const uint8_t *BBCMicro::DebugGetAddressDebugFlagsForMemBigPage(uint8_t mem_big_page) const {
+    ASSERT(mem_big_page<16);
+
+    if(m_debug) {
+        return &m_debug->address_debug_flags[mem_big_page<<12];
+    } else {
+        return nullptr;
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+uint8_t BBCMicro::DebugGetAddressDebugFlags(M6502Word addr) const {
+    if(m_debug) {
+        return m_debug->address_debug_flags[addr.w];
+    } else {
+        return 0;
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BBCMicro::DebugSetAddressDebugFlags(M6502Word addr,uint8_t flags) const {
+    if(m_debug) {
+        uint8_t *addr_flags=&m_debug->address_debug_flags[addr.w];
+
+        *addr_flags=flags;
+
+        if(flags&BBCMicroByteDebugFlag_TempBreakExecute) {
+            m_debug->temp_execute_breakpoints.push_back(addr_flags);
+        }
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 void BBCMicro::DebugGetBytes(uint8_t *bytes,size_t num_bytes,M6502Word addr,uint32_t dpo) {
     // Not currently very clever.
     for(size_t i=0;i<num_bytes;++i) {
-        const BigPage *bp=this->DebugGetBigPage(addr.b.h,dpo);
+        const BigPage *bp=this->DebugGetBigPageForAddress(addr,dpo);
 
         if(bp->r) {
-            bytes[i]=bp->r[addr.w&BIG_PAGE_OFFSET_MASK];
+            bytes[i]=bp->r[addr.p.o];
         } else {
             bytes[i]=0;
         }
@@ -2546,10 +2631,10 @@ void BBCMicro::DebugGetBytes(uint8_t *bytes,size_t num_bytes,M6502Word addr,uint
 void BBCMicro::DebugSetBytes(M6502Word addr,uint32_t dpo,const uint8_t *bytes,size_t num_bytes) {
     // Not currently very clever.
     for(size_t i=0;i<num_bytes;++i) {
-        const BigPage *bp=this->DebugGetBigPage(addr.b.h,dpo);
+        const BigPage *bp=this->DebugGetBigPageForAddress(addr,dpo);
 
         if(bp->w) {
-            bp->w[addr.w&BIG_PAGE_OFFSET_MASK]=bytes[i];
+            bp->w[addr.p.o]=bytes[i];
         }
 
         ++addr.w;
@@ -2624,11 +2709,17 @@ void BBCMicro::DebugHalt(const char *fmt,...) {
             m_debug->halt_reason[0]=0;
         }
 
-        for(DebugState::ByteDebugFlags *flags:m_debug->temp_execute_breakpoints) {
-            ASSERT(flags>=(void *)m_debug->big_pages_debug_flags);
-            ASSERT(flags<(void *)((char *)m_debug->big_pages_debug_flags+sizeof m_debug->big_pages_debug_flags));
-            ASSERT(flags->bits.temp_execute);
-            flags->bits.temp_execute=0;
+        for(uint8_t *flags:m_debug->temp_execute_breakpoints) {
+            // Not even sure this isn't UB or something.
+            ASSERT((flags>=(void *)m_debug->big_pages_debug_flags&&
+                    flags<(void *)((char *)m_debug->big_pages_debug_flags+sizeof m_debug->big_pages_debug_flags))||
+                   (flags>=(void *)m_debug->address_debug_flags&&
+                    flags<(void *)((char *)m_debug->address_debug_flags+sizeof m_debug->address_debug_flags)));
+
+            // Doesn't matter.
+            //ASSERT(*flags&BBCMicroByteDebugFlag_TempBreakExecute);
+
+            *flags&=~BBCMicroByteDebugFlag_TempBreakExecute;
         }
 
         m_debug->temp_execute_breakpoints.clear();
@@ -2718,31 +2809,31 @@ void BBCMicro::DebugRun() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-#if BBCMICRO_DEBUGGER
-void BBCMicro::DebugAddTempBreakpoint(M6502Word addr) {
-    if(!m_debug) {
-        return;
-    }
-
-    ASSERT(false);
-
-//    DebugState::ByteDebugFlags *flags;
-//    if(m_pc_pages) {
-//        flags=&m_pc_pages[m_state.cpu.opcode_pc.b.h]->debug[addr.b.h][addr.b.l];
-//    } else {
-//        flags=&m_pages.debug[addr.b.h][addr.b.l];
+//#if BBCMICRO_DEBUGGER
+//void BBCMicro::DebugAddTempBreakpoint(M6502Word addr) {
+//    if(!m_debug) {
+//        return;
 //    }
 //
-//    if(flags->bits.temp_execute) {
-//        ASSERT(std::find(m_debug->temp_execute_breakpoints.begin(),
-//                         m_debug->temp_execute_breakpoints.end(),
-//                         flags)!=m_debug->temp_execute_breakpoints.end());
-//    } else {
-//        flags->bits.temp_execute=1;
-//        m_debug->temp_execute_breakpoints.push_back(flags);
-//    }
-}
-#endif
+//    ASSERT(false);
+//
+////    DebugState::ByteDebugFlags *flags;
+////    if(m_pc_pages) {
+////        flags=&m_pc_pages[m_state.cpu.opcode_pc.b.h]->debug[addr.b.h][addr.b.l];
+////    } else {
+////        flags=&m_pages.debug[addr.b.h][addr.b.l];
+////    }
+////
+////    if(flags->bits.temp_execute) {
+////        ASSERT(std::find(m_debug->temp_execute_breakpoints.begin(),
+////                         m_debug->temp_execute_breakpoints.end(),
+////                         flags)!=m_debug->temp_execute_breakpoints.end());
+////    } else {
+////        flags->bits.temp_execute=1;
+////        m_debug->temp_execute_breakpoints.push_back(flags);
+////    }
+//}
+//#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -2937,12 +3028,7 @@ void BBCMicro::SendBeebLinkResponse(std::vector<uint8_t> data) {
 #if BBCMICRO_DEBUGGER
 void BBCMicro::UpdateDebugBigPages(MemoryBigPages *mem_big_pages) {
     for(size_t i=0;i<16;++i) {
-        if(m_debug) {
-            ASSERT(mem_big_pages->bp[i]);
-            mem_big_pages->debug[i]=m_debug->big_pages_debug_flags[mem_big_pages->bp[i]->index];
-        } else {
-            mem_big_pages->debug[i]=nullptr;
-        }
+        mem_big_pages->debug[i]=mem_big_pages->bp[i]->debug;
     }
 }
 #endif
@@ -2953,6 +3039,17 @@ void BBCMicro::UpdateDebugBigPages(MemoryBigPages *mem_big_pages) {
 #if BBCMICRO_DEBUGGER
 void BBCMicro::UpdateDebugState() {
     this->UpdateCPUDataBusFn();
+
+    // Update debug page pointers.
+    for(size_t i=0;i<NUM_BIG_PAGES;++i) {
+        BigPage *bp=&m_big_pages[i];
+
+        if(m_debug) {
+            bp->debug=m_debug->big_pages_debug_flags[bp->index];
+        } else {
+            bp->debug=nullptr;
+        }
+    }
 
     // Update the debug page pointers.
     if(m_shadow_mem_big_pages) {

@@ -166,3 +166,17 @@ EPNV(OverrideOS,1<<12)
 EEND()
 #undef ENAME
 #endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_DEBUGGER
+#define ENAME BBCMicroByteDebugFlag
+EBEGIN()
+EPNV(BreakExecute,1<<0)
+EPNV(TempBreakExecute,1<<1)
+EPNV(BreakRead,1<<2)
+EPNV(BreakWrite,1<<3)
+EEND()
+#undef ENAME
+#endif
