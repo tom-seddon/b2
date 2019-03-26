@@ -93,29 +93,28 @@ const uint16_t BBCMicro::SCREEN_WRAP_ADJUSTMENTS[]={
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-BBCMicro::State::State(const BBCMicroType type,
+BBCMicro::State::State(const BBCMicroType *type,
                        const std::vector<uint8_t> &nvram_contents,
                        bool power_on_tone,
                        const tm *rtc_time,
                        uint64_t initial_num_2MHz_cycles):
 num_2MHz_cycles(initial_num_2MHz_cycles)
 {
-    const M6502Config *config=Get6502ConfigForBBCMicroType(type);
-    M6502_Init(&this->cpu,config);
+    M6502_Init(&this->cpu,type->m6502_config);
 
-    switch(type) {
+    switch(type->type_id) {
     default:
         ASSERT(false);
         // fall through
-    case BBCMicroType_B:
+    case BBCMicroTypeID_B:
         this->ram_buffer.resize(32768);
         break;
 
-    case BBCMicroType_BPlus:
+    case BBCMicroTypeID_BPlus:
         this->ram_buffer.resize(65536);
         break;
 
-    case BBCMicroType_Master:
+    case BBCMicroTypeID_Master:
         this->ram_buffer.resize(65536);
         this->rtc.SetRAMContents(nvram_contents);
 
@@ -136,7 +135,7 @@ num_2MHz_cycles(initial_num_2MHz_cycles)
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-BBCMicro::BBCMicro(BBCMicroType type,
+BBCMicro::BBCMicro(const BBCMicroType *type,
                    const DiscInterfaceDef *def,
                    const std::vector<uint8_t> &nvram_contents,
                    const tm *rtc_time,
@@ -150,7 +149,7 @@ m_state(type,
         power_on_tone,
         rtc_time,
         initial_num_2MHz_cycles),
-m_type(type),
+m_type_id(type->type_id),
 m_disc_interface(def?def->create_fun():nullptr),
 m_video_nula(video_nula),
 m_ext_mem(ext_mem),
@@ -164,7 +163,7 @@ m_beeblink_handler(beeblink_handler)
 
 BBCMicro::BBCMicro(const BBCMicro &src):
     m_state(src.m_state),
-    m_type(src.m_type),
+    m_type_id(src.m_type_id),
     m_disc_interface(src.m_disc_interface?src.m_disc_interface->Clone():nullptr),
     m_video_nula(src.m_video_nula),
     m_ext_mem(src.m_ext_mem)
@@ -682,7 +681,7 @@ void BBCMicro::InitBigPages() {
     // HAZEL doesn't exist on the B+ - that region is part of ANDY.
     this->InitShadowBigPages(HAZEL_BIG_PAGE_INDEX,
                              NUM_HAZEL_BIG_PAGES,
-                             m_type==BBCMicroType_Master?&HAZEL_BIG_PAGE_TYPE:&ANDY_BIG_PAGE_TYPE);
+                             m_type_id==BBCMicroTypeID_Master?&HAZEL_BIG_PAGE_TYPE:&ANDY_BIG_PAGE_TYPE);
 
     this->InitShadowBigPages(SHADOW_BIG_PAGE_INDEX,NUM_SHADOW_BIG_PAGES,&SHADOW_RAM_BIG_PAGE_TYPE);
 
@@ -792,7 +791,7 @@ void BBCMicro::TracePortB(SystemVIAPB pb) {
 
     log.f("PORTB - PB = $%02X (%%%s): ",pb.value,BINARY_BYTE_STRINGS[pb.value]);
 
-    if(m_type==BBCMicroType_Master) {
+    if(m_type_id==BBCMicroTypeID_Master) {
         log.f("RTC AS=%u; RTC CS=%u; ",pb.m128_bits.rtc_address_strobe,pb.m128_bits.rtc_chip_select);
     }
 
@@ -808,11 +807,11 @@ void BBCMicro::TracePortB(SystemVIAPB pb) {
             break;
 
         case 1:
-            name=m_type==BBCMicroType_Master?"RTC Read":"Speech Read";
+            name=m_type_id==BBCMicroTypeID_Master?"RTC Read":"Speech Read";
             goto print_bool;
 
         case 2:
-            name=m_type==BBCMicroType_Master?"RTC DS":"Speech Write";
+            name=m_type_id==BBCMicroTypeID_Master?"RTC DS":"Speech Write";
             goto print_bool;
 
         case 3:
@@ -938,8 +937,8 @@ void BBCMicro::WriteACCCON(void *m_,M6502Word a,uint8_t value) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-BBCMicroType BBCMicro::GetType() const {
-    return m_type;
+const BBCMicroType *BBCMicro::GetType() const {
+    return GetBBCMicroTypeForTypeID(m_type_id);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -1028,7 +1027,7 @@ bool BBCMicro::SetKeyState(BeebKey key,bool new_state) {
 //////////////////////////////////////////////////////////////////////////
 
 bool BBCMicro::HasNumericKeypad() const {
-    return m_type==BBCMicroType_Master;
+    return m_type_id==BBCMicroTypeID_Master;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -2000,7 +1999,7 @@ void BBCMicro::StartTrace(uint32_t trace_flags,size_t max_num_bytes) {
     this->StopTrace();
 
     this->SetTrace(std::make_shared<Trace>(max_num_bytes,
-                                           m_type,
+                                           GetBBCMicroTypeForTypeID(m_type_id),
                                            m_state.romsel,
                                            m_state.acccon),
                    trace_flags);
@@ -2362,7 +2361,7 @@ const BBCMicro::BigPage *BBCMicro::DebugGetBigPageForAddress(M6502Word addr,
 
             case 0x9: // 0x9000-0x9fff // ANDY in B+ only
             case 0xa: // 0xa000-0xafff // ANDY in B+ only
-                if(m_type==BBCMicroType_BPlus) {
+                if(m_type_id==BBCMicroTypeID_BPlus) {
                     goto maybe_andy;
                 } else {
                     goto sideways_rom;
@@ -2830,8 +2829,8 @@ uint32_t BBCMicro::DebugGetPageOverrideMask() const {
 
 #if BBCMICRO_DEBUGGER
 uint32_t BBCMicro::DebugGetCurrentPageOverride() const {
-    switch(m_type) {
-        case BBCMicroType_B:
+    switch(m_type_id) {
+        case BBCMicroTypeID_B:
         {
             uint32_t dpo=0;
 
@@ -2840,7 +2839,7 @@ uint32_t BBCMicro::DebugGetCurrentPageOverride() const {
             return dpo;
         }
 
-        case BBCMicroType_BPlus:
+        case BBCMicroTypeID_BPlus:
         {
             uint32_t dpo=0;
 
@@ -2857,7 +2856,7 @@ uint32_t BBCMicro::DebugGetCurrentPageOverride() const {
             return dpo;
         }
 
-        case BBCMicroType_Master:
+        case BBCMicroTypeID_Master:
         {
             uint32_t dpo=0;
 
@@ -3093,11 +3092,11 @@ void BBCMicro::InitStuff() {
 
     this->UpdateCPUDataBusFn();
 
-    switch(m_type) {
+    switch(m_type_id) {
         default:
             ASSERT(false);
             // fall through
-        case BBCMicroType_B:
+        case BBCMicroTypeID_B:
             m_update_romsel_pages_fn=&UpdateBROMSELPages;
             m_romsel_mask=0x0f;
             m_update_acccon_pages_fn=&UpdateBACCCONPages;
@@ -3111,7 +3110,7 @@ void BBCMicro::InitStuff() {
                         BBCMicroDebugPagingOverride_ROM);
             break;
 
-        case BBCMicroType_BPlus:
+        case BBCMicroTypeID_BPlus:
             m_update_romsel_pages_fn=&UpdateBPlusROMSELPages;
             m_romsel_mask=0x8f;
             m_update_acccon_pages_fn=&UpdateBPlusACCCONPages;
@@ -3131,7 +3130,7 @@ void BBCMicro::InitStuff() {
             }
             break;
 
-        case BBCMicroType_Master:
+        case BBCMicroTypeID_Master:
             for(int i=0;i<3;++i) {
                 m_rom_rmmio_fns=std::vector<ReadMMIOFn>(256,&ReadROMMMIO);
                 m_rom_mmio_fn_contexts=std::vector<void *>(256,this);
@@ -3173,11 +3172,11 @@ void BBCMicro::InitStuff() {
                 if(a.b.l>=0x00&&a.b.l<=0x1f) {
                     stretch=true;
                 } else if(a.b.l>=0x28&&a.b.l<=0x2b) {
-                    stretch=m_type==BBCMicroType_Master;
+                    stretch=m_type_id==BBCMicroTypeID_Master;
                 } else if(a.b.l>=0x40&&a.b.l<=0x7f) {
                     stretch=true;
                 } else if(a.b.l>=0xc0&&a.b.l<=0xdf) {
-                    stretch=m_type!=BBCMicroType_Master;
+                    stretch=m_type_id!=BBCMicroTypeID_Master;
                 } else {
                     stretch=false;
                 }
@@ -3191,13 +3190,13 @@ void BBCMicro::InitStuff() {
     this->InitBigPages();
 
 #if BBCMICRO_ENABLE_DISC_DRIVE_SOUND
-    switch(m_type) {
+    switch(m_type_id) {
     default:
         ASSERT(false);
         // fall through
-    case BBCMicroType_B:
-    case BBCMicroType_BPlus:
-    case BBCMicroType_Master:
+    case BBCMicroTypeID_B:
+    case BBCMicroTypeID_BPlus:
+    case BBCMicroTypeID_Master:
         this->InitDiscDriveSounds(DiscDriveType_133mm);
         break;
     }

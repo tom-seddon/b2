@@ -1,4 +1,4 @@
-#define ENAME BBCMicroType
+#define ENAME BBCMicroTypeID
 EBEGIN()
 EPN(B)
 EPN(BPlus)

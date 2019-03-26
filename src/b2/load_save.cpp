@@ -1305,9 +1305,12 @@ static bool LoadConfigs(rapidjson::Value *configs_json,Messages *msg) {
 
         FindStringMember(&config.os_file_name,config_json,OS,msg);
 
-        if(!FindEnumMember(&config.beeb_type,config_json,TYPE,"BBC Micro type",&GetBBCMicroTypeEnumName,msg)) {
+        BBCMicroTypeID type_id;
+        if(!FindEnumMember(&type_id,config_json,TYPE,"BBC Micro type",&GetBBCMicroTypeIDEnumName,msg)) {
             continue;
         }
+
+        config.type=GetBBCMicroTypeForTypeID(type_id);
 
         std::string disc_interface_name;
         if(FindStringMember(&disc_interface_name,config_json,DISC_INTERFACE,nullptr)) {
@@ -1396,9 +1399,9 @@ static bool LoadNVRAM(rapidjson::Value *nvram_json,Messages *msg) {
 
     // TODO - should this be more data driven?
 
-    if(FindStringMember(&hex,nvram_json,GetBBCMicroTypeEnumName(BBCMicroType_Master),msg)) {
+    if(FindStringMember(&hex,nvram_json,GetBBCMicroTypeIDEnumName(BBCMicroTypeID_Master),msg)) {
         if(GetDataFromHexString(&data,hex)) {
-            SetDefaultNVRAMContents(BBCMicroType_Master,std::move(data));
+            SetDefaultNVRAMContents(&BBC_MICRO_TYPE_MASTER,std::move(data));
         }
     }
 
@@ -1677,7 +1680,7 @@ static void SaveConfigs(JSONWriter<StringStream> *writer) {
             writer->String(config->os_file_name.c_str());
 
             writer->Key(TYPE);
-            SaveEnum(writer,config->beeb_type,&GetBBCMicroTypeEnumName);
+            SaveEnum(writer,config->type->type_id,&GetBBCMicroTypeIDEnumName);
 
             writer->Key(DISC_INTERFACE);
             if(!config->disc_interface) {
@@ -1729,8 +1732,8 @@ static void SaveNVRAM(JSONWriter<StringStream> *writer) {
         auto nvram_json=ObjectWriter(writer,NVRAM);
 
         // Should this be more data-driven?
-        writer->Key(GetBBCMicroTypeEnumName(BBCMicroType_Master));
-        writer->String(GetHexStringFromData(GetDefaultNVRAMContents(BBCMicroType_Master)).c_str());
+        writer->Key(GetBBCMicroTypeIDEnumName(BBCMicroTypeID_Master));
+        writer->String(GetHexStringFromData(GetDefaultNVRAMContents(&BBC_MICRO_TYPE_MASTER)).c_str());
     }
 }
 

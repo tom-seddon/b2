@@ -12,6 +12,7 @@
 class BBCMicro;
 class Messages;
 struct DiscInterfaceDef;
+struct BBCMicroType;
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -35,7 +36,7 @@ public:
 
     std::string name;
 
-    int beeb_type=-1;//BBCMicroType
+    const BBCMicroType *type=nullptr;
     std::string os_file_name;
     ROM roms[16];
     uint8_t keyboard_links=0;
@@ -52,9 +53,9 @@ void InitDefaultBeebConfigs();
 size_t GetNumDefaultBeebConfigs();
 const BeebConfig *GetDefaultBeebConfigByIndex(size_t index);
 
-std::vector<uint8_t> GetDefaultNVRAMContents(int beeb_type);
-void ResetDefaultNVRAMContents(int beeb_type);
-void SetDefaultNVRAMContents(int beeb_type,std::vector<uint8_t> nvram_contents);
+std::vector<uint8_t> GetDefaultNVRAMContents(const BBCMicroType *type);
+void ResetDefaultNVRAMContents(const BBCMicroType *type);
+void SetDefaultNVRAMContents(const BBCMicroType *type,std::vector<uint8_t> nvram_contents);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

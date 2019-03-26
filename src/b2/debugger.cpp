@@ -1681,7 +1681,7 @@ protected:
     void HandleDoImGui() override {
         State state;
         BBCMicro::AddressableLatch latch;
-        BBCMicroType type;
+        const BBCMicroType *type;
         bool has_debug_state;
         BBCMicro::HardwareDebugState hw;
         {
@@ -1704,13 +1704,13 @@ protected:
         ImGui::Text("Joystick 0 Fire = %s",BOOL_STR(!pb.bits.not_joystick0_fire));
         ImGui::Text("Joystick 1 Fire = %s",BOOL_STR(!pb.bits.not_joystick1_fire));
         ImGui::Text("Latch Bit = %u, Value = %u",pb.bits.latch_index,pb.bits.latch_value);
-        switch(type) {
-        case BBCMicroType_B:
-        case BBCMicroType_BPlus:
+        switch(type->type_id) {
+        case BBCMicroTypeID_B:
+        case BBCMicroTypeID_BPlus:
             ImGui::Text("Speech Ready = %u, IRQ = %u",pb.b_bits.speech_ready,pb.b_bits.speech_interrupt);
             break;
 
-        case BBCMicroType_Master:
+        case BBCMicroTypeID_Master:
             ImGui::Text("RTC CS = %u, AS = %u",pb.m128_bits.rtc_chip_select,pb.m128_bits.rtc_address_strobe);
             break;
         }
@@ -1722,13 +1722,13 @@ protected:
         ImGui::Text("Caps Lock LED = %s",BOOL_STR(latch.bits.caps_lock_led));
         ImGui::Text("Shift Lock LED = %s",BOOL_STR(latch.bits.shift_lock_led));
 
-        switch(type) {
-        case BBCMicroType_B:
-        case BBCMicroType_BPlus:
+        switch(type->type_id) {
+        case BBCMicroTypeID_B:
+        case BBCMicroTypeID_BPlus:
             ImGui::Text("Speech Read = %u, Write = %u",latch.b_bits.speech_read,latch.b_bits.speech_write);
             break;
 
-        case BBCMicroType_Master:
+        case BBCMicroTypeID_Master:
             ImGui::Text("RTC Read = %u, DS = %u",latch.m128_bits.rtc_read,latch.m128_bits.rtc_data_strobe);
             break;
         }

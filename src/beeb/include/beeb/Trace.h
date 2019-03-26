@@ -122,7 +122,7 @@ public:
     // bbc_micro_type is actually a BBCMicroType value - I made a mess of the
     // header structure here :(
     explicit Trace(size_t max_num_bytes,
-                   BBCMicroType type,
+                   const BBCMicroType *type,
                    ROMSEL initial_romsel_value,
                    ACCCON initial_acccon_value);
     ~Trace();
@@ -166,7 +166,7 @@ public:
 
     void GetStats(TraceStats *stats) const;
 
-    BBCMicroType GetBBCMicroType() const;
+    const BBCMicroType *GetBBCMicroType() const;
     ROMSEL GetInitialROMSEL() const;
     ACCCON GetInitialACCCON() const;
 
@@ -204,7 +204,7 @@ private:
     size_t m_max_num_bytes;
     size_t m_chunk_size;
 
-    const BBCMicroType m_bbc_micro_type;
+    const BBCMicroType *m_bbc_micro_type=nullptr;
     ROMSEL m_romsel={};
     ACCCON m_acccon={};
 

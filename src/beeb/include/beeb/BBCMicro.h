@@ -139,7 +139,7 @@ public:
 
     // nvram_contents and rtc_time are ignored if the BBCMicro doesn't
     // support such things.
-    BBCMicro(BBCMicroType type,
+    BBCMicro(const BBCMicroType *type,
              const DiscInterfaceDef *def,
              const std::vector<uint8_t> &nvram_contents,
              const tm *rtc_time,
@@ -266,7 +266,7 @@ public:
     // Return true to keep the callback, or false to remove it.
     typedef bool (*InstructionFn)(const BBCMicro *m,const M6502 *cpu,void *context);
 
-    BBCMicroType GetType() const;
+    const BBCMicroType *GetType() const;
 
     // Get read-only pointer to the cycle counter. The pointer is never
     // NULL and remains valid for the lifetime of the BBCMicro.
@@ -575,7 +575,7 @@ private:
         int async_call_timeout=0;
 #endif
 
-        explicit State(BBCMicroType type,
+        explicit State(const BBCMicroType *type,
                        const std::vector<uint8_t> &nvram_contents,
                        bool power_on_tone,
                        const tm *rtc_time,
@@ -592,7 +592,7 @@ private:
     //////////////////////////////////////////////////////////////////////////
     //////////////////////////////////////////////////////////////////////////
 
-    const BBCMicroType m_type;
+    const BBCMicroTypeID m_type_id;
     DiscInterface *const m_disc_interface=nullptr;
     std::shared_ptr<DiscImage> m_disc_images[NUM_DRIVES];
     const bool m_video_nula;

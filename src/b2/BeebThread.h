@@ -866,7 +866,7 @@ public:
     // Returns true if the emulated computer has NVRAM.
     bool HasNVRAM() const;
 
-    BBCMicroType GetBBCMicroType() const;
+    const BBCMicroType *GetBBCMicroType() const;
 
     uint32_t GetBBCMicroCloneImpediments() const;
 
@@ -967,7 +967,7 @@ private:
     std::atomic<bool> m_is_pasting{false};
     std::atomic<bool> m_is_copying{false};
     std::atomic<bool> m_has_nvram{false};
-    std::atomic<BBCMicroType> m_beeb_type{BBCMicroType_B};
+    std::atomic<const BBCMicroType*> m_beeb_type{nullptr};
     std::atomic<uint32_t> m_clone_impediments{0};
     std::atomic<bool> m_power_on_tone{true};
 

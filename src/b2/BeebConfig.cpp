@@ -95,7 +95,7 @@ void InitDefaultBeebConfigs() {
 
         config.name=std::string("B/")+di->name;
 
-        config.beeb_type=BBCMicroType_B;
+        config.type=&BBC_MICRO_TYPE_B;
         config.disc_interface=di;
 
         config.os_file_name="OS12.ROM";
@@ -113,7 +113,7 @@ void InitDefaultBeebConfigs() {
         config.name="B+";
         config.disc_interface=&DISC_INTERFACE_ACORN_1770;
 
-        config.beeb_type=BBCMicroType_BPlus;
+        config.type=&BBC_MICRO_TYPE_B_PLUS;
         config.os_file_name="B+MOS.rom";
         config.roms[15].file_name="BASIC2.ROM";
         config.roms[14].file_name=config.disc_interface->default_fs_rom;
@@ -138,7 +138,7 @@ void InitDefaultBeebConfigs() {
             config.name="Master 128 (MOS "+version+")";
             config.disc_interface=&DISC_INTERFACE_MASTER128;
 
-            config.beeb_type=BBCMicroType_Master;
+            config.type=&BBC_MICRO_TYPE_MASTER;
             config.os_file_name=PathJoined("m128",version,"mos.rom");
             config.roms[15].file_name=PathJoined("m128",version,"terminal.rom");
             config.roms[14].file_name=PathJoined("m128",version,"view.rom");
@@ -187,8 +187,8 @@ const BeebConfig *GetDefaultBeebConfigByIndex(size_t index) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-std::vector<uint8_t> GetDefaultNVRAMContents(int beeb_type) {
-    if(beeb_type==BBCMicroType_Master) {
+std::vector<uint8_t> GetDefaultNVRAMContents(const BBCMicroType *type) {
+    if(type->type_id==BBCMicroTypeID_Master) {
         return g_default_master_nvram_contents;
     } else {
         return std::vector<uint8_t>();
@@ -198,8 +198,8 @@ std::vector<uint8_t> GetDefaultNVRAMContents(int beeb_type) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void ResetDefaultNVRAMContents(int beeb_type) {
-    if(beeb_type==BBCMicroType_Master) {
+void ResetDefaultNVRAMContents(const BBCMicroType *type) {
+    if(type->type_id==BBCMicroTypeID_Master) {
         g_default_master_nvram_contents=GetDefaultMasterNVRAM();
     }
 }
@@ -207,8 +207,8 @@ void ResetDefaultNVRAMContents(int beeb_type) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void SetDefaultNVRAMContents(int beeb_type,std::vector<uint8_t> nvram_contents) {
-    if(beeb_type==BBCMicroType_Master) {
+void SetDefaultNVRAMContents(const BBCMicroType *type,std::vector<uint8_t> nvram_contents) {
+    if(type->type_id==BBCMicroTypeID_Master) {
         g_default_master_nvram_contents=std::move(nvram_contents);
     }
 }

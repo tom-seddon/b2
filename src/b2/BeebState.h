@@ -11,6 +11,7 @@ struct SDL_PixelFormat;
 class BeebThread;
 class BeebLoadedConfig;
 class TVOutput;
+struct BBCMicroType;
 
 #include <beeb/conf.h>
 #include <beeb/BBCMicro.h>
@@ -45,7 +46,7 @@ public:
     // and NVRAM callbacks are indeterminate.
     std::unique_ptr<BBCMicro> CloneBBCMicro() const;
 
-    BBCMicroType GetBBCMicroType() const;
+    const BBCMicroType *GetBBCMicroType() const;
     std::shared_ptr<const DiscImage> GetDiscImageByDrive(int drive) const;
 
     const void *GetTVTextureData() const;

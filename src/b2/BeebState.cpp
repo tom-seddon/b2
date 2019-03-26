@@ -46,7 +46,7 @@ std::unique_ptr<BBCMicro> BeebState::CloneBBCMicro() const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-BBCMicroType BeebState::GetBBCMicroType() const {
+const BBCMicroType *BeebState::GetBBCMicroType() const {
     return m_beeb->GetType();
 }
 

@@ -446,7 +446,7 @@ void BeebThread::HardResetMessage::HardReset(BeebThread *beeb_thread,
         }
     }
 
-    auto beeb=std::make_unique<BBCMicro>((BBCMicroType)ts->current_config.config.beeb_type,
+    auto beeb=std::make_unique<BBCMicro>(ts->current_config.config.type,
                                          ts->current_config.config.disc_interface,
                                          nvram_contents,
                                          &now,
@@ -490,7 +490,7 @@ BeebThread::HardResetAndChangeConfigMessage::HardResetAndChangeConfigMessage(uin
                                                                              BeebLoadedConfig loaded_config):
     HardResetMessage(flags),
     m_loaded_config(std::move(loaded_config)),
-    m_nvram_contents(GetDefaultNVRAMContents(m_loaded_config.config.beeb_type))
+    m_nvram_contents(GetDefaultNVRAMContents(m_loaded_config.config.type))
 {
 }
 
@@ -1776,7 +1776,7 @@ bool BeebThread::HasNVRAM() const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-BBCMicroType BeebThread::GetBBCMicroType() const {
+const BBCMicroType *BeebThread::GetBBCMicroType() const {
     return m_beeb_type.load(std::memory_order_acquire);
 }
 

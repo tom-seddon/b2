@@ -135,7 +135,7 @@ struct Trace::Chunk {
 //////////////////////////////////////////////////////////////////////////
 
 Trace::Trace(size_t max_num_bytes,
-             BBCMicroType bbc_micro_type,
+             const BBCMicroType *bbc_micro_type,
              ROMSEL initial_romsel,
              ACCCON initial_acccon):
 m_max_num_bytes(max_num_bytes),
@@ -323,7 +323,7 @@ void Trace::GetStats(TraceStats *stats) const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-BBCMicroType Trace::GetBBCMicroType() const {
+const BBCMicroType *Trace::GetBBCMicroType() const {
     return m_bbc_micro_type;
 }
 

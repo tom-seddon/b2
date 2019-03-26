@@ -2666,7 +2666,7 @@ bool BeebWindow::DebugIsHalted() const {
 //////////////////////////////////////////////////////////////////////////
 
 void BeebWindow::ResetDefaultNVRAM() {
-    BBCMicroType type=m_beeb_thread->GetBBCMicroType();
+    const BBCMicroType *type=m_beeb_thread->GetBBCMicroType();
     ResetDefaultNVRAMContents(type);
 }
 
@@ -2676,7 +2676,7 @@ void BeebWindow::ResetDefaultNVRAM() {
 void BeebWindow::SaveDefaultNVRAM() {
     std::vector<uint8_t> nvram=m_beeb_thread->GetNVRAM();
     if(!nvram.empty()) {
-        BBCMicroType type=m_beeb_thread->GetBBCMicroType();
+        const BBCMicroType *type=m_beeb_thread->GetBBCMicroType();
         SetDefaultNVRAMContents(type,std::move(nvram));
     }
 

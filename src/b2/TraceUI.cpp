@@ -150,7 +150,6 @@ public:
         uint64_t start_ticks=GetCurrentTickCount();
 
         m_type=m_trace->GetBBCMicroType();
-        m_config=Get6502ConfigForBBCMicroType(m_type);
         m_romsel=m_trace->GetInitialROMSEL();
         m_acccon=m_trace->GetInitialACCCON();
         this->InitBigPages();
@@ -201,8 +200,7 @@ private:
     bool m_mfns_ok=true;
     std::unique_ptr<Log> m_output;
     Messages m_msgs;            // this is quite a big object
-    BBCMicroType m_type=BBCMicroType_B;
-    const M6502Config *m_config=nullptr;
+    const BBCMicroType *m_type=nullptr;
     int m_sound_channel2_value=-1;
     R6522IRQEvent m_last_6522_irq_event_by_via_id[256];
     uint64_t m_last_instruction_time=0;
@@ -471,14 +469,7 @@ private:
 
         m_last_instruction_time=e->time;
 
-        if(!m_config) {
-            m_config=&M6502_defined_config;
-            m_output->f(
-                "(No 6502 config set. Using default: %s)\n",
-                m_config->name);
-        }
-
-        const M6502DisassemblyInfo *i=&m_config->disassembly_info[ev->opcode];
+        const M6502DisassemblyInfo *i=&m_type->m6502_config->disassembly_info[ev->opcode];
 
         // This buffer size has been carefully selected to be Big
         // Enough(tm).
@@ -663,14 +654,14 @@ private:
     }
 
     void InitBigPages() {
-        switch(m_type) {
-            case BBCMicroType_B:
+        switch(m_type->type_id) {
+            case BBCMicroTypeID_B:
                 for(size_t i=0;i<16;++i) {
                     m_pc_big_pages[i]=m_usr_big_pages;
                 }
                 break;
 
-            case BBCMicroType_BPlus:
+            case BBCMicroTypeID_BPlus:
                 for(size_t i=0;i<16;++i) {
                     m_pc_big_pages[i]=m_usr_big_pages;
                 }
@@ -680,7 +671,7 @@ private:
                 m_pc_big_pages[0xd]=m_mos_big_pages;
                 break;
 
-            case BBCMicroType_Master:
+            case BBCMicroTypeID_Master:
                 for(size_t i=0;i<16;++i) {
                     m_pc_big_pages[i]=m_usr_big_pages;
                 }
@@ -694,16 +685,16 @@ private:
     }
 
     void UpdateBigPages() {
-        switch(m_type) {
-            case BBCMicroType_B:
+        switch(m_type->type_id) {
+            case BBCMicroTypeID_B:
                 this->UpdateBigPagesB();
                 break;
 
-            case BBCMicroType_BPlus:
+            case BBCMicroTypeID_BPlus:
                 this->UpdateBigPagesBPlus();
                 break;
 
-            case BBCMicroType_Master:
+            case BBCMicroTypeID_Master:
                 this->UpdateBigPagesMaster();
                 break;
         }
