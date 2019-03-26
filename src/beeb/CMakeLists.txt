@@ -24,7 +24,8 @@ set(SRCS
   ${S}/BeebLink.cpp ${I}/BeebLink.h ${I}/BeebLink.inl
   ${S}/6502.cpp ${I}/6502.h
   ${S}/paging.cpp ${I}/paging.h ${I}/paging.inl
-  )
+  ${S}/type.cpp ${I}/type.h ${I}/type.inl
+)
 
 if(MSVC)
   set(SRCS ${SRCS} beeb.natvis)

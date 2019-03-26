@@ -149,21 +149,8 @@ public:
 
         uint64_t start_ticks=GetCurrentTickCount();
 
-        m_type=(BBCMicroType)m_trace->GetBBCMicroType();
-        switch(m_type) {
-            default:
-                ASSERT(false);
-                // fall through
-            case BBCMicroType_B:
-            case BBCMicroType_BPlus:
-                m_config=&M6502_nmos6502_config;
-                break;
-
-            case BBCMicroType_Master:
-                m_config=&M6502_cmos6502_config;
-                break;
-        }
-
+        m_type=m_trace->GetBBCMicroType();
+        m_config=Get6502ConfigForBBCMicroType(m_type);
         m_romsel=m_trace->GetInitialROMSEL();
         m_acccon=m_trace->GetInitialACCCON();
         this->InitBigPages();

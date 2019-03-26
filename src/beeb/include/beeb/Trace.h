@@ -38,6 +38,7 @@
 #include <shared/log.h>
 #include <string>
 #include "paging.h"
+#include "type.h"
 
 struct M6502Config;
 
@@ -121,7 +122,7 @@ public:
     // bbc_micro_type is actually a BBCMicroType value - I made a mess of the
     // header structure here :(
     explicit Trace(size_t max_num_bytes,
-                   int bbc_micro_type,
+                   BBCMicroType type,
                    ROMSEL initial_romsel_value,
                    ACCCON initial_acccon_value);
     ~Trace();
@@ -165,7 +166,7 @@ public:
 
     void GetStats(TraceStats *stats) const;
 
-    int GetBBCMicroType() const;
+    BBCMicroType GetBBCMicroType() const;
     ROMSEL GetInitialROMSEL() const;
     ACCCON GetInitialACCCON() const;
 
@@ -203,7 +204,7 @@ private:
     size_t m_max_num_bytes;
     size_t m_chunk_size;
 
-    const int m_bbc_micro_type=-1;
+    const BBCMicroType m_bbc_micro_type;
     ROMSEL m_romsel={};
     ACCCON m_acccon={};
 

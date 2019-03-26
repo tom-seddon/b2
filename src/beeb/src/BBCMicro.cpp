@@ -100,23 +100,23 @@ BBCMicro::State::State(const BBCMicroType type,
                        uint64_t initial_num_2MHz_cycles):
 num_2MHz_cycles(initial_num_2MHz_cycles)
 {
+    const M6502Config *config=Get6502ConfigForBBCMicroType(type);
+    M6502_Init(&this->cpu,config);
+
     switch(type) {
     default:
         ASSERT(false);
         // fall through
     case BBCMicroType_B:
         this->ram_buffer.resize(32768);
-        M6502_Init(&this->cpu,&M6502_nmos6502_config);
         break;
 
     case BBCMicroType_BPlus:
         this->ram_buffer.resize(65536);
-        M6502_Init(&this->cpu,&M6502_nmos6502_config);
         break;
 
     case BBCMicroType_Master:
         this->ram_buffer.resize(65536);
-        M6502_Init(&this->cpu,&M6502_cmos6502_config);
         this->rtc.SetRAMContents(nvram_contents);
 
         if(rtc_time) {

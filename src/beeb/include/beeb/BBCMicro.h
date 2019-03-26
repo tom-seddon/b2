@@ -35,6 +35,7 @@ class BeebLink;
 #include "keys.h"
 #include "video.h"
 #include "paging.h"
+#include "type.h"
 
 #include <shared/enum_decl.h>
 #include "BBCMicro.inl"
