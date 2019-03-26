@@ -151,26 +151,6 @@ EEND()
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_DEBUGGER
-#define ENAME BBCMicroDebugPagingOverride
-EBEGIN()
-EPNV(ROM,15)
-EPNV(OverrideROM,1<<4)
-EPNV(ANDY,1<<5)
-EPNV(OverrideANDY,1<<6)
-EPNV(HAZEL,1<<7)
-EPNV(OverrideHAZEL,1<<8)
-EPNV(Shadow,1<<9)
-EPNV(OverrideShadow,1<<10)
-EPNV(OS,1<<11)
-EPNV(OverrideOS,1<<12)
-EEND()
-#undef ENAME
-#endif
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-#if BBCMICRO_DEBUGGER
 #define ENAME BBCMicroByteDebugFlag
 EBEGIN()
 EPNV(BreakExecute,1<<0)

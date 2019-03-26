@@ -23,6 +23,7 @@ set(SRCS
   ${S}/DiscImage.cpp ${I}/DiscImage.h
   ${S}/BeebLink.cpp ${I}/BeebLink.h ${I}/BeebLink.inl
   ${S}/6502.cpp ${I}/6502.h
+  ${S}/paging.cpp ${I}/paging.h ${I}/paging.inl
   )
 
 if(MSVC)

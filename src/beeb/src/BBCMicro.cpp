@@ -66,112 +66,6 @@ static const int ASYNC_CALL_TIMEOUT=1000000;
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
-//
-// Total max addressable memory on the BBC is 336K:
-//
-// - 64K RAM (main+shadow+ANDY+HAZEL)
-// - 256K ROM (16 * 16K)
-// - 16K MOS
-//
-// The paging operates at a 4K resolution, so this can be divided into 84
-// 4K pages, or (to pick a term) big pages. (1 big page = 16 pages.) The big pages
-// are assigned like this:
-//
-// 0-7     main
-// 8       ANDY (M128)/ANDY (B+)
-// 9,10    HAZEL (M128)/ANDY (B+)
-// 11-15   shadow RAM (M128/B+)
-// 16-19   ROM 0
-// 20-23   ROM 1
-// ...
-// 76-79   ROM 15
-// 80-83   MOS
-//
-// (Three additional pages, for FRED/JIM/SHEILA, are planned.)
-//
-// (On the B, big pages 8-15 are the same as big pages 0-7.)
-//
-// Each big page can be set up once, when the BBCMicro is first created,
-// simplifying some of the logic. When switching to ROM 1, for example,
-// the buffers can be found by looking at big pages 20-23, rather than having
-// to check m_state.sideways_rom_buffers[1] (etc.).
-//
-// The per-big page struct can also contain some cold info (debug flags, static
-// data, etc.), as it's only fetched when the paging registers are changed,
-// rather than for every instruction.
-//
-// The BBC memory map is also divided into big pages, so things match up - the
-// terminology is a bit slack but usually a 'big page' refers to one of the
-// big pages in the list above, and a 'memory/mem big page' refers to a big
-// page in the 6502 address space.
-
-//static constexpr size_t BIG_PAGE_SIZE_BYTES=4096;
-//static constexpr size_t BIG_PAGE_OFFSET_MASK=4095;
-
-//static constexpr size_t BIG_PAGE_SIZE_PAGES=BIG_PAGE_SIZE_BYTES/256u;
-
-static constexpr uint8_t MAIN_BIG_PAGE_INDEX=0;
-static constexpr uint8_t NUM_MAIN_BIG_PAGES=32/4;
-
-static constexpr uint8_t ANDY_BIG_PAGE_INDEX=MAIN_BIG_PAGE_INDEX+NUM_MAIN_BIG_PAGES;
-static constexpr uint8_t NUM_ANDY_BIG_PAGES=4/4;
-
-static constexpr uint8_t HAZEL_BIG_PAGE_INDEX=ANDY_BIG_PAGE_INDEX+NUM_ANDY_BIG_PAGES;
-static constexpr uint8_t NUM_HAZEL_BIG_PAGES=8/4;
-
-static constexpr uint8_t BPLUS_RAM_BIG_PAGE_INDEX=ANDY_BIG_PAGE_INDEX;
-static constexpr uint8_t NUM_BPLUS_RAM_BIG_PAGES=12/4;
-
-static constexpr uint8_t SHADOW_BIG_PAGE_INDEX=HAZEL_BIG_PAGE_INDEX+NUM_HAZEL_BIG_PAGES;
-static constexpr uint8_t NUM_SHADOW_BIG_PAGES=20/4;
-
-static constexpr uint8_t ROM0_BIG_PAGE_INDEX=SHADOW_BIG_PAGE_INDEX+NUM_SHADOW_BIG_PAGES;
-static constexpr uint8_t NUM_ROM_BIG_PAGES=16/4;
-
-static constexpr uint8_t MOS_BIG_PAGE_INDEX=ROM0_BIG_PAGE_INDEX+16*NUM_ROM_BIG_PAGES;
-static constexpr uint8_t NUM_MOS_BIG_PAGES=16/4;
-
-static constexpr uint8_t NUM_BIG_PAGES=MOS_BIG_PAGE_INDEX+NUM_MOS_BIG_PAGES;
-
-//#define ANDY_OFFSET (0x8000u+0u)
-//#define NUM_ANDY_PAGES (0x10u)
-//#define HAZEL_OFFSET (0x8000+0x1000u)
-//#define NUM_HAZEL_PAGES (0x20u)
-//#define SHADOW_OFFSET (0x8000+0x3000u)
-//#define NUM_SHADOW_PAGES (0x30u)
-
-#if BBCMICRO_DEBUGGER
-
-const BBCMicro::BigPageType BBCMicro::ROM_BIG_PAGE_TYPES[16]={
-    {'0',"ROM 0"},
-    {'1',"ROM 1"},
-    {'2',"ROM 2"},
-    {'3',"ROM 3"},
-    {'4',"ROM 4"},
-    {'5',"ROM 5"},
-    {'6',"ROM 6"},
-    {'7',"ROM 7"},
-    {'8',"ROM 8"},
-    {'9',"ROM 9"},
-    {'a',"ROM a"},
-    {'b',"ROM b"},
-    {'c',"ROM c"},
-    {'d',"ROM d"},
-    {'e',"ROM e"},
-    {'f',"ROM f"},
-};
-
-const BBCMicro::BigPageType BBCMicro::MAIN_RAM_BIG_PAGE_TYPE={'m',"Main RAM"};
-const BBCMicro::BigPageType BBCMicro::SHADOW_RAM_BIG_PAGE_TYPE={'s',"Shadow RAM"};
-const BBCMicro::BigPageType BBCMicro::ANDY_BIG_PAGE_TYPE={'n',"ANDY"};
-const BBCMicro::BigPageType BBCMicro::HAZEL_BIG_PAGE_TYPE={'h',"HAZEL"};
-const BBCMicro::BigPageType BBCMicro::MOS_BIG_PAGE_TYPE={'o',"MOS ROM"};
-const BBCMicro::BigPageType BBCMicro::IO_BIG_PAGE_TYPE={'i',"I/O area"};
-
-#endif
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
 
 static const BBCMicro::WriteMMIOFn g_R6522_write_fns[16]={
     &R6522::Write0,&R6522::Write1,&R6522::Write2,&R6522::Write3,&R6522::Write4,&R6522::Write5,&R6522::Write6,&R6522::Write7,
@@ -594,29 +488,6 @@ void BBCMicro::UpdateMaster128ROMSELPages(BBCMicro *m) {
     }
 }
 
-// YXE  Usr  MOS
-// ---  ---  ---
-// 000   M    M
-// 001   M    S
-// 010   S    M
-// 011   S    S
-// 100   M    M
-// 101   M    M
-// 110   S    S
-// 111   S    S
-//
-// Usr Shadow = E
-//
-// MOS Shadow = (Y AND X) OR (NOT Y AND E)
-
-bool BBCMicro::DoesMOSUseShadow(Master128ACCCONBits acccon_m128_bits) {
-    if(acccon_m128_bits.y) {
-        return acccon_m128_bits.x;
-    } else {
-        return acccon_m128_bits.e;
-    }
-}
-
 void BBCMicro::UpdateMaster128ACCCONPages(BBCMicro *m,const ACCCON *old_) {
     ACCCON old;
     if(old_) {
@@ -1029,7 +900,7 @@ void BBCMicro::WriteROMSEL(void *m_,M6502Word a,uint8_t value) {
         (*m->m_update_romsel_pages_fn)(m);
 
         if(m->m_trace) {
-            m->m_trace->AllocWriteROMSELEvent(value);
+            m->m_trace->AllocWriteROMSELEvent(m->m_state.romsel);
         }
     }
 }
@@ -1059,7 +930,7 @@ void BBCMicro::WriteACCCON(void *m_,M6502Word a,uint8_t value) {
         (*m->m_update_acccon_pages_fn)(m,&old);
 
         if(m->m_trace) {
-            m->m_trace->AllocWriteACCCONEvent(value);
+            m->m_trace->AllocWriteACCCONEvent(m->m_state.acccon);
         }
     }
 }
@@ -2130,8 +2001,8 @@ void BBCMicro::StartTrace(uint32_t trace_flags,size_t max_num_bytes) {
 
     this->SetTrace(std::make_shared<Trace>(max_num_bytes,
                                            m_type,
-                                           m_state.romsel.value,
-                                           m_state.acccon.value),
+                                           m_state.romsel,
+                                           m_state.acccon),
                    trace_flags);
 }
 #endif

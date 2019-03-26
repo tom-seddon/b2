@@ -164,8 +164,8 @@ public:
                 break;
         }
 
-        m_romsel.value=m_trace->GetInitialROMSELValue();
-        m_acccon.value=m_trace->GetInitialACCCONValue();
+        m_romsel=m_trace->GetInitialROMSEL();
+        m_acccon=m_trace->GetInitialACCCON();
         this->InitBigPages();
 
         if(m_trace->ForEachEvent(&PrintTrace,this)) {
@@ -221,19 +221,19 @@ private:
     uint64_t m_last_instruction_time=0;
     bool m_got_first_event_time=false;
     uint64_t m_first_event_time=0;
-    BBCMicro::ROMSEL m_romsel={};
-    BBCMicro::ACCCON m_acccon={};
+    ROMSEL m_romsel={};
+    ACCCON m_acccon={};
 
     // Big pages for use when user code is accessing memory.
-    const BBCMicro::BigPageType *m_usr_big_pages[16]={};
+    const BigPageType *m_usr_big_pages[16]={};
 
     // Big pages for user when MOS code is accessing memory.
-    const BBCMicro::BigPageType *m_mos_big_pages[16]={};
+    const BigPageType *m_mos_big_pages[16]={};
 
     // Index by top 4 bits of PC. Each entry points to m_usr_big_pages (code
     // in this big page counts as user code) or m_mos_big_pages (code in this
     // big page counts as MOS code).
-    const BBCMicro::BigPageType **m_pc_big_pages[16]={};
+    const BigPageType **m_pc_big_pages[16]={};
 
     // true if $fc00...$feff is I/O area.
     bool m_io=true;
@@ -660,17 +660,17 @@ private:
     }
 
     void HandleWriteROMSEL(const TraceEvent *e) {
-        auto ev=(const Trace::WriteTraceEvent *)e->event;
+        auto ev=(const Trace::WriteROMSELEvent *)e->event;
 
-        m_romsel.value=ev->value;
+        m_romsel=ev->romsel;
 
         this->UpdateBigPages();
     }
 
     void HandleWriteACCCON(const TraceEvent *e) {
-        auto ev=(const Trace::WriteTraceEvent *)e->event;
+        auto ev=(const Trace::WriteACCCONEvent *)e->event;
 
-        m_acccon.value=ev->value;
+        m_acccon=ev->acccon;
 
         this->UpdateBigPages();
     }
@@ -725,17 +725,17 @@ private:
     void UpdateBigPagesB() {
         // 0x0000 - 0x7fff
         for(size_t i=0x0;i<0x8;++i) {
-            m_usr_big_pages[i]=&BBCMicro::MAIN_RAM_BIG_PAGE_TYPE;
+            m_usr_big_pages[i]=&MAIN_RAM_BIG_PAGE_TYPE;
         }
 
         // 0x8000-0xbfff
         for(size_t i=0x8;i<0xc;++i) {
-            m_usr_big_pages[i]=&BBCMicro::ROM_BIG_PAGE_TYPES[m_romsel.b_bits.pr];
+            m_usr_big_pages[i]=&ROM_BIG_PAGE_TYPES[m_romsel.b_bits.pr];
         }
 
         // 0xc000-0xffff
         for(size_t i=0xc;i<0x10;++i) {
-            m_usr_big_pages[i]=&BBCMicro::MOS_BIG_PAGE_TYPE;
+            m_usr_big_pages[i]=&MOS_BIG_PAGE_TYPE;
         }
 
         m_io=true;
@@ -744,32 +744,32 @@ private:
     void UpdateBigPagesBPlus() {
         // 0x0000-0x2fff
         for(size_t i=0x0;i<0x3;++i) {
-            m_usr_big_pages[i]=m_mos_big_pages[i]=&BBCMicro::MAIN_RAM_BIG_PAGE_TYPE;
+            m_usr_big_pages[i]=m_mos_big_pages[i]=&MAIN_RAM_BIG_PAGE_TYPE;
         }
 
         // 0x3000-0x7fff
         for(size_t i=0x3;i<0x8;++i) {
-            m_usr_big_pages[i]=&BBCMicro::MAIN_RAM_BIG_PAGE_TYPE;
-            m_mos_big_pages[i]=&BBCMicro::SHADOW_RAM_BIG_PAGE_TYPE;
+            m_usr_big_pages[i]=&MAIN_RAM_BIG_PAGE_TYPE;
+            m_mos_big_pages[i]=&SHADOW_RAM_BIG_PAGE_TYPE;
         }
 
         // 0x8000-0xafff
         for(size_t i=0x8;i<0xb;++i) {
-            const BBCMicro::BigPageType *type;
+            const BigPageType *type;
             if(m_romsel.bplus_bits.ram) {
-                type=&BBCMicro::ANDY_BIG_PAGE_TYPE;
+                type=&ANDY_BIG_PAGE_TYPE;
             } else {
-                type=&BBCMicro::ROM_BIG_PAGE_TYPES[m_romsel.bplus_bits.pr];
+                type=&ROM_BIG_PAGE_TYPES[m_romsel.bplus_bits.pr];
             }
 
             m_usr_big_pages[i]=m_mos_big_pages[i]=type;
         }
 
-        m_usr_big_pages[0xb]=m_mos_big_pages[0xb]=&BBCMicro::ROM_BIG_PAGE_TYPES[m_romsel.bplus_bits.pr];
+        m_usr_big_pages[0xb]=m_mos_big_pages[0xb]=&ROM_BIG_PAGE_TYPES[m_romsel.bplus_bits.pr];
 
         // 0xc000-0xffff
         for(size_t i=0xc;i<0x10;++i) {
-            m_usr_big_pages[i]=m_mos_big_pages[i]=&BBCMicro::MOS_BIG_PAGE_TYPE;
+            m_usr_big_pages[i]=m_mos_big_pages[i]=&MOS_BIG_PAGE_TYPE;
         }
 
         //
@@ -780,43 +780,43 @@ private:
     void UpdateBigPagesMaster() {
         // 0x0000-0x2fff
         for(size_t i=0x0;i<0x3;++i) {
-            m_usr_big_pages[i]=m_mos_big_pages[i]=&BBCMicro::MAIN_RAM_BIG_PAGE_TYPE;
+            m_usr_big_pages[i]=m_mos_big_pages[i]=&MAIN_RAM_BIG_PAGE_TYPE;
         }
 
         // 0x3000-0x7fff
         for(size_t i=0x3;i<0x8;++i) {
             if(m_acccon.m128_bits.e) {
-                m_usr_big_pages[i]=&BBCMicro::SHADOW_RAM_BIG_PAGE_TYPE;
+                m_usr_big_pages[i]=&SHADOW_RAM_BIG_PAGE_TYPE;
             } else {
-                m_usr_big_pages[i]=&BBCMicro::MAIN_RAM_BIG_PAGE_TYPE;
+                m_usr_big_pages[i]=&MAIN_RAM_BIG_PAGE_TYPE;
             }
 
-            if(BBCMicro::DoesMOSUseShadow(m_acccon.m128_bits)) {
-                m_mos_big_pages[i]=&BBCMicro::SHADOW_RAM_BIG_PAGE_TYPE;
+            if(DoesMOSUseShadow(m_acccon.m128_bits)) {
+                m_mos_big_pages[i]=&SHADOW_RAM_BIG_PAGE_TYPE;
             } else {
-                m_mos_big_pages[i]=&BBCMicro::MAIN_RAM_BIG_PAGE_TYPE;
+                m_mos_big_pages[i]=&MAIN_RAM_BIG_PAGE_TYPE;
             }
         }
 
         // 0x8000-0xbfff
         for(size_t i=0x8;i<0xc;++i) {
-            m_usr_big_pages[i]=m_mos_big_pages[i]=&BBCMicro::ROM_BIG_PAGE_TYPES[m_romsel.m128_bits.pm];
+            m_usr_big_pages[i]=m_mos_big_pages[i]=&ROM_BIG_PAGE_TYPES[m_romsel.m128_bits.pm];
         }
 
         // 0x8000 (ANDY)
         if(m_romsel.m128_bits.ram) {
-            m_usr_big_pages[0x8]=m_mos_big_pages[0x8]=&BBCMicro::ANDY_BIG_PAGE_TYPE;
+            m_usr_big_pages[0x8]=m_mos_big_pages[0x8]=&ANDY_BIG_PAGE_TYPE;
         }
 
         // 0xc000-0xffff
         for(size_t i=0xc;i<0x10;++i) {
-            m_usr_big_pages[i]=m_mos_big_pages[i]=&BBCMicro::MOS_BIG_PAGE_TYPE;
+            m_usr_big_pages[i]=m_mos_big_pages[i]=&MOS_BIG_PAGE_TYPE;
         }
 
         // 0xc000-0xdfff (HAZEL)
         if(m_acccon.m128_bits.y) {
             for(size_t i=0xc;i<0xe;++i) {
-                m_usr_big_pages[i]=m_mos_big_pages[i]=&BBCMicro::HAZEL_BIG_PAGE_TYPE;
+                m_usr_big_pages[i]=m_mos_big_pages[i]=&HAZEL_BIG_PAGE_TYPE;
             }
         }
 

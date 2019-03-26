@@ -111,8 +111,8 @@ const TraceEventType Trace::DISCONTINUITY_EVENT("_discontinuity",sizeof(Disconti
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-const TraceEventType Trace::WRITE_ROMSEL_EVENT("_write_romsel",sizeof(WriteTraceEvent),WRITE_ROMSEL_EVENT_ID);
-const TraceEventType Trace::WRITE_ACCCON_EVENT("_write_acccon",sizeof(WriteTraceEvent),WRITE_ACCCON_EVENT_ID);
+const TraceEventType Trace::WRITE_ROMSEL_EVENT("_write_romsel",sizeof(WriteROMSELEvent),WRITE_ROMSEL_EVENT_ID);
+const TraceEventType Trace::WRITE_ACCCON_EVENT("_write_acccon",sizeof(WriteACCCONEvent),WRITE_ACCCON_EVENT_ID);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -127,8 +127,8 @@ struct Trace::Chunk {
     uint64_t initial_time;
     uint64_t last_time;
 
-    uint8_t initial_romsel_value;
-    uint8_t initial_acccon_value;
+    ROMSEL initial_romsel;
+    ACCCON initial_acccon;
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -136,12 +136,12 @@ struct Trace::Chunk {
 
 Trace::Trace(size_t max_num_bytes,
              int bbc_micro_type,
-             uint8_t initial_romsel_value,
-             uint8_t initial_acccon_value):
+             ROMSEL initial_romsel,
+             ACCCON initial_acccon):
 m_max_num_bytes(max_num_bytes),
 m_bbc_micro_type(bbc_micro_type),
-m_romsel_value(initial_romsel_value),
-m_acccon_value(initial_acccon_value)
+m_romsel(initial_romsel),
+m_acccon(initial_acccon)
 {
 }
 
@@ -240,21 +240,21 @@ void Trace::AllocString(const char *str) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void Trace::AllocWriteROMSELEvent(uint8_t value) {
-    auto ev=(WriteTraceEvent *)this->AllocEvent(WRITE_ROMSEL_EVENT);
+void Trace::AllocWriteROMSELEvent(ROMSEL romsel) {
+    auto ev=(WriteROMSELEvent *)this->AllocEvent(WRITE_ROMSEL_EVENT);
 
-    ev->value=value;
-    m_romsel_value=value;
+    ev->romsel=romsel;
+    m_romsel=romsel;
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void Trace::AllocWriteACCCONEvent(uint8_t value) {
-    auto ev=(WriteTraceEvent *)this->AllocEvent(WRITE_ACCCON_EVENT);
+void Trace::AllocWriteACCCONEvent(ACCCON acccon) {
+    auto ev=(WriteACCCONEvent *)this->AllocEvent(WRITE_ACCCON_EVENT);
 
-    ev->value=value;
-    m_acccon_value=value;
+    ev->acccon=acccon;
+    m_acccon=acccon;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -330,22 +330,22 @@ int Trace::GetBBCMicroType() const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-uint8_t Trace::GetInitialROMSELValue() const {
+ROMSEL Trace::GetInitialROMSEL() const {
     if(m_head) {
-        return m_head->initial_romsel_value;
+        return m_head->initial_romsel;
     } else {
-        return m_romsel_value;
+        return m_romsel;
     }
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-uint8_t Trace::GetInitialACCCONValue() const {
+ACCCON Trace::GetInitialACCCON() const {
     if(m_head) {
-        return m_head->initial_acccon_value;
+        return m_head->initial_acccon;
     } else {
-        return m_acccon_value;
+        return m_acccon;
     }
 }
 

@@ -37,6 +37,7 @@
 
 #include <shared/log.h>
 #include <string>
+#include "paging.h"
 
 struct M6502Config;
 
@@ -98,8 +99,14 @@ class Trace:
 {
 public:
 #include <shared/pshpack1.h>
-    struct WriteTraceEvent {
-        uint8_t value;
+    struct WriteROMSELEvent {
+        ROMSEL romsel;
+    };
+#include <shared/poppack.h>
+
+#include <shared/pshpack1.h>
+    struct WriteACCCONEvent {
+        ACCCON acccon;
     };
 #include <shared/poppack.h>
 
@@ -115,8 +122,8 @@ public:
     // header structure here :(
     explicit Trace(size_t max_num_bytes,
                    int bbc_micro_type,
-                   uint8_t initial_romsel_value,
-                   uint8_t initial_acccon_value);
+                   ROMSEL initial_romsel_value,
+                   ACCCON initial_acccon_value);
     ~Trace();
 
     Trace(const Trace &)=delete;
@@ -148,8 +155,8 @@ public:
 
     // Allocate events for ROMSEL/ACCCON writes. These need special handling so
     // the initial values can be correctly maintained.
-    void AllocWriteROMSELEvent(uint8_t value);
-    void AllocWriteACCCONEvent(uint8_t value);
+    void AllocWriteROMSELEvent(ROMSEL romsel);
+    void AllocWriteACCCONEvent(ACCCON acccon);
 
     // max_len bytes is allocated. Call FinishLog to try to truncate the
     // allocation if possible.
@@ -159,8 +166,8 @@ public:
     void GetStats(TraceStats *stats) const;
 
     int GetBBCMicroType() const;
-    uint8_t GetInitialROMSELValue() const;
-    uint8_t GetInitialACCCONValue() const;
+    ROMSEL GetInitialROMSEL() const;
+    ACCCON GetInitialACCCON() const;
 
     typedef bool (*ForEachEventFn)(Trace *t,const TraceEvent *e,void *context);
 
@@ -197,8 +204,8 @@ private:
     size_t m_chunk_size;
 
     const int m_bbc_micro_type=-1;
-    uint8_t m_romsel_value=0;
-    uint8_t m_acccon_value=0;
+    ROMSEL m_romsel={};
+    ACCCON m_acccon={};
 
     // Allocate a new event with variable-sized data, and return a
     // pointer to its data. (The event must have been registered with

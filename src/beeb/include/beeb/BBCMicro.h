@@ -34,6 +34,7 @@ class BeebLink;
 #include <time.h>
 #include "keys.h"
 #include "video.h"
+#include "paging.h"
 
 #include <shared/enum_decl.h>
 #include "BBCMicro.inl"
@@ -51,7 +52,6 @@ class BBCMicro:
 public:
     static const uint16_t SCREEN_WRAP_ADJUSTMENTS[];
 
-    union ACCCON;
     typedef void (*UpdateROMSELPagesFn)(BBCMicro *);
     typedef void (*UpdateACCCONPagesFn)(BBCMicro *,const ACCCON *);
 
@@ -109,21 +109,6 @@ public:
         char halt_reason[1000];
     };
 #endif
-
-    struct BigPageType {
-        // Single char syntax for use when entering addresses in the debugger.
-        char code=0;
-
-        // More elaborate description, printed in UI.
-        std::string description;
-    };
-
-    static const BigPageType ROM_BIG_PAGE_TYPES[16];
-    static const BigPageType MAIN_RAM_BIG_PAGE_TYPE;
-    static const BigPageType SHADOW_RAM_BIG_PAGE_TYPE;
-    static const BigPageType ANDY_BIG_PAGE_TYPE;
-    static const BigPageType HAZEL_BIG_PAGE_TYPE;
-    static const BigPageType MOS_BIG_PAGE_TYPE;
 
     // This is just to keep things regular. There aren't currently any big
     // pages actually of this type.
@@ -233,41 +218,6 @@ public:
         AddressableLatchBits bits;
         BAddressableLatchBits b_bits;
         Master128AddressableLatchBits m128_bits;
-    };
-
-    struct BROMSELBits {
-        uint8_t pr:4,_:4;
-    };
-
-    struct BPlusROMSELBits {
-        uint8_t pr:4,_:3,ram:1;
-    };
-
-    struct Master128ROMSELBits {
-        uint8_t pm:4,_:3,ram:1;
-    };
-
-    union ROMSEL {
-        uint8_t value;
-        BROMSELBits b_bits;
-        BPlusROMSELBits bplus_bits;
-        Master128ROMSELBits m128_bits;
-    };
-
-    struct BPlusACCCONBits {
-        uint8_t _:7,shadow:1;
-    };
-
-    struct Master128ACCCONBits {
-        uint8_t d:1,e:1,x:1,y:1,itu:1,ifj:1,tst:1,irr:1;
-    };
-
-    static bool DoesMOSUseShadow(Master128ACCCONBits acccon_m128_bits);
-
-    union ACCCON {
-        uint8_t value;
-        BPlusACCCONBits bplus_bits;
-        Master128ACCCONBits m128_bits;
     };
 
     // w[i], r[i] and debug[i] point to the corresponding members of bp[i].
