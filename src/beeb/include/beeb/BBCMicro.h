@@ -457,11 +457,9 @@ public:
     // fashion.
     void DebugSetAsyncCall(uint16_t address,uint8_t a,uint8_t x,uint8_t y,bool c,DebugAsyncCallFn fn,void *context);
 
-    uint32_t DebugGetPageOverrideMask() const;
-
     // Ugly terminology - returns the current paging state, expressed as
-    // a combination of paging override flags. None of the override bits are
-    // set, but the actual flags are set appropriately.
+    // a combination of paging override flags. All the override bits are
+    // set, and the actual flags are set appropriately.
     uint32_t DebugGetCurrentPageOverride() const;
 #endif
 
@@ -592,6 +590,7 @@ private:
     //////////////////////////////////////////////////////////////////////////
     //////////////////////////////////////////////////////////////////////////
 
+    const BBCMicroType *const m_type;
     const BBCMicroTypeID m_type_id;
     DiscInterface *const m_disc_interface=nullptr;
     std::shared_ptr<DiscImage> m_disc_images[NUM_DRIVES];

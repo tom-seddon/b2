@@ -4,11 +4,16 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#include "conf.h"
+#include "type.h"
+
 #include <shared/enum_decl.h>
 #include "paging.inl"
 #include <shared/enum_end.h>
 
 #include <string>
+
+union M6502Word;
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -98,6 +103,8 @@ extern const BigPageType ROM_BIG_PAGE_TYPES[16];
 extern const BigPageType SHADOW_RAM_BIG_PAGE_TYPE;
 extern const BigPageType MOS_BIG_PAGE_TYPE;
 
+extern const BigPageType *const BIG_PAGE_TYPES[NUM_BIG_PAGES];
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
@@ -158,6 +165,49 @@ union ACCCON {
     uint8_t value;
     BPlusACCCONBits bplus_bits;
     Master128ACCCONBits m128_bits;
+};
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+// Helper for figuring out what big page codes to display in debugger and trace.
+class PagingAccess {
+public:
+    // Not very useful...
+    PagingAccess()=default;
+
+    explicit PagingAccess(const BBCMicroType *type,
+                          ROMSEL romsel,
+                          ACCCON acccon);
+
+    void SetROMSEL(ROMSEL romsel);
+    void SetACCCON(ACCCON acccon);
+    void SetDebugPageOverrides(uint32_t dpo);
+
+    const BigPageType *GetBigPageTypeForAccess(M6502Word pc,M6502Word addr) const;
+protected:
+private:
+    const BBCMicroType *m_type=nullptr;
+    uint32_t m_dpo=0;
+    ROMSEL m_romsel={};
+    ACCCON m_acccon={};
+
+    // m_big_pages[0] is the big pages for use when user code is accessing
+    // memory, m_big_pages[1] for when MOS code is accessing memory. Index by
+    // top 4 bits of address.
+    mutable const BigPageType *m_big_pages[2][16]={};
+
+    // Index by top 4 bits of PC. Each entry is 0 (code in this big page counts
+    // as user code) or 1 (code in this big page counts as MOS code) - use to
+    // index into m_big_pages.
+    mutable uint8_t m_pc_big_pages[16]={};
+
+    // true if $fc00...$feff is I/O area.
+    mutable bool m_io=true;
+
+    mutable bool m_dirty=true;
+    
+    void Update() const;
 };
 
 //////////////////////////////////////////////////////////////////////////

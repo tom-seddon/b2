@@ -101,33 +101,15 @@ BBCMicro::State::State(const BBCMicroType *type,
 num_2MHz_cycles(initial_num_2MHz_cycles)
 {
     M6502_Init(&this->cpu,type->m6502_config);
+    this->ram_buffer.resize(type->ram_buffer_size);
 
-    switch(type->type_id) {
-    default:
-        ASSERT(false);
-        // fall through
-    case BBCMicroTypeID_B:
-        this->ram_buffer.resize(32768);
-        break;
-
-    case BBCMicroTypeID_BPlus:
-        this->ram_buffer.resize(65536);
-        break;
-
-    case BBCMicroTypeID_Master:
-        this->ram_buffer.resize(65536);
+    if(type->type_id==BBCMicroTypeID_Master) {
         this->rtc.SetRAMContents(nvram_contents);
 
         if(rtc_time) {
             this->rtc.SetTime(rtc_time);
         }
-
-        break;
     }
-
-    //for(int i=0;i<NUM_DRIVES;++i) {
-    //    DiscDrive_Init(&this->drives[i],i);
-    //}
 
     this->sn76489.Reset(power_on_tone);
 }
@@ -149,6 +131,7 @@ m_state(type,
         power_on_tone,
         rtc_time,
         initial_num_2MHz_cycles),
+m_type(type),
 m_type_id(type->type_id),
 m_disc_interface(def?def->create_fun():nullptr),
 m_video_nula(video_nula),
@@ -162,12 +145,14 @@ m_beeblink_handler(beeblink_handler)
 //////////////////////////////////////////////////////////////////////////
 
 BBCMicro::BBCMicro(const BBCMicro &src):
-    m_state(src.m_state),
-    m_type_id(src.m_type_id),
-    m_disc_interface(src.m_disc_interface?src.m_disc_interface->Clone():nullptr),
-    m_video_nula(src.m_video_nula),
-    m_ext_mem(src.m_ext_mem)
+m_state(src.m_state),
+m_type(src.m_type),
+m_type_id(src.m_type_id),
+m_disc_interface(src.m_disc_interface?src.m_disc_interface->Clone():nullptr),
+m_video_nula(src.m_video_nula),
+m_ext_mem(src.m_ext_mem)
 {
+    ASSERT(m_type_id==m_type->type_id);
     ASSERT(src.GetCloneImpediments()==0);
 
     for(int i=0;i<NUM_DRIVES;++i) {
@@ -938,7 +923,7 @@ void BBCMicro::WriteACCCON(void *m_,M6502Word a,uint8_t value) {
 //////////////////////////////////////////////////////////////////////////
 
 const BBCMicroType *BBCMicro::GetType() const {
-    return GetBBCMicroTypeForTypeID(m_type_id);
+    return m_type;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -1999,7 +1984,7 @@ void BBCMicro::StartTrace(uint32_t trace_flags,size_t max_num_bytes) {
     this->StopTrace();
 
     this->SetTrace(std::make_shared<Trace>(max_num_bytes,
-                                           GetBBCMicroTypeForTypeID(m_type_id),
+                                           m_type,
                                            m_state.romsel,
                                            m_state.acccon),
                    trace_flags);
@@ -2293,7 +2278,7 @@ void BBCMicro::FinishAsyncCall(bool called) {
 const BBCMicro::BigPage *BBCMicro::DebugGetBigPageForAddress(M6502Word addr,
                                                              uint32_t dpo) const
 {
-    dpo&=m_dpo_mask;
+    dpo&=m_type->dpo_mask;
 
     // Don't look too closely at the logic of this...
 
@@ -2819,15 +2804,6 @@ void BBCMicro::DebugSetAsyncCall(uint16_t address,uint8_t a,uint8_t x,uint8_t y,
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_DEBUGGER
-uint32_t BBCMicro::DebugGetPageOverrideMask() const {
-    return m_dpo_mask;
-}
-#endif
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-#if BBCMICRO_DEBUGGER
 uint32_t BBCMicro::DebugGetCurrentPageOverride() const {
     switch(m_type_id) {
         case BBCMicroTypeID_B:
@@ -2835,6 +2811,7 @@ uint32_t BBCMicro::DebugGetCurrentPageOverride() const {
             uint32_t dpo=0;
 
             dpo|=m_state.romsel.b_bits.pr;
+            dpo|=BBCMicroDebugPagingOverride_OverrideROM;
 
             return dpo;
         }
@@ -2844,14 +2821,17 @@ uint32_t BBCMicro::DebugGetCurrentPageOverride() const {
             uint32_t dpo=0;
 
             dpo|=m_state.romsel.bplus_bits.pr;
+            dpo|=BBCMicroDebugPagingOverride_OverrideROM;
 
             if(m_state.romsel.bplus_bits.ram) {
                 dpo|=BBCMicroDebugPagingOverride_ANDY;
             }
+            dpo|=BBCMicroDebugPagingOverride_OverrideANDY;
 
             if(m_state.acccon.bplus_bits.shadow) {
                 dpo|=BBCMicroDebugPagingOverride_Shadow;
             }
+            dpo|=BBCMicroDebugPagingOverride_OverrideShadow;
 
             return dpo;
         }
@@ -2861,22 +2841,27 @@ uint32_t BBCMicro::DebugGetCurrentPageOverride() const {
             uint32_t dpo=0;
 
             dpo|=m_state.romsel.m128_bits.pm;
+            dpo|=BBCMicroDebugPagingOverride_OverrideROM;
 
             if(m_state.romsel.m128_bits.ram) {
                 dpo|=BBCMicroDebugPagingOverride_ANDY;
             }
+            dpo|=BBCMicroDebugPagingOverride_OverrideANDY;
 
             if(m_state.acccon.m128_bits.x) {
                 dpo|=BBCMicroDebugPagingOverride_Shadow;
             }
+            dpo|=BBCMicroDebugPagingOverride_OverrideShadow;
 
             if(m_state.acccon.m128_bits.y) {
                 dpo|=BBCMicroDebugPagingOverride_HAZEL;
             }
+            dpo|=BBCMicroDebugPagingOverride_OverrideHAZEL;
 
             if(m_state.acccon.m128_bits.tst) {
                 dpo|=BBCMicroDebugPagingOverride_OS;
             }
+            dpo|=BBCMicroDebugPagingOverride_OverrideOS;
 
             return dpo;
         }
@@ -3106,8 +3091,6 @@ void BBCMicro::InitStuff() {
             for(uint16_t i=0;i<16;++i) {
                 this->SetMMIOFns((uint16_t)(0xfe30+i),&ReadROMSEL,&WriteROMSEL,this);
             }
-            m_dpo_mask=(BBCMicroDebugPagingOverride_OverrideROM|
-                        BBCMicroDebugPagingOverride_ROM);
             break;
 
         case BBCMicroTypeID_BPlus:
@@ -3117,12 +3100,6 @@ void BBCMicro::InitStuff() {
             m_acccon_mask=0x80;
             m_teletext_bases[0]=0x3c00;
             m_teletext_bases[1]=0x7c00;
-            m_dpo_mask=(BBCMicroDebugPagingOverride_ROM|
-                        BBCMicroDebugPagingOverride_OverrideROM|
-                        BBCMicroDebugPagingOverride_ANDY|
-                        BBCMicroDebugPagingOverride_OverrideANDY|
-                        BBCMicroDebugPagingOverride_Shadow|
-                        BBCMicroDebugPagingOverride_OverrideShadow);
         romsel_and_acccon:
             for(uint16_t i=0;i<4;++i) {
                 this->SetMMIOFns((uint16_t)(0xfe30+i),&ReadROMSEL,&WriteROMSEL,this);
@@ -3144,16 +3121,6 @@ void BBCMicro::InitStuff() {
             m_acccon_mask=0xff;
             m_teletext_bases[0]=0x7c00;
             m_teletext_bases[1]=0x7c00;
-            m_dpo_mask=(BBCMicroDebugPagingOverride_ROM|
-                        BBCMicroDebugPagingOverride_OverrideROM|
-                        BBCMicroDebugPagingOverride_ANDY|
-                        BBCMicroDebugPagingOverride_OverrideANDY|
-                        BBCMicroDebugPagingOverride_HAZEL|
-                        BBCMicroDebugPagingOverride_OverrideHAZEL|
-                        BBCMicroDebugPagingOverride_Shadow|
-                        BBCMicroDebugPagingOverride_OverrideShadow|
-                        BBCMicroDebugPagingOverride_OS|
-                        BBCMicroDebugPagingOverride_OverrideOS);
             goto romsel_and_acccon;
     }
 
@@ -3190,16 +3157,7 @@ void BBCMicro::InitStuff() {
     this->InitBigPages();
 
 #if BBCMICRO_ENABLE_DISC_DRIVE_SOUND
-    switch(m_type_id) {
-    default:
-        ASSERT(false);
-        // fall through
-    case BBCMicroTypeID_B:
-    case BBCMicroTypeID_BPlus:
-    case BBCMicroTypeID_Master:
-        this->InitDiscDriveSounds(DiscDriveType_133mm);
-        break;
-    }
+    this->InitDiscDriveSounds(m_type->default_disc_drive_type);
 #endif
 
 #if BBCMICRO_TRACE

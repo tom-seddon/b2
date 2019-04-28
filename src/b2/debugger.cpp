@@ -312,7 +312,7 @@ void DebugUI::DoDebugPageOverrideImGui() {
     {
         std::unique_lock<Mutex> lock;
         const BBCMicro *m=m_beeb_thread->LockBeeb(&lock);
-        dpo_mask=m->DebugGetPageOverrideMask();
+        dpo_mask=m->GetType()->dpo_mask;
         dpo_current=m->DebugGetCurrentPageOverride();
     }
 

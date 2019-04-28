@@ -150,9 +150,9 @@ public:
         uint64_t start_ticks=GetCurrentTickCount();
 
         m_type=m_trace->GetBBCMicroType();
-        m_romsel=m_trace->GetInitialROMSEL();
-        m_acccon=m_trace->GetInitialACCCON();
-        this->InitBigPages();
+        m_paging=PagingAccess(m_type,
+                              m_trace->GetInitialROMSEL(),
+                              m_trace->GetInitialACCCON());
 
         if(m_trace->ForEachEvent(&PrintTrace,this)) {
             m_msgs.i.f(
@@ -206,22 +206,7 @@ private:
     uint64_t m_last_instruction_time=0;
     bool m_got_first_event_time=false;
     uint64_t m_first_event_time=0;
-    ROMSEL m_romsel={};
-    ACCCON m_acccon={};
-
-    // Big pages for use when user code is accessing memory.
-    const BigPageType *m_usr_big_pages[16]={};
-
-    // Big pages for user when MOS code is accessing memory.
-    const BigPageType *m_mos_big_pages[16]={};
-
-    // Index by top 4 bits of PC. Each entry points to m_usr_big_pages (code
-    // in this big page counts as user code) or m_mos_big_pages (code in this
-    // big page counts as MOS code).
-    const BigPageType **m_pc_big_pages[16]={};
-
-    // true if $fc00...$feff is I/O area.
-    bool m_io=true;
+    PagingAccess m_paging;
 
     std::atomic<uint64_t> m_num_events_handled{0};
     uint64_t m_num_events=0;
@@ -298,13 +283,9 @@ private:
             ++c;
         }
 
-        if(value>=0xfc00&&value<=0xfeff&&m_io) {
-            // annoying special case.
-            *c++='i';
-        } else {
-            *c++=m_pc_big_pages[pc>>12][value>>12]->code;
-        }
+        const BigPageType *big_page_type=m_paging.GetBigPageTypeForAccess({pc},{value});
 
+        *c++=big_page_type->code;
         *c++='.';
         *c++=HEX_CHARS_LC[value>>12];
         *c++=HEX_CHARS_LC[value>>8&15];
@@ -640,165 +621,13 @@ private:
     void HandleWriteROMSEL(const TraceEvent *e) {
         auto ev=(const Trace::WriteROMSELEvent *)e->event;
 
-        m_romsel=ev->romsel;
-
-        this->UpdateBigPages();
+        m_paging.SetROMSEL(ev->romsel);
     }
 
     void HandleWriteACCCON(const TraceEvent *e) {
         auto ev=(const Trace::WriteACCCONEvent *)e->event;
 
-        m_acccon=ev->acccon;
-
-        this->UpdateBigPages();
-    }
-
-    void InitBigPages() {
-        switch(m_type->type_id) {
-            case BBCMicroTypeID_B:
-                for(size_t i=0;i<16;++i) {
-                    m_pc_big_pages[i]=m_usr_big_pages;
-                }
-                break;
-
-            case BBCMicroTypeID_BPlus:
-                for(size_t i=0;i<16;++i) {
-                    m_pc_big_pages[i]=m_usr_big_pages;
-                }
-
-                m_pc_big_pages[0xa]=m_mos_big_pages;
-                m_pc_big_pages[0xc]=m_mos_big_pages;
-                m_pc_big_pages[0xd]=m_mos_big_pages;
-                break;
-
-            case BBCMicroTypeID_Master:
-                for(size_t i=0;i<16;++i) {
-                    m_pc_big_pages[i]=m_usr_big_pages;
-                }
-
-                m_pc_big_pages[0xc]=m_mos_big_pages;
-                m_pc_big_pages[0xd]=m_mos_big_pages;
-                break;
-        }
-
-        this->UpdateBigPages();
-    }
-
-    void UpdateBigPages() {
-        switch(m_type->type_id) {
-            case BBCMicroTypeID_B:
-                this->UpdateBigPagesB();
-                break;
-
-            case BBCMicroTypeID_BPlus:
-                this->UpdateBigPagesBPlus();
-                break;
-
-            case BBCMicroTypeID_Master:
-                this->UpdateBigPagesMaster();
-                break;
-        }
-    }
-
-    void UpdateBigPagesB() {
-        // 0x0000 - 0x7fff
-        for(size_t i=0x0;i<0x8;++i) {
-            m_usr_big_pages[i]=&MAIN_RAM_BIG_PAGE_TYPE;
-        }
-
-        // 0x8000-0xbfff
-        for(size_t i=0x8;i<0xc;++i) {
-            m_usr_big_pages[i]=&ROM_BIG_PAGE_TYPES[m_romsel.b_bits.pr];
-        }
-
-        // 0xc000-0xffff
-        for(size_t i=0xc;i<0x10;++i) {
-            m_usr_big_pages[i]=&MOS_BIG_PAGE_TYPE;
-        }
-
-        m_io=true;
-    }
-
-    void UpdateBigPagesBPlus() {
-        // 0x0000-0x2fff
-        for(size_t i=0x0;i<0x3;++i) {
-            m_usr_big_pages[i]=m_mos_big_pages[i]=&MAIN_RAM_BIG_PAGE_TYPE;
-        }
-
-        // 0x3000-0x7fff
-        for(size_t i=0x3;i<0x8;++i) {
-            m_usr_big_pages[i]=&MAIN_RAM_BIG_PAGE_TYPE;
-            m_mos_big_pages[i]=&SHADOW_RAM_BIG_PAGE_TYPE;
-        }
-
-        // 0x8000-0xafff
-        for(size_t i=0x8;i<0xb;++i) {
-            const BigPageType *type;
-            if(m_romsel.bplus_bits.ram) {
-                type=&ANDY_BIG_PAGE_TYPE;
-            } else {
-                type=&ROM_BIG_PAGE_TYPES[m_romsel.bplus_bits.pr];
-            }
-
-            m_usr_big_pages[i]=m_mos_big_pages[i]=type;
-        }
-
-        m_usr_big_pages[0xb]=m_mos_big_pages[0xb]=&ROM_BIG_PAGE_TYPES[m_romsel.bplus_bits.pr];
-
-        // 0xc000-0xffff
-        for(size_t i=0xc;i<0x10;++i) {
-            m_usr_big_pages[i]=m_mos_big_pages[i]=&MOS_BIG_PAGE_TYPE;
-        }
-
-        //
-
-        m_io=true;
-    }
-
-    void UpdateBigPagesMaster() {
-        // 0x0000-0x2fff
-        for(size_t i=0x0;i<0x3;++i) {
-            m_usr_big_pages[i]=m_mos_big_pages[i]=&MAIN_RAM_BIG_PAGE_TYPE;
-        }
-
-        // 0x3000-0x7fff
-        for(size_t i=0x3;i<0x8;++i) {
-            if(m_acccon.m128_bits.e) {
-                m_usr_big_pages[i]=&SHADOW_RAM_BIG_PAGE_TYPE;
-            } else {
-                m_usr_big_pages[i]=&MAIN_RAM_BIG_PAGE_TYPE;
-            }
-
-            if(DoesMOSUseShadow(m_acccon.m128_bits)) {
-                m_mos_big_pages[i]=&SHADOW_RAM_BIG_PAGE_TYPE;
-            } else {
-                m_mos_big_pages[i]=&MAIN_RAM_BIG_PAGE_TYPE;
-            }
-        }
-
-        // 0x8000-0xbfff
-        for(size_t i=0x8;i<0xc;++i) {
-            m_usr_big_pages[i]=m_mos_big_pages[i]=&ROM_BIG_PAGE_TYPES[m_romsel.m128_bits.pm];
-        }
-
-        // 0x8000 (ANDY)
-        if(m_romsel.m128_bits.ram) {
-            m_usr_big_pages[0x8]=m_mos_big_pages[0x8]=&ANDY_BIG_PAGE_TYPE;
-        }
-
-        // 0xc000-0xffff
-        for(size_t i=0xc;i<0x10;++i) {
-            m_usr_big_pages[i]=m_mos_big_pages[i]=&MOS_BIG_PAGE_TYPE;
-        }
-
-        // 0xc000-0xdfff (HAZEL)
-        if(m_acccon.m128_bits.y) {
-            for(size_t i=0xc;i<0xe;++i) {
-                m_usr_big_pages[i]=m_mos_big_pages[i]=&HAZEL_BIG_PAGE_TYPE;
-            }
-        }
-
-        m_io=m_acccon.m128_bits.tst==0;
+        m_paging.SetACCCON(ev->acccon);
     }
 
     static bool PrintTrace(Trace *t,const TraceEvent *e,void *context) {

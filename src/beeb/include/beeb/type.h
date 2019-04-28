@@ -21,6 +21,12 @@ struct BBCMicroType {
     const BBCMicroTypeID type_id;
 
     const M6502Config *m6502_config;
+
+    size_t ram_buffer_size;
+
+    DiscDriveType default_disc_drive_type;
+
+    uint32_t dpo_mask;
 };
 
 //////////////////////////////////////////////////////////////////////////
