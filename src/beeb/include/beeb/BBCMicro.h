@@ -720,7 +720,7 @@ private:
     static void UpdateMaster128ROMSELPages(BBCMicro *m);
     static void UpdateMaster128ACCCONPages(BBCMicro *m,const ACCCON *old_);
     void InitSomeBigPages(uint8_t big_page_index,uint8_t num_big_pages,const uint8_t *r,uint8_t *w,const BigPageType *type);
-    void InitShadowBigPages(uint8_t big_page_index,uint8_t num_big_pages,const BigPageType *type);
+    void InitShadowBigPages(uint8_t big_page_index,uint8_t num_big_pages,size_t ram_buffer_offset,const BigPageType *type);
     void InitSidewaysROMBigPages(uint8_t rom);
     void InitBigPages();
     static void Write1770ControlRegister(void *m_,M6502Word a,uint8_t value);

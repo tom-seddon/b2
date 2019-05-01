@@ -8,7 +8,12 @@
 #include "type.inl"
 #include <shared/enum_end.h>
 
+#include <vector>
+
+struct BigPageType;
 struct M6502Config;
+union ACCCON;
+union ROMSEL;
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -27,6 +32,22 @@ struct BBCMicroType {
     DiscDriveType default_disc_drive_type;
 
     uint32_t dpo_mask;
+
+    // indexed by big page index. These don't vary too much from model to
+    // model - the tables are mainly separate so that B+ ANDY and M128
+    // ANDY/HAZEL are correctly catogorized.
+    std::vector<const BigPageType *> big_page_types;
+
+    void (*get_mem_big_page_tables_fn)(uint8_t *usr,
+                                       uint8_t *mos,
+                                       uint8_t *mos_pc_mem_big_pages,
+                                       bool *io,
+                                       ROMSEL romsel,
+                                       ACCCON acccon);
+
+    void (*apply_dpo_fn)(ROMSEL *romsel,
+                         ACCCON *acccon,
+                         uint32_t dpo);
 };
 
 //////////////////////////////////////////////////////////////////////////

@@ -43,7 +43,7 @@ union M6502Word;
 //
 // (Three additional pages, for FRED/JIM/SHEILA, are planned.)
 //
-// (On the B, big pages 8-15 are the same as big pages 0-7.)
+// (On the B, big pages 8-15 are empty.)
 //
 // Each big page can be set up once, when the BBCMicro is first created,
 // simplifying some of the logic. When switching to ROM 1, for example,
@@ -102,8 +102,9 @@ extern const BigPageType HAZEL_BIG_PAGE_TYPE;
 extern const BigPageType ROM_BIG_PAGE_TYPES[16];
 extern const BigPageType SHADOW_RAM_BIG_PAGE_TYPE;
 extern const BigPageType MOS_BIG_PAGE_TYPE;
+extern const BigPageType INVALID_BIG_PAGE_TYPE;
 
-extern const BigPageType *const BIG_PAGE_TYPES[NUM_BIG_PAGES];
+//extern const BigPageType *const BIG_PAGE_TYPES[NUM_BIG_PAGES];
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -149,7 +150,7 @@ struct Master128ACCCONBits {
 // 110   S    S
 // 111   S    S
 //
-// Usr Shadow = E
+// Usr Shadow = X
 //
 // MOS Shadow = (Y AND X) OR (NOT Y AND E)
 
@@ -192,10 +193,10 @@ private:
     ROMSEL m_romsel={};
     ACCCON m_acccon={};
 
-    // m_big_pages[0] is the big pages for use when user code is accessing
+    // m_big_pages[0] is the big page for use when user code is accessing
     // memory, m_big_pages[1] for when MOS code is accessing memory. Index by
     // top 4 bits of address.
-    mutable const BigPageType *m_big_pages[2][16]={};
+    mutable uint8_t m_big_pages[2][16]={};
 
     // Index by top 4 bits of PC. Each entry is 0 (code in this big page counts
     // as user code) or 1 (code in this big page counts as MOS code) - use to

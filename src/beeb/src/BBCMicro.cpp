@@ -597,25 +597,29 @@ void BBCMicro::InitSomeBigPages(uint8_t big_page_index,
 
 void BBCMicro::InitShadowBigPages(uint8_t big_page_index,
                                   uint8_t num_big_pages,
+                                  size_t ram_buffer_offset,
                                   const BigPageType *type)
 {
-    ASSERT(big_page_index>=ANDY_BIG_PAGE_INDEX&&
-           big_page_index+num_big_pages<=ANDY_BIG_PAGE_INDEX+8);
+    ASSERT(ram_buffer_offset%BIG_PAGE_SIZE_BYTES==0);
+    ram_buffer_offset+=0x8000;
+    ASSERT(ram_buffer_offset+num_big_pages*BIG_PAGE_SIZE_BYTES<=m_state.ram_buffer.size());
 
-    uint8_t actual_big_page_index=big_page_index;
-
-    if(m_state.ram_buffer.size()<65536) {
-        // point the page into main RAM.
-        actual_big_page_index-=ANDY_BIG_PAGE_INDEX;
-
-        // override the code.
-        type=&MAIN_RAM_BIG_PAGE_TYPE;
-    }
+//    uint8_t actual_big_page_index=big_page_index;
+//
+//    if(ram_buffer_offset+num_big_pages*BIG_PAGE_SIZE_BYTES<m_state.ram_buffer
+//
+//    if(m_state.ram_buffer.size()<65536) {
+//        // point the page into main RAM.
+//        actual_big_page_index-=ANDY_BIG_PAGE_INDEX;
+//
+//        // override the code.
+//        type=&MAIN_RAM_BIG_PAGE_TYPE;
+//    }
 
     this->InitSomeBigPages(big_page_index,
                            num_big_pages,
-                           m_state.ram_buffer.data()+actual_big_page_index*BIG_PAGE_SIZE_BYTES,
-                           m_state.ram_buffer.data()+actual_big_page_index*BIG_PAGE_SIZE_BYTES,
+                           m_state.ram_buffer.data()+ram_buffer_offset,
+                           m_state.ram_buffer.data()+ram_buffer_offset,
                            type);
 }
 
@@ -661,14 +665,44 @@ void BBCMicro::InitBigPages() {
                            m_state.ram_buffer.data()+MAIN_BIG_PAGE_INDEX*BIG_PAGE_SIZE_BYTES,
                            &MAIN_RAM_BIG_PAGE_TYPE);
 
-    this->InitShadowBigPages(ANDY_BIG_PAGE_INDEX,NUM_ANDY_BIG_PAGES,&ANDY_BIG_PAGE_TYPE);
+    switch(m_type_id) {
+        case BBCMicroTypeID_B:
+            this->InitSomeBigPages(MAIN_BIG_PAGE_INDEX+NUM_MAIN_BIG_PAGES,
+                                   NUM_MAIN_BIG_PAGES,
+                                   nullptr,
+                                   nullptr,
+                                   &INVALID_BIG_PAGE_TYPE);
+            break;
 
-    // HAZEL doesn't exist on the B+ - that region is part of ANDY.
-    this->InitShadowBigPages(HAZEL_BIG_PAGE_INDEX,
-                             NUM_HAZEL_BIG_PAGES,
-                             m_type_id==BBCMicroTypeID_Master?&HAZEL_BIG_PAGE_TYPE:&ANDY_BIG_PAGE_TYPE);
+        case BBCMicroTypeID_BPlus:
+            this->InitShadowBigPages(ANDY_BIG_PAGE_INDEX,
+                                     NUM_ANDY_BIG_PAGES+NUM_HAZEL_BIG_PAGES,
+                                     0x0000,
+                                     &ANDY_BIG_PAGE_TYPE);
+            this->InitShadowBigPages(SHADOW_BIG_PAGE_INDEX,
+                                     NUM_SHADOW_BIG_PAGES,
+                                     0x3000,
+                                     &SHADOW_RAM_BIG_PAGE_TYPE);
+            break;
 
-    this->InitShadowBigPages(SHADOW_BIG_PAGE_INDEX,NUM_SHADOW_BIG_PAGES,&SHADOW_RAM_BIG_PAGE_TYPE);
+        case BBCMicroTypeID_Master:
+            this->InitShadowBigPages(ANDY_BIG_PAGE_INDEX,
+                                     NUM_ANDY_BIG_PAGES,
+                                     0x0000,
+                                     &ANDY_BIG_PAGE_TYPE);
+
+            this->InitShadowBigPages(HAZEL_BIG_PAGE_INDEX,
+                                     NUM_HAZEL_BIG_PAGES,
+                                     NUM_ANDY_BIG_PAGES*BIG_PAGE_SIZE_BYTES,
+                                     &HAZEL_BIG_PAGE_TYPE);
+
+            this->InitShadowBigPages(SHADOW_BIG_PAGE_INDEX,
+                                     NUM_SHADOW_BIG_PAGES,
+                                     0x3000,
+                                     &SHADOW_RAM_BIG_PAGE_TYPE);
+            break;
+    }
+
 
     for(size_t i=0;i<16;++i) {
         this->InitSidewaysROMBigPages(i);
