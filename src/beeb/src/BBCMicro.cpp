@@ -103,7 +103,7 @@ num_2MHz_cycles(initial_num_2MHz_cycles)
     M6502_Init(&this->cpu,type->m6502_config);
     this->ram_buffer.resize(type->ram_buffer_size);
 
-    if(type->type_id==BBCMicroTypeID_Master) {
+    if(type->flags&BBCMicroTypeFlag_HasRTC) {
         this->rtc.SetRAMContents(nvram_contents);
 
         if(rtc_time) {
@@ -132,7 +132,6 @@ m_state(type,
         rtc_time,
         initial_num_2MHz_cycles),
 m_type(type),
-m_type_id(type->type_id),
 m_disc_interface(def?def->create_fun():nullptr),
 m_video_nula(video_nula),
 m_ext_mem(ext_mem),
@@ -147,12 +146,10 @@ m_beeblink_handler(beeblink_handler)
 BBCMicro::BBCMicro(const BBCMicro &src):
 m_state(src.m_state),
 m_type(src.m_type),
-m_type_id(src.m_type_id),
 m_disc_interface(src.m_disc_interface?src.m_disc_interface->Clone():nullptr),
 m_video_nula(src.m_video_nula),
 m_ext_mem(src.m_ext_mem)
 {
-    ASSERT(m_type_id==m_type->type_id);
     ASSERT(src.GetCloneImpediments()==0);
 
     for(int i=0;i<NUM_DRIVES;++i) {
@@ -808,7 +805,9 @@ void BBCMicro::TracePortB(SystemVIAPB pb) {
 
     log.f("PORTB - PB = $%02X (%%%s): ",pb.value,BINARY_BYTE_STRINGS[pb.value]);
 
-    if(m_type_id==BBCMicroTypeID_Master) {
+    bool has_rtc=!!(m_type->flags&BBCMicroTypeFlag_HasRTC);
+
+    if(has_rtc) {
         log.f("RTC AS=%u; RTC CS=%u; ",pb.m128_bits.rtc_address_strobe,pb.m128_bits.rtc_chip_select);
     }
 
@@ -824,11 +823,11 @@ void BBCMicro::TracePortB(SystemVIAPB pb) {
             break;
 
         case 1:
-            name=m_type_id==BBCMicroTypeID_Master?"RTC Read":"Speech Read";
+            name=has_rtc?"RTC Read":"Speech Read";
             goto print_bool;
 
         case 2:
-            name=m_type_id==BBCMicroTypeID_Master?"RTC DS":"Speech Write";
+            name=has_rtc?"RTC DS":"Speech Write";
             goto print_bool;
 
         case 3:
@@ -1044,7 +1043,7 @@ bool BBCMicro::SetKeyState(BeebKey key,bool new_state) {
 //////////////////////////////////////////////////////////////////////////
 
 bool BBCMicro::HasNumericKeypad() const {
-    return m_type_id==BBCMicroTypeID_Master;
+    return !!(m_type->flags&BBCMicroTypeFlag_HasNumericKeypad);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -2743,67 +2742,7 @@ void BBCMicro::DebugSetAsyncCall(uint16_t address,uint8_t a,uint8_t x,uint8_t y,
 
 #if BBCMICRO_DEBUGGER
 uint32_t BBCMicro::DebugGetCurrentPageOverride() const {
-    switch(m_type_id) {
-        case BBCMicroTypeID_B:
-        {
-            uint32_t dpo=0;
-
-            dpo|=m_state.romsel.b_bits.pr;
-            dpo|=BBCMicroDebugPagingOverride_OverrideROM;
-
-            return dpo;
-        }
-
-        case BBCMicroTypeID_BPlus:
-        {
-            uint32_t dpo=0;
-
-            dpo|=m_state.romsel.bplus_bits.pr;
-            dpo|=BBCMicroDebugPagingOverride_OverrideROM;
-
-            if(m_state.romsel.bplus_bits.ram) {
-                dpo|=BBCMicroDebugPagingOverride_ANDY;
-            }
-            dpo|=BBCMicroDebugPagingOverride_OverrideANDY;
-
-            if(m_state.acccon.bplus_bits.shadow) {
-                dpo|=BBCMicroDebugPagingOverride_Shadow;
-            }
-            dpo|=BBCMicroDebugPagingOverride_OverrideShadow;
-
-            return dpo;
-        }
-
-        case BBCMicroTypeID_Master:
-        {
-            uint32_t dpo=0;
-
-            dpo|=m_state.romsel.m128_bits.pm;
-            dpo|=BBCMicroDebugPagingOverride_OverrideROM;
-
-            if(m_state.romsel.m128_bits.ram) {
-                dpo|=BBCMicroDebugPagingOverride_ANDY;
-            }
-            dpo|=BBCMicroDebugPagingOverride_OverrideANDY;
-
-            if(m_state.acccon.m128_bits.x) {
-                dpo|=BBCMicroDebugPagingOverride_Shadow;
-            }
-            dpo|=BBCMicroDebugPagingOverride_OverrideShadow;
-
-            if(m_state.acccon.m128_bits.y) {
-                dpo|=BBCMicroDebugPagingOverride_HAZEL;
-            }
-            dpo|=BBCMicroDebugPagingOverride_OverrideHAZEL;
-
-            if(m_state.acccon.m128_bits.tst) {
-                dpo|=BBCMicroDebugPagingOverride_OS;
-            }
-            dpo|=BBCMicroDebugPagingOverride_OverrideOS;
-
-            return dpo;
-        }
-    }
+    return (*m_type->get_dpo_fn)(m_state.romsel,m_state.acccon);
 }
 #endif
 

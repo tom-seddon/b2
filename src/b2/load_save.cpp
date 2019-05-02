@@ -1394,14 +1394,17 @@ static bool LoadBeebLink(rapidjson::Value *beeblink_json,Messages *msg) {
 }
 
 static bool LoadNVRAM(rapidjson::Value *nvram_json,Messages *msg) {
-    std::string hex;
-    std::vector<uint8_t> data;
+    for(size_t i=0;i<GetNumBBCMicroTypes();++i) {
+        const BBCMicroType *type=GetBBCMicroTypeByIndex(i);
 
-    // TODO - should this be more data driven?
-
-    if(FindStringMember(&hex,nvram_json,GetBBCMicroTypeIDEnumName(BBCMicroTypeID_Master),msg)) {
-        if(GetDataFromHexString(&data,hex)) {
-            SetDefaultNVRAMContents(&BBC_MICRO_TYPE_MASTER,std::move(data));
+        if(type->flags&BBCMicroTypeFlag_HasRTC) {
+            std::string hex;
+            if(FindStringMember(&hex,nvram_json,GetBBCMicroTypeIDEnumName(type->type_id),msg)) {
+                std::vector<uint8_t> data;
+                if(GetDataFromHexString(&data,hex)) {
+                    SetDefaultNVRAMContents(type,std::move(data));
+                }
+            }
         }
     }
 
@@ -1731,9 +1734,17 @@ static void SaveNVRAM(JSONWriter<StringStream> *writer) {
     {
         auto nvram_json=ObjectWriter(writer,NVRAM);
 
-        // Should this be more data-driven?
-        writer->Key(GetBBCMicroTypeIDEnumName(BBCMicroTypeID_Master));
-        writer->String(GetHexStringFromData(GetDefaultNVRAMContents(&BBC_MICRO_TYPE_MASTER)).c_str());
+        for(size_t i=0;i<GetNumBBCMicroTypes();++i) {
+            const BBCMicroType *type=GetBBCMicroTypeByIndex(i);
+
+            if(type->flags&BBCMicroTypeFlag_HasRTC) {
+                std::vector<uint8_t> data=GetDefaultNVRAMContents(type);
+                if(!data.empty()) {
+                    writer->Key(GetBBCMicroTypeIDEnumName(type->type_id));
+                    writer->String(GetHexStringFromData(data).c_str());
+                }
+            }
+        }
     }
 }
 

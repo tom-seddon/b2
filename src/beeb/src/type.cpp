@@ -88,6 +88,15 @@ static void ApplyDPOB(ROMSEL *romsel,ACCCON *acccon,uint32_t dpo) {
     ApplyROMDPO(romsel,dpo);
 }
 
+static uint32_t GetDPOB(ROMSEL romsel,ACCCON acccon) {
+    uint32_t dpo=0;
+
+    dpo|=romsel.b_bits.pr;
+    dpo|=BBCMicroDebugPagingOverride_OverrideROM;
+
+    return dpo;
+}
+
 static std::vector<const BigPageType *> GetBigPageTypesB() {
     std::vector<const BigPageType *> types=GetBigPageTypesCommon();
 
@@ -104,6 +113,7 @@ const BBCMicroType BBC_MICRO_TYPE_B={
     GetBigPageTypesB(),
     &GetMemBigPageTablesB,//get_mem_big_page_tables_fn,
     &ApplyDPOB,//apply_dpo_fn
+    &GetDPOB,//get_dpo_fn
     0x0f,//romsel_mask,
     0x00,//acccon_mask,
     (BBCMicroTypeFlag_CanDisplayTeletext3c00),//flags
@@ -195,6 +205,24 @@ static void ApplyDPOBPlus(ROMSEL *romsel,ACCCON *acccon,uint32_t dpo) {
     }
 }
 
+static uint32_t GetDPOBPlus(ROMSEL romsel,ACCCON acccon) {
+    uint32_t dpo=0;
+
+    dpo|=romsel.bplus_bits.pr;
+    dpo|=BBCMicroDebugPagingOverride_OverrideROM;
+
+    if(romsel.bplus_bits.ram) {
+        dpo|=BBCMicroDebugPagingOverride_ANDY;
+    }
+    dpo|=BBCMicroDebugPagingOverride_OverrideANDY;
+
+    if(acccon.bplus_bits.shadow) {
+        dpo|=BBCMicroDebugPagingOverride_Shadow;
+    }
+    dpo|=BBCMicroDebugPagingOverride_OverrideShadow;
+
+    return dpo;
+}
 
 static std::vector<const BigPageType *> GetBigPageTypesBPlus() {
     std::vector<const BigPageType *> types=GetBigPageTypesCommon();
@@ -219,6 +247,7 @@ const BBCMicroType BBC_MICRO_TYPE_B_PLUS={
     GetBigPageTypesBPlus(),
     &GetMemBigPageTablesBPlus,//get_mem_big_page_tables_fn,
     &ApplyDPOBPlus,//apply_dpo_fn
+    &GetDPOBPlus,//get_dpo_fn
     0x8f,//romsel_mask,
     0x80,//acccon_mask,
     (BBCMicroTypeFlag_CanDisplayTeletext3c00|
@@ -351,6 +380,35 @@ static void ApplyDPOMaster(ROMSEL *romsel,ACCCON *acccon,uint32_t dpo) {
     }
 }
 
+static uint32_t GetDPOMaster(ROMSEL romsel,ACCCON acccon) {
+    uint32_t dpo=0;
+
+    dpo|=romsel.m128_bits.pm;
+    dpo|=BBCMicroDebugPagingOverride_OverrideROM;
+
+    if(romsel.m128_bits.ram) {
+        dpo|=BBCMicroDebugPagingOverride_ANDY;
+    }
+    dpo|=BBCMicroDebugPagingOverride_OverrideANDY;
+
+    if(acccon.m128_bits.x) {
+        dpo|=BBCMicroDebugPagingOverride_Shadow;
+    }
+    dpo|=BBCMicroDebugPagingOverride_OverrideShadow;
+
+    if(acccon.m128_bits.y) {
+        dpo|=BBCMicroDebugPagingOverride_HAZEL;
+    }
+    dpo|=BBCMicroDebugPagingOverride_OverrideHAZEL;
+
+    if(acccon.m128_bits.tst) {
+        dpo|=BBCMicroDebugPagingOverride_OS;
+    }
+    dpo|=BBCMicroDebugPagingOverride_OverrideOS;
+
+    return dpo;
+}
+
 static std::vector<const BigPageType *> GetBigPageTypesMaster() {
     std::vector<const BigPageType *> types=GetBigPageTypesCommon();
 
@@ -379,29 +437,53 @@ const BBCMicroType BBC_MICRO_TYPE_MASTER={
     GetBigPageTypesMaster(),
     &GetMemBigPagesTablesMaster,//get_mem_big_page_tables_fn,
     &ApplyDPOMaster,//apply_dpo_fn
+    &GetDPOMaster,//get_dpo_fn
     0x8f,//romsel_mask,
     0xff,//acccon_mask,
     (BBCMicroTypeFlag_HasShadowRAM|
-     BBCMicroTypeFlag_HasRTC),//flags
+     BBCMicroTypeFlag_HasRTC|
+     BBCMicroTypeFlag_HasNumericKeypad),//flags
     {{0x00,0x1f},{0x28,0x2b},{0x40,0x7f},},//sheila_cycle_stretch_regions
 };
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-const BBCMicroType *GetBBCMicroTypeForTypeID(BBCMicroTypeID type_id) {
-    switch(type_id) {
-        default:
-            ASSERT(false);
-            // fall through
-        case BBCMicroTypeID_B:
-            return &BBC_MICRO_TYPE_B;
+static const BBCMicroType *const BBC_MICRO_TYPES[]={
+    &BBC_MICRO_TYPE_B,
+    &BBC_MICRO_TYPE_B_PLUS,
+    &BBC_MICRO_TYPE_MASTER,
+};
+static const size_t NUM_BBC_MICRO_TYPES=sizeof BBC_MICRO_TYPES/sizeof BBC_MICRO_TYPES[0];
 
-        case BBCMicroTypeID_BPlus:
-            return &BBC_MICRO_TYPE_B_PLUS;
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
 
-        case BBCMicroTypeID_Master:
-            return &BBC_MICRO_TYPE_MASTER;
-    }
+size_t GetNumBBCMicroTypes() {
+    return NUM_BBC_MICRO_TYPES;
 }
 
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+const BBCMicroType *GetBBCMicroTypeByIndex(size_t index) {
+    ASSERT(index<GetNumBBCMicroTypes());
+    return BBC_MICRO_TYPES[index];
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+const BBCMicroType *GetBBCMicroTypeForTypeID(BBCMicroTypeID type_id) {
+    for(size_t i=0;i<NUM_BBC_MICRO_TYPES;++i) {
+        if(BBC_MICRO_TYPES[i]->type_id==type_id) {
+            return BBC_MICRO_TYPES[i];
+        }
+    }
+
+    ASSERT(false);
+    return &BBC_MICRO_TYPE_B;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////

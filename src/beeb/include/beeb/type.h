@@ -65,6 +65,9 @@ struct BBCMicroType {
                          ACCCON *acccon,
                          uint32_t dpo);
 
+    uint32_t (*get_dpo_fn)(ROMSEL romsel,
+                           ACCCON accon);
+
     // Mask for ROMSEL bits.
     uint8_t romsel_mask;
 
@@ -89,6 +92,9 @@ extern const BBCMicroType BBC_MICRO_TYPE_MASTER;
 
 // returns a pointer to one of the global BBCMicroType objects.
 const BBCMicroType *GetBBCMicroTypeForTypeID(BBCMicroTypeID type_id);
+
+size_t GetNumBBCMicroTypes();
+const BBCMicroType *GetBBCMicroTypeByIndex(size_t index);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

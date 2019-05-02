@@ -32,6 +32,9 @@ EPNV(CanDisplayTeletext3c00,1<<1)
 
 // if set, system has RTC.
 EPNV(HasRTC,1<<2)
+
+// if set, numeric keypad.
+EPNV(HasNumericKeypad,1<<3)
 EEND()
 #undef ENAME
 

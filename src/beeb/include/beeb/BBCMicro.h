@@ -595,7 +595,6 @@ private:
     //////////////////////////////////////////////////////////////////////////
 
     const BBCMicroType *const m_type;
-    const BBCMicroTypeID m_type_id;
     DiscInterface *const m_disc_interface=nullptr;
     std::shared_ptr<DiscImage> m_disc_images[NUM_DRIVES];
     const bool m_video_nula;

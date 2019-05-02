@@ -1704,15 +1704,10 @@ protected:
         ImGui::Text("Joystick 0 Fire = %s",BOOL_STR(!pb.bits.not_joystick0_fire));
         ImGui::Text("Joystick 1 Fire = %s",BOOL_STR(!pb.bits.not_joystick1_fire));
         ImGui::Text("Latch Bit = %u, Value = %u",pb.bits.latch_index,pb.bits.latch_value);
-        switch(type->type_id) {
-        case BBCMicroTypeID_B:
-        case BBCMicroTypeID_BPlus:
-            ImGui::Text("Speech Ready = %u, IRQ = %u",pb.b_bits.speech_ready,pb.b_bits.speech_interrupt);
-            break;
-
-        case BBCMicroTypeID_Master:
+        if(type->flags&BBCMicroTypeFlag_HasRTC) {
             ImGui::Text("RTC CS = %u, AS = %u",pb.m128_bits.rtc_chip_select,pb.m128_bits.rtc_address_strobe);
-            break;
+        } else {
+            ImGui::Text("Speech Ready = %u, IRQ = %u",pb.b_bits.speech_ready,pb.b_bits.speech_interrupt);
         }
 
         ImGui::Separator();
@@ -1722,15 +1717,10 @@ protected:
         ImGui::Text("Caps Lock LED = %s",BOOL_STR(latch.bits.caps_lock_led));
         ImGui::Text("Shift Lock LED = %s",BOOL_STR(latch.bits.shift_lock_led));
 
-        switch(type->type_id) {
-        case BBCMicroTypeID_B:
-        case BBCMicroTypeID_BPlus:
-            ImGui::Text("Speech Read = %u, Write = %u",latch.b_bits.speech_read,latch.b_bits.speech_write);
-            break;
-
-        case BBCMicroTypeID_Master:
+        if(type->flags&BBCMicroTypeFlag_HasRTC) {
             ImGui::Text("RTC Read = %u, DS = %u",latch.m128_bits.rtc_read,latch.m128_bits.rtc_data_strobe);
-            break;
+        } else {
+            ImGui::Text("Speech Read = %u, Write = %u",latch.b_bits.speech_read,latch.b_bits.speech_write);
         }
     }
 private:
