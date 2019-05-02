@@ -162,6 +162,21 @@ const BBCMicroType BBC_MICRO_TYPE_B={
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+// YXE  Usr  MOS
+// ---  ---  ---
+// 000   M    M
+// 001   M    S
+// 010   S    M
+// 011   S    S
+// 100   M    M
+// 101   M    M
+// 110   S    S
+// 111   S    S
+//
+// Usr Shadow = X
+//
+// MOS Shadow = (Y AND X) OR (NOT Y AND E)
+
 static void GetMemBigPageTablesBPlus(uint8_t *usr,
                                      uint8_t *mos,
                                      uint8_t *mos_pc_mem_big_pages,

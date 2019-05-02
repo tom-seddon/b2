@@ -304,12 +304,6 @@ public:
 #endif
 
     bool Update(VideoDataUnit *video_unit,SoundDataUnit *sound_unit);
-    //void UpdateCycle0(VideoDataUnit *video_unit);
-    //bool UpdateCycle1(VideoDataUnit *video_unit,SoundDataUnit *sound_unit);
-
-    // *UNIT0 and *UNIT1 are always filled in. Returns true if
-    // *SOUND_UNIT was filled in.
-    //bool Update(VideoDataUnit *unit0,VideoDataUnit *unit1,SoundDataUnit *sound_unit);
 
 #if BBCMICRO_ENABLE_DISC_DRIVE_SOUND
     // The disc drive sounds are used by all BBCMicro objects created
@@ -408,21 +402,6 @@ public:
     void DebugGetBytes(uint8_t *bytes,size_t num_bytes,M6502Word addr,uint32_t dpo);
     void DebugSetBytes(M6502Word addr,uint32_t dpo,const uint8_t *bytes,size_t num_bytes);
 
-//    void DebugSetByte(uint8_t big_page,uint16_t offset,uint8_t value);
-//    int DebugGetByte(uint8_t big_page,uint16_t offset) const;
-
-//    // Copy block of memory, plus the debug flags for it, if desired. But even
-//    // when the debug flags aren't interesting, this is still quicker than
-//    // calling DebugGetByte in a loop.
-//    void DebugCopyMemory(void *bytes_dest,
-//                         DebugState::ByteDebugFlags *debug_dest,
-//                         M6502Word addr,
-//                         uint32_t dpo,
-//                         size_t num_bytes) const;
-//
-//    void DebugSetByte(M6502Word addr,uint32_t dpo,uint8_t value);
-//    int DebugGetByte(M6502Word addr,uint32_t dpo) const;
-
     void SetMemory(M6502Word addr,uint8_t value);
     void SetExtMemory(uint32_t addr,uint8_t value);
 
@@ -433,13 +412,7 @@ public:
 
     void DebugRun();
 
-    //DebugState::ByteDebugFlags DebugGetByteFlags(M6502Word addr) const;
-
-    //void DebugSetByteFlags(M6502Word addr,DebugState::ByteDebugFlags flags);
-
     void DebugStepIn();
-
-    //static char DebugGetFlatPageCode(uint16_t flat_page);
 
     bool HasDebugState() const;
     std::unique_ptr<DebugState> TakeDebugState();
@@ -611,8 +584,6 @@ private:
     uint32_t m_dpo_mask=0;
     bool m_has_rtc=false;
     void (*m_handle_cpu_data_bus_fn)(BBCMicro *)=nullptr;
-//    UpdateROMSELPagesFn m_update_romsel_pages_fn=nullptr;
-//    UpdateACCCONPagesFn m_update_acccon_pages_fn=nullptr;
 
     // Memory
     MemoryBigPages m_mem_big_pages[2]={};
@@ -705,23 +676,11 @@ private:
     std::unique_ptr<BeebLink> m_beeblink;
 
     void InitStuff();
-    //void SetOSPages(uint8_t dest_page,uint8_t src_page,uint8_t dest_big_page_index);
-    void SetROMPages(uint8_t bank,uint8_t num_skipped_big_pages);
 #if BBCMICRO_TRACE
     void SetTrace(std::shared_ptr<Trace> trace,uint32_t trace_flags);
 #endif
-    void SetBigPages(MemoryBigPages *pages0,MemoryBigPages *pages1,uint8_t big_page_index,uint8_t num_big_pages,uint8_t mem_big_page_index);
     void UpdatePaging();
-//    static void UpdateBROMSELPages(BBCMicro *m);
-//    static void UpdateBPlusACCCONPages(BBCMicro *m,const ACCCON *old);
-//    static void UpdateBACCCONPages(BBCMicro *m,const ACCCON *old);
-//    static void UpdateBPlusROMSELPages(BBCMicro *m);
-//    static void UpdateMaster128ROMSELPages(BBCMicro *m);
-//    static void UpdateMaster128ACCCONPages(BBCMicro *m,const ACCCON *old_);
-    void InitSomeBigPages(uint8_t big_page_index,uint8_t num_big_pages,const uint8_t *r,uint8_t *w,const BigPageType *type);
-    void InitShadowBigPages(uint8_t big_page_index,uint8_t num_big_pages,size_t ram_buffer_offset,const BigPageType *type);
-    void InitSidewaysROMBigPages(uint8_t rom);
-    void InitBigPages();
+    void InitPaging();
     static void Write1770ControlRegister(void *m_,M6502Word a,uint8_t value);
     static uint8_t Read1770ControlRegister(void *m_,M6502Word a);
 #if BBCMICRO_TRACE
@@ -739,10 +698,8 @@ private:
     void HandleReadByteDebugFlags(uint8_t read,uint8_t flags);
     void HandleInterruptBreakpoints();
 #endif
-//    static void HandleCPUDataBusMainRAMOnly(BBCMicro *m);
     static void HandleCPUDataBusWithShadowRAM(BBCMicro *m);
 #if BBCMICRO_DEBUGGER
-//    static void HandleCPUDataBusMainRAMOnlyDebug(BBCMicro *m);
     static void HandleCPUDataBusWithShadowRAMDebug(BBCMicro *m);
     void UpdateDebugBigPages(MemoryBigPages *mem_big_pages);
     void UpdateDebugState();

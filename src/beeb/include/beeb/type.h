@@ -13,15 +13,16 @@
 
 struct BigPageType;
 struct M6502Config;
-union ACCCON;
-union ROMSEL;
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-// Grab-bag of random paging-related bits.
+// Various bits and pieces to make the difference between BBC types somewhat
+// data-driven. Trying to avoid BBCMicroTypeID-specific cases if possible.
 
-//
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 // Total max addressable memory on the BBC is 336K:
 //
 // - 64K RAM (main+shadow+ANDY+HAZEL)
@@ -140,29 +141,6 @@ struct BPlusACCCONBits {
 struct Master128ACCCONBits {
     uint8_t d:1,e:1,x:1,y:1,itu:1,ifj:1,tst:1,irr:1;
 };
-
-// YXE  Usr  MOS
-// ---  ---  ---
-// 000   M    M
-// 001   M    S
-// 010   S    M
-// 011   S    S
-// 100   M    M
-// 101   M    M
-// 110   S    S
-// 111   S    S
-//
-// Usr Shadow = X
-//
-// MOS Shadow = (Y AND X) OR (NOT Y AND E)
-
-static inline bool DoesMOSUseShadow(Master128ACCCONBits acccon_m128_bits) {
-    if(acccon_m128_bits.y) {
-        return acccon_m128_bits.x;
-    } else {
-        return acccon_m128_bits.e;
-    }
-}
 
 union ACCCON {
     uint8_t value;
