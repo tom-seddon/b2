@@ -83,38 +83,35 @@ static std::vector<const BigPageType *> GetBigPageTypesCommon() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static void GetMemBigPageTablesB(uint8_t *usr,
-                                 uint8_t *mos,
-                                 uint8_t *mos_pc_mem_big_pages,
+static void GetMemBigPageTablesB(MemoryBigPageTables *tables,
                                  bool *io,
                                  bool *crt_shadow,
                                  ROMSEL romsel,
                                  ACCCON acccon)
 {
-    (void)mos;//not relevant for B
     (void)acccon;//not relevant for B
 
-    usr[0]=MAIN_BIG_PAGE_INDEX+0;
-    usr[1]=MAIN_BIG_PAGE_INDEX+1;
-    usr[2]=MAIN_BIG_PAGE_INDEX+2;
-    usr[3]=MAIN_BIG_PAGE_INDEX+3;
-    usr[4]=MAIN_BIG_PAGE_INDEX+4;
-    usr[5]=MAIN_BIG_PAGE_INDEX+5;
-    usr[6]=MAIN_BIG_PAGE_INDEX+6;
-    usr[7]=MAIN_BIG_PAGE_INDEX+7;
+    tables->mem_big_pages[0][0]=MAIN_BIG_PAGE_INDEX+0;
+    tables->mem_big_pages[0][1]=MAIN_BIG_PAGE_INDEX+1;
+    tables->mem_big_pages[0][2]=MAIN_BIG_PAGE_INDEX+2;
+    tables->mem_big_pages[0][3]=MAIN_BIG_PAGE_INDEX+3;
+    tables->mem_big_pages[0][4]=MAIN_BIG_PAGE_INDEX+4;
+    tables->mem_big_pages[0][5]=MAIN_BIG_PAGE_INDEX+5;
+    tables->mem_big_pages[0][6]=MAIN_BIG_PAGE_INDEX+6;
+    tables->mem_big_pages[0][7]=MAIN_BIG_PAGE_INDEX+7;
 
     uint8_t rom=ROM0_BIG_PAGE_INDEX+romsel.b_bits.pr*NUM_ROM_BIG_PAGES;
-    usr[0x8]=rom+0;
-    usr[0x9]=rom+1;
-    usr[0xa]=rom+2;
-    usr[0xb]=rom+3;
+    tables->mem_big_pages[0][0x8]=rom+0;
+    tables->mem_big_pages[0][0x9]=rom+1;
+    tables->mem_big_pages[0][0xa]=rom+2;
+    tables->mem_big_pages[0][0xb]=rom+3;
 
-    usr[0xc]=MOS_BIG_PAGE_INDEX+0;
-    usr[0xd]=MOS_BIG_PAGE_INDEX+1;
-    usr[0xe]=MOS_BIG_PAGE_INDEX+2;
-    usr[0xf]=MOS_BIG_PAGE_INDEX+3;
+    tables->mem_big_pages[0][0xc]=MOS_BIG_PAGE_INDEX+0;
+    tables->mem_big_pages[0][0xd]=MOS_BIG_PAGE_INDEX+1;
+    tables->mem_big_pages[0][0xe]=MOS_BIG_PAGE_INDEX+2;
+    tables->mem_big_pages[0][0xf]=MOS_BIG_PAGE_INDEX+3;
 
-    memset(mos_pc_mem_big_pages,0,16);
+    memset(tables->pc_mem_big_pages_set,0,16);
     *io=true;
     *crt_shadow=false;
 }
@@ -177,71 +174,69 @@ const BBCMicroType BBC_MICRO_TYPE_B={
 //
 // MOS Shadow = (Y AND X) OR (NOT Y AND E)
 
-static void GetMemBigPageTablesBPlus(uint8_t *usr,
-                                     uint8_t *mos,
-                                     uint8_t *mos_pc_mem_big_pages,
+static void GetMemBigPageTablesBPlus(MemoryBigPageTables *tables,
                                      bool *io,
                                      bool *crt_shadow,
                                      ROMSEL romsel,
                                      ACCCON acccon)
 {
-    usr[0]=MAIN_BIG_PAGE_INDEX+0;
-    usr[1]=MAIN_BIG_PAGE_INDEX+1;
-    usr[2]=MAIN_BIG_PAGE_INDEX+2;
-    usr[3]=MAIN_BIG_PAGE_INDEX+3;
-    usr[4]=MAIN_BIG_PAGE_INDEX+4;
-    usr[5]=MAIN_BIG_PAGE_INDEX+5;
-    usr[6]=MAIN_BIG_PAGE_INDEX+6;
-    usr[7]=MAIN_BIG_PAGE_INDEX+7;
+    tables->mem_big_pages[0][0]=MAIN_BIG_PAGE_INDEX+0;
+    tables->mem_big_pages[0][1]=MAIN_BIG_PAGE_INDEX+1;
+    tables->mem_big_pages[0][2]=MAIN_BIG_PAGE_INDEX+2;
+    tables->mem_big_pages[0][3]=MAIN_BIG_PAGE_INDEX+3;
+    tables->mem_big_pages[0][4]=MAIN_BIG_PAGE_INDEX+4;
+    tables->mem_big_pages[0][5]=MAIN_BIG_PAGE_INDEX+5;
+    tables->mem_big_pages[0][6]=MAIN_BIG_PAGE_INDEX+6;
+    tables->mem_big_pages[0][7]=MAIN_BIG_PAGE_INDEX+7;
 
     if(acccon.bplus_bits.shadow) {
-        mos[0]=MAIN_BIG_PAGE_INDEX+0;
-        mos[1]=MAIN_BIG_PAGE_INDEX+1;
-        mos[2]=MAIN_BIG_PAGE_INDEX+2;
-        mos[3]=SHADOW_BIG_PAGE_INDEX+0;
-        mos[4]=SHADOW_BIG_PAGE_INDEX+1;
-        mos[5]=SHADOW_BIG_PAGE_INDEX+2;
-        mos[6]=SHADOW_BIG_PAGE_INDEX+3;
-        mos[7]=SHADOW_BIG_PAGE_INDEX+4;
+        tables->mem_big_pages[1][0]=MAIN_BIG_PAGE_INDEX+0;
+        tables->mem_big_pages[1][1]=MAIN_BIG_PAGE_INDEX+1;
+        tables->mem_big_pages[1][2]=MAIN_BIG_PAGE_INDEX+2;
+        tables->mem_big_pages[1][3]=SHADOW_BIG_PAGE_INDEX+0;
+        tables->mem_big_pages[1][4]=SHADOW_BIG_PAGE_INDEX+1;
+        tables->mem_big_pages[1][5]=SHADOW_BIG_PAGE_INDEX+2;
+        tables->mem_big_pages[1][6]=SHADOW_BIG_PAGE_INDEX+3;
+        tables->mem_big_pages[1][7]=SHADOW_BIG_PAGE_INDEX+4;
     } else {
-        mos[0]=MAIN_BIG_PAGE_INDEX+0;
-        mos[1]=MAIN_BIG_PAGE_INDEX+1;
-        mos[2]=MAIN_BIG_PAGE_INDEX+2;
-        mos[3]=MAIN_BIG_PAGE_INDEX+3;
-        mos[4]=MAIN_BIG_PAGE_INDEX+4;
-        mos[5]=MAIN_BIG_PAGE_INDEX+5;
-        mos[6]=MAIN_BIG_PAGE_INDEX+6;
-        mos[7]=MAIN_BIG_PAGE_INDEX+7;
+        tables->mem_big_pages[1][0]=MAIN_BIG_PAGE_INDEX+0;
+        tables->mem_big_pages[1][1]=MAIN_BIG_PAGE_INDEX+1;
+        tables->mem_big_pages[1][2]=MAIN_BIG_PAGE_INDEX+2;
+        tables->mem_big_pages[1][3]=MAIN_BIG_PAGE_INDEX+3;
+        tables->mem_big_pages[1][4]=MAIN_BIG_PAGE_INDEX+4;
+        tables->mem_big_pages[1][5]=MAIN_BIG_PAGE_INDEX+5;
+        tables->mem_big_pages[1][6]=MAIN_BIG_PAGE_INDEX+6;
+        tables->mem_big_pages[1][7]=MAIN_BIG_PAGE_INDEX+7;
     }
 
     uint8_t rom=ROM0_BIG_PAGE_INDEX+romsel.bplus_bits.pr*NUM_ROM_BIG_PAGES;
     if(romsel.bplus_bits.ram) {
-        usr[0x8]=ANDY_BIG_PAGE_INDEX+0;
-        usr[0x9]=ANDY_BIG_PAGE_INDEX+1;
-        usr[0xa]=ANDY_BIG_PAGE_INDEX+2;
-        usr[0xb]=rom+3;
+        tables->mem_big_pages[0][0x8]=ANDY_BIG_PAGE_INDEX+0;
+        tables->mem_big_pages[0][0x9]=ANDY_BIG_PAGE_INDEX+1;
+        tables->mem_big_pages[0][0xa]=ANDY_BIG_PAGE_INDEX+2;
+        tables->mem_big_pages[0][0xb]=rom+3;
 
-        memset(mos_pc_mem_big_pages,0,16);
-        mos_pc_mem_big_pages[0xa]=1;
-        mos_pc_mem_big_pages[0xc]=1;
-        mos_pc_mem_big_pages[0xd]=1;
+        memset(tables->pc_mem_big_pages_set,0,16);
+        tables->pc_mem_big_pages_set[0xa]=1;
+        tables->pc_mem_big_pages_set[0xc]=1;
+        tables->pc_mem_big_pages_set[0xd]=1;
     } else {
-        usr[0x8]=rom+0;
-        usr[0x9]=rom+1;
-        usr[0xa]=rom+2;
-        usr[0xb]=rom+3;
+        tables->mem_big_pages[0][0x8]=rom+0;
+        tables->mem_big_pages[0][0x9]=rom+1;
+        tables->mem_big_pages[0][0xa]=rom+2;
+        tables->mem_big_pages[0][0xb]=rom+3;
 
-        memset(mos_pc_mem_big_pages,0,16);
-        mos_pc_mem_big_pages[0xc]=1;
-        mos_pc_mem_big_pages[0xd]=1;
+        memset(tables->pc_mem_big_pages_set,0,16);
+        tables->pc_mem_big_pages_set[0xc]=1;
+        tables->pc_mem_big_pages_set[0xd]=1;
     }
 
-    usr[0xc]=MOS_BIG_PAGE_INDEX+0;
-    usr[0xd]=MOS_BIG_PAGE_INDEX+1;
-    usr[0xe]=MOS_BIG_PAGE_INDEX+2;
-    usr[0xf]=MOS_BIG_PAGE_INDEX+3;
+    tables->mem_big_pages[0][0xc]=MOS_BIG_PAGE_INDEX+0;
+    tables->mem_big_pages[0][0xd]=MOS_BIG_PAGE_INDEX+1;
+    tables->mem_big_pages[0][0xe]=MOS_BIG_PAGE_INDEX+2;
+    tables->mem_big_pages[0][0xf]=MOS_BIG_PAGE_INDEX+3;
 
-    memcpy(mos+8,usr+8,8);
+    memcpy(tables->mem_big_pages[1]+8,tables->mem_big_pages[0]+8,8);
 
     *crt_shadow=acccon.bplus_bits.shadow!=0;
     *io=true;
@@ -312,9 +307,7 @@ const BBCMicroType BBC_MICRO_TYPE_B_PLUS={
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static void GetMemBigPagesTablesMaster(uint8_t *usr,
-                                       uint8_t *mos,
-                                       uint8_t *mos_pc_mem_big_pages,
+static void GetMemBigPagesTablesMaster(MemoryBigPageTables *tables,
                                        bool *io,
                                        bool *crt_shadow,
                                        ROMSEL romsel,
@@ -336,79 +329,79 @@ static void GetMemBigPagesTablesMaster(uint8_t *usr,
     // MOS Shadow = (Y AND X) OR (NOT Y AND E)
 
     if(acccon.m128_bits.x) {
-        usr[0]=MAIN_BIG_PAGE_INDEX+0;
-        usr[1]=MAIN_BIG_PAGE_INDEX+1;
-        usr[2]=MAIN_BIG_PAGE_INDEX+2;
-        usr[3]=SHADOW_BIG_PAGE_INDEX+0;
-        usr[4]=SHADOW_BIG_PAGE_INDEX+1;
-        usr[5]=SHADOW_BIG_PAGE_INDEX+2;
-        usr[6]=SHADOW_BIG_PAGE_INDEX+3;
-        usr[7]=SHADOW_BIG_PAGE_INDEX+4;
+        tables->mem_big_pages[0][0]=MAIN_BIG_PAGE_INDEX+0;
+        tables->mem_big_pages[0][1]=MAIN_BIG_PAGE_INDEX+1;
+        tables->mem_big_pages[0][2]=MAIN_BIG_PAGE_INDEX+2;
+        tables->mem_big_pages[0][3]=SHADOW_BIG_PAGE_INDEX+0;
+        tables->mem_big_pages[0][4]=SHADOW_BIG_PAGE_INDEX+1;
+        tables->mem_big_pages[0][5]=SHADOW_BIG_PAGE_INDEX+2;
+        tables->mem_big_pages[0][6]=SHADOW_BIG_PAGE_INDEX+3;
+        tables->mem_big_pages[0][7]=SHADOW_BIG_PAGE_INDEX+4;
     } else {
-        usr[0]=MAIN_BIG_PAGE_INDEX+0;
-        usr[1]=MAIN_BIG_PAGE_INDEX+1;
-        usr[2]=MAIN_BIG_PAGE_INDEX+2;
-        usr[3]=MAIN_BIG_PAGE_INDEX+3;
-        usr[4]=MAIN_BIG_PAGE_INDEX+4;
-        usr[5]=MAIN_BIG_PAGE_INDEX+5;
-        usr[6]=MAIN_BIG_PAGE_INDEX+6;
-        usr[7]=MAIN_BIG_PAGE_INDEX+7;
+        tables->mem_big_pages[0][0]=MAIN_BIG_PAGE_INDEX+0;
+        tables->mem_big_pages[0][1]=MAIN_BIG_PAGE_INDEX+1;
+        tables->mem_big_pages[0][2]=MAIN_BIG_PAGE_INDEX+2;
+        tables->mem_big_pages[0][3]=MAIN_BIG_PAGE_INDEX+3;
+        tables->mem_big_pages[0][4]=MAIN_BIG_PAGE_INDEX+4;
+        tables->mem_big_pages[0][5]=MAIN_BIG_PAGE_INDEX+5;
+        tables->mem_big_pages[0][6]=MAIN_BIG_PAGE_INDEX+6;
+        tables->mem_big_pages[0][7]=MAIN_BIG_PAGE_INDEX+7;
     }
 
     if((!acccon.m128_bits.y&&acccon.m128_bits.x)||
        (!acccon.m128_bits.y&&acccon.m128_bits.e))
     {
-        mos[0]=MAIN_BIG_PAGE_INDEX+0;
-        mos[1]=MAIN_BIG_PAGE_INDEX+1;
-        mos[2]=MAIN_BIG_PAGE_INDEX+2;
-        mos[3]=SHADOW_BIG_PAGE_INDEX+0;
-        mos[4]=SHADOW_BIG_PAGE_INDEX+1;
-        mos[5]=SHADOW_BIG_PAGE_INDEX+2;
-        mos[6]=SHADOW_BIG_PAGE_INDEX+3;
-        mos[7]=SHADOW_BIG_PAGE_INDEX+4;
+        tables->mem_big_pages[1][0]=MAIN_BIG_PAGE_INDEX+0;
+        tables->mem_big_pages[1][1]=MAIN_BIG_PAGE_INDEX+1;
+        tables->mem_big_pages[1][2]=MAIN_BIG_PAGE_INDEX+2;
+        tables->mem_big_pages[1][3]=SHADOW_BIG_PAGE_INDEX+0;
+        tables->mem_big_pages[1][4]=SHADOW_BIG_PAGE_INDEX+1;
+        tables->mem_big_pages[1][5]=SHADOW_BIG_PAGE_INDEX+2;
+        tables->mem_big_pages[1][6]=SHADOW_BIG_PAGE_INDEX+3;
+        tables->mem_big_pages[1][7]=SHADOW_BIG_PAGE_INDEX+4;
     } else {
-        mos[0]=MAIN_BIG_PAGE_INDEX+0;
-        mos[1]=MAIN_BIG_PAGE_INDEX+1;
-        mos[2]=MAIN_BIG_PAGE_INDEX+2;
-        mos[3]=MAIN_BIG_PAGE_INDEX+3;
-        mos[4]=MAIN_BIG_PAGE_INDEX+4;
-        mos[5]=MAIN_BIG_PAGE_INDEX+5;
-        mos[6]=MAIN_BIG_PAGE_INDEX+6;
-        mos[7]=MAIN_BIG_PAGE_INDEX+7;
+        tables->mem_big_pages[1][0]=MAIN_BIG_PAGE_INDEX+0;
+        tables->mem_big_pages[1][1]=MAIN_BIG_PAGE_INDEX+1;
+        tables->mem_big_pages[1][2]=MAIN_BIG_PAGE_INDEX+2;
+        tables->mem_big_pages[1][3]=MAIN_BIG_PAGE_INDEX+3;
+        tables->mem_big_pages[1][4]=MAIN_BIG_PAGE_INDEX+4;
+        tables->mem_big_pages[1][5]=MAIN_BIG_PAGE_INDEX+5;
+        tables->mem_big_pages[1][6]=MAIN_BIG_PAGE_INDEX+6;
+        tables->mem_big_pages[1][7]=MAIN_BIG_PAGE_INDEX+7;
     }
 
     uint8_t rom=ROM0_BIG_PAGE_INDEX+romsel.bplus_bits.pr*NUM_ROM_BIG_PAGES;
     if(romsel.m128_bits.ram) {
-        usr[0x8]=ANDY_BIG_PAGE_INDEX+0;
-        usr[0x9]=rom+1;
-        usr[0xa]=rom+2;
-        usr[0xb]=rom+3;
+        tables->mem_big_pages[0][0x8]=ANDY_BIG_PAGE_INDEX+0;
+        tables->mem_big_pages[0][0x9]=rom+1;
+        tables->mem_big_pages[0][0xa]=rom+2;
+        tables->mem_big_pages[0][0xb]=rom+3;
     } else {
-        usr[0x8]=rom+0;
-        usr[0x9]=rom+1;
-        usr[0xa]=rom+2;
-        usr[0xb]=rom+3;
+        tables->mem_big_pages[0][0x8]=rom+0;
+        tables->mem_big_pages[0][0x9]=rom+1;
+        tables->mem_big_pages[0][0xa]=rom+2;
+        tables->mem_big_pages[0][0xb]=rom+3;
     }
 
     if(acccon.m128_bits.y) {
-        usr[0xc]=HAZEL_BIG_PAGE_INDEX+0;
-        usr[0xd]=HAZEL_BIG_PAGE_INDEX+1;
-        usr[0xe]=MOS_BIG_PAGE_INDEX+2;
-        usr[0xf]=MOS_BIG_PAGE_INDEX+3;
+        tables->mem_big_pages[0][0xc]=HAZEL_BIG_PAGE_INDEX+0;
+        tables->mem_big_pages[0][0xd]=HAZEL_BIG_PAGE_INDEX+1;
+        tables->mem_big_pages[0][0xe]=MOS_BIG_PAGE_INDEX+2;
+        tables->mem_big_pages[0][0xf]=MOS_BIG_PAGE_INDEX+3;
 
-        memset(mos_pc_mem_big_pages,0,16);
+        memset(tables->pc_mem_big_pages_set,0,16);
     } else {
-        usr[0xc]=MOS_BIG_PAGE_INDEX+0;
-        usr[0xd]=MOS_BIG_PAGE_INDEX+1;
-        usr[0xe]=MOS_BIG_PAGE_INDEX+2;
-        usr[0xf]=MOS_BIG_PAGE_INDEX+3;
+        tables->mem_big_pages[0][0xc]=MOS_BIG_PAGE_INDEX+0;
+        tables->mem_big_pages[0][0xd]=MOS_BIG_PAGE_INDEX+1;
+        tables->mem_big_pages[0][0xe]=MOS_BIG_PAGE_INDEX+2;
+        tables->mem_big_pages[0][0xf]=MOS_BIG_PAGE_INDEX+3;
 
-        memset(mos_pc_mem_big_pages,0,16);
-        mos_pc_mem_big_pages[0xc]=1;
-        mos_pc_mem_big_pages[0xd]=1;
+        memset(tables->pc_mem_big_pages_set,0,16);
+        tables->pc_mem_big_pages_set[0xc]=1;
+        tables->pc_mem_big_pages_set[0xd]=1;
     }
 
-    memcpy(mos+8,usr+8,8);
+    memcpy(tables->mem_big_pages[1]+8,tables->mem_big_pages[0]+8,8);
 
     *io=acccon.m128_bits.tst==0;
     *crt_shadow=acccon.m128_bits.d!=0;

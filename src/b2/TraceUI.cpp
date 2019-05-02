@@ -209,8 +209,7 @@ private:
     ROMSEL m_romsel={};
     ACCCON m_acccon={};
     bool m_paging_dirty=true;
-    uint8_t m_mem_big_pages[2][16]={};
-    uint8_t m_mos_pc_mem_big_pages[16]={};
+    MemoryBigPageTables m_paging_tables={};
     bool m_io=true;
 
     std::atomic<uint64_t> m_num_events_handled{0};
@@ -290,9 +289,7 @@ private:
 
         if(m_paging_dirty) {
             bool crt_shadow;
-            (*m_type->get_mem_big_page_tables_fn)(m_mem_big_pages[0],
-                                                  m_mem_big_pages[1],
-                                                  m_mos_pc_mem_big_pages,
+            (*m_type->get_mem_big_page_tables_fn)(&m_paging_tables,
                                                   &m_io,
                                                   &crt_shadow,
                                                   m_romsel,
@@ -308,7 +305,7 @@ private:
             big_page_type=&IO_BIG_PAGE_TYPE;
         } else {
             M6502Word pc={pc_};
-            uint8_t big_page=m_mem_big_pages[m_mos_pc_mem_big_pages[pc.p.p]][addr.p.p];
+            uint8_t big_page=m_paging_tables.mem_big_pages[m_paging_tables.pc_mem_big_pages_set[pc.p.p]][addr.p.p];
             ASSERT(big_page<NUM_BIG_PAGES);
             big_page_type=m_type->big_page_types[big_page];
         }

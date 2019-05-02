@@ -151,6 +151,19 @@ union ACCCON {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+struct MemoryBigPageTables {
+    // [0][i] is the big page to use when user code accesses memory big page i;
+    // [1][i] likewise for MOS code.
+    uint8_t mem_big_pages[2][16];
+
+    // [i] is 0 if memory big page i counts as user code, or 1 if it counts as
+    // MOS code. Can use as index into mem_big_pages, hence the name.
+    uint8_t pc_mem_big_pages_set[16];
+};
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 struct BBCMicroType {
     // Switch-friendly identifier.
     const BBCMicroTypeID type_id;
@@ -184,9 +197,7 @@ struct BBCMicroType {
     // main RAM.
     //
     // (The naming of these isn't the best.)
-    void (*get_mem_big_page_tables_fn)(uint8_t *usr,
-                                       uint8_t *mos,
-                                       uint8_t *mos_pc_mem_big_pages,
+    void (*get_mem_big_page_tables_fn)(MemoryBigPageTables *tables,
                                        bool *io,
                                        bool *crt_shadow,
                                        ROMSEL romsel,

@@ -239,13 +239,10 @@ void BBCMicro::SetTrace(std::shared_ptr<Trace> trace,uint32_t trace_flags) {
 //////////////////////////////////////////////////////////////////////////
 
 void BBCMicro::UpdatePaging() {
-    uint8_t mem_big_pages[2][16];
-    uint8_t pc_mem_big_pages[16];
+    MemoryBigPageTables tables;
     bool io;
     bool crt_shadow;
-    (*m_type->get_mem_big_page_tables_fn)(mem_big_pages[0],
-                                          mem_big_pages[1],
-                                          pc_mem_big_pages,
+    (*m_type->get_mem_big_page_tables_fn)(&tables,
                                           &io,
                                           &crt_shadow,
                                           m_state.romsel,
@@ -255,7 +252,7 @@ void BBCMicro::UpdatePaging() {
         MemoryBigPages *mbp=&m_mem_big_pages[i];
 
         for(size_t j=0;j<16;++j) {
-            const BigPage *bp=&m_big_pages[mem_big_pages[i][j]];
+            const BigPage *bp=&m_big_pages[tables.mem_big_pages[i][j]];
 
             mbp->w[j]=bp->w;
             mbp->r[j]=bp->r;
@@ -265,7 +262,8 @@ void BBCMicro::UpdatePaging() {
     }
 
     for(size_t i=0;i<16;++i) {
-        m_pc_mem_big_pages[i]=&m_mem_big_pages[pc_mem_big_pages[i]];
+        ASSERT(tables.pc_mem_big_pages_set[i]==0||tables.pc_mem_big_pages_set[i]==1);
+        m_pc_mem_big_pages[i]=&m_mem_big_pages[tables.pc_mem_big_pages_set[i]];
     }
 
     if(crt_shadow) {
@@ -1778,13 +1776,13 @@ const BBCMicro::BigPage *BBCMicro::DebugGetBigPageForAddress(M6502Word addr,
     ACCCON acccon=m_state.acccon;
     (*m_type->apply_dpo_fn)(&romsel,&acccon,dpo);
 
-    uint8_t tables[2][16],pc[16];
+    MemoryBigPageTables tables;
     bool io,crt_shadow;
-    (*m_type->get_mem_big_page_tables_fn)(tables[0],tables[1],pc,&io,&crt_shadow,romsel,acccon);
+    (*m_type->get_mem_big_page_tables_fn)(&tables,&io,&crt_shadow,romsel,acccon);
 
     // TODO - should have the option of taking instruction address into account.
     // But for now, it just always looks at the user table.
-    uint8_t big_page=tables[0][addr.p.p];
+    uint8_t big_page=tables.mem_big_pages[0][addr.p.p];
     ASSERT(big_page<NUM_BIG_PAGES);
     const BigPage *bp=&m_big_pages[big_page];
     return bp;
