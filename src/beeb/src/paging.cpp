@@ -117,10 +117,12 @@ void PagingAccess::Update() const {
     ACCCON acccon=m_acccon;
     (*m_type->apply_dpo_fn)(&romsel,&acccon,m_dpo);
 
+    bool crtc_shadow;
     (*m_type->get_mem_big_page_tables_fn)(m_big_pages[0],
                                           m_big_pages[1],
                                           m_pc_big_pages,
                                           &m_io,
+                                          &crtc_shadow,
                                           m_romsel,
                                           m_acccon);
 

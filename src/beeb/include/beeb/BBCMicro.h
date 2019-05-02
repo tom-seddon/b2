@@ -222,6 +222,10 @@ public:
     };
 
     // w[i], r[i] and debug[i] point to the corresponding members of bp[i].
+    //
+    // These tables are SoA, rather than AoS like BigPage, as they get used
+    // all the time and so the 8-byte stride won't hurt - though it is
+    // probably marginal.
     struct MemoryBigPages {
         uint8_t *w[16]={};
         const uint8_t *r[16]={};
@@ -609,19 +613,12 @@ private:
     uint32_t m_dpo_mask=0;
     bool m_has_rtc=false;
     void (*m_handle_cpu_data_bus_fn)(BBCMicro *)=nullptr;
-    UpdateROMSELPagesFn m_update_romsel_pages_fn=nullptr;
-    UpdateACCCONPagesFn m_update_acccon_pages_fn=nullptr;
+//    UpdateROMSELPagesFn m_update_romsel_pages_fn=nullptr;
+//    UpdateACCCONPagesFn m_update_acccon_pages_fn=nullptr;
 
     // Memory
-    MemoryBigPages m_main_mem_big_pages={};
-
-    // B+ and later only - read/write pages that include the shadow
-    // screen RAM.
-    MemoryBigPages *m_shadow_mem_big_pages=nullptr;
-
-    // B+ and later only - points to the MemoryPages to use. Index
-    // using the page of the address of the last opcode fetch.
-    const MemoryBigPages **m_pc_big_pages=nullptr;//[16]
+    MemoryBigPages m_mem_big_pages[2]={};
+    const MemoryBigPages *m_pc_mem_big_pages[16];
 
     // [0] is for page FC, [1] for FD and [2] for FE.
     //
@@ -646,6 +643,9 @@ private:
     std::vector<ReadMMIOFn> m_rom_rmmio_fns;
     std::vector<void *> m_rom_mmio_fn_contexts;
     std::vector<uint8_t> m_rom_mmio_stretch;
+
+    // Whether memory-mapped I/O reads currently access ROM or not.
+    bool m_rom_mmio=false;
 
     uint8_t m_romsel_mask=0;
     uint8_t m_acccon_mask=0;
@@ -713,12 +713,13 @@ private:
     void SetTrace(std::shared_ptr<Trace> trace,uint32_t trace_flags);
 #endif
     void SetBigPages(MemoryBigPages *pages0,MemoryBigPages *pages1,uint8_t big_page_index,uint8_t num_big_pages,uint8_t mem_big_page_index);
-    static void UpdateBROMSELPages(BBCMicro *m);
-    static void UpdateBPlusACCCONPages(BBCMicro *m,const ACCCON *old);
-    static void UpdateBACCCONPages(BBCMicro *m,const ACCCON *old);
-    static void UpdateBPlusROMSELPages(BBCMicro *m);
-    static void UpdateMaster128ROMSELPages(BBCMicro *m);
-    static void UpdateMaster128ACCCONPages(BBCMicro *m,const ACCCON *old_);
+    void UpdatePaging();
+//    static void UpdateBROMSELPages(BBCMicro *m);
+//    static void UpdateBPlusACCCONPages(BBCMicro *m,const ACCCON *old);
+//    static void UpdateBACCCONPages(BBCMicro *m,const ACCCON *old);
+//    static void UpdateBPlusROMSELPages(BBCMicro *m);
+//    static void UpdateMaster128ROMSELPages(BBCMicro *m);
+//    static void UpdateMaster128ACCCONPages(BBCMicro *m,const ACCCON *old_);
     void InitSomeBigPages(uint8_t big_page_index,uint8_t num_big_pages,const uint8_t *r,uint8_t *w,const BigPageType *type);
     void InitShadowBigPages(uint8_t big_page_index,uint8_t num_big_pages,size_t ram_buffer_offset,const BigPageType *type);
     void InitSidewaysROMBigPages(uint8_t rom);
@@ -740,10 +741,10 @@ private:
     void HandleReadByteDebugFlags(uint8_t read,uint8_t flags);
     void HandleInterruptBreakpoints();
 #endif
-    static void HandleCPUDataBusMainRAMOnly(BBCMicro *m);
+//    static void HandleCPUDataBusMainRAMOnly(BBCMicro *m);
     static void HandleCPUDataBusWithShadowRAM(BBCMicro *m);
 #if BBCMICRO_DEBUGGER
-    static void HandleCPUDataBusMainRAMOnlyDebug(BBCMicro *m);
+//    static void HandleCPUDataBusMainRAMOnlyDebug(BBCMicro *m);
     static void HandleCPUDataBusWithShadowRAMDebug(BBCMicro *m);
     void UpdateDebugBigPages(MemoryBigPages *mem_big_pages);
     void UpdateDebugState();

@@ -50,6 +50,7 @@ static void GetMemBigPageTablesB(uint8_t *usr,
                                  uint8_t *mos,
                                  uint8_t *mos_pc_mem_big_pages,
                                  bool *io,
+                                 bool *crt_shadow,
                                  ROMSEL romsel,
                                  ACCCON acccon)
 {
@@ -78,6 +79,7 @@ static void GetMemBigPageTablesB(uint8_t *usr,
 
     memset(mos_pc_mem_big_pages,0,16);
     *io=true;
+    *crt_shadow=false;
 }
 
 static void ApplyDPOB(ROMSEL *romsel,ACCCON *acccon,uint32_t dpo) {
@@ -101,7 +103,11 @@ const BBCMicroType BBC_MICRO_TYPE_B={
      BBCMicroDebugPagingOverride_ROM),//dpo_mask
     GetBigPageTypesB(),
     &GetMemBigPageTablesB,//get_mem_big_page_tables_fn,
-    &ApplyDPOB,
+    &ApplyDPOB,//apply_dpo_fn
+    0x0f,//romsel_mask,
+    0x00,//acccon_mask,
+    (BBCMicroTypeFlag_CanDisplayTeletext3c00),//flags
+    {{0x00,0x1f},{0x40,0x7f},{0xc0,0xdf},},//sheila_cycle_stretch_regions
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -111,6 +117,7 @@ static void GetMemBigPageTablesBPlus(uint8_t *usr,
                                      uint8_t *mos,
                                      uint8_t *mos_pc_mem_big_pages,
                                      bool *io,
+                                     bool *crt_shadow,
                                      ROMSEL romsel,
                                      ACCCON acccon)
 {
@@ -172,6 +179,7 @@ static void GetMemBigPageTablesBPlus(uint8_t *usr,
 
     memcpy(mos+8,usr+8,8);
 
+    *crt_shadow=acccon.bplus_bits.shadow!=0;
     *io=true;
 }
 
@@ -210,7 +218,12 @@ const BBCMicroType BBC_MICRO_TYPE_B_PLUS={
      BBCMicroDebugPagingOverride_OverrideShadow),//dpo_mask
     GetBigPageTypesBPlus(),
     &GetMemBigPageTablesBPlus,//get_mem_big_page_tables_fn,
-    &ApplyDPOBPlus,
+    &ApplyDPOBPlus,//apply_dpo_fn
+    0x8f,//romsel_mask,
+    0x80,//acccon_mask,
+    (BBCMicroTypeFlag_CanDisplayTeletext3c00|
+     BBCMicroTypeFlag_HasShadowRAM),//flags
+    {{0x00,0x1f},{0x40,0x7f},{0xc0,0xdf},},//sheila_cycle_stretch_regions
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -220,10 +233,10 @@ static void GetMemBigPagesTablesMaster(uint8_t *usr,
                                        uint8_t *mos,
                                        uint8_t *mos_pc_mem_big_pages,
                                        bool *io,
+                                       bool *crt_shadow,
                                        ROMSEL romsel,
                                        ACCCON acccon)
 {
-
     // YXE  Usr  MOS
     // ---  ---  ---
     // 000   M    M
@@ -315,6 +328,7 @@ static void GetMemBigPagesTablesMaster(uint8_t *usr,
     memcpy(mos+8,usr+8,8);
 
     *io=acccon.m128_bits.tst==0;
+    *crt_shadow=acccon.m128_bits.d!=0;
 }
 
 static void ApplyDPOMaster(ROMSEL *romsel,ACCCON *acccon,uint32_t dpo) {
@@ -364,7 +378,12 @@ const BBCMicroType BBC_MICRO_TYPE_MASTER={
      BBCMicroDebugPagingOverride_OverrideOS),//dpo_mask
     GetBigPageTypesMaster(),
     &GetMemBigPagesTablesMaster,//get_mem_big_page_tables_fn,
-    &ApplyDPOMaster,
+    &ApplyDPOMaster,//apply_dpo_fn
+    0x8f,//romsel_mask,
+    0xff,//acccon_mask,
+    (BBCMicroTypeFlag_HasShadowRAM|
+     BBCMicroTypeFlag_HasRTC),//flags
+    {{0x00,0x1f},{0x28,0x2b},{0x40,0x7f},},//sheila_cycle_stretch_regions
 };
 
 //////////////////////////////////////////////////////////////////////////
