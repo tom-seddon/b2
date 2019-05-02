@@ -150,9 +150,9 @@ public:
         uint64_t start_ticks=GetCurrentTickCount();
 
         m_type=m_trace->GetBBCMicroType();
-        m_paging=PagingAccess(m_type,
-                              m_trace->GetInitialROMSEL(),
-                              m_trace->GetInitialACCCON());
+        m_romsel=m_trace->GetInitialROMSEL();
+        m_acccon=m_trace->GetInitialACCCON();
+        m_paging_dirty=true;
 
         if(m_trace->ForEachEvent(&PrintTrace,this)) {
             m_msgs.i.f(
@@ -206,7 +206,12 @@ private:
     uint64_t m_last_instruction_time=0;
     bool m_got_first_event_time=false;
     uint64_t m_first_event_time=0;
-    PagingAccess m_paging;
+    ROMSEL m_romsel={};
+    ACCCON m_acccon={};
+    bool m_paging_dirty=true;
+    uint8_t m_mem_big_pages[2][16]={};
+    uint8_t m_mos_pc_mem_big_pages[16]={};
+    bool m_io=true;
 
     std::atomic<uint64_t> m_num_events_handled{0};
     uint64_t m_num_events=0;
@@ -278,12 +283,35 @@ private:
         return c;
     }
 
-    char *AddAddress(char *c,const char *prefix,uint16_t pc,uint16_t value,const char *suffix) {
+    char *AddAddress(char *c,const char *prefix,uint16_t pc_,uint16_t value,const char *suffix) {
         while((*c=*prefix++)!=0) {
             ++c;
         }
 
-        const BigPageType *big_page_type=m_paging.GetBigPageTypeForAccess({pc},{value});
+        if(m_paging_dirty) {
+            bool crt_shadow;
+            (*m_type->get_mem_big_page_tables_fn)(m_mem_big_pages[0],
+                                                  m_mem_big_pages[1],
+                                                  m_mos_pc_mem_big_pages,
+                                                  &m_io,
+                                                  &crt_shadow,
+                                                  m_romsel,
+                                                  m_acccon);
+            m_paging_dirty=false;
+        }
+
+        //const BigPageType *big_page_type=m_paging.GetBigPageTypeForAccess({pc},{value});
+        M6502Word addr={value};
+
+        const BigPageType *big_page_type;
+        if(addr.b.h>=0xfc&&addr.b.h<=0xfe&&m_io) {
+            big_page_type=&IO_BIG_PAGE_TYPE;
+        } else {
+            M6502Word pc={pc_};
+            uint8_t big_page=m_mem_big_pages[m_mos_pc_mem_big_pages[pc.p.p]][addr.p.p];
+            ASSERT(big_page<NUM_BIG_PAGES);
+            big_page_type=m_type->big_page_types[big_page];
+        }
 
         *c++=big_page_type->code;
         *c++='.';
@@ -621,13 +649,15 @@ private:
     void HandleWriteROMSEL(const TraceEvent *e) {
         auto ev=(const Trace::WriteROMSELEvent *)e->event;
 
-        m_paging.SetROMSEL(ev->romsel);
+        m_romsel=ev->romsel;
+        m_paging_dirty=true;
     }
 
     void HandleWriteACCCON(const TraceEvent *e) {
         auto ev=(const Trace::WriteACCCONEvent *)e->event;
 
-        m_paging.SetACCCON(ev->acccon);
+        m_acccon=ev->acccon;
+        m_paging_dirty=true;
     }
 
     static bool PrintTrace(Trace *t,const TraceEvent *e,void *context) {

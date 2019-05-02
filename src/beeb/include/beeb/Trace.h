@@ -37,7 +37,6 @@
 
 #include <shared/log.h>
 #include <string>
-#include "paging.h"
 #include "type.h"
 
 struct M6502Config;
