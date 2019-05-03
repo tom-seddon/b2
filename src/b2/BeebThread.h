@@ -700,6 +700,43 @@ public:
     };
 #endif
 
+#if BBCMICRO_DEBUGGER
+    class DebugSetAddressDebugFlags:
+    public Message
+    {
+    public:
+        DebugSetAddressDebugFlags(M6502Word addr,uint8_t addr_flags);
+
+        bool ThreadPrepare(std::shared_ptr<Message> *ptr,
+                           CompletionFun *completion_fun,
+                           BeebThread *beeb_thread,
+                           ThreadState *ts) override;
+    protected:
+    private:
+        const M6502Word m_addr={};
+        const uint8_t m_addr_flags=0;
+    };
+#endif
+
+#if BBCMICRO_DEBUGGER
+    class DebugSetByteDebugFlags:
+    public Message
+    {
+    public:
+        DebugSetByteDebugFlags(uint8_t big_page_index,uint16_t offset,uint8_t byte_flags);
+
+        bool ThreadPrepare(std::shared_ptr<Message> *ptr,
+                           CompletionFun *completion_fun,
+                           BeebThread *beeb_thread,
+                           ThreadState *ts) override;
+    protected:
+    private:
+        const uint8_t m_big_page_index=0;
+        const uint8_t m_offset=0;
+        const uint8_t m_byte_flags=0;
+    };
+#endif
+
     class CreateTimelineVideoMessage:
         public Message
     {
@@ -828,6 +865,25 @@ public:
     bool IsCopying() const;
 
 #if BBCMICRO_DEBUGGER
+    struct DebugBigPage {
+        // Pointer to the actual BigPage this refers to.
+        const BBCMicro::BigPage *bp=nullptr;
+
+        // points to this->ram_buffer, or NULL.
+        const uint8_t *r=nullptr;
+
+        // set if writeable - use one of the thread messages to actually do
+        // the writing.
+        bool writeable=false;
+
+        // points to this->byte_flags_buffer, or NULL.
+        const uint8_t *byte_flags=nullptr;
+
+        // The address flags are per-address, not per big page - it's just
+        // convenient to have them as part of the same struct.
+        const uint8_t *addr_flags=nullptr;
+    };
+
     // It's safe to call any of the const BBCMicro public member
     // functions on the result as long as the lock is held.
     const BBCMicro *LockBeeb(std::unique_lock<Mutex> *lock) const;
@@ -835,6 +891,17 @@ public:
     // As well as the LockBeeb guarantees, it's also safe to call the
     // non-const DebugXXX functions.
     BBCMicro *LockMutableBeeb(std::unique_lock<Mutex> *lock);
+
+    // clear out debug big pages - happens just before the debugger UI is
+    // updated.
+    void ResetDebugBigPages();
+
+    // pass {} for PC if not interested.
+    const DebugBigPage *GetDebugBigPageForAddress(M6502Word addr,
+                                                  M6502Word pc,
+                                                  uint32_t dpo) const;
+
+    void InvalidateDebugBigPageForAddress(M6502Word addr);
 #endif
 
     // Get trace stats, or nullptr if there's no trace.
@@ -844,9 +911,6 @@ public:
 
     // Get the speed scale.
     float GetSpeedScale() const;
-
-//    // Get pause state as set by SetPaused.
-//    bool IsPaused() const;
 
     // Get the disc image pointer for the given drive, using the given
     // lock object to take a lock on the disc access mutex.
@@ -1005,6 +1069,22 @@ private:
 
     //
     std::shared_ptr<MessageList> m_message_list;
+
+#if BBCMICRO_DEBUGGER
+    struct DebugBigPageFull:
+    DebugBigPage
+    {
+        uint8_t ram_buffer[BBCMicro::BIG_PAGE_SIZE_BYTES]={};
+        uint8_t addr_flags_buffer[BBCMicro::BIG_PAGE_SIZE_BYTES]={};
+        uint8_t byte_flags_buffer[BBCMicro::BIG_PAGE_SIZE_BYTES]={};
+
+        std::atomic<bool> invalid;
+    };
+
+    // this is a fair amount of memory (in Beeb terms...), but there's only one
+    // per window, so...
+    mutable DebugBigPageFull m_debug_big_pages[16]={};
+#endif
 
 #if BBCMICRO_TRACE
     static bool ThreadStartTraceOnCondition(const BBCMicro *beeb,const M6502 *cpu,void *context);

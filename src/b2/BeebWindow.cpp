@@ -563,6 +563,8 @@ bool BeebWindow::DoImGui(uint64_t ticks) {
 
 #if BBCMICRO_DEBUGGER
     m_got_debug_halted=false;
+
+    m_beeb_thread->ResetDebugBigPages();
 #endif
 
     for(const SDL_KeyboardEvent &event:m_sdl_keyboard_events) {
@@ -2596,7 +2598,7 @@ void BeebWindow::DebugStepOver() {
 
         uint8_t flags=m->DebugGetByteDebugFlags(big_page,next_pc.p.o);
         flags|=BBCMicroByteDebugFlag_TempBreakExecute;
-        m->DebugSetByteDebugFlags(big_page,next_pc.p.o,flags);
+        m->DebugSetByteDebugFlags(big_page->index,next_pc.p.o,flags);
 
         m->DebugRun();
         m_beeb_thread->Send(std::make_shared<BeebThread::DebugWakeUpMessage>());

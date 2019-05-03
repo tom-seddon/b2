@@ -1806,12 +1806,14 @@ uint8_t BBCMicro::DebugGetByteDebugFlags(const BigPage *big_page,
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void BBCMicro::DebugSetByteDebugFlags(const BigPage *big_page,
+void BBCMicro::DebugSetByteDebugFlags(uint8_t big_page_index,
                                       uint32_t offset,
                                       uint8_t flags)
 {
+    ASSERT(big_page_index<NUM_BIG_PAGES);
     ASSERT(offset<BIG_PAGE_SIZE_BYTES);
 
+    BigPage *big_page=&m_big_pages[big_page_index];
     if(big_page->debug) {
         uint8_t *byte_flags=&big_page->debug[offset&BIG_PAGE_OFFSET_MASK];
 
@@ -1927,10 +1929,10 @@ void BBCMicro::DebugHalt(const char *fmt,...) {
 
         for(uint8_t *flags:m_debug->temp_execute_breakpoints) {
             // Not even sure this isn't UB or something.
-            ASSERT((flags>=(void *)m_debug->big_pages_debug_flags&&
-                    flags<(void *)((char *)m_debug->big_pages_debug_flags+sizeof m_debug->big_pages_debug_flags))||
-                   (flags>=(void *)m_debug->address_debug_flags&&
-                    flags<(void *)((char *)m_debug->address_debug_flags+sizeof m_debug->address_debug_flags)));
+            ASSERT(((uintptr_t)flags>=(uintptr_t)m_debug->big_pages_debug_flags&&
+                    (uintptr_t)flags<(uintptr_t)((char *)m_debug->big_pages_debug_flags+sizeof m_debug->big_pages_debug_flags))||
+                   ((uintptr_t)flags>=(uintptr_t)m_debug->address_debug_flags&&
+                    (uintptr_t)flags<(uintptr_t)((char *)m_debug->address_debug_flags+sizeof m_debug->address_debug_flags)));
 
             // Doesn't matter.
             //ASSERT(*flags&BBCMicroByteDebugFlag_TempBreakExecute);

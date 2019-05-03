@@ -389,7 +389,7 @@ public:
 
     // Get/set per-byte debug flags for one byte.
     uint8_t DebugGetByteDebugFlags(const BigPage *big_page,uint32_t offset) const;
-    void DebugSetByteDebugFlags(const BigPage *big_page,uint32_t offset,uint8_t flags);
+    void DebugSetByteDebugFlags(uint8_t big_page_index,uint32_t offset,uint8_t flags);
 
     // Returns pointer to per-address debug flags for the entire given mem big
     // page.

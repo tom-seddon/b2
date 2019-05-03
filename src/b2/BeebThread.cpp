@@ -1407,6 +1407,61 @@ void BeebThread::DebugAsyncCallMessage::ThreadHandle(BeebThread *beeb_thread,
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+BeebThread::DebugSetAddressDebugFlags::DebugSetAddressDebugFlags(M6502Word addr,uint8_t addr_flags):
+m_addr(addr),
+m_addr_flags(addr_flags)
+{
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool BeebThread::DebugSetAddressDebugFlags::ThreadPrepare(std::shared_ptr<Message> *ptr,
+                                                          CompletionFun *completion_fun,
+                                                          BeebThread *beeb_thread,
+                                                          ThreadState *ts)
+{
+    (void)completion_fun;
+
+    beeb_thread->ResetDebugBigPages();//could do a better job than this.
+
+    ts->beeb->DebugSetAddressDebugFlags(m_addr,m_addr_flags);
+
+    ptr->reset();
+    return true;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+BeebThread::DebugSetByteDebugFlags::DebugSetByteDebugFlags(uint8_t big_page_index,uint16_t offset,uint8_t byte_flags):
+m_big_page_index(big_page_index),
+m_offset(offset),
+m_byte_flags(byte_flags)
+{
+    ASSERT(m_big_page_index<NUM_BIG_PAGES);
+    ASSERT(offset<BBCMicro::BIG_PAGE_SIZE_BYTES);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool BeebThread::DebugSetByteDebugFlags::ThreadPrepare(std::shared_ptr<Message> *ptr,
+                   CompletionFun *completion_fun,
+                   BeebThread *beeb_thread,
+                   ThreadState *ts)
+{
+    beeb_thread->ResetDebugBigPages();//could do a better job than this.
+
+    ts->beeb->DebugSetByteDebugFlags(m_big_page_index,m_offset,m_byte_flags);
+
+    ptr->reset();
+    return true;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 BeebThread::CreateTimelineVideoMessage::CreateTimelineVideoMessage(std::shared_ptr<const BeebState> state,
                                                                    std::unique_ptr<VideoWriter> video_writer):
     m_state(std::move(state)),
@@ -1691,6 +1746,76 @@ BBCMicro *BeebThread::LockMutableBeeb(std::unique_lock<Mutex> *lock) {
     *lock=std::unique_lock<Mutex>(m_mutex);
 
     return m_thread_state->beeb;
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_DEBUGGER
+void BeebThread::ResetDebugBigPages() {
+    for(DebugBigPageFull &dbp:m_debug_big_pages) {
+        dbp.invalid=true;
+    }
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_DEBUGGER
+const BeebThread::DebugBigPage *BeebThread::GetDebugBigPageForAddress(M6502Word addr,
+                                                                      M6502Word pc,
+                                                                      uint32_t dpo) const
+{
+    DebugBigPageFull *dbp=&m_debug_big_pages[addr.p.p];
+
+    if(!dbp->bp||dbp->invalid) {
+        std::unique_lock<Mutex> lock;
+        const BBCMicro *m=this->LockBeeb(&lock);
+
+        dbp->bp=m->DebugGetBigPageForAddress(addr,dpo);
+        ASSERT(dbp->bp);
+        dbp->invalid=false;
+
+        if(dbp->bp->r) {
+            memcpy(dbp->ram_buffer,dbp->bp->r,BBCMicro::BIG_PAGE_SIZE_BYTES);
+            dbp->r=dbp->ram_buffer;
+        } else {
+            dbp->r=nullptr;
+        }
+
+        if(dbp->bp->w&&dbp->bp->r) {
+            dbp->writeable=true;
+        } else {
+            dbp->writeable=false;
+        }
+
+        if(dbp->bp->debug) {
+            memcpy(dbp->byte_flags_buffer,dbp->bp->debug,BBCMicro::BIG_PAGE_SIZE_BYTES);
+            dbp->byte_flags=dbp->byte_flags_buffer;
+        } else {
+            dbp->byte_flags=nullptr;
+        }
+
+        if(const uint8_t *addr_flags=m->DebugGetAddressDebugFlagsForMemBigPage(addr.p.p)) {
+            memcpy(dbp->addr_flags_buffer,addr_flags,4096);
+            dbp->addr_flags=dbp->addr_flags_buffer;
+        } else {
+            dbp->addr_flags=nullptr;
+        }
+    }
+
+    return dbp;
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_DEBUGGER
+void BeebThread::InvalidateDebugBigPageForAddress(M6502Word addr) {
+    m_debug_big_pages[addr.p.p].bp=nullptr;
 }
 #endif
 
@@ -2217,6 +2342,8 @@ std::shared_ptr<BeebState> BeebThread::ThreadSaveState(ThreadState *ts) {
 
 void BeebThread::ThreadReplaceBeeb(ThreadState *ts,std::unique_ptr<BBCMicro> beeb,uint32_t flags) {
     ASSERT(!!beeb);
+
+    this->ResetDebugBigPages();
 
     std::shared_ptr<DiscImage> old_disc_images[NUM_DRIVES];
     {
