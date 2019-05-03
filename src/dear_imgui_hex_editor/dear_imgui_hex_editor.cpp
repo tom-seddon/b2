@@ -50,6 +50,9 @@ static const char HEX_CHARS_LC[]="0123456789abcdef";
 static const char OPTIONS_POPUP_NAME[]="hex_editor_options";
 static const char CONTEXT_POPUP_NAME[]="hex_editor_context";
 
+static constexpr int NUM_SIZE_T_CHARS=sizeof(size_t)*2;
+static constexpr int NUM_PTR_CHARS=sizeof(void *)*2;
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
@@ -60,6 +63,21 @@ HexEditorHandler::HexEditorHandler() {
 //////////////////////////////////////////////////////////////////////////
 
 HexEditorHandler::~HexEditorHandler() {
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void HexEditorHandler::GetAddressText(char *text,
+                                      size_t text_size,
+                                      size_t offset,
+                                      bool upper_case)
+{
+    if(upper_case) {
+        snprintf(text,text_size,"%0.*zX",NUM_SIZE_T_CHARS,offset);
+    } else {
+        snprintf(text,text_size,"%0.*zx",NUM_SIZE_T_CHARS,offset);
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -80,6 +98,13 @@ void HexEditorHandler::DoContextPopupExtraGui(bool hex,size_t offset) {
 
 void HexEditorHandler::DebugPrint(const char *fmt,...) {
     (void)fmt;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+int HexEditorHandler::GetNumAddressChars() {
+    return NUM_SIZE_T_CHARS;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -128,11 +153,19 @@ size_t HexEditorHandlerWithBufferData::GetSize() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-uintptr_t HexEditorHandlerWithBufferData::GetBaseAddress() {
+void HexEditorHandlerWithBufferData::GetAddressText(char *text,
+                                                    size_t text_size,
+                                                    size_t offset,
+                                                    bool upper_case)
+{
     if(m_show_address) {
-        return (uintptr_t)m_read_buffer;
+        if(upper_case) {
+            snprintf(text,text_size,"%0.*" PRIXPTR,NUM_PTR_CHARS,(uintptr_t)(m_read_buffer+offset));
+        } else {
+            snprintf(text,text_size,"%0.*" PRIxPTR,NUM_PTR_CHARS,(uintptr_t)(m_read_buffer+offset));
+        }
     } else {
-        return 0;
+        this->HexEditorHandler::GetAddressText(text,text_size,offset,upper_case);
     }
 }
 
@@ -141,6 +174,17 @@ uintptr_t HexEditorHandlerWithBufferData::GetBaseAddress() {
 
 void HexEditorHandlerWithBufferData::DoOptionsPopupExtraGui() {
     ImGui::Checkbox("Show address",&m_show_address);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+int HexEditorHandlerWithBufferData::GetNumAddressChars() {
+    if(m_show_address) {
+        return NUM_PTR_CHARS;
+    } else {
+        return this->HexEditorHandler::GetNumAddressChars();
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -224,15 +268,13 @@ void HexEditor::DoImGui() {
 
                 first_visible_row=clipper.DisplayStart;
 
-                uintptr_t base_address=m_handler->GetBaseAddress();
-
-                char fmt[100];
-                snprintf(fmt,sizeof fmt,"%%0*%s:",this->upper_case?PRIXPTR:PRIxPTR);
-
                 for(int line_index=clipper.DisplayStart;line_index<clipper.DisplayEnd;++line_index) {
                     size_t line_begin_offset=(size_t)line_index*this->num_columns;
 
-                    ImGui::Text(fmt,m_metrics.num_addr_digits,base_address+line_begin_offset);
+                    char addr_text[100];
+                    m_handler->GetAddressText(addr_text,sizeof addr_text,line_begin_offset,this->upper_case);
+
+                    ImGui::Text("%.*s",m_metrics.num_addr_chars,addr_text);
 
                     size_t line_end_offset=(std::min)(line_begin_offset+this->num_columns,data_size);
 
@@ -278,7 +320,7 @@ void HexEditor::DoImGui() {
 
     {
         ImGui::PushID("address");
-        ImGui::PushItemWidth((m_metrics.num_addr_digits+2)*m_metrics.glyph_width);
+        ImGui::PushItemWidth((m_metrics.num_addr_chars+2)*m_metrics.glyph_width);
         int flags=ImGuiInputTextFlags_CharsHexadecimal|ImGuiInputTextFlags_EnterReturnsTrue;
         if(ImGui::InputText("",m_new_offset_input_buffer,sizeof m_new_offset_input_buffer,flags)) {
             char *ep;
@@ -370,19 +412,12 @@ static float GetHalf(float a,float b) {
 void HexEditor::GetMetrics(Metrics *metrics,const ImGuiStyle &style) {
     (void)style;
 
-    metrics->num_addr_digits=0;
-    {
-        uintptr_t max=m_handler->GetBaseAddress()+(m_handler->GetSize()-1);
-        while(max!=0) {
-            ++metrics->num_addr_digits;
-            max>>=4;
-        }
-    }
+    metrics->num_addr_chars=m_handler->GetNumAddressChars();
 
     metrics->line_height=ImGui::GetTextLineHeight();
     metrics->glyph_width=ImGui::CalcTextSize("F").x+1;
 
-    metrics->hex_left_x=(metrics->num_addr_digits+2)*metrics->glyph_width;
+    metrics->hex_left_x=(metrics->num_addr_chars+2)*metrics->glyph_width;
     metrics->hex_column_width=2.5f*metrics->glyph_width;
 
     metrics->ascii_left_x=metrics->hex_left_x+this->num_columns*metrics->hex_column_width+2.f*metrics->glyph_width;

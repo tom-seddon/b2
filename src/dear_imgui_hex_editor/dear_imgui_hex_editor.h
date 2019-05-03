@@ -60,7 +60,12 @@ public:
     virtual void WriteByte(size_t offset,uint8_t value)=0;
     virtual size_t GetSize()=0;
 
-    virtual uintptr_t GetBaseAddress()=0;
+    // Get address text, for use in address column. text/text_size, as per
+    // snprintf; offset is offset of line; upper_case is the value of the
+    // upper case tick box.
+    //
+    // Default impl is size_t, in hex.
+    virtual void GetAddressText(char *text,size_t text_size,size_t offset,bool upper_case);
 
     // default impl does nothing.
     virtual void DoOptionsPopupExtraGui();
@@ -74,6 +79,11 @@ public:
 
     // default impl does nothing.
     virtual void DebugPrint(const char *fmt,...) PRINTF_LIKE(2,3);
+
+    // Get number of chars to reserve for address column.
+    //
+    // Default impl is enough chars for any size_t, in hex.
+    virtual int GetNumAddressChars();
 protected:
 private:
 };
@@ -91,8 +101,9 @@ public:
     void ReadByte(HexEditorByte *byte,size_t offset) override;
     void WriteByte(size_t offset,uint8_t value) override;
     size_t GetSize() override;
-    uintptr_t GetBaseAddress() override;
+    void GetAddressText(char *text,size_t text_size,size_t offset,bool upper_case) override;
     void DoOptionsPopupExtraGui() override;
+    int GetNumAddressChars() override;
 protected:
 private:
     const uint8_t *m_read_buffer;
@@ -123,7 +134,7 @@ private:
     static const size_t INVALID_OFFSET=~(size_t)0;
 
     struct Metrics {
-        int num_addr_digits=0;
+        int num_addr_chars=0;
         float line_height=0.f;
         float glyph_width=0.f;
         float hex_left_x=0.f;

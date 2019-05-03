@@ -603,10 +603,6 @@ private:
             return 65536;
         }
 
-        uintptr_t GetBaseAddress() override {
-            return 0;
-        }
-
         void DebugPrint(const char *fmt,...) override {
             va_list v;
 
@@ -619,6 +615,26 @@ private:
             m_window->DoByteDebugGui({(uint16_t)offset});
             ImGui::Separator();
             this->HexEditorHandler::DoContextPopupExtraGui(hex,offset);
+        }
+
+        void GetAddressText(char *text,
+                            size_t text_size,
+                            size_t offset,
+                            bool upper_case) override
+        {
+            const BeebThread::DebugBigPage *dbp=m_window->m_beeb_thread->GetDebugBigPageForAddress({(uint16_t)offset},
+                                                                                                   {},
+                                                                                                   m_window->m_dpo);
+
+            snprintf(text,
+                     text_size,
+                     upper_case?"%c.%04X":"%c.%04x",
+                     dbp->bp->type->code,
+                     (unsigned)offset);
+        }
+
+        int GetNumAddressChars() override {
+            return 6;
         }
     protected:
     private:
@@ -861,7 +877,8 @@ public:
 //                prefix[0]=0;
 //            }
 
-            ImGui::Text("%04x",line_addr.w);
+            const BeebThread::DebugBigPage *dbp=m_beeb_thread->GetDebugBigPageForAddress(line_addr,{},m_dpo);
+            ImGui::Text("%c.%04x",dbp->bp->type->code,line_addr.w);
 
             ImGui::SameLine();
 
