@@ -376,10 +376,11 @@ public:
     const CRTC *DebugGetCRTC() const;
     const ExtMem *DebugGetExtMem() const;
     const VideoULA *DebugGetVideoULA() const;
-    const AddressableLatch DebugGetAddressableLatch() const;
+    AddressableLatch DebugGetAddressableLatch() const;
     const R6522 *DebugGetSystemVIA() const;
     const R6522 *DebugGetUserVIA() const;
     const SN76489 *DebugGetSN76489() const;
+    void DebugGetPaging(ROMSEL *romsel,ACCCON *acccon) const;
 
     //uint16_t DebugGetFlatPage(uint8_t page) const;
 

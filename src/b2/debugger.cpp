@@ -328,16 +328,16 @@ void DebugUI::DoByteDebugGui(M6502Word addr) {
         ImGui::Separator();
 
         char byte_str[10];
-        snprintf(byte_str,sizeof byte_str,"%c.%04x",dbp->bp->type->code,addr.w);
+        snprintf(byte_str,sizeof byte_str,"%c.%04x",dbp->big_page_type->code,addr.w);
 
         ImGui::Text("Byte: %s (%s)",
                     byte_str,
-                    dbp->bp->type->description.c_str());
+                    dbp->big_page_type->description.c_str());
 
         if(dbp->byte_flags) {
             uint8_t byte_flags=dbp->byte_flags[addr.p.o];
             if(this->DoDebugByteFlagsGui(byte_str,&byte_flags)) {
-                m_beeb_thread->Send(std::make_shared<BeebThread::DebugSetByteDebugFlags>(dbp->bp->index,
+                m_beeb_thread->Send(std::make_shared<BeebThread::DebugSetByteDebugFlags>(dbp->big_page_index,
                                                                                          (uint16_t)addr.p.o,
                                                                                          byte_flags));
 //                std::unique_lock<Mutex> lock;
@@ -629,7 +629,7 @@ private:
             snprintf(text,
                      text_size,
                      upper_case?"%c.%04X":"%c.%04x",
-                     dbp->bp->type->code,
+                     dbp->big_page_type->code,
                      (unsigned)offset);
         }
 
@@ -878,7 +878,7 @@ public:
 //            }
 
             const BeebThread::DebugBigPage *dbp=m_beeb_thread->GetDebugBigPageForAddress(line_addr,{},m_dpo);
-            ImGui::Text("%c.%04x",dbp->bp->type->code,line_addr.w);
+            ImGui::Text("%c.%04x",dbp->big_page_type->code,line_addr.w);
 
             ImGui::SameLine();
 
@@ -1811,6 +1811,117 @@ private:
 
 std::unique_ptr<SettingsUI> CreateSN76489DebugWindow(BeebWindow *beeb_window) {
     return CreateDebugUI<SN76489DebugWindow>(beeb_window);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+static const uint8_t ALL_USER_MEM_BIG_PAGES[16]={};
+
+class PagingDebugWindow:
+public DebugUI
+{
+public:
+    void DoImGui() override {
+        this->DoDebugPageOverrideImGui();
+
+        ROMSEL romsel;
+        ACCCON acccon;
+        const BBCMicroType *type;
+        {
+            std::unique_lock<Mutex> lock;
+            const BBCMicro *m=m_beeb_thread->LockBeeb(&lock);
+            m->DebugGetPaging(&romsel,&acccon);
+            type=m->GetType();
+        }
+
+        (*type->apply_dpo_fn)(&romsel,&acccon,m_dpo);
+
+        MemoryBigPageTables tables;
+        bool io,crt_shadow;
+        (*type->get_mem_big_page_tables_fn)(&tables,&io,&crt_shadow,romsel,acccon);
+
+        bool all_user=memcmp(tables.pc_mem_big_pages_set,ALL_USER_MEM_BIG_PAGES,16)==0;
+
+        std::string mos_io_type_description=MOS_BIG_PAGE_TYPE.description+" + "+IO_BIG_PAGE_TYPE.description;
+
+        ImGui::Separator();
+
+        ImGui::Columns(3,"paging_columns");
+
+        ImGui::Text("Range");
+        ImGui::NextColumn();
+        ImGui::Text("User code sees...");
+        ImGui::NextColumn();
+        ImGui::Text("MOS code sees...");
+        ImGui::NextColumn();
+
+        ImGui::Separator();
+
+        for(size_t i=0;i<16;++i) {
+            ImGui::Text("%04zx - %04zx",i<<12,i<<12|0xfff);
+            ImGui::NextColumn();
+
+            this->DoTypeColumn(type,tables,io,0,i);
+            ImGui::NextColumn();
+
+            if(all_user) {
+                ImGui::TextUnformatted("N/A");
+            } else {
+                this->DoTypeColumn(type,tables,io,1,i);
+            }
+            ImGui::NextColumn();
+        }
+
+        ImGui::Columns(1);
+
+        ImGui::Separator();
+
+        ImGui::Text("Display memory: %s",crt_shadow?SHADOW_RAM_BIG_PAGE_TYPE.description.c_str():MAIN_RAM_BIG_PAGE_TYPE.description.c_str());
+
+        if(all_user) {
+            ImGui::TextUnformatted("Paging setup does not distinguish between user code and MOS code");
+        } else {
+            std::string regions;
+
+            size_t a=0;
+            while(a<16) {
+                if(tables.pc_mem_big_pages_set[a]) {
+                    size_t b=a;
+                    while(b<16&&tables.pc_mem_big_pages_set[b]) {
+                        ++b;
+                    }
+
+                    if(!regions.empty()) {
+                        regions+="; ";
+                    }
+
+                    regions+=strprintf("$%04zx - $%04zx",a<<12,(b<<12)-1);
+                    a=b;
+                } else {
+                    ++a;
+                }
+            }
+
+            ImGui::Text("MOS code regions: %s",regions.c_str());
+        }
+    }
+protected:
+private:
+    void DoTypeColumn(const BBCMicroType *type,const MemoryBigPageTables &tables,bool io,size_t index,size_t mem_big_page_index) {
+        uint8_t big_page_index=tables.mem_big_pages[index][mem_big_page_index];
+        const BigPageType *bp_type=type->big_page_types[big_page_index];
+
+        if(big_page_index==MOS_BIG_PAGE_INDEX+3&&io) {
+            ImGui::Text("%s + %s",MOS_BIG_PAGE_TYPE.description.c_str(),IO_BIG_PAGE_TYPE.description.c_str());
+        } else {
+            ImGui::TextUnformatted(bp_type->description.c_str());
+        }
+    }
+};
+
+std::unique_ptr<SettingsUI> CreatePagingDebugWindow(BeebWindow *beeb_window) {
+    return CreateDebugUI<PagingDebugWindow>(beeb_window);
 }
 
 //////////////////////////////////////////////////////////////////////////

@@ -54,6 +54,7 @@ EPN(NVRAMDebugger)
 EPN(SavedStates)
 EPN(BeebLink)
 EPN(SN76489Debugger)
+EPN(PagingDebugger)
 
 // must be last
 EQPN(MaxValue)

@@ -111,6 +111,7 @@ static void GetMemBigPageTablesB(MemoryBigPageTables *tables,
     tables->mem_big_pages[0][0xe]=MOS_BIG_PAGE_INDEX+2;
     tables->mem_big_pages[0][0xf]=MOS_BIG_PAGE_INDEX+3;
 
+    memset(tables->mem_big_pages[1],0,16);
     memset(tables->pc_mem_big_pages_set,0,16);
     *io=true;
     *crt_shadow=false;

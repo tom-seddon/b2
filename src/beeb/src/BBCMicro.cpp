@@ -1716,7 +1716,7 @@ const VideoULA *BBCMicro::DebugGetVideoULA() const {
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_DEBUGGER
-const BBCMicro::AddressableLatch BBCMicro::DebugGetAddressableLatch() const {
+BBCMicro::AddressableLatch BBCMicro::DebugGetAddressableLatch() const {
     return m_state.addressable_latch;
 }
 #endif
@@ -1745,6 +1745,16 @@ const R6522 *BBCMicro::DebugGetUserVIA() const {
 #if BBCMICRO_DEBUGGER
 const SN76489 *BBCMicro::DebugGetSN76489() const {
     return &m_state.sn76489;
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_DEBUGGER
+void BBCMicro::DebugGetPaging(ROMSEL *romsel,ACCCON *acccon) const {
+    *romsel=m_state.romsel;
+    *acccon=m_state.acccon;
 }
 #endif
 

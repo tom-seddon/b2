@@ -1755,7 +1755,7 @@ BBCMicro *BeebThread::LockMutableBeeb(std::unique_lock<Mutex> *lock) {
 #if BBCMICRO_DEBUGGER
 void BeebThread::ResetDebugBigPages() {
     for(DebugBigPageFull &dbp:m_debug_big_pages) {
-        dbp.invalid=true;
+        dbp.valid=false;
     }
 }
 #endif
@@ -1770,29 +1770,31 @@ const BeebThread::DebugBigPage *BeebThread::GetDebugBigPageForAddress(M6502Word 
 {
     DebugBigPageFull *dbp=&m_debug_big_pages[addr.p.p];
 
-    if(!dbp->bp||dbp->invalid) {
+    if(!dbp->valid) {
         std::unique_lock<Mutex> lock;
         const BBCMicro *m=this->LockBeeb(&lock);
 
-        dbp->bp=m->DebugGetBigPageForAddress(addr,dpo);
-        ASSERT(dbp->bp);
-        dbp->invalid=false;
+        const BBCMicro::BigPage *bp=m->DebugGetBigPageForAddress(addr,dpo);
+        ASSERT(bp);
+        dbp->valid=true;
+        dbp->big_page_index=bp->index;
+        dbp->big_page_type=bp->type;
 
-        if(dbp->bp->r) {
-            memcpy(dbp->ram_buffer,dbp->bp->r,BBCMicro::BIG_PAGE_SIZE_BYTES);
+        if(bp->r) {
+            memcpy(dbp->ram_buffer,bp->r,BBCMicro::BIG_PAGE_SIZE_BYTES);
             dbp->r=dbp->ram_buffer;
         } else {
             dbp->r=nullptr;
         }
 
-        if(dbp->bp->w&&dbp->bp->r) {
+        if(bp->w&&bp->r) {
             dbp->writeable=true;
         } else {
             dbp->writeable=false;
         }
 
-        if(dbp->bp->debug) {
-            memcpy(dbp->byte_flags_buffer,dbp->bp->debug,BBCMicro::BIG_PAGE_SIZE_BYTES);
+        if(bp->debug) {
+            memcpy(dbp->byte_flags_buffer,bp->debug,BBCMicro::BIG_PAGE_SIZE_BYTES);
             dbp->byte_flags=dbp->byte_flags_buffer;
         } else {
             dbp->byte_flags=nullptr;
@@ -1815,7 +1817,7 @@ const BeebThread::DebugBigPage *BeebThread::GetDebugBigPageForAddress(M6502Word 
 
 #if BBCMICRO_DEBUGGER
 void BeebThread::InvalidateDebugBigPageForAddress(M6502Word addr) {
-    m_debug_big_pages[addr.p.p].bp=nullptr;
+    m_debug_big_pages[addr.p.p].valid=false;
 }
 #endif
 

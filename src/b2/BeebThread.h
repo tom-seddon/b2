@@ -866,8 +866,9 @@ public:
 
 #if BBCMICRO_DEBUGGER
     struct DebugBigPage {
-        // Pointer to the actual BigPage this refers to.
-        const BBCMicro::BigPage *bp=nullptr;
+        // The big page this refers to.
+        uint8_t big_page_index=0;
+        const BigPageType *big_page_type=nullptr;
 
         // points to this->ram_buffer, or NULL.
         const uint8_t *r=nullptr;
@@ -1078,7 +1079,7 @@ private:
         uint8_t addr_flags_buffer[BBCMicro::BIG_PAGE_SIZE_BYTES]={};
         uint8_t byte_flags_buffer[BBCMicro::BIG_PAGE_SIZE_BYTES]={};
 
-        std::atomic<bool> invalid;
+        std::atomic<bool> valid;
     };
 
     // this is a fair amount of memory (in Beeb terms...), but there's only one
