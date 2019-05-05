@@ -297,6 +297,7 @@ void ImGuiStuff::NewFrame(bool got_mouse_focus) {
         io.KeyCtrl=!!(m&KMOD_CTRL);
         io.KeyAlt=!!(m&KMOD_ALT);
         io.KeyShift=!!(m&KMOD_SHIFT);
+        io.KeySuper=!!(m&KMOD_GUI);
 
         {
             ImGuiMouseCursor cursor=ImGui::GetMouseCursor();
