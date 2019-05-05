@@ -91,7 +91,7 @@ public:
     }
 protected:
 private:
-    uint16_t m_addr={};
+    uint32_t m_addr={};
     uint32_t m_dpo=0;
     uint64_t m_count=0;
     HTTPServer *m_server=nullptr;

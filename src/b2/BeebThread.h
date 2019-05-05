@@ -732,7 +732,7 @@ public:
     protected:
     private:
         const uint8_t m_big_page_index=0;
-        const uint8_t m_offset=0;
+        const uint16_t m_offset=0;
         const uint8_t m_byte_flags=0;
     };
 #endif

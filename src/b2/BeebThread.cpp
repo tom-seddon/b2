@@ -1451,6 +1451,8 @@ bool BeebThread::DebugSetByteDebugFlags::ThreadPrepare(std::shared_ptr<Message> 
                    BeebThread *beeb_thread,
                    ThreadState *ts)
 {
+    (void)completion_fun;
+
     beeb_thread->ResetDebugBigPages();//could do a better job than this.
 
     ts->beeb->DebugSetByteDebugFlags(m_big_page_index,m_offset,m_byte_flags);

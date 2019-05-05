@@ -92,7 +92,7 @@ static constexpr uint8_t NUM_BIG_PAGES=MOS_BIG_PAGE_INDEX+NUM_MOS_BIG_PAGES;
 
 struct BigPageType {
     // Single char syntax for use when entering addresses in the debugger.
-    char code=0;
+    char code;
 
     // More elaborate description, printed in UI.
     std::string description;
