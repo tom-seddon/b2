@@ -359,15 +359,15 @@ void SAA5050::Byte(uint8_t value,uint8_t dispen) {
 
     output->fg=m_fg;
     output->bg=m_bg;
-    output->data0=data0;
-    output->data1=data1;
+    output->data0=(uint8_t)data0;
+    output->data1=(uint8_t)data1;
 
     ++output;
 
     output->fg=m_fg;
     output->bg=m_bg;
-    output->data0=data0>>6;
-    output->data1=data1>>6;
+    output->data0=(uint8_t)(data0>>6);
+    output->data1=(uint8_t)(data1>>6);
 
     m_write_index=(m_write_index+2)&7;
 }
