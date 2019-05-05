@@ -1654,6 +1654,27 @@ BeebThread::~BeebThread() {
 bool BeebThread::Start() {
     try {
         m_thread=std::thread(std::bind(&BeebThread::ThreadMain,this));
+
+        // Don't exit until the thread state is set up.
+        //
+        // I had a one-off crash due to the UI trying to do a LockBeeb
+        // before ThreadMain had got as far as setting up
+        // m_thread_state. ThreadMain could indeed take any amount of
+        // time to get to that point, and the mutex isn't locked for
+        // the whole period, so there's a potential race condition
+        // here.
+        //
+        // (The spin loop is OK, under the circumstances, but should
+        // replace this with some kind of unique_lock hand-off.)
+        for(;;) {
+            std::lock_guard<Mutex> lock(m_mutex);
+
+            if(m_thread_state) {
+                break;
+            }
+
+            SleepMS(1);
+        }
     } catch(const std::system_error &) {
         return false;
     }
