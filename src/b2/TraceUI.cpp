@@ -110,6 +110,7 @@ public:
         this->SetMFn(Trace::STRING_EVENT,&SaveTraceJob::HandleString);
         this->SetMFn(SN76489::WRITE_EVENT,&SaveTraceJob::HandleSN76489WriteEvent);
         this->SetMFn(R6522::IRQ_EVENT,&SaveTraceJob::HandleR6522IRQEvent);
+        this->SetMFn(Trace::BLANK_LINE_EVENT,&SaveTraceJob::HandleBlankLine);
 
         {
             TraceStats stats;
@@ -468,6 +469,10 @@ private:
         }
 
         m_output->EnsureBOL();
+    }
+
+    void HandleBlankLine(const TraceEvent *e) {
+        fputc('\n',m_f);
     }
 
     void HandleInstruction(const TraceEvent *e) {

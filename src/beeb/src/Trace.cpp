@@ -49,6 +49,7 @@ CHECK_SIZEOF(EventWithSizeHeader,4);
 //////////////////////////////////////////////////////////////////////////
 
 enum {
+    BLANK_LINE_EVENT_ID,
     STRING_EVENT_ID,
     DISCONTINUITY_EVENT_ID,
     WRITE_ROMSEL_EVENT_ID,
@@ -94,6 +95,7 @@ const std::string &TraceEventType::GetName() const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+const TraceEventType Trace::BLANK_LINE_EVENT("_blank_line",0,BLANK_LINE_EVENT_ID);
 const TraceEventType Trace::STRING_EVENT("_string",0,STRING_EVENT_ID);
 
 //////////////////////////////////////////////////////////////////////////
@@ -188,7 +190,11 @@ void *Trace::AllocEvent(const TraceEventType &type) {
 
     this->Check();
 
-    return h+1;
+    if(type.size>0) {
+        return h+1;
+    } else {
+        return nullptr;
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -206,6 +212,13 @@ void Trace::CancelEvent(const TraceEventType &type,void *data) {
     }
 
     this->Check();
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void Trace::AllocBlankLineEvent() {
+    this->AllocEventWithSize(BLANK_LINE_EVENT,0);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -509,6 +522,8 @@ void *Trace::Alloc(uint64_t time,size_t n) {
         memset(c,0,sizeof *c);
         c->capacity=size;
         c->initial_time=c->last_time=time;
+        c->initial_romsel=m_romsel;
+        c->initial_acccon=m_acccon;
 
         if(!m_head) {
             m_head=c;

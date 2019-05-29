@@ -201,6 +201,14 @@ CRTC::Output CRTC::Update(uint8_t fast_6845) {
     if(m_column==m_registers.values[0]) {
         TRACEF_IF(m_trace_scanlines,m_trace,"6845 - %u - end of scanline: raster: %u (R9=%u); row: %u (R4=%u); vsync_counter: %d; adj counter: %d",m_num_updates,m_raster,m_registers.values[9],m_row,m_registers.values[4],m_vsync_counter,m_adj_counter);
 
+#if BBCMICRO_TRACE
+        if(m_trace) {
+            if(m_trace_scanlines_separators) {
+                m_trace->AllocBlankLineEvent();
+            }
+        }
+#endif
+
         m_hdisp=true;
 
         if(m_raster==m_registers.values[9]) {
@@ -320,9 +328,13 @@ CRTC::Output CRTC::Update(uint8_t fast_6845) {
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_TRACE
-void CRTC::SetTrace(Trace *t,bool trace_scanlines) {
+void CRTC::SetTrace(Trace *t,
+                    bool trace_scanlines,
+                    bool trace_scanlines_separators)
+{
     m_trace=t;
     m_trace_scanlines=trace_scanlines;
+    m_trace_scanlines_separators=trace_scanlines_separators;
 }
 #endif
 

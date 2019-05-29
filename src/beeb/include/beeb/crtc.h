@@ -46,7 +46,9 @@ public:
     Output Update(uint8_t fast_6845);
 
 #if BBCMICRO_TRACE
-    void SetTrace(Trace *t,bool trace_scanlines);
+    void SetTrace(Trace *t,
+                  bool trace_scanlines,
+                  bool trace_scanlines_separators);
 #endif
 protected:
 private:
@@ -145,6 +147,7 @@ private:
 #if BBCMICRO_TRACE
     Trace *m_trace=nullptr;
     bool m_trace_scanlines=false;
+    bool m_trace_scanlines_separators=false;
 #endif
 
 #if BBCMICRO_DEBUGGER

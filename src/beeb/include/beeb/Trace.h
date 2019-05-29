@@ -110,6 +110,7 @@ public:
     };
 #include <shared/poppack.h>
 
+    static const TraceEventType BLANK_LINE_EVENT;
     static const TraceEventType STRING_EVENT;
     static const TraceEventType DISCONTINUITY_EVENT;
     static const TraceEventType WRITE_ROMSEL_EVENT;
@@ -136,12 +137,15 @@ public:
     // out each event's time field.
     void SetTime(const uint64_t *time_ptr);
 
-    // Allocate a new event with fixed-size data, and return a pointer
-    // to its data. The type is used to find its size.
+    // Allocate a new event with fixed-size data, returning a pointer
+    // to its data or nullptr if the data size is 0. (The type is used to find
+    // the data size.)
     void *AllocEvent(const TraceEventType &type);
 
     // TYPE must be the type of event the data was allocated for.
     void CancelEvent(const TraceEventType &type,void *data);
+
+    void AllocBlankLineEvent();
 
     // Inefficient convenience functions for low-frequency trace events.
     //
