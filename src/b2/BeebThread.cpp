@@ -1234,9 +1234,9 @@ bool BeebThread::StopCopyMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
 BeebThread::DebugSetByteMessage::DebugSetByteMessage(uint16_t addr,
                                                      uint32_t dpo,
                                                      uint8_t value):
-m_addr(addr),
-m_dpo(dpo),
-m_value(value)
+    m_addr(addr),
+    m_dpo(dpo),
+    m_value(value)
 {
 }
 #endif
@@ -1276,9 +1276,9 @@ void BeebThread::DebugSetByteMessage::ThreadHandle(BeebThread *beeb_thread,
 BeebThread::DebugSetBytesMessage::DebugSetBytesMessage(uint32_t addr,
                                                        uint32_t dpo,
                                                        std::vector<uint8_t> values):
-m_addr(addr),
-m_dpo(dpo),
-m_values(std::move(values))
+    m_addr(addr),
+    m_dpo(dpo),
+    m_values(std::move(values))
 {
 }
 #endif
@@ -1306,16 +1306,16 @@ void BeebThread::DebugSetBytesMessage::ThreadHandle(BeebThread *beeb_thread,
     (void)beeb_thread;
 
     ts->beeb->DebugSetBytes({(uint16_t)m_addr},m_dpo,m_values.data(),m_values.size());
-//
-//    M6502Word addr={(uint16_t)m_addr};
-//
-//    for(uint8_t value:m_values) {
-//        ts->beeb->DebugSetByte(
-//        const BBCMicro::BigPage *bp=ts->beeb->DebugGetBigPageForAddress(addr,m_dpo);
-//        bp->
-//        ts->beeb->DebugSetByte(addr,m_dpo,value);
-//        ++addr.w;
-//    }
+    //
+    //    M6502Word addr={(uint16_t)m_addr};
+    //
+    //    for(uint8_t value:m_values) {
+    //        ts->beeb->DebugSetByte(
+    //        const BBCMicro::BigPage *bp=ts->beeb->DebugGetBigPageForAddress(addr,m_dpo);
+    //        bp->
+    //        ts->beeb->DebugSetByte(addr,m_dpo,value);
+    //        ++addr.w;
+    //    }
 }
 #endif
 
@@ -1407,15 +1407,18 @@ void BeebThread::DebugAsyncCallMessage::ThreadHandle(BeebThread *beeb_thread,
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#if BBCMICRO_DEBUGGER
 BeebThread::DebugSetAddressDebugFlags::DebugSetAddressDebugFlags(M6502Word addr,uint8_t addr_flags):
-m_addr(addr),
-m_addr_flags(addr_flags)
+    m_addr(addr),
+    m_addr_flags(addr_flags)
 {
 }
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#if BBCMICRO_DEBUGGER
 bool BeebThread::DebugSetAddressDebugFlags::ThreadPrepare(std::shared_ptr<Message> *ptr,
                                                           CompletionFun *completion_fun,
                                                           BeebThread *beeb_thread,
@@ -1430,26 +1433,30 @@ bool BeebThread::DebugSetAddressDebugFlags::ThreadPrepare(std::shared_ptr<Messag
     ptr->reset();
     return true;
 }
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#if BBCMICRO_DEBUGGER
 BeebThread::DebugSetByteDebugFlags::DebugSetByteDebugFlags(uint8_t big_page_index,uint16_t offset,uint8_t byte_flags):
-m_big_page_index(big_page_index),
-m_offset(offset),
-m_byte_flags(byte_flags)
+    m_big_page_index(big_page_index),
+    m_offset(offset),
+    m_byte_flags(byte_flags)
 {
     ASSERT(m_big_page_index<NUM_BIG_PAGES);
     ASSERT(offset<BBCMicro::BIG_PAGE_SIZE_BYTES);
 }
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#if BBCMICRO_DEBUGGER
 bool BeebThread::DebugSetByteDebugFlags::ThreadPrepare(std::shared_ptr<Message> *ptr,
-                   CompletionFun *completion_fun,
-                   BeebThread *beeb_thread,
-                   ThreadState *ts)
+                                                       CompletionFun *completion_fun,
+                                                       BeebThread *beeb_thread,
+                                                       ThreadState *ts)
 {
     (void)completion_fun;
 
@@ -1460,6 +1467,7 @@ bool BeebThread::DebugSetByteDebugFlags::ThreadPrepare(std::shared_ptr<Message> 
     ptr->reset();
     return true;
 }
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -2232,28 +2240,28 @@ bool BeebThread::ThreadStartTraceOnCondition(const BBCMicro *beeb,
     auto ts=(ThreadState *)context;
 
     switch(ts->trace_state) {
-        case BeebThreadTraceState_None:
-            return false;
+    case BeebThreadTraceState_None:
+        return false;
 
-        case BeebThreadTraceState_Waiting:
-            switch(ts->trace_conditions.start) {
-                default:
-                    ASSERT(false);
-                    return false;
-
-                case BeebThreadStartTraceCondition_Instruction:
-                    // ugh.
-                    if(cpu->abus.w==ts->trace_conditions.start_address) {
-                        ts->beeb_thread->ThreadBeebStartTrace(ts);
-                        return false;
-                    }
-                    break;
-            }
-            break;
-
-        case BeebThreadTraceState_Tracing:
+    case BeebThreadTraceState_Waiting:
+        switch(ts->trace_conditions.start) {
+        default:
             ASSERT(false);
             return false;
+
+        case BeebThreadStartTraceCondition_Instruction:
+            // ugh.
+            if(cpu->abus.w==ts->trace_conditions.start_address) {
+                ts->beeb_thread->ThreadBeebStartTrace(ts);
+                return false;
+            }
+            break;
+        }
+        break;
+
+    case BeebThreadTraceState_Tracing:
+        ASSERT(false);
+        return false;
     }
 
     return true;
@@ -2269,33 +2277,33 @@ bool BeebThread::ThreadStopTraceOnCondition(const BBCMicro *beeb,const M6502 *cp
     auto ts=(BeebThread::ThreadState *)context;
 
     switch(ts->trace_state) {
-        case BeebThreadTraceState_None:
+    case BeebThreadTraceState_None:
+        return false;
+
+    case BeebThreadTraceState_Waiting:
+        break;
+
+    case BeebThreadTraceState_Tracing:
+        switch(ts->trace_conditions.stop) {
+        default:
+            ASSERT(false);
             return false;
 
-        case BeebThreadTraceState_Waiting:
-            break;
-
-        case BeebThreadTraceState_Tracing:
-            switch(ts->trace_conditions.stop) {
-                default:
-                    ASSERT(false);
-                    return false;
-
-                case BeebThreadStopTraceCondition_OSWORD0:
-                    if(cpu->pc.w==0xfff2&&cpu->a==0) {
-                        ts->beeb_thread->ThreadStopTrace(ts);
-                        return false;
-                    }
-                    break;
-
-                case BeebThreadStopTraceCondition_NumCycles:
-                    if(*ts->num_executed_2MHz_cycles-ts->trace_start_2MHz_cycles>=ts->trace_conditions.stop_num_cycles) {
-                        ts->beeb_thread->ThreadStopTrace(ts);
-                        return false;
-                    }
-                    break;
+        case BeebThreadStopTraceCondition_OSWORD0:
+            if(cpu->pc.w==0xfff2&&cpu->a==0) {
+                ts->beeb_thread->ThreadStopTrace(ts);
+                return false;
             }
             break;
+
+        case BeebThreadStopTraceCondition_NumCycles:
+            if(*ts->num_executed_2MHz_cycles-ts->trace_start_2MHz_cycles>=ts->trace_conditions.stop_num_cycles) {
+                ts->beeb_thread->ThreadStopTrace(ts);
+                return false;
+            }
+            break;
+        }
+        break;
     }
 
     return true;
@@ -2368,7 +2376,9 @@ std::shared_ptr<BeebState> BeebThread::ThreadSaveState(ThreadState *ts) {
 void BeebThread::ThreadReplaceBeeb(ThreadState *ts,std::unique_ptr<BBCMicro> beeb,uint32_t flags) {
     ASSERT(!!beeb);
 
+#if BBCMICRO_DEBUGGER
     this->ResetDebugBigPages();
+#endif
 
     std::shared_ptr<DiscImage> old_disc_images[NUM_DRIVES];
     {
@@ -2472,37 +2482,37 @@ void BeebThread::ThreadStartTrace(ThreadState *ts) {
     ts->trace_state=BeebThreadTraceState_Waiting;
 
     switch(ts->trace_conditions.start) {
-        default:
-            ASSERT(false);
-            // fall through
-        case BeebThreadStartTraceCondition_Immediate:
-            // Start now.
-            this->ThreadBeebStartTrace(ts);
-            break;
+    default:
+        ASSERT(false);
+        // fall through
+    case BeebThreadStartTraceCondition_Immediate:
+        // Start now.
+        this->ThreadBeebStartTrace(ts);
+        break;
 
-        case BeebThreadStartTraceCondition_NextKeypress:
-            // Wait for the key...
-            break;
+    case BeebThreadStartTraceCondition_NextKeypress:
+        // Wait for the key...
+        break;
 
-        case BeebThreadStartTraceCondition_Instruction:
-            ts->beeb->AddInstructionFn(&ThreadStartTraceOnCondition,ts);
-            break;
+    case BeebThreadStartTraceCondition_Instruction:
+        ts->beeb->AddInstructionFn(&ThreadStartTraceOnCondition,ts);
+        break;
     }
 
     //ts->beeb->SetInstructionTraceEventFn(nullptr,nullptr);
 
     switch(ts->trace_conditions.stop) {
-        default:
-            ASSERT(false);
-            // fall through
-        case BeebThreadStopTraceCondition_ByRequest:
-            // By request...
-            break;
+    default:
+        ASSERT(false);
+        // fall through
+    case BeebThreadStopTraceCondition_ByRequest:
+        // By request...
+        break;
 
-        case BeebThreadStopTraceCondition_OSWORD0:
-        case BeebThreadStopTraceCondition_NumCycles:
-            ts->beeb->AddInstructionFn(&ThreadStopTraceOnCondition,ts);
-            break;
+    case BeebThreadStopTraceCondition_OSWORD0:
+    case BeebThreadStopTraceCondition_NumCycles:
+        ts->beeb->AddInstructionFn(&ThreadStopTraceOnCondition,ts);
+        break;
     }
 
     m_trace_stats={};
@@ -2715,8 +2725,12 @@ void BeebThread::ThreadMain(void) {
         bool paused=false;
         if(!ts.beeb) {
             paused=true;
-        } else if(ts.beeb->DebugIsHalted()) {
-            paused=true;
+        } else {
+#if BBCMICRO_DEBUGGER
+            if(ts.beeb->DebugIsHalted()) {
+                paused=true;
+            }
+#endif
         }
 
         const char *what;

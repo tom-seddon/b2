@@ -121,7 +121,9 @@ private:
 
     void InitPalette(size_t palette,double fa);
     void InitPalette();
+#if VIDEO_TRACK_METADATA
     void AddMetadataMarkers(void *dest_pixels,size_t dest_pitch_bytes,bool add,uint8_t metadata_flag,uint32_t xor_value) const;
+#endif
 };
 
 //////////////////////////////////////////////////////////////////////////

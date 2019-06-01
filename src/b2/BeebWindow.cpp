@@ -38,6 +38,7 @@
 #include "DirectDiscImage.h"
 #include "SavedStatesUI.h"
 #include "BeebLinkUI.h"
+#include "SettingsUI.h"
 
 #ifdef _MSC_VER
 #include <crtdbg.h>

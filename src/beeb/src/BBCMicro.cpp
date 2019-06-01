@@ -256,8 +256,10 @@ void BBCMicro::UpdatePaging() {
 
             mbp->w[j]=bp->w;
             mbp->r[j]=bp->r;
+#if BBCMICRO_DEBUGGER
             mbp->debug[j]=bp->debug;
             mbp->bp[j]=bp;
+#endif
         }
     }
 
@@ -347,7 +349,9 @@ void BBCMicro::InitPaging() {
         bp->index=i;
     }
 
+#if BBCMICRO_DEBUGGER
     this->UpdateDebugState();
+#endif
 
     this->UpdatePaging();
 }
@@ -508,9 +512,11 @@ void BBCMicro::WriteROMSEL(void *m_,M6502Word a,uint8_t value) {
         m->UpdatePaging();
         //(*m->m_update_romsel_pages_fn)(m);
 
+#if BBCMICRO_TRACE
         if(m->m_trace) {
             m->m_trace->AllocWriteROMSELEvent(m->m_state.romsel);
         }
+#endif
     }
 }
 
@@ -535,9 +541,11 @@ void BBCMicro::WriteACCCON(void *m_,M6502Word a,uint8_t value) {
         m->m_state.acccon.value=value&m->m_acccon_mask;
         m->UpdatePaging();
 
+#if BBCMICRO_TRACE
         if(m->m_trace) {
             m->m_trace->AllocWriteACCCONEvent(m->m_state.acccon);
         }
+#endif
     }
 }
 
@@ -1007,6 +1015,8 @@ void BBCMicro::HandleCPUDataBusWithHacks(BBCMicro *m) {
 //////////////////////////////////////////////////////////////////////////
 
 void BBCMicro::CheckMemoryBigPages(const MemoryBigPages *mem_big_pages,bool non_null) {
+    (void)non_null;
+
     if(mem_big_pages) {
         for(size_t i=0;i<16;++i) {
             ASSERT(!!mem_big_pages->r[i]==non_null);
@@ -1199,10 +1209,13 @@ bool BBCMicro::Update(VideoDataUnit *video_unit,SoundDataUnit *sound_unit) {
             m_state.cursor_pattern=CURSOR_PATTERNS[m_state.video_ula.control.bits.cursor];
         }
 
+#if VIDEO_TRACK_METADATA
+        // TODO - can't remember why this is stored off like this...
         m_last_video_access_address=addr;
 
         video_unit->metadata.flags|=VideoDataUnitMetadataFlag_HasAddress;
         video_unit->metadata.address=m_last_video_access_address;
+#endif
 
         m_state.crtc_last_output=output;
     }
@@ -1779,6 +1792,7 @@ void BBCMicro::FinishAsyncCall(bool called) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#if BBCMICRO_DEBUGGER
 const BBCMicro::BigPage *BBCMicro::DebugGetBigPageForAddress(M6502Word addr,
                                                              uint32_t dpo) const
 {
@@ -1797,10 +1811,12 @@ const BBCMicro::BigPage *BBCMicro::DebugGetBigPageForAddress(M6502Word addr,
     const BigPage *bp=&m_big_pages[big_page];
     return bp;
 }
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#if BBCMICRO_DEBUGGER
 uint8_t BBCMicro::DebugGetByteDebugFlags(const BigPage *big_page,
                                          uint32_t offset) const
 {
@@ -1812,10 +1828,12 @@ uint8_t BBCMicro::DebugGetByteDebugFlags(const BigPage *big_page,
         return 0;
     }
 }
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#if BBCMICRO_DEBUGGER
 void BBCMicro::DebugSetByteDebugFlags(uint8_t big_page_index,
                                       uint32_t offset,
                                       uint8_t flags)
@@ -1834,10 +1852,12 @@ void BBCMicro::DebugSetByteDebugFlags(uint8_t big_page_index,
         }
     }
 }
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#if BBCMICRO_DEBUGGER
 const uint8_t *BBCMicro::DebugGetAddressDebugFlagsForMemBigPage(uint8_t mem_big_page) const {
     ASSERT(mem_big_page<16);
 
@@ -1847,10 +1867,12 @@ const uint8_t *BBCMicro::DebugGetAddressDebugFlagsForMemBigPage(uint8_t mem_big_
         return nullptr;
     }
 }
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#if BBCMICRO_DEBUGGER
 uint8_t BBCMicro::DebugGetAddressDebugFlags(M6502Word addr) const {
     if(m_debug) {
         return m_debug->address_debug_flags[addr.w];
@@ -1858,10 +1880,12 @@ uint8_t BBCMicro::DebugGetAddressDebugFlags(M6502Word addr) const {
         return 0;
     }
 }
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#if BBCMICRO_DEBUGGER
 void BBCMicro::DebugSetAddressDebugFlags(M6502Word addr,uint8_t flags) const {
     if(m_debug) {
         uint8_t *addr_flags=&m_debug->address_debug_flags[addr.w];
@@ -1873,10 +1897,12 @@ void BBCMicro::DebugSetAddressDebugFlags(M6502Word addr,uint8_t flags) const {
         }
     }
 }
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#if BBCMICRO_DEBUGGER
 void BBCMicro::DebugGetBytes(uint8_t *bytes,size_t num_bytes,M6502Word addr,uint32_t dpo) {
     // Not currently very clever.
     for(size_t i=0;i<num_bytes;++i) {
@@ -1891,10 +1917,12 @@ void BBCMicro::DebugGetBytes(uint8_t *bytes,size_t num_bytes,M6502Word addr,uint
         ++addr.w;
     }
 }
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#if BBCMICRO_DEBUGGER
 void BBCMicro::DebugSetBytes(M6502Word addr,uint32_t dpo,const uint8_t *bytes,size_t num_bytes) {
     // Not currently very clever.
     for(size_t i=0;i<num_bytes;++i) {
@@ -1907,16 +1935,15 @@ void BBCMicro::DebugSetBytes(M6502Word addr,uint32_t dpo,const uint8_t *bytes,si
         ++addr.w;
     }
 }
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_DEBUGGER
-
 void BBCMicro::SetExtMemory(uint32_t addr, uint8_t value) {
     ExtMem::WriteMemory(&m_state.ext_mem, addr, value);
 }
-
 #endif
 
 //////////////////////////////////////////////////////////////////////////
@@ -2666,11 +2693,15 @@ float BBCMicro::UpdateDiscDriveSound(DiscDrive *dd) {
 //////////////////////////////////////////////////////////////////////////
 
 void BBCMicro::UpdateCPUDataBusFn() {
+#if BBCMICRO_DEBUGGER
     if(m_debug) {
         m_default_handle_cpu_data_bus_fn=&HandleCPUDataBusWithShadowRAMDebug;
     } else {
         m_default_handle_cpu_data_bus_fn=&HandleCPUDataBusWithShadowRAM;
     }
+#else
+    m_default_handle_cpu_data_bus_fn=&HandleCPUDataBusWithShadowRAM;
+#endif
 
     if(m_state.hack_flags!=0) {
         goto hack;

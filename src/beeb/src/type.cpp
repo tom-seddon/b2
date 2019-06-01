@@ -48,11 +48,13 @@ const BigPageType INVALID_BIG_PAGE_TYPE={'?',"Invalid"};
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#if BBCMICRO_DEBUGGER
 static void ApplyROMDPO(ROMSEL *romsel,uint32_t dpo) {
     if(dpo&BBCMicroDebugPagingOverride_OverrideROM) {
         romsel->b_bits.pr=dpo&BBCMicroDebugPagingOverride_ROM;
     }
 }
+#endif
 
 static void SetBigPageTypes(std::vector<const BigPageType *> *types,
                             size_t index,
@@ -117,12 +119,15 @@ static void GetMemBigPageTablesB(MemoryBigPageTables *tables,
     *crt_shadow=false;
 }
 
+#if BBCMICRO_DEBUGGER
 static void ApplyDPOB(ROMSEL *romsel,ACCCON *acccon,uint32_t dpo) {
     (void)acccon;
 
     ApplyROMDPO(romsel,dpo);
 }
+#endif
 
+#if BBCMICRO_DEBUGGER
 static uint32_t GetDPOB(ROMSEL romsel,ACCCON acccon) {
     (void)acccon;
     
@@ -133,6 +138,7 @@ static uint32_t GetDPOB(ROMSEL romsel,ACCCON acccon) {
 
     return dpo;
 }
+#endif
 
 static std::vector<const BigPageType *> GetBigPageTypesB() {
     std::vector<const BigPageType *> types=GetBigPageTypesCommon();
@@ -145,12 +151,16 @@ const BBCMicroType BBC_MICRO_TYPE_B={
     &M6502_nmos6502_config,//m6502_config
     32768,//ram_buffer_size
     DiscDriveType_133mm,//default_disc_drive_type
+#if BBCMICRO_DEBUGGER
     (BBCMicroDebugPagingOverride_OverrideROM|
      BBCMicroDebugPagingOverride_ROM),//dpo_mask
+#endif
     GetBigPageTypesB(),
     &GetMemBigPageTablesB,//get_mem_big_page_tables_fn,
+#if BBCMICRO_DEBUGGER
     &ApplyDPOB,//apply_dpo_fn
     &GetDPOB,//get_dpo_fn
+#endif
     0x0f,//romsel_mask,
     0x00,//acccon_mask,
     (BBCMicroTypeFlag_CanDisplayTeletext3c00),//flags
@@ -243,6 +253,7 @@ static void GetMemBigPageTablesBPlus(MemoryBigPageTables *tables,
     *io=true;
 }
 
+#if BBCMICRO_DEBUGGER
 static void ApplyDPOBPlus(ROMSEL *romsel,ACCCON *acccon,uint32_t dpo) {
     ApplyROMDPO(romsel,dpo);
 
@@ -254,7 +265,9 @@ static void ApplyDPOBPlus(ROMSEL *romsel,ACCCON *acccon,uint32_t dpo) {
         acccon->bplus_bits.shadow=!!(dpo&BBCMicroDebugPagingOverride_Shadow);
     }
 }
+#endif
 
+#if BBCMICRO_DEBUGGER
 static uint32_t GetDPOBPlus(ROMSEL romsel,ACCCON acccon) {
     uint32_t dpo=0;
 
@@ -273,6 +286,7 @@ static uint32_t GetDPOBPlus(ROMSEL romsel,ACCCON acccon) {
 
     return dpo;
 }
+#endif
 
 static std::vector<const BigPageType *> GetBigPageTypesBPlus() {
     std::vector<const BigPageType *> types=GetBigPageTypesCommon();
@@ -288,16 +302,20 @@ const BBCMicroType BBC_MICRO_TYPE_B_PLUS={
     &M6502_nmos6502_config,//m6502_config
     65536,//ram_buffer_size
     DiscDriveType_133mm,//default_disc_drive_type
+#if BBCMICRO_DEBUGGER
     (BBCMicroDebugPagingOverride_ROM|
      BBCMicroDebugPagingOverride_OverrideROM|
      BBCMicroDebugPagingOverride_ANDY|
      BBCMicroDebugPagingOverride_OverrideANDY|
      BBCMicroDebugPagingOverride_Shadow|
      BBCMicroDebugPagingOverride_OverrideShadow),//dpo_mask
+#endif
     GetBigPageTypesBPlus(),
     &GetMemBigPageTablesBPlus,//get_mem_big_page_tables_fn,
+#if BBCMICRO_DEBUGGER
     &ApplyDPOBPlus,//apply_dpo_fn
     &GetDPOBPlus,//get_dpo_fn
+#endif
     0x8f,//romsel_mask,
     0x80,//acccon_mask,
     (BBCMicroTypeFlag_CanDisplayTeletext3c00|
@@ -408,6 +426,7 @@ static void GetMemBigPagesTablesMaster(MemoryBigPageTables *tables,
     *crt_shadow=acccon.m128_bits.d!=0;
 }
 
+#if BBCMICRO_DEBUGGER
 static void ApplyDPOMaster(ROMSEL *romsel,ACCCON *acccon,uint32_t dpo) {
     ApplyROMDPO(romsel,dpo);
 
@@ -427,7 +446,9 @@ static void ApplyDPOMaster(ROMSEL *romsel,ACCCON *acccon,uint32_t dpo) {
         acccon->m128_bits.tst=!!(dpo&BBCMicroDebugPagingOverride_OS);
     }
 }
+#endif
 
+#if BBCMICRO_DEBUGGER
 static uint32_t GetDPOMaster(ROMSEL romsel,ACCCON acccon) {
     uint32_t dpo=0;
 
@@ -456,6 +477,7 @@ static uint32_t GetDPOMaster(ROMSEL romsel,ACCCON acccon) {
 
     return dpo;
 }
+#endif
 
 static std::vector<const BigPageType *> GetBigPageTypesMaster() {
     std::vector<const BigPageType *> types=GetBigPageTypesCommon();
@@ -472,6 +494,7 @@ const BBCMicroType BBC_MICRO_TYPE_MASTER={
     &M6502_cmos6502_config,//m6502_config
     65536,//ram_buffer_size
     DiscDriveType_133mm,//default_disc_drive_type
+#if BBCMICRO_DEBUGGER
     (BBCMicroDebugPagingOverride_ROM|
      BBCMicroDebugPagingOverride_OverrideROM|
      BBCMicroDebugPagingOverride_ANDY|
@@ -482,10 +505,13 @@ const BBCMicroType BBC_MICRO_TYPE_MASTER={
      BBCMicroDebugPagingOverride_OverrideShadow|
      BBCMicroDebugPagingOverride_OS|
      BBCMicroDebugPagingOverride_OverrideOS),//dpo_mask
+#endif
     GetBigPageTypesMaster(),
     &GetMemBigPagesTablesMaster,//get_mem_big_page_tables_fn,
+#if BBCMICRO_DEBUGGER
     &ApplyDPOMaster,//apply_dpo_fn
     &GetDPOMaster,//get_dpo_fn
+#endif
     0x8f,//romsel_mask,
     0xff,//acccon_mask,
     (BBCMicroTypeFlag_HasShadowRAM|

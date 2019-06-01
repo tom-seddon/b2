@@ -174,7 +174,9 @@ struct BBCMicroType {
 
     DiscDriveType default_disc_drive_type;
 
+#if BBCMICRO_DEBUGGER
     uint32_t dpo_mask;
+#endif
 
     // indexed by big page index. These don't actually vary much from model to
     // model - the tables are separate mainly so that B+ ANDY and M128
@@ -203,12 +205,16 @@ struct BBCMicroType {
                                        ROMSEL romsel,
                                        ACCCON acccon);
 
+#if BBCMICRO_DEBUGGER
     void (*apply_dpo_fn)(ROMSEL *romsel,
                          ACCCON *acccon,
                          uint32_t dpo);
+#endif
 
+#if BBCMICRO_DEBUGGER
     uint32_t (*get_dpo_fn)(ROMSEL romsel,
                            ACCCON accon);
+#endif
 
     // Mask for ROMSEL bits.
     uint8_t romsel_mask;
