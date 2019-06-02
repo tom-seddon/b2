@@ -1,6 +1,6 @@
 .PHONY:default
 default:
-	$(error Must specify target. One of: init, rel)
+	$(error Must specify target)
 
 CMAKE_DEFINES:=
 

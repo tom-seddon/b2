@@ -1,20 +1,35 @@
 # -*- mode:makefile-gmake; -*-
 _RM:=cmd /c rd /s /q
 
-.PHONY:init
-init: _2015_x86 _2015_x64
+##########################################################################
+##########################################################################
 
-.PHONY:_2015_x64
-_2015_x64:
-	$(MAKE) _2015 DIR=$(BUILD_FOLDER)/$(FOLDER_PREFIX)win64 "TYPE=Visual Studio 14 Win64"
+.PHONY:init_vs2015
+init_vs2015:
+	$(MAKE) _older_vs VSYEAR=2015 VSVER=14
 
-.PHONY:2015_x86
-_2015_x86:
-	$(MAKE) _2015 DIR=$(BUILD_FOLDER)/$(FOLDER_PREFIX)win32 "TYPE=Visual Studio 14"
+##########################################################################
+##########################################################################
 
-.PHONY:2015
-_2015:
-	-$(_RM) "$(DIR)"
-	cmd /c mkdir "$(DIR)"
-	cd "$(DIR)" && cmake $(CMAKE_DEFINES) -G "$(TYPE)" ../..
-	copy etc\b2.ChildProcessDbgSettings "$(DIR)"
+.PHONY:init_vs2017
+init_vs2017:
+	$(MAKE) _older_vs VSYEAR=2017 VSVER=15
+
+##########################################################################
+##########################################################################
+
+.PHONY:_older_vs
+_older_vs:
+	$(MAKE) _older_vs_2 BITS=64 TYPE_SUFFIX=Win64
+	$(MAKE) _older_vs_2 BITS=32 TYPE_SUFFIX=
+
+.PHONY:_older_vs_2
+_older_vs_2: FOLDER=$(BUILD_FOLDER)/$(FOLDER_PREFIX)win$(BITS).vs$(VSYEAR)
+_older_vs_2:
+	-cmd /c rd /s /q "$(FOLDER)"
+	cmd /c mkdir "$(FOLDER)"
+	cd "$(FOLDER)" && cmake $(CMAKE_DEFINES) -G "$(strip Visual Studio $(VSVER) $(TYPE_SUFFIX))" ../..
+	cmd /c copy etc\b2.ChildProcessDbgSettings "$(FOLDER)"
+
+##########################################################################
+##########################################################################

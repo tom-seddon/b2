@@ -130,6 +130,10 @@ elseif(MSVC)
   # https://randomascii.wordpress.com/2014/03/22/make-vc-compiles-fast-through-parallel-compilation/
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /MP")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP")
+
+  # Fix extended aligned storage error. The extended align storage is desired.
+
+  add_definitions("-D_ENABLE_EXTENDED_ALIGNED_STORAGE")
 endif()
 
 ##########################################################################

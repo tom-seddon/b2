@@ -13,14 +13,23 @@ Initial build steps:
 
 1. Open command prompt in working copy folder 
 
-2. Run `snmake init` (`snmake.exe` is supplied) - you should get a
-   bunch of output. There may be the odd warning but there should be
-   no obvious errors and it should finish with an exit code of 0
-   
+2. Run `snmake`, according to Visual Studio version:
+
+   - Visual Studio 2015: `snmake init_vs2015`
+   - Visual Studio 2017: `snmake init_vs2017`
+
+   You should get a bunch of output - there may be the odd warning,
+   but there should be no obvious errors, and it should finish with an
+   exit code of 0
+
 General day-to-day build steps:
 
-1. Load `build\win64\b2.sln` or `build\win32\b2.sln` into Visual
-   Studio 2015
+1. Load appropriate solution into Visual Studio:
+
+   - VS2015, 64-bit: `build\win64.vs2015\b2.sln`
+   - VS2017, 64-bit: `build\win64.vs2017\b2.sln`
+   - VS2015, 32-bit: `build\win32.vs2015\b2.sln`
+   - VS2017, 32-bit: `build\win32.vs2017\b2.sln`
 
 2. Build
 

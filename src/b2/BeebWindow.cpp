@@ -265,7 +265,7 @@ BeebWindow::BeebWindow(BeebWindowInitArguments init_arguments):
     m_message_list=std::make_shared<MessageList>();
     m_msg=Messages(m_message_list);
 
-    m_beeb_thread=std::make_shared<BeebThread>(m_message_list,
+    m_beeb_thread=BeebThread::MakeShared(m_message_list,
                                                m_init_arguments.sound_device,
                                                m_init_arguments.sound_spec.freq,
                                                m_init_arguments.sound_spec.samples,
