@@ -16,6 +16,5 @@ _2015_x86:
 _2015:
 	-$(_RM) "$(DIR)"
 	cmd /c mkdir "$(DIR)"
-# -DBUILD_CURL_EXE=OFF -DCURL_STATICLIB=ON -DBUILD_TESTING=OFF
-	cd "$(DIR)" && cmake $(CMAKE_DEFINES) -DLIBC=ON -G "$(TYPE)" ../..
+	cd "$(DIR)" && cmake $(CMAKE_DEFINES) -G "$(TYPE)" ../..
 	copy etc\b2.ChildProcessDbgSettings "$(DIR)"

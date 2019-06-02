@@ -101,6 +101,27 @@ if(WIN32)
   option(BUILD_SHARED_LIBS "" OFF)
   option(BUILD_TESTING "" OFF)
 
+  # libcurl finds zlib using find_package, which is annoying:
+  #
+  # 1. it'll just find some random copy of zlib, if you have one (on
+  # my laptop it found Anaconda's copy)
+  #
+  # 2. it can find some useless copy of zlib (on my laptop, it finds
+  # Anaconda's copy when building for x86, even though it's an x64
+  # library, and the link fails)
+  #
+  # 3. the obvious solution to this sort of problem is to build zlib
+  # as part of the b2 project, then arrange for libcurl's find_package
+  # to find that copy. But this appears to be literally impossible
+  #
+  # So (pending a better solution), just disable curl's use of zlib.
+  #
+  # (Curl is currently only used for BeebLink, so it's a minority
+  # thing at best, and if it turns out the BeebLink server is emitting
+  # gzip'd data that can just be disabled. It's pointless for Beeb
+  # stuff anyway!)
+  option(CURL_ZLIB "" OFF)
+
   add_subdirectory(${CMAKE_SOURCE_DIR}/submodules/curl)
   set(HAVE_LIBCURL ON)
   set(LIBCURL_TARGET libcurl)
@@ -132,6 +153,9 @@ message(STATUS "libcurl found: ${HAVE_LIBCURL}")
 # Use the SDL submodule, but set the variables up so it looks like it
 # was found by FindSDL2. It doesn't look like the SDL2 cmake build
 # process is designed for this, so this is a bit of a hack.
+
+# can't remember what this is for...
+option(LIBC "" ON)
 
 set(SDL_SHARED_ENABLED_BY_DEFAULT OFF)
 
