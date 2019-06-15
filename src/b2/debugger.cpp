@@ -1601,26 +1601,39 @@ public:
         BBCMicro::SystemVIAPB pb;
         pb.value=state.b.p;
 
-        ImGui::Text("Joystick 0 Fire = %s",BOOL_STR(!pb.bits.not_joystick0_fire));
-        ImGui::Text("Joystick 1 Fire = %s",BOOL_STR(!pb.bits.not_joystick1_fire));
-        ImGui::Text("Latch Bit = %u, Value = %u",pb.bits.latch_index,pb.bits.latch_value);
-        if(type->flags&BBCMicroTypeFlag_HasRTC) {
-            ImGui::Text("RTC CS = %u, AS = %u",pb.m128_bits.rtc_chip_select,pb.m128_bits.rtc_address_strobe);
-        } else {
-            ImGui::Text("Speech Ready = %u, IRQ = %u",pb.b_bits.speech_ready,pb.b_bits.speech_interrupt);
+        ImGui::Text("Port B inputs:");
+
+        ImGui::BulletText("Joystick 0 Fire = %s",BOOL_STR(!pb.bits.not_joystick0_fire));
+        ImGui::BulletText("Joystick 1 Fire = %s",BOOL_STR(!pb.bits.not_joystick1_fire));
+        if(!(type->flags&BBCMicroTypeFlag_HasRTC)) {
+            ImGui::BulletText("Speech Ready = %u, IRQ = %u",pb.b_bits.speech_ready,pb.b_bits.speech_interrupt);
         }
 
         ImGui::Separator();
 
-        ImGui::Text("Sound Write = %s",BOOL_STR(!latch.bits.not_sound_write));
-        ImGui::Text("Screen Wrap Size = $%04x",BBCMicro::SCREEN_WRAP_ADJUSTMENTS[latch.bits.screen_base]<<3);
-        ImGui::Text("Caps Lock LED = %s",BOOL_STR(latch.bits.caps_lock_led));
-        ImGui::Text("Shift Lock LED = %s",BOOL_STR(latch.bits.shift_lock_led));
+        ImGui::Text("Port B outputs:");
+
+        ImGui::BulletText("Latch Bit = %u, Value = %u",pb.bits.latch_index,pb.bits.latch_value);
 
         if(type->flags&BBCMicroTypeFlag_HasRTC) {
-            ImGui::Text("RTC Read = %u, DS = %u",latch.m128_bits.rtc_read,latch.m128_bits.rtc_data_strobe);
+            ImGui::BulletText("RTC CS = %u, AS = %u",pb.m128_bits.rtc_chip_select,pb.m128_bits.rtc_address_strobe);
+        }
+
+        ImGui::Separator();
+
+        ImGui::Text("Addressable latch:");
+        ImGui::Text("Value: %%%s ($%02x) (%03u)",BINARY_BYTE_STRINGS[latch.value],latch.value,latch.value);
+
+        ImGui::BulletText("Keyboard Write = %s",BOOL_STR(!latch.bits.not_kb_write));
+        ImGui::BulletText("Sound Write = %s",BOOL_STR(!latch.bits.not_sound_write));
+        ImGui::BulletText("Screen Wrap Size = $%04x",BBCMicro::SCREEN_WRAP_ADJUSTMENTS[latch.bits.screen_base]<<3);
+        ImGui::BulletText("Caps Lock LED = %s",BOOL_STR(latch.bits.caps_lock_led));
+        ImGui::BulletText("Shift Lock LED = %s",BOOL_STR(latch.bits.shift_lock_led));
+
+        if(type->flags&BBCMicroTypeFlag_HasRTC) {
+            ImGui::BulletText("RTC Read = %u, DS = %u",latch.m128_bits.rtc_read,latch.m128_bits.rtc_data_strobe);
         } else {
-            ImGui::Text("Speech Read = %u, Write = %u",latch.b_bits.speech_read,latch.b_bits.speech_write);
+            ImGui::BulletText("Speech Read = %u, Write = %u",latch.b_bits.speech_read,latch.b_bits.speech_write);
         }
     }
 protected:
