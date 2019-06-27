@@ -23,7 +23,7 @@ Additional apt package dependencies:
 - `libgtk2.0-dev`
 - `libgl1-mesa-dev`
 - `libpulse-dev`
-- `libgles1-mesa-dev`
+- `libglvnd-dev`
 
 There are additional dependencies for video writing, which are
 optional. The project will build without these, but video writing
