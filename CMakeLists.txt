@@ -3,6 +3,7 @@ set(CMAKE_CONFIGURATION_TYPES Debug RelWithDebInfo Final)
 project(b2)
 set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT b2)
 enable_testing()
+include(FindPkgConfig)
 
 ##########################################################################
 ##########################################################################
@@ -163,6 +164,14 @@ set(SDL__SOURCE_DIR ${CMAKE_SOURCE_DIR}/submodules/SDL)
 
 if(NOT EXISTS ${SDL__SOURCE_DIR}/CMakeLists.txt)
   message(FATAL_ERROR "SDL not found in folder: " ${SDL__SOURCE_DIR})
+endif()
+
+if(LINUX)
+  # https://github.com/tom-seddon/b2/issues/36
+  pkg_check_modules(B2_PULSEAUDIO libpulse-simple)
+  if(NOT B2_PULSEAUDIO_FOUND)
+    message(FATAL_ERROR "PulseAudio libraries not found - the appropriate package on Ubuntu is libpulse-dev")
+  endif()
 endif()
 
 add_subdirectory(${SDL__SOURCE_DIR})

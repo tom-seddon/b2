@@ -24,6 +24,7 @@ Additional apt package dependencies:
 - `libgl1-mesa-dev`
 - `libpulse-dev`
 - `libglvnd-dev`
+- `libpulse-dev`
 
 There are additional dependencies for video writing, which are
 optional. The project will build without these, but video writing
