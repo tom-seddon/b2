@@ -289,7 +289,12 @@ target_link_libraries(b2 PRIVATE ${SDL2_LIBRARY})
 ##########################################################################
 
 if(HAVE_LIBCURL)
-  target_link_libraries(b2 PRIVATE ${LIBCURL_TARGET})
+  if(TARGET ${LIBCURL_TARGET})
+    target_link_libraries(b2 PRIVATE ${LIBCURL_TARGET})
+  else()
+    target_link_libraries(b2 PRIVATE ${CURL_LIBRARY})
+    target_include_directories(b2 PRIVATE ${CURL_INCLUDE_DIRS})
+  endif()
 endif()
 
 ##########################################################################
