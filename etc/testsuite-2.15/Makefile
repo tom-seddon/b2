@@ -1,5 +1,16 @@
+ifeq ($(OS),Windows_NT)
+
 MKDIR:=mkdir.exe -p
 TASS:=../64tass-1.52.1237/64tass.exe
+
+else
+
+MKDIR:=mkdir -p
+TASS:=64tass
+
+endif
+
+SRC:=ascii-src
 LST:=ascii-lst
 BIN:=ascii-bin
 
@@ -258,4 +269,4 @@ all:
 
 .PHONY:asm
 asm:
-	$(TASS) -L $(LST)/$(STEM).lst -o $(BIN)/$(STEM) -T ascii-src/$(STEM).asm
+	$(TASS) -L "$(LST)/$(STEM).lst" -o "$(BIN)/$(STEM)" -T "$(SRC)/$(STEM).asm"
