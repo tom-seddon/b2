@@ -5,7 +5,7 @@ add_executable(test_dear_imgui
   test_dear_imgui.cpp
   imgui_node_graph_test_github.cpp imgui_node_graph_test_github.h
   emoon_nodes.cpp emoon_nodes.h
-  imgui_no_warnings.h
+  pushwarn_imgui_whatever.h popwarn.h
   test_imgui_memory_editor.cpp test_imgui_memory_editor.h
   )
 
