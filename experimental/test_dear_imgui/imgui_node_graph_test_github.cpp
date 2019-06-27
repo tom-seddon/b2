@@ -1,5 +1,9 @@
 #include "imgui_node_graph_test_github.h"
-#include "imgui_no_warnings.h"
+#include "pushwarn_imgui_whatever.h"
+#include <imgui.h>
+#define IMGUI_DEFINE_MATH_OPERATORS
+#include <imgui_internal.h>
+#include "popwarn.h"
 #include <math.h>
 
 // Creating a node graph editor for ImGui

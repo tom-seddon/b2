@@ -472,6 +472,8 @@ private:
     }
 
     void HandleBlankLine(const TraceEvent *e) {
+        (void)e;
+        
         fputc('\n',m_f);
     }
 

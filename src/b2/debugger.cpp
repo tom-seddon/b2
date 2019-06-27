@@ -15,6 +15,7 @@
 #pragma GCC diagnostic ignored "-Wsign-conversion"
 #pragma GCC diagnostic ignored "-Wswitch"
 #pragma GCC diagnostic ignored "-Wunused-parameter"
+#pragma GCC diagnostic ignored "-Wformat"
 #endif
 #include <imgui_memory_editor.h>
 #ifdef __GNUC__
@@ -1813,7 +1814,7 @@ private:
         if(sn_freq==0) {
             sn_freq=1024;
         }
-        return 4000000/(sn_freq*32);
+        return 4000000u/(sn_freq*32u);
     }
 
     static void Tone(const SN76489::ChannelValues &values,int n) {

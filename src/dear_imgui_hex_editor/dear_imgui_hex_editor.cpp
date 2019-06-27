@@ -32,14 +32,14 @@
 
 #include <imgui.h>
 
+#define IMGUI_DEFINE_MATH_OPERATORS
+#include <imgui_internal.h>
+
 #ifdef _MSC_VER
 #pragma warning(pop)
 #elif defined __GNUC__
 #pragma GCC diagnostic pop
 #endif
-
-#define IMGUI_DEFINE_MATH_OPERATORS
-#include <imgui_internal.h>
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -74,9 +74,9 @@ void HexEditorHandler::GetAddressText(char *text,
                                       bool upper_case)
 {
     if(upper_case) {
-        snprintf(text,text_size,"%0.*zX",NUM_SIZE_T_CHARS,offset);
+        snprintf(text,text_size,"%0*zX",NUM_SIZE_T_CHARS,offset);
     } else {
-        snprintf(text,text_size,"%0.*zx",NUM_SIZE_T_CHARS,offset);
+        snprintf(text,text_size,"%0*zx",NUM_SIZE_T_CHARS,offset);
     }
 }
 
@@ -160,9 +160,9 @@ void HexEditorHandlerWithBufferData::GetAddressText(char *text,
 {
     if(m_show_address) {
         if(upper_case) {
-            snprintf(text,text_size,"%0.*" PRIXPTR,NUM_PTR_CHARS,(uintptr_t)(m_read_buffer+offset));
+            snprintf(text,text_size,"%0*" PRIXPTR,NUM_PTR_CHARS,(uintptr_t)(m_read_buffer+offset));
         } else {
-            snprintf(text,text_size,"%0.*" PRIxPTR,NUM_PTR_CHARS,(uintptr_t)(m_read_buffer+offset));
+            snprintf(text,text_size,"%0*" PRIxPTR,NUM_PTR_CHARS,(uintptr_t)(m_read_buffer+offset));
         }
     } else {
         this->HexEditorHandler::GetAddressText(text,text_size,offset,upper_case);
@@ -377,10 +377,13 @@ void HexEditor::DoImGui() {
             }
 
             size_t row=m_offset/this->num_columns;
+            if(row>INT_MAX) {
+                row=INT_MAX;
+            }
 
-            if(row<first_visible_row) {
+            if((int)row<first_visible_row) {
                 m_next_frame_scroll_y=row*m_metrics.line_height;
-            } else if(row>=first_visible_row+num_visible_rows) {
+            } else if((int)row>=first_visible_row+num_visible_rows) {
                 m_next_frame_scroll_y=(row-((size_t)num_visible_rows-1u))*m_metrics.line_height;
             }
 
@@ -927,12 +930,12 @@ void HexEditor::DoOptionsPopup() {
 //    return value;
 //}
 
-static void ShowValue(int32_t value,const char *prefix,int num_bytes) {
+static void ShowValue(int32_t value,const char *prefix,unsigned num_bytes) {
     char binary[33];
     {
-        uint32_t mask=1<<(num_bytes*8-1);
+        uint32_t mask=1u<<(num_bytes*8-1);
         size_t i=0;
-        IM_ASSERT(num_bytes*8+1<=sizeof binary);
+        IM_ASSERT(num_bytes*8u+1u<=sizeof binary);
         while(mask!=0) {
             IM_ASSERT(i<sizeof binary);
             binary[i]=(uint32_t)value&mask?'1':'0';
@@ -946,7 +949,7 @@ static void ShowValue(int32_t value,const char *prefix,int num_bytes) {
 
     uint32_t uvalue=(uint32_t)value;
     if(num_bytes<4) {
-        uvalue&=(1<<num_bytes*8)-1;
+        uvalue&=(1u<<num_bytes*8u)-1u;
     }
 
     int prefix_len=(int)strlen(prefix);

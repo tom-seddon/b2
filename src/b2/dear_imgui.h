@@ -32,14 +32,14 @@
 
 #include <imgui.h>
 
+#define IMGUI_DEFINE_MATH_OPERATORS
+#include <imgui_internal.h>
+
 #ifdef _MSC_VER
 #pragma warning(pop)
 #elif defined __GNUC__
 #pragma GCC diagnostic pop
 #endif
-
-#define IMGUI_DEFINE_MATH_OPERATORS
-#include <imgui_internal.h>
 
 #include <string>
 #include <vector>

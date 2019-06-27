@@ -1942,7 +1942,6 @@ bool BeebWindow::InitInternal() {
         // HardReset message, because until the first one there's no BBCMicro
         // object. <<rolleyes smiley>>
         uint32_t flags=0;
-        bool again=false;
 
         // Mount initial discs.
         for(int i=0;i<NUM_DRIVES;++i) {
@@ -1951,13 +1950,11 @@ bool BeebWindow::InitInternal() {
                                                                            std::move(m_init_arguments.init_disc_images[i]),
                                                                            true);
                 m_beeb_thread->Send(std::move(message));
-                again=true;
             }
         }
 
         if(m_init_arguments.boot) {
             flags|=BeebThreadHardResetFlag_Boot;
-            again=true;
             m_init_arguments.boot=false;
         }
 

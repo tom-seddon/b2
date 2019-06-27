@@ -1,6 +1,12 @@
 #include "test_imgui_memory_editor.h"
-#include "imgui_no_warnings.h"
+
+#include "pushwarn_imgui_whatever.h"
+#include <imgui.h>
+#define IMGUI_DEFINE_MATH_OPERATORS
+#include <imgui_internal.h>
 #include <imgui_memory_editor.h>
+#include "popwarn.h"
+
 #include <assert.h>
 #include <memory>
 #include <dear_imgui_hex_editor.h>

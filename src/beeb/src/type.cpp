@@ -3,6 +3,7 @@
 #include <beeb/conf.h>
 #include <beeb/type.h>
 #include <6502/6502.h>
+#include <string.h>
 
 #include <shared/enum_def.h>
 #include <beeb/type.inl>

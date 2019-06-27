@@ -1,5 +1,5 @@
-#ifndef HEADER_D7D3E8EDA6004562993515A0ADAC999A// -*- mode:c++ -*-
-#define HEADER_D7D3E8EDA6004562993515A0ADAC999A
+// Disable whatever warnings dear imgui produces when compiled with my
+// favourite warning settings.
 
 #ifdef _MSC_VER
 
@@ -16,23 +16,12 @@
 
 #pragma GCC diagnostic ignored "-Wsign-conversion"
 #pragma GCC diagnostic ignored "-Wunused-parameter"
+#pragma GCC diagnostic ignored "-Wformat"
+#pragma GCC diagnostic ignored "-Wswitch"
 
 #ifdef __clang__
 #pragma GCC diagnostic ignored "-Wunknown-warning-option"
 #pragma GCC diagnostic ignored "-Wmisleading-indentation"
 #endif
-
-#endif
-
-#include <imgui.h>
-
-#ifdef _MSC_VER
-#pragma warning(pop)
-#elif defined __GNUC__
-#pragma GCC diagnostic pop
-#endif
-
-#define IMGUI_DEFINE_MATH_OPERATORS
-#include <imgui_internal.h>
 
 #endif
