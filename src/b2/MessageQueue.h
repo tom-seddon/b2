@@ -25,6 +25,7 @@ public:
     MessageQueue()=default;
 
     void SetName(std::string name) {
+        (void)name;
         MUTEX_SET_NAME(m_mutex,name+" mutex");
     }
 

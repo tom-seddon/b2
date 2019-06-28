@@ -106,7 +106,7 @@ void CRTC::WriteData(void *c_,M6502Word a,uint8_t value) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-CRTC::Output CRTC::Update(uint8_t fast_6845) {
+CRTC::Output CRTC::Update() {
     // these just need to go somewhere...
     CHECK_SIZEOF(RegisterBits,18);
     CHECK_SIZEOF(Registers,18);
@@ -114,7 +114,6 @@ CRTC::Output CRTC::Update(uint8_t fast_6845) {
     CHECK_SIZEOF(R8,1);
     CHECK_SIZEOF(R10,1);
     CHECK_SIZEOF(Output,4);
-    ASSERT(fast_6845==0||fast_6845==1);
 
     ++m_num_updates;
 

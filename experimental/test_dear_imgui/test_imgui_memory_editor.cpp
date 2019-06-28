@@ -85,7 +85,7 @@ static void WriteBuffer(MemoryEditor::u8 *data,size_t off,unsigned char value) {
 }
 
 static bool HighlightValue(const MemoryEditor::u8 *data,size_t off) {
-    (void)data;
+    (void)data,(void)off;
     ASSERT(off<sizeof g_buffer);
     return false;
 }

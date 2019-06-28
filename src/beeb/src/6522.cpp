@@ -28,8 +28,10 @@ const TraceEventType R6522::IRQ_EVENT("R6522IRQEvent",sizeof(IRQEvent));
 //////////////////////////////////////////////////////////////////////////
 
 inline void R6522::UpdatePortPins(Port *port) {
+#if TRACE_ENABLED
     uint8_t old_p=port->p;
-
+#endif
+    
     port->p=(port->p&~port->ddr)|(port->or_&port->ddr);
 
     TRACEF_IF(old_p!=port->p,m_trace,
@@ -591,6 +593,10 @@ void R6522::TickControl(Port *port,
                         uint8_t cx2_mask,
                         char c)
 {
+#if !TRACE_ENABLED
+    (void)c;
+#endif
+    
     /* Check for Cx1 */
     {
         /* port->old_c1!=port->c1&&port->c1==(pcr_bits&1) */

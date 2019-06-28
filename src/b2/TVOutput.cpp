@@ -489,7 +489,7 @@ void TVOutput::FillWithTestPattern() {
         }
     }
 
-    uint32_t colours[]={palette[0x11],palette[0x66]};
+    uint32_t colours[]={palette[1],palette[6]};
 
     for(size_t i=0;i<sizeof colours/sizeof colours[0];++i) {
         uint32_t colour=colours[i];

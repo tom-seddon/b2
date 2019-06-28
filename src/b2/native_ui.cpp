@@ -230,11 +230,14 @@ FileDialog::FileDialog(std::string tag):
 //////////////////////////////////////////////////////////////////////////
 
 void FileDialog::AddFilter(std::string title,std::vector<std::string> patterns) {
+#if ASSERT_ENABLED
     ASSERT(!patterns.empty());
     for(const std::string &pattern:patterns) {
         ASSERT(!pattern.empty());
         ASSERT(pattern[0]=='.');
     }
+#endif
+    
     m_filters.push_back({std::move(title),std::move(patterns)});
 }
 

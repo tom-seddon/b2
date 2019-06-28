@@ -43,7 +43,7 @@ public:
     static uint8_t ReadData(void *c_,M6502Word a);
     static void WriteData(void *c_,M6502Word a,uint8_t value);
 
-    Output Update(uint8_t fast_6845);
+    Output Update();
 
 #if BBCMICRO_TRACE
     void SetTrace(Trace *t,

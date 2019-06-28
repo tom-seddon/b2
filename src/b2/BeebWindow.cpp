@@ -1631,6 +1631,8 @@ bool BeebWindow::DoBeebDisplayUI() {
                     m_got_mouse_pixel_unit=true;
                 }
             }
+#else
+            (void)screen_pos;
 #endif
         }
     }

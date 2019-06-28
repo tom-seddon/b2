@@ -1105,7 +1105,7 @@ bool BBCMicro::Update(VideoDataUnit *video_unit,SoundDataUnit *sound_unit) {
 
     // Update video hardware.
     if(m_state.video_ula.control.bits.fast_6845|odd_cycle) {
-        CRTC::Output output=m_state.crtc.Update(m_state.video_ula.control.bits.fast_6845);
+        CRTC::Output output=m_state.crtc.Update();
 
         m_state.system_via.a.c1=output.vsync;
         m_state.cursor_pattern>>=1;

@@ -478,7 +478,9 @@ private:
         {
             va_list v;
             va_start(v,fmt);
-            vasprintf(&msg,fmt,v);
+            if(vasprintf(&msg,fmt,v)==-1) {
+                msg=nullptr;
+            }
             va_end(v);
         }
 
