@@ -218,7 +218,32 @@ static std::string GetDockLayoutFileName() {
 
 static const char ASSETS_FOLDER[]="assets";
 
+#if SYSTEM_LINUX
+static bool FindAssetLinux(std::string *result,
+                           const std::string &prefix,
+                           const std::string &suffix)
+{
+    *result=PathJoined(prefix,suffix);
+    LOGF(LOADSAVE,"Checking \"%s\": ",result->c_str());
+
+    size_t size;
+    bool can_write;
+    if(!GetFileDetails(&size,&can_write,result->c_str())) {
+        // Whatever the reason, this path obviously ain't it.
+        LOGF(LOADSAVE,"no.\n");
+        return false;
+    }
+
+    LOGF(LOADSAVE,"yes.\n");
+    return true;
+}
+#endif
+
 static std::string GetAssetPathInternal(const std::string *f0,...) {
+#if SYSTEM_WINDOWS||SYSTEM_OSX
+
+    // Look somewhere relative to the EXE.
+    
     std::string path=PathJoined(PathGetFolder(PathGetEXEFileName()),ASSETS_FOLDER);
 
     va_list v;
@@ -231,6 +256,73 @@ static std::string GetAssetPathInternal(const std::string *f0,...) {
     va_end(v);
 
     return path;
+
+#elif SYSTEM_LINUX
+
+    // Search in the following locations:
+    //
+    // 1. Relative to the EXE, as per Windows/OS X
+    //
+    // 2. If the EXE is in a folder called "bin", in ../share/b2 relative
+    // to that
+    //
+    // 3. XDG_DATA_HOME (use "$HOME/.local/share" if not set)
+    //
+    // 4. XDG_DATA_DIRS (use "/usr/local/share/:/usr/share/ if not set)
+    std::string suffix;
+    {
+        va_list v;
+        va_start(v,f0);
+        for(const std::string *f=f0;f;f=va_arg(v,const std::string *)) {
+            suffix=PathJoined(suffix,*f);
+        }
+
+        va_end(v);
+    }
+
+    LOGF(LOADSAVE,"Searching for \"%s\": ",suffix.c_str());
+    LOGI(LOADSAVE);
+
+    std::string exe_folder=PathGetFolder(PathGetEXEFileName());
+
+    std::string result;
+    
+    if(FindAssetLinux(&result,PathJoined(exe_folder,ASSETS_FOLDER),suffix)) {
+        return result;
+    }
+
+    std::string exe_folder_name=PathGetName(PathWithoutTrailingSeparators(exe_folder));
+    // LOGF(LOADSAVE,"EXE folder: %s\n",exe_folder.c_str());
+    // LOGF(LOADSAVE,"EXE folder name: %s\n",exe_folder_name.c_str());
+    if(exe_folder_name=="bin") {
+        if(FindAssetLinux(&result,PathJoined(exe_folder,"../share/b2"),suffix)) {
+            return result;
+        }
+    }
+
+    if(FindAssetLinux(&result,GetXDGPath("XDG_DATA_HOME",".local/share",""),suffix)) {
+        return result;
+    }
+
+    std::string xdg_data_dirs="/usr/local/share/:/usr/share/";
+    if(const char *xdg_data_dirs_env=getenv("XDG_DATA_DIRS")) {
+        xdg_data_dirs=xdg_data_dirs_env;
+    }
+
+    std::vector<std::string> parts=GetSplitString(xdg_data_dirs,":");
+    for(const std::string &part:parts) {
+        if(FindAssetLinux(&result,PathJoined(part,"b2"),suffix)) {
+            return result;
+        }
+    }
+
+    // In desparation...
+    return suffix;
+    
+#else
+#error
+#endif
+    
 }
 
 std::string GetAssetPath(const std::string &f0) {
@@ -495,7 +587,7 @@ bool GetFileDetails(size_t *size,bool *can_write,const char *path) {
         *can_write=true;
     } else {
         // doesn't exist, or read-only.
-        fp=fopen(path,"rb");
+        fp=fopenUTF8(path,"rb");
         if(!fp) {
             // assume doesn't exist.
             goto done;

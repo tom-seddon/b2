@@ -25,6 +25,7 @@ UNAME:=$(shell uname -s)
 ifeq ($(UNAME),Darwin)
 OS:=osx
 NPROC:=sysctl -n hw.ncpu
+INSTALLER:=
 include Makefile.unix
 include Makefile.osx
 
@@ -33,6 +34,7 @@ endif
 ifeq ($(UNAME),Linux)
 OS:=linux
 NPROC:=nproc
+INSTALLER:=1
 include Makefile.unix
 endif
 

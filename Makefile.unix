@@ -51,3 +51,21 @@ _unix2:
 	rm -Rf "$(_FOLDER)"
 	mkdir -p "$(_FOLDER)"
 	(cd "$(_FOLDER)" && cmake -G Ninja $(CMAKE_DEFINES) -DCMAKE_BUILD_TYPE=$(BUILD) $(if $(SANITIZER),-DSANITIZE_$(SANITIZER)=On) ../..) || $(if $(SANITIZER),rm -Rf "$(_FOLDER)",false)
+
+ifdef INSTALLER
+
+build_dir=$(BUILD_FOLDER)/$(1).$(OS)
+
+.PHONY:install
+install:
+	@test -n "$(DEST)" || sh -c 'echo DEST variable must be set && false'
+	cd $(call build_dir,r) && ninja
+	cd $(call build_dir,f) && ninja
+	mkdir -p "$(DEST)/bin"
+	cp -v $(call build_dir,r)/src/b2/b2 "$(DEST)/bin/b2-debug"
+	cp -v $(call build_dir,f)/src/b2/b2 "$(DEST)/bin/b2"
+
+# Any build will do as source for the assets.
+	mkdir -p "$(DEST)/share/b2"
+	cp -Rv $(call build_dir,r)/src/b2/assets/* "$(DEST)/share/b2/"
+endif
