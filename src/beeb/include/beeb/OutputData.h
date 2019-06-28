@@ -145,10 +145,18 @@ private:
     std::atomic<uint64_t> m_rv{0};
     RVAR(size_t) m_last_rn=0;
 
+    // Gap to avoid false sharing between producer and consumer. (64 here =
+    // std::hardware_destructive_interference_size, which isn't present in
+    // C++14.)
+    //
+    // A gap is a bit wasteful, but unlike an aligned field it doesn't make the
+    // OutputData object aligned, and in particular there's no chance of the
+    // object then being over-aligned. Over-aligned objects don't seem to be
+    // handled terribly well in C++14.
+    const char avoid_false_sharing[64]={};
+
     // Producer part
-#include <shared/pushwarn_padded_struct.h>
-    alignas(64) std::atomic<uint64_t> m_wv{0};
-#include <shared/popwarn.h>
+    std::atomic<uint64_t> m_wv{0};
     RVAR(size_t) m_last_wn=0;
 };
 

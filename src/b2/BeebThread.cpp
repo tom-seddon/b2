@@ -1621,17 +1621,29 @@ void BeebThread::KeyStates::SetState(BeebKey key,bool state) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-std::shared_ptr<BeebThread> BeebThread::MakeShared(std::shared_ptr<MessageList> message_list,
-	uint32_t sound_device_id,
-	int sound_freq,
-	size_t sound_buffer_size_samples,
-	BeebLoadedConfig default_loaded_config,
-	std::vector<TimelineEventList> initial_timeline_event_lists)
+BeebThread::BeebThread(std::shared_ptr<MessageList> message_list,
+                       uint32_t sound_device_id,
+                       int sound_freq,
+                       size_t sound_buffer_size_samples,
+                       BeebLoadedConfig default_loaded_config,
+                       std::vector<TimelineEventList> initial_timeline_event_lists) :
+m_uid(g_next_uid++),
+m_default_loaded_config(std::move(default_loaded_config)),
+m_initial_timeline_event_lists(std::move(initial_timeline_event_lists)),
+m_video_output(NUM_VIDEO_UNITS),
+m_sound_output(NUM_AUDIO_UNITS),
+m_message_list(std::move(message_list))
 {
-	// Don't use std::make_shared; it doesn't seem to handle the alignment
-    // properly.
-	auto p = new BeebThread(std::move(message_list), sound_device_id, sound_freq, sound_buffer_size_samples, std::move(default_loaded_config), std::move(initial_timeline_event_lists));
-	return std::shared_ptr<BeebThread>(p);
+    m_sound_device_id = sound_device_id;
+
+    ASSERT(sound_freq >= 0);
+    m_audio_thread_data = new AudioThreadData((uint64_t)sound_freq, (uint64_t)sound_buffer_size_samples, 100);
+
+    this->SetBBCVolume(MAX_DB);
+    this->SetDiscVolume(MAX_DB);
+
+    MUTEX_SET_NAME(m_mutex, "BeebThread");
+    m_mq.SetName("BeebThread MQ");
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -2216,34 +2228,6 @@ BeebThread::GetTimelineBeebStateEvents(size_t begin_index,
     return result;
 }
 
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-BeebThread::BeebThread(std::shared_ptr<MessageList> message_list,
-	uint32_t sound_device_id,
-	int sound_freq,
-	size_t sound_buffer_size_samples,
-	BeebLoadedConfig default_loaded_config,
-	std::vector<TimelineEventList> initial_timeline_event_lists) :
-	m_uid(g_next_uid++),
-	m_default_loaded_config(std::move(default_loaded_config)),
-	m_initial_timeline_event_lists(std::move(initial_timeline_event_lists)),
-	m_video_output(NUM_VIDEO_UNITS),
-	m_sound_output(NUM_AUDIO_UNITS),
-	m_message_list(std::move(message_list))
-{
-	m_sound_device_id = sound_device_id;
-
-	ASSERT(sound_freq >= 0);
-	m_audio_thread_data = new AudioThreadData((uint64_t)sound_freq, (uint64_t)sound_buffer_size_samples, 100);
-
-	this->SetBBCVolume(MAX_DB);
-	this->SetDiscVolume(MAX_DB);
-
-	MUTEX_SET_NAME(m_mutex, "BeebThread");
-	m_mq.SetName("BeebThread MQ");
-}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

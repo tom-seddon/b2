@@ -823,7 +823,7 @@ public:
     // When planning to set up the BeebThread using a saved state,
     // DEFAULT_LOADED_CONFIG may be default-constructed. In this case hard reset
     // messages and clone window messages won't work, though.
-	static std::shared_ptr<BeebThread> MakeShared(std::shared_ptr<MessageList> message_list,
+    explicit BeebThread(std::shared_ptr<MessageList> message_list,
                         uint32_t sound_device_id,
                         int sound_freq,
                         size_t sound_buffer_size_samples,
@@ -1086,13 +1086,6 @@ private:
     // per window, so...
     mutable DebugBigPageFull m_debug_big_pages[16]={};
 #endif
-
-	explicit BeebThread(std::shared_ptr<MessageList> message_list,
-		uint32_t sound_device_id,
-		int sound_freq,
-		size_t sound_buffer_size_samples,
-		BeebLoadedConfig default_loaded_config,
-		std::vector<TimelineEventList> initial_timeline_event_lists);
 
 #if BBCMICRO_TRACE
     static bool ThreadStartTraceOnCondition(const BBCMicro *beeb,const M6502 *cpu,void *context);
