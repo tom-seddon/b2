@@ -368,7 +368,7 @@ static void GetMemBigPagesTablesMaster(MemoryBigPageTables *tables,
         tables->mem_big_pages[0][7]=MAIN_BIG_PAGE_INDEX+7;
     }
 
-    if((!acccon.m128_bits.y&&acccon.m128_bits.x)||
+    if((acccon.m128_bits.y&&acccon.m128_bits.x)||
        (!acccon.m128_bits.y&&acccon.m128_bits.e))
     {
         tables->mem_big_pages[1][0]=MAIN_BIG_PAGE_INDEX+0;
