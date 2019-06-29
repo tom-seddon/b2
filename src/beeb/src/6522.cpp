@@ -28,7 +28,7 @@ const TraceEventType R6522::IRQ_EVENT("R6522IRQEvent",sizeof(IRQEvent));
 //////////////////////////////////////////////////////////////////////////
 
 inline void R6522::UpdatePortPins(Port *port) {
-#if TRACE_ENABLED
+#if BBCMICRO_TRACE
     uint8_t old_p=port->p;
 #endif
     
