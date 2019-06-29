@@ -232,8 +232,6 @@ void HexEditor::DoImGui() {
 
     const size_t data_size=m_handler->GetSize();
 
-    m_set_new_offset=false;
-    m_new_offset=INVALID_OFFSET;
     m_was_TextInput_visible=false;
 
     if(this->num_columns>m_num_bytes) {
@@ -354,7 +352,8 @@ void HexEditor::DoImGui() {
 
     if(m_set_new_offset) {
         m_offset=m_new_offset;
-        m_input_take_focus_next_frame=true;
+
+        m_input_take_focus_next_frame=!m_set_new_offset_via_SetOffset;
 
         m_handler->DebugPrint("%zu - set new offset: now 0x%zx\n",m_num_calls,m_offset);
         //m_handler->DebugPrint("%zu - clipper = %d -> %d\n",m_num_calls,clipper_display_start,clipper_display_end);
@@ -393,13 +392,27 @@ void HexEditor::DoImGui() {
         if(m_offset!=INVALID_OFFSET) {
             if(!m_was_TextInput_visible) {
                 // sort out TextInput again when it next becomes visible.
-                m_input_take_focus_next_frame=true;
+                m_input_take_focus_next_frame=!m_set_new_offset_via_SetOffset;
             }
         }
+
+        m_set_new_offset_via_SetOffset=false;
     }
 
     ImGui::EndChild();
+
     ++m_num_calls;
+
+    m_set_new_offset=false;
+    m_new_offset=INVALID_OFFSET;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void HexEditor::SetOffset(size_t offset) {
+    this->SetNewOffset(offset,0,false);
+    m_set_new_offset_via_SetOffset=true;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -818,6 +831,8 @@ void HexEditor::UpdateOffsetByKey(int key,int delta,int times) {
 
 void HexEditor::SetNewOffset(size_t base,int delta,bool invalidate_on_failure) {
     bool failed;
+
+    m_set_new_offset_via_SetOffset=false;
 
     if(delta<0) {
         if(base>=(size_t)-delta) {

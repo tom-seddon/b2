@@ -129,6 +129,8 @@ public:
     ~HexEditor();
 
     void DoImGui();
+
+    void SetOffset(size_t offset);
 protected:
 private:
     static const size_t INVALID_OFFSET=~(size_t)0;
@@ -158,6 +160,7 @@ private:
     uint8_t m_edit_value=0;
     bool m_editing_high_nybble=true;
 
+    bool m_set_new_offset_via_SetOffset=false;
     bool m_set_new_offset=false;
     size_t m_new_offset=INVALID_OFFSET;
     char m_new_offset_input_buffer[100]={};
