@@ -816,64 +816,132 @@ const BeebWindow::SettingsUIMetadata BeebWindow::ms_settings_uis[]={
 CommandContext BeebWindow::DoSettingsUI() {
     CommandContext cc;
 
-    for(const SettingsUIMetadata *ui=ms_settings_uis;ui->type!=BeebWindowPopupType_MaxValue;++ui) {
-        uint64_t mask=(uint64_t)1<<ui->type;
+    for(int type=0;type<BeebWindowPopupType_MaxValue;++type) {
+        uint64_t mask=(uint64_t)1<<type;
         bool opened=!!(m_settings.popups&mask);
 
-        SettingsUI *popup=m_popups[ui->type].get();
-
         if(opened) {
+            if(!m_popups[type]) {
+                const SettingsUIMetadata *ui=ms_settings_uis;
+                while(ui->type!=BeebWindowPopupType_MaxValue) {
+                    if(ui->type==type) {
+                        break;
+                    }
+
+                    ++ui;
+                }
+
+                if(ui->type==type) {
+                    m_popups[type]=(*ui->create_fn)(this);
+                    ASSERT(!!m_popups[type]);
+                    m_popups[type]->SetName(ui->name);
+                }
+
+            }
+
+            SettingsUI *popup=m_popups[type].get();
+
             ImGui::SetNextDock(ImGuiDockSlot_None);
             ImVec2 default_pos=ImVec2(10.f,30.f);
             ImVec2 default_size=ImGui::GetIO().DisplaySize*.4f;
 
-            // The extra flags could be wrong for the first frame
-            // after the window is created.
-            ImGuiWindowFlags extra_flags=0;
             if(popup) {
-                extra_flags|=(ImGuiWindowFlags)popup->GetExtraImGuiWindowFlags();
-            }
+                if(ImGui::BeginDock(popup->GetName().c_str(),
+                                    &opened,
+                                    (ImGuiWindowFlags)popup->GetExtraImGuiWindowFlags(),
+                                    default_size,
+                                    default_pos))
+                {
+                    m_settings.popups|=mask;
 
-            if(ImGui::BeginDock(ui->name,&opened,extra_flags,default_size,default_pos)) {
-                if(!popup) {
-                    m_popups[ui->type]=(*ui->create_fn)(this);
-                    ASSERT(!!m_popups[ui->type]);
-                    popup=m_popups[ui->type].get();
-                }
-
-                if(ImGui::IsWindowFocused(ImGuiFocusedFlags_ChildWindows)) {
-                    if(const CommandTable *table=popup->GetCommandTable()) {
-                        cc=CommandContext(popup,table);
+                    if(ImGui::IsWindowFocused(ImGuiFocusedFlags_ChildWindows)) {
+                        if(const CommandTable *table=popup->GetCommandTable()) {
+                            cc=CommandContext(popup,table);
+                        }
                     }
+
+                    popup->DoImGui();
                 }
+                ImGui::EndDock();
 
-                popup->DoImGui();
+                if(!opened) {
+                    m_settings.popups&=~mask;
 
-//                if(m_popups[ui->type]->WantsKeyboardFocus()) {
-//                    m_imgui_has_kb_focus=true;
-//                }
-
-                m_settings.popups|=mask;
-            }
-            ImGui::EndDock();
-
-            if(!opened) {
-                m_settings.popups&=~mask;
-
-                // Leave the deletion until the next frame -
-                // references to its textures might still be queued up
-                // in the dear imgui drawlists.
+                    // Leave the deletion until the next frame -
+                    // references to its textures might still be queued up
+                    // in the dear imgui drawlists.
+                }
             }
         } else {
-            if(m_popups[ui->type]) {
-                if(m_popups[ui->type]->OnClose()) {
+            if(m_popups[type]) {
+                if(m_popups[type]->OnClose()) {
                     this->SaveConfig();
                 }
-                
-                m_popups[ui->type]=nullptr;
+
+                m_popups[type]=nullptr;
             }
         }
     }
+
+//    for(const SettingsUIMetadata *ui=ms_settings_uis;ui->type!=BeebWindowPopupType_MaxValue;++ui) {
+//        uint64_t mask=(uint64_t)1<<ui->type;
+//        bool opened=!!(m_settings.popups&mask);
+//
+//        SettingsUI *popup=m_popups[ui->type].get();
+//
+//        if(opened) {
+//            ImGui::SetNextDock(ImGuiDockSlot_None);
+//            ImVec2 default_pos=ImVec2(10.f,30.f);
+//            ImVec2 default_size=ImGui::GetIO().DisplaySize*.4f;
+//
+//            // The extra flags could be wrong for the first frame
+//            // after the window is created.
+//            ImGuiWindowFlags extra_flags=0;
+//            if(popup) {
+//                extra_flags|=(ImGuiWindowFlags)popup->GetExtraImGuiWindowFlags();
+//            }
+//
+//            if(ImGui::BeginDock(ui->name,&opened,extra_flags,default_size,default_pos)) {
+//                if(!popup) {
+//                    m_popups[ui->type]=(*ui->create_fn)(this);
+//                    ASSERT(!!m_popups[ui->type]);
+//                    popup=m_popups[ui->type].get();
+//                    popup->SetName(ui->name);
+//                }
+//
+//                if(ImGui::IsWindowFocused(ImGuiFocusedFlags_ChildWindows)) {
+//                    if(const CommandTable *table=popup->GetCommandTable()) {
+//                        cc=CommandContext(popup,table);
+//                    }
+//                }
+//
+//                popup->DoImGui();
+//
+////                if(m_popups[ui->type]->WantsKeyboardFocus()) {
+////                    m_imgui_has_kb_focus=true;
+////                }
+//
+//                m_settings.popups|=mask;
+//            }
+//            ImGui::EndDock();
+//
+//            if(!opened) {
+//                m_settings.popups&=~mask;
+//
+//                // Leave the deletion until the next frame -
+//                // references to its textures might still be queued up
+//                // in the dear imgui drawlists.
+//            }
+//        } else {
+//            if(m_popups[ui->type]) {
+//                if(m_popups[ui->type]->OnClose()) {
+//                    this->SaveConfig();
+//                }
+//
+//                m_popups[ui->type]=nullptr;
+//            }
+//        }
+//    }
 
     if(ValueChanged(&m_msg_last_num_errors_and_warnings_printed,m_message_list->GetNumErrorsAndWarningsPrinted())) {
         m_settings.popups|=1<<BeebWindowPopupType_Messages;
@@ -2197,6 +2265,14 @@ const VideoDataUnit *BeebWindow::GetVideoDataUnitForMousePixel() const {
     }
 }
 #endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+SettingsUI *BeebWindow::GetPopupByType(BeebWindowPopupType type) const {
+    ASSERT(type>=0&&type<BeebWindowPopupType_MaxValue);
+    return m_popups[type].get();
+}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

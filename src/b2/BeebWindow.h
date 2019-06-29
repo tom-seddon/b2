@@ -246,6 +246,8 @@ public:
 #if VIDEO_TRACK_METADATA
     const VideoDataUnit *GetVideoDataUnitForMousePixel() const;
 #endif
+
+    SettingsUI *GetPopupByType(BeebWindowPopupType type) const;
 protected:
 private:
     struct SettingsUIMetadata;

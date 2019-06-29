@@ -6,6 +6,13 @@
 
 class CommandTable;
 
+#include <string>
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+// TODO - bit of a misnomer now. Should be called PanelUI or something.
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
@@ -19,6 +26,10 @@ public:
     SettingsUI(SettingsUI &&)=delete;
     SettingsUI &operator=(SettingsUI &&)=delete;
 
+    // Used to name this panel's tab. 
+    const std::string &GetName() const;
+    void SetName(std::string name);
+
     // default impl returns 0.
     virtual uint32_t GetExtraImGuiWindowFlags() const;
 
@@ -31,6 +42,7 @@ public:
     virtual const CommandTable *GetCommandTable() const;
 protected:
 private:
+    std::string m_name;
 };
 
 //////////////////////////////////////////////////////////////////////////

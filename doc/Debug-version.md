@@ -19,27 +19,32 @@ debug-related functionality, accessible from the `Debug` menu.
 # Integrated debugger
 
 Use the 6502 debugger to debug programs running on the emulated BBC.
-The following `Debug` entries are relevant.
+Find all this stuff in the `Debug` menu.
 
-## Debugger windows
+# Debugger windows
 
-### `Tracing`
+## `Tracing` ##
 
 The trace functionality records all CPU activity, and selected other
 events of interest. The recorded data can be saved to a text file for
 later perusal.
 
-There are two options for starting the recording.
+There are multiple options for starting the recording, indicating what
+will happen when `Start` is clicked:
 
-* `Immediate` - when `Start` is clicked, recording will start straight away
-* `Return` - when `Start` is clicked, recording will start once the
+* `Immediate` - recording will start straight away
+* `Return` - recording will start once the
   Return key is pressed
+* `Instruction` - recording will start once the PC is equal to the
+  given address
 
-There are two options for stopping the recording.
+There are multiple options for the trace end condition:
 
-* `By request` - recording will stop when `Stop` is clicked
-* `OSWORD 0` - recording will stop automatically when the BBC executes
-  an OSWORD with A=0 (read input line)
+* `By request` - stop when `Stop` is clicked
+* `OSWORD 0` - stop when the BBC executes an OSWORD with A=0 (read
+  input line)
+* `Cycle count` - stop when the trace has been going for a particular
+  number of cycles
 
 (`Return` and `OSWORD 0` often go together, because this works well
 for tracing code CALLed from the BASIC prompt.)
@@ -103,22 +108,22 @@ the file:
 `Save (no cycles)` produces output with no cycle count column. This
 can be more useful for diffs.
 
-### `Pixel metadata`
+## `Pixel metadata` ##
 
 Show a window that displays the RAM address of the pixel the mouse
 cursor is over.
 
-### `6502 Debug` ###
+## `6502 Debug` ##
 
 Show a 6502 debug window. Displays typical register info in the top
 half, and internal stuff (cycle count, internal state, data bus
 address, etc.) in the bottom half.
 
-### `Memory Debug` ###
+## `Memory Debug` ##
 
 Show a memory debug window. Click to edit memory.
 
-### `Disassembly Debug` ###
+## `Disassembly Debug` ##
 
 Show running disassembly.
 
@@ -129,27 +134,12 @@ that address.
 Click the box next to each instruction to set or unset a breakpoint at
 that specific address.
 
-#### Address annotations ####
-
-Addresses are annotated to indicate which memory bank they come from:
-
-* `r` - normal RAM
-* `x` - extra B+/M128 12K RAM (unlikely)
-* `s` - shadow RAM (unlikely)
-* `0`-`9`, `a`-`f` - sideways ROM/RAM
-* `i` - I/O area (unlikely)
-* `o` - OS
-
-(These annotations are only used by the disassembly window, and will
-probably be replaced in the long run by pervasive use of
-[JGH's addressing scheme](http://mdfs.net/Docs/Comp/BBC/MemAddrs).)
-
-### `CRTC Debug`, `Video ULA Debug`, `System VIA Debug`, `User VIA Debug`, `NVRAM Debug` ###
+## `CRTC Debug`, `Video ULA Debug`, `System VIA Debug`, `User VIA Debug`, `NVRAM Debug` ##
 
 Activate a debug window for the corresponding piece of BBC hardware,
 showing current register values and additional useful info.
 
-## Debugger step
+# 6502 debugging #
 
 Use `Stop` to stop the emulated BBC in its tracks.
 
@@ -158,6 +148,12 @@ Use `Stop` to stop the emulated BBC in its tracks.
 `Step In` will run one instruction and then stop.
 
 `Step Over` will run until the next instruction visible.
+
+You can set a breakpoint by right clicking on a byte in the hex view
+of the disassembly or memory debug views. Breakpoints be set for the
+address or for the byte: address breakpoints are hit when that address
+is read/written/executed, regardless of paging settings, whereas byte
+breakpoints relate to that specific byte in whichever bank it is.
 
 # Other debug-related options #
 
@@ -172,7 +168,8 @@ starting just after its current position.
 
 # Other debugger stuff
 
-There is other debug stuff, but it's all undocumented...
+There may be other debug stuff that I haven't got round to documenting
+yet.
 
 # HTTP API
 

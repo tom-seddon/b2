@@ -11,8 +11,16 @@
 // Now a misnomer...
 #include "SettingsUI.h"
 #include <memory>
+#include <beeb/type.h>
 
 class BeebWindow;
+
+class MemoryViewUI {
+public:
+    virtual void SetAddress(uint16_t addr,uint32_t dpo)=0;
+protected:
+private:
+};
 
 std::unique_ptr<SettingsUI> Create6502DebugWindow(BeebWindow *beeb_window);
 std::unique_ptr<SettingsUI> CreateMemoryDebugWindow(BeebWindow *beeb_window);

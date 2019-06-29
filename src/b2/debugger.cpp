@@ -87,8 +87,9 @@ class DebugUI:
 public:
     bool OnClose() override;
 
-    void SetBeebThread(std::shared_ptr<BeebThread> beeb_thread);
+    void SetBeebWindow(BeebWindow *beeb_window);
 protected:
+    BeebWindow *m_beeb_window=nullptr;
     std::shared_ptr<BeebThread> m_beeb_thread;
     uint32_t m_dpo=0;
 
@@ -105,6 +106,12 @@ protected:
 
     // Address info, checkboxes for breakpoint flags, etc.
     void DoByteDebugGui(M6502Word addr);
+
+    MemoryViewUI *DoMemoryViewGui(const char *text);
+
+    // Overrides the current values for any flags that have their Override bit
+    // set. Leaves other flags alone - overridden, or not.
+    void ApplyDebugPageOverrides(uint32_t dpo);
 private:
     bool DoDebugByteFlagsGui(const char *str,
                              uint8_t *flags);
@@ -131,9 +138,10 @@ bool DebugUI::OnClose() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void DebugUI::SetBeebThread(std::shared_ptr<BeebThread> beeb_thread) {
+void DebugUI::SetBeebWindow(BeebWindow *beeb_window) {
+    m_beeb_window=beeb_window;
     ASSERT(!m_beeb_thread);
-    m_beeb_thread=std::move(beeb_thread);
+    m_beeb_thread=m_beeb_window->GetBeebThread();
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -324,6 +332,10 @@ void DebugUI::DoByteDebugGui(M6502Word addr) {
 //                m->DebugSetAddressDebugFlags(addr,addr_flags);
 //                m_beeb_thread->InvalidateDebugBigPageForAddress(addr);
             }
+
+            if(MemoryViewUI *mem_view_ui=this->DoMemoryViewGui("Reveal address...")) {
+                mem_view_ui->SetAddress(addr.w,0);
+            }
         }
 
         ImGui::Separator();
@@ -347,6 +359,88 @@ void DebugUI::DoByteDebugGui(M6502Word addr) {
 //                m_beeb_thread->InvalidateDebugBigPageForAddress(addr);
             }
         }
+
+        if(MemoryViewUI *mem_view_ui=this->DoMemoryViewGui("Reveal byte...")) {
+            mem_view_ui->SetAddress(addr.w,m_dpo);
+        }
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+MemoryViewUI *DebugUI::DoMemoryViewGui(const char *text) {
+    static const char POPUP_NAME[]="memory_view_selector_popup";
+    MemoryViewUI *result=nullptr;
+
+    ImGuiIDPusher pusher(text);
+
+    if(ImGui::Button(text)) {
+        ImGui::OpenPopup(POPUP_NAME);
+    }
+
+    if(ImGui::BeginPopup(POPUP_NAME)) {
+        struct UI {
+            SettingsUI *settings;
+            MemoryViewUI *mem;
+        };
+        UI uis[BeebWindowPopupType_MaxValue];
+        size_t num_uis=0;
+
+        for(int i=0;i<BeebWindowPopupType_MaxValue;++i) {
+            UI ui;
+            ui.settings=m_beeb_window->GetPopupByType((BeebWindowPopupType)i);
+            if(ui.settings) {
+                ui.mem=dynamic_cast<MemoryViewUI *>(ui.settings);
+                if(ui.mem) {
+                    uis[num_uis++]=ui;
+                }
+            }
+        }
+
+        if(num_uis==0) {
+            ImGui::Text("No suitable windows active");
+        } else {
+            for(size_t i=0;i<num_uis;++i) {
+                if(ImGui::Selectable(uis[i].settings->GetName().c_str())) {
+                    result=uis[i].mem;
+                }
+            }
+        }
+
+        ImGui::EndPopup();
+    }
+
+    return result;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void DebugUI::ApplyDebugPageOverrides(uint32_t dpo) {
+    if(dpo&BBCMicroDebugPagingOverride_OverrideROM) {
+        m_dpo&=~(uint32_t)BBCMicroDebugPagingOverride_ROM;
+        m_dpo|=BBCMicroDebugPagingOverride_OverrideROM|(dpo&BBCMicroDebugPagingOverride_ROM);
+    }
+
+    if(dpo&BBCMicroDebugPagingOverride_OverrideANDY) {
+        m_dpo&=~(uint32_t)BBCMicroDebugPagingOverride_ANDY;
+        m_dpo|=BBCMicroDebugPagingOverride_OverrideANDY|(dpo&BBCMicroDebugPagingOverride_ANDY);
+    }
+
+    if(dpo&BBCMicroDebugPagingOverride_OverrideHAZEL) {
+        m_dpo&=~(uint32_t)BBCMicroDebugPagingOverride_HAZEL;
+        m_dpo|=BBCMicroDebugPagingOverride_OverrideHAZEL|(dpo&BBCMicroDebugPagingOverride_HAZEL);
+    }
+
+    if(dpo&BBCMicroDebugPagingOverride_OverrideShadow) {
+        m_dpo&=~(uint32_t)BBCMicroDebugPagingOverride_Shadow;
+        m_dpo|=BBCMicroDebugPagingOverride_OverrideShadow|(dpo&BBCMicroDebugPagingOverride_Shadow);
+    }
+
+    if(dpo&BBCMicroDebugPagingOverride_OverrideOS) {
+        m_dpo&=~(uint32_t)BBCMicroDebugPagingOverride_OS;
+        m_dpo|=BBCMicroDebugPagingOverride_OverrideOS|(dpo&BBCMicroDebugPagingOverride_OS);
     }
 }
 
@@ -448,7 +542,7 @@ template<class DerivedType>
 static std::unique_ptr<SettingsUI> CreateDebugUI(BeebWindow *beeb_window) {
     std::unique_ptr<DebugUI> ptr=std::make_unique<DerivedType>();
 
-    ptr->SetBeebThread(beeb_window->GetBeebThread());
+    ptr->SetBeebWindow(beeb_window);
 
     return ptr;
 }
@@ -551,7 +645,8 @@ std::unique_ptr<SettingsUI> Create6502DebugWindow(BeebWindow *beeb_window) {
 LOG_DEFINE(HEXEDIT,"HEXEDIT",&log_printer_stdout_and_debugger,true)
 
 class MemoryDebugWindow:
-public DebugUI
+public DebugUI,
+public MemoryViewUI
 {
 public:
     MemoryDebugWindow():
@@ -564,6 +659,11 @@ public:
         this->DoDebugPageOverrideImGui();
 
         m_hex_editor.DoImGui();
+    }
+
+    void SetAddress(uint16_t addr,uint32_t dpo) override {
+        m_hex_editor.SetOffset(addr);
+        this->ApplyDebugPageOverrides(dpo);
     }
 protected:
 private:
@@ -647,6 +747,8 @@ private:
 };
 
 #else
+
+#error no
 
 class MemoryDebugWindow:
     public DebugUI
@@ -767,7 +869,8 @@ std::unique_ptr<SettingsUI> CreateExtMemoryDebugWindow(BeebWindow *beeb_window) 
 //////////////////////////////////////////////////////////////////////////
 
 class DisassemblyDebugWindow:
-    public DebugUI
+public DebugUI,
+public MemoryViewUI
 {
 public:
     uint32_t GetExtraImGuiWindowFlags() const override {
@@ -1053,6 +1156,12 @@ public:
                 this->Up(config,wheel);
             }
         }
+    }
+
+    void SetAddress(uint16_t addr,uint32_t dpo) override {
+        m_track_pc=false;
+        m_addr=addr;
+        this->ApplyDebugPageOverrides(dpo);
     }
 protected:
 private:
