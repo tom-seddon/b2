@@ -576,7 +576,7 @@ private:
 
             case M6502AddrMode_INY:
                 c=AddByte(c,"($",(uint8_t)ev->ia,"),Y");
-                c=AddAddress(c," [",ev->pc,ev->ad,"]");
+                c=AddAddress(c," [",ev->pc,(uint16_t)(ev->ad+ev->y),"]");
                 break;
 
             case M6502AddrMode_IND:
