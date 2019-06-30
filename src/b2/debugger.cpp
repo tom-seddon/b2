@@ -582,8 +582,8 @@ void DebugUI::DoDebugPageOverrideFlagImGui(uint32_t mask,
 //////////////////////////////////////////////////////////////////////////
 
 template<class DerivedType>
-static std::unique_ptr<SettingsUI> CreateDebugUI(BeebWindow *beeb_window) {
-    std::unique_ptr<DebugUI> ptr=std::make_unique<DerivedType>();
+static std::unique_ptr<DerivedType> CreateDebugUI(BeebWindow *beeb_window) {
+    std::unique_ptr<DerivedType> ptr=std::make_unique<DerivedType>();
 
     ptr->SetBeebWindow(beeb_window);
 
@@ -927,6 +927,10 @@ public:
         m_track_pc=false;
         m_addr=addr;
         this->ApplyDebugPageOverrides(dpo);
+    }
+
+    void SetTrackPC(bool track_pc) {
+        m_track_pc=track_pc;
     }
 protected:
     void DoImGui2() override {
@@ -1413,8 +1417,14 @@ ObjectCommandTable<DisassemblyDebugWindow> DisassemblyDebugWindow::ms_command_ta
     {CommandDef("page_down","Page Down").Shortcut(SDLK_PAGEDOWN),&DisassemblyDebugWindow::PageDown,&DisassemblyDebugWindow::IsMoveEnabled},
 });
 
-std::unique_ptr<SettingsUI> CreateDisassemblyDebugWindow(BeebWindow *beeb_window) {
-    return CreateDebugUI<DisassemblyDebugWindow>(beeb_window);
+std::unique_ptr<SettingsUI> CreateDisassemblyDebugWindow(BeebWindow *beeb_window,
+                                                         bool initial_track_pc)
+{
+    auto ui=CreateDebugUI<DisassemblyDebugWindow>(beeb_window);
+
+    ui->SetTrackPC(initial_track_pc);
+
+    return ui;
 }
 
 //////////////////////////////////////////////////////////////////////////

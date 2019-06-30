@@ -174,9 +174,9 @@ Show a memory debug window. Click to edit memory.
 
 Show running disassembly.
 
-With `Track PC` ticked, the disassembly will track the program
-counter. Otherwise, enter an address in the `Address` field to visit
-that address.
+With `Track PC` ticked - the default for disassembly window 1 - the
+disassembly will track the program counter. Otherwise, enter an
+address in the `Address` field to visit that address.
 
 The disassembly window will make a stab at guessing effective
 addresses, when not statically obvious. It guesses based on the

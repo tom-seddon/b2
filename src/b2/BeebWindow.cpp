@@ -762,6 +762,14 @@ struct BeebWindow::SettingsUIMetadata {
     std::unique_ptr<SettingsUI> (*create_fn)(BeebWindow *beeb_window);
 };
 
+static std::unique_ptr<SettingsUI> CreateDisassemblyDebugWindow1(BeebWindow *beeb_window) {
+    return CreateDisassemblyDebugWindow(beeb_window,true);
+}
+
+static std::unique_ptr<SettingsUI> CreateDisassemblyDebugWindowN(BeebWindow *beeb_window) {
+    return CreateDisassemblyDebugWindow(beeb_window,false);
+}
+
 const BeebWindow::SettingsUIMetadata BeebWindow::ms_settings_uis[]={
     {BeebWindowPopupType_Keymaps,"Keyboard Layout","toggle_keyboard_layout",&CreateKeymapsUI},
     {BeebWindowPopupType_CommandKeymaps,"Command Keys","toggle_command_keymaps",&CreateCommandKeymapsUI},
@@ -790,10 +798,10 @@ const BeebWindow::SettingsUIMetadata BeebWindow::ms_settings_uis[]={
     {BeebWindowPopupType_ExtMemoryDebugger2,"External Memory Debug 2","toggle_ext_memory_debugger2",&CreateExtMemoryDebugWindow,},
     {BeebWindowPopupType_ExtMemoryDebugger3,"External Memory Debug 3","toggle_ext_memory_debugger3",&CreateExtMemoryDebugWindow,},
     {BeebWindowPopupType_ExtMemoryDebugger4,"External Memory Debug 4","toggle_ext_memory_debugger4",&CreateExtMemoryDebugWindow,},
-    {BeebWindowPopupType_DisassemblyDebugger1,"Disassembly Debug 1","toggle_disassembly_debugger1",&CreateDisassemblyDebugWindow,},
-    {BeebWindowPopupType_DisassemblyDebugger2,"Disassembly Debug 2","toggle_disassembly_debugger2",&CreateDisassemblyDebugWindow,},
-    {BeebWindowPopupType_DisassemblyDebugger3,"Disassembly Debug 3","toggle_disassembly_debugger3",&CreateDisassemblyDebugWindow,},
-    {BeebWindowPopupType_DisassemblyDebugger4,"Disassembly Debug 4","toggle_disassembly_debugger4",&CreateDisassemblyDebugWindow,},
+    {BeebWindowPopupType_DisassemblyDebugger1,"Disassembly Debug 1","toggle_disassembly_debugger1",&CreateDisassemblyDebugWindow1,},
+    {BeebWindowPopupType_DisassemblyDebugger2,"Disassembly Debug 2","toggle_disassembly_debugger2",&CreateDisassemblyDebugWindowN,},
+    {BeebWindowPopupType_DisassemblyDebugger3,"Disassembly Debug 3","toggle_disassembly_debugger3",&CreateDisassemblyDebugWindowN,},
+    {BeebWindowPopupType_DisassemblyDebugger4,"Disassembly Debug 4","toggle_disassembly_debugger4",&CreateDisassemblyDebugWindowN,},
     {BeebWindowPopupType_CRTCDebugger,"CRTC Debug","toggle_crtc_debugger",&CreateCRTCDebugWindow,},
     {BeebWindowPopupType_VideoULADebugger,"Video ULA Debug","toggle_video_ula_debugger",&CreateVideoULADebugWindow,},
     {BeebWindowPopupType_SystemVIADebugger,"System VIA Debug","toggle_system_via_debugger",&CreateSystemVIADebugWindow,},
