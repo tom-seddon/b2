@@ -18,8 +18,60 @@ debug-related functionality, accessible from the `Debug` menu.
 
 # Integrated debugger
 
-Use the 6502 debugger to debug programs running on the emulated BBC.
 Find all this stuff in the `Debug` menu.
+
+## General debugging ##
+
+Use `Stop` to stop the emulated BBC in its tracks.
+
+`Run` will set it going again.
+
+`Step In` will run one instruction and then stop.
+
+`Step Over` will run until the next instruction visible.
+
+## Byte popup ##
+
+When you see the value of a byte in the debugger UI, or when you see
+an address, you can probably right click it to get a popup UI relating
+to that address in memory.
+
+Use the tickboxes to add/remove read, write or execute breakpoints.
+Breakpoints can be set for the address or for the byte: address
+breakpoints are hit when that address is read/written/executed,
+regardless of paging settings, and byte breakpoints relate to that
+specific byte in some specific bank of memory.
+
+The right click functionality is not yet 100% consistently available,
+but this will improve.
+
+## Paging overrides
+
+The disassembly and memory windows have a row of indicators along the
+top, showing the current paging settings (selected ROM, shadow RAM,
+etc.).
+
+To override one, so you're always viewing a particular bit of memory,
+click on one of the captions and select the setting you want to
+override. Overridden settings are displayed with a `!` suffix.
+
+## Address prefixes
+
+Addresses are annotated with a prefix, indicating which bank they come
+from. The possible prefixes are as follows:
+
+- `m` - main RAM
+- `0` - `f` - paged ROM
+- `s` - shadow RAM (B+/Master only)
+- `n` - ANDY (B+/Master only)
+- `h` - HAZEL (Master only)
+- `o` - OS ROM
+- `i` - I/O area
+
+The prefix is sometimes redundant.
+
+Prefixes are not currently supported very consistently, but this will
+improve.
 
 # Debugger windows
 
@@ -36,7 +88,8 @@ will happen when `Start` is clicked:
 * `Return` - recording will start once the
   Return key is pressed
 * `Instruction` - recording will start once the PC is equal to the
-  given address
+  given address. Note that this currently goes only by address -
+  address prefixes aren't supported
 
 There are multiple options for the trace end condition:
 
@@ -79,12 +132,6 @@ using `Save` or `Save (no cycles)`. The output is along these lines:
 The first column is the cycle count - then instruction address,
 instruction, effective address, and register values after the
 instruction is complete.
-
-The instruction address and effective address are annotated with some
-indication of which bank was actually accessed: `m` for main RAM, `s`
-for shadow RAM, `0`-`f` for paged ROMs, `h` for HAZEL` (Master 128
-only), `n` for ANDY (Master 128/B+ only), `o` for the OS ROM and `i`
-for I/O area (only relevant on Master 128).
 
 The bracketed `D` value is the value of the emulated CPU's internal
 data register. For read or read-modify-write instructions, this is the
@@ -131,29 +178,15 @@ With `Track PC` ticked, the disassembly will track the program
 counter. Otherwise, enter an address in the `Address` field to visit
 that address.
 
-Click the box next to each instruction to set or unset a breakpoint at
-that specific address.
+The disassembly window will make a stab at guessing effective
+addresses, when not statically obvious. It guesses based on the
+current state of the system, trying to take paging overrides into
+account, and are for advisory purposes only.
 
 ## `CRTC Debug`, `Video ULA Debug`, `System VIA Debug`, `User VIA Debug`, `NVRAM Debug` ##
 
 Activate a debug window for the corresponding piece of BBC hardware,
 showing current register values and additional useful info.
-
-# 6502 debugging #
-
-Use `Stop` to stop the emulated BBC in its tracks.
-
-`Run` will set it going again.
-
-`Step In` will run one instruction and then stop.
-
-`Step Over` will run until the next instruction visible.
-
-You can set a breakpoint by right clicking on a byte in the hex view
-of the disassembly or memory debug views. Breakpoints be set for the
-address or for the byte: address breakpoints are hit when that address
-is read/written/executed, regardless of paging settings, whereas byte
-breakpoints relate to that specific byte in whichever bank it is.
 
 # Other debug-related options #
 

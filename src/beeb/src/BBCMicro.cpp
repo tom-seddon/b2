@@ -806,7 +806,7 @@ void BBCMicro::HandleCPUDataBusWithHacks(BBCMicro *m) {
             {
                 M6502P p=M6502_GetP(&m->m_state.cpu);
 
-                const BigPage *bp=m->DebugGetBigPageForAddress(m->m_state.cpu.s,0);
+                const BigPage *bp=m->DebugGetBigPageForAddress(m->m_state.cpu.s,{},0);
 
                 // Add the thunk call address that the IRQ routine will RTI to.
                 bp->w[m->m_state.cpu.s.w&BIG_PAGE_OFFSET_MASK]=m->m_state.cpu.pc.b.h;
@@ -1794,6 +1794,7 @@ void BBCMicro::FinishAsyncCall(bool called) {
 
 #if BBCMICRO_DEBUGGER
 const BBCMicro::BigPage *BBCMicro::DebugGetBigPageForAddress(M6502Word addr,
+                                                             bool mos,
                                                              uint32_t dpo) const
 {
     ROMSEL romsel=m_state.romsel;
@@ -1804,12 +1805,30 @@ const BBCMicro::BigPage *BBCMicro::DebugGetBigPageForAddress(M6502Word addr,
     bool io,crt_shadow;
     (*m_type->get_mem_big_page_tables_fn)(&tables,&io,&crt_shadow,romsel,acccon);
 
-    // TODO - should have the option of taking instruction address into account.
-    // But for now, it just always looks at the user table.
-    uint8_t big_page=tables.mem_big_pages[0][addr.p.p];
+    uint8_t big_page=tables.mem_big_pages[mos][addr.p.p];
     ASSERT(big_page<NUM_BIG_PAGES);
     const BigPage *bp=&m_big_pages[big_page];
     return bp;
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_DEBUGGER
+void BBCMicro::GetMemBigPageIsMOSTable(uint8_t *mem_big_page_is_mos,uint32_t dpo) const {
+
+    // Should maybe try to make this all fit together a bit better...
+
+    ROMSEL romsel=m_state.romsel;
+    ACCCON acccon=m_state.acccon;
+    (*m_type->apply_dpo_fn)(&romsel,&acccon,dpo);
+
+    MemoryBigPageTables tables;
+    bool io,crt_shadow;
+    (*m_type->get_mem_big_page_tables_fn)(&tables,&io,&crt_shadow,romsel,acccon);
+
+    memcpy(mem_big_page_is_mos,tables.pc_mem_big_pages_set,16);
 }
 #endif
 
@@ -1906,7 +1925,7 @@ void BBCMicro::DebugSetAddressDebugFlags(M6502Word addr,uint8_t flags) const {
 void BBCMicro::DebugGetBytes(uint8_t *bytes,size_t num_bytes,M6502Word addr,uint32_t dpo) {
     // Not currently very clever.
     for(size_t i=0;i<num_bytes;++i) {
-        const BigPage *bp=this->DebugGetBigPageForAddress(addr,dpo);
+        const BigPage *bp=this->DebugGetBigPageForAddress(addr,{},dpo);
 
         if(bp->r) {
             bytes[i]=bp->r[addr.p.o];
@@ -1926,7 +1945,7 @@ void BBCMicro::DebugGetBytes(uint8_t *bytes,size_t num_bytes,M6502Word addr,uint
 void BBCMicro::DebugSetBytes(M6502Word addr,uint32_t dpo,const uint8_t *bytes,size_t num_bytes) {
     // Not currently very clever.
     for(size_t i=0;i<num_bytes;++i) {
-        const BigPage *bp=this->DebugGetBigPageForAddress(addr,dpo);
+        const BigPage *bp=this->DebugGetBigPageForAddress(addr,{},dpo);
 
         if(bp->w) {
             bp->w[addr.p.o]=bytes[i];

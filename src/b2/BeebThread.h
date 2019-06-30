@@ -882,7 +882,14 @@ public:
 
         // The address flags are per-address, not per big page - it's just
         // convenient to have them as part of the same struct.
+        //
+        // Points to this->addr_flags_buffer, or NULL.
         const uint8_t *addr_flags=nullptr;
+
+        // buffers for the above.
+        uint8_t ram_buffer[BBCMicro::BIG_PAGE_SIZE_BYTES]={};
+        uint8_t addr_flags_buffer[BBCMicro::BIG_PAGE_SIZE_BYTES]={};
+        uint8_t byte_flags_buffer[BBCMicro::BIG_PAGE_SIZE_BYTES]={};
     };
 
     // It's safe to call any of the const BBCMicro public member
@@ -893,16 +900,13 @@ public:
     // non-const DebugXXX functions.
     BBCMicro *LockMutableBeeb(std::unique_lock<Mutex> *lock);
 
-    // clear out debug big pages - happens just before the debugger UI is
-    // updated.
-    void ResetDebugBigPages();
+    // Fills 16 bytes of mem_big_page_is_mos: 1 if the given mem big page is
+    // MOS code, 0 if not.
+    void GetMemBigPageIsMOSTable(uint8_t *mem_big_page_is_mos,uint32_t dpo) const;
 
-    // pass {} for PC if not interested.
-    const DebugBigPage *GetDebugBigPageForAddress(M6502Word addr,
-                                                  M6502Word pc,
-                                                  uint32_t dpo) const;
-
-    void InvalidateDebugBigPageForAddress(M6502Word addr);
+    std::unique_ptr<DebugBigPage> GetDebugBigPageForAddress(M6502Word addr,
+                                                            bool mos,
+                                                            uint32_t dpo) const;
 #endif
 
     // Get trace stats, or nullptr if there's no trace.
@@ -1070,22 +1074,6 @@ private:
 
     //
     std::shared_ptr<MessageList> m_message_list;
-
-#if BBCMICRO_DEBUGGER
-    struct DebugBigPageFull:
-    DebugBigPage
-    {
-        uint8_t ram_buffer[BBCMicro::BIG_PAGE_SIZE_BYTES]={};
-        uint8_t addr_flags_buffer[BBCMicro::BIG_PAGE_SIZE_BYTES]={};
-        uint8_t byte_flags_buffer[BBCMicro::BIG_PAGE_SIZE_BYTES]={};
-
-        std::atomic<bool> valid;
-    };
-
-    // this is a fair amount of memory (in Beeb terms...), but there's only one
-    // per window, so...
-    mutable DebugBigPageFull m_debug_big_pages[16]={};
-#endif
 
 #if BBCMICRO_TRACE
     static bool ThreadStartTraceOnCondition(const BBCMicro *beeb,const M6502 *cpu,void *context);

@@ -386,7 +386,12 @@ public:
 
     // Given address, return the BigPage for the memory there, taking
     // the debug page overrides into account.
-    const BigPage *DebugGetBigPageForAddress(M6502Word addr,uint32_t dpo) const;
+    //
+    // mos indicates whether the access is from MOS code (true) or user code
+    // (false).
+    const BigPage *DebugGetBigPageForAddress(M6502Word addr,bool mos,uint32_t dpo) const;
+
+    void GetMemBigPageIsMOSTable(uint8_t *mem_big_page_is_mos,uint32_t dpo) const;
 
     // Get/set per-byte debug flags for one byte.
     uint8_t DebugGetByteDebugFlags(const BigPage *big_page,uint32_t offset) const;

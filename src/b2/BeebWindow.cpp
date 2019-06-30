@@ -564,8 +564,6 @@ bool BeebWindow::DoImGui(uint64_t ticks) {
 
 #if BBCMICRO_DEBUGGER
     m_got_debug_halted=false;
-
-    m_beeb_thread->ResetDebugBigPages();
 #endif
 
     for(const SDL_KeyboardEvent &event:m_sdl_keyboard_events) {
@@ -2678,10 +2676,17 @@ void BeebWindow::DebugStepOver() {
     if(di->always_step_in) {
         this->DebugStepInLocked(m);
     } else {
+        // More work than required here - but it's not a massive problem, just
+        // a bit ugly :(
+        uint8_t pc_is_mos[16];
+        m->GetMemBigPageIsMOSTable(pc_is_mos,0);
+
         // Try to put a breakpoint on the actual next instruction, rather than
         // its address.
         M6502Word next_pc={(uint16_t)(s->opcode_pc.w+di->num_bytes)};
-        const BBCMicro::BigPage *big_page=m->DebugGetBigPageForAddress(next_pc,m->DebugGetCurrentPageOverride());
+        const BBCMicro::BigPage *big_page=m->DebugGetBigPageForAddress(next_pc,
+                                                                       !!pc_is_mos[s->pc.p.p],
+                                                                       m->DebugGetCurrentPageOverride());
 
         uint8_t flags=m->DebugGetByteDebugFlags(big_page,next_pc.p.o);
         flags|=BBCMicroByteDebugFlag_TempBreakExecute;
