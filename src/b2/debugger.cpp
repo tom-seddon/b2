@@ -988,19 +988,33 @@ protected:
             ImGuiIDPusher id_pusher(addr);
 
             uint8_t opcode;
-            uint8_t addr_flags;
-            uint8_t byte_flags;
-            this->ReadByte(&opcode,&addr_flags,&byte_flags,addr++,false);
+            uint8_t opcode_addr_flags;
+            uint8_t opcode_byte_flags;
+            this->ReadByte(&opcode,
+                           &opcode_addr_flags,
+                           &opcode_byte_flags,
+                           addr++,
+                           false);
             char ascii[4];
 
             const M6502DisassemblyInfo *di=&config->disassembly_info[opcode];
 
             M6502Word operand={};
+            M6502Word operand_addr_flags={};
+            M6502Word operand_byte_flags={};
             if(di->num_bytes>=2) {
-                this->ReadByte(&operand.b.l,nullptr,nullptr,addr++,false);
+                this->ReadByte(&operand.b.l,
+                               &operand_addr_flags.b.l,
+                               &operand_byte_flags.b.l,
+                               addr++,
+                               false);
             }
             if(di->num_bytes>=3) {
-                this->ReadByte(&operand.b.h,nullptr,nullptr,addr++,false);
+                this->ReadByte(&operand.b.h,
+                               &operand_addr_flags.b.h,
+                               &operand_byte_flags.b.h,
+                               addr++,
+                               false);
             }
 
             ImGuiStyleColourPusher pusher;
@@ -1042,7 +1056,7 @@ protected:
 
             ImGui::SameLine();
 
-            ImGui::Text("%02x",opcode);
+            this->TextWithBreakpointBackground(opcode_addr_flags,opcode_byte_flags,"%02x",opcode);
             this->DoBytePopupGui(line_addr,false);
             if(opcode>=32&&opcode<127) {
                 ascii[0]=(char)opcode;
@@ -1053,7 +1067,7 @@ protected:
             ImGui::SameLine();
 
             if(di->num_bytes>=2) {
-                ImGui::Text("%02x",operand.b.l);
+                this->TextWithBreakpointBackground(operand_addr_flags.b.l,operand_byte_flags.b.l,"%02x",operand.b.l);
                 this->DoBytePopupGui({(uint16_t)(line_addr.w+1u)},false);
                 if(operand.b.l>=32&&operand.b.l<127) {
                     ascii[1]=(char)operand.b.l;
@@ -1068,7 +1082,7 @@ protected:
             ImGui::SameLine();
 
             if(di->num_bytes>=3) {
-                ImGui::Text("%02x",operand.b.h);
+                this->TextWithBreakpointBackground(operand_addr_flags.b.h,operand_byte_flags.b.h,"%02x",operand.b.h);
                 this->DoBytePopupGui({(uint16_t)(line_addr.w+2u)},false);
                 if(operand.b.h>=32&&operand.b.h<127) {
                     ascii[2]=(char)operand.b.h;
@@ -1227,6 +1241,32 @@ private:
     int m_num_lines=0;
     //char m_disassembly_text[100];
     float m_wheel=0;
+
+    void PRINTF_LIKE(4,5) TextWithBreakpointBackground(uint8_t addr_flags,
+                                                       uint8_t byte_flags,
+                                                       const char *fmt,...)
+    {
+        char text[100];
+        va_list v;
+
+        va_start(v,fmt);
+        vsnprintf(text,sizeof text,fmt,v);
+        va_end(v);
+
+        if((addr_flags|byte_flags)&(BBCMicroByteDebugFlag_BreakExecute|
+                                    BBCMicroByteDebugFlag_BreakRead|
+                                    BBCMicroByteDebugFlag_BreakWrite))
+        {
+            ImVec2 pos=ImGui::GetCursorScreenPos();
+            ImVec2 size=ImGui::CalcTextSize(text);
+
+            ImDrawList *draw_list=ImGui::GetWindowDrawList();
+
+            draw_list->AddRectFilled(pos,pos+size,IM_COL32(128,0,0,255));
+        }
+
+        ImGui::TextUnformatted(text);
+    }
 
     void DoIndirect(uint16_t address,bool mos,uint16_t mask,uint16_t post_index) {
         M6502Word addr;
