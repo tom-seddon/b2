@@ -865,33 +865,6 @@ public:
     bool IsCopying() const;
 
 #if BBCMICRO_DEBUGGER
-    struct DebugBigPage {
-        // The big page this refers to.
-        uint8_t big_page_index=0;
-        const BigPageType *big_page_type=nullptr;
-
-        // points to this->ram_buffer, or NULL.
-        const uint8_t *r=nullptr;
-
-        // set if writeable - use one of the thread messages to actually do
-        // the writing.
-        bool writeable=false;
-
-        // points to this->byte_flags_buffer, or NULL.
-        const uint8_t *byte_flags=nullptr;
-
-        // The address flags are per-address, not per big page - it's just
-        // convenient to have them as part of the same struct.
-        //
-        // Points to this->addr_flags_buffer, or NULL.
-        const uint8_t *addr_flags=nullptr;
-
-        // buffers for the above.
-        uint8_t ram_buffer[BBCMicro::BIG_PAGE_SIZE_BYTES]={};
-        uint8_t addr_flags_buffer[BBCMicro::BIG_PAGE_SIZE_BYTES]={};
-        uint8_t byte_flags_buffer[BBCMicro::BIG_PAGE_SIZE_BYTES]={};
-    };
-
     // It's safe to call any of the const BBCMicro public member
     // functions on the result as long as the lock is held.
     const BBCMicro *LockBeeb(std::unique_lock<Mutex> *lock) const;
@@ -899,14 +872,6 @@ public:
     // As well as the LockBeeb guarantees, it's also safe to call the
     // non-const DebugXXX functions.
     BBCMicro *LockMutableBeeb(std::unique_lock<Mutex> *lock);
-
-    // Fills 16 bytes of mem_big_page_is_mos: 1 if the given mem big page is
-    // MOS code, 0 if not.
-    void GetMemBigPageIsMOSTable(uint8_t *mem_big_page_is_mos,uint32_t dpo) const;
-
-    std::unique_ptr<DebugBigPage> GetDebugBigPageForAddress(M6502Word addr,
-                                                            bool mos,
-                                                            uint32_t dpo) const;
 #endif
 
     // Get trace stats, or nullptr if there's no trace.

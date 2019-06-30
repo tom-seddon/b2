@@ -1779,66 +1779,6 @@ BBCMicro *BeebThread::LockMutableBeeb(std::unique_lock<Mutex> *lock) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-#if BBCMICRO_DEBUGGER
-void BeebThread::GetMemBigPageIsMOSTable(uint8_t *mem_big_page_is_mos,uint32_t dpo) const {
-    std::unique_lock<Mutex> lock;
-    const BBCMicro *m=this->LockBeeb(&lock);
-
-    m->GetMemBigPageIsMOSTable(mem_big_page_is_mos,dpo);
-}
-#endif
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-#if BBCMICRO_DEBUGGER
-std::unique_ptr<BeebThread::DebugBigPage> BeebThread::GetDebugBigPageForAddress(M6502Word addr,
-                                                                                bool mos,
-                                                                                uint32_t dpo) const
-{
-    std::unique_lock<Mutex> lock;
-    const BBCMicro *m=this->LockBeeb(&lock);
-
-    auto dbp=std::make_unique<DebugBigPage>();
-
-    const BBCMicro::BigPage *bp=m->DebugGetBigPageForAddress(addr,mos,dpo);
-    dbp->big_page_index=bp->index;
-    dbp->big_page_type=bp->type;
-
-    if(bp->r) {
-        memcpy(dbp->ram_buffer,bp->r,BBCMicro::BIG_PAGE_SIZE_BYTES);
-        dbp->r=dbp->ram_buffer;
-    } else {
-        dbp->r=nullptr;
-    }
-
-    if(bp->w&&bp->r) {
-        dbp->writeable=true;
-    } else {
-        dbp->writeable=false;
-    }
-
-    if(bp->debug) {
-        memcpy(dbp->byte_flags_buffer,bp->debug,BBCMicro::BIG_PAGE_SIZE_BYTES);
-        dbp->byte_flags=dbp->byte_flags_buffer;
-    } else {
-        dbp->byte_flags=nullptr;
-    }
-
-    if(const uint8_t *addr_flags=m->DebugGetAddressDebugFlagsForMemBigPage(addr.p.p)) {
-        memcpy(dbp->addr_flags_buffer,addr_flags,4096);
-        dbp->addr_flags=dbp->addr_flags_buffer;
-    } else {
-        dbp->addr_flags=nullptr;
-    }
-
-    return dbp;
-}
-#endif
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 #if BBCMICRO_TRACE
 const volatile TraceStats *BeebThread::GetTraceStats() const {
     if(m_is_tracing.load(std::memory_order_acquire)) {

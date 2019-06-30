@@ -85,6 +85,33 @@ class DebugUI:
     public SettingsUI
 {
 public:
+    struct DebugBigPage {
+        // The big page this refers to.
+        uint8_t big_page_index=0;
+        const BigPageType *big_page_type=nullptr;
+
+        // points to this->ram_buffer, or NULL.
+        const uint8_t *r=nullptr;
+
+        // set if writeable - use one of the thread messages to actually do
+        // the writing.
+        bool writeable=false;
+
+        // points to this->byte_flags_buffer, or NULL.
+        const uint8_t *byte_flags=nullptr;
+
+        // The address flags are per-address, not per big page - it's just
+        // convenient to have them as part of the same struct.
+        //
+        // Points to this->addr_flags_buffer, or NULL.
+        const uint8_t *addr_flags=nullptr;
+
+        // buffers for the above.
+        uint8_t ram_buffer[BBCMicro::BIG_PAGE_SIZE_BYTES]={};
+        uint8_t addr_flags_buffer[BBCMicro::BIG_PAGE_SIZE_BYTES]={};
+        uint8_t byte_flags_buffer[BBCMicro::BIG_PAGE_SIZE_BYTES]={};
+    };
+
     bool OnClose() override;
 
     void DoImGui() override final;
@@ -118,10 +145,10 @@ protected:
     // set. Leaves other flags alone - overridden, or not.
     void ApplyDebugPageOverrides(uint32_t dpo);
 
-    const BeebThread::DebugBigPage *GetDebugBigPageForAddress(M6502Word addr,
-                                                              bool mos);
+    const DebugBigPage *GetDebugBigPageForAddress(M6502Word addr,
+                                                  bool mos);
 private:
-    std::unique_ptr<BeebThread::DebugBigPage> m_dbps[2][16];// [mos][mem big page]
+    std::unique_ptr<DebugBigPage> m_dbps[2][16];// [mos][mem big page]
     uint32_t m_popup_id=0;//salt for byte popup gui IDs
 
     bool DoDebugByteFlagsGui(const char *str,
@@ -181,7 +208,7 @@ bool DebugUI::ReadByte(uint8_t *value,
 {
     M6502Word addr={addr_};
 
-    const BeebThread::DebugBigPage *dbp=this->GetDebugBigPageForAddress(addr,mos);
+    const DebugBigPage *dbp=this->GetDebugBigPageForAddress(addr,mos);
 
     if(!dbp->r) {
         return false;
@@ -319,7 +346,7 @@ void DebugUI::DoBytePopupGui(M6502Word addr,bool mos) {
     }
 
     if(ImGui::BeginPopup(CONTEXT_POPUP_NAME)) {
-        const BeebThread::DebugBigPage *dbp=this->GetDebugBigPageForAddress(addr,mos);//TODO MOS flag
+        const DebugBigPage *dbp=this->GetDebugBigPageForAddress(addr,mos);//TODO MOS flag
 
         this->DoByteDebugGui(addr,mos);
 
@@ -342,7 +369,7 @@ void DebugUI::DoBytePopupGui(M6502Word addr,bool mos) {
 void DebugUI::DoByteDebugGui(M6502Word addr,bool mos) {
     ImGui::Text("Address: $%04x",addr.w);
 
-    const BeebThread::DebugBigPage *dbp=this->GetDebugBigPageForAddress(addr,mos);// TODO MOS flag
+    const DebugBigPage *dbp=this->GetDebugBigPageForAddress(addr,mos);// TODO MOS flag
 
     if(!dbp) {
         ImGui::Separator();
@@ -515,13 +542,49 @@ void DebugUI::DoDebugByteFlagGui(bool *changed,
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-const BeebThread::DebugBigPage *DebugUI::GetDebugBigPageForAddress(M6502Word addr,
+const DebugUI::DebugBigPage *DebugUI::GetDebugBigPageForAddress(M6502Word addr,
                                                                    bool mos)
 {
     ASSERT((int)mos==0||(int)mos==1);
 
     if(!m_dbps[mos][addr.p.p]) {
-        m_dbps[mos][addr.p.p]=m_beeb_thread->GetDebugBigPageForAddress(addr,mos,m_dpo);
+        auto dbp=std::make_unique<DebugBigPage>();
+
+        std::unique_lock<Mutex> lock;
+        const BBCMicro *m=m_beeb_thread->LockBeeb(&lock);
+
+        const BBCMicro::BigPage *bp=m->DebugGetBigPageForAddress(addr,mos,m_dpo);
+        dbp->big_page_index=bp->index;
+        dbp->big_page_type=bp->type;
+
+        if(bp->r) {
+            memcpy(dbp->ram_buffer,bp->r,BBCMicro::BIG_PAGE_SIZE_BYTES);
+            dbp->r=dbp->ram_buffer;
+        } else {
+            dbp->r=nullptr;
+        }
+
+        if(bp->w&&bp->r) {
+            dbp->writeable=true;
+        } else {
+            dbp->writeable=false;
+        }
+
+        if(bp->debug) {
+            memcpy(dbp->byte_flags_buffer,bp->debug,BBCMicro::BIG_PAGE_SIZE_BYTES);
+            dbp->byte_flags=dbp->byte_flags_buffer;
+        } else {
+            dbp->byte_flags=nullptr;
+        }
+
+        if(const uint8_t *addr_flags=m->DebugGetAddressDebugFlagsForMemBigPage(addr.p.p)) {
+            memcpy(dbp->addr_flags_buffer,addr_flags,4096);
+            dbp->addr_flags=dbp->addr_flags_buffer;
+        } else {
+            dbp->addr_flags=nullptr;
+        }
+
+        m_dbps[mos][addr.p.p]=std::move(dbp);
     }
 
     return m_dbps[mos][addr.p.p].get();
@@ -721,7 +784,7 @@ private:
         void ReadByte(HexEditorByte *byte,size_t offset) override {
             M6502Word addr={(uint16_t)offset};
 
-            const BeebThread::DebugBigPage *dbp=m_window->GetDebugBigPageForAddress(addr,false);
+            const DebugBigPage *dbp=m_window->GetDebugBigPageForAddress(addr,false);
 
             if(!dbp||!dbp->r) {
                 byte->got_value=false;
@@ -765,7 +828,7 @@ private:
                             size_t offset,
                             bool upper_case) override
         {
-            const BeebThread::DebugBigPage *dbp=m_window->GetDebugBigPageForAddress({(uint16_t)offset},false);
+            const DebugBigPage *dbp=m_window->GetDebugBigPageForAddress({(uint16_t)offset},false);
 
             snprintf(text,
                      text_size,
@@ -1046,7 +1109,7 @@ protected:
 //                prefix[0]=0;
 //            }
 
-            const BeebThread::DebugBigPage *dbp=this->GetDebugBigPageForAddress(line_addr,mos);
+            const DebugBigPage *dbp=this->GetDebugBigPageForAddress(line_addr,mos);
             ImGui::Text("%c.%04x",dbp->big_page_type->code,line_addr.w);
             this->DoBytePopupGui(line_addr,false);
 
@@ -1284,7 +1347,7 @@ private:
     }
 
     void AddWord(const char *prefix,uint16_t w,bool mos,const char *suffix) {
-        const BeebThread::DebugBigPage *dbp=this->GetDebugBigPageForAddress({w},mos);
+        const DebugBigPage *dbp=this->GetDebugBigPageForAddress({w},mos);
 
         char label[7]={
             dbp->big_page_type->code,
@@ -1299,7 +1362,7 @@ private:
     }
 
     void AddByte(const char *prefix,uint8_t value,bool mos,const char *suffix) {
-        const BeebThread::DebugBigPage *dbp=this->GetDebugBigPageForAddress({value},mos);
+        const DebugBigPage *dbp=this->GetDebugBigPageForAddress({value},mos);
 
         char label[5]={
             dbp->big_page_type->code,
