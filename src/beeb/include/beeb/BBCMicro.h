@@ -48,13 +48,14 @@ class BeebLink;
 class BBCMicro:
     private WD1770Handler
 {
-    static constexpr uint8_t NUM_BIG_PAGES=84;
 public:
+    static constexpr uint8_t NUM_BIG_PAGES=84;
     static const uint16_t SCREEN_WRAP_ADJUSTMENTS[];
 
     typedef void (*UpdateROMSELPagesFn)(BBCMicro *);
     typedef void (*UpdateACCCONPagesFn)(BBCMicro *,const ACCCON *);
 
+    // BIG_PAGE_SIZE_BYTES fits into a uint16_t.
     static constexpr size_t BIG_PAGE_SIZE_BYTES=4096;
     static constexpr size_t BIG_PAGE_OFFSET_MASK=4095;
 
@@ -64,11 +65,6 @@ public:
     struct HardwareDebugState {
         R6522::IRQ system_via_irq_breakpoints={};
         R6522::IRQ user_via_irq_breakpoints={};
-    };
-
-    //
-    struct ByteBreakpoint {
-
     };
 
     struct DebugState {
@@ -92,7 +88,8 @@ public:
         // Address-specific breakpoint flags.
         uint8_t address_debug_flags[65536]={};
 
-        bool breakpoints_lists_valid=false;
+        //
+        uint64_t breakpoints_changed_counter=1;
 
         // List of all addresses that have address breakpoints associated with
         // them.
@@ -443,6 +440,17 @@ public:
     // a combination of paging override flags. All the override bits are
     // set, and the actual flags are set appropriately.
     uint32_t DebugGetCurrentPageOverride() const;
+
+    // The breakpoints change counter is incremented any time the set of
+    // breakpoints changes.
+    uint64_t DebugGetBreakpointsChangeCounter() const;
+
+    // Get copies of the debug flags.
+    //
+    // addr_debug_flags data is 65536 bytes.
+    //
+    // big_pages_debug_flags data is NUM_BIG_PAGES*BIG_PAGE_SIZE_BYTES.
+    void DebugGetDebugFlags(uint8_t *addr_debug_flags,uint8_t *big_pages_debug_flags) const;
 #endif
 
     void SendBeebLinkResponse(std::vector<uint8_t> data);

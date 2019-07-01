@@ -1864,10 +1864,14 @@ void BBCMicro::DebugSetByteDebugFlags(uint8_t big_page_index,
     if(big_page->debug) {
         uint8_t *byte_flags=&big_page->debug[offset&BIG_PAGE_OFFSET_MASK];
 
-        *byte_flags=flags;
+        if(*byte_flags!=flags) {
+            *byte_flags=flags;
 
-        if(flags&BBCMicroByteDebugFlag_TempBreakExecute) {
-            m_debug->temp_execute_breakpoints.push_back(byte_flags);
+            ++m_debug->breakpoints_changed_counter;
+
+            if(flags&BBCMicroByteDebugFlag_TempBreakExecute) {
+                m_debug->temp_execute_breakpoints.push_back(byte_flags);
+            }
         }
     }
 }
@@ -1909,10 +1913,14 @@ void BBCMicro::DebugSetAddressDebugFlags(M6502Word addr,uint8_t flags) const {
     if(m_debug) {
         uint8_t *addr_flags=&m_debug->address_debug_flags[addr.w];
 
-        *addr_flags=flags;
+        if(*addr_flags!=flags) {
+            *addr_flags=flags;
 
-        if(flags&BBCMicroByteDebugFlag_TempBreakExecute) {
-            m_debug->temp_execute_breakpoints.push_back(addr_flags);
+            ++m_debug->breakpoints_changed_counter;
+
+            if(flags&BBCMicroByteDebugFlag_TempBreakExecute) {
+                m_debug->temp_execute_breakpoints.push_back(addr_flags);
+            }
         }
     }
 }
@@ -1983,20 +1991,24 @@ void BBCMicro::DebugHalt(const char *fmt,...) {
             m_debug->halt_reason[0]=0;
         }
 
-        for(uint8_t *flags:m_debug->temp_execute_breakpoints) {
-            // Not even sure this isn't UB or something.
-            ASSERT(((uintptr_t)flags>=(uintptr_t)m_debug->big_pages_debug_flags&&
-                    (uintptr_t)flags<(uintptr_t)((char *)m_debug->big_pages_debug_flags+sizeof m_debug->big_pages_debug_flags))||
-                   ((uintptr_t)flags>=(uintptr_t)m_debug->address_debug_flags&&
-                    (uintptr_t)flags<(uintptr_t)((char *)m_debug->address_debug_flags+sizeof m_debug->address_debug_flags)));
+        if(!m_debug->temp_execute_breakpoints.empty()) {
+            for(uint8_t *flags:m_debug->temp_execute_breakpoints) {
+                // Not even sure this isn't UB or something.
+                ASSERT(((uintptr_t)flags>=(uintptr_t)m_debug->big_pages_debug_flags&&
+                        (uintptr_t)flags<(uintptr_t)((char *)m_debug->big_pages_debug_flags+sizeof m_debug->big_pages_debug_flags))||
+                       ((uintptr_t)flags>=(uintptr_t)m_debug->address_debug_flags&&
+                        (uintptr_t)flags<(uintptr_t)((char *)m_debug->address_debug_flags+sizeof m_debug->address_debug_flags)));
 
-            // Doesn't matter.
-            //ASSERT(*flags&BBCMicroByteDebugFlag_TempBreakExecute);
+                // Doesn't matter.
+                //ASSERT(*flags&BBCMicroByteDebugFlag_TempBreakExecute);
 
-            *flags&=~BBCMicroByteDebugFlag_TempBreakExecute;
+                *flags&=~BBCMicroByteDebugFlag_TempBreakExecute;
+            }
+
+            m_debug->temp_execute_breakpoints.clear();
+
+            ++m_debug->breakpoints_changed_counter;
         }
-
-        m_debug->temp_execute_breakpoints.clear();
 
         this->SetDebugStepType(BBCMicroStepType_None);
     }
@@ -2181,6 +2193,36 @@ void BBCMicro::DebugSetAsyncCall(uint16_t address,uint8_t a,uint8_t x,uint8_t y,
 #if BBCMICRO_DEBUGGER
 uint32_t BBCMicro::DebugGetCurrentPageOverride() const {
     return (*m_type->get_dpo_fn)(m_state.romsel,m_state.acccon);
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_DEBUGGER
+uint64_t BBCMicro::DebugGetBreakpointsChangeCounter() const {
+    if(m_debug) {
+        return m_debug->breakpoints_changed_counter;
+    } else {
+        return 0;
+    }
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_DEBUGGER
+void BBCMicro::DebugGetDebugFlags(uint8_t *addr_debug_flags,
+                                  uint8_t *big_pages_debug_flags) const
+{
+    if(m_debug) {
+        memcpy(addr_debug_flags,m_debug->address_debug_flags,65536);
+        memcpy(big_pages_debug_flags,m_debug->big_pages_debug_flags,NUM_BIG_PAGES*BIG_PAGE_SIZE_BYTES);
+    } else {
+        memset(addr_debug_flags,0,65536);
+        memset(big_pages_debug_flags,0,NUM_BIG_PAGES*BIG_PAGE_SIZE_BYTES);
+    }
 }
 #endif
 

@@ -290,6 +290,27 @@ bool ImGuiConfirmButton(const char *label,bool needs_confirm=true);
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+// like ImGui::CheckboxFlags, but for any type.
+template<class FlagsType,class MaskType>
+bool ImGuiCheckboxFlags(const char *label,FlagsType *flags,MaskType mask) {
+    bool value=!!(*flags&mask);
+
+    if(ImGui::Checkbox(label,&value)) {
+        if(value) {
+            *flags|=mask;
+        } else {
+            *flags&=~mask;
+        }
+
+        return true;
+    } else {
+        return false;
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 //template<class ObjectTypePtr,class ObjectType,class ResultType,class ArgumentType>
 //void ImGuiSliderGetSet(const char *label,
 //    ObjectTypePtr &&object,

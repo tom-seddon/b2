@@ -183,6 +183,12 @@ struct BBCMicroType {
     // ANDY/HAZEL are correctly catogorized.
     std::vector<const BigPageType *> big_page_types;
 
+    // indexed by big page index.
+    //
+    // A value of 0xffff indicates this big page type isn't appropriate for
+    // this machine.
+    std::vector<uint16_t> big_page_addrs;
+
     // usr, mos and mos_pc_mem_big_pages should point to 16-byte tables.
     //
     // usr[i] is the big page to use when user code accesses memory big page i,

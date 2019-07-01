@@ -83,6 +83,32 @@ static std::vector<const BigPageType *> GetBigPageTypesCommon() {
     return types;
 }
 
+static void SetBigPageAddrs(std::vector<uint16_t> *addrs,
+                            size_t index,
+                            size_t n,
+                            uint16_t base)
+{
+    for(size_t i=0;i<n;++i) {
+        ASSERT((*addrs)[index+i]==0xffff);
+        (*addrs)[index+i]=base+i*4096;
+    }
+}
+
+static std::vector<uint16_t> GetBigPageAddrsCommon() {
+    std::vector<uint16_t> addrs;
+    addrs.resize(NUM_BIG_PAGES,0xffff);
+
+    SetBigPageAddrs(&addrs,MAIN_BIG_PAGE_INDEX,NUM_MAIN_BIG_PAGES,0x0000);
+
+    for(size_t i=0;i<16;++i) {
+        SetBigPageAddrs(&addrs,ROM0_BIG_PAGE_INDEX+i*NUM_ROM_BIG_PAGES,NUM_ROM_BIG_PAGES,0x8000);
+    }
+
+    SetBigPageAddrs(&addrs,MOS_BIG_PAGE_INDEX,NUM_MOS_BIG_PAGES,0xc000);
+
+    return addrs;
+}
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
@@ -147,6 +173,12 @@ static std::vector<const BigPageType *> GetBigPageTypesB() {
     return types;
 }
 
+static std::vector<uint16_t> GetBigPageAddrsB() {
+    std::vector<uint16_t> addrs=GetBigPageAddrsCommon();
+
+    return addrs;
+}
+
 const BBCMicroType BBC_MICRO_TYPE_B={
     BBCMicroTypeID_B,//type_id
     &M6502_nmos6502_config,//m6502_config
@@ -157,6 +189,7 @@ const BBCMicroType BBC_MICRO_TYPE_B={
      BBCMicroDebugPagingOverride_ROM),//dpo_mask
 #endif
     GetBigPageTypesB(),
+    GetBigPageAddrsB(),
     &GetMemBigPageTablesB,//get_mem_big_page_tables_fn,
 #if BBCMICRO_DEBUGGER
     &ApplyDPOB,//apply_dpo_fn
@@ -298,6 +331,15 @@ static std::vector<const BigPageType *> GetBigPageTypesBPlus() {
     return types;
 }
 
+static std::vector<uint16_t> GetBigPageAddrsBPlus() {
+    std::vector<uint16_t> addrs=GetBigPageAddrsCommon();
+
+    SetBigPageAddrs(&addrs,ANDY_BIG_PAGE_INDEX,NUM_ANDY_BIG_PAGES+NUM_HAZEL_BIG_PAGES,0x8000);
+    SetBigPageAddrs(&addrs,SHADOW_BIG_PAGE_INDEX,NUM_SHADOW_BIG_PAGES,0x3000);
+
+    return addrs;
+}
+
 const BBCMicroType BBC_MICRO_TYPE_B_PLUS={
     BBCMicroTypeID_BPlus,//type_id
     &M6502_nmos6502_config,//m6502_config
@@ -312,6 +354,7 @@ const BBCMicroType BBC_MICRO_TYPE_B_PLUS={
      BBCMicroDebugPagingOverride_OverrideShadow),//dpo_mask
 #endif
     GetBigPageTypesBPlus(),
+    GetBigPageAddrsBPlus(),
     &GetMemBigPageTablesBPlus,//get_mem_big_page_tables_fn,
 #if BBCMICRO_DEBUGGER
     &ApplyDPOBPlus,//apply_dpo_fn
@@ -490,6 +533,16 @@ static std::vector<const BigPageType *> GetBigPageTypesMaster() {
     return types;
 }
 
+static std::vector<uint16_t> GetBigPageAddrsMaster() {
+    std::vector<uint16_t> addrs=GetBigPageAddrsCommon();
+
+    SetBigPageAddrs(&addrs,ANDY_BIG_PAGE_INDEX,NUM_ANDY_BIG_PAGES,0x8000);
+    SetBigPageAddrs(&addrs,HAZEL_BIG_PAGE_INDEX,NUM_HAZEL_BIG_PAGES,0xc000);
+    SetBigPageAddrs(&addrs,SHADOW_BIG_PAGE_INDEX,NUM_SHADOW_BIG_PAGES,0x3000);
+
+    return addrs;
+}
+
 const BBCMicroType BBC_MICRO_TYPE_MASTER={
     BBCMicroTypeID_Master,//type_id
     &M6502_cmos6502_config,//m6502_config
@@ -508,6 +561,7 @@ const BBCMicroType BBC_MICRO_TYPE_MASTER={
      BBCMicroDebugPagingOverride_OverrideOS),//dpo_mask
 #endif
     GetBigPageTypesMaster(),
+    GetBigPageAddrsMaster(),
     &GetMemBigPagesTablesMaster,//get_mem_big_page_tables_fn,
 #if BBCMICRO_DEBUGGER
     &ApplyDPOMaster,//apply_dpo_fn

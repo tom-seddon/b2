@@ -58,6 +58,7 @@ EPN(SavedStates)
 EPN(BeebLink)
 EPN(SN76489Debugger)
 EPN(PagingDebugger)
+EPN(BreakpointsDebugger)
 
 // must be last
 EQPN(MaxValue)

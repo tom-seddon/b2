@@ -131,6 +131,7 @@ EEND()
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_DEBUGGER
+// 8-bit quantity.
 #define ENAME BBCMicroByteDebugFlag
 EBEGIN()
 EPNV(BreakExecute,1<<0)

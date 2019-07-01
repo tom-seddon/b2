@@ -30,30 +30,47 @@ Use `Stop` to stop the emulated BBC in its tracks.
 
 `Step Over` will run until the next instruction visible.
 
+## Paging overrides
+
+Where it's relevant, debug windows have a row of indicators along the
+top, showing the current paging settings (selected ROM, shadow RAM,
+etc.).
+
+You can override these for the window, to see the state as if some
+other paging setup were in effect. (This only affects the debug
+window's view of memory. The emulated state doesn't change.) To do
+this, click on one of the captions and select the override value you
+want to use.
+
+Overridden settings are displayed with a `!` suffix.
+
 ## Byte popup ##
 
-When you see the value of a byte in the debugger UI, or when you see
-an address, you can probably right click it to get a popup UI relating
-to that address in memory.
+Most places where you see the value of a byte in the debugger UI, or
+when an address, you can right click the address or value to get a
+popup UI relating to that byte.
 
 Use the tickboxes to add/remove read, write or execute breakpoints.
 Breakpoints can be set for the address or for the byte: address
 breakpoints are hit when that address is read/written/executed,
-regardless of paging settings, and byte breakpoints relate to that
-specific byte in some specific bank of memory.
+regardless of paging settings, and byte breakpoints relate to the
+specific byte in question, in whichever bank it is.
+
+(When a byte's value is shown in the disassembly window, it will be
+displayed with a coloured background if there's a breakpoint set for
+that address or that byte.)
+
+Tick `Reveal address...` to visit that address in a visible
+disassembly or memory view window (select the desired window from the
+list). The window in question will be made to view that address.
+
+Tick `Reveal byte` to visit that particular byte in a visible
+disassembly or memory view window (select the desired window from the
+list). The window's paging overrides will be adjusted to ensure that
+particular byte is visible.
 
 The right click functionality is not yet 100% consistently available,
 but this will improve.
-
-## Paging overrides
-
-The disassembly and memory windows have a row of indicators along the
-top, showing the current paging settings (selected ROM, shadow RAM,
-etc.).
-
-To override one, so you're always viewing a particular bit of memory,
-click on one of the captions and select the setting you want to
-override. Overridden settings are displayed with a `!` suffix.
 
 ## Address prefixes
 
@@ -91,9 +108,10 @@ will happen when `Start` is clicked:
   given address. Note that this currently goes only by address -
   address prefixes aren't supported
 
-There are multiple options for the trace end condition:
+Once the trace starts, you can always click `Stop` to end it, but
+there are additional options for the trace end condition:
 
-* `By request` - stop when `Stop` is clicked
+* `By request` - stop only when `Stop` is clicked
 * `OSWORD 0` - stop when the BBC executes an OSWORD with A=0 (read
   input line)
 * `Cycle count` - stop when the trace has been going for a particular
@@ -188,6 +206,20 @@ account, and are for advisory purposes only.
 Activate a debug window for the corresponding piece of BBC hardware,
 showing current register values and additional useful info.
 
+## `Paging debug`
+
+Shows current paging settings.
+
+## `Breakpoints`
+
+Shows a list of all breakpoints. When you use the byte popup to set a
+breakpoint on an address or byte, it will appear here.
+
+If you use this window to alter the breakpoint flags for a particular
+address or byte, that byte or address will continue to be shown in the
+list even if all its breakpoint flags are cleared. When this happens,
+click the `x` button to get rid of it.
+
 # Other debug-related options #
 
 Additional debug options can be found in `Tools` > `Options` in the
@@ -212,11 +244,18 @@ using an HTTP client library.
 
 The emulator listens on localhost on port 48075 (0xbbcb).
 
+**The HTTP API is a work in progress, and may change.**
+
 ## HTTP Methods
 
 Values in capitals indicate parameters. Parameters listed as part of
 the path are found by position, and are mandatory; those listed as
 part of the query string are found by name, and are optional.
+
+Every method takes a window name, `WIN` - as seen in the title bar -
+as a parameter, indicating which window to send the request to. In
+most cases, this will probably be `b2`, the name of the initial window
+the emulator creates on startup.
 
 Parameters expecting numbers are typically hex values, e.g., `ffff`
 (65535), or C-style literals, e.g., `65535` (65535), `0xffff` (65535),

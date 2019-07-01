@@ -2226,4 +2226,195 @@ std::unique_ptr<SettingsUI> CreatePagingDebugWindow(BeebWindow *beeb_window) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+class BreakpointsDebugWindow:
+public DebugUI
+{
+public:
+protected:
+    void DoImGui2() override {
+        bool changed=false;
+        const BBCMicroType *type;
+        {
+            std::unique_lock<Mutex> lock;
+            const BBCMicro *m=m_beeb_thread->LockBeeb(&lock);
+
+            uint64_t breakpoints_change_counter=m->DebugGetBreakpointsChangeCounter();
+            if(breakpoints_change_counter!=m_breakpoints_change_counter) {
+                m->DebugGetDebugFlags(m_addr_debug_flags,&m_big_page_debug_flags[0][0]);
+                m_breakpoints_change_counter=breakpoints_change_counter;
+                ++m_num_updates;
+                changed=true;
+            }
+
+            type=m->GetType();
+        }
+
+        if(changed) {
+            this->Update();
+        }
+
+#if BUILD_TYPE_Debug
+        ImGui::Text("size=%zu",sizeof *this);
+        ImGui::Text("%" PRIu64 " update(s)",m_num_updates);
+
+        if(ImGui::Button("Populate")) {
+            for(size_t i=0;i<100;++i) {
+                M6502Word addr={(uint16_t)i};
+                m_beeb_thread->Send(std::make_shared<BeebThread::DebugSetAddressDebugFlags>(addr,
+                                                                                            BBCMicroByteDebugFlag_BreakExecute));
+            }
+        }
+#endif
+
+        int num_rows=(int)m_breakpoints.size();
+        int line_height=ImGui::GetTextLineHeight();
+        ImGuiListClipper clipper(num_rows,line_height);
+
+        for(int i=clipper.DisplayStart;i<clipper.DisplayEnd;++i) {
+            Breakpoint *bp=&m_breakpoints[(size_t)i];
+
+            if(bp->big_page==0xff) {
+                // Address breakpoint
+
+                if(uint8_t *flags=this->Row(bp,"$%04x",bp->offset)) {
+                    M6502Word addr={bp->offset};
+                    m_beeb_thread->Send(std::make_shared<BeebThread::DebugSetAddressDebugFlags>(addr,*flags));
+                }
+            } else {
+                // Byte breakpoint
+//                ASSERT(bp->big_page<BBCMicro::NUM_BIG_PAGES);
+//                ASSERT(bp->offset<BBCMicro::BIG_PAGE_SIZE_BYTES);
+//                uint8_t *flags=&m_big_page_debug_flags[bp->big_page][bp->offset];
+
+                const BigPageType *big_page_type=type->big_page_types[bp->big_page];
+                uint16_t big_page_addr=type->big_page_addrs[bp->big_page];
+
+                if(uint8_t *flags=this->Row(bp,"%c.$%04x",big_page_type->code,big_page_addr+bp->offset)) {
+                    m_beeb_thread->Send(std::make_shared<BeebThread::DebugSetByteDebugFlags>(bp->big_page,
+                                                                                             bp->offset,
+                                                                                             *flags));
+                }
+            }
+        }
+
+        clipper.End();
+    }
+private:
+    struct Breakpoint {
+        uint8_t big_page;
+        uint16_t offset;
+    };
+    static_assert(sizeof(Breakpoint)==4,"");
+
+    uint64_t m_breakpoints_change_counter=0;
+    uint64_t m_num_updates=0;
+
+    // This is quite a large object, by BBC standards at least.
+    uint8_t m_addr_debug_flags[65536]={};
+    uint8_t m_big_page_debug_flags[BBCMicro::NUM_BIG_PAGES][BBCMicro::BIG_PAGE_SIZE_BYTES]={};
+
+    // The retain flag indicates that the byte should be listed even if there's
+    // no breakpoint set. This prevents rows disappearing when you untick all
+    // the entries.
+    uint8_t m_addr_debug_flags_retain[65536>>3]={};
+    uint8_t m_big_page_debug_flags_retain[BBCMicro::NUM_BIG_PAGES][BBCMicro::BIG_PAGE_SIZE_BYTES>>3]={};
+
+    std::vector<Breakpoint> m_breakpoints;
+
+    uint8_t *PRINTF_LIKE(3,4) Row(Breakpoint *bp,const char *fmt,...) {
+        bool changed=false;
+
+        va_list v;
+        va_start(v,fmt);
+        ImGui::TextV(fmt,v);
+        va_end(v);
+
+        ImGui::SameLine();
+
+        uint8_t *flags,*retain;
+        if(bp->big_page==0xff) {
+            flags=&m_addr_debug_flags[bp->offset];
+            retain=&m_addr_debug_flags_retain[bp->offset>>3];
+        } else {
+            ASSERT(bp->big_page<BBCMicro::NUM_BIG_PAGES);
+            ASSERT(bp->offset<BBCMicro::BIG_PAGE_SIZE_BYTES);
+            flags=&m_big_page_debug_flags[bp->big_page][bp->offset];
+            retain=&m_big_page_debug_flags_retain[bp->big_page][bp->offset>>3];
+        }
+
+        if(ImGuiCheckboxFlags("Read",flags,BBCMicroByteDebugFlag_BreakRead)) {
+            changed=true;
+        }
+
+        ImGui::SameLine();
+
+        if(ImGuiCheckboxFlags("Write",flags,BBCMicroByteDebugFlag_BreakWrite)) {
+            changed=true;
+        }
+
+        ImGui::SameLine();
+
+        if(ImGuiCheckboxFlags("Execute",flags,BBCMicroByteDebugFlag_BreakExecute)) {
+            changed=true;
+        }
+
+        if(changed) {
+            // Set the retain flag. It's a bit weird to have a row disappear
+            // after manipulating it via this UI.
+            *retain|=1<<(bp->offset&7);
+        }
+
+        if(*flags==0) {
+            // Allow explicit row removal.
+            ImGui::SameLine();
+
+            if(ImGui::Button("x")) {
+                *retain&=~(1<<(bp->offset&7));
+
+                // and force an update.
+                m_breakpoints_change_counter=0;
+            }
+        }
+
+        if(changed) {
+            return flags;
+        } else {
+            return nullptr;
+        }
+    }
+
+//    static inline bool BreakpointLessThanByAddress(const Breakpoint &a,
+//                                                   const Breakpoint &b)
+//    {
+//        uint32_t a_value=(uint32_t)a.big_page<<16|a.offset;
+//        uint32_t b_value=(uint32_t)b.big_page<<16|b.offset;
+//
+//        return a_value<b_value;
+//    }
+
+    void Update() {
+        m_breakpoints.clear();
+
+        for(size_t i=0;i<65536;++i) {
+            if(m_addr_debug_flags[i]!=0||m_addr_debug_flags_retain[i>>3]&1<<(i&7)) {
+                m_breakpoints.push_back({0xff,(uint16_t)i});
+            }
+        }
+
+        for(uint8_t i=0;i<BBCMicro::NUM_BIG_PAGES;++i) {
+            const uint8_t *big_page_debug_flags=m_big_page_debug_flags[i];
+
+            for(size_t j=0;j<BBCMicro::BIG_PAGE_SIZE_BYTES;++j) {
+                if(big_page_debug_flags[j]||m_big_page_debug_flags_retain[i][j>>3]&1<<(j&7)) {
+                    m_breakpoints.push_back({i,(uint16_t)j});
+                }
+            }
+        }
+    }
+};
+
+std::unique_ptr<SettingsUI> CreateBreakpointsDebugWindow(BeebWindow *beeb_window) {
+    return CreateDebugUI<BreakpointsDebugWindow>(beeb_window);
+}
+
 #endif
