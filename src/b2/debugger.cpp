@@ -2268,36 +2268,45 @@ protected:
 
         int num_rows=(int)m_breakpoints.size();
         int line_height=ImGui::GetTextLineHeight();
-        ImGuiListClipper clipper(num_rows,line_height);
+        {
+            ImGui::BeginChild("##scrolling",ImVec2(0,0),false,ImGuiWindowFlags_NoMove);
 
-        for(int i=clipper.DisplayStart;i<clipper.DisplayEnd;++i) {
-            Breakpoint *bp=&m_breakpoints[(size_t)i];
+            ImGui::Columns(2,"breakpoints_columns");
 
-            if(bp->big_page==0xff) {
-                // Address breakpoint
+            ImGuiListClipper clipper(num_rows,line_height);
 
-                if(uint8_t *flags=this->Row(bp,"$%04x",bp->offset)) {
-                    M6502Word addr={bp->offset};
-                    m_beeb_thread->Send(std::make_shared<BeebThread::DebugSetAddressDebugFlags>(addr,*flags));
-                }
-            } else {
-                // Byte breakpoint
-//                ASSERT(bp->big_page<BBCMicro::NUM_BIG_PAGES);
-//                ASSERT(bp->offset<BBCMicro::BIG_PAGE_SIZE_BYTES);
-//                uint8_t *flags=&m_big_page_debug_flags[bp->big_page][bp->offset];
+            for(int i=clipper.DisplayStart;i<clipper.DisplayEnd;++i) {
+                Breakpoint *bp=&m_breakpoints[(size_t)i];
 
-                const BigPageType *big_page_type=type->big_page_types[bp->big_page];
-                uint16_t big_page_addr=type->big_page_addrs[bp->big_page];
+                if(bp->big_page==0xff) {
+                    // Address breakpoint
 
-                if(uint8_t *flags=this->Row(bp,"%c.$%04x",big_page_type->code,big_page_addr+bp->offset)) {
-                    m_beeb_thread->Send(std::make_shared<BeebThread::DebugSetByteDebugFlags>(bp->big_page,
-                                                                                             bp->offset,
-                                                                                             *flags));
+                    if(uint8_t *flags=this->Row(bp,"$%04x",bp->offset)) {
+
+                        M6502Word addr={bp->offset};
+                        m_beeb_thread->Send(std::make_shared<BeebThread::DebugSetAddressDebugFlags>(addr,*flags));
+                    }
+                } else {
+                    // Byte breakpoint
+                    //                ASSERT(bp->big_page<BBCMicro::NUM_BIG_PAGES);
+                    //                ASSERT(bp->offset<BBCMicro::BIG_PAGE_SIZE_BYTES);
+                    //                uint8_t *flags=&m_big_page_debug_flags[bp->big_page][bp->offset];
+
+                    const BigPageType *big_page_type=type->big_page_types[bp->big_page];
+                    uint16_t big_page_addr=type->big_page_addrs[bp->big_page];
+
+                    if(uint8_t *flags=this->Row(bp,"%c.$%04x",big_page_type->code,big_page_addr+bp->offset)) {
+                        m_beeb_thread->Send(std::make_shared<BeebThread::DebugSetByteDebugFlags>(bp->big_page,
+                                                                                                 bp->offset,
+                                                                                                 *flags));
+                    }
                 }
             }
-        }
 
-        clipper.End();
+            clipper.End();
+
+            ImGui::EndChild();
+        }
     }
 private:
     struct Breakpoint {
@@ -2322,6 +2331,8 @@ private:
     std::vector<Breakpoint> m_breakpoints;
 
     uint8_t *PRINTF_LIKE(3,4) Row(Breakpoint *bp,const char *fmt,...) {
+        ImGuiIDPusher pusher(bp);
+        
         bool changed=false;
 
         va_list v;
@@ -2329,7 +2340,7 @@ private:
         ImGui::TextV(fmt,v);
         va_end(v);
 
-        ImGui::SameLine();
+        ImGui::NextColumn();
 
         uint8_t *flags,*retain;
         if(bp->big_page==0xff) {
@@ -2375,6 +2386,8 @@ private:
                 m_breakpoints_change_counter=0;
             }
         }
+
+        ImGui::NextColumn();
 
         if(changed) {
             return flags;
