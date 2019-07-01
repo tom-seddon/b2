@@ -40,7 +40,6 @@ add_executable(b2 MACOSX_BUNDLE
   commands.cpp commands.h
   CommandKeymapsUI.cpp CommandKeymapsUI.h
   SettingsUI.cpp SettingsUI.h
-  PixelMetadataUI.cpp PixelMetadataUI.h
   DearImguiTestUI.cpp DearImguiTestUI.h
   debugger.cpp debugger.h debugger.inl
   HTTPServer.cpp HTTPServer.h

@@ -31,7 +31,6 @@
 #include "DataRateUI.h"
 #include <shared/path.h>
 #include "CommandKeymapsUI.h"
-#include "PixelMetadataUI.h"
 #include "DearImguiTestUI.h"
 #include "debugger.h"
 #include "HTTPServer.h"
@@ -782,8 +781,9 @@ const BeebWindow::SettingsUIMetadata BeebWindow::ms_settings_uis[]={
     {BeebWindowPopupType_Trace,"Tracing","toggle_event_trace",&CreateTraceUI},
 #endif
     {BeebWindowPopupType_AudioCallback,"Data Rate","toggle_date_rate",&CreateDataRateUI},
-#if VIDEO_TRACK_METADATA
-    {BeebWindowPopupType_PixelMetadata,"Pixel Metadata","toggle_pixel_metadata",&CreatePixelMetadataUI},
+#if BBCMICRO_DEBUGGER&&VIDEO_TRACK_METADATA
+    // slightly inconsistent naming as this was created before the debugger...
+    {BeebWindowPopupType_PixelMetadata,"Pixel Metadata","toggle_pixel_metadata",&CreatePixelMetadataDebugWindow},
 #endif
 #if ENABLE_IMGUI_TEST
     {BeebWindowPopupType_DearImguiTest,"dear imgui Test","toggle_dear_imgui_test",&CreateDearImguiTestUI},
