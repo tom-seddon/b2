@@ -2441,11 +2441,28 @@ protected:
     void DoImGui2() override {
         if(const VideoDataUnit *unit=m_beeb_window->GetVideoDataUnitForMousePixel()) {
             if(unit->metadata.flags&VideoDataUnitMetadataFlag_HasAddress) {
-                if(unit->metadata.address&0x8000) {
-                    ImGui::Text("Address: $%04X (shadow)",unit->metadata.address&0x7fff);
-                } else {
-                    ImGui::Text("Address: $%04X",unit->metadata.address);
+                const BBCMicroType *type;
+                {
+                    std::unique_lock<Mutex> lock;
+                    const BBCMicro *m=m_beeb_thread->LockBeeb(&lock);
+                    type=m->GetType();
                 }
+
+                // The debug stuff is oriented around the CPU's view of memory,
+                // but the video unit's address is from the CRTC's perspective.
+
+                M6502Word crtc_addr={unit->metadata.address};
+
+                const BigPage *big_page=&type->big_pages[crtc_addr.p.p];
+
+                m_dpo&=big_page->dpo_mask;
+                m_dpo|=big_page->dpo_value;
+
+                M6502Word cpu_addr={(uint16_t)(big_page->addr+crtc_addr.p.o)};
+
+                ImGui::Text("Address: %c.%04x",big_page->type->code,cpu_addr.w);
+
+                this->DoBytePopupGui(cpu_addr,false);
             } else {
                 ImGui::TextUnformatted("Address:");
             }
