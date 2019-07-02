@@ -57,56 +57,58 @@ static void ApplyROMDPO(ROMSEL *romsel,uint32_t dpo) {
 }
 #endif
 
-static void SetBigPageTypes(std::vector<const BigPageType *> *types,
-                            size_t index,
-                            size_t n,
-                            const BigPageType *type)
+static void SetBigPages(std::vector<BigPage> *big_pages,
+                        size_t index,
+                        size_t n,
+                        const BigPageType *type,
+                        uint32_t dpo_clear,
+                        uint32_t dpo_set,
+                        uint16_t base)
 {
-    for(size_t i=index;i<index+n;++i) {
-        ASSERT(!(*types)[i]);
-        (*types)[i]=type;
-    }
-}
+    ASSERT(type);
 
-static std::vector<const BigPageType *> GetBigPageTypesCommon() {
-    std::vector<const BigPageType *> types;
-    types.resize(NUM_BIG_PAGES,nullptr);
-
-    SetBigPageTypes(&types,MAIN_BIG_PAGE_INDEX,NUM_MAIN_BIG_PAGES,&MAIN_RAM_BIG_PAGE_TYPE);
-
-    for(size_t i=0;i<16;++i) {
-        SetBigPageTypes(&types,ROM0_BIG_PAGE_INDEX+i*NUM_ROM_BIG_PAGES,NUM_ROM_BIG_PAGES,&ROM_BIG_PAGE_TYPES[i]);
-    }
-
-    SetBigPageTypes(&types,MOS_BIG_PAGE_INDEX,NUM_MOS_BIG_PAGES,&MOS_BIG_PAGE_TYPE);
-
-    return types;
-}
-
-static void SetBigPageAddrs(std::vector<uint16_t> *addrs,
-                            size_t index,
-                            size_t n,
-                            uint16_t base)
-{
     for(size_t i=0;i<n;++i) {
-        ASSERT((*addrs)[index+i]==0xffff);
-        (*addrs)[index+i]=base+i*4096;
+        BigPage *bp=&(*big_pages)[index+i];
+
+        ASSERT(!bp->type);
+        bp->type=type;
+        bp->dpo_mask=~dpo_clear;
+        bp->dpo_value=dpo_set;
+        bp->addr=base+i*4096;
     }
 }
 
-static std::vector<uint16_t> GetBigPageAddrsCommon() {
-    std::vector<uint16_t> addrs;
-    addrs.resize(NUM_BIG_PAGES,0xffff);
+static std::vector<BigPage> GetBigPagesCommon() {
+    std::vector<BigPage> big_pages;
+    big_pages.resize(NUM_BIG_PAGES);
 
-    SetBigPageAddrs(&addrs,MAIN_BIG_PAGE_INDEX,NUM_MAIN_BIG_PAGES,0x0000);
+    SetBigPages(&big_pages,
+                MAIN_BIG_PAGE_INDEX,
+                NUM_MAIN_BIG_PAGES,
+                &MAIN_RAM_BIG_PAGE_TYPE,
+                0,
+                0,
+                0x0000);
 
     for(size_t i=0;i<16;++i) {
-        SetBigPageAddrs(&addrs,ROM0_BIG_PAGE_INDEX+i*NUM_ROM_BIG_PAGES,NUM_ROM_BIG_PAGES,0x8000);
+        SetBigPages(&big_pages,
+                    ROM0_BIG_PAGE_INDEX+i*NUM_ROM_BIG_PAGES,
+                    NUM_ROM_BIG_PAGES,
+                    &ROM_BIG_PAGE_TYPES[i],
+                    (uint32_t)BBCMicroDebugPagingOverride_ROM,
+                    BBCMicroDebugPagingOverride_OverrideROM|i,
+                    0x8000);
     }
 
-    SetBigPageAddrs(&addrs,MOS_BIG_PAGE_INDEX,NUM_MOS_BIG_PAGES,0xc000);
+    SetBigPages(&big_pages,
+                MOS_BIG_PAGE_INDEX,
+                NUM_MOS_BIG_PAGES,
+                &MOS_BIG_PAGE_TYPE,
+                0,
+                0,
+                0xc000);
 
-    return addrs;
+    return big_pages;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -167,16 +169,10 @@ static uint32_t GetDPOB(ROMSEL romsel,ACCCON acccon) {
 }
 #endif
 
-static std::vector<const BigPageType *> GetBigPageTypesB() {
-    std::vector<const BigPageType *> types=GetBigPageTypesCommon();
+static std::vector<BigPage> GetBigPagesB() {
+    std::vector<BigPage> big_pages=GetBigPagesCommon();
 
-    return types;
-}
-
-static std::vector<uint16_t> GetBigPageAddrsB() {
-    std::vector<uint16_t> addrs=GetBigPageAddrsCommon();
-
-    return addrs;
+    return big_pages;
 }
 
 const BBCMicroType BBC_MICRO_TYPE_B={
@@ -188,8 +184,7 @@ const BBCMicroType BBC_MICRO_TYPE_B={
     (BBCMicroDebugPagingOverride_OverrideROM|
      BBCMicroDebugPagingOverride_ROM),//dpo_mask
 #endif
-    GetBigPageTypesB(),
-    GetBigPageAddrsB(),
+    GetBigPagesB(),
     &GetMemBigPageTablesB,//get_mem_big_page_tables_fn,
 #if BBCMICRO_DEBUGGER
     &ApplyDPOB,//apply_dpo_fn
@@ -322,22 +317,26 @@ static uint32_t GetDPOBPlus(ROMSEL romsel,ACCCON acccon) {
 }
 #endif
 
-static std::vector<const BigPageType *> GetBigPageTypesBPlus() {
-    std::vector<const BigPageType *> types=GetBigPageTypesCommon();
+static std::vector<BigPage> GetBigPagesBPlus() {
+    std::vector<BigPage> big_pages=GetBigPagesCommon();
 
-    SetBigPageTypes(&types,ANDY_BIG_PAGE_INDEX,NUM_ANDY_BIG_PAGES+NUM_HAZEL_BIG_PAGES,&ANDY_BIG_PAGE_TYPE);
-    SetBigPageTypes(&types,SHADOW_BIG_PAGE_INDEX,NUM_SHADOW_BIG_PAGES,&SHADOW_RAM_BIG_PAGE_TYPE);
+    SetBigPages(&big_pages,
+                ANDY_BIG_PAGE_INDEX,
+                NUM_ANDY_BIG_PAGES+NUM_HAZEL_BIG_PAGES,
+                &ANDY_BIG_PAGE_TYPE,
+                0,
+                BBCMicroDebugPagingOverride_OverrideANDY|BBCMicroDebugPagingOverride_ANDY,
+                0x8000);
 
-    return types;
-}
+    SetBigPages(&big_pages,
+                SHADOW_BIG_PAGE_INDEX,
+                NUM_SHADOW_BIG_PAGES,
+                &SHADOW_RAM_BIG_PAGE_TYPE,
+                0,
+                BBCMicroDebugPagingOverride_OverrideShadow|BBCMicroDebugPagingOverride_Shadow,
+                0x3000);
 
-static std::vector<uint16_t> GetBigPageAddrsBPlus() {
-    std::vector<uint16_t> addrs=GetBigPageAddrsCommon();
-
-    SetBigPageAddrs(&addrs,ANDY_BIG_PAGE_INDEX,NUM_ANDY_BIG_PAGES+NUM_HAZEL_BIG_PAGES,0x8000);
-    SetBigPageAddrs(&addrs,SHADOW_BIG_PAGE_INDEX,NUM_SHADOW_BIG_PAGES,0x3000);
-
-    return addrs;
+    return big_pages;
 }
 
 const BBCMicroType BBC_MICRO_TYPE_B_PLUS={
@@ -353,8 +352,7 @@ const BBCMicroType BBC_MICRO_TYPE_B_PLUS={
      BBCMicroDebugPagingOverride_Shadow|
      BBCMicroDebugPagingOverride_OverrideShadow),//dpo_mask
 #endif
-    GetBigPageTypesBPlus(),
-    GetBigPageAddrsBPlus(),
+    GetBigPagesBPlus(),
     &GetMemBigPageTablesBPlus,//get_mem_big_page_tables_fn,
 #if BBCMICRO_DEBUGGER
     &ApplyDPOBPlus,//apply_dpo_fn
@@ -523,24 +521,47 @@ static uint32_t GetDPOMaster(ROMSEL romsel,ACCCON acccon) {
 }
 #endif
 
-static std::vector<const BigPageType *> GetBigPageTypesMaster() {
-    std::vector<const BigPageType *> types=GetBigPageTypesCommon();
+static std::vector<BigPage> GetBigPagesMaster() {
+    std::vector<BigPage> big_pages=GetBigPagesCommon();
 
-    SetBigPageTypes(&types,ANDY_BIG_PAGE_INDEX,NUM_ANDY_BIG_PAGES,&ANDY_BIG_PAGE_TYPE);
-    SetBigPageTypes(&types,HAZEL_BIG_PAGE_INDEX,NUM_HAZEL_BIG_PAGES,&HAZEL_BIG_PAGE_TYPE);
-    SetBigPageTypes(&types,SHADOW_BIG_PAGE_INDEX,NUM_SHADOW_BIG_PAGES,&SHADOW_RAM_BIG_PAGE_TYPE);
+    SetBigPages(&big_pages,
+                ANDY_BIG_PAGE_INDEX,
+                NUM_ANDY_BIG_PAGES,
+                &ANDY_BIG_PAGE_TYPE,
+                0,
+                BBCMicroDebugPagingOverride_OverrideANDY|BBCMicroDebugPagingOverride_ANDY,
+                0x8000);
 
-    return types;
-}
+    SetBigPages(&big_pages,
+                HAZEL_BIG_PAGE_INDEX,
+                NUM_HAZEL_BIG_PAGES,
+                &HAZEL_BIG_PAGE_TYPE,
+                0,
+                BBCMicroDebugPagingOverride_OverrideHAZEL|BBCMicroDebugPagingOverride_HAZEL,
+                0xc000);
 
-static std::vector<uint16_t> GetBigPageAddrsMaster() {
-    std::vector<uint16_t> addrs=GetBigPageAddrsCommon();
+    SetBigPages(&big_pages,
+                SHADOW_BIG_PAGE_INDEX,
+                NUM_SHADOW_BIG_PAGES,
+                &SHADOW_RAM_BIG_PAGE_TYPE,
+                0,
+                BBCMicroDebugPagingOverride_OverrideShadow|BBCMicroDebugPagingOverride_Shadow,
+                0x3000);
 
-    SetBigPageAddrs(&addrs,ANDY_BIG_PAGE_INDEX,NUM_ANDY_BIG_PAGES,0x8000);
-    SetBigPageAddrs(&addrs,HAZEL_BIG_PAGE_INDEX,NUM_HAZEL_BIG_PAGES,0xc000);
-    SetBigPageAddrs(&addrs,SHADOW_BIG_PAGE_INDEX,NUM_SHADOW_BIG_PAGES,0x3000);
+    // Update the MOS DPO flags.
 
-    return addrs;
+    // Switch HAZEL off to see the first 8K of MOS.
+    for(uint8_t i=0;i<2;++i) {
+        big_pages[MOS_BIG_PAGE_INDEX+i].dpo_mask&=~(uint32_t)~BBCMicroDebugPagingOverride_HAZEL;
+        big_pages[MOS_BIG_PAGE_INDEX+i].dpo_value|=BBCMicroDebugPagingOverride_OverrideHAZEL;
+    }
+
+    // Switch IO off to see all of the last 4K of MOS.
+    //
+    // Might as well, since the hardware lets you...
+    big_pages[MOS_BIG_PAGE_INDEX+3].dpo_value|=BBCMicroDebugPagingOverride_OverrideOS|BBCMicroDebugPagingOverride_OS;
+
+    return big_pages;
 }
 
 const BBCMicroType BBC_MICRO_TYPE_MASTER={
@@ -560,8 +581,7 @@ const BBCMicroType BBC_MICRO_TYPE_MASTER={
      BBCMicroDebugPagingOverride_OS|
      BBCMicroDebugPagingOverride_OverrideOS),//dpo_mask
 #endif
-    GetBigPageTypesMaster(),
-    GetBigPageAddrsMaster(),
+    GetBigPagesMaster(),
     &GetMemBigPagesTablesMaster,//get_mem_big_page_tables_fn,
 #if BBCMICRO_DEBUGGER
     &ApplyDPOMaster,//apply_dpo_fn

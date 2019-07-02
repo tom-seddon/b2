@@ -63,7 +63,7 @@ union VideoDataUnitPixels {
 struct VideoDataUnitMetadata {
     uint8_t flags=0;//combination of VideoDataUnitMetadataFlag
     uint8_t value=0;
-    uint16_t address=0;
+    uint16_t address={};
 };
 #endif
 

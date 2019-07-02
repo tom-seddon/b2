@@ -2209,7 +2209,7 @@ protected:
 private:
     void DoTypeColumn(const BBCMicroType *type,const MemoryBigPageTables &tables,bool io,size_t index,size_t mem_big_page_index) {
         uint8_t big_page_index=tables.mem_big_pages[index][mem_big_page_index];
-        const BigPageType *bp_type=type->big_page_types[big_page_index];
+        const BigPageType *bp_type=type->big_pages[big_page_index].type;
 
         if(big_page_index==MOS_BIG_PAGE_INDEX+3&&io) {
             ImGui::Text("%s + %s",MOS_BIG_PAGE_TYPE.description.c_str(),IO_BIG_PAGE_TYPE.description.c_str());
@@ -2292,10 +2292,9 @@ protected:
                     //                ASSERT(bp->offset<BBCMicro::BIG_PAGE_SIZE_BYTES);
                     //                uint8_t *flags=&m_big_page_debug_flags[bp->big_page][bp->offset];
 
-                    const BigPageType *big_page_type=type->big_page_types[bp->big_page];
-                    uint16_t big_page_addr=type->big_page_addrs[bp->big_page];
+                    const BigPage *big_page=&type->big_pages[bp->big_page];
 
-                    if(uint8_t *flags=this->Row(bp,"%c.$%04x",big_page_type->code,big_page_addr+bp->offset)) {
+                    if(uint8_t *flags=this->Row(bp,"%c.$%04x",big_page->type->code,big_page->addr+bp->offset)) {
                         m_beeb_thread->Send(std::make_shared<BeebThread::DebugSetByteDebugFlags>(bp->big_page,
                                                                                                  bp->offset,
                                                                                                  *flags));

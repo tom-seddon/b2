@@ -45,7 +45,9 @@ struct M6502Config;
 //
 // (Three additional pages, for FRED/JIM/SHEILA, are planned.)
 //
-// (On the B, big pages 8-15 are empty.)
+// Big pages 0-15 map directly to the BBCMicro RAM buffer, with each one being
+// at offset index<<12. (When the RAM buffer is 32K, big pages 8-15 aren't
+// mapped.)
 //
 // Each big page can be set up once, when the BBCMicro is first created,
 // simplifying some of the logic. When switching to ROM 1, for example,
@@ -164,6 +166,21 @@ struct MemoryBigPageTables {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+// TODO think of a better name for this!
+struct BigPage {
+    const BigPageType *type=nullptr;
+
+    // dpo mask/value that must be applied to have this big page mapped in.
+    uint32_t dpo_mask=~(uint32_t)0;
+    uint32_t dpo_value=0;
+
+    // where this big page will appear in the address space when mapped in.
+    uint16_t addr=0xffff;
+};
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 struct BBCMicroType {
     // Switch-friendly identifier.
     const BBCMicroTypeID type_id;
@@ -178,16 +195,17 @@ struct BBCMicroType {
     uint32_t dpo_mask;
 #endif
 
-    // indexed by big page index. These don't actually vary much from model to
-    // model - the tables are separate mainly so that B+ ANDY and M128
-    // ANDY/HAZEL are correctly catogorized.
-    std::vector<const BigPageType *> big_page_types;
+//    // indexed by big page index. These don't actually vary much from model to
+//    // model - the tables are separate mainly so that B+ ANDY and M128
+//    // ANDY/HAZEL are correctly catogorized.
+//    std::vector<const BigPageType *> big_page_types;
 
     // indexed by big page index.
     //
-    // A value of 0xffff indicates this big page type isn't appropriate for
-    // this machine.
-    std::vector<uint16_t> big_page_addrs;
+    // Info about where a given big page will appear in the 6502 memory map.
+    //
+    // If addr==0xffff, this big page isn't relevant for this model.
+    std::vector<BigPage> big_pages;
 
     // usr, mos and mos_pc_mem_big_pages should point to 16-byte tables.
     //
