@@ -2,8 +2,8 @@
 
 Prerequisites:
 
-- Visual Studio 2015
-- [cmake](https://cmake.org/) version 3.9+ on the PATH (I used 3.9.6)
+- Visual Studio 2015/2017/2019
+- [cmake](https://cmake.org/) version 3.9+ on the PATH
   
 Optional, but recommended:
 
@@ -17,6 +17,7 @@ Initial build steps:
 
    - Visual Studio 2015: `snmake init_vs2015`
    - Visual Studio 2017: `snmake init_vs2017`
+   - Visual Studio 2019: `snmake init_vs2019`
 
    You should get a bunch of output - there may be the odd warning,
    but there should be no obvious errors, and it should finish with an
@@ -28,8 +29,10 @@ General day-to-day build steps:
 
    - VS2015, 64-bit: `build\win64.vs2015\b2.sln`
    - VS2017, 64-bit: `build\win64.vs2017\b2.sln`
+   - VS2019, 64-bit: `build\win64.vs2019\b2.sln`
    - VS2015, 32-bit: `build\win32.vs2015\b2.sln`
    - VS2017, 32-bit: `build\win32.vs2017\b2.sln`
+   - VS2019, 32-bit: `build\win32.vs2019\b2.sln`
 
 2. Build
 
@@ -39,8 +42,8 @@ Because of the way cmake works, there are 40+ projects in the
 solution. Even though most are never used, they're still there
 cluttering the place up. You just have to put up with this.
 
-The 32-bit version is unsupported, though I do build and run it from
-time to time, so it ought to work.
+The 32-bit version is unsupported, though I do try it from time to
+time, so it ought to work.
 
 # Running the automated tests
 

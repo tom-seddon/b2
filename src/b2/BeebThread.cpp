@@ -1424,7 +1424,7 @@ bool BeebThread::DebugSetAddressDebugFlags::ThreadPrepare(std::shared_ptr<Messag
                                                           BeebThread *beeb_thread,
                                                           ThreadState *ts)
 {
-    (void)completion_fun;
+    (void)completion_fun,(void)beeb_thread;
 
     ts->beeb->DebugSetAddressDebugFlags(m_addr,m_addr_flags);
 
@@ -1456,7 +1456,7 @@ bool BeebThread::DebugSetByteDebugFlags::ThreadPrepare(std::shared_ptr<Message> 
                                                        BeebThread *beeb_thread,
                                                        ThreadState *ts)
 {
-    (void)completion_fun;
+    (void)completion_fun,(void)beeb_thread;
 
     ts->beeb->DebugSetByteDebugFlags(m_big_page_index,m_offset,m_byte_flags);
 

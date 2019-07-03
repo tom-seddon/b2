@@ -8,6 +8,7 @@
 #include "BeebThread.h"
 #include <shared/log.h>
 #include <dear_imgui_hex_editor.h>
+#include <inttypes.h>
 
 // Ugh, ugh, ugh.
 #ifdef __GNUC__
@@ -2069,6 +2070,7 @@ protected:
             uint16_t sn_freq;
             const char *suffix="";
             switch(values[3].freq&3) {
+				default:
                 case 0:
                     sn_freq=0x10;
                     break;
@@ -2261,13 +2263,13 @@ protected:
             for(size_t i=0;i<100;++i) {
                 M6502Word addr={(uint16_t)i};
                 m_beeb_thread->Send(std::make_shared<BeebThread::DebugSetAddressDebugFlags>(addr,
-                                                                                            BBCMicroByteDebugFlag_BreakExecute));
+                                                                                            (uint8_t)BBCMicroByteDebugFlag_BreakExecute));
             }
         }
 #endif
 
         int num_rows=(int)m_breakpoints.size();
-        int line_height=ImGui::GetTextLineHeight();
+        float line_height=ImGui::GetTextLineHeight();
         {
             ImGui::BeginChild("##scrolling",ImVec2(0,0),false,ImGuiWindowFlags_NoMove);
 

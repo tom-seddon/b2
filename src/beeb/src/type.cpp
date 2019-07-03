@@ -74,7 +74,7 @@ static void SetBigPages(std::vector<BigPage> *big_pages,
         bp->type=type;
         bp->dpo_mask=~dpo_clear;
         bp->dpo_value=dpo_set;
-        bp->addr=base+i*4096;
+        bp->addr=(uint16_t)(base+i*4096);
     }
 }
 
@@ -90,7 +90,7 @@ static std::vector<BigPage> GetBigPagesCommon() {
                 0,
                 0x0000);
 
-    for(size_t i=0;i<16;++i) {
+    for(uint8_t i=0;i<16;++i) {
         SetBigPages(&big_pages,
                     ROM0_BIG_PAGE_INDEX+i*NUM_ROM_BIG_PAGES,
                     NUM_ROM_BIG_PAGES,
