@@ -2463,12 +2463,10 @@ void BeebThread::ThreadStopTrace(ThreadState *ts) {
     m_trace_stats={};
     m_is_tracing.store(false,std::memory_order_release);
 
-    std::shared_ptr<Trace> last_trace=ts->beeb->StopTrace();
+    ts->beeb->StopTrace(&m_last_trace);
 
     ts->trace_state=BeebThreadTraceState_None;
     ts->trace_conditions=TraceConditions();
-
-    m_last_trace=last_trace;
 }
 #endif
 
@@ -3043,7 +3041,7 @@ void BeebThread::ThreadCheckTimeline(ThreadState *ts) {
     ASSERT(ts->timeline_event_lists.size()==m_timeline_beeb_state_events_copy.size());
 
     if(!ts->timeline_event_lists.empty()) {
-        const TimelineEventList *pe=nullptr;
+        const TimelineEventList *pe;
         for(size_t i=0;i<ts->timeline_event_lists.size();++i) {
             const TimelineEventList *e=&ts->timeline_event_lists[i];
 

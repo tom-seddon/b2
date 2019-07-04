@@ -470,7 +470,7 @@ LogIndenter::~LogIndenter() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-LogIndenter::LogIndenter(LogIndenter &&oth):
+LogIndenter::LogIndenter(LogIndenter &&oth) noexcept:
     m_log(oth.m_log)
 {
     oth.m_log=nullptr;
@@ -479,7 +479,7 @@ LogIndenter::LogIndenter(LogIndenter &&oth):
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-LogIndenter &LogIndenter::operator=(LogIndenter &&oth) {
+LogIndenter &LogIndenter::operator=(LogIndenter &&oth) noexcept {
     if(this!=&oth) {
         m_log=oth.m_log;
         oth.m_log=nullptr;
@@ -564,9 +564,9 @@ enum {
 static const LogDumpBytesExData DEFAULT_DUMP_BYTES_EX_DATA={16};
 
 void LogDumpBytesEx(Log *log,
-    const void *begin,
-    size_t size,
-    const LogDumpBytesExData *ex_data)
+                    const void *begin,
+                    size_t size,
+                    const LogDumpBytesExData *ex_data)
 {
     if(size==0) {
         log->f("<<no data>>\n");

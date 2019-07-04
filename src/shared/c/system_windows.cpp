@@ -39,7 +39,8 @@ int asprintf(char **buf,const char *fmt,...) {
 //////////////////////////////////////////////////////////////////////////
 
 int vasprintf(char **buf,const char *fmt,va_list v_) {
-    static const size_t SIZE=16384;
+    // value is slightly lower than 16K, to avoid /analyze warning.
+    static const size_t SIZE=16000;
     char tmp[SIZE];//probably gonig to be large enough.
     va_list v;
 
@@ -53,23 +54,23 @@ int vasprintf(char **buf,const char *fmt,va_list v_) {
     }
 
     if(n<(int)SIZE) {
-        *buf=(char *)malloc(n+1);
+        *buf=(char *)malloc((size_t)n+1);
         if(!buf) {
             return -1;
         }
 
-        memcpy(*buf,tmp,n+1);
+        memcpy(*buf,tmp,(size_t)n+1);
         return n;
     }
 
     // Allocate a buffer large enough, and use that.
-    *buf=(char *)malloc(n+1);
+    *buf=(char *)malloc((size_t)n+1);
     if(!*buf) {
         return -1;
     }
 
     va_copy(v,v_);
-    int n2=vsnprintf(*buf,n+1,fmt,v);
+    int n2=vsnprintf(*buf,(size_t)n+1,fmt,v);
     va_end(v);
     if(n2<0) {
         // Is this even possible?

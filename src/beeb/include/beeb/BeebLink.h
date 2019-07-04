@@ -63,7 +63,6 @@ private:
     BeebLinkHandler *m_handler=nullptr;
 
     BeebLinkState m_state;
-    BeebLinkState m_next_state;
     uint32_t m_state_counter;
 
     std::vector<uint8_t> m_data;
@@ -82,7 +81,6 @@ private:
     bool AckAndCheck(R6522 *via,BeebLinkState ack_state);
 
     // Return value is first byte of response.
-    uint8_t HandleBeebToServerPayload();
     void HandleReceivedData();
     void Stall();
 };

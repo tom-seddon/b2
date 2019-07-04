@@ -37,10 +37,10 @@ struct BeebLinkHTTPHandler::ThreadState {
     ConditionVariable cv;
 
     // set if thread should stop after being woken up.
-    bool stop;
+    bool stop=false;
 
     // set if thread should send data after being woken up.
-    bool busy;
+    bool busy=false;
 
     std::vector<uint8_t> beeb_to_server_data;
 

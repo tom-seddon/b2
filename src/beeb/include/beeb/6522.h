@@ -97,7 +97,7 @@ public:
     public:
         uint8_t p=0xff;
     private:
-        uint8_t p_latch;
+        uint8_t p_latch=0xff;
 
         /* Cx1 */
     public:

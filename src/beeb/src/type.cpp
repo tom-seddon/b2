@@ -92,7 +92,7 @@ static std::vector<BigPage> GetBigPagesCommon() {
 
     for(uint8_t i=0;i<16;++i) {
         SetBigPages(&big_pages,
-                    ROM0_BIG_PAGE_INDEX+i*NUM_ROM_BIG_PAGES,
+                    ROM0_BIG_PAGE_INDEX+(size_t)i*NUM_ROM_BIG_PAGES,
                     NUM_ROM_BIG_PAGES,
                     &ROM_BIG_PAGE_TYPES[i],
                     (uint32_t)BBCMicroDebugPagingOverride_ROM,
@@ -159,7 +159,7 @@ static void ApplyDPOB(ROMSEL *romsel,ACCCON *acccon,uint32_t dpo) {
 #if BBCMICRO_DEBUGGER
 static uint32_t GetDPOB(ROMSEL romsel,ACCCON acccon) {
     (void)acccon;
-    
+
     uint32_t dpo=0;
 
     dpo|=romsel.b_bits.pr;
@@ -276,7 +276,7 @@ static void GetMemBigPageTablesBPlus(MemoryBigPageTables *tables,
     tables->mem_big_pages[0][0xe]=MOS_BIG_PAGE_INDEX+2;
     tables->mem_big_pages[0][0xf]=MOS_BIG_PAGE_INDEX+3;
 
-    memcpy(tables->mem_big_pages[1]+8,tables->mem_big_pages[0]+8,8);
+    memcpy(&tables->mem_big_pages[1][8],&tables->mem_big_pages[0][8],8);
 
     *crt_shadow=acccon.bplus_bits.shadow!=0;
     *io=true;
@@ -410,7 +410,7 @@ static void GetMemBigPagesTablesMaster(MemoryBigPageTables *tables,
     }
 
     if((acccon.m128_bits.y&&acccon.m128_bits.x)||
-       (!acccon.m128_bits.y&&acccon.m128_bits.e))
+        (!acccon.m128_bits.y&&acccon.m128_bits.e))
     {
         tables->mem_big_pages[1][0]=MAIN_BIG_PAGE_INDEX+0;
         tables->mem_big_pages[1][1]=MAIN_BIG_PAGE_INDEX+1;
@@ -462,7 +462,7 @@ static void GetMemBigPagesTablesMaster(MemoryBigPageTables *tables,
         tables->pc_mem_big_pages_set[0xd]=1;
     }
 
-    memcpy(tables->mem_big_pages[1]+8,tables->mem_big_pages[0]+8,8);
+    memcpy(&tables->mem_big_pages[1][8],&tables->mem_big_pages[0][8],8);
 
     *io=acccon.m128_bits.tst==0;
     *crt_shadow=acccon.m128_bits.d!=0;
@@ -551,7 +551,7 @@ static std::vector<BigPage> GetBigPagesMaster() {
     // Update the MOS DPO flags.
 
     // Switch HAZEL off to see the first 8K of MOS.
-    for(uint8_t i=0;i<2;++i) {
+    for(size_t i=0;i<2;++i) {
         big_pages[MOS_BIG_PAGE_INDEX+i].dpo_mask&=~(uint32_t)~BBCMicroDebugPagingOverride_HAZEL;
         big_pages[MOS_BIG_PAGE_INDEX+i].dpo_value|=BBCMicroDebugPagingOverride_OverrideHAZEL;
     }

@@ -44,7 +44,7 @@ class LogPrinterStd:
 {
 public:
     LogPrinterStd(bool to_stdout,bool to_stderr,bool debugger);
-    
+
     void Print(const char *str,size_t str_len) override;
 protected:
 private:
@@ -167,8 +167,8 @@ public:
     LogIndenter(const LogIndenter &)=delete;
     LogIndenter &operator=(const LogIndenter &)=delete;
 
-    LogIndenter(LogIndenter &&);
-    LogIndenter &operator=(LogIndenter &&);
+    LogIndenter(LogIndenter &&) noexcept;
+    LogIndenter &operator=(LogIndenter &&) noexcept;
 
     void PopIndent();
 protected:
@@ -202,7 +202,7 @@ typedef int (*LogDumpHighlightFn)(size_t offset,void *data);
 
 struct LogDumpBytesExData {
     size_t num_dump_columns;
-    
+
     LogDumpHighlightFn highlight_fn;
     void *highlight_data;
 
@@ -210,7 +210,7 @@ struct LogDumpBytesExData {
 };
 
 void LogDumpBytesEx(Log *log,const void *p,size_t n,
-                      const LogDumpBytesExData *ex_data);
+                    const LogDumpBytesExData *ex_data);
 
 /* Prints the given string, escaped, so it's entirely printable chars. */
 void LogStringPrintable(Log *log,const char *str);

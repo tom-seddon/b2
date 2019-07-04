@@ -108,7 +108,8 @@ SHA1::Transform(uint32_t state[5], const uint8_t buffer[BLOCK_SIZE])
 /*
  * SHA1Init - Initialize new context
  */
-SHA1::SHA1()
+SHA1::SHA1():
+    m_buffer{}
 {
 
     /* SHA1 initialization constants */

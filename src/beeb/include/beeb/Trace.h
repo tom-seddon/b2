@@ -205,7 +205,6 @@ private:
     size_t m_log_max_len=0;
     LogPrinterTrace m_log_printer{this};
     size_t m_max_num_bytes;
-    size_t m_chunk_size;
 
     const BBCMicroType *m_bbc_micro_type=nullptr;
     ROMSEL m_romsel={};

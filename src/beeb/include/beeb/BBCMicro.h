@@ -103,7 +103,7 @@ public:
         // much point.
         std::vector<uint8_t *> temp_execute_breakpoints;
 
-        char halt_reason[1000];
+        char halt_reason[1000]={};
     };
 #endif
 
@@ -328,9 +328,10 @@ public:
     * going. */
     void StartTrace(uint32_t trace_flags,size_t max_num_bytes);
 
-    /* If there's a trace, stops it, and returns a shared_ptr to it.
-     * Otherwise, returns null. */
-    std::shared_ptr<Trace> StopTrace();
+    /* If there's a trace, stops it. If *old_trace_ptr, set *old_trace_ptr to
+     * old Trace, if there was one.
+     */
+    void StopTrace(std::shared_ptr<Trace> *old_trace_ptr);
 
     int GetTraceStats(struct TraceStats *stats);
 #endif

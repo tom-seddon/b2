@@ -420,7 +420,7 @@ public:
     }
 protected:
 private:
-    M6502Word m_page;
+    M6502Word m_page={};
     std::vector<ChallengerRAMChunk *> m_chunks;
 
     bool GetChallengerRAMPtr(std::unique_lock<Mutex> *lock_ptr,size_t *index_ptr,size_t *offset_ptr,uint8_t addr_lsb) {

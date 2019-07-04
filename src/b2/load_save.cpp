@@ -974,7 +974,7 @@ struct WriterHelper {
     {
     }
 
-    WriterHelper(WriterHelper &&oth):
+    WriterHelper(WriterHelper &&oth) noexcept:
         valid(oth.valid),
         fun(oth.fun)
     {

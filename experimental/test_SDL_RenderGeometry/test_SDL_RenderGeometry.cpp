@@ -192,7 +192,7 @@ static void Finish(void) {
     if(IsDebuggerPresent()) {
         if(g_wait_for_key) {
             fprintf(stderr,"press enter to exit.\n");
-            getchar();
+            (void)getchar();
         }
     }
 #endif

@@ -13,7 +13,7 @@ std::string PathGetEXEFileName(void) {
     char buf[8192];
 
     if(GetModuleFileNameA(GetModuleHandle(NULL),buf,sizeof buf-1)==sizeof buf-1) {
-        return NULL;
+        return "";
     }
 
     buf[sizeof buf-1]=0;

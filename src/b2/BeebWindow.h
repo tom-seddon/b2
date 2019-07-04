@@ -92,7 +92,7 @@ public:
     uint32_t sound_device=0;
 
     // Sound playback details.
-    SDL_AudioSpec sound_spec;
+    SDL_AudioSpec sound_spec={};
 
     // Name for the window.
     std::string name;

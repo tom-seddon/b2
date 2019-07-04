@@ -38,12 +38,22 @@ General day-to-day build steps:
 
 3. Run
 
-Because of the way cmake works, there are 40+ projects in the
-solution. Even though most are never used, they're still there
-cluttering the place up. You just have to put up with this.
+# Notes
 
-The 32-bit version is unsupported, though I do try it from time to
-time, so it ought to work.
+- Because of the way cmake works, there are 40+ projects in the
+  solution. Even though most are never used, they're still there
+  cluttering the place up. You just have to put up with this
+
+- The 32-bit version is unsupported. It's included in the GitHub
+  releases on the off-chance that somebody might find it useful, but I
+  suspect nobody does, and I only try it occasionally myself. It's
+  supposed to work, though...
+
+- Building with VS2019 will produce a large number of warnings, mostly
+  SAL-related.
+  [These will probably get fixed eventually](https://github.com/tom-seddon/b2/issues/42),
+  but for the moment a clean(ish) VS2019 build is not something I'm
+  actively pursuing
 
 # Running the automated tests
 

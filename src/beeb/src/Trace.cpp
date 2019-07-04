@@ -490,6 +490,11 @@ void *Trace::Alloc(uint64_t time,size_t n) {
     if(!m_tail||m_tail->size+n>m_tail->capacity) {
         size_t size=CHUNK_SIZE;
 
+        Chunk *c=(Chunk *)malloc(sizeof *c+size);
+        if(!c) {
+            return nullptr;
+        }
+
         if(m_stats.num_allocated_bytes+size>m_max_num_bytes) {
             if(m_head==m_tail) {
                 // Always leave at least one used chunk around.
@@ -517,8 +522,6 @@ void *Trace::Alloc(uint64_t time,size_t n) {
             }
         }
 
-        Chunk *c=(Chunk *)malloc(sizeof *c+size);
-
         memset(c,0,sizeof *c);
         c->capacity=size;
         c->initial_time=c->last_time=time;
@@ -528,6 +531,7 @@ void *Trace::Alloc(uint64_t time,size_t n) {
         if(!m_head) {
             m_head=c;
         } else {
+            _Analysis_assume_(m_tail);
             m_tail->next=c;
         }
 

@@ -165,7 +165,7 @@ m_ext_mem(src.m_ext_mem)
 
 BBCMicro::~BBCMicro() {
 #if BBCMICRO_TRACE
-    this->StopTrace();
+    this->StopTrace(nullptr);
 #endif
 
     delete m_disc_interface;
@@ -1534,7 +1534,7 @@ void BBCMicro::SetSidewaysRAM(uint8_t bank,std::shared_ptr<const ROMData> data) 
 
 #if BBCMICRO_TRACE
 void BBCMicro::StartTrace(uint32_t trace_flags,size_t max_num_bytes) {
-    this->StopTrace();
+    this->StopTrace(nullptr);
 
     this->SetTrace(std::make_shared<Trace>(max_num_bytes,
                                            m_type,
@@ -1548,8 +1548,10 @@ void BBCMicro::StartTrace(uint32_t trace_flags,size_t max_num_bytes) {
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_TRACE
-std::shared_ptr<Trace> BBCMicro::StopTrace() {
-    std::shared_ptr<Trace> old_trace=m_trace_ptr;
+void BBCMicro::StopTrace(std::shared_ptr<Trace> *old_trace_ptr) {
+    if(old_trace_ptr) {
+        *old_trace_ptr=m_trace_ptr;
+    }
 
     if(m_trace) {
         if(m_trace_current_instruction) {
@@ -1559,8 +1561,6 @@ std::shared_ptr<Trace> BBCMicro::StopTrace() {
 
         this->SetTrace(nullptr,0);
     }
-
-    return old_trace;
 }
 #endif
 

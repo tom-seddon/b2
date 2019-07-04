@@ -61,7 +61,8 @@ std::vector<uint8_t> BeebLink::GetErrorResponsePacketData(uint8_t code,
 
 BeebLink::BeebLink(BeebLinkHandler *handler):
 m_handler(handler),
-m_state(BeebLinkState_ReceivePacketHeaderFromBeeb_WaitForBeebReady)
+m_state(BeebLinkState_ReceivePacketHeaderFromBeeb_WaitForBeebReady),
+m_state_counter(0)
 {
 }
 
@@ -146,7 +147,7 @@ void BeebLink::Update(R6522 *via) {
                                (uint32_t)m_size_bytes[2]<<16u|
                                (uint32_t)m_size_bytes[1]<<8u|
                                m_size_bytes[0]);
-                m_data.resize(1+size);
+                m_data.resize(1+(size_t)size);
                 m_data[0]=m_type_byte;
 
                 if(size==0) {

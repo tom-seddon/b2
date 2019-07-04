@@ -146,9 +146,9 @@ private:
         void *data=nullptr;
         VBlankMonitorWindows *vbm=nullptr;
         CComPtr<IDXGIOutput> output;
-        MONITORINFOEX mi;
+        MONITORINFOEX mi={};
         std::atomic<bool> stop_thread=false;
-        HANDLE thread;
+        HANDLE thread=INVALID_HANDLE_VALUE;
     };
 
     Handler *m_handler;

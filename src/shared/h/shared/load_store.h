@@ -117,9 +117,9 @@ static inline uint64_t Load64BE(const unsigned char *src) {
                       ((uint64_t)src[1]<<48)|
                       ((uint64_t)src[2]<<40)|
                       ((uint64_t)src[3]<<32)|
-                      ((uint32_t)src[4]<<24)|
-                      ((uint32_t)src[5]<<16)|
-                      ((uint32_t)src[6]<<8)|
+                      ((uint64_t)src[4]<<24)|
+                      ((uint64_t)src[5]<<16)|
+                      ((uint64_t)src[6]<<8)|
                       src[7]);
 #else
     uint64_t value;
