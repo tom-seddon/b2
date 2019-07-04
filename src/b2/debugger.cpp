@@ -163,7 +163,8 @@ protected:
     void DoDebugPageOverrideImGui();
 
     // If mouse clicked 2 and last item (whatever it was...) hovered, pops up
-    // a popup for that byte with at least the DoByteDebugGui stuff.
+    // a popup for that byte/address with at least the DoByteDebugGui stuff.
+    //void DoAddressPopupGui(M6502Word addr,bool mos);
     void DoBytePopupGui(const DebugBigPage *dbp,M6502Word addr);
 
     // Address info, checkboxes for breakpoint flags, etc.
@@ -394,6 +395,32 @@ void DebugUI::DoDebugPageOverrideImGui() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+//void DebugUI::DoAddressPopupGui(M6502Word addr,bool mos) {
+//    static const char CONTEXT_POPUP_NAME[]="debug_ui_addr_context";
+//
+//    ImGuiIDPusher pusher(addr.w);
+//    ImGuiIDPusher pusher2((int)m_popup_id++);
+//
+//    // Check for opening popup here.
+//    //
+//    // Don't use ImGui::BeginPopupContextItem(), as that doesn't work properly
+//    // for text items.
+//    if(ImGui::IsMouseClicked(1)) {
+//        if(ImGui::IsItemHovered()) {
+//            ImGui::OpenPopup(CONTEXT_POPUP_NAME);
+//        }
+//    }
+//
+//    if(ImGui::BeginPopup(CONTEXT_POPUP_NAME)) {
+//        const DebugBigPage *dbp=this->GetDebugBigPageForAddress(addr,mos);
+//        this->DoByteDebugGui(dbp,addr);
+//        ImGui::EndPopup();
+//    }
+//}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 void DebugUI::DoBytePopupGui(const DebugBigPage *dbp,M6502Word addr) {
     static const char CONTEXT_POPUP_NAME[]="debug_ui_byte_context";
 
@@ -412,16 +439,6 @@ void DebugUI::DoBytePopupGui(const DebugBigPage *dbp,M6502Word addr) {
 
     if(ImGui::BeginPopup(CONTEXT_POPUP_NAME)) {
         this->DoByteDebugGui(dbp,addr);
-
-        ImGui::Separator();
-
-        if(dbp->r) {
-            uint8_t value=dbp->r[addr.p.o];
-            ImGui::Text("Value: %3d %3uu ($%02x) (%%%s)",(int8_t)value,value,value,BINARY_BYTE_STRINGS[value]);
-        } else {
-            ImGui::TextUnformatted("Value: --");
-        }
-
         ImGui::EndPopup();
     }
 }
@@ -479,6 +496,16 @@ void DebugUI::DoByteDebugGui(const DebugBigPage *dbp,M6502Word addr) {
         if(RevealTargetUI *reveal_target_ui=this->DoRevealGui("Reveal byte...")) {
             reveal_target_ui->RevealByte(dbp,addr);
         }
+
+        ImGui::Separator();
+
+        if(dbp->r) {
+            uint8_t value=dbp->r[addr.p.o];
+            ImGui::Text("Value: %3d %3uu ($%02x) (%%%s)",(int8_t)value,value,value,BINARY_BYTE_STRINGS[value]);
+        } else {
+            ImGui::TextUnformatted("Value: --");
+        }
+
     }
 }
 
@@ -2615,6 +2642,125 @@ std::unique_ptr<SettingsUI> CreatePixelMetadataDebugWindow(BeebWindow *beeb_wind
     return CreateDebugUI<PixelMetadataUI>(beeb_window);
 }
 #endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+class StackDebugWindow:
+public DebugUI
+{
+public:
+protected:
+    void DoImGui2() override {
+        static const char ADDR_CONTEXT_POPUP_NAME[]="stack_addr_context_popup";
+
+        uint8_t s;
+        {
+            std::unique_lock<Mutex> lock;
+            const BBCMicro *m=m_beeb_thread->LockBeeb(&lock);
+            const M6502 *cpu=m->GetM6502();
+            s=cpu->s.b.l;
+        }
+
+        const DebugBigPage *dbp=this->GetDebugBigPageForAddress({0},false);
+
+        ImGui::Columns(7,"stack_columns");
+        ImGui::Text("");
+        ImGui::NextColumn();
+        ImGui::TextUnformatted("%d");
+        ImGui::NextColumn();
+        ImGui::TextUnformatted("%u");
+        ImGui::NextColumn();
+        ImGui::TextUnformatted("%c");
+        ImGui::NextColumn();
+        ImGui::TextUnformatted("Hex");
+        ImGui::NextColumn();
+        ImGui::TextUnformatted("Binary");
+        ImGui::NextColumn();
+        ImGui::TextUnformatted("Addr");
+        ImGui::NextColumn();
+        ImGui::Separator();
+
+        ImGuiStyleColourPusher colour_pusher;
+
+        for(int offset=255;offset>=0;--offset) {
+            if(offset==s) {
+                colour_pusher.Push(ImGuiCol_Text,ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled));
+            }
+
+            M6502Word value_addr={(uint16_t)(0x100+offset)};
+            uint8_t value=dbp->r[value_addr.w];
+
+            ImGui::Text("$%04x",value_addr.w);
+            this->DoBytePopupGui(dbp,value_addr);
+            ImGui::NextColumn();
+
+            ImGui::Text("% 3d",(int8_t)value);
+            ImGui::NextColumn();
+
+            ImGui::Text("%3u",value);
+            ImGui::NextColumn();
+
+            if(value>=32&&value<127) {
+                ImGui::Text("%c",(char)value);
+            }
+            ImGui::NextColumn();
+
+            ImGui::Text("$%02x",value);
+            ImGui::NextColumn();
+
+            ImGui::TextUnformatted(BINARY_BYTE_STRINGS[value]);
+            ImGui::NextColumn();
+
+            if(offset==255) {
+                ImGui::TextUnformatted("-");
+            } else {
+                M6502Word addr;
+                addr.b.l=value;
+                addr.b.h=dbp->r[0x100+offset+1];
+                ImGui::Text("$%04x",addr.w);
+
+                ImGuiIDPusher pusher(offset);
+
+                // Check for opening popup here.
+                //
+                // Don't use ImGui::BeginPopupContextItem(), as that doesn't work properly
+                // for text items.
+                if(ImGui::IsMouseClicked(1)) {
+                    if(ImGui::IsItemHovered()) {
+                        ImGui::OpenPopup(ADDR_CONTEXT_POPUP_NAME);
+                    }
+                }
+
+                if(ImGui::BeginPopup(ADDR_CONTEXT_POPUP_NAME)) {
+                    {
+                        ImGuiIDPusher pusher(0);
+
+                        const DebugBigPage *dbp=this->GetDebugBigPageForAddress(addr,false);
+                        this->DoByteDebugGui(dbp,addr);
+                    }
+
+                    ImGui::Separator();
+
+                    {
+                        ImGuiIDPusher pusher(1);
+
+                        const DebugBigPage *dbp=this->GetDebugBigPageForAddress({(uint16_t)(addr.w+1)},false);
+                        this->DoByteDebugGui(dbp,{(uint16_t)(addr.w+1)});
+                    }
+
+                    ImGui::EndPopup();
+                }
+            }
+            ImGui::NextColumn();
+        }
+    }
+private:
+};
+
+std::unique_ptr<SettingsUI> CreateStackDebugWindow(BeebWindow *beeb_window) {
+    return CreateDebugUI<StackDebugWindow>(beeb_window);
+}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

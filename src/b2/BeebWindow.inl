@@ -59,6 +59,7 @@ EPN(BeebLink)
 EPN(SN76489Debugger)
 EPN(PagingDebugger)
 EPN(BreakpointsDebugger)
+EPN(StackDebugger)
 
 // must be last
 EQPN(MaxValue)

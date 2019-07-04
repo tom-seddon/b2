@@ -30,6 +30,7 @@ std::unique_ptr<SettingsUI> CreateBreakpointsDebugWindow(BeebWindow *beeb_window
 #if VIDEO_TRACK_METADATA
 std::unique_ptr<SettingsUI> CreatePixelMetadataDebugWindow(BeebWindow *beeb_window);
 #endif
+std::unique_ptr<SettingsUI> CreateStackDebugWindow(BeebWindow *beeb_window);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

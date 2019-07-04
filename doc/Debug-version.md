@@ -231,6 +231,15 @@ address or byte, that byte or address will continue to be shown in the
 list even if all its breakpoint flags are cleared. When this happens,
 click the `x` button to get rid of it.
 
+## `Stack`
+
+Shows a dump of the stack contents. Values below the bottom of the
+stack are shown in a darker colour.
+
+The `Addr` column is right-clickable. The address shown is exactly
+what was pushed, but the right click popup includes the address after
+it, for dealing with addresses pushed by `jsr`.
+
 # Other debug-related options #
 
 Additional debug options can be found in `Tools` > `Options` in the
