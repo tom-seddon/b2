@@ -15,41 +15,30 @@ add_test(
 ##########################################################################
 
 add_executable(lorenz lorenz.cpp)
+target_compile_definitions(lorenz PRIVATE -DLORENZ_FOLDER_NAME="${CMAKE_SOURCE_DIR}/etc/testsuite-2.15/ascii-bin/")
 target_link_libraries(lorenz PRIVATE shared_lib 6502_lib)
 add_sanitizers(lorenz)
 
-set(LORENZ_ARGS ${CMAKE_SOURCE_DIR}/etc/testsuite-2.15/ascii-bin/)
-
-add_custom_command(TARGET lorenz POST_BUILD
-  COMMAND ${CMAKE_COMMAND} -E echo "lorenz command line:"
-  COMMAND ${CMAKE_COMMAND} -E echo '$<TARGET_FILE:lorenz>' ${LORENZ_ARGS}
-  VERBATIM)
-
-# Don't run this as part of the build. It takes way too long.
-
-# doesn't seem to be a way to get a path to the root CMakeLists.txt...
 add_test(
   NAME lorenz
-  COMMAND $<TARGET_FILE:lorenz> ${LORENZ_ARGS})
+  COMMAND $<TARGET_FILE:lorenz>)
+
+# Don't run this as part of the build. It takes way too long.
 set_tests_properties(lorenz PROPERTIES LABELS slow)
 
 ##########################################################################
 ##########################################################################
 
 add_executable(klaus klaus.cpp)
+target_compile_definitions(klaus PRIVATE -DKLAUS_FOLDER_NAME="${CMAKE_SOURCE_DIR}/etc/6502_65C02_functional_tests/")
 target_link_libraries(klaus PRIVATE shared_lib 6502_lib)
 add_sanitizers(klaus)
 
-set(KLAUS_ARGS ${CMAKE_SOURCE_DIR}/etc/6502_65C02_functional_tests/)
-
-add_custom_command(TARGET klaus POST_BUILD
-  COMMAND ${CMAKE_COMMAND} -E echo "klaus command line:"
-  COMMAND ${CMAKE_COMMAND} -E echo '$<TARGET_FILE:klaus>' ${KLAUS_ARGS}
-  VERBATIM)
-
 add_test(
   NAME klaus
-  COMMAND $<TARGET_FILE:klaus> ${KLAUS_ARGS})
+  COMMAND $<TARGET_FILE:klaus>)
+
+# Don't run this as part of the build. It takes way too long.
 set_tests_properties(klaus PROPERTIES LABELS slow)
 
 ##########################################################################

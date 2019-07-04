@@ -21,15 +21,13 @@ static int g_disassemble=0;
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static int DoTest(
-    const std::string &dname,
-    const std::string &fname,
-    uint16_t load_address,
-    uint16_t init_pc,
-    const M6502Config *config)
+static int DoTest(const std::string &fname,
+                  uint16_t load_address,
+                  uint16_t init_pc,
+                  const M6502Config *config)
 {
     {
-        std::string path=PathJoined(dname,fname);
+        std::string path=PathJoined(KLAUS_FOLDER_NAME,fname);
 
         std::vector<uint8_t> data;
         TEST_TRUE(PathLoadBinaryFile(&data,path));
@@ -115,18 +113,13 @@ error:;
 //////////////////////////////////////////////////////////////////////////
 
 int main(int argc,char *argv[]) {
-    if(argc!=2) {
-        fprintf(stderr,"Syntax: %s BIN-FOLDER\n",argv[0]);
-        return 1;
-    }
-
     int good=1;
 
-    good&=DoTest(argv[1],"6502.bin",0,0x400,&M6502_nmos6502_config);
-    good&=DoTest(argv[1],"6502.bin",0,0x400,&M6502_cmos6502_config);
-    good&=DoTest(argv[1],"65c02.bin",0,0x400,&M6502_cmos6502_config);
-    good&=DoTest(argv[1],"d0.bin",0x200,0x200,&M6502_nmos6502_config);
-    good&=DoTest(argv[1],"d1.bin",0x200,0x200,&M6502_cmos6502_config);
+    good&=DoTest("6502.bin",0,0x400,&M6502_nmos6502_config);
+    good&=DoTest("6502.bin",0,0x400,&M6502_cmos6502_config);
+    good&=DoTest("65c02.bin",0,0x400,&M6502_cmos6502_config);
+    good&=DoTest("d0.bin",0x200,0x200,&M6502_nmos6502_config);
+    good&=DoTest("d1.bin",0x200,0x200,&M6502_cmos6502_config);
 
     return good?0:1;
 }

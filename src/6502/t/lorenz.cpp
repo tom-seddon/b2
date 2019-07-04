@@ -18,7 +18,6 @@
 
 struct Options {
     std::string log_fname;
-    std::string test_dname;
     std::string start_file;
     std::string end_file;
     bool test_disassembler=false;
@@ -104,7 +103,7 @@ static void LoadFileAndReset(const std::string &fname,M6502 *s) {
     if(fname.empty()) {
         // Reload the last one...
     } else {
-        g_last_file=PathJoined(g_options.test_dname,fname);
+        g_last_file=PathJoined(LORENZ_FOLDER_NAME,fname);
     }
 
     FILE *f=fopen(g_last_file.c_str(),"rb");
@@ -238,7 +237,7 @@ static void HackOpcode(M6502 *s) {
 //////////////////////////////////////////////////////////////////////////
 
 static bool DoCommandLine(int argc,char *argv[]) {
-    CommandLineParser p("Run Lorenz 6502 tests","OPTIONS TEST_FOLDER");
+    CommandLineParser p("Run Lorenz 6502 tests","[OPTIONS]");
 
     p.AddOption('d',"test-disassembler").SetIfPresent(&g_options.test_disassembler).Help("test disassembler");
     p.AddOption('l',"log").Arg(&g_options.log_fname).Meta("FILE").Help("write 6502 instruction log to FILE");
@@ -252,12 +251,11 @@ static bool DoCommandLine(int argc,char *argv[]) {
         return false;
     }
 
-    if(other_args.size()!=1) {
-        fprintf(stderr,"FATAL: must specify TEST-FOLDER\n");
+    if(!other_args.empty()) {
+        fprintf(stderr,"FATAL: additional arguments supplied\n");
         return false;
     }
 
-    g_options.test_dname=other_args[0];
     return true;
 }
 
