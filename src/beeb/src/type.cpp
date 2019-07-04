@@ -12,43 +12,6 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-//#define ANDY_OFFSET (0x8000u+0u)
-//#define NUM_ANDY_PAGES (0x10u)
-//#define HAZEL_OFFSET (0x8000+0x1000u)
-//#define NUM_HAZEL_PAGES (0x20u)
-//#define SHADOW_OFFSET (0x8000+0x3000u)
-//#define NUM_SHADOW_PAGES (0x30u)
-
-const BigPageType ROM_BIG_PAGE_TYPES[16]={
-    {'0',"ROM 0"},
-    {'1',"ROM 1"},
-    {'2',"ROM 2"},
-    {'3',"ROM 3"},
-    {'4',"ROM 4"},
-    {'5',"ROM 5"},
-    {'6',"ROM 6"},
-    {'7',"ROM 7"},
-    {'8',"ROM 8"},
-    {'9',"ROM 9"},
-    {'a',"ROM a"},
-    {'b',"ROM b"},
-    {'c',"ROM c"},
-    {'d',"ROM d"},
-    {'e',"ROM e"},
-    {'f',"ROM f"},
-};
-
-const BigPageType MAIN_RAM_BIG_PAGE_TYPE={'m',"Main RAM"};
-const BigPageType SHADOW_RAM_BIG_PAGE_TYPE={'s',"Shadow RAM"};
-const BigPageType ANDY_BIG_PAGE_TYPE={'n',"ANDY"};
-const BigPageType HAZEL_BIG_PAGE_TYPE={'h',"HAZEL"};
-const BigPageType MOS_BIG_PAGE_TYPE={'o',"MOS ROM"};
-const BigPageType IO_BIG_PAGE_TYPE={'i',"I/O area"};
-const BigPageType INVALID_BIG_PAGE_TYPE={'?',"Invalid"};
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 #if BBCMICRO_DEBUGGER
 static void ApplyROMDPO(ROMSEL *romsel,uint32_t dpo) {
     if(dpo&BBCMicroDebugPagingOverride_OverrideROM) {
@@ -57,56 +20,64 @@ static void ApplyROMDPO(ROMSEL *romsel,uint32_t dpo) {
 }
 #endif
 
-static void SetBigPages(std::vector<BigPage> *big_pages,
-                        size_t index,
-                        size_t n,
-                        const BigPageType *type,
-                        uint32_t dpo_clear,
-                        uint32_t dpo_set,
-                        uint16_t base)
+static void InitBigPagesMetadata(std::vector<BigPageMetadata> *big_pages,
+                                 size_t index,
+                                 size_t n,
+                                 char code,
+                                 const std::string &description,
+                                 uint32_t dpo_clear,
+                                 uint32_t dpo_set,
+                                 uint16_t base)
 {
-    ASSERT(type);
-
     for(size_t i=0;i<n;++i) {
-        BigPage *bp=&(*big_pages)[index+i];
+        ASSERT(index+i<=NUM_BIG_PAGES);
+        BigPageMetadata *bp=&(*big_pages)[index+i];
 
-        ASSERT(!bp->type);
-        bp->type=type;
+        ASSERT(bp->index==0xff);
+        bp->index=(uint8_t)(index+i);
+        bp->code=code;
+        bp->description=description;
         bp->dpo_mask=~dpo_clear;
         bp->dpo_value=dpo_set;
         bp->addr=(uint16_t)(base+i*4096);
     }
 }
 
-static std::vector<BigPage> GetBigPagesCommon() {
-    std::vector<BigPage> big_pages;
+static std::vector<BigPageMetadata> GetBigPagesMetadataCommon() {
+    std::vector<BigPageMetadata> big_pages;
     big_pages.resize(NUM_BIG_PAGES);
 
-    SetBigPages(&big_pages,
-                MAIN_BIG_PAGE_INDEX,
-                NUM_MAIN_BIG_PAGES,
-                &MAIN_RAM_BIG_PAGE_TYPE,
-                0,
-                0,
-                0x0000);
+    InitBigPagesMetadata(&big_pages,
+                         MAIN_BIG_PAGE_INDEX,
+                         NUM_MAIN_BIG_PAGES,
+                         'm',"Main RAM",
+                         0,
+                         0,
+                         0x0000);
 
     for(uint8_t i=0;i<16;++i) {
-        SetBigPages(&big_pages,
-                    ROM0_BIG_PAGE_INDEX+(size_t)i*NUM_ROM_BIG_PAGES,
-                    NUM_ROM_BIG_PAGES,
-                    &ROM_BIG_PAGE_TYPES[i],
-                    (uint32_t)BBCMicroDebugPagingOverride_ROM,
-                    BBCMicroDebugPagingOverride_OverrideROM|i,
-                    0x8000);
+        char code[2];
+        snprintf(code,sizeof code,"%x",i);
+
+        char description[100];
+        snprintf(description,sizeof description,"ROM %x",i);
+
+        InitBigPagesMetadata(&big_pages,
+                             ROM0_BIG_PAGE_INDEX+(size_t)i*NUM_ROM_BIG_PAGES,
+                             NUM_ROM_BIG_PAGES,
+                             code[0],description,
+                             (uint32_t)BBCMicroDebugPagingOverride_ROM,
+                             BBCMicroDebugPagingOverride_OverrideROM|i,
+                             0x8000);
     }
 
-    SetBigPages(&big_pages,
-                MOS_BIG_PAGE_INDEX,
-                NUM_MOS_BIG_PAGES,
-                &MOS_BIG_PAGE_TYPE,
-                0,
-                0,
-                0xc000);
+    InitBigPagesMetadata(&big_pages,
+                         MOS_BIG_PAGE_INDEX,
+                         NUM_MOS_BIG_PAGES,
+                         'o',"MOS ROM",
+                         0,
+                         0,
+                         0xc000);
 
     return big_pages;
 }
@@ -169,8 +140,8 @@ static uint32_t GetDPOB(ROMSEL romsel,ACCCON acccon) {
 }
 #endif
 
-static std::vector<BigPage> GetBigPagesB() {
-    std::vector<BigPage> big_pages=GetBigPagesCommon();
+static std::vector<BigPageMetadata> GetBigPagesMetadataB() {
+    std::vector<BigPageMetadata> big_pages=GetBigPagesMetadataCommon();
 
     return big_pages;
 }
@@ -184,7 +155,7 @@ const BBCMicroType BBC_MICRO_TYPE_B={
     (BBCMicroDebugPagingOverride_OverrideROM|
      BBCMicroDebugPagingOverride_ROM),//dpo_mask
 #endif
-    GetBigPagesB(),
+    GetBigPagesMetadataB(),
     &GetMemBigPageTablesB,//get_mem_big_page_tables_fn,
 #if BBCMICRO_DEBUGGER
     &ApplyDPOB,//apply_dpo_fn
@@ -317,24 +288,24 @@ static uint32_t GetDPOBPlus(ROMSEL romsel,ACCCON acccon) {
 }
 #endif
 
-static std::vector<BigPage> GetBigPagesBPlus() {
-    std::vector<BigPage> big_pages=GetBigPagesCommon();
+static std::vector<BigPageMetadata> GetBigPagesMetadataBPlus() {
+    std::vector<BigPageMetadata> big_pages=GetBigPagesMetadataCommon();
 
-    SetBigPages(&big_pages,
-                ANDY_BIG_PAGE_INDEX,
-                NUM_ANDY_BIG_PAGES+NUM_HAZEL_BIG_PAGES,
-                &ANDY_BIG_PAGE_TYPE,
-                0,
-                BBCMicroDebugPagingOverride_OverrideANDY|BBCMicroDebugPagingOverride_ANDY,
-                0x8000);
+    InitBigPagesMetadata(&big_pages,
+                         ANDY_BIG_PAGE_INDEX,
+                         NUM_ANDY_BIG_PAGES+NUM_HAZEL_BIG_PAGES,
+                         'n',"ANDY",
+                         0,
+                         BBCMicroDebugPagingOverride_OverrideANDY|BBCMicroDebugPagingOverride_ANDY,
+                         0x8000);
 
-    SetBigPages(&big_pages,
-                SHADOW_BIG_PAGE_INDEX,
-                NUM_SHADOW_BIG_PAGES,
-                &SHADOW_RAM_BIG_PAGE_TYPE,
-                0,
-                BBCMicroDebugPagingOverride_OverrideShadow|BBCMicroDebugPagingOverride_Shadow,
-                0x3000);
+    InitBigPagesMetadata(&big_pages,
+                         SHADOW_BIG_PAGE_INDEX,
+                         NUM_SHADOW_BIG_PAGES,
+                         's',"Shadow RAM",
+                         0,
+                         BBCMicroDebugPagingOverride_OverrideShadow|BBCMicroDebugPagingOverride_Shadow,
+                         0x3000);
 
     return big_pages;
 }
@@ -352,7 +323,7 @@ const BBCMicroType BBC_MICRO_TYPE_B_PLUS={
      BBCMicroDebugPagingOverride_Shadow|
      BBCMicroDebugPagingOverride_OverrideShadow),//dpo_mask
 #endif
-    GetBigPagesBPlus(),
+    GetBigPagesMetadataBPlus(),
     &GetMemBigPageTablesBPlus,//get_mem_big_page_tables_fn,
 #if BBCMICRO_DEBUGGER
     &ApplyDPOBPlus,//apply_dpo_fn
@@ -410,7 +381,7 @@ static void GetMemBigPagesTablesMaster(MemoryBigPageTables *tables,
     }
 
     if((acccon.m128_bits.y&&acccon.m128_bits.x)||
-        (!acccon.m128_bits.y&&acccon.m128_bits.e))
+       (!acccon.m128_bits.y&&acccon.m128_bits.e))
     {
         tables->mem_big_pages[1][0]=MAIN_BIG_PAGE_INDEX+0;
         tables->mem_big_pages[1][1]=MAIN_BIG_PAGE_INDEX+1;
@@ -521,32 +492,32 @@ static uint32_t GetDPOMaster(ROMSEL romsel,ACCCON acccon) {
 }
 #endif
 
-static std::vector<BigPage> GetBigPagesMaster() {
-    std::vector<BigPage> big_pages=GetBigPagesCommon();
+static std::vector<BigPageMetadata> GetBigPagesMetadataMaster() {
+    std::vector<BigPageMetadata> big_pages=GetBigPagesMetadataCommon();
 
-    SetBigPages(&big_pages,
-                ANDY_BIG_PAGE_INDEX,
-                NUM_ANDY_BIG_PAGES,
-                &ANDY_BIG_PAGE_TYPE,
-                0,
-                BBCMicroDebugPagingOverride_OverrideANDY|BBCMicroDebugPagingOverride_ANDY,
-                0x8000);
+    InitBigPagesMetadata(&big_pages,
+                         ANDY_BIG_PAGE_INDEX,
+                         NUM_ANDY_BIG_PAGES,
+                         'n',"ANDY",
+                         0,
+                         BBCMicroDebugPagingOverride_OverrideANDY|BBCMicroDebugPagingOverride_ANDY,
+                         0x8000);
 
-    SetBigPages(&big_pages,
-                HAZEL_BIG_PAGE_INDEX,
-                NUM_HAZEL_BIG_PAGES,
-                &HAZEL_BIG_PAGE_TYPE,
-                0,
-                BBCMicroDebugPagingOverride_OverrideHAZEL|BBCMicroDebugPagingOverride_HAZEL,
-                0xc000);
+    InitBigPagesMetadata(&big_pages,
+                         HAZEL_BIG_PAGE_INDEX,
+                         NUM_HAZEL_BIG_PAGES,
+                         'h',"HAZEL",
+                         0,
+                         BBCMicroDebugPagingOverride_OverrideHAZEL|BBCMicroDebugPagingOverride_HAZEL,
+                         0xc000);
 
-    SetBigPages(&big_pages,
-                SHADOW_BIG_PAGE_INDEX,
-                NUM_SHADOW_BIG_PAGES,
-                &SHADOW_RAM_BIG_PAGE_TYPE,
-                0,
-                BBCMicroDebugPagingOverride_OverrideShadow|BBCMicroDebugPagingOverride_Shadow,
-                0x3000);
+    InitBigPagesMetadata(&big_pages,
+                         SHADOW_BIG_PAGE_INDEX,
+                         NUM_SHADOW_BIG_PAGES,
+                         's',"Shadow RAM",
+                         0,
+                         BBCMicroDebugPagingOverride_OverrideShadow|BBCMicroDebugPagingOverride_Shadow,
+                         0x3000);
 
     // Update the MOS DPO flags.
 
@@ -581,7 +552,7 @@ const BBCMicroType BBC_MICRO_TYPE_MASTER={
      BBCMicroDebugPagingOverride_OS|
      BBCMicroDebugPagingOverride_OverrideOS),//dpo_mask
 #endif
-    GetBigPagesMaster(),
+    GetBigPagesMetadataMaster(),
     &GetMemBigPagesTablesMaster,//get_mem_big_page_tables_fn,
 #if BBCMICRO_DEBUGGER
     &ApplyDPOMaster,//apply_dpo_fn

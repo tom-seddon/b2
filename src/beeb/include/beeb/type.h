@@ -92,28 +92,6 @@ static constexpr uint8_t NUM_BIG_PAGES=MOS_BIG_PAGE_INDEX+NUM_MOS_BIG_PAGES;
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-struct BigPageType {
-    // Single char syntax for use when entering addresses in the debugger.
-    char code;
-
-    // More elaborate description, printed in UI.
-    std::string description;
-};
-
-extern const BigPageType MAIN_RAM_BIG_PAGE_TYPE;
-extern const BigPageType ANDY_BIG_PAGE_TYPE;
-extern const BigPageType HAZEL_BIG_PAGE_TYPE;
-extern const BigPageType ROM_BIG_PAGE_TYPES[16];
-extern const BigPageType SHADOW_RAM_BIG_PAGE_TYPE;
-extern const BigPageType MOS_BIG_PAGE_TYPE;
-extern const BigPageType IO_BIG_PAGE_TYPE;
-extern const BigPageType INVALID_BIG_PAGE_TYPE;
-
-//extern const BigPageType *const BIG_PAGE_TYPES[NUM_BIG_PAGES];
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 struct BROMSELBits {
     uint8_t pr:4,_:4;
 };
@@ -167,8 +145,15 @@ struct MemoryBigPageTables {
 //////////////////////////////////////////////////////////////////////////
 
 // TODO think of a better name for this!
-struct BigPage {
-    const BigPageType *type=nullptr;
+struct BigPageMetadata {
+    // index of this big page.
+    uint8_t index=0xff;
+
+    // Single char syntax for use when entering addresses in the debugger.
+    char code=0;
+
+    // More elaborate description, printed in UI.
+    std::string description;
 
     // dpo mask/value that must be applied to have this big page mapped in.
     uint32_t dpo_mask=~(uint32_t)0;
@@ -205,7 +190,7 @@ struct BBCMicroType {
     // Info about where a given big page will appear in the 6502 memory map.
     //
     // If addr==0xffff, this big page isn't relevant for this model.
-    std::vector<BigPage> big_pages;
+    std::vector<BigPageMetadata> big_pages_metadata;
 
     // usr, mos and mos_pc_mem_big_pages should point to 16-byte tables.
     //

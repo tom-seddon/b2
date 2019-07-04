@@ -345,7 +345,7 @@ void BBCMicro::InitPaging() {
             bp->w=g_unmapped_writes;
         }
 
-        bp->type=m_type->big_pages[i].type;
+        bp->metadata=&m_type->big_pages_metadata[i];
         bp->index=i;
     }
 

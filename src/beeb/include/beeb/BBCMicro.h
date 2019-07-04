@@ -130,7 +130,7 @@ public:
         // (exclusive).
         uint8_t index=0;
 
-        const BigPageType *type=nullptr;
+        const BigPageMetadata *metadata=nullptr;
     };
 
     // nvram_contents and rtc_time are ignored if the BBCMicro doesn't

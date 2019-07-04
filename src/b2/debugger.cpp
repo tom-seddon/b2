@@ -82,14 +82,15 @@ static const char *GetFnName(M6502Fn fn) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+class RevealTargetUI;
+
 class DebugUI:
     public SettingsUI
 {
 public:
     struct DebugBigPage {
         // The big page this refers to.
-        uint8_t big_page_index=0;
-        const BigPageType *big_page_type=nullptr;
+        const BigPageMetadata *metadata=nullptr;
 
         // points to this->ram_buffer, or NULL.
         const uint8_t *r=nullptr;
@@ -140,11 +141,9 @@ protected:
     // Address info, checkboxes for breakpoint flags, etc.
     void DoByteDebugGui(const DebugBigPage *dbp,M6502Word addr);
 
-    MemoryViewUI *DoMemoryViewGui(const char *text);
+    RevealTargetUI *DoRevealGui(const char *text);
 
-    // Overrides the current values for any flags that have their Override bit
-    // set. Leaves other flags alone - overridden, or not.
-    void ApplyDebugPageOverrides(uint32_t dpo);
+    void ApplyOverridesForDebugBigPage(const DebugBigPage *dbp);
 
     const DebugBigPage *GetDebugBigPageForAddress(M6502Word addr,
                                                   bool mos);
@@ -165,6 +164,17 @@ private:
                                       const char *popup_name,
                                       uint32_t override_flag,
                                       uint32_t flag);
+};
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+class RevealTargetUI {
+public:
+    virtual void RevealAddress(M6502Word addr)=0;
+    virtual void RevealByte(const DebugUI::DebugBigPage *dbp,M6502Word addr)=0;
+protected:
+private:
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -385,24 +395,24 @@ void DebugUI::DoByteDebugGui(const DebugBigPage *dbp,M6502Word addr) {
 //                m_beeb_thread->InvalidateDebugBigPageForAddress(addr);
             }
 
-            if(MemoryViewUI *mem_view_ui=this->DoMemoryViewGui("Reveal address...")) {
-                mem_view_ui->SetAddress(addr.w,0);
+            if(RevealTargetUI *reveal_target_ui=this->DoRevealGui("Reveal address...")) {
+                reveal_target_ui->RevealAddress(addr);
             }
         }
 
         ImGui::Separator();
 
         char byte_str[10];
-        snprintf(byte_str,sizeof byte_str,"%c.%04x",dbp->big_page_type->code,addr.w);
+        snprintf(byte_str,sizeof byte_str,"%c.%04x",dbp->metadata->code,addr.w);
 
         ImGui::Text("Byte: %s (%s)",
                     byte_str,
-                    dbp->big_page_type->description.c_str());
+                    dbp->metadata->description.c_str());
 
         if(dbp->byte_flags) {
             uint8_t byte_flags=dbp->byte_flags[addr.p.o];
             if(this->DoDebugByteFlagsGui(byte_str,&byte_flags)) {
-                m_beeb_thread->Send(std::make_shared<BeebThread::DebugSetByteDebugFlags>(dbp->big_page_index,
+                m_beeb_thread->Send(std::make_shared<BeebThread::DebugSetByteDebugFlags>(dbp->metadata->index,
                                                                                          (uint16_t)addr.p.o,
                                                                                          byte_flags));
 //                std::unique_lock<Mutex> lock;
@@ -412,8 +422,8 @@ void DebugUI::DoByteDebugGui(const DebugBigPage *dbp,M6502Word addr) {
             }
         }
 
-        if(MemoryViewUI *mem_view_ui=this->DoMemoryViewGui("Reveal byte...")) {
-            mem_view_ui->SetAddress(addr.w,m_dpo);
+        if(RevealTargetUI *reveal_target_ui=this->DoRevealGui("Reveal byte...")) {
+            reveal_target_ui->RevealByte(dbp,addr);
         }
     }
 }
@@ -421,9 +431,9 @@ void DebugUI::DoByteDebugGui(const DebugBigPage *dbp,M6502Word addr) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-MemoryViewUI *DebugUI::DoMemoryViewGui(const char *text) {
-    static const char POPUP_NAME[]="memory_view_selector_popup";
-    MemoryViewUI *result=nullptr;
+RevealTargetUI *DebugUI::DoRevealGui(const char *text) {
+    static const char POPUP_NAME[]="reveal_target_selector_popup";
+    RevealTargetUI *result=nullptr;
 
     ImGuiIDPusher pusher(text);
 
@@ -434,7 +444,7 @@ MemoryViewUI *DebugUI::DoMemoryViewGui(const char *text) {
     if(ImGui::BeginPopup(POPUP_NAME)) {
         struct UI {
             SettingsUI *settings;
-            MemoryViewUI *mem;
+            RevealTargetUI *target;
         };
         UI uis[BeebWindowPopupType_MaxValue];
         size_t num_uis=0;
@@ -443,8 +453,8 @@ MemoryViewUI *DebugUI::DoMemoryViewGui(const char *text) {
             UI ui;
             ui.settings=m_beeb_window->GetPopupByType((BeebWindowPopupType)i);
             if(ui.settings) {
-                ui.mem=dynamic_cast<MemoryViewUI *>(ui.settings);
-                if(ui.mem) {
+                ui.target=dynamic_cast<RevealTargetUI *>(ui.settings);
+                if(ui.target) {
                     uis[num_uis++]=ui;
                 }
             }
@@ -455,7 +465,7 @@ MemoryViewUI *DebugUI::DoMemoryViewGui(const char *text) {
         } else {
             for(size_t i=0;i<num_uis;++i) {
                 if(ImGui::Selectable(uis[i].settings->GetName().c_str())) {
-                    result=uis[i].mem;
+                    result=uis[i].target;
                 }
             }
         }
@@ -469,31 +479,9 @@ MemoryViewUI *DebugUI::DoMemoryViewGui(const char *text) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void DebugUI::ApplyDebugPageOverrides(uint32_t dpo) {
-    if(dpo&BBCMicroDebugPagingOverride_OverrideROM) {
-        m_dpo&=~(uint32_t)BBCMicroDebugPagingOverride_ROM;
-        m_dpo|=BBCMicroDebugPagingOverride_OverrideROM|(dpo&BBCMicroDebugPagingOverride_ROM);
-    }
-
-    if(dpo&BBCMicroDebugPagingOverride_OverrideANDY) {
-        m_dpo&=~(uint32_t)BBCMicroDebugPagingOverride_ANDY;
-        m_dpo|=BBCMicroDebugPagingOverride_OverrideANDY|(dpo&BBCMicroDebugPagingOverride_ANDY);
-    }
-
-    if(dpo&BBCMicroDebugPagingOverride_OverrideHAZEL) {
-        m_dpo&=~(uint32_t)BBCMicroDebugPagingOverride_HAZEL;
-        m_dpo|=BBCMicroDebugPagingOverride_OverrideHAZEL|(dpo&BBCMicroDebugPagingOverride_HAZEL);
-    }
-
-    if(dpo&BBCMicroDebugPagingOverride_OverrideShadow) {
-        m_dpo&=~(uint32_t)BBCMicroDebugPagingOverride_Shadow;
-        m_dpo|=BBCMicroDebugPagingOverride_OverrideShadow|(dpo&BBCMicroDebugPagingOverride_Shadow);
-    }
-
-    if(dpo&BBCMicroDebugPagingOverride_OverrideOS) {
-        m_dpo&=~(uint32_t)BBCMicroDebugPagingOverride_OS;
-        m_dpo|=BBCMicroDebugPagingOverride_OverrideOS|(dpo&BBCMicroDebugPagingOverride_OS);
-    }
+void DebugUI::ApplyOverridesForDebugBigPage(const DebugBigPage *dbp) {
+    m_dpo&=dbp->metadata->dpo_mask;
+    m_dpo|=dbp->metadata->dpo_value;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -551,8 +539,7 @@ const DebugUI::DebugBigPage *DebugUI::GetDebugBigPageForAddress(M6502Word addr,
         const BBCMicro *m=m_beeb_thread->LockBeeb(&lock);
 
         const BBCMicro::BigPage *bp=m->DebugGetBigPageForAddress(addr,mos,m_dpo);
-        dbp->big_page_index=bp->index;
-        dbp->big_page_type=bp->type;
+        dbp->metadata=bp->metadata;
 
         if(bp->r) {
             memcpy(dbp->ram_buffer,bp->r,BBCMicro::BIG_PAGE_SIZE_BYTES);
@@ -749,7 +736,7 @@ LOG_DEFINE(HEXEDIT,"HEXEDIT",&log_printer_stdout_and_debugger,true)
 
 class MemoryDebugWindow:
 public DebugUI,
-public MemoryViewUI
+public RevealTargetUI
 {
 public:
     MemoryDebugWindow():
@@ -758,9 +745,13 @@ public:
     {
     }
 
-    void SetAddress(uint16_t addr,uint32_t dpo) override {
-        m_hex_editor.SetOffset(addr);
-        this->ApplyDebugPageOverrides(dpo);
+    virtual void RevealAddress(M6502Word addr) override {
+        m_hex_editor.SetOffset(addr.w);
+    }
+
+    virtual void RevealByte(const DebugUI::DebugBigPage *dbp,M6502Word addr) override {
+        this->ApplyOverridesForDebugBigPage(dbp);
+        this->RevealAddress(addr);
     }
 protected:
     void DoImGui2() override {
@@ -833,7 +824,7 @@ private:
             snprintf(text,
                      text_size,
                      upper_case?"%c.%04X":"%c.%04x",
-                     dbp->big_page_type->code,
+                     dbp->metadata->code,
                      (unsigned)offset);
         }
 
@@ -971,7 +962,7 @@ std::unique_ptr<SettingsUI> CreateExtMemoryDebugWindow(BeebWindow *beeb_window) 
 
 class DisassemblyDebugWindow:
 public DebugUI,
-public MemoryViewUI
+public RevealTargetUI
 {
 public:
     uint32_t GetExtraImGuiWindowFlags() const override {
@@ -986,10 +977,14 @@ public:
         return &ms_command_table;
     }
 
-    void SetAddress(uint16_t addr,uint32_t dpo) override {
+    void RevealAddress(M6502Word addr) override {
         m_track_pc=false;
-        m_addr=addr;
-        this->ApplyDebugPageOverrides(dpo);
+        m_addr=addr.w;
+    }
+
+    void RevealByte(const DebugUI::DebugBigPage *dbp,M6502Word addr) override {
+        this->ApplyOverridesForDebugBigPage(dbp);
+        this->RevealAddress(addr);
     }
 
     void SetTrackPC(bool track_pc) {
@@ -1110,7 +1105,7 @@ protected:
 //            }
 
             const DebugBigPage *line_dbp=this->GetDebugBigPageForAddress(line_addr,false);
-            ImGui::Text("%c.%04x",line_dbp->big_page_type->code,line_addr.w);
+            ImGui::Text("%c.%04x",line_dbp->metadata->code,line_addr.w);
             this->DoBytePopupGui(line_dbp,line_addr);
 
             ImGui::SameLine();
@@ -1361,7 +1356,7 @@ private:
         const DebugBigPage *dbp=this->GetDebugBigPageForAddress({w},mos);
 
         char label[7]={
-            dbp->big_page_type->code,
+            dbp->metadata->code,
             '.',
             HEX_CHARS_LC[w>>12&15],
             HEX_CHARS_LC[w>>8&15],
@@ -1376,7 +1371,7 @@ private:
         const DebugBigPage *dbp=this->GetDebugBigPageForAddress({value},mos);
 
         char label[5]={
-            dbp->big_page_type->code,
+            dbp->metadata->code,
             '.',
             HEX_CHARS_LC[value>>4&15],
             HEX_CHARS_LC[value&15],
@@ -2155,8 +2150,6 @@ protected:
 
         bool all_user=memcmp(tables.pc_mem_big_pages_set,ALL_USER_MEM_BIG_PAGES,16)==0;
 
-        std::string mos_io_type_description=MOS_BIG_PAGE_TYPE.description+" + "+IO_BIG_PAGE_TYPE.description;
-
         ImGui::Separator();
 
         ImGui::Columns(3,"paging_columns");
@@ -2189,7 +2182,7 @@ protected:
 
         ImGui::Separator();
 
-        ImGui::Text("Display memory: %s",crt_shadow?SHADOW_RAM_BIG_PAGE_TYPE.description.c_str():MAIN_RAM_BIG_PAGE_TYPE.description.c_str());
+        ImGui::Text("Display memory: %s",crt_shadow?"Shadow RAM":"Main RAM");
 
         if(all_user) {
             ImGui::TextUnformatted("Paging setup does not distinguish between user code and MOS code");
@@ -2221,12 +2214,12 @@ protected:
 private:
     void DoTypeColumn(const BBCMicroType *type,const MemoryBigPageTables &tables,bool io,size_t index,size_t mem_big_page_index) {
         uint8_t big_page_index=tables.mem_big_pages[index][mem_big_page_index];
-        const BigPageType *bp_type=type->big_pages[big_page_index].type;
+        const BigPageMetadata *metadata=&type->big_pages_metadata[big_page_index];
 
         if(big_page_index==MOS_BIG_PAGE_INDEX+3&&io) {
-            ImGui::Text("%s + %s",MOS_BIG_PAGE_TYPE.description.c_str(),IO_BIG_PAGE_TYPE.description.c_str());
+            ImGui::Text("%s + I/O",metadata->description.c_str());
         } else {
-            ImGui::TextUnformatted(bp_type->description.c_str());
+            ImGui::TextUnformatted(metadata->description.c_str());
         }
     }
 };
@@ -2304,9 +2297,9 @@ protected:
                     //                ASSERT(bp->offset<BBCMicro::BIG_PAGE_SIZE_BYTES);
                     //                uint8_t *flags=&m_big_page_debug_flags[bp->big_page][bp->offset];
 
-                    const BigPage *big_page=&type->big_pages[bp->big_page];
+                    const BigPageMetadata *metadata=&type->big_pages_metadata[bp->big_page];
 
-                    if(uint8_t *flags=this->Row(bp,"%c.$%04x",big_page->type->code,big_page->addr+bp->offset)) {
+                    if(uint8_t *flags=this->Row(bp,"%c.$%04x",metadata->code,metadata->addr+bp->offset)) {
                         m_beeb_thread->Send(std::make_shared<BeebThread::DebugSetByteDebugFlags>(bp->big_page,
                                                                                                  bp->offset,
                                                                                                  *flags));
@@ -2465,14 +2458,14 @@ protected:
 
                 M6502Word crtc_addr={unit->metadata.address};
 
-                const BigPage *big_page=&type->big_pages[crtc_addr.p.p];
+                const BigPageMetadata *metadata=&type->big_pages_metadata[crtc_addr.p.p];
 
-                m_dpo&=big_page->dpo_mask;
-                m_dpo|=big_page->dpo_value;
+                m_dpo&=metadata->dpo_mask;
+                m_dpo|=metadata->dpo_value;
 
-                M6502Word cpu_addr={(uint16_t)(big_page->addr+crtc_addr.p.o)};
+                M6502Word cpu_addr={(uint16_t)(metadata->addr+crtc_addr.p.o)};
 
-                ImGui::Text("Address: %c.%04x",big_page->type->code,cpu_addr.w);
+                ImGui::Text("Address: %c.%04x",metadata->code,cpu_addr.w);
 
                 const DebugBigPage *cpu_dbp=this->GetDebugBigPageForAddress(cpu_addr,false);
                 this->DoBytePopupGui(cpu_dbp,cpu_addr);
