@@ -67,6 +67,15 @@ public:
     // Default impl is size_t, in hex.
     virtual void GetAddressText(char *text,size_t text_size,size_t offset,bool upper_case);
 
+    // Parse address text, as entered in the text field.
+    //
+    // On success, return true and set *offset to the parsed value. On error,
+    // return false.
+    //
+    // Default impl parses the input using strtoull and returns true/false
+    // appropriately.
+    virtual bool ParseAddressText(size_t *offset,const char *text);
+
     // default impl does nothing.
     virtual void DoOptionsPopupExtraGui();
 

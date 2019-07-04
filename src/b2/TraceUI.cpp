@@ -312,7 +312,8 @@ private:
         }
 
         *c++=code;
-        *c++='.';
+        *c++=ADDRESS_PREFIX_SEPARATOR;
+        *c++='$';
         *c++=HEX_CHARS_LC[value>>12];
         *c++=HEX_CHARS_LC[value>>8&15];
         *c++=HEX_CHARS_LC[value>>4&15];

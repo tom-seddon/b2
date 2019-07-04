@@ -85,10 +85,21 @@ from. The possible prefixes are as follows:
 - `o` - OS ROM
 - `i` - I/O area
 
-The prefix is sometimes redundant.
+The prefix is sometimes redundant. (For example, address $0000 is
+always shown as ``m`0000``, even though there's no other prefix it could
+have.)
 
-Prefixes are not currently supported very consistently, but this will
-improve.
+When entering an address, you can usually supply an address prefix.
+(For example, to view $8000 in ROM 4, you might enter ``4`8000``.)
+Appropriate paging overrides will be selected to ensure the requested
+byte is visible.
+
+You can supply multiple address prefixes, and they stack up in the
+order given, though this isn't always especially useful.
+
+Note that on B+ and Master, a ROM bank prefix (`0` - `f`) implies ANDY
+is disabled, and on Master the OS ROM (`o`) implies HAZEL is disabled.
+Supply further prefixes to change this if desired.
 
 # Debugger windows
 
@@ -133,18 +144,18 @@ Once a trace has been started and stopped, it can be saved to a file
 using `Save` or `Save (no cycles)`. The output is along these lines:
 
 ```
-      63  m.17cc: lda #$81                 A=81 X=65 Y=00 S=f0 P=Nvdizc (D=81)
-      65  m.17ce: ldy #$ff                 A=81 X=65 Y=ff S=f0 P=Nvdizc (D=ff)
-      67  m.17d0: jsr $1bba                A=81 X=65 Y=ff S=ee P=Nvdizc (D=17)
-      73  m.1bba: stx $1b8f [m.1b8f]       A=81 X=65 Y=ff S=ee P=Nvdizc (D=65)
-      77  m.1bbd: ldx #$04                 A=81 X=04 Y=ff S=ee P=nvdizc (D=04)
-      79  m.1bbf: jmp $1b75                A=81 X=04 Y=ff S=ee P=nvdizc (D=04)
-      82  m.1b75: sta $1b91 [m.1b91]       A=81 X=04 Y=ff S=ee P=nvdizc (D=81)
-      86  m.1b78: lda $f4 [m.00f4]         A=04 X=04 Y=ff S=ee P=nvdizc (D=04)
-      89  m.1b7a: pha                      A=04 X=04 Y=ff S=ed P=nvdizc (D=04)
-      92  m.1b7b: lda #$05                 A=05 X=04 Y=ff S=ed P=nvdizc (D=05)
-      94  m.1b7d: sta $f4 [m.00f4]         A=05 X=04 Y=ff S=ed P=nvdizc (D=05)
-      97  m.1b7f: sta $fe30 [i.fe30]       A=05 X=04 Y=ff S=ed P=nvdizc (D=05)
+      63  m`17cc: lda #$81                 A=81 X=65 Y=00 S=f0 P=Nvdizc (D=81)
+      65  m`17ce: ldy #$ff                 A=81 X=65 Y=ff S=f0 P=Nvdizc (D=ff)
+      67  m`17d0: jsr $1bba                A=81 X=65 Y=ff S=ee P=Nvdizc (D=17)
+      73  m`1bba: stx $1b8f [m`1b8f]       A=81 X=65 Y=ff S=ee P=Nvdizc (D=65)
+      77  m`1bbd: ldx #$04                 A=81 X=04 Y=ff S=ee P=nvdizc (D=04)
+      79  m`1bbf: jmp $1b75                A=81 X=04 Y=ff S=ee P=nvdizc (D=04)
+      82  m`1b75: sta $1b91 [m`1b91]       A=81 X=04 Y=ff S=ee P=nvdizc (D=81)
+      86  m`1b78: lda $f4 [m`00f4]         A=04 X=04 Y=ff S=ee P=nvdizc (D=04)
+      89  m`1b7a: pha                      A=04 X=04 Y=ff S=ed P=nvdizc (D=04)
+      92  m`1b7b: lda #$05                 A=05 X=04 Y=ff S=ed P=nvdizc (D=05)
+      94  m`1b7d: sta $f4 [m`00f4]         A=05 X=04 Y=ff S=ed P=nvdizc (D=05)
+      97  m`1b7f: sta $fe30 [i`fe30]       A=05 X=04 Y=ff S=ed P=nvdizc (D=05)
 ```
 
 The first column is the cycle count - then instruction address,
@@ -160,14 +171,14 @@ Tick the `Flags` checkboxes to get additional hardware state output in
 the file:
 
 ```
-   24939  m.21f5: stx $fe40 [i.fe40]       A=e3 X=00 Y=03 S=da P=nvdIZc (D=00)
+   24939  m`21f5: stx $fe40 [i`fe40]       A=e3 X=00 Y=03 S=da P=nvdIZc (D=00)
    24944  Port value now: 048 ($30) (%00110000) ('0')
    24944  SystemVIA - Write ORB. Reset IFR CB2.
-   24945  m.21f8: lda $fe40 [i.fe40]       A=30 X=00 Y=03 S=da P=nvdIzc (D=30)
+   24945  m`21f8: lda $fe40 [i`fe40]       A=30 X=00 Y=03 S=da P=nvdIzc (D=30)
    24946  PORTB - PB = $30 (%00110000): RTC AS=0; RTC CS=0; Sound Write=true
    24950  SN76489 - write noise mode: periodic noise, 3 (unknown
-   24951  m.21fb: ora #$08                 A=38 X=00 Y=03 S=da P=nvdIzc (D=08)
-   24953  m.21fd: sta $fe40 [i.fe40]       A=38 X=00 Y=03 S=da P=nvdIzc (D=38)
+   24951  m`21fb: ora #$08                 A=38 X=00 Y=03 S=da P=nvdIzc (D=08)
+   24953  m`21fd: sta $fe40 [i`fe40]       A=38 X=00 Y=03 S=da P=nvdIzc (D=38)
 ```
 
 `Save (no cycles)` produces output with no cycle count column. This

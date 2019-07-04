@@ -83,6 +83,25 @@ void HexEditorHandler::GetAddressText(char *text,
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+bool HexEditorHandler::ParseAddressText(size_t *offset,const char *text) {
+    char *ep;
+    unsigned long long value=strtoull(text,&ep,16);
+
+    if(*ep!=0&&!isspace(*ep)) {
+        return false;
+    }
+
+    if(value>SIZE_MAX) {
+        return false;
+    }
+
+    *offset=(size_t)value;
+    return true;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 void HexEditorHandler::DoOptionsPopupExtraGui() {
 }
 
@@ -319,12 +338,11 @@ void HexEditor::DoImGui() {
     {
         ImGui::PushID("address");
         ImGui::PushItemWidth((m_metrics.num_addr_chars+2)*m_metrics.glyph_width);
-        int flags=ImGuiInputTextFlags_CharsHexadecimal|ImGuiInputTextFlags_EnterReturnsTrue;
+        int flags=ImGuiInputTextFlags_EnterReturnsTrue;
         if(ImGui::InputText("",m_new_offset_input_buffer,sizeof m_new_offset_input_buffer,flags)) {
-            char *ep;
-            unsigned long long value=strtoull(m_new_offset_input_buffer,&ep,16);
-            if(*ep==0||isspace(*ep)) {
-                this->SetNewOffset((size_t)value,0,false);
+            size_t offset;
+            if(m_handler->ParseAddressText(&offset,m_new_offset_input_buffer)) {
+                this->SetNewOffset((size_t)offset,0,false);
                 strcpy(m_new_offset_input_buffer,"");
             }
         }

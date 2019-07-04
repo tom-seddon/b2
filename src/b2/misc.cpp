@@ -395,6 +395,19 @@ std::vector<std::string> GetSplitString(const std::string &str,const std::string
 
 template<class T>
 static bool GetValueFromString(T *value,const char *str,int radix) {
+    if(radix==0) {
+        // Handle &/$.
+        const char *c=str;
+        while(*c!=0&&isspace(*c)) {
+            ++c;
+        }
+
+        if(*c=='$'||*c=='&') {
+            str=c+1;
+            radix=16;
+        }
+    }
+
     char *ep;
     unsigned long long tmp=strtoull(str,&ep,radix);
     if(*ep!=0&&!isspace(*ep)) {

@@ -1,5 +1,6 @@
 #include <shared/system.h>
 #include <shared/debug.h>
+#include <shared/log.h>
 #include <beeb/conf.h>
 #include <beeb/type.h>
 #include <6502/6502.h>
@@ -82,6 +83,28 @@ static std::vector<BigPageMetadata> GetBigPagesMetadataCommon() {
     return big_pages;
 }
 
+static bool HandleROMPrefixChar(uint32_t *dpo,uint8_t rom) {
+    ASSERT(rom>=0&&rom<=15);
+
+    *dpo&=~(uint32_t)(BBCMicroDebugPagingOverride_ROM|BBCMicroDebugPagingOverride_ANDY);
+    *dpo|=BBCMicroDebugPagingOverride_OverrideANDY|BBCMicroDebugPagingOverride_OverrideROM|rom;
+
+    return true;
+}
+
+// select ROM
+static bool ParseROMPrefixChar(uint32_t *dpo,char c) {
+    if(c>='0'&&c<='9') {
+        return HandleROMPrefixChar(dpo,(uint8_t)(c-'0'));
+    } else if(c>='a'&&c<='f') {
+        return HandleROMPrefixChar(dpo,(uint8_t)(c-'a'+10));
+    } else if(c>='A'&&c<='F') {
+        return HandleROMPrefixChar(dpo,(uint8_t)(c-'A'+10));
+    } else {
+        return false;
+    }
+}
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
@@ -146,6 +169,19 @@ static std::vector<BigPageMetadata> GetBigPagesMetadataB() {
     return big_pages;
 }
 
+static bool ParsePrefixCharB(uint32_t *dpo,char c) {
+    if(ParseROMPrefixChar(dpo,c)) {
+        // ...
+    } else if(c=='m'||c=='M'||c=='o'||c=='O'||c=='i'||c=='I') {
+        // Valid, but no effect. These are supported on the basis that if you
+        // can see them in the UI, you ought to be able to type them in...
+    } else {
+        return false;
+    }
+
+    return true;
+}
+
 const BBCMicroType BBC_MICRO_TYPE_B={
     BBCMicroTypeID_B,//type_id
     &M6502_nmos6502_config,//m6502_config
@@ -165,6 +201,8 @@ const BBCMicroType BBC_MICRO_TYPE_B={
     0x00,//acccon_mask,
     (BBCMicroTypeFlag_CanDisplayTeletext3c00),//flags
     {{0x00,0x1f},{0x40,0x7f},{0xc0,0xdf},},//sheila_cycle_stretch_regions
+    &ParsePrefixCharB,//parse_prefix_char_fn
+
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -310,6 +348,26 @@ static std::vector<BigPageMetadata> GetBigPagesMetadataBPlus() {
     return big_pages;
 }
 
+static bool ParsePrefixCharBPlus(uint32_t *dpo,char c) {
+    if(ParseROMPrefixChar(dpo,c)) {
+        // ...
+    } else if(c=='s'||c=='S') {
+        *dpo|=BBCMicroDebugPagingOverride_OverrideShadow|BBCMicroDebugPagingOverride_Shadow;
+    } else if(c=='m'||c=='M') {
+        *dpo|=BBCMicroDebugPagingOverride_OverrideShadow;
+        *dpo&=~(uint32_t)BBCMicroDebugPagingOverride_Shadow;
+    } else if(c=='n'||c=='N') {
+        *dpo|=BBCMicroDebugPagingOverride_OverrideANDY|BBCMicroDebugPagingOverride_ANDY;
+    } else if(c=='i'||c=='I'||c=='o'||c=='O') {
+        // Valid, but no effect. These are supported on the basis that if you
+        // can see them in the UI, you ought to be able to type them in...
+    } else {
+        return false;
+    }
+
+    return true;
+}
+
 const BBCMicroType BBC_MICRO_TYPE_B_PLUS={
     BBCMicroTypeID_BPlus,//type_id
     &M6502_nmos6502_config,//m6502_config
@@ -334,6 +392,7 @@ const BBCMicroType BBC_MICRO_TYPE_B_PLUS={
     (BBCMicroTypeFlag_CanDisplayTeletext3c00|
      BBCMicroTypeFlag_HasShadowRAM),//flags
     {{0x00,0x1f},{0x40,0x7f},{0xc0,0xdf},},//sheila_cycle_stretch_regions
+    &ParsePrefixCharBPlus,//parse_prefix_char_fn
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -535,6 +594,31 @@ static std::vector<BigPageMetadata> GetBigPagesMetadataMaster() {
     return big_pages;
 }
 
+static bool ParsePrefixCharMaster(uint32_t *dpo,char c) {
+    if(ParseROMPrefixChar(dpo,c)) {
+        // ...
+    } else if(c=='s'||c=='S') {
+        *dpo|=BBCMicroDebugPagingOverride_OverrideShadow|BBCMicroDebugPagingOverride_Shadow;
+    } else if(c=='m'||c=='M') {
+        *dpo|=BBCMicroDebugPagingOverride_OverrideShadow;
+        *dpo&=~(uint32_t)BBCMicroDebugPagingOverride_Shadow;
+    } else if(c=='h'||c=='H') {
+        *dpo|=BBCMicroDebugPagingOverride_OverrideHAZEL|BBCMicroDebugPagingOverride_HAZEL;
+    } else if(c=='n'||c=='N') {
+        *dpo|=BBCMicroDebugPagingOverride_OverrideANDY|BBCMicroDebugPagingOverride_ANDY;
+    } else if(c=='o'||c=='O') {
+        *dpo|=BBCMicroDebugPagingOverride_OverrideHAZEL|BBCMicroDebugPagingOverride_OverrideOS|BBCMicroDebugPagingOverride_OS;
+        *dpo&=~(uint32_t)BBCMicroDebugPagingOverride_HAZEL;
+    } else if(c=='i'||c=='I') {
+        *dpo|=BBCMicroDebugPagingOverride_OverrideOS;
+        *dpo&=~(uint32_t)BBCMicroDebugPagingOverride_OS;
+    } else {
+        return false;
+    }
+
+    return true;
+}
+
 const BBCMicroType BBC_MICRO_TYPE_MASTER={
     BBCMicroTypeID_Master,//type_id
     &M6502_cmos6502_config,//m6502_config
@@ -564,6 +648,7 @@ const BBCMicroType BBC_MICRO_TYPE_MASTER={
      BBCMicroTypeFlag_HasRTC|
      BBCMicroTypeFlag_HasNumericKeypad),//flags
     {{0x00,0x1f},{0x28,0x2b},{0x40,0x7f},},//sheila_cycle_stretch_regions
+    &ParsePrefixCharMaster,//parse_prefix_char_fn
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -603,6 +688,32 @@ const BBCMicroType *GetBBCMicroTypeForTypeID(BBCMicroTypeID type_id) {
 
     ASSERT(false);
     return &BBC_MICRO_TYPE_B;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool ParseAddressPrefix(uint32_t *dpo_ptr,
+                        const BBCMicroType *type,
+                        const char *prefix_begin,
+                        const char *prefix_end,
+                        Log *log)
+{
+    uint32_t dpo=*dpo_ptr;
+
+    for(const char *c=prefix_begin;c!=prefix_end;++c) {
+        if(!(*type->parse_prefix_char_fn)(&dpo,*c)) {
+            if(log) {
+                log->f("'%c': unknown address prefix",*c);
+            }
+
+            return false;
+        }
+    }
+
+    *dpo_ptr=dpo;
+
+    return true;
 }
 
 //////////////////////////////////////////////////////////////////////////

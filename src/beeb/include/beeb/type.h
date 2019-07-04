@@ -11,6 +11,7 @@
 #include <string>
 #include <vector>
 
+class Log;
 struct BigPageType;
 struct M6502Config;
 
@@ -238,6 +239,8 @@ struct BBCMicroType {
         uint8_t first,last;//both inclusive
     };
     std::vector<SHEILACycleStretchRegion> sheila_cycle_stretch_regions;
+
+    bool (*parse_prefix_char_fn)(uint32_t *dpo,char c);
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -252,6 +255,16 @@ const BBCMicroType *GetBBCMicroTypeForTypeID(BBCMicroTypeID type_id);
 
 size_t GetNumBBCMicroTypes();
 const BBCMicroType *GetBBCMicroTypeByIndex(size_t index);
+
+// Parse address prefix and add additional flags to *dpo_ptr.
+//
+// Returns true if OK, false if not (*dpo_ptr unmodified), and prints error
+// messages on *log if not NULL.
+bool ParseAddressPrefix(uint32_t *dpo_ptr,
+                        const BBCMicroType *type,
+                        const char *prefix_begin,
+                        const char *prefix_end,
+                        Log *log);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
