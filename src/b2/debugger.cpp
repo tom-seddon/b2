@@ -1027,7 +1027,9 @@ protected:
 
         const M6502Config *config;
         uint16_t pc;
-        uint8_t x,y;
+        uint8_t a,x,y;
+        M6502Word sp;
+        M6502P p;
         bool has_debug_state;
         uint8_t pc_is_mos[16];
         const BBCMicroType *type;
@@ -1042,8 +1044,11 @@ protected:
 
             config=s->config;
             pc=s->opcode_pc.w;
+            a=s->a;
             x=s->x;
             y=s->y;
+            p=M6502_GetP(s);
+            sp=s->s;
             has_debug_state=m->HasDebugState();
             m->GetMemBigPageIsMOSTable(pc_is_mos,m_dpo);
         }
@@ -1052,6 +1057,29 @@ protected:
 
         this->DoDebugPageOverrideImGui();
 
+        this->ByteRegUI("A",a);
+        ImGui::SameLine();
+        this->ByteRegUI("X",x);
+        ImGui::SameLine();
+        this->ByteRegUI("Y",x);
+        ImGui::SameLine();
+        {
+            char pstr[9];
+            M6502P_GetString(pstr,p);
+            ImGui::TextUnformatted("P=");
+            ImGui::SameLine(0,0);
+            ImGui::TextUnformatted(pstr);
+            if(ImGui::IsItemHovered()) {
+                ImGui::BeginTooltip();
+                this->ByteRegPopupContentsUI("P",p.value);
+                ImGui::EndTooltip();
+            }
+            ImGui::SameLine();
+        }
+        this->WordRegGui("S",sp);
+        ImGui::SameLine();
+        this->WordRegGui("PC",{pc});
+        ImGui::SameLine();
         cc.DoToggleCheckboxUI("toggle_track_pc");
 
         cc.DoButton("go_back");
@@ -1563,6 +1591,27 @@ private:
         const M6502 *s=m->GetM6502();
 
         return s->config;
+    }
+
+    void ByteRegUI(const char *name,uint8_t value) {
+        ImGui::Text("%s=",name);
+        ImGui::SameLine(0,0);
+        ImGui::Text("$%02x",value);
+        if(ImGui::IsItemHovered()) {
+            ImGui::BeginTooltip();
+            this->ByteRegPopupContentsUI(name,value);
+            ImGui::EndTooltip();
+        }
+    }
+
+    void ByteRegPopupContentsUI(const char *name,uint8_t value) {
+        ImGui::Text("% 3d %3uu $%02x %s",(int8_t)value,value,value,BINARY_BYTE_STRINGS[value]);
+    }
+
+    void WordRegGui(const char *name,M6502Word value) {
+        ImGui::Text("%s=",name);
+        ImGui::SameLine(0,0);
+        ImGui::Text("$%04x",value.w);
     }
 
     static ObjectCommandTable<DisassemblyDebugWindow> ms_command_table;
