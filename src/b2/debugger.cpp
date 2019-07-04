@@ -135,10 +135,10 @@ protected:
 
     // If mouse clicked 2 and last item (whatever it was...) hovered, pops up
     // a popup for that byte with at least the DoByteDebugGui stuff.
-    void DoBytePopupGui(M6502Word addr,bool mos);
+    void DoBytePopupGui(const DebugBigPage *dbp,M6502Word addr);
 
     // Address info, checkboxes for breakpoint flags, etc.
-    void DoByteDebugGui(M6502Word addr,bool mos);
+    void DoByteDebugGui(const DebugBigPage *dbp,M6502Word addr);
 
     MemoryViewUI *DoMemoryViewGui(const char *text);
 
@@ -330,7 +330,7 @@ void DebugUI::DoDebugPageOverrideImGui() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void DebugUI::DoBytePopupGui(M6502Word addr,bool mos) {
+void DebugUI::DoBytePopupGui(const DebugBigPage *dbp,M6502Word addr) {
     static const char CONTEXT_POPUP_NAME[]="debug_ui_byte_context";
 
     ImGuiIDPusher pusher(addr.w);
@@ -347,9 +347,7 @@ void DebugUI::DoBytePopupGui(M6502Word addr,bool mos) {
     }
 
     if(ImGui::BeginPopup(CONTEXT_POPUP_NAME)) {
-        const DebugBigPage *dbp=this->GetDebugBigPageForAddress(addr,mos);//TODO MOS flag
-
-        this->DoByteDebugGui(addr,mos);
+        this->DoByteDebugGui(dbp,addr);
 
         ImGui::Separator();
 
@@ -367,10 +365,8 @@ void DebugUI::DoBytePopupGui(M6502Word addr,bool mos) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void DebugUI::DoByteDebugGui(M6502Word addr,bool mos) {
+void DebugUI::DoByteDebugGui(const DebugBigPage *dbp,M6502Word addr) {
     ImGui::Text("Address: $%04x",addr.w);
-
-    const DebugBigPage *dbp=this->GetDebugBigPageForAddress(addr,mos);// TODO MOS flag
 
     if(!dbp) {
         ImGui::Separator();
@@ -819,7 +815,10 @@ private:
         }
 
         void DoContextPopupExtraGui(bool hex,size_t offset) override {
-            m_window->DoByteDebugGui({(uint16_t)offset},false);
+            M6502Word addr={(uint16_t)offset};
+            const DebugBigPage *dbp=m_window->GetDebugBigPageForAddress(addr,false);
+            m_window->DoByteDebugGui(dbp,addr);
+
             ImGui::Separator();
             this->HexEditorHandler::DoContextPopupExtraGui(hex,offset);
         }
@@ -1110,9 +1109,9 @@ protected:
 //                prefix[0]=0;
 //            }
 
-            const DebugBigPage *dbp=this->GetDebugBigPageForAddress(line_addr,mos);
-            ImGui::Text("%c.%04x",dbp->big_page_type->code,line_addr.w);
-            this->DoBytePopupGui(line_addr,false);
+            const DebugBigPage *line_dbp=this->GetDebugBigPageForAddress(line_addr,false);
+            ImGui::Text("%c.%04x",line_dbp->big_page_type->code,line_addr.w);
+            this->DoBytePopupGui(line_dbp,line_addr);
 
             ImGui::SameLine();
 
@@ -1121,7 +1120,7 @@ protected:
             ImGui::SameLine();
 
             this->TextWithBreakpointBackground(opcode_addr_flags,opcode_byte_flags,"%02x",opcode);
-            this->DoBytePopupGui(line_addr,false);
+            this->DoBytePopupGui(line_dbp,line_addr);
             if(opcode>=32&&opcode<127) {
                 ascii[0]=(char)opcode;
             } else {
@@ -1132,7 +1131,11 @@ protected:
 
             if(di->num_bytes>=2) {
                 this->TextWithBreakpointBackground(operand_addr_flags.b.l,operand_byte_flags.b.l,"%02x",operand.b.l);
-                this->DoBytePopupGui({(uint16_t)(line_addr.w+1u)},false);
+
+                M6502Word operand_l_addr={(uint16_t)(line_addr.w+1u)};
+                const DebugBigPage *operand_l_dbp=this->GetDebugBigPageForAddress(operand_l_addr,false);
+                this->DoBytePopupGui(operand_l_dbp,operand_l_addr);
+
                 if(operand.b.l>=32&&operand.b.l<127) {
                     ascii[1]=(char)operand.b.l;
                 } else {
@@ -1147,7 +1150,11 @@ protected:
 
             if(di->num_bytes>=3) {
                 this->TextWithBreakpointBackground(operand_addr_flags.b.h,operand_byte_flags.b.h,"%02x",operand.b.h);
-                this->DoBytePopupGui({(uint16_t)(line_addr.w+2u)},false);
+
+                M6502Word operand_h_addr={(uint16_t)(line_addr.w+2u)};
+                const DebugBigPage *operand_h_dbp=this->GetDebugBigPageForAddress(operand_h_addr,false);
+                this->DoBytePopupGui(operand_h_dbp,operand_h_addr);
+
                 if(operand.b.h>=32&&operand.b.h<127) {
                     ascii[2]=(char)operand.b.h;
                 } else {
@@ -1210,7 +1217,10 @@ protected:
                         HEX_CHARS_LC[operand.b.l>>4&15],
                         HEX_CHARS_LC[operand.b.l&15],
                     };
-                    this->DoClickableAddress("#$",label,"",operand.b.l,mos);
+
+                    M6502Word imm_addr={operand.b.l};
+                    const DebugBigPage *imm_dbp=this->GetDebugBigPageForAddress(imm_addr,false);
+                    this->DoClickableAddress("#$",label,"",imm_dbp,imm_addr);
                 }
                     break;
 
@@ -1359,7 +1369,7 @@ private:
             HEX_CHARS_LC[w&15],
         };
 
-        this->DoClickableAddress(prefix,label,suffix,w,mos);
+        this->DoClickableAddress(prefix,label,suffix,dbp,{w});
     }
 
     void AddByte(const char *prefix,uint8_t value,bool mos,const char *suffix) {
@@ -1372,14 +1382,14 @@ private:
             HEX_CHARS_LC[value&15],
         };
 
-        this->DoClickableAddress(prefix,label,suffix,value,mos);
+        this->DoClickableAddress(prefix,label,suffix,dbp,{value});
     }
 
     void DoClickableAddress(const char *prefix,
                             const char *label,
                             const char *suffix,
-                            uint16_t address,
-                            bool mos)
+                            const DebugBigPage *dbp,
+                            M6502Word addr)
     {
         if(prefix[0]!=0) {
             ImGui::SameLine(0.f,0.f);
@@ -1395,11 +1405,11 @@ private:
             ImGuiStyleVarPusher pusher(ImGuiStyleVar_FramePadding,ImVec2(0.f,0.f));
 
             if(ImGui::ButtonEx(label,ImVec2(0.f,0.f),ImGuiButtonFlags_AlignTextBaseLine)) {
-                this->GoTo(address);
+                this->GoTo(addr.w);//TODO...
             }
         }
 
-        this->DoBytePopupGui({address},mos);
+        this->DoBytePopupGui(dbp,addr);
 
         if(suffix[0]!=0) {
             ImGui::SameLine(0.f,0.f);
@@ -2464,7 +2474,8 @@ protected:
 
                 ImGui::Text("Address: %c.%04x",big_page->type->code,cpu_addr.w);
 
-                this->DoBytePopupGui(cpu_addr,false);
+                const DebugBigPage *cpu_dbp=this->GetDebugBigPageForAddress(cpu_addr,false);
+                this->DoBytePopupGui(cpu_dbp,cpu_addr);
             } else {
                 ImGui::TextUnformatted("Address:");
             }
