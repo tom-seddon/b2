@@ -35,6 +35,6 @@ add_sanitizers(beeb_lib)
 add_config_define(beeb_lib)
 
 target_include_directories(beeb_lib PUBLIC include)
-target_link_libraries(beeb_lib PUBLIC shared_lib 6502_lib)
+target_link_libraries(beeb_lib PUBLIC shared_lib 6502_lib salieri_lib)
 
 add_subdirectory(tests)

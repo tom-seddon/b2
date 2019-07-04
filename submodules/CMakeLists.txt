@@ -279,3 +279,10 @@ endif()
 
 ##########################################################################
 ##########################################################################
+
+add_library(salieri_lib INTERFACE)
+
+target_include_directories(salieri_lib INTERFACE
+  ${CMAKE_CURRENT_SOURCE_DIR}/salieri)
+target_sources(salieri_lib INTERFACE
+  ${CMAKE_CURRENT_SOURCE_DIR}/salieri/salieri.h)

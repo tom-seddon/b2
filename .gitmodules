@@ -43,3 +43,6 @@
 [submodule "submodules/curl"]
 	path = submodules/curl
 	url = https://github.com/tom-seddon/curl
+[submodule "submodules/salieri"]
+	path = submodules/salieri
+	url = https://github.com/tom-seddon/salieri
