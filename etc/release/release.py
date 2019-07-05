@@ -131,8 +131,14 @@ def create_README(options,folder,rev_hash):
 ##########################################################################
 ##########################################################################
 
+def get_win32_build_folder(options,platform):
+    return '%s/%s%s.vs%s'%(BUILD_FOLDER,
+                           FOLDER_PREFIX,
+                           platform,
+                           options.vs)
+
 def build_win32_config(timings,options,platform,config,colour):
-    folder="%s/%s%s"%(BUILD_FOLDER,FOLDER_PREFIX,platform)
+    folder=get_win32_build_folder(options,platform)
     
     start_time=time.clock()
     run(["cmd","/c",
@@ -175,8 +181,8 @@ def build_win32(options,ifolder,rev_hash):
 
     print timings
 
-    build32=os.path.join(BUILD_FOLDER,"%swin32"%FOLDER_PREFIX)
-    build64=os.path.join(BUILD_FOLDER,"%swin64"%FOLDER_PREFIX)
+    build32=get_win32_build_folder(options,'win32')
+    build64=get_win32_build_folder(options,'win64')
 
     if not options.skip_32_bit:
         shutil.copyfile(os.path.join(build32,
@@ -294,7 +300,7 @@ def main(options):
     rev_hash=capture(["git","rev-parse","HEAD"])[0]
 
     if sys.platform=="win32":
-        init_target='init_vs2015'
+        init_target='init_vs%s'%options.vs
         build_fun=build_win32
     elif sys.platform=="darwin":
         init_target='init'
@@ -340,5 +346,8 @@ if __name__=="__main__":
     parser.add_argument("--make",metavar="FILE",dest="make",default=default_make,help="use %(metavar)s as GNU make. Default: ``%(default)s''")
     parser.add_argument("--timestamp",metavar="TIMESTAMP",dest="timestamp",default=None,type=timestamp,help="set files' atime/mtime to %(metavar)s - format must be YYYYMMDD-HHMMSS")
     parser.add_argument("release_name",metavar="NAME",help="name for release. Embedded into executable, and used to generate output file name")
+    
+    if sys.platform=='win32':
+        parser.add_argument('--vs',metavar='YEAR',default='2015',help='use Visual Studio version %(metavar)s. Default: %(default)s')
     
     main(parser.parse_args(sys.argv[1:]))
