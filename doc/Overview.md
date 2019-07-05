@@ -1,4 +1,6 @@
-# Guided tour
+# Overview
+
+A brief summary of the main features of the emulator.
 
 ## Load a disc
 

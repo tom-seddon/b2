@@ -16,12 +16,16 @@ For installation on Windows or OS X, see the
 install on Linux, follow the
 [building instructions](./doc/Building.md).
 
-Once you're up and running, take
-[the brief guided tour](./doc/Guided-Tour.md).
+There's a summary of the functionality available in
+[the overview](./doc/Overview.md).
 
-If creating or hacking BBC software: the
-[debug version](./doc/Debug-version.md) includes an integrated
-debugger, and a simple HTTP API for remote control.
+You can configure how the emulator starts up using the
+[command line options](./doc/Command-Line.md).
+
+For creating or hacking BBC software, the
+[debug version](./doc/Debug-version.md) includes a range of debugging
+functionality (including an integrated debugger), and a simple HTTP
+API for remote control.
 
 # Licence
 

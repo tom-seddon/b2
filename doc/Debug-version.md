@@ -262,7 +262,9 @@ Use the HTTP API to control the emulator remotely. Use this from a
 shell script or batch file, say, using `curl`, or from a program,
 using an HTTP client library.
 
-The emulator listens on localhost on port 48075 (0xbbcb).
+The emulator listens on port 48075 (0xbbcb) for connections from
+localhost. **At your own risk**, you can have it accept connections
+from anywhere - consult the `--help` output.
 
 **The HTTP API is a work in progress, and may change.**
 
