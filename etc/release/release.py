@@ -293,6 +293,13 @@ def main(options):
 
     rev_hash=capture(["git","rev-parse","HEAD"])[0]
 
+    if sys.platform=="win32":
+        init_target='init_vs2015'
+        build_fun=build_win32
+    elif sys.platform=="darwin":
+        init_target='init'
+        build_fun=build_darwin
+
     if not options.skip_cmake:
         # -j makes a hilarious mess of the text output on Windows, but
         # the makefile parallelizes perfectly, saving about 1 minute
@@ -300,17 +307,14 @@ def main(options):
         # to be any need to debug things, hopefully...
         run([options.make,
              "-j%d"%multiprocessing.cpu_count(),
-             "init_vs2015",
+             init_target,
              "FOLDER_PREFIX=%s"%FOLDER_PREFIX,
              "RELEASE_MODE=1",
              "RELEASE_NAME=%s"%options.release_name])
 
     ifolder=create_intermediate_folder()
 
-    if sys.platform=="win32":
-        build_win32(options,ifolder,rev_hash)
-    elif sys.platform=="darwin":
-        build_darwin(options,ifolder,rev_hash)
+    build_fun(options,ifolder,rev_hash)
 
 ##########################################################################
 ##########################################################################
