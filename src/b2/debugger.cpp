@@ -1098,7 +1098,7 @@ protected:
             ImGui::TextUnformatted(pstr);
             if(ImGui::IsItemHovered()) {
                 ImGui::BeginTooltip();
-                this->ByteRegPopupContentsUI("P",p.value);
+                this->ByteRegPopupContentsUI(p.value);
                 ImGui::EndTooltip();
             }
             ImGui::SameLine();
@@ -1626,12 +1626,12 @@ private:
         ImGui::Text("$%02x",value);
         if(ImGui::IsItemHovered()) {
             ImGui::BeginTooltip();
-            this->ByteRegPopupContentsUI(name,value);
+            this->ByteRegPopupContentsUI(value);
             ImGui::EndTooltip();
         }
     }
 
-    void ByteRegPopupContentsUI(const char *name,uint8_t value) {
+    void ByteRegPopupContentsUI(uint8_t value) {
         ImGui::Text("% 3d %3uu $%02x %s",(int8_t)value,value,value,BINARY_BYTE_STRINGS[value]);
     }
 
@@ -2662,7 +2662,7 @@ protected:
             s=cpu->s.b.l;
         }
 
-        const DebugBigPage *dbp=this->GetDebugBigPageForAddress({0},false);
+        const DebugBigPage *value_dbp=this->GetDebugBigPageForAddress({0},false);
 
         ImGui::Columns(7,"stack_columns");
         ImGui::Text("");
@@ -2689,10 +2689,10 @@ protected:
             }
 
             M6502Word value_addr={(uint16_t)(0x100+offset)};
-            uint8_t value=dbp->r[value_addr.w];
+            uint8_t value=value_dbp->r[value_addr.w];
 
             ImGui::Text("$%04x",value_addr.w);
-            this->DoBytePopupGui(dbp,value_addr);
+            this->DoBytePopupGui(value_dbp,value_addr);
             ImGui::NextColumn();
 
             ImGui::Text("% 3d",(int8_t)value);
@@ -2717,7 +2717,7 @@ protected:
             } else {
                 M6502Word addr;
                 addr.b.l=value;
-                addr.b.h=dbp->r[0x100+offset+1];
+                addr.b.h=value_dbp->r[0x100+offset+1];
                 ImGui::Text("$%04x",addr.w);
 
                 ImGuiIDPusher pusher(offset);
@@ -2734,7 +2734,7 @@ protected:
 
                 if(ImGui::BeginPopup(ADDR_CONTEXT_POPUP_NAME)) {
                     {
-                        ImGuiIDPusher pusher(0);
+                        ImGuiIDPusher pusher2(0);
 
                         const DebugBigPage *dbp=this->GetDebugBigPageForAddress(addr,false);
                         this->DoByteDebugGui(dbp,addr);
@@ -2743,7 +2743,7 @@ protected:
                     ImGui::Separator();
 
                     {
-                        ImGuiIDPusher pusher(1);
+                        ImGuiIDPusher pusher2(1);
 
                         const DebugBigPage *dbp=this->GetDebugBigPageForAddress({(uint16_t)(addr.w+1)},false);
                         this->DoByteDebugGui(dbp,{(uint16_t)(addr.w+1)});
