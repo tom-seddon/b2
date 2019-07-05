@@ -1,5 +1,9 @@
 version: '{build}'
 
+# don't make Travis's tag creation prod AppVeyor into doing repeated
+# builds.
+skip_tags: true
+
 branches:
   only:
     - master
