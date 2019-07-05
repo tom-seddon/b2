@@ -305,10 +305,9 @@ If you're reading this after already cloning it:
     git submodule init
 	git submodule update
 
-Regarding branches, `master` should always build (and shouldn't
-contain anything too outrageously half-baked) and `build` is the
-branch used by the CI servers to prepare releases. `master` is
-periodically merged into `build` when things are settled down.
+Regarding branches, `master` should always build, and shouldn't
+contain anything outrageously half-baked - it's the branch used by the
+CI servers to prepare releases.
 
 `wip/*` is stuff that's being worked on.
 

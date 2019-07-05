@@ -6,7 +6,6 @@ osx_image: xcode9.2
 branches:
   only:
     - master
-    - build
 
 before_install:
   - export SUFFIX=$(git log -1 --format=%cd-%h --date=format:%Y%m%d-%H%M%S $TRAVIS_COMMIT)
