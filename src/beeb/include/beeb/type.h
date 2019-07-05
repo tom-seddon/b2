@@ -156,9 +156,11 @@ struct BigPageMetadata {
     // More elaborate description, printed in UI.
     std::string description;
 
+#if BBCMICRO_DEBUGGER
     // dpo mask/value that must be applied to have this big page mapped in.
     uint32_t dpo_mask=~(uint32_t)0;
     uint32_t dpo_value=0;
+#endif
 
     // where this big page will appear in the address space when mapped in.
     uint16_t addr=0xffff;
@@ -240,7 +242,9 @@ struct BBCMicroType {
     };
     std::vector<SHEILACycleStretchRegion> sheila_cycle_stretch_regions;
 
+#if BBCMICRO_DEBUGGER
     bool (*parse_prefix_char_fn)(uint32_t *dpo,char c);
+#endif
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -256,6 +260,7 @@ const BBCMicroType *GetBBCMicroTypeForTypeID(BBCMicroTypeID type_id);
 size_t GetNumBBCMicroTypes();
 const BBCMicroType *GetBBCMicroTypeByIndex(size_t index);
 
+#if BBCMICRO_DEBUGGER
 // Parse address prefix and add additional flags to *dpo_ptr.
 //
 // Returns true if OK, false if not (*dpo_ptr unmodified), and prints error
@@ -265,6 +270,7 @@ bool ParseAddressPrefix(uint32_t *dpo_ptr,
                         const char *prefix_begin,
                         const char *prefix_end,
                         Log *log);
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

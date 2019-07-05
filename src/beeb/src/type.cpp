@@ -26,8 +26,10 @@ static void InitBigPagesMetadata(std::vector<BigPageMetadata> *big_pages,
                                  size_t n,
                                  char code,
                                  const std::string &description,
+#if BBCMICRO_DEBUGGER
                                  uint32_t dpo_clear,
                                  uint32_t dpo_set,
+#endif
                                  uint16_t base)
 {
     for(size_t i=0;i<n;++i) {
@@ -38,8 +40,10 @@ static void InitBigPagesMetadata(std::vector<BigPageMetadata> *big_pages,
         bp->index=(uint8_t)(index+i);
         bp->code=code;
         bp->description=description;
+#if BBCMICRO_DEBUGGER
         bp->dpo_mask=~dpo_clear;
         bp->dpo_value=dpo_set;
+#endif
         bp->addr=(uint16_t)(base+i*4096);
     }
 }
@@ -52,8 +56,10 @@ static std::vector<BigPageMetadata> GetBigPagesMetadataCommon() {
                          MAIN_BIG_PAGE_INDEX,
                          NUM_MAIN_BIG_PAGES,
                          'm',"Main RAM",
+#if BBCMICRO_DEBUGGER
                          0,
                          0,
+#endif
                          0x0000);
 
     for(uint8_t i=0;i<16;++i) {
@@ -67,8 +73,10 @@ static std::vector<BigPageMetadata> GetBigPagesMetadataCommon() {
                              ROM0_BIG_PAGE_INDEX+(size_t)i*NUM_ROM_BIG_PAGES,
                              NUM_ROM_BIG_PAGES,
                              code[0],description,
+#if BBCMICRO_DEBUGGER
                              (uint32_t)BBCMicroDebugPagingOverride_ROM,
                              BBCMicroDebugPagingOverride_OverrideROM|i,
+#endif
                              0x8000);
     }
 
@@ -76,13 +84,16 @@ static std::vector<BigPageMetadata> GetBigPagesMetadataCommon() {
                          MOS_BIG_PAGE_INDEX,
                          NUM_MOS_BIG_PAGES,
                          'o',"MOS ROM",
+#if BBCMICRO_DEBUGGER
                          0,
                          0,
+#endif
                          0xc000);
 
     return big_pages;
 }
 
+#if BBCMICRO_DEBUGGER
 static bool HandleROMPrefixChar(uint32_t *dpo,uint8_t rom) {
     ASSERT(rom>=0&&rom<=15);
 
@@ -91,7 +102,9 @@ static bool HandleROMPrefixChar(uint32_t *dpo,uint8_t rom) {
 
     return true;
 }
+#endif
 
+#if BBCMICRO_DEBUGGER
 // select ROM
 static bool ParseROMPrefixChar(uint32_t *dpo,char c) {
     if(c>='0'&&c<='9') {
@@ -104,6 +117,7 @@ static bool ParseROMPrefixChar(uint32_t *dpo,char c) {
         return false;
     }
 }
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -169,6 +183,7 @@ static std::vector<BigPageMetadata> GetBigPagesMetadataB() {
     return big_pages;
 }
 
+#if BBCMICRO_DEBUGGER
 static bool ParsePrefixCharB(uint32_t *dpo,char c) {
     if(ParseROMPrefixChar(dpo,c)) {
         // ...
@@ -181,6 +196,7 @@ static bool ParsePrefixCharB(uint32_t *dpo,char c) {
 
     return true;
 }
+#endif
 
 const BBCMicroType BBC_MICRO_TYPE_B={
     BBCMicroTypeID_B,//type_id
@@ -201,8 +217,9 @@ const BBCMicroType BBC_MICRO_TYPE_B={
     0x00,//acccon_mask,
     (BBCMicroTypeFlag_CanDisplayTeletext3c00),//flags
     {{0x00,0x1f},{0x40,0x7f},{0xc0,0xdf},},//sheila_cycle_stretch_regions
+#if BBCMICRO_DEBUGGER
     &ParsePrefixCharB,//parse_prefix_char_fn
-
+#endif
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -333,21 +350,26 @@ static std::vector<BigPageMetadata> GetBigPagesMetadataBPlus() {
                          ANDY_BIG_PAGE_INDEX,
                          NUM_ANDY_BIG_PAGES+NUM_HAZEL_BIG_PAGES,
                          'n',"ANDY",
+#if BBCMICRO_DEBUGGER
                          0,
                          BBCMicroDebugPagingOverride_OverrideANDY|BBCMicroDebugPagingOverride_ANDY,
+#endif
                          0x8000);
 
     InitBigPagesMetadata(&big_pages,
                          SHADOW_BIG_PAGE_INDEX,
                          NUM_SHADOW_BIG_PAGES,
                          's',"Shadow RAM",
+#if BBCMICRO_DEBUGGER
                          0,
                          BBCMicroDebugPagingOverride_OverrideShadow|BBCMicroDebugPagingOverride_Shadow,
+#endif
                          0x3000);
 
     return big_pages;
 }
 
+#if BBCMICRO_DEBUGGER
 static bool ParsePrefixCharBPlus(uint32_t *dpo,char c) {
     if(ParseROMPrefixChar(dpo,c)) {
         // ...
@@ -367,6 +389,7 @@ static bool ParsePrefixCharBPlus(uint32_t *dpo,char c) {
 
     return true;
 }
+#endif
 
 const BBCMicroType BBC_MICRO_TYPE_B_PLUS={
     BBCMicroTypeID_BPlus,//type_id
@@ -392,7 +415,9 @@ const BBCMicroType BBC_MICRO_TYPE_B_PLUS={
     (BBCMicroTypeFlag_CanDisplayTeletext3c00|
      BBCMicroTypeFlag_HasShadowRAM),//flags
     {{0x00,0x1f},{0x40,0x7f},{0xc0,0xdf},},//sheila_cycle_stretch_regions
+#if BBCMICRO_DEBUGGER
     &ParsePrefixCharBPlus,//parse_prefix_char_fn
+#endif
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -558,26 +583,33 @@ static std::vector<BigPageMetadata> GetBigPagesMetadataMaster() {
                          ANDY_BIG_PAGE_INDEX,
                          NUM_ANDY_BIG_PAGES,
                          'n',"ANDY",
+#if BBCMICRO_DEBUGGER
                          0,
                          BBCMicroDebugPagingOverride_OverrideANDY|BBCMicroDebugPagingOverride_ANDY,
+#endif
                          0x8000);
 
     InitBigPagesMetadata(&big_pages,
                          HAZEL_BIG_PAGE_INDEX,
                          NUM_HAZEL_BIG_PAGES,
                          'h',"HAZEL",
+#if BBCMICRO_DEBUGGER
                          0,
                          BBCMicroDebugPagingOverride_OverrideHAZEL|BBCMicroDebugPagingOverride_HAZEL,
+#endif
                          0xc000);
 
     InitBigPagesMetadata(&big_pages,
                          SHADOW_BIG_PAGE_INDEX,
                          NUM_SHADOW_BIG_PAGES,
                          's',"Shadow RAM",
+#if BBCMICRO_DEBUGGER
                          0,
                          BBCMicroDebugPagingOverride_OverrideShadow|BBCMicroDebugPagingOverride_Shadow,
+#endif
                          0x3000);
 
+#if BBCMICRO_DEBUGGER
     // Update the MOS DPO flags.
 
     // Switch HAZEL off to see the first 8K of MOS.
@@ -590,10 +622,12 @@ static std::vector<BigPageMetadata> GetBigPagesMetadataMaster() {
     //
     // Might as well, since the hardware lets you...
     big_pages[MOS_BIG_PAGE_INDEX+3].dpo_value|=BBCMicroDebugPagingOverride_OverrideOS|BBCMicroDebugPagingOverride_OS;
+#endif
 
     return big_pages;
 }
 
+#if BBCMICRO_DEBUGGER
 static bool ParsePrefixCharMaster(uint32_t *dpo,char c) {
     if(ParseROMPrefixChar(dpo,c)) {
         // ...
@@ -618,6 +652,7 @@ static bool ParsePrefixCharMaster(uint32_t *dpo,char c) {
 
     return true;
 }
+#endif
 
 const BBCMicroType BBC_MICRO_TYPE_MASTER={
     BBCMicroTypeID_Master,//type_id
@@ -648,7 +683,9 @@ const BBCMicroType BBC_MICRO_TYPE_MASTER={
      BBCMicroTypeFlag_HasRTC|
      BBCMicroTypeFlag_HasNumericKeypad),//flags
     {{0x00,0x1f},{0x28,0x2b},{0x40,0x7f},},//sheila_cycle_stretch_regions
+#if BBCMICRO_DEBUGGER
     &ParsePrefixCharMaster,//parse_prefix_char_fn
+#endif
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -693,6 +730,7 @@ const BBCMicroType *GetBBCMicroTypeForTypeID(BBCMicroTypeID type_id) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#if BBCMICRO_DEBUGGER
 bool ParseAddressPrefix(uint32_t *dpo_ptr,
                         const BBCMicroType *type,
                         const char *prefix_begin,
@@ -715,6 +753,7 @@ bool ParseAddressPrefix(uint32_t *dpo_ptr,
 
     return true;
 }
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

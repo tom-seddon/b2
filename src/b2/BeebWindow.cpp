@@ -761,13 +761,17 @@ struct BeebWindow::SettingsUIMetadata {
     std::unique_ptr<SettingsUI> (*create_fn)(BeebWindow *beeb_window);
 };
 
+#if BBCMICRO_DEBUGGER
 static std::unique_ptr<SettingsUI> CreateDisassemblyDebugWindow1(BeebWindow *beeb_window) {
     return CreateDisassemblyDebugWindow(beeb_window,true);
 }
+#endif
 
+#if BBCMICRO_DEBUGGER
 static std::unique_ptr<SettingsUI> CreateDisassemblyDebugWindowN(BeebWindow *beeb_window) {
     return CreateDisassemblyDebugWindow(beeb_window,false);
 }
+#endif
 
 const BeebWindow::SettingsUIMetadata BeebWindow::ms_settings_uis[]={
     {BeebWindowPopupType_Keymaps,"Keyboard Layout","toggle_keyboard_layout",&CreateKeymapsUI},
