@@ -177,7 +177,7 @@ Challenger disc interface, as both devices use page &FD.)
 Tick the `BeebLink` box to add an emulated
 [BeebLink](https://github.com/tom-seddon/beeblink) widget to the
 emulated user port. For more details, see the
-[BeebLink notes](./docs/BeebLink.md).
+[BeebLink notes](./BeebLink.md).
 
 ## Non-volatile RAM
 

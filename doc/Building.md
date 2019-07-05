@@ -21,11 +21,11 @@ CI servers to prepare releases.
 
 Once you're all set up:
 
-[Instructions for building on Windows](doc/Building-on-Windows.md).
+[Instructions for building on Windows](./Building-on-Windows.md).
 
-[Instructions for building on OS X](doc/Building-on-OSX.md).
+[Instructions for building on OS X](./Building-on-OSX.md).
 
-[Instructions for building on Linux/OS X](doc/Building-on-Unix.md).
+[Instructions for building on Linux/OS X](./Building-on-Unix.md).
 
 # Submodule URLs
 
