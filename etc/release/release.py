@@ -300,7 +300,7 @@ def main(options):
         # to be any need to debug things, hopefully...
         run([options.make,
              "-j%d"%multiprocessing.cpu_count(),
-             "init",
+             "init_vs2015",
              "FOLDER_PREFIX=%s"%FOLDER_PREFIX,
              "RELEASE_MODE=1",
              "RELEASE_NAME=%s"%options.release_name])
