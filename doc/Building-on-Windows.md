@@ -70,5 +70,4 @@ will attach to each test case as it is executed. This does add
 overhead but makes debugging a lot easier.
 
 Each test case has its own project in the solution, so you can also
-run them independently. Some do require command line options - consult
-the corresponding CMakeLists.txt for details.
+run them independently.

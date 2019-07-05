@@ -76,16 +76,8 @@ Day-to-day build steps:
 
    On OS X, run `./src/b2/b2.app/Contents/MacOS/b2` to run
 
-You'll probably be able to automate this somehow from whatever text
-editor you use. For example, on OS X I use Emacs with a .dir-locals
-file as follows. Copying this particular `ctest` command line is
-recommended; the slow tests are skipped (total time is usually <1
-second), and if a test fails then its output is shown directly.
-
-    ((nil . ((compile-command . "cd ~/beeb/b2/build/osx && ninja && ctest -LE slow --output-on-failure"))))
-
-To force a rebuild, run `ninja clean` in the build folder. Maybe you
-can automate that too. I haven't bothered.
+You'll probably be able to automate all of this somehow from whatever
+text editor you use...
 
 # Installing on Linux
 
@@ -130,3 +122,12 @@ folders have a suffix indicating which sanitizer is active:
 Not all compilers support all sanitizers, nor is there any guarantee
 this actually works. And if it does work, you might still get
 warnings.
+
+# Running the automated tests
+
+`ninja test` will run the full set of tests.
+
+A shorter set of tests, suitable for running on every build (intended
+to take ~1 second), can be run using cmake's `ctest` tool:
+
+    ctest -LE slow --output-on-failure

@@ -27,9 +27,40 @@ Once you're all set up:
 
 [Instructions for building on Linux/OS X](doc/Building-on-Unix.md).
 
-## Submodule URLs
+# Submodule URLs
 
 The submodules are referred to by https. Before cloning, you can use
 `git config --global url.ssh://git@github.com/.insteadOf
 https://github.com/` to have them cloned over SSH instead, if you have
 a GitHub login.
+
+# 6502 tests
+
+Some info about the 3rd party 6502 tests that run as part of the full
+test set.
+
+## lorenz ##
+
+Some info: http://visual6502.org/wiki/index.php?title=6502TestPrograms
+
+### rebuilding the 6502 code yourself ###
+
+Everything you need to do this on Windows is included in the repo; for
+OS X and Linux, you'll need GNU make, and
+[64tass](http://tass64.sourceforge.net/) on the path.
+
+Change to `etc/testsuite-2.15` and run `..\..\snmake` (Windows) or
+`make` (OS X/Linux). This generates bin files in
+`etc/testsuite-2.15/ascii-bin` and listing files in
+`etc/testsuite-2.15/ascii-lst`.
+
+## klaus
+
+Original repo: https://github.com/Klaus2m5/6502_65C02_functional_tests
+
+(I don't remember why this isn't a submodule...)
+
+### rebuilding the 6502 code yourself (Windows) ###
+
+Change to `etc/6502_65C02_functional_tests` and run `..\..\snmake`.
+You get bin and listing files in `etc/6502_65C02_functional_tests`.

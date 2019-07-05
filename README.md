@@ -7,17 +7,15 @@
 A cross-platform BBC Micro emulator. Use your Windows/Linux PC or
 macOS computer to play your old BBC games or develop new BBC software.
 
-If you have feedback, please add it to the
-[b2 GitHub issues page](https://github.com/tom-seddon/b2/issues).
-
-For installation on Windows or OS X, see the
+Binary distributions are available for Windows and OS X: see the
 [Windows installation instructions](./doc/Installing-on-Windows.md) or
-[OS X installation instructions](./doc/Installing-on-OSX.md); to
-install on Linux, follow the
+[OS X installation instructions](./doc/Installing-on-OSX.md).
+
+To build from source - your only option on Linux - follow the
 [building instructions](./doc/Building.md).
 
-There's a summary of the functionality available in
-[the overview](./doc/Overview.md).
+There's a summary of the functionality available once up and running
+in [the overview](./doc/Overview.md).
 
 You can configure how the emulator starts up using the
 [command line options](./doc/Command-Line.md).
@@ -26,6 +24,13 @@ For creating or hacking BBC software, the
 [debug version](./doc/Debug-version.md) includes a range of debugging
 functionality (including an integrated debugger), and a simple HTTP
 API for remote control.
+
+# Bugs/feedback/etc.
+
+Please submit feedback to the
+[b2 GitHub issues page](https://github.com/tom-seddon/b2/issues), or
+post in
+[the b2 thread on Stardot](https://stardot.org.uk/forums/viewtopic.php?f=4&t=13081).
 
 # Licence
 
