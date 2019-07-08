@@ -1404,7 +1404,6 @@ void BeebWindow::DoDebugMenu() {
 #endif
         m_cc.DoMenuItemUI("toggle_event_trace");
         m_cc.DoMenuItemUI("toggle_date_rate");
-        m_cc.DoMenuItemUI("toggle_cc_stack");
 
 #if SYSTEM_WINDOWS
         if(GetConsoleWindow()) {
