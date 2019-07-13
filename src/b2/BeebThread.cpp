@@ -3041,7 +3041,7 @@ void BeebThread::ThreadCheckTimeline(ThreadState *ts) {
     ASSERT(ts->timeline_event_lists.size()==m_timeline_beeb_state_events_copy.size());
 
     if(!ts->timeline_event_lists.empty()) {
-        const TimelineEventList *pe;
+        const TimelineEventList *pe=nullptr;
         for(size_t i=0;i<ts->timeline_event_lists.size();++i) {
             const TimelineEventList *e=&ts->timeline_event_lists[i];
 
