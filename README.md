@@ -44,7 +44,7 @@ every dependency can be added as a git submodule.
 
 ## `experimental`, `src`
 
-Copyright (C) 2016-7 by Tom Seddon
+Copyright (C) 2016-9 by Tom Seddon
 
 Licence: GPL v3.
 
