@@ -46,3 +46,6 @@
 [submodule "submodules/salieri"]
 	path = submodules/salieri
 	url = https://github.com/tom-seddon/salieri
+[submodule "submodules/rcedit"]
+	path = submodules/rcedit
+	url = https://github.com/electron/rcedit

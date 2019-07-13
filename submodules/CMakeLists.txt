@@ -286,3 +286,19 @@ target_include_directories(salieri_lib INTERFACE
   ${CMAKE_CURRENT_SOURCE_DIR}/salieri)
 target_sources(salieri_lib INTERFACE
   ${CMAKE_CURRENT_SOURCE_DIR}/salieri/salieri.h)
+
+##########################################################################
+##########################################################################
+
+if(WIN32)
+  set(RCEDIT_SRC_FOLDER ${CMAKE_CURRENT_SOURCE_DIR}/rcedit/src)
+  add_executable(rcedit
+    ${RCEDIT_SRC_FOLDER}/main.cc
+    ${RCEDIT_SRC_FOLDER}/rescle.cc
+    ${RCEDIT_SRC_FOLDER}/rescle.h)
+  
+  # C4267: 'var' : conversion from 'size_t' to 'type', possible loss of data
+  # C4244: 'conversion' conversion from 'type1' to 'type2', possible loss of data
+  # C4104: 'identifier' : unreferenced local variable
+  target_compile_options(rcedit PRIVATE /wd4267 /wd4244 /wd4101)
+endif()

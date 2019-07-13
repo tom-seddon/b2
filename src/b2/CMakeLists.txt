@@ -127,8 +127,9 @@ endif()
 # Windows-specific general stuff.
 
 if(WIN32)
+  add_dependencies(b2 rcedit)
+  
   set(MAGICK ${CMAKE_SOURCE_DIR}/etc/ImageMagick-7.0.5-4-portable-Q16-x64/magick.exe)
-  set(RCEDIT ${CMAKE_SOURCE_DIR}/etc/rcedit/rcedit.exe)
   set(ICON_PNG ${CMAKE_SOURCE_DIR}/etc/icon/icon.png)
   set(ICON_ICO b2_icons.ico)
   
@@ -147,7 +148,7 @@ if(WIN32)
     MAIN_DEPENDENCY ${ICON_PNG})
 
   add_custom_command(TARGET b2 POST_BUILD
-    COMMAND ${RCEDIT} $<TARGET_FILE:b2> --set-icon ${ICON_ICO})
+    COMMAND $<TARGET_FILE:rcedit> $<TARGET_FILE:b2> --set-icon ${ICON_ICO})
   
   target_sources(b2 PRIVATE ${ICON_ICO})
   target_sources(b2 PRIVATE guids_win32.c)
