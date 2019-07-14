@@ -79,7 +79,7 @@ void TimerDef::AddTicks(uint64_t num_ticks) {
 void TimerDef::DoImGui() {
     if(ImGui::TreeNode(this->name.c_str())) {
         ImGui::Text("%.3f sec tot",GetSecondsFromTicks(m_total_num_ticks));
-        ImGui::Text("%.3f sec avg",GetSecondsFromTicks((double)m_total_num_ticks/m_num_samples));
+        ImGui::Text("%.3f sec avg",GetSecondsFromTicks((uint64_t)((double)m_total_num_ticks/m_num_samples)));
 
         if(m_parent) {
             ImGui::Text("%.3f%% of parent",(double)m_total_num_ticks/m_parent->m_total_num_ticks*100.);

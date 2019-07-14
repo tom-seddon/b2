@@ -7,6 +7,7 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <atomic>
 
 class BeebWindow;
 class SettingsUI;

@@ -1766,7 +1766,7 @@ bool BeebWindow::HandleVBlank(uint64_t ticks) {
     this->UpdateTVTexture(vblank_record);
 
     {
-        Timer tmr(&g_HandleVBlank_DoImGui_timer_def);
+        Timer tmr2(&g_HandleVBlank_DoImGui_timer_def);
 
         if(!this->DoImGui(ticks)) {
             keep_window=false;
