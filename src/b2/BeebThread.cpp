@@ -1499,6 +1499,8 @@ bool BeebThread::CreateTimelineVideoMessage::ThreadPrepare(std::shared_ptr<Messa
                                        list->events.end());
     }
 
+    video_event_list.events.push_back(ts->timeline_end_event);
+
     auto job=std::make_shared<WriteVideoJob>(std::move(video_event_list),
                                              std::move(m_video_writer));
     BeebWindows::AddJob(job);
