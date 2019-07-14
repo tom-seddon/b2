@@ -58,6 +58,17 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+static TimerDef g_HandleVBlank_timer_def("BeebWindow::HandleVBlank");
+static TimerDef g_HandleVBlank_UpdateTVTexture_Consume_timer_def("UpdateTVTexture Consume",
+                                                                 &g_HandleVBlank_timer_def);
+static TimerDef g_HandleVBlank_UpdateTVTexture_Copy_timer_def("UpdateTVTexture Copy",
+                                                              &g_HandleVBlank_timer_def);
+static TimerDef g_HandleVBlank_DoImGui_timer_def("DoImGui",
+                                                 &g_HandleVBlank_timer_def);
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 // if true, beeb display should fill the entire imgui window, ignoring
 // aspect ratio. Use when debugging imgui window size.
 #define BEEB_DISPLAY_FILL 0
@@ -784,7 +795,8 @@ const BeebWindow::SettingsUIMetadata BeebWindow::ms_settings_uis[]={
 #if BBCMICRO_TRACE
     {BeebWindowPopupType_Trace,"Tracing","toggle_event_trace",&CreateTraceUI},
 #endif
-    {BeebWindowPopupType_AudioCallback,"Data Rate","toggle_date_rate",&CreateDataRateUI},
+    // inconsistent naming as this window has had multiple rebrands.
+    {BeebWindowPopupType_AudioCallback,"Performance","toggle_date_rate",&CreateDataRateUI},
 #if BBCMICRO_DEBUGGER&&VIDEO_TRACK_METADATA
     // slightly inconsistent naming as this was created before the debugger...
     {BeebWindowPopupType_PixelMetadata,"Pixel Metadata","toggle_pixel_metadata",&CreatePixelMetadataDebugWindow},
@@ -1530,73 +1542,81 @@ bool BeebWindow::DoWindowMenu() {
 //////////////////////////////////////////////////////////////////////////
 
 void BeebWindow::UpdateTVTexture(VBlankRecord *vblank_record) {
-    OutputDataBuffer<VideoDataUnit> *video_output=m_beeb_thread->GetVideoOutput();
+    {
+        Timer tmr(&g_HandleVBlank_UpdateTVTexture_Consume_timer_def);
 
-    //uint64_t num_units=(uint64_t)(GetSecondsFromTicks(vblank_record->num_ticks)*1e6)*2;
-    //uint64_t num_units_left=num_units;
+        OutputDataBuffer<VideoDataUnit> *video_output=m_beeb_thread->GetVideoOutput();
 
-    const VideoDataUnit *a,*b;
-    size_t na,nb;
+        //uint64_t num_units=(uint64_t)(GetSecondsFromTicks(vblank_record->num_ticks)*1e6)*2;
+        //uint64_t num_units_left=num_units;
 
-    size_t num_units_consumed=0;
+        const VideoDataUnit *a,*b;
+        size_t na,nb;
 
-    bool update=true;
+        size_t num_units_consumed=0;
+
+        bool update=true;
 #if BBCMICRO_DEBUGGER
-    if(m_test_pattern) {
-        update=false;
-    }
+        if(m_test_pattern) {
+            update=false;
+        }
 #endif
 
-    if(video_output->GetConsumerBuffers(&a,&na,&b,&nb)) {
-        if(!update) {
-            // Discard...
-            video_output->Consume(na+nb);
-        } else {
-            size_t num_left;
-            const size_t MAX_UPDATE_SIZE=200;
+        if(video_output->GetConsumerBuffers(&a,&na,&b,&nb)) {
+            if(!update) {
+                // Discard...
+                video_output->Consume(na+nb);
+            } else {
+                size_t num_left;
+                const size_t MAX_UPDATE_SIZE=200;
 
-            // A.
-            num_left=na;
-            while(num_left>0) {
-                size_t n=num_left;
-                if(n>MAX_UPDATE_SIZE) {
-                    n=MAX_UPDATE_SIZE;
+                // A.
+                num_left=na;
+                while(num_left>0) {
+                    size_t n=num_left;
+                    if(n>MAX_UPDATE_SIZE) {
+                        n=MAX_UPDATE_SIZE;
+                    }
+
+                    m_tv.Update(a,n);
+
+                    a+=n;
+                    video_output->Consume(n);
+                    num_left-=n;
                 }
 
-                m_tv.Update(a,n);
+                // B.
+                num_left=nb;
+                while(num_left>0) {
+                    size_t n=num_left;
+                    if(n>MAX_UPDATE_SIZE) {
+                        n=MAX_UPDATE_SIZE;
+                    }
 
-                a+=n;
-                video_output->Consume(n);
-                num_left-=n;
-            }
+                    m_tv.Update(b,n);
 
-            // B.
-            num_left=nb;
-            while(num_left>0) {
-                size_t n=num_left;
-                if(n>MAX_UPDATE_SIZE) {
-                    n=MAX_UPDATE_SIZE;
+                    b+=n;
+                    video_output->Consume(n);
+                    num_left-=n;
                 }
-
-                m_tv.Update(b,n);
-
-                b+=n;
-                video_output->Consume(n);
-                num_left-=n;
             }
+
+            num_units_consumed+=na+nb;
         }
 
-        num_units_consumed+=na+nb;
+        vblank_record->num_video_units=num_units_consumed;
     }
 
-    vblank_record->num_video_units=num_units_consumed;
+    {
+        Timer tmr(&g_HandleVBlank_UpdateTVTexture_Copy_timer_def);
 
-    if(m_tv_texture) {
-        void *dest_pixels;
-        int dest_pitch;
-        if(SDL_LockTexture(m_tv_texture,nullptr,&dest_pixels,&dest_pitch)==0) {
-            m_tv.CopyTexturePixels(dest_pixels,(size_t)dest_pitch);
-            SDL_UnlockTexture(m_tv_texture);
+        if(m_tv_texture) {
+            void *dest_pixels;
+            int dest_pitch;
+            if(SDL_LockTexture(m_tv_texture,nullptr,&dest_pixels,&dest_pitch)==0) {
+                m_tv.CopyTexturePixels(dest_pixels,(size_t)dest_pitch);
+                SDL_UnlockTexture(m_tv_texture);
+            }
         }
     }
 }
@@ -1735,6 +1755,8 @@ bool BeebWindow::DoBeebDisplayUI() {
 //////////////////////////////////////////////////////////////////////////
 
 bool BeebWindow::HandleVBlank(uint64_t ticks) {
+    Timer tmr(&g_HandleVBlank_timer_def);
+
     ImGuiContextSetter setter(m_imgui_stuff);
 
     bool keep_window=true;
@@ -1743,8 +1765,12 @@ bool BeebWindow::HandleVBlank(uint64_t ticks) {
 
     this->UpdateTVTexture(vblank_record);
 
-    if(!this->DoImGui(ticks)) {
-        keep_window=false;
+    {
+        Timer tmr(&g_HandleVBlank_DoImGui_timer_def);
+
+        if(!this->DoImGui(ticks)) {
+            keep_window=false;
+        }
     }
 
     SDL_RenderClear(m_renderer);

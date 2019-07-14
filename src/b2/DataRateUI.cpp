@@ -10,6 +10,98 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+static std::unique_ptr<std::vector<TimerDef *>> g_all_root_timer_defs;
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+TimerDef::TimerDef(std::string name_,TimerDef *parent):
+name(std::move(name_)),
+m_parent(parent)
+{
+    if(m_parent) {
+        m_parent->m_children.push_back(this);
+    } else {
+        if(!g_all_root_timer_defs) {
+            g_all_root_timer_defs=std::make_unique<std::vector<TimerDef *>>();
+        }
+
+        g_all_root_timer_defs->push_back(this);
+    }
+
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+TimerDef::~TimerDef() {
+    // this can probably be arranged using (for example) a shared_ptr, with
+    // each TimerDef having its own reference, but this hardly seems worth the
+    // bother...
+
+//    std::vector<TimerDef *> *list;
+//    if(m_parent) {
+//        list=&m_parent->m_children;
+//    } else {
+//        list=g_all_root_timer_defs.get();
+//    }
+//
+//    auto it=std::find(list->begin(),list->end(),this);
+//    ASSERT(it!=list->end());
+//    list->erase(it);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+uint64_t TimerDef::GetTotalNumTicks() const {
+    return m_total_num_ticks;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+uint64_t TimerDef::GetNumSamples() const {
+    return m_num_samples;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void TimerDef::AddTicks(uint64_t num_ticks) {
+    m_total_num_ticks+=num_ticks;
+    ++m_num_samples;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void TimerDef::DoImGui() {
+    if(ImGui::TreeNode(this->name.c_str())) {
+        ImGui::Text("%.3f sec tot",GetSecondsFromTicks(m_total_num_ticks));
+        ImGui::Text("%.3f sec avg",GetSecondsFromTicks((double)m_total_num_ticks/m_num_samples));
+
+        if(m_parent) {
+            ImGui::Text("%.3f%% of parent",(double)m_total_num_ticks/m_parent->m_total_num_ticks*100.);
+        }
+
+        if(!m_children.empty()) {
+            uint64_t total_child_ticks=0;
+            for(TimerDef *def:m_children) {
+                def->DoImGui();
+                total_child_ticks+=def->m_total_num_ticks;
+            }
+
+            ImGui::Text("%.3f%% non-child time",((double)m_total_num_ticks-total_child_ticks)/m_total_num_ticks*100.);
+        }
+
+        ImGui::TreePop();
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 class DataRateUI:
     public SettingsUI
 {
@@ -124,6 +216,25 @@ void DataRateUI::DoImGui() {
 
     ImGui::TextUnformatted("Video Data Availability (mark=50%)");
     ImGuiPlotLines("",&GetPercentage,&vblank_records,(int)vblank_records.size(),0,nullptr,0.f,200.f,ImVec2(0,100),ImVec2(0,50));
+
+    if(!!g_all_root_timer_defs&&!g_all_root_timer_defs->empty()) {
+        ImGui::Separator();
+        for(TimerDef *def:*g_all_root_timer_defs) {
+            def->DoImGui();
+        }
+    }
+//    if(!!g_all_timer_defs&&!g_all_timer_defs->empty()) {
+//        ImGui::Separator();
+//
+//        for(const TimerDef *def:*g_all_timer_defs) {
+//            uint64_t ticks=def->GetTotalNumTicks();
+//            uint64_t count=def->GetNumSamples();
+//
+//            ImGui::TextUnformatted(def->name.c_str());
+//            ImGui::Text("%.3f sec tot",GetSecondsFromTicks(ticks));
+//            ImGui::Text("%.3f sec avg",GetSecondsFromTicks((double)ticks/count));
+//        }
+//    }
 
 #if MUTEX_DEBUGGING
 
