@@ -1671,10 +1671,12 @@ bool BeebThread::Start() {
         // (The spin loop is OK, under the circumstances, but should
         // replace this with some kind of unique_lock hand-off.)
         for(;;) {
-            std::lock_guard<Mutex> lock(m_mutex);
+            {
+                std::lock_guard<Mutex> lock(m_mutex);
 
-            if(m_thread_state) {
-                break;
+                if(m_thread_state) {
+                    break;
+                }
             }
 
             SleepMS(1);
