@@ -70,24 +70,21 @@ SN76489::Output SN76489::Update(bool write,uint8_t value) {
     for(size_t i=0;i<3;++i) {
         Channel *channel=&m_state.channels[i];
 
-        if(channel->values.freq==1) {
-            output.ch[i]=channel->values.vol;
-        } else {
-            output.ch[i]=channel->values.vol*channel->output.tone.mul;
+        output.ch[i]=channel->values.vol*channel->output.tone.mul;
 
-            if(channel->counter>0) {
-                --channel->counter;
-            }
+        if(channel->counter>0) {
+            --channel->counter;
+        }
 
+        if(channel->counter==0) {
+            channel->output.tone.mul=!channel->output.tone.mul;
+
+            channel->counter=channel->values.freq;
             if(channel->counter==0) {
-                channel->output.tone.mul=!channel->output.tone.mul;
-
-                channel->counter=channel->values.freq;
-                if(channel->counter==0) {
-                    channel->counter=1024;
-                }
+                channel->counter=1024;
             }
         }
+
         ASSERT(output.ch[i]<=15);
     }
 
