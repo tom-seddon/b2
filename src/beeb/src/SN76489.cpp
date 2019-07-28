@@ -212,7 +212,7 @@ void SN76489::GetState(ChannelValues *channels,uint16_t *noise_seed) const {
 uint8_t SN76489::NextWhiteNoiseBit() {
     uint8_t feed_bit=((m_state.noise_seed>>1)^m_state.noise_seed)&1;
     m_state.noise_seed=(m_state.noise_seed&32767)>>1|feed_bit<<14;
-    return (m_state.noise_seed&1)^1;
+    return m_state.noise_seed&1;
 }
 
 //////////////////////////////////////////////////////////////////////////
