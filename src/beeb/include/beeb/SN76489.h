@@ -36,7 +36,7 @@ public:
     };
 
     struct Output {
-        int8_t ch[4];
+        uint8_t ch[4];
     };
 
     SN76489();
@@ -59,7 +59,7 @@ private:
     static const uint16_t NOISE2;
 
     struct ToneChannelOutput {
-        int8_t mul;
+        uint8_t mul;
     };
 
 #include <shared/pushwarn_bitfields.h>

@@ -71,7 +71,7 @@ SN76489::Output SN76489::Update(bool write,uint8_t value) {
         Channel *channel=&m_state.channels[i];
 
         if(channel->values.freq==1) {
-            output.ch[i]=(int8_t)channel->values.vol;
+            output.ch[i]=channel->values.vol;
         } else {
             output.ch[i]=channel->values.vol*channel->output.tone.mul;
 
@@ -80,7 +80,7 @@ SN76489::Output SN76489::Update(bool write,uint8_t value) {
             }
 
             if(channel->counter==0) {
-                channel->output.tone.mul=-channel->output.tone.mul;
+                channel->output.tone.mul=!channel->output.tone.mul;
 
                 channel->counter=channel->values.freq;
                 if(channel->counter==0) {
@@ -88,7 +88,7 @@ SN76489::Output SN76489::Update(bool write,uint8_t value) {
                 }
             }
         }
-        ASSERT(output.ch[i]>=-15&&output.ch[i]<=15);
+        ASSERT(output.ch[i]<=15);
     }
 
     // Noise channel
@@ -118,8 +118,8 @@ SN76489::Output SN76489::Update(bool write,uint8_t value) {
             }
         }
 
-        output.ch[3]=channel->values.vol*(int8_t)channel->output.noise.value;
-        ASSERT(output.ch[3]>=-15&&output.ch[3]<=15);
+        output.ch[3]=channel->values.vol*channel->output.noise.value;
+        ASSERT(output.ch[3]<=15);
     }
 
     if(write) {

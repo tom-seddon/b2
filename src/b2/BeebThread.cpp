@@ -98,9 +98,10 @@ static const std::string COPY_BASIC_PREFIX=strprintf("%cOLD\n\r>LIST\n\r",BBCMic
 //////////////////////////////////////////////////////////////////////////
 
 static const float VOLUMES_TABLE[]={
-    -1.00000f,-0.79433f,-0.63096f,-0.50119f,-0.39811f,-0.31623f,-0.25119f,-0.19953f,-0.15849f,-0.12589f,-0.10000f,-0.07943f,-0.06310f,-0.05012f,-0.03981f,
-    0.00000f,
-    0.03981f,  0.05012f, 0.06310f, 0.07943f, 0.10000f, 0.12589f, 0.15849f, 0.19953f, 0.25119f, 0.31623f, 0.39811f, 0.50119f, 0.63096f, 0.79433f, 1.00000f,
+    0.00000f, 0.03981f, 0.05012f, 0.06310f,
+    0.07943f, 0.10000f, 0.12589f, 0.15849f,
+    0.19953f, 0.25119f, 0.31623f, 0.39811f,
+    0.50119f, 0.63096f, 0.79433f, 1.00000f,
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -1996,7 +1997,7 @@ size_t BeebThread::AudioThreadFillAudioBuffer(float *samples,
     float disc_sound_scale=1.f*atd->disc_sound_scale;
 #endif
 
-#define MIXCH(CH) (VOLUMES_TABLE[15+unit->sn_output.ch[CH]])
+#define MIXCH(CH) (VOLUMES_TABLE[unit->sn_output.ch[CH]])
 #define MIXSN (sn_scale*(MIXCH(0)+MIXCH(1)+MIXCH(2)+MIXCH(3)))
 #if BBCMICRO_ENABLE_DISC_DRIVE_SOUND
 #define MIXALL (disc_sound_scale*unit->disc_drive_sound+MIXSN)
