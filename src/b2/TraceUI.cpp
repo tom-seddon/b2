@@ -466,6 +466,8 @@ private:
                             break;
                     }
                     break;
+
+                    m_output->f(")");
             }
         }
 
