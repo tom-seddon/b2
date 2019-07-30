@@ -425,35 +425,42 @@ private:
         m_output->s(m_time_prefix);
         LogIndenter indent(m_output.get());
 
-        m_output->f("SN76489 - write ");
+        m_output->f("SN76489 - $%02x (%d; %%%s) - write ",
+                    ev->write_value,
+                    ev->write_value,
+                    BINARY_BYTE_STRINGS[ev->write_value]);
 
         if(ev->reg&1) {
-            m_output->f("%s volume: %u",GetSoundChannelName(ev->reg),ev->value);
+            m_output->f("%s volume: %u",GetSoundChannelName(ev->reg),ev->reg_value);
         } else {
             switch(ev->reg>>1) {
                 case 2:
-                    m_sound_channel2_value=ev->value;
+                    m_sound_channel2_value=ev->reg_value;
                     // fall through
                 case 0:
                 case 1:
-                    m_output->f("%s freq: %u ($%03x) (%.1fHz)",GetSoundChannelName(ev->reg),ev->value,ev->value,GetSoundHz(ev->value));
+                    m_output->f("%s freq: %u ($%03x) (%.1fHz)",
+                                GetSoundChannelName(ev->reg),
+                                ev->reg_value,
+                                ev->reg_value,
+                                GetSoundHz(ev->reg_value));
                     break;
 
                 case 3:
                     m_output->s("noise mode: ");
-                    if(ev->value&4) {
+                    if(ev->reg_value&4) {
                         m_output->s("white noise");
                     } else {
                         m_output->s("periodic noise");
                     }
 
-                    m_output->f(", %u (",ev->value&3);
+                    m_output->f(", %u (",ev->reg_value&3);
 
-                    switch(ev->value&3) {
+                    switch(ev->reg_value&3) {
                         case 0:
                         case 1:
                         case 2:
-                            m_output->f("%.1fHz",GetSoundHz(0x10<<(ev->value&3)));
+                            m_output->f("%.1fHz",GetSoundHz(0x10<<(ev->reg_value&3)));
                             break;
 
                         case 3:

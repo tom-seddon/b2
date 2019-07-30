@@ -15,11 +15,14 @@ public:
 #if BBCMICRO_TRACE
 #include <shared/pshpack1.h>
     struct WriteEvent {
+        // Value written.
+        uint8_t write_value;
+
         // Internal register number.
         uint16_t reg:3;
 
         // New value for register.
-        uint16_t value:10;
+        uint16_t reg_value:10;
     };
 #include <shared/poppack.h>
 
@@ -92,7 +95,6 @@ private:
         uint8_t reg=0;
         uint8_t noise=0;
         uint16_t noise_seed=1<<14;
-        uint8_t write_delay=0;
     };
 
     State m_state;

@@ -2182,12 +2182,18 @@ protected:
     void DoImGui2() override {
         SN76489::ChannelValues values[4];
         uint16_t seed;
+        bool we;
         {
             std::unique_lock<Mutex> lock;
             const BBCMicro *m=m_beeb_thread->LockBeeb(&lock);
             const SN76489 *sn=m->DebugGetSN76489();
             sn->GetState(values,&seed);
+
+            BBCMicro::AddressableLatch latch=m->DebugGetAddressableLatch();
+            we=!latch.bits.not_sound_write;
         }
+
+        ImGui::Text("Write Enable: %s",BOOL_STR(we));
 
         Tone(values[0],0);
         Tone(values[1],1);
