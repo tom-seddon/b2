@@ -32,7 +32,7 @@ inline void R6522::UpdatePortPins(Port *port) {
     uint8_t old_p=port->p;
 #endif
     
-    port->p=(port->p&~port->ddr)|(port->or_&port->ddr);
+    port->p=~port->ddr|(port->or_&port->ddr);
 
     TRACEF_IF(old_p!=port->p,m_trace,
               "Port value now: %03u ($%02x) (%%%s) ('%c')",
