@@ -32,10 +32,10 @@ public:
     struct ChannelValues {
         // Frequency value, as set by the %1xx0xxxx and %0xxxxxxx
         // commands.
-        uint16_t freq=0;
+        uint16_t freq=1023;
 
         // Volume, as set by the %1xx1xxxx command. 15=max.
-        uint8_t vol=0;
+        uint8_t vol=15;
     };
 
     struct Output {
@@ -61,31 +61,14 @@ private:
     static const uint16_t NOISE1;
     static const uint16_t NOISE2;
 
-    struct ToneChannelOutput {
-        uint8_t mul;
-    };
-
-#include <shared/pushwarn_bitfields.h>
-    struct NoiseChannelOutput {
-        uint8_t toggle:1;
-        uint8_t value:1;
-    };
-
-#include <shared/popwarn.h>
-    union ChannelOutput {
-        uint8_t value;
-        ToneChannelOutput tone;
-        NoiseChannelOutput noise;
-    };
-
     struct Channel {
         ChannelValues values;
 
         // Output counter. Runs from 0-freq.
         uint16_t counter=0;
 
-        // Current output value.
-        ChannelOutput output={};
+        // Current output mask.
+        uint8_t mask=0xff;
     };
 
     // The part that is suitable for copying with a default
@@ -95,6 +78,7 @@ private:
         uint8_t reg=0;
         uint8_t noise=0;
         uint16_t noise_seed=1<<14;
+        uint8_t noise_toggle=1;
     };
 
     State m_state;

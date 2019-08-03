@@ -33,13 +33,10 @@ void SN76489::Reset(bool tone) {
     m_state=State();
     m_state.noise_seed=1<<14;
 
-    for(size_t i=0;i<4;++i) {
-        Channel *channel=&m_state.channels[i];
-
-        channel->values.freq=1023;
-        channel->values.vol=tone?15:0;
-
-        memset(&channel->output,0xff,sizeof channel->output);
+    if(!tone) {
+        for(size_t i=0;i<4;++i) {
+            m_state.channels[i].values.vol=0;
+        }
     }
 }
 
@@ -71,14 +68,14 @@ SN76489::Output SN76489::Update(bool write,uint8_t value) {
     for(size_t i=0;i<3;++i) {
         Channel *channel=&m_state.channels[i];
 
-        output.ch[i]=channel->values.vol*channel->output.tone.mul;
+        output.ch[i]=channel->values.vol&channel->mask;
 
         if(channel->counter>0) {
             --channel->counter;
         }
 
         if(channel->counter==0) {
-            channel->output.tone.mul=!channel->output.tone.mul;
+            channel->mask=~channel->mask;
 
             channel->counter=channel->values.freq;
             if(channel->counter==0) {
@@ -98,15 +95,15 @@ SN76489::Output SN76489::Update(bool write,uint8_t value) {
         }
 
         if(channel->counter==0) {
-            channel->output.noise.toggle=!channel->output.noise.toggle;
+            m_state.noise_toggle=!m_state.noise_toggle;
 
-            if(channel->output.noise.toggle) {
+            if(m_state.noise_toggle) {
                 if(channel->values.freq&4) {
                     // White noise
-                    channel->output.noise.value=this->NextWhiteNoiseBit();
+                    channel->mask=this->NextWhiteNoiseBit()?0xff:0x00;
                 } else {
                     // Periodic noise
-                    channel->output.noise.value=this->NextPeriodicNoiseBit();
+                    channel->mask=this->NextPeriodicNoiseBit()?0xff:0x00;
                 }
             }
 
@@ -116,7 +113,7 @@ SN76489::Output SN76489::Update(bool write,uint8_t value) {
             }
         }
 
-        output.ch[3]=channel->values.vol*channel->output.noise.value;
+        output.ch[3]=channel->values.vol&channel->mask;
         ASSERT(output.ch[3]<=15);
     }
 
