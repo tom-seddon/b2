@@ -14,10 +14,3 @@ EPN(NumCycles)
 EEND()
 #undef ENAME
 
-#define ENAME TraceUICyclesOutput
-EBEGIN()
-EPN(Absolute)
-EPN(Relative)
-EPN(None)
-EEND()
-#undef ENAME

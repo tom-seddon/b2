@@ -1454,7 +1454,7 @@ static bool LoadTrace(rapidjson::Value *trace_json,Messages *msg) {
     FindEnumMember(&settings.start,trace_json,START,"start condition",&GetTraceUIStartConditionEnumName,msg);
     FindEnumMember(&settings.stop,trace_json,STOP,"stop condition",&GetTraceUIStopConditionEnumName,msg);
     FindBoolMember(&settings.unlimited,trace_json,UNLIMITED,nullptr);
-    FindEnumMember(&settings.cycles_output,trace_json,CYCLES_OUTPUT,"cycles output",&GetTraceUICyclesOutputEnumName,msg);
+    FindEnumMember(&settings.cycles_output,trace_json,CYCLES_OUTPUT,"cycles output",&GetTraceCyclesOutputEnumName,msg);
     FindUInt64Member(&settings.stop_num_cycles,trace_json,STOP_NUM_CYCLES,nullptr);
 
     uint64_t start_address;
@@ -1912,7 +1912,7 @@ static void SaveTrace(JSONWriter<StringStream> *writer) {
         writer->Uint64(settings.stop_num_cycles);
 
         writer->Key(CYCLES_OUTPUT);
-        SaveEnum(writer,settings.cycles_output,&GetTraceUICyclesOutputEnumName);
+        SaveEnum(writer,settings.cycles_output,&GetTraceCyclesOutputEnumName);
     }
 }
 

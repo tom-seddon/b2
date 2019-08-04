@@ -8,6 +8,8 @@
 
 #include "conf.h"
 
+#include <beeb/Trace.h>
+
 #include <shared/enum_decl.h>
 #include "TraceUI.inl"
 #include <shared/enum_end.h>
@@ -25,7 +27,7 @@ struct TraceUISettings {
     uint64_t stop_num_cycles=0;
     uint32_t flags=0;
     bool unlimited=false;
-    TraceUICyclesOutput cycles_output=TraceUICyclesOutput_Relative;
+    TraceCyclesOutput cycles_output=TraceCyclesOutput_Relative;
 };
 
 TraceUISettings GetDefaultTraceUISettings();

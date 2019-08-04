@@ -4,6 +4,13 @@
 #include "conf.h"
 #include <memory>
 
+// This stuff exists even when tracing is compiled out, so that the
+// settings can still be serialized.
+
+#include <shared/enum_decl.h>
+#include "Trace.inl"
+#include <shared/enum_end.h>
+
 #if BBCMICRO_TRACE
 
 //////////////////////////////////////////////////////////////////////////
@@ -220,6 +227,29 @@ private:
     void Check();
     static void PrintToTraceLog(const char *str,size_t str_len,void *data);
 };
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+struct SaveTraceProgress {
+    std::atomic<uint64_t> num_bytes_written{0};
+    std::atomic<uint64_t> num_events_handled{0};
+    std::atomic<uint64_t> num_events{0};
+};
+
+typedef bool (*SaveTraceWasCanceledFn)(void *context);
+typedef bool (*SaveTraceSaveDataFn)(const void *data,size_t num_bytes,void *context);
+
+// This isn't really core Trace functionality, so it may move.
+//
+// It does have to be part of beeb_lib, as the automated tests will use it...
+bool SaveTrace(std::shared_ptr<Trace> trace,
+               TraceCyclesOutput cycles_output,
+               SaveTraceSaveDataFn save_data_fn,
+               void *save_data_context,
+               SaveTraceWasCanceledFn was_canceled_fn,
+               void *was_canceled_context,
+               SaveTraceProgress *progress);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

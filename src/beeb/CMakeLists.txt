@@ -18,7 +18,7 @@ set(SRCS
   ${S}/video.cpp ${I}/video.h ${I}/video.inl
   ${S}/VideoULA.cpp ${I}/VideoULA.h
   ${S}/DiscInterface.cpp ${I}/DiscInterface.h ${I}/DiscInterface.inl
-  ${S}/Trace.cpp ${I}/Trace.h
+  ${S}/Trace.cpp ${I}/Trace.h ${I}/Trace.inl
   ${S}/MC146818.cpp ${I}/MC146818.h ${I}/MC146818.inl
   ${S}/DiscImage.cpp ${I}/DiscImage.h
   ${S}/BeebLink.cpp ${I}/BeebLink.h ${I}/BeebLink.inl
