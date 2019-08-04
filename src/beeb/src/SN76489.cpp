@@ -57,7 +57,7 @@ ev->reg_value=(VALUE);\
 
 #else
 
-#define TRACE_EVENT(REG,VALUE) ((void)0)
+#define TRACE_EVENT(VALUE) ((void)0)
 
 #endif
 
