@@ -49,31 +49,18 @@ CHECK_SIZEOF(EventWithSizeHeader,4);
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-enum {
-    BLANK_LINE_EVENT_ID,
-    STRING_EVENT_ID,
-    DISCONTINUITY_EVENT_ID,
-    WRITE_ROMSEL_EVENT_ID,
-    WRITE_ACCCON_EVENT_ID,
-    FIRST_CUSTOM_EVENT_ID,
-};
-
 static TraceEventType *g_trace_event_types[256];
-static size_t g_trace_next_id=FIRST_CUSTOM_EVENT_ID;
+static size_t g_trace_next_id=0;
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-TraceEventType::TraceEventType(const char *name,size_t size_,int8_t type_id_):
-    type_id(type_id_>=0?(uint8_t)type_id_:(uint8_t)g_trace_next_id++),
+TraceEventType::TraceEventType(const char *name,size_t size_):
+    type_id(g_trace_next_id++),
     size(size_),
     m_name(name)
 {
     ASSERT(size<=MAX_EVENT_SIZE);
-    ASSERT(type_id_>=-1);
-    ASSERT(g_trace_next_id<=256);
-    ASSERT(!g_trace_event_types[this->type_id]);
-
     g_trace_event_types[this->type_id]=this;
 }
 
@@ -96,8 +83,8 @@ const std::string &TraceEventType::GetName() const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-const TraceEventType Trace::BLANK_LINE_EVENT("_blank_line",0,BLANK_LINE_EVENT_ID);
-const TraceEventType Trace::STRING_EVENT("_string",0,STRING_EVENT_ID);
+const TraceEventType Trace::BLANK_LINE_EVENT("_blank_line",0);
+const TraceEventType Trace::STRING_EVENT("_string",0);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -109,13 +96,13 @@ struct DiscontinuityTraceEvent {
 typedef struct DiscontinuityTraceEvent DiscontinuityTraceEvent;
 #include <shared/poppack.h>
 
-const TraceEventType Trace::DISCONTINUITY_EVENT("_discontinuity",sizeof(DiscontinuityTraceEvent),DISCONTINUITY_EVENT_ID);
+const TraceEventType Trace::DISCONTINUITY_EVENT("_discontinuity",sizeof(DiscontinuityTraceEvent));
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-const TraceEventType Trace::WRITE_ROMSEL_EVENT("_write_romsel",sizeof(WriteROMSELEvent),WRITE_ROMSEL_EVENT_ID);
-const TraceEventType Trace::WRITE_ACCCON_EVENT("_write_acccon",sizeof(WriteACCCONEvent),WRITE_ACCCON_EVENT_ID);
+const TraceEventType Trace::WRITE_ROMSEL_EVENT("_write_romsel",sizeof(WriteROMSELEvent));
+const TraceEventType Trace::WRITE_ACCCON_EVENT("_write_acccon",sizeof(WriteACCCONEvent));
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

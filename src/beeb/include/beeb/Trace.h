@@ -49,7 +49,7 @@ public:
     const uint8_t type_id;
     const size_t size;
 
-    explicit TraceEventType(const char *name,size_t size=0,int8_t type_id=-1);
+    explicit TraceEventType(const char *name,size_t size=0);
     ~TraceEventType();
 
     TraceEventType(const TraceEventType &)=delete;
