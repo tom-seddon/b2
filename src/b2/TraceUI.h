@@ -9,6 +9,7 @@
 #include "conf.h"
 
 #include <beeb/Trace.h>
+#include <beeb/SaveTrace.h>
 
 #include <shared/enum_decl.h>
 #include "TraceUI.inl"
