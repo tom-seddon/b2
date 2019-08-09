@@ -131,6 +131,8 @@ public:
 
     uint8_t Read();
 
+    uint8_t GetAddress() const;
+
     // Set the address register to VALUE.
     void SetAddress(uint8_t value);
 

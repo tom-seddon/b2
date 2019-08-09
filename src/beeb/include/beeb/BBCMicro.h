@@ -378,6 +378,7 @@ public:
     const R6522 *DebugGetSystemVIA() const;
     const R6522 *DebugGetUserVIA() const;
     const SN76489 *DebugGetSN76489() const;
+    const MC146818 *DebugGetRTC() const;
     void DebugGetPaging(ROMSEL *romsel,ACCCON *acccon) const;
 
     //uint16_t DebugGetFlatPage(uint8_t page) const;

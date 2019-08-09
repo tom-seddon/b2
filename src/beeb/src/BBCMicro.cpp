@@ -1765,6 +1765,19 @@ const SN76489 *BBCMicro::DebugGetSN76489() const {
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_DEBUGGER
+const MC146818 *BBCMicro::DebugGetRTC() const {
+    if(m_type->flags&BBCMicroTypeFlag_HasRTC) {
+        return &m_state.rtc;
+    } else {
+        return nullptr;
+    }
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_DEBUGGER
 void BBCMicro::DebugGetPaging(ROMSEL *romsel,ACCCON *acccon) const {
     *romsel=m_state.romsel;
     *acccon=m_state.acccon;
