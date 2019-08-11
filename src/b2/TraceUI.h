@@ -22,10 +22,17 @@
 // settings can still be serialized.
 
 struct TraceUISettings {
+    // Start condition and any arguments.
     TraceUIStartCondition start=TraceUIStartCondition_Now;
+    uint16_t start_instruction_address=0;
+    uint16_t start_write_address=0;
+
+    // Stop condition and any arguments.
     TraceUIStopCondition stop=TraceUIStopCondition_ByRequest;
-    uint16_t start_address=0;
     uint64_t stop_num_cycles=0;
+    uint16_t stop_write_address=0;
+
+    // Other stuff.
     uint32_t flags=0;
     bool unlimited=false;
     TraceCyclesOutput cycles_output=TraceCyclesOutput_Relative;

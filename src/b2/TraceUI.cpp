@@ -71,12 +71,15 @@ private:
     std::vector<uint8_t> m_keys;
 
     char m_stop_num_cycles_str[100]={};
-    char m_start_address_str[100]={};
+    char m_start_instruction_address_str[100]={};
+    char m_start_write_address_str[100]={};
+    char m_stop_write_address_str[100]={};
 
     bool m_config_changed=false;
 
     int GetKeyIndex(uint8_t beeb_key) const;
     void ResetTextBoxes();
+    void DoAddressGui(uint16_t *addr,char *str,size_t str_size);
 
     static bool GetBeebKeyName(void *data,int idx,const char **out_text);
 #endif
@@ -249,41 +252,60 @@ void TraceUI::DoImGui() {
     if(!running_stats) {
         ImGui::AlignTextToFramePadding();
         ImGui::TextUnformatted("Start condition");
-        ImGuiRadioButton("Immediate",&g_default_settings.start,TraceUIStartCondition_Now);
-        ImGuiRadioButton("Return",&g_default_settings.start,TraceUIStartCondition_Return);
-        ImGuiRadioButton("Instruction",&g_default_settings.start,TraceUIStartCondition_Instruction);
-        if(g_default_settings.start==TraceUIStartCondition_Instruction) {
-            if(ImGui::InputText("Address (hex)",
-                                m_start_address_str,
-                                sizeof m_start_address_str,
-                                ImGuiInputTextFlags_CharsHexadecimal|ImGuiInputTextFlags_EnterReturnsTrue))
-            {
-                if(!GetUInt16FromString(&g_default_settings.start_address,
-                                        m_start_address_str,
-                                        16))
-                {
-                    this->ResetTextBoxes();
-                }
+        {
+            ImGuiIDPusher pusher("start conditions");
+
+            ImGuiRadioButton(&g_default_settings.start,TraceUIStartCondition_Now,"Immediate");
+            ImGuiRadioButton(&g_default_settings.start,TraceUIStartCondition_Return,"Return");
+            ImGuiRadioButton(&g_default_settings.start,
+                             TraceUIStartCondition_Instruction,
+                             "Execute $%04x",
+                             g_default_settings.start_instruction_address);
+            if(g_default_settings.start==TraceUIStartCondition_Instruction) {
+                this->DoAddressGui(&g_default_settings.start_instruction_address,
+                                   m_start_instruction_address_str,
+                                   sizeof m_start_instruction_address_str);
+            }
+            ImGuiRadioButton(&g_default_settings.start,
+                             TraceUIStartCondition_WriteAddress,
+                             "Write $%04x",
+                             g_default_settings.start_write_address);
+            if(g_default_settings.start==TraceUIStartCondition_WriteAddress) {
+                this->DoAddressGui(&g_default_settings.start_write_address,
+                                   m_start_write_address_str,
+                                   sizeof m_start_write_address_str);
             }
         }
-
         ImGui::Spacing();
 
         ImGui::TextUnformatted("Stop condition");
-        ImGuiRadioButton("By request",&g_default_settings.stop,TraceUIStopCondition_ByRequest);
-        ImGuiRadioButton("OSWORD 0",&g_default_settings.stop,TraceUIStopCondition_OSWORD0);
-        ImGuiRadioButton("Cycle count",&g_default_settings.stop,TraceUIStopCondition_NumCycles);
-        if(g_default_settings.stop==TraceUIStopCondition_NumCycles) {
-            if(ImGui::InputText("Cycles",
-                                m_stop_num_cycles_str,
-                                sizeof m_stop_num_cycles_str,
-                                ImGuiInputTextFlags_EnterReturnsTrue))
-            {
-                if(!GetUInt64FromString(&g_default_settings.stop_num_cycles,
-                                        m_stop_num_cycles_str))
+        {
+            ImGuiIDPusher pusher("stop conditions");
+
+            ImGuiRadioButton(&g_default_settings.stop,TraceUIStopCondition_ByRequest,"By request");
+            ImGuiRadioButton(&g_default_settings.stop,TraceUIStopCondition_OSWORD0,"OSWORD 0");
+            ImGuiRadioButton(&g_default_settings.stop,TraceUIStopCondition_NumCycles,"Cycle count");
+            if(g_default_settings.stop==TraceUIStopCondition_NumCycles) {
+                if(ImGui::InputText("Cycles",
+                                    m_stop_num_cycles_str,
+                                    sizeof m_stop_num_cycles_str,
+                                    ImGuiInputTextFlags_EnterReturnsTrue))
                 {
-                    this->ResetTextBoxes();
+                    if(!GetUInt64FromString(&g_default_settings.stop_num_cycles,
+                                            m_stop_num_cycles_str))
+                    {
+                        this->ResetTextBoxes();
+                    }
                 }
+            }
+            ImGuiRadioButton(&g_default_settings.stop,
+                             TraceUIStopCondition_WriteAddress,
+                             "Write $%04x",
+                             g_default_settings.stop_write_address);
+            if(g_default_settings.stop==TraceUIStopCondition_WriteAddress) {
+                this->DoAddressGui(&g_default_settings.stop_write_address,
+                                   m_stop_write_address_str,
+                                   sizeof m_stop_write_address_str);
             }
         }
 
@@ -308,39 +330,43 @@ void TraceUI::DoImGui() {
             TraceConditions c;
 
             switch(g_default_settings.start) {
-            default:
-                ASSERT(false);
-                // fall through
-            case TraceUIStartCondition_Now:
-                c.start=BeebThreadStartTraceCondition_Immediate;
-                break;
+                case TraceUIStartCondition_Now:
+                    c.start=BeebThreadStartTraceCondition_Immediate;
+                    break;
 
-            case TraceUIStartCondition_Return:
-                c.start=BeebThreadStartTraceCondition_NextKeypress;
-                c.start_key=BeebKey_Return;
-                break;
+                case TraceUIStartCondition_Return:
+                    c.start=BeebThreadStartTraceCondition_NextKeypress;
+                    c.start_key=BeebKey_Return;
+                    break;
 
                 case TraceUIStartCondition_Instruction:
                     c.start=BeebThreadStartTraceCondition_Instruction;
-                    c.start_address=g_default_settings.start_address;
+                    c.start_address=g_default_settings.start_instruction_address;
+                    break;
+
+                case TraceUIStartCondition_WriteAddress:
+                    c.start=BeebThreadStartTraceCondition_WriteAddress;
+                    c.start_address=g_default_settings.start_write_address;
                     break;
             }
 
             switch(g_default_settings.stop) {
-            default:
-                ASSERT(false);
-                // fall through
-            case TraceUIStopCondition_ByRequest:
-                c.stop=BeebThreadStopTraceCondition_ByRequest;
-                break;
+                case TraceUIStopCondition_ByRequest:
+                    c.stop=BeebThreadStopTraceCondition_ByRequest;
+                    break;
 
-            case TraceUIStopCondition_OSWORD0:
-                c.stop=BeebThreadStopTraceCondition_OSWORD0;
-                break;
+                case TraceUIStopCondition_OSWORD0:
+                    c.stop=BeebThreadStopTraceCondition_OSWORD0;
+                    break;
 
                 case TraceUIStopCondition_NumCycles:
                     c.stop=BeebThreadStopTraceCondition_NumCycles;
                     c.stop_num_cycles=g_default_settings.stop_num_cycles;
+                    break;
+
+                case TraceUIStopCondition_WriteAddress:
+                    c.stop=BeebThreadStopTraceCondition_WriteAddress;
+                    c.stop_address=g_default_settings.stop_write_address;
                     break;
             }
 
@@ -372,9 +398,9 @@ void TraceUI::DoImGui() {
             DoTraceStatsImGui(&stats);
 
             ImGui::TextUnformatted("Cycles output:");
-            ImGuiRadioButton("Absolute",&g_default_settings.cycles_output,TraceCyclesOutput_Absolute);
-            ImGuiRadioButton("Relative",&g_default_settings.cycles_output,TraceCyclesOutput_Relative);
-            ImGuiRadioButton("None",&g_default_settings.cycles_output,TraceCyclesOutput_None);
+            ImGuiRadioButton(&g_default_settings.cycles_output,TraceCyclesOutput_Absolute,"Absolute");
+            ImGuiRadioButton(&g_default_settings.cycles_output,TraceCyclesOutput_Relative,"Relative");
+            ImGuiRadioButton(&g_default_settings.cycles_output,TraceCyclesOutput_None,"None");
 
             if(ImGui::Button("Save...")) {
                 SaveFileDialog fd(RECENT_PATHS_TRACES);
@@ -432,15 +458,37 @@ int TraceUI::GetKeyIndex(uint8_t beeb_key) const {
 //////////////////////////////////////////////////////////////////////////
 
 void TraceUI::ResetTextBoxes() {
-    snprintf(m_start_address_str,
-             sizeof m_start_address_str,
+    snprintf(m_start_instruction_address_str,
+             sizeof m_start_instruction_address_str,
              "%x",
-             g_default_settings.start_address);
+             g_default_settings.start_instruction_address);
+
+    snprintf(m_start_write_address_str,
+             sizeof m_start_write_address_str,
+             "%x",
+             g_default_settings.start_write_address);
 
     snprintf(m_stop_num_cycles_str,
              sizeof m_stop_num_cycles_str,
              "%" PRIu64,
              g_default_settings.stop_num_cycles);
+
+    snprintf(m_stop_write_address_str,
+             sizeof m_stop_write_address_str,
+             "%x",
+             g_default_settings.stop_write_address);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void TraceUI::DoAddressGui(uint16_t *addr,char *str,size_t str_size) {
+    static constexpr ImGuiInputTextFlags FLAGS=ImGuiInputTextFlags_CharsHexadecimal|ImGuiInputTextFlags_EnterReturnsTrue;
+    if(ImGui::InputText("Address (hex)",str,str_size,FLAGS)) {
+        if(!GetUInt16FromString(addr,str,16)) {
+            this->ResetTextBoxes();
+        }
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////

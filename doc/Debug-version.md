@@ -115,9 +115,13 @@ will happen when `Start` is clicked:
 * `Immediate` - recording will start straight away
 * `Return` - recording will start once the
   Return key is pressed
-* `Instruction` - recording will start once the PC is equal to the
+* `Execute $xxxx` - recording will start once the PC is equal to the
   given address. Note that this currently goes only by address -
   address prefixes aren't supported
+* `Write $xxxx` - recording will start when the given address is
+  written to. Writes to any address can be trapped, even if that write
+  has no effect, e.g., because the area is ROM. Note that this
+  currently goes only by address - address prefixes aren't supported
 
 Once the trace starts, you can always click `Stop` to end it, but
 there are additional options for the trace end condition:
@@ -127,6 +131,10 @@ there are additional options for the trace end condition:
   input line)
 * `Cycle count` - stop when the trace has been going for a particular
   number of cycles
+* `Write $xxxx` - recording will stop when the given address is
+  written to. (Same rules as for the corresponding start condition.)
+  When using `Write $xxxx` for start and end conditions, the same
+  address can be used for both
 
 (`Return` and `OSWORD 0` often go together, because this works well
 for tracing code CALLed from the BASIC prompt.)

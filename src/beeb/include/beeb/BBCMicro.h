@@ -266,6 +266,9 @@ public:
     // Return true to keep the callback, or false to remove it.
     typedef bool (*InstructionFn)(const BBCMicro *m,const M6502 *cpu,void *context);
 
+    // Called when an address is about to be written.
+    typedef bool (*WriteFn)(const BBCMicro *m,const M6502 *cpu,void *context);
+
     const BBCMicroType *GetType() const;
 
     // Get read-only pointer to the cycle counter. The pointer is never
@@ -336,13 +339,14 @@ public:
     int GetTraceStats(struct TraceStats *stats);
 #endif
 
-    // Add instruction callback. It's an error to add the same one
+    // Add instruction/write callback. It's an error to add the same one
     // twice.
     //
     // To remove, have the callback return false.
     //
-    // The InstructionFn mustn't affect reproducability.
+    // The callback mustn't affect reproducability.
     void AddInstructionFn(InstructionFn fn,void *context);
+    void AddWriteFn(WriteFn fn,void *context);
 
     void SetMMIOFns(uint16_t addr,ReadMMIOFn read_fn,WriteMMIOFn write_fn,void *context);
 
@@ -675,6 +679,7 @@ private:
 #endif
 
     std::vector<std::pair<InstructionFn,void *>> m_instruction_fns;
+    std::vector<std::pair<WriteFn,void *>> m_write_fns;
 
 #if BBCMICRO_DEBUGGER
     std::unique_ptr<DebugState> m_debug_ptr;

@@ -2162,36 +2162,55 @@ BeebThread::GetTimelineBeebStateEvents(size_t begin_index,
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_TRACE
-bool BeebThread::ThreadStartTraceOnCondition(const BBCMicro *beeb,
-                                             const M6502 *cpu,
-                                             void *context)
+bool BeebThread::ThreadHandleTraceInstructionConditions(const BBCMicro *beeb,
+                                                        const M6502 *cpu,
+                                                        void *context)
 {
     (void)beeb;
     auto ts=(ThreadState *)context;
 
     switch(ts->trace_state) {
-    case BeebThreadTraceState_None:
-        return false;
-
-    case BeebThreadTraceState_Waiting:
-        switch(ts->trace_conditions.start) {
-        default:
-            ASSERT(false);
+        case BeebThreadTraceState_None:
             return false;
 
-        case BeebThreadStartTraceCondition_Instruction:
-            // ugh.
-            if(cpu->abus.w==ts->trace_conditions.start_address) {
-                ts->beeb_thread->ThreadBeebStartTrace(ts);
-                return false;
+        case BeebThreadTraceState_Waiting:
+            switch(ts->trace_conditions.start) {
+                default:
+                    // start condition not instruction-related, but leave the
+                    // callback in, as the stop condition presumably is...
+                    break;
+
+                case BeebThreadStartTraceCondition_Instruction:
+                    // ugh.
+                    if(cpu->abus.w==ts->trace_conditions.start_address) {
+                        ts->beeb_thread->ThreadBeebStartTrace(ts);
+                    }
+                    break;
             }
             break;
-        }
-        break;
 
-    case BeebThreadTraceState_Tracing:
-        ASSERT(false);
-        return false;
+        case BeebThreadTraceState_Tracing:
+            switch(ts->trace_conditions.stop) {
+                default:
+                    // stop condition not instruction-related, so no need for
+                    // the callback any more.
+                    return false;
+
+                case BeebThreadStopTraceCondition_OSWORD0:
+                    if(cpu->pc.w==0xfff2&&cpu->a==0) {
+                        ts->beeb_thread->ThreadStopTrace(ts);
+                        return false;
+                    }
+                    break;
+
+                case BeebThreadStopTraceCondition_NumCycles:
+                    if(*ts->num_executed_2MHz_cycles-ts->trace_start_2MHz_cycles>=ts->trace_conditions.stop_num_cycles) {
+                        ts->beeb_thread->ThreadStopTrace(ts);
+                        return false;
+                    }
+                    break;
+            }
+            break;
     }
 
     return true;
@@ -2202,38 +2221,47 @@ bool BeebThread::ThreadStartTraceOnCondition(const BBCMicro *beeb,
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_TRACE
-bool BeebThread::ThreadStopTraceOnCondition(const BBCMicro *beeb,const M6502 *cpu,void *context) {
+bool BeebThread::ThreadHandleTraceWriteConditions(const BBCMicro *beeb,
+                                                  const M6502 *cpu,
+                                                  void *context)
+{
     (void)beeb;
     auto ts=(BeebThread::ThreadState *)context;
 
     switch(ts->trace_state) {
-    case BeebThreadTraceState_None:
-        return false;
-
-    case BeebThreadTraceState_Waiting:
-        break;
-
-    case BeebThreadTraceState_Tracing:
-        switch(ts->trace_conditions.stop) {
-        default:
-            ASSERT(false);
+        case BeebThreadTraceState_None:
             return false;
 
-        case BeebThreadStopTraceCondition_OSWORD0:
-            if(cpu->pc.w==0xfff2&&cpu->a==0) {
-                ts->beeb_thread->ThreadStopTrace(ts);
-                return false;
+        case BeebThreadTraceState_Waiting:
+            switch(ts->trace_conditions.start) {
+                default:
+                    // start condition not write-related, but leave the
+                    // callback in, as the stop condition presumably is...
+                    break;
+
+                case BeebThreadStartTraceCondition_WriteAddress:
+                    if(cpu->abus.w==ts->trace_conditions.start_address) {
+                        ts->beeb_thread->ThreadBeebStartTrace(ts);
+                    }
+                    break;
             }
             break;
 
-        case BeebThreadStopTraceCondition_NumCycles:
-            if(*ts->num_executed_2MHz_cycles-ts->trace_start_2MHz_cycles>=ts->trace_conditions.stop_num_cycles) {
-                ts->beeb_thread->ThreadStopTrace(ts);
-                return false;
+        case BeebThreadTraceState_Tracing:
+            switch(ts->trace_conditions.stop) {
+                default:
+                    // stop condition not write-related, so no need for
+                    // the callback any more.
+                    return false;
+
+                case BeebThreadStopTraceCondition_WriteAddress:
+                    if(cpu->abus.w==ts->trace_conditions.start_address) {
+                        ts->beeb_thread->ThreadStopTrace(ts);
+                        return false;
+                    }
+                    break;
             }
             break;
-        }
-        break;
     }
 
     return true;
@@ -2407,38 +2435,58 @@ void BeebThread::ThreadReplaceBeeb(ThreadState *ts,std::unique_ptr<BBCMicro> bee
 void BeebThread::ThreadStartTrace(ThreadState *ts) {
     ts->trace_state=BeebThreadTraceState_Waiting;
 
+    bool any_instruction_condition=false;
+    bool any_write_condition=false;
+
     switch(ts->trace_conditions.start) {
-    default:
-        ASSERT(false);
-        // fall through
-    case BeebThreadStartTraceCondition_Immediate:
-        // Start now.
-        this->ThreadBeebStartTrace(ts);
-        break;
+        default:
+            ASSERT(false);
+            // fall through
+        case BeebThreadStartTraceCondition_Immediate:
+            // Start now.
+            this->ThreadBeebStartTrace(ts);
+            break;
 
-    case BeebThreadStartTraceCondition_NextKeypress:
-        // Wait for the key...
-        break;
+        case BeebThreadStartTraceCondition_NextKeypress:
+            // Wait for the key...
+            break;
 
-    case BeebThreadStartTraceCondition_Instruction:
-        ts->beeb->AddInstructionFn(&ThreadStartTraceOnCondition,ts);
-        break;
+        case BeebThreadStartTraceCondition_Instruction:
+            any_instruction_condition=true;
+            ts->beeb->AddInstructionFn(&ThreadHandleTraceInstructionConditions,ts);
+            break;
+
+        case BeebThreadStartTraceCondition_WriteAddress:
+            any_write_condition=true;
+            break;
     }
 
     //ts->beeb->SetInstructionTraceEventFn(nullptr,nullptr);
 
     switch(ts->trace_conditions.stop) {
-    default:
-        ASSERT(false);
-        // fall through
-    case BeebThreadStopTraceCondition_ByRequest:
-        // By request...
-        break;
+        default:
+            ASSERT(false);
+            // fall through
+        case BeebThreadStopTraceCondition_ByRequest:
+            // By request...
+            break;
 
-    case BeebThreadStopTraceCondition_OSWORD0:
-    case BeebThreadStopTraceCondition_NumCycles:
-        ts->beeb->AddInstructionFn(&ThreadStopTraceOnCondition,ts);
-        break;
+        case BeebThreadStopTraceCondition_OSWORD0:
+        case BeebThreadStopTraceCondition_NumCycles:
+            any_instruction_condition=true;
+            break;
+
+        case BeebThreadStopTraceCondition_WriteAddress:
+            any_write_condition=true;
+            break;
+    }
+
+    if(any_instruction_condition) {
+        ts->beeb->AddInstructionFn(&ThreadHandleTraceInstructionConditions,ts);
+    }
+
+    if(any_write_condition) {
+        ts->beeb->AddWriteFn(&ThreadHandleTraceWriteConditions,ts);
     }
 
     m_trace_stats={};

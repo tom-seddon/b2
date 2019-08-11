@@ -864,6 +864,30 @@ void BBCMicro::HandleCPUDataBusWithHacks(BBCMicro *m) {
     }
 #endif
 
+    if(m->m_state.cpu.read==0) {
+        if(!m->m_write_fns.empty()) {
+            // Same deal as instruction fns.
+            auto *fn=m->m_write_fns.data();
+            auto *fns_end=fn+m->m_write_fns.size();
+            bool any_removed=false;
+
+            while(fn!=fns_end) {
+                if((*fn->first)(m,&m->m_state.cpu,fn->second)) {
+                    ++fn;
+                } else {
+                    any_removed=true;
+                    *fn=*--fns_end;
+                }
+            }
+
+            if(any_removed) {
+                m->m_write_fns.resize((size_t)(fns_end-m->m_write_fns.data()));
+
+                m->UpdateCPUDataBusFn();
+            }
+        }
+    }
+
     (*m->m_default_handle_cpu_data_bus_fn)(m);
 
     if(M6502_IsAboutToExecute(&m->m_state.cpu)) {
@@ -1585,6 +1609,17 @@ void BBCMicro::AddInstructionFn(InstructionFn fn,void *context) {
     ASSERT(std::find(m_instruction_fns.begin(),m_instruction_fns.end(),std::make_pair(fn,context))==m_instruction_fns.end());
 
     m_instruction_fns.emplace_back(fn,context);
+
+    this->UpdateCPUDataBusFn();
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BBCMicro::AddWriteFn(WriteFn fn,void *context) {
+    ASSERT(std::find(m_write_fns.begin(),m_write_fns.end(),std::make_pair(fn,context))==m_write_fns.end());
+
+    m_write_fns.emplace_back(fn,context);
 
     this->UpdateCPUDataBusFn();
 }
@@ -2796,6 +2831,10 @@ void BBCMicro::UpdateCPUDataBusFn() {
 #endif
 
     if(!m_instruction_fns.empty()) {
+        goto hack;
+    }
+
+    if(!m_write_fns.empty()) {
         goto hack;
     }
 

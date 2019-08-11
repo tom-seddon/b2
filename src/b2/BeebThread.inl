@@ -16,6 +16,7 @@ EBEGIN()
 EPN(Immediate)
 EPN(NextKeypress)
 EPN(Instruction)
+EPN(WriteAddress)
 EEND()
 #undef ENAME
 #endif
@@ -29,6 +30,7 @@ EBEGIN()
 EPN(ByRequest)
 EPN(OSWORD0)
 EPN(NumCycles)
+EPN(WriteAddress)
 EEND()
 #undef ENAME
 #endif
