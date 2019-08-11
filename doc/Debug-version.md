@@ -47,8 +47,8 @@ Overridden settings are displayed with a `!` suffix.
 ## Byte popup ##
 
 Most places where you see the value of a byte in the debugger UI, or
-when an address, you can right click the address or value to get a
-popup UI relating to that byte.
+an address, you can right click the address or value to get a popup UI
+relating to that byte.
 
 Use the tickboxes to add/remove read, write or execute breakpoints.
 Breakpoints can be set for the address or for the byte: address
@@ -216,7 +216,7 @@ disassembly will track the program counter. Otherwise, enter an
 address in the `Address` field to visit that address.
 
 The disassembly window will make a stab at guessing effective
-addresses, when not statically obvious. It guesses based on the
+addresses, when not statically obvious. Its guesses are based on the
 current state of the system, trying to take paging overrides into
 account, and are for advisory purposes only.
 
@@ -234,10 +234,10 @@ Shows current paging settings.
 Shows a list of all breakpoints. When you use the byte popup to set a
 breakpoint on an address or byte, it will appear here.
 
-If you use this window to alter the breakpoint flags for a particular
-address or byte, that byte or address will continue to be shown in the
-list even if all its breakpoint flags are cleared. When this happens,
-click the `x` button to get rid of it.
+If you ever use this window to alter the breakpoint flags for a
+particular address or byte, that byte or address will continue to be
+shown in the list even if all its breakpoint flags are cleared. When
+this happens, click the `x` button to get rid of it.
 
 ## `Stack`
 
