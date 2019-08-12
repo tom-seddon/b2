@@ -1382,24 +1382,25 @@ bool BBCMicro::Update(VideoDataUnit *video_unit,SoundDataUnit *sound_unit) {
 #endif
 
             if(pb.m128_bits.rtc_chip_select) {
-                uint8_t x=m_state.system_via.a.p;
-
-                if(old_pb.m128_bits.rtc_address_strobe==1&&pb.m128_bits.rtc_address_strobe==0) {
-                    m_state.rtc.SetAddress(x);
-                }
-
-                AddressableLatch test;
-                test.value=m_state.old_addressable_latch.value^m_state.addressable_latch.value;
-                if(test.m128_bits.rtc_data_strobe) {
-                    if(m_state.addressable_latch.m128_bits.rtc_data_strobe) {
-                        // 0->1
-                        if(m_state.addressable_latch.m128_bits.rtc_read) {
-                            m_state.system_via.a.p=m_state.rtc.Read();
-                        }
+                if(old_pb.m128_bits.rtc_address_strobe) {
+                    // AS=1
+                    //
+                    // Latch address on a 0->1 transtion.
+                    if(!pb.m128_bits.rtc_address_strobe) {
+                        m_state.rtc.SetAddress(m_state.system_via.a.p);
+                    }
+                } else {
+                    // AS=0
+                    if(m_state.addressable_latch.m128_bits.rtc_read) {
+                        // RTC read mode
+                        m_state.system_via.a.p=m_state.rtc.Read();
                     } else {
-                        // 1->0
-                        if(!m_state.addressable_latch.m128_bits.rtc_read) {
-                            m_state.rtc.SetData(x);
+                        // RTC write mode
+                        if(m_state.old_addressable_latch.m128_bits.rtc_data_strobe&&
+                           !m_state.addressable_latch.m128_bits.rtc_data_strobe)
+                        {
+                            // DS=1 -> DS=0
+                            m_state.rtc.SetData(m_state.system_via.a.p);
                         }
                     }
                 }
