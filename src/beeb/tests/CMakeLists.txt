@@ -33,3 +33,21 @@ if(MSVC)
     NAME test_relacy_OutputDataBuffer
     COMMAND $<TARGET_FILE:test_relacy_OutputDataBuffer>)
 endif()
+
+##########################################################################
+##########################################################################
+
+function(add_beeb_test stem)
+  # TODO - test_common should be a static library.
+  add_executable(${stem} ${stem}.cpp test_common.h test_common.cpp)
+  add_config_define(${stem})
+
+  target_compile_definitions(${stem} PRIVATE -DROMS_FOLDER="${b2_SOURCE_DIR}/etc/roms")
+
+  target_link_libraries(${stem} PRIVATE shared_lib beeb_lib)
+  add_test(
+    NAME ${stem}
+    COMMAND $<TARGET_FILE:${stem}>)
+endfunction()
+
+add_beeb_test(test_new_tests)

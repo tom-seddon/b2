@@ -6,11 +6,7 @@ cmake_minimum_required(VERSION 3.0)
 function(add_shared_test stem)
   set(options DONT_RUN CPP)
   cmake_parse_arguments(TEST "${options}" "" "ARGS" ${ARGN})
-  if(${TEST_CPP})
-    add_executable(${stem} ${stem}.cpp)
-  else()
-    add_executable(${stem} ${stem}.c)
-  endif()
+  add_executable(${stem} ${stem}.cpp)
   add_sanitizers(${stem})
   target_link_libraries(${stem} PRIVATE shared_lib)
   if(NOT ${TEST_DONT_RUN})
@@ -29,12 +25,12 @@ add_shared_test(test_backtrace DONT_RUN)
 ##########################################################################
 ##########################################################################
 
-add_shared_test(test_basic CPP)
-add_shared_test(test_CommandLineParser CPP)
-add_shared_test(test_log CPP)
-add_shared_test(test_sha1 CPP)
+add_shared_test(test_basic)
+add_shared_test(test_CommandLineParser)
+add_shared_test(test_log)
+add_shared_test(test_sha1)
 add_shared_test(test_enum)
-add_shared_test(test_load_store CPP)
+add_shared_test(test_load_store)
 
 ##########################################################################
 ##########################################################################

@@ -35,8 +35,8 @@ int main(void) {
     TEST_EQ_II(GetTestEnumEnumName(151)[0],'?');
     TEST_EQ_II(GetTestEnumEnumName(200)[0],'?');
 
-    TEST_EQ_SS(GetOtherEnumEnumName(1),"OE_1");
-    TEST_EQ_SS(GetOtherEnumEnumName(2),"OE_2");
-    TEST_EQ_SS(GetOtherEnumEnumName(5),"OE_5");
-    TEST_EQ_II(GetOtherEnumEnumName(0)[0],'?');
+    TEST_EQ_SS(GetOtherEnumEnumName((OtherEnum)1),"OE_1");
+    TEST_EQ_SS(GetOtherEnumEnumName((OtherEnum)2),"OE_2");
+    TEST_EQ_SS(GetOtherEnumEnumName((OtherEnum)5),"OE_5");
+    TEST_EQ_II(GetOtherEnumEnumName((OtherEnum)0)[0],'?');
 }

@@ -1617,6 +1617,19 @@ void BBCMicro::AddInstructionFn(InstructionFn fn,void *context) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+void BBCMicro::RemoveInstructionFn(InstructionFn fn,void *context) {
+    auto &&it=std::find(m_instruction_fns.begin(),m_instruction_fns.end(),std::make_pair(fn,context));
+
+    if(it!=m_instruction_fns.end()) {
+        m_instruction_fns.erase(it);
+
+        this->UpdateCPUDataBusFn();
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 void BBCMicro::AddWriteFn(WriteFn fn,void *context) {
     ASSERT(std::find(m_write_fns.begin(),m_write_fns.end(),std::make_pair(fn,context))==m_write_fns.end());
 

@@ -342,10 +342,13 @@ public:
     // Add instruction/write callback. It's an error to add the same one
     // twice.
     //
-    // To remove, have the callback return false.
+    // To remove, have the callback return false, or use RemoveInstructionFn
+    // (providing both fn and context).
     //
     // The callback mustn't affect reproducability.
     void AddInstructionFn(InstructionFn fn,void *context);
+    void RemoveInstructionFn(InstructionFn fn,void *context);
+
     void AddWriteFn(WriteFn fn,void *context);
 
     void SetMMIOFns(uint16_t addr,ReadMMIOFn read_fn,WriteMMIOFn write_fn,void *context);

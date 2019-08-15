@@ -1,11 +1,13 @@
 #ifndef HEADER_3D2FA1AC94784254AE3F43FF2D06F61A 
 #define HEADER_3D2FA1AC94784254AE3F43FF2D06F61A
-#include "cpp_begin.h"
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 /* Test macros preserve errno if the test passes. */
+
+#include <string>
+#include <functional>
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -21,7 +23,7 @@ void TestStartup(void);
 struct TestFailArgs {
     void *context;
     
-    const int64_t *wanted_int64,*got_int64;
+    const int64_t *lhs_int64,*rhs_int64;
 
     /* These may return at some point. */
     
@@ -54,9 +56,9 @@ void TestQuit(void);
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-#define TEST(EXPR)\
+#define TEST(...)\
     BEGIN_MACRO {\
-        if(!(EXPR)) {\
+        if(!(__VA_ARGS__)) {\
             TestStartup();\
             BREAK();\
             TestQuit();\
@@ -66,16 +68,70 @@ void TestQuit(void);
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-int TestEqII(int64_t got,const char *got_str,int64_t wanted,const char *wanted_str,const char *file,int line);
-
-#define TEST_EQ_II(GOT,WANTED) TEST(TestEqII((GOT),#GOT,(WANTED),#WANTED,__FILE__,__LINE__))
+template<class NumType,template<class> class Oper>
+static bool TestXX(NumType lhs,
+                   const char *lhs_str,
+                   NumType rhs,
+                   const char *rhs_str,
+                   const char *oper_str,
+                   const char *file,
+                   int line,
+                   void (*failed_fn)(NumType lhs,
+                                     const char *lhs_str,
+                                     NumType rhs,
+                                     const char *rhs_str,
+                                     const char *oper_str,
+                                     const char *file,
+                                     int line))
+{
+    Oper<NumType> oper;
+    if(oper(lhs,rhs)) {
+        return true;
+    } else {
+        (*failed_fn)(lhs,lhs_str,rhs,rhs_str,oper_str,file,line);
+        return false;
+    }
+}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-int TestEqUU(uint64_t got,const char *got_str,uint64_t wanted,const char *wanted_str,const char *file,int line);
+void TestFailedII(int64_t lhs,
+                  const char *lhs_str,
+                  int64_t rhs,
+                  const char *rhs_str,
+                  const char *oper_str,
+                  const char *file,
+                  int line);
 
-#define TEST_EQ_UU(GOT,WANTED) TEST(TestEqUU((GOT),#GOT,(WANTED),#WANTED,__FILE__,__LINE__))
+#define TEST_II_2(LHS,RHS,OPER) TEST(TestXX<int64_t,std::OPER>((LHS),#LHS,(RHS),#RHS,#OPER,__FILE__,__LINE__,&TestFailedII))
+
+#define TEST_EQ_II(LHS,RHS) TEST_II_2(LHS,RHS,equal_to)
+#define TEST_NE_II(LHS,RHS) TEST_II_2(LHS,RHS,not_equal_to)
+#define TEST_LT_II(LHS,RHS) TEST_II_2(LHS,RHS,less)
+#define TEST_LE_II(LHS,RHS) TEST_II_2(LHS,RHS,less_equal)
+#define TEST_GT_II(LHS,RHS) TEST_II_2(LHS,RHS,greater)
+#define TEST_GE_II(LHS,RHS) TEST_II_2(LHS,RHS,greater_equal)
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void TestFailedUU(uint64_t lhs,
+                  const char *lhs_str,
+                  uint64_t rhs,
+                  const char *rhs_str,
+                  const char *oper_str,
+                  const char *file,
+                  int line);
+
+#define TEST_UU_2(LHS,RHS,OPER) TEST(TestXX<uint64_t,std::OPER>((LHS),#LHS,(RHS),#RHS,#OPER,__FILE__,__LINE__,&TestFailedUU))
+
+#define TEST_EQ_UU(LHS,RHS) TEST_UU_2(LHS,RHS,equal_to)
+#define TEST_NE_UU(LHS,RHS) TEST_UU_2(LHS,RHS,not_equal_to)
+#define TEST_LT_UU(LHS,RHS) TEST_UU_2(LHS,RHS,less)
+#define TEST_LE_UU(LHS,RHS) TEST_UU_2(LHS,RHS,less_equal)
+#define TEST_GT_UU(LHS,RHS) TEST_UU_2(LHS,RHS,greater)
+#define TEST_GE_UU(LHS,RHS) TEST_UU_2(LHS,RHS,greater_equal)
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -117,25 +173,11 @@ int TestEqPP(const void *got,const char *got_str,const void *wanted,const char *
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-#include "cpp_end.h"
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-#ifdef __cplusplus
-
-// This code started out as C99. Here's a quick workaround for
-// std::string.
-
-#include <string>
-
 static inline int TestEqSS2(const std::string &got,const char *got_str,const std::string &wanted,const char *wanted_str,const char *file,int line) {
     return TestEqSS(got.c_str(),got_str,wanted.c_str(),wanted_str,file,line);
 }
 
 #define TEST_EQ_SS2(GOT,WANTED) TEST(TestEqSS2((GOT),#GOT,(WANTED),#WANTED,__FILE__,__LINE__))
-
-#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

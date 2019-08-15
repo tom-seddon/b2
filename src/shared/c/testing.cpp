@@ -129,43 +129,47 @@ void TestQuit(void) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-int TestEqII(int64_t got,const char *got_str,int64_t wanted,const char *wanted_str,const char *file,int line) {
-    if(got!=wanted) {
-        TestFailArgs tfa={};
-        tfa.got_int64=&got;
-        tfa.wanted_int64=&wanted;
+void TestFailedII(int64_t lhs,
+                  const char *lhs_str,
+                  int64_t rhs,
+                  const char *rhs_str,
+                  const char *oper,
+                  const char *file,
+                  int line)
+{
+    TestFailArgs tfa={};
+    tfa.lhs_int64=&lhs;
+    tfa.rhs_int64=&rhs;
 
-        TestFailed(file,line,&tfa);
+    TestFailed(file,line,&tfa);
 
-        LOGF(TESTING,"    Wanted expr: %s\n",wanted_str);
-        LOGF(TESTING,"       Got expr: %s\n",got_str);
-        LOGF(TESTING,"\n");
-        LOGF(TESTING,"    Wanted value: %20" PRId64 " 0x%016" PRIx64 "\n",wanted,wanted);
-        LOGF(TESTING,"       Got value: %20" PRId64 " 0x%016" PRIx64 "\n",got,got);
-
-        return 0;
-    } else {
-        return 1;
-    }
+    LOGF(TESTING,"       LHS expr: %s\n",lhs_str);
+    LOGF(TESTING,"      Condition: %s\n",oper);
+    LOGF(TESTING,"       RHS expr: %s\n",rhs_str);
+    LOGF(TESTING,"\n");
+    LOGF(TESTING,"      LHS value: %20" PRId64 " 0x%016" PRIx64 "\n",lhs,lhs);
+    LOGF(TESTING,"      RHS value: %20" PRId64 " 0x%016" PRIx64 "\n",rhs,rhs);
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-int TestEqUU(uint64_t got,const char *got_str,uint64_t wanted,const char *wanted_str,const char *file,int line) {
-    if(got!=wanted) {
-        TestFailed(file,line,NULL);//,(TestFailArgs){.got_uint64=&got,.wanted_uint64=&wanted});
+void TestFailedUU(uint64_t lhs,
+                  const char *lhs_str,
+                  uint64_t rhs,
+                  const char *rhs_str,
+                  const char *oper,
+                  const char *file,
+                  int line)
+{
+    TestFailed(file,line,NULL);//,(TestFailArgs){.lhs_uint64=&lhs,.wanted_uint64=&wanted});
 
-        LOGF(TESTING,"    Wanted expr: %s\n",wanted_str);
-        LOGF(TESTING,"       Got expr: %s\n",got_str);
-        LOGF(TESTING,"\n");
-        LOGF(TESTING,"    Wanted value: %20" PRIu64 " 0x%016" PRIx64 "\n",wanted,wanted);
-        LOGF(TESTING,"       Got value: %20" PRIu64 " 0x%016" PRIx64 "\n",got,got);
-
-        return 0;
-    } else {
-        return 1;
-    }
+    LOGF(TESTING,"       LHS expr: %s\n",lhs_str);
+    LOGF(TESTING,"      Condition: %s\n",oper);
+    LOGF(TESTING,"       RHS expr: %s\n",rhs_str);
+    LOGF(TESTING,"\n");
+    LOGF(TESTING,"      LHS value: %20" PRIu64 " 0x%016" PRIx64 "\n",lhs,lhs);
+    LOGF(TESTING,"      RHS value: %20" PRIu64 " 0x%016" PRIx64 "\n",rhs,rhs);
 }
 
 //////////////////////////////////////////////////////////////////////////
