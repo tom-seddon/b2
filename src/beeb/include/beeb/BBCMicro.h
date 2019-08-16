@@ -464,6 +464,18 @@ public:
 
     void SendBeebLinkResponse(std::vector<uint8_t> data);
 protected:
+    // Hacks, not part of the public API, for use by the testing stuff so that
+    // it can run even when the debugger isn't compiled in.
+
+    // ram_buffer_index is an index into the state's ram buffer, not a proper
+    // BBC Micro address.
+    void TestSetByte(uint16_t ram_buffer_index,uint8_t value);
+
+    // Use from inside an InstructionFn. Sets the data bus to 0x60, so that
+    // it appears an RTS was fetched.
+    //
+    // CPU must be about to execute.
+    void TestRTS();
 private:
     //////////////////////////////////////////////////////////////////////////
     //////////////////////////////////////////////////////////////////////////

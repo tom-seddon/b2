@@ -42,7 +42,10 @@ function(add_beeb_test stem)
   add_executable(${stem} ${stem}.cpp test_common.h test_common.cpp)
   add_config_define(${stem})
 
-  target_compile_definitions(${stem} PRIVATE -DROMS_FOLDER="${b2_SOURCE_DIR}/etc/roms")
+  target_compile_definitions(${stem} PRIVATE
+    -DROMS_FOLDER="${b2_SOURCE_DIR}/etc/roms"
+    -DBBC_TESTS_FOLDER="${b2_SOURCE_DIR}/etc/b2_tests/0"
+    )
 
   target_link_libraries(${stem} PRIVATE shared_lib beeb_lib)
   add_test(

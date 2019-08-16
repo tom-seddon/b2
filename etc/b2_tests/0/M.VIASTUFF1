@@ -1,0 +1,22 @@
+-----------------------------------
+INITIAL VALUE:16384
+-----------------------------------
+T1 1-SHOT: ITERS:745
+           FINAL:&3FFA
+-----------------------------------
+T1 FREE: ITERS:745
+         FINAL:&3FFA
+-----------------------------------
+T2 1-SHOT: ITERS:745
+           FINAL:&FFF8
+-----------------------------------
+T1 FLAG CLEARED BY...
+      FE64 READ=Y WRITE=Y
+      FE65 READ=N WRITE=Y
+      FE66 READ=N WRITE=N
+      FE67 READ=N WRITE=Y
+-----------------------------------
+T2 FLAG CLEARED BY...
+      FE68 READ=Y WRITE=Y
+      FE69 READ=Y WRITE=Y
+
