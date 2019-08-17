@@ -89,18 +89,18 @@ static void TestBasic() {
     TEST_FALSE(Test(p,{"--a-int=fred"}));
 
     // String arg
-    TEST_EQ_SS2(as,"StringA");
+    TEST_EQ_SS(as,"StringA");
     TEST_TRUE(Test(p,{"-A","fredfred"}));
-    TEST_EQ_SS2(as,"fredfred");
+    TEST_EQ_SS(as,"fredfred");
     TEST_TRUE(Test(p,{"--a-string=fredfredfred"}));
-    TEST_EQ_SS2(as,"fredfredfred");
+    TEST_EQ_SS(as,"fredfredfred");
 
     // Add string to list
     TEST_TRUE(a_list.empty());
     TEST_TRUE(Test(p,{"--a-list=fred","--a-list=fred2"}));
     TEST_EQ_UU(a_list.size(),2);
-    TEST_EQ_SS2(a_list[0],"fred");
-    TEST_EQ_SS2(a_list[1],"fred2");
+    TEST_EQ_SS(a_list[0],"fred");
+    TEST_EQ_SS(a_list[1],"fred2");
 
     //Other args
     TEST_FALSE(Test(p,{"-a","103","other-arg"}));
@@ -108,8 +108,8 @@ static void TestBasic() {
         std::vector<std::string> others;
         TEST_TRUE(Test(p,{"-a","104","other1","other2"},&others));
         TEST_EQ_UU(others.size(),2);
-        TEST_EQ_SS2(others[0],"other1");
-        TEST_EQ_SS2(others[1],"other2");
+        TEST_EQ_SS(others[0],"other1");
+        TEST_EQ_SS(others[1],"other2");
     }
 }
 

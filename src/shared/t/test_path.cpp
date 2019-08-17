@@ -24,35 +24,35 @@ int main(int argc,char *argv[]) {
     TEST_TRUE(PathCompare("C:/FRED/FRED","C:\\fred")>0);
 #endif
     
-    TEST_EQ_SS2(PathGetName("test.txt"),"test.txt");
-    TEST_EQ_SS2(PathGetName("/test.txt"),"test.txt");
-    TEST_EQ_SS2(PathGetName("a/test.txt"),"test.txt");
-    TEST_EQ_SS2(PathGetName("/a/test.txt"),"test.txt");
-    TEST_EQ_SS2(PathGetName("/a/b/c/d/test.txt"),"test.txt");
+    TEST_EQ_SS(PathGetName("test.txt"),"test.txt");
+    TEST_EQ_SS(PathGetName("/test.txt"),"test.txt");
+    TEST_EQ_SS(PathGetName("a/test.txt"),"test.txt");
+    TEST_EQ_SS(PathGetName("/a/test.txt"),"test.txt");
+    TEST_EQ_SS(PathGetName("/a/b/c/d/test.txt"),"test.txt");
 
-    TEST_EQ_SS2(PathWithoutExtension("fred"),"fred");
-    TEST_EQ_SS2(PathWithoutExtension("fred.txt"),"fred");
-    TEST_EQ_SS2(PathWithoutExtension("folder/fred.txt"),"folder/fred");
-    TEST_EQ_SS2(PathWithoutExtension("folder.xyz/fred.txt"),"folder.xyz/fred");
-    TEST_EQ_SS2(PathWithoutExtension("folder.xyz/fred"),"folder.xyz/fred");
-    TEST_EQ_SS2(PathWithoutExtension("folder.xyz/"),"folder.xyz/");
+    TEST_EQ_SS(PathWithoutExtension("fred"),"fred");
+    TEST_EQ_SS(PathWithoutExtension("fred.txt"),"fred");
+    TEST_EQ_SS(PathWithoutExtension("folder/fred.txt"),"folder/fred");
+    TEST_EQ_SS(PathWithoutExtension("folder.xyz/fred.txt"),"folder.xyz/fred");
+    TEST_EQ_SS(PathWithoutExtension("folder.xyz/fred"),"folder.xyz/fred");
+    TEST_EQ_SS(PathWithoutExtension("folder.xyz/"),"folder.xyz/");
 
-    TEST_EQ_SS2(PathGetFolder("fred"),"");
-    TEST_EQ_SS2(PathGetFolder("/fred"),"/");
-    TEST_EQ_SS2(PathGetFolder("folder/fred"),"folder/");
-    TEST_EQ_SS2(PathGetFolder("folder/"),"folder/");
+    TEST_EQ_SS(PathGetFolder("fred"),"");
+    TEST_EQ_SS(PathGetFolder("/fred"),"/");
+    TEST_EQ_SS(PathGetFolder("folder/fred"),"folder/");
+    TEST_EQ_SS(PathGetFolder("folder/"),"folder/");
 
-    TEST_EQ_SS2(PathJoined("a","b"),"a/b");
-    TEST_EQ_SS2(PathJoined("a/","b"),"a/b");
-    TEST_EQ_SS2(PathJoined("a","/b"),"/b");
-    TEST_EQ_SS2(PathJoined("a/","/b"),"/b");
+    TEST_EQ_SS(PathJoined("a","b"),"a/b");
+    TEST_EQ_SS(PathJoined("a/","b"),"a/b");
+    TEST_EQ_SS(PathJoined("a","/b"),"/b");
+    TEST_EQ_SS(PathJoined("a/","/b"),"/b");
 
-    TEST_EQ_SS2(PathGetExtension("a.b"),".b");
-    TEST_EQ_SS2(PathGetExtension("a.b/c.d"),".d");
-    TEST_EQ_SS2(PathGetExtension("a.b/c.d.e"),".e");
-    TEST_EQ_SS2(PathGetExtension("a.b/c"),"");
-    TEST_EQ_SS2(PathGetExtension("a.b/"),"");
-    TEST_EQ_SS2(PathGetExtension("a"),"");
+    TEST_EQ_SS(PathGetExtension("a.b"),".b");
+    TEST_EQ_SS(PathGetExtension("a.b/c.d"),".d");
+    TEST_EQ_SS(PathGetExtension("a.b/c.d.e"),".e");
+    TEST_EQ_SS(PathGetExtension("a.b/c"),"");
+    TEST_EQ_SS(PathGetExtension("a.b/"),"");
+    TEST_EQ_SS(PathGetExtension("a"),"");
 
     TEST_TRUE(argc>=3);
     TEST_TRUE(PathIsFolderOnDisk(argv[2]));

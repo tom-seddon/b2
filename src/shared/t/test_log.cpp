@@ -72,7 +72,7 @@ static void TestDumpBytes(void) {
 
     g_str.clear();
     LogDumpBytes(&LOG(TEST),data,sizeof data);
-    TEST_EQ_SS2(g_str,data_expected);
+    TEST_EQ_SS(g_str,data_expected);
 
     g_str.clear();
     {
@@ -82,7 +82,7 @@ static void TestDumpBytes(void) {
 
         LogDumpBytesEx(&LOG(TEST),data,sizeof data,&d);
     }
-    TEST_EQ_SS2(g_str,data_17_columns_expected);
+    TEST_EQ_SS(g_str,data_17_columns_expected);
 
     g_str.clear();
     {
@@ -93,7 +93,7 @@ static void TestDumpBytes(void) {
 
         LogDumpBytesEx(&LOG(TEST),data,sizeof data,&d);
     }
-    TEST_EQ_SS2(g_str,data_highlighted_expected);
+    TEST_EQ_SS(g_str,data_highlighted_expected);
 
     g_str.clear();
     {
@@ -103,7 +103,7 @@ static void TestDumpBytes(void) {
 
         LogDumpBytesEx(&LOG(TEST),data,sizeof data,&d);
     }
-    TEST_EQ_SS2(g_str,data_first_address_expected);
+    TEST_EQ_SS(g_str,data_first_address_expected);
 }
 
 int main(void) {
@@ -145,7 +145,7 @@ int main(void) {
         }
     }
 
-    TEST_EQ_SS2(g_str,EXPECTED);
+    TEST_EQ_SS(g_str,EXPECTED);
 
     LOG(TEST).EnsureBOL();
     g_str.clear();
@@ -156,7 +156,7 @@ int main(void) {
 
     /* LogDumpBytes(&LOG(OUT),g_buffer.text,g_buffer.size); */
 
-    TEST_EQ_SS2(g_str,"Hello\\n\\r\\t\\bHello");
+    TEST_EQ_SS(g_str,"Hello\\n\\r\\t\\bHello");
 
     TestDumpBytes();
 

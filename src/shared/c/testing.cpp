@@ -238,6 +238,10 @@ int TestEqSS(const char *got,const char *got_str,const char *wanted,const char *
     }
 }
 
+int TestEqSS(const std::string &got,const char *got_str,const std::string &wanted,const char *wanted_str,const char *file,int line) {
+    return TestEqSS(got.c_str(),got_str,wanted.c_str(),wanted_str,file,line);
+}
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 

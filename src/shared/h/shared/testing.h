@@ -153,6 +153,7 @@ int TestPointer(int got_null,const char *got_str,int want_not_null,const char *f
 //////////////////////////////////////////////////////////////////////////
 
 int TestEqSS(const char *got,const char *got_str,const char *wanted,const char *wanted_str,const char *file,int line);
+int TestEqSS(const std::string &got,const char *got_str,const std::string &wanted,const char *wanted_str,const char *file,int line);
 
 #define TEST_EQ_SS(GOT,WANTED) TEST(TestEqSS((GOT),#GOT,(WANTED),#WANTED,__FILE__,__LINE__))
 
@@ -173,11 +174,7 @@ int TestEqPP(const void *got,const char *got_str,const void *wanted,const char *
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static inline int TestEqSS2(const std::string &got,const char *got_str,const std::string &wanted,const char *wanted_str,const char *file,int line) {
-    return TestEqSS(got.c_str(),got_str,wanted.c_str(),wanted_str,file,line);
-}
 
-#define TEST_EQ_SS2(GOT,WANTED) TEST(TestEqSS2((GOT),#GOT,(WANTED),#WANTED,__FILE__,__LINE__))
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
