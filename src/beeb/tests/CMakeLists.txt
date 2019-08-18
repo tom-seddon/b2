@@ -37,20 +37,26 @@ endif()
 ##########################################################################
 ##########################################################################
 
-function(add_beeb_test stem)
+add_library(test_common_lib test_common.h test_common.cpp)
+target_compile_definitions(test_common_lib PUBLIC
+  -DROMS_FOLDER="${b2_SOURCE_DIR}/etc/roms"
+  -DBBC_TESTS_FOLDER="${b2_SOURCE_DIR}/etc/b2_tests/0"
+  -DBBC_TESTS_OUTPUT_FOLDER="${CMAKE_BINARY_DIR}/b2_tests_output"
+  )
+target_boilerplate(test_common_lib)
+target_link_libraries(test_common_lib PUBLIC shared_lib beeb_lib)
+
+##########################################################################
+##########################################################################
+
+function(add_standard_test stem)
   # TODO - test_common should be a static library.
-  add_executable(${stem} ${stem}.cpp test_common.h test_common.cpp)
-  add_config_define(${stem})
+  add_executable(${stem} ${stem}.cpp)
+  target_boilerplate(${stem})
 
-  target_compile_definitions(${stem} PRIVATE
-    -DROMS_FOLDER="${b2_SOURCE_DIR}/etc/roms"
-    -DBBC_TESTS_FOLDER="${b2_SOURCE_DIR}/etc/b2_tests/0"
-    )
-
-  target_link_libraries(${stem} PRIVATE shared_lib beeb_lib)
-  add_test(
-    NAME ${stem}
-    COMMAND $<TARGET_FILE:${stem}>)
+  target_link_libraries(${stem} PRIVATE test_common_lib)
+  add_test(NAME ${stem} COMMAND $<TARGET_FILE:${stem}>)
 endfunction()
 
-add_beeb_test(test_new_tests)
+add_standard_test(test_new_tests)
+

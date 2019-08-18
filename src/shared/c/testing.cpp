@@ -324,3 +324,19 @@ int TestEqPP(const void *got,const char *got_str,const void *wanted,const char *
         return 1;
     }
 }
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void TestFail(const char *file,int line,const char *fmt,...) {
+    TestFailed(file,line,nullptr);
+
+    LOGF(TESTING,"Test failure: ");
+
+    va_list v;
+    va_start(v,fmt);
+    LOGV(TESTING,fmt,v);
+    va_end(v);
+
+    LOG(TESTING).EnsureBOL();
+}

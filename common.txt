@@ -14,6 +14,14 @@ endfunction()
 ##########################################################################
 ##########################################################################
 
+function(target_boilerplate TARGET)
+  add_config_define(${TARGET})
+  add_sanitizers(${TARGET})
+endfunction()
+
+##########################################################################
+##########################################################################
+
 # It's not very neat to just set the various CMake globals, but this
 # stuff ideally wants to apply to all projects without requiring any
 # project-specific action.
