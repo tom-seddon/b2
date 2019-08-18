@@ -6,3 +6,4 @@ S.TSPOOL diff=bbcbasic
 S.TSAVE diff=bbcbasic
 +.XYZ diff=bbcbasic
 T.VIA#2eAC1 diff=bbcbasic
+T.VTIMERS diff=bbcbasic

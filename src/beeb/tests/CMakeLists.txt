@@ -61,8 +61,9 @@ test_target_boilerplate(test_new_tests)
 ##########################################################################
 ##########################################################################
 
-function (add_standard_test_2 bbc_test_name bbc_type)
-  set(target test_${bbc_test_name}_${bbc_type})
+function (add_standard_test bbc_test_name bbc_type)
+  string(MAKE_C_IDENTIFIER ${bbc_test_name} bbc_test_name_c_identifier)
+  set(target test_${bbc_test_name_c_identifier}_${bbc_type})
   add_executable(${target} test_standard.cpp)
   target_compile_definitions(${target} PRIVATE
     -DBBC_TEST_NAME="${bbc_test_name}"
@@ -70,10 +71,4 @@ function (add_standard_test_2 bbc_test_name bbc_type)
   test_target_boilerplate(${target})
 endfunction()
 
-function(add_standard_test bbc_test_name)
-  add_standard_test_2(${bbc_test_name} BTape)
-  add_standard_test_2(${bbc_test_name} BPlusTape)
-  add_standard_test_2(${bbc_test_name} Master128MOS320)
-endfunction()
-
-add_standard_test(VIASTUFF1)
+add_standard_test(VTIMERS BTape)

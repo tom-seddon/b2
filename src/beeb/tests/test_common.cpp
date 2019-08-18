@@ -105,26 +105,6 @@ static std::shared_ptr<const BBCMicro::ROMData> LoadROM(const std::string &name)
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static std::vector<uint8_t> LoadTestOutput(const std::string &stem,
-                                           const std::string &bbc_dir)
-{
-    std::vector<uint8_t> contents;
-
-    for(const std::string &dir:{bbc_dir.c_str(),"B","+","M"}) {
-        std::string path=PathJoined(BBC_TESTS_FOLDER,dir+"."+stem);
-        if(PathLoadBinaryFile(&contents,path)) {
-            LOGF(OUTPUT,"Loaded output for %s.%s from %s\n",bbc_dir.c_str(),stem.c_str(),path.c_str());
-            return contents;
-        }
-    }
-
-    TEST_FAIL("test output not found: dir: \"%s\", stem: \"%s\"",bbc_dir.c_str(),stem.c_str());
-    return {};
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 static const BBCMicroType *GetBBCMicroType(TestBBCMicroType type) {
     switch(type) {
         case TestBBCMicroType_BTape:
@@ -378,8 +358,8 @@ void TestBBCMicro::GotOSWRCH() {
         this->oswrch_output.push_back(c);
     }
 
-    if(m_tspool) {
-        this->tspool_output.push_back(c);
+    if(m_spooling) {
+        this->spool_output.push_back(c);
     }
 }
 
@@ -409,17 +389,27 @@ bool TestBBCMicro::GotOSCLI() {
 
     std::string::size_type cmd_begin=str.find_first_not_of("* ");
     if(cmd_begin!=std::string::npos) {
-        std::string::size_type cmd_end=str.find_first_of(" .",cmd_begin);
+        std::string::size_type cmd_end=str.find_first_of(" ",cmd_begin);
         std::string cmd=str.substr(cmd_begin,cmd_end-cmd_begin);
+
+        std::string::size_type args_begin=str.find_first_not_of(" ",cmd_end);
+        if(args_begin==std::string::npos) {
+            args_begin=str.size();
+        }
+        std::string args=str.substr(args_begin);
         LOGF(OUTPUT,"command: ``%s''\n",cmd.c_str());
-        if(cmd=="TSPOOL") {
-            ASSERT(!m_tspool);
-            m_tspool=true;
-            return true;
-        } else if(cmd=="SPOOL") {
-            ASSERT(m_tspool);
-            m_tspool=false;
-            return true;
+        LOGF(OUTPUT,"args: ``%s''\n",args.c_str());
+        if(cmd=="SPOOL") {
+            if(!args.empty()) {
+                ASSERT(!m_spooling);
+                m_spooling=true;
+                spool_output_name=args;
+                return true;
+            } else {
+                ASSERT(m_spooling);
+                m_spooling=false;
+                return true;
+            }
         } else {
             TEST_TRUE(false);
         }
@@ -495,23 +485,6 @@ static void SaveTextOutput(const std::string &output,const std::string &test_nam
 {
     TestBBCMicro bbc(type);
 
-    std::string bbc_dir;
-    switch(bbc.GetType()->type_id) {
-        case BBCMicroTypeID_B:
-            bbc_dir="B";
-            break;
-
-        case BBCMicroTypeID_BPlus:
-            bbc_dir="+";
-            break;
-
-        case BBCMicroTypeID_Master:
-            bbc_dir="M";
-            break;
-    }
-
-    std::vector<uint8_t> wanted_results=LoadTestOutput(test_name,bbc_dir);
-
     bbc.StartCaptureOSWRCH();
     bbc.RunUntilOSWORD0(10.0);
     bbc.LoadFile(PathJoined(BBC_TESTS_FOLDER,"T."+test_name),0xe00);
@@ -530,13 +503,17 @@ static void SaveTextOutput(const std::string &output,const std::string &test_nam
     TEST_TRUE(SaveTextFile(bbc.oswrch_output,PathJoined(BBC_TESTS_OUTPUT_FOLDER,
                                                         strprintf("%s.all_output.txt",stem.c_str()))));
 
-    if(!bbc.tspool_output.empty()) {
+    if(!bbc.spool_output.empty()) {
         {
-            LOGF(BBC_OUTPUT,"TSPOOL: ");
+            LOGF(BBC_OUTPUT,"Spooled: ");
             LOGI(BBC_OUTPUT);
-            LOG_STR(BBC_OUTPUT,GetPrintable(bbc.tspool_output).c_str());
+            LOG_STR(BBC_OUTPUT,GetPrintable(bbc.spool_output).c_str());
             LOG(BBC_OUTPUT).EnsureBOL();
         }
+
+        std::vector<uint8_t> wanted_results;
+        TEST_TRUE(PathLoadBinaryFile(&wanted_results,
+                                     PathJoined(BBC_TESTS_FOLDER,bbc.spool_output_name)));
 
         std::string wanted_output(wanted_results.begin(),wanted_results.end());
 
@@ -548,12 +525,11 @@ static void SaveTextOutput(const std::string &output,const std::string &test_nam
         }
 
         SaveTextOutput(wanted_output,stem,"wanted");
-        SaveTextOutput(bbc.tspool_output,stem,"got");
+        SaveTextOutput(bbc.spool_output,stem,"got");
 
-        TEST_EQ_SS(wanted_output,bbc.tspool_output);
+        TEST_EQ_SS(wanted_output,bbc.spool_output);
         //LOGF(OUTPUT,"Match: %d\n",wanted_output==bbc.tspool_output);
     }
 
     LOGF(OUTPUT,"Speed: ~%.3fx\n",bbc.GetSpeed());
 }
-

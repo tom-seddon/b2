@@ -28,7 +28,8 @@ public BBCMicro
 {
 public:
     std::string oswrch_output;
-    std::string tspool_output;
+    std::string spool_output;
+    std::string spool_output_name;
 
     explicit TestBBCMicro(TestBBCMicroType type);
 
@@ -48,7 +49,7 @@ protected:
     void GotOSWRCH();
     virtual bool GotOSCLI();//true=handled, false=ok to pass on to real OSCLI
 private:
-    bool m_tspool=false;
+    bool m_spooling=false;
     size_t m_oswrch_capture_count=0;
     VideoDataUnit m_temp_video_data_unit;
     SoundDataUnit m_temp_sound_data_unit;
