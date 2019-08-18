@@ -3,3 +3,6 @@ T.VIASTUFF1 diff=bbcbasic
 S.SPOOLON diff=bbcbasic
 S.TESTSPOOL diff=bbcbasic
 S.TSPOOL diff=bbcbasic
+S.TSAVE diff=bbcbasic
++.XYZ diff=bbcbasic
+T.VIA#2eAC1 diff=bbcbasic

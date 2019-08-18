@@ -36,11 +36,15 @@ The wrappers just assume the name has a dir already.
 Wrappers are, so far:
 
 * `*TSPOOL` - does a `*SPOOL <name>`, where `<name>` is taken from the
-  `REM>`
+  `REM>` as above
+* `*TSAVE <args>` - does a `*SAVE <name> <args>`, where `<name>` is
+  taken from the `REM>` as above and `<args>` are a copy of the
+  `*TSAVE` arguments
 
 A test's options for producing results are then:
 
 * `*TSPOOL` - test result is all OSWRCH output until the next `*SPOOL`
+* `*TSAVE` - test result is whatever was saved
 
 More options to follow, and hand-coded special cases are also always
 an option.
