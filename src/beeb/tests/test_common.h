@@ -56,6 +56,7 @@ private:
     uint64_t m_num_cycles=0;
 
     void LoadROMsB();
+    void LoadROMsBPlus();
     void LoadROMsMaster(const std::string &version);
 };
 
@@ -67,7 +68,7 @@ private:
 // Does a _exit(1) if any of the tests fail.
 //
 // See etc/b2_tests/README.md in the working copy for more about this.
-void RunTest(const std::string &test_name);
+void RunStandardTest(const std::string &test_name,TestBBCMicroType type);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

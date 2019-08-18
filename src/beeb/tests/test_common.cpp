@@ -12,6 +12,7 @@
 //////////////////////////////////////////////////////////////////////////
 
 LOG_DEFINE(OUTPUT,"",&log_printer_stdout_and_debugger,true)
+LOG_DEFINE(BBC_OUTPUT,"",&log_printer_stdout_and_debugger,false)
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -19,6 +20,34 @@ LOG_DEFINE(OUTPUT,"",&log_printer_stdout_and_debugger,true)
 static constexpr uint16_t WRCHV=0x20e;
 static constexpr uint16_t WORDV=0x20c;
 static constexpr uint16_t CLIV=0x208;
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+std::string strprintfv(const char *fmt,va_list v) {
+    char *str;
+    if(vasprintf(&str,fmt,v)==-1) {
+        // Better suggestions welcome... please.
+        return std::string("vasprintf failed - ")+strerror(errno)+" ("+std::to_string(errno)+")";
+    } else {
+        std::string result(str);
+
+        free(str);
+        str=NULL;
+
+        return result;
+    }
+}
+
+std::string PRINTF_LIKE(1,2) strprintf(const char *fmt,...) {
+    va_list v;
+
+    va_start(v,fmt);
+    std::string result=strprintfv(fmt,v);
+    va_end(v);
+
+    return result;
+}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -47,7 +76,7 @@ static bool SaveFile2(const void *contents,size_t contents_size,const std::strin
 
 template<class T>
 static bool SaveBinaryFile(const T &contents,const std::string &path) {
-    return SaveFile2(contents.data(),contents.size()*sizeof(T),path,"wb");
+    return SaveFile2(contents.data(),contents.size()*sizeof(typename T::value_type),path,"wb");
 }
 
 static bool SaveTextFile(const std::string &contents,const std::string &path) {
@@ -101,6 +130,9 @@ static const BBCMicroType *GetBBCMicroType(TestBBCMicroType type) {
         case TestBBCMicroType_BTape:
             return &BBC_MICRO_TYPE_B;
 
+        case TestBBCMicroType_BPlusTape:
+            return &BBC_MICRO_TYPE_B_PLUS;
+
         case TestBBCMicroType_Master128MOS320:
         case TestBBCMicroType_Master128MOS350:
             return &BBC_MICRO_TYPE_MASTER;
@@ -116,6 +148,7 @@ static const BBCMicroType *GetBBCMicroType(TestBBCMicroType type) {
 static const DiscInterfaceDef *GetDiscInterfaceDef(TestBBCMicroType type) {
     switch(type) {
         case TestBBCMicroType_BTape:
+        case TestBBCMicroType_BPlusTape:
             return nullptr;
 
         case TestBBCMicroType_Master128MOS320:
@@ -178,6 +211,10 @@ BBCMicro(GetBBCMicroType(type),
     switch(type) {
         case TestBBCMicroType_BTape:
             this->LoadROMsB();
+            break;
+
+        case TestBBCMicroType_BPlusTape:
+            this->LoadROMsBPlus();
             break;
 
         case TestBBCMicroType_Master128MOS320:
@@ -307,6 +344,14 @@ void TestBBCMicro::LoadROMsB() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+void TestBBCMicro::LoadROMsBPlus() {
+    this->SetOSROM(LoadROM("B+MOS.ROM"));
+    this->SetSidewaysROM(15,LoadROM("BASIC2.ROM"));
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 void TestBBCMicro::LoadROMsMaster(const std::string &version) {
     this->SetOSROM(LoadROM(PathJoined("m128",version,"mos.rom")));
     this->SetSidewaysROM(15,LoadROM(PathJoined("m128",version,"terminal.rom")));
@@ -430,8 +475,11 @@ static void SaveTextOutput2(const std::string &contents,
                             const std::string &suffix)
 {
     SaveTextFile(contents,PathJoined(BBC_TESTS_OUTPUT_FOLDER,test_name+"."+type+"_"+suffix));
-    SaveBinaryFile(contents,PathJoined(BBC_TESTS_OUTPUT_FOLDER,type+"/"+test_name+"."+suffix));
+    SaveTextFile(contents,PathJoined(BBC_TESTS_OUTPUT_FOLDER,type+"/"+test_name+"."+suffix));
 }
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
 
 static void SaveTextOutput(const std::string &output,const std::string &test_name,const std::string &type) {
     std::string printable_output=GetPrintable(output);
@@ -442,10 +490,27 @@ static void SaveTextOutput(const std::string &output,const std::string &test_nam
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void RunTest(const std::string &test_name) {
-    TestBBCMicro bbc(TestBBCMicroType_BTape);
+ void RunStandardTest(const std::string &test_name,
+                            TestBBCMicroType type)
+{
+    TestBBCMicro bbc(type);
 
-    std::vector<uint8_t> wanted_results=LoadTestOutput(test_name,"B");
+    std::string bbc_dir;
+    switch(bbc.GetType()->type_id) {
+        case BBCMicroTypeID_B:
+            bbc_dir="B";
+            break;
+
+        case BBCMicroTypeID_BPlus:
+            bbc_dir="+";
+            break;
+
+        case BBCMicroTypeID_Master:
+            bbc_dir="M";
+            break;
+    }
+
+    std::vector<uint8_t> wanted_results=LoadTestOutput(test_name,bbc_dir);
 
     bbc.StartCaptureOSWRCH();
     bbc.RunUntilOSWORD0(10.0);
@@ -454,33 +519,36 @@ void RunTest(const std::string &test_name) {
     bbc.RunUntilOSWORD0(10.0);
 
     {
-        LOGF(OUTPUT,"All Output: ");
-        LOGI(OUTPUT);
-        LOG_STR(OUTPUT,GetPrintable(bbc.oswrch_output).c_str());
-        LOG(OUTPUT).EnsureBOL();
+        LOGF(BBC_OUTPUT,"All Output: ");
+        LOGI(BBC_OUTPUT);
+        LOG_STR(BBC_OUTPUT,GetPrintable(bbc.oswrch_output).c_str());
+        LOG(BBC_OUTPUT).EnsureBOL();
     }
 
-    TEST_TRUE(SaveTextFile(bbc.oswrch_output,PathJoined(BBC_TESTS_OUTPUT_FOLDER,test_name+".all_output.txt")));
+    std::string stem=strprintf("%s.%s",test_name.c_str(),GetTestBBCMicroTypeEnumName(type));
+
+    TEST_TRUE(SaveTextFile(bbc.oswrch_output,PathJoined(BBC_TESTS_OUTPUT_FOLDER,
+                                                        strprintf("%s.all_output.txt",stem.c_str()))));
 
     if(!bbc.tspool_output.empty()) {
         {
-            LOGF(OUTPUT,"TSPOOL: ");
-            LOGI(OUTPUT);
-            LOG_STR(OUTPUT,GetPrintable(bbc.tspool_output).c_str());
-            LOG(OUTPUT).EnsureBOL();
+            LOGF(BBC_OUTPUT,"TSPOOL: ");
+            LOGI(BBC_OUTPUT);
+            LOG_STR(BBC_OUTPUT,GetPrintable(bbc.tspool_output).c_str());
+            LOG(BBC_OUTPUT).EnsureBOL();
         }
 
         std::string wanted_output(wanted_results.begin(),wanted_results.end());
 
         {
-            LOGF(OUTPUT,"Wanted: ");
-            LOGI(OUTPUT);
-            LOG_STR(OUTPUT,GetPrintable(wanted_output).c_str());
-            LOG(OUTPUT).EnsureBOL();
+            LOGF(BBC_OUTPUT,"Wanted: ");
+            LOGI(BBC_OUTPUT);
+            LOG_STR(BBC_OUTPUT,GetPrintable(wanted_output).c_str());
+            LOG(BBC_OUTPUT).EnsureBOL();
         }
 
-        SaveTextOutput(wanted_output,test_name,"wanted");
-        SaveTextOutput(bbc.tspool_output,test_name,"got");
+        SaveTextOutput(wanted_output,stem,"wanted");
+        SaveTextOutput(bbc.tspool_output,stem,"got");
 
         TEST_EQ_SS(wanted_output,bbc.tspool_output);
         //LOGF(OUTPUT,"Match: %d\n",wanted_output==bbc.tspool_output);
@@ -488,3 +556,4 @@ void RunTest(const std::string &test_name) {
 
     LOGF(OUTPUT,"Speed: ~%.3fx\n",bbc.GetSpeed());
 }
+

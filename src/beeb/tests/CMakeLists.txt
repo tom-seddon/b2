@@ -49,14 +49,31 @@ target_link_libraries(test_common_lib PUBLIC shared_lib beeb_lib)
 ##########################################################################
 ##########################################################################
 
-function(add_standard_test stem)
-  # TODO - test_common should be a static library.
-  add_executable(${stem} ${stem}.cpp)
-  target_boilerplate(${stem})
-
-  target_link_libraries(${stem} PRIVATE test_common_lib)
-  add_test(NAME ${stem} COMMAND $<TARGET_FILE:${stem}>)
+function(test_target_boilerplate target)
+  target_boilerplate(${target})
+  target_link_libraries(${target} PRIVATE test_common_lib)
+  add_test(NAME ${target} COMMAND $<TARGET_FILE:${target}>)
 endfunction()
 
-add_standard_test(test_new_tests)
+add_executable(test_new_tests test_new_tests.cpp)
+test_target_boilerplate(test_new_tests)
 
+##########################################################################
+##########################################################################
+
+function (add_standard_test_2 bbc_test_name bbc_type)
+  set(target test_${bbc_test_name}_${bbc_type})
+  add_executable(${target} test_standard.cpp)
+  target_compile_definitions(${target} PRIVATE
+    -DBBC_TEST_NAME="${bbc_test_name}"
+    -DBBC_TYPE=TestBBCMicroType_${bbc_type})
+  test_target_boilerplate(${target})
+endfunction()
+
+function(add_standard_test bbc_test_name)
+  add_standard_test_2(${bbc_test_name} BTape)
+  add_standard_test_2(${bbc_test_name} BPlusTape)
+  add_standard_test_2(${bbc_test_name} Master128MOS320)
+endfunction()
+
+add_standard_test(VIASTUFF1)
