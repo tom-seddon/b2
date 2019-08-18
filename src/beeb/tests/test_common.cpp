@@ -3,6 +3,7 @@
 #include <shared/path.h>
 #include <shared/debug.h>
 #include "test_common.h"
+#include <beeb/SaveTrace.h>
 
 #include <shared/enum_def.h>
 #include "test_common.inl"
@@ -12,7 +13,7 @@
 //////////////////////////////////////////////////////////////////////////
 
 LOG_DEFINE(OUTPUT,"",&log_printer_stdout_and_debugger,true)
-LOG_DEFINE(BBC_OUTPUT,"",&log_printer_stdout_and_debugger,false)
+LOG_DEFINE(BBC_OUTPUT,"",&log_printer_stdout_and_debugger,true)
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -47,6 +48,54 @@ std::string PRINTF_LIKE(1,2) strprintf(const char *fmt,...) {
     va_end(v);
 
     return result;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+// Handle escaping of BeebLink names. See https://github.com/tom-seddon/beeblink/blob/5803109faeb6035de294d3f221c24a4f75ca963d/server/beebfs.ts#L63
+//
+// This isn't done very cleverly, but it only has to work with the test
+// files...
+
+static std::string GetBeebLinkChar(char c) {
+    switch(c) {
+        case '/':
+        case '<':
+        case '>':
+        case ':':
+        case '"':
+        case '\\':
+        case '|':
+        case '?':
+        case '*':
+        case ' ':
+        case '.':
+        case '#':
+        escape:
+            return strprintf("#%02x",(unsigned)c);
+
+        default:
+            if(c<32) {
+                goto escape;
+            } else if(c>126) {
+                goto escape;
+            } else {
+                return std::string(1,c);
+            }
+    }
+}
+
+static std::string GetBeebLinkName(const std::string &name) {
+    TEST_EQ_SS(name.substr(1,1),".");
+
+    std::string beeblink_name=GetBeebLinkChar(name[0])+".";
+
+    for(size_t i=2;i<name.size();++i) {
+        beeblink_name+=GetBeebLinkChar(name[i]);
+    }
+
+    return beeblink_name;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -205,6 +254,8 @@ BBCMicro(GetBBCMicroType(type),
             this->LoadROMsMaster("3.50");
             break;
     }
+
+    this->SetMMIOFns(0xfc10,&ReadTestCommand,&WriteTestCommand,this);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -350,6 +401,37 @@ void TestBBCMicro::LoadROMsMaster(const std::string &version) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+uint8_t TestBBCMicro::ReadTestCommand(void *context,M6502Word addr) {
+    (void)context,(void)addr;
+
+    return 0;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void TestBBCMicro::WriteTestCommand(void *context,M6502Word addr,uint8_t value) {
+    (void)addr;
+    auto m=(TestBBCMicro *)context;
+
+    if(value==0) {
+        // Stop trace.
+        m->StopTrace(&m->trace);
+    } else if(value==1) {
+        // probably want to make these configurable at some point...?
+        uint32_t flags=(BBCMicroTraceFlag_RTC|
+                        BBCMicroTraceFlag_1770|
+                        BBCMicroTraceFlag_SystemVIA|
+                        BBCMicroTraceFlag_UserVIA|
+                        BBCMicroTraceFlag_VideoULA|
+                        BBCMicroTraceFlag_SN76489);
+        m->StartTrace(flags,256*1048576);
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 void TestBBCMicro::GotOSWRCH() {
     const M6502 *cpu=this->GetM6502();
     auto c=(char)cpu->a;
@@ -480,14 +562,18 @@ static void SaveTextOutput(const std::string &output,const std::string &test_nam
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
- void RunStandardTest(const std::string &test_name,
+static bool SaveTraceData(const void *data,size_t num_bytes,void *context) {
+    return fwrite(data,1,num_bytes,(FILE *)context)==num_bytes;
+}
+
+void RunStandardTest(const std::string &test_name,
                             TestBBCMicroType type)
 {
     TestBBCMicro bbc(type);
 
     bbc.StartCaptureOSWRCH();
     bbc.RunUntilOSWORD0(10.0);
-    bbc.LoadFile(PathJoined(BBC_TESTS_FOLDER,"T."+test_name),0xe00);
+    bbc.LoadFile(PathJoined(BBC_TESTS_FOLDER,GetBeebLinkName("T."+test_name)),0xe00);
     bbc.Paste("OLD\rRUN\r");
     bbc.RunUntilOSWORD0(10.0);
 
@@ -513,7 +599,7 @@ static void SaveTextOutput(const std::string &output,const std::string &test_nam
 
         std::vector<uint8_t> wanted_results;
         TEST_TRUE(PathLoadBinaryFile(&wanted_results,
-                                     PathJoined(BBC_TESTS_FOLDER,bbc.spool_output_name)));
+                                     PathJoined(BBC_TESTS_FOLDER,GetBeebLinkName(bbc.spool_output_name))));
 
         std::string wanted_output(wanted_results.begin(),wanted_results.end());
 
@@ -526,6 +612,27 @@ static void SaveTextOutput(const std::string &output,const std::string &test_nam
 
         SaveTextOutput(wanted_output,stem,"wanted");
         SaveTextOutput(bbc.spool_output,stem,"got");
+
+#if BBCMICRO_TRACE
+        if(!!bbc.trace) {
+            std::string path=PathJoined(BBC_TESTS_OUTPUT_FOLDER,
+                                        strprintf("%s.trace.txt",stem.c_str()));
+            LOGF(OUTPUT,"Saving trace to: %s\n",path.c_str());
+            FILE *f=fopen(path.c_str(),"wt");
+            TEST_NON_NULL(f);
+
+            SaveTrace(bbc.trace,
+                      TraceCyclesOutput_Relative,
+                      &SaveTraceData,
+                      f,
+                      nullptr,
+                      nullptr,
+                      nullptr);
+
+            fclose(f);
+            f=nullptr;
+        }
+#endif
 
         TEST_EQ_SS(wanted_output,bbc.spool_output);
         //LOGF(OUTPUT,"Match: %d\n",wanted_output==bbc.tspool_output);

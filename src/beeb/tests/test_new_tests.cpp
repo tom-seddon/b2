@@ -2,5 +2,6 @@
 #include "test_common.h"
 
 int main() {
-    RunStandardTest("VIASTUFF1",TestBBCMicroType_BTape);
+    // This test exists just so that I have space to put anything I'm
+    // fiddling around with.
 }

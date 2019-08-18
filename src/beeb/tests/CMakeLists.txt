@@ -69,6 +69,28 @@ function (add_standard_test bbc_test_name bbc_type)
     -DBBC_TEST_NAME="${bbc_test_name}"
     -DBBC_TYPE=TestBBCMicroType_${bbc_type})
   test_target_boilerplate(${target})
+  set_tests_properties(${target} PROPERTIES LABELS bbc)
 endfunction()
 
 add_standard_test(VTIMERS BTape)
+add_standard_test(VIA.AC1 BTape)
+add_standard_test(VIA.AC2 BTape)
+add_standard_test(VIA.AC3 BTape)
+add_standard_test(VIA.AC4 BTape)
+add_standard_test(VIA.C1 BTape)
+add_standard_test(VIA.C2 BTape)
+add_standard_test(VIA.C3 BTape)
+add_standard_test(VIA.C4 BTape)
+
+# (VIA.C5 appears to be B only, and I've only got my Master set up at
+# time of writing)
+
+# add_standard_test(VIA.C5 BTape)
+
+add_standard_test(VIA.I1 BTape)
+add_standard_test(VIA.I2 BTape)
+add_standard_test(VIA.PB2 BTape)
+add_standard_test(VIA.PB7 BTape)
+add_standard_test(VIA.T11 BTape)
+add_standard_test(VIA.T21 BTape)
+add_standard_test(VIA.T22 BTape)

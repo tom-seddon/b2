@@ -30,6 +30,9 @@ public:
     std::string oswrch_output;
     std::string spool_output;
     std::string spool_output_name;
+#if BBCMICRO_TRACE
+    std::shared_ptr<Trace> trace;
+#endif
 
     explicit TestBBCMicro(TestBBCMicroType type);
 
@@ -59,6 +62,9 @@ private:
     void LoadROMsB();
     void LoadROMsBPlus();
     void LoadROMsMaster(const std::string &version);
+
+    static uint8_t ReadTestCommand(void *context,M6502Word addr);
+    static void WriteTestCommand(void *context,M6502Word addr,uint8_t value);
 };
 
 //////////////////////////////////////////////////////////////////////////
