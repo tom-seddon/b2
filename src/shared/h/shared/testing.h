@@ -57,13 +57,15 @@ void NORETURN TestQuit(void);
 //////////////////////////////////////////////////////////////////////////
 
 #define TEST(...)\
-    BEGIN_MACRO {\
-        if(!(__VA_ARGS__)) {\
-            TestStartup();\
-            BREAK();\
-            TestQuit();\
-        }\
-    } END_MACRO
+BEGIN_MACRO {\
+if(!(__VA_ARGS__)) {\
+TestStartup();\
+if(IsDebuggerAttached()) {\
+DEBUG_BREAK();\
+}\
+TestQuit();\
+}\
+} END_MACRO
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
