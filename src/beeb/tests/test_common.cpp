@@ -272,14 +272,6 @@ void TestBBCMicro::Paste(std::string text) {
 void TestBBCMicro::Update1() {
     const M6502 *cpu=this->GetM6502();
 
-    // InstructionFns would be another option, but in a debug build they're
-    // quite a lot slower than doing this - ~3.5x BBC speed (InstructionFn) vs
-    // ~7.5x (this) on my laptop.
-    //
-    // (A bit more can be eked out by routing the vectors to memory-mapped I/O
-    // addresses with special handling, eliminating the per-cycle overhead, but
-    // it's a bit more fiddly and not hugely quicker - ~8.0x real BBC speed in a
-    // debug build on my laptop.)
     if(M6502_IsAboutToExecute(cpu)) {
         const uint8_t *ram=this->GetRAM();
 
