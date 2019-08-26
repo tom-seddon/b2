@@ -1113,6 +1113,45 @@ uint16_t BBCMicro::DebugGetBeebAddressFromCRTCAddress(uint8_t h,uint8_t l) const
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+// Timing diagram:
+//
+// <pre>
+// 2MHz     ___     ___     ___     ___     ___
+// phi1    /   \___/   \___/   \___/   \___/   \___/
+// 2MHz         ___     ___     ___     ___     ___
+// phi2    \___/   \___/   \___/   \___/   \___/   \
+// BBCMicro    |<----->|<----->|<----->|<----->|
+// Update      |       |       |       |       |
+// 1MHz     _______         _______         _______
+// phi1    /       \_______/       \_______/       \
+// 1MHz             _______         _______
+// phi2    \_______/       \_______/       \_______/
+// BBCMicro    |<----->|<----->|<----->|<----->|
+// Update      |       |       |       |       |
+// stretch  ___             ___     ___     ___
+// case 1  /   \___.___.___/   \___/   \___/   \___/
+//              ___.___.___     ___     ___     ___
+//         \___/           \___/   \___/   \___/   \
+//                 |<- +1 >|
+// stretch  ___     ___                     ___
+// case 2  /   \___/   \___.___.___.___.___/   \___/
+//              ___     ___.___.___.___.___     ___
+//         \___/   \___/                   \___/   \
+//                         |<----- +2 ---->|
+// </pre>
+//
+// So each BBCMicro::Update encompasses a 2MHz phi1->phi2 then a phi2->phi1,
+// all covered by the 6502 update.
+//
+// It also involves a 1MHz phi1->phi2 or a 1MHz phi2->phi1.
+//
+// Accesses occur at the end of 2MHz phi2. For a 1MHz access, the access
+// can't complete until this lines up with the end of the next 1MHz phi2.
+// That means a delay of 1 2MHz cycle during a 1MHz phi1->phi2 (only need to
+// wait for the new phi2 state to finish), or 2 2MHz cycles during a 1MHz
+// phi2->phi1 (need to wait for the new phi1 state to finish, then for phi2
+// to finish too).
+
 bool BBCMicro::Update(VideoDataUnit *video_unit,SoundDataUnit *sound_unit) {
     uint8_t odd_cycle=m_state.num_2MHz_cycles&1;
     bool sound=false;

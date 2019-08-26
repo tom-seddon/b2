@@ -610,20 +610,20 @@ struct Cycle {
     // True if this is a read cycle, false if a write cycle.
     Type type;
 
-    // Address to read from or write to, set up in phase 1. Addresses
+    // Address to read from or write to, set up in phi1. Addresses
     // that map to a simple C expression are listed in ADDR_EXPRS;
     // those that expand to something more involved can be seen in
-    // GeneratePhase1.
+    // GeneratePhi1.
     std::string addr;
 
-    // What to put on the data bus in phase 1 (write) or where to
-    // store the data in phase 2 (read). These always expand to a
+    // What to put on the data bus in phi1 (write) or where to
+    // store the data in phi2 (read). These always expand to a
     // simple C expression, and the full list can be found in
     // WHAT_EXPRS.
     std::string what;
 
-    // Action to take on phase 2. The full list can be seen in
-    // GeneratePhase2.
+    // Action to take on phi2. The full list can be seen in
+    // GeneratePhi2.
     std::string action;
 
     Cycle(Type type_,std::string addr_,const char *what_,const char *action_):
@@ -681,23 +681,23 @@ public:
             std::string fn_name="T"+std::to_string(1+i)+"_"+this->stem;
 
             P("static void %s(M6502 *s) {\n",fn_name.c_str());
-            P("/* T%d phase 2 */\n",i+1);
+            P("/* T%d phi2 */\n",i+1);
 
             if(i<0) {
                 P("/* (decode - already done) */\n");
             } else {
-                this->GeneratePhase2(&this->cycles[(size_t)i]);
+                this->GeneratePhi2(&this->cycles[(size_t)i]);
             }
 
             P("\n");
 
             ++i;
 
-            P("/* T%d phase 1 */\n",(i+1)%((int)this->cycles.size()+1));
+            P("/* T%d phi1 */\n",(i+1)%((int)this->cycles.size()+1));
             if(i==(int)this->cycles.size()) {
                 P("M6502_NextInstruction(s);\n");
             } else {
-                this->GeneratePhase1(&this->cycles[(size_t)i]);
+                this->GeneratePhi1(&this->cycles[(size_t)i]);
                 P("s->tfn=&T%d_%s;\n",i+1,this->stem.c_str());
 
                 if(i==(int)this->cycles.size()-1) {
@@ -720,7 +720,7 @@ public:
     }
 protected:
 private:
-    void GeneratePhase1(const Cycle *c) const {
+    void GeneratePhi1(const Cycle *c) const {
         bool set_acarry=false;
         (void)set_acarry;
 
@@ -809,7 +809,7 @@ private:
         }
     }
 
-    void GeneratePhase2(const Cycle *c) const {
+    void GeneratePhi2(const Cycle *c) const {
         if(c->type!=Cycle::Type::Write) {
             if(c->what.empty()) {
                 P("/* ignore dummy read */\n");
@@ -829,7 +829,7 @@ private:
             P("/* No carry - done. */\n");
             this->GenerateCallIFn();
             P("\n");
-            P("/* T0 phase 1 */\n");
+            P("/* T0 phi1 */\n");
             P("M6502_NextInstruction(s);\n");
             P("return;\n");
             P("}\n");
@@ -844,7 +844,7 @@ private:
             P("/* No carry, no decimal - done. */\n");
             this->GenerateCallIFn();
             P("\n");
-            P("/* T0 phase 1 */\n");
+            P("/* T0 phi1 */\n");
             P("M6502_NextInstruction(s);\n");
             P("return;\n");
             P("}\n");
@@ -856,7 +856,7 @@ private:
             P("if(!s->p.bits.d) {\n");
             P("/* No decimal - done. */\n");
             P("\n");
-            P("/* T0 phase 1 */\n");
+            P("/* T0 phi1 */\n");
             P("M6502_NextInstruction(s);\n");
             P("return;\n");
             P("}\n");

@@ -11,6 +11,27 @@
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
+//
+// 1 MHz, phi1 then phi2
+//
+// phi2->phi1:
+//     - writes complete
+//     - timers update, incl. reload
+//     - PB7 goes low due to timer load
+//     - SR shift
+//
+// phi1->phi2:
+//     - IRQ output goes low
+//     - PB7 toggles due to timer timeout/reload
+//     - PB6 sampled for pulse counting mode
+//
+// The phase discrepancy between timer writes/updates/reload (phi2->phi1) and
+// IRQ output changing (ph1->phi2) is why the initial timeout period is N+1.5
+// cycles. (But once the half cycle offset has happened, it's happened, so
+// subsequent timeouts will be after N+2 cycles.)
+//
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
 
 // expansion starts with " ".
 #define IRQ_FMT "%s%s%s%s%s%s%s%s"
