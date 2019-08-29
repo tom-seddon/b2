@@ -514,7 +514,7 @@ private:
         AddressableLatch old_addressable_latch={0xff};
 
         M6502 cpu={};
-        uint8_t stretched_cycles_left=0;
+        uint8_t stretch=0;
         bool resetting=false;
 
         R6522 system_via;

@@ -1120,14 +1120,14 @@ uint16_t BBCMicro::DebugGetBeebAddressFromCRTCAddress(uint8_t h,uint8_t l) const
 // phi1    /   \___/   \___/   \___/   \___/   \___/
 // 2MHz         ___     ___     ___     ___     ___
 // phi2    \___/   \___/   \___/   \___/   \___/   \
-// BBCMicro    |<----->|<----->|<----->|<----->|
-// Update      |       |       |       |       |
+// BBCMicro   |<----->|<----->|<----->|<----->|
+// Update     |   0   |   1   |   2   |   3   |
 // 1MHz     _______         _______         _______
 // phi1    /       \_______/       \_______/       \
 // 1MHz             _______         _______
 // phi2    \_______/       \_______/       \_______/
-// BBCMicro    |<----->|<----->|<----->|<----->|
-// Update      |       |       |       |       |
+// BBCMicro   |<----->|<----->|<----->|<----->|
+// Update     |   0   |   1   |   2   |   3   |
 // stretch  ___             ___     ___     ___
 // case 1  /   \___.___.___/   \___/   \___/   \___/
 //              ___.___.___     ___     ___     ___
@@ -1146,14 +1146,16 @@ uint16_t BBCMicro::DebugGetBeebAddressFromCRTCAddress(uint8_t h,uint8_t l) const
 // It also involves a 1MHz phi1->phi2 or a 1MHz phi2->phi1.
 //
 // Accesses occur at the end of 2MHz phi2. For a 1MHz access, the access
-// can't complete until this lines up with the end of the next 1MHz phi2.
+// can't complete until this lines up with the trailing edge of the next 1MHz
+// phi2.
+//
 // That means a delay of 1 2MHz cycle during a 1MHz phi1->phi2 (only need to
 // wait for the new phi2 state to finish), or 2 2MHz cycles during a 1MHz
 // phi2->phi1 (need to wait for the new phi1 state to finish, then for phi2
 // to finish too).
 
 bool BBCMicro::Update(VideoDataUnit *video_unit,SoundDataUnit *sound_unit) {
-    uint8_t odd_cycle=m_state.num_2MHz_cycles&1;
+    uint8_t phi2_1MHz_trailing_edge=m_state.num_2MHz_cycles&1;
     bool sound=false;
 
     ++m_state.num_2MHz_cycles;
@@ -1161,13 +1163,13 @@ bool BBCMicro::Update(VideoDataUnit *video_unit,SoundDataUnit *sound_unit) {
 #if VIDEO_TRACK_METADATA
     video_unit->metadata.flags=0;
 
-    if(odd_cycle) {
+    if(phi2_1MHz_trailing_edge) {
         video_unit->metadata.flags|=VideoDataUnitMetadataFlag_OddCycle;
     }
 #endif
 
     // Update video hardware.
-    if(m_state.video_ula.control.bits.fast_6845|odd_cycle) {
+    if(m_state.video_ula.control.bits.fast_6845|phi2_1MHz_trailing_edge) {
         CRTC::Output output=m_state.crtc.Update();
 
         m_state.system_via.a.c1=output.vsync;
@@ -1197,7 +1199,7 @@ bool BBCMicro::Update(VideoDataUnit *video_unit,SoundDataUnit *sound_unit) {
         addr|=m_state.shadow_select_mask;
 
         // Teletext update.
-        if(odd_cycle) {
+        if(phi2_1MHz_trailing_edge) {
             if(output.vsync) {
                 if(!m_state.crtc_last_output.vsync) {
                     m_state.last_frame_2MHz_cycles=m_state.num_2MHz_cycles-m_state.last_vsync_2MHz_cycles;
@@ -1335,7 +1337,8 @@ bool BBCMicro::Update(VideoDataUnit *video_unit,SoundDataUnit *sound_unit) {
         video_unit->pixels.pixels[1].bits.x|=VideoDataUnitFlag_VSync;
     }
 
-    if(odd_cycle) {
+    // Update VIAs and slow data bus.
+    if(phi2_1MHz_trailing_edge) {
         // Update keyboard.
         if(m_state.addressable_latch.bits.not_kb_write) {
             if(m_state.key_columns[m_state.key_scan_column]&0xfe) {
@@ -1385,17 +1388,8 @@ bool BBCMicro::Update(VideoDataUnit *video_unit,SoundDataUnit *sound_unit) {
         }
 
         // Update IRQs.
-        if(m_state.system_via.Update()) {
-            M6502_SetDeviceIRQ(&m_state.cpu,BBCMicroIRQDevice_SystemVIA,1);
-        } else {
-            M6502_SetDeviceIRQ(&m_state.cpu,BBCMicroIRQDevice_SystemVIA,0);
-        }
-
-        if(m_state.user_via.Update()) {
-            M6502_SetDeviceIRQ(&m_state.cpu,BBCMicroIRQDevice_UserVIA,1);
-        } else {
-            M6502_SetDeviceIRQ(&m_state.cpu,BBCMicroIRQDevice_UserVIA,0);
-        }
+        m_state.system_via.UpdatePhi2TrailingEdge();
+        m_state.user_via.UpdatePhi2TrailingEdge();
 
         // Update addressable latch and RTC.
         if(m_state.old_system_via_pb!=m_state.system_via.b.p) {
@@ -1453,50 +1447,59 @@ bool BBCMicro::Update(VideoDataUnit *video_unit,SoundDataUnit *sound_unit) {
             m_state.rtc.Update();
         }
 
-        // Update NMI.
-        M6502_SetDeviceNMI(&m_state.cpu,BBCMicroNMIDevice_1770,m_state.fdc.Update().value);
-
-        // Update sound.
-        if((m_state.num_2MHz_cycles&((1<<SOUND_CLOCK_SHIFT)-1))==0) {
-            sound_unit->sn_output=m_state.sn76489.Update(!m_state.addressable_latch.bits.not_sound_write,
-                                                         m_state.system_via.a.p);
-
-#if BBCMICRO_ENABLE_DISC_DRIVE_SOUND
-            // The disc drive sounds are pretty quiet. 
-            sound_unit->disc_drive_sound=this->UpdateDiscDriveSound(&m_state.drives[0]);
-            sound_unit->disc_drive_sound+=this->UpdateDiscDriveSound(&m_state.drives[1]);
-#endif
-            sound=true;
+        m_state.old_addressable_latch=m_state.addressable_latch;
+    } else {
+        if(m_state.system_via.UpdatePhi2LeadingEdge()) {
+            M6502_SetDeviceIRQ(&m_state.cpu,BBCMicroIRQDevice_SystemVIA,1);
+        } else {
+            M6502_SetDeviceIRQ(&m_state.cpu,BBCMicroIRQDevice_SystemVIA,0);
         }
 
-        m_state.old_addressable_latch=m_state.addressable_latch;
+        if(m_state.user_via.UpdatePhi2LeadingEdge()) {
+            M6502_SetDeviceIRQ(&m_state.cpu,BBCMicroIRQDevice_UserVIA,1);
+        } else {
+            M6502_SetDeviceIRQ(&m_state.cpu,BBCMicroIRQDevice_UserVIA,0);
+        }
+    }
+
+    // Update 1770.
+    if(phi2_1MHz_trailing_edge) {
+        M6502_SetDeviceNMI(&m_state.cpu,BBCMicroNMIDevice_1770,m_state.fdc.Update().value);
+    }
+
+    // Update sound.
+    if((m_state.num_2MHz_cycles&((1<<SOUND_CLOCK_SHIFT)-1))==0) {
+        sound_unit->sn_output=m_state.sn76489.Update(!m_state.addressable_latch.bits.not_sound_write,
+                                                     m_state.system_via.a.p);
+
+#if BBCMICRO_ENABLE_DISC_DRIVE_SOUND
+        // The disc drive sounds are pretty quiet.
+        sound_unit->disc_drive_sound=this->UpdateDiscDriveSound(&m_state.drives[0]);
+        sound_unit->disc_drive_sound+=this->UpdateDiscDriveSound(&m_state.drives[1]);
+#endif
+        sound=true;
     }
 
     // Update CPU.
-    if(m_state.stretched_cycles_left>0) {
-        --m_state.stretched_cycles_left;
-        if(m_state.stretched_cycles_left==0) {
-            ASSERT(odd_cycle);
+
+    if(m_state.stretch) {
+        if(phi2_1MHz_trailing_edge) {
+            m_state.stretch=false;
         }
     } else {
         (*m_state.cpu.tfn)(&m_state.cpu);
 
         uint8_t mmio_page=m_state.cpu.abus.b.h-0xfc;
         if(mmio_page<3) {
-            uint8_t num_stretch_cycles=1+odd_cycle;
-
-            uint8_t stretch;
             if(m_state.cpu.read) {
-                stretch=m_mmio_stretch[mmio_page][m_state.cpu.abus.b.l];
+                m_state.stretch=m_mmio_stretch[mmio_page][m_state.cpu.abus.b.l];
             } else {
-                stretch=m_hw_mmio_stretch[mmio_page][m_state.cpu.abus.b.l];
+                m_state.stretch=m_hw_mmio_stretch[mmio_page][m_state.cpu.abus.b.l];
             }
-
-            m_state.stretched_cycles_left=num_stretch_cycles&stretch;
         }
     }
 
-    if(m_state.stretched_cycles_left==0) {
+    if(!m_state.stretch) {
         (*m_handle_cpu_data_bus_fn)(this);
     }
 

@@ -167,7 +167,9 @@ public:
     PCR GetPCR() const;
 
     // returns IRQ flag: true = IRQ, false = no IRQ
-    uint8_t Update();
+    uint8_t UpdatePhi2LeadingEdge();
+
+    void UpdatePhi2TrailingEdge();
 
 #if BBCMICRO_TRACE
     void SetTrace(Trace *t);
@@ -182,24 +184,24 @@ private:
     uint8_t m_t1ll=250;
     uint8_t m_t1lh=202;
     uint8_t m_t2ll=0;
+    uint8_t m_t2lh=0;
     uint8_t m_sr=0;
     ACR m_acr={};
     PCR m_pcr={};
 
-    int32_t m_t1=0;
-    int32_t m_t2=0;
+    uint16_t m_t1=0;
+    bool m_t1_reload=false;
+    bool m_t1_pending=false;
+    bool m_t1_timeout=false;
 
-    //uint8_t m_irq_output=0;
+    uint16_t m_t2=0;
+    bool m_t2_reload=false;
+    bool m_t2_pending=false;
+    bool m_t2_timeout=false;
+    bool m_t2_count=true;
 
     /* T1-driven output value for PB7 */
     uint8_t m_t1_pb7=0;
-
-    /* whether to generate an IRQ on next T2 timeout */
-    uint8_t m_t2_irq=0;
-
-    /* when not in continuous mode, whether to generate an IRQ on next
-     * T1 timeout */
-    uint8_t m_t1_irq=0;
 
     /* old value of port B, for use when counting PB6 pulses. */
     uint8_t m_old_pb=0;

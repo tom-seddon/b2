@@ -280,7 +280,9 @@ uint8_t R6522::Read4(void *via_,M6502Word addr) {
     auto via=(R6522 *)via_;
     (void)addr;
 
-    via->ifr.bits.t1=0;
+    if(!via->m_t1_timeout) {
+        via->ifr.bits.t1=0;
+    }
 
     return (uint8_t)(via->m_t1);
 }
@@ -309,17 +311,16 @@ void R6522::Write5(void *via_,M6502Word addr,uint8_t value) {
     (void)addr;
 
     via->ifr.bits.t1=0;
-    via->m_t1_irq=1;
 
     via->m_t1lh=value;
-
-    via->m_t1=(via->m_t1ll|via->m_t1lh<<8)+1;
+    via->m_t1_pending=true;
+    via->m_t1_reload=true;
 
     if(via->m_acr.bits.t1_output_pb7) {
         via->m_t1_pb7=0;
     }
 
-    TRACEF(via->m_trace,"%s - Write T1C-H. T1=%d T1_irq=%d",via->m_name,via->m_t1,via->m_t1_irq);
+    //TRACEF(via->m_trace,"%s - Write T1C-H. T1=%d T1_irq=%d",via->m_name,via->m_t1,via->m_t1_irq);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -358,7 +359,7 @@ void R6522::Write7(void *via_,M6502Word addr,uint8_t value) {
     /* See V.TIMERS. My model-b notes say Skirmish needs this. */
     via->ifr.bits.t1=0;
 
-    TRACEF(via->m_trace,"%s - Write T1L-H. IFR:" IRQ_FMT,via->m_name,IRQ_ARGS(via->ifr));
+    //TRACEF(via->m_trace,"%s - Write T1L-H. IFR:" IRQ_FMT,via->m_name,IRQ_ARGS(via->ifr));
 
     via->m_t1lh=value;
 }
@@ -371,7 +372,9 @@ uint8_t R6522::Read8(void *via_,M6502Word addr) {
     auto via=(R6522 *)via_;
     (void)addr;
 
-    via->ifr.bits.t2=0;
+    if(!via->m_t2_timeout) {
+        via->ifr.bits.t2=0;
+    }
 
     return (uint8_t)via->m_t2;
 }
@@ -400,8 +403,9 @@ void R6522::Write9(void *via_,M6502Word addr,uint8_t value) {
 
     via->ifr.bits.t2=0;
 
-    via->m_t2=(via->m_t2ll|value<<8)+1;
-    via->m_t2_irq=1;
+    via->m_t2lh=value;
+    via->m_t2_pending=true;
+    via->m_t2_reload=true;
 
     TRACEF(via->m_trace,"%s - write T2C-H. T2=%d ($%04X)",via->m_name,via->m_t2,via->m_t2);
 }
@@ -442,7 +446,7 @@ void R6522::WriteB(void *via_,M6502Word addr,uint8_t value) {
     via->m_acr.value=value;
 
     if(via->m_acr.bits.t1_continuous) {
-        via->m_t1_irq=1;
+        via->m_t1_pending=true;
     }
 }
 
@@ -521,62 +525,26 @@ void R6522::WriteE(void *via_,M6502Word addr,uint8_t value) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-uint8_t R6522::Update() {
-    /* CA1/CA2 */
-    TickControl(&this->a,m_acr.bits.pa_latching,m_pcr.value>>0,R6522IRQMask_CA2,'A');
+uint8_t R6522::UpdatePhi2LeadingEdge() {
+    if(m_t1_timeout) {
+        m_t1_pending=m_acr.bits.t1_continuous;
+        this->ifr.bits.t1=1;
 
-    /* CB1/CB2 */
-    TickControl(&this->b,m_acr.bits.pb_latching,m_pcr.value>>4,R6522IRQMask_CB2,'B');
-
-    /* Count down T1 */
-    {
-        if(m_t1--<0) {
-//            if(m_id==0) {
-//                volatile int x=99;
-//            } else if(m_id==1) {
-//                volatile int x=99;
-//            }
-
-            if(m_t1_irq) {
-                this->ifr.bits.t1=1;
-
-                if(m_acr.bits.t1_output_pb7) {
-                    ASSERT(!(m_t1_pb7&0x7f));
-                    m_t1_pb7^=0x80;
-                }
-
-                if(!m_acr.bits.t1_continuous) {
-                    m_t1_irq=0;
-                }
-            }
-
-            m_t1=m_t1ll|m_t1lh<<8;
-
-            TRACEF(m_trace,"%s - T1 timed out (continuous=%d). T1 new value: %d ($%04X)",m_name,m_acr.bits.t1_continuous,m_t1,m_t1);
+        if(m_acr.bits.t1_output_pb7) {
+            m_t1_pb7^=0x80;
         }
     }
 
-    /* Set T1 PB7 output */
-    if(m_acr.bits.t1_output_pb7) {
-        this->b.p=(this->b.p&0x7f)|m_t1_pb7;
+    if(m_t2_timeout) {
+        m_t2_pending=false;
+        this->ifr.bits.t2=1;
     }
 
-    /* Count down T2 */
-    {
-        if(!(m_acr.bits.t2_count_pb6)||
-            ((m_old_pb&0x40)&~(this->b.p&0x40)))
-        {
-            if(m_t2--<0) {
-                if(m_t2_irq) {
-                    TRACEF(m_trace,"%s - T2 timed out.",m_name);
-
-                    this->ifr.bits.t2=1;
-                    m_t2_irq=0;
-                }
-            }
-        }
-
+    if(m_acr.bits.t2_count_pb6) {
+        m_t2_count=(m_old_pb&0x40)&~(this->b.p&0x40);
         m_old_pb=this->b.p;
+    } else {
+        m_t2_count=true;
     }
 
     uint8_t any_irqs=this->ifr.value&this->ier.value&0x7f;
@@ -592,8 +560,42 @@ uint8_t R6522::Update() {
     }
 #endif
 
-    /* Assert IRQ if necessary. */
     return any_irqs;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void R6522::UpdatePhi2TrailingEdge() {
+    /* CA1/CA2 */
+    TickControl(&this->a,m_acr.bits.pa_latching,m_pcr.value>>0,R6522IRQMask_CA2,'A');
+
+    /* CB1/CB2 */
+    TickControl(&this->b,m_acr.bits.pb_latching,m_pcr.value>>4,R6522IRQMask_CB2,'B');
+
+    /* T1 */
+    m_t1_timeout=false;
+
+    if(m_t1_reload) {
+        m_t1=m_t1ll|m_t1lh<<8;
+        m_t1_reload=false;
+    } else {
+        --m_t1;
+        m_t1_reload=m_t1==0xffff;
+        m_t1_timeout=m_t1_pending&&m_t1_reload;
+    }
+
+    /* T2 */
+    m_t2_timeout=false;
+    if(m_t2_reload) {
+        m_t2=m_t2ll|m_t2lh<<8;
+        m_t2_reload=false;
+    } else {
+        if(m_t2_count) {
+            --m_t2;
+            m_t2_timeout=m_t2_pending&&m_t2==0xffff;
+        }
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////
