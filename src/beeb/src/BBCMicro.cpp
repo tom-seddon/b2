@@ -1158,8 +1158,6 @@ bool BBCMicro::Update(VideoDataUnit *video_unit,SoundDataUnit *sound_unit) {
     uint8_t phi2_1MHz_trailing_edge=m_state.num_2MHz_cycles&1;
     bool sound=false;
 
-    ++m_state.num_2MHz_cycles;
-
 #if VIDEO_TRACK_METADATA
     video_unit->metadata.flags=0;
 
@@ -1167,6 +1165,29 @@ bool BBCMicro::Update(VideoDataUnit *video_unit,SoundDataUnit *sound_unit) {
         video_unit->metadata.flags|=VideoDataUnitMetadataFlag_OddCycle;
     }
 #endif
+
+    // Update CPU.
+
+    if(m_state.stretch) {
+        if(phi2_1MHz_trailing_edge) {
+            m_state.stretch=false;
+        }
+    } else {
+        (*m_state.cpu.tfn)(&m_state.cpu);
+
+        uint8_t mmio_page=m_state.cpu.abus.b.h-0xfc;
+        if(mmio_page<3) {
+            if(m_state.cpu.read) {
+                m_state.stretch=m_mmio_stretch[mmio_page][m_state.cpu.abus.b.l];
+            } else {
+                m_state.stretch=m_hw_mmio_stretch[mmio_page][m_state.cpu.abus.b.l];
+            }
+        }
+    }
+
+    if(!m_state.stretch) {
+        (*m_handle_cpu_data_bus_fn)(this);
+    }
 
     // Update video hardware.
     if(m_state.video_ula.control.bits.fast_6845|phi2_1MHz_trailing_edge) {
@@ -1480,28 +1501,7 @@ bool BBCMicro::Update(VideoDataUnit *video_unit,SoundDataUnit *sound_unit) {
         sound=true;
     }
 
-    // Update CPU.
-
-    if(m_state.stretch) {
-        if(phi2_1MHz_trailing_edge) {
-            m_state.stretch=false;
-        }
-    } else {
-        (*m_state.cpu.tfn)(&m_state.cpu);
-
-        uint8_t mmio_page=m_state.cpu.abus.b.h-0xfc;
-        if(mmio_page<3) {
-            if(m_state.cpu.read) {
-                m_state.stretch=m_mmio_stretch[mmio_page][m_state.cpu.abus.b.l];
-            } else {
-                m_state.stretch=m_hw_mmio_stretch[mmio_page][m_state.cpu.abus.b.l];
-            }
-        }
-    }
-
-    if(!m_state.stretch) {
-        (*m_handle_cpu_data_bus_fn)(this);
-    }
+    ++m_state.num_2MHz_cycles;
 
     return sound;
 }

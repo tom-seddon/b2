@@ -280,7 +280,9 @@ uint8_t R6522::Read4(void *via_,M6502Word addr) {
     auto via=(R6522 *)via_;
     (void)addr;
 
-    if(!via->m_t1_timeout) {
+    if(via->m_t1_timeout) {
+        TRACEF(via->m_trace,"%s - T1C-L read doesn't acknowledge IRQ as T1 just timed out",via->m_name);
+    } else {
         via->ifr.bits.t1=0;
     }
 
@@ -406,8 +408,6 @@ void R6522::Write9(void *via_,M6502Word addr,uint8_t value) {
     via->m_t2lh=value;
     via->m_t2_pending=true;
     via->m_t2_reload=true;
-
-    TRACEF(via->m_trace,"%s - write T2C-H. T2=%d ($%04X)",via->m_name,via->m_t2,via->m_t2);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -444,10 +444,6 @@ void R6522::WriteB(void *via_,M6502Word addr,uint8_t value) {
     (void)addr;
 
     via->m_acr.value=value;
-
-    if(via->m_acr.bits.t1_continuous) {
-        via->m_t1_pending=true;
-    }
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -533,11 +529,15 @@ uint8_t R6522::UpdatePhi2LeadingEdge() {
         if(m_acr.bits.t1_output_pb7) {
             m_t1_pb7^=0x80;
         }
+
+        TRACEF(m_trace,"%s - T1 IRQ",m_name);
     }
 
     if(m_t2_timeout) {
         m_t2_pending=false;
         this->ifr.bits.t2=1;
+
+        TRACEF(m_trace,"%s - T2 IRQ",m_name);
     }
 
     if(m_acr.bits.t2_count_pb6) {
@@ -579,10 +579,20 @@ void R6522::UpdatePhi2TrailingEdge() {
     if(m_t1_reload) {
         m_t1=m_t1ll|m_t1lh<<8;
         m_t1_reload=false;
+        TRACEF(m_trace,"%s - T1 reload: T1=$%04x (%u)",m_name,m_t1,m_t1);
     } else {
         --m_t1;
         m_t1_reload=m_t1==0xffff;
         m_t1_timeout=m_t1_pending&&m_t1_reload;
+
+        //TRACEF(m_trace,"%s - T1 = $%04x (%u); t1_pending=%s",m_name,m_t1,m_t1,BOOL_STR(m_t1_pending));
+
+        if(m_t1_timeout) {
+            TRACEF(m_trace,"%s - T1 timeout",m_name);
+        }
+
+//        timed out: continuous=%u output_pb7=%u",
+//        m_name,m_acr.bits.t1_continuous,m_acr.bits.t1_output_pb7);
     }
 
     /* T2 */
@@ -590,10 +600,15 @@ void R6522::UpdatePhi2TrailingEdge() {
     if(m_t2_reload) {
         m_t2=m_t2ll|m_t2lh<<8;
         m_t2_reload=false;
+        TRACEF(m_trace,"%s - T2 reload: T2=$%04x (%u)",m_name,m_t2,m_t2);
     } else {
         if(m_t2_count) {
             --m_t2;
             m_t2_timeout=m_t2_pending&&m_t2==0xffff;
+
+            if(m_t2_timeout) {
+                TRACEF(m_trace,"%s - T2 timeout",m_name);
+            }
         }
     }
 }
