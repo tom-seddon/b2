@@ -37,7 +37,7 @@ endif()
 ##########################################################################
 ##########################################################################
 
-add_library(test_common_lib test_common.h test_common.cpp)
+add_library(test_common_lib test_common.h test_common.cpp test_common.inl)
 target_compile_definitions(test_common_lib PUBLIC
   -DROMS_FOLDER="${b2_SOURCE_DIR}/etc/roms"
   -DBBC_TESTS_FOLDER="${b2_SOURCE_DIR}/etc/b2_tests/0"
