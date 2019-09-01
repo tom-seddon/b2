@@ -444,6 +444,12 @@ void R6522::WriteB(void *via_,M6502Word addr,uint8_t value) {
     (void)addr;
 
     via->m_acr.value=value;
+
+    if(via->m_t1_timeout) {
+        if(!via->m_acr.bits.t1_continuous) {
+            via->m_t1_pending=false;
+        }
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////
