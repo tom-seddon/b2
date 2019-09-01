@@ -83,7 +83,11 @@ add_standard_test(VIA.AC7 BTape)
 add_standard_test(VIA.C1 BTape)
 add_standard_test(VIA.C2 BTape)
 add_standard_test(VIA.C3 BTape)
-add_standard_test(VIA.C4 BTape)
+
+# VIA.C4 isn't Master-specific, but it uses ASL $xxxx,X, which behaves
+# differently on CMOS CPUs, and the output in the repo comes from a
+# Master 128.
+add_standard_test(VIA.C4 Master128MOS320)
 
 # (VIA.C5 appears to be B only, and I've only got my Master set up at
 # time of writing)
