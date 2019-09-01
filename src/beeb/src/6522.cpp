@@ -321,10 +321,7 @@ void R6522::Write5(void *via_,M6502Word addr,uint8_t value) {
     via->m_t1lh=value;
     via->m_t1_pending=true;
     via->m_t1_reload=true;
-
-    if(via->m_acr.bits.t1_output_pb7) {
-        via->m_t1_pb7=0;
-    }
+    via->m_t1_pb7=0;
 
     //TRACEF(via->m_trace,"%s - Write T1C-H. T1=%d T1_irq=%d",via->m_name,via->m_t1,via->m_t1_irq);
 }
@@ -546,11 +543,9 @@ uint8_t R6522::UpdatePhi2LeadingEdge() {
         m_t1_pending=m_acr.bits.t1_continuous;
         this->ifr.bits.t1=1;
 
-        if(m_acr.bits.t1_output_pb7) {
-            m_t1_pb7^=0x80;
-        }
+        m_t1_pb7^=0x80;
 
-        TRACEF(m_trace,"%s - T1 IRQ. Continuous=%s",m_name,BOOL_STR(m_t1_pending));
+        TRACEF(m_trace,"%s - T1 IRQ. Continuous=%s PB7=%s",m_name,BOOL_STR(m_t1_pending),BOOL_STR(m_acr.bits.t1_output_pb7));
     }
 
     if(m_t2_timeout) {
