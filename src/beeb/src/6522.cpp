@@ -312,7 +312,11 @@ void R6522::Write5(void *via_,M6502Word addr,uint8_t value) {
     auto via=(R6522 *)via_;
     (void)addr;
 
-    via->ifr.bits.t1=0;
+    if(via->m_t1_timeout) {
+        TRACEF(via->m_trace,"%s - T1C-H write doesn't acknowledge IRQ as T1 just timed out",via->m_name);
+    } else {
+        via->ifr.bits.t1=0;
+    }
 
     via->m_t1lh=value;
     via->m_t1_pending=true;
@@ -359,7 +363,11 @@ void R6522::Write7(void *via_,M6502Word addr,uint8_t value) {
     (void)addr;
 
     /* See V.TIMERS. My model-b notes say Skirmish needs this. */
-    via->ifr.bits.t1=0;
+    if(via->m_t1_timeout) {
+        TRACEF(via->m_trace,"%s - T1L-H write doesn't acknowledge IRQ as T1 just timed out",via->m_name);
+    } else {
+        via->ifr.bits.t1=0;
+    }
 
     //TRACEF(via->m_trace,"%s - Write T1L-H. IFR:" IRQ_FMT,via->m_name,IRQ_ARGS(via->ifr));
 
@@ -374,7 +382,9 @@ uint8_t R6522::Read8(void *via_,M6502Word addr) {
     auto via=(R6522 *)via_;
     (void)addr;
 
-    if(!via->m_t2_timeout) {
+    if(via->m_t2_timeout) {
+        TRACEF(via->m_trace,"%s - T2C-L write doesn't acknowledge IRQ as T2 just timed out",via->m_name);
+    } else {
         via->ifr.bits.t2=0;
     }
 
@@ -403,7 +413,11 @@ void R6522::Write9(void *via_,M6502Word addr,uint8_t value) {
     auto via=(R6522 *)via_;
     (void)addr;
 
-    via->ifr.bits.t2=0;
+    if(via->m_t2_timeout) {
+        TRACEF(via->m_trace,"%s - T2C-H write doesn't acknowledge IRQ as T2 just timed out",via->m_name);
+    } else {
+        via->ifr.bits.t2=0;
+    }
 
     via->m_t2lh=value;
     via->m_t2_pending=true;
@@ -536,7 +550,7 @@ uint8_t R6522::UpdatePhi2LeadingEdge() {
             m_t1_pb7^=0x80;
         }
 
-        TRACEF(m_trace,"%s - T1 IRQ",m_name);
+        TRACEF(m_trace,"%s - T1 IRQ. Continuous=%s",m_name,BOOL_STR(m_t1_pending));
     }
 
     if(m_t2_timeout) {
