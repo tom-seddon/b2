@@ -1063,7 +1063,8 @@ static void T1_RMW_ABX2_CMOS(M6502 *);
 static void T2_RMW_ABX2_CMOS(M6502 *);
 static void T3_RMW_ABX2_CMOS(M6502 *);
 static void T4_RMW_ABX2_CMOS(M6502 *);
-static void Tn_RMW_ABX2_CMOS(M6502 *);
+static void T4or5_RMW_ABX2_CMOS(M6502 *);
+static void T5or6_RMW_ABX2_CMOS(M6502 *);
 
 static void T0_RMW_ABX2_CMOS(M6502 *s) {
     /* T0 phase 2 */
@@ -1094,7 +1095,7 @@ static void T2_RMW_ABX2_CMOS(M6502 *s) {
     s->acarry=s->abus.b.h;
     s->abus.b.h=s->ad.b.h;
     assert(s->acarry==0||s->acarry==1);
-    s->read=M6502ReadType_Data+s->acarry;
+    s->read=M6502ReadType_Data;//+s->acarry; <-- TODO wtah was this??
     s->tfn=&T3_RMW_ABX2_CMOS;
 }
 
@@ -1102,18 +1103,13 @@ static void T3_RMW_ABX2_CMOS(M6502 *s) {
     /* T3 phase 2 */
     s->data=s->dbus;
 
+    /* T4 phase 1 */
     if(!s->acarry) {
-        CheckForInterrupts(s);//TODO - CheckForInterrupts in phi2
-        (*s->ifn)(s);
-
-        /* T4 phase 1 */
-        s->dbus=s->data;
-        s->read=0;
-        s->tfn=&Tn_RMW_ABX2_CMOS;
-    } else {
-        /* T4 phase 1 */
-        s->abus.w=s->ad.w+s->x;
         s->read=M6502ReadType_Data;
+        s->tfn=&T4or5_RMW_ABX2_CMOS;
+    } else {
+        s->read=M6502ReadType_Data;
+        s->abus.w=s->ad.w+s->x;
         s->tfn=&T4_RMW_ABX2_CMOS;
     }
 }
@@ -1121,27 +1117,32 @@ static void T3_RMW_ABX2_CMOS(M6502 *s) {
 static void T4_RMW_ABX2_CMOS(M6502 *s) {
     /* T4 phase 2 */
     s->data=s->dbus;
+
+    /* T5 phase 1 */
+    s->tfn=&T4or5_RMW_ABX2_CMOS;
+}
+
+static void T4or5_RMW_ABX2_CMOS(M6502 *s) {
+    /* T(N-2) phase 2 */
     (*s->ifn)(s);
 #ifdef _DEBUG
     s->ifn=NULL;
 #endif
 
-    /* T5 phase 1 */
+    /* T(N-1) phase 1 */
     s->dbus=s->data;
     s->abus.w=s->ad.w+s->x;
     s->read=0;
-    s->tfn=&Tn_RMW_ABX2_CMOS;
+    s->tfn=&T5or6_RMW_ABX2_CMOS;
     CheckForInterrupts(s);
 }
 
-static void Tn_RMW_ABX2_CMOS(M6502 *s) {
-    /* T4 phase 2 (no carry) */
-    /* T5 phase 2 (carry) */
+static void T5or6_RMW_ABX2_CMOS(M6502 *s) {
+    /* T(N-1) phase 2 */
 
     /* T0 phase 1 */
     M6502_NextInstruction(s);
 }
-
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
