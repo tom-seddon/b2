@@ -1,8 +1,11 @@
-Various tests for running on the BBC. Some are run as part of the
-automated tests.
+Various tests for running on the BBC, mostly thanks to
+[scarybeasts](https://github.com/scarybeasts). Many are run as part of
+the automated tests you get when running `ctest`.
 
 This folder is a BeebLink volume. (For more about BeebLink, see
 https://github.com/tom-seddon/beeblink.)
+
+Licence: GPL v3
 
 # Test notes
 
@@ -17,9 +20,12 @@ system. No need for an emulated filing system.
 * commands supported so far:
 
 * `*SPOOL` - test output is whatever gets spooled
+
+And in the future:
+
 * `*SAVE` - test output is whatever was saved
 
-More options to follow, and hand-coded special cases are also always
+And more to follow, perhaps? Hand-coded special cases are also always
 an option.
 
 # Volume layout
@@ -42,8 +48,5 @@ account).
 * the test runner knows the name stem to use, because it's called that
   way from the C++ code
 
-* the * command used determines the test type, so it's all automatic
-  
-* many tests will (hopefully?) run the same on B vs B+ vs Master, so
-  the test runner will load whichever file is available if the
-  specific one isn't present. This will probably want improving a bit
+* the * command used determines the test output type, so it's all
+  automatic
