@@ -9,7 +9,7 @@ CMAKE_TYPE?=Ninja
 init:
 	$(MAKE) _unix SANITIZER= SUFFIX=
 ifndef RELEASE_MODE
-	$(MAKE) -j$(shell $(NPROC)) _sanitizers
+	$(MAKE) -j$(NPROC) _sanitizers
 endif
 
 .PHONY:_usan

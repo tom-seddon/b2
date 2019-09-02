@@ -1,8 +1,21 @@
 # -*- mode:makefile-gmake; -*-
 
+##########################################################################
+##########################################################################
+
 .PHONY:init_xcode
 init_xcode: _FOLDER=$(BUILD_FOLDER)/$(FOLDER_PREFIX)Xcode
 init_xcode:
 	rm -Rf "$(_FOLDER)"
 	mkdir -p "$(_FOLDER)"
 	cd "$(_FOLDER)" && cmake -G Xcode $(CMAKE_DEFINES) ../..
+
+##########################################################################
+##########################################################################
+
+# for me, on my Mac... but it might work for you...
+.PHONY:run_tests
+run_tests: BUILD?=Debug
+run_tests: _OUTPUT=b2_tests_output/
+run_tests:
+	cd build/Xcode && ctest -C $(BUILD) -j$(NPROC) -LE slow --output-on-failure || meld $(_OUTPUT)/got/ $(_OUTPUT)/wanted/
