@@ -1360,6 +1360,10 @@ bool BBCMicro::Update(VideoDataUnit *video_unit,SoundDataUnit *sound_unit) {
 
     // Update VIAs and slow data bus.
     if(phi2_1MHz_trailing_edge) {
+        // Update IRQs.
+        m_state.system_via.UpdatePhi2TrailingEdge();
+        m_state.user_via.UpdatePhi2TrailingEdge();
+
         // Update keyboard.
         if(m_state.addressable_latch.bits.not_kb_write) {
             if(m_state.key_columns[m_state.key_scan_column]&0xfe) {
@@ -1407,10 +1411,6 @@ bool BBCMicro::Update(VideoDataUnit *video_unit,SoundDataUnit *sound_unit) {
             m_state.user_via.b.p=255;
             m_state.user_via.b.c1=1;
         }
-
-        // Update IRQs.
-        m_state.system_via.UpdatePhi2TrailingEdge();
-        m_state.user_via.UpdatePhi2TrailingEdge();
 
         // Update addressable latch and RTC.
         if(m_state.old_system_via_pb!=m_state.system_via.b.p) {
