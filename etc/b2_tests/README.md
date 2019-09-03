@@ -50,3 +50,8 @@ account).
 
 * the * command used determines the test output type, so it's all
   automatic
+
+# Producing SSDs
+
+Run `make rel_tests` in the root of the working copy. The SSDs will be
+created in `build/b2_tests`, one SSD per test.
