@@ -48,24 +48,6 @@ const TraceEventType R6522::IRQ_EVENT("R6522IRQEvent",sizeof(IRQEvent));
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-inline void R6522::UpdatePortPins(Port *port) {
-#if BBCMICRO_TRACE
-    uint8_t old_p=port->p;
-#endif
-    
-    port->p=~port->ddr|(port->or_&port->ddr);
-
-    TRACEF_IF(old_p!=port->p,m_trace,
-              "Port value now: %03u ($%02x) (%%%s) ('%c')",
-              port->p,
-              port->p,
-              BINARY_BYTE_STRINGS[port->p],
-              port->p>=32&&port->p<127?(char)port->p:'?');
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 void R6522::Reset() {
     R6522 old=*this;
 
@@ -122,8 +104,6 @@ void R6522::Write0(void *via_,M6502Word addr,uint8_t value) {
     (void)addr;
 
     via->b.or_=value;
-
-    via->UpdatePortPins(&via->b);
 
     // Clear port B interrupt flags.
     via->ifr.bits.cb1=0;
@@ -201,8 +181,6 @@ void R6522::WriteF(void *via_,M6502Word addr,uint8_t value) {
     (void)addr;
 
     via->a.or_=value;
-
-    via->UpdatePortPins(&via->a);
 }
 
 /* ORA */
@@ -248,8 +226,6 @@ void R6522::Write2(void *via_,M6502Word addr,uint8_t value) {
     (void)addr;
 
     via->b.ddr=value;
-
-    via->UpdatePortPins(&via->b);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -268,8 +244,6 @@ void R6522::Write3(void *via_,M6502Word addr,uint8_t value) {
     (void)addr;
 
     via->a.ddr=value;
-
-    via->UpdatePortPins(&via->a);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -736,6 +710,15 @@ void R6522::TickControl(Port *port,
 
     port->old_c2=port->c2;
     port->old_c1=port->c1;
+
+    port->p=~port->ddr|(port->or_&port->ddr);
+
+//    TRACEF_IF(old_p!=port->p,m_trace,
+//              "Port value now: %03u ($%02x) (%%%s) ('%c')",
+//              port->p,
+//              port->p,
+//              BINARY_BYTE_STRINGS[port->p],
+//              port->p>=32&&port->p<127?(char)port->p:'?');
 }
 
 //////////////////////////////////////////////////////////////////////////

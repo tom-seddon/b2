@@ -1389,9 +1389,8 @@ bool BBCMicro::Update(VideoDataUnit *video_unit,SoundDataUnit *sound_unit) {
                 m_state.system_via.a.c2=0;
             }
 
-            m_state.system_via.a.p&=0x7f;
-            if(*column&1<<krow) {
-                m_state.system_via.a.p|=0x80;
+            if(!(*column&1<<krow)) {
+                m_state.system_via.a.p&=0x7f;
             }
 
             //if(key==m_state.auto_reset_key) {
@@ -1400,26 +1399,18 @@ bool BBCMicro::Update(VideoDataUnit *video_unit,SoundDataUnit *sound_unit) {
             //}
         }
 
-        // Update joysticks.
-        m_state.system_via.b.p|=1<<4|1<<5;
-
         if(m_beeblink_handler) {
             // Update BeebLink.
             m_beeblink->Update(&m_state.user_via);
         } else {
             // Nothing connected to the user port.
-            m_state.user_via.b.p=255;
-            m_state.user_via.b.c1=1;
         }
 
         // Update addressable latch and RTC.
-        if(m_state.old_system_via_pb!=m_state.system_via.b.p) {
-            SystemVIAPB pb;
-            pb.value=m_state.system_via.b.p;
+        SystemVIAPB pb;
+        pb.value=m_state.system_via.b.p;
 
-            SystemVIAPB old_pb;
-            old_pb.value=m_state.old_system_via_pb;
-
+        if(m_state.old_system_via_pb.value!=pb.value) {
             uint8_t mask=1<<pb.bits.latch_index;
 
             m_state.addressable_latch.value&=~mask;
@@ -1435,36 +1426,37 @@ bool BBCMicro::Update(VideoDataUnit *video_unit,SoundDataUnit *sound_unit) {
             }
 #endif
 
-            if(pb.m128_bits.rtc_chip_select) {
-                if(old_pb.m128_bits.rtc_address_strobe) {
-                    // AS=1
-                    //
-                    // Latch address on a 0->1 transtion.
-                    if(!pb.m128_bits.rtc_address_strobe) {
-                        m_state.rtc.SetAddress(m_state.system_via.a.p);
-                    }
+            if(m_has_rtc&&
+               pb.m128_bits.rtc_chip_select&&
+               m_state.old_system_via_pb.m128_bits.rtc_address_strobe&&
+               !pb.m128_bits.rtc_address_strobe)
+            {
+                // Latch address on AS 1->0 transition.
+                m_state.rtc.SetAddress(m_state.system_via.a.p);
+            }
+
+            m_state.old_system_via_pb=pb;
+        }
+
+        if(m_has_rtc) {
+            if(pb.m128_bits.rtc_chip_select&&
+               !pb.m128_bits.rtc_address_strobe)
+            {
+                // AS=0
+                if(m_state.addressable_latch.m128_bits.rtc_read) {
+                    // RTC read mode
+                    m_state.system_via.a.p&=m_state.rtc.Read();
                 } else {
-                    // AS=0
-                    if(m_state.addressable_latch.m128_bits.rtc_read) {
-                        // RTC read mode
-                        m_state.system_via.a.p=m_state.rtc.Read();
-                    } else {
-                        // RTC write mode
-                        if(m_state.old_addressable_latch.m128_bits.rtc_data_strobe&&
-                           !m_state.addressable_latch.m128_bits.rtc_data_strobe)
-                        {
-                            // DS=1 -> DS=0
-                            m_state.rtc.SetData(m_state.system_via.a.p);
-                        }
+                    // RTC write mode
+                    if(m_state.old_addressable_latch.m128_bits.rtc_data_strobe&&
+                       !m_state.addressable_latch.m128_bits.rtc_data_strobe)
+                    {
+                        // DS=1 -> DS=0
+                        m_state.rtc.SetData(m_state.system_via.a.p);
                     }
                 }
             }
-
-            m_state.old_system_via_pb=m_state.system_via.b.p;
-        }
-
-        // Update RTC.
-        if(m_has_rtc) {
+            
             m_state.rtc.Update();
         }
 
@@ -2518,7 +2510,7 @@ void BBCMicro::InitStuff() {
     m_state.system_via.SetID(BBCMicroVIAID_SystemVIA,"SystemVIA");
     m_state.user_via.SetID(BBCMicroVIAID_UserVIA,"UserVIA");
 
-    m_state.old_system_via_pb=m_state.system_via.b.p;
+    m_state.old_system_via_pb.value=m_state.system_via.b.p;
 
     if(m_beeblink_handler) {
         m_beeblink=std::make_unique<BeebLink>(m_beeblink_handler);

@@ -518,7 +518,7 @@ private:
         bool resetting=false;
 
         R6522 system_via;
-        uint8_t old_system_via_pb;
+        SystemVIAPB old_system_via_pb;
 
         R6522 user_via;
 
