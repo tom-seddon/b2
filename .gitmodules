@@ -49,3 +49,6 @@
 [submodule "submodules/rcedit"]
 	path = submodules/rcedit
 	url = https://github.com/electron/rcedit
+[submodule "submodules/beeb"]
+	path = submodules/beeb
+	url = https://github.com/tom-seddon/beeb
