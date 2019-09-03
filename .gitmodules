@@ -52,3 +52,6 @@
 [submodule "submodules/beeb"]
 	path = submodules/beeb
 	url = https://github.com/tom-seddon/beeb
+[submodule "submodules/shellcmd.py"]
+	path = submodules/shellcmd.py
+	url = https://github.com/tom-seddon/shellcmd.py
