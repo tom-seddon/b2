@@ -213,7 +213,11 @@ private:
     uint8_t m_id=0;
     const char *m_name=nullptr;
 
-    void TickControl(Port *port,uint8_t latching,uint8_t pcr_bits,uint8_t cx2_mask,char c);
+    void TickControlPhi2TrailingEdge(Port *port,
+                                     uint8_t latching,
+                                     uint8_t pcr_bits,
+                                     uint8_t cx2_mask,
+                                     char c);
 
 #if BBCMICRO_DEBUGGER
     friend class R6522DebugWindow;

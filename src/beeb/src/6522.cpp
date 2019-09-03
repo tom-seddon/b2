@@ -557,10 +557,10 @@ uint8_t R6522::UpdatePhi2LeadingEdge() {
 
 void R6522::UpdatePhi2TrailingEdge() {
     /* CA1/CA2 */
-    TickControl(&this->a,m_acr.bits.pa_latching,m_pcr.value>>0,R6522IRQMask_CA2,'A');
+    TickControlPhi2TrailingEdge(&this->a,m_acr.bits.pa_latching,m_pcr.value>>0,R6522IRQMask_CA2,'A');
 
     /* CB1/CB2 */
-    TickControl(&this->b,m_acr.bits.pb_latching,m_pcr.value>>4,R6522IRQMask_CB2,'B');
+    TickControlPhi2TrailingEdge(&this->b,m_acr.bits.pb_latching,m_pcr.value>>4,R6522IRQMask_CB2,'B');
 
     /* T1 */
     m_t1_timeout=false;
@@ -614,11 +614,11 @@ void R6522::SetTrace(Trace *trace) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void R6522::TickControl(Port *port,
-                        uint8_t latching,
-                        uint8_t pcr_bits,
-                        uint8_t cx2_mask,
-                        char c)
+void R6522::TickControlPhi2TrailingEdge(Port *port,
+                                        uint8_t latching,
+                                        uint8_t pcr_bits,
+                                        uint8_t cx2_mask,
+                                        char c)
 {
 #if !TRACE_ENABLED
     (void)c;
@@ -629,7 +629,11 @@ void R6522::TickControl(Port *port,
         /* port->old_c1!=port->c1&&port->c1==(pcr_bits&1) */
         ASSERT(port->c1==0||port->c1==1);
         ASSERT(port->old_c1==0||port->old_c1==1);
-        uint8_t code=(port->c1|port->old_c1<<1|pcr_bits<<2)&7;
+
+        uint8_t old_c1=port->old_c1;
+        port->old_c1=port->c1;
+
+        uint8_t code=(port->c1|old_c1<<1|pcr_bits<<2)&7;
 
         // PCRb0 oc1 c1   res
         // ----- --- ---  ---
@@ -643,11 +647,11 @@ void R6522::TickControl(Port *port,
         //   1    1   1    0
 
         if(code==2||code==5) {
-            ASSERT(((pcr_bits&1)&&!port->old_c1&&port->c1)||(!(pcr_bits&1)&&port->old_c1&&!port->c1));
+            ASSERT(((pcr_bits&1)&&!old_c1&&port->c1)||(!(pcr_bits&1)&&old_c1&&!port->c1));
 
             TRACEF(m_trace,
                    "C%c1: was %u, now %u, setting IFR mask 0x%02x. (FYI: latching=%u)",
-                   c,port->old_c1,port->c1,cx2_mask<<1,latching);
+                   c,old_c1,port->c1,cx2_mask<<1,latching);
 
             // cx2_mask<<1 is the mask for Cx1.
             this->ifr.value|=cx2_mask<<1;
@@ -656,48 +660,54 @@ void R6522::TickControl(Port *port,
                 port->p_latch=port->p;
             }
         }
+
     }
 
     /* Do Cx2 */
     {
+        uint8_t old_c2=port->old_c2;
+        port->old_c2=port->c2;
+
         auto cx2_control=(R6522Cx2Control)((pcr_bits>>1)&7);
         switch(cx2_control) {
-        case R6522Cx2Control_Input_IndIRQNegEdge:
-        case R6522Cx2Control_Input_NegEdge:
-            if(port->old_c2&&!port->c2) {
-                TRACEF(m_trace,
-                       "C%c2: was %u, now %u, setting IFR mask 0x%02x. (FYI: mode=%s)",
-                       c,port->old_c2,port->c2,cx2_mask,GetR6522Cx2ControlEnumName(cx2_control));
-                this->ifr.value|=cx2_mask;
-            }
-            break;
-
-        case R6522Cx2Control_Input_IndIRQPosEdge:
-        case R6522Cx2Control_Input_PosEdge:
-            if(!port->old_c2&&port->c2) {
-                TRACEF(m_trace,
-                       "C%c2: was %u, now %u, setting IFR mask 0x%02x. (FYI: mode=%s)",
-                       c,port->old_c2,port->c2,cx2_mask,GetR6522Cx2ControlEnumName(cx2_control));
-                this->ifr.value|=cx2_mask;
-            }
-            break;
-
-        case R6522Cx2Control_Output_Pulse:
-            if(port->pulse>0) {
-                --port->pulse;
-                if(port->pulse==0) {
-                    port->c2=1;
+            case R6522Cx2Control_Input_IndIRQNegEdge:
+            case R6522Cx2Control_Input_NegEdge:
+                if(old_c2&&!port->c2) {
+                    TRACEF(m_trace,
+                           "C%c2: was %u, now %u, setting IFR mask 0x%02x. (FYI: mode=%s)",
+                           c,port->old_c2,port->c2,cx2_mask,GetR6522Cx2ControlEnumName(cx2_control));
+                    this->ifr.value|=cx2_mask;
                 }
-            }
-            break;
+                port->c2=1;
+                break;
 
-        case R6522Cx2Control_Output_High:
-            port->c2=1;
-            break;
+            case R6522Cx2Control_Input_IndIRQPosEdge:
+            case R6522Cx2Control_Input_PosEdge:
+                if(!old_c2&&port->c2) {
+                    TRACEF(m_trace,
+                           "C%c2: was %u, now %u, setting IFR mask 0x%02x. (FYI: mode=%s)",
+                           c,port->old_c2,port->c2,cx2_mask,GetR6522Cx2ControlEnumName(cx2_control));
+                    this->ifr.value|=cx2_mask;
+                }
+                port->c2=1;
+                break;
 
-        case R6522Cx2Control_Output_Low:
-            port->c2=0;
-            break;
+            case R6522Cx2Control_Output_Pulse:
+                if(port->pulse>0) {
+                    --port->pulse;
+                    if(port->pulse==0) {
+                        port->c2=1;
+                    }
+                }
+                break;
+
+            case R6522Cx2Control_Output_High:
+                port->c2=1;
+                break;
+
+            case R6522Cx2Control_Output_Low:
+                port->c2=0;
+                break;
 
             case R6522Cx2Control_Output_Handshake:
                 if(port->c1==0) {
@@ -708,8 +718,8 @@ void R6522::TickControl(Port *port,
         }
     }
 
-    port->old_c2=port->c2;
-    port->old_c1=port->c1;
+    // Cx1 is always an input.
+    port->c1=1;
 
     port->p=~port->ddr|(port->or_&port->ddr);
 

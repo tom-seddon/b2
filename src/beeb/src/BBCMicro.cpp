@@ -1193,7 +1193,6 @@ bool BBCMicro::Update(VideoDataUnit *video_unit,SoundDataUnit *sound_unit) {
     if(m_state.video_ula.control.bits.fast_6845|phi2_1MHz_trailing_edge) {
         CRTC::Output output=m_state.crtc.Update();
 
-        m_state.system_via.a.c1=output.vsync;
         m_state.cursor_pattern>>=1;
 
         uint16_t addr=(uint16_t)output.address;
@@ -1364,11 +1363,14 @@ bool BBCMicro::Update(VideoDataUnit *video_unit,SoundDataUnit *sound_unit) {
         m_state.system_via.UpdatePhi2TrailingEdge();
         m_state.user_via.UpdatePhi2TrailingEdge();
 
+        // Update vsync.
+        if(!m_state.crtc_last_output.vsync) {
+           m_state.system_via.a.c1=0;
+        }
+
         // Update keyboard.
         if(m_state.addressable_latch.bits.not_kb_write) {
-            if(m_state.key_columns[m_state.key_scan_column]&0xfe) {
-                m_state.system_via.a.c2=1;
-            } else {
+            if(!(m_state.key_columns[m_state.key_scan_column]&0xfe)) {
                 m_state.system_via.a.c2=0;
             }
 
@@ -1383,9 +1385,7 @@ bool BBCMicro::Update(VideoDataUnit *video_unit,SoundDataUnit *sound_unit) {
             uint8_t *column=&m_state.key_columns[kcol];
 
             // row 0 doesn't cause an interrupt
-            if(*column&0xfe) {
-                m_state.system_via.a.c2=1;
-            } else {
+            if(!(*column&0xfe)) {
                 m_state.system_via.a.c2=0;
             }
 
@@ -1456,7 +1456,7 @@ bool BBCMicro::Update(VideoDataUnit *video_unit,SoundDataUnit *sound_unit) {
                     }
                 }
             }
-            
+
             m_state.rtc.Update();
         }
 
