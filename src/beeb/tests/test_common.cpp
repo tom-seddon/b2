@@ -237,6 +237,15 @@ BBCMicro(GetBBCMicroType(type),
          nullptr,
          0)
 {
+#if BBCMICRO_TRACE
+    m_trace_flags=(BBCMicroTraceFlag_RTC|
+                   BBCMicroTraceFlag_1770|
+                   BBCMicroTraceFlag_SystemVIA|
+                   BBCMicroTraceFlag_UserVIA|
+                   BBCMicroTraceFlag_VideoULA|
+                   BBCMicroTraceFlag_SN76489);
+#endif
+
     switch(type) {
         case TestBBCMicroType_BTape:
             this->LoadROMsB();
@@ -367,6 +376,49 @@ double TestBBCMicro::GetSpeed() const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+void TestBBCMicro::SetTestTraceFlags(uint32_t flags) {
+    m_trace_flags=flags;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+static bool SaveTraceData(const void *data,size_t num_bytes,void *context) {
+    return fwrite(data,1,num_bytes,(FILE *)context)==num_bytes;
+}
+
+void TestBBCMicro::SaveTestTrace(const std::string &stem) {
+    (void)stem;
+
+#if BBCMICRO_TRACE
+    if(!m_test_trace) {
+        this->StopTrace(&m_test_trace);
+    }
+
+    if(!!m_test_trace) {
+        std::string path=PathJoined(BBC_TESTS_OUTPUT_FOLDER,
+                                    strprintf("%s.trace.txt",stem.c_str()));
+        LOGF(OUTPUT,"Saving trace to: %s\n",path.c_str());
+        FILE *f=fopen(path.c_str(),"wt");
+        TEST_NON_NULL(f);
+
+        ::SaveTrace(m_test_trace,
+                    TraceCyclesOutput_Relative,
+                    &SaveTraceData,
+                    f,
+                    nullptr,
+                    nullptr,
+                    nullptr);
+
+        fclose(f);
+        f=nullptr;
+    }
+#endif
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 void TestBBCMicro::LoadROMsB() {
     this->SetOSROM(LoadROM("OS12.ROM"));
     this->SetSidewaysROM(15,LoadROM("BASIC2.ROM"));
@@ -416,16 +468,13 @@ void TestBBCMicro::WriteTestCommand(void *context,M6502Word addr,uint8_t value) 
 
     if(value==0) {
         // Stop trace.
-        m->StopTrace(&m->trace);
+        std::shared_ptr<Trace> tmp;
+        m->StopTrace(&tmp);
+        if(!!tmp) {
+            m->m_test_trace=tmp;
+        }
     } else if(value==1) {
-        // probably want to make these configurable at some point...?
-        uint32_t flags=(BBCMicroTraceFlag_RTC|
-                        BBCMicroTraceFlag_1770|
-                        BBCMicroTraceFlag_SystemVIA|
-                        BBCMicroTraceFlag_UserVIA|
-                        BBCMicroTraceFlag_VideoULA|
-                        BBCMicroTraceFlag_SN76489);
-        m->StartTrace(flags,256*1048576);
+        m->StartTrace(m->m_trace_flags,256*1048576);
     }
 }
 
@@ -467,8 +516,6 @@ bool TestBBCMicro::GotOSCLI() {
         ++addr.w;
     }
 
-    bool handled=false;
-
     std::string::size_type cmd_begin=str.find_first_not_of("* ");
     if(cmd_begin!=std::string::npos) {
         std::string::size_type cmd_end=str.find_first_of(" ",cmd_begin);
@@ -492,14 +539,10 @@ bool TestBBCMicro::GotOSCLI() {
                 m_spooling=false;
                 return true;
             }
-        } else {
-            TEST_TRUE(false);
         }
     }
 
-    if(!handled) {
-        LOGF(OUTPUT,"ignoring OSCLI: ``%s''\n",str.c_str());
-    }
+    LOGF(OUTPUT,"ignoring OSCLI: ``%s''\n",str.c_str());
 
     return false;
 }
@@ -562,9 +605,14 @@ static void SaveTextOutput(const std::string &output,const std::string &test_nam
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static bool SaveTraceData(const void *data,size_t num_bytes,void *context) {
-    return fwrite(data,1,num_bytes,(FILE *)context)==num_bytes;
+std::string GetTestFileName(int drive,const std::string &name) {
+    return PathJoined(BBC_TESTS_FOLDER,
+                      strprintf("%d",drive),
+                      GetBeebLinkName(name));
 }
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
 
 void RunStandardTest(const std::string &test_name,
                             TestBBCMicroType type)
@@ -573,8 +621,14 @@ void RunStandardTest(const std::string &test_name,
 
     bbc.StartCaptureOSWRCH();
     bbc.RunUntilOSWORD0(10.0);
-    bbc.LoadFile(PathJoined(BBC_TESTS_FOLDER,GetBeebLinkName("T."+test_name)),0xe00);
-    bbc.Paste("OLD\rRUN\r");
+
+    // Putting PAGE at $1900 makes it easier to replicate the same
+    // conditions on a real BBC B with DFS.
+    //
+    // (Most tests don't depend on the value of PAGE, but the T.TIMINGS
+    // output is affected by it.)
+    bbc.LoadFile(GetTestFileName(0,"T."+test_name),0x1900);
+    bbc.Paste("PAGE=&1900\rOLD\rRUN\r");
     bbc.RunUntilOSWORD0(10.0);
 
     {
@@ -599,7 +653,7 @@ void RunStandardTest(const std::string &test_name,
 
         std::vector<uint8_t> wanted_results;
         TEST_TRUE(PathLoadBinaryFile(&wanted_results,
-                                     PathJoined(BBC_TESTS_FOLDER,GetBeebLinkName(bbc.spool_output_name))));
+                                     GetTestFileName(0,bbc.spool_output_name)));
 
         std::string wanted_output(wanted_results.begin(),wanted_results.end());
 
@@ -613,26 +667,7 @@ void RunStandardTest(const std::string &test_name,
         SaveTextOutput(wanted_output,stem,"wanted");
         SaveTextOutput(bbc.spool_output,stem,"got");
 
-#if BBCMICRO_TRACE
-        if(!!bbc.trace) {
-            std::string path=PathJoined(BBC_TESTS_OUTPUT_FOLDER,
-                                        strprintf("%s.trace.txt",stem.c_str()));
-            LOGF(OUTPUT,"Saving trace to: %s\n",path.c_str());
-            FILE *f=fopen(path.c_str(),"wt");
-            TEST_NON_NULL(f);
-
-            SaveTrace(bbc.trace,
-                      TraceCyclesOutput_Relative,
-                      &SaveTraceData,
-                      f,
-                      nullptr,
-                      nullptr,
-                      nullptr);
-
-            fclose(f);
-            f=nullptr;
-        }
-#endif
+        bbc.SaveTestTrace(stem);
 
         TEST_EQ_SS(wanted_output,bbc.spool_output);
         //LOGF(OUTPUT,"Match: %d\n",wanted_output==bbc.tspool_output);

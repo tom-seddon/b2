@@ -18,4 +18,4 @@ init_xcode:
 run_tests: BUILD?=Debug
 run_tests: _OUTPUT=b2_tests_output/
 run_tests:
-	cd build/Xcode && rm -R $(_OUTPUT) && ctest -C $(BUILD) -j$(NPROC) -LE slow --output-on-failure || meld $(_OUTPUT)/got/ $(_OUTPUT)/wanted/
+	cd build/Xcode && rm -R $(_OUTPUT) && ctest -C $(BUILD) -j$(NPROC) -LE 'slow|kevin_edwards' --output-on-failure || meld $(_OUTPUT)/got/ $(_OUTPUT)/wanted/

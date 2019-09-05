@@ -30,9 +30,6 @@ public:
     std::string oswrch_output;
     std::string spool_output;
     std::string spool_output_name;
-#if BBCMICRO_TRACE
-    std::shared_ptr<Trace> trace;
-#endif
 
     explicit TestBBCMicro(TestBBCMicroType type);
 
@@ -48,6 +45,11 @@ public:
     void Update1();
 
     double GetSpeed() const;
+
+    // flags to be used when code writes to $fc10.
+    void SetTestTraceFlags(uint32_t flags);
+
+    void SaveTestTrace(const std::string &stem);
 protected:
     void GotOSWRCH();
     virtual bool GotOSCLI();//true=handled, false=ok to pass on to real OSCLI
@@ -58,6 +60,10 @@ private:
     SoundDataUnit m_temp_sound_data_unit;
     uint64_t m_num_ticks=0;
     uint64_t m_num_cycles=0;
+#if BBCMICRO_TRACE
+    std::shared_ptr<Trace> m_test_trace;
+    uint32_t m_trace_flags=0;
+#endif
 
     void LoadROMsB();
     void LoadROMsBPlus();
@@ -70,11 +76,24 @@ private:
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+std::string strprintfv(const char *fmt,va_list v);
+std::string PRINTF_LIKE(1,2) strprintf(const char *fmt,...);
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+std::string GetTestFileName(int drive,const std::string &name);
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 // Runs one of the standard tests.
 //
 // Does a _exit(1) if any of the tests fail.
 //
 // See etc/b2_tests/README.md in the working copy for more about this.
+//
+// TODO - maybe move this into test_standard.cpp...?
 void RunStandardTest(const std::string &test_name,TestBBCMicroType type);
 
 //////////////////////////////////////////////////////////////////////////

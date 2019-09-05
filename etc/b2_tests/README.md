@@ -30,6 +30,8 @@ an option.
 
 # Volume layout
 
+## Drive 0
+
 The files are categorised by BBC dir:
 
 * `$.*` - non-test files and supporting tools
@@ -42,6 +44,12 @@ containing its true name and the load/exec addresses - but the test
 system is rather careless about this, and just assumes that the PC
 names and BBC names match (taking the #xx escaping scheme into
 account).
+
+## Drive 1
+
+WIP stuff.
+
+Kevin Edwards protection tests.
 
 # Test runner notes
 
