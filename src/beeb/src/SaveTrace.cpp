@@ -615,9 +615,6 @@ private:
                 }
 
                 char zero=' ';
-                if(time==0) {
-                    zero='0';
-                }
 
                 for(uint64_t value=this_->m_time_initial_value;value!=0;value/=10) {
                     uint64_t digit=time/value%10;
@@ -628,6 +625,10 @@ private:
                     } else {
                         *c++=zero;
                     }
+                }
+
+                if(time==0) {
+                    c[-1]='0';
                 }
 
                 *c++=' ';
