@@ -579,6 +579,18 @@ readPC()
 	return (readPCH() << 8) | readPCL();
 }
 
+unsigned char
+readD1x1(void)
+{
+    return isNodeHigh(D1x1);
+}
+
+unsigned char
+readSync(void)
+{
+    return isNodeHigh(sync_);
+}
+
 /************************************************************
  *
  * Tracing/Debugging
@@ -591,6 +603,7 @@ void
 chipStatus()
 {
 	BOOL clk = isNodeHigh(clk0);
+    BOOL clkout = isNodeHigh(clk1out);
 	uint16_t a = readAddressBus();
 	uint8_t d = readDataBus();
 	BOOL r_w = isNodeHigh(rw);
@@ -598,20 +611,21 @@ chipStatus()
     BOOL irq_ = isNodeHigh(irq);
     BOOL d1x1_ = isNodeHigh(D1x1);
 
-	printf("%d AB:%04X D:%02X RW:%d PC:%04X A:%02X X:%02X Y:%02X SP:%02X P:%02X IR:%02X %d%d%d",
-			//cycle/2,
-			clk,
-			a,
-	        d,
-	        r_w,
-			readPC(),
-			readA(),
-			readX(),
-			readY(),
-			readSP(),
-			readP(),
-			readIR(),
-        irq_,nmi_,d1x1_);
+    printf("%d %d AB:%04X D:%02X RW:%d PC:%04X A:%02X X:%02X Y:%02X SP:%02X P:%02X IR:%02X %d%d%d",
+           //cycle/2,
+           clk,
+           clkout,
+           a,
+           d,
+           r_w,
+           readPC(),
+           readA(),
+           readX(),
+           readY(),
+           readSP(),
+           readP(),
+           readIR(),
+           irq_,nmi_,d1x1_);
 
 	if (clk)
     {

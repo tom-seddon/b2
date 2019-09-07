@@ -2,6 +2,7 @@
 #include <shared/system.h>
 #include <shared/testing.h>
 #include <shared/log.h>
+#include <shared/debug.h>
 #include <6502/6502.h>
 #include <ctype.h>
 #include <stdio.h>
@@ -20,7 +21,7 @@ LOG_DEFINE(DEBUG,"",&log_printer_stdout_and_debugger)
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 //
-// Compare 6502 simulator bus behaviour against perfect6502.
+// Compare 6502 simulator against perfect6502.
 //
 // The original plan was just to use visual6502 URLs: design tests in
 // the Visual6502 simulator page, then copy and paste URL into code.
@@ -39,13 +40,14 @@ LOG_DEFINE(DEBUG,"",&log_printer_stdout_and_debugger)
 // - only a subset of query parameters are supported: a, d, r, irq0,
 //   irq1, nmi0, nmi1, steps (others are ignored)
 //
-// - IRQ/NMI signals must go low or high on odd half-cycles only (even
-//   cycles are the phi2->ph1 transition, which the 6502 simulator
-//   does atomically)
+// - IRQ/NMI signals can go low or high on phi2 leading edge only - there's
+//   no way to do anything on the phi2 trailing edge, as that happens inside
+//   the 6502 simulator update
 //
-// - the CPU internal state isn't tracked, as the simulator doesn't
-//   copy the 6502's internal state perfectly on each cycle. Only the
-//   address bus, data bus and rw line are checked
+// Note also: the CPU state isn't checked on every cycle, only at instruction
+// boundaries (as indicated by the SYNC signal). The simulator promises to (try
+// to) replicate the address bus, data bus and rw line behaviour, so those are
+// checked every cycle, but 
 //
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -262,6 +264,43 @@ static const PinState *FindPinStateByCycle(const std::vector<PinState> &states,i
     return NULL;
 }
 
+static void PrintCheckResult(uint32_t value,char type) {
+    switch(type) {
+        case 'b':
+            printf("$%02x",value);
+            break;
+
+        case 'B':
+            printf("%s",BOOL_STR(value));
+            break;
+
+        case 'w':
+            printf("$%04x",value);
+            break;
+
+        default:
+            ASSERT(false);
+            break;
+    }
+}
+
+static void Check(bool *discrepancy,
+                  uint32_t simulator,
+                  uint32_t perfect6502,
+                  const char *what,
+                  char type)
+{
+    if(simulator!=perfect6502) {
+        *discrepancy=true;
+
+        printf("***** discrepancy: %s: simulator=",what);
+        PrintCheckResult(simulator,type);
+        printf(" perfect6502=");
+        PrintCheckResult(perfect6502,type);
+        printf("\n");
+    }
+}
+
 static void TestVisual6502URL(const std::string &description,const std::string &url) {
 
     printf("************************************************************************\n");
@@ -301,15 +340,28 @@ static void TestVisual6502URL(const std::string &description,const std::string &
     // get to phase 2.
     step();
 
-    int cycle=0;
+    int cycle=1;
+    bool wasSync=false;
 
     for(int i=0;i<g_num_test_cycles;++i) {
+        bool discrepancy=false;
         //int printCycle=cycle/2;
 
         step();
         printf("%-3d ",cycle);
         chipStatus();
         ++cycle;
+
+        if(wasSync) {
+            wasSync=false;
+
+            Check(&discrepancy,s->a,readA(),"A",'b');
+            Check(&discrepancy,s->x,readX(),"X",'b');
+            Check(&discrepancy,s->y,readY(),"Y",'b');
+            Check(&discrepancy,s->pc.w,readPC(),"PC",'b');
+            Check(&discrepancy,s->s.b.l,readSP(),"S",'b');
+            Check(&discrepancy,M6502_GetP(s).value,readP(),"P",'b');
+        }
 
         const PinState *irq_state=FindPinStateByCycle(g_irqs,cycle);
         const PinState *nmi_state=FindPinStateByCycle(g_nmis,cycle);
@@ -348,7 +400,7 @@ static void TestVisual6502URL(const std::string &description,const std::string &
 
         {
             M6502P p=M6502_GetP(s);
-            printf("      AB:%04X      RW:%d PC:%04X A:%02X X:%02X Y:%02X SP:%02X P:%02X       %d%d%d",
+            printf("        AB:%04X      RW:%d PC:%04X A:%02X X:%02X Y:%02X SP:%02X P:%02X       %d%d%d",
                 s->abus.w,s->read,s->pc.w,s->a,s->x,s->y,s->s.b.l,p.value,
                 s->device_irq_flags?0:1,
                 s->device_nmi_flags?0:1,
@@ -359,9 +411,15 @@ static void TestVisual6502URL(const std::string &description,const std::string &
             printf("%s\n",M6502_GetStateName(s));
         }
 
-        if(s->abus.w!=readAddressBus()||!!s->read!=!!readRW()||s->dbus!=readDataBus()) {
-            printf("***** discrepancy\n");
+        Check(&discrepancy,s->abus.w,readAddressBus(),"address bus contents",'w');
+        Check(&discrepancy,!!s->read,!!readRW(),"rw status",'B');
+        Check(&discrepancy,s->dbus,readDataBus(),"data bus contents",'b');
 
+        if(readSync()) {
+            wasSync=true;
+        }
+
+        if(discrepancy) {
             if(first_discrepancy_cycle<0) {
                 first_discrepancy_cycle=cycle-1;
             }

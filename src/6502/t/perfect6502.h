@@ -15,6 +15,8 @@ extern unsigned char readDataBus();
 extern unsigned char readIR();
 extern void setIRQ(int level);
 extern void setNMI(int level);
+extern unsigned char readD1x1(void);
+extern unsigned char readSync(void);
 
 extern unsigned char memory[65536];
 //extern unsigned int cycle;
