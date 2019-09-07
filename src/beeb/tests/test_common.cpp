@@ -376,6 +376,13 @@ double TestBBCMicro::GetSpeed() const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+uint32_t TestBBCMicro::GetTestTraceFlags() const {
+    return m_trace_flags;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 void TestBBCMicro::SetTestTraceFlags(uint32_t flags) {
     m_trace_flags=flags;
 }
@@ -621,6 +628,7 @@ void RunStandardTest(const std::string &test_name,
 
     bbc.StartCaptureOSWRCH();
     bbc.RunUntilOSWORD0(10.0);
+    bbc.SetTestTraceFlags(bbc.GetTestTraceFlags()|BBCMicroTraceFlag_EveryMemoryAccess);
 
     // Putting PAGE at $1900 makes it easier to replicate the same
     // conditions on a real BBC B with DFS.

@@ -47,6 +47,7 @@ public:
     double GetSpeed() const;
 
     // flags to be used when code writes to $fc10.
+    uint32_t GetTestTraceFlags() const;
     void SetTestTraceFlags(uint32_t flags);
 
     void SaveTestTrace(const std::string &stem);
