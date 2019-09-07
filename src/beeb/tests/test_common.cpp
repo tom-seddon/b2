@@ -628,7 +628,7 @@ void RunStandardTest(const std::string &test_name,
 
     bbc.StartCaptureOSWRCH();
     bbc.RunUntilOSWORD0(10.0);
-    bbc.SetTestTraceFlags(bbc.GetTestTraceFlags()|BBCMicroTraceFlag_EveryMemoryAccess);
+    //bbc.SetTestTraceFlags(bbc.GetTestTraceFlags()|BBCMicroTraceFlag_EveryMemoryAccess);
 
     // Putting PAGE at $1900 makes it easier to replicate the same
     // conditions on a real BBC B with DFS.
