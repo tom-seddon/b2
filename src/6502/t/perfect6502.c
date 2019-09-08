@@ -599,6 +599,20 @@ readSync(void)
 
 //unsigned int cycle;
 
+// see js.
+//
+// C and js code have different values for clock1 and clock2. This table copies
+// the js code in the interests of matching the visual6502 output.
+static const int g_tcstatesmap[]={
+    1536,//clock1,
+    156,//clock2,
+    t2,
+    t3,
+    t4,
+    t5,
+    -1,
+};
+
 void
 chipStatus()
 {
@@ -633,6 +647,28 @@ chipStatus()
 			printf(" R$%04X=$%02X", a, memory[a]);
 		else
 			printf(" W$%04X=$%02X", a, d);
+    }
+    else
+    {
+        //       R$xxxx=$xx
+        printf("           ");
+    }
+
+    printf("  ");
+
+    {
+        int any=0;
+        for(size_t i=0;g_tcstatesmap[i]>=0;++i)
+        {
+            if(!isNodeHigh(g_tcstatesmap[i]))
+            {
+                if(any)
+                    printf("+");
+
+                printf("T%zu",i);
+                any=1;
+            }
+        }
     }
 
 	printf("\n");

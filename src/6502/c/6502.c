@@ -1003,11 +1003,12 @@ static void T1_Branch(M6502 *s) {
     s->ifn=NULL;
 #endif
 
+    CheckForInterrupts(s);
+    
     if(!s->data) {
         /* Branch not taken - done. */
 
         /* T0 phase 1 */
-        CheckForInterrupts(s);
         M6502_NextInstruction(s);
         return;
     }
@@ -1029,10 +1030,10 @@ static void T2_Branch(M6502 *s) {
         /* T0 phase 1 */
         M6502_NextInstruction(s);
 
-        /* Do this after the NextInstruction stuff. Any IRQ that's
-         * spotted here wants to delay for one more instruction.
-         */
-        CheckForInterrupts(s);
+//        /* Do this after the NextInstruction stuff. Any IRQ that's
+//         * spotted here wants to delay for one more instruction.
+//         */
+//        CheckForInterrupts(s);
 
         return;
     }
@@ -1246,8 +1247,8 @@ static void T4_Interrupt(M6502 *s) {
         s->irq_flags=s->device_irq_flags;
     } else {
         // If D1x1 is low, but there's no obvious source of
-        // interrupts, the CPU does an NMI.
-        s->abus.w=0xfffa;
+        // interrupts, the CPU does an IRQ.
+        s->abus.w=0xfffe;
     }
 
     s->p.bits.i=1;
@@ -1907,14 +1908,15 @@ void M6502_SetDeviceIRQ(M6502 *s,M6502_DeviceIRQFlags mask,int wants_irq) {
         s->irq_flags=s->device_irq_flags;
     } else {
         s->device_irq_flags&=~mask;
+        s->irq_flags=s->device_irq_flags;
 
-        // If there are now no IRQs, but there were IRQs since the
-        // last check, ignore those IRQs if the CPU is in a state
-        // where the real 6502 would have ignored them as they came
-        // in.
-        if(s->device_irq_flags==0&&s->p.bits.i) {
-            s->irq_flags=0;
-        }
+//        // If there are now no IRQs, but there were IRQs since the
+//        // last check, ignore those IRQs if the CPU is in a state
+//        // where the real 6502 would have ignored them as they came
+//        // in.
+//        if(s->device_irq_flags==0&&s->p.bits.i) {
+//            s->irq_flags=0;
+//        }
     }
 }
 

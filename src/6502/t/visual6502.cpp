@@ -3,6 +3,7 @@
 #include <shared/testing.h>
 #include <shared/log.h>
 #include <shared/debug.h>
+#include <shared/path.h>
 #include <6502/6502.h>
 #include <ctype.h>
 #include <stdio.h>
@@ -307,6 +308,8 @@ static void TestVisual6502URL(const std::string &description,const std::string &
     printf("\n");
     printf("%s\n",description.c_str());
     printf("\n");
+    printf("%s\n",url.c_str());
+    printf("\n");
 
     InitVisual6502(url);
 
@@ -341,43 +344,55 @@ static void TestVisual6502URL(const std::string &description,const std::string &
     step();
 
     int cycle=1;
+    bool everAnyIRQs=false;
+    bool everAnyNMIs=false;
     bool wasSync=false;
 
     for(int i=0;i<g_num_test_cycles;++i) {
         bool discrepancy=false;
         //int printCycle=cycle/2;
 
-        step();
-        printf("%-3d ",cycle);
-        chipStatus();
-        ++cycle;
-
-        if(wasSync) {
-            wasSync=false;
-
-            Check(&discrepancy,s->a,readA(),"A",'b');
-            Check(&discrepancy,s->x,readX(),"X",'b');
-            Check(&discrepancy,s->y,readY(),"Y",'b');
-            Check(&discrepancy,s->pc.w,readPC(),"PC",'b');
-            Check(&discrepancy,s->s.b.l,readSP(),"S",'b');
-            Check(&discrepancy,M6502_GetP(s).value,readP(),"P",'b');
-        }
-
         const PinState *irq_state=FindPinStateByCycle(g_irqs,cycle);
         const PinState *nmi_state=FindPinStateByCycle(g_nmis,cycle);
 
         if(irq_state) {
             setIRQ(irq_state->level);
+            everAnyIRQs=true;
         }
 
         if(nmi_state) {
             setNMI(nmi_state->level);
+            everAnyNMIs=true;
         }
 
+        // phi2 leading edge
         step();
-        printf("%-3d ",cycle);
+        printf("%-3d %-3d ",cycle,cycle/2);
         chipStatus();
         ++cycle;
+
+        // phi2 trailing edge
+        step();
+        printf("%-3d %-3d ",cycle,cycle/2);
+        chipStatus();
+        ++cycle;
+
+        if(wasSync) {
+            Check(&discrepancy,s->a,readA(),"A",'b');
+            Check(&discrepancy,s->x,readX(),"X",'b');
+            Check(&discrepancy,s->y,readY(),"Y",'b');
+            Check(&discrepancy,s->pc.w,readPC(),"PC",'b');
+            Check(&discrepancy,s->s.b.l,readSP(),"S",'b');
+
+            // Don't bother checking the unused bit - it's driven by D1x1,
+            // which isn't modelled perfectly.
+            //
+            // If there's a discrepancy when P is pushed, the data bus contents
+            // check will pick it up.
+            uint8_t sim_p=(M6502_GetP(s).value)&~0x10;
+            uint8_t real_p=readP()&~0x10;
+            Check(&discrepancy,sim_p,real_p,"P",'b');
+        }
 
         const char *old_state=M6502_GetStateName(s);
 
@@ -400,24 +415,22 @@ static void TestVisual6502URL(const std::string &description,const std::string &
 
         {
             M6502P p=M6502_GetP(s);
-            printf("        AB:%04X      RW:%d PC:%04X A:%02X X:%02X Y:%02X SP:%02X P:%02X       %d%d%d",
+            printf("            AB:%04X      RW:%d PC:%04X A:%02X X:%02X Y:%02X SP:%02X P:%02X       %d%d%d",
                 s->abus.w,s->read,s->pc.w,s->a,s->x,s->y,s->s.b.l,p.value,
                 s->device_irq_flags?0:1,
                 s->device_nmi_flags?0:1,
                 s->d1x1);
             printf(" %c$%04X=$%02X",s->read?'R':'W',s->abus.w,g_mem[s->abus.w]);
-            printf(" %s -> ",old_state);
+            printf("  %s -> ",old_state);
             old_state=NULL;
             printf("%s\n",M6502_GetStateName(s));
         }
 
+        wasSync=readSync();
+
         Check(&discrepancy,s->abus.w,readAddressBus(),"address bus contents",'w');
         Check(&discrepancy,!!s->read,!!readRW(),"rw status",'B');
         Check(&discrepancy,s->dbus,readDataBus(),"data bus contents",'b');
-
-        if(readSync()) {
-            wasSync=true;
-        }
 
         if(discrepancy) {
             if(first_discrepancy_cycle<0) {
@@ -448,6 +461,9 @@ struct TestCase {
     // if any test has its prefer flag set, run only tests with the
     // prefer flag set.
     bool prefer=false;
+
+    //
+    int num_cycles=120;
 };
 typedef struct TestCase TestCase;
 
@@ -461,12 +477,12 @@ std::vector<int> g_tc_irqs,g_tc_nmis;
 std::vector<TestCase> g_test_cases;
 
 static void SetTCVectors(uint16_t nmiv,uint16_t rstv,uint16_t irqv) {
-    g_tc_mem[0xfffa]=nmiv>>0;
-    g_tc_mem[0xfffb]=nmiv>>8;
-    g_tc_mem[0xfffc]=rstv>>0;
-    g_tc_mem[0xfffd]=rstv>>8;
-    g_tc_mem[0xfffe]=irqv>>0;
-    g_tc_mem[0xffff]=irqv>>8;
+    g_tc_mem[0xfffa]=(nmiv>>0)&0xff;
+    g_tc_mem[0xfffb]=(nmiv>>8)&0xff;
+    g_tc_mem[0xfffc]=(rstv>>0)&0xff;
+    g_tc_mem[0xfffd]=(rstv>>8)&0xff;
+    g_tc_mem[0xfffe]=(irqv>>0)&0xff;
+    g_tc_mem[0xffff]=(irqv>>8)&0xff;
 }
 
 static void SetTCMem(int addr,const char *bytes) {
@@ -513,13 +529,6 @@ static void ResetTC(void) {
         }
     }
 
-    // Add the preamble
-    //
-    // After the preamble: A=0, X=0, Y=0, S=255, P=nv__dIZc
-    SetTCMem(0x0000,"a2ff 9a e8 8a a8 18 d8 b8 eaeaeaeaeaeaea");
-    //TEST_EQ_II(g_tc_mem[15],0xea);
-    //TEST_EQ_II(g_tc_mem[16],-1);
-
     // IRQ handler
     g_tc_mem[0x40]=0x40;
 
@@ -528,7 +537,14 @@ static void ResetTC(void) {
 
     g_tc_num_cycles=120;
 
-    SetTCVectors(0x0050,0x0000,0x0040);
+    // Add the preamble
+    //
+    // After the preamble: A=0, X=0, Y=0, S=255, P=nv__dIZc
+    SetTCMem(0x0200,"a2ff 9a e8 8a a8 18 d8 b8 eaeaeaeaeaeaea");
+    //TEST_EQ_II(g_tc_mem[15],0xea);
+    //TEST_EQ_II(g_tc_mem[16],-1);
+
+    SetTCVectors(0x0050,0x0200,0x0040);
 }
 
 static std::string GetTCURL(const std::string &base) {
@@ -544,6 +560,7 @@ static std::string GetTCURL(const std::string &base) {
             if(a>=0) {
                 url+=strprintf("&a=%04x&d=",a);
                 for(int j=a;j<b;++j) {
+                    ASSERT(g_tc_mem[j]>=0&&g_tc_mem[j]<=255);
                     url+=strprintf("%02x",g_tc_mem[j]);
                 }
 
@@ -571,7 +588,16 @@ static void AddTC(const char *fmt,...) {
     tc.description=strprintfv(fmt,v);
     va_end(v);
 
+    // Not very clever.
+#if SYSTEM_WINDOWS
     tc.url=GetTCURL("file:///C:/tom/github/visual6502/expert.html");
+#else
+    const char *home=getenv("HOME");
+    if(!home) {
+        home="";
+    }
+    tc.url=GetTCURL("file:///"+PathJoined(home,"github/visual6502/expert.html"));
+#endif
 
     g_test_cases.push_back(tc);
 }
@@ -731,6 +757,74 @@ static void AddTestCases(void) {
 
             AddTC("Simultaneous 2-cycle IRQ+NMI blip on cycle %d",cycle);
         }
+    }
+
+    {
+        int num_cycles=390;
+
+        // the preamble is 65 cycles long.
+        for(int i=65;i<num_cycles;i+=2) {
+            ResetTC();
+
+            // Read
+
+            SetTCMem(-1,"58");//cli
+            SetTCMem(-1,"a9 00");//lda #0
+            SetTCMem(-1,"a5 00");//lda $00
+            SetTCMem(-1,"b5 00");//lda $00,x
+            SetTCMem(-1,"b1 00");//ldx $00,y
+            SetTCMem(-1,"ad 00 00");//lda $0000,x
+            SetTCMem(-1,"a2 00 bd 80 03");//ldx #$00:lda $3080,x
+            SetTCMem(-1,"a2 ff bd 80 03");//ldx #$ff:lda $3080,x
+            SetTCMem(-1,"a0 00 b9 80 03");//ldy #$00:lda $3080,y
+            SetTCMem(-1,"a0 ff b9 80 03");//ldy #$ff:lda $3080,y
+            SetTCMem(-1,"a0 00 b1 00");//ldy #$00:lda ($00),y
+            SetTCMem(-1,"a0 ff b1 00");//ldy #$ff:lda ($00),y
+            SetTCMem(-1,"a1 00");//lda ($00,x)
+
+            // RMW
+            SetTCMem(-1,"a2 00");//ldx #$00
+            SetTCMem(-1,"06 80");//asl $80
+            SetTCMem(-1,"16 80");//asl $80,x
+            SetTCMem(-1,"0e 80 30");//asl $3080
+            SetTCMem(-1,"1e 80 30");//asl $3080,x
+
+            // Write
+            SetTCMem(-1,"a2 00");//ldx #$00
+            SetTCMem(-1,"a0 00");//ldy #$00
+            SetTCMem(-1,"85 80");//sta $80
+            SetTCMem(-1,"95 80");//sta $80,x
+            SetTCMem(-1,"96 80");//stx $80,y
+            SetTCMem(-1,"8d 80 30");//sta $3080
+            SetTCMem(-1,"9d 80 30");//sta $3080,x
+            SetTCMem(-1,"99 80 30");//sta $3080,y
+            SetTCMem(-1,"91 00");//sta ($00),y
+            SetTCMem(-1,"81 00");//sta ($00,x)
+
+            // Other
+            SetTCMem(-1,"48");//pha
+            SetTCMem(-1,"68");//pla
+            SetTCMem(-1,"20 02 00");//jsr $0002 - goes to a JMP then an RTS
+
+            SetTCMem(-1,"18 90 fe");//clc:.L:bcc L
+
+            SetTCMem(0x00,"80 03");//$3080
+
+            SetTCMem(0x02,"4c 05 00 60");//RTS
+
+            // blip.
+            g_tc_irqs={i,i+2};
+
+            // add a few more cycles, to accommodate the IRQ routine.
+            g_tc_num_cycles=num_cycles+20;
+
+            AddTC("IRQ at +%d during instruction mix",i);
+
+//            if(i==377) {
+//                g_test_cases.back().prefer=true;
+//            }
+        }
+
     }
 }
 

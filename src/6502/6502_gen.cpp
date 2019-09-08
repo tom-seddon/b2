@@ -683,6 +683,10 @@ public:
             P("static void %s(M6502 *s) {\n",fn_name.c_str());
             P("/* T%d phi2 */\n",i+1);
 
+            if(i==(int)this->cycles.size()-1) {
+                this->GenerateD1x1();
+            }
+
             if(i<0) {
                 P("/* (decode - already done) */\n");
             } else {
@@ -700,9 +704,9 @@ public:
                 this->GeneratePhi1(&this->cycles[(size_t)i]);
                 P("s->tfn=&T%d_%s;\n",i+1,this->stem.c_str());
 
-                if(i==(int)this->cycles.size()-1) {
-                    this->GenerateD1x1();
-                }
+//                if(i==(int)this->cycles.size()-1) {
+//                    this->GenerateD1x1();
+//                }
             }
             P("}\n\n");
         }
@@ -800,12 +804,12 @@ private:
 
         if(c->action=="maybe_call") {
             ASSERT(set_acarry);
-            this->GenerateConditionalD1x1("!s->acarry");
+            //this->GenerateConditionalD1x1("!s->acarry");
         } else if(c->action=="maybe_call_bcd_cmos") {
             ASSERT(set_acarry);
-            this->GenerateConditionalD1x1("!s->p.bits.d&&!s->acarry");
+            //this->GenerateConditionalD1x1("!s->p.bits.d&&!s->acarry");
         } else if(c->action=="call_bcd_cmos") {
-            this->GenerateConditionalD1x1("!s->p.bits.d");
+            //this->GenerateConditionalD1x1("!s->p.bits.d");
         }
     }
 
@@ -828,6 +832,7 @@ private:
             P("if(!s->acarry) {\n");
             P("/* No carry - done. */\n");
             this->GenerateCallIFn();
+            this->GenerateD1x1();
             P("\n");
             P("/* T0 phi1 */\n");
             P("M6502_NextInstruction(s);\n");
@@ -843,6 +848,7 @@ private:
             P("if(!s->acarry) {\n");
             P("/* No carry, no decimal - done. */\n");
             this->GenerateCallIFn();
+            this->GenerateD1x1();
             P("\n");
             P("/* T0 phi1 */\n");
             P("M6502_NextInstruction(s);\n");
@@ -853,6 +859,7 @@ private:
             // As call, but for CMOS BCD instructions. An extra cycle
             // is needed in decimal mode.
             this->GenerateCallIFn();
+            this->GenerateD1x1();
             P("if(!s->p.bits.d) {\n");
             P("/* No decimal - done. */\n");
             P("\n");
@@ -876,11 +883,11 @@ private:
         P("#endif\n");
     }
 
-    void GenerateConditionalD1x1(const char *cond) const {
-        P("if(%s) {\n",cond);
-        this->GenerateD1x1();
-        P("}\n");
-    }
+//    void GenerateConditionalD1x1(const char *cond) const {
+//        P("if(%s) {\n",cond);
+//        this->GenerateD1x1();
+//        P("}\n");
+//    }
 
     void GenerateD1x1() const {
         P("CheckForInterrupts(s);\n");
