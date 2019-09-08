@@ -44,8 +44,8 @@ set_tests_properties(klaus PROPERTIES LABELS slow)
 ##########################################################################
 ##########################################################################
 
-add_executable(visual6502 visual6502.cpp perfect6502.h perfect6502.c nodenames.h segdefs.h transdefs.h)
-target_link_libraries(visual6502 PRIVATE shared_lib 6502_lib)
+add_executable(visual6502 visual6502.cpp)
+target_link_libraries(visual6502 PRIVATE shared_lib 6502_lib perfect6502_lib)
 add_sanitizers(visual6502)
 
 add_test(

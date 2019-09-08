@@ -302,3 +302,19 @@ if(WIN32)
   # C4104: 'identifier' : unreferenced local variable
   target_compile_options(rcedit PRIVATE /wd4267 /wd4244 /wd4101)
 endif()
+
+##########################################################################
+##########################################################################
+
+set(PERFECT6502_SRC_FOLDER ${CMAKE_CURRENT_SOURCE_DIR}/perfect6502)
+
+add_library(perfect6502_lib
+  ${PERFECT6502_SRC_FOLDER}/netlist_6502.h
+  ${PERFECT6502_SRC_FOLDER}/netlist_sim.c
+  ${PERFECT6502_SRC_FOLDER}/netlist_sim.h
+  ${PERFECT6502_SRC_FOLDER}/perfect6502.c
+  ${PERFECT6502_SRC_FOLDER}/perfect6502.h)
+target_include_directories(perfect6502_lib INTERFACE ${PERFECT6502_SRC_FOLDER})
+
+##########################################################################
+##########################################################################

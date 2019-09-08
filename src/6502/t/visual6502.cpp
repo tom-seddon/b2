@@ -10,7 +10,10 @@
 #include <string.h>
 #include <stdlib.h>
 extern "C" {
-#include "perfect6502.h"
+#include <types.h>
+#include <perfect6502.h>
+#include <netlist_sim.h>
+//#include <netlist_6502.h>
 }
 #include <stdlib.h>
 #include <limits.h>
@@ -302,6 +305,122 @@ static void Check(bool *discrepancy,
     }
 }
 
+//static bool readD1x1(state_t *state) {
+//    return !!isNodeHigh(state,D1x1);
+//}
+
+enum Node {
+    Node_sync=539,
+    Node_irq=103,
+    Node_nmi=1297,
+    Node_clk0=1171,
+    Node_clk1out=1163,
+    Node_D1x1=827,
+    Node_rw=1156,
+    Node_t2=971,
+    Node_t3=1567,
+    Node_t4=690,
+    Node_t5=909,
+
+    // The C and js code have conflicting values for clock1 and clock2. This
+    // table copies the js code, in the interests of matching the visual6502
+    // website output.
+    Node_clock1=1536,
+    Node_clock2=156,
+};
+
+static bool readSync(state_t *state) {
+    return !!isNodeHigh(state,Node_sync);
+}
+
+static void setIRQ(state_t *state,bool level) {
+    setNode(state,Node_irq,level);
+}
+
+static void setNMI(state_t *state,bool level) {
+    setNode(state,Node_nmi,level);
+}
+
+//void
+//chipStatus(void *state)
+//{
+//    BOOL clk = isNodeHigh(state, clk0);
+//    uint16_t a = readAddressBus(state);
+//    uint8_t d = readDataBus(state);
+//    BOOL r_w = isNodeHigh(state, rw);
+//
+//    printf("halfcyc:%d phi0:%d AB:%04X D:%02X RnW:%d PC:%04X A:%02X X:%02X Y:%02X SP:%02X P:%02X IR:%02X",
+//           cycle,
+//           clk,
+//           a,
+//           d,
+//           r_w,
+//           readPC(state),
+//           readA(state),
+//           readX(state),
+//           readY(state),
+//           readSP(state),
+//           readP(state),
+//           readIR(state));
+//
+//    if (clk) {
+//        if (r_w)
+//            printf(" R$%04X=$%02X", a, memory[a]);
+//        else
+//            printf(" W$%04X=$%02X", a, d);
+//    }
+//    printf("\n");
+//}
+
+static void printStatus(state_t *state) {
+    bool clk=!!isNodeHigh(state,Node_clk0);
+    bool clk1out=!!isNodeHigh(state,Node_clk1out);
+    uint16_t address=readAddressBus(state);
+    uint8_t data=readDataBus(state);
+    bool rw=!!isNodeHigh(state,Node_rw);
+    uint16_t pc=readPC(state);
+    uint8_t a=readA(state);
+    uint8_t x=readX(state);
+    uint8_t y=readY(state);
+    uint8_t sp=readSP(state);
+    uint8_t p=readP(state);
+    uint8_t ir=readIR(state);
+    bool nmi=isNodeHigh(state,Node_nmi);
+    bool irq=isNodeHigh(state,Node_irq);
+    bool d1x1=isNodeHigh(state,Node_D1x1);
+
+    printf("%d %d AB:%04x D:%02x RW:%d PC:%04x A:%02x X:%02x Y:%02x SP:%02x P:%02x IR:%02x %d%d%d",
+           clk,clk1out,address,data,rw,pc,a,x,y,sp,p,ir,irq,nmi,d1x1);
+
+    if(clk) {
+        if(rw) {
+            printf(" R$%04x=$%02x",address,memory[address]);
+        } else {
+            printf(" W$%04x=$%02x",address,data);
+        }
+    }
+
+    {
+        static const Node tstates[]={Node_clock1,Node_clock2,Node_t2,Node_t3,Node_t4,Node_t5,(Node)-1,};
+
+        bool any=false;
+        for(size_t i=0;tstates[i]>=0;++i) {
+            if(!isNodeHigh(state,tstates[i])) {
+                if(any) {
+                    printf("+");
+                } else {
+                    printf(" ");
+                }
+
+                printf("T%zu",i);
+                any=true;
+            }
+        }
+    }
+
+    printf("\n");
+}
+
 static void TestVisual6502URL(const std::string &description,const std::string &url) {
 
     printf("************************************************************************\n");
@@ -314,12 +433,12 @@ static void TestVisual6502URL(const std::string &description,const std::string &
     InitVisual6502(url);
 
     // Create perfect6502 state.
-    initAndResetChip();
+    state_t *perfect6502=initAndResetChip();
 
     // Wait for the 6502 to reach the equivalent of the simulator's
     // initial state.
-    while(readAddressBus()!=0xfffd) {
-        step();
+    while(readAddressBus(perfect6502)!=0xfffd) {
+        step(perfect6502);
     }
 
     // Create M6502 state.
@@ -328,11 +447,11 @@ static void TestVisual6502URL(const std::string &description,const std::string &
     s->tfn=&M6502_NextInstruction;
 
     // Copy p6502 state.
-    s->a=readA();
-    s->x=readX();
-    s->y=readY();
-    M6502_SetP(s,readP());
-    s->s.b.l=readSP();
+    s->a=readA(perfect6502);
+    s->x=readX(perfect6502);
+    s->y=readY(perfect6502);
+    M6502_SetP(s,readP(perfect6502));
+    s->s.b.l=readSP(perfect6502);
     s->pc.b.l=g_mem[0xfffc];
     s->pc.b.h=g_mem[0xfffd];
 
@@ -341,7 +460,7 @@ static void TestVisual6502URL(const std::string &description,const std::string &
     // Run.
 
     // get to phase 2.
-    step();
+    step(perfect6502);
 
     int cycle=1;
     bool everAnyIRQs=false;
@@ -356,33 +475,35 @@ static void TestVisual6502URL(const std::string &description,const std::string &
         const PinState *nmi_state=FindPinStateByCycle(g_nmis,cycle);
 
         if(irq_state) {
-            setIRQ(irq_state->level);
+            setIRQ(perfect6502,irq_state->level);
             everAnyIRQs=true;
         }
 
         if(nmi_state) {
-            setNMI(nmi_state->level);
+            setNMI(perfect6502,nmi_state->level);
             everAnyNMIs=true;
         }
 
         // phi2 leading edge
-        step();
+        step(perfect6502);
         printf("%-3d %-3d ",cycle,cycle/2);
-        chipStatus();
+        printStatus(perfect6502);
+        //chipStatus(perfect6502);
         ++cycle;
 
         // phi2 trailing edge
-        step();
+        step(perfect6502);
         printf("%-3d %-3d ",cycle,cycle/2);
-        chipStatus();
+        printStatus(perfect6502);
+        //chipStatus(perfect6502);
         ++cycle;
 
         if(wasSync) {
-            Check(&discrepancy,s->a,readA(),"A",'b');
-            Check(&discrepancy,s->x,readX(),"X",'b');
-            Check(&discrepancy,s->y,readY(),"Y",'b');
-            Check(&discrepancy,s->pc.w,readPC(),"PC",'b');
-            Check(&discrepancy,s->s.b.l,readSP(),"S",'b');
+            Check(&discrepancy,s->a,readA(perfect6502),"A",'b');
+            Check(&discrepancy,s->x,readX(perfect6502),"X",'b');
+            Check(&discrepancy,s->y,readY(perfect6502),"Y",'b');
+            Check(&discrepancy,s->pc.w,readPC(perfect6502),"PC",'b');
+            Check(&discrepancy,s->s.b.l,readSP(perfect6502),"S",'b');
 
             // Don't bother checking the unused bit - it's driven by D1x1,
             // which isn't modelled perfectly.
@@ -390,7 +511,7 @@ static void TestVisual6502URL(const std::string &description,const std::string &
             // If there's a discrepancy when P is pushed, the data bus contents
             // check will pick it up.
             uint8_t sim_p=(M6502_GetP(s).value)&~0x10;
-            uint8_t real_p=readP()&~0x10;
+            uint8_t real_p=readP(perfect6502)&~0x10;
             Check(&discrepancy,sim_p,real_p,"P",'b');
         }
 
@@ -426,11 +547,11 @@ static void TestVisual6502URL(const std::string &description,const std::string &
             printf("%s\n",M6502_GetStateName(s));
         }
 
-        wasSync=readSync();
+        wasSync=readSync(perfect6502);
 
-        Check(&discrepancy,s->abus.w,readAddressBus(),"address bus contents",'w');
-        Check(&discrepancy,!!s->read,!!readRW(),"rw status",'B');
-        Check(&discrepancy,s->dbus,readDataBus(),"data bus contents",'b');
+        Check(&discrepancy,s->abus.w,readAddressBus(perfect6502),"address bus contents",'w');
+        Check(&discrepancy,!!s->read,!!readRW(perfect6502),"rw status",'B');
+        Check(&discrepancy,s->dbus,readDataBus(perfect6502),"data bus contents",'b');
 
         if(discrepancy) {
             if(first_discrepancy_cycle<0) {
@@ -447,6 +568,8 @@ static void TestVisual6502URL(const std::string &description,const std::string &
     printf("************************************************************************\n");
 
     TEST_EQ_II(first_discrepancy_cycle,-1);
+
+    destroyChip(perfect6502);
 
     InitVisual6502("");
 }
