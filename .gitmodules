@@ -55,3 +55,6 @@
 [submodule "submodules/shellcmd.py"]
 	path = submodules/shellcmd.py
 	url = https://github.com/tom-seddon/shellcmd.py
+[submodule "submodules/perfect6502"]
+	path = submodules/perfect6502
+	url = https://github.com/tom-seddon/perfect6502
