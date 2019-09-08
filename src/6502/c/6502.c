@@ -1003,7 +1003,7 @@ static void T1_Branch(M6502 *s) {
     s->ifn=NULL;
 #endif
 
-    CheckForInterrupts(s);
+    //CheckForInterrupts(s);
     
     if(!s->data) {
         /* Branch not taken - done. */
@@ -1948,7 +1948,7 @@ static const NamedFn *const g_named_fn_lists[]={
     NULL,
 };
 
-static const char *GetFnName(M6502Fn fn) {
+static const char *FindFnName(M6502Fn fn) {
     for(size_t i=0;g_named_fn_lists[i];++i) {
         const char *name=FindNameByFn(g_named_fn_lists[i],fn);
         if(name) {
@@ -1964,9 +1964,29 @@ static const char *GetFnName(M6502Fn fn) {
 static char g_fn_name_buf[200];
 
 const char *M6502_GetStateName(M6502 *s) {
-    const char *instr_name=FindNameByFn(g_named_ifns,s->ifn);
+    const char *ifn_name=FindNameByFn(g_named_ifns,s->ifn);
+    if(!ifn_name) {
+        ifn_name="?";
+    }
 
-    snprintf(g_fn_name_buf,sizeof g_fn_name_buf,"%s%s%s",GetFnName(s->tfn),instr_name?": ":"",instr_name?instr_name:"");
+    const char *tfn_name=FindFnName(s->tfn);
+    if(!tfn_name) {
+        tfn_name="?";
+    }
+
+    const char *t0fn_name=NULL;
+    if(s->tfn==&T0_All) {
+        const M6502Fns *fns=&s->fns[s->opcode];
+        t0fn_name=FindFnName(fns->t0fn);
+    }
+
+    if(t0fn_name) {
+        snprintf(g_fn_name_buf,sizeof g_fn_name_buf,
+                 "tfn=%s ifn=%s [t0fn=%s]",tfn_name,ifn_name,t0fn_name);
+    } else {
+        snprintf(g_fn_name_buf,sizeof g_fn_name_buf,
+                 "tfn=%s ifn=%s",tfn_name,ifn_name);
+    }
 
     return g_fn_name_buf;
 }

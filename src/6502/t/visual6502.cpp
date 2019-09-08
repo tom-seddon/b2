@@ -315,6 +315,7 @@ enum Node {
     Node_nmi=1297,
     Node_clk0=1171,
     Node_clk1out=1163,
+    Node_clk2out=421,
     Node_D1x1=827,
     Node_rw=1156,
     Node_t2=971,
@@ -373,8 +374,9 @@ static void setNMI(state_t *state,bool level) {
 //}
 
 static void printStatus(state_t *state) {
-    bool clk=!!isNodeHigh(state,Node_clk0);
+    bool clk0=!!isNodeHigh(state,Node_clk0);
     bool clk1out=!!isNodeHigh(state,Node_clk1out);
+    bool clk2out=!!isNodeHigh(state,Node_clk2out);
     uint16_t address=readAddressBus(state);
     uint8_t data=readDataBus(state);
     bool rw=!!isNodeHigh(state,Node_rw);
@@ -385,19 +387,22 @@ static void printStatus(state_t *state) {
     uint8_t sp=readSP(state);
     uint8_t p=readP(state);
     uint8_t ir=readIR(state);
-    bool nmi=isNodeHigh(state,Node_nmi);
-    bool irq=isNodeHigh(state,Node_irq);
-    bool d1x1=isNodeHigh(state,Node_D1x1);
+    bool nmi=!!isNodeHigh(state,Node_nmi);
+    bool irq=!!isNodeHigh(state,Node_irq);
+    bool d1x1=!!isNodeHigh(state,Node_D1x1);
 
     printf("%d %d AB:%04x D:%02x RW:%d PC:%04x A:%02x X:%02x Y:%02x SP:%02x P:%02x IR:%02x %d%d%d",
-           clk,clk1out,address,data,rw,pc,a,x,y,sp,p,ir,irq,nmi,d1x1);
+           clk0,clk2out,address,data,rw,pc,a,x,y,sp,p,ir,irq,nmi,d1x1);
 
-    if(clk) {
+    if(clk0) {
         if(rw) {
             printf(" R$%04x=$%02x",address,memory[address]);
         } else {
             printf(" W$%04x=$%02x",address,data);
         }
+    } else {
+        //       W$xxxx=$xx
+        printf("           ");
     }
 
     {
@@ -409,7 +414,7 @@ static void printStatus(state_t *state) {
                 if(any) {
                     printf("+");
                 } else {
-                    printf(" ");
+                    printf("  ");
                 }
 
                 printf("T%zu",i);
@@ -462,7 +467,7 @@ static void TestVisual6502URL(const std::string &description,const std::string &
     // get to phase 2.
     step(perfect6502);
 
-    int cycle=1;
+    int cycle=-1;
     bool everAnyIRQs=false;
     bool everAnyNMIs=false;
     bool wasSync=false;
@@ -486,14 +491,14 @@ static void TestVisual6502URL(const std::string &description,const std::string &
 
         // phi2 leading edge
         step(perfect6502);
-        printf("%-3d %-3d ",cycle,cycle/2);
+        printf("%-3d %-3d ",cycle/2,cycle);
         printStatus(perfect6502);
         //chipStatus(perfect6502);
         ++cycle;
 
         // phi2 trailing edge
         step(perfect6502);
-        printf("%-3d %-3d ",cycle,cycle/2);
+        printf("%-3d %-3d ",cycle/2,cycle);
         printStatus(perfect6502);
         //chipStatus(perfect6502);
         ++cycle;
@@ -515,7 +520,19 @@ static void TestVisual6502URL(const std::string &description,const std::string &
             Check(&discrepancy,sim_p,real_p,"P",'b');
         }
 
+        if(cycle==67) {
+            int x=0;
+        }
+
         const char *old_state=M6502_GetStateName(s);
+
+        if(irq_state) {
+            M6502_SetDeviceIRQ(s,1,irq_state->level==0);
+        }
+
+        if(nmi_state) {
+            M6502_SetDeviceNMI(s,1,nmi_state->level==0);
+        }
 
         //TEST_FALSE(s->p.bits._);
         (*s->tfn)(s);
@@ -526,14 +543,6 @@ static void TestVisual6502URL(const std::string &description,const std::string &
             g_mem[s->abus.w]=s->dbus;
         }
 
-        if(irq_state) {
-            M6502_SetDeviceIRQ(s,1,irq_state->level==0);
-        }
-
-        if(nmi_state) {
-            M6502_SetDeviceNMI(s,1,nmi_state->level==0);
-        }
-
         {
             M6502P p=M6502_GetP(s);
             printf("            AB:%04X      RW:%d PC:%04X A:%02X X:%02X Y:%02X SP:%02X P:%02X       %d%d%d",
@@ -542,9 +551,10 @@ static void TestVisual6502URL(const std::string &description,const std::string &
                 s->device_nmi_flags?0:1,
                 s->d1x1);
             printf(" %c$%04X=$%02X",s->read?'R':'W',s->abus.w,g_mem[s->abus.w]);
-            printf("  %s -> ",old_state);
+            printf("  called: %s\n",old_state);
             old_state=NULL;
-            printf("%s\n",M6502_GetStateName(s));
+            printf("                                                                                     ");
+            printf(" next: %s\n",M6502_GetStateName(s));
         }
 
         wasSync=readSync(perfect6502);
@@ -786,9 +796,6 @@ static void AddTestCases(void) {
 
             //if(cycle!=67&&cycle!=73&&cycle!=79)
             AddTC("Branch taken to same page - IRQ on cycle %d",g_tc_irqs[0]);
-
-            //if(cycle==65)
-            //    PreferTC();
         }
     }
 
@@ -943,9 +950,9 @@ static void AddTestCases(void) {
 
             AddTC("IRQ at +%d during instruction mix",i);
 
-//            if(i==377) {
-//                g_test_cases.back().prefer=true;
-//            }
+            if(i==65) {
+                //PreferTC();
+            }
         }
 
     }
