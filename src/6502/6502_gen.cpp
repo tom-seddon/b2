@@ -689,10 +689,6 @@ public:
                 this->GeneratePhi2(&this->cycles[(size_t)i]);
             }
 
-            if(i+1==(int)this->cycles.size()-1) {
-                this->GenerateD1x1();
-            }
-
             P("\n");
 
             ++i;
@@ -704,9 +700,9 @@ public:
                 this->GeneratePhi1(&this->cycles[(size_t)i]);
                 P("s->tfn=&T%d_%s;\n",i+1,this->stem.c_str());
 
-//                if(i==(int)this->cycles.size()-1) {
-//                    this->GenerateD1x1();
-//                }
+                if(i==(int)this->cycles.size()-1) {
+                    this->GenerateD1x1();
+                }
             }
             P("}\n\n");
         }
