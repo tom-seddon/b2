@@ -1168,6 +1168,7 @@ bool BBCMicro::Update(VideoDataUnit *video_unit,SoundDataUnit *sound_unit) {
 
     // Update CPU.
 
+    // Update CPU.
     if(m_state.stretch) {
         if(phi2_1MHz_trailing_edge) {
             m_state.stretch=false;
@@ -1462,13 +1463,19 @@ bool BBCMicro::Update(VideoDataUnit *video_unit,SoundDataUnit *sound_unit) {
 
         m_state.old_addressable_latch=m_state.addressable_latch;
     } else {
-        if(m_state.system_via.UpdatePhi2LeadingEdge()) {
+        m_state.system_via.UpdatePhi2LeadingEdge();
+        m_state.user_via.UpdatePhi2LeadingEdge();
+
+        bool any_system_via_IRQs=m_state.system_via.AnyIRQs();
+        bool any_user_via_IRQs=m_state.user_via.AnyIRQs();
+
+        if(any_system_via_IRQs) {
             M6502_SetDeviceIRQ(&m_state.cpu,BBCMicroIRQDevice_SystemVIA,1);
         } else {
             M6502_SetDeviceIRQ(&m_state.cpu,BBCMicroIRQDevice_SystemVIA,0);
         }
 
-        if(m_state.user_via.UpdatePhi2LeadingEdge()) {
+        if(any_user_via_IRQs) {
             M6502_SetDeviceIRQ(&m_state.cpu,BBCMicroIRQDevice_UserVIA,1);
         } else {
             M6502_SetDeviceIRQ(&m_state.cpu,BBCMicroIRQDevice_UserVIA,0);

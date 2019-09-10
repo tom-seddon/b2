@@ -512,7 +512,7 @@ void R6522::WriteE(void *via_,M6502Word addr,uint8_t value) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-uint8_t R6522::UpdatePhi2LeadingEdge() {
+void R6522::UpdatePhi2LeadingEdge() {
     if(m_t1_timeout) {
         m_t1_pending=m_acr.bits.t1_continuous;
         this->ifr.bits.t1=1;
@@ -535,21 +535,28 @@ uint8_t R6522::UpdatePhi2LeadingEdge() {
     } else {
         m_t2_count=true;
     }
+}
 
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+// silly to poll like this - should maintain a flag that's updated when
+// IFR or IER change.
+bool R6522::AnyIRQs() const {
     uint8_t any_irqs=this->ifr.value&this->ier.value&0x7f;
 
-#if BBCMICRO_TRACE
-    if(any_irqs) {
-        if(m_trace) {
-            auto ev=(IRQEvent *)m_trace->AllocEvent(IRQ_EVENT);
-            ev->id=m_id;
-            ev->ifr=this->ifr;
-            ev->ier=this->ier;
-        }
-    }
-#endif
+//#if BBCMICRO_TRACE
+//    if(any_irqs) {
+//        if(m_trace) {
+//            auto ev=(IRQEvent *)m_trace->AllocEvent(IRQ_EVENT);
+//            ev->id=m_id;
+//            ev->ifr=this->ifr;
+//            ev->ier=this->ier;
+//        }
+//    }
+//#endif
 
-    return any_irqs;
+    return any_irqs!=0;
 }
 
 //////////////////////////////////////////////////////////////////////////

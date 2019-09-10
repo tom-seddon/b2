@@ -166,10 +166,9 @@ public:
     // Get current PCR value, no side-effects.
     PCR GetPCR() const;
 
-    // returns IRQ flag: true = IRQ, false = no IRQ
-    uint8_t UpdatePhi2LeadingEdge();
-
+    void UpdatePhi2LeadingEdge();
     void UpdatePhi2TrailingEdge();
+    bool AnyIRQs() const;
 
 #if BBCMICRO_TRACE
     void SetTrace(Trace *t);
