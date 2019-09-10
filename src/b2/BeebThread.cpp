@@ -445,6 +445,8 @@ void BeebThread::HardResetMessage::HardReset(BeebThread *beeb_thread,
                 ts->beeblink_handler.reset();
             }
         }
+    } else {
+        ts->beeblink_handler.reset();
     }
 
     auto beeb=std::make_unique<BBCMicro>(ts->current_config.config.type,
