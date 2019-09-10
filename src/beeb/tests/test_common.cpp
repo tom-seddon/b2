@@ -410,7 +410,7 @@ void TestBBCMicro::SaveTestTrace(const std::string &stem) {
         TEST_NON_NULL(f);
 
         ::SaveTrace(m_test_trace,
-                    TraceCyclesOutput_Relative,
+                    TraceCyclesOutput_Absolute,
                     &SaveTraceData,
                     f,
                     nullptr,
@@ -651,6 +651,7 @@ void RunStandardTest(const std::string &test_name,
     TEST_TRUE(SaveTextFile(bbc.oswrch_output,PathJoined(BBC_TESTS_OUTPUT_FOLDER,
                                                         strprintf("%s.all_output.txt",stem.c_str()))));
 
+    TEST_FALSE(bbc.spool_output.empty());
     if(!bbc.spool_output.empty()) {
         {
             LOGF(BBC_OUTPUT,"Spooled: ");
