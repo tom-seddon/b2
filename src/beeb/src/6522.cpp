@@ -290,6 +290,7 @@ void R6522::Write5(void *via_,M6502Word addr,uint8_t value) {
         TRACEF(via->m_trace,"%s - T1C-H write doesn't acknowledge IRQ as T1 just timed out",via->m_name);
     } else {
         via->ifr.bits.t1=0;
+        TRACEF(via->m_trace,"%s - T1C-H write acknowledges T1 (IFR=$%02x)",via->m_name,via->ifr.value);
     }
 
     via->m_t1lh=value;
