@@ -170,6 +170,7 @@ void *Trace::AllocEvent(const TraceEventType &type) {
     auto h=(EventHeader *)this->Alloc(time,sizeof(EventHeader)+type.size);
 
     h->type=type.type_id;
+    ASSERT(time>=m_last_time);
     h->time_delta=(uint8_t)(time-m_last_time);
     h->canceled=0;
 
