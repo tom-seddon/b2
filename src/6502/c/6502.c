@@ -1963,27 +1963,30 @@ static const char *FindFnName(M6502Fn fn) {
 
 static char g_fn_name_buf[200];
 
-const char *M6502_GetStateName(M6502 *s) {
-    const char *ifn_name=FindNameByFn(g_named_ifns,s->ifn);
-    if(!ifn_name) {
-        ifn_name="?";
-    }
-
+const char *M6502_GetStateName(M6502 *s,uint8_t is_dbus_valid) {
     const char *tfn_name=FindFnName(s->tfn);
     if(!tfn_name) {
         tfn_name="?";
     }
 
-    const char *t0fn_name=NULL;
     if(s->tfn==&T0_All) {
-        const M6502Fns *fns=&s->fns[s->opcode];
-        t0fn_name=FindFnName(fns->t0fn);
-    }
+        const char *t0fn_name=NULL;
+        if(is_dbus_valid) {
+            t0fn_name=FindFnName(s->fns[s->dbus].t0fn);
+        }
 
-    if(t0fn_name) {
+        if(!t0fn_name) {
+            t0fn_name="?";
+        }
+
         snprintf(g_fn_name_buf,sizeof g_fn_name_buf,
-                 "tfn=%s ifn=%s [t0fn=%s]",tfn_name,ifn_name,t0fn_name);
+                 "tfn=%s t0fn=%s",tfn_name,t0fn_name);
     } else {
+        const char *ifn_name=FindNameByFn(g_named_ifns,s->ifn);
+        if(!ifn_name) {
+            ifn_name="?";
+        }
+
         snprintf(g_fn_name_buf,sizeof g_fn_name_buf,
                  "tfn=%s ifn=%s",tfn_name,ifn_name);
     }

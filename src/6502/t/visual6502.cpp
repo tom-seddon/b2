@@ -524,7 +524,7 @@ static void TestVisual6502URL(const std::string &description,const std::string &
             int x=0;
         }
 
-        const char *old_state=M6502_GetStateName(s);
+        const char *old_state=M6502_GetStateName(s,1);
 
         if(irq_state) {
             M6502_SetDeviceIRQ(s,1,irq_state->level==0);
@@ -554,7 +554,7 @@ static void TestVisual6502URL(const std::string &description,const std::string &
             printf("  called: %s\n",old_state);
             old_state=NULL;
             printf("                                                                                     ");
-            printf(" next: %s\n",M6502_GetStateName(s));
+            printf(" next: %s\n",M6502_GetStateName(s,1));
         }
 
         wasSync=readSync(perfect6502);

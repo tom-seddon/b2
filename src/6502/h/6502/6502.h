@@ -390,7 +390,7 @@ void M6502_SetDeviceIRQ(M6502 *s,M6502_DeviceIRQFlags mask,int wants_irq);
 void M6502_SetDeviceNMI(M6502 *s,M6502_DeviceNMIFlags mask,int wants_nmi);
 
 /* Result points into static buffer. */
-const char *M6502_GetStateName(M6502 *s);
+const char *M6502_GetStateName(M6502 *s,uint8_t is_dbus_valid);
 
 /* Getter and setter for the P register. Don't access it directly. */
 void M6502_SetP(M6502 *s,uint8_t p);
