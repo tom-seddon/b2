@@ -128,6 +128,14 @@ static void Sep() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+static std::string GetFnNameForCycle(int cycle,const std::string &suffix) {
+    ASSERT(cycle>=0);
+    return "Cycle"+std::to_string(cycle)+"_"+suffix;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 static std::map<InstrType,std::set<std::string>> INSTR_TYPES={
     {
         InstrType_R,
@@ -303,9 +311,9 @@ public:
     void GetTFunAndIFun(std::string *tfun,std::string *ifun) const {
         if(this->mnemonic=="brk") {
             if(this->cmos) {
-                *tfun="T0_BRK_CMOS";
+                *tfun=GetFnNameForCycle(0,"BRK_CMOS");
             } else {
-                *tfun="T0_Interrupt";
+                *tfun=GetFnNameForCycle(0,"Interrupt");
             }
             ifun->clear();
         } else {
@@ -329,15 +337,15 @@ public:
                     ASSERT(false);
                 }
 
-                *tfun="T0_"+suffix;
+                *tfun=GetFnNameForCycle(0,suffix);
                 ifun->clear();
             } else {
                 *ifun=ToUpper(this->mnemonic);
 
                 if(this->mode==Mode_Imp||this->mode==Mode_Rel) {
-                    *tfun=std::string("T0_")+GetInstrTypeEnumName(type);
+                    *tfun=GetFnNameForCycle(0,GetInstrTypeEnumName(type));
                 } else if(this->mode==Mode_Acc) {
-                    *tfun="T0_IMP";
+                    *tfun=GetFnNameForCycle(0,"IMP");
                     *ifun+="A";
                 } else {
                     Mode m=this->mode;
@@ -366,7 +374,10 @@ public:
                         }
                     }
 
-                    *tfun=std::string("T0_")+GetInstrTypeEnumName(type)+"_"+ToUpper(GetModeEnumName(m))+*tfun;
+                    *tfun=GetFnNameForCycle(0,
+                                            (std::string(GetInstrTypeEnumName(type))+
+                                             "_"+
+                                             ToUpper(GetModeEnumName(m))))+*tfun;
                 }
             }
         }
@@ -671,17 +682,17 @@ public:
         for(size_t i=0;i<this->cycles.size();++i) {
             //const Cycle *c=&this->cycles[i];
 
-            P("static void T%zu_%s(M6502 *);\n",1+i,this->stem.c_str());
+            P("static void Cycle%zu_%s(M6502 *);\n",1+i,this->stem.c_str());
         }
 
         P("\n");
 
         int i=-1;
         while(i<(int)this->cycles.size()) {
-            std::string fn_name="T"+std::to_string(1+i)+"_"+this->stem;
+            std::string fn_name=GetFnNameForCycle(1+i,this->stem);
 
             P("static void %s(M6502 *s) {\n",fn_name.c_str());
-            P("/* T%d phi2 */\n",i+1);
+            P("/* Cycle %d phi2=1 */\n",i+1);
 
             if(i<0) {
                 P("/* (decode - already done) */\n");
@@ -693,12 +704,12 @@ public:
 
             ++i;
 
-            P("/* T%d phi1 */\n",(i+1)%((int)this->cycles.size()+1));
+            P("/* Cycle %d phi2=0 */\n",(i+1)%((int)this->cycles.size()+1));
             if(i==(int)this->cycles.size()) {
                 P("M6502_NextInstruction(s);\n");
             } else {
                 this->GeneratePhi1(&this->cycles[(size_t)i]);
-                P("s->tfn=&T%d_%s;\n",i+1,this->stem.c_str());
+                P("s->tfn=&%s;\n",GetFnNameForCycle(i+1,this->stem).c_str());
 
                 if(i==(int)this->cycles.size()-1) {
                     this->GenerateD1x1();
@@ -713,7 +724,7 @@ public:
 
         // +1 because T0 is implied.
         for(size_t i=0;i<this->cycles.size()+1;++i) {
-            fn_names.emplace_back("T"+std::to_string(i)+"_"+this->stem);
+            fn_names.push_back(GetFnNameForCycle(i,this->stem));
         }
 
         return fn_names;

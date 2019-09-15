@@ -952,7 +952,7 @@ static void LAS(M6502 *s) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static void T0_All(M6502 *s);
+static void Cycle0_All(M6502 *s);
 
 void M6502_NextInstruction(M6502 *s) {
     if(!s->d1x1) {
@@ -963,14 +963,14 @@ void M6502_NextInstruction(M6502 *s) {
         s->abus.w=s->pc.w++;
         s->opcode_pc=s->abus;
         s->read=M6502ReadType_Opcode;
-        s->tfn=&T0_All;
+        s->tfn=&Cycle0_All;
     }
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static void T0_All(M6502 *s) {
+static void Cycle0_All(M6502 *s) {
     /* T0 phase 2 */
     s->opcode=s->dbus;
     //++s->pc.w;
@@ -985,11 +985,11 @@ static void T0_All(M6502 *s) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static void T1_Branch(M6502 *s);
-static void T2_Branch(M6502 *s);
-static void T3_Branch(M6502 *s);
+static void Cycle1_Branch(M6502 *s);
+static void Cycle2_Branch(M6502 *s);
+static void Cycle3_Branch(M6502 *s);
 
-void T0_Branch(M6502 *s) {
+void Cycle0_Branch(M6502 *s) {
     /* T0 phase 2 */
     /* (decode - already done) */
     CheckForInterrupts(s);//TODO - CheckForInterrupts in phi2
@@ -997,10 +997,10 @@ void T0_Branch(M6502 *s) {
     /* T1 phase 1 */
     s->abus.w=s->pc.w++;
     s->read=M6502ReadType_Instruction;
-    s->tfn=&T1_Branch;
+    s->tfn=&Cycle1_Branch;
 }
 
-static void T1_Branch(M6502 *s) {
+static void Cycle1_Branch(M6502 *s) {
     /* T1 phase 2 */
     s->ad.b.l=s->dbus;
     (*s->ifn)(s);
@@ -1023,10 +1023,10 @@ static void T1_Branch(M6502 *s) {
     /* T2 phase 1 */
     s->abus=s->pc;
     s->read=M6502ReadType_Instruction;
-    s->tfn=&T2_Branch;
+    s->tfn=&Cycle2_Branch;
 }
 
-static void T2_Branch(M6502 *s) {
+static void Cycle2_Branch(M6502 *s) {
     /* T2 phase 2 */
     if(s->ad.b.h==s->pc.b.h) {
         /* Branch taken, no carry - done. */
@@ -1047,10 +1047,10 @@ static void T2_Branch(M6502 *s) {
     s->abus.b.l=s->ad.b.l;
     s->abus.b.h=s->pc.b.h;
     s->read=M6502ReadType_Instruction;
-    s->tfn=&T3_Branch;
+    s->tfn=&Cycle3_Branch;
 }
 
-static void T3_Branch(M6502 *s) {
+static void Cycle3_Branch(M6502 *s) {
     /* T3 phase 2 */
     s->pc=s->ad;
 
@@ -1065,34 +1065,34 @@ static void T3_Branch(M6502 *s) {
 // This slightly unusual case was making the code generator a bit
 // fiddly - so here it is, added by hand.
 
-static void T1_RMW_ABX2_CMOS(M6502 *);
-static void T2_RMW_ABX2_CMOS(M6502 *);
-static void T3_RMW_ABX2_CMOS(M6502 *);
-static void T4_RMW_ABX2_CMOS(M6502 *);
-static void T4or5_RMW_ABX2_CMOS(M6502 *);
-static void T5or6_RMW_ABX2_CMOS(M6502 *);
+static void Cycle1_RMW_ABX2_CMOS(M6502 *);
+static void Cycle2_RMW_ABX2_CMOS(M6502 *);
+static void Cycle3_RMW_ABX2_CMOS(M6502 *);
+static void Cycle4_RMW_ABX2_CMOS(M6502 *);
+static void Cycle4or5_RMW_ABX2_CMOS(M6502 *);
+static void Cycle5or6_RMW_ABX2_CMOS(M6502 *);
 
-static void T0_RMW_ABX2_CMOS(M6502 *s) {
+static void Cycle0_RMW_ABX2_CMOS(M6502 *s) {
     /* T0 phase 2 */
     /* (decode - already done) */
 
     /* T1 phase 1 */
     s->abus.w=s->pc.w++;
     s->read=M6502ReadType_Instruction;
-    s->tfn=&T1_RMW_ABX2_CMOS;
+    s->tfn=&Cycle1_RMW_ABX2_CMOS;
 }
 
-static void T1_RMW_ABX2_CMOS(M6502 *s) {
+static void Cycle1_RMW_ABX2_CMOS(M6502 *s) {
     /* T1 phase 2 */
     s->ad.b.l=s->dbus;
 
     /* T2 phase 1 */
     s->abus.w=s->pc.w++;
     s->read=M6502ReadType_Instruction;
-    s->tfn=&T2_RMW_ABX2_CMOS;
+    s->tfn=&Cycle2_RMW_ABX2_CMOS;
 }
 
-static void T2_RMW_ABX2_CMOS(M6502 *s) {
+static void Cycle2_RMW_ABX2_CMOS(M6502 *s) {
     /* T2 phase 2 */
     s->ad.b.h=s->dbus;
 
@@ -1102,33 +1102,33 @@ static void T2_RMW_ABX2_CMOS(M6502 *s) {
     s->abus.b.h=s->ad.b.h;
     assert(s->acarry==0||s->acarry==1);
     s->read=M6502ReadType_Data;//+s->acarry; <-- TODO wtah was this??
-    s->tfn=&T3_RMW_ABX2_CMOS;
+    s->tfn=&Cycle3_RMW_ABX2_CMOS;
 }
 
-static void T3_RMW_ABX2_CMOS(M6502 *s) {
+static void Cycle3_RMW_ABX2_CMOS(M6502 *s) {
     /* T3 phase 2 */
     s->data=s->dbus;
 
     /* T4 phase 1 */
     if(!s->acarry) {
         s->read=M6502ReadType_Data;
-        s->tfn=&T4or5_RMW_ABX2_CMOS;
+        s->tfn=&Cycle4or5_RMW_ABX2_CMOS;
     } else {
         s->read=M6502ReadType_Data;
         s->abus.w=s->ad.w+s->x;
-        s->tfn=&T4_RMW_ABX2_CMOS;
+        s->tfn=&Cycle4_RMW_ABX2_CMOS;
     }
 }
 
-static void T4_RMW_ABX2_CMOS(M6502 *s) {
+static void Cycle4_RMW_ABX2_CMOS(M6502 *s) {
     /* T4 phase 2 */
     s->data=s->dbus;
 
     /* T5 phase 1 */
-    s->tfn=&T4or5_RMW_ABX2_CMOS;
+    s->tfn=&Cycle4or5_RMW_ABX2_CMOS;
 }
 
-static void T4or5_RMW_ABX2_CMOS(M6502 *s) {
+static void Cycle4or5_RMW_ABX2_CMOS(M6502 *s) {
     /* T(N-2) phase 2 */
     (*s->ifn)(s);
 #ifdef _DEBUG
@@ -1139,11 +1139,11 @@ static void T4or5_RMW_ABX2_CMOS(M6502 *s) {
     s->dbus=s->data;
     s->abus.w=s->ad.w+s->x;
     s->read=0;
-    s->tfn=&T5or6_RMW_ABX2_CMOS;
+    s->tfn=&Cycle5or6_RMW_ABX2_CMOS;
     CheckForInterrupts(s);
 }
 
-static void T5or6_RMW_ABX2_CMOS(M6502 *s) {
+static void Cycle5or6_RMW_ABX2_CMOS(M6502 *s) {
     /* T(N-1) phase 2 */
 
     /* T0 phase 1 */
@@ -1155,44 +1155,44 @@ static void T5or6_RMW_ABX2_CMOS(M6502 *s) {
 
 /* Complete guesswork based on playing about with Visual6502. */
 
-static void T1_HLT(M6502 *s);
+static void Cycle1_HLT(M6502 *s);
 
-static void T0_HLT(M6502 *s) {
+static void Cycle0_HLT(M6502 *s) {
     /* T0 phase 2 */
 
     /* T1 phase 1 */
     s->abus.w=s->pc.w++;
     s->read=M6502ReadType_Instruction;
-    s->tfn=&T1_HLT;
+    s->tfn=&Cycle1_HLT;
 }
 
-static void T1_HLT(M6502 *s) {
+static void Cycle1_HLT(M6502 *s) {
     /* T1 phase 2 */
 
     /* T2 phase 1 */
     s->abus.w=0xffff;
     s->read=M6502ReadType_Instruction;
-    s->tfn=&T1_HLT;
+    s->tfn=&Cycle1_HLT;
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static void T1_Interrupt(M6502 *);
-static void T2_Interrupt(M6502 *);
-static void T3_Interrupt(M6502 *);
-static void T4_Interrupt(M6502 *);
-static void T5_Interrupt(M6502 *);
-static void T6_Interrupt(M6502 *);
+static void Cycle1_Interrupt(M6502 *);
+static void Cycle2_Interrupt(M6502 *);
+static void Cycle3_Interrupt(M6502 *);
+static void Cycle4_Interrupt(M6502 *);
+static void Cycle5_Interrupt(M6502 *);
+static void Cycle6_Interrupt(M6502 *);
 
-static void T0_Interrupt(M6502 *s) {
+static void Cycle0_Interrupt(M6502 *s) {
     /* T0 phase 2 */
     /* (decode - already done) */
 
     /* T1 phase 1 */
     s->abus.w=s->pc.w;
     s->read=M6502ReadType_Instruction;
-    s->tfn=&T1_Interrupt;
+    s->tfn=&Cycle1_Interrupt;
 
     if(s->d1x1) {
         // This is BRK. Increment PC.
@@ -1200,7 +1200,7 @@ static void T0_Interrupt(M6502 *s) {
     }
 }
 
-static void T1_Interrupt(M6502 *s) {
+static void Cycle1_Interrupt(M6502 *s) {
     /* T1 phase 2 */
     s->data=s->dbus;
 
@@ -1209,10 +1209,10 @@ static void T1_Interrupt(M6502 *s) {
     --s->s.b.l;
     s->dbus=s->pc.b.h;
     s->read=0;
-    s->tfn=&T2_Interrupt;
+    s->tfn=&Cycle2_Interrupt;
 }
 
-static void T2_Interrupt(M6502 *s) {
+static void Cycle2_Interrupt(M6502 *s) {
     /* T2 phase 2 */
 
     /* T3 phase 1 */
@@ -1220,10 +1220,10 @@ static void T2_Interrupt(M6502 *s) {
     --s->s.b.l;
     s->dbus=s->pc.b.l;
     s->read=0;
-    s->tfn=&T3_Interrupt;
+    s->tfn=&Cycle3_Interrupt;
 }
 
-static void T3_Interrupt(M6502 *s) {
+static void Cycle3_Interrupt(M6502 *s) {
     /* T3 phase 2 */
 
     /* T4 phase 1 */
@@ -1231,10 +1231,10 @@ static void T3_Interrupt(M6502 *s) {
     --s->s.b.l;
     s->dbus=GetP(s).value;
     s->read=0;
-    s->tfn=&T4_Interrupt;
+    s->tfn=&Cycle4_Interrupt;
 }
 
-static void T4_Interrupt(M6502 *s) {
+static void Cycle4_Interrupt(M6502 *s) {
     /* T4 phase 2 */
     //s->p.bits.b=1;
 
@@ -1259,13 +1259,13 @@ static void T4_Interrupt(M6502 *s) {
     s->p.bits.i=1;
 
     s->read=M6502ReadType_Address;
-    s->tfn=&T5_Interrupt;
+    s->tfn=&Cycle5_Interrupt;
 
     // Can forget about this now.
     s->d1x1=1;
 }
 
-static void T5_Interrupt(M6502 *s) {
+static void Cycle5_Interrupt(M6502 *s) {
     /* T5 phase 2 */
     s->pc.b.l=s->dbus;
 
@@ -1273,10 +1273,10 @@ static void T5_Interrupt(M6502 *s) {
     assert(s->abus.w==0xfffa||s->abus.w==0xfffe);
     ++s->abus.w;
     s->read=M6502ReadType_Address;
-    s->tfn=&T6_Interrupt;
+    s->tfn=&Cycle6_Interrupt;
 }
 
-static void T6_Interrupt(M6502 *s) {
+static void Cycle6_Interrupt(M6502 *s) {
     /* T6 phase 2 */
     s->pc.b.h=s->dbus;
 
@@ -1293,14 +1293,14 @@ static void T6_Interrupt(M6502 *s) {
 // one type of interrupt can turn into another - and CMOS BRK is
 // handled separately.
 
-static void T1_InterruptCMOS(M6502 *);
-static void T2_InterruptCMOS(M6502 *);
-static void T3_InterruptCMOS(M6502 *);
-static void T4_InterruptCMOS(M6502 *);
-static void T5_InterruptCMOS(M6502 *);
-static void T6_InterruptCMOS(M6502 *);
+static void Cycle1_InterruptCMOS(M6502 *);
+static void Cycle2_InterruptCMOS(M6502 *);
+static void Cycle3_InterruptCMOS(M6502 *);
+static void Cycle4_InterruptCMOS(M6502 *);
+static void Cycle5_InterruptCMOS(M6502 *);
+static void Cycle6_InterruptCMOS(M6502 *);
 
-static void T0_InterruptCMOS(M6502 *s) {
+static void Cycle0_InterruptCMOS(M6502 *s) {
     /* T0 phase 2 */
     /* (decode - already done) */
 
@@ -1324,10 +1324,10 @@ static void T0_InterruptCMOS(M6502 *s) {
     /* T1 phase 1 */
     s->abus.w=s->pc.w;
     s->read=M6502ReadType_Instruction;
-    s->tfn=&T1_InterruptCMOS;
+    s->tfn=&Cycle1_InterruptCMOS;
 }
 
-static void T1_InterruptCMOS(M6502 *s) {
+static void Cycle1_InterruptCMOS(M6502 *s) {
     /* T1 phase 2 */
     //s->data=s->dbus;
 
@@ -1336,10 +1336,10 @@ static void T1_InterruptCMOS(M6502 *s) {
     --s->s.b.l;
     s->dbus=s->pc.b.h;
     s->read=0;
-    s->tfn=&T2_InterruptCMOS;
+    s->tfn=&Cycle2_InterruptCMOS;
 }
 
-static void T2_InterruptCMOS(M6502 *s) {
+static void Cycle2_InterruptCMOS(M6502 *s) {
     /* T2 phase 2 */
 
     /* T3 phase 1 */
@@ -1347,10 +1347,10 @@ static void T2_InterruptCMOS(M6502 *s) {
     --s->s.b.l;
     s->dbus=s->pc.b.l;
     s->read=0;
-    s->tfn=&T3_InterruptCMOS;
+    s->tfn=&Cycle3_InterruptCMOS;
 }
 
-static void T3_InterruptCMOS(M6502 *s) {
+static void Cycle3_InterruptCMOS(M6502 *s) {
     /* T3 phase 2 */
 
     /* T4 phase 1 */
@@ -1363,10 +1363,10 @@ static void T3_InterruptCMOS(M6502 *s) {
     p.bits.b=0;
     s->dbus=p.value;
     s->read=0;
-    s->tfn=&T4_InterruptCMOS;
+    s->tfn=&Cycle4_InterruptCMOS;
 }
 
-static void T4_InterruptCMOS(M6502 *s) {
+static void Cycle4_InterruptCMOS(M6502 *s) {
     /* T4 phase 2 */
     //s->p.bits.b=1;
 
@@ -1381,10 +1381,10 @@ static void T4_InterruptCMOS(M6502 *s) {
     s->p.bits.d=0;
 
     s->read=M6502ReadType_Address;
-    s->tfn=&T5_InterruptCMOS;
+    s->tfn=&Cycle5_InterruptCMOS;
 }
 
-static void T5_InterruptCMOS(M6502 *s) {
+static void Cycle5_InterruptCMOS(M6502 *s) {
     /* T5 phase 2 */
     s->pc.b.l=s->dbus;
 
@@ -1392,10 +1392,10 @@ static void T5_InterruptCMOS(M6502 *s) {
     assert(s->abus.w==0xfffa||s->abus.w==0xfffe);
     ++s->abus.w;
     s->read=M6502ReadType_Address;
-    s->tfn=&T6_InterruptCMOS;
+    s->tfn=&Cycle6_InterruptCMOS;
 }
 
-static void T6_InterruptCMOS(M6502 *s) {
+static void Cycle6_InterruptCMOS(M6502 *s) {
     /* T6 phase 2 */
     s->pc.b.h=s->dbus;
 
@@ -1406,24 +1406,24 @@ static void T6_InterruptCMOS(M6502 *s) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static void T1_BRK_CMOS(M6502 *);
-static void T2_BRK_CMOS(M6502 *);
-static void T3_BRK_CMOS(M6502 *);
-static void T4_BRK_CMOS(M6502 *);
-static void T5_BRK_CMOS(M6502 *);
-static void T6_BRK_CMOS(M6502 *);
+static void Cycle1_BRK_CMOS(M6502 *);
+static void Cycle2_BRK_CMOS(M6502 *);
+static void Cycle3_BRK_CMOS(M6502 *);
+static void Cycle4_BRK_CMOS(M6502 *);
+static void Cycle5_BRK_CMOS(M6502 *);
+static void Cycle6_BRK_CMOS(M6502 *);
 
-static void T0_BRK_CMOS(M6502 *s) {
+static void Cycle0_BRK_CMOS(M6502 *s) {
     /* T0 phase 2 */
     /* (decode - already done) */
 
     /* T1 phase 1 */
     s->abus.w=s->pc.w++;
     s->read=M6502ReadType_Instruction;
-    s->tfn=&T1_BRK_CMOS;
+    s->tfn=&Cycle1_BRK_CMOS;
 }
 
-static void T1_BRK_CMOS(M6502 *s) {
+static void Cycle1_BRK_CMOS(M6502 *s) {
     /* T1 phase 2 */
     s->data=s->dbus;
 
@@ -1432,10 +1432,10 @@ static void T1_BRK_CMOS(M6502 *s) {
     --s->s.b.l;
     s->dbus=s->pc.b.h;
     s->read=0;
-    s->tfn=&T2_BRK_CMOS;
+    s->tfn=&Cycle2_BRK_CMOS;
 }
 
-static void T2_BRK_CMOS(M6502 *s) {
+static void Cycle2_BRK_CMOS(M6502 *s) {
     /* T2 phase 2 */
 
     /* T3 phase 1 */
@@ -1443,10 +1443,10 @@ static void T2_BRK_CMOS(M6502 *s) {
     --s->s.b.l;
     s->dbus=s->pc.b.l;
     s->read=0;
-    s->tfn=&T3_BRK_CMOS;
+    s->tfn=&Cycle3_BRK_CMOS;
 }
 
-static void T3_BRK_CMOS(M6502 *s) {
+static void Cycle3_BRK_CMOS(M6502 *s) {
     /* T3 phase 2 */
 
     /* T4 phase 1 */
@@ -1460,10 +1460,10 @@ static void T3_BRK_CMOS(M6502 *s) {
     s->dbus=p.value;
 
     s->read=0;
-    s->tfn=&T4_BRK_CMOS;
+    s->tfn=&Cycle4_BRK_CMOS;
 }
 
-static void T4_BRK_CMOS(M6502 *s) {
+static void Cycle4_BRK_CMOS(M6502 *s) {
     /* T4 phase 2 */
     s->p.bits.i=1;
     s->p.bits.d=0;
@@ -1472,20 +1472,20 @@ static void T4_BRK_CMOS(M6502 *s) {
     s->abus.w=0xfffe;
 
     s->read=M6502ReadType_Instruction;
-    s->tfn=&T5_BRK_CMOS;
+    s->tfn=&Cycle5_BRK_CMOS;
 }
 
-static void T5_BRK_CMOS(M6502 *s) {
+static void Cycle5_BRK_CMOS(M6502 *s) {
     /* T5 phase 2 */
     s->pc.b.l=s->dbus;
 
     /* T6 phase 1 */
     ++s->abus.w;
     s->read=M6502ReadType_Instruction;
-    s->tfn=&T6_BRK_CMOS;
+    s->tfn=&Cycle6_BRK_CMOS;
 }
 
-static void T6_BRK_CMOS(M6502 *s) {
+static void Cycle6_BRK_CMOS(M6502 *s) {
     /* T6 phase 2 */
     s->pc.b.h=s->dbus;
 
@@ -1594,7 +1594,7 @@ static const char *FindNameByFn(const NamedFn *named_fns,M6502Fn fn) {
 const M6502Config M6502_defined_config={
     .name="6502 (defined instructions only)",
     .fns=g_defined_fns,
-    .interrupt_tfn=&T0_Interrupt,
+    .interrupt_tfn=&Cycle0_Interrupt,
     .disassembly_info=g_defined_disassembly_info,
 };
 
@@ -1602,14 +1602,14 @@ const M6502Config M6502_nmos6502_config={
     .name="NMOS 6502",
     .xaa_magic=0xee,
     .fns=g_nmos6502_fns,
-    .interrupt_tfn=&T0_Interrupt,
+    .interrupt_tfn=&Cycle0_Interrupt,
     .disassembly_info=g_nmos6502_disassembly_info,
 };
 
 const M6502Config M6502_cmos6502_config={
     .name="CMOS 65C02",
     .fns=g_cmos6502_fns,
-    .interrupt_tfn=&T0_InterruptCMOS,
+    .interrupt_tfn=&Cycle0_InterruptCMOS,
     .disassembly_info=g_cmos6502_disassembly_info,
 };
 
@@ -1671,14 +1671,14 @@ void M6502_Destroy(M6502 *s) {
 
 void M6502_Reset(M6502 *s) {
     s->d1x1=1;
-    s->tfn=&T0_Reset;
+    s->tfn=&Cycle0_Reset;
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 void M6502_Halt(M6502 *s) {
-    s->tfn=&T1_HLT;
+    s->tfn=&Cycle1_HLT;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -1974,7 +1974,7 @@ const char *M6502_GetStateName(M6502 *s,uint8_t is_dbus_valid) {
         tfn_name="?";
     }
 
-    if(s->tfn==&T0_All) {
+    if(s->tfn==&Cycle0_All) {
         const char *t0fn_name=NULL;
         if(is_dbus_valid) {
             t0fn_name=FindFnName(s->fns[s->dbus].t0fn);
