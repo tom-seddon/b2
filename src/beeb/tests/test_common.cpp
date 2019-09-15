@@ -651,6 +651,8 @@ void RunStandardTest(const std::string &test_name,
     TEST_TRUE(SaveTextFile(bbc.oswrch_output,PathJoined(BBC_TESTS_OUTPUT_FOLDER,
                                                         strprintf("%s.all_output.txt",stem.c_str()))));
 
+    bbc.SaveTestTrace(stem);
+
     TEST_FALSE(bbc.spool_output.empty());
     if(!bbc.spool_output.empty()) {
         {
@@ -675,8 +677,6 @@ void RunStandardTest(const std::string &test_name,
 
         SaveTextOutput(wanted_output,stem,"wanted");
         SaveTextOutput(bbc.spool_output,stem,"got");
-
-        bbc.SaveTestTrace(stem);
 
         TEST_EQ_SS(wanted_output,bbc.spool_output);
         //LOGF(OUTPUT,"Match: %d\n",wanted_output==bbc.tspool_output);
