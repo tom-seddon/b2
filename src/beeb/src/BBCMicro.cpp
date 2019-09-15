@@ -1115,45 +1115,50 @@ uint16_t BBCMicro::DebugGetBeebAddressFromCRTCAddress(uint8_t h,uint8_t l) const
 
 // Timing diagram:
 //
+// see https://stardot.org.uk/forums/viewtopic.php?f=3&t=17896#p248051
+//
 // <pre>
-// 2MHz     ___     ___     ___     ___     ___
-// phi1    /   \___/   \___/   \___/   \___/   \___/
-// 2MHz         ___     ___     ___     ___     ___
-// phi2    \___/   \___/   \___/   \___/   \___/   \
-// BBCMicro   |<----->|<----->|<----->|<----->|
-// Update     |   0   |   1   |   2   |   3   |
-// 1MHz     _______         _______         _______
-// phi1    /       \_______/       \_______/       \
-// 1MHz             _______         _______
-// phi2    \_______/       \_______/       \_______/
-// BBCMicro   |<----->|<----->|<----->|<----->|
-// Update     |   0   |   1   |   2   |   3   |
-// stretch  ___             ___     ___     ___
-// case 1  /   \___.___.___/   \___/   \___/   \___/
-//              ___.___.___     ___     ___     ___
-//         \___/           \___/   \___/   \___/   \
-//                 |<- +1 >|
-// stretch  ___     ___                     ___
-// case 2  /   \___/   \___.___.___.___.___/   \___/
-//              ___     ___.___.___.___.___     ___
-//         \___/   \___/                   \___/   \
-//                         |<----- +2 ---->|
+// 1MHz             ___.___         ___.___         ___.___
+// phi2    \___.___/       \___.___/       \___.___/       \
+// 2MHz         ___     ___     ___     ___     ___     ___
+// phi2    \___/   \___/   \___/   \___/   \___/   \___/   \
+// BBCMicro   |<----->|<----->|<----->|<----->|<----->|<----
+// Update     |   0   |   1   |   2   |   3   |   4   |
+//
+// 1MHz             ___.___         ___.___         ___.___
+// phi2    \___.___/       \___.___/       \___.___/       \
+// stretch      ___     ___     ___.___.___     ___     ___
+// case 1  \___/   \___/   \___/           \___/   \___/   \
+//                                 |< +1 ->|
+// BBCMicro   |<----->|<----->|<----->|<----->|<----->|<----
+// Update     |   0   |   1   |   2   |   3   |   4   |
+//
+// 1MHz             ___.___         ___.___         ___.___
+// phi2    \___.___/       \___.___/       \___.___/       \
+// stretch      ___             ___.___.___     ___     ___
+// case 2  \___/   \___.___.___/           \___/   \___/   \
+//                     |< +2 --------->|
+// BBCMicro   |<----->|<----->|<----->|<----->|<----->|<----
+// Update     |   0   |   1   |   2   |   3   |   4   |
 // </pre>
 //
-// So each BBCMicro::Update encompasses a 2MHz phi1->phi2 then a phi2->phi1,
-// all covered by the 6502 update.
+// So each BBCMicro::Update encompasses a 2 MHz phi2 leading edge then a 2 MHz
+// phi2 trailing edge, all covered by the 6502 update.
 //
-// It also involves a 1MHz phi1->phi2 or a 1MHz phi2->phi1.
+// It also involves a 1 MHz phi2 leading edge or a 1 MHz phi2 trailing edge.
 //
-// Accesses occur at the end of 2MHz phi2. For a 1MHz access, the access
-// can't complete until this lines up with the trailing edge of the next 1MHz
-// phi2.
+// Memory accesses occur at the 2 MHz phi2 trailing edge. To access a 1 MHz
+// device, the next phi2 trailing edge has to line up with the next 1 MHz
+// phi2 trailing edge.
 //
-// That means a delay of 1 2MHz cycle during a 1MHz phi1->phi2 (only need to
-// wait for the new phi2 state to finish), or 2 2MHz cycles during a 1MHz
-// phi2->phi1 (need to wait for the new phi1 state to finish, then for phi2
-// to finish too).
-
+// When the 2 MHz phi2 leading edge coincides with 1 MHz phi2=1, this is case 2.
+// Delay the leading edge for 1 x 2 MHz cycle.
+//
+// When the 2 MHz phi2 leading edge coincides with 1 MHz phi2=0 (either due to
+// the clocks' alignment, or because this was originally case 2), this is case
+// 1. Delay the trailing edge for 1 x 2 MHz cycle. The trailing edges of both
+// clocks then line up.
+//
 bool BBCMicro::Update(VideoDataUnit *video_unit,SoundDataUnit *sound_unit) {
     uint8_t phi2_1MHz_trailing_edge=m_state.num_2MHz_cycles&1;
     bool sound=false;

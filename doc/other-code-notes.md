@@ -91,4 +91,41 @@ Notes:
 | fc00-feff | OS or I/O area as per bit 6 of ACCCON, or `i` for I/O, or `o` for OS |
 | ff00-ffff | always OS |
 
+# agh
 
+```
+1948227  m`$4438: dec $fe65 [i`$fe65]      A=01 X=04 Y=00 S=fd P=Nvdizc (D=fe)
+1948227  read $ce from $4438
+1948228  CPU state before: tfn=T0_All t0fn=T0_RMW_ABS
+1948228  CPU state after: tfn=T1_RMW_ABS ifn=DEC, abus=$4439, dbus=$ce
+1948228  read $65 from $4439
+1948229  CPU state before: tfn=T1_RMW_ABS ifn=DEC
+1948229  CPU state after: tfn=T2_RMW_ABS ifn=DEC, abus=$443a, dbus=$65
+1948229  read $fe from $443a
+1948229  UserVIA - T1 timeout
+1948230  CPU state before: tfn=T2_RMW_ABS ifn=DEC
+1948230  CPU state after: tfn=T3_RMW_ABS ifn=DEC, abus=$fe65, dbus=$fe
+1948230  Stretch #1
+1948230  UserVIA - T1 IRQ. Continuous=false PB7=false
+1948231  read $ff from $fe65
+1948231  UserVIA - T1 reload: T1=$0004 (4)
+1948232  CPU state before: tfn=T3_RMW_ABS ifn=DEC
+1948232  CPU state after: tfn=T4_RMW_ABS ifn=DEC, abus=$fe65, dbus=$ff
+1948232  Stretch #1
+1948233  write $ff to $fe65
+1948233  UserVIA - T1C-H write acknowledges T1 (IFR=$00)
+1948233  UserVIA - T1 reload: T1=$ff04 (65284)
+1948234  CPU state before: tfn=T4_RMW_ABS ifn=DEC
+1948234  CPU state after: tfn=T5_RMW_ABS ifn=DEC, abus=$fe65, dbus=$fe
+
+1948234  Checked for interrupts <---- this should happen just before the previous write!
+
+1948234  Stretch #1
+1948235  write $fe to $fe65
+1948235  UserVIA - T1C-H write acknowledges T1 (IFR=$00)
+1948235  UserVIA - T1 reload: T1=$fe04 (65028)
+1948236  CPU state before: tfn=T5_RMW_ABS ifn=DEC
+1948236  CPU state after: tfn=T0_All t0fn=?, abus=$443b, dbus=$fe
+1948236  m`$443b: lda $1001 [m`$1001]      A=00 X=04 Y=00 S=fd P=nvdiZc (D=00)
+1948236  read $ad from $443b
+```
