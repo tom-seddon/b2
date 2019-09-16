@@ -44,14 +44,14 @@ LOG_DEFINE(DEBUG,"",&log_printer_stdout_and_debugger)
 // - only a subset of query parameters are supported: a, d, r, irq0,
 //   irq1, nmi0, nmi1, steps (others are ignored)
 //
-// - IRQ/NMI signals can go low or high on phi2 leading edge only - there's
-//   no way to do anything on the phi2 trailing edge, as that happens inside
-//   the 6502 simulator update
+// - IRQ/NMI signals can go low or high on cycle boundaries only
 //
 // Note also: the CPU state isn't checked on every cycle, only at instruction
 // boundaries (as indicated by the SYNC signal). The simulator promises to (try
 // to) replicate the address bus, data bus and rw line behaviour, so those are
-// checked every cycle, but 
+// checked every cycle, but doesn't promise more than that.
+//
+// Would be nice to get the program counter matched up though...
 //
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -68,13 +68,15 @@ static const uint8_t DEFAULT_MEMORY[]={
 struct PinState {
     int cycle;
     int level;
+    bool seen;
 
     PinState(int level,int cycle);
 };
 
 PinState::PinState(int level_,int cycle_):
-    cycle(cycle_),
-    level(level_)
+cycle(cycle_),
+level(level_),
+seen(false)
 {
 }
 
@@ -172,13 +174,13 @@ static int GetInt(const char *str,int num_chars,int base) {
 
 static void AddIRQ(int level,const char *v) {
     int irq_cycle=GetInt(v,-1,10);
-    TEST_TRUE(irq_cycle%2==1);
+    TEST_TRUE(irq_cycle%2==0);
     g_irqs.emplace_back(level,irq_cycle);
 }
 
 static void AddNMI(int level,const char *v) {
     int nmi_cycle=GetInt(v,-1,10);
-    TEST_TRUE(nmi_cycle%2==1);
+    TEST_TRUE(nmi_cycle%2==0);
     g_nmis.emplace_back(level,nmi_cycle);
 }
 
@@ -244,7 +246,7 @@ static void InitVisual6502(const std::string &url) {
 }
 
 static void TestInitVisual6502(void) {
-    InitVisual6502("http://visual6502.org/JSSim/expert.html?graphics=f&loglevel=2&steps=50&a=0011&d=58&a=fffe&d=2000&a=0020&d=e840&r=0010&irq0=19&irq1=101&logmore=irq,D1x1&a=0014&d=78");
+    InitVisual6502("http://visual6502.org/JSSim/expert.html?graphics=f&loglevel=2&steps=50&a=0011&d=58&a=fffe&d=2000&a=0020&d=e840&r=0010&irq0=18&irq1=100&logmore=irq,D1x1&a=0014&d=78");
     TEST_EQ_UU(g_mem[0x11],0x58);
     TEST_EQ_UU(g_mem[0xfffe],0x20);
     TEST_EQ_UU(g_mem[0xffff],0x00);
@@ -253,19 +255,19 @@ static void TestInitVisual6502(void) {
     TEST_EQ_UU(g_mem[0x0014],0x78);
     TEST_EQ_UU(g_irqs.size(),2);
     TEST_EQ_II(g_irqs[0].level,0);
-    TEST_EQ_II(g_irqs[0].cycle,19);
+    TEST_EQ_II(g_irqs[0].cycle,18);
     TEST_EQ_II(g_irqs[1].level,1);
-    TEST_EQ_II(g_irqs[1].cycle,101);
+    TEST_EQ_II(g_irqs[1].cycle,100);
 }
 
-static const PinState *FindPinStateByCycle(const std::vector<PinState> &states,int cycle_) {
-    for(size_t i=0;i<states.size();++i) {
-        if(states[i].cycle==cycle_) {
-            return &states[i];
+static PinState *FindPinStateByCycle(std::vector<PinState> *states,int cycle_) {
+    for(size_t i=0;i<states->size();++i) {
+        if((*states)[i].cycle==cycle_) {
+            return &(*states)[i];
         }
     }
 
-    return NULL;
+    return nullptr;
 }
 
 static void PrintCheckResult(uint32_t value,char type) {
@@ -446,6 +448,8 @@ static void TestVisual6502URL(const std::string &description,const std::string &
         step(perfect6502);
     }
 
+    step(perfect6502);
+
     // Create M6502 state.
     auto s=new M6502;
     M6502_Init(s,&M6502_nmos6502_config);
@@ -464,33 +468,43 @@ static void TestVisual6502URL(const std::string &description,const std::string &
 
     // Run.
 
-    // get to phase 2.
-    step(perfect6502);
-
-    int cycle=-1;
-    bool everAnyIRQs=false;
-    bool everAnyNMIs=false;
+    int cycle=0;
     bool wasSync=false;
+
+    // sync up...
+    s->read=!!isNodeHigh(perfect6502,Node_rw);
+    s->abus.w=readAddressBus(perfect6502);
+    s->dbus=readDataBus(perfect6502);
+
+    for(const PinState &state:g_irqs) {
+        TEST_FALSE(state.seen);
+    }
+
+    for(const PinState &state:g_nmis) {
+        TEST_FALSE(state.seen);
+    }
 
     for(int i=0;i<g_num_test_cycles;++i) {
         bool discrepancy=false;
         //int printCycle=cycle/2;
 
-        const PinState *irq_state=FindPinStateByCycle(g_irqs,cycle);
-        const PinState *nmi_state=FindPinStateByCycle(g_nmis,cycle);
+        PinState *irq_state=FindPinStateByCycle(&g_irqs,cycle);
+        PinState *nmi_state=FindPinStateByCycle(&g_nmis,cycle);
 
         if(irq_state) {
             setIRQ(perfect6502,irq_state->level);
-            everAnyIRQs=true;
+            irq_state->seen=true;
         }
 
         if(nmi_state) {
             setNMI(perfect6502,nmi_state->level);
-            everAnyNMIs=true;
+            nmi_state->seen=true;
         }
 
         // phi2 leading edge
         step(perfect6502);
+        ASSERT(!isNodeHigh(perfect6502,Node_clk0));
+        uint16_t phi1_addr=readAddressBus(perfect6502);
         printf("%-3d %-3d ",cycle/2,cycle);
         printStatus(perfect6502);
         //chipStatus(perfect6502);
@@ -498,6 +512,8 @@ static void TestVisual6502URL(const std::string &description,const std::string &
 
         // phi2 trailing edge
         step(perfect6502);
+        ASSERT(isNodeHigh(perfect6502,Node_clk0));
+        TEST_EQ_UU(phi1_addr,readAddressBus(perfect6502));
         printf("%-3d %-3d ",cycle/2,cycle);
         printStatus(perfect6502);
         //chipStatus(perfect6502);
@@ -534,14 +550,14 @@ static void TestVisual6502URL(const std::string &description,const std::string &
             M6502_SetDeviceNMI(s,1,nmi_state->level==0);
         }
 
-        //TEST_FALSE(s->p.bits._);
         (*s->tfn)(s);
-        //TEST_FALSE(s->p.bits._);
+
         if(s->read) {
             s->dbus=g_mem[s->abus.w];
         } else {
             g_mem[s->abus.w]=s->dbus;
         }
+
 
         {
             M6502P p=M6502_GetP(s);
@@ -579,6 +595,14 @@ static void TestVisual6502URL(const std::string &description,const std::string &
 
     TEST_EQ_II(first_discrepancy_cycle,-1);
 
+    for(const PinState &state:g_irqs) {
+        TEST_TRUE(state.seen);
+    }
+
+    for(const PinState &state:g_nmis) {
+        TEST_TRUE(state.seen);
+    }
+
     destroyChip(perfect6502);
 
     InitVisual6502("");
@@ -606,8 +630,8 @@ typedef struct TestCase TestCase;
 static int g_tc_mem[65536];//-1 if not set
 static int g_tc_num_cycles=120;
 static uint16_t g_tc_next_addr=0;
-std::vector<int> g_tc_irqs,g_tc_nmis;
-std::vector<TestCase> g_test_cases;
+static std::vector<int> g_tc_irqs,g_tc_nmis;
+static std::vector<TestCase> g_test_cases;
 
 static void SetTCVectors(uint16_t nmiv,uint16_t rstv,uint16_t irqv) {
     g_tc_mem[0xfffa]=(nmiv>>0)&0xff;
@@ -681,7 +705,7 @@ static void ResetTC(void) {
 }
 
 static std::string GetTCURL(const std::string &base) {
-    std::string url=base+"?graphics=f&loglevel=2&logmore=irq,nmi,D1x1&steps="+std::to_string(g_tc_num_cycles);
+    std::string url=base+"?graphics=f&loglevel=2&logmore=irq,nmi,D1x1,clk0&steps="+std::to_string(g_tc_num_cycles);
 
     int a=-1;
     for(int b=0;b<65537;++b) {
@@ -757,7 +781,7 @@ static void AddTestCases(void) {
         SetTCMem(0x10,"58 e6ff 78 eaea eaea eaea eaea eaea eaea");//cli:inc $ff:sei:nop...
 
         for(int i=0;i<3;++i) {
-            g_tc_irqs={75-i*2};
+            g_tc_irqs={74-i*2};
 
             AddTC("IRQ at end-%d of INC, then SEI",i);
         }
@@ -769,8 +793,7 @@ static void AddTestCases(void) {
         for(int i=0;i<50;++i)
             g_tc_mem[0x10+i]=i%2==0?0x58:0x78;
 
-
-        g_tc_irqs={1};
+        g_tc_irqs={0};
 
         AddTC("Stream of CLI/SEI/CLI/SEI with IRQ held low the whole time");
     }
@@ -791,7 +814,7 @@ static void AddTestCases(void) {
         SetTCMem(0x10,"5890fe");
 
         for(int i=0;i<10;++i) {
-            int cycle=65+i*2;
+            int cycle=64+i*2;
             g_tc_irqs={cycle};
 
             //if(cycle!=67&&cycle!=73&&cycle!=79)
@@ -875,7 +898,7 @@ static void AddTestCases(void) {
         SetTCMem(-1,"90fe");
 
         for(int i=0;i<10;++i) {
-            int cycle=61+i*2;
+            int cycle=60+i*2;
 
             g_tc_irqs={cycle};
             g_tc_nmis={cycle};
@@ -893,7 +916,7 @@ static void AddTestCases(void) {
         int num_cycles=390;
 
         // the preamble is 65 cycles long.
-        for(int i=65;i<num_cycles;i+=2) {
+        for(int i=64;i<num_cycles;i+=2) {
             ResetTC();
 
             // Read

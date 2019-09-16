@@ -621,20 +621,18 @@ struct Cycle {
     // True if this is a read cycle, false if a write cycle.
     Type type;
 
-    // Address to read from or write to, set up in phi1. Addresses
+    // Address to read from or write to. Addresses
     // that map to a simple C expression are listed in ADDR_EXPRS;
     // those that expand to something more involved can be seen in
     // GeneratePhi1.
     std::string addr;
 
-    // What to put on the data bus in phi1 (write) or where to
-    // store the data in phi2 (read). These always expand to a
-    // simple C expression, and the full list can be found in
-    // WHAT_EXPRS.
+    // What to put on the data bus to write (write) or where to store the
+    // data once read (read). These always expand to a simple
+    // C expression, and the full list can be found in WHAT_EXPRS.
     std::string what;
 
-    // Action to take on phi2. The full list can be seen in
-    // GeneratePhi2.
+    // Action to take. The full list can be seen in  GenerateAction.
     std::string action;
 
     Cycle(Type type_,std::string addr_,const char *what_,const char *action_):
@@ -687,28 +685,23 @@ public:
 
         P("\n");
 
-        int i=-1;
-        while(i<(int)this->cycles.size()) {
-            std::string fn_name=GetFnNameForCycle(1+i,this->stem);
+        // +1, because the first cycle is implicit.
+        for(size_t i=0;i<this->cycles.size()+1;++i) {
+            std::string fn_name=GetFnNameForCycle(i,this->stem);
 
             P("static void %s(M6502 *s) {\n",fn_name.c_str());
-            P("/* Cycle %d phi2=1 */\n",i+1);
-
-            if(i<0) {
-                P("/* (decode - already done) */\n");
+            if(i==0) {
+                // No dbus data of interest.
+                P("/* (called from Cycle0_All) */\n");
             } else {
-                this->GeneratePhi2(&this->cycles[(size_t)i]);
+                this->GenerateAction(&this->cycles[i-1]);
             }
 
-            P("\n");
-
-            ++i;
-
-            P("/* Cycle %d phi2=0 */\n",(i+1)%((int)this->cycles.size()+1));
-            if(i==(int)this->cycles.size()) {
+            if(i==this->cycles.size()) {
+                // Fixed action for last cycle.
                 P("M6502_NextInstruction(s);\n");
             } else {
-                this->GeneratePhi1(&this->cycles[(size_t)i]);
+                this->GenerateAccess(&this->cycles[i]);
                 P("s->tfn=&%s;\n",GetFnNameForCycle(i+1,this->stem).c_str());
 
                 if(i==(int)this->cycles.size()-1) {
@@ -722,7 +715,7 @@ public:
     std::vector<std::string> GetFnNames() const {
         std::vector<std::string> fn_names;
 
-        // +1 because T0 is implied.
+        // +1, because the first cycle is implicit.
         for(size_t i=0;i<this->cycles.size()+1;++i) {
             fn_names.push_back(GetFnNameForCycle(i,this->stem));
         }
@@ -731,7 +724,7 @@ public:
     }
 protected:
 private:
-    void GeneratePhi1(const Cycle *c) const {
+    void GenerateAccess(const Cycle *c) const {
         bool set_acarry=false;
         (void)set_acarry;
 
@@ -820,7 +813,7 @@ private:
         }
     }
 
-    void GeneratePhi2(const Cycle *c) const {
+    void GenerateAction(const Cycle *c) const {
         if(c->type!=Cycle::Type::Write) {
             if(c->what.empty()) {
                 P("/* ignore dummy read */\n");
