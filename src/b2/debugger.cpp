@@ -1747,6 +1747,7 @@ protected:
     void DoImGui2() override {
         VideoULA::Control control;
         uint8_t palette[16];
+        VideoDataPixel nula_palette[16];
 
         {
             std::unique_lock<Mutex> lock;
@@ -1756,6 +1757,7 @@ protected:
 
             control=u->control;
             memcpy(palette,u->m_palette,16);
+            memcpy(nula_palette,u->m_output_palette,16*sizeof(VideoDataPixel));
         }
 
 
@@ -1814,6 +1816,14 @@ protected:
                 ImGuiStyleColourPusher cpusher(ImGuiCol_Text,COLOUR_COLOURS[colour]);
                 ImGui::SameLine();
                 ImGui::Text("%x",entry);
+            }
+        }
+        
+        if(ImGui::CollapsingHeader("Video NuLA")) {
+            for(uint8_t i=0;i<16;++i) {
+                const VideoDataPixel *e=&nula_palette[i];
+                
+                ImGui::Text("%x. $%x%x%x",i,e->bits.r,e->bits.g,e->bits.b);
             }
         }
     }
