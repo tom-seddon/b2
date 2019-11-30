@@ -221,6 +221,7 @@ void VideoULA::ResetNuLAState() {
 
     // Reset scrolling.
     m_scroll_offset=0;
+    m_blanking_size=0;
 
     // Don't use direct palette.
     m_direct_palette=0;
