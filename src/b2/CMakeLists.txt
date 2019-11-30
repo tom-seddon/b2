@@ -315,7 +315,13 @@ endif()
 # The release process copies the asset folder from an unspecified
 # configuration. The assets must be the same for every configuration.
 
+if(APPLE)
+# Agh, set this up slightly wrongly originally...
+set(ASSETS ../Resources/assets)
+else()
 set(ASSETS assets)
+endif()
+
 set(ROMS ${ASSETS}/roms)
 set(FONTS ${ASSETS}/fonts)
 set(SAMPLES ${ASSETS}/samples)
