@@ -23,6 +23,8 @@ void VideoULA::WriteControlRegister(void *ula_,M6502Word a,uint8_t value) {
         ula->control.value=value;
 
         TRACEF(ula->m_trace,"ULA Control: Flash=%s Teletext=%s Line Width=%d Fast6845=%s Cursor=%d\n",BOOL_STR(ula->control.bits.flash),BOOL_STR(ula->control.bits.teletext),ula->control.bits.line_width,BOOL_STR(ula->control.bits.fast_6845),ula->control.bits.cursor);
+
+        ula->UpdatePixelBufferOffset();
     }
 }
 
@@ -52,68 +54,69 @@ void VideoULA::WriteNuLAControlRegister(void *ula_,M6502Word a,uint8_t value) {
 
 
         switch(code) {
-        case 1:
-            // Toggle direct palette mode.
-            ula->m_direct_palette=param;
-            TRACEF(ula->m_trace,"NuLA Control: Direct Palette=%s\n",BOOL_STR(ula->m_direct_palette));
-            break;
+            case 1:
+                // Toggle direct palette mode.
+                ula->m_direct_palette=param;
+                TRACEF(ula->m_trace,"NuLA Control: Direct Palette=%s\n",BOOL_STR(ula->m_direct_palette));
+                break;
 
-        case 2:
-            ula->m_scroll_offset=param&7;
-            TRACEF(ula->m_trace,"NuLA Control: Scroll Offset=%u\n",ula->m_scroll_offset);
-            break;
+            case 2:
+                ula->m_scroll_offset=param&7;
+                ula->UpdatePixelBufferOffset();
+                TRACEF(ula->m_trace,"NuLA Control: Scroll Offset=%u\n",ula->m_scroll_offset);
+                break;
 
-        case 3:
-            ula->m_blanking_size=param;
-            TRACEF(ula->m_trace,"NuLA Control: Blanking Size=%u\n",ula->m_blanking_size);
-            break;
+            case 3:
+                ula->m_blanking_size=param;
+                TRACEF(ula->m_trace,"NuLA Control: Blanking Size=%u\n",ula->m_blanking_size);
+                break;
 
-        case 4:
-            // Reset NuLA state.
-            ula->ResetNuLAState();
-            TRACEF(ula->m_trace,"NuLA Control: Reset NuLA state\n");
-            break;
+            case 4:
+                // Reset NuLA state.
+                ula->ResetNuLAState();
+                TRACEF(ula->m_trace,"NuLA Control: Reset NuLA state\n");
+                break;
 
-        case 5:
-            // Disable A1.
-            ula->m_disable_a1=1;
-            TRACEF(ula->m_trace,"NuLA Control: Disable A1\n");
-            break;
+            case 5:
+                // Disable A1.
+                ula->m_disable_a1=1;
+                TRACEF(ula->m_trace,"NuLA Control: Disable A1\n");
+                break;
 
-        case 6:
-            // Attribute modes on/off.
-            ula->m_attribute_mode.bits.enabled=!!param;
-            TRACEF(ula->m_trace,"NuLA Control: Attribute Mode=%s\n",BOOL_STR(ula->m_attribute_mode.bits.enabled));
-            break;
+            case 6:
+                // Attribute modes on/off.
+                ula->m_attribute_mode.bits.enabled=!!param;
+                TRACEF(ula->m_trace,"NuLA Control: Attribute Mode=%s\n",BOOL_STR(ula->m_attribute_mode.bits.enabled));
+                break;
 
-        case 7:
-            // Text attribute modes on/off.
-            ula->m_attribute_mode.bits.text=!!param;
-            TRACEF(ula->m_trace,"NuLA Control: Text Attribute Mode=%s\n",BOOL_STR(ula->m_attribute_mode.bits.text));
-            break;
+            case 7:
+                // Text attribute modes on/off.
+                ula->m_attribute_mode.bits.text=!!param;
+                TRACEF(ula->m_trace,"NuLA Control: Text Attribute Mode=%s\n",BOOL_STR(ula->m_attribute_mode.bits.text));
+                break;
 
-        case 8:
-            // Set flashing flags for logical colours 8-11.
-            ula->m_flash[8]=param&0x08;
-            ula->m_flash[9]=param&0x04;
-            ula->m_flash[10]=param&0x02;
-            ula->m_flash[11]=param&0x01;
-            TRACEF(ula->m_trace,"NuLA Control: Flash: 8=%s 9=%s 10=%s 11=%s\n",BOOL_STR(ula->m_flash[8]),BOOL_STR(ula->m_flash[9]),BOOL_STR(ula->m_flash[10]),BOOL_STR(ula->m_flash[11]));
-            break;
+            case 8:
+                // Set flashing flags for logical colours 8-11.
+                ula->m_flash[8]=param&0x08;
+                ula->m_flash[9]=param&0x04;
+                ula->m_flash[10]=param&0x02;
+                ula->m_flash[11]=param&0x01;
+                TRACEF(ula->m_trace,"NuLA Control: Flash: 8=%s 9=%s 10=%s 11=%s\n",BOOL_STR(ula->m_flash[8]),BOOL_STR(ula->m_flash[9]),BOOL_STR(ula->m_flash[10]),BOOL_STR(ula->m_flash[11]));
+                break;
 
-        case 9:
-            // Set flashing flags for logical colours 12-15.
-            ula->m_flash[12]=param&0x08;
-            ula->m_flash[13]=param&0x04;
-            ula->m_flash[14]=param&0x02;
-            ula->m_flash[15]=param&0x01;
-            TRACEF(ula->m_trace,"NuLA Control: Flash: 12=%s 13=%s 14=%s 15=%s\n",BOOL_STR(ula->m_flash[12]),BOOL_STR(ula->m_flash[13]),BOOL_STR(ula->m_flash[14]),BOOL_STR(ula->m_flash[15]));
-            break;
+            case 9:
+                // Set flashing flags for logical colours 12-15.
+                ula->m_flash[12]=param&0x08;
+                ula->m_flash[13]=param&0x04;
+                ula->m_flash[14]=param&0x02;
+                ula->m_flash[15]=param&0x01;
+                TRACEF(ula->m_trace,"NuLA Control: Flash: 12=%s 13=%s 14=%s 15=%s\n",BOOL_STR(ula->m_flash[12]),BOOL_STR(ula->m_flash[13]),BOOL_STR(ula->m_flash[14]),BOOL_STR(ula->m_flash[15]));
+                break;
 
-        default:
-            // Ignore...
-            TRACEF(ula->m_trace,"NuLA Control: code=%u, param=%u\n",code,param);
-            break;
+            default:
+                // Ignore...
+                TRACEF(ula->m_trace,"NuLA Control: code=%u, param=%u\n",code,param);
+                break;
         }
     }
 }
@@ -199,6 +202,15 @@ void VideoULA::SetTrace(Trace *t) {
     m_trace=t;
 }
 #endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void VideoULA::UpdatePixelBufferOffset() {
+    // The units for the scroll offset are different depending on
+    // the 6845 clock rate.
+    m_pixel_buffer_offset=m_scroll_offset<<1>>this->control.bits.fast_6845;
+}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -305,7 +317,7 @@ VideoDataPixel VideoULA::ShiftAttributeText() {
 //////////////////////////////////////////////////////////////////////////
 
 void VideoULA::Emit2MHz(VideoDataUnitPixels *pixels) {
-    VideoDataPixel *dest=&m_pixel_buffer.pixels[m_scroll_offset];
+    VideoDataPixel *dest=&m_pixel_buffer.pixels[m_pixel_buffer_offset];
 
     VideoDataPixel pixel=this->Shift();
     
@@ -323,13 +335,17 @@ void VideoULA::Emit2MHz(VideoDataUnitPixels *pixels) {
 
     m_pixel_buffer.values[0]=m_pixel_buffer.values[2];
     m_pixel_buffer.values[1]=m_pixel_buffer.values[3];
+    m_pixel_buffer.values[2]=m_pixel_buffer.values[4];
+    m_pixel_buffer.values[3]=m_pixel_buffer.values[5];
+    m_pixel_buffer.values[4]=m_pixel_buffer.values[6];
+    m_pixel_buffer.values[5]=m_pixel_buffer.values[7];
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 void VideoULA::Emit4MHz(VideoDataUnitPixels *pixels) {
-    VideoDataPixel *dest=&m_pixel_buffer.pixels[m_scroll_offset];
+    VideoDataPixel *dest=&m_pixel_buffer.pixels[m_pixel_buffer_offset];
 
     VideoDataPixel pixel;
 
@@ -350,13 +366,17 @@ void VideoULA::Emit4MHz(VideoDataUnitPixels *pixels) {
 
     m_pixel_buffer.values[0]=m_pixel_buffer.values[2];
     m_pixel_buffer.values[1]=m_pixel_buffer.values[3];
+    m_pixel_buffer.values[2]=m_pixel_buffer.values[4];
+    m_pixel_buffer.values[3]=m_pixel_buffer.values[5];
+    m_pixel_buffer.values[4]=m_pixel_buffer.values[6];
+    m_pixel_buffer.values[5]=m_pixel_buffer.values[7];
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 void VideoULA::Emit8MHz(VideoDataUnitPixels *pixels) {
-    VideoDataPixel *dest=&m_pixel_buffer.pixels[m_scroll_offset];
+    VideoDataPixel *dest=&m_pixel_buffer.pixels[m_pixel_buffer_offset];
 
     VideoDataPixel pixel;
 
@@ -381,13 +401,17 @@ void VideoULA::Emit8MHz(VideoDataUnitPixels *pixels) {
 
     m_pixel_buffer.values[0]=m_pixel_buffer.values[2];
     m_pixel_buffer.values[1]=m_pixel_buffer.values[3];
+    m_pixel_buffer.values[2]=m_pixel_buffer.values[4];
+    m_pixel_buffer.values[3]=m_pixel_buffer.values[5];
+    m_pixel_buffer.values[4]=m_pixel_buffer.values[6];
+    m_pixel_buffer.values[5]=m_pixel_buffer.values[7];
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 void VideoULA::Emit16MHz(VideoDataUnitPixels *pixels) {
-    VideoDataPixel *dest=&m_pixel_buffer.pixels[m_scroll_offset];
+    VideoDataPixel *dest=&m_pixel_buffer.pixels[m_pixel_buffer_offset];
 
     VideoDataPixel pixel;
 
@@ -420,6 +444,10 @@ void VideoULA::Emit16MHz(VideoDataUnitPixels *pixels) {
 
     m_pixel_buffer.values[0]=m_pixel_buffer.values[2];
     m_pixel_buffer.values[1]=m_pixel_buffer.values[3];
+    m_pixel_buffer.values[2]=m_pixel_buffer.values[4];
+    m_pixel_buffer.values[3]=m_pixel_buffer.values[5];
+    m_pixel_buffer.values[4]=m_pixel_buffer.values[6];
+    m_pixel_buffer.values[5]=m_pixel_buffer.values[7];
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -447,7 +475,6 @@ void VideoULA::EmitNuLAAttributeMode0(VideoDataUnitPixels *pixels) {
     pixels->pixels[5]=pixel;
 
     pixels->pixels[0].bits.x=VideoDataType_Bitmap12MHz;
-
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -469,7 +496,6 @@ void VideoULA::EmitNuLAAttributeMode1(VideoDataUnitPixels *pixels) {
     pixels->pixels[5]=pixel;
 
     pixels->pixels[0].bits.x=VideoDataType_Bitmap12MHz;
-
 }
 
 //////////////////////////////////////////////////////////////////////////

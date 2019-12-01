@@ -66,8 +66,8 @@ public:
 protected:
 private:
     union PixelBuffer {
-        uint64_t values[4];
-        VideoDataPixel pixels[16];
+        uint64_t values[8];
+        VideoDataPixel pixels[32];
     };
 
     uint8_t m_palette[16]={};
@@ -80,6 +80,7 @@ private:
     uint8_t m_direct_palette=0;
     uint8_t m_disable_a1=0;
     uint8_t m_scroll_offset=0;
+    uint8_t m_pixel_buffer_offset=0;
     uint8_t m_blanking_size=0;
     uint8_t m_blanking_counter=0;
     NuLAAttributeMode m_attribute_mode={};
@@ -87,6 +88,8 @@ private:
 #if BBCMICRO_TRACE
     Trace *m_trace=nullptr;
 #endif
+
+    void UpdatePixelBufferOffset();
 
     void ResetNuLAState();
     VideoDataPixel GetPalette(uint8_t index);
