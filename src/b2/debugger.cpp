@@ -1748,6 +1748,12 @@ protected:
         VideoULA::Control control;
         uint8_t palette[16];
         VideoDataPixel nula_palette[16];
+        uint8_t nula_flash[16];
+        uint8_t nula_direct_palette;
+        uint8_t nula_disable_a1;
+        uint8_t nula_scroll_offset;
+        uint8_t nula_blanking_size;
+        VideoULA::NuLAAttributeMode nula_attribute_mode;
 
         {
             std::unique_lock<Mutex> lock;
@@ -1758,8 +1764,13 @@ protected:
             control=u->control;
             memcpy(palette,u->m_palette,16);
             memcpy(nula_palette,u->m_output_palette,16*sizeof(VideoDataPixel));
+            memcpy(nula_flash,u->m_flash,16);
+            nula_direct_palette=u->m_direct_palette;
+            nula_disable_a1=u->m_disable_a1;
+            nula_scroll_offset=u->m_scroll_offset;
+            nula_blanking_size=u->m_blanking_size;
+            nula_attribute_mode=u->m_attribute_mode;
         }
-
 
         if(ImGui::CollapsingHeader("Register Values")) {
             ImGui::Text("Control = $%02x %03u %s",control.value,control.value,BINARY_BYTE_STRINGS[control.value]);
@@ -1776,16 +1787,16 @@ protected:
 
                 ImGui::SameLine();
 
-                {
-                    ImGuiStyleColourPusher pusher(ImGuiCol_Text,COLOUR_COLOURS[colour]);
-                    ImGui::TextUnformatted(COLOUR_NAMES[colour]);
-                }
+                ImGui::ColorButton(COLOUR_NAMES[colour],COLOUR_COLOURS[colour]);
+
+                ImGui::SameLine();
 
                 if(p&8) {
-                    ImGui::SameLine();
-
                     ImGui::Text("(%s/%s)",COLOUR_NAMES[p&7],COLOUR_NAMES[(p&7)^7]);
+                } else {
+                    ImGui::Text("(%s)",COLOUR_NAMES[colour]);
                 }
+
             }
             ImGui::Separator();
         }
@@ -1812,18 +1823,45 @@ protected:
                 }
 
                 ImGui::SameLine();
-                ImGui::Text(" %x=",index);
-                ImGuiStyleColourPusher cpusher(ImGuiCol_Text,COLOUR_COLOURS[colour]);
+                ImGui::Text(" %x=%x",index,entry);
                 ImGui::SameLine();
-                ImGui::Text("%x",entry);
+                ImGui::ColorButton(COLOUR_NAMES[colour],COLOUR_COLOURS[colour]);
             }
         }
-        
-        if(ImGui::CollapsingHeader("Video NuLA")) {
-            for(uint8_t i=0;i<16;++i) {
-                const VideoDataPixel *e=&nula_palette[i];
-                
-                ImGui::Text("%x. $%x%x%x",i,e->bits.r,e->bits.g,e->bits.b);
+
+        ImGuiTreeNodeFlags nula_section_flags=0;
+        if(!nula_disable_a1) {
+            nula_section_flags|=ImGuiTreeNodeFlags_DefaultOpen;
+        }
+
+        if(ImGui::CollapsingHeader("Video NuLA",nula_section_flags)) {
+            ImGui::Text("Enabled: %s",BOOL_STR(!nula_disable_a1));
+
+            ImGui::Text("Scroll offset: %u",nula_scroll_offset);
+            ImGui::Text("Blanking size: %u",nula_blanking_size);
+            ImGui::Text("Attribute mode: %s",BOOL_STR(nula_attribute_mode.bits.enabled));
+            ImGui::Text("Text attribute mode: %s",BOOL_STR(nula_attribute_mode.bits.text));
+
+            for(uint8_t i=0;i<16;i+=4) {
+                ImGui::Text("Palette:");
+
+                ImGuiStyleVarPusher vpusher(ImGuiStyleVar_FramePadding,ImVec2(0.f,0.f));
+
+                for(uint8_t j=0;j<4;++j) {
+                    uint8_t index=i+j;
+                    const VideoDataPixel *e=&nula_palette[index];
+
+                    ImGui::SameLine();
+                    ImGui::Text(" %x=%x%x%x",index,e->bits.r,e->bits.g,e->bits.b);
+
+                    ImGui::SameLine();
+                    ImGui::ColorButton("",
+                                       ImVec4(e->bits.r/15.f,
+                                              e->bits.g/15.f,
+                                              e->bits.b/15.f,
+                                              1.f),
+                                       ImGuiColorEditFlags_NoAlpha);
+                }
             }
         }
     }
@@ -1838,11 +1876,11 @@ const char *const VideoULADebugWindow::COLOUR_NAMES[]={
 };
 
 const ImVec4 VideoULADebugWindow::COLOUR_COLOURS[]={
-    {.8f,.8f,.8f,1.f},//Black on black = useless
+    {0.f,0.f,0.f,1.f},
     {1.f,0.f,0.f,1.f},
     {0.f,1.f,0.f,1.f},
     {1.f,1.f,0.f,1.f},
-    {.2f,.4f,1.f,1.f},//I find the blue a bit hard to see on black...
+    {0.f,0.f,1.f,1.f},
     {1.f,0.f,1.f,1.f},
     {0.f,1.f,1.f,1.f},
     {1.f,1.f,1.f,1.f},
