@@ -34,7 +34,7 @@ static std::shared_ptr<BeebRomData> LoadROM(
         return nullptr;
     }
 
-    auto &&result=std::make_shared<BeebRomData>();
+    auto result=std::make_shared<BeebRomData>();
 
     for(size_t i=0;i<ROM_SIZE;++i) {
         if(i<data.size()) {
