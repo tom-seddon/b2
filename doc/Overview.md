@@ -37,6 +37,8 @@ Shift+0 gives you `)` and so on. `Default UK` is for UK-style
 keyboards, and `Default US` is for US-style keyboards. For US-style
 keyboards, press ` to get the pound sign.
   
+To get BBC Copy, use PC End (fn+Cursor Right on a Macbook Pro).
+  
 ## Save states
 
 Use `File` > `Save state` to save your place, and `File` > `Load last

@@ -89,7 +89,7 @@ static const BeebKeymap::Mapping g_keysym_common[]={
     {SDLK_SLASH,BeebKeySym_Slash},
     {SHIFT(SDLK_SLASH),BeebKeySym_QuestionMarke},
     {SDLK_BACKSPACE,BeebKeySym_Delete},
-    {SDLK_INSERT,BeebKeySym_Copy},
+    {SDLK_END,BeebKeySym_Copy},
     {SDLK_UP,BeebKeySym_Up},
     {SDLK_DOWN,BeebKeySym_Down},
     {SDLK_LEFT,BeebKeySym_Left},
@@ -115,6 +115,7 @@ static const BeebKeymap::Mapping g_keysym_common[]={
     {SDLK_KP_ENTER,BeebKeySym_KeypadReturn},
     {SDLK_SPACE,BeebKeySym_Space},
     {SDLK_F11,BeebKeySym_Break,},
+
     {}
 };
 
@@ -204,7 +205,7 @@ static const BeebKeymap::Mapping g_scancode_common[]={
     {SDL_SCANCODE_LSHIFT,BeebKey_Shift,},
     {SDL_SCANCODE_RSHIFT,BeebKey_Shift,},
     {SDL_SCANCODE_BACKSPACE,BeebKey_Delete,},
-    {SDL_SCANCODE_INSERT,BeebKey_Copy,},
+    {SDL_SCANCODE_END,BeebKey_Copy,},
     {SDL_SCANCODE_RETURN,BeebKey_Return,},
     {SDL_SCANCODE_UP,BeebKey_Up,},
     {SDL_SCANCODE_DOWN,BeebKey_Down,},
@@ -238,6 +239,7 @@ static const BeebKeymap::Mapping g_scancode_common[]={
     {SDL_SCANCODE_KP_MINUS,BeebKey_KeypadMinus},
     {SDL_SCANCODE_KP_DIVIDE,BeebKey_KeypadSlash},
     {SDL_SCANCODE_KP_MULTIPLY,BeebKey_KeypadStar},
+
     {},
 };
 
