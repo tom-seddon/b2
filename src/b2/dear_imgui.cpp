@@ -1293,20 +1293,23 @@ static bool IsModifierKey(SDL_Scancode k) {
     }
 }
 
-uint32_t ImGuiGetPressedKeycode() {
-    int sdl_keystates_size;
-    const Uint8 *sdl_keystates=SDL_GetKeyboardState(&sdl_keystates_size);
+uint32_t ImGuiConsumePressedKeycode() {
+    ImGuiIO *io=&ImGui::GetIO();
+
+    // Slightly ugly mishmash of SDL and dear imgui here.
     uint32_t modifiers=GetPCKeyModifiersFromSDLKeymod((uint16_t)SDL_GetModState());
 
-    //m_wants_keyboard_focus=true;
+    for(int scancode_=0;scancode_<SDL_NUM_SCANCODES;++scancode_) {
+        auto scancode=(SDL_Scancode)scancode_;
 
-    for(int i=0;i<sdl_keystates_size;++i) {
-        if(sdl_keystates[i]) {
-            if(IsModifierKey((SDL_Scancode)i)) {
+        if(io->KeysDown[scancode]) {
+            if(IsModifierKey(scancode)) {
                 // Ignore...
             } else {
-                SDL_Keycode keycode=SDL_GetKeyFromScancode((SDL_Scancode)i);
+                SDL_Keycode keycode=SDL_GetKeyFromScancode(scancode);
                 if(keycode!=0) {
+                    io->KeysDown[scancode]=false;
+                    
                     return (uint32_t)keycode|modifiers;
                 }
             }

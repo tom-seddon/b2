@@ -577,11 +577,23 @@ bool BeebWindow::DoImGui(uint64_t ticks) {
 #endif
 
     for(const SDL_KeyboardEvent &event:m_sdl_keyboard_events) {
-        bool state=event.type==SDL_KEYDOWN;
+        //LOGF(OUTPUT,"%s: event=0x%x key=%s timestamp=%u repeat=%u\n",__func__,event.type,SDL_GetScancodeName(event.keysym.scancode),event.timestamp,event.repeat);
 
-        //LOGF(OUTPUT,"%s: key=%s state=%s timestamp=%u\n",__func__,SDL_GetScancodeName(event.keysym.scancode),BOOL_STR(state),event.timestamp);
+        switch(event.type) {
+        case SDL_KEYDOWN:
+            if(event.repeat) {
+                // Don't set again if it's just key repeat. If the flag is
+                // still set from last time, that's fine; if it's been reset,
+                // there'll be a reason, so don't set it again.
+            } else {
+                m_imgui_stuff->SetKeyDown(event.keysym.scancode,true);
+            }
+            break;
 
-        m_imgui_stuff->SetKeyDown(event.keysym.scancode,state);
+        case SDL_KEYUP:
+            m_imgui_stuff->SetKeyDown(event.keysym.scancode,false);
+            break;
+        }
     }
 
     // Command contexts to try, in order of preference.
@@ -690,8 +702,10 @@ bool BeebWindow::DoImGui(uint64_t ticks) {
             uint32_t keycode=0;
             bool state=false;
             if(event.type==SDL_KEYDOWN) {
-                keycode=(uint32_t)event.keysym.sym|GetPCKeyModifiersFromSDLKeymod(event.keysym.mod);
-                state=true;
+                if(ImGui::IsKeyDown(event.keysym.scancode)) {
+                    keycode=(uint32_t)event.keysym.sym|GetPCKeyModifiersFromSDLKeymod(event.keysym.mod);
+                    state=true;
+                }
             }
 
             if(beeb_focus) {

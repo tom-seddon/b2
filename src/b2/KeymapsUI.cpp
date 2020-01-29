@@ -57,7 +57,7 @@ void ImGuiKeySymsList(bool *edited,const KeymapType *keymap,KeymapType *editable
     if(editable_keymap) {
         ImGui::TextUnformatted("(press key to add)");
 
-        uint32_t keycode=ImGuiGetPressedKeycode();
+        uint32_t keycode=ImGuiConsumePressedKeycode();
         if(keycode!=0) {
             editable_keymap->SetMapping(keycode,value,true);
             *edited=true;
