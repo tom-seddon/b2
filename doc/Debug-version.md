@@ -72,6 +72,16 @@ particular byte is visible.
 The right click functionality is not yet 100% consistently available,
 but this will improve.
 
+## Address syntax
+
+Addresses can be entered in decimal, hex, or octal.
+
+Decimal is assumed, if no prefix is provided.
+
+Prefix hex numbers with `&`, `$` or `0x`.
+
+Prefix octal numbers with `0`, like C.
+
 ## Address prefixes
 
 Addresses are annotated with a prefix, indicating which bank they come
@@ -86,11 +96,11 @@ from. The possible prefixes are as follows:
 - `i` - I/O area
 
 The prefix is sometimes redundant. (For example, address $0000 is
-always shown as ``m`0000``, even though there's no other prefix it could
-have.)
+always shown as ``m`$0000``, even though there's no other prefix it
+could have.)
 
 When entering an address, you can usually supply an address prefix.
-(For example, to view $8000 in ROM 4, you might enter ``4`8000``.)
+(For example, to view $8000 in ROM 4, you might enter ``4`$8000``.)
 Appropriate paging overrides will be selected to ensure the requested
 byte is visible.
 
@@ -206,6 +216,13 @@ address, etc.) in the bottom half.
 ## `Memory Debug` ##
 
 Show a memory debug window. Click to edit memory.
+
+To visit a new address, enter it in the `Address field` and press
+Return or click `Go` to move the cursor there. Click `Go (realign)` to
+also put that address in the left-hand column, changing the row
+addresses - which may be more useful sometimes.
+
+Click `Options` to get a popup options window.
 
 ## `Disassembly Debug` ##
 

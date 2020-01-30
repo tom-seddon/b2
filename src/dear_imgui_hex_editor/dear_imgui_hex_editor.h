@@ -132,7 +132,6 @@ public:
     bool grey_00s=false;
     bool upper_case=true;
     bool grey_nonprintables=true;
-    size_t num_columns=16;
 
     explicit HexEditor(HexEditorHandler *handler);
     ~HexEditor();
@@ -140,6 +139,8 @@ public:
     void DoImGui();
 
     void SetOffset(size_t offset);
+
+    void SetNumColumns(size_t num_columns);
 protected:
 private:
     static const size_t INVALID_OFFSET=~(size_t)0;
@@ -160,6 +161,7 @@ private:
 
     size_t m_num_calls=0;
 
+    size_t m_offset0_column=0;
     size_t m_offset=INVALID_OFFSET;
     bool m_hex=true;
     bool m_input_take_focus_next_frame=true;
@@ -173,6 +175,11 @@ private:
     bool m_set_new_offset=false;
     size_t m_new_offset=INVALID_OFFSET;
     char m_new_offset_input_buffer[100]={};
+
+    size_t m_num_columns;
+    bool m_set_new_num_columns=false;
+    size_t m_new_num_columns=0;
+    char m_new_num_columns_input_buffer[10]={};
 
     size_t m_context_offset=INVALID_OFFSET;
     bool m_context_hex=false;
@@ -190,7 +197,7 @@ private:
     float m_style_item_spacing_x,m_style_item_spacing_y;
 
     void GetMetrics(Metrics *metrics,const ImGuiStyle &style);
-    void DoHexPart(size_t begin_offset,size_t end_offset);
+    void DoHexPart(size_t num_skip_columns,size_t begin_offset,size_t end_offset);
     void DoAsciiPart(size_t begin_offset,size_t end_offset);
     void GetChar(uint16_t *ch,bool *editing,const char *id);
     void UpdateOffsetByKey(int key,int delta,int times);

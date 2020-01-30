@@ -221,6 +221,7 @@ void HexEditorHandlerWithBufferData::Construct(const void *read_buffer,void *wri
 HexEditor::HexEditor(HexEditorHandler *handler):
     m_handler(handler)
 {
+    this->SetNumColumns(16);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -253,10 +254,10 @@ void HexEditor::DoImGui() {
 
     m_was_TextInput_visible=false;
 
-    if(this->num_columns>m_num_bytes) {
+    if(m_num_columns>m_num_bytes) {
         delete[] m_bytes;
 
-        m_num_bytes=this->num_columns;
+        m_num_bytes=m_num_columns;
         m_bytes=new HexEditorByte[m_num_bytes];
     }
 
@@ -264,7 +265,10 @@ void HexEditor::DoImGui() {
     int first_visible_row;
     int num_visible_rows;
     {
-        ImGui::BeginChild("##scrolling",ImVec2(0,-footer_height),false,ImGuiWindowFlags_NoMove);
+        ImGui::BeginChild("##scrolling",
+                          ImVec2(0,-footer_height),
+                          false,
+                          ImGuiWindowFlags_NoMove|ImGuiWindowFlags_HorizontalScrollbar);
 
         num_visible_rows=(std::max)(1,(int)(ImGui::GetContentRegionAvail().y/m_metrics.line_height));
 
@@ -279,21 +283,32 @@ void HexEditor::DoImGui() {
             ImGui::PushStyleVar(ImGuiStyleVar_FramePadding,ImVec2(0,0));
             ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing,ImVec2(0,0));
             {
-                size_t num_lines=(m_handler->GetSize()+this->num_columns-1)/this->num_columns;
+                size_t offset0_column=m_offset0_column%m_num_columns;
+                size_t num_lines=(offset0_column+m_handler->GetSize()+m_num_columns-1)/m_num_columns;
                 IM_ASSERT(num_lines<=INT_MAX);
                 ImGuiListClipper clipper((int)num_lines,m_metrics.line_height);
 
                 first_visible_row=clipper.DisplayStart;
 
                 for(int line_index=clipper.DisplayStart;line_index<clipper.DisplayEnd;++line_index) {
-                    size_t line_begin_offset=(size_t)line_index*this->num_columns;
+
+                    size_t line_begin_offset=(size_t)line_index*m_num_columns;
+                    size_t line_end_offset=line_begin_offset+m_num_columns;
+                    size_t num_skip_columns;
+                    if(line_index==0) {
+                        num_skip_columns=offset0_column;
+                        line_end_offset-=offset0_column;
+                    } else {
+                        num_skip_columns=0;
+                        line_begin_offset-=offset0_column;
+                        line_end_offset-=offset0_column;
+                    }
+                    line_end_offset=(std::min)(line_end_offset,data_size);
 
                     char addr_text[100];
                     m_handler->GetAddressText(addr_text,sizeof addr_text,line_begin_offset,this->upper_case);
 
                     ImGui::Text("%.*s",m_metrics.num_addr_chars,addr_text);
-
-                    size_t line_end_offset=(std::min)(line_begin_offset+this->num_columns,data_size);
 
                     {
                         HexEditorByte *byte=m_bytes;
@@ -304,7 +319,7 @@ void HexEditor::DoImGui() {
                     }
 
                     ImGui::PushID(line_index);
-                    this->DoHexPart(line_begin_offset,line_end_offset);
+                    this->DoHexPart(num_skip_columns,line_begin_offset,line_end_offset);
 
                     if(this->ascii) {
                         this->DoAsciiPart(line_begin_offset,line_end_offset);
@@ -334,16 +349,28 @@ void HexEditor::DoImGui() {
     }
 
     ImGui::SameLine();
+    ImGui::VerticalSeparator();
+    ImGui::SameLine();
 
     {
         ImGui::PushID("address");
         ImGui::PushItemWidth((m_metrics.num_addr_chars+2)*m_metrics.glyph_width);
         int flags=ImGuiInputTextFlags_EnterReturnsTrue;
-        if(ImGui::InputText("",m_new_offset_input_buffer,sizeof m_new_offset_input_buffer,flags)) {
+        bool entered_new_address=ImGui::InputText("Address",m_new_offset_input_buffer,sizeof m_new_offset_input_buffer,flags);
+        ImGui::SameLine();
+        bool clicked_go=ImGui::Button("Go");
+        ImGui::SameLine();
+        bool clicked_go_realign=ImGui::Button("Go (realign)");
+        if(entered_new_address||clicked_go||clicked_go_realign) {
             size_t offset;
             if(m_handler->ParseAddressText(&offset,m_new_offset_input_buffer)) {
                 this->SetNewOffset((size_t)offset,0,false);
                 strcpy(m_new_offset_input_buffer,"");
+                if(clicked_go_realign) {
+                    if(m_new_offset!=INVALID_OFFSET) {
+                        m_offset0_column=m_num_columns-m_new_offset%m_num_columns;
+                    }
+                }
             }
         }
         ImGui::PopItemWidth();
@@ -352,12 +379,12 @@ void HexEditor::DoImGui() {
 
     if(m_offset!=INVALID_OFFSET) {
         if(ImGui::IsWindowFocused(ImGuiFocusedFlags_ChildWindows)) {
-            this->UpdateOffsetByKey(ImGuiKey_UpArrow,-(int)this->num_columns,1);
-            this->UpdateOffsetByKey(ImGuiKey_DownArrow,(int)this->num_columns,1);
+            this->UpdateOffsetByKey(ImGuiKey_UpArrow,-(int)m_num_columns,1);
+            this->UpdateOffsetByKey(ImGuiKey_DownArrow,(int)m_num_columns,1);
             this->UpdateOffsetByKey(ImGuiKey_LeftArrow,-1,1);
             this->UpdateOffsetByKey(ImGuiKey_RightArrow,1,1);
-            this->UpdateOffsetByKey(ImGuiKey_PageUp,-(int)this->num_columns,num_visible_rows);
-            this->UpdateOffsetByKey(ImGuiKey_PageDown,(int)this->num_columns,num_visible_rows);
+            this->UpdateOffsetByKey(ImGuiKey_PageUp,-(int)m_num_columns,num_visible_rows);
+            this->UpdateOffsetByKey(ImGuiKey_PageDown,(int)m_num_columns,num_visible_rows);
 
             if(ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_Tab))) {
                 m_hex=!m_hex;
@@ -367,6 +394,10 @@ void HexEditor::DoImGui() {
             }
         }
     }
+
+    // Update stuff. One slightly annoying thing about the imgui paradigm is
+    // that values can change mid-render, as the rendering is the update as
+    // well. Try to avoid this by doing all the major updates at the end.
 
     if(m_set_new_offset) {
         m_offset=m_new_offset;
@@ -393,7 +424,7 @@ void HexEditor::DoImGui() {
                 m_got_edit_value=false;
             }
 
-            size_t row=m_offset/this->num_columns;
+            size_t row=m_offset/m_num_columns;
             if(row>INT_MAX) {
                 row=INT_MAX;
             }
@@ -417,6 +448,12 @@ void HexEditor::DoImGui() {
         m_set_new_offset_via_SetOffset=false;
     }
 
+    if(m_set_new_num_columns) {
+        this->SetNumColumns(m_new_num_columns);
+
+        m_set_new_num_columns=false;
+    }
+
     ImGui::EndChild();
 
     ++m_num_calls;
@@ -431,6 +468,18 @@ void HexEditor::DoImGui() {
 void HexEditor::SetOffset(size_t offset) {
     this->SetNewOffset(offset,0,false);
     m_set_new_offset_via_SetOffset=true;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void HexEditor::SetNumColumns(size_t num_columns) {
+    m_num_columns=num_columns;
+
+    snprintf(m_new_num_columns_input_buffer,
+             sizeof m_new_num_columns_input_buffer,
+             "%zu",
+             m_num_columns);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -454,7 +503,7 @@ void HexEditor::GetMetrics(Metrics *metrics,const ImGuiStyle &style) {
     metrics->hex_left_x=(metrics->num_addr_chars+2)*metrics->glyph_width;
     metrics->hex_column_width=2.5f*metrics->glyph_width;
 
-    metrics->ascii_left_x=metrics->hex_left_x+this->num_columns*metrics->hex_column_width+2.f*metrics->glyph_width;
+    metrics->ascii_left_x=metrics->hex_left_x+m_num_columns*metrics->hex_column_width+2.f*metrics->glyph_width;
 
     const ImVec4 &text_colour=style.Colors[ImGuiCol_Text];
     const ImVec4 &text_disabled_colour=style.Colors[ImGuiCol_TextDisabled];
@@ -530,7 +579,7 @@ struct TextColourHandler {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void HexEditor::DoHexPart(size_t begin_offset,size_t end_offset) {
+void HexEditor::DoHexPart(size_t num_skip_columns,size_t begin_offset,size_t end_offset) {
     ImGui::PushID("hex");
     ImGui::PushID((void *)begin_offset);
 
@@ -547,6 +596,11 @@ void HexEditor::DoHexPart(size_t begin_offset,size_t end_offset) {
 
     {
         TextColourHandler tch;
+
+        if(num_skip_columns>0) {
+            ImGui::SameLine(x+num_skip_columns*m_metrics.hex_column_width);
+            x+=num_skip_columns*m_metrics.hex_column_width;
+        }
 
         const HexEditorByte *byte=m_bytes;
         for(size_t offset=begin_offset;offset!=end_offset;++offset,++byte) {
@@ -937,6 +991,23 @@ void HexEditor::DoOptionsPopup() {
     ImGui::Checkbox("Grey 00s",&this->grey_00s);
     ImGui::Checkbox("Grey non-printables",&this->grey_nonprintables);
     ImGui::Checkbox("Upper case",&this->upper_case);
+
+    if(ImGui::InputText("Columns",
+                        m_new_num_columns_input_buffer,
+                        sizeof m_new_num_columns_input_buffer,
+                        ImGuiInputTextFlags_EnterReturnsTrue))
+    {
+        char *ep;
+        m_new_num_columns=strtoull(m_new_num_columns_input_buffer,&ep,0);
+        if(*ep==0||isspace(*ep)) {
+            // Feels like there ought to be an upper limit. 1024 was chosen
+            // pretty much at random.
+            if(m_new_num_columns>0&&m_new_num_columns<=1024) {
+                m_set_new_num_columns=true;
+            }
+        }
+    }
+
     m_handler->DoOptionsPopupExtraGui();
 }
 
