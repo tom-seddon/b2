@@ -267,7 +267,7 @@ CRTC::Output CRTC::Update() {
             if(m_char_addr.b.h==m_registers.bits.cursorh&&
                m_char_addr.b.l==m_registers.bits.cursorl&&
                m_raster>=m_registers.bits.ncstart.bits.start&&
-               m_raster<m_registers.bits.ncend&&
+               m_raster<=m_registers.bits.ncend&&
                m_registers.bits.r8.bits.c!=3)
             {
                 switch((CRTCCursorMode)m_registers.bits.ncstart.bits.mode) {
