@@ -9,7 +9,9 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void TestKevinEdwards(const std::string &name,
+void TestKevinEdwards(const std::string &beeblink_volume_path,
+                      int beeblink_drive,
+                      const std::string &name,
                       const std::string &paste_text,
                       bool save_trace);
 

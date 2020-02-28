@@ -612,8 +612,11 @@ static void SaveTextOutput(const std::string &output,const std::string &test_nam
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-std::string GetTestFileName(int drive,const std::string &name) {
-    return PathJoined(BBC_TESTS_FOLDER,
+std::string GetTestFileName(const std::string &beeblink_volume_path,
+                            int drive,
+                            const std::string &name)
+{
+    return PathJoined(beeblink_volume_path,
                       strprintf("%d",drive),
                       GetBeebLinkName(name));
 }
@@ -621,8 +624,10 @@ std::string GetTestFileName(int drive,const std::string &name) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void RunStandardTest(const std::string &test_name,
-                            TestBBCMicroType type)
+void RunStandardTest(const std::string &beeblink_volume_path,
+                     int beeblink_drive,
+                     const std::string &test_name,
+                     TestBBCMicroType type)
 {
     TestBBCMicro bbc(type);
 
@@ -635,7 +640,10 @@ void RunStandardTest(const std::string &test_name,
     //
     // (Most tests don't depend on the value of PAGE, but the T.TIMINGS
     // output is affected by it.)
-    bbc.LoadFile(GetTestFileName(0,"T."+test_name),0x1900);
+    bbc.LoadFile(GetTestFileName(beeblink_volume_path,
+                                 beeblink_drive,
+                                 "T."+test_name),
+                 0x1900);
     bbc.Paste("PAGE=&1900\rOLD\rRUN\r");
     bbc.RunUntilOSWORD0(10.0);
 
@@ -664,7 +672,9 @@ void RunStandardTest(const std::string &test_name,
 
         std::vector<uint8_t> wanted_results;
         TEST_TRUE(PathLoadBinaryFile(&wanted_results,
-                                     GetTestFileName(0,bbc.spool_output_name)));
+                                     GetTestFileName(beeblink_volume_path,
+                                                     beeblink_drive,
+                                                     bbc.spool_output_name)));
 
         std::string wanted_output(wanted_results.begin(),wanted_results.end());
 

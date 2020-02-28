@@ -83,7 +83,9 @@ std::string PRINTF_LIKE(1,2) strprintf(const char *fmt,...);
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-std::string GetTestFileName(int drive,const std::string &name);
+std::string GetTestFileName(const std::string &beeblink_volume_path,
+                            int drive,
+                            const std::string &name);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -95,7 +97,10 @@ std::string GetTestFileName(int drive,const std::string &name);
 // See etc/b2_tests/README.md in the working copy for more about this.
 //
 // TODO - maybe move this into test_standard.cpp...?
-void RunStandardTest(const std::string &test_name,TestBBCMicroType type);
+void RunStandardTest(const std::string &beeblink_volume_path,
+                     int beeblink_drive,
+                     const std::string &test_name,
+                     TestBBCMicroType type);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
