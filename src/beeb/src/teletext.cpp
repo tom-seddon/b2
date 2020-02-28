@@ -184,6 +184,12 @@ SAA5050::SAA5050() {
 void SAA5050::Byte(uint8_t value,uint8_t dispen) {
     value&=0x7f;
 
+    ASSERT((m_write_index&1)==0);
+    Output *output=&m_output[m_write_index];
+
+    output[0].fg=m_fg;
+    output[1].fg=m_fg;
+
     uint16_t data0,data1;
 
     if(value<32) {
@@ -354,17 +360,12 @@ void SAA5050::Byte(uint8_t value,uint8_t dispen) {
         data1=0;
     }
 
-    ASSERT((m_write_index&1)==0);
-    Output *output=&m_output[m_write_index];
-
-    output->fg=m_fg;
     output->bg=m_bg;
     output->data0=(uint8_t)data0;
     output->data1=(uint8_t)data1;
 
     ++output;
 
-    output->fg=m_fg;
     output->bg=m_bg;
     output->data0=(uint8_t)(data0>>6);
     output->data1=(uint8_t)(data1>>6);
