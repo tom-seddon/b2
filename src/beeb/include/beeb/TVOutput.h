@@ -18,14 +18,14 @@
 //////////////////////////////////////////////////////////////////////////
 
 struct VideoDataUnit;
-struct SDL_PixelFormat;
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 // TVOutput is the analogue of a combination of the video encoding and
 // the TV - it looks after converting a stream of video data chunks
-// into a graphical display.
+// into a graphical display. Output format is 32-bit, RGB, 8-bit R/G/B
+// channels (in any order), no alpha info.
 //
 // The texture is always TV_TEXTURE_WIDTH*TV_TEXTURE_HEIGHT, and its
 // stride is TV_OUTPUT_WIDTH*4.
@@ -44,7 +44,7 @@ public:
     TVOutput();
     ~TVOutput();
 
-    bool InitTexture(const SDL_PixelFormat *pixel_format);
+    void Init(uint32_t r_shift,uint32_t g_shift,uint32_t b_shift);
 
     // returns number of us consumed.
     void Update(const VideoDataUnit *units,size_t num_units);
@@ -62,9 +62,6 @@ public:
 #if VIDEO_TRACK_METADATA
     const VideoDataUnit *GetTextureUnits() const;
 #endif
-
-    // returns pointer to TVOutput's copy of the pixel format.
-    const SDL_PixelFormat *GetPixelFormat() const;
 
     // returns false, *X and *Y untouched, if beam is outside the
     // visible area.
@@ -88,9 +85,9 @@ private:
     int m_state_timer=0;
     size_t m_num_fields=0;
 
-    uint32_t m_rshift=0,m_gshift=0,m_bshift=0,m_alpha=0;
-
-    SDL_PixelFormat *m_pixel_format=nullptr;
+    uint32_t m_r_shift=0;
+    uint32_t m_g_shift=0;
+    uint32_t m_b_shift=0;
 
     // TV - output texture and its properties
     std::vector<uint32_t> m_texture_pixels;
@@ -118,8 +115,9 @@ private:
     uint32_t m_half_usec_marker_xor=0;
     uint32_t m_6845_raster0_marker_xor=0;
     uint32_t m_6845_dispen_marker_xor=0;
+    uint32_t m_beam_marker_xor=0;
 
-    void InitPalette(size_t palette,double fa);
+    uint32_t GetTexelValue(uint8_t r,uint8_t g,uint8_t b) const;
     void InitPalette();
 #if VIDEO_TRACK_METADATA
     void AddMetadataMarkers(void *dest_pixels,size_t dest_pitch_bytes,bool add,uint8_t metadata_flag,uint32_t xor_value) const;

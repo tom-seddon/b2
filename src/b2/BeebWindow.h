@@ -29,7 +29,7 @@ class DiscImage;
 #include "dear_imgui.h"
 #include <string>
 #include <SDL.h>
-#include "TVOutput.h"
+#include <beeb/TVOutput.h>
 #include "native_ui.h"
 #include <beeb/conf.h>
 #include <shared/log.h>

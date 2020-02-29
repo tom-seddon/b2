@@ -14,7 +14,6 @@ add_executable(b2 MACOSX_BUNDLE
   misc.cpp misc.h
   native_ui.cpp native_ui.h
   Remapper.cpp Remapper.h
-  TVOutput.cpp TVOutput.h TVOutput.inl
   keymap.cpp keymap.h
   conf.cpp conf.h
   keys.cpp keys.h keys.inl

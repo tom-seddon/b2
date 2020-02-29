@@ -13,7 +13,7 @@
 #include "BeebState.h"
 #include "BeebWindows.h"
 #include "b2.h"
-#include "TVOutput.h"
+#include <beeb/TVOutput.h>
 #include "misc.h"
 #include "Messages.h"
 #include <beeb/Trace.h>

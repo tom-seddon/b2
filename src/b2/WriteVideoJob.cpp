@@ -1,6 +1,6 @@
 #include <shared/system.h>
 #include "WriteVideoJob.h"
-#include "TVOutput.h"
+#include <beeb/TVOutput.h>
 #include "conf.h"
 #include <SDL.h>
 #include <beeb/OutputData.h>
@@ -10,7 +10,6 @@
 #include <shared/debug.h>
 #include "dear_imgui.h"
 #include "BeebThread.h"
-#include "TVOutput.h"
 #include <shared/load_store.h>
 #include "load_save.h"
 #include <shared/path.h>
@@ -253,10 +252,7 @@ void WriteVideoJob::ThreadExecute() {
     {
         std::unique_ptr<SDL_PixelFormat,SDL_Deleter> pixel_format(SDL_AllocFormat(SDL_PIXELFORMAT_ARGB8888));
 
-        if(!tv_output.InitTexture(pixel_format.get())) {
-            this->Error("couldn't initialise TV output texture");
-            goto done;
-        }
+        tv_output.Init(pixel_format->Rshift,pixel_format->Gshift,pixel_format->Bshift);
     }
 
     start_state=m_event_list.state_event.message->GetBeebState();

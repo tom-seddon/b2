@@ -2038,10 +2038,14 @@ bool BeebWindow::InitInternal() {
         return false;
     }
 
-    if(!m_tv.InitTexture(m_pixel_format)) {
-        m_msg.e.f("Failed to initialise TVOutput texture\n");
+    if(m_pixel_format->BitsPerPixel!=32) {
+        m_msg.e.f("Pixel format not 32 bpp\n");
         return false;
     }
+
+    m_tv.Init(m_pixel_format->Rshift,
+              m_pixel_format->Gshift,
+              m_pixel_format->Bshift);
 
     m_imgui_stuff=new ImGuiStuff(m_renderer);
     if(!m_imgui_stuff->Init()) {
@@ -2235,7 +2239,7 @@ bool BeebWindow::GetTextureData(BeebWindowTextureDataVersion *version,
         return false;
     }
 
-    *format_ptr=m_tv.GetPixelFormat();
+    *format_ptr=m_pixel_format;
 
     return true;
 }

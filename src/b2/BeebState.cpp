@@ -4,7 +4,7 @@
 #include <beeb/DiscImage.h>
 #include "misc.h"
 #include <beeb/BBCMicro.h>
-#include "TVOutput.h"
+#include <beeb/TVOutput.h>
 #include <string.h>
 
 //////////////////////////////////////////////////////////////////////////

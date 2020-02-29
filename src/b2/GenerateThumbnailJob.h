@@ -17,7 +17,7 @@ struct SDL_PixelFormat;
 #include <beeb/conf.h>
 #include <memory>
 #include "JobQueue.h"
-#include "TVOutput.h"
+#include <beeb/TVOutput.h>
 #include "BeebConfig.h"
 
 //////////////////////////////////////////////////////////////////////////

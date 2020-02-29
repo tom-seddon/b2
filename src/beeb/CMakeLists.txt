@@ -25,6 +25,7 @@ set(SRCS
   ${S}/BeebLink.cpp ${I}/BeebLink.h ${I}/BeebLink.inl
   ${S}/6502.cpp ${I}/6502.h
   ${S}/type.cpp ${I}/type.h ${I}/type.inl
+  ${S}/TVOutput.cpp ${I}/TVOutput.h ${I}/TVOutput.inl
 )
 
 if(MSVC)
