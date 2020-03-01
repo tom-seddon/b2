@@ -32,6 +32,7 @@ public:
     std::string spool_output_name;
 
     explicit TestBBCMicro(TestBBCMicroType type);
+    TestBBCMicro(TestBBCMicroType type,size_t num_video_data_units);
 
     void StartCaptureOSWRCH();
     void StopCaptureOSWRCH();
@@ -39,6 +40,9 @@ public:
     void LoadFile(const std::string &path,uint16_t addr);
 
     void RunUntilOSWORD0(double max_num_seconds);
+
+    // return value is video output.
+    std::vector<uint32_t> RunForNFrames(size_t num_frames);
 
     void Paste(std::string text);
 
@@ -57,7 +61,8 @@ protected:
 private:
     bool m_spooling=false;
     size_t m_oswrch_capture_count=0;
-    VideoDataUnit m_temp_video_data_unit;
+    size_t m_video_data_unit_idx=0;
+    std::vector<VideoDataUnit> m_video_data_units;
     SoundDataUnit m_temp_sound_data_unit;
     uint64_t m_num_ticks=0;
     uint64_t m_num_cycles=0;
@@ -83,9 +88,12 @@ std::string PRINTF_LIKE(1,2) strprintf(const char *fmt,...);
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+//
 std::string GetTestFileName(const std::string &beeblink_volume_path,
                             int drive,
                             const std::string &name);
+
+std::string GetOutputFileName(const std::string &path);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -101,6 +109,46 @@ void RunStandardTest(const std::string &beeblink_volume_path,
                      int beeblink_drive,
                      const std::string &test_name,
                      TestBBCMicroType type);
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+// Runs an image-based test.
+//
+// WANTED_PNG_PATH is the full path to a known good image, checked by eye, as
+// saved out from a previous run of this test.
+//
+// PNG_NAME is the name part of two .png files to save in the b2_tests_output
+// folder: (PNG_NAME).png, the actual output, and (PNG_NAME).differences.png,
+// an image with a white pixel anywhere there's a difference between the output
+// and the known good image.
+//
+// BEEB is the Beeb that's in a state where it's showing the image of interest
+// on its emulated display.
+//
+// If the known good image isn't available, the test fails - but the output
+// is still saved, so copy it to the known good location.
+void RunImageTest(const std::string &wanted_png_path,
+                  const std::string &png_name,
+                  TestBBCMicro *beeb);
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool SaveFileInternal(const void *contents,
+                      size_t contents_size,
+                      const std::string &path,
+                      const char *mode);
+
+template<class T>
+static bool SaveBinaryFile(const T &contents,const std::string &path) {
+    return SaveFileInternal(contents.data(),
+                            contents.size()*sizeof(typename T::value_type),
+                            path,
+                            "wb");
+}
+
+bool SaveTextFile(const std::string &contents,const std::string &path);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

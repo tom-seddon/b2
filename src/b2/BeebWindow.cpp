@@ -2230,23 +2230,6 @@ void BeebWindow::BeebKeymapWillBeDeleted(BeebKeymap *keymap) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool BeebWindow::GetTextureData(BeebWindowTextureDataVersion *version,
-                                const SDL_PixelFormat **format_ptr,const void **pixels_ptr) const
-{
-    uint64_t v;
-    *pixels_ptr=m_tv.GetTexturePixels(&v);
-    if(v==version->version) {
-        return false;
-    }
-
-    *format_ptr=m_pixel_format;
-
-    return true;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 std::shared_ptr<BeebThread> BeebWindow::GetBeebThread() const {
     return m_beeb_thread;
 }

@@ -110,6 +110,7 @@ void TVOutput::Update(const VideoDataUnit *units,size_t num_units) {
             case TVOutputState_VerticalRetrace:
                 ++m_num_fields;
                 m_state=TVOutputState_VerticalRetraceWait;
+                ++m_texture_data_version;
                 m_x=0;
                 m_y=0;
                 m_pixels_line=m_texture_pixels.data();
@@ -131,7 +132,6 @@ void TVOutput::Update(const VideoDataUnit *units,size_t num_units) {
             {
                 // Ignore everything.
                 if(m_state_timer++>=VERTICAL_RETRACE_SCANLINES*SCANLINE_CYCLES) {
-                    ++m_texture_data_version;
                     m_state_timer=0;
                     m_state=TVOutputState_Scanout;
                 }
@@ -535,7 +535,7 @@ void TVOutput::FillWithTestPattern() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-const void *TVOutput::GetTexturePixels(uint64_t *texture_data_version) const {
+const uint32_t *TVOutput::GetTexturePixels(uint64_t *texture_data_version) const {
     if(texture_data_version) {
         *texture_data_version=m_texture_data_version;
     }

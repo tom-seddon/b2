@@ -4,6 +4,23 @@
 #include <shared/debug.h>
 #include "test_common.h"
 #include <beeb/SaveTrace.h>
+#include <beeb/TVOutput.h>
+
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#endif
+
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include <stb_image_write.h>
+
+#define STB_IMAGE_IMPLEMENTATION
+#include <stb_image.h>
+
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
+
 
 #include <shared/enum_def.h>
 #include "test_common.inl"
@@ -21,6 +38,20 @@ LOG_DEFINE(BBC_OUTPUT,"",&log_printer_stdout_and_debugger,true)
 static constexpr uint16_t WRCHV=0x20e;
 static constexpr uint16_t WORDV=0x20c;
 static constexpr uint16_t CLIV=0x208;
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+// 1 unit = 2 bytes
+//
+// 21 bits = 4 MBytes, approx 1 second
+// 22 bits = 8 MBytes, approx 2 seconds
+// 23 bits = 16 MBytes, approx 4 seconds
+// 24 bits = 32 MBytes, approx 8 seconds
+static constexpr size_t NUM_VIDEO_DATA_UNITS_LOG2=24;
+
+static constexpr size_t NUM_VIDEO_DATA_UNITS=1<<NUM_VIDEO_DATA_UNITS_LOG2;
+static constexpr size_t VIDEO_DATA_UNIT_INDEX_MASK=(1<<NUM_VIDEO_DATA_UNITS_LOG2)-1;
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -101,7 +132,7 @@ static std::string GetBeebLinkName(const std::string &name) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static bool SaveFile2(const void *contents,size_t contents_size,const std::string &path,const char *mode) {
+bool SaveFileInternal(const void *contents,size_t contents_size,const std::string &path,const char *mode) {
     if(!PathCreateFolder(PathGetFolder(path))) {
         return false;
     }
@@ -123,13 +154,14 @@ static bool SaveFile2(const void *contents,size_t contents_size,const std::strin
     return true;
 }
 
-template<class T>
-static bool SaveBinaryFile(const T &contents,const std::string &path) {
-    return SaveFile2(contents.data(),contents.size()*sizeof(typename T::value_type),path,"wb");
-}
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
 
-static bool SaveTextFile(const std::string &contents,const std::string &path) {
-    return SaveFile2(contents.data(),contents.size(),path,"wt");
+bool SaveTextFile(const std::string &contents,const std::string &path) {
+    return SaveFileInternal(contents.data(),
+                            contents.size(),
+                            path,
+                            "wt");
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -265,6 +297,8 @@ BBCMicro(GetBBCMicroType(type),
     }
 
     this->SetMMIOFns(0xfc10,&ReadTestCommand,&WriteTestCommand,this);
+
+    m_video_data_units.resize(NUM_VIDEO_DATA_UNITS);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -331,6 +365,46 @@ void TestBBCMicro::RunUntilOSWORD0(double max_num_seconds) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+std::vector<uint32_t> TestBBCMicro::RunForNFrames(size_t num_frames) {
+    TVOutput tv;
+
+    tv.Init(0,8,16);//RGBx32
+
+    uint64_t version;
+    const uint32_t *pixels=tv.GetTexturePixels(&version);
+
+    size_t num_frames_got=0;
+
+    while(num_frames_got<num_frames) {
+        size_t a=m_video_data_unit_idx;
+        size_t n=1024;
+
+        for(size_t i=0;i<1024;++i) {
+            this->Update(&m_video_data_units[m_video_data_unit_idx],
+                         &m_temp_sound_data_unit);
+
+            ++m_video_data_unit_idx;
+            m_video_data_unit_idx&=VIDEO_DATA_UNIT_INDEX_MASK;
+        }
+
+        ASSERT(a+n<=m_video_data_units.size());
+        tv.Update(&m_video_data_units[a],n);
+
+        uint64_t new_version;
+        pixels=tv.GetTexturePixels(&new_version);
+        if(new_version>version) {
+            version=new_version;
+            ++num_frames_got;
+        }
+    }
+
+    std::vector<uint32_t> result(pixels,pixels+TV_TEXTURE_WIDTH*TV_TEXTURE_HEIGHT);
+    return result;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 void TestBBCMicro::Paste(std::string text) {
     this->StartPaste(std::make_shared<std::string>(std::move(text)));
 
@@ -361,8 +435,12 @@ void TestBBCMicro::Update1() {
         }
     }
 
-    this->Update(&m_temp_video_data_unit,&m_temp_sound_data_unit);
+    this->Update(&m_video_data_units[m_video_data_unit_idx],&m_temp_sound_data_unit);
+
     ++m_num_cycles;
+
+    ++m_video_data_unit_idx;
+    m_video_data_unit_idx&=VIDEO_DATA_UNIT_INDEX_MASK;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -403,8 +481,7 @@ void TestBBCMicro::SaveTestTrace(const std::string &stem) {
     }
 
     if(!!m_test_trace) {
-        std::string path=PathJoined(BBC_TESTS_OUTPUT_FOLDER,
-                                    strprintf("%s.trace.txt",stem.c_str()));
+        std::string path=GetOutputFileName(strprintf("%s.trace.txt",stem.c_str()));
         LOGF(OUTPUT,"Saving trace to: %s\n",path.c_str());
         FILE *f=fopen(path.c_str(),"wt");
         TEST_NON_NULL(f);
@@ -596,8 +673,8 @@ static void SaveTextOutput2(const std::string &contents,
                             const std::string &type,
                             const std::string &suffix)
 {
-    SaveTextFile(contents,PathJoined(BBC_TESTS_OUTPUT_FOLDER,test_name+"."+type+"_"+suffix));
-    SaveTextFile(contents,PathJoined(BBC_TESTS_OUTPUT_FOLDER,type+"/"+test_name+"."+suffix));
+    SaveTextFile(contents,GetOutputFileName(test_name+"."+type+"_"+suffix));
+    SaveTextFile(contents,GetOutputFileName(type+"/"+test_name+"."+suffix));
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -619,6 +696,13 @@ std::string GetTestFileName(const std::string &beeblink_volume_path,
     return PathJoined(beeblink_volume_path,
                       strprintf("%d",drive),
                       GetBeebLinkName(name));
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+std::string GetOutputFileName(const std::string &path) {
+    return PathJoined(BBC_TESTS_OUTPUT_FOLDER,path);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -656,8 +740,8 @@ void RunStandardTest(const std::string &beeblink_volume_path,
 
     std::string stem=strprintf("%s.%s",test_name.c_str(),GetTestBBCMicroTypeEnumName(type));
 
-    TEST_TRUE(SaveTextFile(bbc.oswrch_output,PathJoined(BBC_TESTS_OUTPUT_FOLDER,
-                                                        strprintf("%s.all_output.txt",stem.c_str()))));
+    TEST_TRUE(SaveTextFile(bbc.oswrch_output,
+                           GetOutputFileName(strprintf("%s.all_output.txt",stem.c_str()))));
 
     bbc.SaveTestTrace(stem);
 
@@ -693,4 +777,68 @@ void RunStandardTest(const std::string &beeblink_volume_path,
     }
 
     LOGF(OUTPUT,"Speed: ~%.3fx\n",bbc.GetSpeed());
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void RunImageTest(const std::string &wanted_png_path,
+                  const std::string &png_name,
+                  TestBBCMicro *beeb)
+{
+    std::vector<uint32_t> got_image=beeb->RunForNFrames(10);
+
+    // The emulator doesn't bother to fill in the alpha channel.
+    for(uint32_t &pixel:got_image) {
+        pixel|=0xff000000u;
+    }
+
+    std::string got_png_path=GetOutputFileName(png_name+".png");
+
+    // Unlike the test_common stuff, stbi_write_png won't create the folder.
+    TEST_TRUE(PathCreateFolder(PathGetFolder(got_png_path)));
+
+    TEST_TRUE(stbi_write_png(got_png_path.c_str(),
+                             TV_TEXTURE_WIDTH,
+                             TV_TEXTURE_HEIGHT,
+                             4,
+                             got_image.data(),
+                             TV_TEXTURE_WIDTH*4));
+
+    int wanted_width,wanted_height;
+    unsigned char *wanted_data=stbi_load(wanted_png_path.c_str(),
+                                         &wanted_width,
+                                         &wanted_height,
+                                         nullptr,
+                                         4);
+    TEST_NON_NULL(wanted_data);
+    TEST_EQ_II(wanted_width,TV_TEXTURE_WIDTH);
+    TEST_EQ_II(wanted_height,TV_TEXTURE_HEIGHT);
+
+    bool any_differences=false;
+    std::vector<uint32_t> differences;
+    for(size_t i=0;i<got_image.size();++i) {
+        uint32_t pixel=0xff000000u;
+
+        uint32_t got_rgb=got_image[i]&0x00ffffff;
+        uint32_t wanted_rgb=((uint32_t)wanted_data[i*4+0]<<0|
+                             (uint32_t)wanted_data[i*4+1]<<8|
+                             (uint32_t)wanted_data[i*4+2]<<16);
+
+        if(got_rgb!=wanted_rgb) {
+            pixel|=0x00ffffff;
+            any_differences=true;
+        }
+
+        differences.push_back(pixel);
+    }
+
+    std::string differences_png_path=GetOutputFileName(png_name+".differences.png");
+    TEST_TRUE(stbi_write_png(differences_png_path.c_str(),
+                             TV_TEXTURE_WIDTH,
+                             TV_TEXTURE_HEIGHT,
+                             4,
+                             differences.data(),
+                             TV_TEXTURE_WIDTH*4));
+    TEST_FALSE(any_differences);
 }

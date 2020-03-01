@@ -46,6 +46,7 @@ target_compile_definitions(test_common_lib PUBLIC
   )
 target_boilerplate(test_common_lib)
 target_link_libraries(test_common_lib PUBLIC shared_lib beeb_lib)
+target_link_libraries(test_common_lib PRIVATE stb_image_lib)
 
 ##########################################################################
 ##########################################################################
@@ -134,3 +135,15 @@ set_tests_properties(test_TIMINGS_BTape test_kevin_edwards_Nightsh test_kevin_ed
 ##########################################################################
 ##########################################################################
 
+function(add_teletest_test suffix)
+  set(target test_teletest_${suffix})
+  add_executable(${target} ${target}.cpp)
+  target_compile_definitions(${target} PRIVATE
+    -DBEEBLINK_VOLUME_PATH="${b2_SOURCE_DIR}/etc/teletest_v1")
+  test_target_boilerplate(${target})
+  set_tests_properties(${target} PROPERTIES LABELS bbc)
+endfunction()
+
+add_teletest_test(engtest)
+add_teletest_test(parrot)
+add_teletest_test(teletst)

@@ -55,7 +55,7 @@ public:
 
     // *data_version (optional) is set to texture data version, incremented on
     // each vblank. (Between vblanks, the buffer contains a partially scanned-out frame.)
-    const void *GetTexturePixels(uint64_t *texture_data_version) const;
+    const uint32_t *GetTexturePixels(uint64_t *texture_data_version) const;
 
     void CopyTexturePixels(void *dest_pixels,size_t dest_pitch) const;
 

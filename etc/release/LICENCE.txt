@@ -26,6 +26,13 @@ Additional credits:
   and [Chris
   Evans](https://stardot.org.uk/forums/memberlist.php?mode=viewprofile&u=11307)
 
+* Teletext tests from [Chris
+  Evans](https://stardot.org.uk/forums/memberlist.php?mode=viewprofile&u=11307)
+  (TELETST) and [Kieran
+  Connell](https://stardot.org.uk/forums/memberlist.php?mode=viewprofile&u=10431)
+  (RED). For more about the engineering test page, see:
+  https://stardot.org.uk/forums/viewtopic.php?f=4&t=4686
+
 b2 makes use of a number of open source libraries, licences for which
 are also included in this file.
 
