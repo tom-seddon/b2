@@ -218,8 +218,12 @@ static std::string GetDockLayoutFileName() {
 
 #if SYSTEM_WINDOWS
 static const char ASSETS_FOLDER[]="assets";
+#elif SYSTEM_LINUX
+static const char ASSETS_FOLDER[]="assets";
 #elif SYSTEM_OSX
 static const char ASSETS_FOLDER[]="../Resources/assets";
+#else
+#error unknown system
 #endif
 
 #if SYSTEM_LINUX

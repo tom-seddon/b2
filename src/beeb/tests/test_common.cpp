@@ -520,14 +520,14 @@ void TestBBCMicro::LoadROMsBPlus() {
 //////////////////////////////////////////////////////////////////////////
 
 void TestBBCMicro::LoadROMsMaster(const std::string &version) {
-    this->SetOSROM(LoadROM(PathJoined("m128",version,"mos.rom")));
-    this->SetSidewaysROM(15,LoadROM(PathJoined("m128",version,"terminal.rom")));
-    this->SetSidewaysROM(14,LoadROM(PathJoined("m128",version,"view.rom")));
-    this->SetSidewaysROM(13,LoadROM(PathJoined("m128",version,"adfs.rom")));
-    this->SetSidewaysROM(12,LoadROM(PathJoined("m128",version,"basic4.rom")));
-    this->SetSidewaysROM(11,LoadROM(PathJoined("m128",version,"edit.rom")));
-    this->SetSidewaysROM(10,LoadROM(PathJoined("m128",version,"viewsht.rom")));
-    this->SetSidewaysROM(9,LoadROM(PathJoined("m128",version,"dfs.rom")));
+    this->SetOSROM(LoadROM(PathJoined("M128",version,"mos.rom")));
+    this->SetSidewaysROM(15,LoadROM(PathJoined("M128",version,"terminal.rom")));
+    this->SetSidewaysROM(14,LoadROM(PathJoined("M128",version,"view.rom")));
+    this->SetSidewaysROM(13,LoadROM(PathJoined("M128",version,"adfs.rom")));
+    this->SetSidewaysROM(12,LoadROM(PathJoined("M128",version,"basic4.rom")));
+    this->SetSidewaysROM(11,LoadROM(PathJoined("M128",version,"edit.rom")));
+    this->SetSidewaysROM(10,LoadROM(PathJoined("M128",version,"viewsht.rom")));
+    this->SetSidewaysROM(9,LoadROM(PathJoined("M128",version,"dfs.rom")));
 
     for(size_t i=4;i<8;++i) {
         this->SetSidewaysRAM(i,nullptr);
