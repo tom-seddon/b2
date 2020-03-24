@@ -5,6 +5,7 @@
 #include "test_common.h"
 #include <beeb/SaveTrace.h>
 #include <beeb/TVOutput.h>
+#include <shared/log.h>
 
 #ifdef __GNUC__
 #pragma GCC diagnostic push
@@ -29,8 +30,8 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-LOG_DEFINE(OUTPUT,"",&log_printer_stdout_and_debugger,true)
-LOG_DEFINE(BBC_OUTPUT,"",&log_printer_stdout_and_debugger,true)
+LOG_DEFINE(OUTPUT,"",&log_printer_stdout_and_debugger,true);
+LOG_DEFINE(BBC_OUTPUT,"",&log_printer_stdout_and_debugger,true);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -462,15 +463,22 @@ uint32_t TestBBCMicro::GetTestTraceFlags() const {
 //////////////////////////////////////////////////////////////////////////
 
 void TestBBCMicro::SetTestTraceFlags(uint32_t flags) {
+#if BBCMICRO_TRACE
     m_trace_flags=flags;
+#else
+    (void)flags;
+    // not available...
+#endif
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#if BBCMICRO_TRACE
 static bool SaveTraceData(const void *data,size_t num_bytes,void *context) {
     return fwrite(data,1,num_bytes,(FILE *)context)==num_bytes;
 }
+#endif
 
 void TestBBCMicro::SaveTestTrace(const std::string &stem) {
     (void)stem;
@@ -529,7 +537,7 @@ void TestBBCMicro::LoadROMsMaster(const std::string &version) {
     this->SetSidewaysROM(10,LoadROM(PathJoined("M128",version,"viewsht.rom")));
     this->SetSidewaysROM(9,LoadROM(PathJoined("M128",version,"dfs.rom")));
 
-    for(size_t i=4;i<8;++i) {
+    for(uint8_t i=4;i<8;++i) {
         this->SetSidewaysRAM(i,nullptr);
     }
 }
@@ -549,16 +557,21 @@ uint8_t TestBBCMicro::ReadTestCommand(void *context,M6502Word addr) {
 void TestBBCMicro::WriteTestCommand(void *context,M6502Word addr,uint8_t value) {
     (void)addr;
     auto m=(TestBBCMicro *)context;
+    (void)m;
 
     if(value==0) {
+#if BBCMICRO_TRACE
         // Stop trace.
         std::shared_ptr<Trace> tmp;
         m->StopTrace(&tmp);
         if(!!tmp) {
             m->m_test_trace=tmp;
         }
+#endif
     } else if(value==1) {
+#if BBCMICRO_TRACE
         m->StartTrace(m->m_trace_flags,256*1048576);
+#endif
     }
 }
 

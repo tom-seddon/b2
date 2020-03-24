@@ -69,6 +69,8 @@ private:
 #if BBCMICRO_TRACE
     std::shared_ptr<Trace> m_test_trace;
     uint32_t m_trace_flags=0;
+#else
+    const uint32_t m_trace_flags=0;
 #endif
 
     void LoadROMsB();
