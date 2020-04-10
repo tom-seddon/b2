@@ -1,0 +1,2 @@
+$.LOAD diff=bbcbasic
+$.TELETST diff=bbcbasic
