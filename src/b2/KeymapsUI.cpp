@@ -787,11 +787,6 @@ void KeymapsUI::DoKeyboardLine(const BeebKeymap *keymap,BeebKeymap *editable_key
 bool KeymapsUI::DoEditKeymapGui(const BeebKeymap *keymap,BeebKeymap *editable_keymap) {
     ImGuiIDPusher id_pusher(keymap);
 
-    bool is_default=false;
-    if(keymap==BeebWindows::GetDefaultBeebKeymap()) {
-        is_default=true;
-    }
-
     bool is_current=false;
     if(keymap==m_current_keymap) {
         is_current=true;
@@ -801,11 +796,6 @@ bool KeymapsUI::DoEditKeymapGui(const BeebKeymap *keymap,BeebKeymap *editable_ke
     if(!editable_keymap) {
         title+=" ";
         title+=KEYMAP_NOT_EDITABLE_ICON;
-    }
-
-    if(is_default) {
-        title+=" ";
-        title+=ICON_FA_CHECK;
     }
 
     title+=" ";
@@ -846,15 +836,6 @@ bool KeymapsUI::DoEditKeymapGui(const BeebKeymap *keymap,BeebKeymap *editable_ke
 
             if(ImGui::Button("Select")) {
                 m_current_keymap=keymap;
-            }
-        }
-
-        if(!is_default) {
-            ImGui::SameLine();
-
-            if(ImGui::Button("Set default")) {
-                BeebWindows::SetDefaultBeebKeymap(keymap);
-                m_edited=true;
             }
         }
 

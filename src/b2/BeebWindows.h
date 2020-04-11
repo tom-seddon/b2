@@ -143,7 +143,6 @@ namespace BeebWindows {
     void SetLastWindowPlacementData(std::vector<uint8_t> placement_data);
 
     const BeebKeymap *GetDefaultBeebKeymap();
-    void SetDefaultBeebKeymap(const BeebKeymap *keymap);
 
     size_t GetNumSavedStates();
     std::vector<std::shared_ptr<const BeebState>> GetSavedStates(size_t begin_index,

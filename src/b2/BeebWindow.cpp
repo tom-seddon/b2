@@ -381,7 +381,7 @@ void BeebWindow::HandleSDLKeyEvent(const SDL_KeyboardEvent &event) {
 }
 
 bool BeebWindow::HandleBeebKey(const SDL_Keysym &keysym,bool state) {
-    const BeebKeymap *keymap=m_keymap;
+    const BeebKeymap *keymap=m_settings.keymap;
     if(!keymap) {
         return false;
     }
@@ -1237,10 +1237,13 @@ void BeebWindow::DoFileMenu() {
                     }
                 }
 
-                if(ImGui::MenuItem(keymap->GetName().c_str(),keymap->IsKeySymMap()?KEYMAP_KEYSYMS_KEYMAP_ICON:KEYMAP_SCANCODES_KEYMAP_ICON,m_keymap==keymap)) {
-                    m_keymap=keymap;
-                    m_prefer_shortcuts=m_keymap->GetPreferShortcuts();
-                    m_msg.i.f("Keymap: %s\n",m_keymap->GetName().c_str());
+                if(ImGui::MenuItem(keymap->GetName().c_str(),
+                                   keymap->IsKeySymMap()?KEYMAP_KEYSYMS_KEYMAP_ICON:KEYMAP_SCANCODES_KEYMAP_ICON,
+                                   m_settings.keymap==keymap))
+                {
+                    m_settings.keymap=keymap;
+                    m_prefer_shortcuts=m_settings.keymap->GetPreferShortcuts();
+                    m_msg.i.f("Keymap: %s\n",m_settings.keymap->GetName().c_str());
                     this->ShowPrioritizeCommandShortcutsStatus();
                 }
 
@@ -1527,8 +1530,8 @@ bool BeebWindow::DoWindowMenu() {
         if(ImGui::MenuItem("Clone")) {
             BeebWindowInitArguments init_arguments=this->GetNewWindowInitArguments();
 
-            if(m_keymap) {
-                init_arguments.keymap_name=m_keymap->GetName();
+            if(m_settings.keymap) {
+                init_arguments.keymap_name=m_settings.keymap->GetName();
             }
 
             init_arguments.settings=m_settings;
@@ -2119,11 +2122,11 @@ bool BeebWindow::InitInternal() {
     }
 
     if(!m_init_arguments.keymap_name.empty()) {
-        m_keymap=BeebWindows::FindBeebKeymapByName(m_init_arguments.keymap_name);
+        m_settings.keymap=BeebWindows::FindBeebKeymapByName(m_init_arguments.keymap_name);
     }
 
-    if(!m_keymap) {
-        m_keymap=BeebWindows::GetDefaultBeebKeymap();
+    if(!m_settings.keymap) {
+        m_settings.keymap=BeebWindows::GetDefaultBeebKeymap();
     }
 
     if(SDL_GL_GetCurrentContext()) {
@@ -2222,8 +2225,8 @@ void BeebWindow::UpdateTitle() {
 //////////////////////////////////////////////////////////////////////////
 
 void BeebWindow::BeebKeymapWillBeDeleted(BeebKeymap *keymap) {
-    if(m_keymap==keymap) {
-        m_keymap=&DEFAULT_KEYMAP;
+    if(m_settings.keymap==keymap) {
+        m_settings.keymap=BeebWindows::GetDefaultBeebKeymap();
     }
 }
 
@@ -2283,14 +2286,14 @@ std::vector<BeebWindow::VBlankRecord> BeebWindow::GetVBlankRecords() const {
 //////////////////////////////////////////////////////////////////////////
 
 const BeebKeymap *BeebWindow::GetCurrentKeymap() const {
-    return m_keymap;
+    return m_settings.keymap;
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 void BeebWindow::SetCurrentKeymap(const BeebKeymap *keymap) {
-    m_keymap=keymap;
+    m_settings.keymap=keymap;
 }
 
 //////////////////////////////////////////////////////////////////////////

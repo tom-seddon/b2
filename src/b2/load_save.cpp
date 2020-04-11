@@ -1391,11 +1391,12 @@ static bool LoadWindows(rapidjson::Value *windows,Messages *msg) {
         std::string keymap_name;
         if(FindStringMember(&keymap_name,windows,KEYMAP,msg)) {
             if(const BeebKeymap *keymap=BeebWindows::FindBeebKeymapByName(keymap_name)) {
-                BeebWindows::SetDefaultBeebKeymap(keymap);
+                BeebWindows::defaults.keymap=keymap;
             } else {
                 msg->w.f("default keymap unknown: %s\n",keymap_name.c_str());
 
                 // But it's OK - a sensible one will be selected.
+                BeebWindows::defaults.keymap=BeebWindows::GetDefaultBeebKeymap();
             }
         }
     }
@@ -1881,7 +1882,7 @@ static void SaveWindows(JSONWriter<StringStream> *writer) {
         }
 
         writer->Key(KEYMAP);
-        writer->String(BeebWindows::GetDefaultBeebKeymap()->GetName().c_str());
+        writer->String(BeebWindows::defaults.keymap->GetName().c_str());
 
         writer->Key(BBC_VOLUME);
         writer->Double(BeebWindows::defaults.bbc_volume);

@@ -71,6 +71,8 @@ struct BeebWindowSettings {
     bool correct_aspect_ratio=true;
     float display_manual_scale=1.f;
     bool display_filter=true;
+
+    const BeebKeymap *keymap=nullptr;
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -284,7 +286,6 @@ private:
     // Audio output
     SDL_AudioDeviceID m_sound_device=0;
 
-    const BeebKeymap *m_keymap=nullptr;
     bool m_prefer_shortcuts=false;
 
     // number of emulated us that had passed at the time of the last

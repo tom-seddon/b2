@@ -34,7 +34,6 @@ struct BeebWindowsState {
     std::vector<std::unique_ptr<BeebKeymap>> beeb_keymaps;
     std::vector<BeebConfig> configs;
     std::string default_config_name;
-    const BeebKeymap *default_beeb_keymap=&DEFAULT_KEYMAP;
 
     std::vector<uint8_t> last_window_placement_data;
 
@@ -381,9 +380,6 @@ void BeebWindows::RemoveBeebKeymap(BeebKeymap *keymap) {
         window->BeebKeymapWillBeDeleted(keymap);
     }
 
-    if(g_->default_beeb_keymap==keymap) {
-        g_->default_beeb_keymap=&DEFAULT_KEYMAP;
-    }
 
     //keymap->WillBeDeleted(&g_->default_keymap);
 
@@ -608,7 +604,6 @@ BeebWindow *BeebWindows::FindBeebWindowByName(const std::string &name) {
     return nullptr;
 }
 
-
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
@@ -627,14 +622,7 @@ void BeebWindows::SetLastWindowPlacementData(std::vector<uint8_t> placement_data
 //////////////////////////////////////////////////////////////////////////
 
 const BeebKeymap *BeebWindows::GetDefaultBeebKeymap() {
-    return g_->default_beeb_keymap;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-void BeebWindows::SetDefaultBeebKeymap(const BeebKeymap *keymap) {
-    g_->default_beeb_keymap=keymap;
+    return g_->beeb_keymaps[0].get();
 }
 
 //////////////////////////////////////////////////////////////////////////
