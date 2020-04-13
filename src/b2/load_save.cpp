@@ -915,6 +915,9 @@ static void SaveEnum(JSONWriter<StringStream> *writer,T value,const char *(*get_
     const char *name=(*get_name_fn)((int)value);
     if(name[0]!='?') {
         writer->String(name);
+    } else {
+        // Have to save something...
+        writer->String("?");
     }
 }
 
@@ -1046,7 +1049,8 @@ static WriterHelper ArrayWriter(WriterType *writer,
 
 static const char RECENT_PATHS[]="recent_paths";
 static const char PATHS[]="paths";
-static const char KEYMAPS[]="keymaps";
+static const char OLD_KEYMAPS[]="keymaps";
+static const char NEW_KEYMAPS[]="new_keymaps";
 static const char KEYS[]="keys";
 static const char PLACEMENT[]="window_placement";
 static const char CONFIGS[]="configs";
@@ -1207,13 +1211,13 @@ static bool LoadRecentPaths(rapidjson::Value *recent_paths,
     return true;
 }
 
-static bool LoadKeymaps(rapidjson::Value *keymaps_json,Messages *msg) {
+static bool LoadKeymaps(rapidjson::Value *keymaps_json,const char *keymaps_name,Messages *msg) {
     for(rapidjson::SizeType keymap_idx=0;keymap_idx<keymaps_json->Size();++keymap_idx) {
         rapidjson::Value *keymap_json=&(*keymaps_json)[keymap_idx];
 
         if(!keymap_json->IsObject()) {
             msg->e.f("not an object: %s[%" PRIsizetype "]\n",
-                     KEYMAPS,keymap_idx);
+                     keymaps_name,keymap_idx);
             continue;
         }
 
@@ -1233,7 +1237,7 @@ static bool LoadKeymaps(rapidjson::Value *keymaps_json,Messages *msg) {
             return false;
         }
 
-        BeebKeymap keymap("",keysyms);//need better ctors than this
+        BeebKeymap keymap(keymap_name,keysyms);
         if(keysyms) {
             for(rapidjson::Value::MemberIterator keys_it=keys_json.MemberBegin();
                 keys_it!=keys_json.MemberEnd();
@@ -1307,8 +1311,7 @@ static bool LoadKeymaps(rapidjson::Value *keymaps_json,Messages *msg) {
             keymap.SetPreferShortcuts(prefer_shortcuts);
         }
 
-        BeebKeymap *keymap_ptr=BeebWindows::AddBeebKeymap(std::move(keymap));
-        BeebWindows::SetBeebKeymapName(keymap_ptr,keymap_name);
+        BeebWindows::AddBeebKeymap(std::move(keymap));
     }
 
     return true;
@@ -1543,8 +1546,7 @@ static bool LoadDockConfig(Messages *msg) {
     return true;
 }
 
-bool LoadGlobalConfig(Messages *msg)
-{
+bool LoadGlobalConfig(Messages *msg) {
     std::string fname=GetConfigFileName();
     if(fname.empty()) {
         msg->e.f("failed to load config file\n");
@@ -1574,10 +1576,21 @@ bool LoadGlobalConfig(Messages *msg)
     }
 
     rapidjson::Value keymaps;
-    if(FindArrayMember(&keymaps,doc.get(),KEYMAPS,msg)) {
+    if(FindArrayMember(&keymaps,doc.get(),OLD_KEYMAPS,msg)) {
         LOGF(LOADSAVE,"Loading keymaps.\n");
 
-        if(!LoadKeymaps(&keymaps,msg)) {
+        BeebWindows::AddBeebKeymap(DEFAULT_KEYMAP);
+        BeebWindows::AddBeebKeymap(DEFAULT_KEYMAP_CC);
+        BeebWindows::AddBeebKeymap(DEFAULT_KEYMAP_UK);
+        BeebWindows::AddBeebKeymap(DEFAULT_KEYMAP_US);
+
+        if(!LoadKeymaps(&keymaps,OLD_KEYMAPS,msg)) {
+            return false;
+        }
+    } else if(FindArrayMember(&keymaps,doc.get(),NEW_KEYMAPS,msg)) {
+        LOGF(LOADSAVE,"Loading keymaps.\n");
+
+        if(!LoadKeymaps(&keymaps,OLD_KEYMAPS,msg)) {
             return false;
         }
     }
@@ -1686,14 +1699,9 @@ static void SaveRecentPaths(JSONWriter<StringStream> *writer) {
 }
 
 static void SaveKeymaps(JSONWriter<StringStream> *writer) {
-    auto keymaps_json=ArrayWriter(writer,KEYMAPS);
+    auto keymaps_json=ArrayWriter(writer,NEW_KEYMAPS);
 
-    BeebWindows::ForEachBeebKeymap([&](const BeebKeymap *keymap,BeebKeymap *editable_keymap) {
-        if(!editable_keymap) {
-            // don't serialize stock keymaps.
-            return true;
-        }
-
+    BeebWindows::ForEachBeebKeymap([&](BeebKeymap *keymap) {
         auto keymap_json=ObjectWriter(writer);
 
         writer->Key(NAME);

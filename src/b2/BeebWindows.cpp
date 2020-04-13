@@ -417,25 +417,11 @@ void BeebWindows::SetBeebKeymapName(BeebKeymap *keymap,std::string name) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static const BeebKeymap *const STOCK_KEYMAPS[]={
-    &DEFAULT_KEYMAP,
-    &DEFAULT_KEYMAP_CC,
-    &DEFAULT_KEYMAP_UK,
-    &DEFAULT_KEYMAP_US,
-    nullptr,
-};
-
-const BeebKeymap *BeebWindows::ForEachBeebKeymap(const std::function<bool(const BeebKeymap *,BeebKeymap *)> &func) {
-    for(const BeebKeymap *const *keymap_ptr=STOCK_KEYMAPS;*keymap_ptr;++keymap_ptr) {
-        if(!func(*keymap_ptr,nullptr)) {
-            return *keymap_ptr;
-        }
-    }
-
+BeebKeymap *BeebWindows::ForEachBeebKeymap(const std::function<bool(BeebKeymap *)> &func) {
     for(size_t i=0;i<g_->beeb_keymaps.size();++i) {
         BeebKeymap *keymap=g_->beeb_keymaps[i].get();
 
-        if(!func(keymap,keymap)) {
+        if(!func(keymap)) {
             if(i<g_->beeb_keymaps.size()) {
                 return g_->beeb_keymaps[i].get();
             } else {
@@ -450,8 +436,8 @@ const BeebKeymap *BeebWindows::ForEachBeebKeymap(const std::function<bool(const 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-const BeebKeymap *BeebWindows::FindBeebKeymapByName(const std::string &name) {
-    return BeebWindows::ForEachBeebKeymap([&name](const BeebKeymap *keymap,BeebKeymap *) {
+BeebKeymap *BeebWindows::FindBeebKeymapByName(const std::string &name) {
+    return BeebWindows::ForEachBeebKeymap([&name](BeebKeymap *keymap) {
         return name!=keymap->GetName();
     });
 }

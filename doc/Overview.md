@@ -127,19 +127,17 @@ dialog, showing a map of the BBC keyboard. Hover over a key to see
 which PC keys correspond to it. (For character maps, some keys have
 two parts, mapped separately.)
 
+The BBC keyboard map always shows the Master 128 keypad, but these
+mappings only get used in Master 128 mode.
+
 Each keymap has its own section, though initially only the active
 keymap is shown. Click the little disclosure arrow thing to reveal the
 others.
 
-The default keymaps are read-only. Click the `Copy` button to make a
-modifiable copy, which you can give a name. It will appear in the
-`Keymap` submenu along with the others.
-
-(To create a new positional map, copy one of the positional maps; to
-create a new character map, copy one of the character maps.)
-
-(The BBC keyboard map always shows the Master 128 keypad, but this
-only has an effect in Master 128 mode.)
+To make a new keymap, click the `New` button at the top of the list
+and select the keymap to copy. The four default keymaps are always
+included in the list, so you can get them back even if you've deleted
+them.
 
 Each keymap also has a `Prioritize command keys` checkbox, which is
 the setting for the `Edit` > `Prioritize command keys` option (see

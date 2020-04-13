@@ -18,8 +18,8 @@ class BeebKeymap:
     public Keymap<BeebKeymapTraits>
 {
 public:
-    BeebKeymap(std::string name,bool key_sym_map);
-    BeebKeymap(std::string name,bool key_sym_map,const std::initializer_list<const Mapping *> &list);
+    BeebKeymap(std::string name,
+               bool key_sym_map);
 
     bool GetPreferShortcuts() const;
     void SetPreferShortcuts(bool prefer_shortcuts);

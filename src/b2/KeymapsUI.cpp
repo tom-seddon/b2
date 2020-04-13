@@ -22,31 +22,30 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-const char KEYMAP_NOT_EDITABLE_ICON[]=ICON_FA_LOCK;
-const char KEYMAP_SCANCODES_KEYMAP_ICON[]=ICON_FA_KEYBOARD;
-const char KEYMAP_KEYSYMS_KEYMAP_ICON[]=ICON_FA_FONT;
+//const char KEYMAP_NOT_EDITABLE_ICON[]=ICON_FA_LOCK;
+static const std::string KEYMAP_SCANCODES_SUFFIX=" " ICON_FA_KEYBOARD;
+static const std::string KEYMAP_KEYSYMS_SUFFIX=" " ICON_FA_FONT;
 
 static const char PC_SCANCODES_POPUP[]="pc_scancodes";
 static const char PC_KEYCODES_POPUP[]="pc_keycodes";
+static const char DEFAULT_KEYMAPS_POPUP[]="keymaps";
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 template<class KeymapType>
-void ImGuiKeySymsList(bool *edited,const KeymapType *keymap,KeymapType *editable_keymap,typename KeymapType::ValueType value) {
-    ImGui::Text(editable_keymap?"Edit PC Keys":"PC Keys");
+void ImGuiKeySymsList(bool *edited,KeymapType *keymap,typename KeymapType::ValueType value) {
+    ImGui::Text("Edit PC Keys");
     ImGui::Separator();
     if(const uint32_t *keycodes=keymap->GetPCKeysForValue(value)) {
         for(const uint32_t *keycode=keycodes;*keycode!=0;++keycode) {
             ImGuiIDPusher id_pusher((int)*keycode);
 
-            if(editable_keymap) {
-                if(ImGui::Button("x")) {
-                    editable_keymap->SetMapping(*keycode,value,false);
-                    *edited=true;
-                }
-                ImGui::SameLine();
+            if(ImGui::Button("x")) {
+                keymap->SetMapping(*keycode,value,false);
+                *edited=true;
             }
+            ImGui::SameLine();
 
             std::string name=GetKeycodeName(*keycode);
 
@@ -54,14 +53,23 @@ void ImGuiKeySymsList(bool *edited,const KeymapType *keymap,KeymapType *editable
         }
     }
 
-    if(editable_keymap) {
-        ImGui::TextUnformatted("(press key to add)");
+    ImGui::TextUnformatted("(press key to add)");
 
-        uint32_t keycode=ImGuiConsumePressedKeycode();
-        if(keycode!=0) {
-            editable_keymap->SetMapping(keycode,value,true);
-            *edited=true;
-        }
+    uint32_t keycode=ImGuiConsumePressedKeycode();
+    if(keycode!=0) {
+        keymap->SetMapping(keycode,value,true);
+        *edited=true;
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+std::string GetKeymapUIName(const BeebKeymap &keymap) {
+    if(keymap.IsKeySymMap()) {
+        return keymap.GetName()+KEYMAP_KEYSYMS_SUFFIX;
+    } else {
+        return keymap.GetName()+KEYMAP_SCANCODES_SUFFIX;
     }
 }
 
@@ -110,19 +118,20 @@ private:
     bool m_wants_keyboard_focus=false;
     const BeebKeymap *m_current_keymap=nullptr;
     bool m_edited=false;
+    std::map<const BeebKeymap *,bool> m_default_open;
 
-    void DoScancodesList(const BeebKeymap *keymap,BeebKeymap *editable_keymap,BeebKey beeb_key);
+    void DoScancodesList(BeebKeymap *keymap,BeebKey beeb_key);
     ImGuiStyleColourPusher GetColourPusherForKeycap(const BeebKeymap *keymap,int8_t keymap_key,const Keycap *keycap);
-    void DoScancodeKeyboardLinePart(const BeebKeymap *keymap,BeebKeymap *editable_keymap,const Keycap *line);
-    void DoScancodeKeyboardLineParts(const BeebKeymap *keymap,BeebKeymap *editable_keymap,const Keycap *line,const Keycap *m128_line);
-    void DoKeySymButton(const BeebKeymap *keymap,BeebKeymap *editable_keymap,const char *label,const ImVec2 &size,BeebKeySym key_sym,const Keycap *keycap);
-    void DoKeySymKeyboardLineTopHalves(const BeebKeymap *keymap,BeebKeymap *editable_keymap,const Keycap *line,BottomHalfKeycap *bottom_halves,size_t *num_bottom_halves);
-    void DoKeySymKeyboardLineBottomHalves(const BeebKeymap *keymap,BeebKeymap *editable_keymap,float y,const BottomHalfKeycap *bottom_halves,size_t num_bottom_halves);
-    void DoKeySymKeyboardLineParts(const BeebKeymap *keymap,BeebKeymap *editable_keymap,const Keycap *line,const Keycap *m128_line);
-    void DoKeyboardLine(const BeebKeymap *keymap,BeebKeymap *editable_keymap,const Keycap *line,const Keycap *m128_line);
+    void DoScancodeKeyboardLinePart(BeebKeymap *keymap,const Keycap *line);
+    void DoScancodeKeyboardLineParts(BeebKeymap *keymap,const Keycap *line,const Keycap *m128_line);
+    void DoKeySymButton(BeebKeymap *keymap,const char *label,const ImVec2 &size,BeebKeySym key_sym,const Keycap *keycap);
+    void DoKeySymKeyboardLineTopHalves(BeebKeymap *keymap,const Keycap *line,BottomHalfKeycap *bottom_halves,size_t *num_bottom_halves);
+    void DoKeySymKeyboardLineBottomHalves(BeebKeymap *keymap,float y,const BottomHalfKeycap *bottom_halves,size_t num_bottom_halves);
+    void DoKeySymKeyboardLineParts(BeebKeymap *keymap,const Keycap *line,const Keycap *m128_line);
+    void DoKeyboardLine(BeebKeymap *keymap,const Keycap *line,const Keycap *m128_line);
 
     // Returns false if keymap was deleted.
-    bool DoEditKeymapGui(const BeebKeymap *keymap,BeebKeymap *editable_keymap);
+    bool DoEditKeymapGui(BeebKeymap *keymap,bool default_open);
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -136,8 +145,10 @@ std::unique_ptr<SettingsUI> CreateKeymapsUI(BeebWindow *beeb_window) {
 //////////////////////////////////////////////////////////////////////////
 
 KeymapsUI::KeymapsUI(BeebWindow *beeb_window):
-    m_beeb_window(beeb_window)
+m_beeb_window(beeb_window),
+m_current_keymap(beeb_window->GetCurrentKeymap())
 {
+    m_default_open[m_current_keymap]=true;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -164,18 +175,86 @@ bool KeymapsUI::OnClose() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+static const BeebKeymap *const DEFAULT_KEYMAPS[]={
+    &DEFAULT_KEYMAP,
+    &DEFAULT_KEYMAP_CC,
+    &DEFAULT_KEYMAP_UK,
+    &DEFAULT_KEYMAP_US,
+};
+static const size_t NUM_DEFAULT_KEYMAPS=sizeof DEFAULT_KEYMAPS/sizeof DEFAULT_KEYMAPS[0];
+
 void KeymapsUI::DoImGui() {
     bool any=false;
 
     m_wants_keyboard_focus=false;
 
-    BeebWindows::ForEachBeebKeymap([&](const BeebKeymap *keymap,BeebKeymap *editable_keymap) {
+    BeebKeymap *new_keymap=nullptr;
+
+    if(ImGui::Button("New")) {
+        ImGui::OpenPopup(DEFAULT_KEYMAPS_POPUP);
+    }
+
+    if(ImGui::BeginPopup(DEFAULT_KEYMAPS_POPUP)) {
+        ImGui::TextUnformatted("Copy new keymap from:");
+        ImGui::Separator();
+
+        bool seen_default_keymap[NUM_DEFAULT_KEYMAPS]={};
+
+        const BeebKeymap *selected_keymap=BeebWindows::ForEachBeebKeymap([&](BeebKeymap *keymap) {
+            for(size_t i=0;i<NUM_DEFAULT_KEYMAPS;++i) {
+                if(!seen_default_keymap[i]) {
+                    if(DEFAULT_KEYMAPS[i]->GetName()==keymap->GetName()) {
+                        seen_default_keymap[i]=true;
+                        break;
+                    }
+                }
+            }
+
+            if(ImGui::Selectable(GetKeymapUIName(*keymap).c_str())) {
+                return false;
+            }
+
+            return true;
+        });
+
+        if(!selected_keymap) {
+            bool any=false;
+
+            for(size_t i=0;i<NUM_DEFAULT_KEYMAPS;++i) {
+                if(!seen_default_keymap[i]) {
+                    if(!any) {
+                        ImGui::Separator();
+
+                        any=true;
+                    }
+
+                    if(ImGui::Selectable(GetKeymapUIName(*DEFAULT_KEYMAPS[i]).c_str())) {
+                        selected_keymap=DEFAULT_KEYMAPS[i];
+                        break;
+                    }
+                }
+            }
+        }
+
+        if(selected_keymap) {
+            new_keymap=BeebWindows::AddBeebKeymap(*selected_keymap);
+            m_default_open[new_keymap]=true;
+        }
+
+        ImGui::EndPopup();
+    }
+
+    BeebWindows::ForEachBeebKeymap([&](BeebKeymap *keymap) {
         if(any) {
             ImGui::Separator();
             any=true;
         }
 
-        if(!this->DoEditKeymapGui(keymap,editable_keymap)) {
+        if(keymap==new_keymap) {
+            ImGui::SetScrollHereY();
+        }
+
+        if(!this->DoEditKeymapGui(keymap,m_default_open[keymap])) {
             return false;
         }
 
@@ -492,32 +571,28 @@ static const ImColor PRESSED_KEY_TEXT_COLOUR=ImColor::HSV(1/7.f,.6f,.6f);
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void KeymapsUI::DoScancodesList(const BeebKeymap *keymap,BeebKeymap *editable_keymap,BeebKey beeb_key) {
+void KeymapsUI::DoScancodesList(BeebKeymap *keymap,BeebKey beeb_key) {
     int sdl_keystates_size;
     const Uint8 *sdl_keystates=SDL_GetKeyboardState(&sdl_keystates_size);
     ASSERT(sdl_keystates_size>=0);
 
-    ImGui::Text(editable_keymap?"Edit PC Keys":"PC Keys");
+    ImGui::Text("Edit PC Keys");
     ImGui::Separator();
     if(const uint32_t *scancodes=keymap->GetPCKeysForValue((int8_t)beeb_key)) {
         for(const uint32_t *scancode=scancodes;*scancode!=0;++scancode) {
             ASSERT(*scancode<SDL_NUM_SCANCODES);
             ImGuiIDPusher id_pusher((int32_t)*scancode);
 
-            if(editable_keymap) {
-                ImGuiStyleColourPusher pusher;
-                pusher.PushDefaultButtonColours();
+            ImGuiStyleColourPusher pusher;
+            pusher.PushDefaultButtonColours();
 
-                if(ImGui::Button("x")) {
-                    editable_keymap->SetMapping(*scancode,(int8_t)beeb_key,false);
-                    m_edited=true;
-                }
-                ImGui::SameLine();
+            if(ImGui::Button("x")) {
+                keymap->SetMapping(*scancode,(int8_t)beeb_key,false);
+                m_edited=true;
             }
+            ImGui::SameLine();
 
             bool pc_key_pressed=*scancode<(size_t)sdl_keystates_size&&sdl_keystates[*scancode];
-
-            ImGuiStyleColourPusher pusher;
 
             if(pc_key_pressed) {
                 pusher.Push(ImGuiCol_Text,PRESSED_KEY_TEXT_COLOUR);
@@ -527,15 +602,13 @@ void KeymapsUI::DoScancodesList(const BeebKeymap *keymap,BeebKeymap *editable_ke
         }
     }
 
-    if(editable_keymap) {
-        ImGui::TextUnformatted("(press key to add)");
-        m_wants_keyboard_focus=true;
+    ImGui::TextUnformatted("(press key to add)");
+    m_wants_keyboard_focus=true;
 
-        for(int i=0;i<sdl_keystates_size;++i) {
-            if(sdl_keystates[i]) {
-                editable_keymap->SetMapping((uint32_t)i,(int8_t)beeb_key,true);
-                m_edited=true;
-            }
+    for(int i=0;i<sdl_keystates_size;++i) {
+        if(sdl_keystates[i]) {
+            keymap->SetMapping((uint32_t)i,(int8_t)beeb_key,true);
+            m_edited=true;
         }
     }
 }
@@ -608,7 +681,7 @@ static ImVec2 GetKeySize(const Keycap *key) {
     return ImVec2(w,KEY_HEIGHT);
 }
 
-void KeymapsUI::DoScancodeKeyboardLinePart(const BeebKeymap *keymap,BeebKeymap *editable_keymap,const Keycap *line) {
+void KeymapsUI::DoScancodeKeyboardLinePart(BeebKeymap *keymap,const Keycap *line) {
     for(const Keycap *key=line;key->width_in_halves>=0;++key) {
         ImGuiIDPusher id_pusher(key);
 
@@ -638,19 +711,17 @@ void KeymapsUI::DoScancodeKeyboardLinePart(const BeebKeymap *keymap,BeebKeymap *
             }
 
             if(ImGui::Button(label,size)) {
-                if(editable_keymap) {
-                    ImGui::OpenPopup(PC_SCANCODES_POPUP);
-                }
+                ImGui::OpenPopup(PC_SCANCODES_POPUP);
             }
 
             if(ImGui::IsItemHovered()) {
                 ImGui::BeginTooltip();
-                this->DoScancodesList(keymap,nullptr,key->key);
+                this->DoScancodesList(keymap,key->key);
                 ImGui::EndTooltip();
             }
 
             if(ImGui::BeginPopup(PC_SCANCODES_POPUP)) {
-                this->DoScancodesList(keymap,editable_keymap,key->key);
+                this->DoScancodesList(keymap,key->key);
                 ImGui::EndPopup();
             }
         }
@@ -659,17 +730,17 @@ void KeymapsUI::DoScancodeKeyboardLinePart(const BeebKeymap *keymap,BeebKeymap *
     }
 }
 
-void KeymapsUI::DoScancodeKeyboardLineParts(const BeebKeymap *keymap,BeebKeymap *editable_keymap,const Keycap *line,const Keycap *m128_line) {
-    this->DoScancodeKeyboardLinePart(keymap,editable_keymap,line);
+void KeymapsUI::DoScancodeKeyboardLineParts(BeebKeymap *keymap,const Keycap *line,const Keycap *m128_line) {
+    this->DoScancodeKeyboardLinePart(keymap,line);
 
     if(m128_line) {
         ImGui::SetCursorPosX(KEYPAD_X);
 
-        this->DoScancodeKeyboardLinePart(keymap,editable_keymap,m128_line);
+        this->DoScancodeKeyboardLinePart(keymap,m128_line);
     }
 }
 
-void KeymapsUI::DoKeySymButton(const BeebKeymap *keymap,BeebKeymap *editable_keymap,const char *label,const ImVec2 &size,BeebKeySym key_sym,const Keycap *keycap) {
+void KeymapsUI::DoKeySymButton(BeebKeymap *keymap,const char *label,const ImVec2 &size,BeebKeySym key_sym,const Keycap *keycap) {
     //BeebKey key=BeebKey_None;
     //BeebShiftState shift_state;
     //GetBeebKeyComboForKeySym(&key,&shift_state,key_sym);
@@ -677,26 +748,28 @@ void KeymapsUI::DoKeySymButton(const BeebKeymap *keymap,BeebKeymap *editable_key
     ImGuiStyleColourPusher colour_pusher=this->GetColourPusherForKeycap(keymap,(int8_t)key_sym,keycap);
 
     if(ImGui::Button(label,size)) {
-        if(editable_keymap) {
-            ImGui::OpenPopup(PC_KEYCODES_POPUP);
-        }
+        ImGui::OpenPopup(PC_KEYCODES_POPUP);
     }
 
     if(ImGui::IsItemHovered()) {
         ImGui::BeginTooltip();
-        ImGuiKeySymsList(&m_edited,keymap,(BeebKeymap *)nullptr,(int8_t)key_sym);
+        ImGuiKeySymsList(&m_edited,keymap,(int8_t)key_sym);
         m_wants_keyboard_focus=true;
         ImGui::EndTooltip();
     }
 
     if(ImGui::BeginPopup(PC_KEYCODES_POPUP)) {
-        ImGuiKeySymsList(&m_edited,keymap,editable_keymap,(int8_t)key_sym);
+        ImGuiKeySymsList(&m_edited,keymap,(int8_t)key_sym);
         m_wants_keyboard_focus=true;
         ImGui::EndPopup();
     }
 }
 
-void KeymapsUI::DoKeySymKeyboardLineTopHalves(const BeebKeymap *keymap,BeebKeymap *editable_keymap,const Keycap *line,BottomHalfKeycap *bottom_halves,size_t *num_bottom_halves) {
+void KeymapsUI::DoKeySymKeyboardLineTopHalves(BeebKeymap *keymap,
+                                              const Keycap *line,
+                                              BottomHalfKeycap *bottom_halves,
+                                              size_t *num_bottom_halves)
+{
     for(const Keycap *keycap=line;keycap->width_in_halves>=0;++keycap) {
         ImGuiIDPusher id_pusher(keycap);
 
@@ -716,13 +789,13 @@ void KeymapsUI::DoKeySymKeyboardLineTopHalves(const BeebKeymap *keymap,BeebKeyma
                 bottom_halves[(*num_bottom_halves)++]={ImGui::GetCursorPosX(),size,keycap};
 
                 ImGuiIDPusher id_pusher2(1);
-                this->DoKeySymButton(keymap,editable_keymap,shifted,size,keycap->shifted_sym,keycap);
+                this->DoKeySymButton(keymap,shifted,size,keycap->shifted_sym,keycap);
                 //ImGui::Button(shifted,size);
             } else {
                 // Full-height button.
                 ASSERT(!shifted);
 
-                this->DoKeySymButton(keymap,editable_keymap,unshifted,size,keycap->unshifted_sym,keycap);
+                this->DoKeySymButton(keymap,unshifted,size,keycap->unshifted_sym,keycap);
             }
         }
 
@@ -730,7 +803,11 @@ void KeymapsUI::DoKeySymKeyboardLineTopHalves(const BeebKeymap *keymap,BeebKeyma
     }
 }
 
-void KeymapsUI::DoKeySymKeyboardLineBottomHalves(const BeebKeymap *keymap,BeebKeymap *editable_keymap,float y,const BottomHalfKeycap *bottom_halves,size_t num_bottom_halves) {
+void KeymapsUI::DoKeySymKeyboardLineBottomHalves(BeebKeymap *keymap,
+                                                 float y,
+                                                 const BottomHalfKeycap *bottom_halves,
+                                                 size_t num_bottom_halves)
+{
     for(size_t i=0;i<num_bottom_halves;++i) {
         const BottomHalfKeycap *key=&bottom_halves[i];
 
@@ -739,7 +816,6 @@ void KeymapsUI::DoKeySymKeyboardLineBottomHalves(const BeebKeymap *keymap,BeebKe
 
         ImGui::SetCursorPos(ImVec2(key->x,y));
         this->DoKeySymButton(keymap,
-                             editable_keymap,
                              GetKeySymLabel(key->keycap->unshifted_sym),
                              key->size,
                              key->keycap->unshifted_sym,
@@ -749,21 +825,21 @@ void KeymapsUI::DoKeySymKeyboardLineBottomHalves(const BeebKeymap *keymap,BeebKe
     }
 }
 
-void KeymapsUI::DoKeySymKeyboardLineParts(const BeebKeymap *keymap,BeebKeymap *editable_keymap,const Keycap *line,const Keycap *m128_line) {
+void KeymapsUI::DoKeySymKeyboardLineParts(BeebKeymap *keymap,const Keycap *line,const Keycap *m128_line) {
     BottomHalfKeycap keycaps[MAX_NUM_KEYCAPS];
     size_t num_keycaps=0;
 
     float y=ImGui::GetCursorPosY();
 
-    this->DoKeySymKeyboardLineTopHalves(keymap,editable_keymap,line,keycaps,&num_keycaps);
+    this->DoKeySymKeyboardLineTopHalves(keymap,line,keycaps,&num_keycaps);
 
     if(m128_line) {
         ImGui::SetCursorPosX(KEYPAD_X);
 
-        this->DoKeySymKeyboardLineTopHalves(keymap,editable_keymap,m128_line,keycaps,&num_keycaps);
+        this->DoKeySymKeyboardLineTopHalves(keymap,m128_line,keycaps,&num_keycaps);
     }
 
-    this->DoKeySymKeyboardLineBottomHalves(keymap,editable_keymap,y+KEY_HEIGHT*.5f,keycaps,num_keycaps);
+    this->DoKeySymKeyboardLineBottomHalves(keymap,y+KEY_HEIGHT*.5f,keycaps,num_keycaps);
 
     ImGui::SetCursorPosY(y);
 }
@@ -771,11 +847,11 @@ void KeymapsUI::DoKeySymKeyboardLineParts(const BeebKeymap *keymap,BeebKeymap *e
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void KeymapsUI::DoKeyboardLine(const BeebKeymap *keymap,BeebKeymap *editable_keymap,const Keycap *line,const Keycap *m128_line) {
+void KeymapsUI::DoKeyboardLine(BeebKeymap *keymap,const Keycap *line,const Keycap *m128_line) {
     if(keymap->IsKeySymMap()) {
-        this->DoKeySymKeyboardLineParts(keymap,editable_keymap,line,m128_line);
+        this->DoKeySymKeyboardLineParts(keymap,line,m128_line);
     } else {
-        this->DoScancodeKeyboardLineParts(keymap,editable_keymap,line,m128_line);
+        this->DoScancodeKeyboardLineParts(keymap,line,m128_line);
     }
 
     ImGui::NewLine();
@@ -784,54 +860,33 @@ void KeymapsUI::DoKeyboardLine(const BeebKeymap *keymap,BeebKeymap *editable_key
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool KeymapsUI::DoEditKeymapGui(const BeebKeymap *keymap,BeebKeymap *editable_keymap) {
+bool KeymapsUI::DoEditKeymapGui(BeebKeymap *keymap,bool default_open) {
     ImGuiIDPusher id_pusher(keymap);
 
-    bool is_current=false;
-    if(keymap==m_current_keymap) {
-        is_current=true;
+    std::string title=GetKeymapUIName(*keymap);
+
+    ImGuiTreeNodeFlags flags=0;
+    if(default_open) {
+        flags|=ImGuiTreeNodeFlags_DefaultOpen;
     }
 
-    std::string title=keymap->GetName().c_str();
-    if(!editable_keymap) {
-        title+=" ";
-        title+=KEYMAP_NOT_EDITABLE_ICON;
-    }
-
-    title+=" ";
-    if(keymap->IsKeySymMap()) {
-        title+=KEYMAP_KEYSYMS_KEYMAP_ICON;
-    } else {
-        title+=KEYMAP_SCANCODES_KEYMAP_ICON;
-    }
-
-    if(ImGui::CollapsingHeader(title.c_str(),is_current?ImGuiTreeNodeFlags_DefaultOpen:0)) {
-        if(editable_keymap) {
-            std::string name;
-            if(ImGuiInputText(&name,"Name",keymap->GetName())) {
-                BeebWindows::SetBeebKeymapName(editable_keymap,name);
-                m_edited=true;
-            }
-        } else {
-            ImGui::TextUnformatted(keymap->GetName().c_str());
-        }
-
-        if(ImGui::Button("Copy")) {
-            BeebWindows::AddBeebKeymap(*keymap);
+    if(ImGui::CollapsingHeader(title.c_str(),flags)) {
+        std::string name;
+        if(ImGuiInputText(&name,"Name",keymap->GetName())) {
+            BeebWindows::SetBeebKeymapName(keymap,name);
             m_edited=true;
         }
 
-        if(editable_keymap) {
-            ImGui::SameLine();
+        ImGui::SameLine();
 
-            if(ImGui::Button("Delete")) {
-                BeebWindows::RemoveBeebKeymap(editable_keymap);
-                m_edited=true;
-                return false;
-            }
+        if(ImGuiConfirmButton("Delete")) {
+            m_default_open.erase(keymap);
+            BeebWindows::RemoveBeebKeymap(keymap);
+            m_edited=true;
+            return false;
         }
 
-        if(!is_current) {
+        if(m_current_keymap!=keymap) {
             ImGui::SameLine();
 
             if(ImGui::Button("Select")) {
@@ -842,19 +897,17 @@ bool KeymapsUI::DoEditKeymapGui(const BeebKeymap *keymap,BeebKeymap *editable_ke
         {
             bool prefer=keymap->GetPreferShortcuts();
             if(ImGui::Checkbox("Prioritize command keys",&prefer)) {
-                if(editable_keymap) {
-                    editable_keymap->SetPreferShortcuts(prefer);
-                    m_edited=true;
-                }
+                keymap->SetPreferShortcuts(prefer);
+                m_edited=true;
             }
         }
 
-        this->DoKeyboardLine(keymap,editable_keymap,g_keyboard_line1,g_m128_line1);
-        this->DoKeyboardLine(keymap,editable_keymap,g_keyboard_line2,g_m128_line2);
-        this->DoKeyboardLine(keymap,editable_keymap,g_keyboard_line3,g_m128_line3);
-        this->DoKeyboardLine(keymap,editable_keymap,g_keyboard_line4,g_m128_line4);
-        this->DoKeyboardLine(keymap,editable_keymap,g_keyboard_line5,g_m128_line5);
-        this->DoKeyboardLine(keymap,editable_keymap,g_keyboard_line6,nullptr);
+        this->DoKeyboardLine(keymap,g_keyboard_line1,g_m128_line1);
+        this->DoKeyboardLine(keymap,g_keyboard_line2,g_m128_line2);
+        this->DoKeyboardLine(keymap,g_keyboard_line3,g_m128_line3);
+        this->DoKeyboardLine(keymap,g_keyboard_line4,g_m128_line4);
+        this->DoKeyboardLine(keymap,g_keyboard_line5,g_m128_line5);
+        this->DoKeyboardLine(keymap,g_keyboard_line6,nullptr);
     }
 
     return true;

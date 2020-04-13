@@ -48,15 +48,15 @@ public:
         this->Reset();
     }
 
-    explicit Keymap(std::string name,bool key_sym_map,const std::initializer_list<const Mapping *> &list):
-        Keymap(std::move(name),key_sym_map)
-    {
-        for(const Mapping *mappings:list) {
-            for(const Mapping *mapping=mappings;mapping->pc_key!=0;++mapping) {
-                this->SetMapping(mapping->pc_key,mapping->value,true);
-            }
-        }
-    }
+//    explicit Keymap(std::string name,bool key_sym_map,const std::initializer_list<const Mapping *> &list):
+//        Keymap(std::move(name),key_sym_map)
+//    {
+//        for(const Mapping *mappings:list) {
+//            for(const Mapping *mapping=mappings;mapping->pc_key!=0;++mapping) {
+//                this->SetMapping(mapping->pc_key,mapping->value,true);
+//            }
+//        }
+//    }
 
     virtual ~Keymap() {
     }

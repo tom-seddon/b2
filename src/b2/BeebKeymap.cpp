@@ -262,25 +262,8 @@ static const BeebKeymap::Mapping g_scancode_noncc[]={
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-const BeebKeymap DEFAULT_KEYMAP("Default",false,{g_scancode_common,g_scancode_noncc});
-const BeebKeymap DEFAULT_KEYMAP_CC("Default (caps/ctrl)",false,{g_scancode_common,g_scancode_cc});
-const BeebKeymap DEFAULT_KEYMAP_UK("Default UK",true,{g_keysym_common,g_keysym_uk});
-const BeebKeymap DEFAULT_KEYMAP_US("Default US",true,{g_keysym_common,g_keysym_us});
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 BeebKeymap::BeebKeymap(std::string name,bool key_sym_map):
-    BeebKeymap(std::move(name),key_sym_map,{})
-{
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-BeebKeymap::BeebKeymap(std::string name,bool key_sym_map,const std::initializer_list<const Mapping *> &list):
-    Keymap<BeebKeymapTraits>(std::move(name),key_sym_map,list),
-    m_prefer_shortcuts(key_sym_map)
+Keymap<BeebKeymapTraits>(std::move(name),key_sym_map)
 {
 }
 
@@ -300,3 +283,34 @@ void BeebKeymap::SetPreferShortcuts(bool prefer_shortcuts) {
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
+
+static BeebKeymap CreateDefaultBeebKeymap(const char *name,
+                                          bool is_key_sym_map,
+                                          const std::initializer_list<const BeebKeymap::Mapping *> &list)
+{
+    BeebKeymap keymap(name,is_key_sym_map);
+
+    for(const BeebKeymap::Mapping *mappings:list) {
+        for(const BeebKeymap::Mapping *mapping=mappings;mapping->pc_key!=0;++mapping) {
+            keymap.SetMapping(mapping->pc_key,mapping->value,true);
+        }
+    }
+
+    return keymap;
+}
+
+const BeebKeymap DEFAULT_KEYMAP=CreateDefaultBeebKeymap("Default",
+                                                        false,
+                                                        {g_scancode_common,g_scancode_noncc});
+
+const BeebKeymap DEFAULT_KEYMAP_CC=CreateDefaultBeebKeymap("Default (caps/ctrl)",
+                                                           false,
+                                                           {g_scancode_common,g_scancode_cc});
+
+const BeebKeymap DEFAULT_KEYMAP_UK=CreateDefaultBeebKeymap("Default UK",
+                                                           true,
+                                                           {g_keysym_common,g_keysym_uk});
+
+const BeebKeymap DEFAULT_KEYMAP_US=CreateDefaultBeebKeymap("Default US",
+                                                           true,
+                                                           {g_keysym_common,g_keysym_us});

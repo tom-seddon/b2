@@ -1228,17 +1228,9 @@ void BeebWindow::DoFileMenu() {
         ImGui::Separator();
 
         if(ImGui::BeginMenu("Keymap")) {
-            bool seen_first_custom=false;
-            BeebWindows::ForEachBeebKeymap([&](const BeebKeymap *keymap,BeebKeymap *editable_keymap) {
-                if(editable_keymap) {
-                    if(!seen_first_custom) {
-                        ImGui::Separator();
-                        seen_first_custom=true;
-                    }
-                }
-
-                if(ImGui::MenuItem(keymap->GetName().c_str(),
-                                   keymap->IsKeySymMap()?KEYMAP_KEYSYMS_KEYMAP_ICON:KEYMAP_SCANCODES_KEYMAP_ICON,
+            BeebWindows::ForEachBeebKeymap([&](BeebKeymap *keymap) {
+                if(ImGui::MenuItem(GetKeymapUIName(*keymap).c_str(),
+                                   nullptr,
                                    m_settings.keymap==keymap))
                 {
                     m_settings.keymap=keymap;
