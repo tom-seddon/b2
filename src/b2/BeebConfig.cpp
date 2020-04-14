@@ -16,12 +16,17 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static std::shared_ptr<BeebRomData> LoadROM(
-    const std::string &file_name,
-    Messages *msg)
-{
+static std::shared_ptr<BeebRomData> LoadROM(const BeebConfig::ROM &rom,Messages *msg) {
     std::vector<uint8_t> data;
-    if(!LoadFile(&data,file_name,msg)) {
+
+    std::string path;
+    if(rom.standard_rom) {
+        path=rom.standard_rom->GetAssetPath();
+    } else {
+        path=rom.file_name;
+    }
+
+    if(!LoadFile(&data,path,msg)) {
         return nullptr;
     }
 
@@ -30,7 +35,7 @@ static std::shared_ptr<BeebRomData> LoadROM(
             "ROM too large (%zu bytes; max: %zu bytes): %s\n",
             data.size(),
             ROM_SIZE,
-            file_name.c_str());
+            path.c_str());
         return nullptr;
     }
 
@@ -98,9 +103,9 @@ void InitDefaultBeebConfigs() {
         config.type=&BBC_MICRO_TYPE_B;
         config.disc_interface=di;
 
-        config.os_file_name="OS12.ROM";
-        config.roms[15].file_name="BASIC2.ROM";
-        config.roms[14].file_name=config.disc_interface->default_fs_rom;
+        config.os.standard_rom=&BEEB_ROM_OS12;
+        config.roms[15].standard_rom=&BEEB_ROM_BASIC2;
+        config.roms[14].standard_rom=FindBeebROM(config.disc_interface->fs_rom);
         config.roms[13].writeable=true;
 
         g_default_configs.push_back(std::move(config));
@@ -114,9 +119,9 @@ void InitDefaultBeebConfigs() {
         config.disc_interface=&DISC_INTERFACE_ACORN_1770;
 
         config.type=&BBC_MICRO_TYPE_B_PLUS;
-        config.os_file_name="B+MOS.rom";
-        config.roms[15].file_name="BASIC2.ROM";
-        config.roms[14].file_name=config.disc_interface->default_fs_rom;
+        config.os.standard_rom=&BEEB_ROM_BPLUS_MOS;
+        config.roms[15].standard_rom=&BEEB_ROM_BASIC2;
+        config.roms[14].standard_rom=FindBeebROM(config.disc_interface->fs_rom);
 
         g_default_configs.push_back(config);
 
@@ -130,42 +135,62 @@ void InitDefaultBeebConfigs() {
         g_default_configs.push_back(config);
     }
 
-    // Master 128
+    // Master 128 MOS 3.20
     {
         BeebConfig config;
 
-        for(std::string version:{"3.20","3.50"}) {
-            config.name="Master 128 (MOS "+version+")";
-            config.disc_interface=&DISC_INTERFACE_MASTER128;
+        config.name="Master 128 (MOS 3.20)";
+        config.disc_interface=&DISC_INTERFACE_MASTER128;
+        config.type=&BBC_MICRO_TYPE_MASTER;
+        config.os.standard_rom=FindBeebROM(StandardROM_MOS320_MOS);
+        config.roms[15].standard_rom=FindBeebROM(StandardROM_MOS320_TERMINAL);
+        config.roms[14].standard_rom=FindBeebROM(StandardROM_MOS320_VIEW);
+        config.roms[13].standard_rom=FindBeebROM(StandardROM_MOS320_ADFS);
+        config.roms[12].standard_rom=FindBeebROM(StandardROM_MOS320_BASIC4);
+        config.roms[11].standard_rom=FindBeebROM(StandardROM_MOS320_EDIT);
+        config.roms[10].standard_rom=FindBeebROM(StandardROM_MOS320_VIEWSHEET);
+        config.roms[9].standard_rom=FindBeebROM(StandardROM_MOS320_DFS);
+        config.roms[7].writeable=true;
+        config.roms[6].writeable=true;
+        config.roms[5].writeable=true;
+        config.roms[4].writeable=true;
 
-            config.type=&BBC_MICRO_TYPE_MASTER;
-            config.os_file_name=PathJoined("m128",version,"mos.rom");
-            config.roms[15].file_name=PathJoined("m128",version,"terminal.rom");
-            config.roms[14].file_name=PathJoined("m128",version,"view.rom");
-            config.roms[13].file_name=PathJoined("m128",version,"adfs.rom");
-            config.roms[12].file_name=PathJoined("m128",version,"basic4.rom");
-            config.roms[11].file_name=PathJoined("m128",version,"edit.rom");
-            config.roms[10].file_name=PathJoined("m128",version,"viewsht.rom");
-            config.roms[9].file_name=PathJoined("m128",version,"dfs.rom");
-            config.roms[7].writeable=true;
-            config.roms[6].writeable=true;
-            config.roms[5].writeable=true;
-            config.roms[4].writeable=true;
-
-            g_default_configs.push_back(config);
-        }
+        g_default_configs.push_back(config);
     }
 
-    for(BeebConfig &config:g_default_configs) {
-        ASSERT(!config.os_file_name.empty());
-        config.os_file_name=GetROMPath(config.os_file_name);
+    // Master 128 MOS 3.50
+    {
+        BeebConfig config;
 
-        for(size_t i=0;i<16;++i) {
-            if(!config.roms[i].file_name.empty()) {
-                config.roms[i].file_name=GetROMPath(config.roms[i].file_name);
-            }
-        }
+        config.name="Master 128 (MOS 3.50)";
+        config.disc_interface=&DISC_INTERFACE_MASTER128;
+        config.type=&BBC_MICRO_TYPE_MASTER;
+        config.os.standard_rom=FindBeebROM(StandardROM_MOS350_MOS);
+        config.roms[15].standard_rom=FindBeebROM(StandardROM_MOS350_TERMINAL);
+        config.roms[14].standard_rom=FindBeebROM(StandardROM_MOS350_VIEW);
+        config.roms[13].standard_rom=FindBeebROM(StandardROM_MOS350_ADFS);
+        config.roms[12].standard_rom=FindBeebROM(StandardROM_MOS350_BASIC4);
+        config.roms[11].standard_rom=FindBeebROM(StandardROM_MOS350_EDIT);
+        config.roms[10].standard_rom=FindBeebROM(StandardROM_MOS350_VIEWSHEET);
+        config.roms[9].standard_rom=FindBeebROM(StandardROM_MOS350_DFS);
+        config.roms[7].writeable=true;
+        config.roms[6].writeable=true;
+        config.roms[5].writeable=true;
+        config.roms[4].writeable=true;
+
+        g_default_configs.push_back(config);
     }
+
+//    for(BeebConfig &config:g_default_configs) {
+//        ASSERT(!config.os_file_name.empty());
+//        config.os_file_name=GetROMPath(config.os_file_name);
+//
+//        for(size_t i=0;i<16;++i) {
+//            if(!config.roms[i].file_name.empty()) {
+//                config.roms[i].file_name=GetROMPath(config.roms[i].file_name);
+//            }
+//        }
+//    }
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -223,14 +248,14 @@ bool BeebLoadedConfig::Load(
 {
     dest->config=src;
 
-    dest->os=LoadROM(dest->config.os_file_name,msg);
+    dest->os=LoadROM(dest->config.os,msg);
     if(!dest->os) {
         return false;
     }
 
     for(int i=0;i<16;++i) {
         if(!dest->config.roms[i].file_name.empty()) {
-            dest->roms[i]=LoadROM(dest->config.roms[i].file_name,msg);
+            dest->roms[i]=LoadROM(dest->config.roms[i],msg);
             if(!dest->roms[i]) {
                 return false;
             }

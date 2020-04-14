@@ -8,6 +8,7 @@ class BBCMicro;
 class DiscInterface;
 struct DiscInterfaceDef;
 
+#include "roms.h"
 #include <string>
 #include <functional>
 
@@ -67,13 +68,13 @@ private:
 
 struct DiscInterfaceDef {
     const std::string name;
-    const std::string default_fs_rom;
+    StandardROM fs_rom=StandardROM_None;
     std::function<DiscInterface *()> create_fun;
 
     // Quick bodge to indicate that the Challenger is known to use
     // page &FC, making it incompatible with the ExtRam. (Some better
     // mechanism for all of this is plausible... one day...)
-    bool uses_1MHz_bus;
+    bool uses_1MHz_bus=false;
 };
 
 //////////////////////////////////////////////////////////////////////////

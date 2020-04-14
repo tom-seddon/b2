@@ -1093,6 +1093,7 @@ static const char STOP_WRITE_ADDRESS[]="stop_write_address";
 static const char STOP_NUM_CYCLES[]="stop_num_cycles";
 static const char CYCLES_OUTPUT[]="cycles_output";
 static const char POWER_ON_TONE[]="power_on_tone";
+static const char STANDARD_ROM[]="standard_rom";
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -1407,12 +1408,81 @@ static bool LoadWindows(rapidjson::Value *windows,Messages *msg) {
     return true;
 }
 
+static bool LoadROM(rapidjson::Value *rom_json,
+                    BeebConfig::ROM *rom,
+                    bool *writeable,
+                    const std::string &json_path,
+                    Messages *msg)
+{
+    if(rom_json->IsNull()) {
+        rom->file_name.clear();
+        rom->standard_rom=nullptr;
+
+        if(writeable) {
+            *writeable=false;
+        }
+
+        return true;
+    } else if(rom_json->IsString()) {
+        // legacy format - as previously used for OS.
+        rom->file_name=rom_json->GetString();
+
+        // it might actually be a standard ROM, but...
+        rom->standard_rom=nullptr;
+
+        if(writeable) {
+            *writeable=false;
+        }
+
+        return true;
+    } else if(rom_json->IsObject()) {
+        rom->standard_rom=nullptr;
+        rom->file_name.clear();
+
+        StandardROM standard_rom;
+        if(FindEnumMember(&standard_rom,rom_json,STANDARD_ROM,"StandardROM",&GetStandardROMEnumName,msg)) {
+            rom->standard_rom=FindBeebROM(standard_rom);
+        } else if(FindStringMember(&rom->file_name,rom_json,FILE_NAME,msg)) {
+            // ...
+        }
+
+        if(writeable) {
+            FindBoolMember(writeable,rom_json,WRITEABLE,msg);
+        }
+
+        return true;
+    } else {
+        if(msg) {
+            msg->w.f("not object or null: %s\n",json_path.c_str());
+        }
+        return false;
+    }
+}
+
+static bool LoadROM(rapidjson::Value *rom_json,
+                    BeebConfig::SidewaysROM *rom,
+                    const std::string &json_path,
+                    Messages *msg)
+{
+    return LoadROM(rom_json,rom,&rom->writeable,json_path,msg);
+}
+
+static bool LoadROM(rapidjson::Value *rom_json,
+                    BeebConfig::ROM *rom,
+                    const std::string &json_path,
+                    Messages *msg)
+{
+    return LoadROM(rom_json,rom,nullptr,json_path,msg);
+}
+
 static bool LoadConfigs(rapidjson::Value *configs_json,Messages *msg) {
     for(rapidjson::SizeType config_idx=0;config_idx<configs_json->Size();++config_idx) {
         rapidjson::Value *config_json=&(*configs_json)[config_idx];
 
+        std::string json_path=strprintf("%s[%" PRIsizetype "]",CONFIGS,config_idx);
+
         if(!config_json->IsObject()) {
-            msg->e.f("not an object: %s[%" PRIsizetype "]\n",CONFIGS,config_idx);
+            msg->e.f("not an object: %s\n",json_path.c_str());
             continue;
         }
 
@@ -1422,7 +1492,16 @@ static bool LoadConfigs(rapidjson::Value *configs_json,Messages *msg) {
             continue;
         }
 
-        FindStringMember(&config.os_file_name,config_json,OS,msg);
+        rapidjson::Document::MemberIterator it=config_json->FindMember(OS);
+        if(it!=config_json->MemberEnd()) {
+            if(!LoadROM(&it->value,
+                        &config.os,
+                        strprintf("%s.%s",json_path.c_str(),OS).c_str(),
+                        msg))
+            {
+                return false;
+            }
+        }
 
         BBCMicroTypeID type_id;
         if(!FindEnumMember(&type_id,config_json,TYPE,"BBC Micro type",&GetBBCMicroTypeIDEnumName,msg)) {
@@ -1450,17 +1529,12 @@ static bool LoadConfigs(rapidjson::Value *configs_json,Messages *msg) {
             continue;
         }
 
-        for(rapidjson::SizeType i=0;i<16;++i) {
-            if(roms[i].IsNull()) {
-                // ignore...
-            } else if(roms[i].IsObject()) {
-                BeebConfig::ROM *rom=&config.roms[i];
-
-                FindBoolMember(&rom->writeable,&roms[i],WRITEABLE,nullptr);
-                FindStringMember(&rom->file_name,&roms[i],FILE_NAME,nullptr);
-            } else {
-                msg->e.f("not null or object: %s[%" PRIsizetype "].%s[%" PRIsizetype "]\n",
-                         CONFIGS,config_idx,ROMS,i);
+        for(rapidjson::SizeType rom_idx=0;rom_idx<16;++rom_idx) {
+            if(!LoadROM(&roms[rom_idx],
+                        &config.roms[rom_idx],
+                        strprintf("%s.%s[%" PRIsizetype "]",json_path.c_str(),ROMS,rom_idx),
+                        msg))
+            {
                 continue;
             }
         }
@@ -1787,6 +1861,42 @@ static void SaveShortcuts(JSONWriter<StringStream> *writer) {
     });
 }
 
+static void SaveROM(JSONWriter<StringStream> *writer,
+                    const BeebConfig::ROM &rom,
+                    const bool *writeable_)
+{
+    bool writeable=writeable_&&*writeable_;
+
+    if(!writeable&&!rom.standard_rom&&rom.file_name.empty()) {
+        writer->Null();
+    } else {
+        auto rom_json=ObjectWriter(writer);
+
+        if(writeable) {
+            writer->Key(WRITEABLE);
+            writer->Bool(true);
+        }
+
+        if(rom.standard_rom) {
+            writer->Key(STANDARD_ROM);
+            SaveEnum(writer,rom.standard_rom->rom,&GetStandardROMEnumName);
+        } else {
+            if(!rom.file_name.empty()) {
+                writer->Key(FILE_NAME);
+                writer->String(rom.file_name.c_str());
+            }
+        }
+    }
+}
+
+static void SaveROM(JSONWriter<StringStream> *writer,const BeebConfig::ROM &rom) {
+    SaveROM(writer,rom,nullptr);
+}
+
+static void SaveROM(JSONWriter<StringStream> *writer,const BeebConfig::SidewaysROM &rom) {
+    SaveROM(writer,rom,&rom.writeable);
+}
+
 static void SaveConfigs(JSONWriter<StringStream> *writer) {
     {
         auto configs_json=ArrayWriter(writer,CONFIGS);
@@ -1803,7 +1913,7 @@ static void SaveConfigs(JSONWriter<StringStream> *writer) {
             writer->String(config->name.c_str());
 
             writer->Key(OS);
-            writer->String(config->os_file_name.c_str());
+            SaveROM(writer,config->os);
 
             writer->Key(TYPE);
             SaveEnum(writer,config->type->type_id,&GetBBCMicroTypeIDEnumName);
@@ -1819,23 +1929,7 @@ static void SaveConfigs(JSONWriter<StringStream> *writer) {
                 auto roms_json=ArrayWriter(writer,ROMS);
 
                 for(size_t j=0;j<16;++j) {
-                    const BeebConfig::ROM *rom=&config->roms[j];
-
-                    if(!rom->writeable&&rom->file_name.empty()) {
-                        writer->Null();
-                    } else {
-                        auto rom_json=ObjectWriter(writer);
-
-                        if(rom->writeable) {
-                            writer->Key(WRITEABLE);
-                            writer->Bool(rom->writeable);
-                        }
-
-                        if(!rom->file_name.empty()) {
-                            writer->Key(FILE_NAME);
-                            writer->String(rom->file_name.c_str());
-                        }
-                    }
+                    SaveROM(writer,config->roms[j]);
                 }
             }
 

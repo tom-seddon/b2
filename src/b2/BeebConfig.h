@@ -8,18 +8,12 @@
 #include <memory>
 #include <array>
 #include <vector>
+#include "roms.h"
 
 class BBCMicro;
 class Messages;
 struct DiscInterfaceDef;
 struct BBCMicroType;
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-static const size_t ROM_SIZE=16384;
-
-typedef std::array<uint8_t,ROM_SIZE> BeebRomData;
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -30,15 +24,19 @@ typedef std::array<uint8_t,ROM_SIZE> BeebRomData;
 class BeebConfig {
 public:
     struct ROM {
+        const BeebROM *standard_rom=nullptr;
         std::string file_name;
+    };
+
+    struct SidewaysROM:ROM {
         bool writeable=false;
     };
 
     std::string name;
 
     const BBCMicroType *type=nullptr;
-    std::string os_file_name;
-    ROM roms[16];
+    ROM os;
+    SidewaysROM roms[16];
     uint8_t keyboard_links=0;
     const DiscInterfaceDef *disc_interface=nullptr;
     bool video_nula=true;

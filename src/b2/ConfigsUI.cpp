@@ -30,8 +30,8 @@ protected:
 private:
     bool m_edited=false;
 
-    void DoROMInfoGui(const char *caption,const std::string &file_name,const bool *writeable);
-    bool DoROMEditGui(const char *caption,std::string *file_name,bool *writeable);
+    void DoROMInfoGui(const char *caption,const BeebConfig::ROM &rom,const bool *writeable);
+    bool DoROMEditGui(const char *caption,BeebConfig::ROM *rom,bool *writeable);
 
     bool DoEditConfigGui(const BeebConfig *config,BeebConfig *editable_config);
 
@@ -125,32 +125,38 @@ void ConfigsUI::DoImGui() {
             ImGui::Separator();
 
             if(editable_config) {
-                if(this->DoROMEditGui("OS",&editable_config->os_file_name,nullptr)) {
+                if(this->DoROMEditGui("OS",&editable_config->os,nullptr)) {
                     edited=true;
                 }
             } else {
-                this->DoROMInfoGui("OS",config->os_file_name,nullptr);
+                this->DoROMInfoGui("OS",config->os,nullptr);
             }
 
             uint16_t occupied=0;
 
             for(uint8_t i=0;i<16;++i) {
                 uint8_t bank=15-i;
-                const BeebConfig::ROM *rom=&config->roms[bank];
+                const BeebConfig::SidewaysROM *rom=&config->roms[bank];
 
-                if(!rom->file_name.empty()||rom->writeable) {
+                //if(!rom->file_name.empty()||rom->standard_rom||rom->writeable)
+                {
                     ImGuiIDPusher bank_id_pusher(bank);
 
                     ImGui::Separator();
 
                     if(editable_config) {
-                        BeebConfig::ROM *editable_rom=&editable_config->roms[bank];
+                        BeebConfig::SidewaysROM *editable_rom=&editable_config->roms[bank];
 
-                        if(this->DoROMEditGui(CAPTIONS[bank],&editable_rom->file_name,&editable_rom->writeable)) {
+                        if(this->DoROMEditGui(CAPTIONS[bank],
+                                              editable_rom,
+                                              &editable_rom->writeable))
+                        {
                             edited=true;
                         }
                     } else {
-                        this->DoROMInfoGui(CAPTIONS[bank],rom->file_name,&rom->writeable);
+                        this->DoROMInfoGui(CAPTIONS[bank],
+                                           *rom,
+                                           &rom->writeable);
                     }
 
                     occupied|=1<<bank;
@@ -245,7 +251,10 @@ bool ConfigsUI::OnClose() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void ConfigsUI::DoROMInfoGui(const char *caption,const std::string &file_name,const bool *writeable) {
+void ConfigsUI::DoROMInfoGui(const char *caption,
+                             const BeebConfig::ROM &rom,
+                             const bool *writeable)
+{
     ImGuiIDPusher id_pusher(caption);
 
     ImGui::AlignTextToFramePadding();
@@ -261,7 +270,11 @@ void ConfigsUI::DoROMInfoGui(const char *caption,const std::string &file_name,co
 
     ImGui::NextColumn();
 
-    ImGui::TextUnformatted(file_name.c_str());
+    if(rom.standard_rom) {
+        ImGui::Text("*%s*",rom.standard_rom->name.c_str());
+    } else {
+        ImGui::TextUnformatted(rom.file_name.c_str());
+    }
 
     ImGui::NextColumn();
 }
@@ -269,7 +282,57 @@ void ConfigsUI::DoROMInfoGui(const char *caption,const std::string &file_name,co
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool ConfigsUI::DoROMEditGui(const char *caption,std::string *file_name,bool *writeable) {
+static const char ROM_POPUP[]="rom_popup";
+
+static bool ImGuiROM(BeebConfig::ROM *rom,const BeebROM *beeb_rom) {
+    if(ImGui::MenuItem(beeb_rom->name.c_str())) {
+        rom->file_name.clear();
+        rom->standard_rom=beeb_rom;
+        return true;
+    } else {
+        return false;
+    }
+}
+
+static bool ImGuiMasterROMs(BeebConfig::ROM *rom,const BeebROM *master_roms) {
+    for(size_t i=0;i<8;++i) {
+        if(ImGuiROM(rom,&master_roms[7-i])) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+static const BeebROM *const B_ROMS[]={
+    &BEEB_ROM_OS12,
+    &BEEB_ROM_BASIC2,
+    &BEEB_ROM_ACORN_DFS,
+    &BEEB_ROM_WATFORD_DDFS_DDB2,
+    &BEEB_ROM_WATFORD_DDFS_DDB3,
+    &BEEB_ROM_OPUS_DDOS,
+    &BEEB_ROM_OPUS_CHALLENGER,
+    nullptr,
+};
+
+static const BeebROM *const BPLUS_ROMS[]={
+    &BEEB_ROM_BPLUS_MOS,
+    &BEEB_ROM_BASIC2,
+    &BEEB_ROM_ACORN_DFS,
+    nullptr,
+};
+
+static bool ImGuiBROMs(BeebConfig::ROM *rom,const BeebROM *const *b_roms) {
+    for(size_t i=0;b_roms[i];++i) {
+        if(ImGuiROM(rom,b_roms[i])) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+bool ConfigsUI::DoROMEditGui(const char *caption,BeebConfig::ROM *rom,bool *writeable) {
     bool edited=false;
 
     ImGuiIDPusher id_pusher(caption);
@@ -289,17 +352,63 @@ bool ConfigsUI::DoROMEditGui(const char *caption,std::string *file_name,bool *wr
 
     ImGui::NextColumn();
 
-    if(ImGuiInputText(file_name,"##name",*file_name)) {
-        edited=true;
-    }
-
-    ImGui::SameLine();
-    if(ImGui::Button("...")) {
-        if(this->DoFileSelect(file_name)) {
+    if(rom->standard_rom) {
+        ImGui::Text("*%s",rom->standard_rom->name.c_str());
+    } else {
+        if(ImGuiInputText(&rom->file_name,"##name",rom->file_name)) {
             edited=true;
         }
     }
 
+    ImGui::SameLine();
+    if(ImGui::Button("...")) {
+        ImGui::OpenPopup(ROM_POPUP);
+    }
+
+    if(ImGui::BeginPopup(ROM_POPUP)) {
+        if(ImGui::MenuItem("File...")) {
+            if(this->DoFileSelect(&rom->file_name)) {
+                rom->standard_rom=nullptr;
+                edited=true;
+            }
+        }
+
+        if(ImGui::BeginMenu("B ROMs")) {
+            if(ImGuiBROMs(rom,B_ROMS)) {
+                edited=true;
+            }
+            ImGui::EndMenu();
+        }
+
+        if(ImGui::BeginMenu("B+ ROMs")) {
+            if(ImGuiBROMs(rom,BPLUS_ROMS)) {
+                edited=true;
+            }
+            ImGui::EndMenu();
+        }
+
+        if(ImGui::BeginMenu("MOS 3.20 ROMs")) {
+            if(ImGuiMasterROMs(rom,BEEB_ROMS_MOS320)) {
+                edited=true;
+            }
+            ImGui::EndMenu();
+        }
+
+        if(ImGui::BeginMenu("MOS 3.50 ROMs")) {
+            if(ImGuiMasterROMs(rom,BEEB_ROMS_MOS350)) {
+                edited=true;
+            }
+            ImGui::EndMenu();
+        }
+
+        ImGui::EndPopup();
+    }
+//)
+//        if(this->DoFileSelect(file_name)) {
+//            edited=true;
+//        }
+//    }
+//
     ImGui::NextColumn();
 
     return edited;
