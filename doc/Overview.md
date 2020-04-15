@@ -144,40 +144,43 @@ the setting for the `Edit` > `Prioritize command keys` option (see
 above) when the keymaps is first selected. (You can use the menu item
 to change it afterwards.)
 
-## Customize configurations
+## Customize configs
 
-`Tools` > `Configurations` lets you customize the configurations list.
+The default configs include several types of BBC B (with different
+disk interfaces), B+, B+128, Master 128 with MOS 3.20 and Master 128
+with MOS 3.50. `Tools` > `Configs` lets you edit this list and choose
+what each config includes - ROMs, sideways RAM status, and extra
+hardware.
 
-To create a new config, use the `Copy` button to copy an existing one
-that has the disc interface you want. You can give it a name.
+Click the `...` button next to a sideways ROM slot/OS ROM to select
+the ROM image. You can load a file off disk, or choose one of the
+various standard ROMs that are supplied with the emulator.
 
-Click the `...` button next to each ROM slot to load the ROM image for
-that slot.
+Tick the box in the RAM column to make that sideways slot writeable.
 
-Check the box in the RAM column to make that sideways slot writeable.
+There are two items of optional hardware:
 
-To add a new ROM slot, use one of the `Add ROM` buttons and select a
-file.
+- Check the `External memory` box to add a 16MByte paged RAM 1MHz bus
+  device. Paging registers are at &FC00 (LSB) and &FC01 (MSB), and the
+  corresponding page of the memory appears in page &FD.
+  
+  (The external RAM can't be enabled in conjunction with the Opus
+  Challenger disc interface, as both devices use page &FD.)
+  
+- Tick the `BeebLink` box to add an emulated
+  [BeebLink](https://github.com/tom-seddon/beeblink) widget to the
+  emulated user port. For more details, see the
+  [BeebLink notes](./BeebLink.md).
 
-To add a new sideways RAM slot, use one of the `Add RAM` buttons.
-Sideways RAM slots are by default empty but you can use the `...`
-button to load a ROM image on startup.
+Changes to a configuration don't affect the running Beeb until you do
+a `File` > `Hard Reset`, `File` > `Configuration`, or click that
+configuration's `Use` button (which is equivalent to selecting that
+configuration and doing a hard reset).
 
-### External memory
-
-Check the `External memory` box to add a 16MByte paged RAM 1MHz bus
-device. Paging registers are at &FC00 (LSB) and &FC01 (MSB), and the
-corresponding page of the memory appears in page &FD.
-
-(The external RAM can't be enabled in conjunction with the Opus
-Challenger disc interface, as both devices use page &FD.)
-
-### BeebLink
-
-Tick the `BeebLink` box to add an emulated
-[BeebLink](https://github.com/tom-seddon/beeblink) widget to the
-emulated user port. For more details, see the
-[BeebLink notes](./BeebLink.md).
+To create a new configuration, click the `New` button, and select
+which configuration to copy the new one from. (The default
+configurations are always included in this list, so you can get them
+back even if you delete them.)
 
 ## Non-volatile RAM
 
@@ -187,9 +190,9 @@ non-volatile RAM state to the config file, so it'll be restored on the
 next run.
 
 Use `Tools` > `Reset default NVRAM` to reset to default settings.
-(This may be preferable to using the MOS's reset functionality, should
-it be needed, because these default settings aren't completely
-useless...)
+(This may be preferable to using MOS 3.20's reset functionality,
+should it be needed, because the MOS resets the CMOS to fairly useless
+values.)
 
 The saved contents will also be restored on the next `File` > `Hard
 reset`, or when using `File` > `Change config' to change to a Master

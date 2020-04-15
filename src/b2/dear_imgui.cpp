@@ -1321,3 +1321,43 @@ uint32_t ImGuiConsumePressedKeycode() {
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
+
+bool ImGuiRecentMenu(std::string *selected_path,
+                     const char *title,
+                     const SelectorDialog &selector)
+{
+    RecentPaths *rp=selector.GetRecentPaths();
+
+    size_t num_rp=rp->GetNumPaths();
+    bool selected=false;
+
+    if(ImGui::BeginMenu(title,num_rp>0)) {
+        for(size_t i=0;i<num_rp;++i) {
+            const std::string &path=rp->GetPathByIndex(i);
+            if(ImGui::MenuItem(path.c_str())) {
+                *selected_path=path;
+                selected=true;
+            }
+        }
+
+        ImGui::Separator();
+
+        if(ImGui::BeginMenu("Remove item")) {
+            size_t i=0;
+
+            while(i<rp->GetNumPaths()) {
+                if(ImGui::MenuItem(rp->GetPathByIndex(i).c_str())) {
+                    rp->RemovePathByIndex(i);
+                } else {
+                    ++i;
+                }
+            }
+            
+            ImGui::EndMenu();
+        }
+
+        ImGui::EndMenu();
+    }
+
+    return selected;
+}

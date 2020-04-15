@@ -28,7 +28,9 @@ public:
         std::string file_name;
     };
 
-    struct SidewaysROM:ROM {
+    struct SidewaysROM:
+    public ROM
+    {
         bool writeable=false;
     };
 

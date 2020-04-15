@@ -58,6 +58,9 @@ struct BeebWindowTextureDataVersion {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+// The config name isn't part of this, because then there'd be two copies
+// of the initial config name in BeebWindowInitArguments. Something needs
+// fixing...
 struct BeebWindowSettings {
     uint64_t popups=0;
 
@@ -241,6 +244,10 @@ public:
 #endif
 
     SettingsUI *GetPopupByType(BeebWindowPopupType type) const;
+
+    bool HardReset(const BeebConfig &config);
+
+    const std::string &GetConfigName() const;
 protected:
 private:
     struct SettingsUIMetadata;

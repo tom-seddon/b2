@@ -916,17 +916,32 @@ static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &init
         }
 
         BeebLoadedConfig initial_loaded_config;
-        if(!options.config_name.empty()) {
-            if(!BeebWindows::LoadConfigByName(&initial_loaded_config,options.config_name,&init_messages)) {
-                return false;
-            }
-        } else {
-            if(!BeebWindows::LoadConfigByName(&initial_loaded_config,BeebWindows::GetDefaultConfigName(),&init_messages)) {
-                // Don't give up straight away - try to load one of the stock configs.
-                if(!BeebLoadedConfig::Load(&initial_loaded_config,*GetDefaultBeebConfigByIndex(0),&init_messages)) {
-                    // ugh, OK.
-                    return false;
+        {
+            bool got_initial_loaded_config=false;
+
+            if(!options.config_name.empty()) {
+                if(BeebWindows::LoadConfigByName(&initial_loaded_config,options.config_name,&init_messages)) {
+                    got_initial_loaded_config=true;
                 }
+            }
+
+            if(!got_initial_loaded_config) {
+                if(!BeebWindows::default_config_name.empty()) {
+                    if(BeebWindows::LoadConfigByName(&initial_loaded_config,BeebWindows::default_config_name,&init_messages)) {
+                        got_initial_loaded_config=true;
+                    }
+                }
+            }
+
+            if(!got_initial_loaded_config) {
+                if(BeebLoadedConfig::Load(&initial_loaded_config,*GetDefaultBeebConfigByIndex(0),&init_messages)) {
+                    got_initial_loaded_config=true;
+                }
+            }
+
+            if(!got_initial_loaded_config) {
+                // Ugh, ok.
+                return false;
             }
         }
 

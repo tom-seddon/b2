@@ -49,6 +49,7 @@ struct SDL_Texture;
 struct SDL_Renderer;
 struct SDL_Cursor;
 class Messages;
+class SelectorDialog;
 
 #if !BUILD_TYPE_Final
 #define STORE_DRAWLISTS 1
@@ -393,6 +394,19 @@ void ImGuiPlotHistogram(const char* label,
 
 // The non-modifier key returned will be marked as no longer pressed.
 uint32_t ImGuiConsumePressedKeycode();
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+// Shows a recent files menu, using the recent paths list for the given
+// file selector dialog.
+//
+// If one is selected, overwrite *SELECTED_PATH with that path and return true.
+//
+// If none selected, return false.
+bool ImGuiRecentMenu(std::string *selected_path,
+                     const char *title,
+                     const SelectorDialog &selector);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

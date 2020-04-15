@@ -8,6 +8,7 @@
 #include "SettingsUI.h"
 #include "commands.h"
 #include <beeb/DiscInterface.h>
+#include "BeebWindow.h"
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -21,27 +22,31 @@ class ConfigsUI:
     public SettingsUI
 {
 public:
-    ConfigsUI();
+    explicit ConfigsUI(BeebWindow *window);
 
     void DoImGui() override;
 
     bool OnClose() override;
 protected:
 private:
+    BeebWindow *m_beeb_window=nullptr;
     bool m_edited=false;
+    OpenFileDialog m_ofd;
 
     void DoROMInfoGui(const char *caption,const BeebConfig::ROM &rom,const bool *writeable);
     bool DoROMEditGui(const char *caption,BeebConfig::ROM *rom,bool *writeable);
 
     bool DoEditConfigGui(const BeebConfig *config,BeebConfig *editable_config);
-
-    bool DoFileSelect(std::string *file_name);
 };
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-ConfigsUI::ConfigsUI() {
+ConfigsUI::ConfigsUI(BeebWindow *beeb_window):
+m_beeb_window(beeb_window),
+m_ofd(RECENT_PATHS_ROMS)
+{
+    m_ofd.AddAllFilesFilter();
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -50,61 +55,54 @@ ConfigsUI::ConfigsUI() {
 static const char *const CAPTIONS[16]={"0","1","2","3","4","5","6","7","8","9","A","B","C","D","E","F"};
 
 void ConfigsUI::DoImGui() {
-    const BeebConfig *copy_config=nullptr;
-    BeebConfig *delete_config=nullptr;
+    const std::string &config_name=m_beeb_window->GetConfigName();
 
-    BeebWindows::ForEachConfig([&](const BeebConfig *config,BeebConfig *editable_config) {
-        // set to true if *editable_config was edited - as well as
+    for(size_t config_idx=0;config_idx<BeebWindows::GetNumConfigs();++config_idx) {
+        BeebConfig *config=BeebWindows::GetConfigByIndex(config_idx);
+
+        // set to true if *config was edited - as well as
         // dirtying the corresponding loaded config, this will set
         // m_edited.
         bool edited=false;
-        bool is_default=config->name==BeebWindows::GetDefaultConfigName();
 
         const ImGuiStyle &style=ImGui::GetStyle();
 
         ImGuiIDPusher config_id_pusher(config);
 
         std::string title=config->name;
-        if(!editable_config) {
-            title+=" (not editable)";
+
+        ImGuiTreeNodeFlags flags=0;
+        if(config->name==config_name) {
+            flags=ImGuiTreeNodeFlags_DefaultOpen;
         }
 
-        if(is_default) {
-            title+=" (default)";
-        }
-
-        if(ImGui::CollapsingHeader(title.c_str(),ImGuiTreeNodeFlags_DefaultOpen)) {
-            if(editable_config) {
-                std::string name;
-                if(ImGuiInputText(&editable_config->name,"Name",editable_config->name)) {
-                    edited=true;
-                }
+        if(ImGui::CollapsingHeader(title.c_str(),flags)) {
+            std::string name;
+            if(ImGuiInputText(&config->name,"Name",config->name)) {
+                edited=true;
             }
 
-            if(ImGui::Button("Copy")) {
-                if(!copy_config) {
-                    copy_config=config;
-                }
+            //            if(ImGui::Button("Copy")) {
+            //                if(!copy_config) {
+            //                    copy_config=config;
+            //                }
+            //            }
+
+            ImGui::SameLine();
+
+            if(ImGuiConfirmButton("Delete")) {
+                BeebWindows::RemoveConfigByIndex(config_idx);
+                break;
             }
 
-            if(editable_config) {
-                ImGui::SameLine();
-
-                if(ImGui::Button("Delete")) {
-                    if(!delete_config) {
-                        delete_config=editable_config;
-                    }
-                }
-            }
-
-            if(!is_default) {
-                ImGui::SameLine();
-
-                if(ImGui::Button("Set as default")) {
-                    BeebWindows::SetDefaultConfig(config->name);
-                    m_edited=true;
-                }
-            }
+            //            if(!is_default) {
+            //                ImGui::SameLine();
+            //
+            //                if(ImGui::Button("Set as default")) {
+            //                    BeebWindows::SetDefaultConfig(config->name);
+            //                    m_edited=true;
+            //                }
+            //            }
 
             ImGui::Columns(3,"rom_edit",true);
 
@@ -118,45 +116,33 @@ void ConfigsUI::DoImGui() {
 
             ImGui::NextColumn();
 
-            ImGui::Text("File");
+            ImGui::Text("Contents");
 
             ImGui::NextColumn();
 
             ImGui::Separator();
 
-            if(editable_config) {
-                if(this->DoROMEditGui("OS",&editable_config->os,nullptr)) {
-                    edited=true;
-                }
-            } else {
-                this->DoROMInfoGui("OS",config->os,nullptr);
+            if(this->DoROMEditGui("OS",&config->os,nullptr)) {
+                edited=true;
             }
 
             uint16_t occupied=0;
 
             for(uint8_t i=0;i<16;++i) {
                 uint8_t bank=15-i;
-                const BeebConfig::SidewaysROM *rom=&config->roms[bank];
 
-                //if(!rom->file_name.empty()||rom->standard_rom||rom->writeable)
                 {
                     ImGuiIDPusher bank_id_pusher(bank);
 
                     ImGui::Separator();
 
-                    if(editable_config) {
-                        BeebConfig::SidewaysROM *editable_rom=&editable_config->roms[bank];
+                    BeebConfig::SidewaysROM *editable_rom=&config->roms[bank];
 
-                        if(this->DoROMEditGui(CAPTIONS[bank],
-                                              editable_rom,
-                                              &editable_rom->writeable))
-                        {
-                            edited=true;
-                        }
-                    } else {
-                        this->DoROMInfoGui(CAPTIONS[bank],
-                                           *rom,
-                                           &rom->writeable);
+                    if(this->DoROMEditGui(CAPTIONS[bank],
+                                          editable_rom,
+                                          &editable_rom->writeable))
+                    {
+                        edited=true;
                     }
 
                     occupied|=1<<bank;
@@ -170,74 +156,21 @@ void ConfigsUI::DoImGui() {
 
             ImGui::Columns(1);
 
-            if(editable_config) {
-                if(!editable_config->disc_interface->uses_1MHz_bus) {
-                    if(ImGui::Checkbox("External memory",&editable_config->ext_mem)) {
-                        edited=true;
-                    }
-                }
-
-                if(ImGui::Checkbox("BeebLink",&editable_config->beeblink)) {
+            if(!config->disc_interface->uses_1MHz_bus) {
+                if(ImGui::Checkbox("External memory",&config->ext_mem)) {
                     edited=true;
                 }
+            }
 
-                if(occupied!=0xffff) {
-                    {
-                        ImGuiIDPusher ram_id_pusher("ram");
-
-                        ImGui::TextUnformatted("Add RAM:");
-
-                        for(uint8_t i=0;i<16;++i) {
-                            uint8_t bank=15-i;
-                            if(!(occupied&1<<bank)) {
-                                ImGui::SameLine();
-
-                                if(ImGui::Button(CAPTIONS[bank])) {
-                                    editable_config->roms[bank].writeable=true;
-                                    edited=true;
-                                }
-                            }
-                        }
-                    }
-
-                    {
-                        ImGuiIDPusher rom_id_pusher("rom");
-
-                        ImGui::TextUnformatted("Add ROM:");
-
-                        for(uint8_t i=0;i<16;++i) {
-                            uint8_t bank=15-i;
-                            if(!(occupied&1<<bank)) {
-                                ImGui::SameLine();
-
-                                if(ImGui::Button(CAPTIONS[bank])) {
-                                    if(this->DoFileSelect(&editable_config->roms[bank].file_name)) {
-                                        edited=true;
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
+            if(ImGui::Checkbox("BeebLink",&config->beeblink)) {
+                edited=true;
             }
         }
 
         if(edited) {
-            BeebWindows::ConfigDidChange(editable_config->name);
+            BeebWindows::ConfigDidChange(config_idx);
             m_edited=true;
         }
-
-        return true;
-    });
-
-    // If somebody somehow manages to click both in one update, copy
-    // takes priority.
-    if(copy_config) {
-        BeebWindows::AddConfig(*copy_config);
-        m_edited=true;
-    } else if(delete_config) {
-        BeebWindows::RemoveConfigByName(delete_config->name);
-        m_edited=true;
     }
 }
 
@@ -352,25 +285,40 @@ bool ConfigsUI::DoROMEditGui(const char *caption,BeebConfig::ROM *rom,bool *writ
 
     ImGui::NextColumn();
 
+    if(ImGui::Button("...")) {
+        ImGui::OpenPopup(ROM_POPUP);
+    }
+
+    ImGui::SameLine();
+
     if(rom->standard_rom) {
-        ImGui::Text("*%s",rom->standard_rom->name.c_str());
+        ImGui::TextUnformatted(rom->standard_rom->name.c_str());
     } else {
         if(ImGuiInputText(&rom->file_name,"##name",rom->file_name)) {
             edited=true;
         }
     }
 
-    ImGui::SameLine();
-    if(ImGui::Button("...")) {
-        ImGui::OpenPopup(ROM_POPUP);
-    }
-
     if(ImGui::BeginPopup(ROM_POPUP)) {
         if(ImGui::MenuItem("File...")) {
-            if(this->DoFileSelect(&rom->file_name)) {
+            if(m_ofd.Open(&rom->file_name)) {
                 rom->standard_rom=nullptr;
                 edited=true;
+                m_ofd.AddLastPathToRecentPaths();
             }
+        }
+
+        if(ImGuiRecentMenu(&rom->file_name,"Recent file",m_ofd)) {
+            rom->standard_rom=nullptr;
+            edited=true;
+        }
+
+        ImGui::Separator();
+
+        if(ImGui::MenuItem("(empty)")) {
+            rom->standard_rom=nullptr;
+            rom->file_name.clear();
+            edited=true;
         }
 
         if(ImGui::BeginMenu("B ROMs")) {
@@ -403,12 +351,7 @@ bool ConfigsUI::DoROMEditGui(const char *caption,BeebConfig::ROM *rom,bool *writ
 
         ImGui::EndPopup();
     }
-//)
-//        if(this->DoFileSelect(file_name)) {
-//            edited=true;
-//        }
-//    }
-//
+
     ImGui::NextColumn();
 
     return edited;
@@ -417,26 +360,8 @@ bool ConfigsUI::DoROMEditGui(const char *caption,BeebConfig::ROM *rom,bool *writ
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool ConfigsUI::DoFileSelect(std::string *file_name) {
-    OpenFileDialog fd(RECENT_PATHS_ROMS);
-
-    fd.AddAllFilesFilter();
-
-    if(!fd.Open(file_name)) {
-        return false;
-    }
-
-    fd.AddLastPathToRecentPaths();
-    return true;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 std::unique_ptr<SettingsUI> CreateConfigsUI(BeebWindow *beeb_window) {
-    (void)beeb_window;
-
-    return std::make_unique<ConfigsUI>();
+    return std::make_unique<ConfigsUI>(beeb_window);
 }
 
 //////////////////////////////////////////////////////////////////////////

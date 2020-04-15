@@ -1053,14 +1053,14 @@ static const char OLD_KEYMAPS[]="keymaps";
 static const char NEW_KEYMAPS[]="new_keymaps";
 static const char KEYS[]="keys";
 static const char PLACEMENT[]="window_placement";
-static const char CONFIGS[]="configs";
+static const char OLD_CONFIGS[]="configs";
+static const char NEW_CONFIGS[]="new_configs";
 static const char OS[]="os";
 static const char TYPE[]="type";
 static const char ROMS[]="roms";
 static const char WRITEABLE[]="writeable";
 static const char FILE_NAME[]="file_name";
 static const char NAME[]="name";
-static const char DEFAULT_CONFIG[]="default_config";
 static const char DISC_INTERFACE[]="disc_interface";
 static const char TRACE[]="trace";
 static const char FLAGS[]="flags";
@@ -1094,6 +1094,7 @@ static const char STOP_NUM_CYCLES[]="stop_num_cycles";
 static const char CYCLES_OUTPUT[]="cycles_output";
 static const char POWER_ON_TONE[]="power_on_tone";
 static const char STANDARD_ROM[]="standard_rom";
+static const char CONFIG[]="config";
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -1390,6 +1391,7 @@ static bool LoadWindows(rapidjson::Value *windows,Messages *msg) {
     FindBoolMember(&BeebWindows::defaults.display_auto_scale,windows,AUTO_SCALE,nullptr);
     FindFloatMember(&BeebWindows::defaults.display_manual_scale,windows,MANUAL_SCALE,nullptr);
     FindBoolMember(&BeebWindows::defaults.power_on_tone,windows,POWER_ON_TONE,nullptr);
+    FindStringMember(&BeebWindows::default_config_name,windows,CONFIG,nullptr);
 
     {
         std::string keymap_name;
@@ -1475,11 +1477,11 @@ static bool LoadROM(rapidjson::Value *rom_json,
     return LoadROM(rom_json,rom,nullptr,json_path,msg);
 }
 
-static bool LoadConfigs(rapidjson::Value *configs_json,Messages *msg) {
+static bool LoadConfigs(rapidjson::Value *configs_json,const char *configs_path,Messages *msg) {
     for(rapidjson::SizeType config_idx=0;config_idx<configs_json->Size();++config_idx) {
         rapidjson::Value *config_json=&(*configs_json)[config_idx];
 
-        std::string json_path=strprintf("%s[%" PRIsizetype "]",CONFIGS,config_idx);
+        std::string json_path=strprintf("%s[%" PRIsizetype "]",configs_path,config_idx);
 
         if(!config_json->IsObject()) {
             msg->e.f("not an object: %s\n",json_path.c_str());
@@ -1525,7 +1527,7 @@ static bool LoadConfigs(rapidjson::Value *configs_json,Messages *msg) {
 
         if(roms.Size()!=16) {
             msg->e.f("not an array with 16 entries: %s[%" PRIsizetype "].%s\n",
-                     CONFIGS,config_idx,ROMS);
+                     configs_path,config_idx,ROMS);
             continue;
         }
 
@@ -1686,10 +1688,21 @@ bool LoadGlobalConfig(Messages *msg) {
     }
 
     rapidjson::Value configs;
-    if(FindArrayMember(&configs,doc.get(),CONFIGS,msg)) {
+    if(FindArrayMember(&configs,doc.get(),OLD_CONFIGS,msg)) {
         LOGF(LOADSAVE,"Loading configs.\n");
 
-        if(!LoadConfigs(&configs,msg)) {
+        for(size_t i=0;i<GetNumDefaultBeebConfigs();++i) {
+            const BeebConfig *config=GetDefaultBeebConfigByIndex(i);
+            BeebWindows::AddConfig(*config);
+        }
+
+        if(!LoadConfigs(&configs,OLD_CONFIGS,msg)) {
+            return false;
+        }
+    } else if(FindArrayMember(&configs,doc.get(),NEW_CONFIGS,msg)) {
+        LOGF(LOADSAVE,"Loading configs.\n");
+
+        if(!LoadConfigs(&configs,NEW_CONFIGS,msg)) {
             return false;
         }
     }
@@ -1728,12 +1741,6 @@ bool LoadGlobalConfig(Messages *msg) {
         if(!LoadGlobals(&globals,msg)) {
             return false;
         }
-    }
-
-    // this must be done after loading the configs.
-    rapidjson::Value default_config;
-    if(FindStringMember(&default_config,doc.get(),DEFAULT_CONFIG,msg)) {
-        BeebWindows::SetDefaultConfig(default_config.GetString());
     }
 
     // don't bother with error checking for this... not really worth
@@ -1899,13 +1906,10 @@ static void SaveROM(JSONWriter<StringStream> *writer,const BeebConfig::SidewaysR
 
 static void SaveConfigs(JSONWriter<StringStream> *writer) {
     {
-        auto configs_json=ArrayWriter(writer,CONFIGS);
+        auto configs_json=ArrayWriter(writer,NEW_CONFIGS);
 
-        BeebWindows::ForEachConfig([&](const BeebConfig *config,BeebConfig *editable_config) {
-            if(!editable_config) {
-                // don't serialize stock configs.
-                return true;
-            }
+        for(size_t config_idx=0;config_idx<BeebWindows::GetNumConfigs();++config_idx) {
+            BeebConfig *config=BeebWindows::GetConfigByIndex(config_idx);
 
             auto config_json=ObjectWriter(writer);
 
@@ -1938,13 +1942,8 @@ static void SaveConfigs(JSONWriter<StringStream> *writer) {
 
             writer->Key(BEEBLINK);
             writer->Bool(config->beeblink);
-
-            return true;
-        });
+        }
     }
-
-    writer->Key(DEFAULT_CONFIG);
-    writer->String(BeebWindows::GetDefaultConfigName().c_str());
 }
 
 static void SaveNVRAM(JSONWriter<StringStream> *writer) {
@@ -2006,6 +2005,11 @@ static void SaveWindows(JSONWriter<StringStream> *writer) {
 
         writer->Key(POWER_ON_TONE);
         writer->Bool(BeebWindows::defaults.power_on_tone);
+
+        if(!BeebWindows::default_config_name.empty()) {
+            writer->Key(CONFIG);
+            writer->String(BeebWindows::default_config_name.c_str());
+        }
     }
 }
 

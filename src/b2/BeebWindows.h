@@ -50,6 +50,7 @@ namespace BeebWindows {
 
 // an accessor doesn't really buy much here...
 extern BeebWindowSettings defaults;
+extern std::string default_config_name;
 
 bool Init();
 void Shutdown();
@@ -115,18 +116,12 @@ BeebKeymap *FindBeebKeymapByName(const std::string &name);
 bool LoadConfigByName(BeebLoadedConfig *loaded_config,const std::string &config_name,Messages *msg);
 
 void AddConfig(BeebConfig config);
-void RemoveConfigByName(const std::string &config_name);
+void RemoveConfigByIndex(size_t index);
 
-void ConfigDidChange(const std::string &config_name);
+void ConfigDidChange(size_t index);
 
-const std::string &GetDefaultConfigName();
-void SetDefaultConfig(std::string default_config_name);
-
-// Finds
-//
-// c, calls func(c,nullptr); then for each
-// custom config c, calls func(c,c).
-void ForEachConfig(const std::function<bool(const BeebConfig *,BeebConfig *)> &func);
+size_t GetNumConfigs();
+BeebConfig *GetConfigByIndex(size_t index);
 
 // When necessary, name will be adjusted to make it unique.
 void SetBeebWindowName(BeebWindow *window,std::string name);

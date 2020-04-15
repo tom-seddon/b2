@@ -483,7 +483,7 @@ public:
     explicit FileMenuItem(SelectorDialog *dialog,const char *open_title,const char *recent_title):
         m_dialog(dialog)
     {
-        bool recent_enabled=true;
+        //bool recent_enabled=true;
 
         ImGuiIDPusher id_pusher(open_title);
 
@@ -491,46 +491,12 @@ public:
             if(dialog->Open(&this->path)) {
                 this->recent=false;
                 this->selected=true;
-                recent_enabled=false;
+                //recent_enabled=false;
             }
         }
 
-        RecentPaths *rp=nullptr;//dialog->GetRecentPaths();
-        size_t num_rp=0;
-        if(recent_enabled) {
-            rp=dialog->GetRecentPaths();
-            if(rp) {
-                num_rp=rp->GetNumPaths();
-                recent_enabled=num_rp>0;
-            }
-        }
-
-        if(ImGui::BeginMenu(recent_title,recent_enabled)) {
-            for(size_t i=0;i<num_rp;++i) {
-                const std::string &p=rp->GetPathByIndex(i);
-                if(ImGui::MenuItem(p.c_str())) {
-                    this->selected=true;
-                    this->path=p;
-                }
-            }
-
-            ImGui::Separator();
-
-            if(ImGui::BeginMenu("Remove item")) {
-                size_t i=0;
-
-                while(i<rp->GetNumPaths()) {
-                    if(ImGui::MenuItem(rp->GetPathByIndex(i).c_str())) {
-                        rp->RemovePathByIndex(i);
-                    } else {
-                        ++i;
-                    }
-                }
-
-                ImGui::EndMenu();
-            }
-
-            ImGui::EndMenu();
+        if(ImGuiRecentMenu(&this->path,recent_title,*dialog)) {
+            this->selected=true;
         }
     }
 
@@ -805,7 +771,7 @@ const BeebWindow::SettingsUIMetadata BeebWindow::ms_settings_uis[]={
     {BeebWindowPopupType_Messages,"Messages","toggle_messages",&CreateMessagesUI},
     {BeebWindowPopupType_Timeline,"Timeline","toggle_timeline",&BeebWindow::CreateTimelineUI},
     {BeebWindowPopupType_SavedStates,"Saved States","toggle_saved_states",&BeebWindow::CreateSavedStatesUI},
-    {BeebWindowPopupType_Configs,"Configurations","toggle_configurations",&CreateConfigsUI},
+    {BeebWindowPopupType_Configs,"Configs","toggle_configurations",&CreateConfigsUI},
 #if BBCMICRO_TRACE
     {BeebWindowPopupType_Trace,"Tracing","toggle_event_trace",&CreateTraceUI},
 #endif
@@ -1200,27 +1166,13 @@ void BeebWindow::DoFileMenu() {
         m_cc.DoMenuItemUI("hard_reset");
 
         if(ImGui::BeginMenu("Change config")) {
-            bool seen_first_custom=false;
-            BeebWindows::ForEachConfig([&](const BeebConfig *config,BeebConfig *editable_config) {
-                if(editable_config) {
-                    if(!seen_first_custom) {
-                        ImGui::Separator();
-                        seen_first_custom=true;
-                    }
-                }
+            for(size_t config_idx=0;config_idx<BeebWindows::GetNumConfigs();++config_idx) {
+                BeebConfig *config=BeebWindows::GetConfigByIndex(config_idx);
 
                 if(ImGui::MenuItem(config->name.c_str())) {
-                    BeebLoadedConfig tmp;
-
-                    if(BeebLoadedConfig::Load(&tmp,*config,&m_msg)) {
-                        auto message=std::make_shared<BeebThread::HardResetAndChangeConfigMessage>(0,std::move(tmp));
-
-                        m_beeb_thread->Send(std::move(message));
-                    }
+                    this->HardReset(*config);
                 }
-
-                return true;
-            });
+            }
 
             ImGui::EndMenu();
         }
@@ -1849,6 +1801,7 @@ void BeebWindow::SaveSettings() {
     m_settings.dock_config=m_imgui_stuff->SaveDockContext();
 
     BeebWindows::defaults=m_settings;
+    BeebWindows::default_config_name=m_init_arguments.default_config.config.name;
 
     this->SavePosition();
 }
@@ -2307,6 +2260,32 @@ const VideoDataUnit *BeebWindow::GetVideoDataUnitForMousePixel() const {
 SettingsUI *BeebWindow::GetPopupByType(BeebWindowPopupType type) const {
     ASSERT(type>=0&&type<BeebWindowPopupType_MaxValue);
     return m_popups[type].get();
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool BeebWindow::HardReset(const BeebConfig &config) {
+    BeebLoadedConfig tmp;
+
+    if(BeebLoadedConfig::Load(&tmp,config,&m_msg)) {
+        m_init_arguments.default_config=std::move(tmp);
+
+        auto message=std::make_shared<BeebThread::HardResetAndChangeConfigMessage>(0,m_init_arguments.default_config);
+
+        m_beeb_thread->Send(std::move(message));
+
+        return true;
+    } else {
+        return false;
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+const std::string &BeebWindow::GetConfigName() const {
+    return m_init_arguments.default_config.config.name;
 }
 
 //////////////////////////////////////////////////////////////////////////

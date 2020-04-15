@@ -254,7 +254,9 @@ bool BeebLoadedConfig::Load(
     }
 
     for(int i=0;i<16;++i) {
-        if(!dest->config.roms[i].file_name.empty()) {
+        if(dest->config.roms[i].standard_rom||
+           !dest->config.roms[i].file_name.empty())
+        {
             dest->roms[i]=LoadROM(dest->config.roms[i],msg);
             if(!dest->roms[i]) {
                 return false;
