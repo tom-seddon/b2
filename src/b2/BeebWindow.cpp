@@ -2335,6 +2335,17 @@ BeebWindowInitArguments BeebWindow::GetNewWindowInitArguments() const {
 //////////////////////////////////////////////////////////////////////////
 
 void BeebWindow::HardReset() {
+    // Fetch config from the global list again.
+    for(size_t config_idx=0;config_idx<BeebWindows::GetNumConfigs();++config_idx) {
+        BeebConfig *config=BeebWindows::GetConfigByIndex(config_idx);
+
+        if(config->name==m_init_arguments.default_config.config.name) {
+            this->HardReset(*config);
+            return;
+        }
+    }
+
+    // Something went wrong. Just reuse the current config, whatever it is.
     m_beeb_thread->Send(std::make_shared<BeebThread::HardResetAndReloadConfigMessage>(BeebThreadHardResetFlag_Run));
 }
 
