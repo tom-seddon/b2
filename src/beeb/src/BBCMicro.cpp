@@ -2480,10 +2480,10 @@ void BBCMicro::InitStuff() {
     for(int i=0;i<8;i+=2) {
         this->SetMMIOFns((uint16_t)(0xfe00+i+0),&CRTC::ReadAddress,&CRTC::WriteAddress,&m_state.crtc);
         this->SetMMIOFns((uint16_t)(0xfe00+i+1),&CRTC::ReadData,&CRTC::WriteData,&m_state.crtc);
-
     }
 
     // I/O: Video ULA
+    m_state.video_ula.nula=m_video_nula;
     for(int i=0;i<2;++i) {
         this->SetMMIOFns((uint16_t)(0xfe20+i*2),nullptr,&VideoULA::WriteControlRegister,&m_state.video_ula);
         this->SetMMIOFns((uint16_t)(0xfe21+i*2),nullptr,&VideoULA::WritePalette,&m_state.video_ula);
