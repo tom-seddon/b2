@@ -165,6 +165,10 @@ void ConfigsUI::DoImGui() {
             if(ImGui::Checkbox("BeebLink",&config->beeblink)) {
                 edited=true;
             }
+
+            if(ImGui::Checkbox("Video NuLA",&config->video_nula)) {
+                edited=true;
+            }
         }
 
         if(edited) {

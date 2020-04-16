@@ -171,6 +171,11 @@ There are two items of optional hardware:
   [BeebLink](https://github.com/tom-seddon/beeblink) widget to the
   emulated user port. For more details, see the
   [BeebLink notes](./BeebLink.md).
+  
+- Tick the `Video NuLA` box to add a
+  [Video NuLA](https://www.stardot.org.uk/forums/viewtopic.php?f=3&t=12150).
+  (This is ticked by default, as it's very unlikely to cause a
+  problem.)
 
 Changes to a configuration don't affect the running Beeb until you do
 a `File` > `Hard Reset`, `File` > `Configuration`, or click that
