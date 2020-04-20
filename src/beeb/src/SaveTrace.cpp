@@ -45,6 +45,7 @@ public:
         this->SetMFn(Trace::WRITE_ACCCON_EVENT,&TraceSaver::HandleWriteACCCON);
         this->SetMFn(Trace::STRING_EVENT,&TraceSaver::HandleString);
         this->SetMFn(SN76489::WRITE_EVENT,&TraceSaver::HandleSN76489WriteEvent);
+        this->SetMFn(SN76489::UPDATE_EVENT,&TraceSaver::HandleSN76489UpdateEvent);
         this->SetMFn(R6522::IRQ_EVENT,&TraceSaver::HandleR6522IRQEvent);
         this->SetMFn(Trace::BLANK_LINE_EVENT,&TraceSaver::HandleBlankLine);
 
@@ -333,6 +334,38 @@ private:
 
         PrintVIAIRQ("IER",ev->ier);
         m_output->EnsureBOL();
+    }
+
+    void HandleSN76489UpdateEvent(const TraceEvent *e) {
+        auto ev=(const SN76489::UpdateEvent *)e->event;
+
+        m_output->s(m_time_prefix);
+
+        m_output->f("SN76489 - Update - ");
+
+        LogIndenter indent(m_output.get());
+
+        m_output->f("output: [$%02x $%02x $%02x $%02x]\n",
+                    ev->output.ch[0],
+                    ev->output.ch[1],
+                    ev->output.ch[2],
+                    ev->output.ch[3]);
+        m_output->f("state: reg=%u noise=%u noise_seed=$%04x noise_toggle=%d\n",
+                    ev->state.reg,
+                    ev->state.noise,
+                    ev->state.noise_seed,
+                    ev->state.noise_toggle);
+
+        for(size_t i=0;i<4;++i) {
+            auto ch=&ev->state.channels[i];
+
+            m_output->f("ch%zu: freq=%u ($%04x) vol=$%x counter=%u mask=$%02x\n",
+                        i,
+                        ch->values.freq,ch->values.freq,
+                        ch->values.vol,
+                        ch->counter,
+                        ch->mask);
+        }
     }
 
     void HandleSN76489WriteEvent(const TraceEvent *e) {

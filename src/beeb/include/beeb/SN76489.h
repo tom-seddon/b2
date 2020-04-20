@@ -27,6 +27,7 @@ public:
 #include <shared/poppack.h>
 
     static const TraceEventType WRITE_EVENT;
+    static const TraceEventType UPDATE_EVENT;
 #endif
 
     struct ChannelValues {
@@ -57,10 +58,6 @@ public:
     void GetState(ChannelValues *channels,uint16_t *noise_seed) const;
 protected:
 private:
-    static const uint16_t NOISE0;
-    static const uint16_t NOISE1;
-    static const uint16_t NOISE2;
-
     struct Channel {
         ChannelValues values;
 
@@ -82,13 +79,24 @@ private:
     };
 
     State m_state;
-    const uint16_t *const m_noise_pointers[4]={&NOISE0,&NOISE1,&NOISE2,&m_state.channels[2].values.freq};
 #if BBCMICRO_TRACE
     Trace *m_trace;
 #endif
 
     uint8_t NextWhiteNoiseBit();
     uint8_t NextPeriodicNoiseBit();
+
+    // Inconsistent layout - but this needs a bunch of other stuff from above...
+public:
+#if BBCMICRO_TRACE
+#include <shared/pshpack1.h>
+    struct UpdateEvent {
+        State state;
+        Output output;
+    };
+#include <shared/poppack.h>
+#endif
+
 };
 
 //////////////////////////////////////////////////////////////////////////
