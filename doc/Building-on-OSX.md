@@ -9,10 +9,8 @@ debugger.
 
 # Build using Xcode
 
-Prerequisites:
-
-* Xcode
-* [cmake](https://cmake.org/) version 3.9+
+For prerequisites, see the
+[building from the command line notes](./Building-on-Unix.md).
 
 Initial build steps:
 

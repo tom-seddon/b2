@@ -233,7 +233,7 @@ set(SDL2_DEFINITIONS -DUSING_GENERATED_CONFIG_H)
 ##########################################################################
 ##########################################################################
 
-if(LINUX)
+if(LINUX OR OSX)
   # set(FFmpeg_FIND_COMPONENTS AVCODEC AVFORMAT AVUTIL SWRESAMPLE SWSCALE PARENT_SCOPE)
   find_package(FFmpeg
     COMPONENTS AVCODEC AVFORMAT AVUTIL SWRESAMPLE SWSCALE)

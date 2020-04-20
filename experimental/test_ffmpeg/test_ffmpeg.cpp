@@ -359,7 +359,7 @@ static void DumpCodecVerbose(const AVCodec *c) {
                          0);
     
         LOGF(OUT,"Capabilities: ");
-        PrintFlags(c->capabilities,&GetAVCodecCapEnumName);
+        PrintFlags((uint32_t)c->capabilities,&GetAVCodecCapEnumName);
     }
 }
 
@@ -1131,7 +1131,7 @@ int main(int argc,char *argv[]) {
                     // }
                 
                     ASSERT(aframe_index<(size_t)aframe->nb_samples);
-                    ASSERT(aframe->linesize>=0);
+                    ASSERT(aframe->linesize[0]>=0);
                     ASSERT(aframe_index*4<(size_t)aframe->linesize[0]);
                     float *dest=(float *)aframe->data[channel_idx]+aframe_index;
                     *dest=f;

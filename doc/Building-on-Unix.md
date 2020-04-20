@@ -12,6 +12,14 @@ only tested it on Ubuntu, on a machine without working sound output.
 
 - Xcode
 
+There are additional dependencies for video writing, which are
+optional. The project will build without these, but video writing
+won't be available.
+
+- FFmpeg libs (I used `ffmpeg @4.2.1_2+gpl2` from MacPorts)
+
+Video writing on OS X is experimental.
+
 # Linux prerequisites
 
 - gcc and g++, or clang
