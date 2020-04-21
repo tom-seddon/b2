@@ -271,6 +271,10 @@ void WriteVideoJob::ThreadExecute() {
         goto done;
     }
 
+    // It's probably not what you want - but this should really be
+    // configurable.
+    beeb_thread->SetDiscVolume(MIN_DB);
+
     {
         bool replaying=true;
         bool was_vblank=tv_output.IsInVerticalBlank();
