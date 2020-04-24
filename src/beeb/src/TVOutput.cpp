@@ -72,10 +72,6 @@ static const int SCANLINE_CYCLES=HORIZONTAL_RETRACE_CYCLES+BACK_PORCH_CYCLES+SCA
 static_assert(SCANLINE_CYCLES==128,"one scanline must be 64us");
 static const int VERTICAL_RETRACE_SCANLINES=12;
 
-// HEIGHT_SCALE will go away, when I get a moment to do it.
-static const int HEIGHT_SCALE=2;
-static_assert(HEIGHT_SCALE==2,"");
-
 // If this many lines are scanned without a vertical retrace, the TV
 // retraces anyway.
 //
@@ -88,7 +84,7 @@ static_assert(HEIGHT_SCALE==2,"");
 // 500 seems OK. It doesn't have to be perfect, just something that
 // means emulated TV output keeps going when there's no CRTC vsync
 // output...
-static const int MAX_NUM_SCANNED_LINES=500*HEIGHT_SCALE;
+static const int MAX_NUM_SCANNED_LINES=500;
 
 #define NOTHING_PALETTE_INDEX (0)
 
@@ -103,32 +99,40 @@ void TVOutput::Update(const VideoDataUnit *units,size_t num_units) {
 
     for(size_t i=0;i<num_units;++i,++unit) {
         switch(m_state) {
-            default:
-                ASSERT(0);
-                break;
+        default:
+            ASSERT(0);
+            break;
 
-            case TVOutputState_VerticalRetrace:
-                ++m_num_fields;
-                m_state=TVOutputState_VerticalRetraceWait;
-                ++m_texture_data_version;
-                m_x=0;
+        case TVOutputState_VerticalRetrace:
+            // With interlaced output, alternate frames start 1 scanline lower.
+            //
+            // If interlace flag off: draw those frames at y=0, and the non-
+            // offset frames at y=2. No apparent interlace.
+            //
+            // If interlace flag on: draw those frames at y=0, and thet non-
+            // offset frames at y=1. A half scanline offset.
+            if(m_x>=TV_TEXTURE_WIDTH/2) {
                 m_y=0;
-                m_pixels_line=m_texture_pixels.data();
+            } else {
+                if(m_interlace) {
+                    m_y=1;
+                } else {
+                    m_y=2;
+                }
+            }
+
+            ++m_num_fields;
+            m_state=TVOutputState_VerticalRetraceWait;
+            ++m_texture_data_version;
+            m_x=0;
+            m_pixels_line=m_texture_pixels.data()+m_y*TV_TEXTURE_WIDTH;
 #if VIDEO_TRACK_METADATA
-                m_units_line=m_texture_units.data();
+            m_units_line=m_texture_units.data()+m_y*TV_TEXTURE_WIDTH;
 #endif
+            m_state_timer=1;
+            break;
 
-                // "Fun" (translation: brain-eating) fake interlace
-
-                // if(m_num_fields&1) {
-                //     m_line+=m_texture_pitch;
-                //     ++m_y;
-                // }
-
-                m_state_timer=1;
-                break;
-
-            case TVOutputState_VerticalRetraceWait:
+        case TVOutputState_VerticalRetraceWait:
             {
                 // Ignore everything.
                 if(m_state_timer++>=VERTICAL_RETRACE_SCANLINES*SCANLINE_CYCLES) {
@@ -136,9 +140,9 @@ void TVOutput::Update(const VideoDataUnit *units,size_t num_units) {
                     m_state=TVOutputState_Scanout;
                 }
             }
-                break;
+            break;
 
-            case TVOutputState_Scanout:
+        case TVOutputState_Scanout:
             {
                 if(unit->pixels.pixels[1].bits.x&VideoDataUnitFlag_VSync) {
                     m_state=TVOutputState_VerticalRetrace;
@@ -154,13 +158,13 @@ void TVOutput::Update(const VideoDataUnit *units,size_t num_units) {
                 uint32_t *pixels1;
 
                 switch(unit->pixels.pixels[0].bits.x) {
-                    default:
+                default:
                     {
                         ASSERT(false);
                     }
-                        break;
+                    break;
 
-                    case VideoDataType_Bitmap16MHz:
+                case VideoDataType_Bitmap16MHz:
                     {
                         if(m_x<TV_TEXTURE_WIDTH&&m_y<TV_TEXTURE_HEIGHT) {
                             pixels0=m_pixels_line+m_x;
@@ -199,9 +203,9 @@ void TVOutput::Update(const VideoDataUnit *units,size_t num_units) {
 #endif
                         }
                     }
-                        break;
+                    break;
 
-                    case VideoDataType_Teletext:
+                case VideoDataType_Teletext:
                     {
                         if(m_x<TV_TEXTURE_WIDTH&&m_y<TV_TEXTURE_HEIGHT) {
                             pixels0=m_pixels_line+m_x;
@@ -327,9 +331,9 @@ void TVOutput::Update(const VideoDataUnit *units,size_t num_units) {
 #endif
                         }
                     }
-                        break;
+                    break;
 
-                    case VideoDataType_Bitmap12MHz:
+                case VideoDataType_Bitmap12MHz:
                     {
                         if(m_x<TV_TEXTURE_WIDTH&&m_y<TV_TEXTURE_HEIGHT) {
                             pixels0=m_pixels_line+m_x;
@@ -400,7 +404,7 @@ void TVOutput::Update(const VideoDataUnit *units,size_t num_units) {
 #endif
                         }
                     }
-                        break;
+                    break;
                 }
 
                 m_x+=8;
@@ -409,26 +413,29 @@ void TVOutput::Update(const VideoDataUnit *units,size_t num_units) {
                     m_state=TVOutputState_HorizontalRetrace;
                 }
             }
-                break;
+            break;
 
-            case TVOutputState_HorizontalRetrace:
-                m_state=TVOutputState_HorizontalRetraceWait;
+        case TVOutputState_HorizontalRetrace:
+            {
                 m_x=0;
-                m_y+=HEIGHT_SCALE;
-                if(m_y>=MAX_NUM_SCANNED_LINES) {
+                m_y+=2;
+
+                if(m_y>=2*MAX_NUM_SCANNED_LINES) {
                     // VBlank time anyway.
                     m_state=TVOutputState_VerticalRetrace;
                     break;
                 }
-                m_pixels_line+=TV_TEXTURE_WIDTH*HEIGHT_SCALE;
+
+                m_pixels_line+=TV_TEXTURE_WIDTH*2;
 #if VIDEO_TRACK_METADATA
-                m_units_line+=TV_TEXTURE_WIDTH*HEIGHT_SCALE;
+                m_units_line+=TV_TEXTURE_WIDTH*2;
 #endif
                 m_state_timer=2;//+1 for Scanout; +1 for this state
                 m_state=TVOutputState_HorizontalRetraceWait;
-                break;
+            }
+            break;
 
-            case TVOutputState_HorizontalRetraceWait:
+        case TVOutputState_HorizontalRetraceWait:
             {
                 // Ignore input in this state.
                 ++m_state_timer;
@@ -437,9 +444,9 @@ void TVOutput::Update(const VideoDataUnit *units,size_t num_units) {
                     m_state=TVOutputState_BackPorch;
                 }
             }
-                break;
+            break;
 
-            case TVOutputState_BackPorch:
+        case TVOutputState_BackPorch:
             {
                 // Ignore input in this state.
                 ++m_state_timer;
@@ -448,7 +455,7 @@ void TVOutput::Update(const VideoDataUnit *units,size_t num_units) {
                     m_state=TVOutputState_Scanout;
                 }
             }
-                break;
+            break;
         }
     }
 }
@@ -702,6 +709,20 @@ void TVOutput::SetGamma(double gamma) {
     m_gamma=gamma;
 
     this->InitPalette();
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool TVOutput::GetInterlace() const {
+    return m_interlace;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void TVOutput::SetInterlace(bool interlace) {
+    m_interlace=interlace;
 }
 
 //////////////////////////////////////////////////////////////////////////

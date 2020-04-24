@@ -73,6 +73,9 @@ public:
     // somewhere, or something...
     double GetGamma() const;
     void SetGamma(double gamma);
+
+    bool GetInterlace() const;
+    void SetInterlace(bool interlace);
 protected:
 private:
     TVOutputState m_state=TVOutputState_VerticalRetrace;
@@ -84,6 +87,7 @@ private:
     size_t m_y=0;
     int m_state_timer=0;
     size_t m_num_fields=0;
+    bool m_interlace=false;//it's horrid. It's there, but you don't want it
 
     uint32_t m_r_shift=0;
     uint32_t m_g_shift=0;

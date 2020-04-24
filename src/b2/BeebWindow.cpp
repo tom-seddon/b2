@@ -212,6 +212,8 @@ void BeebWindow::OptionsUI::DoImGui() {
         m_beeb_window->RecreateTexture();
     }
 
+    if(ImGui::Checkbox("Emulate interlace",&settings->display_interlace));
+
     if(ImGui::SliderFloat("BBC volume",&settings->bbc_volume,MIN_DB,MAX_DB,"%.1f dB")) {
         beeb_thread->SetBBCVolume(settings->bbc_volume);
     }
@@ -1503,6 +1505,8 @@ bool BeebWindow::DoWindowMenu() {
 //////////////////////////////////////////////////////////////////////////
 
 void BeebWindow::UpdateTVTexture(VBlankRecord *vblank_record) {
+    m_tv.SetInterlace(m_settings.display_interlace);
+    
     {
         Timer tmr(&g_HandleVBlank_UpdateTVTexture_Consume_timer_def);
 

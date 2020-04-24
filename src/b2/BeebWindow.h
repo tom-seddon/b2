@@ -74,6 +74,7 @@ struct BeebWindowSettings {
     bool correct_aspect_ratio=true;
     float display_manual_scale=1.f;
     bool display_filter=true;
+    bool display_interlace=false;
 
     const BeebKeymap *keymap=nullptr;
 };

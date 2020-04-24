@@ -1095,6 +1095,7 @@ static const char CYCLES_OUTPUT[]="cycles_output";
 static const char POWER_ON_TONE[]="power_on_tone";
 static const char STANDARD_ROM[]="standard_rom";
 static const char CONFIG[]="config";
+static const char INTERLACE[]="interlace";
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -1391,6 +1392,7 @@ static bool LoadWindows(rapidjson::Value *windows,Messages *msg) {
     FindBoolMember(&BeebWindows::defaults.display_auto_scale,windows,AUTO_SCALE,nullptr);
     FindFloatMember(&BeebWindows::defaults.display_manual_scale,windows,MANUAL_SCALE,nullptr);
     FindBoolMember(&BeebWindows::defaults.power_on_tone,windows,POWER_ON_TONE,nullptr);
+    FindBoolMember(&BeebWindows::defaults.display_interlace,windows,INTERLACE,nullptr);
     FindStringMember(&BeebWindows::default_config_name,windows,CONFIG,nullptr);
 
     {
@@ -2005,6 +2007,9 @@ static void SaveWindows(JSONWriter<StringStream> *writer) {
 
         writer->Key(POWER_ON_TONE);
         writer->Bool(BeebWindows::defaults.power_on_tone);
+
+        writer->Key(INTERLACE);
+        writer->Bool(BeebWindows::defaults.display_interlace);
 
         if(!BeebWindows::default_config_name.empty()) {
             writer->Key(CONFIG);
