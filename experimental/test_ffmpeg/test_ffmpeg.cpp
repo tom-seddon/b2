@@ -11,6 +11,14 @@
 #include <shared/CommandLineParser.h>
 #include <map>
 
+#ifdef __clang__
+
+#pragma GCC diagnostic push
+
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+
+#endif
+
 extern "C" {
 #include <libavformat/avformat.h>
 #include <libavutil/pixfmt.h>
@@ -19,6 +27,12 @@ extern "C" {
 #include <libavcodec/avcodec.h>
 #include <libswscale/swscale.h>
 }
+
+#ifdef __clang__
+
+#pragma GCC diagnostic pop
+
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
