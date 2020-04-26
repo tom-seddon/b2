@@ -1670,6 +1670,8 @@ protected:
         uint16_t cursor_address;
         uint16_t display_address;
         BBCMicro::AddressableLatch latch;
+        CRTC::InternalState st;
+        uint16_t char_addr,line_addr,next_line_addr;
 
         {
             std::unique_lock<Mutex> lock;
@@ -1680,9 +1682,13 @@ protected:
 
             registers=c->m_registers;
             address=c->m_address;
+            st=c->m_st;
 
             cursor_address=m->DebugGetBeebAddressFromCRTCAddress(registers.bits.cursorh,registers.bits.cursorl);
             display_address=m->DebugGetBeebAddressFromCRTCAddress(registers.bits.addrh,registers.bits.addrl);
+            char_addr=m->DebugGetBeebAddressFromCRTCAddress(st.char_addr.b.h,st.char_addr.b.l);
+            line_addr=m->DebugGetBeebAddressFromCRTCAddress(st.line_addr.b.h,st.line_addr.b.l);
+            next_line_addr=m->DebugGetBeebAddressFromCRTCAddress(st.next_line_addr.b.h,st.next_line_addr.b.l);
 
             latch=m->DebugGetAddressableLatch();
 
@@ -1713,6 +1719,26 @@ protected:
         ImGui::Text("Cursor Delay Mode = %s",DELAY_NAMES[registers.bits.r8.bits.c]);
         ImGui::Text("Cursor Address = $%04x",cursor_address);
         ImGui::Separator();
+        ImGui::Text("Column = %u, hdisp=%s",st.column,BOOL_STR(st.hdisp));
+        ImGui::Text("Row = %u, Raster = %u, vdisp=%s",st.row,st.raster,BOOL_STR(st.vdisp));
+        ImGui::Text("Char address = $%04X (CRTC) / $%04X (BBC)",st.char_addr.w,char_addr);
+        ImGui::Text("Line address = $%04X (CRTC) / $%04X (BBC)",st.line_addr.w,line_addr);
+        ImGui::Text("Next line address = $%04X (CRTC) / $%04X (BBC)",st.next_line_addr.w,next_line_addr);
+        ImGui::Text("DISPEN queue = %%%s",BINARY_BYTE_STRINGS[st.skewed_display]);
+        ImGui::Text("CUDISP queue = %%%s",BINARY_BYTE_STRINGS[st.skewed_cudisp]);
+        ImGui::Text("VSync counter = %d",st.vsync_counter);
+        ImGui::Text("HSync counter = %d",st.hsync_counter);
+        ImGui::Text("VAdj counter = %d",st.vadj_counter);
+        ImGui::Text("check_vadj = %s",BOOL_STR(st.check_vadj));
+        ImGui::Text("in_vadj = %s",BOOL_STR(st.in_vadj));
+        ImGui::Text("end_of_vadj_latched = %s",BOOL_STR(st.end_of_vadj_latched));
+        ImGui::Text("had_vsync_this_row = %s",BOOL_STR(st.had_vsync_this_row));
+        ImGui::Text("end_of_main_latched = %s",BOOL_STR(st.end_of_main_latched));
+        ImGui::Text("do_even_frame_logic = %s",BOOL_STR(st.do_even_frame_logic));
+        ImGui::Text("first_scanline = %s",BOOL_STR(st.first_scanline));
+        ImGui::Text("in_dummy_raster = %s",BOOL_STR(st.in_dummy_raster));
+        ImGui::Text("end_of_frame_latched = %s",BOOL_STR(st.end_of_frame_latched));
+        ImGui::Text("cursor = %s",BOOL_STR(st.cursor));
     }
 private:
     static const char *const INTERLACE_NAMES[];
