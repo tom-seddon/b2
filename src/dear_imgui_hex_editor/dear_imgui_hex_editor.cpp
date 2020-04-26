@@ -349,7 +349,7 @@ void HexEditor::DoImGui() {
     }
 
     ImGui::SameLine();
-    ImGui::VerticalSeparator();
+    ImGui::SeparatorEx(ImGuiSeparatorFlags_Vertical);
     ImGui::SameLine();
 
     {
