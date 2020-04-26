@@ -104,16 +104,20 @@ void TVOutput::Update(const VideoDataUnit *units,size_t num_units) {
             break;
 
         case TVOutputState_VerticalRetrace:
-            // With interlaced output, alternate frames start 1 scanline lower.
+            // With interlaced output, odd fields start 1 scanline lower.
             //
-            // If interlace flag off: draw those frames at y=0, and the non-
-            // offset frames at y=2. No apparent interlace.
+            // If interlace flag off: draw odd fields at y=0, so they start
+            // (visually speaking) at y=2. Draw even fields at y=0. No
+            // apparent interlace.
             //
-            // If interlace flag on: draw those frames at y=0, and thet non-
-            // offset frames at y=1. A half scanline offset.
+            // If interlace flag on: draw odd fields at y=0, so they appear to
+            // start at y=2. Draw even fields at y=1. Even fields appear one
+            // half scanline earlier than odd fields.
             if(m_x>=TV_TEXTURE_WIDTH/2) {
+                // Odd field.
                 m_y=0;
             } else {
+                // Even field.
                 if(m_interlace) {
                     m_y=1;
                 } else {
