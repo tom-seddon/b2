@@ -2257,7 +2257,7 @@ bool BeebThread::ThreadHandleTraceWriteConditions(const BBCMicro *beeb,
                     return false;
 
                 case BeebThreadStopTraceCondition_WriteAddress:
-                    if(cpu->abus.w==ts->trace_conditions.start_address) {
+                    if(cpu->abus.w==ts->trace_conditions.stop_address) {
                         ts->beeb_thread->ThreadStopTrace(ts);
                         return false;
                     }
