@@ -222,8 +222,10 @@ void BBCMicro::SetTrace(std::shared_ptr<Trace> trace,uint32_t trace_flags) {
     m_state.crtc.SetTrace((trace_flags&(BBCMicroTraceFlag_6845VSync|BBCMicroTraceFlag_6845Scanlines))?m_trace:nullptr,
                           !!(trace_flags&BBCMicroTraceFlag_6845Scanlines),
                           !!(trace_flags&BBCMicroTraceFlag_6845ScanlinesSeparators));
-    m_state.system_via.SetTrace(trace_flags&BBCMicroTraceFlag_SystemVIA?m_trace:nullptr);
-    m_state.user_via.SetTrace(trace_flags&BBCMicroTraceFlag_UserVIA?m_trace:nullptr);
+    m_state.system_via.SetTrace(trace_flags&BBCMicroTraceFlag_SystemVIA?m_trace:nullptr,
+                                !!(trace_flags&BBCMicroTraceFlag_SystemVIAExtra));
+    m_state.user_via.SetTrace(trace_flags&BBCMicroTraceFlag_UserVIA?m_trace:nullptr,
+                              !!(trace_flags&BBCMicroTraceFlag_UserVIAExtra));
     m_state.video_ula.SetTrace(trace_flags&BBCMicroTraceFlag_VideoULA?m_trace:nullptr);
     m_state.sn76489.SetTrace(trace_flags&BBCMicroTraceFlag_SN76489?m_trace:nullptr);
 
@@ -1170,8 +1172,6 @@ bool BBCMicro::Update(VideoDataUnit *video_unit,SoundDataUnit *sound_unit) {
         video_unit->metadata.flags|=VideoDataUnitMetadataFlag_OddCycle;
     }
 #endif
-
-    // Update CPU.
 
     // Update CPU.
     if(m_state.stretch) {

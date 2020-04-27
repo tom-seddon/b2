@@ -48,6 +48,7 @@ public:
         this->SetMFn(SN76489::UPDATE_EVENT,&TraceSaver::HandleSN76489UpdateEvent);
         this->SetMFn(R6522::IRQ_EVENT,&TraceSaver::HandleR6522IRQEvent);
         this->SetMFn(Trace::BLANK_LINE_EVENT,&TraceSaver::HandleBlankLine);
+        this->SetMFn(R6522::TIMER_TICK_EVENT,&TraceSaver::HandleR6522TimerTickEvent);
 
         {
             TraceStats stats;
@@ -333,6 +334,25 @@ private:
         m_output->EnsureBOL();
 
         PrintVIAIRQ("IER",ev->ier);
+        m_output->EnsureBOL();
+    }
+
+    void HandleR6522TimerTickEvent(const TraceEvent *e) {
+        auto ev=(const R6522::TimerTickEvent *)e->event;
+
+        if(ev->t1_ticked||ev->t2_ticked) {
+            m_output->s(m_time_prefix);
+            m_output->f("%s -",GetBBCMicroVIAIDEnumName(ev->id));
+        }
+
+        if(ev->t1_ticked) {
+            m_output->f(" T1=$%04x->$%04x",(uint16_t)(ev->new_t1+1),ev->new_t1);
+        }
+
+        if(ev->t2_ticked) {
+            m_output->f(" T2=$%04x->$%04x",(uint16_t)(ev->new_t2+1),ev->new_t2);
+        }
+
         m_output->EnsureBOL();
     }
 

@@ -43,6 +43,7 @@
 
 #if BBCMICRO_TRACE
 const TraceEventType R6522::IRQ_EVENT("R6522IRQEvent",sizeof(IRQEvent));
+const TraceEventType R6522::TIMER_TICK_EVENT("R6522TimerTick",sizeof(TimerTickEvent));
 #endif
 
 //////////////////////////////////////////////////////////////////////////
@@ -61,6 +62,7 @@ void R6522::Reset() {
 //////////////////////////////////////////////////////////////////////////
 
 void R6522::SetID(uint8_t id,const char *name) {
+    ASSERT(id>=0&&id<15);
     m_id=id;
     m_name=name;
 }
@@ -573,12 +575,32 @@ void R6522::UpdatePhi2TrailingEdge() {
     /* T1 */
     m_t1_timeout=false;
 
+#if BBCMICRO_TRACE
+    TimerTickEvent *tick_event=nullptr;
+    if(m_trace) {
+        tick_event=(TimerTickEvent *)m_trace->AllocEvent(TIMER_TICK_EVENT);
+
+        // It's possible neither timer will tick this cycle, but that's rather
+        // unlikely.
+        tick_event->id=m_id;
+        tick_event->t1_ticked=0;
+        tick_event->t2_ticked=0;
+    }
+#endif
+
     if(m_t1_reload) {
         m_t1=m_t1ll|m_t1lh<<8;
         m_t1_reload=false;
         TRACEF(m_trace,"%s - T1 reload: T1=$%04x (%u)",m_name,m_t1,m_t1);
     } else {
         --m_t1;
+
+#if BBCMICRO_TRACE
+        if(tick_event) {
+            tick_event->t1_ticked=1;
+            tick_event->new_t1=m_t1;
+        }
+#endif
         m_t1_reload=m_t1==0xffff;
         m_t1_timeout=m_t1_pending&&m_t1_reload;
 
@@ -601,6 +623,14 @@ void R6522::UpdatePhi2TrailingEdge() {
     } else {
         if(m_t2_count) {
             --m_t2;
+
+#if BBCMICRO_TRACE
+            if(tick_event) {
+                tick_event->t2_ticked=1;
+                tick_event->new_t2=m_t2;
+            }
+#endif
+
             m_t2_timeout=m_t2_pending&&m_t2==0xffff;
 
             if(m_t2_timeout) {
@@ -614,8 +644,9 @@ void R6522::UpdatePhi2TrailingEdge() {
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_TRACE
-void R6522::SetTrace(Trace *trace) {
+void R6522::SetTrace(Trace *trace,bool extra) {
     m_trace=trace;
+    m_trace_extra=extra;
 }
 #endif
 

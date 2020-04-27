@@ -199,6 +199,12 @@ the file:
    24953  m`21fd: sta $fe40 [i`fe40]       A=38 X=00 Y=03 S=da P=nvdIzc (D=38)
 ```
 
+The categories are hopefully mostly fairly obvious, except for perhaps
+`Separators` (puts blank lines between 6845 scanline, so Emacs
+paragraph commands can navigate between them), and the VIA `Extra`
+flags (adds a huge pile of extra logging that you probably don't
+want).
+
 `Save (no cycles)` produces output with no cycle count column. This
 can be more useful for diffs.
 
@@ -273,8 +279,8 @@ Additional debug options can be found in `Tools` > `Options` in the
 `Teletext debug` will overlay the teletext display with the value of
 the character in each cell.
 
-`Show TV beam position` will indicate where the TV beam, with a line
-starting just after its current position.
+`Show TV beam position` will indicate where the TV beam is, with a
+line starting just after its current position.
 
 # Other debugger stuff
 

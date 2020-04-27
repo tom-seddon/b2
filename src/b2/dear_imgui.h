@@ -161,6 +161,7 @@ public:
     ImGuiIDPusher(const char* str_id_begin,const char* str_id_end);
     explicit ImGuiIDPusher(const void* ptr_id);
     explicit ImGuiIDPusher(int int_id);
+    explicit ImGuiIDPusher(uint32_t uint_id);
     ~ImGuiIDPusher();
 protected:
 private:
