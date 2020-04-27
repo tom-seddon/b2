@@ -15,13 +15,6 @@
 
 // Maintains a mapping from uint32_t PC key code to value - int8_t BBC
 // key code, or command object, or other.
-//
-// The mapping is SDL_Scancode<->BeebKey (for scancode mappings) or
-// SDL_Keycode+PCKeyModifier<->BeebKeySym (for keysym mappings). Use
-// IsKeySymMap to find out what sort of mapping this is.
-//
-// The keymap holds the keysym/scancode flag, but doesn't otherwise
-// distinguish between the two types of map.
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -41,21 +34,10 @@ public:
     {
     }
 
-    explicit Keymap(std::string name,bool key_sym_map):
-        m_name(std::move(name)),
-        m_is_key_sym_map(key_sym_map)
+    explicit Keymap(std::string name):
+        m_name(std::move(name))
     {
         this->Reset();
-    }
-
-    explicit Keymap(std::string name,bool key_sym_map,const std::initializer_list<const Mapping *> &list):
-        Keymap(std::move(name),key_sym_map)
-    {
-        for(const Mapping *mappings:list) {
-            for(const Mapping *mapping=mappings;mapping->pc_key!=0;++mapping) {
-                this->SetMapping(mapping->pc_key,mapping->value,true);
-            }
-        }
     }
 
     virtual ~Keymap() {
@@ -64,10 +46,6 @@ public:
     void Reset() {
         m_map.clear();
         m_dirty=true;
-    }
-
-    bool IsKeySymMap() const {
-        return m_is_key_sym_map;
     }
 
     const std::string &GetName() const {

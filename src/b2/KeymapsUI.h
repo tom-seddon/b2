@@ -5,15 +5,15 @@
 //////////////////////////////////////////////////////////////////////////
 
 #include <memory>
+#include <string>
 
 class SettingsUI;
 class BeebWindow;
-
-extern const char KEYMAP_NOT_EDITABLE_ICON[];
-extern const char KEYMAP_SCANCODES_KEYMAP_ICON[];
-extern const char KEYMAP_KEYSYMS_KEYMAP_ICON[];
+class BeebKeymap;
 
 std::unique_ptr<SettingsUI> CreateKeymapsUI(BeebWindow *beeb_window);
+
+std::string GetKeymapUIName(const BeebKeymap &keymap);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

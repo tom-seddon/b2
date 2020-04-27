@@ -2,6 +2,9 @@
 #include "test_common.h"
 
 int main() {
-    RunStandardTest(BBC_TEST_NAME,BBC_TYPE);
+    RunStandardTest(BEEBLINK_VOLUME_PATH,
+                    0,
+                    BBC_TEST_NAME,
+                    BBC_TYPE);
 }
 

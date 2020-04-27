@@ -222,8 +222,10 @@ void BBCMicro::SetTrace(std::shared_ptr<Trace> trace,uint32_t trace_flags) {
     m_state.crtc.SetTrace((trace_flags&(BBCMicroTraceFlag_6845VSync|BBCMicroTraceFlag_6845Scanlines))?m_trace:nullptr,
                           !!(trace_flags&BBCMicroTraceFlag_6845Scanlines),
                           !!(trace_flags&BBCMicroTraceFlag_6845ScanlinesSeparators));
-    m_state.system_via.SetTrace(trace_flags&BBCMicroTraceFlag_SystemVIA?m_trace:nullptr);
-    m_state.user_via.SetTrace(trace_flags&BBCMicroTraceFlag_UserVIA?m_trace:nullptr);
+    m_state.system_via.SetTrace(trace_flags&BBCMicroTraceFlag_SystemVIA?m_trace:nullptr,
+                                !!(trace_flags&BBCMicroTraceFlag_SystemVIAExtra));
+    m_state.user_via.SetTrace(trace_flags&BBCMicroTraceFlag_UserVIA?m_trace:nullptr,
+                              !!(trace_flags&BBCMicroTraceFlag_UserVIAExtra));
     m_state.video_ula.SetTrace(trace_flags&BBCMicroTraceFlag_VideoULA?m_trace:nullptr);
     m_state.sn76489.SetTrace(trace_flags&BBCMicroTraceFlag_SN76489?m_trace:nullptr);
 
@@ -1067,10 +1069,10 @@ void BBCMicro::CheckMemoryBigPages(const MemoryBigPages *mem_big_pages,bool non_
 // -- -- --  -----
 //  0  0  0  <none>
 //  0  0  1    __
-//  0  1  0   _  
+//  0  1  0   _
 //  0  1  1   ___
 //  1  0  0  _
-//  1  0  1  _ __ 
+//  1  0  1  _ __
 //  1  1  0  __
 //  1  1  1  ____
 // </pre>
@@ -1117,29 +1119,29 @@ uint16_t BBCMicro::DebugGetBeebAddressFromCRTCAddress(uint8_t h,uint8_t l) const
 //
 // see https://stardot.org.uk/forums/viewtopic.php?f=3&t=17896#p248051
 //
-// <pre>
-// 1MHz             ___.___         ___.___         ___.___
-// phi2    \___.___/       \___.___/       \___.___/       \
-// 2MHz         ___     ___     ___     ___     ___     ___
-// phi2    \___/   \___/   \___/   \___/   \___/   \___/   \
-// BBCMicro   |<----->|<----->|<----->|<----->|<----->|<----
-// Update     |   0   |   1   |   2   |   3   |   4   |
-//
-// 1MHz             ___.___         ___.___         ___.___
-// phi2    \___.___/       \___.___/       \___.___/       \
-// stretch      ___     ___     ___.___.___     ___     ___
-// case 1  \___/   \___/   \___/           \___/   \___/   \
-//                                 |< +1 ->|
-// BBCMicro   |<----->|<----->|<----->|<----->|<----->|<----
-// Update     |   0   |   1   |   2   |   3   |   4   |
-//
-// 1MHz             ___.___         ___.___         ___.___
-// phi2    \___.___/       \___.___/       \___.___/       \
-// stretch      ___             ___.___.___     ___     ___
-// case 2  \___/   \___.___.___/           \___/   \___/   \
-//                     |< +2 --------->|
-// BBCMicro   |<----->|<----->|<----->|<----->|<----->|<----
-// Update     |   0   |   1   |   2   |   3   |   4   |
+// <pre>    |                                                   |
+// 1MHz     |          ___.___         ___.___         ___.___  |
+// phi2     | \___.___/       \___.___/       \___.___/       \ |
+// 2MHz     |      ___     ___     ___     ___     ___     ___  |
+// phi2     | \___/   \___/   \___/   \___/   \___/   \___/   \ |
+// BBCMicro |    |<----->|<----->|<----->|<----->|<----->|<---- |
+// Update   |    |   0   |   1   |   2   |   3   |   4   |      |
+//          |                                                   |
+// 1MHz     |          ___.___         ___.___         ___.___  |
+// phi2     | \___.___/       \___.___/       \___.___/       \ |
+// stretch  |      ___     ___     ___.___.___     ___     ___  |
+// case 1   | \___/   \___/   \___/           \___/   \___/   \ |
+//          |                         |< +1 ->|                 |
+// BBCMicro |    |<----->|<----->|<----->|<----->|<----->|<---- |
+// Update   |    |   0   |   1   |   2   |   3   |   4   |      |
+//          |                                                   |
+// 1MHz     |          ___.___         ___.___         ___.___  |
+// phi2     | \___.___/       \___.___/       \___.___/       \ |
+// stretch  |      ___             ___.___.___     ___     ___  |
+// case 2   | \___/   \___.___.___/           \___/   \___/   \ |
+//          |             |< +2 --------->|                     |
+// BBCMicro |    |<----->|<----->|<----->|<----->|<----->|<---- |
+// Update   |    |   0   |   1   |   2   |   3   |   4   |      |
 // </pre>
 //
 // So each BBCMicro::Update encompasses a 2 MHz phi2 leading edge then a 2 MHz
@@ -1170,8 +1172,6 @@ bool BBCMicro::Update(VideoDataUnit *video_unit,SoundDataUnit *sound_unit) {
         video_unit->metadata.flags|=VideoDataUnitMetadataFlag_OddCycle;
     }
 #endif
-
-    // Update CPU.
 
     // Update CPU.
     if(m_state.stretch) {
@@ -2480,10 +2480,10 @@ void BBCMicro::InitStuff() {
     for(int i=0;i<8;i+=2) {
         this->SetMMIOFns((uint16_t)(0xfe00+i+0),&CRTC::ReadAddress,&CRTC::WriteAddress,&m_state.crtc);
         this->SetMMIOFns((uint16_t)(0xfe00+i+1),&CRTC::ReadData,&CRTC::WriteData,&m_state.crtc);
-
     }
 
     // I/O: Video ULA
+    m_state.video_ula.nula=m_video_nula;
     for(int i=0;i<2;++i) {
         this->SetMMIOFns((uint16_t)(0xfe20+i*2),nullptr,&VideoULA::WriteControlRegister,&m_state.video_ula);
         this->SetMMIOFns((uint16_t)(0xfe21+i*2),nullptr,&VideoULA::WritePalette,&m_state.video_ula);
@@ -2919,7 +2919,7 @@ void BBCMicro::UpdateCPUDataBusFn() {
         goto hack;
     }
 #endif
-    
+
     // No hacks.
     m_handle_cpu_data_bus_fn=m_default_handle_cpu_data_bus_fn;
     return;

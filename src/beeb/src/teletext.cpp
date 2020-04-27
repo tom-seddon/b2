@@ -61,8 +61,8 @@ static const uint8_t TELETEXT_FONT[96][10][3]={
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static const uint8_t FRAMES_PER_SECOND=50;
 static const uint8_t NUM_FLASH_OFF_FRAMES=16;
+static const uint8_t NUM_FLASH_CYCLE_FRAMES=64;
 
 // Eventually this will be configurable...
 static const VideoDataPixel PALETTE[]={
@@ -184,6 +184,12 @@ SAA5050::SAA5050() {
 void SAA5050::Byte(uint8_t value,uint8_t dispen) {
     value&=0x7f;
 
+    ASSERT((m_write_index&1)==0);
+    Output *output=&m_output[m_write_index];
+
+    output[0].fg=m_fg;
+    output[1].fg=m_fg;
+
     uint16_t data0,data1;
 
     if(value<32) {
@@ -217,12 +223,12 @@ void SAA5050::Byte(uint8_t value,uint8_t dispen) {
 
         case 0x08:
             // Flash
-            m_flash=m_frame_flash;
+            m_text_visible=m_frame_flash_visible;
             break;
 
         case 0x09:
             //Steady
-            m_flash=true;
+            m_text_visible=true;
             break;
 
         case 0x0a:
@@ -322,7 +328,7 @@ void SAA5050::Byte(uint8_t value,uint8_t dispen) {
         //ASSERT(offset<TELETEXT_CHARSET_SIZE);
         uint8_t glyph_raster=(m_raster+m_raster_offset)>>m_raster_shift;
 
-        if(glyph_raster<20&&m_flash&&!m_conceal) {
+        if(glyph_raster<20&&m_text_visible&&!m_conceal) {
             data0=teletext_font[1][m_charset][value-32][glyph_raster];
             data1=teletext_font[1][m_charset][value-32][glyph_raster+(1>>m_raster_shift)];
         } else {
@@ -354,17 +360,12 @@ void SAA5050::Byte(uint8_t value,uint8_t dispen) {
         data1=0;
     }
 
-    ASSERT((m_write_index&1)==0);
-    Output *output=&m_output[m_write_index];
-
-    output->fg=m_fg;
     output->bg=m_bg;
     output->data0=(uint8_t)data0;
     output->data1=(uint8_t)data1;
 
     ++output;
 
-    output->fg=m_fg;
     output->bg=m_bg;
     output->data0=(uint8_t)(data0>>6);
     output->data1=(uint8_t)(data1>>6);
@@ -401,7 +402,7 @@ void SAA5050::StartOfLine() {
     m_last_graphics_data0=0;
     m_last_graphics_data1=0;
     m_hold=false;
-    m_flash=true;
+    m_text_visible=true;
     m_raster_shift=0;
 
     m_read_index=0;
@@ -438,11 +439,11 @@ void SAA5050::VSync() {
     m_raster=0;
 
     ++m_frame;
-    if(m_frame>=FRAMES_PER_SECOND) {
+    if(m_frame>=NUM_FLASH_CYCLE_FRAMES) {
         m_frame=0;
     }
 
-    m_frame_flash=m_frame<NUM_FLASH_OFF_FRAMES;
+    m_frame_flash_visible=m_frame>=NUM_FLASH_OFF_FRAMES;
 
     m_any_double_height=false;
     m_raster_offset=0;

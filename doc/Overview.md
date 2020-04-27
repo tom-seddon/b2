@@ -37,6 +37,8 @@ Shift+0 gives you `)` and so on. `Default UK` is for UK-style
 keyboards, and `Default US` is for US-style keyboards. For US-style
 keyboards, press ` to get the pound sign.
   
+To get BBC Copy, use PC End (fn+Cursor Right on a Macbook Pro).
+  
 ## Save states
 
 Use `File` > `Save state` to save your place, and `File` > `Load last
@@ -125,59 +127,65 @@ dialog, showing a map of the BBC keyboard. Hover over a key to see
 which PC keys correspond to it. (For character maps, some keys have
 two parts, mapped separately.)
 
+The BBC keyboard map always shows the Master 128 keypad, but these
+mappings only get used in Master 128 mode.
+
 Each keymap has its own section, though initially only the active
 keymap is shown. Click the little disclosure arrow thing to reveal the
 others.
 
-The default keymaps are read-only. Click the `Copy` button to make a
-modifiable copy, which you can give a name. It will appear in the
-`Keymap` submenu along with the others.
-
-(To create a new positional map, copy one of the positional maps; to
-create a new character map, copy one of the character maps.)
-
-(The BBC keyboard map always shows the Master 128 keypad, but this
-only has an effect in Master 128 mode.)
+To make a new keymap, click the `New` button at the top of the list
+and select the keymap to copy. The four default keymaps are always
+included in the list, so you can get them back even if you've deleted
+them.
 
 Each keymap also has a `Prioritize command keys` checkbox, which is
 the setting for the `Edit` > `Prioritize command keys` option (see
 above) when the keymaps is first selected. (You can use the menu item
 to change it afterwards.)
 
-## Customize configurations
+## Customize configs
 
-`Tools` > `Configurations` lets you customize the configurations list.
+The default configs include several types of BBC B (with different
+disk interfaces), B+, B+128, Master 128 with MOS 3.20 and Master 128
+with MOS 3.50. `Tools` > `Configs` lets you edit this list and choose
+what each config includes - ROMs, sideways RAM status, and extra
+hardware.
 
-To create a new config, use the `Copy` button to copy an existing one
-that has the disc interface you want. You can give it a name.
+Click the `...` button next to a sideways ROM slot/OS ROM to select
+the ROM image. You can load a file off disk, or choose one of the
+various standard ROMs that are supplied with the emulator.
 
-Click the `...` button next to each ROM slot to load the ROM image for
-that slot.
+Tick the box in the RAM column to make that sideways slot writeable.
 
-Check the box in the RAM column to make that sideways slot writeable.
+There are two items of optional hardware:
 
-To add a new ROM slot, use one of the `Add ROM` buttons and select a
-file.
+- Check the `External memory` box to add a 16MByte paged RAM 1MHz bus
+  device. Paging registers are at &FC00 (LSB) and &FC01 (MSB), and the
+  corresponding page of the memory appears in page &FD.
+  
+  (The external RAM can't be enabled in conjunction with the Opus
+  Challenger disc interface, as both devices use page &FD.)
+  
+- Tick the `BeebLink` box to add an emulated
+  [BeebLink](https://github.com/tom-seddon/beeblink) widget to the
+  emulated user port. For more details, see the
+  [BeebLink notes](./BeebLink.md).
+  
+- Tick the `Video NuLA` box to add a
+  [Video NuLA](https://www.stardot.org.uk/forums/viewtopic.php?f=3&t=12150).
+  (This is ticked by default, as it's very unlikely to cause a
+  problem.)
 
-To add a new sideways RAM slot, use one of the `Add RAM` buttons.
-Sideways RAM slots are by default empty but you can use the `...`
-button to load a ROM image on startup.
+Changes to a configuration don't affect the running Beeb until you do
+a `File` > `Hard Reset`, `File` > `Configuration`, or click that
+configuration's `Use` button (which is equivalent to selecting that
+configuration and doing a hard reset).
 
-### External memory
-
-Check the `External memory` box to add a 16MByte paged RAM 1MHz bus
-device. Paging registers are at &FC00 (LSB) and &FC01 (MSB), and the
-corresponding page of the memory appears in page &FD.
-
-(The external RAM can't be enabled in conjunction with the Opus
-Challenger disc interface, as both devices use page &FD.)
-
-### BeebLink
-
-Tick the `BeebLink` box to add an emulated
-[BeebLink](https://github.com/tom-seddon/beeblink) widget to the
-emulated user port. For more details, see the
-[BeebLink notes](./BeebLink.md).
+To create a new configuration, click the `New` button, and select
+which configuration to copy the new one from. (The default
+configurations are always included in this list, so you can get them
+back even if you delete them.)
 
 ## Non-volatile RAM
 
@@ -187,9 +195,9 @@ non-volatile RAM state to the config file, so it'll be restored on the
 next run.
 
 Use `Tools` > `Reset default NVRAM` to reset to default settings.
-(This may be preferable to using the MOS's reset functionality, should
-it be needed, because these default settings aren't completely
-useless...)
+(This may be preferable to using MOS 3.20's reset functionality,
+should it be needed, because the MOS resets the CMOS to fairly useless
+values.)
 
 The saved contents will also be restored on the next `File` > `Hard
 reset`, or when using `File` > `Change config' to change to a Master

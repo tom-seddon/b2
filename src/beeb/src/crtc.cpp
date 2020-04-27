@@ -97,7 +97,7 @@ void CRTC::WriteData(void *c_,M6502Word a,uint8_t value) {
 
     uint16_t reg=CRTC_REGISTERS[c->m_address];
     if(reg&CrtcRegister_CanWrite) {
-        TRACEF_IF(c->m_trace_scanlines,c->m_trace,"6845 - %u - R%u was %u ($%02x), now %u ($%02x)",c->m_num_updates,c->m_address,c->m_registers.values[c->m_address],c->m_registers.values[c->m_address],value&reg,value&reg);
+        TRACEF_IF(c->m_trace_scanlines,c->m_trace,"6845 - %u - R%u was %u ($%02x), now %u ($%02x)",c->m_st.num_updates,c->m_address,c->m_registers.values[c->m_address],c->m_registers.values[c->m_address],value&reg,value&reg);
 
         c->m_registers.values[c->m_address]=value&reg;
     }
@@ -107,220 +107,268 @@ void CRTC::WriteData(void *c_,M6502Word a,uint8_t value) {
 //////////////////////////////////////////////////////////////////////////
 
 CRTC::Output CRTC::Update() {
-    // these just need to go somewhere...
-    CHECK_SIZEOF(RegisterBits,18);
-    CHECK_SIZEOF(Registers,18);
-    CHECK_SIZEOF(R3,1);
-    CHECK_SIZEOF(R8,1);
-    CHECK_SIZEOF(R10,1);
-    CHECK_SIZEOF(Output,4);
+    ++m_st.num_updates;
+    
+    // Handle hsync.
+    if(m_st.hsync_counter>=0) {
+        ++m_st.hsync_counter;
+        m_st.hsync_counter&=0xf;
 
-    ++m_num_updates;
-
-    // The interlace delay counter appears to be special.
-    if(m_interlace_delay_counter>=0) {
-        ++m_interlace_delay_counter;
-        if(m_interlace_delay_counter!=1+(m_registers.values[0]>>1)) {
-            return {};
+        if(m_st.hsync_counter==m_registers.bits.nsw.bits.wh) {
+            m_st.hsync_counter=-1;
         }
-
-        TRACEF_IF(m_trace_scanlines,m_trace,"6845 - %u - interlace delay counter done.",m_num_updates);
-        m_interlace_delay_counter=-1;
     }
 
-    // Horizontal sync counter.
-    if(m_hsync_counter>=0) {
-        ++m_hsync_counter;
-        if(m_hsync_counter==m_registers.bits.nsw.bits.wh) {
-            m_hsync_counter=-1;
+    // Handle end of horizontal displayed.
+    if(m_st.column==m_registers.values[1]) {
+        // Latch next line address in case we are in the last line of a
+        // character row.
+        m_st.next_line_addr=m_st.char_addr;
+
+        m_st.hdisp=false;
+    }
+
+    // The last column never displays.
+    if(m_st.column==m_registers.values[0]) {
+        m_st.hdisp=false;
+    }
+
+    // Initiate hsync.
+    if(m_st.column==m_registers.values[2]) {
+        if(m_st.hsync_counter<0) {
+            m_st.hsync_counter=0;
         }
+    }
+
+    // Handle vsync.
+    bool half_r0_hit=m_st.column==(m_registers.values[0]>>1);
+    bool is_vsync_point=!m_registers.bits.r8.bits.s||!m_st.do_even_frame_logic||half_r0_hit;
+    bool vsync_ending=false;
+    bool vsync_starting=false;
+
+    if(m_st.vsync_counter==m_registers.bits.nsw.bits.wv&&is_vsync_point) {
+        vsync_ending=true;
+        m_st.vsync_counter=-1;
+    }
+
+    if(m_st.row==m_registers.values[7]&&m_st.vsync_counter<0&&!m_st.had_vsync_this_row&&is_vsync_point) {
+        vsync_starting=true;
+    }
+
+    // A vsync will initiate at any character and scanline position, provided
+    // there isn't one in progress and provided there wasn't already one in
+    // this character row.
+    if(vsync_starting&&!vsync_ending) {
+        m_st.had_vsync_this_row=true;
+        m_st.vsync_counter=0;
+    }
+
+    M6502Word used_char_addr=m_st.char_addr;
+
+    Output output;
+
+    output.address=used_char_addr.w;
+    output.raster=m_st.raster;
+
+    // CRTC MA always increments, display or not.
+    ++m_st.char_addr.w;
+
+    // The Hitachi 6845 decides to end (or never enter) vertical adjust here,
+    // one clock after checking whether to enter vertical adjust.
+    if(m_st.check_vadj) {
+        m_st.check_vadj=false;
+        if(m_st.end_of_main_latched) {
+            if(m_st.vadj_counter==m_registers.values[5]) {
+                m_st.end_of_vadj_latched=true;
+            }
+
+            ++m_st.vadj_counter;
+            m_st.vadj_counter&=0x1f;
+        }
+    }
+
+    // The Hitachi 6845 appears to latch some form of "last scanline of the
+    // frame" state.
+    if(m_st.column==1) {
+        if(m_st.row==m_registers.values[4]) {
+            if(m_st.raster==m_registers.values[9]) {
+                m_st.end_of_main_latched=true;
+                m_st.vadj_counter=0;
+            }
+        }
+
+        m_st.check_vadj=true;
+    }
+
+    // Handle horizontal total.
+    if(m_st.column==m_registers.values[0]) {
+        TRACEF_IF(m_trace_scanlines,m_trace,"6845 - %u - end of scanline",m_st.num_updates);
+        this->EndOfScanline();
+
+        m_st.column=0;
+        m_st.hdisp=true;
     } else {
-        if(m_column==m_registers.values[2]) {
-            m_hsync_counter=0;
-        }
-    }
-
-    // Vertical displayed.
-    if(m_row==m_registers.values[6]) {
-        m_vdisp=false;
-    }
-
-    // Handle column 0.
-    if(m_column==0) {
-        if(m_vsync_counter>=0) {
-            ++m_vsync_counter;
-
-            uint8_t wv=m_registers.bits.nsw.bits.wv;
-            if(wv==0) {
-                wv=16;
-            }
-
-            if(m_vsync_counter==wv) {
-                m_vsync_counter=-1;
-            }
-        } else if(m_row==m_registers.values[7]&&m_raster==0) {
-            m_vsync_counter=0;
-            m_num_updates=0;
-
-            if(m_registers.bits.r8.bits.s) {
-                m_interlace_delay_counter=0;
-                return {};
-            }
-        }
-
-        TRACEF_IF(m_trace_scanlines,m_trace,"6845 - %u - start of scanline: CRTC addr: $%04X; raster: %u; row: %u; vsync_counter: %d; adj counter: %d",m_num_updates,m_line_addr.w,m_raster,m_row,m_vsync_counter,m_adj_counter);
-    }
-
-    // Horizontal displayed.
-    if(m_column==m_registers.values[1]) {
-        m_hdisp=false;
-
-        // The 6845 appears to do this at this point - try, e.g.,
-        // MODE1:?&FE00=1:?&FE01=128
-        if(m_raster==m_registers.values[9]) {
-            m_line_addr.w+=m_registers.values[1];
-            m_char_addr.w=m_line_addr.w;
-        }
-    }
-
-    // Produce output.
-    Output output={};
-
-    output.vsync=m_vsync_counter>=0;
-    output.hsync=m_hsync_counter>=0&&!output.vsync;
-    output.address=m_char_addr.w;
-
-    if(m_adj_counter<0) {
-        if(m_row==m_registers.values[4]&&m_raster==m_registers.values[9]) {
-            m_adj_counter=0;
-        }
-    }
-
-    // Handle column N-1.
-    if(m_column==m_registers.values[0]) {
-        TRACEF_IF(m_trace_scanlines,m_trace,"6845 - %u - end of scanline: raster: %u (R9=%u); row: %u (R4=%u); vsync_counter: %d; adj counter: %d",m_num_updates,m_raster,m_registers.values[9],m_row,m_registers.values[4],m_vsync_counter,m_adj_counter);
-
-#if BBCMICRO_TRACE
-        if(m_trace) {
-            if(m_trace_scanlines_separators) {
-                m_trace->AllocBlankLineEvent();
-            }
-        }
-#endif
-
-        m_hdisp=true;
-
-        if(m_raster==m_registers.values[9]) {
-        next_row:
-            m_raster=0;
-            ++m_row;
-        } else {
-            if(m_registers.bits.r8.bits.v&&m_registers.bits.r8.bits.s) {
-                // Interlace sync and video
-
-                // Judging by MODE7:?&FE00=9:?&FE01=17, the real hardware
-                // must do something similar?
-                if(m_raster+1==m_registers.values[9]) {
-                    goto next_row;
-                }
-
-                m_raster+=2;
-            } else {
-                // Interlace sync, no interlace
-                ++m_raster;
-            }
-
-            m_raster&=RASTER_MASK;
-        }
-
-        m_column=0;
-        m_char_addr=m_line_addr;
-
-        if(m_adj_counter>=0) {
-            if(m_adj_counter==m_registers.values[5]) {
-                m_line_addr.b.h=m_registers.values[12];
-                m_line_addr.b.l=m_registers.values[13];
-
-                m_char_addr=m_line_addr;
-
-                m_adj_counter=-1;
-                m_row=0;
-                m_raster=0;
-                m_vdisp=true;
-                m_hdisp=true;
-                m_column=0;
-                ++m_num_frames;
-
-                TRACEF(m_trace,"6845 - %u - start of frame. CRTC address: $%04X",m_num_updates,m_line_addr.w);
-            } else {
-                ++m_adj_counter;
-            }
-        }
-
-        // Display is never produced in the last column.
-    } else {
-        if(m_hdisp&&m_vdisp) {
+        if(m_st.hdisp&&m_st.vdisp) {
             if(m_registers.bits.r8.bits.d!=3) {
-                m_skewed_display|=1<<m_registers.bits.r8.bits.d;
+                m_st.skewed_display|=1<<m_registers.bits.r8.bits.d;
             }
-            
-            if(m_char_addr.b.h==m_registers.bits.cursorh&&
-               m_char_addr.b.l==m_registers.bits.cursorl&&
-               m_raster>=m_registers.bits.ncstart.bits.start&&
-               m_raster<m_registers.bits.ncend&&
-               m_registers.bits.r8.bits.c!=3)
+
+            if(used_char_addr.b.h==m_registers.bits.cursorh&&
+               used_char_addr.b.l==m_registers.bits.cursorl)
             {
+                if(m_st.raster==m_registers.bits.ncstart.bits.start) {
+                    m_st.cursor=true;
+                }
+
+                if(m_st.raster==m_registers.bits.ncend) {
+                    m_st.cursor=false;
+                }
+            } else {
+                m_st.cursor=false;
+            }
+
+            if(m_st.cursor) {
                 switch((CRTCCursorMode)m_registers.bits.ncstart.bits.mode) {
-                    case CRTCCursorMode_On:
-                        m_skewed_cudisp|=1<<m_registers.bits.r8.bits.c;
-                        break;
+                case CRTCCursorMode_On:
+                    m_st.skewed_cudisp|=1<<m_registers.bits.r8.bits.c;
+                    break;
 
-                    case CRTCCursorMode_Off:
-                        break;
+                case CRTCCursorMode_Off:
+                    break;
 
-                    case CRTCCursorMode_Blink16:
-                        // 8 frames on, 8 frames off
-                        if((m_num_frames&8)!=0) {
-                            m_skewed_cudisp|=1<<m_registers.bits.r8.bits.c;
-                        }
-                        break;
+                case CRTCCursorMode_Blink16:
+                    // 8 frames on, 8 frames off
+                    if((m_num_frames&8)!=0) {
+                        m_st.skewed_cudisp|=1<<m_registers.bits.r8.bits.c;
+                    }
+                    break;
 
-                    case CRTCCursorMode_Blink32:
-                        // 16 frames on, 16 frames off
-                        if((m_num_frames&16)!=0) {
-                            m_skewed_cudisp|=1<<m_registers.bits.r8.bits.c;
-                        }
-                        break;
+                case CRTCCursorMode_Blink32:
+                    // 16 frames on, 16 frames off
+                    if((m_num_frames&16)!=0) {
+                        m_st.skewed_cudisp|=1<<m_registers.bits.r8.bits.c;
+                    }
+                    break;
                 }
             }
-
         }
 
-        output.raster=m_raster;
-        ASSERT(output.raster==m_raster);
-
-        output.display=m_skewed_display&1;
-        m_skewed_display>>=1;
-
-        output.cudisp=m_skewed_cudisp&1;
-        m_skewed_cudisp>>=1;
-
-        ++m_char_addr.w;
-        
-        ++m_column;
+        ++m_st.column;
+        //TRACEF_IF(m_trace_scanlines,m_trace,"6845 - %u - column=%u",m_st.column);
     }
 
+    // Handle end of vertical displayed.
+    bool r6_hit=m_st.row==m_registers.values[6];
+    if(r6_hit&&!m_st.first_scanline&&m_st.vdisp) {
+        m_st.vdisp=false;
 
-
-    // Vertical.
-    if(m_vdisp) {
-        if(m_row==m_registers.values[6]) {
-            TRACEF(m_trace,"6845 - %u - end of visible display.",m_num_updates);
-            m_vdisp=false;
-        }
+        ++m_num_frames;
     }
+
+    bool r7_hit=m_st.row==m_registers.values[7];
+
+    if(r6_hit||r7_hit) {
+        m_st.do_even_frame_logic=!!(m_num_frames&1);
+    }
+
+    output.display=m_st.skewed_display&1;
+    m_st.skewed_display>>=1;
+
+    output.cudisp=m_st.skewed_cudisp&1;
+    m_st.skewed_cudisp>>=1;
+
+    output.hsync=m_st.hsync_counter>=0;
+    output.vsync=m_st.vsync_counter>=0;
 
     return output;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void CRTC::EndOfFrame() {
+    m_st.row=0;
+    m_st.first_scanline=true;
+    m_st.next_line_addr.b.l=m_registers.values[13];
+    m_st.next_line_addr.b.h=m_registers.values[12];
+    m_st.line_addr=m_st.next_line_addr;
+    m_st.vdisp=true;
+    m_st.hdisp=false;
+    if(m_st.vsync_counter<0) {
+        m_st.do_even_frame_logic=false;
+    }
+}
+
+void CRTC::EndOfRow() {
+    ++m_st.row;
+
+    m_st.raster=0;
+    m_st.had_vsync_this_row=false;
+}
+
+void CRTC::EndOfScanline() {
+    m_st.first_scanline=false;
+
+    if(m_st.vsync_counter>=0) {
+        ++m_st.vsync_counter;
+        m_st.vsync_counter&=0xf;
+    }
+
+    // Increment scanline and check R9.
+    bool r9_hit;
+    if(m_registers.bits.r8.bits.s&&m_registers.bits.r8.bits.v) {
+        // Judging by MODE7:?&FE00=9:?&FE01=17, the real hardware
+        // must do something similar when comparing?
+        r9_hit=(m_st.raster>>1)==(m_registers.values[9]>>1);
+
+        m_st.raster+=2;
+    } else {
+        r9_hit=m_st.raster==m_registers.values[9];
+
+        ++m_st.raster;
+    }
+    m_st.raster&=RASTER_MASK;
+
+    if(r9_hit) {
+        m_st.line_addr=m_st.next_line_addr;
+    }
+
+    if(!m_st.in_vadj&&r9_hit) {
+        this->EndOfRow();
+    }
+
+    if(m_st.end_of_main_latched&&!m_st.end_of_vadj_latched) {
+        m_st.in_vadj=true;
+    }
+
+    bool end_of_frame=false;
+
+    if(m_st.end_of_frame_latched) {
+        end_of_frame=true;
+    }
+
+    if(m_st.end_of_vadj_latched) {
+        m_st.in_vadj=false;
+
+        if(m_registers.bits.r8.bits.s&&m_st.do_even_frame_logic) {
+            m_st.in_dummy_raster=true;
+            m_st.end_of_frame_latched=true;
+        } else {
+            end_of_frame=true;
+        }
+    }
+
+    if(end_of_frame) {
+        m_st.end_of_main_latched=false;
+        m_st.end_of_vadj_latched=false;
+        m_st.end_of_frame_latched=false;
+        m_st.in_dummy_raster=false;
+
+        this->EndOfRow();
+        this->EndOfFrame();
+    }
+
+    m_st.char_addr=m_st.line_addr;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -331,6 +379,14 @@ void CRTC::SetTrace(Trace *t,
                     bool trace_scanlines,
                     bool trace_scanlines_separators)
 {
+    // these just need to go somewhere... anywhere will do...
+    CHECK_SIZEOF(RegisterBits,18);
+    CHECK_SIZEOF(Registers,18);
+    CHECK_SIZEOF(R3,1);
+    CHECK_SIZEOF(R8,1);
+    CHECK_SIZEOF(R10,1);
+    CHECK_SIZEOF(Output,4);
+
     m_trace=t;
     m_trace_scanlines=trace_scanlines;
     m_trace_scanlines_separators=trace_scanlines_separators;

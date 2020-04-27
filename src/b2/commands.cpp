@@ -203,6 +203,8 @@ void CommandTable::RemoveMapping(uint32_t pc_key,Command *command) {
     } else {
         command->m_shortcut=command_it->second[0];
     }
+
+    m_commands_by_pc_key_dirty=true;
 }
 
 //////////////////////////////////////////////////////////////////////////

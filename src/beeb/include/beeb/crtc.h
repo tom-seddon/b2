@@ -122,33 +122,53 @@ private:
         RegisterBits bits;
     };
 
+    struct InternalState {
+        uint8_t column=0;//character column
+        uint8_t row=0;//character row
+        uint8_t raster=0;//scanline in character
+        int8_t vsync_counter=-1;//vsync counter
+        int8_t hsync_counter=-1;//hsync counter
+        int8_t vadj_counter=-1;
+        //    //bool adj=false;//set if in the adjustment period
+        bool hdisp=true;
+        bool vdisp=true;
+        M6502Word line_addr={};
+        M6502Word next_line_addr={};
+        M6502Word char_addr={};
+        uint32_t num_updates=0;
+        uint8_t skewed_display=0;
+        uint8_t skewed_cudisp=0;
+        bool check_vadj=false;
+        bool in_vadj=false;
+        bool end_of_vadj_latched=false;
+        bool had_vsync_this_row=false;
+        bool end_of_main_latched=false;
+        bool do_even_frame_logic=false;
+        bool first_scanline=false;
+        bool in_dummy_raster=false;
+        bool end_of_frame_latched=false;
+        bool cursor=false;
+    };
+
     Registers m_registers={};
     uint8_t m_address=0;
+    InternalState m_st;
 
     // incremented on each field - used for even/odd and cursor blink
     // timing, so wraparound is no problem
     uint8_t m_num_frames=0;
-    int m_interlace_delay_counter=-1;
-    uint8_t m_column=0;//character column
-    uint8_t m_row=0;//character row
-    uint8_t m_raster=0;//scanline in character
-    int8_t m_vsync_counter=-1;//vsync counter
-    int8_t m_hsync_counter=-1;//hsync counter
-    int8_t m_adj_counter=-1;
-    //bool m_adj=false;//set if in the adjustment period
-    bool m_hdisp=true;
-    bool m_vdisp=true;
-    M6502Word m_line_addr={};
-    M6502Word m_char_addr={};
-    uint32_t m_num_updates=0;
-    uint8_t m_skewed_display=0;
-    uint8_t m_skewed_cudisp=0;
+
+//    int m_interlace_delay_counter=-1;
 
 #if BBCMICRO_TRACE
     Trace *m_trace=nullptr;
     bool m_trace_scanlines=false;
     bool m_trace_scanlines_separators=false;
 #endif
+
+    void EndOfFrame();
+    void EndOfRow();
+    void EndOfScanline();
 
 #if BBCMICRO_DEBUGGER
     friend class CRTCDebugWindow;

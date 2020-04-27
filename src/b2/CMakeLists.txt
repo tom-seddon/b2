@@ -4,52 +4,52 @@ cmake_minimum_required(VERSION 3.5)
 ##########################################################################
 
 add_executable(b2 MACOSX_BUNDLE
-  b2.cpp b2.h b2.inl
-  BeebThread.cpp BeebThread.h BeebThread.inl BeebThread_private.inl
-  BeebWindows.cpp BeebWindows.h 
-  dear_imgui.cpp dear_imgui.h
-  download.h
-  filters.cpp filters.h
-  MemoryDiscImage.cpp MemoryDiscImage.h
-  misc.cpp misc.h
-  native_ui.cpp native_ui.h
-  Remapper.cpp Remapper.h
-  TVOutput.cpp TVOutput.h TVOutput.inl
-  keymap.cpp keymap.h
-  conf.cpp conf.h
-  keys.cpp keys.h keys.inl
-  BeebState.cpp BeebState.h
-  JobQueue.cpp JobQueue.h
-  GenerateThumbnailJob.cpp GenerateThumbnailJob.h
-  BeebWindow.cpp BeebWindow.h BeebWindow.inl
-  TimelineUI.cpp TimelineUI.h
-  load_save.cpp load_save.h load_save.inl
-  Messages.cpp Messages.h
-  ConfigsUI.cpp ConfigsUI.h
   BeebConfig.cpp BeebConfig.h
-  KeymapsUI.cpp KeymapsUI.h
-  MessagesUI.cpp MessagesUI.h
-  TraceUI.cpp TraceUI.h TraceUI.inl
-  DataRateUI.cpp DataRateUI.h
-  VideoWriter.cpp VideoWriter.h
-  WriteVideoJob.cpp WriteVideoJob.h
-  VBlankMonitor.cpp VBlankMonitor.h
-  VBlankMonitorDefault.cpp VBlankMonitorDefault.h
-  MessageQueue.cpp MessageQueue.h
   BeebKeymap.cpp BeebKeymap.h
-  commands.cpp commands.h
-  CommandKeymapsUI.cpp CommandKeymapsUI.h
-  SettingsUI.cpp SettingsUI.h
-  DearImguiTestUI.cpp DearImguiTestUI.h
-  debugger.cpp debugger.h debugger.inl
-  HTTPServer.cpp HTTPServer.h
-  HTTPMethodsHandler.cpp HTTPMethodsHandler.h
-  DiscGeometry.cpp DiscGeometry.h
-  DirectDiscImage.cpp DirectDiscImage.h
-  SavedStatesUI.cpp SavedStatesUI.h
-  ThumbnailsUI.cpp ThumbnailsUI.h ThumbnailsUI_private.inl
   BeebLinkHTTPHandler.cpp BeebLinkHTTPHandler.h
   BeebLinkUI.cpp BeebLinkUI.h
+  BeebState.cpp BeebState.h
+  BeebThread.cpp BeebThread.h BeebThread.inl BeebThread_private.inl
+  BeebWindow.cpp BeebWindow.h BeebWindow.inl
+  BeebWindows.cpp BeebWindows.h 
+  CommandKeymapsUI.cpp CommandKeymapsUI.h
+  ConfigsUI.cpp ConfigsUI.h
+  DataRateUI.cpp DataRateUI.h
+  DearImguiTestUI.cpp DearImguiTestUI.h
+  DirectDiscImage.cpp DirectDiscImage.h
+  DiscGeometry.cpp DiscGeometry.h
+  GenerateThumbnailJob.cpp GenerateThumbnailJob.h
+  HTTPMethodsHandler.cpp HTTPMethodsHandler.h
+  HTTPServer.cpp HTTPServer.h
+  JobQueue.cpp JobQueue.h
+  KeymapsUI.cpp KeymapsUI.h
+  MemoryDiscImage.cpp MemoryDiscImage.h
+  MessageQueue.cpp MessageQueue.h
+  Messages.cpp Messages.h
+  MessagesUI.cpp MessagesUI.h
+  Remapper.cpp Remapper.h
+  SavedStatesUI.cpp SavedStatesUI.h
+  SettingsUI.cpp SettingsUI.h
+  ThumbnailsUI.cpp ThumbnailsUI.h ThumbnailsUI_private.inl
+  TimelineUI.cpp TimelineUI.h
+  TraceUI.cpp TraceUI.h TraceUI.inl
+  VBlankMonitor.cpp VBlankMonitor.h
+  VBlankMonitorDefault.cpp VBlankMonitorDefault.h
+  VideoWriter.cpp VideoWriter.h
+  WriteVideoJob.cpp WriteVideoJob.h
+  b2.cpp b2.h b2.inl
+  commands.cpp commands.h
+  conf.cpp conf.h
+  dear_imgui.cpp dear_imgui.h
+  debugger.cpp debugger.h debugger.inl
+  download.h
+  filters.cpp filters.h
+  keymap.cpp keymap.h
+  keys.cpp keys.h keys.inl
+  load_save.cpp load_save.h load_save.inl
+  misc.cpp misc.h
+  native_ui.cpp native_ui.h
+  roms.cpp roms.h roms.inl
   )
 
 if(OSX)

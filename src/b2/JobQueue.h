@@ -34,10 +34,10 @@ public:
     
         virtual void ThreadExecute()=0;
     protected:
-        Job(const Job &)=default;
-        Job &operator=(const Job &)=default;
-        Job(Job &&)=default;
-        Job &operator=(Job &&)=default;
+        Job(const Job &)=delete;
+        Job &operator=(const Job &)=delete;
+        Job(Job &&)=delete;
+        Job &operator=(Job &&)=delete;
     private:
         mutable std::atomic<bool> m_running{false};
         mutable std::atomic<bool> m_canceled{false};

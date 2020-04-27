@@ -10,14 +10,8 @@
 
 #if BBCMICRO_TRACE
 const TraceEventType SN76489::WRITE_EVENT("SN76489WriteEvent",sizeof(WriteEvent));
+const TraceEventType SN76489::UPDATE_EVENT("SN76489UpdateEvent",sizeof(UpdateEvent));
 #endif
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-const uint16_t SN76489::NOISE0=0x10;
-const uint16_t SN76489::NOISE1=0x20;
-const uint16_t SN76489::NOISE2=0x40;
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -31,7 +25,6 @@ SN76489::SN76489() {
 
 void SN76489::Reset(bool tone) {
     m_state=State();
-    m_state.noise_seed=1<<14;
 
     if(!tone) {
         for(size_t i=0;i<4;++i) {
@@ -107,9 +100,26 @@ SN76489::Output SN76489::Update(bool write,uint8_t value) {
                 }
             }
 
-            channel->counter=*m_noise_pointers[channel->values.freq&3];
-            if(channel->counter==0) {
-                channel->counter=1024;
+            switch(channel->values.freq&3) {
+            case 3:
+                channel->counter=m_state.channels[2].values.freq;
+
+                if(channel->counter==0) {
+                    channel->counter=1024;
+                }
+                break;
+
+            case 2:
+                channel->counter=0x40;
+                break;
+
+            case 1:
+                channel->counter=0x20;
+                break;
+
+            case 0:
+                channel->counter=0x10;
+                break;
             }
         }
 
@@ -169,6 +179,19 @@ SN76489::Output SN76489::Update(bool write,uint8_t value) {
             }
         }
     }
+
+#if BBCMICRO_TRACE
+
+    // Not generally advisable, but it's here when I need it.
+
+//    if(m_trace) {
+//        auto ev=(UpdateEvent *)m_trace->AllocEvent(UPDATE_EVENT);
+//
+//        ev->state=m_state;
+//        ev->output=output;
+//    }
+
+#endif
 
     return output;
 }

@@ -44,6 +44,14 @@ public:
         ControlBits bits;
     };
 
+    // The NuLA/non-NuLA differences are handled by simply never mapping the
+    // NuLA control registers in non-NuLA. This flag exists just so the debug
+    // window can query it and hide the NuLA state.
+    //
+    // (Eventually, maybe the slightly different NuLA cursor handling should
+    // be handled.)
+    bool nula=false;
+
     Control control={};
 
     static void WriteControlRegister(void *ula,M6502Word a,uint8_t value);

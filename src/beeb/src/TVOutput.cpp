@@ -1,20 +1,21 @@
 #include <shared/system.h>
-#include "TVOutput.h"
+#include <beeb/TVOutput.h>
 #include <beeb/OutputData.h>
 #include <shared/debug.h>
 #include <string.h>
 #include <stdlib.h>
 #include <beeb/video.h>
-#include <SDL.h>
-#include "misc.h"
-#include "conf.h"
+//#include <SDL.h>
+//#include "misc.h"
+//#include "conf.h"
 #include <shared/log.h>
+#include <math.h>
 
 #include <shared/enum_def.h>
-#include "TVOutput.inl"
+#include <beeb/TVOutput.inl>
 #include <shared/enum_end.h>
 
-LOG_EXTERN(OUTPUT);
+//LOG_EXTERN(OUTPUT);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -26,22 +27,17 @@ TVOutput::TVOutput() {
 //////////////////////////////////////////////////////////////////////////
 
 TVOutput::~TVOutput() {
-    if(m_pixel_format) {
-        SDL_FreeFormat(m_pixel_format);
-        m_pixel_format=nullptr;
-    }
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool TVOutput::InitTexture(const SDL_PixelFormat *pixel_format) {
-    if(pixel_format->BytesPerPixel!=4) {
-        return false;
-    }
+void TVOutput::Init(uint32_t r_shift,uint32_t g_shift,uint32_t b_shift) {
+    m_r_shift=r_shift;
+    m_g_shift=g_shift;
+    m_b_shift=b_shift;
 
-    ASSERT(!m_pixel_format);
-    m_pixel_format=ClonePixelFormat(pixel_format);
+    ASSERT((0xffu<<m_r_shift&0xffu<<m_g_shift&0xffu<<m_b_shift)==0);
 
     m_texture_pixels.resize(TV_TEXTURE_WIDTH*TV_TEXTURE_HEIGHT);
 #if VIDEO_TRACK_METADATA
@@ -49,8 +45,6 @@ bool TVOutput::InitTexture(const SDL_PixelFormat *pixel_format) {
 #endif
 
     this->InitPalette();
-
-    return true;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -78,10 +72,6 @@ static const int SCANLINE_CYCLES=HORIZONTAL_RETRACE_CYCLES+BACK_PORCH_CYCLES+SCA
 static_assert(SCANLINE_CYCLES==128,"one scanline must be 64us");
 static const int VERTICAL_RETRACE_SCANLINES=12;
 
-// HEIGHT_SCALE will go away, when I get a moment to do it.
-static const int HEIGHT_SCALE=2;
-static_assert(HEIGHT_SCALE==2,"");
-
 // If this many lines are scanned without a vertical retrace, the TV
 // retraces anyway.
 //
@@ -94,7 +84,7 @@ static_assert(HEIGHT_SCALE==2,"");
 // 500 seems OK. It doesn't have to be perfect, just something that
 // means emulated TV output keeps going when there's no CRTC vsync
 // output...
-static const int MAX_NUM_SCANNED_LINES=500*HEIGHT_SCALE;
+static const int MAX_NUM_SCANNED_LINES=500;
 
 #define NOTHING_PALETTE_INDEX (0)
 
@@ -109,42 +99,54 @@ void TVOutput::Update(const VideoDataUnit *units,size_t num_units) {
 
     for(size_t i=0;i<num_units;++i,++unit) {
         switch(m_state) {
-            default:
-                ASSERT(0);
-                break;
+        default:
+            ASSERT(0);
+            break;
 
-            case TVOutputState_VerticalRetrace:
-                ++m_num_fields;
-                m_state=TVOutputState_VerticalRetraceWait;
-                m_x=0;
+        case TVOutputState_VerticalRetrace:
+            // With interlaced output, odd fields start 1 scanline lower.
+            //
+            // If interlace flag off: draw odd fields at y=0, so they start
+            // (visually speaking) at y=2. Draw even fields at y=0. No
+            // apparent interlace.
+            //
+            // If interlace flag on: draw odd fields at y=0, so they appear to
+            // start at y=2. Draw even fields at y=1. Even fields appear one
+            // half scanline earlier than odd fields.
+            if(m_x>=TV_TEXTURE_WIDTH/2) {
+                // Odd field.
                 m_y=0;
-                m_pixels_line=m_texture_pixels.data();
+            } else {
+                // Even field.
+                if(m_interlace) {
+                    m_y=1;
+                } else {
+                    m_y=2;
+                }
+            }
+
+            ++m_num_fields;
+            m_state=TVOutputState_VerticalRetraceWait;
+            ++m_texture_data_version;
+            m_x=0;
+            m_pixels_line=m_texture_pixels.data()+m_y*TV_TEXTURE_WIDTH;
 #if VIDEO_TRACK_METADATA
-                m_units_line=m_texture_units.data();
+            m_units_line=m_texture_units.data()+m_y*TV_TEXTURE_WIDTH;
 #endif
+            m_state_timer=1;
+            break;
 
-                // "Fun" (translation: brain-eating) fake interlace
-
-                // if(m_num_fields&1) {
-                //     m_line+=m_texture_pitch;
-                //     ++m_y;
-                // }
-
-                m_state_timer=1;
-                break;
-
-            case TVOutputState_VerticalRetraceWait:
+        case TVOutputState_VerticalRetraceWait:
             {
                 // Ignore everything.
                 if(m_state_timer++>=VERTICAL_RETRACE_SCANLINES*SCANLINE_CYCLES) {
-                    ++m_texture_data_version;
                     m_state_timer=0;
                     m_state=TVOutputState_Scanout;
                 }
             }
-                break;
+            break;
 
-            case TVOutputState_Scanout:
+        case TVOutputState_Scanout:
             {
                 if(unit->pixels.pixels[1].bits.x&VideoDataUnitFlag_VSync) {
                     m_state=TVOutputState_VerticalRetrace;
@@ -160,13 +162,13 @@ void TVOutput::Update(const VideoDataUnit *units,size_t num_units) {
                 uint32_t *pixels1;
 
                 switch(unit->pixels.pixels[0].bits.x) {
-                    default:
+                default:
                     {
                         ASSERT(false);
                     }
-                        break;
+                    break;
 
-                    case VideoDataType_Bitmap16MHz:
+                case VideoDataType_Bitmap16MHz:
                     {
                         if(m_x<TV_TEXTURE_WIDTH&&m_y<TV_TEXTURE_HEIGHT) {
                             pixels0=m_pixels_line+m_x;
@@ -205,9 +207,9 @@ void TVOutput::Update(const VideoDataUnit *units,size_t num_units) {
 #endif
                         }
                     }
-                        break;
+                    break;
 
-                    case VideoDataType_Teletext:
+                case VideoDataType_Teletext:
                     {
                         if(m_x<TV_TEXTURE_WIDTH&&m_y<TV_TEXTURE_HEIGHT) {
                             pixels0=m_pixels_line+m_x;
@@ -244,22 +246,22 @@ void TVOutput::Update(const VideoDataUnit *units,size_t num_units) {
                             uint32_t b01=m_bs[p01.bits.b];
 
                             // 011
-                            uint32_t r10=(uint32_t)m_blend[p00.bits.r][p10.bits.r]<<m_rshift;
-                            uint32_t g10=(uint32_t)m_blend[p00.bits.g][p10.bits.g]<<m_gshift;
-                            uint32_t b10=(uint32_t)m_blend[p00.bits.b][p10.bits.b]<<m_bshift;
+                            uint32_t r10=(uint32_t)m_blend[p00.bits.r][p10.bits.r]<<m_r_shift;
+                            uint32_t g10=(uint32_t)m_blend[p00.bits.g][p10.bits.g]<<m_g_shift;
+                            uint32_t b10=(uint32_t)m_blend[p00.bits.b][p10.bits.b]<<m_b_shift;
 
-                            uint32_t r11=(uint32_t)m_blend[p01.bits.r][p11.bits.r]<<m_rshift;
-                            uint32_t g11=(uint32_t)m_blend[p01.bits.g][p11.bits.g]<<m_gshift;
-                            uint32_t b11=(uint32_t)m_blend[p01.bits.b][p11.bits.b]<<m_bshift;
+                            uint32_t r11=(uint32_t)m_blend[p01.bits.r][p11.bits.r]<<m_r_shift;
+                            uint32_t g11=(uint32_t)m_blend[p01.bits.g][p11.bits.g]<<m_g_shift;
+                            uint32_t b11=(uint32_t)m_blend[p01.bits.b][p11.bits.b]<<m_b_shift;
 
                             // 112
-                            uint32_t r20=(uint32_t)m_blend[p20.bits.r][p10.bits.r]<<m_rshift;
-                            uint32_t g20=(uint32_t)m_blend[p20.bits.g][p10.bits.g]<<m_gshift;
-                            uint32_t b20=(uint32_t)m_blend[p20.bits.b][p10.bits.b]<<m_bshift;
+                            uint32_t r20=(uint32_t)m_blend[p20.bits.r][p10.bits.r]<<m_r_shift;
+                            uint32_t g20=(uint32_t)m_blend[p20.bits.g][p10.bits.g]<<m_g_shift;
+                            uint32_t b20=(uint32_t)m_blend[p20.bits.b][p10.bits.b]<<m_b_shift;
 
-                            uint32_t r21=(uint32_t)m_blend[p21.bits.r][p11.bits.r]<<m_rshift;
-                            uint32_t g21=(uint32_t)m_blend[p21.bits.g][p11.bits.g]<<m_gshift;
-                            uint32_t b21=(uint32_t)m_blend[p21.bits.b][p11.bits.b]<<m_bshift;
+                            uint32_t r21=(uint32_t)m_blend[p21.bits.r][p11.bits.r]<<m_r_shift;
+                            uint32_t g21=(uint32_t)m_blend[p21.bits.g][p11.bits.g]<<m_g_shift;
+                            uint32_t b21=(uint32_t)m_blend[p21.bits.b][p11.bits.b]<<m_b_shift;
 
                             // 222
                             uint32_t r30=m_rs[p20.bits.r];
@@ -280,22 +282,22 @@ void TVOutput::Update(const VideoDataUnit *units,size_t num_units) {
                             uint32_t b41=m_bs[p31.bits.b];
 
                             // 344
-                            uint32_t r50=(uint32_t)m_blend[p30.bits.r][p40.bits.r]<<m_rshift;
-                            uint32_t g50=(uint32_t)m_blend[p30.bits.g][p40.bits.g]<<m_gshift;
-                            uint32_t b50=(uint32_t)m_blend[p30.bits.b][p40.bits.b]<<m_bshift;
+                            uint32_t r50=(uint32_t)m_blend[p30.bits.r][p40.bits.r]<<m_r_shift;
+                            uint32_t g50=(uint32_t)m_blend[p30.bits.g][p40.bits.g]<<m_g_shift;
+                            uint32_t b50=(uint32_t)m_blend[p30.bits.b][p40.bits.b]<<m_b_shift;
 
-                            uint32_t r51=(uint32_t)m_blend[p31.bits.r][p41.bits.r]<<m_rshift;
-                            uint32_t g51=(uint32_t)m_blend[p31.bits.g][p41.bits.g]<<m_gshift;
-                            uint32_t b51=(uint32_t)m_blend[p31.bits.b][p41.bits.b]<<m_bshift;
+                            uint32_t r51=(uint32_t)m_blend[p31.bits.r][p41.bits.r]<<m_r_shift;
+                            uint32_t g51=(uint32_t)m_blend[p31.bits.g][p41.bits.g]<<m_g_shift;
+                            uint32_t b51=(uint32_t)m_blend[p31.bits.b][p41.bits.b]<<m_b_shift;
 
                             // 445
-                            uint32_t r60=(uint32_t)m_blend[p50.bits.r][p40.bits.r]<<m_rshift;
-                            uint32_t g60=(uint32_t)m_blend[p50.bits.g][p40.bits.g]<<m_gshift;
-                            uint32_t b60=(uint32_t)m_blend[p50.bits.b][p40.bits.b]<<m_bshift;
+                            uint32_t r60=(uint32_t)m_blend[p50.bits.r][p40.bits.r]<<m_r_shift;
+                            uint32_t g60=(uint32_t)m_blend[p50.bits.g][p40.bits.g]<<m_g_shift;
+                            uint32_t b60=(uint32_t)m_blend[p50.bits.b][p40.bits.b]<<m_b_shift;
 
-                            uint32_t r61=(uint32_t)m_blend[p51.bits.r][p41.bits.r]<<m_rshift;
-                            uint32_t g61=(uint32_t)m_blend[p51.bits.g][p41.bits.g]<<m_gshift;
-                            uint32_t b61=(uint32_t)m_blend[p51.bits.b][p41.bits.b]<<m_bshift;
+                            uint32_t r61=(uint32_t)m_blend[p51.bits.r][p41.bits.r]<<m_r_shift;
+                            uint32_t g61=(uint32_t)m_blend[p51.bits.g][p41.bits.g]<<m_g_shift;
+                            uint32_t b61=(uint32_t)m_blend[p51.bits.b][p41.bits.b]<<m_b_shift;
 
                             // 555
                             uint32_t r70=m_rs[p50.bits.r];
@@ -333,9 +335,9 @@ void TVOutput::Update(const VideoDataUnit *units,size_t num_units) {
 #endif
                         }
                     }
-                        break;
+                    break;
 
-                    case VideoDataType_Bitmap12MHz:
+                case VideoDataType_Bitmap12MHz:
                     {
                         if(m_x<TV_TEXTURE_WIDTH&&m_y<TV_TEXTURE_HEIGHT) {
                             pixels0=m_pixels_line+m_x;
@@ -354,14 +356,14 @@ void TVOutput::Update(const VideoDataUnit *units,size_t num_units) {
                             uint32_t b0=m_bs[p0.bits.b];
 
                             // 011
-                            uint32_t r1=(uint32_t)m_blend[p0.bits.r][p1.bits.r]<<m_rshift;
-                            uint32_t g1=(uint32_t)m_blend[p0.bits.g][p1.bits.g]<<m_gshift;
-                            uint32_t b1=(uint32_t)m_blend[p0.bits.b][p1.bits.b]<<m_bshift;
+                            uint32_t r1=(uint32_t)m_blend[p0.bits.r][p1.bits.r]<<m_r_shift;
+                            uint32_t g1=(uint32_t)m_blend[p0.bits.g][p1.bits.g]<<m_g_shift;
+                            uint32_t b1=(uint32_t)m_blend[p0.bits.b][p1.bits.b]<<m_b_shift;
 
                             // 112
-                            uint32_t r2=(uint32_t)m_blend[p2.bits.r][p1.bits.r]<<m_rshift;
-                            uint32_t g2=(uint32_t)m_blend[p2.bits.g][p1.bits.g]<<m_gshift;
-                            uint32_t b2=(uint32_t)m_blend[p2.bits.b][p1.bits.b]<<m_bshift;
+                            uint32_t r2=(uint32_t)m_blend[p2.bits.r][p1.bits.r]<<m_r_shift;
+                            uint32_t g2=(uint32_t)m_blend[p2.bits.g][p1.bits.g]<<m_g_shift;
+                            uint32_t b2=(uint32_t)m_blend[p2.bits.b][p1.bits.b]<<m_b_shift;
 
                             // 222
                             uint32_t r3=m_rs[p2.bits.r];
@@ -374,14 +376,14 @@ void TVOutput::Update(const VideoDataUnit *units,size_t num_units) {
                             uint32_t b4=m_bs[p3.bits.b];
 
                             // 344
-                            uint32_t r5=(uint32_t)m_blend[p3.bits.r][p4.bits.r]<<m_rshift;
-                            uint32_t g5=(uint32_t)m_blend[p3.bits.g][p4.bits.g]<<m_gshift;
-                            uint32_t b5=(uint32_t)m_blend[p3.bits.b][p4.bits.b]<<m_bshift;
+                            uint32_t r5=(uint32_t)m_blend[p3.bits.r][p4.bits.r]<<m_r_shift;
+                            uint32_t g5=(uint32_t)m_blend[p3.bits.g][p4.bits.g]<<m_g_shift;
+                            uint32_t b5=(uint32_t)m_blend[p3.bits.b][p4.bits.b]<<m_b_shift;
 
                             // 445
-                            uint32_t r6=(uint32_t)m_blend[p5.bits.r][p4.bits.r]<<m_rshift;
-                            uint32_t g6=(uint32_t)m_blend[p5.bits.g][p4.bits.g]<<m_gshift;
-                            uint32_t b6=(uint32_t)m_blend[p5.bits.b][p4.bits.b]<<m_bshift;
+                            uint32_t r6=(uint32_t)m_blend[p5.bits.r][p4.bits.r]<<m_r_shift;
+                            uint32_t g6=(uint32_t)m_blend[p5.bits.g][p4.bits.g]<<m_g_shift;
+                            uint32_t b6=(uint32_t)m_blend[p5.bits.b][p4.bits.b]<<m_b_shift;
 
                             // 555
                             uint32_t r7=m_rs[p5.bits.r];
@@ -406,7 +408,7 @@ void TVOutput::Update(const VideoDataUnit *units,size_t num_units) {
 #endif
                         }
                     }
-                        break;
+                    break;
                 }
 
                 m_x+=8;
@@ -415,26 +417,29 @@ void TVOutput::Update(const VideoDataUnit *units,size_t num_units) {
                     m_state=TVOutputState_HorizontalRetrace;
                 }
             }
-                break;
+            break;
 
-            case TVOutputState_HorizontalRetrace:
-                m_state=TVOutputState_HorizontalRetraceWait;
+        case TVOutputState_HorizontalRetrace:
+            {
                 m_x=0;
-                m_y+=HEIGHT_SCALE;
-                if(m_y>=MAX_NUM_SCANNED_LINES) {
+                m_y+=2;
+
+                if(m_y>=2*MAX_NUM_SCANNED_LINES) {
                     // VBlank time anyway.
                     m_state=TVOutputState_VerticalRetrace;
                     break;
                 }
-                m_pixels_line+=TV_TEXTURE_WIDTH*HEIGHT_SCALE;
+
+                m_pixels_line+=TV_TEXTURE_WIDTH*2;
 #if VIDEO_TRACK_METADATA
-                m_units_line+=TV_TEXTURE_WIDTH*HEIGHT_SCALE;
+                m_units_line+=TV_TEXTURE_WIDTH*2;
 #endif
                 m_state_timer=2;//+1 for Scanout; +1 for this state
                 m_state=TVOutputState_HorizontalRetraceWait;
-                break;
+            }
+            break;
 
-            case TVOutputState_HorizontalRetraceWait:
+        case TVOutputState_HorizontalRetraceWait:
             {
                 // Ignore input in this state.
                 ++m_state_timer;
@@ -443,9 +448,9 @@ void TVOutput::Update(const VideoDataUnit *units,size_t num_units) {
                     m_state=TVOutputState_BackPorch;
                 }
             }
-                break;
+            break;
 
-            case TVOutputState_BackPorch:
+        case TVOutputState_BackPorch:
             {
                 // Ignore input in this state.
                 ++m_state_timer;
@@ -454,7 +459,7 @@ void TVOutput::Update(const VideoDataUnit *units,size_t num_units) {
                     m_state=TVOutputState_Scanout;
                 }
             }
-                break;
+            break;
         }
     }
 }
@@ -476,7 +481,7 @@ void TVOutput::FillWithTestPattern() {
 
     uint32_t palette[8];
     for(size_t i=0;i<8;++i) {
-        palette[i]=m_alpha|(i&1?m_rs[15]:0)|(i&2?m_gs[15]:0)|(i&4?m_bs[15]:0);
+        palette[i]=(i&1?m_rs[15]:0)|(i&2?m_gs[15]:0)|(i&4?m_bs[15]:0);
     }
 
     for(int y=0;y<TV_TEXTURE_HEIGHT;++y) {
@@ -541,7 +546,7 @@ void TVOutput::FillWithTestPattern() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-const void *TVOutput::GetTexturePixels(uint64_t *texture_data_version) const {
+const uint32_t *TVOutput::GetTexturePixels(uint64_t *texture_data_version) const {
     if(texture_data_version) {
         *texture_data_version=m_texture_data_version;
     }
@@ -615,8 +620,8 @@ void TVOutput::CopyTexturePixels(void *dest_pixels,size_t dest_pitch_bytes) cons
        this->show_6845_dispen_markers||
        this->show_6845_row_markers)
     {
-        uint32_t bg=m_alpha;
-        uint32_t fg=0xffu<<m_rshift|0xffu<<m_gshift|0xffu<<m_bshift;
+        uint32_t bg=0;
+        uint32_t fg=0xffu<<m_r_shift|0xffu<<m_g_shift|0xffu<<m_b_shift;
 
         for(size_t x=0;x<TV_TEXTURE_WIDTH;x+=16) {
             size_t column=x/16;
@@ -655,10 +660,9 @@ void TVOutput::CopyTexturePixels(void *dest_pixels,size_t dest_pitch_bytes) cons
             //} else {
             auto dest=(uint32_t *)((char *)dest_pixels+m_y*(size_t)dest_pitch_bytes);
             auto src=(const uint32_t *)((const char *)m_texture_pixels.data()+m_y*src_pitch_bytes);
-            uint32_t mask=m_pixel_format->Rmask|m_pixel_format->Gmask|m_pixel_format->Bmask;
 
             for(size_t i=m_x;i<TV_TEXTURE_WIDTH;++i) {
-                dest[i]=src[i]^mask;
+                dest[i]=src[i]^m_beam_marker_xor;
             }
         }
     }
@@ -673,13 +677,6 @@ const VideoDataUnit *TVOutput::GetTextureUnits() const {
     return m_texture_units.data();
 }
 #endif
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-const SDL_PixelFormat *TVOutput::GetPixelFormat() const {
-    return m_pixel_format;
-}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -721,6 +718,20 @@ void TVOutput::SetGamma(double gamma) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+bool TVOutput::GetInterlace() const {
+    return m_interlace;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void TVOutput::SetInterlace(bool interlace) {
+    m_interlace=interlace;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 static uint8_t GetByte(double x) {
     if(x<0.) {
         return 0;
@@ -734,13 +745,23 @@ static uint8_t GetByte(double x) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+uint32_t TVOutput::GetTexelValue(uint8_t r,uint8_t g,uint8_t b) const {
+    uint32_t value=0;
+
+    value|=(uint32_t)r<<m_r_shift;
+    value|=(uint32_t)g<<m_g_shift;
+    value|=(uint32_t)b<<m_b_shift;
+
+    return value;
+}
+
 void TVOutput::InitPalette() {
     for(uint8_t i=0;i<16;++i) {
         uint8_t value=i<<4|i;
 
-        m_rs[i]=SDL_MapRGBA(m_pixel_format,value,0,0,255);
-        m_gs[i]=SDL_MapRGBA(m_pixel_format,0,value,0,255);
-        m_bs[i]=SDL_MapRGBA(m_pixel_format,0,0,value,255);
+        m_rs[i]=this->GetTexelValue(value,0,0);
+        m_gs[i]=this->GetTexelValue(0,value,0);
+        m_bs[i]=this->GetTexelValue(0,0,value);
     }
 
     for(size_t i=0;i<16;++i) {
@@ -754,15 +775,12 @@ void TVOutput::InitPalette() {
         }
     }
 
-    m_rshift=m_pixel_format->Rshift;
-    m_gshift=m_pixel_format->Gshift;
-    m_bshift=m_pixel_format->Bshift;
-    m_alpha=SDL_MapRGBA(m_pixel_format,0,0,0,255);
+    m_usec_marker_xor=this->GetTexelValue(0,128,128);
+    m_half_usec_marker_xor=this->GetTexelValue(128,0,0);
+    m_6845_raster0_marker_xor=this->GetTexelValue(128,128,0);
+    m_6845_dispen_marker_xor=this->GetTexelValue(128,0,128);
 
-    m_usec_marker_xor=0x80u<<m_gshift|0x80u<<m_bshift;
-    m_half_usec_marker_xor=0x80u<<m_rshift;
-    m_6845_raster0_marker_xor=0x80u<<m_rshift|0x80u<<m_gshift;
-    m_6845_dispen_marker_xor=0x80u<<m_rshift|0x80u<<m_bshift;
+    m_beam_marker_xor=this->GetTexelValue(255,255,255);
 }
 
 //////////////////////////////////////////////////////////////////////////

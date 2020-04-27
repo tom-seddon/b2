@@ -7,12 +7,14 @@
 A cross-platform BBC Micro emulator. Use your Windows/Linux PC or
 macOS computer to play your old BBC games or develop new BBC software.
 
-Binary distributions are available for Windows and OS X: see the
+For Windows and OS X, see the
 [Windows installation instructions](./doc/Installing-on-Windows.md) or
-[OS X installation instructions](./doc/Installing-on-OSX.md).
+[OS X installation instructions](./doc/Installing-on-OSX.md). You can
+also follow the [building instructions](./doc/Building.md) to build
+from source.
 
-To build from source - your only option on Linux - follow the
-[building instructions](./doc/Building.md).
+For Linux, follow the [building instructions](./doc/Building.md) to
+build from source.
 
 There's a summary of the functionality available once up and running
 in [the overview](./doc/Overview.md).

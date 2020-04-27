@@ -108,13 +108,11 @@ void LogAssertElaboration(const char *fmt,...) {
 
 /* "handle" */
 void HandleAssertFailed(void) {
-#if SYSTEM_WINDOWS
-    if(IsDebuggerPresent()) {
+    if(IsDebuggerAttached()) {
         // When the debugger is attached, it ought to be possible to
         // resume execution, to see what happens.
         return;
     }
-#endif
 
     abort();
 

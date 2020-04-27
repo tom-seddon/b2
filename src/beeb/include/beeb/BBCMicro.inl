@@ -26,6 +26,8 @@ EPNV(UserVIA,1<<6)
 EPNV(VideoULA,1<<7)
 EPNV(SN76489,1<<8)
 EPNV(BeebLink,1<<9)
+EPNV(SystemVIAExtra,1<<10)
+EPNV(UserVIAExtra,1<<11)
 EEND()
 #undef ENAME
 

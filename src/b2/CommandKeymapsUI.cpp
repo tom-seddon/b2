@@ -66,7 +66,7 @@ public:
                     if(ImGui::BeginPopup(SHORTCUT_KEYCODES_POPUP)) {
                         ImGui::TextUnformatted("(press key to add)");
 
-                        uint32_t keycode=ImGuiGetPressedKeycode();
+                        uint32_t keycode=ImGuiConsumePressedKeycode();
                         if(keycode!=0) {
                             table->AddMapping(keycode,command);
                             m_edited=true;

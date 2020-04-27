@@ -318,3 +318,14 @@ target_include_directories(perfect6502_lib INTERFACE ${PERFECT6502_SRC_FOLDER})
 
 ##########################################################################
 ##########################################################################
+
+set(STB_SRC_FOLDER ${CMAKE_CURRENT_SOURCE_DIR}/stb)
+
+add_library(stb_image_lib INTERFACE)
+
+target_include_directories(stb_image_lib INTERFACE
+  ${STB_SRC_FOLDER})
+
+target_sources(stb_image_lib INTERFACE
+  ${STB_SRC_FOLDER}/stb_image.h
+  ${STB_SRC_FOLDER}/stb_image_write.h)

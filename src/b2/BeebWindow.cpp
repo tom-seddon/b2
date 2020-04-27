@@ -212,6 +212,8 @@ void BeebWindow::OptionsUI::DoImGui() {
         m_beeb_window->RecreateTexture();
     }
 
+    if(ImGui::Checkbox("Emulate interlace",&settings->display_interlace));
+
     if(ImGui::SliderFloat("BBC volume",&settings->bbc_volume,MIN_DB,MAX_DB,"%.1f dB")) {
         beeb_thread->SetBBCVolume(settings->bbc_volume);
     }
@@ -381,7 +383,7 @@ void BeebWindow::HandleSDLKeyEvent(const SDL_KeyboardEvent &event) {
 }
 
 bool BeebWindow::HandleBeebKey(const SDL_Keysym &keysym,bool state) {
-    const BeebKeymap *keymap=m_keymap;
+    const BeebKeymap *keymap=m_settings.keymap;
     if(!keymap) {
         return false;
     }
@@ -483,7 +485,7 @@ public:
     explicit FileMenuItem(SelectorDialog *dialog,const char *open_title,const char *recent_title):
         m_dialog(dialog)
     {
-        bool recent_enabled=true;
+        //bool recent_enabled=true;
 
         ImGuiIDPusher id_pusher(open_title);
 
@@ -491,46 +493,12 @@ public:
             if(dialog->Open(&this->path)) {
                 this->recent=false;
                 this->selected=true;
-                recent_enabled=false;
+                //recent_enabled=false;
             }
         }
 
-        RecentPaths *rp=nullptr;//dialog->GetRecentPaths();
-        size_t num_rp=0;
-        if(recent_enabled) {
-            rp=dialog->GetRecentPaths();
-            if(rp) {
-                num_rp=rp->GetNumPaths();
-                recent_enabled=num_rp>0;
-            }
-        }
-
-        if(ImGui::BeginMenu(recent_title,recent_enabled)) {
-            for(size_t i=0;i<num_rp;++i) {
-                const std::string &p=rp->GetPathByIndex(i);
-                if(ImGui::MenuItem(p.c_str())) {
-                    this->selected=true;
-                    this->path=p;
-                }
-            }
-
-            ImGui::Separator();
-
-            if(ImGui::BeginMenu("Remove item")) {
-                size_t i=0;
-
-                while(i<rp->GetNumPaths()) {
-                    if(ImGui::MenuItem(rp->GetPathByIndex(i).c_str())) {
-                        rp->RemovePathByIndex(i);
-                    } else {
-                        ++i;
-                    }
-                }
-
-                ImGui::EndMenu();
-            }
-
-            ImGui::EndMenu();
+        if(ImGuiRecentMenu(&this->path,recent_title,*dialog)) {
+            this->selected=true;
         }
     }
 
@@ -577,11 +545,23 @@ bool BeebWindow::DoImGui(uint64_t ticks) {
 #endif
 
     for(const SDL_KeyboardEvent &event:m_sdl_keyboard_events) {
-        bool state=event.type==SDL_KEYDOWN;
+        //LOGF(OUTPUT,"%s: event=0x%x key=%s timestamp=%u repeat=%u\n",__func__,event.type,SDL_GetScancodeName(event.keysym.scancode),event.timestamp,event.repeat);
 
-        //LOGF(OUTPUT,"%s: key=%s state=%s timestamp=%u\n",__func__,SDL_GetScancodeName(event.keysym.scancode),BOOL_STR(state),event.timestamp);
+        switch(event.type) {
+        case SDL_KEYDOWN:
+            if(event.repeat) {
+                // Don't set again if it's just key repeat. If the flag is
+                // still set from last time, that's fine; if it's been reset,
+                // there'll be a reason, so don't set it again.
+            } else {
+                m_imgui_stuff->SetKeyDown(event.keysym.scancode,true);
+            }
+            break;
 
-        m_imgui_stuff->SetKeyDown(event.keysym.scancode,state);
+        case SDL_KEYUP:
+            m_imgui_stuff->SetKeyDown(event.keysym.scancode,false);
+            break;
+        }
     }
 
     // Command contexts to try, in order of preference.
@@ -690,8 +670,10 @@ bool BeebWindow::DoImGui(uint64_t ticks) {
             uint32_t keycode=0;
             bool state=false;
             if(event.type==SDL_KEYDOWN) {
-                keycode=(uint32_t)event.keysym.sym|GetPCKeyModifiersFromSDLKeymod(event.keysym.mod);
-                state=true;
+                if(ImGui::IsKeyDown(event.keysym.scancode)) {
+                    keycode=(uint32_t)event.keysym.sym|GetPCKeyModifiersFromSDLKeymod(event.keysym.mod);
+                    state=true;
+                }
             }
 
             if(beeb_focus) {
@@ -791,7 +773,7 @@ const BeebWindow::SettingsUIMetadata BeebWindow::ms_settings_uis[]={
     {BeebWindowPopupType_Messages,"Messages","toggle_messages",&CreateMessagesUI},
     {BeebWindowPopupType_Timeline,"Timeline","toggle_timeline",&BeebWindow::CreateTimelineUI},
     {BeebWindowPopupType_SavedStates,"Saved States","toggle_saved_states",&BeebWindow::CreateSavedStatesUI},
-    {BeebWindowPopupType_Configs,"Configurations","toggle_configurations",&CreateConfigsUI},
+    {BeebWindowPopupType_Configs,"Configs","toggle_configurations",&CreateConfigsUI},
 #if BBCMICRO_TRACE
     {BeebWindowPopupType_Trace,"Tracing","toggle_event_trace",&CreateTraceUI},
 #endif
@@ -1186,27 +1168,13 @@ void BeebWindow::DoFileMenu() {
         m_cc.DoMenuItemUI("hard_reset");
 
         if(ImGui::BeginMenu("Change config")) {
-            bool seen_first_custom=false;
-            BeebWindows::ForEachConfig([&](const BeebConfig *config,BeebConfig *editable_config) {
-                if(editable_config) {
-                    if(!seen_first_custom) {
-                        ImGui::Separator();
-                        seen_first_custom=true;
-                    }
-                }
+            for(size_t config_idx=0;config_idx<BeebWindows::GetNumConfigs();++config_idx) {
+                BeebConfig *config=BeebWindows::GetConfigByIndex(config_idx);
 
                 if(ImGui::MenuItem(config->name.c_str())) {
-                    BeebLoadedConfig tmp;
-
-                    if(BeebLoadedConfig::Load(&tmp,*config,&m_msg)) {
-                        auto message=std::make_shared<BeebThread::HardResetAndChangeConfigMessage>(0,std::move(tmp));
-
-                        m_beeb_thread->Send(std::move(message));
-                    }
+                    this->HardReset(*config);
                 }
-
-                return true;
-            });
+            }
 
             ImGui::EndMenu();
         }
@@ -1214,19 +1182,14 @@ void BeebWindow::DoFileMenu() {
         ImGui::Separator();
 
         if(ImGui::BeginMenu("Keymap")) {
-            bool seen_first_custom=false;
-            BeebWindows::ForEachBeebKeymap([&](const BeebKeymap *keymap,BeebKeymap *editable_keymap) {
-                if(editable_keymap) {
-                    if(!seen_first_custom) {
-                        ImGui::Separator();
-                        seen_first_custom=true;
-                    }
-                }
-
-                if(ImGui::MenuItem(keymap->GetName().c_str(),keymap->IsKeySymMap()?KEYMAP_KEYSYMS_KEYMAP_ICON:KEYMAP_SCANCODES_KEYMAP_ICON,m_keymap==keymap)) {
-                    m_keymap=keymap;
-                    m_prefer_shortcuts=m_keymap->GetPreferShortcuts();
-                    m_msg.i.f("Keymap: %s\n",m_keymap->GetName().c_str());
+            BeebWindows::ForEachBeebKeymap([&](BeebKeymap *keymap) {
+                if(ImGui::MenuItem(GetKeymapUIName(*keymap).c_str(),
+                                   nullptr,
+                                   m_settings.keymap==keymap))
+                {
+                    m_settings.keymap=keymap;
+                    m_prefer_shortcuts=m_settings.keymap->GetPreferShortcuts();
+                    m_msg.i.f("Keymap: %s\n",m_settings.keymap->GetName().c_str());
                     this->ShowPrioritizeCommandShortcutsStatus();
                 }
 
@@ -1513,8 +1476,8 @@ bool BeebWindow::DoWindowMenu() {
         if(ImGui::MenuItem("Clone")) {
             BeebWindowInitArguments init_arguments=this->GetNewWindowInitArguments();
 
-            if(m_keymap) {
-                init_arguments.keymap_name=m_keymap->GetName();
+            if(m_settings.keymap) {
+                init_arguments.keymap_name=m_settings.keymap->GetName();
             }
 
             init_arguments.settings=m_settings;
@@ -1542,6 +1505,8 @@ bool BeebWindow::DoWindowMenu() {
 //////////////////////////////////////////////////////////////////////////
 
 void BeebWindow::UpdateTVTexture(VBlankRecord *vblank_record) {
+    m_tv.SetInterlace(m_settings.display_interlace);
+    
     {
         Timer tmr(&g_HandleVBlank_UpdateTVTexture_Consume_timer_def);
 
@@ -1840,6 +1805,7 @@ void BeebWindow::SaveSettings() {
     m_settings.dock_config=m_imgui_stuff->SaveDockContext();
 
     BeebWindows::defaults=m_settings;
+    BeebWindows::default_config_name=m_init_arguments.default_config.config.name;
 
     this->SavePosition();
 }
@@ -2024,10 +1990,14 @@ bool BeebWindow::InitInternal() {
         return false;
     }
 
-    if(!m_tv.InitTexture(m_pixel_format)) {
-        m_msg.e.f("Failed to initialise TVOutput texture\n");
+    if(m_pixel_format->BitsPerPixel!=32) {
+        m_msg.e.f("Pixel format not 32 bpp\n");
         return false;
     }
+
+    m_tv.Init(m_pixel_format->Rshift,
+              m_pixel_format->Gshift,
+              m_pixel_format->Bshift);
 
     m_imgui_stuff=new ImGuiStuff(m_renderer);
     if(!m_imgui_stuff->Init()) {
@@ -2101,11 +2071,11 @@ bool BeebWindow::InitInternal() {
     }
 
     if(!m_init_arguments.keymap_name.empty()) {
-        m_keymap=BeebWindows::FindBeebKeymapByName(m_init_arguments.keymap_name);
+        m_settings.keymap=BeebWindows::FindBeebKeymapByName(m_init_arguments.keymap_name);
     }
 
-    if(!m_keymap) {
-        m_keymap=BeebWindows::GetDefaultBeebKeymap();
+    if(!m_settings.keymap) {
+        m_settings.keymap=BeebWindows::GetDefaultBeebKeymap();
     }
 
     if(SDL_GL_GetCurrentContext()) {
@@ -2204,26 +2174,9 @@ void BeebWindow::UpdateTitle() {
 //////////////////////////////////////////////////////////////////////////
 
 void BeebWindow::BeebKeymapWillBeDeleted(BeebKeymap *keymap) {
-    if(m_keymap==keymap) {
-        m_keymap=&DEFAULT_KEYMAP;
+    if(m_settings.keymap==keymap) {
+        m_settings.keymap=BeebWindows::GetDefaultBeebKeymap();
     }
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-bool BeebWindow::GetTextureData(BeebWindowTextureDataVersion *version,
-                                const SDL_PixelFormat **format_ptr,const void **pixels_ptr) const
-{
-    uint64_t v;
-    *pixels_ptr=m_tv.GetTexturePixels(&v);
-    if(v==version->version) {
-        return false;
-    }
-
-    *format_ptr=m_tv.GetPixelFormat();
-
-    return true;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -2282,14 +2235,14 @@ std::vector<BeebWindow::VBlankRecord> BeebWindow::GetVBlankRecords() const {
 //////////////////////////////////////////////////////////////////////////
 
 const BeebKeymap *BeebWindow::GetCurrentKeymap() const {
-    return m_keymap;
+    return m_settings.keymap;
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 void BeebWindow::SetCurrentKeymap(const BeebKeymap *keymap) {
-    m_keymap=keymap;
+    m_settings.keymap=keymap;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -2311,6 +2264,32 @@ const VideoDataUnit *BeebWindow::GetVideoDataUnitForMousePixel() const {
 SettingsUI *BeebWindow::GetPopupByType(BeebWindowPopupType type) const {
     ASSERT(type>=0&&type<BeebWindowPopupType_MaxValue);
     return m_popups[type].get();
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool BeebWindow::HardReset(const BeebConfig &config) {
+    BeebLoadedConfig tmp;
+
+    if(BeebLoadedConfig::Load(&tmp,config,&m_msg)) {
+        m_init_arguments.default_config=std::move(tmp);
+
+        auto message=std::make_shared<BeebThread::HardResetAndChangeConfigMessage>(0,m_init_arguments.default_config);
+
+        m_beeb_thread->Send(std::move(message));
+
+        return true;
+    } else {
+        return false;
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+const std::string &BeebWindow::GetConfigName() const {
+    return m_init_arguments.default_config.config.name;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -2360,6 +2339,17 @@ BeebWindowInitArguments BeebWindow::GetNewWindowInitArguments() const {
 //////////////////////////////////////////////////////////////////////////
 
 void BeebWindow::HardReset() {
+    // Fetch config from the global list again.
+    for(size_t config_idx=0;config_idx<BeebWindows::GetNumConfigs();++config_idx) {
+        BeebConfig *config=BeebWindows::GetConfigByIndex(config_idx);
+
+        if(config->name==m_init_arguments.default_config.config.name) {
+            this->HardReset(*config);
+            return;
+        }
+    }
+
+    // Something went wrong. Just reuse the current config, whatever it is.
     m_beeb_thread->Send(std::make_shared<BeebThread::HardResetAndReloadConfigMessage>(BeebThreadHardResetFlag_Run));
 }
 

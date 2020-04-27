@@ -21,7 +21,7 @@ void MessageBox(const std::string &title,const std::string &text) {
 
     [alert setMessageText:nstitle];
 
-    [alert setAlertStyle:NSCriticalAlertStyle];
+    [alert setAlertStyle:NSAlertStyleCritical];
 
     [alert runModal];
 

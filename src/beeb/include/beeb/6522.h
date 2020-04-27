@@ -79,7 +79,18 @@ public:
     };
 #include <shared/poppack.h>
 
+#include <shared/pshpack1.h>
+    struct TimerTickEvent {
+        uint16_t new_t1;
+        uint16_t new_t2;
+        uint8_t id:4;
+        uint8_t t1_ticked:1;
+        uint8_t t2_ticked:1;
+    };
+#include <shared/poppack.h>
+
     static const TraceEventType IRQ_EVENT;
+    static const TraceEventType TIMER_TICK_EVENT;
 #endif
 
     /* Cx1 and Cx2 */
@@ -127,6 +138,7 @@ public:
     void Reset();
 
     // NAME is copied by pointer and should be a string literal.
+    // ID is a 4-bit quantity.
     void SetID(uint8_t id,const char *name);
 
     static void Write0(void *via,M6502Word addr,uint8_t value);
@@ -171,7 +183,7 @@ public:
     bool AnyIRQs() const;
 
 #if BBCMICRO_TRACE
-    void SetTrace(Trace *t);
+    void SetTrace(Trace *t,bool extra);
 #endif
 protected:
 private:
@@ -207,6 +219,7 @@ private:
 
 #if BBCMICRO_TRACE
     Trace *m_trace=nullptr;
+    bool m_trace_extra=false;
 #endif
 
     uint8_t m_id=0;

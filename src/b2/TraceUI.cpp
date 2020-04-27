@@ -209,6 +209,28 @@ static void DoTraceStatsImGui(const volatile TraceStats *stats) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+static void DoTraceFlag(uint32_t *flags_seen,
+                        uint32_t flag,
+                        const char *text,
+                        bool last=false)
+{
+    *flags_seen|=flag;
+
+    if(!text) {
+        text=GetBBCMicroTraceFlagEnumName((int)flag);
+    }
+
+    ImGuiIDPusher id_pusher(flag);
+
+    if(ImGui::CheckboxFlags(text,&g_default_settings.flags,flag)) {
+        //printf("toggle %s\n",text);
+    }
+
+    if(!last) {
+        ImGui::SameLine();
+    }
+}
+
 void TraceUI::DoImGui() {
     std::shared_ptr<BeebThread> beeb_thread=m_beeb_window->GetBeebThread();
 
@@ -312,13 +334,28 @@ void TraceUI::DoImGui() {
         ImGui::Spacing();
 
         ImGui::TextUnformatted("Other traces");
-        for(uint32_t i=1;i!=0;i<<=1) {
-            const char *name=GetBBCMicroTraceFlagEnumName((int)i);
-            if(name[0]=='?') {
-                continue;
-            }
 
-            ImGui::CheckboxFlags(name,&g_default_settings.flags,i);
+        uint32_t flags_seen=0;
+
+        DoTraceFlag(&flags_seen,BBCMicroTraceFlag_6845VSync,"6845 VSync");
+        DoTraceFlag(&flags_seen,BBCMicroTraceFlag_6845Scanlines,"Scanlines");
+        DoTraceFlag(&flags_seen,BBCMicroTraceFlag_6845ScanlinesSeparators,"Separators",true);
+
+        DoTraceFlag(&flags_seen,BBCMicroTraceFlag_SystemVIA,"System VIA");
+        DoTraceFlag(&flags_seen,BBCMicroTraceFlag_SystemVIAExtra,"Extra",true);
+
+        DoTraceFlag(&flags_seen,BBCMicroTraceFlag_UserVIA,"User VIA");
+        DoTraceFlag(&flags_seen,BBCMicroTraceFlag_UserVIAExtra,"Extra",true);
+
+        for(uint32_t i=1;i!=0;i<<=1) {
+            if(!(flags_seen&i)) {
+                const char *name=GetBBCMicroTraceFlagEnumName((int)i);
+                if(name[0]=='?') {
+                    continue;
+                }
+
+                ImGui::CheckboxFlags(name,&g_default_settings.flags,i);
+            }
         }
 
         ImGui::Spacing();

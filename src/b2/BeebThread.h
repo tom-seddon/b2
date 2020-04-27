@@ -341,7 +341,7 @@ public:
         public Message
     {
     public:
-        BeebStateMessage()=default;
+        BeebStateMessage()=delete;
         explicit BeebStateMessage(std::shared_ptr<const BeebState> state,
                                   bool user_initiated);
 

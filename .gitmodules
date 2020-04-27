@@ -58,3 +58,6 @@
 [submodule "submodules/perfect6502"]
 	path = submodules/perfect6502
 	url = https://github.com/tom-seddon/perfect6502
+[submodule "submodules/stb"]
+	path = submodules/stb
+	url = https://github.com/nothings/stb

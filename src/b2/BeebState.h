@@ -54,11 +54,11 @@ public:
     const std::string &GetName() const;
     void SetName(std::string name);
 protected:
-    BeebState(BeebState &&)=default;
-    BeebState &operator=(BeebState &&)=default;
+    BeebState(BeebState &&)=delete;
+    BeebState &operator=(BeebState &&)=delete;
 
-    BeebState(const BeebState &)=default;
-    BeebState &operator=(const BeebState &)=default;
+    BeebState(const BeebState &)=delete;
+    BeebState &operator=(const BeebState &)=delete;
 private:
     std::unique_ptr<BBCMicro> m_beeb;
 

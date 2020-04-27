@@ -411,7 +411,7 @@ void CommandLineParser::Help(const char *argv0) const {
 //////////////////////////////////////////////////////////////////////////
 
 std::shared_ptr<CommandLineParser::Option> CommandLineParser::AddOption(char short_option,std::string *long_option_ptr) {
-    auto &&o=std::make_shared<Option>();
+    auto o=std::make_shared<Option>();
 
     o->short_option=short_option;
 

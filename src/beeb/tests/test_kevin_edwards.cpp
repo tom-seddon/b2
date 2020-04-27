@@ -6,7 +6,9 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void TestKevinEdwards(const std::string &name,
+void TestKevinEdwards(const std::string &beeblink_volume_path,
+                      int beeblink_drive,
+                      const std::string &name,
                       const std::string &paste_text,
                       bool save_trace)
 {
@@ -15,7 +17,9 @@ void TestKevinEdwards(const std::string &name,
     bbc.SetTestTraceFlags(0);
     bbc.StartCaptureOSWRCH();
     bbc.RunUntilOSWORD0(10.0);
-    bbc.LoadFile(GetTestFileName(2,"$."+name),0x3000);
+    bbc.LoadFile(GetTestFileName(beeblink_volume_path,
+                                 beeblink_drive,
+                                 "$."+name),0x3000);
 
     TEST_LT_UU(paste_text.size(),250);
     bbc.Paste(paste_text);

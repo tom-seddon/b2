@@ -377,7 +377,7 @@ static void setNMI(state_t *state,bool level) {
 
 static void printStatus(state_t *state) {
     bool clk0=!!isNodeHigh(state,Node_clk0);
-    bool clk1out=!!isNodeHigh(state,Node_clk1out);
+    // bool clk1out=!!isNodeHigh(state,Node_clk1out);
     bool clk2out=!!isNodeHigh(state,Node_clk2out);
     uint16_t address=readAddressBus(state);
     uint8_t data=readDataBus(state);
@@ -538,6 +538,7 @@ static void TestVisual6502URL(const std::string &description,const std::string &
 
         if(cycle==67) {
             int x=0;
+            (void)x;
         }
 
         const char *old_state=M6502_GetStateName(s,1);

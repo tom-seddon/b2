@@ -13,7 +13,7 @@
 #include "BeebState.h"
 #include "BeebWindows.h"
 #include "b2.h"
-#include "TVOutput.h"
+#include <beeb/TVOutput.h>
 #include "misc.h"
 #include "Messages.h"
 #include <beeb/Trace.h>
@@ -2257,7 +2257,7 @@ bool BeebThread::ThreadHandleTraceWriteConditions(const BBCMicro *beeb,
                     return false;
 
                 case BeebThreadStopTraceCondition_WriteAddress:
-                    if(cpu->abus.w==ts->trace_conditions.start_address) {
+                    if(cpu->abus.w==ts->trace_conditions.stop_address) {
                         ts->beeb_thread->ThreadStopTrace(ts);
                         return false;
                     }

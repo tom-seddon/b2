@@ -7,6 +7,7 @@
 #include <beeb/video.h>
 #include <beeb/sound.h>
 #include <shared/debug.h>
+#include <SDL.h>
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -80,9 +81,7 @@ bool GenerateThumbnailJob::Init(std::unique_ptr<BBCMicro> *beeb,
 {
     ASSERT(!!beeb!=!!beeb_state);
 
-    if(!m_tv_output.InitTexture(pixel_format)) {
-        return false;
-    }
+    m_tv_output.Init(pixel_format->Rshift,pixel_format->Gshift,pixel_format->Bshift);
 
     if(beeb) {
         m_beeb=std::move(*beeb);

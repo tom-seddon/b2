@@ -8,6 +8,7 @@ class BBCMicro;
 class DiscInterface;
 struct DiscInterfaceDef;
 
+#include "roms.h"
 #include <string>
 #include <functional>
 
@@ -67,7 +68,7 @@ private:
 
 struct DiscInterfaceDef {
     const std::string name;
-    const std::string default_fs_rom;
+    StandardROM fs_rom;
     std::function<DiscInterface *()> create_fun;
 
     // Quick bodge to indicate that the Challenger is known to use

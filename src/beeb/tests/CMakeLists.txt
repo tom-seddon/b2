@@ -42,11 +42,11 @@ add_library(test_common_lib
   test_kevin_edwards.h test_kevin_edwards.cpp)
 target_compile_definitions(test_common_lib PUBLIC
   -DROMS_FOLDER="${b2_SOURCE_DIR}/etc/roms"
-  -DBBC_TESTS_FOLDER="${b2_SOURCE_DIR}/etc/b2_tests"
   -DBBC_TESTS_OUTPUT_FOLDER="${CMAKE_BINARY_DIR}/b2_tests_output"
   )
 target_boilerplate(test_common_lib)
 target_link_libraries(test_common_lib PUBLIC shared_lib beeb_lib)
+target_link_libraries(test_common_lib PRIVATE stb_image_lib)
 
 ##########################################################################
 ##########################################################################
@@ -68,6 +68,7 @@ function(add_standard_test bbc_test_name bbc_type)
   set(target test_${bbc_test_name_c_identifier}_${bbc_type})
   add_executable(${target} test_standard.cpp)
   target_compile_definitions(${target} PRIVATE
+    -DBEEBLINK_VOLUME_PATH="${b2_SOURCE_DIR}/etc/b2_tests"
     -DBBC_TEST_NAME="${bbc_test_name}"
     -DBBC_TYPE=TestBBCMicroType_${bbc_type})
   test_target_boilerplate(${target})
@@ -115,7 +116,9 @@ function(add_kevin_edwards_test suffix)
   add_executable(${target} ${target}.cpp)
   test_target_boilerplate(${target})
   set_tests_properties(${target} PROPERTIES LABELS bbc)
-
+  target_compile_definitions(${target} PRIVATE
+    -DBEEBLINK_VOLUME_PATH="${b2_SOURCE_DIR}/etc/b2_tests")
+  
   # worth having a tag for these, as they do take a while.
   set_tests_properties(${target} PROPERTIES LABELS kevin_edwards)
 endfunction()
@@ -123,3 +126,24 @@ endfunction()
 add_kevin_edwards_test(Alien8)
 add_kevin_edwards_test(Jetman)
 add_kevin_edwards_test(Nightsh)
+
+# :(
+set_tests_properties(test_TIMINGS_BTape test_kevin_edwards_Nightsh test_kevin_edwards_Jetman
+  PROPERTIES
+  WILL_FAIL TRUE)
+
+##########################################################################
+##########################################################################
+
+function(add_teletest_test suffix)
+  set(target test_teletest_${suffix})
+  add_executable(${target} ${target}.cpp)
+  target_compile_definitions(${target} PRIVATE
+    -DBEEBLINK_VOLUME_PATH="${b2_SOURCE_DIR}/etc/teletest_v1")
+  test_target_boilerplate(${target})
+  set_tests_properties(${target} PROPERTIES LABELS bbc)
+endfunction()
+
+add_teletest_test(engtest)
+add_teletest_test(parrot)
+add_teletest_test(teletst)

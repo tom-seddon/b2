@@ -93,4 +93,33 @@ static constexpr char ADDRESS_PREFIX_SEPARATOR='`';
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+// It's safe to cast the TV_TEXTURE_xxx values to int/unsigned.
+
+// 736 accommodates Boffin - though the play area part is 720, so
+// presumably that's a safe area. (I suspect it didn't work on all
+// TVs... on my TV, with RGB SCART input, the Boffin screen isn't
+// centred. There's a gap on the right, and a missing bit on the left.
+// Looks like it's 2 x 6845 columns too far to the left. With UHF
+// input though it is roughly in the right place.)
+//
+// MOS CRTC values produce a centred image on a TV texture of width
+// 720. Sadly that means there are 2 columns missing at the edge of
+// the Boffin screen... so the TV texture is currently 736 wide, and
+// modes are a bit off centre. Doesn't look like there are any
+// settings that will work for everything, at least not without some
+// hacks.
+//
+// (None of the modes are centred on my real M128 - though they're off
+// centre differently from in the emulator, so obviously something's
+// still wrong.)
+
+static const int TV_TEXTURE_WIDTH=736;
+
+static const int TV_TEXTURE_HEIGHT=288*2;
+
+static_assert(TV_TEXTURE_WIDTH%8==0,"");
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 #endif

@@ -13,6 +13,7 @@
 #if BBCMICRO_TRACE
 
 #include <thread>
+#include <atomic>
 
 class Trace;
 

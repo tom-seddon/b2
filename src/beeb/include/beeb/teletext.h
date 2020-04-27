@@ -68,8 +68,8 @@ private:
     bool m_any_double_height=false;
     bool m_conceal=false;
     bool m_hold=false;
-    bool m_flash=false;
-    bool m_frame_flash=false;
+    bool m_text_visible=false;
+    bool m_frame_flash_visible=false;
 #if BBCMICRO_DEBUGGER
     bool m_debug=false;
 #endif

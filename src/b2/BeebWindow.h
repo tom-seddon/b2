@@ -29,7 +29,7 @@ class DiscImage;
 #include "dear_imgui.h"
 #include <string>
 #include <SDL.h>
-#include "TVOutput.h"
+#include <beeb/TVOutput.h>
 #include "native_ui.h"
 #include <beeb/conf.h>
 #include <shared/log.h>
@@ -58,6 +58,9 @@ struct BeebWindowTextureDataVersion {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+// The config name isn't part of this, because then there'd be two copies
+// of the initial config name in BeebWindowInitArguments. Something needs
+// fixing...
 struct BeebWindowSettings {
     uint64_t popups=0;
 
@@ -71,6 +74,9 @@ struct BeebWindowSettings {
     bool correct_aspect_ratio=true;
     float display_manual_scale=1.f;
     bool display_filter=true;
+    bool display_interlace=false;
+
+    const BeebKeymap *keymap=nullptr;
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -215,15 +221,6 @@ public:
 
     void BeebKeymapWillBeDeleted(BeebKeymap *keymap);
 
-    // If this BeebWindow's texture data has changed since the last
-    // time this function was called with the given version object, or
-    // if it's the first time of calling with the given version
-    // object, fill the out parameters appropriately and return true.
-    // Otherwise, out parameters are filled with unspecified values,
-    // and returns false.
-    bool GetTextureData(BeebWindowTextureDataVersion *version,
-                        const SDL_PixelFormat **format_ptr,const void **pixels_ptr) const;
-
     // Get pointer to this window's BeebThread. (The lifespan of the
     // BeebThread is the same as that of the window.)
     std::shared_ptr<BeebThread> GetBeebThread() const;
@@ -248,6 +245,10 @@ public:
 #endif
 
     SettingsUI *GetPopupByType(BeebWindowPopupType type) const;
+
+    bool HardReset(const BeebConfig &config);
+
+    const std::string &GetConfigName() const;
 protected:
 private:
     struct SettingsUIMetadata;
@@ -293,7 +294,6 @@ private:
     // Audio output
     SDL_AudioDeviceID m_sound_device=0;
 
-    const BeebKeymap *m_keymap=nullptr;
     bool m_prefer_shortcuts=false;
 
     // number of emulated us that had passed at the time of the last
