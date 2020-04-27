@@ -254,7 +254,7 @@ CRTC::Output CRTC::Update() {
         }
 
         ++m_st.column;
-        TRACEF_IF(m_trace_scanlines,m_trace,"6845 - %u - column=%u",m_st.column);
+        //TRACEF_IF(m_trace_scanlines,m_trace,"6845 - %u - column=%u",m_st.column);
     }
 
     // Handle end of vertical displayed.
