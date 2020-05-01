@@ -1365,6 +1365,21 @@ bool BBCMicro::Update(VideoDataUnit *video_unit,SoundDataUnit *sound_unit) {
 
     // Update VIAs and slow data bus.
     if(phi2_1MHz_trailing_edge) {
+        bool any_system_via_IRQs=m_state.system_via.AnyIRQs();
+        bool any_user_via_IRQs=m_state.user_via.AnyIRQs();
+
+        if(any_system_via_IRQs) {
+            M6502_SetDeviceIRQ(&m_state.cpu,BBCMicroIRQDevice_SystemVIA,1);
+        } else {
+            M6502_SetDeviceIRQ(&m_state.cpu,BBCMicroIRQDevice_SystemVIA,0);
+        }
+
+        if(any_user_via_IRQs) {
+            M6502_SetDeviceIRQ(&m_state.cpu,BBCMicroIRQDevice_UserVIA,1);
+        } else {
+            M6502_SetDeviceIRQ(&m_state.cpu,BBCMicroIRQDevice_UserVIA,0);
+        }
+
         // Update IRQs.
         m_state.system_via.UpdatePhi2TrailingEdge();
         m_state.user_via.UpdatePhi2TrailingEdge();
@@ -1470,21 +1485,6 @@ bool BBCMicro::Update(VideoDataUnit *video_unit,SoundDataUnit *sound_unit) {
     } else {
         m_state.system_via.UpdatePhi2LeadingEdge();
         m_state.user_via.UpdatePhi2LeadingEdge();
-
-        bool any_system_via_IRQs=m_state.system_via.AnyIRQs();
-        bool any_user_via_IRQs=m_state.user_via.AnyIRQs();
-
-        if(any_system_via_IRQs) {
-            M6502_SetDeviceIRQ(&m_state.cpu,BBCMicroIRQDevice_SystemVIA,1);
-        } else {
-            M6502_SetDeviceIRQ(&m_state.cpu,BBCMicroIRQDevice_SystemVIA,0);
-        }
-
-        if(any_user_via_IRQs) {
-            M6502_SetDeviceIRQ(&m_state.cpu,BBCMicroIRQDevice_UserVIA,1);
-        } else {
-            M6502_SetDeviceIRQ(&m_state.cpu,BBCMicroIRQDevice_UserVIA,0);
-        }
     }
 
     // Update 1770.
