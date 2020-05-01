@@ -519,8 +519,10 @@ private:
 
         R6522 system_via;
         SystemVIAPB old_system_via_pb;
+        bool system_via_irq_pending=false;
 
         R6522 user_via;
+        bool user_via_irq_pending=false;
 
         ROMSEL romsel={};
         ACCCON acccon={};
