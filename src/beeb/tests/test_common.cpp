@@ -724,9 +724,20 @@ std::string GetOutputFileName(const std::string &path) {
 void RunStandardTest(const std::string &beeblink_volume_path,
                      int beeblink_drive,
                      const std::string &test_name,
-                     TestBBCMicroType type)
+                     TestBBCMicroType type,
+                     uint32_t clear_trace_flags,
+                     uint32_t set_trace_flags)
 {
     TestBBCMicro bbc(type);
+
+    {
+        uint32_t trace_flags=bbc.GetTestTraceFlags();
+
+        trace_flags&=~clear_trace_flags;
+        trace_flags|=set_trace_flags;
+
+        bbc.SetTestTraceFlags(trace_flags);
+    }
 
     bbc.StartCaptureOSWRCH();
     bbc.RunUntilOSWORD0(10.0);

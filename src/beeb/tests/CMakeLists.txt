@@ -107,6 +107,8 @@ add_standard_test(VIA.T22 BTape)
 add_standard_test(VIA.PB6 BTape)
 
 add_standard_test(TIMINGS BTape)
+target_compile_definitions(test_TIMINGS_BTape PRIVATE
+  -DSET_TRACE_FLAGS=BBCMicroTraceFlag_UserVIAExtra)
 
 # should be the same on a B, but I haven't tested it.
 add_standard_test(VTIMEOU Master128MOS320)
