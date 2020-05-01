@@ -578,13 +578,15 @@ void R6522::UpdatePhi2TrailingEdge() {
 #if BBCMICRO_TRACE
     TimerTickEvent *tick_event=nullptr;
     if(m_trace) {
-        tick_event=(TimerTickEvent *)m_trace->AllocEvent(TIMER_TICK_EVENT);
+        if(m_trace_extra) {
+            tick_event=(TimerTickEvent *)m_trace->AllocEvent(TIMER_TICK_EVENT);
 
-        // It's possible neither timer will tick this cycle, but that's rather
-        // unlikely.
-        tick_event->id=m_id;
-        tick_event->t1_ticked=0;
-        tick_event->t2_ticked=0;
+            // It's possible neither timer will tick this cycle, but that's rather
+            // unlikely.
+            tick_event->id=m_id;
+            tick_event->t1_ticked=0;
+            tick_event->t2_ticked=0;
+        }
     }
 #endif
 
