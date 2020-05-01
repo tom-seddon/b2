@@ -742,7 +742,7 @@ void RunStandardTest(const std::string &beeblink_volume_path,
                                  "T."+test_name),
                  0x1900);
     bbc.Paste("PAGE=&1900\rOLD\rRUN\r");
-    bbc.RunUntilOSWORD0(10.0);
+    bbc.RunUntilOSWORD0(20.0);
 
     {
         LOGF(BBC_OUTPUT,"All Output: ");

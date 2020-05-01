@@ -29,3 +29,7 @@ T.VIA#2eAC7 diff=bbcbasic
 T.VIA#2eT23 diff=bbcbasic
 T.VIA#2ePB6 diff=bbcbasic
 T.TIMINGS diff=bbcbasic
+V.TOTIME diff=bbcbasic
+T.VIA#2eTO diff=bbcbasic
+T.VPOLL diff=bbcbasic
+T.VTIMEOU diff=bbcbasic

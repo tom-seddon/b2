@@ -108,6 +108,10 @@ add_standard_test(VIA.PB6 BTape)
 
 add_standard_test(TIMINGS BTape)
 
+# should be the same on a B, but I haven't tested it.
+add_standard_test(VTIMEOU Master128MOS320)
+add_standard_test(VPOLL Master128MOS320)
+
 ##########################################################################
 ##########################################################################
 
@@ -128,9 +132,9 @@ add_kevin_edwards_test(Jetman)
 add_kevin_edwards_test(Nightsh)
 
 # :(
-set_tests_properties(test_TIMINGS_BTape test_kevin_edwards_Nightsh test_kevin_edwards_Jetman
-  PROPERTIES
-  WILL_FAIL TRUE)
+# set_tests_properties(test_TIMINGS_BTape test_kevin_edwards_Nightsh test_kevin_edwards_Jetman
+#   PROPERTIES
+#   WILL_FAIL TRUE)
 
 ##########################################################################
 ##########################################################################
