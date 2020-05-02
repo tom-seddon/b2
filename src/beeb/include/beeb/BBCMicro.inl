@@ -16,7 +16,7 @@ EEND()
 
 #define ENAME BBCMicroTraceFlag
 EBEGIN()
-EPNV(6845VSync,1<<0)
+EPNV(6845,1<<0)
 EPNV(6845Scanlines,1<<1)
 EPNV(6845ScanlinesSeparators,1<<2)
 EPNV(RTC,1<<3)

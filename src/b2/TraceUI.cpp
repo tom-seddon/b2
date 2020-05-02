@@ -337,7 +337,7 @@ void TraceUI::DoImGui() {
 
         uint32_t flags_seen=0;
 
-        DoTraceFlag(&flags_seen,BBCMicroTraceFlag_6845VSync,"6845 VSync");
+        DoTraceFlag(&flags_seen,BBCMicroTraceFlag_6845,"6845");
         DoTraceFlag(&flags_seen,BBCMicroTraceFlag_6845Scanlines,"Scanlines");
         DoTraceFlag(&flags_seen,BBCMicroTraceFlag_6845ScanlinesSeparators,"Separators",true);
 

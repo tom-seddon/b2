@@ -97,8 +97,7 @@ void CRTC::WriteData(void *c_,M6502Word a,uint8_t value) {
 
     uint16_t reg=CRTC_REGISTERS[c->m_address];
     if(reg&CrtcRegister_CanWrite) {
-        TRACEF_IF(c->m_trace_scanlines,c->m_trace,"6845 - %u - R%u was %u ($%02x), now %u ($%02x)",c->m_st.num_updates,c->m_address,c->m_registers.values[c->m_address],c->m_registers.values[c->m_address],value&reg,value&reg);
-
+        TRACEF(c->m_trace,"6845 - %u - R%u was %u ($%02x), now %u ($%02x)",c->m_st.num_updates,c->m_address,c->m_registers.values[c->m_address],c->m_registers.values[c->m_address],value&reg,value&reg);
         c->m_registers.values[c->m_address]=value&reg;
     }
 }
@@ -254,7 +253,7 @@ CRTC::Output CRTC::Update() {
         }
 
         ++m_st.column;
-        //TRACEF_IF(m_trace_scanlines,m_trace,"6845 - %u - column=%u",m_st.column);
+        TRACEF_IF(m_trace_scanlines,m_trace,"6845 - %u - column was %u now %u",m_st.num_updates,m_st.column-1,m_st.column);
     }
 
     // Handle end of vertical displayed.
