@@ -39,7 +39,7 @@ BEGIN_MACRO {\
 
 #else
 
-#define BEGIN_LOG_TRACE(OBJ,N) if(false) { Log *log=nullptr; {
+#define BEGIN_LOG_TRACE(OBJ,N) if constexpr(false) { Log *log=nullptr; {
 #define END_LOG_TRACE() }}
 
 #define TRACE(...) ((void)0)
@@ -343,6 +343,14 @@ void WD1770::Write0(void *fdc_,M6502Word addr,uint8_t value) {
     (void)addr;
 
     LOGF(1770,"Write command: 0x%02X\n",value);
+
+    if(fdc->m_status.bits.busy) {
+        // Busy. Accept $d0 only.
+        if((value&0xf0)!=0xd0) {
+            LOGF(1770,"Busy - refusing new command\n");
+            return;
+        }
+    }
 
     fdc->m_command.value=value;
     fdc->SetINTRQ(0);//reset intrq
