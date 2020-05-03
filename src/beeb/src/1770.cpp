@@ -381,11 +381,7 @@ void WD1770::Write0(void *fdc_,M6502Word addr,uint8_t value) {
     case 0xa0:
     case 0xb0:
         // Type II - Write Sector
-#if WD1770_ENABLE_WRITE
         fdc->DoTypeII(WD1770State_WriteSector);
-#else
-        ASSERT(0);
-#endif
         break;
 
     case 0xc0:
@@ -926,7 +922,6 @@ WD1770::Pins WD1770::Update() {
         }
         break;
 
-#if WD1770_ENABLE_WRITE
     case WD1770State_WriteSector:
         {
             this->DoTypeIIOrTypeIIIDelay(WD1770State_WriteSectorFindSector);
@@ -1014,7 +1009,6 @@ WD1770::Pins WD1770::Update() {
             this->Wait(uS_PER_BYTE,WD1770State_WriteSectorWriteByte);
         }
         break;
-#endif
 
     case WD1770State_ReadAddress:
         {

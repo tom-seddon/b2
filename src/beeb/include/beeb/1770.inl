@@ -69,7 +69,6 @@ EPN(ReadSectorReadByte)
 // sector); otherwise, go to ReadSectorReadByte.
 EPN(ReadSectorNextByte)
 
-#if WD1770_ENABLE_WRITE
 // If the E bit is set, wait 30ms. Next state is
 // WriteSectorFindSector.
 EPN(WriteSector)
@@ -93,8 +92,6 @@ EPN(WriteSectorWriteByte)
 
 // Set DRQ, delay 1 byte, then go to WriteSectorWriteByte.
 EPN(WriteSectorNextByte)
-
-#endif
 
 // Do the 30ms E delay if necessary. Next state is ReadAddressFindSector.
 EPN(ReadAddress)
