@@ -178,9 +178,9 @@ public:
     // Get current PCR value, no side-effects.
     PCR GetPCR() const;
 
-    void UpdatePhi2LeadingEdge();
-    void UpdatePhi2TrailingEdge();
-    bool AnyIRQs() const;
+    // Return non-0 to indicate IRQ.
+    uint8_t UpdatePhi2LeadingEdge();
+    uint8_t UpdatePhi2TrailingEdge();
 
 #if BBCMICRO_TRACE
     void SetTrace(Trace *t,bool extra);

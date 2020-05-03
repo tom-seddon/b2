@@ -515,7 +515,7 @@ void R6522::WriteE(void *via_,M6502Word addr,uint8_t value) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void R6522::UpdatePhi2LeadingEdge() {
+uint8_t R6522::UpdatePhi2LeadingEdge() {
     if(m_t1_timeout) {
         m_t1_pending=m_acr.bits.t1_continuous;
         this->ifr.bits.t1=1;
@@ -538,34 +538,14 @@ void R6522::UpdatePhi2LeadingEdge() {
     } else {
         m_t2_count=true;
     }
+
+    return this->ier.value&this->ifr.value&0x7f;
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-// silly to poll like this - should maintain a flag that's updated when
-// IFR or IER change.
-bool R6522::AnyIRQs() const {
-    uint8_t any_irqs=this->ifr.value&this->ier.value&0x7f;
-
-//#if BBCMICRO_TRACE
-//    if(any_irqs) {
-//        if(m_trace) {
-//            auto ev=(IRQEvent *)m_trace->AllocEvent(IRQ_EVENT);
-//            ev->id=m_id;
-//            ev->ifr=this->ifr;
-//            ev->ier=this->ier;
-//        }
-//    }
-//#endif
-
-    return any_irqs!=0;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-void R6522::UpdatePhi2TrailingEdge() {
+uint8_t R6522::UpdatePhi2TrailingEdge() {
     /* CA1/CA2 */
     TickControlPhi2TrailingEdge(&this->a,m_acr.bits.pa_latching,m_pcr.value>>0,R6522IRQMask_CA2,'A');
 
@@ -640,6 +620,8 @@ void R6522::UpdatePhi2TrailingEdge() {
             }
         }
     }
+
+    return this->ier.value&this->ifr.value&0x7f;
 }
 
 //////////////////////////////////////////////////////////////////////////

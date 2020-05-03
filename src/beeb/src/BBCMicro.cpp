@@ -1365,6 +1365,15 @@ bool BBCMicro::Update(VideoDataUnit *video_unit,SoundDataUnit *sound_unit) {
 
     // Update VIAs and slow data bus.
     if(phi2_1MHz_trailing_edge) {
+        // Update vsync.
+        if(!m_state.crtc_last_output.vsync) {
+           m_state.system_via.a.c1=0;
+        }
+
+        // Update IRQs.
+        m_state.system_via_irq_pending|=m_state.system_via.UpdatePhi2TrailingEdge();
+        m_state.user_via_irq_pending|=m_state.user_via.UpdatePhi2TrailingEdge();
+
         if(m_state.system_via_irq_pending) {
             M6502_SetDeviceIRQ(&m_state.cpu,BBCMicroIRQDevice_SystemVIA,1);
         } else {
@@ -1375,15 +1384,6 @@ bool BBCMicro::Update(VideoDataUnit *video_unit,SoundDataUnit *sound_unit) {
             M6502_SetDeviceIRQ(&m_state.cpu,BBCMicroIRQDevice_UserVIA,1);
         } else {
             M6502_SetDeviceIRQ(&m_state.cpu,BBCMicroIRQDevice_UserVIA,0);
-        }
-
-        // Update IRQs.
-        m_state.system_via.UpdatePhi2TrailingEdge();
-        m_state.user_via.UpdatePhi2TrailingEdge();
-
-        // Update vsync.
-        if(!m_state.crtc_last_output.vsync) {
-           m_state.system_via.a.c1=0;
         }
 
         // Update keyboard.
@@ -1480,11 +1480,8 @@ bool BBCMicro::Update(VideoDataUnit *video_unit,SoundDataUnit *sound_unit) {
 
         m_state.old_addressable_latch=m_state.addressable_latch;
     } else {
-        m_state.system_via.UpdatePhi2LeadingEdge();
-        m_state.user_via.UpdatePhi2LeadingEdge();
-
-        m_state.system_via_irq_pending=m_state.system_via.AnyIRQs();
-        m_state.user_via_irq_pending=m_state.user_via.AnyIRQs();
+        m_state.system_via_irq_pending=m_state.system_via.UpdatePhi2LeadingEdge();
+        m_state.user_via_irq_pending=m_state.user_via.UpdatePhi2LeadingEdge();
     }
 
     // Update 1770.
