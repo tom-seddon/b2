@@ -1657,11 +1657,10 @@ bool LoadGlobalConfig(Messages *msg) {
     if(FindArrayMember(&keymaps,doc.get(),OLD_KEYMAPS,msg)) {
         LOGF(LOADSAVE,"Loading keymaps.\n");
 
-        BeebWindows::AddBeebKeymap(DEFAULT_KEYMAP);
-        BeebWindows::AddBeebKeymap(DEFAULT_KEYMAP_CC);
-        BeebWindows::AddBeebKeymap(DEFAULT_KEYMAP_UK);
-        BeebWindows::AddBeebKeymap(DEFAULT_KEYMAP_US);
-
+        for(size_t i=0;i<GetNumDefaultBeebKeymaps();++i) {
+            BeebWindows::AddBeebKeymap(*GetDefaultBeebKeymapByIndex(i));
+        }
+        
         if(!LoadKeymaps(&keymaps,OLD_KEYMAPS,msg)) {
             return false;
         }
@@ -1784,7 +1783,8 @@ static void SaveRecentPaths(JSONWriter<StringStream> *writer) {
 static void SaveKeymaps(JSONWriter<StringStream> *writer) {
     auto keymaps_json=ArrayWriter(writer,NEW_KEYMAPS);
 
-    BeebWindows::ForEachBeebKeymap([&](BeebKeymap *keymap) {
+    for(size_t i=0;i<BeebWindows::GetNumBeebKeymaps();++i) {
+        const BeebKeymap *keymap=BeebWindows::GetBeebKeymapByIndex(i);
         auto keymap_json=ObjectWriter(writer);
 
         writer->Key(NAME);
@@ -1843,10 +1843,7 @@ static void SaveKeymaps(JSONWriter<StringStream> *writer) {
                 }
             }
         }
-
-
-        return true;
-    });
+    }
 }
 
 static void SaveShortcuts(JSONWriter<StringStream> *writer) {

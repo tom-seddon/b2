@@ -307,18 +307,43 @@ static BeebKeymap CreateDefaultBeebKeymap(const char *name,
     return keymap;
 }
 
-const BeebKeymap DEFAULT_KEYMAP=CreateDefaultBeebKeymap("Default",
-                                                        false,
-                                                        {g_scancode_common,g_scancode_noncc});
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
 
-const BeebKeymap DEFAULT_KEYMAP_CC=CreateDefaultBeebKeymap("Default (caps/ctrl)",
-                                                           false,
-                                                           {g_scancode_common,g_scancode_cc});
+static const BeebKeymap DEFAULT_KEYMAPS[]={
 
-const BeebKeymap DEFAULT_KEYMAP_UK=CreateDefaultBeebKeymap("Default UK",
-                                                           true,
-                                                           {g_keysym_common,g_keysym_uk});
+    CreateDefaultBeebKeymap("Default",
+                            false,
+                            {g_scancode_common,g_scancode_noncc}),
 
-const BeebKeymap DEFAULT_KEYMAP_US=CreateDefaultBeebKeymap("Default US",
-                                                           true,
-                                                           {g_keysym_common,g_keysym_us});
+    CreateDefaultBeebKeymap("Default (caps/ctrl)",
+                               false,
+                               {g_scancode_common,g_scancode_cc}),
+
+    CreateDefaultBeebKeymap("Default UK",
+                            true,
+                            {g_keysym_common,g_keysym_uk}),
+
+    CreateDefaultBeebKeymap("Default US",
+                            true,
+                            {g_keysym_common,g_keysym_us}),
+};
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+size_t GetNumDefaultBeebKeymaps() {
+    return sizeof DEFAULT_KEYMAPS/sizeof DEFAULT_KEYMAPS[0];
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+const BeebKeymap *GetDefaultBeebKeymapByIndex(size_t index) {
+    ASSERT(index<GetNumDefaultBeebKeymaps());
+    
+    return &DEFAULT_KEYMAPS[index];
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////

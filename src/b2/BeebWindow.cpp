@@ -1182,7 +1182,9 @@ void BeebWindow::DoFileMenu() {
         ImGui::Separator();
 
         if(ImGui::BeginMenu("Keymap")) {
-            BeebWindows::ForEachBeebKeymap([&](BeebKeymap *keymap) {
+            for(size_t i=0;i<BeebWindows::GetNumBeebKeymaps();++i) {
+                BeebKeymap *keymap=BeebWindows::GetBeebKeymapByIndex(i);
+
                 if(ImGui::MenuItem(GetKeymapUIName(*keymap).c_str(),
                                    nullptr,
                                    m_settings.keymap==keymap))
@@ -1192,9 +1194,7 @@ void BeebWindow::DoFileMenu() {
                     m_msg.i.f("Keymap: %s\n",m_settings.keymap->GetName().c_str());
                     this->ShowPrioritizeCommandShortcutsStatus();
                 }
-
-                return true;
-            });
+            }
 
             ImGui::EndMenu();
         }

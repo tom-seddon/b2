@@ -79,20 +79,18 @@ void UpdateWindowTitles();
 
 // If the keymap is in use by any windows, they'll be reset to use
 // the default keymap.
-void RemoveBeebKeymap(BeebKeymap *keymap);
-
+void RemoveBeebKeymapByIndex(size_t index);
 
 // AddBeebKeymap will adjust KEYMAP's name to make it unique.
 //
-// When other_keymap is not null, KEYMAP will take
-// other_keymap's place in the list, moving OTHER_KEYMAP and those past it
-// up one. Otherwise, it will be added to the end.
-//
 // Returns the pointer to the keymap in the list.
-BeebKeymap *AddBeebKeymap(BeebKeymap keymap,BeebKeymap *other_keymap=nullptr);
+BeebKeymap *AddBeebKeymap(BeebKeymap keymap);
 
 // When necessary, name will be adjusted to make it unique.
-void SetBeebKeymapName(BeebKeymap *keymap,std::string name);
+void BeebKeymapDidChange(size_t index);
+
+size_t GetNumBeebKeymaps();
+BeebKeymap *GetBeebKeymapByIndex(size_t index);
 
 // For each keymap k,
 // in the keymap list, calls func (k). If func returns false,
@@ -101,7 +99,7 @@ void SetBeebKeymapName(BeebKeymap *keymap,std::string name);
 // Adding/removing keymaps in the loop is safe, but keymaps may be
 // missed or seen multiple times and/or the ForEach return value
 // might be wrong.
-BeebKeymap *ForEachBeebKeymap(const std::function<bool(BeebKeymap *)> &func);
+//BeebKeymap *ForEachBeebKeymap(const std::function<bool(BeebKeymap *)> &func);
 
 // Keymaps are not optimised for retrieval by name.
 BeebKeymap *FindBeebKeymapByName(const std::string &name);

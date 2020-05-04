@@ -180,102 +180,104 @@ void ConfigsUI::DoImGui() {
 //////////////////////////////////////////////////////////////////////////
 
 void ConfigsUI::DoEditConfigGui() {
-    if(BeebConfig *config=GetConfigByIndex(m_config_index)) {
+    BeebConfig *config=GetConfigByIndex(m_config_index);
+    if(!config) {
+        return;
+    }
 
-        // set to true if *config was edited - as well as
-        // dirtying the corresponding loaded config, this will set
-        // m_edited.
-        bool edited=false;
+    // set to true if *config was edited - as well as
+    // dirtying the corresponding loaded config, this will set
+    // m_edited.
+    bool edited=false;
 
-        const ImGuiStyle &style=ImGui::GetStyle();
+    const ImGuiStyle &style=ImGui::GetStyle();
 
-        ImGuiIDPusher config_id_pusher(config);
+    ImGuiIDPusher config_id_pusher(config);
 
-        ImGui::Text("Model: %s",config->type->model_name);
-        ImGui::Text("Disc interface: %s",config->disc_interface->name.c_str());
+    ImGui::Text("Model: %s",config->type->model_name);
+    ImGui::Text("Disc interface: %s",config->disc_interface->name.c_str());
 
-        std::string title=config->name;
+    std::string title=config->name;
 
-        std::string name;
+    std::string name;
+    {
+        // with a width of -1, the label disappears...
+        //ImGuiItemWidthPusher pusher(-1);
+
+        if(ImGuiInputText(&config->name,"Name",config->name)) {
+            edited=true;
+        }
+    }
+
+    ImGui::Columns(3,"rom_edit",true);
+
+    ImGui::Text("ROM");
+    float rom_width=ImGui::GetItemRectSize().x+2*style.ItemSpacing.x;
+
+    ImGui::NextColumn();
+
+    ImGui::Text("RAM");
+    float ram_width=ImGui::GetItemRectSize().x+2*style.ItemSpacing.x;
+
+    ImGui::NextColumn();
+
+    ImGui::Text("Contents");
+
+    ImGui::NextColumn();
+
+    ImGui::Separator();
+
+    if(this->DoROMEditGui("OS",&config->os,nullptr)) {
+        edited=true;
+    }
+
+    uint16_t occupied=0;
+
+    for(uint8_t i=0;i<16;++i) {
+        uint8_t bank=15-i;
+
         {
-            // with a width of -1, the label disappears...
-            //ImGuiItemWidthPusher pusher(-1);
+            ImGuiIDPusher bank_id_pusher(bank);
 
-            if(ImGuiInputText(&config->name,"Name",config->name)) {
-                edited=true;
-            }
-        }
+            ImGui::Separator();
 
-        ImGui::Columns(3,"rom_edit",true);
+            BeebConfig::SidewaysROM *editable_rom=&config->roms[bank];
 
-        ImGui::Text("ROM");
-        float rom_width=ImGui::GetItemRectSize().x+2*style.ItemSpacing.x;
-
-        ImGui::NextColumn();
-
-        ImGui::Text("RAM");
-        float ram_width=ImGui::GetItemRectSize().x+2*style.ItemSpacing.x;
-
-        ImGui::NextColumn();
-
-        ImGui::Text("Contents");
-
-        ImGui::NextColumn();
-
-        ImGui::Separator();
-
-        if(this->DoROMEditGui("OS",&config->os,nullptr)) {
-            edited=true;
-        }
-
-        uint16_t occupied=0;
-
-        for(uint8_t i=0;i<16;++i) {
-            uint8_t bank=15-i;
-
+            if(this->DoROMEditGui(CAPTIONS[bank],
+                                  editable_rom,
+                                  &editable_rom->writeable))
             {
-                ImGuiIDPusher bank_id_pusher(bank);
-
-                ImGui::Separator();
-
-                BeebConfig::SidewaysROM *editable_rom=&config->roms[bank];
-
-                if(this->DoROMEditGui(CAPTIONS[bank],
-                                      editable_rom,
-                                      &editable_rom->writeable))
-                {
-                    edited=true;
-                }
-
-                occupied|=1<<bank;
-            }
-        }
-
-        ImGui::SetColumnOffset(1,rom_width);
-        ImGui::SetColumnOffset(2,rom_width+ram_width);
-
-        ImGui::Separator();
-
-        ImGui::Columns(1);
-
-        if(!config->disc_interface->uses_1MHz_bus) {
-            if(ImGui::Checkbox("External memory",&config->ext_mem)) {
                 edited=true;
             }
-        }
 
-        if(ImGui::Checkbox("BeebLink",&config->beeblink)) {
+            occupied|=1<<bank;
+        }
+    }
+
+    ImGui::SetColumnOffset(1,rom_width);
+    ImGui::SetColumnOffset(2,rom_width+ram_width);
+
+    ImGui::Separator();
+
+    ImGui::Columns(1);
+
+    if(!config->disc_interface->uses_1MHz_bus) {
+        if(ImGui::Checkbox("External memory",&config->ext_mem)) {
             edited=true;
         }
+    }
 
-        if(ImGui::Checkbox("Video NuLA",&config->video_nula)) {
-            edited=true;
-        }
+    if(ImGui::Checkbox("BeebLink",&config->beeblink)) {
+        edited=true;
+    }
 
-        if(edited) {
-            BeebWindows::ConfigDidChange((size_t)m_config_index);
-            m_edited=true;
-        }
+    if(ImGui::Checkbox("Video NuLA",&config->video_nula)) {
+        edited=true;
+    }
+
+    if(edited) {
+        BeebWindows::ConfigDidChange((size_t)m_config_index);
+        m_edited=true;
     }
 }
 

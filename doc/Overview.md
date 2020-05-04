@@ -123,26 +123,27 @@ will then be ignored when the emulator recognises the combination.)
 ## Customize keyboard layout
 
 Click `Tools` > `Keyboard layout...` to bring up the keyboard layout
-dialog, showing a map of the BBC keyboard. Hover over a key to see
-which PC keys correspond to it. (For character maps, some keys have
-two parts, mapped separately.)
+dialog. Select the keymap of interest in the left hand list, and use
+the BBC keyboard map to edit which PC keys map to which BBC keys.
 
-The BBC keyboard map always shows the Master 128 keypad, but these
-mappings only get used in Master 128 mode.
+(Note that the BBC keyboard map always shows the Master 128 keypad,
+though the keypad is only active in Master 128 mode.)
 
-Each keymap has its own section, though initially only the active
-keymap is shown. Click the little disclosure arrow thing to reveal the
-others.
+Hover over a BBC key to see a little `Edit PC Keys` popup, showing
+which PC keys correspond to it. While the popup is visible, press a
+key to make that PC key map to the Beeb key.
 
-To make a new keymap, click the `New` button at the top of the list
-and select the keymap to copy. The four default keymaps are always
-included in the list, so you can get them back even if you've deleted
-them.
+To remove a mapping, click the BBC key to make the `Edit PC Keys`
+popup stick. Then click the X button next to the PC key's name.
 
 Each keymap also has a `Prioritize command keys` checkbox, which is
 the setting for the `Edit` > `Prioritize command keys` option (see
-above) when the keymaps is first selected. (You can use the menu item
-to change it afterwards.)
+above) when the keymaps is first selected. The tick box is the default
+setting; you can always use the menu item to change it afterwards.
+
+To create a new keymap, click the `New...` button to create one that's
+a copy of one of the default keymaps, or click the `Copy...` to create
+one that's a copy of one of the ones in the list.
 
 ## Customize configs
 
