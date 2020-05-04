@@ -163,6 +163,29 @@ public:
     explicit ImGuiIDPusher(int int_id);
     explicit ImGuiIDPusher(uint32_t uint_id);
     ~ImGuiIDPusher();
+
+    ImGuiIDPusher(const ImGuiIDPusher &)=delete;
+    ImGuiIDPusher &operator=(const ImGuiIDPusher &)=delete;
+
+    ImGuiIDPusher(ImGuiIDPusher &&);
+    ImGuiIDPusher &operator=(ImGuiIDPusher &&)=delete;
+protected:
+private:
+};
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+class ImGuiItemWidthPusher {
+public:
+    explicit ImGuiItemWidthPusher(float width);
+    ~ImGuiItemWidthPusher();
+
+    ImGuiItemWidthPusher(const ImGuiItemWidthPusher &)=delete;
+    ImGuiItemWidthPusher &operator=(const ImGuiItemWidthPusher &)=delete;
+
+    ImGuiItemWidthPusher(ImGuiItemWidthPusher &&);
+    ImGuiItemWidthPusher &operator=(ImGuiItemWidthPusher &&)=delete;
 protected:
 private:
 };
