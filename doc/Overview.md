@@ -152,13 +152,17 @@ with MOS 3.50. `Tools` > `Configs` lets you edit this list and choose
 what each config includes - ROMs, sideways RAM status, and extra
 hardware.
 
+Select the config to modify in the list on the left hand side. The
+right hand side will display the ROM slot contents and tick boxes for
+extra hardware.
+
 Click the `...` button next to a sideways ROM slot/OS ROM to select
 the ROM image. You can load a file off disk, or choose one of the
 various standard ROMs that are supplied with the emulator.
 
 Tick the box in the RAM column to make that sideways slot writeable.
 
-There are two items of optional hardware:
+Items of optional hardware are as follows:
 
 - Check the `External memory` box to add a 16MByte paged RAM 1MHz bus
   device. Paging registers are at &FC00 (LSB) and &FC01 (MSB), and the
@@ -178,14 +182,14 @@ There are two items of optional hardware:
   problem.)
 
 Changes to a configuration don't affect the running Beeb until you do
-a `File` > `Hard Reset`, `File` > `Configuration`, or click that
-configuration's `Use` button (which is equivalent to selecting that
-configuration and doing a hard reset).
+a `File` > `Hard Reset` (if you're editing the current config) or a
+`File` > `Configuration`.
 
-To create a new configuration, click the `New` button, and select
-which configuration to copy the new one from. (The default
-configurations are always included in this list, so you can get them
-back even if you delete them.)
+To create a new configuration, click the `New...` button to create one
+based off one of the default configs, or the `Copy...` button to
+create one that's a copy of one of the ones in the list.
+
+The `Delete` button will delete the currently selected config.
 
 ## Non-volatile RAM
 
