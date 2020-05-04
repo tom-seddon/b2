@@ -200,6 +200,7 @@ static bool ParsePrefixCharB(uint32_t *dpo,char c) {
 
 const BBCMicroType BBC_MICRO_TYPE_B={
     BBCMicroTypeID_B,//type_id
+    "B",
     &M6502_nmos6502_config,//m6502_config
     32768,//ram_buffer_size
     DiscDriveType_133mm,//default_disc_drive_type
@@ -393,6 +394,7 @@ static bool ParsePrefixCharBPlus(uint32_t *dpo,char c) {
 
 const BBCMicroType BBC_MICRO_TYPE_B_PLUS={
     BBCMicroTypeID_BPlus,//type_id
+    "B+",
     &M6502_nmos6502_config,//m6502_config
     65536,//ram_buffer_size
     DiscDriveType_133mm,//default_disc_drive_type
@@ -656,6 +658,7 @@ static bool ParsePrefixCharMaster(uint32_t *dpo,char c) {
 
 const BBCMicroType BBC_MICRO_TYPE_MASTER={
     BBCMicroTypeID_Master,//type_id
+    "Master 128",
     &M6502_cmos6502_config,//m6502_config
     65536,//ram_buffer_size
     DiscDriveType_133mm,//default_disc_drive_type

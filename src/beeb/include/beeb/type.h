@@ -173,6 +173,9 @@ struct BBCMicroType {
     // Switch-friendly identifier.
     const BBCMicroTypeID type_id;
 
+    // Display name suitable for UI or whatever.
+    const char *model_name;
+
     const M6502Config *m6502_config;
 
     size_t ram_buffer_size;
