@@ -64,18 +64,6 @@ static const uint8_t TELETEXT_FONT[96][10][3]={
 static const uint8_t NUM_FLASH_OFF_FRAMES=16;
 static const uint8_t NUM_FLASH_CYCLE_FRAMES=64;
 
-// Eventually this will be configurable...
-static const VideoDataPixel PALETTE[]={
-    {{0,0,0,}},
-    {{0,0,15,}},
-    {{0,15,0,}},
-    {{0,15,15,}},
-    {{15,0,0,}},
-    {{15,0,15,}},
-    {{15,15,0,}},
-    {{15,15,15,}},
-};
-
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
@@ -376,13 +364,15 @@ void SAA5050::Byte(uint8_t value,uint8_t dispen) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void SAA5050::EmitPixels(VideoDataUnitPixels *pixels) {
+void SAA5050::EmitPixels(VideoDataUnitPixels *pixels,
+                         const VideoDataPixel *palette)
+{
     Output *output=&m_output[m_read_index];
 
-    pixels->pixels[0]=PALETTE[output->bg];
+    pixels->pixels[0]=palette[output->bg];
     pixels->pixels[0].bits.x=VideoDataType_Teletext;
 
-    pixels->pixels[1]=PALETTE[output->fg];
+    pixels->pixels[1]=palette[output->fg];
 
     pixels->pixels[2].all=output->data0;
     pixels->pixels[3].all=output->data1;

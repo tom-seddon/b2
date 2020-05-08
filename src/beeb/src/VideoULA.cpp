@@ -132,7 +132,7 @@ void VideoULA::WriteNuLAPalette(void *ula_,M6502Word a,uint8_t value) {
     } else {
         if(ula->m_nula_palette_write_state) {
             uint8_t index=ula->m_nula_palette_write_buffer>>4;
-            VideoDataPixel *entry=&ula->m_output_palette[index];
+            VideoDataPixel *entry=&ula->output_palette[index];
 
             entry->bits.r=ula->m_nula_palette_write_buffer&0xf;
             entry->bits.g=value>>4;
@@ -218,7 +218,7 @@ void VideoULA::UpdatePixelBufferOffset() {
 void VideoULA::ResetNuLAState() {
     // Reset output palette.
     for(size_t i=0;i<16;++i) {
-        VideoDataPixel *pixel=&m_output_palette[i];
+        VideoDataPixel *pixel=&this->output_palette[i];
 
         pixel->bits.x=0;
         pixel->bits.r=i&1?15:0;
@@ -259,7 +259,7 @@ VideoDataPixel VideoULA::GetPalette(uint8_t index) {
         }
     }
 
-    return m_output_palette[index];
+    return this->output_palette[index];
 }
 
 //////////////////////////////////////////////////////////////////////////

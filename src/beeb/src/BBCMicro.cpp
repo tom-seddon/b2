@@ -1328,7 +1328,7 @@ bool BBCMicro::Update(VideoDataUnit *video_unit,SoundDataUnit *sound_unit) {
 #endif
 
     if(m_state.video_ula.control.bits.teletext) {
-        m_state.saa5050.EmitPixels(&video_unit->pixels);
+        m_state.saa5050.EmitPixels(&video_unit->pixels,m_state.video_ula.output_palette);
 
         if(m_state.cursor_pattern&1) {
             video_unit->pixels.pixels[0].all^=0x0fff;

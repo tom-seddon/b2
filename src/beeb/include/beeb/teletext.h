@@ -24,7 +24,7 @@ public:
     void Byte(uint8_t byte,uint8_t dispen);
 
     // One char is 2 units wide.
-    void EmitPixels(VideoDataUnitPixels *pixels);
+    void EmitPixels(VideoDataUnitPixels *pixels,const VideoDataPixel *palette);
 
     void StartOfLine();
     void EndOfLine();

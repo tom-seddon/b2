@@ -54,6 +54,8 @@ public:
 
     Control control={};
 
+    VideoDataPixel output_palette[16]={};
+
     static void WriteControlRegister(void *ula,M6502Word a,uint8_t value);
     static void WritePalette(void *ula,M6502Word a,uint8_t value);
 
@@ -79,7 +81,6 @@ private:
     };
 
     uint8_t m_palette[16]={};
-    VideoDataPixel m_output_palette[16]={};
     uint8_t m_work_byte=0;
     uint8_t m_original_byte=0;
     uint8_t m_flash[16]={};

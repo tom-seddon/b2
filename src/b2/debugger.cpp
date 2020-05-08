@@ -1781,7 +1781,7 @@ protected:
 
             control=u->control;
             memcpy(palette,u->m_palette,16);
-            memcpy(nula_palette,u->m_output_palette,16*sizeof(VideoDataPixel));
+            memcpy(nula_palette,u->output_palette,16*sizeof(VideoDataPixel));
             memcpy(nula_flash,u->m_flash,16);
             nula_direct_palette=u->m_direct_palette;
             nula_disable_a1=u->m_disable_a1;
