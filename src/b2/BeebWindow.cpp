@@ -1212,7 +1212,7 @@ void BeebWindow::DoFileMenu() {
                 std::unique_lock<Mutex> d_lock;
                 std::shared_ptr<const DiscImage> disc_image=m_beeb_thread->GetDiscImage(&d_lock,drive);
 
-                if(disc_image) {
+                if(!!disc_image) {
                     name=disc_image->GetName();
                     ImGui::MenuItem(name.empty()?"(no name)":name.c_str(),nullptr,false,false);
 
@@ -1228,6 +1228,14 @@ void BeebWindow::DoFileMenu() {
 
                     load_method=disc_image->GetLoadMethod();
                     ImGui::MenuItem(("Loaded from: "+load_method).c_str(),nullptr,false,false);
+
+                    if(ImGui::BeginMenu("Eject")) {
+                        if(ImGui::MenuItem("Confirm")) {
+                            m_beeb_thread->Send(std::make_shared<BeebThread::EjectDiscMessage>(drive));
+                        }
+                        ImGui::EndMenu();
+                    }
+
                 } else {
                     ImGui::MenuItem("(empty)",NULL,false,false);
                 }

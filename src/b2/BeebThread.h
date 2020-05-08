@@ -336,6 +336,18 @@ public:
         const bool m_verbose=false;
     };
 
+    class EjectDiscMessage:
+    public Message
+    {
+    public:
+        explicit EjectDiscMessage(int drive);
+
+        void ThreadHandle(BeebThread *beeb_thread,ThreadState *ts) const override;
+    protected:
+    private:
+        const int m_drive=-1;
+    };
+
     // Any kind of message that has a BeebState.
     class BeebStateMessage:
         public Message
