@@ -5,8 +5,10 @@ The build process is somewhat similar on both platforms.
 I do some of the development on OS X, so the OS X version should work
 well.
 
-The Linux version is most politely described as "experimental". I've
-only tested it on Ubuntu, on a machine without working sound output.
+The Linux version doesn't get much testing by me, though I do try it
+on Ubuntu 18.04 occasionally. But I've had few reports of problems.
+(Please [create an issue](https://github.com/tom-seddon/b2/issues) if
+necessary.)
 
 # OS X prerequisites
 
@@ -33,6 +35,7 @@ Additional apt package dependencies:
 - `libpulse-dev`
 - `libglvnd-dev`
 - `libpulse-dev`
+- `libcurl4-openssl-dev`
 
 There are additional dependencies for video writing, which are
 optional. The project will build without these, but video writing
