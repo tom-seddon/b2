@@ -154,7 +154,7 @@ what each config includes - ROMs, sideways RAM status, and extra
 hardware.
 
 Select the config to modify in the list on the left hand side. The
-right hand side will display the ROM slot contents and tick boxes for
+right hand side will display the ROM slot contents, and tick boxes for
 extra hardware.
 
 Click the `...` button next to a sideways ROM slot/OS ROM to select
@@ -162,6 +162,9 @@ the ROM image. You can load a file off disk, or choose one of the
 various standard ROMs that are supplied with the emulator.
 
 Tick the box in the RAM column to make that sideways slot writeable.
+
+Use the up/down arrows to rearrange the ROM contents, changing the
+priorities.
 
 Items of optional hardware are as follows:
 

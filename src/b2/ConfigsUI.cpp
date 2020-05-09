@@ -11,6 +11,15 @@
 #include "BeebWindow.h"
 #include "BeebConfig.h"
 #include <beeb/type.h>
+#include <IconsFontAwesome5.h>
+
+#include <shared/enum_decl.h>
+#include "ConfigsUI_private.inl"
+#include <shared/enum_end.h>
+
+#include <shared/enum_def.h>
+#include "ConfigsUI_private.inl"
+#include <shared/enum_end.h>
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -40,7 +49,7 @@ private:
     int m_config_index=-1;
 
     void DoROMInfoGui(const char *caption,const BeebConfig::ROM &rom,const bool *writeable);
-    bool DoROMEditGui(const char *caption,BeebConfig::ROM *rom,bool *writeable);
+    ROMEditAction DoROMEditGui(const char *caption,BeebConfig::ROM *rom,bool *writeable,bool can_move_up,bool can_move_down);
 
     void DoEditConfigGui();
 };
@@ -212,7 +221,7 @@ void ConfigsUI::DoEditConfigGui() {
     ImGui::Columns(3,"rom_edit",true);
 
     ImGui::Text("ROM");
-    float rom_width=ImGui::GetItemRectSize().x+2*style.ItemSpacing.x;
+    float rom_width=ImGui::GetItemRectSize().x+5*style.ItemSpacing.x;
 
     ImGui::NextColumn();
 
@@ -227,11 +236,12 @@ void ConfigsUI::DoEditConfigGui() {
 
     ImGui::Separator();
 
-    if(this->DoROMEditGui("OS",&config->os,nullptr)) {
+    if(this->DoROMEditGui("OS",&config->os,nullptr,false,false)!=ROMEditAction_None) {
         edited=true;
     }
 
-    uint16_t occupied=0;
+    ROMEditAction action=ROMEditAction_None;
+    uint8_t action_bank=0;
 
     for(uint8_t i=0;i<16;++i) {
         uint8_t bank=15-i;
@@ -241,17 +251,35 @@ void ConfigsUI::DoEditConfigGui() {
 
             ImGui::Separator();
 
-            BeebConfig::SidewaysROM *editable_rom=&config->roms[bank];
+            BeebConfig::SidewaysROM *rom=&config->roms[bank];
 
-            if(this->DoROMEditGui(CAPTIONS[bank],
-                                  editable_rom,
-                                  &editable_rom->writeable))
-            {
+            ROMEditAction a=this->DoROMEditGui(CAPTIONS[bank],
+                                               rom,
+                                               &rom->writeable,
+                                               bank<15,
+                                               bank>0);
+            if(a!=ROMEditAction_None) {
+                action=a;
+                action_bank=bank;
                 edited=true;
             }
-
-            occupied|=1<<bank;
         }
+    }
+
+    switch(action) {
+    case ROMEditAction_None:
+    case ROMEditAction_Edit:
+        break;
+
+    case ROMEditAction_MoveUp:
+        ASSERT(action_bank<15);
+        std::swap(config->roms[action_bank],config->roms[action_bank+1]);
+        break;
+
+    case ROMEditAction_MoveDown:
+        ASSERT(action_bank>0);
+        std::swap(config->roms[action_bank],config->roms[action_bank-1]);
+        break;
     }
 
     ImGui::SetColumnOffset(1,rom_width);
@@ -372,7 +400,13 @@ static bool ImGuiBROMs(BeebConfig::ROM *rom,const BeebROM *const *b_roms) {
     return false;
 }
 
-bool ConfigsUI::DoROMEditGui(const char *caption,BeebConfig::ROM *rom,bool *writeable) {
+ROMEditAction ConfigsUI::DoROMEditGui(const char *caption,
+                                      BeebConfig::ROM *rom,
+                                      bool *writeable,
+                                      bool can_move_up,
+                                      bool can_move_down)
+{
+    ROMEditAction action=ROMEditAction_None;
     bool edited=false;
 
     ImGuiIDPusher id_pusher(caption);
@@ -381,6 +415,32 @@ bool ConfigsUI::DoROMEditGui(const char *caption,BeebConfig::ROM *rom,bool *writ
     //ImGui::AlignFirstTextHeightToWidgets();
 
     ImGui::TextUnformatted(caption);
+
+    if(can_move_up||can_move_down) {
+        ImGui::SameLine();
+
+        {
+            ImGuiStyleColourPusher pusher;
+            pusher.PushDisabledButtonColours(!can_move_up);
+            if(ImGui::Button(ICON_FA_LONG_ARROW_ALT_UP)) {
+                if(can_move_up) {
+                    action=ROMEditAction_MoveUp;
+                }
+            }
+        }
+
+        ImGui::SameLine();
+
+        {
+            ImGuiStyleColourPusher pusher;
+            pusher.PushDisabledButtonColours(!can_move_down);
+            if(ImGui::Button(ICON_FA_LONG_ARROW_ALT_DOWN)) {
+                if(can_move_down) {
+                    action=ROMEditAction_MoveDown;
+                }
+            }
+        }
+    }
 
     ImGui::NextColumn();
 
@@ -466,7 +526,13 @@ bool ConfigsUI::DoROMEditGui(const char *caption,BeebConfig::ROM *rom,bool *writ
 
     ImGui::NextColumn();
 
-    return edited;
+    if(edited) {
+        if(action==ROMEditAction_None) {
+            action=ROMEditAction_Edit;
+        }
+    }
+
+    return action;
 }
 
 //////////////////////////////////////////////////////////////////////////

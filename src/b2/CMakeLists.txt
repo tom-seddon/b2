@@ -13,7 +13,7 @@ add_executable(b2 MACOSX_BUNDLE
   BeebWindow.cpp BeebWindow.h BeebWindow.inl
   BeebWindows.cpp BeebWindows.h 
   CommandKeymapsUI.cpp CommandKeymapsUI.h
-  ConfigsUI.cpp ConfigsUI.h
+  ConfigsUI.cpp ConfigsUI.h ConfigsUI_private.inl
   DataRateUI.cpp DataRateUI.h
   DearImguiTestUI.cpp DearImguiTestUI.h
   DirectDiscImage.cpp DirectDiscImage.h
