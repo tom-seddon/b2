@@ -105,8 +105,15 @@ void CRTC::WriteData(void *c_,M6502Word a,uint8_t value) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-CRTC::Output CRTC::Update() {
+CRTC::Output CRTC::Update(uint8_t lightpen) {
     ++m_st.num_updates;
+
+    if(lightpen&&!m_st.old_lightpen) {
+        m_registers.bits.penl=m_st.char_addr.b.l;
+        m_registers.bits.penh=m_st.char_addr.b.h;
+    }
+
+    m_st.old_lightpen=lightpen;
     
     // Handle hsync.
     if(m_st.hsync_counter>=0) {

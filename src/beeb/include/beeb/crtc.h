@@ -43,7 +43,7 @@ public:
     static uint8_t ReadData(void *c_,M6502Word a);
     static void WriteData(void *c_,M6502Word a,uint8_t value);
 
-    Output Update();
+    Output Update(uint8_t lightpen);
 
 #if BBCMICRO_TRACE
     void SetTrace(Trace *t,
@@ -113,8 +113,7 @@ private:
         uint8_t ncend;//R11 - cursor end raster
         uint8_t addrh,addrl;//R12,R13 - start address
         uint8_t cursorh,cursorl;//R14,R15 - cursor address
-        uint8_t r16;
-        uint8_t r17;
+        uint8_t penh,penl;//R16,R17 - light pen address
     };
 
     union Registers {
@@ -148,6 +147,7 @@ private:
         bool in_dummy_raster=false;
         bool end_of_frame_latched=false;
         bool cursor=false;
+        bool old_lightpen=false;
     };
 
     Registers m_registers={};
