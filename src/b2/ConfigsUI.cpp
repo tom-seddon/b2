@@ -136,9 +136,11 @@ void ConfigsUI::DoImGui() {
     ImGui::SameLine();
 
     if(ImGuiConfirmButton("Delete")) {
-        BeebWindows::RemoveConfigByIndex((size_t)m_config_index);
-        if(m_config_index>=BeebWindows::GetNumConfigs()) {
-            m_config_index=BeebWindows::GetNumConfigs()-1;
+        if(m_config_index>=0) {
+            BeebWindows::RemoveConfigByIndex((size_t)m_config_index);
+            if(m_config_index>=BeebWindows::GetNumConfigs()) {
+                m_config_index=(int)(BeebWindows::GetNumConfigs()-1);
+            }
         }
     }
 
@@ -156,7 +158,7 @@ void ConfigsUI::DoImGui() {
                        &GetBeebWindowConfigNameCallback,
                        nullptr,
                        (int)BeebWindows::GetNumConfigs(),
-                       (int)(h-y)/line_height-1);
+                       (int)((h-y)/line_height)-1);
     }
 
     ImGui::NextColumn();

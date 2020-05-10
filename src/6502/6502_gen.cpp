@@ -128,8 +128,7 @@ static void Sep() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static std::string GetFnNameForCycle(int cycle,const std::string &suffix) {
-    ASSERT(cycle>=0);
+static std::string GetFnNameForCycle(size_t cycle,const std::string &suffix) {
     return "Cycle"+std::to_string(cycle)+"_"+suffix;
 }
 
