@@ -14,6 +14,7 @@ before_install:
   - export OUTPUT_BASENAME=b2-osx-$SUFFIX.dmg
   - export OUTPUT_NAME=./build/_Rel/darwin/$OUTPUT_BASENAME
   - brew install ninja
+  - brew install ffmpeg
 
 before_deploy:
   # https://docs.travis-ci.com/user/deployment/releases/
