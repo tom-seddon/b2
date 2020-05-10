@@ -655,6 +655,10 @@ bool BeebWindow::DoImGui(uint64_t ticks) {
                         m_imgui_stuff->DoDebugWindow();
                     }
 
+                    if(m_imgui_metrics) {
+                        ImGui::ShowMetricsWindow();
+                    }
+
                     this->DoPopupUI(ticks,output_width,output_height);
                 }
             }
@@ -1453,6 +1457,7 @@ void BeebWindow::DoDebugMenu() {
         ImGui::MenuItem("ImGui drawlists...",nullptr,&m_imgui_drawlists);
 #endif
         ImGui::MenuItem("ImGui debug...",nullptr,&m_imgui_debug);
+        ImGui::MenuItem("ImGui metrics...",nullptr,&m_imgui_metrics);
 
         ImGui::EndMenu();
     }

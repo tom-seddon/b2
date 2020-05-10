@@ -338,6 +338,7 @@ private:
     bool m_imgui_drawlists=false;
 #endif
     bool m_imgui_debug=false;
+    bool m_imgui_metrics=false;
 
     std::vector<std::string> m_display_size_options;
 
