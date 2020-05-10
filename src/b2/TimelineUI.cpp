@@ -164,7 +164,12 @@ public:
 
         if(m_follow) {
             if(timeline_state.state==BeebThreadTimelineState_Record) {
-                ImGui::SetScrollY(timeline_size.y);
+                size_t num_beeb_state_events=beeb_thread->GetNumTimelineBeebStateEvents();
+                if(m_old_num_beeb_state_events!=num_beeb_state_events) {
+                    ImGui::SetScrollY(timeline_size.y);
+
+                    m_old_num_beeb_state_events=num_beeb_state_events;
+                }
             }
         }
 
@@ -279,6 +284,7 @@ private:
     BeebWindow *m_beeb_window=nullptr;
     ThumbnailsUI m_thumbnails;
     bool m_follow=true;
+                   size_t m_old_num_beeb_state_events=0;
 };
 
 ////////////////////////////////////////////////////////////////////////////

@@ -962,6 +962,9 @@ public:
     //
     void GetTimelineState(TimelineState *timeline_state) const;
 
+    // Got total number of events on the timeline.
+    size_t GetNumTimelineBeebStateEvents() const;
+
     // May return fewer items than requested, if the indexes (presumably
     // calculated from the TimelineState values...) turn out to be outdated.
     std::vector<BeebThread::TimelineBeebStateEvent> GetTimelineBeebStateEvents(size_t begin_index,
