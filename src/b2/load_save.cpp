@@ -708,9 +708,9 @@ static bool FindObjectMember(rapidjson::Value *obj,rapidjson::Value *src,const c
     return FindMember(obj,src,key,msg,&rapidjson::Value::IsObject,"object");
 }
 
-static bool FindStringMember(rapidjson::Value *value,rapidjson::Value *object,const char *key,Messages *msg) {
-    return FindMember(value,object,key,msg,&rapidjson::Value::IsString,"string");
-}
+//static bool FindStringMember(rapidjson::Value *value,rapidjson::Value *object,const char *key,Messages *msg) {
+//    return FindMember(value,object,key,msg,&rapidjson::Value::IsString,"string");
+//}
 
 static bool FindStringMember(std::string *value,rapidjson::Value *object,const char *key,Messages *msg) {
     rapidjson::Value tmp;

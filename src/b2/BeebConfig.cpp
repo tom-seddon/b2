@@ -83,13 +83,6 @@ static std::vector<uint8_t> g_default_master_nvram_contents=GetDefaultMasterNVRA
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static std::string GetROMPath(const std::string &file_name) {
-    return GetAssetPath("roms",file_name);
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 void InitDefaultBeebConfigs() {
     ASSERT(g_default_configs.empty());
 
@@ -180,17 +173,6 @@ void InitDefaultBeebConfigs() {
 
         g_default_configs.push_back(config);
     }
-
-//    for(BeebConfig &config:g_default_configs) {
-//        ASSERT(!config.os_file_name.empty());
-//        config.os_file_name=GetROMPath(config.os_file_name);
-//
-//        for(size_t i=0;i<16;++i) {
-//            if(!config.roms[i].file_name.empty()) {
-//                config.roms[i].file_name=GetROMPath(config.roms[i].file_name);
-//            }
-//        }
-//    }
 }
 
 //////////////////////////////////////////////////////////////////////////

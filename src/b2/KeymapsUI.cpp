@@ -28,7 +28,6 @@ static const std::string KEYMAP_KEYSYMS_SUFFIX=" " ICON_FA_FONT;
 
 static const char PC_SCANCODES_POPUP[]="pc_scancodes";
 static const char PC_KEYCODES_POPUP[]="pc_keycodes";
-static const char DEFAULT_KEYMAPS_POPUP[]="keymaps";
 static const char NEW_KEYMAP_POPUP[]="new_keymap_popup";
 static const char COPY_KEYMAP_POPUP[]="copy_keymap_popup";
 
