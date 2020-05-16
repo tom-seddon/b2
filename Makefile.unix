@@ -84,6 +84,11 @@ tom_emacs:
 
 .PHONY:travis_ci_before_install_linux
 travis_ci_before_install_linux:
-	sudo apt-get install -y cmake ninja
+	sudo apt-get update
+	sudo apt-get -y install ninja-build
+	sudo apt-get -y install cmake
 
-
+#	cd ~ && git clone https://github.com/Kitware/CMake
+#	cd ~/CMake && git checkout v3.16.6 && ./bootstrap && make && sudo make install
+#	cd ~ && git clone https://github.com/ninja-build/ninja
+#	cd ~/ninja && git checkout v1.8.2 && ./configure.py --bootstrap && sudo cp ninja /usr/local/bin/
