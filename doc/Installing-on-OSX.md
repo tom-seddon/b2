@@ -1,4 +1,4 @@
-# Install on OS X
+# Install on macOS
 
 Requires a 64-bit machine running OS X 10.9 (Mavericks) or later.
 

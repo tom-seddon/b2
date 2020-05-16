@@ -1,8 +1,8 @@
-# Building - OS X/Linux
+# Building - macOS/Linux
 
 The build process is somewhat similar on both platforms.
 
-I do some of the development on OS X, so the OS X version should work
+I do some of the development on macOS, so that version should work
 well.
 
 The Linux version doesn't get much testing by me, though I do try it
@@ -10,7 +10,7 @@ on Ubuntu 18.04 occasionally. But I've had few reports of problems.
 (Please [create an issue](https://github.com/tom-seddon/b2/issues) if
 necessary.)
 
-# OS X prerequisites
+# macOS prerequisites
 
 - Xcode
 
@@ -20,7 +20,7 @@ won't be available.
 
 - FFmpeg libs (I used `ffmpeg @4.2.1_2+gpl2` from MacPorts)
 
-Video writing on OS X is experimental.
+Video writing on macOS is experimental.
 
 # Linux prerequisites
 
@@ -65,7 +65,7 @@ Day-to-day build steps:
 
 1. Change to build folder.
 
-   For OS X, debug (`build/d.osx`) or release (`build/r.osx`).
+   For macOS, debug (`build/d.osx`) or release (`build/r.osx`).
    
    For Linux, debug (`build/d.linux`) or release (`build/r.linux`).
    
@@ -79,7 +79,7 @@ Day-to-day build steps:
 
 4. On Linux, run `./src/b2/b2` to run
 
-   On OS X, run `./src/b2/b2.app/Contents/MacOS/b2` to run
+   On macOS, run `./src/b2/b2.app/Contents/MacOS/b2` to run
 
 You'll probably be able to automate all of this somehow from whatever
 text editor you use...
@@ -106,9 +106,9 @@ relative to the EXE in `assets` and (if the EXE is in a folder called
 `bin`) `../share/b2`, then in `share/b2` in the standard
 `XDG_DATA_HOME` and `XDG_DATA_DIRS` folders.
 
-# Installing on OS X
+# Installing on macOS
 
-The app is built as an OS X bundle, which you can find in the `src/b2`
+The app is built as a bundle, which you can find in the `src/b2`
 folder inside the build folder of interest. You can run this in situ
 from Finder or the command line, or copy it to your `Applications`
 folder and run it from there.

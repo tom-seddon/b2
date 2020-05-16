@@ -1,20 +1,23 @@
 [Windows Build Status: ![status](https://ci.appveyor.com/api/projects/status/3sdnt3mh1r61h74y?svg=true)](https://ci.appveyor.com/project/tom-seddon/b2)
 
-[OS X Build Status: ![status](https://travis-ci.org/tom-seddon/b2.svg?branch=master)](https://travis-ci.org/tom-seddon/b2)
+[macOS/Linux Build Status: ![status](https://travis-ci.org/tom-seddon/b2.svg?branch=master)](https://travis-ci.org/tom-seddon/b2)
 
 # b2
 
 A cross-platform BBC Micro emulator. Use your Windows/Linux PC or
 macOS computer to play your old BBC games or develop new BBC software.
 
-For Windows and OS X, see the
+For Windows and macOS, see the
 [Windows installation instructions](./doc/Installing-on-Windows.md) or
-[OS X installation instructions](./doc/Installing-on-OSX.md). You can
+[macOS installation instructions](./doc/Installing-on-OSX.md). You can
 also follow the [building instructions](./doc/Building.md) to build
 from source.
 
 For Linux, follow the [building instructions](./doc/Building.md) to
-build from source.
+build from source. There is also a [b2 snap](https://snapcraft.io/b2),
+looked after by [Alan Pope](https://github.com/popey/b2-snap/) (this
+is something I approve of, but due to lack of Linux knowledge I can't
+provide any support for it myself).
 
 There's a summary of the functionality available once up and running
 in [the overview](./doc/Overview.md).

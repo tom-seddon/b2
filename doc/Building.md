@@ -23,9 +23,9 @@ Once you're all set up:
 
 [Instructions for building on Windows](./Building-on-Windows.md).
 
-[Instructions for building on OS X](./Building-on-OSX.md).
+[Instructions for building on macOS](./Building-on-OSX.md).
 
-[Instructions for building on Linux/OS X](./Building-on-Unix.md).
+[Instructions for building on Linux/macOS](./Building-on-Unix.md).
 
 # Submodule URLs
 
@@ -46,11 +46,11 @@ Some info: http://visual6502.org/wiki/index.php?title=6502TestPrograms
 ### rebuilding the 6502 code yourself ###
 
 Everything you need to do this on Windows is included in the repo; for
-OS X and Linux, you'll need GNU make, and
+macOS and Linux, you'll need GNU make, and
 [64tass](http://tass64.sourceforge.net/) on the path.
 
 Change to `etc/testsuite-2.15` and run `..\..\snmake` (Windows) or
-`make` (OS X/Linux). This generates bin files in
+`make` (macOS/Linux). This generates bin files in
 `etc/testsuite-2.15/ascii-bin` and listing files in
 `etc/testsuite-2.15/ascii-lst`.
 

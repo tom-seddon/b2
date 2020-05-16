@@ -1,6 +1,6 @@
-# Building on OS X
+# Building on macOS
 
-You can treat OS X as a Unix, and
+You can treat macOS as a Unix, and
 [build from the command line](./Building-on-Unix.md). (The binary
 build is prepared this way.)
 
@@ -42,7 +42,8 @@ rebuild the xcodeproj, and Xcode should then reload it, and the
 workflow should all be relatively convenient. But in practice it seems
 to be a bit flaky; I find the build is spuriously cancelled,
 necessitating additional attempts. Sometimes it requires several goes
-before the build will finish.
+before the build will finish. It has never failed to get there in the
+end, though... eventually.
 
 (I don't really think this works especially well, particularly
 compared to Visual Studio. Xcode is awful, and cmake doesn't seem to

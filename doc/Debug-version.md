@@ -3,7 +3,7 @@
 Run the debug version on Windows by running `b2_Debug.exe`, as
 extracted from the distribution zip file.
 
-Run the debug version on OS X by copying `b2 Debug` from the dmg file
+Run the debug version on macOS by copying `b2 Debug` from the dmg file
 to your Applications folder and running it.
 
 When building from source - your only option on Linux, sorry about
@@ -421,7 +421,7 @@ autoboot.
 See `etc/http_api_example` in the repo. Run the makefile in Windows,
 with `curl` on the path, using `snmake.exe` from the root of the repo.
 
-(It ought to work on OS X and Linux without too much effort, but
+(It ought to work on macOS and Linux without too much effort, but
 that's never been tested.)
 
 The makefile assembles the example code using 64tass (supplied),
