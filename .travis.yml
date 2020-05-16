@@ -3,7 +3,13 @@ sudo: false
 os:
   - osx
   - linux
-osx_image: xcode11.3
+
+jobs:
+  include:
+    - os: linux
+      dist: bionic
+    - os: osx
+      osx_image: xcode11.3
 
 branches:
   only:
