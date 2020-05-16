@@ -88,8 +88,6 @@ travis_ci_before_install_linux:
 	sudo apt-get -y install ninja-build cmake
 	sudo apt-get -y install libcurl4-openssl-dev libgl1-mesa-dev libglvnd-dev libgtk2.0-dev libpulse-dev uuid-dev
 
-ninja-build cmake uuid-dev libgtk2.0-dev libgl1-mesa-dev libpulse-dev libglvnd-dev lubcurl4-openssl-dev
-
 #	cd ~ && git clone https://github.com/Kitware/CMake
 #	cd ~/CMake && git checkout v3.16.6 && ./bootstrap && make && sudo make install
 #	cd ~ && git clone https://github.com/ninja-build/ninja

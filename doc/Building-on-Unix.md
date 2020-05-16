@@ -27,15 +27,9 @@ Video writing on OS X is experimental.
 - gcc and g++, or clang
 - Python 2.x
 
-Additional apt package dependencies:
+Additional apt package dependencies can be installed with:
 
-- `uuid-dev`
-- `libgtk2.0-dev`
-- `libgl1-mesa-dev`
-- `libpulse-dev`
-- `libglvnd-dev`
-- `libpulse-dev`
-- `libcurl4-openssl-dev`
+    sudo apt-get -y install libcurl4-openssl-dev libgl1-mesa-dev libglvnd-dev libgtk2.0-dev libpulse-dev uuid-dev
 
 There are additional dependencies for video writing, which are
 optional. The project will build without these, but video writing
