@@ -4,8 +4,7 @@ Requires a fast PC running Windows 7 or better.
 
 Get a binary .zip release from the
 [b2 GitHub releases page](https://github.com/tom-seddon/b2/releases).
-Get the latest one with files attached - probably be the one at the
-top!
+Get the latest one with files attached - probably the one at the top!
 
 Unzip to a folder of your choice and run `b2.exe`.
 

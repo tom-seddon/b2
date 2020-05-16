@@ -26,6 +26,8 @@ ifeq ($(UNAME),Darwin)
 OS:=osx
 NPROC:=$(shell sysctl -n hw.ncpu)
 INSTALLER:=
+CMAKE_DEFINES:=$(CMAKE_DEFINES) -DCMAKE_OSX_DEPLOYMENT_TARGET=10.9
+
 include Makefile.unix
 include Makefile.osx
 
