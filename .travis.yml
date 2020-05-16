@@ -1,8 +1,5 @@
 language: C++
 sudo: false
-os:
-  - osx
-  - linux
 
 jobs:
   include:
