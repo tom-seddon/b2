@@ -22,6 +22,7 @@ class Platform:
 PLATFORMS={
     "win32":Platform("win32"),
     "darwin":Platform("osx"),
+    "linux2":Platform("linux")
 }
 
 ##########################################################################
@@ -113,7 +114,7 @@ def set_tree_timestamps(options,root):
 def create_intermediate_folder():
     ifolder=os.path.abspath(os.path.join(BUILD_FOLDER,
                                          INTERMEDIATE_FOLDER,
-                                         sys.platform))
+                                         PLATFORMS[sys.platform))
     
     try: shutil.rmtree(ifolder)
     except: pass
@@ -292,6 +293,26 @@ def build_darwin(options,ifolder,rev_hash):
 
 ##########################################################################
 ##########################################################################
+
+def get_linux_build_path(config):
+    return '%s/%s%s.%s'%(BUILD_FOLDER,
+                         FOLDER_PREFIX,
+                         config,
+                         PLATFORMS[sys.platform].name)
+
+def build_linux_config(options,config):
+    with ChangeDirectory(get_linux_build_path(config)):
+        if not options.skip_compile: run(['ninja'])
+
+        if not options.skip_ctest:
+            run(['ctest','-j',str(multiprocessing.cpu_count())])
+
+def build_linux(options,ifolder,rev_hash):
+    if not options.skip_debug: build_linux_config(options,'r')
+    build_linux_config(options,'f')
+    
+##########################################################################
+##########################################################################
         
 def main(options):
     global g_verbose
@@ -305,6 +326,9 @@ def main(options):
     elif sys.platform=="darwin":
         init_target='init'
         build_fun=build_darwin
+    elif sys.platform=="linux2":
+        init_target='init'
+        build_fun=build_linux
 
     if not options.skip_cmake:
         # -j makes a hilarious mess of the text output on Windows, but
