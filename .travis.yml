@@ -1,6 +1,8 @@
 language: C++
 sudo: false
-os: osx
+os:
+  - osx
+  - linux
 osx_image: xcode11.3
 
 branches:
@@ -12,9 +14,8 @@ before_install:
   - export TIMESTAMP=$(git log -1 --format=%cd --date=format:%Y%m%d-%H%M%S $TRAVIS_COMMIT)
   - export RELEASE_NAME=b2-$SUFFIX
   - export OUTPUT_BASENAME=b2-osx-$SUFFIX.dmg
-  - export OUTPUT_NAME=./build/_Rel/darwin/$OUTPUT_BASENAME
-  - brew install ninja
-  - brew install ffmpeg
+  - export OUTPUT_NAME=./build/_Rel/osx/$OUTPUT_BASENAME
+  - make travis_ci_before_install_$(TRAVIS_OS_NAME)
 
 before_deploy:
   # https://docs.travis-ci.com/user/deployment/releases/

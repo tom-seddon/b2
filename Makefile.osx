@@ -19,3 +19,11 @@ run_tests: BUILD?=Debug
 run_tests: _OUTPUT=b2_tests_output/
 run_tests:
 	cd build/Xcode && rm -R $(_OUTPUT) && ctest -C $(BUILD) -j$(NPROC) -LE 'slow|kevin_edwards' --output-on-failure || meld $(_OUTPUT)/got/ $(_OUTPUT)/wanted/
+
+##########################################################################
+##########################################################################
+
+.PHONY:travis_ci_before_install_osx
+travis_ci_before_install_osx:
+	brew install ninja
+	brew install ffmpeg

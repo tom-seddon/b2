@@ -72,6 +72,18 @@ install:
 	cp -Rv $(call build_dir,r)/src/b2/assets/* "$(DEST)/share/b2/"
 endif
 
+##########################################################################
+##########################################################################
+
 .PHONY:tom_emacs
 tom_emacs:
 	cd $(BUILD_FOLDER)/d.linux && ninja && ctest -LE 'slow|kevin_edwards' -j $(NPROC) --output-on-failure
+
+##########################################################################
+##########################################################################
+
+.PHONY:travis_ci_before_install_linux
+travis_ci_before_install_linux:
+	sudo apt-get install -y cmake ninja
+
+

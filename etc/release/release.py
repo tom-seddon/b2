@@ -114,7 +114,7 @@ def set_tree_timestamps(options,root):
 def create_intermediate_folder():
     ifolder=os.path.abspath(os.path.join(BUILD_FOLDER,
                                          INTERMEDIATE_FOLDER,
-                                         PLATFORMS[sys.platform))
+                                         PLATFORMS[sys.platform].name))
     
     try: shutil.rmtree(ifolder)
     except: pass
