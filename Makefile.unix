@@ -46,14 +46,13 @@ _unix: _unixd _unixr _unixf
 
 .PHONY:_unix2
 _unix2: _FOLDER=$(BUILD_FOLDER)/$(FOLDER_PREFIX)$(FOLDER).$(OS)
-_unix2: _CMAKE_PATH:=$(shell python realpath.py .)
 _unix2:
 	@echo ---------------------------------------------------------------------------
 	@echo ---------------------------------------------------------------------------
 	@echo ---------------------------------------------------------------------------
 	rm -Rf "$(_FOLDER)"
 	mkdir -p "$(_FOLDER)"
-	(cd "$(_FOLDER)" && cmake -G "$(CMAKE_TYPE)" $(CMAKE_DEFINES) -DCMAKE_BUILD_TYPE=$(BUILD) $(if $(SANITIZER),-DSANITIZE_$(SANITIZER)=On) $(_CMAKE_PATH)) || $(if $(SANITIZER),rm -Rf "$(_FOLDER)",false)
+	(cd "$(_FOLDER)" && cmake -G "$(CMAKE_TYPE)" $(CMAKE_DEFINES) -DCMAKE_BUILD_TYPE=$(BUILD) $(if $(SANITIZER),-DSANITIZE_$(SANITIZER)=On) ../..) || $(if $(SANITIZER),rm -Rf "$(_FOLDER)",false)
 
 ifdef INSTALLER
 
