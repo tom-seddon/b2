@@ -2758,7 +2758,7 @@ protected:
         const DebugBigPage *value_dbp=this->GetDebugBigPageForAddress({0},false);
 
         ImGui::Columns(7,"stack_columns");
-        ImGui::Text("");
+        ImGui::TextUnformatted("");
         ImGui::NextColumn();
         ImGui::TextUnformatted("%d");
         ImGui::NextColumn();
