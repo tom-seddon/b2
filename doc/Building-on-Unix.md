@@ -132,7 +132,6 @@ warnings.
 
 `ninja test` will run the full set of tests.
 
-A shorter set of tests, suitable for running on every build (intended
-to take ~1 second), can be run using cmake's `ctest` tool:
+A shorter set of tests can be run using cmake's `ctest` tool:
 
-    ctest -LE slow --output-on-failure
+    ctest -LE 'slow|kevin_edwards' --output-on-failure

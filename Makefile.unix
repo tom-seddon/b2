@@ -77,7 +77,12 @@ endif
 
 .PHONY:tom_emacs
 tom_emacs:
-	cd $(BUILD_FOLDER)/d.linux && ninja && ctest -LE 'slow|kevin_edwards' -j $(NPROC) --output-on-failure
+# let Emacs know where the build is actually taking place -
+# compilation mode watches the build output to figure out where
+# relative paths are relative to, but it doesn't reliably spot
+# everything...
+	@echo make: Entering directory \'$(shell pwd)/$(BUILD_FOLDER)/d.$(OS)\'
+	cd $(BUILD_FOLDER)/d.$(OS) && ninja && ctest -LE 'slow|kevin_edwards' -j $(NPROC) --output-on-failure
 
 ##########################################################################
 ##########################################################################
