@@ -137,6 +137,8 @@ const VideoWriterFormat *GetVideoWriterFormatByIndex(size_t index) {
 
 #else
 
+    (void)index;
+
     return nullptr;
 
 #endif
