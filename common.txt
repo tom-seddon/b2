@@ -49,8 +49,12 @@ set(CMAKE_CXX_FLAGS_FINAL "${CMAKE_CXX_FLAGS_FINAL} -DMUTEX_DEBUGGING=0")
 
 if(${CMAKE_C_COMPILER_ID} MATCHES "GNU|Clang")
   # Warnings.
-  add_definitions("-Wall -Wuninitialized -Winit-self -pedantic -Werror=implicit-function-declaration")
+  add_definitions("-Wall -Wuninitialized -Winit-self -pedantic")
   add_definitions("-Wsign-conversion -Wunused-result")
+
+  # Not very nice, but some gcc versions complain about this flag when
+  # building C++.
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Werror=implicit-function-declaration")
 
   # if(${CMAKE_C_COMPILER_ID} MATCHES "GNU")
   #   # http://stackoverflow.com/questions/4058565/check-gcc-minor-in-cmake
