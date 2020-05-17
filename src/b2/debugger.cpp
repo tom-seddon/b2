@@ -1048,7 +1048,6 @@ protected:
         uint8_t a,x,y;
         M6502Word sp;
         M6502P p;
-        bool has_debug_state;
         uint8_t pc_is_mos[16];
         const BBCMicroType *type;
         bool halted;
@@ -1067,7 +1066,6 @@ protected:
             y=s->y;
             p=M6502_GetP(s);
             sp=s->s;
-            has_debug_state=m->HasDebugState();
             m->GetMemBigPageIsMOSTable(pc_is_mos,m_dpo);
         }
 
@@ -1169,29 +1167,6 @@ protected:
             if(line_addr.w==pc) {
                 pusher.Push(ImGuiCol_Text,ImVec4(1.f,1.f,0.f,1.f));
             }
-
-//            if(has_debug_state) {
-//                bool break_execute=!!debug_flags.bits.break_execute;
-//                if(ImGui::Checkbox("",&break_execute)) {
-//                    debug_flags.bits.break_execute=break_execute;
-//
-////                    std::unique_lock<Mutex> lock;
-////                    BBCMicro *m=m_beeb_thread->LockMutableBeeb(&lock);
-////
-////                    m->DebugSetByteFlags(line_addr,debug_flags);
-//                }
-//
-//                ImGui::SameLine();
-//            }
-
-//            char prefix[3];
-//            if(has_debug_state) {
-//                prefix[0]=dbp->bp->code;
-//                prefix[1]='.';
-//                prefix[2]=0;
-//            } else {
-//                prefix[0]=0;
-//            }
 
             const DebugBigPage *line_dbp=this->GetDebugBigPageForAddress(line_addr,false);
             ImGui::Text("%c%c$%04x",line_dbp->metadata->code,ADDRESS_PREFIX_SEPARATOR,line_addr.w);
@@ -1579,13 +1554,21 @@ private:
         for(int i=0;i<n;++i) {
             uint8_t opcode;
 
-            this->ReadByte(&opcode,nullptr,nullptr,m_addr-1,false);
+            if(!this->ReadByte(&opcode,nullptr,nullptr,m_addr-1,false)) {
+                --m_addr;
+                continue;
+            }
+
             if(config->disassembly_info[opcode].num_bytes==1) {
                 --m_addr;
                 continue;
             }
 
-            this->ReadByte(&opcode,nullptr,nullptr,m_addr-2,false);
+            if(!this->ReadByte(&opcode,nullptr,nullptr,m_addr-2,false)) {
+                --m_addr;
+                continue;
+            }
+
             if(config->disassembly_info[opcode].num_bytes==2) {
                 m_addr-=2;
                 continue;
@@ -1598,8 +1581,11 @@ private:
     void Down(const M6502Config *config,int n) {
         for(int i=0;i<n;++i) {
             uint8_t opcode;
-            this->ReadByte(&opcode,nullptr,nullptr,m_addr,false);
-            m_addr+=config->disassembly_info[opcode].num_bytes;
+            if(!this->ReadByte(&opcode,nullptr,nullptr,m_addr,false)) {
+                ++m_addr;
+            } else {
+                m_addr+=config->disassembly_info[opcode].num_bytes;
+            }
         }
     }
 
@@ -1857,6 +1843,7 @@ protected:
             if(ImGui::CollapsingHeader("Video NuLA",nula_section_flags)) {
                 ImGui::Text("Enabled: %s",BOOL_STR(!nula_disable_a1));
 
+                ImGui::Text("Direct palette mode: %s",BOOL_STR(nula_direct_palette));
                 ImGui::Text("Scroll offset: %u",nula_scroll_offset);
                 ImGui::Text("Blanking size: %u",nula_blanking_size);
                 ImGui::Text("Attribute mode: %s",BOOL_STR(nula_attribute_mode.bits.enabled));

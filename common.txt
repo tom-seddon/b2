@@ -83,6 +83,8 @@ if(${CMAKE_C_COMPILER_ID} MATCHES "GNU|Clang")
     # useful.
     add_definitions("-Wsign-compare")
     add_definitions("-Wsign-conversion")
+
+    add_definitions("-Wsometimes-uninitialized")
   endif()
 
   # There is test data longer than the ISO-mandated 4095 chars.
