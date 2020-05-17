@@ -703,7 +703,7 @@ public:
                 this->GenerateAccess(&this->cycles[i]);
                 P("s->tfn=&%s;\n",GetFnNameForCycle(i+1,this->stem).c_str());
 
-                if(i==(int)this->cycles.size()-1) {
+                if(i==this->cycles.size()-1) {
                     this->GenerateD1x1();
                 }
             }

@@ -138,7 +138,7 @@ void ConfigsUI::DoImGui() {
     if(ImGuiConfirmButton("Delete")) {
         if(m_config_index>=0) {
             BeebWindows::RemoveConfigByIndex((size_t)m_config_index);
-            if(m_config_index>=BeebWindows::GetNumConfigs()) {
+            if((size_t)m_config_index>=BeebWindows::GetNumConfigs()) {
                 m_config_index=(int)(BeebWindows::GetNumConfigs()-1);
             }
         }
