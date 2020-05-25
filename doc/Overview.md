@@ -6,7 +6,7 @@ A brief summary of the main features of the emulator.
 
 Go to `Drive 0` or `Drive 1` on the `File` menu to load a disc. Use
 the `Disc image...` or `Direct disc image...` option to select an .ssd
-file, then hit Shift+Break (PC Shift + PC F11) to start it.
+file, then hit Shift+Break (PC Shift + PC F11 or PC F12) to start it.
 
 `Disc image...` loads the file into memory. The file isn't updated
 when changes are made in the emulator (use `Save` to do that), and
@@ -25,20 +25,28 @@ something different.
 
 ## Change keyboard mapping ##
 
-The default keyboard layout maps PC keys to their BBC equivalent by
-position - typically what you want for games. Some games might be
-better with the `Default (caps/ctrl)` layout, which sets PC Left Ctrl
-to BBC Caps Lock, PC Left Alt to BBC Ctrl, and PC Caps Lock to BBC
-Ctrl.
+The default keyboard layout tries to map PC keys to their BBC
+equivalent by position - typically what you want for games.
+
+Some games might be better with the `Default (caps/ctrl)` layout,
+which sets PC Left Ctrl to BBC Caps Lock, PC Left Alt to BBC Ctrl, and
+PC Caps Lock to BBC Ctrl.
 
 There are also two character map options, designed for typing, which
 try to map PC keys to BBC keys based on the character, so that PC
 Shift+0 gives you `)` and so on. `Default UK` is for UK-style
-keyboards, and `Default US` is for US-style keyboards. For US-style
-keyboards, press ` to get the pound sign.
+keyboards, and `Default US` is for US-style keyboards.
   
 To get BBC Copy, use PC End (fn+Cursor Right on a Macbook Pro).
-  
+
+### US-style keyboards
+
+If using `Default` or `Default (caps/ctrl)`, the PC backslash key
+produces BBC @. Press PC Home (fn+Cursor Left on a Macbook Pro) to get
+BBC backslash.
+
+If using `Default US` character map, press PC ` to get BBC pound sign.
+
 ## Save states
 
 Use `File` > `Save state` to save your place, and `File` > `Load last

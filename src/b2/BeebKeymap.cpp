@@ -115,6 +115,7 @@ static const BeebKeymap::Mapping g_keysym_common[]={
     {SDLK_KP_ENTER,BeebKeySym_KeypadReturn},
     {SDLK_SPACE,BeebKeySym_Space},
     {SDLK_F11,BeebKeySym_Break,},
+    {SDLK_F12,BeebKeySym_Break,},
 
     {}
 };
@@ -164,8 +165,7 @@ static const BeebKeymap::Mapping g_scancode_common[]={
     {SDL_SCANCODE_9,BeebKey_9,},
     {SDL_SCANCODE_APOSTROPHE,BeebKey_Colon,},
     {SDL_SCANCODE_SEMICOLON,BeebKey_Semicolon,},
-    {SDL_SCANCODE_HOME,BeebKey_At,},
-    {SDL_SCANCODE_NONUSBACKSLASH,BeebKey_At,},
+    {SDL_SCANCODE_HOME,BeebKey_Backslash,},
     {SDL_SCANCODE_A,BeebKey_A,},
     {SDL_SCANCODE_B,BeebKey_B,},
     {SDL_SCANCODE_C,BeebKey_C,},
@@ -194,7 +194,7 @@ static const BeebKeymap::Mapping g_scancode_common[]={
     {SDL_SCANCODE_Z,BeebKey_Z,},
     {SDL_SCANCODE_LEFTBRACKET,BeebKey_LeftSquareBracket,},
     {SDL_SCANCODE_NONUSBACKSLASH,BeebKey_Backslash,},
-    {SDL_SCANCODE_BACKSLASH,BeebKey_Backslash,},
+    {SDL_SCANCODE_BACKSLASH,BeebKey_At,},
     {SDL_SCANCODE_RIGHTBRACKET,BeebKey_RightSquareBracket,},
     {SDL_SCANCODE_GRAVE,BeebKey_Caret,},
     {SDL_SCANCODE_EQUALS,BeebKey_Underline,},
@@ -222,6 +222,7 @@ static const BeebKeymap::Mapping g_scancode_common[]={
     {SDL_SCANCODE_F8,BeebKey_f8,},
     {SDL_SCANCODE_F9,BeebKey_f9,},
     {SDL_SCANCODE_F11,BeebKey_Break,},
+    {SDL_SCANCODE_F12,BeebKey_Break,},
 
     {SDL_SCANCODE_KP_0,BeebKey_Keypad0,},
     {SDL_SCANCODE_KP_1,BeebKey_Keypad1,},
