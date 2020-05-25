@@ -59,12 +59,16 @@
 //////////////////////////////////////////////////////////////////////////
 
 static TimerDef g_HandleVBlank_timer_def("BeebWindow::HandleVBlank");
+static TimerDef g_HandleVBlank_end_of_frame_timer_def("BeebWindow::HandleVBlank end of frame",
+                                                      &g_HandleVBlank_timer_def);
+static TimerDef g_HandleVBlank_start_of_frame_timer_def("BeebWindow::HandleVBlank start of frame",
+                                                        &g_HandleVBlank_timer_def);
 static TimerDef g_HandleVBlank_UpdateTVTexture_Consume_timer_def("UpdateTVTexture Consume",
-                                                                 &g_HandleVBlank_timer_def);
+                                                                 &g_HandleVBlank_end_of_frame_timer_def);
 static TimerDef g_HandleVBlank_UpdateTVTexture_Copy_timer_def("UpdateTVTexture Copy",
-                                                              &g_HandleVBlank_timer_def);
+                                                              &g_HandleVBlank_end_of_frame_timer_def);
 static TimerDef g_HandleVBlank_DoImGui_timer_def("DoImGui",
-                                                 &g_HandleVBlank_timer_def);
+                                                 &g_HandleVBlank_end_of_frame_timer_def);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -1735,47 +1739,55 @@ bool BeebWindow::DoBeebDisplayUI() {
 bool BeebWindow::HandleVBlank(uint64_t ticks) {
     Timer tmr(&g_HandleVBlank_timer_def);
 
-    ImGuiContextSetter setter(m_imgui_stuff);
-
     bool keep_window=true;
 
-    VBlankRecord *vblank_record=this->NewVBlankRecord(ticks);
+    {
+        Timer tmr(&g_HandleVBlank_end_of_frame_timer_def);
 
-    this->UpdateTVTexture(vblank_record);
+        ImGuiContextSetter setter(m_imgui_stuff);
+
+        VBlankRecord *vblank_record=this->NewVBlankRecord(ticks);
+
+        this->UpdateTVTexture(vblank_record);
+
+        {
+            Timer tmr2(&g_HandleVBlank_DoImGui_timer_def);
+
+            if(!this->DoImGui(ticks)) {
+                keep_window=false;
+            }
+        }
+
+        SDL_RenderClear(m_renderer);
+
+        m_imgui_stuff->Render();
+
+        SDL_RenderPresent(m_renderer);
+    }
 
     {
-        Timer tmr2(&g_HandleVBlank_DoImGui_timer_def);
+        Timer tmr(&g_HandleVBlank_start_of_frame_timer_def);
 
-        if(!this->DoImGui(ticks)) {
-            keep_window=false;
+        bool got_mouse_focus=false;
+        {
+            SDL_Window *mouse_window=SDL_GetMouseFocus();
+            if(mouse_window==m_window) {
+                got_mouse_focus=true;
+            }
         }
-    }
 
-    SDL_RenderClear(m_renderer);
-
-    m_imgui_stuff->Render();
-
-    SDL_RenderPresent(m_renderer);
-
-    bool got_mouse_focus=false;
-    {
-        SDL_Window *mouse_window=SDL_GetMouseFocus();
-        if(mouse_window==m_window) {
-            got_mouse_focus=true;
+        if(m_pushed_window_padding) {
+            ImGui::PopStyleVar(1);
         }
+
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding,ImVec2(0.f,0.f));
+
+        m_imgui_stuff->NewFrame(got_mouse_focus);
+
+        m_pushed_window_padding=true;
+
+        return keep_window;
     }
-
-    if(m_pushed_window_padding) {
-        ImGui::PopStyleVar(1);
-    }
-
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding,ImVec2(0.f,0.f));
-
-    m_imgui_stuff->NewFrame(got_mouse_focus);
-
-    m_pushed_window_padding=true;
-
-    return keep_window;
 }
 
 //////////////////////////////////////////////////////////////////////////
