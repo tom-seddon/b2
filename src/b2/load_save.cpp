@@ -1624,6 +1624,25 @@ static bool LoadDockConfig(Messages *msg) {
     return true;
 }
 
+static void AddDefaultBeebKeymaps() {
+    for(size_t i=0;i<GetNumDefaultBeebKeymaps();++i) {
+        BeebWindows::AddBeebKeymap(*GetDefaultBeebKeymapByIndex(i));
+    }
+}
+
+static void AddDefaultBeebConfigs() {
+    for(size_t i=0;i<GetNumDefaultBeebConfigs();++i) {
+        const BeebConfig *config=GetDefaultBeebConfigByIndex(i);
+        BeebWindows::AddConfig(*config);
+    }
+}
+
+static void EnsureDefaultBeebKeymapsAvailable() {
+    if(BeebWindows::GetNumBeebKeymaps()==0) {
+        AddDefaultBeebKeymaps();
+    }
+}
+
 bool LoadGlobalConfig(Messages *msg) {
     std::string fname=GetConfigFileName();
     if(fname.empty()) {
@@ -1633,120 +1652,125 @@ bool LoadGlobalConfig(Messages *msg) {
     }
 
     std::vector<char> data;
-    if(!LoadTextFile(&data,fname,msg,LoadFlag_MightNotExist)) {
-        return true;
-    }
-
-    std::unique_ptr<rapidjson::Document> doc=LoadDocument(&data,msg);
-    if(!doc) {
-        return false;
-    }
-
-    //LogDumpBytes(&LOG(LOADSAVE),data->data(),data->size());
-
-    rapidjson::Value recent_paths;
-    if(FindObjectMember(&recent_paths,doc.get(),RECENT_PATHS,msg)) {
-        LOGF(LOADSAVE,"Loading recent paths.\n");
-
-        if(!LoadRecentPaths(&recent_paths,msg)) {
+    if(LoadTextFile(&data,fname,msg,LoadFlag_MightNotExist)) {
+        std::unique_ptr<rapidjson::Document> doc=LoadDocument(&data,msg);
+        if(!doc) {
             return false;
         }
-    }
 
-    rapidjson::Value keymaps;
-    if(FindArrayMember(&keymaps,doc.get(),OLD_KEYMAPS,msg)) {
-        LOGF(LOADSAVE,"Loading keymaps.\n");
+        //LogDumpBytes(&LOG(LOADSAVE),data->data(),data->size());
 
-        for(size_t i=0;i<GetNumDefaultBeebKeymaps();++i) {
-            BeebWindows::AddBeebKeymap(*GetDefaultBeebKeymapByIndex(i));
-        }
-        
-        if(!LoadKeymaps(&keymaps,OLD_KEYMAPS,msg)) {
-            return false;
-        }
-    } else if(FindArrayMember(&keymaps,doc.get(),NEW_KEYMAPS,msg)) {
-        LOGF(LOADSAVE,"Loading keymaps.\n");
+        rapidjson::Value recent_paths;
+        if(FindObjectMember(&recent_paths,doc.get(),RECENT_PATHS,msg)) {
+            LOGF(LOADSAVE,"Loading recent paths.\n");
 
-        if(!LoadKeymaps(&keymaps,OLD_KEYMAPS,msg)) {
-            return false;
-        }
-    }
-
-    rapidjson::Value shortcuts;
-    if(FindObjectMember(&shortcuts,doc.get(),SHORTCUTS,msg)) {
-        LOGF(LOADSAVE,"Loading keyboard shortcuts.\n");
-
-        if(!LoadShortcuts(&shortcuts,msg)) {
-            return false;
-        }
-    }
-
-    rapidjson::Value windows;
-    if(FindObjectMember(&windows,doc.get(),WINDOWS,msg)) {
-        if(!LoadWindows(&windows,msg)) {
-            return false;
-        }
-    }
-
-    rapidjson::Value configs;
-    if(FindArrayMember(&configs,doc.get(),OLD_CONFIGS,msg)) {
-        LOGF(LOADSAVE,"Loading configs.\n");
-
-        for(size_t i=0;i<GetNumDefaultBeebConfigs();++i) {
-            const BeebConfig *config=GetDefaultBeebConfigByIndex(i);
-            BeebWindows::AddConfig(*config);
+            if(!LoadRecentPaths(&recent_paths,msg)) {
+                return false;
+            }
         }
 
-        if(!LoadConfigs(&configs,OLD_CONFIGS,msg)) {
-            return false;
+        rapidjson::Value keymaps;
+        if(FindArrayMember(&keymaps,doc.get(),OLD_KEYMAPS,msg)) {
+            LOGF(LOADSAVE,"Loading keymaps.\n");
+
+            AddDefaultBeebKeymaps();
+
+            if(!LoadKeymaps(&keymaps,OLD_KEYMAPS,msg)) {
+                return false;
+            }
+        } else if(FindArrayMember(&keymaps,doc.get(),NEW_KEYMAPS,msg)) {
+            LOGF(LOADSAVE,"Loading keymaps.\n");
+
+            // custom keymaps
+            if(!LoadKeymaps(&keymaps,NEW_KEYMAPS,msg)) {
+                return false;
+            }
         }
-    } else if(FindArrayMember(&configs,doc.get(),NEW_CONFIGS,msg)) {
-        LOGF(LOADSAVE,"Loading configs.\n");
 
-        if(!LoadConfigs(&configs,NEW_CONFIGS,msg)) {
-            return false;
+        // need at least 1 keymap for loading the default keymap.
+        EnsureDefaultBeebKeymapsAvailable();
+
+        rapidjson::Value shortcuts;
+        if(FindObjectMember(&shortcuts,doc.get(),SHORTCUTS,msg)) {
+            LOGF(LOADSAVE,"Loading keyboard shortcuts.\n");
+
+            if(!LoadShortcuts(&shortcuts,msg)) {
+                return false;
+            }
         }
-    }
 
-    rapidjson::Value trace;
-    if(FindObjectMember(&trace,doc.get(),TRACE,msg)) {
-        LOGF(LOADSAVE,"Loading trace.\n");
-
-        if(!LoadTrace(&trace,msg)) {
-            return false;
+        rapidjson::Value windows;
+        if(FindObjectMember(&windows,doc.get(),WINDOWS,msg)) {
+            if(!LoadWindows(&windows,msg)) {
+                return false;
+            }
         }
-    }
 
-    rapidjson::Value beeblink;
-    if(FindObjectMember(&beeblink,doc.get(),BEEBLINK,msg)) {
-        LOGF(LOADSAVE,"Loading BeebLink.\n");
+        rapidjson::Value configs;
+        if(FindArrayMember(&configs,doc.get(),OLD_CONFIGS,msg)) {
+            LOGF(LOADSAVE,"Loading configs.\n");
 
-        if(!LoadBeebLink(&beeblink,msg)) {
-            return false;
+            AddDefaultBeebConfigs();
+
+            if(!LoadConfigs(&configs,OLD_CONFIGS,msg)) {
+                return false;
+            }
+        } else if(FindArrayMember(&configs,doc.get(),NEW_CONFIGS,msg)) {
+            LOGF(LOADSAVE,"Loading configs.\n");
+
+            if(!LoadConfigs(&configs,NEW_CONFIGS,msg)) {
+                return false;
+            }
         }
-    }
 
-    rapidjson::Value nvram;
-    if(FindObjectMember(&nvram,doc.get(),NVRAM,msg)) {
-        LOGF(LOADSAVE,"Loading NVRAM.\n");
+        rapidjson::Value trace;
+        if(FindObjectMember(&trace,doc.get(),TRACE,msg)) {
+            LOGF(LOADSAVE,"Loading trace.\n");
 
-        if(!LoadNVRAM(&nvram,msg)) {
-            return false;
+            if(!LoadTrace(&trace,msg)) {
+                return false;
+            }
         }
-    }
 
-    rapidjson::Value globals;
-    if(FindObjectMember(&globals,doc.get(),GLOBALS,msg)) {
-        LOGF(LOADSAVE,"Loading globals.\n");
+        rapidjson::Value beeblink;
+        if(FindObjectMember(&beeblink,doc.get(),BEEBLINK,msg)) {
+            LOGF(LOADSAVE,"Loading BeebLink.\n");
 
-        if(!LoadGlobals(&globals,msg)) {
-            return false;
+            if(!LoadBeebLink(&beeblink,msg)) {
+                return false;
+            }
+        }
+
+        rapidjson::Value nvram;
+        if(FindObjectMember(&nvram,doc.get(),NVRAM,msg)) {
+            LOGF(LOADSAVE,"Loading NVRAM.\n");
+
+            if(!LoadNVRAM(&nvram,msg)) {
+                return false;
+            }
+        }
+
+        rapidjson::Value globals;
+        if(FindObjectMember(&globals,doc.get(),GLOBALS,msg)) {
+            LOGF(LOADSAVE,"Loading globals.\n");
+
+            if(!LoadGlobals(&globals,msg)) {
+                return false;
+            }
         }
     }
 
     // don't bother with error checking for this... not really worth
     // it?
     LoadDockConfig(msg);
+
+    // the rest of the code assumes there's at least 1 config and 1 keymap -
+    // so either list ended up empty, populate it with the default set.
+    EnsureDefaultBeebKeymapsAvailable();
+
+    if(BeebWindows::GetNumConfigs()==0) {
+        AddDefaultBeebConfigs();
+    }
 
     return true;
 }
