@@ -230,12 +230,20 @@ void SAA5050::Byte(uint8_t value,uint8_t dispen) {
         case 0x0c:
             // Normal Height
             m_raster_shift=0;
+            data0=0;
+            data1=0;
+            m_last_graphics_data0=0;
+            m_last_graphics_data1=0;
             break;
 
         case 0x0d:
             // Double Height
             m_any_double_height=true;
             m_raster_shift=1;
+            data0=0;
+            data1=0;
+            m_last_graphics_data0=0;
+            m_last_graphics_data1=0;
             break;
 
         case 0x0e:
