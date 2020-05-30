@@ -239,6 +239,13 @@ def build_darwin_config(options,config):
         if not options.skip_compile:
             run(["ninja"])
 
+        if not options.skip_dylib_bundler:
+            run(['./submodules/macdylibbundler',
+                 '--create-dir',
+                 '--bundle-deps',
+                 '--fix-file','./src/b2/b2.app/Contents/MacOS/b2',
+                 '--dest-dir','./src/b2/b2.app/Contents/libs/'])
+
         if not options.skip_ctest:
             run(["ctest",
                  "-j",str(multiprocessing.cpu_count())])
@@ -260,6 +267,9 @@ def build_darwin(options,ifolder,rev_hash):
 
     # Copy template DMG to temp DMG.
     shutil.copyfile("./etc/release/template.dmg",temp_dmg)
+
+    # Resize temp DMG.
+    run(['hdiutil','resize','-size','250m',temp_dmg])
 
     # Mount temp DMG.
     run(["hdiutil","attach",temp_dmg,"-mountpoint",mount])
@@ -367,6 +377,7 @@ if __name__=="__main__":
     parser.add_argument("--skip-ctest",action="store_true",help="skip the ctest step")
     parser.add_argument("--skip-32-bit",action="store_true",help="skip any 32-bit build that might be built")
     parser.add_argument("--skip-debug",action="store_true",help="skip any debug build that might be built")
+    parser.add_argument("--skip-dylib-bundler",action="store_true",help="skip dylibbundler when building for macOS")
     parser.add_argument("--make",metavar="FILE",dest="make",default=default_make,help="use %(metavar)s as GNU make. Default: ``%(default)s''")
     parser.add_argument("--timestamp",metavar="TIMESTAMP",dest="timestamp",default=None,type=timestamp,help="set files' atime/mtime to %(metavar)s - format must be YYYYMMDD-HHMMSS")
     parser.add_argument("release_name",metavar="NAME",help="name for release. Embedded into executable, and used to generate output file name")
