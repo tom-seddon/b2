@@ -738,6 +738,8 @@ bool BeebWindow::DoMenuUI() {
     if(ImGui::BeginMainMenuBar()) {
         this->DoFileMenu();
         this->DoEditMenu();
+        this->DoHardwareMenu();
+        this->DoKeyboardMenu();
         this->DoToolsMenu();
         this->DoDebugMenu();
         if(!this->DoWindowMenu()) {
@@ -775,7 +777,7 @@ static std::unique_ptr<SettingsUI> CreateDisassemblyDebugWindowN(BeebWindow *bee
 #endif
 
 const BeebWindow::SettingsUIMetadata BeebWindow::ms_settings_uis[]={
-    {BeebWindowPopupType_Keymaps,"Keyboard Layout","toggle_keyboard_layout",&CreateKeymapsUI},
+    {BeebWindowPopupType_Keymaps,"Keyboard Layouts","toggle_keyboard_layout",&CreateKeymapsUI},
     {BeebWindowPopupType_CommandKeymaps,"Command Keys","toggle_command_keymaps",&CreateCommandKeymapsUI},
     {BeebWindowPopupType_Options,"Options","toggle_emulator_options",&BeebWindow::CreateOptionsUI},
     {BeebWindowPopupType_Messages,"Messages","toggle_messages",&CreateMessagesUI},
@@ -1175,38 +1177,6 @@ void BeebWindow::DoFileMenu() {
     if(ImGui::BeginMenu("File")) {
         m_cc.DoMenuItemUI("hard_reset");
 
-        if(ImGui::BeginMenu("Change config")) {
-            for(size_t config_idx=0;config_idx<BeebWindows::GetNumConfigs();++config_idx) {
-                BeebConfig *config=BeebWindows::GetConfigByIndex(config_idx);
-
-                if(ImGui::MenuItem(config->name.c_str())) {
-                    this->HardReset(*config);
-                }
-            }
-
-            ImGui::EndMenu();
-        }
-
-        ImGui::Separator();
-
-        if(ImGui::BeginMenu("Keymap")) {
-            for(size_t i=0;i<BeebWindows::GetNumBeebKeymaps();++i) {
-                BeebKeymap *keymap=BeebWindows::GetBeebKeymapByIndex(i);
-
-                if(ImGui::MenuItem(GetKeymapUIName(*keymap).c_str(),
-                                   nullptr,
-                                   m_settings.keymap==keymap))
-                {
-                    m_settings.keymap=keymap;
-                    m_prefer_shortcuts=m_settings.keymap->GetPreferShortcuts();
-                    m_msg.i.f("Keymap: %s\n",m_settings.keymap->GetName().c_str());
-                    this->ShowPrioritizeCommandShortcutsStatus();
-                }
-            }
-
-            ImGui::EndMenu();
-        }
-
         ImGui::Separator();
 
         for(int drive=0;drive<NUM_DRIVES;++drive) {
@@ -1338,9 +1308,58 @@ void BeebWindow::DoEditMenu() {
         m_cc.DoMenuItemUI("paste");
         m_cc.DoMenuItemUI("paste_return");
 
+        ImGui::EndMenu();
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BeebWindow::DoHardwareMenu() {
+    if(ImGui::BeginMenu("Hardware")) {
+        m_cc.DoMenuItemUI("toggle_configurations");
+
+        ImGui::Separator();
+
+        for(size_t config_idx=0;config_idx<BeebWindows::GetNumConfigs();++config_idx) {
+            BeebConfig *config=BeebWindows::GetConfigByIndex(config_idx);
+
+            if(ImGui::MenuItem(config->name.c_str())) {
+                this->HardReset(*config);
+            }
+        }
+
+        ImGui::EndMenu();
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BeebWindow::DoKeyboardMenu() {
+    if(ImGui::BeginMenu("Keyboard")) {
+        m_cc.DoMenuItemUI("toggle_keyboard_layout");
+        m_cc.DoMenuItemUI("toggle_command_keymaps");
+
         ImGui::Separator();
 
         m_cc.DoMenuItemUI("toggle_prioritize_shortcuts");
+
+        ImGui::Separator();
+
+        for(size_t i=0;i<BeebWindows::GetNumBeebKeymaps();++i) {
+            BeebKeymap *keymap=BeebWindows::GetBeebKeymapByIndex(i);
+
+            if(ImGui::MenuItem(GetKeymapUIName(*keymap).c_str(),
+                               nullptr,
+                               m_settings.keymap==keymap))
+            {
+                m_settings.keymap=keymap;
+                m_prefer_shortcuts=m_settings.keymap->GetPreferShortcuts();
+                m_msg.i.f("Keymap: %s\n",m_settings.keymap->GetName().c_str());
+                this->ShowPrioritizeCommandShortcutsStatus();
+            }
+        }
 
         ImGui::EndMenu();
     }
@@ -1352,12 +1371,9 @@ void BeebWindow::DoEditMenu() {
 void BeebWindow::DoToolsMenu() {
     if(ImGui::BeginMenu("Tools")) {
         m_cc.DoMenuItemUI("toggle_emulator_options");
-        m_cc.DoMenuItemUI("toggle_keyboard_layout");
-        m_cc.DoMenuItemUI("toggle_command_keymaps");
         m_cc.DoMenuItemUI("toggle_messages");
         m_cc.DoMenuItemUI("toggle_timeline");
         m_cc.DoMenuItemUI("toggle_saved_states");
-        m_cc.DoMenuItemUI("toggle_configurations");
         m_cc.DoMenuItemUI("toggle_beeblink_options");
 
         // if(ImGui::MenuItem("Dump states")) {

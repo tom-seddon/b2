@@ -387,6 +387,8 @@ private:
     void DoPopupUI(uint64_t now,int output_width,int output_height);
     void DoFileMenu();
     void DoEditMenu();
+    void DoHardwareMenu();
+    void DoKeyboardMenu();
     void DoToolsMenu();
     void DoDebugMenu();
     bool DoWindowMenu();

@@ -20,22 +20,22 @@ file, and vice versa.
 ## Change config
 
 The default setup is a BBC Model B with Acorn 1770 DFS and 16K
-sideways RAM. The `File` > `Change config` submenu lets you select
-something different.
+sideways RAM. The `Hardware` menu lets you select something different.
 
 ## Change keyboard mapping ##
 
 The default keyboard layout tries to map PC keys to their BBC
 equivalent by position - typically what you want for games.
 
-Some games might be better with the `Default (caps/ctrl)` layout,
-which sets PC Left Ctrl to BBC Caps Lock, PC Left Alt to BBC Ctrl, and
-PC Caps Lock to BBC Ctrl.
+Use the `Keyboard` menu to select a different mapping. Some games
+might be better with the `Default (caps/ctrl)` layout, which sets PC
+Left Ctrl to BBC Caps Lock, PC Left Alt to BBC Ctrl, and PC Caps Lock
+to BBC Ctrl.
 
-There are also two character map options, designed for typing, which
-try to map PC keys to BBC keys based on the character, so that PC
-Shift+0 gives you `)` and so on. `Default UK` is for UK-style
-keyboards, and `Default US` is for US-style keyboards.
+For typing, you may prefer the two character map options, which try to
+map PC keys to BBC keys based on the character, so that PC Shift+0
+gives you `)` and so on. `Default UK` is for UK-style keyboards, and
+`Default US` is for US-style keyboards.
   
 To get BBC Copy, use PC End (fn+Cursor Right on a Macbook Pro).
 
@@ -115,13 +115,13 @@ get the beep.)
 
 ## Customize keyboard keys
 
-`Tools` > `Command Keys...` lets you select shortcut keys for many of
+`Keyboard` > `Command Keys...` lets you select shortcut keys for many of
 the menu options and window buttons.
 
 By default, BBC keys take priority. If a key is both a shortcut key
-and a BBC key, its shortcut will be ignored. Tick `Edit` > `Prioritize
-command keys` to change this, so the emulator will process shortcut
-keys before processing BBC keys.
+and a BBC key, its shortcut will be ignored. Tick `Keyboard` >
+`Prioritize command keys` to change this, so the emulator will process
+shortcut keys before processing BBC keys.
 
 (The results aren't always perfect. For example, suppose you assign
 Shift+F5 to a command, and then use that combination: when you press
@@ -130,9 +130,10 @@ will then be ignored when the emulator recognises the combination.)
 
 ## Customize keyboard layout
 
-Click `Tools` > `Keyboard layout...` to bring up the keyboard layout
-dialog. Select the keymap of interest in the left hand list, and use
-the BBC keyboard map to edit which PC keys map to which BBC keys.
+Click `Keyboard` > `Keyboard layouts...` to bring up the keyboard
+layout dialog. Select the keymap of interest in the left hand list,
+and use the BBC keyboard map to edit which PC keys map to which BBC
+keys.
 
 (Note that the BBC keyboard map always shows the Master 128 keypad,
 though the keypad is only active in Master 128 mode.)
@@ -145,7 +146,7 @@ To remove a mapping, click the BBC key to make the `Edit PC Keys`
 popup stick. Then click the X button next to the PC key's name.
 
 Each keymap also has a `Prioritize command keys` checkbox, which is
-the setting for the `Edit` > `Prioritize command keys` option (see
+the setting for the `Keyboard` > `Prioritize command keys` option (see
 above) when the keymaps is first selected. The tick box is the default
 setting; you can always use the menu item to change it afterwards.
 
@@ -153,13 +154,13 @@ To create a new keymap, click the `New...` button to create one that's
 a copy of one of the default keymaps, or click the `Copy...` to create
 one that's a copy of one of the ones in the list.
 
-## Customize configs
+## Customize hardware
 
-The default configs include several types of BBC B (with different
-disk interfaces), B+, B+128, Master 128 with MOS 3.20 and Master 128
-with MOS 3.50. `Tools` > `Configs` lets you edit this list and choose
-what each config includes - ROMs, sideways RAM status, and extra
-hardware.
+The hardware menu by default lists several types of BBC B (with
+different disk interfaces), B+, B+128, Master 128 with MOS 3.20 and
+Master 128 with MOS 3.50. `Hardware` > `Configs` lets you edit this
+list and choose what each config includes - ROMs, sideways RAM status,
+and extra hardware.
 
 Select the config to modify in the list on the left hand side. The
 right hand side will display the ROM slot contents, and tick boxes for
