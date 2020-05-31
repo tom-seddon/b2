@@ -1321,10 +1321,12 @@ void BeebWindow::DoHardwareMenu() {
 
         ImGui::Separator();
 
+        std::string config_name=this->GetConfigName();
+
         for(size_t config_idx=0;config_idx<BeebWindows::GetNumConfigs();++config_idx) {
             BeebConfig *config=BeebWindows::GetConfigByIndex(config_idx);
 
-            if(ImGui::MenuItem(config->name.c_str())) {
+            if(ImGui::MenuItem(config->name.c_str(),nullptr,config->name==config_name)) {
                 this->HardReset(*config);
             }
         }
