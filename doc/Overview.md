@@ -4,9 +4,13 @@ A brief summary of the main features of the emulator.
 
 ## Load a disc
 
-Go to `Drive 0` or `Drive 1` on the `File` menu to load a disc. Use
+If the disc auto-boots, use `Run` on the `File` menu to load a disc
+and have the emulator auto-boot it. Use
 the `Disc image...` or `Direct disc image...` option to select an .ssd
-file, then hit Shift+Break (PC Shift + PC F11 or PC F12) to start it.
+file, and it will start automatically.
+
+To load a disc without auto-booting, go to `Drive 0` or `Drive 1` on
+the `File` menu instead.
 
 `Disc image...` loads the file into memory. The file isn't updated
 when changes are made in the emulator (use `Save` to do that), and
@@ -15,7 +19,8 @@ disc image for that).
 
 `Direct disc image...` accesses the file directly for each read or
 write. Any changes made in the emulator are immediately made to the
-file, and vice versa.
+file, and any changes made to the file are immediately visible in the
+emulator.
 
 ## Change config
 
@@ -54,15 +59,16 @@ state` to reload it. (All state is saved, including disc contents.)
 Use `Tools` > `Saved states` to see the list of states saved; click
 `Load` to reload one, or `Delete` to delete it.
 
-Because the disc contents are outside the emulator's control, you
-can't save a state when a direct disc image is loaded.
+(Note that if you load a direct disc image, save states become
+disabled, as the disc contents can be changed from outside the
+emulator.)
 
 ## Timeline
 
 Use the timeline functionality to record a sequence of events for
 later playback. *This functionality is a work in progress* - so it's
-not super useful yet. But, on Windows and Linux, having recorded a
-timeline, you have the option of creating a video from it.
+not super useful yet. But having recorded a timeline, you have the
+option of creating a video from it.
 
 Use `Tools` > `Timeline...` to show the Timeline window. Click
 `Record` to start recording; events are recorded to the timeline,

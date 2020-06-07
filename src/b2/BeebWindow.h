@@ -24,6 +24,7 @@ class BeebState;
 class CommandKeymapsUI;
 class SettingsUI;
 class DiscImage;
+class FileMenuItem;
 
 #include "keys.h"
 #include "dear_imgui.h"
@@ -386,6 +387,9 @@ private:
     CommandContext DoSettingsUI();
     void DoPopupUI(uint64_t now,int output_width,int output_height);
     void DoFileMenu();
+    void DoDiscDriveSubMenu(int drive,const std::shared_ptr<const DiscImage> &disc_image);
+    void DoDiscImageSubMenu(int drive,bool boot);
+    void DoDiscImageSubMenuItem(int drive,std::shared_ptr<DiscImage> disc_image,FileMenuItem *item,bool boot);
     void DoEditMenu();
     void DoHardwareMenu();
     void DoKeyboardMenu();
