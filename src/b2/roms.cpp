@@ -18,10 +18,10 @@ std::string BeebROM::GetAssetPath() const {
 //////////////////////////////////////////////////////////////////////////
 
 const BeebROM BEEB_ROM_OS12={"OS12.ROM","OS 1.20",StandardROM_OS12};
-const BeebROM BEEB_ROM_BPLUS_MOS={"B+MOS.ROM","B+ MOS",StandardROM_BPlusMOS};
+const BeebROM BEEB_ROM_BPLUS_MOS={"B+MOS.rom","B+ MOS",StandardROM_BPlusMOS};
 
 const BeebROM BEEB_ROM_BASIC2={"BASIC2.ROM","BASIC II",StandardROM_BASIC2};
-const BeebROM BEEB_ROM_ACORN_DFS={"DFS-2.26.ROM","Acorn 1770 DFS",StandardROM_Acorn1770DFS};
+const BeebROM BEEB_ROM_ACORN_DFS={"DFS-2.26.rom","Acorn 1770 DFS",StandardROM_Acorn1770DFS};
 const BeebROM BEEB_ROM_WATFORD_DDFS_DDB2={"DDFS-1.53.rom","Watford DDFS (DDB2)",StandardROM_WatfordDDFS_DDB2};
 const BeebROM BEEB_ROM_WATFORD_DDFS_DDB3={"DDFS-1.54T.rom","Watford DDFS (DDB3)",StandardROM_WatfordDDFS_DDB3};
 const BeebROM BEEB_ROM_OPUS_DDOS={"OPUS-DDOS-3.45.rom","Opus DDOS",StandardROM_OpusDDOS};

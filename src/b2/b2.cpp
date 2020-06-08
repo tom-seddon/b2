@@ -623,6 +623,51 @@ static bool InitSystem(
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+static void CheckAssetPath(const std::string &path_) {
+    (void)path_;
+
+#if ASSERT_ENABLED
+
+#if SYSTEM_OSX
+
+    std::string path=path_;
+
+    ASSERT(path.find("/./")==std::string::npos);
+
+    for(;;) {
+        std::string dotdot="/../";
+        std::string::size_type pos=path.find(dotdot);
+        if(pos==std::string::npos) {
+            break;
+        }
+
+        ASSERT(pos>0);
+        std::string::size_type prev_pos=path.find_last_of('/',pos-1);
+        path=path.substr(0,prev_pos)+"/"+path.substr(pos+dotdot.size());
+    }
+
+    char real_path[PATH_MAX];
+    ASSERT(realpath(path.c_str(),real_path));
+    ASSERT(path==real_path);
+
+#elif SYSTEM_WINDOWS
+
+    // TODO...
+
+#endif
+    
+#endif
+}
+
+static void CheckAssetPaths() {
+    for(size_t i=0;BEEB_ROMS[i];++i) {
+        CheckAssetPath(BEEB_ROMS[i]->GetAssetPath());
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 #if BBCMICRO_ENABLE_DISC_DRIVE_SOUND
 static void LoadDiscDriveSampleFailed(bool *good,Messages *init_messages,const std::string &path,const char *what) {
     init_messages->e.f("failed to load disc sound sample: %s\n",path.c_str());
@@ -640,6 +685,7 @@ static void LoadDiscDriveSound(bool *good,DiscDriveType type,DiscDriveSound soun
     ASSERT(sound>=0&&sound<DiscDriveSound_EndValue);
 
     std::string path=GetAssetPath("samples",fname);
+    CheckAssetPath(path);
 
     SDL_AudioSpec spec={};
     spec.freq=SOUND_CLOCK_HZ;
@@ -695,6 +741,7 @@ static void LoadDiscDriveSound(bool *good,DiscDriveType type,DiscDriveSound soun
 #endif
 
 #if BBCMICRO_ENABLE_DISC_DRIVE_SOUND
+
 static bool LoadDiscDriveSamples(Messages *init_messages) {
     bool good=true;
 
@@ -793,6 +840,8 @@ static void SetRmtThreadName(const char *name,void *context) {
 
 static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &init_message_list) {
     Messages init_messages(init_message_list);
+
+    CheckAssetPaths();
 
 #if RMT_ENABLED
     {
