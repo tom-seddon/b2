@@ -1230,8 +1230,18 @@ void BeebWindow::DoDiscDriveSubMenu(int drive,
     std::string name,load_method;
 
     if(!!disc_image) {
-        name=disc_image->GetName();
-        ImGui::MenuItem(name.empty()?"(no name)":name.c_str(),nullptr,false,false);
+        std::string name=disc_image->GetName();
+        if(!name.empty()) {
+            if(ImGui::BeginMenu("Full path")) {
+                ImGui::MenuItem(name.c_str(),nullptr,false,false);
+
+                if(ImGui::MenuItem("Copy path to clipboard")) {
+                    SDL_SetClipboardText(name.c_str());
+                }
+
+                ImGui::EndMenu();
+            }
+        }
 
         std::string desc=disc_image->GetDescription();
         if(!desc.empty()) {
@@ -1255,12 +1265,6 @@ void BeebWindow::DoDiscDriveSubMenu(int drive,
 
     } else {
         ImGui::MenuItem("(empty)",NULL,false,false);
-    }
-
-    if(!name.empty()) {
-        if(ImGui::MenuItem("Copy path to clipboard")) {
-            SDL_SetClipboardText(name.c_str());
-        }
     }
 
     ImGui::Separator();
