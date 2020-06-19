@@ -1077,7 +1077,7 @@ protected:
         ImGui::SameLine();
         this->ByteRegUI("X",x);
         ImGui::SameLine();
-        this->ByteRegUI("Y",x);
+        this->ByteRegUI("Y",y);
         ImGui::SameLine();
         {
             char pstr[9];
