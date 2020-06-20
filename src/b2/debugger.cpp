@@ -1279,7 +1279,7 @@ protected:
 
                     M6502Word imm_addr={operand.b.l};
                     const DebugBigPage *imm_dbp=this->GetDebugBigPageForAddress(imm_addr,false);
-                    this->DoClickableAddress("#",label,"",imm_dbp,imm_addr);
+                    this->DoClickableAddress("#$",label,"",imm_dbp,imm_addr);
                 }
                     break;
 
