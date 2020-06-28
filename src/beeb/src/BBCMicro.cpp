@@ -1197,7 +1197,7 @@ bool BBCMicro::Update(VideoDataUnit *video_unit,SoundDataUnit *sound_unit) {
 
     // Update video hardware.
     if(m_state.video_ula.control.bits.fast_6845|phi2_1MHz_trailing_edge) {
-        CRTC::Output output=m_state.crtc.Update(m_state.system_via.b.c2);
+        const CRTC::Output output=m_state.crtc.Update(m_state.system_via.b.c2);
 
         m_state.cursor_pattern>>=1;
 
@@ -1306,6 +1306,7 @@ bool BBCMicro::Update(VideoDataUnit *video_unit,SoundDataUnit *sound_unit) {
 
         video_unit->metadata.flags|=VideoDataUnitMetadataFlag_HasAddress;
         video_unit->metadata.address=m_last_video_access_address;
+        video_unit->metadata.crtc_address=output.address;
 #endif
 
         m_state.crtc_last_output=output;

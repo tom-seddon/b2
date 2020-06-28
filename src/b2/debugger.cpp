@@ -2680,6 +2680,7 @@ protected:
                 M6502Word cpu_addr={(uint16_t)(metadata->addr+crtc_addr.p.o)};
 
                 ImGui::Text("Address: %c%c$%04x",metadata->code,ADDRESS_PREFIX_SEPARATOR,cpu_addr.w);
+                ImGui::Text("CRTC Address: $%04x",unit->metadata.crtc_address);
 
                 const DebugBigPage *cpu_dbp=this->GetDebugBigPageForAddress(cpu_addr,false);
                 this->DoBytePopupGui(cpu_dbp,cpu_addr);
