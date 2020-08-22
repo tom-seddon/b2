@@ -1,0 +1,41 @@
+#include <shared/system.h>
+#include "discs.h"
+#include "load_save.h"
+#include "DiscGeometry.h"
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+std::string Disc::GetAssetPath() const {
+    return ::GetAssetPath("discs",this->path);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+extern const Disc BLANK_DFS_DISCS[]={
+    {"DFS 80T SSD","80.ssd",&SSD_GEOMETRY},
+    {"DFS 80T DSD","80.dsd",&DSD_GEOMETRY},
+
+    // Support for 40T disks just isn't very good... the files won't round
+    // trip properly.
+    
+//    {"DFS 40T SSD","40.ssd",&SSD_GEOMETRY},
+//    {"DFS 40T DSD","40.dsd",&DSD_GEOMETRY},
+};
+
+extern const size_t NUM_BLANK_DFS_DISCS=sizeof BLANK_DFS_DISCS/sizeof BLANK_DFS_DISCS[0];
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+const Disc BLANK_ADFS_DISCS[]={
+    {"ADFS L","adl.adl",&ADL_GEOMETRY},
+    {"ADFS M","adm.adm",&ADM_GEOMETRY},
+    {"ADFS S","ads.ads",&ADS_GEOMETRY},
+};
+
+const size_t NUM_BLANK_ADFS_DISCS=sizeof BLANK_ADFS_DISCS/sizeof BLANK_ADFS_DISCS[0];
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////

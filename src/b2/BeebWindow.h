@@ -255,7 +255,9 @@ private:
     struct SettingsUIMetadata;
 
     struct DriveState {
+        SaveFileDialog new_disc_image_file_dialog;
         OpenFileDialog open_disc_image_file_dialog;
+        SaveFileDialog new_direct_disc_image_file_dialog;
         OpenFileDialog open_direct_disc_image_file_dialog;
 
         DriveState();

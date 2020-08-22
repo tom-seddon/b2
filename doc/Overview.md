@@ -9,9 +9,6 @@ and have the emulator auto-boot it. Use
 the `Disc image...` or `Direct disc image...` option to select an .ssd
 file, and it will start automatically.
 
-To load a disc without auto-booting, go to `Drive 0` or `Drive 1` on
-the `File` menu instead.
-
 `Disc image...` loads the file into memory. The file isn't updated
 when changes are made in the emulator (use `Save` to do that), and
 changes made to the file won't be seen in the emulator (reload the
@@ -21,6 +18,11 @@ disc image for that).
 write. Any changes made in the emulator are immediately made to the
 file, and any changes made to the file are immediately visible in the
 emulator.
+
+To load a disc without auto-booting, go to `Drive 0` or `Drive 1` on
+the `File` menu instead, and use `Disc image...` or `Direct disc
+image...`. Or, to create a new blank disc, use `New disc image` or
+`New direct disc image`.
 
 ## Change config
 

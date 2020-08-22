@@ -38,6 +38,7 @@
 #include "SavedStatesUI.h"
 #include "BeebLinkUI.h"
 #include "SettingsUI.h"
+#include "discs.h"
 
 #ifdef _MSC_VER
 #include <crtdbg.h>
@@ -127,14 +128,22 @@ const char BeebWindow::SDL_WINDOW_DATA_NAME[]="D";
 //////////////////////////////////////////////////////////////////////////
 
 BeebWindow::DriveState::DriveState():
+    new_disc_image_file_dialog(RECENT_PATHS_DISC_IMAGE),
     open_disc_image_file_dialog(RECENT_PATHS_DISC_IMAGE),
+    new_direct_disc_image_file_dialog(RECENT_PATHS_DISC_IMAGE),
     open_direct_disc_image_file_dialog(RECENT_PATHS_DISC_IMAGE)
 {
-    std::vector<std::string> extensions=DISC_IMAGE_EXTENSIONS;
-    extensions.push_back(".zip");
+    this->new_disc_image_file_dialog.AddFilter("BBC disc images",DISC_IMAGE_EXTENSIONS);
 
-    this->open_disc_image_file_dialog.AddFilter("BBC disc images",extensions);
-    this->open_disc_image_file_dialog.AddAllFilesFilter();
+    {
+        std::vector<std::string> extensions=DISC_IMAGE_EXTENSIONS;
+        extensions.push_back(".zip");
+
+        this->open_disc_image_file_dialog.AddFilter("BBC disc images",extensions);
+        this->open_disc_image_file_dialog.AddAllFilesFilter();
+    }
+
+    this->new_direct_disc_image_file_dialog.AddFilter("BBC disc images",DISC_IMAGE_EXTENSIONS);
 
     this->open_direct_disc_image_file_dialog.AddFilter("BBC disc images",DISC_IMAGE_EXTENSIONS);
 }
@@ -482,38 +491,86 @@ void BeebWindow::HandleSDLMouseMotionEvent(const SDL_MouseMotionEvent &event) {
 
 class FileMenuItem {
 public:
-    bool selected=false;
-    std::string path;
-    bool recent=false;
+    // set if disk image should be loaded.
+    bool load=false;
 
-    explicit FileMenuItem(SelectorDialog *dialog,const char *open_title,const char *recent_title):
-        m_dialog(dialog)
+    // if non-empty, an item was selected.
+    std::string path;
+
+    // details of the disk type, if the new disk option was chosen.
+    const Disc *new_disc_type=nullptr;
+    std::vector<uint8_t> new_disc_data;
+
+    explicit FileMenuItem(SelectorDialog *new_dialog,
+                          SelectorDialog *open_dialog,
+                          const char *new_title,
+                          const char *open_title,
+                          const char *recent_title,
+                          Messages *msgs)
     {
         //bool recent_enabled=true;
 
         ImGuiIDPusher id_pusher(open_title);
 
         if(ImGui::MenuItem(open_title)) {
-            if(dialog->Open(&this->path)) {
-                this->recent=false;
-                this->selected=true;
-                //recent_enabled=false;
+            if(open_dialog->Open(&this->path)) {
+                m_used_dialog=open_dialog;
+                this->load=true;
             }
         }
 
-        if(ImGuiRecentMenu(&this->path,recent_title,*dialog)) {
-            this->selected=true;
+        if(ImGui::BeginMenu(new_title)) {
+            this->DoBlankDiscsMenu(new_dialog,
+                                   BLANK_DFS_DISCS,
+                                   NUM_BLANK_DFS_DISCS,
+                                   msgs);
+            ImGui::Separator();
+
+            this->DoBlankDiscsMenu(new_dialog,
+                                   BLANK_ADFS_DISCS,
+                                   NUM_BLANK_ADFS_DISCS,
+                                   msgs);
+
+            ImGui::EndMenu();
+        }
+
+        if(ImGuiRecentMenu(&this->path,recent_title,*open_dialog)) {
+            this->load=true;
         }
     }
 
     void Success() {
-        if(!this->recent) {
-            m_dialog->AddLastPathToRecentPaths();
+        if(m_used_dialog) {
+            m_used_dialog->AddLastPathToRecentPaths();
         }
     }
 protected:
 private:
-    SelectorDialog *m_dialog;
+    SelectorDialog *m_used_dialog=nullptr;
+
+    void DoBlankDiscsMenu(SelectorDialog *dialog,
+                          const Disc *discs,
+                          size_t num_discs,
+                          Messages *msgs)
+    {
+        for(size_t i=0;i<num_discs;++i) {
+            const Disc *disc=&discs[i];
+
+            if(ImGui::MenuItem(disc->name.c_str())) {
+                std::string path=disc->GetAssetPath();
+
+                if(!LoadFile(&this->new_disc_data,path,msgs,0)) {
+                    return;
+                }
+
+                if(dialog->Open(&this->path)) {
+                    this->new_disc_type=disc;
+                    m_used_dialog=dialog;
+                    this->load=true;
+                }
+            }
+        }
+    }
 };
 
 static size_t CleanUpRecentPaths(const std::string &tag,bool (*exists_fn)(const std::string &)) {
@@ -1303,20 +1360,51 @@ void BeebWindow::DoDiscImageSubMenu(int drive,bool boot) {
     ASSERT(drive>=0&&drive<NUM_DRIVES);
     DriveState *d=&m_drives[drive];
 
-    FileMenuItem file_item(&d->open_disc_image_file_dialog,"Disc image...","Recent disc image");
-    if(file_item.selected) {
-        std::shared_ptr<MemoryDiscImage> new_disc_image=MemoryDiscImage::LoadFromFile(file_item.path,
-                                                                                      &m_msg);
-        this->DoDiscImageSubMenuItem(drive,std::move(new_disc_image),&file_item,boot);
+    FileMenuItem file_item(&d->new_disc_image_file_dialog,
+                           &d->open_disc_image_file_dialog,
+                           "New disc image",
+                           "Disc image...",
+                           "Recent disc image",
+                           &m_msg);
+    if(file_item.load) {
+        std::shared_ptr<MemoryDiscImage> new_disc_image;
+        if(file_item.new_disc_type) {
+            new_disc_image=MemoryDiscImage::LoadFromBuffer(file_item.path,
+                                                           MemoryDiscImage::LOAD_METHOD_FILE,
+                                                           file_item.new_disc_data.data(),
+                                                           file_item.new_disc_data.size(),
+                                                           *file_item.new_disc_type->geometry,
+                                                           &m_msg);
+        } else {
+            new_disc_image=MemoryDiscImage::LoadFromFile(file_item.path,
+                                                         &m_msg);
+        }
+        this->DoDiscImageSubMenuItem(drive,
+                                     std::move(new_disc_image),
+                                     &file_item,boot);
     }
 
-    FileMenuItem direct_item(&d->open_direct_disc_image_file_dialog,
+    FileMenuItem direct_item(&d->new_direct_disc_image_file_dialog,
+                             &d->open_direct_disc_image_file_dialog,
+                             "New direct disc image",
                              "Direct disc image...",
-                             "Recent direct disc image");
-    if(direct_item.selected) {
-        std::shared_ptr<DirectDiscImage> new_disc_image=DirectDiscImage::CreateForFile(direct_item.path,
-                                                                                    &m_msg);
-        this->DoDiscImageSubMenuItem(drive,std::move(new_disc_image),&direct_item,boot);
+                             "Recent direct disc image",
+                             &m_msg);
+    if(direct_item.load) {
+        if(direct_item.new_disc_type) {
+            if(!SaveFile(direct_item.new_disc_data,
+                         direct_item.path,
+                         &m_msg))
+            {
+                return;
+            }
+        }
+
+        std::shared_ptr<DirectDiscImage> new_disc_image=DirectDiscImage::CreateForFile(direct_item.path,&m_msg);
+
+        this->DoDiscImageSubMenuItem(drive,
+                                     std::move(new_disc_image),
+                                     &direct_item,boot);
     }
 }
 
