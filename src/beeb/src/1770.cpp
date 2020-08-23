@@ -938,6 +938,11 @@ WD1770::Pins WD1770::Update() {
 
     case WD1770State_WriteSectorFindSector:
         {
+            if(m_handler->IsWriteProtected()) {
+                m_state=WD1770State_WriteProtectError;
+                break;
+            }
+
             if(!this->DoTypeIIFindSector()) {
                 break;
             }
@@ -1112,6 +1117,14 @@ WD1770::Pins WD1770::Update() {
         {
             m_status.bits.crc_error=1;
             m_status.bits.rnf=1;
+
+            m_state=WD1770State_FinishCommand;
+        }
+        break;
+
+    case WD1770State_WriteProtectError:
+        {
+            m_status.bits.write_protect=1;
 
             m_state=WD1770State_FinishCommand;
         }

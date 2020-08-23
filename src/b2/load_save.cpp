@@ -621,7 +621,7 @@ bool GetFileDetails(size_t *size,bool *can_write,const char *path) {
 
     good=true;
 done:
-    if(fp!=nullptr) {
+    if(fp) {
         fclose(fp);
         fp=nullptr;
     }

@@ -115,6 +115,9 @@ EPN(WriteTrack)
 // Sets RNF and CRC error bits and goes to FinishCommand.
 EPN(UnsupportedCommand)
 
+// Sets WRITE PROTECT error bit and goes to FinishCommand.
+EPN(WriteProtectError)
+
 EEND()
 #undef ENAME
 

@@ -1313,6 +1313,18 @@ void BeebWindow::DoDiscDriveSubMenu(int drive,
         load_method=disc_image->GetLoadMethod();
         ImGui::MenuItem(("Loaded from: "+load_method).c_str(),nullptr,false,false);
 
+        bool disc_protected=disc_image->IsWriteProtected();
+
+        if(disc_protected) {
+            // Write protection state is shown, but can't be changed.
+            ImGui::MenuItem("Write protect",nullptr,&disc_protected,false);
+        } else {
+            bool drive_protected=m_beeb_thread->IsDriveWriteProtected(drive);
+            if(ImGui::MenuItem("Write protect",nullptr,&drive_protected)) {
+                m_beeb_thread->Send(std::make_shared<BeebThread::SetDriveWriteProtectedMessage>(drive,drive_protected));
+            }
+        }
+
         if(ImGui::BeginMenu("Eject")) {
             if(ImGui::MenuItem("Confirm")) {
                 m_beeb_thread->Send(std::make_shared<BeebThread::EjectDiscMessage>(drive));

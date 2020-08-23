@@ -357,7 +357,12 @@ public:
     std::shared_ptr<DiscImage> TakeDiscImage(int drive);
     std::shared_ptr<const DiscImage> GetDiscImage(int drive) const;
 
-    void SetDiscImage(int drive,std::shared_ptr<DiscImage> disc_image);
+    // Setting the disk image makes the drive non write-protected.
+    void SetDiscImage(int drive,
+                      std::shared_ptr<DiscImage> disc_image);
+
+    void SetDriveWriteProtected(int drive,bool is_write_protected);
+    bool IsDriveWriteProtected(int drive) const;
 
     // Every time there is a disc access, the disc access flag is set
     // to true. This call retrieves its current value, and sets it to
@@ -606,6 +611,7 @@ private:
     const BBCMicroType *const m_type;
     DiscInterface *const m_disc_interface=nullptr;
     std::shared_ptr<DiscImage> m_disc_images[NUM_DRIVES];
+    bool m_is_drive_write_protected[NUM_DRIVES]={};
     const bool m_video_nula;
     const bool m_ext_mem;
 

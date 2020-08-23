@@ -348,6 +348,19 @@ public:
         const int m_drive=-1;
     };
 
+    class SetDriveWriteProtectedMessage:
+    public Message
+    {
+    public:
+        explicit SetDriveWriteProtectedMessage(int drive,bool is_write_protected);
+
+        void ThreadHandle(BeebThread *beeb_thread,ThreadState *ts) const override;
+    protected:
+    private:
+        const int m_drive=-1;
+        const bool m_is_write_protected=false;
+    };
+
     // Any kind of message that has a BeebState.
     class BeebStateMessage:
         public Message
@@ -969,6 +982,8 @@ public:
     // calculated from the TimelineState values...) turn out to be outdated.
     std::vector<BeebThread::TimelineBeebStateEvent> GetTimelineBeebStateEvents(size_t begin_index,
                                                                                size_t end_index);
+
+    bool IsDriveWriteProtected(int drive) const;
 protected:
 private:
     struct AudioThreadData;
@@ -1020,6 +1035,7 @@ private:
     std::atomic<const BBCMicroType*> m_beeb_type{nullptr};
     std::atomic<uint32_t> m_clone_impediments{0};
     std::atomic<bool> m_power_on_tone{true};
+    std::atomic<bool> m_is_drive_write_protected[NUM_DRIVES]{};
 
     // Controlled by m_mutex.
     TimelineState m_timeline_state;
