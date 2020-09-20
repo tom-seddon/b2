@@ -1099,7 +1099,7 @@ void BeebWindow::DoPopupUI(uint64_t now,int output_width,int output_height) {
         }
     }
 
-    BeebThread::TimelineState timeline_state;
+    BeebThreadTimelineState timeline_state;
     m_beeb_thread->GetTimelineState(&timeline_state);
 
     bool pasting=m_beeb_thread->IsPasting();

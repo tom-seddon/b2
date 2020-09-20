@@ -27,7 +27,7 @@ public:
     void DoImGui() override {
         const std::shared_ptr<BeebThread> &beeb_thread=m_beeb_window->GetBeebThread();
 
-        BeebThread::TimelineState timeline_state;
+        BeebThreadTimelineState timeline_state;
         beeb_thread->GetTimelineState(&timeline_state);
 
         // not too concerned about overflow here.

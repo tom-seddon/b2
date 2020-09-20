@@ -37,7 +37,7 @@ public:
     void DoImGui() override {
         auto beeb_thread=m_beeb_window->GetBeebThread();
 
-        BeebThread::TimelineState timeline_state;
+        BeebThreadTimelineState timeline_state;
         beeb_thread->GetTimelineState(&timeline_state);
 
         ASSERT(timeline_state.end_2MHz_cycles>=timeline_state.begin_2MHz_cycles);

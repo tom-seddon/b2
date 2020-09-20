@@ -88,6 +88,17 @@ struct TraceConditions {
 //
 // (Message doesn't derived from enable_shared_from_this.)
 
+struct BeebThreadTimelineState {
+    BeebThreadTimelineMode mode=BeebThreadTimelineMode_None;
+    uint64_t begin_2MHz_cycles=0;
+    uint64_t end_2MHz_cycles=0;
+    uint64_t current_2MHz_cycles=0;
+    size_t num_events=0;
+    size_t num_beeb_state_events=0;
+    bool can_record=false;
+    uint32_t clone_impediments=0;
+};
+
 class BeebThread {
     struct ThreadState;
 public:
@@ -828,17 +839,6 @@ public:
         std::vector<uint8_t> m_data;
     };
 
-    struct TimelineState {
-        BeebThreadTimelineMode mode=BeebThreadTimelineMode_None;
-        uint64_t begin_2MHz_cycles=0;
-        uint64_t end_2MHz_cycles=0;
-        uint64_t current_2MHz_cycles=0;
-        size_t num_events=0;
-        size_t num_beeb_state_events=0;
-        bool can_record=false;
-        uint32_t clone_impediments=0;
-    };
-
     struct AudioCallbackRecord {
         uint64_t time=0;
         uint64_t needed=0;
@@ -972,7 +972,7 @@ public:
     std::vector<AudioCallbackRecord> GetAudioCallbackRecords() const;
 
     //
-    void GetTimelineState(TimelineState *timeline_state) const;
+    void GetTimelineState(BeebThreadTimelineState *timeline_state) const;
 
     // Got total number of events on the timeline.
     size_t GetNumTimelineBeebStateEvents() const;
@@ -1037,7 +1037,7 @@ private:
     std::atomic<bool> m_is_drive_write_protected[NUM_DRIVES]{};
 
     // Controlled by m_mutex.
-    TimelineState m_timeline_state;
+    BeebThreadTimelineState m_timeline_state;
     std::vector<TimelineBeebStateEvent> m_timeline_beeb_state_events_copy;
     std::string m_config_name;
 

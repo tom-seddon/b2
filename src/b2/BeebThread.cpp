@@ -2172,7 +2172,7 @@ std::vector<BeebThread::AudioCallbackRecord> BeebThread::GetAudioCallbackRecords
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void BeebThread::GetTimelineState(TimelineState *timeline_state) const {
+void BeebThread::GetTimelineState(BeebThreadTimelineState *timeline_state) const {
     std::lock_guard<Mutex> lock(m_mutex);
 
     *timeline_state=m_timeline_state;
