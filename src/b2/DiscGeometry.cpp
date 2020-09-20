@@ -9,12 +9,13 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static const DiscGeometry SSD_GEOMETRY(80,10,256);
-static const DiscGeometry DSD_GEOMETRY(80,10,256,true);
+const DiscGeometry SSD_GEOMETRY(80,10,256);
+const DiscGeometry DSD_GEOMETRY(80,10,256,true);
 // static const DiscGeometry SDD_GEOMETRY(1,0,0,256);
 // static const DiscGeometry DDD_GEOMETRY(2,0,0,256);
-static const DiscGeometry ADM_GEOMETRY(80,16,256,false,true);
-static const DiscGeometry ADL_GEOMETRY(80,16,256,true,true);
+const DiscGeometry ADM_GEOMETRY(80,16,256,false,true);
+const DiscGeometry ADL_GEOMETRY(80,16,256,true,true);
+const DiscGeometry ADS_GEOMETRY(40,16,256,false,true);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -64,6 +65,7 @@ struct DiscImageType {
 #define DDD_EXT ".ddd"
 #define ADM_EXT ".adm"
 #define ADL_EXT ".adl"
+#define ADS_EXT ".ads"
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -145,6 +147,7 @@ static const DiscImageType DISC_IMAGE_TYPES[]={
     {DDD_EXT,"application/vnd.acorn.disc-image.ddd",&FindDiscGeometryFromFileSize,DDD_GEOMETRIES,NUM_DDD_GEOMETRIES},
     {ADM_EXT,"application/vnd.acorn.disc-image.adm",&FindDiscGeometryFromFileSize,&ADM_GEOMETRY,1},
     {ADL_EXT,"application/vnd.acorn.disc-image.adl",&FindDiscGeometryFromFileSize,&ADL_GEOMETRY,1},
+    {ADS_EXT,"application/vnd.acorn.disc-image.ads",&FindDiscGeometryFromFileSize,&ADS_GEOMETRY,1},
     {},
 };
 
@@ -155,6 +158,7 @@ const std::vector<std::string> DISC_IMAGE_EXTENSIONS={
     DDD_EXT,
     ADM_EXT,
     ADL_EXT,
+    ADS_EXT,
 };
 
 //////////////////////////////////////////////////////////////////////////

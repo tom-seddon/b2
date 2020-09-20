@@ -42,6 +42,7 @@ add_executable(b2 MACOSX_BUNDLE
   conf.cpp conf.h
   dear_imgui.cpp dear_imgui.h
   debugger.cpp debugger.h debugger.inl
+  discs.cpp discs.h
   download.h
   filters.cpp filters.h
   keymap.cpp keymap.h
@@ -323,6 +324,7 @@ set(ASSETS assets)
 endif()
 
 set(ROMS ${ASSETS}/roms)
+set(DISCS ${ASSETS}/discs)
 set(FONTS ${ASSETS}/fonts)
 set(SAMPLES ${ASSETS}/samples)
 
@@ -346,6 +348,14 @@ endfunction()
 
 do_master_ROMs(3.20)
 do_master_ROMs(3.50)
+
+# Discs
+add_custom_command(
+  TARGET b2 POST_BUILD
+  COMMAND ${CMAKE_COMMAND} -E make_directory $<TARGET_FILE_DIR:b2>/${DISCS}
+  COMMAND ${CMAKE_COMMAND} -E copy_if_different 80.ssd 80.dsd 40.ssd 40.dsd Welcome.ssd adl.adl adm.adm ads.ads MasterWelcome.adl $<TARGET_FILE_DIR:b2>/${DISCS}
+  WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/../../etc/discs
+  VERBATIM)
 
 # Fonts
 

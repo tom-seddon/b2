@@ -128,12 +128,6 @@ SN76489::Output SN76489::Update(bool write,uint8_t value) {
     }
 
     if(write) {
-        uint8_t latch_data=value&0x80;
-
-        if(latch_data) {
-            m_state.reg=value>>5&3;
-        }
-
         if(value&0x80) {
             // Latch/data byte
 

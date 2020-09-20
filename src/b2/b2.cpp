@@ -38,6 +38,7 @@
 #include "HTTPMethodsHandler.h"
 #include <curl/curl.h>
 #include "DirectDiscImage.h"
+#include "discs.h"
 
 #include <shared/enum_decl.h>
 #include "b2.inl"
@@ -662,6 +663,14 @@ static void CheckAssetPath(const std::string &path_) {
 static void CheckAssetPaths() {
     for(size_t i=0;BEEB_ROMS[i];++i) {
         CheckAssetPath(BEEB_ROMS[i]->GetAssetPath());
+    }
+
+    for(size_t i=0;i<NUM_BLANK_DFS_DISCS;++i) {
+        CheckAssetPath(BLANK_DFS_DISCS[i].GetAssetPath());
+    }
+
+    for(size_t i=0;i<NUM_BLANK_ADFS_DISCS;++i) {
+        CheckAssetPath(BLANK_ADFS_DISCS[i].GetAssetPath());
     }
 }
 

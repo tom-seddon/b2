@@ -38,6 +38,7 @@
 #include "SavedStatesUI.h"
 #include "BeebLinkUI.h"
 #include "SettingsUI.h"
+#include "discs.h"
 
 #ifdef _MSC_VER
 #include <crtdbg.h>
@@ -127,14 +128,22 @@ const char BeebWindow::SDL_WINDOW_DATA_NAME[]="D";
 //////////////////////////////////////////////////////////////////////////
 
 BeebWindow::DriveState::DriveState():
+    new_disc_image_file_dialog(RECENT_PATHS_DISC_IMAGE),
     open_disc_image_file_dialog(RECENT_PATHS_DISC_IMAGE),
+    new_direct_disc_image_file_dialog(RECENT_PATHS_DISC_IMAGE),
     open_direct_disc_image_file_dialog(RECENT_PATHS_DISC_IMAGE)
 {
-    std::vector<std::string> extensions=DISC_IMAGE_EXTENSIONS;
-    extensions.push_back(".zip");
+    this->new_disc_image_file_dialog.AddFilter("BBC disc images",DISC_IMAGE_EXTENSIONS);
 
-    this->open_disc_image_file_dialog.AddFilter("BBC disc images",extensions);
-    this->open_disc_image_file_dialog.AddAllFilesFilter();
+    {
+        std::vector<std::string> extensions=DISC_IMAGE_EXTENSIONS;
+        extensions.push_back(".zip");
+
+        this->open_disc_image_file_dialog.AddFilter("BBC disc images",extensions);
+        this->open_disc_image_file_dialog.AddAllFilesFilter();
+    }
+
+    this->new_direct_disc_image_file_dialog.AddFilter("BBC disc images",DISC_IMAGE_EXTENSIONS);
 
     this->open_direct_disc_image_file_dialog.AddFilter("BBC disc images",DISC_IMAGE_EXTENSIONS);
 }
@@ -482,38 +491,86 @@ void BeebWindow::HandleSDLMouseMotionEvent(const SDL_MouseMotionEvent &event) {
 
 class FileMenuItem {
 public:
-    bool selected=false;
-    std::string path;
-    bool recent=false;
+    // set if disk image should be loaded.
+    bool load=false;
 
-    explicit FileMenuItem(SelectorDialog *dialog,const char *open_title,const char *recent_title):
-        m_dialog(dialog)
+    // if non-empty, an item was selected.
+    std::string path;
+
+    // details of the disk type, if the new disk option was chosen.
+    const Disc *new_disc_type=nullptr;
+    std::vector<uint8_t> new_disc_data;
+
+    explicit FileMenuItem(SelectorDialog *new_dialog,
+                          SelectorDialog *open_dialog,
+                          const char *new_title,
+                          const char *open_title,
+                          const char *recent_title,
+                          Messages *msgs)
     {
         //bool recent_enabled=true;
 
         ImGuiIDPusher id_pusher(open_title);
 
         if(ImGui::MenuItem(open_title)) {
-            if(dialog->Open(&this->path)) {
-                this->recent=false;
-                this->selected=true;
-                //recent_enabled=false;
+            if(open_dialog->Open(&this->path)) {
+                m_used_dialog=open_dialog;
+                this->load=true;
             }
         }
 
-        if(ImGuiRecentMenu(&this->path,recent_title,*dialog)) {
-            this->selected=true;
+        if(ImGui::BeginMenu(new_title)) {
+            this->DoBlankDiscsMenu(new_dialog,
+                                   BLANK_DFS_DISCS,
+                                   NUM_BLANK_DFS_DISCS,
+                                   msgs);
+            ImGui::Separator();
+
+            this->DoBlankDiscsMenu(new_dialog,
+                                   BLANK_ADFS_DISCS,
+                                   NUM_BLANK_ADFS_DISCS,
+                                   msgs);
+
+            ImGui::EndMenu();
+        }
+
+        if(ImGuiRecentMenu(&this->path,recent_title,*open_dialog)) {
+            this->load=true;
         }
     }
 
     void Success() {
-        if(!this->recent) {
-            m_dialog->AddLastPathToRecentPaths();
+        if(m_used_dialog) {
+            m_used_dialog->AddLastPathToRecentPaths();
         }
     }
 protected:
 private:
-    SelectorDialog *m_dialog;
+    SelectorDialog *m_used_dialog=nullptr;
+
+    void DoBlankDiscsMenu(SelectorDialog *dialog,
+                          const Disc *discs,
+                          size_t num_discs,
+                          Messages *msgs)
+    {
+        for(size_t i=0;i<num_discs;++i) {
+            const Disc *disc=&discs[i];
+
+            if(ImGui::MenuItem(disc->name.c_str())) {
+                std::string path=disc->GetAssetPath();
+
+                if(!LoadFile(&this->new_disc_data,path,msgs,0)) {
+                    return;
+                }
+
+                if(dialog->Open(&this->path)) {
+                    this->new_disc_type=disc;
+                    m_used_dialog=dialog;
+                    this->load=true;
+                }
+            }
+        }
+    }
 };
 
 static size_t CleanUpRecentPaths(const std::string &tag,bool (*exists_fn)(const std::string &)) {
@@ -738,6 +795,8 @@ bool BeebWindow::DoMenuUI() {
     if(ImGui::BeginMainMenuBar()) {
         this->DoFileMenu();
         this->DoEditMenu();
+        this->DoHardwareMenu();
+        this->DoKeyboardMenu();
         this->DoToolsMenu();
         this->DoDebugMenu();
         if(!this->DoWindowMenu()) {
@@ -775,7 +834,7 @@ static std::unique_ptr<SettingsUI> CreateDisassemblyDebugWindowN(BeebWindow *bee
 #endif
 
 const BeebWindow::SettingsUIMetadata BeebWindow::ms_settings_uis[]={
-    {BeebWindowPopupType_Keymaps,"Keyboard Layout","toggle_keyboard_layout",&CreateKeymapsUI},
+    {BeebWindowPopupType_Keymaps,"Keyboard Layouts","toggle_keyboard_layout",&CreateKeymapsUI},
     {BeebWindowPopupType_CommandKeymaps,"Command Keys","toggle_command_keymaps",&CreateCommandKeymapsUI},
     {BeebWindowPopupType_Options,"Options","toggle_emulator_options",&BeebWindow::CreateOptionsUI},
     {BeebWindowPopupType_Messages,"Messages","toggle_messages",&CreateMessagesUI},
@@ -1175,34 +1234,8 @@ void BeebWindow::DoFileMenu() {
     if(ImGui::BeginMenu("File")) {
         m_cc.DoMenuItemUI("hard_reset");
 
-        if(ImGui::BeginMenu("Change config")) {
-            for(size_t config_idx=0;config_idx<BeebWindows::GetNumConfigs();++config_idx) {
-                BeebConfig *config=BeebWindows::GetConfigByIndex(config_idx);
-
-                if(ImGui::MenuItem(config->name.c_str())) {
-                    this->HardReset(*config);
-                }
-            }
-
-            ImGui::EndMenu();
-        }
-
-        ImGui::Separator();
-
-        if(ImGui::BeginMenu("Keymap")) {
-            for(size_t i=0;i<BeebWindows::GetNumBeebKeymaps();++i) {
-                BeebKeymap *keymap=BeebWindows::GetBeebKeymapByIndex(i);
-
-                if(ImGui::MenuItem(GetKeymapUIName(*keymap).c_str(),
-                                   nullptr,
-                                   m_settings.keymap==keymap))
-                {
-                    m_settings.keymap=keymap;
-                    m_prefer_shortcuts=m_settings.keymap->GetPreferShortcuts();
-                    m_msg.i.f("Keymap: %s\n",m_settings.keymap->GetName().c_str());
-                    this->ShowPrioritizeCommandShortcutsStatus();
-                }
-            }
+        if(ImGui::BeginMenu("Run")) {
+            this->DoDiscImageSubMenu(0,true);
 
             ImGui::EndMenu();
         }
@@ -1210,107 +1243,26 @@ void BeebWindow::DoFileMenu() {
         ImGui::Separator();
 
         for(int drive=0;drive<NUM_DRIVES;++drive) {
-            DriveState *d=&m_drives[drive];
-
             char title[100];
             snprintf(title,sizeof title,"Drive %d",drive);
 
+            std::unique_lock<Mutex> d_lock;
+            std::shared_ptr<const DiscImage> disc_image=m_beeb_thread->GetDiscImage(&d_lock,drive);
+
             if(ImGui::BeginMenu(title)) {
-                std::string name,load_method;
-                std::unique_lock<Mutex> d_lock;
-                std::shared_ptr<const DiscImage> disc_image=m_beeb_thread->GetDiscImage(&d_lock,drive);
-
-                if(!!disc_image) {
-                    name=disc_image->GetName();
-                    ImGui::MenuItem(name.empty()?"(no name)":name.c_str(),nullptr,false,false);
-
-                    std::string desc=disc_image->GetDescription();
-                    if(!desc.empty()) {
-                        ImGui::MenuItem(("Info: "+desc).c_str(),nullptr,false,false);
-                    }
-
-                    std::string hash=disc_image->GetHash();
-                    if(!hash.empty()) {
-                        ImGui::MenuItem(("SHA1: "+hash).c_str(),nullptr,false,false);
-                    }
-
-                    load_method=disc_image->GetLoadMethod();
-                    ImGui::MenuItem(("Loaded from: "+load_method).c_str(),nullptr,false,false);
-
-                    if(ImGui::BeginMenu("Eject")) {
-                        if(ImGui::MenuItem("Confirm")) {
-                            m_beeb_thread->Send(std::make_shared<BeebThread::EjectDiscMessage>(drive));
-                        }
-                        ImGui::EndMenu();
-                    }
-
-                } else {
-                    ImGui::MenuItem("(empty)",NULL,false,false);
-                }
-
-                if(!name.empty()) {
-                    if(ImGui::MenuItem("Copy path to clipboard")) {
-                        SDL_SetClipboardText(name.c_str());
-                    }
-                }
-
-                ImGui::Separator();
-
-                FileMenuItem file_item(&d->open_disc_image_file_dialog,"Disc image...","Recent disc image");
-                if(file_item.selected) {
-                    std::shared_ptr<MemoryDiscImage> new_disc_image=MemoryDiscImage::LoadFromFile(file_item.path,
-                                                                                                  &m_msg);
-                    if(!!new_disc_image) {
-                        m_beeb_thread->Send(std::make_shared<BeebThread::LoadDiscMessage>(drive,
-                                                                                          std::move(new_disc_image),
-                                                                                          true));
-                        file_item.Success();
-                    }
-                }
-
-                FileMenuItem direct_item(&d->open_direct_disc_image_file_dialog,
-                                         "Direct disc image...",
-                                         "Recent direct disc image");
-                if(direct_item.selected) {
-                    std::shared_ptr<DirectDiscImage> new_disc_image=DirectDiscImage::CreateForFile(direct_item.path,
-                                                                                                   &m_msg);
-                    if(!!new_disc_image) {
-                        m_beeb_thread->Send(std::make_shared<BeebThread::LoadDiscMessage>(drive,
-                                                                                          std::move(new_disc_image),
-                                                                                          true));
-                        direct_item.Success();
-                    }
-                }
-
-                if(!!disc_image) {
-                    ImGui::Separator();
-
-                    if(disc_image->CanSave()) {
-                        if(ImGui::MenuItem("Save")) {
-                            disc_image->SaveToFile(disc_image->GetName(),&m_msg);
-                        }
-                    }
-
-                    if(ImGui::MenuItem("Save copy as...")) {
-                        SaveFileDialog fd(RECENT_PATHS_DISC_IMAGE);
-
-                        disc_image->AddFileDialogFilter(&fd);
-                        fd.AddAllFilesFilter();
-
-                        std::string path;
-                        if(fd.Open(&path)) {
-                            if(disc_image->SaveToFile(path,&m_msg)) {
-                                fd.AddLastPathToRecentPaths();
-                            }
-                        }
-                    }
-                }
+                this->DoDiscDriveSubMenu(drive,disc_image);
 
                 ImGui::EndMenu();
             }
-        }
 
-        ImGui::Separator();
+            if(!!disc_image) {
+                std::string name=disc_image->GetName();
+                name=PathGetName(name);
+                ImGui::MenuItem(name.c_str(),nullptr,false,false);
+            }
+
+            ImGui::Separator();
+        }
 
         m_cc.DoMenuItemUI("save_default_nvram");
 
@@ -1329,6 +1281,169 @@ void BeebWindow::DoFileMenu() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+void BeebWindow::DoDiscDriveSubMenu(int drive,
+                                    const std::shared_ptr<const DiscImage> &disc_image)
+{
+    std::string name,load_method;
+
+    if(!!disc_image) {
+        std::string name=disc_image->GetName();
+        if(!name.empty()) {
+            if(ImGui::BeginMenu("Full path")) {
+                ImGui::MenuItem(name.c_str(),nullptr,false,false);
+
+                if(ImGui::MenuItem("Copy path to clipboard")) {
+                    SDL_SetClipboardText(name.c_str());
+                }
+
+                ImGui::EndMenu();
+            }
+        }
+
+        std::string desc=disc_image->GetDescription();
+        if(!desc.empty()) {
+            ImGui::MenuItem(("Info: "+desc).c_str(),nullptr,false,false);
+        }
+
+        std::string hash=disc_image->GetHash();
+        if(!hash.empty()) {
+            ImGui::MenuItem(("SHA1: "+hash).c_str(),nullptr,false,false);
+        }
+
+        load_method=disc_image->GetLoadMethod();
+        ImGui::MenuItem(("Loaded from: "+load_method).c_str(),nullptr,false,false);
+
+        bool disc_protected=disc_image->IsWriteProtected();
+
+        if(disc_protected) {
+            // Write protection state is shown, but can't be changed.
+            ImGui::MenuItem("Write protect",nullptr,&disc_protected,false);
+        } else {
+            bool drive_protected=m_beeb_thread->IsDriveWriteProtected(drive);
+            if(ImGui::MenuItem("Write protect",nullptr,&drive_protected)) {
+                m_beeb_thread->Send(std::make_shared<BeebThread::SetDriveWriteProtectedMessage>(drive,drive_protected));
+            }
+        }
+
+        if(ImGui::BeginMenu("Eject")) {
+            if(ImGui::MenuItem("Confirm")) {
+                m_beeb_thread->Send(std::make_shared<BeebThread::EjectDiscMessage>(drive));
+            }
+            ImGui::EndMenu();
+        }
+
+    } else {
+        ImGui::MenuItem("(empty)",NULL,false,false);
+    }
+
+    ImGui::Separator();
+
+    this->DoDiscImageSubMenu(drive,false);
+
+    if(!!disc_image) {
+        ImGui::Separator();
+
+        if(disc_image->CanSave()) {
+            if(ImGui::MenuItem("Save")) {
+                disc_image->SaveToFile(disc_image->GetName(),&m_msg);
+            }
+        }
+
+        if(ImGui::MenuItem("Save copy as...")) {
+            SaveFileDialog fd(RECENT_PATHS_DISC_IMAGE);
+
+            disc_image->AddFileDialogFilter(&fd);
+            fd.AddAllFilesFilter();
+
+            std::string path;
+            if(fd.Open(&path)) {
+                if(disc_image->SaveToFile(path,&m_msg)) {
+                    fd.AddLastPathToRecentPaths();
+                }
+            }
+        }
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BeebWindow::DoDiscImageSubMenu(int drive,bool boot) {
+    ASSERT(drive>=0&&drive<NUM_DRIVES);
+    DriveState *d=&m_drives[drive];
+
+    FileMenuItem file_item(&d->new_disc_image_file_dialog,
+                           &d->open_disc_image_file_dialog,
+                           "New disc image",
+                           "Disc image...",
+                           "Recent disc image",
+                           &m_msg);
+    if(file_item.load) {
+        std::shared_ptr<MemoryDiscImage> new_disc_image;
+        if(file_item.new_disc_type) {
+            new_disc_image=MemoryDiscImage::LoadFromBuffer(file_item.path,
+                                                           MemoryDiscImage::LOAD_METHOD_FILE,
+                                                           file_item.new_disc_data.data(),
+                                                           file_item.new_disc_data.size(),
+                                                           *file_item.new_disc_type->geometry,
+                                                           &m_msg);
+        } else {
+            new_disc_image=MemoryDiscImage::LoadFromFile(file_item.path,
+                                                         &m_msg);
+        }
+        this->DoDiscImageSubMenuItem(drive,
+                                     std::move(new_disc_image),
+                                     &file_item,boot);
+    }
+
+    FileMenuItem direct_item(&d->new_direct_disc_image_file_dialog,
+                             &d->open_direct_disc_image_file_dialog,
+                             "New direct disc image",
+                             "Direct disc image...",
+                             "Recent direct disc image",
+                             &m_msg);
+    if(direct_item.load) {
+        if(direct_item.new_disc_type) {
+            if(!SaveFile(direct_item.new_disc_data,
+                         direct_item.path,
+                         &m_msg))
+            {
+                return;
+            }
+        }
+
+        std::shared_ptr<DirectDiscImage> new_disc_image=DirectDiscImage::CreateForFile(direct_item.path,&m_msg);
+
+        this->DoDiscImageSubMenuItem(drive,
+                                     std::move(new_disc_image),
+                                     &direct_item,boot);
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BeebWindow::DoDiscImageSubMenuItem(int drive,
+                                        std::shared_ptr<DiscImage> disc_image,
+                                        FileMenuItem *item,
+                                        bool boot)
+{
+    if(!!disc_image) {
+        m_beeb_thread->Send(std::make_shared<BeebThread::LoadDiscMessage>(drive,
+                                                                          std::move(disc_image),
+                                                                          true));
+        if(boot) {
+            m_beeb_thread->Send(std::make_shared<BeebThread::HardResetAndReloadConfigMessage>(BeebThreadHardResetFlag_Boot|
+                                                                                              BeebThreadHardResetFlag_Run));
+        }
+
+        item->Success();
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 void BeebWindow::DoEditMenu() {
     if(ImGui::BeginMenu("Edit")) {
         m_cc.DoMenuItemUI("toggle_copy_oswrch_text");
@@ -1338,9 +1453,60 @@ void BeebWindow::DoEditMenu() {
         m_cc.DoMenuItemUI("paste");
         m_cc.DoMenuItemUI("paste_return");
 
+        ImGui::EndMenu();
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BeebWindow::DoHardwareMenu() {
+    if(ImGui::BeginMenu("Hardware")) {
+        m_cc.DoMenuItemUI("toggle_configurations");
+
+        ImGui::Separator();
+
+        std::string config_name=this->GetConfigName();
+
+        for(size_t config_idx=0;config_idx<BeebWindows::GetNumConfigs();++config_idx) {
+            BeebConfig *config=BeebWindows::GetConfigByIndex(config_idx);
+
+            if(ImGui::MenuItem(config->name.c_str(),nullptr,config->name==config_name)) {
+                this->HardReset(*config);
+            }
+        }
+
+        ImGui::EndMenu();
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BeebWindow::DoKeyboardMenu() {
+    if(ImGui::BeginMenu("Keyboard")) {
+        m_cc.DoMenuItemUI("toggle_keyboard_layout");
+        m_cc.DoMenuItemUI("toggle_command_keymaps");
+
         ImGui::Separator();
 
         m_cc.DoMenuItemUI("toggle_prioritize_shortcuts");
+
+        ImGui::Separator();
+
+        for(size_t i=0;i<BeebWindows::GetNumBeebKeymaps();++i) {
+            BeebKeymap *keymap=BeebWindows::GetBeebKeymapByIndex(i);
+
+            if(ImGui::MenuItem(GetKeymapUIName(*keymap).c_str(),
+                               nullptr,
+                               m_settings.keymap==keymap))
+            {
+                m_settings.keymap=keymap;
+                m_prefer_shortcuts=m_settings.keymap->GetPreferShortcuts();
+                m_msg.i.f("Keymap: %s\n",m_settings.keymap->GetName().c_str());
+                this->ShowPrioritizeCommandShortcutsStatus();
+            }
+        }
 
         ImGui::EndMenu();
     }
@@ -1352,12 +1518,9 @@ void BeebWindow::DoEditMenu() {
 void BeebWindow::DoToolsMenu() {
     if(ImGui::BeginMenu("Tools")) {
         m_cc.DoMenuItemUI("toggle_emulator_options");
-        m_cc.DoMenuItemUI("toggle_keyboard_layout");
-        m_cc.DoMenuItemUI("toggle_command_keymaps");
         m_cc.DoMenuItemUI("toggle_messages");
         m_cc.DoMenuItemUI("toggle_timeline");
         m_cc.DoMenuItemUI("toggle_saved_states");
-        m_cc.DoMenuItemUI("toggle_configurations");
         m_cc.DoMenuItemUI("toggle_beeblink_options");
 
         // if(ImGui::MenuItem("Dump states")) {
@@ -2881,71 +3044,72 @@ bool BeebWindow::IsPrioritizeCommandShortcutsTicked() const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-ObjectCommandTable<BeebWindow> BeebWindow::ms_command_table("Beeb Window",{
-    {{"hard_reset","Hard Reset"},&BeebWindow::HardReset},
-    //    {{"load_last_state","Load Last State"},&BeebWindow::LoadLastState,nullptr,&BeebWindow::IsLoadLastStateEnabled},
-    {{"save_state","Save State"},&BeebWindow::SaveState,nullptr,&BeebWindow::SaveStateIsEnabled},
-    GetTogglePopupCommand<BeebWindowPopupType_Options>(),
-    GetTogglePopupCommand<BeebWindowPopupType_Keymaps>(),
-    GetTogglePopupCommand<BeebWindowPopupType_Timeline>(),
-    GetTogglePopupCommand<BeebWindowPopupType_SavedStates>(),
-    GetTogglePopupCommand<BeebWindowPopupType_Messages>(),
-    GetTogglePopupCommand<BeebWindowPopupType_Configs>(),
+ObjectCommandTable<BeebWindow>BeebWindow::ms_command_table
+("Beeb Window",{
+ {{"hard_reset","Hard Reset"},&BeebWindow::HardReset},
+ //    {{"load_last_state","Load Last State"},&BeebWindow::LoadLastState,nullptr,&BeebWindow::IsLoadLastStateEnabled},
+ {{"save_state","Save State"},&BeebWindow::SaveState,nullptr,&BeebWindow::SaveStateIsEnabled},
+ GetTogglePopupCommand<BeebWindowPopupType_Options>(),
+ GetTogglePopupCommand<BeebWindowPopupType_Keymaps>(),
+ GetTogglePopupCommand<BeebWindowPopupType_Timeline>(),
+ GetTogglePopupCommand<BeebWindowPopupType_SavedStates>(),
+ GetTogglePopupCommand<BeebWindowPopupType_Messages>(),
+ GetTogglePopupCommand<BeebWindowPopupType_Configs>(),
 #if BBCMICRO_TRACE
-    GetTogglePopupCommand<BeebWindowPopupType_Trace>(),
+ GetTogglePopupCommand<BeebWindowPopupType_Trace>(),
 #endif
-    GetTogglePopupCommand<BeebWindowPopupType_AudioCallback>(),
-    GetTogglePopupCommand<BeebWindowPopupType_CommandContextStack>(),
-    GetTogglePopupCommand<BeebWindowPopupType_CommandKeymaps>(),
-    {CommandDef("exit","Exit").MustConfirm(),&BeebWindow::Exit},
-    {CommandDef("clean_up_recent_files_lists","Clean up recent files lists").MustConfirm(),&BeebWindow::CleanUpRecentFilesLists},
-    {CommandDef("reset_dock_windows","Reset dock windows").MustConfirm(),&BeebWindow::ResetDockWindows},
+ GetTogglePopupCommand<BeebWindowPopupType_AudioCallback>(),
+ GetTogglePopupCommand<BeebWindowPopupType_CommandContextStack>(),
+ GetTogglePopupCommand<BeebWindowPopupType_CommandKeymaps>(),
+ {CommandDef("exit","Exit").MustConfirm(),&BeebWindow::Exit},
+ {CommandDef("clean_up_recent_files_lists","Clean up recent files lists").MustConfirm(),&BeebWindow::CleanUpRecentFilesLists},
+ {CommandDef("reset_dock_windows","Reset dock windows").MustConfirm(),&BeebWindow::ResetDockWindows},
 #if SYSTEM_WINDOWS
-    {{"clear_console","Clear Win32 console"},&BeebWindow::ClearConsole},
+ {{"clear_console","Clear Win32 console"},&BeebWindow::ClearConsole},
 #endif
-    {{"print_separator","Print stdout separator"},&BeebWindow::PrintSeparator},
-    {{"paste","OSRDCH Paste"},&BeebWindow::Paste,&BeebWindow::IsPasteTicked},
-    {{"paste_return","OSRDCH Paste (+Return)"},&BeebWindow::PasteThenReturn,&BeebWindow::IsPasteTicked},
-    {{"toggle_copy_oswrch_text","OSWRCH Copy Text"},&BeebWindow::CopyOSWRCH<true>,&BeebWindow::IsCopyOSWRCHTicked},
-    {{"copy_basic","Copy BASIC listing"},&BeebWindow::CopyBASIC,&BeebWindow::IsCopyOSWRCHTicked,&BeebWindow::IsCopyBASICEnabled},
+ {{"print_separator","Print stdout separator"},&BeebWindow::PrintSeparator},
+ {{"paste","OSRDCH Paste"},&BeebWindow::Paste,&BeebWindow::IsPasteTicked},
+ {{"paste_return","OSRDCH Paste (+Return)"},&BeebWindow::PasteThenReturn,&BeebWindow::IsPasteTicked},
+ {{"toggle_copy_oswrch_text","OSWRCH Copy Text"},&BeebWindow::CopyOSWRCH<true>,&BeebWindow::IsCopyOSWRCHTicked},
+ {{"copy_basic","Copy BASIC listing"},&BeebWindow::CopyBASIC,&BeebWindow::IsCopyOSWRCHTicked,&BeebWindow::IsCopyBASICEnabled},
 #if VIDEO_TRACK_METADATA
-    GetTogglePopupCommand<BeebWindowPopupType_PixelMetadata>(),
+ GetTogglePopupCommand<BeebWindowPopupType_PixelMetadata>(),
 #endif
 #if ENABLE_IMGUI_TEST
-    GetTogglePopupCommand<BeebWindowPopupType_DearImguiTest>(),
+ GetTogglePopupCommand<BeebWindowPopupType_DearImguiTest>(),
 #endif
 #if BBCMICRO_DEBUGGER
-    GetTogglePopupCommand<BeebWindowPopupType_6502Debugger>(),
-    GetTogglePopupCommand<BeebWindowPopupType_MemoryDebugger1>(),
-    GetTogglePopupCommand<BeebWindowPopupType_MemoryDebugger2>(),
-    GetTogglePopupCommand<BeebWindowPopupType_MemoryDebugger3>(),
-    GetTogglePopupCommand<BeebWindowPopupType_MemoryDebugger4>(),
-    GetTogglePopupCommand<BeebWindowPopupType_ExtMemoryDebugger1>(),
-    GetTogglePopupCommand<BeebWindowPopupType_ExtMemoryDebugger2>(),
-    GetTogglePopupCommand<BeebWindowPopupType_ExtMemoryDebugger3>(),
-    GetTogglePopupCommand<BeebWindowPopupType_ExtMemoryDebugger4>(),
-    GetTogglePopupCommand<BeebWindowPopupType_DisassemblyDebugger1>(),
-    GetTogglePopupCommand<BeebWindowPopupType_DisassemblyDebugger2>(),
-    GetTogglePopupCommand<BeebWindowPopupType_DisassemblyDebugger3>(),
-    GetTogglePopupCommand<BeebWindowPopupType_DisassemblyDebugger4>(),
-    GetTogglePopupCommand<BeebWindowPopupType_CRTCDebugger>(),
-    GetTogglePopupCommand<BeebWindowPopupType_VideoULADebugger>(),
-    GetTogglePopupCommand<BeebWindowPopupType_SystemVIADebugger>(),
-    GetTogglePopupCommand<BeebWindowPopupType_UserVIADebugger>(),
-    GetTogglePopupCommand<BeebWindowPopupType_NVRAMDebugger>(),
-    GetTogglePopupCommand<BeebWindowPopupType_BeebLink>(),
-    GetTogglePopupCommand<BeebWindowPopupType_SN76489Debugger>(),
-    GetTogglePopupCommand<BeebWindowPopupType_PagingDebugger>(),
-    GetTogglePopupCommand<BeebWindowPopupType_BreakpointsDebugger>(),
-    GetTogglePopupCommand<BeebWindowPopupType_StackDebugger>(),
+ GetTogglePopupCommand<BeebWindowPopupType_6502Debugger>(),
+ GetTogglePopupCommand<BeebWindowPopupType_MemoryDebugger1>(),
+ GetTogglePopupCommand<BeebWindowPopupType_MemoryDebugger2>(),
+ GetTogglePopupCommand<BeebWindowPopupType_MemoryDebugger3>(),
+ GetTogglePopupCommand<BeebWindowPopupType_MemoryDebugger4>(),
+ GetTogglePopupCommand<BeebWindowPopupType_ExtMemoryDebugger1>(),
+ GetTogglePopupCommand<BeebWindowPopupType_ExtMemoryDebugger2>(),
+ GetTogglePopupCommand<BeebWindowPopupType_ExtMemoryDebugger3>(),
+ GetTogglePopupCommand<BeebWindowPopupType_ExtMemoryDebugger4>(),
+ GetTogglePopupCommand<BeebWindowPopupType_DisassemblyDebugger1>(),
+ GetTogglePopupCommand<BeebWindowPopupType_DisassemblyDebugger2>(),
+ GetTogglePopupCommand<BeebWindowPopupType_DisassemblyDebugger3>(),
+ GetTogglePopupCommand<BeebWindowPopupType_DisassemblyDebugger4>(),
+ GetTogglePopupCommand<BeebWindowPopupType_CRTCDebugger>(),
+ GetTogglePopupCommand<BeebWindowPopupType_VideoULADebugger>(),
+ GetTogglePopupCommand<BeebWindowPopupType_SystemVIADebugger>(),
+ GetTogglePopupCommand<BeebWindowPopupType_UserVIADebugger>(),
+ GetTogglePopupCommand<BeebWindowPopupType_NVRAMDebugger>(),
+ GetTogglePopupCommand<BeebWindowPopupType_BeebLink>(),
+ GetTogglePopupCommand<BeebWindowPopupType_SN76489Debugger>(),
+ GetTogglePopupCommand<BeebWindowPopupType_PagingDebugger>(),
+ GetTogglePopupCommand<BeebWindowPopupType_BreakpointsDebugger>(),
+ GetTogglePopupCommand<BeebWindowPopupType_StackDebugger>(),
 
-    {CommandDef("debug_stop","Stop").Shortcut(SDLK_F5|PCKeyModifier_Shift),&BeebWindow::DebugStop,nullptr,&BeebWindow::DebugIsStopEnabled},
-    {CommandDef("debug_run","Run").Shortcut(SDLK_F5),&BeebWindow::DebugRun,nullptr,&BeebWindow::DebugIsRunEnabled},
-    {CommandDef("debug_step_over","Step Over").Shortcut(SDLK_F10),&BeebWindow::DebugStepOver,nullptr,&BeebWindow::DebugIsRunEnabled},
-    {CommandDef("debug_step_in","Step In").Shortcut(SDLK_F11),&BeebWindow::DebugStepIn,nullptr,&BeebWindow::DebugIsRunEnabled},
+ {CommandDef("debug_stop","Stop").Shortcut(SDLK_F5|PCKeyModifier_Shift),&BeebWindow::DebugStop,nullptr,&BeebWindow::DebugIsStopEnabled},
+ {CommandDef("debug_run","Run").Shortcut(SDLK_F5),&BeebWindow::DebugRun,nullptr,&BeebWindow::DebugIsRunEnabled},
+ {CommandDef("debug_step_over","Step Over").Shortcut(SDLK_F10),&BeebWindow::DebugStepOver,nullptr,&BeebWindow::DebugIsRunEnabled},
+ {CommandDef("debug_step_in","Step In").Shortcut(SDLK_F11),&BeebWindow::DebugStepIn,nullptr,&BeebWindow::DebugIsRunEnabled},
 #endif
-    {CommandDef("save_default_nvram","Save default NVRAM"),&BeebWindow::SaveDefaultNVRAM,nullptr,&BeebWindow::SaveDefaultNVRAMIsEnabled},
-    {CommandDef("reset_default_nvram","Reset default NVRAM").MustConfirm(),&BeebWindow::ResetDefaultNVRAM,nullptr,&BeebWindow::SaveDefaultNVRAMIsEnabled},
-    {CommandDef("save_config","Save config"),&BeebWindow::SaveConfig},
-    {CommandDef("toggle_prioritize_shortcuts","Prioritize command keys"),&BeebWindow::TogglePrioritizeCommandShortcuts,&BeebWindow::IsPrioritizeCommandShortcutsTicked,nullptr},
-});
+ {CommandDef("save_default_nvram","Save default NVRAM"),&BeebWindow::SaveDefaultNVRAM,nullptr,&BeebWindow::SaveDefaultNVRAMIsEnabled},
+ {CommandDef("reset_default_nvram","Reset default NVRAM").MustConfirm(),&BeebWindow::ResetDefaultNVRAM,nullptr,&BeebWindow::SaveDefaultNVRAMIsEnabled},
+ {CommandDef("save_config","Save config"),&BeebWindow::SaveConfig},
+ {CommandDef("toggle_prioritize_shortcuts","Prioritize command keys"),&BeebWindow::TogglePrioritizeCommandShortcuts,&BeebWindow::IsPrioritizeCommandShortcutsTicked,nullptr},
+ });

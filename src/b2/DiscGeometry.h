@@ -47,6 +47,12 @@ bool operator!=(const DiscGeometry &a,const DiscGeometry &b);
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+extern const DiscGeometry SSD_GEOMETRY;
+extern const DiscGeometry DSD_GEOMETRY;
+extern const DiscGeometry ADM_GEOMETRY;
+extern const DiscGeometry ADL_GEOMETRY;
+extern const DiscGeometry ADS_GEOMETRY;
+
 extern const std::vector<std::string> DISC_IMAGE_EXTENSIONS;
 
 bool FindDiscGeometryFromFileDetails(DiscGeometry *geometry,

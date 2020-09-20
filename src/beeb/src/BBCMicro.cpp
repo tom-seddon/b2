@@ -155,6 +155,7 @@ m_ext_mem(src.m_ext_mem)
     for(int i=0;i<NUM_DRIVES;++i) {
         std::shared_ptr<DiscImage> disc_image=DiscImage::Clone(src.GetDiscImage(i));
         this->SetDiscImage(i,std::move(disc_image));
+        m_is_drive_write_protected[i]=src.m_is_drive_write_protected[i];
     }
 
     this->InitStuff();
@@ -1197,7 +1198,7 @@ bool BBCMicro::Update(VideoDataUnit *video_unit,SoundDataUnit *sound_unit) {
 
     // Update video hardware.
     if(m_state.video_ula.control.bits.fast_6845|phi2_1MHz_trailing_edge) {
-        CRTC::Output output=m_state.crtc.Update(m_state.system_via.b.c2);
+        const CRTC::Output output=m_state.crtc.Update(m_state.system_via.b.c2);
 
         m_state.cursor_pattern>>=1;
 
@@ -1306,6 +1307,7 @@ bool BBCMicro::Update(VideoDataUnit *video_unit,SoundDataUnit *sound_unit) {
 
         video_unit->metadata.flags|=VideoDataUnitMetadataFlag_HasAddress;
         video_unit->metadata.address=m_last_video_access_address;
+        video_unit->metadata.crtc_address=output.address;
 #endif
 
         m_state.crtc_last_output=output;
@@ -1722,12 +1724,35 @@ std::shared_ptr<const DiscImage> BBCMicro::GetDiscImage(int drive) const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void BBCMicro::SetDiscImage(int drive,std::shared_ptr<DiscImage> disc_image) {
+void BBCMicro::SetDiscImage(int drive,
+                            std::shared_ptr<DiscImage> disc_image)
+{
     if(drive<0||drive>=NUM_DRIVES) {
         return;
     }
 
     m_disc_images[drive]=std::move(disc_image);
+    m_is_drive_write_protected[drive]=false;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BBCMicro::SetDriveWriteProtected(int drive,
+                            bool is_write_protected)
+{
+    ASSERT(drive>=0&&drive<NUM_DRIVES);
+
+    m_is_drive_write_protected[drive]=is_write_protected;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool BBCMicro::IsDriveWriteProtected(int drive) const {
+    ASSERT(drive>=0&&drive<NUM_DRIVES);
+
+    return m_is_drive_write_protected[drive];
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -2666,6 +2691,10 @@ bool BBCMicro::IsWriteProtected() {
     if(this->GetDiscDrive()) {
         if(m_disc_images[m_state.disc_control.drive]) {
             if(m_disc_images[m_state.disc_control.drive]->IsWriteProtected()) {
+                return true;
+            }
+
+            if(m_is_drive_write_protected[m_state.disc_control.drive]) {
                 return true;
             }
         }

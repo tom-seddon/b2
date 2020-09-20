@@ -64,6 +64,7 @@ struct VideoDataUnitMetadata {
     uint8_t flags=0;//combination of VideoDataUnitMetadataFlag
     uint8_t value=0;
     uint16_t address={};
+    uint16_t crtc_address={};
 };
 #endif
 

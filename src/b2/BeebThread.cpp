@@ -715,6 +715,29 @@ void BeebThread::EjectDiscMessage::ThreadHandle(BeebThread *beeb_thread,
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+BeebThread::SetDriveWriteProtectedMessage::SetDriveWriteProtectedMessage(int drive,
+                                                                         bool is_write_protected):
+m_drive(drive),
+m_is_write_protected(is_write_protected)
+{
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BeebThread::SetDriveWriteProtectedMessage::ThreadHandle(BeebThread *beeb_thread,
+                                                             ThreadState *ts) const
+{
+    ASSERT(m_drive>=0&&m_drive<NUM_DRIVES);
+
+    ts->beeb->SetDriveWriteProtected(m_drive,m_is_write_protected);
+    beeb_thread->m_is_drive_write_protected[m_drive].store(m_is_write_protected,
+                                                           std::memory_order_release);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 BeebThread::BeebStateMessage::BeebStateMessage(std::shared_ptr<const BeebState> state,
                                                bool user_initiated):
     m_state(std::move(state)),
@@ -2162,6 +2185,15 @@ size_t BeebThread::GetNumTimelineBeebStateEvents() const {
     std::lock_guard<Mutex> lock(m_mutex);
 
     return m_timeline_beeb_state_events_copy.size();
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool BeebThread::IsDriveWriteProtected(int drive) const {
+    ASSERT(drive>=0&&drive<NUM_DRIVES);
+
+    return m_is_drive_write_protected[drive].load(std::memory_order_acquire);
 }
 
 //////////////////////////////////////////////////////////////////////////
