@@ -33,7 +33,7 @@ public:
         // not too concerned about overflow here.
         int num_states=(int)BeebWindows::GetNumSavedStates();
 
-        bool can_load=timeline_state.state==BeebThreadTimelineState_None;
+        bool can_load=timeline_state.mode==BeebThreadTimelineMode_None;
 
         // Buttons
         // Name

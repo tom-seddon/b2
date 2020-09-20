@@ -828,9 +828,8 @@ public:
         std::vector<uint8_t> m_data;
     };
 
-    // there's probably a few too many things called 'TimelineState' now...
     struct TimelineState {
-        BeebThreadTimelineState state=BeebThreadTimelineState_None;
+        BeebThreadTimelineMode mode=BeebThreadTimelineMode_None;
         uint64_t begin_2MHz_cycles=0;
         uint64_t end_2MHz_cycles=0;
         uint64_t current_2MHz_cycles=0;

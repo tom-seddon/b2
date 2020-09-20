@@ -1106,7 +1106,7 @@ void BeebWindow::DoPopupUI(uint64_t now,int output_width,int output_height) {
     bool copying=m_beeb_thread->IsCopying();
     if(ValueChanged(&m_leds,m_beeb_thread->GetLEDs())||
         (m_leds&BBCMicroLEDFlags_AllDrives)||
-       timeline_state.state!=BeebThreadTimelineState_None||
+       timeline_state.mode!=BeebThreadTimelineMode_None||
        copying||
        pasting)
     {
@@ -1138,12 +1138,12 @@ void BeebWindow::DoPopupUI(uint64_t now,int output_width,int output_height) {
 
             colour_pusher.Push(ImGuiCol_CheckMark,ImVec4(0.f,1.f,0.f,1.f));
 
-            switch(timeline_state.state) {
-            case BeebThreadTimelineState_None:
+            switch(timeline_state.mode) {
+            case BeebThreadTimelineMode_None:
                 ImGuiLED(false,"Replay");
                 break;
 
-            case BeebThreadTimelineState_Replay:
+            case BeebThreadTimelineMode_Replay:
                 ImGuiLED(true,"Replay");
                 ImGui::SameLine();
                 if(ImGui::Button("Stop")) {
@@ -1151,7 +1151,7 @@ void BeebWindow::DoPopupUI(uint64_t now,int output_width,int output_height) {
                 }
                 break;
 
-            case BeebThreadTimelineState_Record:
+            case BeebThreadTimelineMode_Record:
                 colour_pusher.Push(ImGuiCol_CheckMark,ImVec4(1.f,0.f,0.f,1.f));
                 ImGuiLED(true,"Record");
                 ImGui::SameLine();

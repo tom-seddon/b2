@@ -43,7 +43,7 @@ public:
         ASSERT(timeline_state.end_2MHz_cycles>=timeline_state.begin_2MHz_cycles);
         const uint64_t timeline_duration=timeline_state.end_2MHz_cycles-timeline_state.begin_2MHz_cycles;
 
-        ImGui::Text("Timeline State: %s",GetBeebThreadTimelineStateEnumName(timeline_state.state));
+        ImGui::Text("Timeline Mode: %s",GetBeebThreadTimelineModeEnumName(timeline_state.mode));
 
         ImGui::Checkbox("Follow new events",&m_follow);
 
@@ -51,11 +51,11 @@ public:
         //
         // https://fontawesome.com/icons?d=gallery
 
-        switch(timeline_state.state) {
+        switch(timeline_state.mode) {
         default:
             ASSERT(false);
             // fall through
-        case BeebThreadTimelineState_None:
+        case BeebThreadTimelineMode_None:
             {
                 ASSERT(timeline_state.end_2MHz_cycles>=timeline_state.begin_2MHz_cycles);
                 uint64_t duration=timeline_state.end_2MHz_cycles-timeline_state.begin_2MHz_cycles;
@@ -81,7 +81,7 @@ public:
             }
             break;
 
-        case BeebThreadTimelineState_Replay:
+        case BeebThreadTimelineMode_Replay:
             {
                 // Stop
                 if(ImGui::Button("Stop")) {
@@ -93,7 +93,7 @@ public:
             }
             break;
 
-        case BeebThreadTimelineState_Record:
+        case BeebThreadTimelineMode_Record:
             {
                 // Stop
                 if(ImGui::Button("Stop")) {
@@ -103,13 +103,13 @@ public:
             break;
         }
 
-        switch(timeline_state.state) {
+        switch(timeline_state.mode) {
         default:
             ASSERT(false);
             // fall through
-        case BeebThreadTimelineState_None:
+        case BeebThreadTimelineMode_None:
             // fall through
-        case BeebThreadTimelineState_Record:
+        case BeebThreadTimelineMode_Record:
             {
                 if(timeline_duration==0) {
                     ImGui::Text("No recording.");
@@ -121,7 +121,7 @@ public:
             }
             break;
 
-        case BeebThreadTimelineState_Replay:
+        case BeebThreadTimelineMode_Replay:
             break;
         }
 
@@ -163,7 +163,7 @@ public:
         ImVec2 timeline_size(0,timeline_state.num_beeb_state_events*CELL_HEIGHT);
 
         if(m_follow) {
-            if(timeline_state.state==BeebThreadTimelineState_Record) {
+            if(timeline_state.mode==BeebThreadTimelineMode_Record) {
                 size_t num_beeb_state_events=beeb_thread->GetNumTimelineBeebStateEvents();
                 if(m_old_num_beeb_state_events!=num_beeb_state_events) {
                     ImGui::SetScrollY(timeline_size.y);

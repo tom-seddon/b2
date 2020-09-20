@@ -126,7 +126,7 @@ struct BeebThread::ThreadState {
     bool boot=false;
     BeebShiftState fake_shift_state=BeebShiftState_Any;
 
-    BeebThreadTimelineState timeline_state=BeebThreadTimelineState_None;
+    BeebThreadTimelineMode timeline_mode=BeebThreadTimelineMode_None;
 
     // The timeline end event's message pointer is always null.
     TimelineEvent timeline_end_event={};
@@ -269,7 +269,7 @@ bool BeebThread::Message::PrepareUnlessReplaying(std::shared_ptr<Message> *ptr,
 {
     (void)ptr,(void)beeb_thread;
 
-    if(ts->timeline_state==BeebThreadTimelineState_Replay) {
+    if(ts->timeline_mode==BeebThreadTimelineMode_Replay) {
         CallCompletionFun(completion_fun,false,"not valid while replaying");
         return false;
     }
@@ -420,7 +420,7 @@ void BeebThread::HardResetMessage::HardReset(BeebThread *beeb_thread,
         replace_flags|=BeebThreadReplaceFlag_Autoboot;
     }
 
-    if(ts->timeline_state!=BeebThreadTimelineState_Replay) {
+    if(ts->timeline_mode!=BeebThreadTimelineMode_Replay) {
         replace_flags|=BeebThreadReplaceFlag_ResetKeyState;
     }
 
@@ -662,7 +662,7 @@ bool BeebThread::LoadDiscMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
         // OK - can record this message as-is.
     } else {
         // Not recordable.
-        if(ts->timeline_state==BeebThreadTimelineState_Record) {
+        if(ts->timeline_mode==BeebThreadTimelineMode_Record) {
             ts->msgs.e.f("Can't load this type of disc image while recording\n");
             ts->msgs.i.f("(%s: %s)\n",
                          m_disc_image->GetLoadMethod().c_str(),
@@ -671,7 +671,7 @@ bool BeebThread::LoadDiscMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
             return false;
         }
 
-        ASSERT(ts->timeline_state==BeebThreadTimelineState_None);
+        ASSERT(ts->timeline_mode==BeebThreadTimelineMode_None);
 
         // This doesn't move the disc image pointer, because it can't.
         //
@@ -783,7 +783,7 @@ bool BeebThread::LoadStateMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
         return false;
     }
 
-    if(ts->timeline_state==BeebThreadTimelineState_Record) {
+    if(ts->timeline_mode==BeebThreadTimelineMode_Record) {
         return false;
     }
 
@@ -820,7 +820,7 @@ bool BeebThread::LoadTimelineStateMessage::ThreadPrepare(std::shared_ptr<Message
         return false;
     }
 
-    if(ts->timeline_state==BeebThreadTimelineState_Record) {
+    if(ts->timeline_mode==BeebThreadTimelineMode_Record) {
         beeb_thread->ThreadTruncateTimeline(ts,this->GetBeebState());
     }
 
@@ -916,7 +916,7 @@ bool BeebThread::StartReplayMessage::ThreadPrepare(std::shared_ptr<Message> *ptr
 {
     (void)ptr,(void)completion_fun;
 
-    if(ts->timeline_state==BeebThreadTimelineState_Record) {
+    if(ts->timeline_mode==BeebThreadTimelineMode_Record) {
         // Not valid in record mode.
         return false;
     }
@@ -929,7 +929,7 @@ bool BeebThread::StartReplayMessage::ThreadPrepare(std::shared_ptr<Message> *ptr
         return false;
     }
 
-    if(ts->timeline_state==BeebThreadTimelineState_None) {
+    if(ts->timeline_mode==BeebThreadTimelineMode_None) {
         if(ts->beeb) {
             // TODO - how to get the TVOutput here? Don't remember what I had
             // planned originally...
@@ -937,7 +937,7 @@ bool BeebThread::StartReplayMessage::ThreadPrepare(std::shared_ptr<Message> *ptr
         }
     }
 
-    ts->timeline_state=BeebThreadTimelineState_Replay;
+    ts->timeline_mode=BeebThreadTimelineMode_Replay;
     ts->timeline_replay_list_index=index;
     ts->timeline_replay_list_event_index=~(size_t)0;
     beeb_thread->ThreadNextReplayEvent(ts);
@@ -966,7 +966,7 @@ bool BeebThread::StopReplayMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
 {
     (void)ptr,(void)completion_fun;
 
-    if(ts->timeline_state!=BeebThreadTimelineState_Replay) {
+    if(ts->timeline_mode!=BeebThreadTimelineMode_Replay) {
         return false;
     }
 
@@ -987,7 +987,7 @@ bool BeebThread::StartRecordingMessage::ThreadPrepare(std::shared_ptr<Message> *
         return false;
     }
 
-    if(ts->timeline_state!=BeebThreadTimelineState_None) {
+    if(ts->timeline_mode!=BeebThreadTimelineMode_None) {
         return false;
     }
 
@@ -999,7 +999,7 @@ bool BeebThread::StartRecordingMessage::ThreadPrepare(std::shared_ptr<Message> *
 
     beeb_thread->ThreadClearRecording(ts);
 
-    ts->timeline_state=BeebThreadTimelineState_Record;
+    ts->timeline_mode=BeebThreadTimelineMode_Record;
 
     bool good_save_state=beeb_thread->ThreadRecordSaveState(ts,true);
     (void)good_save_state;
@@ -1620,7 +1620,7 @@ bool BeebThread::BeebLinkResponseMessage::ThreadPrepare(std::shared_ptr<Message>
 {
     (void)completion_fun,(void)beeb_thread;
 
-    if(ts->timeline_state!=BeebThreadTimelineState_None) {
+    if(ts->timeline_mode!=BeebThreadTimelineMode_None) {
         return false;
     }
 
@@ -2801,7 +2801,7 @@ void BeebThread::ThreadMain(void) {
 
                     Message::CallCompletionFun(&m.completion_fun,true,nullptr);
 
-                    if(ts.timeline_state==BeebThreadTimelineState_Record) {
+                    if(ts.timeline_mode==BeebThreadTimelineMode_Record) {
                         ASSERT(!ts.timeline_event_lists.empty());
                         TimelineEvent event{*ts.num_executed_2MHz_cycles,std::move(m.message)};
                         ts.timeline_event_lists.back().events.emplace_back(std::move(event));
@@ -2823,13 +2823,13 @@ void BeebThread::ThreadMain(void) {
             m_clone_impediments.store(clone_impediments,std::memory_order_release);
 
             // Update ThreadState timeline stuff.
-            switch(ts.timeline_state) {
-            case BeebThreadTimelineState_None:
+            switch(ts.timeline_mode) {
+            case BeebThreadTimelineMode_None:
                 m_timeline_state.clone_impediments=clone_impediments;
                 m_timeline_state.can_record=m_timeline_state.clone_impediments==0;
                 break;
 
-            case BeebThreadTimelineState_Record:
+            case BeebThreadTimelineMode_Record:
                 {
                     m_timeline_state.can_record=false;
 
@@ -2854,7 +2854,7 @@ void BeebThread::ThreadMain(void) {
                 }
                 break;
 
-            case BeebThreadTimelineState_Replay:
+            case BeebThreadTimelineMode_Replay:
                 {
                     m_timeline_state.can_record=false;
 
@@ -2895,7 +2895,7 @@ void BeebThread::ThreadMain(void) {
             }
 
             m_timeline_state.current_2MHz_cycles=*ts.num_executed_2MHz_cycles;
-            m_timeline_state.state=ts.timeline_state;
+            m_timeline_state.mode=ts.timeline_mode;
         }
 
         //        if(m_is_replaying) {
@@ -3127,7 +3127,7 @@ bool BeebThread::ThreadRecordSaveState(ThreadState *ts,bool user_initiated) {
 
 void BeebThread::ThreadStopRecording(ThreadState *ts) {
     ts->timeline_end_event.time_2MHz_cycles=*ts->num_executed_2MHz_cycles;
-    ts->timeline_state=BeebThreadTimelineState_None;
+    ts->timeline_mode=BeebThreadTimelineMode_None;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -3295,7 +3295,7 @@ bool BeebThread::ThreadFindTimelineEventListIndexByBeebState(ThreadState *ts,
 //////////////////////////////////////////////////////////////////////////
 
 const BeebThread::TimelineEvent *BeebThread::ThreadGetNextReplayEvent(ThreadState *ts) {
-    ASSERT(ts->timeline_state==BeebThreadTimelineState_Replay);
+    ASSERT(ts->timeline_mode==BeebThreadTimelineMode_Replay);
 
     ASSERT(ts->timeline_replay_list_index<=ts->timeline_event_lists.size());
     if(ts->timeline_replay_list_index==ts->timeline_event_lists.size()) {
@@ -3312,7 +3312,7 @@ const BeebThread::TimelineEvent *BeebThread::ThreadGetNextReplayEvent(ThreadStat
 //////////////////////////////////////////////////////////////////////////
 
 void BeebThread::ThreadNextReplayEvent(ThreadState *ts) {
-    ASSERT(ts->timeline_state==BeebThreadTimelineState_Replay);
+    ASSERT(ts->timeline_mode==BeebThreadTimelineMode_Replay);
     ASSERT(ts->timeline_replay_list_index<ts->timeline_event_lists.size());
 
     LOGF(REPLAY,"%s: before: list index=%zu/%zu, event index=%zu/%zu\n",
@@ -3340,7 +3340,7 @@ void BeebThread::ThreadNextReplayEvent(ThreadState *ts) {
 //////////////////////////////////////////////////////////////////////////
 
 void BeebThread::ThreadStopReplay(ThreadState *ts) {
-    ts->timeline_state=BeebThreadTimelineState_None;
+    ts->timeline_mode=BeebThreadTimelineMode_None;
 
     if(!!ts->timeline_replay_old_state) {
         this->ThreadReplaceBeeb(ts,ts->timeline_replay_old_state->CloneBBCMicro(),0);
