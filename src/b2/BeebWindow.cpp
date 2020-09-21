@@ -1102,17 +1102,27 @@ void BeebWindow::DoPopupUI(uint64_t now,int output_width,int output_height) {
     BeebThreadTimelineState timeline_state;
     m_beeb_thread->GetTimelineState(&timeline_state);
 
+    bool show_leds_popup=false;
+
     bool pasting=m_beeb_thread->IsPasting();
     bool copying=m_beeb_thread->IsCopying();
-    if(ValueChanged(&m_leds,m_beeb_thread->GetLEDs())||
-        (m_leds&BBCMicroLEDFlags_AllDrives)||
-       timeline_state.mode!=BeebThreadTimelineMode_None||
-       copying||
-       pasting)
-    {
+    if(ValueChanged(&m_leds,m_beeb_thread->GetLEDs())||(m_leds&BBCMicroLEDFlags_AllDrives)) {
+        if(m_settings.leds_popup_mode!=BeebWindowLEDsPopupMode_Off) {
+            show_leds_popup=true;
+        }
+    } else if(timeline_state.mode!=BeebThreadTimelineMode_None||copying||pasting) {
+        // The LEDs window always appears in this situation.
+        show_leds_popup=true;
+    } else if(m_settings.leds_popup_mode==BeebWindowLEDsPopupMode_On) {
+        show_leds_popup=true;
+    }
+
+    if(show_leds_popup) {
+        if(!m_leds_popup_ui_active) {
+            m_leds_popup_ticks=now;
+        }
+
         m_leds_popup_ui_active=true;
-        m_leds_popup_ticks=now;
-        //LOGF(OUTPUT,"leds now: 0x%x\n",m_leds);
     }
 
     if(m_leds_popup_ui_active) {
@@ -1183,7 +1193,9 @@ void BeebWindow::DoPopupUI(uint64_t now,int output_width,int output_height) {
         ImGui::End();
 
         if(GetSecondsFromTicks(now-m_leds_popup_ticks)>LEDS_POPUP_TIME_SECONDS) {
-            m_leds_popup_ui_active=false;
+            if(m_settings.leds_popup_mode!=BeebWindowLEDsPopupMode_On) {
+                m_leds_popup_ui_active=false;
+            }
         }
     }
 
@@ -1522,6 +1534,16 @@ void BeebWindow::DoToolsMenu() {
         m_cc.DoMenuItemUI("toggle_timeline");
         m_cc.DoMenuItemUI("toggle_saved_states");
         m_cc.DoMenuItemUI("toggle_beeblink_options");
+
+        ImGui::Separator();
+
+        if(ImGui::BeginMenu("LEDs")) {
+            ImGuiMenuItemEnumValue("Auto hide",nullptr,&m_settings.leds_popup_mode,BeebWindowLEDsPopupMode_Auto);
+            ImGuiMenuItemEnumValue("Always on",nullptr,&m_settings.leds_popup_mode,BeebWindowLEDsPopupMode_On);
+            ImGuiMenuItemEnumValue("Always off",nullptr,&m_settings.leds_popup_mode,BeebWindowLEDsPopupMode_Off);
+            
+            ImGui::EndMenu();
+        }
 
         // if(ImGui::MenuItem("Dump states")) {
         //     std::vector<std::shared_ptr<BeebState>> all_states=BeebState::GetAllStates();

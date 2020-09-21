@@ -78,6 +78,8 @@ struct BeebWindowSettings {
     bool display_interlace=false;
 
     const BeebKeymap *keymap=nullptr;
+
+    BeebWindowLEDsPopupMode leds_popup_mode=BeebWindowLEDsPopupMode_Auto;
 };
 
 //////////////////////////////////////////////////////////////////////////

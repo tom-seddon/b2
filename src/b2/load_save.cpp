@@ -1096,6 +1096,7 @@ static const char POWER_ON_TONE[]="power_on_tone";
 static const char STANDARD_ROM[]="standard_rom";
 static const char CONFIG[]="config";
 static const char INTERLACE[]="interlace";
+static const char LEDS_POPUP_MODE[]="leds_popup_mode";
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -1394,6 +1395,7 @@ static bool LoadWindows(rapidjson::Value *windows,Messages *msg) {
     FindBoolMember(&BeebWindows::defaults.power_on_tone,windows,POWER_ON_TONE,nullptr);
     FindBoolMember(&BeebWindows::defaults.display_interlace,windows,INTERLACE,nullptr);
     FindStringMember(&BeebWindows::default_config_name,windows,CONFIG,nullptr);
+    FindEnumMember(&BeebWindows::defaults.leds_popup_mode,windows,LEDS_POPUP_MODE,"LEDs popup mode",&GetBeebWindowLEDsPopupModeEnumName,msg);
 
     {
         std::string keymap_name;
@@ -2031,6 +2033,9 @@ static void SaveWindows(JSONWriter<StringStream> *writer) {
 
         writer->Key(INTERLACE);
         writer->Bool(BeebWindows::defaults.display_interlace);
+
+        writer->Key(LEDS_POPUP_MODE);
+        SaveEnum(writer,BeebWindows::defaults.leds_popup_mode,&GetBeebWindowLEDsPopupModeEnumName);
 
         if(!BeebWindows::default_config_name.empty()) {
             writer->Key(CONFIG);

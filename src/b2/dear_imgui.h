@@ -315,6 +315,17 @@ static bool PRINTF_LIKE(3,4) ImGuiRadioButton(T *value,
 
 bool ImGuiMenuItemFlag(const char* label,const char* shortcut,uint32_t *selected,uint32_t selected_mask,bool enabled=true);
 
+template<class T>
+bool ImGuiMenuItemEnumValue(const char *label,const char *shortcut,T *value_ptr,T value) {
+    bool flag=*value_ptr==value;
+    if(ImGui::MenuItem(label,shortcut,&flag)) {
+        *value_ptr=value;
+        return true;
+    } else {
+        return false;
+    }
+}
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
