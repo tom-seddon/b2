@@ -557,9 +557,9 @@ private:
             const Disc *disc=&discs[i];
 
             if(ImGui::MenuItem(disc->name.c_str())) {
-                std::string path=disc->GetAssetPath();
+                std::string src_path=disc->GetAssetPath();
 
-                if(!LoadFile(&this->new_disc_data,path,msgs,0)) {
+                if(!LoadFile(&this->new_disc_data,src_path,msgs,0)) {
                     return;
                 }
 
@@ -1296,8 +1296,6 @@ void BeebWindow::DoFileMenu() {
 void BeebWindow::DoDiscDriveSubMenu(int drive,
                                     const std::shared_ptr<const DiscImage> &disc_image)
 {
-    std::string name,load_method;
-
     if(!!disc_image) {
         std::string name=disc_image->GetName();
         if(!name.empty()) {
@@ -1322,7 +1320,7 @@ void BeebWindow::DoDiscDriveSubMenu(int drive,
             ImGui::MenuItem(("SHA1: "+hash).c_str(),nullptr,false,false);
         }
 
-        load_method=disc_image->GetLoadMethod();
+        std::string load_method=disc_image->GetLoadMethod();
         ImGui::MenuItem(("Loaded from: "+load_method).c_str(),nullptr,false,false);
 
         bool disc_protected=disc_image->IsWriteProtected();
@@ -1927,7 +1925,7 @@ bool BeebWindow::HandleVBlank(uint64_t ticks) {
     bool keep_window=true;
 
     {
-        Timer tmr(&g_HandleVBlank_end_of_frame_timer_def);
+        Timer tmr2(&g_HandleVBlank_end_of_frame_timer_def);
 
         ImGuiContextSetter setter(m_imgui_stuff);
 
@@ -1936,7 +1934,7 @@ bool BeebWindow::HandleVBlank(uint64_t ticks) {
         this->UpdateTVTexture(vblank_record);
 
         {
-            Timer tmr2(&g_HandleVBlank_DoImGui_timer_def);
+            Timer tmr3(&g_HandleVBlank_DoImGui_timer_def);
 
             if(!this->DoImGui(ticks)) {
                 keep_window=false;
@@ -1951,7 +1949,7 @@ bool BeebWindow::HandleVBlank(uint64_t ticks) {
     }
 
     {
-        Timer tmr(&g_HandleVBlank_start_of_frame_timer_def);
+        Timer tmr2(&g_HandleVBlank_start_of_frame_timer_def);
 
         bool got_mouse_focus=false;
         {

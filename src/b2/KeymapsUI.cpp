@@ -248,7 +248,7 @@ void KeymapsUI::DoImGui() {
                        &GetBeebKeymapNameCallback,
                        &tmp_str,
                        (int)BeebWindows::GetNumBeebKeymaps(),
-                       (int)(h-y)/line_height-1);
+                       (int)((h-y)/line_height-1));
     }
 
     ImGui::NextColumn();

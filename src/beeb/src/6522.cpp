@@ -533,7 +533,7 @@ uint8_t R6522::UpdatePhi2LeadingEdge() {
     }
 
     if(m_acr.bits.t2_count_pb6) {
-        m_t2_count=(m_old_pb&0x40)&~(this->b.p&0x40);
+        m_t2_count=!!((m_old_pb&0x40)&~(this->b.p&0x40));
         m_old_pb=this->b.p;
     } else {
         m_t2_count=true;

@@ -113,7 +113,7 @@ CRTC::Output CRTC::Update(uint8_t lightpen) {
         m_registers.bits.penh=m_st.char_addr.b.h;
     }
 
-    m_st.old_lightpen=lightpen;
+    m_st.old_lightpen=!!lightpen;
     
     // Handle hsync.
     if(m_st.hsync_counter>=0) {
