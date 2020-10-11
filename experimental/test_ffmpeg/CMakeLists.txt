@@ -7,6 +7,7 @@ project(test_ffmpeg)
 add_executable(test_ffmpeg
  test_ffmpeg.cpp
  )
+add_sanitizers(test_ffmpeg)
 
 target_include_directories(test_ffmpeg PRIVATE ${FFMPEG_INCLUDE_DIRS})
 target_compile_definitions(test_ffmpeg PRIVATE ${FFMPEG_DEFINITIONS})

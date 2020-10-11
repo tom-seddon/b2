@@ -8,6 +8,7 @@ add_executable(test_dear_imgui
   pushwarn_imgui_whatever.h popwarn.h
   test_imgui_memory_editor.cpp test_imgui_memory_editor.h
   )
+add_sanitizers(test_dear_imgui)
 
 target_include_directories(test_dear_imgui PRIVATE ${SDL2_INCLUDE_DIR})
 target_compile_definitions(test_dear_imgui PRIVATE ${SDL2_DEFINITIONS})

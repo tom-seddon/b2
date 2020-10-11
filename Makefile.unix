@@ -54,6 +54,25 @@ _unix2:
 	mkdir -p "$(_FOLDER)"
 	(cd "$(_FOLDER)" && cmake -G "$(CMAKE_TYPE)" $(CMAKE_DEFINES) -DCMAKE_BUILD_TYPE=$(BUILD) $(if $(SANITIZER),-DSANITIZE_$(SANITIZER)=On) ../..) || $(if $(SANITIZER),rm -Rf "$(_FOLDER)",false)
 
+.PHONY:buildall
+buildall:
+	$(MAKE) _buildall SANITIZER=
+	$(MAKE) _buildall SANITIZER=u
+	$(MAKE) _buildall SANITIZER=a
+	$(MAKE) _buildall SANITIZER=t
+	$(MAKE) _buildall SANITIZER=m
+
+.PHONY:_buildall
+_buildall:
+	$(MAKE) _buildall2 FOLDER=d$(SANITIZER)
+	$(MAKE) _buildall2 FOLDER=r$(SANITIZER)
+	$(MAKE) _buildall2 FOLDER=f$(SANITIZER)
+
+.PHONY:_buildall2
+_buildall2: _FOLDER:=$(BUILD_FOLDER)/$(FOLDER_PREFIX)$(FOLDER).$(OS)
+_buildall2:
+	test ! -d "$(_FOLDER)" || (cd $(_FOLDER) && ninja)
+
 ifdef INSTALLER
 
 build_dir=$(BUILD_FOLDER)/$(1).$(OS)
