@@ -1511,8 +1511,7 @@ void BeebWindow::DoKeyboardMenu() {
                                nullptr,
                                m_settings.keymap==keymap))
             {
-                m_settings.keymap=keymap;
-                m_prefer_shortcuts=m_settings.keymap->GetPreferShortcuts();
+                this->SetCurrentKeymap(keymap);
                 m_msg.i.f("Keymap: %s\n",m_settings.keymap->GetName().c_str());
                 this->ShowPrioritizeCommandShortcutsStatus();
             }
@@ -2451,6 +2450,7 @@ const BeebKeymap *BeebWindow::GetCurrentKeymap() const {
 
 void BeebWindow::SetCurrentKeymap(const BeebKeymap *keymap) {
     m_settings.keymap=keymap;
+    m_prefer_shortcuts=m_settings.keymap->GetPreferShortcuts();
 }
 
 //////////////////////////////////////////////////////////////////////////

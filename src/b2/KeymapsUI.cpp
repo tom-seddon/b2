@@ -249,6 +249,13 @@ void KeymapsUI::DoImGui() {
                        &tmp_str,
                        (int)BeebWindows::GetNumBeebKeymaps(),
                        (int)((h-y)/line_height-1));
+
+        if(m_keymap_index>=0&&
+           (size_t)m_keymap_index<BeebWindows::GetNumBeebKeymaps())
+        {
+            const BeebKeymap *keymap=BeebWindows::GetBeebKeymapByIndex((size_t)m_keymap_index);
+            m_beeb_window->SetCurrentKeymap(keymap);
+        }
     }
 
     ImGui::NextColumn();
