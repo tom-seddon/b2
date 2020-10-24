@@ -80,11 +80,16 @@ public:
     ImGuiStuff(ImGuiStuff &&)=delete;
     ImGuiStuff &operator=(ImGuiStuff &&)=delete;
 
-    // bool parameter, yum.
     bool Init();
 
+    // bool parameter, yum.
     void NewFrame(bool got_mouse_focus);
-    void Render();
+
+    // does ImGui::Render.
+    void RenderImGui();
+
+    // does the SDL rendering stuff.
+    void RenderSDL();
 
     // Temporary (?) fix for disappearing mousewheel messages.
     void SetMouseWheel(int delta);

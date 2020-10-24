@@ -6,6 +6,8 @@
 
 #include "conf.h"
 
+#define BEEB_WINDOW_UPDATE_TV_TEXTURE_THREAD 1
+
 struct BeebWindowInitArguments;
 class VBlankMonitor;
 class BeebThread;
@@ -382,9 +384,44 @@ private:
     std::vector<HTTPPoke> m_http_pokes;
 #endif
 
+#if BEEB_WINDOW_UPDATE_TV_TEXTURE_THREAD
+    struct UpdateTVTextureThreadState {
+        Mutex mutex;
+
+        // signaled by main thread when it wants an update.
+        ConditionVariable update_cv;
+
+        // signaled by update thread when it's done.
+        ConditionVariable done_cv;
+
+        // set if main thread wants update thread to stop.
+        bool stop=false;
+
+        // set by main thread to request update. Reset by update thread when
+        // embarking on update.
+        bool update=false;
+        OutputDataBuffer<VideoDataUnit> *update_video_output=nullptr;
+        TVOutput *update_tv=nullptr;
+        bool update_inhibit=false;
+
+        // set by update thread during update.
+        uint64_t update_num_units_consumed=0;
+
+        // reset by main thread before requesting update. Set by update thread when
+        // update done.
+        bool done=false;
+    };
+
+    UpdateTVTextureThreadState m_update_tv_texture_state;
+    std::thread m_update_tv_texture_thread;
+#endif
+
     const CommandContext m_cc{this,&ms_command_table};
 
     bool InitInternal();
+#if BEEB_WINDOW_UPDATE_TV_TEXTURE_THREAD
+    static void UpdateTVTextureThread(UpdateTVTextureThreadState *state);
+#endif
     bool DoImGui(uint64_t ticks);
     bool HandleCommandKey(uint32_t keycode,const CommandContext *ccs,size_t num_ccs);
     bool DoMenuUI();
@@ -412,7 +449,9 @@ private:
     void ResetDockWindows();
     void ClearConsole();
     void PrintSeparator();
-    void UpdateTVTexture(VBlankRecord *vblank_record);
+    static size_t ConsumeTVTexture(OutputDataBuffer<VideoDataUnit> *video_output,TVOutput *tv,bool inhibit_update);
+    void BeginUpdateTVTexture();
+    void EndUpdateTVTexture(VBlankRecord *vblank_record);
     VBlankRecord *NewVBlankRecord(uint64_t ticks);
     bool DoBeebDisplayUI();
 

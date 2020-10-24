@@ -356,14 +356,18 @@ void ImGuiStuff::NewFrame(bool got_mouse_focus) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void ImGuiStuff::Render() {
-    int rc;
-    (void)rc;
-
+void ImGuiStuff::RenderImGui() {
     ImGuiContextSetter setter(this);
 
     ImGui::Render();
     m_in_frame=false;
+}
+
+void ImGuiStuff::RenderSDL() {
+    ImGuiContextSetter setter(this);
+
+    int rc;
+    (void)rc;
 
 #if STORE_DRAWLISTS
     m_draw_lists.clear();
