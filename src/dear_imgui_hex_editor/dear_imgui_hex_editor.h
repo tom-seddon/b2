@@ -128,6 +128,8 @@ private:
 
 class HexEditor {
 public:
+    bool headers=true;
+    bool hex=true;
     bool ascii=true;
     bool grey_00s=false;
     bool upper_case=true;
@@ -196,6 +198,8 @@ private:
     float m_style_frame_padding_x,m_style_frame_padding_y;
     float m_style_item_spacing_x,m_style_item_spacing_y;
 
+    float m_scroll_x=0.f;
+
     void GetMetrics(Metrics *metrics,const ImGuiStyle &style);
     void DoHexPart(size_t num_skip_columns,size_t begin_offset,size_t end_offset);
     void DoAsciiPart(size_t begin_offset,size_t end_offset);
@@ -206,6 +210,7 @@ private:
     void OpenContextPopup(bool hex,size_t offset);
     void DoOptionsPopup();
     void DoContextPopup();
+    const char *GetHexChars() const;
 };
 
 //////////////////////////////////////////////////////////////////////////

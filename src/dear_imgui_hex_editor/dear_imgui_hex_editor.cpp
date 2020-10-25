@@ -3,6 +3,7 @@
 #include <ctype.h>
 #include <inttypes.h>
 #include <vector>
+#include <algorithm>
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -52,6 +53,38 @@ static const char CONTEXT_POPUP_NAME[]="hex_editor_context";
 
 static constexpr int NUM_SIZE_T_CHARS=sizeof(size_t)*2;
 static constexpr int NUM_PTR_CHARS=sizeof(void *)*2;
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+struct TextColourHandler {
+    uint32_t colour=0;
+    bool pushed=false;
+
+    TextColourHandler() {
+    }
+
+    ~TextColourHandler() {
+        this->Pop();
+    }
+
+    void BeginColour(uint32_t new_colour) {
+        if(new_colour!=this->colour) {
+            this->Pop();
+
+            ImGui::PushStyleColor(ImGuiCol_Text,new_colour);
+            this->colour=new_colour;
+            this->pushed=true;
+        }
+    }
+
+    void Pop() {
+        if(this->pushed) {
+            ImGui::PopStyleColor(1);
+            this->pushed=false;
+        }
+    }
+};
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -219,7 +252,7 @@ void HexEditorHandlerWithBufferData::Construct(const void *read_buffer,void *wri
 //////////////////////////////////////////////////////////////////////////
 
 HexEditor::HexEditor(HexEditorHandler *handler):
-    m_handler(handler)
+m_handler(handler)
 {
     this->SetNumColumns(16);
 }
@@ -261,6 +294,34 @@ void HexEditor::DoImGui() {
         m_bytes=new HexEditorByte[m_num_bytes];
     }
 
+    if(this->headers) {
+        TextColourHandler tch;
+        tch.BeginColour(m_metrics.grey_colour);
+
+        ImGui::SetCursorPosX(-m_scroll_x);
+        ImGui::Text("Address");
+
+        const char *hex_chars=this->GetHexChars();
+
+        if(this->hex) {
+            for(size_t i=0;i<m_num_columns;++i) {
+                // Do this 2-step thing to avoid some flickering when SameLine
+                // would end up being called with (0,0).
+                ImGui::SameLine(0.f,0.f);
+                ImGui::SetCursorPosX(-m_scroll_x+m_metrics.hex_left_x+i*m_metrics.hex_column_width);
+                ImGui::Text("%c%c",hex_chars[i>>4&0xf],hex_chars[i>>0&0xf]);
+            }
+        }
+
+        if(this->ascii) {
+            for(size_t i=0;i<m_num_columns;++i) {
+                ImGui::SameLine(0.f,0.f);
+                ImGui::SetCursorPosX(-m_scroll_x+m_metrics.ascii_left_x+i*m_metrics.glyph_width);
+                ImGui::Text("%c",hex_chars[i&0xf]);
+            }
+        }
+    }
+
     // Main scroll area.
     int first_visible_row;
     int num_visible_rows;
@@ -269,6 +330,8 @@ void HexEditor::DoImGui() {
                           ImVec2(0,-footer_height),
                           false,
                           ImGuiWindowFlags_NoMove|ImGuiWindowFlags_HorizontalScrollbar);
+
+        m_scroll_x=ImGui::GetScrollX();
 
         num_visible_rows=(std::max)(1,(int)(ImGui::GetContentRegionAvail().y/m_metrics.line_height));
 
@@ -291,7 +354,6 @@ void HexEditor::DoImGui() {
                 first_visible_row=clipper.DisplayStart;
 
                 for(int line_index=clipper.DisplayStart;line_index<clipper.DisplayEnd;++line_index) {
-
                     size_t line_begin_offset=(size_t)line_index*m_num_columns;
                     size_t line_end_offset=line_begin_offset+m_num_columns;
                     size_t num_skip_columns;
@@ -319,7 +381,9 @@ void HexEditor::DoImGui() {
                     }
 
                     ImGui::PushID(line_index);
-                    this->DoHexPart(num_skip_columns,line_begin_offset,line_end_offset);
+                    if(this->hex) {
+                        this->DoHexPart(num_skip_columns,line_begin_offset,line_end_offset);
+                    }
 
                     if(this->ascii) {
                         this->DoAsciiPart(line_begin_offset,line_end_offset);
@@ -503,7 +567,10 @@ void HexEditor::GetMetrics(Metrics *metrics,const ImGuiStyle &style) {
     metrics->hex_left_x=(metrics->num_addr_chars+2)*metrics->glyph_width;
     metrics->hex_column_width=2.5f*metrics->glyph_width;
 
-    metrics->ascii_left_x=metrics->hex_left_x+m_num_columns*metrics->hex_column_width+2.f*metrics->glyph_width;
+    metrics->ascii_left_x=metrics->hex_left_x;
+    if(this->hex) {
+        metrics->ascii_left_x+=m_num_columns*metrics->hex_column_width+2.f*metrics->glyph_width;
+    }
 
     const ImVec4 &text_colour=style.Colors[ImGuiCol_Text];
     const ImVec4 &text_disabled_colour=style.Colors[ImGuiCol_TextDisabled];
@@ -545,50 +612,11 @@ static int ReportCharCallback(ImGuiInputTextCallbackData *data) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-struct TextColourHandler {
-    uint32_t colour=0;
-    bool pushed=false;
-
-    TextColourHandler() {
-    }
-
-    //PushStyleColor(ImGuiCol_Text, GImGui->Style.Colors[ImGuiCol_TextDisabled]);
-
-    ~TextColourHandler() {
-        this->Pop();
-    }
-
-    void BeginColour(uint32_t new_colour) {
-        if(new_colour!=this->colour) {
-            this->Pop();
-
-            ImGui::PushStyleColor(ImGuiCol_Text,new_colour);
-            this->colour=new_colour;
-            this->pushed=true;
-        }
-    }
-
-    void Pop() {
-        if(this->pushed) {
-            ImGui::PopStyleColor(1);
-            this->pushed=false;
-        }
-    }
-};
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 void HexEditor::DoHexPart(size_t num_skip_columns,size_t begin_offset,size_t end_offset) {
     ImGui::PushID("hex");
     ImGui::PushID((void *)begin_offset);
 
-    const char *hex_chars;
-    if(this->upper_case) {
-        hex_chars=HEX_CHARS_UC;
-    } else {
-        hex_chars=HEX_CHARS_LC;
-    }
+    const char *hex_chars=this->GetHexChars();
 
     float x=m_metrics.hex_left_x;
     ImGui::SameLine(x);
@@ -987,6 +1015,8 @@ void HexEditor::OpenContextPopup(bool hex,size_t offset) {
 //////////////////////////////////////////////////////////////////////////
 
 void HexEditor::DoOptionsPopup() {
+    ImGui::Checkbox("Column headers",&this->headers);
+    ImGui::Checkbox("Show hex",&this->hex);
     ImGui::Checkbox("Show ASCII",&this->ascii);
     ImGui::Checkbox("Grey 00s",&this->grey_00s);
     ImGui::Checkbox("Grey non-printables",&this->grey_nonprintables);
@@ -1112,4 +1142,12 @@ void HexEditor::DoContextPopup() {
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
+
+const char *HexEditor::GetHexChars() const {
+    if(this->upper_case) {
+        return HEX_CHARS_UC;
+    } else {
+        return HEX_CHARS_LC;
+    }
+}
 
