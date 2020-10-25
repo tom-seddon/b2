@@ -241,9 +241,11 @@ void BeebWindow::OptionsUI::DoImGui() {
         beeb_thread->SetPowerOnTone(settings->power_on_tone);
     }
 
+#if BUILD_TYPE_Debug
     if(ImGui::Checkbox("Threaded texture update",&m_beeb_window->m_update_tv_texture_thread_enabled)) {
         ResetTimerDefs();
     }
+#endif
 
     ImGui::NewLine();
 
@@ -329,7 +331,7 @@ BeebWindow::~BeebWindow() {
             m_update_tv_texture_state.stop=true;
         }
 
-        m_update_tv_texture_state.update_cv.notify_all();
+        m_update_tv_texture_state.update_cv.notify_one();
 
         m_update_tv_texture_thread.join();
     }
@@ -1733,12 +1735,16 @@ void BeebWindow::UpdateTVTextureThread(UpdateTVTextureThreadState *state) {
             state->update_num_units_consumed=ConsumeTVTexture(state->update_video_output,
                                                               state->update_tv,
                                                               state->update_inhibit);
+            
+            ASSERT(state->update_dest_pitch>=0);
+            state->update_tv->CopyTexturePixels(state->update_dest_pixels,
+                                                (size_t)state->update_dest_pitch);
 
             lock.lock();
 
             state->done=true;
 
-            state->done_cv.notify_all();
+            state->done_cv.notify_one();
         }
     }
 }
@@ -1809,7 +1815,7 @@ size_t BeebWindow::ConsumeTVTexture(OutputDataBuffer<VideoDataUnit> *video_outpu
     return num_units_consumed;
 }
 
-void BeebWindow::BeginUpdateTVTexture(bool threaded) {
+void BeebWindow::BeginUpdateTVTexture(bool threaded,void *dest_pixels,int dest_pitch) {
     if(threaded) {
         {
             std::unique_lock<Mutex> lock(m_update_tv_texture_state.mutex);
@@ -1818,15 +1824,17 @@ void BeebWindow::BeginUpdateTVTexture(bool threaded) {
             m_update_tv_texture_state.update_video_output=m_beeb_thread->GetVideoOutput();
             m_update_tv_texture_state.update_tv=&m_tv;
             m_update_tv_texture_state.update_inhibit=m_test_pattern;
+            m_update_tv_texture_state.update_dest_pixels=dest_pixels;
+            m_update_tv_texture_state.update_dest_pitch=dest_pitch;
         }
-        m_update_tv_texture_state.update_cv.notify_all();
+        m_update_tv_texture_state.update_cv.notify_one();
     }
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void BeebWindow::EndUpdateTVTexture(bool threaded,VBlankRecord *vblank_record) {
+void BeebWindow::EndUpdateTVTexture(bool threaded,VBlankRecord *vblank_record,void *dest_pixels,int dest_pitch) {
     Timer tmr(&g_HandleVBlank_UpdateTVTexture_Consume_timer_def);
 
     if(threaded) {
@@ -1845,6 +1853,8 @@ void BeebWindow::EndUpdateTVTexture(bool threaded,VBlankRecord *vblank_record) {
                                                          m_test_pattern);
 
         vblank_record->num_video_units=num_units_consumed;
+        
+        m_tv.CopyTexturePixels(dest_pixels,dest_pitch);
     }
 }
 
@@ -1997,7 +2007,13 @@ bool BeebWindow::HandleVBlank(uint64_t ticks) {
 
         VBlankRecord *vblank_record=this->NewVBlankRecord(ticks);
 
-        this->BeginUpdateTVTexture(threaded_update);
+        void *dest_pixels=nullptr;
+        int dest_pitch=0;
+        if(m_tv_texture) {
+            SDL_LockTexture(m_tv_texture,nullptr,&dest_pixels,&dest_pitch);
+        }
+        
+        this->BeginUpdateTVTexture(threaded_update,dest_pixels,dest_pitch);
 
         {
             Timer tmr3(&g_HandleVBlank_DoImGui_timer_def);
@@ -2011,20 +2027,24 @@ bool BeebWindow::HandleVBlank(uint64_t ticks) {
 
         SDL_RenderClear(m_renderer);
 
-        this->EndUpdateTVTexture(threaded_update,vblank_record);
-
-        {
-            Timer tmr(&g_HandleVBlank_UpdateTVTexture_Copy_timer_def);
-
-            if(m_tv_texture) {
-                void *dest_pixels;
-                int dest_pitch;
-                if(SDL_LockTexture(m_tv_texture,nullptr,&dest_pixels,&dest_pitch)==0) {
-                    m_tv.CopyTexturePixels(dest_pixels,(size_t)dest_pitch);
-                    SDL_UnlockTexture(m_tv_texture);
-                }
-            }
+        this->EndUpdateTVTexture(threaded_update,vblank_record,dest_pixels,dest_pitch);
+        
+        if(dest_pixels) {
+            SDL_UnlockTexture(m_tv_texture);
         }
+
+//        {
+//            Timer tmr(&g_HandleVBlank_UpdateTVTexture_Copy_timer_def);
+//
+//            if(m_tv_texture) {
+//                void *dest_pixels;
+//                int dest_pitch;
+//                if(SDL_LockTexture(m_tv_texture,nullptr,&dest_pixels,&dest_pitch)==0) {
+//                    m_tv.CopyTexturePixels(dest_pixels,(size_t)dest_pitch);
+//                    SDL_UnlockTexture(m_tv_texture);
+//                }
+//            }
+//        }
 
         {
             Timer tmr(&g_HandleVBlank_RenderSDL_timer_def);

@@ -400,6 +400,8 @@ private:
         OutputDataBuffer<VideoDataUnit> *update_video_output=nullptr;
         TVOutput *update_tv=nullptr;
         bool update_inhibit=false;
+        void *update_dest_pixels=nullptr;
+        int update_dest_pitch=0;
 
         // set by update thread during update.
         uint64_t update_num_units_consumed=0;
@@ -411,7 +413,7 @@ private:
 
     UpdateTVTextureThreadState m_update_tv_texture_state;
     std::thread m_update_tv_texture_thread;
-    bool m_update_tv_texture_thread_enabled=true;
+    bool m_update_tv_texture_thread_enabled=false;
 
     const CommandContext m_cc{this,&ms_command_table};
 
@@ -445,8 +447,8 @@ private:
     void ClearConsole();
     void PrintSeparator();
     static size_t ConsumeTVTexture(OutputDataBuffer<VideoDataUnit> *video_output,TVOutput *tv,bool inhibit_update);
-    void BeginUpdateTVTexture(bool threaded);
-    void EndUpdateTVTexture(bool threaded,VBlankRecord *vblank_record);
+    void BeginUpdateTVTexture(bool threaded,void *dest_pixels,int dest_pitch);
+    void EndUpdateTVTexture(bool threaded,VBlankRecord *vblank_record,void *dest_pixels,int dest_pitch);
     VBlankRecord *NewVBlankRecord(uint64_t ticks);
     bool DoBeebDisplayUI();
 
