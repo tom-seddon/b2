@@ -34,6 +34,8 @@ public:
     TimerDef(TimerDef &&)=delete;
     TimerDef &operator=(TimerDef &&)=delete;
 
+    void Reset();
+
     uint64_t GetTotalNumTicks() const;
     uint64_t GetNumSamples() const;
 
@@ -82,6 +84,8 @@ private:
 //////////////////////////////////////////////////////////////////////////
 
 std::unique_ptr<SettingsUI> CreateDataRateUI(BeebWindow *beeb_window);
+
+void ResetTimerDefs();
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

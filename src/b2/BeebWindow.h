@@ -6,8 +6,6 @@
 
 #include "conf.h"
 
-#define BEEB_WINDOW_UPDATE_TV_TEXTURE_THREAD 1
-
 struct BeebWindowInitArguments;
 class VBlankMonitor;
 class BeebThread;
@@ -384,7 +382,6 @@ private:
     std::vector<HTTPPoke> m_http_pokes;
 #endif
 
-#if BEEB_WINDOW_UPDATE_TV_TEXTURE_THREAD
     struct UpdateTVTextureThreadState {
         Mutex mutex;
 
@@ -414,14 +411,12 @@ private:
 
     UpdateTVTextureThreadState m_update_tv_texture_state;
     std::thread m_update_tv_texture_thread;
-#endif
+    bool m_update_tv_texture_thread_enabled=true;
 
     const CommandContext m_cc{this,&ms_command_table};
 
     bool InitInternal();
-#if BEEB_WINDOW_UPDATE_TV_TEXTURE_THREAD
     static void UpdateTVTextureThread(UpdateTVTextureThreadState *state);
-#endif
     bool DoImGui(uint64_t ticks);
     bool HandleCommandKey(uint32_t keycode,const CommandContext *ccs,size_t num_ccs);
     bool DoMenuUI();
@@ -450,8 +445,8 @@ private:
     void ClearConsole();
     void PrintSeparator();
     static size_t ConsumeTVTexture(OutputDataBuffer<VideoDataUnit> *video_output,TVOutput *tv,bool inhibit_update);
-    void BeginUpdateTVTexture();
-    void EndUpdateTVTexture(VBlankRecord *vblank_record);
+    void BeginUpdateTVTexture(bool threaded);
+    void EndUpdateTVTexture(bool threaded,VBlankRecord *vblank_record);
     VBlankRecord *NewVBlankRecord(uint64_t ticks);
     bool DoBeebDisplayUI();
 
