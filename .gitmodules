@@ -61,3 +61,6 @@
 [submodule "submodules/stb"]
 	path = submodules/stb
 	url = https://github.com/nothings/stb
+[submodule "submodules/SDL_official"]
+	path = submodules/SDL_official
+	url = https://github.com/tom-seddon/SDL-1
