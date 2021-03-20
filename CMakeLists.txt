@@ -146,7 +146,8 @@ option(LIBC "" ON)
 
 set(SDL_SHARED_ENABLED_BY_DEFAULT OFF)
 
-set(SDL__SOURCE_DIR ${CMAKE_SOURCE_DIR}/submodules/SDL)
+set(SDL__NAME SDL_official)
+set(SDL__SOURCE_DIR ${CMAKE_SOURCE_DIR}/submodules/${SDL__NAME})
 
 if(NOT EXISTS ${SDL__SOURCE_DIR}/CMakeLists.txt)
   message(FATAL_ERROR "SDL not found in folder: " ${SDL__SOURCE_DIR})
@@ -164,7 +165,7 @@ add_subdirectory(${SDL__SOURCE_DIR})
 
 set(SDL2_FOUND ON)
 set(SDL2_LIBRARY SDL2-static SDL2main)
-set(SDL2_INCLUDE_DIR ${CMAKE_BINARY_DIR}/submodules/SDL/include)
+set(SDL2_INCLUDE_DIR ${CMAKE_BINARY_DIR}/submodules/${SDL__NAME}/include)
 
 # The build process generates an SDL_config.h file that goes in the
 # binary folder, holding all the correct #defines for whatever. The
@@ -197,7 +198,7 @@ set(SDL2_INCLUDE_DIR ${CMAKE_BINARY_DIR}/submodules/SDL/include)
 # it might, but there are at least no message boxes to click through.)
 
 set(SDL__HEADERS_SRC ${SDL__SOURCE_DIR}/include)
-set(SDL__HEADERS_DEST ${CMAKE_BINARY_DIR}/submodules/SDL/include)
+set(SDL__HEADERS_DEST ${CMAKE_BINARY_DIR}/submodules/${SDL__NAME}/include)
 
 file(GLOB SDL__HEADERS
   LIST_DIRECTORIES false

@@ -10,6 +10,15 @@ init_xcode:
 	mkdir -p "$(_FOLDER)"
 	cd "$(_FOLDER)" && cmake -G Xcode $(CMAKE_DEFINES) ../..
 
+# Quicker turnaround when iterating on CMake stuff. CMake is supposed
+# to do this for you automatically, something that works pretty well
+# with Ninja and Visual Studio, but with Xcode it seems very
+# unreliable.
+.PHONY:reinit_xcode
+reinit_xcode: _FOLDER=$(BUILD_FOLDER)/$(FOLDER_PREFIX)Xcode
+reinit_xcode:
+	cd "$(_FOLDER)" && cmake -G Xcode $(CMAKE_DEFINES) ../..
+
 ##########################################################################
 ##########################################################################
 
