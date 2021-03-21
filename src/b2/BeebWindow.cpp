@@ -2214,15 +2214,15 @@ bool BeebWindow::InitInternal() {
         return false;
     }
 
-    m_renderer=SDL_CreateRenderer(m_window,
-                                  m_init_arguments.render_driver_index,
-                                  0);
+    SDL_SetHint(SDL_HINT_RENDER_DRIVER,"opengl");
+    m_renderer=SDL_CreateRenderer(m_window,-1,0);
     if(!m_renderer) {
         m_msg.e.f("SDL_CreateRenderer failed: %s\n",SDL_GetError());
         return false;
     }
 
-    m_pixel_format=SDL_AllocFormat(m_init_arguments.pixel_format);
+    // The OpenGL driver supports SDL_PIXELFORMAT_ARGB8888.
+    m_pixel_format=SDL_AllocFormat(SDL_PIXELFORMAT_ARGB8888);
     if(!m_pixel_format) {
         m_msg.e.f("SDL_AllocFormat failed: %s\n",SDL_GetError());
         return false;

@@ -89,12 +89,6 @@ struct BeebWindowSettings {
 // probably go somewhere else...
 struct BeebWindowInitArguments {
 public:
-    // Index of SDL render driver, as supplied to SDL_CreateRenderer.
-    int render_driver_index=-1;
-
-    // SDL pixel format to use.
-    uint32_t pixel_format=0;
-
     // SDL_AudioDeviceID of device to play to. The window doesn't
     // create the audio device, but it needs to know which ID to use
     // so it can respond to the appropriate callback.
@@ -401,7 +395,7 @@ private:
         TVOutput *update_tv=nullptr;
         bool update_inhibit=false;
         void *update_dest_pixels=nullptr;
-        int update_dest_pitch=0;
+        size_t update_dest_pitch=0;
 
         // set by update thread during update.
         uint64_t update_num_units_consumed=0;

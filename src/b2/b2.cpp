@@ -305,41 +305,10 @@ static Remotery *g_remotery;
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static uint32_t GetPixelFormatForRendererInfo(const SDL_RendererInfo &info) {
-    uint32_t want_flags=SDL_RENDERER_ACCELERATED|SDL_RENDERER_RENDERGEOMETRY;
-
-    if((info.flags&want_flags)==want_flags) {
-        for(size_t i=0;i<info.num_texture_formats;++i) {
-            uint32_t f=info.texture_formats[i];
-
-            if(SDL_PIXELTYPE(f)==SDL_PIXELTYPE_PACKED32) {
-                if(SDL_BYTESPERPIXEL(f)==4) {
-                    return f;
-                }
-            }
-        }
-    }
-
-    return SDL_PIXELFORMAT_UNKNOWN;
-}
-
-static uint32_t GetPixelFormatForRenderer(int index) {
-    SDL_RendererInfo info;
-    if(SDL_GetRenderDriverInfo(index,&info)!=0) {
-        return SDL_PIXELFORMAT_UNKNOWN;
-    }
-
-    return GetPixelFormatForRendererInfo(info);
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 struct Options {
     bool verbose=false;
     std::string discs[NUM_DRIVES];
     bool direct_disc[NUM_DRIVES]={};
-    int render_driver_index=-1;
     int audio_hz=DEFAULT_AUDIO_HZ;
     int audio_buffer_size=DEFAULT_AUDIO_BUFFER_SIZE;
     bool boot=0;
@@ -361,20 +330,9 @@ static bool InitializeOptions(
     Options *options,
     Messages *init_messages)
 {
+    (void)init_messages;
+    
     *options=Options();
-
-    // Check there's at least one valid renderer.
-    for(int i=0;i<SDL_GetNumRenderDrivers();++i) {
-        if(GetPixelFormatForRenderer(i)!=SDL_PIXELFORMAT_UNKNOWN) {
-            options->render_driver_index=i;
-            break;
-        }
-    }
-
-    if(options->render_driver_index<0) {
-        init_messages->e.f("No suitable SDL renderers found.\n");
-        return false;
-    }
 
     // ???
 
@@ -401,27 +359,6 @@ static std::string GetDriverHelp(
     help+=")";
 
     return help;
-}
-
-static bool HandleDriverNameOption(
-    int *index,
-    const char *type,
-    const std::map<std::string,int> &driver_index_by_name,
-    const std::string &name,
-    Messages *init_messages)
-{
-    if(!name.empty()) {
-        auto &&it=driver_index_by_name.find(name);
-        if(it==driver_index_by_name.end()) {
-            init_messages->e.f("Unknown SDL %s driver: %s\n",
-                               type,name.c_str());
-            return false;
-        }
-
-        *index=it->second;
-    }
-
-    return true;
 }
 
 static std::string GetLogList() {
@@ -486,26 +423,6 @@ static bool DoCommandLineOptions(
     p.AddOption('b',"boot").SetIfPresent(&options->boot).Help("attempt to auto-boot disc");
     p.AddOption('c',"config").Arg(&options->config_name).Meta("CONFIG").Help("start emulator with configuration CONFIG");
 
-    std::map<std::string,int> render_driver_index_by_name;
-    std::string render_driver_name;
-    for(int i=0;i<SDL_GetNumRenderDrivers();++i) {
-        SDL_RendererInfo info;
-        if(SDL_GetRenderDriverInfo(i,&info)==0) {
-            if(GetPixelFormatForRendererInfo(info)!=SDL_PIXELFORMAT_UNKNOWN) {
-                render_driver_index_by_name[info.name]=i;
-
-                // if(!render_driver_name) {
-                //     render_driver_name=info.name;
-                // }
-            }
-        }
-    }
-
-    ASSERT(!render_driver_index_by_name.empty());
-    if(render_driver_index_by_name.size()>1) {
-        p.AddOption('r',"render-driver").Arg(&render_driver_name).Meta("DRIVER").Help(GetDriverHelp("render",render_driver_index_by_name));
-    }
-
     p.AddOption("hz").Arg(&options->audio_hz).Meta("HZ").Help("set sound output frequency to HZ").ShowDefault();
     p.AddOption("buffer").Arg(&options->audio_buffer_size).Meta("SAMPLES").Help("set audio buffer size, in samples (must be a power of two <32768: 512, 1024, 2048, etc.)").ShowDefault();
 
@@ -536,16 +453,6 @@ static bool DoCommandLineOptions(
 #endif
 
     if(!p.Parse((int)args.size(),args.data())) {
-        return false;
-    }
-
-    if(!HandleDriverNameOption(
-        &options->render_driver_index,
-        "render",
-        render_driver_index_by_name,
-        render_driver_name,
-        init_messages))
-    {
         return false;
     }
 
@@ -1005,9 +912,9 @@ static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &init
 
         BeebWindowInitArguments ia;
         {
-            ia.render_driver_index=options.render_driver_index;
-            ia.pixel_format=GetPixelFormatForRenderer(ia.render_driver_index);
-            ASSERT(ia.pixel_format!=SDL_PIXELFORMAT_UNKNOWN);
+//            ia.render_driver_index=options.render_driver_index;
+//            ia.pixel_format=SDL_PIXELFORMAT_ARGB8888;
+//            ASSERT(ia.pixel_format!=SDL_PIXELFORMAT_UNKNOWN);
             ia.sound_device=audio_device;
             ia.sound_spec=audio_spec;
             ia.default_config=initial_loaded_config;

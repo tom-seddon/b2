@@ -495,12 +495,21 @@ void Window::RenderImGuiDrawData() {
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
 
+    glEnableClientState(GL_VERTEX_ARRAY);
+    glEnableClientState(GL_COLOR_ARRAY);
+    glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+    glEnable(GL_SCISSOR_TEST);
+
     for(int i=0;i<draw_data->CmdListsCount;++i) {
         ImDrawList *draw_list=draw_data->CmdLists[i];
 
         size_t idx_buffer_pos=0;
 
-        //ImDrawVert *vertices=draw_list->VtxBuffer;
+        ImDrawVert *v0=&draw_list->VtxBuffer[0];
+        glVertexPointer(2,GL_FLOAT,sizeof(ImDrawVert),&v0->pos);
+        glColorPointer(4,GL_UNSIGNED_BYTE,sizeof(ImDrawVert),&v0->col);
+        glTexCoordPointer(2,GL_FLOAT,sizeof(ImDrawVert),&v0->uv);
+
         Uint16 num_vertices=(Uint16)(draw_list->VtxBuffer.size());
         assert(draw_list->VtxBuffer.size()<=(std::numeric_limits<decltype(num_vertices)>::max)());
 
@@ -514,7 +523,6 @@ void Window::RenderImGuiDrawData() {
             float clip_w=cmd.ClipRect.z-cmd.ClipRect.x;
             float clip_h=cmd.ClipRect.w-cmd.ClipRect.y;
             glScissor(cmd.ClipRect.x,output_height-clip_h-cmd.ClipRect.y,clip_w,clip_h);
-            glEnable(GL_SCISSOR_TEST);
 
 //            SDL_Rect clip_rect={
 //                (int)cmd.ClipRect.x,
@@ -536,14 +544,6 @@ void Window::RenderImGuiDrawData() {
                 ASSERT(idx_buffer_pos<=INT_MAX);
                 const uint16_t *indices=&draw_list->IdxBuffer[(int)idx_buffer_pos];
                 assert(idx_buffer_pos+cmd.ElemCount<=(size_t)draw_list->IdxBuffer.size());
-
-                ImDrawVert *v0=&draw_list->VtxBuffer[0];
-                glEnableClientState(GL_VERTEX_ARRAY);
-                glVertexPointer(2,GL_FLOAT,sizeof(ImDrawVert),&v0->pos);
-                glEnableClientState(GL_COLOR_ARRAY);
-                glColorPointer(4,GL_UNSIGNED_BYTE,sizeof(ImDrawVert),&v0->col);
-                glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-                glTexCoordPointer(2,GL_FLOAT,sizeof(ImDrawVert),&v0->uv);
 
                 glDrawElements(GL_TRIANGLES,cmd.ElemCount,GL_UNSIGNED_SHORT,indices);
 

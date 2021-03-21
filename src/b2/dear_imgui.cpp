@@ -9,6 +9,7 @@
 #include "load_save.h"
 #include "misc.h"
 #include "native_ui.h"
+#include <SDL_opengl.h>
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -387,12 +388,42 @@ void ImGuiStuff::RenderSDL() {
     m_draw_lists.resize((size_t)draw_data->CmdListsCount);
 #endif
 
+    SDL_RenderFlush(m_renderer);
+
+    glPushAttrib(GL_ALL_ATTRIB_BITS);
+    glPushClientAttrib(GL_CLIENT_ALL_ATTRIB_BITS);
+
+    int output_width,output_height;
+    SDL_GetRendererOutputSize(m_renderer,&output_width,&output_height);
+
+    glViewport(0,0,output_width,output_height);
+
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    glOrtho(0,output_width,output_height,0,0,1);
+
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
+
+    glEnable(GL_SCISSOR_TEST);
+
+    glEnable(GL_TEXTURE_2D);
+
+    glEnableClientState(GL_VERTEX_ARRAY);
+    glEnableClientState(GL_COLOR_ARRAY);
+    glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+
     for(int i=0;i<draw_data->CmdListsCount;++i) {
         ImDrawList *draw_list=draw_data->CmdLists[i];
 
         int idx_buffer_pos=0;
 
-        SDL_Vertex *vertices=(SDL_Vertex *)&draw_list->VtxBuffer[0];
+        ImDrawVert *vertex0=&draw_list->VtxBuffer[0];
+
+        glVertexPointer(2,GL_FLOAT,sizeof(ImDrawVert),&vertex0->pos);
+        glColorPointer(4,GL_UNSIGNED_BYTE,sizeof(ImDrawVert),&vertex0->col);
+        glTexCoordPointer(2,GL_FLOAT,sizeof(ImDrawVert),&vertex0->uv);
+
         Uint16 num_vertices=(Uint16)(draw_list->VtxBuffer.size());
         ASSERT(draw_list->VtxBuffer.size()<=(std::numeric_limits<decltype(num_vertices)>::max)());
 
@@ -413,15 +444,9 @@ void ImGuiStuff::RenderSDL() {
 #endif
 
         for(const ImDrawCmd &cmd:draw_list->CmdBuffer) {
-            SDL_Rect clip_rect={
-                (int)cmd.ClipRect.x,
-                (int)cmd.ClipRect.y,
-                (int)(cmd.ClipRect.z-cmd.ClipRect.x),
-                (int)(cmd.ClipRect.w-cmd.ClipRect.y),
-            };
-
-            rc=SDL_RenderSetClipRect(m_renderer,&clip_rect);
-            ASSERT(rc==0);
+            float clip_w=cmd.ClipRect.z-cmd.ClipRect.x;
+            float clip_h=cmd.ClipRect.w-cmd.ClipRect.y;
+            glScissor(cmd.ClipRect.x,output_height-clip_h-cmd.ClipRect.y,clip_w,clip_h);
 
             if(cmd.UserCallback) {
 #if STORE_DRAWLISTS
@@ -431,6 +456,21 @@ void ImGuiStuff::RenderSDL() {
                 (*cmd.UserCallback)(draw_list,&cmd);
             } else {
                 SDL_Texture *texture=(SDL_Texture *)cmd.TextureId;
+                SDL_GL_BindTexture(texture,nullptr,nullptr);
+
+                SDL_BlendMode blend_mode;
+                SDL_GetTextureBlendMode(texture,&blend_mode);
+                switch(blend_mode) {
+                default:
+                case SDL_BLENDMODE_NONE:
+                    glDisable(GL_BLEND);
+                    break;
+
+                case SDL_BLENDMODE_BLEND:
+                    glEnable(GL_BLEND);
+                    glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
+                    break;
+                }
 
 #if STORE_DRAWLISTS
                 stored_cmd->callback=false;
@@ -442,15 +482,17 @@ void ImGuiStuff::RenderSDL() {
                 stored_cmd->num_indices=cmd.ElemCount;
 #endif
 
+
                 const uint16_t *indices=&draw_list->IdxBuffer[idx_buffer_pos];
                 ASSERT(idx_buffer_pos+(int)cmd.ElemCount<=draw_list->IdxBuffer.size());
 
-                rc=SDL_RenderGeometry(m_renderer,texture,vertices,num_vertices,indices,(int)cmd.ElemCount,nullptr);
-                ASSERT(rc==0);
+                glDrawElements(GL_TRIANGLES,(GLsizei)cmd.ElemCount,GL_UNSIGNED_SHORT,indices);
+
+//                rc=SDL_RenderGeometry(m_renderer,texture,vertices,num_vertices,indices,(int)cmd.ElemCount,nullptr);
+//                ASSERT(rc==0);
 
                 ASSERT(cmd.ElemCount<=INT_MAX);
                 idx_buffer_pos+=(int)cmd.ElemCount;
-
             }
 
 #if STORE_DRAWLISTS
@@ -458,8 +500,12 @@ void ImGuiStuff::RenderSDL() {
 #endif
         }
     }
-    rc=SDL_RenderSetClipRect(m_renderer,NULL);
-    ASSERT(rc==0);
+
+    glPopClientAttrib();
+    glPopAttrib();
+
+//    rc=SDL_RenderSetClipRect(m_renderer,NULL);
+//    ASSERT(rc==0);
 }
 
 //////////////////////////////////////////////////////////////////////////
