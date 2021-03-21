@@ -362,7 +362,7 @@ void Window::Render() {
 
     int output_width,output_height;
     SDL_GetRendererOutputSize(m_renderer,&output_width,&output_height);
-
+    
     io.DisplaySize.x=(float)output_width;
     io.DisplaySize.y=(float)output_height;
 
@@ -483,19 +483,14 @@ void Window::RenderImGuiDrawData() {
     int output_width,output_height;
     SDL_GetRendererOutputSize(m_renderer,&output_width,&output_height);
 
+    glViewport(0,0,output_width,output_height);
+    
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
     glOrtho(0,output_width,output_height,0,0,1);
 
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
-    //glScalef(1/800.f,-1/600.f,1.f);
-
-    glColor3ub(255,255,255);
-    glBegin(GL_LINES);
-    glVertex3f(0.f,0.f,0.f);
-    glVertex3f(.5f,.5f,0.f);
-    glEnd();
 
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
