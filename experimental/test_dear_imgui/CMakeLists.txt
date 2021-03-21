@@ -13,3 +13,6 @@ add_sanitizers(test_dear_imgui)
 target_include_directories(test_dear_imgui PRIVATE ${SDL2_INCLUDE_DIR})
 target_compile_definitions(test_dear_imgui PRIVATE ${SDL2_DEFINITIONS})
 target_link_libraries(test_dear_imgui PRIVATE ${SDL2_LIBRARY} imgui_lib imgui_memory_editor_lib dear_imgui_hex_editor_lib)
+
+find_package(OpenGL REQUIRED)
+target_link_libraries(test_dear_imgui PRIVATE ${OPENGL_LIBRARIES})

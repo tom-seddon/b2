@@ -11,6 +11,7 @@
 #include <vector>
 #include <map>
 #include <limits>
+#include <SDL_opengl.h>
 
 #include "pushwarn_imgui_whatever.h"
 #include <imgui.h>
@@ -25,10 +26,10 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static_assert(sizeof(ImDrawVert)==sizeof(SDL_Vertex),"");
-static_assert(offsetof(ImDrawVert,pos)==offsetof(SDL_Vertex,position),"");
-static_assert(offsetof(ImDrawVert,col)==offsetof(SDL_Vertex,color),"");
-static_assert(offsetof(ImDrawVert,uv)==offsetof(SDL_Vertex,tex_coord),"");
+//static_assert(sizeof(ImDrawVert)==sizeof(SDL_Vertex),"");
+//static_assert(offsetof(ImDrawVert,pos)==offsetof(SDL_Vertex,position),"");
+//static_assert(offsetof(ImDrawVert,col)==offsetof(SDL_Vertex,color),"");
+//static_assert(offsetof(ImDrawVert,uv)==offsetof(SDL_Vertex,tex_coord),"");
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -476,12 +477,35 @@ void Window::RenderImGuiDrawData() {
     if(!draw_data->Valid) {
         return;
     }
+
+    SDL_RenderFlush(m_renderer);
+
+    int output_width,output_height;
+    SDL_GetRendererOutputSize(m_renderer,&output_width,&output_height);
+
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    glOrtho(0,output_width,output_height,0,0,1);
+
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
+    //glScalef(1/800.f,-1/600.f,1.f);
+
+    glColor3ub(255,255,255);
+    glBegin(GL_LINES);
+    glVertex3f(0.f,0.f,0.f);
+    glVertex3f(.5f,.5f,0.f);
+    glEnd();
+
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
+
     for(int i=0;i<draw_data->CmdListsCount;++i) {
         ImDrawList *draw_list=draw_data->CmdLists[i];
 
         size_t idx_buffer_pos=0;
 
-        SDL_Vertex *vertices=(SDL_Vertex *)&draw_list->VtxBuffer[0];
+        //ImDrawVert *vertices=draw_list->VtxBuffer;
         Uint16 num_vertices=(Uint16)(draw_list->VtxBuffer.size());
         assert(draw_list->VtxBuffer.size()<=(std::numeric_limits<decltype(num_vertices)>::max)());
 
@@ -492,32 +516,52 @@ void Window::RenderImGuiDrawData() {
 
             const ImDrawCmd &cmd=draw_list->CmdBuffer[j];
 
-            SDL_Rect clip_rect={
-                (int)cmd.ClipRect.x,
-                (int)cmd.ClipRect.y,
-                (int)(cmd.ClipRect.z-cmd.ClipRect.x),
-                (int)(cmd.ClipRect.w-cmd.ClipRect.y),
-            };
+            float clip_w=cmd.ClipRect.z-cmd.ClipRect.x;
+            float clip_h=cmd.ClipRect.w-cmd.ClipRect.y;
+            glScissor(cmd.ClipRect.x,output_height-clip_h-cmd.ClipRect.y,clip_w,clip_h);
+            glEnable(GL_SCISSOR_TEST);
 
-            rc=SDL_RenderSetClipRect(m_renderer,&clip_rect);
-            ASSERT(rc==0);
+//            SDL_Rect clip_rect={
+//                (int)cmd.ClipRect.x,
+//                (int)cmd.ClipRect.y,
+//                (int)(cmd.ClipRect.z-cmd.ClipRect.x),
+//                (int)(cmd.ClipRect.w-cmd.ClipRect.y),
+//            };
+//
+//            rc=SDL_RenderSetClipRect(m_renderer,&clip_rect);
+//            ASSERT(rc==0);
 
             if(cmd.UserCallback) {
                 (*cmd.UserCallback)(draw_list,&cmd);
             } else {
                 SDL_Texture *texture=(SDL_Texture *)cmd.TextureId;
+                glEnable(GL_TEXTURE_2D);
+                SDL_GL_BindTexture(texture,nullptr,nullptr);
 
                 ASSERT(idx_buffer_pos<=INT_MAX);
                 const uint16_t *indices=&draw_list->IdxBuffer[(int)idx_buffer_pos];
                 assert(idx_buffer_pos+cmd.ElemCount<=(size_t)draw_list->IdxBuffer.size());
 
-                rc=SDL_RenderGeometry(m_renderer,texture,vertices,num_vertices,indices,(int)cmd.ElemCount,NULL);
-                ASSERT(rc==0);
+                ImDrawVert *v0=&draw_list->VtxBuffer[0];
+                glEnableClientState(GL_VERTEX_ARRAY);
+                glVertexPointer(2,GL_FLOAT,sizeof(ImDrawVert),&v0->pos);
+                glEnableClientState(GL_COLOR_ARRAY);
+                glColorPointer(4,GL_UNSIGNED_BYTE,sizeof(ImDrawVert),&v0->col);
+                glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+                glTexCoordPointer(2,GL_FLOAT,sizeof(ImDrawVert),&v0->uv);
+
+                glDrawElements(GL_TRIANGLES,cmd.ElemCount,GL_UNSIGNED_SHORT,indices);
+
+//                rc=SDL_RenderGeometry(m_renderer,texture,vertices,num_vertices,indices,(int)cmd.ElemCount,NULL);
+//                ASSERT(rc==0);
 
                 idx_buffer_pos+=cmd.ElemCount;
             }
         }
     }
+
+    glDisable(GL_SCISSOR_TEST);
+
     rc=SDL_RenderSetClipRect(m_renderer,NULL);
     ASSERT(rc==0);
 }
@@ -546,11 +590,11 @@ int main(int argc,char *argv[]) {
     //_crtBreakAlloc=191;
 #endif
 
+    SDL_SetHint(SDL_HINT_RENDER_DRIVER,"opengl");
+
     if(SDL_Init(SDL_INIT_TIMER|SDL_INIT_VIDEO|SDL_INIT_EVENTS)!=0) {
         FatalSDLError("SDL_Init");
     }
-
-    SDL_SetHint(SDL_HINT_RENDER_DRIVER,"opengles2");
 
     g_update_window_event_type=SDL_RegisterEvents(1);
     SDL_AddTimer(20,&HandleUpdateWindowTimer,NULL);
