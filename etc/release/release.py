@@ -366,7 +366,7 @@ if __name__=="__main__":
 
     if sys.platform not in PLATFORMS: fatal("unsupported platform: %s"%sys.platform)
     if sys.platform=="win32":
-        if os.getenv("VS140COMNTOOLS") is None: fatal("VS140COMNTOOLS not set - is VS2015 installed?")
+        # if os.getenv("VS140COMNTOOLS") is None: fatal("VS140COMNTOOLS not set - is VS2015 installed?")
         default_make="snmake.exe"
     else:
         default_make="make"
@@ -383,6 +383,6 @@ if __name__=="__main__":
     parser.add_argument("release_name",metavar="NAME",help="name for release. Embedded into executable, and used to generate output file name")
     
     if sys.platform=='win32':
-        parser.add_argument('--vs',metavar='YEAR',default='2015',help='use Visual Studio version %(metavar)s. Default: %(default)s')
+        parser.add_argument('--vs',metavar='YEAR',default='2017',help='use Visual Studio version %(metavar)s. Default: %(default)s')
     
     main(parser.parse_args(sys.argv[1:]))
