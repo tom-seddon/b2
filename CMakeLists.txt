@@ -12,7 +12,7 @@ include(FindPkgConfig)
 # Prefer newer GL libraries.
 # 
 # https://cmake.org/cmake/help/latest/policy/CMP0072.html
-cmake_policy(SET CMP0072 NEW)
+# cmake_policy(SET CMP0072 NEW)
 set(OpenGL_GL_PREFERENCE GLVND)
 
 ##########################################################################
