@@ -1992,6 +1992,8 @@ bool BeebWindow::DoBeebDisplayUI() {
 //////////////////////////////////////////////////////////////////////////
 
 bool BeebWindow::HandleVBlank(uint64_t ticks) {
+    ImGuiContextSetter setter(m_imgui_stuff);
+
     Timer tmr(&g_HandleVBlank_timer_def);
 
     bool keep_window=true;
@@ -2002,8 +2004,6 @@ bool BeebWindow::HandleVBlank(uint64_t ticks) {
 
     {
         Timer tmr2(&g_HandleVBlank_end_of_frame_timer_def);
-
-        ImGuiContextSetter setter(m_imgui_stuff);
 
         VBlankRecord *vblank_record=this->NewVBlankRecord(ticks);
 
