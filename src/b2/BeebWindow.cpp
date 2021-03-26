@@ -1815,6 +1815,24 @@ size_t BeebWindow::ConsumeTVTexture(OutputDataBuffer<VideoDataUnit> *video_outpu
     return num_units_consumed;
 }
 
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool BeebWindow::InhibitUpdateTVTexture() const {
+#if BBCMICRO_DEBUGGER
+
+    if(m_test_pattern) {
+        return true;
+    }
+
+#endif
+
+    return false;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 void BeebWindow::BeginUpdateTVTexture(bool threaded,void *dest_pixels,int dest_pitch) {
     if(threaded) {
         {
@@ -1823,7 +1841,7 @@ void BeebWindow::BeginUpdateTVTexture(bool threaded,void *dest_pixels,int dest_p
             m_update_tv_texture_state.update=true;
             m_update_tv_texture_state.update_video_output=m_beeb_thread->GetVideoOutput();
             m_update_tv_texture_state.update_tv=&m_tv;
-            m_update_tv_texture_state.update_inhibit=m_test_pattern;
+            m_update_tv_texture_state.update_inhibit=this->InhibitUpdateTVTexture();
             m_update_tv_texture_state.update_dest_pixels=dest_pixels;
             m_update_tv_texture_state.update_dest_pitch=dest_pitch;
         }
@@ -1848,9 +1866,10 @@ void BeebWindow::EndUpdateTVTexture(bool threaded,VBlankRecord *vblank_record,vo
     } else {
         m_tv.SetInterlace(m_settings.display_interlace);
 
+        bool inhibit_update=this->InhibitUpdateTVTexture();
         size_t num_units_consumed=this->ConsumeTVTexture(m_beeb_thread->GetVideoOutput(),
                                                          &m_tv,
-                                                         m_test_pattern);
+                                                         inhibit_update);
 
         vblank_record->num_video_units=num_units_consumed;
         

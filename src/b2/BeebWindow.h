@@ -441,6 +441,7 @@ private:
     void ClearConsole();
     void PrintSeparator();
     static size_t ConsumeTVTexture(OutputDataBuffer<VideoDataUnit> *video_output,TVOutput *tv,bool inhibit_update);
+    bool InhibitUpdateTVTexture() const;
     void BeginUpdateTVTexture(bool threaded,void *dest_pixels,int dest_pitch);
     void EndUpdateTVTexture(bool threaded,VBlankRecord *vblank_record,void *dest_pixels,int dest_pitch);
     VBlankRecord *NewVBlankRecord(uint64_t ticks);
