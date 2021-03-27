@@ -21,7 +21,7 @@ install:
       if ($env:CI_WINDOWS -eq $true) {
         echo 'Windows'
         $env:deploy=$true
-        $env:OUTPUT_NAME=$ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath("./build/_Rel/win32/b2-windows-"+$env:SUFFIX+".zip")
+        $env:OUTPUT_NAME="build/_Rel/win32/b2-windows-"+$env:SUFFIX+".zip"
       } elseif ($env:CI_LINUX -eq $true) {
         echo 'Linux'
         $env:deploy=$false
@@ -30,7 +30,7 @@ install:
       } elseif ($env:CI_MACOS -eq $true) {
         echo 'macOS'
         $env:deploy=$true
-        $env:OUTPUT_NAME=$ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath("./build/_Rel/osx/b2-osx-"+$env:SUFFIX+".dmg")
+        $env:OUTPUT_NAME="build/_Rel/osx/b2-osx-"+$env:SUFFIX+".dmg"
         $env:HOMEBREW_NO_AUTO_UPDATE=1
         $env:HOMEBREW_NO_INSTALL_CLEANUP=1
         brew install ninja
