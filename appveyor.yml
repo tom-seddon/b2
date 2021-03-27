@@ -42,7 +42,6 @@ install:
         $env:PLATFORM=unknown
         $env:deploy=$false
       }
-  - ps: $env:OUTPUT_NAME = "b2-"+$env:PLATFORM+"-"+$env:SUFFIX+".zip"
   - ps: 'dir env:'
   - git submodule init
   - git submodule update
