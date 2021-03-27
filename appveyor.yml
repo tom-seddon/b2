@@ -15,18 +15,39 @@ image:
 
 install:
   - ps: 'dir env:'
-  # - git submodule init
-  # - git submodule update
-  # - ps: $env:SUFFIX = $(git log -1 --format=%cd-%h --date=format:%Y%m%d-%H%M%S $env:APPVEYOR_REPO_COMMIT)
-  # - ps: $env:TIMESTAMP = $(git log -1 --format=%cd --date=format:%Y%m%d-%H%M%S $env:APPVEYOR_REPO_COMMIT)
-  # - ps: $env:RELEASE_NAME = "b2-"+$env:SUFFIX
-  # - ps: $env:OUTPUT_NAME = "b2-windows-"+$env:SUFFIX+".zip"
+  - ps: $env:SUFFIX = $(git log -1 --format=%cd-%h --date=format:%Y%m%d-%H%M%S $env:APPVEYOR_REPO_COMMIT)
+  - ps: $env:TIMESTAMP = $(git log -1 --format=%cd --date=format:%Y%m%d-%H%M%S $env:APPVEYOR_REPO_COMMIT)
+  - ps: $env:RELEASE_NAME = "b2-"+$env:SUFFIX
+  - ps: |
+      if ($env:CI_WINDOWS -eq true) {
+        echo 'Windows'
+        $env:deploy=$true
+        $env:OUTPUT_NAME="b2-windows-"+$env:SUFFIX+".zip"
+        $env:OUTPUT_PATH="./build/_Rel/win32/"+$env:OUTPUT_NAME
+      } elseif ($env:CI_LINUX -eq true) {
+        echo 'Linux'
+        $env:deploy=$false
+      } elseif ($env:CI_MACOS -eq true) {
+        echo 'macOS'
+        $env:deploy=$true
+        $env:OUTPUT_NAME="b2-osx-"+$env:SUFFIX+".dmg"
+        $env:OUTPUT_PATH="./build/_Rel/osx/"+$env:OUTPUT_NAME
+        brew install ninja
+        brew install ffmpeg
+      } else {
+        echo 'Unknown platform'
+        $env:PLATFORM=unknown
+        $env:deploy=$false
+      }
+  - git submodule init
+  - git submodule update
+  - ps: $env:OUTPUT_NAME = "b2-"+$env:PLATFORM+"-"+$env:SUFFIX+".zip"
   
 build_script:
   - ps: 'echo "OUTPUT_NAME: $env:OUTPUT_NAME"'
-  # - python ./etc/release/release.py --timestamp=%TIMESTAMP% --make=./snmake.exe %SUFFIX%
-  # # this seems like the easiest way of getting rid of the folder structure...
-  # - copy build\_Rel\win32\%OUTPUT_NAME% %OUTPUT_NAME%
+  - python ./etc/release/release.py --timestamp=%TIMESTAMP% --make=./snmake.exe %SUFFIX%
+  # this seems like the easiest way of getting rid of the folder structure...
+  - ps: copy "$env:OUTPUT_PATH" "$env:OUTPUT_NAME"
 
 artifacts:
   - path: $(OUTPUT_NAME)
@@ -43,3 +64,4 @@ deploy:
     prerelease: false
     on:
       branch: master
+      deploy: true
