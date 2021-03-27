@@ -23,7 +23,7 @@ install:
   # - ps: $env:OUTPUT_NAME = "b2-windows-"+$env:SUFFIX+".zip"
   
 build_script:
-  - ps: echo "OUTPUT_NAME: $env:OUTPUT_NAME"
+  - ps: 'echo "OUTPUT_NAME: $env:OUTPUT_NAME"'
   # - python ./etc/release/release.py --timestamp=%TIMESTAMP% --make=./snmake.exe %SUFFIX%
   # # this seems like the easiest way of getting rid of the folder structure...
   # - copy build\_Rel\win32\%OUTPUT_NAME% %OUTPUT_NAME%
