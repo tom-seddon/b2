@@ -32,6 +32,8 @@ install:
         $env:deploy=$true
         $env:OUTPUT_NAME="b2-osx-"+$env:SUFFIX+".dmg"
         $env:OUTPUT_PATH="./build/_Rel/osx/"+$env:OUTPUT_NAME
+        $env:HOMEBREW_NO_AUTO_UPDATE=1
+        $env:HOMEBREW_NO_INSTALL_CLEANUP=1
         brew install ninja
         brew install ffmpeg
       } else {
