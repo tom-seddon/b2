@@ -38,12 +38,13 @@ install:
         brew install ninja
         brew install ffmpeg
         # brew install libav
-        which pkg-config
-        pkg-config --variable pc_path pkg-config
-        ls /usr/local/bin/
-        ls /usr/local/lib/
-        ls /usr/local/lib/pkgconfig/
-        # pkg-config --libs libavcodec
+        # which pkg-config
+        # pkg-config --variable pc_path pkg-config
+        # ls -l /usr/local/bin/
+        # ls -l /usr/local/lib/
+        # ls -l /usr/local/lib/pkgconfig/
+        $env:PKG_CONFIG_PATH=$env:PKG_CONFIG_PATH+":/usr/local/lib/pkgconfig"
+        pkg-config --libs libavcodec
       } else {
         echo 'Unknown platform'
         $env:PLATFORM=unknown
