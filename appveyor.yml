@@ -37,6 +37,9 @@ install:
         $env:HOMEBREW_NO_INSTALL_CLEANUP=1
         brew install ninja
         brew install ffmpeg
+        brew install libav
+        pkg-config --variable pc_path pkg-config
+        pkg-config --libs libavcodec
       } else {
         echo 'Unknown platform'
         $env:PLATFORM=unknown
