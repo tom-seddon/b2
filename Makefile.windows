@@ -1,5 +1,4 @@
 # -*- mode:makefile-gmake; -*-
-_RM:=cmd /c rd /s /q
 
 ##########################################################################
 ##########################################################################
@@ -33,7 +32,7 @@ _older_vs:
 .PHONY:_older_vs_2
 _older_vs_2: FOLDER=$(BUILD_FOLDER)/$(FOLDER_PREFIX)win$(BITS).vs$(VSYEAR)
 _older_vs_2:
-	-cmd /c rd /s /q "$(FOLDER)"
+	-cmd /c rd /s /q "$(FOLDER)" 2>nul
 	cmd /c mkdir "$(FOLDER)"
 	cd "$(FOLDER)" && cmake $(CMAKE_DEFINES) -G "$(strip Visual Studio $(VSVER) $(TYPE_SUFFIX))" ../..
 	cmd /c copy etc\b2.ChildProcessDbgSettings "$(FOLDER)"
@@ -49,7 +48,7 @@ _newer_vs:
 .PHONY:_newer_vs_2
 _newer_vs_2: FOLDER=$(BUILD_FOLDER)/$(FOLDER_PREFIX)win$(BITS).vs$(VSYEAR)
 _newer_vs_2:
-	-cmd /c rd /s /q "$(FOLDER)"
+	-cmd /c rd /s /q "$(FOLDER)" 2>nul
 	cmd /c mkdir "$(FOLDER)"
 	cd "$(FOLDER)" && cmake $(CMAKE_DEFINES) -G "$(strip Visual Studio $(VSVER))" -A "$(strip $(ARCH))" ../..
 	cmd /c copy etc\b2.ChildProcessDbgSettings "$(FOLDER)"
