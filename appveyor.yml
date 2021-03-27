@@ -53,10 +53,7 @@ install:
   - git submodule update
   
 build_script:
-  - ps: 'echo "OUTPUT_NAME: $env:OUTPUT_NAME"'
-  - ps: python ./etc/release/release.py --make-jobs=1 --timestamp=$env:TIMESTAMP $env:SUFFIX
-  # this seems like the easiest way of getting rid of the folder structure...
-  # - ps: copy "$env:OUTPUT_PATH" "$env:OUTPUT_NAME"
+  - ps: python -u ./etc/release/release.py --verbose --timestamp=$env:TIMESTAMP $env:SUFFIX
 
 artifacts:
   - path: $(OUTPUT_NAME)
