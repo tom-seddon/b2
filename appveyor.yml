@@ -47,7 +47,7 @@ install:
   
 build_script:
   - ps: 'echo "OUTPUT_NAME: $env:OUTPUT_NAME"'
-  - python ./etc/release/release.py --timestamp=%TIMESTAMP% --make=./snmake.exe %SUFFIX%
+  - ps: python ./etc/release/release.py --timestamp=$env:TIMESTAMP $env:SUFFIX
   # this seems like the easiest way of getting rid of the folder structure...
   - ps: copy "$env:OUTPUT_PATH" "$env:OUTPUT_NAME"
 
