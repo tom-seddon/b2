@@ -9,9 +9,9 @@ branches:
     - master
 
 image:
-  - Visual Studio 2017
+  # - Visual Studio 2017
   - Ubuntu1804
-  - macos-mojave
+  # - macos-mojave
 
 install:
   - ps: 'dir env:'
@@ -27,6 +27,7 @@ install:
       } elseif ($env:CI_LINUX -eq $true) {
         echo 'Linux'
         $env:deploy=$false
+        apt-get install libpulse-dev
       } elseif ($env:CI_MACOS -eq $true) {
         echo 'macOS'
         $env:deploy=$true
