@@ -9,9 +9,9 @@ branches:
     - master
 
 image:
-  # - Visual Studio 2017
+  - Visual Studio 2017
   # - Ubuntu1804
-  - macos-mojave
+  # - macos-mojave
 
 install:
   - ps: $env:SUFFIX = $(git log -1 --format=%cd-%h --date=format:%Y%m%d-%H%M%S $env:APPVEYOR_REPO_COMMIT)
