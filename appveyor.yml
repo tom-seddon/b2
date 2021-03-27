@@ -10,7 +10,7 @@ branches:
 
 image:
   # - Visual Studio 2017
-  - Ubuntu1804
+  # - Ubuntu1804
   - macos-mojave
 
 install:
@@ -48,7 +48,7 @@ install:
   
 build_script:
   - ps: 'echo "OUTPUT_NAME: $env:OUTPUT_NAME"'
-  - ps: python ./etc/release/release.py --timestamp=$env:TIMESTAMP $env:SUFFIX
+  - ps: python ./etc/release/release.py --make-jobs=1 --timestamp=$env:TIMESTAMP $env:SUFFIX
   # this seems like the easiest way of getting rid of the folder structure...
   # - ps: copy "$env:OUTPUT_PATH" "$env:OUTPUT_NAME"
 

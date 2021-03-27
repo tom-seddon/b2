@@ -346,7 +346,7 @@ def main(options):
         # on my laptop. By the time this script is run there ought not
         # to be any need to debug things, hopefully...
         run([options.make,
-             "-j%d"%multiprocessing.cpu_count(),
+             "-j%d"%options.make_jobs,
              init_target,
              "FOLDER_PREFIX=%s"%FOLDER_PREFIX,
              "RELEASE_MODE=1",
@@ -379,6 +379,7 @@ if __name__=="__main__":
     parser.add_argument("--skip-debug",action="store_true",help="skip any debug build that might be built")
     parser.add_argument("--skip-dylib-bundler",action="store_true",help="skip dylibbundler when building for macOS")
     parser.add_argument("--make",metavar="FILE",dest="make",default=default_make,help="use %(metavar)s as GNU make. Default: ``%(default)s''")
+    parser.add_argument('--make-jobs',metavar='N',default=multiprocessing.cpu_count(),type=int,help='run %(metavar)s GNU make jobs at once. Default: %(default)d')
     parser.add_argument("--timestamp",metavar="TIMESTAMP",dest="timestamp",default=None,type=timestamp,help="set files' atime/mtime to %(metavar)s - format must be YYYYMMDD-HHMMSS")
     parser.add_argument("release_name",metavar="NAME",help="name for release. Embedded into executable, and used to generate output file name")
     
