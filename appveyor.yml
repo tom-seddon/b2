@@ -26,6 +26,7 @@ install:
       } elseif ($env:CI_LINUX -eq $true) {
         echo 'Linux'
         $env:deploy=$false
+        sudo apt-get -y update
         sudo apt-get -y install libpulse-dev
       } elseif ($env:CI_MACOS -eq $true) {
         echo 'macOS'
