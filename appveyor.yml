@@ -14,7 +14,7 @@ image:
   - macos-mojave
 
 install:
-  - ps: dir
+  - ps: "dir env:"
   # - git submodule init
   # - git submodule update
   # - ps: $env:SUFFIX = $(git log -1 --format=%cd-%h --date=format:%Y%m%d-%H%M%S $env:APPVEYOR_REPO_COMMIT)
@@ -23,7 +23,7 @@ install:
   # - ps: $env:OUTPUT_NAME = "b2-windows-"+$env:SUFFIX+".zip"
   
 build_script:
-  # - "echo OUTPUT_NAME: %OUTPUT_NAME%"
+  - "echo OUTPUT_NAME: %OUTPUT_NAME%"
   # - python ./etc/release/release.py --timestamp=%TIMESTAMP% --make=./snmake.exe %SUFFIX%
   # # this seems like the easiest way of getting rid of the folder structure...
   # - copy build\_Rel\win32\%OUTPUT_NAME% %OUTPUT_NAME%
