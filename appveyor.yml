@@ -19,15 +19,15 @@ install:
   - ps: $env:TIMESTAMP = $(git log -1 --format=%cd --date=format:%Y%m%d-%H%M%S $env:APPVEYOR_REPO_COMMIT)
   - ps: $env:RELEASE_NAME = "b2-"+$env:SUFFIX
   - ps: |
-      if ($env:CI_WINDOWS -eq true) {
+      if ($env:CI_WINDOWS -eq $true) {
         echo 'Windows'
         $env:deploy=$true
         $env:OUTPUT_NAME="b2-windows-"+$env:SUFFIX+".zip"
         $env:OUTPUT_PATH="./build/_Rel/win32/"+$env:OUTPUT_NAME
-      } elseif ($env:CI_LINUX -eq true) {
+      } elseif ($env:CI_LINUX -eq $true) {
         echo 'Linux'
         $env:deploy=$false
-      } elseif ($env:CI_MACOS -eq true) {
+      } elseif ($env:CI_MACOS -eq $true) {
         echo 'macOS'
         $env:deploy=$true
         $env:OUTPUT_NAME="b2-osx-"+$env:SUFFIX+".dmg"
