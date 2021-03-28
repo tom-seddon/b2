@@ -61,6 +61,9 @@ public:
                         const std::shared_ptr<const BeebState> &s=saved_states[i];
                         ImGuiIDPusher id_pusher(s.get());
 
+                        int row=row_begin+(int)i;
+                        ImGui::SetCursorPos(ImVec2(0.f,row*row_height));
+
                         // Buttons
                         if(ImGuiConfirmButton("Delete")) {
                             BeebWindows::DeleteSavedState(s);
