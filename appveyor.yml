@@ -58,7 +58,7 @@ build_script:
       if($env:CI_WINDOWS -ne $true) {
         $env:RELEASE_CMD
       }
-  - cmd: %RELEASE_CMD%
+  - cmd: cmd /c %RELEASE_CMD%
 
 artifacts:
   - path: $(OUTPUT_NAME)
