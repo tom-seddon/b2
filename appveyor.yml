@@ -21,7 +21,7 @@ install:
       if ($env:CI_WINDOWS -eq $true) {
         echo 'Windows'
         $env:deploy=$true
-        $env:OUTPUT_NAME="build/_Rel/win32/b2-windows-"+$env:SUFFIX+".zip"
+        $env:OUTPUT_NAME="build\_Rel\win32\b2-windows-"+$env:SUFFIX+".zip"
       } elseif ($env:CI_LINUX -eq $true) {
         echo 'Linux'
         $env:deploy=$false
