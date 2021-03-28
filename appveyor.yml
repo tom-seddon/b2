@@ -54,7 +54,7 @@ install:
   
 build_script:
   - ps: |
-      python -u ./etc/release/release.py --skip-debug --skip-32-bit --skip-ctest --verbose --timestamp=$env:TIMESTAMP $env:SUFFIX
+      python -u ./etc/release/release.py --verbose --timestamp=$env:TIMESTAMP $env:SUFFIX
       if($LASTEXITCODE -eq 0) {
         $host.SetShouldExit(0);
       }
