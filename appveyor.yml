@@ -53,12 +53,11 @@ install:
   - git submodule update
   
 build_script:
-  - ps: $env:RELEASE_CMD=python -u ./etc/release/release.py --skip-debug --skip-32-bit --skip-ctest --verbose --timestamp=$env:TIMESTAMP $env:SUFFIX
   - ps: |
-      if($env:CI_WINDOWS -ne $true) {
-        $env:RELEASE_CMD
+      python -u ./etc/release/release.py --skip-debug --skip-32-bit --skip-ctest --verbose --timestamp=$env:TIMESTAMP $env:SUFFIX
+      if($LASTEXITCODE -eq 0) {
+        $host.SetShouldExit(0);
       }
-  - cmd: cmd /c %RELEASE_CMD%
 
 artifacts:
   - path: $(OUTPUT_NAME)
