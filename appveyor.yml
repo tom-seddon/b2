@@ -53,7 +53,7 @@ install:
   - git submodule update
   
 build_script:
-  - ps: python -u ./etc/release/release.py --verbose --timestamp=$env:TIMESTAMP $env:SUFFIX
+  - ps: python -u ./etc/release/release.py --skip-debug --skip-32-bit --skip-ctest --verbose --timestamp=$env:TIMESTAMP $env:SUFFIX
 
 artifacts:
   - path: $(OUTPUT_NAME)
