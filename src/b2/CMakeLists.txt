@@ -65,9 +65,11 @@ add_config_define(b2)
 ##########################################################################
 ##########################################################################
 
-if(DEFINED RELEASE_NAME)
-  target_compile_definitions(b2 PRIVATE RELEASE_NAME=${RELEASE_NAME})
+if(NOT DEFINED RELEASE_NAME)
+  set(RELEASE_NAME local_build)
 endif()
+
+target_compile_definitions(b2 PRIVATE RELEASE_NAME=${RELEASE_NAME})
 
 ##########################################################################
 ##########################################################################
@@ -113,6 +115,7 @@ if(APPLE)
     MACOSX_BUNDLE_GUI_IDENTIFIER "com.tom-seddon.b2"
     MACOSX_BUNDLE_INFO_PLIST ${CMAKE_CURRENT_LIST_DIR}/macos/Info.plist
     MACOSX_BUNDLE_ICON_FILE b2.icns
+    MACOSX_BUNDLE_BUNDLE_VERSION ${RELEASE_NAME}
     )
   
   target_sources(b2 PRIVATE
