@@ -153,7 +153,7 @@ if(WIN32)
     MAIN_DEPENDENCY ${ICON_PNG})
 
   add_custom_command(TARGET b2 POST_BUILD
-    COMMAND $<TARGET_FILE:rcedit> $<TARGET_FILE:b2> --set-icon ${ICON_ICO})
+    COMMAND $<TARGET_FILE:rcedit> $<TARGET_FILE:b2> --set-icon ${ICON_ICO} --set-version-string ProductVersion ${RELEASE_NAME})
   
   target_sources(b2 PRIVATE ${ICON_ICO})
   target_sources(b2 PRIVATE guids_win32.c)
