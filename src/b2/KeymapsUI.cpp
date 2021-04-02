@@ -229,6 +229,8 @@ void KeymapsUI::DoImGui() {
     ImGui::SameLine();
 
     if(ImGuiConfirmButton("Delete")) {
+        BeebKeymap *keymap=GetBeebKeymapByIndex(m_keymap_index);
+        m_beeb_window->BeebKeymapWillBeDeleted(keymap);
         BeebWindows::RemoveBeebKeymapByIndex((size_t)m_keymap_index);
         m_keymap_index=std::min(m_keymap_index,(int)BeebWindows::GetNumBeebKeymaps()-1);
     }

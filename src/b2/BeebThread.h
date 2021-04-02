@@ -556,21 +556,6 @@ public:
     };
 #endif
 
-    class CloneWindowMessage:
-        public Message
-    {
-    public:
-        explicit CloneWindowMessage(BeebWindowInitArguments init_arguments);
-
-        bool ThreadPrepare(std::shared_ptr<Message> *ptr,
-                           CompletionFun *completion_fun,
-                           BeebThread *beeb_thread,
-                           ThreadState *ts) override;
-    protected:
-    private:
-        const BeebWindowInitArguments m_init_arguments;
-    };
-
     class StartPasteMessage:
         public Message
     {

@@ -210,9 +210,9 @@ public:
 
     void ThreadFillAudioBuffer(SDL_AudioDeviceID audio_device_id,float *mix_buffer,size_t num_samples);
 
-    bool HandleVBlank(VBlankMonitor *vblank_monitor,void *display_data,uint64_t ticks);
+    void HandleVBlank(VBlankMonitor *vblank_monitor,void *display_data,uint64_t ticks);
 
-    bool HandleVBlank(uint64_t ticks);
+    void HandleVBlank(uint64_t ticks);
 
     void UpdateTitle();
 
@@ -413,9 +413,9 @@ private:
 
     bool InitInternal();
     static void UpdateTVTextureThread(UpdateTVTextureThreadState *state);
-    bool DoImGui(uint64_t ticks);
+    void DoImGui(uint64_t ticks);
     bool HandleCommandKey(uint32_t keycode,const CommandContext *ccs,size_t num_ccs);
-    bool DoMenuUI();
+    void DoMenuUI();
     CommandContext DoSettingsUI();
     void DoPopupUI(uint64_t now,int output_width,int output_height);
     void DoFileMenu();

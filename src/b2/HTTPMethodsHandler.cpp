@@ -109,6 +109,11 @@ class HTTPMethodsHandler:
         HTTPRequest request;
     };
 public:
+    explicit HTTPMethodsHandler(BeebWindow *beeb_window):
+    m_beeb_window(beeb_window)
+    {
+    }
+
     bool ThreadHandleRequest(HTTPResponse *response,HTTPServer *server,HTTPRequest &&request) {
         (void)response;
 
@@ -139,6 +144,7 @@ private:
         {"mount",&HTTPMethodsHandler::HandleMountRequest},
         {"run",&HTTPMethodsHandler::HandleRunRequest},
     };
+    BeebWindow *m_beeb_window=nullptr;
 
     // Parse path parts.
     //
@@ -250,11 +256,12 @@ private:
             } else if(strcmp(fmt,"window")==0) {
                 auto ptr=va_arg(v,BeebWindow **);
                 if(value) {
-                    *ptr=BeebWindows::FindBeebWindowByName(*value);
-                    if(!*ptr) {
+                    if(*value!="b2") {
+                        // Ugly compatibility hack, so old curl invocations don't break.
                         server->SendResponse(request,HTTPResponse::NotFound(request));
                         return false;
                     }
+                    *ptr=m_beeb_window;
                 }
             } else {
                 ASSERT(false);
@@ -579,8 +586,8 @@ private:
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-std::unique_ptr<HTTPHandler> CreateHTTPMethodsHandler() {
-    return std::make_unique<HTTPMethodsHandler>();
+std::unique_ptr<HTTPHandler> CreateHTTPMethodsHandler(BeebWindow *beeb_window) {
+    return std::make_unique<HTTPMethodsHandler>(beeb_window);
 }
 
 //////////////////////////////////////////////////////////////////////////

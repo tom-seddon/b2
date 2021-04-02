@@ -1095,35 +1095,6 @@ bool BeebThread::StopTraceMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-BeebThread::CloneWindowMessage::CloneWindowMessage(BeebWindowInitArguments init_arguments):
-    m_init_arguments(std::move(init_arguments))
-{
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-bool BeebThread::CloneWindowMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
-                                                   CompletionFun *completion_fun,
-                                                   BeebThread *beeb_thread,
-                                                   ThreadState *ts)
-{
-    (void)completion_fun;
-
-    BeebWindowInitArguments init_arguments=m_init_arguments;
-
-    //init_arguments.initially_paused=false;
-    init_arguments.initial_state=beeb_thread->ThreadSaveState(ts);
-
-    PushNewWindowMessage(init_arguments);
-
-    ptr->reset();
-    return true;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 BeebThread::StartPasteMessage::StartPasteMessage(std::string text):
     m_text(std::make_shared<std::string>(std::move(text)))
 {

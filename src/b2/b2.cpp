@@ -206,6 +206,7 @@ struct FillAudioBufferData {
     std::vector<float> mix_buffer;
 
     uint64_t first_call_ticks=0;
+    BeebWindow *beeb_window=nullptr;
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -236,7 +237,9 @@ static void ThreadFillAudioBuffer(void *userdata,uint8_t *stream,int len) {
 
     //_mm_lfence();
 
-    BeebWindows::ThreadFillAudioBuffer(data->device,data->mix_buffer.data(),num_samples);
+    if(data->beeb_window) {
+        data->beeb_window->ThreadFillAudioBuffer(data->device,data->mix_buffer.data(),num_samples);
+    }
 
     memcpy(stream,data->mix_buffer.data(),(size_t)len);
 
@@ -259,22 +262,6 @@ static Uint32 UpdateWindowTitle(Uint32 interval,void *param) {
     PushUpdateWindowTitleEvent();
 
     return interval;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-void PushNewWindowMessage(BeebWindowInitArguments init_arguments_) {
-    SDL_Event event={};
-
-    event.user.type=g_first_event_type+SDLEventType_NewWindow;
-
-    // This relies on the message loop receiving it, so it can delete
-    // it. It's probably possible for an SDL_QUIT to end up ahead of
-    // it in the queue, meaning that the object could leak.
-    event.user.data1=new BeebWindowInitArguments(std::move(init_arguments_));
-
-    SDL_PushEvent(&event);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -719,25 +706,6 @@ static bool InitLogs(const Options &options,Messages *init_messages) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-#if SYSTEM_OSX
-static void SaveKeyWindowSettings() {
-    if(void *key_nswindow=GetKeyWindow()) {
-        for(size_t i=0;i<BeebWindows::GetNumWindows();++i) {
-            BeebWindow *window=BeebWindows::GetWindowByIndex(i);
-
-            void *window_nswindow=window->GetNSWindow();
-            if(window_nswindow==key_nswindow) {
-                window->SaveSettings();
-                break;
-            }
-        }
-    }
-}
-#endif
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 #if RMT_ENABLED
 static void SetRmtThreadName(const char *name,void *context) {
     (void)context;
@@ -818,10 +786,8 @@ static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &init
     if(!http_server->Start(0xbbcb)) {
         init_messages.w.f("Failed to start HTTP server.\n");
         // but carry on... it's not fatal.
+        http_server=nullptr;
     }
-
-    auto http_handler=CreateHTTPMethodsHandler();
-    http_server->SetHandler(http_handler.get());
 #endif
 
 #if HAVE_FFMPEG
@@ -943,15 +909,31 @@ static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &init
             ia.boot=options.boot;
         }
 
-        if(!BeebWindows::CreateBeebWindow(ia)) {
-            init_messages.e.f("FATAL: failed to open initial window.\n");
+        auto beeb_window=std::make_unique<BeebWindow>(std::move(ia));
+
+        if(!beeb_window->Init()) {
+            beeb_window=nullptr;
+
+            init_messages.e.f("FATAL: failed to create window.\n");
             return false;
         }
+
+#if HTTP_SERVER
+        std::unique_ptr<HTTPHandler> http_handler;
+        if(!!http_server) {
+            http_handler=CreateHTTPMethodsHandler(beeb_window.get());
+            http_server->SetHandler(http_handler.get());
+        }
+#endif
+
+        SDL_LockAudioDevice(audio_device);
+        g_fill_audio_buffer_data.beeb_window=beeb_window.get();
+        SDL_UnlockAudioDevice(audio_device);
 
         // not needed any more.
         init_message_list->ClearMessages();
 
-        while(BeebWindows::GetNumWindows()>0) {
+        for(;;) {
             SDL_Event event;
 
             {
@@ -970,7 +952,7 @@ static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &init
                 // one) are saved.
                 //
                 // This is a bit of a hack.
-                SaveKeyWindowSettings();
+                beeb_window->SaveSettings();
 #endif
                 goto done;
             }
@@ -1022,9 +1004,7 @@ static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &init
                                 if(auto dd=(b2VBlankHandler::Display *)vblank_monitor->GetDisplayDataForDisplayID((uint32_t)event.user.code)) {
                                     uint64_t ticks=GetCurrentTickCount();
 
-                                    {
-                                        BeebWindows::HandleVBlank(vblank_monitor.get(),dd,ticks);
-                                    }
+                                    beeb_window->HandleVBlank(vblank_monitor.get(),dd,ticks);
 
                                     {
                                         std::lock_guard<Mutex> lock(dd->mutex);
@@ -1038,19 +1018,7 @@ static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &init
                         case SDLEventType_UpdateWindowTitle:
                             {
                                 rmt_ScopedCPUSample(SDLEventType_UpdateWindowTitle,0);
-                                BeebWindows::UpdateWindowTitles();
-                            }
-                            break;
-
-                        case SDLEventType_NewWindow:
-                            {
-                                rmt_ScopedCPUSample(SDLEventType_NewWindow,0);
-                                auto init_arguments=(BeebWindowInitArguments *)event.user.data1;
-
-                                BeebWindows::CreateBeebWindow(*init_arguments);
-
-                                delete init_arguments;
-                                init_arguments=nullptr;
+                                beeb_window->UpdateTitle();
                             }
                             break;
 
@@ -1082,15 +1050,21 @@ static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &init
 
         SaveGlobalConfig(&init_messages);
 
-        SDL_PauseAudioDevice(audio_device,1);
+        SDL_LockAudioDevice(audio_device);
+        g_fill_audio_buffer_data.beeb_window=nullptr;
+        SDL_UnlockAudioDevice(audio_device);
 
-        BeebWindows::Shutdown();
-        //Timeline::Shutdown();
+        SDL_PauseAudioDevice(audio_device,1);
 
 #if HTTP_SERVER
         http_server=nullptr;
         http_handler=nullptr;
 #endif
+
+        beeb_window=nullptr;
+
+        BeebWindows::Shutdown();
+        //Timeline::Shutdown();
 
         vblank_monitor=nullptr;
         vblank_handler=nullptr;

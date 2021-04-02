@@ -615,11 +615,9 @@ static size_t CleanUpRecentPaths(const std::string &tag,bool (*exists_fn)(const 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool BeebWindow::DoImGui(uint64_t ticks) {
+void BeebWindow::DoImGui(uint64_t ticks) {
     int output_width,output_height;
     SDL_GetRendererOutputSize(m_renderer,&output_width,&output_height);
-
-    bool keep_window=true;
 
 #if BBCMICRO_DEBUGGER
     m_got_debug_halted=false;
@@ -672,9 +670,7 @@ bool BeebWindow::DoImGui(uint64_t ticks) {
         {
             ImGuiStyleVarPusher vpusher2(ImGuiStyleVar_WindowPadding,IMGUI_DEFAULT_STYLE.WindowPadding);
 
-            if(!this->DoMenuUI()) {
-                keep_window=false;
-            }
+            this->DoMenuUI();
         }
 
         {
@@ -784,8 +780,6 @@ bool BeebWindow::DoImGui(uint64_t ticks) {
     }
 
     m_sdl_keyboard_events.clear();
-
-    return keep_window;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -809,9 +803,7 @@ bool BeebWindow::HandleCommandKey(uint32_t keycode,
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool BeebWindow::DoMenuUI() {
-    bool keep_window=true;
-
+void BeebWindow::DoMenuUI() {
     if(ImGui::BeginMainMenuBar()) {
         this->DoFileMenu();
         this->DoEditMenu();
@@ -819,13 +811,8 @@ bool BeebWindow::DoMenuUI() {
         this->DoKeyboardMenu();
         this->DoToolsMenu();
         this->DoDebugMenu();
-        if(!this->DoWindowMenu()) {
-            keep_window=false;
-        }
         ImGui::EndMainMenuBar();
     }
-
-    return keep_window;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -975,66 +962,6 @@ CommandContext BeebWindow::DoSettingsUI() {
             }
         }
     }
-
-//    for(const SettingsUIMetadata *ui=ms_settings_uis;ui->type!=BeebWindowPopupType_MaxValue;++ui) {
-//        uint64_t mask=(uint64_t)1<<ui->type;
-//        bool opened=!!(m_settings.popups&mask);
-//
-//        SettingsUI *popup=m_popups[ui->type].get();
-//
-//        if(opened) {
-//            ImGui::SetNextDock(ImGuiDockSlot_None);
-//            ImVec2 default_pos=ImVec2(10.f,30.f);
-//            ImVec2 default_size=ImGui::GetIO().DisplaySize*.4f;
-//
-//            // The extra flags could be wrong for the first frame
-//            // after the window is created.
-//            ImGuiWindowFlags extra_flags=0;
-//            if(popup) {
-//                extra_flags|=(ImGuiWindowFlags)popup->GetExtraImGuiWindowFlags();
-//            }
-//
-//            if(ImGui::BeginDock(ui->name,&opened,extra_flags,default_size,default_pos)) {
-//                if(!popup) {
-//                    m_popups[ui->type]=(*ui->create_fn)(this);
-//                    ASSERT(!!m_popups[ui->type]);
-//                    popup=m_popups[ui->type].get();
-//                    popup->SetName(ui->name);
-//                }
-//
-//                if(ImGui::IsWindowFocused(ImGuiFocusedFlags_ChildWindows)) {
-//                    if(const CommandTable *table=popup->GetCommandTable()) {
-//                        cc=CommandContext(popup,table);
-//                    }
-//                }
-//
-//                popup->DoImGui();
-//
-////                if(m_popups[ui->type]->WantsKeyboardFocus()) {
-////                    m_imgui_has_kb_focus=true;
-////                }
-//
-//                m_settings.popups|=mask;
-//            }
-//            ImGui::EndDock();
-//
-//            if(!opened) {
-//                m_settings.popups&=~mask;
-//
-//                // Leave the deletion until the next frame -
-//                // references to its textures might still be queued up
-//                // in the dear imgui drawlists.
-//            }
-//        } else {
-//            if(m_popups[ui->type]) {
-//                if(m_popups[ui->type]->OnClose()) {
-//                    this->SaveConfig();
-//                }
-//
-//                m_popups[ui->type]=nullptr;
-//            }
-//        }
-//    }
 
     if(ValueChanged(&m_msg_last_num_errors_and_warnings_printed,m_message_list->GetNumErrorsAndWarningsPrinted())) {
         m_settings.popups|=1<<BeebWindowPopupType_Messages;
@@ -1673,56 +1600,6 @@ void BeebWindow::DoDebugMenu() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool BeebWindow::DoWindowMenu() {
-    bool keep_window=true;
-
-    if(ImGui::BeginMenu("Window")) {
-        {
-            char name[100];
-            strlcpy(name,m_name.c_str(),sizeof name);
-
-            if(ImGui::InputText("Name",name,sizeof name,ImGuiInputTextFlags_EnterReturnsTrue|ImGuiInputTextFlags_AutoSelectAll)) {
-                BeebWindows::SetBeebWindowName(this,name);
-            }
-        }
-
-        ImGui::Separator();
-
-        if(ImGui::MenuItem("New")) {
-            PushNewWindowMessage(this->GetNewWindowInitArguments());
-        }
-
-        if(ImGui::MenuItem("Clone")) {
-            BeebWindowInitArguments init_arguments=this->GetNewWindowInitArguments();
-
-            if(m_settings.keymap) {
-                init_arguments.keymap_name=m_settings.keymap->GetName();
-            }
-
-            init_arguments.settings=m_settings;
-            init_arguments.use_settings=true;
-
-            m_beeb_thread->Send(std::make_shared<BeebThread::CloneWindowMessage>(init_arguments));
-        }
-
-        ImGui::Separator();
-
-        if(ImGui::BeginMenu("Close")) {
-            if(ImGui::MenuItem("Confirm")) {
-                keep_window=false;
-            }
-            ImGui::EndMenu();
-        }
-
-        ImGui::EndMenu();
-    }
-
-    return keep_window;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 void BeebWindow::UpdateTVTextureThread(UpdateTVTextureThreadState *state) {
     std::unique_lock<Mutex> lock(state->mutex);
 
@@ -2010,12 +1887,10 @@ bool BeebWindow::DoBeebDisplayUI() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool BeebWindow::HandleVBlank(uint64_t ticks) {
+void BeebWindow::HandleVBlank(uint64_t ticks) {
     ImGuiContextSetter setter(m_imgui_stuff);
 
     Timer tmr(&g_HandleVBlank_timer_def);
-
-    bool keep_window=true;
 
     // don't use m_update_tv_texture_thread_enabled directly - it might change
     // during the DoImGui call.
@@ -2037,9 +1912,7 @@ bool BeebWindow::HandleVBlank(uint64_t ticks) {
         {
             Timer tmr3(&g_HandleVBlank_DoImGui_timer_def);
 
-            if(!this->DoImGui(ticks)) {
-                keep_window=false;
-            }
+            this->DoImGui(ticks);
 
             m_imgui_stuff->RenderImGui();
         }
@@ -2094,8 +1967,6 @@ bool BeebWindow::HandleVBlank(uint64_t ticks) {
         m_imgui_stuff->NewFrame(got_mouse_focus);
 
         m_pushed_window_padding=true;
-
-        return keep_window;
     }
 }
 
@@ -2636,7 +2507,7 @@ const std::string &BeebWindow::GetConfigName() const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool BeebWindow::HandleVBlank(VBlankMonitor *vblank_monitor,void *display_data,uint64_t ticks) {
+void BeebWindow::HandleVBlank(VBlankMonitor *vblank_monitor,void *display_data,uint64_t ticks) {
     // There's an API for exactly this on Windows. But it's probably
     // better to have the same code on every platform. 99% of the time
     // (and possibly even more often than that...) this will get the
@@ -2649,7 +2520,7 @@ bool BeebWindow::HandleVBlank(VBlankMonitor *vblank_monitor,void *display_data,u
 
     void *dd=vblank_monitor->GetDisplayDataForPoint(wx+ww/2,wy+wh/2);
     if(dd!=display_data) {
-        return true;
+        return;
     }
 
     return this->HandleVBlank(ticks);

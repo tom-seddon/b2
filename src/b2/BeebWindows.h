@@ -55,25 +55,11 @@ extern std::string default_config_name;
 bool Init();
 void Shutdown();
 
-// (This was supposed to be "CreateWindow", but it had to avoid
-// using the Windows CreateWindow define.)
-//
-// There isn't all that much you can do with the result except
-// check if it is nullptr - in which case the creation failed.
-BeebWindow *CreateBeebWindow(BeebWindowInitArguments init_arguments);
-
-size_t GetNumWindows();
-BeebWindow *GetWindowByIndex(size_t index);
-
 void HandleSDLWindowEvent(const SDL_WindowEvent &event);
 void HandleSDLKeyEvent(const SDL_KeyboardEvent &event);
 void SetSDLMouseWheelState(uint32_t sdl_window_id,int x,int y);
 void HandleSDLTextInput(uint32_t sdl_window_id,const char *text);
 void HandleSDLMouseMotionEvent(const SDL_MouseMotionEvent &event);
-
-void HandleVBlank(VBlankMonitor *vblank_monitor,void *display_data,uint64_t ticks);
-
-void ThreadFillAudioBuffer(uint32_t audio_device_id,float *mix_buffer,size_t mix_buffer_size);
 
 void UpdateWindowTitles();
 
@@ -91,15 +77,6 @@ void BeebKeymapDidChange(size_t index);
 
 size_t GetNumBeebKeymaps();
 BeebKeymap *GetBeebKeymapByIndex(size_t index);
-
-// For each keymap k,
-// in the keymap list, calls func (k). If func returns false,
-// stop iteration and return the keymap it returned false for.
-//
-// Adding/removing keymaps in the loop is safe, but keymaps may be
-// missed or seen multiple times and/or the ForEach return value
-// might be wrong.
-//BeebKeymap *ForEachBeebKeymap(const std::function<bool(BeebKeymap *)> &func);
 
 // Keymaps are not optimised for retrieval by name.
 BeebKeymap *FindBeebKeymapByName(const std::string &name);
@@ -121,9 +98,6 @@ void ConfigDidChange(size_t index);
 size_t GetNumConfigs();
 BeebConfig *GetConfigByIndex(size_t index);
 
-// When necessary, name will be adjusted to make it unique.
-void SetBeebWindowName(BeebWindow *window,std::string name);
-
 // Add job to the job queue.
 void AddJob(std::shared_ptr<JobQueue::Job> job);
 
@@ -131,8 +105,6 @@ void AddJob(std::shared_ptr<JobQueue::Job> job);
 std::vector<std::shared_ptr<JobQueue::Job>> GetJobs();
 
 BeebWindow *FindBeebWindowBySDLWindowID(uint32_t sdl_window_id);
-
-BeebWindow *FindBeebWindowByName(const std::string &name);
 
 const std::vector<uint8_t> &GetLastWindowPlacementData();
 void SetLastWindowPlacementData(std::vector<uint8_t> placement_data);
