@@ -17,6 +17,10 @@ const DiscGeometry ADM_GEOMETRY(80,16,256,false,true);
 const DiscGeometry ADL_GEOMETRY(80,16,256,true,true);
 const DiscGeometry ADS_GEOMETRY(40,16,256,false,true);
 
+static const size_t ADS_SIZE=ADS_GEOMETRY.GetTotalNumBytes();
+static const size_t ADM_SIZE=ADM_GEOMETRY.GetTotalNumBytes();
+static const size_t ADL_SIZE=ADL_GEOMETRY.GetTotalNumBytes();
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
@@ -66,22 +70,23 @@ struct DiscImageType {
 #define ADM_EXT ".adm"
 #define ADL_EXT ".adl"
 #define ADS_EXT ".ads"
+#define ADF_EXT ".adf"
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static bool FindSingleDensityDiscGeometry(DiscGeometry *geometry,const char *name,size_t size,Messages *msg,const DiscImageType *disc_image_type) {
-    ASSERT(disc_image_type->num_possible_geometries==1);
-    ASSERT(!disc_image_type->possible_geometries[0].double_density);
-    *geometry=DiscGeometry(80,10,256,disc_image_type->possible_geometries[0].double_sided);
+static void PrintInvalidSizeMessage(const char *name,Messages *msg) {
+    msg->e.f("invalid size");
+    if(name) {
+        msg->e.f(" for file: %s",name);
+    }
+    msg->e.f("\n");
+}
 
+static bool IsMultipleOfSectorSize(const char *name,size_t size,Messages *msg) {
     if(size%256!=0) {
         if(msg) {
-            msg->e.f("invalid size");
-            if(name) {
-                msg->e.f(" for file: %s",name);
-            }
-            msg->e.f("\n");
+            PrintInvalidSizeMessage(name,msg);
 
             msg->i.f("(length %zu not a multiple of sector size 256)\n",
                      size);
@@ -89,14 +94,23 @@ static bool FindSingleDensityDiscGeometry(DiscGeometry *geometry,const char *nam
         return false;
     }
 
+    return true;
+}
+
+static bool FindSingleDensityDiscGeometry(DiscGeometry *geometry,const char *name,size_t size,Messages *msg,const DiscImageType *disc_image_type) {
+    ASSERT(disc_image_type->num_possible_geometries==1);
+    ASSERT(!disc_image_type->possible_geometries[0].double_density);
+    *geometry=DiscGeometry(80,10,256,disc_image_type->possible_geometries[0].double_sided);
+
+    if(!IsMultipleOfSectorSize(name,size,msg)) {
+        return false;
+    }
+
     if(size>geometry->GetTotalNumBytes()) {
         if(msg) {
-            msg->e.f("invalid size");
-            if(name) {
-                msg->e.f(" for file: %s",name);
-            }
-            msg->e.f("\n");
-            msg->i.f("(length %zu larger than maximum %zu for %d*%zu*%zu sectors)\n",
+            PrintInvalidSizeMessage(name,msg);
+
+            msg->i.f("(size %zu bytes is larger than maximum %zu bytes for %d*%zu*%zu sectors)\n",
                      size,
                      geometry->GetTotalNumBytes(),
                      geometry->double_sided?2:1,
@@ -120,11 +134,7 @@ static bool FindDiscGeometryFromFileSize(DiscGeometry *geometry,const char *name
     }
 
     if(msg) {
-        msg->e.f("invalid size");
-        if(name) {
-            msg->e.f(" for file: %s",name);
-        }
-        msg->e.f("\n");
+        PrintInvalidSizeMessage(name,msg);
 
         msg->i.f("(size is %zu; valid sizes are: ",size);
         for(size_t i=0;i<disc_image_type->num_possible_geometries;++i) {
@@ -140,6 +150,29 @@ static bool FindDiscGeometryFromFileSize(DiscGeometry *geometry,const char *name
     return false;
 }
 
+static bool FindADFSDiscGeometry(DiscGeometry *geometry,const char *name,size_t size,Messages *msg,const DiscImageType *disc_image_type)
+{
+    if(!IsMultipleOfSectorSize(name,size,msg)) {
+        return false;
+    }
+
+    if(size>ADL_SIZE) {
+        PrintInvalidSizeMessage(name,msg);
+
+        msg->i.f("(size is %zu; max valid size is %zu",size,ADL_SIZE);
+
+        return false;
+    } else if(size>ADM_SIZE&&size<=ADL_SIZE) {
+        *geometry=ADL_GEOMETRY;
+    } else if(size>ADS_SIZE&&size<=ADM_SIZE) {
+        *geometry=ADM_GEOMETRY;
+    } else {
+        *geometry=ADS_GEOMETRY;
+    }
+
+    return true;
+}
+
 static const DiscImageType DISC_IMAGE_TYPES[]={
     {SSD_EXT,"application/vnd.acorn.disc-image.ssd",&FindSingleDensityDiscGeometry,&SSD_GEOMETRY,1},
     {DSD_EXT,"application/vnd.acorn.disc-image.dsd",&FindSingleDensityDiscGeometry,&DSD_GEOMETRY,1},
@@ -148,6 +181,7 @@ static const DiscImageType DISC_IMAGE_TYPES[]={
     {ADM_EXT,"application/vnd.acorn.disc-image.adm",&FindDiscGeometryFromFileSize,&ADM_GEOMETRY,1},
     {ADL_EXT,"application/vnd.acorn.disc-image.adl",&FindDiscGeometryFromFileSize,&ADL_GEOMETRY,1},
     {ADS_EXT,"application/vnd.acorn.disc-image.ads",&FindDiscGeometryFromFileSize,&ADS_GEOMETRY,1},
+    {ADF_EXT,"application/vnd.acorn.disc-image.adf",&FindADFSDiscGeometry,nullptr,0},
     {},
 };
 
@@ -159,6 +193,7 @@ const std::vector<std::string> DISC_IMAGE_EXTENSIONS={
     ADM_EXT,
     ADL_EXT,
     ADS_EXT,
+    ADF_EXT,
 };
 
 //////////////////////////////////////////////////////////////////////////
