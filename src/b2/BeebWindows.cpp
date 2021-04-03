@@ -22,14 +22,9 @@ LOG_EXTERN(OUTPUT);
 //////////////////////////////////////////////////////////////////////////
 
 struct BeebWindowsState {
-    //std::vector<std::unique_ptr<BeebKeymap>> beeb_keymaps;
-    //std::vector<std::unique_ptr<BeebConfig>> configs;
-
     std::vector<uint8_t> last_window_placement_data;
 
     JobQueue job_queue;
-
-    uint32_t default_ui_flags=0;
 
     // This mutex must be taken when manipulating saved_states.
     Mutex saved_states_mutex;
@@ -78,77 +73,6 @@ void BeebWindows::Shutdown() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void BeebWindows::HandleSDLWindowEvent(const SDL_WindowEvent &event) {
-    ASSERT(event.type==SDL_WINDOWEVENT);
-
-    BeebWindow *window=FindBeebWindowBySDLWindowID(event.windowID);
-    if(!window) {
-        // ???
-        return;
-    }
-
-    switch(event.event) {
-    case SDL_WINDOWEVENT_CLOSE:
-        {
-            window->SaveSettings();
-
-            delete window;
-            window=nullptr;
-        }
-        break;
-
-    case SDL_WINDOWEVENT_SHOWN:
-    case SDL_WINDOWEVENT_HIDDEN:
-    case SDL_WINDOWEVENT_MOVED:
-    case SDL_WINDOWEVENT_RESIZED:
-    case SDL_WINDOWEVENT_SIZE_CHANGED:
-    case SDL_WINDOWEVENT_MAXIMIZED:
-    case SDL_WINDOWEVENT_RESTORED:
-    case SDL_WINDOWEVENT_FOCUS_GAINED:
-        window->SavePosition();
-        break;
-    }
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-void BeebWindows::HandleSDLKeyEvent(const SDL_KeyboardEvent &event) {
-    if(BeebWindow *window=FindBeebWindowBySDLWindowID(event.windowID)) {
-        window->HandleSDLKeyEvent(event);
-    }
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-void BeebWindows::SetSDLMouseWheelState(uint32_t sdl_window_id,int x,int y) {
-    if(BeebWindow *window=FindBeebWindowBySDLWindowID(sdl_window_id)) {
-        window->SetSDLMouseWheelState(x,y);
-    }
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-void BeebWindows::HandleSDLTextInput(uint32_t sdl_window_id,const char *text) {
-    if(BeebWindow *window=FindBeebWindowBySDLWindowID(sdl_window_id)) {
-        window->HandleSDLTextInput(text);
-    }
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-void BeebWindows::HandleSDLMouseMotionEvent(const SDL_MouseMotionEvent &event) {
-    if(BeebWindow *window=FindBeebWindowBySDLWindowID(event.windowID)) {
-        window->HandleSDLMouseMotionEvent(event);
-    }
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 void BeebWindows::AddJob(std::shared_ptr<JobQueue::Job> job) {
     g_->job_queue.AddJob(std::move(job));
 }
@@ -158,27 +82,6 @@ void BeebWindows::AddJob(std::shared_ptr<JobQueue::Job> job) {
 
 std::vector<std::shared_ptr<JobQueue::Job>> BeebWindows::GetJobs() {
     return g_->job_queue.GetJobs();
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-BeebWindow *BeebWindows::FindBeebWindowBySDLWindowID(uint32_t sdl_window_id) {
-    // In principle, you ought to be able to have multiple independent
-    // b2BeebWindows collections (not that this would be especially
-    // useful...I don't think?), so this should really search its own
-    // window list rather than the global SDL one.
-    SDL_Window *sdl_window=SDL_GetWindowFromID(sdl_window_id);
-    if(!sdl_window) {
-        return NULL;
-    }
-
-    auto window=(BeebWindow *)SDL_GetWindowData(sdl_window,BeebWindow::SDL_WINDOW_DATA_NAME);
-    if(!window) {
-        return NULL;
-    }
-
-    return window;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -194,13 +97,6 @@ const std::vector<uint8_t> &BeebWindows::GetLastWindowPlacementData() {
 void BeebWindows::SetLastWindowPlacementData(std::vector<uint8_t> placement_data) {
     g_->last_window_placement_data=std::move(placement_data);
 }
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-//const BeebKeymap *BeebWindows::GetDefaultBeebKeymap() {
-//    return g_->beeb_keymaps[0].get();
-//}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

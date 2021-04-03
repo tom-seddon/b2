@@ -143,13 +143,6 @@ public:
     // additional init messages will be added here too.
     std::shared_ptr<MessageList> preinit_message_list;
 
-    // If preinit_messages is null, this should be non-zero. It's the
-    // ID of the window to send init messages to if the init fails.
-    //
-    // (If the initiating window has gone away, messages will be
-    // printed to Messages::stdio.)
-    uint32_t initiating_window_id=0;
-
     // If non-empty, name of the initial keymap to select.
     //
     // (Keymap pointer is no good, as this struct gets sent to the
@@ -428,7 +421,6 @@ private:
     void DoToolsMenu();
     void DoDebugMenu();
     bool DoWindowMenu();
-    BeebWindowInitArguments GetNewWindowInitArguments() const;
     void MaybeSaveConfig(bool save_config);
     void HardReset();
     void SaveState();

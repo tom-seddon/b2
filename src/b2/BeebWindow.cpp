@@ -1995,10 +1995,6 @@ bool BeebWindow::Init() {
 
         if(m_init_arguments.preinit_message_list) {
             msg=m_init_arguments.preinit_message_list;
-        } else if(m_init_arguments.initiating_window_id!=0) {
-            if(BeebWindow *initiating_window=BeebWindows::FindBeebWindowBySDLWindowID(m_init_arguments.initiating_window_id)) {
-                msg=initiating_window->GetMessageList();
-            }
         }
 
         msg->InsertMessages(*m_message_list);
@@ -2532,27 +2528,6 @@ void BeebWindow::HandleVBlank(VBlankMonitor *vblank_monitor,void *display_data,u
     }
 
     return this->HandleVBlank(ticks);
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-BeebWindowInitArguments BeebWindow::GetNewWindowInitArguments() const {
-    BeebWindowInitArguments ia=m_init_arguments;
-
-    // Propagate current name, not original name.
-    ia.name=m_name;
-
-    // Caller will choose the initial state.
-    ia.initial_state=nullptr;
-
-    // Feed any output to this window's message list.
-    ia.initiating_window_id=SDL_GetWindowID(m_window);
-
-    // New window is parent of whatever.
-    //ia.parent_timeline_event_id=0;//m_beeb_thread->GetParentTimelineEventId();
-
-    return ia;
 }
 
 //////////////////////////////////////////////////////////////////////////

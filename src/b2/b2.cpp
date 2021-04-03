@@ -926,6 +926,8 @@ static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &init
         }
 #endif
 
+        uint32_t beeb_window_id=beeb_window->GetSDLWindowID();
+
         SDL_LockAudioDevice(audio_device);
         g_fill_audio_buffer_data.beeb_window=beeb_window.get();
         SDL_UnlockAudioDevice(audio_device);
@@ -961,21 +963,49 @@ static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &init
             case SDL_WINDOWEVENT:
                 {
                     rmt_ScopedCPUSample(SDL_WINDOWEVENT,0);
-                    BeebWindows::HandleSDLWindowEvent(event.window);
+
+                    if(event.window.windowID==beeb_window_id) {
+                        switch(event.window.event) {
+                        case SDL_WINDOWEVENT_CLOSE:
+                            {
+                                beeb_window->SaveSettings();
+
+                                beeb_window=nullptr;
+                            }
+                            break;
+
+                        case SDL_WINDOWEVENT_SHOWN:
+                        case SDL_WINDOWEVENT_HIDDEN:
+                        case SDL_WINDOWEVENT_MOVED:
+                        case SDL_WINDOWEVENT_RESIZED:
+                        case SDL_WINDOWEVENT_SIZE_CHANGED:
+                        case SDL_WINDOWEVENT_MAXIMIZED:
+                        case SDL_WINDOWEVENT_RESTORED:
+                        case SDL_WINDOWEVENT_FOCUS_GAINED:
+                            beeb_window->SavePosition();
+                            break;
+                        }
+                    }
                 }
                 break;
 
             case SDL_MOUSEMOTION:
                 {
                     rmt_ScopedCPUSample(SDL_MOUSEMOTION,0);
-                    BeebWindows::HandleSDLMouseMotionEvent(event.motion);
+
+                    if(event.motion.windowID==beeb_window_id) {
+                        beeb_window->HandleSDLMouseMotionEvent(event.motion);
+                    }
                 }
                 break;
 
             case SDL_TEXTINPUT:
                 {
                     rmt_ScopedCPUSample(SDL_TEXTINPUT,0);
-                    BeebWindows::HandleSDLTextInput(event.text.windowID,event.text.text);
+
+                    if(event.text.windowID==beeb_window_id) {
+                        beeb_window->HandleSDLTextInput(event.text.text);
+                    }
                 }
                 break;
 
@@ -983,14 +1013,20 @@ static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &init
             case SDL_KEYDOWN:
                 {
                     rmt_ScopedCPUSample(SDL_KEYxx,0);
-                    BeebWindows::HandleSDLKeyEvent(event.key);
+
+                    if(event.key.windowID==beeb_window_id) {
+                        beeb_window->HandleSDLKeyEvent(event.key);
+                    }
                 }
                 break;
 
             case SDL_MOUSEWHEEL:
                 {
                     rmt_ScopedCPUSample(SDL_MOUSEWHEEL,0);
-                    BeebWindows::SetSDLMouseWheelState(event.wheel.windowID,event.wheel.x,event.wheel.y);
+
+                    if(event.wheel.windowID==beeb_window_id) {
+                        beeb_window->SetSDLMouseWheelState(event.wheel.x,event.wheel.y);
+                    }
                 }
                 break;
 

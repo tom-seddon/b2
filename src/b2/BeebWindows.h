@@ -55,21 +55,11 @@ extern std::string default_config_name;
 bool Init();
 void Shutdown();
 
-void HandleSDLWindowEvent(const SDL_WindowEvent &event);
-void HandleSDLKeyEvent(const SDL_KeyboardEvent &event);
-void SetSDLMouseWheelState(uint32_t sdl_window_id,int x,int y);
-void HandleSDLTextInput(uint32_t sdl_window_id,const char *text);
-void HandleSDLMouseMotionEvent(const SDL_MouseMotionEvent &event);
-
-void UpdateWindowTitles();
-
 // Add job to the job queue.
 void AddJob(std::shared_ptr<JobQueue::Job> job);
 
 // Get the job queue's list of jobs.
 std::vector<std::shared_ptr<JobQueue::Job>> GetJobs();
-
-BeebWindow *FindBeebWindowBySDLWindowID(uint32_t sdl_window_id);
 
 const std::vector<uint8_t> &GetLastWindowPlacementData();
 void SetLastWindowPlacementData(std::vector<uint8_t> placement_data);
