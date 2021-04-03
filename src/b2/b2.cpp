@@ -967,11 +967,7 @@ static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &init
                     if(event.window.windowID==beeb_window_id) {
                         switch(event.window.event) {
                         case SDL_WINDOWEVENT_CLOSE:
-                            {
-                                beeb_window->SaveSettings();
-
-                                beeb_window=nullptr;
-                            }
+                            beeb_window->SaveSettings();
                             break;
 
                         case SDL_WINDOWEVENT_SHOWN:
