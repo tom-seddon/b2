@@ -1181,22 +1181,10 @@ static bool LoadDockConfig(Messages *msg) {
     return true;
 }
 
-static void AddDefaultBeebKeymaps() {
-    for(size_t i=0;i<GetNumDefaultBeebKeymaps();++i) {
-        BeebWindows::AddBeebKeymap(*GetDefaultBeebKeymapByIndex(i));
-    }
-}
-
 static void AddDefaultBeebConfigs() {
     for(size_t i=0;i<GetNumDefaultBeebConfigs();++i) {
         const BeebConfig *config=GetDefaultBeebConfigByIndex(i);
         BeebWindows::AddConfig(*config);
-    }
-}
-
-static void EnsureDefaultBeebKeymapsAvailable() {
-    if(BeebWindows::GetNumBeebKeymaps()==0) {
-        AddDefaultBeebKeymaps();
     }
 }
 
@@ -1383,7 +1371,7 @@ static bool LoadKeymaps(rapidjson::Value *keymaps_json,const char *keymaps_name,
             keymap.SetPreferShortcuts(prefer_shortcuts);
         }
 
-        BeebWindows::AddBeebKeymap(std::move(keymap));
+        AddBeebKeymap(std::move(keymap));
     }
 
     return true;
@@ -1392,8 +1380,8 @@ static bool LoadKeymaps(rapidjson::Value *keymaps_json,const char *keymaps_name,
 static void SaveKeymaps(JSONWriter<StringStream> *writer) {
     auto keymaps_json=ArrayWriter(writer,NEW_KEYMAPS);
 
-    for(size_t i=0;i<BeebWindows::GetNumBeebKeymaps();++i) {
-        const BeebKeymap *keymap=BeebWindows::GetBeebKeymapByIndex(i);
+    for(size_t i=0;i<GetNumBeebKeymaps();++i) {
+        const BeebKeymap *keymap=GetBeebKeymapByIndex(i);
         auto keymap_json=ObjectWriter(writer);
 
         writer->Key(NAME);
@@ -1821,13 +1809,13 @@ static bool LoadWindows(rapidjson::Value *windows,Messages *msg) {
     {
         std::string keymap_name;
         if(FindStringMember(&keymap_name,windows,KEYMAP,msg)) {
-            if(const BeebKeymap *keymap=BeebWindows::FindBeebKeymapByName(keymap_name)) {
+            if(const BeebKeymap *keymap=FindBeebKeymapByName(keymap_name)) {
                 BeebWindows::defaults.keymap=keymap;
             } else {
                 msg->w.f("default keymap unknown: %s\n",keymap_name.c_str());
 
                 // But it's OK - a sensible one will be selected.
-                BeebWindows::defaults.keymap=BeebWindows::GetDefaultBeebKeymap();
+                BeebWindows::defaults.keymap=GetDefaultBeebKeymap();
             }
         }
     }
@@ -2020,8 +2008,6 @@ bool LoadGlobalConfig(Messages *msg) {
         if(FindArrayMember(&keymaps,doc.get(),OLD_KEYMAPS,msg)) {
             LOGF(LOADSAVE,"Loading keymaps.\n");
 
-            AddDefaultBeebKeymaps();
-
             if(!LoadKeymaps(&keymaps,OLD_KEYMAPS,msg)) {
                 return false;
             }
@@ -2033,9 +2019,6 @@ bool LoadGlobalConfig(Messages *msg) {
                 return false;
             }
         }
-
-        // need at least 1 keymap for loading the default keymap.
-        EnsureDefaultBeebKeymapsAvailable();
 
         rapidjson::Value shortcuts;
         if(FindObjectMember(&shortcuts,doc.get(),SHORTCUTS,msg)) {
@@ -2110,10 +2093,6 @@ bool LoadGlobalConfig(Messages *msg) {
     // don't bother with error checking for this... not really worth
     // it?
     LoadDockConfig(msg);
-
-    // the rest of the code assumes there's at least 1 config and 1 keymap -
-    // so either list ended up empty, populate it with the default set.
-    EnsureDefaultBeebKeymapsAvailable();
 
     if(BeebWindows::GetNumConfigs()==0) {
         AddDefaultBeebConfigs();

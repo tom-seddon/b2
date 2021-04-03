@@ -48,4 +48,29 @@ const BeebKeymap *GetDefaultBeebKeymapByIndex(size_t index);
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+// Ensure the keymap is not in use by any windows.
+//
+// The keymap list's old unique_ptr is returned. Discard when done.
+std::unique_ptr<BeebKeymap> RemoveBeebKeymapByIndex(size_t index);
+
+// AddBeebKeymap will adjust KEYMAP's name to make it unique.
+//
+// Returns the pointer to the keymap in the list.
+BeebKeymap *AddBeebKeymap(BeebKeymap keymap);
+
+// When necessary, name will be adjusted to make it unique.
+void BeebKeymapDidChange(size_t index);
+
+size_t GetNumBeebKeymaps();
+BeebKeymap *GetBeebKeymapByIndex(size_t index);
+
+// Keymaps are not optimised for retrieval by name.
+BeebKeymap *FindBeebKeymapByName(const std::string &name);
+
+// Returns the 0th in the list, or nullptr if the list is empty.
+BeebKeymap *GetDefaultBeebKeymap();
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 #endif

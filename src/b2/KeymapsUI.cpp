@@ -147,8 +147,8 @@ m_beeb_window(beeb_window)
 {
     const BeebKeymap *keymap=m_beeb_window->GetCurrentKeymap();
 
-    for(size_t i=0;i<BeebWindows::GetNumBeebKeymaps();++i) {
-        if(BeebWindows::GetBeebKeymapByIndex(i)==keymap) {
+    for(size_t i=0;i<GetNumBeebKeymaps();++i) {
+        if(GetBeebKeymapByIndex(i)==keymap) {
             m_keymap_index=(int)i;
             break;
         }
@@ -190,10 +190,10 @@ const BeebKeymap *ImGuiPickKeymapPopup(const char *popup_name,
 static BeebKeymap *GetBeebKeymapByIndex(int index) {
     if(index<0) {
         return nullptr;
-    } else if((size_t)index>=BeebWindows::GetNumBeebKeymaps()) {
+    } else if((size_t)index>=GetNumBeebKeymaps()) {
         return nullptr;
     } else {
-        return BeebWindows::GetBeebKeymapByIndex((size_t)index);
+        return GetBeebKeymapByIndex((size_t)index);
     }
 }
 
@@ -229,10 +229,9 @@ void KeymapsUI::DoImGui() {
     ImGui::SameLine();
 
     if(ImGuiConfirmButton("Delete")) {
-        BeebKeymap *keymap=GetBeebKeymapByIndex(m_keymap_index);
-        m_beeb_window->BeebKeymapWillBeDeleted(keymap);
-        BeebWindows::RemoveBeebKeymapByIndex((size_t)m_keymap_index);
-        m_keymap_index=std::min(m_keymap_index,(int)BeebWindows::GetNumBeebKeymaps()-1);
+        std::unique_ptr<BeebKeymap> keymap=RemoveBeebKeymapByIndex((size_t)m_keymap_index);
+        m_beeb_window->BeebKeymapWillBeDeleted(keymap.get());
+        m_keymap_index=std::min(m_keymap_index,(int)GetNumBeebKeymaps()-1);
     }
 
     {
@@ -249,13 +248,13 @@ void KeymapsUI::DoImGui() {
                        &m_keymap_index,
                        &GetBeebKeymapNameCallback,
                        &tmp_str,
-                       (int)BeebWindows::GetNumBeebKeymaps(),
+                       (int)GetNumBeebKeymaps(),
                        (int)((h-y)/line_height-1));
 
         if(m_keymap_index>=0&&
-           (size_t)m_keymap_index<BeebWindows::GetNumBeebKeymaps())
+           (size_t)m_keymap_index<GetNumBeebKeymaps())
         {
-            const BeebKeymap *keymap=BeebWindows::GetBeebKeymapByIndex((size_t)m_keymap_index);
+            const BeebKeymap *keymap=GetBeebKeymapByIndex((size_t)m_keymap_index);
             m_beeb_window->SetCurrentKeymap(keymap);
         }
     }
@@ -274,14 +273,14 @@ void KeymapsUI::DoImGui() {
                                                      &GetNumDefaultBeebKeymaps,
                                                      &GetDefaultBeebKeymapByIndex))
     {
-        BeebWindows::AddBeebKeymap(*keymap);
+        AddBeebKeymap(*keymap);
     }
 
     if(const BeebKeymap *keymap=ImGuiPickKeymapPopup(COPY_KEYMAP_POPUP,
-                                                     &BeebWindows::GetNumBeebKeymaps,
-                                                     &BeebWindows::GetBeebKeymapByIndex))
+                                                     &GetNumBeebKeymaps,
+                                                     &GetBeebKeymapByIndex))
     {
-        BeebWindows::AddBeebKeymap(*keymap);
+        AddBeebKeymap(*keymap);
     }
 }
 
@@ -895,7 +894,7 @@ void KeymapsUI::DoEditKeymapGui() {
     this->DoKeyboardLine(keymap,g_keyboard_line6,nullptr);
 
     if(edited) {
-        BeebWindows::BeebKeymapDidChange((size_t)m_keymap_index);
+        BeebKeymapDidChange((size_t)m_keymap_index);
         m_edited=true;
     }
 }

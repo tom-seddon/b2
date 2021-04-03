@@ -63,24 +63,6 @@ void HandleSDLMouseMotionEvent(const SDL_MouseMotionEvent &event);
 
 void UpdateWindowTitles();
 
-// If the keymap is in use by any windows, they'll be reset to use
-// the default keymap.
-void RemoveBeebKeymapByIndex(size_t index);
-
-// AddBeebKeymap will adjust KEYMAP's name to make it unique.
-//
-// Returns the pointer to the keymap in the list.
-BeebKeymap *AddBeebKeymap(BeebKeymap keymap);
-
-// When necessary, name will be adjusted to make it unique.
-void BeebKeymapDidChange(size_t index);
-
-size_t GetNumBeebKeymaps();
-BeebKeymap *GetBeebKeymapByIndex(size_t index);
-
-// Keymaps are not optimised for retrieval by name.
-BeebKeymap *FindBeebKeymapByName(const std::string &name);
-
 // Fill out a BeebLoadedConfig for the given BeebConfig.
 //
 // If it's a stock config, hand out the stock loaded config and
@@ -108,8 +90,6 @@ BeebWindow *FindBeebWindowBySDLWindowID(uint32_t sdl_window_id);
 
 const std::vector<uint8_t> &GetLastWindowPlacementData();
 void SetLastWindowPlacementData(std::vector<uint8_t> placement_data);
-
-const BeebKeymap *GetDefaultBeebKeymap();
 
 size_t GetNumSavedStates();
 std::vector<std::shared_ptr<const BeebState>> GetSavedStates(size_t begin_index,

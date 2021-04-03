@@ -1451,8 +1451,8 @@ void BeebWindow::DoKeyboardMenu() {
 
         ImGui::Separator();
 
-        for(size_t i=0;i<BeebWindows::GetNumBeebKeymaps();++i) {
-            BeebKeymap *keymap=BeebWindows::GetBeebKeymapByIndex(i);
+        for(size_t i=0;i<GetNumBeebKeymaps();++i) {
+            BeebKeymap *keymap=GetBeebKeymapByIndex(i);
 
             if(ImGui::MenuItem(GetKeymapUIName(*keymap).c_str(),
                                nullptr,
@@ -2276,11 +2276,11 @@ bool BeebWindow::InitInternal() {
     }
 
     if(!m_init_arguments.keymap_name.empty()) {
-        m_settings.keymap=BeebWindows::FindBeebKeymapByName(m_init_arguments.keymap_name);
+        m_settings.keymap=FindBeebKeymapByName(m_init_arguments.keymap_name);
     }
 
     if(!m_settings.keymap) {
-        m_settings.keymap=BeebWindows::GetDefaultBeebKeymap();
+        m_settings.keymap=GetBeebKeymapByIndex(0);
     }
 
     if(SDL_GL_GetCurrentContext()) {
@@ -2386,7 +2386,7 @@ void BeebWindow::UpdateTitle() {
 
 void BeebWindow::BeebKeymapWillBeDeleted(BeebKeymap *keymap) {
     if(m_settings.keymap==keymap) {
-        m_settings.keymap=BeebWindows::GetDefaultBeebKeymap();
+        m_settings.keymap=GetDefaultBeebKeymap();
     }
 }
 

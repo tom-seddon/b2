@@ -22,7 +22,7 @@ LOG_EXTERN(OUTPUT);
 //////////////////////////////////////////////////////////////////////////
 
 struct BeebWindowsState {
-    std::vector<std::unique_ptr<BeebKeymap>> beeb_keymaps;
+    //std::vector<std::unique_ptr<BeebKeymap>> beeb_keymaps;
     std::vector<std::unique_ptr<BeebConfig>> configs;
 
     std::vector<uint8_t> last_window_placement_data;
@@ -43,15 +43,6 @@ static BeebWindowsState *g_;
 
 BeebWindowSettings BeebWindows::defaults;
 std::string BeebWindows::default_config_name;
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-static std::string GetUniqueBeebKeymapName(std::string name,BeebKeymap *ignore) {
-    return GetUniqueName(std::move(name),[](const std::string &name)->const void * {
-        return BeebWindows::FindBeebKeymapByName(name);
-    },ignore);
-}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -180,66 +171,6 @@ void BeebWindows::HandleSDLMouseMotionEvent(const SDL_MouseMotionEvent &event) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void BeebWindows::RemoveBeebKeymapByIndex(size_t index) {
-    ASSERT(index<g_->beeb_keymaps.size());
-
-    g_->beeb_keymaps.erase(g_->beeb_keymaps.begin()+(ptrdiff_t)index);
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-BeebKeymap *BeebWindows::AddBeebKeymap(BeebKeymap new_keymap) {
-    new_keymap.SetName(GetUniqueBeebKeymapName(new_keymap.GetName(),nullptr));
-    g_->beeb_keymaps.push_back(std::make_unique<BeebKeymap>(std::move(new_keymap)));
-
-    BeebKeymap *keymap=g_->beeb_keymaps.back().get();
-    return keymap;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-void BeebWindows::BeebKeymapDidChange(size_t index) {
-    ASSERT(index<g_->beeb_keymaps.size());
-
-    BeebKeymap *keymap=g_->beeb_keymaps[index].get();
-
-    keymap->SetName(GetUniqueBeebKeymapName(keymap->GetName(),keymap));
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-size_t BeebWindows::GetNumBeebKeymaps() {
-    return g_->beeb_keymaps.size();
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-BeebKeymap *BeebWindows::GetBeebKeymapByIndex(size_t index) {
-    ASSERT(index<g_->beeb_keymaps.size());
-    return g_->beeb_keymaps[index].get();
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-BeebKeymap *BeebWindows::FindBeebKeymapByName(const std::string &name) {
-    for(size_t i=0;i<BeebWindows::GetNumBeebKeymaps();++i) {
-        BeebKeymap *keymap=BeebWindows::GetBeebKeymapByIndex(i);
-        if(keymap->GetName()==name) {
-            return keymap;
-        }
-    }
-
-    return nullptr;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 bool BeebWindows::LoadConfigByName(BeebLoadedConfig *loaded_config,const std::string &config_name,Messages *msg) {
     const BeebConfig *config=FindBeebConfigByName(config_name);
     if(!config) {
@@ -348,9 +279,9 @@ void BeebWindows::SetLastWindowPlacementData(std::vector<uint8_t> placement_data
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-const BeebKeymap *BeebWindows::GetDefaultBeebKeymap() {
-    return g_->beeb_keymaps[0].get();
-}
+//const BeebKeymap *BeebWindows::GetDefaultBeebKeymap() {
+//    return g_->beeb_keymaps[0].get();
+//}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
