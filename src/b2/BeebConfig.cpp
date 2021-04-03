@@ -80,6 +80,8 @@ static std::vector<uint8_t> GetDefaultMasterNVRAM() {
 
 static std::vector<uint8_t> g_default_master_nvram_contents=GetDefaultMasterNVRAM();
 
+static std::vector<std::unique_ptr<BeebConfig>> g_configs;
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
@@ -274,6 +276,84 @@ void BeebLoadedConfig::ReuseROMs(const BeebLoadedConfig &oth) {
             }
         }
     }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+static const BeebConfig *FindBeebConfigByName(const std::string &name) {
+    for(size_t i=0;i<g_configs.size();++i) {
+        if(g_configs[i]->name==name) {
+            return g_configs[i].get();
+        }
+    }
+
+    return nullptr;
+}
+
+static void MakeNameUnique(BeebConfig *config) {
+    config->name=GetUniqueName(config->name,[](const std::string &name)->const void * {
+        return FindBeebConfigByName(name);
+    },config);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool LoadBeebConfigByName(BeebLoadedConfig *loaded_config,const std::string &config_name,Messages *msg) {
+    const BeebConfig *config=FindBeebConfigByName(config_name);
+    if(!config) {
+        msg->e.f("unknown config: %s\n",config_name.c_str());
+        return false;
+    }
+
+    if(!BeebLoadedConfig::Load(loaded_config,*config,msg)) {
+        return false;
+    }
+
+    return true;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void AddBeebConfig(BeebConfig config) {
+    g_configs.push_back(std::make_unique<BeebConfig>(std::move(config)));
+
+    MakeNameUnique(g_configs.back().get());
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void RemoveBeebConfigByIndex(size_t index) {
+    ASSERT(index<g_configs.size());
+    ASSERT(index<PTRDIFF_MAX);
+    g_configs.erase(g_configs.begin()+(ptrdiff_t)index);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BeebConfigDidChange(size_t index) {
+    ASSERT(index<g_configs.size());
+
+    MakeNameUnique(g_configs[index].get());
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+size_t GetNumBeebConfigs() {
+    return g_configs.size();
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+BeebConfig *GetBeebConfigByIndex(size_t index) {
+    ASSERT(index<g_configs.size());
+    return g_configs[index].get();
 }
 
 //////////////////////////////////////////////////////////////////////////

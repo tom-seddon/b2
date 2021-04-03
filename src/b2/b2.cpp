@@ -846,14 +846,14 @@ static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &init
             bool got_initial_loaded_config=false;
 
             if(!options.config_name.empty()) {
-                if(BeebWindows::LoadConfigByName(&initial_loaded_config,options.config_name,&init_messages)) {
+                if(LoadBeebConfigByName(&initial_loaded_config,options.config_name,&init_messages)) {
                     got_initial_loaded_config=true;
                 }
             }
 
             if(!got_initial_loaded_config) {
                 if(!BeebWindows::default_config_name.empty()) {
-                    if(BeebWindows::LoadConfigByName(&initial_loaded_config,BeebWindows::default_config_name,&init_messages)) {
+                    if(LoadBeebConfigByName(&initial_loaded_config,BeebWindows::default_config_name,&init_messages)) {
                         got_initial_loaded_config=true;
                     }
                 }

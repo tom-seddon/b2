@@ -65,8 +65,8 @@ m_ofd(RECENT_PATHS_ROMS)
 
     const std::string &config_name=m_beeb_window->GetConfigName();
 
-    for(size_t i=0;i<BeebWindows::GetNumConfigs();++i) {
-        const BeebConfig *config=BeebWindows::GetConfigByIndex(i);
+    for(size_t i=0;i<GetNumBeebConfigs();++i) {
+        const BeebConfig *config=GetBeebConfigByIndex(i);
         if(config->name==config_name) {
             m_config_index=(int)i;
             break;
@@ -103,10 +103,10 @@ const BeebConfig *ImGuiPickConfigPopup(const char *popup_name,
 static BeebConfig *GetConfigByIndex(int index) {
     if(index<0) {
         return nullptr;
-    } else if((size_t)index>=BeebWindows::GetNumConfigs()) {
+    } else if((size_t)index>=GetNumBeebConfigs()) {
         return nullptr;
     } else {
-        return BeebWindows::GetConfigByIndex((size_t)index);
+        return GetBeebConfigByIndex((size_t)index);
     }
 }
 
@@ -137,9 +137,9 @@ void ConfigsUI::DoImGui() {
 
     if(ImGuiConfirmButton("Delete")) {
         if(m_config_index>=0) {
-            BeebWindows::RemoveConfigByIndex((size_t)m_config_index);
-            if((size_t)m_config_index>=BeebWindows::GetNumConfigs()) {
-                m_config_index=(int)(BeebWindows::GetNumConfigs()-1);
+            RemoveBeebConfigByIndex((size_t)m_config_index);
+            if((size_t)m_config_index>=GetNumBeebConfigs()) {
+                m_config_index=(int)(GetNumBeebConfigs()-1);
             }
         }
     }
@@ -157,7 +157,7 @@ void ConfigsUI::DoImGui() {
                        &m_config_index,
                        &GetBeebWindowConfigNameCallback,
                        nullptr,
-                       (int)BeebWindows::GetNumConfigs(),
+                       (int)GetNumBeebConfigs(),
                        (int)((h-y)/line_height)-1);
     }
 
@@ -175,14 +175,14 @@ void ConfigsUI::DoImGui() {
                                                      &GetNumDefaultBeebConfigs,
                                                      &GetDefaultBeebConfigByIndex))
     {
-        BeebWindows::AddConfig(*config);
+        AddBeebConfig(*config);
     }
 
     if(const BeebConfig *config=ImGuiPickConfigPopup(COPY_CONFIG_POPUP,
-                                                     &BeebWindows::GetNumConfigs,
-                                                     &BeebWindows::GetConfigByIndex))
+                                                     &GetNumBeebConfigs,
+                                                     &GetBeebConfigByIndex))
     {
-        BeebWindows::AddConfig(*config);
+        AddBeebConfig(*config);
     }
 
 }
@@ -306,7 +306,7 @@ void ConfigsUI::DoEditConfigGui() {
     }
 
     if(edited) {
-        BeebWindows::ConfigDidChange((size_t)m_config_index);
+        BeebConfigDidChange((size_t)m_config_index);
         m_edited=true;
     }
 }

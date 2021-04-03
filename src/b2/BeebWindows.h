@@ -63,23 +63,6 @@ void HandleSDLMouseMotionEvent(const SDL_MouseMotionEvent &event);
 
 void UpdateWindowTitles();
 
-// Fill out a BeebLoadedConfig for the given BeebConfig.
-//
-// If it's a stock config, hand out the stock loaded config and
-// return true.
-//
-// Otherwise, try to initialize a BeebLoadedConfig, returning
-// false if there was a problem and printing messages out to *msg.
-bool LoadConfigByName(BeebLoadedConfig *loaded_config,const std::string &config_name,Messages *msg);
-
-void AddConfig(BeebConfig config);
-void RemoveConfigByIndex(size_t index);
-
-void ConfigDidChange(size_t index);
-
-size_t GetNumConfigs();
-BeebConfig *GetConfigByIndex(size_t index);
-
 // Add job to the job queue.
 void AddJob(std::shared_ptr<JobQueue::Job> job);
 

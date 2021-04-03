@@ -293,7 +293,7 @@ private:
             Messages messages(message_list);
 
             BeebLoadedConfig loaded_config;
-            if(!BeebWindows::LoadConfigByName(&loaded_config,config_name,&messages)) {
+            if(!LoadBeebConfigByName(&loaded_config,config_name,&messages)) {
                 this->SendMessagesResponse(server,request,message_list);
                 return;
             }

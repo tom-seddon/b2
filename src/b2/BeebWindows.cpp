@@ -23,7 +23,7 @@ LOG_EXTERN(OUTPUT);
 
 struct BeebWindowsState {
     //std::vector<std::unique_ptr<BeebKeymap>> beeb_keymaps;
-    std::vector<std::unique_ptr<BeebConfig>> configs;
+    //std::vector<std::unique_ptr<BeebConfig>> configs;
 
     std::vector<uint8_t> last_window_placement_data;
 
@@ -43,28 +43,6 @@ static BeebWindowsState *g_;
 
 BeebWindowSettings BeebWindows::defaults;
 std::string BeebWindows::default_config_name;
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-static const BeebConfig *FindBeebConfigByName(const std::string &name) {
-    for(size_t i=0;i<g_->configs.size();++i) {
-        if(g_->configs[i]->name==name) {
-            return g_->configs[i].get();
-        }
-    }
-
-    return nullptr;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-static void MakeNameUnique(BeebConfig *config) {
-    config->name=GetUniqueName(config->name,[](const std::string &name)->const void * {
-        return FindBeebConfigByName(name);
-    },config);
-}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -166,65 +144,6 @@ void BeebWindows::HandleSDLMouseMotionEvent(const SDL_MouseMotionEvent &event) {
     if(BeebWindow *window=FindBeebWindowBySDLWindowID(event.windowID)) {
         window->HandleSDLMouseMotionEvent(event);
     }
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-bool BeebWindows::LoadConfigByName(BeebLoadedConfig *loaded_config,const std::string &config_name,Messages *msg) {
-    const BeebConfig *config=FindBeebConfigByName(config_name);
-    if(!config) {
-        msg->e.f("unknown config: %s\n",config_name.c_str());
-        return false;
-    }
-
-    if(!BeebLoadedConfig::Load(loaded_config,*config,msg)) {
-        return false;
-    }
-
-    return true;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-void BeebWindows::AddConfig(BeebConfig config) {
-    g_->configs.push_back(std::make_unique<BeebConfig>(std::move(config)));
-
-    MakeNameUnique(g_->configs.back().get());
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-void BeebWindows::RemoveConfigByIndex(size_t index) {
-    ASSERT(index<g_->configs.size());
-    ASSERT(index<PTRDIFF_MAX);
-    g_->configs.erase(g_->configs.begin()+(ptrdiff_t)index);
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-void BeebWindows::ConfigDidChange(size_t index) {
-    ASSERT(index<g_->configs.size());
-
-    MakeNameUnique(g_->configs[index].get());
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-size_t BeebWindows::GetNumConfigs() {
-    return g_->configs.size();
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-BeebConfig *BeebWindows::GetConfigByIndex(size_t index) {
-    ASSERT(index<g_->configs.size());
-    return g_->configs[index].get();
 }
 
 //////////////////////////////////////////////////////////////////////////

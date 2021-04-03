@@ -87,4 +87,24 @@ private:
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+// Fill out a BeebLoadedConfig for the given BeebConfig.
+//
+// If it's a stock config, hand out the stock loaded config and
+// return true.
+//
+// Otherwise, try to initialize a BeebLoadedConfig, returning
+// false if there was a problem and printing messages out to *msg.
+bool LoadBeebConfigByName(BeebLoadedConfig *loaded_config,const std::string &config_name,Messages *msg);
+
+void AddBeebConfig(BeebConfig config);
+void RemoveBeebConfigByIndex(size_t index);
+
+void BeebConfigDidChange(size_t index);
+
+size_t GetNumBeebConfigs();
+BeebConfig *GetBeebConfigByIndex(size_t index);
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 #endif

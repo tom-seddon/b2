@@ -1421,13 +1421,13 @@ void BeebWindow::DoHardwareMenu() {
     if(ImGui::BeginMenu("Hardware")) {
         m_cc.DoMenuItemUI("toggle_configurations");
 
-        if(BeebWindows::GetNumConfigs()>0) {
+        if(GetNumBeebConfigs()>0) {
             ImGui::Separator();
 
             std::string config_name=this->GetConfigName();
 
-            for(size_t config_idx=0;config_idx<BeebWindows::GetNumConfigs();++config_idx) {
-                BeebConfig *config=BeebWindows::GetConfigByIndex(config_idx);
+            for(size_t config_idx=0;config_idx<GetNumBeebConfigs();++config_idx) {
+                BeebConfig *config=GetBeebConfigByIndex(config_idx);
 
                 if(ImGui::MenuItem(config->name.c_str(),nullptr,config->name==config_name)) {
                     this->HardReset(*config);
@@ -2560,8 +2560,8 @@ BeebWindowInitArguments BeebWindow::GetNewWindowInitArguments() const {
 
 void BeebWindow::HardReset() {
     // Fetch config from the global list again.
-    for(size_t config_idx=0;config_idx<BeebWindows::GetNumConfigs();++config_idx) {
-        BeebConfig *config=BeebWindows::GetConfigByIndex(config_idx);
+    for(size_t config_idx=0;config_idx<GetNumBeebConfigs();++config_idx) {
+        BeebConfig *config=GetBeebConfigByIndex(config_idx);
 
         if(config->name==m_init_arguments.default_config.config.name) {
             this->HardReset(*config);

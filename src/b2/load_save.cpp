@@ -1684,7 +1684,7 @@ static bool LoadConfigs(rapidjson::Value *configs_json,const char *configs_path,
         FindBoolMember(&config.ext_mem,config_json,EXT_MEM,msg);
         FindBoolMember(&config.beeblink,config_json,BEEBLINK,msg);
 
-        BeebWindows::AddConfig(std::move(config));
+        AddBeebConfig(std::move(config));
     }
 
     return true;
@@ -1694,8 +1694,8 @@ static void SaveConfigs(JSONWriter<StringStream> *writer) {
     {
         auto configs_json=ArrayWriter(writer,NEW_CONFIGS);
 
-        for(size_t config_idx=0;config_idx<BeebWindows::GetNumConfigs();++config_idx) {
-            BeebConfig *config=BeebWindows::GetConfigByIndex(config_idx);
+        for(size_t config_idx=0;config_idx<GetNumBeebConfigs();++config_idx) {
+            BeebConfig *config=GetBeebConfigByIndex(config_idx);
 
             auto config_json=ObjectWriter(writer);
 
@@ -2085,7 +2085,7 @@ bool LoadGlobalConfig(Messages *msg) {
         // Populate configs/keymaps list with the defaults.
         for(size_t i=0;i<GetNumDefaultBeebConfigs();++i) {
             const BeebConfig *config=GetDefaultBeebConfigByIndex(i);
-            BeebWindows::AddConfig(*config);
+            AddBeebConfig(*config);
         }
 
         for(size_t i=0;i<GetNumDefaultBeebKeymaps();++i) {
