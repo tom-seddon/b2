@@ -1181,13 +1181,6 @@ static bool LoadDockConfig(Messages *msg) {
     return true;
 }
 
-static void AddDefaultBeebConfigs() {
-    for(size_t i=0;i<GetNumDefaultBeebConfigs();++i) {
-        const BeebConfig *config=GetDefaultBeebConfigByIndex(i);
-        BeebWindows::AddConfig(*config);
-    }
-}
-
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
@@ -1841,8 +1834,10 @@ static void SaveWindows(JSONWriter<StringStream> *writer) {
             SaveBitIndexedFlags(writer,BeebWindows::defaults.popups,&GetBeebWindowPopupTypeEnumName);
         }
 
-        writer->Key(KEYMAP);
-        writer->String(BeebWindows::defaults.keymap->GetName().c_str());
+        if(BeebWindows::defaults.keymap) {
+            writer->Key(KEYMAP);
+            writer->String(BeebWindows::defaults.keymap->GetName().c_str());
+        }
 
         writer->Key(BBC_VOLUME);
         writer->Double(BeebWindows::defaults.bbc_volume);
@@ -2040,8 +2035,6 @@ bool LoadGlobalConfig(Messages *msg) {
         if(FindArrayMember(&configs,doc.get(),OLD_CONFIGS,msg)) {
             LOGF(LOADSAVE,"Loading configs.\n");
 
-            AddDefaultBeebConfigs();
-
             if(!LoadConfigs(&configs,OLD_CONFIGS,msg)) {
                 return false;
             }
@@ -2088,15 +2081,26 @@ bool LoadGlobalConfig(Messages *msg) {
                 return false;
             }
         }
+    } else {
+        // Populate configs/keymaps list with the defaults.
+        for(size_t i=0;i<GetNumDefaultBeebConfigs();++i) {
+            const BeebConfig *config=GetDefaultBeebConfigByIndex(i);
+            BeebWindows::AddConfig(*config);
+        }
+
+        for(size_t i=0;i<GetNumDefaultBeebKeymaps();++i) {
+            const BeebKeymap *keymap=GetDefaultBeebKeymapByIndex(i);
+            AddBeebKeymap(*keymap);
+        }
     }
 
     // don't bother with error checking for this... not really worth
     // it?
     LoadDockConfig(msg);
 
-    if(BeebWindows::GetNumConfigs()==0) {
-        AddDefaultBeebConfigs();
-    }
+//    if(BeebWindows::GetNumConfigs()==0) {
+//        AddDefaultBeebConfigs();
+//    }
 
     return true;
 }

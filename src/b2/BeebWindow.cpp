@@ -1421,15 +1421,17 @@ void BeebWindow::DoHardwareMenu() {
     if(ImGui::BeginMenu("Hardware")) {
         m_cc.DoMenuItemUI("toggle_configurations");
 
-        ImGui::Separator();
+        if(BeebWindows::GetNumConfigs()>0) {
+            ImGui::Separator();
 
-        std::string config_name=this->GetConfigName();
+            std::string config_name=this->GetConfigName();
 
-        for(size_t config_idx=0;config_idx<BeebWindows::GetNumConfigs();++config_idx) {
-            BeebConfig *config=BeebWindows::GetConfigByIndex(config_idx);
+            for(size_t config_idx=0;config_idx<BeebWindows::GetNumConfigs();++config_idx) {
+                BeebConfig *config=BeebWindows::GetConfigByIndex(config_idx);
 
-            if(ImGui::MenuItem(config->name.c_str(),nullptr,config->name==config_name)) {
-                this->HardReset(*config);
+                if(ImGui::MenuItem(config->name.c_str(),nullptr,config->name==config_name)) {
+                    this->HardReset(*config);
+                }
             }
         }
 
@@ -1449,18 +1451,20 @@ void BeebWindow::DoKeyboardMenu() {
 
         m_cc.DoMenuItemUI("toggle_prioritize_shortcuts");
 
-        ImGui::Separator();
+        if(GetNumBeebKeymaps()>0) {
+            ImGui::Separator();
 
-        for(size_t i=0;i<GetNumBeebKeymaps();++i) {
-            BeebKeymap *keymap=GetBeebKeymapByIndex(i);
+            for(size_t i=0;i<GetNumBeebKeymaps();++i) {
+                BeebKeymap *keymap=GetBeebKeymapByIndex(i);
 
-            if(ImGui::MenuItem(GetKeymapUIName(*keymap).c_str(),
-                               nullptr,
-                               m_settings.keymap==keymap))
-            {
-                this->SetCurrentKeymap(keymap);
-                m_msg.i.f("Keymap: %s\n",m_settings.keymap->GetName().c_str());
-                this->ShowPrioritizeCommandShortcutsStatus();
+                if(ImGui::MenuItem(GetKeymapUIName(*keymap).c_str(),
+                                   nullptr,
+                                   m_settings.keymap==keymap))
+                {
+                    this->SetCurrentKeymap(keymap);
+                    m_msg.i.f("Keymap: %s\n",m_settings.keymap->GetName().c_str());
+                    this->ShowPrioritizeCommandShortcutsStatus();
+                }
             }
         }
 
@@ -2280,7 +2284,11 @@ bool BeebWindow::InitInternal() {
     }
 
     if(!m_settings.keymap) {
-        m_settings.keymap=GetBeebKeymapByIndex(0);
+        if(GetNumBeebKeymaps()>0) {
+            m_settings.keymap=GetBeebKeymapByIndex(0);
+        } else {
+            m_msg.e.f("No keymaps - please configure one using Keyboard > Keyboard Layouts...\n");
+        }
     }
 
     if(SDL_GL_GetCurrentContext()) {
