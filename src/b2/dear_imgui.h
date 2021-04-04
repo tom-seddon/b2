@@ -50,6 +50,7 @@ struct SDL_Renderer;
 struct SDL_Cursor;
 class Messages;
 class SelectorDialog;
+struct SDL_Point;
 
 #if !BUILD_TYPE_Final
 #define STORE_DRAWLISTS 1
@@ -83,16 +84,19 @@ public:
     bool Init();
 
     // bool parameter, yum.
-    void NewFrame(bool got_mouse_focus);
+    void NewFrame(bool got_mouse_focus,
+                  const SDL_Point &mouse_pos,
+                  uint32_t mouse_buttons,
+                  const SDL_Point &mouse_wheel_delta,
+                  uint32_t keymod);
 
     // does ImGui::Render.
     void RenderImGui();
 
-    // does the SDL rendering stuff.
-    void RenderSDL();
+    std::vector<ImDrawList *> CloneDrawLists();
 
-    // Temporary (?) fix for disappearing mousewheel messages.
-    void SetMouseWheel(int delta);
+    // does the SDL rendering stuff.
+    void RenderSDL(const std::vector<ImDrawList *> &draw_lists);
 
     void SetKeyDown(uint32_t scancode,bool state);
     void AddInputCharactersUTF8(const char *text);
@@ -114,7 +118,6 @@ private:
     bool m_in_frame=false;
     struct SDL_Texture *m_font_texture=nullptr;
     uint64_t m_last_new_frame_ticks=0;
-    int m_next_wheel=0;
     ImFontAtlas *m_original_font_atlas=nullptr;
     std::string m_imgui_ini_path;
     std::string m_imgui_log_txt_path;

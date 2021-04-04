@@ -274,7 +274,12 @@ bool ImGuiStuff::Init() {
 extern "C" HCURSOR SDL_cursor;
 #endif
 
-void ImGuiStuff::NewFrame(bool got_mouse_focus) {
+void ImGuiStuff::NewFrame(bool got_mouse_focus,
+                          const SDL_Point &mouse_pos,
+                          uint32_t mouse_buttons,
+                          const SDL_Point &mouse_wheel_delta,
+                          uint32_t keymod)
+{
     ImGuiContextSetter setter(this);
     ImGuiIO &io=ImGui::GetIO();
 
@@ -283,34 +288,36 @@ void ImGuiStuff::NewFrame(bool got_mouse_focus) {
     m_last_new_frame_ticks=now_ticks;
 
     if(got_mouse_focus) {
-        int x,y;
-        Uint32 b=SDL_GetMouseState(&x,&y);
+//        int x,y;
+//        Uint32 b=SDL_GetMouseState(&x,&y);
+//
+        io.MousePos.x=(float)mouse_pos.x;
+        io.MousePos.y=(float)mouse_pos.y;
 
-        io.MousePos.x=(float)x;
-        io.MousePos.y=(float)y;
+        io.MouseDown[0]=!!(mouse_buttons&SDL_BUTTON_LMASK);
+        io.MouseDown[1]=!!(mouse_buttons&SDL_BUTTON_RMASK);
+        io.MouseDown[2]=!!(mouse_buttons&SDL_BUTTON_MMASK);
 
-        io.MouseDown[0]=!!(b&SDL_BUTTON_LMASK);
-        io.MouseDown[1]=!!(b&SDL_BUTTON_RMASK);
-        io.MouseDown[2]=!!(b&SDL_BUTTON_MMASK);
+        //SDL_Keymod m=SDL_GetModState();
 
-        SDL_Keymod m=SDL_GetModState();
+        io.KeyCtrl=!!(keymod&KMOD_CTRL);
+        io.KeyAlt=!!(keymod&KMOD_ALT);
+        io.KeyShift=!!(keymod&KMOD_SHIFT);
+        io.KeySuper=!!(keymod&KMOD_GUI);
 
-        io.KeyCtrl=!!(m&KMOD_CTRL);
-        io.KeyAlt=!!(m&KMOD_ALT);
-        io.KeyShift=!!(m&KMOD_SHIFT);
-        io.KeySuper=!!(m&KMOD_GUI);
-
-        {
-            ImGuiMouseCursor cursor=ImGui::GetMouseCursor();
-
-            if(cursor>=0&&cursor<ImGuiMouseCursor_COUNT&&m_cursors[cursor]) {
-                SDL_SetCursor(m_cursors[cursor]);
-            } else {
-                SDL_SetCursor(nullptr);
-            }
-        }
+//        {
+//            ImGuiMouseCursor cursor=ImGui::GetMouseCursor();
+//
+//            if(cursor>=0&&cursor<ImGuiMouseCursor_COUNT&&m_cursors[cursor]) {
+//                SDL_SetCursor(m_cursors[cursor]);
+//            } else {
+//                SDL_SetCursor(nullptr);
+//            }
+//        }
 
     } else {
+        
+
         io.MousePos.x=-FLT_MAX;
         io.MousePos.y=-FLT_MAX;
 
@@ -331,8 +338,7 @@ void ImGuiStuff::NewFrame(bool got_mouse_focus) {
         io.DisplaySize.y=(float)output_height;
     }
 
-    io.MouseWheel=(float)m_next_wheel;
-    m_next_wheel=0;
+    io.MouseWheel=(float)mouse_wheel_delta.y;
 
     if(m_reset_dock_context) {
         bool set=false;
@@ -364,28 +370,56 @@ void ImGuiStuff::RenderImGui() {
     m_in_frame=false;
 }
 
-void ImGuiStuff::RenderSDL() {
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+std::vector<ImDrawList *> ImGuiStuff::CloneDrawLists() {
     ImGuiContextSetter setter(this);
 
-    int rc;
-    (void)rc;
+    std::vector<ImDrawList *> clone;
 
-#if STORE_DRAWLISTS
-    m_draw_lists.clear();
-#endif
+    if(ImDrawData *draw_data=ImGui::GetDrawData()) {
+        if(draw_data->Valid&&draw_data->CmdListsCount>0) {
+            clone.resize((size_t)draw_data->CmdListsCount);
 
-    ImDrawData *draw_data=ImGui::GetDrawData();
-    if(!draw_data) {
+            for(size_t i=0;i<(size_t)draw_data->CmdListsCount;++i) {
+                clone[i]=draw_data->CmdLists[i]->CloneOutput();
+            }
+        }
+    }
+
+    return clone;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void ImGuiStuff::RenderSDL(const std::vector<ImDrawList *> &draw_lists) {
+    if(draw_lists.empty()) {
         return;
     }
 
-    if(!draw_data->Valid) {
-        return;
-    }
+//    ImGuiContextSetter setter(this);
+//
+//    int rc;
+//    (void)rc;
+
+//#if STORE_DRAWLISTS
+//    m_draw_lists.clear();
+//#endif
+
+//    ImDrawData *draw_data=ImGui::GetDrawData();
+//    if(!draw_data) {
+//        return;
+//    }
+//
+//    if(!draw_data->Valid) {
+//        return;
+//    }
 
 #if STORE_DRAWLISTS
-    ASSERT(draw_data->CmdListsCount>=0);
-    m_draw_lists.resize((size_t)draw_data->CmdListsCount);
+    //ASSERT(draw_data->CmdListsCount>=0);
+    m_draw_lists.resize(draw_lists.size());
 #endif
 
     SDL_RenderFlush(m_renderer);
@@ -413,8 +447,8 @@ void ImGuiStuff::RenderSDL() {
     glEnableClientState(GL_COLOR_ARRAY);
     glEnableClientState(GL_TEXTURE_COORD_ARRAY);
 
-    for(int i=0;i<draw_data->CmdListsCount;++i) {
-        ImDrawList *draw_list=draw_data->CmdLists[i];
+    for(size_t i=0;i<draw_lists.size();++i) {
+        ImDrawList *draw_list=draw_lists[i];
 
         int idx_buffer_pos=0;
 
@@ -506,13 +540,6 @@ void ImGuiStuff::RenderSDL() {
 
 //    rc=SDL_RenderSetClipRect(m_renderer,NULL);
 //    ASSERT(rc==0);
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-void ImGuiStuff::SetMouseWheel(int delta) {
-    m_next_wheel=delta;
 }
 
 //////////////////////////////////////////////////////////////////////////

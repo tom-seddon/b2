@@ -412,7 +412,9 @@ bool BeebWindow::GetBeebKeyState(BeebKey key) const {
 //////////////////////////////////////////////////////////////////////////
 
 void BeebWindow::HandleSDLKeyEvent(const SDL_KeyboardEvent &event) {
-    m_sdl_keyboard_events.push_back(event);
+    std::lock_guard<Mutex> lock(m_sdl_thread_io_mutex);
+
+    m_sdl_thread_output.sdl_keyboard_events.push_back(event);
 }
 
 bool BeebWindow::HandleBeebKey(const SDL_Keysym &keysym,bool state) {
@@ -485,9 +487,10 @@ uint32_t BeebWindow::GetSDLWindowID() const {
 //////////////////////////////////////////////////////////////////////////
 
 void BeebWindow::SetSDLMouseWheelState(int x,int y) {
-    (void)x;
+    std::lock_guard<Mutex> lock(m_sdl_thread_io_mutex);
 
-    m_imgui_stuff->SetMouseWheel(y);
+    m_sdl_thread_output.mouse_wheel_delta.x=x;
+    m_sdl_thread_output.mouse_wheel_delta.y=y;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -501,9 +504,11 @@ void BeebWindow::HandleSDLTextInput(const char *text) {
 //////////////////////////////////////////////////////////////////////////
 
 void BeebWindow::HandleSDLMouseMotionEvent(const SDL_MouseMotionEvent &event) {
+    std::lock_guard<Mutex> lock(m_sdl_thread_io_mutex);
+
     //LOGF(OUTPUT,"%s: x=%" PRId32 " y=%" PRId32 "\n",__func__,event.x,event.y);
-    m_mouse_pos.x=event.x;
-    m_mouse_pos.y=event.y;
+    m_sdl_thread_output.mouse_pos.x=event.x;
+    m_sdl_thread_output.mouse_pos.y=event.y;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -615,7 +620,9 @@ static size_t CleanUpRecentPaths(const std::string &tag,bool (*exists_fn)(const 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void BeebWindow::DoImGui(uint64_t ticks) {
+void BeebWindow::DoImGui(uint64_t ticks,
+                         const std::vector<SDL_KeyboardEvent> &sdl_keyboard_events)
+{
     int output_width,output_height;
     SDL_GetRendererOutputSize(m_renderer,&output_width,&output_height);
 
@@ -623,7 +630,7 @@ void BeebWindow::DoImGui(uint64_t ticks) {
     m_got_debug_halted=false;
 #endif
 
-    for(const SDL_KeyboardEvent &event:m_sdl_keyboard_events) {
+    for(const SDL_KeyboardEvent &event:sdl_keyboard_events) {
         //LOGF(OUTPUT,"%s: event=0x%x key=%s timestamp=%u repeat=%u\n",__func__,event.type,SDL_GetScancodeName(event.keysym.scancode),event.timestamp,event.repeat);
 
         switch(event.type) {
@@ -747,7 +754,7 @@ void BeebWindow::DoImGui(uint64_t ticks) {
     //
     // TODO - could the command key stuff use dear imgui functionality instead?
     {
-        for(const SDL_KeyboardEvent &event:m_sdl_keyboard_events) {
+        for(const SDL_KeyboardEvent &event:sdl_keyboard_events) {
             uint32_t keycode=0;
             bool state=false;
             if(event.type==SDL_KEYDOWN) {
@@ -778,8 +785,6 @@ void BeebWindow::DoImGui(uint64_t ticks) {
             }
         }
     }
-
-    m_sdl_keyboard_events.clear();
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -1900,6 +1905,66 @@ void BeebWindow::HandleVBlank(uint64_t ticks) {
     // during the DoImGui call.
     bool threaded_update=m_update_tv_texture_thread_enabled;
 
+    std::vector<SDL_KeyboardEvent> sdl_keyboard_events;
+
+    {
+        std::lock_guard<Mutex> lock(m_sdl_thread_io_mutex);
+
+        Timer tmr2(&g_HandleVBlank_start_of_frame_timer_def);
+
+        sdl_keyboard_events.swap(m_sdl_thread_output.sdl_keyboard_events);
+
+        //        bool got_mouse_focus=false;
+        //        {
+        //            SDL_Window *mouse_window=SDL_GetMouseFocus();
+        //            if(mouse_window==m_window) {
+        //                got_mouse_focus=true;
+        //            }
+        //        }
+
+        SDL_Window *mouse_window=SDL_GetMouseFocus();
+        if(mouse_window==m_window) {
+            m_sdl_thread_output.got_mouse_focus=true;
+        } else {
+            m_sdl_thread_output.got_mouse_focus=false;
+        }
+
+        m_sdl_thread_output.mouse_buttons=SDL_GetMouseState(&m_sdl_thread_output.mouse_pos.x,
+                                                            &m_sdl_thread_output.mouse_pos.y);
+        m_sdl_thread_output.keymod=SDL_GetModState();
+
+        if(m_pushed_window_padding) {
+            ImGui::PopStyleVar(1);
+        }
+
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding,ImVec2(0.f,0.f));
+
+        m_imgui_stuff->NewFrame(m_sdl_thread_output.got_mouse_focus,
+                                m_sdl_thread_output.mouse_pos,
+                                m_sdl_thread_output.mouse_buttons,
+                                m_sdl_thread_output.mouse_wheel_delta,
+                                m_sdl_thread_output.keymod);
+
+        if(m_sdl_thread_output.got_mouse_focus) {
+            m_sdl_thread_input.imgui_mouse_cursor=ImGui::GetMouseCursor();
+        } else {
+            m_sdl_thread_input.imgui_mouse_cursor=ImGuiMouseCursor_None;
+        }
+
+        //        {
+        //            ImGuiMouseCursor cursor=ImGui::GetMouseCursor();
+        //
+        //            if(cursor>=0&&cursor<ImGuiMouseCursor_COUNT&&m_cursors[cursor]) {
+        //                SDL_SetCursor(m_cursors[cursor]);
+        //            } else {
+        //                SDL_SetCursor(nullptr);
+        //            }
+        //        }
+
+
+        m_pushed_window_padding=true;
+    }
+
     {
         Timer tmr2(&g_HandleVBlank_end_of_frame_timer_def);
 
@@ -1916,7 +1981,7 @@ void BeebWindow::HandleVBlank(uint64_t ticks) {
         {
             Timer tmr3(&g_HandleVBlank_DoImGui_timer_def);
 
-            this->DoImGui(ticks);
+            this->DoImGui(ticks,sdl_keyboard_events);
 
             m_imgui_stuff->RenderImGui();
         }
@@ -1929,48 +1994,33 @@ void BeebWindow::HandleVBlank(uint64_t ticks) {
             SDL_UnlockTexture(m_tv_texture);
         }
 
-//        {
-//            Timer tmr(&g_HandleVBlank_UpdateTVTexture_Copy_timer_def);
-//
-//            if(m_tv_texture) {
-//                void *dest_pixels;
-//                int dest_pitch;
-//                if(SDL_LockTexture(m_tv_texture,nullptr,&dest_pixels,&dest_pitch)==0) {
-//                    m_tv.CopyTexturePixels(dest_pixels,(size_t)dest_pitch);
-//                    SDL_UnlockTexture(m_tv_texture);
-//                }
-//            }
-//        }
+        //        {
+        //            Timer tmr(&g_HandleVBlank_UpdateTVTexture_Copy_timer_def);
+        //
+        //            if(m_tv_texture) {
+        //                void *dest_pixels;
+        //                int dest_pitch;
+        //                if(SDL_LockTexture(m_tv_texture,nullptr,&dest_pixels,&dest_pitch)==0) {
+        //                    m_tv.CopyTexturePixels(dest_pixels,(size_t)dest_pitch);
+        //                    SDL_UnlockTexture(m_tv_texture);
+        //                }
+        //            }
+        //        }
 
         {
             Timer tmr(&g_HandleVBlank_RenderSDL_timer_def);
 
-            m_imgui_stuff->RenderSDL();
+            std::vector<ImDrawList *> draw_lists=m_imgui_stuff->CloneDrawLists();
+
+            m_imgui_stuff->RenderSDL(draw_lists);
+
+            for(size_t i=0;i<draw_lists.size();++i) {
+                IM_DELETE(draw_lists[i]);
+            }
+            draw_lists.clear();
 
             SDL_RenderPresent(m_renderer);
         }
-    }
-
-    {
-        Timer tmr2(&g_HandleVBlank_start_of_frame_timer_def);
-
-        bool got_mouse_focus=false;
-        {
-            SDL_Window *mouse_window=SDL_GetMouseFocus();
-            if(mouse_window==m_window) {
-                got_mouse_focus=true;
-            }
-        }
-
-        if(m_pushed_window_padding) {
-            ImGui::PopStyleVar(1);
-        }
-
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding,ImVec2(0.f,0.f));
-
-        m_imgui_stuff->NewFrame(got_mouse_focus);
-
-        m_pushed_window_padding=true;
     }
 }
 
@@ -2264,7 +2314,7 @@ bool BeebWindow::InitInternal() {
         m_imgui_stuff->ResetDockContext();
     }
 
-    m_imgui_stuff->NewFrame(false);
+    //m_imgui_stuff->NewFrame(false);
 
     m_display_size_options.push_back("Auto");
 

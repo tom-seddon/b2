@@ -243,6 +243,26 @@ protected:
 private:
     struct SettingsUIMetadata;
 
+    // Stuff from the SDL event thread for the Beeb thread.
+    struct SDLThreadOutput {
+        // Buffer for SDL keyboard events, so they can be handled as part of
+        // the usual update.
+        std::vector<SDL_KeyboardEvent> sdl_keyboard_events;
+
+        // Mouse position.
+        bool got_mouse_focus=false;
+        SDL_Point mouse_pos={-1,-1};
+        uint32_t mouse_buttons=0;
+        SDL_Point mouse_wheel_delta={0,0};
+
+        SDL_Keymod keymod=KMOD_NONE;
+    };
+
+    // Stuff from the Beeb thread for the SDL event thread.
+    struct SDLThreadInput {
+        ImGuiMouseCursor imgui_mouse_cursor=ImGuiMouseCursor_None;
+    };
+
     struct DriveState {
         SaveFileDialog new_disc_image_file_dialog;
         OpenFileDialog open_disc_image_file_dialog;
@@ -251,6 +271,11 @@ private:
 
         DriveState();
     };
+
+    // The same mutex serializes access to both input and output.
+    Mutex m_sdl_thread_io_mutex;
+    SDLThreadInput m_sdl_thread_input;
+    SDLThreadOutput m_sdl_thread_output;
 
     BeebWindowInitArguments m_init_arguments;
     std::string m_name;
@@ -289,7 +314,7 @@ private:
     bool m_prefer_shortcuts=false;
 
     // number of emulated us that had passed at the time of the last
-    // title update.
+    // title update.ƒ
     uint64_t m_last_title_update_2MHz_cycles=0;
     uint64_t m_last_title_update_ticks=0;
 
@@ -310,10 +335,6 @@ private:
     // This is a pretty crazy data type, but there's only so many keys
     // you can press per unit time.
     std::map<uint32_t,std::set<BeebKeySym>> m_beeb_keysyms_by_keycode;
-
-    // Buffer for SDL keyboard events, so they can be handled as part of
-    // the usual update.
-    std::vector<SDL_KeyboardEvent> m_sdl_keyboard_events;
 
     BeebWindowSettings m_settings;
 
@@ -357,8 +378,6 @@ private:
     bool m_got_mouse_pixel_unit=false;
     VideoDataUnit m_mouse_pixel_unit={};
 #endif
-
-    SDL_Point m_mouse_pos={-1,-1};
 
 #if HTTP_SERVER
     struct HTTPPoke {
@@ -406,7 +425,7 @@ private:
 
     bool InitInternal();
     static void UpdateTVTextureThread(UpdateTVTextureThreadState *state);
-    void DoImGui(uint64_t ticks);
+    void DoImGui(uint64_t ticks,const std::vector<SDL_KeyboardEvent> &sdl_keyboard_events);
     bool HandleCommandKey(uint32_t keycode,const CommandContext *ccs,size_t num_ccs);
     void DoMenuUI();
     CommandContext DoSettingsUI();
