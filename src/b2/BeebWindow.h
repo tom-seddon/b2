@@ -272,6 +272,9 @@ private:
         DriveState();
     };
 
+    //
+    SDL_Cursor *m_sdl_cursors[ImGuiMouseCursor_COUNT]={};
+
     // The same mutex serializes access to both input and output.
     Mutex m_sdl_thread_io_mutex;
     SDLThreadInput m_sdl_thread_input;

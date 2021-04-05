@@ -336,6 +336,12 @@ BeebWindow::~BeebWindow() {
         m_update_tv_texture_thread.join();
     }
 
+    for(size_t i=0;i<sizeof m_sdl_cursors/sizeof m_sdl_cursors[0];++i) {
+        SDL_FreeCursor(m_sdl_cursors[i]);
+        m_sdl_cursors[i]=nullptr;
+    }
+
+
     // Clear these explicitly before destroying the dear imgui stuff
     // and shutting down SDL.
     for(int i=0;i<BeebWindowPopupType_MaxValue;++i) {
@@ -1945,23 +1951,6 @@ void BeebWindow::HandleVBlank(uint64_t ticks) {
                                 m_sdl_thread_output.mouse_wheel_delta,
                                 m_sdl_thread_output.keymod);
 
-        if(m_sdl_thread_output.got_mouse_focus) {
-            m_sdl_thread_input.imgui_mouse_cursor=ImGui::GetMouseCursor();
-        } else {
-            m_sdl_thread_input.imgui_mouse_cursor=ImGuiMouseCursor_None;
-        }
-
-        //        {
-        //            ImGuiMouseCursor cursor=ImGui::GetMouseCursor();
-        //
-        //            if(cursor>=0&&cursor<ImGuiMouseCursor_COUNT&&m_cursors[cursor]) {
-        //                SDL_SetCursor(m_cursors[cursor]);
-        //            } else {
-        //                SDL_SetCursor(nullptr);
-        //            }
-        //        }
-
-
         m_pushed_window_padding=true;
     }
 
@@ -2020,6 +2009,16 @@ void BeebWindow::HandleVBlank(uint64_t ticks) {
             draw_lists.clear();
 
             SDL_RenderPresent(m_renderer);
+        }
+
+        {
+            std::lock_guard<Mutex> lock(m_sdl_thread_io_mutex);
+
+            if(m_sdl_thread_output.got_mouse_focus) {
+                m_sdl_thread_input.imgui_mouse_cursor=ImGui::GetMouseCursor();
+            } else {
+                m_sdl_thread_input.imgui_mouse_cursor=ImGuiMouseCursor_None;
+            }
         }
     }
 }
@@ -2259,6 +2258,14 @@ bool BeebWindow::InitInternal() {
         m_msg.e.f("failed to initialise ImGui\n");
         return false;
     }
+
+    m_sdl_cursors[ImGuiMouseCursor_Arrow]=SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_ARROW);
+    m_sdl_cursors[ImGuiMouseCursor_ResizeAll]=SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_SIZEALL);
+    m_sdl_cursors[ImGuiMouseCursor_ResizeEW]=SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_SIZEWE);
+    m_sdl_cursors[ImGuiMouseCursor_ResizeNS]=SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_SIZENS);
+    m_sdl_cursors[ImGuiMouseCursor_ResizeNESW]=SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_SIZENESW);
+    m_sdl_cursors[ImGuiMouseCursor_ResizeNWSE]=SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_SIZENWSE);
+    m_sdl_cursors[ImGuiMouseCursor_TextInput]=SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_IBEAM);
 
     if(!m_beeb_thread->Start()) {
         m_msg.e.f("Failed to start BBC\n");//: %s",BeebThread_GetError(m_beeb_thread));
@@ -2562,6 +2569,23 @@ const std::string &BeebWindow::GetConfigName() const {
 //////////////////////////////////////////////////////////////////////////
 
 void BeebWindow::HandleVBlank(VBlankMonitor *vblank_monitor,void *display_data,uint64_t ticks) {
+    ImGuiMouseCursor imgui_mouse_cursor;
+    {
+        std::lock_guard<Mutex> lock(m_sdl_thread_io_mutex);
+
+        imgui_mouse_cursor=m_sdl_thread_input.imgui_mouse_cursor;
+    }
+
+    //printf("cursor=%d\n",imgui_mouse_cursor);
+    if(imgui_mouse_cursor>=0&&
+       imgui_mouse_cursor<ImGuiMouseCursor_COUNT&&
+       m_sdl_cursors[imgui_mouse_cursor])
+    {
+        SDL_SetCursor(m_sdl_cursors[imgui_mouse_cursor]);
+    } else {
+        SDL_SetCursor(nullptr);
+    }
+
     // There's an API for exactly this on Windows. But it's probably
     // better to have the same code on every platform. 99% of the time
     // (and possibly even more often than that...) this will get the

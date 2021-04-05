@@ -121,7 +121,6 @@ private:
     ImFontAtlas *m_original_font_atlas=nullptr;
     std::string m_imgui_ini_path;
     std::string m_imgui_log_txt_path;
-    SDL_Cursor *m_cursors[ImGuiMouseCursor_COUNT]={};
 #if STORE_DRAWLISTS
     struct StoredDrawCmd {
         bool callback=false;

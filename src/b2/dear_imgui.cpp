@@ -107,10 +107,10 @@ ImGuiStuff::~ImGuiStuff() {
         m_font_texture=nullptr;
     }
 
-    for(size_t i=0;i<sizeof m_cursors/sizeof m_cursors[0];++i) {
-        SDL_FreeCursor(m_cursors[i]);
-        m_cursors[i]=nullptr;
-    }
+//    for(size_t i=0;i<sizeof m_cursors/sizeof m_cursors[0];++i) {
+//        SDL_FreeCursor(m_cursors[i]);
+//        m_cursors[i]=nullptr;
+//    }
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -184,14 +184,6 @@ bool ImGuiStuff::Init() {
     io.MouseDoubleClickTime=(float)GetDoubleClickIntervalSeconds();
 
 #endif
-
-    m_cursors[ImGuiMouseCursor_Arrow]=SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_ARROW);
-    m_cursors[ImGuiMouseCursor_ResizeAll]=SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_SIZEALL);
-    m_cursors[ImGuiMouseCursor_ResizeEW]=SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_SIZEWE);
-    m_cursors[ImGuiMouseCursor_ResizeNS]=SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_SIZENS);
-    m_cursors[ImGuiMouseCursor_ResizeNESW]=SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_SIZENESW);
-    m_cursors[ImGuiMouseCursor_ResizeNWSE]=SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_SIZENWSE);
-    m_cursors[ImGuiMouseCursor_TextInput]=SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_IBEAM);
 
     m_imgui_ini_path=GetConfigPath("imgui.ini");
     io.IniFilename=m_imgui_ini_path.c_str();
@@ -288,9 +280,6 @@ void ImGuiStuff::NewFrame(bool got_mouse_focus,
     m_last_new_frame_ticks=now_ticks;
 
     if(got_mouse_focus) {
-//        int x,y;
-//        Uint32 b=SDL_GetMouseState(&x,&y);
-//
         io.MousePos.x=(float)mouse_pos.x;
         io.MousePos.y=(float)mouse_pos.y;
 
@@ -298,23 +287,10 @@ void ImGuiStuff::NewFrame(bool got_mouse_focus,
         io.MouseDown[1]=!!(mouse_buttons&SDL_BUTTON_RMASK);
         io.MouseDown[2]=!!(mouse_buttons&SDL_BUTTON_MMASK);
 
-        //SDL_Keymod m=SDL_GetModState();
-
         io.KeyCtrl=!!(keymod&KMOD_CTRL);
         io.KeyAlt=!!(keymod&KMOD_ALT);
         io.KeyShift=!!(keymod&KMOD_SHIFT);
         io.KeySuper=!!(keymod&KMOD_GUI);
-
-//        {
-//            ImGuiMouseCursor cursor=ImGui::GetMouseCursor();
-//
-//            if(cursor>=0&&cursor<ImGuiMouseCursor_COUNT&&m_cursors[cursor]) {
-//                SDL_SetCursor(m_cursors[cursor]);
-//            } else {
-//                SDL_SetCursor(nullptr);
-//            }
-//        }
-
     } else {
         
 
