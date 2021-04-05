@@ -1951,6 +1951,9 @@ void BeebWindow::HandleVBlank(uint64_t ticks) {
                                 m_sdl_thread_output.mouse_wheel_delta,
                                 m_sdl_thread_output.keymod);
 
+        m_sdl_thread_output.mouse_wheel_delta.x=0;
+        m_sdl_thread_output.mouse_wheel_delta.y=0;
+
         m_pushed_window_padding=true;
     }
 
