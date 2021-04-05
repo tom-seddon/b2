@@ -138,11 +138,6 @@ public:
     // BeebThread; the keymap could be deleted by the time it's used.)
     std::string keymap_name;
 
-    // When USE_SETTINGS is true, copy new window's settings from
-    // SETTINGS. Otherwise, use BeebWindow::defaults.
-    bool use_settings=false;
-    BeebWindowSettings settings;
-
     // Initial disc images, if any, for the drives. Only set for the first
     // window created - the values come from the -0/-1 command line options.
     std::shared_ptr<DiscImage> init_disc_images[NUM_DRIVES];

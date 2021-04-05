@@ -297,11 +297,7 @@ BeebWindow::BeebWindow(BeebWindowInitArguments init_arguments):
                                                m_init_arguments.default_config,
                                                std::vector<BeebThread::TimelineEventList>());
 
-    if(init_arguments.use_settings) {
-        m_settings=init_arguments.settings;
-    } else {
-        m_settings=BeebWindows::defaults;
-    }
+    m_settings=BeebWindows::defaults;
 
     m_beeb_thread->SetBBCVolume(m_settings.bbc_volume);
     m_beeb_thread->SetDiscVolume(m_settings.disc_volume);
