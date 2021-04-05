@@ -241,12 +241,6 @@ void BeebWindow::OptionsUI::DoImGui() {
         beeb_thread->SetPowerOnTone(settings->power_on_tone);
     }
 
-#if BUILD_TYPE_Debug
-    if(ImGui::Checkbox("Threaded texture update",&m_beeb_window->m_update_tv_texture_thread_enabled)) {
-        ResetTimerDefs();
-    }
-#endif
-
     ImGui::NewLine();
 
 #if BBCMICRO_DEBUGGER
@@ -323,18 +317,6 @@ BeebWindow::BeebWindow(BeebWindowInitArguments init_arguments):
 
 BeebWindow::~BeebWindow() {
     m_beeb_thread->Stop();
-
-    if(m_update_tv_texture_thread.joinable()) {
-        {
-            std::lock_guard<Mutex> lock(m_update_tv_texture_state.mutex);
-
-            m_update_tv_texture_state.stop=true;
-        }
-
-        m_update_tv_texture_state.update_cv.notify_one();
-
-        m_update_tv_texture_thread.join();
-    }
 
     for(size_t i=0;i<sizeof m_sdl_cursors/sizeof m_sdl_cursors[0];++i) {
         SDL_FreeCursor(m_sdl_cursors[i]);
@@ -1615,35 +1597,6 @@ void BeebWindow::DoDebugMenu() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void BeebWindow::UpdateTVTextureThread(UpdateTVTextureThreadState *state) {
-    std::unique_lock<Mutex> lock(state->mutex);
-
-    while(!state->stop) {
-        state->update_cv.wait(lock);
-
-        if(state->update) {
-            lock.unlock();
-
-            state->update_num_units_consumed=ConsumeTVTexture(state->update_video_output,
-                                                              state->update_tv,
-                                                              state->update_inhibit);
-            
-            ASSERT(state->update_dest_pitch>=0);
-            state->update_tv->CopyTexturePixels(state->update_dest_pixels,
-                                                (size_t)state->update_dest_pitch);
-
-            lock.lock();
-
-            state->done=true;
-
-            state->done_cv.notify_one();
-        }
-    }
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 size_t BeebWindow::ConsumeTVTexture(OutputDataBuffer<VideoDataUnit> *video_output,TVOutput *tv,bool inhibit_update) {
     //OutputDataBuffer<VideoDataUnit> *video_output=m_beeb_thread->GetVideoOutput();
 
@@ -1720,53 +1673,6 @@ bool BeebWindow::InhibitUpdateTVTexture() const {
 #endif
 
     return false;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-void BeebWindow::BeginUpdateTVTexture(bool threaded,void *dest_pixels,int dest_pitch) {
-    if(threaded) {
-        {
-            std::unique_lock<Mutex> lock(m_update_tv_texture_state.mutex);
-            m_update_tv_texture_state.done=false;
-            m_update_tv_texture_state.update=true;
-            m_update_tv_texture_state.update_video_output=m_beeb_thread->GetVideoOutput();
-            m_update_tv_texture_state.update_tv=&m_tv;
-            m_update_tv_texture_state.update_inhibit=this->InhibitUpdateTVTexture();
-            m_update_tv_texture_state.update_dest_pixels=dest_pixels;
-            m_update_tv_texture_state.update_dest_pitch=dest_pitch;
-        }
-        m_update_tv_texture_state.update_cv.notify_one();
-    }
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-void BeebWindow::EndUpdateTVTexture(bool threaded,VBlankRecord *vblank_record,void *dest_pixels,int dest_pitch) {
-    Timer tmr(&g_HandleVBlank_UpdateTVTexture_Consume_timer_def);
-
-    if(threaded) {
-        std::unique_lock<Mutex> lock(m_update_tv_texture_state.mutex);
-
-        while(!m_update_tv_texture_state.done) {
-            m_update_tv_texture_state.done_cv.wait(lock);
-        }
-
-        vblank_record->num_video_units=m_update_tv_texture_state.update_num_units_consumed;
-    } else {
-        m_tv.SetInterlace(m_settings.display_interlace);
-
-        bool inhibit_update=this->InhibitUpdateTVTexture();
-        size_t num_units_consumed=this->ConsumeTVTexture(m_beeb_thread->GetVideoOutput(),
-                                                         &m_tv,
-                                                         inhibit_update);
-
-        vblank_record->num_video_units=num_units_consumed;
-        
-        m_tv.CopyTexturePixels(dest_pixels,dest_pitch);
-    }
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -1907,10 +1813,6 @@ void BeebWindow::HandleVBlank(uint64_t ticks) {
 
     Timer tmr(&g_HandleVBlank_timer_def);
 
-    // don't use m_update_tv_texture_thread_enabled directly - it might change
-    // during the DoImGui call.
-    bool threaded_update=m_update_tv_texture_thread_enabled;
-
     std::vector<SDL_KeyboardEvent> sdl_keyboard_events;
 
     {
@@ -1962,14 +1864,6 @@ void BeebWindow::HandleVBlank(uint64_t ticks) {
 
         VBlankRecord *vblank_record=this->NewVBlankRecord(ticks);
 
-        void *dest_pixels=nullptr;
-        int dest_pitch=0;
-        if(m_tv_texture) {
-            SDL_LockTexture(m_tv_texture,nullptr,&dest_pixels,&dest_pitch);
-        }
-        
-        this->BeginUpdateTVTexture(threaded_update,dest_pixels,dest_pitch);
-
         {
             Timer tmr3(&g_HandleVBlank_DoImGui_timer_def);
 
@@ -1980,24 +1874,22 @@ void BeebWindow::HandleVBlank(uint64_t ticks) {
 
         SDL_RenderClear(m_renderer);
 
-        this->EndUpdateTVTexture(threaded_update,vblank_record,dest_pixels,dest_pitch);
-        
-        if(dest_pixels) {
-            SDL_UnlockTexture(m_tv_texture);
-        }
+        m_tv.SetInterlace(m_settings.display_interlace);
 
-        //        {
-        //            Timer tmr(&g_HandleVBlank_UpdateTVTexture_Copy_timer_def);
-        //
-        //            if(m_tv_texture) {
-        //                void *dest_pixels;
-        //                int dest_pitch;
-        //                if(SDL_LockTexture(m_tv_texture,nullptr,&dest_pixels,&dest_pitch)==0) {
-        //                    m_tv.CopyTexturePixels(dest_pixels,(size_t)dest_pitch);
-        //                    SDL_UnlockTexture(m_tv_texture);
-        //                }
-        //            }
-        //        }
+        bool inhibit_update=this->InhibitUpdateTVTexture();
+        size_t num_units_consumed=this->ConsumeTVTexture(m_beeb_thread->GetVideoOutput(),
+                                                         &m_tv,
+                                                         inhibit_update);
+
+        vblank_record->num_video_units=num_units_consumed;
+
+        {
+            Timer tmr(&g_HandleVBlank_UpdateTVTexture_Copy_timer_def);
+
+            m_tv.CopyTexturePixels(m_tv_texture_buffer.data(),TV_TEXTURE_WIDTH*4);
+
+            SDL_UpdateTexture(m_tv_texture,nullptr,m_tv_texture_buffer.data(),TV_TEXTURE_WIDTH*4);
+        }
 
         {
             Timer tmr(&g_HandleVBlank_RenderSDL_timer_def);
@@ -2376,11 +2268,7 @@ bool BeebWindow::InitInternal() {
               m_init_arguments.sound_spec.channels,
               m_init_arguments.sound_spec.size);
 
-    MUTEX_SET_NAME(m_update_tv_texture_state.mutex,"UpdateTVTextureMutex");
-    m_update_tv_texture_thread=std::thread([this]() {
-        SetCurrentThreadName("UpdateTVTextureThread");
-        UpdateTVTextureThread(&m_update_tv_texture_state);
-    });
+    MUTEX_SET_NAME(m_sdl_thread_io_mutex,"SDLThreadIOMutex");
 
     return true;
 }
@@ -2655,6 +2543,8 @@ bool BeebWindow::RecreateTexture() {
         m_msg.e.f("Failed to create TV texture: %s\n",SDL_GetError());
         return false;
     }
+
+    m_tv_texture_buffer.resize(TV_TEXTURE_WIDTH*TV_TEXTURE_HEIGHT*4);
 
     return true;
 }
