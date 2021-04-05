@@ -879,7 +879,6 @@ static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &init
             ia.sound_device=audio_device;
             ia.sound_spec=audio_spec;
             ia.default_config=initial_loaded_config;
-            ia.name="b2";
             ia.preinit_message_list=init_message_list;
 
 #if SYSTEM_OSX
@@ -911,7 +910,8 @@ static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &init
 
         auto beeb_window=std::make_unique<BeebWindow>(std::move(ia));
 
-        if(!beeb_window->Init()) {
+        uint32_t beeb_window_id;
+        if(!beeb_window->Init(&beeb_window_id)) {
             beeb_window=nullptr;
 
             init_messages.e.f("FATAL: failed to create window.\n");
@@ -925,8 +925,6 @@ static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &init
             http_server->SetHandler(http_handler.get());
         }
 #endif
-
-        uint32_t beeb_window_id=beeb_window->GetSDLWindowID();
 
         SDL_LockAudioDevice(audio_device);
         g_fill_audio_buffer_data.beeb_window=beeb_window.get();

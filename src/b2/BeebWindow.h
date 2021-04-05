@@ -97,9 +97,6 @@ public:
     // Sound playback details.
     SDL_AudioSpec sound_spec={};
 
-    // Name for the window.
-    std::string name;
-
     // If set, reset windows. Only ever set for the first window created.
     bool reset_windows=false;
 
@@ -116,14 +113,6 @@ public:
     std::vector<uint8_t> placement_data;
 
 #endif
-
-//    // If set, the emulator is initially paused.
-//    //
-//    // (This isn't actually terribly useful, because there's no way to
-//    // then unpause it from the public API - but the flag has to go
-//    // somewhere, and it has to funnel through CreateBeebWindow, so...
-//    // here it is.)
-//    bool initially_paused=false;
 
     // When INITIAL_STATE is non-null, it is used as the initial state
     // for the window; otherwise, DEFAULT_CONFIG will be used as the
@@ -180,68 +169,59 @@ public:
     BeebWindow(BeebWindowInitArguments init_arguments);
     ~BeebWindow();
 
-    bool Init();
+    bool Init(uint32_t *sdl_window_id);
 
-    // Saves all settings, including whatever SavePosition does.
+    // Saves all settings, including whatever SavePosition does. Called on
+    // shutdown and from the UI code.
     void SaveSettings();
 
-    // Saves position only.
+    // Saves position only. Called by SaveSettings and from the message loop.
     void SavePosition();
 
-    const std::string &GetName() const;
-    void SetName(std::string name);
-
-    bool GetBeebKeyState(BeebKey key) const;
-
-    uint32_t GetSDLWindowID() const;
-
+    // called by message loop
     void HandleSDLKeyEvent(const SDL_KeyboardEvent &event);
-
     void SetSDLMouseWheelState(int x,int y);
     void HandleSDLTextInput(const char *text);
     void HandleSDLMouseMotionEvent(const SDL_MouseMotionEvent &event);
-
-    void ThreadFillAudioBuffer(SDL_AudioDeviceID audio_device_id,float *mix_buffer,size_t num_samples);
-
     void HandleVBlank(VBlankMonitor *vblank_monitor,void *display_data,uint64_t ticks);
-
-    void HandleVBlank(uint64_t ticks);
-
     void UpdateTitle();
 
-    void BeebKeymapWillBeDeleted(BeebKeymap *keymap);
+    // called from audio thread
+    void ThreadFillAudioBuffer(SDL_AudioDeviceID audio_device_id,float *mix_buffer,size_t num_samples);
 
     // Get pointer to this window's BeebThread. (The lifespan of the
-    // BeebThread is the same as that of the window.)
+    // BeebThread is the same as that of the window.) (already MT OK)
     std::shared_ptr<BeebThread> GetBeebThread() const;
 
-    //
+    // called by various bits and pieces (already MT OK)
     std::shared_ptr<MessageList> GetMessageList() const;
 
-#if SYSTEM_WINDOWS
-    void *GetHWND() const;
-#endif
-#if SYSTEM_OSX
-    void *GetNSWindow() const;
-#endif
-
+    // used by DataRateUI
     std::vector<VBlankRecord> GetVBlankRecords() const;
 
+    // used by KeymapsUI
+    void BeebKeymapWillBeDeleted(BeebKeymap *keymap);
+    bool GetBeebKeyState(BeebKey key) const;
     const BeebKeymap *GetCurrentKeymap() const;
     void SetCurrentKeymap(const BeebKeymap *keymap);
 
 #if VIDEO_TRACK_METADATA
+    // used by debugger
     const VideoDataUnit *GetVideoDataUnitForMousePixel() const;
 #endif
 
+    // used by debugger
     SettingsUI *GetPopupByType(BeebWindowPopupType type) const;
 
-    bool HardReset(const BeebConfig &config);
-
+    // used by ConfigsUI
     const std::string &GetConfigName() const;
 protected:
 private:
     struct SettingsUIMetadata;
+
+    struct BeebThreadInitData {
+        SDL_Texture *tv_texture=nullptr;
+    };
 
     // Stuff from the SDL event thread for the Beeb thread.
     struct SDLThreadOutput {
@@ -281,7 +261,6 @@ private:
     SDLThreadOutput m_sdl_thread_output;
 
     BeebWindowInitArguments m_init_arguments;
-    std::string m_name;
 
     // SDLstuff.
     SDL_Window *m_window=nullptr;
@@ -394,6 +373,8 @@ private:
 
     const CommandContext m_cc{this,&ms_command_table};
 
+    void HandleVBlank(uint64_t ticks);
+    bool HardReset(const BeebConfig &config);
     bool InitInternal();
     void DoImGui(uint64_t ticks,const std::vector<SDL_KeyboardEvent> &sdl_keyboard_events);
     bool HandleCommandKey(uint32_t keycode,const CommandContext *ccs,size_t num_ccs);

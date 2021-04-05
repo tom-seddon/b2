@@ -287,8 +287,6 @@ bool BeebWindow::OptionsUI::OnClose() {
 BeebWindow::BeebWindow(BeebWindowInitArguments init_arguments):
     m_init_arguments(std::move(init_arguments))
 {
-    m_name=m_init_arguments.name;
-
     m_message_list=std::make_shared<MessageList>();
     m_msg=Messages(m_message_list);
 
@@ -372,20 +370,6 @@ BeebWindow::~BeebWindow() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-const std::string &BeebWindow::GetName() const {
-    return m_name;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-void BeebWindow::SetName(std::string name) {
-    m_name=std::move(name);
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 bool BeebWindow::GetBeebKeyState(BeebKey key) const {
     if(key<0) {
         return false;
@@ -462,13 +446,6 @@ bool BeebWindow::HandleBeebKey(const SDL_Keysym &keysym,bool state) {
     }
 
     return true;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-uint32_t BeebWindow::GetSDLWindowID() const {
-    return SDL_GetWindowID(m_window);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -1921,7 +1898,7 @@ void BeebWindow::HandleVBlank(uint64_t ticks) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool BeebWindow::Init() {
+bool BeebWindow::Init(uint32_t *sdl_window_id) {
     bool good=this->InitInternal();
 
     if(good) {
@@ -1932,6 +1909,8 @@ bool BeebWindow::Init() {
 
             m_init_arguments.preinit_message_list=nullptr;
         }
+
+        *sdl_window_id=SDL_GetWindowID(m_window);
 
         return true;
     } else {
@@ -2328,7 +2307,7 @@ void BeebWindow::UpdateTitle() {
         m_last_title_update_ticks=now;
     }
 
-    snprintf(title,sizeof title,"%s [%.3fx]",m_name.c_str(),speed);
+    snprintf(title,sizeof title,"b2 [%.3fx]",speed);
 
     SDL_SetWindowTitle(m_window,title);
 }
@@ -2355,24 +2334,6 @@ std::shared_ptr<BeebThread> BeebWindow::GetBeebThread() const {
 std::shared_ptr<MessageList> BeebWindow::GetMessageList() const {
     return m_message_list;
 }
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-#if SYSTEM_WINDOWS
-void *BeebWindow::GetHWND() const {
-    return m_hwnd;
-}
-#endif
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-#if SYSTEM_OSX
-void *BeebWindow::GetNSWindow() const {
-    return m_nswindow;
-}
-#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
