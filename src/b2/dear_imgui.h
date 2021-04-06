@@ -72,7 +72,7 @@ extern const ImGuiStyle IMGUI_DEFAULT_STYLE;
 
 class ImGuiStuff {
 public:
-    explicit ImGuiStuff(SDL_Renderer *renderer);
+    explicit ImGuiStuff();
     ~ImGuiStuff();
 
     ImGuiStuff(const ImGuiStuff &)=delete;
@@ -81,14 +81,16 @@ public:
     ImGuiStuff(ImGuiStuff &&)=delete;
     ImGuiStuff &operator=(ImGuiStuff &&)=delete;
 
-    bool Init();
+    bool Init(SDL_Renderer *renderer);
 
     // bool parameter, yum.
     void NewFrame(bool got_mouse_focus,
                   const SDL_Point &mouse_pos,
                   uint32_t mouse_buttons,
                   const SDL_Point &mouse_wheel_delta,
-                  uint32_t keymod);
+                  uint32_t keymod,
+                  int display_width,
+                  int display_height);
 
     // does ImGui::Render.
     void RenderImGui();
@@ -96,7 +98,8 @@ public:
     std::vector<ImDrawList *> CloneDrawLists();
 
     // does the SDL rendering stuff.
-    void RenderSDL(const std::vector<ImDrawList *> &draw_lists);
+    void RenderSDL(SDL_Renderer *renderer,
+                   const std::vector<ImDrawList *> &draw_lists);
 
     void SetKeyDown(uint32_t scancode,bool state);
     void AddInputCharactersUTF8(const char *text);
@@ -111,7 +114,6 @@ public:
     void DoDebugWindow();
 protected:
 private:
-    SDL_Renderer *m_renderer=nullptr;
     ImGuiContext *m_context=nullptr;
     ImGui::DockContext *m_dock_context=nullptr;
     bool m_reset_dock_context=false;

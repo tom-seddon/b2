@@ -25,6 +25,9 @@ class CommandKeymapsUI;
 class SettingsUI;
 class DiscImage;
 class FileMenuItem;
+struct SDLThreadConstantOutput;
+struct SDLThreadVaryingOutput;
+struct BeebThreadVaryingOutput;
 
 #include "keys.h"
 #include "dear_imgui.h"
@@ -159,12 +162,11 @@ public:
 
     class OptionsUI;
 
-    static const char SDL_WINDOW_DATA_NAME[];
-
-    BeebWindow(BeebWindowInitArguments init_arguments);
+    BeebWindow(BeebWindowInitArguments init_arguments,std::shared_ptr<MessageList> message_list);
     ~BeebWindow();
 
-    bool Init(uint32_t *sdl_window_id);
+    bool Init(SDL_Renderer *renderer,
+              SDL_PixelFormat *tv_texture_pixel_format);
 
     // Saves all settings, including whatever SavePosition does. Called on
     // shutdown and from the UI code.
@@ -174,12 +176,16 @@ public:
     void SavePosition();
 
     // called by message loop
-    void HandleSDLKeyEvent(const SDL_KeyboardEvent &event);
-    void SetSDLMouseWheelState(int x,int y);
-    void HandleSDLTextInput(const char *text);
-    void HandleSDLMouseMotionEvent(const SDL_MouseMotionEvent &event);
-    void HandleVBlank(VBlankMonitor *vblank_monitor,void *display_data,uint64_t ticks);
-    void UpdateTitle();
+//    void HandleSDLKeyEvent(const SDL_KeyboardEvent &event);
+//    void SetSDLMouseWheelState(int x,int y);
+//    void HandleSDLTextInput(const char *text);
+//    void HandleSDLMouseMotionEvent(const SDL_MouseMotionEvent &event);
+    //void HandleVBlank(VBlankMonitor *vblank_monitor,void *display_data,uint64_t ticks,SDL_Renderer *renderer);
+    void HandleVBlank(uint64_t ticks,
+                      const SDLThreadConstantOutput &sdl_koutput,
+                      const SDLThreadVaryingOutput &sdl_voutput,
+                      BeebThreadVaryingOutput *beeb_voutput);
+    void GetTitle(char *text,size_t text_size);
 
     // called from audio thread
     void ThreadFillAudioBuffer(SDL_AudioDeviceID audio_device_id,float *mix_buffer,size_t num_samples);
@@ -214,29 +220,29 @@ protected:
 private:
     struct SettingsUIMetadata;
 
-    struct BeebThreadInitData {
-        SDL_Texture *tv_texture=nullptr;
-    };
+//    struct BeebThreadInitData {
+//        SDL_Texture *tv_texture=nullptr;
+//    };
 
-    // Stuff from the SDL event thread for the Beeb thread.
-    struct SDLThreadOutput {
-        // Buffer for SDL keyboard events, so they can be handled as part of
-        // the usual update.
-        std::vector<SDL_KeyboardEvent> sdl_keyboard_events;
+//    // Stuff from the SDL event thread for the Beeb thread.
+//    struct SDLThreadOutput {
+//        // Buffer for SDL keyboard events, so they can be handled as part of
+//        // the usual update.
+//        std::vector<SDL_KeyboardEvent> sdl_keyboard_events;
+//
+//        // Mouse position.
+//        bool got_mouse_focus=false;
+//        SDL_Point mouse_pos={-1,-1};
+//        uint32_t mouse_buttons=0;
+//        SDL_Point mouse_wheel_delta={0,0};
+//
+//        SDL_Keymod keymod=KMOD_NONE;
+//    };
 
-        // Mouse position.
-        bool got_mouse_focus=false;
-        SDL_Point mouse_pos={-1,-1};
-        uint32_t mouse_buttons=0;
-        SDL_Point mouse_wheel_delta={0,0};
-
-        SDL_Keymod keymod=KMOD_NONE;
-    };
-
-    // Stuff from the Beeb thread for the SDL event thread.
-    struct SDLThreadInput {
-        ImGuiMouseCursor imgui_mouse_cursor=ImGuiMouseCursor_None;
-    };
+//    // Stuff from the Beeb thread for the SDL event thread.
+//    struct SDLThreadInput {
+//        ImGuiMouseCursor imgui_mouse_cursor=ImGuiMouseCursor_None;
+//    };
 
     struct DriveState {
         SaveFileDialog new_disc_image_file_dialog;
@@ -248,41 +254,28 @@ private:
     };
 
     //
-    SDL_Cursor *m_sdl_cursors[ImGuiMouseCursor_COUNT]={};
-
     // The same mutex serializes access to both input and output.
-    Mutex m_sdl_thread_io_mutex;
-    SDLThreadInput m_sdl_thread_input;
-    SDLThreadOutput m_sdl_thread_output;
+//    Mutex m_sdl_thread_io_mutex;
+//    SDLThreadInput m_sdl_thread_input;
+//    SDLThreadOutput m_sdl_thread_output;
 
     BeebWindowInitArguments m_init_arguments;
 
-    // SDLstuff.
-    SDL_Window *m_window=nullptr;
-    SDL_Renderer *m_renderer=nullptr;
-    SDL_PixelFormat *m_pixel_format=nullptr;
+//    // SDLstuff.
+//    SDL_Window *m_window=nullptr;
+//    SDL_Renderer *m_renderer=nullptr;
+//    SDL_PixelFormat *m_pixel_format=nullptr;
 
-#if SYSTEM_WINDOWS
-    void *m_hwnd=nullptr;
-#elif SYSTEM_OSX
-    void *m_nswindow=nullptr;
-#elif SYSTEM_LINUX
-#include <shared/pshpack1.h>
-    struct WindowPlacementData {
-        uint8_t maximized=0;
-        int x=INT_MIN,y=INT_MIN;
-        int width=0,height=0;
-    };
-#include <shared/poppack.h>
-#endif
     std::vector<VBlankRecord> m_vblank_records;
     size_t m_vblank_index=0;
     uint64_t m_last_vblank_ticks=0;
 
     // TV output.
     TVOutput m_tv;
+
+    // The code assumes the data pointer remains the same after Init.
     std::vector<uint8_t> m_tv_texture_buffer;
-    SDL_Texture *m_tv_texture=nullptr;
+    //SDL_Texture *m_tv_texture=nullptr;
 
     float m_blend_amt=0.f;
 
@@ -318,7 +311,6 @@ private:
 
     //
     //bool m_ui=false;
-    bool m_pushed_window_padding=false;
     ImGuiStuff *m_imgui_stuff=nullptr;
 
 #if ENABLE_IMGUI_DEMO
@@ -368,10 +360,14 @@ private:
 
     const CommandContext m_cc{this,&ms_command_table};
 
-    void HandleVBlank(uint64_t ticks);
     bool HardReset(const BeebConfig &config);
-    bool InitInternal();
-    void DoImGui(uint64_t ticks,const std::vector<SDL_KeyboardEvent> &sdl_keyboard_events);
+    bool InitInternal(SDL_Renderer *renderer,
+                      SDL_PixelFormat *tv_texture_pixel_format);
+    void DoImGui(uint64_t ticks,
+                 int output_width,
+                 int output_height,
+                 const SDLThreadConstantOutput &sdl_koutput,
+                 const std::vector<SDL_KeyboardEvent> &sdl_keyboard_events);
     bool HandleCommandKey(uint32_t keycode,const CommandContext *ccs,size_t num_ccs);
     void DoMenuUI();
     CommandContext DoSettingsUI();
@@ -391,7 +387,7 @@ private:
     void SaveState();
     bool SaveStateIsEnabled() const;
     bool HandleBeebKey(const SDL_Keysym &keysym,bool state);
-    bool RecreateTexture();
+    //bool RecreateTexture();
     void Exit();
     void CleanUpRecentFilesLists();
     void ResetDockWindows();
@@ -402,7 +398,7 @@ private:
     void BeginUpdateTVTexture(bool threaded,void *dest_pixels,int dest_pitch);
     void EndUpdateTVTexture(bool threaded,VBlankRecord *vblank_record,void *dest_pixels,int dest_pitch);
     VBlankRecord *NewVBlankRecord(uint64_t ticks);
-    bool DoBeebDisplayUI();
+    bool DoBeebDisplayUI(SDL_Texture *tv_texture);
 
     template<BeebWindowPopupType>
     void TogglePopupCommand();

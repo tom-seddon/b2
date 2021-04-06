@@ -72,9 +72,7 @@ ImGuiContextSetter::~ImGuiContextSetter() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-ImGuiStuff::ImGuiStuff(SDL_Renderer *renderer):
-    m_renderer(renderer)
-{
+ImGuiStuff::ImGuiStuff() {
     m_last_new_frame_ticks=GetCurrentTickCount();
 }
 
@@ -157,7 +155,7 @@ static void SetClipboardText(void *user_data,const char *text) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool ImGuiStuff::Init() {
+bool ImGuiStuff::Init(SDL_Renderer *renderer) {
     int rc;
     (void)rc;
 
@@ -235,7 +233,7 @@ bool ImGuiStuff::Init() {
     io.Fonts->GetTexDataAsRGBA32(&pixels,&width,&height);
 
     SetRenderScaleQualityHint(false);
-    m_font_texture=SDL_CreateTexture(m_renderer,SDL_PIXELFORMAT_RGBA32,SDL_TEXTUREACCESS_STATIC,width,height);
+    m_font_texture=SDL_CreateTexture(renderer,SDL_PIXELFORMAT_RGBA32,SDL_TEXTUREACCESS_STATIC,width,height);
     if(!m_font_texture) {
         return false;
     }
@@ -270,7 +268,9 @@ void ImGuiStuff::NewFrame(bool got_mouse_focus,
                           const SDL_Point &mouse_pos,
                           uint32_t mouse_buttons,
                           const SDL_Point &mouse_wheel_delta,
-                          uint32_t keymod)
+                          uint32_t keymod,
+                          int display_width,
+                          int display_height)
 {
     ImGuiContextSetter setter(this);
     ImGuiIO &io=ImGui::GetIO();
@@ -306,13 +306,8 @@ void ImGuiStuff::NewFrame(bool got_mouse_focus,
         io.KeyShift=false;
     }
 
-    {
-        int output_width,output_height;
-        SDL_GetRendererOutputSize(m_renderer,&output_width,&output_height);
-
-        io.DisplaySize.x=(float)output_width;
-        io.DisplaySize.y=(float)output_height;
-    }
+    io.DisplaySize.x=display_width;
+    io.DisplaySize.y=display_height;
 
     io.MouseWheel=(float)mouse_wheel_delta.y;
 
@@ -370,7 +365,8 @@ std::vector<ImDrawList *> ImGuiStuff::CloneDrawLists() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void ImGuiStuff::RenderSDL(const std::vector<ImDrawList *> &draw_lists) {
+void ImGuiStuff::RenderSDL(SDL_Renderer *renderer,
+                           const std::vector<ImDrawList *> &draw_lists) {
     if(draw_lists.empty()) {
         return;
     }
@@ -398,13 +394,13 @@ void ImGuiStuff::RenderSDL(const std::vector<ImDrawList *> &draw_lists) {
     m_draw_lists.resize(draw_lists.size());
 #endif
 
-    SDL_RenderFlush(m_renderer);
+    SDL_RenderFlush(renderer);
 
     glPushAttrib(GL_ALL_ATTRIB_BITS);
     glPushClientAttrib(GL_CLIENT_ALL_ATTRIB_BITS);
 
     int output_width,output_height;
-    SDL_GetRendererOutputSize(m_renderer,&output_width,&output_height);
+    SDL_GetRendererOutputSize(renderer,&output_width,&output_height);
 
     glViewport(0,0,output_width,output_height);
 

@@ -39,6 +39,7 @@
 #include <curl/curl.h>
 #include "DirectDiscImage.h"
 #include "discs.h"
+#include "SDLBeebWindow.h"
 
 #include <shared/enum_decl.h>
 #include "b2.inl"
@@ -206,7 +207,7 @@ struct FillAudioBufferData {
     std::vector<float> mix_buffer;
 
     uint64_t first_call_ticks=0;
-    BeebWindow *beeb_window=nullptr;
+    SDLBeebWindow *beeb_window=nullptr;
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -908,7 +909,7 @@ static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &init
             ia.boot=options.boot;
         }
 
-        auto beeb_window=std::make_unique<BeebWindow>(std::move(ia));
+        auto beeb_window=std::make_unique<SDLBeebWindow>(std::move(ia));
 
         uint32_t beeb_window_id;
         if(!beeb_window->Init(&beeb_window_id)) {
@@ -921,7 +922,7 @@ static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &init
 #if HTTP_SERVER
         std::unique_ptr<HTTPHandler> http_handler;
         if(!!http_server) {
-            http_handler=CreateHTTPMethodsHandler(beeb_window.get());
+            http_handler=CreateHTTPMethodsHandler(beeb_window->GetBeebWindow());
             http_server->SetHandler(http_handler.get());
         }
 #endif

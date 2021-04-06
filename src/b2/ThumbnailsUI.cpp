@@ -197,6 +197,7 @@ SDLUniquePtr<SDL_Texture> ThumbnailsUI::GetTexture() {
     SDLUniquePtr<SDL_Texture> texture;
 
     if(m_textures.empty()) {
+        ASSERT(false);//need some kind of job queue type of affair on the SDL thread for creating OpenGL textures
         SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY,"linear");
         texture=SDLUniquePtr<SDL_Texture>(SDL_CreateTexture(m_renderer,
                                                             m_pixel_format->format,

@@ -10,6 +10,7 @@ add_executable(b2 MACOSX_BUNDLE
   BeebLinkUI.cpp BeebLinkUI.h
   BeebState.cpp BeebState.h
   BeebThread.cpp BeebThread.h BeebThread.inl BeebThread_private.inl
+  SDLBeebWindow.cpp SDLBeebWindow.h
   BeebWindow.cpp BeebWindow.h BeebWindow.inl
   BeebWindows.cpp BeebWindows.h 
   CommandKeymapsUI.cpp CommandKeymapsUI.h
