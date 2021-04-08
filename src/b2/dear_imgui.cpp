@@ -344,17 +344,19 @@ void ImGuiStuff::RenderImGui() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-std::vector<ImDrawList *> ImGuiStuff::CloneDrawLists() {
+std::vector<ImDrawListUniquePtr> ImGuiStuff::CloneDrawLists() {
     ImGuiContextSetter setter(this);
 
-    std::vector<ImDrawList *> clone;
+    std::vector<ImDrawListUniquePtr> clone;
 
     if(ImDrawData *draw_data=ImGui::GetDrawData()) {
         if(draw_data->Valid&&draw_data->CmdListsCount>0) {
-            clone.resize((size_t)draw_data->CmdListsCount);
+            clone.reserve((size_t)draw_data->CmdListsCount);
 
             for(size_t i=0;i<(size_t)draw_data->CmdListsCount;++i) {
-                clone[i]=draw_data->CmdLists[i]->CloneOutput();
+                ImDrawList *draw_list=draw_data->CmdLists[i]->CloneOutput();
+                clone.emplace_back(draw_list);
+                draw_list=nullptr;
             }
         }
     }
@@ -366,33 +368,16 @@ std::vector<ImDrawList *> ImGuiStuff::CloneDrawLists() {
 //////////////////////////////////////////////////////////////////////////
 
 void ImGuiStuff::RenderSDL(SDL_Renderer *renderer,
-                           const std::vector<ImDrawList *> &draw_lists) {
+                           const std::vector<ImDrawListUniquePtr> &draw_lists,
+                           std::vector<StoredDrawList> *stored_draw_lists)
+{
     if(draw_lists.empty()) {
         return;
     }
 
-//    ImGuiContextSetter setter(this);
-//
-//    int rc;
-//    (void)rc;
-
-//#if STORE_DRAWLISTS
-//    m_draw_lists.clear();
-//#endif
-
-//    ImDrawData *draw_data=ImGui::GetDrawData();
-//    if(!draw_data) {
-//        return;
-//    }
-//
-//    if(!draw_data->Valid) {
-//        return;
-//    }
-
-#if STORE_DRAWLISTS
-    //ASSERT(draw_data->CmdListsCount>=0);
-    m_draw_lists.resize(draw_lists.size());
-#endif
+    if(stored_draw_lists) {
+        stored_draw_lists->resize(draw_lists.size());
+    }
 
     SDL_RenderFlush(renderer);
 
@@ -420,7 +405,7 @@ void ImGuiStuff::RenderSDL(SDL_Renderer *renderer,
     glEnableClientState(GL_TEXTURE_COORD_ARRAY);
 
     for(size_t i=0;i<draw_lists.size();++i) {
-        ImDrawList *draw_list=draw_lists[i];
+        ImDrawList *draw_list=draw_lists[i].get();
 
         int idx_buffer_pos=0;
 
@@ -433,21 +418,21 @@ void ImGuiStuff::RenderSDL(SDL_Renderer *renderer,
         Uint16 num_vertices=(Uint16)(draw_list->VtxBuffer.size());
         ASSERT(draw_list->VtxBuffer.size()<=(std::numeric_limits<decltype(num_vertices)>::max)());
 
-#if STORE_DRAWLISTS
-        StoredDrawList *stored_list=&m_draw_lists[(size_t)i];
-        ASSERT(draw_list->CmdBuffer.size()>=0);
-        stored_list->cmds.resize((size_t)draw_list->CmdBuffer.size());
+        StoredDrawList *stored_list=nullptr;
+        StoredDrawCmd *stored_cmd=nullptr;
+        if(stored_draw_lists) {
+            stored_list=&(*stored_draw_lists)[(size_t)i];
+            ASSERT(draw_list->CmdBuffer.size()>=0);
+            stored_list->cmds.resize((size_t)draw_list->CmdBuffer.size());
 
-        if(draw_list->_OwnerName) {
-            stored_list->name=draw_list->_OwnerName;
-        } else {
-            stored_list->name.clear();
+            if(draw_list->_OwnerName) {
+                stored_list->name=draw_list->_OwnerName;
+            } else {
+                stored_list->name.clear();
+            }
+
+            stored_cmd=stored_list->cmds.data();
         }
-#endif
-
-#if STORE_DRAWLISTS
-        StoredDrawCmd *stored_cmd=stored_list->cmds.data();
-#endif
 
         for(const ImDrawCmd &cmd:draw_list->CmdBuffer) {
             float clip_w=cmd.ClipRect.z-cmd.ClipRect.x;
@@ -455,9 +440,9 @@ void ImGuiStuff::RenderSDL(SDL_Renderer *renderer,
             glScissor(cmd.ClipRect.x,output_height-clip_h-cmd.ClipRect.y,clip_w,clip_h);
 
             if(cmd.UserCallback) {
-#if STORE_DRAWLISTS
-                stored_cmd->callback=true;
-#endif
+                if(stored_cmd) {
+                    stored_cmd->callback=true;
+                }
 
                 (*cmd.UserCallback)(draw_list,&cmd);
             } else {
@@ -478,16 +463,19 @@ void ImGuiStuff::RenderSDL(SDL_Renderer *renderer,
                     break;
                 }
 
-#if STORE_DRAWLISTS
-                stored_cmd->callback=false;
+                if(stored_cmd) {
+                    stored_cmd->callback=false;
 
-                if(texture) {
-                    SDL_QueryTexture(texture,nullptr,nullptr,&stored_cmd->texture_width,&stored_cmd->texture_height);
+                    if(texture) {
+                        SDL_QueryTexture(texture,
+                                         nullptr,
+                                         nullptr,
+                                         &stored_cmd->texture_width,
+                                         &stored_cmd->texture_height);
+                    }
+
+                    stored_cmd->num_indices=cmd.ElemCount;
                 }
-
-                stored_cmd->num_indices=cmd.ElemCount;
-#endif
-
 
                 const uint16_t *indices=&draw_list->IdxBuffer[idx_buffer_pos];
                 ASSERT(idx_buffer_pos+(int)cmd.ElemCount<=draw_list->IdxBuffer.size());
@@ -501,9 +489,9 @@ void ImGuiStuff::RenderSDL(SDL_Renderer *renderer,
                 idx_buffer_pos+=(int)cmd.ElemCount;
             }
 
-#if STORE_DRAWLISTS
-            ++stored_cmd;
-#endif
+            if(stored_cmd) {
+                ++stored_cmd;
+            }
         }
     }
 
@@ -570,13 +558,13 @@ void ImGuiStuff::ResetDockContext() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-#if STORE_DRAWLISTS
-void ImGuiStuff::DoStoredDrawListWindow() {
+void ImGuiStuff::DoStoredDrawListWindow(const std::vector<StoredDrawList> &stored_draw_lists)
+{
     if(ImGui::Begin("Drawlists")) {
-        ImGui::Text("%zu draw lists",m_draw_lists.size());
+        ImGui::Text("%zu draw lists",stored_draw_lists.size());
 
-        for(size_t i=0;i<m_draw_lists.size();++i) {
-            const StoredDrawList *list=&m_draw_lists[i];
+        for(size_t i=0;i<stored_draw_lists.size();++i) {
+            const StoredDrawList *list=&stored_draw_lists[i];
 
             if(ImGui::TreeNode((const void *)(uintptr_t)i,"\"%s\"; %zu commands",list->name.c_str(),list->cmds.size())) {
                 for(size_t j=0;j<list->cmds.size();++j) {
@@ -596,7 +584,6 @@ void ImGuiStuff::DoStoredDrawListWindow() {
     }
     ImGui::End();
 }
-#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

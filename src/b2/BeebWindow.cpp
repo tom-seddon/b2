@@ -647,7 +647,7 @@ void BeebWindow::DoImGui(uint64_t ticks,
 
                     ccs[0]=this->DoSettingsUI();
 
-                    beeb_focus=this->DoBeebDisplayUI(sdl_koutput.tv_texture);
+                    beeb_focus=this->DoBeebDisplayUI(sdl_koutput.tv_texture_id);
                 }
                 ImGui::EndDockspace();
 
@@ -666,7 +666,8 @@ void BeebWindow::DoImGui(uint64_t ticks,
 
 #if STORE_DRAWLISTS
                     if(m_imgui_drawlists) {
-                        m_imgui_stuff->DoStoredDrawListWindow();
+                        ASSERT(false);//TODO
+                        m_imgui_stuff->DoStoredDrawListWindow({});
                     }
 #endif
 
@@ -1647,7 +1648,7 @@ BeebWindow::VBlankRecord *BeebWindow::NewVBlankRecord(uint64_t ticks) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool BeebWindow::DoBeebDisplayUI(SDL_Texture *tv_texture) {
+bool BeebWindow::DoBeebDisplayUI(ImTextureID tv_texture_id) {
     //bool opened=m_imgui_stuff->AreAnyDocksDocked();
     bool focus=false;
 
@@ -1684,7 +1685,7 @@ bool BeebWindow::DoBeebDisplayUI(SDL_Texture *tv_texture) {
         focus=ImGui::IsWindowFocused(ImGuiFocusedFlags_ChildWindows);
 
         ImGuiStyleVarPusher vpusher(ImGuiStyleVar_WindowPadding,ImVec2(0.f,0.f));
-        if(tv_texture) {
+        if(tv_texture_id) {
 #if BEEB_DISPLAY_FILL
 
             const ImVec2 &size=ImGui::GetWindowSize();
@@ -1719,7 +1720,7 @@ bool BeebWindow::DoBeebDisplayUI(SDL_Texture *tv_texture) {
 
             ImGui::SetCursorPos(pos);
             ImVec2 screen_pos=ImGui::GetCursorScreenPos();
-            ImGui::Image(tv_texture,size);
+            ImGui::Image(tv_texture_id,size);
 
 #if VIDEO_TRACK_METADATA
 
@@ -1811,8 +1812,6 @@ void BeebWindow::HandleVBlank(uint64_t ticks,
             m_imgui_stuff->RenderImGui();
         }
 
-        SDL_RenderClear(sdl_koutput.renderer);
-
         m_tv.SetInterlace(m_settings.display_interlace);
 
         bool inhibit_update=this->InhibitUpdateTVTexture();
@@ -1827,22 +1826,7 @@ void BeebWindow::HandleVBlank(uint64_t ticks,
 
             m_tv.CopyTexturePixels(m_tv_texture_buffer.data(),TV_TEXTURE_WIDTH*4);
 
-            SDL_UpdateTexture(sdl_koutput.tv_texture,nullptr,m_tv_texture_buffer.data(),TV_TEXTURE_WIDTH*4);
-        }
-
-        {
-            Timer tmr(&g_HandleVBlank_RenderSDL_timer_def);
-
-            std::vector<ImDrawList *> draw_lists=m_imgui_stuff->CloneDrawLists();
-
-            m_imgui_stuff->RenderSDL(sdl_koutput.renderer,draw_lists);
-
-            for(size_t i=0;i<draw_lists.size();++i) {
-                IM_DELETE(draw_lists[i]);
-            }
-            draw_lists.clear();
-
-            SDL_RenderPresent(sdl_koutput.renderer);
+            beeb_voutput->tv_texture_data=m_tv_texture_buffer.data();
         }
 
         {
@@ -1851,6 +1835,8 @@ void BeebWindow::HandleVBlank(uint64_t ticks,
             } else {
                 beeb_voutput->imgui_mouse_cursor=ImGuiMouseCursor_None;
             }
+
+            beeb_voutput->draw_lists=m_imgui_stuff->CloneDrawLists();
         }
     }
 }

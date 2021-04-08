@@ -18,8 +18,7 @@ struct SDL_Renderer;
 struct SDL_Texture;
 
 struct SDLThreadConstantOutput {
-    SDL_Renderer *renderer=nullptr;
-    SDL_Texture *tv_texture=nullptr;
+    ImTextureID tv_texture_id=nullptr;
 };
 
 struct SDLThreadVaryingOutput {
@@ -43,6 +42,11 @@ struct SDLThreadVaryingOutput {
 struct BeebThreadVaryingOutput {
     ImGuiMouseCursor imgui_mouse_cursor=ImGuiMouseCursor_None;
     bool filter_tv_texture=true;
+    std::vector<ImDrawListUniquePtr> draw_lists;
+
+    // this just points straight into the buffer. There's no locking; the SDL
+    // thread just gets whatever it happens to be able to see at the time,
+    uint8_t *tv_texture_data=nullptr;
 };
 
 class SDLBeebWindow {

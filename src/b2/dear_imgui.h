@@ -52,10 +52,6 @@ class Messages;
 class SelectorDialog;
 struct SDL_Point;
 
-#if !BUILD_TYPE_Final
-#define STORE_DRAWLISTS 1
-#endif
-
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
@@ -70,8 +66,28 @@ extern const ImGuiStyle IMGUI_DEFAULT_STYLE;
 
 // "stuff"? Unfortunately all the good names were already taken.
 
+struct ImDrawListDeleter {
+    inline void operator()(ImDrawList *draw_list) const {
+        IM_DELETE(draw_list);
+    }
+};
+
+typedef std::unique_ptr<ImDrawList,ImDrawListDeleter> ImDrawListUniquePtr;
+
 class ImGuiStuff {
 public:
+    struct StoredDrawCmd {
+        bool callback=false;
+        int texture_width=0;
+        int texture_height=0;
+        unsigned num_indices=0;
+    };
+
+    struct StoredDrawList {
+        std::string name;
+        std::vector<StoredDrawCmd> cmds;
+    };
+
     explicit ImGuiStuff();
     ~ImGuiStuff();
 
@@ -95,11 +111,12 @@ public:
     // does ImGui::Render.
     void RenderImGui();
 
-    std::vector<ImDrawList *> CloneDrawLists();
+    std::vector<ImDrawListUniquePtr> CloneDrawLists();
 
     // does the SDL rendering stuff.
-    void RenderSDL(SDL_Renderer *renderer,
-                   const std::vector<ImDrawList *> &draw_lists);
+    static void RenderSDL(SDL_Renderer *renderer,
+                          const std::vector<ImDrawListUniquePtr> &draw_lists,
+                          std::vector<StoredDrawList> *stored_draw_lists);
 
     void SetKeyDown(uint32_t scancode,bool state);
     void AddInputCharactersUTF8(const char *text);
@@ -108,9 +125,7 @@ public:
     std::string SaveDockContext() const;
     void ResetDockContext();
 
-#if STORE_DRAWLISTS
-    void DoStoredDrawListWindow();
-#endif
+    static void DoStoredDrawListWindow(const std::vector<StoredDrawList> &stored_draw_lists);
     void DoDebugWindow();
 protected:
 private:
@@ -123,21 +138,6 @@ private:
     ImFontAtlas *m_original_font_atlas=nullptr;
     std::string m_imgui_ini_path;
     std::string m_imgui_log_txt_path;
-#if STORE_DRAWLISTS
-    struct StoredDrawCmd {
-        bool callback=false;
-        int texture_width=0;
-        int texture_height=0;
-        unsigned num_indices=0;
-    };
-
-    struct StoredDrawList {
-        std::string name;
-        std::vector<StoredDrawCmd> cmds;
-    };
-
-    std::vector<StoredDrawList> m_draw_lists;
-#endif
 
     friend class ImGuiContextSetter;
 };

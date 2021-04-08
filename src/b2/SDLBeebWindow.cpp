@@ -158,8 +158,8 @@ void SDLBeebWindow::HandleVBlank(VBlankMonitor *vblank_monitor,void *display_dat
     //
     SDLThreadConstantOutput sdl_koutput;
     {
-        sdl_koutput.renderer=m_renderer;
-        sdl_koutput.tv_texture=m_tv_texture;
+        //sdl_koutput.renderer=m_renderer;
+        sdl_koutput.tv_texture_id=m_tv_texture;
     }
 
     //
@@ -203,6 +203,14 @@ void SDLBeebWindow::HandleVBlank(VBlankMonitor *vblank_monitor,void *display_dat
     } else {
         SDL_SetCursor(nullptr);
     }
+
+    SDL_UpdateTexture(m_tv_texture,nullptr,beeb_voutput.tv_texture_data,TV_TEXTURE_WIDTH*4);
+
+    SDL_RenderClear(m_renderer);
+
+    ImGuiStuff::RenderSDL(m_renderer,beeb_voutput.draw_lists,nullptr);
+
+    SDL_RenderPresent(m_renderer);
 }
 
 void SDLBeebWindow::UpdateTitle() {

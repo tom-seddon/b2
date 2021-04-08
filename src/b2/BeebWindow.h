@@ -55,6 +55,14 @@ struct BeebThreadVaryingOutput;
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#if !BUILD_TYPE_Final
+// TODO: maybe somewhere better for this?
+#define STORE_DRAWLISTS 1
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 struct BeebWindowTextureDataVersion {
     uint64_t version=0;
 };
@@ -398,7 +406,7 @@ private:
     void BeginUpdateTVTexture(bool threaded,void *dest_pixels,int dest_pitch);
     void EndUpdateTVTexture(bool threaded,VBlankRecord *vblank_record,void *dest_pixels,int dest_pitch);
     VBlankRecord *NewVBlankRecord(uint64_t ticks);
-    bool DoBeebDisplayUI(SDL_Texture *tv_texture);
+    bool DoBeebDisplayUI(ImTextureID tv_texture_id);
 
     template<BeebWindowPopupType>
     void TogglePopupCommand();
