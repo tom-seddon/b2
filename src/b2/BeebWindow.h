@@ -157,12 +157,13 @@ public:
 
     class OptionsUI;
 
-    BeebWindow(BeebWindowInitArguments init_arguments,
-               const BeebWindowSettings &settings,
-               std::shared_ptr<MessageList> message_list);
+    BeebWindow();
     ~BeebWindow();
 
-    bool Init(std::unique_ptr<ImGuiStuff> imgui_stuff,
+    bool Init(BeebWindowInitArguments init_arguments,
+              const BeebWindowSettings &settings,
+              std::shared_ptr<MessageList> message_list,
+              std::unique_ptr<ImGuiStuff> imgui_stuff,
               SDL_PixelFormat *tv_texture_pixel_format);
 
     const BeebWindowSettings &GetSettings() const;

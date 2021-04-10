@@ -934,11 +934,12 @@ static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &init
             ia.boot=options.boot;
         }
 
-        auto beeb_window=std::make_unique<SDLBeebWindow>(std::move(ia),
-                                                         default_window_settings);
+        auto beeb_window=std::make_unique<SDLBeebWindow>();
 
         uint32_t beeb_window_id;
-        if(!beeb_window->Init(window_placement_data,
+        if(!beeb_window->Init(ia,
+                              default_window_settings,
+                              window_placement_data,
                               &beeb_window_id))
         {
             beeb_window=nullptr;

@@ -54,11 +54,12 @@ struct BeebThreadVaryingOutput {
 // on #if hell.
 class SDLBeebWindow {
 public:
-    explicit SDLBeebWindow(const BeebWindowInitArguments &init_arguments,
-                           const BeebWindowSettings &settings);
+    SDLBeebWindow()=default;
     ~SDLBeebWindow();
 
-    bool Init(std::vector<uint8_t> window_placement_data,
+    bool Init(const BeebWindowInitArguments &init_arguments,
+              const BeebWindowSettings &settings,
+              std::vector<uint8_t> window_placement_data,
               uint32_t *sdl_window_id);
 
     BeebWindow *GetBeebWindow() const;

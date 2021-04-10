@@ -279,35 +279,16 @@ bool BeebWindow::OptionsUI::OnClose() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-BeebWindow::BeebWindow(BeebWindowInitArguments init_arguments,
-                       const BeebWindowSettings &settings,
-                       std::shared_ptr<MessageList> message_list):
-    m_init_arguments(std::move(init_arguments))
-{
-    m_message_list=std::move(message_list);
-    m_msg=Messages(m_message_list);
-
-    m_beeb_thread=std::make_shared<BeebThread>(m_message_list,
-                                               m_init_arguments.sound_device,
-                                               m_init_arguments.sound_spec.freq,
-                                               m_init_arguments.sound_spec.samples,
-                                               m_init_arguments.default_config,
-                                               std::vector<BeebThread::TimelineEventList>());
-
-    m_settings=settings;
-
-    m_beeb_thread->SetBBCVolume(m_settings.bbc_volume);
-    m_beeb_thread->SetDiscVolume(m_settings.disc_volume);
-    m_beeb_thread->SetPowerOnTone(m_settings.power_on_tone);
-
-    m_blend_amt=1.f;
+BeebWindow::BeebWindow() {
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 BeebWindow::~BeebWindow() {
-    m_beeb_thread->Stop();
+    if(!!m_beeb_thread) {
+        m_beeb_thread->Stop();
+    }
 
     // Clear these explicitly before destroying the dear imgui stuff
     // and shutting down SDL.
@@ -1845,9 +1826,32 @@ void BeebWindow::HandleVBlank(uint64_t ticks,
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool BeebWindow::Init(std::unique_ptr<ImGuiStuff> imgui_stuff,
+bool BeebWindow::Init(BeebWindowInitArguments init_arguments,
+                      const BeebWindowSettings &settings,
+                      std::shared_ptr<MessageList> message_list,
+                      std::unique_ptr<ImGuiStuff> imgui_stuff,
                       SDL_PixelFormat *tv_texture_pixel_format)
 {
+    m_init_arguments=std::move(init_arguments);
+
+    m_message_list=std::move(message_list);
+    m_msg=Messages(m_message_list);
+
+    m_beeb_thread=std::make_shared<BeebThread>(m_message_list,
+                                               m_init_arguments.sound_device,
+                                               m_init_arguments.sound_spec.freq,
+                                               m_init_arguments.sound_spec.samples,
+                                               m_init_arguments.default_config,
+                                               std::vector<BeebThread::TimelineEventList>());
+
+    m_settings=settings;
+
+    m_beeb_thread->SetBBCVolume(m_settings.bbc_volume);
+    m_beeb_thread->SetDiscVolume(m_settings.disc_volume);
+    m_beeb_thread->SetPowerOnTone(m_settings.power_on_tone);
+
+    m_blend_amt=1.f;
+
     m_imgui_stuff=imgui_stuff.release();
 
     bool good=this->InitInternal(tv_texture_pixel_format);

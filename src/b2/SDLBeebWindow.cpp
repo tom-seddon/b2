@@ -6,18 +6,18 @@
 #include "load_save.h"
 #include <SDL_syswm.h>
 
-SDLBeebWindow::SDLBeebWindow(const BeebWindowInitArguments &init_arguments,
-                             const BeebWindowSettings &settings)
-{
-    m_init_arguments=init_arguments;
-
-    m_message_list=std::make_shared<MessageList>();
-    m_msg=Messages(m_message_list);
-
-    m_beeb_window=new BeebWindow(init_arguments,
-                                 settings,
-                                 m_message_list);
-}
+//SDLBeebWindow::SDLBeebWindow(const BeebWindowInitArguments &init_arguments,
+//                             const BeebWindowSettings &settings)
+//{
+//    m_init_arguments=init_arguments;
+//
+//    m_message_list=std::make_shared<MessageList>();
+//    m_msg=Messages(m_message_list);
+//
+//    m_beeb_window=new BeebWindow(init_arguments,
+//                                 settings,
+//                                 m_message_list);
+//}
 
 SDLBeebWindow::~SDLBeebWindow() {
     delete m_beeb_window;
@@ -49,9 +49,18 @@ SDLBeebWindow::~SDLBeebWindow() {
     }
 }
 
-bool SDLBeebWindow::Init(std::vector<uint8_t> window_placement_data,
+bool SDLBeebWindow::Init(const BeebWindowInitArguments &init_arguments,
+                         const BeebWindowSettings &settings,
+                         std::vector<uint8_t> window_placement_data,
                          uint32_t *sdl_window_id)
 {
+    m_init_arguments=init_arguments;
+
+    m_message_list=std::make_shared<MessageList>();
+    m_msg=Messages(m_message_list);
+
+    m_beeb_window=new BeebWindow();
+
     if(!this->InitInternal(std::move(window_placement_data))) {
         return false;
     }
@@ -62,7 +71,12 @@ bool SDLBeebWindow::Init(std::vector<uint8_t> window_placement_data,
         return false;
     }
 
-    if(!m_beeb_window->Init(std::move(imgui_stuff),m_pixel_format)) {
+    if(!m_beeb_window->Init(m_init_arguments,
+                            settings,
+                            m_message_list,
+                            std::move(imgui_stuff),
+                            m_pixel_format))
+    {
         return false;
     }
 
