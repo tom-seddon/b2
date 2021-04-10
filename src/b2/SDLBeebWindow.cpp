@@ -51,12 +51,13 @@ SDLBeebWindow::~SDLBeebWindow() {
 
 bool SDLBeebWindow::Init(const BeebWindowInitArguments &init_arguments,
                          const BeebWindowSettings &settings,
+                         std::shared_ptr<MessageList> message_list,
                          std::vector<uint8_t> window_placement_data,
                          uint32_t *sdl_window_id)
 {
     m_init_arguments=init_arguments;
 
-    m_message_list=std::make_shared<MessageList>();
+    m_message_list=message_list;
     m_msg=Messages(m_message_list);
 
     m_beeb_window=new BeebWindow();

@@ -121,15 +121,6 @@ public:
     // for new windows created by Window|New.
     BeebLoadedConfig default_config;
 
-    // Message list to be used to populate the window's message list.
-    // This will almost always be null; it's used to collect messages
-    // from the initial startup that are printed before there's any
-    // windows to display them on.
-    //
-    // If the window init fails, and preinit_messages!=nullptr, any
-    // additional init messages will be added here too.
-    std::shared_ptr<MessageList> preinit_message_list;
-
     // If non-empty, name of the initial keymap to select.
     //
     // (Keymap pointer is no good, as this struct gets sent to the

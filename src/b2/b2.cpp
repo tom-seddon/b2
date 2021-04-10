@@ -316,9 +316,9 @@ struct Options {
 
 static bool InitializeOptions(
     Options *options,
-    Messages *init_messages)
+    Messages *msg)
 {
-    (void)init_messages;
+    (void)msg;
     
     *options=Options();
 
@@ -743,8 +743,8 @@ static void SaveConfig(const std::unique_ptr<SDLBeebWindow> &beeb_window,
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &init_message_list) {
-    Messages init_messages(init_message_list);
+static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &message_list) {
+    Messages msg(message_list);
 
     CheckAssetPaths();
 
@@ -754,7 +754,7 @@ static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &init
         if(x==RMT_ERROR_NONE) {
             SetSetCurrentThreadNameCallback(&SetRmtThreadName,nullptr);
         } else {
-            init_messages.w.f("Failed to initialise Remotery\n");
+            msg.w.f("Failed to initialise Remotery\n");
         }
     }
 #endif
@@ -763,22 +763,22 @@ static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &init
     {
         CURLcode r=curl_global_init(CURL_GLOBAL_DEFAULT);
         if(r!=0) {
-            init_messages.e.f("Failed to initialise libcurl: %s\n",curl_easy_strerror(r));
+            msg.e.f("Failed to initialise libcurl: %s\n",curl_easy_strerror(r));
             return false;
         }
     }
 
     Options options;
-    if(!InitializeOptions(&options,&init_messages)) {
+    if(!InitializeOptions(&options,&msg)) {
         return false;
     }
 
-    if(!DoCommandLineOptions(&options,argc,argv,&init_messages)) {
+    if(!DoCommandLineOptions(&options,argc,argv,&msg)) {
         if(options.help) {
 #if SYSTEM_WINDOWS
             if(!GetConsoleWindow()) {
                 // Probably a GUI app build, so pop up the message box.
-                FailureMessageBox("Command line help",init_message_list,SIZE_MAX);
+                FailureMessageBox("Command line help",message_list,SIZE_MAX);
                 return true;
             }
 #endif
@@ -789,20 +789,20 @@ static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &init
         return false;
     }
 
-    if(!InitLogs(options,&init_messages)) {
+    if(!InitLogs(options,&msg)) {
         return false;
     }
 
-    init_messages.i.f("%s\n",PRODUCT_NAME);
+    msg.i.f("%s\n",PRODUCT_NAME);
 
     SDL_AudioDeviceID audio_device;
     SDL_AudioSpec audio_spec;
-    if(!InitSystem(&audio_device,&audio_spec,options,&init_messages)) {
+    if(!InitSystem(&audio_device,&audio_spec,options,&msg)) {
         return false;
     }
 
 #if SYSTEM_WINDOWS
-    if(!InitMF(&init_messages)) {
+    if(!InitMF(&msg)) {
         return false;
     }
 #endif
@@ -810,21 +810,21 @@ static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &init
 #if HTTP_SERVER
     std::unique_ptr<HTTPServer> http_server=CreateHTTPServer();
     if(!http_server->Start(0xbbcb)) {
-        init_messages.w.f("Failed to start HTTP server.\n");
+        msg.w.f("Failed to start HTTP server.\n");
         // but carry on... it's not fatal.
         http_server=nullptr;
     }
 #endif
 
 #if HAVE_FFMPEG
-    if(!InitFFmpeg(&init_messages)) {
+    if(!InitFFmpeg(&msg)) {
         return false;
     }
 #endif
 
 #if BBCMICRO_ENABLE_DISC_DRIVE_SOUND
-    if(!LoadDiscDriveSamples(&init_messages)) {
-        init_messages.e.f("Failed to initialise disc drive samples.\n");
+    if(!LoadDiscDriveSamples(&msg)) {
+        msg.e.f("Failed to initialise disc drive samples.\n");
         return false;
     }
 #endif
@@ -833,13 +833,13 @@ static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &init
 
     {
 //        if(!Timeline::Init()) {
-//            init_messages.e.f(
+//            msg.e.f(
 //                "FATAL: failed to initialize timeline.\n");
 //            return false;
 //        }
 
         if(!BeebWindows::Init()) {
-            init_messages.e.f(
+            msg.e.f(
                 "FATAL: failed to initialize window manager.\n");
             return false;
         }
@@ -852,7 +852,7 @@ static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &init
         if(!LoadGlobalConfig(&window_placement_data,
                              &default_config_name,
                              &default_window_settings,
-                             &init_messages))
+                             &msg))
         {
             return false;
         }
@@ -865,12 +865,12 @@ static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &init
         }
 
         auto &&vblank_handler=std::make_unique<b2VBlankHandler>();
-        init_messages.i.f("Timing method: %s\n",g_option_vsync?"vsync":"timer");
+        msg.i.f("Timing method: %s\n",g_option_vsync?"vsync":"timer");
         std::unique_ptr<VBlankMonitor> vblank_monitor=CreateVBlankMonitor(vblank_handler.get(),
                                                                           !g_option_vsync,
-                                                                          &init_messages);
+                                                                          &msg);
         if(!vblank_monitor) {
-            init_messages.e.f("Failed to initialise vblank monitor.\n");
+            msg.e.f("Failed to initialise vblank monitor.\n");
             return false;
         }
 
@@ -879,21 +879,21 @@ static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &init
             bool got_initial_loaded_config=false;
 
             if(!options.config_name.empty()) {
-                if(LoadBeebConfigByName(&initial_loaded_config,options.config_name,&init_messages)) {
+                if(LoadBeebConfigByName(&initial_loaded_config,options.config_name,&msg)) {
                     got_initial_loaded_config=true;
                 }
             }
 
             if(!got_initial_loaded_config) {
                 if(!default_config_name.empty()) {
-                    if(LoadBeebConfigByName(&initial_loaded_config,default_config_name,&init_messages)) {
+                    if(LoadBeebConfigByName(&initial_loaded_config,default_config_name,&msg)) {
                         got_initial_loaded_config=true;
                     }
                 }
             }
 
             if(!got_initial_loaded_config) {
-                if(BeebLoadedConfig::Load(&initial_loaded_config,*GetDefaultBeebConfigByIndex(0),&init_messages)) {
+                if(BeebLoadedConfig::Load(&initial_loaded_config,*GetDefaultBeebConfigByIndex(0),&msg)) {
                     got_initial_loaded_config=true;
                 }
             }
@@ -912,7 +912,6 @@ static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &init
             ia.sound_device=audio_device;
             ia.sound_spec=audio_spec;
             ia.default_config=initial_loaded_config;
-            ia.preinit_message_list=init_message_list;
             ia.reset_windows=options.reset_windows;
 
             for(int i=0;i<NUM_DRIVES;++i) {
@@ -921,9 +920,9 @@ static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &init
                 }
 
                 if(options.direct_disc[i]) {
-                    ia.init_disc_images[i]=DirectDiscImage::CreateForFile(options.discs[i],&init_messages);
+                    ia.init_disc_images[i]=DirectDiscImage::CreateForFile(options.discs[i],&msg);
                 } else {
-                    ia.init_disc_images[i]=MemoryDiscImage::LoadFromFile(options.discs[i],&init_messages);
+                    ia.init_disc_images[i]=MemoryDiscImage::LoadFromFile(options.discs[i],&msg);
                 }
 
                 if(!ia.init_disc_images[i]) {
@@ -939,12 +938,13 @@ static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &init
         uint32_t beeb_window_id;
         if(!beeb_window->Init(ia,
                               default_window_settings,
+                              message_list,
                               window_placement_data,
                               &beeb_window_id))
         {
             beeb_window=nullptr;
 
-            init_messages.e.f("FATAL: failed to create window.\n");
+            msg.e.f("FATAL: failed to create window.\n");
             return false;
         }
 
@@ -961,7 +961,7 @@ static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &init
         SDL_UnlockAudioDevice(audio_device);
 
         // not needed any more.
-        init_message_list->ClearMessages();
+        //message_list->ClearMessages();
 
         for(;;) {
             SDL_Event event;
@@ -1123,10 +1123,10 @@ static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &init
         ;//<-- fix Visual Studio autoformat bug
 
 //        SaveConfig(beeb_window,
-//                   init_message_list);
+//                   message_list);
 //        {
 //            std::vector<uint8_t> window_placement_data=beeb_window->GetWindowPlacementData();
-//            SaveGlobalConfig(window_placement_data,&init_messages);
+//            SaveGlobalConfig(window_placement_data,&msg);
 //        }
 
         SDL_LockAudioDevice(audio_device);

@@ -74,6 +74,7 @@ ObjectCommandTable<MessagesUI> MessagesUI::ms_command_table("Messages Window",{
 MessagesUI::MessagesUI(std::shared_ptr<MessageList> message_list):
     m_message_list(std::move(message_list))
 {
+    printf("%s: %p\n",__func__,(void *)m_message_list.get());
 }
 
 //////////////////////////////////////////////////////////////////////////

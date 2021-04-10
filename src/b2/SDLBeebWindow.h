@@ -59,6 +59,7 @@ public:
 
     bool Init(const BeebWindowInitArguments &init_arguments,
               const BeebWindowSettings &settings,
+              std::shared_ptr<MessageList> message_list,
               std::vector<uint8_t> window_placement_data,
               uint32_t *sdl_window_id);
 

@@ -1836,6 +1836,7 @@ bool BeebWindow::Init(BeebWindowInitArguments init_arguments,
 
     m_message_list=std::move(message_list);
     m_msg=Messages(m_message_list);
+    printf("BeebWindow: list=%p\n",(void*)m_message_list.get());
 
     m_beeb_thread=std::make_shared<BeebThread>(m_message_list,
                                                m_init_arguments.sound_device,
@@ -1855,28 +1856,11 @@ bool BeebWindow::Init(BeebWindowInitArguments init_arguments,
     m_imgui_stuff=imgui_stuff.release();
 
     bool good=this->InitInternal(tv_texture_pixel_format);
-
-    if(good) {
-        // Insert pre-init messages in their proper place. Then discard
-        // them - there's no point keeping them around.
-        if(m_init_arguments.preinit_message_list) {
-            m_message_list->InsertMessages(*m_init_arguments.preinit_message_list);
-
-            m_init_arguments.preinit_message_list=nullptr;
-        }
-
-        return true;
-    } else {
-        std::shared_ptr<MessageList> msg=MessageList::stdio;
-
-        if(m_init_arguments.preinit_message_list) {
-            msg=m_init_arguments.preinit_message_list;
-        }
-
-        msg->InsertMessages(*m_message_list);
-
+    if(!good) {
         return false;
     }
+
+    return true;
 }
 
 //////////////////////////////////////////////////////////////////////////
