@@ -56,9 +56,7 @@ bool SDLBeebWindow::Init(uint32_t *sdl_window_id) {
         return false;
     }
 
-    if(!m_beeb_window->Init(std::move(imgui_stuff),
-                            (ImTextureID)ImGuiTexture_Font,
-                            m_pixel_format)) {
+    if(!m_beeb_window->Init(std::move(imgui_stuff),m_pixel_format)) {
         return false;
     }
 
@@ -165,6 +163,7 @@ void SDLBeebWindow::HandleVBlank(VBlankMonitor *vblank_monitor,void *display_dat
     //
     SDLThreadConstantOutput sdl_koutput;
     {
+        sdl_koutput.font_texture_id=(ImTextureID)ImGuiTexture_Font;
         sdl_koutput.tv_texture_id=(ImTextureID)ImGuiTexture_TV;
     }
 

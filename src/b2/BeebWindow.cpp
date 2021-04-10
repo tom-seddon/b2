@@ -1793,7 +1793,7 @@ void BeebWindow::HandleVBlank(uint64_t ticks,
                                 sdl_voutput.keymod,
                                 sdl_voutput.renderer_output_width,
                                 sdl_voutput.renderer_output_height,
-                                m_font_texture_id);
+                                sdl_koutput.font_texture_id);
     }
 
     {
@@ -1846,11 +1846,9 @@ void BeebWindow::HandleVBlank(uint64_t ticks,
 //////////////////////////////////////////////////////////////////////////
 
 bool BeebWindow::Init(std::unique_ptr<ImGuiStuff> imgui_stuff,
-                      ImTextureID font_texture_id,
                       SDL_PixelFormat *tv_texture_pixel_format)
 {
     m_imgui_stuff=imgui_stuff.release();
-    m_font_texture_id=font_texture_id;
 
     bool good=this->InitInternal(tv_texture_pixel_format);
 

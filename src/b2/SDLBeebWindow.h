@@ -18,7 +18,8 @@ struct SDL_Renderer;
 struct SDL_Texture;
 
 struct SDLThreadConstantOutput {
-    ImTextureID tv_texture_id=nullptr;
+    ImTextureID font_texture_id={};
+    ImTextureID tv_texture_id={};
 };
 
 struct SDLThreadVaryingOutput {

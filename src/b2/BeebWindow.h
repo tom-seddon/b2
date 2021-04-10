@@ -174,7 +174,6 @@ public:
     ~BeebWindow();
 
     bool Init(std::unique_ptr<ImGuiStuff> imgui_stuff,
-              ImTextureID font_texture_id,
               SDL_PixelFormat *tv_texture_pixel_format);
 
     // Saves all settings, including whatever SavePosition does. Called on
@@ -269,7 +268,6 @@ private:
 //    SDLThreadOutput m_sdl_thread_output;
 
     BeebWindowInitArguments m_init_arguments;
-    ImTextureID m_font_texture_id{};
 
 //    // SDLstuff.
 //    SDL_Window *m_window=nullptr;
