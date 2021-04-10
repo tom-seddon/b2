@@ -1792,7 +1792,8 @@ void BeebWindow::HandleVBlank(uint64_t ticks,
                                 sdl_voutput.mouse_wheel_delta,
                                 sdl_voutput.keymod,
                                 sdl_voutput.renderer_output_width,
-                                sdl_voutput.renderer_output_height);
+                                sdl_voutput.renderer_output_height,
+                                m_font_texture_id);
     }
 
     {
@@ -1844,10 +1845,14 @@ void BeebWindow::HandleVBlank(uint64_t ticks,
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool BeebWindow::Init(SDL_Renderer *renderer,
+bool BeebWindow::Init(std::unique_ptr<ImGuiStuff> imgui_stuff,
+                      ImTextureID font_texture_id,
                       SDL_PixelFormat *tv_texture_pixel_format)
 {
-    bool good=this->InitInternal(renderer,tv_texture_pixel_format);
+    m_imgui_stuff=imgui_stuff.release();
+    m_font_texture_id=font_texture_id;
+
+    bool good=this->InitInternal(tv_texture_pixel_format);
 
     if(good) {
         // Insert pre-init messages in their proper place. Then discard
@@ -1939,9 +1944,7 @@ void BeebWindow::SaveSettings() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool BeebWindow::InitInternal(SDL_Renderer *renderer,
-                              SDL_PixelFormat *tv_texture_pixel_format)
-{
+bool BeebWindow::InitInternal(SDL_PixelFormat *tv_texture_pixel_format) {
     //m_msg.i.f("info init message\n");
     //m_msg.w.f("warning init message\n");
     //m_msg.e.f("error init message\n");
@@ -1966,12 +1969,6 @@ bool BeebWindow::InitInternal(SDL_Renderer *renderer,
               tv_texture_pixel_format->Bshift);
 
     m_tv_texture_buffer.resize(TV_TEXTURE_WIDTH*TV_TEXTURE_HEIGHT*4);
-
-    m_imgui_stuff=new ImGuiStuff();
-    if(!m_imgui_stuff->Init(renderer)) {
-        m_msg.e.f("failed to initialise ImGui\n");
-        return false;
-    }
 
     if(!m_beeb_thread->Start()) {
         m_msg.e.f("Failed to start BBC\n");//: %s",BeebThread_GetError(m_beeb_thread));

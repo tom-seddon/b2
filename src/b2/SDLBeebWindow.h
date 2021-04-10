@@ -71,13 +71,18 @@ public:
     void ThreadFillAudioBuffer(uint32_t audio_device_id,float *mix_buffer,size_t num_samples);
 protected:
 private:
+    enum ImGuiTextures {
+        ImGuiTexture_Font,
+        ImGuiTexture_TV,
+        ImGuiTexture_MaxValue,
+    };
+
     std::shared_ptr<MessageList> m_message_list;
     BeebWindowInitArguments m_init_arguments;
     BeebWindow *m_beeb_window=nullptr;
     SDL_Cursor *m_sdl_cursors[ImGuiMouseCursor_COUNT]={};
     SDL_Window *m_window=nullptr;
     SDL_Renderer *m_renderer=nullptr;
-    SDL_Texture *m_tv_texture=nullptr;
     SDL_PixelFormat *m_pixel_format=nullptr;
     std::vector<SDL_KeyboardEvent> m_sdl_keyboard_events;
     std::string m_sdl_text_input;
@@ -85,6 +90,7 @@ private:
     int m_mouse_wheel_delta_y=0;
 //    int m_mouse_pos_x=0;
 //    int m_mouse_pos_y=0;
+    SDL_Texture *m_imgui_textures[ImGuiTexture_MaxValue]={};
 
 #if SYSTEM_WINDOWS
     void *m_hwnd=nullptr;

@@ -32,6 +32,7 @@ target_compile_definitions(imgui_lib PUBLIC IMGUI_INCLUDE_IMGUI_USER_H IMGUI_INC
 target_compile_definitions(imgui_lib PUBLIC IMGUI_DISABLE_OBSOLETE_FUNCTIONS)
 
 # target_compile_definitions(imgui_lib PUBLIC "IMGUI_OVERRIDE_DRAWVERT_STRUCT_LAYOUT=struct ImDrawVert {ImVec2 pos\\; ImU32 col\\; ImVec2 uv\\;}")
+# target_compile_definitions(imgui_lib PUBLIC "ImTextureID=uint32_t")
 
 target_compile_definitions(imgui_lib PUBLIC YES_IMGUIDOCK)
 target_sources(imgui_lib PRIVATE

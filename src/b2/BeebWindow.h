@@ -173,7 +173,8 @@ public:
     BeebWindow(BeebWindowInitArguments init_arguments,std::shared_ptr<MessageList> message_list);
     ~BeebWindow();
 
-    bool Init(SDL_Renderer *renderer,
+    bool Init(std::unique_ptr<ImGuiStuff> imgui_stuff,
+              ImTextureID font_texture_id,
               SDL_PixelFormat *tv_texture_pixel_format);
 
     // Saves all settings, including whatever SavePosition does. Called on
@@ -268,6 +269,7 @@ private:
 //    SDLThreadOutput m_sdl_thread_output;
 
     BeebWindowInitArguments m_init_arguments;
+    ImTextureID m_font_texture_id{};
 
 //    // SDLstuff.
 //    SDL_Window *m_window=nullptr;
@@ -369,8 +371,7 @@ private:
     const CommandContext m_cc{this,&ms_command_table};
 
     bool HardReset(const BeebConfig &config);
-    bool InitInternal(SDL_Renderer *renderer,
-                      SDL_PixelFormat *tv_texture_pixel_format);
+    bool InitInternal(SDL_PixelFormat *tv_texture_pixel_format);
     void DoImGui(uint64_t ticks,
                  int output_width,
                  int output_height,

@@ -52,6 +52,10 @@ class Messages;
 class SelectorDialog;
 struct SDL_Point;
 
+// ImTextureID is used as an index into the texture list passed into
+// ImGuiStuff::RenderSDL. Due to https://github.com/Flix01/imgui/issues/61, it's
+// still a void *, for now at least.
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
@@ -97,7 +101,9 @@ public:
     ImGuiStuff(ImGuiStuff &&)=delete;
     ImGuiStuff &operator=(ImGuiStuff &&)=delete;
 
-    bool Init(SDL_Renderer *renderer);
+    // The font texture is the caller's responsibility.
+    bool Init(SDL_Renderer *renderer,
+              SDL_Texture **font_texture_ptr);
 
     // bool parameter, yum.
     void NewFrame(bool got_mouse_focus,
@@ -106,7 +112,8 @@ public:
                   const SDL_Point &mouse_wheel_delta,
                   uint32_t keymod,
                   int display_width,
-                  int display_height);
+                  int display_height,
+                  ImTextureID font_texture_id);
 
     // does ImGui::Render.
     void RenderImGui();
@@ -116,7 +123,9 @@ public:
     // does the SDL rendering stuff.
     static void RenderSDL(SDL_Renderer *renderer,
                           const std::vector<ImDrawListUniquePtr> &draw_lists,
-                          std::vector<StoredDrawList> *stored_draw_lists);
+                          std::vector<StoredDrawList> *stored_draw_lists,
+                          SDL_Texture **textures,
+                          size_t num_textures);
 
     void SetKeyDown(uint32_t scancode,bool state);
     void AddInputCharactersUTF8(const char *text);
@@ -133,7 +142,7 @@ private:
     ImGui::DockContext *m_dock_context=nullptr;
     bool m_reset_dock_context=false;
     bool m_in_frame=false;
-    struct SDL_Texture *m_font_texture=nullptr;
+    //struct SDL_Texture *m_font_texture=nullptr;
     uint64_t m_last_new_frame_ticks=0;
     ImFontAtlas *m_original_font_atlas=nullptr;
     std::string m_imgui_ini_path;

@@ -99,16 +99,6 @@ ImGuiStuff::~ImGuiStuff() {
         ImGui::DestroyContext(m_context);
         m_context=nullptr;
     }
-
-    if(m_font_texture) {
-        SDL_DestroyTexture(m_font_texture);
-        m_font_texture=nullptr;
-    }
-
-//    for(size_t i=0;i<sizeof m_cursors/sizeof m_cursors[0];++i) {
-//        SDL_FreeCursor(m_cursors[i]);
-//        m_cursors[i]=nullptr;
-//    }
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -155,7 +145,9 @@ static void SetClipboardText(void *user_data,const char *text) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool ImGuiStuff::Init(SDL_Renderer *renderer) {
+bool ImGuiStuff::Init(SDL_Renderer *renderer,
+                      SDL_Texture **font_texture_ptr)
+{
     int rc;
     (void)rc;
 
@@ -233,15 +225,15 @@ bool ImGuiStuff::Init(SDL_Renderer *renderer) {
     io.Fonts->GetTexDataAsRGBA32(&pixels,&width,&height);
 
     SetRenderScaleQualityHint(false);
-    m_font_texture=SDL_CreateTexture(renderer,SDL_PIXELFORMAT_RGBA32,SDL_TEXTUREACCESS_STATIC,width,height);
-    if(!m_font_texture) {
+    *font_texture_ptr=SDL_CreateTexture(renderer,SDL_PIXELFORMAT_RGBA32,SDL_TEXTUREACCESS_STATIC,width,height);
+    if(!*font_texture_ptr) {
         return false;
     }
 
-    SDL_SetTextureBlendMode(m_font_texture,SDL_BLENDMODE_BLEND);
+    SDL_SetTextureBlendMode(*font_texture_ptr,SDL_BLENDMODE_BLEND);
 
     Uint32 font_texture_format;
-    rc=SDL_QueryTexture(m_font_texture,&font_texture_format,NULL,NULL,NULL);
+    rc=SDL_QueryTexture(*font_texture_ptr,&font_texture_format,NULL,NULL,NULL);
     ASSERT(rc==0);
 
     std::vector<uint8_t> tmp((size_t)(width*height*4));
@@ -249,10 +241,10 @@ bool ImGuiStuff::Init(SDL_Renderer *renderer) {
     rc=SDL_ConvertPixels(width,height,SDL_PIXELFORMAT_ARGB8888,pixels,width*4,font_texture_format,tmp.data(),width*4);
     ASSERT(rc==0);
 
-    rc=SDL_UpdateTexture(m_font_texture,NULL,tmp.data(),width*4);
+    rc=SDL_UpdateTexture(*font_texture_ptr,NULL,tmp.data(),width*4);
     ASSERT(rc==0);
 
-    io.Fonts->TexID=m_font_texture;
+    io.Fonts->TexID=nullptr;
 
     return true;
 }
@@ -270,10 +262,13 @@ void ImGuiStuff::NewFrame(bool got_mouse_focus,
                           const SDL_Point &mouse_wheel_delta,
                           uint32_t keymod,
                           int display_width,
-                          int display_height)
+                          int display_height,
+                          ImTextureID font_texture_id)
 {
     ImGuiContextSetter setter(this);
     ImGuiIO &io=ImGui::GetIO();
+
+    io.Fonts->TexID=font_texture_id;
 
     uint64_t now_ticks=GetCurrentTickCount();
     io.DeltaTime=(float)GetSecondsFromTicks(now_ticks-m_last_new_frame_ticks);
@@ -292,8 +287,6 @@ void ImGuiStuff::NewFrame(bool got_mouse_focus,
         io.KeyShift=!!(keymod&KMOD_SHIFT);
         io.KeySuper=!!(keymod&KMOD_GUI);
     } else {
-        
-
         io.MousePos.x=-FLT_MAX;
         io.MousePos.y=-FLT_MAX;
 
@@ -369,7 +362,9 @@ std::vector<ImDrawListUniquePtr> ImGuiStuff::CloneDrawLists() {
 
 void ImGuiStuff::RenderSDL(SDL_Renderer *renderer,
                            const std::vector<ImDrawListUniquePtr> &draw_lists,
-                           std::vector<StoredDrawList> *stored_draw_lists)
+                           std::vector<StoredDrawList> *stored_draw_lists,
+                           SDL_Texture **textures,
+                           size_t num_textures)
 {
     if(draw_lists.empty()) {
         return;
@@ -446,7 +441,10 @@ void ImGuiStuff::RenderSDL(SDL_Renderer *renderer,
 
                 (*cmd.UserCallback)(draw_list,&cmd);
             } else {
-                SDL_Texture *texture=(SDL_Texture *)cmd.TextureId;
+                auto index=(size_t)cmd.TextureId;
+                ASSERT(index<num_textures);
+                SDL_Texture *texture=textures[index];
+
                 SDL_GL_BindTexture(texture,nullptr,nullptr);
 
                 SDL_BlendMode blend_mode;
@@ -466,13 +464,11 @@ void ImGuiStuff::RenderSDL(SDL_Renderer *renderer,
                 if(stored_cmd) {
                     stored_cmd->callback=false;
 
-                    if(texture) {
-                        SDL_QueryTexture(texture,
-                                         nullptr,
-                                         nullptr,
-                                         &stored_cmd->texture_width,
-                                         &stored_cmd->texture_height);
-                    }
+                    SDL_QueryTexture(texture,
+                                     nullptr,
+                                     nullptr,
+                                     &stored_cmd->texture_width,
+                                     &stored_cmd->texture_height);
 
                     stored_cmd->num_indices=cmd.ElemCount;
                 }

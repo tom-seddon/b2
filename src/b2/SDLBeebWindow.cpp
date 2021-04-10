@@ -24,9 +24,9 @@ SDLBeebWindow::~SDLBeebWindow() {
         m_sdl_cursors[i]=nullptr;
     }
 
-    if(m_tv_texture) {
-        SDL_DestroyTexture(m_tv_texture);
-        m_tv_texture=nullptr;
+    for(SDL_Texture *&texture:m_imgui_textures) {
+        SDL_DestroyTexture(texture);
+        texture=nullptr;
     }
 
     if(m_renderer) {
@@ -43,15 +43,22 @@ SDLBeebWindow::~SDLBeebWindow() {
         SDL_FreeFormat(m_pixel_format);
         m_pixel_format=nullptr;
     }
-
 }
 
 bool SDLBeebWindow::Init(uint32_t *sdl_window_id) {
     if(!this->InitInternal()) {
         return false;
     }
-    
-    if(!m_beeb_window->Init(m_renderer,m_pixel_format)) {
+
+    auto imgui_stuff=std::make_unique<ImGuiStuff>();
+    if(!imgui_stuff->Init(m_renderer,&m_imgui_textures[ImGuiTexture_Font])) {
+        m_msg.e.f("failed to initialize ImGui\n");
+        return false;
+    }
+
+    if(!m_beeb_window->Init(std::move(imgui_stuff),
+                            (ImTextureID)ImGuiTexture_Font,
+                            m_pixel_format)) {
         return false;
     }
 
@@ -158,8 +165,7 @@ void SDLBeebWindow::HandleVBlank(VBlankMonitor *vblank_monitor,void *display_dat
     //
     SDLThreadConstantOutput sdl_koutput;
     {
-        //sdl_koutput.renderer=m_renderer;
-        sdl_koutput.tv_texture_id=m_tv_texture;
+        sdl_koutput.tv_texture_id=(ImTextureID)ImGuiTexture_TV;
     }
 
     //
@@ -204,11 +210,11 @@ void SDLBeebWindow::HandleVBlank(VBlankMonitor *vblank_monitor,void *display_dat
         SDL_SetCursor(nullptr);
     }
 
-    SDL_UpdateTexture(m_tv_texture,nullptr,beeb_voutput.tv_texture_data,TV_TEXTURE_WIDTH*4);
+    SDL_UpdateTexture(m_imgui_textures[ImGuiTexture_TV],nullptr,beeb_voutput.tv_texture_data,TV_TEXTURE_WIDTH*4);
 
     SDL_RenderClear(m_renderer);
 
-    ImGuiStuff::RenderSDL(m_renderer,beeb_voutput.draw_lists,nullptr);
+    ImGuiStuff::RenderSDL(m_renderer,beeb_voutput.draw_lists,nullptr,m_imgui_textures,sizeof m_imgui_textures/sizeof m_imgui_textures[0]);
 
     SDL_RenderPresent(m_renderer);
 }
@@ -341,7 +347,7 @@ bool SDLBeebWindow::InitInternal() {
     {
         Uint32 format;
         int width,height;
-        SDL_QueryTexture(m_tv_texture,&format,nullptr,&width,&height);
+        SDL_QueryTexture(m_imgui_textures[ImGuiTexture_TV],&format,nullptr,&width,&height);
         m_msg.i.f("Renderer: %s, %dx%d %s\n",
                   info.name,
                   width,
@@ -353,15 +359,15 @@ bool SDLBeebWindow::InitInternal() {
 }
 
 bool SDLBeebWindow::RecreateTexture() {
-    if(m_tv_texture) {
-        SDL_DestroyTexture(m_tv_texture);
-        m_tv_texture=nullptr;
+    if(m_imgui_textures[ImGuiTexture_TV]) {
+        SDL_DestroyTexture(m_imgui_textures[ImGuiTexture_TV]);
+        m_imgui_textures[ImGuiTexture_TV]=nullptr;
     }
 
     //SetRenderScaleQualityHint(m_settings.display_filter);
 
-    m_tv_texture=SDL_CreateTexture(m_renderer,m_pixel_format->format,SDL_TEXTUREACCESS_STREAMING,TV_TEXTURE_WIDTH,TV_TEXTURE_HEIGHT);
-    if(!m_tv_texture) {
+    m_imgui_textures[ImGuiTexture_TV]=SDL_CreateTexture(m_renderer,m_pixel_format->format,SDL_TEXTUREACCESS_STREAMING,TV_TEXTURE_WIDTH,TV_TEXTURE_HEIGHT);
+    if(!m_imgui_textures[ImGuiTexture_TV]) {
         m_msg.e.f("Failed to create TV texture: %s\n",SDL_GetError());
         return false;
     }
