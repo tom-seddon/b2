@@ -14,10 +14,19 @@
 #include <stdio.h>
 
 class Messages;
+struct BeebWindowSettings;
 
 #include <shared/enum_decl.h>
 #include "load_save.inl"
 #include <shared/enum_end.h>
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if SYSTEM_OSX
+// Frame name to use when saving window position.
+extern const char COCOA_FRAME_NAME[];
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -76,9 +85,14 @@ bool GetFileDetails(size_t *size,bool *can_write,const char *path);
 
 // std::string SaveGlobalConfig();
 
-
-bool LoadGlobalConfig(Messages *messages);
-bool SaveGlobalConfig(Messages *messages);
+bool LoadGlobalConfig(std::vector<uint8_t> *window_placement_data,
+                      std::string *default_config_name,
+                      BeebWindowSettings *default_window_settings,
+                      Messages *messages);
+bool SaveGlobalConfig(const std::vector<uint8_t> &window_placement_data,
+                      const std::string &default_config_name,
+                      const BeebWindowSettings &default_window_settings,
+                      Messages *messages);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

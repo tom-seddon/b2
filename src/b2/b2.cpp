@@ -41,10 +41,6 @@
 #include "discs.h"
 #include "SDLBeebWindow.h"
 
-#include <shared/enum_decl.h>
-#include "b2.inl"
-#include <shared/enum_end.h>
-
 #include <shared/enum_def.h>
 #include "b2.inl"
 #include <shared/enum_end.h>
@@ -276,6 +272,15 @@ void PushFunctionMessage(std::function<void()> fun) {
     event.user.data1=new std::function<void()>(std::move(fun));
 
     SDL_PushEvent(&event);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+uint32_t GetSDLUserEventType(SDLEventType event_type) {
+    ASSERT(event_type>=0&&event_type<SDLEventType_Count);
+
+    return g_first_event_type+event_type;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -718,6 +723,26 @@ static void SetRmtThreadName(const char *name,void *context) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+static void SaveConfig(const std::unique_ptr<SDLBeebWindow> &beeb_window,
+                       const std::string &default_config_name,
+                       const BeebWindowSettings &default_window_settings,
+                       std::shared_ptr<MessageList> message_list)
+{
+    Messages msg(message_list);
+
+    const std::vector<uint8_t> &window_placement_data=beeb_window->GetWindowPlacementData();
+
+    SaveGlobalConfig(window_placement_data,
+                     default_config_name,
+                     default_window_settings,
+                     &msg);
+
+    msg.i.f("Configuration saved.\n");
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &init_message_list) {
     Messages init_messages(init_message_list);
 
@@ -821,7 +846,14 @@ static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &init
 
         SDL_PauseAudioDevice(audio_device,0);
 
-        if(!LoadGlobalConfig(&init_messages)) {
+        std::vector<uint8_t> window_placement_data;
+        std::string default_config_name;
+        BeebWindowSettings default_window_settings;
+        if(!LoadGlobalConfig(&window_placement_data,
+                             &default_config_name,
+                             &default_window_settings,
+                             &init_messages))
+        {
             return false;
         }
 
@@ -853,8 +885,8 @@ static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &init
             }
 
             if(!got_initial_loaded_config) {
-                if(!BeebWindows::default_config_name.empty()) {
-                    if(LoadBeebConfigByName(&initial_loaded_config,BeebWindows::default_config_name,&init_messages)) {
+                if(!default_config_name.empty()) {
+                    if(LoadBeebConfigByName(&initial_loaded_config,default_config_name,&init_messages)) {
                         got_initial_loaded_config=true;
                     }
                 }
@@ -881,13 +913,6 @@ static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &init
             ia.sound_spec=audio_spec;
             ia.default_config=initial_loaded_config;
             ia.preinit_message_list=init_message_list;
-
-#if SYSTEM_OSX
-            ia.frame_name="b2Frame";
-#else
-            ia.placement_data=BeebWindows::GetLastWindowPlacementData();
-#endif
-
             ia.reset_windows=options.reset_windows;
 
             for(int i=0;i<NUM_DRIVES;++i) {
@@ -909,10 +934,13 @@ static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &init
             ia.boot=options.boot;
         }
 
-        auto beeb_window=std::make_unique<SDLBeebWindow>(std::move(ia));
+        auto beeb_window=std::make_unique<SDLBeebWindow>(std::move(ia),
+                                                         default_window_settings);
 
         uint32_t beeb_window_id;
-        if(!beeb_window->Init(&beeb_window_id)) {
+        if(!beeb_window->Init(window_placement_data,
+                              &beeb_window_id))
+        {
             beeb_window=nullptr;
 
             init_messages.e.f("FATAL: failed to create window.\n");
@@ -945,16 +973,16 @@ static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &init
             }
 
             if(event.type==SDL_QUIT) {
-#if SYSTEM_OSX
-                // On OS X, quit just does a quit, and there are no
-                // window-specific messages sent to indicate that it's
-                // happening. So jump through a few hoops in order
-                // that the settings from the key window (if there is
-                // one) are saved.
-                //
-                // This is a bit of a hack.
-                beeb_window->SaveSettings();
-#endif
+//#if SYSTEM_OSX
+//                // On OS X, quit just does a quit, and there are no
+//                // window-specific messages sent to indicate that it's
+//                // happening. So jump through a few hoops in order
+//                // that the settings from the key window (if there is
+//                // one) are saved.
+//                //
+//                // This is a bit of a hack.
+//                beeb_window->SaveSettings();
+//#endif
                 goto done;
             }
 
@@ -966,7 +994,7 @@ static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &init
                     if(event.window.windowID==beeb_window_id) {
                         switch(event.window.event) {
                         case SDL_WINDOWEVENT_CLOSE:
-                            beeb_window->SaveSettings();
+                            //beeb_window->SaveSettings();
                             break;
 
                         case SDL_WINDOWEVENT_SHOWN:
@@ -977,7 +1005,7 @@ static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &init
                         case SDL_WINDOWEVENT_MAXIMIZED:
                         case SDL_WINDOWEVENT_RESTORED:
                         case SDL_WINDOWEVENT_FOCUS_GAINED:
-                            beeb_window->SavePosition();
+                            beeb_window->UpdateWindowPlacement();
                             break;
                         }
                     }
@@ -1065,6 +1093,20 @@ static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &init
                             }
                             break;
 
+                        case SDLEventType_SaveConfig:
+                            {
+                                auto data=(SaveConfigData *)event.user.data1;
+
+                                SaveConfig(beeb_window,
+                                           data->default_config_name,
+                                           data->default_window_settings,
+                                           beeb_window->GetMessageList());
+
+                                delete data;
+                                data=nullptr;
+                            }
+                            break;
+
                         case SDLEventType_Count:
                             // only here avoid incomplete switch warning.
                             ASSERT(false);
@@ -1079,7 +1121,12 @@ static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &init
     done:;
         ;//<-- fix Visual Studio autoformat bug
 
-        SaveGlobalConfig(&init_messages);
+//        SaveConfig(beeb_window,
+//                   init_message_list);
+//        {
+//            std::vector<uint8_t> window_placement_data=beeb_window->GetWindowPlacementData();
+//            SaveGlobalConfig(window_placement_data,&init_messages);
+//        }
 
         SDL_LockAudioDevice(audio_device);
         g_fill_audio_buffer_data.beeb_window=nullptr;

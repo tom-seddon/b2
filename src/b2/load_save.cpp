@@ -369,22 +369,24 @@ static std::string GetHexStringFromData(const std::vector<uint8_t> &data) {
     return hex;
 }
 
-// TODO - should really clear the vector out if there's an error...
 static bool GetDataFromHexString(std::vector<uint8_t> *data,const std::string &str) {
     if(str.size()%2!=0) {
         return false;
     }
 
+    data->clear();
     data->reserve(str.size()/2);
 
     for(size_t i=0;i<str.size();i+=2) {
         int a=GetHexCharValue(str[i+0]);
         if(a<0) {
+            data->clear();
             return false;
         }
 
         int b=GetHexCharValue(str[i+1]);
         if(b<0) {
+            data->clear();
             return false;
         }
 
@@ -1164,7 +1166,9 @@ static void SaveKeycodeObject(JSONWriter<StringStream> *writer,uint32_t keycode)
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static bool LoadDockConfig(Messages *msg) {
+static bool LoadDockConfig(std::string *dock_config,
+                           Messages *msg)
+{
     std::string fname=GetDockLayoutFileName();
     if(fname.empty()) {
         msg->e.f("failed to load dock layout file\n");
@@ -1177,7 +1181,7 @@ static bool LoadDockConfig(Messages *msg) {
         return true;
     }
 
-    BeebWindows::defaults.dock_config=std::string(data.data());
+    *dock_config=std::string(data.data());
     return true;
 }
 
@@ -1774,101 +1778,105 @@ static void SaveNVRAM(JSONWriter<StringStream> *writer) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static bool LoadWindows(rapidjson::Value *windows,Messages *msg) {
+static bool LoadWindows(rapidjson::Value *windows,
+                        std::vector<uint8_t> *window_placement_data,
+                        std::string *default_config_name,
+                        BeebWindowSettings *default_window_settings,
+                        Messages *msg) {
     {
         std::string placement_str;
         if(FindStringMember(&placement_str,windows,PLACEMENT,nullptr)) {
-            std::vector<uint8_t> placement_data;
-            if(!GetDataFromHexString(&placement_data,placement_str)) {
+            if(!GetDataFromHexString(window_placement_data,placement_str)) {
                 msg->e.f("invalid placement data\n");
-            } else {
-                BeebWindows::SetLastWindowPlacementData(std::move(placement_data));
             }
         }
     }
 
-    FindBitIndexedFlagsMember(&BeebWindows::defaults.popups,windows,POPUPS,"Active popups",&GetBeebWindowPopupTypeEnumName,msg);
-    FindFloatMember(&BeebWindows::defaults.bbc_volume,windows,BBC_VOLUME,msg);
-    FindFloatMember(&BeebWindows::defaults.disc_volume,windows,DISC_VOLUME,msg);
-    FindBoolMember(&BeebWindows::defaults.display_filter,windows,FILTER_BBC,nullptr);
-    FindBoolMember(&BeebWindows::defaults.correct_aspect_ratio,windows,CORRECT_ASPECT_RATIO,nullptr);
-    FindBoolMember(&BeebWindows::defaults.display_auto_scale,windows,AUTO_SCALE,nullptr);
-    FindFloatMember(&BeebWindows::defaults.display_manual_scale,windows,MANUAL_SCALE,nullptr);
-    FindBoolMember(&BeebWindows::defaults.power_on_tone,windows,POWER_ON_TONE,nullptr);
-    FindBoolMember(&BeebWindows::defaults.display_interlace,windows,INTERLACE,nullptr);
-    FindStringMember(&BeebWindows::default_config_name,windows,CONFIG,nullptr);
-    FindEnumMember(&BeebWindows::defaults.leds_popup_mode,windows,LEDS_POPUP_MODE,"LEDs popup mode",&GetBeebWindowLEDsPopupModeEnumName,msg);
-
-    {
-        std::string keymap_name;
-        if(FindStringMember(&keymap_name,windows,KEYMAP,msg)) {
-            if(const BeebKeymap *keymap=FindBeebKeymapByName(keymap_name)) {
-                BeebWindows::defaults.keymap=keymap;
-            } else {
-                msg->w.f("default keymap unknown: %s\n",keymap_name.c_str());
-
-                // But it's OK - a sensible one will be selected.
-                BeebWindows::defaults.keymap=GetDefaultBeebKeymap();
-            }
-        }
-    }
+    FindBitIndexedFlagsMember(&default_window_settings->popups,windows,POPUPS,"Active popups",&GetBeebWindowPopupTypeEnumName,msg);
+    FindFloatMember(&default_window_settings->bbc_volume,windows,BBC_VOLUME,msg);
+    FindFloatMember(&default_window_settings->disc_volume,windows,DISC_VOLUME,msg);
+    FindBoolMember(&default_window_settings->display_filter,windows,FILTER_BBC,nullptr);
+    FindBoolMember(&default_window_settings->correct_aspect_ratio,windows,CORRECT_ASPECT_RATIO,nullptr);
+    FindBoolMember(&default_window_settings->display_auto_scale,windows,AUTO_SCALE,nullptr);
+    FindFloatMember(&default_window_settings->display_manual_scale,windows,MANUAL_SCALE,nullptr);
+    FindBoolMember(&default_window_settings->power_on_tone,windows,POWER_ON_TONE,nullptr);
+    FindBoolMember(&default_window_settings->display_interlace,windows,INTERLACE,nullptr);
+    FindStringMember(default_config_name,windows,CONFIG,nullptr);
+    FindEnumMember(&default_window_settings->leds_popup_mode,windows,LEDS_POPUP_MODE,"LEDs popup mode",&GetBeebWindowLEDsPopupModeEnumName,msg);
+    FindStringMember(&default_window_settings->keymap_name,windows,KEYMAP,msg);
+//    {
+//        std::string keymap_name;
+//        if(FindStringMember(&keymap_name,windows,KEYMAP,msg)) {
+//            if(const BeebKeymap *keymap=FindBeebKeymapByName(keymap_name)) {
+//                default_window_settings->keymap=keymap;
+//            } else {
+//                msg->w.f("default keymap unknown: %s\n",keymap_name.c_str());
+//
+//                // But it's OK - a sensible one will be selected.
+//                default_window_settings->keymap=GetDefaultBeebKeymap();
+//            }
+//        }
+//    }
 
     return true;
 }
 
-static void SaveWindows(JSONWriter<StringStream> *writer) {
+static void SaveWindows(JSONWriter<StringStream> *writer,
+                        const std::vector<uint8_t> &window_placement_data,
+                        const std::string &default_config_name,
+                        const BeebWindowSettings &default_window_settings)
+{
     {
         auto windows_json=ObjectWriter(writer,WINDOWS);
 
         {
-            const std::vector<uint8_t> &placement_data=BeebWindows::GetLastWindowPlacementData();
-            if(!placement_data.empty()) {
+            if(!window_placement_data.empty()) {
                 writer->Key(PLACEMENT);
-                writer->String(GetHexStringFromData(placement_data).c_str());
+                writer->String(GetHexStringFromData(window_placement_data).c_str());
             }
         }
 
         {
             auto ui_flags_json=ArrayWriter(writer,POPUPS);
 
-            SaveBitIndexedFlags(writer,BeebWindows::defaults.popups,&GetBeebWindowPopupTypeEnumName);
+            SaveBitIndexedFlags(writer,default_window_settings.popups,&GetBeebWindowPopupTypeEnumName);
         }
 
-        if(BeebWindows::defaults.keymap) {
+        if(!default_window_settings.keymap_name.empty()) {
             writer->Key(KEYMAP);
-            writer->String(BeebWindows::defaults.keymap->GetName().c_str());
+            writer->String(default_window_settings.keymap_name.c_str());
         }
 
         writer->Key(BBC_VOLUME);
-        writer->Double(BeebWindows::defaults.bbc_volume);
+        writer->Double(default_window_settings.bbc_volume);
 
         writer->Key(DISC_VOLUME);
-        writer->Double(BeebWindows::defaults.disc_volume);
+        writer->Double(default_window_settings.disc_volume);
 
         writer->Key(FILTER_BBC);
-        writer->Bool(BeebWindows::defaults.display_filter);
+        writer->Bool(default_window_settings.display_filter);
 
         writer->Key(CORRECT_ASPECT_RATIO);
-        writer->Bool(BeebWindows::defaults.correct_aspect_ratio);
+        writer->Bool(default_window_settings.correct_aspect_ratio);
 
         writer->Key(AUTO_SCALE);
-        writer->Bool(BeebWindows::defaults.display_auto_scale);
+        writer->Bool(default_window_settings.display_auto_scale);
 
         writer->Key(MANUAL_SCALE);
-        writer->Double(BeebWindows::defaults.display_manual_scale);
+        writer->Double(default_window_settings.display_manual_scale);
 
         writer->Key(POWER_ON_TONE);
-        writer->Bool(BeebWindows::defaults.power_on_tone);
+        writer->Bool(default_window_settings.power_on_tone);
 
         writer->Key(INTERLACE);
-        writer->Bool(BeebWindows::defaults.display_interlace);
+        writer->Bool(default_window_settings.display_interlace);
 
         writer->Key(LEDS_POPUP_MODE);
-        SaveEnum(writer,BeebWindows::defaults.leds_popup_mode,&GetBeebWindowLEDsPopupModeEnumName);
+        SaveEnum(writer,default_window_settings.leds_popup_mode,&GetBeebWindowLEDsPopupModeEnumName);
 
-        if(!BeebWindows::default_config_name.empty()) {
+        if(!default_config_name.empty()) {
             writer->Key(CONFIG);
-            writer->String(BeebWindows::default_config_name.c_str());
+            writer->String(default_config_name.c_str());
         }
     }
 }
@@ -1973,7 +1981,11 @@ static void SaveBeebLink(JSONWriter<StringStream> *writer) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool LoadGlobalConfig(Messages *msg) {
+bool LoadGlobalConfig(std::vector<uint8_t> *window_placement_data,
+                      std::string *default_config_name,
+                      BeebWindowSettings *default_window_settings,
+                      Messages *msg)
+{
     std::string fname=GetConfigFileName();
     if(fname.empty()) {
         msg->e.f("failed to load config file\n");
@@ -2026,7 +2038,12 @@ bool LoadGlobalConfig(Messages *msg) {
 
         rapidjson::Value windows;
         if(FindObjectMember(&windows,doc.get(),WINDOWS,msg)) {
-            if(!LoadWindows(&windows,msg)) {
+            if(!LoadWindows(&windows,
+                            window_placement_data,
+                            default_config_name,
+                            default_window_settings,
+                            msg))
+            {
                 return false;
             }
         }
@@ -2096,7 +2113,8 @@ bool LoadGlobalConfig(Messages *msg) {
 
     // don't bother with error checking for this... not really worth
     // it?
-    LoadDockConfig(msg);
+    LoadDockConfig(&default_window_settings->dock_config,
+                   msg);
 
 //    if(BeebWindows::GetNumConfigs()==0) {
 //        AddDefaultBeebConfigs();
@@ -2105,7 +2123,11 @@ bool LoadGlobalConfig(Messages *msg) {
     return true;
 }
 
-bool SaveGlobalConfig(Messages *messages) {
+bool SaveGlobalConfig(const std::vector<uint8_t> &window_placement_data,
+                      const std::string &default_config_name,
+                      const BeebWindowSettings &default_window_settings,
+                      Messages *messages)
+{
     std::string fname=GetConfigFileName();
     if(fname.empty()) {
         messages->e.f("failed to save config file: %s\n",fname.c_str());
@@ -2136,7 +2158,10 @@ bool SaveGlobalConfig(Messages *messages) {
 
         SaveShortcuts(&writer);
 
-        SaveWindows(&writer);
+        SaveWindows(&writer,
+                    window_placement_data,
+                    default_config_name,
+                    default_window_settings);
 
         SaveTrace(&writer);
 
@@ -2151,7 +2176,9 @@ bool SaveGlobalConfig(Messages *messages) {
         return false;
     }
 
-    SaveTextFile(BeebWindows::defaults.dock_config,GetDockLayoutFileName(),messages);
+    SaveTextFile(default_window_settings.dock_config,
+                 GetDockLayoutFileName(),
+                 messages);
 
     return true;
 }

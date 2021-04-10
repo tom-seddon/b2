@@ -48,10 +48,6 @@ struct SDL_MouseMotionEvent;
 
 namespace BeebWindows {
 
-// an accessor doesn't really buy much here...
-extern BeebWindowSettings defaults;
-extern std::string default_config_name;
-
 bool Init();
 void Shutdown();
 
@@ -60,9 +56,6 @@ void AddJob(std::shared_ptr<JobQueue::Job> job);
 
 // Get the job queue's list of jobs.
 std::vector<std::shared_ptr<JobQueue::Job>> GetJobs();
-
-const std::vector<uint8_t> &GetLastWindowPlacementData();
-void SetLastWindowPlacementData(std::vector<uint8_t> placement_data);
 
 size_t GetNumSavedStates();
 std::vector<std::shared_ptr<const BeebState>> GetSavedStates(size_t begin_index,

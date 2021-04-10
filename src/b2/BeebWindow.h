@@ -88,9 +88,15 @@ struct BeebWindowSettings {
     bool display_filter=true;
     bool display_interlace=false;
 
-    const BeebKeymap *keymap=nullptr;
+    std::string keymap_name;
 
     BeebWindowLEDsPopupMode leds_popup_mode=BeebWindowLEDsPopupMode_Auto;
+};
+
+// this will go away...
+struct SaveConfigData {
+    std::string default_config_name;
+    BeebWindowSettings default_window_settings;
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -111,27 +117,8 @@ public:
     // If set, reset windows. Only ever set for the first window created.
     bool reset_windows=false;
 
-#if SYSTEM_OSX
-
-    // Frame name to load window frame from, or empty if the default
-    // is OK.
-    std::string frame_name;
-
-#else
-
-    // Placement data to use for this window. Empty if the default
-    // position is OK.
-    std::vector<uint8_t> placement_data;
-
-#endif
-
-    // When INITIAL_STATE is non-null, it is used as the initial state
-    // for the window; otherwise, DEFAULT_CONFIG will be used as the
-    // config to start with.
-    //
     // DEFAULT_CONFIG must always be valid, as it is the config used
     // for new windows created by Window|New.
-    std::shared_ptr<BeebState> initial_state;
     BeebLoadedConfig default_config;
 
     // Message list to be used to populate the window's message list.
@@ -170,18 +157,19 @@ public:
 
     class OptionsUI;
 
-    BeebWindow(BeebWindowInitArguments init_arguments,std::shared_ptr<MessageList> message_list);
+    BeebWindow(BeebWindowInitArguments init_arguments,
+               const BeebWindowSettings &settings,
+               std::shared_ptr<MessageList> message_list);
     ~BeebWindow();
 
     bool Init(std::unique_ptr<ImGuiStuff> imgui_stuff,
               SDL_PixelFormat *tv_texture_pixel_format);
 
+    const BeebWindowSettings &GetSettings() const;
+
     // Saves all settings, including whatever SavePosition does. Called on
     // shutdown and from the UI code.
-    void SaveSettings();
-
-    // Saves position only. Called by SaveSettings and from the message loop.
-    void SavePosition();
+    //void SaveSettings();
 
     // called by message loop
 //    void HandleSDLKeyEvent(const SDL_KeyboardEvent &event);
@@ -316,6 +304,7 @@ private:
     std::map<uint32_t,std::set<BeebKeySym>> m_beeb_keysyms_by_keycode;
 
     BeebWindowSettings m_settings;
+    const BeebKeymap *m_keymap=nullptr;
 
     //
     //bool m_ui=false;
@@ -450,6 +439,8 @@ private:
     bool IsPrioritizeCommandShortcutsTicked() const;
 
     void ShowPrioritizeCommandShortcutsStatus();
+
+    void UpdateSettings();
 
     static std::unique_ptr<SettingsUI> CreateOptionsUI(BeebWindow *beeb_window);
     static std::unique_ptr<SettingsUI> CreateTimelineUI(BeebWindow *beeb_window);

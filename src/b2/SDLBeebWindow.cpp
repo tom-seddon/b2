@@ -6,13 +6,17 @@
 #include "load_save.h"
 #include <SDL_syswm.h>
 
-SDLBeebWindow::SDLBeebWindow(const BeebWindowInitArguments &init_arguments) {
+SDLBeebWindow::SDLBeebWindow(const BeebWindowInitArguments &init_arguments,
+                             const BeebWindowSettings &settings)
+{
     m_init_arguments=init_arguments;
 
     m_message_list=std::make_shared<MessageList>();
     m_msg=Messages(m_message_list);
 
-    m_beeb_window=new BeebWindow(init_arguments,m_message_list);
+    m_beeb_window=new BeebWindow(init_arguments,
+                                 settings,
+                                 m_message_list);
 }
 
 SDLBeebWindow::~SDLBeebWindow() {
@@ -45,8 +49,10 @@ SDLBeebWindow::~SDLBeebWindow() {
     }
 }
 
-bool SDLBeebWindow::Init(uint32_t *sdl_window_id) {
-    if(!this->InitInternal()) {
+bool SDLBeebWindow::Init(std::vector<uint8_t> window_placement_data,
+                         uint32_t *sdl_window_id)
+{
+    if(!this->InitInternal(std::move(window_placement_data))) {
         return false;
     }
 
@@ -69,59 +75,10 @@ BeebWindow *SDLBeebWindow::GetBeebWindow() const {
     return m_beeb_window;
 }
 
-void SDLBeebWindow::SaveSettings() {
-    m_beeb_window->SaveSettings();
-    this->SavePosition();
-}
-
-void SDLBeebWindow::SavePosition() {
-#if SYSTEM_WINDOWS
-
-    if(m_hwnd) {
-        std::vector<uint8_t> placement_data;
-        placement_data.resize(sizeof(WINDOWPLACEMENT));
-
-        auto wp=(WINDOWPLACEMENT *)placement_data.data();
-        memset(wp,0,sizeof *wp);
-        wp->length=sizeof *wp;
-
-        if(GetWindowPlacement((HWND)m_hwnd,wp)) {
-            BeebWindows::SetLastWindowPlacementData(std::move(placement_data));
-        }
-    }
-
-#elif SYSTEM_OSX
-
-    SaveCocoaFrameUsingName(m_nswindow,m_init_arguments.frame_name);
-
-#else
-
-    std::vector<uint8_t> buf=BeebWindows::GetLastWindowPlacementData();
-    if(buf.size()!=sizeof(WindowPlacementData)) {
-        buf.clear();
-        buf.resize(sizeof(WindowPlacementData));
-        new(buf.data()) WindowPlacementData;
-    }
-
-    auto wp=(WindowPlacementData *)buf.data();
-
-    uint32_t flags=SDL_GetWindowFlags(m_window);
-
-    wp->maximized=!!(flags&SDL_WINDOW_MAXIMIZED);
-
-    if(flags&(SDL_WINDOW_MAXIMIZED|SDL_WINDOW_MINIMIZED|SDL_WINDOW_HIDDEN)) {
-        // Don't update the size in this case.
-    } else {
-        SDL_GetWindowPosition(m_window,&wp->x,&wp->y);
-        SDL_GetWindowSize(m_window,&wp->width,&wp->height);
-    }
-
-    //LOGF(OUTPUT,"Placement; (%d,%d)+(%dx%d); maximized=%s\n",wp->x,wp->y,wp->width,wp->height,BOOL_STR(wp->maximized));
-
-    BeebWindows::SetLastWindowPlacementData(buf);
-
-#endif
-}
+//void SDLBeebWindow::SaveSettings() {
+//    m_beeb_window->SaveSettings();
+//    this->SavePosition();
+//}
 
 void SDLBeebWindow::HandleSDLKeyEvent(const SDL_KeyboardEvent &event) {
     m_sdl_keyboard_events.push_back(event);
@@ -229,7 +186,66 @@ void SDLBeebWindow::ThreadFillAudioBuffer(SDL_AudioDeviceID audio_device_id,floa
     m_beeb_window->ThreadFillAudioBuffer(audio_device_id,mix_buffer,num_samples);
 }
 
-bool SDLBeebWindow::InitInternal() {
+void SDLBeebWindow::UpdateWindowPlacement() {
+#if SYSTEM_WINDOWS
+
+    if(m_hwnd) {
+        m_window_placement_data.resize(sizeof(WINDOWPLACEMENT));
+
+        auto wp=(WINDOWPLACEMENT *)m_window_placement_data.data();
+        memset(wp,0,sizeof *wp);
+        wp->length=sizeof *wp;
+
+        if(!GetWindowPlacement((HWND)m_hwnd,wp)) {
+            m_window_placement_data.clear();
+        }
+    }
+
+#elif SYSTEM_OSX
+
+    SaveCocoaFrameUsingName(m_nswindow,COCOA_FRAME_NAME);
+
+#else
+
+    WindowPlacementData *wp;
+    if(m_window_placement_data.size()!=sizeof(WindowPlacementData)) {
+        m_window_placement_data.clear();
+        m_window_placement_data.resize(sizeof(WindowPlacementData));
+
+        wp=(WindowPlacementData *)m_window_placement_data.data();
+
+        wp->maximized=0;
+        wp->x=INT_MIN;
+        wp->y=INT_MIN;
+        wp->width=0;
+        wp->height=0;
+    } else {
+        wp=(WindowPlacementData *)m_window_placement_data.data();
+    }
+
+    uint32_t flags=SDL_GetWindowFlags(m_window);
+
+    wp->maximized=!!(flags&SDL_WINDOW_MAXIMIZED);
+
+    if(flags&(SDL_WINDOW_MAXIMIZED|SDL_WINDOW_MINIMIZED|SDL_WINDOW_HIDDEN)) {
+        // Don't update the size in this case.
+    } else {
+        SDL_GetWindowPosition(m_window,&wp->x,&wp->y);
+        SDL_GetWindowSize(m_window,&wp->width,&wp->height);
+    }
+
+#endif
+}
+
+const std::vector<uint8_t> &SDLBeebWindow::GetWindowPlacementData() const {
+    return m_window_placement_data;
+}
+
+std::shared_ptr<MessageList> SDLBeebWindow::GetMessageList() const {
+    return m_message_list;
+}
+
+bool SDLBeebWindow::InitInternal(std::vector<uint8_t> window_placement_data) {
     // Add some extra space round the edges so the display doesn't have to
     // be scaled down noticeably.
     //
@@ -280,10 +296,13 @@ bool SDLBeebWindow::InitInternal() {
 
     if(!m_init_arguments.reset_windows) {
         if(m_hwnd) {
-            if(m_init_arguments.placement_data.size()==sizeof(WINDOWPLACEMENT)) {
-                auto wp=(const WINDOWPLACEMENT *)m_init_arguments.placement_data.data();
+            if(window_placement_data.size()==sizeof(WINDOWPLACEMENT)) {
+                m_window_placement_data=std::move(window_placement_data);
+                auto wp=(const WINDOWPLACEMENT *)m_window_placement_data.data();
 
-                SetWindowPlacement((HWND)m_hwnd,wp);
+                if(!SetWindowPlacement((HWND)m_hwnd,wp)) {
+                    m_window_placement_data.clear();
+                }
             }
         }
     }
@@ -293,14 +312,15 @@ bool SDLBeebWindow::InitInternal() {
     m_nswindow=wmi.info.cocoa.window;
 
     if(!m_init_arguments.reset_windows) {
-        SetCocoaFrameUsingName(m_nswindow,m_init_arguments.frame_name);
+        SetCocoaFrameUsingName(m_nswindow,COCOA_FRAME_NAME);
     }
 
 #else
 
     if(!m_init_arguments.reset_windows) {
-        if(m_init_arguments.placement_data.size()==sizeof(WindowPlacementData)) {
-            auto wp=(const WindowPlacementData *)m_init_arguments.placement_data.data();
+        if(window_placement_data.size()==sizeof(WindowPlacementData)) {
+            m_window_placement_data=std::move(window_placement_data);
+            auto wp=(const WindowPlacementData *)m_window_placement_data.data();
 
             SDL_RestoreWindow(m_window);
 

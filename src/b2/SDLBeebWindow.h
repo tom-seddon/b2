@@ -50,17 +50,18 @@ struct BeebThreadVaryingOutput {
     uint8_t *tv_texture_data=nullptr;
 };
 
+// The placement data isn't used on OS X, but it's included anyway just to save
+// on #if hell.
 class SDLBeebWindow {
 public:
-    explicit SDLBeebWindow(const BeebWindowInitArguments &init_arguments);
+    explicit SDLBeebWindow(const BeebWindowInitArguments &init_arguments,
+                           const BeebWindowSettings &settings);
     ~SDLBeebWindow();
 
-    bool Init(uint32_t *sdl_window_id);
+    bool Init(std::vector<uint8_t> window_placement_data,
+              uint32_t *sdl_window_id);
 
     BeebWindow *GetBeebWindow() const;
-
-    void SaveSettings();
-    void SavePosition();
 
     void HandleSDLKeyEvent(const SDL_KeyboardEvent &event);
     void SetSDLMouseWheelState(int x,int y);
@@ -70,6 +71,11 @@ public:
     void UpdateTitle();
 
     void ThreadFillAudioBuffer(uint32_t audio_device_id,float *mix_buffer,size_t num_samples);
+
+    void UpdateWindowPlacement();
+    const std::vector<uint8_t> &GetWindowPlacementData() const;
+
+    std::shared_ptr<MessageList> GetMessageList() const;
 protected:
 private:
     enum ImGuiTextures {
@@ -92,6 +98,7 @@ private:
 //    int m_mouse_pos_x=0;
 //    int m_mouse_pos_y=0;
     SDL_Texture *m_imgui_textures[ImGuiTexture_MaxValue]={};
+    std::vector<uint8_t> m_window_placement_data;
 
 #if SYSTEM_WINDOWS
     void *m_hwnd=nullptr;
@@ -100,14 +107,14 @@ private:
 #elif SYSTEM_LINUX
 #include <shared/pshpack1.h>
     struct WindowPlacementData {
-        uint8_t maximized=0;
-        int x=INT_MIN,y=INT_MIN;
-        int width=0,height=0;
+        uint8_t maximized;
+        int x,y;
+        int width,height;
     };
 #include <shared/poppack.h>
 #endif
 
-    bool InitInternal();
+    bool InitInternal(std::vector<uint8_t> window_placement_data);
     bool RecreateTexture();
 
     // Keep this at the end. It's massive.

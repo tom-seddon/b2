@@ -280,6 +280,7 @@ bool BeebWindow::OptionsUI::OnClose() {
 //////////////////////////////////////////////////////////////////////////
 
 BeebWindow::BeebWindow(BeebWindowInitArguments init_arguments,
+                       const BeebWindowSettings &settings,
                        std::shared_ptr<MessageList> message_list):
     m_init_arguments(std::move(init_arguments))
 {
@@ -293,7 +294,7 @@ BeebWindow::BeebWindow(BeebWindowInitArguments init_arguments,
                                                m_init_arguments.default_config,
                                                std::vector<BeebThread::TimelineEventList>());
 
-    m_settings=BeebWindows::defaults;
+    m_settings=settings;
 
     m_beeb_thread->SetBBCVolume(m_settings.bbc_volume);
     m_beeb_thread->SetDiscVolume(m_settings.disc_volume);
@@ -360,12 +361,11 @@ bool BeebWindow::GetBeebKeyState(BeebKey key) const {
 //}
 
 bool BeebWindow::HandleBeebKey(const SDL_Keysym &keysym,bool state) {
-    const BeebKeymap *keymap=m_settings.keymap;
-    if(!keymap) {
+    if(!m_keymap) {
         return false;
     }
 
-    if(keymap->IsKeySymMap()) {
+    if(m_keymap->IsKeySymMap()) {
         uint32_t pc_key=(uint32_t)keysym.sym;
         if(pc_key&PCKeyModifier_All) {
             // Bleargh... can't handle this one.
@@ -386,12 +386,12 @@ bool BeebWindow::HandleBeebKey(const SDL_Keysym &keysym,bool state) {
             }
         }
 
-        const int8_t *beeb_syms=keymap->GetValuesForPCKey(pc_key|modifiers);
+        const int8_t *beeb_syms=m_keymap->GetValuesForPCKey(pc_key|modifiers);
         if(!beeb_syms) {
             // If key+modifier isn't bound, just go for key on its
             // own (and the modifiers will be applied in the
             // emulated BBC).
-            beeb_syms=keymap->GetValuesForPCKey(pc_key&~PCKeyModifier_All);
+            beeb_syms=m_keymap->GetValuesForPCKey(pc_key&~PCKeyModifier_All);
         }
 
         if(!beeb_syms) {
@@ -405,7 +405,7 @@ bool BeebWindow::HandleBeebKey(const SDL_Keysym &keysym,bool state) {
             }
         }
     } else {
-        const int8_t *beeb_keys=keymap->GetValuesForPCKey(keysym.scancode);
+        const int8_t *beeb_keys=m_keymap->GetValuesForPCKey(keysym.scancode);
         if(!beeb_keys) {
             return false;
         }
@@ -1402,10 +1402,10 @@ void BeebWindow::DoKeyboardMenu() {
 
                 if(ImGui::MenuItem(GetKeymapUIName(*keymap).c_str(),
                                    nullptr,
-                                   m_settings.keymap==keymap))
+                                   m_keymap==keymap))
                 {
                     this->SetCurrentKeymap(keymap);
-                    m_msg.i.f("Keymap: %s\n",m_settings.keymap->GetName().c_str());
+                    m_msg.i.f("Keymap: %s\n",m_keymap->GetName().c_str());
                     this->ShowPrioritizeCommandShortcutsStatus();
                 }
             }
@@ -1878,11 +1878,18 @@ bool BeebWindow::Init(std::unique_ptr<ImGuiStuff> imgui_stuff,
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void BeebWindow::SaveSettings() {
+const BeebWindowSettings &BeebWindow::GetSettings() const {
+    return m_settings;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BeebWindow::UpdateSettings() {
     m_settings.dock_config=m_imgui_stuff->SaveDockContext();
 
-    BeebWindows::defaults=m_settings;
-    BeebWindows::default_config_name=m_init_arguments.default_config.config.name;
+    //BeebWindows::defaults=m_settings;
+    //BeebWindows::default_config_name=m_init_arguments.default_config.config.name;
 //
 //    this->SavePosition();
 }
@@ -1973,45 +1980,31 @@ bool BeebWindow::InitInternal(SDL_PixelFormat *tv_texture_pixel_format) {
         return false;
     }
 
-    if(!!m_init_arguments.initial_state) {
-        // Load initial state.
-        m_beeb_thread->Send(std::make_shared<BeebThread::LoadStateMessage>(m_init_arguments.initial_state,
-                                                                           false));
+    m_beeb_thread->Send(std::make_shared<BeebThread::HardResetAndChangeConfigMessage>(0,m_init_arguments.default_config));
 
-        for(int i=0;i<NUM_DRIVES;++i) {
-            ASSERT(!m_init_arguments.init_disc_images[i]);
-            m_init_arguments.init_disc_images[i].reset();
+    // If there were any discs mounted, or there's any booting needed,
+    // another reboot will be necessary. This can't all be done with one
+    // HardReset message, because until the first one there's no BBCMicro
+    // object. <<rolleyes smiley>>
+    uint32_t flags=0;
+
+    // Mount initial discs.
+    for(int i=0;i<NUM_DRIVES;++i) {
+        if(!!m_init_arguments.init_disc_images[i]) {
+            auto message=std::make_shared<BeebThread::LoadDiscMessage>(i,
+                                                                       std::move(m_init_arguments.init_disc_images[i]),
+                                                                       true);
+            m_beeb_thread->Send(std::move(message));
         }
+    }
 
-        ASSERT(!m_init_arguments.boot);
+    if(m_init_arguments.boot) {
+        flags|=BeebThreadHardResetFlag_Boot;
         m_init_arguments.boot=false;
-    } else {
-        m_beeb_thread->Send(std::make_shared<BeebThread::HardResetAndChangeConfigMessage>(0,m_init_arguments.default_config));
+    }
 
-        // If there were any discs mounted, or there's any booting needed,
-        // another reboot will be necessary. This can't all be done with one
-        // HardReset message, because until the first one there's no BBCMicro
-        // object. <<rolleyes smiley>>
-        uint32_t flags=0;
-
-        // Mount initial discs.
-        for(int i=0;i<NUM_DRIVES;++i) {
-            if(!!m_init_arguments.init_disc_images[i]) {
-                auto message=std::make_shared<BeebThread::LoadDiscMessage>(i,
-                                                                           std::move(m_init_arguments.init_disc_images[i]),
-                                                                           true);
-                m_beeb_thread->Send(std::move(message));
-            }
-        }
-
-        if(m_init_arguments.boot) {
-            flags|=BeebThreadHardResetFlag_Boot;
-            m_init_arguments.boot=false;
-        }
-
-        if(flags!=0) {
-            m_beeb_thread->Send(std::make_shared<BeebThread::HardResetAndChangeConfigMessage>(flags,m_init_arguments.default_config));
-        }
+    if(flags!=0) {
+        m_beeb_thread->Send(std::make_shared<BeebThread::HardResetAndChangeConfigMessage>(flags,m_init_arguments.default_config));
     }
 
 //    if(!m_init_arguments.initially_paused) {
@@ -2033,17 +2026,20 @@ bool BeebWindow::InitInternal(SDL_PixelFormat *tv_texture_pixel_format) {
         m_display_size_options.push_back(name);
     }
 
+    const BeebKeymap *keymap=nullptr;
     if(!m_init_arguments.keymap_name.empty()) {
-        m_settings.keymap=FindBeebKeymapByName(m_init_arguments.keymap_name);
+        keymap=FindBeebKeymapByName(m_init_arguments.keymap_name);
     }
 
-    if(!m_settings.keymap) {
+    if(!keymap) {
         if(GetNumBeebKeymaps()>0) {
-            m_settings.keymap=GetBeebKeymapByIndex(0);
+            keymap=GetBeebKeymapByIndex(0);
         } else {
             m_msg.e.f("No keymaps - please configure one using Keyboard > Keyboard Layouts...\n");
         }
     }
+
+    this->SetCurrentKeymap(keymap);
 
     if(SDL_GL_GetCurrentContext()) {
         if(SDL_GL_SetSwapInterval(0)!=0) {
@@ -2132,8 +2128,8 @@ void BeebWindow::GetTitle(char *text,size_t text_size) {
 //////////////////////////////////////////////////////////////////////////
 
 void BeebWindow::BeebKeymapWillBeDeleted(BeebKeymap *keymap) {
-    if(m_settings.keymap==keymap) {
-        m_settings.keymap=GetDefaultBeebKeymap();
+    if(m_keymap==keymap) {
+        this->SetCurrentKeymap(GetDefaultBeebKeymap());
     }
 }
 
@@ -2175,15 +2171,21 @@ std::vector<BeebWindow::VBlankRecord> BeebWindow::GetVBlankRecords() const {
 //////////////////////////////////////////////////////////////////////////
 
 const BeebKeymap *BeebWindow::GetCurrentKeymap() const {
-    return m_settings.keymap;
+    return m_keymap;
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 void BeebWindow::SetCurrentKeymap(const BeebKeymap *keymap) {
-    m_settings.keymap=keymap;
-    m_prefer_shortcuts=m_settings.keymap->GetPreferShortcuts();
+    m_keymap=keymap;
+    if(m_keymap) {
+        m_settings.keymap_name=m_keymap->GetName();
+        m_prefer_shortcuts=m_keymap->GetPreferShortcuts();
+    } else {
+        m_settings.keymap_name.clear();
+        m_prefer_shortcuts=false;
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -2330,7 +2332,7 @@ bool BeebWindow::SaveStateIsEnabled() const {
 //////////////////////////////////////////////////////////////////////////
 
 void BeebWindow::Exit() {
-    this->SaveSettings();
+    this->UpdateSettings();
 
     SDL_Event event={};
     event.type=SDL_QUIT;
@@ -2758,11 +2760,18 @@ bool BeebWindow::SaveDefaultNVRAMIsEnabled() const {
 //////////////////////////////////////////////////////////////////////////
 
 void BeebWindow::SaveConfig() {
-    this->SaveSettings();
+    this->UpdateSettings();
 
-    SaveGlobalConfig(&m_msg);
+    auto data=new SaveConfigData;
 
-    m_msg.i.f("Configuration saved.\n");
+    data->default_config_name=this->GetConfigName();
+    data->default_window_settings=m_settings;
+
+    SDL_Event event={};
+    event.user.type=GetSDLUserEventType(SDLEventType_SaveConfig);
+    event.user.data1=data;
+
+    SDL_PushEvent(&event);
 }
 
 //////////////////////////////////////////////////////////////////////////

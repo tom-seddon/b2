@@ -10,6 +10,9 @@ EPN(UpdateWindowTitle)
 // (std::function<void()> *)data1 - delete
 EPN(Function)
 
+// (SaveConfigData *)data1 - delete
+EPN(SaveConfig)
+
 EPN(Count)
 
 EEND()
