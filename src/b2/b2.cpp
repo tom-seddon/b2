@@ -724,7 +724,6 @@ static void SetRmtThreadName(const char *name,void *context) {
 //////////////////////////////////////////////////////////////////////////
 
 static void SaveConfig(const std::unique_ptr<SDLBeebWindow> &beeb_window,
-                       const std::string &default_config_name,
                        const BeebWindowSettings &default_window_settings,
                        std::shared_ptr<MessageList> message_list)
 {
@@ -733,7 +732,6 @@ static void SaveConfig(const std::unique_ptr<SDLBeebWindow> &beeb_window,
     const std::vector<uint8_t> &window_placement_data=beeb_window->GetWindowPlacementData();
 
     SaveGlobalConfig(window_placement_data,
-                     default_config_name,
                      default_window_settings,
                      &msg);
 
@@ -849,14 +847,16 @@ static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &mess
         SDL_PauseAudioDevice(audio_device,0);
 
         std::vector<uint8_t> window_placement_data;
-        std::string default_config_name;
         BeebWindowSettings default_window_settings;
         if(!LoadGlobalConfig(&window_placement_data,
-                             &default_config_name,
                              &default_window_settings,
                              &msg))
         {
             return false;
+        }
+
+        if(!options.config_name.empty()) {
+            default_window_settings.config_name=options.config_name;
         }
 
         // Ugh. This thing here is really a bit of a bodge...
@@ -876,36 +876,6 @@ static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &mess
             return false;
         }
 
-        BeebLoadedConfig initial_loaded_config;
-        {
-            bool got_initial_loaded_config=false;
-
-            if(!options.config_name.empty()) {
-                if(LoadBeebConfigByName(&initial_loaded_config,options.config_name,&msg)) {
-                    got_initial_loaded_config=true;
-                }
-            }
-
-            if(!got_initial_loaded_config) {
-                if(!default_config_name.empty()) {
-                    if(LoadBeebConfigByName(&initial_loaded_config,default_config_name,&msg)) {
-                        got_initial_loaded_config=true;
-                    }
-                }
-            }
-
-            if(!got_initial_loaded_config) {
-                if(BeebLoadedConfig::Load(&initial_loaded_config,*GetDefaultBeebConfigByIndex(0),&msg)) {
-                    got_initial_loaded_config=true;
-                }
-            }
-
-            if(!got_initial_loaded_config) {
-                // Ugh, ok.
-                return false;
-            }
-        }
-
         BeebWindowInitArguments ia;
         {
 //            ia.render_driver_index=options.render_driver_index;
@@ -913,7 +883,7 @@ static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &mess
 //            ASSERT(ia.pixel_format!=SDL_PIXELFORMAT_UNKNOWN);
             ia.sound_device=audio_device;
             ia.sound_spec=audio_spec;
-            ia.default_config=initial_loaded_config;
+            //ia.default_config=initial_loaded_config;
             ia.reset_windows=options.reset_windows;
 
             for(int i=0;i<NUM_DRIVES;++i) {
@@ -1098,15 +1068,14 @@ static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &mess
 
                         case SDLEventType_SaveConfig:
                             {
-                                auto data=(SaveConfigData *)event.user.data1;
+                                auto settings=(BeebWindowSettings *)event.user.data1;
 
                                 SaveConfig(beeb_window,
-                                           data->default_config_name,
-                                           data->default_window_settings,
+                                           *settings,
                                            beeb_window->GetMessageList());
 
-                                delete data;
-                                data=nullptr;
+                                delete settings;
+                                settings=nullptr;
                             }
                             break;
 

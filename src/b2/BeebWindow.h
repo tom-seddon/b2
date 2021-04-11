@@ -70,9 +70,6 @@ struct BeebWindowTextureDataVersion {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-// The config name isn't part of this, because then there'd be two copies
-// of the initial config name in BeebWindowInitArguments. Something needs
-// fixing...
 struct BeebWindowSettings {
     uint64_t popups=0;
 
@@ -88,15 +85,10 @@ struct BeebWindowSettings {
     bool display_filter=true;
     bool display_interlace=false;
 
+    std::string config_name;
     std::string keymap_name;
 
     BeebWindowLEDsPopupMode leds_popup_mode=BeebWindowLEDsPopupMode_Auto;
-};
-
-// this will go away...
-struct SaveConfigData {
-    std::string default_config_name;
-    BeebWindowSettings default_window_settings;
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -116,10 +108,6 @@ public:
 
     // If set, reset windows. Only ever set for the first window created.
     bool reset_windows=false;
-
-    // DEFAULT_CONFIG must always be valid, as it is the config used
-    // for new windows created by Window|New.
-    BeebLoadedConfig default_config;
 
     // Initial disc images, if any, for the drives. Only set for the first
     // window created - the values come from the -0/-1 command line options.
@@ -242,6 +230,7 @@ private:
 //    SDLThreadOutput m_sdl_thread_output;
 
     BeebWindowInitArguments m_init_arguments;
+    BeebLoadedConfig m_config;
 
 //    // SDLstuff.
 //    SDL_Window *m_window=nullptr;
@@ -289,6 +278,7 @@ private:
     // you can press per unit time.
     std::map<uint32_t,std::set<BeebKeySym>> m_beeb_keysyms_by_keycode;
 
+    // Use UpdateSettings() to ensure m_settings is up to date.
     BeebWindowSettings m_settings;
     const BeebKeymap *m_keymap=nullptr;
 
@@ -344,7 +334,8 @@ private:
     const CommandContext m_cc{this,&ms_command_table};
 
     bool HardReset(const BeebConfig &config);
-    bool InitInternal(SDL_PixelFormat *tv_texture_pixel_format);
+    bool InitInternal(SDL_PixelFormat *tv_texture_pixel_format,
+                      const BeebLoadedConfig &config);
     void DoImGui(uint64_t ticks,
                  int output_width,
                  int output_height,

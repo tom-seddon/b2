@@ -86,11 +86,9 @@ bool GetFileDetails(size_t *size,bool *can_write,const char *path);
 // std::string SaveGlobalConfig();
 
 bool LoadGlobalConfig(std::vector<uint8_t> *window_placement_data,
-                      std::string *default_config_name,
                       BeebWindowSettings *default_window_settings,
                       Messages *messages);
 bool SaveGlobalConfig(const std::vector<uint8_t> &window_placement_data,
-                      const std::string &default_config_name,
                       const BeebWindowSettings &default_window_settings,
                       Messages *messages);
 

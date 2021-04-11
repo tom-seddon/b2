@@ -10,7 +10,7 @@ EPN(UpdateWindowTitle)
 // (std::function<void()> *)data1 - delete
 EPN(Function)
 
-// (SaveConfigData *)data1 - delete
+// (BeebWindowSettings *)data1 - delete
 EPN(SaveConfig)
 
 EPN(Count)

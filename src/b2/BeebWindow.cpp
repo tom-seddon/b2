@@ -1348,12 +1348,12 @@ void BeebWindow::DoHardwareMenu() {
         if(GetNumBeebConfigs()>0) {
             ImGui::Separator();
 
-            std::string config_name=this->GetConfigName();
+            //std::string config_name=this->GetConfigName();
 
             for(size_t config_idx=0;config_idx<GetNumBeebConfigs();++config_idx) {
                 BeebConfig *config=GetBeebConfigByIndex(config_idx);
 
-                if(ImGui::MenuItem(config->name.c_str(),nullptr,config->name==config_name)) {
+                if(ImGui::MenuItem(config->name.c_str(),nullptr,config->name==m_config.config.name)) {
                     this->HardReset(*config);
                 }
             }
@@ -1836,13 +1836,21 @@ bool BeebWindow::Init(BeebWindowInitArguments init_arguments,
 
     m_message_list=std::move(message_list);
     m_msg=Messages(m_message_list);
-    printf("BeebWindow: list=%p\n",(void*)m_message_list.get());
+    //printf("BeebWindow: list=%p\n",(void*)m_message_list.get());
+
+    BeebLoadedConfig config;
+    if(!LoadBeebConfigByName(&config,settings.config_name,&m_msg)) {
+        if(!BeebLoadedConfig::Load(&config,*GetDefaultBeebConfigByIndex(0),&m_msg)) {
+            m_msg.e.f("Failed to create Beeb config.\n");
+            return false;
+        }
+    }
 
     m_beeb_thread=std::make_shared<BeebThread>(m_message_list,
                                                m_init_arguments.sound_device,
                                                m_init_arguments.sound_spec.freq,
                                                m_init_arguments.sound_spec.samples,
-                                               m_init_arguments.default_config,
+                                               config,
                                                std::vector<BeebThread::TimelineEventList>());
 
     m_settings=settings;
@@ -1855,7 +1863,7 @@ bool BeebWindow::Init(BeebWindowInitArguments init_arguments,
 
     m_imgui_stuff=imgui_stuff.release();
 
-    bool good=this->InitInternal(tv_texture_pixel_format);
+    bool good=this->InitInternal(tv_texture_pixel_format,config);
     if(!good) {
         return false;
     }
@@ -1875,6 +1883,14 @@ const BeebWindowSettings &BeebWindow::GetSettings() const {
 
 void BeebWindow::UpdateSettings() {
     m_settings.dock_config=m_imgui_stuff->SaveDockContext();
+
+    if(m_keymap) {
+        m_settings.keymap_name=m_keymap->GetName();
+    } else {
+        m_settings.keymap_name.clear();
+    }
+
+    m_settings.config_name=m_config.config.name;
 
     //BeebWindows::defaults=m_settings;
     //BeebWindows::default_config_name=m_init_arguments.default_config.config.name;
@@ -1937,7 +1953,9 @@ void BeebWindow::UpdateSettings() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool BeebWindow::InitInternal(SDL_PixelFormat *tv_texture_pixel_format) {
+bool BeebWindow::InitInternal(SDL_PixelFormat *tv_texture_pixel_format,
+                              const BeebLoadedConfig &config)
+{
     //m_msg.i.f("info init message\n");
     //m_msg.w.f("warning init message\n");
     //m_msg.e.f("error init message\n");
@@ -1968,7 +1986,7 @@ bool BeebWindow::InitInternal(SDL_PixelFormat *tv_texture_pixel_format) {
         return false;
     }
 
-    m_beeb_thread->Send(std::make_shared<BeebThread::HardResetAndChangeConfigMessage>(0,m_init_arguments.default_config));
+    m_beeb_thread->Send(std::make_shared<BeebThread::HardResetAndChangeConfigMessage>(0,config));
 
     // If there were any discs mounted, or there's any booting needed,
     // another reboot will be necessary. This can't all be done with one
@@ -1992,7 +2010,7 @@ bool BeebWindow::InitInternal(SDL_PixelFormat *tv_texture_pixel_format) {
     }
 
     if(flags!=0) {
-        m_beeb_thread->Send(std::make_shared<BeebThread::HardResetAndChangeConfigMessage>(flags,m_init_arguments.default_config));
+        m_beeb_thread->Send(std::make_shared<BeebThread::HardResetAndChangeConfigMessage>(flags,config));
     }
 
 //    if(!m_init_arguments.initially_paused) {
@@ -2204,9 +2222,9 @@ bool BeebWindow::HardReset(const BeebConfig &config) {
     BeebLoadedConfig tmp;
 
     if(BeebLoadedConfig::Load(&tmp,config,&m_msg)) {
-        m_init_arguments.default_config=std::move(tmp);
+        m_config=std::move(tmp);
 
-        auto message=std::make_shared<BeebThread::HardResetAndChangeConfigMessage>(0,m_init_arguments.default_config);
+        auto message=std::make_shared<BeebThread::HardResetAndChangeConfigMessage>(0,m_config);
 
         m_beeb_thread->Send(std::move(message));
 
@@ -2220,7 +2238,7 @@ bool BeebWindow::HardReset(const BeebConfig &config) {
 //////////////////////////////////////////////////////////////////////////
 
 const std::string &BeebWindow::GetConfigName() const {
-    return m_init_arguments.default_config.config.name;
+    return m_config.config.name;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -2270,7 +2288,7 @@ void BeebWindow::HardReset() {
     for(size_t config_idx=0;config_idx<GetNumBeebConfigs();++config_idx) {
         BeebConfig *config=GetBeebConfigByIndex(config_idx);
 
-        if(config->name==m_init_arguments.default_config.config.name) {
+        if(config->name==m_config.config.name) {
             this->HardReset(*config);
             return;
         }
@@ -2750,14 +2768,9 @@ bool BeebWindow::SaveDefaultNVRAMIsEnabled() const {
 void BeebWindow::SaveConfig() {
     this->UpdateSettings();
 
-    auto data=new SaveConfigData;
-
-    data->default_config_name=this->GetConfigName();
-    data->default_window_settings=m_settings;
-
     SDL_Event event={};
     event.user.type=GetSDLUserEventType(SDLEventType_SaveConfig);
-    event.user.data1=data;
+    event.user.data1=new BeebWindowSettings(m_settings);
 
     SDL_PushEvent(&event);
 }

@@ -1780,7 +1780,6 @@ static void SaveNVRAM(JSONWriter<StringStream> *writer) {
 
 static bool LoadWindows(rapidjson::Value *windows,
                         std::vector<uint8_t> *window_placement_data,
-                        std::string *default_config_name,
                         BeebWindowSettings *default_window_settings,
                         Messages *msg) {
     {
@@ -1801,7 +1800,7 @@ static bool LoadWindows(rapidjson::Value *windows,
     FindFloatMember(&default_window_settings->display_manual_scale,windows,MANUAL_SCALE,nullptr);
     FindBoolMember(&default_window_settings->power_on_tone,windows,POWER_ON_TONE,nullptr);
     FindBoolMember(&default_window_settings->display_interlace,windows,INTERLACE,nullptr);
-    FindStringMember(default_config_name,windows,CONFIG,nullptr);
+    FindStringMember(&default_window_settings->config_name,windows,CONFIG,nullptr);
     FindEnumMember(&default_window_settings->leds_popup_mode,windows,LEDS_POPUP_MODE,"LEDs popup mode",&GetBeebWindowLEDsPopupModeEnumName,msg);
     FindStringMember(&default_window_settings->keymap_name,windows,KEYMAP,msg);
 //    {
@@ -1823,7 +1822,6 @@ static bool LoadWindows(rapidjson::Value *windows,
 
 static void SaveWindows(JSONWriter<StringStream> *writer,
                         const std::vector<uint8_t> &window_placement_data,
-                        const std::string &default_config_name,
                         const BeebWindowSettings &default_window_settings)
 {
     {
@@ -1874,9 +1872,9 @@ static void SaveWindows(JSONWriter<StringStream> *writer,
         writer->Key(LEDS_POPUP_MODE);
         SaveEnum(writer,default_window_settings.leds_popup_mode,&GetBeebWindowLEDsPopupModeEnumName);
 
-        if(!default_config_name.empty()) {
+        if(!default_window_settings.config_name.empty()) {
             writer->Key(CONFIG);
-            writer->String(default_config_name.c_str());
+            writer->String(default_window_settings.config_name.c_str());
         }
     }
 }
@@ -1982,7 +1980,6 @@ static void SaveBeebLink(JSONWriter<StringStream> *writer) {
 //////////////////////////////////////////////////////////////////////////
 
 bool LoadGlobalConfig(std::vector<uint8_t> *window_placement_data,
-                      std::string *default_config_name,
                       BeebWindowSettings *default_window_settings,
                       Messages *msg)
 {
@@ -2040,7 +2037,6 @@ bool LoadGlobalConfig(std::vector<uint8_t> *window_placement_data,
         if(FindObjectMember(&windows,doc.get(),WINDOWS,msg)) {
             if(!LoadWindows(&windows,
                             window_placement_data,
-                            default_config_name,
                             default_window_settings,
                             msg))
             {
@@ -2124,7 +2120,6 @@ bool LoadGlobalConfig(std::vector<uint8_t> *window_placement_data,
 }
 
 bool SaveGlobalConfig(const std::vector<uint8_t> &window_placement_data,
-                      const std::string &default_config_name,
                       const BeebWindowSettings &default_window_settings,
                       Messages *messages)
 {
@@ -2160,7 +2155,6 @@ bool SaveGlobalConfig(const std::vector<uint8_t> &window_placement_data,
 
         SaveWindows(&writer,
                     window_placement_data,
-                    default_config_name,
                     default_window_settings);
 
         SaveTrace(&writer);
