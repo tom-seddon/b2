@@ -2015,8 +2015,8 @@ bool BeebWindow::InitInternal(SDL_PixelFormat *tv_texture_pixel_format) {
     }
 
     const BeebKeymap *keymap=nullptr;
-    if(!m_init_arguments.keymap_name.empty()) {
-        keymap=FindBeebKeymapByName(m_init_arguments.keymap_name);
+    if(!m_settings.keymap_name.empty()) {
+        keymap=FindBeebKeymapByName(m_settings.keymap_name);
     }
 
     if(!keymap) {

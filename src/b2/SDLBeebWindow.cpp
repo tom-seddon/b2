@@ -324,6 +324,8 @@ bool SDLBeebWindow::InitInternal(std::vector<uint8_t> window_placement_data) {
 
 #elif SYSTEM_OSX
 
+    (void)window_placement_data;
+
     m_nswindow=wmi.info.cocoa.window;
 
     if(!m_init_arguments.reset_windows) {

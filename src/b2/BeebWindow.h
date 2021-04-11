@@ -121,12 +121,6 @@ public:
     // for new windows created by Window|New.
     BeebLoadedConfig default_config;
 
-    // If non-empty, name of the initial keymap to select.
-    //
-    // (Keymap pointer is no good, as this struct gets sent to the
-    // BeebThread; the keymap could be deleted by the time it's used.)
-    std::string keymap_name;
-
     // Initial disc images, if any, for the drives. Only set for the first
     // window created - the values come from the -0/-1 command line options.
     std::shared_ptr<DiscImage> init_disc_images[NUM_DRIVES];
