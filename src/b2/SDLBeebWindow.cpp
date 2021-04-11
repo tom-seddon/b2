@@ -86,9 +86,9 @@ bool SDLBeebWindow::Init(const BeebWindowInitArguments &init_arguments,
     return true;
 }
 
-BeebWindow *SDLBeebWindow::GetBeebWindow() const {
-    return m_beeb_window;
-}
+//BeebWindow *SDLBeebWindow::GetBeebWindow() const {
+//    return m_beeb_window;
+//}
 
 //void SDLBeebWindow::SaveSettings() {
 //    m_beeb_window->SaveSettings();

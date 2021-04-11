@@ -63,7 +63,7 @@ public:
               std::vector<uint8_t> window_placement_data,
               uint32_t *sdl_window_id);
 
-    BeebWindow *GetBeebWindow() const;
+    //BeebWindow *GetBeebWindow() const;
 
     void HandleSDLKeyEvent(const SDL_KeyboardEvent &event);
     void SetSDLMouseWheelState(int x,int y);
