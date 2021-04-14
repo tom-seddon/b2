@@ -33,14 +33,16 @@ struct VideoDataUnit;
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-class TVOutput {
-public:
+struct TVOutputSettings {
     bool show_usec_markers=false;
     bool show_half_usec_markers=false;
     bool show_6845_row_markers=false;
     bool show_6845_dispen_markers=false;
     bool show_beam_position=false;
+};
 
+class TVOutput {
+public:
     TVOutput();
     ~TVOutput();
 
@@ -48,6 +50,9 @@ public:
 
     // returns number of us consumed.
     void Update(const VideoDataUnit *units,size_t num_units);
+    
+    const TVOutputSettings &GetSettings() const;
+    void SetSettings(const TVOutputSettings &settings);
 
 #if BBCMICRO_DEBUGGER
     void FillWithTestPattern();
@@ -78,6 +83,7 @@ public:
     void SetInterlace(bool interlace);
 protected:
 private:
+    TVOutputSettings m_settings;
     TVOutputState m_state=TVOutputState_VerticalRetrace;
     uint32_t *m_pixels_line=nullptr;
 #if VIDEO_TRACK_METADATA

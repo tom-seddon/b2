@@ -473,6 +473,20 @@ void TVOutput::Update(const VideoDataUnit *units,size_t num_units) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+const TVOutputSettings &TVOutput::GetSettings() const {
+    return m_settings;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void TVOutput::SetSettings(const TVOutputSettings &settings) {
+    m_settings=settings;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 #if BBCMICRO_DEBUGGER
 
 void TVOutput::FillWithTestPattern() {
@@ -575,19 +589,19 @@ void TVOutput::CopyTexturePixels(void *dest_pixels,size_t dest_pitch_bytes) cons
         }
     }
 
-    if(this->show_usec_markers||this->show_half_usec_markers) {
+    if(m_settings.show_usec_markers||m_settings.show_half_usec_markers) {
         for(size_t x=0;x<TV_TEXTURE_WIDTH;x+=8) {
             char *dest=(char*)((uint32_t *)dest_pixels+x);
             const char *src=(const char *)(m_texture_pixels.data()+x);
 
-            if(this->show_usec_markers&&(x&15)==0) {
+            if(m_settings.show_usec_markers&&(x&15)==0) {
                 for(size_t y=0;y<TV_TEXTURE_HEIGHT;++y) {
                     *(uint32_t *)dest=*(const uint32_t *)src^m_usec_marker_xor;
 
                     dest+=dest_pitch_bytes;
                     src+=src_pitch_bytes;
                 }
-            } else if(this->show_half_usec_markers&&(x&7)==0) {
+            } else if(m_settings.show_half_usec_markers&&(x&7)==0) {
                 for(size_t y=0;y<TV_TEXTURE_HEIGHT;++y) {
                     *(uint32_t *)dest=*(const uint32_t *)src^m_half_usec_marker_xor;
 
@@ -603,22 +617,22 @@ void TVOutput::CopyTexturePixels(void *dest_pixels,size_t dest_pitch_bytes) cons
     // while the emulation is paused.
     this->AddMetadataMarkers(dest_pixels,
                              dest_pitch_bytes,
-                             this->show_6845_row_markers,
+                             m_settings.show_6845_row_markers,
                              VideoDataUnitMetadataFlag_6845Raster0,
                              m_6845_raster0_marker_xor);
 
     this->AddMetadataMarkers(dest_pixels,
                              dest_pitch_bytes,
-                             this->show_6845_dispen_markers,
+                             m_settings.show_6845_dispen_markers,
                              VideoDataUnitMetadataFlag_6845DISPEN,
                              m_6845_dispen_marker_xor);
 #endif
 
 
-    if(this->show_usec_markers||
-       this->show_half_usec_markers||
-       this->show_6845_dispen_markers||
-       this->show_6845_row_markers)
+    if(m_settings.show_usec_markers||
+       m_settings.show_half_usec_markers||
+       m_settings.show_6845_dispen_markers||
+       m_settings.show_6845_row_markers)
     {
         uint32_t bg=0;
         uint32_t fg=0xffu<<m_r_shift|0xffu<<m_g_shift|0xffu<<m_b_shift;
@@ -651,7 +665,7 @@ void TVOutput::CopyTexturePixels(void *dest_pixels,size_t dest_pitch_bytes) cons
     }
 
 #if BBCMICRO_DEBUGGER
-    if(this->show_beam_position) {
+    if(m_settings.show_beam_position) {
         if(m_x<TV_TEXTURE_WIDTH&&m_y<TV_TEXTURE_HEIGHT) {
             // Sneak it in on top. Don't read from the
             // locked data.

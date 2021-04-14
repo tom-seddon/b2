@@ -250,21 +250,25 @@ void BeebWindow::OptionsUI::DoImGui() {
                 m->SetTeletextDebug(debug);
             }
         }
+        
+        TVOutputSettings settings=m_beeb_window->m_tv.GetSettings();
 
-        ImGui::Checkbox("Show TV beam position",&m_beeb_window->m_tv.show_beam_position);
+        ImGui::Checkbox("Show TV beam position",&settings.show_beam_position);
         if(ImGui::Checkbox("Test pattern",&m_beeb_window->m_test_pattern)) {
             if(m_beeb_window->m_test_pattern) {
                 m_beeb_window->m_tv.FillWithTestPattern();
             }
         }
 
-        ImGui::Checkbox("1.0 usec",&m_beeb_window->m_tv.show_usec_markers);
+        ImGui::Checkbox("1.0 usec",&settings.show_usec_markers);
         ImGui::SameLine();
-        ImGui::Checkbox("0.5 usec",&m_beeb_window->m_tv.show_half_usec_markers);
+        ImGui::Checkbox("0.5 usec",&settings.show_half_usec_markers);
 
-        ImGui::Checkbox("6845 rows",&m_beeb_window->m_tv.show_6845_row_markers);
+        ImGui::Checkbox("6845 rows",&settings.show_6845_row_markers);
         ImGui::SameLine();
-        ImGui::Checkbox("6845 DISPEN",&m_beeb_window->m_tv.show_6845_dispen_markers);
+        ImGui::Checkbox("6845 DISPEN",&settings.show_6845_dispen_markers);
+        
+        m_beeb_window->m_tv.SetSettings(settings);
     }
 #endif
 }
