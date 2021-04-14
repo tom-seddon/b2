@@ -52,6 +52,7 @@ add_executable(b2 MACOSX_BUNDLE
   misc.cpp misc.h
   native_ui.cpp native_ui.h
   roms.cpp roms.h roms.inl
+  BeebThread2.cpp BeebThread2.h BeebThread2.inl
   )
 
 if(OSX)

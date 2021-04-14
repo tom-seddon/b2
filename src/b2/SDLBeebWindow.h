@@ -43,7 +43,7 @@ struct SDLThreadVaryingOutput {
 struct BeebThreadVaryingOutput {
     ImGuiMouseCursor imgui_mouse_cursor=ImGuiMouseCursor_None;
     bool filter_tv_texture=true;
-    std::vector<ImDrawListUniquePtr> draw_lists;
+    std::shared_ptr<std::vector<ImDrawListUniquePtr>> draw_lists;
 
     // this just points straight into the buffer. There's no locking; the SDL
     // thread just gets whatever it happens to be able to see at the time,
