@@ -242,10 +242,10 @@ private:
     uint64_t m_last_vblank_ticks=0;
 
     // TV output.
-    TVOutput m_tv;
+    //TVOutput m_tv;
 
     // The code assumes the data pointer remains the same after Init.
-    std::vector<uint8_t> m_tv_texture_buffer;
+    std::vector<uint32_t> m_tv_texture_buffer;
     //SDL_Texture *m_tv_texture=nullptr;
 
     float m_blend_amt=0.f;
@@ -334,8 +334,7 @@ private:
     const CommandContext m_cc{this,&ms_command_table};
 
     bool HardReset(const BeebConfig &config);
-    bool InitInternal(SDL_PixelFormat *tv_texture_pixel_format,
-                      const BeebLoadedConfig &config);
+    bool InitInternal(const BeebLoadedConfig &config);
     void DoImGui(uint64_t ticks,
                  int output_width,
                  int output_height,
@@ -366,7 +365,7 @@ private:
     void ResetDockWindows();
     void ClearConsole();
     void PrintSeparator();
-    static size_t ConsumeTVTexture(OutputDataBuffer<VideoDataUnit> *video_output,TVOutput *tv,bool inhibit_update);
+    //static size_t ConsumeTVTexture(OutputDataBuffer<VideoDataUnit> *video_output,TVOutput *tv,bool inhibit_update);
     bool InhibitUpdateTVTexture() const;
     void BeginUpdateTVTexture(bool threaded,void *dest_pixels,int dest_pitch);
     void EndUpdateTVTexture(bool threaded,VBlankRecord *vblank_record,void *dest_pixels,int dest_pitch);

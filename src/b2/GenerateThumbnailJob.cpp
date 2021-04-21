@@ -48,14 +48,16 @@ void GenerateThumbnailJob::ThreadExecute() {
             beeb->Update(&vunits[0],&sunit);
             beeb->Update(&vunits[1],&sunit);
 
-            m_tv_output.Update(vunits,2);
+            m_tv_output.Update(&vunits[0]);
+            m_tv_output.Update(&vunits[1]);
         }
 
         while(!m_tv_output.IsInVerticalBlank()) {
             beeb->Update(&vunits[0],&sunit);
             beeb->Update(&vunits[1],&sunit);
 
-            m_tv_output.Update(vunits,2);
+            m_tv_output.Update(&vunits[0]);
+            m_tv_output.Update(&vunits[1]);
         }
     }
 

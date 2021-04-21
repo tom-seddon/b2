@@ -259,12 +259,13 @@ void WriteVideoJob::ThreadExecute() {
 
     event_lists.push_back(std::move(m_event_list));
 
-    beeb_thread=std::make_shared<BeebThread>(m_msg.GetMessageList(),
-                                             0,
-                                             afmt.freq,
-                                             NUM_SAMPLES,
-                                             BeebLoadedConfig(),
-                                             std::move(event_lists));
+    ASSERT(false);//bleargh... this whole business needs redoing
+//    beeb_thread=std::make_shared<BeebThread>(m_msg.GetMessageList(),
+//                                             0,
+//                                             afmt.freq,
+//                                             NUM_SAMPLES,
+//                                             BeebLoadedConfig(),
+//                                             std::move(event_lists));
 
     if(!beeb_thread->Start()) {
         this->Error("couldn't start BBC thread");
@@ -278,7 +279,7 @@ void WriteVideoJob::ThreadExecute() {
     {
         bool replaying=true;
         bool was_vblank=tv_output.IsInVerticalBlank();
-        OutputDataBuffer<VideoDataUnit> *video_output=beeb_thread->GetVideoOutput();
+        OutputDataBuffer<VideoDataUnit> *video_output=nullptr;//beeb_thread->GetVideoOutput();
 
         beeb_thread->Send(std::make_shared<BeebThread::StartReplayMessage>(start_state));
         //beeb_thread->Send(std::make_shared<BeebThread::PauseMessage>(false));
@@ -344,7 +345,7 @@ void WriteVideoJob::ThreadExecute() {
                     ASSERT((n&1)==0);
 
                     for(size_t j=0;j<n;++j) {
-                        tv_output.Update(v++,1);
+                        tv_output.Update(v++);
 
                         bool is_vblank=tv_output.IsInVerticalBlank();
                         if(is_vblank&&!was_vblank) {

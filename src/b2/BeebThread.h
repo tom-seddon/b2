@@ -838,7 +838,10 @@ public:
                         int sound_freq,
                         size_t sound_buffer_size_samples,
                         BeebLoadedConfig default_loaded_config,
-                        std::vector<TimelineEventList> initial_timeline_event_lists);
+                        std::vector<TimelineEventList> initial_timeline_event_lists,
+                        uint32_t tv_texture_r_shift,
+                        uint32_t tv_texture_g_shift,
+                        uint32_t tv_texture_b_shift);
     ~BeebThread();
 
     // Start/stop the thread.
@@ -857,7 +860,7 @@ public:
     // it to the TVOutput. The (VideoWriter has to be able to spot the
     // vblank immediately, so it knows to write a new frame, so the
     // BeebThread can't do this itself.)
-    OutputDataBuffer<VideoDataUnit> *GetVideoOutput();
+    //OutputDataBuffer<VideoDataUnit> *GetVideoOutput();
 
     // Crap naming, because windows.h does #define SendMessage.
     void Send(std::shared_ptr<Message> message);
@@ -968,6 +971,10 @@ public:
                                                                                size_t end_index);
 
     bool IsDriveWriteProtected(int drive) const;
+    
+    TVOutputSettings GetTVOutputSettings() const;
+    void SetTVOutputSettings(const TVOutputSettings &settings);
+    void CopyTVTexturePixels(std::vector<uint32_t> *pixels);
 protected:
 private:
     struct AudioThreadData;
@@ -995,7 +1002,7 @@ private:
 
     // Safe provided they are accessed through their functions.
     MessageQueue<SentMessage> m_mq;
-    OutputDataBuffer<VideoDataUnit> m_video_output;
+    //OutputDataBuffer<VideoDataUnit> m_video_output;
     OutputDataBuffer<SoundDataUnit> m_sound_output;
     KeyStates m_effective_key_states;//includes fake shift
     KeyStates m_real_key_states;//corresponds to PC keys pressed
@@ -1055,6 +1062,10 @@ private:
 
     //
     std::shared_ptr<MessageList> m_message_list;
+
+    //
+    TVOutput m_tv;
+    TVOutputSettings m_tv_output_settings={};
 
 #if BBCMICRO_TRACE
     static bool ThreadHandleTraceInstructionConditions(const BBCMicro *beeb,const M6502 *cpu,void *context);

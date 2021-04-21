@@ -1638,11 +1638,14 @@ BeebThread::BeebThread(std::shared_ptr<MessageList> message_list,
                        int sound_freq,
                        size_t sound_buffer_size_samples,
                        BeebLoadedConfig default_loaded_config,
-                       std::vector<TimelineEventList> initial_timeline_event_lists) :
+                       std::vector<TimelineEventList> initial_timeline_event_lists,
+                       uint32_t tv_texture_r_shift,
+                       uint32_t tv_texture_g_shift,
+                       uint32_t tv_texture_b_shift):
 m_uid(g_next_uid++),
 m_default_loaded_config(std::move(default_loaded_config)),
 m_initial_timeline_event_lists(std::move(initial_timeline_event_lists)),
-m_video_output(NUM_VIDEO_UNITS),
+//m_video_output(NUM_VIDEO_UNITS),
 m_sound_output(NUM_AUDIO_UNITS),
 m_message_list(std::move(message_list))
 {
@@ -1656,6 +1659,8 @@ m_message_list(std::move(message_list))
 
     MUTEX_SET_NAME(m_mutex, "BeebThread");
     m_mq.SetName("BeebThread MQ");
+    
+    m_tv.Init(tv_texture_r_shift,tv_texture_g_shift,tv_texture_b_shift);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -1731,9 +1736,9 @@ uint64_t BeebThread::GetEmulated2MHzCycles() const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-OutputDataBuffer<VideoDataUnit> *BeebThread::GetVideoOutput() {
-    return &m_video_output;
-}
+//OutputDataBuffer<VideoDataUnit> *BeebThread::GetVideoOutput() {
+//    return &m_video_output;
+//}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -2165,6 +2170,31 @@ bool BeebThread::IsDriveWriteProtected(int drive) const {
     ASSERT(drive>=0&&drive<NUM_DRIVES);
 
     return m_is_drive_write_protected[drive].load(std::memory_order_acquire);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+TVOutputSettings BeebThread::GetTVOutputSettings() const {
+    std::lock_guard<Mutex> lock(m_mutex);
+    
+    return m_tv_output_settings;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BeebThread::SetTVOutputSettings(const TVOutputSettings &settings) {
+    std::lock_guard<Mutex> lock(m_mutex);
+    
+    m_tv_output_settings=settings;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BeebThread::CopyTVTexturePixels(std::vector<uint32_t> *pixels) {
+    m_tv.CopyTexturePixels(pixels);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -2914,25 +2944,25 @@ void BeebThread::ThreadMain(void) {
                 num_2MHz_cycles=RUN_2MHz_CYCLES;
             }
 
-            // One day I'll clear up the units mismatch...
-            VideoDataUnit *va,*vb;
-            size_t num_va,num_vb;
-            size_t num_video_units=(size_t)num_2MHz_cycles;
-            if(!m_video_output.GetProducerBuffers(&va,&num_va,&vb,&num_vb)) {
-                handle_messages_reason=0;
-                goto handle_messages;
-            }
+//            // One day I'll clear up the units mismatch...
+//            VideoDataUnit *va,*vb;
+//            size_t num_va,num_vb;
+//            size_t num_video_units=(size_t)num_2MHz_cycles;
+//            if(!m_video_output.GetProducerBuffers(&va,&num_va,&vb,&num_vb)) {
+//                handle_messages_reason=0;
+//                goto handle_messages;
+//            }
+//
+//            if(num_va+num_vb>num_video_units) {
+//                if(num_va>num_video_units) {
+//                    num_va=num_video_units;
+//                    num_vb=0;
+//                } else {
+//                    num_vb=num_video_units-num_va;
+//                }
+//            }
 
-            if(num_va+num_vb>num_video_units) {
-                if(num_va>num_video_units) {
-                    num_va=num_video_units;
-                    num_vb=0;
-                } else {
-                    num_vb=num_video_units-num_va;
-                }
-            }
-
-            size_t num_sound_units=(size_t)((num_va+num_vb+(1<<SOUND_CLOCK_SHIFT)-1)>>SOUND_CLOCK_SHIFT);
+            size_t num_sound_units=(size_t)((num_2MHz_cycles+(1<<SOUND_CLOCK_SHIFT)-1)>>SOUND_CLOCK_SHIFT);
 
             SoundDataUnit *sa,*sb;
             size_t num_sa,num_sb;
@@ -2951,82 +2981,125 @@ void BeebThread::ThreadMain(void) {
             total_num_audio_units_produced+=num_sound_units;
 
             {
-                VideoDataUnit *vunit;
+                //VideoDataUnit *vunit;
                 size_t i;
-                std::unique_lock<Mutex> lock(m_mutex,std::defer_lock);
-
-                // A.
-                {
-                    vunit=va;
-
-                    for(i=0;i<num_va;++i) {
-                        if(!lock.owns_lock()) {
-                            lock.lock();
-                        }
-
-#if BBCMICRO_DEBUGGER
-                        if(ts.beeb->DebugIsHalted()) {
-                            break;
-                        }
-#endif
-
-                        if(ts.beeb->Update(vunit++,sunit)) {
-                            lock.unlock();
-
-                            ++sunit;
-
-                            if(sunit==sa+num_sa) {
-                                sunit=sb;
-                            } else if(sunit==sb+num_sb) {
-                                sunit=nullptr;
-                            }
-
-                            m_sound_output.Produce(1);
-                        }
+                std::unique_lock<Mutex> lock(m_mutex);//,std::defer_lock);
+                VideoDataUnit vunit;
+                
+                // Sound part A
+                for(i=0;i<num_sa;++i) {
+                    if(ts.beeb->DebugIsHalted()) {
+                        break;
                     }
-
-                    m_video_output.Produce(i);
-                }
-
-                if(!lock.owns_lock()) {
-                    lock.lock();
-                }
-
-                // B.
-#if BBCMICRO_DEBUGGER//////////////////////////<--note
-                if(!ts.beeb->DebugIsHalted())//<--note
-#endif/////////////////////////////////////////<--note
-                {//////////////////////////////<--note
-                    vunit=vb;
-
-                    for(i=0;i<num_vb;++i) {
-                        if(!lock.owns_lock()) {
-                            lock.lock();
-                        }
-
-#if BBCMICRO_DEBUGGER
-                        if(ts.beeb->DebugIsHalted()) {
-                            break;
-                        }
-#endif
-
-                        if(ts.beeb->Update(vunit++,sunit)) {
+                    
+                    if(ts.beeb->Update(&vunit,sunit)) {
+                        if(lock.owns_lock()) {
                             lock.unlock();
-
-                            ++sunit;
-
-                            if(sunit==sa+num_sa) {
-                                sunit=sb;
-                            } else if(sunit==sb+num_sb) {
-                                sunit=nullptr;
-                            }
-
-                            m_sound_output.Produce(1);
                         }
+                        
+                        ++sunit;
+                        
+                        m_sound_output.Produce(1);
+                        
+                        lock.lock();
                     }
-
-                    m_video_output.Produce(i);
+                    
+                    m_tv.Update(&vunit);
                 }
+
+                // Sound part B
+                for(i=0;i<num_sb;++i) {
+                    if(ts.beeb->DebugIsHalted()) {
+                        break;
+                    }
+                    
+                    if(ts.beeb->Update(&vunit,sunit)) {
+                        if(lock.owns_lock()) {
+                            lock.unlock();
+                        }
+                        
+                        ++sunit;
+                        
+                        m_sound_output.Produce(1);
+                        
+                        lock.lock();
+                    }
+                    
+                    m_tv.Update(&vunit);
+                }
+
+//                // A.
+//                {
+//                    vunit=va;
+//
+//                    for(i=0;i<num_va;++i) {
+//                        if(!lock.owns_lock()) {
+//                            lock.lock();
+//                        }
+//
+//#if BBCMICRO_DEBUGGER
+//                        if(ts.beeb->DebugIsHalted()) {
+//                            break;
+//                        }
+//#endif
+//
+//                        if(ts.beeb->Update(vunit++,sunit)) {
+//                            lock.unlock();
+//
+//                            ++sunit;
+//
+//                            if(sunit==sa+num_sa) {
+//                                sunit=sb;
+//                            } else if(sunit==sb+num_sb) {
+//                                sunit=nullptr;
+//                            }
+//
+//                            m_sound_output.Produce(1);
+//                        }
+//                    }
+//
+//                    m_video_output.Produce(i);
+//                }
+//
+//                if(!lock.owns_lock()) {
+//                    lock.lock();
+//                }
+
+//                // B.
+//#if BBCMICRO_DEBUGGER//////////////////////////<--note
+//                if(!ts.beeb->DebugIsHalted())//<--note
+//#endif/////////////////////////////////////////<--note
+//                {//////////////////////////////<--note
+//                    vunit=vb;
+//
+//                    for(i=0;i<num_vb;++i) {
+//                        if(!lock.owns_lock()) {
+//                            lock.lock();
+//                        }
+//
+//#if BBCMICRO_DEBUGGER
+//                        if(ts.beeb->DebugIsHalted()) {
+//                            break;
+//                        }
+//#endif
+//
+//                        if(ts.beeb->Update(vunit++,sunit)) {
+//                            lock.unlock();
+//
+//                            ++sunit;
+//
+//                            if(sunit==sa+num_sa) {
+//                                sunit=sb;
+//                            } else if(sunit==sb+num_sb) {
+//                                sunit=nullptr;
+//                            }
+//
+//                            m_sound_output.Produce(1);
+//                        }
+//                    }
+//
+//                    m_video_output.Produce(i);
+//                }
             }
 
             // It's a bit dumb having multiple copies.

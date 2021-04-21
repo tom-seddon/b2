@@ -389,7 +389,10 @@ std::vector<uint32_t> TestBBCMicro::RunForNFrames(size_t num_frames) {
         }
 
         ASSERT(a+n<=m_video_data_units.size());
-        tv.Update(&m_video_data_units[a],n);
+        
+        for(size_t i=0;i<n;++i) {
+            tv.Update(&m_video_data_units[a+i]);
+        }
 
         uint64_t new_version;
         pixels=tv.GetTexturePixels(&new_version);

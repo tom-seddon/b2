@@ -251,12 +251,12 @@ void BeebWindow::OptionsUI::DoImGui() {
             }
         }
         
-        TVOutputSettings settings=m_beeb_window->m_tv.GetSettings();
+        TVOutputSettings settings=beeb_thread->GetTVOutputSettings();
 
         ImGui::Checkbox("Show TV beam position",&settings.show_beam_position);
         if(ImGui::Checkbox("Test pattern",&m_beeb_window->m_test_pattern)) {
             if(m_beeb_window->m_test_pattern) {
-                m_beeb_window->m_tv.FillWithTestPattern();
+                //m_beeb_window->m_tv.FillWithTestPattern();
             }
         }
 
@@ -268,7 +268,7 @@ void BeebWindow::OptionsUI::DoImGui() {
         ImGui::SameLine();
         ImGui::Checkbox("6845 DISPEN",&settings.show_6845_dispen_markers);
         
-        m_beeb_window->m_tv.SetSettings(settings);
+        beeb_thread->SetTVOutputSettings(settings);
     }
 #endif
 }
@@ -1532,68 +1532,68 @@ void BeebWindow::DoDebugMenu() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-size_t BeebWindow::ConsumeTVTexture(OutputDataBuffer<VideoDataUnit> *video_output,TVOutput *tv,bool inhibit_update) {
-    //OutputDataBuffer<VideoDataUnit> *video_output=m_beeb_thread->GetVideoOutput();
-
-    //uint64_t num_units=(uint64_t)(GetSecondsFromTicks(vblank_record->num_ticks)*1e6)*2;
-    //uint64_t num_units_left=num_units;
-
-    const VideoDataUnit *a,*b;
-    size_t na,nb;
-
-    size_t num_units_consumed=0;
-
-    bool update=true;
-#if BBCMICRO_DEBUGGER
-    if(inhibit_update) {
-        update=false;
-    }
-#endif
-
-    if(video_output->GetConsumerBuffers(&a,&na,&b,&nb)) {
-        if(!update) {
-            // Discard...
-            video_output->Consume(na+nb);
-        } else {
-            size_t num_left;
-            const size_t MAX_UPDATE_SIZE=200;
-
-            // A.
-            num_left=na;
-            while(num_left>0) {
-                size_t n=num_left;
-                if(n>MAX_UPDATE_SIZE) {
-                    n=MAX_UPDATE_SIZE;
-                }
-
-                tv->Update(a,n);
-
-                a+=n;
-                video_output->Consume(n);
-                num_left-=n;
-            }
-
-            // B.
-            num_left=nb;
-            while(num_left>0) {
-                size_t n=num_left;
-                if(n>MAX_UPDATE_SIZE) {
-                    n=MAX_UPDATE_SIZE;
-                }
-
-                tv->Update(b,n);
-
-                b+=n;
-                video_output->Consume(n);
-                num_left-=n;
-            }
-        }
-
-        num_units_consumed+=na+nb;
-    }
-
-    return num_units_consumed;
-}
+//size_t BeebWindow::ConsumeTVTexture(OutputDataBuffer<VideoDataUnit> *video_output,TVOutput *tv,bool inhibit_update) {
+//    //OutputDataBuffer<VideoDataUnit> *video_output=m_beeb_thread->GetVideoOutput();
+//
+//    //uint64_t num_units=(uint64_t)(GetSecondsFromTicks(vblank_record->num_ticks)*1e6)*2;
+//    //uint64_t num_units_left=num_units;
+//
+//    const VideoDataUnit *a,*b;
+//    size_t na,nb;
+//
+//    size_t num_units_consumed=0;
+//
+//    bool update=true;
+//#if BBCMICRO_DEBUGGER
+//    if(inhibit_update) {
+//        update=false;
+//    }
+//#endif
+//
+//    if(video_output->GetConsumerBuffers(&a,&na,&b,&nb)) {
+//        if(!update) {
+//            // Discard...
+//            video_output->Consume(na+nb);
+//        } else {
+//            size_t num_left;
+//            const size_t MAX_UPDATE_SIZE=200;
+//
+//            // A.
+//            num_left=na;
+//            while(num_left>0) {
+//                size_t n=num_left;
+//                if(n>MAX_UPDATE_SIZE) {
+//                    n=MAX_UPDATE_SIZE;
+//                }
+//
+//                tv->Update(a,n);
+//
+//                a+=n;
+//                video_output->Consume(n);
+//                num_left-=n;
+//            }
+//
+//            // B.
+//            num_left=nb;
+//            while(num_left>0) {
+//                size_t n=num_left;
+//                if(n>MAX_UPDATE_SIZE) {
+//                    n=MAX_UPDATE_SIZE;
+//                }
+//
+//                tv->Update(b,n);
+//
+//                b+=n;
+//                video_output->Consume(n);
+//                num_left-=n;
+//            }
+//        }
+//
+//        num_units_consumed+=na+nb;
+//    }
+//
+//    return num_units_consumed;
+//}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -1711,25 +1711,25 @@ bool BeebWindow::DoBeebDisplayUI(ImTextureID tv_texture_id) {
 
             m_got_mouse_pixel_unit=false;
 
-            if(ImGui::IsItemHovered()) {
-                ImVec2 mouse_pos=ImGui::GetMousePos();
-                mouse_pos-=screen_pos;
-
-                double tx=mouse_pos.x/size.x;
-                double ty=mouse_pos.y/size.y;
-
-                if(tx>=0.&&tx<1.&&ty>=0.&&ty<1.) {
-                    int x=(int)(tx*TV_TEXTURE_WIDTH);
-                    int y=(int)(ty*TV_TEXTURE_HEIGHT);
-
-                    ASSERT(x>=0&&x<TV_TEXTURE_WIDTH);
-                    ASSERT(y>=0&&y<TV_TEXTURE_HEIGHT);
-
-                    const VideoDataUnit *units=m_tv.GetTextureUnits();
-                    m_mouse_pixel_unit=units[y*TV_TEXTURE_WIDTH+x];
-                    m_got_mouse_pixel_unit=true;
-                }
-            }
+//            if(ImGui::IsItemHovered()) {
+//                ImVec2 mouse_pos=ImGui::GetMousePos();
+//                mouse_pos-=screen_pos;
+//
+//                double tx=mouse_pos.x/size.x;
+//                double ty=mouse_pos.y/size.y;
+//
+//                if(tx>=0.&&tx<1.&&ty>=0.&&ty<1.) {
+//                    int x=(int)(tx*TV_TEXTURE_WIDTH);
+//                    int y=(int)(ty*TV_TEXTURE_HEIGHT);
+//
+//                    ASSERT(x>=0&&x<TV_TEXTURE_WIDTH);
+//                    ASSERT(y>=0&&y<TV_TEXTURE_HEIGHT);
+//
+//                    const VideoDataUnit *units=m_tv.GetTextureUnits();
+//                    m_mouse_pixel_unit=units[y*TV_TEXTURE_WIDTH+x];
+//                    m_got_mouse_pixel_unit=true;
+//                }
+//            }
 #else
             (void)screen_pos;
 #endif
@@ -1798,19 +1798,20 @@ void BeebWindow::HandleVBlank(uint64_t ticks,
             m_imgui_stuff->RenderImGui();
         }
 
-        m_tv.SetInterlace(m_settings.display_interlace);
+        //m_tv.SetInterlace(m_settings.display_interlace);
 
         bool inhibit_update=this->InhibitUpdateTVTexture();
-        size_t num_units_consumed=this->ConsumeTVTexture(m_beeb_thread->GetVideoOutput(),
-                                                         &m_tv,
-                                                         inhibit_update);
+        
+//        size_t num_units_consumed=this->ConsumeTVTexture(m_beeb_thread->GetVideoOutput(),
+//                                                         &m_tv,
+//                                                         inhibit_update);
 
-        vblank_record->num_video_units=num_units_consumed;
+        //vblank_record->num_video_units=num_units_consumed;
 
         {
             Timer tmr(&g_HandleVBlank_UpdateTVTexture_Copy_timer_def);
-
-            m_tv.CopyTexturePixels(m_tv_texture_buffer.data(),TV_TEXTURE_WIDTH*4);
+            
+            m_beeb_thread->CopyTVTexturePixels(&m_tv_texture_buffer);
 
             beeb_voutput->tv_texture_data=m_tv_texture_buffer.data();
         }
@@ -1855,7 +1856,10 @@ bool BeebWindow::Init(BeebWindowInitArguments init_arguments,
                                                m_init_arguments.sound_spec.freq,
                                                m_init_arguments.sound_spec.samples,
                                                config,
-                                               std::vector<BeebThread::TimelineEventList>());
+                                               std::vector<BeebThread::TimelineEventList>(),
+                                               tv_texture_pixel_format->Rshift,
+                                               tv_texture_pixel_format->Gshift,
+                                               tv_texture_pixel_format->Bshift);
 
     m_settings=settings;
 
@@ -1867,7 +1871,7 @@ bool BeebWindow::Init(BeebWindowInitArguments init_arguments,
 
     m_imgui_stuff=imgui_stuff.release();
 
-    bool good=this->InitInternal(tv_texture_pixel_format,config);
+    bool good=this->InitInternal(config);
     if(!good) {
         return false;
     }
@@ -1957,9 +1961,7 @@ void BeebWindow::UpdateSettings() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool BeebWindow::InitInternal(SDL_PixelFormat *tv_texture_pixel_format,
-                              const BeebLoadedConfig &config)
-{
+bool BeebWindow::InitInternal(const BeebLoadedConfig &config) {
     //m_msg.i.f("info init message\n");
     //m_msg.w.f("warning init message\n");
     //m_msg.e.f("error init message\n");
@@ -1979,11 +1981,7 @@ bool BeebWindow::InitInternal(SDL_PixelFormat *tv_texture_pixel_format,
     ++g_num_BeebWindow_inits;
 #endif
 
-    m_tv.Init(tv_texture_pixel_format->Rshift,
-              tv_texture_pixel_format->Gshift,
-              tv_texture_pixel_format->Bshift);
-
-    m_tv_texture_buffer.resize(TV_TEXTURE_WIDTH*TV_TEXTURE_HEIGHT*4);
+    m_tv_texture_buffer.resize(TV_TEXTURE_WIDTH*TV_TEXTURE_HEIGHT);
 
     if(!m_beeb_thread->Start()) {
         m_msg.e.f("Failed to start BBC\n");//: %s",BeebThread_GetError(m_beeb_thread));

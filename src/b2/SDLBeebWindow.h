@@ -47,7 +47,7 @@ struct BeebThreadVaryingOutput {
 
     // this just points straight into the buffer. There's no locking; the SDL
     // thread just gets whatever it happens to be able to see at the time,
-    uint8_t *tv_texture_data=nullptr;
+    void *tv_texture_data=nullptr;
 };
 
 // The placement data isn't used on OS X, but it's included anyway just to save

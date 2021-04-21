@@ -45,11 +45,15 @@ class TVOutput {
 public:
     TVOutput();
     ~TVOutput();
+    
+    TVOutput(const TVOutput &)=delete;
+    TVOutput &operator=(const TVOutput &)=delete;
+    TVOutput(TVOutput &&)=delete;
+    TVOutput &operator=(TVOutput &&)=delete;
 
     void Init(uint32_t r_shift,uint32_t g_shift,uint32_t b_shift);
 
-    // returns number of us consumed.
-    void Update(const VideoDataUnit *units,size_t num_units);
+    void Update(const VideoDataUnit *unit);
     
     const TVOutputSettings &GetSettings() const;
     void SetSettings(const TVOutputSettings &settings);
@@ -62,7 +66,9 @@ public:
     // each vblank. (Between vblanks, the buffer contains a partially scanned-out frame.)
     const uint32_t *GetTexturePixels(uint64_t *texture_data_version) const;
 
-    void CopyTexturePixels(void *dest_pixels,size_t dest_pitch) const;
+    // Safe to call on some thread other than the one that owns the TVOutput.
+    // The consumption will race the production, unlocked. 
+    void CopyTexturePixels(std::vector<uint32_t> *pixels) const;
 
 #if VIDEO_TRACK_METADATA
     const VideoDataUnit *GetTextureUnits() const;
@@ -99,11 +105,11 @@ private:
     uint32_t m_g_shift=0;
     uint32_t m_b_shift=0;
 
-    // TV - output texture and its properties
     std::vector<uint32_t> m_texture_pixels;
 #if VIDEO_TRACK_METADATA
     std::vector<VideoDataUnit> m_texture_units;
 #endif
+//    std::vector<uint32_t> m_texture_composited;
     uint64_t m_texture_data_version=1;
 
 #if TRACK_VIDEO_LATENCY
@@ -130,7 +136,7 @@ private:
     uint32_t GetTexelValue(uint8_t r,uint8_t g,uint8_t b) const;
     void InitPalette();
 #if VIDEO_TRACK_METADATA
-    void AddMetadataMarkers(void *dest_pixels,size_t dest_pitch_bytes,bool add,uint8_t metadata_flag,uint32_t xor_value) const;
+    void AddMetadataMarkers(void *dest_pixels,bool add,uint8_t metadata_flag,uint32_t xor_value) const;
 #endif
 };
 
