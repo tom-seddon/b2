@@ -75,13 +75,17 @@ static void DumpStackTrace(const char *function)
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void LogAssertFailed(const char *file,int line,const char *function,const char *expr)
-{
+void LogAssertFailed(const char *file,int line,const char *function,const char *expr,int debugger) {
     fprintf(stderr,"%s:%d: assertion failed: %s\n",file,line,expr);
     
-    DumpStackTrace(function);
+    // Don't bother printing the stack trace if the debugger is attached.
+    // It takes time, and you can see it in the debugger anyway.
+    if(!debugger) {
+        DumpStackTrace(function);
     
-    fprintf(stderr,"%s:%d: assertion failed: %s\n",file,line,expr);
+        fprintf(stderr,"%s:%d: assertion failed: %s\n",file,line,expr);
+    }
+    
     fflush(stderr);
 }
 

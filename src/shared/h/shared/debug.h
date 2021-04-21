@@ -14,7 +14,7 @@
 
 #if ASSERT_ENABLED
 
-void LogAssertFailed(const char *file,int line,const char *function,const char *expr);
+void LogAssertFailed(const char *file,int line,const char *function,const char *expr,int debugger);
 void PRINTF_LIKE(1,2) LogAssertElaboration(const char *fmt,...);
 void HandleAssertFailed(void);
 
@@ -24,8 +24,9 @@ void HandleAssertFailed(void);
 #define ASSERT(EXPR)                                                    \
     BEGIN_MACRO {                                                       \
         if(!(EXPR)) {                                                   \
-            LogAssertFailed(__FILE__,__LINE__,__func__,#EXPR);          \
-            if(IsDebuggerAttached()) {                                  \
+            int debugger=IsDebuggerAttached();                          \
+            LogAssertFailed(__FILE__,__LINE__,__func__,#EXPR,debugger); \
+            if(debugger) {                                              \
                 BREAK();                                                \
             }                                                           \
             HandleAssertFailed();                                       \
@@ -35,9 +36,10 @@ void HandleAssertFailed(void);
 #define ASSERTF(EXPR,...)                                               \
     BEGIN_MACRO {                                                       \
         if(!(EXPR)) {                                                   \
-            LogAssertFailed(__FILE__,__LINE__,__func__,#EXPR);          \
+            int debugger=IsDebuggerAttached();                          \
+            LogAssertFailed(__FILE__,__LINE__,__func__,#EXPR,debugger); \
             LogAssertElaboration(__VA_ARGS__);                          \
-            if(IsDebuggerAttached()) {                                  \
+            if(debugger) {                                              \
                 BREAK();                                                \
             }                                                           \
             HandleAssertFailed();                                       \
