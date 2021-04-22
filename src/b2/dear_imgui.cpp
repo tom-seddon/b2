@@ -337,18 +337,18 @@ void ImGuiStuff::RenderImGui() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-std::shared_ptr<std::vector<ImDrawListUniquePtr>> ImGuiStuff::CloneDrawLists() {
+std::vector<ImDrawListUniquePtr> ImGuiStuff::CloneDrawLists() {
     ImGuiContextSetter setter(this);
 
-    auto clone=std::make_shared<std::vector<ImDrawListUniquePtr>>();
+    std::vector<ImDrawListUniquePtr> clone;
 
     if(ImDrawData *draw_data=ImGui::GetDrawData()) {
         if(draw_data->Valid&&draw_data->CmdListsCount>0) {
-            clone->reserve((size_t)draw_data->CmdListsCount);
+            clone.reserve((size_t)draw_data->CmdListsCount);
 
             for(size_t i=0;i<(size_t)draw_data->CmdListsCount;++i) {
                 ImDrawList *draw_list=draw_data->CmdLists[i]->CloneOutput();
-                clone->emplace_back(draw_list);
+                clone.emplace_back(draw_list);
                 draw_list=nullptr;
             }
         }
@@ -361,21 +361,17 @@ std::shared_ptr<std::vector<ImDrawListUniquePtr>> ImGuiStuff::CloneDrawLists() {
 //////////////////////////////////////////////////////////////////////////
 
 void ImGuiStuff::RenderSDL(SDL_Renderer *renderer,
-                           const std::shared_ptr<std::vector<ImDrawListUniquePtr>> &draw_lists,
+                           const std::vector<ImDrawListUniquePtr> &draw_lists,
                            std::vector<StoredDrawList> *stored_draw_lists,
                            SDL_Texture **textures,
                            size_t num_textures)
 {
-    if(!draw_lists) {
-        return;
-    }
-    
-    if(draw_lists->empty()) {
-        return;
+    if(stored_draw_lists) {
+        stored_draw_lists->resize(draw_lists.size());
     }
 
-    if(stored_draw_lists) {
-        stored_draw_lists->resize(draw_lists->size());
+    if(draw_lists.empty()) {
+        return;
     }
 
     SDL_RenderFlush(renderer);
@@ -403,8 +399,8 @@ void ImGuiStuff::RenderSDL(SDL_Renderer *renderer,
     glEnableClientState(GL_COLOR_ARRAY);
     glEnableClientState(GL_TEXTURE_COORD_ARRAY);
 
-    for(size_t i=0;i<draw_lists->size();++i) {
-        ImDrawList *draw_list=draw_lists->at(i).get();
+    for(size_t i=0;i<draw_lists.size();++i) {
+        ImDrawList *draw_list=draw_lists[i].get();
 
         int idx_buffer_pos=0;
 

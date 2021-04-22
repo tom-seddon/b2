@@ -90,6 +90,23 @@ public:
             m_cv.wait(lock);
         }
     }
+    
+    // May return early due to spurious wakeup.
+    void ConsumerWaitForMessagesWithTimeout(std::vector<T> *messages,uint32_t timeout_ms) {
+        std::unique_lock<Mutex> lock(m_mutex);
+        
+        if(this->PollLocked(messages)) {
+            return;
+        }
+        
+        auto timeout=std::chrono::milliseconds(timeout_ms);
+        std::cv_status wait_for_result=m_cv.wait_for(lock,timeout);
+        if(wait_for_result==std::cv_status::timeout) {
+            return;
+        }
+        
+        this->PollLocked(messages);
+    }
 
     bool ConsumerPollForMessages(std::vector<T> *messages) {
         std::lock_guard<Mutex> lock(m_mutex);

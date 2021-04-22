@@ -2049,12 +2049,6 @@ bool BeebWindow::InitInternal(const BeebLoadedConfig &config) {
 
     this->SetCurrentKeymap(keymap);
 
-    if(SDL_GL_GetCurrentContext()) {
-        if(SDL_GL_SetSwapInterval(0)!=0) {
-            m_msg.i.f("failed to set GL swap interval to 0: %s\n",SDL_GetError());
-        }
-    }
-
     if(!m_settings.dock_config.empty()) {
         if(!m_imgui_stuff->LoadDockContext(m_settings.dock_config)) {
             m_msg.w.f("failed to load dock config\n");

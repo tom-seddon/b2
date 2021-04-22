@@ -118,11 +118,11 @@ public:
     // does ImGui::Render.
     void RenderImGui();
 
-    std::shared_ptr<std::vector<ImDrawListUniquePtr>> CloneDrawLists();
+    std::vector<ImDrawListUniquePtr> CloneDrawLists();
 
     // does the SDL rendering stuff.
     static void RenderSDL(SDL_Renderer *renderer,
-                          const std::shared_ptr<std::vector<ImDrawListUniquePtr>> &draw_lists,
+                          const std::vector<ImDrawListUniquePtr> &draw_lists,
                           std::vector<StoredDrawList> *stored_draw_lists,
                           SDL_Texture **textures,
                           size_t num_textures);

@@ -20,8 +20,11 @@
 //}
 
 SDLBeebWindow::~SDLBeebWindow() {
-    delete m_beeb_window;
-    m_beeb_window=nullptr;
+//    delete m_beeb_window;
+//    m_beeb_window=nullptr;
+    
+    delete m_imgui_stuff;
+    m_imgui_stuff=nullptr;
 
     for(size_t i=0;i<sizeof m_sdl_cursors/sizeof m_sdl_cursors[0];++i) {
         SDL_FreeCursor(m_sdl_cursors[i]);
@@ -60,26 +63,26 @@ bool SDLBeebWindow::Init(const BeebWindowInitArguments &init_arguments,
     m_message_list=message_list;
     m_msg=Messages(m_message_list);
 
-    m_beeb_window=new BeebWindow();
+    //m_beeb_window=new BeebWindow();
 
     if(!this->InitInternal(std::move(window_placement_data))) {
         return false;
     }
 
-    auto imgui_stuff=std::make_unique<ImGuiStuff>();
-    if(!imgui_stuff->Init(m_renderer,&m_imgui_textures[ImGuiTexture_Font])) {
+    m_imgui_stuff=new ImGuiStuff();
+    if(!m_imgui_stuff->Init(m_renderer,&m_imgui_textures[ImGuiTexture_Font])) {
         m_msg.e.f("failed to initialize ImGui\n");
         return false;
     }
 
-    if(!m_beeb_window->Init(m_init_arguments,
-                            settings,
-                            m_message_list,
-                            std::move(imgui_stuff),
-                            m_pixel_format))
-    {
-        return false;
-    }
+//    if(!m_beeb_window->Init(m_init_arguments,
+//                            settings,
+//                            m_message_list,
+//                            std::move(imgui_stuff),
+//                            m_pixel_format))
+//    {
+//        return false;
+//    }
 
     *sdl_window_id=SDL_GetWindowID(m_window);
 
@@ -115,8 +118,6 @@ void SDLBeebWindow::HandleSDLMouseMotionEvent(const SDL_MouseMotionEvent &event)
 }
 
 void SDLBeebWindow::HandleVBlank(VBlankMonitor *vblank_monitor,void *display_data,uint64_t ticks) {
-//m_beeb_window->HandleVBlank(vblank_monitor,display_data,ticks,m_renderer);
-
     // There's an API for exactly this on Windows. But it's probably
     // better to have the same code on every platform. 99% of the time
     // (and possibly even more often than that...) this will get the
@@ -131,74 +132,172 @@ void SDLBeebWindow::HandleVBlank(VBlankMonitor *vblank_monitor,void *display_dat
     if(dd!=display_data) {
         return;
     }
-
+    
+    // Quick as possible, draw the last frame's stuff, so it'll be ready before the
+    // vertical blank is done.
     //
-    SDLThreadConstantOutput sdl_koutput;
-    {
-        sdl_koutput.font_texture_id=(ImTextureID)ImGuiTexture_Font;
-        sdl_koutput.tv_texture_id=(ImTextureID)ImGuiTexture_TV;
-    }
-
+    // The UI is one frame behind, which is annoying, but the Beeb TV texture will
+    // be up to date...
     //
-    SDLThreadVaryingOutput sdl_voutput;
-    {
-        SDL_Window *mouse_window=SDL_GetMouseFocus();
-        if(mouse_window==m_window) {
-            sdl_voutput.got_mouse_focus=true;
-        } else {
-            sdl_voutput.got_mouse_focus=false;
-        }
-
-        sdl_voutput.mouse_buttons=SDL_GetMouseState(&sdl_voutput.mouse_pos.x,
-                                                    &sdl_voutput.mouse_pos.y);
-
-        sdl_voutput.mouse_wheel_delta.x=m_mouse_wheel_delta_x;
-        sdl_voutput.mouse_wheel_delta.y=m_mouse_wheel_delta_y;
-        m_mouse_wheel_delta_x=0;
-        m_mouse_wheel_delta_y=0;
-
-        sdl_voutput.keymod=SDL_GetModState();
-
-        sdl_voutput.sdl_keyboard_events.swap(m_sdl_keyboard_events);
-
-        sdl_voutput.sdl_text_input.swap(m_sdl_text_input);
-
-        SDL_GetRendererOutputSize(m_renderer,
-                                  &sdl_voutput.renderer_output_width,
-                                  &sdl_voutput.renderer_output_height);
-    }
-
-    BeebThreadVaryingOutput beeb_voutput;
-
-    m_beeb_window->HandleVBlank(ticks,sdl_koutput,sdl_voutput,&beeb_voutput);
-
-    if(beeb_voutput.imgui_mouse_cursor>=0&&
-       beeb_voutput.imgui_mouse_cursor<ImGuiMouseCursor_COUNT&&
-       m_sdl_cursors[beeb_voutput.imgui_mouse_cursor])
-    {
-        SDL_SetCursor(m_sdl_cursors[beeb_voutput.imgui_mouse_cursor]);
-    } else {
-        SDL_SetCursor(nullptr);
-    }
-
-    SDL_UpdateTexture(m_imgui_textures[ImGuiTexture_TV],nullptr,beeb_voutput.tv_texture_data,TV_TEXTURE_WIDTH*4);
-
+    // Revisit this. Perhaps dear imgui will draw everything quickly enough? Update
+    // order could also be a toggle.
+    this->RenderLastImGuiFrame();
+    this->RunNextImGuiFrame(ticks);
+}
+ 
+void SDLBeebWindow::RenderLastImGuiFrame() {
+    m_tv.CopyTexturePixels(&m_tv_texture_pixels);
+    
+    SDL_UpdateTexture(m_imgui_textures[ImGuiTexture_TV],nullptr,m_tv_texture_pixels.data(),TV_TEXTURE_WIDTH*4);
+    
     SDL_RenderClear(m_renderer);
 
-    ImGuiStuff::RenderSDL(m_renderer,beeb_voutput.draw_lists,nullptr,m_imgui_textures,sizeof m_imgui_textures/sizeof m_imgui_textures[0]);
-
+    if(!m_last_imgui_draw_lists.empty()) {
+        ImGuiStuff::RenderSDL(m_renderer,
+                              m_last_imgui_draw_lists,
+                              nullptr,
+                              m_imgui_textures,
+                              sizeof m_imgui_textures/sizeof m_imgui_textures[0]);
+    }
+    
     SDL_RenderPresent(m_renderer);
 }
 
-void SDLBeebWindow::UpdateTitle() {
-    char title[100];
-    m_beeb_window->GetTitle(title,sizeof title);
+void SDLBeebWindow::RunNextImGuiFrame(uint64_t ticks) {
+    ImGuiContextSetter setter(m_imgui_stuff);
+    
+    ImGuiStyleVarPusher pusher(ImGuiStyleVar_WindowPadding,ImVec2(0.f,0.f));
+    
+    bool got_mouse_focus;
+    SDL_Window *mouse_window=SDL_GetMouseFocus();
+    if(mouse_window==m_window) {
+        got_mouse_focus=true;
+    } else {
+        got_mouse_focus=false;
+    }
+    
+    SDL_Point mouse_pos;
+    uint32_t mouse_buttons=SDL_GetMouseState(&mouse_pos.x,&mouse_pos.y);
+    
+    SDL_Point mouse_wheel_delta={m_mouse_wheel_delta_x,m_mouse_wheel_delta_y};
+    m_mouse_wheel_delta_x=0;
+    m_mouse_wheel_delta_y=0;
+    
+    SDL_Keymod keymod=SDL_GetModState();
+    
+    int renderer_output_width;
+    int renderer_output_height;
+    SDL_GetRendererOutputSize(m_renderer,
+                              &renderer_output_width,
+                              &renderer_output_height);
+    
+    for(const SDL_KeyboardEvent &event:m_sdl_keyboard_events) {
+        switch(event.type) {
+            case SDL_KEYDOWN:
+                if(event.repeat) {
+                    // Don't set again if it's just key repeat. If the flag is
+                    // still set from last time, that's fine; if it's been reset,
+                    // there'll be a reason, so don't set it again.
+                } else {
+                    m_imgui_stuff->SetKeyDown(event.keysym.scancode,true);
+                }
+                break;
+                
+            case SDL_KEYUP:
+                m_imgui_stuff->SetKeyDown(event.keysym.scancode,false);
+                break;
+        }
+    }
+    m_sdl_keyboard_events.clear();
+    
+    m_imgui_stuff->AddInputCharactersUTF8(m_sdl_text_input.c_str());
+    m_sdl_text_input.clear();
+    
+    std::string text_input=std::move(m_sdl_text_input);
+    
+    m_imgui_stuff->NewFrame(got_mouse_focus,
+                            mouse_pos,
+                            mouse_buttons,
+                            mouse_wheel_delta,
+                            keymod,
+                            renderer_output_width,
+                            renderer_output_height,
+                            (ImTextureID)ImGuiTexture_Font);
+    
+    ImGui::ShowDemoWindow();
+    
+    m_imgui_stuff->RenderImGui();
+    
+    m_last_imgui_draw_lists=m_imgui_stuff->CloneDrawLists();
+}
 
-    SDL_SetWindowTitle(m_window,title);
+//
+//    //
+//    SDLThreadConstantOutput sdl_koutput;
+//    {
+//        sdl_koutput.font_texture_id=(ImTextureID)ImGuiTexture_Font;
+//        sdl_koutput.tv_texture_id=(ImTextureID)ImGuiTexture_TV;
+//    }
+//
+//    //
+//    SDLThreadVaryingOutput sdl_voutput;
+//    {
+//        SDL_Window *mouse_window=SDL_GetMouseFocus();
+//        if(mouse_window==m_window) {
+//            sdl_voutput.got_mouse_focus=true;
+//        } else {
+//            sdl_voutput.got_mouse_focus=false;
+//        }
+//
+//        sdl_voutput.mouse_buttons=SDL_GetMouseState(&sdl_voutput.mouse_pos.x,
+//                                                    &sdl_voutput.mouse_pos.y);
+//
+//        sdl_voutput.mouse_wheel_delta.x=m_mouse_wheel_delta_x;
+//        sdl_voutput.mouse_wheel_delta.y=m_mouse_wheel_delta_y;
+//        m_mouse_wheel_delta_x=0;
+//        m_mouse_wheel_delta_y=0;
+//
+//        sdl_voutput.keymod=SDL_GetModState();
+//
+//        sdl_voutput.sdl_keyboard_events.swap(m_sdl_keyboard_events);
+//
+//        sdl_voutput.sdl_text_input.swap(m_sdl_text_input);
+//
+//        SDL_GetRendererOutputSize(m_renderer,
+//                                  &sdl_voutput.renderer_output_width,
+//                                  &sdl_voutput.renderer_output_height);
+//    }
+//
+//    BeebThreadVaryingOutput beeb_voutput;
+//
+//    m_beeb_window->HandleVBlank(ticks,sdl_koutput,sdl_voutput,&beeb_voutput);
+//
+//    if(beeb_voutput.imgui_mouse_cursor>=0&&
+//       beeb_voutput.imgui_mouse_cursor<ImGuiMouseCursor_COUNT&&
+//       m_sdl_cursors[beeb_voutput.imgui_mouse_cursor])
+//    {
+//        SDL_SetCursor(m_sdl_cursors[beeb_voutput.imgui_mouse_cursor]);
+//    } else {
+//        SDL_SetCursor(nullptr);
+//    }
+//
+//    SDL_UpdateTexture(m_imgui_textures[ImGuiTexture_TV],nullptr,beeb_voutput.tv_texture_data,TV_TEXTURE_WIDTH*4);
+//
+//    SDL_RenderClear(m_renderer);
+//
+//    ImGuiStuff::RenderSDL(m_renderer,beeb_voutput.draw_lists,nullptr,m_imgui_textures,sizeof m_imgui_textures/sizeof m_imgui_textures[0]);
+//
+//    SDL_RenderPresent(m_renderer);
+
+void SDLBeebWindow::UpdateTitle() {
+//    char title[100];
+//    m_beeb_window->GetTitle(title,sizeof title);
+//
+//    SDL_SetWindowTitle(m_window,title);
 }
 
 void SDLBeebWindow::ThreadFillAudioBuffer(SDL_AudioDeviceID audio_device_id,float *mix_buffer,size_t num_samples) {
-    m_beeb_window->ThreadFillAudioBuffer(audio_device_id,mix_buffer,num_samples);
+//    m_beeb_window->ThreadFillAudioBuffer(audio_device_id,mix_buffer,num_samples);
 }
 
 void SDLBeebWindow::UpdateWindowPlacement() {
@@ -292,6 +391,12 @@ bool SDLBeebWindow::InitInternal(std::vector<uint8_t> window_placement_data) {
     if(!m_renderer) {
         m_msg.e.f("SDL_CreateRenderer failed: %s\n",SDL_GetError());
         return false;
+    }
+
+    if(SDL_GL_GetCurrentContext()) {
+        if(SDL_GL_SetSwapInterval(0)!=0) {
+            m_msg.i.f("failed to set GL swap interval to 0: %s\n",SDL_GetError());
+        }
     }
 
     // The OpenGL driver supports SDL_PIXELFORMAT_ARGB8888.
@@ -390,6 +495,8 @@ bool SDLBeebWindow::InitInternal(std::vector<uint8_t> window_placement_data) {
                   height,
                   SDL_GetPixelFormatName(format));
     }
+    
+    m_tv_texture_pixels.resize(TV_TEXTURE_WIDTH*TV_TEXTURE_HEIGHT);
 
     return true;
 }

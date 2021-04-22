@@ -931,164 +931,272 @@ static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &mess
         SDL_LockAudioDevice(audio_device);
         g_fill_audio_buffer_data.beeb_window=beeb_window.get();
         SDL_UnlockAudioDevice(audio_device);
+        
+        
+        UpdateResult last_update_result=UpdateResult_SpeedLimited;
+        
+        for(;;) {
+            SDL_Event event;
+            bool got_event;
+            
+            for(;;) {
+                switch(last_update_result) {
+                    default:
+                        ASSERT(false);
+                    case UpdateResult_Quit:
+                        goto done;
+                        
+                    case UpdateResult_SpeedLimited:
+                        if(!SDL_WaitEvent(&event)) {
+                            // WaitEvent error = quit.
+                            goto done;
+                        }
+                        got_event=true;
+                        break;
+                        
+                    case UpdateResult_FlatOut:
+                        got_event=SDL_PollEvent(&event);
+                        break;
+                }
+                
+                if(!got_event) {
+                    break;
+                }
+                
+                switch(event.type) {
+                    case SDL_QUIT:
+                        break;
+                        
+                    case SDL_WINDOWEVENT:
+                        if(event.window.windowID==beeb_window_id) {
+                            switch(event.window.event) {
+                                case SDL_WINDOWEVENT_CLOSE:
+                                    //beeb_window->SaveSettings();
+                                    break;
+                                    
+                                case SDL_WINDOWEVENT_SHOWN:
+                                case SDL_WINDOWEVENT_HIDDEN:
+                                case SDL_WINDOWEVENT_MOVED:
+                                case SDL_WINDOWEVENT_RESIZED:
+                                case SDL_WINDOWEVENT_SIZE_CHANGED:
+                                case SDL_WINDOWEVENT_MAXIMIZED:
+                                case SDL_WINDOWEVENT_RESTORED:
+                                case SDL_WINDOWEVENT_FOCUS_GAINED:
+                                    beeb_window->UpdateWindowPlacement();
+                                    break;
+                            }
+                        }
+                        break;
+                        
+                    case SDL_MOUSEMOTION:
+                        if(event.motion.windowID==beeb_window_id) {
+                            beeb_window->HandleSDLMouseMotionEvent(event.motion);
+                        }
+                        break;
+                        
+                    case SDL_TEXTINPUT:
+                        if(event.text.windowID==beeb_window_id) {
+                            beeb_window->HandleSDLTextInput(event.text.text);
+                        }
+                        break;
+                        
+                    case SDL_KEYUP:
+                    case SDL_KEYDOWN:
+                        if(event.key.windowID==beeb_window_id) {
+                            beeb_window->HandleSDLKeyEvent(event.key);
+                        }
+                        break;
+                        
+                    case SDL_MOUSEWHEEL:
+                        if(event.wheel.windowID==beeb_window_id) {
+                            beeb_window->SetSDLMouseWheelState(event.wheel.x,event.wheel.y);
+                        }
+                        break;
+                        
+                    default:
+                        if(event.type>=g_first_event_type&&event.type<g_first_event_type+SDLEventType_Count) {
+                            switch((SDLEventType)(event.type-g_first_event_type)) {
+                                case SDLEventType_VBlank:
+                                {
+                                    rmt_ScopedCPUSample(SDLEventType_VBlank,0);
+                                    if(auto dd=(b2VBlankHandler::Display *)vblank_monitor->GetDisplayDataForDisplayID((uint32_t)event.user.code)) {
+                                        uint64_t ticks=GetCurrentTickCount();
+                                        
+                                        beeb_window->HandleVBlank(vblank_monitor.get(),dd,ticks);
+                                        
+                                        {
+                                            std::lock_guard<Mutex> lock(dd->mutex);
+                                            
+                                            dd->message_pending=false;
+                                        }
+                                    }
+                                    break;
+                                }
+                            }
+                        }
+                        break;
+                }
+            }
+        }
+        
 
         // not needed any more.
         //message_list->ClearMessages();
 
-        for(;;) {
-            SDL_Event event;
-
-            {
-                rmt_ScopedCPUSample(SDL_WaitEvent,0);
-                if(!SDL_WaitEvent(&event)) {
-                    goto done;
-                }
-            }
-
-            if(event.type==SDL_QUIT) {
-//#if SYSTEM_OSX
-//                // On OS X, quit just does a quit, and there are no
-//                // window-specific messages sent to indicate that it's
-//                // happening. So jump through a few hoops in order
-//                // that the settings from the key window (if there is
-//                // one) are saved.
-//                //
-//                // This is a bit of a hack.
-//                beeb_window->SaveSettings();
-//#endif
-                goto done;
-            }
-
-            switch(event.type) {
-            case SDL_WINDOWEVENT:
-                {
-                    rmt_ScopedCPUSample(SDL_WINDOWEVENT,0);
-
-                    if(event.window.windowID==beeb_window_id) {
-                        switch(event.window.event) {
-                        case SDL_WINDOWEVENT_CLOSE:
-                            //beeb_window->SaveSettings();
-                            break;
-
-                        case SDL_WINDOWEVENT_SHOWN:
-                        case SDL_WINDOWEVENT_HIDDEN:
-                        case SDL_WINDOWEVENT_MOVED:
-                        case SDL_WINDOWEVENT_RESIZED:
-                        case SDL_WINDOWEVENT_SIZE_CHANGED:
-                        case SDL_WINDOWEVENT_MAXIMIZED:
-                        case SDL_WINDOWEVENT_RESTORED:
-                        case SDL_WINDOWEVENT_FOCUS_GAINED:
-                            beeb_window->UpdateWindowPlacement();
-                            break;
-                        }
-                    }
-                }
-                break;
-
-            case SDL_MOUSEMOTION:
-                {
-                    rmt_ScopedCPUSample(SDL_MOUSEMOTION,0);
-
-                    if(event.motion.windowID==beeb_window_id) {
-                        beeb_window->HandleSDLMouseMotionEvent(event.motion);
-                    }
-                }
-                break;
-
-            case SDL_TEXTINPUT:
-                {
-                    rmt_ScopedCPUSample(SDL_TEXTINPUT,0);
-
-                    if(event.text.windowID==beeb_window_id) {
-                        beeb_window->HandleSDLTextInput(event.text.text);
-                    }
-                }
-                break;
-
-            case SDL_KEYUP:
-            case SDL_KEYDOWN:
-                {
-                    rmt_ScopedCPUSample(SDL_KEYxx,0);
-
-                    if(event.key.windowID==beeb_window_id) {
-                        beeb_window->HandleSDLKeyEvent(event.key);
-                    }
-                }
-                break;
-
-            case SDL_MOUSEWHEEL:
-                {
-                    rmt_ScopedCPUSample(SDL_MOUSEWHEEL,0);
-
-                    if(event.wheel.windowID==beeb_window_id) {
-                        beeb_window->SetSDLMouseWheelState(event.wheel.x,event.wheel.y);
-                    }
-                }
-                break;
-
-            default:
-                {
-                    if(event.type>=g_first_event_type&&event.type<g_first_event_type+SDLEventType_Count) {
-                        switch((SDLEventType)(event.type-g_first_event_type)) {
-                        case SDLEventType_VBlank:
-                            {
-                                rmt_ScopedCPUSample(SDLEventType_VBlank,0);
-                                if(auto dd=(b2VBlankHandler::Display *)vblank_monitor->GetDisplayDataForDisplayID((uint32_t)event.user.code)) {
-                                    uint64_t ticks=GetCurrentTickCount();
-
-                                    beeb_window->HandleVBlank(vblank_monitor.get(),dd,ticks);
-
-                                    {
-                                        std::lock_guard<Mutex> lock(dd->mutex);
-
-                                        dd->message_pending=false;
-                                    }
-                                }
-                            }
-                            break;
-
-                        case SDLEventType_UpdateWindowTitle:
-                            {
-                                rmt_ScopedCPUSample(SDLEventType_UpdateWindowTitle,0);
-                                beeb_window->UpdateTitle();
-                            }
-                            break;
-
-                        case SDLEventType_Function:
-                            {
-                                rmt_ScopedCPUSample(SDLEventType_Function,0);
-                                auto fun=(std::function<void()> *)event.user.data1;
-
-                                (*fun)();
-
-                                delete fun;
-                                fun=nullptr;
-                            }
-                            break;
-
-                        case SDLEventType_SaveConfig:
-                            {
-                                auto settings=(BeebWindowSettings *)event.user.data1;
-
-                                SaveConfig(beeb_window,
-                                           *settings,
-                                           beeb_window->GetMessageList());
-
-                                delete settings;
-                                settings=nullptr;
-                            }
-                            break;
-
-                        case SDLEventType_Count:
-                            // only here avoid incomplete switch warning.
-                            ASSERT(false);
-                            break;
-                        }
-                    }
-                }
-                break;
-            }
-        }
+//        for(;;) {
+//            SDL_Event event;
+//
+//            {
+//                rmt_ScopedCPUSample(SDL_WaitEvent,0);
+//                if(!SDL_WaitEvent(&event)) {
+//                    goto done;
+//                }
+//            }
+//
+//            if(event.type==SDL_QUIT) {
+////#if SYSTEM_OSX
+////                // On OS X, quit just does a quit, and there are no
+////                // window-specific messages sent to indicate that it's
+////                // happening. So jump through a few hoops in order
+////                // that the settings from the key window (if there is
+////                // one) are saved.
+////                //
+////                // This is a bit of a hack.
+////                beeb_window->SaveSettings();
+////#endif
+//                goto done;
+//            }
+//
+//            switch(event.type) {
+//            case SDL_WINDOWEVENT:
+//                {
+//                    rmt_ScopedCPUSample(SDL_WINDOWEVENT,0);
+//
+//                    if(event.window.windowID==beeb_window_id) {
+//                        switch(event.window.event) {
+//                        case SDL_WINDOWEVENT_CLOSE:
+//                            //beeb_window->SaveSettings();
+//                            break;
+//
+//                        case SDL_WINDOWEVENT_SHOWN:
+//                        case SDL_WINDOWEVENT_HIDDEN:
+//                        case SDL_WINDOWEVENT_MOVED:
+//                        case SDL_WINDOWEVENT_RESIZED:
+//                        case SDL_WINDOWEVENT_SIZE_CHANGED:
+//                        case SDL_WINDOWEVENT_MAXIMIZED:
+//                        case SDL_WINDOWEVENT_RESTORED:
+//                        case SDL_WINDOWEVENT_FOCUS_GAINED:
+//                            beeb_window->UpdateWindowPlacement();
+//                            break;
+//                        }
+//                    }
+//                }
+//                break;
+//
+//            case SDL_MOUSEMOTION:
+//                {
+//                    rmt_ScopedCPUSample(SDL_MOUSEMOTION,0);
+//
+//                    if(event.motion.windowID==beeb_window_id) {
+//                        beeb_window->HandleSDLMouseMotionEvent(event.motion);
+//                    }
+//                }
+//                break;
+//
+//            case SDL_TEXTINPUT:
+//                {
+//                    rmt_ScopedCPUSample(SDL_TEXTINPUT,0);
+//
+//                    if(event.text.windowID==beeb_window_id) {
+//                        beeb_window->HandleSDLTextInput(event.text.text);
+//                    }
+//                }
+//                break;
+//
+//            case SDL_KEYUP:
+//            case SDL_KEYDOWN:
+//                {
+//                    rmt_ScopedCPUSample(SDL_KEYxx,0);
+//
+//                    if(event.key.windowID==beeb_window_id) {
+//                        beeb_window->HandleSDLKeyEvent(event.key);
+//                    }
+//                }
+//                break;
+//
+//            case SDL_MOUSEWHEEL:
+//                {
+//                    rmt_ScopedCPUSample(SDL_MOUSEWHEEL,0);
+//
+//                    if(event.wheel.windowID==beeb_window_id) {
+//                        beeb_window->SetSDLMouseWheelState(event.wheel.x,event.wheel.y);
+//                    }
+//                }
+//                break;
+//
+//            default:
+//                {
+//                    if(event.type>=g_first_event_type&&event.type<g_first_event_type+SDLEventType_Count) {
+//                        switch((SDLEventType)(event.type-g_first_event_type)) {
+//                        case SDLEventType_VBlank:
+//                            {
+//                                rmt_ScopedCPUSample(SDLEventType_VBlank,0);
+//                                if(auto dd=(b2VBlankHandler::Display *)vblank_monitor->GetDisplayDataForDisplayID((uint32_t)event.user.code)) {
+//                                    uint64_t ticks=GetCurrentTickCount();
+//
+//                                    beeb_window->HandleVBlank(vblank_monitor.get(),dd,ticks);
+//
+//                                    {
+//                                        std::lock_guard<Mutex> lock(dd->mutex);
+//
+//                                        dd->message_pending=false;
+//                                    }
+//                                }
+//                            }
+//                            break;
+//
+//                        case SDLEventType_UpdateWindowTitle:
+//                            {
+//                                rmt_ScopedCPUSample(SDLEventType_UpdateWindowTitle,0);
+//                                beeb_window->UpdateTitle();
+//                            }
+//                            break;
+//
+//                        case SDLEventType_Function:
+//                            {
+//                                rmt_ScopedCPUSample(SDLEventType_Function,0);
+//                                auto fun=(std::function<void()> *)event.user.data1;
+//
+//                                (*fun)();
+//
+//                                delete fun;
+//                                fun=nullptr;
+//                            }
+//                            break;
+//
+//                        case SDLEventType_SaveConfig:
+//                            {
+//                                auto settings=(BeebWindowSettings *)event.user.data1;
+//
+//                                SaveConfig(beeb_window,
+//                                           *settings,
+//                                           beeb_window->GetMessageList());
+//
+//                                delete settings;
+//                                settings=nullptr;
+//                            }
+//                            break;
+//
+//                        case SDLEventType_Count:
+//                            // only here avoid incomplete switch warning.
+//                            ASSERT(false);
+//                            break;
+//                        }
+//                    }
+//                }
+//                break;
+//            }
+//        }
 
     done:;
         ;//<-- fix Visual Studio autoformat bug

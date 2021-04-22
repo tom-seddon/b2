@@ -43,11 +43,17 @@ struct SDLThreadVaryingOutput {
 struct BeebThreadVaryingOutput {
     ImGuiMouseCursor imgui_mouse_cursor=ImGuiMouseCursor_None;
     bool filter_tv_texture=true;
-    std::shared_ptr<std::vector<ImDrawListUniquePtr>> draw_lists;
+    std::vector<ImDrawListUniquePtr> draw_lists;
 
     // this just points straight into the buffer. There's no locking; the SDL
     // thread just gets whatever it happens to be able to see at the time,
     void *tv_texture_data=nullptr;
+};
+
+enum UpdateResult {
+    UpdateResult_Quit,
+    UpdateResult_SpeedLimited,
+    UpdateResult_FlatOut,
 };
 
 // The placement data isn't used on OS X, but it's included anyway just to save
@@ -78,6 +84,8 @@ public:
     const std::vector<uint8_t> &GetWindowPlacementData() const;
 
     std::shared_ptr<MessageList> GetMessageList() const;
+    
+    UpdateResult UpdateBeeb() const;
 protected:
 private:
     enum ImGuiTextures {
@@ -88,7 +96,7 @@ private:
 
     std::shared_ptr<MessageList> m_message_list;
     BeebWindowInitArguments m_init_arguments;
-    BeebWindow *m_beeb_window=nullptr;
+    //BeebWindow *m_beeb_window=nullptr;
     SDL_Cursor *m_sdl_cursors[ImGuiMouseCursor_COUNT]={};
     SDL_Window *m_window=nullptr;
     SDL_Renderer *m_renderer=nullptr;
@@ -101,7 +109,11 @@ private:
 //    int m_mouse_pos_y=0;
     SDL_Texture *m_imgui_textures[ImGuiTexture_MaxValue]={};
     std::vector<uint8_t> m_window_placement_data;
-
+    std::vector<ImDrawListUniquePtr> m_last_imgui_draw_lists;
+    TVOutput m_tv;
+    std::vector<uint32_t> m_tv_texture_pixels;
+    ImGuiStuff *m_imgui_stuff=nullptr;
+    
 #if SYSTEM_WINDOWS
     void *m_hwnd=nullptr;
 #elif SYSTEM_OSX
@@ -118,6 +130,8 @@ private:
 
     bool InitInternal(std::vector<uint8_t> window_placement_data);
     bool RecreateTexture();
+    void RenderLastImGuiFrame();
+    void RunNextImGuiFrame(uint64_t ticks);
 
     // Keep this at the end. It's massive.
     Messages m_msg;
