@@ -571,7 +571,8 @@ const uint32_t *TVOutput::GetTexturePixels(uint64_t *texture_data_version) const
 
 void TVOutput::CopyTexturePixels(std::vector<uint32_t> *pixels) const {
     ASSERT(pixels->size()==TV_TEXTURE_WIDTH*TV_TEXTURE_HEIGHT);
-    
+    ASSERT((0xffu<<m_r_shift&0xffu<<m_g_shift&0xffu<<m_b_shift)==0);//check Init was called...
+
     void *const pixels_data=pixels->data();
     
     memcpy(pixels_data,m_texture_pixels.data(),TV_TEXTURE_HEIGHT*TV_TEXTURE_WIDTH*4);

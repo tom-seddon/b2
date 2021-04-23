@@ -97,7 +97,7 @@ std::string GetTimeString(const struct tm &t);
 //////////////////////////////////////////////////////////////////////////
 
 template<class T>
-static T ValueChanged(T *value_ptr,T &&new_value) {
+static T ValueChanged(T *value_ptr,T new_value) {
     T change=*value_ptr^new_value;
 
     *value_ptr=new_value;

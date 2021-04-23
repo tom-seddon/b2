@@ -246,20 +246,20 @@ static void ThreadFillAudioBuffer(void *userdata,uint8_t *stream,int len) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static void PushUpdateWindowTitleEvent(void) {
-    SDL_Event event={};
-    event.user.type=g_first_event_type+SDLEventType_UpdateWindowTitle;
+//static void PushUpdateWindowTitleEvent(void) {
+//    SDL_Event event={};
+//    event.user.type=g_first_event_type+SDLEventType_UpdateWindowTitle;
+//
+//    SDL_PushEvent(&event);
+//}
 
-    SDL_PushEvent(&event);
-}
-
-static Uint32 UpdateWindowTitle(Uint32 interval,void *param) {
-    (void)param;
-
-    PushUpdateWindowTitleEvent();
-
-    return interval;
-}
+//static Uint32 UpdateWindowTitle(Uint32 interval,void *param) {
+//    (void)param;
+//
+//    PushUpdateWindowTitleEvent();
+//
+//    return interval;
+//}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -482,8 +482,8 @@ static bool InitSystem(
     g_first_event_type=SDL_RegisterEvents(SDLEventType_Count);
 
     // 
-    SDL_AddTimer(1000,&UpdateWindowTitle,NULL);
-    PushUpdateWindowTitleEvent();
+//    SDL_AddTimer(1000,&UpdateWindowTitle,NULL);
+//    PushUpdateWindowTitleEvent();
 
     SDL_StartTextInput();
 
@@ -741,6 +741,128 @@ static void SaveConfig(const std::unique_ptr<SDLBeebWindow> &beeb_window,
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+static bool HandleEvents(SDLBeebWindow *beeb_window,
+                         uint32_t beeb_window_id,
+                         VBlankMonitor *vblank_monitor,
+                         UpdateResult last_update_result)
+{
+    SDL_Event event;
+    bool got_event;
+    
+    for(;;) {
+        switch(last_update_result) {
+            default:
+                ASSERT(false);
+            case UpdateResult_Quit:
+                return false;
+                
+            case UpdateResult_SpeedLimited:
+                if(!SDL_WaitEvent(&event)) {
+                    // WaitEvent error = quit.
+                    return false;
+                }
+                got_event=true;
+                break;
+                
+            case UpdateResult_FlatOut:
+                got_event=SDL_PollEvent(&event);
+                break;
+        }
+        
+        if(!got_event) {
+            break;
+        }
+        
+        switch(event.type) {
+            case SDL_QUIT:
+                break;
+                
+            case SDL_WINDOWEVENT:
+                if(event.window.windowID==beeb_window_id) {
+                    switch(event.window.event) {
+                        case SDL_WINDOWEVENT_CLOSE:
+                            //beeb_window->SaveSettings();
+                            break;
+                            
+                        case SDL_WINDOWEVENT_SHOWN:
+                        case SDL_WINDOWEVENT_HIDDEN:
+                        case SDL_WINDOWEVENT_MOVED:
+                        case SDL_WINDOWEVENT_RESIZED:
+                        case SDL_WINDOWEVENT_SIZE_CHANGED:
+                        case SDL_WINDOWEVENT_MAXIMIZED:
+                        case SDL_WINDOWEVENT_RESTORED:
+                        case SDL_WINDOWEVENT_FOCUS_GAINED:
+                            beeb_window->UpdateWindowPlacement();
+                            break;
+                    }
+                }
+                break;
+                
+            case SDL_MOUSEMOTION:
+                if(event.motion.windowID==beeb_window_id) {
+                    beeb_window->HandleSDLMouseMotionEvent(event.motion);
+                }
+                break;
+                
+            case SDL_TEXTINPUT:
+                if(event.text.windowID==beeb_window_id) {
+                    beeb_window->HandleSDLTextInput(event.text.text);
+                }
+                break;
+                
+            case SDL_KEYUP:
+            case SDL_KEYDOWN:
+                if(event.key.windowID==beeb_window_id) {
+                    beeb_window->HandleSDLKeyEvent(event.key);
+                }
+                break;
+                
+            case SDL_MOUSEWHEEL:
+                if(event.wheel.windowID==beeb_window_id) {
+                    beeb_window->SetSDLMouseWheelState(event.wheel.x,event.wheel.y);
+                }
+                break;
+                
+            default:
+                if(event.type>=g_first_event_type&&event.type<g_first_event_type+SDLEventType_Count) {
+                    switch((SDLEventType)(event.type-g_first_event_type)) {
+                        case SDLEventType_VBlank:
+                        {
+                            rmt_ScopedCPUSample(SDLEventType_VBlank,0);
+                            
+                            if(auto dd=(b2VBlankHandler::Display *)vblank_monitor->GetDisplayDataForDisplayID((uint32_t)event.user.code)) {
+                                uint64_t ticks=GetCurrentTickCount();
+                                
+                                beeb_window->HandleVBlank(vblank_monitor,dd,ticks);
+                                
+                                {
+                                    std::lock_guard<Mutex> lock(dd->mutex);
+                                    
+                                    dd->message_pending=false;
+                                }
+                            }
+                            break;
+                        }
+                            
+                        case SDLEventType_Function:
+                        {
+                            rmt_ScopedCPUSample(SDLEventType_Function,0);
+                            
+                            std::unique_ptr<std::function<void()>> fun((std::function<void()> *)event.user.data1);
+                            
+                            (*fun)();
+                            
+                            break;
+                        }
+                    }
+                }
+                break;
+        }
+    }
+    
+    return true;
+}
+
 static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &message_list) {
     Messages msg(message_list);
 
@@ -932,111 +1054,15 @@ static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &mess
         g_fill_audio_buffer_data.beeb_window=beeb_window.get();
         SDL_UnlockAudioDevice(audio_device);
         
+        UpdateResult last_update_result=UpdateResult_FlatOut;
         
-        UpdateResult last_update_result=UpdateResult_SpeedLimited;
-        
-        for(;;) {
-            SDL_Event event;
-            bool got_event;
-            
-            for(;;) {
-                switch(last_update_result) {
-                    default:
-                        ASSERT(false);
-                    case UpdateResult_Quit:
-                        goto done;
-                        
-                    case UpdateResult_SpeedLimited:
-                        if(!SDL_WaitEvent(&event)) {
-                            // WaitEvent error = quit.
-                            goto done;
-                        }
-                        got_event=true;
-                        break;
-                        
-                    case UpdateResult_FlatOut:
-                        got_event=SDL_PollEvent(&event);
-                        break;
-                }
-                
-                if(!got_event) {
-                    break;
-                }
-                
-                switch(event.type) {
-                    case SDL_QUIT:
-                        break;
-                        
-                    case SDL_WINDOWEVENT:
-                        if(event.window.windowID==beeb_window_id) {
-                            switch(event.window.event) {
-                                case SDL_WINDOWEVENT_CLOSE:
-                                    //beeb_window->SaveSettings();
-                                    break;
-                                    
-                                case SDL_WINDOWEVENT_SHOWN:
-                                case SDL_WINDOWEVENT_HIDDEN:
-                                case SDL_WINDOWEVENT_MOVED:
-                                case SDL_WINDOWEVENT_RESIZED:
-                                case SDL_WINDOWEVENT_SIZE_CHANGED:
-                                case SDL_WINDOWEVENT_MAXIMIZED:
-                                case SDL_WINDOWEVENT_RESTORED:
-                                case SDL_WINDOWEVENT_FOCUS_GAINED:
-                                    beeb_window->UpdateWindowPlacement();
-                                    break;
-                            }
-                        }
-                        break;
-                        
-                    case SDL_MOUSEMOTION:
-                        if(event.motion.windowID==beeb_window_id) {
-                            beeb_window->HandleSDLMouseMotionEvent(event.motion);
-                        }
-                        break;
-                        
-                    case SDL_TEXTINPUT:
-                        if(event.text.windowID==beeb_window_id) {
-                            beeb_window->HandleSDLTextInput(event.text.text);
-                        }
-                        break;
-                        
-                    case SDL_KEYUP:
-                    case SDL_KEYDOWN:
-                        if(event.key.windowID==beeb_window_id) {
-                            beeb_window->HandleSDLKeyEvent(event.key);
-                        }
-                        break;
-                        
-                    case SDL_MOUSEWHEEL:
-                        if(event.wheel.windowID==beeb_window_id) {
-                            beeb_window->SetSDLMouseWheelState(event.wheel.x,event.wheel.y);
-                        }
-                        break;
-                        
-                    default:
-                        if(event.type>=g_first_event_type&&event.type<g_first_event_type+SDLEventType_Count) {
-                            switch((SDLEventType)(event.type-g_first_event_type)) {
-                                case SDLEventType_VBlank:
-                                {
-                                    rmt_ScopedCPUSample(SDLEventType_VBlank,0);
-                                    if(auto dd=(b2VBlankHandler::Display *)vblank_monitor->GetDisplayDataForDisplayID((uint32_t)event.user.code)) {
-                                        uint64_t ticks=GetCurrentTickCount();
-                                        
-                                        beeb_window->HandleVBlank(vblank_monitor.get(),dd,ticks);
-                                        
-                                        {
-                                            std::lock_guard<Mutex> lock(dd->mutex);
-                                            
-                                            dd->message_pending=false;
-                                        }
-                                    }
-                                    break;
-                                }
-                            }
-                        }
-                        break;
-                }
-            }
+        while(HandleEvents(beeb_window.get(),
+                           beeb_window_id,
+                           vblank_monitor.get(),
+                           last_update_result))
+        {
+            last_update_result=beeb_window->UpdateBeeb();
+            last_update_result=UpdateResult_FlatOut;
         }
         
 

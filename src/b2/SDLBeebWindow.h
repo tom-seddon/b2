@@ -9,6 +9,10 @@
 #include "Messages.h"
 //#include <SDL.h>
 
+#include <shared/enum_decl.h>
+#include "SDLBeebWindow.inl"
+#include <shared/enum_end.h>
+
 struct BeebWindowInitArguments;
 struct SDL_KeyboardEvent;
 struct SDL_MouseMotionEvent;
@@ -17,11 +21,13 @@ struct SDL_Window;
 struct SDL_Renderer;
 struct SDL_Texture;
 
+// TODO: remove
 struct SDLThreadConstantOutput {
     ImTextureID font_texture_id={};
     ImTextureID tv_texture_id={};
 };
 
+// TODO: remove
 struct SDLThreadVaryingOutput {
     int renderer_output_width=0;
     int renderer_output_height=0;
@@ -40,6 +46,7 @@ struct SDLThreadVaryingOutput {
     SDL_Keymod keymod=KMOD_NONE;
 };
 
+// TODO: remove
 struct BeebThreadVaryingOutput {
     ImGuiMouseCursor imgui_mouse_cursor=ImGuiMouseCursor_None;
     bool filter_tv_texture=true;
@@ -48,12 +55,6 @@ struct BeebThreadVaryingOutput {
     // this just points straight into the buffer. There's no locking; the SDL
     // thread just gets whatever it happens to be able to see at the time,
     void *tv_texture_data=nullptr;
-};
-
-enum UpdateResult {
-    UpdateResult_Quit,
-    UpdateResult_SpeedLimited,
-    UpdateResult_FlatOut,
 };
 
 // The placement data isn't used on OS X, but it's included anyway just to save
@@ -76,7 +77,6 @@ public:
     void HandleSDLTextInput(const char *text);
     void HandleSDLMouseMotionEvent(const SDL_MouseMotionEvent &event);
     void HandleVBlank(VBlankMonitor *vblank_monitor,void *display_data,uint64_t ticks);
-    void UpdateTitle();
 
     void ThreadFillAudioBuffer(uint32_t audio_device_id,float *mix_buffer,size_t num_samples);
 
@@ -85,7 +85,7 @@ public:
 
     std::shared_ptr<MessageList> GetMessageList() const;
     
-    UpdateResult UpdateBeeb() const;
+    UpdateResult UpdateBeeb();
 protected:
 private:
     enum ImGuiTextures {
@@ -95,18 +95,24 @@ private:
     };
 
     std::shared_ptr<MessageList> m_message_list;
+    uint64_t m_msg_last_num_messages_printed=0;
+    uint64_t m_msg_last_num_errors_and_warnings_printed=0;
+    bool m_messages_popup_ui_active=false;
+    uint64_t m_messages_popup_ticks=0;
+
     BeebWindowInitArguments m_init_arguments;
-    //BeebWindow *m_beeb_window=nullptr;
+    BeebWindowSettings m_settings;
+    
+    uint64_t m_last_title_update_ticks=0;
+    uint64_t m_last_title_update_2MHz_cycles=0;
+    
     SDL_Cursor *m_sdl_cursors[ImGuiMouseCursor_COUNT]={};
     SDL_Window *m_window=nullptr;
     SDL_Renderer *m_renderer=nullptr;
     SDL_PixelFormat *m_pixel_format=nullptr;
     std::vector<SDL_KeyboardEvent> m_sdl_keyboard_events;
     std::string m_sdl_text_input;
-    int m_mouse_wheel_delta_x=0;
-    int m_mouse_wheel_delta_y=0;
-//    int m_mouse_pos_x=0;
-//    int m_mouse_pos_y=0;
+    SDL_Point m_mouse_wheel_delta={};
     SDL_Texture *m_imgui_textures[ImGuiTexture_MaxValue]={};
     std::vector<uint8_t> m_window_placement_data;
     std::vector<ImDrawListUniquePtr> m_last_imgui_draw_lists;
@@ -127,11 +133,42 @@ private:
     };
 #include <shared/poppack.h>
 #endif
+    
+    BeebLoadedConfig m_current_config;
+    BBCMicro *m_beeb=nullptr;
 
+    uint32_t m_leds=0;
+    bool m_leds_popup_ui_active=false;
+    uint64_t m_leds_popup_ticks=0;
+
+#if ENABLE_IMGUI_DEMO
+    bool m_imgui_demo=false;
+#endif
+    bool m_imgui_dock_debug=false;
+    bool m_imgui_debug=false;
+    bool m_imgui_metrics=false;
+#if STORE_DRAWLISTS
+    bool m_imgui_drawlists=false;
+    std::vector<ImGuiStuff::StoredDrawList> m_stored_draw_lists;
+#endif
+    
     bool InitInternal(std::vector<uint8_t> window_placement_data);
     bool RecreateTexture();
     void RenderLastImGuiFrame();
     void RunNextImGuiFrame(uint64_t ticks);
+    void HardReset(uint32_t flags,
+                   const BeebLoadedConfig &loaded_config,
+                   const std::vector<uint8_t> &nvram_contents);
+    bool DoBeebDisplayUI();
+    void DoMenuUI();
+    void DoFileMenu();
+    void DoEditMenu();
+    void DoHardwareMenu();
+    void DoKeyboardMenu();
+    void DoToolsMenu();
+    void DoDebugMenu();
+    void DoPopupUI(uint64_t now,int output_width,int output_height);
+    void UpdateTitle(uint64_t ticks);
 
     // Keep this at the end. It's massive.
     Messages m_msg;

@@ -32,7 +32,7 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static volatile uint32_t g_got_timebase_metrics;
+static std::atomic<bool> g_got_timebase_metrics;
 static uint64_t g_timebase_ticks_per_sec;
 static uint64_t g_timebase_ticks_per_msec;
 
@@ -397,7 +397,7 @@ size_t GetNumSetBits64(uint64_t value) {
 //////////////////////////////////////////////////////////////////////////
 
 static void GetTimebaseMetrics(void) {
-    if(!g_got_timebase_metrics) {
+    if(!g_got_timebase_metrics.load(std::memory_order_acquire)) {
         /* It doesn't matter if there's a race here; all the threads
          * will (should...) get the same value. */
 
@@ -407,7 +407,7 @@ static void GetTimebaseMetrics(void) {
         g_timebase_ticks_per_sec=(uint64_t)tbi.numer/tbi.denom*1000000000ull;
         g_timebase_ticks_per_msec=g_timebase_ticks_per_sec/1000;
         
-        g_got_timebase_metrics=1;
+        g_got_timebase_metrics.store(true,std::memory_order_release);
     }
 }
 

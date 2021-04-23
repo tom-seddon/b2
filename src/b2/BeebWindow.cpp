@@ -2762,13 +2762,13 @@ bool BeebWindow::SaveDefaultNVRAMIsEnabled() const {
 //////////////////////////////////////////////////////////////////////////
 
 void BeebWindow::SaveConfig() {
-    this->UpdateSettings();
-
-    SDL_Event event={};
-    event.user.type=GetSDLUserEventType(SDLEventType_SaveConfig);
-    event.user.data1=new BeebWindowSettings(m_settings);
-
-    SDL_PushEvent(&event);
+//    this->UpdateSettings();
+//
+//    SDL_Event event={};
+//    event.user.type=GetSDLUserEventType(SDLEventType_SaveConfig);
+//    event.user.data1=new BeebWindowSettings(m_settings);
+//
+//    SDL_PushEvent(&event);
 }
 
 //////////////////////////////////////////////////////////////////////////

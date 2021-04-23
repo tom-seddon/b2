@@ -1194,6 +1194,7 @@ bool BBCMicro::Update(VideoDataUnit *video_unit,SoundDataUnit *sound_unit) {
 
     if(!m_state.stretch) {
         (*m_handle_cpu_data_bus_fn)(this);
+        //printf("cpu: read=%d abus=$%04x dbus=$%02x\n",m_state.cpu.read,m_state.cpu.abus.w,m_state.cpu.dbus);
     }
 
     // Update video hardware.
