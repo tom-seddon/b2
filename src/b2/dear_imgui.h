@@ -44,6 +44,7 @@
 #include <string>
 #include <vector>
 #include "keys.h"
+#include "misc.h"
 
 struct SDL_Texture;
 struct SDL_Renderer;
@@ -103,7 +104,7 @@ public:
 
     // The font texture is the caller's responsibility.
     bool Init(SDL_Renderer *renderer,
-              SDL_Texture **font_texture_ptr);
+              SDLUniquePtr<SDL_Texture> *font_texture_ptr);
 
     // bool parameter, yum.
     void NewFrame(bool got_mouse_focus,
@@ -113,7 +114,7 @@ public:
                   uint32_t keymod,
                   int display_width,
                   int display_height,
-                  ImTextureID font_texture_id);
+                  SDL_Texture *font_texture);
 
     // does ImGui::Render.
     void RenderImGui();
@@ -123,9 +124,7 @@ public:
     // does the SDL rendering stuff.
     static void RenderSDL(SDL_Renderer *renderer,
                           const std::vector<ImDrawListUniquePtr> &draw_lists,
-                          std::vector<StoredDrawList> *stored_draw_lists,
-                          SDL_Texture **textures,
-                          size_t num_textures);
+                          std::vector<StoredDrawList> *stored_draw_lists);
 
     void SetKeyDown(uint32_t scancode,bool state);
     void AddInputCharactersUTF8(const char *text);

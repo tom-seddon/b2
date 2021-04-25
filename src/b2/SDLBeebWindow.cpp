@@ -241,26 +241,12 @@ SDLBeebWindow::~SDLBeebWindow() {
         SDL_FreeCursor(m_sdl_cursors[i]);
         m_sdl_cursors[i]=nullptr;
     }
-
-    for(SDL_Texture *&texture:m_imgui_textures) {
-        SDL_DestroyTexture(texture);
-        texture=nullptr;
-    }
-
-    if(m_renderer) {
-        SDL_DestroyRenderer(m_renderer);
-        m_renderer=nullptr;
-    }
-
-    if(m_window) {
-        SDL_DestroyWindow(m_window);
-        m_window=nullptr;
-    }
     
-    if(m_pixel_format) {
-        SDL_FreeFormat(m_pixel_format);
-        m_pixel_format=nullptr;
-    }
+    m_font_texture=nullptr;
+    m_tv_texture=nullptr;
+    m_renderer=nullptr;
+    m_window=nullptr;
+    m_pixel_format=nullptr;
 }
 
 bool SDLBeebWindow::Init(const BeebWindowInitArguments &init_arguments,
@@ -282,7 +268,7 @@ bool SDLBeebWindow::Init(const BeebWindowInitArguments &init_arguments,
     }
 
     m_imgui_stuff=new ImGuiStuff();
-    if(!m_imgui_stuff->Init(m_renderer,&m_imgui_textures[ImGuiTexture_Font])) {
+    if(!m_imgui_stuff->Init(m_renderer.get(),&m_font_texture)) {
         m_msg.e.f("failed to initialize ImGui\n");
         return false;
     }
@@ -296,7 +282,7 @@ bool SDLBeebWindow::Init(const BeebWindowInitArguments &init_arguments,
 //        return false;
 //    }
 
-    *sdl_window_id=SDL_GetWindowID(m_window);
+    *sdl_window_id=SDL_GetWindowID(m_window.get());
 
     return true;
 }
@@ -396,10 +382,10 @@ void SDLBeebWindow::HandleVBlank(VBlankMonitor *vblank_monitor,void *display_dat
     // (and possibly even more often than that...) this will get the
     // right display.
     int wx,wy;
-    SDL_GetWindowPosition(m_window,&wx,&wy);
+    SDL_GetWindowPosition(m_window.get(),&wx,&wy);
 
     int ww,wh;
-    SDL_GetWindowSize(m_window,&ww,&wh);
+    SDL_GetWindowSize(m_window.get(),&ww,&wh);
 
     void *dd=vblank_monitor->GetDisplayDataForPoint(wx+ww/2,wy+wh/2);
     if(dd!=display_data) {
@@ -461,9 +447,9 @@ void SDLBeebWindow::SetKeymap(const BeebKeymap *keymap) {
 void SDLBeebWindow::RenderLastImGuiFrame() {
     m_tv.CopyTexturePixels(&m_tv_texture_pixels);
     
-    SDL_UpdateTexture(m_imgui_textures[ImGuiTexture_TV],nullptr,m_tv_texture_pixels.data(),TV_TEXTURE_WIDTH*4);
+    SDL_UpdateTexture(m_tv_texture.get(),nullptr,m_tv_texture_pixels.data(),TV_TEXTURE_WIDTH*4);
     
-    SDL_RenderClear(m_renderer);
+    SDL_RenderClear(m_renderer.get());
 
     if(!m_last_imgui_draw_lists.empty()) {
         std::vector<ImGuiStuff::StoredDrawList> *stored_draw_lists=nullptr;
@@ -471,14 +457,12 @@ void SDLBeebWindow::RenderLastImGuiFrame() {
         stored_draw_lists=&m_stored_draw_lists;
 #endif
         
-        ImGuiStuff::RenderSDL(m_renderer,
+        ImGuiStuff::RenderSDL(m_renderer.get(),
                               m_last_imgui_draw_lists,
-                              stored_draw_lists,
-                              m_imgui_textures,
-                              sizeof m_imgui_textures/sizeof m_imgui_textures[0]);
+                              stored_draw_lists);
     }
     
-    SDL_RenderPresent(m_renderer);
+    SDL_RenderPresent(m_renderer.get());
 }
 
 void SDLBeebWindow::RunNextImGuiFrame(uint64_t ticks) {
@@ -486,7 +470,7 @@ void SDLBeebWindow::RunNextImGuiFrame(uint64_t ticks) {
     
     bool got_mouse_focus;
     SDL_Window *mouse_window=SDL_GetMouseFocus();
-    if(mouse_window==m_window) {
+    if(mouse_window==m_window.get()) {
         got_mouse_focus=true;
     } else {
         got_mouse_focus=false;
@@ -502,7 +486,7 @@ void SDLBeebWindow::RunNextImGuiFrame(uint64_t ticks) {
     
     int renderer_output_width;
     int renderer_output_height;
-    SDL_GetRendererOutputSize(m_renderer,
+    SDL_GetRendererOutputSize(m_renderer.get(),
                               &renderer_output_width,
                               &renderer_output_height);
     
@@ -535,7 +519,7 @@ void SDLBeebWindow::RunNextImGuiFrame(uint64_t ticks) {
                             keymod,
                             renderer_output_width,
                             renderer_output_height,
-                            (ImTextureID)ImGuiTexture_Font);
+                            m_font_texture.get());
     
     // Command contexts to try, in order of preference.
     CommandContext ccs[]={
@@ -733,19 +717,19 @@ bool SDLBeebWindow::InitInternal(std::vector<uint8_t> window_placement_data) {
     //
     // Anyway, obvious with the test pattern, but in practice not an issue,
     // as the borders are so large...
-    m_window=SDL_CreateWindow("",
-                              SDL_WINDOWPOS_UNDEFINED,
-                              SDL_WINDOWPOS_UNDEFINED,
-                              TV_TEXTURE_WIDTH+(int)(IMGUI_DEFAULT_STYLE.WindowPadding.x*2.f),
-                              19+TV_TEXTURE_HEIGHT+(int)(IMGUI_DEFAULT_STYLE.WindowPadding.y*2.f),
-                              SDL_WINDOW_RESIZABLE|SDL_WINDOW_OPENGL);
+        m_window.reset(SDL_CreateWindow("",
+                                        SDL_WINDOWPOS_UNDEFINED,
+                                        SDL_WINDOWPOS_UNDEFINED,
+                                        TV_TEXTURE_WIDTH+(int)(IMGUI_DEFAULT_STYLE.WindowPadding.x*2.f),
+                                        19+TV_TEXTURE_HEIGHT+(int)(IMGUI_DEFAULT_STYLE.WindowPadding.y*2.f),
+                                        SDL_WINDOW_RESIZABLE|SDL_WINDOW_OPENGL));
     if(!m_window) {
         m_msg.e.f("SDL_CreateWindow failed: %s\n",SDL_GetError());
         return false;
     }
 
     SDL_SetHint(SDL_HINT_RENDER_DRIVER,"opengl");
-    m_renderer=SDL_CreateRenderer(m_window,-1,0);
+    m_renderer.reset(SDL_CreateRenderer(m_window.get(),-1,0));
     if(!m_renderer) {
         m_msg.e.f("SDL_CreateRenderer failed: %s\n",SDL_GetError());
         return false;
@@ -758,7 +742,7 @@ bool SDLBeebWindow::InitInternal(std::vector<uint8_t> window_placement_data) {
     }
 
     // The OpenGL driver supports SDL_PIXELFORMAT_ARGB8888.
-    m_pixel_format=SDL_AllocFormat(SDL_PIXELFORMAT_ARGB8888);
+    m_pixel_format.reset(SDL_AllocFormat(SDL_PIXELFORMAT_ARGB8888));
     if(!m_pixel_format) {
         m_msg.e.f("SDL_AllocFormat failed: %s\n",SDL_GetError());
         return false;
@@ -770,7 +754,7 @@ bool SDLBeebWindow::InitInternal(std::vector<uint8_t> window_placement_data) {
 
     SDL_SysWMinfo wmi;
     SDL_VERSION(&wmi.version);
-    SDL_GetWindowWMInfo(m_window,&wmi);
+    SDL_GetWindowWMInfo(m_window.get(),&wmi);
 
 #if SYSTEM_WINDOWS
 
@@ -825,7 +809,7 @@ bool SDLBeebWindow::InitInternal(std::vector<uint8_t> window_placement_data) {
 #endif
 
     SDL_RendererInfo info;
-    if(SDL_GetRendererInfo(m_renderer,&info)<0) {
+    if(SDL_GetRendererInfo(m_renderer.get(),&info)<0) {
         m_msg.e.f("SDL_GetRendererInfo failed: %s\n",SDL_GetError());
         return false;
     }
@@ -845,7 +829,7 @@ bool SDLBeebWindow::InitInternal(std::vector<uint8_t> window_placement_data) {
     {
         Uint32 format;
         int width,height;
-        SDL_QueryTexture(m_imgui_textures[ImGuiTexture_TV],&format,nullptr,&width,&height);
+        SDL_QueryTexture(m_tv_texture.get(),&format,nullptr,&width,&height);
         m_msg.i.f("Renderer: %s, %dx%d %s\n",
                   info.name,
                   width,
@@ -886,15 +870,8 @@ bool SDLBeebWindow::InitInternal(std::vector<uint8_t> window_placement_data) {
 }
 
 bool SDLBeebWindow::RecreateTexture() {
-    if(m_imgui_textures[ImGuiTexture_TV]) {
-        SDL_DestroyTexture(m_imgui_textures[ImGuiTexture_TV]);
-        m_imgui_textures[ImGuiTexture_TV]=nullptr;
-    }
-
-    //SetRenderScaleQualityHint(m_settings.display_filter);
-
-    m_imgui_textures[ImGuiTexture_TV]=SDL_CreateTexture(m_renderer,m_pixel_format->format,SDL_TEXTUREACCESS_STREAMING,TV_TEXTURE_WIDTH,TV_TEXTURE_HEIGHT);
-    if(!m_imgui_textures[ImGuiTexture_TV]) {
+    m_tv_texture.reset(SDL_CreateTexture(m_renderer.get(),m_pixel_format->format,SDL_TEXTUREACCESS_STREAMING,TV_TEXTURE_WIDTH,TV_TEXTURE_HEIGHT));
+    if(!m_tv_texture) {
         m_msg.e.f("Failed to create TV texture: %s\n",SDL_GetError());
         return false;
     }
@@ -1060,7 +1037,7 @@ bool SDLBeebWindow::DoBeebDisplayUI() {
         
         ImGui::SetCursorPos(pos);
         ImVec2 screen_pos=ImGui::GetCursorScreenPos();
-        ImGui::Image((ImTextureID)ImGuiTexture_TV,size);
+        ImGui::Image(m_tv_texture.get(),size);
         
 #if VIDEO_TRACK_METADATA
         
@@ -1783,7 +1760,7 @@ void SDLBeebWindow::UpdateTitle(uint64_t ticks) {
         snprintf(title,sizeof title,"b2 [%.2fx]",speed);
     }
     
-    SDL_SetWindowTitle(m_window,title);
+    SDL_SetWindowTitle(m_window.get(),title);
     m_last_title_update_ticks=ticks;
 }
 

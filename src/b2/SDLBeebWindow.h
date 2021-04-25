@@ -8,6 +8,7 @@
 #include "BeebWindow.h"
 #include "Messages.h"
 //#include <SDL.h>
+#include "misc.h"
 
 #include <shared/enum_decl.h>
 #include "SDLBeebWindow.inl"
@@ -221,11 +222,11 @@ protected:
 private:
     class FileMenuItem;
     
-    enum ImGuiTextures {
-        ImGuiTexture_Font,
-        ImGuiTexture_TV,
-        ImGuiTexture_MaxValue,
-    };
+//    enum ImGuiTextures {
+//        ImGuiTexture_Font,
+//        ImGuiTexture_TV,
+//        ImGuiTexture_MaxValue,
+//    };
 
     struct DriveState {
         SaveFileDialog new_disc_image_file_dialog;
@@ -261,13 +262,14 @@ private:
     // SDL.
     //
     SDL_Cursor *m_sdl_cursors[ImGuiMouseCursor_COUNT]={};
-    SDL_Window *m_window=nullptr;
-    SDL_Renderer *m_renderer=nullptr;
-    SDL_PixelFormat *m_pixel_format=nullptr;
+    SDLUniquePtr<SDL_Window> m_window;
+    SDLUniquePtr<SDL_Renderer> m_renderer;
+    SDLUniquePtr<SDL_PixelFormat> m_pixel_format;
     //std::vector<SDL_KeyboardEvent> m_sdl_keyboard_events;
     std::string m_sdl_text_input;
     SDL_Point m_mouse_wheel_delta={};
-    SDL_Texture *m_imgui_textures[ImGuiTexture_MaxValue]={};
+    SDLUniquePtr<SDL_Texture> m_font_texture;
+    SDLUniquePtr<SDL_Texture> m_tv_texture;
     
     //
     // Dear imgui.

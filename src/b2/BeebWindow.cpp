@@ -1778,7 +1778,7 @@ void BeebWindow::HandleVBlank(uint64_t ticks,
                                 sdl_voutput.keymod,
                                 sdl_voutput.renderer_output_width,
                                 sdl_voutput.renderer_output_height,
-                                sdl_koutput.font_texture_id);
+                                nullptr);//sdl_koutput.font_texture_id);
     }
 
     {

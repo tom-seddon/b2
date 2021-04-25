@@ -146,7 +146,7 @@ static void SetClipboardText(void *user_data,const char *text) {
 //////////////////////////////////////////////////////////////////////////
 
 bool ImGuiStuff::Init(SDL_Renderer *renderer,
-                      SDL_Texture **font_texture_ptr)
+                      SDLUniquePtr<SDL_Texture> *font_texture_ptr)
 {
     int rc;
     (void)rc;
@@ -225,15 +225,15 @@ bool ImGuiStuff::Init(SDL_Renderer *renderer,
     io.Fonts->GetTexDataAsRGBA32(&pixels,&width,&height);
 
     SetRenderScaleQualityHint(false);
-    *font_texture_ptr=SDL_CreateTexture(renderer,SDL_PIXELFORMAT_RGBA32,SDL_TEXTUREACCESS_STATIC,width,height);
+    font_texture_ptr->reset(SDL_CreateTexture(renderer,SDL_PIXELFORMAT_RGBA32,SDL_TEXTUREACCESS_STATIC,width,height));
     if(!*font_texture_ptr) {
         return false;
     }
 
-    SDL_SetTextureBlendMode(*font_texture_ptr,SDL_BLENDMODE_BLEND);
+    SDL_SetTextureBlendMode(font_texture_ptr->get(),SDL_BLENDMODE_BLEND);
 
     Uint32 font_texture_format;
-    rc=SDL_QueryTexture(*font_texture_ptr,&font_texture_format,NULL,NULL,NULL);
+    rc=SDL_QueryTexture(font_texture_ptr->get(),&font_texture_format,NULL,NULL,NULL);
     ASSERT(rc==0);
 
     std::vector<uint8_t> tmp((size_t)(width*height*4));
@@ -241,7 +241,7 @@ bool ImGuiStuff::Init(SDL_Renderer *renderer,
     rc=SDL_ConvertPixels(width,height,SDL_PIXELFORMAT_ARGB8888,pixels,width*4,font_texture_format,tmp.data(),width*4);
     ASSERT(rc==0);
 
-    rc=SDL_UpdateTexture(*font_texture_ptr,NULL,tmp.data(),width*4);
+    rc=SDL_UpdateTexture(font_texture_ptr->get(),NULL,tmp.data(),width*4);
     ASSERT(rc==0);
 
     io.Fonts->TexID=nullptr;
@@ -263,12 +263,12 @@ void ImGuiStuff::NewFrame(bool got_mouse_focus,
                           uint32_t keymod,
                           int display_width,
                           int display_height,
-                          ImTextureID font_texture_id)
+                          SDL_Texture *font_texture)
 {
     ImGuiContextSetter setter(this);
     ImGuiIO &io=ImGui::GetIO();
 
-    io.Fonts->TexID=font_texture_id;
+    io.Fonts->TexID=font_texture;
 
     uint64_t now_ticks=GetCurrentTickCount();
     io.DeltaTime=(float)GetSecondsFromTicks(now_ticks-m_last_new_frame_ticks);
@@ -362,9 +362,7 @@ std::vector<ImDrawListUniquePtr> ImGuiStuff::CloneDrawLists() {
 
 void ImGuiStuff::RenderSDL(SDL_Renderer *renderer,
                            const std::vector<ImDrawListUniquePtr> &draw_lists,
-                           std::vector<StoredDrawList> *stored_draw_lists,
-                           SDL_Texture **textures,
-                           size_t num_textures)
+                           std::vector<StoredDrawList> *stored_draw_lists)
 {
     if(stored_draw_lists) {
         stored_draw_lists->resize(draw_lists.size());
@@ -441,10 +439,8 @@ void ImGuiStuff::RenderSDL(SDL_Renderer *renderer,
 
                 (*cmd.UserCallback)(draw_list,&cmd);
             } else {
-                auto index=(size_t)cmd.TextureId;
-                ASSERT(index<num_textures);
-                SDL_Texture *texture=textures[index];
-
+                auto texture=(SDL_Texture *)cmd.TextureId;
+                
                 SDL_GL_BindTexture(texture,nullptr,nullptr);
 
                 SDL_BlendMode blend_mode;
