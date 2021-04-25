@@ -723,20 +723,20 @@ static void SetRmtThreadName(const char *name,void *context) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static void SaveConfig(const std::unique_ptr<SDLBeebWindow> &beeb_window,
-                       const BeebWindowSettings &default_window_settings,
-                       std::shared_ptr<MessageList> message_list)
-{
-    Messages msg(message_list);
-
-    const std::vector<uint8_t> &window_placement_data=beeb_window->GetWindowPlacementData();
-
-    SaveGlobalConfig(window_placement_data,
-                     default_window_settings,
-                     &msg);
-
-    msg.i.f("Configuration saved.\n");
-}
+//static void SaveConfig(const std::unique_ptr<SDLBeebWindow> &beeb_window,
+//                       const BeebWindowSettings &default_window_settings,
+//                       std::shared_ptr<MessageList> message_list)
+//{
+//    Messages msg(message_list);
+//
+//    const std::vector<uint8_t> &window_placement_data=beeb_window->GetWindowPlacementData();
+//
+//    SaveGlobalConfig(window_placement_data,
+//                     default_window_settings,
+//                     &msg);
+//
+//    msg.i.f("Configuration saved.\n");
+//}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -775,7 +775,7 @@ static bool HandleEvents(SDLBeebWindow *beeb_window,
         
         switch(event.type) {
             case SDL_QUIT:
-                break;
+                return false;
                 
             case SDL_WINDOWEVENT:
                 if(event.window.windowID==beeb_window_id) {
@@ -1225,6 +1225,7 @@ static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &mess
 //        }
 
     done:;
+        beeb_window->SaveConfig();
         ;//<-- fix Visual Studio autoformat bug
 
 //        SaveConfig(beeb_window,
@@ -1265,7 +1266,7 @@ static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &mess
 
 
     return true;
-    }
+}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

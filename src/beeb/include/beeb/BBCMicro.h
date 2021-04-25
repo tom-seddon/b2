@@ -315,6 +315,7 @@ public:
 
     uint32_t GetLEDs();
 
+    bool HasNVRAM() const;
     std::vector<uint8_t> GetNVRAM() const;
 
     // The shared_ptr is copied.

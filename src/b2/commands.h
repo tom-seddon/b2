@@ -250,6 +250,8 @@ public:
     CommandContext()=default;
     CommandContext(void *object,const CommandTable *table);
 
+    const CommandTable *GetCommandTable() const;
+    
     void DoButton(const char *name) const;
     void DoMenuItemUI(const char *name) const;
 
@@ -262,8 +264,7 @@ public:
 
     // When the context isn't bound, does nothing and returns false.
     bool ExecuteCommandsForPCKey(uint32_t keycode) const;
-
-    bool IsBound() const;
+    
 protected:
 private:
     void *m_object=nullptr;
