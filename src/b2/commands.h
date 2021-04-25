@@ -138,6 +138,7 @@ public:
 
     const std::vector<uint32_t> *GetPCKeysForCommand(bool *are_defaults,Command *command) const;
 
+    const std::vector<Command *> *FindCommandsForPCKey(uint32_t key) const;
     bool ExecuteCommandsForPCKey(uint32_t keycode,void *object) const;
 
     //const std::vector<Command *> *GetCommandsForPCKey(uint32_t key) const;
@@ -254,6 +255,10 @@ public:
 
     // The check reflects the tick status, and the command is assumed to toggle that state.
     void DoToggleCheckboxUI(const char *name) const;
+    
+    // Will return true/false as appropriate for the table even when the context is
+    // unbound.
+    bool HasCommandsForPCKey(uint32_t keycode) const;
 
     // When the context isn't bound, does nothing and returns false.
     bool ExecuteCommandsForPCKey(uint32_t keycode) const;

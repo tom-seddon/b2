@@ -11,6 +11,8 @@
 #include "dear_imgui.h"
 #include "MessagesUI.h"
 #include "BeebWindows.h"
+#include "KeymapsUI.h"
+#include "keys.h"
 
 #include <shared/enum_def.h>
 #include "SDLBeebWindow.inl"
@@ -119,7 +121,55 @@ bool SDLBeebWindow::Init(const BeebWindowInitArguments &init_arguments,
 //}
 
 void SDLBeebWindow::HandleSDLKeyEvent(const SDL_KeyboardEvent &event) {
-    m_sdl_keyboard_events.push_back(event);
+    uint32_t keycode;
+    bool state;
+    
+    if(event.type==SDL_KEYDOWN) {
+        if(event.repeat) {
+            // Don't set again if it's just key repeat. If the flag is
+            // still set from last time, that's fine; if it's been reset,
+            // there'll be a reason, so don't set it again.
+        } else {
+            m_imgui_stuff->SetKeyDown(event.keysym.scancode,true);
+        }
+        
+        keycode=(uint32_t)event.keysym.sym|GetPCKeyModifiersFromSDLKeymod(event.keysym.mod);
+        state=true;
+    } else {
+        m_imgui_stuff->SetKeyDown(event.keysym.scancode,false);
+        
+        keycode=0;
+        state=false;
+    }
+    
+//    uint32_t keycode=0;
+//    bool state=false;
+//    if(event.type==SDL_KEYDOWN) {
+//        if(ImGui::IsKeyDown(event.keysym.scancode)) {
+//            keycode=(uint32_t)event.keysym.sym|GetPCKeyModifiersFromSDLKeymod(event.keysym.mod);
+//            state=true;
+//        }
+//    }
+
+    if(m_beeb_focus) {
+        bool handled=false;
+
+        if(m_prefer_shortcuts) {
+            //handled=this->HandleCommandKey(keycode,ccs,num_ccs);
+        }
+
+        if(!handled) {
+            handled=this->HandleBeebKey(event.keysym,state);
+        }
+
+        if(!m_prefer_shortcuts) {
+            if(!handled) {
+                //handled=this->HandleCommandKey(keycode,ccs,num_ccs);
+            }
+        }
+    } else {
+        //this->HandleCommandKey(keycode,ccs,num_ccs);
+    }
 }
 
 void SDLBeebWindow::SetSDLMouseWheelState(int x,int y) {
@@ -192,6 +242,21 @@ UpdateResult SDLBeebWindow::UpdateBeeb() {
     }
 }
 
+const BeebKeymap *SDLBeebWindow::GetKeymap() const {
+    return m_keymap;
+}
+
+void SDLBeebWindow::SetKeymap(const BeebKeymap *keymap) {
+    m_keymap=keymap;
+    if(m_keymap) {
+        m_settings.keymap_name=m_keymap->GetName();
+        m_prefer_shortcuts=m_keymap->GetPreferShortcuts();
+    } else {
+        m_settings.keymap_name.clear();
+        m_prefer_shortcuts=false;
+    }
+}
+
 void SDLBeebWindow::RenderLastImGuiFrame() {
     m_tv.CopyTexturePixels(&m_tv_texture_pixels);
     
@@ -240,24 +305,24 @@ void SDLBeebWindow::RunNextImGuiFrame(uint64_t ticks) {
                               &renderer_output_width,
                               &renderer_output_height);
     
-    for(const SDL_KeyboardEvent &event:m_sdl_keyboard_events) {
-        switch(event.type) {
-            case SDL_KEYDOWN:
-                if(event.repeat) {
-                    // Don't set again if it's just key repeat. If the flag is
-                    // still set from last time, that's fine; if it's been reset,
-                    // there'll be a reason, so don't set it again.
-                } else {
-                    m_imgui_stuff->SetKeyDown(event.keysym.scancode,true);
-                }
-                break;
-                
-            case SDL_KEYUP:
-                m_imgui_stuff->SetKeyDown(event.keysym.scancode,false);
-                break;
-        }
-    }
-    m_sdl_keyboard_events.clear();
+//    for(const SDL_KeyboardEvent &event:m_sdl_keyboard_events) {
+//        switch(event.type) {
+//            case SDL_KEYDOWN:
+//                if(event.repeat) {
+//                    // Don't set again if it's just key repeat. If the flag is
+//                    // still set from last time, that's fine; if it's been reset,
+//                    // there'll be a reason, so don't set it again.
+//                } else {
+//                    m_imgui_stuff->SetKeyDown(event.keysym.scancode,true);
+//                }
+//                break;
+//
+//            case SDL_KEYUP:
+//                m_imgui_stuff->SetKeyDown(event.keysym.scancode,false);
+//                break;
+//        }
+//    }
+//    m_sdl_keyboard_events.clear();
     
     m_imgui_stuff->AddInputCharactersUTF8(m_sdl_text_input.c_str());
     m_sdl_text_input.clear();
@@ -271,12 +336,7 @@ void SDLBeebWindow::RunNextImGuiFrame(uint64_t ticks) {
                             renderer_output_height,
                             (ImTextureID)ImGuiTexture_Font);
     
-    // Set if the BBC display panel has focus. This isn't entirely regular,
-    // because the BBC display panel is handled by separate code - this will
-    // probably get fixed eventually.
-    //
-    // The BBC display panel never has any dear imgui text widgets in it.
-    bool beeb_focus=false;
+    m_beeb_focus=false;
 
     {
         // Set the window padding to 0x0, so that the docking stuff, which
@@ -327,7 +387,7 @@ void SDLBeebWindow::RunNextImGuiFrame(uint64_t ticks) {
                     
                     //ccs[0]=this->DoSettingsUI();
                     
-                    beeb_focus=this->DoBeebDisplayUI();
+                    m_beeb_focus=this->DoBeebDisplayUI();
                 }
                 ImGui::EndDockspace();
                 
@@ -817,6 +877,33 @@ void SDLBeebWindow::DoHardwareMenu() {
 }
 
 void SDLBeebWindow::DoKeyboardMenu() {
+    if(ImGui::BeginMenu("Keyboard")) {
+//        m_cc.DoMenuItemUI("toggle_keyboard_layout");
+//        m_cc.DoMenuItemUI("toggle_command_keymaps");
+
+        ImGui::Separator();
+
+//        m_cc.DoMenuItemUI("toggle_prioritize_shortcuts");
+
+        if(GetNumBeebKeymaps()>0) {
+            ImGui::Separator();
+
+            for(size_t i=0;i<GetNumBeebKeymaps();++i) {
+                BeebKeymap *keymap=GetBeebKeymapByIndex(i);
+
+                if(ImGui::MenuItem(GetKeymapUIName(*keymap).c_str(),
+                                   nullptr,
+                                   m_keymap==keymap))
+                {
+                    this->SetKeymap(keymap);
+                    m_msg.i.f("Keymap: %s\n",m_keymap->GetName().c_str());
+                    this->ShowPrioritizeCommandShortcutsStatus();
+                }
+            }
+        }
+
+        ImGui::EndMenu();
+    }
 }
 
 void SDLBeebWindow::DoToolsMenu() {
@@ -1128,3 +1215,154 @@ void SDLBeebWindow::UpdateTitle(uint64_t ticks) {
     m_last_title_update_ticks=ticks;
 }
 
+void SDLBeebWindow::ShowPrioritizeCommandShortcutsStatus() {
+    if(m_prefer_shortcuts) {
+        m_msg.i.f("Prioritize command keys\n");
+    } else {
+        m_msg.i.f("Prioritize BBC keys\n");
+    }
+}
+
+bool SDLBeebWindow::HandleBeebKey(const SDL_Keysym &keysym,bool state) {
+    if(!m_keymap) {
+        return false;
+    }
+
+    if(m_keymap->IsKeySymMap()) {
+        uint32_t pc_key=(uint32_t)keysym.sym;
+        if(pc_key&PCKeyModifier_All) {
+            // Bleargh... can't handle this one.
+            return false;
+        }
+
+        uint32_t modifiers=GetPCKeyModifiersFromSDLKeymod(keysym.mod);
+
+        if(!state) {
+            auto &&it=m_beeb_keysyms_by_keycode.find(pc_key);
+
+            if(it!=m_beeb_keysyms_by_keycode.end()) {
+                for(BeebKeySym beeb_keysym:it->second) {
+                    this->RecordKeySym(beeb_keysym,false);
+                }
+
+                m_beeb_keysyms_by_keycode.erase(it);
+            }
+        }
+
+        const int8_t *beeb_syms=m_keymap->GetValuesForPCKey(pc_key|modifiers);
+        if(!beeb_syms) {
+            // If key+modifier isn't bound, just go for key on its
+            // own (and the modifiers will be applied in the
+            // emulated BBC).
+            beeb_syms=m_keymap->GetValuesForPCKey(pc_key&~PCKeyModifier_All);
+        }
+
+        if(!beeb_syms) {
+            return false;
+        }
+
+        for(const int8_t *beeb_sym=beeb_syms;*beeb_sym>=0;++beeb_sym) {
+            if(state) {
+                m_beeb_keysyms_by_keycode[pc_key].insert((BeebKeySym)*beeb_sym);
+                this->RecordKeySym((BeebKeySym)*beeb_sym,state);
+                //m_beeb_thread->Send(std::make_shared<BeebThread::KeySymMessage>((BeebKeySym)*beeb_sym,state));
+            }
+        }
+    } else {
+        const int8_t *beeb_keys=m_keymap->GetValuesForPCKey(keysym.scancode);
+        if(!beeb_keys) {
+            return false;
+        }
+
+        for(const int8_t *beeb_key=beeb_keys;*beeb_key>=0;++beeb_key) {
+            this->RecordKey((BeebKey)*beeb_key,state);
+            //m_beeb_thread->Send(std::make_shared<BeebThread::KeyMessage>((BeebKey)*beeb_key,state));
+        }
+    }
+
+    return true;
+}
+
+void SDLBeebWindow::RecordKeySym(BeebKeySym beeb_key_sym,bool down) {
+    BeebKey beeb_key;
+    BeebShiftState shift_state;
+    if(GetBeebKeyComboForKeySym(&beeb_key,&shift_state,beeb_key_sym)) {
+        this->SetKeyState(beeb_key,down);
+        this->SetFakeShiftState(shift_state);
+    }
+}
+
+void SDLBeebWindow::RecordKey(BeebKey beeb_key,bool down) {
+    this->SetKeyState(beeb_key,down);
+}
+
+void SDLBeebWindow::SetKeyState(BeebKey beeb_key,bool down) {
+    ASSERT(!(beeb_key&0x80));
+    
+    if(!m_beeb) {
+        return;
+    }
+    
+    if(IsNumericKeypadKey(beeb_key)) {
+        if(!m_beeb->HasNumericKeypad()) {
+            return;
+        }
+    }
+    
+    m_real_key_states.SetKeyState(beeb_key,down);
+    
+    // If it's the shift key, override using fake shift flags or
+    // boot flag.
+    if(beeb_key==BeebKey_Shift) {
+        if(m_auto_boot) {
+            down=true;
+        } else if(m_fake_shift_state==BeebShiftState_On) {
+            down=true;
+        } else if(m_fake_shift_state==BeebShiftState_Off) {
+            down=false;
+        }
+    } else {
+        if(m_auto_boot) {
+            // this is recursive, but it only calls
+            // ThreadSetKeyState for BeebKey_Shift, so it won't
+            // end up here again...
+            this->SetAutoBootState(false);
+        } else {
+            // no harm in skipping it.
+        }
+    }
+    
+    //m_effective_key_states.SetState(beeb_key,state);
+    m_beeb->SetKeyState(beeb_key,down);
+    
+#if BBCMICRO_TRACE
+    // TODO: trace
+//    if(ts->trace_conditions.start==BeebThreadStartTraceCondition_NextKeypress) {
+//        if(m_is_tracing.load(std::memory_order_acquire)) {
+//            if(state) {
+//                if(ts->trace_conditions.start_key<0||beeb_key==ts->trace_conditions.start_key) {
+//                    ts->trace_conditions.start=BeebThreadStartTraceCondition_Immediate;
+//                    this->ThreadBeebStartTrace(ts);
+//                }
+//            }
+//        }
+//    }
+#endif
+}
+
+void SDLBeebWindow::SetFakeShiftState(BeebShiftState shift_state) {
+    m_fake_shift_state=shift_state;
+    
+    this->UpdateShiftKeyState();
+}
+
+void SDLBeebWindow::SetAutoBootState(bool auto_boot) {
+    m_auto_boot=auto_boot;
+    
+    this->UpdateShiftKeyState();
+}
+
+void SDLBeebWindow::UpdateShiftKeyState() {
+    bool shift_really_down=m_real_key_states.GetKeyState(BeebKey_Shift);
+    this->SetKeyState(BeebKey_Shift,shift_really_down);
+}

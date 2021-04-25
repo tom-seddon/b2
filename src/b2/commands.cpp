@@ -228,11 +228,7 @@ const std::vector<uint32_t> *CommandTable::GetPCKeysForCommand(bool *are_default
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool CommandTable::ExecuteCommandsForPCKey(uint32_t key,void *object) const {
-    if(!object) {
-        return false;
-    }
-
+const std::vector<Command *> *CommandTable::FindCommandsForPCKey(uint32_t key) const {
     if(m_commands_by_pc_key_dirty) {
         m_commands_by_pc_key.clear();
 
@@ -248,10 +244,26 @@ bool CommandTable::ExecuteCommandsForPCKey(uint32_t key,void *object) const {
 
     auto &&it=m_commands_by_pc_key.find(key);
     if(it==m_commands_by_pc_key.end()) {
+        return nullptr;
+    }
+
+    return &it->second;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool CommandTable::ExecuteCommandsForPCKey(uint32_t key,void *object) const {
+    if(!object) {
+        return false;
+    }
+    
+    const std::vector<Command *> *commands=this->FindCommandsForPCKey(key);
+    if(!commands) {
         return false;
     }
 
-    for(Command *command:it->second) {
+    for(Command *command:*commands) {
         command->Execute(object);
     }
 
@@ -416,6 +428,13 @@ void CommandContext::DoToggleCheckboxUI(const char *name) const {
     if(ImGui::Checkbox(command->GetText().c_str(),&value)) {
         command->Execute(m_object);
     }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool CommandContext::HasCommandsForPCKey(uint32_t keycode) const {
+    return !!m_table->FindCommandsForPCKey(keycode);
 }
 
 //////////////////////////////////////////////////////////////////////////

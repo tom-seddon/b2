@@ -86,6 +86,9 @@ public:
     std::shared_ptr<MessageList> GetMessageList() const;
     
     UpdateResult UpdateBeeb();
+    
+    const BeebKeymap *GetKeymap() const;
+    void SetKeymap(const BeebKeymap *keymap);
 protected:
 private:
     enum ImGuiTextures {
@@ -94,6 +97,7 @@ private:
         ImGuiTexture_MaxValue,
     };
 
+    // Message list and associated UI.
     std::shared_ptr<MessageList> m_message_list;
     uint64_t m_msg_last_num_messages_printed=0;
     uint64_t m_msg_last_num_errors_and_warnings_printed=0;
@@ -103,23 +107,25 @@ private:
     BeebWindowInitArguments m_init_arguments;
     BeebWindowSettings m_settings;
     
+    // Window title.
     uint64_t m_last_title_update_ticks=0;
     uint64_t m_last_title_update_2MHz_cycles=0;
     
+    // SDL bits.
     SDL_Cursor *m_sdl_cursors[ImGuiMouseCursor_COUNT]={};
     SDL_Window *m_window=nullptr;
     SDL_Renderer *m_renderer=nullptr;
     SDL_PixelFormat *m_pixel_format=nullptr;
-    std::vector<SDL_KeyboardEvent> m_sdl_keyboard_events;
+    //std::vector<SDL_KeyboardEvent> m_sdl_keyboard_events;
     std::string m_sdl_text_input;
     SDL_Point m_mouse_wheel_delta={};
     SDL_Texture *m_imgui_textures[ImGuiTexture_MaxValue]={};
-    std::vector<uint8_t> m_window_placement_data;
+    
+    // Dear imgui.
     std::vector<ImDrawListUniquePtr> m_last_imgui_draw_lists;
-    TVOutput m_tv;
-    std::vector<uint32_t> m_tv_texture_pixels;
     ImGuiStuff *m_imgui_stuff=nullptr;
     
+    // Window placement data.
 #if SYSTEM_WINDOWS
     void *m_hwnd=nullptr;
 #elif SYSTEM_OSX
@@ -133,9 +139,42 @@ private:
     };
 #include <shared/poppack.h>
 #endif
+    std::vector<uint8_t> m_window_placement_data;
     
+    // Keyboard input.
+    const BeebKeymap *m_keymap=nullptr;
+    bool m_prefer_shortcuts=false;
+    BeebShiftState m_fake_shift_state=BeebShiftState_Any;
+    bool m_auto_boot=false;
+    KeyStates m_real_key_states;
+    
+    // Keycodes that are to be used to execute commands.
+    //
+    // The 
+    std::vector<uint32_t> m_command_keycodes;
+    
+    // Set if the BBC display panel has focus. This isn't entirely regular,
+    // because the BBC display panel is handled by separate code - this will
+    // probably get fixed eventually.
+    //
+    // The BBC display panel never has any dear imgui text widgets in it.
+    bool m_beeb_focus=false;
+    
+    // Track Beeb key syms that were made pressed by a given
+    // (unmodified) SDL keycode. SDL modifier key releases affect
+    // future keycodes, so you can get (say) Shift+6 down, then Shift
+    // up, then 6 up - which is no good if the states are only being
+    // tracked by BBC key.
+    //
+    // This is a pretty crazy data type, but there's only so many keys
+    // you can press per unit time.
+    std::map<uint32_t,std::set<BeebKeySym>> m_beeb_keysyms_by_keycode;
+    
+    // Emulator stuff.
     BeebLoadedConfig m_current_config;
     BBCMicro *m_beeb=nullptr;
+    TVOutput m_tv;
+    std::vector<uint32_t> m_tv_texture_pixels;
 
     uint32_t m_leds=0;
     bool m_leds_popup_ui_active=false;
@@ -169,7 +208,15 @@ private:
     void DoDebugMenu();
     void DoPopupUI(uint64_t now,int output_width,int output_height);
     void UpdateTitle(uint64_t ticks);
-
+    void ShowPrioritizeCommandShortcutsStatus();
+    bool HandleBeebKey(const SDL_Keysym &keysym,bool state);
+    void RecordKeySym(BeebKeySym beeb_key_sym,bool down);
+    void RecordKey(BeebKey beeb_key,bool down);
+    void SetKeyState(BeebKey beeb_key,bool down);
+    void SetFakeShiftState(BeebShiftState shift_state);
+    void SetAutoBootState(bool auto_boot);
+    void UpdateShiftKeyState();
+    
     // Keep this at the end. It's massive.
     Messages m_msg;
 };

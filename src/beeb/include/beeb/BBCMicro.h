@@ -533,6 +533,7 @@ private:
         ACCCON acccon={};
 
         // Key states
+        // TODO: replace with KeyStates object
         uint8_t key_columns[16]={};
         uint8_t key_scan_column=0;
         int num_keys_down=0;
