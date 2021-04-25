@@ -19,6 +19,7 @@
 #include "MemoryDiscImage.h"
 #include "DirectDiscImage.h"
 #include "discs.h"
+#include "SettingsUI.h"
 
 #include <shared/enum_def.h>
 #include "SDLBeebWindow.inl"
@@ -32,23 +33,127 @@ static const std::string RECENT_PATHS_DISC_IMAGE="disc_image";
 //static const std::string RECENT_PATHS_RAM="ram";
 static const std::string RECENT_PATHS_NVRAM="nvram";
 
-//struct BeebStuff {
-//    BBCMicro *beeb=nullptr;
-//    BeebLoadedConfig current_config;
-//};
+struct SDLBeebWindow::SettingsUIMetadata {
+    BeebWindowPopupType type;
+    const char *name;
+    const char *command_name;
+    std::unique_ptr<SettingsUI> (*create_fn)(SDLBeebWindow *beeb_window);
+};
 
-//SDLBeebWindow::SDLBeebWindow(const BeebWindowInitArguments &init_arguments,
-//                             const BeebWindowSettings &settings)
-//{
-//    m_init_arguments=init_arguments;
+const SDLBeebWindow::SettingsUIMetadata SDLBeebWindow::ms_settings_uis[]={
+    {BeebWindowPopupType_Options,"Options","toggle_emulator_options",&SDLBeebWindow::CreateOptionsUI},
+    
+    // terminator
+    {BeebWindowPopupType_MaxValue},
+};
+
+class SDLBeebWindow::OptionsUI:
+public SettingsUI
+{
+public:
+    explicit OptionsUI(SDLBeebWindow *beeb_window);
+    
+    void DoImGui() override;
+
+    bool OnClose() override;
+protected:
+private:
+    SDLBeebWindow *m_beeb_window=nullptr;
+};
+
+SDLBeebWindow::OptionsUI::OptionsUI(SDLBeebWindow *beeb_window):
+m_beeb_window(beeb_window)
+{
+}
+
+void SDLBeebWindow::OptionsUI::DoImGui() {
+//    {
+//        float speed_scale=beeb_thread->GetSpeedScale();
+//        bool limit_speed=beeb_thread->IsSpeedLimited();
 //
-//    m_message_list=std::make_shared<MessageList>();
-//    m_msg=Messages(m_message_list);
+//        if(ImGui::Checkbox("Limit Speed",&limit_speed)) {
+//            beeb_thread->Send(std::make_shared<BeebThread::SetSpeedLimitedMessage>(limit_speed));
+//        }
 //
-//    m_beeb_window=new BeebWindow(init_arguments,
-//                                 settings,
-//                                 m_message_list);
-//}
+//        if(limit_speed) {
+//            ImGui::SameLine();
+//
+//            bool changed=false;
+//
+//            if(ImGui::Button("1x")) {
+//                speed_scale=1.f;
+//                changed=true;
+//            }
+//
+//            if(ImGui::SliderFloat("Speed scale",&speed_scale,0.f,2.f)) {
+//                changed=true;
+//            }
+//
+//            if(changed) {
+//                beeb_thread->Send(std::make_shared<BeebThread::SetSpeedScaleMessage>(speed_scale));
+//            }
+//        }
+//    }
+
+    ImGui::Checkbox("Correct aspect ratio",&m_beeb_window->m_settings.correct_aspect_ratio);
+
+    ImGui::Checkbox("Auto scale",&m_beeb_window->m_settings.display_auto_scale);
+
+    ImGui::DragFloat("Manual scale",&m_beeb_window->m_settings.display_manual_scale,.01f,0.f,10.f);
+
+    if(ImGui::Checkbox("Filter display",&m_beeb_window->m_settings.display_filter)) {
+        m_beeb_window->m_recreate_tv_texture=true;
+    }
+
+    ImGui::Checkbox("Emulate interlace",&m_beeb_window->m_settings.display_interlace);
+
+    if(ImGui::SliderFloat("BBC volume",&m_beeb_window->m_settings.bbc_volume,MIN_DB,MAX_DB,"%.1f dB")) {
+        //m_beeb_window->m_beeb->SetBBCVolume(settings->bbc_volume);
+    }
+
+    if(ImGui::SliderFloat("Disc volume",&m_beeb_window->m_settings.disc_volume,MIN_DB,MAX_DB,"%.1f dB")) {
+        //beeb_thread->SetDiscVolume(settings->disc_volume);
+    }
+
+    if(ImGui::Checkbox("Power-on tone",&m_beeb_window->m_settings.power_on_tone)) {
+        //beeb_thread->SetPowerOnTone(m_beeb_window->m_settings.power_on_tone);
+    }
+
+    ImGui::NewLine();
+
+#if BBCMICRO_DEBUGGER
+    if(ImGui::CollapsingHeader("Display Debug Flags",ImGuiTreeNodeFlags_DefaultOpen)) {
+        
+        bool teletext_debug=m_beeb_window->m_beeb->GetTeletextDebug();
+        if(ImGui::Checkbox("Teletext debug",&teletext_debug)) {
+            m_beeb_window->m_beeb->SetTeletextDebug(teletext_debug);
+        }
+        
+        TVOutputSettings settings=m_beeb_window->m_tv.GetSettings();
+        
+        ImGui::Checkbox("Show TV beam position",&settings.show_beam_position);
+//        if(ImGui::Checkbox("Test pattern",&m_beeb_window->m_test_pattern)) {
+//            if(m_beeb_window->m_test_pattern) {
+//                //m_beeb_window->m_tv.FillWithTestPattern();
+//            }
+//        }
+
+        ImGui::Checkbox("1.0 usec",&settings.show_usec_markers);
+        ImGui::SameLine();
+        ImGui::Checkbox("0.5 usec",&settings.show_half_usec_markers);
+
+        ImGui::Checkbox("6845 rows",&settings.show_6845_row_markers);
+        ImGui::SameLine();
+        ImGui::Checkbox("6845 DISPEN",&settings.show_6845_dispen_markers);
+
+        m_beeb_window->m_tv.SetSettings(settings);
+    }
+#endif
+}
+
+bool SDLBeebWindow::OptionsUI::OnClose() {
+    return true;
+}
 
 SDLBeebWindow::Command::~Command() {
 }
@@ -273,6 +378,12 @@ bool SDLBeebWindow::Init(const BeebWindowInitArguments &init_arguments,
         return false;
     }
 
+    if(!m_settings.dock_config.empty()) {
+        if(!m_imgui_stuff->LoadDockContext(m_settings.dock_config)) {
+            m_msg.w.f("failed to load dock config\n");
+        }
+    }
+
 //    if(!m_beeb_window->Init(m_init_arguments,
 //                            settings,
 //                            m_message_list,
@@ -401,6 +512,19 @@ void SDLBeebWindow::HandleVBlank(VBlankMonitor *vblank_monitor,void *display_dat
     // Revisit this. Perhaps dear imgui will draw everything quickly enough? Update
     // order could also be a toggle.
     this->RenderLastImGuiFrame();
+    
+    // It's now safe to delete any textures and whatnot.
+    if(m_recreate_tv_texture) {
+        this->RecreateTexture();
+        m_recreate_tv_texture=false;
+    }
+    
+    // Would be nice to have a better place for this.
+    //
+    // It's not currently part of the TVOutpuSettings, because those
+    // aren't (yet?) persistent.
+    m_tv.SetInterlace(m_settings.display_interlace);
+    
     this->RunNextImGuiFrame(ticks);
 }
  
@@ -577,7 +701,7 @@ void SDLBeebWindow::RunNextImGuiFrame(uint64_t ticks) {
                 {
                     ImGuiStyleVarPusher vpusher2(ImGuiStyleVar_WindowPadding,IMGUI_DEFAULT_STYLE.WindowPadding);
                     
-                    //ccs[0]=this->DoSettingsUI();
+                    ccs[0]=this->DoSettingsUI();
                     
                     m_beeb_focus=this->DoBeebDisplayUI();
                 }
@@ -637,6 +761,84 @@ void SDLBeebWindow::RunNextImGuiFrame(uint64_t ticks) {
         }
     }
 }
+
+CommandContext SDLBeebWindow::DoSettingsUI() {
+    CommandContext cc;
+
+    for(int type=0;type<BeebWindowPopupType_MaxValue;++type) {
+        uint64_t mask=(uint64_t)1<<type;
+        bool opened=!!(m_settings.popups&mask);
+
+        if(opened) {
+            if(!m_popups[type]) {
+                const SettingsUIMetadata *ui=ms_settings_uis;
+                while(ui->type!=BeebWindowPopupType_MaxValue) {
+                    if(ui->type==type) {
+                        break;
+                    }
+
+                    ++ui;
+                }
+
+                if(ui->type==type) {
+                    m_popups[type]=(*ui->create_fn)(this);
+                    ASSERT(!!m_popups[type]);
+                    m_popups[type]->SetName(ui->name);
+                }
+
+            }
+
+            SettingsUI *popup=m_popups[type].get();
+
+            ImGui::SetNextDock(ImGuiDockSlot_None);
+            ImVec2 default_pos=ImVec2(10.f,30.f);
+            ImVec2 default_size=ImGui::GetIO().DisplaySize*.4f;
+
+            if(popup) {
+                if(ImGui::BeginDock(popup->GetName().c_str(),
+                                    &opened,
+                                    (ImGuiWindowFlags)popup->GetExtraImGuiWindowFlags(),
+                                    default_size,
+                                    default_pos))
+                {
+                    m_settings.popups|=mask;
+
+                    if(ImGui::IsWindowFocused(ImGuiFocusedFlags_ChildWindows)) {
+                        if(const CommandTable *table=popup->GetCommandTable()) {
+                            cc=CommandContext(popup,table);
+                        }
+                    }
+
+                    popup->DoImGui();
+                }
+                ImGui::EndDock();
+
+                if(!opened) {
+                    m_settings.popups&=~mask;
+
+                    // Leave the deletion until the next frame -
+                    // references to its textures might still be queued up
+                    // in the dear imgui drawlists.
+                }
+            }
+        } else {
+            if(m_popups[type]) {
+                if(m_popups[type]->OnClose()) {
+                    this->SaveConfig();
+                }
+
+                m_popups[type]=nullptr;
+            }
+        }
+    }
+
+    if(ValueChanged(&m_msg_last_num_errors_and_warnings_printed,m_message_list->GetNumErrorsAndWarningsPrinted())) {
+        m_settings.popups|=1<<BeebWindowPopupType_Messages;
+    }
+
+    return cc;
+}
+
 
 void SDLBeebWindow::ThreadFillAudioBuffer(SDL_AudioDeviceID audio_device_id,float *mix_buffer,size_t num_samples) {
 //    m_beeb_window->ThreadFillAudioBuffer(audio_device_id,mix_buffer,num_samples);
@@ -865,11 +1067,19 @@ bool SDLBeebWindow::InitInternal(std::vector<uint8_t> window_placement_data) {
     }
     
     this->SetKeymap(keymap);
+    
+//    m_msg.i.f("Sound: %s, %dHz %d-channel (%d byte buffer)\n",
+//              SDL_GetCurrentAudioDriver(),
+//              m_init_arguments.sound_spec.freq,
+//              m_init_arguments.sound_spec.channels,
+//              m_init_arguments.sound_spec.size);
 
     return true;
 }
 
 bool SDLBeebWindow::RecreateTexture() {
+    SetRenderScaleQualityHint(m_settings.display_filter);
+
     m_tv_texture.reset(SDL_CreateTexture(m_renderer.get(),m_pixel_format->format,SDL_TEXTUREACCESS_STREAMING,TV_TEXTURE_WIDTH,TV_TEXTURE_HEIGHT));
     if(!m_tv_texture) {
         m_msg.e.f("Failed to create TV texture: %s\n",SDL_GetError());
@@ -1456,6 +1666,45 @@ void SDLBeebWindow::DoKeyboardMenu() {
 }
 
 void SDLBeebWindow::DoToolsMenu() {
+    if(ImGui::BeginMenu("Tools")) {
+        m_cc.DoMenuItemUI("toggle_emulator_options");
+        m_cc.DoMenuItemUI("toggle_messages");
+        m_cc.DoMenuItemUI("toggle_timeline");
+        m_cc.DoMenuItemUI("toggle_saved_states");
+        m_cc.DoMenuItemUI("toggle_beeblink_options");
+
+        ImGui::Separator();
+
+        if(ImGui::BeginMenu("LEDs")) {
+            ImGuiMenuItemEnumValue("Auto hide",nullptr,&m_settings.leds_popup_mode,BeebWindowLEDsPopupMode_Auto);
+            ImGuiMenuItemEnumValue("Always on",nullptr,&m_settings.leds_popup_mode,BeebWindowLEDsPopupMode_On);
+            ImGuiMenuItemEnumValue("Always off",nullptr,&m_settings.leds_popup_mode,BeebWindowLEDsPopupMode_Off);
+            
+            ImGui::EndMenu();
+        }
+
+        // if(ImGui::MenuItem("Dump states")) {
+        //     std::vector<std::shared_ptr<BeebState>> all_states=BeebState::GetAllStates();
+
+        //     for(size_t i=0;i<all_states.size();++i) {
+        //         LOGF(OUTPUT,"%zu. ",i);
+        //         LOGI(OUTPUT);
+        //         LOGF(OUTPUT,"(BeebState *)%p\n",(void *)all_states[i].get());
+        //         all_states[i]->Dump(&LOG(OUTPUT));
+        //     }
+        // }
+
+        ImGui::Separator();
+
+        // Is there somewhere better for this?
+        m_cc.DoMenuItemUI("reset_default_nvram");
+
+        ImGui::Separator();
+        m_cc.DoMenuItemUI("clean_up_recent_files_lists");
+        m_cc.DoMenuItemUI("reset_dock_windows");
+
+        ImGui::EndMenu();
+    }
 }
 
 void SDLBeebWindow::DoDebugMenu() {
@@ -2007,11 +2256,54 @@ void SDLBeebWindow::HardReset() {
     this->Execute(std::make_unique<HardResetAndReloadConfigCommand>(ResetFlag_Run));
 }
 
+std::unique_ptr<SettingsUI> SDLBeebWindow::CreateOptionsUI(SDLBeebWindow *beeb_window) {
+    return std::make_unique<OptionsUI>(beeb_window);
+}
+
+template<BeebWindowPopupType POPUP_TYPE>
+void SDLBeebWindow::TogglePopupCommand() {
+    m_settings.popups^=(uint64_t)1<<POPUP_TYPE;
+}
+
+template<BeebWindowPopupType POPUP_TYPE>
+bool SDLBeebWindow::IsPopupCommandTicked() const {
+    return !!(m_settings.popups&(uint64_t)1<<POPUP_TYPE);
+}
+
+template<BeebWindowPopupType POPUP_TYPE>
+ObjectCommandTable<SDLBeebWindow>::Initializer SDLBeebWindow::GetTogglePopupCommand() {
+    const SettingsUIMetadata *ui;
+    for(ui=ms_settings_uis;ui->type!=BeebWindowPopupType_MaxValue;++ui) {
+        if(ui->type==POPUP_TYPE) {
+            break;
+        }
+    }
+
+    const char *command_name;
+    if(ui->type==BeebWindowPopupType_MaxValue) {
+        command_name="?";
+    } else {
+        command_name=ui->command_name;
+    }
+
+    std::string text;
+    if(ui->type==BeebWindowPopupType_MaxValue||strlen(ui->name)==0) {
+        text="?";
+    } else {
+        text=std::string(ui->name)+"...";
+    }
+
+    return ObjectCommandTable<SDLBeebWindow>::Initializer(CommandDef(command_name,
+                                                                     std::move(text)),
+                                                          &SDLBeebWindow::TogglePopupCommand<POPUP_TYPE>,
+                                                          &SDLBeebWindow::IsPopupCommandTicked<POPUP_TYPE>);
+}
+
 const ObjectCommandTable<SDLBeebWindow> SDLBeebWindow::ms_command_table("Beeb Window (ver 2)",{
     {{"hard_reset","Hard Reset"},&SDLBeebWindow::HardReset},
     //    {{"load_last_state","Load Last State"},&BeebWindow::LoadLastState,nullptr,&BeebWindow::IsLoadLastStateEnabled},
 //    {{"save_state","Save State"},&BeebWindow::SaveState,nullptr,&BeebWindow::SaveStateIsEnabled},
-//    GetTogglePopupCommand<BeebWindowPopupType_Options>(),
+    GetTogglePopupCommand<BeebWindowPopupType_Options>(),
 //    GetTogglePopupCommand<BeebWindowPopupType_Keymaps>(),
 //    GetTogglePopupCommand<BeebWindowPopupType_Timeline>(),
 //    GetTogglePopupCommand<BeebWindowPopupType_SavedStates>(),

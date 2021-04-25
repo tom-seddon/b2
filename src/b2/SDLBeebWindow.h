@@ -9,6 +9,7 @@
 #include "Messages.h"
 //#include <SDL.h>
 #include "misc.h"
+#include "SettingsUI.h"
 
 #include <shared/enum_decl.h>
 #include "SDLBeebWindow.inl"
@@ -221,6 +222,8 @@ public:
 protected:
 private:
     class FileMenuItem;
+    class OptionsUI;
+    struct SettingsUIMetadata;
     
 //    enum ImGuiTextures {
 //        ImGuiTexture_Font,
@@ -270,6 +273,7 @@ private:
     SDL_Point m_mouse_wheel_delta={};
     SDLUniquePtr<SDL_Texture> m_font_texture;
     SDLUniquePtr<SDL_Texture> m_tv_texture;
+    bool m_recreate_tv_texture=false;
     
     //
     // Dear imgui.
@@ -286,6 +290,8 @@ private:
     // keyboard handler knows what the keyboard shortcuts are.
     std::vector<const CommandTable *> m_current_command_tables;
     
+    std::unique_ptr<SettingsUI> m_popups[BeebWindowPopupType_MaxValue];
+
     DriveState m_drives[NUM_DRIVES];
 
     //
@@ -364,6 +370,7 @@ private:
     bool RecreateTexture();
     void RenderLastImGuiFrame();
     void RunNextImGuiFrame(uint64_t ticks);
+    CommandContext DoSettingsUI();
     void HardReset(uint32_t flags,
                    const BeebLoadedConfig &loaded_config,
                    const std::vector<uint8_t> &nvram_contents);
@@ -399,11 +406,22 @@ private:
     void UpdateSettings();
     bool Execute(std::unique_ptr<Command> command);
     void HardReset();
+    static std::unique_ptr<SettingsUI> CreateOptionsUI(SDLBeebWindow *beeb_window);
+    
+    template<BeebWindowPopupType>
+    void TogglePopupCommand();
+
+    template<BeebWindowPopupType>
+    bool IsPopupCommandTicked() const;
+
+    template<BeebWindowPopupType>
+    static ObjectCommandTable<SDLBeebWindow>::Initializer GetTogglePopupCommand();
     
     // Keep this at the end. It's massive.
     Messages m_msg;
 
     static const ObjectCommandTable<SDLBeebWindow> ms_command_table;
+    static const SettingsUIMetadata ms_settings_uis[];
 };
 
 #endif
