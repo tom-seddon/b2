@@ -7,6 +7,7 @@
 #include <shared/debug.h>
 #include "keymap.h"
 #include "BeebWindow.h"
+#include "SDLBeebWindow.h"
 #include <IconsFontAwesome5.h>
 #include "BeebKeymap.h"
 #include "SettingsUI.h"
@@ -107,13 +108,13 @@ class KeymapsUI:
     public SettingsUI
 {
 public:
-    KeymapsUI(BeebWindow *beeb_window);
+    KeymapsUI(SDLBeebWindow *beeb_window);
 
     void DoImGui() override;
     bool OnClose() override;
 protected:
 private:
-    BeebWindow *m_beeb_window=nullptr;
+    SDLBeebWindow *m_beeb_window=nullptr;
     bool m_wants_keyboard_focus=false;
     bool m_edited=false;
     int m_keymap_index=-1;
@@ -136,16 +137,20 @@ private:
 //////////////////////////////////////////////////////////////////////////
 
 std::unique_ptr<SettingsUI> CreateKeymapsUI(BeebWindow *beeb_window) {
+    return nullptr;
+}
+
+std::unique_ptr<SettingsUI> CreateKeymapsUI(SDLBeebWindow *beeb_window) {
     return std::make_unique<KeymapsUI>(beeb_window);
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-KeymapsUI::KeymapsUI(BeebWindow *beeb_window):
+KeymapsUI::KeymapsUI(SDLBeebWindow *beeb_window):
 m_beeb_window(beeb_window)
 {
-    const BeebKeymap *keymap=m_beeb_window->GetCurrentKeymap();
+    const BeebKeymap *keymap=m_beeb_window->GetKeymap();
 
     for(size_t i=0;i<GetNumBeebKeymaps();++i) {
         if(GetBeebKeymapByIndex(i)==keymap) {
@@ -230,7 +235,9 @@ void KeymapsUI::DoImGui() {
 
     if(ImGuiConfirmButton("Delete")) {
         std::unique_ptr<BeebKeymap> keymap=RemoveBeebKeymapByIndex((size_t)m_keymap_index);
-        m_beeb_window->BeebKeymapWillBeDeleted(keymap.get());
+        if(m_beeb_window->GetKeymap()==keymap.get()) {
+            m_beeb_window->SetKeymap(GetDefaultBeebKeymap());
+        }
         m_keymap_index=std::min(m_keymap_index,(int)GetNumBeebKeymaps()-1);
     }
 
@@ -255,7 +262,7 @@ void KeymapsUI::DoImGui() {
            (size_t)m_keymap_index<GetNumBeebKeymaps())
         {
             const BeebKeymap *keymap=GetBeebKeymapByIndex((size_t)m_keymap_index);
-            m_beeb_window->SetCurrentKeymap(keymap);
+            m_beeb_window->SetKeymap(keymap);
         }
     }
 

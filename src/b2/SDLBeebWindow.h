@@ -219,6 +219,8 @@ public:
     
     const BeebKeymap *GetKeymap() const;
     void SetKeymap(const BeebKeymap *keymap);
+    
+    bool GetBeebKeyState(BeebKey key) const;
 protected:
 private:
     class FileMenuItem;

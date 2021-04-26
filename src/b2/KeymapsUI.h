@@ -9,9 +9,11 @@
 
 class SettingsUI;
 class BeebWindow;
+class SDLBeebWindow;
 class BeebKeymap;
 
 std::unique_ptr<SettingsUI> CreateKeymapsUI(BeebWindow *beeb_window);
+std::unique_ptr<SettingsUI> CreateKeymapsUI(SDLBeebWindow *beeb_window);
 
 std::string GetKeymapUIName(const BeebKeymap &keymap);
 

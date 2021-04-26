@@ -126,5 +126,10 @@ std::unique_ptr<SettingsUI> CreateCommandKeymapsUI(BeebWindow *beeb_window) {
     return std::make_unique<CommandKeymapsUI>();
 }
 
+std::unique_ptr<SettingsUI> CreateCommandKeymapsUI(SDLBeebWindow *beeb_window) {
+    (void)beeb_window;
+    return std::make_unique<CommandKeymapsUI>();
+}
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

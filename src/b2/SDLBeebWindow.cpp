@@ -20,10 +20,13 @@
 #include "DirectDiscImage.h"
 #include "discs.h"
 #include "SettingsUI.h"
+#include "CommandKeymapsUI.h"
 
 #include <shared/enum_def.h>
 #include "SDLBeebWindow.inl"
 #include <shared/enum_end.h>
+
+//LOG_EXTERN(OUTPUT);
 
 static const double MESSAGES_POPUP_TIME_SECONDS=2.5;
 static const double LEDS_POPUP_TIME_SECONDS=1.;
@@ -41,8 +44,51 @@ struct SDLBeebWindow::SettingsUIMetadata {
 };
 
 const SDLBeebWindow::SettingsUIMetadata SDLBeebWindow::ms_settings_uis[]={
+    {BeebWindowPopupType_Keymaps,"Keyboard Layouts","toggle_keyboard_layout",&CreateKeymapsUI},
+    {BeebWindowPopupType_CommandKeymaps,"Command Keys","toggle_command_keymaps",&CreateCommandKeymapsUI},
     {BeebWindowPopupType_Options,"Options","toggle_emulator_options",&SDLBeebWindow::CreateOptionsUI},
-    
+//    {BeebWindowPopupType_Messages,"Messages","toggle_messages",&CreateMessagesUI},
+//    {BeebWindowPopupType_Timeline,"Timeline","toggle_timeline",&BeebWindow::CreateTimelineUI},
+//    {BeebWindowPopupType_SavedStates,"Saved States","toggle_saved_states",&BeebWindow::CreateSavedStatesUI},
+//    {BeebWindowPopupType_Configs,"Configs","toggle_configurations",&CreateConfigsUI},
+//#if BBCMICRO_TRACE
+//    {BeebWindowPopupType_Trace,"Tracing","toggle_event_trace",&CreateTraceUI},
+//#endif
+//    // inconsistent naming as this window has had multiple rebrands.
+//    {BeebWindowPopupType_AudioCallback,"Performance","toggle_date_rate",&CreateDataRateUI},
+//#if BBCMICRO_DEBUGGER&&VIDEO_TRACK_METADATA
+//    // slightly inconsistent naming as this was created before the debugger...
+//    {BeebWindowPopupType_PixelMetadata,"Pixel Metadata","toggle_pixel_metadata",&CreatePixelMetadataDebugWindow},
+//#endif
+//#if ENABLE_IMGUI_TEST
+//    {BeebWindowPopupType_DearImguiTest,"dear imgui Test","toggle_dear_imgui_test",&CreateDearImguiTestUI},
+//#endif
+//#if BBCMICRO_DEBUGGER
+//    {BeebWindowPopupType_6502Debugger,"6502 Debug","toggle_6502_debugger",&Create6502DebugWindow,},
+//    {BeebWindowPopupType_MemoryDebugger1,"Memory Debug 1","toggle_memory_debugger1",&CreateMemoryDebugWindow,},
+//    {BeebWindowPopupType_MemoryDebugger2,"Memory Debug 2","toggle_memory_debugger2",&CreateMemoryDebugWindow,},
+//    {BeebWindowPopupType_MemoryDebugger3,"Memory Debug 3","toggle_memory_debugger3",&CreateMemoryDebugWindow,},
+//    {BeebWindowPopupType_MemoryDebugger4,"Memory Debug 4","toggle_memory_debugger4",&CreateMemoryDebugWindow,},
+//    {BeebWindowPopupType_ExtMemoryDebugger1,"External Memory Debug 1","toggle_ext_memory_debugger1",&CreateExtMemoryDebugWindow,},
+//    {BeebWindowPopupType_ExtMemoryDebugger2,"External Memory Debug 2","toggle_ext_memory_debugger2",&CreateExtMemoryDebugWindow,},
+//    {BeebWindowPopupType_ExtMemoryDebugger3,"External Memory Debug 3","toggle_ext_memory_debugger3",&CreateExtMemoryDebugWindow,},
+//    {BeebWindowPopupType_ExtMemoryDebugger4,"External Memory Debug 4","toggle_ext_memory_debugger4",&CreateExtMemoryDebugWindow,},
+//    {BeebWindowPopupType_DisassemblyDebugger1,"Disassembly Debug 1","toggle_disassembly_debugger1",&CreateDisassemblyDebugWindow1,},
+//    {BeebWindowPopupType_DisassemblyDebugger2,"Disassembly Debug 2","toggle_disassembly_debugger2",&CreateDisassemblyDebugWindowN,},
+//    {BeebWindowPopupType_DisassemblyDebugger3,"Disassembly Debug 3","toggle_disassembly_debugger3",&CreateDisassemblyDebugWindowN,},
+//    {BeebWindowPopupType_DisassemblyDebugger4,"Disassembly Debug 4","toggle_disassembly_debugger4",&CreateDisassemblyDebugWindowN,},
+//    {BeebWindowPopupType_CRTCDebugger,"CRTC Debug","toggle_crtc_debugger",&CreateCRTCDebugWindow,},
+//    {BeebWindowPopupType_VideoULADebugger,"Video ULA Debug","toggle_video_ula_debugger",&CreateVideoULADebugWindow,},
+//    {BeebWindowPopupType_SystemVIADebugger,"System VIA Debug","toggle_system_via_debugger",&CreateSystemVIADebugWindow,},
+//    {BeebWindowPopupType_UserVIADebugger,"User VIA Debug","toggle_user_via_debugger",&CreateUserVIADebugWindow,},
+//    {BeebWindowPopupType_NVRAMDebugger,"NVRAM Debug","toggle_nvram_debugger",&CreateNVRAMDebugWindow,},
+//    {BeebWindowPopupType_SN76489Debugger,"SN76489 Debug","toggle_sn76489_debugger",&CreateSN76489DebugWindow,},
+//    {BeebWindowPopupType_PagingDebugger,"Paging Debug","toggle_paging_debugger",&CreatePagingDebugWindow,},
+//    {BeebWindowPopupType_BreakpointsDebugger,"Breakpoints","toggle_breakpoints_debugger",&CreateBreakpointsDebugWindow,},
+//    {BeebWindowPopupType_StackDebugger,"Stack","toggle_stack_debugger",&CreateStackDebugWindow,},
+//#endif
+//    {BeebWindowPopupType_BeebLink,"BeebLink Options","toggle_beeblink_options",&CreateBeebLinkUI},
+
     // terminator
     {BeebWindowPopupType_MaxValue},
 };
@@ -422,6 +468,8 @@ void SDLBeebWindow::HandleSDLKeyEvent(const SDL_KeyboardEvent &event) {
     uint32_t keycode;
     bool state;
     
+    LOGF(OUTPUT,"key event: down=%d scancode=%d\n",event.type==SDL_KEYDOWN,event.keysym.scancode);
+    
     if(event.type==SDL_KEYDOWN) {
         if(event.repeat) {
             // Don't set again if it's just key repeat. If the flag is
@@ -565,6 +613,16 @@ void SDLBeebWindow::SetKeymap(const BeebKeymap *keymap) {
     } else {
         m_settings.keymap_name.clear();
         m_prefer_shortcuts=false;
+    }
+}
+
+bool SDLBeebWindow::GetBeebKeyState(BeebKey key) const {
+    if(key<0) {
+        return false;
+    } else if(key==BeebKey_Break) {
+        return false;
+    } else {
+        return m_beeb->GetKeyState(key);
     }
 }
 
@@ -758,6 +816,13 @@ void SDLBeebWindow::RunNextImGuiFrame(uint64_t ticks) {
     for(size_t i=0;i<num_ccs;++i) {
         if(const CommandTable *table=ccs[i].GetCommandTable()) {
             m_current_command_tables.push_back(table);
+        }
+    }
+    
+    ImGuiMouseCursor cursor=ImGui::GetMouseCursor();
+    if(cursor>=0&&cursor<ImGuiMouseCursor_COUNT) {
+        if(SDL_Cursor *sdl_cursor=m_sdl_cursors[cursor]) {
+            SDL_SetCursor(sdl_cursor);
         }
     }
 }
@@ -1637,8 +1702,8 @@ void SDLBeebWindow::DoHardwareMenu() {
 
 void SDLBeebWindow::DoKeyboardMenu() {
     if(ImGui::BeginMenu("Keyboard")) {
-//        m_cc.DoMenuItemUI("toggle_keyboard_layout");
-//        m_cc.DoMenuItemUI("toggle_command_keymaps");
+        m_cc.DoMenuItemUI("toggle_keyboard_layout");
+        m_cc.DoMenuItemUI("toggle_command_keymaps");
 
         ImGui::Separator();
 
@@ -2304,7 +2369,7 @@ const ObjectCommandTable<SDLBeebWindow> SDLBeebWindow::ms_command_table("Beeb Wi
     //    {{"load_last_state","Load Last State"},&BeebWindow::LoadLastState,nullptr,&BeebWindow::IsLoadLastStateEnabled},
 //    {{"save_state","Save State"},&BeebWindow::SaveState,nullptr,&BeebWindow::SaveStateIsEnabled},
     GetTogglePopupCommand<BeebWindowPopupType_Options>(),
-//    GetTogglePopupCommand<BeebWindowPopupType_Keymaps>(),
+    GetTogglePopupCommand<BeebWindowPopupType_Keymaps>(),
 //    GetTogglePopupCommand<BeebWindowPopupType_Timeline>(),
 //    GetTogglePopupCommand<BeebWindowPopupType_SavedStates>(),
 //    GetTogglePopupCommand<BeebWindowPopupType_Messages>(),
@@ -2314,7 +2379,7 @@ const ObjectCommandTable<SDLBeebWindow> SDLBeebWindow::ms_command_table("Beeb Wi
 //#endif
 //    GetTogglePopupCommand<BeebWindowPopupType_AudioCallback>(),
 //    GetTogglePopupCommand<BeebWindowPopupType_CommandContextStack>(),
-//    GetTogglePopupCommand<BeebWindowPopupType_CommandKeymaps>(),
+    GetTogglePopupCommand<BeebWindowPopupType_CommandKeymaps>(),
     {CommandDef("exit","Exit").MustConfirm(),&SDLBeebWindow::Exit},
 //    {CommandDef("clean_up_recent_files_lists","Clean up recent files lists").MustConfirm(),&BeebWindow::CleanUpRecentFilesLists},
 //    {CommandDef("reset_dock_windows","Reset dock windows").MustConfirm(),&BeebWindow::ResetDockWindows},
