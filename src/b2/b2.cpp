@@ -39,6 +39,9 @@
 #include <curl/curl.h>
 #include "DirectDiscImage.h"
 #include "discs.h"
+#if SYSTEM_OSX
+#include <IOKit/hid/IOHIDLib.h>
+#endif
 
 #include <shared/enum_decl.h>
 #include "b2.inl"
@@ -300,6 +303,140 @@ static Remotery *g_remotery;
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+// Handle Caps Lock up/down state on macOS.
+//
+// Copied from an older version of SDL. See https://github.com/tom-seddon/SDL/blob/cfcedfccf3a079be983ae571fc5160461a70ca95/src/video/cocoa/SDL_cocoakeyboard.m#L190
+
+#if SYSTEM_OSX
+// Placeholder value for the real Caps Lock state. On macOS, the event loop
+// discards any SDL_SCANCODE_CAPSLOCK events (as they're bogus), and turns
+// SDL_SCANCODE_CAPSLOCK_MACOS events into SDL_SCANCODE_CAPSLOCK ones.
+//
+// This isn't quite right, because SDL_SCANCODE_CAPSLOCK_MACOS won't affect
+// the caps lock key modifier state. But hopefully that'll get set correctly
+// by the usual SDL processing? (And besides, b2 never uses the caps lock
+// modifier state anyway...)
+static const SDL_Scancode SDL_SCANCODE_CAPSLOCK_MACOS=(SDL_Scancode)511;
+
+static IOHIDManagerRef g_hid_manager=nullptr;
+
+extern "C" int SDL_SendKeyboardKey(Uint8 state,SDL_Scancode scancode);//sorry
+
+#endif
+
+#if SYSTEM_OSX
+static void HIDCallback(void *context,IOReturn result,void *sender,IOHIDValueRef value) {
+    if(context!=g_hid_manager) {
+        // An old callback, ignore it (related to bug 2157 below).
+        return;
+    }
+
+    IOHIDElementRef elem=IOHIDValueGetElement(value);
+    if (IOHIDElementGetUsagePage(elem)!=kHIDPage_KeyboardOrKeypad) {
+        return;
+    }
+    
+    if(IOHIDElementGetUsage(elem)!=kHIDUsage_KeyboardCapsLock) {
+        return;
+    }
+    
+    CFIndex pressed=IOHIDValueGetIntegerValue(value);
+    SDL_SendKeyboardKey(pressed?SDL_PRESSED:SDL_RELEASED,SDL_SCANCODE_CAPSLOCK_MACOS);
+}
+#endif
+
+#if SYSTEM_OSX
+static CFDictionaryRef CreateHIDDeviceMatchingDictionary(UInt32 usagePage,UInt32 usage) {
+    CFMutableDictionaryRef dict=CFDictionaryCreateMutable(kCFAllocatorDefault,0,&kCFTypeDictionaryKeyCallBacks,&kCFTypeDictionaryValueCallBacks);
+    if(dict) {
+        CFNumberRef number=CFNumberCreate(kCFAllocatorDefault,kCFNumberIntType,&usagePage);
+        if(number) {
+            CFDictionarySetValue(dict,CFSTR(kIOHIDDeviceUsagePageKey),number);
+            CFRelease(number);
+            number=CFNumberCreate(kCFAllocatorDefault,kCFNumberIntType,&usage);
+            if(number) {
+                CFDictionarySetValue(dict,CFSTR(kIOHIDDeviceUsageKey),number);
+                CFRelease(number);
+                return dict;
+            }
+        }
+        CFRelease(dict);
+    }
+    return nullptr;
+}
+#endif
+
+#if SYSTEM_OSX
+static void QuitHIDCallback() {
+    if(!g_hid_manager) {
+        return;
+    }
+
+    // Releasing here causes a crash on Mac OS X 10.10 and earlier, so just leak it for now. See bug 2157 for details.
+    IOHIDManagerUnscheduleFromRunLoop(g_hid_manager,CFRunLoopGetCurrent(),kCFRunLoopDefaultMode);
+    IOHIDManagerRegisterInputValueCallback(g_hid_manager,nullptr,nullptr);
+    IOHIDManagerClose(g_hid_manager,0);
+
+    CFRelease(g_hid_manager);
+
+    g_hid_manager=nullptr;
+}
+#endif
+
+#if SYSTEM_OSX
+static void InitHIDCallback() {
+    g_hid_manager=IOHIDManagerCreate(kCFAllocatorDefault,kIOHIDOptionsTypeNone);
+    if(!g_hid_manager) {
+        return;
+    }
+    
+    CFDictionaryRef keyboard=nullptr;
+    CFDictionaryRef keypad=nullptr;
+    CFArrayRef matches=nullptr;
+    
+    keyboard=CreateHIDDeviceMatchingDictionary(kHIDPage_GenericDesktop,kHIDUsage_GD_Keyboard);
+    if(!keyboard) {
+        goto fail;
+    }
+    
+    keypad=CreateHIDDeviceMatchingDictionary(kHIDPage_GenericDesktop,kHIDUsage_GD_Keypad);
+    if(!keypad) {
+        goto fail;
+    }
+    
+    {
+        CFDictionaryRef matches_list[]={keyboard,keypad};
+        matches = CFArrayCreate(kCFAllocatorDefault,(const void **)matches_list,sizeof matches_list/sizeof matches_list[0],nullptr);
+        if(!matches) {
+            goto fail;
+        }
+    }
+    IOHIDManagerSetDeviceMatchingMultiple(g_hid_manager,matches);
+    IOHIDManagerRegisterInputValueCallback(g_hid_manager,&HIDCallback,g_hid_manager);
+    IOHIDManagerScheduleWithRunLoop(g_hid_manager,CFRunLoopGetMain(),kCFRunLoopDefaultMode);
+    if (IOHIDManagerOpen(g_hid_manager,kIOHIDOptionsTypeNone)==kIOReturnSuccess) {
+        goto cleanup;
+    }
+
+fail:
+    QuitHIDCallback();
+
+cleanup:
+    if (matches) {
+        CFRelease(matches);
+    }
+    if (keypad) {
+        CFRelease(keypad);
+    }
+    if (keyboard) {
+        CFRelease(keyboard);
+    }
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 struct Options {
     bool verbose=false;
     std::string discs[NUM_DRIVES];
@@ -493,6 +630,10 @@ static bool InitSystem(
     PushUpdateWindowTitleEvent();
 
     SDL_StartTextInput();
+    
+#if SYSTEM_OSX
+    InitHIDCallback();
+#endif
 
     // Start audio
     {
@@ -1001,7 +1142,21 @@ static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &init
             case SDL_KEYDOWN:
                 {
                     rmt_ScopedCPUSample(SDL_KEYxx,0);
-                    BeebWindows::HandleSDLKeyEvent(event.key);
+                    
+                    bool handle=true;
+                    
+#if SYSTEM_OSX
+                    if(event.key.keysym.scancode==SDL_SCANCODE_CAPSLOCK_MACOS) {
+                        event.key.keysym.scancode=SDL_SCANCODE_CAPSLOCK;
+                        event.key.keysym.sym=SDL_GetKeyFromScancode(event.key.keysym.scancode);
+                    } else if(event.key.keysym.scancode==SDL_SCANCODE_CAPSLOCK) {
+                        handle=false;
+                    }
+#endif
+                    
+                    if(handle) {
+                        BeebWindows::HandleSDLKeyEvent(event.key);
+                    }
                 }
                 break;
 
@@ -1095,6 +1250,10 @@ static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &init
         vblank_monitor=nullptr;
         vblank_handler=nullptr;
     }
+    
+#if SYSTEM_OSX
+    QuitHIDCallback();
+#endif
 
     SDL_Quit();
 

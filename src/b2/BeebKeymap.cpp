@@ -201,6 +201,7 @@ static const BeebKeymap::Mapping g_scancode_common[]={
     {SDL_SCANCODE_ESCAPE,BeebKey_Escape,},
     {SDL_SCANCODE_TAB,BeebKey_Tab,},
     {SDL_SCANCODE_RCTRL,BeebKey_Ctrl,},
+    {SDL_SCANCODE_PAGEUP,BeebKey_CapsLock,},
     {SDL_SCANCODE_SCROLLLOCK,BeebKey_ShiftLock,},
     {SDL_SCANCODE_LSHIFT,BeebKey_Shift,},
     {SDL_SCANCODE_RSHIFT,BeebKey_Shift,},
