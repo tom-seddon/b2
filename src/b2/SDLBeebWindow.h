@@ -204,7 +204,7 @@ public:
     void SetSDLMouseWheelState(int x,int y);
     void HandleSDLTextInput(const char *text);
     void HandleSDLMouseMotionEvent(const SDL_MouseMotionEvent &event);
-    void HandleVBlank(VBlankMonitor *vblank_monitor,void *display_data,uint64_t ticks);
+    bool HandleVBlank(VBlankMonitor *vblank_monitor,uint32_t display_id,uint64_t ticks);
 
     void ThreadFillAudioBuffer(uint32_t audio_device_id,float *mix_buffer,size_t num_samples);
 

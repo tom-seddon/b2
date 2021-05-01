@@ -21,6 +21,7 @@
 #include "discs.h"
 #include "SettingsUI.h"
 #include "CommandKeymapsUI.h"
+#include "DataRateUI.h"
 
 #include <shared/enum_def.h>
 #include "SDLBeebWindow.inl"
@@ -54,8 +55,8 @@ const SDLBeebWindow::SettingsUIMetadata SDLBeebWindow::ms_settings_uis[]={
 //#if BBCMICRO_TRACE
 //    {BeebWindowPopupType_Trace,"Tracing","toggle_event_trace",&CreateTraceUI},
 //#endif
-//    // inconsistent naming as this window has had multiple rebrands.
-//    {BeebWindowPopupType_AudioCallback,"Performance","toggle_date_rate",&CreateDataRateUI},
+    // inconsistent naming as this window has had multiple rebrands.
+    {BeebWindowPopupType_AudioCallback,"Performance","toggle_date_rate",&CreateDataRateUI},
 //#if BBCMICRO_DEBUGGER&&VIDEO_TRACK_METADATA
 //    // slightly inconsistent naming as this was created before the debugger...
 //    {BeebWindowPopupType_PixelMetadata,"Pixel Metadata","toggle_pixel_metadata",&CreatePixelMetadataDebugWindow},
@@ -468,7 +469,7 @@ void SDLBeebWindow::HandleSDLKeyEvent(const SDL_KeyboardEvent &event) {
     uint32_t keycode;
     bool state;
     
-    LOGF(OUTPUT,"key event: down=%d scancode=%d\n",event.type==SDL_KEYDOWN,event.keysym.scancode);
+    //LOGF(OUTPUT,"key event: down=%d scancode=%d\n",event.type==SDL_KEYDOWN,event.keysym.scancode);
     
     if(event.type==SDL_KEYDOWN) {
         if(event.repeat) {
@@ -533,9 +534,7 @@ void SDLBeebWindow::HandleSDLMouseMotionEvent(const SDL_MouseMotionEvent &event)
     // is this actually necessary??
 }
 
-void SDLBeebWindow::HandleVBlank(VBlankMonitor *vblank_monitor,void *display_data,uint64_t ticks) {
-    this->UpdateTitle(ticks);
-    
+bool SDLBeebWindow::HandleVBlank(VBlankMonitor *vblank_monitor,uint32_t vblank_display_id,uint64_t ticks) {
     // There's an API for exactly this on Windows. But it's probably
     // better to have the same code on every platform. 99% of the time
     // (and possibly even more often than that...) this will get the
@@ -546,10 +545,12 @@ void SDLBeebWindow::HandleVBlank(VBlankMonitor *vblank_monitor,void *display_dat
     int ww,wh;
     SDL_GetWindowSize(m_window.get(),&ww,&wh);
 
-    void *dd=vblank_monitor->GetDisplayDataForPoint(wx+ww/2,wy+wh/2);
-    if(dd!=display_data) {
-        return;
+    uint32_t wdisplay_id=vblank_monitor->GetDisplayIDForPoint(wx+ww/2,wy+wh/2);
+    if(wdisplay_id!=vblank_display_id) {
+        return false;
     }
+    
+    this->UpdateTitle(ticks);
     
     // Quick as possible, draw the last frame's stuff, so it'll be ready before the
     // vertical blank is done.
@@ -574,6 +575,8 @@ void SDLBeebWindow::HandleVBlank(VBlankMonitor *vblank_monitor,void *display_dat
     m_tv.SetInterlace(m_settings.display_interlace);
     
     this->RunNextImGuiFrame(ticks);
+    
+    return true;
 }
  
 UpdateResult SDLBeebWindow::UpdateBeeb() {
@@ -1779,7 +1782,7 @@ void SDLBeebWindow::DoDebugMenu() {
 //        m_cc.DoMenuItemUI("toggle_dear_imgui_test");
 //#endif
 //        m_cc.DoMenuItemUI("toggle_event_trace");
-//        m_cc.DoMenuItemUI("toggle_date_rate");
+        m_cc.DoMenuItemUI("toggle_date_rate");
 
 //#if SYSTEM_WINDOWS
 //        if(GetConsoleWindow()) {
@@ -2377,7 +2380,7 @@ const ObjectCommandTable<SDLBeebWindow> SDLBeebWindow::ms_command_table("Beeb Wi
 //#if BBCMICRO_TRACE
 //    GetTogglePopupCommand<BeebWindowPopupType_Trace>(),
 //#endif
-//    GetTogglePopupCommand<BeebWindowPopupType_AudioCallback>(),
+    GetTogglePopupCommand<BeebWindowPopupType_AudioCallback>(),
 //    GetTogglePopupCommand<BeebWindowPopupType_CommandContextStack>(),
     GetTogglePopupCommand<BeebWindowPopupType_CommandKeymaps>(),
     {CommandDef("exit","Exit").MustConfirm(),&SDLBeebWindow::Exit},

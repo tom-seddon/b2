@@ -34,10 +34,10 @@ public:
         m_handler=handler;
 
         m_display_data=m_handler->AllocateDisplayData(1);
-        if(!m_display_data) {
-            messages->e.f("AllocateDisplayData failed\n");
-            return false;
-        }
+//        if(!m_display_data) {
+//            messages->e.f("AllocateDisplayData failed\n");
+//            return false;
+//        }
 
         try {
             m_thread=std::thread([this]() {
@@ -57,6 +57,15 @@ public:
         } else {
             return nullptr;
         }
+    }
+    
+    virtual bool GetDisplayRectForDisplayID(uint32_t display_id,SDL_Rect *rect) const override {
+        return false;
+    }
+    
+    virtual uint32_t GetDisplayIDForPoint(int x,int y) const override {
+        (void)x,(void)y;
+        return 1;
     }
     
     virtual void *GetDisplayDataForPoint(int x,int y) const override {

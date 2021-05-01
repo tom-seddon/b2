@@ -7,6 +7,8 @@
 #include <vector>
 #include "Messages.h"
 #include <inttypes.h>
+#include <SDL.h>
+#include <shared/mutex.h>
 
 #include <shared/enum_def.h>
 #include "VBlankMonitorOSX_private.inl"
@@ -24,6 +26,10 @@ class VBlankMonitorOSX:
     public VBlankMonitor
 {
 public:
+    VBlankMonitorOSX() {
+        MUTEX_SET_NAME(m_mutex,"VBlankMonitorOSX");
+    }
+    
     ~VBlankMonitorOSX() {
         CGDisplayRemoveReconfigurationCallback(&ReconfigurationCallback,this);
         this->ResetDisplaysList();
@@ -48,6 +54,8 @@ public:
     }
 
     void *GetDisplayDataForDisplayID(uint32_t display_id) const override {
+        std::lock_guard<Mutex> lock(m_mutex);
+        
         for(auto &&display:m_displays) {
             if(display->id==display_id) {
                 return display->data;
@@ -56,8 +64,23 @@ public:
 
         return nullptr;
     }
+    
+    bool GetDisplayRectForDisplayID(uint32_t display_id,SDL_Rect *rect) const override {
+        std::lock_guard<Mutex> lock(m_mutex);
+        
+        for(auto &&display:m_displays) {
+            if(display->id==display_id) {
+                *rect=display->rect;
+                return true;
+            }
+        }
+
+        return false;
+    }
 
     void *GetDisplayDataForPoint(int x,int y) const override {
+        std::lock_guard<Mutex> lock(m_mutex);
+        
         CGError cge;
 
         CGDirectDisplayID display_id;
@@ -79,11 +102,31 @@ public:
 
         return nullptr;
     }
+
+    virtual uint32_t GetDisplayIDForPoint(int x,int y) const override {
+        std::lock_guard<Mutex> lock(m_mutex);
+        
+        CGError cge;
+
+        CGDirectDisplayID display_id;
+        uint32_t num_ids;
+        cge=CGGetDisplaysWithPoint(CGPointMake(x,y),1,&display_id,&num_ids);
+        if(cge!=kCGErrorSuccess) {
+            return CGMainDisplayID();
+        }
+
+        if(num_ids==0) {
+            display_id=CGMainDisplayID();
+        }
+
+        return display_id;
+    }
 protected:
 private:
     struct Display {
         CGDirectDisplayID const id;
         VBlankMonitorOSX *const vbm;
+        SDL_Rect rect;
         
         CVDisplayLinkRef link=nullptr;
         void *data=nullptr;
@@ -107,6 +150,7 @@ private:
             }
         }
     };
+    mutable Mutex m_mutex;
     Handler *m_handler=nullptr;
     std::vector<std::unique_ptr<Display>> m_displays;
 
@@ -131,7 +175,7 @@ private:
         }
 
         for(uint32_t i=0;i<num_cgdisplays;++i) {
-            if(!this->AddDisplay(cgdisplays[i])) {
+            if(!this->LockedAddDisplay(cgdisplays[i])) {
                 // I have no idea how much help this error will be, but at least you'll know.
                 messages->e.f("Failed to initialise display 0x%" PRIx32 "\n",cgdisplays[i]);
             }
@@ -141,12 +185,16 @@ private:
     }
 
     void ResetDisplaysList() {
+        std::lock_guard<Mutex> lock(m_mutex);
+        
         while(!m_displays.empty()) {
-            this->RemoveDisplay(m_displays[0]->id);
+            this->LockedRemoveDisplay(m_displays[0]->id);
         }
     }
     
-    bool AddDisplay(CGDirectDisplayID id) {
+    bool LockedAddDisplay(CGDirectDisplayID id) {
+        std::lock_guard<Mutex> lock(m_mutex);
+        
         CVReturn cvr;
         
         for(auto &&display:m_displays) {
@@ -159,17 +207,21 @@ private:
         auto &&display=std::make_unique<Display>(id,this);
 
         CGRect bounds=CGDisplayBounds(id);
-        (void)bounds;
-        LOGF(VBLANK,"Add Dispay %" PRIx32 ": ",id);
+        LOGF(VBLANK,"Add Display %" PRIx32 ": ",id);
         LOGI(VBLANK);
+        
+        display->rect.x=bounds.origin.x;
+        display->rect.y=bounds.origin.y;
+        display->rect.w=bounds.size.width;
+        display->rect.h=bounds.size.height;
         
         LOGF(VBLANK,"(%.1f,%.1f), %.1f x %.1f\n",bounds.origin.x,bounds.origin.y,bounds.size.width,bounds.size.height);
         
         display->data=m_handler->AllocateDisplayData(display->id);
-        if(!display->data) {
-            LOGF(VBLANK,"AllocateDisplayData failed\n");
-            return false;
-        }
+//        if(!display->data) {
+//            LOGF(VBLANK,"AllocateDisplayData failed\n");
+//            return false;
+//        }
         
         cvr=CVDisplayLinkCreateWithCGDisplay(display->id,
                                              &display->link);
@@ -196,9 +248,10 @@ private:
         return true;
     }
     
-    void RemoveDisplay(CGDirectDisplayID id) {
+    void LockedRemoveDisplay(CGDirectDisplayID id) {
         for(auto &&display_it=m_displays.begin();display_it!=m_displays.end();++display_it) {
             if((*display_it)->id==id) {
+                m_handler->FreeDisplayData((*display_it)->id,(*display_it)->data);
                 LOGF(VBLANK,"Remove Display %" PRIx32 "\n",id);
                 m_displays.erase(display_it);
                 return;
@@ -231,9 +284,13 @@ private:
         auto vbm=(VBlankMonitorOSX *)userInfo;
         
         if(flags&kCGDisplayAddFlag) {
-            vbm->AddDisplay(display);
+            std::lock_guard<Mutex> lock(vbm->m_mutex);
+            
+            vbm->LockedAddDisplay(display);
         } else if(flags&kCGDisplayRemoveFlag) {
-            vbm->RemoveDisplay(display);
+            std::lock_guard<Mutex> lock(vbm->m_mutex);
+            
+            vbm->LockedRemoveDisplay(display);
         }
     }
                                         

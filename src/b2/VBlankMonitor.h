@@ -10,6 +10,7 @@
 //////////////////////////////////////////////////////////////////////////
 
 class Messages;
+struct SDL_Rect;
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -34,7 +35,11 @@ public:
     virtual bool Init(Handler *handler,Messages *messages)=0;
 
     virtual void *GetDisplayDataForDisplayID(uint32_t display_id) const=0;
+    // Rect info may not be available, even if the display id is valid.
+    virtual bool GetDisplayRectForDisplayID(uint32_t display_id,SDL_Rect *rect) const=0;
     virtual void *GetDisplayDataForPoint(int x,int y) const=0;
+    virtual uint32_t GetDisplayIDForPoint(int x,int y) const=0;
+    
 protected:
 private:
 };

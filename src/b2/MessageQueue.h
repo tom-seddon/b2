@@ -23,6 +23,9 @@ template<class T>
 class MessageQueue {
 public:
     MessageQueue()=default;
+    explicit MessageQueue(std::string name) {
+        this->SetName(std::move(name));
+    }
 
     void SetName(std::string name) {
         (void)name;
@@ -49,8 +52,7 @@ public:
         m_cv.notify_one();
     }
 
-    // When no pushed messages are available, an indexed pushed
-    // message is retrieved. Each message pushed with a particular
+    // Each message pushed with a particular
     // index replaces the previous message with that index, so that
     // messages that supercede any previous messages of the same type
     // can be pushed without having to worry about filling the queue
@@ -58,11 +60,15 @@ public:
     //
     // The consumer can't distinguished indexed messages from
     // non-indexed ones. The distinction is for the producer's
-    // benefit.
+    // benefit. 
     //
     // Valid indexes are from 0 to 63.
-    void ProducerPushIndexed(uint8_t index,T message) {
+    //
+    // Returns true if an unconsumed message with that index was
+    // replaced.
+    bool ProducerPushIndexed(uint8_t index,T message) {
         ASSERT(index<64);
+        uint64_t mask=1ull<<index;
 
         uint64_t old_indexed_messages_pending;
         {
@@ -71,14 +77,16 @@ public:
             old_indexed_messages_pending=m_indexed_messages_pending;
 
             m_indexed_messages[index]=Message(std::move(message));
-            m_indexed_messages_pending|=1ull<<index;
+            m_indexed_messages_pending|=mask;
         }
 
         if(old_indexed_messages_pending==0) {
             m_cv.notify_one();
         }
+        
+        return !!(old_indexed_messages_pending&mask);
     }
-
+    
     void ConsumerWaitForMessages(std::vector<T> *messages) {
         std::unique_lock<Mutex> lock(m_mutex);
 

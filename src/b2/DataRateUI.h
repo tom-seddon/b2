@@ -10,6 +10,7 @@
 #include <atomic>
 
 class BeebWindow;
+class SDLBeebWindow;
 class SettingsUI;
 
 //////////////////////////////////////////////////////////////////////////
@@ -84,6 +85,7 @@ private:
 //////////////////////////////////////////////////////////////////////////
 
 std::unique_ptr<SettingsUI> CreateDataRateUI(BeebWindow *beeb_window);
+std::unique_ptr<SettingsUI> CreateDataRateUI(SDLBeebWindow *beeb_window);
 
 void ResetTimerDefs();
 

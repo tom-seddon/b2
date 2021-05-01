@@ -1,11 +1,12 @@
 #include <shared/system.h>
 #include "DataRateUI.h"
-#include "BeebWindow.h"
+#include "SDLBeebWindow.h"
 #include "BeebThread.h"
 #include "dear_imgui.h"
 #include <shared/debug.h>
 #include "SettingsUI.h"
 #include <inttypes.h>
+#include "b2.h"
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -114,25 +115,36 @@ void TimerDef::DoImGui() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+enum GraphType {
+    GraphType_Production,
+    GraphType_Consumption,
+};
+
+//struct DisplayState {
+//    uint64_t last_seen_update_counter=0;
+//    DisplayStateGraphType graph_type=DisplayStateGraphType_Production;
+//};
+
 class DataRateUI:
     public SettingsUI
 {
 public:
-    explicit DataRateUI(BeebWindow *beeb_window);
+    explicit DataRateUI(SDLBeebWindow *beeb_window);
 
     void DoImGui() override;
 
     bool OnClose() override;
 protected:
 private:
-    BeebWindow *m_beeb_window;
+    GraphType m_graph_type=GraphType_Consumption;
+    SDLBeebWindow *m_beeb_window=nullptr;
 };
 
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-DataRateUI::DataRateUI(BeebWindow *beeb_window):
+DataRateUI::DataRateUI(SDLBeebWindow *beeb_window):
     m_beeb_window(beeb_window)
 {
 }
@@ -153,13 +165,39 @@ static float GetAudioCallbackRecordPercentage(void *data_,int idx) {
     }
 }
 
+struct GetFrameTimeData {
+    const GlobalStats::DisplayStats *dstats=nullptr;
+    GraphType graph_type=GraphType_Consumption;
+};
+
 static float GetFrameTime(void *data_,int idx) {
-    auto data=(const std::vector<BeebWindow::VBlankRecord> *)data_;
-
-    ASSERT(idx>=0&&(size_t)idx<data->size());
-    const BeebWindow::VBlankRecord *record=&(*data)[(size_t)idx];
-
-    return (float)(GetSecondsFromTicks(record->num_ticks)*1000.);
+    auto data=(const GetFrameTimeData *)data_;
+    
+    ASSERT(idx>=0&&(size_t)idx<data->dstats->vblank_stats.size());
+    size_t vstats_index=(data->dstats->vblank_stats_head+(size_t)idx)%data->dstats->vblank_stats.size();
+    const GlobalStats::VBlankStats *vstats=&data->dstats->vblank_stats[vstats_index];
+    
+    uint64_t ticks;
+    switch(data->graph_type) {
+        default:
+            ASSERT(false);
+        case GraphType_Production:
+            ticks=vstats->production_delta_ticks;
+            break;
+            
+        case GraphType_Consumption:
+            ticks=vstats->consumption_delta_ticks;
+            break;
+    }
+    
+    return (float)GetSecondsFromTicks(ticks)*1000.;
+    
+//    auto data=(const std::vector<BeebWindow::VBlankRecord> *)data_;
+//
+//    ASSERT(idx>=0&&(size_t)idx<data->size());
+//    const BeebWindow::VBlankRecord *record=&(*data)[(size_t)idx];
+//
+//    return (float)(GetSecondsFromTicks(record->num_ticks)*1000.);
 }
 
 static float GetNumUnits(void *data_,int idx) {
@@ -208,26 +246,63 @@ static void MutexMetadataUI(const MutexMetadata *m) {
 }
 #endif
 
+static void GlobalEventStatsUI(const char *caption,const GlobalStats::EventStats &stats) {
+    ImGui::TextUnformatted(caption);
+    ImGui::Text("VBlank messages: %" PRIu64,stats.num_vblank_messages);
+    ImGui::Text("Mouse motion events: %" PRIu64,stats.num_mouse_motion_events);
+    ImGui::Text("Mouse wheel events: %" PRIu64,stats.num_mouse_wheel_events);
+    ImGui::Text("Text input events: %" PRIu64,stats.num_text_input_events);
+    ImGui::Text("Key up/down events: %" PRIu64,stats.num_key_events);
+}
+
 void DataRateUI::DoImGui() {
-    std::shared_ptr<BeebThread> beeb_thread=m_beeb_window->GetBeebThread();
+    const GlobalStats *const stats=GetGlobalStats();
+//    std::shared_ptr<BeebThread> beeb_thread=m_beeb_window->GetBeebThread();
 
     ImGui::Separator();
 
-    ImGui::TextUnformatted("Audio Data Availability (mark=25%)");
-    std::vector<BeebThread::AudioCallbackRecord> audio_records=beeb_thread->GetAudioCallbackRecords();
-    ImGuiPlotLines("",&GetAudioCallbackRecordPercentage,&audio_records,(int)audio_records.size(),0,nullptr,0.f,120.,ImVec2(0,100),ImVec2(0,25));
-
+//    ImGui::TextUnformatted("Audio Data Availability (mark=25%)");
+//    std::vector<BeebThread::AudioCallbackRecord> audio_records=beeb_thread->GetAudioCallbackRecords();
+//    ImGuiPlotLines("",&GetAudioCallbackRecordPercentage,&audio_records,(int)audio_records.size(),0,nullptr,0.f,120.,ImVec2(0,100),ImVec2(0,25));
+//
     ImGui::Separator();
 
-    ImGui::TextUnformatted("PC VBlank Time (mark=1/60 sec)");
-    std::vector<BeebWindow::VBlankRecord> vblank_records=m_beeb_window->GetVBlankRecords();
-    ImGuiPlotLines("",&GetFrameTime,&vblank_records,(int)vblank_records.size(),0,nullptr,0.f,100.f,ImVec2(0,100),ImVec2(0,1000.f/60));
+    ImGuiRadioButton(&m_graph_type,GraphType_Production,"Production");
+    ImGui::SameLine();
+    ImGuiRadioButton(&m_graph_type,GraphType_Consumption,"Consumption");
+    
+    for(const GlobalStats::DisplayStats &dstats:stats->display_stats) {
+        ImGuiIDPusher pusher(dstats.display_id);
+        
+        ImGui::Text("VBlank Times for display %u (mark=1/60 sec)",dstats.display_id);
+        if(dstats.w>0&&dstats.h>0) {
+            ImGui::Text("(Display rect: (%d,%d) + %d x %d)",dstats.x,dstats.y,dstats.w,dstats.h);
+        }
+        
 
-    ImGui::TextUnformatted("Video Data Consumed per PC VBlank (mark=1/60 sec)");
-    ImGuiPlotLines("",&GetNumUnits,&vblank_records,(int)vblank_records.size(),0,nullptr,0.f,2e6f/15,ImVec2(0,100),ImVec2(0,2e6f/60));
-
-    ImGui::TextUnformatted("Video Data Availability (mark=50%)");
-    ImGuiPlotLines("",&GetPercentage,&vblank_records,(int)vblank_records.size(),0,nullptr,0.f,200.f,ImVec2(0,100),ImVec2(0,50));
+        //ImGui::TextUnformatted("PC VBlank Time (mark=1/60 sec)");
+    //std::vector<BeebWindow::VBlankRecord> vblank_records=m_beeb_window->GetVBlankRecords();
+        
+        GetFrameTimeData data;
+        data.dstats=&dstats;
+        data.graph_type=m_graph_type;
+        
+        ImGuiPlotLines("",
+                       &GetFrameTime,
+                       &data,
+                       (int)dstats.vblank_stats.size(),
+                       0,
+                       nullptr,
+                       0.f,100.f,
+                       ImVec2(0,100),
+                       ImVec2(0,1000.f/60));
+    }
+//
+//    ImGui::TextUnformatted("Video Data Consumed per PC VBlank (mark=1/60 sec)");
+//    ImGuiPlotLines("",&GetNumUnits,&vblank_records,(int)vblank_records.size(),0,nullptr,0.f,2e6f/15,ImVec2(0,100),ImVec2(0,2e6f/60));
+//
+//    ImGui::TextUnformatted("Video Data Availability (mark=50%)");
+//    ImGuiPlotLines("",&GetPercentage,&vblank_records,(int)vblank_records.size(),0,nullptr,0.f,200.f,ImVec2(0,100),ImVec2(0,50));
 
     if(!!g_all_root_timer_defs&&!g_all_root_timer_defs->empty()) {
         ImGui::Separator();
@@ -247,6 +322,11 @@ void DataRateUI::DoImGui() {
 //            ImGui::Text("%.3f sec avg",GetSecondsFromTicks((double)ticks/count));
 //        }
 //    }
+    
+    ImGui::Separator();
+    
+    GlobalEventStatsUI("Total",stats->total);
+    GlobalEventStatsUI("Window",stats->window);
 
 #if MUTEX_DEBUGGING
 
@@ -279,6 +359,23 @@ void DataRateUI::DoImGui() {
     }
 
 #endif
+                                      
+//    // clear out state display states.
+//    {
+//        auto it=m_display_states.begin();
+//        while(it!=m_display_states.end()) {
+//            if(it->second.last_seen_update_counter!=m_update_counter) {
+//                auto next_it=it;
+//                ++next_it;
+//                m_display_states.erase(it);
+//                it=next_it;
+//            } else {
+//                ++it;
+//            }
+//        }
+//    }
+//
+//    ++m_update_counter;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -303,6 +400,10 @@ void ResetTimerDefs() {
 //////////////////////////////////////////////////////////////////////////
 
 std::unique_ptr<SettingsUI> CreateDataRateUI(BeebWindow *beeb_window) {
+    return nullptr;
+}
+
+std::unique_ptr<SettingsUI> CreateDataRateUI(SDLBeebWindow *beeb_window) {
     return std::make_unique<DataRateUI>(beeb_window);
 }
 

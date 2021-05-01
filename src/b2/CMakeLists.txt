@@ -38,7 +38,7 @@ add_executable(b2 MACOSX_BUNDLE
   VBlankMonitorDefault.cpp VBlankMonitorDefault.h
   VideoWriter.cpp VideoWriter.h
   WriteVideoJob.cpp WriteVideoJob.h
-  b2.cpp b2.h b2.inl
+  b2.cpp b2.h b2.inl b2_private.inl
   commands.cpp commands.h
   conf.cpp conf.h
   dear_imgui.cpp dear_imgui.h

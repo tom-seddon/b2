@@ -48,6 +48,14 @@
 #include "b2.inl"
 #include <shared/enum_end.h>
 
+#include <shared/enum_decl.h>
+#include "b2_private.inl"
+#include <shared/enum_end.h>
+
+#include <shared/enum_def.h>
+#include "b2_private.inl"
+#include <shared/enum_end.h>
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
@@ -89,12 +97,118 @@ LOG_DEFINE(OUTPUTND,"",&log_printer_stdout,false)
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static Uint32 g_first_event_type;
+// SDL_WaitEvent has a Sleep(1 ms) in it: https://github.com/tom-seddon/SDL-1/blob/2fdbae22cb2f75643447c34d2dab7f15305e3567/src/events/SDL_events.c#L790
+
+class GlobalMessage {
+public:
+    const GlobalMessageType type;
+    
+    explicit GlobalMessage(GlobalMessageType type);
+    virtual ~GlobalMessage()=0;
+protected:
+private:
+};
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+GlobalMessage::GlobalMessage(GlobalMessageType type_):
+type(type_)
+{
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+GlobalMessage::~GlobalMessage() {
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+class FunctionGlobalMessage:
+public GlobalMessage
+{
+public:
+    std::function<void()> fun;
+    
+    FunctionGlobalMessage(std::function<void()> fun);
+protected:
+private:
+};
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+FunctionGlobalMessage::FunctionGlobalMessage(std::function<void()> fun_):
+GlobalMessage(GlobalMessageType_Function),
+fun(std::move(fun_))
+{
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+class VBlankGlobalMessage:
+public GlobalMessage
+{
+public:
+    const uint32_t display_id;
+    const uint64_t creation_ticks;
+    
+    explicit VBlankGlobalMessage(uint32_t display_id);
+protected:
+private:
+};
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+VBlankGlobalMessage::VBlankGlobalMessage(uint32_t display_id_):
+GlobalMessage(GlobalMessageType_VBlank),
+display_id(display_id_),
+creation_ticks(GetCurrentTickCount())
+{
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+class RemoveDisplayMessage:
+public GlobalMessage
+{
+public:
+    const uint32_t display_id;
+    
+    explicit RemoveDisplayMessage(uint32_t display_id);
+protected:
+private:
+};
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+RemoveDisplayMessage::RemoveDisplayMessage(uint32_t display_id_):
+GlobalMessage(GlobalMessageType_RemoveDisplay),
+display_id(display_id_)
+{
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+static MessageQueue<std::unique_ptr<GlobalMessage>> g_global_message_queue("Global MQ");
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 bool g_option_vsync=true;
+
+static GlobalStats g_global_stats;
+
+const GlobalStats *GetGlobalStats() {
+    return &g_global_stats;
+}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -122,80 +236,64 @@ class b2VBlankHandler:
     public VBlankMonitor::Handler
 {
 public:
-    struct VBlank {
-        uint64_t ticks;
-        int event;
-    };
-
-    struct Display {
-        Mutex mutex;
-        VBlank vblanks[NUM_VBLANK_RECORDS]={};
-        size_t vblank_index=0;
-        bool message_pending=false;
-    };
+//    struct VBlank {
+//        uint64_t ticks;
+//        int event;
+//    };
+//
+//    struct Display {
+//        Mutex mutex;
+//        VBlank vblanks[NUM_VBLANK_RECORDS]={};
+//        size_t vblank_index=0;
+//    };
 
     void *AllocateDisplayData(uint32_t display_id) override;
     void FreeDisplayData(uint32_t display_id,void *data) override;
     void ThreadVBlank(uint32_t display_id,void *data) override;
+    void SetDisplayID(uint32_t display_id);
 protected:
 private:
+    std::atomic<uint32_t> m_display_id{};
 };
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 void *b2VBlankHandler::AllocateDisplayData(uint32_t display_id) {
-    (void)display_id;
-
-    auto display=new Display;
-
-    MUTEX_SET_NAME(display->mutex,strprintf("DisplayData for display %" PRIu32,display_id));
-
-    return display;
+    return nullptr;
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 void b2VBlankHandler::FreeDisplayData(uint32_t display_id,void *data) {
-    (void)display_id;
-
-    auto display=(Display *)data;
-
-    delete display;
+    g_global_message_queue.ProducerPush(std::make_unique<RemoveDisplayMessage>(display_id));
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 void b2VBlankHandler::ThreadVBlank(uint32_t display_id,void *data) {
-    auto display=(Display *)data;
-
-    ASSERT(display->vblank_index<NUM_VBLANK_RECORDS);
-    VBlank *vblank=&display->vblanks[display->vblank_index];
-    ++display->vblank_index;
-    display->vblank_index%=NUM_VBLANK_RECORDS;
-
-    vblank->ticks=GetCurrentTickCount();
-
-    bool message_pending;
-    {
-        std::lock_guard<Mutex> lock(display->mutex);
-
-        message_pending=display->message_pending;
-        vblank->event=!message_pending;
-
-        if(vblank->event) {
-            SDL_Event event={};
-            event.user.type=g_first_event_type+SDLEventType_VBlank;
-            event.user.code=(Sint32)display_id;
-
-            SDL_PushEvent(&event);
-
-            display->message_pending=true;
-        }
-    }
+//    if(display_id==m_display_id.load(std::memory_order_acquire)) {
+////    auto display=(Display *)data;
+////
+////    ASSERT(display->vblank_index<NUM_VBLANK_RECORDS);
+////    VBlank *vblank=&display->vblanks[display->vblank_index];
+////    ++display->vblank_index;
+////    display->vblank_index%=NUM_VBLANK_RECORDS;
+////
+////    vblank->ticks=GetCurrentTickCount();
+//
+//        g_global_message_queue.ProducerPushIndexed(GlobalMessageQueueIndex_VBlank,std::make_unique<VBlankGlobalMessage>(display_id));
+//        //g_global_message_queue.ProducerPush(std::make_unique<VBlankGlobalMessage>(display_id));
+//    }
+    g_global_message_queue.ProducerPush(std::make_unique<VBlankGlobalMessage>(display_id));
 }
+
+void b2VBlankHandler::SetDisplayID(uint32_t display_id) {
+    m_display_id.store(display_id,std::memory_order_release);
+}
+
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -268,22 +366,7 @@ static void ThreadFillAudioBuffer(void *userdata,uint8_t *stream,int len) {
 //////////////////////////////////////////////////////////////////////////
 
 void PushFunctionMessage(std::function<void()> fun) {
-    SDL_Event event={};
-
-    event.user.type=g_first_event_type+SDLEventType_Function;
-
-    event.user.data1=new std::function<void()>(std::move(fun));
-
-    SDL_PushEvent(&event);
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-uint32_t GetSDLUserEventType(SDLEventType event_type) {
-    ASSERT(event_type>=0&&event_type<SDLEventType_Count);
-
-    return g_first_event_type+event_type;
+    g_global_message_queue.ProducerPush(std::make_unique<FunctionGlobalMessage>(std::move(fun)));
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -616,7 +699,7 @@ static bool InitSystem(
     SDL_EnableScreenSaver();
 
     // Allocate user events
-    g_first_event_type=SDL_RegisterEvents(SDLEventType_Count);
+    //g_first_event_type=SDL_RegisterEvents(SDLEventType_Count);
 
     // 
 //    SDL_AddTimer(1000,&UpdateWindowTitle,NULL);
@@ -887,8 +970,9 @@ static bool HandleEvents(SDLBeebWindow *beeb_window,
                          VBlankMonitor *vblank_monitor,
                          UpdateResult last_update_result)
 {
-    SDL_Event event;
-    bool got_event;
+    std::vector<std::unique_ptr<GlobalMessage>> global_messages;
+    SDL_Event sdl_event;
+    bool got_sdl_event;
     
     for(;;) {
         switch(last_update_result) {
@@ -898,119 +982,202 @@ static bool HandleEvents(SDLBeebWindow *beeb_window,
                 return false;
                 
             case UpdateResult_SpeedLimited:
-                if(!SDL_WaitEvent(&event)) {
+                ASSERT(false);
+                if(!SDL_WaitEvent(&sdl_event)) {
                     // WaitEvent error = quit.
                     return false;
                 }
-                got_event=true;
+                got_sdl_event=true;
                 break;
                 
             case UpdateResult_FlatOut:
-                got_event=SDL_PollEvent(&event);
+                got_sdl_event=SDL_PollEvent(&sdl_event);
+                g_global_message_queue.ConsumerPollForMessages(&global_messages);
                 break;
         }
         
-        if(!got_event) {
-            break;
+        if(!got_sdl_event) {
+            if(global_messages.empty()) {
+                break;
+            }
         }
         
-        switch(event.type) {
-            case SDL_QUIT:
-                return false;
-                
-            case SDL_WINDOWEVENT:
-                if(event.window.windowID==beeb_window_id) {
-                    switch(event.window.event) {
-                        case SDL_WINDOWEVENT_CLOSE:
-                            //beeb_window->SaveSettings();
-                            break;
-                            
-                        case SDL_WINDOWEVENT_SHOWN:
-                        case SDL_WINDOWEVENT_HIDDEN:
-                        case SDL_WINDOWEVENT_MOVED:
-                        case SDL_WINDOWEVENT_RESIZED:
-                        case SDL_WINDOWEVENT_SIZE_CHANGED:
-                        case SDL_WINDOWEVENT_MAXIMIZED:
-                        case SDL_WINDOWEVENT_RESTORED:
-                        case SDL_WINDOWEVENT_FOCUS_GAINED:
-                            beeb_window->UpdateWindowPlacement();
-                            break;
-                    }
-                }
-                break;
-                
-            case SDL_MOUSEMOTION:
-                if(event.motion.windowID==beeb_window_id) {
-                    beeb_window->HandleSDLMouseMotionEvent(event.motion);
-                }
-                break;
-                
-            case SDL_TEXTINPUT:
-                if(event.text.windowID==beeb_window_id) {
-                    beeb_window->HandleSDLTextInput(event.text.text);
-                }
-                break;
-                
-            case SDL_KEYUP:
-            case SDL_KEYDOWN:
-                if(event.key.windowID==beeb_window_id) {
-                    bool handle=true;
-                    
-#if SYSTEM_OSX
-                    if(event.key.keysym.scancode==SDL_SCANCODE_CAPSLOCK_MACOS) {
-                        event.key.keysym.scancode=SDL_SCANCODE_CAPSLOCK;
-                        event.key.keysym.sym=SDL_GetKeyFromScancode(event.key.keysym.scancode);
-                    } else if(event.key.keysym.scancode==SDL_SCANCODE_CAPSLOCK) {
-                        handle=false;
-                    }
-#endif
-                    
-                    if(handle) {
-                        beeb_window->HandleSDLKeyEvent(event.key);
-                    }
-                }
-                break;
-                
-            case SDL_MOUSEWHEEL:
-                if(event.wheel.windowID==beeb_window_id) {
-                    beeb_window->SetSDLMouseWheelState(event.wheel.x,event.wheel.y);
-                }
-                break;
-                
-            default:
-                if(event.type>=g_first_event_type&&event.type<g_first_event_type+SDLEventType_Count) {
-                    switch((SDLEventType)(event.type-g_first_event_type)) {
-                        case SDLEventType_VBlank:
-                        {
-                            rmt_ScopedCPUSample(SDLEventType_VBlank,0);
-                            
-                            if(auto dd=(b2VBlankHandler::Display *)vblank_monitor->GetDisplayDataForDisplayID((uint32_t)event.user.code)) {
-                                uint64_t ticks=GetCurrentTickCount();
-                                
-                                beeb_window->HandleVBlank(vblank_monitor,dd,ticks);
-                                
-                                {
-                                    std::lock_guard<Mutex> lock(dd->mutex);
-                                    
-                                    dd->message_pending=false;
-                                }
+        if(!global_messages.empty()) {
+            for(const std::unique_ptr<GlobalMessage> &global_message:global_messages) {
+                switch(global_message->type) {
+                    case GlobalMessageType_RemoveDisplay:
+                    {
+                        auto message=(RemoveDisplayMessage *)global_message.get();
+                        
+                        for(auto it=g_global_stats.display_stats.begin();it!=g_global_stats.display_stats.end();++it) {
+                            if(it->display_id==message->display_id) {
+                                g_global_stats.display_stats.erase(it);
+                                break;
                             }
-                            break;
                         }
-                            
-                        case SDLEventType_Function:
-                        {
-                            rmt_ScopedCPUSample(SDLEventType_Function,0);
-                            
-                            std::unique_ptr<std::function<void()>> fun((std::function<void()> *)event.user.data1);
-                            
-                            (*fun)();
-                            
-                            break;
+                        break;
+                    }
+                        
+                    case GlobalMessageType_VBlank:
+                    {
+                        auto message=(VBlankGlobalMessage *)global_message.get();
+                        
+                        rmt_ScopedCPUSample(SDLEventType_VBlank,0);
+                        
+                        GlobalStats::DisplayStats *dstats=nullptr;
+                        for(auto &&d:g_global_stats.display_stats) {
+                            if(d.display_id==message->display_id) {
+                                dstats=&d;
+                                break;
+                            }
                         }
+                        
+                        if(!dstats) {
+                            g_global_stats.display_stats.emplace_back();
+                            dstats=&g_global_stats.display_stats.back();
+                            
+                            dstats->display_id=message->display_id;
+                            
+                            SDL_Rect rect;
+                            if(vblank_monitor->GetDisplayRectForDisplayID(dstats->display_id,&rect)) {
+                                dstats->x=rect.x;
+                                dstats->y=rect.y;
+                                dstats->w=rect.w;
+                                dstats->h=rect.h;
+                            }
+                        }
+                        
+                        ++g_global_stats.total.num_vblank_messages;
+                        uint64_t ticks=GetCurrentTickCount();
+                        
+                        GlobalStats::VBlankStats *vstats,*prev_vstats=nullptr;
+                        if(dstats->vblank_stats.size()<100) {
+                            dstats->vblank_stats.emplace_back();
+                            
+                            if(dstats->vblank_stats.size()>1) {
+                                prev_vstats=&dstats->vblank_stats[dstats->vblank_stats.size()-2];
+                            }
+                            vstats=&dstats->vblank_stats.back();
+                        } else {
+                            size_t tail;
+                            if(dstats->vblank_stats_head==0) {
+                                tail=dstats->vblank_stats.size()-1;
+                            } else {
+                                tail=dstats->vblank_stats_head-1;
+                            }
+                            
+                            prev_vstats=&dstats->vblank_stats[tail];
+                            vstats=&dstats->vblank_stats[dstats->vblank_stats_head];
+                            ++dstats->vblank_stats_head;
+                            dstats->vblank_stats_head%=dstats->vblank_stats.size();
+                        }
+                        
+                        vstats->production_ticks=message->creation_ticks;
+                        vstats->consumption_ticks=ticks;
+                        
+                        if(prev_vstats) {
+                            vstats->production_delta_ticks=vstats->production_ticks-prev_vstats->production_ticks;
+                            vstats->consumption_delta_ticks=vstats->consumption_ticks-prev_vstats->consumption_ticks;
+                        }
+                        
+                        if(beeb_window->HandleVBlank(vblank_monitor,message->display_id,ticks)) {
+                            ++g_global_stats.window.num_vblank_messages;
+                            
+                        }
+                        break;
+                    }
+                        
+                    case GlobalMessageType_Function:
+                    {
+                        auto message=(FunctionGlobalMessage *)global_message.get();
+                        
+                        rmt_ScopedCPUSample(GlobalMessageType_Function,0);
+                        
+                        message->fun();
+                        
+                        break;
                     }
                 }
-                break;
+            }
+            global_messages.clear();
+        }
+        
+        if(got_sdl_event) {
+            switch(sdl_event.type) {
+                case SDL_QUIT:
+                    return false;
+                    
+                case SDL_WINDOWEVENT:
+                    if(sdl_event.window.windowID==beeb_window_id) {
+                        switch(sdl_event.window.event) {
+                            case SDL_WINDOWEVENT_CLOSE:
+                                //beeb_window->SaveSettings();
+                                break;
+                                
+                            case SDL_WINDOWEVENT_SHOWN:
+                            case SDL_WINDOWEVENT_HIDDEN:
+                            case SDL_WINDOWEVENT_MOVED:
+                            case SDL_WINDOWEVENT_RESIZED:
+                            case SDL_WINDOWEVENT_SIZE_CHANGED:
+                            case SDL_WINDOWEVENT_MAXIMIZED:
+                            case SDL_WINDOWEVENT_RESTORED:
+                            case SDL_WINDOWEVENT_FOCUS_GAINED:
+                                beeb_window->UpdateWindowPlacement();
+                                break;
+                        }
+                    }
+                    break;
+                    
+                case SDL_MOUSEMOTION:
+                    ++g_global_stats.total.num_mouse_motion_events;
+                    if(sdl_event.motion.windowID==beeb_window_id) {
+                        ++g_global_stats.window.num_mouse_motion_events;
+                        beeb_window->HandleSDLMouseMotionEvent(sdl_event.motion);
+                    }
+                    break;
+                    
+                case SDL_TEXTINPUT:
+                    ++g_global_stats.total.num_text_input_events;
+                    if(sdl_event.text.windowID==beeb_window_id) {
+                        ++g_global_stats.window.num_text_input_events;
+                        beeb_window->HandleSDLTextInput(sdl_event.text.text);
+                    }
+                    break;
+                    
+                case SDL_KEYUP:
+                case SDL_KEYDOWN:
+                    ++g_global_stats.total.num_key_events;
+                    if(sdl_event.key.windowID==beeb_window_id) {
+                        ++g_global_stats.window.num_key_events;
+                        
+                        bool handle=true;
+                        
+#if SYSTEM_OSX
+                        if(sdl_event.key.keysym.scancode==SDL_SCANCODE_CAPSLOCK_MACOS) {
+                            sdl_event.key.keysym.scancode=SDL_SCANCODE_CAPSLOCK;
+                            sdl_event.key.keysym.sym=SDL_GetKeyFromScancode(sdl_event.key.keysym.scancode);
+                        } else if(sdl_event.key.keysym.scancode==SDL_SCANCODE_CAPSLOCK) {
+                            handle=false;
+                        }
+#endif
+                        
+                        if(handle) {
+                            beeb_window->HandleSDLKeyEvent(sdl_event.key);
+                        }
+                    }
+                    break;
+                    
+                case SDL_MOUSEWHEEL:
+                    ++g_global_stats.total.num_mouse_wheel_events;
+                    if(sdl_event.wheel.windowID==beeb_window_id) {
+                        ++g_global_stats.window.num_mouse_wheel_events;
+                        beeb_window->SetSDLMouseWheelState(sdl_event.wheel.x,sdl_event.wheel.y);
+                    }
+                    break;
+                    
+                default:
+                    break;
+            }
         }
     }
     
