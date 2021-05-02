@@ -4,6 +4,10 @@
 #define ENAME GlobalMessageQueueIndex
 EBEGIN()
 // Must be last.
+//
+// There's only 64 indexes for indexed message queue messages. In principle, if
+// you plug in enough monitors, you'll overflow this limit. I'm ignoring this
+// for now.
 EPN(VBlankDisplay0)
 EEND()
 #undef ENAME

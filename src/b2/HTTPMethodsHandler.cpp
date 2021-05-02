@@ -460,7 +460,14 @@ private:
                 request.body.erase(request.body.begin(),request.body.begin()+2);
 
                 beeb_window->GetBeebThread()->Send(std::make_shared<BeebThread::DebugSetBytesMessage>(addr,0,std::move(request.body)));
-                this->SendMessage(beeb_window,server,request,std::make_shared<BeebThread::DebugAsyncCallMessage>((uint16_t)addr,0,0,0,false));
+                this->SendMessage(beeb_window,
+                                  server,
+                                  request,
+                                  std::make_shared<BeebThread::DebugAsyncCallMessage>((uint16_t)addr,
+                                                                                      (uint8_t)0,
+                                                                                      (uint8_t)0,
+                                                                                      (uint8_t)0,
+                                                                                      false));
                 return;
             }
         }

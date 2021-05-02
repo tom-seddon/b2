@@ -60,6 +60,8 @@ public:
     }
     
     virtual bool GetDisplayRectForDisplayID(uint32_t display_id,SDL_Rect *rect) const override {
+        (void)display_id,(void)rect;
+        
         return false;
     }
     

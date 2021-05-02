@@ -279,7 +279,7 @@ public:
     // have to worry about that.)
     const uint64_t *GetNum2MHzCycles() const;
 
-    uint8_t GetKeyState(BeebKey key);
+    bool GetKeyState(BeebKey key);
 
     // Read a value from memory. The read takes place as if the PC were in
     // zero page. There are no side-effects and reads from memory-mapped

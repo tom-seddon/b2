@@ -299,8 +299,8 @@ void ImGuiStuff::NewFrame(bool got_mouse_focus,
         io.KeyShift=false;
     }
 
-    io.DisplaySize.x=display_width;
-    io.DisplaySize.y=display_height;
+    io.DisplaySize.x=(float)display_width;
+    io.DisplaySize.y=(float)display_height;
 
     io.MouseWheel=(float)mouse_wheel_delta.y;
 
@@ -428,9 +428,11 @@ void ImGuiStuff::RenderSDL(SDL_Renderer *renderer,
         }
 
         for(const ImDrawCmd &cmd:draw_list->CmdBuffer) {
-            float clip_w=cmd.ClipRect.z-cmd.ClipRect.x;
-            float clip_h=cmd.ClipRect.w-cmd.ClipRect.y;
-            glScissor(cmd.ClipRect.x,output_height-clip_h-cmd.ClipRect.y,clip_w,clip_h);
+            auto clip_w=(GLsizei)(cmd.ClipRect.z-cmd.ClipRect.x);
+            auto clip_h=(GLsizei)(cmd.ClipRect.w-cmd.ClipRect.y);
+            auto clip_x=(GLint)cmd.ClipRect.x;
+            auto clip_y=(GLint)(output_height-clip_h-cmd.ClipRect.y);
+            glScissor(clip_x,clip_y,clip_w,clip_h);
 
             if(cmd.UserCallback) {
                 if(stored_cmd) {

@@ -569,7 +569,7 @@ const uint64_t *BBCMicro::GetNum2MHzCycles() const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-uint8_t BBCMicro::GetKeyState(BeebKey key) {
+bool BBCMicro::GetKeyState(BeebKey key) {
     ASSERT(key>=0&&(int)key<128);
 
     uint8_t *column=&m_state.key_columns[key&0x0f];
