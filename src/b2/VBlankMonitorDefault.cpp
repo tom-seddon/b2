@@ -85,7 +85,7 @@ private:
         while(!m_stop_thread) {
             std::this_thread::sleep_for(m_interval);
 
-            m_handler->ThreadVBlank(1,m_display_data);
+            m_handler->ThreadVBlank(0,1,m_display_data);
         }
     }
 };

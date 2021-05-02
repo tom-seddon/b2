@@ -24,7 +24,10 @@ public:
 
         virtual void *AllocateDisplayData(uint32_t display_id)=0;
         virtual void FreeDisplayData(uint32_t display_id,void *data)=0;
-        virtual void ThreadVBlank(uint32_t display_id,void *data)=0;
+        
+        // A given display's index is unique, but it may change as displays
+        // are added or removed.
+        virtual void ThreadVBlank(size_t display_index,uint32_t display_id,void *data)=0;
     protected:
     private:
     };

@@ -3,7 +3,8 @@
 
 #define ENAME GlobalMessageQueueIndex
 EBEGIN()
-EPN(VBlank)
+// Must be last.
+EPN(VBlankDisplay0)
 EEND()
 #undef ENAME
 

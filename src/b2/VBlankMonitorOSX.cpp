@@ -124,6 +124,7 @@ public:
 protected:
 private:
     struct Display {
+        size_t index;
         CGDirectDisplayID const id;
         VBlankMonitorOSX *const vbm;
         SDL_Rect rect;
@@ -245,6 +246,7 @@ private:
         }
         
         m_displays.push_back(std::move(display));
+        this->LockedUpdateDisplayIndexes();
         return true;
     }
     
@@ -254,8 +256,16 @@ private:
                 m_handler->FreeDisplayData((*display_it)->id,(*display_it)->data);
                 LOGF(VBLANK,"Remove Display %" PRIx32 "\n",id);
                 m_displays.erase(display_it);
-                return;
+                break;
             }
+        }
+        
+        this->LockedUpdateDisplayIndexes();
+    }
+    
+    void LockedUpdateDisplayIndexes() {
+        for(size_t i=0;i<m_displays.size();++i) {
+            m_displays[i]->index=i;
         }
     }
 
@@ -270,9 +280,9 @@ private:
         (void)inNow,(void)inOutputTime;
         (void)flagsIn,(void)flagsOut;
 
-        auto d=(Display *)displayLinkContext;
+        auto d=(const Display *)displayLinkContext;
 
-        d->vbm->m_handler->ThreadVBlank(d->id,d->data);
+        d->vbm->m_handler->ThreadVBlank(d->index,d->id,d->data);
 
         return kCVReturnSuccess;
     }

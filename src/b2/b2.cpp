@@ -249,8 +249,7 @@ public:
 
     void *AllocateDisplayData(uint32_t display_id) override;
     void FreeDisplayData(uint32_t display_id,void *data) override;
-    void ThreadVBlank(uint32_t display_id,void *data) override;
-    void SetDisplayID(uint32_t display_id);
+    void ThreadVBlank(size_t display_index,uint32_t display_id,void *data) override;
 protected:
 private:
     std::atomic<uint32_t> m_display_id{};
@@ -273,7 +272,7 @@ void b2VBlankHandler::FreeDisplayData(uint32_t display_id,void *data) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void b2VBlankHandler::ThreadVBlank(uint32_t display_id,void *data) {
+void b2VBlankHandler::ThreadVBlank(size_t display_index,uint32_t display_id,void *data) {
 //    if(display_id==m_display_id.load(std::memory_order_acquire)) {
 ////    auto display=(Display *)data;
 ////
@@ -284,16 +283,12 @@ void b2VBlankHandler::ThreadVBlank(uint32_t display_id,void *data) {
 ////
 ////    vblank->ticks=GetCurrentTickCount();
 //
-//        g_global_message_queue.ProducerPushIndexed(GlobalMessageQueueIndex_VBlank,std::make_unique<VBlankGlobalMessage>(display_id));
+    g_global_message_queue.ProducerPushIndexed(GlobalMessageQueueIndex_VBlankDisplay0+display_index,
+                                               std::make_unique<VBlankGlobalMessage>(display_id));
 //        //g_global_message_queue.ProducerPush(std::make_unique<VBlankGlobalMessage>(display_id));
 //    }
-    g_global_message_queue.ProducerPush(std::make_unique<VBlankGlobalMessage>(display_id));
+    //g_global_message_queue.ProducerPush(std::make_unique<VBlankGlobalMessage>(display_id));
 }
-
-void b2VBlankHandler::SetDisplayID(uint32_t display_id) {
-    m_display_id.store(display_id,std::memory_order_release);
-}
-
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
