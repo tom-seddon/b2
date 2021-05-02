@@ -8,6 +8,7 @@
 #include <atlbase.h>
 #include <atomic>
 #include <shared/debug.h>
+#include <SDL.h>
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -76,10 +77,10 @@ public:
                     }
 
                     display->data=m_handler->AllocateDisplayData(display->id);
-                    if(!display->data) {
-                        messages->e.f("AllocateDisplayData failed for monitor: %s\n",display->mi.szDevice);
-                        return false;
-                    }
+                    //if(!display->data) {
+                    //    messages->e.f("AllocateDisplayData failed for monitor: %s\n",display->mi.szDevice);
+                    //    return false;
+                    //}
 
                     m_displays.push_back(std::move(display));
 
@@ -94,6 +95,8 @@ public:
             messages->e.f("No usable displays found");
             return false;
         }
+
+        this->UpdateDisplayIndexes();
 
         for(auto &&display:m_displays) {
             // (HANDLE)std::thread::native_handle would be an option
@@ -115,7 +118,7 @@ public:
         return true;
     }
 
-    void *GetDisplayDataForDisplayID(uint32_t display_id) const {
+    void *GetDisplayDataForDisplayID(uint32_t display_id) const override {
         for(auto &&display:m_displays) {
             if(display->id==display_id) {
                 return display->data;
@@ -125,23 +128,39 @@ public:
         return nullptr;
     }
 
-    void *GetDisplayDataForPoint(int x,int y) const {
-        POINT pt={x,y};
+    void *GetDisplayDataForPoint(int x,int y) const override {
+        const Display *display=this->GetDisplayForPoint(x,y);
 
-        HMONITOR hmonitor=MonitorFromPoint(pt,MONITOR_DEFAULTTONEAREST);
+        return display->data;
+    }
 
+    uint32_t GetDisplayIDForPoint(int x,int y) const override {
+        const Display *display=this->GetDisplayForPoint(x,y);
+
+        return display->id;
+    }
+
+    bool GetDisplayRectForDisplayID(uint32_t display_id,SDL_Rect *rect) const override {
         for(auto &&display:m_displays) {
-            if(display->hmonitor==hmonitor) {
-                return display->data;
+            if(display->id==display_id) {
+                const RECT *mrect=&display->mi.rcMonitor;
+
+                rect->x=mrect->left;
+                rect->y=mrect->top;
+                rect->w=mrect->right-mrect->left;
+                rect->h=mrect->bottom-mrect->top;
+
+                return true;
             }
         }
 
-        return nullptr;
+        return false;
     }
 protected:
 private:
     struct Display {
         uint32_t id=0;
+        size_t index=0;
         HMONITOR hmonitor=nullptr;
         void *data=nullptr;
         VBlankMonitorWindows *vbm=nullptr;
@@ -155,6 +174,20 @@ private:
     CComPtr<IDXGIFactory> m_factory;
     std::vector<std::unique_ptr<Display>> m_displays;
     uint32_t m_next_display_id=1;
+
+    const Display *GetDisplayForPoint(int x,int y) const {
+        POINT pt={x,y};
+
+        HMONITOR hmonitor=MonitorFromPoint(pt,MONITOR_DEFAULTTONEAREST);
+
+        for(auto &&display:m_displays) {
+            if(display->hmonitor==hmonitor) {
+                return display.get();
+            }
+        }
+
+        return m_displays[0].get();
+    }
 
     void ResetDisplayList() {
         for(auto &&display:m_displays) {
@@ -174,6 +207,12 @@ private:
         m_displays.clear();
     }
 
+    void UpdateDisplayIndexes() {
+        for(size_t i=0;i<m_displays.size();++i) {
+            m_displays[i]->index=i;
+        }
+    }
+
     static unsigned __stdcall VBlankThread(void *arg) {
         auto display=(const Display *)arg;
 
@@ -181,7 +220,7 @@ private:
 
         while(!display->stop_thread) {
             display->output->WaitForVBlank();
-            display->vbm->m_handler->ThreadVBlank(display->id,display->data);
+            display->vbm->m_handler->ThreadVBlank(display->index,display->id,display->data);
         }
 
         return 0;
