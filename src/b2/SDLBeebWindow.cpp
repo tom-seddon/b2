@@ -29,7 +29,7 @@
 #include "SDLBeebWindow.inl"
 #include <shared/enum_end.h>
 
-//LOG_EXTERN(OUTPUT);
+LOG_EXTERN(OUTPUT);
 
 static const double MESSAGES_POPUP_TIME_SECONDS=2.5;
 static const double LEDS_POPUP_TIME_SECONDS=1.;
@@ -314,7 +314,9 @@ CommandPrepareResult SDLBeebWindow::KeyCommand::Prepare(SDLBeebWindow *beeb_wind
     }
 
     if(beeb_window->m_beeb) {
-        if(beeb_window->m_beeb->GetKeyState(m_beeb_key)==m_down) {
+        // Don't use the Beeb key states for this, as they may not reflect the
+        // actual key state. (e.g., Beeb never reports Break as held)
+        if(beeb_window->m_real_key_states.GetKeyState(m_beeb_key)==m_down) {
             // not an error - just don't duplicate events when the key is held.
             return CommandPrepareResult_Ignore;
         }
