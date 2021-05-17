@@ -318,7 +318,6 @@ CommandPrepareResult SDLBeebWindow::KeyCommand::Prepare(SDLBeebWindow *beeb_wind
         // actual key state. (e.g., Beeb never reports Break as held)
         if(beeb_window->m_real_key_states.GetKeyState(m_beeb_key)==m_down) {
             // not an error - just don't duplicate events when the key is held.
-            return CommandPrepareResult_Ignore;
         }
     }
     
@@ -1032,7 +1031,7 @@ void SDLBeebWindow::ThreadFillAudioBuffer(SDL_AudioDeviceID audio_device_id,floa
             GetFilterForWidth(&filter,&filter_width,(size_t)num_units);
             ASSERT(filter_width<=num_units);
 
-            for(size_t i=0;i<filter_width;++i) {
+            for(size_t i=0;i<filter_width;++i,++unit) {
                 acc+=(sn_scale*(VOLUMES_TABLE[unit->sn_output.ch[0]]+
                                 VOLUMES_TABLE[unit->sn_output.ch[1]]+
                                 VOLUMES_TABLE[unit->sn_output.ch[2]]+
