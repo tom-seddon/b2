@@ -22,6 +22,8 @@
 #include "SettingsUI.h"
 #include "CommandKeymapsUI.h"
 #include "DataRateUI.h"
+#include "Remapper.h"
+#include "filters.h"
 
 #include <shared/enum_def.h>
 #include "SDLBeebWindow.inl"
@@ -36,6 +38,32 @@ static const double TITLE_UPDATE_TIME_SECONDS=.5;
 static const std::string RECENT_PATHS_DISC_IMAGE="disc_image";
 //static const std::string RECENT_PATHS_RAM="ram";
 static const std::string RECENT_PATHS_NVRAM="nvram";
+
+static const float VOLUMES_TABLE[]={
+    0.00000f, 0.03981f, 0.05012f, 0.06310f,
+    0.07943f, 0.10000f, 0.12589f, 0.15849f,
+    0.19953f, 0.25119f, 0.31623f, 0.39811f,
+    0.50119f, 0.63096f, 0.79433f, 1.00000f,
+};
+
+struct SDLBeebWindow::AudioThreadData {
+    Remapper remapper;
+
+    float bbc_sound_scale=1.f;
+    float disc_sound_scale=1.f;
+
+    size_t sound_buffer_size_samples=0;
+    size_t num_consumed_sound_units=0;
+    
+    // over time, this should settle down to some size that means no more
+    // reallocs.
+    std::vector<SoundDataUnit> work_units;
+
+    // When taking the SDL audio lock and locking units_mutex, do the SDL audio
+    // lock first!
+    Mutex units_mutex;
+    std::vector<SoundDataUnit> units;
+};
 
 struct SDLBeebWindow::SettingsUIMetadata {
     BeebWindowPopupType type;
@@ -419,6 +447,11 @@ bool SDLBeebWindow::Init(const BeebWindowInitArguments &init_arguments,
         return false;
     }
 
+    m_audio_thread_data=new AudioThreadData;
+    m_audio_thread_data->remapper=Remapper(m_init_arguments.sound_spec.freq,SOUND_CLOCK_HZ);
+    m_audio_thread_data->sound_buffer_size_samples=m_init_arguments.sound_spec.samples;
+
+
     m_imgui_stuff=new ImGuiStuff();
     if(!m_imgui_stuff->Init(m_renderer.get(),&m_font_texture)) {
         m_msg.e.f("failed to initialize ImGui\n");
@@ -578,26 +611,36 @@ bool SDLBeebWindow::HandleVBlank(VBlankMonitor *vblank_monitor,uint32_t vblank_d
     
     return true;
 }
- 
+
 UpdateResult SDLBeebWindow::UpdateBeeb() {
     if(m_beeb) {
-        static const size_t MAX_NUM_CYCLES=10000;
+        static const size_t MAX_NUM_CYCLES=5000;
+        // TODO - excessive size! Should be more like
+        // (MAX_NUM_CYCLES+(1<<SOUND_CLOCK_SHIFT)-1)>>SOUND_CLOCK_SHIFT, or w/e.
+        SoundDataUnit sus[MAX_NUM_CYCLES];
+        size_t sus_idx=0;
         size_t i;
         VideoDataUnit vu;
-        SoundDataUnit su;
+        //SoundDataUnit su;
         
         for(i=0;i<MAX_NUM_CYCLES;++i) {
             if(m_beeb->DebugIsHalted()) {
                 break;
             }
             
-            if(m_beeb->Update(&vu,&su)) {
+            if(m_beeb->Update(&vu,&sus[sus_idx])) {
                 // TODO: process sound unit
+                ++sus_idx;
             }
             
             m_tv.Update(&vu);
         }
         
+        {
+            std::lock_guard<Mutex> lock(m_audio_thread_data->units_mutex);
+            m_audio_thread_data->units.insert(m_audio_thread_data->units.end(),sus,sus+sus_idx);
+        }
+
         return UpdateResult_FlatOut;
     } else {
         return UpdateResult_SpeedLimited;
@@ -909,7 +952,98 @@ CommandContext SDLBeebWindow::DoSettingsUI() {
 
 
 void SDLBeebWindow::ThreadFillAudioBuffer(SDL_AudioDeviceID audio_device_id,float *mix_buffer,size_t num_samples) {
-//    m_beeb_window->ThreadFillAudioBuffer(audio_device_id,mix_buffer,num_samples);
+    AudioThreadData *const atd=m_audio_thread_data;
+    if(!atd) {
+        return;
+    }
+
+    ASSERT(num_samples==atd->sound_buffer_size_samples);
+
+    uint64_t num_units_needed_now=atd->remapper.GetNumUnits(num_samples);
+    uint64_t num_units_needed_future=atd->remapper.GetNumUnits(num_samples*5/2);
+
+    bool limit_speed=false;
+
+    uint64_t max_num_sound_units;
+    if(limit_speed) {
+        max_num_sound_units=atd->num_consumed_sound_units+num_units_needed_future;
+    } else {
+        max_num_sound_units=UINT64_MAX;
+    }
+
+    Remapper *remapper,temp_remapper;
+    {
+        std::lock_guard<Mutex> lock(atd->units_mutex);
+
+        if(atd->units.empty()) {
+            return;
+        }
+
+        if(limit_speed) {
+            if(num_units_needed_now<=atd->units.size()) {
+                remapper=&atd->remapper;
+
+                // TODO - it is in principle possible to determine statically
+                // that SoundDataUnit is memcpy'able! But does that happen?
+                size_t num_units_left=atd->units.size()-num_units_needed_now;
+                atd->work_units.resize(num_units_needed_now);
+                memcpy(atd->work_units.data(),atd->units.data(),num_units_needed_now*sizeof(SoundDataUnit));
+                memmove(atd->units.data(),atd->units.data()+num_units_needed_now,num_units_left*sizeof(SoundDataUnit));
+                atd->units.resize(num_units_left);
+            } else {
+                //if(perfect) {
+                //    return;
+                //}
+                goto use_units_available;
+            }
+        } else {
+        use_units_available:;
+            // Underflow, or no speed limiting... just eat it all, however
+            // much there is.
+            temp_remapper=Remapper(num_samples,atd->units.size());
+            remapper=&temp_remapper;
+
+            atd->work_units.swap(atd->units);
+            atd->units.clear();
+        }
+    }
+
+    float *dest=mix_buffer;
+    float sn_scale=1/4.f*atd->bbc_sound_scale;
+#if BBCMICRO_ENABLE_DISC_DRIVE_SOUND
+    float disc_sound_scale=1.f*atd->disc_sound_scale;
+#endif
+
+    float acc=0.f;
+    const SoundDataUnit *unit=atd->work_units.data();
+
+    for(size_t sample_idx=0;sample_idx<num_samples;++sample_idx) {
+        uint64_t num_units_=remapper->Step();
+        ASSERT(num_units_<=SIZE_MAX);
+        size_t num_units=(size_t)num_units_;
+
+        if(num_units>0) {
+            acc=0.f;
+
+            const float *filter;
+            size_t filter_width;
+            GetFilterForWidth(&filter,&filter_width,(size_t)num_units);
+            ASSERT(filter_width<=num_units);
+
+            for(size_t i=0;i<filter_width;++i) {
+                acc+=(sn_scale*(VOLUMES_TABLE[unit->sn_output.ch[0]]+
+                                VOLUMES_TABLE[unit->sn_output.ch[1]]+
+                                VOLUMES_TABLE[unit->sn_output.ch[2]]+
+                                VOLUMES_TABLE[unit->sn_output.ch[3]])+
+                     disc_sound_scale*unit->disc_drive_sound)**filter++;
+            }
+
+            unit+=num_units-filter_width;
+            atd->num_consumed_sound_units+=num_units;
+        }
+
+        dest[sample_idx]=acc;
+    }
 }
 
 void SDLBeebWindow::UpdateWindowPlacement() {

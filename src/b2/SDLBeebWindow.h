@@ -226,6 +226,7 @@ private:
     class FileMenuItem;
     class OptionsUI;
     struct SettingsUIMetadata;
+    struct AudioThreadData;
     
 //    enum ImGuiTextures {
 //        ImGuiTexture_Font,
@@ -241,6 +242,11 @@ private:
 
         DriveState();
     };
+
+    //
+    // Sound.
+    //
+    AudioThreadData *m_audio_thread_data=nullptr;
 
     //
     // Message list and associated UI.

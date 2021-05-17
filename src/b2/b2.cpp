@@ -316,18 +316,16 @@ static void ThreadFillAudioBuffer(void *userdata,uint8_t *stream,int len) {
     //float us_per_sample=1e6f/data->spec.freq;
 
     if(num_samples>data->mix_buffer.size()) {
-        data->mix_buffer.resize(num_samples);
+        data->mix_buffer.clear();
+        data->mix_buffer.resize(num_samples,0.f);
     }
-
-    memset(data->mix_buffer.data(),0,num_samples*sizeof(float));
-
-    //_mm_lfence();
 
     if(data->beeb_window) {
         data->beeb_window->ThreadFillAudioBuffer(data->device,data->mix_buffer.data(),num_samples);
+        memcpy(stream,data->mix_buffer.data(),(size_t)len);
+    } else {
+        memset(data->mix_buffer.data(),data->mix_buffer.size()*sizeof(float),0);
     }
-
-    memcpy(stream,data->mix_buffer.data(),(size_t)len);
 
     rmt_EndCPUSample();
 }
@@ -1352,6 +1350,7 @@ static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &mess
                            last_update_result))
         {
             last_update_result=beeb_window->UpdateBeeb();
+
             last_update_result=UpdateResult_FlatOut;
         }
         
