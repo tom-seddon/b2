@@ -165,6 +165,23 @@ static float GetAudioCallbackRecordPercentage(void *data_,int idx) {
     }
 }
 
+template<class T>
+static const T *GetStats(const std::vector<T> &stats,size_t stats_head,int idx) {
+    ASSERT(idx>=0&&(size_t)idx<stats.size());
+    size_t stats_index=(stats_head+(size_t)idx)%stats.size();
+
+    const T *result=&stats[stats_index];
+    return result;
+}
+
+//static const GlobalStats::VBlankStats *GetVBlankStats(const GlobalStats::DisplayStats *dstats,int idx) {
+//    ASSERT(idx>=0&&(size_t)idx<dstats->vblank_stats.size());
+//    size_t vstats_index=(dstats->vblank_stats_head+(size_t)idx)%dstats->vblank_stats.size();
+//
+//    const GlobalStats::VBlankStats *vstats=&dstats->vblank_stats[vstats_index];
+//    return vstats;
+//}
+
 struct GetFrameTimeData {
     const GlobalStats::DisplayStats *dstats=nullptr;
     GraphType graph_type=GraphType_Consumption;
@@ -173,24 +190,22 @@ struct GetFrameTimeData {
 static float GetFrameTime(void *data_,int idx) {
     auto data=(const GetFrameTimeData *)data_;
     
-    ASSERT(idx>=0&&(size_t)idx<data->dstats->vblank_stats.size());
-    size_t vstats_index=(data->dstats->vblank_stats_head+(size_t)idx)%data->dstats->vblank_stats.size();
-    const GlobalStats::VBlankStats *vstats=&data->dstats->vblank_stats[vstats_index];
+    const GlobalStats::VBlankStats *vstats=GetStats(data->dstats->vblank_stats,data->dstats->vblank_stats_head,idx);
     
     uint64_t ticks;
     switch(data->graph_type) {
-        default:
-            ASSERT(false);
-        case GraphType_Production:
-            ticks=vstats->production_delta_ticks;
-            break;
-            
-        case GraphType_Consumption:
-            ticks=vstats->consumption_delta_ticks;
-            break;
+    default:
+        ASSERT(false);
+    case GraphType_Production:
+        ticks=vstats->production_delta_ticks;
+        break;
+
+    case GraphType_Consumption:
+        ticks=vstats->consumption_delta_ticks;
+        break;
     }
     
-    return (float)GetSecondsFromTicks(ticks)*1000.;
+    return (float)GetSecondsFromTicks(ticks)*1000.f;
     
 //    auto data=(const std::vector<BeebWindow::VBlankRecord> *)data_;
 //
@@ -198,6 +213,13 @@ static float GetFrameTime(void *data_,int idx) {
 //    const BeebWindow::VBlankRecord *record=&(*data)[(size_t)idx];
 //
 //    return (float)(GetSecondsFromTicks(record->num_ticks)*1000.);
+}
+
+static float GetUpdateTime(void *data,int idx) {
+    auto gstats=(const GlobalStats *)data;
+    const GlobalStats::UpdateStats *ustats=GetStats(gstats->update_stats,gstats->update_stats_head,idx);
+
+    return (float)GetSecondsFromTicks(ustats->update_ticks)*1000.f;
 }
 
 static float GetNumUnits(void *data_,int idx) {
@@ -297,7 +319,19 @@ void DataRateUI::DoImGui() {
                        ImVec2(0,100),
                        ImVec2(0,1000.f/60));
     }
-//
+
+    ImGui::Text("UpdateBeeb Times");
+    ImGuiPlotLines("",
+                   &GetUpdateTime,
+                   (void *)stats,
+                   (int)stats->update_stats.size(),
+                   0,
+                   nullptr,
+                   0.f,100.f,
+                   ImVec2(0,100),
+                   ImVec2(0,1000.f/60));
+
+    //
 //    ImGui::TextUnformatted("Video Data Consumed per PC VBlank (mark=1/60 sec)");
 //    ImGuiPlotLines("",&GetNumUnits,&vblank_records,(int)vblank_records.size(),0,nullptr,0.f,2e6f/15,ImVec2(0,100),ImVec2(0,2e6f/60));
 //

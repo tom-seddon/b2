@@ -955,6 +955,40 @@ static void SetRmtThreadName(const char *name,void *context) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+template<class T>
+static void AddStats(T **prev_ptr,T **cur_ptr,std::vector<T> *cont,size_t *head,size_t num_entries) {
+    if(cont->size()<num_entries) {
+        cont->emplace_back();
+
+        if(prev_ptr) {
+            size_t n=cont->size();
+            if(n>1) {
+                *prev_ptr=&(*cont)[n-2];
+            } else {
+                *prev_ptr=nullptr;
+            }
+        }
+
+        *cur_ptr=&cont->back();
+    } else {
+        if(prev_ptr) {
+            size_t tail;
+            if(*head==0) {
+                tail=cont->size()-1;
+            } else {
+                tail=*head-1;
+            }
+
+            *prev_ptr=&(*cont)[tail];
+        }
+
+        *cur_ptr=&(*cont)[*head];
+
+        ++*head;
+        *head%=cont->size();
+    }
+}
+
 static bool HandleEvents(SDLBeebWindow *beeb_window,
                          uint32_t beeb_window_id,
                          VBlankMonitor *vblank_monitor,
@@ -1049,27 +1083,9 @@ static bool HandleEvents(SDLBeebWindow *beeb_window,
                         ++g_global_stats.total.num_vblank_messages;
                         uint64_t ticks=GetCurrentTickCount();
                         
-                        GlobalStats::VBlankStats *vstats,*prev_vstats=nullptr;
-                        if(dstats->vblank_stats.size()<100) {
-                            dstats->vblank_stats.emplace_back();
-                            
-                            if(dstats->vblank_stats.size()>1) {
-                                prev_vstats=&dstats->vblank_stats[dstats->vblank_stats.size()-2];
-                            }
-                            vstats=&dstats->vblank_stats.back();
-                        } else {
-                            size_t tail;
-                            if(dstats->vblank_stats_head==0) {
-                                tail=dstats->vblank_stats.size()-1;
-                            } else {
-                                tail=dstats->vblank_stats_head-1;
-                            }
-                            
-                            prev_vstats=&dstats->vblank_stats[tail];
-                            vstats=&dstats->vblank_stats[dstats->vblank_stats_head];
-                            ++dstats->vblank_stats_head;
-                            dstats->vblank_stats_head%=dstats->vblank_stats.size();
-                        }
+                        GlobalStats::VBlankStats *vstats,*prev_vstats;
+                        AddStats(&prev_vstats,&vstats,
+                                 &dstats->vblank_stats,&dstats->vblank_stats_head,100);
                         
                         vstats->production_ticks=message->creation_ticks;
                         vstats->consumption_ticks=ticks;
@@ -1079,9 +1095,13 @@ static bool HandleEvents(SDLBeebWindow *beeb_window,
                             vstats->consumption_delta_ticks=vstats->consumption_ticks-prev_vstats->consumption_ticks;
                         }
                         
+                        uint64_t update_start_ticks=GetCurrentTickCount();
                         if(beeb_window->HandleVBlank(vblank_monitor,message->display_id,ticks)) {
+                            GlobalStats::UpdateStats *ustats;
+                            AddStats((GlobalStats::UpdateStats **)nullptr,&ustats,
+                                     &g_global_stats.update_stats,&g_global_stats.update_stats_head,100);
+                            ustats->update_ticks=GetCurrentTickCount()-update_start_ticks;
                             ++g_global_stats.window.num_vblank_messages;
-                            
                         }
                         break;
                     }

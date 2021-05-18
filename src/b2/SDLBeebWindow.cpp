@@ -462,12 +462,12 @@ bool SDLBeebWindow::Init(const BeebWindowInitArguments &init_arguments,
 
     m_sdl_audio_device_id=init_arguments.sound_device;
     m_audio_thread_data=new AudioThreadData;
+    MUTEX_SET_NAME(m_audio_thread_data->units_mutex,"AudioThread units");
     m_audio_thread_data->sound_freq=m_init_arguments.sound_spec.freq;
     m_audio_thread_data->sound_buffer_size_samples=m_init_arguments.sound_spec.samples;
     m_audio_thread_data->remapper=Remapper(m_audio_thread_data->sound_freq,SOUND_CLOCK_HZ);
     m_audio_thread_data->limit_speed=&m_limit_speed;
     m_audio_thread_data->push_timing_message_fn=std::move(push_timing_message_fn);
-
 
     m_imgui_stuff=new ImGuiStuff();
     if(!m_imgui_stuff->Init(m_renderer.get(),&m_font_texture)) {

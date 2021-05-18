@@ -43,6 +43,10 @@ struct GlobalStats {
         std::vector<VBlankStats> vblank_stats;
         size_t vblank_stats_head=0;
     };
+
+    struct UpdateStats {
+        uint64_t update_ticks=0;
+    };
     
     struct EventStats {
         uint64_t num_vblank_messages=0;
@@ -56,6 +60,9 @@ struct GlobalStats {
     EventStats window;
 
     std::vector<DisplayStats> display_stats;
+
+    size_t update_stats_head=0;
+    std::vector<UpdateStats> update_stats;
 };
 
 const GlobalStats *GetGlobalStats();
