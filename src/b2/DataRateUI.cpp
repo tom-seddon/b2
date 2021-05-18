@@ -287,6 +287,8 @@ void DataRateUI::DoImGui() {
 //    std::vector<BeebThread::AudioCallbackRecord> audio_records=beeb_thread->GetAudioCallbackRecords();
 //    ImGuiPlotLines("",&GetAudioCallbackRecordPercentage,&audio_records,(int)audio_records.size(),0,nullptr,0.f,120.,ImVec2(0,100),ImVec2(0,25));
 //
+    ImGui::Text("Wait for messages: %.3f sec",GetSecondsFromTicks(stats->wait_for_message_ticks));
+
     ImGui::Separator();
 
     ImGuiRadioButton(&m_graph_type,GraphType_Production,"Production");

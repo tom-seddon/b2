@@ -538,6 +538,10 @@ struct Options {
     bool vsync=false;
     bool timer=false;
     std::string config_name;
+#if RMT_ENABLED
+    bool remotery=false;
+    bool remotery_thread_sampler=false;
+#endif
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -641,6 +645,11 @@ static bool DoCommandLineOptions(
 
     p.AddOption("vsync").SetIfPresent(&options->vsync).Help("use vsync for timing");
     p.AddOption("timer").SetIfPresent(&options->timer).Help("use timer for timing");
+
+#if RMT_ENABLED
+    p.AddOption("remotery").SetIfPresent(&options->remotery).Help("activate Remotery (see https://github.com/Celtoys/Remotery)");
+    p.AddOption("remotery-thread-sampler").SetIfPresent(&options->remotery_thread_sampler).Help("when Remotery active, also activate Remotery thread sampler");
+#endif
 
     p.AddHelpOption(&options->help);
 
@@ -994,11 +1003,14 @@ static bool HandleEvents(SDLBeebWindow *beeb_window,
                          VBlankMonitor *vblank_monitor,
                          UpdateResult last_update_result)
 {
+    rmt_ScopedCPUSample(HandleEvent,0);
+
     std::vector<std::unique_ptr<GlobalMessage>> global_messages;
     SDL_Event sdl_event;
     bool got_sdl_event;
+    bool handle_events_done=false;
     
-    for(;;) {
+    while(!handle_events_done) {
         switch(last_update_result) {
             default:
                 ASSERT(false);
@@ -1006,12 +1018,15 @@ static bool HandleEvents(SDLBeebWindow *beeb_window,
                 return false;
                 
             case UpdateResult_SpeedLimited:
-                ASSERT(false);
-                if(!SDL_WaitEvent(&sdl_event)) {
-                    // WaitEvent error = quit.
-                    return false;
+                got_sdl_event=SDL_PollEvent(&sdl_event);
+                if(got_sdl_event) {
+                    g_global_message_queue.ConsumerPollForMessages(&global_messages);
+                } else {
+                    rmt_ScopedCPUSample(WaitForMessages,0);
+                    uint64_t wait_time_ticks;
+                    g_global_message_queue.ConsumerWaitForMessages(&global_messages,&wait_time_ticks);
+                    g_global_stats.wait_for_message_ticks+=wait_time_ticks;
                 }
-                got_sdl_event=true;
                 break;
                 
             case UpdateResult_FlatOut:
@@ -1047,6 +1062,9 @@ static bool HandleEvents(SDLBeebWindow *beeb_window,
                         auto message=(TimingMessage *)global_message.get();
 
                         beeb_window->HandleTiming(message->max_num_sound_units);
+
+                        // Need to run the emulation for a bit now.
+                        handle_events_done=true;
 
                         break;
                     }
@@ -1122,6 +1140,8 @@ static bool HandleEvents(SDLBeebWindow *beeb_window,
         }
         
         if(got_sdl_event) {
+            rmt_ScopedCPUSample(HandleSDLEvent,0);
+
             switch(sdl_event.type) {
                 case SDL_QUIT:
                     return false;
@@ -1217,17 +1237,6 @@ static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &mess
 
     CheckAssetPaths();
 
-#if RMT_ENABLED
-    {
-        rmtError x=rmt_CreateGlobalInstance(&g_remotery);
-        if(x==RMT_ERROR_NONE) {
-            SetSetCurrentThreadNameCallback(&SetRmtThreadName,nullptr);
-        } else {
-            msg.w.f("Failed to initialise Remotery\n");
-        }
-    }
-#endif
-
     // https://curl.haxx.se/libcurl/c/curl_global_init.html
     {
         CURLcode r=curl_global_init(CURL_GLOBAL_DEFAULT);
@@ -1261,6 +1270,21 @@ static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &mess
     if(!InitLogs(options,&msg)) {
         return false;
     }
+
+#if RMT_ENABLED
+    if(options.remotery) {
+        rmtSettings *settings=rmt_Settings();
+
+        settings->enableThreadSampler=options.remotery_thread_sampler;
+
+        rmtError x=rmt_CreateGlobalInstance(&g_remotery);
+        if(x==RMT_ERROR_NONE) {
+            SetSetCurrentThreadNameCallback(&SetRmtThreadName,nullptr);
+        } else {
+            msg.w.f("Failed to initialise Remotery\n");
+        }
+    }
+#endif
 
     msg.i.f("%s\n",PRODUCT_NAME);
 
@@ -1411,9 +1435,9 @@ static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &mess
                            vblank_monitor.get(),
                            last_update_result))
         {
-            last_update_result=beeb_window->UpdateBeeb();
+            rmt_ScopedCPUSample(UpdateBeeb,0);
 
-            last_update_result=UpdateResult_FlatOut;
+            last_update_result=beeb_window->UpdateBeeb();
         }
         
         beeb_window->SaveConfig();

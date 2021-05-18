@@ -63,6 +63,8 @@ struct GlobalStats {
 
     size_t update_stats_head=0;
     std::vector<UpdateStats> update_stats;
+
+    uint64_t wait_for_message_ticks=0;
 };
 
 const GlobalStats *GetGlobalStats();

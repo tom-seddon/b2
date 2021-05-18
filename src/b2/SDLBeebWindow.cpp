@@ -24,6 +24,8 @@
 #include "DataRateUI.h"
 #include "Remapper.h"
 #include "filters.h"
+#include <Remotery.h>
+#include <inttypes.h>
 
 #include <shared/enum_def.h>
 #include "SDLBeebWindow.inl"
@@ -602,29 +604,37 @@ bool SDLBeebWindow::HandleVBlank(VBlankMonitor *vblank_monitor,uint32_t vblank_d
     
     this->UpdateTitle(ticks);
     
-    // Quick as possible, draw the last frame's stuff, so it'll be ready before the
-    // vertical blank is done.
-    //
-    // The UI is one frame behind, which is annoying, but the Beeb TV texture will
-    // be up to date...
-    //
-    // Revisit this. Perhaps dear imgui will draw everything quickly enough? Update
-    // order could also be a toggle.
-    this->RenderLastImGuiFrame();
-    
-    // It's now safe to delete any textures and whatnot.
-    if(m_recreate_tv_texture) {
-        this->RecreateTexture();
-        m_recreate_tv_texture=false;
+    {
+        rmt_ScopedCPUSample(RenderLastImGuiFrame,0);
+
+        // Quick as possible, draw the last frame's stuff, so it'll be ready before the
+        // vertical blank is done.
+        //
+        // The UI is one frame behind, which is annoying, but the Beeb TV texture will
+        // be up to date...
+        //
+        // Revisit this. Perhaps dear imgui will draw everything quickly enough? Update
+        // order could also be a toggle.
+        this->RenderLastImGuiFrame();
     }
-    
-    // Would be nice to have a better place for this.
-    //
-    // It's not currently part of the TVOutpuSettings, because those
-    // aren't (yet?) persistent.
-    m_tv.SetInterlace(m_settings.display_interlace);
-    
-    this->RunNextImGuiFrame(ticks);
+
+    {
+        rmt_ScopedCPUSample(RunNextImGuiFrame,0);
+
+        // It's now safe to delete any textures and whatnot.
+        if(m_recreate_tv_texture) {
+            this->RecreateTexture();
+            m_recreate_tv_texture=false;
+        }
+
+        // Would be nice to have a better place for this.
+        //
+        // It's not currently part of the TVOutpuSettings, because those
+        // aren't (yet?) persistent.
+        m_tv.SetInterlace(m_settings.display_interlace);
+
+        this->RunNextImGuiFrame(ticks);
+    }
     
     return true;
 }
@@ -635,7 +645,7 @@ void SDLBeebWindow::HandleTiming(uint64_t max_num_audio_units) {
 
 UpdateResult SDLBeebWindow::UpdateBeeb() {
     if(m_beeb) {
-        static const size_t MAX_NUM_CYCLES=20000;
+        static const size_t MAX_NUM_CYCLES=50000;
         // TODO - excessive size! Should be more like
         // (MAX_NUM_CYCLES+(1<<SOUND_CLOCK_SHIFT)-1)>>SOUND_CLOCK_SHIFT, or w/e.
         SoundDataUnit sus[MAX_NUM_CYCLES];
@@ -648,6 +658,10 @@ UpdateResult SDLBeebWindow::UpdateBeeb() {
 
         uint64_t next_stop_cycles=std::min(m_next_stop_cycles,
                                            num_executed_cycles+MAX_NUM_CYCLES);
+
+        //printf("m_next_stop_cycles=%" PRIu64 ", next_stop_cycles=%" PRIu64 "\n",m_next_stop_cycles,next_stop_cycles);
+
+        //printf("running for %" PRIu64 "\n",next_stop_cycles-num_executed_cycles);
 
         for(i=num_executed_cycles;i<next_stop_cycles;++i) {
             if(m_beeb->DebugIsHalted()) {
@@ -991,7 +1005,7 @@ void SDLBeebWindow::ThreadFillAudioBuffer(SDL_AudioDeviceID audio_device_id,floa
     ASSERT(num_samples==atd->sound_buffer_size_samples);
 
     uint64_t num_units_needed_now=atd->remapper.GetNumUnits(num_samples);
-    uint64_t num_units_needed_future=atd->remapper.GetNumUnits(num_samples*5);//5/2);
+    uint64_t num_units_needed_future=atd->remapper.GetNumUnits(num_samples*3);//5/2);
 
     bool limit_speed=atd->limit_speed->load(std::memory_order_acquire);
 

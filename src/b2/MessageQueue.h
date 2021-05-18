@@ -87,15 +87,23 @@ public:
         return !!(old_indexed_messages_pending&mask);
     }
     
-    void ConsumerWaitForMessages(std::vector<T> *messages) {
+    void ConsumerWaitForMessages(std::vector<T> *messages,uint64_t *wait_time_ticks=nullptr) {
         std::unique_lock<Mutex> lock(m_mutex);
+
+        if(wait_time_ticks) {
+            *wait_time_ticks=0;
+        }
 
         for(;;) {
             if(this->PollLocked(messages)) {
                 return;
             }
 
+            uint64_t wait_start_ticks=GetCurrentTickCount();
             m_cv.wait(lock);
+            if(wait_time_ticks) {
+                *wait_time_ticks+=GetCurrentTickCount()-wait_start_ticks;
+            }
         }
     }
     
