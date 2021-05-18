@@ -27,7 +27,6 @@ void PushFunctionMessage(std::function<void()> fun);
 
 extern bool g_option_vsync;
 
-
 struct GlobalStats {
     struct VBlankStats {
         uint64_t production_ticks=0;

@@ -49,11 +49,19 @@ static const float VOLUMES_TABLE[]={
 struct SDLBeebWindow::AudioThreadData {
     Remapper remapper;
 
+    // pointer to the speed limiting flag.
+    std::atomic<bool> *limit_speed=nullptr;
+
     float bbc_sound_scale=1.f;
     float disc_sound_scale=1.f;
 
+    int sound_freq=0;
     size_t sound_buffer_size_samples=0;
     size_t num_consumed_sound_units=0;
+
+    // call to add a timing message, indicating that the emulated Beeb should
+    // run until the given point. (see also: comment in ThreadFillAudioBuffer.)
+    std::function<void(uint64_t)> push_timing_message_fn;
     
     // over time, this should settle down to some size that means no more
     // reallocs.
@@ -142,33 +150,36 @@ m_beeb_window(beeb_window)
 }
 
 void SDLBeebWindow::OptionsUI::DoImGui() {
-//    {
-//        float speed_scale=beeb_thread->GetSpeedScale();
-//        bool limit_speed=beeb_thread->IsSpeedLimited();
-//
-//        if(ImGui::Checkbox("Limit Speed",&limit_speed)) {
-//            beeb_thread->Send(std::make_shared<BeebThread::SetSpeedLimitedMessage>(limit_speed));
-//        }
-//
-//        if(limit_speed) {
-//            ImGui::SameLine();
-//
-//            bool changed=false;
-//
-//            if(ImGui::Button("1x")) {
-//                speed_scale=1.f;
-//                changed=true;
-//            }
-//
-//            if(ImGui::SliderFloat("Speed scale",&speed_scale,0.f,2.f)) {
-//                changed=true;
-//            }
-//
-//            if(changed) {
-//                beeb_thread->Send(std::make_shared<BeebThread::SetSpeedScaleMessage>(speed_scale));
-//            }
-//        }
-//    }
+    bool limit_speed=m_beeb_window->m_limit_speed.load(std::memory_order_acquire);
+    //        float speed_scale=beeb_thread->GetSpeedScale();
+
+    if(ImGui::Checkbox("Limit Speed",&limit_speed)) {
+        m_beeb_window->m_limit_speed.store(limit_speed,std::memory_order_release);
+        //beeb_thread->Send(std::make_shared<BeebThread::SetSpeedLimitedMessage>(limit_speed));
+    }
+
+    if(limit_speed) {
+        ImGui::SameLine();
+
+        bool changed=false;
+
+        if(ImGui::Button("1x")) {
+            m_beeb_window->m_speed_scale=1.f;
+            changed=true;
+        }
+
+        if(ImGui::SliderFloat("Speed scale",&m_beeb_window->m_speed_scale,0.f,2.f)) {
+            changed=true;
+        }
+
+        if(changed) {
+            SDLAudioDeviceLocker locker(m_beeb_window->m_sdl_audio_device_id);
+
+            // This resets the error, but I'm really not bothered.
+            m_beeb_window->m_audio_thread_data->remapper=Remapper(m_beeb_window->m_audio_thread_data->sound_freq,
+                (uint64_t)(SOUND_CLOCK_HZ*m_beeb_window->m_speed_scale));
+        }
+    }
 
     ImGui::Checkbox("Correct aspect ratio",&m_beeb_window->m_settings.correct_aspect_ratio);
 
@@ -434,7 +445,8 @@ bool SDLBeebWindow::Init(const BeebWindowInitArguments &init_arguments,
                          const BeebWindowSettings &settings,
                          std::shared_ptr<MessageList> message_list,
                          std::vector<uint8_t> window_placement_data,
-                         uint32_t *sdl_window_id)
+                         uint32_t *sdl_window_id,
+                         std::function<void(uint64_t)> push_timing_message_fn)
 {
     m_init_arguments=init_arguments;
     m_settings=settings;
@@ -448,9 +460,13 @@ bool SDLBeebWindow::Init(const BeebWindowInitArguments &init_arguments,
         return false;
     }
 
+    m_sdl_audio_device_id=init_arguments.sound_device;
     m_audio_thread_data=new AudioThreadData;
-    m_audio_thread_data->remapper=Remapper(m_init_arguments.sound_spec.freq,SOUND_CLOCK_HZ);
+    m_audio_thread_data->sound_freq=m_init_arguments.sound_spec.freq;
     m_audio_thread_data->sound_buffer_size_samples=m_init_arguments.sound_spec.samples;
+    m_audio_thread_data->remapper=Remapper(m_audio_thread_data->sound_freq,SOUND_CLOCK_HZ);
+    m_audio_thread_data->limit_speed=&m_limit_speed;
+    m_audio_thread_data->push_timing_message_fn=std::move(push_timing_message_fn);
 
 
     m_imgui_stuff=new ImGuiStuff();
@@ -613,9 +629,13 @@ bool SDLBeebWindow::HandleVBlank(VBlankMonitor *vblank_monitor,uint32_t vblank_d
     return true;
 }
 
+void SDLBeebWindow::HandleTiming(uint64_t max_num_audio_units) {
+    m_next_stop_cycles=max_num_audio_units<<SOUND_CLOCK_SHIFT;
+}
+
 UpdateResult SDLBeebWindow::UpdateBeeb() {
     if(m_beeb) {
-        static const size_t MAX_NUM_CYCLES=5000;
+        static const size_t MAX_NUM_CYCLES=20000;
         // TODO - excessive size! Should be more like
         // (MAX_NUM_CYCLES+(1<<SOUND_CLOCK_SHIFT)-1)>>SOUND_CLOCK_SHIFT, or w/e.
         SoundDataUnit sus[MAX_NUM_CYCLES];
@@ -623,8 +643,13 @@ UpdateResult SDLBeebWindow::UpdateBeeb() {
         size_t i;
         VideoDataUnit vu;
         //SoundDataUnit su;
-        
-        for(i=0;i<MAX_NUM_CYCLES;++i) {
+
+        uint64_t num_executed_cycles=*m_beeb->GetNum2MHzCycles();
+
+        uint64_t next_stop_cycles=std::min(m_next_stop_cycles,
+                                           num_executed_cycles+MAX_NUM_CYCLES);
+
+        for(i=num_executed_cycles;i<next_stop_cycles;++i) {
             if(m_beeb->DebugIsHalted()) {
                 break;
             }
@@ -642,8 +667,13 @@ UpdateResult SDLBeebWindow::UpdateBeeb() {
             m_audio_thread_data->units.insert(m_audio_thread_data->units.end(),sus,sus+sus_idx);
         }
 
-        return UpdateResult_FlatOut;
+        if(m_limit_speed.load(std::memory_order_acquire)) {
+            return UpdateResult_SpeedLimited;
+        } else {
+            return UpdateResult_FlatOut;
+        }
     } else {
+        // 
         return UpdateResult_SpeedLimited;
     }
 }
@@ -961,16 +991,22 @@ void SDLBeebWindow::ThreadFillAudioBuffer(SDL_AudioDeviceID audio_device_id,floa
     ASSERT(num_samples==atd->sound_buffer_size_samples);
 
     uint64_t num_units_needed_now=atd->remapper.GetNumUnits(num_samples);
-    uint64_t num_units_needed_future=atd->remapper.GetNumUnits(num_samples*5/2);
+    uint64_t num_units_needed_future=atd->remapper.GetNumUnits(num_samples*5);//5/2);
 
-    bool limit_speed=false;
+    bool limit_speed=atd->limit_speed->load(std::memory_order_acquire);
 
+    // TODO - "max" isn't quite the right word? - this is the next stop point,
+    // in global time, in terms of in audio units. So it should probably just be
+    // counted in 2 MHz cycles, like the cycle counter, and should just be
+    // called "next sotp point" or similar.
     uint64_t max_num_sound_units;
     if(limit_speed) {
         max_num_sound_units=atd->num_consumed_sound_units+num_units_needed_future;
     } else {
         max_num_sound_units=UINT64_MAX;
     }
+
+    atd->push_timing_message_fn(max_num_sound_units);
 
     Remapper *remapper,temp_remapper;
     {

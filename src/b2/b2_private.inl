@@ -3,6 +3,8 @@
 
 #define ENAME GlobalMessageQueueIndex
 EBEGIN()
+EPN(Timing)
+
 // Must be last.
 //
 // There's only 64 indexes for indexed message queue messages. In principle, if
@@ -20,6 +22,7 @@ EBEGIN()
 EPN(VBlank)
 EPN(RemoveDisplay)
 EPN(Function)
+EPN(Timing)
 EEND()
 #undef ENAME
 

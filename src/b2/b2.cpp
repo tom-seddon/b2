@@ -197,6 +197,29 @@ display_id(display_id_)
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+class TimingMessage:
+public GlobalMessage
+{
+public:
+    const uint64_t max_num_sound_units;
+
+    explicit TimingMessage(uint64_t max_num_sound_units);
+protected:
+private:
+};
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+TimingMessage::TimingMessage(uint64_t max_num_sound_units_):
+GlobalMessage(GlobalMessageType_Timing),
+max_num_sound_units(max_num_sound_units_)
+{
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 static MessageQueue<std::unique_ptr<GlobalMessage>> g_global_message_queue("Global MQ");
 
 //////////////////////////////////////////////////////////////////////////
@@ -324,7 +347,7 @@ static void ThreadFillAudioBuffer(void *userdata,uint8_t *stream,int len) {
         data->beeb_window->ThreadFillAudioBuffer(data->device,data->mix_buffer.data(),num_samples);
         memcpy(stream,data->mix_buffer.data(),(size_t)len);
     } else {
-        memset(data->mix_buffer.data(),data->mix_buffer.size()*sizeof(float),0);
+        memset(data->mix_buffer.data(),0,data->mix_buffer.size()*sizeof(float));
     }
 
     rmt_EndCPUSample();
@@ -984,6 +1007,15 @@ static bool HandleEvents(SDLBeebWindow *beeb_window,
                         }
                         break;
                     }
+
+                    case GlobalMessageType_Timing:
+                    {
+                        auto message=(TimingMessage *)global_message.get();
+
+                        beeb_window->HandleTiming(message->max_num_sound_units);
+
+                        break;
+                    }
                         
                     case GlobalMessageType_VBlank:
                     {
@@ -1149,6 +1181,15 @@ static bool HandleEvents(SDLBeebWindow *beeb_window,
     }
     
     return true;
+}
+
+// This mechanism is a bit sloppy, with the window pushing window-specific
+// messages onto the global queue with no indication of where they're from.
+//
+// But there's only one window, so it's OK. Just ugly.
+static void PushTimingMessage(uint64_t max_sound_units) {
+    g_global_message_queue.ProducerPushIndexed(GlobalMessageQueueIndex_Timing,
+                                               std::make_unique<TimingMessage>(max_sound_units));
 }
 
 static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &message_list) {
@@ -1322,7 +1363,8 @@ static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &mess
                               default_window_settings,
                               message_list,
                               window_placement_data,
-                              &beeb_window_id))
+                              &beeb_window_id,
+                              &PushTimingMessage))
         {
             beeb_window=nullptr;
 

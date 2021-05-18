@@ -196,7 +196,8 @@ public:
               const BeebWindowSettings &settings,
               std::shared_ptr<MessageList> message_list,
               std::vector<uint8_t> window_placement_data,
-              uint32_t *sdl_window_id);
+              uint32_t *sdl_window_id,
+              std::function<void(uint64_t)> push_timing_message_fn);
 
     //BeebWindow *GetBeebWindow() const;
 
@@ -205,6 +206,7 @@ public:
     void HandleSDLTextInput(const char *text);
     void HandleSDLMouseMotionEvent(const SDL_MouseMotionEvent &event);
     bool HandleVBlank(VBlankMonitor *vblank_monitor,uint32_t display_id,uint64_t ticks);
+    void HandleTiming(uint64_t max_num_audio_units);
 
     void ThreadFillAudioBuffer(uint32_t audio_device_id,float *mix_buffer,size_t num_samples);
 
@@ -246,6 +248,7 @@ private:
     //
     // Sound.
     //
+    uint32_t m_sdl_audio_device_id=0;
     AudioThreadData *m_audio_thread_data=nullptr;
 
     //
@@ -358,6 +361,9 @@ private:
     BBCMicro *m_beeb=nullptr;
     TVOutput m_tv;
     std::vector<uint32_t> m_tv_texture_pixels;
+    uint64_t m_next_stop_cycles=0;
+    std::atomic<bool> m_limit_speed{true};
+    float m_speed_scale=1.f;
 
     uint32_t m_leds=0;
     bool m_leds_popup_ui_active=false;

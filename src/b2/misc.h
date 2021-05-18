@@ -77,6 +77,23 @@ using SDLUniquePtr=std::unique_ptr<T,SDL_Deleter>;
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+class SDLAudioDeviceLocker {
+public:
+    explicit SDLAudioDeviceLocker(uint32_t device_id);
+    ~SDLAudioDeviceLocker();
+
+    SDLAudioDeviceLocker(const SDLAudioDeviceLocker &)=delete;
+    SDLAudioDeviceLocker &operator=(const SDLAudioDeviceLocker &)=delete;
+    SDLAudioDeviceLocker(SDLAudioDeviceLocker &&)=delete;
+    SDLAudioDeviceLocker &operator=(SDLAudioDeviceLocker &&)=delete;
+protected:
+private:
+    uint32_t m_device_id;
+};
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 SDL_PixelFormat *ClonePixelFormat(const SDL_PixelFormat *pixel_format);
 
 //////////////////////////////////////////////////////////////////////////
