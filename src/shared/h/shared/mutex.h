@@ -39,6 +39,8 @@ struct MutexFullMetadata;
 class Mutex
 {
 public:
+    static void CleanupMetadataList();
+
     Mutex();
     ~Mutex();
 
@@ -99,6 +101,8 @@ private:
 
 #define MUTEX_SET_NAME(MUTEX,NAME) ((MUTEX).SetName((NAME)))
 
+#define MUTEX_CLEANUP() (Mutex::CleanupMetadataList())
+
 typedef std::condition_variable_any ConditionVariable;
 
 //////////////////////////////////////////////////////////////////////////
@@ -113,6 +117,8 @@ typedef std::mutex Mutex;
 typedef std::condition_variable ConditionVariable;
 
 #define MUTEX_SET_NAME(MUTEX,NAME) ((void)0)
+
+#define MUTEX_CLEANUP() ((void)0)
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

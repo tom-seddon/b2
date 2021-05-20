@@ -25,14 +25,32 @@ struct MutexFullMetadata:
     std::shared_ptr<std::mutex> metadata_list_mutex;
 };
 
-static std::shared_ptr<std::mutex> g_mutex_metadata_list_mutex;
+#ifdef _MSC_VER
+// work around VC++ bug - the constexpr constructor for once_flag actually runs
+// at runtime, at least in a /O0 build, so global initialization order plays a
+// part.
+//
+// luckily, std::once_flag is just a few zero bytes...
+static __declspec(align(alignof(std::once_flag))) char g_mutex_metadata_list_mutex_initialise_once_flag[sizeof(std::once_flag)]={};
+#else
 static std::once_flag g_mutex_metadata_list_mutex_initialise_once_flag;
+#endif
+static std::shared_ptr<std::mutex> *g_mutex_metadata_list_mutex_ptr;
 
 static MutexFullMetadata *g_mutex_metadata_head;
 
 static void InitMutexMetadataListMutex() {
-    ASSERT(!g_mutex_metadata_list_mutex);
-    g_mutex_metadata_list_mutex=std::make_shared<std::mutex>();
+    ASSERT(!g_mutex_metadata_list_mutex_ptr);
+    g_mutex_metadata_list_mutex_ptr=new std::shared_ptr<std::mutex>();
+    *g_mutex_metadata_list_mutex_ptr=std::make_shared<std::mutex>();
+}
+
+static void EnsureMutexMetadataListMutexInitialized() {
+#ifdef _MSC_VER
+    std::call_once(*(std::once_flag *)g_mutex_metadata_list_mutex_initialise_once_flag,&InitMutexMetadataListMutex);
+#else
+    std::call_once(g_mutex_metadata_list_mutex_initialise_once_flag,&InitMutexMetadataListMutex);
+#endif
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -52,19 +70,27 @@ static void CheckMetadataList() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+void Mutex::CleanupMetadataList() {
+    delete g_mutex_metadata_list_mutex_ptr;
+    g_mutex_metadata_list_mutex_ptr=nullptr;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 Mutex::Mutex():
     m_metadata(std::make_shared<MutexFullMetadata>())
 {
-    std::call_once(g_mutex_metadata_list_mutex_initialise_once_flag,&InitMutexMetadataListMutex);
+    EnsureMutexMetadataListMutexInitialized();
 
     m_meta=&m_metadata.get()->meta;
 
     m_metadata->next=m_metadata.get();
     m_metadata->prev=m_metadata.get();
     m_metadata->mutex=this;
-    m_metadata->metadata_list_mutex=g_mutex_metadata_list_mutex;
+    m_metadata->metadata_list_mutex=*g_mutex_metadata_list_mutex_ptr;
 
-    std::lock_guard<std::mutex> lock(*g_mutex_metadata_list_mutex);
+    std::lock_guard<std::mutex> lock(*m_metadata->metadata_list_mutex);
 
     if(!g_mutex_metadata_head) {
         g_mutex_metadata_head=m_metadata.get();
@@ -163,9 +189,9 @@ const MutexMetadata *Mutex::GetMetadata() const {
 std::vector<std::shared_ptr<const MutexMetadata>> Mutex::GetAllMetadata() {
     std::vector<std::shared_ptr<const MutexMetadata>> list;
 
-    std::call_once(g_mutex_metadata_list_mutex_initialise_once_flag,&InitMutexMetadataListMutex);
+    EnsureMutexMetadataListMutexInitialized();
 
-    std::lock_guard<std::mutex> lock(*g_mutex_metadata_list_mutex);
+    std::lock_guard<std::mutex> lock(**g_mutex_metadata_list_mutex_ptr);
 
     if(MutexFullMetadata *m=g_mutex_metadata_head) {
         do {

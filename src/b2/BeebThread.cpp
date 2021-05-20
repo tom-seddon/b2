@@ -2988,9 +2988,11 @@ void BeebThread::ThreadMain(void) {
                 
                 // Sound part A
                 for(i=0;i<num_sa;++i) {
+#if BBCMICRO_DEBUGGER
                     if(ts.beeb->DebugIsHalted()) {
                         break;
                     }
+#endif
                     
                     if(ts.beeb->Update(&vunit,sunit)) {
                         if(lock.owns_lock()) {
@@ -3009,10 +3011,12 @@ void BeebThread::ThreadMain(void) {
 
                 // Sound part B
                 for(i=0;i<num_sb;++i) {
+#if BBCMICRO_DEBUGGER
                     if(ts.beeb->DebugIsHalted()) {
                         break;
                     }
-                    
+#endif
+
                     if(ts.beeb->Update(&vunit,sunit)) {
                         if(lock.owns_lock()) {
                             lock.unlock();

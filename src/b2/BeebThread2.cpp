@@ -1,5 +1,6 @@
 #include <shared/system.h>
 #include <memory>
+#include <atomic>
 #include "BeebThread2.h"
 #include "MessageQueue.h"
 

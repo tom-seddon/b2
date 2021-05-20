@@ -427,7 +427,20 @@ SDLBeebWindow::DriveState::DriveState():
 SDLBeebWindow::~SDLBeebWindow() {
     delete m_beeb;
     m_beeb=nullptr;
+
+    {
+        SDLAudioDeviceLocker locker(m_sdl_audio_device_id);
+
+        delete m_audio_thread_data;
+        m_audio_thread_data=nullptr;
+    }
     
+    // need to select the context before deleting these.
+    if(m_imgui_stuff) {
+        ImGuiContextSetter setter(m_imgui_stuff);
+        m_last_imgui_draw_lists.clear();
+    }
+
     delete m_imgui_stuff;
     m_imgui_stuff=nullptr;
 
@@ -664,9 +677,11 @@ UpdateResult SDLBeebWindow::UpdateBeeb() {
         //printf("running for %" PRIu64 "\n",next_stop_cycles-num_executed_cycles);
 
         for(i=num_executed_cycles;i<next_stop_cycles;++i) {
+#if BBCMICRO_DEBUGGER
             if(m_beeb->DebugIsHalted()) {
                 break;
             }
+#endif
             
             if(m_beeb->Update(&vu,&sus[sus_idx])) {
                 // TODO: process sound unit

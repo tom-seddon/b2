@@ -1424,9 +1424,11 @@ static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &mess
 //        }
 #endif
 
-        SDL_LockAudioDevice(audio_device);
-        g_fill_audio_buffer_data.beeb_window=beeb_window.get();
-        SDL_UnlockAudioDevice(audio_device);
+        {
+            SDLAudioDeviceLocker locker(audio_device);
+
+            g_fill_audio_buffer_data.beeb_window=beeb_window.get();
+        }
         
         UpdateResult last_update_result=UpdateResult_FlatOut;
         
@@ -1442,9 +1444,11 @@ static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &mess
         
         beeb_window->SaveConfig();
 
-        SDL_LockAudioDevice(audio_device);
-        g_fill_audio_buffer_data.beeb_window=nullptr;
-        SDL_UnlockAudioDevice(audio_device);
+        {
+            SDLAudioDeviceLocker locker(audio_device);
+
+            g_fill_audio_buffer_data.beeb_window=nullptr;
+        }
 
         SDL_PauseAudioDevice(audio_device,1);
 
@@ -1485,8 +1489,7 @@ static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &mess
 int main(int argc,char *argv[]) {
 #ifdef _MSC_VER
     _CrtSetDbgFlag(_CrtSetDbgFlag(_CRTDBG_REPORT_FLAG)|_CRTDBG_LEAK_CHECK_DF);
-    //_CrtSetDbgFlag(_CrtSetDbgFlag(_CRTDBG_REPORT_FLAG)|_CRTDBG_CHECK_ALWAYS_DF|);
-    //_crtBreakAlloc=12520;
+    //_crtBreakAlloc=6310;
 #endif
 
     auto &&messages=std::make_shared<MessageList>();
@@ -1503,6 +1506,11 @@ int main(int argc,char *argv[]) {
     if(!good) {
         return EXIT_FAILURE;
     }
+
+    // see https://github.com/libsdl-org/SDL/pull/4192
+    SDL_TLSCleanup();
+
+    MUTEX_CLEANUP();
 
     return EXIT_SUCCESS;
 }

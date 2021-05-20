@@ -11,7 +11,15 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static std::unique_ptr<std::vector<TimerDef *>> g_all_root_timer_defs;
+static std::vector<TimerDef *> *g_all_root_timer_defs_debug;
+
+static std::vector<TimerDef *> *GetRootTimerDefsList() {
+    static std::vector<TimerDef *> s_all_root_timer_defs;
+
+    g_all_root_timer_defs_debug=&s_all_root_timer_defs;
+
+    return &s_all_root_timer_defs;
+}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -23,11 +31,9 @@ m_parent(parent)
     if(m_parent) {
         m_parent->m_children.push_back(this);
     } else {
-        if(!g_all_root_timer_defs) {
-            g_all_root_timer_defs=std::make_unique<std::vector<TimerDef *>>();
-        }
+        std::vector<TimerDef *> *all_root_timer_defs=GetRootTimerDefsList();
 
-        g_all_root_timer_defs->push_back(this);
+        all_root_timer_defs->push_back(this);
     }
 
 }
@@ -340,9 +346,10 @@ void DataRateUI::DoImGui() {
 //    ImGui::TextUnformatted("Video Data Availability (mark=50%)");
 //    ImGuiPlotLines("",&GetPercentage,&vblank_records,(int)vblank_records.size(),0,nullptr,0.f,200.f,ImVec2(0,100),ImVec2(0,50));
 
-    if(!!g_all_root_timer_defs&&!g_all_root_timer_defs->empty()) {
+    std::vector<TimerDef *> *all_root_timer_defs=GetRootTimerDefsList();
+    if(!all_root_timer_defs->empty()) {
         ImGui::Separator();
-        for(TimerDef *def:*g_all_root_timer_defs) {
+        for(TimerDef *def:*all_root_timer_defs) {
             def->DoImGui();
         }
     }
@@ -425,10 +432,10 @@ bool DataRateUI::OnClose() {
 //////////////////////////////////////////////////////////////////////////
 
 void ResetTimerDefs() {
-    if(!!g_all_root_timer_defs) {
-        for(TimerDef *def:*g_all_root_timer_defs) {
-            def->Reset();
-        }
+    std::vector<TimerDef *> *all_root_timer_defs=GetRootTimerDefsList();
+
+    for(TimerDef *def:*all_root_timer_defs) {
+        def->Reset();
     }
 }
 
