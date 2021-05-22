@@ -739,7 +739,7 @@ protected:
         char pstr[9];
         M6502P p=M6502_GetP(s);
         ImGui::Text("P = $%02x %s",p.value,M6502P_GetString(pstr,p));
-        
+
         ImGui::Separator();
 
         char cycles_str[MAX_UINT64_THOUSANDS_LEN];
@@ -785,13 +785,13 @@ std::unique_ptr<SettingsUI> Create6502DebugWindow(SDLBeebWindow *beeb_window) {
 LOG_DEFINE(HEXEDIT,"HEXEDIT",&log_printer_stdout_and_debugger,true)
 
 class MemoryDebugWindow:
-public DebugUI,
-public RevealTargetUI
+    public DebugUI,
+    public RevealTargetUI
 {
 public:
     MemoryDebugWindow():
-    m_handler(this),
-    m_hex_editor(&m_handler)
+        m_handler(this),
+        m_hex_editor(&m_handler)
     {
     }
 
@@ -811,11 +811,11 @@ protected:
     }
 private:
     class Handler:
-    public HexEditorHandler
+        public HexEditorHandler
     {
     public:
         explicit Handler(MemoryDebugWindow *window):
-        m_window(window)
+            m_window(window)
         {
         }
 
@@ -985,8 +985,8 @@ std::unique_ptr<SettingsUI> CreateExtMemoryDebugWindow(BeebWindow *beeb_window) 
 #if ENABLE_DISASSEMBLY_DEBUG_WINDOW
 
 class DisassemblyDebugWindow:
-public DebugUI,
-public RevealTargetUI
+    public DebugUI,
+    public RevealTargetUI
 {
 public:
     uint32_t GetExtraImGuiWindowFlags() const override {
@@ -1223,107 +1223,107 @@ protected:
 
             ImGui::Text("%s ",di->mnemonic);
 
-//            ImGui::Text("%04x  %c%c %c%c %c%c  %c%c%c  %s ",
-//                        line_addr.w,
-//                        HEX_CHARS_LC[opcode>>4&15],
-//                        HEX_CHARS_LC[opcode&15],
-//                        di->num_bytes>=2?HEX_CHARS_LC[operand.b.l>>4&15]:' ',
-//                        di->num_bytes>=2?HEX_CHARS_LC[operand.b.l&15]:' ',
-//                        di->num_bytes>=3?HEX_CHARS_LC[operand.b.h>>4&15]:' ',
-//                        di->num_bytes>=3?HEX_CHARS_LC[operand.b.h&15]:' ',
-//                        opcode>=32&&opcode<127?opcode:' ',
-//                        operand.b.l>=32&&operand.b.l<127?operand.b.l:' ',
-//                        operand.b.h>=32&&operand.b.h<127?operand.b.h:' ',
-//                        di->mnemonic);
+            //            ImGui::Text("%04x  %c%c %c%c %c%c  %c%c%c  %s ",
+            //                        line_addr.w,
+            //                        HEX_CHARS_LC[opcode>>4&15],
+            //                        HEX_CHARS_LC[opcode&15],
+            //                        di->num_bytes>=2?HEX_CHARS_LC[operand.b.l>>4&15]:' ',
+            //                        di->num_bytes>=2?HEX_CHARS_LC[operand.b.l&15]:' ',
+            //                        di->num_bytes>=3?HEX_CHARS_LC[operand.b.h>>4&15]:' ',
+            //                        di->num_bytes>=3?HEX_CHARS_LC[operand.b.h&15]:' ',
+            //                        opcode>=32&&opcode<127?opcode:' ',
+            //                        operand.b.l>=32&&operand.b.l<127?operand.b.l:' ',
+            //                        operand.b.h>=32&&operand.b.h<127?operand.b.h:' ',
+            //                        di->mnemonic);
 
             switch(di->mode) {
-                default:
-                    ASSERT(0);
-                    // fall through
-                case M6502AddrMode_IMP:
-                    break;
+            default:
+                ASSERT(0);
+                // fall through
+            case M6502AddrMode_IMP:
+                break;
 
-                case M6502AddrMode_REL:
-                {
-                    M6502Word dest;
-                    dest.w=addr+(uint16_t)(int16_t)(int8_t)operand.b.l;
+            case M6502AddrMode_REL:
+            {
+                M6502Word dest;
+                dest.w=addr+(uint16_t)(int16_t)(int8_t)operand.b.l;
 
-                    this->AddWord("",dest.w,false,"");
-                }
-                    break;
+                this->AddWord("",dest.w,false,"");
+            }
+            break;
 
-                case M6502AddrMode_IMM:
-                {
-                    char label[3]={
-                        HEX_CHARS_LC[operand.b.l>>4&15],
-                        HEX_CHARS_LC[operand.b.l&15],
-                    };
+            case M6502AddrMode_IMM:
+            {
+                char label[3]={
+                    HEX_CHARS_LC[operand.b.l>>4&15],
+                    HEX_CHARS_LC[operand.b.l&15],
+                };
 
-                    M6502Word imm_addr={operand.b.l};
-                    const BBCMicro::BigPage *imm_dbp=this->GetBigPageForAddress(imm_addr,false);
-                    this->DoClickableAddress("#$",label,"",imm_dbp,imm_addr);
-                }
-                    break;
+                M6502Word imm_addr={operand.b.l};
+                const BBCMicro::BigPage *imm_dbp=this->GetBigPageForAddress(imm_addr,false);
+                this->DoClickableAddress("#$",label,"",imm_dbp,imm_addr);
+            }
+            break;
 
-                case M6502AddrMode_ZPG:
-                    this->AddByte("",operand.b.l,false,"");
-                    break;
+            case M6502AddrMode_ZPG:
+                this->AddByte("",operand.b.l,false,"");
+                break;
 
-                case M6502AddrMode_ZPX:
-                    this->AddByte("",operand.b.l,false,",X");
-                    this->AddByte(IND_PREFIX,operand.b.l+s->x,mos,"");
-                    break;
+            case M6502AddrMode_ZPX:
+                this->AddByte("",operand.b.l,false,",X");
+                this->AddByte(IND_PREFIX,operand.b.l+s->x,mos,"");
+                break;
 
-                case M6502AddrMode_ZPY:
-                    this->AddByte("",operand.b.l,false,",Y");
-                    this->AddByte(IND_PREFIX,operand.b.l+s->y,mos,"");
-                    break;
+            case M6502AddrMode_ZPY:
+                this->AddByte("",operand.b.l,false,",Y");
+                this->AddByte(IND_PREFIX,operand.b.l+s->y,mos,"");
+                break;
 
-                case M6502AddrMode_ABS:
-                    // TODO the MOS flag shouldn't apply to JSR or JMP.
-                    this->AddWord("",operand.w,mos,"");
-                    break;
+            case M6502AddrMode_ABS:
+                // TODO the MOS flag shouldn't apply to JSR or JMP.
+                this->AddWord("",operand.w,mos,"");
+                break;
 
-                case M6502AddrMode_ABX:
-                    this->AddWord("",operand.w,mos,",X");
-                    this->AddWord(IND_PREFIX,operand.w+s->x,mos,"");
-                    break;
+            case M6502AddrMode_ABX:
+                this->AddWord("",operand.w,mos,",X");
+                this->AddWord(IND_PREFIX,operand.w+s->x,mos,"");
+                break;
 
-                case M6502AddrMode_ABY:
-                    this->AddWord("",operand.w,mos,",Y");
-                    this->AddWord(IND_PREFIX,operand.w+s->y,mos,"");
-                    break;
+            case M6502AddrMode_ABY:
+                this->AddWord("",operand.w,mos,",Y");
+                this->AddWord(IND_PREFIX,operand.w+s->y,mos,"");
+                break;
 
-                case M6502AddrMode_INX:
-                    this->AddByte("(",operand.b.l,false,",X)");
-                    this->DoIndirect((operand.b.l+s->x)&0xff,mos,0xff,0);
-                    break;
+            case M6502AddrMode_INX:
+                this->AddByte("(",operand.b.l,false,",X)");
+                this->DoIndirect((operand.b.l+s->x)&0xff,mos,0xff,0);
+                break;
 
-                case M6502AddrMode_INY:
-                    this->AddByte("(",operand.b.l,false,"),Y");
-                    this->DoIndirect(operand.b.l,mos,0xff,s->y);
-                    break;
+            case M6502AddrMode_INY:
+                this->AddByte("(",operand.b.l,false,"),Y");
+                this->DoIndirect(operand.b.l,mos,0xff,s->y);
+                break;
 
-                case M6502AddrMode_IND:
-                    this->AddWord("(",operand.w,false,")");
-                    // doesn't handle the 6502 page crossing bug...
-                    this->DoIndirect(operand.w,mos,0xffff,0);
-                    break;
+            case M6502AddrMode_IND:
+                this->AddWord("(",operand.w,false,")");
+                // doesn't handle the 6502 page crossing bug...
+                this->DoIndirect(operand.w,mos,0xffff,0);
+                break;
 
-                case M6502AddrMode_ACC:
-                    ImGui::SameLine(0.f,0.f);
-                    ImGui::TextUnformatted("A");
-                    break;
+            case M6502AddrMode_ACC:
+                ImGui::SameLine(0.f,0.f);
+                ImGui::TextUnformatted("A");
+                break;
 
-                case M6502AddrMode_INZ:
-                    this->AddByte("(",operand.b.l,false,")");
-                    this->DoIndirect(operand.b.l,mos,0xff,0);
-                    break;
+            case M6502AddrMode_INZ:
+                this->AddByte("(",operand.b.l,false,")");
+                this->DoIndirect(operand.b.l,mos,0xff,0);
+                break;
 
-                case M6502AddrMode_INDX:
-                    this->AddWord("(",operand.w,false,",X)");
-                    this->DoIndirect(operand.w+s->x,mos,0xffff,0);
-                    break;
+            case M6502AddrMode_INDX:
+                this->AddWord("(",operand.w,false,",X)");
+                this->DoIndirect(operand.w+s->x,mos,0xffff,0);
+                break;
             }
         }
 
@@ -1912,46 +1912,48 @@ class R6522DebugWindow:
     public DebugUI
 {
 public:
-    struct PortState {
-        uint8_t or_,ddr,p,c1,c2;
-    };
+    //struct PortState {
+    //    uint8_t or_,ddr,p,c1,c2;
+    //};
 
-    struct State {
-        uint16_t t1,t2;
-        M6502Word t1l;
-        uint8_t t2ll;
-        uint8_t sr;
-        R6522::ACR acr;
-        R6522::PCR pcr;
-        R6522::IRQ ifr,ier;
-        PortState a,b;
-    };
+    //struct State {
+    //    uint16_t t1,t2;
+    //    M6502Word t1l;
+    //    uint8_t t2ll;
+    //    uint8_t sr;
+    //    R6522::ACR acr;
+    //    R6522::PCR pcr;
+    //    R6522::IRQ ifr,ier;
+    //    PortState a,b;
+    //};
 protected:
-    void DoRegisterValuesGui(const State &s,bool has_debug_state,BBCMicro::HardwareDebugState hw,R6522::IRQ BBCMicro::HardwareDebugState::*irq_mptr) {
-        this->DoPortRegisterValuesGui('A',s.a);
-        this->DoPortRegisterValuesGui('B',s.b);
-        ImGui::Text("T1 : $%04x %05d %s%s",s.t1,s.t1,BINARY_BYTE_STRINGS[s.t1>>8&0xff],BINARY_BYTE_STRINGS[s.t1&0xff]);
-        ImGui::Text("T1L: $%04x %05d %s%s",s.t1l.w,s.t1l.w,BINARY_BYTE_STRINGS[s.t1l.b.h],BINARY_BYTE_STRINGS[s.t1l.b.l]);
-        ImGui::Text("T2 : $%04x %05d %s%s",s.t2,s.t2,BINARY_BYTE_STRINGS[s.t2>>8&0xff],BINARY_BYTE_STRINGS[s.t2&0xff]);
-        ImGui::Text("SR : $%02x %03d %s",s.sr,s.sr,BINARY_BYTE_STRINGS[s.sr]);
-        ImGui::Text("ACR: PA latching = %s",BOOL_STR(s.acr.bits.pa_latching));
-        ImGui::Text("ACR: PB latching = %s",BOOL_STR(s.acr.bits.pb_latching));
-        ImGui::Text("ACR: Shift mode = %s",ACR_SHIFT_MODES[s.acr.bits.sr]);
-        ImGui::Text("ACR: T2 mode = %s",s.acr.bits.t2_count_pb6?"Timed interrupt":"Count PB6 pulses");
-        ImGui::Text("ACR: T1 continuous = %s, output PB7 = %s",BOOL_STR(s.acr.bits.t1_continuous),BOOL_STR(s.acr.bits.t1_output_pb7));
-        ImGui::Text("PCR: CA1 = %cve edge",s.pcr.bits.ca1_pos_irq?'+':'-');
-        ImGui::Text("PCR: CA2 = %s",PCR_CONTROL_MODES[s.pcr.bits.ca2_mode]);
-        ImGui::Text("PCR: CB1 = %cve edge",s.pcr.bits.cb1_pos_irq?'+':'-');
-        ImGui::Text("PCR: CB2 = %s",PCR_CONTROL_MODES[s.pcr.bits.cb2_mode]);
+    void DoRegisterValuesGui(const R6522 *v,R6522::IRQ BBCMicro::HardwareDebugState::*irq_mptr) {
+        this->DoPortRegisterValuesGui('A',v->a);
+        this->DoPortRegisterValuesGui('B',v->b);
+        ImGui::Text("T1 : $%04x %05d %s%s",v->m_t1,v->m_t1,BINARY_BYTE_STRINGS[v->m_t1>>8&0xff],BINARY_BYTE_STRINGS[v->m_t1&0xff]);
+        ImGui::Text("T1L: $%04x %05d %s%s",v->m_t1lh,v->m_t1ll,BINARY_BYTE_STRINGS[v->m_t1lh],BINARY_BYTE_STRINGS[v->m_t1ll]);
+        ImGui::Text("T2 : $%04x %05d %s%s",v->m_t2,BINARY_BYTE_STRINGS[v->m_t2>>8&0xff],BINARY_BYTE_STRINGS[v->m_t2&0xff]);
+        ImGui::Text("SR : $%02x %03d %s",v->m_sr,v->m_sr,BINARY_BYTE_STRINGS[v->m_sr]);
+        ImGui::Text("ACR: PA latching = %s",BOOL_STR(v->m_acr.bits.pa_latching));
+        ImGui::Text("ACR: PB latching = %s",BOOL_STR(v->m_acr.bits.pb_latching));
+        ImGui::Text("ACR: Shift mode = %s",ACR_SHIFT_MODES[v->m_acr.bits.sr]);
+        ImGui::Text("ACR: T2 mode = %s",v->m_acr.bits.t2_count_pb6?"Timed interrupt":"Count PB6 pulses");
+        ImGui::Text("ACR: T1 continuous = %s, output PB7 = %s",BOOL_STR(v->m_acr.bits.t1_continuous),BOOL_STR(v->m_acr.bits.t1_output_pb7));
+        ImGui::Text("PCR: CA1 = %cve edge",v->m_pcr.bits.ca1_pos_irq?'+':'-');
+        ImGui::Text("PCR: CA2 = %s",PCR_CONTROL_MODES[v->m_pcr.bits.ca2_mode]);
+        ImGui::Text("PCR: CB1 = %cve edge",v->m_pcr.bits.cb1_pos_irq?'+':'-');
+        ImGui::Text("PCR: CB2 = %s",PCR_CONTROL_MODES[v->m_pcr.bits.cb2_mode]);
 
         ImGui::Text("     [%-3s][%-3s][%-3s][%-3s][%-3s][%-3s][%-3s]",IRQ_NAMES[6],IRQ_NAMES[5],IRQ_NAMES[4],IRQ_NAMES[3],IRQ_NAMES[2],IRQ_NAMES[1],IRQ_NAMES[0]);
-        ImGui::Text("IFR:   %u    %u    %u    %u    %u    %u    %u",s.ifr.value&1<<6,s.ifr.value&1<<5,s.ifr.value&1<<4,s.ifr.value&1<<3,s.ifr.value&1<<2,s.ifr.value&1<<1,s.ifr.value&1<<0);
-        ImGui::Text("IER:   %u    %u    %u    %u    %u    %u    %u",s.ier.value&1<<6,s.ier.value&1<<5,s.ier.value&1<<4,s.ier.value&1<<3,s.ier.value&1<<2,s.ier.value&1<<1,s.ier.value&1<<0);
+        ImGui::Text("IFR:   %u    %u    %u    %u    %u    %u    %u",v->ifr.value&1<<6,v->ifr.value&1<<5,v->ifr.value&1<<4,v->ifr.value&1<<3,v->ifr.value&1<<2,v->ifr.value&1<<1,v->ifr.value&1<<0);
+        ImGui::Text("IER:   %u    %u    %u    %u    %u    %u    %u",v->ier.value&1<<6,v->ier.value&1<<5,v->ier.value&1<<4,v->ier.value&1<<3,v->ier.value&1<<2,v->ier.value&1<<1,v->ier.value&1<<0);
 
-        if(has_debug_state) {
+        if(m_beeb->HasDebugState()) {
             ImGui::Separator();
 
             bool changed=false;
+
+            BBCMicro::HardwareDebugState hw=m_beeb->GetHardwareDebugState();
 
             R6522::IRQ *irq=&(hw.*irq_mptr);
 
@@ -1974,39 +1976,37 @@ protected:
             }
 
             if(changed) {
-                std::unique_lock<Mutex> lock;
-                BBCMicro *m=m_beeb_thread->LockMutableBeeb(&lock);
-                m->SetHardwareDebugState(hw);
+                m_beeb->SetHardwareDebugState(hw);
             }
         }
     }
 
-    void GetState(State *state,const R6522 *via) {
-        state->t1=(uint16_t)via->m_t1;
-        state->t2=(uint16_t)via->m_t2;
-        state->t1l.b.l=via->m_t1ll;
-        state->t1l.b.h=via->m_t1lh;
-        state->t2ll=via->m_t2ll;
-        state->sr=via->m_sr;
-        state->acr=via->m_acr;
-        state->pcr=via->m_pcr;
-        state->ifr=via->ifr;
-        state->ier=via->ier;
+    //void GetState(State *state,const R6522 *via) {
+    //    state->t1=(uint16_t)via->m_t1;
+    //    state->t2=(uint16_t)via->m_t2;
+    //    state->t1l.b.l=via->m_t1ll;
+    //    state->t1l.b.h=via->m_t1lh;
+    //    state->t2ll=via->m_t2ll;
+    //    state->sr=via->m_sr;
+    //    state->acr=via->m_acr;
+    //    state->pcr=via->m_pcr;
+    //    state->ifr=via->ifr;
+    //    state->ier=via->ier;
 
-        state->a.or_=via->a.or_;
-        state->a.ddr=via->a.ddr;
-        state->a.p=via->a.p;
-        state->a.c1=via->a.c1;
-        state->a.c2=via->a.c2;
+    //    state->a.or_=via->a.or_;
+    //    state->a.ddr=via->a.ddr;
+    //    state->a.p=via->a.p;
+    //    state->a.c1=via->a.c1;
+    //    state->a.c2=via->a.c2;
 
-        state->b.or_=via->b.or_;
-        state->b.ddr=via->b.ddr;
-        state->b.p=via->b.p;
-        state->b.c1=via->b.c1;
-        state->b.c2=via->b.c2;
-    }
+    //    state->b.or_=via->b.or_;
+    //    state->b.ddr=via->b.ddr;
+    //    state->b.p=via->b.p;
+    //    state->b.c1=via->b.c1;
+    //    state->b.c2=via->b.c2;
+    //}
 private:
-    void DoPortRegisterValuesGui(char port,const PortState &p) {
+    void DoPortRegisterValuesGui(char port,const R6522::Port &p) {
         ImGui::Text("Port %c: Pins = $%02x %03d %s",port,p.p,p.p,BINARY_BYTE_STRINGS[p.p]);
         ImGui::Text("Port %c: DDR%c = $%02x %03d %s",port,port,p.ddr,p.ddr,BINARY_BYTE_STRINGS[p.ddr]);
         ImGui::Text("Port %c: OR%c  = $%02x %03d %s",port,port,p.or_,p.or_,BINARY_BYTE_STRINGS[p.or_]);
@@ -2064,34 +2064,44 @@ class SystemVIADebugWindow:
 public:
 protected:
     void DoImGui2() override {
-        State state;
-        BBCMicro::AddressableLatch latch;
-        const BBCMicroType *type;
-        bool has_debug_state;
-        BBCMicro::HardwareDebugState hw;
+        //State state;
+        //BBCMicro::AddressableLatch latch;
+        //const BBCMicroType *type;
+        //bool has_debug_state;
+        //BBCMicro::HardwareDebugState hw;
+        //uint8_t rtc_addr=0;
+        //{
+        //    std::unique_lock<Mutex> lock;
+        //    const BBCMicro *m=m_beeb_thread->LockBeeb(&lock);
+        //    this->GetState(&state,m->DebugGetSystemVIA());
+        //    latch=m->DebugGetAddressableLatch();
+        //    type=m->GetType();
+        //    has_debug_state=m->HasDebugState();
+        //    hw=m->GetHardwareDebugState();
+
+        //    if(type->flags&BBCMicroTypeFlag_HasRTC) {
+        //        const MC146818 *rtc=m->DebugGetRTC();
+
+        //        rtc_addr=rtc->GetAddress();
+        //    }
+        //}
+
+        const BBCMicroType *type=m_beeb->GetType();
+        BBCMicro::AddressableLatch latch=m_beeb->DebugGetAddressableLatch();
+        const R6522 *v=m_beeb->DebugGetSystemVIA();
+        this->DoRegisterValuesGui(v,&BBCMicro::HardwareDebugState::system_via_irq_breakpoints);
+
         uint8_t rtc_addr=0;
-        {
-            std::unique_lock<Mutex> lock;
-            const BBCMicro *m=m_beeb_thread->LockBeeb(&lock);
-            this->GetState(&state,m->DebugGetSystemVIA());
-            latch=m->DebugGetAddressableLatch();
-            type=m->GetType();
-            has_debug_state=m->HasDebugState();
-            hw=m->GetHardwareDebugState();
+        if(type->flags&BBCMicroTypeFlag_HasRTC) {
+            const MC146818 *rtc=m_beeb->DebugGetRTC();
 
-            if(type->flags&BBCMicroTypeFlag_HasRTC) {
-                const MC146818 *rtc=m->DebugGetRTC();
-
-                rtc_addr=rtc->GetAddress();
-            }
+            rtc_addr=rtc->GetAddress();
         }
-
-        this->DoRegisterValuesGui(state,has_debug_state,hw,&BBCMicro::HardwareDebugState::system_via_irq_breakpoints);
 
         ImGui::Separator();
 
         BBCMicro::SystemVIAPB pb;
-        pb.value=state.b.p;
+        pb.value=v->b.p;
 
         ImGui::Text("Port B inputs:");
 
@@ -2134,7 +2144,7 @@ protected:
 private:
 };
 
-std::unique_ptr<SettingsUI> CreateSystemVIADebugWindow(BeebWindow *beeb_window) {
+std::unique_ptr<SettingsUI> CreateSystemVIADebugWindow(SDLBeebWindow *beeb_window) {
     return CreateDebugUI<SystemVIADebugWindow>(beeb_window);
 }
 
@@ -2151,23 +2161,13 @@ class UserVIADebugWindow:
 public:
 protected:
     void DoImGui2() override {
-        State state;
-        bool has_debug_state;
-        BBCMicro::HardwareDebugState hw;
-        {
-            std::unique_lock<Mutex> lock;
-            const BBCMicro *m=m_beeb_thread->LockBeeb(&lock);
-            this->GetState(&state,m->DebugGetUserVIA());
-            has_debug_state=m->HasDebugState();
-            hw=m->GetHardwareDebugState();
-        }
-
-        this->DoRegisterValuesGui(state,has_debug_state,hw,&BBCMicro::HardwareDebugState::user_via_irq_breakpoints);
+        const R6522 *v=m_beeb->DebugGetUserVIA();
+        this->DoRegisterValuesGui(v,&BBCMicro::HardwareDebugState::user_via_irq_breakpoints);
     }
 private:
 };
 
-std::unique_ptr<SettingsUI> CreateUserVIADebugWindow(BeebWindow *beeb_window) {
+std::unique_ptr<SettingsUI> CreateUserVIADebugWindow(SDLBeebWindow *beeb_window) {
     return CreateDebugUI<UserVIADebugWindow>(beeb_window);
 }
 
@@ -2267,7 +2267,7 @@ std::unique_ptr<SettingsUI> CreateNVRAMDebugWindow(BeebWindow *beeb_window) {
 #if ENABLE_SN76489_DEBUG_WINDOW
 
 class SN76489DebugWindow:
-public DebugUI
+    public DebugUI
 {
 public:
 protected:
@@ -2302,23 +2302,23 @@ protected:
             uint16_t sn_freq;
             const char *suffix="";
             switch(values[3].freq&3) {
-				default:
-                case 0:
-                    sn_freq=0x10;
-                    break;
+            default:
+            case 0:
+                sn_freq=0x10;
+                break;
 
-                case 1:
-                    sn_freq=0x20;
-                    break;
+            case 1:
+                sn_freq=0x20;
+                break;
 
-                case 2:
-                    sn_freq=0x40;
-                    break;
+            case 2:
+                sn_freq=0x40;
+                break;
 
-                case 3:
-                    suffix=" (Tone 2)";
-                    sn_freq=values[2].freq;
-                    break;
+            case 3:
+                suffix=" (Tone 2)";
+                sn_freq=values[2].freq;
+                break;
             }
 
             ImGui::Text("Noise : vol=%-2d freq=%-5u (0x%04x) (%uHz)",
@@ -2356,7 +2356,7 @@ std::unique_ptr<SettingsUI> CreateSN76489DebugWindow(BeebWindow *beeb_window) {
 static const uint8_t ALL_USER_MEM_BIG_PAGES[16]={};
 
 class PagingDebugWindow:
-public DebugUI
+    public DebugUI
 {
 public:
 protected:
@@ -2467,7 +2467,7 @@ std::unique_ptr<SettingsUI> CreatePagingDebugWindow(BeebWindow *beeb_window) {
 #if ENABLE_BREAKPOINTS_DEBUG_WINDOW
 
 class BreakpointsDebugWindow:
-public DebugUI
+    public DebugUI
 {
 public:
 protected:
@@ -2501,7 +2501,7 @@ protected:
             for(size_t i=0;i<100;++i) {
                 M6502Word addr={(uint16_t)i};
                 m_beeb_thread->Send(std::make_shared<BeebThread::DebugSetAddressDebugFlags>(addr,
-                                                                                            (uint8_t)BBCMicroByteDebugFlag_BreakExecute));
+                    (uint8_t)BBCMicroByteDebugFlag_BreakExecute));
             }
         }
 #endif
@@ -2640,14 +2640,14 @@ private:
         }
     }
 
-//    static inline bool BreakpointLessThanByAddress(const Breakpoint &a,
-//                                                   const Breakpoint &b)
-//    {
-//        uint32_t a_value=(uint32_t)a.big_page<<16|a.offset;
-//        uint32_t b_value=(uint32_t)b.big_page<<16|b.offset;
-//
-//        return a_value<b_value;
-//    }
+    //    static inline bool BreakpointLessThanByAddress(const Breakpoint &a,
+    //                                                   const Breakpoint &b)
+    //    {
+    //        uint32_t a_value=(uint32_t)a.big_page<<16|a.offset;
+    //        uint32_t b_value=(uint32_t)b.big_page<<16|b.offset;
+    //
+    //        return a_value<b_value;
+    //    }
 
     void Update() {
         m_breakpoints.clear();
@@ -2682,7 +2682,7 @@ std::unique_ptr<SettingsUI> CreateBreakpointsDebugWindow(BeebWindow *beeb_window
 #if VIDEO_TRACK_METADATA
 #if ENABLE_PIXEL_METADATA_DEBUG_WINDOW
 class PixelMetadataUI:
-public DebugUI
+    public DebugUI
 {
 public:
 protected:
@@ -2758,7 +2758,7 @@ std::unique_ptr<SettingsUI> CreatePixelMetadataDebugWindow(BeebWindow *beeb_wind
 #if ENABLE_STACK_DEBUG_WINDOW
 
 class StackDebugWindow:
-public DebugUI
+    public DebugUI
 {
 public:
 protected:
