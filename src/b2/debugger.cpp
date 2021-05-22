@@ -1745,44 +1745,46 @@ class VideoULADebugWindow:
 public:
 protected:
     void DoImGui2() override {
-        VideoULA::Control control;
-        uint8_t palette[16];
-        VideoDataPixel nula_palette[16];
-        uint8_t nula_flash[16];
-        uint8_t nula_direct_palette;
-        uint8_t nula_disable_a1;
-        uint8_t nula_scroll_offset;
-        uint8_t nula_blanking_size;
-        VideoULA::NuLAAttributeMode nula_attribute_mode;
-        bool nula;
+        const VideoULA *u=m_beeb->DebugGetVideoULA();
 
-        {
-            std::unique_lock<Mutex> lock;
-            const BBCMicro *m=m_beeb_thread->LockBeeb(&lock);
+        //VideoULA::Control control;
+        //uint8_t palette[16];
+        //VideoDataPixel nula_palette[16];
+        //uint8_t nula_flash[16];
+        //uint8_t nula_direct_palette;
+        //uint8_t nula_disable_a1;
+        //uint8_t nula_scroll_offset;
+        //uint8_t nula_blanking_size;
+        //VideoULA::NuLAAttributeMode nula_attribute_mode;
+        //bool nula;
 
-            const VideoULA *u=m->DebugGetVideoULA();
+        //{
+        //    std::unique_lock<Mutex> lock;
+        //    const BBCMicro *m=m_beeb_thread->LockBeeb(&lock);
 
-            control=u->control;
-            memcpy(palette,u->m_palette,16);
-            memcpy(nula_palette,u->output_palette,16*sizeof(VideoDataPixel));
-            memcpy(nula_flash,u->m_flash,16);
-            nula_direct_palette=u->m_direct_palette;
-            nula_disable_a1=u->m_disable_a1;
-            nula_scroll_offset=u->m_scroll_offset;
-            nula_blanking_size=u->m_blanking_size;
-            nula_attribute_mode=u->m_attribute_mode;
-            nula=u->nula;
-        }
+        //    const VideoULA *u=m->DebugGetVideoULA();
+
+        //    control=u->control;
+        //    memcpy(palette,u->m_palette,16);
+        //    memcpy(nula_palette,u->output_palette,16*sizeof(VideoDataPixel));
+        //    memcpy(nula_flash,u->m_flash,16);
+        //    nula_direct_palette=u->m_direct_palette;
+        //    nula_disable_a1=u->m_disable_a1;
+        //    nula_scroll_offset=u->m_scroll_offset;
+        //    nula_blanking_size=u->m_blanking_size;
+        //    nula_attribute_mode=u->m_attribute_mode;
+        //    nula=u->nula;
+        //}
 
         if(ImGui::CollapsingHeader("Register Values")) {
-            ImGui::Text("Control = $%02x %03u %s",control.value,control.value,BINARY_BYTE_STRINGS[control.value]);
+            ImGui::Text("Control = $%02x %03u %s",u->control.value,u->control.value,BINARY_BYTE_STRINGS[u->control.value]);
             for(size_t i=0;i<16;++i) {
-                uint8_t p=palette[i];
+                uint8_t p=u->m_palette[i];
                 ImGui::Text("Palette[%zu] = $%01x %02u %s ",i,p,p,BINARY_BYTE_STRINGS[p]+4);
 
                 uint8_t colour=p&7;
                 if(p&8) {
-                    if(control.bits.flash) {
+                    if(u->control.bits.flash) {
                         colour^=7;
                     }
                 }
@@ -1803,11 +1805,11 @@ protected:
             ImGui::Separator();
         }
 
-        ImGui::Text("Flash colour = %u",control.bits.flash);
-        ImGui::Text("Teletext output = %s",BOOL_STR(control.bits.teletext));
-        ImGui::Text("Chars per line = %u",(1<<control.bits.line_width)*10);
-        ImGui::Text("6845 clock = %u MHz",1+control.bits.fast_6845);
-        ImGui::Text("Cursor Shape = %s",CURSOR_SHAPES[control.bits.cursor]);
+        ImGui::Text("Flash colour = %u",u->control.bits.flash);
+        ImGui::Text("Teletext output = %s",BOOL_STR(u->control.bits.teletext));
+        ImGui::Text("Chars per line = %u",(1<<u->control.bits.line_width)*10);
+        ImGui::Text("6845 clock = %u MHz",1+u->control.bits.fast_6845);
+        ImGui::Text("Cursor Shape = %s",CURSOR_SHAPES[u->control.bits.cursor]);
 
         for(uint8_t i=0;i<16;i+=4) {
             ImGui::Text("Palette:");
@@ -1815,11 +1817,11 @@ protected:
 
             for(uint8_t j=0;j<4;++j) {
                 uint8_t index=i+j;
-                uint8_t entry=palette[index];
+                uint8_t entry=u->m_palette[index];
 
                 uint8_t colour=entry&7;
                 if(entry&8) {
-                    if(control.bits.flash) {
+                    if(u->control.bits.flash) {
                         colour^=7;
                     }
                 }
@@ -1832,19 +1834,19 @@ protected:
         }
 
         ImGuiTreeNodeFlags nula_section_flags=0;
-        if(!nula_disable_a1) {
+        if(!u->m_disable_a1) {
             nula_section_flags|=ImGuiTreeNodeFlags_DefaultOpen;
         }
 
-        if(nula) {
+        if(u->nula) {
             if(ImGui::CollapsingHeader("Video NuLA",nula_section_flags)) {
-                ImGui::Text("Enabled: %s",BOOL_STR(!nula_disable_a1));
+                ImGui::Text("Enabled: %s",BOOL_STR(!u->m_disable_a1));
 
-                ImGui::Text("Direct palette mode: %s",BOOL_STR(nula_direct_palette));
-                ImGui::Text("Scroll offset: %u",nula_scroll_offset);
-                ImGui::Text("Blanking size: %u",nula_blanking_size);
-                ImGui::Text("Attribute mode: %s",BOOL_STR(nula_attribute_mode.bits.enabled));
-                ImGui::Text("Text attribute mode: %s",BOOL_STR(nula_attribute_mode.bits.text));
+                ImGui::Text("Direct palette mode: %s",BOOL_STR(u->m_direct_palette));
+                ImGui::Text("Scroll offset: %u",u->m_scroll_offset);
+                ImGui::Text("Blanking size: %u",u->m_blanking_size);
+                ImGui::Text("Attribute mode: %s",BOOL_STR(u->m_attribute_mode.bits.enabled));
+                ImGui::Text("Text attribute mode: %s",BOOL_STR(u->m_attribute_mode.bits.text));
 
                 for(uint8_t i=0;i<16;i+=4) {
                     ImGui::Text("Palette:");
@@ -1853,7 +1855,7 @@ protected:
 
                     for(uint8_t j=0;j<4;++j) {
                         uint8_t index=i+j;
-                        const VideoDataPixel *e=&nula_palette[index];
+                        const VideoDataPixel *e=&u->output_palette[index];
 
                         ImGui::SameLine();
                         ImGui::Text(" %x=%x%x%x",index,e->bits.r,e->bits.g,e->bits.b);
@@ -1895,7 +1897,7 @@ const char *const VideoULADebugWindow::CURSOR_SHAPES[]={
     "....",".**.",".*..",".***","*...","*.**","**..","****"
 };
 
-std::unique_ptr<SettingsUI> CreateVideoULADebugWindow(BeebWindow *beeb_window) {
+std::unique_ptr<SettingsUI> CreateVideoULADebugWindow(SDLBeebWindow *beeb_window) {
     return CreateDebugUI<VideoULADebugWindow>(beeb_window);
 }
 
