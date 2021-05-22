@@ -28,6 +28,7 @@
 #include <inttypes.h>
 #include "ConfigsUI.h"
 #include "DearImguiTestUI.h"
+#include "debugger.h"
 
 #include <shared/enum_def.h>
 #include "SDLBeebWindow.inl"
@@ -767,6 +768,15 @@ bool SDLBeebWindow::GetBeebKeyState(BeebKey key) const {
 
 const std::string &SDLBeebWindow::GetConfigName() const {
     return m_current_config.config.name;
+}
+
+BBCMicro *SDLBeebWindow::GetBeeb() {
+    return m_beeb;
+}
+
+SettingsUI *SDLBeebWindow::GetPopupByType(BeebWindowPopupType type) const {
+    ASSERT(type>=0&&type<BeebWindowPopupType_MaxValue);
+    return m_popups[type].get();
 }
 
 std::shared_ptr<MessageList> SDLBeebWindow::GetMessageList() const {
@@ -2032,41 +2042,66 @@ void SDLBeebWindow::DoDebugMenu() {
 //        m_cc.DoMenuItemUI("toggle_pixel_metadata");
 //#endif
 
-//#if BBCMICRO_DEBUGGER
-//        ImGui::Separator();
-//
-//        m_cc.DoMenuItemUI("toggle_6502_debugger");
-//        if(ImGui::BeginMenu("Memory Debug")) {
-//            m_cc.DoMenuItemUI("toggle_memory_debugger1");
-//            m_cc.DoMenuItemUI("toggle_memory_debugger2");
-//            m_cc.DoMenuItemUI("toggle_memory_debugger3");
-//            m_cc.DoMenuItemUI("toggle_memory_debugger4");
-//            ImGui::EndMenu();
-//        }
-//        if(ImGui::BeginMenu("External Memory Debug")) {
-//            m_cc.DoMenuItemUI("toggle_ext_memory_debugger1");
-//            m_cc.DoMenuItemUI("toggle_ext_memory_debugger2");
-//            m_cc.DoMenuItemUI("toggle_ext_memory_debugger3");
-//            m_cc.DoMenuItemUI("toggle_ext_memory_debugger4");
-//            ImGui::EndMenu();
-//        }
-//        if(ImGui::BeginMenu("Disassembly Debug")) {
-//            m_cc.DoMenuItemUI("toggle_disassembly_debugger1");
-//            m_cc.DoMenuItemUI("toggle_disassembly_debugger2");
-//            m_cc.DoMenuItemUI("toggle_disassembly_debugger3");
-//            m_cc.DoMenuItemUI("toggle_disassembly_debugger4");
-//            ImGui::EndMenu();
-//        }
-//        m_cc.DoMenuItemUI("toggle_crtc_debugger");
-//        m_cc.DoMenuItemUI("toggle_video_ula_debugger");
-//        m_cc.DoMenuItemUI("toggle_system_via_debugger");
-//        m_cc.DoMenuItemUI("toggle_user_via_debugger");
-//        m_cc.DoMenuItemUI("toggle_nvram_debugger");
-//        m_cc.DoMenuItemUI("toggle_sn76489_debugger");
-//        m_cc.DoMenuItemUI("toggle_paging_debugger");
-//        m_cc.DoMenuItemUI("toggle_breakpoints_debugger");
-//        m_cc.DoMenuItemUI("toggle_stack_debugger");
-//
+#if BBCMICRO_DEBUGGER
+        ImGui::Separator();
+
+#if ENABLE_6502_DEBUG_WINDOW
+        m_cc.DoMenuItemUI("toggle_6502_debugger");
+#endif
+#if ENABLE_MEMORY_DEBUG_WINDOW
+        if(ImGui::BeginMenu("Memory Debug")) {
+            m_cc.DoMenuItemUI("toggle_memory_debugger1");
+            m_cc.DoMenuItemUI("toggle_memory_debugger2");
+            m_cc.DoMenuItemUI("toggle_memory_debugger3");
+            m_cc.DoMenuItemUI("toggle_memory_debugger4");
+            ImGui::EndMenu();
+        }
+#endif
+#if ENABLE_EXT_MEMORY_DEBUG_WINDOW
+        if(ImGui::BeginMenu("External Memory Debug")) {
+            m_cc.DoMenuItemUI("toggle_ext_memory_debugger1");
+            m_cc.DoMenuItemUI("toggle_ext_memory_debugger2");
+            m_cc.DoMenuItemUI("toggle_ext_memory_debugger3");
+            m_cc.DoMenuItemUI("toggle_ext_memory_debugger4");
+            ImGui::EndMenu();
+        }
+#endif
+#if ENABLE_DISASSEMBLY_DEBUG_WINDOW
+        if(ImGui::BeginMenu("Disassembly Debug")) {
+            m_cc.DoMenuItemUI("toggle_disassembly_debugger1");
+            m_cc.DoMenuItemUI("toggle_disassembly_debugger2");
+            m_cc.DoMenuItemUI("toggle_disassembly_debugger3");
+            m_cc.DoMenuItemUI("toggle_disassembly_debugger4");
+            ImGui::EndMenu();
+        }
+#endif
+
+#if ENABLE_CRTC_DEBUG_WINDOW
+        m_cc.DoMenuItemUI("toggle_crtc_debugger");
+#endif
+#if ENABLE_VIDEO_ULA_DEBUG_WINDOW
+        m_cc.DoMenuItemUI("toggle_video_ula_debugger");
+#endif
+#if ENABLE_VIA_DEBUG_WINDOW
+        m_cc.DoMenuItemUI("toggle_system_via_debugger");
+        m_cc.DoMenuItemUI("toggle_user_via_debugger");
+#endif
+#if ENABLE_NVRAM_DEBUG_WINDOW
+        m_cc.DoMenuItemUI("toggle_nvram_debugger");
+#endif
+#if ENABLE_SN76489_DEBUG_WINDOW
+        m_cc.DoMenuItemUI("toggle_sn76489_debugger");
+#endif
+#if ENABLE_PAGING_DEBUG_WINDOW
+        m_cc.DoMenuItemUI("toggle_paging_debugger");
+#endif
+#if ENABLE_BREAKPOINTS_DEBUG_WINDOW
+        m_cc.DoMenuItemUI("toggle_breakpoints_debugger");
+#endif
+#if ENABLE_STACK_DEBUG_WINDOW
+        m_cc.DoMenuItemUI("toggle_stack_debugger");
+#endif
+        //
 //        ImGui::Separator();
 //
 //        m_cc.DoMenuItemUI("debug_stop");
@@ -2074,7 +2109,7 @@ void SDLBeebWindow::DoDebugMenu() {
 //        m_cc.DoMenuItemUI("debug_step_over");
 //        m_cc.DoMenuItemUI("debug_step_in");
 //
-//#endif
+#endif
 
         ImGui::Separator();
 
@@ -2668,36 +2703,60 @@ const ObjectCommandTable<SDLBeebWindow> SDLBeebWindow::ms_command_table("Beeb Wi
 #if ENABLE_IMGUI_TEST
     GetTogglePopupCommand<BeebWindowPopupType_DearImguiTest>(),
 #endif
-//#if BBCMICRO_DEBUGGER
-//    GetTogglePopupCommand<BeebWindowPopupType_6502Debugger>(),
-//    GetTogglePopupCommand<BeebWindowPopupType_MemoryDebugger1>(),
-//    GetTogglePopupCommand<BeebWindowPopupType_MemoryDebugger2>(),
-//    GetTogglePopupCommand<BeebWindowPopupType_MemoryDebugger3>(),
-//    GetTogglePopupCommand<BeebWindowPopupType_MemoryDebugger4>(),
-//    GetTogglePopupCommand<BeebWindowPopupType_ExtMemoryDebugger1>(),
-//    GetTogglePopupCommand<BeebWindowPopupType_ExtMemoryDebugger2>(),
-//    GetTogglePopupCommand<BeebWindowPopupType_ExtMemoryDebugger3>(),
-//    GetTogglePopupCommand<BeebWindowPopupType_ExtMemoryDebugger4>(),
-//    GetTogglePopupCommand<BeebWindowPopupType_DisassemblyDebugger1>(),
-//    GetTogglePopupCommand<BeebWindowPopupType_DisassemblyDebugger2>(),
-//    GetTogglePopupCommand<BeebWindowPopupType_DisassemblyDebugger3>(),
-//    GetTogglePopupCommand<BeebWindowPopupType_DisassemblyDebugger4>(),
-//    GetTogglePopupCommand<BeebWindowPopupType_CRTCDebugger>(),
-//    GetTogglePopupCommand<BeebWindowPopupType_VideoULADebugger>(),
-//    GetTogglePopupCommand<BeebWindowPopupType_SystemVIADebugger>(),
-//    GetTogglePopupCommand<BeebWindowPopupType_UserVIADebugger>(),
-//    GetTogglePopupCommand<BeebWindowPopupType_NVRAMDebugger>(),
-//    GetTogglePopupCommand<BeebWindowPopupType_BeebLink>(),
-//    GetTogglePopupCommand<BeebWindowPopupType_SN76489Debugger>(),
-//    GetTogglePopupCommand<BeebWindowPopupType_PagingDebugger>(),
-//    GetTogglePopupCommand<BeebWindowPopupType_BreakpointsDebugger>(),
-//    GetTogglePopupCommand<BeebWindowPopupType_StackDebugger>(),
-//
+#if BBCMICRO_DEBUGGER
+#if ENABLE_6502_DEBUG_WINDOW
+    GetTogglePopupCommand<BeebWindowPopupType_6502Debugger>(),
+#endif
+#if ENABLE_MEMORY_DEBUG_WINDOW
+    GetTogglePopupCommand<BeebWindowPopupType_MemoryDebugger1>(),
+    GetTogglePopupCommand<BeebWindowPopupType_MemoryDebugger2>(),
+    GetTogglePopupCommand<BeebWindowPopupType_MemoryDebugger3>(),
+    GetTogglePopupCommand<BeebWindowPopupType_MemoryDebugger4>(),
+#endif
+#if ENABLE_EXT_MEMORY_DEBUG_WINDOW
+    GetTogglePopupCommand<BeebWindowPopupType_ExtMemoryDebugger1>(),
+    GetTogglePopupCommand<BeebWindowPopupType_ExtMemoryDebugger2>(),
+    GetTogglePopupCommand<BeebWindowPopupType_ExtMemoryDebugger3>(),
+    GetTogglePopupCommand<BeebWindowPopupType_ExtMemoryDebugger4>(),
+#endif
+#if ENABLE_DISASSEMBLY_DEBUG_WINDOW
+    GetTogglePopupCommand<BeebWindowPopupType_DisassemblyDebugger1>(),
+    GetTogglePopupCommand<BeebWindowPopupType_DisassemblyDebugger2>(),
+    GetTogglePopupCommand<BeebWindowPopupType_DisassemblyDebugger3>(),
+    GetTogglePopupCommand<BeebWindowPopupType_DisassemblyDebugger4>(),
+#endif
+#if ENABLE_CRTC_DEBUG_WINDOW
+    GetTogglePopupCommand<BeebWindowPopupType_CRTCDebugger>(),
+#endif
+#if ENABLE_VIDEO_ULA_DEBUG_WINDOW
+    GetTogglePopupCommand<BeebWindowPopupType_VideoULADebugger>(),
+#endif
+#if ENABLE_VIA_DEBUG_WINDOW
+    GetTogglePopupCommand<BeebWindowPopupType_SystemVIADebugger>(),
+    GetTogglePopupCommand<BeebWindowPopupType_UserVIADebugger>(),
+#endif
+#if ENABLE_NVRAM_DEBUG_WINDOW
+    GetTogglePopupCommand<BeebWindowPopupType_NVRAMDebugger>(),
+    GetTogglePopupCommand<BeebWindowPopupType_BeebLink>(),
+#endif
+#if ENABLE_SN76489_DEBUG_WINDOW
+    GetTogglePopupCommand<BeebWindowPopupType_SN76489Debugger>(),
+#endif
+#if ENABLE_PAGING_DEBUG_WINDOW
+    GetTogglePopupCommand<BeebWindowPopupType_PagingDebugger>(),
+#endif
+#if ENABLE_BREAKPOINTS_DEBUG_WINDOW
+    GetTogglePopupCommand<BeebWindowPopupType_BreakpointsDebugger>(),
+#endif
+#if ENABLE_STACK_DEBUG_WINDOW
+    GetTogglePopupCommand<BeebWindowPopupType_StackDebugger>(),
+#endif
+    //
 //    {CommandDef("debug_stop","Stop").Shortcut(SDLK_F5|PCKeyModifier_Shift),&BeebWindow::DebugStop,nullptr,&BeebWindow::DebugIsStopEnabled},
 //    {CommandDef("debug_run","Run").Shortcut(SDLK_F5),&BeebWindow::DebugRun,nullptr,&BeebWindow::DebugIsRunEnabled},
 //    {CommandDef("debug_step_over","Step Over").Shortcut(SDLK_F10),&BeebWindow::DebugStepOver,nullptr,&BeebWindow::DebugIsRunEnabled},
 //    {CommandDef("debug_step_in","Step In").Shortcut(SDLK_F11),&BeebWindow::DebugStepIn,nullptr,&BeebWindow::DebugIsRunEnabled},
-//#endif
+#endif
     {CommandDef("save_default_nvram","Save default NVRAM"),&SDLBeebWindow::SaveDefaultNVRAM,nullptr,&SDLBeebWindow::SaveDefaultNVRAMIsEnabled},
 //    {CommandDef("reset_default_nvram","Reset default NVRAM").MustConfirm(),&BeebWindow::ResetDefaultNVRAM,nullptr,&BeebWindow::SaveDefaultNVRAMIsEnabled},
     {CommandDef("save_config","Save config"),&SDLBeebWindow::SaveConfig},

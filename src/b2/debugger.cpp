@@ -4,7 +4,7 @@
 #if BBCMICRO_DEBUGGER
 
 #include "dear_imgui.h"
-#include "BeebWindow.h"
+#include "SDLBeebWindow.h"
 #include "BeebThread.h"
 #include <shared/log.h>
 #include <dear_imgui_hex_editor.h>
@@ -107,40 +107,42 @@ class DebugUI:
     public SettingsUI
 {
 public:
-    struct DebugBigPage {
-        // The big page this refers to.
-        const BigPageMetadata *metadata=nullptr;
+    //struct DebugBigPage {
+    //    // The big page this refers to.
+    //    const BigPageMetadata *metadata=nullptr;
 
-        // points to this->ram_buffer, or NULL.
-        const uint8_t *r=nullptr;
+    //    //// points to this->ram_buffer, or NULL.
+    //    //const uint8_t *r=nullptr;
 
-        // set if writeable - use one of the thread messages to actually do
-        // the writing.
-        bool writeable=false;
+    //    // set if writeable - use one of the thread messages to actually do
+    //    // the writing.
+    //    bool writeable=false;
 
-        // points to this->byte_flags_buffer, or NULL.
-        const uint8_t *byte_flags=nullptr;
+    //    //// points to this->byte_flags_buffer, or NULL.
+    //    //const uint8_t *byte_flags=nullptr;
 
-        // The address flags are per-address, not per big page - it's just
-        // convenient to have them as part of the same struct.
-        //
-        // Points to this->addr_flags_buffer, or NULL.
-        const uint8_t *addr_flags=nullptr;
+    //    //// The address flags are per-address, not per big page - it's just
+    //    //// convenient to have them as part of the same struct.
+    //    ////
+    //    //// Points to this->addr_flags_buffer, or NULL.
+    //    //const uint8_t *addr_flags=nullptr;
 
-        // buffers for the above.
-        uint8_t ram_buffer[BBCMicro::BIG_PAGE_SIZE_BYTES]={};
-        uint8_t addr_flags_buffer[BBCMicro::BIG_PAGE_SIZE_BYTES]={};
-        uint8_t byte_flags_buffer[BBCMicro::BIG_PAGE_SIZE_BYTES]={};
-    };
+    //    //// buffers for the above.
+    //    //uint8_t ram_buffer[BBCMicro::BIG_PAGE_SIZE_BYTES]={};
+    //    //uint8_t addr_flags_buffer[BBCMicro::BIG_PAGE_SIZE_BYTES]={};
+    //    //uint8_t byte_flags_buffer[BBCMicro::BIG_PAGE_SIZE_BYTES]={};
+    //};
 
     bool OnClose() override;
 
     void DoImGui() override final;
 
-    void SetBeebWindow(BeebWindow *beeb_window);
+    void SetBeebWindow(SDLBeebWindow *beeb_window);
 protected:
-    BeebWindow *m_beeb_window=nullptr;
-    std::shared_ptr<BeebThread> m_beeb_thread;
+    // only non-null for the duration of the DoImGui2 call.
+    BBCMicro *m_beeb=nullptr;
+
+    SDLBeebWindow *m_beeb_window=nullptr;
     uint32_t m_dpo=0;
 
     virtual void DoImGui2()=0;
@@ -156,19 +158,18 @@ protected:
     // If mouse clicked 2 and last item (whatever it was...) hovered, pops up
     // a popup for that byte/address with at least the DoByteDebugGui stuff.
     //void DoAddressPopupGui(M6502Word addr,bool mos);
-    void DoBytePopupGui(const DebugBigPage *dbp,M6502Word addr);
+    void DoBytePopupGui(const BBCMicro::BigPage *bp,M6502Word addr);
 
     // Address info, checkboxes for breakpoint flags, etc.
-    void DoByteDebugGui(const DebugBigPage *dbp,M6502Word addr);
+    void DoByteDebugGui(const BBCMicro::BigPage *bp,M6502Word addr);
 
     RevealTargetUI *DoRevealGui(const char *text);
 
-    void ApplyOverridesForDebugBigPage(const DebugBigPage *dbp);
+    void ApplyOverridesForDebugBigPage(const BBCMicro::BigPage *bp);
 
-    const DebugBigPage *GetDebugBigPageForAddress(M6502Word addr,
-                                                  bool mos);
+    //const BBCMicro::BigPage *GetBigPageForAddress(M6502Word addr,bool mos);
 private:
-    std::unique_ptr<DebugBigPage> m_dbps[2][16];// [mos][mem big page]
+    //std::unique_ptr<DebugBigPage> m_dbps[2][16];// [mos][mem big page]
     uint32_t m_popup_id=0;//salt for byte popup gui IDs
 
     bool DoDebugByteFlagsGui(const char *str,
@@ -192,7 +193,7 @@ private:
 class RevealTargetUI {
 public:
     virtual void RevealAddress(M6502Word addr)=0;
-    virtual void RevealByte(const DebugUI::DebugBigPage *dbp,M6502Word addr)=0;
+    virtual void RevealByte(const BBCMicro::BigPage *bp,M6502Word addr)=0;
 protected:
 private:
 };
@@ -208,24 +209,26 @@ bool DebugUI::OnClose() {
 //////////////////////////////////////////////////////////////////////////
 
 void DebugUI::DoImGui() {
-    for(size_t i=0;i<2;++i) {
-        for(size_t j=0;j<16;++j) {
-            m_dbps[i][j].reset();
-        }
-    }
+    //for(size_t i=0;i<2;++i) {
+    //    for(size_t j=0;j<16;++j) {
+    //        m_dbps[i][j].reset();
+    //    }
+    //}
 
     m_popup_id=0;
 
+    m_beeb=m_beeb_window->GetBeeb();
+
     this->DoImGui2();
+
+    m_beeb=nullptr;
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void DebugUI::SetBeebWindow(BeebWindow *beeb_window) {
+void DebugUI::SetBeebWindow(SDLBeebWindow *beeb_window) {
     m_beeb_window=beeb_window;
-    ASSERT(!m_beeb_thread);
-    m_beeb_thread=m_beeb_window->GetBeebThread();
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -239,27 +242,27 @@ bool DebugUI::ReadByte(uint8_t *value,
 {
     M6502Word addr={addr_};
 
-    const DebugBigPage *dbp=this->GetDebugBigPageForAddress(addr,mos);
+    if(value||byte_flags) {
+        const BBCMicro::BigPage *bp=m_beeb->DebugGetBigPageForAddress(addr,mos,m_dpo);
 
-    if(!dbp->r) {
-        return false;
-    }
+        if(!bp->r) {
+            return false;
+        }
 
-    *value=dbp->r[addr.p.o];
+        if(value) {
+            *value=bp->r[addr.p.o];
+        }
 
-    if(addr_flags) {
-        if(dbp->addr_flags) {
-            *addr_flags=dbp->addr_flags[addr.p.o];
-        } else {
-            *addr_flags=0;
+        if(byte_flags) {
+            *byte_flags=bp->debug[addr.p.o];
         }
     }
 
-    if(byte_flags) {
-        if(dbp->byte_flags) {
-            *byte_flags=dbp->byte_flags[addr.p.o];
+    if(addr_flags) {
+        if(const uint8_t *bp_addr_flags=m_beeb->DebugGetAddressDebugFlagsForMemBigPage(addr.p.p)) {
+            *addr_flags=bp_addr_flags[addr.p.o];
         } else {
-            *byte_flags=0;
+            *addr_flags=0;
         }
     }
 
@@ -298,14 +301,8 @@ void DebugUI::DoDebugPageOverrideImGui() {
     static const char HAZEL_POPUP[]="hazel_popup";
     static const char OS_POPUP[]="os_popup";
 
-    uint32_t dpo_mask;
-    uint32_t dpo_current;
-    {
-        std::unique_lock<Mutex> lock;
-        const BBCMicro *m=m_beeb_thread->LockBeeb(&lock);
-        dpo_mask=m->GetType()->dpo_mask;
-        dpo_current=m->DebugGetCurrentPageOverride();
-    }
+    uint32_t dpo_mask=m_beeb->GetType()->dpo_mask;
+    uint32_t dpo_current=m_beeb->DebugGetCurrentPageOverride();
 
     // ROM.
     if(dpo_mask&BBCMicroDebugPagingOverride_OverrideROM) {
@@ -412,7 +409,7 @@ void DebugUI::DoDebugPageOverrideImGui() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void DebugUI::DoBytePopupGui(const DebugBigPage *dbp,M6502Word addr) {
+void DebugUI::DoBytePopupGui(const BBCMicro::BigPage *bp,M6502Word addr) {
     static const char CONTEXT_POPUP_NAME[]="debug_ui_byte_context";
 
     ImGuiIDPusher pusher(addr.w);
@@ -429,7 +426,7 @@ void DebugUI::DoBytePopupGui(const DebugBigPage *dbp,M6502Word addr) {
     }
 
     if(ImGui::BeginPopup(CONTEXT_POPUP_NAME)) {
-        this->DoByteDebugGui(dbp,addr);
+        this->DoByteDebugGui(bp,addr);
         ImGui::EndPopup();
     }
 }
@@ -437,24 +434,20 @@ void DebugUI::DoBytePopupGui(const DebugBigPage *dbp,M6502Word addr) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void DebugUI::DoByteDebugGui(const DebugBigPage *dbp,M6502Word addr) {
+void DebugUI::DoByteDebugGui(const BBCMicro::BigPage *bp,M6502Word addr) {
     ImGui::Text("Address: $%04x",addr.w);
 
-    if(!dbp) {
+    if(!bp) {
         ImGui::Separator();
         ImGui::Text("Byte: *unknown*");
     } else {
-        if(dbp->addr_flags) {
+        if(const uint8_t *bp_addr_flags=m_beeb->DebugGetAddressDebugFlagsForMemBigPage(addr.p.p)) {
             char addr_str[10];
             snprintf(addr_str,sizeof addr_str,"$%04x",addr.w);
 
-            uint8_t addr_flags=dbp->addr_flags[addr.p.o];
+            uint8_t addr_flags=bp_addr_flags[addr.p.o];
             if(this->DoDebugByteFlagsGui(addr_str,&addr_flags)) {
-                m_beeb_thread->Send(std::make_shared<BeebThread::DebugSetAddressDebugFlags>(addr,addr_flags));
-//                std::unique_lock<Mutex> lock;
-//                BBCMicro *m=m_beeb_thread->LockMutableBeeb(&lock);
-//                m->DebugSetAddressDebugFlags(addr,addr_flags);
-//                m_beeb_thread->InvalidateDebugBigPageForAddress(addr);
+                m_beeb->DebugSetAddressDebugFlags(addr,addr_flags);
             }
 
             if(RevealTargetUI *reveal_target_ui=this->DoRevealGui("Reveal address...")) {
@@ -465,33 +458,27 @@ void DebugUI::DoByteDebugGui(const DebugBigPage *dbp,M6502Word addr) {
         ImGui::Separator();
 
         char byte_str[10];
-        snprintf(byte_str,sizeof byte_str,"%c%c$%04x",dbp->metadata->code,ADDRESS_PREFIX_SEPARATOR,addr.w);
+        snprintf(byte_str,sizeof byte_str,"%c%c$%04x",bp->metadata->code,ADDRESS_PREFIX_SEPARATOR,addr.w);
 
         ImGui::Text("Byte: %s (%s)",
                     byte_str,
-                    dbp->metadata->description.c_str());
+                    bp->metadata->description.c_str());
 
-        if(dbp->byte_flags) {
-            uint8_t byte_flags=dbp->byte_flags[addr.p.o];
+        if(bp->debug) {
+            uint8_t byte_flags=bp->debug[addr.p.o];
             if(this->DoDebugByteFlagsGui(byte_str,&byte_flags)) {
-                m_beeb_thread->Send(std::make_shared<BeebThread::DebugSetByteDebugFlags>(dbp->metadata->index,
-                                                                                         (uint16_t)addr.p.o,
-                                                                                         byte_flags));
-//                std::unique_lock<Mutex> lock;
-//                BBCMicro *m=m_beeb_thread->LockMutableBeeb(&lock);
-//                m->DebugSetByteDebugFlags(dbp->bp,addr.p.o,byte_flags);
-//                m_beeb_thread->InvalidateDebugBigPageForAddress(addr);
+                m_beeb->DebugSetByteDebugFlags(bp->metadata->index,(uint16_t)addr.p.o,byte_flags);
             }
         }
 
         if(RevealTargetUI *reveal_target_ui=this->DoRevealGui("Reveal byte...")) {
-            reveal_target_ui->RevealByte(dbp,addr);
+            reveal_target_ui->RevealByte(bp,addr);
         }
 
         ImGui::Separator();
 
-        if(dbp->r) {
-            uint8_t value=dbp->r[addr.p.o];
+        if(bp->r) {
+            uint8_t value=bp->r[addr.p.o];
             ImGui::Text("Value: %3d %3uu ($%02x) (%%%s)",(int8_t)value,value,value,BINARY_BYTE_STRINGS[value]);
         } else {
             ImGui::TextUnformatted("Value: --");
@@ -551,9 +538,9 @@ RevealTargetUI *DebugUI::DoRevealGui(const char *text) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void DebugUI::ApplyOverridesForDebugBigPage(const DebugBigPage *dbp) {
-    m_dpo&=dbp->metadata->dpo_mask;
-    m_dpo|=dbp->metadata->dpo_value;
+void DebugUI::ApplyOverridesForDebugBigPage(const BBCMicro::BigPage *bp) {
+    m_dpo&=bp->metadata->dpo_mask;
+    m_dpo|=bp->metadata->dpo_value;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -599,52 +586,52 @@ void DebugUI::DoDebugByteFlagGui(bool *changed,
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-const DebugUI::DebugBigPage *DebugUI::GetDebugBigPageForAddress(M6502Word addr,
-                                                                   bool mos)
-{
-    ASSERT((int)mos==0||(int)mos==1);
-
-    if(!m_dbps[mos][addr.p.p]) {
-        auto dbp=std::make_unique<DebugBigPage>();
-
-        std::unique_lock<Mutex> lock;
-        const BBCMicro *m=m_beeb_thread->LockBeeb(&lock);
-
-        const BBCMicro::BigPage *bp=m->DebugGetBigPageForAddress(addr,mos,m_dpo);
-        dbp->metadata=bp->metadata;
-
-        if(bp->r) {
-            memcpy(dbp->ram_buffer,bp->r,BBCMicro::BIG_PAGE_SIZE_BYTES);
-            dbp->r=dbp->ram_buffer;
-        } else {
-            dbp->r=nullptr;
-        }
-
-        if(bp->w&&bp->r) {
-            dbp->writeable=true;
-        } else {
-            dbp->writeable=false;
-        }
-
-        if(bp->debug) {
-            memcpy(dbp->byte_flags_buffer,bp->debug,BBCMicro::BIG_PAGE_SIZE_BYTES);
-            dbp->byte_flags=dbp->byte_flags_buffer;
-        } else {
-            dbp->byte_flags=nullptr;
-        }
-
-        if(const uint8_t *addr_flags=m->DebugGetAddressDebugFlagsForMemBigPage(addr.p.p)) {
-            memcpy(dbp->addr_flags_buffer,addr_flags,4096);
-            dbp->addr_flags=dbp->addr_flags_buffer;
-        } else {
-            dbp->addr_flags=nullptr;
-        }
-
-        m_dbps[mos][addr.p.p]=std::move(dbp);
-    }
-
-    return m_dbps[mos][addr.p.p].get();
-}
+//const DebugUI::DebugBigPage *DebugUI::GetDebugBigPageForAddress(M6502Word addr,
+//                                                                   bool mos)
+//{
+//    ASSERT((int)mos==0||(int)mos==1);
+//
+//    if(!m_dbps[mos][addr.p.p]) {
+//        auto dbp=std::make_unique<DebugBigPage>();
+//
+//        std::unique_lock<Mutex> lock;
+//        const BBCMicro *m=m_beeb_thread->LockBeeb(&lock);
+//
+//        const BBCMicro::BigPage *bp=m->DebugGetBigPageForAddress(addr,mos,m_dpo);
+//        dbp->metadata=bp->metadata;
+//
+//        if(bp->r) {
+//            memcpy(dbp->ram_buffer,bp->r,BBCMicro::BIG_PAGE_SIZE_BYTES);
+//            dbp->r=dbp->ram_buffer;
+//        } else {
+//            dbp->r=nullptr;
+//        }
+//
+//        if(bp->w&&bp->r) {
+//            dbp->writeable=true;
+//        } else {
+//            dbp->writeable=false;
+//        }
+//
+//        if(bp->debug) {
+//            memcpy(dbp->byte_flags_buffer,bp->debug,BBCMicro::BIG_PAGE_SIZE_BYTES);
+//            dbp->byte_flags=dbp->byte_flags_buffer;
+//        } else {
+//            dbp->byte_flags=nullptr;
+//        }
+//
+//        if(const uint8_t *addr_flags=m->DebugGetAddressDebugFlagsForMemBigPage(addr.p.p)) {
+//            memcpy(dbp->addr_flags_buffer,addr_flags,4096);
+//            dbp->addr_flags=dbp->addr_flags_buffer;
+//        } else {
+//            dbp->addr_flags=nullptr;
+//        }
+//
+//        m_dbps[mos][addr.p.p]=std::move(dbp);
+//    }
+//
+//    return m_dbps[mos][addr.p.p].get();
+//}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -701,7 +688,7 @@ void DebugUI::DoDebugPageOverrideFlagImGui(uint32_t mask,
 //////////////////////////////////////////////////////////////////////////
 
 template<class DerivedType>
-static std::unique_ptr<DerivedType> CreateDebugUI(BeebWindow *beeb_window) {
+static std::unique_ptr<DerivedType> CreateDebugUI(SDLBeebWindow *beeb_window) {
     std::unique_ptr<DerivedType> ptr=std::make_unique<DerivedType>();
 
     ptr->SetBeebWindow(beeb_window);
@@ -720,76 +707,51 @@ class M6502DebugWindow:
 public:
 protected:
     void DoImGui2() override {
-        //m_beeb_thread->SendUpdate6502StateMessage();
+        const M6502 *s=m_beeb->GetM6502();
 
-        bool halted;
-        uint16_t pc,abus;
-        uint8_t a,x,y,sp,opcode,read,dbus;
-        M6502P p;
-        M6502Fn tfn,ifn;
-        const M6502Config *config;
-        const volatile uint64_t *cycles;
-        char halt_reason[1000];
+        uint8_t opcode=M6502_GetOpcode(s);
 
-        {
-            std::unique_lock<Mutex> lock;
-            const BBCMicro *m=m_beeb_thread->LockBeeb(&lock);
-            const M6502 *s=m->GetM6502();
+        this->Reg("A",s->a);
 
-            config=s->config;
-            halted=m->DebugIsHalted();
-            if(const char *tmp=m->DebugGetHaltReason()) {
-                strlcpy(halt_reason,tmp,sizeof halt_reason);
-            } else {
-                halt_reason[0]=0;
-            }
-            a=s->a;
-            x=s->x;
-            y=s->y;
-            pc=s->opcode_pc.w;
-            sp=s->s.b.l;
-            read=s->read;
-            abus=s->abus.w;
-            dbus=s->dbus;
-            p=M6502_GetP(s);
-            tfn=s->tfn;
-            ifn=s->ifn;
-            opcode=M6502_GetOpcode(s);
-            cycles=m->GetNum2MHzCycles();
-        }
+        this->Reg("X",s->x);
 
-        this->Reg("A",a);
-        this->Reg("X",x);
-        this->Reg("Y",y);
-        ImGui::Text("PC = $%04x",pc);
-        ImGui::Text("S = $01%02X",sp);
-        const char *mnemonic=config->disassembly_info[opcode].mnemonic;
-        const char *mode_name=M6502AddrMode_GetName(config->disassembly_info[opcode].mode);
+        this->Reg("Y",s->y);
+
+        ImGui::Text("PC = $%04x",s->opcode_pc.w);
+
+        ImGui::Text("S = $01%02X",s->s.b.l);
+
+        const char *mnemonic=s->config->disassembly_info[opcode].mnemonic;
+        const char *mode_name=M6502AddrMode_GetName(s->config->disassembly_info[opcode].mode);
 
         char pstr[9];
+        M6502P p=M6502_GetP(s);
         ImGui::Text("P = $%02x %s",p.value,M6502P_GetString(pstr,p));
-
-        char cycles_str[MAX_UINT64_THOUSANDS_LEN];
-        GetThousandsString(cycles_str,*cycles);
-
+        
         ImGui::Separator();
 
+        char cycles_str[MAX_UINT64_THOUSANDS_LEN];
+        GetThousandsString(cycles_str,*m_beeb->GetNum2MHzCycles());
         ImGui::Text("Cycles = %s",cycles_str);
+
         ImGui::Text("Opcode = $%02X %03d - %s %s",opcode,opcode,mnemonic,mode_name);
-        ImGui::Text("tfn = %s",GetFnName(tfn));
-        ImGui::Text("ifn = %s",GetFnName(ifn));
-        if(halted) {
-            if(halt_reason[0]==0) {
-                ImGui::TextUnformatted("State = halted");
-            } else {
+
+        ImGui::Text("tfn = %s",GetFnName(s->tfn));
+
+        ImGui::Text("ifn = %s",GetFnName(s->ifn));
+
+        if(m_beeb->DebugIsHalted()) {
+            if(const char *halt_reason=m_beeb->DebugGetHaltReason()) {
                 ImGui::Text("State = halted: %s",halt_reason);
+            } else {
+                ImGui::TextUnformatted("State = halted");
             }
         } else {
             ImGui::TextUnformatted("State = running");
         }
 
-        ImGui::Text("Address = $%04x; Data = $%02x %03d %s",abus,dbus,dbus,BINARY_BYTE_STRINGS[dbus]);
-        ImGui::Text("Access = %s",M6502ReadType_GetName(read));
+        ImGui::Text("Address = $%04x; Data = $%02x %03d %s",s->abus.w,s->dbus,s->dbus,BINARY_BYTE_STRINGS[s->dbus]);
+        ImGui::Text("Access = %s",M6502ReadType_GetName(s->read));
     }
 private:
     void Reg(const char *name,uint8_t value) {
@@ -797,12 +759,7 @@ private:
     }
 };
 
-#endif
-
-
-#if ENABLE_6502_DEBUG_WINDOW
-
-std::unique_ptr<SettingsUI> Create6502DebugWindow(BeebWindow *beeb_window) {
+std::unique_ptr<SettingsUI> Create6502DebugWindow(SDLBeebWindow *beeb_window) {
     return CreateDebugUI<M6502DebugWindow>(beeb_window);
 }
 

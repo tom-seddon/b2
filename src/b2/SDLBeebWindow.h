@@ -63,10 +63,13 @@ struct BeebThreadVaryingOutput {
 // on #if hell.
 class SDLBeebWindow {
 public:
-    // Normally, commands are created, prepared, and executed.
+    // Commands record non-deterministic actions.
     //
-    // In timeline mode, commands are recorded into a list for later replay.
-    // Commands aren't re-prepared when replaying, just re-executed.
+    // Normally, commands are simply created, prepared, and executed.
+    //
+    // In timeline mode, commands are prepared, executed, then recorded into a
+    // list for later potential replay. Commands aren't re-prepared when
+    // replaying, just re-executed.
     class Command {
     public:
         typedef std::function<void(bool,std::string)> CompletionFun;
@@ -225,6 +228,11 @@ public:
     bool GetBeebKeyState(BeebKey key) const;
 
     const std::string &GetConfigName() const;
+
+    BBCMicro *GetBeeb();
+
+    // used by debugger
+    SettingsUI *GetPopupByType(BeebWindowPopupType type) const;
 protected:
 private:
     class FileMenuItem;
