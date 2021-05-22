@@ -27,6 +27,7 @@
 #include <Remotery.h>
 #include <inttypes.h>
 #include "ConfigsUI.h"
+#include "DearImguiTestUI.h"
 
 #include <shared/enum_def.h>
 #include "SDLBeebWindow.inl"
@@ -100,9 +101,9 @@ const SDLBeebWindow::SettingsUIMetadata SDLBeebWindow::ms_settings_uis[]={
 //    // slightly inconsistent naming as this was created before the debugger...
 //    {BeebWindowPopupType_PixelMetadata,"Pixel Metadata","toggle_pixel_metadata",&CreatePixelMetadataDebugWindow},
 //#endif
-//#if ENABLE_IMGUI_TEST
-//    {BeebWindowPopupType_DearImguiTest,"dear imgui Test","toggle_dear_imgui_test",&CreateDearImguiTestUI},
-//#endif
+#if ENABLE_IMGUI_TEST
+    {BeebWindowPopupType_DearImguiTest,"dear imgui Test","toggle_dear_imgui_test",&CreateDearImguiTestUI},
+#endif
 //#if BBCMICRO_DEBUGGER
 //    {BeebWindowPopupType_6502Debugger,"6502 Debug","toggle_6502_debugger",&Create6502DebugWindow,},
 //    {BeebWindowPopupType_MemoryDebugger1,"Memory Debug 1","toggle_memory_debugger1",&CreateMemoryDebugWindow,},
@@ -1983,9 +1984,9 @@ void SDLBeebWindow::DoToolsMenu() {
 void SDLBeebWindow::DoDebugMenu() {
 #if ENABLE_DEBUG_MENU
     if(ImGui::BeginMenu("Debug")) {
-//#if ENABLE_IMGUI_TEST
-//        m_cc.DoMenuItemUI("toggle_dear_imgui_test");
-//#endif
+#if ENABLE_IMGUI_TEST
+        m_cc.DoMenuItemUI("toggle_dear_imgui_test");
+#endif
 //        m_cc.DoMenuItemUI("toggle_event_trace");
         m_cc.DoMenuItemUI("toggle_date_rate");
 
@@ -2602,9 +2603,9 @@ const ObjectCommandTable<SDLBeebWindow> SDLBeebWindow::ms_command_table("Beeb Wi
 //#if VIDEO_TRACK_METADATA
 //    GetTogglePopupCommand<BeebWindowPopupType_PixelMetadata>(),
 //#endif
-//#if ENABLE_IMGUI_TEST
-//    GetTogglePopupCommand<BeebWindowPopupType_DearImguiTest>(),
-//#endif
+#if ENABLE_IMGUI_TEST
+    GetTogglePopupCommand<BeebWindowPopupType_DearImguiTest>(),
+#endif
 //#if BBCMICRO_DEBUGGER
 //    GetTogglePopupCommand<BeebWindowPopupType_6502Debugger>(),
 //    GetTogglePopupCommand<BeebWindowPopupType_MemoryDebugger1>(),

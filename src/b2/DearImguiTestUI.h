@@ -10,10 +10,12 @@
 
 class SettingsUI;
 class BeebWindow;
+class SDLBeebWindow;
 
 #include <memory>
 
 std::unique_ptr<SettingsUI> CreateDearImguiTestUI(BeebWindow *beeb_window);
+std::unique_ptr<SettingsUI> CreateDearImguiTestUI(SDLBeebWindow *beeb_window);
 
 #endif
 
