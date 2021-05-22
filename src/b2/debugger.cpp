@@ -712,6 +712,8 @@ static std::unique_ptr<DerivedType> CreateDebugUI(BeebWindow *beeb_window) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#if ENABLE_6502_DEBUG_WINDOW
+
 class M6502DebugWindow:
     public DebugUI
 {
@@ -795,12 +797,21 @@ private:
     }
 };
 
+#endif
+
+
+#if ENABLE_6502_DEBUG_WINDOW
+
 std::unique_ptr<SettingsUI> Create6502DebugWindow(BeebWindow *beeb_window) {
     return CreateDebugUI<M6502DebugWindow>(beeb_window);
 }
 
+#endif
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
+
+#if ENABLE_MEMORY_DEBUG_WINDOW
 
 LOG_DEFINE(HEXEDIT,"HEXEDIT",&log_printer_stdout_and_debugger,true)
 
@@ -935,8 +946,12 @@ std::unique_ptr<SettingsUI> CreateMemoryDebugWindow(BeebWindow *beeb_window) {
     return CreateDebugUI<MemoryDebugWindow>(beeb_window);
 }
 
+#endif
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
+
+#if ENABLE_EXT_MEMORY_DEBUG_WINDOW
 
 class ExtMemoryDebugWindow:
     public DebugUI
@@ -1006,8 +1021,12 @@ std::unique_ptr<SettingsUI> CreateExtMemoryDebugWindow(BeebWindow *beeb_window) 
     return CreateDebugUI<ExtMemoryDebugWindow>(beeb_window);
 }
 
+#endif
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
+
+#if ENABLE_DISASSEMBLY_DEBUG_WINDOW
 
 class DisassemblyDebugWindow:
 public DebugUI,
@@ -1642,8 +1661,12 @@ std::unique_ptr<SettingsUI> CreateDisassemblyDebugWindow(BeebWindow *beeb_window
     return ui;
 }
 
+#endif
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
+
+#if ENABLE_CRTC_DEBUG_WINDOW
 
 class CRTCDebugWindow:
     public DebugUI
@@ -1739,8 +1762,12 @@ std::unique_ptr<SettingsUI> CreateCRTCDebugWindow(BeebWindow *beeb_window) {
     return CreateDebugUI<CRTCDebugWindow>(beeb_window);
 }
 
+#endif
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
+
+#if ENABLE_VIDEO_ULA_DEBUG_WINDOW
 
 class VideoULADebugWindow:
     public DebugUI
@@ -1902,8 +1929,12 @@ std::unique_ptr<SettingsUI> CreateVideoULADebugWindow(BeebWindow *beeb_window) {
     return CreateDebugUI<VideoULADebugWindow>(beeb_window);
 }
 
+#endif
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
+
+#if ENABLE_VIA_DEBUG_WINDOW
 
 class R6522DebugWindow:
     public DebugUI
@@ -2048,8 +2079,12 @@ const char *const R6522DebugWindow::PCR_CONTROL_MODES[]={
     "High output",
 };
 
+#endif
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
+
+#if ENABLE_VIA_DEBUG_WINDOW
 
 class SystemVIADebugWindow:
     public R6522DebugWindow
@@ -2131,9 +2166,12 @@ std::unique_ptr<SettingsUI> CreateSystemVIADebugWindow(BeebWindow *beeb_window) 
     return CreateDebugUI<SystemVIADebugWindow>(beeb_window);
 }
 
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
+
+#if ENABLE_VIA_DEBUG_WINDOW
 
 class UserVIADebugWindow:
     public R6522DebugWindow
@@ -2161,8 +2199,12 @@ std::unique_ptr<SettingsUI> CreateUserVIADebugWindow(BeebWindow *beeb_window) {
     return CreateDebugUI<UserVIADebugWindow>(beeb_window);
 }
 
+#endif
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
+
+#if ENABLE_NVRAM_DEBUG_WINDOW
 
 class NVRAMDebugWindow:
     public DebugUI
@@ -2245,8 +2287,12 @@ std::unique_ptr<SettingsUI> CreateNVRAMDebugWindow(BeebWindow *beeb_window) {
     return CreateDebugUI<NVRAMDebugWindow>(beeb_window);
 }
 
+#endif
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
+
+#if ENABLE_SN76489_DEBUG_WINDOW
 
 class SN76489DebugWindow:
 public DebugUI
@@ -2328,8 +2374,12 @@ std::unique_ptr<SettingsUI> CreateSN76489DebugWindow(BeebWindow *beeb_window) {
     return CreateDebugUI<SN76489DebugWindow>(beeb_window);
 }
 
+#endif
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
+
+#if ENABLE_PAGING_DEBUG_WINDOW
 
 static const uint8_t ALL_USER_MEM_BIG_PAGES[16]={};
 
@@ -2437,8 +2487,12 @@ std::unique_ptr<SettingsUI> CreatePagingDebugWindow(BeebWindow *beeb_window) {
     return CreateDebugUI<PagingDebugWindow>(beeb_window);
 }
 
+#endif
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
+
+#if ENABLE_BREAKPOINTS_DEBUG_WINDOW
 
 class BreakpointsDebugWindow:
 public DebugUI
@@ -2648,10 +2702,13 @@ std::unique_ptr<SettingsUI> CreateBreakpointsDebugWindow(BeebWindow *beeb_window
     return CreateDebugUI<BreakpointsDebugWindow>(beeb_window);
 }
 
+#endif
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 #if VIDEO_TRACK_METADATA
+#if ENABLE_PIXEL_METADATA_DEBUG_WINDOW
 class PixelMetadataUI:
 public DebugUI
 {
@@ -2716,16 +2773,17 @@ protected:
     }
 private:
 };
-#endif
 
-#if VIDEO_TRACK_METADATA
 std::unique_ptr<SettingsUI> CreatePixelMetadataDebugWindow(BeebWindow *beeb_window) {
     return CreateDebugUI<PixelMetadataUI>(beeb_window);
 }
 #endif
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
+
+#if ENABLE_STACK_DEBUG_WINDOW
 
 class StackDebugWindow:
 public DebugUI
@@ -2842,6 +2900,8 @@ private:
 std::unique_ptr<SettingsUI> CreateStackDebugWindow(BeebWindow *beeb_window) {
     return CreateDebugUI<StackDebugWindow>(beeb_window);
 }
+
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
