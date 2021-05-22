@@ -423,7 +423,11 @@ private:
     bool Execute(std::unique_ptr<Command> command);
     void HardReset();
     static std::unique_ptr<SettingsUI> CreateOptionsUI(SDLBeebWindow *beeb_window);
-    
+    void ClearConsole();
+    void PrintSeparator();
+    void TogglePrioritizeCommandShortcuts();
+    bool IsPrioritizeCommandShortcutsTicked() const;
+
     template<BeebWindowPopupType>
     void TogglePopupCommand();
 

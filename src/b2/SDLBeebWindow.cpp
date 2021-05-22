@@ -1916,7 +1916,7 @@ void SDLBeebWindow::DoKeyboardMenu() {
 
         ImGui::Separator();
 
-//        m_cc.DoMenuItemUI("toggle_prioritize_shortcuts");
+        m_cc.DoMenuItemUI("toggle_prioritize_shortcuts");
 
         if(GetNumBeebKeymaps()>0) {
             ImGui::Separator();
@@ -1990,12 +1990,12 @@ void SDLBeebWindow::DoDebugMenu() {
 //        m_cc.DoMenuItemUI("toggle_event_trace");
         m_cc.DoMenuItemUI("toggle_date_rate");
 
-//#if SYSTEM_WINDOWS
-//        if(GetConsoleWindow()) {
-//            m_cc.DoMenuItemUI("clear_console");
-//            m_cc.DoMenuItemUI("print_separator");
-//        }
-//#endif
+#if SYSTEM_WINDOWS
+        if(GetConsoleWindow()) {
+            m_cc.DoMenuItemUI("clear_console");
+            m_cc.DoMenuItemUI("print_separator");
+        }
+#endif
 
 //#if VIDEO_TRACK_METADATA
 //        m_cc.DoMenuItemUI("toggle_pixel_metadata");
@@ -2534,6 +2534,37 @@ std::unique_ptr<SettingsUI> SDLBeebWindow::CreateOptionsUI(SDLBeebWindow *beeb_w
     return std::make_unique<OptionsUI>(beeb_window);
 }
 
+#if SYSTEM_WINDOWS
+void SDLBeebWindow::ClearConsole() {
+    HANDLE h=GetStdHandle(STD_OUTPUT_HANDLE);
+
+    CONSOLE_SCREEN_BUFFER_INFO csbi;
+    if(!GetConsoleScreenBufferInfo(h,&csbi)) {
+        return;
+    }
+
+    COORD coord={0,0};
+    DWORD num_chars=csbi.dwSize.X*csbi.dwSize.Y,num_written;
+    FillConsoleOutputAttribute(h,csbi.wAttributes,num_chars,coord,&num_written);
+    FillConsoleOutputCharacter(h,' ',num_chars,coord,&num_written);
+    SetConsoleCursorPosition(h,coord);
+}
+#endif
+
+void SDLBeebWindow::PrintSeparator() {
+    printf("--------------------------------------------------\n");
+}
+
+void SDLBeebWindow::TogglePrioritizeCommandShortcuts() {
+    m_prefer_shortcuts=!m_prefer_shortcuts;
+
+    this->ShowPrioritizeCommandShortcutsStatus();
+}
+
+bool SDLBeebWindow::IsPrioritizeCommandShortcutsTicked() const {
+    return m_prefer_shortcuts;
+}
+
 template<BeebWindowPopupType POPUP_TYPE>
 void SDLBeebWindow::TogglePopupCommand() {
     m_settings.popups^=(uint64_t)1<<POPUP_TYPE;
@@ -2592,10 +2623,10 @@ const ObjectCommandTable<SDLBeebWindow> SDLBeebWindow::ms_command_table("Beeb Wi
     {CommandDef("exit","Exit").MustConfirm(),&SDLBeebWindow::Exit},
 //    {CommandDef("clean_up_recent_files_lists","Clean up recent files lists").MustConfirm(),&BeebWindow::CleanUpRecentFilesLists},
 //    {CommandDef("reset_dock_windows","Reset dock windows").MustConfirm(),&BeebWindow::ResetDockWindows},
-//#if SYSTEM_WINDOWS
-//    {{"clear_console","Clear Win32 console"},&BeebWindow::ClearConsole},
-//#endif
-//    {{"print_separator","Print stdout separator"},&BeebWindow::PrintSeparator},
+#if SYSTEM_WINDOWS
+    {{"clear_console","Clear Win32 console"},&SDLBeebWindow::ClearConsole},
+#endif
+    {{"print_separator","Print stdout separator"},&SDLBeebWindow::PrintSeparator},
 //    {{"paste","OSRDCH Paste"},&BeebWindow::Paste,&BeebWindow::IsPasteTicked},
 //    {{"paste_return","OSRDCH Paste (+Return)"},&BeebWindow::PasteThenReturn,&BeebWindow::IsPasteTicked},
 //    {{"toggle_copy_oswrch_text","OSWRCH Copy Text"},&BeebWindow::CopyOSWRCH<true>,&BeebWindow::IsCopyOSWRCHTicked},
@@ -2639,5 +2670,5 @@ const ObjectCommandTable<SDLBeebWindow> SDLBeebWindow::ms_command_table("Beeb Wi
     {CommandDef("save_default_nvram","Save default NVRAM"),&SDLBeebWindow::SaveDefaultNVRAM,nullptr,&SDLBeebWindow::SaveDefaultNVRAMIsEnabled},
 //    {CommandDef("reset_default_nvram","Reset default NVRAM").MustConfirm(),&BeebWindow::ResetDefaultNVRAM,nullptr,&BeebWindow::SaveDefaultNVRAMIsEnabled},
     {CommandDef("save_config","Save config"),&SDLBeebWindow::SaveConfig},
-//    {CommandDef("toggle_prioritize_shortcuts","Prioritize command keys"),&BeebWindow::TogglePrioritizeCommandShortcuts,&BeebWindow::IsPrioritizeCommandShortcutsTicked,nullptr},
+    {CommandDef("toggle_prioritize_shortcuts","Prioritize command keys"),&SDLBeebWindow::TogglePrioritizeCommandShortcuts,&SDLBeebWindow::IsPrioritizeCommandShortcutsTicked,nullptr},
 });
