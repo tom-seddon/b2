@@ -1634,80 +1634,90 @@ class CRTCDebugWindow:
 public:
 protected:
     void DoImGui2() override {
-        CRTC::Registers registers;
-        uint8_t address;
-        uint16_t cursor_address;
-        uint16_t display_address;
-        BBCMicro::AddressableLatch latch;
-        CRTC::InternalState st;
-        uint16_t char_addr,line_addr,next_line_addr;
+        const CRTC *c=m_beeb->DebugGetCRTC();
 
-        {
-            std::unique_lock<Mutex> lock;
-            const BBCMicro *m=m_beeb_thread->LockBeeb(&lock);
+        uint16_t cursor_address=m_beeb->DebugGetBeebAddressFromCRTCAddress(c->m_registers.bits.cursorh,c->m_registers.bits.cursorl);
+        uint16_t display_address=m_beeb->DebugGetBeebAddressFromCRTCAddress(c->m_registers.bits.addrh,c->m_registers.bits.addrl);
+        uint16_t char_addr=m_beeb->DebugGetBeebAddressFromCRTCAddress(c->m_st.char_addr.b.h,c->m_st.char_addr.b.l);
+        uint16_t line_addr=m_beeb->DebugGetBeebAddressFromCRTCAddress(c->m_st.line_addr.b.h,c->m_st.line_addr.b.l);
+        uint16_t next_line_addr=m_beeb->DebugGetBeebAddressFromCRTCAddress(c->m_st.next_line_addr.b.h,c->m_st.next_line_addr.b.l);
 
-            const CRTC *c=m->DebugGetCRTC();
-            //const VideoULA *u=m->DebugGetVideoULA();
+        BBCMicro::AddressableLatch latch=m_beeb->DebugGetAddressableLatch();
 
-            registers=c->m_registers;
-            address=c->m_address;
-            st=c->m_st;
+        ////CRTC::Registers registers;
+        //uint8_t address;
+        //uint16_t cursor_address;
+        //uint16_t display_address;
+        //BBCMicro::AddressableLatch latch;
+        //CRTC::InternalState st;
+        //uint16_t char_addr,line_addr,next_line_addr;
 
-            cursor_address=m->DebugGetBeebAddressFromCRTCAddress(registers.bits.cursorh,registers.bits.cursorl);
-            display_address=m->DebugGetBeebAddressFromCRTCAddress(registers.bits.addrh,registers.bits.addrl);
-            char_addr=m->DebugGetBeebAddressFromCRTCAddress(st.char_addr.b.h,st.char_addr.b.l);
-            line_addr=m->DebugGetBeebAddressFromCRTCAddress(st.line_addr.b.h,st.line_addr.b.l);
-            next_line_addr=m->DebugGetBeebAddressFromCRTCAddress(st.next_line_addr.b.h,st.next_line_addr.b.l);
+        //{
+        //    std::unique_lock<Mutex> lock;
+        //    const BBCMicro *m=m_beeb_thread->LockBeeb(&lock);
 
-            latch=m->DebugGetAddressableLatch();
+        //    const CRTC *c=m->DebugGetCRTC();
+        //    //const VideoULA *u=m->DebugGetVideoULA();
 
-            //ucontrol=u->control;
-            //memcpy(upalette,u->m_palette,16);
-        }
+        //    registers=c->m_registers;
+        //    address=c->m_address;
+        //    st=c->m_st;
+
+        //    cursor_address=m->DebugGetBeebAddressFromCRTCAddress(registers.bits.cursorh,registers.bits.cursorl);
+        //    display_address=m->DebugGetBeebAddressFromCRTCAddress(registers.bits.addrh,registers.bits.addrl);
+        //    char_addr=m->DebugGetBeebAddressFromCRTCAddress(st.char_addr.b.h,st.char_addr.b.l);
+        //    line_addr=m->DebugGetBeebAddressFromCRTCAddress(st.line_addr.b.h,st.line_addr.b.l);
+        //    next_line_addr=m->DebugGetBeebAddressFromCRTCAddress(st.next_line_addr.b.h,st.next_line_addr.b.l);
+
+        //    latch=m->DebugGetAddressableLatch();
+
+        //    //ucontrol=u->control;
+        //    //memcpy(upalette,u->m_palette,16);
+        //}
 
         if(ImGui::CollapsingHeader("Register Values")) {
-            ImGui::Text("Address = $%02x %03u",address,address);
+            ImGui::Text("Address = $%02x %03u",c->m_address,c->m_address);
             for(size_t i=0;i<18;++i) {
-                ImGui::Text("R%zu = $%02x %03u %s",i,registers.values[i],registers.values[i],BINARY_BYTE_STRINGS[registers.values[i]]);
+                ImGui::Text("R%zu = $%02x %03u %s",i,c->m_registers.values[i],c->m_registers.values[i],BINARY_BYTE_STRINGS[c->m_registers.values[i]]);
             }
             ImGui::Separator();
         }
 
-        ImGui::Text("H Displayed = %u, Total = %u",registers.bits.nhd,registers.bits.nht);
-        ImGui::Text("V Displayed = %u, Total = %u",registers.bits.nvd,registers.bits.nvt);
-        ImGui::Text("Scanlines = %u * %u + %u = %u",registers.bits.nvd,registers.bits.nr+1,registers.bits.nadj,registers.bits.nvd*(registers.bits.nr+1)+registers.bits.nadj);
+        ImGui::Text("H Displayed = %u, Total = %u",c->m_registers.bits.nhd,c->m_registers.bits.nht);
+        ImGui::Text("V Displayed = %u, Total = %u",c->m_registers.bits.nvd,c->m_registers.bits.nvt);
+        ImGui::Text("Scanlines = %u * %u + %u = %u",c->m_registers.bits.nvd,c->m_registers.bits.nr+1,c->m_registers.bits.nadj,c->m_registers.bits.nvd*(c->m_registers.bits.nr+1)+c->m_registers.bits.nadj);
         ImGui::Text("Address = $%04x",display_address);
         ImGui::Text("(Wrap Adjustment = $%04x)",BBCMicro::SCREEN_WRAP_ADJUSTMENTS[latch.bits.screen_base]<<3);
         ImGui::Separator();
-        ImGui::Text("HSync Pos = %u, Width = %u",registers.bits.nhsp,registers.bits.nsw.bits.wh);
-        ImGui::Text("VSync Pos = %u, Width = %u",registers.bits.nvsp,registers.bits.nsw.bits.wv);
-        ImGui::Text("Interlace Sync = %s, Video = %s",BOOL_STR(registers.bits.r8.bits.s),BOOL_STR(registers.bits.r8.bits.v));
-        ImGui::Text("Delay Mode = %s",DELAY_NAMES[registers.bits.r8.bits.d]);
+        ImGui::Text("HSync Pos = %u, Width = %u",c->m_registers.bits.nhsp,c->m_registers.bits.nsw.bits.wh);
+        ImGui::Text("VSync Pos = %u, Width = %u",c->m_registers.bits.nvsp,c->m_registers.bits.nsw.bits.wv);
+        ImGui::Text("Interlace Sync = %s, Video = %s",BOOL_STR(c->m_registers.bits.r8.bits.s),BOOL_STR(c->m_registers.bits.r8.bits.v));
+        ImGui::Text("Delay Mode = %s",DELAY_NAMES[c->m_registers.bits.r8.bits.d]);
         ImGui::Separator();
-        ImGui::Text("Cursor Start = %u, End = %u, Mode = %s",registers.bits.ncstart.bits.start,registers.bits.ncend,GetCRTCCursorModeEnumName(registers.bits.ncstart.bits.mode));
-        ImGui::Text("Cursor Delay Mode = %s",DELAY_NAMES[registers.bits.r8.bits.c]);
+        ImGui::Text("Cursor Start = %u, End = %u, Mode = %s",c->m_registers.bits.ncstart.bits.start,c->m_registers.bits.ncend,GetCRTCCursorModeEnumName(c->m_registers.bits.ncstart.bits.mode));
+        ImGui::Text("Cursor Delay Mode = %s",DELAY_NAMES[c->m_registers.bits.r8.bits.c]);
         ImGui::Text("Cursor Address = $%04x",cursor_address);
         ImGui::Separator();
-        ImGui::Text("Column = %u, hdisp=%s",st.column,BOOL_STR(st.hdisp));
-        ImGui::Text("Row = %u, Raster = %u, vdisp=%s",st.row,st.raster,BOOL_STR(st.vdisp));
-        ImGui::Text("Char address = $%04X (CRTC) / $%04X (BBC)",st.char_addr.w,char_addr);
-        ImGui::Text("Line address = $%04X (CRTC) / $%04X (BBC)",st.line_addr.w,line_addr);
-        ImGui::Text("Next line address = $%04X (CRTC) / $%04X (BBC)",st.next_line_addr.w,next_line_addr);
-        ImGui::Text("DISPEN queue = %%%s",BINARY_BYTE_STRINGS[st.skewed_display]);
-        ImGui::Text("CUDISP queue = %%%s",BINARY_BYTE_STRINGS[st.skewed_cudisp]);
-        ImGui::Text("VSync counter = %d",st.vsync_counter);
-        ImGui::Text("HSync counter = %d",st.hsync_counter);
-        ImGui::Text("VAdj counter = %d",st.vadj_counter);
-        ImGui::Text("check_vadj = %s",BOOL_STR(st.check_vadj));
-        ImGui::Text("in_vadj = %s",BOOL_STR(st.in_vadj));
-        ImGui::Text("end_of_vadj_latched = %s",BOOL_STR(st.end_of_vadj_latched));
-        ImGui::Text("had_vsync_this_row = %s",BOOL_STR(st.had_vsync_this_row));
-        ImGui::Text("end_of_main_latched = %s",BOOL_STR(st.end_of_main_latched));
-        ImGui::Text("do_even_frame_logic = %s",BOOL_STR(st.do_even_frame_logic));
-        ImGui::Text("first_scanline = %s",BOOL_STR(st.first_scanline));
-        ImGui::Text("in_dummy_raster = %s",BOOL_STR(st.in_dummy_raster));
-        ImGui::Text("end_of_frame_latched = %s",BOOL_STR(st.end_of_frame_latched));
-        ImGui::Text("cursor = %s",BOOL_STR(st.cursor));
+        ImGui::Text("Column = %u, hdisp=%s",c->m_st.column,BOOL_STR(c->m_st.hdisp));
+        ImGui::Text("Row = %u, Raster = %u, vdisp=%s",c->m_st.row,c->m_st.raster,BOOL_STR(c->m_st.vdisp));
+        ImGui::Text("Char address = $%04X (CRTC) / $%04X (BBC)",c->m_st.char_addr.w,char_addr);
+        ImGui::Text("Line address = $%04X (CRTC) / $%04X (BBC)",c->m_st.line_addr.w,line_addr);
+        ImGui::Text("Next line address = $%04X (CRTC) / $%04X (BBC)",c->m_st.next_line_addr.w,next_line_addr);
+        ImGui::Text("DISPEN queue = %%%s",BINARY_BYTE_STRINGS[c->m_st.skewed_display]);
+        ImGui::Text("CUDISP queue = %%%s",BINARY_BYTE_STRINGS[c->m_st.skewed_cudisp]);
+        ImGui::Text("VSync counter = %d",c->m_st.vsync_counter);
+        ImGui::Text("HSync counter = %d",c->m_st.hsync_counter);
+        ImGui::Text("VAdj counter = %d",c->m_st.vadj_counter);
+        ImGui::Text("check_vadj = %s",BOOL_STR(c->m_st.check_vadj));
+        ImGui::Text("in_vadj = %s",BOOL_STR(c->m_st.in_vadj));
+        ImGui::Text("end_of_vadj_latched = %s",BOOL_STR(c->m_st.end_of_vadj_latched));
+        ImGui::Text("had_vsync_this_row = %s",BOOL_STR(c->m_st.had_vsync_this_row));
+        ImGui::Text("end_of_main_latched = %s",BOOL_STR(c->m_st.end_of_main_latched));
+        ImGui::Text("do_even_frame_logic = %s",BOOL_STR(c->m_st.do_even_frame_logic));
+        ImGui::Text("first_scanline = %s",BOOL_STR(c->m_st.first_scanline));
+        ImGui::Text("in_dummy_raster = %s",BOOL_STR(c->m_st.in_dummy_raster));
+        ImGui::Text("end_of_frame_latched = %s",BOOL_STR(c->m_st.end_of_frame_latched));
+        ImGui::Text("cursor = %s",BOOL_STR(c->m_st.cursor));
     }
 private:
     static const char *const INTERLACE_NAMES[];
@@ -1718,7 +1728,7 @@ const char *const CRTCDebugWindow::INTERLACE_NAMES[]={"Normal","Normal","Interla
 
 const char *const CRTCDebugWindow::DELAY_NAMES[]={"0","1","2","Disabled"};
 
-std::unique_ptr<SettingsUI> CreateCRTCDebugWindow(BeebWindow *beeb_window) {
+std::unique_ptr<SettingsUI> CreateCRTCDebugWindow(SDLBeebWindow *beeb_window) {
     return CreateDebugUI<CRTCDebugWindow>(beeb_window);
 }
 
