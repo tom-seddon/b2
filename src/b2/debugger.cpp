@@ -254,7 +254,11 @@ bool DebugUI::ReadByte(uint8_t *value,
         }
 
         if(byte_flags) {
-            *byte_flags=bp->debug[addr.p.o];
+            if(bp->debug) {
+                *byte_flags=bp->debug[addr.p.o];
+            } else {
+                *byte_flags=0;
+            }
         }
     }
 
@@ -1002,8 +1006,8 @@ public:
         m_addr=addr.w;
     }
 
-    void RevealByte(const DebugUI::DebugBigPage *dbp,M6502Word addr) override {
-        this->ApplyOverridesForDebugBigPage(dbp);
+    void RevealByte(const BBCMicro::BigPage *dbp,M6502Word addr) override {
+        this->ApplyOverridesForBigPage(dbp);
         this->RevealAddress(addr);
     }
 
@@ -1014,43 +1018,49 @@ protected:
     void DoImGui2() override {
         CommandContext cc(this,this->GetCommandTable());
 
-        const M6502Config *config;
-        uint16_t pc;
-        uint8_t a,x,y;
-        M6502Word sp;
-        M6502P p;
+        const M6502 *s=m_beeb->GetM6502();
+
+        //const M6502Config *config;
+        //uint16_t pc;
+        //uint8_t a,x,y;
+        //M6502Word sp;
+        //M6502P p;
+        //uint8_t pc_is_mos[16];
+        //const BBCMicroType *type;
+        //bool halted;
+        //{
+        //    std::unique_lock<Mutex> lock;
+        //    const BBCMicro *m=m_beeb_thread->LockBeeb(&lock);
+        //    const M6502 *s=m->GetM6502();
+
+        //    type=m->GetType();
+        //    halted=m->DebugIsHalted();
+
+        //    config=s->config;
+        //    pc=s->opcode_pc.w;
+        //    a=s->a;
+        //    x=s->x;
+        //    y=s->y;
+        //    p=M6502_GetP(s);
+        //    sp=s->s;
+        //    m->GetMemBigPageIsMOSTable(pc_is_mos,m_dpo);
+        //}
+
         uint8_t pc_is_mos[16];
-        const BBCMicroType *type;
-        bool halted;
-        {
-            std::unique_lock<Mutex> lock;
-            const BBCMicro *m=m_beeb_thread->LockBeeb(&lock);
-            const M6502 *s=m->GetM6502();
-
-            type=m->GetType();
-            halted=m->DebugIsHalted();
-
-            config=s->config;
-            pc=s->opcode_pc.w;
-            a=s->a;
-            x=s->x;
-            y=s->y;
-            p=M6502_GetP(s);
-            sp=s->s;
-            m->GetMemBigPageIsMOSTable(pc_is_mos,m_dpo);
-        }
+        m_beeb->GetMemBigPageIsMOSTable(pc_is_mos,m_dpo);
 
         float maxY=ImGui::GetCurrentWindow()->Size.y;//-ImGui::GetTextLineHeight()-GImGui->Style.WindowPadding.y*2.f;
 
         this->DoDebugPageOverrideImGui();
 
-        this->ByteRegUI("A",a);
+        this->ByteRegUI("A",s->a);
         ImGui::SameLine();
-        this->ByteRegUI("X",x);
+        this->ByteRegUI("X",s->x);
         ImGui::SameLine();
-        this->ByteRegUI("Y",y);
+        this->ByteRegUI("Y",s->y);
         ImGui::SameLine();
         {
+            M6502P p=M6502_GetP(s);
             char pstr[9];
             M6502P_GetString(pstr,p);
             ImGui::TextUnformatted("P=");
@@ -1063,9 +1073,9 @@ protected:
             }
             ImGui::SameLine();
         }
-        this->WordRegGui("S",sp);
+        this->WordRegGui("S",s->s);
         ImGui::SameLine();
-        this->WordRegGui("PC",{pc});
+        this->WordRegGui("PC",s->pc);
         ImGui::SameLine();
         cc.DoToggleCheckboxUI("toggle_track_pc");
 
@@ -1076,20 +1086,21 @@ protected:
                             ImGuiInputTextFlags_EnterReturnsTrue|ImGuiInputTextFlags_AutoSelectAll))
         {
             uint16_t addr;
+            const BBCMicroType *type=m_beeb->GetType();
             if(ParseAddress(&addr,&m_dpo,type,m_address_text)) {
                 this->GoTo(addr);
             }
         }
 
         if(m_track_pc) {
-            if(halted) {
-                if(m_old_pc!=pc) {
+            if(m_beeb->DebugIsHalted()) {
+                if(m_old_pc!=s->pc.w) {
                     // well, *something* happened since last time...
-                    m_addr=pc;
-                    m_old_pc=pc;
+                    m_addr=s->pc.w;
+                    m_old_pc=s->pc.w;
                 }
             } else {
-                m_addr=pc;
+                m_addr=s->pc.w;
             }
         }
 
@@ -1113,7 +1124,7 @@ protected:
                            false);
             char ascii[4];
 
-            const M6502DisassemblyInfo *di=&config->disassembly_info[opcode];
+            const M6502DisassemblyInfo *di=&s->config->disassembly_info[opcode];
 
             M6502Word operand={};
             M6502Word operand_addr_flags={};
@@ -1135,13 +1146,13 @@ protected:
 
             ImGuiStyleColourPusher pusher;
 
-            if(line_addr.w==pc) {
+            if(line_addr.w==s->pc.w) {
                 pusher.Push(ImGuiCol_Text,ImVec4(1.f,1.f,0.f,1.f));
             }
 
-            const DebugBigPage *line_dbp=this->GetDebugBigPageForAddress(line_addr,false);
-            ImGui::Text("%c%c$%04x",line_dbp->metadata->code,ADDRESS_PREFIX_SEPARATOR,line_addr.w);
-            this->DoBytePopupGui(line_dbp,line_addr);
+            const BBCMicro::BigPage *line_bp=this->GetBigPageForAddress(line_addr,false);
+            ImGui::Text("%c%c$%04x",line_bp->metadata->code,ADDRESS_PREFIX_SEPARATOR,line_addr.w);
+            this->DoBytePopupGui(line_bp,line_addr);
 
             ImGui::SameLine();
 
@@ -1150,7 +1161,7 @@ protected:
             ImGui::SameLine();
 
             this->TextWithBreakpointBackground(opcode_addr_flags,opcode_byte_flags,"%02x",opcode);
-            this->DoBytePopupGui(line_dbp,line_addr);
+            this->DoBytePopupGui(line_bp,line_addr);
             if(opcode>=32&&opcode<127) {
                 ascii[0]=(char)opcode;
             } else {
@@ -1163,8 +1174,8 @@ protected:
                 this->TextWithBreakpointBackground(operand_addr_flags.b.l,operand_byte_flags.b.l,"%02x",operand.b.l);
 
                 M6502Word operand_l_addr={(uint16_t)(line_addr.w+1u)};
-                const DebugBigPage *operand_l_dbp=this->GetDebugBigPageForAddress(operand_l_addr,false);
-                this->DoBytePopupGui(operand_l_dbp,operand_l_addr);
+                const BBCMicro::BigPage *operand_l_bp=this->GetBigPageForAddress(operand_l_addr,false);
+                this->DoBytePopupGui(operand_l_bp,operand_l_addr);
 
                 if(operand.b.l>=32&&operand.b.l<127) {
                     ascii[1]=(char)operand.b.l;
@@ -1182,7 +1193,7 @@ protected:
                 this->TextWithBreakpointBackground(operand_addr_flags.b.h,operand_byte_flags.b.h,"%02x",operand.b.h);
 
                 M6502Word operand_h_addr={(uint16_t)(line_addr.w+2u)};
-                const DebugBigPage *operand_h_dbp=this->GetDebugBigPageForAddress(operand_h_addr,false);
+                const BBCMicro::BigPage *operand_h_dbp=this->GetBigPageForAddress(operand_h_addr,false);
                 this->DoBytePopupGui(operand_h_dbp,operand_h_addr);
 
                 if(operand.b.h>=32&&operand.b.h<127) {
@@ -1249,7 +1260,7 @@ protected:
                     };
 
                     M6502Word imm_addr={operand.b.l};
-                    const DebugBigPage *imm_dbp=this->GetDebugBigPageForAddress(imm_addr,false);
+                    const BBCMicro::BigPage *imm_dbp=this->GetBigPageForAddress(imm_addr,false);
                     this->DoClickableAddress("#$",label,"",imm_dbp,imm_addr);
                 }
                     break;
@@ -1260,12 +1271,12 @@ protected:
 
                 case M6502AddrMode_ZPX:
                     this->AddByte("",operand.b.l,false,",X");
-                    this->AddByte(IND_PREFIX,operand.b.l+x,mos,"");
+                    this->AddByte(IND_PREFIX,operand.b.l+s->x,mos,"");
                     break;
 
                 case M6502AddrMode_ZPY:
                     this->AddByte("",operand.b.l,false,",Y");
-                    this->AddByte(IND_PREFIX,operand.b.l+y,mos,"");
+                    this->AddByte(IND_PREFIX,operand.b.l+s->y,mos,"");
                     break;
 
                 case M6502AddrMode_ABS:
@@ -1275,22 +1286,22 @@ protected:
 
                 case M6502AddrMode_ABX:
                     this->AddWord("",operand.w,mos,",X");
-                    this->AddWord(IND_PREFIX,operand.w+x,mos,"");
+                    this->AddWord(IND_PREFIX,operand.w+s->x,mos,"");
                     break;
 
                 case M6502AddrMode_ABY:
                     this->AddWord("",operand.w,mos,",Y");
-                    this->AddWord(IND_PREFIX,operand.w+y,mos,"");
+                    this->AddWord(IND_PREFIX,operand.w+s->y,mos,"");
                     break;
 
                 case M6502AddrMode_INX:
                     this->AddByte("(",operand.b.l,false,",X)");
-                    this->DoIndirect((operand.b.l+x)&0xff,mos,0xff,0);
+                    this->DoIndirect((operand.b.l+s->x)&0xff,mos,0xff,0);
                     break;
 
                 case M6502AddrMode_INY:
                     this->AddByte("(",operand.b.l,false,"),Y");
-                    this->DoIndirect(operand.b.l,mos,0xff,y);
+                    this->DoIndirect(operand.b.l,mos,0xff,s->y);
                     break;
 
                 case M6502AddrMode_IND:
@@ -1311,7 +1322,7 @@ protected:
 
                 case M6502AddrMode_INDX:
                     this->AddWord("(",operand.w,false,",X)");
-                    this->DoIndirect(operand.w+x,mos,0xffff,0);
+                    this->DoIndirect(operand.w+s->x,mos,0xffff,0);
                     break;
             }
         }
@@ -1328,9 +1339,9 @@ protected:
             wheel*=5;//wild guess...
 
             if(wheel<0) {
-                this->Down(config,-wheel);
+                this->Down(s->config,-wheel);
             } else if(wheel>0) {
-                this->Up(config,wheel);
+                this->Up(s->config,wheel);
             }
         }
     }
@@ -1389,10 +1400,10 @@ private:
     }
 
     void AddWord(const char *prefix,uint16_t w,bool mos,const char *suffix) {
-        const DebugBigPage *dbp=this->GetDebugBigPageForAddress({w},mos);
+        const BBCMicro::BigPage *bp=this->GetBigPageForAddress({w},mos);
 
         char label[]={
-            dbp->metadata->code,
+            bp->metadata->code,
             ADDRESS_PREFIX_SEPARATOR,
             '$',
             HEX_CHARS_LC[w>>12&15],
@@ -1402,14 +1413,14 @@ private:
             0,
         };
 
-        this->DoClickableAddress(prefix,label,suffix,dbp,{w});
+        this->DoClickableAddress(prefix,label,suffix,bp,{w});
     }
 
     void AddByte(const char *prefix,uint8_t value,bool mos,const char *suffix) {
-        const DebugBigPage *dbp=this->GetDebugBigPageForAddress({value},mos);
+        const BBCMicro::BigPage *bp=this->GetBigPageForAddress({value},mos);
 
         char label[]={
-            dbp->metadata->code,
+            bp->metadata->code,
             ADDRESS_PREFIX_SEPARATOR,
             '$',
             HEX_CHARS_LC[value>>4&15],
@@ -1417,13 +1428,13 @@ private:
             0,
         };
 
-        this->DoClickableAddress(prefix,label,suffix,dbp,{value});
+        this->DoClickableAddress(prefix,label,suffix,bp,{value});
     }
 
     void DoClickableAddress(const char *prefix,
                             const char *label,
                             const char *suffix,
-                            const DebugBigPage *dbp,
+                            const BBCMicro::BigPage *bp,
                             M6502Word addr)
     {
         if(prefix[0]!=0) {
@@ -1444,7 +1455,7 @@ private:
             }
         }
 
-        this->DoBytePopupGui(dbp,addr);
+        this->DoBytePopupGui(bp,addr);
 
         if(suffix[0]!=0) {
             ImGui::SameLine(0.f,0.f);
@@ -1495,6 +1506,11 @@ private:
         //}
 
         return true;
+    }
+
+    const M6502Config *Get6502Config() {
+        const M6502 *s=m_beeb->GetM6502();
+        return s->config;
     }
 
     void PageUp() {
@@ -1560,14 +1576,6 @@ private:
         }
     }
 
-    const M6502Config *Get6502Config() {
-        std::unique_lock<Mutex> lock;
-        const BBCMicro *m=m_beeb_thread->LockBeeb(&lock);
-        const M6502 *s=m->GetM6502();
-
-        return s->config;
-    }
-
     void ByteRegUI(const char *name,uint8_t value) {
         ImGui::Text("%s=",name);
         ImGui::SameLine(0,0);
@@ -1603,7 +1611,7 @@ ObjectCommandTable<DisassemblyDebugWindow> DisassemblyDebugWindow::ms_command_ta
     {CommandDef("page_down","Page Down").Shortcut(SDLK_PAGEDOWN),&DisassemblyDebugWindow::PageDown,&DisassemblyDebugWindow::IsMoveEnabled},
 });
 
-std::unique_ptr<SettingsUI> CreateDisassemblyDebugWindow(BeebWindow *beeb_window,
+std::unique_ptr<SettingsUI> CreateDisassemblyDebugWindow(SDLBeebWindow *beeb_window,
                                                          bool initial_track_pc)
 {
     auto ui=CreateDebugUI<DisassemblyDebugWindow>(beeb_window);

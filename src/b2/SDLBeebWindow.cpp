@@ -1481,6 +1481,18 @@ void SDLBeebWindow::HardReset(uint32_t reset_flags,
 //             BeebLinkHandler *beeblink_handler,
 //             uint64_t initial_num_2MHz_cycles);
 
+#if BBCMICRO_DEBUGGER
+    std::unique_ptr<BBCMicro::DebugState> debug_state;
+    if(m_beeb) {
+        debug_state=m_beeb->TakeDebugState();
+    }
+
+    if(!debug_state) {
+        // Probably just the first time round, so make a new one.
+        debug_state=std::make_unique<BBCMicro::DebugState>();
+    }
+#endif
+
     delete m_beeb;
     m_beeb=nullptr;
     
@@ -1511,6 +1523,10 @@ void SDLBeebWindow::HardReset(uint32_t reset_flags,
             }
         }
     }
+
+#if BBCMICRO_DEBUGGER
+    m_beeb->SetDebugState(std::move(debug_state));
+#endif
     
 //#if BBCMICRO_DEBUGGER
 //    if(m_flags&BeebThreadHardResetFlag_Run) {
