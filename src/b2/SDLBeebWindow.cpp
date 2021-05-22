@@ -26,6 +26,7 @@
 #include "filters.h"
 #include <Remotery.h>
 #include <inttypes.h>
+#include "ConfigsUI.h"
 
 #include <shared/enum_def.h>
 #include "SDLBeebWindow.inl"
@@ -86,10 +87,10 @@ const SDLBeebWindow::SettingsUIMetadata SDLBeebWindow::ms_settings_uis[]={
     {BeebWindowPopupType_Keymaps,"Keyboard Layouts","toggle_keyboard_layout",&CreateKeymapsUI},
     {BeebWindowPopupType_CommandKeymaps,"Command Keys","toggle_command_keymaps",&CreateCommandKeymapsUI},
     {BeebWindowPopupType_Options,"Options","toggle_emulator_options",&SDLBeebWindow::CreateOptionsUI},
-//    {BeebWindowPopupType_Messages,"Messages","toggle_messages",&CreateMessagesUI},
+    {BeebWindowPopupType_Messages,"Messages","toggle_messages",&CreateMessagesUI},
 //    {BeebWindowPopupType_Timeline,"Timeline","toggle_timeline",&BeebWindow::CreateTimelineUI},
 //    {BeebWindowPopupType_SavedStates,"Saved States","toggle_saved_states",&BeebWindow::CreateSavedStatesUI},
-//    {BeebWindowPopupType_Configs,"Configs","toggle_configurations",&CreateConfigsUI},
+    {BeebWindowPopupType_Configs,"Configs","toggle_configurations",&CreateConfigsUI},
 //#if BBCMICRO_TRACE
 //    {BeebWindowPopupType_Trace,"Tracing","toggle_event_trace",&CreateTraceUI},
 //#endif
@@ -732,6 +733,14 @@ bool SDLBeebWindow::GetBeebKeyState(BeebKey key) const {
     }
 }
 
+const std::string &SDLBeebWindow::GetConfigName() const {
+    return m_current_config.config.name;
+}
+
+std::shared_ptr<MessageList> SDLBeebWindow::GetMessageList() const {
+    return m_message_list;
+}
+
 void SDLBeebWindow::RenderLastImGuiFrame() {
     m_tv.CopyTexturePixels(&m_tv_texture_pixels);
     
@@ -1166,10 +1175,6 @@ void SDLBeebWindow::UpdateWindowPlacement() {
 //const std::vector<uint8_t> &SDLBeebWindow::GetWindowPlacementData() const {
 //    return m_window_placement_data;
 //}
-
-std::shared_ptr<MessageList> SDLBeebWindow::GetMessageList() const {
-    return m_message_list;
-}
 
 bool SDLBeebWindow::InitInternal(std::vector<uint8_t> window_placement_data) {
     // Add some extra space round the edges so the display doesn't have to
@@ -2575,8 +2580,8 @@ const ObjectCommandTable<SDLBeebWindow> SDLBeebWindow::ms_command_table("Beeb Wi
     GetTogglePopupCommand<BeebWindowPopupType_Keymaps>(),
 //    GetTogglePopupCommand<BeebWindowPopupType_Timeline>(),
 //    GetTogglePopupCommand<BeebWindowPopupType_SavedStates>(),
-//    GetTogglePopupCommand<BeebWindowPopupType_Messages>(),
-//    GetTogglePopupCommand<BeebWindowPopupType_Configs>(),
+    GetTogglePopupCommand<BeebWindowPopupType_Messages>(),
+    GetTogglePopupCommand<BeebWindowPopupType_Configs>(),
 //#if BBCMICRO_TRACE
 //    GetTogglePopupCommand<BeebWindowPopupType_Trace>(),
 //#endif

@@ -8,7 +8,7 @@
 #include "SettingsUI.h"
 #include "commands.h"
 #include <beeb/DiscInterface.h>
-#include "BeebWindow.h"
+#include "SDLBeebWindow.h"
 #include "BeebConfig.h"
 #include <beeb/type.h>
 #include <IconsFontAwesome5.h>
@@ -36,14 +36,14 @@ class ConfigsUI:
     public SettingsUI
 {
 public:
-    explicit ConfigsUI(BeebWindow *window);
+    explicit ConfigsUI(SDLBeebWindow *window);
 
     void DoImGui() override;
 
     bool OnClose() override;
 protected:
 private:
-    BeebWindow *m_beeb_window=nullptr;
+    SDLBeebWindow *m_beeb_window=nullptr;
     bool m_edited=false;
     OpenFileDialog m_ofd;
     int m_config_index=-1;
@@ -57,7 +57,7 @@ private:
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-ConfigsUI::ConfigsUI(BeebWindow *beeb_window):
+ConfigsUI::ConfigsUI(SDLBeebWindow *beeb_window):
 m_beeb_window(beeb_window),
 m_ofd(RECENT_PATHS_ROMS)
 {
@@ -540,7 +540,14 @@ ROMEditAction ConfigsUI::DoROMEditGui(const char *caption,
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-std::unique_ptr<SettingsUI> CreateConfigsUI(BeebWindow *beeb_window) {
+std::unique_ptr<SettingsUI> CreateConfigsUI(BeebWindow *) {
+    return nullptr;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+std::unique_ptr<SettingsUI> CreateConfigsUI(SDLBeebWindow *beeb_window) {
     return std::make_unique<ConfigsUI>(beeb_window);
 }
 

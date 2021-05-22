@@ -223,6 +223,8 @@ public:
     void SetKeymap(const BeebKeymap *keymap);
     
     bool GetBeebKeyState(BeebKey key) const;
+
+    const std::string &GetConfigName() const;
 protected:
 private:
     class FileMenuItem;
