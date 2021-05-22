@@ -437,6 +437,17 @@ void SDLBeebWindow::HardResetAndChangeConfigCommand::Execute(SDLBeebWindow *beeb
     beeb_window->HardReset(m_reset_flags,m_config,m_nvram_contents);
 }
 
+SDLBeebWindow::DebugSetByteCommand::DebugSetByteCommand(M6502Word addr,uint32_t dpo,uint8_t value):
+    m_addr(addr),
+    m_dpo(dpo),
+    m_value(value)
+{
+}
+
+void SDLBeebWindow::DebugSetByteCommand::Execute(SDLBeebWindow *beeb_window) const {
+    beeb_window->m_beeb->DebugSetBytes(m_addr,m_dpo,&m_value,1);
+}
+
 SDLBeebWindow::DriveState::DriveState():
     new_disc_image_file_dialog(RECENT_PATHS_DISC_IMAGE),
     open_disc_image_file_dialog(RECENT_PATHS_DISC_IMAGE),
@@ -777,6 +788,23 @@ BBCMicro *SDLBeebWindow::GetBeeb() {
 SettingsUI *SDLBeebWindow::GetPopupByType(BeebWindowPopupType type) const {
     ASSERT(type>=0&&type<BeebWindowPopupType_MaxValue);
     return m_popups[type].get();
+}
+
+bool SDLBeebWindow::Execute(std::unique_ptr<Command> command) {
+    CommandPrepareResult result=command->Prepare(this);
+    switch(result) {
+    default:
+        ASSERT(false);
+    case CommandPrepareResult_Fail:
+        return false;
+
+    case CommandPrepareResult_Ignore:
+        return false;
+
+    case CommandPrepareResult_Execute:
+        command->Execute(this);
+        return true;
+    }
 }
 
 std::shared_ptr<MessageList> SDLBeebWindow::GetMessageList() const {
@@ -2573,23 +2601,6 @@ void SDLBeebWindow::UpdateSettings() {
     }
 
     m_settings.config_name=m_current_config.config.name;
-}
-
-bool SDLBeebWindow::Execute(std::unique_ptr<Command> command) {
-    CommandPrepareResult result=command->Prepare(this);
-    switch(result) {
-        default:
-            ASSERT(false);
-        case CommandPrepareResult_Fail:
-            return false;
-            
-        case CommandPrepareResult_Ignore:
-            return false;
-            
-        case CommandPrepareResult_Execute:
-            command->Execute(this);
-            return true;
-    }
 }
 
 void SDLBeebWindow::HardReset() {

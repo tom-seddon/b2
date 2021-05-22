@@ -165,9 +165,9 @@ protected:
 
     RevealTargetUI *DoRevealGui(const char *text);
 
-    void ApplyOverridesForDebugBigPage(const BBCMicro::BigPage *bp);
+    void ApplyOverridesForBigPage(const BBCMicro::BigPage *bp);
 
-    //const BBCMicro::BigPage *GetBigPageForAddress(M6502Word addr,bool mos);
+    const BBCMicro::BigPage *GetBigPageForAddress(M6502Word addr,bool mos);
 private:
     //std::unique_ptr<DebugBigPage> m_dbps[2][16];// [mos][mem big page]
     uint32_t m_popup_id=0;//salt for byte popup gui IDs
@@ -538,9 +538,17 @@ RevealTargetUI *DebugUI::DoRevealGui(const char *text) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void DebugUI::ApplyOverridesForDebugBigPage(const BBCMicro::BigPage *bp) {
+void DebugUI::ApplyOverridesForBigPage(const BBCMicro::BigPage *bp) {
     m_dpo&=bp->metadata->dpo_mask;
     m_dpo|=bp->metadata->dpo_value;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+const BBCMicro::BigPage *DebugUI::GetBigPageForAddress(M6502Word addr,bool mos) {
+    const BBCMicro::BigPage *bp=m_beeb->DebugGetBigPageForAddress(addr,mos,m_dpo);
+    return bp;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -787,24 +795,15 @@ public:
         m_hex_editor.SetOffset(addr.w);
     }
 
-    virtual void RevealByte(const DebugUI::DebugBigPage *dbp,M6502Word addr) override {
-        this->ApplyOverridesForDebugBigPage(dbp);
+    virtual void RevealByte(const BBCMicro::BigPage *bp,M6502Word addr) override {
+        this->ApplyOverridesForBigPage(bp);
         this->RevealAddress(addr);
     }
 protected:
     void DoImGui2() override {
         this->DoDebugPageOverrideImGui();
 
-        {
-            std::unique_lock<Mutex> lock;
-            const BBCMicro *m=m_beeb_thread->LockBeeb(&lock);
-
-            m_type=m->GetType();
-        }
-
         m_hex_editor.DoImGui();
-
-        m_type=nullptr;
     }
 private:
     class Handler:
@@ -819,25 +818,20 @@ private:
         void ReadByte(HexEditorByte *byte,size_t offset) override {
             M6502Word addr={(uint16_t)offset};
 
-            const DebugBigPage *dbp=m_window->GetDebugBigPageForAddress(addr,false);
+            const BBCMicro::BigPage *bp=m_window->GetBigPageForAddress(addr,false);
 
-            if(!dbp||!dbp->r) {
+            if(!bp||!bp->r) {
                 byte->got_value=false;
             } else {
                 byte->got_value=true;
-                byte->value=dbp->r[addr.p.o];
-                byte->can_write=dbp->writeable;
+                byte->value=bp->r[addr.p.o];
+                byte->can_write=!!bp->w;
             }
         }
 
         void WriteByte(size_t offset,uint8_t value) override {
-            std::vector<uint8_t> data;
-            data.resize(1);
-            data[0]=value;
-
-            m_window->m_beeb_thread->Send(std::make_shared<BeebThread::DebugSetBytesMessage>((uint32_t)offset,
-                                                                                             m_window->m_dpo,
-                                                                                             std::move(data)));
+            M6502Word addr={(uint16_t)offset};
+            m_window->m_beeb_window->Execute(std::make_unique<SDLBeebWindow::DebugSetByteCommand>(addr,m_window->m_dpo,value));
         }
 
         size_t GetSize() override {
@@ -854,8 +848,8 @@ private:
 
         void DoContextPopupExtraGui(bool hex,size_t offset) override {
             M6502Word addr={(uint16_t)offset};
-            const DebugBigPage *dbp=m_window->GetDebugBigPageForAddress(addr,false);
-            m_window->DoByteDebugGui(dbp,addr);
+            const BBCMicro::BigPage *bp=m_window->GetBigPageForAddress(addr,false);
+            m_window->DoByteDebugGui(bp,addr);
 
             ImGui::Separator();
             this->HexEditorHandler::DoContextPopupExtraGui(hex,offset);
@@ -866,19 +860,21 @@ private:
                             size_t offset,
                             bool upper_case) override
         {
-            const DebugBigPage *dbp=m_window->GetDebugBigPageForAddress({(uint16_t)offset},false);
+            const BBCMicro::BigPage *bp=m_window->GetBigPageForAddress({(uint16_t)offset},false);
 
             snprintf(text,
                      text_size,
                      upper_case?"%c%c$%04X":"%c%c$%04x",
-                     dbp->metadata->code,
+                     bp->metadata->code,
                      ADDRESS_PREFIX_SEPARATOR,
                      (unsigned)offset);
         }
 
         bool ParseAddressText(size_t *offset,const char *text) override {
+            const BBCMicroType *type=m_window->m_beeb->GetType();
+
             uint16_t addr;
-            if(!ParseAddress(&addr,&m_window->m_dpo,m_window->m_type,text)) {
+            if(!ParseAddress(&addr,&m_window->m_dpo,type,text)) {
                 return false;
             }
 
@@ -896,10 +892,9 @@ private:
 
     Handler m_handler;
     HexEditor m_hex_editor;
-    const BBCMicroType *m_type=nullptr;
 };
 
-std::unique_ptr<SettingsUI> CreateMemoryDebugWindow(BeebWindow *beeb_window) {
+std::unique_ptr<SettingsUI> CreateMemoryDebugWindow(SDLBeebWindow *beeb_window) {
     return CreateDebugUI<MemoryDebugWindow>(beeb_window);
 }
 

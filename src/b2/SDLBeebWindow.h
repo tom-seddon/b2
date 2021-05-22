@@ -10,6 +10,7 @@
 //#include <SDL.h>
 #include "misc.h"
 #include "SettingsUI.h"
+#include <beeb/6502.h>
 
 #include <shared/enum_decl.h>
 #include "SDLBeebWindow.inl"
@@ -191,6 +192,20 @@ public:
         const BeebLoadedConfig m_config;
         const std::vector<uint8_t> m_nvram_contents;
     };
+
+    class DebugSetByteCommand:
+        public Command
+    {
+    public:
+        DebugSetByteCommand(M6502Word addr,uint32_t dpo,uint8_t value);
+
+        void Execute(SDLBeebWindow *beeb_window) const override;
+    protected:
+    private:
+        const M6502Word m_addr={};
+        const uint32_t m_dpo=0;
+        const uint8_t m_value=0;
+    };
     
     SDLBeebWindow()=default;
     ~SDLBeebWindow();
@@ -233,6 +248,8 @@ public:
 
     // used by debugger
     SettingsUI *GetPopupByType(BeebWindowPopupType type) const;
+
+    bool Execute(std::unique_ptr<Command> command);
 protected:
 private:
     class FileMenuItem;
@@ -428,7 +445,6 @@ private:
     void SaveDefaultNVRAM();
     bool SaveDefaultNVRAMIsEnabled() const;
     void UpdateSettings();
-    bool Execute(std::unique_ptr<Command> command);
     void HardReset();
     static std::unique_ptr<SettingsUI> CreateOptionsUI(SDLBeebWindow *beeb_window);
     void ClearConsole();
