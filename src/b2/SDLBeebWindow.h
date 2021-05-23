@@ -250,6 +250,8 @@ public:
     SettingsUI *GetPopupByType(BeebWindowPopupType type) const;
 
     bool Execute(std::unique_ptr<Command> command);
+
+    const VideoDataUnit *GetVideoDataUnitForMousePixel() const;
 protected:
 private:
     class FileMenuItem;
@@ -323,6 +325,14 @@ private:
     // Misc UI bits.
     //
     const CommandContext m_cc{this,&ms_command_table};
+
+    //
+    // Debugger things.
+    //
+#if VIDEO_TRACK_METADATA
+    bool m_got_mouse_pixel_unit=false;
+    VideoDataUnit m_mouse_pixel_unit={};
+#endif
     
     // Current command tables from the last dear imgui update, so the
     // keyboard handler knows what the keyboard shortcuts are.

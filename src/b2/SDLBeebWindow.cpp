@@ -106,8 +106,8 @@ const SDLBeebWindow::SettingsUIMetadata SDLBeebWindow::ms_settings_uis[]={
     // inconsistent naming as this window has had multiple rebrands.
     {BeebWindowPopupType_AudioCallback,"Performance","toggle_date_rate",&CreateDataRateUI},
 //#if BBCMICRO_DEBUGGER&&VIDEO_TRACK_METADATA
-//    // slightly inconsistent naming as this was created before the debugger...
-//    {BeebWindowPopupType_PixelMetadata,"Pixel Metadata","toggle_pixel_metadata",&CreatePixelMetadataDebugWindow},
+    // slightly inconsistent naming as this was created before the debugger...
+    {BeebWindowPopupType_PixelMetadata,"Pixel Metadata","toggle_pixel_metadata",&CreatePixelMetadataDebugWindow},
 //#endif
 #if ENABLE_IMGUI_TEST
     {BeebWindowPopupType_DearImguiTest,"dear imgui Test","toggle_dear_imgui_test",&CreateDearImguiTestUI},
@@ -804,6 +804,14 @@ bool SDLBeebWindow::Execute(std::unique_ptr<Command> command) {
     case CommandPrepareResult_Execute:
         command->Execute(this);
         return true;
+    }
+}
+
+const VideoDataUnit *SDLBeebWindow::GetVideoDataUnitForMousePixel() const {
+    if(m_got_mouse_pixel_unit) {
+        return &m_mouse_pixel_unit;
+    } else {
+        return nullptr;
     }
 }
 
@@ -1610,27 +1618,28 @@ bool SDLBeebWindow::DoBeebDisplayUI() {
         
 #if VIDEO_TRACK_METADATA
         
-        //m_got_mouse_pixel_unit=false;
+        m_got_mouse_pixel_unit=false;
         
-        //            if(ImGui::IsItemHovered()) {
-        //                ImVec2 mouse_pos=ImGui::GetMousePos();
-        //                mouse_pos-=screen_pos;
-        //
-        //                double tx=mouse_pos.x/size.x;
-        //                double ty=mouse_pos.y/size.y;
-        //
-        //                if(tx>=0.&&tx<1.&&ty>=0.&&ty<1.) {
-        //                    int x=(int)(tx*TV_TEXTURE_WIDTH);
-        //                    int y=(int)(ty*TV_TEXTURE_HEIGHT);
-        //
-        //                    ASSERT(x>=0&&x<TV_TEXTURE_WIDTH);
-        //                    ASSERT(y>=0&&y<TV_TEXTURE_HEIGHT);
-        //
-        //                    const VideoDataUnit *units=m_tv.GetTextureUnits();
-        //                    m_mouse_pixel_unit=units[y*TV_TEXTURE_WIDTH+x];
-        //                    m_got_mouse_pixel_unit=true;
-        //                }
-        //            }
+        if(ImGui::IsItemHovered()) {
+            ImVec2 mouse_pos=ImGui::GetMousePos();
+            mouse_pos-=screen_pos;
+
+            double tx=mouse_pos.x/size.x;
+            double ty=mouse_pos.y/size.y;
+
+            if(tx>=0.&&tx<1.&&ty>=0.&&ty<1.) {
+                int x=(int)(tx*TV_TEXTURE_WIDTH);
+                int y=(int)(ty*TV_TEXTURE_HEIGHT);
+
+                ASSERT(x>=0&&x<TV_TEXTURE_WIDTH);
+                ASSERT(y>=0&&y<TV_TEXTURE_HEIGHT);
+
+                const VideoDataUnit *units=m_tv.GetTextureUnits();
+                m_mouse_pixel_unit=units[y*TV_TEXTURE_WIDTH+x];
+                m_got_mouse_pixel_unit=true;
+            }
+        }
+
 #else
         (void)screen_pos;
 #endif
@@ -2082,9 +2091,9 @@ void SDLBeebWindow::DoDebugMenu() {
         }
 #endif
 
-//#if VIDEO_TRACK_METADATA
-//        m_cc.DoMenuItemUI("toggle_pixel_metadata");
-//#endif
+#if VIDEO_TRACK_METADATA
+        m_cc.DoMenuItemUI("toggle_pixel_metadata");
+#endif
 
 #if BBCMICRO_DEBUGGER
         ImGui::Separator();
@@ -2724,9 +2733,9 @@ const ObjectCommandTable<SDLBeebWindow> SDLBeebWindow::ms_command_table("Beeb Wi
 //    {{"paste_return","OSRDCH Paste (+Return)"},&BeebWindow::PasteThenReturn,&BeebWindow::IsPasteTicked},
 //    {{"toggle_copy_oswrch_text","OSWRCH Copy Text"},&BeebWindow::CopyOSWRCH<true>,&BeebWindow::IsCopyOSWRCHTicked},
 //    {{"copy_basic","Copy BASIC listing"},&BeebWindow::CopyBASIC,&BeebWindow::IsCopyOSWRCHTicked,&BeebWindow::IsCopyBASICEnabled},
-//#if VIDEO_TRACK_METADATA
-//    GetTogglePopupCommand<BeebWindowPopupType_PixelMetadata>(),
-//#endif
+#if VIDEO_TRACK_METADATA
+    GetTogglePopupCommand<BeebWindowPopupType_PixelMetadata>(),
+#endif
 #if ENABLE_IMGUI_TEST
     GetTogglePopupCommand<BeebWindowPopupType_DearImguiTest>(),
 #endif

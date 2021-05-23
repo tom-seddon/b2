@@ -2670,12 +2670,7 @@ protected:
     void DoImGui2() override {
         if(const VideoDataUnit *unit=m_beeb_window->GetVideoDataUnitForMousePixel()) {
             if(unit->metadata.flags&VideoDataUnitMetadataFlag_HasAddress) {
-                const BBCMicroType *type;
-                {
-                    std::unique_lock<Mutex> lock;
-                    const BBCMicro *m=m_beeb_thread->LockBeeb(&lock);
-                    type=m->GetType();
-                }
+                const BBCMicroType *type=m_beeb->GetType();
 
                 // The debug stuff is oriented around the CPU's view of memory,
                 // but the video unit's address is from the CRTC's perspective.
@@ -2692,8 +2687,8 @@ protected:
                 ImGui::Text("Address: %c%c$%04x",metadata->code,ADDRESS_PREFIX_SEPARATOR,cpu_addr.w);
                 ImGui::Text("CRTC Address: $%04x",unit->metadata.crtc_address);
 
-                const DebugBigPage *cpu_dbp=this->GetDebugBigPageForAddress(cpu_addr,false);
-                this->DoBytePopupGui(cpu_dbp,cpu_addr);
+                const BBCMicro::BigPage *cpu_bp=this->GetBigPageForAddress(cpu_addr,false);
+                this->DoBytePopupGui(cpu_bp,cpu_addr);
             } else {
                 ImGui::TextUnformatted("Address:");
             }
@@ -2727,7 +2722,7 @@ protected:
 private:
 };
 
-std::unique_ptr<SettingsUI> CreatePixelMetadataDebugWindow(BeebWindow *beeb_window) {
+std::unique_ptr<SettingsUI> CreatePixelMetadataDebugWindow(SDLBeebWindow *beeb_window) {
     return CreateDebugUI<PixelMetadataUI>(beeb_window);
 }
 #endif
