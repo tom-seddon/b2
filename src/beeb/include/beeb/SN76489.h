@@ -55,7 +55,7 @@ public:
 #endif
 
     // CHANNELS should point to an array of 4.
-    void GetState(ChannelValues *channels,uint16_t *noise_seed) const;
+    //void GetState(ChannelValues *channels,uint16_t *noise_seed) const;
 protected:
 private:
     struct Channel {
@@ -85,6 +85,10 @@ private:
 
     uint8_t NextWhiteNoiseBit();
     uint8_t NextPeriodicNoiseBit();
+
+#if BBCMICRO_DEBUGGER
+    friend class SN76489DebugWindow;
+#endif
 
     // Inconsistent layout - but this needs a bunch of other stuff from above...
 public:

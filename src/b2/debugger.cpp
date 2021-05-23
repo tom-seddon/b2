@@ -2266,28 +2266,34 @@ class SN76489DebugWindow:
 public:
 protected:
     void DoImGui2() override {
-        SN76489::ChannelValues values[4];
-        uint16_t seed;
-        bool we;
+        const SN76489 *sn=m_beeb->DebugGetSN76489();
+
+        BBCMicro::AddressableLatch latch=m_beeb->DebugGetAddressableLatch();
+
+        //SN76489::ChannelValues values[4];
+        //uint16_t seed;
+        //bool we;
+        //{
+        //    std::unique_lock<Mutex> lock;
+        //    const BBCMicro *m=m_beeb_thread->LockBeeb(&lock);
+        //    const SN76489 *sn=m->DebugGetSN76489();
+        //    sn->GetState(values,&seed);
+
+        //    BBCMicro::AddressableLatch latch=m->DebugGetAddressableLatch();
+        //    we=!latch.bits.not_sound_write;
+        //}
+
+        ImGui::Text("Write Enable: %s",BOOL_STR(!latch.bits.not_sound_write));
+
+        Tone(sn,0);
+        Tone(sn,1);
+        Tone(sn,2);
+
         {
-            std::unique_lock<Mutex> lock;
-            const BBCMicro *m=m_beeb_thread->LockBeeb(&lock);
-            const SN76489 *sn=m->DebugGetSN76489();
-            sn->GetState(values,&seed);
+            uint16_t noise_freq=sn->m_state.channels[3].values.freq;
 
-            BBCMicro::AddressableLatch latch=m->DebugGetAddressableLatch();
-            we=!latch.bits.not_sound_write;
-        }
-
-        ImGui::Text("Write Enable: %s",BOOL_STR(we));
-
-        Tone(values[0],0);
-        Tone(values[1],1);
-        Tone(values[2],2);
-
-        {
             const char *type;
-            if(values[3].freq&4) {
+            if(noise_freq&4) {
                 type="White";
             } else {
                 type="Periodic";
@@ -2295,7 +2301,7 @@ protected:
 
             uint16_t sn_freq;
             const char *suffix="";
-            switch(values[3].freq&3) {
+            switch(noise_freq&3) {
             default:
             case 0:
                 sn_freq=0x10;
@@ -2311,15 +2317,15 @@ protected:
 
             case 3:
                 suffix=" (Tone 2)";
-                sn_freq=values[2].freq;
+                sn_freq=sn->m_state.channels[2].values.freq;
                 break;
             }
 
             ImGui::Text("Noise : vol=%-2d freq=%-5u (0x%04x) (%uHz)",
-                        values[3].vol,sn_freq,sn_freq,GetHz(sn_freq));
+                        sn->m_state.channels[3].values.vol,sn_freq,sn_freq,GetHz(sn_freq));
             ImGui::Text("        %s%s",type,suffix);
             ImGui::Text("        seed: $%04x %%%s%s",
-                        seed,BINARY_BYTE_STRINGS[seed>>8],BINARY_BYTE_STRINGS[seed&0xff]);
+                        sn->m_state.noise_seed,BINARY_BYTE_STRINGS[sn->m_state.noise_seed>>8],BINARY_BYTE_STRINGS[sn->m_state.noise_seed&0xff]);
         }
     }
 private:
@@ -2330,13 +2336,14 @@ private:
         return 4000000u/(sn_freq*32u);
     }
 
-    static void Tone(const SN76489::ChannelValues &values,int n) {
-        ImGui::Text("Tone %d: vol=%-2d freq=%-5u (0x%04x) (%uHz)",
-                    n,values.vol,values.freq,values.freq,GetHz(values.freq));
+    static void Tone(const SN76489 *sn,int n) {
+        const SN76489::ChannelValues *values=&sn->m_state.channels[n].values;
+
+        ImGui::Text("Tone %d: vol=%-2d freq=%-5u (0x%04x) (%uHz)",n,values->vol,values->freq,values->freq,GetHz(values->freq));
     }
 };
 
-std::unique_ptr<SettingsUI> CreateSN76489DebugWindow(BeebWindow *beeb_window) {
+std::unique_ptr<SettingsUI> CreateSN76489DebugWindow(SDLBeebWindow *beeb_window) {
     return CreateDebugUI<SN76489DebugWindow>(beeb_window);
 }
 
