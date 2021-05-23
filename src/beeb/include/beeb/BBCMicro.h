@@ -465,7 +465,8 @@ public:
     // addr_debug_flags data is 65536 bytes.
     //
     // big_pages_debug_flags data is NUM_BIG_PAGES*BIG_PAGE_SIZE_BYTES.
-    void DebugGetDebugFlags(uint8_t *addr_debug_flags,uint8_t *big_pages_debug_flags) const;
+    void DebugGetDebugFlags(const uint8_t **addr_debug_flags_ptr,
+                            const uint8_t **big_pages_debug_flags_ptr) const;
 #endif
 
     void SendBeebLinkResponse(std::vector<uint8_t> data);

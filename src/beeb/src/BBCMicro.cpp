@@ -2351,15 +2351,15 @@ uint64_t BBCMicro::DebugGetBreakpointsChangeCounter() const {
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_DEBUGGER
-void BBCMicro::DebugGetDebugFlags(uint8_t *addr_debug_flags,
-                                  uint8_t *big_pages_debug_flags) const
+void BBCMicro::DebugGetDebugFlags(const uint8_t **addr_debug_flags_ptr,
+                                  const uint8_t **big_pages_debug_flags_ptr) const
 {
     if(m_debug) {
-        memcpy(addr_debug_flags,m_debug->address_debug_flags,65536);
-        memcpy(big_pages_debug_flags,m_debug->big_pages_debug_flags,NUM_BIG_PAGES*BIG_PAGE_SIZE_BYTES);
+        *addr_debug_flags_ptr=m_debug->address_debug_flags,65536;
+        *big_pages_debug_flags_ptr=&m_debug->big_pages_debug_flags[0][0];
     } else {
-        memset(addr_debug_flags,0,65536);
-        memset(big_pages_debug_flags,0,NUM_BIG_PAGES*BIG_PAGE_SIZE_BYTES);
+        *addr_debug_flags_ptr=nullptr;
+        *big_pages_debug_flags_ptr=nullptr;
     }
 }
 #endif
