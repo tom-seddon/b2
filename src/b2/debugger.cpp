@@ -2741,15 +2741,9 @@ protected:
     void DoImGui2() override {
         static const char ADDR_CONTEXT_POPUP_NAME[]="stack_addr_context_popup";
 
-        uint8_t s;
-        {
-            std::unique_lock<Mutex> lock;
-            const BBCMicro *m=m_beeb_thread->LockBeeb(&lock);
-            const M6502 *cpu=m->GetM6502();
-            s=cpu->s.b.l;
-        }
+        const M6502 *cpu=m_beeb->GetM6502();
 
-        const DebugBigPage *value_dbp=this->GetDebugBigPageForAddress({0},false);
+        const BBCMicro::BigPage *value_bp=this->GetBigPageForAddress({0},false);
 
         ImGui::Columns(7,"stack_columns");
         ImGui::TextUnformatted("");
@@ -2771,15 +2765,15 @@ protected:
         ImGuiStyleColourPusher colour_pusher;
 
         for(int offset=255;offset>=0;--offset) {
-            if(offset==s) {
+            if(offset==cpu->s.b.l) {
                 colour_pusher.Push(ImGuiCol_Text,ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled));
             }
 
             M6502Word value_addr={(uint16_t)(0x100+offset)};
-            uint8_t value=value_dbp->r[value_addr.w];
+            uint8_t value=value_bp->r[value_addr.w];
 
             ImGui::Text("$%04x",value_addr.w);
-            this->DoBytePopupGui(value_dbp,value_addr);
+            this->DoBytePopupGui(value_bp,value_addr);
             ImGui::NextColumn();
 
             ImGui::Text("% 3d",(int8_t)value);
@@ -2804,7 +2798,7 @@ protected:
             } else {
                 M6502Word addr;
                 addr.b.l=value;
-                addr.b.h=value_dbp->r[0x100+offset+1];
+                addr.b.h=value_bp->r[0x100+offset+1];
                 ImGui::Text("$%04x",addr.w);
 
                 ImGuiIDPusher pusher(offset);
@@ -2823,8 +2817,8 @@ protected:
                     {
                         ImGuiIDPusher pusher2(0);
 
-                        const DebugBigPage *dbp=this->GetDebugBigPageForAddress(addr,false);
-                        this->DoByteDebugGui(dbp,addr);
+                        const BBCMicro::BigPage *bp=this->GetBigPageForAddress(addr,false);
+                        this->DoByteDebugGui(bp,addr);
                     }
 
                     ImGui::Separator();
@@ -2832,8 +2826,8 @@ protected:
                     {
                         ImGuiIDPusher pusher2(1);
 
-                        const DebugBigPage *dbp=this->GetDebugBigPageForAddress({(uint16_t)(addr.w+1)},false);
-                        this->DoByteDebugGui(dbp,{(uint16_t)(addr.w+1)});
+                        const BBCMicro::BigPage *bp=this->GetBigPageForAddress({(uint16_t)(addr.w+1)},false);
+                        this->DoByteDebugGui(bp,{(uint16_t)(addr.w+1)});
                     }
 
                     ImGui::EndPopup();
@@ -2845,7 +2839,7 @@ protected:
 private:
 };
 
-std::unique_ptr<SettingsUI> CreateStackDebugWindow(BeebWindow *beeb_window) {
+std::unique_ptr<SettingsUI> CreateStackDebugWindow(SDLBeebWindow *beeb_window) {
     return CreateDebugUI<StackDebugWindow>(beeb_window);
 }
 

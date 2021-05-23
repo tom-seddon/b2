@@ -17,7 +17,7 @@
 #define ENABLE_PAGING_DEBUG_WINDOW 1
 #define ENABLE_BREAKPOINTS_DEBUG_WINDOW 1
 #define ENABLE_PIXEL_METADATA_DEBUG_WINDOW 1
-#define ENABLE_STACK_DEBUG_WINDOW 0
+#define ENABLE_STACK_DEBUG_WINDOW 1
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
