@@ -2366,13 +2366,8 @@ protected:
 
         ROMSEL romsel;
         ACCCON acccon;
-        const BBCMicroType *type;
-        {
-            std::unique_lock<Mutex> lock;
-            const BBCMicro *m=m_beeb_thread->LockBeeb(&lock);
-            m->DebugGetPaging(&romsel,&acccon);
-            type=m->GetType();
-        }
+        m_beeb->DebugGetPaging(&romsel,&acccon);
+        const BBCMicroType *type=m_beeb->GetType();
 
         (*type->apply_dpo_fn)(&romsel,&acccon,m_dpo);
 
@@ -2456,7 +2451,7 @@ private:
     }
 };
 
-std::unique_ptr<SettingsUI> CreatePagingDebugWindow(BeebWindow *beeb_window) {
+std::unique_ptr<SettingsUI> CreatePagingDebugWindow(SDLBeebWindow *beeb_window) {
     return CreateDebugUI<PagingDebugWindow>(beeb_window);
 }
 
