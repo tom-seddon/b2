@@ -2184,13 +2184,7 @@ class NVRAMDebugWindow:
 public:
 protected:
     void DoImGui2() override {
-        std::vector<uint8_t> nvram;
-        {
-            std::unique_lock<Mutex> lock;
-            const BBCMicro *m=m_beeb_thread->LockBeeb(&lock);
-
-            nvram=m->GetNVRAM();
-        }
+        std::vector<uint8_t> nvram=m_beeb->GetNVRAM();
 
         if(nvram.empty()) {
             ImGui::Text("This computer has no non-volatile RAM.");
@@ -2255,7 +2249,7 @@ protected:
 private:
 };
 
-std::unique_ptr<SettingsUI> CreateNVRAMDebugWindow(BeebWindow *beeb_window) {
+std::unique_ptr<SettingsUI> CreateNVRAMDebugWindow(SDLBeebWindow *beeb_window) {
     return CreateDebugUI<NVRAMDebugWindow>(beeb_window);
 }
 
