@@ -1646,13 +1646,13 @@ void BBCMicro::StopTrace(std::shared_ptr<Trace> *old_trace_ptr) {
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_TRACE
-int BBCMicro::GetTraceStats(struct TraceStats *stats) {
+bool BBCMicro::GetTraceStats(struct TraceStats *stats) {
     if(!m_trace) {
-        return 0;
+        return false;
     }
 
     m_trace->GetStats(stats);
-    return 1;
+    return true;
 }
 #endif
 

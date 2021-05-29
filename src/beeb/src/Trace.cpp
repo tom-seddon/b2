@@ -355,9 +355,9 @@ ACCCON Trace::GetInitialACCCON() const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-int Trace::ForEachEvent(ForEachEventFn fn,void *context) {
+bool Trace::ForEachEvent(ForEachEventFn fn,void *context) {
     if(!m_head) {
-        return 1;
+        return true;
     }
 
     TraceEvent e;
@@ -399,7 +399,7 @@ int Trace::ForEachEvent(ForEachEventFn fn,void *context) {
 
                 if(!h->canceled) {
                     if(!(*fn)(this,&e,context)) {
-                        return 0;
+                        return false;
                     }
                 }
             }
@@ -412,7 +412,7 @@ int Trace::ForEachEvent(ForEachEventFn fn,void *context) {
         c=c->next;
     }
 
-    return 1;
+    return true;
 }
 
 //////////////////////////////////////////////////////////////////////////

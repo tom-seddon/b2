@@ -11,6 +11,7 @@
 #include "misc.h"
 #include "SettingsUI.h"
 #include <beeb/6502.h>
+#include <beeb/Trace.h>
 
 #include <shared/enum_decl.h>
 #include "SDLBeebWindow.inl"
@@ -23,6 +24,7 @@ class VBlankMonitor;
 struct SDL_Window;
 struct SDL_Renderer;
 struct SDL_Texture;
+struct TraceStats;
 
 // TODO: remove
 struct SDLThreadConstantOutput {
@@ -64,6 +66,23 @@ struct BeebThreadVaryingOutput {
 // on #if hell.
 class SDLBeebWindow {
 public:
+#if BBCMICRO_TRACE
+    // This probably wants to go somewhere else and/or be more clever
+    // and/or have a better name...
+
+    struct TraceConditions {
+        TraceStartCondition start=TraceStartCondition_Immediate;
+        int8_t start_key=-1;
+        uint16_t start_address=0;
+
+        TraceStopCondition stop=TraceStopCondition_ByRequest;
+        uint64_t stop_num_cycles=0;
+        uint16_t stop_address=0;
+
+        uint32_t trace_flags=0;
+    };
+#endif
+
     // Commands record non-deterministic actions.
     //
     // Normally, commands are simply created, prepared, and executed.
@@ -252,6 +271,14 @@ public:
     bool Execute(std::unique_ptr<Command> command);
 
     const VideoDataUnit *GetVideoDataUnitForMousePixel() const;
+
+#if BBCMICRO_TRACE
+    void StartTrace(const TraceConditions &conditions,size_t max_num_bytes);
+    void StopTrace();
+    std::shared_ptr<Trace> GetLastTrace() const;
+    void ClearLastTrace();
+    bool GetTraceStats(TraceStats *trace_stats) const;
+#endif
 protected:
 private:
     class FileMenuItem;
@@ -402,6 +429,19 @@ private:
     std::atomic<bool> m_limit_speed{true};
     float m_speed_scale=1.f;
 
+#if BBCMICRO_TRACE
+    //
+    // Trace stuff.
+    //
+    TraceState m_trace_state=TraceState_None;
+    TraceStats m_trace_stats;
+    std::shared_ptr<Trace> m_last_trace;
+    uint64_t m_trace_start_2MHz_cycles=0;
+    const uint64_t *m_trace_num_executed_2MHz_cycles=0;
+    size_t m_trace_max_num_bytes=0;
+    TraceConditions m_trace_conditions;
+#endif
+
     uint32_t m_leds=0;
     bool m_leds_popup_ui_active=false;
     uint64_t m_leds_popup_ticks=0;
@@ -467,6 +507,11 @@ private:
     void DebugRun();
     void DebugStepOver();
     void DebugStepIn();
+#if BBCMICRO_TRACE
+    void StartTrace();
+    static bool HandleTraceInstructionConditions(const BBCMicro *beeb,const M6502 *cpu,void *context);
+    static bool HandleTraceWriteConditions(const BBCMicro *beeb,const M6502 *cpu,void *context);
+#endif
 
     template<BeebWindowPopupType>
     void TogglePopupCommand();

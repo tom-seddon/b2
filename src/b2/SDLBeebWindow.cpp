@@ -29,6 +29,7 @@
 #include "ConfigsUI.h"
 #include "DearImguiTestUI.h"
 #include "debugger.h"
+#include "TraceUI.h"
 
 #include <shared/enum_def.h>
 #include "SDLBeebWindow.inl"
@@ -100,9 +101,9 @@ const SDLBeebWindow::SettingsUIMetadata SDLBeebWindow::ms_settings_uis[]={
 //    {BeebWindowPopupType_Timeline,"Timeline","toggle_timeline",&BeebWindow::CreateTimelineUI},
 //    {BeebWindowPopupType_SavedStates,"Saved States","toggle_saved_states",&BeebWindow::CreateSavedStatesUI},
     {BeebWindowPopupType_Configs,"Configs","toggle_configurations",&CreateConfigsUI},
-//#if BBCMICRO_TRACE
-//    {BeebWindowPopupType_Trace,"Tracing","toggle_event_trace",&CreateTraceUI},
-//#endif
+#if BBCMICRO_TRACE
+    {BeebWindowPopupType_Trace,"Tracing","toggle_event_trace",&CreateTraceUI},
+#endif
     // inconsistent naming as this window has had multiple rebrands.
     {BeebWindowPopupType_AudioCallback,"Performance","toggle_date_rate",&CreateDataRateUI},
 //#if BBCMICRO_DEBUGGER&&VIDEO_TRACK_METADATA
@@ -741,6 +742,10 @@ UpdateResult SDLBeebWindow::UpdateBeeb() {
             m_audio_thread_data->units.insert(m_audio_thread_data->units.end(),sus,sus+sus_idx);
         }
 
+#if BBCMICRO_TRACE
+        m_beeb->GetTraceStats(&m_trace_stats);
+#endif
+
         if(m_limit_speed.load(std::memory_order_acquire)) {
             return UpdateResult_SpeedLimited;
         } else {
@@ -814,6 +819,219 @@ const VideoDataUnit *SDLBeebWindow::GetVideoDataUnitForMousePixel() const {
         return nullptr;
     }
 }
+
+#if BBCMICRO_TRACE
+void SDLBeebWindow::StartTrace(const TraceConditions &conditions,size_t max_num_bytes) {
+    m_trace_state=TraceState_Waiting;
+    m_trace_conditions=conditions;
+    m_trace_max_num_bytes=max_num_bytes;
+    m_last_trace=nullptr;
+    m_trace_stats={};
+
+    bool any_instruction_condition=false;
+    bool any_write_condition=false;
+
+    switch(m_trace_conditions.start) {
+    default:
+        ASSERT(false);
+        // fall through
+    case TraceStartCondition_Immediate:
+        // Start now.
+        this->StartTrace();
+        break;
+
+    case TraceStartCondition_NextKeypress:
+        // Wait for the key...
+        break;
+
+    case TraceStartCondition_Instruction:
+        any_instruction_condition=true;
+        m_beeb->AddInstructionFn(&HandleTraceInstructionConditions,this);
+        break;
+
+    case TraceStartCondition_WriteAddress:
+        any_write_condition=true;
+        break;
+    }
+
+    //ts->beeb->SetInstructionTraceEventFn(nullptr,nullptr);
+
+    switch(m_trace_conditions.stop) {
+    default:
+        ASSERT(false);
+        // fall through
+    case TraceStopCondition_ByRequest:
+        // By request...
+        break;
+
+    case TraceStopCondition_OSWORD0:
+    case TraceStopCondition_NumCycles:
+        any_instruction_condition=true;
+        break;
+
+    case TraceStopCondition_WriteAddress:
+        any_write_condition=true;
+        break;
+    }
+
+    if(any_instruction_condition) {
+        m_beeb->AddInstructionFn(&HandleTraceInstructionConditions,this);
+    }
+
+    if(any_write_condition) {
+        m_beeb->AddWriteFn(&HandleTraceWriteConditions,this);
+    }
+}
+#endif
+
+#if BBCMICRO_TRACE
+void SDLBeebWindow::StopTrace() {
+    m_beeb->StopTrace(&m_last_trace);
+    m_trace_state=TraceState_None;
+}
+#endif
+
+#if BBCMICRO_TRACE
+std::shared_ptr<Trace> SDLBeebWindow::GetLastTrace() const {
+    return m_last_trace;
+}
+#endif
+
+#if BBCMICRO_TRACE
+void SDLBeebWindow::ClearLastTrace() {
+    m_last_trace=nullptr;
+}
+#endif
+
+#if BBCMICRO_TRACE
+bool SDLBeebWindow::GetTraceStats(TraceStats *trace_stats) const {
+    if(m_trace_state!=TraceState_None) {
+        *trace_stats=m_trace_stats;
+        return true;
+    }
+
+    return false;
+}
+#endif
+
+#if BBCMICRO_TRACE
+void SDLBeebWindow::StartTrace() {
+    m_trace_num_executed_2MHz_cycles=m_beeb->GetNum2MHzCycles();
+    m_trace_start_2MHz_cycles=*m_trace_num_executed_2MHz_cycles;
+    m_trace_state=TraceState_Tracing;
+    m_beeb->StartTrace(m_trace_conditions.trace_flags,m_trace_max_num_bytes);
+    //ts->trace_start_2MHz_cycles=*ts->num_executed_2MHz_cycles;
+    //ts->trace_state=BeebThreadTraceState_Tracing;
+    //ts->beeb->StartTrace(ts->trace_conditions.trace_flags,ts->trace_max_num_bytes);
+}
+#endif
+
+#if BBCMICRO_TRACE
+bool SDLBeebWindow::HandleTraceInstructionConditions(const BBCMicro *beeb,
+                                                        const M6502 *cpu,
+                                                        void *context)
+{
+    auto this_=(SDLBeebWindow *)context;
+    (void)beeb;
+
+    switch(this_->m_trace_state) {
+    case TraceState_None:
+        // will occur when tracing was stopped manually.
+        return false;
+
+    case TraceState_Waiting:
+        switch(this_->m_trace_conditions.start) {
+        default:
+            // start condition not instruction-related, but leave the
+            // callback in, as the stop condition presumably is...
+            break;
+
+        case TraceStartCondition_Instruction:
+            // ugh.
+            if(cpu->abus.w==this_->m_trace_conditions.start_address) {
+                this_->StartTrace();
+            }
+            break;
+        }
+        break;
+
+    case TraceState_Tracing:
+        switch(this_->m_trace_conditions.stop) {
+        default:
+            // stop condition not instruction-related, so no need for
+            // the callback any more.
+            return false;
+
+        case TraceStopCondition_OSWORD0:
+            if(cpu->pc.w==0xfff2&&cpu->a==0) {
+                this_->StopTrace();
+                return false;
+            }
+            break;
+
+        case TraceStopCondition_NumCycles:
+            if(*this_->m_trace_num_executed_2MHz_cycles-this_->m_trace_start_2MHz_cycles>=this_->m_trace_conditions.stop_num_cycles) {
+                this_->StopTrace();
+                return false;
+            }
+            break;
+        }
+        break;
+    }
+
+    return true;
+}
+#endif
+
+#if BBCMICRO_TRACE
+bool SDLBeebWindow::HandleTraceWriteConditions(const BBCMicro *beeb,
+                                                  const M6502 *cpu,
+                                                  void *context)
+{
+    (void)beeb;
+    auto this_=(SDLBeebWindow *)context;
+
+    switch(this_->m_trace_state) {
+    case TraceState_None:
+        // will occur when tracing was stopped manually.
+        return false;
+
+    case TraceState_Waiting:
+        switch(this_->m_trace_conditions.start) {
+        default:
+            // start condition not write-related, but leave the
+            // callback in, as the stop condition presumably is...
+            break;
+
+        case TraceStartCondition_WriteAddress:
+            if(cpu->abus.w==this_->m_trace_conditions.start_address) {
+                this_->StartTrace();
+            }
+            break;
+        }
+        break;
+
+    case TraceState_Tracing:
+        switch(this_->m_trace_conditions.stop) {
+        default:
+            // stop condition not write-related, so no need for
+            // the callback any more.
+            return false;
+
+        case TraceStopCondition_WriteAddress:
+            if(cpu->abus.w==this_->m_trace_conditions.stop_address) {
+                this_->StopTrace();
+                return false;
+            }
+            break;
+        }
+        break;
+    }
+
+    return true;
+}
+#endif
+
 
 std::shared_ptr<MessageList> SDLBeebWindow::GetMessageList() const {
     return m_message_list;
@@ -2081,7 +2299,7 @@ void SDLBeebWindow::DoDebugMenu() {
 #if ENABLE_IMGUI_TEST
         m_cc.DoMenuItemUI("toggle_dear_imgui_test");
 #endif
-//        m_cc.DoMenuItemUI("toggle_event_trace");
+        m_cc.DoMenuItemUI("toggle_event_trace");
         m_cc.DoMenuItemUI("toggle_date_rate");
 
 #if SYSTEM_WINDOWS
@@ -2550,17 +2768,13 @@ void SDLBeebWindow::SetKeyState(BeebKey beeb_key,bool down) {
     m_beeb->SetKeyState(beeb_key,down);
     
 #if BBCMICRO_TRACE
-    // TODO: trace
-//    if(ts->trace_conditions.start==BeebThreadStartTraceCondition_NextKeypress) {
-//        if(m_is_tracing.load(std::memory_order_acquire)) {
-//            if(state) {
-//                if(ts->trace_conditions.start_key<0||beeb_key==ts->trace_conditions.start_key) {
-//                    ts->trace_conditions.start=BeebThreadStartTraceCondition_Immediate;
-//                    this->ThreadBeebStartTrace(ts);
-//                }
-//            }
-//        }
-//    }
+    if(m_trace_state!=TraceState_None) {
+        if(m_trace_conditions.start==TraceStartCondition_NextKeypress) {
+            if(m_trace_conditions.start_key<0||beeb_key==m_trace_conditions.start_key) {
+                this->StartTrace();
+            }
+        }
+    }
 #endif
 }
 
@@ -2774,7 +2988,7 @@ const ObjectCommandTable<SDLBeebWindow> SDLBeebWindow::ms_command_table("Beeb Wi
     GetTogglePopupCommand<BeebWindowPopupType_Messages>(),
     GetTogglePopupCommand<BeebWindowPopupType_Configs>(),
 //#if BBCMICRO_TRACE
-//    GetTogglePopupCommand<BeebWindowPopupType_Trace>(),
+    GetTogglePopupCommand<BeebWindowPopupType_Trace>(),
 //#endif
     GetTogglePopupCommand<BeebWindowPopupType_AudioCallback>(),
 //    GetTogglePopupCommand<BeebWindowPopupType_CommandContextStack>(),

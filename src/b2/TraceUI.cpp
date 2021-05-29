@@ -2,9 +2,8 @@
 #include "TraceUI.h"
 #include <beeb/Trace.h>
 #include "dear_imgui.h"
-#include "BeebThread.h"
 #include "JobQueue.h"
-#include "BeebWindow.h"
+#include "SDLBeebWindow.h"
 #include "BeebWindows.h"
 #include <beeb/BBCMicro.h>
 #include <beeb/6502.h>
@@ -56,7 +55,7 @@ class TraceUI:
 {
 public:
 #if BBCMICRO_TRACE
-    TraceUI(BeebWindow *beeb_window);
+    TraceUI(SDLBeebWindow *beeb_window);
 
     void DoImGui() override;
     bool OnClose() override;
@@ -65,7 +64,7 @@ private:
     class SaveTraceJob;
     struct Key;
 
-    BeebWindow *m_beeb_window=nullptr;
+    SDLBeebWindow *m_beeb_window=nullptr;
 
     std::shared_ptr<SaveTraceJob> m_save_trace_job;
     std::vector<uint8_t> m_keys;
@@ -172,7 +171,7 @@ private:
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-TraceUI::TraceUI(BeebWindow *beeb_window):
+TraceUI::TraceUI(SDLBeebWindow *beeb_window):
     m_beeb_window(beeb_window)
 {
     this->ResetTextBoxes();
@@ -181,24 +180,24 @@ TraceUI::TraceUI(BeebWindow *beeb_window):
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static void DoTraceStatsImGui(const volatile TraceStats *stats) {
+static void DoTraceStatsImGui(const TraceStats &stats) {
     ImGui::Separator();
 
     ImGui::Columns(2);
 
     ImGui::TextUnformatted("Events");
     ImGui::NextColumn();
-    ImGui::Text("%" PRIthou "zu",stats->num_events);
+    ImGui::Text("%" PRIthou "zu",stats.num_events);
     ImGui::NextColumn();
 
     ImGui::TextUnformatted("Bytes Used");
     ImGui::NextColumn();
-    ImGui::Text("%" PRIthou ".3f MB",stats->num_used_bytes/1024./1024.);
+    ImGui::Text("%" PRIthou ".3f MB",stats.num_used_bytes/1024./1024.);
     ImGui::NextColumn();
 
     ImGui::TextUnformatted("Bytes Allocated");
     ImGui::NextColumn();
-    ImGui::Text("%" PRIthou ".3f MB",stats->num_allocated_bytes/1024./1024.);
+    ImGui::Text("%" PRIthou ".3f MB",stats.num_allocated_bytes/1024./1024.);
     ImGui::NextColumn();
 
     ImGui::Columns(1);
@@ -232,8 +231,6 @@ static void DoTraceFlag(uint32_t *flags_seen,
 }
 
 void TraceUI::DoImGui() {
-    std::shared_ptr<BeebThread> beeb_thread=m_beeb_window->GetBeebThread();
-
     if(m_save_trace_job) {
         uint64_t n,t;
         m_save_trace_job->GetProgress(&n,&t);
@@ -269,9 +266,10 @@ void TraceUI::DoImGui() {
         return;
     }
 
-    const volatile TraceStats *running_stats=beeb_thread->GetTraceStats();
+    TraceStats running_stats;
+    bool got_running_stats=m_beeb_window->GetTraceStats(&running_stats);
 
-    if(!running_stats) {
+    if(!got_running_stats) {
         ImGui::AlignTextToFramePadding();
         ImGui::TextUnformatted("Start condition");
         {
@@ -364,45 +362,45 @@ void TraceUI::DoImGui() {
         ImGui::Checkbox("Unlimited recording", &g_default_settings.unlimited);
 
         if(ImGui::Button("Start")) {
-            TraceConditions c;
+            SDLBeebWindow::TraceConditions c;
 
             switch(g_default_settings.start) {
                 case TraceUIStartCondition_Now:
-                    c.start=BeebThreadStartTraceCondition_Immediate;
+                    c.start=TraceStartCondition_Immediate;
                     break;
 
                 case TraceUIStartCondition_Return:
-                    c.start=BeebThreadStartTraceCondition_NextKeypress;
+                    c.start=TraceStartCondition_NextKeypress;
                     c.start_key=BeebKey_Return;
                     break;
 
                 case TraceUIStartCondition_Instruction:
-                    c.start=BeebThreadStartTraceCondition_Instruction;
+                    c.start=TraceStartCondition_Instruction;
                     c.start_address=g_default_settings.start_instruction_address;
                     break;
 
                 case TraceUIStartCondition_WriteAddress:
-                    c.start=BeebThreadStartTraceCondition_WriteAddress;
+                    c.start=TraceStartCondition_WriteAddress;
                     c.start_address=g_default_settings.start_write_address;
                     break;
             }
 
             switch(g_default_settings.stop) {
                 case TraceUIStopCondition_ByRequest:
-                    c.stop=BeebThreadStopTraceCondition_ByRequest;
+                    c.stop=TraceStopCondition_ByRequest;
                     break;
 
                 case TraceUIStopCondition_OSWORD0:
-                    c.stop=BeebThreadStopTraceCondition_OSWORD0;
+                    c.stop=TraceStopCondition_OSWORD0;
                     break;
 
                 case TraceUIStopCondition_NumCycles:
-                    c.stop=BeebThreadStopTraceCondition_NumCycles;
+                    c.stop=TraceStopCondition_NumCycles;
                     c.stop_num_cycles=g_default_settings.stop_num_cycles;
                     break;
 
                 case TraceUIStopCondition_WriteAddress:
-                    c.stop=BeebThreadStopTraceCondition_WriteAddress;
+                    c.stop=TraceStopCondition_WriteAddress;
                     c.stop_address=g_default_settings.stop_write_address;
                     break;
             }
@@ -423,16 +421,16 @@ void TraceUI::DoImGui() {
                 max_num_bytes=256*1024*1024;
             }
 
-            beeb_thread->Send(std::make_shared<BeebThread::StartTraceMessage>(c,max_num_bytes));
+            m_beeb_window->StartTrace(c,max_num_bytes);
         }
 
-        std::shared_ptr<Trace> last_trace=beeb_thread->GetLastTrace();
+        std::shared_ptr<Trace> last_trace=m_beeb_window->GetLastTrace();
 
         if(!!last_trace) {
             TraceStats stats;
             last_trace->GetStats(&stats);
 
-            DoTraceStatsImGui(&stats);
+            DoTraceStatsImGui(stats);
 
             ImGui::TextUnformatted("Cycles output:");
             ImGuiRadioButton(&g_default_settings.cycles_output,TraceCyclesOutput_Absolute,"Absolute");
@@ -459,12 +457,12 @@ void TraceUI::DoImGui() {
             ImGui::SameLine();
 
             if(ImGui::Button("Clear")) {
-                beeb_thread->ClearLastTrace();
+                m_beeb_window->ClearLastTrace();
             }
         }
     } else {
         if(ImGui::Button("Stop")) {
-            beeb_thread->Send(std::make_shared<BeebThread::StopTraceMessage>());
+            m_beeb_window->StopTrace();
         }
 
         DoTraceStatsImGui(running_stats);
@@ -546,7 +544,14 @@ bool TraceUI::GetBeebKeyName(void *data,int idx,const char **out_text) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-std::unique_ptr<SettingsUI> CreateTraceUI(BeebWindow *beeb_window) {
+std::unique_ptr<SettingsUI> CreateTraceUI(BeebWindow *) {
+    return nullptr;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+std::unique_ptr<SettingsUI> CreateTraceUI(SDLBeebWindow *beeb_window) {
     return std::make_unique<TraceUI>(beeb_window);
 }
 

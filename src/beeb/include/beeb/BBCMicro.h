@@ -337,7 +337,7 @@ public:
      */
     void StopTrace(std::shared_ptr<Trace> *old_trace_ptr);
 
-    int GetTraceStats(struct TraceStats *stats);
+    bool GetTraceStats(struct TraceStats *stats);
 #endif
 
     // Add instruction/write callback. It's an error to add the same one

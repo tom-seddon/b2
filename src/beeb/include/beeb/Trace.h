@@ -177,7 +177,7 @@ public:
 
     // return true to continue iteration, false to stop it. returns
     // false if iteration was canceled.
-    int ForEachEvent(ForEachEventFn fn,void *context);
+    bool ForEachEvent(ForEachEventFn fn,void *context);
 protected:
 private:
     struct Chunk;

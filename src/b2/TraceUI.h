@@ -49,9 +49,11 @@ void SetDefaultTraceUISettings(const TraceUISettings &settings);
 #include <memory>
 
 class BeebWindow;
+class SDLBeebWindow;
 class SettingsUI;
 
 std::unique_ptr<SettingsUI> CreateTraceUI(BeebWindow *beeb_window);
+std::unique_ptr<SettingsUI> CreateTraceUI(SDLBeebWindow *beeb_window);
 
 #endif
 
