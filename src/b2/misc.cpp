@@ -122,6 +122,14 @@ std::string GetCloneImpedimentsDescription(uint32_t impediments) {
             r+="BeebLink";
         }
 
+        if(impediments&BBCMicroCloneImpediment_ExtMem) {
+            if(!r.empty()) {
+                r+=", ";
+            }
+
+            r+="External memory";
+        }
+
         return r;
     }
 }

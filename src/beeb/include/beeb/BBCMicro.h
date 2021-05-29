@@ -385,7 +385,7 @@ public:
     // trying to avoid making the debug stuff a friend of this
     // class... though maybe it wouldn't matter?
     const CRTC *DebugGetCRTC() const;
-    const ExtMem *DebugGetExtMem() const;
+    ExtMem *DebugGetExtMem();
     const VideoULA *DebugGetVideoULA() const;
     AddressableLatch DebugGetAddressableLatch() const;
     const R6522 *DebugGetSystemVIA() const;

@@ -919,32 +919,19 @@ public:
     }
 protected:
     void DoImGui2() override {
-        bool enabled;
-        uint8_t l,h;
-        {
-            std::unique_lock<Mutex> lock;
-            const BBCMicro *m=m_beeb_thread->LockBeeb(&lock);
-
-            if(const ExtMem *s=m->DebugGetExtMem()) {
-                enabled=true;
-                l=s->GetAddressL();
-                h=s->GetAddressH();
-            } else {
-                enabled=false;
-                h=l=0;//inhibit spurious unused variable warning.
-            }
-        }
-
-        if(enabled) {
-            this->Reg("L",l);
-            this->Reg("H",h);
+        m_ext_mem=m_beeb->DebugGetExtMem();
+        if(m_ext_mem) {
+            this->Reg("L",m_ext_mem->GetAddressL());
+            this->Reg("H",m_ext_mem->GetAddressH());
 
             m_memory_editor.DrawContents((uint8_t *)this,16777216,0);
+            m_ext_mem=nullptr;
         } else {
             ImGui::Text("External memory disabled");
         }
     }
 private:
+    ExtMem *m_ext_mem=nullptr;
     MemoryEditor m_memory_editor;
 
     // There's no context parameter :( - so this hijacks the data
@@ -953,19 +940,18 @@ private:
         auto self=(ExtMemoryDebugWindow *)data;
 
         ASSERT((uint32_t)off==off);
-
-        std::unique_lock<Mutex> lock;
-        const BBCMicro *m=self->m_beeb_thread->LockBeeb(&lock);
-        const ExtMem *s=m->DebugGetExtMem();
-        return ExtMem::ReadMemory(s,(uint32_t)off);
+        return ExtMem::ReadMemory(self->m_ext_mem,(uint32_t)off);
     }
 
-    // There's no context parameter :( - so this hijacks the data
-    // parameter for that purpose.
+    // There's no context parameter :( - so this hijacks the data parameter for
+    // that purpose.
+    //
+    // Ext memory inhibits timeline, so no consistency issues with just getting
+    // in there and writing the data.
     static void MemoryEditorWrite(MemoryEditor::u8 *data,size_t off,uint8_t d) {
         auto self=(ExtMemoryDebugWindow *)data;
 
-        self->m_beeb_thread->Send(std::make_shared<BeebThread::DebugSetExtByteMessage>((uint32_t)off,d));
+        ExtMem::WriteMemory(self->m_ext_mem,(uint32_t)off,d);
     }
 
     void Reg(const char *name,uint8_t value) {
@@ -973,7 +959,7 @@ private:
     }
 };
 
-std::unique_ptr<SettingsUI> CreateExtMemoryDebugWindow(BeebWindow *beeb_window) {
+std::unique_ptr<SettingsUI> CreateExtMemoryDebugWindow(SDLBeebWindow *beeb_window) {
     return CreateDebugUI<ExtMemoryDebugWindow>(beeb_window);
 }
 

@@ -124,6 +124,7 @@ EEND()
 #define ENAME BBCMicroCloneImpediment
 EBEGIN()
 EPNV(BeebLink,1<<0)
+EPNV(ExtMem,1<<1)
 EPNV(Drive0,1<<24)
 // ...up to DriveN, which is Drive0<<(NUM_DRIVES-1)
 EEND()

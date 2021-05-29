@@ -1831,7 +1831,7 @@ const CRTC *BBCMicro::DebugGetCRTC() const {
 
 #if BBCMICRO_DEBUGGER
 
-const ExtMem *BBCMicro::DebugGetExtMem() const {
+ExtMem *BBCMicro::DebugGetExtMem() {
     if(m_ext_mem) {
         return &m_state.ext_mem;
     } else {
