@@ -1006,32 +1006,6 @@ protected:
 
         const M6502 *s=m_beeb->GetM6502();
 
-        //const M6502Config *config;
-        //uint16_t pc;
-        //uint8_t a,x,y;
-        //M6502Word sp;
-        //M6502P p;
-        //uint8_t pc_is_mos[16];
-        //const BBCMicroType *type;
-        //bool halted;
-        //{
-        //    std::unique_lock<Mutex> lock;
-        //    const BBCMicro *m=m_beeb_thread->LockBeeb(&lock);
-        //    const M6502 *s=m->GetM6502();
-
-        //    type=m->GetType();
-        //    halted=m->DebugIsHalted();
-
-        //    config=s->config;
-        //    pc=s->opcode_pc.w;
-        //    a=s->a;
-        //    x=s->x;
-        //    y=s->y;
-        //    p=M6502_GetP(s);
-        //    sp=s->s;
-        //    m->GetMemBigPageIsMOSTable(pc_is_mos,m_dpo);
-        //}
-
         uint8_t pc_is_mos[16];
         m_beeb->GetMemBigPageIsMOSTable(pc_is_mos,m_dpo);
 
@@ -1061,7 +1035,7 @@ protected:
         }
         this->WordRegGui("S",s->s);
         ImGui::SameLine();
-        this->WordRegGui("PC",s->pc);
+        this->WordRegGui("PC",s->opcode_pc);
         ImGui::SameLine();
         cc.DoToggleCheckboxUI("toggle_track_pc");
 
@@ -1080,13 +1054,13 @@ protected:
 
         if(m_track_pc) {
             if(m_beeb->DebugIsHalted()) {
-                if(m_old_pc!=s->pc.w) {
+                if(m_old_pc!=s->opcode_pc.w) {
                     // well, *something* happened since last time...
-                    m_addr=s->pc.w;
-                    m_old_pc=s->pc.w;
+                    m_addr=s->opcode_pc.w;
+                    m_old_pc=s->opcode_pc.w;
                 }
             } else {
-                m_addr=s->pc.w;
+                m_addr=s->opcode_pc.w;
             }
         }
 
@@ -1132,7 +1106,7 @@ protected:
 
             ImGuiStyleColourPusher pusher;
 
-            if(line_addr.w==s->pc.w) {
+            if(line_addr.w==s->opcode_pc.w) {
                 pusher.Push(ImGuiCol_Text,ImVec4(1.f,1.f,0.f,1.f));
             }
 
