@@ -2155,13 +2155,13 @@ void SDLBeebWindow::DoDebugMenu() {
         m_cc.DoMenuItemUI("toggle_stack_debugger");
 #endif
         //
-//        ImGui::Separator();
-//
-//        m_cc.DoMenuItemUI("debug_stop");
-//        m_cc.DoMenuItemUI("debug_run");
-//        m_cc.DoMenuItemUI("debug_step_over");
-//        m_cc.DoMenuItemUI("debug_step_in");
-//
+        ImGui::Separator();
+
+        m_cc.DoMenuItemUI("debug_stop");
+        m_cc.DoMenuItemUI("debug_run");
+        m_cc.DoMenuItemUI("debug_step_over");
+        m_cc.DoMenuItemUI("debug_step_in");
+
 #endif
 
         ImGui::Separator();
@@ -2667,6 +2667,63 @@ bool SDLBeebWindow::IsPrioritizeCommandShortcutsTicked() const {
     return m_prefer_shortcuts;
 }
 
+bool SDLBeebWindow::DebugIsStopEnabled() const {
+    if(m_beeb->DebugIsHalted()) {
+        return false;
+    } else {
+        return true;
+    }
+}
+
+void SDLBeebWindow::DebugStop() {
+    m_beeb->DebugHalt("manual stop");
+}
+
+bool SDLBeebWindow::DebugIsRunEnabled() const {
+    if(m_beeb->DebugIsHalted()) {
+        return true;
+    } else {
+        return false;
+    }
+}
+
+void SDLBeebWindow::DebugRun() {
+    m_beeb->DebugRun();
+}
+
+void SDLBeebWindow::DebugStepOver() {
+    const M6502 *cpu=m_beeb->GetM6502();
+    uint8_t opcode=M6502_GetOpcode(cpu);
+    const M6502DisassemblyInfo *di=&cpu->config->disassembly_info[opcode];
+
+    if(di->always_step_in) {
+        this->DebugStepIn();
+    } else {
+        // More work than required here - but it's not a massive problem, just a
+        // bit ugly :(
+        uint8_t pc_is_mos[16];
+        m_beeb->GetMemBigPageIsMOSTable(pc_is_mos,0);
+
+        // Try to put a breakpoint on the actual next instruction, rather than
+        // its address.
+        M6502Word next_pc={(uint16_t)(cpu->opcode_pc.w+di->num_bytes)};
+        const BBCMicro::BigPage *big_page=m_beeb->DebugGetBigPageForAddress(next_pc,
+                                                                            !!pc_is_mos[cpu->pc.p.p],
+                                                                            m_beeb->DebugGetCurrentPageOverride());
+
+        uint8_t flags=m_beeb->DebugGetByteDebugFlags(big_page,next_pc.p.o);
+        flags|=BBCMicroByteDebugFlag_TempBreakExecute;
+        m_beeb->DebugSetByteDebugFlags(big_page->index,next_pc.p.o,flags);
+
+        m_beeb->DebugRun();
+    }
+}
+
+void SDLBeebWindow::DebugStepIn() {
+    m_beeb->DebugStepIn();
+    m_beeb->DebugRun();
+}
+
 template<BeebWindowPopupType POPUP_TYPE>
 void SDLBeebWindow::TogglePopupCommand() {
     m_settings.popups^=(uint64_t)1<<POPUP_TYPE;
@@ -2788,10 +2845,10 @@ const ObjectCommandTable<SDLBeebWindow> SDLBeebWindow::ms_command_table("Beeb Wi
     GetTogglePopupCommand<BeebWindowPopupType_StackDebugger>(),
 #endif
     //
-//    {CommandDef("debug_stop","Stop").Shortcut(SDLK_F5|PCKeyModifier_Shift),&BeebWindow::DebugStop,nullptr,&BeebWindow::DebugIsStopEnabled},
-//    {CommandDef("debug_run","Run").Shortcut(SDLK_F5),&BeebWindow::DebugRun,nullptr,&BeebWindow::DebugIsRunEnabled},
-//    {CommandDef("debug_step_over","Step Over").Shortcut(SDLK_F10),&BeebWindow::DebugStepOver,nullptr,&BeebWindow::DebugIsRunEnabled},
-//    {CommandDef("debug_step_in","Step In").Shortcut(SDLK_F11),&BeebWindow::DebugStepIn,nullptr,&BeebWindow::DebugIsRunEnabled},
+    {CommandDef("debug_stop","Stop").Shortcut(SDLK_F5|PCKeyModifier_Shift),&SDLBeebWindow::DebugStop,nullptr,&SDLBeebWindow::DebugIsStopEnabled},
+    {CommandDef("debug_run","Run").Shortcut(SDLK_F5),&SDLBeebWindow::DebugRun,nullptr,&SDLBeebWindow::DebugIsRunEnabled},
+    {CommandDef("debug_step_over","Step Over").Shortcut(SDLK_F10),&SDLBeebWindow::DebugStepOver,nullptr,&SDLBeebWindow::DebugIsRunEnabled},
+    {CommandDef("debug_step_in","Step In").Shortcut(SDLK_F11),&SDLBeebWindow::DebugStepIn,nullptr,&SDLBeebWindow::DebugIsRunEnabled},
 #endif
     {CommandDef("save_default_nvram","Save default NVRAM"),&SDLBeebWindow::SaveDefaultNVRAM,nullptr,&SDLBeebWindow::SaveDefaultNVRAMIsEnabled},
 //    {CommandDef("reset_default_nvram","Reset default NVRAM").MustConfirm(),&BeebWindow::ResetDefaultNVRAM,nullptr,&BeebWindow::SaveDefaultNVRAMIsEnabled},

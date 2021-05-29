@@ -461,6 +461,12 @@ private:
     void PrintSeparator();
     void TogglePrioritizeCommandShortcuts();
     bool IsPrioritizeCommandShortcutsTicked() const;
+    bool DebugIsStopEnabled() const;
+    void DebugStop();
+    bool DebugIsRunEnabled() const;
+    void DebugRun();
+    void DebugStepOver();
+    void DebugStepIn();
 
     template<BeebWindowPopupType>
     void TogglePopupCommand();
