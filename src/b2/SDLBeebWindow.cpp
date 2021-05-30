@@ -2194,6 +2194,16 @@ void SDLBeebWindow::DoDiscImageSubMenuItem(int drive,
 }
 
 void SDLBeebWindow::DoEditMenu() {
+    if(ImGui::BeginMenu("Edit")) {
+        m_cc.DoMenuItemUI("toggle_copy_oswrch_text");
+        m_cc.DoMenuItemUI("copy_basic");
+
+        //m_cc.DoMenuItemUI("toggle_copy_oswrch_binary");
+        m_cc.DoMenuItemUI("paste");
+        m_cc.DoMenuItemUI("paste_return");
+
+        ImGui::EndMenu();
+    }
 }
 
 void SDLBeebWindow::DoHardwareMenu() {
@@ -2938,6 +2948,92 @@ void SDLBeebWindow::DebugStepIn() {
     m_beeb->DebugRun();
 }
 
+void SDLBeebWindow::CopyOSWRCHText() {
+    if(m_copy_state==CopyState_CopyText) {
+        m_copy_state=CopyState_None;
+        //m_copy_stop_fun(std::move(m_copy_data));
+        this->SetClipboardData(std::move(m_copy_data),true);
+    } else {
+        m_copy_data.clear();
+        m_copy_state=CopyState_CopyText;
+        m_beeb->AddInstructionFn(&CopyOSWRCHInstructionFn,this);
+    }
+}
+
+bool SDLBeebWindow::IsCopyOSWRCHTextTicked() const {
+    return m_copy_state==CopyState_CopyText;
+}
+
+void SDLBeebWindow::SetClipboardData(std::vector<uint8_t> data,bool is_text) {
+    if(is_text) {
+        static const uint8_t VDU_CODE_LENGTHS[32]={
+            0,1,0,0,0,0,0,0,
+            0,0,0,0,0,0,0,0,
+            0,1,2,5,0,0,1,9,
+            8,5,0,0,4,4,0,2,
+        };
+
+        // Normalize line endings and strip out control codes.
+        //
+        // TODO: do it in a less dumb fashion.
+
+        std::vector<uint8_t>::iterator it=data.begin();
+        uint8_t delete_counter=0;
+        while(it!=data.end()) {
+            if(delete_counter>0) {
+                it=data.erase(it);
+                --delete_counter;
+            } else if(*it==10&&it+1!=data.end()&&*(it+1)==13) {
+#if SYSTEM_WINDOWS
+                // DOS-style line endings.
+                *it=13;
+                *(it+1)=10;
+                it+=2;
+#else
+                // Unix-style line endings.
+                *it++='\n';
+                delete_counter=1;
+#endif
+            } else if(*it<32) {
+                delete_counter=VDU_CODE_LENGTHS[*it];
+                ++it;
+            } else {
+                ++it;
+            }
+        }
+    }
+
+    data.push_back(0);
+
+    int rc=SDL_SetClipboardText((const char *)data.data());
+    if(rc!=0) {
+        m_msg.e.f("Failed to copy to clipboard: %s\n",SDL_GetError());
+    }
+}
+
+bool SDLBeebWindow::CopyOSWRCHInstructionFn(const BBCMicro *beeb,const M6502 *cpu,void *context) {
+    (void)beeb;
+    auto this_=(SDLBeebWindow *)context;
+
+    if(this_->m_copy_state==CopyState_None) {
+        // Must have been cancelled.
+        return false;
+    }
+
+    const uint8_t *ram=this_->m_beeb->GetRAM();
+
+    // Rather tiresomely, BASIC 2 prints stuff with JMP (WRCHV). Who
+    // comes up with this stuff? So check against WRCHV, not just
+    // 0xffee.
+
+    if(cpu->abus.b.l==ram[0x020e]&&cpu->abus.b.h==ram[0x020f]) {
+        // Opcode fetch for first byte of OSWRCH
+        this_->m_copy_data.push_back(cpu->a);
+    }
+
+    return true;
+}
+
 template<BeebWindowPopupType POPUP_TYPE>
 void SDLBeebWindow::TogglePopupCommand() {
     m_settings.popups^=(uint64_t)1<<POPUP_TYPE;
@@ -3002,7 +3098,7 @@ const ObjectCommandTable<SDLBeebWindow> SDLBeebWindow::ms_command_table("Beeb Wi
     {{"print_separator","Print stdout separator"},&SDLBeebWindow::PrintSeparator},
 //    {{"paste","OSRDCH Paste"},&BeebWindow::Paste,&BeebWindow::IsPasteTicked},
 //    {{"paste_return","OSRDCH Paste (+Return)"},&BeebWindow::PasteThenReturn,&BeebWindow::IsPasteTicked},
-//    {{"toggle_copy_oswrch_text","OSWRCH Copy Text"},&BeebWindow::CopyOSWRCH<true>,&BeebWindow::IsCopyOSWRCHTicked},
+    {{"toggle_copy_oswrch_text","OSWRCH Copy Text"},&SDLBeebWindow::CopyOSWRCHText,&SDLBeebWindow::IsCopyOSWRCHTextTicked},
 //    {{"copy_basic","Copy BASIC listing"},&BeebWindow::CopyBASIC,&BeebWindow::IsCopyOSWRCHTicked,&BeebWindow::IsCopyBASICEnabled},
 #if VIDEO_TRACK_METADATA
     GetTogglePopupCommand<BeebWindowPopupType_PixelMetadata>(),

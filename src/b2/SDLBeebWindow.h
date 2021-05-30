@@ -442,6 +442,13 @@ private:
     TraceConditions m_trace_conditions;
 #endif
 
+    //
+    // OSWRCH Copy state.
+    //
+    CopyState m_copy_state=CopyState_None;
+    std::vector<uint8_t> m_copy_data;
+    std::function<void(std::vector<uint8_t>)> m_copy_stop_fun;
+
     uint32_t m_leds=0;
     bool m_leds_popup_ui_active=false;
     uint64_t m_leds_popup_ticks=0;
@@ -512,6 +519,10 @@ private:
     static bool HandleTraceInstructionConditions(const BBCMicro *beeb,const M6502 *cpu,void *context);
     static bool HandleTraceWriteConditions(const BBCMicro *beeb,const M6502 *cpu,void *context);
 #endif
+    void CopyOSWRCHText();
+    bool IsCopyOSWRCHTextTicked() const;
+    static bool CopyOSWRCHInstructionFn(const BBCMicro *beeb,const M6502 *cpu,void *context);
+    void SetClipboardData(std::vector<uint8_t> data,bool is_text);
 
     template<BeebWindowPopupType>
     void TogglePopupCommand();
