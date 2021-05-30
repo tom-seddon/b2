@@ -927,12 +927,13 @@ void SDLBeebWindow::StartTrace() {
 #endif
 
 #if BBCMICRO_TRACE
-bool SDLBeebWindow::HandleTraceInstructionConditions(const BBCMicro *beeb,
-                                                        const M6502 *cpu,
-                                                        void *context)
-{
+bool SDLBeebWindow::HandleTraceInstructionConditions(const BBCMicro *beeb,const M6502 *cpu,void *context) {
     auto this_=(SDLBeebWindow *)context;
-    (void)beeb;
+
+    if(!beeb) {
+        this_->m_trace_state=TraceState_None;
+        return false;
+    }
 
     switch(this_->m_trace_state) {
     case TraceState_None:
@@ -988,8 +989,12 @@ bool SDLBeebWindow::HandleTraceWriteConditions(const BBCMicro *beeb,
                                                   const M6502 *cpu,
                                                   void *context)
 {
-    (void)beeb;
     auto this_=(SDLBeebWindow *)context;
+
+    if(!beeb) {
+        this_->m_trace_state=TraceState_None;
+        return false;
+    }
 
     switch(this_->m_trace_state) {
     case TraceState_None:
@@ -3012,8 +3017,12 @@ void SDLBeebWindow::SetClipboardData(std::vector<uint8_t> data,bool is_text) {
 }
 
 bool SDLBeebWindow::CopyOSWRCHInstructionFn(const BBCMicro *beeb,const M6502 *cpu,void *context) {
-    (void)beeb;
     auto this_=(SDLBeebWindow *)context;
+
+    if(!beeb) {
+        this_->m_copy_state=CopyState_None;
+        return false;
+    }
 
     if(this_->m_copy_state==CopyState_None) {
         // Must have been cancelled.

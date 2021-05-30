@@ -165,6 +165,14 @@ m_ext_mem(src.m_ext_mem)
 //////////////////////////////////////////////////////////////////////////
 
 BBCMicro::~BBCMicro() {
+    for(const std::pair<InstructionFn,void *> &instruction_fn:m_instruction_fns) {
+        (*instruction_fn.first)(nullptr,nullptr,instruction_fn.second);
+    }
+
+    for(const std::pair<WriteFn,void *> &write_fn:m_write_fns) {
+        (*write_fn.first)(nullptr,nullptr,write_fn.second);
+    }
+
 #if BBCMICRO_TRACE
     this->StopTrace(nullptr);
 #endif

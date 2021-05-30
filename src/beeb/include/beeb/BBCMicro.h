@@ -264,9 +264,15 @@ public:
     // cpu->pc.w is PC+1; cpu->pc.dbus is the opcode fetched.
     //
     // Return true to keep the callback, or false to remove it.
+    //
+    // When the BBCMicro is destroyed, the InstructionFn is called once with
+    // nulls for m and cpu.
     typedef bool (*InstructionFn)(const BBCMicro *m,const M6502 *cpu,void *context);
 
     // Called when an address is about to be written.
+    //
+    // When the BBCMicro is destroyed, the WriteFn is called once with nulls for
+    // m and cpu.
     typedef bool (*WriteFn)(const BBCMicro *m,const M6502 *cpu,void *context);
 
     const BBCMicroType *GetType() const;
