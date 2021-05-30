@@ -281,6 +281,23 @@ bool SDLBeebWindow::OptionsUI::OnClose() {
 SDLBeebWindow::Command::~Command() {
 }
 
+void SDLBeebWindow::Command::CallCompletionFun(CompletionFun *completion_fun_ptr,bool success,const char *message) {
+    if(!completion_fun_ptr) {
+        return;
+    }
+
+    if(!*completion_fun_ptr) {
+        return;
+    }
+
+    std::string message_str;
+    if(message) {
+        message_str=message;
+    }
+
+    (*completion_fun_ptr)(success,std::move(message_str));
+}
+
 CommandPrepareResult SDLBeebWindow::Command::Prepare(SDLBeebWindow *beeb_window) {
     return CommandPrepareResult_Execute;
 }
@@ -341,7 +358,7 @@ CommandPrepareResult SDLBeebWindow::KeySymCommand::Prepare(SDLBeebWindow *beeb_w
     return CommandPrepareResult_Execute;
 }
 
-void SDLBeebWindow::KeySymCommand::Execute(SDLBeebWindow *beeb_window) const {
+void SDLBeebWindow::KeySymCommand::Execute(SDLBeebWindow *beeb_window,CompletionFun *) const {
     beeb_window->SetKeyState(m_beeb_key,m_down);
     beeb_window->SetFakeShiftState(m_shift_state);
 }
@@ -372,7 +389,7 @@ CommandPrepareResult SDLBeebWindow::KeyCommand::Prepare(SDLBeebWindow *beeb_wind
     return CommandPrepareResult_Execute;
 }
 
-void SDLBeebWindow::KeyCommand::Execute(SDLBeebWindow *beeb_window) const {
+void SDLBeebWindow::KeyCommand::Execute(SDLBeebWindow *beeb_window,CompletionFun *) const {
     beeb_window->SetKeyState(m_beeb_key,m_down);
 }
 
@@ -383,7 +400,7 @@ m_verbose(verbose)
 {
 }
 
-void SDLBeebWindow::LoadDiscCommand::Execute(SDLBeebWindow *beeb_window) const {
+void SDLBeebWindow::LoadDiscCommand::Execute(SDLBeebWindow *beeb_window,CompletionFun *) const {
     beeb_window->m_beeb->SetDiscImage(m_drive,m_disc_image);
 }
 
@@ -392,7 +409,7 @@ m_drive(drive)
 {
 }
 
-void SDLBeebWindow::EjectDiscCommand::Execute(SDLBeebWindow *beeb_window) const {
+void SDLBeebWindow::EjectDiscCommand::Execute(SDLBeebWindow *beeb_window,CompletionFun *) const {
     beeb_window->m_beeb->SetDiscImage(m_drive,nullptr);
 }
 
@@ -402,7 +419,7 @@ m_write_protected(write_protected)
 {
 }
 
-void SDLBeebWindow::SetDriveWriteProtectedCommand::Execute(SDLBeebWindow *beeb_window) const {
+void SDLBeebWindow::SetDriveWriteProtectedCommand::Execute(SDLBeebWindow *beeb_window,CompletionFun *) const {
     beeb_window->m_beeb->SetDriveWriteProtected(m_drive,m_write_protected);
 }
 
@@ -423,7 +440,7 @@ CommandPrepareResult SDLBeebWindow::HardResetAndReloadConfigCommand::Prepare(SDL
     return CommandPrepareResult_Execute;
 }
 
-void SDLBeebWindow::HardResetAndReloadConfigCommand::Execute(SDLBeebWindow *beeb_window) const {
+void SDLBeebWindow::HardResetAndReloadConfigCommand::Execute(SDLBeebWindow *beeb_window,CompletionFun *) const {
     beeb_window->HardReset(m_reset_flags,m_config,m_nvram_contents);
 }
 
@@ -434,7 +451,7 @@ m_nvram_contents(GetDefaultNVRAMContents(m_config.config.type))
 {
 }
 
-void SDLBeebWindow::HardResetAndChangeConfigCommand::Execute(SDLBeebWindow *beeb_window) const {
+void SDLBeebWindow::HardResetAndChangeConfigCommand::Execute(SDLBeebWindow *beeb_window,CompletionFun *) const {
     beeb_window->HardReset(m_reset_flags,m_config,m_nvram_contents);
 }
 
@@ -445,7 +462,7 @@ SDLBeebWindow::DebugSetByteCommand::DebugSetByteCommand(M6502Word addr,uint32_t 
 {
 }
 
-void SDLBeebWindow::DebugSetByteCommand::Execute(SDLBeebWindow *beeb_window) const {
+void SDLBeebWindow::DebugSetByteCommand::Execute(SDLBeebWindow *beeb_window,CompletionFun *) const {
     beeb_window->m_beeb->DebugSetBytes(m_addr,m_dpo,&m_value,1);
 }
 
@@ -454,8 +471,12 @@ SDLBeebWindow::PasteCommand::PasteCommand(std::string text):
 {
 }
 
-void SDLBeebWindow::PasteCommand::Execute(SDLBeebWindow *beeb_window) const {
+void SDLBeebWindow::PasteCommand::Execute(SDLBeebWindow *beeb_window,CompletionFun *completion_fun_ptr) const {
     beeb_window->m_paste_state=PasteState_Pasting;
+    if(completion_fun_ptr) {
+        beeb_window->m_paste_completion_fun=std::move(*completion_fun_ptr);
+        ASSERT(!*completion_fun_ptr);
+    }
     beeb_window->m_beeb->StartPaste(m_text);
 }
 
@@ -813,18 +834,31 @@ SettingsUI *SDLBeebWindow::GetPopupByType(BeebWindowPopupType type) const {
 }
 
 bool SDLBeebWindow::Execute(std::unique_ptr<Command> command) {
+    bool executed=this->Execute2(std::move(command),nullptr);
+    return executed;
+}
+
+bool SDLBeebWindow::Execute(std::unique_ptr<Command> command,Command::CompletionFun completion_fun) {
+    bool executed=this->Execute2(std::move(command),&completion_fun);
+    return executed;
+}
+
+bool SDLBeebWindow::Execute2(std::unique_ptr<Command> command,Command::CompletionFun *completion_fun_ptr) {
     CommandPrepareResult result=command->Prepare(this);
     switch(result) {
     default:
         ASSERT(false);
     case CommandPrepareResult_Fail:
+        Command::CallCompletionFun(completion_fun_ptr,false,"command prepare failed");
         return false;
 
     case CommandPrepareResult_Ignore:
+        Command::CallCompletionFun(completion_fun_ptr,true,"command ignored");
         return false;
 
     case CommandPrepareResult_Execute:
-        command->Execute(this);
+        command->Execute(this,completion_fun_ptr);
+        Command::CallCompletionFun(completion_fun_ptr,true,nullptr);
         return true;
     }
 }

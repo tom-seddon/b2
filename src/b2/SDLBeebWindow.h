@@ -94,7 +94,7 @@ public:
     public:
         typedef std::function<void(bool,std::string)> CompletionFun;
         
-        //static void CallCompletionFun(CompletionFun *completion_fun,bool success,const char *message);
+        static void CallCompletionFun(CompletionFun *completion_fun_ptr,bool success,const char *message);
         
         explicit Command()=default;
         virtual ~Command()=0;
@@ -106,7 +106,11 @@ public:
 
         // default impl returns CommandPrepareResult_Execute.
         virtual CommandPrepareResult Prepare(SDLBeebWindow *beeb_window);
-        virtual void Execute(SDLBeebWindow *beeb_window) const=0;
+
+        // on exit, if completion_fun_ptr is non-null and has a target, it wlil
+        // be called with true and no elaboration. move it and call it later if
+        // that would be better.
+        virtual void Execute(SDLBeebWindow *beeb_window,CompletionFun *completion_fun_ptr) const=0;
     protected:
         // standard prepare policies.
         bool PrepareUnlessHalted(SDLBeebWindow *beeb_window,CompletionFun *completion_fun);
@@ -121,7 +125,7 @@ public:
         KeySymCommand(BeebKeySym key_sym,bool down);
         
         CommandPrepareResult Prepare(SDLBeebWindow *beeb_window) override;
-        void Execute(SDLBeebWindow *beeb_window) const override;
+        void Execute(SDLBeebWindow *beeb_window,CompletionFun *completion_fun_ptr) const override;
     protected:
     private:
         const bool m_down=false;
@@ -136,7 +140,7 @@ public:
         KeyCommand(BeebKey beeb_key,bool down);
         
         CommandPrepareResult Prepare(SDLBeebWindow *beeb_window) override;
-        void Execute(SDLBeebWindow *beeb_window) const override;
+        void Execute(SDLBeebWindow *beeb_window,CompletionFun *completion_fun_ptr) const override;
     protected:
     private:
         const BeebKey m_beeb_key=BeebKey_None;
@@ -150,7 +154,7 @@ public:
         LoadDiscCommand(int drive,std::shared_ptr<DiscImage> disc_image,bool verbose);
         
         //bool Prepare(SDLBeebWindow *beeb_window,CompletionFun *completion_fun) override;
-        void Execute(SDLBeebWindow *beeb_window) const override;
+        void Execute(SDLBeebWindow *beeb_window,CompletionFun *completion_fun_ptr) const override;
     protected:
     private:
         const int m_drive=-1;
@@ -164,7 +168,7 @@ public:
     public:
         EjectDiscCommand(int drive);
         
-        void Execute(SDLBeebWindow *beeb_window) const override;
+        void Execute(SDLBeebWindow *beeb_window,CompletionFun *completion_fun_ptr) const override;
     protected:
     private:
         const int m_drive=-1;
@@ -176,7 +180,7 @@ public:
     public:
         SetDriveWriteProtectedCommand(int drive,bool write_protected);
 
-        void Execute(SDLBeebWindow *beeb_window) const override;
+        void Execute(SDLBeebWindow *beeb_window,CompletionFun *completion_fun_ptr) const override;
     protected:
     private:
         const int m_drive=-1;
@@ -190,7 +194,7 @@ public:
         HardResetAndReloadConfigCommand(uint32_t reset_flags);
         
         CommandPrepareResult Prepare(SDLBeebWindow *beeb_window) override;
-        void Execute(SDLBeebWindow *beeb_window) const override;
+        void Execute(SDLBeebWindow *beeb_window,CompletionFun *completion_fun_ptr) const override;
     protected:
     private:
         const uint32_t m_reset_flags=0;
@@ -204,7 +208,7 @@ public:
     public:
         HardResetAndChangeConfigCommand(uint32_t reset_flags,BeebLoadedConfig config);
         
-        void Execute(SDLBeebWindow *beeb_window) const override;
+        void Execute(SDLBeebWindow *beeb_window,CompletionFun *completion_fun_ptr) const override;
     protected:
     private:
         const uint32_t m_reset_flags=0;
@@ -218,7 +222,7 @@ public:
     public:
         DebugSetByteCommand(M6502Word addr,uint32_t dpo,uint8_t value);
 
-        void Execute(SDLBeebWindow *beeb_window) const override;
+        void Execute(SDLBeebWindow *beeb_window,CompletionFun *completion_fun_ptr) const override;
     protected:
     private:
         const M6502Word m_addr={};
@@ -232,7 +236,7 @@ public:
     public:
         PasteCommand(std::string text);
 
-        void Execute(SDLBeebWindow *beeb_window) const override;
+        void Execute(SDLBeebWindow *beeb_window,CompletionFun *completion_fun_ptr) const override;
     protected:
     private:
         const std::shared_ptr<std::string> m_text;
@@ -281,6 +285,7 @@ public:
     SettingsUI *GetPopupByType(BeebWindowPopupType type) const;
 
     bool Execute(std::unique_ptr<Command> command);
+    bool Execute(std::unique_ptr<Command> command,Command::CompletionFun completion_fun);
 
     const VideoDataUnit *GetVideoDataUnitForMousePixel() const;
 
@@ -485,6 +490,7 @@ private:
     std::vector<ImGuiStuff::StoredDrawList> m_stored_draw_lists;
 #endif
     
+    bool Execute2(std::unique_ptr<Command> command,Command::CompletionFun *completion_fun_ptr);
     bool InitInternal(std::vector<uint8_t> window_placement_data);
     bool RecreateTexture();
     void RenderLastImGuiFrame();
