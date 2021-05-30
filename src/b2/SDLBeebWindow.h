@@ -225,6 +225,18 @@ public:
         const uint32_t m_dpo=0;
         const uint8_t m_value=0;
     };
+
+    class PasteCommand:
+        public Command
+    {
+    public:
+        PasteCommand(std::string text);
+
+        void Execute(SDLBeebWindow *beeb_window) const override;
+    protected:
+    private:
+        const std::shared_ptr<std::string> m_text;
+    };
     
     SDLBeebWindow()=default;
     ~SDLBeebWindow();
@@ -443,12 +455,21 @@ private:
 #endif
 
     //
-    // OSWRCH Copy state.
+    // Copy state.
     //
     CopyState m_copy_state=CopyState_None;
     std::vector<uint8_t> m_copy_data;
     std::function<void(std::vector<uint8_t>)> m_copy_stop_fun;
 
+    //
+    // Paste state.
+    //
+    PasteState m_paste_state=PasteState_None;
+    Command::CompletionFun m_paste_completion_fun;
+
+    //
+    // LEDs UI state.
+    //
     uint32_t m_leds=0;
     bool m_leds_popup_ui_active=false;
     uint64_t m_leds_popup_ticks=0;
@@ -520,9 +541,15 @@ private:
     static bool HandleTraceWriteConditions(const BBCMicro *beeb,const M6502 *cpu,void *context);
 #endif
     void CopyOSWRCHText();
+    void StopCopy();
     bool IsCopyOSWRCHTextTicked() const;
     static bool CopyOSWRCHInstructionFn(const BBCMicro *beeb,const M6502 *cpu,void *context);
     void SetClipboardData(std::vector<uint8_t> data,bool is_text);
+    void StopPaste();
+    void Paste();
+    void PasteThenReturn();
+    bool IsPasteTicked() const;
+    bool GetASCIIFromClipboard(std::string *ascii);
 
     template<BeebWindowPopupType>
     void TogglePopupCommand();

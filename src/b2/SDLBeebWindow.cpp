@@ -449,6 +449,16 @@ void SDLBeebWindow::DebugSetByteCommand::Execute(SDLBeebWindow *beeb_window) con
     beeb_window->m_beeb->DebugSetBytes(m_addr,m_dpo,&m_value,1);
 }
 
+SDLBeebWindow::PasteCommand::PasteCommand(std::string text):
+    m_text(std::make_shared<std::string>(std::move(text)))
+{
+}
+
+void SDLBeebWindow::PasteCommand::Execute(SDLBeebWindow *beeb_window) const {
+    beeb_window->m_paste_state=PasteState_Pasting;
+    beeb_window->m_beeb->StartPaste(m_text);
+}
+
 SDLBeebWindow::DriveState::DriveState():
     new_disc_image_file_dialog(RECENT_PATHS_DISC_IMAGE),
     open_disc_image_file_dialog(RECENT_PATHS_DISC_IMAGE),
@@ -745,6 +755,13 @@ UpdateResult SDLBeebWindow::UpdateBeeb() {
 #if BBCMICRO_TRACE
         m_beeb->GetTraceStats(&m_trace_stats);
 #endif
+
+        if(m_paste_state!=PasteState_None) {
+            if(!m_beeb->IsPasting()) {
+                m_paste_state=PasteState_None;
+                this->StopPaste();
+            }
+        }
 
         if(m_limit_speed.load(std::memory_order_acquire)) {
             return UpdateResult_SpeedLimited;
@@ -2467,8 +2484,8 @@ void SDLBeebWindow::DoPopupUI(uint64_t now,int output_width,int output_height) {
 
     bool show_leds_popup=false;
 
-//    bool pasting=m_beeb_thread->IsPasting();
-//    bool copying=m_beeb_thread->IsCopying();
+    bool pasting=m_paste_state!=PasteState_None;
+    bool copying=m_copy_state!=CopyState_None;
     uint32_t leds=0;
     if(m_beeb) {
         leds=m_beeb->GetLEDs();
@@ -2540,23 +2557,25 @@ void SDLBeebWindow::DoPopupUI(uint64_t now,int output_width,int output_height) {
 //                break;
 //            }
 
-//            ImGui::SameLine();
-//            ImGuiLED(copying,"Copy");
-//            if(copying) {
-//                ImGui::SameLine();
-//                if(ImGui::Button("Cancel")) {
-//                    m_beeb_thread->Send(std::make_shared<BeebThread::StopCopyMessage>());
-//                }
-//            }
-//
-//            ImGui::SameLine();
-//            ImGuiLED(pasting,"Paste");
-//            if(pasting) {
-//                ImGui::SameLine();
-//                if(ImGui::Button("Cancel")) {
-//                    m_beeb_thread->Send(std::make_shared<BeebThread::StopPasteMessage>());
-//                }
-//            }
+            ImGui::SameLine();
+            ImGuiLED(copying,"Copy");
+            if(copying) {
+                ImGui::SameLine();
+                if(ImGui::Button("Stop")) {
+                    this->StopCopy();
+                    //m_beeb_thread->Send(std::make_shared<BeebThread::StopCopyMessage>());
+                }
+            }
+
+            ImGui::SameLine();
+            ImGuiLED(pasting,"Paste");
+            if(pasting) {
+                ImGui::SameLine();
+                if(ImGui::Button("Stop")) {
+                    //m_beeb_thread->Send(std::make_shared<BeebThread::StopPasteMessage>());
+                    this->StopPaste();
+                }
+            }
         }
         ImGui::End();
 
@@ -2955,9 +2974,7 @@ void SDLBeebWindow::DebugStepIn() {
 
 void SDLBeebWindow::CopyOSWRCHText() {
     if(m_copy_state==CopyState_CopyText) {
-        m_copy_state=CopyState_None;
-        //m_copy_stop_fun(std::move(m_copy_data));
-        this->SetClipboardData(std::move(m_copy_data),true);
+        this->StopCopy();
     } else {
         m_copy_data.clear();
         m_copy_state=CopyState_CopyText;
@@ -2965,8 +2982,41 @@ void SDLBeebWindow::CopyOSWRCHText() {
     }
 }
 
+void SDLBeebWindow::StopCopy() {
+    m_copy_state=CopyState_None;
+    //m_copy_stop_fun(std::move(m_copy_data));
+    this->SetClipboardData(std::move(m_copy_data),true);
+}
+
 bool SDLBeebWindow::IsCopyOSWRCHTextTicked() const {
     return m_copy_state==CopyState_CopyText;
+}
+
+bool SDLBeebWindow::CopyOSWRCHInstructionFn(const BBCMicro *beeb,const M6502 *cpu,void *context) {
+    auto this_=(SDLBeebWindow *)context;
+
+    if(!beeb) {
+        this_->m_copy_state=CopyState_None;
+        return false;
+    }
+
+    if(this_->m_copy_state==CopyState_None) {
+        // Must have been cancelled.
+        return false;
+    }
+
+    const uint8_t *ram=this_->m_beeb->GetRAM();
+
+    // Rather tiresomely, BASIC 2 prints stuff with JMP (WRCHV). Who
+    // comes up with this stuff? So check against WRCHV, not just
+    // 0xffee.
+
+    if(cpu->abus.b.l==ram[0x020e]&&cpu->abus.b.h==ram[0x020f]) {
+        // Opcode fetch for first byte of OSWRCH
+        this_->m_copy_data.push_back(cpu->a);
+    }
+
+    return true;
 }
 
 void SDLBeebWindow::SetClipboardData(std::vector<uint8_t> data,bool is_text) {
@@ -3016,30 +3066,94 @@ void SDLBeebWindow::SetClipboardData(std::vector<uint8_t> data,bool is_text) {
     }
 }
 
-bool SDLBeebWindow::CopyOSWRCHInstructionFn(const BBCMicro *beeb,const M6502 *cpu,void *context) {
-    auto this_=(SDLBeebWindow *)context;
+void SDLBeebWindow::StopPaste() {
+    if(m_paste_completion_fun) {
+        bool completed;
+        if(m_paste_state==PasteState_None) {
+            completed=true;
+        } else {
+            completed=false;
+        }
 
-    if(!beeb) {
-        this_->m_copy_state=CopyState_None;
+        m_paste_completion_fun(completed,"");
+        m_paste_completion_fun=Command::CompletionFun();
+    }
+
+    m_paste_state=PasteState_None;
+}
+
+void SDLBeebWindow::Paste() {
+    std::string ascii;
+    if(!this->GetASCIIFromClipboard(&ascii)) {
+        return;
+    }
+
+    this->Execute(std::make_unique<PasteCommand>(std::move(ascii)));
+}
+
+void SDLBeebWindow::PasteThenReturn() {
+    std::string ascii;
+    if(!this->GetASCIIFromClipboard(&ascii)) {
+        return;
+    }
+
+    ascii.push_back(13);
+
+    this->Execute(std::make_unique<PasteCommand>(std::move(ascii)));
+}
+
+bool SDLBeebWindow::IsPasteTicked() const {
+    if(m_paste_state!=PasteState_None) {
+        return true;
+    } else {
         return false;
     }
+}
 
-    if(this_->m_copy_state==CopyState_None) {
-        // Must have been cancelled.
-        return false;
+bool SDLBeebWindow::GetASCIIFromClipboard(std::string *ascii) {
+    // Get UTF-8 clipboard.
+    std::vector<uint8_t> utf8;
+    {
+        char *tmp=SDL_GetClipboardText();
+        if(!tmp) {
+            m_msg.e.f("Clipboard error: %s\n",SDL_GetError());
+            return false;
+        }
+
+        utf8.resize(strlen(tmp));
+        memcpy(utf8.data(),tmp,utf8.size());
+
+        SDL_free(tmp);
+        tmp=nullptr;
+
+        if(utf8.empty()) {
+            return false;
+        }
     }
 
-    const uint8_t *ram=this_->m_beeb->GetRAM();
+    // Convert UTF-8 into BBC-friendly ASCII.
+    {
+        uint32_t bad_codepoint;
+        const uint8_t *bad_char_start;
+        int bad_char_len;
+        if(!GetBBCASCIIFromUTF8(ascii,utf8,&bad_codepoint,&bad_char_start,&bad_char_len)) {
+            if(bad_codepoint==0) {
+                m_msg.e.f("Clipboard contents are not valid UTF-8 text\n");
+            } else {
+                m_msg.e.f("Invalid character: ");
 
-    // Rather tiresomely, BASIC 2 prints stuff with JMP (WRCHV). Who
-    // comes up with this stuff? So check against WRCHV, not just
-    // 0xffee.
+                if(bad_codepoint>=32) {
+                    m_msg.e.f("'%.*s', ",bad_char_len,bad_char_start);
+                }
 
-    if(cpu->abus.b.l==ram[0x020e]&&cpu->abus.b.h==ram[0x020f]) {
-        // Opcode fetch for first byte of OSWRCH
-        this_->m_copy_data.push_back(cpu->a);
+                m_msg.e.f("%u (0x%X)\n",bad_codepoint,bad_codepoint);
+            }
+
+            return false;
+        }
     }
 
+    FixBBCASCIINewlines(ascii);
     return true;
 }
 
@@ -3105,8 +3219,8 @@ const ObjectCommandTable<SDLBeebWindow> SDLBeebWindow::ms_command_table("Beeb Wi
     {{"clear_console","Clear Win32 console"},&SDLBeebWindow::ClearConsole},
 #endif
     {{"print_separator","Print stdout separator"},&SDLBeebWindow::PrintSeparator},
-//    {{"paste","OSRDCH Paste"},&BeebWindow::Paste,&BeebWindow::IsPasteTicked},
-//    {{"paste_return","OSRDCH Paste (+Return)"},&BeebWindow::PasteThenReturn,&BeebWindow::IsPasteTicked},
+    {{"paste","OSRDCH Paste"},&SDLBeebWindow::Paste,&SDLBeebWindow::IsPasteTicked},
+    {{"paste_return","OSRDCH Paste (+Return)"},&SDLBeebWindow::PasteThenReturn,&SDLBeebWindow::IsPasteTicked},
     {{"toggle_copy_oswrch_text","OSWRCH Copy Text"},&SDLBeebWindow::CopyOSWRCHText,&SDLBeebWindow::IsCopyOSWRCHTextTicked},
 //    {{"copy_basic","Copy BASIC listing"},&BeebWindow::CopyBASIC,&BeebWindow::IsCopyOSWRCHTicked,&BeebWindow::IsCopyBASICEnabled},
 #if VIDEO_TRACK_METADATA
