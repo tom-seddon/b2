@@ -238,9 +238,7 @@ void SDLBeebWindow::OptionsUI::DoImGui() {
         //beeb_thread->SetDiscVolume(settings->disc_volume);
     }
 
-    if(ImGui::Checkbox("Power-on tone",&m_beeb_window->m_settings.power_on_tone)) {
-        //beeb_thread->SetPowerOnTone(m_beeb_window->m_settings.power_on_tone);
-    }
+    ImGui::Checkbox("Power-on tone",&m_beeb_window->m_settings.power_on_tone);
 
     ImGui::NewLine();
 
@@ -1795,7 +1793,7 @@ void SDLBeebWindow::HardReset(uint32_t reset_flags,
                         &now,
                         m_current_config.config.video_nula,
                         m_current_config.config.ext_mem,
-                        true,
+                        m_settings.power_on_tone,
                         nullptr,
                         num_2MHz_cycles);
     

@@ -12,7 +12,8 @@ Should cancel the trace if the beeb is rewound or a save state is
 loaded. Does it already do this?
 
 *** TODO Copy BASIC
-*** TODO Power-on tone
+*** DONE Power-on tone
+    CLOSED: [2021-05-31 Mon 16:43]
 
 It's always on.
 
