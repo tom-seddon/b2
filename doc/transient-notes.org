@@ -17,7 +17,8 @@ loaded. Does it already do this?
 
 It's always on.
 
-*** TODO Volume control
+*** DONE Volume control
+    CLOSED: [2021-05-31 Mon 16:50]
 
 Always max volume.
 

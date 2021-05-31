@@ -230,12 +230,18 @@ void SDLBeebWindow::OptionsUI::DoImGui() {
 
     ImGui::Checkbox("Emulate interlace",&m_beeb_window->m_settings.display_interlace);
 
+    bool volume_changed=false;
+
     if(ImGui::SliderFloat("BBC volume",&m_beeb_window->m_settings.bbc_volume,MIN_DB,MAX_DB,"%.1f dB")) {
-        //m_beeb_window->m_beeb->SetBBCVolume(settings->bbc_volume);
+        volume_changed=true;
     }
 
     if(ImGui::SliderFloat("Disc volume",&m_beeb_window->m_settings.disc_volume,MIN_DB,MAX_DB,"%.1f dB")) {
-        //beeb_thread->SetDiscVolume(settings->disc_volume);
+        volume_changed=true;
+    }
+
+    if(volume_changed) {
+        m_beeb_window->UpdateVolumes();
     }
 
     ImGui::Checkbox("Power-on tone",&m_beeb_window->m_settings.power_on_tone);
@@ -569,6 +575,8 @@ bool SDLBeebWindow::Init(const BeebWindowInitArguments &init_arguments,
     m_audio_thread_data->remapper=Remapper(m_audio_thread_data->sound_freq,SOUND_CLOCK_HZ);
     m_audio_thread_data->limit_speed=&m_limit_speed;
     m_audio_thread_data->push_timing_message_fn=std::move(push_timing_message_fn);
+
+    this->UpdateVolumes();
 
     m_imgui_stuff=new ImGuiStuff();
     if(!m_imgui_stuff->Init(m_renderer.get(),&m_font_texture)) {
@@ -3198,6 +3206,26 @@ bool SDLBeebWindow::GetASCIIFromClipboard(std::string *ascii) {
 
     FixBBCASCIINewlines(ascii);
     return true;
+}
+
+void SDLBeebWindow::UpdateVolumes() {
+    AudioDeviceLock lock(m_sdl_audio_device_id);
+
+    m_audio_thread_data->bbc_sound_scale=GetVolumeScale(m_settings.bbc_volume);
+    m_audio_thread_data->disc_sound_scale=GetVolumeScale(m_settings.disc_volume);
+}
+
+float SDLBeebWindow::GetVolumeScale(float db) {
+    if(db>MAX_DB) {
+        db=MAX_DB;
+    }
+
+    if(db<MIN_DB) {
+        db=MIN_DB;
+    }
+
+    float scale=powf(10.f,db/20.f);
+    return scale;
 }
 
 template<BeebWindowPopupType POPUP_TYPE>

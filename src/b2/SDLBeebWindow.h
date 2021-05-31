@@ -572,6 +572,8 @@ private:
     void PasteThenReturn();
     bool IsPasteTicked() const;
     bool GetASCIIFromClipboard(std::string *ascii);
+    void UpdateVolumes();
+    static float GetVolumeScale(float db);
 
     template<BeebWindowPopupType>
     void TogglePopupCommand();
