@@ -11,23 +11,19 @@
 #include <regex>
 #include "HTTPServer.h"
 #include "misc.h"
-#include "BeebWindows.h"
-#include "BeebWindow.h"
-#include "BeebThread.h"
+#include "SDLBeebWindow.h"
 #include <inttypes.h>
 #include "MemoryDiscImage.h"
 #include "Messages.h"
 #include <shared/path.h>
 #include "DiscGeometry.h"
+#include <beeb/BBCMicro.h>
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 // somewhat arbitrary limit here...
 static const uint64_t MAX_PEEK_SIZE=4*1024*1024;
-
-static const std::string PRG_CONTENT_TYPE="application/x-c64-program";
-static const std::string PRG_EXTENSION=".prg";
 
 static const std::string HTTP_DISC_IMAGE_LOAD_METHOD="http";
 
@@ -59,31 +55,28 @@ static std::vector<std::string> GetPathParts(const std::string &path) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-class BeebThreadPeekMessage:
-    public BeebThread::CustomMessage
+class PeekCommand:
+    public SDLBeebWindow::Command
 {
 public:
-    BeebThreadPeekMessage(uint32_t addr,
-                          uint32_t dpo,
-                          uint64_t count,
-                          HTTPServer *server,
-                          HTTPRequest &&request):
+    PeekCommand(uint32_t addr,uint32_t dpo,uint64_t count,HTTPServer *server,HTTPRequest &&request):
     m_addr(addr),
     m_dpo(dpo),
     m_count(count),
     m_server(server),
     m_response_data(request.response_data)
     {
-        LOGF(OUTPUT,"BeebThreadPeekMessage: this=%p\n",(void *)this);
+        LOGF(OUTPUT,"BeebThreadPeekCommand: this=%p\n",(void *)this);
     }
 
-    void ThreadHandleMessage(BBCMicro *beeb) override {
+    void Execute(SDLBeebWindow *beeb_window,CompletionFun *) const override {
         HTTPResponse m_response;
         M6502Word addr={(uint16_t)m_addr};
 
         std::vector<uint8_t> data;
         data.resize(m_count);
 
+        BBCMicro *beeb=beeb_window->GetBeeb();
         beeb->DebugGetBytes(data.data(),data.size(),addr,m_dpo);
 
         HTTPResponse response(HTTP_OCTET_STREAM_CONTENT_TYPE,std::move(data));
@@ -109,7 +102,7 @@ class HTTPMethodsHandler:
         HTTPRequest request;
     };
 public:
-    explicit HTTPMethodsHandler(BeebWindow *beeb_window):
+    explicit HTTPMethodsHandler(SDLBeebWindow *beeb_window):
     m_beeb_window(beeb_window)
     {
     }
@@ -140,11 +133,11 @@ private:
         {"paste",&HTTPMethodsHandler::HandlePasteRequest},
         {"poke",&HTTPMethodsHandler::HandlePokeRequest},
         {"peek",&HTTPMethodsHandler::HandlePeekRequest},
-        {"call",&HTTPMethodsHandler::HandleCallRequest},
+        //{"call",&HTTPMethodsHandler::HandleCallRequest},
         {"mount",&HTTPMethodsHandler::HandleMountRequest},
         {"run",&HTTPMethodsHandler::HandleRunRequest},
     };
-    BeebWindow *m_beeb_window=nullptr;
+    SDLBeebWindow *m_beeb_window=nullptr;
 
     // Parse path parts.
     //
@@ -256,12 +249,19 @@ private:
             } else if(strcmp(fmt,"window")==0) {
                 auto ptr=va_arg(v,BeebWindow **);
                 if(value) {
+                    // Ugly compatibility hack, so old curl invocations don't
+                    // break.
+                    //
+                    // Only allow "b2" for now - might think of some alternative
+                    // use for this at some point...
                     if(*value!="b2") {
-                        // Ugly compatibility hack, so old curl invocations don't break.
                         server->SendResponse(request,HTTPResponse::NotFound(request));
                         return false;
                     }
-                    *ptr=m_beeb_window;
+
+                    if(ptr) {
+                        *ptr=nullptr;
+                    }
                 }
             } else {
                 ASSERT(false);
@@ -279,10 +279,9 @@ private:
     }
 
     void HandleResetRequest(HTTPServer *server,HTTPRequest &&request,const std::vector<std::string> &path_parts,size_t command_index) {
-        BeebWindow *beeb_window;
         std::string config_name;
         if(!this->ParseArgsOrSendResponse(server,request,path_parts,command_index,
-                                          "window",nullptr,&beeb_window,
+                                          "window",nullptr,nullptr,
                                           "std::string","config",&config_name,
                                           nullptr)) {
             return;
@@ -298,23 +297,15 @@ private:
                 return;
             }
 
-            auto config_message=std::make_shared<BeebThread::HardResetAndChangeConfigMessage>(BeebThreadHardResetFlag_Run,
-                                                                                              std::move(loaded_config));
-            beeb_window->GetBeebThread()->Send(std::move(config_message));
+            m_beeb_window->Execute(std::make_unique<SDLBeebWindow::HardResetAndChangeConfigCommand>(ResetFlag_Run,std::move(loaded_config)));
         }
 
-        auto reset_message=std::make_shared<BeebThread::HardResetAndReloadConfigMessage>(BeebThreadHardResetFlag_Run);
-
-//        message->reload_config=true;
-//        message->run=true;
-
-        this->SendMessage(beeb_window,server,request,std::move(reset_message));
+        this->Execute(server,request,std::make_unique<SDLBeebWindow::HardResetAndReloadConfigCommand>(ResetFlag_Run));
     }
 
     void HandlePasteRequest(HTTPServer *server,HTTPRequest &&request,const std::vector<std::string> &path_parts,size_t command_index) {
-        BeebWindow *beeb_window;
         if(!this->ParseArgsOrSendResponse(server,request,path_parts,command_index,
-                                          "window",nullptr,&beeb_window,
+                                          "window",nullptr,nullptr,
                                           nullptr)) {
             return;
         }
@@ -339,30 +330,29 @@ private:
 
         FixBBCASCIINewlines(&ascii);
 
-        this->SendMessage(beeb_window,server,request,std::make_shared<BeebThread::StartPasteMessage>(std::move(ascii)));
+        this->Execute(server,request,std::make_unique<SDLBeebWindow::PasteCommand>(std::move(ascii)));
     }
 
     void HandlePokeRequest(HTTPServer *server,HTTPRequest &&request,const std::vector<std::string> &path_parts,size_t command_index) {
-        BeebWindow *beeb_window;
-        uint32_t addr;
+        uint32_t addr32;
         if(!this->ParseArgsOrSendResponse(server,request,path_parts,command_index,
-                                          "window",nullptr,&beeb_window,
-                                          "x32",nullptr,&addr,
+                                          "window",nullptr,nullptr,
+                                          "x32",nullptr,&addr32,
                                           nullptr))
         {
             return;
         }
 
-        this->SendMessage(beeb_window,server,request,std::make_shared<BeebThread::DebugSetBytesMessage>(addr,0,std::move(request.body)));
+        M6502Word addr={(uint16_t)addr32};
+        this->Execute(server,request,std::make_unique<SDLBeebWindow::DebugSetBytesCommand>(addr,0,std::move(request.body)));
     }
 
     void HandlePeekRequest(HTTPServer *server,HTTPRequest &&request,const std::vector<std::string> &path_parts,size_t command_index) {
-        BeebWindow *beeb_window;
         uint32_t begin;
         uint64_t end;
         bool end_is_len;
         if(!this->ParseArgsOrSendResponse(server,request,path_parts,command_index,
-                                          "window",nullptr,&beeb_window,
+                                          "window",nullptr,nullptr,
                                           "x32",nullptr,&begin,
                                           "x64/len",nullptr,&end,&end_is_len,
                                           nullptr))
@@ -384,39 +374,39 @@ private:
             }
         }
 
-        beeb_window->GetBeebThread()->Send(std::make_unique<BeebThreadPeekMessage>(begin,
-                                                                                   0,//dpo
-                                                                                   end-begin,
-                                                                                   server,
-                                                                                   std::move(request)));
+        this->Execute(server,request,std::make_unique<PeekCommand>(begin,
+                                                                   0,//dpo - todo
+                                                                   end-begin,
+                                                                   server,
+                                                                   std::move(request)));
     }
 
-    void HandleCallRequest(HTTPServer *server,HTTPRequest &&request,const std::vector<std::string> &path_parts,size_t command_index) {
-        BeebWindow *beeb_window;
-        uint16_t addr;
-        uint8_t a=0,x=0,y=0;
-        bool c=false;
-        if(!this->ParseArgsOrSendResponse(server,request,path_parts,command_index,
-                                          "window",nullptr,&beeb_window,
-                                          "x16",nullptr,&addr,
-                                          "u8","a",&a,
-                                          "u8","x",&x,
-                                          "u8","y",&y,
-                                          "bool","c",&c,
-                                          nullptr))
-        {
-            return;
-        }
+    // TODO - reinstate?
 
-        this->SendMessage(beeb_window,server,request,std::make_shared<BeebThread::DebugAsyncCallMessage>(addr,a,x,y,c));
-    }
+    //void HandleCallRequest(HTTPServer *server,HTTPRequest &&request,const std::vector<std::string> &path_parts,size_t command_index) {
+    //    uint16_t addr;
+    //    uint8_t a=0,x=0,y=0;
+    //    bool c=false;
+    //    if(!this->ParseArgsOrSendResponse(server,request,path_parts,command_index,
+    //                                      "window",nullptr,nullptr,
+    //                                      "x16",nullptr,&addr,
+    //                                      "u8","a",&a,
+    //                                      "u8","x",&x,
+    //                                      "u8","y",&y,
+    //                                      "bool","c",&c,
+    //                                      nullptr))
+    //    {
+    //        return;
+    //    }
+
+    //    this->Execute(server,request,std::make_unique<SDLBeebWindow::AsyncCallCommand>(addr,a,x,y,c));
+    //}
 
     void HandleMountRequest(HTTPServer *server,HTTPRequest &&request,const std::vector<std::string> &path_parts,size_t command_index) {
-        BeebWindow *beeb_window;
         std::string name;
         uint32_t drive=0;
         if(!this->ParseArgsOrSendResponse(server,request,path_parts,command_index,
-                                          "window",nullptr,&beeb_window,
+                                          "window",nullptr,nullptr,
                                           "std::string","name",&name,
                                           "u32","drive",&drive,
                                           nullptr))
@@ -434,42 +424,17 @@ private:
             return;
         }
 
-        this->SendMessage(beeb_window,server,request,std::make_shared<BeebThread::LoadDiscMessage>((int)drive,std::move(disc_image),true));
+        this->Execute(server,request,std::make_unique<SDLBeebWindow::LoadDiscCommand>((int)drive,std::move(disc_image),true));
     }
 
     void HandleRunRequest(HTTPServer *server,HTTPRequest &&request,const std::vector<std::string> &path_parts,size_t command_index) {
-        BeebWindow *beeb_window;
         std::string name;
         if(!this->ParseArgsOrSendResponse(server,request,path_parts,command_index,
-                                          "window",nullptr,&beeb_window,
+                                          "window",nullptr,nullptr,
                                           "std::string","name",&name,
                                           nullptr))
         {
             return;
-        }
-
-        // C64 .PRG.
-        {
-            if(request.content_type==PRG_CONTENT_TYPE||PathCompare(PathGetExtension(name),PRG_EXTENSION)==0) {
-                if(request.body.size()<2) {
-                    server->SendResponse(request,HTTPResponse::BadRequest(request));
-                    return;
-                }
-
-                uint32_t addr=request.body[0]|(uint32_t)(request.body[1]<<8)|0xffff0000u;
-                request.body.erase(request.body.begin(),request.body.begin()+2);
-
-                beeb_window->GetBeebThread()->Send(std::make_shared<BeebThread::DebugSetBytesMessage>(addr,0,std::move(request.body)));
-                this->SendMessage(beeb_window,
-                                  server,
-                                  request,
-                                  std::make_shared<BeebThread::DebugAsyncCallMessage>((uint16_t)addr,
-                                                                                      (uint8_t)0,
-                                                                                      (uint8_t)0,
-                                                                                      (uint8_t)0,
-                                                                                      false));
-                return;
-            }
         }
 
         // BBC disc image.
@@ -479,11 +444,9 @@ private:
                 return;
             }
 
-            beeb_window->GetBeebThread()->Send(std::make_shared<BeebThread::LoadDiscMessage>(0,std::move(disc_image),true));
+            m_beeb_window->Execute(std::make_unique<SDLBeebWindow::LoadDiscCommand>(0,std::move(disc_image),true));
 
-            auto message=std::make_shared<BeebThread::HardResetAndReloadConfigMessage>(BeebThreadHardResetFlag_Run|
-                                                                                       BeebThreadHardResetFlag_Boot);
-            this->SendMessage(beeb_window,server,request,std::move(message));
+            this->Execute(server,request,std::make_unique<SDLBeebWindow::HardResetAndReloadConfigCommand>(ResetFlag_Run|ResetFlag_Boot));
             return;
         }
 
@@ -561,11 +524,7 @@ private:
         server->SendResponse(request,HTTPResponse::BadRequest(request,"%s",text.c_str()));
     }
 
-    void SendMessage(BeebWindow *beeb_window,
-                     HTTPServer *server,
-                     const HTTPRequest &request,
-                     std::shared_ptr<BeebThread::Message> message)
-    {
+    void Execute(HTTPServer *server,const HTTPRequest &request,std::unique_ptr<SDLBeebWindow::Command> command) {
         auto completion_fun=[server,response_data=request.response_data](bool success,
                                                                          std::string message) {
             LOGF(OUTPUT,"SendMessage completion_fun: connected ID=%" PRIu64 "\n",response_data.connection_id);
@@ -585,15 +544,14 @@ private:
             server->SendResponse(response_data,response);
         };
 
-        std::shared_ptr<BeebThread> beeb_thread=beeb_window->GetBeebThread();
-        beeb_thread->Send(std::move(message),std::move(completion_fun));
+        m_beeb_window->Execute(std::move(command),std::move(completion_fun));
     }
 };
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-std::unique_ptr<HTTPHandler> CreateHTTPMethodsHandler(BeebWindow *beeb_window) {
+std::unique_ptr<HTTPHandler> CreateHTTPMethodsHandler(SDLBeebWindow *beeb_window) {
     return std::make_unique<HTTPMethodsHandler>(beeb_window);
 }
 

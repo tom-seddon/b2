@@ -1301,14 +1301,12 @@ static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &mess
 #endif
 
 #if HTTP_SERVER
-    std::unique_ptr<HTTPServer> http_server;
-    msg.w.f("TODO: HTTP server temporarily disabled...\n");
-//    std::unique_ptr<HTTPServer> http_server=CreateHTTPServer();
-//    if(!http_server->Start(0xbbcb)) {
-//        msg.w.f("Failed to start HTTP server.\n");
-//        // but carry on... it's not fatal.
-//        http_server=nullptr;
-//    }
+    std::unique_ptr<HTTPServer> http_server=CreateHTTPServer();
+    if(!http_server->Start(0xbbcb)) {
+        msg.w.f("Failed to start HTTP server.\n");
+        // but carry on... it's not fatal.
+        http_server=nullptr;
+    }
 #endif
 
 #if HAVE_FFMPEG
@@ -1418,10 +1416,10 @@ static bool main2(int argc,char *argv[],const std::shared_ptr<MessageList> &mess
 
 #if HTTP_SERVER
         std::unique_ptr<HTTPHandler> http_handler;
-//        if(!!http_server) {
-//            http_handler=CreateHTTPMethodsHandler(beeb_window->GetBeebWindow());
-//            http_server->SetHandler(http_handler.get());
-//        }
+        if(!!http_server) {
+            http_handler=CreateHTTPMethodsHandler(beeb_window.get());
+            http_server->SetHandler(http_handler.get());
+        }
 #endif
 
         {

@@ -1,0 +1,38 @@
+* single-threaded
+
+** TODOs
+
+*** TODO Save state
+*** TODO Timeline UI
+*** TODO Timeline general
+*** TODO BeebLink
+*** TODO Tracing when recording
+
+Should cancel the trace if the beeb is rewound or a save state is
+loaded. Does it already do this?
+
+*** TODO Copy BASIC
+*** TODO Power-on tone
+
+It's always on.
+
+*** TODO Volume control
+
+Always max volume.
+
+*** TODO HTTP server
+*** DONE Remove HTTP example
+    CLOSED: [2021-05-31 Mon 16:07]
+
+Might as well just point at scr-beeb/beebniccc
+
+*** =run= HTTP method doesn't autoboot
+
+Could be the autoboot mechanism? Not sure what the actual bug here is.
+
+** changelog notes
+
+#+BEGIN_SRC markdown
+  - the `call` HTTP method has been removed
+  - the `run` HTTP method no longer supports C64-style .PRG files
+#+END_SRC

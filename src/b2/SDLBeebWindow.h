@@ -216,6 +216,8 @@ public:
         const std::vector<uint8_t> m_nvram_contents;
     };
 
+    // Keep the 1-byte form? It's there for when editing in the hex viewer while
+    // recording. Might not be worth the extra effort.
     class DebugSetByteCommand:
         public Command
     {
@@ -228,6 +230,20 @@ public:
         const M6502Word m_addr={};
         const uint32_t m_dpo=0;
         const uint8_t m_value=0;
+    };
+
+    class DebugSetBytesCommand:
+        public Command
+    {
+    public:
+        DebugSetBytesCommand(M6502Word addr,uint32_t dpo,std::vector<uint8_t> values);
+
+        void Execute(SDLBeebWindow *beeb_window,CompletionFun *completion_fun_ptr) const override;
+    protected:
+    private:
+        const M6502Word m_addr={};
+        const uint32_t m_dpo=0;
+        const std::vector<uint8_t> m_values;
     };
 
     class PasteCommand:

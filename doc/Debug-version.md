@@ -345,9 +345,10 @@ specified) or `utf-8`.
 
 ### `poke/WIN/ADDR` ###
 
-Store the request body into memory at `ADDR` (a 32-bit hex value), the
-address as per
-[JGH's addressing scheme](http://mdfs.net/Docs/Comp/BBC/MemAddrs).
+Store the request body into memory at `ADDR` (a 32-bit hex value).
+
+Only the bottom 16 bits of the address are used, and there's currently
+no control over the paging.
 
 ### `peek/WIN/BEGIN-ADDR/END-ADDR`; `peek/WIN/BEGIN-ADDR/+SIZE` ###
 
@@ -356,31 +357,12 @@ Retrieve memory from `BEGIN-ADDR` (32-bit hex, inclusive) to
 `SIZE` is a C-style 32-bit literal). Respond with
 `application/octet-stream`, a dump of the requested range.
 
-There is a limit on the amount of data that can be peeked. Currently
-this is 4MBytes.
+Only the bottom 16 bits of the address are used, and there's currently
+no control over the paging.
 
-Addresses are as per
-[JGH's addressing scheme](http://mdfs.net/Docs/Comp/BBC/MemAddrs).
-
-### `call/WIN/ADDR?a=A&x=X&y=Y&c=C` ###
-
-Call a routine at `ADDR` (16-bit hex). Load registers from `A`, `X`
-and `Y` (8-bit C-style literals, default 0 if not specified) first,
-and load the carry flag from `C` (`0` or `1`, again assumed to be 0 if
-not provided).
-
-The routine is called on exit from the next invocation of the IRQ
-handler, so interrupts must be enabled if it is to be actually called.
-
-There's no control over the paging. The address just has to be valid
-when the time comes.
-
-Respond with `200 OK` if the call was initiated within half a second
-or so, or `503 Service Unavailable` if not, e.g., because interrupts
-were disabled for the whole period.
-
-(There's no information available about when the routine returns. It
-might even not return at all.)
+There is a limit on the amount of data that can be peeked - currently
+this is 4 MBytes. (Peeking more than 64 KBytes isn't currently
+terribly useful.)
 
 ### `mount/WIN?drive=D&name=N` ###
 
@@ -406,33 +388,34 @@ In either case, read the disc image data from the request body.
 "Run" a file. The file type is deduced from the file name `N`, if
 specified, or the request content type if not.
 
-#### `application/x-c64-program`, `*.prg` - C64-style PRG ####
-
-Load file at load address (taken from first 2 bytes of file) as per
-`poke`, and start execution at that address as per `call`.
-
 #### (content type or file extension as above) - disc image ####
 
 Mount disc image in drive 0, as per `mount`, and reset emulator with
 autoboot.
 
-## HTTP Example
+## HTTP Examples
 
-See `etc/http_api_example` in the repo. Run the makefile in Windows,
-with `curl` on the path, using `snmake.exe` from the root of the repo.
+I've used the HTTP API to auto-run programs as part of a Make-based
+build process. Every time there's a successful build, b2 loads the new
+disk image and auto-boots it. No need to even Alt+Tab away from the
+text editor. Very convenient!
 
-(It ought to work on macOS and Linux without too much effort, but
-that's never been tested.)
+### Stunt Car Racer
 
-The makefile assembles the example code using 64tass (supplied),
-producing a C64-style .PRG file. It then resets the emulator with a
-`reset` request, and runs the assembled code using the `run` request.
-(All these requests are sent to the `b2` window, which will typically
-exist as it's the window created when the emulator starts.)
+https://github.com/kieranhj/scr-beeb
 
-When using Emacs, M-x compile will assemble the code and set it
-running in the emulator straight away. Instant turnaround! Other
-editors can be configured similarly.
+Follow the instructions to build. To build and test in b2, use:
 
-This demo is not amazing or anything, but it might at least
-demonstrate the process...
+    make build b2_test
+
+Relevant makefile snippet:
+https://github.com/kieranhj/scr-beeb/blob/03342c776bf489cbc8ba2c22e26baa5e3f8c3b1d/Makefile#L204
+
+### Beeb-NICCC
+
+https://github.com/kieranhj/stnicc-beeb
+
+Looks like I wasn't as organised about the makefile with this one, so
+it doesn't build as-is. But the relevant Makefile section, very
+similar to Stunt Car Racer, is here:
+https://github.com/kieranhj/stnicc-beeb/blob/a5df6b838a8183fe141d7a12cb5a7d167a6d912a/Makefile#L84

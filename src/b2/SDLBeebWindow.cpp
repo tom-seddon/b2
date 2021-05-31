@@ -466,6 +466,17 @@ void SDLBeebWindow::DebugSetByteCommand::Execute(SDLBeebWindow *beeb_window,Comp
     beeb_window->m_beeb->DebugSetBytes(m_addr,m_dpo,&m_value,1);
 }
 
+SDLBeebWindow::DebugSetBytesCommand::DebugSetBytesCommand(M6502Word addr,uint32_t dpo,std::vector<uint8_t> values):
+    m_addr(addr),
+    m_dpo(dpo),
+    m_values(std::move(values))
+{
+}
+
+void SDLBeebWindow::DebugSetBytesCommand::Execute(SDLBeebWindow *beeb_window,CompletionFun *) const {
+    beeb_window->m_beeb->DebugSetBytes(m_addr,m_dpo,m_values.data(),m_values.size());
+}
+
 SDLBeebWindow::PasteCommand::PasteCommand(std::string text):
     m_text(std::make_shared<std::string>(std::move(text)))
 {
