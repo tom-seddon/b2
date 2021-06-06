@@ -517,8 +517,7 @@ SDLBeebWindow::DriveState::DriveState():
 }
 
 SDLBeebWindow::~SDLBeebWindow() {
-    delete m_beeb;
-    m_beeb=nullptr;
+    this->SetBeeb(nullptr,0);
 
     {
         SDLAudioDeviceLocker locker(m_sdl_audio_device_id);
@@ -563,10 +562,6 @@ bool SDLBeebWindow::Init(const BeebWindowInitArguments &init_arguments,
 
     //m_beeb_window=new BeebWindow();
 
-    if(!this->InitInternal(std::move(window_placement_data))) {
-        return false;
-    }
-
     m_sdl_audio_device_id=init_arguments.sound_device;
     m_audio_thread_data=new AudioThreadData;
     MUTEX_SET_NAME(m_audio_thread_data->units_mutex,"AudioThread units");
@@ -577,6 +572,10 @@ bool SDLBeebWindow::Init(const BeebWindowInitArguments &init_arguments,
     m_audio_thread_data->push_timing_message_fn=std::move(push_timing_message_fn);
 
     this->UpdateVolumes();
+
+    if(!this->InitInternal(std::move(window_placement_data))) {
+        return false;
+    }
 
     m_imgui_stuff=new ImGuiStuff();
     if(!m_imgui_stuff->Init(m_renderer.get(),&m_font_texture)) {
@@ -793,6 +792,13 @@ UpdateResult SDLBeebWindow::UpdateBeeb() {
 #if BBCMICRO_TRACE
         m_beeb->GetTraceStats(&m_trace_stats);
 #endif
+
+        if(m_auto_boot) {
+            if(m_beeb->GetAndResetDiscAccessFlag()) {
+                m_auto_boot=false;
+                this->UpdateShiftKeyState();
+            }
+        }
 
         if(m_paste_state!=PasteState_None) {
             if(!m_beeb->IsPasting()) {
@@ -1735,15 +1741,16 @@ void SDLBeebWindow::HardReset(uint32_t reset_flags,
                               const BeebLoadedConfig &loaded_config,
                               const std::vector<uint8_t> &nvram_contents)
 {
-    uint32_t replace_flags=ReplaceFlag_KeepCurrentDiscs;
+    uint32_t set_flags=SetBeebFlag_KeepDiscs;
+    //uint32_t replace_flags=ReplaceFlag_KeepCurrentDiscs;
 
     if(reset_flags&ResetFlag_Boot) {
-        replace_flags|=ReplaceFlag_Autoboot;
+        set_flags|=SetBeebFlag_Boot;
     }
 
-//    if(ts->timeline_mode!=BeebThreadTimelineMode_Replay) {
-//        replace_flags|=BeebThreadReplaceFlag_ResetKeyState;
-//    }
+    //    if(ts->timeline_mode!=BeebThreadTimelineMode_Replay) {
+    //        replace_flags|=BeebThreadReplaceFlag_ResetKeyState;
+    //    }
 
     m_current_config=loaded_config;
 
@@ -1753,33 +1760,85 @@ void SDLBeebWindow::HardReset(uint32_t reset_flags,
     if(m_beeb) {
         num_2MHz_cycles=*m_beeb->GetNum2MHzCycles();
     }
-    
-//    if(ts->current_config.config.beeblink) {
-//        if(!ts->beeblink_handler) {
-//            std::string sender_id=strprintf("%" PRIu64,beeb_thread->m_uid);
-//            ts->beeblink_handler=std::make_unique<BeebLinkHTTPHandler>(beeb_thread,
-//                                                                       std::move(sender_id),
-//                                                                       beeb_thread->m_message_list);
-//
-//            if(!ts->beeblink_handler->Init(&ts->msgs)) {
-//                // Ugh. Just give up.
-//                ts->beeblink_handler.reset();
-//            }
-//        }
-//    } else {
-//        ts->beeblink_handler.reset();
-//    }
 
-//    BBCMicro(const BBCMicroType *type,
-//             const DiscInterfaceDef *def,
-//             const std::vector<uint8_t> &nvram_contents,
-//             const tm *rtc_time,
-//             bool video_nula,
-//             bool ext_mem,
-//             bool power_on_tone,
-//             BeebLinkHandler *beeblink_handler,
-//             uint64_t initial_num_2MHz_cycles);
+    //    if(ts->current_config.config.beeblink) {
+    //        if(!ts->beeblink_handler) {
+    //            std::string sender_id=strprintf("%" PRIu64,beeb_thread->m_uid);
+    //            ts->beeblink_handler=std::make_unique<BeebLinkHTTPHandler>(beeb_thread,
+    //                                                                       std::move(sender_id),
+    //                                                                       beeb_thread->m_message_list);
+    //
+    //            if(!ts->beeblink_handler->Init(&ts->msgs)) {
+    //                // Ugh. Just give up.
+    //                ts->beeblink_handler.reset();
+    //            }
+    //        }
+    //    } else {
+    //        ts->beeblink_handler.reset();
+    //    }
 
+    //    BBCMicro(const BBCMicroType *type,
+    //             const DiscInterfaceDef *def,
+    //             const std::vector<uint8_t> &nvram_contents,
+    //             const tm *rtc_time,
+    //             bool video_nula,
+    //             bool ext_mem,
+    //             bool power_on_tone,
+    //             BeebLinkHandler *beeblink_handler,
+    //             uint64_t initial_num_2MHz_cycles);
+
+    //#if BBCMICRO_DEBUGGER
+    //    std::unique_ptr<BBCMicro::DebugState> debug_state;
+    //    if(m_beeb) {
+    //        debug_state=m_beeb->TakeDebugState();
+    //    }
+    //
+    //    if(!debug_state) {
+    //        // Probably just the first time round, so make a new one.
+    //        debug_state=std::make_unique<BBCMicro::DebugState>();
+    //    }
+    //#endif
+
+        //std::shared_ptr<DiscImage> disc_images[NUM_DRIVES];
+        //for(int drive=0;drive<NUM_DRIVES;++i) {
+        //    disc_images[drive]=m_beeb->TakeDiscImage(drive);
+        //}
+
+        //delete m_beeb;
+        //m_beeb=nullptr;
+
+    auto beeb=std::make_unique<BBCMicro>(m_current_config.config.type,
+                                         m_current_config.config.disc_interface,
+                                         nvram_contents,
+                                         &now,
+                                         m_current_config.config.video_nula,
+                                         m_current_config.config.ext_mem,
+                                         m_settings.power_on_tone,
+                                         nullptr,
+                                         num_2MHz_cycles);
+
+    beeb->SetOSROM(m_current_config.os);
+
+    for(uint8_t i=0;i<16;++i) {
+        if(m_current_config.config.roms[i].writeable) {
+            if(!!m_current_config.roms[i]) {
+                beeb->SetSidewaysRAM(i,m_current_config.roms[i]);
+            } else {
+                beeb->SetSidewaysRAM(i,nullptr);
+            }
+        } else {
+            if(!!m_current_config.roms[i]) {
+                beeb->SetSidewaysROM(i,m_current_config.roms[i]);
+            } else {
+                beeb->SetSidewaysROM(i,nullptr);
+            }
+        }
+    }
+
+    this->SetBeeb(std::move(beeb),set_flags);
+}
+
+void SDLBeebWindow::SetBeeb(std::unique_ptr<BBCMicro> beeb,uint32_t flags) {
 #if BBCMICRO_DEBUGGER
     std::unique_ptr<BBCMicro::DebugState> debug_state;
     if(m_beeb) {
@@ -1792,46 +1851,64 @@ void SDLBeebWindow::HardReset(uint32_t reset_flags,
     }
 #endif
 
-    delete m_beeb;
-    m_beeb=nullptr;
-    
-    m_beeb=new BBCMicro(m_current_config.config.type,
-                        m_current_config.config.disc_interface,
-                        nvram_contents,
-                        &now,
-                        m_current_config.config.video_nula,
-                        m_current_config.config.ext_mem,
-                        m_settings.power_on_tone,
-                        nullptr,
-                        num_2MHz_cycles);
-    
-    m_beeb->SetOSROM(m_current_config.os);
-
-    for(uint8_t i=0;i<16;++i) {
-        if(m_current_config.config.roms[i].writeable) {
-            if(!!m_current_config.roms[i]) {
-                m_beeb->SetSidewaysRAM(i,m_current_config.roms[i]);
-            } else {
-                m_beeb->SetSidewaysRAM(i,nullptr);
-            }
-        } else {
-            if(!!m_current_config.roms[i]) {
-                m_beeb->SetSidewaysROM(i,m_current_config.roms[i]);
-            } else {
-                m_beeb->SetSidewaysROM(i,nullptr);
+    std::shared_ptr<DiscImage> disc_images[NUM_DRIVES];
+    if(flags&SetBeebFlag_KeepDiscs) {
+        for(int drive=0;drive<NUM_DRIVES;++drive) {
+            if(m_beeb) {
+                disc_images[drive]=m_beeb->TakeDiscImage(drive);
             }
         }
     }
 
-#if BBCMICRO_DEBUGGER
-    m_beeb->SetDebugState(std::move(debug_state));
-#endif
-    
-//#if BBCMICRO_DEBUGGER
-//    if(m_flags&BeebThreadHardResetFlag_Run) {
-//        ts->beeb->DebugRun();
-//    }
-//#endif
+    // switch over...
+    delete m_beeb;
+    m_beeb=beeb.release();
+
+    // in general, m_beeb will never be null. But, in the interests of only
+    // having one assignment to m_beeb in the code, SetBeeb(nullptr,...) is ok,
+    // so that the destructor can do that.
+    //
+    // So some null checks are required here specifically.
+
+    // disable autoboot and fake shift, so it doesn't influence SetKeyState.
+    m_auto_boot=false;
+    this->SetFakeShiftState(BeebShiftState_Any);
+
+    for(int i=0;i<128;++i) {
+        auto key=(BeebKey)i;
+
+        bool down=false;
+        if(!(flags&SetBeebFlag_ResetKeyStates)) {
+            if(m_beeb) {
+                down=m_beeb->GetKeyState(key);
+            }
+        }
+
+        this->SetKeyState(key,down);
+    }
+
+    if(flags&SetBeebFlag_Boot) {
+        if(m_beeb) {
+            m_beeb->GetAndResetDiscAccessFlag();
+        }
+        m_auto_boot=true;
+        this->UpdateShiftKeyState();
+    } else {
+        m_auto_boot=false;
+    }
+
+    for(int drive=0;drive<NUM_DRIVES;++drive) {
+        if(m_beeb) {
+            m_beeb->SetDiscImage(drive,disc_images[drive]);
+        }
+    }
+
+    if(m_beeb) {
+        AudioDeviceLock lock(m_sdl_audio_device_id);
+
+        uint64_t num_executed_2MHz_cycles=*m_beeb->GetNum2MHzCycles();
+        m_audio_thread_data->num_consumed_sound_units=num_executed_2MHz_cycles>>SOUND_CLOCK_SHIFT;
+    }
 }
 
 bool SDLBeebWindow::DoBeebDisplayUI() {
@@ -2218,7 +2295,8 @@ void SDLBeebWindow::DoDiscImageSubMenu(int drive,bool boot) {
         }
         this->DoDiscImageSubMenuItem(drive,
                                      std::move(new_disc_image),
-                                     &file_item,boot);
+                                     &file_item,
+                                     boot);
     }
     
     FileMenuItem direct_item(&d->new_direct_disc_image_file_dialog,
@@ -2241,7 +2319,8 @@ void SDLBeebWindow::DoDiscImageSubMenu(int drive,bool boot) {
         
         this->DoDiscImageSubMenuItem(drive,
                                      std::move(new_disc_image),
-                                     &direct_item,boot);
+                                     &direct_item,
+                                     boot);
     }
 }
 

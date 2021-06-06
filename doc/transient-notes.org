@@ -2,6 +2,10 @@
 
 ** TODOs
 
+*** TODO File > Run doesn't work
+
+Creates new Beeb, but both drives are empty...
+
 *** TODO Save state
 *** TODO Timeline UI
 *** TODO Timeline general
@@ -22,15 +26,22 @@ It's always on.
 
 Always max volume.
 
-*** TODO HTTP server
+*** DONE HTTP server
+    CLOSED: [2021-06-06 Sun 22:25]
+
 *** DONE Remove HTTP example
     CLOSED: [2021-05-31 Mon 16:07]
 
 Might as well just point at scr-beeb/beebniccc
 
-*** =run= HTTP method doesn't autoboot
+*** DONE =run= HTTP method doesn't autoboot
+    CLOSED: [2021-06-06 Sun 22:25]
 
 Could be the autoboot mechanism? Not sure what the actual bug here is.
+
+*** TODO =SDLBeebWindow::SetBeeb= should call completion funs
+
+See =BeebThread::ThreadReplaceBeeb=
 
 ** changelog notes
 

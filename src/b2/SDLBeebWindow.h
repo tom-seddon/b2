@@ -512,9 +512,11 @@ private:
     void RenderLastImGuiFrame();
     void RunNextImGuiFrame(uint64_t ticks);
     CommandContext DoSettingsUI();
+    // flags is combination of ResetFlag_
     void HardReset(uint32_t flags,
                    const BeebLoadedConfig &loaded_config,
                    const std::vector<uint8_t> &nvram_contents);
+    void SetBeeb(std::unique_ptr<BBCMicro> beeb,uint32_t flags);//flags is combination of SetBeebFlag_
     bool DoBeebDisplayUI();
     void DoMenuUI();
     void DoFileMenu();
