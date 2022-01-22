@@ -70,21 +70,21 @@ private:
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static unsigned char ReadBuffer(const MemoryEditor::u8 *data,size_t off) {
+static unsigned char ReadBuffer(const ImU8 *data,size_t off) {
     (void)data;
 
     ASSERT(off<sizeof g_buffer);
     return g_buffer[off];
 }
 
-static void WriteBuffer(MemoryEditor::u8 *data,size_t off,unsigned char value) {
+static void WriteBuffer(ImU8 *data,size_t off,unsigned char value) {
     (void)data;
 
     ASSERT(off<sizeof g_buffer);
     g_buffer[off]=value;
 }
 
-static bool HighlightValue(const MemoryEditor::u8 *data,size_t off) {
+static bool HighlightValue(const ImU8 *data,size_t off) {
     (void)data,(void)off;
     ASSERT(off<sizeof g_buffer);
     return false;

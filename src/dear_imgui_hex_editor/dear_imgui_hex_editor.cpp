@@ -349,49 +349,50 @@ void HexEditor::DoImGui() {
                 size_t offset0_column=m_offset0_column%m_num_columns;
                 size_t num_lines=(offset0_column+m_handler->GetSize()+m_num_columns-1)/m_num_columns;
                 IM_ASSERT(num_lines<=INT_MAX);
-                ImGuiListClipper clipper((int)num_lines,m_metrics.line_height);
+                ImGuiListClipper clipper;
+                clipper.Begin((int)num_lines,m_metrics.line_height);
 
-                first_visible_row=clipper.DisplayStart;
+                while(clipper.Step()) {
+                    first_visible_row=clipper.DisplayStart;
 
-                for(int line_index=clipper.DisplayStart;line_index<clipper.DisplayEnd;++line_index) {
-                    size_t line_begin_offset=(size_t)line_index*m_num_columns;
-                    size_t line_end_offset=line_begin_offset+m_num_columns;
-                    size_t num_skip_columns;
-                    if(line_index==0) {
-                        num_skip_columns=offset0_column;
-                        line_end_offset-=offset0_column;
-                    } else {
-                        num_skip_columns=0;
-                        line_begin_offset-=offset0_column;
-                        line_end_offset-=offset0_column;
-                    }
-                    line_end_offset=(std::min)(line_end_offset,data_size);
-
-                    char addr_text[100];
-                    m_handler->GetAddressText(addr_text,sizeof addr_text,line_begin_offset,this->upper_case);
-
-                    ImGui::Text("%.*s",m_metrics.num_addr_chars,addr_text);
-
-                    {
-                        HexEditorByte *byte=m_bytes;
-                        for(size_t offset=line_begin_offset;offset!=line_end_offset;++offset) {
-                            m_handler->ReadByte(byte++,offset);
+                    for(int line_index=clipper.DisplayStart;line_index<clipper.DisplayEnd;++line_index) {
+                        size_t line_begin_offset=(size_t)line_index*m_num_columns;
+                        size_t line_end_offset=line_begin_offset+m_num_columns;
+                        size_t num_skip_columns;
+                        if(line_index==0) {
+                            num_skip_columns=offset0_column;
+                            line_end_offset-=offset0_column;
+                        } else {
+                            num_skip_columns=0;
+                            line_begin_offset-=offset0_column;
+                            line_end_offset-=offset0_column;
                         }
-                        IM_ASSERT(byte<=m_bytes+m_num_bytes);
-                    }
+                        line_end_offset=(std::min)(line_end_offset,data_size);
 
-                    ImGui::PushID(line_index);
-                    if(this->hex) {
-                        this->DoHexPart(num_skip_columns,line_begin_offset,line_end_offset);
-                    }
+                        char addr_text[100];
+                        m_handler->GetAddressText(addr_text,sizeof addr_text,line_begin_offset,this->upper_case);
 
-                    if(this->ascii) {
-                        this->DoAsciiPart(line_begin_offset,line_end_offset);
+                        ImGui::Text("%.*s",m_metrics.num_addr_chars,addr_text);
+
+                        {
+                            HexEditorByte *byte=m_bytes;
+                            for(size_t offset=line_begin_offset;offset!=line_end_offset;++offset) {
+                                m_handler->ReadByte(byte++,offset);
+                            }
+                            IM_ASSERT(byte<=m_bytes+m_num_bytes);
+                        }
+
+                        ImGui::PushID(line_index);
+                        if(this->hex) {
+                            this->DoHexPart(num_skip_columns,line_begin_offset,line_end_offset);
+                        }
+
+                        if(this->ascii) {
+                            this->DoAsciiPart(line_begin_offset,line_end_offset);
+                        }
+                        ImGui::PopID();
                     }
-                    ImGui::PopID();
                 }
-
-                clipper.End();
             }
 
             ImGui::PopStyleVar(2);
@@ -466,7 +467,11 @@ void HexEditor::DoImGui() {
     if(m_set_new_offset) {
         m_offset=m_new_offset;
 
-        m_input_take_focus_next_frame=!m_set_new_offset_via_SetOffset;
+        if(!m_set_new_offset_via_SetOffset) {
+            m_input_take_focus_next_frame=true;
+        } else {
+            m_input_take_focus_next_frame=false;
+        }
 
         m_handler->DebugPrint("%zu - set new offset: now 0x%zx\n",m_num_calls,m_offset);
         //m_handler->DebugPrint("%zu - clipper = %d -> %d\n",m_num_calls,clipper_display_start,clipper_display_end);
@@ -505,7 +510,11 @@ void HexEditor::DoImGui() {
         if(m_offset!=INVALID_OFFSET) {
             if(!m_was_TextInput_visible) {
                 // sort out TextInput again when it next becomes visible.
-                m_input_take_focus_next_frame=!m_set_new_offset_via_SetOffset;
+                if(!m_set_new_offset_via_SetOffset) {
+                    m_input_take_focus_next_frame=true;
+                } else {
+                    m_input_take_focus_next_frame=false;
+                }
             }
         }
 
@@ -869,7 +878,7 @@ static const ImGuiInputTextFlags INPUT_TEXT_FLAGS=(//ImGuiInputTextFlags_CharsHe
                                                    //ImGuiInputTextFlags_EnterReturnsTrue|
                                                    ImGuiInputTextFlags_AutoSelectAll|
                                                    ImGuiInputTextFlags_NoHorizontalScroll|
-                                                   ImGuiInputTextFlags_AlwaysInsertMode|
+                                                   ImGuiInputTextFlags_AlwaysOverwrite|
                                                    //ImGuiInputTextFlags_Multiline|
                                                    //ImGuiInputTextFlags_AllowTabInput|
                                                    //ImGuiInputTextFlags_CallbackAlways|

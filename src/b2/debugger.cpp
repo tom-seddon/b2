@@ -978,7 +978,7 @@ private:
 
     // There's no context parameter :( - so this hijacks the data
     // parameter for that purpose.
-    static uint8_t MemoryEditorRead(const MemoryEditor::u8 *data,size_t off) {
+    static uint8_t MemoryEditorRead(const ImU8 *data,size_t off) {
         auto self=(ExtMemoryDebugWindow *)data;
 
         ASSERT((uint32_t)off==off);
@@ -991,7 +991,7 @@ private:
 
     // There's no context parameter :( - so this hijacks the data
     // parameter for that purpose.
-    static void MemoryEditorWrite(MemoryEditor::u8 *data,size_t off,uint8_t d) {
+    static void MemoryEditorWrite(ImU8 *data,size_t off,uint8_t d) {
         auto self=(ExtMemoryDebugWindow *)data;
 
         self->m_beeb_thread->Send(std::make_shared<BeebThread::DebugSetExtByteMessage>((uint32_t)off,d));
@@ -2487,41 +2487,41 @@ protected:
 
             ImGui::Columns(2,"breakpoints_columns");
 
-            ImGuiListClipper clipper(num_rows,line_height);
+            ImGuiListClipper clipper;
+            clipper.Begin(num_rows,line_height);
+            while(clipper.Step()) {
+                for(int i=clipper.DisplayStart;i<clipper.DisplayEnd;++i) {
+                    Breakpoint *bp=&m_breakpoints[(size_t)i];
 
-            for(int i=clipper.DisplayStart;i<clipper.DisplayEnd;++i) {
-                Breakpoint *bp=&m_breakpoints[(size_t)i];
+                    if(bp->big_page==0xff) {
+                        // Address breakpoint
 
-                if(bp->big_page==0xff) {
-                    // Address breakpoint
+                        if(uint8_t *flags=this->Row(bp,"$%04x",bp->offset)) {
 
-                    if(uint8_t *flags=this->Row(bp,"$%04x",bp->offset)) {
+                            M6502Word addr={bp->offset};
+                            m_beeb_thread->Send(std::make_shared<BeebThread::DebugSetAddressDebugFlags>(addr,*flags));
+                        }
+                    } else {
+                        // Byte breakpoint
+                        //                ASSERT(bp->big_page<BBCMicro::NUM_BIG_PAGES);
+                        //                ASSERT(bp->offset<BBCMicro::BIG_PAGE_SIZE_BYTES);
+                        //                uint8_t *flags=&m_big_page_debug_flags[bp->big_page][bp->offset];
 
-                        M6502Word addr={bp->offset};
-                        m_beeb_thread->Send(std::make_shared<BeebThread::DebugSetAddressDebugFlags>(addr,*flags));
-                    }
-                } else {
-                    // Byte breakpoint
-                    //                ASSERT(bp->big_page<BBCMicro::NUM_BIG_PAGES);
-                    //                ASSERT(bp->offset<BBCMicro::BIG_PAGE_SIZE_BYTES);
-                    //                uint8_t *flags=&m_big_page_debug_flags[bp->big_page][bp->offset];
+                        const BigPageMetadata *metadata=&type->big_pages_metadata[bp->big_page];
 
-                    const BigPageMetadata *metadata=&type->big_pages_metadata[bp->big_page];
-
-                    if(uint8_t *flags=this->Row(bp,
-                                                "%c%c$%04x",
-                                                metadata->code,
-                                                ADDRESS_PREFIX_SEPARATOR,
-                                                metadata->addr+bp->offset))
-                    {
-                        m_beeb_thread->Send(std::make_shared<BeebThread::DebugSetByteDebugFlags>(bp->big_page,
-                                                                                                 bp->offset,
-                                                                                                 *flags));
+                        if(uint8_t *flags=this->Row(bp,
+                                                    "%c%c$%04x",
+                                                    metadata->code,
+                                                    ADDRESS_PREFIX_SEPARATOR,
+                                                    metadata->addr+bp->offset))
+                        {
+                            m_beeb_thread->Send(std::make_shared<BeebThread::DebugSetByteDebugFlags>(bp->big_page,
+                                                                                                     bp->offset,
+                                                                                                     *flags));
+                        }
                     }
                 }
             }
-
-            clipper.End();
 
             ImGui::EndChild();
         }
