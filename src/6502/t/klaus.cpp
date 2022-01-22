@@ -10,7 +10,7 @@
 /* Test driver for Klaus Dormann's test suite,
  * https://github.com/Klaus2m5/6502_65C02_functional_tests */
 
-LOG_DEFINE(DEBUG,"",&log_printer_stdout_and_debugger)
+LOG_DEFINE(DEBUG,"",&log_printer_stdout_and_debugger);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

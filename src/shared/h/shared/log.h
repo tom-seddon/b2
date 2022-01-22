@@ -249,9 +249,9 @@ void LogStackTrace(Log *log);
     }                                           \
     END_MACRO
 
-#define LOG_DEFINE(NAME,...) Log LOG(NAME)(__VA_ARGS__); 
+#define LOG_DEFINE(NAME,...) Log LOG(NAME)(__VA_ARGS__)
 
-#define LOG_TAGGED_DEFINE(NAME,TAG,...) LOG_DEFINE(NAME,TAG,__VA_ARGS__) static LogRegister g_log_register_##NAME(&LOG(NAME));
+#define LOG_TAGGED_DEFINE(NAME,TAG,...) LOG_DEFINE(NAME,TAG,__VA_ARGS__); static LogRegister g_log_register_##NAME(&LOG(NAME))
 
 // The indentation level is popped at the end of the current scope.
 #define LOGI(X) LogIndenter CONCAT2(indenter,__COUNTER__)(&LOG(X))

@@ -46,10 +46,10 @@ private:
 
 static LogPrinterFILE g_code_file_printer;
 
-LOG_DEFINE(V,"",&log_printer_stderr_and_debugger,false)
-LOG_DEFINE(CODE_FILE,"",&g_code_file_printer,false)
-LOG_DEFINE(CODE_STDOUT,"",&log_printer_stdout,false)
-LOG_DEFINE(ERR,"",&log_printer_stderr_and_debugger,true)
+LOG_DEFINE(V,"",&log_printer_stderr_and_debugger,false);
+LOG_DEFINE(CODE_FILE,"",&g_code_file_printer,false);
+LOG_DEFINE(CODE_STDOUT,"",&log_printer_stdout,false);
+LOG_DEFINE(ERR,"",&log_printer_stderr_and_debugger,true);
 
 //#define P(...) LOGF(CODE,__VA_ARGS__)
 

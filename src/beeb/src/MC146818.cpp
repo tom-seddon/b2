@@ -12,7 +12,7 @@
 #define LOGGING 1
 
 #if LOGGING
-LOG_TAGGED_DEFINE(RTC,"rtc","RTC...",&log_printer_stdout_and_debugger)
+LOG_TAGGED_DEFINE(RTC,"rtc","RTC...",&log_printer_stdout_and_debugger);
 #endif
 
 #define COUNTER (1000*1000)

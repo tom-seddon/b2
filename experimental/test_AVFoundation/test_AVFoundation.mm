@@ -197,9 +197,9 @@ const VideoWriterFormat *GetVideoWriterAVFoundationFormatByIndex(size_t index) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-LOG_DEFINE(VOUT,"",&log_printer_stdout_and_debugger,false)
-LOG_DEFINE(OUT,"",&log_printer_stdout_and_debugger)
-LOG_DEFINE(ERR,"",&log_printer_stderr_and_debugger)
+LOG_DEFINE(VOUT,"",&log_printer_stdout_and_debugger,false);
+LOG_DEFINE(OUT,"",&log_printer_stdout_and_debugger);
+LOG_DEFINE(ERR,"",&log_printer_stderr_and_debugger);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

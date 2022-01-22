@@ -22,7 +22,7 @@ NEND()
 #undef ENAME
 #include <shared/enum_end.h>
 
-LOG_DEFINE(TEST,"",&log_printer_stdout_and_debugger)
+LOG_DEFINE(TEST,"",&log_printer_stdout_and_debugger);
 
 static int TestSucceededHR(HRESULT hr,const char *expr,const char *file,int line) {
     if(SUCCEEDED(hr)) {

@@ -20,7 +20,7 @@ LOG_EXTERN(BEEBLINK);
 // initialising each HTTP thread's log. Since it's a global, it gets an
 // entry in the global table, so it can interact with the command line
 // options.
-LOG_TAGGED_DEFINE(BEEBLINK_HTTP,"beeblink_http","",&log_printer_stdout_and_debugger,false)
+LOG_TAGGED_DEFINE(BEEBLINK_HTTP,"beeblink_http","",&log_printer_stdout_and_debugger,false);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

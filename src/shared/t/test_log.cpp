@@ -19,8 +19,8 @@ static const char EXPECTED[]={
 static std::string g_str;
 static LogPrinterString g_str_printer(&g_str);
 
-LOG_DEFINE(TEST,"TEST",&g_str_printer)
-LOG_DEFINE(OUT,"",&log_printer_stdout)
+LOG_DEFINE(TEST,"TEST",&g_str_printer);
+LOG_DEFINE(OUT,"",&log_printer_stdout);
 
 static int TestHighlightFn(size_t offset,void *data) {
     return offset==(uintptr_t)data;

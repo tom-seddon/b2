@@ -4,7 +4,7 @@
 #include <SDL.h>
 #include <vector>
 
-LOG_DEFINE(OUTPUT,"",&log_printer_stdout_and_debugger)
+LOG_DEFINE(OUTPUT,"",&log_printer_stdout_and_debugger);
 
 int main(int argc,char *argv[]) {
     (void)argc,(void)argv;

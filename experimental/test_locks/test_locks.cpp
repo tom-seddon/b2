@@ -3,7 +3,7 @@
 #include <thread>
 #include <shared/mutex.h>
 
-LOG_DEFINE(OUTPUT,"",&log_printer_stdout_and_debugger)
+LOG_DEFINE(OUTPUT,"",&log_printer_stdout_and_debugger);
 
 static volatile uint64_t g_counter;
 static volatile bool g_done;

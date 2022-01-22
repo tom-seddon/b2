@@ -86,8 +86,8 @@ static const int DEFAULT_AUDIO_BUFFER_SIZE=1024;
 
 // Enabled by the -v/--verbose command line option, or if this is a
 // debug build.
-LOG_DEFINE(OUTPUT,"",&log_printer_stdout_and_debugger,false)
-LOG_DEFINE(OUTPUTND,"",&log_printer_stdout,false)
+LOG_DEFINE(OUTPUT,"",&log_printer_stdout_and_debugger,false);
+LOG_DEFINE(OUTPUTND,"",&log_printer_stdout,false);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

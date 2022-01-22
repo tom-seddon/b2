@@ -70,16 +70,16 @@ static std::atomic<uint64_t> g_next_uid{1};
 #endif
 
 #if LOGGING
-LOG_DEFINE(ATH,"audio","AUTHRD",&log_printer_stdout_and_debugger)
+LOG_DEFINE(ATH,"audio","AUTHRD",&log_printer_stdout_and_debugger);
 #endif
 
 // This is a dummy log. It's never used for printing, only for
 // initialising each BeebThread's log. Since it's a global, it gets an
 // entry in the global table, so it can interact with the command line
 // options.
-LOG_TAGGED_DEFINE(BTHREAD,"beeb","",&log_printer_stdout_and_debugger,false)
+LOG_TAGGED_DEFINE(BTHREAD,"beeb","",&log_printer_stdout_and_debugger,false);
 
-LOG_DEFINE(REPLAY,"REPLAY ",&log_printer_stderr_and_debugger,false)
+LOG_DEFINE(REPLAY,"REPLAY ",&log_printer_stderr_and_debugger,false);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
