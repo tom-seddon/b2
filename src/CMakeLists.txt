@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.5)
 
-include("../common.txt")
+include("../common.cmake")
 
 add_subdirectory(6502)
 add_subdirectory(beeb)

@@ -276,7 +276,7 @@ set(HAVE_LIBUV ON)
 
 add_subdirectory(submodules)
 add_subdirectory(src)
-target_sources(b2 PRIVATE ${CMAKE_CURRENT_LIST_DIR}/src/CMakeLists.txt ${CMAKE_CURRENT_LIST_DIR}/common.txt)
+target_sources(b2 PRIVATE ${CMAKE_CURRENT_LIST_DIR}/src/CMakeLists.txt ${CMAKE_CURRENT_LIST_DIR}/common.cmake)
 target_sources(b2 PRIVATE ${CMAKE_CURRENT_LIST_DIR}/submodules/CMakeLists.txt)
 
 if(INCLUDE_EXPERIMENTAL)
@@ -295,7 +295,7 @@ endif()
 # This doesn't interact brilliantly with DPack, which strips off the paths
 # in its files list, but Ctrl+, works OK.
 
-target_sources(b2 PRIVATE ${CMAKE_CURRENT_LIST_DIR}/src/CMakeLists.txt ${CMAKE_CURRENT_LIST_DIR}/common.txt)
+target_sources(b2 PRIVATE ${CMAKE_CURRENT_LIST_DIR}/src/CMakeLists.txt ${CMAKE_CURRENT_LIST_DIR}/common.cmake)
 
 target_sources(b2 PRIVATE ${CMAKE_CURRENT_LIST_DIR}/submodules/CMakeLists.txt)
 

@@ -1,4 +1,4 @@
-include("../common.txt")
+include("../common.cmake")
 
 if(WIN32)
   add_subdirectory(test_dxgi)
