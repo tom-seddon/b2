@@ -1934,7 +1934,7 @@ protected:
         ImGui::Text("ACR: PA latching = %s",BOOL_STR(s.acr.bits.pa_latching));
         ImGui::Text("ACR: PB latching = %s",BOOL_STR(s.acr.bits.pb_latching));
         ImGui::Text("ACR: Shift mode = %s",ACR_SHIFT_MODES[s.acr.bits.sr]);
-        ImGui::Text("ACR: T2 mode = %s",s.acr.bits.t2_count_pb6?"Timed interrupt":"Count PB6 pulses");
+        ImGui::Text("ACR: T2 mode = %s",s.acr.bits.t2_count_pb6?"Count PB6 pulses":"Timed interrupt");
         ImGui::Text("ACR: T1 continuous = %s, output PB7 = %s",BOOL_STR(s.acr.bits.t1_continuous),BOOL_STR(s.acr.bits.t1_output_pb7));
         ImGui::Text("PCR: CA1 = %cve edge",s.pcr.bits.ca1_pos_irq?'+':'-');
         ImGui::Text("PCR: CA2 = %s",PCR_CONTROL_MODES[s.pcr.bits.ca2_mode]);
