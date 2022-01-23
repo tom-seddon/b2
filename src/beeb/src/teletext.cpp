@@ -47,10 +47,9 @@ static uint16_t teletext_font[2][3][96][20];
 
 #define _ 0
 #define X 1
-#define BYTE(A,B,C,D,E,F) ((A)<<0|(B)<<1|(C)<<2|(D)<<3|(E)<<4|(F)<<5)
-#define ROW(N0,N1,N2,N3,N4,N5,G0,G1,G2,G3,G4,G5,S0,S1,S2,S3,S4,S5) {BYTE(N0,N1,N2,N3,N4,N5),BYTE(G0,G1,G2,G3,G4,G5),BYTE(S0,S1,S2,S3,S4,S5)}
+#define ROW(A,B,C,D,E,F) ((A)<<0|(B)<<1|(C)<<2|(D)<<3|(E)<<4|(F)<<5)
 
-static const uint8_t TELETEXT_FONT[96][10][3]={
+static const uint8_t TELETEXT_FONT_ALPHA[96][10]={
 #include "teletext_font.inl"
 };
 
@@ -78,25 +77,95 @@ static int GetHexChar(int nybble) {
 }
 #endif
 
-static int ShouldAntialias(size_t style,size_t ch) {
-    if(style==TeletextCharset_Alpha) {
+static int ShouldAntialias(TeletextCharset charset,size_t ch) {
+    if(charset==TeletextCharset_Alpha) {
         return 1;
     } else {
         return !(ch&0x20);
     }
 }
 
+static uint8_t GetTeletextAlphaFontByte(size_t ch,unsigned y) {
+    ASSERT(ch>=32&&ch<128);
+    ASSERT(y<10);
+
+    return TELETEXT_FONT_ALPHA[ch-32][y];
+}
+
+static uint8_t GetTeletextGraphicsFontByte(uint8_t ch,
+                                           unsigned y,
+                                           uint8_t blank_column_mask,
+                                           unsigned blank_row_mask)
+{
+    ASSERT(ch>=32&&ch<128);
+    ASSERT(y<10);
+
+    if(blank_row_mask&1<<y) {
+        return 0;
+    }
+
+    uint8_t lmask,rmask;
+    if(y<3) {
+        lmask=1<<0;
+        rmask=1<<1;
+    } else if(y<7) {
+        lmask=1<<2;
+        rmask=1<<3;
+    } else {
+        lmask=1<<4;
+        rmask=1<<6;
+    }
+
+    uint8_t byte=0;
+
+    if(ch&lmask) {
+        byte|=7<<0;
+    }
+
+    if(ch&rmask) {
+        byte|=7<<3;
+    }
+
+    return byte&~blank_column_mask;
+}
+
+static uint8_t GetTeletextFontByte(TeletextCharset charset,uint8_t ch,unsigned y) {
+    switch(charset) {
+    default:
+        ASSERT(false);
+    case TeletextCharset_Alpha:
+    TeletextCharset_Alpha:
+        return GetTeletextAlphaFontByte(ch,y);
+
+    case TeletextCharset_SeparatedGraphics:
+        if(ch&0x20) {
+            return GetTeletextGraphicsFontByte(ch,y,1<<0|1<<3,1<<2|1<<6|1<<9);
+        } else {
+            goto TeletextCharset_Alpha;
+        }
+        break;
+
+    case TeletextCharset_ContiguousGraphics:
+        if(ch&0x20) {
+            return GetTeletextGraphicsFontByte(ch,y,0,0);
+        } else {
+            goto TeletextCharset_Alpha;
+        }
+        break;
+    }
+}
+
 // Need to revisit this...
-static uint16_t Get16WideRow(size_t style,size_t ch,int y) {
-    ASSERT(style<3);
+static uint16_t Get16WideRow(TeletextCharset charset,uint8_t ch,unsigned y) {
     ASSERT(ch>=32&&ch<128);
 
     uint16_t w=0;
 
     if(y>=0&&y<20) {
         size_t left=0;
+        uint8_t byte=GetTeletextFontByte(charset,ch,y/2);
         for(size_t i=0;i<6;++i) {
-            if(TELETEXT_FONT[ch-32][y/2][style]&1<<i) {
+            if(byte&1<<i) {
                 w|=3<<left;
             }
             left+=2;
@@ -106,28 +175,29 @@ static uint16_t Get16WideRow(size_t style,size_t ch,int y) {
     return w;
 }
 
-static uint16_t GetAARow(size_t style,size_t ch,int y) {
-    if(ShouldAntialias(style,ch)) {
-        uint16_t a=Get16WideRow(style,ch,y);
-        uint16_t b=Get16WideRow(style,ch,y-1+y%2*2);
+static uint16_t GetAARow(TeletextCharset charset,uint8_t ch,unsigned y) {
+    if(ShouldAntialias(charset,ch)) {
+        uint16_t a=Get16WideRow(charset,ch,y);
+        uint16_t b=Get16WideRow(charset,ch,y-1+y%2*2);
 
         return a|(a>>1&b&~(b>>1))|(a<<1&b&~(b<<1));
     } else {
-        return Get16WideRow(style,ch,y);
+        return Get16WideRow(charset,ch,y);
     }
 }
 
 struct InitTeletextFont {
     InitTeletextFont() {
-        for(size_t style=0;style<3;++style) {
+        for(int charset_index=0;charset_index<3;++charset_index) {
+            auto charset=(TeletextCharset)charset_index;
             for(uint8_t ch=0;ch<128;++ch) {
-                for(int y=0;y<20;++y) {
+                for(unsigned y=0;y<20;++y) {
                     if(ch>=32) {
                         // No AA
-                        teletext_font[0][style][ch-32][y]=Get16WideRow(style,ch,y);
+                        teletext_font[0][charset][ch-32][y]=Get16WideRow(charset,ch,y);
 
                         // AA
-                        teletext_font[1][style][ch-32][y]=GetAARow(style,ch,y);
+                        teletext_font[1][charset][ch-32][y]=GetAARow(charset,ch,y);
                     }
                 }
 
@@ -138,7 +208,8 @@ struct InitTeletextFont {
                     int lc=GetHexChar(ch&0x0f);
 
                     for(int y=0;y<10;++y) {
-                        teletext_debug_font[ch][y]=TELETEXT_FONT[hc][y][0]|TELETEXT_FONT[lc][y][0]<<6;
+                        teletext_debug_font[ch][y]=(TELETEXT_FONT_ALPHA[hc][y]|
+                                                    TELETEXT_FONT_ALPHA[lc][y]<<6);
                     }
 
                     for(int y=0;y<10;++y) {
