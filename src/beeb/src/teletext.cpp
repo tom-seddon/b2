@@ -300,21 +300,31 @@ void SAA5050::Byte(uint8_t value,uint8_t dispen) {
 
         case 0x0c:
             // Normal Height
+
+            // State change clears hold graphics state.
+            if(m_raster_shift!=0) {
+                data0=0;
+                data1=0;
+                m_last_graphics_data0=0;
+                m_last_graphics_data1=0;
+            }
+
             m_raster_shift=0;
-            data0=0;
-            data1=0;
-            m_last_graphics_data0=0;
-            m_last_graphics_data1=0;
             break;
 
         case 0x0d:
             // Double Height
+
+            // State change clears hold graphics state.
+            if(m_raster_shift!=0) {
+                data0=0;
+                data1=0;
+                m_last_graphics_data0=0;
+                m_last_graphics_data1=0;
+            }
+
             m_any_double_height=true;
             m_raster_shift=1;
-            data0=0;
-            data1=0;
-            m_last_graphics_data0=0;
-            m_last_graphics_data1=0;
             break;
 
         case 0x0e:
@@ -339,7 +349,6 @@ void SAA5050::Byte(uint8_t value,uint8_t dispen) {
             // Graphics
             m_fg=value&7;
             m_conceal=false;
-        set_charset:;
             m_charset=m_graphics_charset;
             break;
 
@@ -351,12 +360,18 @@ void SAA5050::Byte(uint8_t value,uint8_t dispen) {
         case 0x19:
             // Contiguous Graphics
             m_graphics_charset=TeletextCharset_ContiguousGraphics;
-            goto set_charset;
+            if(m_charset==TeletextCharset_SeparatedGraphics) {
+                m_charset=m_graphics_charset;
+            }
+            break;
 
         case 0x1a:
             // Separated Graphics
             m_graphics_charset=TeletextCharset_SeparatedGraphics;
-            goto set_charset;
+            if(m_charset==TeletextCharset_ContiguousGraphics) {
+                m_charset=m_graphics_charset;
+            }
+            break;
 
         case 0x1b:
             // ESC
