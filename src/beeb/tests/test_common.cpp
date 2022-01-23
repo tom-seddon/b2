@@ -850,8 +850,11 @@ void RunImageTest(const std::string &wanted_png_path,
                              (uint32_t)wanted_data[i*4+2]<<16);
 
         if(got_rgb!=wanted_rgb) {
-            pixel|=0x00ffffff;
+            pixel|=got_rgb^wanted_rgb;
+            //pixel|=0x00ffffff;
             any_differences=true;
+        } else {
+            pixel|=got_rgb>>1&0x007f7f7f;
         }
 
         differences.push_back(pixel);
