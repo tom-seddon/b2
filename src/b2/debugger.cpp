@@ -1942,8 +1942,8 @@ protected:
         ImGui::Text("PCR: CB2 = %s",PCR_CONTROL_MODES[s.pcr.bits.cb2_mode]);
 
         ImGui::Text("     [%-3s][%-3s][%-3s][%-3s][%-3s][%-3s][%-3s]",IRQ_NAMES[6],IRQ_NAMES[5],IRQ_NAMES[4],IRQ_NAMES[3],IRQ_NAMES[2],IRQ_NAMES[1],IRQ_NAMES[0]);
-        ImGui::Text("IFR:   %u    %u    %u    %u    %u    %u    %u",s.ifr.value&1<<6,s.ifr.value&1<<5,s.ifr.value&1<<4,s.ifr.value&1<<3,s.ifr.value&1<<2,s.ifr.value&1<<1,s.ifr.value&1<<0);
-        ImGui::Text("IER:   %u    %u    %u    %u    %u    %u    %u",s.ier.value&1<<6,s.ier.value&1<<5,s.ier.value&1<<4,s.ier.value&1<<3,s.ier.value&1<<2,s.ier.value&1<<1,s.ier.value&1<<0);
+        ImGui::Text("IFR:  %2u   %2u   %2u   %2u   %2u   %2u   %2u",s.ifr.value&1<<6,s.ifr.value&1<<5,s.ifr.value&1<<4,s.ifr.value&1<<3,s.ifr.value&1<<2,s.ifr.value&1<<1,s.ifr.value&1<<0);
+        ImGui::Text("IER:  %2u   %2u   %2u   %2u   %2u   %2u   %2u",s.ier.value&1<<6,s.ier.value&1<<5,s.ier.value&1<<4,s.ier.value&1<<3,s.ier.value&1<<2,s.ier.value&1<<1,s.ier.value&1<<0);
 
         if(has_debug_state) {
             ImGui::Separator();
