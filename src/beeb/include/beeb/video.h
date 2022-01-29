@@ -42,17 +42,17 @@
 // +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
 // </pre>
 struct VideoDataPixelBits {
-    uint16_t b:4;
-    uint16_t g:4;
-    uint16_t r:4;
-    uint16_t x:4;
+    uint16_t b : 4;
+    uint16_t g : 4;
+    uint16_t r : 4;
+    uint16_t x : 4;
 };
 
 union VideoDataPixel {
     VideoDataPixelBits bits;
     uint16_t all;
 };
-CHECK_SIZEOF(VideoDataPixel,2);
+CHECK_SIZEOF(VideoDataPixel, 2);
 
 union VideoDataUnitPixels {
     VideoDataPixel pixels[8];
@@ -61,10 +61,10 @@ union VideoDataUnitPixels {
 
 #if VIDEO_TRACK_METADATA
 struct VideoDataUnitMetadata {
-    uint8_t flags=0;//combination of VideoDataUnitMetadataFlag
-    uint8_t value=0;
-    uint16_t address={};
-    uint16_t crtc_address={};
+    uint8_t flags = 0; //combination of VideoDataUnitMetadataFlag
+    uint8_t value = 0;
+    uint16_t address = {};
+    uint16_t crtc_address = {};
 };
 #endif
 
@@ -76,9 +76,9 @@ struct VideoDataUnit {
 };
 
 #if VIDEO_TRACK_METADATA
-CHECK_SIZEOF(VideoDataUnit,24);
+CHECK_SIZEOF(VideoDataUnit, 24);
 #else
-CHECK_SIZEOF(VideoDataUnit,16);
+CHECK_SIZEOF(VideoDataUnit, 16);
 #endif
 
 //////////////////////////////////////////////////////////////////////////

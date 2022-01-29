@@ -1,4 +1,4 @@
-#ifndef HEADER_EE88DCE933CB472689BE3ACA6187E3CF// -*- mode:c++ -*-
+#ifndef HEADER_EE88DCE933CB472689BE3ACA6187E3CF // -*- mode:c++ -*-
 #define HEADER_EE88DCE933CB472689BE3ACA6187E3CF
 
 //////////////////////////////////////////////////////////////////////////
@@ -19,9 +19,9 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-template<class TraitsType>
+template <class TraitsType>
 class Keymap {
-public:
+  public:
     struct Mapping {
         uint32_t pc_key;
         typename TraitsType::ValueType value;
@@ -29,14 +29,12 @@ public:
 
     typedef typename TraitsType::ValueType ValueType;
 
-    Keymap():
-        Keymap("",false)
-    {
+    Keymap()
+        : Keymap("", false) {
     }
 
-    explicit Keymap(std::string name):
-        m_name(std::move(name))
-    {
+    explicit Keymap(std::string name)
+        : m_name(std::move(name)) {
         this->Reset();
     }
 
@@ -45,7 +43,7 @@ public:
 
     void Reset() {
         m_map.clear();
-        m_dirty=true;
+        m_dirty = true;
     }
 
     const std::string &GetName() const {
@@ -53,31 +51,31 @@ public:
     }
 
     void SetName(std::string name) {
-        m_name=std::move(name);
+        m_name = std::move(name);
     }
 
     void ClearMappingsByValue(typename TraitsType::ValueType value) {
-        auto &&it=m_map.begin();
+        auto &&it = m_map.begin();
 
-        while(it!=m_map.end()) {
-            if(it->value==value) {
-                it=m_map.erase(it);
-                m_dirty=true;
+        while (it != m_map.end()) {
+            if (it->value == value) {
+                it = m_map.erase(it);
+                m_dirty = true;
             } else {
                 ++it;
             }
         }
     }
 
-    void SetMapping(uint32_t pc_key,typename TraitsType::ValueType value,bool state) {
-        Mapping mapping{pc_key,value};
-        if(state) {
-            if(m_map.insert(mapping).second) {
-                m_dirty=true;
+    void SetMapping(uint32_t pc_key, typename TraitsType::ValueType value, bool state) {
+        Mapping mapping{pc_key, value};
+        if (state) {
+            if (m_map.insert(mapping).second) {
+                m_dirty = true;
             }
         } else {
-            if(m_map.erase(mapping)>0) {
-                m_dirty=true;
+            if (m_map.erase(mapping) > 0) {
+                m_dirty = true;
             }
         }
     }
@@ -87,16 +85,16 @@ public:
     // Returned pointer becomes invalid after next non-const member
     // function call.
     const typename TraitsType::ValueType *GetValuesForPCKey(uint32_t pc_key) const {
-        if(m_dirty) {
+        if (m_dirty) {
             this->RebuildTables();
         }
 
-        auto &&it=std::lower_bound(m_value_lists.begin(),m_value_lists.end(),pc_key,ValueListLessThanPCKey());
-        if(it==m_value_lists.end()||it->pc_key!=pc_key) {
+        auto &&it = std::lower_bound(m_value_lists.begin(), m_value_lists.end(), pc_key, ValueListLessThanPCKey());
+        if (it == m_value_lists.end() || it->pc_key != pc_key) {
             return nullptr;
         }
 
-        ASSERT(it->index<m_all_values.size()-1);
+        ASSERT(it->index < m_all_values.size() - 1);
         return &m_all_values[it->index];
     }
 
@@ -105,16 +103,16 @@ public:
     // Returned pointer becomes invalid after next non-const member
     // function call.
     const uint32_t *GetPCKeysForValue(typename TraitsType::ValueType value) const {
-        if(m_dirty) {
+        if (m_dirty) {
             this->RebuildTables();
         }
 
-        auto &&it=std::lower_bound(m_pc_key_lists.begin(),m_pc_key_lists.end(),value,PCKeyListLessThanValue());
-        if(it==m_pc_key_lists.end()||it->value!=value) {
+        auto &&it = std::lower_bound(m_pc_key_lists.begin(), m_pc_key_lists.end(), value, PCKeyListLessThanValue());
+        if (it == m_pc_key_lists.end() || it->value != value) {
             return nullptr;
         }
 
-        ASSERT(it->index<m_all_pc_keys.size()-1);
+        ASSERT(it->index < m_all_pc_keys.size() - 1);
         return &m_all_pc_keys[it->index];
     }
 
@@ -131,16 +129,16 @@ public:
     //        fun(it->pc_key,it->value);
     //    }
     //}
-protected:
-private:
+  protected:
+  private:
     struct ValueList {
         uint32_t pc_key;
         size_t index;
     };
 
     struct ValueListLessThanPCKey {
-        inline bool operator()(const ValueList &a,uint32_t b) const {
-            return a.pc_key<b;
+        inline bool operator()(const ValueList &a, uint32_t b) const {
+            return a.pc_key < b;
         }
     };
 
@@ -150,22 +148,22 @@ private:
     };
 
     struct PCKeyListLessThanValue {
-        inline bool operator()(const PCKeyList &a,typename TraitsType::ValueType b) const {
-            return a.value<b;
+        inline bool operator()(const PCKeyList &a, typename TraitsType::ValueType b) const {
+            return a.value < b;
         }
     };
 
     struct MappingLessThanByPCKey {
-        inline bool operator()(const Mapping &a,const Mapping &b) const {
-            if(a.pc_key<b.pc_key) {
+        inline bool operator()(const Mapping &a, const Mapping &b) const {
+            if (a.pc_key < b.pc_key) {
                 return true;
-            } else if(b.pc_key<a.pc_key) {
+            } else if (b.pc_key < a.pc_key) {
                 return false;
             }
 
-            if(a.value<b.value) {
+            if (a.value < b.value) {
                 return true;
-            } else if(b.value<a.value) {
+            } else if (b.value < a.value) {
                 return false;
             }
 
@@ -174,16 +172,16 @@ private:
     };
 
     struct MappingLessThanByValue {
-        inline bool operator()(const Mapping &a,const Mapping &b) const {
-            if(a.value<b.value) {
+        inline bool operator()(const Mapping &a, const Mapping &b) const {
+            if (a.value < b.value) {
                 return true;
-            } else if(b.value<a.value) {
+            } else if (b.value < a.value) {
                 return false;
             }
 
-            if(a.pc_key<b.pc_key) {
+            if (a.pc_key < b.pc_key) {
                 return true;
-            } else if(b.pc_key<a.pc_key) {
+            } else if (b.pc_key < a.pc_key) {
                 return false;
             }
 
@@ -192,9 +190,9 @@ private:
     };
 
     std::string m_name;
-    bool m_is_key_sym_map=false;
+    bool m_is_key_sym_map = false;
 
-    std::set<Mapping,MappingLessThanByPCKey> m_map;
+    std::set<Mapping, MappingLessThanByPCKey> m_map;
 
     mutable bool m_dirty;
     mutable std::vector<ValueList> m_value_lists;
@@ -203,7 +201,7 @@ private:
     mutable std::vector<uint32_t> m_all_pc_keys;
 
     void RebuildTables() const {
-        if(!m_dirty) {
+        if (!m_dirty) {
             return;
         }
 
@@ -213,20 +211,20 @@ private:
         m_all_pc_keys.clear();
 
         size_t i;
-        std::vector<Mapping> map(m_map.begin(),m_map.end());
+        std::vector<Mapping> map(m_map.begin(), m_map.end());
 
         // By scancode.
-        std::sort(map.begin(),map.end(),MappingLessThanByPCKey());
+        std::sort(map.begin(), map.end(), MappingLessThanByPCKey());
 
-        i=0;
-        while(i<map.size()) {
+        i = 0;
+        while (i < map.size()) {
             ValueList list;
 
-            list.pc_key=map[i].pc_key;
-            list.index=m_all_values.size();
+            list.pc_key = map[i].pc_key;
+            list.index = m_all_values.size();
 
-            size_t j=i;
-            while(j<map.size()&&map[j].pc_key==list.pc_key) {
+            size_t j = i;
+            while (j < map.size() && map[j].pc_key == list.pc_key) {
                 m_all_values.push_back(map[j].value);
                 ++j;
             }
@@ -234,21 +232,21 @@ private:
             m_all_values.emplace_back(decltype(TraitsType::TERMINATOR)(TraitsType::TERMINATOR));
             m_value_lists.push_back(list);
 
-            i=j;
+            i = j;
         }
 
         // By BBC key.
-        std::sort(map.begin(),map.end(),MappingLessThanByValue());
+        std::sort(map.begin(), map.end(), MappingLessThanByValue());
 
-        i=0;
-        while(i<map.size()) {
+        i = 0;
+        while (i < map.size()) {
             PCKeyList list;
 
-            list.value=map[i].value;
-            list.index=m_all_pc_keys.size();
+            list.value = map[i].value;
+            list.index = m_all_pc_keys.size();
 
-            size_t j=i;
-            while(j<map.size()&&map[j].value==list.value) {
+            size_t j = i;
+            while (j < map.size() && map[j].value == list.value) {
                 m_all_pc_keys.push_back(map[j].pc_key);
                 ++j;
             }
@@ -256,10 +254,10 @@ private:
             m_all_pc_keys.push_back(0);
             m_pc_key_lists.push_back(list);
 
-            i=j;
+            i = j;
         }
 
-        m_dirty=false;
+        m_dirty = false;
     }
 };
 

@@ -1,4 +1,4 @@
-#ifndef HEADER_413466CDB46E4A138B70F24354302A47// -*- mode:c++ -*-
+#ifndef HEADER_413466CDB46E4A138B70F24354302A47 // -*- mode:c++ -*-
 #define HEADER_413466CDB46E4A138B70F24354302A47
 
 #include "conf.h"
@@ -30,7 +30,7 @@ struct SaveTraceProgress {
 //////////////////////////////////////////////////////////////////////////
 
 typedef bool (*SaveTraceWasCanceledFn)(void *context);
-typedef bool (*SaveTraceSaveDataFn)(const void *data,size_t num_bytes,void *context);
+typedef bool (*SaveTraceSaveDataFn)(const void *data, size_t num_bytes, void *context);
 
 bool SaveTrace(std::shared_ptr<Trace> trace,
                TraceCyclesOutput cycles_output,

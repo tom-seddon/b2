@@ -10,34 +10,33 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-class DearImguiTestUI:
-    public SettingsUI
-{
-public:
+class DearImguiTestUI : public SettingsUI {
+  public:
     void DoImGui() override;
 
     bool OnClose() override;
-protected:
-private:
-    void DoDock(const char *slot_name,ImGuiDockSlot slot);
+
+  protected:
+  private:
+    void DoDock(const char *slot_name, ImGuiDockSlot slot);
 };
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 void DearImguiTestUI::DoImGui() {
-//    ImGui::BeginDockspace();
-//
-//#define TW(X) (this->DoDock(#X,ImGuiDockSlot_##X))
-//
-//    TW(Left);
-//    TW(Right);
-//    TW(Top);
-//    TW(Bottom);
-//
-//#undef TW
-//
-//    ImGui::EndDockspace();
+    //    ImGui::BeginDockspace();
+    //
+    //#define TW(X) (this->DoDock(#X,ImGuiDockSlot_##X))
+    //
+    //    TW(Left);
+    //    TW(Right);
+    //    TW(Top);
+    //    TW(Bottom);
+    //
+    //#undef TW
+    //
+    //    ImGui::EndDockspace();
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -50,12 +49,12 @@ bool DearImguiTestUI::OnClose() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void DearImguiTestUI::DoDock(const char *slot_name,ImGuiDockSlot slot) {
-    std::string title=std::string("Dock ")+slot_name;
+void DearImguiTestUI::DoDock(const char *slot_name, ImGuiDockSlot slot) {
+    std::string title = std::string("Dock ") + slot_name;
 
     ImGui::SetNextDock(slot);
-    if(ImGui::BeginDock(title.c_str())) {
-        ImGui::Text("Dock: %s",slot_name);
+    if (ImGui::BeginDock(title.c_str())) {
+        ImGui::Text("Dock: %s", slot_name);
     }
     ImGui::EndDock();
 }

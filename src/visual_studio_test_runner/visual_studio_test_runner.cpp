@@ -8,20 +8,20 @@
 //////////////////////////////////////////////////////////////////////////
 
 int main(void) {
-    if(_chdir(DIR)==-1) {
+    if (_chdir(DIR) == -1) {
         perror("chdir");
         return 1;
     }
 
-    std::string c="ctest";
+    std::string c = "ctest";
 
 #ifdef SUBSET
-    c+=" -LE slow";
+    c += " -LE slow";
 #endif
 
-    c+=" -C \""+std::string(CONFIG)+"\"";
+    c += " -C \"" + std::string(CONFIG) + "\"";
 
-    int result=system(c.c_str());
+    int result = system(c.c_str());
 
     return result;
 }

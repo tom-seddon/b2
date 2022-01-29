@@ -1,4 +1,4 @@
-#ifndef HEADER_944C1DF3E98D466A9F1095BAA8100D15// -*- mode:c++ -*-
+#ifndef HEADER_944C1DF3E98D466A9F1095BAA8100D15 // -*- mode:c++ -*-
 #define HEADER_944C1DF3E98D466A9F1095BAA8100D15
 
 //////////////////////////////////////////////////////////////////////////
@@ -23,21 +23,19 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-class TestBBCMicro:
-public BBCMicro
-{
-public:
+class TestBBCMicro : public BBCMicro {
+  public:
     std::string oswrch_output;
     std::string spool_output;
     std::string spool_output_name;
 
     explicit TestBBCMicro(TestBBCMicroType type);
-    TestBBCMicro(TestBBCMicroType type,size_t num_video_data_units);
+    TestBBCMicro(TestBBCMicroType type, size_t num_video_data_units);
 
     void StartCaptureOSWRCH();
     void StopCaptureOSWRCH();
 
-    void LoadFile(const std::string &path,uint16_t addr);
+    void LoadFile(const std::string &path, uint16_t addr);
 
     void RunUntilOSWORD0(double max_num_seconds);
 
@@ -55,37 +53,38 @@ public:
     void SetTestTraceFlags(uint32_t flags);
 
     void SaveTestTrace(const std::string &stem);
-protected:
+
+  protected:
     void GotOSWRCH();
-    virtual bool GotOSCLI();//true=handled, false=ok to pass on to real OSCLI
-private:
-    bool m_spooling=false;
-    size_t m_oswrch_capture_count=0;
-    size_t m_video_data_unit_idx=0;
+    virtual bool GotOSCLI(); //true=handled, false=ok to pass on to real OSCLI
+  private:
+    bool m_spooling = false;
+    size_t m_oswrch_capture_count = 0;
+    size_t m_video_data_unit_idx = 0;
     std::vector<VideoDataUnit> m_video_data_units;
     SoundDataUnit m_temp_sound_data_unit;
-    uint64_t m_num_ticks=0;
-    uint64_t m_num_cycles=0;
+    uint64_t m_num_ticks = 0;
+    uint64_t m_num_cycles = 0;
 #if BBCMICRO_TRACE
     std::shared_ptr<Trace> m_test_trace;
-    uint32_t m_trace_flags=0;
+    uint32_t m_trace_flags = 0;
 #else
-    const uint32_t m_trace_flags=0;
+    const uint32_t m_trace_flags = 0;
 #endif
 
     void LoadROMsB();
     void LoadROMsBPlus();
     void LoadROMsMaster(const std::string &version);
 
-    static uint8_t ReadTestCommand(void *context,M6502Word addr);
-    static void WriteTestCommand(void *context,M6502Word addr,uint8_t value);
+    static uint8_t ReadTestCommand(void *context, M6502Word addr);
+    static void WriteTestCommand(void *context, M6502Word addr, uint8_t value);
 };
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-std::string strprintfv(const char *fmt,va_list v);
-std::string PRINTF_LIKE(1,2) strprintf(const char *fmt,...);
+std::string strprintfv(const char *fmt, va_list v);
+std::string PRINTF_LIKE(1, 2) strprintf(const char *fmt, ...);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -144,15 +143,15 @@ bool SaveFileInternal(const void *contents,
                       const std::string &path,
                       const char *mode);
 
-template<class T>
-static bool SaveBinaryFile(const T &contents,const std::string &path) {
+template <class T>
+static bool SaveBinaryFile(const T &contents, const std::string &path) {
     return SaveFileInternal(contents.data(),
-                            contents.size()*sizeof(typename T::value_type),
+                            contents.size() * sizeof(typename T::value_type),
                             path,
                             "wb");
 }
 
-bool SaveTextFile(const std::string &contents,const std::string &path);
+bool SaveTextFile(const std::string &contents, const std::string &path);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

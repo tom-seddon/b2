@@ -34,20 +34,20 @@ struct VideoDataUnit;
 //////////////////////////////////////////////////////////////////////////
 
 class TVOutput {
-public:
-    bool show_usec_markers=false;
-    bool show_half_usec_markers=false;
-    bool show_6845_row_markers=false;
-    bool show_6845_dispen_markers=false;
-    bool show_beam_position=false;
+  public:
+    bool show_usec_markers = false;
+    bool show_half_usec_markers = false;
+    bool show_6845_row_markers = false;
+    bool show_6845_dispen_markers = false;
+    bool show_beam_position = false;
 
     TVOutput();
     ~TVOutput();
 
-    void Init(uint32_t r_shift,uint32_t g_shift,uint32_t b_shift);
+    void Init(uint32_t r_shift, uint32_t g_shift, uint32_t b_shift);
 
     // returns number of us consumed.
-    void Update(const VideoDataUnit *units,size_t num_units);
+    void Update(const VideoDataUnit *units, size_t num_units);
 
 #if BBCMICRO_DEBUGGER
     void FillWithTestPattern();
@@ -57,7 +57,7 @@ public:
     // each vblank. (Between vblanks, the buffer contains a partially scanned-out frame.)
     const uint32_t *GetTexturePixels(uint64_t *texture_data_version) const;
 
-    void CopyTexturePixels(void *dest_pixels,size_t dest_pitch) const;
+    void CopyTexturePixels(void *dest_pixels, size_t dest_pitch) const;
 
 #if VIDEO_TRACK_METADATA
     const VideoDataUnit *GetTextureUnits() const;
@@ -65,7 +65,7 @@ public:
 
     // returns false, *X and *Y untouched, if beam is outside the
     // visible area.
-    bool GetBeamPosition(size_t *x,size_t *y) const;
+    bool GetBeamPosition(size_t *x, size_t *y) const;
 
     bool IsInVerticalBlank() const;
 
@@ -76,55 +76,56 @@ public:
 
     bool GetInterlace() const;
     void SetInterlace(bool interlace);
-protected:
-private:
-    TVOutputState m_state=TVOutputState_VerticalRetrace;
-    uint32_t *m_pixels_line=nullptr;
-#if VIDEO_TRACK_METADATA
-    VideoDataUnit *m_units_line=nullptr;
-#endif
-    size_t m_x=0;
-    size_t m_y=0;
-    int m_state_timer=0;
-    size_t m_num_fields=0;
-    bool m_interlace=false;//it's horrid. It's there, but you don't want it
 
-    uint32_t m_r_shift=0;
-    uint32_t m_g_shift=0;
-    uint32_t m_b_shift=0;
+  protected:
+  private:
+    TVOutputState m_state = TVOutputState_VerticalRetrace;
+    uint32_t *m_pixels_line = nullptr;
+#if VIDEO_TRACK_METADATA
+    VideoDataUnit *m_units_line = nullptr;
+#endif
+    size_t m_x = 0;
+    size_t m_y = 0;
+    int m_state_timer = 0;
+    size_t m_num_fields = 0;
+    bool m_interlace = false; //it's horrid. It's there, but you don't want it
+
+    uint32_t m_r_shift = 0;
+    uint32_t m_g_shift = 0;
+    uint32_t m_b_shift = 0;
 
     // TV - output texture and its properties
     std::vector<uint32_t> m_texture_pixels;
 #if VIDEO_TRACK_METADATA
     std::vector<VideoDataUnit> m_texture_units;
 #endif
-    uint64_t m_texture_data_version=1;
+    uint64_t m_texture_data_version = 1;
 
 #if TRACK_VIDEO_LATENCY
     uint64_t render_latency_ticks;
     size_t num_renders;
 #endif
 
-    uint32_t m_rs[16]={};
-    uint32_t m_gs[16]={};
-    uint32_t m_bs[16]={};
+    uint32_t m_rs[16] = {};
+    uint32_t m_gs[16] = {};
+    uint32_t m_bs[16] = {};
 
-    double m_gamma=2.2;
+    double m_gamma = 2.2;
 
     // m_blend[i][j] is gamma-corrected 8-bit blend of 1/3 i<<4|i and
     // 2/3 j<<4|j.
-    uint8_t m_blend[16][16]={};
+    uint8_t m_blend[16][16] = {};
 
-    uint32_t m_usec_marker_xor=0;
-    uint32_t m_half_usec_marker_xor=0;
-    uint32_t m_6845_raster0_marker_xor=0;
-    uint32_t m_6845_dispen_marker_xor=0;
-    uint32_t m_beam_marker_xor=0;
+    uint32_t m_usec_marker_xor = 0;
+    uint32_t m_half_usec_marker_xor = 0;
+    uint32_t m_6845_raster0_marker_xor = 0;
+    uint32_t m_6845_dispen_marker_xor = 0;
+    uint32_t m_beam_marker_xor = 0;
 
-    uint32_t GetTexelValue(uint8_t r,uint8_t g,uint8_t b) const;
+    uint32_t GetTexelValue(uint8_t r, uint8_t g, uint8_t b) const;
     void InitPalette();
 #if VIDEO_TRACK_METADATA
-    void AddMetadataMarkers(void *dest_pixels,size_t dest_pitch_bytes,bool add,uint8_t metadata_flag,uint32_t xor_value) const;
+    void AddMetadataMarkers(void *dest_pixels, size_t dest_pitch_bytes, bool add, uint8_t metadata_flag, uint32_t xor_value) const;
 #endif
 };
 

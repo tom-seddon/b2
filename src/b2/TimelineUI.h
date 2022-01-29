@@ -1,4 +1,4 @@
-#ifndef HEADER_A25A26E02BAC4AB39772A688E1F32816// -*- mode:c++ -*-
+#ifndef HEADER_A25A26E02BAC4AB39772A688E1F32816 // -*- mode:c++ -*-
 #define HEADER_A25A26E02BAC4AB39772A688E1F32816
 
 //////////////////////////////////////////////////////////////////////////

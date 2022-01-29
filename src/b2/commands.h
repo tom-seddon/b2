@@ -1,4 +1,4 @@
-#ifndef HEADER_6958596828274A368C8F315251DB0613// -*- mode:c++ -*-
+#ifndef HEADER_6958596828274A368C8F315251DB0613 // -*- mode:c++ -*-
 #define HEADER_6958596828274A368C8F315251DB0613
 
 //////////////////////////////////////////////////////////////////////////
@@ -25,24 +25,25 @@
 //////////////////////////////////////////////////////////////////////////
 
 class Command {
-public:
-    Command(std::string name,std::string text,bool must_confirm,std::vector<uint32_t> default_shortcuts);
-    virtual ~Command()=0;
+  public:
+    Command(std::string name, std::string text, bool must_confirm, std::vector<uint32_t> default_shortcuts);
+    virtual ~Command() = 0;
 
-    virtual void Execute(void *object) const=0;
-    virtual const bool *IsTicked(void *object) const=0;
-    virtual bool IsEnabled(void *object) const=0;
+    virtual void Execute(void *object) const = 0;
+    virtual const bool *IsTicked(void *object) const = 0;
+    virtual bool IsEnabled(void *object) const = 0;
 
     const std::string &GetName() const;
     const std::string &GetText() const;
 
     const std::vector<uint32_t> *GetDefaultShortcuts() const;
-protected:
-private:
+
+  protected:
+  private:
     const std::string m_name;
     std::string m_text;
-    uint32_t m_shortcut=0;
-    bool m_must_confirm=false;
+    uint32_t m_shortcut = 0;
+    bool m_must_confirm = false;
     std::vector<uint32_t> m_default_shortcuts;
 
     friend class CommandTable;
@@ -52,40 +53,37 @@ private:
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-template<class T>
-class ObjectCommand:
-    public Command
-{
-public:
-    ObjectCommand(std::string name,std::string text,
+template <class T>
+class ObjectCommand : public Command {
+  public:
+    ObjectCommand(std::string name, std::string text,
                   std::function<void(T *)> execute_fun,
                   std::function<bool(const T *)> ticked_fun,
                   std::function<bool(const T *)> enabled_fun,
                   bool must_confirm,
-                  std::vector<uint32_t> default_shortcuts):
-        Command(std::move(name),std::move(text),must_confirm,std::move(default_shortcuts)),
-        m_execute_fun(std::move(execute_fun)),
-        m_ticked_fun(std::move(ticked_fun)),
-        m_enabled_fun(std::move(enabled_fun))
-    {
+                  std::vector<uint32_t> default_shortcuts)
+        : Command(std::move(name), std::move(text), must_confirm, std::move(default_shortcuts))
+        , m_execute_fun(std::move(execute_fun))
+        , m_ticked_fun(std::move(ticked_fun))
+        , m_enabled_fun(std::move(enabled_fun)) {
         ASSERT(!!m_execute_fun);
     }
 
     void Execute(void *object_) const override {
-        auto object=(T *)object_;
+        auto object = (T *)object_;
 
         m_execute_fun(object);
     }
 
     const bool *IsTicked(void *object_) const override {
-        static const bool s_true=true,s_false=false;
+        static const bool s_true = true, s_false = false;
 
-        if(!m_ticked_fun) {
+        if (!m_ticked_fun) {
             return nullptr;
         } else {
-            auto object=(T *)object_;
-            bool ticked=m_ticked_fun(object);
-            if(ticked) {
+            auto object = (T *)object_;
+            bool ticked = m_ticked_fun(object);
+            if (ticked) {
                 return &s_true;
             } else {
                 return &s_false;
@@ -94,16 +92,17 @@ public:
     }
 
     bool IsEnabled(void *object_) const override {
-        bool enabled=true;
+        bool enabled = true;
 
-        if(!!m_enabled_fun) {
-            auto object=(T *)object_;
-            enabled=m_enabled_fun(object);
+        if (!!m_enabled_fun) {
+            auto object = (T *)object_;
+            enabled = m_enabled_fun(object);
         }
 
         return enabled;
     }
-private:
+
+  private:
     std::function<void(T *)> m_execute_fun;
     std::function<bool(const T *)> m_ticked_fun;
     std::function<bool(const T *)> m_enabled_fun;
@@ -113,7 +112,7 @@ private:
 //////////////////////////////////////////////////////////////////////////
 
 class CommandTable {
-public:
+  public:
     static void ForEachCommandTable(std::function<void(CommandTable *)> fun);
     static CommandTable *FindCommandTableByName(const std::string &name);
 
@@ -133,33 +132,34 @@ public:
     // sets command to explicitly have no shortcuts at all.
     void ClearMappingsByCommand(Command *command);
 
-    void AddMapping(uint32_t pc_key,Command *command);
-    void RemoveMapping(uint32_t pc_key,Command *command);
+    void AddMapping(uint32_t pc_key, Command *command);
+    void RemoveMapping(uint32_t pc_key, Command *command);
 
-    const std::vector<uint32_t> *GetPCKeysForCommand(bool *are_defaults,Command *command) const;
+    const std::vector<uint32_t> *GetPCKeysForCommand(bool *are_defaults, Command *command) const;
 
-    bool ExecuteCommandsForPCKey(uint32_t keycode,void *object) const;
+    bool ExecuteCommandsForPCKey(uint32_t keycode, void *object) const;
 
     //const std::vector<Command *> *GetCommandsForPCKey(uint32_t key) const;
-protected:
+  protected:
     Command *AddCommand(std::unique_ptr<Command> command);
-private:
+
+  private:
     std::string m_name;
 
     struct StringLessThan {
-        inline bool operator()(const char *a,const char *b) const {
-            return strcmp(a,b)<0;
+        inline bool operator()(const char *a, const char *b) const {
+            return strcmp(a, b) < 0;
         }
     };
-    std::map<const char *,std::unique_ptr<Command>,StringLessThan> m_command_by_name;
+    std::map<const char *, std::unique_ptr<Command>, StringLessThan> m_command_by_name;
 
-    std::map<Command *,std::vector<uint32_t>> m_pc_keys_by_command;
+    std::map<Command *, std::vector<uint32_t>> m_pc_keys_by_command;
 
-    mutable std::map<uint32_t,std::vector<Command *>> m_commands_by_pc_key;
-    mutable bool m_commands_by_pc_key_dirty=true;
+    mutable std::map<uint32_t, std::vector<Command *>> m_commands_by_pc_key;
+    mutable bool m_commands_by_pc_key_dirty = true;
 
     mutable std::vector<Command *> m_commands_sorted;
-    mutable bool m_commands_sorted_dirty=true;
+    mutable bool m_commands_sorted_dirty = true;
 
     void UpdateSortedCommands() const;
 };
@@ -171,9 +171,9 @@ struct CommandDef {
     std::string name;
     std::string text;
     std::vector<uint32_t> shortcuts;
-    bool must_confirm=false;
+    bool must_confirm = false;
 
-    CommandDef(std::string name,std::string text);
+    CommandDef(std::string name, std::string text);
 
     CommandDef &Shortcut(uint32_t keycode);
     CommandDef &MustConfirm();
@@ -182,60 +182,57 @@ struct CommandDef {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-template<class T>
-class ObjectCommandTable:
-    public CommandTable
-{
-public:
+template <class T>
+class ObjectCommandTable : public CommandTable {
+  public:
     struct Initializer {
         CommandDef def;
-        void (T::*execute_mfn)()=nullptr;
-        bool (T::*ticked_mfn)() const=nullptr;
-        bool (T::*enabled_mfn)() const=nullptr;
+        void (T::*execute_mfn)() = nullptr;
+        bool (T::*ticked_mfn)() const = nullptr;
+        bool (T::*enabled_mfn)() const = nullptr;
 
-        Initializer(CommandDef def_,void (T::*execute_mfn_)(),bool (T::*ticked_mfn_)() const=nullptr,bool (T::*enabled_mfn_)() const=nullptr):
-            def(std::move(def_)),
-            execute_mfn(std::move(execute_mfn_)),
-            ticked_mfn(ticked_mfn_),
-            enabled_mfn(enabled_mfn_)
-        {
+        Initializer(CommandDef def_, void (T::*execute_mfn_)(), bool (T::*ticked_mfn_)() const = nullptr, bool (T::*enabled_mfn_)() const = nullptr)
+            : def(std::move(def_))
+            , execute_mfn(std::move(execute_mfn_))
+            , ticked_mfn(ticked_mfn_)
+            , enabled_mfn(enabled_mfn_) {
         }
     };
 
-    ObjectCommandTable(std::string table_name,std::initializer_list<Initializer> inits):
-        CommandTable(std::move(table_name))
-    {
-        for(const Initializer &init:inits) {
-            std::function<void(T *)> execute_fun=[mfn=init.execute_mfn](T *p) {
+    ObjectCommandTable(std::string table_name, std::initializer_list<Initializer> inits)
+        : CommandTable(std::move(table_name)) {
+        for (const Initializer &init : inits) {
+            std::function<void(T *)> execute_fun = [mfn = init.execute_mfn](T *p) {
                 (p->*mfn)();
             };
 
             std::function<bool(const T *)> ticked_fun;
-            if(init.ticked_mfn) {
-                ticked_fun=[mfn=init.ticked_mfn](const T *p) {
+            if (init.ticked_mfn) {
+                ticked_fun = [mfn = init.ticked_mfn](const T *p) {
                     return (p->*mfn)();
                 };
             }
 
             std::function<bool(const T *)> enabled_fun;
-            if(init.enabled_mfn) {
-                enabled_fun=[mfn=init.enabled_mfn](const T *p) {
+            if (init.enabled_mfn) {
+                enabled_fun = [mfn = init.enabled_mfn](const T *p) {
                     return (p->*mfn)();
                 };
             }
 
-            Command *command=this->AddCommand(std::make_unique<ObjectCommand<T>>(std::move(init.def.name),
-                                                                                 std::move(init.def.text),
-                                                                                 std::move(execute_fun),
-                                                                                 std::move(ticked_fun),
-                                                                                 std::move(enabled_fun),
-                                                                                 init.def.must_confirm,
-                                                                                 std::move(init.def.shortcuts)));
+            Command *command = this->AddCommand(std::make_unique<ObjectCommand<T>>(std::move(init.def.name),
+                                                                                   std::move(init.def.text),
+                                                                                   std::move(execute_fun),
+                                                                                   std::move(ticked_fun),
+                                                                                   std::move(enabled_fun),
+                                                                                   init.def.must_confirm,
+                                                                                   std::move(init.def.shortcuts)));
             (void)command;
         }
     }
-protected:
-private:
+
+  protected:
+  private:
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -245,9 +242,9 @@ private:
 //
 // (Not a great name for it - should really be BoundCommandTable, or something.)
 class CommandContext {
-public:
-    CommandContext()=default;
-    CommandContext(void *object,const CommandTable *table);
+  public:
+    CommandContext() = default;
+    CommandContext(void *object, const CommandTable *table);
 
     void DoButton(const char *name) const;
     void DoMenuItemUI(const char *name) const;
@@ -259,10 +256,11 @@ public:
     bool ExecuteCommandsForPCKey(uint32_t keycode) const;
 
     bool IsBound() const;
-protected:
-private:
-    void *m_object=nullptr;
-    const CommandTable *m_table=nullptr;
+
+  protected:
+  private:
+    void *m_object = nullptr;
+    const CommandTable *m_table = nullptr;
 };
 
 //////////////////////////////////////////////////////////////////////////

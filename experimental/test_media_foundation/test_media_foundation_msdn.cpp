@@ -13,53 +13,51 @@
 //#pragma comment(lib, "mfplat")
 //#pragma comment(lib, "mfuuid")
 
-template <class T> void SafeRelease(T **ppT)
-{
-    if (*ppT)
-    {
+template <class T>
+void SafeRelease(T **ppT) {
+    if (*ppT) {
         (*ppT)->Release();
         *ppT = NULL;
     }
 }
 
 HRESULT InitializeSinkWriter(
-    IMFSinkWriter **ppWriter, 
-    DWORD *pStreamIndex, 
+    IMFSinkWriter **ppWriter,
+    DWORD *pStreamIndex,
     const WCHAR *url,
     DWORD width,
     DWORD height,
-    DWORD fps)
-{
+    DWORD fps) {
     *ppWriter = NULL;
     *pStreamIndex = NULL;
 
-    IMFSinkWriter   *pSinkWriter = NULL;
-    IMFMediaType    *pMediaTypeOut = NULL;   
-    IMFMediaType    *pMediaTypeIn = NULL;   
-    DWORD           streamIndex;     
+    IMFSinkWriter *pSinkWriter = NULL;
+    IMFMediaType *pMediaTypeOut = NULL;
+    IMFMediaType *pMediaTypeIn = NULL;
+    DWORD streamIndex;
 
     HRESULT hr = MFCreateSinkWriterFromURL(url, NULL, NULL, &pSinkWriter);
 
     // Set the output media type.
-    TEST_HR(MFCreateMediaType(&pMediaTypeOut));   
-    TEST_HR(pMediaTypeOut->SetGUID(MF_MT_MAJOR_TYPE, MFMediaType_Video));     
-    TEST_HR(pMediaTypeOut->SetGUID(MF_MT_SUBTYPE, MFVideoFormat_WMV3));   
-    TEST_HR(pMediaTypeOut->SetUINT32(MF_MT_AVG_BITRATE, 800000));   
-    TEST_HR(pMediaTypeOut->SetUINT32(MF_MT_INTERLACE_MODE, MFVideoInterlace_Progressive));   
-    TEST_HR(MFSetAttributeSize(pMediaTypeOut, MF_MT_FRAME_SIZE, width, height));   
-    TEST_HR(MFSetAttributeRatio(pMediaTypeOut, MF_MT_FRAME_RATE, fps, 1));   
-    TEST_HR(MFSetAttributeRatio(pMediaTypeOut, MF_MT_PIXEL_ASPECT_RATIO, 1, 1));   
-    TEST_HR(pSinkWriter->AddStream(pMediaTypeOut, &streamIndex));   
+    TEST_HR(MFCreateMediaType(&pMediaTypeOut));
+    TEST_HR(pMediaTypeOut->SetGUID(MF_MT_MAJOR_TYPE, MFMediaType_Video));
+    TEST_HR(pMediaTypeOut->SetGUID(MF_MT_SUBTYPE, MFVideoFormat_WMV3));
+    TEST_HR(pMediaTypeOut->SetUINT32(MF_MT_AVG_BITRATE, 800000));
+    TEST_HR(pMediaTypeOut->SetUINT32(MF_MT_INTERLACE_MODE, MFVideoInterlace_Progressive));
+    TEST_HR(MFSetAttributeSize(pMediaTypeOut, MF_MT_FRAME_SIZE, width, height));
+    TEST_HR(MFSetAttributeRatio(pMediaTypeOut, MF_MT_FRAME_RATE, fps, 1));
+    TEST_HR(MFSetAttributeRatio(pMediaTypeOut, MF_MT_PIXEL_ASPECT_RATIO, 1, 1));
+    TEST_HR(pSinkWriter->AddStream(pMediaTypeOut, &streamIndex));
 
     // Set the input media type.
-    TEST_HR(MFCreateMediaType(&pMediaTypeIn));   
-    TEST_HR(pMediaTypeIn->SetGUID(MF_MT_MAJOR_TYPE, MFMediaType_Video));   
-    TEST_HR(pMediaTypeIn->SetGUID(MF_MT_SUBTYPE, MFVideoFormat_RGB32));     
-    TEST_HR(pMediaTypeIn->SetUINT32(MF_MT_INTERLACE_MODE, MFVideoInterlace_Progressive));   
-    TEST_HR(MFSetAttributeSize(pMediaTypeIn, MF_MT_FRAME_SIZE, width, height));   
-    TEST_HR(MFSetAttributeRatio(pMediaTypeIn, MF_MT_FRAME_RATE, fps, 1));   
-    TEST_HR(MFSetAttributeRatio(pMediaTypeIn, MF_MT_PIXEL_ASPECT_RATIO, 1, 1));   
-    TEST_HR(pSinkWriter->SetInputMediaType(streamIndex, pMediaTypeIn, NULL));   
+    TEST_HR(MFCreateMediaType(&pMediaTypeIn));
+    TEST_HR(pMediaTypeIn->SetGUID(MF_MT_MAJOR_TYPE, MFMediaType_Video));
+    TEST_HR(pMediaTypeIn->SetGUID(MF_MT_SUBTYPE, MFVideoFormat_RGB32));
+    TEST_HR(pMediaTypeIn->SetUINT32(MF_MT_INTERLACE_MODE, MFVideoInterlace_Progressive));
+    TEST_HR(MFSetAttributeSize(pMediaTypeIn, MF_MT_FRAME_SIZE, width, height));
+    TEST_HR(MFSetAttributeRatio(pMediaTypeIn, MF_MT_FRAME_RATE, fps, 1));
+    TEST_HR(MFSetAttributeRatio(pMediaTypeIn, MF_MT_PIXEL_ASPECT_RATIO, 1, 1));
+    TEST_HR(pSinkWriter->SetInputMediaType(streamIndex, pMediaTypeIn, NULL));
 
     // Tell the sink writer to start accepting data.
     TEST_HR(pSinkWriter->BeginWriting());
@@ -69,8 +67,7 @@ HRESULT InitializeSinkWriter(
     //}
 
     // Return the pointer to the caller.
-    if (SUCCEEDED(hr))
-    {
+    if (SUCCEEDED(hr)) {
         *ppWriter = pSinkWriter;
         (*ppWriter)->AddRef();
         *pStreamIndex = streamIndex;
@@ -81,7 +78,6 @@ HRESULT InitializeSinkWriter(
     SafeRelease(&pMediaTypeIn);
     return hr;
 }
-
 
 // Format constants
 const UINT32 VIDEO_WIDTH = 640;
@@ -98,11 +94,10 @@ const UINT32 VIDEO_FRAME_COUNT = 20 * VIDEO_FPS;
 DWORD videoFrameBuffer[VIDEO_PELS];
 
 HRESULT WriteFrame(
-    IMFSinkWriter *pWriter, 
-    DWORD streamIndex, 
-    const LONGLONG& rtStart        // Time stamp.
-)
-{
+    IMFSinkWriter *pWriter,
+    DWORD streamIndex,
+    const LONGLONG &rtStart // Time stamp.
+) {
     IMFSample *pSample = NULL;
     IMFMediaBuffer *pBuffer = NULL;
 
@@ -115,55 +110,46 @@ HRESULT WriteFrame(
     HRESULT hr = MFCreateMemoryBuffer(cbBuffer, &pBuffer);
 
     // Lock the buffer and copy the video frame to the buffer.
-    if (SUCCEEDED(hr))
-    {
+    if (SUCCEEDED(hr)) {
         hr = pBuffer->Lock(&pData, NULL, NULL);
     }
-    if (SUCCEEDED(hr))
-    {
+    if (SUCCEEDED(hr)) {
         hr = MFCopyImage(
-            pData,                      // Destination buffer.
-            cbWidth,                    // Destination stride.
-            (BYTE*)videoFrameBuffer,    // First row in source image.
-            cbWidth,                    // Source stride.
-            cbWidth,                    // Image width in bytes.
-            VIDEO_HEIGHT                // Image height in pixels.
+            pData,                    // Destination buffer.
+            cbWidth,                  // Destination stride.
+            (BYTE *)videoFrameBuffer, // First row in source image.
+            cbWidth,                  // Source stride.
+            cbWidth,                  // Image width in bytes.
+            VIDEO_HEIGHT              // Image height in pixels.
         );
     }
-    if (pBuffer)
-    {
+    if (pBuffer) {
         pBuffer->Unlock();
     }
 
     // Set the data length of the buffer.
-    if (SUCCEEDED(hr))
-    {
+    if (SUCCEEDED(hr)) {
         hr = pBuffer->SetCurrentLength(cbBuffer);
     }
 
     // Create a media sample and add the buffer to the sample.
-    if (SUCCEEDED(hr))
-    {
+    if (SUCCEEDED(hr)) {
         hr = MFCreateSample(&pSample);
     }
-    if (SUCCEEDED(hr))
-    {
+    if (SUCCEEDED(hr)) {
         hr = pSample->AddBuffer(pBuffer);
     }
 
     // Set the time stamp and the duration.
-    if (SUCCEEDED(hr))
-    {
+    if (SUCCEEDED(hr)) {
         hr = pSample->SetSampleTime(rtStart);
     }
-    if (SUCCEEDED(hr))
-    {
+    if (SUCCEEDED(hr)) {
         hr = pSample->SetSampleDuration(VIDEO_FRAME_DURATION);
     }
 
     // Send the sample to the Sink Writer.
-    if (SUCCEEDED(hr))
-    {
+    if (SUCCEEDED(hr)) {
         hr = pWriter->WriteSample(streamIndex, pSample);
     }
 
@@ -172,42 +158,33 @@ HRESULT WriteFrame(
     return hr;
 }
 
-void msdn_main()
-{
+void msdn_main() {
     // Set all pixels to green
-    for (DWORD i = 0; i < VIDEO_PELS; ++i)
-    {
+    for (DWORD i = 0; i < VIDEO_PELS; ++i) {
         videoFrameBuffer[i] = 0x0000FF00;
     }
 
     HRESULT hr = CoInitializeEx(NULL, COINIT_APARTMENTTHREADED);
-    if (SUCCEEDED(hr))
-    {
+    if (SUCCEEDED(hr)) {
         hr = MFStartup(MF_VERSION);
-        if (SUCCEEDED(hr))
-        {
+        if (SUCCEEDED(hr)) {
             IMFSinkWriter *pSinkWriter = NULL;
             DWORD stream;
 
             hr = InitializeSinkWriter(&pSinkWriter, &stream, L"output.wmv", VIDEO_WIDTH, VIDEO_HEIGHT, VIDEO_FPS);
-            if (SUCCEEDED(hr))
-            {
+            if (SUCCEEDED(hr)) {
                 // Send frames to the sink writer.
                 LONGLONG rtStart = 0;
 
-
-                for (DWORD i = 0; i < VIDEO_FRAME_COUNT; ++i)
-                {
+                for (DWORD i = 0; i < VIDEO_FRAME_COUNT; ++i) {
                     hr = WriteFrame(pSinkWriter, stream, rtStart);
-                    if (FAILED(hr))
-                    {
+                    if (FAILED(hr)) {
                         break;
                     }
                     rtStart += VIDEO_FRAME_DURATION;
                 }
             }
-            if (SUCCEEDED(hr))
-            {
+            if (SUCCEEDED(hr)) {
                 hr = pSinkWriter->Finalize();
             }
             SafeRelease(&pSinkWriter);

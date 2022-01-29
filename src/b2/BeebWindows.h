@@ -48,104 +48,104 @@ struct SDL_MouseMotionEvent;
 
 namespace BeebWindows {
 
-// an accessor doesn't really buy much here...
-extern BeebWindowSettings defaults;
-extern std::string default_config_name;
+    // an accessor doesn't really buy much here...
+    extern BeebWindowSettings defaults;
+    extern std::string default_config_name;
 
-bool Init();
-void Shutdown();
+    bool Init();
+    void Shutdown();
 
-// (This was supposed to be "CreateWindow", but it had to avoid
-// using the Windows CreateWindow define.)
-//
-// There isn't all that much you can do with the result except
-// check if it is nullptr - in which case the creation failed.
-BeebWindow *CreateBeebWindow(BeebWindowInitArguments init_arguments);
+    // (This was supposed to be "CreateWindow", but it had to avoid
+    // using the Windows CreateWindow define.)
+    //
+    // There isn't all that much you can do with the result except
+    // check if it is nullptr - in which case the creation failed.
+    BeebWindow *CreateBeebWindow(BeebWindowInitArguments init_arguments);
 
-size_t GetNumWindows();
-BeebWindow *GetWindowByIndex(size_t index);
+    size_t GetNumWindows();
+    BeebWindow *GetWindowByIndex(size_t index);
 
-void HandleSDLWindowEvent(const SDL_WindowEvent &event);
-void HandleSDLKeyEvent(const SDL_KeyboardEvent &event);
-void SetSDLMouseWheelState(uint32_t sdl_window_id,int x,int y);
-void HandleSDLTextInput(uint32_t sdl_window_id,const char *text);
-void HandleSDLMouseMotionEvent(const SDL_MouseMotionEvent &event);
+    void HandleSDLWindowEvent(const SDL_WindowEvent &event);
+    void HandleSDLKeyEvent(const SDL_KeyboardEvent &event);
+    void SetSDLMouseWheelState(uint32_t sdl_window_id, int x, int y);
+    void HandleSDLTextInput(uint32_t sdl_window_id, const char *text);
+    void HandleSDLMouseMotionEvent(const SDL_MouseMotionEvent &event);
 
-void HandleVBlank(VBlankMonitor *vblank_monitor,void *display_data,uint64_t ticks);
+    void HandleVBlank(VBlankMonitor *vblank_monitor, void *display_data, uint64_t ticks);
 
-void ThreadFillAudioBuffer(uint32_t audio_device_id,float *mix_buffer,size_t mix_buffer_size);
+    void ThreadFillAudioBuffer(uint32_t audio_device_id, float *mix_buffer, size_t mix_buffer_size);
 
-void UpdateWindowTitles();
+    void UpdateWindowTitles();
 
-// If the keymap is in use by any windows, they'll be reset to use
-// the default keymap.
-void RemoveBeebKeymapByIndex(size_t index);
+    // If the keymap is in use by any windows, they'll be reset to use
+    // the default keymap.
+    void RemoveBeebKeymapByIndex(size_t index);
 
-// AddBeebKeymap will adjust KEYMAP's name to make it unique.
-//
-// Returns the pointer to the keymap in the list.
-BeebKeymap *AddBeebKeymap(BeebKeymap keymap);
+    // AddBeebKeymap will adjust KEYMAP's name to make it unique.
+    //
+    // Returns the pointer to the keymap in the list.
+    BeebKeymap *AddBeebKeymap(BeebKeymap keymap);
 
-// When necessary, name will be adjusted to make it unique.
-void BeebKeymapDidChange(size_t index);
+    // When necessary, name will be adjusted to make it unique.
+    void BeebKeymapDidChange(size_t index);
 
-size_t GetNumBeebKeymaps();
-BeebKeymap *GetBeebKeymapByIndex(size_t index);
+    size_t GetNumBeebKeymaps();
+    BeebKeymap *GetBeebKeymapByIndex(size_t index);
 
-// For each keymap k,
-// in the keymap list, calls func (k). If func returns false,
-// stop iteration and return the keymap it returned false for.
-//
-// Adding/removing keymaps in the loop is safe, but keymaps may be
-// missed or seen multiple times and/or the ForEach return value
-// might be wrong.
-//BeebKeymap *ForEachBeebKeymap(const std::function<bool(BeebKeymap *)> &func);
+    // For each keymap k,
+    // in the keymap list, calls func (k). If func returns false,
+    // stop iteration and return the keymap it returned false for.
+    //
+    // Adding/removing keymaps in the loop is safe, but keymaps may be
+    // missed or seen multiple times and/or the ForEach return value
+    // might be wrong.
+    //BeebKeymap *ForEachBeebKeymap(const std::function<bool(BeebKeymap *)> &func);
 
-// Keymaps are not optimised for retrieval by name.
-BeebKeymap *FindBeebKeymapByName(const std::string &name);
+    // Keymaps are not optimised for retrieval by name.
+    BeebKeymap *FindBeebKeymapByName(const std::string &name);
 
-// Fill out a BeebLoadedConfig for the given BeebConfig.
-//
-// If it's a stock config, hand out the stock loaded config and
-// return true.
-//
-// Otherwise, try to initialize a BeebLoadedConfig, returning
-// false if there was a problem and printing messages out to *msg.
-bool LoadConfigByName(BeebLoadedConfig *loaded_config,const std::string &config_name,Messages *msg);
+    // Fill out a BeebLoadedConfig for the given BeebConfig.
+    //
+    // If it's a stock config, hand out the stock loaded config and
+    // return true.
+    //
+    // Otherwise, try to initialize a BeebLoadedConfig, returning
+    // false if there was a problem and printing messages out to *msg.
+    bool LoadConfigByName(BeebLoadedConfig *loaded_config, const std::string &config_name, Messages *msg);
 
-void AddConfig(BeebConfig config);
-void RemoveConfigByIndex(size_t index);
+    void AddConfig(BeebConfig config);
+    void RemoveConfigByIndex(size_t index);
 
-void ConfigDidChange(size_t index);
+    void ConfigDidChange(size_t index);
 
-size_t GetNumConfigs();
-BeebConfig *GetConfigByIndex(size_t index);
+    size_t GetNumConfigs();
+    BeebConfig *GetConfigByIndex(size_t index);
 
-// When necessary, name will be adjusted to make it unique.
-void SetBeebWindowName(BeebWindow *window,std::string name);
+    // When necessary, name will be adjusted to make it unique.
+    void SetBeebWindowName(BeebWindow *window, std::string name);
 
-// Add job to the job queue.
-void AddJob(std::shared_ptr<JobQueue::Job> job);
+    // Add job to the job queue.
+    void AddJob(std::shared_ptr<JobQueue::Job> job);
 
-// Get the job queue's list of jobs.
-std::vector<std::shared_ptr<JobQueue::Job>> GetJobs();
+    // Get the job queue's list of jobs.
+    std::vector<std::shared_ptr<JobQueue::Job>> GetJobs();
 
-BeebWindow *FindBeebWindowBySDLWindowID(uint32_t sdl_window_id);
+    BeebWindow *FindBeebWindowBySDLWindowID(uint32_t sdl_window_id);
 
-BeebWindow *FindBeebWindowByName(const std::string &name);
+    BeebWindow *FindBeebWindowByName(const std::string &name);
 
-const std::vector<uint8_t> &GetLastWindowPlacementData();
-void SetLastWindowPlacementData(std::vector<uint8_t> placement_data);
+    const std::vector<uint8_t> &GetLastWindowPlacementData();
+    void SetLastWindowPlacementData(std::vector<uint8_t> placement_data);
 
-const BeebKeymap *GetDefaultBeebKeymap();
+    const BeebKeymap *GetDefaultBeebKeymap();
 
-size_t GetNumSavedStates();
-std::vector<std::shared_ptr<const BeebState>> GetSavedStates(size_t begin_index,
-                                                             size_t end_index);
-void AddSavedState(std::shared_ptr<const BeebState> saved_state);
-void DeleteSavedState(std::shared_ptr<const BeebState> saved_state);
+    size_t GetNumSavedStates();
+    std::vector<std::shared_ptr<const BeebState>> GetSavedStates(size_t begin_index,
+                                                                 size_t end_index);
+    void AddSavedState(std::shared_ptr<const BeebState> saved_state);
+    void DeleteSavedState(std::shared_ptr<const BeebState> saved_state);
 
-}
+} // namespace BeebWindows
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

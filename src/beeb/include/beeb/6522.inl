@@ -3,14 +3,14 @@
 
 #define ENAME R6522Cx2Control
 EBEGIN()
-EPNV(Input_NegEdge,0)
-EPNV(Input_IndIRQNegEdge,1)
-EPNV(Input_PosEdge,2)
-EPNV(Input_IndIRQPosEdge,3)
-EPNV(Output_Handshake,4)
-EPNV(Output_Pulse,5)
-EPNV(Output_Low,6)
-EPNV(Output_High,7)
+EPNV(Input_NegEdge, 0)
+EPNV(Input_IndIRQNegEdge, 1)
+EPNV(Input_PosEdge, 2)
+EPNV(Input_IndIRQPosEdge, 3)
+EPNV(Output_Handshake, 4)
+EPNV(Output_Pulse, 5)
+EPNV(Output_Low, 6)
+EPNV(Output_High, 7)
 EEND()
 #undef ENAME
 
@@ -19,13 +19,12 @@ EEND()
 
 #define ENAME R6522IRQMask
 EBEGIN()
-EPNV(CA2,1)
-EPNV(CA1,2)
-EPNV(SR,4)
-EPNV(CB2,8)
-EPNV(CB1,16)
-EPNV(T2,32)
-EPNV(T1,64)
+EPNV(CA2, 1)
+EPNV(CA1, 2)
+EPNV(SR, 4)
+EPNV(CB2, 8)
+EPNV(CB1, 16)
+EPNV(T2, 32)
+EPNV(T1, 64)
 EEND()
 #undef ENAME
-

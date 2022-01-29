@@ -1,4 +1,4 @@
-#ifndef HEADER_74221AA5C67346ECAD9C7B417B8ECE3C// -*- mode:c++ -*-
+#ifndef HEADER_74221AA5C67346ECAD9C7B417B8ECE3C // -*- mode:c++ -*-
 #define HEADER_74221AA5C67346ECAD9C7B417B8ECE3C
 
 //////////////////////////////////////////////////////////////////////////
@@ -23,7 +23,7 @@ class Messages;
 //////////////////////////////////////////////////////////////////////////
 
 std::string GetAssetPath(const std::string &f0);
-std::string GetAssetPath(const std::string &f0,const std::string &f1);
+std::string GetAssetPath(const std::string &f0, const std::string &f1);
 
 // Get path to user-specific config file. This will be stored
 // somewhere persistent, that may follow the user around.
@@ -49,24 +49,24 @@ std::string GetCachePath(const std::string &path);
 bool LoadFile(std::vector<uint8_t> *data,
               const std::string &path,
               Messages *messages,
-              uint32_t flags=0);
+              uint32_t flags = 0);
 
 bool LoadTextFile(std::vector<char> *data,
                   const std::string &path,
                   Messages *messages,
-                  uint32_t flags=0);
+                  uint32_t flags = 0);
 
-bool SaveFile(const void *data,size_t data_size,const std::string &path,Messages *messages);
+bool SaveFile(const void *data, size_t data_size, const std::string &path, Messages *messages);
 
-bool SaveFile(const std::vector<uint8_t> &data,const std::string &path,Messages *messages);
+bool SaveFile(const std::vector<uint8_t> &data, const std::string &path, Messages *messages);
 
 bool SaveTextFile(const std::string &data,
                   const std::string &path,
                   Messages *messages);
 
-FILE *fopenUTF8(const char *path,const char *mode);
+FILE *fopenUTF8(const char *path, const char *mode);
 
-bool GetFileDetails(size_t *size,bool *can_write,const char *path);
+bool GetFileDetails(size_t *size, bool *can_write, const char *path);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -75,7 +75,6 @@ bool GetFileDetails(size_t *size,bool *can_write,const char *path);
 //                       Messages *messages);
 
 // std::string SaveGlobalConfig();
-
 
 bool LoadGlobalConfig(Messages *messages);
 bool SaveGlobalConfig(Messages *messages);
@@ -90,8 +89,8 @@ bool SaveGlobalConfig(Messages *messages);
 
 // C++-friendly wrappers around [NSWindow saveFrameUsingName] and
 // [NSWindow setFrameUsingName].
-void SaveCocoaFrameUsingName(void *nswindow,const std::string &name);
-bool SetCocoaFrameUsingName(void *nswindow,const std::string &name);
+void SaveCocoaFrameUsingName(void *nswindow, const std::string &name);
+bool SetCocoaFrameUsingName(void *nswindow, const std::string &name);
 
 #endif
 

@@ -1,4 +1,4 @@
-#ifndef HEADER_DE3F3F401AB041929180F37C8DEFC129// -*- mode:c++ -*-
+#ifndef HEADER_DE3F3F401AB041929180F37C8DEFC129 // -*- mode:c++ -*-
 #define HEADER_DE3F3F401AB041929180F37C8DEFC129
 
 //////////////////////////////////////////////////////////////////////////
@@ -22,30 +22,29 @@ struct BBCMicroType;
 // JSON config file.
 
 class BeebConfig {
-public:
+  public:
     struct ROM {
-        const BeebROM *standard_rom=nullptr;
+        const BeebROM *standard_rom = nullptr;
         std::string file_name;
     };
 
-    struct SidewaysROM:
-    public ROM
-    {
-        bool writeable=false;
+    struct SidewaysROM : public ROM {
+        bool writeable = false;
     };
 
     std::string name;
 
-    const BBCMicroType *type=nullptr;
+    const BBCMicroType *type = nullptr;
     ROM os;
     SidewaysROM roms[16];
-    uint8_t keyboard_links=0;
-    const DiscInterfaceDef *disc_interface=nullptr;
-    bool video_nula=true;
-    bool ext_mem=false;
-    bool beeblink=false;
-protected:
-private:
+    uint8_t keyboard_links = 0;
+    const DiscInterfaceDef *disc_interface = nullptr;
+    bool video_nula = true;
+    bool ext_mem = false;
+    bool beeblink = false;
+
+  protected:
+  private:
 };
 
 void InitDefaultBeebConfigs();
@@ -55,7 +54,7 @@ const BeebConfig *GetDefaultBeebConfigByIndex(size_t index);
 
 std::vector<uint8_t> GetDefaultNVRAMContents(const BBCMicroType *type);
 void ResetDefaultNVRAMContents(const BBCMicroType *type);
-void SetDefaultNVRAMContents(const BBCMicroType *type,std::vector<uint8_t> nvram_contents);
+void SetDefaultNVRAMContents(const BBCMicroType *type, std::vector<uint8_t> nvram_contents);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -72,16 +71,17 @@ void SetDefaultNVRAMContents(const BBCMicroType *type,std::vector<uint8_t> nvram
 // sideways RAM bank is initially all zero.
 
 class BeebLoadedConfig {
-public:
+  public:
     BeebConfig config;
 
-    std::shared_ptr<const BeebRomData> os,roms[16];
+    std::shared_ptr<const BeebRomData> os, roms[16];
 
-    static bool Load(BeebLoadedConfig *dest,const BeebConfig &src,Messages *msg);
+    static bool Load(BeebLoadedConfig *dest, const BeebConfig &src, Messages *msg);
 
     void ReuseROMs(const BeebLoadedConfig &oth);
-protected:
-private:
+
+  protected:
+  private:
 };
 
 //////////////////////////////////////////////////////////////////////////

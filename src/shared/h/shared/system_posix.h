@@ -5,8 +5,7 @@
 #define HEADER_143510ED93774B4392FBE08A5298EEC8
 
 #ifdef __cplusplus
-extern "C"
-{
+extern "C" {
 #endif
 
 //////////////////////////////////////////////////////////////////////////

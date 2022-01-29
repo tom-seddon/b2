@@ -1,4 +1,4 @@
-#ifndef HEADER_1D01A764189346A683C7422A889709E4// -*- mode:c++ -*-
+#ifndef HEADER_1D01A764189346A683C7422A889709E4 // -*- mode:c++ -*-
 #define HEADER_1D01A764189346A683C7422A889709E4
 
 //////////////////////////////////////////////////////////////////////////
@@ -34,7 +34,7 @@ extern const std::string HTTP_UTF8_CHARSET;
 //////////////////////////////////////////////////////////////////////////
 
 struct HTTPQueryParameter {
-    std::string key,value;
+    std::string key, value;
 };
 
 // What a crap name... this is the minimum amount of stuff from a
@@ -45,37 +45,38 @@ struct HTTPQueryParameter {
 // the entire HTTPRequest (strings, vectors, map...). Just this little
 // struct is enough.)
 struct HTTPResponseData {
-    uint64_t connection_id=0;
-    bool dump=false;
+    uint64_t connection_id = 0;
+    bool dump = false;
 };
 
 class HTTPRequest {
-public:
+  public:
     HTTPResponseData response_data;
-    std::map<std::string,std::string> headers;
+    std::map<std::string, std::string> headers;
     std::string url;
     std::string url_path;
     std::string url_fragment;
     std::vector<HTTPQueryParameter> query;
-    std::string content_type,content_type_charset;
+    std::string content_type, content_type_charset;
     std::vector<uint8_t> body;
     std::string method;
 
-    HTTPRequest()=default;
+    HTTPRequest() = default;
 
     const std::string *GetHeaderValue(const std::string &key) const;
 
     bool IsPOST() const;
     bool IsGET() const;
-protected:
-private:
+
+  protected:
+  private:
 };
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 class HTTPResponse {
-public:
+  public:
     std::string status;
 
     std::vector<uint8_t> content_vec;
@@ -87,8 +88,8 @@ public:
 
     static HTTPResponse OK();
     static HTTPResponse BadRequest();
-    static HTTPResponse BadRequest(const char *fmt,...) PRINTF_LIKE(1,2);
-    static HTTPResponse BadRequest(const HTTPRequest &request,const char *fmt=nullptr,...) PRINTF_LIKE(2,3);
+    static HTTPResponse BadRequest(const char *fmt, ...) PRINTF_LIKE(1, 2);
+    static HTTPResponse BadRequest(const HTTPRequest &request, const char *fmt = nullptr, ...) PRINTF_LIKE(2, 3);
     static HTTPResponse NotFound();
     static HTTPResponse NotFound(const HTTPRequest &request);
     static HTTPResponse UnsupportedMediaType(const HTTPRequest &request);
@@ -104,51 +105,54 @@ public:
 
     // An HTTPResponse with content and no status implicitly has a
     // status of 200 OK.
-    HTTPResponse(std::string content_type,std::vector<uint8_t> content);
-    HTTPResponse(std::string content_type,std::string content);
+    HTTPResponse(std::string content_type, std::vector<uint8_t> content);
+    HTTPResponse(std::string content_type, std::string content);
 
-    HTTPResponse(std::string status,std::string content_type,std::vector<uint8_t> content);
-    HTTPResponse(std::string status,std::string content_type,std::string content);
-protected:
-private:
+    HTTPResponse(std::string status, std::string content_type, std::vector<uint8_t> content);
+    HTTPResponse(std::string status, std::string content_type, std::string content);
+
+  protected:
+  private:
 };
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 class HTTPHandler {
-public:
-    virtual ~HTTPHandler()=0;
+  public:
+    virtual ~HTTPHandler() = 0;
 
-    virtual bool ThreadHandleRequest(HTTPResponse *response,HTTPServer *server,HTTPRequest &&request)=0;
-protected:
-private:
+    virtual bool ThreadHandleRequest(HTTPResponse *response, HTTPServer *server, HTTPRequest &&request) = 0;
+
+  protected:
+  private:
 };
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 class HTTPServer {
-public:
+  public:
     HTTPServer();
 
     // blocks until HTTP server definitely stopped.
-    virtual ~HTTPServer()=0;
+    virtual ~HTTPServer() = 0;
 
-    HTTPServer(const HTTPServer &)=delete;
-    HTTPServer &operator=(const HTTPServer &)=delete;
+    HTTPServer(const HTTPServer &) = delete;
+    HTTPServer &operator=(const HTTPServer &) = delete;
 
-    HTTPServer(HTTPServer &&)=delete;
-    HTTPServer &operator=(HTTPServer &&)=delete;
+    HTTPServer(HTTPServer &&) = delete;
+    HTTPServer &operator=(HTTPServer &&) = delete;
 
-    virtual bool Start(int port)=0;
+    virtual bool Start(int port) = 0;
 
-    virtual void SetHandler(HTTPHandler *handler)=0;
+    virtual void SetHandler(HTTPHandler *handler) = 0;
 
-    void SendResponse(const HTTPRequest &request,HTTPResponse response);
-    virtual void SendResponse(const HTTPResponseData &response_data,HTTPResponse response)=0;
-protected:
-private:
+    void SendResponse(const HTTPRequest &request, HTTPResponse response);
+    virtual void SendResponse(const HTTPResponseData &response_data, HTTPResponse response) = 0;
+
+  protected:
+  private:
 };
 
 //////////////////////////////////////////////////////////////////////////

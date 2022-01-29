@@ -1,4 +1,4 @@
-#ifndef HEADER_7FB2AFC4A58949F5A9F262E6A5A574A3// -*- mode:c++ -*-
+#ifndef HEADER_7FB2AFC4A58949F5A9F262E6A5A574A3 // -*- mode:c++ -*-
 #define HEADER_7FB2AFC4A58949F5A9F262E6A5A574A3
 
 //////////////////////////////////////////////////////////////////////////
@@ -17,10 +17,8 @@ class Messages;
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-class BeebLinkHTTPHandler:
-public BeebLinkHandler
-{
-public:
+class BeebLinkHTTPHandler : public BeebLinkHandler {
+  public:
     static const std::string DEFAULT_URL;
 
     // Settings shared between all HTTP handlers.
@@ -35,8 +33,9 @@ public:
     bool Init(Messages *msg);
 
     bool GotRequestPacket(std::vector<uint8_t> data) override;
-protected:
-private:
+
+  protected:
+  private:
     struct ThreadState;
 
     std::unique_ptr<ThreadState> m_ts;
@@ -45,10 +44,10 @@ private:
 
     static void Thread(ThreadState *ts);
 
-    BeebLinkHTTPHandler(const BeebLinkHTTPHandler &)=delete;
-    BeebLinkHTTPHandler &operator=(const BeebLinkHTTPHandler &)=delete;
-    BeebLinkHTTPHandler(BeebLinkHTTPHandler &&)=delete;
-    BeebLinkHTTPHandler &operator=(BeebLinkHTTPHandler &&)=delete;
+    BeebLinkHTTPHandler(const BeebLinkHTTPHandler &) = delete;
+    BeebLinkHTTPHandler &operator=(const BeebLinkHTTPHandler &) = delete;
+    BeebLinkHTTPHandler(BeebLinkHTTPHandler &&) = delete;
+    BeebLinkHTTPHandler &operator=(BeebLinkHTTPHandler &&) = delete;
 };
 
 //////////////////////////////////////////////////////////////////////////

@@ -1,4 +1,4 @@
-#ifndef HEADER_A9C1EAC5B2784A7D813F621DAEC22558// -*- mode:c++ -*-
+#ifndef HEADER_A9C1EAC5B2784A7D813F621DAEC22558 // -*- mode:c++ -*-
 #define HEADER_A9C1EAC5B2784A7D813F621DAEC22558
 
 #include "conf.h"
@@ -23,19 +23,19 @@
 
 struct TraceUISettings {
     // Start condition and any arguments.
-    TraceUIStartCondition start=TraceUIStartCondition_Now;
-    uint16_t start_instruction_address=0;
-    uint16_t start_write_address=0;
+    TraceUIStartCondition start = TraceUIStartCondition_Now;
+    uint16_t start_instruction_address = 0;
+    uint16_t start_write_address = 0;
 
     // Stop condition and any arguments.
-    TraceUIStopCondition stop=TraceUIStopCondition_ByRequest;
-    uint64_t stop_num_cycles=0;
-    uint16_t stop_write_address=0;
+    TraceUIStopCondition stop = TraceUIStopCondition_ByRequest;
+    uint64_t stop_num_cycles = 0;
+    uint16_t stop_write_address = 0;
 
     // Other stuff.
-    uint32_t flags=0;
-    bool unlimited=false;
-    TraceCyclesOutput cycles_output=TraceCyclesOutput_Relative;
+    uint32_t flags = 0;
+    bool unlimited = false;
+    TraceCyclesOutput cycles_output = TraceCyclesOutput_Relative;
 };
 
 TraceUISettings GetDefaultTraceUISettings();

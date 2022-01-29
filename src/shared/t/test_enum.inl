@@ -1,13 +1,13 @@
 #define ENAME TestEnum
 EBEGIN()
 EN(A)
-ENV(B,50)
+ENV(B, 50)
 EPN(C)
-EPNV(D,100)
+EPNV(D, 100)
 EQN(E)
-EQNV(F,150)
+EQNV(F, 150)
 EQPN(G)
-EQPNV(H,200)
+EQPNV(H, 200)
 EEND()
 #undef ENAME
 

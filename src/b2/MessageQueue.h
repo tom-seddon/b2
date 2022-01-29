@@ -19,14 +19,14 @@
 //////////////////////////////////////////////////////////////////////////
 
 // T needs to be default-constructible and movable.
-template<class T>
+template <class T>
 class MessageQueue {
-public:
-    MessageQueue()=default;
+  public:
+    MessageQueue() = default;
 
     void SetName(std::string name) {
         (void)name;
-        MUTEX_SET_NAME(m_mutex,name+" mutex");
+        MUTEX_SET_NAME(m_mutex, name + " mutex");
     }
 
     // Pushed messages are retrieved in the order they were submitted.
@@ -38,14 +38,14 @@ public:
         m_cv.notify_one();
     }
 
-    template<class SeqIt>
-    void ProducerPush(SeqIt begin,SeqIt end) {
+    template <class SeqIt>
+    void ProducerPush(SeqIt begin, SeqIt end) {
         std::lock_guard<Mutex> lock(m_mutex);
 
-        for(auto &&it=begin;it!=end;++it) {
+        for (auto &&it = begin; it != end; ++it) {
             m_messages.push_back(Message(std::move(*it)));
         }
-        
+
         m_cv.notify_one();
     }
 
@@ -61,20 +61,20 @@ public:
     // benefit.
     //
     // Valid indexes are from 0 to 63.
-    void ProducerPushIndexed(uint8_t index,T message) {
-        ASSERT(index<64);
+    void ProducerPushIndexed(uint8_t index, T message) {
+        ASSERT(index < 64);
 
         uint64_t old_indexed_messages_pending;
         {
             std::lock_guard<Mutex> lock(m_mutex);
 
-            old_indexed_messages_pending=m_indexed_messages_pending;
+            old_indexed_messages_pending = m_indexed_messages_pending;
 
-            m_indexed_messages[index]=Message(std::move(message));
-            m_indexed_messages_pending|=1ull<<index;
+            m_indexed_messages[index] = Message(std::move(message));
+            m_indexed_messages_pending |= 1ull << index;
         }
 
-        if(old_indexed_messages_pending==0) {
+        if (old_indexed_messages_pending == 0) {
             m_cv.notify_one();
         }
     }
@@ -82,8 +82,8 @@ public:
     void ConsumerWaitForMessages(std::vector<T> *messages) {
         std::unique_lock<Mutex> lock(m_mutex);
 
-        for(;;) {
-            if(this->PollLocked(messages)) {
+        for (;;) {
+            if (this->PollLocked(messages)) {
                 return;
             }
 
@@ -97,19 +97,18 @@ public:
         return this->PollLocked(messages);
     }
 
-protected:
-private:
+  protected:
+  private:
     struct Message {
         T value;
 #if MESSAGE_QUEUE_TRACK_LATENCY
-        uint64_t push_ticks=GetCurrentTickCount();
+        uint64_t push_ticks = GetCurrentTickCount();
 #endif
 
-        Message()=default;
+        Message() = default;
 
-        explicit Message(T value_):
-            value(std::move(value_))
-        {
+        explicit Message(T value_)
+            : value(std::move(value_)) {
         }
     };
 
@@ -117,52 +116,52 @@ private:
     ConditionVariable m_cv;
     std::vector<Message> m_messages;
     Message m_indexed_messages[64];
-    uint64_t m_indexed_messages_pending=0;
+    uint64_t m_indexed_messages_pending = 0;
 #if MESSAGE_QUEUE_TRACK_LATENCY
-    uint64_t m_total_latency=0;
-    uint64_t m_min_latency=UINT64_MAX;
-    uint64_t m_max_latency=0;
+    uint64_t m_total_latency = 0;
+    uint64_t m_min_latency = UINT64_MAX;
+    uint64_t m_max_latency = 0;
 #endif
 
     bool PollLocked(std::vector<T> *messages) {
-        bool any=false;
-        uint64_t push_ticks=UINT64_MAX;
+        bool any = false;
+        uint64_t push_ticks = UINT64_MAX;
 
-        if(!m_messages.empty()) {
+        if (!m_messages.empty()) {
 #if MESSAGE_QUEUE_TRACK_LATENCY
-            push_ticks=m_messages[0].push_ticks;
+            push_ticks = m_messages[0].push_ticks;
 #endif
 
-            for(Message &message:m_messages) {
+            for (Message &message : m_messages) {
                 messages->push_back(std::move(message.value));
             }
 
             m_messages.clear();
-            any=true;
+            any = true;
         }
 
-        if(m_indexed_messages_pending!=0) {
-            for(uint8_t i=0;i<64;++i) {
-                if(m_indexed_messages_pending&1ull<<i) {
-                    Message *m=&m_indexed_messages[i];
+        if (m_indexed_messages_pending != 0) {
+            for (uint8_t i = 0; i < 64; ++i) {
+                if (m_indexed_messages_pending & 1ull << i) {
+                    Message *m = &m_indexed_messages[i];
 
 #if MESSAGE_QUEUE_TRACK_LATENCY
-                    push_ticks=std::min(push_ticks,m->push_ticks);
+                    push_ticks = std::min(push_ticks, m->push_ticks);
 #endif
                     messages->push_back(std::move(m->value));
 
-                    any=true;
+                    any = true;
                 }
             }
 
-            m_indexed_messages_pending=0;
+            m_indexed_messages_pending = 0;
         }
 
 #if MESSAGE_QUEUE_TRACK_LATENCY
-        uint64_t latency=GetCurrentTickCount()-push_ticks;
-        m_total_latency+=latency;
-        m_min_latency=std::min(m_min_latency,latency);
-        m_max_latency=std::max(m_max_latency,latency);
+        uint64_t latency = GetCurrentTickCount() - push_ticks;
+        m_total_latency += latency;
+        m_min_latency = std::min(m_min_latency, latency);
+        m_max_latency = std::max(m_max_latency, latency);
 #endif
 
         return any;

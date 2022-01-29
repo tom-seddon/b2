@@ -16,9 +16,9 @@
 //#define SOUND_CLOCK_DIVIDER (1<<SOUND_CLOCK_SHIFT)
 
 // Sound chip clock frequency.
-#define SOUND_CLOCK_HZ (2000000>>SOUND_CLOCK_SHIFT)
+#define SOUND_CLOCK_HZ (2000000 >> SOUND_CLOCK_SHIFT)
 
-#define SOUND_CLOCKS_FROM_MS(N) (SOUND_CLOCK_HZ*(N)/1000)
+#define SOUND_CLOCKS_FROM_MS(N) (SOUND_CLOCK_HZ * (N) / 1000)
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

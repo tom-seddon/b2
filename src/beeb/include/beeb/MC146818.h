@@ -21,14 +21,14 @@ class Trace;
 //////////////////////////////////////////////////////////////////////////
 
 class MC146818 {
-public:
-    static const size_t RAM_SIZE=50;
+  public:
+    static const size_t RAM_SIZE = 50;
 
 #include <shared/pushwarn_bitfields.h>
     struct ABits {
-        uint8_t rs:4;
-        uint8_t dv:3;
-        uint8_t uip:1;
+        uint8_t rs : 4;
+        uint8_t dv : 3;
+        uint8_t uip : 1;
     };
 #include <shared/popwarn.h>
 
@@ -39,14 +39,14 @@ public:
 
 #include <shared/pushwarn_bitfields.h>
     struct BBits {
-        uint8_t dse:1;
-        uint8_t mil:1;//24H
-        uint8_t dm:1;
-        uint8_t sqwe:1;
-        uint8_t uie:1;
-        uint8_t aie:1;
-        uint8_t pie:1;
-        uint8_t set:1;
+        uint8_t dse : 1;
+        uint8_t mil : 1; //24H
+        uint8_t dm : 1;
+        uint8_t sqwe : 1;
+        uint8_t uie : 1;
+        uint8_t aie : 1;
+        uint8_t pie : 1;
+        uint8_t set : 1;
     };
 #include <shared/popwarn.h>
 
@@ -55,14 +55,13 @@ public:
         BBits bits;
     };
 
-
 #include <shared/pushwarn_bitfields.h>
     struct CBits {
-        uint8_t _:4;
-        uint8_t uf:1;
-        uint8_t af:1;
-        uint8_t pf:1;
-        uint8_t irqf:1;
+        uint8_t _ : 4;
+        uint8_t uf : 1;
+        uint8_t af : 1;
+        uint8_t pf : 1;
+        uint8_t irqf : 1;
     };
 #include <shared/popwarn.h>
 
@@ -73,8 +72,8 @@ public:
 
 #include <shared/pushwarn_bitfields.h>
     struct DBits {
-        uint8_t _:7;
-        uint8_t vrt:1;
+        uint8_t _ : 7;
+        uint8_t vrt : 1;
     };
 #include <shared/popwarn.h>
 
@@ -108,8 +107,8 @@ public:
 
     MC146818();
 
-    MC146818(const MC146818 &)=default;
-    MC146818(MC146818 &&)=default;
+    MC146818(const MC146818 &) = default;
+    MC146818(MC146818 &&) = default;
 
 #if BBCMICRO_TRACE
     void SetTrace(Trace *t);
@@ -127,7 +126,7 @@ public:
     // - hours_24h: 0-23
     // - minutes: 0-59
     // - seconds: 0-59
-    void SetTime(int year,int month,int day_of_month,int day_of_week,int hours_24h,int minutes,int seconds);
+    void SetTime(int year, int month, int day_of_month, int day_of_week, int hours_24h, int minutes, int seconds);
 
     uint8_t Read();
 
@@ -149,26 +148,27 @@ public:
     // The clock runs at emulated speed, rather than being tied to the
     // host clock.
     void Update();
-protected:
-private:
-    Registers m_regs={};
-    uint8_t m_reg=0;
-    uint32_t m_counter=0;
+
+  protected:
+  private:
+    Registers m_regs = {};
+    uint8_t m_reg = 0;
+    uint32_t m_counter = 0;
 #if BBCMICRO_TRACE
-    Trace *m_trace=nullptr;
+    Trace *m_trace = nullptr;
 #endif
 
     int GetTimeValue(uint8_t value);
-    void SetTimeValue(uint8_t *dest,int value);
-    void SetClampedTimeValue(uint8_t *dest,int value,int min_value,int max_value);
-    int IncTimeValue(uint8_t *value,int max_value,int reset_value);
+    void SetTimeValue(uint8_t *dest, int value);
+    void SetClampedTimeValue(uint8_t *dest, int value, int min_value, int max_value);
+    int IncTimeValue(uint8_t *value, int max_value, int reset_value);
     int GetHours();
     void SetHours(int h);
     int IncHours();
     int IncDay();
 };
 
-CHECK_SIZEOF(MC146818::Registers,64);
+CHECK_SIZEOF(MC146818::Registers, 64);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

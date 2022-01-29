@@ -5,10 +5,10 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-int DownloadFile(char **result,const char *url,int force_download) {
-    (void)url,(void)force_download;
+int DownloadFile(char **result, const char *url, int force_download) {
+    (void)url, (void)force_download;
 
-    *result=strdup("this build does not support HTTP downloads");
+    *result = strdup("this build does not support HTTP downloads");
     return -1;
 }
 

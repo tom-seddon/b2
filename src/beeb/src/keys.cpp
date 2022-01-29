@@ -10,15 +10,15 @@
 //////////////////////////////////////////////////////////////////////////
 
 int IsNumericKeypadKey(BeebKey beeb_key) {
-    ASSERT((int)beeb_key>=0&&(int)beeb_key<128);
+    ASSERT((int)beeb_key >= 0 && (int)beeb_key < 128);
 
-    if(beeb_key<0) {
+    if (beeb_key < 0) {
         return 0;
     }
 
-    int8_t column=beeb_key&0xf;
+    int8_t column = beeb_key & 0xf;
 
-    if(column>=10&&column<=14) {
+    if (column >= 10 && column <= 14) {
         return true;
     } else {
         return false;

@@ -51,8 +51,8 @@ EEND()
 
 #define ENAME BeebThreadHardResetFlag
 EBEGIN()
-EPNV(Boot,1<<0)
-EPNV(Run,1<<1)
+EPNV(Boot, 1 << 0)
+EPNV(Run, 1 << 1)
 EEND()
 #undef ENAME
 

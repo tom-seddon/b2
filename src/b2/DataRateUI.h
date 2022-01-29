@@ -1,4 +1,4 @@
-#ifndef HEADER_8E9F48F66B734BF09EFD8580786ECA18// -*- mode:c++ -*-
+#ifndef HEADER_8E9F48F66B734BF09EFD8580786ECA18 // -*- mode:c++ -*-
 #define HEADER_8E9F48F66B734BF09EFD8580786ECA18
 
 //////////////////////////////////////////////////////////////////////////
@@ -22,17 +22,17 @@ class SettingsUI;
 // checks.
 
 class TimerDef {
-public:
+  public:
     const std::string name;
 
-    explicit TimerDef(std::string name,TimerDef *parent=nullptr);
+    explicit TimerDef(std::string name, TimerDef *parent = nullptr);
     ~TimerDef();
 
-    TimerDef(const TimerDef &)=delete;
-    TimerDef &operator=(const TimerDef &)=delete;
+    TimerDef(const TimerDef &) = delete;
+    TimerDef &operator=(const TimerDef &) = delete;
 
-    TimerDef(TimerDef &&)=delete;
-    TimerDef &operator=(TimerDef &&)=delete;
+    TimerDef(TimerDef &&) = delete;
+    TimerDef &operator=(TimerDef &&) = delete;
 
     void Reset();
 
@@ -42,11 +42,12 @@ public:
     void AddTicks(uint64_t num_ticks);
 
     void DoImGui();
-protected:
-private:
-    TimerDef *m_parent=nullptr;
+
+  protected:
+  private:
+    TimerDef *m_parent = nullptr;
     std::vector<TimerDef *> m_children;
-    
+
     std::atomic<uint64_t> m_total_num_ticks{0};
     std::atomic<uint64_t> m_num_samples{0};
 };
@@ -55,29 +56,29 @@ private:
 //////////////////////////////////////////////////////////////////////////
 
 class Timer {
-public:
-    explicit inline Timer(TimerDef *def):
-    m_def(def),
-    m_begin_ticks(GetCurrentTickCount())
-    {
+  public:
+    explicit inline Timer(TimerDef *def)
+        : m_def(def)
+        , m_begin_ticks(GetCurrentTickCount()) {
     }
 
     inline ~Timer() {
-        uint64_t end_ticks=GetCurrentTickCount();
+        uint64_t end_ticks = GetCurrentTickCount();
 
-        m_def->AddTicks(end_ticks-m_begin_ticks);
+        m_def->AddTicks(end_ticks - m_begin_ticks);
     }
 
-    Timer(const Timer &)=delete;
-    Timer &operator=(const Timer &)=delete;
+    Timer(const Timer &) = delete;
+    Timer &operator=(const Timer &) = delete;
 
     // (could be implemented if required.)
-    Timer(Timer &&)=delete;
-    Timer &operator=(Timer &&)=delete;
-protected:
-private:
-    TimerDef *m_def=nullptr;
-    uint64_t m_begin_ticks=0;
+    Timer(Timer &&) = delete;
+    Timer &operator=(Timer &&) = delete;
+
+  protected:
+  private:
+    TimerDef *m_def = nullptr;
+    uint64_t m_begin_ticks = 0;
 };
 
 //////////////////////////////////////////////////////////////////////////

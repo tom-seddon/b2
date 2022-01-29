@@ -9,9 +9,9 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static const ImVec4 INFO_COLOUR(1.f,1.f,1.f,1.f);
-static const ImVec4 WARNING_COLOUR(1.f,1.f,0.f,1.f);
-static const ImVec4 ERROR_COLOUR(1.f,0.f,0.f,1.f);
+static const ImVec4 INFO_COLOUR(1.f, 1.f, 1.f, 1.f);
+static const ImVec4 WARNING_COLOUR(1.f, 1.f, 0.f, 1.f);
+static const ImVec4 ERROR_COLOUR(1.f, 0.f, 0.f, 1.f);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -19,30 +19,28 @@ static const ImVec4 ERROR_COLOUR(1.f,0.f,0.f,1.f);
 void ImGuiMessageListMessage(const MessageList::Message *m) {
     ImGuiStyleColourPusher pusher;
 
-    switch(m->type) {
+    switch (m->type) {
     case MessageType_Info:
-        pusher.Push(ImGuiCol_Text,INFO_COLOUR);
+        pusher.Push(ImGuiCol_Text, INFO_COLOUR);
         break;
 
     case MessageType_Warning:
-        pusher.Push(ImGuiCol_Text,WARNING_COLOUR);
+        pusher.Push(ImGuiCol_Text, WARNING_COLOUR);
         break;
 
     case MessageType_Error:
-        pusher.Push(ImGuiCol_Text,ERROR_COLOUR);
+        pusher.Push(ImGuiCol_Text, ERROR_COLOUR);
         break;
     }
 
-    ImGui::TextUnformatted(m->text.c_str(),m->text.c_str()+m->text.size());
+    ImGui::TextUnformatted(m->text.c_str(), m->text.c_str() + m->text.size());
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-class MessagesUI:
-    public SettingsUI
-{
-public:
+class MessagesUI : public SettingsUI {
+  public:
     MessagesUI(std::shared_ptr<MessageList> message_list);
 
     void DoImGui() override;
@@ -50,8 +48,9 @@ public:
     bool OnClose() override;
 
     const CommandTable *GetCommandTable() const override;
-protected:
-private:
+
+  protected:
+  private:
     std::shared_ptr<MessageList> m_message_list;
 
     void Copy();
@@ -63,24 +62,21 @@ private:
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-ObjectCommandTable<MessagesUI> MessagesUI::ms_command_table("Messages Window",{
-    {{"copy","Copy"},&MessagesUI::Copy},
-    {{"clear","Clear"},&MessagesUI::Clear}
-});
+ObjectCommandTable<MessagesUI> MessagesUI::ms_command_table("Messages Window", {{{"copy", "Copy"}, &MessagesUI::Copy},
+                                                                                {{"clear", "Clear"}, &MessagesUI::Clear}});
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-MessagesUI::MessagesUI(std::shared_ptr<MessageList> message_list):
-    m_message_list(std::move(message_list))
-{
+MessagesUI::MessagesUI(std::shared_ptr<MessageList> message_list)
+    : m_message_list(std::move(message_list)) {
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 void MessagesUI::DoImGui() {
-    CommandContext cc(this,this->GetCommandTable());
+    CommandContext cc(this, this->GetCommandTable());
     //cc_stack->Push(m_occ);
 
     cc.DoButton("clear");
@@ -89,7 +85,7 @@ void MessagesUI::DoImGui() {
 
     cc.DoButton("copy");
 
-    ImGui::BeginChild("",ImVec2(),true);
+    ImGui::BeginChild("", ImVec2(), true);
 
     m_message_list->ForEachMessage(&ImGuiMessageListMessage);
 
@@ -114,16 +110,16 @@ const CommandTable *MessagesUI::GetCommandTable() const {
 //////////////////////////////////////////////////////////////////////////
 
 void MessagesUI::Copy() {
-    ImGuiIO &io=ImGui::GetIO();
+    ImGuiIO &io = ImGui::GetIO();
 
     std::string text;
 
     m_message_list->ForEachMessage(
         [&text](const MessageList::Message *m) {
-        text+=m->text;
-    });
+            text += m->text;
+        });
 
-    (*io.SetClipboardTextFn)(io.ClipboardUserData,text.c_str());
+    (*io.SetClipboardTextFn)(io.ClipboardUserData, text.c_str());
 }
 
 //////////////////////////////////////////////////////////////////////////

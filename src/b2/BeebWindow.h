@@ -1,4 +1,4 @@
-#ifndef HEADER_33477416E2224FD8A7F0B58AC38F831D// -*- mode:c++ -*-
+#ifndef HEADER_33477416E2224FD8A7F0B58AC38F831D // -*- mode:c++ -*-
 #define HEADER_33477416E2224FD8A7F0B58AC38F831D
 
 //////////////////////////////////////////////////////////////////////////
@@ -53,7 +53,7 @@ class FileMenuItem;
 //////////////////////////////////////////////////////////////////////////
 
 struct BeebWindowTextureDataVersion {
-    uint64_t version=0;
+    uint64_t version = 0;
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -63,23 +63,23 @@ struct BeebWindowTextureDataVersion {
 // of the initial config name in BeebWindowInitArguments. Something needs
 // fixing...
 struct BeebWindowSettings {
-    uint64_t popups=0;
+    uint64_t popups = 0;
 
     std::string dock_config;
 
-    float bbc_volume=0.f;
-    float disc_volume=0.f;
-    bool power_on_tone=true;
+    float bbc_volume = 0.f;
+    float disc_volume = 0.f;
+    bool power_on_tone = true;
 
-    bool display_auto_scale=true;
-    bool correct_aspect_ratio=true;
-    float display_manual_scale=1.f;
-    bool display_filter=true;
-    bool display_interlace=false;
+    bool display_auto_scale = true;
+    bool correct_aspect_ratio = true;
+    float display_manual_scale = 1.f;
+    bool display_filter = true;
+    bool display_interlace = false;
 
-    const BeebKeymap *keymap=nullptr;
+    const BeebKeymap *keymap = nullptr;
 
-    BeebWindowLEDsPopupMode leds_popup_mode=BeebWindowLEDsPopupMode_Auto;
+    BeebWindowLEDsPopupMode leds_popup_mode = BeebWindowLEDsPopupMode_Auto;
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -88,20 +88,20 @@ struct BeebWindowSettings {
 // TODO - there are items that only apply to the first window, and they should
 // probably go somewhere else...
 struct BeebWindowInitArguments {
-public:
+  public:
     // SDL_AudioDeviceID of device to play to. The window doesn't
     // create the audio device, but it needs to know which ID to use
     // so it can respond to the appropriate callback.
-    uint32_t sound_device=0;
+    uint32_t sound_device = 0;
 
     // Sound playback details.
-    SDL_AudioSpec sound_spec={};
+    SDL_AudioSpec sound_spec = {};
 
     // Name for the window.
     std::string name;
 
     // If set, reset windows. Only ever set for the first window created.
-    bool reset_windows=false;
+    bool reset_windows = false;
 
 #if SYSTEM_OSX
 
@@ -117,13 +117,13 @@ public:
 
 #endif
 
-//    // If set, the emulator is initially paused.
-//    //
-//    // (This isn't actually terribly useful, because there's no way to
-//    // then unpause it from the public API - but the flag has to go
-//    // somewhere, and it has to funnel through CreateBeebWindow, so...
-//    // here it is.)
-//    bool initially_paused=false;
+    //    // If set, the emulator is initially paused.
+    //    //
+    //    // (This isn't actually terribly useful, because there's no way to
+    //    // then unpause it from the public API - but the flag has to go
+    //    // somewhere, and it has to funnel through CreateBeebWindow, so...
+    //    // here it is.)
+    //    bool initially_paused=false;
 
     // When INITIAL_STATE is non-null, it is used as the initial state
     // for the window; otherwise, DEFAULT_CONFIG will be used as the
@@ -148,7 +148,7 @@ public:
     //
     // (If the initiating window has gone away, messages will be
     // printed to Messages::stdio.)
-    uint32_t initiating_window_id=0;
+    uint32_t initiating_window_id = 0;
 
     // If non-empty, name of the initial keymap to select.
     //
@@ -158,7 +158,7 @@ public:
 
     // When USE_SETTINGS is true, copy new window's settings from
     // SETTINGS. Otherwise, use BeebWindow::defaults.
-    bool use_settings=false;
+    bool use_settings = false;
     BeebWindowSettings settings;
 
     // Initial disc images, if any, for the drives. Only set for the first
@@ -167,17 +167,17 @@ public:
 
     // If set, try to autoboot. Only set for the first window created - the
     // value comes from the --boot command line option.
-    bool boot=false;
+    bool boot = false;
 };
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 class BeebWindow {
-public:
+  public:
     struct VBlankRecord {
-        uint64_t num_ticks=0;
-        size_t num_video_units=0;
+        uint64_t num_ticks = 0;
+        size_t num_video_units = 0;
     };
 
     class OptionsUI;
@@ -204,13 +204,13 @@ public:
 
     void HandleSDLKeyEvent(const SDL_KeyboardEvent &event);
 
-    void SetSDLMouseWheelState(int x,int y);
+    void SetSDLMouseWheelState(int x, int y);
     void HandleSDLTextInput(const char *text);
     void HandleSDLMouseMotionEvent(const SDL_MouseMotionEvent &event);
 
-    void ThreadFillAudioBuffer(SDL_AudioDeviceID audio_device_id,float *mix_buffer,size_t num_samples);
+    void ThreadFillAudioBuffer(SDL_AudioDeviceID audio_device_id, float *mix_buffer, size_t num_samples);
 
-    bool HandleVBlank(VBlankMonitor *vblank_monitor,void *display_data,uint64_t ticks);
+    bool HandleVBlank(VBlankMonitor *vblank_monitor, void *display_data, uint64_t ticks);
 
     bool HandleVBlank(uint64_t ticks);
 
@@ -246,8 +246,9 @@ public:
     bool HardReset(const BeebConfig &config);
 
     const std::string &GetConfigName() const;
-protected:
-private:
+
+  protected:
+  private:
     struct SettingsUIMetadata;
 
     struct DriveState {
@@ -263,42 +264,42 @@ private:
     std::string m_name;
 
     // SDLstuff.
-    SDL_Window *m_window=nullptr;
-    SDL_Renderer *m_renderer=nullptr;
-    SDL_PixelFormat *m_pixel_format=nullptr;
+    SDL_Window *m_window = nullptr;
+    SDL_Renderer *m_renderer = nullptr;
+    SDL_PixelFormat *m_pixel_format = nullptr;
 
 #if SYSTEM_WINDOWS
-    void *m_hwnd=nullptr;
+    void *m_hwnd = nullptr;
 #elif SYSTEM_OSX
-    void *m_nswindow=nullptr;
+    void *m_nswindow = nullptr;
 #elif SYSTEM_LINUX
 #include <shared/pshpack1.h>
     struct WindowPlacementData {
-        uint8_t maximized=0;
-        int x=INT_MIN,y=INT_MIN;
-        int width=0,height=0;
+        uint8_t maximized = 0;
+        int x = INT_MIN, y = INT_MIN;
+        int width = 0, height = 0;
     };
 #include <shared/poppack.h>
 #endif
     std::vector<VBlankRecord> m_vblank_records;
-    size_t m_vblank_index=0;
-    uint64_t m_last_vblank_ticks=0;
+    size_t m_vblank_index = 0;
+    uint64_t m_last_vblank_ticks = 0;
 
     // TV output.
     TVOutput m_tv;
-    SDL_Texture *m_tv_texture=nullptr;
+    SDL_Texture *m_tv_texture = nullptr;
 
-    float m_blend_amt=0.f;
+    float m_blend_amt = 0.f;
 
     // Audio output
-    SDL_AudioDeviceID m_sound_device=0;
+    SDL_AudioDeviceID m_sound_device = 0;
 
-    bool m_prefer_shortcuts=false;
+    bool m_prefer_shortcuts = false;
 
     // number of emulated us that had passed at the time of the last
     // title update.
-    uint64_t m_last_title_update_2MHz_cycles=0;
-    uint64_t m_last_title_update_ticks=0;
+    uint64_t m_last_title_update_2MHz_cycles = 0;
+    uint64_t m_last_title_update_ticks = 0;
 
     // copy of BeebThread state
     DriveState m_drives[NUM_DRIVES];
@@ -316,7 +317,7 @@ private:
     //
     // This is a pretty crazy data type, but there's only so many keys
     // you can press per unit time.
-    std::map<uint32_t,std::set<BeebKeySym>> m_beeb_keysyms_by_keycode;
+    std::map<uint32_t, std::set<BeebKeySym>> m_beeb_keysyms_by_keycode;
 
     // Buffer for SDL keyboard events, so they can be handled as part of
     // the usual update.
@@ -326,50 +327,50 @@ private:
 
     //
     //bool m_ui=false;
-    bool m_pushed_window_padding=false;
-    ImGuiStuff *m_imgui_stuff=nullptr;
+    bool m_pushed_window_padding = false;
+    ImGuiStuff *m_imgui_stuff = nullptr;
 
 #if ENABLE_IMGUI_DEMO
-    bool m_imgui_demo=false;
+    bool m_imgui_demo = false;
 #endif
-    bool m_imgui_dock_debug=false;
+    bool m_imgui_dock_debug = false;
 #if STORE_DRAWLISTS
-    bool m_imgui_drawlists=false;
+    bool m_imgui_drawlists = false;
 #endif
-    bool m_imgui_debug=false;
-    bool m_imgui_metrics=false;
+    bool m_imgui_debug = false;
+    bool m_imgui_metrics = false;
 
     std::vector<std::string> m_display_size_options;
 
     std::unique_ptr<SettingsUI> m_popups[BeebWindowPopupType_MaxValue];
 
-    bool m_messages_popup_ui_active=false;
-    uint64_t m_messages_popup_ticks=0;
-    uint32_t m_leds=0;
+    bool m_messages_popup_ui_active = false;
+    uint64_t m_messages_popup_ticks = 0;
+    uint32_t m_leds = 0;
 
-    bool m_leds_popup_ui_active=false;
-    uint64_t m_leds_popup_ticks=0;
+    bool m_leds_popup_ui_active = false;
+    uint64_t m_leds_popup_ticks = 0;
 
 #if BBCMICRO_DEBUGGER
-    bool m_test_pattern=false;
-    mutable bool m_debug_halted=false;
-    mutable bool m_got_debug_halted=false;
+    bool m_test_pattern = false;
+    mutable bool m_debug_halted = false;
+    mutable bool m_got_debug_halted = false;
 #endif
 
     //
     std::shared_ptr<MessageList> m_message_list;
-    uint64_t m_msg_last_num_messages_printed=0;
-    uint64_t m_msg_last_num_errors_and_warnings_printed=0;
+    uint64_t m_msg_last_num_messages_printed = 0;
+    uint64_t m_msg_last_num_errors_and_warnings_printed = 0;
 #if VIDEO_TRACK_METADATA
-    bool m_got_mouse_pixel_unit=false;
-    VideoDataUnit m_mouse_pixel_unit={};
+    bool m_got_mouse_pixel_unit = false;
+    VideoDataUnit m_mouse_pixel_unit = {};
 #endif
 
-    SDL_Point m_mouse_pos={-1,-1};
+    SDL_Point m_mouse_pos = {-1, -1};
 
 #if HTTP_SERVER
     struct HTTPPoke {
-        uint32_t addr=0;
+        uint32_t addr = 0;
         std::vector<uint8_t> data;
     };
 
@@ -386,42 +387,42 @@ private:
         ConditionVariable done_cv;
 
         // set if main thread wants update thread to stop.
-        bool stop=false;
+        bool stop = false;
 
         // set by main thread to request update. Reset by update thread when
         // embarking on update.
-        bool update=false;
-        OutputDataBuffer<VideoDataUnit> *update_video_output=nullptr;
-        TVOutput *update_tv=nullptr;
-        bool update_inhibit=false;
-        void *update_dest_pixels=nullptr;
-        size_t update_dest_pitch=0;
+        bool update = false;
+        OutputDataBuffer<VideoDataUnit> *update_video_output = nullptr;
+        TVOutput *update_tv = nullptr;
+        bool update_inhibit = false;
+        void *update_dest_pixels = nullptr;
+        size_t update_dest_pitch = 0;
 
         // set by update thread during update.
-        uint64_t update_num_units_consumed=0;
+        uint64_t update_num_units_consumed = 0;
 
         // reset by main thread before requesting update. Set by update thread when
         // update done.
-        bool done=false;
+        bool done = false;
     };
 
     UpdateTVTextureThreadState m_update_tv_texture_state;
     std::thread m_update_tv_texture_thread;
-    bool m_update_tv_texture_thread_enabled=false;
+    bool m_update_tv_texture_thread_enabled = false;
 
-    const CommandContext m_cc{this,&ms_command_table};
+    const CommandContext m_cc{this, &ms_command_table};
 
     bool InitInternal();
     static void UpdateTVTextureThread(UpdateTVTextureThreadState *state);
     bool DoImGui(uint64_t ticks);
-    bool HandleCommandKey(uint32_t keycode,const CommandContext *ccs,size_t num_ccs);
+    bool HandleCommandKey(uint32_t keycode, const CommandContext *ccs, size_t num_ccs);
     bool DoMenuUI();
     CommandContext DoSettingsUI();
-    void DoPopupUI(uint64_t now,int output_width,int output_height);
+    void DoPopupUI(uint64_t now, int output_width, int output_height);
     void DoFileMenu();
-    void DoDiscDriveSubMenu(int drive,const std::shared_ptr<const DiscImage> &disc_image);
-    void DoDiscImageSubMenu(int drive,bool boot);
-    void DoDiscImageSubMenuItem(int drive,std::shared_ptr<DiscImage> disc_image,FileMenuItem *item,bool boot);
+    void DoDiscDriveSubMenu(int drive, const std::shared_ptr<const DiscImage> &disc_image);
+    void DoDiscImageSubMenu(int drive, bool boot);
+    void DoDiscImageSubMenuItem(int drive, std::shared_ptr<DiscImage> disc_image, FileMenuItem *item, bool boot);
     void DoEditMenu();
     void DoHardwareMenu();
     void DoKeyboardMenu();
@@ -433,27 +434,27 @@ private:
     void HardReset();
     void SaveState();
     bool SaveStateIsEnabled() const;
-    bool HandleBeebKey(const SDL_Keysym &keysym,bool state);
+    bool HandleBeebKey(const SDL_Keysym &keysym, bool state);
     bool RecreateTexture();
     void Exit();
     void CleanUpRecentFilesLists();
     void ResetDockWindows();
     void ClearConsole();
     void PrintSeparator();
-    static size_t ConsumeTVTexture(OutputDataBuffer<VideoDataUnit> *video_output,TVOutput *tv,bool inhibit_update);
+    static size_t ConsumeTVTexture(OutputDataBuffer<VideoDataUnit> *video_output, TVOutput *tv, bool inhibit_update);
     bool InhibitUpdateTVTexture() const;
-    void BeginUpdateTVTexture(bool threaded,void *dest_pixels,int dest_pitch);
-    void EndUpdateTVTexture(bool threaded,VBlankRecord *vblank_record,void *dest_pixels,int dest_pitch);
+    void BeginUpdateTVTexture(bool threaded, void *dest_pixels, int dest_pitch);
+    void EndUpdateTVTexture(bool threaded, VBlankRecord *vblank_record, void *dest_pixels, int dest_pitch);
     VBlankRecord *NewVBlankRecord(uint64_t ticks);
     bool DoBeebDisplayUI();
 
-    template<BeebWindowPopupType>
+    template <BeebWindowPopupType>
     void TogglePopupCommand();
 
-    template<BeebWindowPopupType>
+    template <BeebWindowPopupType>
     bool IsPopupCommandTicked() const;
 
-    template<BeebWindowPopupType>
+    template <BeebWindowPopupType>
     static ObjectCommandTable<BeebWindow>::Initializer GetTogglePopupCommand();
 
     void Paste();
@@ -461,9 +462,9 @@ private:
     void DoPaste(bool add_return);
     bool IsPasteTicked() const;
 
-    template<bool IS_TEXT>
+    template <bool IS_TEXT>
     void CopyOSWRCH();
-    void SetClipboardData(std::vector<uint8_t> data,bool is_text);
+    void SetClipboardData(std::vector<uint8_t> data, bool is_text);
     bool IsCopyOSWRCHTicked() const;
 
     void CopyBASIC();

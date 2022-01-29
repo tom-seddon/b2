@@ -13,20 +13,20 @@
 
 // TODO - Basically a duplicate of code in load_save.cpp
 static std::string GetUTF8String(const std::wstring &str) {
-    if(str.size()>INT_MAX) {
+    if (str.size() > INT_MAX) {
         return "";
     }
 
-    int n=WideCharToMultiByte(CP_UTF8,0,str.data(),(int)str.size(),nullptr,0,nullptr,nullptr);
-    if(n==0) {
+    int n = WideCharToMultiByte(CP_UTF8, 0, str.data(), (int)str.size(), nullptr, 0, nullptr, nullptr);
+    if (n == 0) {
         return "";
     }
 
     std::vector<char> buffer;
     buffer.resize(n);
-    WideCharToMultiByte(CP_UTF8,0,str.data(),(int)str.size(),buffer.data(),(int)buffer.size(),nullptr,nullptr);
+    WideCharToMultiByte(CP_UTF8, 0, str.data(), (int)str.size(), buffer.data(), (int)buffer.size(), nullptr, nullptr);
 
-    return std::string(buffer.begin(),buffer.end());
+    return std::string(buffer.begin(), buffer.end());
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -34,20 +34,20 @@ static std::string GetUTF8String(const std::wstring &str) {
 
 // TODO - Basically a duplicate of code in load_save.cpp
 static std::wstring GetWideString(const std::string &str) {
-    if(str.size()>INT_MAX) {
+    if (str.size() > INT_MAX) {
         return L"";
     }
 
-    int n=MultiByteToWideChar(CP_UTF8,0,str.data(),(int)str.size(),nullptr,0);
-    if(n==0) {
+    int n = MultiByteToWideChar(CP_UTF8, 0, str.data(), (int)str.size(), nullptr, 0);
+    if (n == 0) {
         return L"";
     }
 
     std::vector<wchar_t> buffer;
     buffer.resize(n);
-    MultiByteToWideChar(CP_UTF8,0,str.data(),(int)str.size(),buffer.data(),(int)buffer.size());
+    MultiByteToWideChar(CP_UTF8, 0, str.data(), (int)str.size(), buffer.data(), (int)buffer.size());
 
-    return std::wstring(buffer.begin(),buffer.end());
+    return std::wstring(buffer.begin(), buffer.end());
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -56,20 +56,20 @@ static std::wstring GetWideString(const std::string &str) {
 static std::wstring GetFiltersWin32(const std::vector<OpenFileDialog::Filter> &filters) {
     std::wstring result;
 
-    for(const OpenFileDialog::Filter &filter:filters) {
+    for (const OpenFileDialog::Filter &filter : filters) {
         std::string extensions;
 
-        for(size_t i=0;i<filter.extensions.size();++i) {
-            if(i>0) {
-                extensions+=";";
+        for (size_t i = 0; i < filter.extensions.size(); ++i) {
+            if (i > 0) {
+                extensions += ";";
             }
 
-            extensions+="*"+filter.extensions[i];
+            extensions += "*" + filter.extensions[i];
         }
 
-        result+=GetWideString(filter.title+" ("+extensions+")");
+        result += GetWideString(filter.title + " (" + extensions + ")");
         result.push_back(0);
-        result+=GetWideString(extensions);
+        result += GetWideString(extensions);
         result.push_back(0);
     }
 
@@ -83,25 +83,24 @@ static std::string DoFileDialogWindows(const std::vector<OpenFileDialog::Filter>
                                        const std::string &default_path,
                                        DWORD flags,
                                        const std::wstring &default_ext,
-                                       BOOL (APIENTRY *fn)(LPOPENFILENAMEW))
-{
-    std::wstring filters_win32=GetFiltersWin32(filters);
-    std::wstring wdefault_path=GetWideString(default_path);
+                                       BOOL(APIENTRY *fn)(LPOPENFILENAMEW)) {
+    std::wstring filters_win32 = GetFiltersWin32(filters);
+    std::wstring wdefault_path = GetWideString(default_path);
 
     OPENFILENAMEW ofn{};
     wchar_t file_name[MAX_PATH]{};
 
-    ofn.lStructSize=sizeof ofn;
-    ofn.lpstrFile=file_name;
-    ofn.nMaxFile=sizeof file_name;
-    ofn.lpstrFilter=filters_win32.c_str();
-    ofn.nFilterIndex=1;
-    ofn.lpstrInitialDir=wdefault_path.empty()?nullptr:wdefault_path.c_str();
-    ofn.Flags=flags;
-    ofn.lpstrDefExt=default_ext.empty()?nullptr:default_ext.c_str();
+    ofn.lStructSize = sizeof ofn;
+    ofn.lpstrFile = file_name;
+    ofn.nMaxFile = sizeof file_name;
+    ofn.lpstrFilter = filters_win32.c_str();
+    ofn.nFilterIndex = 1;
+    ofn.lpstrInitialDir = wdefault_path.empty() ? nullptr : wdefault_path.c_str();
+    ofn.Flags = flags;
+    ofn.lpstrDefExt = default_ext.empty() ? nullptr : default_ext.c_str();
 
-    int ret=(*fn)(&ofn);
-    if(ret==0) {
+    int ret = (*fn)(&ofn);
+    if (ret == 0) {
         return "";
     } else {
         return GetUTF8String(file_name);
@@ -112,11 +111,10 @@ static std::string DoFileDialogWindows(const std::vector<OpenFileDialog::Filter>
 //////////////////////////////////////////////////////////////////////////
 
 std::string OpenFileDialogWindows(const std::vector<OpenFileDialog::Filter> &filters,
-                                  const std::string &default_path)
-{
+                                  const std::string &default_path) {
     return DoFileDialogWindows(filters,
                                default_path,
-                               OFN_PATHMUSTEXIST|OFN_NOCHANGEDIR|OFN_FILEMUSTEXIST,
+                               OFN_PATHMUSTEXIST | OFN_NOCHANGEDIR | OFN_FILEMUSTEXIST,
                                L"",
                                &GetOpenFileNameW);
 }
@@ -125,10 +123,9 @@ std::string OpenFileDialogWindows(const std::vector<OpenFileDialog::Filter> &fil
 //////////////////////////////////////////////////////////////////////////
 
 std::string SaveFileDialogWindows(const std::vector<OpenFileDialog::Filter> &filters,
-                                  const std::string &default_path)
-{
+                                  const std::string &default_path) {
     std::string default_ext;
-    bool got_default_ext=false;
+    bool got_default_ext = false;
 
     // Not only is lpstrDefExt prety restricted, but it doesn't even
     // appear to work in any useful fashion :( - GetSaveFileName is
@@ -169,8 +166,8 @@ std::string SaveFileDialogWindows(const std::vector<OpenFileDialog::Filter> &fil
 
     return DoFileDialogWindows(filters,
                                default_path,
-                               OFN_PATHMUSTEXIST|OFN_NOCHANGEDIR,
-                               got_default_ext?GetWideString(default_ext):L"",
+                               OFN_PATHMUSTEXIST | OFN_NOCHANGEDIR,
+                               got_default_ext ? GetWideString(default_ext) : L"",
                                &GetSaveFileNameW);
 }
 
@@ -180,52 +177,50 @@ std::string SaveFileDialogWindows(const std::vector<OpenFileDialog::Filter> &fil
 std::string SelectFolderDialogWindows(const std::string &default_path) {
     CComPtr<IFileDialog> f;
 
-    if(FAILED(CoCreateInstance(CLSID_FileOpenDialog,
-                               nullptr,
-                               CLSCTX_INPROC_SERVER,
-                               IID_IFileDialog,
-                               (void **)&f)))
-    {
+    if (FAILED(CoCreateInstance(CLSID_FileOpenDialog,
+                                nullptr,
+                                CLSCTX_INPROC_SERVER,
+                                IID_IFileDialog,
+                                (void **)&f))) {
         return "";
     }
 
     DWORD options;
     f->GetOptions(&options);
-    f->SetOptions(options|FOS_PICKFOLDERS);
+    f->SetOptions(options | FOS_PICKFOLDERS);
 
-    if(!default_path.empty()) {
+    if (!default_path.empty()) {
         CComPtr<IShellItem> default_path_item;
 
-        std::wstring wdefault_path=GetWideString(default_path);
-        if(!wdefault_path.empty()) {
-            if(SUCCEEDED(SHCreateItemFromParsingName(wdefault_path.c_str(),
-                                                     nullptr,
-                                                     IID_IShellItem,
-                                                     (void **)&default_path_item)))
-            {
+        std::wstring wdefault_path = GetWideString(default_path);
+        if (!wdefault_path.empty()) {
+            if (SUCCEEDED(SHCreateItemFromParsingName(wdefault_path.c_str(),
+                                                      nullptr,
+                                                      IID_IShellItem,
+                                                      (void **)&default_path_item))) {
                 f->SetFolder(default_path_item);
             }
         }
     }
 
-    if(FAILED(f->Show(nullptr))) {
+    if (FAILED(f->Show(nullptr))) {
         return "";
     }
 
     CComPtr<IShellItem> item;
-    if(FAILED(f->GetResult(&item))) {
+    if (FAILED(f->GetResult(&item))) {
         return "";
     }
 
     WCHAR *item_wname;
-    if(FAILED(item->GetDisplayName(SIGDN_DESKTOPABSOLUTEPARSING,&item_wname))) {
+    if (FAILED(item->GetDisplayName(SIGDN_DESKTOPABSOLUTEPARSING, &item_wname))) {
         return "";
     }
 
-    std::string result_utf8=GetUTF8String(item_wname);
+    std::string result_utf8 = GetUTF8String(item_wname);
 
     CoTaskMemFree(item_wname);
-    item_wname=nullptr;
+    item_wname = nullptr;
 
     return result_utf8;
 }

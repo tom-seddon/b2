@@ -14,9 +14,8 @@
 
 bool GenerateThumbnailJob::Init(std::unique_ptr<BBCMicro> beeb,
                                 int num_frames,
-                                const SDL_PixelFormat *pixel_format)
-{
-    return this->Init(&beeb,nullptr,num_frames,pixel_format);
+                                const SDL_PixelFormat *pixel_format) {
+    return this->Init(&beeb, nullptr, num_frames, pixel_format);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -24,38 +23,37 @@ bool GenerateThumbnailJob::Init(std::unique_ptr<BBCMicro> beeb,
 
 bool GenerateThumbnailJob::Init(std::shared_ptr<const BeebState> beeb_state,
                                 int num_frames,
-                                const SDL_PixelFormat *pixel_format)
-{
-    return this->Init(nullptr,&beeb_state,num_frames,pixel_format);
+                                const SDL_PixelFormat *pixel_format) {
+    return this->Init(nullptr, &beeb_state, num_frames, pixel_format);
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 void GenerateThumbnailJob::ThreadExecute() {
-    if(!m_beeb) {
-        m_beeb=m_beeb_state->CloneBBCMicro();
+    if (!m_beeb) {
+        m_beeb = m_beeb_state->CloneBBCMicro();
     }
 
     // Discard the first frame - it'll probably be junk.
-    BBCMicro *beeb=m_beeb.get();
+    BBCMicro *beeb = m_beeb.get();
 
     SoundDataUnit sunit;
     VideoDataUnit vunits[2];
 
-    for(int i=0;i<m_num_frames;++i) {
-        while(m_tv_output.IsInVerticalBlank()) {
-            beeb->Update(&vunits[0],&sunit);
-            beeb->Update(&vunits[1],&sunit);
+    for (int i = 0; i < m_num_frames; ++i) {
+        while (m_tv_output.IsInVerticalBlank()) {
+            beeb->Update(&vunits[0], &sunit);
+            beeb->Update(&vunits[1], &sunit);
 
-            m_tv_output.Update(vunits,2);
+            m_tv_output.Update(vunits, 2);
         }
 
-        while(!m_tv_output.IsInVerticalBlank()) {
-            beeb->Update(&vunits[0],&sunit);
-            beeb->Update(&vunits[1],&sunit);
+        while (!m_tv_output.IsInVerticalBlank()) {
+            beeb->Update(&vunits[0], &sunit);
+            beeb->Update(&vunits[1], &sunit);
 
-            m_tv_output.Update(vunits,2);
+            m_tv_output.Update(vunits, 2);
         }
     }
 
@@ -77,19 +75,18 @@ const void *GenerateThumbnailJob::GetTexturePixels() const {
 bool GenerateThumbnailJob::Init(std::unique_ptr<BBCMicro> *beeb,
                                 std::shared_ptr<const BeebState> *beeb_state,
                                 int num_frames,
-                                const SDL_PixelFormat *pixel_format)
-{
-    ASSERT(!!beeb!=!!beeb_state);
+                                const SDL_PixelFormat *pixel_format) {
+    ASSERT(!!beeb != !!beeb_state);
 
-    m_tv_output.Init(pixel_format->Rshift,pixel_format->Gshift,pixel_format->Bshift);
+    m_tv_output.Init(pixel_format->Rshift, pixel_format->Gshift, pixel_format->Bshift);
 
-    if(beeb) {
-        m_beeb=std::move(*beeb);
+    if (beeb) {
+        m_beeb = std::move(*beeb);
     } else {
-        m_beeb_state=std::move(*beeb_state);
+        m_beeb_state = std::move(*beeb_state);
     }
 
-    m_num_frames=num_frames;
+    m_num_frames = num_frames;
 
     return true;
 }

@@ -1,4 +1,4 @@
-#ifndef HEADER_CEB00A5BE87C4598882E08BD09DE979B// -*- mode:c++ -*-
+#ifndef HEADER_CEB00A5BE87C4598882E08BD09DE979B // -*- mode:c++ -*-
 #define HEADER_CEB00A5BE87C4598882E08BD09DE979B
 
 //////////////////////////////////////////////////////////////////////////
@@ -23,10 +23,8 @@ struct SDL_PixelFormat;
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-class GenerateThumbnailJob:
-    public JobQueue::Job
-{
-public:
+class GenerateThumbnailJob : public JobQueue::Job {
+  public:
     //GenerateThumbnailJob()=default;
 
     bool Init(std::unique_ptr<BBCMicro> beeb,
@@ -36,16 +34,17 @@ public:
     bool Init(std::shared_ptr<const BeebState> beeb_state,
               int num_frames,
               const SDL_PixelFormat *pixel_format);
-    
+
     void ThreadExecute() override;
 
     const void *GetTexturePixels() const;
-private:
+
+  private:
     std::shared_ptr<const BeebState> m_beeb_state;
     std::unique_ptr<BBCMicro> m_beeb;
     TVOutput m_tv_output;
-    int m_num_frames=2;
-    
+    int m_num_frames = 2;
+
     bool Init(std::unique_ptr<BBCMicro> *beeb,
               std::shared_ptr<const BeebState> *beeb_state,
               int num_frames,

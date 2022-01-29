@@ -32,9 +32,9 @@ uint8_t ExtMem::GetAddressH() const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-uint8_t ExtMem::ReadAddressL(void *c_,M6502Word a) {
+uint8_t ExtMem::ReadAddressL(void *c_, M6502Word a) {
     (void)a;
-    auto c=(ExtMem *)c_;
+    auto c = (ExtMem *)c_;
 
     return c->m_address_l;
 }
@@ -42,19 +42,19 @@ uint8_t ExtMem::ReadAddressL(void *c_,M6502Word a) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void ExtMem::WriteAddressL(void *c_,M6502Word a,uint8_t value) {
+void ExtMem::WriteAddressL(void *c_, M6502Word a, uint8_t value) {
     (void)a;
-    auto c=(ExtMem *)c_;
+    auto c = (ExtMem *)c_;
 
-    c->m_address_l=value;
+    c->m_address_l = value;
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-uint8_t ExtMem::ReadAddressH(void *c_,M6502Word a) {
+uint8_t ExtMem::ReadAddressH(void *c_, M6502Word a) {
     (void)a;
-    auto c=(ExtMem *)c_;
+    auto c = (ExtMem *)c_;
 
     return c->m_address_h;
 }
@@ -62,24 +62,24 @@ uint8_t ExtMem::ReadAddressH(void *c_,M6502Word a) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void ExtMem::WriteAddressH(void *c_,M6502Word a,uint8_t value) {
+void ExtMem::WriteAddressH(void *c_, M6502Word a, uint8_t value) {
     (void)a;
-    auto c=(ExtMem *)c_;
+    auto c = (ExtMem *)c_;
 
-    c->m_address_h=value;
+    c->m_address_h = value;
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-uint8_t ExtMem::ReadData(void *c_,M6502Word a) {
-    auto c=(ExtMem *)c_;
+uint8_t ExtMem::ReadData(void *c_, M6502Word a) {
+    auto c = (ExtMem *)c_;
 
-    uint32_t address=0;
+    uint32_t address = 0;
 
-    address+=(uint32_t)c->m_address_h<<16;
-    address+=(uint32_t)c->m_address_l<<8;
-    address+=(uint32_t)a.b.l;
+    address += (uint32_t)c->m_address_h << 16;
+    address += (uint32_t)c->m_address_l << 8;
+    address += (uint32_t)a.b.l;
 
     return c->m_ram_buffer[address];
 }
@@ -87,23 +87,23 @@ uint8_t ExtMem::ReadData(void *c_,M6502Word a) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void ExtMem::WriteData(void *c_,M6502Word a,uint8_t value) {
-    auto c=(ExtMem *)c_;
+void ExtMem::WriteData(void *c_, M6502Word a, uint8_t value) {
+    auto c = (ExtMem *)c_;
 
-    uint32_t address=0;
+    uint32_t address = 0;
 
-    address+=(uint32_t)c->m_address_h<<16;
-    address+=(uint32_t)c->m_address_l<<8;
-    address+=(uint32_t)a.b.l;
+    address += (uint32_t)c->m_address_h << 16;
+    address += (uint32_t)c->m_address_l << 8;
+    address += (uint32_t)a.b.l;
 
-    c->m_ram_buffer[address]=value;
+    c->m_ram_buffer[address] = value;
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-uint8_t ExtMem::ReadMemory(const void *c_,uint32_t a) {
-    auto c=(ExtMem *)c_;
+uint8_t ExtMem::ReadMemory(const void *c_, uint32_t a) {
+    auto c = (ExtMem *)c_;
 
     return c->m_ram_buffer[a];
 }
@@ -111,10 +111,10 @@ uint8_t ExtMem::ReadMemory(const void *c_,uint32_t a) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void ExtMem::WriteMemory(void *c_,uint32_t a,uint8_t value) {
-    auto c=(ExtMem *)c_;
+void ExtMem::WriteMemory(void *c_, uint32_t a, uint8_t value) {
+    auto c = (ExtMem *)c_;
 
-    c->m_ram_buffer[a]=value;
+    c->m_ram_buffer[a] = value;
 }
 
 //////////////////////////////////////////////////////////////////////////

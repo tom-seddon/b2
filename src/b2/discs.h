@@ -1,4 +1,4 @@
-#ifndef HEADER_55B128FF8A9A4C24A90C69C91EF05499// -*- mode:c++ -*-
+#ifndef HEADER_55B128FF8A9A4C24A90C69C91EF05499 // -*- mode:c++ -*-
 #define HEADER_55B128FF8A9A4C24A90C69C91EF05499
 
 //////////////////////////////////////////////////////////////////////////
@@ -12,7 +12,7 @@ struct DiscGeometry;
 //////////////////////////////////////////////////////////////////////////
 
 struct Disc {
-    std::string name;//shown in UI
+    std::string name; //shown in UI
     std::string path;
     //bool bootable=false;//not relevant for blank disks
     const DiscGeometry *geometry;

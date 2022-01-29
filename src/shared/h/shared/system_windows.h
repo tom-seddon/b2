@@ -10,7 +10,7 @@
 
 #ifdef _WIN32_WINNT
 // 0x600 = Vista+; 0x601 = Win7+; 0x602 = Win8+;
-#if _WIN32_WINNT<0x601
+#if _WIN32_WINNT < 0x601
 #error _WIN32_WINNT should probably be 0x601 or better
 #endif
 #else
@@ -36,7 +36,7 @@ const char *GetLastErrorDescription(void);
 const char *GetErrorDescription(DWORD error);
 
 /* Windows version of backtrace. */
-int backtrace(void **array,int size);
+int backtrace(void **array, int size);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

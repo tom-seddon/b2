@@ -33,29 +33,28 @@ VBlankMonitor::~VBlankMonitor() {
 
 std::unique_ptr<VBlankMonitor> CreateVBlankMonitor(VBlankMonitor::Handler *handler,
                                                    bool force_default,
-                                                   Messages *messages)
-{
+                                                   Messages *messages) {
     std::unique_ptr<VBlankMonitor> v;
 
-    if(force_default) {
-        v=CreateVBlankMonitorDefault(std::chrono::microseconds(20000));
+    if (force_default) {
+        v = CreateVBlankMonitorDefault(std::chrono::microseconds(20000));
     }
 
-    if(!v) {
+    if (!v) {
 #if SYSTEM_WINDOWS
-        v=CreateVBlankMonitorWindows();
+        v = CreateVBlankMonitorWindows();
 #elif SYSTEM_OSX
-        v=CreateVBlankMonitorOSX();
+        v = CreateVBlankMonitorOSX();
 #else
-        v=CreateVBlankMonitorDefault(std::chrono::microseconds(20000));
+        v = CreateVBlankMonitorDefault(std::chrono::microseconds(20000));
 #endif
     }
 
-    if(!v) {
+    if (!v) {
         return nullptr;
     }
 
-    if(!v->Init(handler,messages)) {
+    if (!v->Init(handler, messages)) {
         return nullptr;
     }
 

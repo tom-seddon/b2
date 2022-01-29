@@ -1,4 +1,4 @@
-#ifndef HEADER_A54A7518B6494AC4BF71C370A1BA6040//-*- mode:c++ -*-
+#ifndef HEADER_A54A7518B6494AC4BF71C370A1BA6040 //-*- mode:c++ -*-
 #define HEADER_A54A7518B6494AC4BF71C370A1BA6040
 
 //////////////////////////////////////////////////////////////////////////
@@ -7,11 +7,11 @@
 #ifdef _MSC_VER
 
 #pragma warning(push)
-#pragma warning(disable:4458)//declaration of 'identifier' hides class member
-#pragma warning(disable:4267)//'var' : conversion from 'size_t' to 'type', possible loss of data
-#pragma warning(disable:4305)//'identifier' : truncation from 'type1' to 'type2'
-#pragma warning(disable:4100)//'identifier' : unreferenced formal parameter
-#pragma warning(disable:4800)//'type' : forcing value to bool 'true' or 'false' (performance warning)
+#pragma warning(disable : 4458) //declaration of 'identifier' hides class member
+#pragma warning(disable : 4267) //'var' : conversion from 'size_t' to 'type', possible loss of data
+#pragma warning(disable : 4305) //'identifier' : truncation from 'type1' to 'type2'
+#pragma warning(disable : 4100) //'identifier' : unreferenced formal parameter
+#pragma warning(disable : 4800) //'type' : forcing value to bool 'true' or 'false' (performance warning)
 
 #elif defined __GNUC__
 
@@ -20,7 +20,7 @@
 #pragma GCC diagnostic ignored "-Wsign-conversion"
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 
-#if (defined __GNUC__)&&!(defined __clang__)
+#if (defined __GNUC__) && !(defined __clang__)
 #pragma GCC diagnostic ignored "-Wmisleading-indentation"
 #endif
 
@@ -70,15 +70,15 @@ extern const ImGuiStyle IMGUI_DEFAULT_STYLE;
 // "stuff"? Unfortunately all the good names were already taken.
 
 class ImGuiStuff {
-public:
+  public:
     explicit ImGuiStuff(SDL_Renderer *renderer);
     ~ImGuiStuff();
 
-    ImGuiStuff(const ImGuiStuff &)=delete;
-    ImGuiStuff &operator=(const ImGuiStuff &)=delete;
+    ImGuiStuff(const ImGuiStuff &) = delete;
+    ImGuiStuff &operator=(const ImGuiStuff &) = delete;
 
-    ImGuiStuff(ImGuiStuff &&)=delete;
-    ImGuiStuff &operator=(ImGuiStuff &&)=delete;
+    ImGuiStuff(ImGuiStuff &&) = delete;
+    ImGuiStuff &operator=(ImGuiStuff &&) = delete;
 
     bool Init();
 
@@ -94,7 +94,7 @@ public:
     // Temporary (?) fix for disappearing mousewheel messages.
     void SetMouseWheel(int delta);
 
-    void SetKeyDown(uint32_t scancode,bool state);
+    void SetKeyDown(uint32_t scancode, bool state);
     void AddInputCharactersUTF8(const char *text);
 
     bool LoadDockContext(const std::string &config);
@@ -105,26 +105,27 @@ public:
     void DoStoredDrawListWindow();
 #endif
     void DoDebugWindow();
-protected:
-private:
-    SDL_Renderer *m_renderer=nullptr;
-    ImGuiContext *m_context=nullptr;
-    ImGui::DockContext *m_dock_context=nullptr;
-    bool m_reset_dock_context=false;
-    bool m_in_frame=false;
-    struct SDL_Texture *m_font_texture=nullptr;
-    uint64_t m_last_new_frame_ticks=0;
-    int m_next_wheel=0;
-    ImFontAtlas *m_original_font_atlas=nullptr;
+
+  protected:
+  private:
+    SDL_Renderer *m_renderer = nullptr;
+    ImGuiContext *m_context = nullptr;
+    ImGui::DockContext *m_dock_context = nullptr;
+    bool m_reset_dock_context = false;
+    bool m_in_frame = false;
+    struct SDL_Texture *m_font_texture = nullptr;
+    uint64_t m_last_new_frame_ticks = 0;
+    int m_next_wheel = 0;
+    ImFontAtlas *m_original_font_atlas = nullptr;
     std::string m_imgui_ini_path;
     std::string m_imgui_log_txt_path;
-    SDL_Cursor *m_cursors[ImGuiMouseCursor_COUNT]={};
+    SDL_Cursor *m_cursors[ImGuiMouseCursor_COUNT] = {};
 #if STORE_DRAWLISTS
     struct StoredDrawCmd {
-        bool callback=false;
-        int texture_width=0;
-        int texture_height=0;
-        unsigned num_indices=0;
+        bool callback = false;
+        int texture_width = 0;
+        int texture_height = 0;
+        unsigned num_indices = 0;
     };
 
     struct StoredDrawList {
@@ -142,90 +143,94 @@ private:
 //////////////////////////////////////////////////////////////////////////
 
 class ImGuiContextSetter {
-public:
+  public:
     explicit ImGuiContextSetter(const ImGuiStuff *stuff);
     ~ImGuiContextSetter();
 
-    ImGuiContextSetter(const ImGuiContextSetter &)=delete;
-    ImGuiContextSetter &operator=(const ImGuiContextSetter &)=delete;
+    ImGuiContextSetter(const ImGuiContextSetter &) = delete;
+    ImGuiContextSetter &operator=(const ImGuiContextSetter &) = delete;
 
-    ImGuiContextSetter(ImGuiContextSetter &&)=delete;
-    ImGuiContextSetter &operator=(ImGuiContextSetter &&)=delete;
-protected:
-private:
-    ImGuiContext *m_old_imgui_context=nullptr;
-    ImGui::DockContext *m_old_dock_context=nullptr;
+    ImGuiContextSetter(ImGuiContextSetter &&) = delete;
+    ImGuiContextSetter &operator=(ImGuiContextSetter &&) = delete;
+
+  protected:
+  private:
+    ImGuiContext *m_old_imgui_context = nullptr;
+    ImGui::DockContext *m_old_dock_context = nullptr;
 };
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 class ImGuiIDPusher {
-public:
-    explicit ImGuiIDPusher(const char* str_id);
-    ImGuiIDPusher(const char* str_id_begin,const char* str_id_end);
-    explicit ImGuiIDPusher(const void* ptr_id);
+  public:
+    explicit ImGuiIDPusher(const char *str_id);
+    ImGuiIDPusher(const char *str_id_begin, const char *str_id_end);
+    explicit ImGuiIDPusher(const void *ptr_id);
     explicit ImGuiIDPusher(int int_id);
     explicit ImGuiIDPusher(uint32_t uint_id);
     ~ImGuiIDPusher();
 
-    ImGuiIDPusher(const ImGuiIDPusher &)=delete;
-    ImGuiIDPusher &operator=(const ImGuiIDPusher &)=delete;
+    ImGuiIDPusher(const ImGuiIDPusher &) = delete;
+    ImGuiIDPusher &operator=(const ImGuiIDPusher &) = delete;
 
     ImGuiIDPusher(ImGuiIDPusher &&);
-    ImGuiIDPusher &operator=(ImGuiIDPusher &&)=delete;
-protected:
-private:
+    ImGuiIDPusher &operator=(ImGuiIDPusher &&) = delete;
+
+  protected:
+  private:
 };
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 class ImGuiItemWidthPusher {
-public:
+  public:
     explicit ImGuiItemWidthPusher(float width);
     ~ImGuiItemWidthPusher();
 
-    ImGuiItemWidthPusher(const ImGuiItemWidthPusher &)=delete;
-    ImGuiItemWidthPusher &operator=(const ImGuiItemWidthPusher &)=delete;
+    ImGuiItemWidthPusher(const ImGuiItemWidthPusher &) = delete;
+    ImGuiItemWidthPusher &operator=(const ImGuiItemWidthPusher &) = delete;
 
     ImGuiItemWidthPusher(ImGuiItemWidthPusher &&);
-    ImGuiItemWidthPusher &operator=(ImGuiItemWidthPusher &&)=delete;
-protected:
-private:
+    ImGuiItemWidthPusher &operator=(ImGuiItemWidthPusher &&) = delete;
+
+  protected:
+  private:
 };
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 class ImGuiStyleColourPusher {
-public:
+  public:
     ImGuiStyleColourPusher();
-    ImGuiStyleColourPusher(ImGuiCol idx0,const ImVec4& col0);
-    ImGuiStyleColourPusher(ImGuiCol idx0,const ImVec4& col0,ImGuiCol idx1,const ImVec4& col1);
-    ImGuiStyleColourPusher(ImGuiCol idx0,const ImVec4& col0,ImGuiCol idx1,const ImVec4& col1,ImGuiCol idx2,const ImVec4& col2);
+    ImGuiStyleColourPusher(ImGuiCol idx0, const ImVec4 &col0);
+    ImGuiStyleColourPusher(ImGuiCol idx0, const ImVec4 &col0, ImGuiCol idx1, const ImVec4 &col1);
+    ImGuiStyleColourPusher(ImGuiCol idx0, const ImVec4 &col0, ImGuiCol idx1, const ImVec4 &col1, ImGuiCol idx2, const ImVec4 &col2);
 
     ~ImGuiStyleColourPusher();
 
     // returns *this.
-    ImGuiStyleColourPusher &Push(ImGuiCol idx,const ImVec4& col);
+    ImGuiStyleColourPusher &Push(ImGuiCol idx, const ImVec4 &col);
 
-    void Pop(int count=1);
+    void Pop(int count = 1);
 
     // standard things...
-    void PushDisabledButtonColours(bool disabled=true);
+    void PushDisabledButtonColours(bool disabled = true);
     void PushDefaultButtonColours();
 
-    void PushDefault(ImGuiCol idx0,ImGuiCol idx1=ImGuiCol_COUNT,ImGuiCol idx2=ImGuiCol_COUNT,ImGuiCol idx3=ImGuiCol_COUNT);
+    void PushDefault(ImGuiCol idx0, ImGuiCol idx1 = ImGuiCol_COUNT, ImGuiCol idx2 = ImGuiCol_COUNT, ImGuiCol idx3 = ImGuiCol_COUNT);
 
-    ImGuiStyleColourPusher(const ImGuiStyleColourPusher &)=delete;
-    ImGuiStyleColourPusher &operator=(const ImGuiStyleColourPusher &)=delete;
+    ImGuiStyleColourPusher(const ImGuiStyleColourPusher &) = delete;
+    ImGuiStyleColourPusher &operator=(const ImGuiStyleColourPusher &) = delete;
 
     ImGuiStyleColourPusher(ImGuiStyleColourPusher &&);
-    ImGuiStyleColourPusher &operator=(ImGuiStyleColourPusher &&)=delete;
-protected:
-private:
-    int m_num_pushes=0;
+    ImGuiStyleColourPusher &operator=(ImGuiStyleColourPusher &&) = delete;
+
+  protected:
+  private:
+    int m_num_pushes = 0;
 
     void PushDefaultInternal(ImGuiCol idx);
 };
@@ -234,25 +239,26 @@ private:
 //////////////////////////////////////////////////////////////////////////
 
 class ImGuiStyleVarPusher {
-public:
+  public:
     ImGuiStyleVarPusher();
-    ImGuiStyleVarPusher(ImGuiStyleVar idx0,float val0);
-    ImGuiStyleVarPusher(ImGuiStyleVar idx0,const ImVec2 &val0);
+    ImGuiStyleVarPusher(ImGuiStyleVar idx0, float val0);
+    ImGuiStyleVarPusher(ImGuiStyleVar idx0, const ImVec2 &val0);
 
     ~ImGuiStyleVarPusher();
 
     // returns *this.
-    ImGuiStyleVarPusher &Push(ImGuiStyleVar idx,float val);
-    ImGuiStyleVarPusher &Push(ImGuiStyleVar idx,const ImVec2 &val);
+    ImGuiStyleVarPusher &Push(ImGuiStyleVar idx, float val);
+    ImGuiStyleVarPusher &Push(ImGuiStyleVar idx, const ImVec2 &val);
 
-    ImGuiStyleVarPusher(const ImGuiStyleVarPusher &)=delete;
-    ImGuiStyleVarPusher &operator=(const ImGuiStyleVarPusher &)=delete;
+    ImGuiStyleVarPusher(const ImGuiStyleVarPusher &) = delete;
+    ImGuiStyleVarPusher &operator=(const ImGuiStyleVarPusher &) = delete;
 
     ImGuiStyleVarPusher(ImGuiStyleVarPusher &&);
-    ImGuiStyleVarPusher &operator=(ImGuiStyleVarPusher &&)=delete;
-protected:
-private:
-    int m_num_pushes=0;
+    ImGuiStyleVarPusher &operator=(ImGuiStyleVarPusher &&) = delete;
+
+  protected:
+  private:
+    int m_num_pushes = 0;
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -265,18 +271,18 @@ private:
 //////////////////////////////////////////////////////////////////////////
 
 // lame name.
-ImRect MakeImRectFromPosAndSize(const ImVec2 &pos,const ImVec2 &size);
+ImRect MakeImRectFromPosAndSize(const ImVec2 &pos, const ImVec2 &size);
 
 // changes position, preserving size.
-void SetImRectPosX(ImRect *rect,float x);
-void SetImRectPosY(ImRect *rect,float y);
-void SetImRectPos(ImRect *rect,const ImVec2 &pos);
-void TranslateImRect(ImRect *rect,const ImVec2 &delta);
+void SetImRectPosX(ImRect *rect, float x);
+void SetImRectPosY(ImRect *rect, float y);
+void SetImRectPos(ImRect *rect, const ImVec2 &pos);
+void TranslateImRect(ImRect *rect, const ImVec2 &delta);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool ImGuiInputText(std::string *new_str,const char *name,const std::string &old_str);
+bool ImGuiInputText(std::string *new_str, const char *name, const std::string &old_str);
 
 // A collapsing header that you can't collapse.
 void ImGuiHeader(const char *str);
@@ -285,30 +291,29 @@ void ImGuiHeader(const char *str);
 //////////////////////////////////////////////////////////////////////////
 
 // The LED colour is the ImGuiCol_CheckMark style colour.
-void ImGuiLED(bool on,const char *str);
-void ImGuiLEDv(bool on,const char *fmt,va_list v);
-void ImGuiLEDf(bool on,const char *fmt,...) PRINTF_LIKE(2,3);
+void ImGuiLED(bool on, const char *str);
+void ImGuiLEDv(bool on, const char *fmt, va_list v);
+void ImGuiLEDf(bool on, const char *fmt, ...) PRINTF_LIKE(2, 3);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-template<class T>
-static bool PRINTF_LIKE(3,4) ImGuiRadioButton(T *value,
-                                              T button_value,
-                                              const char *fmt,...)
-{
+template <class T>
+static bool PRINTF_LIKE(3, 4) ImGuiRadioButton(T *value,
+                                               T button_value,
+                                               const char *fmt, ...) {
     char label[1000];
 
     va_list v;
-    va_start(v,fmt);
-    vsnprintf(label,sizeof label,fmt,v);
+    va_start(v, fmt);
+    vsnprintf(label, sizeof label, fmt, v);
     va_end(v);
 
-    int tmp=*value;
+    int tmp = *value;
 
-    bool result=ImGui::RadioButton(label,&tmp,button_value);
+    bool result = ImGui::RadioButton(label, &tmp, button_value);
 
-    *value=(T)tmp;
+    *value = (T)tmp;
 
     return result;
 }
@@ -318,13 +323,13 @@ static bool PRINTF_LIKE(3,4) ImGuiRadioButton(T *value,
 
 //bool ImGuiBeginFlag(const char *label,uint32_t *open,uint32_t open_mask,ImGuiWindowFlags flags=0);
 
-bool ImGuiMenuItemFlag(const char* label,const char* shortcut,uint32_t *selected,uint32_t selected_mask,bool enabled=true);
+bool ImGuiMenuItemFlag(const char *label, const char *shortcut, uint32_t *selected, uint32_t selected_mask, bool enabled = true);
 
-template<class T>
-bool ImGuiMenuItemEnumValue(const char *label,const char *shortcut,T *value_ptr,T value) {
-    bool flag=*value_ptr==value;
-    if(ImGui::MenuItem(label,shortcut,&flag)) {
-        *value_ptr=value;
+template <class T>
+bool ImGuiMenuItemEnumValue(const char *label, const char *shortcut, T *value_ptr, T value) {
+    bool flag = *value_ptr == value;
+    if (ImGui::MenuItem(label, shortcut, &flag)) {
+        *value_ptr = value;
         return true;
     } else {
         return false;
@@ -334,23 +339,23 @@ bool ImGuiMenuItemEnumValue(const char *label,const char *shortcut,T *value_ptr,
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool ImGuiButton(const char *label,bool enabled=true);
+bool ImGuiButton(const char *label, bool enabled = true);
 
-bool ImGuiConfirmButton(const char *label,bool needs_confirm=true);
+bool ImGuiConfirmButton(const char *label, bool needs_confirm = true);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 // like ImGui::CheckboxFlags, but for any type.
-template<class FlagsType,class MaskType>
-bool ImGuiCheckboxFlags(const char *label,FlagsType *flags,MaskType mask) {
-    bool value=!!(*flags&mask);
+template <class FlagsType, class MaskType>
+bool ImGuiCheckboxFlags(const char *label, FlagsType *flags, MaskType mask) {
+    bool value = !!(*flags & mask);
 
-    if(ImGui::Checkbox(label,&value)) {
-        if(value) {
-            *flags|=mask;
+    if (ImGui::Checkbox(label, &value)) {
+        if (value) {
+            *flags |= mask;
         } else {
-            *flags&=~mask;
+            *flags &= ~mask;
         }
 
         return true;
@@ -381,53 +386,53 @@ bool ImGuiCheckboxFlags(const char *label,FlagsType *flags,MaskType mask) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static constexpr float DEFAULT_PLOT_SCALE_MIN=FLT_MAX;
-static constexpr float DEFAULT_PLOT_SCALE_MAX=FLT_MAX;
-static const ImVec2 DEFAULT_PLOT_GRAPH_SIZE(0.f,0.f);
-static const ImVec2 DEFAULT_PLOT_MARKERS(0.f,0.f);
+static constexpr float DEFAULT_PLOT_SCALE_MIN = FLT_MAX;
+static constexpr float DEFAULT_PLOT_SCALE_MAX = FLT_MAX;
+static const ImVec2 DEFAULT_PLOT_GRAPH_SIZE(0.f, 0.f);
+static const ImVec2 DEFAULT_PLOT_MARKERS(0.f, 0.f);
 
-void ImGuiPlotLines(const char* label,
-                    const float* values,
+void ImGuiPlotLines(const char *label,
+                    const float *values,
                     int values_count,
-                    int values_offset=0,
-                    const char* overlay_text=NULL,
-                    float scale_min=DEFAULT_PLOT_SCALE_MIN,
-                    float scale_max=DEFAULT_PLOT_SCALE_MAX,
-                    ImVec2 graph_size=ImVec2(0,0),
-                    ImVec2 markers=DEFAULT_PLOT_MARKERS,
-                    int stride=sizeof(float));
+                    int values_offset = 0,
+                    const char *overlay_text = NULL,
+                    float scale_min = DEFAULT_PLOT_SCALE_MIN,
+                    float scale_max = DEFAULT_PLOT_SCALE_MAX,
+                    ImVec2 graph_size = ImVec2(0, 0),
+                    ImVec2 markers = DEFAULT_PLOT_MARKERS,
+                    int stride = sizeof(float));
 
-void ImGuiPlotLines(const char* label,
-                    float (*values_getter)(void* data,int idx),
-                    void* data,
+void ImGuiPlotLines(const char *label,
+                    float (*values_getter)(void *data, int idx),
+                    void *data,
                     int values_count,
-                    int values_offset=0,
-                    const char* overlay_text=NULL,
-                    float scale_min=DEFAULT_PLOT_SCALE_MIN,
-                    float scale_max=DEFAULT_PLOT_SCALE_MAX,
-                    ImVec2 graph_size=DEFAULT_PLOT_GRAPH_SIZE,
-                    ImVec2 markers=DEFAULT_PLOT_MARKERS);
+                    int values_offset = 0,
+                    const char *overlay_text = NULL,
+                    float scale_min = DEFAULT_PLOT_SCALE_MIN,
+                    float scale_max = DEFAULT_PLOT_SCALE_MAX,
+                    ImVec2 graph_size = DEFAULT_PLOT_GRAPH_SIZE,
+                    ImVec2 markers = DEFAULT_PLOT_MARKERS);
 
-void ImGuiPlotHistogram(const char* label,
-                        const float* values,
+void ImGuiPlotHistogram(const char *label,
+                        const float *values,
                         int values_count,
-                        int values_offset=0,
-                        const char* overlay_text=NULL,
-                        float scale_min=DEFAULT_PLOT_SCALE_MIN,
-                        float scale_max=DEFAULT_PLOT_SCALE_MAX,
-                        ImVec2 graph_size=ImVec2(0,0),
-                        ImVec2 markers=DEFAULT_PLOT_MARKERS,
-                        int stride=sizeof(float));
+                        int values_offset = 0,
+                        const char *overlay_text = NULL,
+                        float scale_min = DEFAULT_PLOT_SCALE_MIN,
+                        float scale_max = DEFAULT_PLOT_SCALE_MAX,
+                        ImVec2 graph_size = ImVec2(0, 0),
+                        ImVec2 markers = DEFAULT_PLOT_MARKERS,
+                        int stride = sizeof(float));
 
-void ImGuiPlotHistogram(const char* label,
-                        float (*values_getter)(void* data,int idx),
-                        void* data,int values_count,
-                        int values_offset=0,
-                        const char* overlay_text=NULL,
-                        float scale_min=DEFAULT_PLOT_SCALE_MIN,
-                        float scale_max=DEFAULT_PLOT_SCALE_MAX,
-                        ImVec2 graph_size=DEFAULT_PLOT_GRAPH_SIZE,
-                        ImVec2 markers=DEFAULT_PLOT_MARKERS);
+void ImGuiPlotHistogram(const char *label,
+                        float (*values_getter)(void *data, int idx),
+                        void *data, int values_count,
+                        int values_offset = 0,
+                        const char *overlay_text = NULL,
+                        float scale_min = DEFAULT_PLOT_SCALE_MIN,
+                        float scale_max = DEFAULT_PLOT_SCALE_MAX,
+                        ImVec2 graph_size = DEFAULT_PLOT_GRAPH_SIZE,
+                        ImVec2 markers = DEFAULT_PLOT_MARKERS);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

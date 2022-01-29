@@ -1,4 +1,4 @@
-#ifndef HEADER_84A1A75C26C943A189772563D0E0F95C// -*- mode:c++ -*-
+#ifndef HEADER_84A1A75C26C943A189772563D0E0F95C // -*- mode:c++ -*-
 #define HEADER_84A1A75C26C943A189772563D0E0F95C
 
 //////////////////////////////////////////////////////////////////////////
@@ -11,7 +11,7 @@
 
 struct BeebKeymapTraits {
     typedef int8_t ValueType;
-    static const int8_t TERMINATOR=-1;
+    static const int8_t TERMINATOR = -1;
 };
 
 // The mapping is SDL_Scancode<->BeebKey (for scancode mappings) or
@@ -21,10 +21,8 @@ struct BeebKeymapTraits {
 // The keymap holds the keysym/scancode flag, but doesn't otherwise
 // distinguish between the two types of map.
 
-class BeebKeymap:
-    public Keymap<BeebKeymapTraits>
-{
-public:
+class BeebKeymap : public Keymap<BeebKeymapTraits> {
+  public:
     BeebKeymap(std::string name,
                bool is_key_sym_map);
 
@@ -32,10 +30,11 @@ public:
 
     bool GetPreferShortcuts() const;
     void SetPreferShortcuts(bool prefer_shortcuts);
-protected:
-private:
-    bool m_is_key_sym_map=false;
-    bool m_prefer_shortcuts=false;
+
+  protected:
+  private:
+    bool m_is_key_sym_map = false;
+    bool m_prefer_shortcuts = false;
 };
 
 //////////////////////////////////////////////////////////////////////////

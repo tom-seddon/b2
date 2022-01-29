@@ -10,11 +10,10 @@
 
 VideoWriter::VideoWriter(std::shared_ptr<MessageList> message_list,
                          std::string file_name,
-                         size_t format_index):
-    m_format_index(format_index),
-    m_file_name(std::move(file_name)),
-    m_msg(message_list)
-{
+                         size_t format_index)
+    : m_format_index(format_index)
+    , m_file_name(std::move(file_name))
+    , m_msg(message_list) {
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -43,7 +42,7 @@ std::shared_ptr<MessageList> VideoWriter::GetMessageList() const {
 bool CanCreateVideoWriter() {
 #if HAVE_FFMPEG
 
-    if(!CanCreateVideoWriterFFmpeg()) {
+    if (!CanCreateVideoWriterFFmpeg()) {
         return false;
     }
 
@@ -65,8 +64,7 @@ bool CanCreateVideoWriter() {
 
 std::unique_ptr<VideoWriter> CreateVideoWriter(std::shared_ptr<MessageList> message_list,
                                                std::string file_name,
-                                               size_t format_index)
-{
+                                               size_t format_index) {
 #if SYSTEM_WINDOWS
 
     return CreateVideoWriterMF(std::move(message_list),
@@ -87,7 +85,7 @@ std::unique_ptr<VideoWriter> CreateVideoWriter(std::shared_ptr<MessageList> mess
 
 #else
 
-    (void)message_list,(void)file_name,(void)format_index;
+    (void)message_list, (void)file_name, (void)format_index;
 
     return nullptr;
 
@@ -121,7 +119,7 @@ size_t GetNumVideoWriterFormats() {
 //////////////////////////////////////////////////////////////////////////
 
 const VideoWriterFormat *GetVideoWriterFormatByIndex(size_t index) {
-    ASSERT(index<GetNumVideoWriterFormats());
+    ASSERT(index < GetNumVideoWriterFormats());
 
 #if SYSTEM_WINDOWS
 

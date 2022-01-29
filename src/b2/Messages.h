@@ -1,4 +1,4 @@
-#ifndef HEADER_5A0BE1D25080409B836861825A614239// -*- mode:c++ -*-
+#ifndef HEADER_5A0BE1D25080409B836861825A614239 // -*- mode:c++ -*-
 #define HEADER_5A0BE1D25080409B836861825A614239
 
 //////////////////////////////////////////////////////////////////////////
@@ -38,28 +38,26 @@ class Messages;
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-class MessageList:
-    public std::enable_shared_from_this<MessageList>
-{
-public:
+class MessageList : public std::enable_shared_from_this<MessageList> {
+  public:
     struct Message {
         MessageType type;
         uint64_t ticks;
         std::string text;
-        bool seen:1;
+        bool seen : 1;
 
-        Message(MessageType type,uint64_t ticks,std::string text);
+        Message(MessageType type, uint64_t ticks, std::string text);
     };
 
-    explicit MessageList(size_t max_num_messages=500,
-                         bool print_to_stdio=false);
+    explicit MessageList(size_t max_num_messages = 500,
+                         bool print_to_stdio = false);
     ~MessageList();
 
-    MessageList(const MessageList &src)=delete;
-    MessageList &operator=(const MessageList &src)=delete;
+    MessageList(const MessageList &src) = delete;
+    MessageList &operator=(const MessageList &src) = delete;
 
-    MessageList(MessageList &&oth)=delete;
-    MessageList &operator=(MessageList &&oth)=delete;
+    MessageList(MessageList &&oth) = delete;
+    MessageList &operator=(MessageList &&oth) = delete;
 
     // Total number of messages printed.
     uint64_t GetNumMessagesPrinted() const;
@@ -74,7 +72,7 @@ public:
     //
     // The Message is mutable, even if the Messages is const.
     void ForEachMessage(std::function<void(Message *)> fun) const;
-    void ForEachMessage(size_t n,std::function<void(Message *)> fun) const;
+    void ForEachMessage(size_t n, std::function<void(Message *)> fun) const;
 
     // This resets the message print counters.
     void ClearMessages();
@@ -98,44 +96,44 @@ public:
 
     // A global Messages with the stdio flag set.
     static const std::shared_ptr<MessageList> stdio;
-protected:
-private:
-    class Printer:
-        public LogPrinter
-    {
-    public:
+
+  protected:
+  private:
+    class Printer : public LogPrinter {
+      public:
         Printer(MessageList *owner,
                 MessageType type,
                 std::atomic<uint64_t> *counter_ptr);
-        
-        void Print(const char *str,size_t str_len) override;
-    protected:
-    private:
-        MessageList *m_owner=nullptr;
-        MessageType m_type=MessageType_Error;
-        std::atomic<uint64_t> *m_counter_ptr=nullptr;
+
+        void Print(const char *str, size_t str_len) override;
+
+      protected:
+      private:
+        MessageList *m_owner = nullptr;
+        MessageType m_type = MessageType_Error;
+        std::atomic<uint64_t> *m_counter_ptr = nullptr;
     };
 
     Printer m_info_printer;
     Printer m_warning_printer;
     Printer m_error_printer;
-    
+
     mutable Mutex m_mutex;
     mutable std::vector<Message> m_messages;
-    size_t m_head=0;
-    size_t m_max_num_messages=0;
+    size_t m_head = 0;
+    size_t m_max_num_messages = 0;
     std::atomic<uint64_t> m_num_messages_printed;
     std::atomic<uint64_t> m_num_errors_and_warnings_printed;
-    
-    bool m_print_to_stdio=false;
 
-    void AddMessage(MessageType type,const char *str,size_t str_len);
+    bool m_print_to_stdio = false;
+
+    void AddMessage(MessageType type, const char *str, size_t str_len);
     void LockedClearMessages();
-    void LockedForEachMessage(size_t n,std::function<void(Message *)> fun) const;
+    void LockedForEachMessage(size_t n, std::function<void(Message *)> fun) const;
     void LockedFlushMessagesToStdio();
     static FILE *GetStdioFileForMessageType(MessageType type);
     static void PrintMessageToStdio(Message *m);
-    
+
     friend class Messages;
 };
 
@@ -144,23 +142,24 @@ private:
 
 // N.B. - this is quite a large object.
 class Messages {
-public:
-    Log i,w,e;
+  public:
+    Log i, w, e;
 
     // When default-constructed, all three logs are disabled and go to
     // the nowhere printer.
     Messages();
     Messages(std::shared_ptr<MessageList> message_list);
 
-    Messages(const Messages &)=delete;
-    Messages &operator=(const Messages &)=delete;
+    Messages(const Messages &) = delete;
+    Messages &operator=(const Messages &) = delete;
 
-    Messages(Messages &&)=default;
-    Messages &operator=(Messages &&)=default;
+    Messages(Messages &&) = default;
+    Messages &operator=(Messages &&) = default;
 
     std::shared_ptr<MessageList> GetMessageList() const;
-protected:
-private:
+
+  protected:
+  private:
     std::shared_ptr<MessageList> m_message_list;
 };
 

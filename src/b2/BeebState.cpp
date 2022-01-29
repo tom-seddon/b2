@@ -10,17 +10,15 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-BeebState::BeebState(std::unique_ptr<BBCMicro> beeb):
-    BeebState(std::move(beeb),nullptr)
-{
+BeebState::BeebState(std::unique_ptr<BBCMicro> beeb)
+    : BeebState(std::move(beeb), nullptr) {
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-BeebState::BeebState(std::unique_ptr<BBCMicro> beeb,const TVOutput &tv):
-    BeebState(std::move(beeb),&tv)
-{
+BeebState::BeebState(std::unique_ptr<BBCMicro> beeb, const TVOutput &tv)
+    : BeebState(std::move(beeb), &tv) {
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -61,7 +59,7 @@ std::shared_ptr<const DiscImage> BeebState::GetDiscImageByDrive(int drive) const
 //////////////////////////////////////////////////////////////////////////
 
 const void *BeebState::GetTVTextureData() const {
-    if(m_tv_texture_data.empty()) {
+    if (m_tv_texture_data.empty()) {
         return nullptr;
     } else {
         return m_tv_texture_data.data();
@@ -79,19 +77,18 @@ const std::string &BeebState::GetName() const {
 //////////////////////////////////////////////////////////////////////////
 
 void BeebState::SetName(std::string name) {
-    m_name=name;
+    m_name = name;
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-BeebState::BeebState(std::unique_ptr<BBCMicro> beeb,const TVOutput *tv):
-    creation_time(GetUTCTimeNow()),
-    m_beeb(std::move(beeb))
-{
-    if(tv) {
-        m_tv_texture_data.resize(TV_TEXTURE_WIDTH*TV_TEXTURE_HEIGHT);
-        memcpy(m_tv_texture_data.data(),tv->GetTexturePixels(nullptr),TV_TEXTURE_WIDTH*TV_TEXTURE_HEIGHT*4);
+BeebState::BeebState(std::unique_ptr<BBCMicro> beeb, const TVOutput *tv)
+    : creation_time(GetUTCTimeNow())
+    , m_beeb(std::move(beeb)) {
+    if (tv) {
+        m_tv_texture_data.resize(TV_TEXTURE_WIDTH * TV_TEXTURE_HEIGHT);
+        memcpy(m_tv_texture_data.data(), tv->GetTexturePixels(nullptr), TV_TEXTURE_WIDTH * TV_TEXTURE_HEIGHT * 4);
     }
 }
 

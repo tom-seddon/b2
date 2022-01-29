@@ -1,4 +1,4 @@
-#ifndef HEADER_F189E7E3EFB04F5490038430D6E02054// -*- mode:c++ -*-
+#ifndef HEADER_F189E7E3EFB04F5490038430D6E02054 // -*- mode:c++ -*-
 #define HEADER_F189E7E3EFB04F5490038430D6E02054
 
 //////////////////////////////////////////////////////////////////////////
@@ -14,7 +14,7 @@
 #include "keys.inl"
 #include <shared/enum_end.h>
 
-static const uint32_t PCKeyModifier_All=PCKeyModifier_Shift|PCKeyModifier_Ctrl|PCKeyModifier_Alt|PCKeyModifier_Gui|PCKeyModifier_AltGr|PCKeyModifier_NumLock;
+static const uint32_t PCKeyModifier_All = PCKeyModifier_Shift | PCKeyModifier_Ctrl | PCKeyModifier_Alt | PCKeyModifier_Gui | PCKeyModifier_AltGr | PCKeyModifier_NumLock;
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -29,7 +29,7 @@ BeebKeySym GetBeebKeySymByName(const char *name);
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool GetBeebKeyComboForKeySym(BeebKey *beeb_key,BeebShiftState *shift_state,BeebKeySym beeb_sym);
+bool GetBeebKeyComboForKeySym(BeebKey *beeb_key, BeebShiftState *shift_state, BeebKeySym beeb_sym);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

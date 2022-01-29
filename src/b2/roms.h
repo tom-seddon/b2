@@ -1,4 +1,4 @@
-#ifndef HEADER_DDA54DE9045949D18DB52427B057B311// -*- mode:c++ -*-
+#ifndef HEADER_DDA54DE9045949D18DB52427B057B311 // -*- mode:c++ -*-
 #define HEADER_DDA54DE9045949D18DB52427B057B311
 
 //////////////////////////////////////////////////////////////////////////
@@ -18,16 +18,16 @@
 
 struct BeebROM {
     std::string path;
-    std::string name;//shown in UI
+    std::string name; //shown in UI
     StandardROM rom;
 
     std::string GetAssetPath() const;
 };
 
-static const size_t ROM_SIZE=16384;
+static const size_t ROM_SIZE = 16384;
 
 // Ugh... maddening inconsistent capitalization!
-typedef std::array<uint8_t,ROM_SIZE> BeebRomData;
+typedef std::array<uint8_t, ROM_SIZE> BeebRomData;
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

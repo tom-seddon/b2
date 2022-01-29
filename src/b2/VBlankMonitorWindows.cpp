@@ -12,24 +12,22 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-class VBlankMonitorWindows:
-    public VBlankMonitor
-{
-public:
+class VBlankMonitorWindows : public VBlankMonitor {
+  public:
     ~VBlankMonitorWindows() {
         this->ResetDisplayList();
     }
 
-    bool Init(Handler *handler,Messages *messages) {
-        m_handler=handler;
+    bool Init(Handler *handler, Messages *messages) {
+        m_handler = handler;
 
         HRESULT hr;
 
         {
             void *factory;
-            hr=CreateDXGIFactory(IID_IDXGIFactory,&factory);
-            if(FAILED(hr)) {
-                messages->e.f("CreateDXGIFactory failed: %s",GetErrorDescription(hr));
+            hr = CreateDXGIFactory(IID_IDXGIFactory, &factory);
+            if (FAILED(hr)) {
+                messages->e.f("CreateDXGIFactory failed: %s", GetErrorDescription(hr));
                 return false;
             }
 
@@ -39,76 +37,74 @@ public:
         {
             UINT adapter_idx;
             CComPtr<IDXGIAdapter> adapter;
-            for(adapter_idx=0,adapter=NULL;
-                m_factory->EnumAdapters(adapter_idx,&adapter)!=DXGI_ERROR_NOT_FOUND;
-                ++adapter_idx)
-            {
+            for (adapter_idx = 0, adapter = NULL;
+                 m_factory->EnumAdapters(adapter_idx, &adapter) != DXGI_ERROR_NOT_FOUND;
+                 ++adapter_idx) {
                 UINT output_idx;
                 CComPtr<IDXGIOutput> output;
-                for(output_idx=0,output=NULL;
-                    adapter->EnumOutputs(output_idx,&output)!=DXGI_ERROR_NOT_FOUND;
-                    ++output_idx)
-                {
+                for (output_idx = 0, output = NULL;
+                     adapter->EnumOutputs(output_idx, &output) != DXGI_ERROR_NOT_FOUND;
+                     ++output_idx) {
                     DXGI_OUTPUT_DESC desc;
-                    hr=output->GetDesc(&desc);
-                    if(FAILED(hr)) {
+                    hr = output->GetDesc(&desc);
+                    if (FAILED(hr)) {
                         continue;
                     }
 
-                    if(!desc.Monitor) {
+                    if (!desc.Monitor) {
                         continue;
                     }
 
-                    if(!desc.AttachedToDesktop) {
+                    if (!desc.AttachedToDesktop) {
                         continue;
                     }
 
-                    auto &&display=std::make_unique<Display>();
+                    auto &&display = std::make_unique<Display>();
 
-                    display->id=m_next_display_id++;
-                    display->hmonitor=desc.Monitor;
-                    display->vbm=this;
-                    display->output=output;
+                    display->id = m_next_display_id++;
+                    display->hmonitor = desc.Monitor;
+                    display->vbm = this;
+                    display->output = output;
 
-                    display->mi.cbSize=sizeof display->mi;
-                    if(!GetMonitorInfo(display->hmonitor,(MONITORINFO *)&display->mi)) {
-                        memset(&display->mi,0,sizeof display->mi);
+                    display->mi.cbSize = sizeof display->mi;
+                    if (!GetMonitorInfo(display->hmonitor, (MONITORINFO *)&display->mi)) {
+                        memset(&display->mi, 0, sizeof display->mi);
                     }
 
-                    display->data=m_handler->AllocateDisplayData(display->id);
-                    if(!display->data) {
-                        messages->e.f("AllocateDisplayData failed for monitor: %s\n",display->mi.szDevice);
+                    display->data = m_handler->AllocateDisplayData(display->id);
+                    if (!display->data) {
+                        messages->e.f("AllocateDisplayData failed for monitor: %s\n", display->mi.szDevice);
                         return false;
                     }
 
                     m_displays.push_back(std::move(display));
 
-                    output=nullptr;
+                    output = nullptr;
                 }
 
-                adapter=nullptr;
+                adapter = nullptr;
             }
         }
 
-        if(m_displays.empty()) {
+        if (m_displays.empty()) {
             messages->e.f("No usable displays found");
             return false;
         }
 
-        for(auto &&display:m_displays) {
+        for (auto &&display : m_displays) {
             // (HANDLE)std::thread::native_handle would be an option
             // for VC++. Don't know how standard that is, though...
             // would be nice if it didn't obviously not work on MinGW.
-            display->thread=(HANDLE)_beginthreadex(NULL,0,&VBlankThread,display.get(),0,NULL);
-            if(!display->thread) {
-                int e=errno;
-                messages->e.f("failed to start thread for monitor: %s\n",display->mi.szDevice);
-                messages->i.f("(_beginthreadex failed: %s\n)",strerror(e));
+            display->thread = (HANDLE)_beginthreadex(NULL, 0, &VBlankThread, display.get(), 0, NULL);
+            if (!display->thread) {
+                int e = errno;
+                messages->e.f("failed to start thread for monitor: %s\n", display->mi.szDevice);
+                messages->i.f("(_beginthreadex failed: %s\n)", strerror(e));
                 return false;
             }
 
-            BOOL ok=SetThreadPriority(display->thread,THREAD_PRIORITY_TIME_CRITICAL);
-            ASSERT(ok);//but if it fails, no big deal.
+            BOOL ok = SetThreadPriority(display->thread, THREAD_PRIORITY_TIME_CRITICAL);
+            ASSERT(ok); //but if it fails, no big deal.
             (void)ok;
         }
 
@@ -116,8 +112,8 @@ public:
     }
 
     void *GetDisplayDataForDisplayID(uint32_t display_id) const {
-        for(auto &&display:m_displays) {
-            if(display->id==display_id) {
+        for (auto &&display : m_displays) {
+            if (display->id == display_id) {
                 return display->data;
             }
         }
@@ -125,63 +121,64 @@ public:
         return nullptr;
     }
 
-    void *GetDisplayDataForPoint(int x,int y) const {
-        POINT pt={x,y};
+    void *GetDisplayDataForPoint(int x, int y) const {
+        POINT pt = {x, y};
 
-        HMONITOR hmonitor=MonitorFromPoint(pt,MONITOR_DEFAULTTONEAREST);
+        HMONITOR hmonitor = MonitorFromPoint(pt, MONITOR_DEFAULTTONEAREST);
 
-        for(auto &&display:m_displays) {
-            if(display->hmonitor==hmonitor) {
+        for (auto &&display : m_displays) {
+            if (display->hmonitor == hmonitor) {
                 return display->data;
             }
         }
 
         return nullptr;
     }
-protected:
-private:
+
+  protected:
+  private:
     struct Display {
-        uint32_t id=0;
-        HMONITOR hmonitor=nullptr;
-        void *data=nullptr;
-        VBlankMonitorWindows *vbm=nullptr;
+        uint32_t id = 0;
+        HMONITOR hmonitor = nullptr;
+        void *data = nullptr;
+        VBlankMonitorWindows *vbm = nullptr;
         CComPtr<IDXGIOutput> output;
-        MONITORINFOEX mi={};
-        std::atomic<bool> stop_thread=false;
-        HANDLE thread=INVALID_HANDLE_VALUE;
+        MONITORINFOEX mi = {};
+        std::atomic<bool> stop_thread = false;
+        HANDLE thread = INVALID_HANDLE_VALUE;
     };
 
     Handler *m_handler;
     CComPtr<IDXGIFactory> m_factory;
     std::vector<std::unique_ptr<Display>> m_displays;
-    uint32_t m_next_display_id=1;
+    uint32_t m_next_display_id = 1;
 
     void ResetDisplayList() {
-        for(auto &&display:m_displays) {
-            if(display->thread!=0) {
-                display->stop_thread=true;
+        for (auto &&display : m_displays) {
+            if (display->thread != 0) {
+                display->stop_thread = true;
 
-                WaitForSingleObject(display->thread,INFINITE);
+                WaitForSingleObject(display->thread, INFINITE);
 
                 CloseHandle(display->thread);
-                display->thread=nullptr;
+                display->thread = nullptr;
             }
 
-            m_handler->FreeDisplayData(display->id,display->data);
-            display->data=nullptr;
+            m_handler->FreeDisplayData(display->id, display->data);
+            display->data = nullptr;
         }
 
         m_displays.clear();
     }
 
     static unsigned __stdcall VBlankThread(void *arg) {
-        auto display=(const Display *)arg;
+        auto display = (const Display *)arg;
 
-        SetCurrentThreadNamef("VBlank Monitor: %s",display->mi.szDevice);
+        SetCurrentThreadNamef("VBlank Monitor: %s", display->mi.szDevice);
 
-        while(!display->stop_thread) {
+        while (!display->stop_thread) {
             display->output->WaitForVBlank();
-            display->vbm->m_handler->ThreadVBlank(display->id,display->data);
+            display->vbm->m_handler->ThreadVBlank(display->id, display->data);
         }
 
         return 0;

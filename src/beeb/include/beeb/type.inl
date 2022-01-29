@@ -25,16 +25,16 @@ EEND()
 #define ENAME BBCMicroTypeFlag
 EBEGIN()
 // if set, system has shadow RAM, so it needs an extra 32K in its memory buffer.
-EPNV(HasShadowRAM,1<<0)
+EPNV(HasShadowRAM, 1 << 0)
 
 // if set, system displays teletext data from $3c00 when MA11 is set.
-EPNV(CanDisplayTeletext3c00,1<<1)
+EPNV(CanDisplayTeletext3c00, 1 << 1)
 
 // if set, system has RTC.
-EPNV(HasRTC,1<<2)
+EPNV(HasRTC, 1 << 2)
 
 // if set, numeric keypad.
-EPNV(HasNumericKeypad,1<<3)
+EPNV(HasNumericKeypad, 1 << 3)
 EEND()
 #undef ENAME
 
@@ -44,16 +44,16 @@ EEND()
 #if BBCMICRO_DEBUGGER
 #define ENAME BBCMicroDebugPagingOverride
 EBEGIN()
-EPNV(ROM,15)
-EPNV(OverrideROM,1<<4)
-EPNV(ANDY,1<<5)
-EPNV(OverrideANDY,1<<6)
-EPNV(HAZEL,1<<7)
-EPNV(OverrideHAZEL,1<<8)
-EPNV(Shadow,1<<9)
-EPNV(OverrideShadow,1<<10)
-EPNV(OS,1<<11)
-EPNV(OverrideOS,1<<12)
+EPNV(ROM, 15)
+EPNV(OverrideROM, 1 << 4)
+EPNV(ANDY, 1 << 5)
+EPNV(OverrideANDY, 1 << 6)
+EPNV(HAZEL, 1 << 7)
+EPNV(OverrideHAZEL, 1 << 8)
+EPNV(Shadow, 1 << 9)
+EPNV(OverrideShadow, 1 << 10)
+EPNV(OS, 1 << 11)
+EPNV(OverrideOS, 1 << 12)
 EEND()
 #undef ENAME
 #endif

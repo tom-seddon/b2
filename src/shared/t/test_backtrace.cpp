@@ -6,16 +6,16 @@
 
 static void f9(void) {
     void *buffer[100];
-    int n=backtrace(buffer,sizeof buffer/sizeof buffer[0]);
+    int n = backtrace(buffer, sizeof buffer / sizeof buffer[0]);
 
-    char **symbols=GetBacktraceSymbols(buffer,n);
-    if(symbols) {
-        for(int i=0;i<n;++i) {
-            printf("%d. %s\n",i,symbols[i]);
+    char **symbols = GetBacktraceSymbols(buffer, n);
+    if (symbols) {
+        for (int i = 0; i < n; ++i) {
+            printf("%d. %s\n", i, symbols[i]);
         }
 
         free(symbols);
-        symbols=NULL;
+        symbols = NULL;
     }
 }
 static void f8(void) {

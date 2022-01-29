@@ -38,7 +38,7 @@ struct BeebWindowsState {
 
     JobQueue job_queue;
 
-    uint32_t default_ui_flags=0;
+    uint32_t default_ui_flags = 0;
 
     // This mutex must be taken when manipulating saved_states.
     Mutex saved_states_mutex;
@@ -56,19 +56,23 @@ std::string BeebWindows::default_config_name;
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static std::string GetUniqueBeebWindowName(std::string name,BeebWindow *ignore) {
-    return GetUniqueName(std::move(name),[](const std::string &name)->const void * {
-        return BeebWindows::FindBeebWindowByName(name);
-    },ignore);
+static std::string GetUniqueBeebWindowName(std::string name, BeebWindow *ignore) {
+    return GetUniqueName(
+        std::move(name), [](const std::string &name) -> const void * {
+            return BeebWindows::FindBeebWindowByName(name);
+        },
+        ignore);
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static std::string GetUniqueBeebKeymapName(std::string name,BeebKeymap *ignore) {
-    return GetUniqueName(std::move(name),[](const std::string &name)->const void * {
-        return BeebWindows::FindBeebKeymapByName(name);
-    },ignore);
+static std::string GetUniqueBeebKeymapName(std::string name, BeebKeymap *ignore) {
+    return GetUniqueName(
+        std::move(name), [](const std::string &name) -> const void * {
+            return BeebWindows::FindBeebKeymapByName(name);
+        },
+        ignore);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -92,8 +96,8 @@ static std::string GetUniqueBeebKeymapName(std::string name,BeebKeymap *ignore) 
 //////////////////////////////////////////////////////////////////////////
 
 static const BeebConfig *FindBeebConfigByName(const std::string &name) {
-    for(size_t i=0;i<g_->configs.size();++i) {
-        if(g_->configs[i]->name==name) {
+    for (size_t i = 0; i < g_->configs.size(); ++i) {
+        if (g_->configs[i]->name == name) {
             return g_->configs[i].get();
         }
     }
@@ -105,9 +109,11 @@ static const BeebConfig *FindBeebConfigByName(const std::string &name) {
 //////////////////////////////////////////////////////////////////////////
 
 static void MakeNameUnique(BeebConfig *config) {
-    config->name=GetUniqueName(config->name,[](const std::string &name)->const void * {
-        return FindBeebConfigByName(name);
-    },config);
+    config->name = GetUniqueName(
+        config->name, [](const std::string &name) -> const void * {
+            return FindBeebConfigByName(name);
+        },
+        config);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -116,12 +122,12 @@ static void MakeNameUnique(BeebConfig *config) {
 bool BeebWindows::Init() {
     ASSERT(!g_);
 
-    g_=new BeebWindowsState;
+    g_ = new BeebWindowsState;
 
-    MUTEX_SET_NAME(g_->windows_mutex,"BeebWindows windows mutex");
-    MUTEX_SET_NAME(g_->saved_states_mutex,"BeebWindows saved states mutex");
+    MUTEX_SET_NAME(g_->windows_mutex, "BeebWindows windows mutex");
+    MUTEX_SET_NAME(g_->saved_states_mutex, "BeebWindows saved states mutex");
 
-    if(!g_->job_queue.Init()) {
+    if (!g_->job_queue.Init()) {
         return false;
     }
 
@@ -135,7 +141,7 @@ void BeebWindows::Shutdown() {
     {
         std::lock_guard<Mutex> lock(g_->windows_mutex);
 
-        for(BeebWindow *window:g_->windows) {
+        for (BeebWindow *window : g_->windows) {
             delete window;
         }
     }
@@ -146,25 +152,25 @@ void BeebWindows::Shutdown() {
         g_->saved_states.clear();
     }
 
-//    // There probably needs to be a more general mechanism than this.
-//    Timeline::DidChange();
+    //    // There probably needs to be a more general mechanism than this.
+    //    Timeline::DidChange();
 
     delete g_;
-    g_=nullptr;
+    g_ = nullptr;
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 BeebWindow *BeebWindows::CreateBeebWindow(BeebWindowInitArguments init_arguments) {
-    init_arguments.name=GetUniqueBeebWindowName(init_arguments.name,
-                                                nullptr);
+    init_arguments.name = GetUniqueBeebWindowName(init_arguments.name,
+                                                  nullptr);
 
-    auto window=new BeebWindow(std::move(init_arguments));
+    auto window = new BeebWindow(std::move(init_arguments));
 
-    if(!window->Init()) {
+    if (!window->Init()) {
         delete window;
-        window=nullptr;
+        window = nullptr;
 
         return nullptr;
     }
@@ -172,8 +178,8 @@ BeebWindow *BeebWindows::CreateBeebWindow(BeebWindowInitArguments init_arguments
     std::lock_guard<Mutex> lock(g_->windows_mutex);
     g_->windows.push_back(window);
 
-//    // There probably needs to be a more general mechanism than this.
-//    Timeline::DidChange();
+    //    // There probably needs to be a more general mechanism than this.
+    //    Timeline::DidChange();
 
     return window;
 }
@@ -189,7 +195,7 @@ size_t BeebWindows::GetNumWindows() {
 //////////////////////////////////////////////////////////////////////////
 
 BeebWindow *BeebWindows::GetWindowByIndex(size_t index) {
-    ASSERT(index<g_->windows.size());
+    ASSERT(index < g_->windows.size());
 
     return g_->windows[index];
 }
@@ -198,29 +204,27 @@ BeebWindow *BeebWindows::GetWindowByIndex(size_t index) {
 //////////////////////////////////////////////////////////////////////////
 
 void BeebWindows::HandleSDLWindowEvent(const SDL_WindowEvent &event) {
-    ASSERT(event.type==SDL_WINDOWEVENT);
+    ASSERT(event.type == SDL_WINDOWEVENT);
 
-    BeebWindow *window=FindBeebWindowBySDLWindowID(event.windowID);
-    if(!window) {
+    BeebWindow *window = FindBeebWindowBySDLWindowID(event.windowID);
+    if (!window) {
         // ???
         return;
     }
 
-    switch(event.event) {
-    case SDL_WINDOWEVENT_CLOSE:
-        {
-            window->SaveSettings();
+    switch (event.event) {
+    case SDL_WINDOWEVENT_CLOSE: {
+        window->SaveSettings();
 
-            std::lock_guard<Mutex> lock(g_->windows_mutex);
+        std::lock_guard<Mutex> lock(g_->windows_mutex);
 
-            g_->windows.erase(std::remove(g_->windows.begin(),g_->windows.end(),window),g_->windows.end());
+        g_->windows.erase(std::remove(g_->windows.begin(), g_->windows.end(), window), g_->windows.end());
 
-            delete window;
-            window=nullptr;
+        delete window;
+        window = nullptr;
 
-            //Timeline::DidChange();
-        }
-        break;
+        //Timeline::DidChange();
+    } break;
 
     case SDL_WINDOWEVENT_SHOWN:
     case SDL_WINDOWEVENT_HIDDEN:
@@ -239,7 +243,7 @@ void BeebWindows::HandleSDLWindowEvent(const SDL_WindowEvent &event) {
 //////////////////////////////////////////////////////////////////////////
 
 void BeebWindows::HandleSDLKeyEvent(const SDL_KeyboardEvent &event) {
-    if(BeebWindow *window=FindBeebWindowBySDLWindowID(event.windowID)) {
+    if (BeebWindow *window = FindBeebWindowBySDLWindowID(event.windowID)) {
         window->HandleSDLKeyEvent(event);
     }
 }
@@ -247,17 +251,17 @@ void BeebWindows::HandleSDLKeyEvent(const SDL_KeyboardEvent &event) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void BeebWindows::SetSDLMouseWheelState(uint32_t sdl_window_id,int x,int y) {
-    if(BeebWindow *window=FindBeebWindowBySDLWindowID(sdl_window_id)) {
-        window->SetSDLMouseWheelState(x,y);
+void BeebWindows::SetSDLMouseWheelState(uint32_t sdl_window_id, int x, int y) {
+    if (BeebWindow *window = FindBeebWindowBySDLWindowID(sdl_window_id)) {
+        window->SetSDLMouseWheelState(x, y);
     }
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void BeebWindows::HandleSDLTextInput(uint32_t sdl_window_id,const char *text) {
-    if(BeebWindow *window=FindBeebWindowBySDLWindowID(sdl_window_id)) {
+void BeebWindows::HandleSDLTextInput(uint32_t sdl_window_id, const char *text) {
+    if (BeebWindow *window = FindBeebWindowBySDLWindowID(sdl_window_id)) {
         window->HandleSDLTextInput(text);
     }
 }
@@ -266,7 +270,7 @@ void BeebWindows::HandleSDLTextInput(uint32_t sdl_window_id,const char *text) {
 //////////////////////////////////////////////////////////////////////////
 
 void BeebWindows::HandleSDLMouseMotionEvent(const SDL_MouseMotionEvent &event) {
-    if(BeebWindow *window=FindBeebWindowBySDLWindowID(event.windowID)) {
+    if (BeebWindow *window = FindBeebWindowBySDLWindowID(event.windowID)) {
         window->HandleSDLMouseMotionEvent(event);
     }
 }
@@ -274,36 +278,36 @@ void BeebWindows::HandleSDLMouseMotionEvent(const SDL_MouseMotionEvent &event) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void BeebWindows::HandleVBlank(VBlankMonitor *vblank_monitor,void *display_data,uint64_t ticks) {
-    size_t i=0;
+void BeebWindows::HandleVBlank(VBlankMonitor *vblank_monitor, void *display_data, uint64_t ticks) {
+    size_t i = 0;
 
-    ASSERT(g_->windows.size()<PTRDIFF_MAX);
+    ASSERT(g_->windows.size() < PTRDIFF_MAX);
 
-    while(i<g_->windows.size()) {
-        size_t old_size=g_->windows.size();
+    while (i < g_->windows.size()) {
+        size_t old_size = g_->windows.size();
         (void)old_size;
 
 #if RMT_ENABLED
         char rmt_text[100];
-        snprintf(rmt_text,sizeof rmt_text,"Window %zu",i);
+        snprintf(rmt_text, sizeof rmt_text, "Window %zu", i);
 #endif
 
-        rmt_BeginCPUSampleDynamic(rmt_text,0);
+        rmt_BeginCPUSampleDynamic(rmt_text, 0);
 
-        BeebWindow *window=g_->windows[i];
-        bool keep_window=window->HandleVBlank(vblank_monitor,display_data,ticks);
-        ASSERT(g_->windows.size()>=old_size);
-        ASSERT(g_->windows[i]==window);
+        BeebWindow *window = g_->windows[i];
+        bool keep_window = window->HandleVBlank(vblank_monitor, display_data, ticks);
+        ASSERT(g_->windows.size() >= old_size);
+        ASSERT(g_->windows[i] == window);
 
-        if(keep_window) {
+        if (keep_window) {
             ++i;
         } else {
             std::lock_guard<Mutex> lock(g_->windows_mutex);
 
             delete window;
-            window=nullptr;
+            window = nullptr;
 
-            g_->windows.erase(g_->windows.begin()+(ptrdiff_t)i);
+            g_->windows.erase(g_->windows.begin() + (ptrdiff_t)i);
         }
 
         rmt_EndCPUSample();
@@ -313,14 +317,14 @@ void BeebWindows::HandleVBlank(VBlankMonitor *vblank_monitor,void *display_data,
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void BeebWindows::ThreadFillAudioBuffer(uint32_t audio_device_id,float *mix_buffer,size_t mix_buffer_size) {
+void BeebWindows::ThreadFillAudioBuffer(uint32_t audio_device_id, float *mix_buffer, size_t mix_buffer_size) {
     // Just hold the lock for the duration - this shouldn't take too
     // long, and the only thing it will block is creation or
     // destruction of windows...
     std::lock_guard<Mutex> lock(g_->windows_mutex);
 
-    for(BeebWindow *window:g_->windows) {
-        window->ThreadFillAudioBuffer(audio_device_id,mix_buffer,mix_buffer_size);
+    for (BeebWindow *window : g_->windows) {
+        window->ThreadFillAudioBuffer(audio_device_id, mix_buffer, mix_buffer_size);
     }
 }
 
@@ -328,7 +332,7 @@ void BeebWindows::ThreadFillAudioBuffer(uint32_t audio_device_id,float *mix_buff
 //////////////////////////////////////////////////////////////////////////
 
 void BeebWindows::UpdateWindowTitles() {
-    for(BeebWindow *window:g_->windows) {
+    for (BeebWindow *window : g_->windows) {
         window->UpdateTitle();
     }
 }
@@ -337,23 +341,23 @@ void BeebWindows::UpdateWindowTitles() {
 //////////////////////////////////////////////////////////////////////////
 
 void BeebWindows::RemoveBeebKeymapByIndex(size_t index) {
-    ASSERT(index<g_->beeb_keymaps.size());
+    ASSERT(index < g_->beeb_keymaps.size());
 
-    for(BeebWindow *window:g_->windows) {
+    for (BeebWindow *window : g_->windows) {
         window->BeebKeymapWillBeDeleted(g_->beeb_keymaps[index].get());
     }
 
-    g_->beeb_keymaps.erase(g_->beeb_keymaps.begin()+(ptrdiff_t)index);
+    g_->beeb_keymaps.erase(g_->beeb_keymaps.begin() + (ptrdiff_t)index);
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 BeebKeymap *BeebWindows::AddBeebKeymap(BeebKeymap new_keymap) {
-    new_keymap.SetName(GetUniqueBeebKeymapName(new_keymap.GetName(),nullptr));
+    new_keymap.SetName(GetUniqueBeebKeymapName(new_keymap.GetName(), nullptr));
     g_->beeb_keymaps.push_back(std::make_unique<BeebKeymap>(std::move(new_keymap)));
 
-    BeebKeymap *keymap=g_->beeb_keymaps.back().get();
+    BeebKeymap *keymap = g_->beeb_keymaps.back().get();
     return keymap;
 }
 
@@ -361,11 +365,11 @@ BeebKeymap *BeebWindows::AddBeebKeymap(BeebKeymap new_keymap) {
 //////////////////////////////////////////////////////////////////////////
 
 void BeebWindows::BeebKeymapDidChange(size_t index) {
-    ASSERT(index<g_->beeb_keymaps.size());
+    ASSERT(index < g_->beeb_keymaps.size());
 
-    BeebKeymap *keymap=g_->beeb_keymaps[index].get();
+    BeebKeymap *keymap = g_->beeb_keymaps[index].get();
 
-    keymap->SetName(GetUniqueBeebKeymapName(keymap->GetName(),keymap));
+    keymap->SetName(GetUniqueBeebKeymapName(keymap->GetName(), keymap));
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -379,7 +383,7 @@ size_t BeebWindows::GetNumBeebKeymaps() {
 //////////////////////////////////////////////////////////////////////////
 
 BeebKeymap *BeebWindows::GetBeebKeymapByIndex(size_t index) {
-    ASSERT(index<g_->beeb_keymaps.size());
+    ASSERT(index < g_->beeb_keymaps.size());
     return g_->beeb_keymaps[index].get();
 }
 
@@ -387,9 +391,9 @@ BeebKeymap *BeebWindows::GetBeebKeymapByIndex(size_t index) {
 //////////////////////////////////////////////////////////////////////////
 
 BeebKeymap *BeebWindows::FindBeebKeymapByName(const std::string &name) {
-    for(size_t i=0;i<BeebWindows::GetNumBeebKeymaps();++i) {
-        BeebKeymap *keymap=BeebWindows::GetBeebKeymapByIndex(i);
-        if(keymap->GetName()==name) {
+    for (size_t i = 0; i < BeebWindows::GetNumBeebKeymaps(); ++i) {
+        BeebKeymap *keymap = BeebWindows::GetBeebKeymapByIndex(i);
+        if (keymap->GetName() == name) {
             return keymap;
         }
     }
@@ -400,14 +404,14 @@ BeebKeymap *BeebWindows::FindBeebKeymapByName(const std::string &name) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool BeebWindows::LoadConfigByName(BeebLoadedConfig *loaded_config,const std::string &config_name,Messages *msg) {
-    const BeebConfig *config=FindBeebConfigByName(config_name);
-    if(!config) {
-        msg->e.f("unknown config: %s\n",config_name.c_str());
+bool BeebWindows::LoadConfigByName(BeebLoadedConfig *loaded_config, const std::string &config_name, Messages *msg) {
+    const BeebConfig *config = FindBeebConfigByName(config_name);
+    if (!config) {
+        msg->e.f("unknown config: %s\n", config_name.c_str());
         return false;
     }
 
-    if(!BeebLoadedConfig::Load(loaded_config,*config,msg)) {
+    if (!BeebLoadedConfig::Load(loaded_config, *config, msg)) {
         return false;
     }
 
@@ -427,16 +431,16 @@ void BeebWindows::AddConfig(BeebConfig config) {
 //////////////////////////////////////////////////////////////////////////
 
 void BeebWindows::RemoveConfigByIndex(size_t index) {
-    ASSERT(index<g_->configs.size());
-    ASSERT(index<PTRDIFF_MAX);
-    g_->configs.erase(g_->configs.begin()+(ptrdiff_t)index);
+    ASSERT(index < g_->configs.size());
+    ASSERT(index < PTRDIFF_MAX);
+    g_->configs.erase(g_->configs.begin() + (ptrdiff_t)index);
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 void BeebWindows::ConfigDidChange(size_t index) {
-    ASSERT(index<g_->configs.size());
+    ASSERT(index < g_->configs.size());
 
     MakeNameUnique(g_->configs[index].get());
 }
@@ -452,15 +456,15 @@ size_t BeebWindows::GetNumConfigs() {
 //////////////////////////////////////////////////////////////////////////
 
 BeebConfig *BeebWindows::GetConfigByIndex(size_t index) {
-    ASSERT(index<g_->configs.size());
+    ASSERT(index < g_->configs.size());
     return g_->configs[index].get();
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void BeebWindows::SetBeebWindowName(BeebWindow *window,std::string name) {
-    window->SetName(GetUniqueBeebWindowName(std::move(name),window));
+void BeebWindows::SetBeebWindowName(BeebWindow *window, std::string name) {
+    window->SetName(GetUniqueBeebWindowName(std::move(name), window));
     window->UpdateTitle();
 }
 
@@ -486,13 +490,13 @@ BeebWindow *BeebWindows::FindBeebWindowBySDLWindowID(uint32_t sdl_window_id) {
     // b2BeebWindows collections (not that this would be especially
     // useful...I don't think?), so this should really search its own
     // window list rather than the global SDL one.
-    SDL_Window *sdl_window=SDL_GetWindowFromID(sdl_window_id);
-    if(!sdl_window) {
+    SDL_Window *sdl_window = SDL_GetWindowFromID(sdl_window_id);
+    if (!sdl_window) {
         return NULL;
     }
 
-    auto window=(BeebWindow *)SDL_GetWindowData(sdl_window,BeebWindow::SDL_WINDOW_DATA_NAME);
-    if(!window) {
+    auto window = (BeebWindow *)SDL_GetWindowData(sdl_window, BeebWindow::SDL_WINDOW_DATA_NAME);
+    if (!window) {
         return NULL;
     }
 
@@ -503,8 +507,8 @@ BeebWindow *BeebWindows::FindBeebWindowBySDLWindowID(uint32_t sdl_window_id) {
 //////////////////////////////////////////////////////////////////////////
 
 BeebWindow *BeebWindows::FindBeebWindowByName(const std::string &name) {
-    for(BeebWindow *window:g_->windows) {
-        if(window->GetName()==name) {
+    for (BeebWindow *window : g_->windows) {
+        if (window->GetName() == name) {
             return window;
         }
     }
@@ -523,7 +527,7 @@ const std::vector<uint8_t> &BeebWindows::GetLastWindowPlacementData() {
 //////////////////////////////////////////////////////////////////////////
 
 void BeebWindows::SetLastWindowPlacementData(std::vector<uint8_t> placement_data) {
-    g_->last_window_placement_data=std::move(placement_data);
+    g_->last_window_placement_data = std::move(placement_data);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -546,18 +550,17 @@ size_t BeebWindows::GetNumSavedStates() {
 //////////////////////////////////////////////////////////////////////////
 
 std::vector<std::shared_ptr<const BeebState>> BeebWindows::GetSavedStates(size_t begin_index,
-                                                                          size_t end_index)
-{
+                                                                          size_t end_index) {
     std::lock_guard<Mutex> lock(g_->saved_states_mutex);
 
-    ASSERT(begin_index<=PTRDIFF_MAX);
-    ASSERT(begin_index<=g_->saved_states.size());
-    ASSERT(end_index<=PTRDIFF_MAX);
-    ASSERT(end_index<=g_->saved_states.size());
-    ASSERT(begin_index<=end_index);
+    ASSERT(begin_index <= PTRDIFF_MAX);
+    ASSERT(begin_index <= g_->saved_states.size());
+    ASSERT(end_index <= PTRDIFF_MAX);
+    ASSERT(end_index <= g_->saved_states.size());
+    ASSERT(begin_index <= end_index);
 
-    std::vector<std::shared_ptr<const BeebState>> result(g_->saved_states.begin()+(ptrdiff_t)begin_index,
-                                                         g_->saved_states.begin()+(ptrdiff_t)end_index);
+    std::vector<std::shared_ptr<const BeebState>> result(g_->saved_states.begin() + (ptrdiff_t)begin_index,
+                                                         g_->saved_states.begin() + (ptrdiff_t)end_index);
     return result;
 }
 

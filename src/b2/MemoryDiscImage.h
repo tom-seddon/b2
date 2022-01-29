@@ -14,28 +14,26 @@ class FileDialog;
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-class MemoryDiscImage:
-    public DiscImage
-{
-public:
+class MemoryDiscImage : public DiscImage {
+  public:
     static const std::string LOAD_METHOD_FILE;
     static const std::string LOAD_METHOD_ZIP;
 
     static const uint8_t FILL_BYTE;
 
-    static std::shared_ptr<MemoryDiscImage> LoadFromBuffer(std::string path,std::string load_method,const void *data,size_t data_size,const DiscGeometry &geometry,Messages *msg);
+    static std::shared_ptr<MemoryDiscImage> LoadFromBuffer(std::string path, std::string load_method, const void *data, size_t data_size, const DiscGeometry &geometry, Messages *msg);
 
     // If the load succeeds, the method will be LOAD_METHOD_FILE or
     // LOAD_METHOD_ZIP.
-    static std::shared_ptr<MemoryDiscImage> LoadFromFile(std::string path,Messages *msg);
+    static std::shared_ptr<MemoryDiscImage> LoadFromFile(std::string path, Messages *msg);
 
     ~MemoryDiscImage();
 
-    MemoryDiscImage(const MemoryDiscImage &)=delete;
-    MemoryDiscImage &operator=(const MemoryDiscImage &)=delete;
+    MemoryDiscImage(const MemoryDiscImage &) = delete;
+    MemoryDiscImage &operator=(const MemoryDiscImage &) = delete;
 
-    MemoryDiscImage(MemoryDiscImage &&)=delete;
-    MemoryDiscImage &operator=(MemoryDiscImage &&)=delete;
+    MemoryDiscImage(MemoryDiscImage &&) = delete;
+    MemoryDiscImage &operator=(MemoryDiscImage &&) = delete;
 
     bool CanClone() const override;
     bool CanSave() const override;
@@ -48,15 +46,16 @@ public:
     std::string GetLoadMethod() const override;
     std::string GetDescription() const override;
     void AddFileDialogFilter(FileDialog *fd) const override;
-    bool SaveToFile(const std::string &file_name,Messages *msg) const override;
+    bool SaveToFile(const std::string &file_name, Messages *msg) const override;
     //void SetNameAndLoadMethod(std::string name,std::string load_method);
 
-    bool Read(uint8_t *value,uint8_t side,uint8_t track,uint8_t sector,size_t offset) const override;
-    bool Write(uint8_t side,uint8_t track,uint8_t sector,size_t offset,uint8_t value) override;
-    bool GetDiscSectorSize(size_t *size,uint8_t side,uint8_t track,uint8_t sector,bool double_density) const override;
+    bool Read(uint8_t *value, uint8_t side, uint8_t track, uint8_t sector, size_t offset) const override;
+    bool Write(uint8_t side, uint8_t track, uint8_t sector, size_t offset, uint8_t value) override;
+    bool GetDiscSectorSize(size_t *size, uint8_t side, uint8_t track, uint8_t sector, bool double_density) const override;
     bool IsWriteProtected() const override;
-protected:
-private:
+
+  protected:
+  private:
     struct Data;
 
     Data *m_data;
@@ -64,10 +63,10 @@ private:
     std::string m_load_method;
 
     MemoryDiscImage();
-    MemoryDiscImage(std::string path,std::string load_method,const void *data,size_t data_size,const DiscGeometry &geometry);
+    MemoryDiscImage(std::string path, std::string load_method, const void *data, size_t data_size, const DiscGeometry &geometry);
 
     // doesn't add a new ref - caller must arrange this.
-    MemoryDiscImage(Data *data,std::string name,std::string load_method);
+    MemoryDiscImage(Data *data, std::string name, std::string load_method);
 
     void MakeDataUnique();
     void ReleaseData(Data **data_ptr);

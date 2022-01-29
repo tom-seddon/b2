@@ -1,4 +1,4 @@
-#ifndef HEADER_068D76EBAC274785B70753E8DD2FB9B8// -*- mode:c++ -*-
+#ifndef HEADER_068D76EBAC274785B70753E8DD2FB9B8 // -*- mode:c++ -*-
 #define HEADER_068D76EBAC274785B70753E8DD2FB9B8
 
 //////////////////////////////////////////////////////////////////////////
@@ -11,7 +11,7 @@
 
 // Number of vblank tick count records to keep. These are stored in a
 // couple of places.
-static const size_t NUM_VBLANK_RECORDS=250;
+static const size_t NUM_VBLANK_RECORDS = 250;
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -50,19 +50,19 @@ static const size_t NUM_VBLANK_RECORDS=250;
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static const float MAX_DB=0.f;
-static const float MIN_DB=-72.f;
+static const float MAX_DB = 0.f;
+static const float MIN_DB = -72.f;
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 // Number of frames to render when creating an ordinary thumbnail. The
 // first may be a partial one, and the second will be complete.
-static const size_t NUM_THUMBNAIL_RENDER_FRAMES=2;
+static const size_t NUM_THUMBNAIL_RENDER_FRAMES = 2;
 
 // Number of frames to render when creating a thumbnail starting from
 // a cold boot. Takes longer due to memory clear, ROM init, etc.
-static const size_t NUM_BOOTUP_THUMBNAIL_RENDER_FRAMES=11;
+static const size_t NUM_BOOTUP_THUMBNAIL_RENDER_FRAMES = 11;
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

@@ -39,8 +39,7 @@
 #include <libavutil/samplefmt.h>
 
 /* check that a given sample format is supported by the encoder */
-static int check_sample_fmt(const AVCodec *codec, enum AVSampleFormat sample_fmt)
-{
+static int check_sample_fmt(const AVCodec *codec, enum AVSampleFormat sample_fmt) {
     const enum AVSampleFormat *p = codec->sample_fmts;
 
     while (*p != AV_SAMPLE_FMT_NONE) {
@@ -52,8 +51,7 @@ static int check_sample_fmt(const AVCodec *codec, enum AVSampleFormat sample_fmt
 }
 
 /* just pick the highest supported samplerate */
-static int select_sample_rate(const AVCodec *codec)
-{
+static int select_sample_rate(const AVCodec *codec) {
     const int *p;
     int best_samplerate = 0;
 
@@ -70,11 +68,10 @@ static int select_sample_rate(const AVCodec *codec)
 }
 
 /* select layout with the highest channel count */
-static uint64_t select_channel_layout(const AVCodec *codec)
-{
+static uint64_t select_channel_layout(const AVCodec *codec) {
     const uint64_t *p;
     uint64_t best_ch_layout = 0;
-    int best_nb_channels   = 0;
+    int best_nb_channels = 0;
 
     if (!codec->channel_layouts)
         return AV_CH_LAYOUT_STEREO;
@@ -84,7 +81,7 @@ static uint64_t select_channel_layout(const AVCodec *codec)
         int nb_channels = av_get_channel_layout_nb_channels(*p);
 
         if (nb_channels > best_nb_channels) {
-            best_ch_layout    = *p;
+            best_ch_layout = *p;
             best_nb_channels = nb_channels;
         }
         p++;
@@ -93,8 +90,7 @@ static uint64_t select_channel_layout(const AVCodec *codec)
 }
 
 static void encode(AVCodecContext *ctx, AVFrame *frame, AVPacket *pkt,
-                   FILE *output)
-{
+                   FILE *output) {
     int ret;
 
     /* send the frame for encoding */
@@ -120,11 +116,10 @@ static void encode(AVCodecContext *ctx, AVFrame *frame, AVPacket *pkt,
     }
 }
 
-int main(int argc, char **argv)
-{
+int main(int argc, char **argv) {
     const char *filename;
     const AVCodec *codec;
-    AVCodecContext *c= NULL;
+    AVCodecContext *c = NULL;
     AVFrame *frame;
     AVPacket *pkt;
     int i, j, k, ret;
@@ -166,9 +161,9 @@ int main(int argc, char **argv)
     }
 
     /* select other audio parameters supported by the encoder */
-    c->sample_rate    = select_sample_rate(codec);
+    c->sample_rate = select_sample_rate(codec);
     c->channel_layout = select_channel_layout(codec);
-    c->channels       = av_get_channel_layout_nb_channels(c->channel_layout);
+    c->channels = av_get_channel_layout_nb_channels(c->channel_layout);
 
     /* open it */
     if (avcodec_open2(c, codec, NULL) < 0) {
@@ -196,8 +191,8 @@ int main(int argc, char **argv)
         exit(1);
     }
 
-    frame->nb_samples     = c->frame_size;
-    frame->format         = c->sample_fmt;
+    frame->nb_samples = c->frame_size;
+    frame->format = c->sample_fmt;
     frame->channel_layout = c->channel_layout;
 
     /* allocate the data buffers */
@@ -216,13 +211,13 @@ int main(int argc, char **argv)
         ret = av_frame_make_writable(frame);
         if (ret < 0)
             exit(1);
-        samples = (uint16_t*)frame->data[0];
+        samples = (uint16_t *)frame->data[0];
 
         for (j = 0; j < c->frame_size; j++) {
-            samples[2*j] = (int)(sin(t) * 10000);
+            samples[2 * j] = (int)(sin(t) * 10000);
 
             for (k = 1; k < c->channels; k++)
-                samples[2*j + k] = samples[2*j];
+                samples[2 * j + k] = samples[2 * j];
             t += tincr;
         }
         encode(c, frame, pkt, f);

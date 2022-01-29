@@ -1,4 +1,4 @@
-#ifndef HEADER_A3D79A315D784CF68E5B471420EBF9FA// -*- mode:c++ -*-
+#ifndef HEADER_A3D79A315D784CF68E5B471420EBF9FA // -*- mode:c++ -*-
 #define HEADER_A3D79A315D784CF68E5B471420EBF9FA
 
 //////////////////////////////////////////////////////////////////////////
@@ -13,11 +13,11 @@
 //////////////////////////////////////////////////////////////////////////
 
 class JobQueue {
-public:
+  public:
     class Job {
-    public:
+      public:
         Job();
-        virtual ~Job()=0;
+        virtual ~Job() = 0;
 
         bool IsRunning() const;
         bool IsFinished() const;
@@ -31,44 +31,47 @@ public:
         // Do whatever. No need to call base class. Default impl does
         // nothing.
         virtual void DoImGui();
-    
-        virtual void ThreadExecute()=0;
-    protected:
-        Job(const Job &)=delete;
-        Job &operator=(const Job &)=delete;
-        Job(Job &&)=delete;
-        Job &operator=(Job &&)=delete;
-    private:
+
+        virtual void ThreadExecute() = 0;
+
+      protected:
+        Job(const Job &) = delete;
+        Job &operator=(const Job &) = delete;
+        Job(Job &&) = delete;
+        Job &operator=(Job &&) = delete;
+
+      private:
         mutable std::atomic<bool> m_running{false};
         mutable std::atomic<bool> m_canceled{false};
         mutable std::atomic<bool> m_finished{false};
-    
+
         friend class JobQueue;
     };
 
     JobQueue();
     ~JobQueue();
 
-    bool Init(unsigned num_threads=0);
+    bool Init(unsigned num_threads = 0);
 
     void AddJob(std::shared_ptr<Job> job);
 
     // Get all jobs, running and waiting.
     std::vector<std::shared_ptr<Job>> GetJobs() const;
-protected:
-private:
+
+  protected:
+  private:
     struct ThreadData {
         std::thread thread;
         std::shared_ptr<Job> job;
         size_t index;
     };
-    
+
     std::vector<ThreadData> m_threads;
-    
+
     mutable Mutex m_jobs_mutex;
     ConditionVariable m_jobs_cv;
     std::vector<std::shared_ptr<Job>> m_jobs;
-    bool m_quit=false;
+    bool m_quit = false;
 
     void ThreadFunc(ThreadData *td);
 };

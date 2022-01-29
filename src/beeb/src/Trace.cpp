@@ -15,13 +15,13 @@ struct M6502Config;
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static const size_t CHUNK_SIZE=16777216;
+static const size_t CHUNK_SIZE = 16777216;
 
-static const size_t MAX_TIME_DELTA=127;
+static const size_t MAX_TIME_DELTA = 127;
 
-static const size_t MAX_EVENT_SIZE=65535;
+static const size_t MAX_EVENT_SIZE = 65535;
 
-static_assert(MAX_EVENT_SIZE<=CHUNK_SIZE,"chunks must be large enough for at least one event");
+static_assert(MAX_EVENT_SIZE <= CHUNK_SIZE, "chunks must be large enough for at least one event");
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -29,11 +29,11 @@ static_assert(MAX_EVENT_SIZE<=CHUNK_SIZE,"chunks must be large enough for at lea
 #include <shared/pshpack1.h>
 struct EventHeader {
     uint8_t type;
-    uint8_t time_delta:7;
-    uint8_t canceled:1;
+    uint8_t time_delta : 7;
+    uint8_t canceled : 1;
 };
 #include <shared/poppack.h>
-CHECK_SIZEOF(EventHeader,2);
+CHECK_SIZEOF(EventHeader, 2);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -44,34 +44,33 @@ struct EventWithSizeHeader {
     uint16_t size;
 };
 #include <shared/poppack.h>
-CHECK_SIZEOF(EventWithSizeHeader,4);
+CHECK_SIZEOF(EventWithSizeHeader, 4);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 static TraceEventType *g_trace_event_types[256];
-static size_t g_trace_next_id=0;
+static size_t g_trace_next_id = 0;
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-TraceEventType::TraceEventType(const char *name,size_t size_):
-    type_id((uint8_t)g_trace_next_id++),
-    size(size_),
-    m_name(name)
-{
-    ASSERT(this->size<=MAX_EVENT_SIZE);
-    ASSERT(g_trace_next_id<=sizeof g_trace_event_types/sizeof g_trace_event_types[0]);
-    g_trace_event_types[this->type_id]=this;
+TraceEventType::TraceEventType(const char *name, size_t size_)
+    : type_id((uint8_t)g_trace_next_id++)
+    , size(size_)
+    , m_name(name) {
+    ASSERT(this->size <= MAX_EVENT_SIZE);
+    ASSERT(g_trace_next_id <= sizeof g_trace_event_types / sizeof g_trace_event_types[0]);
+    g_trace_event_types[this->type_id] = this;
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 TraceEventType::~TraceEventType() {
-    ASSERT(g_trace_event_types[this->type_id]==this);
+    ASSERT(g_trace_event_types[this->type_id] == this);
 
-    g_trace_event_types[this->type_id]=nullptr;
+    g_trace_event_types[this->type_id] = nullptr;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -84,8 +83,8 @@ const std::string &TraceEventType::GetName() const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-const TraceEventType Trace::BLANK_LINE_EVENT("_blank_line",0);
-const TraceEventType Trace::STRING_EVENT("_string",0);
+const TraceEventType Trace::BLANK_LINE_EVENT("_blank_line", 0);
+const TraceEventType Trace::STRING_EVENT("_string", 0);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -97,13 +96,13 @@ struct DiscontinuityTraceEvent {
 typedef struct DiscontinuityTraceEvent DiscontinuityTraceEvent;
 #include <shared/poppack.h>
 
-const TraceEventType Trace::DISCONTINUITY_EVENT("_discontinuity",sizeof(DiscontinuityTraceEvent));
+const TraceEventType Trace::DISCONTINUITY_EVENT("_discontinuity", sizeof(DiscontinuityTraceEvent));
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-const TraceEventType Trace::WRITE_ROMSEL_EVENT("_write_romsel",sizeof(WriteROMSELEvent));
-const TraceEventType Trace::WRITE_ACCCON_EVENT("_write_acccon",sizeof(WriteACCCONEvent));
+const TraceEventType Trace::WRITE_ROMSEL_EVENT("_write_romsel", sizeof(WriteROMSELEvent));
+const TraceEventType Trace::WRITE_ACCCON_EVENT("_write_acccon", sizeof(WriteACCCONEvent));
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -128,25 +127,24 @@ struct Trace::Chunk {
 Trace::Trace(size_t max_num_bytes,
              const BBCMicroType *bbc_micro_type,
              ROMSEL initial_romsel,
-             ACCCON initial_acccon):
-m_max_num_bytes(max_num_bytes),
-m_bbc_micro_type(bbc_micro_type),
-m_romsel(initial_romsel),
-m_acccon(initial_acccon)
-{
+             ACCCON initial_acccon)
+    : m_max_num_bytes(max_num_bytes)
+    , m_bbc_micro_type(bbc_micro_type)
+    , m_romsel(initial_romsel)
+    , m_acccon(initial_acccon) {
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 Trace::~Trace() {
-    Chunk *c=m_head;
-    while(c) {
-        Chunk *next=c->next;
+    Chunk *c = m_head;
+    while (c) {
+        Chunk *next = c->next;
 
         free(c);
 
-        c=next;
+        c = next;
     }
 }
 
@@ -154,34 +152,34 @@ Trace::~Trace() {
 //////////////////////////////////////////////////////////////////////////
 
 void Trace::SetTime(const uint64_t *time_ptr) {
-    m_time_ptr=time_ptr;
+    m_time_ptr = time_ptr;
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 void *Trace::AllocEvent(const TraceEventType &type) {
-    ASSERT(type.size>0);
+    ASSERT(type.size > 0);
 
-    uint64_t time=m_last_time;
-    if(m_time_ptr) {
-        time=*m_time_ptr;
+    uint64_t time = m_last_time;
+    if (m_time_ptr) {
+        time = *m_time_ptr;
     }
 
-    auto h=(EventHeader *)this->Alloc(time,sizeof(EventHeader)+type.size);
+    auto h = (EventHeader *)this->Alloc(time, sizeof(EventHeader) + type.size);
 
-    h->type=type.type_id;
-    ASSERT(time>=m_last_time);
-    h->time_delta=(uint8_t)(time-m_last_time);
-    h->canceled=0;
+    h->type = type.type_id;
+    ASSERT(time >= m_last_time);
+    h->time_delta = (uint8_t)(time - m_last_time);
+    h->canceled = 0;
 
-    m_tail->last_time=time;
-    m_last_time=time;
+    m_tail->last_time = time;
+    m_last_time = time;
 
     this->Check();
 
-    if(type.size>0) {
-        return h+1;
+    if (type.size > 0) {
+        return h + 1;
     } else {
         return nullptr;
     }
@@ -190,15 +188,15 @@ void *Trace::AllocEvent(const TraceEventType &type) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void Trace::CancelEvent(const TraceEventType &type,void *data) {
-    if(type.size==0) {
-        EventWithSizeHeader *h=(EventWithSizeHeader *)data-1;
+void Trace::CancelEvent(const TraceEventType &type, void *data) {
+    if (type.size == 0) {
+        EventWithSizeHeader *h = (EventWithSizeHeader *)data - 1;
 
-        h->h.canceled=1;
+        h->h.canceled = 1;
     } else {
-        EventHeader *h=(EventHeader *)data-1;
+        EventHeader *h = (EventHeader *)data - 1;
 
-        h->canceled=1;
+        h->canceled = 1;
     }
 
     this->Check();
@@ -208,27 +206,27 @@ void Trace::CancelEvent(const TraceEventType &type,void *data) {
 //////////////////////////////////////////////////////////////////////////
 
 void Trace::AllocBlankLineEvent() {
-    this->AllocEventWithSize(BLANK_LINE_EVENT,0);
+    this->AllocEventWithSize(BLANK_LINE_EVENT, 0);
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void Trace::AllocStringf(const char *fmt,...) {
+void Trace::AllocStringf(const char *fmt, ...) {
     va_list v;
 
-    va_start(v,fmt);
-    this->AllocStringv(fmt,v);
+    va_start(v, fmt);
+    this->AllocStringv(fmt, v);
     va_end(v);
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void Trace::AllocStringv(const char *fmt,va_list v) {
+void Trace::AllocStringv(const char *fmt, va_list v) {
     char buf[1024];
 
-    vsnprintf(buf,sizeof buf,fmt,v);
+    vsnprintf(buf, sizeof buf, fmt, v);
 
     this->AllocString(buf);
 }
@@ -237,40 +235,40 @@ void Trace::AllocStringv(const char *fmt,va_list v) {
 //////////////////////////////////////////////////////////////////////////
 
 void Trace::AllocString(const char *str) {
-    this->AllocString2(str,strlen(str));
+    this->AllocString2(str, strlen(str));
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 void Trace::AllocWriteROMSELEvent(ROMSEL romsel) {
-    auto ev=(WriteROMSELEvent *)this->AllocEvent(WRITE_ROMSEL_EVENT);
+    auto ev = (WriteROMSELEvent *)this->AllocEvent(WRITE_ROMSEL_EVENT);
 
-    ev->romsel=romsel;
-    m_romsel=romsel;
+    ev->romsel = romsel;
+    m_romsel = romsel;
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 void Trace::AllocWriteACCCONEvent(ACCCON acccon) {
-    auto ev=(WriteACCCONEvent *)this->AllocEvent(WRITE_ACCCON_EVENT);
+    auto ev = (WriteACCCONEvent *)this->AllocEvent(WRITE_ACCCON_EVENT);
 
-    ev->acccon=acccon;
-    m_acccon=acccon;
+    ev->acccon = acccon;
+    m_acccon = acccon;
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 LogPrinter *Trace::GetLogPrinter(size_t max_len) {
-    if(max_len>MAX_EVENT_SIZE) {
-        max_len=MAX_EVENT_SIZE;
+    if (max_len > MAX_EVENT_SIZE) {
+        max_len = MAX_EVENT_SIZE;
     }
 
-    m_log_data=this->AllocString2(NULL,max_len);
-    m_log_len=0;
-    m_log_max_len=max_len;
+    m_log_data = this->AllocString2(NULL, max_len);
+    m_log_len = 0;
+    m_log_max_len = max_len;
 
     return &m_log_printer;
 }
@@ -279,39 +277,39 @@ LogPrinter *Trace::GetLogPrinter(size_t max_len) {
 //////////////////////////////////////////////////////////////////////////
 
 void Trace::FinishLog(Log *log) {
-    ASSERT(log->GetLogPrinter()==&m_log_printer);
+    ASSERT(log->GetLogPrinter() == &m_log_printer);
     ASSERT(m_last_alloc);
 
     log->Flush();
 
-    if(m_log_data!=(char *)m_last_alloc+sizeof(EventWithSizeHeader)) {
+    if (m_log_data != (char *)m_last_alloc + sizeof(EventWithSizeHeader)) {
         // Can't truncate - there are further allocations.
         return;
     }
 
-    EventWithSizeHeader *h=(EventWithSizeHeader *)m_last_alloc;
+    EventWithSizeHeader *h = (EventWithSizeHeader *)m_last_alloc;
 
 #if ASSERT_ENABLED
-    const char *tail_data=(const char *)(m_tail+1);
+    const char *tail_data = (const char *)(m_tail + 1);
 #endif
-    
-    ASSERT(m_log_data+h->size==tail_data+m_tail->size);
 
-    ASSERT(m_log_max_len>=m_log_len);
-    size_t delta=m_log_max_len-m_log_len;
+    ASSERT(m_log_data + h->size == tail_data + m_tail->size);
 
-    ASSERT(h->size>=delta);
-    h->size-=(uint16_t)delta;
+    ASSERT(m_log_max_len >= m_log_len);
+    size_t delta = m_log_max_len - m_log_len;
 
-    ASSERT(m_tail->size>=delta);
-    m_tail->size-=delta;
+    ASSERT(h->size >= delta);
+    h->size -= (uint16_t)delta;
 
-    ASSERT(m_stats.num_used_bytes>=delta);
-    m_stats.num_used_bytes-=delta;
+    ASSERT(m_tail->size >= delta);
+    m_tail->size -= delta;
 
-    ASSERT(m_log_data[h->size-1]==0);
+    ASSERT(m_stats.num_used_bytes >= delta);
+    m_stats.num_used_bytes -= delta;
 
-    m_log_data=NULL;
+    ASSERT(m_log_data[h->size - 1] == 0);
+
+    m_log_data = NULL;
 
     this->Check();
 }
@@ -320,7 +318,7 @@ void Trace::FinishLog(Log *log) {
 //////////////////////////////////////////////////////////////////////////
 
 void Trace::GetStats(TraceStats *stats) const {
-    *stats=m_stats;
+    *stats = m_stats;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -334,7 +332,7 @@ const BBCMicroType *Trace::GetBBCMicroType() const {
 //////////////////////////////////////////////////////////////////////////
 
 ROMSEL Trace::GetInitialROMSEL() const {
-    if(m_head) {
+    if (m_head) {
         return m_head->initial_romsel;
     } else {
         return m_romsel;
@@ -345,7 +343,7 @@ ROMSEL Trace::GetInitialROMSEL() const {
 //////////////////////////////////////////////////////////////////////////
 
 ACCCON Trace::GetInitialACCCON() const {
-    if(m_head) {
+    if (m_head) {
         return m_head->initial_acccon;
     } else {
         return m_acccon;
@@ -355,61 +353,61 @@ ACCCON Trace::GetInitialACCCON() const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-int Trace::ForEachEvent(ForEachEventFn fn,void *context) {
-    if(!m_head) {
+int Trace::ForEachEvent(ForEachEventFn fn, void *context) {
+    if (!m_head) {
         return 1;
     }
 
     TraceEvent e;
-    e.time=m_head->initial_time;
+    e.time = m_head->initial_time;
 
-    Chunk *c=m_head;
-    while(c) {
-        const uint8_t *p=(uint8_t *)(c+1);
-        const uint8_t *end=p+c->size;
+    Chunk *c = m_head;
+    while (c) {
+        const uint8_t *p = (uint8_t *)(c + 1);
+        const uint8_t *end = p + c->size;
 
-        while(p<end) {
-            const EventHeader *h=(const EventHeader *)p;
-            p+=sizeof(EventHeader);
+        while (p < end) {
+            const EventHeader *h = (const EventHeader *)p;
+            p += sizeof(EventHeader);
 
-            ASSERT(h->type<g_trace_next_id);
+            ASSERT(h->type < g_trace_next_id);
 
-            e.type=g_trace_event_types[h->type];
+            e.type = g_trace_event_types[h->type];
             ASSERT(e.type);
 
-            e.size=e.type->size;
-            if(e.size==0) {
-                const EventWithSizeHeader *hs=(const EventWithSizeHeader *)h;
+            e.size = e.type->size;
+            if (e.size == 0) {
+                const EventWithSizeHeader *hs = (const EventWithSizeHeader *)h;
 
-                e.size=hs->size;
-                p+=sizeof(EventWithSizeHeader)-sizeof(EventHeader);
+                e.size = hs->size;
+                p += sizeof(EventWithSizeHeader) - sizeof(EventHeader);
             }
 
-            e.event=p;
+            e.event = p;
 
-            if(e.type==&DISCONTINUITY_EVENT) {
-                auto de=(const DiscontinuityTraceEvent *)e.event;
+            if (e.type == &DISCONTINUITY_EVENT) {
+                auto de = (const DiscontinuityTraceEvent *)e.event;
 
                 // Shouldn't be able to find one to cancel it...
                 ASSERT(!h->canceled);
 
-                e.time=de->new_time;
+                e.time = de->new_time;
             } else {
-                e.time+=h->time_delta;
+                e.time += h->time_delta;
 
-                if(!h->canceled) {
-                    if(!(*fn)(this,&e,context)) {
+                if (!h->canceled) {
+                    if (!(*fn)(this, &e, context)) {
                         return 0;
                     }
                 }
             }
 
-            p+=e.size;
+            p += e.size;
         }
 
-        ASSERT(p==end);
+        ASSERT(p == end);
 
-        c=c->next;
+        c = c->next;
     }
 
     return 1;
@@ -418,46 +416,46 @@ int Trace::ForEachEvent(ForEachEventFn fn,void *context) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void *Trace::AllocEventWithSize(const TraceEventType &type,size_t size) {
-    ASSERT(type.size==0);
+void *Trace::AllocEventWithSize(const TraceEventType &type, size_t size) {
+    ASSERT(type.size == 0);
 
-    if(size>MAX_EVENT_SIZE) {
+    if (size > MAX_EVENT_SIZE) {
         return nullptr;
     }
 
-    uint64_t time=m_last_time;
-    if(m_time_ptr) {
-        time=*m_time_ptr;
+    uint64_t time = m_last_time;
+    if (m_time_ptr) {
+        time = *m_time_ptr;
     }
 
-    auto h=(EventWithSizeHeader *)this->Alloc(time,sizeof(EventWithSizeHeader)+size);
+    auto h = (EventWithSizeHeader *)this->Alloc(time, sizeof(EventWithSizeHeader) + size);
 
-    h->h.type=type.type_id;
-    h->h.time_delta=(uint8_t)(time-m_last_time);
-    h->h.canceled=0;
-    h->size=(uint16_t)size;
+    h->h.type = type.type_id;
+    h->h.time_delta = (uint8_t)(time - m_last_time);
+    h->h.canceled = 0;
+    h->size = (uint16_t)size;
 
-    m_last_time=time;
+    m_last_time = time;
 
     this->Check();
 
-    return h+1;
+    return h + 1;
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-char *Trace::AllocString2(const char *str,size_t len) {
-    if(len+1>MAX_EVENT_SIZE) {
+char *Trace::AllocString2(const char *str, size_t len) {
+    if (len + 1 > MAX_EVENT_SIZE) {
         return nullptr;
     }
 
-    auto p=(char *)this->AllocEventWithSize(STRING_EVENT,len+1);
-    if(p) {
-        if(str) {
-            memcpy(p,str,len+1);
+    auto p = (char *)this->AllocEventWithSize(STRING_EVENT, len + 1);
+    if (p) {
+        if (str) {
+            memcpy(p, str, len + 1);
         } else {
-            *p=0;
+            *p = 0;
         }
     }
 
@@ -469,96 +467,96 @@ char *Trace::AllocString2(const char *str,size_t len) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void *Trace::Alloc(uint64_t time,size_t n) {
+void *Trace::Alloc(uint64_t time, size_t n) {
     //ASSERT(ENABLED(t));
     this->Check();
 
-    if(n>MAX_EVENT_SIZE) {
+    if (n > MAX_EVENT_SIZE) {
         return nullptr;
     }
 
-    if(!m_tail||m_tail->size+n>m_tail->capacity) {
-        size_t size=CHUNK_SIZE;
+    if (!m_tail || m_tail->size + n > m_tail->capacity) {
+        size_t size = CHUNK_SIZE;
 
-        Chunk *c=(Chunk *)malloc(sizeof *c+size);
-        if(!c) {
+        Chunk *c = (Chunk *)malloc(sizeof *c + size);
+        if (!c) {
             return nullptr;
         }
 
-        if(m_stats.num_allocated_bytes+size>m_max_num_bytes) {
-            if(m_head==m_tail) {
+        if (m_stats.num_allocated_bytes + size > m_max_num_bytes) {
+            if (m_head == m_tail) {
                 // Always leave at least one used chunk around.
             } else {
-                Chunk *old_head=m_head;
+                Chunk *old_head = m_head;
 
                 this->Check();
 
-                m_head=m_head->next;
+                m_head = m_head->next;
 
-                ASSERT(m_stats.num_used_bytes>=old_head->size);
-                m_stats.num_used_bytes-=old_head->size;
+                ASSERT(m_stats.num_used_bytes >= old_head->size);
+                m_stats.num_used_bytes -= old_head->size;
 
-                ASSERT(m_stats.num_allocated_bytes>=old_head->capacity);
-                m_stats.num_allocated_bytes-=old_head->capacity;
+                ASSERT(m_stats.num_allocated_bytes >= old_head->capacity);
+                m_stats.num_allocated_bytes -= old_head->capacity;
 
-                ASSERT(m_stats.num_events>=old_head->num_events);
-                m_stats.num_events-=old_head->num_events;
+                ASSERT(m_stats.num_events >= old_head->num_events);
+                m_stats.num_events -= old_head->num_events;
 
                 // Could/should maybe reuse the old head instead...
                 free(old_head);
-                old_head=nullptr;
+                old_head = nullptr;
 
                 this->Check();
             }
         }
 
-        memset(c,0,sizeof *c);
-        c->capacity=size;
-        c->initial_time=c->last_time=time;
-        c->initial_romsel=m_romsel;
-        c->initial_acccon=m_acccon;
+        memset(c, 0, sizeof *c);
+        c->capacity = size;
+        c->initial_time = c->last_time = time;
+        c->initial_romsel = m_romsel;
+        c->initial_acccon = m_acccon;
 
-        if(!m_head) {
-            m_head=c;
+        if (!m_head) {
+            m_head = c;
         } else {
             _Analysis_assume_(m_tail);
-            m_tail->next=c;
+            m_tail->next = c;
         }
 
-        m_tail=c;
+        m_tail = c;
 
         // Don't bother accounting for the header... it's just noise.
-        m_stats.num_allocated_bytes+=m_tail->capacity;
+        m_stats.num_allocated_bytes += m_tail->capacity;
 
         this->Check();
     }
 
-    if(time>m_stats.max_time) {
-        m_stats.max_time=time;
+    if (time > m_stats.max_time) {
+        m_stats.max_time = time;
     }
 
-    if(time<m_last_time||time-m_last_time>MAX_TIME_DELTA) {
+    if (time < m_last_time || time - m_last_time > MAX_TIME_DELTA) {
         // Insert a discontinuity event. Ensure it has a time_delta of
         // 0.
-        m_last_time=time;
+        m_last_time = time;
 
-        auto de=(DiscontinuityTraceEvent *)this->AllocEvent(DISCONTINUITY_EVENT);
+        auto de = (DiscontinuityTraceEvent *)this->AllocEvent(DISCONTINUITY_EVENT);
 
-        de->new_time=time;
+        de->new_time = time;
     }
-    ASSERT(time>=m_last_time&&time-m_last_time<=MAX_TIME_DELTA);
+    ASSERT(time >= m_last_time && time - m_last_time <= MAX_TIME_DELTA);
 
-    uint8_t *p=(uint8_t *)(m_tail+1)+m_tail->size;
+    uint8_t *p = (uint8_t *)(m_tail + 1) + m_tail->size;
 
-    m_tail->size+=n;
-    m_stats.num_used_bytes+=n;
+    m_tail->size += n;
+    m_stats.num_used_bytes += n;
 
     ++m_tail->num_events;
     ++m_stats.num_events;
 
-    m_tail->last_time=time;
+    m_tail->last_time = time;
 
-    m_last_alloc=p;
+    m_last_alloc = p;
 
     this->Check();
 
@@ -589,32 +587,31 @@ void Trace::Check() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-Trace::LogPrinterTrace::LogPrinterTrace(Trace *t):
-    m_t(t)
-{
+Trace::LogPrinterTrace::LogPrinterTrace(Trace *t)
+    : m_t(t) {
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void Trace::LogPrinterTrace::Print(const char *str,size_t str_len) {
-    if(!m_t->m_log_data) {
+void Trace::LogPrinterTrace::Print(const char *str, size_t str_len) {
+    if (!m_t->m_log_data) {
         // This could actually be a stale log... it's not actually a
         // problem.
         return;
     }
 
-    if(m_t->m_log_len==m_t->m_log_max_len) {
+    if (m_t->m_log_len == m_t->m_log_max_len) {
         return;
     }
 
-    if(str_len>m_t->m_log_max_len-m_t->m_log_len) {
-        str_len=m_t->m_log_max_len-m_t->m_log_len;
+    if (str_len > m_t->m_log_max_len - m_t->m_log_len) {
+        str_len = m_t->m_log_max_len - m_t->m_log_len;
     }
 
-    memcpy(m_t->m_log_data+m_t->m_log_len,str,str_len+1);
-    m_t->m_log_len+=str_len;
-    ASSERT(m_t->m_log_data[m_t->m_log_len]==0);
+    memcpy(m_t->m_log_data + m_t->m_log_len, str, str_len + 1);
+    m_t->m_log_len += str_len;
+    ASSERT(m_t->m_log_data[m_t->m_log_len] == 0);
 }
 
 //////////////////////////////////////////////////////////////////////////

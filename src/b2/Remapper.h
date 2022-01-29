@@ -12,13 +12,13 @@
 //////////////////////////////////////////////////////////////////////////
 
 class Remapper {
-public:
+  public:
     // Default initialization gives you a 1:1 remapper.
     Remapper();
 
     // The remapper will produce num_items items for every num_steps
     // steps.
-    Remapper(uint64_t num_steps,uint64_t num_items);
+    Remapper(uint64_t num_steps, uint64_t num_items);
 
     // Do one step. The return value is the number of items required
     // since the last step.
@@ -27,8 +27,9 @@ public:
     // Determine how many units will be produced over the next
     // num_steps steps.
     uint64_t GetNumUnits(uint64_t steps) const;
-protected:
-private:
+
+  protected:
+  private:
     uint64_t m_num_steps;
     uint64_t m_num_items;
     uint64_t m_error;

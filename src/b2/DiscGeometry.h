@@ -1,4 +1,4 @@
-#ifndef HEADER_CB62E80F404B4FFF88B0911D02D06041// -*- mode:c++ -*-
+#ifndef HEADER_CB62E80F404B4FFF88B0911D02D06041 // -*- mode:c++ -*-
 #define HEADER_CB62E80F404B4FFF88B0911D02D06041
 
 //////////////////////////////////////////////////////////////////////////
@@ -16,18 +16,18 @@ class Messages;
 // aren't very clever.
 
 struct DiscGeometry {
-    bool double_sided=false;
-    bool double_density=false;
-    size_t num_tracks=0;
-    size_t sectors_per_track=0;
-    size_t bytes_per_sector=0;
+    bool double_sided = false;
+    bool double_density = false;
+    size_t num_tracks = 0;
+    size_t sectors_per_track = 0;
+    size_t bytes_per_sector = 0;
 
     DiscGeometry();
     DiscGeometry(size_t num_tracks,
                  size_t sectors_per_track,
                  size_t bytes_per_sector,
-                 bool double_sided=false,
-                 bool double_density=false);
+                 bool double_sided = false,
+                 bool double_density = false);
 
     size_t GetTotalNumBytes() const;
 
@@ -41,8 +41,8 @@ struct DiscGeometry {
                   size_t offset) const;
 };
 
-bool operator==(const DiscGeometry &a,const DiscGeometry &b);
-bool operator!=(const DiscGeometry &a,const DiscGeometry &b);
+bool operator==(const DiscGeometry &a, const DiscGeometry &b);
+bool operator!=(const DiscGeometry &a, const DiscGeometry &b);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

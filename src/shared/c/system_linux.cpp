@@ -38,11 +38,10 @@ int IsDebuggerAttached() {
 //////////////////////////////////////////////////////////////////////////
 
 // http://www.opensource.apple.com/source/mail_cmds/mail_cmds-24/mail/strlcpy.c
-size_t strlcpy(char *dest,const char *src,size_t size)
-{
-    char *d=dest;
-    const char *s=src;
-    size_t n=size;
+size_t strlcpy(char *dest, const char *src, size_t size) {
+    char *d = dest;
+    const char *s = src;
+    size_t n = size;
 
     /* Copy as many bytes as will fit */
     if (n != 0 && --n != 0) {
@@ -55,12 +54,12 @@ size_t strlcpy(char *dest,const char *src,size_t size)
     /* Not enough room in dst, add NUL and traverse rest of src */
     if (n == 0) {
         if (size != 0)
-            *d = '\0';		/* NUL-terminate dst */
+            *d = '\0'; /* NUL-terminate dst */
         while (*s++)
             ;
     }
 
-    return (size_t)(s - src - 1);	/* count does not include NUL */
+    return (size_t)(s - src - 1); /* count does not include NUL */
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -75,21 +74,21 @@ struct Module {
 #endif
 
 #if USE_ADDR2LINE
-static bool ReadFD(std::vector<char> *output,int fd) {
+static bool ReadFD(std::vector<char> *output, int fd) {
     char buffer[4096];
 
     output->clear();
-    
-    for(;;) {
-        ssize_t n=read(fd,buffer,sizeof buffer);
-        
-        if(n<0) {
+
+    for (;;) {
+        ssize_t n = read(fd, buffer, sizeof buffer);
+
+        if (n < 0) {
             return false;
-        } else if(n==0) {
+        } else if (n == 0) {
             break;
         }
 
-        output->insert(output->end(),buffer,buffer+n);
+        output->insert(output->end(), buffer, buffer + n);
     }
 
     output->push_back(0);
@@ -101,47 +100,45 @@ static bool ReadFD(std::vector<char> *output,int fd) {
 static void GetBacktraceSymbols(char **symbols,
                                 void *const *addresses,
                                 int num_addresses,
-                                const Module &module)
-{
+                                const Module &module) {
     std::vector<size_t> indexes;
-    int fds[2]={-1,-1};
+    int fds[2] = {-1, -1};
     std::vector<char> output;
 
-    ASSERT(num_addresses>=0);
+    ASSERT(num_addresses >= 0);
     indexes.reserve((size_t)num_addresses);
 
-    for(int i=0;i<num_addresses;++i) {
-        if((uint64_t)(uintptr_t)addresses[i]>=module.begin&&
-           (uint64_t)(uintptr_t)addresses[i]<module.end)
-        {
+    for (int i = 0; i < num_addresses; ++i) {
+        if ((uint64_t)(uintptr_t)addresses[i] >= module.begin &&
+            (uint64_t)(uintptr_t)addresses[i] < module.end) {
             indexes.push_back((size_t)i);
         }
     }
 
-    if(indexes.empty()) {
+    if (indexes.empty()) {
         return;
     }
 
     std::vector<char *> argv;
-    argv.reserve(5+indexes.size()+1);
+    argv.reserve(5 + indexes.size() + 1);
 
     argv.push_back((char *)"/usr/bin/addr2line");
     argv.push_back((char *)"-e");
     argv.push_back((char *)module.name.c_str());
     argv.push_back((char *)"-fi");
-        
-    size_t first_allocated=argv.size();
 
-    for(size_t index:indexes) {
+    size_t first_allocated = argv.size();
+
+    for (size_t index : indexes) {
         // This appears to be how to get good backtraces for ASLR/PIE
         // on Linux. See, e.g.,
         // https://github.com/scylladb/seastar/issues/334
-        uint64_t offset=(uint64_t)(uintptr_t)addresses[index]-module.begin;
+        uint64_t offset = (uint64_t)(uintptr_t)addresses[index] - module.begin;
         char *tmp;
-        if(asprintf(&tmp,"%" PRIx64,offset)==-1) {
+        if (asprintf(&tmp, "%" PRIx64, offset) == -1) {
             goto done;
         }
-        
+
         argv.push_back(tmp);
     }
 
@@ -150,63 +147,63 @@ static void GetBacktraceSymbols(char **symbols,
     /* } */
 
 #if DEBUG_ADDR2LINE
-    for(const char *arg:argv) {
-        printf("%s ",arg);
+    for (const char *arg : argv) {
+        printf("%s ", arg);
     }
     printf("\n");
 #endif
-    
+
     argv.push_back(nullptr);
 
-    if(pipe(fds)==-1) {
+    if (pipe(fds) == -1) {
         goto done;
     }
 
     {
-        int pid=fork();
-        if(pid==-1) {
+        int pid = fork();
+        if (pid == -1) {
             goto done;
         }
 
-        if(pid==0) {
-            dup2(fds[1],STDOUT_FILENO);
-            dup2(fds[1],STDERR_FILENO);
+        if (pid == 0) {
+            dup2(fds[1], STDOUT_FILENO);
+            dup2(fds[1], STDERR_FILENO);
 
-            execv(argv[0],&argv[0]);
+            execv(argv[0], &argv[0]);
             _exit(127);
         } else {
             close(fds[1]);
-            fds[1]=-1;
+            fds[1] = -1;
 
-            ReadFD(&output,fds[0]);
+            ReadFD(&output, fds[0]);
 
             int status;
-            if(waitpid(pid,&status,0)!=pid) {
+            if (waitpid(pid, &status, 0) != pid) {
                 goto done;
             }
 
-            if(!(WIFEXITED(status)&&WEXITSTATUS(status)==0)) {
+            if (!(WIFEXITED(status) && WEXITSTATUS(status) == 0)) {
                 goto done;
             }
 
             {
-                size_t i=0;
-                char *s=output.data();
+                size_t i = 0;
+                char *s = output.data();
 
-                while(i<indexes.size()) {
-                    char *loc=strsep(&s,"\n"),*fun=NULL;
-                    if(loc!=NULL) {
-                        fun=strsep(&s,"\n");
+                while (i < indexes.size()) {
+                    char *loc = strsep(&s, "\n"), *fun = NULL;
+                    if (loc != NULL) {
+                        fun = strsep(&s, "\n");
                     }
 
-                    if(!loc||!fun) {
+                    if (!loc || !fun) {
                         break;
                     }
 
-                    if(fun[0]!='?'&&loc[0]!='?') {
-                        char **p=&symbols[indexes[i]];
-                        if(!*p) {
-                            if(asprintf(p,"%p: %s: %s",addresses[indexes[i]],fun,loc)==-1) {
+                    if (fun[0] != '?' && loc[0] != '?') {
+                        char **p = &symbols[indexes[i]];
+                        if (!*p) {
+                            if (asprintf(p, "%p: %s: %s", addresses[indexes[i]], fun, loc) == -1) {
                                 goto done;
                             }
                         }
@@ -225,31 +222,29 @@ static void GetBacktraceSymbols(char **symbols,
     }
 
 done:;
-    for(size_t i=first_allocated;i<argv.size();++i) {
+    for (size_t i = first_allocated; i < argv.size(); ++i) {
         free(argv[i]);
     }
     argv.clear();
 
-    for(int i=0;i<2;++i) {
-        if(fds[i]!=-1) {
+    for (int i = 0; i < 2; ++i) {
+        if (fds[i] != -1) {
             close(fds[i]);
-            fds[i]=-1;
+            fds[i] = -1;
         }
     }
 }
 #endif
 
-
-
-char **GetBacktraceSymbols(void *const *addresses,int num_addresses) {
+char **GetBacktraceSymbols(void *const *addresses, int num_addresses) {
 #if USE_ADDR2LINE
 
-    if(num_addresses<=0) {
+    if (num_addresses <= 0) {
         /* somebody else's problem... */
-        return backtrace_symbols(addresses,num_addresses);
+        return backtrace_symbols(addresses, num_addresses);
     }
 
-    char *result=NULL;
+    char *result = NULL;
 
     std::vector<char *> symbols;
     symbols.resize((size_t)num_addresses);
@@ -263,109 +258,109 @@ char **GetBacktraceSymbols(void *const *addresses,int num_addresses) {
     /* I don't know how you're *supposed* to read the /proc files.
      * There's a pretty obvious race condition here. */
     {
-        std::string fname="/proc/"+std::to_string(getpid())+"/maps";
-        
-        int fd=open(fname.c_str(),O_RDONLY|O_CLOEXEC);
-        if(fd==-1) {
+        std::string fname = "/proc/" + std::to_string(getpid()) + "/maps";
+
+        int fd = open(fname.c_str(), O_RDONLY | O_CLOEXEC);
+        if (fd == -1) {
             goto done;
         }
 
-        bool good=ReadFD(&maps,fd);
+        bool good = ReadFD(&maps, fd);
 
         close(fd);
-        fd=-1;
+        fd = -1;
 
-        if(!good) {
+        if (!good) {
             goto done;
         }
     }
-    
+
 #if DEBUG_ADDR2LINE
     printf("----------------------------------------------------------------------\n");
     // fingers crossed no overflow.
-    printf("%.*s\n",(int)maps.size(),maps.data());
+    printf("%.*s\n", (int)maps.size(), maps.data());
     printf("----------------------------------------------------------------------\n");
 #endif
 
     {
-        char *stringp=maps.data();
-        for(;;) {
-            char *line=strsep(&stringp,"\n");
-            if(!line) {
+        char *stringp = maps.data();
+        for (;;) {
+            char *line = strsep(&stringp, "\n");
+            if (!line) {
                 break;
             }
 
-            size_t line_len=strlen(line);
+            size_t line_len = strlen(line);
 
-            std::vector<char> prot,name;
-            prot.resize(line_len+1);
-            name.resize(line_len+1);
+            std::vector<char> prot, name;
+            prot.resize(line_len + 1);
+            name.resize(line_len + 1);
 
             Module module;
             uint64_t pgoff;
-        
-            sscanf(line,"%" PRIx64 "-%" PRIx64 " %s %" PRIx64 " %*x:%*x %*u %s\n",
-                   &module.begin,&module.end,prot.data(),&pgoff,name.data());
 
-            if(strlen(name.data())==0) {
+            sscanf(line, "%" PRIx64 "-%" PRIx64 " %s %" PRIx64 " %*x:%*x %*u %s\n",
+                   &module.begin, &module.end, prot.data(), &pgoff, name.data());
+
+            if (strlen(name.data()) == 0) {
                 continue;
             }
 
-            if(name[0]=='[') {
+            if (name[0] == '[') {
                 continue;
             }
 
-            module.name=name.data();//repeated copies... sad!
+            module.name = name.data(); //repeated copies... sad!
 
             //module.end=module.begin+len;
 
             modules.push_back(module);
 
 #if DEBUG_ADDR2LINE
-            printf("%s:\n",module.name.c_str());
-            printf("    From: 0x%" PRIx64 "\n",module.begin);
-            printf("    To: 0x%" PRIx64 " (+%" PRIu64 ")\n",module.end,module.end-module.begin);
+            printf("%s:\n", module.name.c_str());
+            printf("    From: 0x%" PRIx64 "\n", module.begin);
+            printf("    To: 0x%" PRIx64 " (+%" PRIu64 ")\n", module.end, module.end - module.begin);
 #endif
         }
     }
-    
-    for(const Module &module:modules) {
-        GetBacktraceSymbols(symbols.data(),addresses,num_addresses,module);
+
+    for (const Module &module : modules) {
+        GetBacktraceSymbols(symbols.data(), addresses, num_addresses, module);
     }
 
     /* If any entries are missing, fill them in with the address. */
-    for(size_t i=0;i<symbols.size();++i){
-        if(!symbols[i]) {
-            if(asprintf(&symbols[i],"%p",addresses[i])==-1) {
-                symbols[i]=nullptr;
+    for (size_t i = 0; i < symbols.size(); ++i) {
+        if (!symbols[i]) {
+            if (asprintf(&symbols[i], "%p", addresses[i]) == -1) {
+                symbols[i] = nullptr;
             }
         }
     }
-    
+
     /* Build output buffer. */
     {
-        size_t num_array_bytes=symbols.size()*sizeof(char *);
-        size_t num_string_bytes=0;
-        for(const char *symbol:symbols) {
-            num_string_bytes+=strlen(symbol)+1;
+        size_t num_array_bytes = symbols.size() * sizeof(char *);
+        size_t num_string_bytes = 0;
+        for (const char *symbol : symbols) {
+            num_string_bytes += strlen(symbol) + 1;
         }
 
-        result=(char *)malloc(num_array_bytes+num_string_bytes);
-        if(result) {
-            char **strings=(char **)result;
-            char *buffer=result+num_array_bytes,*dest=buffer;
+        result = (char *)malloc(num_array_bytes + num_string_bytes);
+        if (result) {
+            char **strings = (char **)result;
+            char *buffer = result + num_array_bytes, *dest = buffer;
 
-            for(size_t i=0;i<symbols.size();++i) {
-                strings[i]=dest;
-                strcpy(dest,symbols[i]);
-                dest+=strlen(dest)+1;
+            for (size_t i = 0; i < symbols.size(); ++i) {
+                strings[i] = dest;
+                strcpy(dest, symbols[i]);
+                dest += strlen(dest) + 1;
             }
-            ASSERT(dest==result+num_array_bytes+num_string_bytes);
+            ASSERT(dest == result + num_array_bytes + num_string_bytes);
         }
     }
-    
+
 done:
-    for(char *symbol:symbols) {
+    for (char *symbol : symbols) {
         free(symbol);
     }
     symbols.clear();
@@ -373,8 +368,8 @@ done:
     return (char **)result;
 
 #else
-    
-    return backtrace_symbols(addresses,num_addresses);
+
+    return backtrace_symbols(addresses, num_addresses);
 
 #endif
 }
@@ -383,36 +378,36 @@ done:
 //////////////////////////////////////////////////////////////////////////
 
 int GetLowestSetBitIndex32(uint32_t value) {
-    return __builtin_ffs((int)value)-1;
+    return __builtin_ffs((int)value) - 1;
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 int GetHighestSetBitIndex32(uint32_t value) {
-    if(value==0) {
+    if (value == 0) {
         return -1;
     }
 
-    return 31-__builtin_clz(value);
+    return 31 - __builtin_clz(value);
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 int GetLowestSetBitIndex64(uint64_t value) {
-    return __builtin_ffsll((int64_t)value)-1;
+    return __builtin_ffsll((int64_t)value) - 1;
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 int GetHighestSetBitIndex64(uint64_t value) {
-    if(value==0) {
+    if (value == 0) {
         return -1;
     }
-    
-    return 63-__builtin_clzll(value);
+
+    return 63 - __builtin_clzll(value);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -434,26 +429,26 @@ size_t GetNumSetBits64(uint64_t value) {
 
 void SetCurrentThreadNameInternal(const char *name) {
     char tmp[16];
-    strlcpy(tmp,name,16);
-    prctl(PR_SET_NAME,(unsigned long)name,0,0,0);
+    strlcpy(tmp, name, 16);
+    prctl(PR_SET_NAME, (unsigned long)name, 0, 0, 0);
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static const int64_t NS_PER_SEC=1000*1000*1000;
+static const int64_t NS_PER_SEC = 1000 * 1000 * 1000;
 
 uint64_t GetCurrentTickCount(void) {
     struct timespec r;
-    clock_gettime(CLOCK_MONOTONIC_RAW,&r);
-    return (uint64_t)(NS_PER_SEC*r.tv_sec+r.tv_nsec);
+    clock_gettime(CLOCK_MONOTONIC_RAW, &r);
+    return (uint64_t)(NS_PER_SEC * r.tv_sec + r.tv_nsec);
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 double GetSecondsFromTicks(uint64_t ticks) {
-    return ticks/(double)NS_PER_SEC;
+    return ticks / (double)NS_PER_SEC;
 }
 
 //////////////////////////////////////////////////////////////////////////

@@ -24,7 +24,7 @@ class Messages;
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void DumpRendererInfo(Log *log,const struct SDL_RendererInfo *info);
+void DumpRendererInfo(Log *log, const struct SDL_RendererInfo *info);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -34,14 +34,13 @@ void SetRenderScaleQualityHint(bool filter);
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-std::string strprintf(const char *fmt,...) PRINTF_LIKE(1,2);
-std::string strprintfv(const char *fmt,va_list v);
+std::string strprintf(const char *fmt, ...) PRINTF_LIKE(1, 2);
+std::string strprintfv(const char *fmt, va_list v);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-std::string GetFlagsString(uint32_t value,const char *(*get_name_fn)(int));
-
+std::string GetFlagsString(uint32_t value, const char *(*get_name_fn)(int));
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -54,8 +53,8 @@ std::string Get2MHzCyclesString(uint64_t num_2MHz_cycles);
 // 012345687901234567890123456
 // 18,446,744,073,709,551,616
 
-static const size_t MAX_UINT64_THOUSANDS_LEN=26;
-void GetThousandsString(char *str,uint64_t value);
+static const size_t MAX_UINT64_THOUSANDS_LEN = 26;
+void GetThousandsString(char *str, uint64_t value);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -72,8 +71,8 @@ struct SDL_Deleter {
     void operator()(SDL_PixelFormat *p) const;
 };
 
-template<class T>
-using SDLUniquePtr=std::unique_ptr<T,SDL_Deleter>;
+template <class T>
+using SDLUniquePtr = std::unique_ptr<T, SDL_Deleter>;
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -97,11 +96,11 @@ std::string GetTimeString(const struct tm &t);
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-template<class T>
-static T ValueChanged(T *value_ptr,T &&new_value) {
-    T change=*value_ptr^new_value;
+template <class T>
+static T ValueChanged(T *value_ptr, T &&new_value) {
+    T change = *value_ptr ^ new_value;
 
-    *value_ptr=new_value;
+    *value_ptr = new_value;
 
     return change;
 }
@@ -110,49 +109,50 @@ static T ValueChanged(T *value_ptr,T &&new_value) {
 //////////////////////////////////////////////////////////////////////////
 
 class AudioDeviceLock {
-public:
+  public:
     explicit AudioDeviceLock(uint32_t device);
     ~AudioDeviceLock();
 
-    AudioDeviceLock(AudioDeviceLock &&)=delete;
-    AudioDeviceLock &operator=(AudioDeviceLock &&)=delete;
+    AudioDeviceLock(AudioDeviceLock &&) = delete;
+    AudioDeviceLock &operator=(AudioDeviceLock &&) = delete;
 
-    AudioDeviceLock(const AudioDeviceLock &)=delete;
-    AudioDeviceLock &operator=(const AudioDeviceLock &)=delete;
-protected:
-private:
+    AudioDeviceLock(const AudioDeviceLock &) = delete;
+    AudioDeviceLock &operator=(const AudioDeviceLock &) = delete;
+
+  protected:
+  private:
     uint32_t m_device;
 };
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void ForEachLine(const std::string &str,std::function<void(const std::string::const_iterator &a,const std::string::const_iterator &b)> fun);
+void ForEachLine(const std::string &str, std::function<void(const std::string::const_iterator &a, const std::string::const_iterator &b)> fun);
 
-std::vector<std::string> GetSplitString(const std::string &str,const std::string &separator_chars);
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-bool GetBoolFromString(bool *value,const std::string &str);
-bool GetBoolFromString(bool *value,const char *str);
-
-bool GetUInt8FromString(uint8_t *value,const std::string &str,int radix=0);
-bool GetUInt8FromString(uint8_t *value,const char *str,int radix=0);
-
-bool GetUInt16FromString(uint16_t *value,const std::string &str,int radix=0);
-bool GetUInt16FromString(uint16_t *value,const char *str,int radix=0);
-
-bool GetUInt32FromString(uint32_t *value,const std::string &str,int radix=0);
-bool GetUInt32FromString(uint32_t *value,const char *str,int radix=0);
-
-bool GetUInt64FromString(uint64_t *value,const std::string &str,int radix=0);
-bool GetUInt64FromString(uint64_t *value,const char *str,int radix=0);
+std::vector<std::string> GetSplitString(const std::string &str, const std::string &separator_chars);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-// returns true on success, or false on failure. 
+bool GetBoolFromString(bool *value, const std::string &str);
+bool GetBoolFromString(bool *value, const char *str);
+
+bool GetUInt8FromString(uint8_t *value, const std::string &str, int radix = 0);
+bool GetUInt8FromString(uint8_t *value, const char *str, int radix = 0);
+
+bool GetUInt16FromString(uint16_t *value, const std::string &str, int radix = 0);
+bool GetUInt16FromString(uint16_t *value, const char *str, int radix = 0);
+
+bool GetUInt32FromString(uint32_t *value, const std::string &str, int radix = 0);
+bool GetUInt32FromString(uint32_t *value, const char *str, int radix = 0);
+
+bool GetUInt64FromString(uint64_t *value, const std::string &str, int radix = 0);
+bool GetUInt64FromString(uint64_t *value, const char *str, int radix = 0);
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+// returns true on success, or false on failure.
 bool GetBBCASCIIFromUTF8(std::string *ascii,
                          const std::vector<uint8_t> &data,
                          uint32_t *bad_codepoint_ptr,

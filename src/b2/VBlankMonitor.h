@@ -1,4 +1,4 @@
-#ifndef HEADER_0C29552443F1455C8BFDA39B14B6E819// -*- mode:c++ -*-
+#ifndef HEADER_0C29552443F1455C8BFDA39B14B6E819 // -*- mode:c++ -*-
 #define HEADER_0C29552443F1455C8BFDA39B14B6E819
 
 //////////////////////////////////////////////////////////////////////////
@@ -15,28 +15,30 @@ class Messages;
 //////////////////////////////////////////////////////////////////////////
 
 class VBlankMonitor {
-public:
+  public:
     class Handler {
-    public:
+      public:
         Handler();
-        virtual ~Handler()=0;
+        virtual ~Handler() = 0;
 
-        virtual void *AllocateDisplayData(uint32_t display_id)=0;
-        virtual void FreeDisplayData(uint32_t display_id,void *data)=0;
-        virtual void ThreadVBlank(uint32_t display_id,void *data)=0;
-    protected:
-    private:
+        virtual void *AllocateDisplayData(uint32_t display_id) = 0;
+        virtual void FreeDisplayData(uint32_t display_id, void *data) = 0;
+        virtual void ThreadVBlank(uint32_t display_id, void *data) = 0;
+
+      protected:
+      private:
     };
 
     VBlankMonitor();
-    virtual ~VBlankMonitor()=0;
+    virtual ~VBlankMonitor() = 0;
 
-    virtual bool Init(Handler *handler,Messages *messages)=0;
+    virtual bool Init(Handler *handler, Messages *messages) = 0;
 
-    virtual void *GetDisplayDataForDisplayID(uint32_t display_id) const=0;
-    virtual void *GetDisplayDataForPoint(int x,int y) const=0;
-protected:
-private:
+    virtual void *GetDisplayDataForDisplayID(uint32_t display_id) const = 0;
+    virtual void *GetDisplayDataForPoint(int x, int y) const = 0;
+
+  protected:
+  private:
 };
 
 //////////////////////////////////////////////////////////////////////////

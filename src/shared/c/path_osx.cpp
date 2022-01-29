@@ -13,13 +13,13 @@ std::string PathGetEXEFileName(void) {
     int rc;
 
     char tmp[1];
-    size=1;
-    rc=_NSGetExecutablePath(tmp,&size);
+    size = 1;
+    rc = _NSGetExecutablePath(tmp, &size);
 
     std::vector<char> buf;
     buf.resize(size);
-    rc=_NSGetExecutablePath(buf.data(),&size);
-    if(rc==-1) {
+    rc = _NSGetExecutablePath(buf.data(), &size);
+    if (rc == -1) {
         return "";
     }
 

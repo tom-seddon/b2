@@ -18,7 +18,7 @@ extern "C" {
 //
 // Either way, *result points to a buffer allocated with malloc. Use
 // free to free it.
-int DownloadFile(char **result,const char *url,int force_download);
+int DownloadFile(char **result, const char *url, int force_download);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

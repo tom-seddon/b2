@@ -24,7 +24,7 @@ const std::string &SettingsUI::GetName() const {
 //////////////////////////////////////////////////////////////////////////
 
 void SettingsUI::SetName(std::string name) {
-    m_name=std::move(name);
+    m_name = std::move(name);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -40,4 +40,3 @@ uint32_t SettingsUI::GetExtraImGuiWindowFlags() const {
 const CommandTable *SettingsUI::GetCommandTable() const {
     return nullptr;
 }
-

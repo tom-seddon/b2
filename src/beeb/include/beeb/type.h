@@ -1,4 +1,4 @@
-#ifndef HEADER_F540ED1CD8194D4CB1143D704E77037D// -*- mode:c++ -*-
+#ifndef HEADER_F540ED1CD8194D4CB1143D704E77037D // -*- mode:c++ -*-
 #define HEADER_F540ED1CD8194D4CB1143D704E77037D
 
 //////////////////////////////////////////////////////////////////////////
@@ -67,42 +67,42 @@ struct M6502Config;
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static constexpr uint8_t MAIN_BIG_PAGE_INDEX=0;
-static constexpr uint8_t NUM_MAIN_BIG_PAGES=32/4;
+static constexpr uint8_t MAIN_BIG_PAGE_INDEX = 0;
+static constexpr uint8_t NUM_MAIN_BIG_PAGES = 32 / 4;
 
-static constexpr uint8_t ANDY_BIG_PAGE_INDEX=MAIN_BIG_PAGE_INDEX+NUM_MAIN_BIG_PAGES;
-static constexpr uint8_t NUM_ANDY_BIG_PAGES=4/4;
+static constexpr uint8_t ANDY_BIG_PAGE_INDEX = MAIN_BIG_PAGE_INDEX + NUM_MAIN_BIG_PAGES;
+static constexpr uint8_t NUM_ANDY_BIG_PAGES = 4 / 4;
 
-static constexpr uint8_t HAZEL_BIG_PAGE_INDEX=ANDY_BIG_PAGE_INDEX+NUM_ANDY_BIG_PAGES;
-static constexpr uint8_t NUM_HAZEL_BIG_PAGES=8/4;
+static constexpr uint8_t HAZEL_BIG_PAGE_INDEX = ANDY_BIG_PAGE_INDEX + NUM_ANDY_BIG_PAGES;
+static constexpr uint8_t NUM_HAZEL_BIG_PAGES = 8 / 4;
 
-static constexpr uint8_t BPLUS_RAM_BIG_PAGE_INDEX=ANDY_BIG_PAGE_INDEX;
-static constexpr uint8_t NUM_BPLUS_RAM_BIG_PAGES=12/4;
+static constexpr uint8_t BPLUS_RAM_BIG_PAGE_INDEX = ANDY_BIG_PAGE_INDEX;
+static constexpr uint8_t NUM_BPLUS_RAM_BIG_PAGES = 12 / 4;
 
-static constexpr uint8_t SHADOW_BIG_PAGE_INDEX=HAZEL_BIG_PAGE_INDEX+NUM_HAZEL_BIG_PAGES;
-static constexpr uint8_t NUM_SHADOW_BIG_PAGES=20/4;
+static constexpr uint8_t SHADOW_BIG_PAGE_INDEX = HAZEL_BIG_PAGE_INDEX + NUM_HAZEL_BIG_PAGES;
+static constexpr uint8_t NUM_SHADOW_BIG_PAGES = 20 / 4;
 
-static constexpr uint8_t ROM0_BIG_PAGE_INDEX=SHADOW_BIG_PAGE_INDEX+NUM_SHADOW_BIG_PAGES;
-static constexpr uint8_t NUM_ROM_BIG_PAGES=16/4;
+static constexpr uint8_t ROM0_BIG_PAGE_INDEX = SHADOW_BIG_PAGE_INDEX + NUM_SHADOW_BIG_PAGES;
+static constexpr uint8_t NUM_ROM_BIG_PAGES = 16 / 4;
 
-static constexpr uint8_t MOS_BIG_PAGE_INDEX=ROM0_BIG_PAGE_INDEX+16*NUM_ROM_BIG_PAGES;
-static constexpr uint8_t NUM_MOS_BIG_PAGES=16/4;
+static constexpr uint8_t MOS_BIG_PAGE_INDEX = ROM0_BIG_PAGE_INDEX + 16 * NUM_ROM_BIG_PAGES;
+static constexpr uint8_t NUM_MOS_BIG_PAGES = 16 / 4;
 
-static constexpr uint8_t NUM_BIG_PAGES=MOS_BIG_PAGE_INDEX+NUM_MOS_BIG_PAGES;
+static constexpr uint8_t NUM_BIG_PAGES = MOS_BIG_PAGE_INDEX + NUM_MOS_BIG_PAGES;
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 struct BROMSELBits {
-    uint8_t pr:4,_:4;
+    uint8_t pr : 4, _ : 4;
 };
 
 struct BPlusROMSELBits {
-    uint8_t pr:4,_:3,ram:1;
+    uint8_t pr : 4, _ : 3, ram : 1;
 };
 
 struct Master128ROMSELBits {
-    uint8_t pm:4,_:3,ram:1;
+    uint8_t pm : 4, _ : 3, ram : 1;
 };
 
 union ROMSEL {
@@ -116,11 +116,11 @@ union ROMSEL {
 //////////////////////////////////////////////////////////////////////////
 
 struct BPlusACCCONBits {
-    uint8_t _:7,shadow:1;
+    uint8_t _ : 7, shadow : 1;
 };
 
 struct Master128ACCCONBits {
-    uint8_t d:1,e:1,x:1,y:1,itu:1,ifj:1,tst:1,irr:1;
+    uint8_t d : 1, e : 1, x : 1, y : 1, itu : 1, ifj : 1, tst : 1, irr : 1;
 };
 
 union ACCCON {
@@ -148,22 +148,22 @@ struct MemoryBigPageTables {
 // TODO think of a better name for this!
 struct BigPageMetadata {
     // index of this big page.
-    uint8_t index=0xff;
+    uint8_t index = 0xff;
 
     // Single char syntax for use when entering addresses in the debugger.
-    char code=0;
+    char code = 0;
 
     // More elaborate description, printed in UI.
     std::string description;
 
 #if BBCMICRO_DEBUGGER
     // dpo mask/value that must be applied to have this big page mapped in.
-    uint32_t dpo_mask=~(uint32_t)0;
-    uint32_t dpo_value=0;
+    uint32_t dpo_mask = ~(uint32_t)0;
+    uint32_t dpo_value = 0;
 #endif
 
     // where this big page will appear in the address space when mapped in.
-    uint16_t addr=0xffff;
+    uint16_t addr = 0xffff;
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -186,10 +186,10 @@ struct BBCMicroType {
     uint32_t dpo_mask;
 #endif
 
-//    // indexed by big page index. These don't actually vary much from model to
-//    // model - the tables are separate mainly so that B+ ANDY and M128
-//    // ANDY/HAZEL are correctly catogorized.
-//    std::vector<const BigPageType *> big_page_types;
+    //    // indexed by big page index. These don't actually vary much from model to
+    //    // model - the tables are separate mainly so that B+ ANDY and M128
+    //    // ANDY/HAZEL are correctly catogorized.
+    //    std::vector<const BigPageType *> big_page_types;
 
     // indexed by big page index.
     //
@@ -241,12 +241,12 @@ struct BBCMicroType {
     uint32_t flags;
 
     struct SHEILACycleStretchRegion {
-        uint8_t first,last;//both inclusive
+        uint8_t first, last; //both inclusive
     };
     std::vector<SHEILACycleStretchRegion> sheila_cycle_stretch_regions;
 
 #if BBCMICRO_DEBUGGER
-    bool (*parse_prefix_char_fn)(uint32_t *dpo,char c);
+    bool (*parse_prefix_char_fn)(uint32_t *dpo, char c);
 #endif
 };
 

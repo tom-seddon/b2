@@ -5,9 +5,9 @@
 //////////////////////////////////////////////////////////////////////////
 
 static std::shared_ptr<DiscImage> DoClone(const DiscImage *disc_image) {
-    if(!disc_image) {
+    if (!disc_image) {
         return nullptr;
-    } else if(!disc_image->CanClone()) {
+    } else if (!disc_image->CanClone()) {
         return nullptr;
     } else {
         return disc_image->Clone();
@@ -54,10 +54,10 @@ bool DiscImage::CanSave() const {
 DiscImageSummary DiscImage::GetSummary() const {
     DiscImageSummary s;
 
-    s.name=this->GetName();
-    s.load_method=this->GetLoadMethod();
-    s.description=this->GetDescription();
-    s.hash=this->GetHash();
+    s.name = this->GetName();
+    s.load_method = this->GetLoadMethod();
+    s.description = this->GetDescription();
+    s.hash = this->GetHash();
 
     return s;
 }

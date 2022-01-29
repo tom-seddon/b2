@@ -1,4 +1,4 @@
-#ifndef HEADER_50FB61B12F8C4CCEB9C1F801782A6C15// -*- mode:c++ -*-
+#ifndef HEADER_50FB61B12F8C4CCEB9C1F801782A6C15 // -*- mode:c++ -*-
 #define HEADER_50FB61B12F8C4CCEB9C1F801782A6C15
 
 //////////////////////////////////////////////////////////////////////////

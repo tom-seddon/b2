@@ -8,9 +8,9 @@ int main() {
 
     bbc.RunUntilOSWORD0(10.0);
 
-    bbc.LoadFile(GetTestFileName(BEEBLINK_VOLUME_PATH,0,"$.ENGTEST"),0x7c00);
+    bbc.LoadFile(GetTestFileName(BEEBLINK_VOLUME_PATH, 0, "$.ENGTEST"), 0x7c00);
 
-    RunImageTest(PathJoined(BEEBLINK_VOLUME_PATH,"engtest.png"),
+    RunImageTest(PathJoined(BEEBLINK_VOLUME_PATH, "engtest.png"),
                  "engtest",
                  &bbc);
 }

@@ -1,4 +1,4 @@
-#ifndef HEADER_213C9EB267114EF4B71A8A8184599B19// -*- mode:c++ -*-
+#ifndef HEADER_213C9EB267114EF4B71A8A8184599B19 // -*- mode:c++ -*-
 #define HEADER_213C9EB267114EF4B71A8A8184599B19
 
 //////////////////////////////////////////////////////////////////////////
@@ -21,21 +21,19 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-class DirectDiscImage:
-public DiscImage
-{
-public:
+class DirectDiscImage : public DiscImage {
+  public:
     static const std::string LOAD_METHOD_DIRECT;
 
-    ~DirectDiscImage()=default;
+    ~DirectDiscImage() = default;
 
-    static std::shared_ptr<DirectDiscImage> CreateForFile(std::string path,Messages *msg);
+    static std::shared_ptr<DirectDiscImage> CreateForFile(std::string path, Messages *msg);
 
-    DirectDiscImage(const DirectDiscImage &)=delete;
-    DirectDiscImage &operator=(const DirectDiscImage &)=delete;
+    DirectDiscImage(const DirectDiscImage &) = delete;
+    DirectDiscImage &operator=(const DirectDiscImage &) = delete;
 
-    DirectDiscImage(DirectDiscImage &&)=delete;
-    DirectDiscImage &operator=(DirectDiscImage &&)=delete;
+    DirectDiscImage(DirectDiscImage &&) = delete;
+    DirectDiscImage &operator=(DirectDiscImage &&) = delete;
 
     bool CanClone() const override;
     bool CanSave() const override;
@@ -48,21 +46,22 @@ public:
 
     void AddFileDialogFilter(FileDialog *fd) const override;
 
-    bool SaveToFile(const std::string &file_name,Messages *msg) const override;
+    bool SaveToFile(const std::string &file_name, Messages *msg) const override;
 
-    bool Read(uint8_t *value,uint8_t side,uint8_t track,uint8_t sector,size_t offset) const override;
-    bool Write(uint8_t side,uint8_t track,uint8_t sector,size_t offset,uint8_t value) override;
+    bool Read(uint8_t *value, uint8_t side, uint8_t track, uint8_t sector, size_t offset) const override;
+    bool Write(uint8_t side, uint8_t track, uint8_t sector, size_t offset, uint8_t value) override;
 
-    bool GetDiscSectorSize(size_t *size,uint8_t side,uint8_t track,uint8_t sector,bool double_density) const override;
+    bool GetDiscSectorSize(size_t *size, uint8_t side, uint8_t track, uint8_t sector, bool double_density) const override;
     bool IsWriteProtected() const override;
-protected:
-private:
+
+  protected:
+  private:
     std::string m_path;
     DiscGeometry m_geometry;
     bool m_write_protected;
 
-    DirectDiscImage(std::string path,const DiscGeometry &geometry,bool write_protected);
-    FILE *fopenAndSeek(const char *mode,uint8_t side,uint8_t track,uint8_t sector,size_t offset) const;
+    DirectDiscImage(std::string path, const DiscGeometry &geometry, bool write_protected);
+    FILE *fopenAndSeek(const char *mode, uint8_t side, uint8_t track, uint8_t sector, size_t offset) const;
 };
 
 //////////////////////////////////////////////////////////////////////////

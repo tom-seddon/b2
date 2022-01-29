@@ -66,7 +66,7 @@
 #define RMO_ACQUIRE (std::memory_order_acquire)
 #define RMO_ACQ_REL (std::memory_order_acq_rel)
 
-#define RDELETED(...) __VA_ARGS__=delete
+#define RDELETED(...) __VA_ARGS__ = delete
 
 #endif
 

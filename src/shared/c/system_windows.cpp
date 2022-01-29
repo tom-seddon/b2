@@ -25,11 +25,11 @@ int IsDebuggerAttached() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-int asprintf(char **buf,const char *fmt,...) {
+int asprintf(char **buf, const char *fmt, ...) {
     va_list v;
 
-    va_start(v,fmt);
-    int r=vasprintf(buf,fmt,v);
+    va_start(v, fmt);
+    int r = vasprintf(buf, fmt, v);
     va_end(v);
 
     return r;
@@ -38,46 +38,46 @@ int asprintf(char **buf,const char *fmt,...) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-int vasprintf(char **buf,const char *fmt,va_list v_) {
+int vasprintf(char **buf, const char *fmt, va_list v_) {
     // value is slightly lower than 16K, to avoid /analyze warning.
-    static const size_t SIZE=16000;
-    char tmp[SIZE];//probably gonig to be large enough.
+    static const size_t SIZE = 16000;
+    char tmp[SIZE]; //probably gonig to be large enough.
     va_list v;
 
     // Try to use the stack buffer.
-    va_copy(v,v_);
-    int n=vsnprintf(tmp,sizeof tmp,fmt,v);
+    va_copy(v, v_);
+    int n = vsnprintf(tmp, sizeof tmp, fmt, v);
     va_end(v);
-    if(n<0) {
+    if (n < 0) {
         // Is this even possible?
         return -1;
     }
 
-    if(n<(int)SIZE) {
-        *buf=(char *)malloc((size_t)n+1);
-        if(!buf) {
+    if (n < (int)SIZE) {
+        *buf = (char *)malloc((size_t)n + 1);
+        if (!buf) {
             return -1;
         }
 
-        memcpy(*buf,tmp,(size_t)n+1);
+        memcpy(*buf, tmp, (size_t)n + 1);
         return n;
     }
 
     // Allocate a buffer large enough, and use that.
-    *buf=(char *)malloc((size_t)n+1);
-    if(!*buf) {
+    *buf = (char *)malloc((size_t)n + 1);
+    if (!*buf) {
         return -1;
     }
 
-    va_copy(v,v_);
-    int n2=vsnprintf(*buf,(size_t)n+1,fmt,v);
+    va_copy(v, v_);
+    int n2 = vsnprintf(*buf, (size_t)n + 1, fmt, v);
     va_end(v);
-    if(n2<0) {
+    if (n2 < 0) {
         // Is this even possible?
         return -1;
     }
 
-    ASSERT(n==n2);
+    ASSERT(n == n2);
     return n;
 }
 
@@ -85,35 +85,35 @@ int vasprintf(char **buf,const char *fmt,va_list v_) {
 //////////////////////////////////////////////////////////////////////////
 
 // http://www.opensource.apple.com/source/mail_cmds/mail_cmds-24/mail/strlcpy.c
-size_t strlcpy(char *dest,const char *src,size_t size) {
-    char *d=dest;
-    const char *s=src;
-    size_t n=size;
+size_t strlcpy(char *dest, const char *src, size_t size) {
+    char *d = dest;
+    const char *s = src;
+    size_t n = size;
 
     /* Copy as many bytes as will fit */
-    if(n!=0&&--n!=0) {
+    if (n != 0 && --n != 0) {
         do {
-            if((*d++=*s++)==0)
+            if ((*d++ = *s++) == 0)
                 break;
-        } while(--n!=0);
+        } while (--n != 0);
     }
 
     /* Not enough room in dst, add NUL and traverse rest of src */
-    if(n==0) {
-        if(size!=0)
-            *d='\0';		/* NUL-terminate dst */
-        while(*s++)
+    if (n == 0) {
+        if (size != 0)
+            *d = '\0'; /* NUL-terminate dst */
+        while (*s++)
             ;
     }
 
-    return(s-src-1);	/* count does not include NUL */
+    return (s - src - 1); /* count does not include NUL */
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-int backtrace(void **array,int size) {
-    (void)array,(void)size;
+int backtrace(void **array, int size) {
+    (void)array, (void)size;
 
     return 0;
 }
@@ -121,8 +121,8 @@ int backtrace(void **array,int size) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-char **GetBacktraceSymbols(void *const *array,int size) {
-    (void)array,(void)size;
+char **GetBacktraceSymbols(void *const *array, int size) {
+    (void)array, (void)size;
 
     return NULL;
 }
@@ -138,18 +138,20 @@ const char *GetLastErrorDescription(void) {
 //////////////////////////////////////////////////////////////////////////
 
 const char *GetErrorDescription(DWORD error) {
-    DWORD n=FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM,NULL,error,0,g_last_error_description,
-        ARRAYSIZE(g_last_error_description),NULL);
+    DWORD n = FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM, NULL, error, 0, g_last_error_description,
+                            ARRAYSIZE(g_last_error_description), NULL);
 
-    if(n==0) {
+    if (n == 0) {
         /* Bleargh. */
 
-#define CASE(X) case (X): return #X
+#define CASE(X) \
+    case (X):   \
+        return #X
 
-        switch(error) {
+        switch (error) {
         default:
-            snprintf(g_last_error_description,sizeof g_last_error_description,
-                "(Unknown error: 0x%08lX)",error);
+            snprintf(g_last_error_description, sizeof g_last_error_description,
+                     "(Unknown error: 0x%08lX)", error);
             break;
 
             // These have been added in on a case by case basis, as
@@ -181,13 +183,11 @@ const char *GetErrorDescription(DWORD error) {
         /* For some reason, Windows error strings end with a carriage
          * return. */
 
-        ASSERT(g_last_error_description[n]==0);
-        while(n>0&&isspace(g_last_error_description[n-1])) {
-            g_last_error_description[--n]=0;
+        ASSERT(g_last_error_description[n] == 0);
+        while (n > 0 && isspace(g_last_error_description[n - 1])) {
+            g_last_error_description[--n] = 0;
         }
     }
-
-
 
     return g_last_error_description;
 }
@@ -198,7 +198,7 @@ const char *GetErrorDescription(DWORD error) {
 int GetLowestSetBitIndex32(uint32_t value) {
     unsigned long index;
 
-    if(_BitScanForward(&index,value)==0) {
+    if (_BitScanForward(&index, value) == 0) {
         return -1;
     } else {
         return (int)index;
@@ -211,7 +211,7 @@ int GetLowestSetBitIndex32(uint32_t value) {
 int GetHighestSetBitIndex32(uint32_t value) {
     unsigned long index;
 
-    if(_BitScanReverse(&index,value)==0) {
+    if (_BitScanReverse(&index, value) == 0) {
         return -1;
     } else {
         return (int)index;
@@ -225,16 +225,16 @@ int GetLowestSetBitIndex64(uint64_t value) {
     unsigned long index;
 
 #if CPU_X64
-    if(_BitScanForward64(&index,value)) {
+    if (_BitScanForward64(&index, value)) {
         return (int)index;
     }
 #else
-    if(_BitScanForward(&index,(DWORD)value)) {
+    if (_BitScanForward(&index, (DWORD)value)) {
         return (int)index;
     }
 
-    if(_BitScanForward(&index,(DWORD)(value>>32))) {
-        return 32+(int)index;
+    if (_BitScanForward(&index, (DWORD)(value >> 32))) {
+        return 32 + (int)index;
     }
 #endif
 
@@ -248,15 +248,15 @@ int GetHighestSetBitIndex64(uint64_t value) {
     unsigned long index;
 
 #if CPU_X64
-    if(_BitScanReverse64(&index,value)) {
+    if (_BitScanReverse64(&index, value)) {
         return (int)index;
     }
 #else
-    if(_BitScanReverse(&index,(DWORD)(value>>32))) {
-        return 32+(int)index;
+    if (_BitScanReverse(&index, (DWORD)(value >> 32))) {
+        return 32 + (int)index;
     }
 
-    if(_BitScanReverse(&index,(DWORD)value)) {
+    if (_BitScanReverse(&index, (DWORD)value)) {
         return (int)index;
     }
 #endif
@@ -278,7 +278,7 @@ size_t GetNumSetBits64(uint64_t value) {
 #if CPU_X64
     return __popcnt64(value);
 #else
-    return __popcnt((unsigned)value)+__popcnt((unsigned)(value>>32));
+    return __popcnt((unsigned)value) + __popcnt((unsigned)(value >> 32));
 #endif
 }
 
@@ -286,9 +286,9 @@ size_t GetNumSetBits64(uint64_t value) {
 //////////////////////////////////////////////////////////////////////////
 
 int GetTerminalWidth(void) {
-    CONSOLE_SCREEN_BUFFER_INFO csbi={sizeof csbi};
+    CONSOLE_SCREEN_BUFFER_INFO csbi = {sizeof csbi};
 
-    if(!GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE),&csbi)) {
+    if (!GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &csbi)) {
         return INT_MAX;
     }
 
@@ -315,15 +315,15 @@ struct THREADNAME_INFO {
 #include <shared/poppack.h>
 
 void SetCurrentThreadNameInternal(const char *name) {
-    THREADNAME_INFO i={
+    THREADNAME_INFO i = {
         0x1000,
         name,
         GetCurrentThreadId(),
     };
 
     __try {
-        RaiseException(0x406d1388,0,sizeof i/sizeof(ULONG_PTR),(ULONG_PTR *)&i);
-    } __except(EXCEPTION_EXECUTE_HANDLER) {
+        RaiseException(0x406d1388, 0, sizeof i / sizeof(ULONG_PTR), (ULONG_PTR *)&i);
+    } __except (EXCEPTION_EXECUTE_HANDLER) {
     }
 }
 
@@ -338,13 +338,13 @@ void SleepMS(unsigned ms) {
 //////////////////////////////////////////////////////////////////////////
 
 static double GetSecondsPerTick(void) {
-    if(!g_got_qpc_freq) {
+    if (!g_got_qpc_freq) {
         LARGE_INTEGER hz;
         QueryPerformanceFrequency(&hz);
 
-        g_secs_per_tick=1./hz.QuadPart;
+        g_secs_per_tick = 1. / hz.QuadPart;
 
-        g_got_qpc_freq=TRUE;
+        g_got_qpc_freq = TRUE;
     }
 
     return g_secs_per_tick;
@@ -364,14 +364,14 @@ uint64_t GetCurrentTickCount(void) {
 //////////////////////////////////////////////////////////////////////////
 
 double GetSecondsFromTicks(uint64_t ticks) {
-    return ticks*GetSecondsPerTick();
+    return ticks * GetSecondsPerTick();
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 uint64_t GetTicksFromSeconds(double seconds) {
-    return (uint64_t)(seconds/GetSecondsPerTick());
+    return (uint64_t)(seconds / GetSecondsPerTick());
 }
 
 //////////////////////////////////////////////////////////////////////////

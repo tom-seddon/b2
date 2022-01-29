@@ -1,4 +1,4 @@
-#ifndef HEADER_C78B7626FF9A46FB958FE3B842FD9554// -*- mode:c++ -*-
+#ifndef HEADER_C78B7626FF9A46FB958FE3B842FD9554 // -*- mode:c++ -*-
 #define HEADER_C78B7626FF9A46FB958FE3B842FD9554
 
 //////////////////////////////////////////////////////////////////////////
@@ -28,15 +28,13 @@ struct BBCMicroType;
 
 // Holds a named BBCMicro, and, optionally, its TV output texture.
 
-class BeebState:
-    public std::enable_shared_from_this<BeebState>
-{
-public:
+class BeebState : public std::enable_shared_from_this<BeebState> {
+  public:
     // Creation time.
     const struct tm creation_time;
 
     BeebState(std::unique_ptr<BBCMicro> beeb);
-    BeebState(std::unique_ptr<BBCMicro> beeb,const TVOutput &tv);
+    BeebState(std::unique_ptr<BBCMicro> beeb, const TVOutput &tv);
     ~BeebState();
 
     // Number of emulated 2MHz cycles elapsed.
@@ -53,13 +51,15 @@ public:
 
     const std::string &GetName() const;
     void SetName(std::string name);
-protected:
-    BeebState(BeebState &&)=delete;
-    BeebState &operator=(BeebState &&)=delete;
 
-    BeebState(const BeebState &)=delete;
-    BeebState &operator=(const BeebState &)=delete;
-private:
+  protected:
+    BeebState(BeebState &&) = delete;
+    BeebState &operator=(BeebState &&) = delete;
+
+    BeebState(const BeebState &) = delete;
+    BeebState &operator=(const BeebState &) = delete;
+
+  private:
     std::unique_ptr<BBCMicro> m_beeb;
 
     // No need to store the pixel format. It's the same for every
@@ -68,7 +68,7 @@ private:
 
     std::string m_name;
 
-    BeebState(std::unique_ptr<BBCMicro> beeb,const TVOutput *tv);
+    BeebState(std::unique_ptr<BBCMicro> beeb, const TVOutput *tv);
 };
 
 //////////////////////////////////////////////////////////////////////////

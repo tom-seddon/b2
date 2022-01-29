@@ -18,20 +18,20 @@ class Trace;
 // to tell the difference.
 
 class VideoULA {
-public:
+  public:
 #include <shared/pushwarn_bitfields.h>
     struct ControlBits {
-        uint8_t flash:1;
-        uint8_t teletext:1;
-        uint8_t line_width:2;
-        uint8_t fast_6845:1;
-        uint8_t cursor:3;
+        uint8_t flash : 1;
+        uint8_t teletext : 1;
+        uint8_t line_width : 2;
+        uint8_t fast_6845 : 1;
+        uint8_t cursor : 3;
     };
 #include <shared/popwarn.h>
 
     struct NuLAAttributeModeBits {
-        uint8_t enabled:1;
-        uint8_t text:1;
+        uint8_t enabled : 1;
+        uint8_t text : 1;
     };
 
     union NuLAAttributeMode {
@@ -50,17 +50,17 @@ public:
     //
     // (Eventually, maybe the slightly different NuLA cursor handling should
     // be handled.)
-    bool nula=false;
+    bool nula = false;
 
-    Control control={};
+    Control control = {};
 
-    VideoDataPixel output_palette[16]={};
+    VideoDataPixel output_palette[16] = {};
 
-    static void WriteControlRegister(void *ula,M6502Word a,uint8_t value);
-    static void WritePalette(void *ula,M6502Word a,uint8_t value);
+    static void WriteControlRegister(void *ula, M6502Word a, uint8_t value);
+    static void WritePalette(void *ula, M6502Word a, uint8_t value);
 
-    static void WriteNuLAControlRegister(void *ula,M6502Word a,uint8_t value);
-    static void WriteNuLAPalette(void *ula,M6502Word a,uint8_t value);
+    static void WriteNuLAControlRegister(void *ula, M6502Word a, uint8_t value);
+    static void WriteNuLAPalette(void *ula, M6502Word a, uint8_t value);
 
     VideoULA();
 
@@ -73,29 +73,29 @@ public:
 #if BBCMICRO_TRACE
     void SetTrace(Trace *t);
 #endif
-protected:
-private:
+  protected:
+  private:
     union PixelBuffer {
         uint64_t values[8];
         VideoDataPixel pixels[32];
     };
 
-    uint8_t m_palette[16]={};
-    uint8_t m_work_byte=0;
-    uint8_t m_original_byte=0;
-    uint8_t m_flash[16]={};
-    uint8_t m_nula_palette_write_state=0;
-    uint8_t m_nula_palette_write_buffer=0;
-    uint8_t m_direct_palette=0;
-    uint8_t m_disable_a1=0;
-    uint8_t m_scroll_offset=0;
-    uint8_t m_pixel_buffer_offset=0;
-    uint8_t m_blanking_size=0;
-    uint8_t m_blanking_counter=0;
-    NuLAAttributeMode m_attribute_mode={};
-    PixelBuffer m_pixel_buffer={};
+    uint8_t m_palette[16] = {};
+    uint8_t m_work_byte = 0;
+    uint8_t m_original_byte = 0;
+    uint8_t m_flash[16] = {};
+    uint8_t m_nula_palette_write_state = 0;
+    uint8_t m_nula_palette_write_buffer = 0;
+    uint8_t m_direct_palette = 0;
+    uint8_t m_disable_a1 = 0;
+    uint8_t m_scroll_offset = 0;
+    uint8_t m_pixel_buffer_offset = 0;
+    uint8_t m_blanking_size = 0;
+    uint8_t m_blanking_counter = 0;
+    NuLAAttributeMode m_attribute_mode = {};
+    PixelBuffer m_pixel_buffer = {};
 #if BBCMICRO_TRACE
-    Trace *m_trace=nullptr;
+    Trace *m_trace = nullptr;
 #endif
 
     void UpdatePixelBufferOffset();
@@ -130,7 +130,7 @@ private:
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-CHECK_SIZEOF(VideoULA::Control,1);
+CHECK_SIZEOF(VideoULA::Control, 1);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

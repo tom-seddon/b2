@@ -19,7 +19,7 @@ struct M6502;
  * the right way round for the host system. (It should probably be
  * called M6502HostWord, or something...) */
 struct M6502WordBytes {
-    uint8_t l,h;
+    uint8_t l, h;
 };
 
 union M6502Word {
@@ -38,14 +38,14 @@ typedef union M6502Word M6502Word;
 #pragma GCC diagnostic ignored "-Wpedantic"
 #endif
 struct M6502PBitsInternal {
-    uint8_t c:1;
-    uint8_t z:1;
-    uint8_t i:1;
-    uint8_t d:1;
-    uint8_t _4:1;//driven by d1x1
-    uint8_t _5:1;//always reads as 1
-    uint8_t v:1;
-    uint8_t n:1;
+    uint8_t c : 1;
+    uint8_t z : 1;
+    uint8_t i : 1;
+    uint8_t d : 1;
+    uint8_t _4 : 1; //driven by d1x1
+    uint8_t _5 : 1; //always reads as 1
+    uint8_t v : 1;
+    uint8_t n : 1;
 };
 #ifdef __GNUC__
 #pragma GCC diagnostic pop
@@ -57,7 +57,7 @@ union M6502PInternal {
 };
 typedef union M6502PInternal M6502PInternal;
 
-extern const char M6502_check_size[sizeof(M6502PInternal)==1?1:-1];
+extern const char M6502_check_size[sizeof(M6502PInternal) == 1 ? 1 : -1];
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -67,8 +67,8 @@ extern const char M6502_check_size[sizeof(M6502PInternal)==1?1:-1];
 #pragma GCC diagnostic ignored "-Wpedantic"
 #endif
 struct M6502PBits {
-    uint8_t c:1,z:1,i:1,d:1;
-    uint8_t b:1,_:1,v:1,n:1;
+    uint8_t c : 1, z : 1, i : 1, d : 1;
+    uint8_t b : 1, _ : 1, v : 1, n : 1;
 };
 #ifdef __GNUC__
 #pragma GCC diagnostic pop
@@ -80,10 +80,10 @@ union M6502P {
 };
 typedef union M6502P M6502P;
 
-extern const char M6502_check_size[sizeof(M6502P)==1?1:-1];
+extern const char M6502_check_size[sizeof(M6502P) == 1 ? 1 : -1];
 
 // Writes 9 bytes: 8 chars and a '\x0'. Returns dest.
-char *M6502P_GetString(char *dest,M6502P value);
+char *M6502P_GetString(char *dest, M6502P value);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -114,10 +114,10 @@ const char *M6502AddrMode_GetName(uint8_t mode);
 
 typedef void (*M6502Fn)(struct M6502 *);
 
-typedef void (*M6502Callback)(struct M6502 *,void *);
+typedef void (*M6502Callback)(struct M6502 *, void *);
 
 struct M6502Fns {
-    M6502Fn t0fn,ifn;
+    M6502Fn t0fn, ifn;
 };
 typedef struct M6502Fns M6502Fns;
 
@@ -132,14 +132,14 @@ struct M6502DisassemblyInfo {
     uint8_t num_bytes;
 
     // Set if undocumented.
-    uint8_t undocumented:1;
+    uint8_t undocumented : 1;
 
     // Set if the debugger should actually do a step in when stepping
     // over this instruction.
-    uint8_t always_step_in:1;
+    uint8_t always_step_in : 1;
 
     // Set if this is a branch instruction of some kind.
-    uint8_t branch:1;
+    uint8_t branch : 1;
 };
 typedef struct M6502DisassemblyInfo M6502DisassemblyInfo;
 
@@ -201,32 +201,32 @@ typedef uint8_t M6502_DeviceNMIFlags;
 
 enum M6502ReadType {
     // Read data from memory.
-    M6502ReadType_Data=1,
+    M6502ReadType_Data = 1,
 
     // Fetch non-opcode instruction byte.
-    M6502ReadType_Instruction=2,
+    M6502ReadType_Instruction = 2,
 
     // Fetch indirect address.
-    M6502ReadType_Address=3,
+    M6502ReadType_Address = 3,
 
     // Almost certainly not interesting.
-    M6502ReadType_Uninteresting=4,
+    M6502ReadType_Uninteresting = 4,
 
     // Fetch opcode byte. This only occurs at one point: the first
     // cycle of an instruction.
-    M6502ReadType_Opcode=5,
+    M6502ReadType_Opcode = 5,
 
     // Dummy fetch when an interrupt/NMI is due. This only occurs at
     // one point: the first cycle of an instruction, when that
     // instruction was interrupted. The next 7 cycles will be the
     // usual interrupt setup stuff, and then there'll be a Opcode read
     // for the first instruction of the interrupt handler.
-    M6502ReadType_Interrupt=6,
+    M6502ReadType_Interrupt = 6,
 
     M6502ReadType_Count,
 
-    M6502ReadType_LastInterestingDataRead=M6502ReadType_Address,
-    M6502ReadType_FirstBeginInstruction=M6502ReadType_Opcode,
+    M6502ReadType_LastInterestingDataRead = M6502ReadType_Address,
+    M6502ReadType_FirstBeginInstruction = M6502ReadType_Opcode,
 };
 
 const char *M6502ReadType_GetName(uint8_t read_type);
@@ -287,25 +287,26 @@ struct M6502 {
     // (40)
 
     /* 16-bit registers */
-    M6502Word pc;               /* program counter */
-    M6502Word s;                /* stack pointer (H byte always 1) */
-    M6502Word ad;               /* (internal) data address */
-    M6502Word ia;               /* (internal) indirect address */
-    M6502Word opcode_pc;        /* address of last opcode fetched */
+    M6502Word pc;        /* program counter */
+    M6502Word s;         /* stack pointer (H byte always 1) */
+    M6502Word ad;        /* (internal) data address */
+    M6502Word ia;        /* (internal) indirect address */
+    M6502Word opcode_pc; /* address of last opcode fetched */
 
     // (50)
 
     /* 8-bit registers */
-    uint8_t a;                  /* accumulator */
-    uint8_t x;                  /* X */
-    uint8_t y;                  /* Y */
-    M6502PInternal p;           /* status register */
-    uint8_t opcode;             /* (internal) last opcode fetched */
-    uint8_t data;               /* (internal) misc - usually operand
+    uint8_t a;          /* accumulator */
+    uint8_t x;          /* X */
+    uint8_t y;          /* Y */
+    M6502PInternal p;   /* status register */
+    uint8_t opcode;     /* (internal) last opcode fetched */
+    uint8_t data;       /* (internal) misc - usually operand
                                  * for current instruction */
-    uint8_t acarry:1;           /* (internal) address calculation
-                                 * carry flag */ /*  */
-    uint8_t d1x1:1;             /* (internal) D1x1, active low */
+    uint8_t acarry : 1; /* (internal) address calculation
+                                 * carry flag */
+                        /*  */
+    uint8_t d1x1 : 1;   /* (internal) D1x1, active low */
 
     // (57-58)
 
@@ -330,7 +331,7 @@ typedef struct M6502 M6502;
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void M6502_Init(M6502 *s,const M6502Config *config);
+void M6502_Init(M6502 *s, const M6502Config *config);
 void M6502_Destroy(M6502 *s);
 
 void M6502_Reset(M6502 *s);
@@ -350,7 +351,7 @@ void M6502_Halt(M6502 *s);
  * When (and only when) M6502_IsAboutToExecute returns true, the 6502
  * state can be (somewhat) safely fiddled with.
  */
-#define M6502_IsAboutToExecute(S) ((S)->read==M6502ReadType_Opcode)
+#define M6502_IsAboutToExecute(S) ((S)->read == M6502ReadType_Opcode)
 
 /* If M6502_IsAboutToExecute, disassemble the last instruction. (Any
  * other time, you just get junk...)
@@ -361,7 +362,7 @@ void M6502_Halt(M6502 *s);
  * for the address used, likewise. (Either may be NULL when the caller
  * doesn't care.)
  */
-void M6502_DisassembleLastInstruction(M6502 *s,char *buf,size_t buf_size,int *ia,int *ad);
+void M6502_DisassembleLastInstruction(M6502 *s, char *buf, size_t buf_size, int *ia, int *ad);
 
 /* Get the current opcode, assuming the data bus is up to date.
  *
@@ -378,7 +379,7 @@ uint8_t M6502_GetOpcode(const M6502 *s);
  * don't actually check for NMI vs IRQ until 4 cycles later, so the
  * result could be wrong.
  */
-#define M6502_IsProbablyIRQ(S) ((S)->irq_flags!=0)
+#define M6502_IsProbablyIRQ(S) ((S)->irq_flags != 0)
 
 /* After the end state of an instruction, point the PC at the right
  * place and call this to set things up for the next one. */
@@ -386,18 +387,18 @@ void M6502_NextInstruction(M6502 *s);
 
 /* Sets the given device(s)'s IRQ flags as appropriate.
  */
-void M6502_SetDeviceIRQ(M6502 *s,M6502_DeviceIRQFlags mask,int wants_irq);
-void M6502_SetDeviceNMI(M6502 *s,M6502_DeviceNMIFlags mask,int wants_nmi);
+void M6502_SetDeviceIRQ(M6502 *s, M6502_DeviceIRQFlags mask, int wants_irq);
+void M6502_SetDeviceNMI(M6502 *s, M6502_DeviceNMIFlags mask, int wants_nmi);
 
 /* Result points into static buffer. */
-const char *M6502_GetStateName(M6502 *s,uint8_t is_dbus_valid);
+const char *M6502_GetStateName(M6502 *s, uint8_t is_dbus_valid);
 
 /* Getter and setter for the P register. Don't access it directly. */
-void M6502_SetP(M6502 *s,uint8_t p);
+void M6502_SetP(M6502 *s, uint8_t p);
 M6502P M6502_GetP(const M6502 *s);
 
-typedef void (*M6502_ForEachFnFn)(const char *name,M6502Fn fn,void *context);
-void M6502_ForEachFn(M6502_ForEachFnFn fn,void *context);
+typedef void (*M6502_ForEachFnFn)(const char *name, M6502Fn fn, void *context);
+void M6502_ForEachFn(M6502_ForEachFnFn fn, void *context);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

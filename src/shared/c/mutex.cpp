@@ -11,11 +11,9 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-struct MutexFullMetadata:
-    public std::enable_shared_from_this<MutexFullMetadata>
-{
-    MutexFullMetadata *next=nullptr,*prev=nullptr;
-    Mutex *mutex=nullptr;
+struct MutexFullMetadata : public std::enable_shared_from_this<MutexFullMetadata> {
+    MutexFullMetadata *next = nullptr, *prev = nullptr;
+    Mutex *mutex = nullptr;
     MutexMetadata meta;
 
     // this is just here to grab an appropriate extra ref to the
@@ -32,48 +30,47 @@ static MutexFullMetadata *g_mutex_metadata_head;
 
 static void InitMutexMetadataListMutex() {
     ASSERT(!g_mutex_metadata_list_mutex);
-    g_mutex_metadata_list_mutex=std::make_shared<std::mutex>();
+    g_mutex_metadata_list_mutex = std::make_shared<std::mutex>();
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 static void CheckMetadataList() {
-    if(MutexFullMetadata *m=g_mutex_metadata_head) {
+    if (MutexFullMetadata *m = g_mutex_metadata_head) {
         do {
-            ASSERT(m->prev->next==m);
-            ASSERT(m->next->prev==m);
+            ASSERT(m->prev->next == m);
+            ASSERT(m->next->prev == m);
 
-            m=m->next;
-        } while(m!=g_mutex_metadata_head);
+            m = m->next;
+        } while (m != g_mutex_metadata_head);
     }
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-Mutex::Mutex():
-    m_metadata(std::make_shared<MutexFullMetadata>())
-{
-    std::call_once(g_mutex_metadata_list_mutex_initialise_once_flag,&InitMutexMetadataListMutex);
+Mutex::Mutex()
+    : m_metadata(std::make_shared<MutexFullMetadata>()) {
+    std::call_once(g_mutex_metadata_list_mutex_initialise_once_flag, &InitMutexMetadataListMutex);
 
-    m_meta=&m_metadata.get()->meta;
+    m_meta = &m_metadata.get()->meta;
 
-    m_metadata->next=m_metadata.get();
-    m_metadata->prev=m_metadata.get();
-    m_metadata->mutex=this;
-    m_metadata->metadata_list_mutex=g_mutex_metadata_list_mutex;
+    m_metadata->next = m_metadata.get();
+    m_metadata->prev = m_metadata.get();
+    m_metadata->mutex = this;
+    m_metadata->metadata_list_mutex = g_mutex_metadata_list_mutex;
 
     std::lock_guard<std::mutex> lock(*g_mutex_metadata_list_mutex);
 
-    if(!g_mutex_metadata_head) {
-        g_mutex_metadata_head=m_metadata.get();
+    if (!g_mutex_metadata_head) {
+        g_mutex_metadata_head = m_metadata.get();
     } else {
-        m_metadata->prev=g_mutex_metadata_head->prev;
-        m_metadata->next=g_mutex_metadata_head;
+        m_metadata->prev = g_mutex_metadata_head->prev;
+        m_metadata->next = g_mutex_metadata_head;
 
-        m_metadata->prev->next=m_metadata.get();
-        m_metadata->next->prev=m_metadata.get();
+        m_metadata->prev->next = m_metadata.get();
+        m_metadata->next->prev = m_metadata.get();
     }
 
     CheckMetadataList();
@@ -86,19 +83,19 @@ Mutex::~Mutex() {
     {
         std::lock_guard<std::mutex> lock(*m_metadata->metadata_list_mutex);
 
-        if(m_metadata.get()==g_mutex_metadata_head) {
-            g_mutex_metadata_head=m_metadata->next;
+        if (m_metadata.get() == g_mutex_metadata_head) {
+            g_mutex_metadata_head = m_metadata->next;
 
-            if(m_metadata.get()==g_mutex_metadata_head) {
+            if (m_metadata.get() == g_mutex_metadata_head) {
                 // this was the last one in the list...
-                g_mutex_metadata_head=nullptr;
+                g_mutex_metadata_head = nullptr;
             }
         }
 
-        m_metadata->next->prev=m_metadata->prev;
-        m_metadata->prev->next=m_metadata->next;
+        m_metadata->next->prev = m_metadata->prev;
+        m_metadata->prev->next = m_metadata->next;
 
-        m_metadata->mutex=nullptr;
+        m_metadata->mutex = nullptr;
 
         CheckMetadataList();
     }
@@ -110,7 +107,7 @@ Mutex::~Mutex() {
 void Mutex::SetName(std::string name) {
     std::lock_guard<std::mutex> lock(*m_metadata->metadata_list_mutex);
 
-    m_metadata->meta.name=std::move(name);
+    m_metadata->meta.name = std::move(name);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -163,16 +160,16 @@ const MutexMetadata *Mutex::GetMetadata() const {
 std::vector<std::shared_ptr<const MutexMetadata>> Mutex::GetAllMetadata() {
     std::vector<std::shared_ptr<const MutexMetadata>> list;
 
-    std::call_once(g_mutex_metadata_list_mutex_initialise_once_flag,&InitMutexMetadataListMutex);
+    std::call_once(g_mutex_metadata_list_mutex_initialise_once_flag, &InitMutexMetadataListMutex);
 
     std::lock_guard<std::mutex> lock(*g_mutex_metadata_list_mutex);
 
-    if(MutexFullMetadata *m=g_mutex_metadata_head) {
+    if (MutexFullMetadata *m = g_mutex_metadata_head) {
         do {
-            list.push_back(std::shared_ptr<const MutexMetadata>(m->shared_from_this(),&m->meta));
+            list.push_back(std::shared_ptr<const MutexMetadata>(m->shared_from_this(), &m->meta));
 
-            m=m->next;
-        } while(m!=g_mutex_metadata_head);
+            m = m->next;
+        } while (m != g_mutex_metadata_head);
     }
 
     return list;

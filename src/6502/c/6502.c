@@ -109,7 +109,7 @@
 // Then at the end of the last function in the chain,
 // M6502_NextInstruction is called. This performs phi1 of T0, by
 // putting PC on the address bus and setting in motion an IRQ, or the
-// next instruction, as appropriate. 
+// next instruction, as appropriate.
 //
 // After calling M6502_NextInstruction, when executing an instruction,
 // the next tfn is always T0_All. This function reads the opcode from
@@ -133,7 +133,7 @@
 // same opcode table that provides the initial tfn for each opcode.)
 //
 // Each category of instruction interfaces with its ifn in a specific
-// way, as described in the code. 
+// way, as described in the code.
 //
 // IRQs/NMIs
 // ---------
@@ -214,13 +214,13 @@
 
 #if M6502_DBUS_OFFSET
 
-#define SET_DBUS(F) (s->dbus_offset=offsetof(M6502,F),(void)0)
-#define DBUS_IS(F) (s->dbus_offset==offsetof(M6502,F))
+#define SET_DBUS(F) (s->dbus_offset = offsetof(M6502, F), (void)0)
+#define DBUS_IS(F) (s->dbus_offset == offsetof(M6502, F))
 
 #else
 
-#define SET_DBUS(F) (s->dbus=&s->F,(void)0)
-#define DBUS_IS(F) (s->dbus==&s->F)
+#define SET_DBUS(F) (s->dbus = &s->F, (void)0)
+#define DBUS_IS(F) (s->dbus == &s->F)
 
 #endif
 
@@ -237,10 +237,10 @@
 
 static inline M6502P GetP(const M6502 *s) {
     M6502P p;
-    p.value=s->p.value;
+    p.value = s->p.value;
 
-    p.bits.b=s->d1x1;
-    p.bits._=1;
+    p.bits.b = s->d1x1;
+    p.bits._ = 1;
 
     return p;
 }
@@ -249,10 +249,10 @@ static inline M6502P GetP(const M6502 *s) {
 //////////////////////////////////////////////////////////////////////////
 
 static inline void CheckForInterrupts(M6502 *s) {
-    if(s->irq_flags!=0&&!s->p.bits.i) {
-        s->d1x1=0;
-    } else if(s->nmi_flags!=0) {
-        s->d1x1=0;
+    if (s->irq_flags != 0 && !s->p.bits.i) {
+        s->d1x1 = 0;
+    } else if (s->nmi_flags != 0) {
+        s->d1x1 = 0;
 
         // nmi_flags is reset in T4_Interrupt.
     }
@@ -261,67 +261,67 @@ static inline void CheckForInterrupts(M6502 *s) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static inline void SetNZ(M6502 *s,uint8_t v) {
-    s->p.bits.n=v>>7;
-    s->p.bits.z=v==0;
+static inline void SetNZ(M6502 *s, uint8_t v) {
+    s->p.bits.n = v >> 7;
+    s->p.bits.z = v == 0;
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 /* ASL mem/ASL A */
-static inline void DoASL(M6502 *s,uint8_t *p) {
-    s->p.bits.c=*p>>7;
-    *p<<=1;
-    SetNZ(s,*p);
+static inline void DoASL(M6502 *s, uint8_t *p) {
+    s->p.bits.c = *p >> 7;
+    *p <<= 1;
+    SetNZ(s, *p);
 }
 
 /* LSR mem/LSR A */
-static inline void DoLSR(M6502 *s,uint8_t *p) {
-    s->p.bits.c=*p&1;
-    *p>>=1;
-    SetNZ(s,*p);
+static inline void DoLSR(M6502 *s, uint8_t *p) {
+    s->p.bits.c = *p & 1;
+    *p >>= 1;
+    SetNZ(s, *p);
 }
 
 /* ROL mem/ROL A */
-static inline void DoROL(M6502 *s,uint8_t *p) {
-    uint8_t c=*p>>7;
+static inline void DoROL(M6502 *s, uint8_t *p) {
+    uint8_t c = *p >> 7;
 
-    *p<<=1;
-    *p|=s->p.bits.c;
-    s->p.bits.c=c;
+    *p <<= 1;
+    *p |= s->p.bits.c;
+    s->p.bits.c = c;
 
-    SetNZ(s,*p);
+    SetNZ(s, *p);
 }
 
 /* ROR mem/ROR A */
-static inline void DoROR(M6502 *s,uint8_t *p) {
-    uint8_t c=*p&1;
+static inline void DoROR(M6502 *s, uint8_t *p) {
+    uint8_t c = *p & 1;
 
-    *p>>=1;
-    *p|=s->p.bits.c<<7;
-    s->p.bits.c=c;
+    *p >>= 1;
+    *p |= s->p.bits.c << 7;
+    s->p.bits.c = c;
 
-    SetNZ(s,*p);
+    SetNZ(s, *p);
 }
 
 /* DEC mem/DEX/DEY */
-static inline void DoDEC(M6502 *s,uint8_t *p) {
+static inline void DoDEC(M6502 *s, uint8_t *p) {
     --*p;
-    SetNZ(s,*p);
+    SetNZ(s, *p);
 }
 
 /* INC mem/INX/INY */
-static inline void DoINC(M6502 *s,uint8_t *p) {
+static inline void DoINC(M6502 *s, uint8_t *p) {
     ++*p;
-    SetNZ(s,*p);
+    SetNZ(s, *p);
 }
 
 /* CMP/CPX/CPY */
-static inline void DoCMP(M6502 *s,uint8_t reg) {
-    s->p.bits.c=reg>=s->data;
-    s->p.bits.z=reg==s->data;
-    s->p.bits.n=(reg-s->data)>>7;
+static inline void DoCMP(M6502 *s, uint8_t reg) {
+    s->p.bits.c = reg >= s->data;
+    s->p.bits.z = reg == s->data;
+    s->p.bits.n = (reg - s->data) >> 7;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -330,81 +330,81 @@ static inline void DoCMP(M6502 *s,uint8_t reg) {
 /* Implied instructions. Update the 6502 state. */
 
 static void CLD(M6502 *s) {
-    s->p.bits.d=0;
+    s->p.bits.d = 0;
 }
 
 static void SED(M6502 *s) {
-    s->p.bits.d=1;
+    s->p.bits.d = 1;
 }
 
 static void CLI(M6502 *s) {
-    s->p.bits.i=0;
+    s->p.bits.i = 0;
 }
 
 static void SEI(M6502 *s) {
-    s->p.bits.i=1;
+    s->p.bits.i = 1;
 }
 
 static void CLV(M6502 *s) {
-    s->p.bits.v=0;
+    s->p.bits.v = 0;
 }
 
 static void CLC(M6502 *s) {
-    s->p.bits.c=0;
+    s->p.bits.c = 0;
 }
 
 static void SEC(M6502 *s) {
-    s->p.bits.c=1;
+    s->p.bits.c = 1;
 }
 
 static void TXA(M6502 *s) {
-    s->a=s->x;
-    SetNZ(s,s->a);
+    s->a = s->x;
+    SetNZ(s, s->a);
 }
 
 static void TYA(M6502 *s) {
-    s->a=s->y;
-    SetNZ(s,s->a);
+    s->a = s->y;
+    SetNZ(s, s->a);
 }
 
 static void TXS(M6502 *s) {
-    s->s.b.l=s->x;
+    s->s.b.l = s->x;
 }
 
 static void TAX(M6502 *s) {
-    s->x=s->a;
-    SetNZ(s,s->x);
+    s->x = s->a;
+    SetNZ(s, s->x);
 }
 
 static void TSX(M6502 *s) {
-    s->x=s->s.b.l;
-    SetNZ(s,s->x);
+    s->x = s->s.b.l;
+    SetNZ(s, s->x);
 }
 
 static void TAY(M6502 *s) {
-    s->y=s->a;
-    SetNZ(s,s->y);
+    s->y = s->a;
+    SetNZ(s, s->y);
 }
 
 static void INX(M6502 *s) {
-    DoINC(s,&s->x);
+    DoINC(s, &s->x);
 }
 
 static void INY(M6502 *s) {
-    DoINC(s,&s->y);
+    DoINC(s, &s->y);
 }
 
 static void DEX(M6502 *s) {
-    DoDEC(s,&s->x);
+    DoDEC(s, &s->x);
 }
 
 static void DEY(M6502 *s) {
-    DoDEC(s,&s->y);
+    DoDEC(s, &s->y);
 }
 
 static void ILL(M6502 *s) {
-    if(s->ill_fn) {
-        (*s->ill_fn)(s,s->ill_context);
+    if (s->ill_fn) {
+        (*s->ill_fn)(s, s->ill_context);
     }
 }
 
@@ -415,202 +415,202 @@ static void ILL(M6502 *s) {
  * state. */
 
 static void ADC(M6502 *s) {
-    if(s->p.bits.d) {
-        unsigned tmp=(s->a&0xfu)+(s->data&0xfu)+(s->p.bits.c);
-        if(tmp>9) {
-            tmp+=6;
+    if (s->p.bits.d) {
+        unsigned tmp = (s->a & 0xfu) + (s->data & 0xfu) + (s->p.bits.c);
+        if (tmp > 9) {
+            tmp += 6;
         }
-        if(tmp<=0xf) {
-            tmp=(tmp&0xf)+(s->a&0xf0)+(s->data&0xf0);
+        if (tmp <= 0xf) {
+            tmp = (tmp & 0xf) + (s->a & 0xf0) + (s->data & 0xf0);
         } else {
-            tmp=(tmp&0xf)+(s->a&0xf0)+(s->data&0xf0)+0x10;
+            tmp = (tmp & 0xf) + (s->a & 0xf0) + (s->data & 0xf0) + 0x10;
         }
 
-        s->p.bits.z=0;
-        s->p.bits.v=0;
-        s->p.bits.n=0;
+        s->p.bits.z = 0;
+        s->p.bits.v = 0;
+        s->p.bits.n = 0;
 
-        if(((s->a+s->data+(s->p.bits.c))&0xff)==0) {
-            s->p.bits.z=1;
+        if (((s->a + s->data + (s->p.bits.c)) & 0xff) == 0) {
+            s->p.bits.z = 1;
         }
 
-        if(tmp&0x80) {
-            s->p.bits.n=1;
+        if (tmp & 0x80) {
+            s->p.bits.n = 1;
         }
 
-        if(((s->a^tmp)&0x80)&&!((s->a^s->data)&0x80)) {
-            s->p.bits.v=1;
+        if (((s->a ^ tmp) & 0x80) && !((s->a ^ s->data) & 0x80)) {
+            s->p.bits.v = 1;
         }
 
-        if((tmp&0x1f0)>0x90) {
-            tmp+=0x60;
+        if ((tmp & 0x1f0) > 0x90) {
+            tmp += 0x60;
         }
 
-        s->p.bits.c=(tmp&0xff0)>0xf0;
+        s->p.bits.c = (tmp & 0xff0) > 0xf0;
 
-        s->a=(uint8_t)tmp;
+        s->a = (uint8_t)tmp;
     } else {
         M6502Word result;
 
-        result.w=s->a+s->data+s->p.bits.c;
+        result.w = s->a + s->data + s->p.bits.c;
 
-        SetNZ(s,result.b.l);
-        s->p.bits.c=result.b.h>0;
-        s->p.bits.v=(~(s->a^s->data)&(s->a^result.b.l)&0x80)!=0;
+        SetNZ(s, result.b.l);
+        s->p.bits.c = result.b.h > 0;
+        s->p.bits.v = (~(s->a ^ s->data) & (s->a ^ result.b.l) & 0x80) != 0;
 
-        s->a=result.b.l;
+        s->a = result.b.l;
     }
 }
 
 static void ADC_CMOS(M6502 *s) {
-    if(s->p.bits.d) {
-        unsigned tmp=(s->a&0xfu)+(s->data&0xfu)+s->p.bits.c;
-        if(tmp>9) {
-            tmp+=6;
+    if (s->p.bits.d) {
+        unsigned tmp = (s->a & 0xfu) + (s->data & 0xfu) + s->p.bits.c;
+        if (tmp > 9) {
+            tmp += 6;
         }
 
-        if(tmp<=0xf) {
-            tmp=(tmp&0xf)+(s->a&0xf0)+(s->data&0xf0);
+        if (tmp <= 0xf) {
+            tmp = (tmp & 0xf) + (s->a & 0xf0) + (s->data & 0xf0);
         } else {
-            tmp=(tmp&0xf)+(s->a&0xf0)+(s->data&0xf0)+0x10;
+            tmp = (tmp & 0xf) + (s->a & 0xf0) + (s->data & 0xf0) + 0x10;
         }
 
-        s->p.bits.v=((uint8_t)(s->a^tmp)&(~s->a^s->data)&0x80)!=0;
+        s->p.bits.v = ((uint8_t)(s->a ^ tmp) & (~s->a ^ s->data) & 0x80) != 0;
 
-        s->p.bits.c=0;
-        if((tmp&0x1f0)>0x90) {
-            tmp+=0x60;
-            s->p.bits.c=1;
+        s->p.bits.c = 0;
+        if ((tmp & 0x1f0) > 0x90) {
+            tmp += 0x60;
+            s->p.bits.c = 1;
         }
 
-        s->a=(uint8_t)tmp;
-        SetNZ(s,s->a);
+        s->a = (uint8_t)tmp;
+        SetNZ(s, s->a);
     } else {
         M6502Word result;
 
-        result.w=s->a+s->data+s->p.bits.c;
+        result.w = s->a + s->data + s->p.bits.c;
 
-        SetNZ(s,result.b.l);
-        s->p.bits.c=result.b.h>0;
-        s->p.bits.v=(~(s->a^s->data)&(s->a^result.b.l)&0x80)!=0;
+        SetNZ(s, result.b.l);
+        s->p.bits.c = result.b.h > 0;
+        s->p.bits.v = (~(s->a ^ s->data) & (s->a ^ result.b.l) & 0x80) != 0;
 
-        s->a=result.b.l;
+        s->a = result.b.l;
     }
 }
 
 static void SBC(M6502 *s) {
     M6502Word result;
-    result.w=s->a+(uint8_t)~s->data+s->p.bits.c;
+    result.w = s->a + (uint8_t)~s->data + s->p.bits.c;
 
-    if(s->p.bits.d) {
-        unsigned tmp=(s->a&0xfu)-(s->data&0xfu)-(!s->p.bits.c);
+    if (s->p.bits.d) {
+        unsigned tmp = (s->a & 0xfu) - (s->data & 0xfu) - (!s->p.bits.c);
 
-        if(tmp&0x10) {
-            tmp=((tmp-6u)&0xfu)|((s->a&0xf0u)-(s->data&0xf0u)-0x10u);
+        if (tmp & 0x10) {
+            tmp = ((tmp - 6u) & 0xfu) | ((s->a & 0xf0u) - (s->data & 0xf0u) - 0x10u);
         } else {
-            tmp=(tmp&0xfu)|((s->a&0xf0u)-(s->data&0xf0u));
+            tmp = (tmp & 0xfu) | ((s->a & 0xf0u) - (s->data & 0xf0u));
         }
 
-        if(tmp&0x100) {
-            tmp-=0x60;
+        if (tmp & 0x100) {
+            tmp -= 0x60;
         }
 
-        SetNZ(s,result.b.l);
+        SetNZ(s, result.b.l);
 
-        s->p.bits.c=result.b.h>0;
-        s->p.bits.v=(((s->a^result.b.l)&0x80)&&((s->a^s->data)&0x80))!=0;
-        s->a=(uint8_t)tmp;
+        s->p.bits.c = result.b.h > 0;
+        s->p.bits.v = (((s->a ^ result.b.l) & 0x80) && ((s->a ^ s->data) & 0x80)) != 0;
+        s->a = (uint8_t)tmp;
     } else {
-        SetNZ(s,result.b.l);
-        s->p.bits.c=result.b.h>0;
-        s->p.bits.v=((s->a^s->data)&(s->a^result.b.l)&0x80)!=0;
-        s->a=result.b.l;
+        SetNZ(s, result.b.l);
+        s->p.bits.c = result.b.h > 0;
+        s->p.bits.v = ((s->a ^ s->data) & (s->a ^ result.b.l) & 0x80) != 0;
+        s->a = result.b.l;
     }
 }
 
 static void SBC_CMOS(M6502 *s) {
-    if(s->p.bits.d) {
-        int al=(s->a&0xf)-(s->data&0xf)-!s->p.bits.c;
-        int result=s->a-s->data-!s->p.bits.c;
+    if (s->p.bits.d) {
+        int al = (s->a & 0xf) - (s->data & 0xf) - !s->p.bits.c;
+        int result = s->a - s->data - !s->p.bits.c;
 
-        s->p.bits.v=((s->a^s->data)&(s->a^(uint8_t)result)&128)!=0;
-        s->p.bits.c=(result&0x100)==0;
+        s->p.bits.v = ((s->a ^ s->data) & (s->a ^ (uint8_t)result) & 128) != 0;
+        s->p.bits.c = (result & 0x100) == 0;
 
-        if(result<0) {
-            result-=0x60;
+        if (result < 0) {
+            result -= 0x60;
         }
 
-        if(al<0) {
-            result-=0x06;
+        if (al < 0) {
+            result -= 0x06;
         }
 
-        s->a=(uint8_t)result;
-        SetNZ(s,s->a);
+        s->a = (uint8_t)result;
+        SetNZ(s, s->a);
     } else {
         M6502Word result;
-        result.w=s->a+(uint8_t)~s->data+s->p.bits.c;
+        result.w = s->a + (uint8_t)~s->data + s->p.bits.c;
 
-        SetNZ(s,result.b.l);
-        s->p.bits.c=result.b.h>0;
-        s->p.bits.v=((s->a^s->data)&(s->a^result.b.l)&0x80)!=0;
-        s->a=result.b.l;
+        SetNZ(s, result.b.l);
+        s->p.bits.c = result.b.h > 0;
+        s->p.bits.v = ((s->a ^ s->data) & (s->a ^ result.b.l) & 0x80) != 0;
+        s->a = result.b.l;
     }
 }
 
 static void AND(M6502 *s) {
-    s->a&=s->data;
-    SetNZ(s,s->a);
+    s->a &= s->data;
+    SetNZ(s, s->a);
 }
 
 static void BIT(M6502 *s) {
-    uint8_t result=s->a&s->data;
-    s->p.bits.z=result==0;
+    uint8_t result = s->a & s->data;
+    s->p.bits.z = result == 0;
 
-    s->p.value&=~0xc0;
-    s->p.value|=s->data&0xc0;
+    s->p.value &= ~0xc0;
+    s->p.value |= s->data & 0xc0;
 }
 
 // This is just BIT immediate.
 static void BIT_CMOS(M6502 *s) {
-    uint8_t result=s->a&s->data;
-    s->p.bits.z=result==0;
+    uint8_t result = s->a & s->data;
+    s->p.bits.z = result == 0;
 }
 
 static void CMP(M6502 *s) {
-    DoCMP(s,s->a);
+    DoCMP(s, s->a);
 }
 
 static void CPX(M6502 *s) {
-    DoCMP(s,s->x);
+    DoCMP(s, s->x);
 }
 
 static void CPY(M6502 *s) {
-    DoCMP(s,s->y);
+    DoCMP(s, s->y);
 }
 
 static void EOR(M6502 *s) {
-    s->a^=s->data;
-    SetNZ(s,s->a);
+    s->a ^= s->data;
+    SetNZ(s, s->a);
 }
 
 static void LDA(M6502 *s) {
-    s->a=s->data;
-    SetNZ(s,s->a);
+    s->a = s->data;
+    SetNZ(s, s->a);
 }
 
 static void LDX(M6502 *s) {
-    s->x=s->data;
-    SetNZ(s,s->x);
+    s->x = s->data;
+    SetNZ(s, s->x);
 }
 
 static void LDY(M6502 *s) {
-    s->y=s->data;
-    SetNZ(s,s->y);
+    s->y = s->data;
+    SetNZ(s, s->y);
 }
 
 static void ORA(M6502 *s) {
-    s->a|=s->data;
-    SetNZ(s,s->a);
+    s->a |= s->data;
+    SetNZ(s, s->a);
 }
 
 static void NOP(M6502 *s) {
@@ -628,61 +628,61 @@ static void NOP(M6502 *s) {
  */
 
 static void ROL(M6502 *s) {
-    DoROL(s,&s->data);
+    DoROL(s, &s->data);
 }
 
 static void ROLA(M6502 *s) {
-    DoROL(s,&s->a);
+    DoROL(s, &s->a);
 }
 
 static void ROR(M6502 *s) {
-    DoROR(s,&s->data);
+    DoROR(s, &s->data);
 }
 
 static void RORA(M6502 *s) {
-    DoROR(s,&s->a);
+    DoROR(s, &s->a);
 }
 
 static void ASL(M6502 *s) {
-    DoASL(s,&s->data);
+    DoASL(s, &s->data);
 }
 
 static void ASLA(M6502 *s) {
-    DoASL(s,&s->a);
+    DoASL(s, &s->a);
 }
 
 static void LSR(M6502 *s) {
-    DoLSR(s,&s->data);
+    DoLSR(s, &s->data);
 }
 
 static void LSRA(M6502 *s) {
-    DoLSR(s,&s->a);
+    DoLSR(s, &s->a);
 }
 
 static void INC(M6502 *s) {
-    DoINC(s,&s->data);
+    DoINC(s, &s->data);
 }
 
 static void INCA(M6502 *s) {
-    DoINC(s,&s->a);
+    DoINC(s, &s->a);
 }
 
 static void DEC(M6502 *s) {
-    DoDEC(s,&s->data);
+    DoDEC(s, &s->data);
 }
 
 static void DECA(M6502 *s) {
-    DoDEC(s,&s->a);
+    DoDEC(s, &s->a);
 }
 
 static void TRB(M6502 *s) {
-    s->p.bits.z=(s->data&s->a)==0;
-    s->data&=~s->a;
+    s->p.bits.z = (s->data & s->a) == 0;
+    s->data &= ~s->a;
 }
 
 static void TSB(M6502 *s) {
-    s->p.bits.z=(s->data&s->a)==0;
-    s->data|=s->a;
+    s->p.bits.z = (s->data & s->a) == 0;
+    s->data |= s->a;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -692,19 +692,19 @@ static void TSB(M6502 *s) {
  * written. */
 
 static void STA(M6502 *s) {
-    s->data=s->a;
+    s->data = s->a;
 }
 
 static void STX(M6502 *s) {
-    s->data=s->x;
+    s->data = s->x;
 }
 
 static void STY(M6502 *s) {
-    s->data=s->y;
+    s->data = s->y;
 }
 
 static void STZ(M6502 *s) {
-    s->data=0;
+    s->data = 0;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -714,39 +714,39 @@ static void STZ(M6502 *s) {
  * should be taken (s->data true) or not taken (s->data false). */
 
 static void BCC(M6502 *s) {
-    s->data=!s->p.bits.c;
+    s->data = !s->p.bits.c;
 }
 
 static void BCS(M6502 *s) {
-    s->data=s->p.bits.c;
+    s->data = s->p.bits.c;
 }
 
 static void BEQ(M6502 *s) {
-    s->data=s->p.bits.z;
+    s->data = s->p.bits.z;
 }
 
 static void BMI(M6502 *s) {
-    s->data=s->p.bits.n;
+    s->data = s->p.bits.n;
 }
 
 static void BNE(M6502 *s) {
-    s->data=!s->p.bits.z;
+    s->data = !s->p.bits.z;
 }
 
 static void BPL(M6502 *s) {
-    s->data=!s->p.bits.n;
+    s->data = !s->p.bits.n;
 }
 
 static void BVC(M6502 *s) {
-    s->data=!s->p.bits.v;
+    s->data = !s->p.bits.v;
 }
 
 static void BVS(M6502 *s) {
-    s->data=s->p.bits.v;
+    s->data = s->p.bits.v;
 }
 
 static void BRA(M6502 *s) {
-    s->data=1;
+    s->data = 1;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -755,19 +755,19 @@ static void BRA(M6502 *s) {
 /* Push instructions. Set s->data to the value to be pushed. */
 
 static void PHA(M6502 *s) {
-    s->data=s->a;
+    s->data = s->a;
 }
 
 static void PHP(M6502 *s) {
-    s->data=GetP(s).value;
+    s->data = GetP(s).value;
 }
 
 static void PHX(M6502 *s) {
-    s->data=s->x;
+    s->data = s->x;
 }
 
 static void PHY(M6502 *s) {
-    s->data=s->y;
+    s->data = s->y;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -776,22 +776,22 @@ static void PHY(M6502 *s) {
 /* Pop instructions. Read the popped value from s->data. */
 
 static void PLP(M6502 *s) {
-    s->p.value=s->data;
+    s->p.value = s->data;
 }
 
 static void PLA(M6502 *s) {
-    s->a=s->data;
-    SetNZ(s,s->a);
+    s->a = s->data;
+    SetNZ(s, s->a);
 }
 
 static void PLX(M6502 *s) {
-    s->x=s->data;
-    SetNZ(s,s->x);
+    s->x = s->data;
+    SetNZ(s, s->x);
 }
 
 static void PLY(M6502 *s) {
-    s->y=s->data;
-    SetNZ(s,s->y);
+    s->y = s->data;
+    SetNZ(s, s->y);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -843,7 +843,7 @@ static void LAX(M6502 *s) {
 
 /* Write */
 static void SAX(M6502 *s) {
-    s->data=s->a&s->x;
+    s->data = s->a & s->x;
 }
 
 /* Read */
@@ -856,30 +856,30 @@ static void ALR(M6502 *s) {
 static void ARR(M6502 *s) {
     /* Copied from 64doc. Passes the Lorenz test suite, and frankly
      * I'm disinclined to argue. */
-    if(s->p.bits.d) {
-        uint8_t t=s->a&s->data; /* Perform the AND */
-        uint8_t ah=t>>4;
-        uint8_t al=t&15;
+    if (s->p.bits.d) {
+        uint8_t t = s->a & s->data; /* Perform the AND */
+        uint8_t ah = t >> 4;
+        uint8_t al = t & 15;
 
-        s->a=(t>>1)|(s->p.bits.c<<7); /* Perform the ROR */
-        SetNZ(s,s->a);
+        s->a = (t >> 1) | (s->p.bits.c << 7); /* Perform the ROR */
+        SetNZ(s, s->a);
 
-        s->p.bits.v=(s->a^t)>>6; /* set the V flag in a weird way */
+        s->p.bits.v = (s->a ^ t) >> 6; /* set the V flag in a weird way */
 
-        if(al+(al&1)>5) {
-            s->a=(s->a&0xf0)|((s->a+6)&0x0f);
+        if (al + (al & 1) > 5) {
+            s->a = (s->a & 0xf0) | ((s->a + 6) & 0x0f);
         }
 
-        s->p.bits.c=ah+(ah&1)>5;
-        if(s->p.bits.c) {
-            s->a+=0x60;
+        s->p.bits.c = ah + (ah & 1) > 5;
+        if (s->p.bits.c) {
+            s->a += 0x60;
         }
     } else {
         AND(s);
         RORA(s);
 
-        s->p.bits.c=s->a>>6;
-        s->p.bits.v=(s->a>>6)^(s->a>>5);
+        s->p.bits.c = s->a >> 6;
+        s->p.bits.v = (s->a >> 6) ^ (s->a >> 5);
     }
 }
 
@@ -898,55 +898,55 @@ static void ARR(M6502 *s) {
  * Perhaps this ought to be configurable.
  */
 static void XAA(M6502 *s) {
-    s->a=(s->a|s->config->xaa_magic)&s->x&s->data;
-    SetNZ(s,s->a);
+    s->a = (s->a | s->config->xaa_magic) & s->x & s->data;
+    SetNZ(s, s->a);
 }
 
 /* Read */
 /* Some documents have this as a special form of LAX... but there's
  * already an LAX. So this is LXA, the 64doc name. */
 static void LXA(M6502 *s) {
-    s->x=s->a=(s->a|s->config->xaa_magic)&s->data;
-    SetNZ(s,s->a);
+    s->x = s->a = (s->a | s->config->xaa_magic) & s->data;
+    SetNZ(s, s->a);
 }
 
 /* Read */
 static void AXS(M6502 *s) {
-    uint8_t lhs=s->a&s->x;
-    s->x=lhs-s->data;
-    DoCMP(s,lhs);
+    uint8_t lhs = s->a & s->x;
+    s->x = lhs - s->data;
+    DoCMP(s, lhs);
 }
 
 /* Read */
 static void AHX(M6502 *s) {
-    s->data=s->a&s->x&(s->ad.b.h+1);
+    s->data = s->a & s->x & (s->ad.b.h + 1);
 }
 
 /* Write */
 static void SHX(M6502 *s) {
-    s->data=s->x&(s->ad.b.h+1);
+    s->data = s->x & (s->ad.b.h + 1);
 }
 
 /* Write */
 static void SHY(M6502 *s) {
-    s->data=s->y&(s->ad.b.h+1);
+    s->data = s->y & (s->ad.b.h + 1);
 }
 
 /* Write */
 static void TAS(M6502 *s) {
-    s->s.b.l=s->a&s->x;
-    s->data=s->a&s->x&(s->ad.b.h+1);
+    s->s.b.l = s->a & s->x;
+    s->data = s->a & s->x & (s->ad.b.h + 1);
 }
 
 /* Read */
 static void ANC(M6502 *s) {
     AND(s);
-    s->p.bits.c=s->p.bits.n;
+    s->p.bits.c = s->p.bits.n;
 }
 
 static void LAS(M6502 *s) {
-    s->s.b.l=s->x=s->a=s->s.b.l&s->data;
-    SetNZ(s,s->a);
+    s->s.b.l = s->x = s->a = s->s.b.l & s->data;
+    SetNZ(s, s->a);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -955,15 +955,15 @@ static void LAS(M6502 *s) {
 static void Cycle0_All(M6502 *s);
 
 void M6502_NextInstruction(M6502 *s) {
-    if(!s->d1x1) {
-        s->abus.w=s->pc.w;
-        s->read=M6502ReadType_Interrupt;
-        s->tfn=s->interrupt_tfn;
+    if (!s->d1x1) {
+        s->abus.w = s->pc.w;
+        s->read = M6502ReadType_Interrupt;
+        s->tfn = s->interrupt_tfn;
     } else {
-        s->abus.w=s->pc.w++;
-        s->opcode_pc=s->abus;
-        s->read=M6502ReadType_Opcode;
-        s->tfn=&Cycle0_All;
+        s->abus.w = s->pc.w++;
+        s->opcode_pc = s->abus;
+        s->read = M6502ReadType_Opcode;
+        s->tfn = &Cycle0_All;
     }
 }
 
@@ -972,12 +972,12 @@ void M6502_NextInstruction(M6502 *s) {
 
 static void Cycle0_All(M6502 *s) {
     /* T0 phase 2 */
-    s->opcode=s->dbus;
+    s->opcode = s->dbus;
     //++s->pc.w;
 
-    const M6502Fns *fns=&s->fns[s->opcode];
+    const M6502Fns *fns = &s->fns[s->opcode];
 
-    s->ifn=fns->ifn;
+    s->ifn = fns->ifn;
 
     (*fns->t0fn)(s);
 }
@@ -992,25 +992,25 @@ static void Cycle3_Branch(M6502 *s);
 void Cycle0_Branch(M6502 *s) {
     /* T0 phase 2 */
     /* (decode - already done) */
-    CheckForInterrupts(s);//TODO - CheckForInterrupts in phi2
+    CheckForInterrupts(s); //TODO - CheckForInterrupts in phi2
 
     /* T1 phase 1 */
-    s->abus.w=s->pc.w++;
-    s->read=M6502ReadType_Instruction;
-    s->tfn=&Cycle1_Branch;
+    s->abus.w = s->pc.w++;
+    s->read = M6502ReadType_Instruction;
+    s->tfn = &Cycle1_Branch;
 }
 
 static void Cycle1_Branch(M6502 *s) {
     /* T1 phase 2 */
-    s->ad.b.l=s->dbus;
+    s->ad.b.l = s->dbus;
     (*s->ifn)(s);
 #ifdef _DEBUG
-    s->ifn=NULL;
+    s->ifn = NULL;
 #endif
 
     //CheckForInterrupts(s);
-    
-    if(!s->data) {
+
+    if (!s->data) {
         /* Branch not taken - done. */
 
         /* T0 phase 1 */
@@ -1018,41 +1018,41 @@ static void Cycle1_Branch(M6502 *s) {
         return;
     }
 
-    s->ad.w=(uint16_t)(s->pc.w+(int8_t)s->ad.b.l);
+    s->ad.w = (uint16_t)(s->pc.w + (int8_t)s->ad.b.l);
 
     /* T2 phase 1 */
-    s->abus=s->pc;
-    s->read=M6502ReadType_Instruction;
-    s->tfn=&Cycle2_Branch;
+    s->abus = s->pc;
+    s->read = M6502ReadType_Instruction;
+    s->tfn = &Cycle2_Branch;
 }
 
 static void Cycle2_Branch(M6502 *s) {
     /* T2 phase 2 */
-    if(s->ad.b.h==s->pc.b.h) {
+    if (s->ad.b.h == s->pc.b.h) {
         /* Branch taken, no carry - done. */
-        s->pc=s->ad;
+        s->pc = s->ad;
 
         /* T0 phase 1 */
         M6502_NextInstruction(s);
 
-//        /* Do this after the NextInstruction stuff. Any IRQ that's
-//         * spotted here wants to delay for one more instruction.
-//         */
-//        CheckForInterrupts(s);
+        //        /* Do this after the NextInstruction stuff. Any IRQ that's
+        //         * spotted here wants to delay for one more instruction.
+        //         */
+        //        CheckForInterrupts(s);
 
         return;
     }
 
     /* T3 phase 1 */
-    s->abus.b.l=s->ad.b.l;
-    s->abus.b.h=s->pc.b.h;
-    s->read=M6502ReadType_Instruction;
-    s->tfn=&Cycle3_Branch;
+    s->abus.b.l = s->ad.b.l;
+    s->abus.b.h = s->pc.b.h;
+    s->read = M6502ReadType_Instruction;
+    s->tfn = &Cycle3_Branch;
 }
 
 static void Cycle3_Branch(M6502 *s) {
     /* T3 phase 2 */
-    s->pc=s->ad;
+    s->pc = s->ad;
 
     /* T0 phase 1 */
     CheckForInterrupts(s);
@@ -1077,69 +1077,69 @@ static void Cycle0_RMW_ABX2_CMOS(M6502 *s) {
     /* (decode - already done) */
 
     /* T1 phase 1 */
-    s->abus.w=s->pc.w++;
-    s->read=M6502ReadType_Instruction;
-    s->tfn=&Cycle1_RMW_ABX2_CMOS;
+    s->abus.w = s->pc.w++;
+    s->read = M6502ReadType_Instruction;
+    s->tfn = &Cycle1_RMW_ABX2_CMOS;
 }
 
 static void Cycle1_RMW_ABX2_CMOS(M6502 *s) {
     /* T1 phase 2 */
-    s->ad.b.l=s->dbus;
+    s->ad.b.l = s->dbus;
 
     /* T2 phase 1 */
-    s->abus.w=s->pc.w++;
-    s->read=M6502ReadType_Instruction;
-    s->tfn=&Cycle2_RMW_ABX2_CMOS;
+    s->abus.w = s->pc.w++;
+    s->read = M6502ReadType_Instruction;
+    s->tfn = &Cycle2_RMW_ABX2_CMOS;
 }
 
 static void Cycle2_RMW_ABX2_CMOS(M6502 *s) {
     /* T2 phase 2 */
-    s->ad.b.h=s->dbus;
+    s->ad.b.h = s->dbus;
 
     /* T3 phase 1 */
-    s->abus.w=s->ad.b.l+s->x;
-    s->acarry=s->abus.b.h;
-    s->abus.b.h=s->ad.b.h;
-    assert(s->acarry==0||s->acarry==1);
-    s->read=M6502ReadType_Data;//+s->acarry; <-- TODO wtah was this??
-    s->tfn=&Cycle3_RMW_ABX2_CMOS;
+    s->abus.w = s->ad.b.l + s->x;
+    s->acarry = s->abus.b.h;
+    s->abus.b.h = s->ad.b.h;
+    assert(s->acarry == 0 || s->acarry == 1);
+    s->read = M6502ReadType_Data; //+s->acarry; <-- TODO wtah was this??
+    s->tfn = &Cycle3_RMW_ABX2_CMOS;
 }
 
 static void Cycle3_RMW_ABX2_CMOS(M6502 *s) {
     /* T3 phase 2 */
-    s->data=s->dbus;
+    s->data = s->dbus;
 
     /* T4 phase 1 */
-    if(!s->acarry) {
-        s->read=M6502ReadType_Data;
-        s->tfn=&Cycle4or5_RMW_ABX2_CMOS;
+    if (!s->acarry) {
+        s->read = M6502ReadType_Data;
+        s->tfn = &Cycle4or5_RMW_ABX2_CMOS;
     } else {
-        s->read=M6502ReadType_Data;
-        s->abus.w=s->ad.w+s->x;
-        s->tfn=&Cycle4_RMW_ABX2_CMOS;
+        s->read = M6502ReadType_Data;
+        s->abus.w = s->ad.w + s->x;
+        s->tfn = &Cycle4_RMW_ABX2_CMOS;
     }
 }
 
 static void Cycle4_RMW_ABX2_CMOS(M6502 *s) {
     /* T4 phase 2 */
-    s->data=s->dbus;
+    s->data = s->dbus;
 
     /* T5 phase 1 */
-    s->tfn=&Cycle4or5_RMW_ABX2_CMOS;
+    s->tfn = &Cycle4or5_RMW_ABX2_CMOS;
 }
 
 static void Cycle4or5_RMW_ABX2_CMOS(M6502 *s) {
     /* T(N-2) phase 2 */
     (*s->ifn)(s);
 #ifdef _DEBUG
-    s->ifn=NULL;
+    s->ifn = NULL;
 #endif
 
     /* T(N-1) phase 1 */
-    s->dbus=s->data;
-    s->abus.w=s->ad.w+s->x;
-    s->read=0;
-    s->tfn=&Cycle5or6_RMW_ABX2_CMOS;
+    s->dbus = s->data;
+    s->abus.w = s->ad.w + s->x;
+    s->read = 0;
+    s->tfn = &Cycle5or6_RMW_ABX2_CMOS;
     CheckForInterrupts(s);
 }
 
@@ -1161,18 +1161,18 @@ static void Cycle0_HLT(M6502 *s) {
     /* T0 phase 2 */
 
     /* T1 phase 1 */
-    s->abus.w=s->pc.w++;
-    s->read=M6502ReadType_Instruction;
-    s->tfn=&Cycle1_HLT;
+    s->abus.w = s->pc.w++;
+    s->read = M6502ReadType_Instruction;
+    s->tfn = &Cycle1_HLT;
 }
 
 static void Cycle1_HLT(M6502 *s) {
     /* T1 phase 2 */
 
     /* T2 phase 1 */
-    s->abus.w=0xffff;
-    s->read=M6502ReadType_Instruction;
-    s->tfn=&Cycle1_HLT;
+    s->abus.w = 0xffff;
+    s->read = M6502ReadType_Instruction;
+    s->tfn = &Cycle1_HLT;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -1190,11 +1190,11 @@ static void Cycle0_Interrupt(M6502 *s) {
     /* (decode - already done) */
 
     /* T1 phase 1 */
-    s->abus.w=s->pc.w;
-    s->read=M6502ReadType_Instruction;
-    s->tfn=&Cycle1_Interrupt;
+    s->abus.w = s->pc.w;
+    s->read = M6502ReadType_Instruction;
+    s->tfn = &Cycle1_Interrupt;
 
-    if(s->d1x1) {
+    if (s->d1x1) {
         // This is BRK. Increment PC.
         ++s->pc.w;
     }
@@ -1202,36 +1202,36 @@ static void Cycle0_Interrupt(M6502 *s) {
 
 static void Cycle1_Interrupt(M6502 *s) {
     /* T1 phase 2 */
-    s->data=s->dbus;
+    s->data = s->dbus;
 
     /* T2 phase 1 */
-    s->abus=s->s;
+    s->abus = s->s;
     --s->s.b.l;
-    s->dbus=s->pc.b.h;
-    s->read=0;
-    s->tfn=&Cycle2_Interrupt;
+    s->dbus = s->pc.b.h;
+    s->read = 0;
+    s->tfn = &Cycle2_Interrupt;
 }
 
 static void Cycle2_Interrupt(M6502 *s) {
     /* T2 phase 2 */
 
     /* T3 phase 1 */
-    s->abus=s->s;
+    s->abus = s->s;
     --s->s.b.l;
-    s->dbus=s->pc.b.l;
-    s->read=0;
-    s->tfn=&Cycle3_Interrupt;
+    s->dbus = s->pc.b.l;
+    s->read = 0;
+    s->tfn = &Cycle3_Interrupt;
 }
 
 static void Cycle3_Interrupt(M6502 *s) {
     /* T3 phase 2 */
 
     /* T4 phase 1 */
-    s->abus=s->s;
+    s->abus = s->s;
     --s->s.b.l;
-    s->dbus=GetP(s).value;
-    s->read=0;
-    s->tfn=&Cycle4_Interrupt;
+    s->dbus = GetP(s).value;
+    s->read = 0;
+    s->tfn = &Cycle4_Interrupt;
 }
 
 static void Cycle4_Interrupt(M6502 *s) {
@@ -1239,46 +1239,46 @@ static void Cycle4_Interrupt(M6502 *s) {
     //s->p.bits.b=1;
 
     /* T5 phase 1 */
-    if(s->nmi_flags!=0) {
+    if (s->nmi_flags != 0) {
         // NMI
-        s->abus.w=0xfffa;
-        s->nmi_flags=0;
-    } else if(s->d1x1||s->irq_flags!=0) {
+        s->abus.w = 0xfffa;
+        s->nmi_flags = 0;
+    } else if (s->d1x1 || s->irq_flags != 0) {
         // BRK/IRQ
-        s->abus.w=0xfffe;
+        s->abus.w = 0xfffe;
 
         // TODO: Is it safe to do this when it's a BRK? Need some more
         // time with Visual6502 again...
-        s->irq_flags=s->device_irq_flags;
+        s->irq_flags = s->device_irq_flags;
     } else {
         // If D1x1 is low, but there's no obvious source of
         // interrupts, the CPU does an IRQ.
-        s->abus.w=0xfffe;
+        s->abus.w = 0xfffe;
     }
 
-    s->p.bits.i=1;
+    s->p.bits.i = 1;
 
-    s->read=M6502ReadType_Address;
-    s->tfn=&Cycle5_Interrupt;
+    s->read = M6502ReadType_Address;
+    s->tfn = &Cycle5_Interrupt;
 
     // Can forget about this now.
-    s->d1x1=1;
+    s->d1x1 = 1;
 }
 
 static void Cycle5_Interrupt(M6502 *s) {
     /* T5 phase 2 */
-    s->pc.b.l=s->dbus;
+    s->pc.b.l = s->dbus;
 
     /* T6 phase 1 */
-    assert(s->abus.w==0xfffa||s->abus.w==0xfffe);
+    assert(s->abus.w == 0xfffa || s->abus.w == 0xfffe);
     ++s->abus.w;
-    s->read=M6502ReadType_Address;
-    s->tfn=&Cycle6_Interrupt;
+    s->read = M6502ReadType_Address;
+    s->tfn = &Cycle6_Interrupt;
 }
 
 static void Cycle6_Interrupt(M6502 *s) {
     /* T6 phase 2 */
-    s->pc.b.h=s->dbus;
+    s->pc.b.h = s->dbus;
 
     /* T0 phase 1 */
     M6502_NextInstruction(s);
@@ -1305,26 +1305,26 @@ static void Cycle0_InterruptCMOS(M6502 *s) {
     /* (decode - already done) */
 
     // Decide on the interrupt type straight away.
-    if(s->nmi_flags!=0) {
+    if (s->nmi_flags != 0) {
         // NMI
-        s->data=1;
-        s->nmi_flags=0;
-    } else if(s->irq_flags!=0) {
+        s->data = 1;
+        s->nmi_flags = 0;
+    } else if (s->irq_flags != 0) {
         //IRQ
-        s->data=0;
-        s->irq_flags=s->device_irq_flags;
+        s->data = 0;
+        s->irq_flags = s->device_irq_flags;
     } else {
         // ??? - assume NMI.
-        s->data=1;
+        s->data = 1;
     }
 
     // Cancel d1x1.
-    s->d1x1=1;
+    s->d1x1 = 1;
 
     /* T1 phase 1 */
-    s->abus.w=s->pc.w;
-    s->read=M6502ReadType_Instruction;
-    s->tfn=&Cycle1_InterruptCMOS;
+    s->abus.w = s->pc.w;
+    s->read = M6502ReadType_Instruction;
+    s->tfn = &Cycle1_InterruptCMOS;
 }
 
 static void Cycle1_InterruptCMOS(M6502 *s) {
@@ -1332,38 +1332,38 @@ static void Cycle1_InterruptCMOS(M6502 *s) {
     //s->data=s->dbus;
 
     /* T2 phase 1 */
-    s->abus=s->s;
+    s->abus = s->s;
     --s->s.b.l;
-    s->dbus=s->pc.b.h;
-    s->read=0;
-    s->tfn=&Cycle2_InterruptCMOS;
+    s->dbus = s->pc.b.h;
+    s->read = 0;
+    s->tfn = &Cycle2_InterruptCMOS;
 }
 
 static void Cycle2_InterruptCMOS(M6502 *s) {
     /* T2 phase 2 */
 
     /* T3 phase 1 */
-    s->abus=s->s;
+    s->abus = s->s;
     --s->s.b.l;
-    s->dbus=s->pc.b.l;
-    s->read=0;
-    s->tfn=&Cycle3_InterruptCMOS;
+    s->dbus = s->pc.b.l;
+    s->read = 0;
+    s->tfn = &Cycle3_InterruptCMOS;
 }
 
 static void Cycle3_InterruptCMOS(M6502 *s) {
     /* T3 phase 2 */
 
     /* T4 phase 1 */
-    s->abus=s->s;
+    s->abus = s->s;
     --s->s.b.l;
 
     M6502P p;
-    p.value=s->p.value;
-    p.bits._=1;
-    p.bits.b=0;
-    s->dbus=p.value;
-    s->read=0;
-    s->tfn=&Cycle4_InterruptCMOS;
+    p.value = s->p.value;
+    p.bits._ = 1;
+    p.bits.b = 0;
+    s->dbus = p.value;
+    s->read = 0;
+    s->tfn = &Cycle4_InterruptCMOS;
 }
 
 static void Cycle4_InterruptCMOS(M6502 *s) {
@@ -1371,33 +1371,33 @@ static void Cycle4_InterruptCMOS(M6502 *s) {
     //s->p.bits.b=1;
 
     /* T5 phase 1 */
-    if(s->data) {
-        s->abus.w=0xfffa;
+    if (s->data) {
+        s->abus.w = 0xfffa;
     } else {
-        s->abus.w=0xfffe;
+        s->abus.w = 0xfffe;
     }
 
-    s->p.bits.i=1;
-    s->p.bits.d=0;
+    s->p.bits.i = 1;
+    s->p.bits.d = 0;
 
-    s->read=M6502ReadType_Address;
-    s->tfn=&Cycle5_InterruptCMOS;
+    s->read = M6502ReadType_Address;
+    s->tfn = &Cycle5_InterruptCMOS;
 }
 
 static void Cycle5_InterruptCMOS(M6502 *s) {
     /* T5 phase 2 */
-    s->pc.b.l=s->dbus;
+    s->pc.b.l = s->dbus;
 
     /* T6 phase 1 */
-    assert(s->abus.w==0xfffa||s->abus.w==0xfffe);
+    assert(s->abus.w == 0xfffa || s->abus.w == 0xfffe);
     ++s->abus.w;
-    s->read=M6502ReadType_Address;
-    s->tfn=&Cycle6_InterruptCMOS;
+    s->read = M6502ReadType_Address;
+    s->tfn = &Cycle6_InterruptCMOS;
 }
 
 static void Cycle6_InterruptCMOS(M6502 *s) {
     /* T6 phase 2 */
-    s->pc.b.h=s->dbus;
+    s->pc.b.h = s->dbus;
 
     /* T0 phase 1 */
     M6502_NextInstruction(s);
@@ -1418,76 +1418,76 @@ static void Cycle0_BRK_CMOS(M6502 *s) {
     /* (decode - already done) */
 
     /* T1 phase 1 */
-    s->abus.w=s->pc.w++;
-    s->read=M6502ReadType_Instruction;
-    s->tfn=&Cycle1_BRK_CMOS;
+    s->abus.w = s->pc.w++;
+    s->read = M6502ReadType_Instruction;
+    s->tfn = &Cycle1_BRK_CMOS;
 }
 
 static void Cycle1_BRK_CMOS(M6502 *s) {
     /* T1 phase 2 */
-    s->data=s->dbus;
+    s->data = s->dbus;
 
     /* T2 phase 1 */
-    s->abus=s->s;
+    s->abus = s->s;
     --s->s.b.l;
-    s->dbus=s->pc.b.h;
-    s->read=0;
-    s->tfn=&Cycle2_BRK_CMOS;
+    s->dbus = s->pc.b.h;
+    s->read = 0;
+    s->tfn = &Cycle2_BRK_CMOS;
 }
 
 static void Cycle2_BRK_CMOS(M6502 *s) {
     /* T2 phase 2 */
 
     /* T3 phase 1 */
-    s->abus=s->s;
+    s->abus = s->s;
     --s->s.b.l;
-    s->dbus=s->pc.b.l;
-    s->read=0;
-    s->tfn=&Cycle3_BRK_CMOS;
+    s->dbus = s->pc.b.l;
+    s->read = 0;
+    s->tfn = &Cycle3_BRK_CMOS;
 }
 
 static void Cycle3_BRK_CMOS(M6502 *s) {
     /* T3 phase 2 */
 
     /* T4 phase 1 */
-    s->abus=s->s;
+    s->abus = s->s;
     --s->s.b.l;
 
     M6502P p;
-    p.value=s->p.value;
-    p.bits.b=1;
-    p.bits._=1;
-    s->dbus=p.value;
+    p.value = s->p.value;
+    p.bits.b = 1;
+    p.bits._ = 1;
+    s->dbus = p.value;
 
-    s->read=0;
-    s->tfn=&Cycle4_BRK_CMOS;
+    s->read = 0;
+    s->tfn = &Cycle4_BRK_CMOS;
 }
 
 static void Cycle4_BRK_CMOS(M6502 *s) {
     /* T4 phase 2 */
-    s->p.bits.i=1;
-    s->p.bits.d=0;
+    s->p.bits.i = 1;
+    s->p.bits.d = 0;
 
     /* T5 phase 1 */
-    s->abus.w=0xfffe;
+    s->abus.w = 0xfffe;
 
-    s->read=M6502ReadType_Instruction;
-    s->tfn=&Cycle5_BRK_CMOS;
+    s->read = M6502ReadType_Instruction;
+    s->tfn = &Cycle5_BRK_CMOS;
 }
 
 static void Cycle5_BRK_CMOS(M6502 *s) {
     /* T5 phase 2 */
-    s->pc.b.l=s->dbus;
+    s->pc.b.l = s->dbus;
 
     /* T6 phase 1 */
     ++s->abus.w;
-    s->read=M6502ReadType_Instruction;
-    s->tfn=&Cycle6_BRK_CMOS;
+    s->read = M6502ReadType_Instruction;
+    s->tfn = &Cycle6_BRK_CMOS;
 }
 
 static void Cycle6_BRK_CMOS(M6502 *s) {
     /* T6 phase 2 */
-    s->pc.b.h=s->dbus;
+    s->pc.b.h = s->dbus;
 
     /* T0 phase 1 */
     M6502_NextInstruction(s);
@@ -1496,16 +1496,16 @@ static void Cycle6_BRK_CMOS(M6502 *s) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-char *M6502P_GetString(char *dest,M6502P value) {
-    dest[0]=value.bits.n?'N':'n';
-    dest[1]=value.bits.v?'V':'v';
-    dest[2]=value.bits._?'-':'_';
-    dest[3]=value.bits.b?'B':'b';
-    dest[4]=value.bits.d?'D':'d';
-    dest[5]=value.bits.i?'I':'i';
-    dest[6]=value.bits.z?'Z':'z';
-    dest[7]=value.bits.c?'C':'c';
-    dest[8]=0;
+char *M6502P_GetString(char *dest, M6502P value) {
+    dest[0] = value.bits.n ? 'N' : 'n';
+    dest[1] = value.bits.v ? 'V' : 'v';
+    dest[2] = value.bits._ ? '-' : '_';
+    dest[3] = value.bits.b ? 'B' : 'b';
+    dest[4] = value.bits.d ? 'D' : 'd';
+    dest[5] = value.bits.i ? 'I' : 'i';
+    dest[6] = value.bits.z ? 'Z' : 'z';
+    dest[7] = value.bits.c ? 'C' : 'c';
+    dest[8] = 0;
 
     return dest;
 }
@@ -1514,7 +1514,7 @@ char *M6502P_GetString(char *dest,M6502P value) {
 //////////////////////////////////////////////////////////////////////////
 
 const char *M6502AddrMode_GetName(uint8_t mode) {
-    switch((M6502AddrMode)mode) {
+    switch ((M6502AddrMode)mode) {
     case M6502AddrMode_IMP:
         return "Implied";
 
@@ -1578,9 +1578,9 @@ typedef struct NamedFn NamedFn;
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static const char *FindNameByFn(const NamedFn *named_fns,M6502Fn fn) {
-    for(const NamedFn *named_fn=named_fns;named_fn->name;++named_fn) {
-        if(named_fn->fn==fn) {
+static const char *FindNameByFn(const NamedFn *named_fns, M6502Fn fn) {
+    for (const NamedFn *named_fn = named_fns; named_fn->name; ++named_fn) {
+        if (named_fn->fn == fn) {
             return named_fn->name;
         }
     }
@@ -1591,33 +1591,33 @@ static const char *FindNameByFn(const NamedFn *named_fns,M6502Fn fn) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-const M6502Config M6502_defined_config={
-    .name="6502 (defined instructions only)",
-    .fns=g_defined_fns,
-    .interrupt_tfn=&Cycle0_Interrupt,
-    .disassembly_info=g_defined_disassembly_info,
+const M6502Config M6502_defined_config = {
+    .name = "6502 (defined instructions only)",
+    .fns = g_defined_fns,
+    .interrupt_tfn = &Cycle0_Interrupt,
+    .disassembly_info = g_defined_disassembly_info,
 };
 
-const M6502Config M6502_nmos6502_config={
-    .name="NMOS 6502",
-    .xaa_magic=0xee,
-    .fns=g_nmos6502_fns,
-    .interrupt_tfn=&Cycle0_Interrupt,
-    .disassembly_info=g_nmos6502_disassembly_info,
+const M6502Config M6502_nmos6502_config = {
+    .name = "NMOS 6502",
+    .xaa_magic = 0xee,
+    .fns = g_nmos6502_fns,
+    .interrupt_tfn = &Cycle0_Interrupt,
+    .disassembly_info = g_nmos6502_disassembly_info,
 };
 
-const M6502Config M6502_cmos6502_config={
-    .name="CMOS 65C02",
-    .fns=g_cmos6502_fns,
-    .interrupt_tfn=&Cycle0_InterruptCMOS,
-    .disassembly_info=g_cmos6502_disassembly_info,
+const M6502Config M6502_cmos6502_config = {
+    .name = "CMOS 65C02",
+    .fns = g_cmos6502_fns,
+    .interrupt_tfn = &Cycle0_InterruptCMOS,
+    .disassembly_info = g_cmos6502_disassembly_info,
 };
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 const char *M6502ReadType_GetName(uint8_t read_type) {
-    switch(read_type) {
+    switch (read_type) {
     case 0:
         return "Write";
 
@@ -1646,15 +1646,15 @@ const char *M6502ReadType_GetName(uint8_t read_type) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void M6502_Init(M6502 *s,const M6502Config *config) {
-    memset(s,0,sizeof *s);
+void M6502_Init(M6502 *s, const M6502Config *config) {
+    memset(s, 0, sizeof *s);
 
-    s->s.b.h=1;
+    s->s.b.h = 1;
 
-    s->config=config;
+    s->config = config;
 
-    s->fns=s->config->fns;
-    s->interrupt_tfn=s->config->interrupt_tfn;
+    s->fns = s->config->fns;
+    s->interrupt_tfn = s->config->interrupt_tfn;
 
     M6502_Reset(s);
 }
@@ -1670,15 +1670,15 @@ void M6502_Destroy(M6502 *s) {
 //////////////////////////////////////////////////////////////////////////
 
 void M6502_Reset(M6502 *s) {
-    s->d1x1=1;
-    s->tfn=&Cycle0_Reset;
+    s->d1x1 = 1;
+    s->tfn = &Cycle0_Reset;
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 void M6502_Halt(M6502 *s) {
-    s->tfn=&Cycle1_HLT;
+    s->tfn = &Cycle1_HLT;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -1689,9 +1689,8 @@ static void DisassembleByte(char *buf,
                             const M6502DisassemblyInfo *di,
                             const char *prefix,
                             uint8_t value,
-                            const char *suffix)
-{
-    snprintf(buf,buf_size,"%s %s$%02x%s",di->mnemonic,prefix,value,suffix);
+                            const char *suffix) {
+    snprintf(buf, buf_size, "%s %s$%02x%s", di->mnemonic, prefix, value, suffix);
 }
 
 static void DisassembleWord(char *buf,
@@ -1699,9 +1698,8 @@ static void DisassembleWord(char *buf,
                             const M6502DisassemblyInfo *di,
                             const char *prefix,
                             uint16_t value,
-                            const char *suffix)
-{
-    snprintf(buf,buf_size,"%s %s$%04x%s",di->mnemonic,prefix,value,suffix);
+                            const char *suffix) {
+    snprintf(buf, buf_size, "%s %s$%04x%s", di->mnemonic, prefix, value, suffix);
 }
 
 //uint16_t M6502Config_DisassembleInstruction(const M6502Config *config,char *buf,size_t buf_size,uint16_t pc,uint8_t a,uint8_t b,uint8_t c) {
@@ -1774,109 +1772,107 @@ static void DisassembleWord(char *buf,
 //
 //}
 
-void M6502_DisassembleLastInstruction(M6502 *s,char *buf,size_t buf_size,int *ia,int *ad) {
-    const M6502DisassemblyInfo *di=&s->config->disassembly_info[s->opcode];
-    int ia_tmp,ad_tmp;
+void M6502_DisassembleLastInstruction(M6502 *s, char *buf, size_t buf_size, int *ia, int *ad) {
+    const M6502DisassemblyInfo *di = &s->config->disassembly_info[s->opcode];
+    int ia_tmp, ad_tmp;
 
-    if(!ia) {
-        ia=&ia_tmp;
+    if (!ia) {
+        ia = &ia_tmp;
     }
 
-    if(!ad) {
-        ad=&ad_tmp;
+    if (!ad) {
+        ad = &ad_tmp;
     }
 
-    *ia=-1;
-    *ad=-1;
+    *ia = -1;
+    *ad = -1;
 
-    switch(di->mode) {
+    switch (di->mode) {
     default:
         assert(0);
         /* fall through */
     case M6502AddrMode_IMP:
-        snprintf(buf,buf_size,"%s",di->mnemonic);
+        snprintf(buf, buf_size, "%s", di->mnemonic);
         break;
 
     case M6502AddrMode_IMM:
-        DisassembleByte(buf,buf_size,di,"#",s->data,"");
+        DisassembleByte(buf, buf_size, di, "#", s->data, "");
         break;
 
-    case M6502AddrMode_REL:
-        {
-            uint16_t tmp;
+    case M6502AddrMode_REL: {
+        uint16_t tmp;
 
-            /* T1_Branch could update s->ad when the branch isn't
+        /* T1_Branch could update s->ad when the branch isn't
              * taken, but (somewhat surprisingly...) in my quick test
              * the cost of this seemed to be actually measurable. */
 
-            if(!s->data) {
-                /* pc-1, because the CPU is after phase 1 of T0, so
+        if (!s->data) {
+            /* pc-1, because the CPU is after phase 1 of T0, so
                  * it's already done pc++. */
-                tmp=(uint16_t)(s->pc.w-1u+(uint16_t)(int16_t)(int8_t)s->ad.b.l);
-            } else {
-                tmp=s->ad.w;
-            }
-
-            DisassembleWord(buf,buf_size,di,"",tmp,"");
+            tmp = (uint16_t)(s->pc.w - 1u + (uint16_t)(int16_t)(int8_t)s->ad.b.l);
+        } else {
+            tmp = s->ad.w;
         }
-        break;
+
+        DisassembleWord(buf, buf_size, di, "", tmp, "");
+    } break;
 
     case M6502AddrMode_ZPG:
-        DisassembleByte(buf,buf_size,di,"",s->ad.b.l,"");
+        DisassembleByte(buf, buf_size, di, "", s->ad.b.l, "");
         break;
 
     case M6502AddrMode_ZPX:
-        DisassembleByte(buf,buf_size,di,"",s->ad.b.l,",x");
-        *ad=(uint8_t)(s->ad.b.l+s->x);
+        DisassembleByte(buf, buf_size, di, "", s->ad.b.l, ",x");
+        *ad = (uint8_t)(s->ad.b.l + s->x);
         break;
 
     case M6502AddrMode_ZPY:
-        DisassembleByte(buf,buf_size,di,"",s->ad.b.l,",y");
-        *ad=(uint8_t)(s->ad.b.l+s->y);
+        DisassembleByte(buf, buf_size, di, "", s->ad.b.l, ",y");
+        *ad = (uint8_t)(s->ad.b.l + s->y);
         break;
 
     case M6502AddrMode_INX:
-        DisassembleByte(buf,buf_size,di,"(",s->ia.b.l,",x)");
-        *ia=(uint8_t)(s->ia.b.l+s->x);
-        *ad=s->ad.w;
+        DisassembleByte(buf, buf_size, di, "(", s->ia.b.l, ",x)");
+        *ia = (uint8_t)(s->ia.b.l + s->x);
+        *ad = s->ad.w;
         break;
 
     case M6502AddrMode_INY:
-        DisassembleByte(buf,buf_size,di,"(",s->ia.b.l,"),y");
-        *ad=(uint16_t)(s->ad.w+s->y);
+        DisassembleByte(buf, buf_size, di, "(", s->ia.b.l, "),y");
+        *ad = (uint16_t)(s->ad.w + s->y);
         break;
 
     case M6502AddrMode_ABS:
-        DisassembleWord(buf,buf_size,di,"",s->ad.w,"");
+        DisassembleWord(buf, buf_size, di, "", s->ad.w, "");
         break;
 
     case M6502AddrMode_ABX:
-        DisassembleWord(buf,buf_size,di,"",s->ad.w,",x");
-        *ad=(uint16_t)(s->ad.w+s->x);
+        DisassembleWord(buf, buf_size, di, "", s->ad.w, ",x");
+        *ad = (uint16_t)(s->ad.w + s->x);
         break;
 
     case M6502AddrMode_ABY:
-        DisassembleWord(buf,buf_size,di,"",s->ad.w,",y");
-        *ad=(uint16_t)(s->ad.w+s->y);
+        DisassembleWord(buf, buf_size, di, "", s->ad.w, ",y");
+        *ad = (uint16_t)(s->ad.w + s->y);
         break;
 
     case M6502AddrMode_IND:
-        DisassembleWord(buf,buf_size,di,"(",s->ia.w,")");
-        *ad=s->ad.w;
+        DisassembleWord(buf, buf_size, di, "(", s->ia.w, ")");
+        *ad = s->ad.w;
         break;
 
     case M6502AddrMode_ACC:
-        snprintf(buf,buf_size,"%s A",di->mnemonic);
+        snprintf(buf, buf_size, "%s A", di->mnemonic);
         break;
 
     case M6502AddrMode_INZ:
-        DisassembleByte(buf,buf_size,di,"(",s->ia.b.l,")");
-        *ad=s->ad.b.l;
+        DisassembleByte(buf, buf_size, di, "(", s->ia.b.l, ")");
+        *ad = s->ad.b.l;
         break;
 
     case M6502AddrMode_INDX:
-        DisassembleWord(buf,buf_size,di,"(",s->ad.w,",x)");
-        *ad=s->ad.w+s->x;
+        DisassembleWord(buf, buf_size, di, "(", s->ad.w, ",x)");
+        *ad = s->ad.w + s->x;
         break;
     }
 }
@@ -1885,7 +1881,7 @@ void M6502_DisassembleLastInstruction(M6502 *s,char *buf,size_t buf_size,int *ia
 //////////////////////////////////////////////////////////////////////////
 
 uint8_t M6502_GetOpcode(const M6502 *s) {
-    if(s->read==M6502ReadType_Opcode) {
+    if (s->read == M6502ReadType_Opcode) {
         return s->dbus;
     } else {
         return s->opcode;
@@ -1905,48 +1901,50 @@ uint8_t M6502_GetOpcode(const M6502 *s) {
 // On a real 6502 it's possible to send a blip that's too short to be
 // detected - the simulator doesn't support this.
 
-void M6502_SetDeviceIRQ(M6502 *s,M6502_DeviceIRQFlags mask,int wants_irq) {
-    assert(mask!=0);
+void M6502_SetDeviceIRQ(M6502 *s, M6502_DeviceIRQFlags mask, int wants_irq) {
+    assert(mask != 0);
 
-    if(wants_irq) {
-        s->device_irq_flags|=mask;
-        s->irq_flags=s->device_irq_flags;
+    if (wants_irq) {
+        s->device_irq_flags |= mask;
+        s->irq_flags = s->device_irq_flags;
     } else {
-        s->device_irq_flags&=~mask;
-        s->irq_flags=s->device_irq_flags;
+        s->device_irq_flags &= ~mask;
+        s->irq_flags = s->device_irq_flags;
 
-//        // If there are now no IRQs, but there were IRQs since the
-//        // last check, ignore those IRQs if the CPU is in a state
-//        // where the real 6502 would have ignored them as they came
-//        // in.
-//        if(s->device_irq_flags==0&&s->p.bits.i) {
-//            s->irq_flags=0;
-//        }
+        //        // If there are now no IRQs, but there were IRQs since the
+        //        // last check, ignore those IRQs if the CPU is in a state
+        //        // where the real 6502 would have ignored them as they came
+        //        // in.
+        //        if(s->device_irq_flags==0&&s->p.bits.i) {
+        //            s->irq_flags=0;
+        //        }
     }
 }
 
-void M6502_SetDeviceNMI(M6502 *s,M6502_DeviceIRQFlags mask,int wants_nmi) {
-    assert(mask!=0);
+void M6502_SetDeviceNMI(M6502 *s, M6502_DeviceIRQFlags mask, int wants_nmi) {
+    assert(mask != 0);
 
-    if(wants_nmi) {
-        s->nmi_flags|=~s->device_nmi_flags&mask;
-        s->device_nmi_flags|=mask;
+    if (wants_nmi) {
+        s->nmi_flags |= ~s->device_nmi_flags & mask;
+        s->device_nmi_flags |= mask;
     } else {
-        s->device_nmi_flags&=~mask;
+        s->device_nmi_flags &= ~mask;
     }
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-#define CASE(X) if(fn==&(X)) return #X
+#define CASE(X)     \
+    if (fn == &(X)) \
+    return #X
 
-static const NamedFn g_known_fns[]={
-    {"M6502_NextInstruction",&M6502_NextInstruction},
-    {NULL,NULL},
+static const NamedFn g_known_fns[] = {
+    {"M6502_NextInstruction", &M6502_NextInstruction},
+    {NULL, NULL},
 };
 
-static const NamedFn *const g_named_fn_lists[]={
+static const NamedFn *const g_named_fn_lists[] = {
     g_known_fns,
     g_named_tfns,
     g_named_ifns,
@@ -1954,9 +1952,9 @@ static const NamedFn *const g_named_fn_lists[]={
 };
 
 static const char *FindFnName(M6502Fn fn) {
-    for(size_t i=0;g_named_fn_lists[i];++i) {
-        const char *name=FindNameByFn(g_named_fn_lists[i],fn);
-        if(name) {
+    for (size_t i = 0; g_named_fn_lists[i]; ++i) {
+        const char *name = FindNameByFn(g_named_fn_lists[i], fn);
+        if (name) {
             return name;
         }
     }
@@ -1968,32 +1966,32 @@ static const char *FindFnName(M6502Fn fn) {
 
 static char g_fn_name_buf[200];
 
-const char *M6502_GetStateName(M6502 *s,uint8_t is_dbus_valid) {
-    const char *tfn_name=FindFnName(s->tfn);
-    if(!tfn_name) {
-        tfn_name="?";
+const char *M6502_GetStateName(M6502 *s, uint8_t is_dbus_valid) {
+    const char *tfn_name = FindFnName(s->tfn);
+    if (!tfn_name) {
+        tfn_name = "?";
     }
 
-    if(s->tfn==&Cycle0_All) {
-        const char *t0fn_name=NULL;
-        if(is_dbus_valid) {
-            t0fn_name=FindFnName(s->fns[s->dbus].t0fn);
+    if (s->tfn == &Cycle0_All) {
+        const char *t0fn_name = NULL;
+        if (is_dbus_valid) {
+            t0fn_name = FindFnName(s->fns[s->dbus].t0fn);
         }
 
-        if(!t0fn_name) {
-            t0fn_name="?";
+        if (!t0fn_name) {
+            t0fn_name = "?";
         }
 
-        snprintf(g_fn_name_buf,sizeof g_fn_name_buf,
-                 "tfn=%s t0fn=%s",tfn_name,t0fn_name);
+        snprintf(g_fn_name_buf, sizeof g_fn_name_buf,
+                 "tfn=%s t0fn=%s", tfn_name, t0fn_name);
     } else {
-        const char *ifn_name=FindNameByFn(g_named_ifns,s->ifn);
-        if(!ifn_name) {
-            ifn_name="?";
+        const char *ifn_name = FindNameByFn(g_named_ifns, s->ifn);
+        if (!ifn_name) {
+            ifn_name = "?";
         }
 
-        snprintf(g_fn_name_buf,sizeof g_fn_name_buf,
-                 "tfn=%s ifn=%s",tfn_name,ifn_name);
+        snprintf(g_fn_name_buf, sizeof g_fn_name_buf,
+                 "tfn=%s ifn=%s", tfn_name, ifn_name);
     }
 
     return g_fn_name_buf;
@@ -2002,11 +2000,11 @@ const char *M6502_GetStateName(M6502 *s,uint8_t is_dbus_valid) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void M6502_ForEachFn(M6502_ForEachFnFn fn,void *context) {
-    for(size_t i=0;g_named_fn_lists[i];++i) {
-        const NamedFn *named_fn=g_named_fn_lists[i];
-        while(named_fn->name) {
-            (*fn)(named_fn->name,named_fn->fn,context);
+void M6502_ForEachFn(M6502_ForEachFnFn fn, void *context) {
+    for (size_t i = 0; g_named_fn_lists[i]; ++i) {
+        const NamedFn *named_fn = g_named_fn_lists[i];
+        while (named_fn->name) {
+            (*fn)(named_fn->name, named_fn->fn, context);
             ++named_fn;
         }
     }
@@ -2015,18 +2013,18 @@ void M6502_ForEachFn(M6502_ForEachFnFn fn,void *context) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void M6502_SetP(M6502 *s,uint8_t p) {
-    s->p.value=p;
+void M6502_SetP(M6502 *s, uint8_t p) {
+    s->p.value = p;
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 M6502P M6502_GetP(const M6502 *s) {
-    M6502P p=GetP(s);
+    M6502P p = GetP(s);
 
     // Stupid perfect6502 thing.
-    p.bits._=0;
+    p.bits._ = 0;
 
     return p;
 }

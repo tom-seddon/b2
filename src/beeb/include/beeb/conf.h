@@ -1,4 +1,4 @@
-#ifndef HEADER_B9662BEB223148FC8148B4BF707D4B3D// -*- mode:c++ -*-
+#ifndef HEADER_B9662BEB223148FC8148B4BF707D4B3D // -*- mode:c++ -*-
 #define HEADER_B9662BEB223148FC8148B4BF707D4B3D
 
 //////////////////////////////////////////////////////////////////////////
@@ -85,7 +85,7 @@
 // Will probably dither over this at least once more...
 //
 // There's probably a better place for this.
-static constexpr char ADDRESS_PREFIX_SEPARATOR='`';
+static constexpr char ADDRESS_PREFIX_SEPARATOR = '`';
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -110,11 +110,11 @@ static constexpr char ADDRESS_PREFIX_SEPARATOR='`';
 // centre differently from in the emulator, so obviously something's
 // still wrong.)
 
-static const int TV_TEXTURE_WIDTH=736;
+static const int TV_TEXTURE_WIDTH = 736;
 
-static const int TV_TEXTURE_HEIGHT=288*2;
+static const int TV_TEXTURE_HEIGHT = 288 * 2;
 
-static_assert(TV_TEXTURE_WIDTH%8==0,"");
+static_assert(TV_TEXTURE_WIDTH % 8 == 0, "");
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

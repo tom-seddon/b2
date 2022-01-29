@@ -22,8 +22,8 @@ std::string PathGetEXEFileName(void) {
     std::vector<char> buf;
     buf.resize(65536);
 
-    ssize_t n=readlink(EXE,buf.data(),buf.size());
-    if(n<0) {
+    ssize_t n = readlink(EXE, buf.data(), buf.size());
+    if (n < 0) {
         return "";
     }
 
@@ -35,4 +35,3 @@ std::string PathGetEXEFileName(void) {
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
-

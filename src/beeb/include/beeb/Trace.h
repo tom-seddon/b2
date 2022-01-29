@@ -45,22 +45,23 @@ struct M6502Config;
 //////////////////////////////////////////////////////////////////////////
 
 class TraceEventType {
-public:
+  public:
     const uint8_t type_id;
     const size_t size;
 
-    explicit TraceEventType(const char *name,size_t size=0);
+    explicit TraceEventType(const char *name, size_t size = 0);
     ~TraceEventType();
 
-    TraceEventType(const TraceEventType &)=delete;
-    TraceEventType &operator=(const TraceEventType &)=delete;
+    TraceEventType(const TraceEventType &) = delete;
+    TraceEventType &operator=(const TraceEventType &) = delete;
 
-    TraceEventType(TraceEventType &&)=delete;
-    TraceEventType &operator=(TraceEventType &&)=delete;
+    TraceEventType(TraceEventType &&) = delete;
+    TraceEventType &operator=(TraceEventType &&) = delete;
 
     const std::string &GetName() const;
-protected:
-private:
+
+  protected:
+  private:
     std::string m_name;
 };
 
@@ -68,10 +69,10 @@ private:
 //////////////////////////////////////////////////////////////////////////
 
 struct TraceStats {
-    size_t num_events=0;
-    size_t num_used_bytes=0;
-    size_t num_allocated_bytes=0;
-    uint64_t max_time=0;
+    size_t num_events = 0;
+    size_t num_used_bytes = 0;
+    size_t num_allocated_bytes = 0;
+    uint64_t max_time = 0;
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -94,10 +95,8 @@ struct TraceEvent {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-class Trace:
-    public std::enable_shared_from_this<Trace>
-{
-public:
+class Trace : public std::enable_shared_from_this<Trace> {
+  public:
 #include <shared/pshpack1.h>
     struct WriteROMSELEvent {
         ROMSEL romsel;
@@ -127,11 +126,11 @@ public:
                    ACCCON initial_acccon_value);
     ~Trace();
 
-    Trace(const Trace &)=delete;
-    Trace &operator=(const Trace &)=delete;
+    Trace(const Trace &) = delete;
+    Trace &operator=(const Trace &) = delete;
 
-    Trace(Trace &&)=delete;
-    Trace &operator=(Trace &&)=delete;
+    Trace(Trace &&) = delete;
+    Trace &operator=(Trace &&) = delete;
 
     // When the trace's time pointer is non-NULL, it is used to fill
     // out each event's time field.
@@ -143,7 +142,7 @@ public:
     void *AllocEvent(const TraceEventType &type);
 
     // TYPE must be the type of event the data was allocated for.
-    void CancelEvent(const TraceEventType &type,void *data);
+    void CancelEvent(const TraceEventType &type, void *data);
 
     void AllocBlankLineEvent();
 
@@ -153,8 +152,8 @@ public:
     // saving the output.
 
     // Space for format expansion is limited to 1K.
-    void PRINTF_LIKE(2,3) AllocStringf(const char *fmt,...);
-    void AllocStringv(const char *fmt,va_list v);
+    void PRINTF_LIKE(2, 3) AllocStringf(const char *fmt, ...);
+    void AllocStringv(const char *fmt, va_list v);
     void AllocString(const char *str);
 
     // Allocate events for ROMSEL/ACCCON writes. These need special handling so
@@ -173,72 +172,74 @@ public:
     ROMSEL GetInitialROMSEL() const;
     ACCCON GetInitialACCCON() const;
 
-    typedef bool (*ForEachEventFn)(Trace *t,const TraceEvent *e,void *context);
+    typedef bool (*ForEachEventFn)(Trace *t, const TraceEvent *e, void *context);
 
     // return true to continue iteration, false to stop it. returns
     // false if iteration was canceled.
-    int ForEachEvent(ForEachEventFn fn,void *context);
-protected:
-private:
+    int ForEachEvent(ForEachEventFn fn, void *context);
+
+  protected:
+  private:
     struct Chunk;
 
-    class LogPrinterTrace:
-        public LogPrinter
-    {
-    public:
+    class LogPrinterTrace : public LogPrinter {
+      public:
         LogPrinterTrace(Trace *t);
 
-        void Print(const char *str,size_t str_len) override;
-    protected:
-    private:
-        Trace *m_t=nullptr;
+        void Print(const char *str, size_t str_len) override;
+
+      protected:
+      private:
+        Trace *m_t = nullptr;
     };
 
-    Chunk *m_head=nullptr,*m_tail=nullptr;
+    Chunk *m_head = nullptr, *m_tail = nullptr;
     TraceStats m_stats;
-    uint8_t *m_last_alloc=nullptr;
-    uint64_t m_last_time=0;
-    const uint64_t *m_time_ptr=nullptr;
+    uint8_t *m_last_alloc = nullptr;
+    uint64_t m_last_time = 0;
+    const uint64_t *m_time_ptr = nullptr;
 
-    char *m_log_data=nullptr;
-    size_t m_log_len=0;
-    size_t m_log_max_len=0;
+    char *m_log_data = nullptr;
+    size_t m_log_len = 0;
+    size_t m_log_max_len = 0;
     LogPrinterTrace m_log_printer{this};
     size_t m_max_num_bytes;
 
-    const BBCMicroType *m_bbc_micro_type=nullptr;
-    ROMSEL m_romsel={};
-    ACCCON m_acccon={};
+    const BBCMicroType *m_bbc_micro_type = nullptr;
+    ROMSEL m_romsel = {};
+    ACCCON m_acccon = {};
 
     // Allocate a new event with variable-sized data, and return a
     // pointer to its data. (The event must have been registered with
     // a size of 0.)
-    void *AllocEventWithSize(const TraceEventType &type,size_t size);
-    char *AllocString2(const char *str,size_t len);
+    void *AllocEventWithSize(const TraceEventType &type, size_t size);
+    char *AllocString2(const char *str, size_t len);
 
-    void *Alloc(uint64_t time,size_t n);
+    void *Alloc(uint64_t time, size_t n);
     void Check();
-    static void PrintToTraceLog(const char *str,size_t str_len,void *data);
+    static void PrintToTraceLog(const char *str, size_t str_len, void *data);
 };
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-#define TRACEF(T,...)\
-BEGIN_MACRO {\
-    if(T) {\
-        (T)->AllocStringf(__VA_ARGS__);\
-    }\
-} END_MACRO
+#define TRACEF(T, ...)                      \
+    BEGIN_MACRO {                           \
+        if (T) {                            \
+            (T)->AllocStringf(__VA_ARGS__); \
+        }                                   \
+    }                                       \
+    END_MACRO
 
-#define TRACEF_IF(COND,T,...)\
-BEGIN_MACRO {\
-    if(T) {\
-        if(COND) {\
-            (T)->AllocStringf(__VA_ARGS__);\
-        }\
-    }\
-} END_MACRO
+#define TRACEF_IF(COND, T, ...)                 \
+    BEGIN_MACRO {                               \
+        if (T) {                                \
+            if (COND) {                         \
+                (T)->AllocStringf(__VA_ARGS__); \
+            }                                   \
+        }                                       \
+    }                                           \
+    END_MACRO
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

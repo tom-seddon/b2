@@ -71,7 +71,7 @@ EEND()
 
 // Might relax this later... it's only an implementation detail. But
 // it makes things very convenient.
-static_assert(BeebWindowPopupType_MaxValue<=64,"BeebWindowPopupType values must fit in a 64-bit bitfield");
+static_assert(BeebWindowPopupType_MaxValue <= 64, "BeebWindowPopupType values must fit in a 64-bit bitfield");
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

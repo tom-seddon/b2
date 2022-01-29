@@ -26,27 +26,26 @@
 struct MutexMetadata {
     std::string name;
 
-    uint64_t num_locks=0;
-    uint64_t num_contended_locks=0;
-    uint64_t total_lock_wait_ticks=0;
+    uint64_t num_locks = 0;
+    uint64_t num_contended_locks = 0;
+    uint64_t total_lock_wait_ticks = 0;
 
     std::atomic<uint64_t> num_try_locks{0};
-    uint64_t num_successful_try_locks=0;
+    uint64_t num_successful_try_locks = 0;
 };
 
 struct MutexFullMetadata;
 
-class Mutex
-{
-public:
+class Mutex {
+  public:
     Mutex();
     ~Mutex();
 
-    Mutex(const Mutex &)=delete;
-    Mutex &operator=(const Mutex &)=delete;
+    Mutex(const Mutex &) = delete;
+    Mutex &operator=(const Mutex &) = delete;
 
-    Mutex(Mutex &&)=delete;
-    Mutex &operator=(Mutex &&)=delete;
+    Mutex(Mutex &&) = delete;
+    Mutex &operator=(Mutex &&) = delete;
 
     void SetName(std::string name);
 
@@ -55,21 +54,21 @@ public:
     const MutexMetadata *GetMetadata() const;
 
     void lock() {
-        uint64_t a_ticks=GetCurrentTickCount();
+        uint64_t a_ticks = GetCurrentTickCount();
 
-        if(!m_mutex.try_lock()) {
+        if (!m_mutex.try_lock()) {
             m_mutex.lock();
             ++m_meta->num_contended_locks;
         }
 
         ++m_meta->num_locks;
-        m_meta->total_lock_wait_ticks+=GetCurrentTickCount()-a_ticks;
+        m_meta->total_lock_wait_ticks += GetCurrentTickCount() - a_ticks;
     }
 
     bool try_lock() {
-        bool succeeded=m_mutex.try_lock();
+        bool succeeded = m_mutex.try_lock();
 
-        if(succeeded) {
+        if (succeeded) {
             ++m_meta->num_successful_try_locks;
         }
 
@@ -83,8 +82,9 @@ public:
     }
 
     static std::vector<std::shared_ptr<const MutexMetadata>> GetAllMetadata();
-protected:
-private:
+
+  protected:
+  private:
     std::mutex m_mutex;
 
     // The mutex has a shared_ptr to its MutexFullMetadata, so there's
@@ -94,10 +94,10 @@ private:
 
     // This is just the value of &m_metadata_shared_ptr.get()->meta,
     // in an attempt to avoid atrocious debug build performance.
-    MutexMetadata *m_meta=nullptr;
+    MutexMetadata *m_meta = nullptr;
 };
 
-#define MUTEX_SET_NAME(MUTEX,NAME) ((MUTEX).SetName((NAME)))
+#define MUTEX_SET_NAME(MUTEX, NAME) ((MUTEX).SetName((NAME)))
 
 typedef std::condition_variable_any ConditionVariable;
 
@@ -112,7 +112,7 @@ typedef std::condition_variable_any ConditionVariable;
 typedef std::mutex Mutex;
 typedef std::condition_variable ConditionVariable;
 
-#define MUTEX_SET_NAME(MUTEX,NAME) ((void)0)
+#define MUTEX_SET_NAME(MUTEX, NAME) ((void)0)
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

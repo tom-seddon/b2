@@ -22,16 +22,16 @@ struct DiscInterfaceDef;
 // Normalized control bits.
 struct DiscInterfaceControl {
     // Drive to use, or <0 if indeterminate.
-    int8_t drive=-1;
+    int8_t drive = -1;
 
     // Density select - 1=double, 0=single.
-    uint8_t dden=0;
+    uint8_t dden = 0;
 
     // Side select.
-    uint8_t side=0;
+    uint8_t side = 0;
 
     // Reset.
-    uint8_t reset=0;
+    uint8_t reset = 0;
 };
 typedef struct DiscInterfaceControl DiscInterfaceControl;
 
@@ -39,28 +39,30 @@ typedef struct DiscInterfaceControl DiscInterfaceControl;
 //////////////////////////////////////////////////////////////////////////
 
 class DiscInterface {
-public:
-    uint16_t fdc_addr=0;
-    uint16_t control_addr=0;
-    uint32_t flags=0;
+  public:
+    uint16_t fdc_addr = 0;
+    uint16_t control_addr = 0;
+    uint32_t flags = 0;
 
-    DiscInterface(uint16_t fdc_addr,uint16_t control_addr,uint32_t flags);
-    virtual ~DiscInterface()=0;
+    DiscInterface(uint16_t fdc_addr, uint16_t control_addr, uint32_t flags);
+    virtual ~DiscInterface() = 0;
 
-    virtual DiscInterface *Clone() const=0;
+    virtual DiscInterface *Clone() const = 0;
 
-    virtual DiscInterfaceControl GetControlFromByte(uint8_t value) const=0;
-    virtual uint8_t GetByteFromControl(DiscInterfaceControl control) const=0;
+    virtual DiscInterfaceControl GetControlFromByte(uint8_t value) const = 0;
+    virtual uint8_t GetByteFromControl(DiscInterfaceControl control) const = 0;
 
     // Default impl does nothing.
     virtual void InstallExtraHardware(BBCMicro *m);
-protected:
-    DiscInterface(DiscInterface &)=default;
-    DiscInterface &operator=(const DiscInterface &)=default;
 
-    DiscInterface(DiscInterface &&)=default;
-    DiscInterface &operator=(DiscInterface &&)=default;
-private:
+  protected:
+    DiscInterface(DiscInterface &) = default;
+    DiscInterface &operator=(const DiscInterface &) = default;
+
+    DiscInterface(DiscInterface &&) = default;
+    DiscInterface &operator=(DiscInterface &&) = default;
+
+  private:
 };
 
 //////////////////////////////////////////////////////////////////////////
