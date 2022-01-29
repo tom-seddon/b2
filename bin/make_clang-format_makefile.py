@@ -26,20 +26,33 @@ def main3(f,options):
 
     file_paths=list(file_paths)
 
-    prefix='file'
-    all_file_targets=' '.join(['%s%d'%(prefix,i) for i in range(len(file_paths))])
+    # group files into command lines of ~1500 chars each
+    argvs=[]
+    i=0
+    argv=''
+    while True:
+        if i==len(file_paths) or len(argv)>1500:
+            argvs.append(argv)
+            argv=''
+
+        if i==len(file_paths): break
+
+        argv+=' "%s"'%file_paths[i]
+        i+=1
+
+    prefix='files'
+    all_file_targets=' '.join(['%s%d'%(prefix,i) for i in range(len(argvs))])
     
     f.write('.PHONY:all %s\n'%all_file_targets)
     f.write('all: %s\n'%all_file_targets)
 
-    for i,file_path in enumerate(file_paths):
+    for i,argv in enumerate(argvs):
         f.write('%s%d:\n'%(prefix,i))
-        f.write('\t\"%s\" -style=file -i \"%s\"\n'%(options.exe,
-                                                    file_path))
+        f.write('\t\"%s\" -style=file -i%s\n'%(options.exe,argv))
 
     f.write('.PHONY:revert\n')
     f.write('revert:\n')
-    for file_path in file_paths: f.write('\tgit checkout -- "%s"\n'%file_path)
+    for argv in argvs: f.write('\tgit checkout --%s\n'%argv)
 
 ##########################################################################
 ##########################################################################

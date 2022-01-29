@@ -4,7 +4,7 @@ SortIncludes: false
 AllowShortBlocksOnASingleLine: false
 BreakConstructorInitializers: BeforeComma
 IndentWidth: 4
-ColumnLimit: 76
+ColumnLimit: 0
 NamespaceIndentation: All
 ReflowComments: false
 # DO NOT EDIT - Copied from src/.clang-format
