@@ -68,15 +68,18 @@ void SetCurrentThreadNamev(const char *fmt, va_list v) {
 #define AABBCC__(A, B, C) \
     AABBCCDD(A, B, C, 0)  \
     AABBCCDD(A, B, C, 1)  \
-    AABBCCDD(A, B, C, 2) AABBCCDD(A, B, C, 3)
+    AABBCCDD(A, B, C, 2)  \
+    AABBCCDD(A, B, C, 3)
 #define AABB____(A, B) \
     AABBCC__(A, B, 0)  \
     AABBCC__(A, B, 1)  \
-    AABBCC__(A, B, 2) AABBCC__(A, B, 3)
+    AABBCC__(A, B, 2)  \
+    AABBCC__(A, B, 3)
 #define AA______(A) \
     AABB____(A, 0)  \
     AABB____(A, 1)  \
-    AABB____(A, 2) AABB____(A, 3)
+    AABB____(A, 2)  \
+    AABB____(A, 3)
 
 const char BINARY_BYTE_STRINGS[256][9] = {AA______(0) AA______(1) AA______(2) AA______(3)};
 
