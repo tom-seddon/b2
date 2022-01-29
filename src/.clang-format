@@ -1,0 +1,8 @@
+AllowShortFunctionsOnASingleLine: false
+SortIncludes: false
+AllowShortBlocksOnASingleLine: false
+BreakConstructorInitializers: BeforeComma
+IndentWidth: 4
+ColumnLimit: 76
+NamespaceIndentation: All
+ReflowComments: false
