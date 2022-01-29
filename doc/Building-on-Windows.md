@@ -13,11 +13,11 @@ Initial build steps:
 
 1. Open command prompt in working copy folder 
 
-2. Run `snmake`, according to Visual Studio version:
+2. Run `bin\snmake`, according to Visual Studio version:
 
-   - Visual Studio 2015: `snmake init_vs2015`
-   - Visual Studio 2017: `snmake init_vs2017`
-   - Visual Studio 2019: `snmake init_vs2019`
+   - Visual Studio 2015: `bin\snmake init_vs2015`
+   - Visual Studio 2017: `bin\snmake init_vs2017`
+   - Visual Studio 2019: `bin\snmake init_vs2019`
 
    You should get a bunch of output - there may be the odd warning,
    but there should be no obvious errors, and it should finish with an

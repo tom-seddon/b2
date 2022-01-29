@@ -49,7 +49,7 @@ Everything you need to do this on Windows is included in the repo; for
 macOS and Linux, you'll need GNU make, and
 [64tass](http://tass64.sourceforge.net/) on the path.
 
-Change to `etc/testsuite-2.15` and run `..\..\snmake` (Windows) or
+Change to `etc/testsuite-2.15` and run `..\..\bin\snmake` (Windows) or
 `make` (macOS/Linux). This generates bin files in
 `etc/testsuite-2.15/ascii-bin` and listing files in
 `etc/testsuite-2.15/ascii-lst`.
@@ -62,5 +62,6 @@ Original repo: https://github.com/Klaus2m5/6502_65C02_functional_tests
 
 ### rebuilding the 6502 code yourself (Windows) ###
 
-Change to `etc/6502_65C02_functional_tests` and run `..\..\snmake`.
-You get bin and listing files in `etc/6502_65C02_functional_tests`.
+Change to `etc/6502_65C02_functional_tests` and run
+`..\..\bin\snmake`. You get bin and listing files in
+`etc/6502_65C02_functional_tests`.

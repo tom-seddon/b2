@@ -419,7 +419,7 @@ autoboot.
 ## HTTP Example
 
 See `etc/http_api_example` in the repo. Run the makefile in Windows,
-with `curl` on the path, using `snmake.exe` from the root of the repo.
+with `curl` on the path, using `bin\snmake.exe` from the repo.
 
 (It ought to work on macOS and Linux without too much effort, but
 that's never been tested.)
