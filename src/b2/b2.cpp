@@ -1110,98 +1110,118 @@ static bool main2(int argc, char *argv[], const std::shared_ptr<MessageList> &in
             }
 
             switch (event.type) {
-            case SDL_WINDOWEVENT: {
-                rmt_ScopedCPUSample(SDL_WINDOWEVENT, 0);
-                BeebWindows::HandleSDLWindowEvent(event.window);
-            } break;
+            case SDL_WINDOWEVENT:
+                {
+                    rmt_ScopedCPUSample(SDL_WINDOWEVENT, 0);
+                    BeebWindows::HandleSDLWindowEvent(event.window);
+                }
+                break;
 
-            case SDL_MOUSEMOTION: {
-                rmt_ScopedCPUSample(SDL_MOUSEMOTION, 0);
-                BeebWindows::HandleSDLMouseMotionEvent(event.motion);
-            } break;
+            case SDL_MOUSEMOTION:
+                {
+                    rmt_ScopedCPUSample(SDL_MOUSEMOTION, 0);
+                    BeebWindows::HandleSDLMouseMotionEvent(event.motion);
+                }
+                break;
 
-            case SDL_TEXTINPUT: {
-                rmt_ScopedCPUSample(SDL_TEXTINPUT, 0);
-                BeebWindows::HandleSDLTextInput(event.text.windowID, event.text.text);
-            } break;
+            case SDL_TEXTINPUT:
+                {
+                    rmt_ScopedCPUSample(SDL_TEXTINPUT, 0);
+                    BeebWindows::HandleSDLTextInput(event.text.windowID, event.text.text);
+                }
+                break;
 
             case SDL_KEYUP:
-            case SDL_KEYDOWN: {
-                rmt_ScopedCPUSample(SDL_KEYxx, 0);
+            case SDL_KEYDOWN:
+                {
+                    rmt_ScopedCPUSample(SDL_KEYxx, 0);
 
-                bool handle = true;
+                    bool handle = true;
 
 #if SYSTEM_OSX
-                if (event.key.keysym.scancode == SDL_SCANCODE_CAPSLOCK_MACOS) {
-                    event.key.keysym.scancode = SDL_SCANCODE_CAPSLOCK;
-                    event.key.keysym.sym = SDL_GetKeyFromScancode(event.key.keysym.scancode);
-                } else if (event.key.keysym.scancode == SDL_SCANCODE_CAPSLOCK) {
-                    handle = false;
-                }
+                    if (event.key.keysym.scancode == SDL_SCANCODE_CAPSLOCK_MACOS) {
+                        event.key.keysym.scancode = SDL_SCANCODE_CAPSLOCK;
+                        event.key.keysym.sym = SDL_GetKeyFromScancode(event.key.keysym.scancode);
+                    } else if (event.key.keysym.scancode == SDL_SCANCODE_CAPSLOCK) {
+                        handle = false;
+                    }
 #endif
 
-                if (handle) {
-                    BeebWindows::HandleSDLKeyEvent(event.key);
-                }
-            } break;
-
-            case SDL_MOUSEWHEEL: {
-                rmt_ScopedCPUSample(SDL_MOUSEWHEEL, 0);
-                BeebWindows::SetSDLMouseWheelState(event.wheel.windowID, event.wheel.x, event.wheel.y);
-            } break;
-
-            default: {
-                if (event.type >= g_first_event_type && event.type < g_first_event_type + SDLEventType_Count) {
-                    switch ((SDLEventType)(event.type - g_first_event_type)) {
-                    case SDLEventType_VBlank: {
-                        rmt_ScopedCPUSample(SDLEventType_VBlank, 0);
-                        if (auto dd = (b2VBlankHandler::Display *)vblank_monitor->GetDisplayDataForDisplayID((uint32_t)event.user.code)) {
-                            uint64_t ticks = GetCurrentTickCount();
-
-                            {
-                                BeebWindows::HandleVBlank(vblank_monitor.get(), dd, ticks);
-                            }
-
-                            {
-                                std::lock_guard<Mutex> lock(dd->mutex);
-
-                                dd->message_pending = false;
-                            }
-                        }
-                    } break;
-
-                    case SDLEventType_UpdateWindowTitle: {
-                        rmt_ScopedCPUSample(SDLEventType_UpdateWindowTitle, 0);
-                        BeebWindows::UpdateWindowTitles();
-                    } break;
-
-                    case SDLEventType_NewWindow: {
-                        rmt_ScopedCPUSample(SDLEventType_NewWindow, 0);
-                        auto init_arguments = (BeebWindowInitArguments *)event.user.data1;
-
-                        BeebWindows::CreateBeebWindow(*init_arguments);
-
-                        delete init_arguments;
-                        init_arguments = nullptr;
-                    } break;
-
-                    case SDLEventType_Function: {
-                        rmt_ScopedCPUSample(SDLEventType_Function, 0);
-                        auto fun = (std::function<void()> *)event.user.data1;
-
-                        (*fun)();
-
-                        delete fun;
-                        fun = nullptr;
-                    } break;
-
-                    case SDLEventType_Count:
-                        // only here avoid incomplete switch warning.
-                        ASSERT(false);
-                        break;
+                    if (handle) {
+                        BeebWindows::HandleSDLKeyEvent(event.key);
                     }
                 }
-            } break;
+                break;
+
+            case SDL_MOUSEWHEEL:
+                {
+                    rmt_ScopedCPUSample(SDL_MOUSEWHEEL, 0);
+                    BeebWindows::SetSDLMouseWheelState(event.wheel.windowID, event.wheel.x, event.wheel.y);
+                }
+                break;
+
+            default:
+                {
+                    if (event.type >= g_first_event_type && event.type < g_first_event_type + SDLEventType_Count) {
+                        switch ((SDLEventType)(event.type - g_first_event_type)) {
+                        case SDLEventType_VBlank:
+                            {
+                                rmt_ScopedCPUSample(SDLEventType_VBlank, 0);
+                                if (auto dd = (b2VBlankHandler::Display *)vblank_monitor->GetDisplayDataForDisplayID((uint32_t)event.user.code)) {
+                                    uint64_t ticks = GetCurrentTickCount();
+
+                                    {
+                                        BeebWindows::HandleVBlank(vblank_monitor.get(), dd, ticks);
+                                    }
+
+                                    {
+                                        std::lock_guard<Mutex> lock(dd->mutex);
+
+                                        dd->message_pending = false;
+                                    }
+                                }
+                            }
+                            break;
+
+                        case SDLEventType_UpdateWindowTitle:
+                            {
+                                rmt_ScopedCPUSample(SDLEventType_UpdateWindowTitle, 0);
+                                BeebWindows::UpdateWindowTitles();
+                            }
+                            break;
+
+                        case SDLEventType_NewWindow:
+                            {
+                                rmt_ScopedCPUSample(SDLEventType_NewWindow, 0);
+                                auto init_arguments = (BeebWindowInitArguments *)event.user.data1;
+
+                                BeebWindows::CreateBeebWindow(*init_arguments);
+
+                                delete init_arguments;
+                                init_arguments = nullptr;
+                            }
+                            break;
+
+                        case SDLEventType_Function:
+                            {
+                                rmt_ScopedCPUSample(SDLEventType_Function, 0);
+                                auto fun = (std::function<void()> *)event.user.data1;
+
+                                (*fun)();
+
+                                delete fun;
+                                fun = nullptr;
+                            }
+                            break;
+
+                        case SDLEventType_Count:
+                            // only here avoid incomplete switch warning.
+                            ASSERT(false);
+                            break;
+                        }
+                    }
+                }
+                break;
             }
         }
 

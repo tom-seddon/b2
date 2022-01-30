@@ -12,17 +12,18 @@
         default:                                                          \
             return "?" STRINGIZE(ENAME) "?";
 
-#define EBEGIN_DERIVED(BASE_NAME)                                      \
-    EPREFIX const char *CONCAT3(Get, ENAME, EnumName)(int value) {     \
-        switch (value) {                                               \
-        default: {                                                     \
-            const char *result = CONCAT3(Get, BASE_NAME, Name)(value); \
-            if (result[0] == '?') {                                    \
-                result = "?" STRINGIZE(ENAME) "?";                     \
-            }                                                          \
-                                                                       \
-            return result;                                             \
-        }
+#define EBEGIN_DERIVED(BASE_NAME)                                          \
+    EPREFIX const char *CONCAT3(Get, ENAME, EnumName)(int value) {         \
+        switch (value) {                                                   \
+        default:                                                           \
+            {                                                              \
+                const char *result = CONCAT3(Get, BASE_NAME, Name)(value); \
+                if (result[0] == '?') {                                    \
+                    result = "?" STRINGIZE(ENAME) "?";                     \
+                }                                                          \
+                                                                           \
+                return result;                                             \
+            }
 
 #define EN_INTERNAL(NAME, STR) \
     case (NAME):               \

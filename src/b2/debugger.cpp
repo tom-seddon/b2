@@ -1248,23 +1248,27 @@ class DisassemblyDebugWindow : public DebugUI,
             case M6502AddrMode_IMP:
                 break;
 
-            case M6502AddrMode_REL: {
-                M6502Word dest;
-                dest.w = addr + (uint16_t)(int16_t)(int8_t)operand.b.l;
+            case M6502AddrMode_REL:
+                {
+                    M6502Word dest;
+                    dest.w = addr + (uint16_t)(int16_t)(int8_t)operand.b.l;
 
-                this->AddWord("", dest.w, false, "");
-            } break;
+                    this->AddWord("", dest.w, false, "");
+                }
+                break;
 
-            case M6502AddrMode_IMM: {
-                char label[3] = {
-                    HEX_CHARS_LC[operand.b.l >> 4 & 15],
-                    HEX_CHARS_LC[operand.b.l & 15],
-                };
+            case M6502AddrMode_IMM:
+                {
+                    char label[3] = {
+                        HEX_CHARS_LC[operand.b.l >> 4 & 15],
+                        HEX_CHARS_LC[operand.b.l & 15],
+                    };
 
-                M6502Word imm_addr = {operand.b.l};
-                const DebugBigPage *imm_dbp = this->GetDebugBigPageForAddress(imm_addr, false);
-                this->DoClickableAddress("#$", label, "", imm_dbp, imm_addr);
-            } break;
+                    M6502Word imm_addr = {operand.b.l};
+                    const DebugBigPage *imm_dbp = this->GetDebugBigPageForAddress(imm_addr, false);
+                    this->DoClickableAddress("#$", label, "", imm_dbp, imm_addr);
+                }
+                break;
 
             case M6502AddrMode_ZPG:
                 this->AddByte("", operand.b.l, false, "");

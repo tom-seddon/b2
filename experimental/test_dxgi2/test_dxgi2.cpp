@@ -134,43 +134,49 @@ static LRESULT CALLBACK MainWndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
     auto ws = (MainWndState *)GetWindowLongPtr(hWnd, GWLP_USERDATA);
 
     switch (uMsg) {
-    case WM_CREATE: {
-        CREATESTRUCT *cs = (CREATESTRUCT *)lParam;
-        MainWndCreateParams *params = (MainWndCreateParams *)cs->lpCreateParams;
+    case WM_CREATE:
+        {
+            CREATESTRUCT *cs = (CREATESTRUCT *)lParam;
+            MainWndCreateParams *params = (MainWndCreateParams *)cs->lpCreateParams;
 
-        ws = new MainWndState;
-        SetWindowLongPtr(hWnd, GWLP_USERDATA, (LONG_PTR)ws);
+            ws = new MainWndState;
+            SetWindowLongPtr(hWnd, GWLP_USERDATA, (LONG_PTR)ws);
 
-        ws->index = params->index;
+            ws->index = params->index;
 
-        char tmp[100];
-        snprintf(tmp, sizeof tmp, "Window %zu", ws->index);
-        SetWindowText(hWnd, tmp);
-    } break;
+            char tmp[100];
+            snprintf(tmp, sizeof tmp, "Window %zu", ws->index);
+            SetWindowText(hWnd, tmp);
+        }
+        break;
 
     case WM_CLOSE:
         PostQuitMessage(0);
         return 0;
 
-    case WM_PAINT: {
-        PAINTSTRUCT ps;
-        HDC dc = BeginPaint(hWnd, &ps);
-        if (dc) {
-            //SaveDC(dc);
+    case WM_PAINT:
+        {
+            PAINTSTRUCT ps;
+            HDC dc = BeginPaint(hWnd, &ps);
+            if (dc) {
+                //SaveDC(dc);
 
-            //RestoreDC(dc,-1);
-            EndPaint(hWnd, &ps);
+                //RestoreDC(dc,-1);
+                EndPaint(hWnd, &ps);
+            }
         }
-    } break;
+        break;
 
     case WM_LBUTTONUP:
         ws->x = 0;
         break;
 
-    case WM_DESTROY: {
-        delete ws;
-        ws = nullptr;
-    } break;
+    case WM_DESTROY:
+        {
+            delete ws;
+            ws = nullptr;
+        }
+        break;
     }
 
     return DefWindowProc(hWnd, uMsg, wParam, lParam);

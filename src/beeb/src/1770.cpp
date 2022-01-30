@@ -678,64 +678,75 @@ WD1770::Pins WD1770::Update() {
     WD1770State old_state = m_state;
 
     switch (m_state) {
-    case WD1770State_BeginIdle: {
-        if (m_status.bits.motor_on) {
-            this->Wait(INDEX_PULSES_uS(10), WD1770State_SpinDown);
-        } else {
-            m_state = WD1770State_IdleWithMotorOff;
+    case WD1770State_BeginIdle:
+        {
+            if (m_status.bits.motor_on) {
+                this->Wait(INDEX_PULSES_uS(10), WD1770State_SpinDown);
+            } else {
+                m_state = WD1770State_IdleWithMotorOff;
+            }
         }
-    } break;
+        break;
 
     default:
         ASSERT(0);
         // fall through
-    case WD1770State_IdleWithMotorOff: {
-        // Nothing...
-    } break;
-
-    case WD1770State_SpinDown: {
-        this->SpinDown();
-
-        m_status.bits.motor_on = 0;
-
-        m_state = WD1770State_IdleWithMotorOff;
-    } break;
-
-    case WD1770State_Restore: {
-        if (m_restore_count++ == 255 && m_command.bits_i.v) {
-            this->SetState(WD1770State_RecordNotFound);
-        } else if (m_handler->IsTrack0()) {
-            m_track = 0;
-            this->SetState(WD1770State_FinishTypeI);
-        } else {
-            m_direction = STEP_OUT;
-            m_next_state = WD1770State_Restore;
-            this->SetState(WD1770State_Step);
+    case WD1770State_IdleWithMotorOff:
+        {
+            // Nothing...
         }
-    } break;
+        break;
 
-    case WD1770State_Seek2: {
-        ASSERT(m_direction == STEP_IN || m_direction == STEP_OUT);
-        if (m_direction == STEP_IN) {
-            ++m_track;
-        } else {
-            --m_track;
+    case WD1770State_SpinDown:
+        {
+            this->SpinDown();
+
+            m_status.bits.motor_on = 0;
+
+            m_state = WD1770State_IdleWithMotorOff;
         }
-    }
+        break;
+
+    case WD1770State_Restore:
+        {
+            if (m_restore_count++ == 255 && m_command.bits_i.v) {
+                this->SetState(WD1770State_RecordNotFound);
+            } else if (m_handler->IsTrack0()) {
+                m_track = 0;
+                this->SetState(WD1770State_FinishTypeI);
+            } else {
+                m_direction = STEP_OUT;
+                m_next_state = WD1770State_Restore;
+                this->SetState(WD1770State_Step);
+            }
+        }
+        break;
+
+    case WD1770State_Seek2:
+        {
+            ASSERT(m_direction == STEP_IN || m_direction == STEP_OUT);
+            if (m_direction == STEP_IN) {
+                ++m_track;
+            } else {
+                --m_track;
+            }
+        }
         // fall through
-    case WD1770State_Seek: {
-        if (m_track < m_data) {
-            m_direction = STEP_IN;
-            this->SetState(WD1770State_Step);
-            m_next_state = WD1770State_Seek2;
-        } else if (m_track > m_data) {
-            m_direction = STEP_OUT;
-            this->SetState(WD1770State_Step);
-            m_next_state = WD1770State_Seek2;
-        } else {
-            this->SetState(WD1770State_FinishTypeI);
+    case WD1770State_Seek:
+        {
+            if (m_track < m_data) {
+                m_direction = STEP_IN;
+                this->SetState(WD1770State_Step);
+                m_next_state = WD1770State_Seek2;
+            } else if (m_track > m_data) {
+                m_direction = STEP_OUT;
+                this->SetState(WD1770State_Step);
+                m_next_state = WD1770State_Seek2;
+            } else {
+                this->SetState(WD1770State_FinishTypeI);
+            }
         }
-    } break;
+        break;
 
     case WD1770State_StepIn:
         m_direction = STEP_IN;
@@ -749,348 +760,394 @@ WD1770::Pins WD1770::Update() {
         m_next_state = WD1770State_FinishStep;
         break;
 
-    case WD1770State_FinishStep: {
-        if (m_command.bits_step.u) {
-            ASSERT(m_direction == STEP_IN || m_direction == STEP_OUT);
-            if (m_direction == STEP_IN) {
-                if (m_track < 255) {
-                    ++m_track;
-                }
-            } else {
-                if (m_track > 0) {
-                    --m_track;
+    case WD1770State_FinishStep:
+        {
+            if (m_command.bits_step.u) {
+                ASSERT(m_direction == STEP_IN || m_direction == STEP_OUT);
+                if (m_direction == STEP_IN) {
+                    if (m_track < 255) {
+                        ++m_track;
+                    }
+                } else {
+                    if (m_track > 0) {
+                        --m_track;
+                    }
                 }
             }
+
+            this->SetState(WD1770State_FinishTypeI);
         }
+        break;
 
-        this->SetState(WD1770State_FinishTypeI);
-    } break;
+    case WD1770State_Step:
+        {
+            ASSERT(m_next_state != WD1770State_BeginIdle);
 
-    case WD1770State_Step: {
-        ASSERT(m_next_state != WD1770State_BeginIdle);
+            ASSERT(m_direction == STEP_IN || m_direction == STEP_OUT);
+            if (m_direction == STEP_IN) {
+                m_handler->StepIn();
+            } else {
+                m_handler->StepOut();
+            }
 
-        ASSERT(m_direction == STEP_IN || m_direction == STEP_OUT);
-        if (m_direction == STEP_IN) {
-            m_handler->StepIn();
-        } else {
-            m_handler->StepOut();
+            int step_rate_us = this->GetStepRate(m_command.bits_i.r);
+            this->Wait(step_rate_us, m_next_state);
         }
+        break;
 
-        int step_rate_us = this->GetStepRate(m_command.bits_i.r);
-        this->Wait(step_rate_us, m_next_state);
-    } break;
+    case WD1770State_RecordNotFound:
+        {
+            m_status.bits.rnf = 1;
 
-    case WD1770State_RecordNotFound: {
-        m_status.bits.rnf = 1;
+            // indicate error was in the ID field.
+            m_status.bits.crc_error = 1;
 
-        // indicate error was in the ID field.
-        m_status.bits.crc_error = 1;
-
-        this->SetState(WD1770State_FinishCommand);
-    } break;
+            this->SetState(WD1770State_FinishCommand);
+        }
+        break;
 
     case WD1770State_WaitForSpinUp:
         // fall through
-    case WD1770State_Wait: {
-        ASSERT(m_wait_us >= 0);
-        ++m_state_time;
-        if (m_state_time >= m_wait_us) {
-            m_wait_us = -1;
-            this->SetState(m_next_state);
-            m_next_state = WD1770State_BeginIdle;
-
-            if (old_state == WD1770State_WaitForSpinUp) {
-                m_status.bits.deleted_or_spinup = 1;
-            }
-        }
-    } break;
-
-    case WD1770State_FinishTypeI: {
-        this->UpdateTrack0Status();
-
-        if (m_command.bits_i.v) {
-            this->Wait(SETTLE_uS_1770, WD1770State_FinishCommand);
-        } else {
-            m_state = WD1770State_FinishCommand;
-        }
-    } break;
-
-    case WD1770State_ForceInterrupt: {
-        this->ResetStatusRegister();
-
-        //m_status.bits.deleted_or_spinup=1;
-        this->UpdateTrack0Status();
-
-        this->SetINTRQ(m_command.bits_iv.immediate || m_command.bits_iv.index);
-        this->SetState(WD1770State_BeginIdle);
-    } break;
-
-    case WD1770State_FinishCommand: {
-        ASSERT(m_status.bits.busy);
-        m_status.bits.busy = 0;
-        this->SetINTRQ(1);
-
-        TRACE_STATE(this, "");
-
-        this->SetState(WD1770State_BeginIdle);
-    } break;
-
-    case WD1770State_ReadSector: {
-        this->DoTypeIIOrTypeIIIDelay(WD1770State_ReadSectorFindSector);
-    } break;
-
-    case WD1770State_ReadSectorFindSector: {
-        if (!this->DoTypeIIFindSector()) {
-            break;
-        }
-
-        // Watford DDFS reads by initiating a multi-sector read,
-        // counting sectors read, then doing this when it's got
-        // the data it wants:
-        //
-        // <pre>
-        // 0D43: ldy #$60                A=00 X=FF Y=60 S=DC P=nvdIzC (D=60)
-        // 0D45: dey                     A=00 X=FF Y=5F S=DC P=nvdIzC (D=D0)
-        // 0D46: bne $0D45               A=00 X=FF Y=5F S=DC P=nvdIzC (D=01)
-        // 0D48: lda #$D0                A=D0 X=FF Y=00 S=DC P=NvdIzC (D=D0)
-        // 0D4A: sta $FE84               A=D0 X=FF Y=00 S=DC P=NvdIzC (D=D0)
-        // </pre>
-        //
-        // The loop at D43 is $5f*(2+3)+(2+2)=$1df=479 cycles, or
-        // 240 usec.
-        //
-        // So delay a bit more than that between sectors.
-
-        this->Wait(300, WD1770State_ReadSectorReadByte);
-    } break;
-
-    case WD1770State_ReadSectorReadByte: {
-        //if(!m_drive) {
-        //    this->SetState(WD1770State_RecordNotFound);
-        //    break;
-        //}
-
-        if (!m_handler->GetByte(&m_data, m_sector, m_offset)) {
-            this->SetState(WD1770State_RecordNotFound);
-            break;
-        }
-
-#if WD1770_VERBOSE_READ_SECTOR
-        LOGF(1770nd, "T%02u S%02u +%03zu (0x%02zx): %d 0x%x", m_track, m_sector, m_offset, m_offset, m_data, m_data);
-        if (isprint(m_data)) {
-            LOGF(1770nd, " '%c'", (char)m_data);
-        } else {
-            LOGF(1770nd, "    ");
-        }
-
+    case WD1770State_Wait:
         {
-            LOGF(1770nd, "[");
-            int frac = (int)(m_offset / (double)m_sector_size * 50);
-            for (int i = 0; i < 50; ++i) {
-                LOGF(1770nd, "%c", i < frac ? '*' : '.');
+            ASSERT(m_wait_us >= 0);
+            ++m_state_time;
+            if (m_state_time >= m_wait_us) {
+                m_wait_us = -1;
+                this->SetState(m_next_state);
+                m_next_state = WD1770State_BeginIdle;
+
+                if (old_state == WD1770State_WaitForSpinUp) {
+                    m_status.bits.deleted_or_spinup = 1;
+                }
             }
-            LOGF(1770nd, "]");
         }
+        break;
 
-        LOGF(1770nd, "\n");
-#endif
+    case WD1770State_FinishTypeI:
+        {
+            this->UpdateTrack0Status();
 
-        if (m_pins.bits.drq == 1) {
+            if (m_command.bits_i.v) {
+                this->Wait(SETTLE_uS_1770, WD1770State_FinishCommand);
+            } else {
+                m_state = WD1770State_FinishCommand;
+            }
+        }
+        break;
+
+    case WD1770State_ForceInterrupt:
+        {
+            this->ResetStatusRegister();
+
+            //m_status.bits.deleted_or_spinup=1;
+            this->UpdateTrack0Status();
+
+            this->SetINTRQ(m_command.bits_iv.immediate || m_command.bits_iv.index);
+            this->SetState(WD1770State_BeginIdle);
+        }
+        break;
+
+    case WD1770State_FinishCommand:
+        {
+            ASSERT(m_status.bits.busy);
+            m_status.bits.busy = 0;
+            this->SetINTRQ(1);
+
+            TRACE_STATE(this, "");
+
+            this->SetState(WD1770State_BeginIdle);
+        }
+        break;
+
+    case WD1770State_ReadSector:
+        {
+            this->DoTypeIIOrTypeIIIDelay(WD1770State_ReadSectorFindSector);
+        }
+        break;
+
+    case WD1770State_ReadSectorFindSector:
+        {
+            if (!this->DoTypeIIFindSector()) {
+                break;
+            }
+
+            // Watford DDFS reads by initiating a multi-sector read,
+            // counting sectors read, then doing this when it's got
+            // the data it wants:
+            //
+            // <pre>
+            // 0D43: ldy #$60                A=00 X=FF Y=60 S=DC P=nvdIzC (D=60)
+            // 0D45: dey                     A=00 X=FF Y=5F S=DC P=nvdIzC (D=D0)
+            // 0D46: bne $0D45               A=00 X=FF Y=5F S=DC P=nvdIzC (D=01)
+            // 0D48: lda #$D0                A=D0 X=FF Y=00 S=DC P=NvdIzC (D=D0)
+            // 0D4A: sta $FE84               A=D0 X=FF Y=00 S=DC P=NvdIzC (D=D0)
+            // </pre>
+            //
+            // The loop at D43 is $5f*(2+3)+(2+2)=$1df=479 cycles, or
+            // 240 usec.
+            //
+            // So delay a bit more than that between sectors.
+
+            this->Wait(300, WD1770State_ReadSectorReadByte);
+        }
+        break;
+
+    case WD1770State_ReadSectorReadByte:
+        {
+            //if(!m_drive) {
+            //    this->SetState(WD1770State_RecordNotFound);
+            //    break;
+            //}
+
+            if (!m_handler->GetByte(&m_data, m_sector, m_offset)) {
+                this->SetState(WD1770State_RecordNotFound);
+                break;
+            }
+
 #if WD1770_VERBOSE_READ_SECTOR
-            LOGF(1770nd, "(DRQ still set; data was lost.)\n");
+            LOGF(1770nd, "T%02u S%02u +%03zu (0x%02zx): %d 0x%x", m_track, m_sector, m_offset, m_offset, m_data, m_data);
+            if (isprint(m_data)) {
+                LOGF(1770nd, " '%c'", (char)m_data);
+            } else {
+                LOGF(1770nd, "    ");
+            }
+
+            {
+                LOGF(1770nd, "[");
+                int frac = (int)(m_offset / (double)m_sector_size * 50);
+                for (int i = 0; i < 50; ++i) {
+                    LOGF(1770nd, "%c", i < frac ? '*' : '.');
+                }
+                LOGF(1770nd, "]");
+            }
+
+            LOGF(1770nd, "\n");
 #endif
-            m_status.bits.lost_or_track0 = 1;
-        }
+
+            if (m_pins.bits.drq == 1) {
+#if WD1770_VERBOSE_READ_SECTOR
+                LOGF(1770nd, "(DRQ still set; data was lost.)\n");
+#endif
+                m_status.bits.lost_or_track0 = 1;
+            }
 
 #if WD1770_SAVE_SECTOR_DATA
-        ASSERT(m_offset < sizeof m_sector_data);
-        m_sector_data[m_offset] = m_data;
+            ASSERT(m_offset < sizeof m_sector_data);
+            m_sector_data[m_offset] = m_data;
 #endif
 
-        this->SetDRQ(1);
+            this->SetDRQ(1);
 
-        this->Wait(uS_PER_BYTE, WD1770State_ReadSectorNextByte);
-    } break;
-
-    case WD1770State_ReadSectorNextByte: {
-        this->DoTypeIINextByte(WD1770State_ReadSectorReadByte, WD1770State_ReadSectorFindSector);
-    } break;
-
-    case WD1770State_WriteSector: {
-        this->DoTypeIIOrTypeIIIDelay(WD1770State_WriteSectorFindSector);
-    } break;
-
-    case WD1770State_WriteSectorFindSector: {
-        if (m_handler->IsWriteProtected()) {
-            m_state = WD1770State_WriteProtectError;
-            break;
+            this->Wait(uS_PER_BYTE, WD1770State_ReadSectorNextByte);
         }
+        break;
 
-        if (!this->DoTypeIIFindSector()) {
-            break;
+    case WD1770State_ReadSectorNextByte:
+        {
+            this->DoTypeIINextByte(WD1770State_ReadSectorReadByte, WD1770State_ReadSectorFindSector);
         }
+        break;
 
-        this->Wait(300, WD1770State_WriteSectorSetFirstDRQ);
-    } break;
-
-    case WD1770State_WriteSectorSetFirstDRQ: {
-        this->SetDRQ(1);
-        this->Wait(9 * uS_PER_BYTE, WD1770State_WriteSectorReceiveFirstDataByte);
-    } break;
-
-    case WD1770State_WriteSectorReceiveFirstDataByte: {
-        if (m_pins.bits.drq == 1) {
-            // Cancel command due to underrun.
-            m_status.bits.lost_or_track0 = 1;
-            this->SetState(WD1770State_FinishCommand);
-            goto done;
+    case WD1770State_WriteSector:
+        {
+            this->DoTypeIIOrTypeIIIDelay(WD1770State_WriteSectorFindSector);
         }
+        break;
 
-        // Need to handle double density properly here.
-        this->Wait(1 * uS_PER_BYTE, WD1770State_WriteSectorWriteByte);
-    } break;
+    case WD1770State_WriteSectorFindSector:
+        {
+            if (m_handler->IsWriteProtected()) {
+                m_state = WD1770State_WriteProtectError;
+                break;
+            }
 
-    case WD1770State_WriteSectorWriteByte: {
-        uint8_t value;
-        if (m_pins.bits.drq == 1) {
-            // Write zero byte and set data lost. (This will never
-            // happen for the first byte, since this case is
-            // checked for in WriteSectorReceiveFirstDataByte.)
-            value = 0;
-            m_status.bits.lost_or_track0 = 1;
-        } else {
-            value = m_data;
+            if (!this->DoTypeIIFindSector()) {
+                break;
+            }
+
+            this->Wait(300, WD1770State_WriteSectorSetFirstDRQ);
         }
+        break;
+
+    case WD1770State_WriteSectorSetFirstDRQ:
+        {
+            this->SetDRQ(1);
+            this->Wait(9 * uS_PER_BYTE, WD1770State_WriteSectorReceiveFirstDataByte);
+        }
+        break;
+
+    case WD1770State_WriteSectorReceiveFirstDataByte:
+        {
+            if (m_pins.bits.drq == 1) {
+                // Cancel command due to underrun.
+                m_status.bits.lost_or_track0 = 1;
+                this->SetState(WD1770State_FinishCommand);
+                goto done;
+            }
+
+            // Need to handle double density properly here.
+            this->Wait(1 * uS_PER_BYTE, WD1770State_WriteSectorWriteByte);
+        }
+        break;
+
+    case WD1770State_WriteSectorWriteByte:
+        {
+            uint8_t value;
+            if (m_pins.bits.drq == 1) {
+                // Write zero byte and set data lost. (This will never
+                // happen for the first byte, since this case is
+                // checked for in WriteSectorReceiveFirstDataByte.)
+                value = 0;
+                m_status.bits.lost_or_track0 = 1;
+            } else {
+                value = m_data;
+            }
 
 #if WD1770_VERBOSE_WRITE_SECTOR
-        LOGF(1770nd, "T%02u S%02u +%03zu (0x%02zx): %d 0x%x", m_track, m_sector, m_offset, m_offset, value, value);
-        if (isprint(value)) {
-            LOGF(1770nd, " '%c'", (char)value);
-        }
-        LOGF(1770nd, "\n");
+            LOGF(1770nd, "T%02u S%02u +%03zu (0x%02zx): %d 0x%x", m_track, m_sector, m_offset, m_offset, value, value);
+            if (isprint(value)) {
+                LOGF(1770nd, " '%c'", (char)value);
+            }
+            LOGF(1770nd, "\n");
 
-        if (m_status.bits.lost_or_track0) {
-            LOGF(1770nd, "(DRQ still set; data was lost.)\n");
-        }
+            if (m_status.bits.lost_or_track0) {
+                LOGF(1770nd, "(DRQ still set; data was lost.)\n");
+            }
 #endif
 
 #if WD1770_SAVE_SECTOR_DATA
-        ASSERT(m_offset < sizeof m_sector_data);
-        m_sector_data[m_offset] = value;
+            ASSERT(m_offset < sizeof m_sector_data);
+            m_sector_data[m_offset] = value;
 #endif
 
-        if (!m_handler->SetByte(m_sector, m_offset, value)) {
-            value = 0;
-            m_status.bits.lost_or_track0 = 1;
+            if (!m_handler->SetByte(m_sector, m_offset, value)) {
+                value = 0;
+                m_status.bits.lost_or_track0 = 1;
 
 #if WD1770_VERBOSE_WRITE_SECTOR
-            LOGF(1770nd, "(DiscDrive_SetByte failed.)\n");
+                LOGF(1770nd, "(DiscDrive_SetByte failed.)\n");
 #endif
+            }
+
+            this->DoTypeIINextByte(WD1770State_WriteSectorNextByte, WD1770State_WriteSectorFindSector);
         }
+        break;
 
-        this->DoTypeIINextByte(WD1770State_WriteSectorNextByte, WD1770State_WriteSectorFindSector);
-    } break;
+    case WD1770State_WriteSectorNextByte:
+        {
+            this->SetDRQ(1);
 
-    case WD1770State_WriteSectorNextByte: {
-        this->SetDRQ(1);
-
-        this->Wait(uS_PER_BYTE, WD1770State_WriteSectorWriteByte);
-    } break;
-
-    case WD1770State_ReadAddress: {
-        this->DoTypeIIOrTypeIIIDelay(WD1770State_ReadAddressFindSector);
-    } break;
-
-    case WD1770State_ReadAddressFindSector: {
-        // This just picks up whichever sector comes round next - here,
-        // assumed to be always sector 0.
-
-        uint8_t track;
-        uint8_t side;
-        size_t size;
-        if (!m_handler->GetSectorDetails(&track, &side, &size, 0, m_dden)) {
-            this->SetState(WD1770State_RecordNotFound);
-            break;
+            this->Wait(uS_PER_BYTE, WD1770State_WriteSectorWriteByte);
         }
+        break;
 
-        switch (size) {
-        default:
-            // ???
-            m_state = WD1770State_RecordNotFound;
-            goto done;
-
-        case 128:
-            m_address[3] = 0x00;
-            break;
-
-        case 256:
-            m_address[3] = 0x01;
-            break;
-
-        case 512:
-            m_address[3] = 0x02;
-            break;
-
-        case 1024:
-            m_address[3] = 0x03;
-            break;
+    case WD1770State_ReadAddress:
+        {
+            this->DoTypeIIOrTypeIIIDelay(WD1770State_ReadAddressFindSector);
         }
+        break;
 
-        m_address[0] = track;
-        m_address[1] = side;
-        m_address[2] = 0;
-        // 3 set above
-        m_address[4] = 0; //bogus CRC
-        m_address[5] = 0; //bogus CRC
+    case WD1770State_ReadAddressFindSector:
+        {
+            // This just picks up whichever sector comes round next - here,
+            // assumed to be always sector 0.
 
-        m_sector = m_address[0];
+            uint8_t track;
+            uint8_t side;
+            size_t size;
+            if (!m_handler->GetSectorDetails(&track, &side, &size, 0, m_dden)) {
+                this->SetState(WD1770State_RecordNotFound);
+                break;
+            }
 
-        m_offset = 0;
+            switch (size) {
+            default:
+                // ???
+                m_state = WD1770State_RecordNotFound;
+                goto done;
 
-        m_status.bits.deleted_or_spinup = 0;
+            case 128:
+                m_address[3] = 0x00;
+                break;
 
-        TRACE("1770 - Read Address: Track=%u, Side=%u, Sector=%u, Size=%u (%zu bytes), CRC1=%u, CRC2=%u\n",
-              m_address[0], m_address[1], m_address[2], m_address[3], size, m_address[4], m_address[5]);
+            case 256:
+                m_address[3] = 0x01;
+                break;
 
-        m_state = WD1770State_ReadAddressNextByte;
-    } break;
+            case 512:
+                m_address[3] = 0x02;
+                break;
 
-    case WD1770State_ReadAddressNextByte: {
-        if (m_pins.bits.drq == 1) {
-            m_status.bits.lost_or_track0 = 1;
+            case 1024:
+                m_address[3] = 0x03;
+                break;
+            }
+
+            m_address[0] = track;
+            m_address[1] = side;
+            m_address[2] = 0;
+            // 3 set above
+            m_address[4] = 0; //bogus CRC
+            m_address[5] = 0; //bogus CRC
+
+            m_sector = m_address[0];
+
+            m_offset = 0;
+
+            m_status.bits.deleted_or_spinup = 0;
+
+            TRACE("1770 - Read Address: Track=%u, Side=%u, Sector=%u, Size=%u (%zu bytes), CRC1=%u, CRC2=%u\n",
+                  m_address[0], m_address[1], m_address[2], m_address[3], size, m_address[4], m_address[5]);
+
+            m_state = WD1770State_ReadAddressNextByte;
         }
+        break;
 
-        if (m_offset == sizeof m_address) {
-            m_state = WD1770State_FinishCommand;
-            goto done;
+    case WD1770State_ReadAddressNextByte:
+        {
+            if (m_pins.bits.drq == 1) {
+                m_status.bits.lost_or_track0 = 1;
+            }
+
+            if (m_offset == sizeof m_address) {
+                m_state = WD1770State_FinishCommand;
+                goto done;
+            }
+
+            m_data = m_address[m_offset];
+
+            this->SetDRQ(1);
+
+            ++m_offset;
+
+            this->Wait(uS_PER_BYTE, WD1770State_ReadAddressNextByte);
         }
-
-        m_data = m_address[m_offset];
-
-        this->SetDRQ(1);
-
-        ++m_offset;
-
-        this->Wait(uS_PER_BYTE, WD1770State_ReadAddressNextByte);
-    } break;
+        break;
 
     case WD1770State_ReadTrack:
-    case WD1770State_WriteTrack: {
-        this->DoTypeIIOrTypeIIIDelay(WD1770State_UnsupportedCommand);
-    } break;
+    case WD1770State_WriteTrack:
+        {
+            this->DoTypeIIOrTypeIIIDelay(WD1770State_UnsupportedCommand);
+        }
+        break;
 
-    case WD1770State_UnsupportedCommand: {
-        m_status.bits.crc_error = 1;
-        m_status.bits.rnf = 1;
+    case WD1770State_UnsupportedCommand:
+        {
+            m_status.bits.crc_error = 1;
+            m_status.bits.rnf = 1;
 
-        m_state = WD1770State_FinishCommand;
-    } break;
+            m_state = WD1770State_FinishCommand;
+        }
+        break;
 
-    case WD1770State_WriteProtectError: {
-        m_status.bits.write_protect = 1;
+    case WD1770State_WriteProtectError:
+        {
+            m_status.bits.write_protect = 1;
 
-        m_state = WD1770State_FinishCommand;
-    } break;
+            m_state = WD1770State_FinishCommand;
+        }
+        break;
     }
 done:;
 

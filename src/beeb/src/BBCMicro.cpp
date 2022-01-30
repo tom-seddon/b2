@@ -1038,31 +1038,35 @@ void BBCMicro::HandleCPUDataBusWithHacks(BBCMicro *m) {
             case BBCMicroStepType_None:
                 break;
 
-            case BBCMicroStepType_StepIn: {
-                if (m->m_state.cpu.read == M6502ReadType_Opcode) {
-                    // Done.
-                    m->DebugHalt("single step");
-                } else {
-                    ASSERT(m->m_state.cpu.read == M6502ReadType_Interrupt);
-                    // The instruction was interrupted, so set a temp
-                    // breakpoint in the right place.
-                    uint8_t flags = m->DebugGetAddressDebugFlags(m->m_state.cpu.pc);
+            case BBCMicroStepType_StepIn:
+                {
+                    if (m->m_state.cpu.read == M6502ReadType_Opcode) {
+                        // Done.
+                        m->DebugHalt("single step");
+                    } else {
+                        ASSERT(m->m_state.cpu.read == M6502ReadType_Interrupt);
+                        // The instruction was interrupted, so set a temp
+                        // breakpoint in the right place.
+                        uint8_t flags = m->DebugGetAddressDebugFlags(m->m_state.cpu.pc);
 
-                    flags |= BBCMicroByteDebugFlag_TempBreakExecute;
+                        flags |= BBCMicroByteDebugFlag_TempBreakExecute;
 
-                    m->DebugSetAddressDebugFlags(m->m_state.cpu.pc, flags);
-                }
+                        m->DebugSetAddressDebugFlags(m->m_state.cpu.pc, flags);
+                    }
 
-                m->SetDebugStepType(BBCMicroStepType_None);
-            } break;
-
-            case BBCMicroStepType_StepIntoIRQHandler: {
-                ASSERT(m->m_state.cpu.read == M6502ReadType_Opcode || m->m_state.cpu.read == M6502ReadType_Interrupt);
-                if (m->m_state.cpu.read == M6502ReadType_Opcode) {
                     m->SetDebugStepType(BBCMicroStepType_None);
-                    m->DebugHalt("IRQ/NMI");
                 }
-            } break;
+                break;
+
+            case BBCMicroStepType_StepIntoIRQHandler:
+                {
+                    ASSERT(m->m_state.cpu.read == M6502ReadType_Opcode || m->m_state.cpu.read == M6502ReadType_Interrupt);
+                    if (m->m_state.cpu.read == M6502ReadType_Opcode) {
+                        m->SetDebugStepType(BBCMicroStepType_None);
+                        m->DebugHalt("IRQ/NMI");
+                    }
+                }
+                break;
             }
         }
     }

@@ -52,46 +52,52 @@ class TimelineUI : public SettingsUI {
         default:
             ASSERT(false);
             // fall through
-        case BeebThreadTimelineMode_None: {
-            ASSERT(timeline_state.end_2MHz_cycles >= timeline_state.begin_2MHz_cycles);
-            uint64_t duration = timeline_state.end_2MHz_cycles - timeline_state.begin_2MHz_cycles;
+        case BeebThreadTimelineMode_None:
+            {
+                ASSERT(timeline_state.end_2MHz_cycles >= timeline_state.begin_2MHz_cycles);
+                uint64_t duration = timeline_state.end_2MHz_cycles - timeline_state.begin_2MHz_cycles;
 
-            // Record
-            if (timeline_state.can_record) {
-                if (ImGuiConfirmButton("Record", timeline_duration > 0)) {
-                    beeb_thread->Send(std::make_shared<BeebThread::StartRecordingMessage>());
+                // Record
+                if (timeline_state.can_record) {
+                    if (ImGuiConfirmButton("Record", timeline_duration > 0)) {
+                        beeb_thread->Send(std::make_shared<BeebThread::StartRecordingMessage>());
+                    }
+                }
+
+                if (duration > 0) {
+                    // Clear
+                    ImGui::SameLine();
+                    if (ImGuiConfirmButton("Delete")) {
+                        beeb_thread->Send(std::make_shared<BeebThread::ClearRecordingMessage>());
+                    }
+                }
+
+                if (!timeline_state.can_record) {
+                    ImGui::Text("Recording disabled due to: %s", GetCloneImpedimentsDescription(timeline_state.clone_impediments).c_str());
                 }
             }
+            break;
 
-            if (duration > 0) {
-                // Clear
+        case BeebThreadTimelineMode_Replay:
+            {
+                // Stop
+                if (ImGui::Button("Stop")) {
+                }
+
+                // Pause
                 ImGui::SameLine();
-                if (ImGuiConfirmButton("Delete")) {
-                    beeb_thread->Send(std::make_shared<BeebThread::ClearRecordingMessage>());
+                ImGui::Button("Pause");
+            }
+            break;
+
+        case BeebThreadTimelineMode_Record:
+            {
+                // Stop
+                if (ImGui::Button("Stop")) {
+                    beeb_thread->Send(std::make_shared<BeebThread::StopRecordingMessage>());
                 }
             }
-
-            if (!timeline_state.can_record) {
-                ImGui::Text("Recording disabled due to: %s", GetCloneImpedimentsDescription(timeline_state.clone_impediments).c_str());
-            }
-        } break;
-
-        case BeebThreadTimelineMode_Replay: {
-            // Stop
-            if (ImGui::Button("Stop")) {
-            }
-
-            // Pause
-            ImGui::SameLine();
-            ImGui::Button("Pause");
-        } break;
-
-        case BeebThreadTimelineMode_Record: {
-            // Stop
-            if (ImGui::Button("Stop")) {
-                beeb_thread->Send(std::make_shared<BeebThread::StopRecordingMessage>());
-            }
-        } break;
+            break;
         }
 
         switch (timeline_state.mode) {
@@ -100,15 +106,17 @@ class TimelineUI : public SettingsUI {
             // fall through
         case BeebThreadTimelineMode_None:
             // fall through
-        case BeebThreadTimelineMode_Record: {
-            if (timeline_duration == 0) {
-                ImGui::Text("No recording.");
-            } else {
-                ImGui::Text("Recorded: %zu events, %s",
-                            timeline_state.num_events,
-                            Get2MHzCyclesString(timeline_duration).c_str());
+        case BeebThreadTimelineMode_Record:
+            {
+                if (timeline_duration == 0) {
+                    ImGui::Text("No recording.");
+                } else {
+                    ImGui::Text("Recorded: %zu events, %s",
+                                timeline_state.num_events,
+                                Get2MHzCyclesString(timeline_duration).c_str());
+                }
             }
-        } break;
+            break;
 
         case BeebThreadTimelineMode_Replay:
             break;

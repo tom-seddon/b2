@@ -54,19 +54,23 @@ int main(int argc, char *argv[]) {
             goto done;
 
         case SDL_KEYUP:
-        case SDL_KEYDOWN: {
-            LOGF(OUTPUT, "%s: state=%s repeat=%u scancode=%s (%u; 0x%X) keycode=%s (%u; 0x%X) mod=0x%X\n",
-                 ev.type == SDL_KEYUP ? "SDL_KEYUP" : "SDL_KEYDOWN",
-                 ev.key.state == SDL_PRESSED ? "SDL_PRESSED" : "SDL_RELEASED",
-                 ev.key.repeat,
-                 SDL_GetScancodeName(ev.key.keysym.scancode), ev.key.keysym.scancode, ev.key.keysym.scancode,
-                 SDL_GetKeyName(ev.key.keysym.sym), ev.key.keysym.sym, ev.key.keysym.sym,
-                 ev.key.keysym.mod);
-        } break;
+        case SDL_KEYDOWN:
+            {
+                LOGF(OUTPUT, "%s: state=%s repeat=%u scancode=%s (%u; 0x%X) keycode=%s (%u; 0x%X) mod=0x%X\n",
+                     ev.type == SDL_KEYUP ? "SDL_KEYUP" : "SDL_KEYDOWN",
+                     ev.key.state == SDL_PRESSED ? "SDL_PRESSED" : "SDL_RELEASED",
+                     ev.key.repeat,
+                     SDL_GetScancodeName(ev.key.keysym.scancode), ev.key.keysym.scancode, ev.key.keysym.scancode,
+                     SDL_GetKeyName(ev.key.keysym.sym), ev.key.keysym.sym, ev.key.keysym.sym,
+                     ev.key.keysym.mod);
+            }
+            break;
 
-        case SDL_TEXTINPUT: {
-            LOGF(OUTPUT, "SDL_TEXTINPUT: \"%s\"\n", ev.text.text);
-        } break;
+        case SDL_TEXTINPUT:
+            {
+                LOGF(OUTPUT, "SDL_TEXTINPUT: \"%s\"\n", ev.text.text);
+            }
+            break;
         }
     }
 done:

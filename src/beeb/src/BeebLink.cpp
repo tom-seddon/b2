@@ -158,12 +158,14 @@ void BeebLink::Update(R6522 *via) {
         }
         break;
 
-    case BeebLinkState_ReceivePayloadFromBeeb_WaitForBeebReady: {
-        ASSERT(m_index < m_data.size());
-        this->WaitForBeebReadyReceive(via,
-                                      BeebLinkState_ReceivePayloadFromBeeb_AckAndCheck,
-                                      &m_data[m_index]);
-    } break;
+    case BeebLinkState_ReceivePayloadFromBeeb_WaitForBeebReady:
+        {
+            ASSERT(m_index < m_data.size());
+            this->WaitForBeebReadyReceive(via,
+                                          BeebLinkState_ReceivePayloadFromBeeb_AckAndCheck,
+                                          &m_data[m_index]);
+        }
+        break;
 
     case BeebLinkState_ReceivePayloadFromBeeb_AckAndCheck:
         ASSERT(m_index < m_data.size());
@@ -182,48 +184,53 @@ void BeebLink::Update(R6522 *via) {
         // Wait for it...
         break;
 
-    case BeebLinkState_SendPacketHeaderToBeeb_WaitForBeebReady: {
-        ASSERT(!m_data.empty());
-
+    case BeebLinkState_SendPacketHeaderToBeeb_WaitForBeebReady:
         {
-            LOGF(BEEBLINK, "To Beeb: ");
-            LOGI(BEEBLINK);
-            LogDumpBytes(&LOG(BEEBLINK), m_data.data(), m_data.size());
-        }
+            ASSERT(!m_data.empty());
 
-        m_state = BeebLinkState_SendPacketHeaderToBeeb_WaitForBeebReadyLoop;
-    }
+            {
+                LOGF(BEEBLINK, "To Beeb: ");
+                LOGI(BEEBLINK);
+                LogDumpBytes(&LOG(BEEBLINK), m_data.data(), m_data.size());
+            }
+
+            m_state = BeebLinkState_SendPacketHeaderToBeeb_WaitForBeebReadyLoop;
+        }
         // fall through
-    case BeebLinkState_SendPacketHeaderToBeeb_WaitForBeebReadyLoop: {
-        ASSERT(!m_data.empty());
+    case BeebLinkState_SendPacketHeaderToBeeb_WaitForBeebReadyLoop:
+        {
+            ASSERT(!m_data.empty());
 
-        uint8_t type = m_data[0];
-        if (m_data.size() != 2) {
-            type |= 0x80;
+            uint8_t type = m_data[0];
+            if (m_data.size() != 2) {
+                type |= 0x80;
+            }
+
+            this->WaitForBeebReadySend(via, BeebLinkState_SendPacketHeaderToBeeb_AckAndCheck, type);
         }
+        break;
 
-        this->WaitForBeebReadySend(via, BeebLinkState_SendPacketHeaderToBeeb_AckAndCheck, type);
-    } break;
+    case BeebLinkState_SendPacketHeaderToBeeb_AckAndCheck:
+        {
+            ASSERT(!m_data.empty());
 
-    case BeebLinkState_SendPacketHeaderToBeeb_AckAndCheck: {
-        ASSERT(!m_data.empty());
+            BeebLinkState ack_state;
+            if (m_data.size() == 2) {
+                m_index = 1;
+                ack_state = BeebLinkState_SendPayloadToBeeb_WaitForBeebReady;
+            } else {
+                ASSERT(m_data.size() - 1 <= UINT32_MAX);
+                uint32_t size = (uint32_t)(m_data.size() - 1);
+                m_size_bytes[0] = (uint8_t)size;
+                m_size_bytes[1] = (uint8_t)(size >> 8);
+                m_size_bytes[2] = (uint8_t)(size >> 16);
+                m_size_bytes[3] = (uint8_t)(size >> 24);
+                ack_state = BeebLinkState_SendSize0ToBeeb_WaitForBeebReady;
+            }
 
-        BeebLinkState ack_state;
-        if (m_data.size() == 2) {
-            m_index = 1;
-            ack_state = BeebLinkState_SendPayloadToBeeb_WaitForBeebReady;
-        } else {
-            ASSERT(m_data.size() - 1 <= UINT32_MAX);
-            uint32_t size = (uint32_t)(m_data.size() - 1);
-            m_size_bytes[0] = (uint8_t)size;
-            m_size_bytes[1] = (uint8_t)(size >> 8);
-            m_size_bytes[2] = (uint8_t)(size >> 16);
-            m_size_bytes[3] = (uint8_t)(size >> 24);
-            ack_state = BeebLinkState_SendSize0ToBeeb_WaitForBeebReady;
+            this->AckAndCheck(via, ack_state);
         }
-
-        this->AckAndCheck(via, ack_state);
-    } break;
+        break;
 
     case BeebLinkState_SendSize0ToBeeb_WaitForBeebReady:
         this->WaitForBeebReadySend(via,

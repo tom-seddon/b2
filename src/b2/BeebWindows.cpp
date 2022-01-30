@@ -213,18 +213,20 @@ void BeebWindows::HandleSDLWindowEvent(const SDL_WindowEvent &event) {
     }
 
     switch (event.event) {
-    case SDL_WINDOWEVENT_CLOSE: {
-        window->SaveSettings();
+    case SDL_WINDOWEVENT_CLOSE:
+        {
+            window->SaveSettings();
 
-        std::lock_guard<Mutex> lock(g_->windows_mutex);
+            std::lock_guard<Mutex> lock(g_->windows_mutex);
 
-        g_->windows.erase(std::remove(g_->windows.begin(), g_->windows.end(), window), g_->windows.end());
+            g_->windows.erase(std::remove(g_->windows.begin(), g_->windows.end(), window), g_->windows.end());
 
-        delete window;
-        window = nullptr;
+            delete window;
+            window = nullptr;
 
-        //Timeline::DidChange();
-    } break;
+            //Timeline::DidChange();
+        }
+        break;
 
     case SDL_WINDOWEVENT_SHOWN:
     case SDL_WINDOWEVENT_HIDDEN:

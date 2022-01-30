@@ -2740,53 +2740,57 @@ void BeebThread::ThreadMain(void) {
                 m_timeline_state.can_record = m_timeline_state.clone_impediments == 0;
                 break;
 
-            case BeebThreadTimelineMode_Record: {
-                m_timeline_state.can_record = false;
+            case BeebThreadTimelineMode_Record:
+                {
+                    m_timeline_state.can_record = false;
 
-                ASSERT(!ts.timeline_event_lists.empty());
-                ts.timeline_end_event.time_2MHz_cycles = *ts.num_executed_2MHz_cycles;
+                    ASSERT(!ts.timeline_event_lists.empty());
+                    ts.timeline_end_event.time_2MHz_cycles = *ts.num_executed_2MHz_cycles;
 
-                const TimelineEventList *list = &ts.timeline_event_lists.back();
+                    const TimelineEventList *list = &ts.timeline_event_lists.back();
 
-                ASSERT(*ts.num_executed_2MHz_cycles >= list->state_event.time_2MHz_cycles);
-                if (*ts.num_executed_2MHz_cycles - list->state_event.time_2MHz_cycles >= TIMELINE_SAVE_STATE_FREQUENCY_2MHz_CYCLES) {
-                    if (list->events.empty()) {
-                        // There have been no events since the last save
-                        // event. Don't bother saving a new one.
-                    } else {
-                        if (!this->ThreadRecordSaveState(&ts, true)) {
-                            // ugh, something went wrong :(
-                            this->ThreadStopRecording(&ts);
-                            ts.msgs.e.f("Internal error - failed to save state.\n");
+                    ASSERT(*ts.num_executed_2MHz_cycles >= list->state_event.time_2MHz_cycles);
+                    if (*ts.num_executed_2MHz_cycles - list->state_event.time_2MHz_cycles >= TIMELINE_SAVE_STATE_FREQUENCY_2MHz_CYCLES) {
+                        if (list->events.empty()) {
+                            // There have been no events since the last save
+                            // event. Don't bother saving a new one.
+                        } else {
+                            if (!this->ThreadRecordSaveState(&ts, true)) {
+                                // ugh, something went wrong :(
+                                this->ThreadStopRecording(&ts);
+                                ts.msgs.e.f("Internal error - failed to save state.\n");
+                            }
                         }
                     }
                 }
-            } break;
+                break;
 
-            case BeebThreadTimelineMode_Replay: {
-                m_timeline_state.can_record = false;
+            case BeebThreadTimelineMode_Replay:
+                {
+                    m_timeline_state.can_record = false;
 
-                const TimelineEvent *next_event = this->ThreadGetNextReplayEvent(&ts);
-                LOGF(REPLAY, "next_event: %" PRIu64 "; num executed: %" PRIu64 "\n", next_event->time_2MHz_cycles, *ts.num_executed_2MHz_cycles);
-                ASSERT(*ts.num_executed_2MHz_cycles <= next_event->time_2MHz_cycles);
-                if (*ts.num_executed_2MHz_cycles == next_event->time_2MHz_cycles) {
-                    if (!!next_event->message) {
-                        LOGF(REPLAY, "handle event: %" PRIu64 "\n", next_event->time_2MHz_cycles);
-                        next_event->message->ThreadHandle(this, &ts);
-                        this->ThreadNextReplayEvent(&ts);
-                        next_event = this->ThreadGetNextReplayEvent(&ts);
-                        LOGF(REPLAY, "new next_event: %" PRIu64 "\n", next_event->time_2MHz_cycles);
-                    } else {
-                        // end of timeline
-                        this->ThreadStopReplay(&ts);
+                    const TimelineEvent *next_event = this->ThreadGetNextReplayEvent(&ts);
+                    LOGF(REPLAY, "next_event: %" PRIu64 "; num executed: %" PRIu64 "\n", next_event->time_2MHz_cycles, *ts.num_executed_2MHz_cycles);
+                    ASSERT(*ts.num_executed_2MHz_cycles <= next_event->time_2MHz_cycles);
+                    if (*ts.num_executed_2MHz_cycles == next_event->time_2MHz_cycles) {
+                        if (!!next_event->message) {
+                            LOGF(REPLAY, "handle event: %" PRIu64 "\n", next_event->time_2MHz_cycles);
+                            next_event->message->ThreadHandle(this, &ts);
+                            this->ThreadNextReplayEvent(&ts);
+                            next_event = this->ThreadGetNextReplayEvent(&ts);
+                            LOGF(REPLAY, "new next_event: %" PRIu64 "\n", next_event->time_2MHz_cycles);
+                        } else {
+                            // end of timeline
+                            this->ThreadStopReplay(&ts);
+                        }
+                    }
+
+                    if (next_event->time_2MHz_cycles < stop_2MHz_cycles) {
+                        stop_2MHz_cycles = next_event->time_2MHz_cycles;
+                        LOGF(REPLAY, "stop cycles: %" PRIu64 "\n", stop_2MHz_cycles);
                     }
                 }
-
-                if (next_event->time_2MHz_cycles < stop_2MHz_cycles) {
-                    stop_2MHz_cycles = next_event->time_2MHz_cycles;
-                    LOGF(REPLAY, "stop cycles: %" PRIu64 "\n", stop_2MHz_cycles);
-                }
-            } break;
+                break;
             }
 
             //m_timeline_state.num_events=ts.timeline_events.size();
@@ -2969,14 +2973,15 @@ void BeebThread::ThreadMain(void) {
             m_num_2MHz_cycles.store(*ts.num_executed_2MHz_cycles, std::memory_order_release);
         }
     }
-done : {
-    std::lock_guard<Mutex> lock(m_mutex);
+done:
+    {
+        std::lock_guard<Mutex> lock(m_mutex);
 
-    m_thread_state = nullptr;
+        m_thread_state = nullptr;
 
-    delete ts.beeb;
-    ts.beeb = nullptr;
-}
+        delete ts.beeb;
+        ts.beeb = nullptr;
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////

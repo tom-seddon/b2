@@ -591,10 +591,11 @@ void HTTPServerImpl::ThreadMain(int port) {
 
     rc = uv_run(&loop, UV_RUN_DEFAULT);
 
-done : {
-    std::lock_guard<Mutex> sd_lock(m_sd.mutex);
-    m_sd.loop = nullptr;
-}
+done:
+    {
+        std::lock_guard<Mutex> sd_lock(m_sd.mutex);
+        m_sd.loop = nullptr;
+    }
 
     if (loop.data) {
         uv_loop_close(&loop);

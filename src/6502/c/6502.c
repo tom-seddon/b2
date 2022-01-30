@@ -1799,23 +1799,25 @@ void M6502_DisassembleLastInstruction(M6502 *s, char *buf, size_t buf_size, int 
         DisassembleByte(buf, buf_size, di, "#", s->data, "");
         break;
 
-    case M6502AddrMode_REL: {
-        uint16_t tmp;
+    case M6502AddrMode_REL:
+        {
+            uint16_t tmp;
 
-        /* T1_Branch could update s->ad when the branch isn't
+            /* T1_Branch could update s->ad when the branch isn't
              * taken, but (somewhat surprisingly...) in my quick test
              * the cost of this seemed to be actually measurable. */
 
-        if (!s->data) {
-            /* pc-1, because the CPU is after phase 1 of T0, so
+            if (!s->data) {
+                /* pc-1, because the CPU is after phase 1 of T0, so
                  * it's already done pc++. */
-            tmp = (uint16_t)(s->pc.w - 1u + (uint16_t)(int16_t)(int8_t)s->ad.b.l);
-        } else {
-            tmp = s->ad.w;
-        }
+                tmp = (uint16_t)(s->pc.w - 1u + (uint16_t)(int16_t)(int8_t)s->ad.b.l);
+            } else {
+                tmp = s->ad.w;
+            }
 
-        DisassembleWord(buf, buf_size, di, "", tmp, "");
-    } break;
+            DisassembleWord(buf, buf_size, di, "", tmp, "");
+        }
+        break;
 
     case M6502AddrMode_ZPG:
         DisassembleByte(buf, buf_size, di, "", s->ad.b.l, "");

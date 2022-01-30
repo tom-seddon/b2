@@ -495,18 +495,20 @@ class TraceSaver {
         case M6502AddrMode_IMP:
             break;
 
-        case M6502AddrMode_REL: {
-            uint16_t tmp;
+        case M6502AddrMode_REL:
+            {
+                uint16_t tmp;
 
-            if (!ev->data) {
-                tmp = (uint16_t)(ev->pc + 2 + (uint16_t)(int16_t)(int8_t)ev->ad);
-            } else {
-                tmp = ev->ad;
+                if (!ev->data) {
+                    tmp = (uint16_t)(ev->pc + 2 + (uint16_t)(int16_t)(int8_t)ev->ad);
+                } else {
+                    tmp = ev->ad;
+                }
+
+                c = AddWord(c, "$", tmp, "");
+                //c+=sprintf(c,"$%04X",tmp);
             }
-
-            c = AddWord(c, "$", tmp, "");
-            //c+=sprintf(c,"$%04X",tmp);
-        } break;
+            break;
 
         case M6502AddrMode_IMM:
             c = AddByte(c, "#$", ev->data, "");
@@ -570,10 +572,12 @@ class TraceSaver {
             *c++ = 'A';
             break;
 
-        case M6502AddrMode_INZ: {
-            c = AddByte(c, "($", (uint8_t)ev->ia, ")");
-            c = AddAddress(c, " [", ev->pc, ev->ad, "]");
-        } break;
+        case M6502AddrMode_INZ:
+            {
+                c = AddByte(c, "($", (uint8_t)ev->ia, ")");
+                c = AddAddress(c, " [", ev->pc, ev->ad, "]");
+            }
+            break;
 
         case M6502AddrMode_INDX:
             c = AddWord(c, "($", ev->ia, ",X)");

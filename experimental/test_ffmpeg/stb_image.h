@@ -4974,186 +4974,191 @@ static int stbi__parse_png_file(stbi__png *z, int scan, int req_comp) {
             is_iphone = 1;
             stbi__skip(s, c.length);
             break;
-        case STBI__PNG_TYPE('I', 'H', 'D', 'R'): {
-            int comp, filter;
-            if (!first)
-                return stbi__err("multiple IHDR", "Corrupt PNG");
-            first = 0;
-            if (c.length != 13)
-                return stbi__err("bad IHDR len", "Corrupt PNG");
-            s->img_x = stbi__get32be(s);
-            if (s->img_x > (1 << 24))
-                return stbi__err("too large", "Very large image (corrupt?)");
-            s->img_y = stbi__get32be(s);
-            if (s->img_y > (1 << 24))
-                return stbi__err("too large", "Very large image (corrupt?)");
-            z->depth = stbi__get8(s);
-            if (z->depth != 1 && z->depth != 2 && z->depth != 4 && z->depth != 8 && z->depth != 16)
-                return stbi__err("1/2/4/8/16-bit only", "PNG not supported: 1/2/4/8/16-bit only");
-            color = stbi__get8(s);
-            if (color > 6)
-                return stbi__err("bad ctype", "Corrupt PNG");
-            if (color == 3 && z->depth == 16)
-                return stbi__err("bad ctype", "Corrupt PNG");
-            if (color == 3)
-                pal_img_n = 3;
-            else if (color & 1)
-                return stbi__err("bad ctype", "Corrupt PNG");
-            comp = stbi__get8(s);
-            if (comp)
-                return stbi__err("bad comp method", "Corrupt PNG");
-            filter = stbi__get8(s);
-            if (filter)
-                return stbi__err("bad filter method", "Corrupt PNG");
-            interlace = stbi__get8(s);
-            if (interlace > 1)
-                return stbi__err("bad interlace method", "Corrupt PNG");
-            if (!s->img_x || !s->img_y)
-                return stbi__err("0-pixel image", "Corrupt PNG");
-            if (!pal_img_n) {
-                s->img_n = (color & 2 ? 3 : 1) + (color & 4 ? 1 : 0);
-                if ((1 << 30) / s->img_x / s->img_n < s->img_y)
-                    return stbi__err("too large", "Image too large to decode");
-                if (scan == STBI__SCAN_header)
-                    return 1;
-            } else {
-                // if paletted, then pal_n is our final components, and
-                // img_n is # components to decompress/filter.
-                s->img_n = 1;
-                if ((1 << 30) / s->img_x / 4 < s->img_y)
-                    return stbi__err("too large", "Corrupt PNG");
-                // if SCAN_header, have to scan to see if we have a tRNS
+        case STBI__PNG_TYPE('I', 'H', 'D', 'R'):
+            {
+                int comp, filter;
+                if (!first)
+                    return stbi__err("multiple IHDR", "Corrupt PNG");
+                first = 0;
+                if (c.length != 13)
+                    return stbi__err("bad IHDR len", "Corrupt PNG");
+                s->img_x = stbi__get32be(s);
+                if (s->img_x > (1 << 24))
+                    return stbi__err("too large", "Very large image (corrupt?)");
+                s->img_y = stbi__get32be(s);
+                if (s->img_y > (1 << 24))
+                    return stbi__err("too large", "Very large image (corrupt?)");
+                z->depth = stbi__get8(s);
+                if (z->depth != 1 && z->depth != 2 && z->depth != 4 && z->depth != 8 && z->depth != 16)
+                    return stbi__err("1/2/4/8/16-bit only", "PNG not supported: 1/2/4/8/16-bit only");
+                color = stbi__get8(s);
+                if (color > 6)
+                    return stbi__err("bad ctype", "Corrupt PNG");
+                if (color == 3 && z->depth == 16)
+                    return stbi__err("bad ctype", "Corrupt PNG");
+                if (color == 3)
+                    pal_img_n = 3;
+                else if (color & 1)
+                    return stbi__err("bad ctype", "Corrupt PNG");
+                comp = stbi__get8(s);
+                if (comp)
+                    return stbi__err("bad comp method", "Corrupt PNG");
+                filter = stbi__get8(s);
+                if (filter)
+                    return stbi__err("bad filter method", "Corrupt PNG");
+                interlace = stbi__get8(s);
+                if (interlace > 1)
+                    return stbi__err("bad interlace method", "Corrupt PNG");
+                if (!s->img_x || !s->img_y)
+                    return stbi__err("0-pixel image", "Corrupt PNG");
+                if (!pal_img_n) {
+                    s->img_n = (color & 2 ? 3 : 1) + (color & 4 ? 1 : 0);
+                    if ((1 << 30) / s->img_x / s->img_n < s->img_y)
+                        return stbi__err("too large", "Image too large to decode");
+                    if (scan == STBI__SCAN_header)
+                        return 1;
+                } else {
+                    // if paletted, then pal_n is our final components, and
+                    // img_n is # components to decompress/filter.
+                    s->img_n = 1;
+                    if ((1 << 30) / s->img_x / 4 < s->img_y)
+                        return stbi__err("too large", "Corrupt PNG");
+                    // if SCAN_header, have to scan to see if we have a tRNS
+                }
+                break;
             }
-            break;
-        }
 
-        case STBI__PNG_TYPE('P', 'L', 'T', 'E'): {
-            if (first)
-                return stbi__err("first not IHDR", "Corrupt PNG");
-            if (c.length > 256 * 3)
-                return stbi__err("invalid PLTE", "Corrupt PNG");
-            pal_len = c.length / 3;
-            if (pal_len * 3 != c.length)
-                return stbi__err("invalid PLTE", "Corrupt PNG");
-            for (i = 0; i < pal_len; ++i) {
-                palette[i * 4 + 0] = stbi__get8(s);
-                palette[i * 4 + 1] = stbi__get8(s);
-                palette[i * 4 + 2] = stbi__get8(s);
-                palette[i * 4 + 3] = 255;
+        case STBI__PNG_TYPE('P', 'L', 'T', 'E'):
+            {
+                if (first)
+                    return stbi__err("first not IHDR", "Corrupt PNG");
+                if (c.length > 256 * 3)
+                    return stbi__err("invalid PLTE", "Corrupt PNG");
+                pal_len = c.length / 3;
+                if (pal_len * 3 != c.length)
+                    return stbi__err("invalid PLTE", "Corrupt PNG");
+                for (i = 0; i < pal_len; ++i) {
+                    palette[i * 4 + 0] = stbi__get8(s);
+                    palette[i * 4 + 1] = stbi__get8(s);
+                    palette[i * 4 + 2] = stbi__get8(s);
+                    palette[i * 4 + 3] = 255;
+                }
+                break;
             }
-            break;
-        }
 
-        case STBI__PNG_TYPE('t', 'R', 'N', 'S'): {
-            if (first)
-                return stbi__err("first not IHDR", "Corrupt PNG");
-            if (z->idata)
-                return stbi__err("tRNS after IDAT", "Corrupt PNG");
-            if (pal_img_n) {
+        case STBI__PNG_TYPE('t', 'R', 'N', 'S'):
+            {
+                if (first)
+                    return stbi__err("first not IHDR", "Corrupt PNG");
+                if (z->idata)
+                    return stbi__err("tRNS after IDAT", "Corrupt PNG");
+                if (pal_img_n) {
+                    if (scan == STBI__SCAN_header) {
+                        s->img_n = 4;
+                        return 1;
+                    }
+                    if (pal_len == 0)
+                        return stbi__err("tRNS before PLTE", "Corrupt PNG");
+                    if (c.length > pal_len)
+                        return stbi__err("bad tRNS len", "Corrupt PNG");
+                    pal_img_n = 4;
+                    for (i = 0; i < c.length; ++i)
+                        palette[i * 4 + 3] = stbi__get8(s);
+                } else {
+                    if (!(s->img_n & 1))
+                        return stbi__err("tRNS with alpha", "Corrupt PNG");
+                    if (c.length != (stbi__uint32)s->img_n * 2)
+                        return stbi__err("bad tRNS len", "Corrupt PNG");
+                    has_trans = 1;
+                    if (z->depth == 16) {
+                        for (k = 0; k < s->img_n; ++k)
+                            tc16[k] = (stbi__uint16)stbi__get16be(s); // copy the values as-is
+                    } else {
+                        for (k = 0; k < s->img_n; ++k)
+                            tc[k] = (stbi_uc)(stbi__get16be(s) & 255) * stbi__depth_scale_table[z->depth]; // non 8-bit images will be larger
+                    }
+                }
+                break;
+            }
+
+        case STBI__PNG_TYPE('I', 'D', 'A', 'T'):
+            {
+                if (first)
+                    return stbi__err("first not IHDR", "Corrupt PNG");
+                if (pal_img_n && !pal_len)
+                    return stbi__err("no PLTE", "Corrupt PNG");
                 if (scan == STBI__SCAN_header) {
-                    s->img_n = 4;
+                    s->img_n = pal_img_n;
                     return 1;
                 }
-                if (pal_len == 0)
-                    return stbi__err("tRNS before PLTE", "Corrupt PNG");
-                if (c.length > pal_len)
-                    return stbi__err("bad tRNS len", "Corrupt PNG");
-                pal_img_n = 4;
-                for (i = 0; i < c.length; ++i)
-                    palette[i * 4 + 3] = stbi__get8(s);
-            } else {
-                if (!(s->img_n & 1))
-                    return stbi__err("tRNS with alpha", "Corrupt PNG");
-                if (c.length != (stbi__uint32)s->img_n * 2)
-                    return stbi__err("bad tRNS len", "Corrupt PNG");
-                has_trans = 1;
-                if (z->depth == 16) {
-                    for (k = 0; k < s->img_n; ++k)
-                        tc16[k] = (stbi__uint16)stbi__get16be(s); // copy the values as-is
-                } else {
-                    for (k = 0; k < s->img_n; ++k)
-                        tc[k] = (stbi_uc)(stbi__get16be(s) & 255) * stbi__depth_scale_table[z->depth]; // non 8-bit images will be larger
-                }
-            }
-            break;
-        }
-
-        case STBI__PNG_TYPE('I', 'D', 'A', 'T'): {
-            if (first)
-                return stbi__err("first not IHDR", "Corrupt PNG");
-            if (pal_img_n && !pal_len)
-                return stbi__err("no PLTE", "Corrupt PNG");
-            if (scan == STBI__SCAN_header) {
-                s->img_n = pal_img_n;
-                return 1;
-            }
-            if ((int)(ioff + c.length) < (int)ioff)
-                return 0;
-            if (ioff + c.length > idata_limit) {
-                stbi__uint32 idata_limit_old = idata_limit;
-                stbi_uc *p;
-                if (idata_limit == 0)
-                    idata_limit = c.length > 4096 ? c.length : 4096;
-                while (ioff + c.length > idata_limit)
-                    idata_limit *= 2;
-                STBI_NOTUSED(idata_limit_old);
-                p = (stbi_uc *)STBI_REALLOC_SIZED(z->idata, idata_limit_old, idata_limit);
-                if (p == NULL)
-                    return stbi__err("outofmem", "Out of memory");
-                z->idata = p;
-            }
-            if (!stbi__getn(s, z->idata + ioff, c.length))
-                return stbi__err("outofdata", "Corrupt PNG");
-            ioff += c.length;
-            break;
-        }
-
-        case STBI__PNG_TYPE('I', 'E', 'N', 'D'): {
-            stbi__uint32 raw_len, bpl;
-            if (first)
-                return stbi__err("first not IHDR", "Corrupt PNG");
-            if (scan != STBI__SCAN_load)
-                return 1;
-            if (z->idata == NULL)
-                return stbi__err("no IDAT", "Corrupt PNG");
-            // initial guess for decoded data size to avoid unnecessary reallocs
-            bpl = (s->img_x * z->depth + 7) / 8; // bytes per line, per component
-            raw_len = bpl * s->img_y * s->img_n /* pixels */ + s->img_y /* filter mode per row */;
-            z->expanded = (stbi_uc *)stbi_zlib_decode_malloc_guesssize_headerflag((char *)z->idata, ioff, raw_len, (int *)&raw_len, !is_iphone);
-            if (z->expanded == NULL)
-                return 0; // zlib should set error
-            STBI_FREE(z->idata);
-            z->idata = NULL;
-            if ((req_comp == s->img_n + 1 && req_comp != 3 && !pal_img_n) || has_trans)
-                s->img_out_n = s->img_n + 1;
-            else
-                s->img_out_n = s->img_n;
-            if (!stbi__create_png_image(z, z->expanded, raw_len, s->img_out_n, z->depth, color, interlace))
-                return 0;
-            if (has_trans) {
-                if (z->depth == 16) {
-                    if (!stbi__compute_transparency16(z, tc16, s->img_out_n))
-                        return 0;
-                } else {
-                    if (!stbi__compute_transparency(z, tc, s->img_out_n))
-                        return 0;
-                }
-            }
-            if (is_iphone && stbi__de_iphone_flag && s->img_out_n > 2)
-                stbi__de_iphone(z);
-            if (pal_img_n) {
-                // pal_img_n == 3 or 4
-                s->img_n = pal_img_n; // record the actual colors we had
-                s->img_out_n = pal_img_n;
-                if (req_comp >= 3)
-                    s->img_out_n = req_comp;
-                if (!stbi__expand_png_palette(z, palette, pal_len, s->img_out_n))
+                if ((int)(ioff + c.length) < (int)ioff)
                     return 0;
+                if (ioff + c.length > idata_limit) {
+                    stbi__uint32 idata_limit_old = idata_limit;
+                    stbi_uc *p;
+                    if (idata_limit == 0)
+                        idata_limit = c.length > 4096 ? c.length : 4096;
+                    while (ioff + c.length > idata_limit)
+                        idata_limit *= 2;
+                    STBI_NOTUSED(idata_limit_old);
+                    p = (stbi_uc *)STBI_REALLOC_SIZED(z->idata, idata_limit_old, idata_limit);
+                    if (p == NULL)
+                        return stbi__err("outofmem", "Out of memory");
+                    z->idata = p;
+                }
+                if (!stbi__getn(s, z->idata + ioff, c.length))
+                    return stbi__err("outofdata", "Corrupt PNG");
+                ioff += c.length;
+                break;
             }
-            STBI_FREE(z->expanded);
-            z->expanded = NULL;
-            return 1;
-        }
+
+        case STBI__PNG_TYPE('I', 'E', 'N', 'D'):
+            {
+                stbi__uint32 raw_len, bpl;
+                if (first)
+                    return stbi__err("first not IHDR", "Corrupt PNG");
+                if (scan != STBI__SCAN_load)
+                    return 1;
+                if (z->idata == NULL)
+                    return stbi__err("no IDAT", "Corrupt PNG");
+                // initial guess for decoded data size to avoid unnecessary reallocs
+                bpl = (s->img_x * z->depth + 7) / 8; // bytes per line, per component
+                raw_len = bpl * s->img_y * s->img_n /* pixels */ + s->img_y /* filter mode per row */;
+                z->expanded = (stbi_uc *)stbi_zlib_decode_malloc_guesssize_headerflag((char *)z->idata, ioff, raw_len, (int *)&raw_len, !is_iphone);
+                if (z->expanded == NULL)
+                    return 0; // zlib should set error
+                STBI_FREE(z->idata);
+                z->idata = NULL;
+                if ((req_comp == s->img_n + 1 && req_comp != 3 && !pal_img_n) || has_trans)
+                    s->img_out_n = s->img_n + 1;
+                else
+                    s->img_out_n = s->img_n;
+                if (!stbi__create_png_image(z, z->expanded, raw_len, s->img_out_n, z->depth, color, interlace))
+                    return 0;
+                if (has_trans) {
+                    if (z->depth == 16) {
+                        if (!stbi__compute_transparency16(z, tc16, s->img_out_n))
+                            return 0;
+                    } else {
+                        if (!stbi__compute_transparency(z, tc, s->img_out_n))
+                            return 0;
+                    }
+                }
+                if (is_iphone && stbi__de_iphone_flag && s->img_out_n > 2)
+                    stbi__de_iphone(z);
+                if (pal_img_n) {
+                    // pal_img_n == 3 or 4
+                    s->img_n = pal_img_n; // record the actual colors we had
+                    s->img_out_n = pal_img_n;
+                    if (req_comp >= 3)
+                        s->img_out_n = req_comp;
+                    if (!stbi__expand_png_palette(z, palette, pal_len, s->img_out_n))
+                        return 0;
+                }
+                STBI_FREE(z->expanded);
+                z->expanded = NULL;
+                return 1;
+            }
 
         default:
             // if critical, fail
@@ -6278,73 +6283,76 @@ static stbi_uc *stbi__pic_load_core(stbi__context *s, int width, int height, int
             default:
                 return stbi__errpuc("bad format", "packet has bad compression type");
 
-            case 0: { //uncompressed
-                int x;
+            case 0:
+                { //uncompressed
+                    int x;
 
-                for (x = 0; x < width; ++x, dest += 4)
-                    if (!stbi__readval(s, packet->channel, dest))
-                        return 0;
-                break;
-            }
+                    for (x = 0; x < width; ++x, dest += 4)
+                        if (!stbi__readval(s, packet->channel, dest))
+                            return 0;
+                    break;
+                }
 
             case 1: //Pure RLE
-            {
-                int left = width, i;
+                {
+                    int left = width, i;
 
-                while (left > 0) {
-                    stbi_uc count, value[4];
+                    while (left > 0) {
+                        stbi_uc count, value[4];
 
-                    count = stbi__get8(s);
-                    if (stbi__at_eof(s))
-                        return stbi__errpuc("bad file", "file too short (pure read count)");
+                        count = stbi__get8(s);
+                        if (stbi__at_eof(s))
+                            return stbi__errpuc("bad file", "file too short (pure read count)");
 
-                    if (count > left)
-                        count = (stbi_uc)left;
-
-                    if (!stbi__readval(s, packet->channel, value))
-                        return 0;
-
-                    for (i = 0; i < count; ++i, dest += 4)
-                        stbi__copyval(packet->channel, dest, value);
-                    left -= count;
-                }
-            } break;
-
-            case 2: { //Mixed RLE
-                int left = width;
-                while (left > 0) {
-                    int count = stbi__get8(s), i;
-                    if (stbi__at_eof(s))
-                        return stbi__errpuc("bad file", "file too short (mixed read count)");
-
-                    if (count >= 128) { // Repeated
-                        stbi_uc value[4];
-
-                        if (count == 128)
-                            count = stbi__get16be(s);
-                        else
-                            count -= 127;
                         if (count > left)
-                            return stbi__errpuc("bad file", "scanline overrun");
+                            count = (stbi_uc)left;
 
                         if (!stbi__readval(s, packet->channel, value))
                             return 0;
 
                         for (i = 0; i < count; ++i, dest += 4)
                             stbi__copyval(packet->channel, dest, value);
-                    } else { // Raw
-                        ++count;
-                        if (count > left)
-                            return stbi__errpuc("bad file", "scanline overrun");
-
-                        for (i = 0; i < count; ++i, dest += 4)
-                            if (!stbi__readval(s, packet->channel, dest))
-                                return 0;
+                        left -= count;
                     }
-                    left -= count;
                 }
                 break;
-            }
+
+            case 2:
+                { //Mixed RLE
+                    int left = width;
+                    while (left > 0) {
+                        int count = stbi__get8(s), i;
+                        if (stbi__at_eof(s))
+                            return stbi__errpuc("bad file", "file too short (mixed read count)");
+
+                        if (count >= 128) { // Repeated
+                            stbi_uc value[4];
+
+                            if (count == 128)
+                                count = stbi__get16be(s);
+                            else
+                                count -= 127;
+                            if (count > left)
+                                return stbi__errpuc("bad file", "scanline overrun");
+
+                            if (!stbi__readval(s, packet->channel, value))
+                                return 0;
+
+                            for (i = 0; i < count; ++i, dest += 4)
+                                stbi__copyval(packet->channel, dest, value);
+                        } else { // Raw
+                            ++count;
+                            if (count > left)
+                                return stbi__errpuc("bad file", "scanline overrun");
+
+                            for (i = 0; i < count; ++i, dest += 4)
+                                if (!stbi__readval(s, packet->channel, dest))
+                                    return 0;
+                        }
+                        left -= count;
+                    }
+                    break;
+                }
             }
         }
     }
@@ -6671,76 +6679,76 @@ static stbi_uc *stbi__gif_load_next(stbi__context *s, stbi__gif *g, int *comp, i
     for (;;) {
         switch (stbi__get8(s)) {
         case 0x2C: /* Image Descriptor */
-        {
-            int prev_trans = -1;
-            stbi__int32 x, y, w, h;
-            stbi_uc *o;
+            {
+                int prev_trans = -1;
+                stbi__int32 x, y, w, h;
+                stbi_uc *o;
 
-            x = stbi__get16le(s);
-            y = stbi__get16le(s);
-            w = stbi__get16le(s);
-            h = stbi__get16le(s);
-            if (((x + w) > (g->w)) || ((y + h) > (g->h)))
-                return stbi__errpuc("bad Image Descriptor", "Corrupt GIF");
+                x = stbi__get16le(s);
+                y = stbi__get16le(s);
+                w = stbi__get16le(s);
+                h = stbi__get16le(s);
+                if (((x + w) > (g->w)) || ((y + h) > (g->h)))
+                    return stbi__errpuc("bad Image Descriptor", "Corrupt GIF");
 
-            g->line_size = g->w * 4;
-            g->start_x = x * 4;
-            g->start_y = y * g->line_size;
-            g->max_x = g->start_x + w * 4;
-            g->max_y = g->start_y + h * g->line_size;
-            g->cur_x = g->start_x;
-            g->cur_y = g->start_y;
+                g->line_size = g->w * 4;
+                g->start_x = x * 4;
+                g->start_y = y * g->line_size;
+                g->max_x = g->start_x + w * 4;
+                g->max_y = g->start_y + h * g->line_size;
+                g->cur_x = g->start_x;
+                g->cur_y = g->start_y;
 
-            g->lflags = stbi__get8(s);
+                g->lflags = stbi__get8(s);
 
-            if (g->lflags & 0x40) {
-                g->step = 8 * g->line_size; // first interlaced spacing
-                g->parse = 3;
-            } else {
-                g->step = g->line_size;
-                g->parse = 0;
-            }
-
-            if (g->lflags & 0x80) {
-                stbi__gif_parse_colortable(s, g->lpal, 2 << (g->lflags & 7), g->eflags & 0x01 ? g->transparent : -1);
-                g->color_table = (stbi_uc *)g->lpal;
-            } else if (g->flags & 0x80) {
-                if (g->transparent >= 0 && (g->eflags & 0x01)) {
-                    prev_trans = g->pal[g->transparent][3];
-                    g->pal[g->transparent][3] = 0;
+                if (g->lflags & 0x40) {
+                    g->step = 8 * g->line_size; // first interlaced spacing
+                    g->parse = 3;
+                } else {
+                    g->step = g->line_size;
+                    g->parse = 0;
                 }
-                g->color_table = (stbi_uc *)g->pal;
-            } else
-                return stbi__errpuc("missing color table", "Corrupt GIF");
 
-            o = stbi__process_gif_raster(s, g);
-            if (o == NULL)
-                return NULL;
+                if (g->lflags & 0x80) {
+                    stbi__gif_parse_colortable(s, g->lpal, 2 << (g->lflags & 7), g->eflags & 0x01 ? g->transparent : -1);
+                    g->color_table = (stbi_uc *)g->lpal;
+                } else if (g->flags & 0x80) {
+                    if (g->transparent >= 0 && (g->eflags & 0x01)) {
+                        prev_trans = g->pal[g->transparent][3];
+                        g->pal[g->transparent][3] = 0;
+                    }
+                    g->color_table = (stbi_uc *)g->pal;
+                } else
+                    return stbi__errpuc("missing color table", "Corrupt GIF");
 
-            if (prev_trans != -1)
-                g->pal[g->transparent][3] = (stbi_uc)prev_trans;
+                o = stbi__process_gif_raster(s, g);
+                if (o == NULL)
+                    return NULL;
 
-            return o;
-        }
+                if (prev_trans != -1)
+                    g->pal[g->transparent][3] = (stbi_uc)prev_trans;
+
+                return o;
+            }
 
         case 0x21: // Comment Extension.
-        {
-            int len;
-            if (stbi__get8(s) == 0xF9) { // Graphic Control Extension.
-                len = stbi__get8(s);
-                if (len == 4) {
-                    g->eflags = stbi__get8(s);
-                    g->delay = stbi__get16le(s);
-                    g->transparent = stbi__get8(s);
-                } else {
-                    stbi__skip(s, len);
-                    break;
+            {
+                int len;
+                if (stbi__get8(s) == 0xF9) { // Graphic Control Extension.
+                    len = stbi__get8(s);
+                    if (len == 4) {
+                        g->eflags = stbi__get8(s);
+                        g->delay = stbi__get16le(s);
+                        g->transparent = stbi__get8(s);
+                    } else {
+                        stbi__skip(s, len);
+                        break;
+                    }
                 }
+                while ((len = stbi__get8(s)) != 0)
+                    stbi__skip(s, len);
+                break;
             }
-            while ((len = stbi__get8(s)) != 0)
-                stbi__skip(s, len);
-            break;
-        }
 
         case 0x3B:               // gif stream termination code
             return (stbi_uc *)s; // using '1' causes warning on some compilers
