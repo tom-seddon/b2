@@ -14,7 +14,7 @@ BUILD_FOLDER:=build
 
 ifeq ($(OS),Windows_NT)
 
-PYTHON:=cmd /c python.exe
+PYTHON:=py -2
 
 # TODO - upgrade to Python 3 all round.
 PYTHON3:=py -3

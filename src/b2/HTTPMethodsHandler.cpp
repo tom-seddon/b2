@@ -433,25 +433,21 @@ class HTTPMethodsHandler : public HTTPHandler {
             return;
         }
 
-        // C64 .PRG.
-        {
-            if (request.content_type == PRG_CONTENT_TYPE || PathCompare(PathGetExtension(name), PRG_EXTENSION) == 0) {
-                if (request.body.size() < 2) {
-                    server->SendResponse(request, HTTPResponse::BadRequest(request));
-                    return;
-                }
-
-                uint32_t addr = request.body[0] | (uint32_t)(request.body[1] << 8) | 0xffff0000u;
-                request.body.erase(request.body.begin(), request.body.begin() + 2);
-
-                beeb_window->GetBeebThread()->Send(std::make_shared<BeebThread::DebugSetBytesMessage>(addr, 0, std::move(request.body)));
-                this->SendMessage(beeb_window, server, request, std::make_shared<BeebThread::DebugAsyncCallMessage>((uint16_t)addr, 0, 0, 0, false));
+        if (request.content_type == PRG_CONTENT_TYPE || PathCompare(PathGetExtension(name), PRG_EXTENSION) == 0) {
+            // C64 .PRG.
+            if (request.body.size() < 2) {
+                server->SendResponse(request, HTTPResponse::BadRequest(request));
                 return;
             }
-        }
 
-        // BBC disc image.
-        {
+            uint32_t addr = request.body[0] | (uint32_t)(request.body[1] << 8) | 0xffff0000u;
+            request.body.erase(request.body.begin(), request.body.begin() + 2);
+
+            beeb_window->GetBeebThread()->Send(std::make_shared<BeebThread::DebugSetBytesMessage>(addr, 0, std::move(request.body)));
+            this->SendMessage(beeb_window, server, request, std::make_shared<BeebThread::DebugAsyncCallMessage>((uint16_t)addr, (uint8_t)0, (uint8_t)0, (uint8_t)0, false));
+            return;
+        } else {
+            // BBC disc image.
             std::shared_ptr<DiscImage> disc_image = this->LoadDiscImageFromRequestOrSendResponse(server, request, name);
             if (!disc_image) {
                 return;
@@ -464,9 +460,6 @@ class HTTPMethodsHandler : public HTTPHandler {
             this->SendMessage(beeb_window, server, request, std::move(message));
             return;
         }
-
-        // Mystifying...
-        server->SendResponse(request, HTTPResponse::BadRequest(request));
     }
 
     std::shared_ptr<DiscImage> LoadDiscImageFromRequestOrSendResponse(HTTPServer *server, const HTTPRequest &request, const std::string &name) {

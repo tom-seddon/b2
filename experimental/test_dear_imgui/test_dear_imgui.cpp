@@ -508,9 +508,6 @@ void Window::RenderImGuiDrawData() {
         glColorPointer(4, GL_UNSIGNED_BYTE, sizeof(ImDrawVert), &v0->col);
         glTexCoordPointer(2, GL_FLOAT, sizeof(ImDrawVert), &v0->uv);
 
-        Uint16 num_vertices = (Uint16)(draw_list->VtxBuffer.size());
-        assert(draw_list->VtxBuffer.size() <= (std::numeric_limits<decltype(num_vertices)>::max)());
-
         for (int j = 0; j < draw_list->CmdBuffer.size(); ++j) {
             //if(j==0) {
             //    continue;
@@ -518,9 +515,11 @@ void Window::RenderImGuiDrawData() {
 
             const ImDrawCmd &cmd = draw_list->CmdBuffer[j];
 
-            float clip_w = cmd.ClipRect.z - cmd.ClipRect.x;
-            float clip_h = cmd.ClipRect.w - cmd.ClipRect.y;
-            glScissor(cmd.ClipRect.x, output_height - clip_h - cmd.ClipRect.y, clip_w, clip_h);
+            auto clip_h = (GLsizei)(cmd.ClipRect.w - cmd.ClipRect.y);
+            glScissor((GLsizei)cmd.ClipRect.x,
+                      (GLsizei)(output_height - clip_h - cmd.ClipRect.y),
+                      (GLsizei)(cmd.ClipRect.z - cmd.ClipRect.x),
+                      clip_h);
 
             //            SDL_Rect clip_rect={
             //                (int)cmd.ClipRect.x,
@@ -544,9 +543,6 @@ void Window::RenderImGuiDrawData() {
                 assert(idx_buffer_pos + cmd.ElemCount <= (size_t)draw_list->IdxBuffer.size());
 
                 glDrawElements(GL_TRIANGLES, cmd.ElemCount, GL_UNSIGNED_SHORT, indices);
-
-                //                rc=SDL_RenderGeometry(m_renderer,texture,vertices,num_vertices,indices,(int)cmd.ElemCount,NULL);
-                //                ASSERT(rc==0);
 
                 idx_buffer_pos += cmd.ElemCount;
             }

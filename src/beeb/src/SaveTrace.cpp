@@ -60,7 +60,7 @@ class TraceSaver {
             m_time_initial_value = 0;
             if (stats.max_time > 0) {
                 // fingers crossed this is actually accurate enough??
-                double exp = floor(1. + log10(stats.max_time));
+                double exp = floor(1. + log10((double)stats.max_time));
                 m_time_initial_value = (uint64_t)pow(10., exp - 1.);
             }
         }

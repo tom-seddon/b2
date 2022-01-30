@@ -472,24 +472,6 @@ static bool InitializeOptions(
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static std::string GetDriverHelp(
-    std::string driver_type,
-    const std::map<std::string, int> &driver_index_by_name) {
-    std::string help = "use SDL " + driver_type + " driver DRIVER (one of: ";
-    const char *sep = "";
-
-    for (auto &&it : driver_index_by_name) {
-        help += sep;
-        help += it.first;
-
-        sep = ", ";
-    }
-
-    help += ")";
-
-    return help;
-}
-
 static std::string GetLogList() {
     std::string list;
 

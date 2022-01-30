@@ -151,6 +151,8 @@ static bool FindDiscGeometryFromFileSize(DiscGeometry *geometry, const char *nam
 }
 
 static bool FindADFSDiscGeometry(DiscGeometry *geometry, const char *name, size_t size, Messages *msg, const DiscImageType *disc_image_type) {
+    (void)disc_image_type;
+
     if (!IsMultipleOfSectorSize(name, size, msg)) {
         return false;
     }

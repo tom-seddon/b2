@@ -422,9 +422,6 @@ void ImGuiStuff::RenderSDL() {
         glColorPointer(4, GL_UNSIGNED_BYTE, sizeof(ImDrawVert), &vertex0->col);
         glTexCoordPointer(2, GL_FLOAT, sizeof(ImDrawVert), &vertex0->uv);
 
-        Uint16 num_vertices = (Uint16)(draw_list->VtxBuffer.size());
-        ASSERT(draw_list->VtxBuffer.size() <= (std::numeric_limits<decltype(num_vertices)>::max)());
-
 #if STORE_DRAWLISTS
         StoredDrawList *stored_list = &m_draw_lists[(size_t)i];
         ASSERT(draw_list->CmdBuffer.size() >= 0);
@@ -442,9 +439,11 @@ void ImGuiStuff::RenderSDL() {
 #endif
 
         for (const ImDrawCmd &cmd : draw_list->CmdBuffer) {
-            float clip_w = cmd.ClipRect.z - cmd.ClipRect.x;
-            float clip_h = cmd.ClipRect.w - cmd.ClipRect.y;
-            glScissor(cmd.ClipRect.x, output_height - clip_h - cmd.ClipRect.y, clip_w, clip_h);
+            auto clip_h = (GLsizei)(cmd.ClipRect.w - cmd.ClipRect.y);
+            glScissor((GLsizei)cmd.ClipRect.x,
+                      (GLsizei)(output_height - clip_h - cmd.ClipRect.y),
+                      (GLsizei)(cmd.ClipRect.z - cmd.ClipRect.x),
+                      clip_h);
 
             if (cmd.UserCallback) {
 #if STORE_DRAWLISTS
@@ -484,9 +483,6 @@ void ImGuiStuff::RenderSDL() {
                 ASSERT(idx_buffer_pos + (int)cmd.ElemCount <= draw_list->IdxBuffer.size());
 
                 glDrawElements(GL_TRIANGLES, (GLsizei)cmd.ElemCount, GL_UNSIGNED_SHORT, indices);
-
-                //                rc=SDL_RenderGeometry(m_renderer,texture,vertices,num_vertices,indices,(int)cmd.ElemCount,nullptr);
-                //                ASSERT(rc==0);
 
                 ASSERT(cmd.ElemCount <= INT_MAX);
                 idx_buffer_pos += (int)cmd.ElemCount;

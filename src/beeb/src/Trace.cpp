@@ -8,7 +8,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <shared/log.h>
-#include <salieri.h>
 
 struct M6502Config;
 

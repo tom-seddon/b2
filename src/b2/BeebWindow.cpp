@@ -1865,6 +1865,8 @@ size_t BeebWindow::ConsumeTVTexture(OutputDataBuffer<VideoDataUnit> *video_outpu
     if (inhibit_update) {
         update = false;
     }
+#else
+    (void)inhibit_update;
 #endif
 
     if (video_output->GetConsumerBuffers(&a, &na, &b, &nb)) {
@@ -2110,7 +2112,7 @@ bool BeebWindow::DoBeebDisplayUI() {
 bool BeebWindow::HandleVBlank(uint64_t ticks) {
     ImGuiContextSetter setter(m_imgui_stuff);
 
-    Timer tmr(&g_HandleVBlank_timer_def);
+    Timer HandleVBlank_timer(&g_HandleVBlank_timer_def);
 
     bool keep_window = true;
 
@@ -2119,7 +2121,7 @@ bool BeebWindow::HandleVBlank(uint64_t ticks) {
     bool threaded_update = m_update_tv_texture_thread_enabled;
 
     {
-        Timer tmr2(&g_HandleVBlank_end_of_frame_timer_def);
+        Timer HandleVBlank_end_of_frame_timer(&g_HandleVBlank_end_of_frame_timer_def);
 
         VBlankRecord *vblank_record = this->NewVBlankRecord(ticks);
 
@@ -2163,7 +2165,7 @@ bool BeebWindow::HandleVBlank(uint64_t ticks) {
         //        }
 
         {
-            Timer tmr(&g_HandleVBlank_RenderSDL_timer_def);
+            Timer HandleVBlank_RenderSDL_timer(&g_HandleVBlank_RenderSDL_timer_def);
 
             m_imgui_stuff->RenderSDL();
 

@@ -448,7 +448,7 @@ static void printStatus(state_t *state) {
 
         bool any = false;
         for (size_t i = 0; tstates[i] >= 0; ++i) {
-            if (!isNodeHigh(state, tstates[i])) {
+            if (!isNodeHigh(state, (nodenum_t)tstates[i])) {
                 if (any) {
                     printf("+");
                 } else {
@@ -504,7 +504,7 @@ static void TestVisual6502URL(const std::string &description, const std::string 
 
     // Run.
 
-    int cycle = 0;
+    int c = 0;
     bool wasSync = false;
 
     // sync up...
@@ -524,8 +524,8 @@ static void TestVisual6502URL(const std::string &description, const std::string 
         bool discrepancy = false;
         //int printCycle=cycle/2;
 
-        PinState *irq_state = FindPinStateByCycle(&g_irqs, cycle);
-        PinState *nmi_state = FindPinStateByCycle(&g_nmis, cycle);
+        PinState *irq_state = FindPinStateByCycle(&g_irqs, c);
+        PinState *nmi_state = FindPinStateByCycle(&g_nmis, c);
 
         if (irq_state) {
             setIRQ(perfect6502, irq_state->level);
@@ -541,19 +541,19 @@ static void TestVisual6502URL(const std::string &description, const std::string 
         step(perfect6502);
         ASSERT(!isNodeHigh(perfect6502, Node_clk0));
         uint16_t phi1_addr = readAddressBus(perfect6502);
-        printf("%-3d %-3d ", cycle / 2, cycle);
+        printf("%-3d %-3d ", c / 2, c);
         printStatus(perfect6502);
         //chipStatus(perfect6502);
-        ++cycle;
+        ++c;
 
         // phi2 trailing edge
         step(perfect6502);
         ASSERT(isNodeHigh(perfect6502, Node_clk0));
         TEST_EQ_UU(phi1_addr, readAddressBus(perfect6502));
-        printf("%-3d %-3d ", cycle / 2, cycle);
+        printf("%-3d %-3d ", c / 2, c);
         printStatus(perfect6502);
         //chipStatus(perfect6502);
-        ++cycle;
+        ++c;
 
         if (wasSync) {
             Check(&discrepancy, s->a, readA(perfect6502), "A", 'b');
@@ -572,7 +572,7 @@ static void TestVisual6502URL(const std::string &description, const std::string 
             Check(&discrepancy, sim_p, real_p, "P", 'b');
         }
 
-        if (cycle == 67) {
+        if (c == 67) {
             int x = 0;
             (void)x;
         }
@@ -617,7 +617,7 @@ static void TestVisual6502URL(const std::string &description, const std::string 
 
         if (discrepancy) {
             if (first_discrepancy_cycle < 0) {
-                first_discrepancy_cycle = cycle - 1;
+                first_discrepancy_cycle = c - 1;
             }
         } else {
             printf("\n");
@@ -850,8 +850,8 @@ static void AddTestCases(void) {
         SetTCMem(0x10, "5890fe");
 
         for (int i = 0; i < 10; ++i) {
-            int cycle = 64 + i * 2;
-            g_tc_irqs = {cycle};
+            int c = 64 + i * 2;
+            g_tc_irqs = {c};
 
             //if(cycle!=67&&cycle!=73&&cycle!=79)
             AddTC("Branch taken to same page - IRQ on cycle %d", g_tc_irqs[0]);
@@ -934,17 +934,17 @@ static void AddTestCases(void) {
         SetTCMem(-1, "90fe");
 
         for (int i = 0; i < 10; ++i) {
-            int cycle = 60 + i * 2;
+            int c = 60 + i * 2;
 
-            g_tc_irqs = {cycle};
-            g_tc_nmis = {cycle};
+            g_tc_irqs = {c};
+            g_tc_nmis = {c};
 
-            AddTC("Simultaneous IRQ and NMI on cycle %d", cycle);
+            AddTC("Simultaneous IRQ and NMI on cycle %d", c);
 
-            g_tc_irqs.push_back(cycle + 2);
-            g_tc_nmis.push_back(cycle + 2);
+            g_tc_irqs.push_back(c + 2);
+            g_tc_nmis.push_back(c + 2);
 
-            AddTC("Simultaneous 2-cycle IRQ+NMI blip on cycle %d", cycle);
+            AddTC("Simultaneous 2-cycle IRQ+NMI blip on cycle %d", c);
         }
     }
 

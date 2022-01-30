@@ -128,12 +128,15 @@ class HexEditorHandlerWithBufferData : public HexEditorHandler {
 
 class HexEditor {
   public:
-    bool headers = true;
-    bool hex = true;
-    bool ascii = true;
-    bool grey_00s = false;
-    bool upper_case = true;
-    bool grey_nonprintables = true;
+    struct Options {
+        bool headers = true;
+        bool hex = true;
+        bool ascii = true;
+        bool grey_00s = false;
+        bool upper_case = true;
+        bool grey_nonprintables = true;
+    };
+    Options options;
 
     explicit HexEditor(HexEditorHandler *handler);
     ~HexEditor();
