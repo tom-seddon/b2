@@ -518,7 +518,6 @@ void *Trace::Alloc(uint64_t time, size_t n) {
         if (!m_head) {
             m_head = c;
         } else {
-            _Analysis_assume_(m_tail);
             m_tail->next = c;
         }
 
