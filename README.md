@@ -1,7 +1,3 @@
-[Windows Build Status: ![status](https://ci.appveyor.com/api/projects/status/3sdnt3mh1r61h74y?svg=true)](https://ci.appveyor.com/project/tom-seddon/b2)
-
-[macOS/Linux Build Status: ![status](https://travis-ci.org/tom-seddon/b2.svg?branch=master)](https://travis-ci.org/tom-seddon/b2)
-
 # b2
 
 A cross-platform BBC Micro emulator. Use your Windows/Linux PC or
@@ -54,3 +50,5 @@ Copyright (C) 2016-9 by Tom Seddon
 Licence: GPL v3.
 
 -----
+
+[Build Status: ![status](https://ci.appveyor.com/api/projects/status/3sdnt3mh1r61h74y?svg=true)](https://ci.appveyor.com/project/tom-seddon/b2)
