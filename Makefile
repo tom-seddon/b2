@@ -26,7 +26,7 @@ CAT:=cmd /c type
 
 NPROC:=$(NUMBER_OF_PROCESSORS)
 
-include Makefile.windows
+include Makefile.windows.mak
 
 else
 
@@ -48,8 +48,8 @@ NPROC:=$(shell sysctl -n hw.ncpu)
 INSTALLER:=
 CMAKE_DEFINES:=$(CMAKE_DEFINES) -DCMAKE_OSX_DEPLOYMENT_TARGET=10.9
 
-include Makefile.unix
-include Makefile.osx
+include Makefile.unix.mak
+include Makefile.osx.mak
 
 endif
 
@@ -57,7 +57,7 @@ ifeq ($(UNAME),Linux)
 OS:=linux
 NPROC:=$(shell nproc)
 INSTALLER:=1
-include Makefile.unix
+include Makefile.unix.mak
 endif
 
 endif
