@@ -37,16 +37,7 @@ By default, this builds the Debug build. Use `Edit Scheme...` from the
 scheme dropdown to select a different configuration for the `Run`
 option if you want something different.
 
-If the cmake settings change, `Product` > `Build` is supposed to
-rebuild the xcodeproj, and Xcode should then reload it, and the
-workflow should all be relatively convenient. But in practice it seems
-to be a bit flaky; I find the build is spuriously cancelled,
-necessitating additional attempts. Sometimes it requires several goes
-before the build will finish. It has never failed to get there in the
-end, though... eventually.
-
-(I don't really think this works especially well, particularly
-compared to Visual Studio. Xcode is awful, and cmake doesn't seem to
-support it as well as it could. But it's not quite a total disaster,
-and the Xcode debugger is certainly better than gdb... for whatever
-that's worth, at any rate.)
+After changing any of the cmake files, to regenerate the xcodeproj run
+`make reinit_xcode` from the working copy folder. (`Product` > `Build`
+is supposed to do this for you automatically, but it seems to be
+rather unreliable.)
