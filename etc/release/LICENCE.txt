@@ -1,4 +1,4 @@
-b2 Copyright (C) 2016-2019 Tom Seddon <modelb@bbcmicro.com>
+b2 Copyright (C) 2016-2022 Tom Seddon <modelb@bbcmicro.com>
 
 This program comes with ABSOLUTELY NO WARRANTY. This is free software,
 and you are welcome to redistribute it under certain conditions;
