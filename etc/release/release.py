@@ -77,7 +77,7 @@ def capture(argv):
     process=subprocess.Popen(args=argv,stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
     output=process.communicate()
     if process.returncode!=0: fatal("process failed")
-    return output[0].splitlines()
+    return output[0].decode('utf8').splitlines()
 
 def bool_str(x): return "YES" if x else "NO"
 
@@ -224,7 +224,8 @@ def get_darwin_build_path(config_name,path=None):
     return result
 
 def build_darwin_config(options,config):
-    with ChangeDirectory(get_darwin_build_path(config)):
+    path=get_darwin_build_path(config)
+    with ChangeDirectory(path):
         if not options.skip_compile:
             run(["ninja"])
 
@@ -258,7 +259,7 @@ def build_darwin(options,ifolder,rev_hash):
     shutil.copyfile("./etc/release/template.dmg",temp_dmg)
 
     # Resize temp DMG.
-    run(['hdiutil','resize','-size','250m',temp_dmg])
+    run(['hdiutil','resize','-size','300m',temp_dmg])
 
     # Mount temp DMG.
     run(["hdiutil","attach",temp_dmg,"-mountpoint",mount])
@@ -330,12 +331,13 @@ def main(options):
         build_fun=build_linux
 
     if not options.skip_cmake:
-        # the current init steps are not currently parallelizable, but
-        # the -j seemed worth doing when they were.
+        # the -j is worth doing. the init steps for ninja builds can
+        # run each configuration's copy of cmake in parallel, for a
+        # useful speedup.
         #
-        # this makes the output a huge mess on Windows, but by the
-        # time this script is run there ought not to be any need to
-        # debug things, hopefully...
+        # the output is a bit difficult to read, but by the time this
+        # script is run there ought not to be any need to debug
+        # things, hopefully.
         run([options.make,
              "-j%d"%options.make_jobs,
              init_target,
