@@ -229,7 +229,7 @@ def build_darwin_config(options,config):
             run(["ninja"])
 
         if not options.skip_dylib_bundler:
-            run(['./submodules/macdylibbundler',
+            run(['./submodules/macdylibbundler/dylibbundler',
                  '--create-dir',
                  '--bundle-deps',
                  '--fix-file','./src/b2/b2.app/Contents/MacOS/b2',

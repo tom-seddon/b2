@@ -153,15 +153,7 @@ target_include_directories(IconFontCppHeaders_lib INTERFACE
 ##########################################################################
 
 if(OSX)
-  set(BUNDLER_SRC_FOLDER ${CMAKE_CURRENT_SOURCE_DIR}/macdylibbundler/src)
-
-  add_executable(macdylibbundler
-    ${BUNDLER_SRC_FOLDER}/Settings.cpp
-    ${BUNDLER_SRC_FOLDER}/DylibBundler.cpp
-    ${BUNDLER_SRC_FOLDER}/Dependency.cpp
-    ${BUNDLER_SRC_FOLDER}/main.cpp
-    ${BUNDLER_SRC_FOLDER}/Utils.cpp)
-  
+  add_subdirectory(macdylibbundler)
 endif()
 
 ##########################################################################
