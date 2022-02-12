@@ -14,9 +14,6 @@ BUILD_FOLDER:=build
 
 ifeq ($(OS),Windows_NT)
 
-PYTHON:=py -2
-
-# TODO - upgrade to Python 3 all round.
 PYTHON3:=py -3
 
 # https://github.com/muttleyxd/clang-tools-static-binaries/releases
@@ -30,9 +27,8 @@ include Makefile.windows.mak
 
 else
 
-PYTHON:=/usr/bin/python
-
-# TODO - though this works for me on macOS.
+# Is this how you're supposed to do it? Works for me on macOS, at
+# least...
 PYTHON3:=python3
 
 # version number roulette.
@@ -62,21 +58,21 @@ endif
 
 endif
 
-SHELLCMD:=$(PYTHON) ./submodules/shellcmd.py/shellcmd.py
+SHELLCMD:=$(PYTHON3) ./submodules/shellcmd.py/shellcmd.py
 
 ##########################################################################
 ##########################################################################
 
 .PHONY:rel
 rel:
-	$(PYTHON) ./etc/release/release.py --make=$(MAKE)
+	$(PYTHON3) ./etc/release/release.py --make=$(MAKE)
 
 ##########################################################################
 ##########################################################################
 
 .PHONY:rel_tests
 rel_tests:
-	$(PYTHON) ./etc/b2_tests/rel_tests.py
+	$(PYTHON3) ./etc/b2_tests/rel_tests.py
 
 ##########################################################################
 ##########################################################################

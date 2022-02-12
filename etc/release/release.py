@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 import argparse,os,os.path,sys,stat,subprocess,pipes,time,shutil,multiprocessing,datetime,time
 
 ##########################################################################
@@ -63,9 +63,9 @@ def fatal(str):
 ##########################################################################
 
 def run(argv,ignore_errors=False):
-    print 80*"-"
-    print " ".join([pipes.quote(x) for x in argv])
-    print 80*"-"
+    print(80*"-")
+    print(" ".join([pipes.quote(x) for x in argv]))
+    print(80*"-")
 
     ret=subprocess.call(argv)
 
@@ -100,7 +100,7 @@ def set_file_timestamps(options,fname):
     try:
         os.utime(fname,(t,t))
     except:
-        print>>sys.stderr,"WARNING: failed to set timestamps for: %s"%fname
+        print("WARNING: failed to set timestamps for: %s"%fname,file=sys.stderr)
         pass
 
 def set_tree_timestamps(options,root):
@@ -176,7 +176,7 @@ def build_win32(options,ifolder,rev_hash):
         
     build_win32_config(timings,options,"win64","Final",0xf4)
 
-    print timings
+    print(timings)
 
     build64=get_win32_build_folder(options,'win64')
 
