@@ -25,31 +25,21 @@ init_vs2019:
 ##########################################################################
 
 .PHONY:_older_vs
+_older_vs: FOLDER=$(BUILD_FOLDER)/$(FOLDER_PREFIX)win64.vs$(VSYEAR)
 _older_vs:
-	$(MAKE) _older_vs_2 BITS=64 TYPE_SUFFIX=Win64
-	$(MAKE) _older_vs_2 BITS=32 TYPE_SUFFIX=
-
-.PHONY:_older_vs_2
-_older_vs_2: FOLDER=$(BUILD_FOLDER)/$(FOLDER_PREFIX)win$(BITS).vs$(VSYEAR)
-_older_vs_2:
 	cmd /c bin\recreate_folder.bat $(FOLDER)
-	cd "$(FOLDER)" && cmake $(CMAKE_DEFINES) -G "$(strip Visual Studio $(VSVER) $(TYPE_SUFFIX))" ../..
-	cmd /c copy etc\b2.ChildProcessDbgSettings "$(FOLDER)"
+	cd "$(FOLDER)" && cmake $(CMAKE_DEFINES) -G "$(strip Visual Studio $(VSVER) Win64)" ../..
+	$(SHELLCMD) copy-file etc\b2.ChildProcessDbgSettings "$(FOLDER)"
 
 ##########################################################################
 ##########################################################################
 
 .PHONY:_newer_vs
+_newer_vs: FOLDER=$(BUILD_FOLDER)/$(FOLDER_PREFIX)win64.vs$(VSYEAR)
 _newer_vs:
-	$(MAKE) _newer_vs_2 BITS=64 ARCH=x64
-	$(MAKE) _newer_vs_2 BITS=32 ARCH=Win32
-
-.PHONY:_newer_vs_2
-_newer_vs_2: FOLDER=$(BUILD_FOLDER)/$(FOLDER_PREFIX)win$(BITS).vs$(VSYEAR)
-_newer_vs_2:
 	cmd /c bin\recreate_folder.bat $(FOLDER)
-	cd "$(FOLDER)" && cmake $(CMAKE_DEFINES) -G "$(strip Visual Studio $(VSVER))" -A "$(strip $(ARCH))" ../..
-	cmd /c copy etc\b2.ChildProcessDbgSettings "$(FOLDER)"
+	cd "$(FOLDER)" && cmake $(CMAKE_DEFINES) -G "$(strip Visual Studio $(VSVER))" -A x64 ../..
+	$(SHELLCMD) copy-file etc\b2.ChildProcessDbgSettings "$(FOLDER)"
 
 ##########################################################################
 ##########################################################################

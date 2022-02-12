@@ -115,9 +115,8 @@ def create_intermediate_folder():
     ifolder=os.path.abspath(os.path.join(BUILD_FOLDER,
                                          INTERMEDIATE_FOLDER,
                                          PLATFORMS[sys.platform].name))
-    
-    try: shutil.rmtree(ifolder)
-    except: pass
+
+    if os.path.isdir(ifolder): shutil.rmtree(ifolder)
 
     makedirs(ifolder)
 
@@ -133,10 +132,10 @@ def create_README(options,folder,rev_hash):
 ##########################################################################
 
 def get_win32_build_folder(options,platform):
-    return '%s/%s%s.vs%s'%(BUILD_FOLDER,
+    return '%s/%s%s.%s'%(BUILD_FOLDER,
                            FOLDER_PREFIX,
                            platform,
-                           options.vs)
+                           options.toolchain)
 
 def build_win32_config(timings,options,platform,config,colour):
     folder=get_win32_build_folder(options,platform)
@@ -177,19 +176,9 @@ def build_win32(options,ifolder,rev_hash):
         
     build_win32_config(timings,options,"win64","Final",0xf4)
 
-    if not options.skip_32_bit:
-        build_win32_config(timings,options,"win32","Final",0xe0)
-
     print timings
 
-    build32=get_win32_build_folder(options,'win32')
     build64=get_win32_build_folder(options,'win64')
-
-    if not options.skip_32_bit:
-        shutil.copyfile(os.path.join(build32,
-                                     "src/b2/Final/b2.exe"),
-                        os.path.join(zip_folder,
-                                     "b2_32bit.exe"))
 
     shutil.copyfile(os.path.join(build64,
                                  "src/b2/Final/b2.exe"),
@@ -331,7 +320,7 @@ def main(options):
     rev_hash=capture(["git","rev-parse","HEAD"])[0]
 
     if sys.platform=="win32":
-        init_target='init_vs%s'%options.vs
+        init_target='init_%s'%options.toolchain
         build_fun=build_win32
     elif sys.platform=="darwin":
         init_target='init'
@@ -341,10 +330,12 @@ def main(options):
         build_fun=build_linux
 
     if not options.skip_cmake:
-        # -j makes a hilarious mess of the text output on Windows, but
-        # the makefile parallelizes perfectly, saving about 1 minute
-        # on my laptop. By the time this script is run there ought not
-        # to be any need to debug things, hopefully...
+        # the current init steps are not currently parallelizable, but
+        # the -j seemed worth doing when they were.
+        #
+        # this makes the output a huge mess on Windows, but by the
+        # time this script is run there ought not to be any need to
+        # debug things, hopefully...
         run([options.make,
              "-j%d"%options.make_jobs,
              init_target,
@@ -365,17 +356,13 @@ if __name__=="__main__":
     parser=argparse.ArgumentParser()
 
     if sys.platform not in PLATFORMS: fatal("unsupported platform: %s"%sys.platform)
-    if sys.platform=="win32":
-        # if os.getenv("VS140COMNTOOLS") is None: fatal("VS140COMNTOOLS not set - is VS2015 installed?")
-        default_make="snmake.exe"
-    else:
-        default_make="make"
+    if sys.platform=="win32": default_make="bin/snmake.exe"
+    else: default_make="make"
 
     parser.add_argument("-v","--verbose",action="store_true",help="be more verbose")
     parser.add_argument("--skip-cmake",action="store_true",help="skip the cmake step")
     parser.add_argument("--skip-compile",action="store_true",help="skip the compile step")
     parser.add_argument("--skip-ctest",action="store_true",help="skip the ctest step")
-    parser.add_argument("--skip-32-bit",action="store_true",help="skip any 32-bit build that might be built")
     parser.add_argument("--skip-debug",action="store_true",help="skip any debug build that might be built")
     parser.add_argument("--skip-dylib-bundler",action="store_true",help="skip dylibbundler when building for macOS")
     parser.add_argument("--make",metavar="FILE",dest="make",default=default_make,help="use %(metavar)s as GNU make. Default: ``%(default)s''")
@@ -384,6 +371,18 @@ if __name__=="__main__":
     parser.add_argument("release_name",metavar="NAME",help="name for release. Embedded into executable, and used to generate output file name")
     
     if sys.platform=='win32':
-        parser.add_argument('--vs',metavar='YEAR',default='2017',help='use Visual Studio version %(metavar)s. Default: %(default)s')
+        vsver=os.getenv('VisualStudioVersion')
+        if vsver is not None: vsver=int(float(vsver))
+
+        if vsver==14: toolchain='vs2015'
+        elif vsver==15: toolchain='vs2017'
+        elif vsver==16: toolchain='vs2019'
+        else: toolchain=None
+
+        if toolchain is not None: parser.set_defaults(toolchain=toolchain)
+        else:
+            parser.add_argument('toolchain',
+                                metavar='TOOLCHAIN',
+                                help='toolchain to use. One of: vs2015, vs2017, vs2019')
     
     main(parser.parse_args(sys.argv[1:]))

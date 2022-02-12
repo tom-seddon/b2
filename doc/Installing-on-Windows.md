@@ -8,12 +8,6 @@ Get the latest one with files attached - probably the one at the top!
 
 Unzip to a folder of your choice and run `b2.exe`.
 
-## 32-bit Windows?
-
-If you use 32-bit Windows, use `b2_32bit.exe`.
-
-The 32-bit version is unsupported.
-
 ## Windows 7 performance
 
 If you have trouble with slow startup and poor performance on Windows
