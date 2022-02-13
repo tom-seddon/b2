@@ -260,7 +260,7 @@ endif()
 ##########################################################################
 
 set(LIBUVDIR ${CMAKE_CURRENT_SOURCE_DIR}/submodules/libuv)
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/etc/libuv-cmake)
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/submodules/libuv)
 
 # Don't add libuv's tests as a ctest test. The shutdown_eof test fails, for some reason.
 
