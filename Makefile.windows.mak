@@ -25,7 +25,7 @@ init_vs2019:
 ##########################################################################
 
 .PHONY:_older_vs
-_older_vs: FOLDER=$(BUILD_FOLDER)/$(FOLDER_PREFIX)win64.vs$(VSYEAR)
+_older_vs: FOLDER=$(BUILD_FOLDER)/$(FOLDER_PREFIX)vs$(VSYEAR)
 _older_vs:
 	cmd /c bin\recreate_folder.bat $(FOLDER)
 	cd "$(FOLDER)" && cmake $(CMAKE_DEFINES) -G "$(strip Visual Studio $(VSVER) Win64)" ../..
@@ -35,7 +35,7 @@ _older_vs:
 ##########################################################################
 
 .PHONY:_newer_vs
-_newer_vs: FOLDER=$(BUILD_FOLDER)/$(FOLDER_PREFIX)win64.vs$(VSYEAR)
+_newer_vs: FOLDER=$(BUILD_FOLDER)/$(FOLDER_PREFIX)vs$(VSYEAR)
 _newer_vs:
 	cmd /c bin\recreate_folder.bat $(FOLDER)
 	cd "$(FOLDER)" && cmake $(CMAKE_DEFINES) -G "$(strip Visual Studio $(VSVER))" -A x64 ../..

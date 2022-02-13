@@ -32,9 +32,9 @@ General day-to-day build steps:
 
 1. Load appropriate solution into Visual Studio:
 
-   - VS2019: `build\win64.vs2019\b2.sln`
-   - VS2017: `build\win64.vs2017\b2.sln`
-   - VS2015: `build\win64.vs2015\b2.sln`
+   - VS2019: `build\vs2019\b2.sln`
+   - VS2017: `build\vs2017\b2.sln`
+   - VS2015: `build\vs2015\b2.sln`
 
 2. Build
 
