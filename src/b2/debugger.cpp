@@ -1832,11 +1832,13 @@ class VideoULADebugWindow : public DebugUI {
                 for (uint8_t i = 0; i < 16; i += 4) {
                     ImGui::Text("Palette:");
 
-                    ImGuiStyleVarPusher vpusher(ImGuiStyleVar_FramePadding, ImVec2(0.f, 0.f));
+                    ImGuiStyleVarPusher var_pusher(ImGuiStyleVar_FramePadding, ImVec2(0.f, 0.f));
 
                     for (uint8_t j = 0; j < 4; ++j) {
                         uint8_t index = i + j;
                         const VideoDataPixel *e = &nula_palette[index];
+
+                        ImGuiIDPusher id_pusher(index);
 
                         ImGui::SameLine();
                         ImGui::Text(" %x=%x%x%x", index, e->bits.r, e->bits.g, e->bits.b);
