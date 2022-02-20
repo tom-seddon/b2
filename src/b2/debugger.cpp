@@ -53,7 +53,7 @@ static const char *GetFnName(M6502Fn fn) {
                             nullptr);
 
             for (auto &&it : g_name_by_6502_fn) {
-                for (const std::string &name : it.second.names) {
+                for (const char *name : it.second.names) {
                     if (!it.second.name.empty()) {
                         it.second.name += "/";
                     }

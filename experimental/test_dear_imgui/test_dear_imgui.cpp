@@ -542,7 +542,7 @@ void Window::RenderImGuiDrawData() {
                 const uint16_t *indices = &draw_list->IdxBuffer[(int)idx_buffer_pos];
                 assert(idx_buffer_pos + cmd.ElemCount <= (size_t)draw_list->IdxBuffer.size());
 
-                glDrawElements(GL_TRIANGLES, cmd.ElemCount, GL_UNSIGNED_SHORT, indices);
+                glDrawElements(GL_TRIANGLES, (GLsizei)cmd.ElemCount, GL_UNSIGNED_SHORT, indices);
 
                 idx_buffer_pos += cmd.ElemCount;
             }

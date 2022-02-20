@@ -1933,6 +1933,7 @@ bool BeebWindow::InhibitUpdateTVTexture() const {
 //////////////////////////////////////////////////////////////////////////
 
 void BeebWindow::BeginUpdateTVTexture(bool threaded, void *dest_pixels, int dest_pitch) {
+    ASSERT(dest_pitch > 0);
     if (threaded) {
         {
             std::unique_lock<Mutex> lock(m_update_tv_texture_state.mutex);
@@ -1942,7 +1943,7 @@ void BeebWindow::BeginUpdateTVTexture(bool threaded, void *dest_pixels, int dest
             m_update_tv_texture_state.update_tv = &m_tv;
             m_update_tv_texture_state.update_inhibit = this->InhibitUpdateTVTexture();
             m_update_tv_texture_state.update_dest_pixels = dest_pixels;
-            m_update_tv_texture_state.update_dest_pitch = dest_pitch;
+            m_update_tv_texture_state.update_dest_pitch = (size_t)dest_pitch;
         }
         m_update_tv_texture_state.update_cv.notify_one();
     }
@@ -1953,6 +1954,8 @@ void BeebWindow::BeginUpdateTVTexture(bool threaded, void *dest_pixels, int dest
 
 void BeebWindow::EndUpdateTVTexture(bool threaded, VBlankRecord *vblank_record, void *dest_pixels, int dest_pitch) {
     Timer tmr(&g_HandleVBlank_UpdateTVTexture_Consume_timer_def);
+
+    ASSERT(dest_pitch > 0);
 
     if (threaded) {
         std::unique_lock<Mutex> lock(m_update_tv_texture_state.mutex);
@@ -1972,7 +1975,7 @@ void BeebWindow::EndUpdateTVTexture(bool threaded, VBlankRecord *vblank_record, 
 
         vblank_record->num_video_units = num_units_consumed;
 
-        m_tv.CopyTexturePixels(dest_pixels, dest_pitch);
+        m_tv.CopyTexturePixels(dest_pixels, (size_t)dest_pitch);
     }
 }
 
