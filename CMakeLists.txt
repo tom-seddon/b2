@@ -48,11 +48,29 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/submodules/sanitizers-c
 if(WIN32)
 elseif(${CMAKE_HOST_SYSTEM_NAME} STREQUAL "Darwin")
   set(OSX 1)
+
+  option(USE_SYSTEM_SDL OFF)
+  option(USE_SYSTEM_LIBUV OFF)
+
+  # The OS X version works fine when built with the repo's copy of
+  # libcurl, and the result is easily stepped through in Xcode - but the
+  # libcurl CMakeLists.txt takes, like, 15 minutes to run. Might as well
+  # use the system libcurl, given that it ships with OS X and is
+  # probably tuned for the system SSL and so on.
+  set(USE_SYSTEM_CURL_DEFAULT ON)
 elseif(${CMAKE_HOST_SYSTEM_NAME} STREQUAL "Linux")
   set(LINUX 1)
+
+  set(USE_SYSTEM_SDL_DEFAULT ON)
+  set(USE_SYSTEM_LIBUV_DEFAULT ON)
+  set(USE_SYSTEM_CURL_DEFAULT ON)
 else()
   message(FATAL_ERROR "unsupported platform:" ${CMAKE_HOST_SYSTEM_NAME})
 endif()
+
+option(USE_SYSTEM_SDL "Use system copy of SDL rather than building the submodule copy from source" ${USE_SYSTEM_SDL_DEFAULT})
+option(USE_SYSTEM_LIBUV "Use system copy of libuv rather than building the submodule copy from source" ${USE_SYSTEM_LIBUV_DEFAULT})
+option(USE_SYSTEM_CURL "Use system copy of curl rather than building the submodule copy from source" ${USE_SYSTEM_CURL_DEFAULT})
 
 ##########################################################################
 ##########################################################################
@@ -79,20 +97,27 @@ check_sanitizer(ADDRESS ASan)
 
 ##########################################################################
 ##########################################################################
-#
-# (Even though Windows libcurl is part of submodules, the
-# configuration process sets some variables, and find_package (as used
-# on OS X/Linux) doesn't seem to have any analogue of PARENT_SCOPE. So
-# it's massively easier to do all this stuff in the top-level
-# CMakeLists.txt.)
-#
-# The OS X version works fine when built with the repo's copy of
-# libcurl, and the result is easily stepped through in Xcode - but the
-# libcurl CMakeLists.txt takes, like, 15 minutes to run. Might as well
-# use the system libcurl, given that it ships with OS X and is
-# probably tuned for the system SSL and so on.
 
-if(WIN32)
+if(USE_SYSTEM_CURL)
+  find_package(CURL 7
+    COMPONENTS HTTP)
+  if(NOT CURL_FOUND)
+    set(HAVE_LIBCURL OFF)
+  else()
+    set(HAVE_LIBCURL ON)
+    set(LIBCURL_TARGET CURL::libcurl)
+  endif()
+  
+  if(NOT HAVE_LIBCURL)
+    message(WARNING "libcurl not found - no BeebLink support")
+  endif()
+else()
+  # (Even though Windows libcurl is part of submodules, the
+  # configuration process sets some variables, and find_package (as used
+  # on OS X/Linux) doesn't seem to have any analogue of PARENT_SCOPE. So
+  # it's massively easier to do all this stuff in the top-level
+  # CMakeLists.txt.)
+
   option(BUILD_CURL_EXE "" OFF)
   option(BUILD_SHARED_LIBS "" OFF)
   option(BUILD_TESTING "" OFF)
@@ -121,19 +146,6 @@ if(WIN32)
   add_subdirectory(${CMAKE_SOURCE_DIR}/submodules/curl)
   set(HAVE_LIBCURL ON)
   set(LIBCURL_TARGET libcurl)
-else()
-  find_package(CURL 7
-    COMPONENTS HTTP)
-  if(NOT CURL_FOUND)
-    set(HAVE_LIBCURL OFF)
-  else()
-    set(HAVE_LIBCURL ON)
-    set(LIBCURL_TARGET CURL::libcurl)
-  endif()
-  
-  if(NOT HAVE_LIBCURL)
-    message(WARNING "libcurl not found - no BeebLink support")
-  endif()
 endif()
 
 message(STATUS "libcurl found: ${HAVE_LIBCURL}")
