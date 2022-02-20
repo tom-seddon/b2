@@ -101,7 +101,8 @@ tom_emacs:
 # relative paths are relative to, but it doesn't reliably spot
 # everything...
 	@echo make: Entering directory \'$(shell pwd)/$(BUILD_FOLDER)/d.$(OS)\'
-	cd $(BUILD_FOLDER)/d.$(OS) && ninja && ctest -LE 'slow|kevin_edwards' -j $(NPROC) --output-on-failure
+	cd $(BUILD_FOLDER)/d.$(OS) && ninja
+#	cd $(BUILD_FOLDER)/d.$(OS) && ctest -LE 'slow|kevin_edwards' -j $(NPROC) --output-on-failure
 
 ##########################################################################
 ##########################################################################
