@@ -12,6 +12,7 @@
 
 #if BBCMICRO_TRACE
 
+#include <memory>
 #include <thread>
 #include <atomic>
 
