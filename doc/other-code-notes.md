@@ -129,3 +129,9 @@ Notes:
 1948236  m`$443b: lda $1001 [m`$1001]      A=00 X=04 Y=00 S=fd P=nvdiZc (D=00)
 1948236  read $ad from $443b
 ```
+* Emacs setup
+
+`.dir-locals.el`:
+
+    ((nil . ((compile-command . "cd ~/b2/ && make tom_emacs"))))
+	
