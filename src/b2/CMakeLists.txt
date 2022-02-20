@@ -311,11 +311,11 @@ endif()
 ##########################################################################
 ##########################################################################
 
-if(HAVE_LIBUV)
+if(LibUV_FOUND)
   # Only debugger builds actually use this, but that seems to be a bit
   # of a pain to arrange. Need to check the dead code elimination will
   # just strip all this stuff out...
-  target_link_libraries(b2 PRIVATE uv_a http-parser)
+  target_link_libraries(b2 PRIVATE ${LibUV_LIBRARIES} http-parser)
 endif()
 
 ##########################################################################

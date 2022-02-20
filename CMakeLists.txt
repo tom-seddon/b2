@@ -144,10 +144,7 @@ message(STATUS "libcurl found: ${HAVE_LIBCURL}")
 
 if(USE_SYSTEM_SDL)
 
-  find_package(SDL2)
-  if(NOT SDL2_FOUND)
-    message(FATAL_ERROR "SDL not found - the appropriate package on Ubuntu is libsdl2-dev")
-  endif()
+  find_package(SDL2 REQUIRED)
 
 else()
 
@@ -270,17 +267,22 @@ endif()
 ##########################################################################
 ##########################################################################
 
-set(LIBUVDIR ${CMAKE_CURRENT_SOURCE_DIR}/submodules/libuv)
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/submodules/libuv)
+if(USE_SYSTEM_LIBUV)
+  find_package(LibUV REQUIRED)
+else()
+  add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/submodules/libuv)
 
-# Don't add libuv's tests as a ctest test. The shutdown_eof test fails, for some reason.
+  # Don't add libuv's tests as a ctest test. The shutdown_eof test fails, for some reason.
 
-# add_test(
-#   NAME uv
-#   COMMAND $<TARGET_FILE:run-tests>)
-# set_tests_properties(uv PROPERTIES LABELS slow)
+  # add_test(
+  #   NAME uv
+  #   COMMAND $<TARGET_FILE:run-tests>)
+  # set_tests_properties(uv PROPERTIES LABELS slow)
 
-set(HAVE_LIBUV ON)
+  set(LibUV_FOUND ON)
+  set(LibUV_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/submodules/libuv)
+  set(LibUV_LIBRARIES uv_a)
+endif()
 
 ##########################################################################
 ##########################################################################

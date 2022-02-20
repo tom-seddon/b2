@@ -29,8 +29,8 @@ Video writing on macOS is experimental.
 
 Additional apt package dependencies can be installed with:
 
-    sudo apt-get -y install libcurl4-openssl-dev libgl1-mesa-dev libglvnd-dev libgtk2.0-dev libpulse-dev uuid-dev
-
+    sudo apt-get -y install libcurl4-openssl-dev libgl1-mesa-dev libglvnd-dev libgtk2.0-dev libpulse-dev uuid-dev libsdl2-dev libuv1-dev
+	
 There are additional dependencies for video writing, which are
 optional. The project will build without these, but video writing
 won't be available.

@@ -258,11 +258,11 @@ endif()
 ##########################################################################
 ##########################################################################
 
-if(HAVE_LIBUV)
+if(LibUV_FOUND)
   add_library(http-parser STATIC
     ${CMAKE_CURRENT_SOURCE_DIR}/http-parser/http_parser.c
     ${CMAKE_CURRENT_SOURCE_DIR}/http-parser/http_parser.h)
-  target_link_libraries(http-parser INTERFACE uv_a)
+  target_link_libraries(http-parser INTERFACE ${LibUV_LIBRARIES})
   target_include_directories(http-parser INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/http-parser)
   if(MSVC)
     # C4244: 'conversion' conversion from 'type1' to 'type2', possible loss of data
