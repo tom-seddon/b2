@@ -53,6 +53,7 @@ ifeq ($(UNAME),Linux)
 OS:=linux
 NPROC:=$(shell nproc)
 INSTALLER:=1
+CMAKE_DEFINES:=$(CMAKE_DEFINES) -DUSE_SYSTEM_SDL=1
 include Makefile.unix.mak
 endif
 

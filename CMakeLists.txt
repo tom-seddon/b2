@@ -141,89 +141,100 @@ message(STATUS "libcurl found: ${HAVE_LIBCURL}")
 
 ##########################################################################
 ##########################################################################
-#
-# (Even though SDL is part of submodules, the configuration process
-# sets some variables, so it's massively easier to do it in the
-# top-level CMakeLists.txt.)
-# 
-# Use the SDL submodule, but set the variables up so it looks like it
-# was found by FindSDL2. It doesn't look like the SDL2 cmake build
-# process is designed for this, so this is a bit of a hack.
+
+if(USE_SYSTEM_SDL)
+
+  find_package(SDL2)
+  if(NOT SDL2_FOUND)
+    message(FATAL_ERROR "SDL not found - the appropriate package on Ubuntu is libsdl2-dev")
+  endif()
+
+else()
+
+  # (Even though SDL is part of submodules, the configuration process
+  # sets some variables, so it's massively easier to do it in the
+  # top-level CMakeLists.txt.)
+  # 
+  # Use the SDL submodule, but set the variables up so it looks like it
+  # was found by FindSDL2. It doesn't look like the SDL2 cmake build
+  # process is designed for this, so this is a bit of a hack.
 
 # can't remember what this is for...
-option(LIBC "" ON)
+  option(LIBC "" ON)
 
-set(SDL_SHARED_ENABLED_BY_DEFAULT OFF)
+  set(SDL_SHARED_ENABLED_BY_DEFAULT OFF)
 
-set(SDL__NAME SDL_official)
-set(SDL__SOURCE_DIR ${CMAKE_SOURCE_DIR}/submodules/${SDL__NAME})
+  set(SDL__NAME SDL_official)
+  set(SDL__SOURCE_DIR ${CMAKE_SOURCE_DIR}/submodules/${SDL__NAME})
 
-if(NOT EXISTS ${SDL__SOURCE_DIR}/CMakeLists.txt)
-  message(FATAL_ERROR "SDL not found in folder: " ${SDL__SOURCE_DIR})
-endif()
-
-if(LINUX)
-  # https://github.com/tom-seddon/b2/issues/36
-  pkg_check_modules(B2_PULSEAUDIO libpulse-simple)
-  if(NOT B2_PULSEAUDIO_FOUND)
-    message(FATAL_ERROR "PulseAudio libraries not found - the appropriate package on Ubuntu is libpulse-dev")
+  if(NOT EXISTS ${SDL__SOURCE_DIR}/CMakeLists.txt)
+    message(FATAL_ERROR "SDL not found in folder: " ${SDL__SOURCE_DIR})
   endif()
-endif()
 
-add_subdirectory(${SDL__SOURCE_DIR})
-
-set(SDL2_FOUND ON)
-set(SDL2_LIBRARY SDL2-static SDL2main)
-set(SDL2_INCLUDE_DIR ${CMAKE_BINARY_DIR}/submodules/${SDL__NAME}/include)
-
-# The build process generates an SDL_config.h file that goes in the
-# binary folder, holding all the correct #defines for whatever. The
-# idea seems to be that you then install this (rather than the source
-# SDL_config.h) alongside the other headers in the install folder.
-#
-# You're then supposed to define USING_GENERATED_CONFIG_H, to ensure
-# that the code uses the generated SDL_config.h rather than the
-# original placeholder one in the source tree.
-#
-# But when using the source in-place, the generated SDL_config.h
-# appears to be impossible to access, because all the SDL headers just
-# do ``#include "SDL_config.h"''. So they get the original header.
-#
-# (This doesn't cause much of a problem of Windows or OS X, because
-# the set of libraries is known and there aren't any significant
-# options. But this means a couple of things go missing from the
-# public API on Linux , because it doesn't have the
-# SDL_VIDEO_DRIVER_xxx defines that the generated SDL_config.h
-# includes.)
-#
-# To fix this copy all the relevant SDL include files into the binary
-# folder, as a kind of fake install step, and use that as the include
-# path. Use configure_file so that the source headers are noted as
-# inputs to the build without having to find a project to attach a
-# post-build step to.
-#
-# (cmake re-runs when these files change, but it doesn't necessarily
-# regenerate the Visual Studio projects. So it takes a bit longer than
-# it might, but there are at least no message boxes to click through.)
-
-set(SDL__HEADERS_SRC ${SDL__SOURCE_DIR}/include)
-set(SDL__HEADERS_DEST ${CMAKE_BINARY_DIR}/submodules/${SDL__NAME}/include)
-
-file(GLOB SDL__HEADERS
-  LIST_DIRECTORIES false
-  RELATIVE ${SDL__HEADERS_SRC}
-  ${SDL__HEADERS_SRC}/*.h)
-
-foreach(SDL__HEADER ${SDL__HEADERS})
-  if(NOT SDL__HEADER STREQUAL "SDL_config.h")
-    configure_file(
-      ${SDL__HEADERS_SRC}/${SDL__HEADER}
-      ${SDL__HEADERS_DEST}/${SDL__HEADER}
-      COPYONLY)
+  if(LINUX)
+    # https://github.com/tom-seddon/b2/issues/36
+    pkg_check_modules(B2_PULSEAUDIO libpulse-simple)
+    if(NOT B2_PULSEAUDIO_FOUND)
+      message(FATAL_ERROR "PulseAudio libraries not found - the appropriate package on Ubuntu is libpulse-dev")
+    endif()
   endif()
-endforeach()
 
-set(SDL2_DEFINITIONS -DUSING_GENERATED_CONFIG_H)
+  add_subdirectory(${SDL__SOURCE_DIR})
+
+  set(SDL2_FOUND ON)
+  set(SDL2_LIBRARY SDL2-static SDL2main)
+  set(SDL2_INCLUDE_DIR ${CMAKE_BINARY_DIR}/submodules/${SDL__NAME}/include)
+
+  # The build process generates an SDL_config.h file that goes in the
+  # binary folder, holding all the correct #defines for whatever. The
+  # idea seems to be that you then install this (rather than the source
+  # SDL_config.h) alongside the other headers in the install folder.
+  #
+  # You're then supposed to define USING_GENERATED_CONFIG_H, to ensure
+  # that the code uses the generated SDL_config.h rather than the
+  # original placeholder one in the source tree.
+  #
+  # But when using the source in-place, the generated SDL_config.h
+  # appears to be impossible to access, because all the SDL headers just
+  # do ``#include "SDL_config.h"''. So they get the original header.
+  #
+  # (This doesn't cause much of a problem of Windows or OS X, because
+  # the set of libraries is known and there aren't any significant
+  # options. But this means a couple of things go missing from the
+  # public API on Linux , because it doesn't have the
+  # SDL_VIDEO_DRIVER_xxx defines that the generated SDL_config.h
+  # includes.)
+  #
+  # To fix this copy all the relevant SDL include files into the binary
+  # folder, as a kind of fake install step, and use that as the include
+  # path. Use configure_file so that the source headers are noted as
+  # inputs to the build without having to find a project to attach a
+  # post-build step to.
+  #
+  # (cmake re-runs when these files change, but it doesn't necessarily
+  # regenerate the Visual Studio projects. So it takes a bit longer than
+  # it might, but there are at least no message boxes to click through.)
+
+  set(SDL__HEADERS_SRC ${SDL__SOURCE_DIR}/include)
+  set(SDL__HEADERS_DEST ${CMAKE_BINARY_DIR}/submodules/${SDL__NAME}/include)
+
+  file(GLOB SDL__HEADERS
+    LIST_DIRECTORIES false
+    RELATIVE ${SDL__HEADERS_SRC}
+    ${SDL__HEADERS_SRC}/*.h)
+
+  foreach(SDL__HEADER ${SDL__HEADERS})
+    if(NOT SDL__HEADER STREQUAL "SDL_config.h")
+      configure_file(
+	${SDL__HEADERS_SRC}/${SDL__HEADER}
+	${SDL__HEADERS_DEST}/${SDL__HEADER}
+	COPYONLY)
+    endif()
+  endforeach()
+
+  set(SDL2_DEFINITIONS -DUSING_GENERATED_CONFIG_H)
+
+endif()
 
 ##########################################################################
 ##########################################################################
