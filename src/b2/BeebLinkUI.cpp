@@ -69,7 +69,7 @@ class BeebLinkUI : public SettingsUI {
         }
 
         bool add_new_url = false;
-        if (ImGui::InputText("", m_new_url, sizeof m_new_url, ImGuiInputTextFlags_AutoSelectAll | ImGuiInputTextFlags_EnterReturnsTrue)) {
+        if (ImGui::InputText("##new_url", m_new_url, sizeof m_new_url, ImGuiInputTextFlags_AutoSelectAll | ImGuiInputTextFlags_EnterReturnsTrue)) {
             add_new_url = true;
         }
 
