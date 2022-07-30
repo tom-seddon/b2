@@ -60,8 +60,8 @@ install:
   
 build_script:
   - ps: |
-      Invoke-Expression "$env:PYTHON3 -u ./etc/release/release.py --verbose --timestamp=$env:TIMESTAMP -t ""$env:TOOLCHAIN"" $env:SUFFIX"
-      if($LASTEXITCODE -eq 0) {
+      $result = Invoke-Expression "$env:PYTHON3 -u ./etc/release/release.py --verbose --timestamp=$env:TIMESTAMP -t ""$env:TOOLCHAIN"" $env:SUFFIX"
+      if($result -eq 0) {
         $host.SetShouldExit(0);
       }
 
