@@ -1,6 +1,7 @@
-# Building - macOS/Linux
+# Building - Unix
 
-The build process is somewhat similar on both platforms.
+The Unix build process covers building from the command line (or
+Emacs, vim, etc.) on Unix-type systems, currently macOS and Linux.
 
 I do some of the development on macOS, so that version should work
 well.
@@ -25,7 +26,6 @@ Video writing on macOS is experimental.
 # Linux prerequisites
 
 - gcc and g++, or clang
-- Python 2.x
 
 Additional apt package dependencies can be installed with:
 
