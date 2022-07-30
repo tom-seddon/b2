@@ -22,7 +22,7 @@ install:
         echo 'Windows'
         $env:deploy=$true
         $env:OUTPUT_NAME="build\_Rel\win32\b2-windows-"+$env:SUFFIX+".zip"
-        $env:TOOLCHAIN=vs2019
+        $env:TOOLCHAIN="vs2019"
       } elseif ($env:CI_LINUX -eq $true) {
         echo 'Linux'
         $env:deploy=$false
@@ -47,7 +47,7 @@ install:
         pkg-config --libs libavcodec
       } else {
         echo 'Unknown platform'
-        $env:PLATFORM=unknown
+        $env:PLATFORM="unknown"
         $env:deploy=$false
       }
   - ps: 'dir env:'
@@ -56,7 +56,7 @@ install:
   
 build_script:
   - ps: |
-      python -u ./etc/release/release.py --verbose --timestamp=$env:TIMESTAMP -t "$env:TOOLCHAIN" $env:SUFFIX
+      python3 -u ./etc/release/release.py --verbose --timestamp=$env:TIMESTAMP -t "$env:TOOLCHAIN" $env:SUFFIX
       if($LASTEXITCODE -eq 0) {
         $host.SetShouldExit(0);
       }
