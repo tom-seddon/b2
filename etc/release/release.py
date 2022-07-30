@@ -22,7 +22,7 @@ class Platform:
 PLATFORMS={
     "win32":Platform("win32"),
     "darwin":Platform("osx"),
-    "linux2":Platform("linux")
+    "linux":Platform("linux")
 }
 
 ##########################################################################

@@ -23,7 +23,8 @@ install:
         $env:deploy=$true
         $env:OUTPUT_NAME="build\_Rel\win32\b2-windows-"+$env:SUFFIX+".zip"
         $env:TOOLCHAIN="vs2019"
-        $env:PYTHON3="py -3"
+        $env:PYTHON3="py"
+        $env:PY_PYTHON="3"
       } elseif ($env:CI_LINUX -eq $true) {
         echo 'Linux'
         $env:deploy=$false
@@ -60,8 +61,8 @@ install:
   
 build_script:
   - ps: |
-      $result = Invoke-Expression "$env:PYTHON3 -u ./etc/release/release.py --verbose --timestamp=$env:TIMESTAMP -t ""$env:TOOLCHAIN"" $env:SUFFIX"
-      if($result -eq 0) {
+      & $env:PYTHON3 -u ./etc/release/release.py --verbose --timestamp=$env:TIMESTAMP -t ""$env:TOOLCHAIN"" $env:SUFFIX"
+      if($lastexitcode -eq 0) {
         $host.SetShouldExit(0);
       }
 
