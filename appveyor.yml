@@ -23,12 +23,14 @@ install:
         $env:deploy=$true
         $env:OUTPUT_NAME="build\_Rel\win32\b2-windows-"+$env:SUFFIX+".zip"
         $env:TOOLCHAIN="vs2019"
+        $env:PYTHON3="py -3"
       } elseif ($env:CI_LINUX -eq $true) {
         echo 'Linux'
         $env:deploy=$false
         sudo apt-get -y update
         sudo apt-get -y install libcurl4-openssl-dev libgl1-mesa-dev libglvnd-dev libgtk2.0-dev libpulse-dev uuid-dev
         $env:TOOLCHAIN=''
+        $env:PYTHON3="python3"
       } elseif ($env:CI_MACOS -eq $true) {
         echo 'macOS'
         $env:deploy=$true
@@ -45,10 +47,12 @@ install:
         # ls -l /usr/local/lib/pkgconfig/
         $env:PKG_CONFIG_PATH=$env:PKG_CONFIG_PATH+":/usr/local/lib/pkgconfig"
         pkg-config --libs libavcodec
+        $env:PYTHON3="python3"
       } else {
         echo 'Unknown platform'
         $env:PLATFORM="unknown"
         $env:deploy=$false
+        $env:PYTHON3="python3"
       }
   - ps: 'dir env:'
   - git submodule init
@@ -56,7 +60,7 @@ install:
   
 build_script:
   - ps: |
-      python3 -u ./etc/release/release.py --verbose --timestamp=$env:TIMESTAMP -t "$env:TOOLCHAIN" $env:SUFFIX
+      Invoke-Expression "$env:PYTHON3 -u ./etc/release/release.py --verbose --timestamp=$env:TIMESTAMP -t ""$env:TOOLCHAIN"" $env:SUFFIX"
       if($LASTEXITCODE -eq 0) {
         $host.SetShouldExit(0);
       }
