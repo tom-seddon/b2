@@ -22,3 +22,14 @@ to work in the emulator. Follow the prompts if you want to do this.
 If you'd prefer to deny it access, the Mac's Caps Lock key will simply
 do nothing in b2. The default keyboard settings treat the Page Up key
 as Caps Lock, so you won't lose out in this case.
+
+## Upgrading from an older version of b2
+
+If you granted b2 keystroke access, this setting will get forgotten
+when upgrading to a newer version.
+
+To fix this, go to `System Preferences`, `Security and Privacy`,
+`Privacy` tab, `Input Monitoring`, and remove the entry for `b2` by
+clicking on its row and using the `-` button.
+
+Run it again, and you should get the keystroke access warning.

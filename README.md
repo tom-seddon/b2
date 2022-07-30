@@ -3,20 +3,36 @@
 A cross-platform BBC Micro emulator. Use your Windows/Linux PC or
 macOS computer to play your old BBC games or develop new BBC software.
 
-For Windows and macOS, see the
-[Windows installation instructions](./doc/Installing-on-Windows.md) or
-[macOS installation instructions](./doc/Installing-on-OSX.md). You can
-also follow the [building instructions](./doc/Building.md) to build
-from source.
+## Windows
 
-For Linux, follow the [building instructions](./doc/Building.md) to
-build from source. There is also a [b2 snap](https://snapcraft.io/b2),
-looked after by [Alan Pope](https://github.com/popey/b2-snap/) (this
-is something I approve of, but due to lack of Linux knowledge I can't
-provide any support for it myself).
+See the
+[Windows installation instructions](./doc/Installing-on-Windows.md).
 
-There's a summary of the functionality available once up and running
-in [the overview](./doc/Overview.md).
+You can also follow the [building instructions](./doc/Building.md) to
+build from source.
+
+## macOS
+
+See the [macOS installation instructions](./doc/Installing-on-OSX.md).
+**Please also revisit the installation instructions when upgrading
+from a previous version!**
+
+You can also follow the [building instructions](./doc/Building.md) to
+build from source.
+
+## Linux
+
+Follow the [building instructions](./doc/Building.md) to
+build from source.
+
+There is also a [b2 snap](https://snapcraft.io/b2), looked after by
+[Alan Pope](https://github.com/popey/b2-snap/) - this is something I
+approve of, but due to lack of Linux knowledge I can't provide any
+support for it myself)
+
+# Documentation
+
+See [the overview](./doc/Overview.md).
 
 You can configure how the emulator starts up using the
 [command line options](./doc/Command-Line.md).
