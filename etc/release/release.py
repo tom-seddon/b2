@@ -381,10 +381,17 @@ if __name__=="__main__":
         elif vsver==16: toolchain='vs2019'
         else: toolchain=None
 
-        if toolchain is not None: parser.set_defaults(toolchain=toolchain)
-        else:
-            parser.add_argument('toolchain',
-                                metavar='TOOLCHAIN',
-                                help='toolchain to use. One of: vs2015, vs2017, vs2019')
+        if toolchain is None: help_suffix=''
+        else: help_suffix="Default: ``%s''"%toolchain
+        
+        parser.add_argument('-t','--toolchain',
+                            metavar='TOOLCHAIN',
+                            default=toolchain,
+                            required=toolchain is None,
+                            help='toolchain to use. One of: vs2015, vs2017, vs2019. '+help_suffix)
+    else:
+        parser.add_argument('-t','--toolchain',
+                            metavar='TOOLCHAIN',
+                            help='placeholder, ignored')
     
     main(parser.parse_args(sys.argv[1:]))
