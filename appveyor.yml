@@ -29,7 +29,7 @@ install:
         echo 'Linux'
         $env:deploy=$false
         sudo apt-get -y update
-        sudo apt-get -y install libcurl4-openssl-dev libgl1-mesa-dev libglvnd-dev libgtk2.0-dev libpulse-dev uuid-dev
+        sudo apt-get -y install libcurl4-openssl-dev libgl1-mesa-dev libglvnd-dev libgtk2.0-dev libpulse-dev uuid-dev libsdl2-dev libuv1-dev
         $env:TOOLCHAIN=''
         $env:PYTHON3="python3"
       } elseif ($env:CI_MACOS -eq $true) {
