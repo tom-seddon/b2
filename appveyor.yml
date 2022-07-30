@@ -38,6 +38,8 @@ install:
         $env:OUTPUT_NAME="build/_Rel/osx/b2-osx-"+$env:SUFFIX+".dmg"
         $env:HOMEBREW_NO_AUTO_UPDATE=1
         $env:HOMEBREW_NO_INSTALL_CLEANUP=1
+        # https://github.com/appveyor/ci/issues/3786
+        rm -f /usr/local/include/X11
         brew install ninja
         brew install ffmpeg
         # brew install libav
