@@ -320,13 +320,15 @@ def main(options):
 
     rev_hash=capture(["git","rev-parse","HEAD"])[0]
 
-    if sys.platform=="win32":
+    # TODO: this is a bit ugly! But the options.toolchain dependency
+    # makes it a bit fiddly to have it data-driven.
+    if PLATFORMS[sys.platform].name=="win32":
         init_target='init_%s'%options.toolchain
         build_fun=build_win32
-    elif sys.platform=="darwin":
+    elif PLATFORMS[sys.platform].name=="osx":
         init_target='init'
         build_fun=build_darwin
-    elif sys.platform=="linux2":
+    elif PLATFORMS[sys.platform].name=="linux":
         init_target='init'
         build_fun=build_linux
 
