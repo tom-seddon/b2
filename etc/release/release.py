@@ -140,7 +140,7 @@ def get_win32_build_folder(options,platform):
 def build_win32_config(timings,options,platform,config,colour):
     folder=get_win32_build_folder(options,platform)
     
-    start_time=time.clock()
+    start_time=time.process_time()
     run(["cmd","/c",
          "color","%x"%colour],ignore_errors=True)
     
@@ -162,7 +162,7 @@ def build_win32_config(timings,options,platform,config,colour):
     run(["cmd","/c",
          "color"],ignore_errors=True)
 
-    timings[(platform,config)]=time.clock()-start_time
+    timings[(platform,config)]=time.process_time()-start_time
 
 def build_win32(options,ifolder,rev_hash):
     timings={}
