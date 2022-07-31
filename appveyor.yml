@@ -41,7 +41,7 @@ install:
         # https://github.com/appveyor/ci/issues/3786
         rm -f /usr/local/include/X11
         brew install ninja
-        brew install ffmpeg
+        brew install ffmpeg@4
         # brew install libav
         # which pkg-config
         # pkg-config --variable pc_path pkg-config
