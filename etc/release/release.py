@@ -131,14 +131,13 @@ def create_README(options,folder,rev_hash):
 ##########################################################################
 ##########################################################################
 
-def get_win32_build_folder(options,platform):
-    return '%s/%s%s.%s'%(BUILD_FOLDER,
-                           FOLDER_PREFIX,
-                           platform,
-                           options.toolchain)
+def get_win32_build_folder(options):
+    return '%s/%s%s'%(BUILD_FOLDER,
+                      FOLDER_PREFIX,
+                      options.toolchain)
 
-def build_win32_config(timings,options,platform,config,colour):
-    folder=get_win32_build_folder(options,platform)
+def build_win32_config(timings,options,config,colour):
+    folder=get_win32_build_folder(options)
     
     start_time=time.process_time()
     run(["cmd","/c",
@@ -162,7 +161,7 @@ def build_win32_config(timings,options,platform,config,colour):
     run(["cmd","/c",
          "color"],ignore_errors=True)
 
-    timings[(platform,config)]=time.process_time()-start_time
+    timings[config]=time.process_time()-start_time
 
 def build_win32(options,ifolder,rev_hash):
     timings={}
@@ -172,13 +171,13 @@ def build_win32(options,ifolder,rev_hash):
     makedirs(zip_folder)
 
     if not options.skip_debug:
-        build_win32_config(timings,options,"win64","RelWithDebInfo",0xf0)
+        build_win32_config(timings,options,"RelWithDebInfo",0xf0)
         
-    build_win32_config(timings,options,"win64","Final",0xf4)
+    build_win32_config(timings,options,"Final",0xf4)
 
     print(timings)
 
-    build64=get_win32_build_folder(options,'win64')
+    build64=get_win32_build_folder(options)
 
     shutil.copyfile(os.path.join(build64,
                                  "src/b2/Final/b2.exe"),
