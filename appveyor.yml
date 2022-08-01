@@ -49,6 +49,7 @@ install:
         # ls -l /usr/local/lib/
         # ls -l /usr/local/lib/pkgconfig/
         $env:PKG_CONFIG_PATH=$env:PKG_CONFIG_PATH+"/usr/local/opt/ffmpeg@4/lib/pkgconfig:"
+        pkg-config --cflags libavcodec
         pkg-config --libs libavcodec
         pkg-config --list-all
         $env:PYTHON3="python3"

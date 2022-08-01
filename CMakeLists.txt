@@ -265,6 +265,10 @@ if(LINUX OR OSX)
 
   if(NOT HAVE_FFMPEG)
     message(WARNING "ffmpeg not found - no video writing support")
+  else()
+    message(STATUS "FFMPEG_LIBRARIES: " ${FFMPEG_LIBRARIES})
+    message(STATUS "FFMPEG_INCLUDE_DIRS: " ${FFMPEG_INCLUDE_DIRS})
+    message(STATUS "FFMPEG_DEFINITIONS: " ${FFMPEG_DEFINITIONS})
   endif()
 endif()
 
