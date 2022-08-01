@@ -245,9 +245,10 @@ endif()
 
 # FFmpeg video writer.
 
-if(HAVE_FFMPEG)
+if(FFMPEG_FOUND)
   target_sources(b2 PRIVATE VideoWriterFFmpeg.cpp VideoWriterFFmpeg.h)
-  target_link_libraries(b2 PRIVATE ${FFMPEG_LIBRARIES})
+  target_link_libraries(b2 PRIVATE ${FFMPEG_LINK_LIBRARIES})
+  # target_link_directories(b2 PRIVATE ${FFMPEG_LIBRARY_DIRS})
   target_include_directories(b2 PRIVATE ${FFMPEG_INCLUDE_DIRS})
   target_compile_definitions(b2 PRIVATE ${FFMPEG_DEFINITIONS} -DHAVE_FFMPEG=1)
 endif()

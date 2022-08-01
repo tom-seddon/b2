@@ -1,5 +1,4 @@
 cmake_minimum_required(VERSION 3.9)
-# set(CMAKE_OSX_DEPLOYMENT_TARGET 10.7)
 set(CMAKE_CONFIGURATION_TYPES Debug RelWithDebInfo Final)
 project(b2)
 set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT b2)
@@ -46,11 +45,14 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/submodules/sanitizers-c
 ##########################################################################
 
 if(WIN32)
+  set(USE_SYSTEM_SDL_DEFAULT OFF)
+  set(USE_SYSTEM_LIBUV_DEFAULT OFF)
+  set(USE_SYSTEM_CURL_DEFAULT OFF)
 elseif(${CMAKE_HOST_SYSTEM_NAME} STREQUAL "Darwin")
   set(OSX 1)
 
-  option(USE_SYSTEM_SDL OFF)
-  option(USE_SYSTEM_LIBUV OFF)
+  set(USE_SYSTEM_SDL_DEFAULT OFF)
+  set(USE_SYSTEM_LIBUV_DEFAULT OFF)
 
   # The OS X version works fine when built with the repo's copy of
   # libcurl, and the result is easily stepped through in Xcode - but the
@@ -249,26 +251,56 @@ endif()
 ##########################################################################
 
 if(LINUX OR OSX)
-  # set(FFmpeg_FIND_COMPONENTS AVCODEC AVFORMAT AVUTIL SWRESAMPLE SWSCALE PARENT_SCOPE)
-  find_package(FFmpeg
-    COMPONENTS AVCODEC AVFORMAT AVUTIL SWRESAMPLE SWSCALE)
+  find_package(PkgConfig)
+  if(PKG_CONFIG_FOUND)
+    pkg_check_modules(FFMPEG libavcodec libavformat libavutil libswresample libswscale)
+    if(NOT ${FFMPEG_FOUND})
+      message(STATUS "FFmpeg not found - video writing not available")
+    else()
+      set(FFMPEG__GOOD ON)
 
-  set(HAVE_FFMPEG OFF)
-  if(AVCODEC_VERSION VERSION_LESS 58)
-  elseif(AVFORMAT_VERSION VERSION_LESS 58)
-  elseif(AVUTIL_VERSION VERSION_LESS 56)
-  elseif(SWRESAMPLE_VERSION VERSION_LESS 3)
-  elseif(SWSCALE_VERSION VERSION_LESS 5)
-  else()
-    set(HAVE_FFMPEG ON)
-  endif()
+      set(FFMPEG__AVCODEC_VERSION 58)
+      set(FFMPEG__AVFORMAT_VERSION 58)
+      set(FFMPEG__AVUTIL_VERSION 56)
+      set(FFMPEG__SWRESAMPLE_VERSION 3)
+      set(FFMPEG__SWSCALE_VERSION 5)
 
-  if(NOT HAVE_FFMPEG)
-    message(WARNING "ffmpeg not found - no video writing support")
-  else()
-    message(STATUS "FFMPEG_LIBRARIES: " ${FFMPEG_LIBRARIES})
-    message(STATUS "FFMPEG_INCLUDE_DIRS: " ${FFMPEG_INCLUDE_DIRS})
-    message(STATUS "FFMPEG_DEFINITIONS: " ${FFMPEG_DEFINITIONS})
+      # https://gitlab.kitware.com/cmake/cmake/-/issues/18067 - ridiculous
+      if(NOT FFMPEG_libavcodec_VERSION MATCHES "^58\.")
+	message(WARNING "Unsupported libavcodec major version - need 58")
+	set(FFMPEG__GOOD OFF)
+      endif()
+
+      if(NOT FFMPEG_libavformat_VERSION MATCHES "^58\.")
+	message(WARNING "Unsupported libavformat major version - need 58")
+	set(FFMPEG__GOOD OFF)
+      endif()
+
+      if(NOT FFMPEG_libavutil_VERSION MATCHES "^56\.")
+	message(WARNING "Unsupported libavutil major version - need 56")
+	set(FFMPEG__GOOD OFF)
+      endif()
+
+      if(NOT FFMPEG_libswresample_VERSION MATCHES "^3\.")
+	message(WARNING "Unsupported libswreasmple major version - need 3")
+	set(FFMPEG__GOOD OFF)
+      endif()
+      
+      if(NOT FFMPEG_libswscale_VERSION MATCHES "^5\.")
+	message(WARNING "Unsupported libswscale major version - need 5")
+	set(FFMPEG__GOOD OFF)
+      endif()
+
+      if(FFMPEG__GOOD)
+	message(STATUS "FFmpeg 4 found")
+	message(STATUS "  Libraries: ${FFMPEG_LIBRARIES}")
+	message(STATUS "  Include dirs: ${FFMPEG_INCLUDE_DIRS}")
+	message(STATUS "  Definitions: ${FFMPEG_DEFINITIONS}")
+      else()
+        message(WARNING "FFmpeg 4 required specifically - video writing not available")
+	set(FFMPEG_FOUND OFF)
+      endif()
+    endif()
   endif()
 endif()
 
