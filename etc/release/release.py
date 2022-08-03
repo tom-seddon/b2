@@ -242,7 +242,6 @@ def build_darwin_config(options,config):
 def copy_darwin_app(config,mount,app_name):
     dest=os.path.join(mount,app_name)
     run(["ditto",get_darwin_build_path(config,"src/b2/b2.app"),dest])
-    shutil.copyfile("./etc/release/LICENCE.txt",os.path.join(dest,"Contents/LICENCE.txt"))
 
 def build_darwin(options,ifolder,rev_hash):
     if not options.skip_debug: build_darwin_config(options,"r")

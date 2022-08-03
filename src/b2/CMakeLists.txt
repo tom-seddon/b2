@@ -387,6 +387,13 @@ add_custom_command(
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${FLOPPY_SAMPLES} $<TARGET_FILE_DIR:b2>/${SAMPLES}
   VERBATIM)
 
+if(OSX)
+  add_custom_command(
+    TARGET b2 POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_CURRENT_LIST_DIR}/../../etc/release/LICENCE.txt ../Resources
+    VERBATIM)
+endif()
+
 ##########################################################################
 ##########################################################################
 
