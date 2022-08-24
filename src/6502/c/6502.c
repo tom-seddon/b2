@@ -1062,6 +1062,66 @@ static void Cycle3_Branch(M6502 *s) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+static void Cycle1_RMW_ABX_CMOS(M6502 *s);
+static void Cycle2_RMW_ABX_CMOS(M6502 *s);
+static void Cycle3_RMW_ABX_CMOS(M6502 *s);
+static void Cycle4_RMW_ABX_CMOS(M6502 *s);
+static void Cycle5_RMW_ABX_CMOS(M6502 *s);
+static void Cycle6_RMW_ABX_CMOS(M6502 *s);
+
+// INC/DEC
+static void Cycle0_RMW_ABX_CMOS(M6502 *s) {
+    s->abus.w = s->pc.w++;
+    s->read = M6502ReadType_Instruction;
+    s->tfn = &Cycle1_RMW_ABX_CMOS;
+}
+
+static void Cycle1_RMW_ABX_CMOS(M6502 *s) {
+    s->ad.b.l = s->dbus;
+
+    s->abus.w = s->pc.w++;
+    s->read = M6502ReadType_Instruction;
+    s->tfn = &Cycle2_RMW_ABX_CMOS;
+}
+
+static void Cycle2_RMW_ABX_CMOS(M6502 *s) {
+    s->ad.b.h = s->dbus;
+
+    M6502Word ffa = {s->ad.w + s->x};
+    if (ffa.b.h == s->ad.b.h) {
+        s->abus = ffa;
+    }
+
+    s->read = M6502ReadType_Uninteresting;
+    s->tfn = &Cycle3_RMW_ABX_CMOS;
+}
+
+static void Cycle3_RMW_ABX_CMOS(M6502 *s) {
+    s->abus.w = s->ad.w + s->x;
+    s->read = M6502ReadType_Uninteresting;
+    s->tfn = &Cycle4_RMW_ABX_CMOS;
+}
+
+static void Cycle4_RMW_ABX_CMOS(M6502 *s) {
+    s->read = M6502ReadType_Data;
+    s->tfn = &Cycle5_RMW_ABX_CMOS;
+}
+
+static void Cycle5_RMW_ABX_CMOS(M6502 *s) {
+    s->data = s->dbus;
+    (*s->ifn)(s);
+    s->read = 0;
+    s->dbus = s->data;
+    s->tfn = &Cycle6_RMW_ABX_CMOS;
+}
+
+static void Cycle6_RMW_ABX_CMOS(M6502 *s) {
+    M6502_NextInstruction(s);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 // This slightly unusual case was making the code generator a bit
 // fiddly - so here it is, added by hand.
 

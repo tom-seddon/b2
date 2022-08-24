@@ -913,6 +913,8 @@ class InstrGen {
         } else if (c->addr == "ia+1(nocarry)") {
             P("s->abus=s->ia;\n");
             P("++s->abus.b.l; /* don't fix up the high byte */\n");
+        } else if (c->addr == "pba") {
+            P("/* access PBA */\n");
         } else {
             auto &&it = ADDR_EXPRS.find(c->addr);
             ASSERT(it != ADDR_EXPRS.end());
@@ -1179,17 +1181,25 @@ static std::vector<InstrGen> GetAll() {
     }
 
     // Read-Modify-Write instructions.
-    size_t rmw_idx0 = gs.size();
     {
         G("RMW_ZPG", "Read-modify-write/Zero page", {Ri("pc++", "adl", nullptr), Rd("adl", "data!", nullptr), W("adl", "data!", "call"), W("adl", "data", nullptr)});
 
         G("RMW_ABS", "Read-modify-write/Absolute", {Ri("pc++", "adl", nullptr), Ri("pc++", "adh", nullptr), Rd("ad", "data!", nullptr), W("ad", "data!", "call"), W("ad", "data", nullptr)});
 
-        G("RMW_ZPX", "Read-modify-write/Zero page,X", {Ri("pc++", "adl", nullptr), Ru("adl", "data", nullptr), Rd("adl+index", "data!", nullptr), W("adl+index", "data!", "call"), W("adl+index", "data", nullptr)}, 'x');
+        G("RMW_ZPX", "Read-modify-write/Zero page,X", {Ri("pc++", "adl", nullptr), Ru("adl", "data", nullptr), Rd("adl+index", "data!", nullptr), W("adl+index", "data!", "call"), W("adl+index", "data", nullptr)},
+          'x');
 
-        G("RMW_ABX", "Read-modify-write/Absolute,X", {Ri("pc++", "adl", nullptr), Ri("pc++", "adh", nullptr), Ru("1.ad+index", "data!", nullptr), Rd("2.ad+index", "data!", nullptr), W("2.ad+index", "data!", "call"), W("2.ad+index", "data", nullptr)}, 'x');
+        G("RMW_ABX", "Read-modify-write/Absolute,X",
+          {Ri("pc++", "adl", nullptr),
+           Ri("pc++", "adh", nullptr),
+           Ru("1.ad+index", "data!", nullptr),
+           Rd("2.ad+index", "data!", nullptr),
+           W("2.ad+index", "data!", "call"),
+           W("2.ad+index", "data", nullptr)},
+          'x');
 
-        G("RMW_ABY", "Read-modify-write/Absolute,Y", {Ri("pc++", "adl", nullptr), Ri("pc++", "adh", nullptr), Ru("1.ad+index", "data!", nullptr), Rd("2.ad+index", "data!", nullptr), W("2.ad+index", "data!", "call"), W("2.ad+index", "data", nullptr)}, 'y');
+        G("RMW_ABY", "Read-modify-write/Absolute,Y", {Ri("pc++", "adl", nullptr), Ri("pc++", "adh", nullptr), Ru("1.ad+index", "data!", nullptr), Rd("2.ad+index", "data!", nullptr), W("2.ad+index", "data!", "call"), W("2.ad+index", "data", nullptr)},
+          'y');
 
         G("RMW_INX", "Read-modify-write/Indirect,X", {
                                                          Ri("pc++", "ial", nullptr),    //T2
@@ -1214,21 +1224,42 @@ static std::vector<InstrGen> GetAll() {
           'y');
     }
 
-    // Read-Modify-Write (CMOS).
+    // Read-Modify-Write instructions (CMOS)
     {
-        size_t n = gs.size();
-        for (size_t i = rmw_idx0; i < n; ++i) {
-            InstrGen g_cmos = gs[i];
+        G("RMW_ZPG_CMOS", "Read-modify-write/Zero page (CMOS)", {
+                                                                    Ri("pc++", "adl", nullptr),
+                                                                    Rd("adl", "data!", nullptr),
+                                                                    Ru("adl", "data!", "call"),
+                                                                    W("adl", "data", nullptr),
+                                                                });
 
-            g_cmos.stem += CMOS_FUNCTION_SUFFIX;
-            g_cmos.description += " (CMOS)";
-            ASSERT(g_cmos.cycles.size() >= 2);
-            ASSERT(g_cmos.cycles[g_cmos.cycles.size() - 2].type == Cycle::Type::Write);
-            g_cmos.cycles[g_cmos.cycles.size() - 2].type = Cycle::Type::ReadUninteresting; // but is that really true?
+        G("RMW_ABS_CMOS", "Read-modify-write/Absolute (CMOS)", {Ri("pc++", "adl", nullptr), Ri("pc++", "adh", nullptr), Rd("ad", "data!", nullptr), Ru("ad", "data!", "call"), W("ad", "data", nullptr)});
 
-            gs.push_back(g_cmos);
-        }
+        G("RMW_ZPX_CMOS", "Read-modify-write/Zero page,X (CMOS)", {
+                                                                      Ri("pc++", "adl", nullptr),
+                                                                      Ru("pba", "data!", nullptr),
+                                                                      Rd("adl+index", "data", nullptr),
+                                                                      Ru("adl+index", "data", "call"),
+                                                                      Ru("adl+index", "data", nullptr),
+                                                                  },
+          'x');
     }
+
+    //    // Read-Modify-Write (CMOS).
+    //    {
+    //        size_t n = gs.size();
+    //        for (size_t i = rmw_idx0; i < n; ++i) {
+    //            InstrGen g_cmos = gs[i];
+    //
+    //            g_cmos.stem += CMOS_FUNCTION_SUFFIX;
+    //            g_cmos.description += " (CMOS)";
+    //            ASSERT(g_cmos.cycles.size() >= 2);
+    //            ASSERT(g_cmos.cycles[g_cmos.cycles.size() - 2].type == Cycle::Type::Write);
+    //            g_cmos.cycles[g_cmos.cycles.size() - 2].type = Cycle::Type::ReadUninteresting; // but is that really true?
+    //
+    //            gs.push_back(g_cmos);
+    //        }
+    //    }
 
     // Push instructions.
     {
@@ -1478,7 +1509,7 @@ static bool ReadAdditionalFuns(std::map<std::string, std::map<std::string, std::
         return false;
     }
 
-    std::regex ifn_re("->tfn=&([A-Za-z_][A-Za-z0-9_]*);", std::regex_constants::extended);
+    std::regex ifn_re("->tfn[ ]*=[ ]*&[ ]*([A-Za-z_][A-Za-z0-9_]*);", std::regex_constants::extended);
 
     size_t line_number = 1;
 
