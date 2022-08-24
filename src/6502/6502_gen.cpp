@@ -1122,15 +1122,17 @@ static std::vector<InstrGen> GetAll() {
 
         G("R_INX_BCD_CMOS", "Read/Indirect,X", {Ri("pc++", "ial", nullptr), Ru("ial", "data!", nullptr), Ra("ial+x", "adl", nullptr), Ra("ial+x+1", "adh", nullptr), Rd("ad", "data", "call_bcd_cmos"), Ru("pc", nullptr, nullptr)});
 
-        std::initializer_list<Cycle> r_abs_indexed_bcd_cmos = {
-            Ri("pc++", "adl", nullptr),
-            Ri("pc++", "adh", nullptr),
-            Rn("1.ad+index", "data!", "maybe_call_bcd_cmos"),
-            Rd("2.ad+index", "data", "call_bcd_cmos"),
-            Ru("pc", nullptr, nullptr)};
+        // Turned out annoying enough that it's easiest to fix up by hand.
 
-        G("R_ABX_BCD_CMOS", "Read/Absolute,X", r_abs_indexed_bcd_cmos, 'x');
-        G("R_ABY_BCD_CMOS", "Read/Absolute,Y", r_abs_indexed_bcd_cmos, 'y');
+        //        std::initializer_list<Cycle> r_abs_indexed_bcd_cmos = {
+        //            Ri("pc++", "adl", nullptr),
+        //            Ri("pc++", "adh", nullptr),
+        //            Rn("1.ad+index", "data!", "maybe_call_bcd_cmos"),
+        //            Rd("2.ad+index", "data", "call_bcd_cmos"),
+        //            Ru("pc", nullptr, nullptr)};
+        //
+        //        G("R_ABX_BCD_CMOS", "Read/Absolute,X", r_abs_indexed_bcd_cmos, 'x');
+        //        G("R_ABY_BCD_CMOS", "Read/Absolute,Y", r_abs_indexed_bcd_cmos, 'y');
 
         std::initializer_list<Cycle> r_zpg_indexed_bcd_cmos = {
             Ri("pc++", "adl", nullptr),
@@ -1141,7 +1143,7 @@ static std::vector<InstrGen> GetAll() {
         G("R_ZPX_BCD_CMOS", "Read/Zero page,X", r_zpg_indexed_bcd_cmos, 'x');
         G("R_ZPY_BCD_CMOS", "Read/Zero page,Y", r_zpg_indexed_bcd_cmos, 'y');
 
-        G("R_INY_BCD_CMOS", "Read/Indirect,Y", {Ri("pc++", "ial", nullptr), Ra("ial", "adl", nullptr), Ra("ial+1", "adh", nullptr), Rn("1.ad+index", "data!", "maybe_call_bcd_cmos"), Rd("2.ad+index", "data", "call_bcd_cmos"), Ru("pc", nullptr, nullptr)}, 'y');
+        //        G("R_INY_BCD_CMOS", "Read/Indirect,Y", {Ri("pc++", "ial", nullptr), Ra("ial", "adl", nullptr), Ra("ial+1", "adh", nullptr), Rn("1.ad+index", "data!", "maybe_call_bcd_cmos"), Rd("2.ad+index", "data", "call_bcd_cmos"), Ru("pc", nullptr, nullptr)}, 'y');
 
         G("R_INZ_BCD_CMOS", "Read/Indirect Zero Page", {Ri("pc++", "ial", nullptr), Ra("ial", "adl", nullptr), Ra("ial+1", "adh", nullptr), Rd("ad", "data", "call_bcd_cmos"), Ru("pc", nullptr, nullptr)});
     }
