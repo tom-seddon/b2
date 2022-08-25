@@ -1113,6 +1113,7 @@ static void Cycle5_RMW_ABX_CMOS(M6502 *s) {
     s->read = 0;
     s->dbus = s->data;
     s->tfn = &Cycle6_RMW_ABX_CMOS;
+    CheckForInterrupts(s);
 }
 
 static void Cycle6_RMW_ABX_CMOS(M6502 *s) {
