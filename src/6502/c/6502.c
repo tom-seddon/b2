@@ -1127,86 +1127,85 @@ static void Cycle6_RMW_ABX_CMOS(M6502 *s) {
 
 static void Cycle1_RMW_ABX2_CMOS(M6502 *);
 static void Cycle2_RMW_ABX2_CMOS(M6502 *);
-static void Cycle3_RMW_ABX2_CMOS(M6502 *);
-static void Cycle4_RMW_ABX2_CMOS(M6502 *);
-static void Cycle4or5_RMW_ABX2_CMOS(M6502 *);
-static void Cycle5or6_RMW_ABX2_CMOS(M6502 *);
+static void Cycle3_RMW_ABX2_CMOS_AC0(M6502 *);
+static void Cycle3_RMW_ABX2_CMOS_AC1(M6502 *);
+static void Cycle4_RMW_ABX2_CMOS_AC0(M6502 *);
+static void Cycle4_RMW_ABX2_CMOS_AC1(M6502 *);
+static void Cycle5_RMW_ABX2_CMOS_AC0(M6502 *);
+static void Cycle5_RMW_ABX2_CMOS_AC1(M6502 *);
+static void Cycle6_RMW_ABX2_CMOS_AC1(M6502 *);
 
 static void Cycle0_RMW_ABX2_CMOS(M6502 *s) {
-    /* T0 phase 2 */
-    /* (decode - already done) */
-
-    /* T1 phase 1 */
     s->abus.w = s->pc.w++;
     s->read = M6502ReadType_Instruction;
     s->tfn = &Cycle1_RMW_ABX2_CMOS;
 }
 
 static void Cycle1_RMW_ABX2_CMOS(M6502 *s) {
-    /* T1 phase 2 */
     s->ad.b.l = s->dbus;
 
-    /* T2 phase 1 */
     s->abus.w = s->pc.w++;
     s->read = M6502ReadType_Instruction;
     s->tfn = &Cycle2_RMW_ABX2_CMOS;
 }
 
 static void Cycle2_RMW_ABX2_CMOS(M6502 *s) {
-    /* T2 phase 2 */
-    s->ad.b.h = s->dbus;
+    s->ad.b.h=s->dbus;
 
-    /* T3 phase 1 */
-    s->abus.w = s->ad.b.l + s->x;
-    s->acarry = s->abus.b.h;
-    s->abus.b.h = s->ad.b.h;
-    assert(s->acarry == 0 || s->acarry == 1);
-    s->read = M6502ReadType_Data; //+s->acarry; <-- TODO wtah was this??
-    s->tfn = &Cycle3_RMW_ABX2_CMOS;
-}
-
-static void Cycle3_RMW_ABX2_CMOS(M6502 *s) {
-    /* T3 phase 2 */
-    s->data = s->dbus;
-
-    /* T4 phase 1 */
-    if (!s->acarry) {
-        s->read = M6502ReadType_Data;
-        s->tfn = &Cycle4or5_RMW_ABX2_CMOS;
+    s->read=M6502ReadType_Uninteresting;
+    M6502Word ffa={s->ad.w+s->x};
+    if(ffa.b.h==s->ad.b.h) {
+        s->abus=ffa;
+        s->tfn=&Cycle3_RMW_ABX2_CMOS_AC0;
     } else {
-        s->read = M6502ReadType_Data;
-        s->abus.w = s->ad.w + s->x;
-        s->tfn = &Cycle4_RMW_ABX2_CMOS;
+        s->tfn=&Cycle3_RMW_ABX2_CMOS_AC1;
     }
 }
 
-static void Cycle4_RMW_ABX2_CMOS(M6502 *s) {
-    /* T4 phase 2 */
-    s->data = s->dbus;
-
-    /* T5 phase 1 */
-    s->tfn = &Cycle4or5_RMW_ABX2_CMOS;
+static void Cycle3_RMW_ABX2_CMOS_AC0(M6502 *s) {
+    s->read=M6502ReadType_Data;
+    s->tfn=&Cycle4_RMW_ABX2_CMOS_AC0;
 }
 
-static void Cycle4or5_RMW_ABX2_CMOS(M6502 *s) {
-    /* T(N-2) phase 2 */
+static void Cycle4_RMW_ABX2_CMOS_AC0(M6502 *s) {
     (*s->ifn)(s);
 #ifdef _DEBUG
-    s->ifn = NULL;
+    s->ifn=NULL;
 #endif
 
-    /* T(N-1) phase 1 */
-    s->dbus = s->data;
-    s->abus.w = s->ad.w + s->x;
-    s->read = 0;
-    s->tfn = &Cycle5or6_RMW_ABX2_CMOS;
+    CheckForInterrupts(s);
+    s->read=0;
+    s->tfn=&Cycle5_RMW_ABX2_CMOS_AC0;
+}
+
+static void Cycle5_RMW_ABX2_CMOS_AC0(M6502 *s) {
+    M6502_NextInstruction(s);
+}
+
+static void Cycle3_RMW_ABX2_CMOS_AC1(M6502 *s) {
+    s->read=M6502ReadType_Uninteresting;
+    s->tfn=&Cycle4_RMW_ABX2_CMOS_AC1;
+}
+
+static void Cycle4_RMW_ABX2_CMOS_AC1(M6502 *s) {
+    s->abus.w=s->ad.w+s->x;
+    s->read=M6502ReadType_Data;
+    s->tfn=&Cycle5_RMW_ABX2_CMOS_AC1;
+}
+
+static void Cycle5_RMW_ABX2_CMOS_AC1(M6502 *s) {
+    s->data=s->dbus;
+    (*s->ifn)(s);
+#ifdef _DEBUG
+    s->ifn=NULL;
+#endif
+    s->read=0;
+    s->dbus=s->data;
+    s->tfn=&Cycle6_RMW_ABX2_CMOS_AC1;
     CheckForInterrupts(s);
 }
 
-static void Cycle5or6_RMW_ABX2_CMOS(M6502 *s) {
-    /* T(N-1) phase 2 */
-
-    /* T0 phase 1 */
+static void Cycle6_RMW_ABX2_CMOS_AC1(M6502 *s) {
     M6502_NextInstruction(s);
 }
 
