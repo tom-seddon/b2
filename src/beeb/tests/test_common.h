@@ -15,6 +15,7 @@
 #include <beeb/BBCMicro.h>
 #include <beeb/sound.h>
 #include <string>
+#include <beeb/DiscImage.h>
 
 #include <shared/enum_decl.h>
 #include "test_common.inl"
@@ -36,6 +37,7 @@ class TestBBCMicro : public BBCMicro {
     void StopCaptureOSWRCH();
 
     void LoadFile(const std::string &path, uint16_t addr);
+    void LoadSSD(int drive, const std::string &path);
 
     void RunUntilOSWORD0(double max_num_seconds);
 

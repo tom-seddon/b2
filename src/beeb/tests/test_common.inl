@@ -1,6 +1,7 @@
 #define ENAME TestBBCMicroType
 EBEGIN()
 EPN(BTape)
+EPN(BAcorn1770DFS)
 EPN(BPlusTape)
 EPN(Master128MOS320)
 EPN(Master128MOS350)

@@ -6,6 +6,8 @@
 #include <beeb/SaveTrace.h>
 #include <beeb/TVOutput.h>
 #include <shared/log.h>
+#include <beeb/DiscImage.h>
+#include <shared/sha1.h>
 
 #ifdef __GNUC__
 #pragma GCC diagnostic push
@@ -167,6 +169,212 @@ bool SaveTextFile(const std::string &contents, const std::string &path) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+class TestDiscImage : public DiscImage {
+  public:
+    TestDiscImage(std::string name, std::vector<uint8_t> contents);
+
+    std::shared_ptr<DiscImage> Clone() const override;
+    std::string GetHash() const override;
+    std::string GetName() const override;
+    std::string GetLoadMethod() const override;
+    std::string GetDescription() const override;
+    void AddFileDialogFilter(FileDialog *fd) const override;
+    bool SaveToFile(const std::string &file_name, Messages *msg) const override;
+    bool Read(uint8_t *value,
+              uint8_t side,
+              uint8_t track,
+              uint8_t sector,
+              size_t offset) const override;
+    bool Write(uint8_t side,
+               uint8_t track,
+               uint8_t sector,
+               size_t offset,
+               uint8_t value) override;
+    bool GetDiscSectorSize(size_t *size,
+                           uint8_t side,
+                           uint8_t track,
+                           uint8_t sector,
+                           bool double_density) const override;
+    bool IsWriteProtected() const override;
+
+  protected:
+  private:
+    std::string m_name;
+    std::vector<uint8_t> m_contents;
+
+    bool GetByteIndex(size_t *index,
+                      uint8_t side,
+                      uint8_t track,
+                      uint8_t sector,
+                      size_t offset) const;
+};
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+TestDiscImage::TestDiscImage(std::string name, std::vector<uint8_t> contents)
+    : m_name(std::move(name))
+    , m_contents(std::move(contents)) {
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+std::shared_ptr<DiscImage> TestDiscImage::Clone() const {
+    return nullptr;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+std::string TestDiscImage::GetHash() const {
+    char hash_str[SHA1::DIGEST_STR_SIZE];
+    SHA1::HashBuffer(nullptr, hash_str, m_contents.data(), m_contents.size());
+
+    return hash_str;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+std::string TestDiscImage::GetName() const {
+    return m_name;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+std::string TestDiscImage::GetLoadMethod() const {
+    return "test";
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+std::string TestDiscImage::GetDescription() const {
+    return "";
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void TestDiscImage::AddFileDialogFilter(FileDialog *fd) const {
+    (void)fd;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool TestDiscImage::SaveToFile(const std::string &file_name, Messages *msg) const {
+    (void)file_name, (void)msg;
+
+    return false;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool TestDiscImage::Read(uint8_t *value,
+                         uint8_t side,
+                         uint8_t track,
+                         uint8_t sector,
+                         size_t offset) const {
+    size_t index;
+    if (!this->GetByteIndex(&index, side, track, sector, offset)) {
+        return false;
+    }
+
+    if (index >= m_contents.size()) {
+        *value = 0;
+    } else {
+        *value = m_contents[index];
+    }
+
+    return true;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool TestDiscImage::Write(uint8_t side,
+                          uint8_t track,
+                          uint8_t sector,
+                          size_t offset,
+                          uint8_t value) {
+    size_t index;
+    if (!this->GetByteIndex(&index, side, track, sector, offset)) {
+        return false;
+    }
+
+    if (index >= m_contents.size()) {
+        m_contents.resize(index + 1);
+    }
+
+    m_contents[index] = value;
+    return true;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool TestDiscImage::GetDiscSectorSize(size_t *size,
+                                      uint8_t side,
+                                      uint8_t track,
+                                      uint8_t sector,
+                                      bool double_density) const {
+    if (double_density) {
+        return false;
+    }
+
+    if (!this->GetByteIndex(nullptr, side, track, sector, 0)) {
+        return false;
+    }
+
+    *size=256;
+    return true;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool TestDiscImage::IsWriteProtected() const {
+    return false;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool TestDiscImage::GetByteIndex(size_t *index,
+                                 uint8_t side,
+                                 uint8_t track,
+                                 uint8_t sector,
+                                 size_t offset) const {
+    if (side != 0) {
+        return false;
+    }
+
+    if (track > 80) {
+        return false;
+    }
+
+    if (sector > 10) {
+        return false;
+    }
+
+    if (offset > 256) {
+        return false;
+    }
+
+    if (index) {
+        *index = (track * 10 + sector) * 256 + offset;
+    }
+
+    return true;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 static std::shared_ptr<const BBCMicro::ROMData> LoadROM(const std::string &name) {
     std::string path = PathJoined(ROMS_FOLDER, name);
 
@@ -189,6 +397,7 @@ static std::shared_ptr<const BBCMicro::ROMData> LoadROM(const std::string &name)
 static const BBCMicroType *GetBBCMicroType(TestBBCMicroType type) {
     switch (type) {
     case TestBBCMicroType_BTape:
+    case TestBBCMicroType_BAcorn1770DFS:
         return &BBC_MICRO_TYPE_B;
 
     case TestBBCMicroType_BPlusTape:
@@ -211,6 +420,9 @@ static const DiscInterfaceDef *GetDiscInterfaceDef(TestBBCMicroType type) {
     case TestBBCMicroType_BTape:
     case TestBBCMicroType_BPlusTape:
         return nullptr;
+
+    case TestBBCMicroType_BAcorn1770DFS:
+        return &DISC_INTERFACE_ACORN_1770;
 
     case TestBBCMicroType_Master128MOS320:
     case TestBBCMicroType_Master128MOS350:
@@ -282,6 +494,11 @@ TestBBCMicro::TestBBCMicro(TestBBCMicroType type)
         this->LoadROMsB();
         break;
 
+    case TestBBCMicroType_BAcorn1770DFS:
+        this->LoadROMsB();
+        this->SetSidewaysROM(14, LoadROM("acorn/DFS-2.26.rom"));
+        break;
+
     case TestBBCMicroType_BPlusTape:
         this->LoadROMsBPlus();
         break;
@@ -328,6 +545,15 @@ void TestBBCMicro::LoadFile(const std::string &path, uint16_t addr) {
     for (size_t i = 0; i < contents.size(); ++i) {
         this->TestSetByte((uint16_t)(addr + i), contents[i]);
     }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void TestBBCMicro::LoadSSD(int drive, const std::string &path) {
+    std::vector<uint8_t> contents;
+    TEST_TRUE(PathLoadBinaryFile(&contents, path));
+    this->SetDiscImage(drive, std::make_shared<TestDiscImage>(path, std::move(contents)));
 }
 
 //////////////////////////////////////////////////////////////////////////
