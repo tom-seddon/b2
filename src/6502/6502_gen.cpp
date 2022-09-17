@@ -351,8 +351,9 @@ class Instr {
                             // The ifun is different too. The flags are
                             // set differently.
                             *ifun += CMOS_FUNCTION_SUFFIX;
-                        } else if (type == InstrType_RMW) {
-                            // Last two cycles are RW rather than WW.
+                        } else if ((type == InstrType_RMW) ||
+                                   (type == InstrType_W && (m == Mode_Abx || m == Mode_Aby)) ||
+                                   (type == InstrType_R && (m == Mode_Abx || m == Mode_Aby))) {
                             *tfun = CMOS_FUNCTION_SUFFIX;
                         }
                     }
@@ -1240,7 +1241,7 @@ static std::vector<InstrGen> GetAll() {
                                                                       Ru("pba", "data!", nullptr),
                                                                       Rd("adl+index", "data", nullptr),
                                                                       Ru("adl+index", "data", "call"),
-                                                                      Ru("adl+index", "data", nullptr),
+                                                                      W("adl+index", "data", nullptr),
                                                                   },
           'x');
     }
@@ -1306,7 +1307,8 @@ static std::vector<InstrGen> GetAll() {
 
         G("R_NOP24_CMOS", "CMOS NOP (2 bytes, 4 cycles)", {Ri("pc", "data", nullptr), Ri("pc", "data", nullptr), Ri("pc++", "data", nullptr)});
 
-        G("R_NOP34_CMOS", "CMOS NOP (3 bytes, 4 cycles)", {Ri("pc", "data", nullptr), Ri("pc++", "data", nullptr), Ri("pc++", "data", nullptr)});
+        //G("RMW_ABS", "Read-modify-write/Absolute", {Ri("pc++", "adl", nullptr), Ri("pc++", "adh", nullptr), Rd("ad", "data!", nullptr), W("ad", "data!", "call"), W("ad", "data", nullptr)});
+        G("R_NOP34_CMOS", "CMOS NOP (3 bytes, 4 cycles)", {Ri("pc++", "adl", nullptr), Ri("pc++", "adh", nullptr), Ri("ad", "data!", nullptr)});
 
         G("R_NOP38_CMOS", "CMOS NOP (3 bytes, 8 cycles)", {Ri("pc", "data", nullptr), Ri("pc", "data", nullptr), Ri("pc", "data", nullptr), Ri("pc", "data", nullptr), Ri("pc", "data", nullptr), Ri("pc++", "data", nullptr), Ri("pc++", "data", nullptr)});
     }
