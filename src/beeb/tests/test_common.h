@@ -155,6 +155,8 @@ static bool SaveBinaryFile(const T &contents, const std::string &path) {
 
 bool SaveTextFile(const std::string &contents, const std::string &path);
 
+std::string GetPrintable(const std::string &bbc_output);
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 

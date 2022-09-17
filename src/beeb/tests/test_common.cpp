@@ -870,7 +870,7 @@ bool TestBBCMicro::GotOSCLI() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static std::string GetPrintable(const std::string &bbc_output) {
+std::string GetPrintable(const std::string &bbc_output) {
     std::string r;
 
     for (char c : bbc_output) {

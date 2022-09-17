@@ -153,3 +153,24 @@ endfunction()
 add_teletest_test(engtest)
 add_teletest_test(parrot)
 add_teletest_test(teletst)
+
+##########################################################################
+##########################################################################
+
+function(add_dp111_6502Timing_test stem bbc_type)
+  set(target test_dp111_${stem})
+  add_executable(${target} test_dp111_6502Timing.cpp)
+  target_compile_definitions(${target} PRIVATE
+    -DSSD_PATH="${b2_SOURCE_DIR}/submodules/6502Timing/${stem}.ssd"
+    -DBBC_TYPE=TestBBCMicroType_${bbc_type})
+  target_link_libraries(${target} PRIVATE shared_lib 6502_lib beeb_lib)
+  test_target_boilerplate(${target})
+endfunction()
+
+add_dp111_6502Timing_test(6502timing BAcorn1770DFS)
+add_dp111_6502Timing_test(6502timing1M BAcorn1770DFS)
+add_dp111_6502Timing_test(65C12timing Master128MOS320)
+add_dp111_6502Timing_test(65C12timing1M Master128MOS320)
+
+##########################################################################
+##########################################################################
