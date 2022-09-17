@@ -64,3 +64,6 @@
 [submodule "submodules/SDL_official"]
 	path = submodules/SDL_official
 	url = https://github.com/tom-seddon/SDL-1
+[submodule "submodules/6502Timing"]
+	path = submodules/6502Timing
+	url = https://github.com/dp111/6502Timing
