@@ -330,7 +330,7 @@ bool TestDiscImage::GetDiscSectorSize(size_t *size,
         return false;
     }
 
-    *size=256;
+    *size = 256;
     return true;
 }
 

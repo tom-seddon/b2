@@ -2806,18 +2806,18 @@ BBCMicro::DiscDrive *BBCMicro::GetDiscDrive() {
 
 #if BBCMICRO_ENABLE_DISC_DRIVE_SOUND
 void BBCMicro::InitDiscDriveSounds(DiscDriveType type) {
-    for(size_t i=0;i<DiscDriveSound_EndValue; ++i) {
-        m_disc_drive_sounds[i]=&DUMMY_DISC_DRIVE_SOUND;
+    for (size_t i = 0; i < DiscDriveSound_EndValue; ++i) {
+        m_disc_drive_sounds[i] = &DUMMY_DISC_DRIVE_SOUND;
     }
-    
+
     auto &&it = g_disc_drive_sounds.find(type);
     if (it == g_disc_drive_sounds.end()) {
         return;
     }
 
     for (size_t i = 0; i < DiscDriveSound_EndValue; ++i) {
-        if(!it->second[i].empty()) {
-        m_disc_drive_sounds[i] = &it->second[i];
+        if (!it->second[i].empty()) {
+            m_disc_drive_sounds[i] = &it->second[i];
         }
     }
 }
