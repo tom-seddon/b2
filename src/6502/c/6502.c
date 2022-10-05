@@ -2214,40 +2214,40 @@ static void Cycle6_R_INY_BCD_CMOS_D1_AC1(M6502 *s) {
 
 // http://visual6502.org/JSSim/expert.html?graphics=f&loglevel=2&steps=40&a=fffc&d=0043&a=0010&d=fefcfffc&a=4300&d=a910a201a00193109312
 
-static void Cycle1_W_INY_AHX_NMOS(M6502 *s);
-static void Cycle2_W_INY_AHX_NMOS(M6502 *s);
-static void Cycle3_W_INY_AHX_NMOS(M6502 *s);
-static void Cycle4_W_INY_AHX_NMOS(M6502 *s);
-static void Cycle5_W_INY_AHX_NMOS(M6502 *s);
+static void Cycle1_W_INY_BROKEN_NMOS(M6502 *s);
+static void Cycle2_W_INY_BROKEN_NMOS(M6502 *s);
+static void Cycle3_W_INY_BROKEN_NMOS(M6502 *s);
+static void Cycle4_W_INY_BROKEN_NMOS(M6502 *s);
+static void Cycle5_W_INY_BROKEN_NMOS(M6502 *s);
 
-static void Cycle0_W_INY_AHX_NMOS(M6502 *s) {
+static void Cycle0_W_INY_BROKEN_NMOS(M6502 *s) {
     s->abus.w = s->pc.w++;
     s->read = M6502ReadType_Instruction;
-    s->tfn = &Cycle1_W_INY_AHX_NMOS;
+    s->tfn = &Cycle1_W_INY_BROKEN_NMOS;
 }
 
-static void Cycle1_W_INY_AHX_NMOS(M6502 *s) {
+static void Cycle1_W_INY_BROKEN_NMOS(M6502 *s) {
     s->ia.b.l = s->dbus;
     s->abus.w = s->ia.b.l;
     s->read = M6502ReadType_Address;
-    s->tfn = &Cycle2_W_INY_AHX_NMOS;
+    s->tfn = &Cycle2_W_INY_BROKEN_NMOS;
 }
 
-static void Cycle2_W_INY_AHX_NMOS(M6502 *s) {
+static void Cycle2_W_INY_BROKEN_NMOS(M6502 *s) {
     s->ad.b.l = s->dbus;
     s->abus.b.l = s->ia.b.l + 1;
-    s->tfn = &Cycle3_W_INY_AHX_NMOS;
+    s->tfn = &Cycle3_W_INY_BROKEN_NMOS;
 }
 
-static void Cycle3_W_INY_AHX_NMOS(M6502 *s) {
+static void Cycle3_W_INY_BROKEN_NMOS(M6502 *s) {
     s->ad.b.h = s->dbus;
     s->abus.b.l = s->ad.b.l + s->y;
     s->abus.b.h = s->ad.b.h;
     s->read = M6502ReadType_Uninteresting;
-    s->tfn = &Cycle4_W_INY_AHX_NMOS;
+    s->tfn = &Cycle4_W_INY_BROKEN_NMOS;
 }
 
-static void Cycle4_W_INY_AHX_NMOS(M6502 *s) {
+static void Cycle4_W_INY_BROKEN_NMOS(M6502 *s) {
     (*s->ifn)(s);
 #ifdef _DEBUG
     s->ifn = NULL;
@@ -2262,11 +2262,119 @@ static void Cycle4_W_INY_AHX_NMOS(M6502 *s) {
     }
     s->dbus = s->data;
     s->read = 0;
-    s->tfn = &Cycle5_W_INY_AHX_NMOS;
+    s->tfn = &Cycle5_W_INY_BROKEN_NMOS;
     CheckForInterrupts(s);
 }
 
-static void Cycle5_W_INY_AHX_NMOS(M6502 *s) {
+static void Cycle5_W_INY_BROKEN_NMOS(M6502 *s) {
+    M6502_NextInstruction(s);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+// Broken variant that doesn't handle page crossing properly. Make the dp111
+// timing test pass.
+
+static void Cycle1_W_ABX_BROKEN_NMOS(M6502 *s);
+static void Cycle2_W_ABX_BROKEN_NMOS(M6502 *s);
+static void Cycle3_W_ABX_BROKEN_NMOS(M6502 *s);
+static void Cycle4_W_ABX_BROKEN_NMOS(M6502 *s);
+
+static void Cycle0_W_ABX_BROKEN_NMOS(M6502 *s) {
+    s->abus.w = s->pc.w++;
+    s->read = M6502ReadType_Instruction;
+    s->tfn = &Cycle1_W_ABX_BROKEN_NMOS;
+}
+
+static void Cycle1_W_ABX_BROKEN_NMOS(M6502 *s) {
+    s->ad.b.l = s->dbus;
+    s->abus.w = s->pc.w++;
+    s->tfn = &Cycle2_W_ABX_BROKEN_NMOS;
+}
+
+static void Cycle2_W_ABX_BROKEN_NMOS(M6502 *s) {
+    s->ad.b.h = s->dbus;
+    s->abus.b.l = s->ad.b.l + s->x;
+    s->abus.b.h = s->ad.b.h;
+    s->read = M6502ReadType_Uninteresting;
+    s->tfn = &Cycle3_W_ABX_BROKEN_NMOS;
+}
+
+static void Cycle3_W_ABX_BROKEN_NMOS(M6502 *s) {
+    (*s->ifn)(s);
+#ifdef _DEBUG
+    s->ifn = NULL;
+#endif
+    M6502Word ffa = {s->ad.w + s->x};
+    if (ffa.b.h == s->ad.b.h) {
+        s->abus = ffa;
+    } else {
+        // Broken page crossing.
+        s->abus.b.l = ffa.b.l;
+        s->abus.b.h = s->data;
+    }
+    s->dbus = s->data;
+    s->read = 0;
+    s->tfn = &Cycle4_W_ABX_BROKEN_NMOS;
+    CheckForInterrupts(s);
+}
+
+static void Cycle4_W_ABX_BROKEN_NMOS(M6502 *s) {
+    M6502_NextInstruction(s);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+// Broken variant that doesn't handle page crossing properly. Make the dp111
+// timing test pass.
+
+static void Cycle1_W_ABY_BROKEN_NMOS(M6502 *s);
+static void Cycle2_W_ABY_BROKEN_NMOS(M6502 *s);
+static void Cycle3_W_ABY_BROKEN_NMOS(M6502 *s);
+static void Cycle4_W_ABY_BROKEN_NMOS(M6502 *s);
+
+static void Cycle0_W_ABY_BROKEN_NMOS(M6502 *s) {
+    s->abus.w = s->pc.w++;
+    s->read = M6502ReadType_Instruction;
+    s->tfn = &Cycle1_W_ABY_BROKEN_NMOS;
+}
+
+static void Cycle1_W_ABY_BROKEN_NMOS(M6502 *s) {
+    s->ad.b.l = s->dbus;
+    s->abus.w = s->pc.w++;
+    s->tfn = &Cycle2_W_ABY_BROKEN_NMOS;
+}
+
+static void Cycle2_W_ABY_BROKEN_NMOS(M6502 *s) {
+    s->ad.b.h = s->dbus;
+    s->abus.b.l = s->ad.b.l + s->y;
+    s->abus.b.h = s->ad.b.h;
+    s->read = M6502ReadType_Uninteresting;
+    s->tfn = &Cycle3_W_ABY_BROKEN_NMOS;
+}
+
+static void Cycle3_W_ABY_BROKEN_NMOS(M6502 *s) {
+    (*s->ifn)(s);
+#ifdef _DEBUG
+    s->ifn = NULL;
+#endif
+    M6502Word ffa = {s->ad.w + s->y};
+    if (ffa.b.h == s->ad.b.h) {
+        s->abus = ffa;
+    } else {
+        // Broken page crossing.
+        s->abus.b.l = ffa.b.l;
+        s->abus.b.h = s->data;
+    }
+    s->dbus = s->data;
+    s->read = 0;
+    s->tfn = &Cycle4_W_ABY_BROKEN_NMOS;
+    CheckForInterrupts(s);
+}
+
+static void Cycle4_W_ABY_BROKEN_NMOS(M6502 *s) {
     M6502_NextInstruction(s);
 }
 

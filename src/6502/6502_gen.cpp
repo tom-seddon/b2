@@ -254,7 +254,13 @@ class Instr {
         case Mode_Nop38_CMOS:
             return Mode_Abs;
 
-        case Mode_Iny_AHX_NMOS:
+        case Mode_Abx_Broken_NMOS:
+            return Mode_Abx;
+
+        case Mode_Aby_Broken_NMOS:
+            return Mode_Aby;
+
+        case Mode_Iny_Broken_NMOS:
             return Mode_Iny;
         }
     }
@@ -269,7 +275,7 @@ class Instr {
         case Mode_Imm:
         case Mode_Inx:
         case Mode_Iny:
-        case Mode_Iny_AHX_NMOS:
+        case Mode_Iny_Broken_NMOS:
         case Mode_Inz:
         case Mode_Rel:
         case Mode_Zpg:
@@ -283,6 +289,8 @@ class Instr {
         case Mode_Abs:
         case Mode_Abx:
         case Mode_Aby:
+        case Mode_Abx_Broken_NMOS:
+        case Mode_Aby_Broken_NMOS:
         case Mode_Ind:
         case Mode_Indx:
         case Mode_Nop34_CMOS:
@@ -625,11 +633,11 @@ static std::map<uint8_t, Instr> GetUndefinedInstructions() {
     I(0x8b, "xaa", Imm);
     I(0xab, "lxa", Imm);
     I(0xcb, "axs", Imm);
-    I(0x93, "ahx", Iny_AHX_NMOS);
-    I(0x9f, "ahx", Aby);
-    I(0x9c, "shy", Abx);
-    I(0x9e, "shx", Aby);
-    I(0x9b, "tas", Aby);
+    I(0x93, "ahx", Iny_Broken_NMOS);
+    I(0x9f, "ahx", Aby_Broken_NMOS);
+    I(0x9c, "shy", Abx_Broken_NMOS);
+    I(0x9e, "shx", Aby_Broken_NMOS);
+    I(0x9b, "tas", Aby_Broken_NMOS);
     I(0x0b, "anc", Imm);
     I(0x2b, "anc", Imm);
     I(0xbb, "las", Aby);

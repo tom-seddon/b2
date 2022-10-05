@@ -45,7 +45,9 @@ EPN(Nop24_CMOS)
 EPN(Nop34_CMOS)
 EPN(Nop38_CMOS)
 EPN(Abx2_CMOS)
-EPN(Iny_AHX_NMOS)
+EPN(Abx_Broken_NMOS)
+EPN(Aby_Broken_NMOS)
+EPN(Iny_Broken_NMOS)
 EEND()
 #undef ENAME
 
