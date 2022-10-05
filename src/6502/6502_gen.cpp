@@ -253,6 +253,9 @@ class Instr {
         case Mode_Nop34_CMOS:
         case Mode_Nop38_CMOS:
             return Mode_Abs;
+
+        case Mode_Iny_AHX_NMOS:
+            return Mode_Iny;
         }
     }
 
@@ -266,6 +269,7 @@ class Instr {
         case Mode_Imm:
         case Mode_Inx:
         case Mode_Iny:
+        case Mode_Iny_AHX_NMOS:
         case Mode_Inz:
         case Mode_Rel:
         case Mode_Zpg:
@@ -621,7 +625,7 @@ static std::map<uint8_t, Instr> GetUndefinedInstructions() {
     I(0x8b, "xaa", Imm);
     I(0xab, "lxa", Imm);
     I(0xcb, "axs", Imm);
-    I(0x93, "ahx", Iny);
+    I(0x93, "ahx", Iny_AHX_NMOS);
     I(0x9f, "ahx", Aby);
     I(0x9c, "shy", Abx);
     I(0x9e, "shx", Aby);
