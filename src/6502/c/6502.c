@@ -830,7 +830,7 @@ static void DCP(M6502 *s) {
 }
 
 /* RMW */
-static void ISC(M6502 *s) {
+static void ISB(M6502 *s) {
     INC(s);
     SBC(s);
 }
@@ -847,7 +847,7 @@ static void SAX(M6502 *s) {
 }
 
 /* Read */
-static void ALR(M6502 *s) {
+static void ASR(M6502 *s) {
     AND(s);
     LSRA(s);
 }
@@ -897,7 +897,7 @@ static void ARR(M6502 *s) {
  * constant here is 0xEE, which makes it pass the Lorenz test suite.
  * Perhaps this ought to be configurable.
  */
-static void XAA(M6502 *s) {
+static void ANE(M6502 *s) {
     s->a = (s->a | s->config->xaa_magic) & s->x & s->data;
     SetNZ(s, s->a);
 }
@@ -911,14 +911,14 @@ static void LXA(M6502 *s) {
 }
 
 /* Read */
-static void AXS(M6502 *s) {
+static void SBX(M6502 *s) {
     uint8_t lhs = s->a & s->x;
     s->x = lhs - s->data;
     DoCMP(s, lhs);
 }
 
-/* Read */
-static void AHX(M6502 *s) {
+/* Write */
+static void SHA(M6502 *s) {
     s->data = s->a & s->x & (s->ad.b.h + 1);
 }
 
@@ -933,7 +933,7 @@ static void SHY(M6502 *s) {
 }
 
 /* Write */
-static void TAS(M6502 *s) {
+static void SHS(M6502 *s) {
     s->s.b.l = s->a & s->x;
     s->data = s->a & s->x & (s->ad.b.h + 1);
 }
@@ -944,7 +944,7 @@ static void ANC(M6502 *s) {
     s->p.bits.c = s->p.bits.n;
 }
 
-static void LAS(M6502 *s) {
+static void LDS(M6502 *s) {
     s->s.b.l = s->x = s->a = s->s.b.l & s->data;
     SetNZ(s, s->a);
 }
