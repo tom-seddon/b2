@@ -75,11 +75,11 @@ static void DumpStackTrace(const char *function) {
 //////////////////////////////////////////////////////////////////////////
 
 void LogAssertFailed(const char *file, int line, const char *function, const char *expr) {
-    fprintf(stderr, "%s:%d: assertion failed: %s\n", file, line, expr);
+    fprintf(stderr, PRIfileline " assertion failed: %s\n", file, line, expr);
 
     DumpStackTrace(function);
 
-    fprintf(stderr, "%s:%d: assertion failed: %s\n", file, line, expr);
+    fprintf(stderr, PRIfileline " assertion failed: %s\n", file, line, expr);
     fflush(stderr);
 }
 

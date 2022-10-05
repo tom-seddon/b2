@@ -107,11 +107,7 @@ void TestFailed(const char *file, int line, const TestFailArgs *tfa) {
         (*ff.fn)(&tmp_tfa);
     }
 
-#ifdef _MSC_VER
-    LOGF(TESTING, "%s(%d): test failure:\n", file, line);
-#else
-    LOGF(TESTING, "%s:%d: test failure:\n", file, line);
-#endif
+    LOGF(TESTING, PRIfileline " test failure:\n", file, line);
 }
 
 //////////////////////////////////////////////////////////////////////////
