@@ -22,6 +22,10 @@ extern "C" {
 
 LOG_DEFINE(DEBUG, "", &log_printer_stdout_and_debugger);
 
+#ifndef VISUAL6502_PATH
+#error
+#endif
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 //
@@ -782,16 +786,7 @@ static void AddTC(const char *fmt, ...) {
     va_end(v);
 
     // Not very clever.
-#if SYSTEM_WINDOWS
-    tc.url = GetTCURL("file:///C:/tom/github/visual6502/expert.html");
-#else
-    const char *home = getenv("HOME");
-    if (!home) {
-        home = "";
-    }
-    tc.url = GetTCURL("file:///" + PathJoined(home, "github/visual6502/expert.html"));
-#endif
-
+    tc.url = GetTCURL("file:///" VISUAL6502_PATH "/expert.html");
     g_test_cases.push_back(tc);
 }
 

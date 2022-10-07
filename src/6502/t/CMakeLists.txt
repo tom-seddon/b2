@@ -45,6 +45,7 @@ set_tests_properties(klaus PROPERTIES LABELS slow)
 ##########################################################################
 
 add_executable(visual6502 visual6502.cpp)
+target_compile_definitions(visual6502 PRIVATE -DVISUAL6502_PATH="${b2_SOURCE_DIR}/submodules/visual6502")
 target_link_libraries(visual6502 PRIVATE shared_lib 6502_lib perfect6502_lib)
 add_sanitizers(visual6502)
 
