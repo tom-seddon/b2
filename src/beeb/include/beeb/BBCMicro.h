@@ -419,7 +419,6 @@ class BBCMicro : private WD1770Handler {
     void DebugGetBytes(uint8_t *bytes, size_t num_bytes, M6502Word addr, uint32_t dpo);
     void DebugSetBytes(M6502Word addr, uint32_t dpo, const uint8_t *bytes, size_t num_bytes);
 
-    void SetMemory(M6502Word addr, uint8_t value);
     void SetExtMemory(uint32_t addr, uint8_t value);
 
     void DebugHalt(const char *fmt, ...) PRINTF_LIKE(2, 3);
