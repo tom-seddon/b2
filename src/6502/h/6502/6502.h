@@ -174,13 +174,13 @@ typedef struct M6502Config M6502Config;
  * (The M6502 object's ill_fn will never be called; as on a real 6502,
  * every instruction does something.)
  */
-extern const M6502Config M6502_defined_config;
+extern const M6502Config M6502_nmos6502_config;
 
 /* Config for a 6502 that only executes the defined instructions. If
  * an undefined instruction is encountered, the M6502 object's ill_fn
  * will be called.
  */
-extern const M6502Config M6502_nmos6502_config;
+extern const M6502Config M6502_defined_config;
 
 /* Config for a 65C02. This does the standard CMOS bits, but not the
  * Rockwell or WDC bits.
