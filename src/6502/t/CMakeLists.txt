@@ -56,3 +56,13 @@ set_tests_properties(visual6502 PROPERTIES LABELS slow)
 
 ##########################################################################
 ##########################################################################
+
+add_executable(tom_seddon_6502_tests tom_seddon_6502_tests.cpp)
+target_compile_definitions(tom_seddon_6502_tests PRIVATE -DSRC_PATH="${b2_SOURCE_DIR}/submodules/6502-tests/releases/6502-tests-generic.20221022T231937.dat")
+target_link_libraries(tom_seddon_6502_tests PRIVATE shared_lib 6502_lib)
+add_sanitizers(tom_seddon_6502_tests)
+
+add_test(
+  NAME tom_seddon_6502_tests
+  COMMAND $<TARGET_FILE:tom_seddon_6502_tests>)
+set_tests_properties(tom_seddon_6502_tests PROPERTIES LABELS slow)
