@@ -806,8 +806,8 @@ void TestBBCMicro::GotOSWRCH() {
     auto c = (char)cpu->a;
 
     if (m_oswrch_capture_count > 0) {
-        if(c==8) {
-            if(!this->oswrch_output.empty()) {
+        if (c == 8) {
+            if (!this->oswrch_output.empty()) {
                 this->oswrch_output.pop_back();
             }
         } else {

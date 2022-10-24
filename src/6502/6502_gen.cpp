@@ -575,72 +575,72 @@ static void MarkInstructions(std::map<uint8_t, Instr> *instructions, bool Instr:
 static std::map<uint8_t, Instr> GetUndefinedInstructions() {
     std::map<uint8_t, Instr> instructions;
 
-    I(0x0c, "nop", Abs);//
-    I(0x07, "slo", Zpg);//
-    I(0x17, "slo", Zpx);//
-    I(0x03, "slo", Inx);//
-    I(0x13, "slo", Iny);//
-    I(0x0f, "slo", Abs);//
-    I(0x1f, "slo", Abx);//
-    I(0x1b, "slo", Aby);//
-    I(0x27, "rla", Zpg);// aka: dcm
-    I(0x37, "rla", Zpx);// aka: dcm
-    I(0x23, "rla", Inx);// aka: dcm
-    I(0x33, "rla", Iny);// aka: dcm
-    I(0x2f, "rla", Abs);// aka: dcm
-    I(0x3f, "rla", Abx);// aka: dcm
-    I(0x3b, "rla", Aby);// aka: dcm
-    I(0x47, "sre", Zpg);//
-    I(0x57, "sre", Zpx);//
-    I(0x43, "sre", Inx);//
-    I(0x53, "sre", Iny);//
-    I(0x4f, "sre", Abs);//
-    I(0x5f, "sre", Abx);//
-    I(0x5b, "sre", Aby);//
-    I(0x67, "rra", Zpg);//
-    I(0x77, "rra", Zpx);//
-    I(0x63, "rra", Inx);//
-    I(0x73, "rra", Iny);//
-    I(0x6f, "rra", Abs);//
-    I(0x7f, "rra", Abx);//
-    I(0x7b, "rra", Aby);//
-    I(0xc7, "dcp", Zpg);//
-    I(0xd7, "dcp", Zpx);//
-    I(0xc3, "dcp", Inx);//
-    I(0xd3, "dcp", Iny);//
-    I(0xcf, "dcp", Abs);//
-    I(0xdf, "dcp", Abx);//
-    I(0xdb, "dcp", Aby);//
-    I(0xe7, "isb", Zpg);// aka: isc
-    I(0xf7, "isb", Zpx);// aka: isc
-    I(0xe3, "isb", Inx);// aka: isc
-    I(0xf3, "isb", Iny);// aka: isc
-    I(0xef, "isb", Abs);// aka: isc
-    I(0xff, "isb", Abx);// aka: isc
-    I(0xfb, "isb", Aby);// aka: isc
-    I(0x87, "sax", Zpg);//
-    I(0x97, "sax", Zpy);//
+    I(0x0c, "nop", Abs);                    //
+    I(0x07, "slo", Zpg);                    //
+    I(0x17, "slo", Zpx);                    //
+    I(0x03, "slo", Inx);                    //
+    I(0x13, "slo", Iny);                    //
+    I(0x0f, "slo", Abs);                    //
+    I(0x1f, "slo", Abx);                    //
+    I(0x1b, "slo", Aby);                    //
+    I(0x27, "rla", Zpg);                    // aka: dcm
+    I(0x37, "rla", Zpx);                    // aka: dcm
+    I(0x23, "rla", Inx);                    // aka: dcm
+    I(0x33, "rla", Iny);                    // aka: dcm
+    I(0x2f, "rla", Abs);                    // aka: dcm
+    I(0x3f, "rla", Abx);                    // aka: dcm
+    I(0x3b, "rla", Aby);                    // aka: dcm
+    I(0x47, "sre", Zpg);                    //
+    I(0x57, "sre", Zpx);                    //
+    I(0x43, "sre", Inx);                    //
+    I(0x53, "sre", Iny);                    //
+    I(0x4f, "sre", Abs);                    //
+    I(0x5f, "sre", Abx);                    //
+    I(0x5b, "sre", Aby);                    //
+    I(0x67, "rra", Zpg);                    //
+    I(0x77, "rra", Zpx);                    //
+    I(0x63, "rra", Inx);                    //
+    I(0x73, "rra", Iny);                    //
+    I(0x6f, "rra", Abs);                    //
+    I(0x7f, "rra", Abx);                    //
+    I(0x7b, "rra", Aby);                    //
+    I(0xc7, "dcp", Zpg);                    //
+    I(0xd7, "dcp", Zpx);                    //
+    I(0xc3, "dcp", Inx);                    //
+    I(0xd3, "dcp", Iny);                    //
+    I(0xcf, "dcp", Abs);                    //
+    I(0xdf, "dcp", Abx);                    //
+    I(0xdb, "dcp", Aby);                    //
+    I(0xe7, "isb", Zpg);                    // aka: isc
+    I(0xf7, "isb", Zpx);                    // aka: isc
+    I(0xe3, "isb", Inx);                    // aka: isc
+    I(0xf3, "isb", Iny);                    // aka: isc
+    I(0xef, "isb", Abs);                    // aka: isc
+    I(0xff, "isb", Abx);                    // aka: isc
+    I(0xfb, "isb", Aby);                    // aka: isc
+    I(0x87, "sax", Zpg);                    //
+    I(0x97, "sax", Zpy);                    //
     I(0x83, "sax", Inx); /****************/ //
-    I(0x8f, "sax", Abs);//
-    I(0xa7, "lax", Zpg);//
-    I(0xb7, "lax", Zpy);//
-    I(0xa3, "lax", Inx);//
-    I(0xb3, "lax", Iny);//
+    I(0x8f, "sax", Abs);                    //
+    I(0xa7, "lax", Zpg);                    //
+    I(0xb7, "lax", Zpy);                    //
+    I(0xa3, "lax", Inx);                    //
+    I(0xb3, "lax", Iny);                    //
     I(0xaf, "lax", Abs); /****************/ //
-    I(0xbf, "lax", Aby);//
-    I(0x4b, "asr", Imm);// aka: alr
-    I(0x6b, "arr", Imm);//
-    I(0x8b, "ane", Imm);// aka: xaa
-    I(0xab, "lxa", Imm);// (use 64tass alias, as that simplifies the code generation)
-    I(0xcb, "sbx", Imm);// aka: axs
-    I(0x93, "sha", Iny_Broken_NMOS);// aka: ahx
-    I(0x9f, "sha", Aby_Broken_NMOS);// aka: ahx
-    I(0x9c, "shy", Abx_Broken_NMOS);//
-    I(0x9e, "shx", Aby_Broken_NMOS);//
-    I(0x9b, "shs", Aby_Broken_NMOS);//aka: tas, xas
-    I(0x0b, "anc", Imm);//
-    I(0x2b, "anc", Imm);// (not supported by 64tass)
-    I(0xbb, "lds", Aby);//aka: las, lae
+    I(0xbf, "lax", Aby);                    //
+    I(0x4b, "asr", Imm);                    // aka: alr
+    I(0x6b, "arr", Imm);                    //
+    I(0x8b, "ane", Imm);                    // aka: xaa
+    I(0xab, "lxa", Imm);                    // (use 64tass alias, as that simplifies the code generation)
+    I(0xcb, "sbx", Imm);                    // aka: axs
+    I(0x93, "sha", Iny_Broken_NMOS);        // aka: ahx
+    I(0x9f, "sha", Aby_Broken_NMOS);        // aka: ahx
+    I(0x9c, "shy", Abx_Broken_NMOS);        //
+    I(0x9e, "shx", Aby_Broken_NMOS);        //
+    I(0x9b, "shs", Aby_Broken_NMOS);        //aka: tas, xas
+    I(0x0b, "anc", Imm);                    //
+    I(0x2b, "anc", Imm);                    // (not supported by 64tass)
+    I(0xbb, "lds", Aby);                    //aka: las, lae
     I(0xeb, "sbc", Imm);
 
     AddBulkInstructions(&instructions, "nop", Mode_Imp, {0x1a, 0x3a, 0x5a, 0x7a, 0xda, 0xfa});
