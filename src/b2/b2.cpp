@@ -452,6 +452,10 @@ struct Options {
     bool vsync = false;
     bool timer = false;
     std::string config_name;
+#if RMT_ENABLED
+    bool remotery = false;
+    bool remotery_thread_sampler = false;
+#endif
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -553,6 +557,11 @@ static bool DoCommandLineOptions(
 
     p.AddOption("vsync").SetIfPresent(&options->vsync).Help("use vsync for timing");
     p.AddOption("timer").SetIfPresent(&options->timer).Help("use timer for timing");
+
+#if RMT_ENABLED
+    p.AddOption("remotery").SetIfPresent(&options->remotery).Help("activate Remotery (see https://github.com/Celtoys/Remotery");
+    p.AddOption("remotery-thread-sampler").SetIfPresent(&options->remotery_thread_sampler).Help("activate Remotery thread sampler");
+#endif
 
     p.AddHelpOption(&options->help);
 
@@ -870,17 +879,6 @@ static bool main2(int argc, char *argv[], const std::shared_ptr<MessageList> &in
 
     CheckAssetPaths();
 
-#if RMT_ENABLED
-    {
-        rmtError x = rmt_CreateGlobalInstance(&g_remotery);
-        if (x == RMT_ERROR_NONE) {
-            SetSetCurrentThreadNameCallback(&SetRmtThreadName, nullptr);
-        } else {
-            init_messages.w.f("Failed to initialise Remotery\n");
-        }
-    }
-#endif
-
     // https://curl.haxx.se/libcurl/c/curl_global_init.html
     {
         CURLcode r = curl_global_init(CURL_GLOBAL_DEFAULT);
@@ -910,6 +908,21 @@ static bool main2(int argc, char *argv[], const std::shared_ptr<MessageList> &in
 
         return false;
     }
+
+#if RMT_ENABLED
+    if (options.remotery) {
+        rmtSettings*settings=rmt_Settings();
+
+        settings->enableThreadSampler=options.remotery_thread_sampler;
+
+        rmtError x = rmt_CreateGlobalInstance(&g_remotery);
+        if (x == RMT_ERROR_NONE) {
+            SetSetCurrentThreadNameCallback(&SetRmtThreadName, nullptr);
+        } else {
+            init_messages.w.f("Failed to initialise Remotery\n");
+        }
+    }
+#endif
 
     if (!InitLogs(options, &init_messages)) {
         return false;
