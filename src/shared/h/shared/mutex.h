@@ -17,6 +17,10 @@
 
 #if MUTEX_DEBUGGING
 
+// If true, assume that try_lock is effectively free when it succeeds.
+// Potentially save on some system calls for every lock.
+#define MUTEX_ASSUME_UNCONTENDED_LOCKS_ARE_FREE 0
+
 #include <atomic>
 #include <vector>
 
@@ -54,15 +58,25 @@ class Mutex {
     const MutexMetadata *GetMetadata() const;
 
     void lock() {
-        uint64_t a_ticks = GetCurrentTickCount();
+#if !MUTEX_ASSUME_UNCONTENDED_LOCKS_ARE_FREE
+        uint64_t lock_start_ticks = GetCurrentTickCount();
+#endif
 
         if (!m_mutex.try_lock()) {
+#if MUTEX_ASSUME_UNCONTENDED_LOCKS_ARE_FREE
+            uint64_t lock_start_ticks = GetCurrentTickCount();
+#endif
             m_mutex.lock();
             ++m_meta->num_contended_locks;
+#if MUTEX_ASSUME_UNCONTENDED_LOCKS_ARE_FREE
+            m_meta->total_lock_wait_ticks += GetCurrentTickCount() - lock_start_ticks;
+#endif
         }
 
         ++m_meta->num_locks;
-        m_meta->total_lock_wait_ticks += GetCurrentTickCount() - a_ticks;
+#if !MUTEX_ASSUME_UNCONTENDED_LOCKS_ARE_FREE
+        m_meta->total_lock_wait_ticks += GetCurrentTickCount() - lock_start_ticks;
+#endif
     }
 
     bool try_lock() {
