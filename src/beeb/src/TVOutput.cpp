@@ -39,7 +39,9 @@ void TVOutput::Init(uint32_t r_shift, uint32_t g_shift, uint32_t b_shift) {
 
     ASSERT((0xffu << m_r_shift & 0xffu << m_g_shift & 0xffu << m_b_shift) == 0);
 
-    m_texture_pixels.resize(TV_TEXTURE_WIDTH * TV_TEXTURE_HEIGHT);
+    // +1 to accommodate writing an extra row when emulating interlace. (This
+    // extra row is ignored.)
+    m_texture_pixels.resize(TV_TEXTURE_WIDTH * (TV_TEXTURE_HEIGHT+1));
 #if VIDEO_TRACK_METADATA
     m_texture_units.resize(m_texture_pixels.size());
 #endif
