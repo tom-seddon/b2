@@ -39,6 +39,7 @@
 #include "BeebLinkUI.h"
 #include "SettingsUI.h"
 #include "discs.h"
+#include "profiler.h"
 
 #ifdef _MSC_VER
 #include <crtdbg.h>
@@ -238,7 +239,7 @@ void BeebWindow::OptionsUI::DoImGui() {
         beeb_thread->SetPowerOnTone(settings->power_on_tone);
     }
 
-#if BUILD_TYPE_Debug
+#if 1 //BUILD_TYPE_Debug
     if (ImGui::Checkbox("Threaded texture update", &m_beeb_window->m_update_tv_texture_thread_enabled)) {
         ResetTimerDefs();
     }
@@ -1829,13 +1830,21 @@ void BeebWindow::UpdateTVTextureThread(UpdateTVTextureThreadState *state) {
         if (state->update) {
             lock.unlock();
 
-            state->update_num_units_consumed = ConsumeTVTexture(state->update_video_output,
-                                                                state->update_tv,
-                                                                state->update_inhibit);
+            {
+                PROFILE_SCOPE(PROFILER_COLOUR_CHOCOLATE, "ConsumeTVTexture");
 
-            ASSERT(state->update_dest_pitch >= 0);
-            state->update_tv->CopyTexturePixels(state->update_dest_pixels,
-                                                (size_t)state->update_dest_pitch);
+                state->update_num_units_consumed = ConsumeTVTexture(state->update_video_output,
+                                                                    state->update_tv,
+                                                                    state->update_inhibit);
+            }
+
+            {
+                PROFILE_SCOPE(PROFILER_COLOUR_CORAL, "CopyTexturePixels");
+
+                ASSERT(state->update_dest_pitch >= 0);
+                state->update_tv->CopyTexturePixels(state->update_dest_pixels,
+                                                    (size_t)state->update_dest_pitch);
+            }
 
             lock.lock();
 
@@ -2113,6 +2122,7 @@ bool BeebWindow::DoBeebDisplayUI() {
 //////////////////////////////////////////////////////////////////////////
 
 bool BeebWindow::HandleVBlank(uint64_t ticks) {
+    PROFILE_SCOPE(PROFILER_COLOUR_DEEP_PINK, "HandleVBlank");
     ImGuiContextSetter setter(m_imgui_stuff);
 
     Timer HandleVBlank_timer(&g_HandleVBlank_timer_def);
@@ -2137,6 +2147,7 @@ bool BeebWindow::HandleVBlank(uint64_t ticks) {
         this->BeginUpdateTVTexture(threaded_update, dest_pixels, dest_pitch);
 
         {
+            PROFILE_SCOPE(PROFILER_COLOUR_INDIAN_RED, "DoImGui");
             Timer tmr3(&g_HandleVBlank_DoImGui_timer_def);
 
             if (!this->DoImGui(ticks)) {
@@ -2168,6 +2179,7 @@ bool BeebWindow::HandleVBlank(uint64_t ticks) {
         //        }
 
         {
+            PROFILE_SCOPE(PROFILER_COLOUR_LIGHT_GREEN, "RenderSDL");
             Timer HandleVBlank_RenderSDL_timer(&g_HandleVBlank_RenderSDL_timer_def);
 
             m_imgui_stuff->RenderSDL();

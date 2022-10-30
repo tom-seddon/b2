@@ -1265,6 +1265,8 @@ int main(int argc, char *argv[]) {
     //_crtBreakAlloc=12520;
 #endif
 
+    SetCurrentThreadName("Main Thread");
+
     auto &&messages = std::make_shared<MessageList>();
 
     bool good = main2(argc, argv, messages);

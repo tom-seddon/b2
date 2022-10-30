@@ -197,6 +197,9 @@ def build_win32(options,ifolder,rev_hash):
     shutil.copyfile("./etc/release/LICENCE.txt",
                     os.path.join(zip_folder,"LICENCE.txt"))
 
+    shutil.copyfile(os.path.join(build64,"src/b2/RelWithDebInfo/WinPixEventRuntime.dll"),
+                    os.path.join(zip_folder,"WinPixEventRuntime.dll"))
+
     create_README(options,zip_folder,rev_hash)
 
     zip_fname="b2-windows-%s.zip"%options.release_name

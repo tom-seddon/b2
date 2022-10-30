@@ -30,6 +30,8 @@
 #include "GenerateThumbnailJob.h"
 #include "VideoWriter.h"
 #include "BeebLinkHTTPHandler.h"
+#include <shared/system_specific.h>
+#include "profiler.h"
 
 #include <shared/enum_def.h>
 #include "BeebThread.inl"
@@ -2683,10 +2685,12 @@ void BeebThread::ThreadMain(void) {
         if (paused ||
             (m_is_speed_limited.load(std::memory_order_acquire) &&
              ts.next_stop_2MHz_cycles <= *ts.num_executed_2MHz_cycles)) {
+            PROFILE_SCOPE(PROFILER_COLOUR_ALICE_BLUE,"MQ Wait");
             rmt_ScopedCPUSample(MessageQueueWaitForMessage, 0);
             m_mq.ConsumerWaitForMessages(&messages);
             what = "waited";
         } else {
+            PROFILE_SCOPE(PROFILER_COLOUR_ALICE_BLUE, "MQ Poll");
             m_mq.ConsumerPollForMessages(&messages);
             what = "polled";
         }
@@ -2845,6 +2849,7 @@ void BeebThread::ThreadMain(void) {
         }
 
         if (!paused && stop_2MHz_cycles > *ts.num_executed_2MHz_cycles) {
+            PROFILE_SCOPE(PROFILER_COLOUR_BLUE, "Beeb Update");
             rmt_ScopedCPUSample(BeebUpdate, 0);
 
             ASSERT(ts.beeb);
@@ -2933,10 +2938,10 @@ void BeebThread::ThreadMain(void) {
                 }
 
                 // B.
-#if BBCMICRO_DEBUGGER                          //////////////////////////<--note
+#if BBCMICRO_DEBUGGER                          //<--note
                 if (!ts.beeb->DebugIsHalted()) //<--note
-#endif                                         /////////////////////////////////////////<--note
-                {                              //////////////////////////////<--note
+#endif                                         //<--note
+                {                              //<--note
                     vunit = vb;
 
                     for (i = 0; i < num_vb; ++i) {
