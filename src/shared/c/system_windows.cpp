@@ -6,6 +6,7 @@
 #include <direct.h>
 #include <intrin.h>
 #include <vfw.h>
+#include <vector>
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -14,6 +15,9 @@ static __declspec(thread) char g_last_error_description[500];
 
 static BOOL g_got_qpc_freq;
 static double g_secs_per_tick;
+
+static bool g_got_set_thread_description;
+static HRESULT (*g_set_thread_description)(HANDLE, PCWSTR);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -314,7 +318,7 @@ struct THREADNAME_INFO {
 };
 #include <shared/poppack.h>
 
-void SetCurrentThreadNameInternal(const char *name) {
+static void SetCurrentThreadNameInternal2(const char *name) {
     THREADNAME_INFO i = {
         0x1000,
         name,
@@ -324,6 +328,35 @@ void SetCurrentThreadNameInternal(const char *name) {
     __try {
         RaiseException(0x406d1388, 0, sizeof i / sizeof(ULONG_PTR), (ULONG_PTR *)&i);
     } __except (EXCEPTION_EXECUTE_HANDLER) {
+    }
+}
+
+void SetCurrentThreadNameInternal(const char *name) {
+    // error C2712: Cannot use __try in functions that require object unwinding
+    SetCurrentThreadNameInternal2(name);
+
+    // It's possible for multiple threads to end up doing this at once, but
+    // that's not a big problem.
+    //
+    // The refcount for kernel32.dll will end up screwy, I guess... I don't
+    // think that's a problem either.
+    if (!g_got_set_thread_description) {
+        HMODULE kernel32_h = LoadLibrary("kernel32.dll");
+        g_set_thread_description =
+            (decltype(g_set_thread_description))GetProcAddress(
+                kernel32_h, "SetThreadDescription");
+        g_got_set_thread_description = true;
+    }
+
+    if (g_set_thread_description) {
+        // What's the right code page here?
+        int n = MultiByteToWideChar(CP_UTF8, 0, name, -1, nullptr, 0);
+        if (n > 0) {
+            std::vector<wchar_t> buffer((size_t)n);
+            MultiByteToWideChar(
+                CP_UTF8, 0, name, -1, buffer.data(), (int)buffer.size());
+            (*g_set_thread_description)(GetCurrentThread(), buffer.data());
+        }
     }
 }
 
