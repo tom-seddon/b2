@@ -123,6 +123,8 @@ class DataRateUI : public SettingsUI {
   protected:
   private:
     BeebWindow *m_beeb_window;
+
+    void GetVBlankRecords(std::vector<BeebWindow::VBlankRecord> *vblank_records);
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -208,21 +210,27 @@ void DataRateUI::DoImGui() {
 
     ImGui::Separator();
 
-    ImGui::TextUnformatted("Audio Data Availability (mark=25%)");
-    std::vector<BeebThread::AudioCallbackRecord> audio_records = beeb_thread->GetAudioCallbackRecords();
-    ImGuiPlotLines("", &GetAudioCallbackRecordPercentage, &audio_records, (int)audio_records.size(), 0, nullptr, 0.f, 120., ImVec2(0, 100), ImVec2(0, 25));
+    std::vector<BeebWindow::VBlankRecord> vblank_records;
 
-    ImGui::Separator();
+    if (ImGui::CollapsingHeader("Audio Data Availability (mark=25%)")) {
+        std::vector<BeebThread::AudioCallbackRecord> audio_records = beeb_thread->GetAudioCallbackRecords();
+        ImGuiPlotLines("", &GetAudioCallbackRecordPercentage, &audio_records, (int)audio_records.size(), 0, nullptr, 0.f, 120., ImVec2(0, 100), ImVec2(0, 25));
+    }
 
-    ImGui::TextUnformatted("PC VBlank Time (mark=1/60 sec)");
-    std::vector<BeebWindow::VBlankRecord> vblank_records = m_beeb_window->GetVBlankRecords();
-    ImGuiPlotLines("", &GetFrameTime, &vblank_records, (int)vblank_records.size(), 0, nullptr, 0.f, 100.f, ImVec2(0, 100), ImVec2(0, 1000.f / 60));
+    if (ImGui::CollapsingHeader("PC VBlank Time (mark=1/60 sec)")) {
+        this->GetVBlankRecords(&vblank_records);
+        ImGuiPlotLines("", &GetFrameTime, &vblank_records, (int)vblank_records.size(), 0, nullptr, 0.f, 100.f, ImVec2(0, 100), ImVec2(0, 1000.f / 60));
+    }
 
-    ImGui::TextUnformatted("Video Data Consumed per PC VBlank (mark=1/60 sec)");
-    ImGuiPlotLines("", &GetNumUnits, &vblank_records, (int)vblank_records.size(), 0, nullptr, 0.f, 2e6f / 15, ImVec2(0, 100), ImVec2(0, 2e6f / 60));
+    if (ImGui::CollapsingHeader("Video Data Consumed per PC VBlank (mark=1/60 sec)")) {
+        this->GetVBlankRecords(&vblank_records);
+        ImGuiPlotLines("", &GetNumUnits, &vblank_records, (int)vblank_records.size(), 0, nullptr, 0.f, 2e6f / 15, ImVec2(0, 100), ImVec2(0, 2e6f / 60));
+    }
 
-    ImGui::TextUnformatted("Video Data Availability (mark=50%)");
-    ImGuiPlotLines("", &GetPercentage, &vblank_records, (int)vblank_records.size(), 0, nullptr, 0.f, 200.f, ImVec2(0, 100), ImVec2(0, 50));
+    if (ImGui::CollapsingHeader("Video Data Availability (mark=50%)")) {
+        this->GetVBlankRecords(&vblank_records);
+        ImGuiPlotLines("", &GetPercentage, &vblank_records, (int)vblank_records.size(), 0, nullptr, 0.f, 200.f, ImVec2(0, 100), ImVec2(0, 50));
+    }
 
     if (!!g_all_root_timer_defs && !g_all_root_timer_defs->empty()) {
         ImGui::Separator();
@@ -281,6 +289,15 @@ void DataRateUI::DoImGui() {
 
 bool DataRateUI::OnClose() {
     return false;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void DataRateUI::GetVBlankRecords(std::vector<BeebWindow::VBlankRecord> *vblank_records) {
+    if (vblank_records->empty()) {
+        *vblank_records = m_beeb_window->GetVBlankRecords();
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////
