@@ -151,8 +151,18 @@ elseif(MSVC)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP")
 
   # Fix extended aligned storage error. The extended align storage is desired.
-
   add_definitions("-D_ENABLE_EXTENDED_ALIGNED_STORAGE")
+
+  # Remove basic runtime checks. Really kills debug build performance.
+  #
+  # https://stackoverflow.com/questions/8587764/remove-runtime-checks-compiler-flag-per-project-in-cmake
+  string(REGEX REPLACE "[/-]RTC(su|[1su])" "" CMAKE_CXX_FLAGS_DEBUG ${CMAKE_CXX_FLAGS_DEBUG})
+  string(REGEX REPLACE "[/-]RTC(su|[1su])" "" CMAKE_C_FLAGS_DEBUG ${CMAKE_C_FLAGS_DEBUG})
+
+  message(STATUS "CMAKE_CXX_FLAGS = ${CMAKE_CXX_FLAGS}")
+  message(STATUS "CMAKE_C_FLAGS = ${CMAKE_C_FLAGS}")
+  message(STATUS "CMAKE_CXX_FLAGS_DEBUG = ${CMAKE_CXX_FLAGS_DEBUG}")
+  message(STATUS "CMAKE_C_FLAGS_DEBUG = ${CMAKE_C_FLAGS_DEBUG}")
 endif()
 
 ##########################################################################
