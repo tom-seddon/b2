@@ -303,7 +303,9 @@ class BBCMicro : private WD1770Handler {
     void SetTeletextDebug(bool teletext_debug);
 #endif
 
-    bool Update(VideoDataUnit *video_unit, SoundDataUnit *sound_unit);
+    inline bool Update(VideoDataUnit *video_unit, SoundDataUnit *sound_unit) {
+        return (this->*m_update_mfn)(video_unit, sound_unit);
+    }
 
 #if BBCMICRO_ENABLE_DISC_DRIVE_SOUND
     // The disc drive sounds are used by all BBCMicro objects created
@@ -626,8 +628,8 @@ class BBCMicro : private WD1770Handler {
 
     BigPage m_big_pages[NUM_BIG_PAGES];
     uint32_t m_dpo_mask = 0;
-    bool m_has_rtc = false;
-    void (*m_handle_cpu_data_bus_fn)(BBCMicro *) = nullptr;
+    typedef bool (BBCMicro::*UpdateMFn)(VideoDataUnit *, SoundDataUnit *);
+    UpdateMFn m_update_mfn = nullptr;
 
     // Memory
     MemoryBigPages m_mem_big_pages[2] = {};
@@ -670,8 +672,6 @@ class BBCMicro : private WD1770Handler {
     uint8_t *m_ram = nullptr;
 
     const std::vector<float> *m_disc_drive_sounds[DiscDriveSound_EndValue];
-
-    void (*m_default_handle_cpu_data_bus_fn)(BBCMicro *) = nullptr;
 
     //////////////////////////////////////////////////////////////////////////
     //////////////////////////////////////////////////////////////////////////
@@ -740,18 +740,13 @@ class BBCMicro : private WD1770Handler {
     static void WriteACCCON(void *m_, M6502Word a, uint8_t value);
 #if BBCMICRO_DEBUGGER
     static uint8_t ReadAsyncCallThunk(void *m_, M6502Word a);
-    void HandleReadByteDebugFlags(uint8_t read, uint8_t flags);
-    void HandleInterruptBreakpoints();
 #endif
-    static void HandleCPUDataBusWithShadowRAM(BBCMicro *m);
 #if BBCMICRO_DEBUGGER
-    static void HandleCPUDataBusWithShadowRAMDebug(BBCMicro *m);
     void UpdateDebugBigPages(MemoryBigPages *mem_big_pages);
     void UpdateDebugState();
     void SetDebugStepType(BBCMicroStepType step_type);
     void FinishAsyncCall(bool called);
 #endif
-    static void HandleCPUDataBusWithHacks(BBCMicro *m);
     static void CheckMemoryBigPages(const MemoryBigPages *pages, bool non_null);
 
     // 1770 handler stuff.
@@ -771,6 +766,11 @@ class BBCMicro : private WD1770Handler {
     float UpdateDiscDriveSound(DiscDrive *dd);
 #endif
     void UpdateCPUDataBusFn();
+
+    template <uint32_t UPDATE_FLAGS>
+    bool Update(VideoDataUnit *video_unit, SoundDataUnit *sound_unit);
+
+    static const UpdateMFn ms_update_mfns[32];
 };
 
 //////////////////////////////////////////////////////////////////////////

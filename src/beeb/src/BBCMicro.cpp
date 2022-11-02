@@ -723,360 +723,6 @@ uint8_t BBCMicro::ReadAsyncCallThunk(void *m_, M6502Word a) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-#if BBCMICRO_DEBUGGER
-void BBCMicro::HandleReadByteDebugFlags(uint8_t read, uint8_t flags) {
-    if (flags & BBCMicroByteDebugFlag_BreakExecute) {
-        if (read == M6502ReadType_Opcode) {
-            this->DebugHalt("execute: $%04x", m_state.cpu.abus.w);
-        }
-    } else if (flags & BBCMicroByteDebugFlag_TempBreakExecute) {
-        if (read == M6502ReadType_Opcode) {
-            this->DebugHalt("single step");
-        }
-    }
-
-    if (flags & BBCMicroByteDebugFlag_BreakRead) {
-        if (read <= M6502ReadType_LastInterestingDataRead) {
-            this->DebugHalt("data read: $%04x", m_state.cpu.abus.w);
-        }
-    }
-}
-#endif
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-#if BBCMICRO_DEBUGGER
-void BBCMicro::HandleInterruptBreakpoints() {
-    if (M6502_IsProbablyIRQ(&m_state.cpu)) {
-        if ((m_state.system_via.ifr.value & m_state.system_via.ier.value & m_debug->hw.system_via_irq_breakpoints.value) ||
-            (m_state.user_via.ifr.value & m_state.user_via.ier.value & m_debug->hw.user_via_irq_breakpoints.value)) {
-            this->SetDebugStepType(BBCMicroStepType_StepIntoIRQHandler);
-        }
-    }
-}
-#endif
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-void BBCMicro::HandleCPUDataBusWithShadowRAM(BBCMicro *m) {
-    uint8_t mmio_page = m->m_state.cpu.abus.b.h - 0xfc;
-    if (const uint8_t read = m->m_state.cpu.read) {
-        if (mmio_page < 3) {
-            ReadMMIOFn fn = m->m_rmmio_fns[mmio_page][m->m_state.cpu.abus.b.l];
-            void *context = m->m_mmio_fn_contexts[mmio_page][m->m_state.cpu.abus.b.l];
-            m->m_state.cpu.dbus = (*fn)(context, m->m_state.cpu.abus);
-        } else {
-            m->m_state.cpu.dbus = m->m_pc_mem_big_pages[m->m_state.cpu.opcode_pc.p.p]->r[m->m_state.cpu.abus.p.p][m->m_state.cpu.abus.p.o];
-        }
-    } else {
-        if (mmio_page < 3) {
-            WriteMMIOFn fn = m->m_hw_wmmio_fns[mmio_page][m->m_state.cpu.abus.b.l];
-            void *context = m->m_hw_mmio_fn_contexts[mmio_page][m->m_state.cpu.abus.b.l];
-            (*fn)(context, m->m_state.cpu.abus, m->m_state.cpu.dbus);
-        } else {
-            m->m_pc_mem_big_pages[m->m_state.cpu.opcode_pc.p.p]->w[m->m_state.cpu.abus.p.p][m->m_state.cpu.abus.p.o] = m->m_state.cpu.dbus;
-        }
-    }
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-#if BBCMICRO_DEBUGGER
-void BBCMicro::HandleCPUDataBusWithShadowRAMDebug(BBCMicro *m) {
-    uint8_t mmio_page = m->m_state.cpu.abus.b.h - 0xfc;
-    if (const uint8_t read = m->m_state.cpu.read) {
-        if (mmio_page < 3) {
-            ReadMMIOFn fn = m->m_rmmio_fns[mmio_page][m->m_state.cpu.abus.b.l];
-            void *context = m->m_mmio_fn_contexts[mmio_page][m->m_state.cpu.abus.b.l];
-            m->m_state.cpu.dbus = (*fn)(context, m->m_state.cpu.abus);
-        } else {
-            m->m_state.cpu.dbus = m->m_pc_mem_big_pages[m->m_state.cpu.opcode_pc.p.p]->r[m->m_state.cpu.abus.p.p][m->m_state.cpu.abus.p.o];
-        }
-
-        uint8_t flags = (m->m_debug->address_debug_flags[m->m_state.cpu.abus.w] |
-                         m->m_pc_mem_big_pages[m->m_state.cpu.opcode_pc.p.p]->debug[m->m_state.cpu.abus.p.p][m->m_state.cpu.abus.p.o]);
-        if (flags != 0) {
-            m->HandleReadByteDebugFlags(read, flags);
-        }
-
-        if (read == M6502ReadType_Interrupt) {
-            m->HandleInterruptBreakpoints();
-        }
-    } else {
-        if (mmio_page < 3) {
-            WriteMMIOFn fn = m->m_hw_wmmio_fns[mmio_page][m->m_state.cpu.abus.b.l];
-            void *context = m->m_hw_mmio_fn_contexts[mmio_page][m->m_state.cpu.abus.b.l];
-            (*fn)(context, m->m_state.cpu.abus, m->m_state.cpu.dbus);
-        } else {
-            m->m_pc_mem_big_pages[m->m_state.cpu.opcode_pc.p.p]->w[m->m_state.cpu.abus.p.p][m->m_state.cpu.abus.p.o] = m->m_state.cpu.dbus;
-        }
-
-        uint8_t flags = (m->m_debug->address_debug_flags[m->m_state.cpu.abus.w] |
-                         m->m_pc_mem_big_pages[m->m_state.cpu.opcode_pc.p.p]->debug[m->m_state.cpu.abus.p.p][m->m_state.cpu.abus.p.o]);
-
-        if (flags & BBCMicroByteDebugFlag_BreakWrite) {
-            m->DebugHalt("data write: $%04x", m->m_state.cpu.abus.w);
-        }
-    }
-}
-#endif
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-void BBCMicro::HandleCPUDataBusWithHacks(BBCMicro *m) {
-#if BBCMICRO_DEBUGGER
-    if (m->m_state.async_call_address.w != INVALID_ASYNC_CALL_ADDRESS) {
-        if (m->m_state.cpu.read == M6502ReadType_Interrupt && M6502_IsProbablyIRQ(&m->m_state.cpu)) {
-            TRACEF(m->m_trace, "Enqueuing async call: address=$%04x, A=%03u ($%02x) X=%03u ($%02x) Y=%03u ($%02X) C=%s\n",
-                   m->m_state.async_call_address.w,
-                   m->m_state.async_call_a, m->m_state.async_call_a,
-                   m->m_state.async_call_x, m->m_state.async_call_x,
-                   m->m_state.async_call_y, m->m_state.async_call_y,
-                   BOOL_STR(m->m_state.async_call_c));
-
-            // Already on the stack is the actual return that the
-            // thunk will RTI to.
-
-            // Manually push current PC and status register.
-            {
-                M6502P p = M6502_GetP(&m->m_state.cpu);
-
-                const BigPage *bp = m->DebugGetBigPageForAddress(m->m_state.cpu.s, {}, 0);
-
-                // Add the thunk call address that the IRQ routine will RTI to.
-                bp->w[m->m_state.cpu.s.w & BIG_PAGE_OFFSET_MASK] = m->m_state.cpu.pc.b.h;
-                --m->m_state.cpu.s.b.l;
-
-                bp->w[m->m_state.cpu.s.w & BIG_PAGE_OFFSET_MASK] = m->m_state.cpu.pc.b.l;
-                --m->m_state.cpu.s.b.l;
-
-                bp->w[m->m_state.cpu.s.w & BIG_PAGE_OFFSET_MASK] = p.value;
-                --m->m_state.cpu.s.b.l;
-
-                // Set up CPU as if it's about to execute the thunk, so
-                // the IRQ routine will return to the desired place.
-                p.bits.c = m->m_state.async_call_c;
-                M6502_SetP(&m->m_state.cpu, p.value);
-                m->m_state.cpu.pc = ASYNC_CALL_THUNK_ADDR;
-            }
-
-            // Set up thunk.
-            {
-                uint8_t *p = m->m_state.async_call_thunk_buf;
-
-                *p++ = 0x48; //pha
-                *p++ = 0x8a; //txa
-                *p++ = 0x48; //pha
-                *p++ = 0x98; //tya
-                *p++ = 0x48; //pha
-                *p++ = 0xa9;
-                *p++ = m->m_state.async_call_a;
-                *p++ = 0xa2;
-                *p++ = m->m_state.async_call_x;
-                *p++ = 0xa0;
-                *p++ = m->m_state.async_call_y;
-                *p++ = m->m_state.async_call_c ? 0x38 : 0x18; //sec:clc
-                *p++ = 0x20;                                  //jsr abs
-                *p++ = m->m_state.async_call_address.b.l;
-                *p++ = m->m_state.async_call_address.b.h;
-                *p++ = 0x68; //pla
-                *p++ = 0xa8; //tay
-                *p++ = 0x68; //pla
-                *p++ = 0xaa; //tax
-                *p++ = 0x68; //pla
-                *p++ = 0x40; //rti
-
-                ASSERT((size_t)(p - m->m_state.async_call_thunk_buf) <= sizeof m->m_state.async_call_thunk_buf);
-            }
-
-            m->FinishAsyncCall(true);
-        } else {
-            --m->m_state.async_call_timeout;
-            if (m->m_state.async_call_timeout < 0) {
-                m->FinishAsyncCall(false);
-            }
-        }
-    }
-#endif
-
-    if (m->m_state.cpu.read == 0) {
-        if (!m->m_write_fns.empty()) {
-            // Same deal as instruction fns.
-            auto *fn = m->m_write_fns.data();
-            auto *fns_end = fn + m->m_write_fns.size();
-            bool any_removed = false;
-
-            while (fn != fns_end) {
-                if ((*fn->first)(m, &m->m_state.cpu, fn->second)) {
-                    ++fn;
-                } else {
-                    any_removed = true;
-                    *fn = *--fns_end;
-                }
-            }
-
-            if (any_removed) {
-                m->m_write_fns.resize((size_t)(fns_end - m->m_write_fns.data()));
-
-                m->UpdateCPUDataBusFn();
-            }
-        }
-    }
-
-    (*m->m_default_handle_cpu_data_bus_fn)(m);
-
-    if (M6502_IsAboutToExecute(&m->m_state.cpu)) {
-        if (!m->m_instruction_fns.empty()) {
-
-            // This is a bit bizarre, but I just can't stomach the
-            // idea of literally like 1,000,000 std::vector calls per
-            // second. But this way, it's hopefully more like only
-            // 300,000.
-
-            auto *fn = m->m_instruction_fns.data();
-            auto *fns_end = fn + m->m_instruction_fns.size();
-            bool removed = false;
-
-            while (fn != fns_end) {
-                if ((*fn->first)(m, &m->m_state.cpu, fn->second)) {
-                    ++fn;
-                } else {
-                    removed = true;
-                    *fn = *--fns_end;
-                }
-            }
-
-            if (removed) {
-                m->m_instruction_fns.resize((size_t)(fns_end - m->m_instruction_fns.data()));
-
-                m->UpdateCPUDataBusFn();
-            }
-        }
-
-        if (m->m_state.hack_flags & BBCMicroHackFlag_Paste) {
-            ASSERT(m->m_state.paste_state != BBCMicroPasteState_None);
-
-            if (m->m_state.cpu.pc.w == 0xffe1) {
-                // OSRDCH
-
-                // Put next byte in A.
-                switch (m->m_state.paste_state) {
-                case BBCMicroPasteState_None:
-                    ASSERT(false);
-                    break;
-
-                case BBCMicroPasteState_Wait:
-                    m->SetKeyState(PASTE_START_KEY, false);
-                    m->m_state.paste_state = BBCMicroPasteState_Delete;
-                    // fall through
-                case BBCMicroPasteState_Delete:
-                    m->m_state.cpu.a = 127;
-                    m->m_state.paste_state = BBCMicroPasteState_Paste;
-                    break;
-
-                case BBCMicroPasteState_Paste:
-                    ASSERT(m->m_state.paste_index < m->m_state.paste_text->size());
-                    m->m_state.cpu.a = (uint8_t)m->m_state.paste_text->at(m->m_state.paste_index);
-
-                    ++m->m_state.paste_index;
-                    if (m->m_state.paste_index == m->m_state.paste_text->size()) {
-                        m->StopPaste();
-                    }
-                    break;
-                }
-
-                // No Escape.
-                m->m_state.cpu.p.bits.c = 0;
-
-                // Pretend the instruction was RTS.
-                m->m_state.cpu.dbus = 0x60;
-            }
-        }
-
-#if BBCMICRO_TRACE
-        if (m->m_trace) {
-            InstructionTraceEvent *e;
-
-            // Fill out results of last instruction.
-            if ((e = m->m_trace_current_instruction) != NULL) {
-                e->a = m->m_state.cpu.a;
-                e->x = m->m_state.cpu.x;
-                e->y = m->m_state.cpu.y;
-                e->p = m->m_state.cpu.p.value;
-                e->data = m->m_state.cpu.data;
-                e->opcode = m->m_state.cpu.opcode;
-                e->s = m->m_state.cpu.s.b.l;
-                //e->pc=m_state.cpu.pc.w;//...for next instruction
-                e->ad = m->m_state.cpu.ad.w;
-                e->ia = m->m_state.cpu.ia.w;
-            }
-
-            // Allocate event for next instruction.
-            e = m->m_trace_current_instruction = (InstructionTraceEvent *)m->m_trace->AllocEvent(INSTRUCTION_EVENT);
-
-            if (e) {
-                e->pc = m->m_state.cpu.abus.w;
-
-                /* doesn't matter if the last instruction ends up
-                * bogus... there are no invalid values.
-                */
-            }
-        }
-#endif
-    }
-
-#if BBCMICRO_DEBUGGER
-    if (m->m_debug) {
-        if (m->m_state.cpu.read >= M6502ReadType_Opcode) {
-            switch (m->m_debug->step_type) {
-            default:
-                ASSERT(false);
-                // fall through
-            case BBCMicroStepType_None:
-                break;
-
-            case BBCMicroStepType_StepIn:
-                {
-                    if (m->m_state.cpu.read == M6502ReadType_Opcode) {
-                        // Done.
-                        m->DebugHalt("single step");
-                    } else {
-                        ASSERT(m->m_state.cpu.read == M6502ReadType_Interrupt);
-                        // The instruction was interrupted, so set a temp
-                        // breakpoint in the right place.
-                        uint8_t flags = m->DebugGetAddressDebugFlags(m->m_state.cpu.pc);
-
-                        flags |= BBCMicroByteDebugFlag_TempBreakExecute;
-
-                        m->DebugSetAddressDebugFlags(m->m_state.cpu.pc, flags);
-                    }
-
-                    m->SetDebugStepType(BBCMicroStepType_None);
-                }
-                break;
-
-            case BBCMicroStepType_StepIntoIRQHandler:
-                {
-                    ASSERT(m->m_state.cpu.read == M6502ReadType_Opcode || m->m_state.cpu.read == M6502ReadType_Interrupt);
-                    if (m->m_state.cpu.read == M6502ReadType_Opcode) {
-                        m->SetDebugStepType(BBCMicroStepType_None);
-                        m->DebugHalt("IRQ/NMI");
-                    }
-                }
-                break;
-            }
-        }
-    }
-#endif
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 void BBCMicro::CheckMemoryBigPages(const MemoryBigPages *mem_big_pages, bool non_null) {
     (void)non_null;
 
@@ -1198,6 +844,7 @@ uint16_t BBCMicro::DebugGetBeebAddressFromCRTCAddress(uint8_t h, uint8_t l) cons
 // 1. Delay the trailing edge for 1 x 2 MHz cycle. The trailing edges of both
 // clocks then line up.
 //
+template <uint32_t UPDATE_FLAGS>
 bool BBCMicro::Update(VideoDataUnit *video_unit, SoundDataUnit *sound_unit) {
     uint8_t phi2_1MHz_trailing_edge = m_state.num_2MHz_cycles & 1;
     bool sound = false;
@@ -1229,7 +876,335 @@ bool BBCMicro::Update(VideoDataUnit *video_unit, SoundDataUnit *sound_unit) {
     }
 
     if (!m_state.stretch) {
-        (*m_handle_cpu_data_bus_fn)(this);
+        // Update CPU data bus.
+        if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_Hacks) != 0) {
+#if BBCMICRO_DEBUGGER
+            if (m_state.async_call_address.w != INVALID_ASYNC_CALL_ADDRESS) {
+                if (m_state.cpu.read == M6502ReadType_Interrupt && M6502_IsProbablyIRQ(&m_state.cpu)) {
+                    TRACEF(m_trace, "Enqueuing async call: address=$%04x, A=%03u ($%02x) X=%03u ($%02x) Y=%03u ($%02X) C=%s\n",
+                           m_state.async_call_address.w,
+                           m_state.async_call_a, m_state.async_call_a,
+                           m_state.async_call_x, m_state.async_call_x,
+                           m_state.async_call_y, m_state.async_call_y,
+                           BOOL_STR(m_state.async_call_c));
+
+                    // Already on the stack is the actual return that the
+                    // thunk will RTI to.
+
+                    // Manually push current PC and status register.
+                    {
+                        M6502P p = M6502_GetP(&m_state.cpu);
+
+                        const BigPage *bp = DebugGetBigPageForAddress(m_state.cpu.s, {}, 0);
+
+                        // Add the thunk call address that the IRQ routine will RTI to.
+                        bp->w[m_state.cpu.s.w & BIG_PAGE_OFFSET_MASK] = m_state.cpu.pc.b.h;
+                        --m_state.cpu.s.b.l;
+
+                        bp->w[m_state.cpu.s.w & BIG_PAGE_OFFSET_MASK] = m_state.cpu.pc.b.l;
+                        --m_state.cpu.s.b.l;
+
+                        bp->w[m_state.cpu.s.w & BIG_PAGE_OFFSET_MASK] = p.value;
+                        --m_state.cpu.s.b.l;
+
+                        // Set up CPU as if it's about to execute the thunk, so
+                        // the IRQ routine will return to the desired place.
+                        p.bits.c = m_state.async_call_c;
+                        M6502_SetP(&m_state.cpu, p.value);
+                        m_state.cpu.pc = ASYNC_CALL_THUNK_ADDR;
+                    }
+
+                    // Set up thunk.
+                    {
+                        uint8_t *p = m_state.async_call_thunk_buf;
+
+                        *p++ = 0x48; //pha
+                        *p++ = 0x8a; //txa
+                        *p++ = 0x48; //pha
+                        *p++ = 0x98; //tya
+                        *p++ = 0x48; //pha
+                        *p++ = 0xa9;
+                        *p++ = m_state.async_call_a;
+                        *p++ = 0xa2;
+                        *p++ = m_state.async_call_x;
+                        *p++ = 0xa0;
+                        *p++ = m_state.async_call_y;
+                        *p++ = m_state.async_call_c ? 0x38 : 0x18; //sec:clc
+                        *p++ = 0x20;                               //jsr abs
+                        *p++ = m_state.async_call_address.b.l;
+                        *p++ = m_state.async_call_address.b.h;
+                        *p++ = 0x68; //pla
+                        *p++ = 0xa8; //tay
+                        *p++ = 0x68; //pla
+                        *p++ = 0xaa; //tax
+                        *p++ = 0x68; //pla
+                        *p++ = 0x40; //rti
+
+                        ASSERT((size_t)(p - m_state.async_call_thunk_buf) <= sizeof m_state.async_call_thunk_buf);
+                    }
+
+                    FinishAsyncCall(true);
+                } else {
+                    --m_state.async_call_timeout;
+                    if (m_state.async_call_timeout < 0) {
+                        FinishAsyncCall(false);
+                    }
+                }
+            }
+#endif
+
+            if (m_state.cpu.read == 0) {
+                if (!m_write_fns.empty()) {
+                    // Same deal as instruction fns.
+                    auto *fn = m_write_fns.data();
+                    auto *fns_end = fn + m_write_fns.size();
+                    bool any_removed = false;
+
+                    while (fn != fns_end) {
+                        if ((*fn->first)(this, &m_state.cpu, fn->second)) {
+                            ++fn;
+                        } else {
+                            any_removed = true;
+                            *fn = *--fns_end;
+                        }
+                    }
+
+                    if (any_removed) {
+                        m_write_fns.resize((size_t)(fns_end - m_write_fns.data()));
+
+                        UpdateCPUDataBusFn();
+                    }
+                }
+            }
+        }
+
+#if BBCMICRO_DEBUGGER
+        if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_Debug) != 0) {
+            uint8_t mmio_page = m_state.cpu.abus.b.h - 0xfc;
+            if (const uint8_t read = m_state.cpu.read) {
+                if (mmio_page < 3) {
+                    ReadMMIOFn fn = m_rmmio_fns[mmio_page][m_state.cpu.abus.b.l];
+                    void *context = m_mmio_fn_contexts[mmio_page][m_state.cpu.abus.b.l];
+                    m_state.cpu.dbus = (*fn)(context, m_state.cpu.abus);
+                } else {
+                    m_state.cpu.dbus = m_pc_mem_big_pages[m_state.cpu.opcode_pc.p.p]->r[m_state.cpu.abus.p.p][m_state.cpu.abus.p.o];
+                }
+
+                uint8_t flags = (m_debug->address_debug_flags[m_state.cpu.abus.w] |
+                                 m_pc_mem_big_pages[m_state.cpu.opcode_pc.p.p]->debug[m_state.cpu.abus.p.p][m_state.cpu.abus.p.o]);
+                if (flags != 0) {
+                    if (flags & BBCMicroByteDebugFlag_BreakExecute) {
+                        if (read == M6502ReadType_Opcode) {
+                            this->DebugHalt("execute: $%04x", m_state.cpu.abus.w);
+                        }
+                    } else if (flags & BBCMicroByteDebugFlag_TempBreakExecute) {
+                        if (read == M6502ReadType_Opcode) {
+                            this->DebugHalt("single step");
+                        }
+                    }
+
+                    if (flags & BBCMicroByteDebugFlag_BreakRead) {
+                        if (read <= M6502ReadType_LastInterestingDataRead) {
+                            this->DebugHalt("data read: $%04x", m_state.cpu.abus.w);
+                        }
+                    }
+                }
+
+                if (read == M6502ReadType_Interrupt) {
+                    if (M6502_IsProbablyIRQ(&m_state.cpu)) {
+                        if ((m_state.system_via.ifr.value & m_state.system_via.ier.value & m_debug->hw.system_via_irq_breakpoints.value) ||
+                            (m_state.user_via.ifr.value & m_state.user_via.ier.value & m_debug->hw.user_via_irq_breakpoints.value)) {
+                            this->SetDebugStepType(BBCMicroStepType_StepIntoIRQHandler);
+                        }
+                    }
+                }
+            } else {
+                if (mmio_page < 3) {
+                    WriteMMIOFn fn = m_hw_wmmio_fns[mmio_page][m_state.cpu.abus.b.l];
+                    void *context = m_hw_mmio_fn_contexts[mmio_page][m_state.cpu.abus.b.l];
+                    (*fn)(context, m_state.cpu.abus, m_state.cpu.dbus);
+                } else {
+                    m_pc_mem_big_pages[m_state.cpu.opcode_pc.p.p]->w[m_state.cpu.abus.p.p][m_state.cpu.abus.p.o] = m_state.cpu.dbus;
+                }
+
+                uint8_t flags = (m_debug->address_debug_flags[m_state.cpu.abus.w] |
+                                 m_pc_mem_big_pages[m_state.cpu.opcode_pc.p.p]->debug[m_state.cpu.abus.p.p][m_state.cpu.abus.p.o]);
+
+                if (flags & BBCMicroByteDebugFlag_BreakWrite) {
+                    DebugHalt("data write: $%04x", m_state.cpu.abus.w);
+                }
+            }
+        } else //<-- note
+#endif         //<-- note
+        {      //<-- note
+            uint8_t mmio_page = m_state.cpu.abus.b.h - 0xfc;
+            if (const uint8_t read = m_state.cpu.read) {
+                if (mmio_page < 3) {
+                    ReadMMIOFn fn = m_rmmio_fns[mmio_page][m_state.cpu.abus.b.l];
+                    void *context = m_mmio_fn_contexts[mmio_page][m_state.cpu.abus.b.l];
+                    m_state.cpu.dbus = (*fn)(context, m_state.cpu.abus);
+                } else {
+                    m_state.cpu.dbus = m_pc_mem_big_pages[m_state.cpu.opcode_pc.p.p]->r[m_state.cpu.abus.p.p][m_state.cpu.abus.p.o];
+                }
+            } else {
+                if (mmio_page < 3) {
+                    WriteMMIOFn fn = m_hw_wmmio_fns[mmio_page][m_state.cpu.abus.b.l];
+                    void *context = m_hw_mmio_fn_contexts[mmio_page][m_state.cpu.abus.b.l];
+                    (*fn)(context, m_state.cpu.abus, m_state.cpu.dbus);
+                } else {
+                    m_pc_mem_big_pages[m_state.cpu.opcode_pc.p.p]->w[m_state.cpu.abus.p.p][m_state.cpu.abus.p.o] = m_state.cpu.dbus;
+                }
+            }
+        }
+
+        if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_Hacks) != 0) {
+            if (M6502_IsAboutToExecute(&m_state.cpu)) {
+                if (!m_instruction_fns.empty()) {
+
+                    // This is a bit bizarre, but I just can't stomach the
+                    // idea of literally like 1,000,000 std::vector calls per
+                    // second. But this way, it's hopefully more like only
+                    // 300,000.
+
+                    auto *fn = m_instruction_fns.data();
+                    auto *fns_end = fn + m_instruction_fns.size();
+                    bool removed = false;
+
+                    while (fn != fns_end) {
+                        if ((*fn->first)(this, &m_state.cpu, fn->second)) {
+                            ++fn;
+                        } else {
+                            removed = true;
+                            *fn = *--fns_end;
+                        }
+                    }
+
+                    if (removed) {
+                        m_instruction_fns.resize((size_t)(fns_end - m_instruction_fns.data()));
+
+                        UpdateCPUDataBusFn();
+                    }
+                }
+
+                if (m_state.hack_flags & BBCMicroHackFlag_Paste) {
+                    ASSERT(m_state.paste_state != BBCMicroPasteState_None);
+
+                    if (m_state.cpu.pc.w == 0xffe1) {
+                        // OSRDCH
+
+                        // Put next byte in A.
+                        switch (m_state.paste_state) {
+                        case BBCMicroPasteState_None:
+                            ASSERT(false);
+                            break;
+
+                        case BBCMicroPasteState_Wait:
+                            SetKeyState(PASTE_START_KEY, false);
+                            m_state.paste_state = BBCMicroPasteState_Delete;
+                            // fall through
+                        case BBCMicroPasteState_Delete:
+                            m_state.cpu.a = 127;
+                            m_state.paste_state = BBCMicroPasteState_Paste;
+                            break;
+
+                        case BBCMicroPasteState_Paste:
+                            ASSERT(m_state.paste_index < m_state.paste_text->size());
+                            m_state.cpu.a = (uint8_t)m_state.paste_text->at(m_state.paste_index);
+
+                            ++m_state.paste_index;
+                            if (m_state.paste_index == m_state.paste_text->size()) {
+                                StopPaste();
+                            }
+                            break;
+                        }
+
+                        // No Escape.
+                        m_state.cpu.p.bits.c = 0;
+
+                        // Pretend the instruction was RTS.
+                        m_state.cpu.dbus = 0x60;
+                    }
+                }
+            }
+        }
+
+        if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_Trace) != 0) {
+#if BBCMICRO_TRACE
+            if (M6502_IsAboutToExecute(&m_state.cpu)) {
+                if (m_trace) {
+                    InstructionTraceEvent *e;
+
+                    // Fill out results of last instruction.
+                    if ((e = m_trace_current_instruction) != NULL) {
+                        e->a = m_state.cpu.a;
+                        e->x = m_state.cpu.x;
+                        e->y = m_state.cpu.y;
+                        e->p = m_state.cpu.p.value;
+                        e->data = m_state.cpu.data;
+                        e->opcode = m_state.cpu.opcode;
+                        e->s = m_state.cpu.s.b.l;
+                        //e->pc=m_state.cpu.pc.w;//...for next instruction
+                        e->ad = m_state.cpu.ad.w;
+                        e->ia = m_state.cpu.ia.w;
+                    }
+
+                    // Allocate event for next instruction.
+                    e = m_trace_current_instruction = (InstructionTraceEvent *)m_trace->AllocEvent(INSTRUCTION_EVENT);
+
+                    if (e) {
+                        e->pc = m_state.cpu.abus.w;
+
+                        // doesn't matter if the last instruction ends up
+                        // bogus... there are no invalid values.
+                    }
+                }
+            }
+#endif
+        }
+
+        if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_Debug) != 0) {
+#if BBCMICRO_DEBUGGER
+            if (m_state.cpu.read >= M6502ReadType_Opcode) {
+                switch (m_debug->step_type) {
+                default:
+                    ASSERT(false);
+                    // fall through
+                case BBCMicroStepType_None:
+                    break;
+
+                case BBCMicroStepType_StepIn:
+                    {
+                        if (m_state.cpu.read == M6502ReadType_Opcode) {
+                            // Done.
+                            DebugHalt("single step");
+                        } else {
+                            ASSERT(m_state.cpu.read == M6502ReadType_Interrupt);
+                            // The instruction was interrupted, so set a temp
+                            // breakpoint in the right place.
+                            uint8_t flags = DebugGetAddressDebugFlags(m_state.cpu.pc);
+
+                            flags |= BBCMicroByteDebugFlag_TempBreakExecute;
+
+                            DebugSetAddressDebugFlags(m_state.cpu.pc, flags);
+                        }
+
+                        SetDebugStepType(BBCMicroStepType_None);
+                    }
+                    break;
+
+                case BBCMicroStepType_StepIntoIRQHandler:
+                    {
+                        ASSERT(m_state.cpu.read == M6502ReadType_Opcode || m_state.cpu.read == M6502ReadType_Interrupt);
+                        if (m_state.cpu.read == M6502ReadType_Opcode) {
+                            SetDebugStepType(BBCMicroStepType_None);
+                            DebugHalt("IRQ/NMI");
+                        }
+                    }
+                    break;
+                }
+            }
+#endif
+        }
     }
 
     // Update video hardware.
@@ -1349,8 +1324,8 @@ bool BBCMicro::Update(VideoDataUnit *video_unit, SoundDataUnit *sound_unit) {
         m_state.crtc_last_output = output;
     }
 
-    // Update display output.
-    //if(m_state.crtc_last_output.display) {
+// Update display output.
+//if(m_state.crtc_last_output.display) {
 #if VIDEO_TRACK_METADATA
     if (m_state.crtc_last_output.raster == 0) {
         video_unit->metadata.flags |= VideoDataUnitMetadataFlag_6845Raster0;
@@ -1454,11 +1429,8 @@ bool BBCMicro::Update(VideoDataUnit *video_unit, SoundDataUnit *sound_unit) {
             //}
         }
 
-        if (m_beeblink_handler) {
-            // Update BeebLink.
+        if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_HasBeebLink) != 0) {
             m_beeblink->Update(&m_state.user_via);
-        } else {
-            // Nothing connected to the user port.
         }
 
         // Update addressable latch and RTC.
@@ -1481,18 +1453,19 @@ bool BBCMicro::Update(VideoDataUnit *video_unit, SoundDataUnit *sound_unit) {
             }
 #endif
 
-            if (m_has_rtc &&
-                pb.m128_bits.rtc_chip_select &&
-                m_state.old_system_via_pb.m128_bits.rtc_address_strobe &&
-                !pb.m128_bits.rtc_address_strobe) {
-                // Latch address on AS 1->0 transition.
-                m_state.rtc.SetAddress(m_state.system_via.a.p);
+            if constexpr (UPDATE_FLAGS & BBCMicroUpdateFlag_HasRTC) {
+                if (pb.m128_bits.rtc_chip_select &&
+                    m_state.old_system_via_pb.m128_bits.rtc_address_strobe &&
+                    !pb.m128_bits.rtc_address_strobe) {
+                    // Latch address on AS 1->0 transition.
+                    m_state.rtc.SetAddress(m_state.system_via.a.p);
+                }
             }
 
             m_state.old_system_via_pb = pb;
         }
 
-        if (m_has_rtc) {
+        if constexpr (UPDATE_FLAGS & BBCMicroUpdateFlag_HasRTC) {
             if (pb.m128_bits.rtc_chip_select &&
                 !pb.m128_bits.rtc_address_strobe) {
                 // AS=0
@@ -1585,7 +1558,7 @@ uint32_t BBCMicro::GetLEDs() {
 //////////////////////////////////////////////////////////////////////////
 
 std::vector<uint8_t> BBCMicro::GetNVRAM() const {
-    if (m_has_rtc) {
+    if (m_type->flags & BBCMicroTypeFlag_HasRTC) {
         return m_state.rtc.GetRAMContents();
     } else {
         return std::vector<uint8_t>();
@@ -2600,7 +2573,7 @@ void BBCMicro::InitStuff() {
         }
     }
 
-    m_has_rtc = !!(m_type->flags & BBCMicroTypeFlag_HasRTC);
+    //m_has_rtc = !!(m_type->flags & BBCMicroTypeFlag_HasRTC);
 
     for (int i = 0; i < 3; ++i) {
         m_rom_rmmio_fns = std::vector<ReadMMIOFn>(256, &ReadROMMMIO);
@@ -2947,55 +2920,68 @@ float BBCMicro::UpdateDiscDriveSound(DiscDrive *dd) {
 //////////////////////////////////////////////////////////////////////////
 
 void BBCMicro::UpdateCPUDataBusFn() {
+    uint32_t update_flags = 0;
+
 #if BBCMICRO_DEBUGGER
     if (m_debug) {
-        m_default_handle_cpu_data_bus_fn = &HandleCPUDataBusWithShadowRAMDebug;
-    } else {
-        m_default_handle_cpu_data_bus_fn = &HandleCPUDataBusWithShadowRAM;
+        update_flags |= BBCMicroUpdateFlag_Debug;
     }
-#else
-    m_default_handle_cpu_data_bus_fn = &HandleCPUDataBusWithShadowRAM;
 #endif
 
     if (m_state.hack_flags != 0) {
-        goto hack;
+        update_flags |= BBCMicroUpdateFlag_Hacks;
     }
 
 #if BBCMICRO_TRACE
     if (m_trace) {
-        goto hack;
+        update_flags |= BBCMicroUpdateFlag_Trace;
     }
 #endif
 
 #if BBCMICRO_DEBUGGER
     if (m_debug) {
         if (m_debug->step_type != BBCMicroStepType_None) {
-            goto hack;
+            update_flags |= BBCMicroUpdateFlag_Hacks;
         }
     }
 #endif
 
     if (!m_instruction_fns.empty()) {
-        goto hack;
+        update_flags |= BBCMicroUpdateFlag_Hacks;
     }
 
     if (!m_write_fns.empty()) {
-        goto hack;
+        update_flags |= BBCMicroUpdateFlag_Hacks;
     }
 
 #if BBCMICRO_DEBUGGER
     if (m_state.async_call_address.w != INVALID_ASYNC_CALL_ADDRESS) {
-        goto hack;
+        update_flags |= BBCMicroUpdateFlag_Hacks;
     }
 #endif
 
-    // No hacks.
-    m_handle_cpu_data_bus_fn = m_default_handle_cpu_data_bus_fn;
-    return;
+    if (m_beeblink_handler) {
+        update_flags |= BBCMicroUpdateFlag_HasBeebLink;
+    }
 
-hack:;
-    m_handle_cpu_data_bus_fn = &HandleCPUDataBusWithHacks;
+    if (m_type->flags & BBCMicroTypeFlag_HasRTC) {
+        update_flags |= BBCMicroUpdateFlag_HasRTC;
+    }
+
+    ASSERT(update_flags < sizeof ms_update_mfns / sizeof ms_update_mfns[0]);
+    m_update_mfn = ms_update_mfns[update_flags];
 }
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#define UPDATE1(N) &BBCMicro::Update<N>
+#define UPDATE2(N) UPDATE1(N + 0), UPDATE1(N + 1)
+#define UPDATE4(N) UPDATE2(N + 0), UPDATE2(N + 2)
+#define UPDATE8(N) UPDATE4(N + 0), UPDATE4(N + 4)
+#define UPDATE16(N) UPDATE8(N + 0), UPDATE8(N + 8)
+
+const BBCMicro::UpdateMFn BBCMicro::ms_update_mfns[32] = {UPDATE16(0), UPDATE16(16)};
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
