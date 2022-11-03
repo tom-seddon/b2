@@ -159,10 +159,6 @@ struct BeebThread::ThreadState {
 
     Message::CompletionFun paste_completion_fun;
 
-#if HTTP_SERVER
-    Message::CompletionFun async_call_completion_fun;
-#endif
-
     std::unique_ptr<BeebLinkHTTPHandler> beeblink_handler;
 
     Log log{"BEEB  ", LOG(BTHREAD)};
@@ -1340,51 +1336,6 @@ void BeebThread::DebugSetExtByteMessage::ThreadHandle(BeebThread *beeb_thread,
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_DEBUGGER
-BeebThread::DebugAsyncCallMessage::DebugAsyncCallMessage(uint16_t addr,
-                                                         uint8_t a,
-                                                         uint8_t x,
-                                                         uint8_t y,
-                                                         bool c)
-    : m_addr(addr)
-    , m_a(a)
-    , m_x(x)
-    , m_y(y)
-    , m_c(c) {
-}
-#endif
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-#if BBCMICRO_DEBUGGER
-bool BeebThread::DebugAsyncCallMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
-                                                      CompletionFun *completion_fun,
-                                                      BeebThread *beeb_thread,
-                                                      ThreadState *ts) {
-    if (!this->PrepareUnlessReplayingOrHalted(ptr, completion_fun, beeb_thread, ts)) {
-        return false;
-    }
-
-    return true;
-}
-#endif
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-#if BBCMICRO_DEBUGGER
-void BeebThread::DebugAsyncCallMessage::ThreadHandle(BeebThread *beeb_thread,
-                                                     ThreadState *ts) const {
-    (void)beeb_thread;
-
-    ts->beeb->DebugSetAsyncCall(m_addr, m_a, m_x, m_y, m_c, &BeebThread::DebugAsyncCallCallback, ts);
-}
-#endif
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-#if BBCMICRO_DEBUGGER
 BeebThread::DebugSetAddressDebugFlags::DebugSetAddressDebugFlags(M6502Word addr, uint8_t addr_flags)
     : m_addr(addr)
     , m_addr_flags(addr_flags) {
@@ -2346,9 +2297,6 @@ void BeebThread::ThreadReplaceBeeb(ThreadState *ts, std::unique_ptr<BBCMicro> be
 
         Message::CallCompletionFun(&ts->reset_completion_fun, false, nullptr);
         Message::CallCompletionFun(&ts->paste_completion_fun, false, nullptr);
-#if BBCMICRO_DEBUGGER
-        Message::CallCompletionFun(&ts->async_call_completion_fun, false, nullptr);
-#endif
     }
 
     ts->num_executed_2MHz_cycles = ts->beeb->GetNum2MHzCycles();
@@ -3279,17 +3227,6 @@ bool BeebThread::ThreadWaitForHardReset(const BBCMicro *beeb, const M6502 *cpu, 
 
     return true;
 }
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-#if HTTP_SERVER
-void BeebThread::DebugAsyncCallCallback(bool called, void *context) {
-    auto ts = (ThreadState *)context;
-
-    Message::CallCompletionFun(&ts->async_call_completion_fun, called, nullptr);
-}
-#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

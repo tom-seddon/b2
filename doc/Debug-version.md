@@ -362,26 +362,6 @@ this is 4MBytes.
 Addresses are as per
 [JGH's addressing scheme](http://mdfs.net/Docs/Comp/BBC/MemAddrs).
 
-### `call/WIN/ADDR?a=A&x=X&y=Y&c=C` ###
-
-Call a routine at `ADDR` (16-bit hex). Load registers from `A`, `X`
-and `Y` (8-bit C-style literals, default 0 if not specified) first,
-and load the carry flag from `C` (`0` or `1`, again assumed to be 0 if
-not provided).
-
-The routine is called on exit from the next invocation of the IRQ
-handler, so interrupts must be enabled if it is to be actually called.
-
-There's no control over the paging. The address just has to be valid
-when the time comes.
-
-Respond with `200 OK` if the call was initiated within half a second
-or so, or `503 Service Unavailable` if not, e.g., because interrupts
-were disabled for the whole period.
-
-(There's no information available about when the routine returns. It
-might even not return at all.)
-
 ### `mount/WIN?drive=D&name=N` ###
 
 Mount a disc image. `D` (default 0) is the drive, and `N` (default "")

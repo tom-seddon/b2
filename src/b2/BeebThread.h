@@ -688,25 +688,6 @@ class BeebThread {
 #endif
 
 #if BBCMICRO_DEBUGGER
-    class DebugAsyncCallMessage : public Message {
-      public:
-        DebugAsyncCallMessage(uint16_t addr, uint8_t a, uint8_t x, uint8_t y, bool c);
-
-        bool ThreadPrepare(std::shared_ptr<Message> *ptr,
-                           CompletionFun *completion_fun,
-                           BeebThread *beeb_thread,
-                           ThreadState *ts) override;
-        void ThreadHandle(BeebThread *beeb_thread, ThreadState *ts) const override;
-
-      protected:
-      private:
-        const uint16_t m_addr = 0;
-        const uint8_t m_a = 0, m_x = 0, m_y = 0;
-        const bool m_c = false;
-    };
-#endif
-
-#if BBCMICRO_DEBUGGER
     class DebugSetAddressDebugFlags : public Message {
       public:
         DebugSetAddressDebugFlags(M6502Word addr, uint8_t addr_flags);
@@ -1086,9 +1067,6 @@ class BeebThread {
     void ThreadStopReplay(ThreadState *ts);
 
     static bool ThreadWaitForHardReset(const BBCMicro *beeb, const M6502 *cpu, void *context);
-#if HTTP_SERVER
-    static void DebugAsyncCallCallback(bool called, void *context);
-#endif
 };
 
 //////////////////////////////////////////////////////////////////////////

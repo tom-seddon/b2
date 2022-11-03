@@ -439,18 +439,6 @@ class BBCMicro : private WD1770Handler {
     HardwareDebugState GetHardwareDebugState() const;
     void SetHardwareDebugState(const HardwareDebugState &hw);
 
-    static const uint16_t INVALID_ASYNC_CALL_ADDRESS = 0xffff;
-    typedef void (*DebugAsyncCallFn)(bool called, void *context);
-
-    // Set future call. The call will be made on exit from the next
-    // IRQ routine (this being about as safe a place to put it as
-    // any).
-    //
-    // The callback will be called with called=true when the call is
-    // made, or with called=false if it doesn't happen in a timely
-    // fashion.
-    void DebugSetAsyncCall(uint16_t address, uint8_t a, uint8_t x, uint8_t y, bool c, DebugAsyncCallFn fn, void *context);
-
     // Ugly terminology - returns the current paging state, expressed as
     // a combination of paging override flags. All the override bits are
     // set, and the actual flags are set appropriately.
@@ -580,20 +568,6 @@ class BBCMicro : private WD1770Handler {
         size_t paste_index = 0;
         uint64_t paste_wait_end = 0;
 
-#if BBCMICRO_DEBUGGER
-        // Upcoming async call address.
-        //
-        // (This has to be part of the BBCMicro state - same argument
-        // as for pasting.)
-        M6502Word async_call_address = {INVALID_ASYNC_CALL_ADDRESS};
-        uint8_t async_call_a = 0;
-        uint8_t async_call_x = 0;
-        uint8_t async_call_y = 0;
-        bool async_call_c = 0;
-        uint8_t async_call_thunk_buf[32] = {};
-        int async_call_timeout = 0;
-#endif
-
         explicit State(const BBCMicroType *type,
                        const std::vector<uint8_t> &nvram_contents,
                        bool power_on_tone,
@@ -710,9 +684,6 @@ class BBCMicro : private WD1770Handler {
 
     // try to avoid appalling debug build performance...
     DebugState *m_debug = nullptr;
-
-    DebugAsyncCallFn m_async_call_fn = nullptr;
-    void *m_async_call_context = nullptr;
 #endif
 
     // To avoid a lot of hassle, the state can't be saved while BeebLink is
@@ -739,13 +710,9 @@ class BBCMicro : private WD1770Handler {
     static uint8_t ReadACCCON(void *m_, M6502Word a);
     static void WriteACCCON(void *m_, M6502Word a, uint8_t value);
 #if BBCMICRO_DEBUGGER
-    static uint8_t ReadAsyncCallThunk(void *m_, M6502Word a);
-#endif
-#if BBCMICRO_DEBUGGER
     void UpdateDebugBigPages(MemoryBigPages *mem_big_pages);
     void UpdateDebugState();
     void SetDebugStepType(BBCMicroStepType step_type);
-    void FinishAsyncCall(bool called);
 #endif
     static void CheckMemoryBigPages(const MemoryBigPages *pages, bool non_null);
 

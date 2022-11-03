@@ -59,15 +59,6 @@ const TraceEventType BBCMicro::INSTRUCTION_EVENT("BBCMicroInstruction", sizeof(I
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-#if BBCMICRO_DEBUGGER
-// The async call thunk lives in an undefined area of FRED.
-static const M6502Word ASYNC_CALL_THUNK_ADDR = {0xfc50};
-static const int ASYNC_CALL_TIMEOUT = 1000000;
-#endif
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 static const BBCMicro::WriteMMIOFn g_R6522_write_fns[16] = {
     &R6522::Write0,
     &R6522::Write1,
@@ -706,23 +697,6 @@ void BBCMicro::SetTeletextDebug(bool teletext_debug) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-#if BBCMICRO_DEBUGGER
-uint8_t BBCMicro::ReadAsyncCallThunk(void *m_, M6502Word a) {
-    auto m = (BBCMicro *)m_;
-
-    ASSERT(a.w >= ASYNC_CALL_THUNK_ADDR.w);
-    size_t offset = (size_t)(a.w - ASYNC_CALL_THUNK_ADDR.w);
-    ASSERT(offset < sizeof m->m_state.async_call_thunk_buf);
-
-    //LOGF(OUTPUT,"%s: type=%u a=$%04x v=$%02x cycles=%" PRIu64 "\n",__func__,m->m_state.cpu.read,a.w,m->m_state.async_call_thunk_buf[offset],m->m_state.num_2MHz_cycles);
-
-    return m->m_state.async_call_thunk_buf[offset];
-}
-#endif
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 void BBCMicro::CheckMemoryBigPages(const MemoryBigPages *mem_big_pages, bool non_null) {
     (void)non_null;
 
@@ -878,81 +852,6 @@ bool BBCMicro::Update(VideoDataUnit *video_unit, SoundDataUnit *sound_unit) {
     if (!m_state.stretch) {
         // Update CPU data bus.
         if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_Hacks) != 0) {
-#if BBCMICRO_DEBUGGER
-            if (m_state.async_call_address.w != INVALID_ASYNC_CALL_ADDRESS) {
-                if (m_state.cpu.read == M6502ReadType_Interrupt && M6502_IsProbablyIRQ(&m_state.cpu)) {
-                    TRACEF(m_trace, "Enqueuing async call: address=$%04x, A=%03u ($%02x) X=%03u ($%02x) Y=%03u ($%02X) C=%s\n",
-                           m_state.async_call_address.w,
-                           m_state.async_call_a, m_state.async_call_a,
-                           m_state.async_call_x, m_state.async_call_x,
-                           m_state.async_call_y, m_state.async_call_y,
-                           BOOL_STR(m_state.async_call_c));
-
-                    // Already on the stack is the actual return that the
-                    // thunk will RTI to.
-
-                    // Manually push current PC and status register.
-                    {
-                        M6502P p = M6502_GetP(&m_state.cpu);
-
-                        const BigPage *bp = DebugGetBigPageForAddress(m_state.cpu.s, {}, 0);
-
-                        // Add the thunk call address that the IRQ routine will RTI to.
-                        bp->w[m_state.cpu.s.w & BIG_PAGE_OFFSET_MASK] = m_state.cpu.pc.b.h;
-                        --m_state.cpu.s.b.l;
-
-                        bp->w[m_state.cpu.s.w & BIG_PAGE_OFFSET_MASK] = m_state.cpu.pc.b.l;
-                        --m_state.cpu.s.b.l;
-
-                        bp->w[m_state.cpu.s.w & BIG_PAGE_OFFSET_MASK] = p.value;
-                        --m_state.cpu.s.b.l;
-
-                        // Set up CPU as if it's about to execute the thunk, so
-                        // the IRQ routine will return to the desired place.
-                        p.bits.c = m_state.async_call_c;
-                        M6502_SetP(&m_state.cpu, p.value);
-                        m_state.cpu.pc = ASYNC_CALL_THUNK_ADDR;
-                    }
-
-                    // Set up thunk.
-                    {
-                        uint8_t *p = m_state.async_call_thunk_buf;
-
-                        *p++ = 0x48; //pha
-                        *p++ = 0x8a; //txa
-                        *p++ = 0x48; //pha
-                        *p++ = 0x98; //tya
-                        *p++ = 0x48; //pha
-                        *p++ = 0xa9;
-                        *p++ = m_state.async_call_a;
-                        *p++ = 0xa2;
-                        *p++ = m_state.async_call_x;
-                        *p++ = 0xa0;
-                        *p++ = m_state.async_call_y;
-                        *p++ = m_state.async_call_c ? 0x38 : 0x18; //sec:clc
-                        *p++ = 0x20;                               //jsr abs
-                        *p++ = m_state.async_call_address.b.l;
-                        *p++ = m_state.async_call_address.b.h;
-                        *p++ = 0x68; //pla
-                        *p++ = 0xa8; //tay
-                        *p++ = 0x68; //pla
-                        *p++ = 0xaa; //tax
-                        *p++ = 0x68; //pla
-                        *p++ = 0x40; //rti
-
-                        ASSERT((size_t)(p - m_state.async_call_thunk_buf) <= sizeof m_state.async_call_thunk_buf);
-                    }
-
-                    FinishAsyncCall(true);
-                } else {
-                    --m_state.async_call_timeout;
-                    if (m_state.async_call_timeout < 0) {
-                        FinishAsyncCall(false);
-                    }
-                }
-            }
-#endif
-
             if (m_state.cpu.read == 0) {
                 if (!m_write_fns.empty()) {
                     // Same deal as instruction fns.
@@ -1908,24 +1807,6 @@ void BBCMicro::DebugGetPaging(ROMSEL *romsel, ACCCON *acccon) const {
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_DEBUGGER
-void BBCMicro::FinishAsyncCall(bool called) {
-    if (m_async_call_fn) {
-        (*m_async_call_fn)(called, m_async_call_context);
-    }
-
-    m_state.async_call_address.w = INVALID_ASYNC_CALL_ADDRESS;
-    m_state.async_call_timeout = 0;
-    m_async_call_fn = nullptr;
-    m_async_call_context = nullptr;
-
-    this->UpdateCPUDataBusFn();
-}
-#endif
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-#if BBCMICRO_DEBUGGER
 const BBCMicro::BigPage *BBCMicro::DebugGetBigPageForAddress(M6502Word addr,
                                                              bool mos,
                                                              uint32_t dpo) const {
@@ -2301,26 +2182,6 @@ void BBCMicro::SetHardwareDebugState(const HardwareDebugState &hw) {
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_DEBUGGER
-void BBCMicro::DebugSetAsyncCall(uint16_t address, uint8_t a, uint8_t x, uint8_t y, bool c, DebugAsyncCallFn fn, void *context) {
-    this->FinishAsyncCall(false);
-
-    m_state.async_call_address.w = address;
-    m_state.async_call_timeout = ASYNC_CALL_TIMEOUT;
-    m_state.async_call_a = a;
-    m_state.async_call_x = x;
-    m_state.async_call_y = y;
-    m_state.async_call_c = c;
-    m_async_call_fn = fn;
-    m_async_call_context = context;
-
-    this->UpdateCPUDataBusFn();
-}
-#endif
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-#if BBCMICRO_DEBUGGER
 uint32_t BBCMicro::DebugGetCurrentPageOverride() const {
     return (*m_type->get_dpo_fn)(m_state.romsel, m_state.acccon);
 }
@@ -2471,12 +2332,6 @@ void BBCMicro::InitStuff() {
     for (uint16_t i = 0xfc00; i < 0xff00; ++i) {
         this->SetMMIOFns(i, nullptr, nullptr, nullptr);
     }
-
-#if BBCMICRO_DEBUGGER
-    for (size_t i = 0; i < sizeof m_state.async_call_thunk_buf; ++i) {
-        this->SetMMIOFns((uint16_t)(ASYNC_CALL_THUNK_ADDR.w + i), &ReadAsyncCallThunk, nullptr, this);
-    }
-#endif
 
     if (m_ext_mem) {
         m_state.ext_mem.AllocateBuffer();
@@ -2953,12 +2808,6 @@ void BBCMicro::UpdateCPUDataBusFn() {
     if (!m_write_fns.empty()) {
         update_flags |= BBCMicroUpdateFlag_Hacks;
     }
-
-#if BBCMICRO_DEBUGGER
-    if (m_state.async_call_address.w != INVALID_ASYNC_CALL_ADDRESS) {
-        update_flags |= BBCMicroUpdateFlag_Hacks;
-    }
-#endif
 
     if (m_beeblink_handler) {
         update_flags |= BBCMicroUpdateFlag_HasBeebLink;

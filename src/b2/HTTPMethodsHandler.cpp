@@ -26,9 +26,6 @@
 // somewhat arbitrary limit here...
 static const uint64_t MAX_PEEK_SIZE = 4 * 1024 * 1024;
 
-static const std::string PRG_CONTENT_TYPE = "application/x-c64-program";
-static const std::string PRG_EXTENSION = ".prg";
-
 static const std::string HTTP_DISC_IMAGE_LOAD_METHOD = "http";
 
 //////////////////////////////////////////////////////////////////////////
@@ -133,7 +130,6 @@ class HTTPMethodsHandler : public HTTPHandler {
         {"paste", &HTTPMethodsHandler::HandlePasteRequest},
         {"poke", &HTTPMethodsHandler::HandlePokeRequest},
         {"peek", &HTTPMethodsHandler::HandlePeekRequest},
-        {"call", &HTTPMethodsHandler::HandleCallRequest},
         {"mount", &HTTPMethodsHandler::HandleMountRequest},
         {"run", &HTTPMethodsHandler::HandleRunRequest},
     };
@@ -379,25 +375,6 @@ class HTTPMethodsHandler : public HTTPHandler {
                                                                                    std::move(request)));
     }
 
-    void HandleCallRequest(HTTPServer *server, HTTPRequest &&request, const std::vector<std::string> &path_parts, size_t command_index) {
-        BeebWindow *beeb_window;
-        uint16_t addr;
-        uint8_t a = 0, x = 0, y = 0;
-        bool c = false;
-        if (!this->ParseArgsOrSendResponse(server, request, path_parts, command_index,
-                                           "window", nullptr, &beeb_window,
-                                           "x16", nullptr, &addr,
-                                           "u8", "a", &a,
-                                           "u8", "x", &x,
-                                           "u8", "y", &y,
-                                           "bool", "c", &c,
-                                           nullptr)) {
-            return;
-        }
-
-        this->SendMessage(beeb_window, server, request, std::make_shared<BeebThread::DebugAsyncCallMessage>(addr, a, x, y, c));
-    }
-
     void HandleMountRequest(HTTPServer *server, HTTPRequest &&request, const std::vector<std::string> &path_parts, size_t command_index) {
         BeebWindow *beeb_window;
         std::string name;
@@ -433,33 +410,18 @@ class HTTPMethodsHandler : public HTTPHandler {
             return;
         }
 
-        if (request.content_type == PRG_CONTENT_TYPE || PathCompare(PathGetExtension(name), PRG_EXTENSION) == 0) {
-            // C64 .PRG.
-            if (request.body.size() < 2) {
-                server->SendResponse(request, HTTPResponse::BadRequest(request));
-                return;
-            }
-
-            uint32_t addr = request.body[0] | (uint32_t)(request.body[1] << 8) | 0xffff0000u;
-            request.body.erase(request.body.begin(), request.body.begin() + 2);
-
-            beeb_window->GetBeebThread()->Send(std::make_shared<BeebThread::DebugSetBytesMessage>(addr, 0, std::move(request.body)));
-            this->SendMessage(beeb_window, server, request, std::make_shared<BeebThread::DebugAsyncCallMessage>((uint16_t)addr, (uint8_t)0, (uint8_t)0, (uint8_t)0, false));
-            return;
-        } else {
-            // BBC disc image.
-            std::shared_ptr<DiscImage> disc_image = this->LoadDiscImageFromRequestOrSendResponse(server, request, name);
-            if (!disc_image) {
-                return;
-            }
-
-            beeb_window->GetBeebThread()->Send(std::make_shared<BeebThread::LoadDiscMessage>(0, std::move(disc_image), true));
-
-            auto message = std::make_shared<BeebThread::HardResetAndReloadConfigMessage>(BeebThreadHardResetFlag_Run |
-                                                                                         BeebThreadHardResetFlag_Boot);
-            this->SendMessage(beeb_window, server, request, std::move(message));
+        // Assume BBC disc image.
+        std::shared_ptr<DiscImage> disc_image = this->LoadDiscImageFromRequestOrSendResponse(server, request, name);
+        if (!disc_image) {
             return;
         }
+
+        beeb_window->GetBeebThread()->Send(std::make_shared<BeebThread::LoadDiscMessage>(0, std::move(disc_image), true));
+
+        auto message = std::make_shared<BeebThread::HardResetAndReloadConfigMessage>(BeebThreadHardResetFlag_Run |
+                                                                                        BeebThreadHardResetFlag_Boot);
+        this->SendMessage(beeb_window, server, request, std::move(message));
+        return;
     }
 
     std::shared_ptr<DiscImage> LoadDiscImageFromRequestOrSendResponse(HTTPServer *server, const HTTPRequest &request, const std::string &name) {
