@@ -153,10 +153,10 @@ std::string GetMicrosecondsString(uint64_t num_microseconds) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-std::string Get2MHzCyclesString(uint64_t num_2MHz_cycles) {
+std::string GetCycleCountString(CycleCount cycle_count) {
     char str[500];
 
-    uint64_t n = num_2MHz_cycles;
+    uint64_t n = cycle_count.num_2MHz_cycles;
 
     unsigned cycles = n % 2;
     n /= 2;

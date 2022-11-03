@@ -141,7 +141,7 @@ class BBCMicro : private WD1770Handler {
              bool ext_mem,
              bool power_on_tone,
              BeebLinkHandler *beeblink_handler,
-             uint64_t initial_num_2MHz_cycles);
+             CycleCount initial_cycle_count);
 
   protected:
     BBCMicro(const BBCMicro &src);
@@ -277,7 +277,7 @@ class BBCMicro : private WD1770Handler {
     // (This is supposed to be impossible to get wrong (like a getter) but
     // also cheap enough in a debug build (unlike a getter) that I don't
     // have to worry about that.)
-    const uint64_t *GetNum2MHzCycles() const;
+    const CycleCount *GetCycleCountPtr() const;
 
     uint8_t GetKeyState(BeebKey key);
 
@@ -501,7 +501,7 @@ class BBCMicro : private WD1770Handler {
         // Number of emulated 2MHz cycles elapsed. Used to regulate sound
         // output and measure (for informational purposes) time between
         // vsyncs.
-        uint64_t num_2MHz_cycles = 0;
+        CycleCount cycle_count = {0};
 
         // Addressable latch.
         AddressableLatch addressable_latch = {0xff};
@@ -540,8 +540,8 @@ class BBCMicro : private WD1770Handler {
         // External 1MHz bus RAM.
         ExtMem ext_mem;
 
-        uint64_t last_vsync_2MHz_cycles = 0;
-        uint64_t last_frame_2MHz_cycles = 0;
+        CycleCount last_vsync_cycle_count = {0};
+        CycleCount last_frame_cycle_count = {0};
 
         std::vector<uint8_t> ram_buffer;
 
@@ -572,7 +572,7 @@ class BBCMicro : private WD1770Handler {
                        const std::vector<uint8_t> &nvram_contents,
                        bool power_on_tone,
                        const tm *rtc_time,
-                       uint64_t initial_num_2MHz_cycles);
+                       CycleCount initial_cycle_count);
     };
 
     State m_state;

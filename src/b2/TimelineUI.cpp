@@ -37,8 +37,8 @@ class TimelineUI : public SettingsUI {
         BeebThreadTimelineState timeline_state;
         beeb_thread->GetTimelineState(&timeline_state);
 
-        ASSERT(timeline_state.end_2MHz_cycles >= timeline_state.begin_2MHz_cycles);
-        const uint64_t timeline_duration = timeline_state.end_2MHz_cycles - timeline_state.begin_2MHz_cycles;
+        ASSERT(timeline_state.end_cycles.num_2MHz_cycles >= timeline_state.begin_cycles.num_2MHz_cycles);
+        const CycleCount timeline_duration = {timeline_state.end_cycles.num_2MHz_cycles - timeline_state.begin_cycles.num_2MHz_cycles};
 
         ImGui::Text("Timeline Mode: %s", GetBeebThreadTimelineModeEnumName(timeline_state.mode));
 
@@ -54,17 +54,17 @@ class TimelineUI : public SettingsUI {
             // fall through
         case BeebThreadTimelineMode_None:
             {
-                ASSERT(timeline_state.end_2MHz_cycles >= timeline_state.begin_2MHz_cycles);
-                uint64_t duration = timeline_state.end_2MHz_cycles - timeline_state.begin_2MHz_cycles;
+                ASSERT(timeline_state.end_cycles.num_2MHz_cycles >= timeline_state.begin_cycles.num_2MHz_cycles);
+                CycleCount duration = {timeline_state.end_cycles.num_2MHz_cycles - timeline_state.begin_cycles.num_2MHz_cycles};
 
                 // Record
                 if (timeline_state.can_record) {
-                    if (ImGuiConfirmButton("Record", timeline_duration > 0)) {
+                    if (ImGuiConfirmButton("Record", timeline_duration.num_2MHz_cycles > 0)) {
                         beeb_thread->Send(std::make_shared<BeebThread::StartRecordingMessage>());
                     }
                 }
 
-                if (duration > 0) {
+                if (duration.num_2MHz_cycles > 0) {
                     // Clear
                     ImGui::SameLine();
                     if (ImGuiConfirmButton("Delete")) {
@@ -108,12 +108,12 @@ class TimelineUI : public SettingsUI {
             // fall through
         case BeebThreadTimelineMode_Record:
             {
-                if (timeline_duration == 0) {
+                if (timeline_duration.num_2MHz_cycles == 0) {
                     ImGui::Text("No recording.");
                 } else {
                     ImGui::Text("Recorded: %zu events, %s",
                                 timeline_state.num_events,
-                                Get2MHzCyclesString(timeline_duration).c_str());
+                                GetCycleCountString(timeline_duration).c_str());
                 }
             }
             break;
@@ -196,9 +196,6 @@ class TimelineUI : public SettingsUI {
                     ImGui::SetCursorPos(ImVec2(0.f, row * CELL_HEIGHT));
                     //                ImGui::Text("Row %d",row);
 
-                    char cycles_str[MAX_UINT64_THOUSANDS_LEN];
-                    GetThousandsString(cycles_str, e->time_2MHz_cycles);
-
                     if (i > 0) {
                         ImGui::Separator();
                     }
@@ -258,7 +255,9 @@ class TimelineUI : public SettingsUI {
                         }
                     }
 
-                    ImGui::Text("%s (%s)", cycles_str, Get2MHzCyclesString(e->time_2MHz_cycles).c_str());
+                    char cycles_str[MAX_UINT64_THOUSANDS_LEN];
+                    GetThousandsString(cycles_str, e->time_cycles.num_2MHz_cycles);
+                    ImGui::Text("%s (%s)", cycles_str, GetCycleCountString(e->time_cycles).c_str());
 
                     const std::string &name = state->GetName();
                     if (name.empty()) {

@@ -90,14 +90,16 @@ struct TraceConditions {
 
 struct BeebThreadTimelineState {
     BeebThreadTimelineMode mode = BeebThreadTimelineMode_None;
-    uint64_t begin_2MHz_cycles = 0;
-    uint64_t end_2MHz_cycles = 0;
-    uint64_t current_2MHz_cycles = 0;
+    CycleCount begin_cycles = {0};
+    CycleCount end_cycles = {0};
+    CycleCount current_cycles = {0};
     size_t num_events = 0;
     size_t num_beeb_state_events = 0;
     bool can_record = false;
     uint32_t clone_impediments = 0;
 };
+
+static_assert(sizeof(std::atomic<CycleCount>) == sizeof(CycleCount), "atomic<CycleCount> has overhead...");
 
 class BeebThread {
     struct ThreadState;
@@ -166,14 +168,14 @@ class BeebThread {
     };
 
     struct TimelineEvent {
-        uint64_t time_2MHz_cycles;
+        CycleCount time_cycles;
         std::shared_ptr<Message> message;
     };
 
     class BeebStateMessage;
 
     struct TimelineBeebStateEvent {
-        uint64_t time_2MHz_cycles;
+        CycleCount time_cycles;
         std::shared_ptr<BeebStateMessage> message;
     };
 
@@ -807,10 +809,9 @@ class BeebThread {
     // Returns true if Start was called and the thread is running.
     bool IsStarted() const;
 
-    // Get number of 2MHz cycles elapsed. This value is for UI
-    // purposes only - it's updated regularly, but it isn't
-    // authoritative.
-    uint64_t GetEmulated2MHzCycles() const;
+    // Get number of cycles elapsed. This value is for UI purposes only - it's
+    // updated regularly, but it isn't authoritative.
+    CycleCount GetEmulatedCycles() const;
 
     // The caller has to lock the buffer, read the data out, and send
     // it to the TVOutput. The (VideoWriter has to be able to spot the
@@ -966,7 +967,7 @@ class BeebThread {
     // so that the UI can query them.
     //
     // Safe provided they are updated atomically.
-    std::atomic<uint64_t> m_num_2MHz_cycles{0};
+    std::atomic<CycleCount> m_num_cycles{};
     std::atomic<bool> m_is_speed_limited{true};
     std::atomic<float> m_speed_scale{1.0};
     std::atomic<uint32_t> m_leds{0};

@@ -49,14 +49,14 @@
 //////////////////////////////////////////////////////////////////////////
 
 // Number of 2MHz cycles the emulated BBC will run for, flat out.
-static const int32_t RUN_2MHz_CYCLES = 2000;
+static const CycleCount RUN_CYCLES = {CYCLES_PER_SECOND / 1000};
 
 // ~1MByte
 static constexpr size_t NUM_VIDEO_UNITS = 262144;
 static constexpr size_t NUM_AUDIO_UNITS = NUM_VIDEO_UNITS / 2; //(1<<SOUND_CLOCK_SHIFT);
 
 // When recording, how often to save a state.
-static const uint64_t TIMELINE_SAVE_STATE_FREQUENCY_2MHz_CYCLES = (uint64_t)2e6;
+static const CycleCount TIMELINE_SAVE_STATE_FREQUENCY_CYCLES = {CYCLES_PER_SECOND};
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -126,14 +126,14 @@ struct BeebThread::ThreadState {
 
     // For the benefit of callbacks that have a ThreadState * as their context.
     BeebThread *beeb_thread = nullptr;
-    const uint64_t *num_executed_2MHz_cycles = nullptr;
-    uint64_t next_stop_2MHz_cycles = 0;
+    const CycleCount *num_executed_cycles = nullptr;
+    CycleCount next_stop_cycles = {0};
 
     BBCMicro *beeb = nullptr;
     BeebLoadedConfig current_config;
 #if BBCMICRO_TRACE
     BeebThreadTraceState trace_state = BeebThreadTraceState_None;
-    uint64_t trace_start_2MHz_cycles = 0;
+    CycleCount trace_start_cycles = {0};
     TraceConditions trace_conditions;
     size_t trace_max_num_bytes = 0;
 #endif
@@ -148,14 +148,14 @@ struct BeebThread::ThreadState {
     std::shared_ptr<BeebState> timeline_replay_old_state;
     size_t timeline_replay_list_index = 0;
     size_t timeline_replay_list_event_index = 0;
-    uint64_t timeline_replay_time_2MHz_cycles = 0;
+    CycleCount timeline_replay_time_cycle_count = {0};
 
     bool copy_basic = false;
     std::function<void(std::vector<uint8_t>)> copy_stop_fun;
     std::vector<uint8_t> copy_data;
 
     Message::CompletionFun reset_completion_fun;
-    uint64_t reset_timeout_cycles = 0;
+    CycleCount reset_timeout_cycles = {0};
 
     Message::CompletionFun paste_completion_fun;
 
@@ -419,9 +419,9 @@ void BeebThread::HardResetMessage::HardReset(BeebThread *beeb_thread,
 
     tm now = GetLocalTimeNow();
 
-    uint64_t num_2MHz_cycles = 0;
-    if (ts->num_executed_2MHz_cycles) {
-        num_2MHz_cycles = *ts->num_executed_2MHz_cycles;
+    CycleCount num_cycles = {0};
+    if (ts->num_executed_cycles) {
+        num_cycles = *ts->num_executed_cycles;
     }
 
     if (ts->current_config.config.beeblink) {
@@ -448,7 +448,7 @@ void BeebThread::HardResetMessage::HardReset(BeebThread *beeb_thread,
                                            ts->current_config.config.ext_mem,
                                            beeb_thread->m_power_on_tone.load(std::memory_order_acquire),
                                            ts->beeblink_handler.get(),
-                                           num_2MHz_cycles);
+                                           num_cycles);
 
     beeb->SetOSROM(ts->current_config.os);
 
@@ -850,7 +850,7 @@ bool BeebThread::SaveStateMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
     state->SetName(GetTimeString(GetUTCTimeNow()));
 
     if (m_verbose) {
-        std::string time_str = Get2MHzCyclesString(state->GetEmulated2MHzCycles());
+        std::string time_str = GetCycleCountString(state->GetCycleCount());
         ts->msgs.i.f("Saved state: %s\n", time_str.c_str());
     }
 
@@ -901,12 +901,12 @@ bool BeebThread::StartReplayMessage::ThreadPrepare(std::shared_ptr<Message> *ptr
     ts->timeline_replay_list_index = index;
     ts->timeline_replay_list_event_index = ~(size_t)0;
     beeb_thread->ThreadNextReplayEvent(ts);
-    ts->timeline_replay_time_2MHz_cycles = m_start_state->GetEmulated2MHzCycles();
+    ts->timeline_replay_time_cycle_count = m_start_state->GetCycleCount();
 
     LOGF(REPLAY, "replay initiated: list index=%zu, list event index=%zu, replay cycles=%" PRIu64 "\n",
          ts->timeline_replay_list_index,
          ts->timeline_replay_list_event_index,
-         ts->timeline_replay_time_2MHz_cycles);
+         ts->timeline_replay_time_cycle_count.num_2MHz_cycles);
 
     beeb_thread->ThreadReplaceBeeb(ts, m_start_state->CloneBBCMicro(), 0);
 
@@ -1465,7 +1465,7 @@ bool BeebThread::TimingMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
     (void)completion_fun, (void)beeb_thread;
 
     //uint64_t old=ts->next_stop_2MHz_cycles;
-    ts->next_stop_2MHz_cycles = m_max_sound_units << SOUND_CLOCK_SHIFT;
+    ts->next_stop_cycles.num_2MHz_cycles = m_max_sound_units << LSHIFT_SOUND_CLOCK_TO_CYCLE_COUNT;
 
     // The new next stop can be sooner than the old next stop when the speed
     // limit is being reduced.
@@ -1626,8 +1626,8 @@ bool BeebThread::IsStarted() const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-uint64_t BeebThread::GetEmulated2MHzCycles() const {
-    return (uint64_t)m_num_2MHz_cycles;
+CycleCount BeebThread::GetEmulatedCycles() const {
+    return m_num_cycles;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -2131,7 +2131,7 @@ bool BeebThread::ThreadHandleTraceInstructionConditions(const BBCMicro *beeb,
             break;
 
         case BeebThreadStopTraceCondition_NumCycles:
-            if (*ts->num_executed_2MHz_cycles - ts->trace_start_2MHz_cycles >= ts->trace_conditions.stop_num_cycles) {
+            if (ts->num_executed_cycles->num_2MHz_cycles - ts->trace_start_cycles.num_2MHz_cycles >= ts->trace_conditions.stop_num_cycles) {
                 ts->beeb_thread->ThreadStopTrace(ts);
                 return false;
             }
@@ -2299,12 +2299,12 @@ void BeebThread::ThreadReplaceBeeb(ThreadState *ts, std::unique_ptr<BBCMicro> be
         Message::CallCompletionFun(&ts->paste_completion_fun, false, nullptr);
     }
 
-    ts->num_executed_2MHz_cycles = ts->beeb->GetNum2MHzCycles();
+    ts->num_executed_cycles = ts->beeb->GetCycleCountPtr();
 
     {
         AudioDeviceLock lock(m_sound_device_id);
 
-        m_audio_thread_data->num_consumed_sound_units = *ts->num_executed_2MHz_cycles >> SOUND_CLOCK_SHIFT;
+        m_audio_thread_data->num_consumed_sound_units = ts->num_executed_cycles->num_2MHz_cycles >> RSHIFT_CYCLE_COUNT_TO_SOUND_CLOCK;
     }
 
     m_has_nvram.store(!ts->beeb->GetNVRAM().empty(), std::memory_order_release);
@@ -2423,7 +2423,7 @@ void BeebThread::ThreadStartTrace(ThreadState *ts) {
 
 #if BBCMICRO_TRACE
 void BeebThread::ThreadBeebStartTrace(ThreadState *ts) {
-    ts->trace_start_2MHz_cycles = *ts->num_executed_2MHz_cycles;
+    ts->trace_start_cycles = *ts->num_executed_cycles;
     ts->trace_state = BeebThreadTraceState_Tracing;
     ts->beeb->StartTrace(ts->trace_conditions.trace_flags, ts->trace_max_num_bytes);
 }
@@ -2598,7 +2598,7 @@ void BeebThread::ThreadMain(void) {
         }
 
         if (!ts.timeline_event_lists.empty()) {
-            ts.timeline_end_event.time_2MHz_cycles = ts.timeline_event_lists.back().events.back().time_2MHz_cycles;
+            ts.timeline_end_event.time_cycles.num_2MHz_cycles = ts.timeline_event_lists.back().events.back().time_cycles.num_2MHz_cycles;
         }
 
         this->ThreadCheckTimeline(&ts);
@@ -2632,8 +2632,8 @@ void BeebThread::ThreadMain(void) {
 
         if (paused ||
             (m_is_speed_limited.load(std::memory_order_acquire) &&
-             ts.next_stop_2MHz_cycles <= *ts.num_executed_2MHz_cycles)) {
-            PROFILE_SCOPE(PROFILER_COLOUR_ALICE_BLUE,"MQ Wait");
+             ts.next_stop_cycles.num_2MHz_cycles <= ts.num_executed_cycles->num_2MHz_cycles)) {
+            PROFILE_SCOPE(PROFILER_COLOUR_ALICE_BLUE, "MQ Wait");
             rmt_ScopedCPUSample(MessageQueueWaitForMessage, 0);
             m_mq.ConsumerWaitForMessages(&messages);
             what = "waited";
@@ -2646,7 +2646,7 @@ void BeebThread::ThreadMain(void) {
         //printf("%s: %s/%d: %zu message(s), cycles=%" PRIu64 ", stop=%" PRIu64 ", total_num_audio_units_produced=%zu\n",__func__,what,handle_messages_reason,messages.size(),ts.num_executed_2MHz_cycles?*ts.num_executed_2MHz_cycles:0,ts.next_stop_2MHz_cycles,total_num_audio_units_produced);
         total_num_audio_units_produced = 0;
 
-        uint64_t stop_2MHz_cycles;
+        CycleCount stop_cycles;
 
         //if(!messages.empty())
         {
@@ -2666,7 +2666,7 @@ void BeebThread::ThreadMain(void) {
 
                     if (ts.timeline_mode == BeebThreadTimelineMode_Record) {
                         ASSERT(!ts.timeline_event_lists.empty());
-                        TimelineEvent event{*ts.num_executed_2MHz_cycles, std::move(m.message)};
+                        TimelineEvent event{*ts.num_executed_cycles, std::move(m.message)};
                         ts.timeline_event_lists.back().events.emplace_back(std::move(event));
                         ++m_timeline_state.num_events;
                     }
@@ -2677,7 +2677,7 @@ void BeebThread::ThreadMain(void) {
                 }
             }
 
-            stop_2MHz_cycles = ts.next_stop_2MHz_cycles;
+            stop_cycles = ts.next_stop_cycles;
 
             messages.clear();
 
@@ -2697,12 +2697,12 @@ void BeebThread::ThreadMain(void) {
                     m_timeline_state.can_record = false;
 
                     ASSERT(!ts.timeline_event_lists.empty());
-                    ts.timeline_end_event.time_2MHz_cycles = *ts.num_executed_2MHz_cycles;
+                    ts.timeline_end_event.time_cycles = *ts.num_executed_cycles;
 
                     const TimelineEventList *list = &ts.timeline_event_lists.back();
 
-                    ASSERT(*ts.num_executed_2MHz_cycles >= list->state_event.time_2MHz_cycles);
-                    if (*ts.num_executed_2MHz_cycles - list->state_event.time_2MHz_cycles >= TIMELINE_SAVE_STATE_FREQUENCY_2MHz_CYCLES) {
+                    ASSERT(ts.num_executed_cycles->num_2MHz_cycles >= list->state_event.time_cycles.num_2MHz_cycles);
+                    if (ts.num_executed_cycles->num_2MHz_cycles - list->state_event.time_cycles.num_2MHz_cycles >= TIMELINE_SAVE_STATE_FREQUENCY_CYCLES.num_2MHz_cycles) {
                         if (list->events.empty()) {
                             // There have been no events since the last save
                             // event. Don't bother saving a new one.
@@ -2722,24 +2722,24 @@ void BeebThread::ThreadMain(void) {
                     m_timeline_state.can_record = false;
 
                     const TimelineEvent *next_event = this->ThreadGetNextReplayEvent(&ts);
-                    LOGF(REPLAY, "next_event: %" PRIu64 "; num executed: %" PRIu64 "\n", next_event->time_2MHz_cycles, *ts.num_executed_2MHz_cycles);
-                    ASSERT(*ts.num_executed_2MHz_cycles <= next_event->time_2MHz_cycles);
-                    if (*ts.num_executed_2MHz_cycles == next_event->time_2MHz_cycles) {
+                    LOGF(REPLAY, "next_event: %" PRIu64 "; num executed: %" PRIu64 "\n", next_event->time_cycles.num_2MHz_cycles, ts.num_executed_cycles->num_2MHz_cycles);
+                    ASSERT(ts.num_executed_cycles->num_2MHz_cycles <= next_event->time_cycles.num_2MHz_cycles);
+                    if (ts.num_executed_cycles->num_2MHz_cycles == next_event->time_cycles.num_2MHz_cycles) {
                         if (!!next_event->message) {
-                            LOGF(REPLAY, "handle event: %" PRIu64 "\n", next_event->time_2MHz_cycles);
+                            LOGF(REPLAY, "handle event: %" PRIu64 "\n", next_event->time_cycles.num_2MHz_cycles);
                             next_event->message->ThreadHandle(this, &ts);
                             this->ThreadNextReplayEvent(&ts);
                             next_event = this->ThreadGetNextReplayEvent(&ts);
-                            LOGF(REPLAY, "new next_event: %" PRIu64 "\n", next_event->time_2MHz_cycles);
+                            LOGF(REPLAY, "new next_event: %" PRIu64 "\n", next_event->time_cycles.num_2MHz_cycles);
                         } else {
                             // end of timeline
                             this->ThreadStopReplay(&ts);
                         }
                     }
 
-                    if (next_event->time_2MHz_cycles < stop_2MHz_cycles) {
-                        stop_2MHz_cycles = next_event->time_2MHz_cycles;
-                        LOGF(REPLAY, "stop cycles: %" PRIu64 "\n", stop_2MHz_cycles);
+                    if (next_event->time_cycles.num_2MHz_cycles < stop_cycles.num_2MHz_cycles) {
+                        stop_cycles = next_event->time_cycles;
+                        LOGF(REPLAY, "stop cycles: %" PRIu64 "\n", stop_cycles.num_2MHz_cycles);
                     }
                 }
                 break;
@@ -2748,16 +2748,16 @@ void BeebThread::ThreadMain(void) {
             //m_timeline_state.num_events=ts.timeline_events.size();
             if (ts.timeline_event_lists.empty()) {
                 ASSERT(m_timeline_state.num_events == 0);
-                m_timeline_state.begin_2MHz_cycles = 0;
-                m_timeline_state.end_2MHz_cycles = m_timeline_state.begin_2MHz_cycles;
+                m_timeline_state.begin_cycles = {0};
+                m_timeline_state.end_cycles = m_timeline_state.begin_cycles;
                 m_timeline_state.num_beeb_state_events = 0;
             } else {
-                m_timeline_state.begin_2MHz_cycles = ts.timeline_event_lists[0].state_event.time_2MHz_cycles;
-                m_timeline_state.end_2MHz_cycles = ts.timeline_end_event.time_2MHz_cycles;
+                m_timeline_state.begin_cycles = ts.timeline_event_lists[0].state_event.time_cycles;
+                m_timeline_state.end_cycles = ts.timeline_end_event.time_cycles;
                 m_timeline_state.num_beeb_state_events = ts.timeline_event_lists.size();
             }
 
-            m_timeline_state.current_2MHz_cycles = *ts.num_executed_2MHz_cycles;
+            m_timeline_state.current_cycles = *ts.num_executed_cycles;
             m_timeline_state.mode = ts.timeline_mode;
         }
 
@@ -2796,21 +2796,21 @@ void BeebThread::ThreadMain(void) {
             }
         }
 
-        if (!paused && stop_2MHz_cycles > *ts.num_executed_2MHz_cycles) {
+        if (!paused && stop_cycles.num_2MHz_cycles > ts.num_executed_cycles->num_2MHz_cycles) {
             PROFILE_SCOPE(PROFILER_COLOUR_BLUE, "Beeb Update");
             rmt_ScopedCPUSample(BeebUpdate, 0);
 
             ASSERT(ts.beeb);
 
-            uint64_t num_2MHz_cycles = stop_2MHz_cycles - *ts.num_executed_2MHz_cycles;
-            if (num_2MHz_cycles > RUN_2MHz_CYCLES) {
-                num_2MHz_cycles = RUN_2MHz_CYCLES;
+            CycleCount num_cycles = {stop_cycles.num_2MHz_cycles - ts.num_executed_cycles->num_2MHz_cycles};
+            if (num_cycles.num_2MHz_cycles > RUN_CYCLES.num_2MHz_cycles) {
+                num_cycles.num_2MHz_cycles = RUN_CYCLES.num_2MHz_cycles;
             }
 
             // One day I'll clear up the units mismatch...
             VideoDataUnit *va, *vb;
             size_t num_va, num_vb;
-            size_t num_video_units = (size_t)num_2MHz_cycles;
+            size_t num_video_units = (size_t)(num_cycles.num_2MHz_cycles >> RSHIFT_CYCLE_COUNT_TO_2MHZ);
             if (!m_video_output.GetProducerBuffers(&va, &num_va, &vb, &num_vb)) {
                 handle_messages_reason = 0;
                 goto handle_messages;
@@ -2825,7 +2825,7 @@ void BeebThread::ThreadMain(void) {
                 }
             }
 
-            size_t num_sound_units = (size_t)((num_va + num_vb + (1 << SOUND_CLOCK_SHIFT) - 1) >> SOUND_CLOCK_SHIFT);
+            size_t num_sound_units = (size_t)((num_va + num_vb + (1 << LSHIFT_SOUND_CLOCK_TO_CYCLE_COUNT) - 1) >> RSHIFT_CYCLE_COUNT_TO_SOUND_CLOCK);
 
             SoundDataUnit *sa, *sb;
             size_t num_sa, num_sb;
@@ -2923,7 +2923,7 @@ void BeebThread::ThreadMain(void) {
             }
 
             // It's a bit dumb having multiple copies.
-            m_num_2MHz_cycles.store(*ts.num_executed_2MHz_cycles, std::memory_order_release);
+            m_num_cycles.store(*ts.num_executed_cycles, std::memory_order_release);
         }
     }
 done:
@@ -2970,7 +2970,7 @@ bool BeebThread::ThreadRecordSaveState(ThreadState *ts, bool user_initiated) {
     auto message = std::make_shared<BeebStateMessage>(std::make_unique<BeebState>(std::move(clone)),
                                                       user_initiated);
 
-    uint64_t time = *ts->num_executed_2MHz_cycles;
+    CycleCount time = *ts->num_executed_cycles;
 
     TimelineEventList list;
     list.state_event = {time, std::move(message)};
@@ -2990,7 +2990,7 @@ bool BeebThread::ThreadRecordSaveState(ThreadState *ts, bool user_initiated) {
 //////////////////////////////////////////////////////////////////////////
 
 void BeebThread::ThreadStopRecording(ThreadState *ts) {
-    ts->timeline_end_event.time_2MHz_cycles = *ts->num_executed_2MHz_cycles;
+    ts->timeline_end_event.time_cycles = *ts->num_executed_cycles;
     ts->timeline_mode = BeebThreadTimelineMode_None;
 }
 
@@ -3022,24 +3022,24 @@ void BeebThread::ThreadCheckTimeline(ThreadState *ts) {
         for (size_t i = 0; i < ts->timeline_event_lists.size(); ++i) {
             const TimelineEventList *e = &ts->timeline_event_lists[i];
 
-            ASSERT(e->state_event.time_2MHz_cycles == m_timeline_beeb_state_events_copy[i].time_2MHz_cycles);
+            ASSERT(e->state_event.time_cycles.num_2MHz_cycles == m_timeline_beeb_state_events_copy[i].time_cycles.num_2MHz_cycles);
             ASSERT(e->state_event.message == m_timeline_beeb_state_events_copy[i].message);
-            ASSERT(e->state_event.time_2MHz_cycles == e->state_event.message->GetBeebState()->GetEmulated2MHzCycles());
+            ASSERT(e->state_event.time_cycles.num_2MHz_cycles == e->state_event.message->GetBeebState()->GetCycleCount().num_2MHz_cycles);
 
             num_events += 1 + e->events.size();
 
             if (pe) {
-                ASSERT(e->state_event.time_2MHz_cycles >= pe->state_event.time_2MHz_cycles);
+                ASSERT(e->state_event.time_cycles.num_2MHz_cycles >= pe->state_event.time_cycles.num_2MHz_cycles);
 
                 for (size_t j = 0; j < pe->events.size(); ++j) {
-                    ASSERT(pe->events[j].time_2MHz_cycles <= e->state_event.time_2MHz_cycles);
+                    ASSERT(pe->events[j].time_cycles.num_2MHz_cycles <= e->state_event.time_cycles.num_2MHz_cycles);
                 }
             }
 
             for (size_t j = 0; j < e->events.size(); ++j) {
-                ASSERT(e->events[j].time_2MHz_cycles >= e->state_event.time_2MHz_cycles);
+                ASSERT(e->events[j].time_cycles.num_2MHz_cycles >= e->state_event.time_cycles.num_2MHz_cycles);
                 if (j > 0) {
-                    ASSERT(e->events[j].time_2MHz_cycles >= e->events[j - 1].time_2MHz_cycles);
+                    ASSERT(e->events[j].time_cycles.num_2MHz_cycles >= e->events[j - 1].time_cycles.num_2MHz_cycles);
                 }
             }
 
@@ -3047,9 +3047,9 @@ void BeebThread::ThreadCheckTimeline(ThreadState *ts) {
         }
 
         if (pe->events.empty()) {
-            ASSERT(ts->timeline_end_event.time_2MHz_cycles >= pe->state_event.time_2MHz_cycles);
+            ASSERT(ts->timeline_end_event.time_cycles.num_2MHz_cycles >= pe->state_event.time_cycles.num_2MHz_cycles);
         } else {
-            ASSERT(ts->timeline_end_event.time_2MHz_cycles >= pe->events.back().time_2MHz_cycles);
+            ASSERT(ts->timeline_end_event.time_cycles.num_2MHz_cycles >= pe->events.back().time_cycles.num_2MHz_cycles);
         }
         ASSERT(!ts->timeline_end_event.message);
     }
@@ -3122,7 +3122,7 @@ void BeebThread::ThreadTruncateTimeline(ThreadState *ts,
                                    ts->timeline_event_lists.end());
 
     // The given state is now the end of the timeline.
-    ts->timeline_end_event.time_2MHz_cycles = list->state_event.time_2MHz_cycles;
+    ts->timeline_end_event.time_cycles = list->state_event.time_cycles;
 
     // Truncate the copy list as well.
     m_timeline_beeb_state_events_copy.erase(m_timeline_beeb_state_events_copy.begin() + (ptrdiff_t)index + 1,
@@ -3220,7 +3220,7 @@ bool BeebThread::ThreadWaitForHardReset(const BBCMicro *beeb, const M6502 *cpu, 
     // TODO - does timeout mean the request actually failed?
     if ((cpu->opcode_pc.w == 0xfff1 && cpu->a == 0) ||
         cpu->opcode_pc.w == 0xffe0 ||
-        *ts->num_executed_2MHz_cycles > ts->reset_timeout_cycles) {
+        ts->num_executed_cycles->num_2MHz_cycles > ts->reset_timeout_cycles.num_2MHz_cycles) {
         Message::CallCompletionFun(&ts->reset_completion_fun, true, nullptr);
         return false;
     }

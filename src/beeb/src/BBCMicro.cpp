@@ -128,8 +128,8 @@ BBCMicro::State::State(const BBCMicroType *type,
                        const std::vector<uint8_t> &nvram_contents,
                        bool power_on_tone,
                        const tm *rtc_time,
-                       uint64_t initial_num_2MHz_cycles)
-    : num_2MHz_cycles(initial_num_2MHz_cycles) {
+                       CycleCount initial_cycle_count)
+    : cycle_count(initial_cycle_count) {
     M6502_Init(&this->cpu, type->m6502_config);
     this->ram_buffer.resize(type->ram_buffer_size);
 
@@ -155,12 +155,12 @@ BBCMicro::BBCMicro(const BBCMicroType *type,
                    bool ext_mem,
                    bool power_on_tone,
                    BeebLinkHandler *beeblink_handler,
-                   uint64_t initial_num_2MHz_cycles)
+                   CycleCount initial_cycle_count)
     : m_state(type,
               nvram_contents,
               power_on_tone,
               rtc_time,
-              initial_num_2MHz_cycles)
+              initial_cycle_count)
     , m_type(type)
     , m_disc_interface(def ? def->create_fun() : nullptr)
     , m_video_nula(video_nula)
@@ -243,7 +243,7 @@ void BBCMicro::SetTrace(std::shared_ptr<Trace> trace, uint32_t trace_flags) {
     m_trace_flags = trace_flags;
 
     if (m_trace) {
-        m_trace->SetTime(&m_state.num_2MHz_cycles);
+        m_trace->SetTime(&m_state.cycle_count.num_2MHz_cycles);
     }
 
     m_state.fdc.SetTrace(trace_flags & BBCMicroTraceFlag_1770 ? m_trace : nullptr);
@@ -590,8 +590,8 @@ const BBCMicroType *BBCMicro::GetType() const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-const uint64_t *BBCMicro::GetNum2MHzCycles() const {
-    return &m_state.num_2MHz_cycles;
+const CycleCount *BBCMicro::GetCycleCountPtr() const {
+    return &m_state.cycle_count;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -820,7 +820,7 @@ uint16_t BBCMicro::DebugGetBeebAddressFromCRTCAddress(uint8_t h, uint8_t l) cons
 //
 template <uint32_t UPDATE_FLAGS>
 bool BBCMicro::Update(VideoDataUnit *video_unit, SoundDataUnit *sound_unit) {
-    uint8_t phi2_1MHz_trailing_edge = m_state.num_2MHz_cycles & 1;
+    uint8_t phi2_1MHz_trailing_edge = m_state.cycle_count.num_2MHz_cycles & 1;
     bool sound = false;
 
 #if VIDEO_TRACK_METADATA
@@ -1139,8 +1139,8 @@ bool BBCMicro::Update(VideoDataUnit *video_unit, SoundDataUnit *sound_unit) {
         if (phi2_1MHz_trailing_edge) {
             if (output.vsync) {
                 if (!m_state.crtc_last_output.vsync) {
-                    m_state.last_frame_2MHz_cycles = m_state.num_2MHz_cycles - m_state.last_vsync_2MHz_cycles;
-                    m_state.last_vsync_2MHz_cycles = m_state.num_2MHz_cycles;
+                    m_state.last_frame_cycle_count.num_2MHz_cycles = m_state.cycle_count.num_2MHz_cycles - m_state.last_vsync_cycle_count.num_2MHz_cycles;
+                    m_state.last_vsync_cycle_count = m_state.cycle_count;
 
                     m_state.saa5050.VSync();
                 }
@@ -1396,7 +1396,7 @@ bool BBCMicro::Update(VideoDataUnit *video_unit, SoundDataUnit *sound_unit) {
     }
 
     // Update sound.
-    if ((m_state.num_2MHz_cycles & ((1 << SOUND_CLOCK_SHIFT) - 1)) == 0) {
+    if ((m_state.cycle_count.num_2MHz_cycles & ((1 << LSHIFT_SOUND_CLOCK_TO_CYCLE_COUNT) - 1)) == 0) {
         sound_unit->sn_output = m_state.sn76489.Update(!m_state.addressable_latch.bits.not_sound_write,
                                                        m_state.system_via.a.p);
 
@@ -1408,7 +1408,7 @@ bool BBCMicro::Update(VideoDataUnit *video_unit, SoundDataUnit *sound_unit) {
         sound = true;
     }
 
-    ++m_state.num_2MHz_cycles;
+    ++m_state.cycle_count.num_2MHz_cycles;
 
     return sound;
 }
@@ -1685,7 +1685,7 @@ void BBCMicro::StartPaste(std::shared_ptr<const std::string> text) {
     m_state.paste_state = BBCMicroPasteState_Wait;
     m_state.paste_text = std::move(text);
     m_state.paste_index = 0;
-    m_state.paste_wait_end = m_state.num_2MHz_cycles + 2000000;
+    m_state.paste_wait_end = m_state.cycle_count.num_2MHz_cycles + CYCLES_PER_SECOND;
 
     this->SetKeyState(PASTE_START_KEY, true);
 

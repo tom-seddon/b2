@@ -113,16 +113,6 @@ static const std::string RECENT_PATHS_NVRAM = "nvram";
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-struct CallbackCallData {
-    uint64_t ticks = 0;
-    size_t num_units_mixed = 0;
-    uint32_t max_num_cycles_2MHz = 0;
-    int num_samples = 0;
-};
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 // GetWindowData has a loop (!) with strcmp in it (!) so the data name
 // wants to be short.
 const char BeebWindow::SDL_WINDOW_DATA_NAME[] = "D";
@@ -2604,18 +2594,18 @@ void BeebWindow::UpdateTitle() {
 
     double speed = 0.0;
     {
-        uint64_t num_2MHz_cycles = m_beeb_thread->GetEmulated2MHzCycles();
-        uint64_t num_2MHz_cycles_elapsed = num_2MHz_cycles - m_last_title_update_2MHz_cycles;
+        CycleCount num_cycles = m_beeb_thread->GetEmulatedCycles();
+        CycleCount num_cycles_elapsed = {num_cycles.num_2MHz_cycles - m_last_title_update_cycles.num_2MHz_cycles};
 
         uint64_t now = GetCurrentTickCount();
         double secs_elapsed = GetSecondsFromTicks(now - m_last_title_update_ticks);
 
         if (m_last_title_update_ticks != 0) {
-            double hz = num_2MHz_cycles_elapsed / secs_elapsed;
-            speed = hz / 2.e6;
+            double hz = num_cycles_elapsed.num_2MHz_cycles / secs_elapsed;
+            speed = hz / (double)CYCLES_PER_SECOND;
         }
 
-        m_last_title_update_2MHz_cycles = num_2MHz_cycles;
+        m_last_title_update_cycles = num_cycles;
         m_last_title_update_ticks = now;
     }
 

@@ -15,6 +15,7 @@ class BBCMicro;
 struct ROM;
 class Messages;
 
+#include "conf.h"
 #include <vector>
 #include <string>
 #include <functional>
@@ -47,7 +48,7 @@ std::string GetFlagsString(uint32_t value, const char *(*get_name_fn)(int));
 
 std::string GetCloneImpedimentsDescription(uint32_t impediments);
 std::string GetMicrosecondsString(uint64_t num_microseconds);
-std::string Get2MHzCyclesString(uint64_t num_2MHz_cycles);
+std::string GetCycleCountString(CycleCount cycle_count);
 
 // 0         1         2
 // 012345687901234567890123456

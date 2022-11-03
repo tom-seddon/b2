@@ -33,8 +33,8 @@ class WriteVideoJob : public JobQueue::Job {
     std::unique_ptr<VideoWriter> m_writer;
     bool m_success = false;
     std::atomic<uint64_t> m_ticks{0};
-    std::atomic<uint64_t> m_cycles_done{0};
-    std::atomic<uint64_t> m_cycles_total{0};
+    std::atomic<CycleCount> m_cycles_done{{0}};
+    std::atomic<CycleCount> m_cycles_total{{0}};
     std::string m_file_name;
 
     Messages m_msg;

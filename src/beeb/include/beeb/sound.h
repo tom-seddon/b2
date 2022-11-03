@@ -10,13 +10,11 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-// Shift value to convert between 2MHz cycles and sound clock.
-#define SOUND_CLOCK_SHIFT (3)
-
-//#define SOUND_CLOCK_DIVIDER (1<<SOUND_CLOCK_SHIFT)
+static constexpr uint64_t SHIFT_CONSTANTS(2MHZ, SOUND_CLOCK, 3);
+static constexpr uint64_t SHIFT_CONSTANTS(CYCLE_COUNT, SOUND_CLOCK, LSHIFT_SOUND_CLOCK_TO_2MHZ + LSHIFT_2MHZ_TO_CYCLE_COUNT);
 
 // Sound chip clock frequency.
-#define SOUND_CLOCK_HZ (2000000 >> SOUND_CLOCK_SHIFT)
+static constexpr unsigned SOUND_CLOCK_HZ = CYCLES_PER_SECOND >> RSHIFT_CYCLE_COUNT_TO_SOUND_CLOCK;
 
 #define SOUND_CLOCKS_FROM_MS(N) (SOUND_CLOCK_HZ * (N) / 1000)
 

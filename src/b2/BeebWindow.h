@@ -298,7 +298,7 @@ class BeebWindow {
 
     // number of emulated us that had passed at the time of the last
     // title update.
-    uint64_t m_last_title_update_2MHz_cycles = 0;
+    CycleCount m_last_title_update_cycles = {0};
     uint64_t m_last_title_update_ticks = 0;
 
     // copy of BeebThread state

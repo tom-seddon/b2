@@ -479,7 +479,7 @@ TestBBCMicro::TestBBCMicro(TestBBCMicroType type)
                false,
                false,
                nullptr,
-               0) {
+               {0}) {
 #if BBCMICRO_TRACE
     m_trace_flags = (BBCMicroTraceFlag_RTC |
                      BBCMicroTraceFlag_1770 |

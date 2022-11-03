@@ -119,4 +119,25 @@ static_assert(TV_TEXTURE_WIDTH % 8 == 0, "");
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+// Slightly pointless struct that distinguishes uint64_t values that count
+// cycles from other types.
+struct CycleCount {
+    // This name will improve once the internal clock rate is properly
+    // configurable.
+    uint64_t num_2MHz_cycles;
+};
+
+static_assert(sizeof(CycleCount) == 8, "CycleCount is the wrong size");
+
+// Number of CycleCount cycles per second.
+//
+// Should be some integer power-of-2 multiple (possibly 2^0) of 2 MHz.
+#define SHIFT_CONSTANTS(LARGER, SMALLER, N) LSHIFT_##SMALLER##_TO_##LARGER = (N), RSHIFT_##LARGER##_TO_##SMALLER = (N)
+
+static constexpr uint64_t SHIFT_CONSTANTS(CYCLE_COUNT, 2MHZ, 0);
+static constexpr uint64_t CYCLES_PER_SECOND = 2000000ull << LSHIFT_2MHZ_TO_CYCLE_COUNT;
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 #endif

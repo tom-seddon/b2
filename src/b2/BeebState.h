@@ -37,8 +37,8 @@ class BeebState : public std::enable_shared_from_this<BeebState> {
     BeebState(std::unique_ptr<BBCMicro> beeb, const TVOutput &tv);
     ~BeebState();
 
-    // Number of emulated 2MHz cycles elapsed.
-    uint64_t GetEmulated2MHzCycles() const;
+    // Number of emulated cycles elapsed.
+    CycleCount GetCycleCount() const;
 
     // Get clone of BBCMicro with this state's state. Its DiscDrive
     // and NVRAM callbacks are indeterminate.

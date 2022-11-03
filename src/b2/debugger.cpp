@@ -718,7 +718,7 @@ class M6502DebugWindow : public DebugUI {
         M6502P p;
         M6502Fn tfn, ifn;
         const M6502Config *config;
-        const volatile uint64_t *cycles;
+        const CycleCount *cycles;
         char halt_reason[1000];
 
         {
@@ -745,7 +745,7 @@ class M6502DebugWindow : public DebugUI {
             tfn = s->tfn;
             ifn = s->ifn;
             opcode = M6502_GetOpcode(s);
-            cycles = m->GetNum2MHzCycles();
+            cycles = m->GetCycleCountPtr();
         }
 
         this->Reg("A", a);
@@ -760,7 +760,7 @@ class M6502DebugWindow : public DebugUI {
         ImGui::Text("P = $%02x %s", p.value, M6502P_GetString(pstr, p));
 
         char cycles_str[MAX_UINT64_THOUSANDS_LEN];
-        GetThousandsString(cycles_str, *cycles);
+        GetThousandsString(cycles_str, cycles->num_2MHz_cycles);
 
         ImGui::Separator();
 
