@@ -29,7 +29,7 @@ struct TraceUISettings {
 
     // Stop condition and any arguments.
     TraceUIStopCondition stop = TraceUIStopCondition_ByRequest;
-    uint64_t stop_num_cycles = 0;
+    CycleCount stop_num_cycles = {0};
     uint16_t stop_write_address = 0;
 
     // Other stuff.

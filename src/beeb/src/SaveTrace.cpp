@@ -58,9 +58,9 @@ class TraceSaver {
             }
 
             m_time_initial_value = 0;
-            if (stats.max_time > 0) {
+            if (stats.max_time.num_2MHz_cycles > 0) {
                 // fingers crossed this is actually accurate enough??
-                double exp = floor(1. + log10((double)stats.max_time));
+                double exp = floor(1. + log10((double)stats.max_time.num_2MHz_cycles));
                 m_time_initial_value = (uint64_t)pow(10., exp - 1.);
             }
         }
@@ -116,7 +116,7 @@ class TraceSaver {
 
     struct R6522IRQEvent {
         bool valid = false;
-        uint64_t time;
+        CycleCount time;
         R6522::IRQ ifr, ier;
     };
 
@@ -128,9 +128,9 @@ class TraceSaver {
     const BBCMicroType *m_type = nullptr;
     int m_sound_channel2_value = -1;
     R6522IRQEvent m_last_6522_irq_event_by_via_id[256];
-    uint64_t m_last_instruction_time = 0;
+    CycleCount m_last_instruction_time = {0};
     bool m_got_first_event_time = false;
-    uint64_t m_first_event_time = 0;
+    CycleCount m_first_event_time = {0};
     ROMSEL m_romsel = {};
     ACCCON m_acccon = {};
     bool m_paging_dirty = true;
@@ -315,7 +315,7 @@ class TraceSaver {
         // Try not to spam the output file with too much useless junk when
         // interrupts are disabled.
         if (last_ev->valid) {
-            if (last_ev->time > m_last_instruction_time &&
+            if (last_ev->time.num_2MHz_cycles > m_last_instruction_time.num_2MHz_cycles &&
                 ev->ifr.value == last_ev->ifr.value &&
                 ev->ier.value == last_ev->ier.value) {
                 // skip it...
@@ -659,20 +659,20 @@ class TraceSaver {
 
             if (this_->m_cycles_output != TraceCyclesOutput_None) {
 
-                uint64_t time = e->time;
+                CycleCount time = e->time;
                 if (this_->m_cycles_output == TraceCyclesOutput_Relative) {
                     if (!this_->m_got_first_event_time) {
                         this_->m_got_first_event_time = true;
                         this_->m_first_event_time = e->time;
                     }
 
-                    time -= this_->m_first_event_time;
+                    time.num_2MHz_cycles -= this_->m_first_event_time.num_2MHz_cycles;
                 }
 
                 char zero = ' ';
 
                 for (uint64_t value = this_->m_time_initial_value; value != 0; value /= 10) {
-                    uint64_t digit = time / value % 10;
+                    uint64_t digit = time.num_2MHz_cycles / value % 10;
 
                     if (digit != 0) {
                         *c++ = (char)('0' + digit);
@@ -682,7 +682,7 @@ class TraceSaver {
                     }
                 }
 
-                if (time == 0) {
+                if (time.num_2MHz_cycles == 0) {
                     c[-1] = '0';
                 }
 

@@ -54,7 +54,7 @@ struct TraceConditions {
     uint16_t start_address = 0;
 
     BeebThreadStopTraceCondition stop = BeebThreadStopTraceCondition_ByRequest;
-    uint64_t stop_num_cycles = 0;
+    CycleCount stop_num_cycles = {0};
     uint16_t stop_address = 0;
 
     uint32_t trace_flags = 0;

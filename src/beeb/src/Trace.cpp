@@ -90,7 +90,7 @@ const TraceEventType Trace::STRING_EVENT("_string", 0);
 
 #include <shared/pshpack1.h>
 struct DiscontinuityTraceEvent {
-    uint64_t new_time;
+    CycleCount new_time;
 };
 typedef struct DiscontinuityTraceEvent DiscontinuityTraceEvent;
 #include <shared/poppack.h>
@@ -113,8 +113,8 @@ struct Trace::Chunk {
     size_t capacity;
     size_t num_events;
 
-    uint64_t initial_time;
-    uint64_t last_time;
+    CycleCount initial_time;
+    CycleCount last_time;
 
     ROMSEL initial_romsel;
     ACCCON initial_acccon;
@@ -150,7 +150,7 @@ Trace::~Trace() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void Trace::SetTime(const uint64_t *time_ptr) {
+void Trace::SetTime(const CycleCount *time_ptr) {
     m_time_ptr = time_ptr;
 }
 
@@ -160,7 +160,7 @@ void Trace::SetTime(const uint64_t *time_ptr) {
 void *Trace::AllocEvent(const TraceEventType &type) {
     ASSERT(type.size > 0);
 
-    uint64_t time = m_last_time;
+    CycleCount time = m_last_time;
     if (m_time_ptr) {
         time = *m_time_ptr;
     }
@@ -168,8 +168,8 @@ void *Trace::AllocEvent(const TraceEventType &type) {
     auto h = (EventHeader *)this->Alloc(time, sizeof(EventHeader) + type.size);
 
     h->type = type.type_id;
-    ASSERT(time >= m_last_time);
-    h->time_delta = (uint8_t)(time - m_last_time);
+    ASSERT(time.num_2MHz_cycles >= m_last_time.num_2MHz_cycles);
+    h->time_delta = (uint8_t)(time.num_2MHz_cycles - m_last_time.num_2MHz_cycles);
     h->canceled = 0;
 
     m_tail->last_time = time;
@@ -392,7 +392,7 @@ int Trace::ForEachEvent(ForEachEventFn fn, void *context) {
 
                 e.time = de->new_time;
             } else {
-                e.time += h->time_delta;
+                e.time.num_2MHz_cycles += h->time_delta;
 
                 if (!h->canceled) {
                     if (!(*fn)(this, &e, context)) {
@@ -422,7 +422,7 @@ void *Trace::AllocEventWithSize(const TraceEventType &type, size_t size) {
         return nullptr;
     }
 
-    uint64_t time = m_last_time;
+    CycleCount time = m_last_time;
     if (m_time_ptr) {
         time = *m_time_ptr;
     }
@@ -430,7 +430,7 @@ void *Trace::AllocEventWithSize(const TraceEventType &type, size_t size) {
     auto h = (EventWithSizeHeader *)this->Alloc(time, sizeof(EventWithSizeHeader) + size);
 
     h->h.type = type.type_id;
-    h->h.time_delta = (uint8_t)(time - m_last_time);
+    h->h.time_delta = (uint8_t)(time.num_2MHz_cycles - m_last_time.num_2MHz_cycles);
     h->h.canceled = 0;
     h->size = (uint16_t)size;
 
@@ -466,7 +466,7 @@ char *Trace::AllocString2(const char *str, size_t len) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void *Trace::Alloc(uint64_t time, size_t n) {
+void *Trace::Alloc(CycleCount time, size_t n) {
     //ASSERT(ENABLED(t));
     this->Check();
 
@@ -529,11 +529,11 @@ void *Trace::Alloc(uint64_t time, size_t n) {
         this->Check();
     }
 
-    if (time > m_stats.max_time) {
+    if (time.num_2MHz_cycles > m_stats.max_time.num_2MHz_cycles) {
         m_stats.max_time = time;
     }
 
-    if (time < m_last_time || time - m_last_time > MAX_TIME_DELTA) {
+    if (time.num_2MHz_cycles < m_last_time.num_2MHz_cycles || time.num_2MHz_cycles - m_last_time.num_2MHz_cycles > MAX_TIME_DELTA) {
         // Insert a discontinuity event. Ensure it has a time_delta of
         // 0.
         m_last_time = time;
@@ -542,7 +542,7 @@ void *Trace::Alloc(uint64_t time, size_t n) {
 
         de->new_time = time;
     }
-    ASSERT(time >= m_last_time && time - m_last_time <= MAX_TIME_DELTA);
+    ASSERT(time.num_2MHz_cycles >= m_last_time.num_2MHz_cycles && time.num_2MHz_cycles - m_last_time.num_2MHz_cycles <= MAX_TIME_DELTA);
 
     uint8_t *p = (uint8_t *)(m_tail + 1) + m_tail->size;
 

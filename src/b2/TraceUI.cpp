@@ -306,7 +306,7 @@ void TraceUI::DoImGui() {
                                      m_stop_num_cycles_str,
                                      sizeof m_stop_num_cycles_str,
                                      ImGuiInputTextFlags_EnterReturnsTrue)) {
-                    if (!GetUInt64FromString(&g_default_settings.stop_num_cycles,
+                    if (!GetUInt64FromString(&g_default_settings.stop_num_cycles.num_2MHz_cycles,
                                              m_stop_num_cycles_str)) {
                         this->ResetTextBoxes();
                     }

@@ -2131,7 +2131,7 @@ bool BeebThread::ThreadHandleTraceInstructionConditions(const BBCMicro *beeb,
             break;
 
         case BeebThreadStopTraceCondition_NumCycles:
-            if (ts->num_executed_cycles->num_2MHz_cycles - ts->trace_start_cycles.num_2MHz_cycles >= ts->trace_conditions.stop_num_cycles) {
+            if (ts->num_executed_cycles->num_2MHz_cycles - ts->trace_start_cycles.num_2MHz_cycles >= ts->trace_conditions.stop_num_cycles.num_2MHz_cycles) {
                 ts->beeb_thread->ThreadStopTrace(ts);
                 return false;
             }

@@ -243,7 +243,7 @@ void BBCMicro::SetTrace(std::shared_ptr<Trace> trace, uint32_t trace_flags) {
     m_trace_flags = trace_flags;
 
     if (m_trace) {
-        m_trace->SetTime(&m_state.cycle_count.num_2MHz_cycles);
+        m_trace->SetTime(&m_state.cycle_count);
     }
 
     m_state.fdc.SetTrace(trace_flags & BBCMicroTraceFlag_1770 ? m_trace : nullptr);
@@ -818,8 +818,11 @@ uint16_t BBCMicro::DebugGetBeebAddressFromCRTCAddress(uint8_t h, uint8_t l) cons
 // 1. Delay the trailing edge for 1 x 2 MHz cycle. The trailing edges of both
 // clocks then line up.
 //
+//
 template <uint32_t UPDATE_FLAGS>
 bool BBCMicro::Update(VideoDataUnit *video_unit, SoundDataUnit *sound_unit) {
+    static_assert(CYCLES_PER_SECOND == 2000000, "BBCMicro::Update needs updating");
+
     uint8_t phi2_1MHz_trailing_edge = m_state.cycle_count.num_2MHz_cycles & 1;
     bool sound = false;
 

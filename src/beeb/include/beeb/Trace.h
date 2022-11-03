@@ -72,7 +72,7 @@ struct TraceStats {
     size_t num_events = 0;
     size_t num_used_bytes = 0;
     size_t num_allocated_bytes = 0;
-    uint64_t max_time = 0;
+    CycleCount max_time = {0};
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -83,7 +83,7 @@ struct TraceEvent {
     const TraceEventType *type;
 
     // absolute time of this event.
-    uint64_t time;
+    CycleCount time;
 
     // size of this event's data.
     size_t size;
@@ -134,7 +134,7 @@ class Trace : public std::enable_shared_from_this<Trace> {
 
     // When the trace's time pointer is non-NULL, it is used to fill
     // out each event's time field.
-    void SetTime(const uint64_t *time_ptr);
+    void SetTime(const CycleCount *time_ptr);
 
     // Allocate a new event with fixed-size data, returning a pointer
     // to its data or nullptr if the data size is 0. (The type is used to find
@@ -196,8 +196,8 @@ class Trace : public std::enable_shared_from_this<Trace> {
     Chunk *m_head = nullptr, *m_tail = nullptr;
     TraceStats m_stats;
     uint8_t *m_last_alloc = nullptr;
-    uint64_t m_last_time = 0;
-    const uint64_t *m_time_ptr = nullptr;
+    CycleCount m_last_time = {0};
+    const CycleCount *m_time_ptr = nullptr;
 
     char *m_log_data = nullptr;
     size_t m_log_len = 0;
@@ -215,7 +215,7 @@ class Trace : public std::enable_shared_from_this<Trace> {
     void *AllocEventWithSize(const TraceEventType &type, size_t size);
     char *AllocString2(const char *str, size_t len);
 
-    void *Alloc(uint64_t time, size_t n);
+    void *Alloc(CycleCount time, size_t n);
     void Check();
     static void PrintToTraceLog(const char *str, size_t str_len, void *data);
 };

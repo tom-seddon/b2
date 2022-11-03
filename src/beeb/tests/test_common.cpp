@@ -563,12 +563,12 @@ void TestBBCMicro::RunUntilOSWORD0(double max_num_seconds) {
     const uint8_t *ram = this->GetRAM();
     const M6502 *cpu = this->GetM6502();
 
-    uint64_t max_num_cycles = (uint64_t)(max_num_seconds * 2e6);
+    CycleCount max_num_cycles = {(uint64_t)(max_num_seconds * CYCLES_PER_SECOND)};
 
     uint64_t start_ticks = GetCurrentTickCount();
 
-    uint64_t num_cycles = 0;
-    while (num_cycles < max_num_cycles) {
+    CycleCount num_cycles = {0};
+    while (num_cycles.num_2MHz_cycles < max_num_cycles.num_2MHz_cycles) {
         if (M6502_IsAboutToExecute(cpu)) {
             if (cpu->abus.b.l == ram[WORDV + 0] &&
                 cpu->abus.b.h == ram[WORDV + 1] &&
@@ -578,12 +578,12 @@ void TestBBCMicro::RunUntilOSWORD0(double max_num_seconds) {
         }
 
         this->Update1();
-        ++num_cycles;
+        ++num_cycles.num_2MHz_cycles;
     }
 
     m_num_ticks += GetCurrentTickCount() - start_ticks;
 
-    TEST_LE_UU(num_cycles, max_num_cycles);
+    TEST_LE_UU(num_cycles.num_2MHz_cycles, max_num_cycles.num_2MHz_cycles);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -661,7 +661,7 @@ void TestBBCMicro::Update1() {
 
     this->Update(&m_video_data_units[m_video_data_unit_idx], &m_temp_sound_data_unit);
 
-    ++m_num_cycles;
+    ++m_num_cycles.num_2MHz_cycles;
 
     ++m_video_data_unit_idx;
     m_video_data_unit_idx &= VIDEO_DATA_UNIT_INDEX_MASK;
@@ -672,7 +672,7 @@ void TestBBCMicro::Update1() {
 
 double TestBBCMicro::GetSpeed() const {
     double num_seconds = GetSecondsFromTicks(m_num_ticks);
-    return m_num_cycles / (num_seconds * 2e6);
+    return m_num_cycles.num_2MHz_cycles / (num_seconds * CYCLES_PER_SECOND);
 }
 
 //////////////////////////////////////////////////////////////////////////

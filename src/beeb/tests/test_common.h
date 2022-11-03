@@ -66,7 +66,7 @@ class TestBBCMicro : public BBCMicro {
     std::vector<VideoDataUnit> m_video_data_units;
     SoundDataUnit m_temp_sound_data_unit;
     uint64_t m_num_ticks = 0;
-    uint64_t m_num_cycles = 0;
+    CycleCount m_num_cycles = {0};
 #if BBCMICRO_TRACE
     std::shared_ptr<Trace> m_test_trace;
     uint32_t m_trace_flags = 0;
