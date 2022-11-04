@@ -124,10 +124,13 @@ static_assert(TV_TEXTURE_WIDTH % 8 == 0, "");
 //
 // There are CYCLES_PER_SECOND cycles per second: some integer power of 2
 // multiple of 2 MHz.
+//
+// In the interests of better debug build performance and reduced debugging
+// hassle, there are quite deliberately no overloaded operators (etc.) for this
+// type. It's an 8-byte struct with a uint64_t in it, that's got a short name so
+// it's easy to type.
 struct CycleCount {
-    // This name will improve once the internal clock rate is properly
-    // configurable.
-    uint64_t num_2MHz_cycles;
+    uint64_t n;
 };
 
 static_assert(sizeof(CycleCount) == 8, "CycleCount is the wrong size");

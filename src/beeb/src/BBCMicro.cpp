@@ -823,7 +823,7 @@ template <uint32_t UPDATE_FLAGS>
 bool BBCMicro::Update(VideoDataUnit *video_unit, SoundDataUnit *sound_unit) {
     static_assert(CYCLES_PER_SECOND == 2000000, "BBCMicro::Update needs updating");
 
-    uint8_t phi2_1MHz_trailing_edge = m_state.cycle_count.num_2MHz_cycles & 1;
+    uint8_t phi2_1MHz_trailing_edge = m_state.cycle_count.n & 1;
     bool sound = false;
 
 #if VIDEO_TRACK_METADATA
@@ -1142,7 +1142,7 @@ bool BBCMicro::Update(VideoDataUnit *video_unit, SoundDataUnit *sound_unit) {
         if (phi2_1MHz_trailing_edge) {
             if (output.vsync) {
                 if (!m_state.crtc_last_output.vsync) {
-                    m_state.last_frame_cycle_count.num_2MHz_cycles = m_state.cycle_count.num_2MHz_cycles - m_state.last_vsync_cycle_count.num_2MHz_cycles;
+                    m_state.last_frame_cycle_count.n = m_state.cycle_count.n - m_state.last_vsync_cycle_count.n;
                     m_state.last_vsync_cycle_count = m_state.cycle_count;
 
                     m_state.saa5050.VSync();
@@ -1399,7 +1399,7 @@ bool BBCMicro::Update(VideoDataUnit *video_unit, SoundDataUnit *sound_unit) {
     }
 
     // Update sound.
-    if ((m_state.cycle_count.num_2MHz_cycles & ((1 << LSHIFT_SOUND_CLOCK_TO_CYCLE_COUNT) - 1)) == 0) {
+    if ((m_state.cycle_count.n & ((1 << LSHIFT_SOUND_CLOCK_TO_CYCLE_COUNT) - 1)) == 0) {
         sound_unit->sn_output = m_state.sn76489.Update(!m_state.addressable_latch.bits.not_sound_write,
                                                        m_state.system_via.a.p);
 
@@ -1411,7 +1411,7 @@ bool BBCMicro::Update(VideoDataUnit *video_unit, SoundDataUnit *sound_unit) {
         sound = true;
     }
 
-    ++m_state.cycle_count.num_2MHz_cycles;
+    ++m_state.cycle_count.n;
 
     return sound;
 }
@@ -1688,7 +1688,7 @@ void BBCMicro::StartPaste(std::shared_ptr<const std::string> text) {
     m_state.paste_state = BBCMicroPasteState_Wait;
     m_state.paste_text = std::move(text);
     m_state.paste_index = 0;
-    m_state.paste_wait_end = m_state.cycle_count.num_2MHz_cycles + CYCLES_PER_SECOND;
+    m_state.paste_wait_end = m_state.cycle_count.n + CYCLES_PER_SECOND;
 
     this->SetKeyState(PASTE_START_KEY, true);
 

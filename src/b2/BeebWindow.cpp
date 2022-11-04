@@ -2595,13 +2595,13 @@ void BeebWindow::UpdateTitle() {
     double speed = 0.0;
     {
         CycleCount num_cycles = m_beeb_thread->GetEmulatedCycles();
-        CycleCount num_cycles_elapsed = {num_cycles.num_2MHz_cycles - m_last_title_update_cycles.num_2MHz_cycles};
+        CycleCount num_cycles_elapsed = {num_cycles.n - m_last_title_update_cycles.n};
 
         uint64_t now = GetCurrentTickCount();
         double secs_elapsed = GetSecondsFromTicks(now - m_last_title_update_ticks);
 
         if (m_last_title_update_ticks != 0) {
-            double hz = num_cycles_elapsed.num_2MHz_cycles / secs_elapsed;
+            double hz = num_cycles_elapsed.n / secs_elapsed;
             speed = hz / (double)CYCLES_PER_SECOND;
         }
 

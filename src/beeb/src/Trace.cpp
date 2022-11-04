@@ -168,8 +168,8 @@ void *Trace::AllocEvent(const TraceEventType &type) {
     auto h = (EventHeader *)this->Alloc(time, sizeof(EventHeader) + type.size);
 
     h->type = type.type_id;
-    ASSERT(time.num_2MHz_cycles >= m_last_time.num_2MHz_cycles);
-    h->time_delta = (uint8_t)(time.num_2MHz_cycles - m_last_time.num_2MHz_cycles);
+    ASSERT(time.n >= m_last_time.n);
+    h->time_delta = (uint8_t)(time.n - m_last_time.n);
     h->canceled = 0;
 
     m_tail->last_time = time;
@@ -392,7 +392,7 @@ int Trace::ForEachEvent(ForEachEventFn fn, void *context) {
 
                 e.time = de->new_time;
             } else {
-                e.time.num_2MHz_cycles += h->time_delta;
+                e.time.n += h->time_delta;
 
                 if (!h->canceled) {
                     if (!(*fn)(this, &e, context)) {
@@ -430,7 +430,7 @@ void *Trace::AllocEventWithSize(const TraceEventType &type, size_t size) {
     auto h = (EventWithSizeHeader *)this->Alloc(time, sizeof(EventWithSizeHeader) + size);
 
     h->h.type = type.type_id;
-    h->h.time_delta = (uint8_t)(time.num_2MHz_cycles - m_last_time.num_2MHz_cycles);
+    h->h.time_delta = (uint8_t)(time.n - m_last_time.n);
     h->h.canceled = 0;
     h->size = (uint16_t)size;
 
@@ -529,11 +529,11 @@ void *Trace::Alloc(CycleCount time, size_t n) {
         this->Check();
     }
 
-    if (time.num_2MHz_cycles > m_stats.max_time.num_2MHz_cycles) {
+    if (time.n > m_stats.max_time.n) {
         m_stats.max_time = time;
     }
 
-    if (time.num_2MHz_cycles < m_last_time.num_2MHz_cycles || time.num_2MHz_cycles - m_last_time.num_2MHz_cycles > MAX_TIME_DELTA) {
+    if (time.n < m_last_time.n || time.n - m_last_time.n > MAX_TIME_DELTA) {
         // Insert a discontinuity event. Ensure it has a time_delta of
         // 0.
         m_last_time = time;
@@ -542,7 +542,7 @@ void *Trace::Alloc(CycleCount time, size_t n) {
 
         de->new_time = time;
     }
-    ASSERT(time.num_2MHz_cycles >= m_last_time.num_2MHz_cycles && time.num_2MHz_cycles - m_last_time.num_2MHz_cycles <= MAX_TIME_DELTA);
+    ASSERT(time.n >= m_last_time.n && time.n - m_last_time.n <= MAX_TIME_DELTA);
 
     uint8_t *p = (uint8_t *)(m_tail + 1) + m_tail->size;
 

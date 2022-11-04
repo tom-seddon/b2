@@ -148,7 +148,7 @@ void WriteVideoJob::DoImGui() {
     CycleCount cycles_done = m_cycles_done.load(std::memory_order_acquire);
 
     double real_seconds = GetSecondsFromTicks(m_ticks.load(std::memory_order_acquire));
-    double emu_seconds = cycles_done.num_2MHz_cycles / (double)CYCLES_PER_SECOND;
+    double emu_seconds = cycles_done.n / (double)CYCLES_PER_SECOND;
 
     char label[50];
     if (real_seconds == 0.) {
@@ -157,7 +157,7 @@ void WriteVideoJob::DoImGui() {
         snprintf(label, sizeof label, "%.3fx", emu_seconds / real_seconds);
     }
 
-    float percentage = (float)cycles_done.num_2MHz_cycles / m_cycles_total.load(std::memory_order_acquire).num_2MHz_cycles;
+    float percentage = (float)cycles_done.n / m_cycles_total.load(std::memory_order_acquire).n;
     ImGui::ProgressBar(percentage, ImVec2(-1, 0), label);
 }
 
@@ -187,13 +187,13 @@ void WriteVideoJob::ThreadExecute() {
     ASSERT(!m_event_list.events.empty());
     CycleCount start_cycles = m_event_list.state_event.time_cycles;
     CycleCount finish_cycles = m_event_list.events.back().time_cycles;
-    ASSERT(finish_cycles.num_2MHz_cycles >= start_cycles.num_2MHz_cycles);
+    ASSERT(finish_cycles.n >= start_cycles.n);
 
     uint64_t start_ticks = GetCurrentTickCount();
 
     m_cycles_done.store({0}, std::memory_order_release);
     m_ticks.store(0, std::memory_order_release);
-    m_cycles_total.store({finish_cycles.num_2MHz_cycles - start_cycles.num_2MHz_cycles}, std::memory_order_release);
+    m_cycles_total.store({finish_cycles.n - start_cycles.n}, std::memory_order_release);
 
     SDL_AudioSpec afmt;
     SDL_AudioCVT cvt;
@@ -286,11 +286,11 @@ void WriteVideoJob::ThreadExecute() {
 
             // TODO - this isn't the right finish condition. Should just keep
             // going until out of events.
-            if (cycles.num_2MHz_cycles >= finish_cycles.num_2MHz_cycles) {
+            if (cycles.n >= finish_cycles.n) {
                 beeb_thread->Stop();
                 replaying = false;
             } else {
-                m_cycles_done.store({cycles.num_2MHz_cycles - start_cycles.num_2MHz_cycles}, std::memory_order_release);
+                m_cycles_done.store({cycles.n - start_cycles.n}, std::memory_order_release);
             }
 
             m_ticks.store(GetCurrentTickCount() - start_ticks, std::memory_order_release);

@@ -760,7 +760,7 @@ class M6502DebugWindow : public DebugUI {
         ImGui::Text("P = $%02x %s", p.value, M6502P_GetString(pstr, p));
 
         char cycles_str[MAX_UINT64_THOUSANDS_LEN];
-        GetThousandsString(cycles_str, cycles->num_2MHz_cycles);
+        GetThousandsString(cycles_str, cycles->n);
 
         ImGui::Separator();
 

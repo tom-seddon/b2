@@ -58,9 +58,9 @@ class TraceSaver {
             }
 
             m_time_initial_value = 0;
-            if (stats.max_time.num_2MHz_cycles > 0) {
+            if (stats.max_time.n > 0) {
                 // fingers crossed this is actually accurate enough??
-                double exp = floor(1. + log10((double)stats.max_time.num_2MHz_cycles));
+                double exp = floor(1. + log10((double)stats.max_time.n));
                 m_time_initial_value = (uint64_t)pow(10., exp - 1.);
             }
         }
@@ -315,7 +315,7 @@ class TraceSaver {
         // Try not to spam the output file with too much useless junk when
         // interrupts are disabled.
         if (last_ev->valid) {
-            if (last_ev->time.num_2MHz_cycles > m_last_instruction_time.num_2MHz_cycles &&
+            if (last_ev->time.n > m_last_instruction_time.n &&
                 ev->ifr.value == last_ev->ifr.value &&
                 ev->ier.value == last_ev->ier.value) {
                 // skip it...
@@ -666,13 +666,13 @@ class TraceSaver {
                         this_->m_first_event_time = e->time;
                     }
 
-                    time.num_2MHz_cycles -= this_->m_first_event_time.num_2MHz_cycles;
+                    time.n -= this_->m_first_event_time.n;
                 }
 
                 char zero = ' ';
 
                 for (uint64_t value = this_->m_time_initial_value; value != 0; value /= 10) {
-                    uint64_t digit = time.num_2MHz_cycles / value % 10;
+                    uint64_t digit = time.n / value % 10;
 
                     if (digit != 0) {
                         *c++ = (char)('0' + digit);
@@ -682,7 +682,7 @@ class TraceSaver {
                     }
                 }
 
-                if (time.num_2MHz_cycles == 0) {
+                if (time.n == 0) {
                     c[-1] = '0';
                 }
 
