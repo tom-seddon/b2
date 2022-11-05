@@ -303,8 +303,9 @@ class BBCMicro : private WD1770Handler {
     void SetTeletextDebug(bool teletext_debug);
 #endif
 
-    inline bool Update(VideoDataUnit *video_unit, SoundDataUnit *sound_unit) {
-        return (this->*m_update_mfn)(video_unit, sound_unit);
+    // Result is a combination of BBCMicroUpdateResultFlag values.
+    uint32_t Update(VideoDataUnit *video_unit, SoundDataUnit *sound_unit) {
+        return {(this->*m_update_mfn)(video_unit, sound_unit)};
     }
 
 #if BBCMICRO_ENABLE_DISC_DRIVE_SOUND
@@ -602,7 +603,7 @@ class BBCMicro : private WD1770Handler {
 
     BigPage m_big_pages[NUM_BIG_PAGES];
     uint32_t m_dpo_mask = 0;
-    typedef bool (BBCMicro::*UpdateMFn)(VideoDataUnit *, SoundDataUnit *);
+    typedef uint32_t (BBCMicro::*UpdateMFn)(VideoDataUnit *, SoundDataUnit *);
     UpdateMFn m_update_mfn = nullptr;
 
     // Memory
@@ -735,7 +736,7 @@ class BBCMicro : private WD1770Handler {
     void UpdateCPUDataBusFn();
 
     template <uint32_t UPDATE_FLAGS>
-    bool Update(VideoDataUnit *video_unit, SoundDataUnit *sound_unit);
+    uint32_t Update(VideoDataUnit *video_unit, SoundDataUnit *sound_unit);
 
     static const UpdateMFn ms_update_mfns[32];
 };

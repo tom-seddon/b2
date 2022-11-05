@@ -2846,24 +2846,26 @@ void BeebThread::ThreadMain(void) {
             {
                 VideoDataUnit *vunit;
                 size_t i;
-                std::unique_lock<Mutex> lock(m_mutex, std::defer_lock);
+                std::unique_lock<Mutex> lock(m_mutex);
 
                 // A.
                 {
                     vunit = va;
 
                     for (i = 0; i < num_va; ++i) {
-                        if (!lock.owns_lock()) {
-                            lock.lock();
-                        }
-
 #if BBCMICRO_DEBUGGER
                         if (ts.beeb->DebugIsHalted()) {
                             break;
                         }
 #endif
 
-                        if (ts.beeb->Update(vunit++, sunit)) {
+                        uint32_t update_result = ts.beeb->Update(vunit, sunit);
+
+                        if (update_result & BBCMicroUpdateResultFlag_VideoUnit) {
+                            ++vunit;
+                        }
+
+                        if (update_result & BBCMicroUpdateResultFlag_AudioUnit) {
                             lock.unlock();
 
                             ++sunit;
@@ -2875,14 +2877,12 @@ void BeebThread::ThreadMain(void) {
                             }
 
                             m_sound_output.Produce(1);
+
+                            lock.lock();
                         }
                     }
 
                     m_video_output.Produce(i);
-                }
-
-                if (!lock.owns_lock()) {
-                    lock.lock();
                 }
 
                 // B.
@@ -2892,18 +2892,22 @@ void BeebThread::ThreadMain(void) {
                 {                              //<--note
                     vunit = vb;
 
-                    for (i = 0; i < num_vb; ++i) {
-                        if (!lock.owns_lock()) {
-                            lock.lock();
-                        }
+                    ASSERT(lock.owns_lock());
 
+                    for (i = 0; i < num_vb; ++i) {
 #if BBCMICRO_DEBUGGER
                         if (ts.beeb->DebugIsHalted()) {
                             break;
                         }
 #endif
 
-                        if (ts.beeb->Update(vunit++, sunit)) {
+                        uint32_t update_result = ts.beeb->Update(vunit, sunit);
+
+                        if (update_result & BBCMicroUpdateResultFlag_VideoUnit) {
+                            ++vunit;
+                        }
+
+                        if (update_result & BBCMicroUpdateResultFlag_AudioUnit) {
                             lock.unlock();
 
                             ++sunit;
@@ -2915,11 +2919,15 @@ void BeebThread::ThreadMain(void) {
                             }
 
                             m_sound_output.Produce(1);
+
+                            lock.lock();
                         }
                     }
 
                     m_video_output.Produce(i);
                 }
+
+                lock.unlock();
             }
 
             // It's a bit dumb having multiple copies.

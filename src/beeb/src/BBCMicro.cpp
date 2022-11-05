@@ -820,11 +820,11 @@ uint16_t BBCMicro::DebugGetBeebAddressFromCRTCAddress(uint8_t h, uint8_t l) cons
 //
 //
 template <uint32_t UPDATE_FLAGS>
-bool BBCMicro::Update(VideoDataUnit *video_unit, SoundDataUnit *sound_unit) {
+uint32_t BBCMicro::Update(VideoDataUnit *video_unit, SoundDataUnit *sound_unit) {
     static_assert(CYCLES_PER_SECOND == 2000000, "BBCMicro::Update needs updating");
 
     uint8_t phi2_1MHz_trailing_edge = m_state.cycle_count.n & 1;
-    bool sound = false;
+    uint32_t result = 0;
 
 #if VIDEO_TRACK_METADATA
     video_unit->metadata.flags = 0;
@@ -1277,6 +1277,8 @@ bool BBCMicro::Update(VideoDataUnit *video_unit, SoundDataUnit *sound_unit) {
         video_unit->pixels.pixels[1].bits.x |= VideoDataUnitFlag_VSync;
     }
 
+    result |= BBCMicroUpdateResultFlag_VideoUnit;
+
     // Update VIAs and slow data bus.
     if (phi2_1MHz_trailing_edge) {
         // Update vsync.
@@ -1408,12 +1410,12 @@ bool BBCMicro::Update(VideoDataUnit *video_unit, SoundDataUnit *sound_unit) {
         sound_unit->disc_drive_sound = this->UpdateDiscDriveSound(&m_state.drives[0]);
         sound_unit->disc_drive_sound += this->UpdateDiscDriveSound(&m_state.drives[1]);
 #endif
-        sound = true;
+        result |= BBCMicroUpdateResultFlag_AudioUnit;
     }
 
     ++m_state.cycle_count.n;
 
-    return sound;
+    return result;
 }
 
 //////////////////////////////////////////////////////////////////////////

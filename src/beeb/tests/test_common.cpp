@@ -604,11 +604,13 @@ std::vector<uint32_t> TestBBCMicro::RunForNFrames(size_t num_frames) {
         size_t n = 1024;
 
         for (size_t i = 0; i < 1024; ++i) {
-            this->Update(&m_video_data_units[m_video_data_unit_idx],
-                         &m_temp_sound_data_unit);
+            uint32_t update_result = this->Update(&m_video_data_units[m_video_data_unit_idx],
+                                                  &m_temp_sound_data_unit);
 
-            ++m_video_data_unit_idx;
-            m_video_data_unit_idx &= VIDEO_DATA_UNIT_INDEX_MASK;
+            if (update_result & BBCMicroUpdateResultFlag_VideoUnit) {
+                ++m_video_data_unit_idx;
+                m_video_data_unit_idx &= VIDEO_DATA_UNIT_INDEX_MASK;
+            }
         }
 
         ASSERT(a + n <= m_video_data_units.size());
@@ -659,12 +661,15 @@ void TestBBCMicro::Update1() {
         }
     }
 
-    this->Update(&m_video_data_units[m_video_data_unit_idx], &m_temp_sound_data_unit);
+    uint32_t update_result = this->Update(&m_video_data_units[m_video_data_unit_idx],
+                                          &m_temp_sound_data_unit);
 
     ++m_num_cycles.n;
 
-    ++m_video_data_unit_idx;
-    m_video_data_unit_idx &= VIDEO_DATA_UNIT_INDEX_MASK;
+    if (update_result & BBCMicroUpdateResultFlag_VideoUnit) {
+        ++m_video_data_unit_idx;
+        m_video_data_unit_idx &= VIDEO_DATA_UNIT_INDEX_MASK;
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////

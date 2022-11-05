@@ -39,22 +39,37 @@ void GenerateThumbnailJob::ThreadExecute() {
     BBCMicro *beeb = m_beeb.get();
 
     SoundDataUnit sunit;
-    VideoDataUnit vunits[2];
+    static constexpr size_t MAX_NUM_VUNITS = 1000;
+    VideoDataUnit vunits[MAX_NUM_VUNITS];
+    VideoDataUnit *const vunits_end = vunits + MAX_NUM_VUNITS;
+    VideoDataUnit *vunit = vunits;
 
     for (int i = 0; i < m_num_frames; ++i) {
         while (m_tv_output.IsInVerticalBlank()) {
-            beeb->Update(&vunits[0], &sunit);
-            beeb->Update(&vunits[1], &sunit);
-
-            m_tv_output.Update(vunits, 2);
+            uint32_t update_result = beeb->Update(vunit, &sunit);
+            if (update_result & BBCMicroUpdateResultFlag_VideoUnit) {
+                ++vunit;
+                if (vunit == vunits_end) {
+                    m_tv_output.Update(vunits, vunit - vunits);
+                    vunit = vunits;
+                }
+            }
         }
 
         while (!m_tv_output.IsInVerticalBlank()) {
-            beeb->Update(&vunits[0], &sunit);
-            beeb->Update(&vunits[1], &sunit);
-
-            m_tv_output.Update(vunits, 2);
+            uint32_t update_result = beeb->Update(vunit, &sunit);
+            if (update_result & BBCMicroUpdateResultFlag_VideoUnit) {
+                ++vunit;
+                if (vunit == vunits_end) {
+                    m_tv_output.Update(vunits, vunit - vunits);
+                    vunit = vunits;
+                }
+            }
         }
+    }
+
+    if (vunit > vunits) {
+        m_tv_output.Update(vunits, vunit - vunits);
     }
 
     // Don't bother keeping these around any longer than necessary...
@@ -90,6 +105,3 @@ bool GenerateThumbnailJob::Init(std::unique_ptr<BBCMicro> *beeb,
 
     return true;
 }
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
