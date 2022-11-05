@@ -47,7 +47,7 @@ std::string GetFlagsString(uint32_t value, const char *(*get_name_fn)(int));
 //////////////////////////////////////////////////////////////////////////
 
 std::string GetCloneImpedimentsDescription(uint32_t impediments);
-std::string GetMicrosecondsString(uint64_t num_microseconds);
+//std::string GetMicrosecondsString(uint64_t num_microseconds);
 std::string GetCycleCountString(CycleCount cycle_count);
 
 // 0         1         2

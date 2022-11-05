@@ -2840,94 +2840,64 @@ void BeebThread::ThreadMain(void) {
             }
 
             SoundDataUnit *sunit = sa;
+            SoundDataUnit *sunit_end = sa + num_sa;
+            bool sunits_a = true;
 
             total_num_audio_units_produced += num_sound_units;
 
-            {
-                VideoDataUnit *vunit;
-                size_t i;
+            if (num_va + num_vb > 0) {
+                VideoDataUnit *vunit = va;
+                VideoDataUnit *vunit_end = va + num_va;
+                bool vunits_a = true;
+                size_t num_vunits = 0;
+
                 std::unique_lock<Mutex> lock(m_mutex);
 
-                // A.
-                {
-                    vunit = va;
-
-                    for (i = 0; i < num_va; ++i) {
+                for (;;) {
 #if BBCMICRO_DEBUGGER
-                        if (ts.beeb->DebugIsHalted()) {
-                            break;
-                        }
+                    if (ts.beeb->DebugIsHalted()) {
+                        break;
+                    }
 #endif
 
-                        uint32_t update_result = ts.beeb->Update(vunit, sunit);
+                    uint32_t update_result = ts.beeb->Update(vunit, sunit);
 
-                        if (update_result & BBCMicroUpdateResultFlag_VideoUnit) {
-                            ++vunit;
-                        }
-
-                        if (update_result & BBCMicroUpdateResultFlag_AudioUnit) {
-                            lock.unlock();
-
-                            ++sunit;
-
-                            if (sunit == sa + num_sa) {
-                                sunit = sb;
-                            } else if (sunit == sb + num_sb) {
-                                sunit = nullptr;
+                    if (update_result & BBCMicroUpdateResultFlag_VideoUnit) {
+                        ++vunit;
+                        ++num_vunits;
+                        if (vunit == vunit_end) {
+                            if (vunits_a && num_vb > 0) {
+                                vunit = vb;
+                                vunit_end = vb + num_vb;
+                                vunits_a = false;
+                            } else {
+                                break;
                             }
-
-                            m_sound_output.Produce(1);
-
-                            lock.lock();
                         }
                     }
 
-                    m_video_output.Produce(i);
-                }
+                    if (update_result & BBCMicroUpdateResultFlag_AudioUnit) {
+                        lock.unlock();
 
-                // B.
-#if BBCMICRO_DEBUGGER                          //<--note
-                if (!ts.beeb->DebugIsHalted()) //<--note
-#endif                                         //<--note
-                {                              //<--note
-                    vunit = vb;
+                        ++sunit;
 
-                    ASSERT(lock.owns_lock());
-
-                    for (i = 0; i < num_vb; ++i) {
-#if BBCMICRO_DEBUGGER
-                        if (ts.beeb->DebugIsHalted()) {
-                            break;
-                        }
-#endif
-
-                        uint32_t update_result = ts.beeb->Update(vunit, sunit);
-
-                        if (update_result & BBCMicroUpdateResultFlag_VideoUnit) {
-                            ++vunit;
-                        }
-
-                        if (update_result & BBCMicroUpdateResultFlag_AudioUnit) {
-                            lock.unlock();
-
-                            ++sunit;
-
-                            if (sunit == sa + num_sa) {
+                        if (sunit == sunit_end) {
+                            if (sunits_a && num_sb > 0) {
                                 sunit = sb;
-                            } else if (sunit == sb + num_sb) {
+                                sunit_end = sb + num_sb;
+                                sunits_a = false;
+                            } else {
                                 sunit = nullptr;
                             }
-
-                            m_sound_output.Produce(1);
-
-                            lock.lock();
                         }
-                    }
 
-                    m_video_output.Produce(i);
+                        m_sound_output.Produce(1);
+
+                        lock.lock();
+                    }
                 }
 
-                lock.unlock();
+                m_video_output.Produce(num_vunits);
             }
 
             // It's a bit dumb having multiple copies.

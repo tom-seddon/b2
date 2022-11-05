@@ -129,37 +129,39 @@ std::string GetCloneImpedimentsDescription(uint32_t impediments) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-std::string GetMicrosecondsString(uint64_t num_microseconds) {
-    char str[500];
-
-    uint64_t n = num_microseconds;
-
-    unsigned us = n % 1000;
-    n /= 1000;
-
-    unsigned ms = n % 1000;
-    n /= 1000;
-
-    unsigned secs = n % 60;
-    n /= 60;
-
-    uint64_t minutes = n;
-
-    snprintf(str, sizeof str, "%" PRIu64 " min %02u sec %03u ms %03u usec", minutes, secs, ms, us);
-
-    return str;
-}
+//std::string GetMicrosecondsString(uint64_t num_microseconds) {
+//    char str[500];
+//
+//    uint64_t n = num_microseconds;
+//
+//    unsigned us = n % 1000;
+//    n /= 1000;
+//
+//    unsigned ms = n % 1000;
+//    n /= 1000;
+//
+//    unsigned secs = n % 60;
+//    n /= 60;
+//
+//    uint64_t minutes = n;
+//
+//    snprintf(str, sizeof str, "%" PRIu64 " min %02u sec %03u ms %03u usec", minutes, secs, ms, us);
+//
+//    return str;
+//}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 std::string GetCycleCountString(CycleCount cycle_count) {
+    static_assert(CYCLES_PER_SECOND == 4000000, "GetCycleCountString needs fixing");
+
     char str[500];
 
     uint64_t n = cycle_count.n;
 
-    unsigned cycles = n % 2;
-    n /= 2;
+    unsigned cycles = n % 4;
+    n /= 4;
 
     unsigned us = n % 1000;
     n /= 1000;
@@ -172,7 +174,7 @@ std::string GetCycleCountString(CycleCount cycle_count) {
 
     uint64_t minutes = n;
 
-    snprintf(str, sizeof str, "%" PRIu64 " min %02u sec %03u ms %03u.%d \xc2\xb5s", minutes, secs, ms, us, cycles ? 5 : 0);
+    snprintf(str, sizeof str, "%" PRIu64 " min %02u sec %03u ms %03u.%02d \xc2\xb5s", minutes, secs, ms, us, cycles * 25);
 
     return str;
 }

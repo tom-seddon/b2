@@ -72,7 +72,7 @@ class BBCMicro : private WD1770Handler {
             uint64_t id = 0;
         };
 
-        bool is_halted = false;
+        //bool is_halted = false;
         BBCMicroStepType step_type = BBCMicroStepType_None;
 
         HardwareDebugState hw;
@@ -82,9 +82,6 @@ class BBCMicro : private WD1770Handler {
 
         // Byte-specific breakpoint flags.
         uint8_t big_pages_debug_flags[NUM_BIG_PAGES][BIG_PAGE_SIZE_BYTES] = {};
-
-        // Address-specific breakpoint flags.
-        uint8_t address_debug_flags[65536] = {};
 
         //
         uint64_t breakpoints_changed_counter = 1;
@@ -100,6 +97,9 @@ class BBCMicro : private WD1770Handler {
         // Entries are added to this list, but not removed - there's not really
         // much point.
         std::vector<uint8_t *> temp_execute_breakpoints;
+
+        // Address-specific breakpoint flags.
+        uint8_t address_debug_flags[65536] = {};
 
         char halt_reason[1000] = {};
     };
@@ -164,7 +164,7 @@ class BBCMicro : private WD1770Handler {
     };
 #include <shared/poppack.h>
 
-    static const TraceEventType INSTRUCTION_EVENT;
+    static const TraceEventType HOST_INSTRUCTION_EVENT;
 #endif
 
 #include <shared/pushwarn_bitfields.h>
@@ -426,7 +426,10 @@ class BBCMicro : private WD1770Handler {
 
     void DebugHalt(const char *fmt, ...) PRINTF_LIKE(2, 3);
 
-    bool DebugIsHalted() const;
+    inline bool DebugIsHalted() const {
+        return m_debug_is_halted;
+    }
+
     const char *DebugGetHaltReason() const;
 
     void DebugRun();
@@ -685,6 +688,9 @@ class BBCMicro : private WD1770Handler {
 
     // try to avoid appalling debug build performance...
     DebugState *m_debug = nullptr;
+    bool m_debug_is_halted = false;
+#else
+    static const bool m_debug_is_halted = false;
 #endif
 
     // To avoid a lot of hassle, the state can't be saved while BeebLink is

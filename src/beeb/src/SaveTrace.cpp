@@ -39,7 +39,7 @@ class TraceSaver {
         // It would be nice to have the TraceEventType handle the conversion to
         // strings itself. The INSTRUCTION_EVENT handler has to be able to read
         // the config stored by the INITIAL_EVENT handler, though...
-        this->SetMFn(BBCMicro::INSTRUCTION_EVENT, &TraceSaver::HandleInstruction);
+        this->SetMFn(BBCMicro::HOST_INSTRUCTION_EVENT, &TraceSaver::HandleHostInstruction);
         this->SetMFn(Trace::WRITE_ROMSEL_EVENT, &TraceSaver::HandleWriteROMSEL);
         this->SetMFn(Trace::WRITE_ACCCON_EVENT, &TraceSaver::HandleWriteACCCON);
         this->SetMFn(Trace::STRING_EVENT, &TraceSaver::HandleString);
@@ -459,7 +459,7 @@ class TraceSaver {
         (*m_save_data_fn)(&BLANK_LINE_CHAR, 1, m_save_data_context);
     }
 
-    void HandleInstruction(const TraceEvent *e) {
+    void HandleHostInstruction(const TraceEvent *e) {
         auto ev = (const BBCMicro::InstructionTraceEvent *)e->event;
 
         m_last_instruction_time = e->time;
@@ -672,7 +672,7 @@ class TraceSaver {
                 char zero = ' ';
 
                 for (uint64_t value = this_->m_time_initial_value; value != 0; value /= 10) {
-                    uint64_t digit = time.n / value % 10;
+                    uint64_t digit = (time.n >> RSHIFT_CYCLE_COUNT_TO_2MHZ) / value % 10;
 
                     if (digit != 0) {
                         *c++ = (char)('0' + digit);

@@ -140,7 +140,7 @@ static_assert(sizeof(CycleCount) == 8, "CycleCount is the wrong size");
 // direction.
 #define SHIFT_CONSTANTS(LARGER, SMALLER, N) LSHIFT_##SMALLER##_TO_##LARGER = (N), RSHIFT_##LARGER##_TO_##SMALLER = (N)
 
-static constexpr uint64_t SHIFT_CONSTANTS(CYCLE_COUNT, 2MHZ, 0);
+static constexpr uint64_t SHIFT_CONSTANTS(CYCLE_COUNT, 2MHZ, 1);
 static constexpr uint64_t CYCLES_PER_SECOND = 2000000ull << LSHIFT_2MHZ_TO_CYCLE_COUNT;
 
 //////////////////////////////////////////////////////////////////////////
