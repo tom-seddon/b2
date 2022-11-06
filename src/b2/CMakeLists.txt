@@ -365,11 +365,11 @@ set(DISCS ${ASSETS}/discs)
 set(FONTS ${ASSETS}/fonts)
 set(SAMPLES ${ASSETS}/samples)
 
-# BBC ROMs
+# B/B+/General ROMs
 add_custom_command(
   TARGET b2 POST_BUILD
   COMMAND ${CMAKE_COMMAND} -E make_directory $<TARGET_FILE_DIR:b2>/${ROMS}
-  COMMAND ${CMAKE_COMMAND} -E copy_if_different OS12.ROM B+MOS.rom BASIC2.ROM acorn/DFS-2.26.rom watford/DDFS-1.54T.rom watford/DDFS-1.53.rom opus/OPUS-DDOS-3.45.rom opus/challenger-1.01.rom $<TARGET_FILE_DIR:b2>/${ROMS}
+  COMMAND ${CMAKE_COMMAND} -E copy_if_different OS12.ROM B+MOS.rom BASIC2.ROM acorn/DFS-2.26.rom watford/DDFS-1.54T.rom watford/DDFS-1.53.rom opus/OPUS-DDOS-3.45.rom opus/challenger-1.01.rom MasterTurboParasite.rom $<TARGET_FILE_DIR:b2>/${ROMS}
   WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/../../etc/roms
   VERBATIM)
 

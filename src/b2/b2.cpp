@@ -700,6 +700,8 @@ static void CheckAssetPaths() {
     for (size_t i = 0; i < NUM_BLANK_ADFS_DISCS; ++i) {
         CheckAssetPath(BLANK_ADFS_DISCS[i].GetAssetPath());
     }
+
+    CheckAssetPath(BEEB_ROM_MASTER_TURBO_PARASITE.GetAssetPath());
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -911,9 +913,9 @@ static bool main2(int argc, char *argv[], const std::shared_ptr<MessageList> &in
 
 #if RMT_ENABLED
     if (options.remotery) {
-        rmtSettings*settings=rmt_Settings();
+        rmtSettings *settings = rmt_Settings();
 
-        settings->enableThreadSampler=options.remotery_thread_sampler;
+        settings->enableThreadSampler = options.remotery_thread_sampler;
 
         rmtError x = rmt_CreateGlobalInstance(&g_remotery);
         if (x == RMT_ERROR_NONE) {

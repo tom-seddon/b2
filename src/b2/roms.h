@@ -48,9 +48,10 @@ extern const BeebROM BEEB_ROMS_MOS350[8];
 // all ROMs, one after the other, terminated by nullptr.
 extern const BeebROM *const BEEB_ROMS[];
 
-const BeebROM *FindBeebROM(StandardROM rom);
+// Non-sideways ROMs.
+extern const BeebROM BEEB_ROM_MASTER_TURBO_PARASITE;
 
-std::string GetStandardROMAssetPath(StandardROM rom);
+const BeebROM *FindBeebROM(StandardROM rom);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
