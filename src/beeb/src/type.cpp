@@ -89,6 +89,26 @@ static std::vector<BigPageMetadata> GetBigPagesMetadataCommon() {
 #endif
                          0xc000);
 
+//    InitBigPagesMetadata(&big_pages,
+//                         PARASITE_BIG_PAGE_INDEX,
+//                         NUM_PARASITE_BIG_PAGES,
+//                         'p', "Parasite",
+//#if BBCMICRO_DEBUGGER
+//                         0,
+//                         0,
+//#endif
+//                         0x0000);
+
+//    InitBigPagesMetadata(&big_pages,
+//                         PARASITE_ROM_BIG_PAGE_INDEX,
+//                         NUM_PARASITE_ROM_BIG_PAGES,
+//                         0, "Parasite ROM",
+//#if BBCMICRO_DEBUGGER
+//                         0,
+//                         0,
+//#endif
+//                         0x0000);
+
     return big_pages;
 }
 

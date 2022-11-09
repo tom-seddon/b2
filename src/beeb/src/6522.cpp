@@ -42,8 +42,8 @@
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_TRACE
-const TraceEventType R6522::IRQ_EVENT("R6522IRQEvent", sizeof(IRQEvent));
-const TraceEventType R6522::TIMER_TICK_EVENT("R6522TimerTick", sizeof(TimerTickEvent));
+const TraceEventType R6522::IRQ_EVENT("R6522IRQEvent", sizeof(IRQEvent), TraceEventSource_Host);
+const TraceEventType R6522::TIMER_TICK_EVENT("R6522TimerTick", sizeof(TimerTickEvent), TraceEventSource_Host);
 #endif
 
 //////////////////////////////////////////////////////////////////////////

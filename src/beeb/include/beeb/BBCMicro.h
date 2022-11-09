@@ -35,6 +35,7 @@ class BeebLink;
 #include "keys.h"
 #include "video.h"
 #include "type.h"
+#include "tube.h"
 
 #include <shared/enum_decl.h>
 #include "BBCMicro.inl"
@@ -137,9 +138,7 @@ class BBCMicro : private WD1770Handler {
              const DiscInterfaceDef *def,
              const std::vector<uint8_t> &nvram_contents,
              const tm *rtc_time,
-             bool video_nula,
-             bool ext_mem,
-             bool power_on_tone,
+             uint32_t init_flags,
              BeebLinkHandler *beeblink_handler,
              CycleCount initial_cycle_count);
 
@@ -154,7 +153,7 @@ class BBCMicro : private WD1770Handler {
 
     std::unique_ptr<BBCMicro> Clone() const;
 
-    typedef std::array<uint8_t, 16384> ROMData;
+    //typedef std::array<uint8_t, 16384> ROMData;
 
 #if BBCMICRO_TRACE
 #include <shared/pshpack1.h>
@@ -164,7 +163,7 @@ class BBCMicro : private WD1770Handler {
     };
 #include <shared/poppack.h>
 
-    static const TraceEventType HOST_INSTRUCTION_EVENT;
+    static const TraceEventType INSTRUCTION_EVENT;
 #endif
 
 #include <shared/pushwarn_bitfields.h>
@@ -321,13 +320,16 @@ class BBCMicro : private WD1770Handler {
     std::vector<uint8_t> GetNVRAM() const;
 
     // The shared_ptr is copied.
-    void SetOSROM(std::shared_ptr<const ROMData> data);
+    void SetOSROM(std::shared_ptr<const std::array<uint8_t, 16384>> data);
 
     // The shared_ptr is copied.
-    void SetSidewaysROM(uint8_t bank, std::shared_ptr<const ROMData> data);
+    void SetSidewaysROM(uint8_t bank, std::shared_ptr<const std::array<uint8_t, 16384>> data);
 
     // The ROM data is copied.
-    void SetSidewaysRAM(uint8_t bank, std::shared_ptr<const ROMData> data);
+    void SetSidewaysRAM(uint8_t bank, std::shared_ptr<const std::array<uint8_t, 16384>> data);
+
+    // The shared_ptr is copied.
+    void SetParasiteOS(std::shared_ptr<const std::array<uint8_t, 4096>> data);
 
 #if BBCMICRO_TRACE
     /* Allocates a new trace (replacing any existing one) and sets it
@@ -549,8 +551,8 @@ class BBCMicro : private WD1770Handler {
 
         std::vector<uint8_t> ram_buffer;
 
-        std::shared_ptr<const ROMData> os_buffer;
-        std::shared_ptr<const ROMData> sideways_rom_buffers[16];
+        std::shared_ptr<const std::array<uint8_t, 16384>> os_buffer;
+        std::shared_ptr<const std::array<uint8_t, 16384>> sideways_rom_buffers[16];
         // Each element is either 16K (i.e., copy of ROMData
         // contents), or empty (nothing). Ideally this would be
         // something like unique_ptr<ROMData>, but that isn't
@@ -572,9 +574,17 @@ class BBCMicro : private WD1770Handler {
         size_t paste_index = 0;
         uint64_t paste_wait_end = 0;
 
+        // Tube stuff.
+        bool parasite_enabled = false;
+        M6502 parasite_cpu = {};
+        std::shared_ptr<const std::array<uint8_t, 4096>> parasite_rom_buffer;
+        std::vector<uint8_t> parasite_ram_buffer;
+        bool parasite_boot_mode = true;
+        Tube parasite_tube;
+
         explicit State(const BBCMicroType *type,
                        const std::vector<uint8_t> &nvram_contents,
-                       bool power_on_tone,
+                       uint32_t init_flags,
                        const tm *rtc_time,
                        CycleCount initial_cycle_count);
     };
@@ -593,8 +603,9 @@ class BBCMicro : private WD1770Handler {
     DiscInterface *const m_disc_interface = nullptr;
     std::shared_ptr<DiscImage> m_disc_images[NUM_DRIVES];
     bool m_is_drive_write_protected[NUM_DRIVES] = {};
-    const bool m_video_nula;
-    const bool m_ext_mem;
+    const uint32_t m_init_flags = 0;
+    //const bool m_video_nula;
+    //const bool m_ext_mem;
 
     //////////////////////////////////////////////////////////////////////////
     //////////////////////////////////////////////////////////////////////////
@@ -649,6 +660,10 @@ class BBCMicro : private WD1770Handler {
 
     uint8_t *m_ram = nullptr;
 
+    uint8_t *m_parasite_ram = nullptr;
+    ReadMMIOFn m_parasite_rmmio_fns[8] = {};
+    WriteMMIOFn m_parasite_wmmio_fns[8] = {};
+
     const std::vector<float> *m_disc_drive_sounds[DiscDriveSound_EndValue];
 
     //////////////////////////////////////////////////////////////////////////
@@ -678,6 +693,7 @@ class BBCMicro : private WD1770Handler {
     Trace *m_trace = nullptr;
     InstructionTraceEvent *m_trace_current_instruction = nullptr;
     uint32_t m_trace_flags = 0;
+    InstructionTraceEvent *m_trace_parasite_current_instruction = nullptr;
 #endif
 
     std::vector<std::pair<InstructionFn, void *>> m_instruction_fns;
@@ -744,7 +760,7 @@ class BBCMicro : private WD1770Handler {
     template <uint32_t UPDATE_FLAGS>
     uint32_t Update(VideoDataUnit *video_unit, SoundDataUnit *sound_unit);
 
-    static const UpdateMFn ms_update_mfns[32];
+    static const UpdateMFn ms_update_mfns[128];
 };
 
 //////////////////////////////////////////////////////////////////////////

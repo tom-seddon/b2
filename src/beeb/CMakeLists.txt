@@ -27,6 +27,7 @@ set(SRCS
   ${S}/teletext.cpp ${I}/teletext.h ${I}/teletext.inl ${S}/teletext_font.inl
   ${S}/type.cpp ${I}/type.h ${I}/type.inl
   ${S}/video.cpp ${I}/video.h ${I}/video.inl
+  ${S}/tube.cpp ${I}/tube.h
 )
 
 if(MSVC)

@@ -440,13 +440,28 @@ void BeebThread::HardResetMessage::HardReset(BeebThread *beeb_thread,
         ts->beeblink_handler.reset();
     }
 
+    uint32_t init_flags = 0;
+    if (ts->current_config.config.video_nula) {
+        init_flags |= BBCMicroInitFlag_VideoNuLA;
+    }
+
+    if (ts->current_config.config.ext_mem) {
+        init_flags |= BBCMicroInitFlag_ExtMem;
+    }
+
+    if (beeb_thread->m_power_on_tone.load(std::memory_order_acquire)) {
+        init_flags |= BBCMicroInitFlag_PowerOnTone;
+    }
+
+    if (ts->current_config.config.parasite) {
+        init_flags |= BBCMicroInitFlag_Parasite;
+    }
+
     auto beeb = std::make_unique<BBCMicro>(ts->current_config.config.type,
                                            ts->current_config.config.disc_interface,
                                            nvram_contents,
                                            &now,
-                                           ts->current_config.config.video_nula,
-                                           ts->current_config.config.ext_mem,
-                                           beeb_thread->m_power_on_tone.load(std::memory_order_acquire),
+                                           init_flags,
                                            ts->beeblink_handler.get(),
                                            num_cycles);
 
@@ -466,6 +481,10 @@ void BeebThread::HardResetMessage::HardReset(BeebThread *beeb_thread,
                 beeb->SetSidewaysROM(i, nullptr);
             }
         }
+    }
+
+    if (init_flags & BBCMicroInitFlag_Parasite) {
+        beeb->SetParasiteOS(ts->current_config.parasite_os);
     }
 
     beeb_thread->ThreadReplaceBeeb(ts, std::move(beeb), replace_flags);

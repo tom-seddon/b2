@@ -1082,6 +1082,8 @@ static const char STANDARD_ROM[] = "standard_rom";
 static const char CONFIG[] = "config";
 static const char INTERLACE[] = "interlace";
 static const char LEDS_POPUP_MODE[] = "leds_popup_mode";
+static const char PARASITE[] = "parasite";
+static const char PARASITE_OS[] = "parasite_os";
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -1624,9 +1626,9 @@ static bool LoadConfigs(rapidjson::Value *configs_json, const char *configs_path
             continue;
         }
 
-        rapidjson::Document::MemberIterator it = config_json->FindMember(OS);
-        if (it != config_json->MemberEnd()) {
-            if (!LoadROM(&it->value,
+        rapidjson::Document::MemberIterator os_it = config_json->FindMember(OS);
+        if (os_it != config_json->MemberEnd()) {
+            if (!LoadROM(&os_it->value,
                          &config.os,
                          strprintf("%s.%s", json_path.c_str(), OS).c_str(),
                          msg)) {
@@ -1671,6 +1673,17 @@ static bool LoadConfigs(rapidjson::Value *configs_json, const char *configs_path
 
         FindBoolMember(&config.ext_mem, config_json, EXT_MEM, msg);
         FindBoolMember(&config.beeblink, config_json, BEEBLINK, msg);
+        FindBoolMember(&config.parasite, config_json, PARASITE, msg);
+
+        rapidjson::Document::MemberIterator parasite_os_it = config_json->FindMember(PARASITE_OS);
+        if (parasite_os_it != config_json->MemberEnd()) {
+            if (!LoadROM(&parasite_os_it->value,
+                         &config.parasite_os,
+                         strprintf("%s.%s", json_path.c_str(), PARASITE_OS).c_str(),
+                         msg)) {
+                return false;
+            }
+        }
 
         BeebWindows::AddConfig(std::move(config));
     }
@@ -1716,6 +1729,12 @@ static void SaveConfigs(JSONWriter<StringStream> *writer) {
 
             writer->Key(BEEBLINK);
             writer->Bool(config->beeblink);
+
+            writer->Key(PARASITE);
+            writer->Bool(config->parasite);
+
+            writer->Key(PARASITE_OS);
+            SaveROM(writer, config->parasite_os);
         }
     }
 }

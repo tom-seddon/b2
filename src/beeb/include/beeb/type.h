@@ -24,16 +24,21 @@ struct M6502Config;
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-// Total max addressable memory on the BBC is 336K:
+// Total max addressable memory on the BBC is 468K:
 //
 // - 64K RAM (main+shadow+ANDY+HAZEL)
 // - 256K ROM (16 * 16K)
 // - 16K MOS
+// - 64K int Tube
+// - 2K int Tube ROM
+// - 64K ext Tube
+// - 2K ext Tube ROM
 //
-// The paging operates at a 4K resolution, so this can be divided into 84
-// 4K pages, or (to pick a term) big pages. (1 big page = 16 pages.) The big pages
-// are assigned like this:
+// The paging generally operates at a 4K resolution, so this can be divided into
+// 84 4K pages, or (to pick a term) big pages. (1 big page = 16 pages.) The big
+// pages are assigned like this:
 //
+// <pre>
 // 0-7     main
 // 8       ANDY (M128)/ANDY (B+)
 // 9,10    HAZEL (M128)/ANDY (B+)
@@ -43,6 +48,11 @@ struct M6502Config;
 // ...
 // 76-79   ROM 15
 // 80-83   MOS
+// 84-99   parasite
+// 100     parasite ROM 
+// 101-116 second parasite [planned]
+// 117     second parasite ROM (double up to make 4K) [planned]
+// </pre>
 //
 // (Three additional pages, for FRED/JIM/SHEILA, are planned.)
 //
@@ -51,18 +61,22 @@ struct M6502Config;
 // mapped.)
 //
 // Each big page can be set up once, when the BBCMicro is first created,
-// simplifying some of the logic. When switching to ROM 1, for example,
-// the buffers can be found by looking at big pages 20-23, rather than having
-// to check m_state.sideways_rom_buffers[1] (etc.).
+// simplifying some of the logic. When switching to ROM 1, for example, the
+// buffers can be found by looking at big pages 20-23, rather than having to
+// check m_state.sideways_rom_buffers[1] (etc.).
 //
 // The per-big page struct can also contain some cold info (debug flags, static
 // data, etc.), as it's only fetched when the paging registers are changed,
 // rather than for every instruction.
 //
 // The BBC memory map is also divided into big pages, so things match up - the
-// terminology is a bit slack but usually a 'big page' refers to one of the
-// big pages in the list above, and a 'memory/mem big page' refers to a big
-// page in the 6502 address space.
+// terminology is a bit slack but usually a 'big page' refers to one of the big
+// pages in the list above, and a 'memory/mem big page' refers to a big page in
+// the 6502 address space.
+//
+// "Second parasite" only applies to the Master, when there's both internal and
+// external second processors connected. The external one counts as the second
+// one.
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -87,6 +101,20 @@ static constexpr uint8_t NUM_ROM_BIG_PAGES = 16 / 4;
 
 static constexpr uint8_t MOS_BIG_PAGE_INDEX = ROM0_BIG_PAGE_INDEX + 16 * NUM_ROM_BIG_PAGES;
 static constexpr uint8_t NUM_MOS_BIG_PAGES = 16 / 4;
+
+// TODO: hmm, is this actually a good idea???
+
+//static constexpr uint8_t PARASITE_BIG_PAGE_INDEX = MOS_BIG_PAGE_INDEX + NUM_MOS_BIG_PAGES;
+//static constexpr uint8_t NUM_PARASITE_BIG_PAGES = 64 / 4;
+//
+//static constexpr uint8_t PARASITE_ROM_BIG_PAGE_INDEX = PARASITE_BIG_PAGE_INDEX + NUM_PARASITE_BIG_PAGES;
+//static constexpr uint8_t NUM_PARASITE_ROM_BIG_PAGES = 1;
+
+//static constexpr uint8_t SECOND_PARASITE_BIG_PAGE_INDEX = PARASITE_ROM_BIG_PAGE_INDEX + NUM_PARASITE_ROM_BIG_PAGES;
+//static constexpr uint8_t NUM_SECOND_PARASITE_BIG_PAGES = 64 / 4;
+//
+//static constexpr uint8_t SECOND_PARASITE_ROM_BIG_PAGE_INDEX = SECOND_PARASITE_BIG_PAGE_INDEX + NUM_SECOND_PARASITE_BIG_PAGES;
+//static constexpr uint8_t NUM_SECOND_PARASITE_ROM_BIG_PAGES = 1;
 
 static constexpr uint8_t NUM_BIG_PAGES = MOS_BIG_PAGE_INDEX + NUM_MOS_BIG_PAGES;
 

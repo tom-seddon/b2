@@ -9,6 +9,10 @@
 #include <stdio.h>
 #include <shared/log.h>
 
+#include <shared/enum_def.h>
+#include <beeb/Trace.inl>
+#include <shared/enum_end.h>
+
 struct M6502Config;
 
 //////////////////////////////////////////////////////////////////////////
@@ -16,7 +20,12 @@ struct M6502Config;
 
 static const size_t CHUNK_SIZE = 16777216;
 
-static const size_t MAX_TIME_DELTA = 127;
+static constexpr size_t NUM_TIME_DELTA_BITS = 5;
+static constexpr size_t MAX_TIME_DELTA = (1 << NUM_TIME_DELTA_BITS) - 1;
+
+static constexpr size_t NUM_SOURCE_BITS = 2;
+static constexpr size_t MAX_SOURCE = (1 << NUM_SOURCE_BITS) - 1;
+static_assert(TraceEventSource_Count <= MAX_SOURCE, "");
 
 static const size_t MAX_EVENT_SIZE = 65535;
 
@@ -28,7 +37,8 @@ static_assert(MAX_EVENT_SIZE <= CHUNK_SIZE, "chunks must be large enough for at 
 #include <shared/pshpack1.h>
 struct EventHeader {
     uint8_t type;
-    uint8_t time_delta : 7;
+    uint8_t time_delta : NUM_TIME_DELTA_BITS;
+    uint8_t source : NUM_SOURCE_BITS;
     uint8_t canceled : 1;
 };
 #include <shared/poppack.h>
@@ -54,8 +64,9 @@ static size_t g_trace_next_id = 0;
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-TraceEventType::TraceEventType(const char *name, size_t size_)
+TraceEventType::TraceEventType(const char *name, size_t size_, TraceEventSource default_source_)
     : type_id((uint8_t)g_trace_next_id++)
+    , default_source(default_source_)
     , size(size_)
     , m_name(name) {
     ASSERT(this->size <= MAX_EVENT_SIZE);
@@ -82,8 +93,8 @@ const std::string &TraceEventType::GetName() const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-const TraceEventType Trace::BLANK_LINE_EVENT("_blank_line", 0);
-const TraceEventType Trace::STRING_EVENT("_string", 0);
+//const TraceEventType Trace::BLANK_LINE_EVENT("_blank_line", 0, TraceEventSource_None);
+const TraceEventType Trace::STRING_EVENT("_string", 0, TraceEventSource_None);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -95,13 +106,13 @@ struct DiscontinuityTraceEvent {
 typedef struct DiscontinuityTraceEvent DiscontinuityTraceEvent;
 #include <shared/poppack.h>
 
-const TraceEventType Trace::DISCONTINUITY_EVENT("_discontinuity", sizeof(DiscontinuityTraceEvent));
+const TraceEventType Trace::DISCONTINUITY_EVENT("_discontinuity", sizeof(DiscontinuityTraceEvent), TraceEventSource_None);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-const TraceEventType Trace::WRITE_ROMSEL_EVENT("_write_romsel", sizeof(WriteROMSELEvent));
-const TraceEventType Trace::WRITE_ACCCON_EVENT("_write_acccon", sizeof(WriteACCCONEvent));
+const TraceEventType Trace::WRITE_ROMSEL_EVENT("_write_romsel", sizeof(WriteROMSELEvent), TraceEventSource_Host);
+const TraceEventType Trace::WRITE_ACCCON_EVENT("_write_acccon", sizeof(WriteACCCONEvent), TraceEventSource_Host);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -157,8 +168,9 @@ void Trace::SetTime(const CycleCount *time_ptr) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void *Trace::AllocEvent(const TraceEventType &type) {
+void *Trace::AllocEvent(const TraceEventType &type, TraceEventSource source) {
     ASSERT(type.size > 0);
+    ASSERT(source >= 0 && source <= MAX_SOURCE);
 
     CycleCount time = m_last_time;
     if (m_time_ptr) {
@@ -169,6 +181,7 @@ void *Trace::AllocEvent(const TraceEventType &type) {
 
     h->type = type.type_id;
     ASSERT(time.n >= m_last_time.n);
+    h->source = source;
     h->time_delta = (uint8_t)(time.n - m_last_time.n);
     h->canceled = 0;
 
@@ -204,9 +217,9 @@ void Trace::CancelEvent(const TraceEventType &type, void *data) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void Trace::AllocBlankLineEvent() {
-    this->AllocEventWithSize(BLANK_LINE_EVENT, 0);
-}
+//void Trace::AllocBlankLineEvent() {
+//    this->AllocEventWithSize(BLANK_LINE_EVENT, 0);
+//}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -215,26 +228,60 @@ void Trace::AllocStringf(const char *fmt, ...) {
     va_list v;
 
     va_start(v, fmt);
-    this->AllocStringv(fmt, v);
+    this->AllocStringv(TraceEventSource_Host, fmt, v);
     va_end(v);
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void Trace::AllocStringv(const char *fmt, va_list v) {
-    char buf[1024];
+//void Trace::AllocStringv(const char *fmt, va_list v) {
+//    char buf[1024];
+//
+//    vsnprintf(buf, sizeof buf, fmt, v);
+//
+//    this->AllocString(buf);
+//}
 
-    vsnprintf(buf, sizeof buf, fmt, v);
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
 
-    this->AllocString(buf);
+//void Trace::AllocString(const char *str) {
+//    this->AllocString2(str, strlen(str));
+//}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void Trace::AllocStringf(TraceEventSource source, const char *fmt, ...) {
+    va_list v;
+
+    va_start(v, fmt);
+    this->AllocStringv(source, fmt, v);
+    va_end(v);
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void Trace::AllocString(const char *str) {
-    this->AllocString2(str, strlen(str));
+void Trace::AllocStringv(TraceEventSource source, const char *fmt, va_list v) {
+    char buf[1024];
+
+    int n = vsnprintf(buf, sizeof buf, fmt, v);
+    if (n >= 0) {
+        if ((size_t)n >= sizeof(buf)) {
+            n = (int)sizeof buf - 1;
+        }
+
+        this->AllocString2(source, buf, (size_t)n);
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void Trace::AllocString(TraceEventSource source, const char *str) {
+    this->AllocString2(source, str, strlen(str));
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -260,12 +307,12 @@ void Trace::AllocWriteACCCONEvent(ACCCON acccon) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-LogPrinter *Trace::GetLogPrinter(size_t max_len) {
+LogPrinter *Trace::GetLogPrinter(TraceEventSource source, size_t max_len) {
     if (max_len > MAX_EVENT_SIZE) {
         max_len = MAX_EVENT_SIZE;
     }
 
-    m_log_data = this->AllocString2(NULL, max_len);
+    m_log_data = this->AllocString2(source, NULL, max_len);
     m_log_len = 0;
     m_log_max_len = max_len;
 
@@ -395,6 +442,7 @@ int Trace::ForEachEvent(ForEachEventFn fn, void *context) {
                 e.time.n += h->time_delta;
 
                 if (!h->canceled) {
+                    e.source = (TraceEventSource)h->source;
                     if (!(*fn)(this, &e, context)) {
                         return 0;
                     }
@@ -415,8 +463,9 @@ int Trace::ForEachEvent(ForEachEventFn fn, void *context) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void *Trace::AllocEventWithSize(const TraceEventType &type, size_t size) {
+void *Trace::AllocEventWithSize(const TraceEventType &type, TraceEventSource source, size_t size) {
     ASSERT(type.size == 0);
+    ASSERT(source >= 0 && source <= MAX_SOURCE);
 
     if (size > MAX_EVENT_SIZE) {
         return nullptr;
@@ -431,6 +480,7 @@ void *Trace::AllocEventWithSize(const TraceEventType &type, size_t size) {
 
     h->h.type = type.type_id;
     h->h.time_delta = (uint8_t)(time.n - m_last_time.n);
+    h->h.source = source;
     h->h.canceled = 0;
     h->size = (uint16_t)size;
 
@@ -444,12 +494,12 @@ void *Trace::AllocEventWithSize(const TraceEventType &type, size_t size) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-char *Trace::AllocString2(const char *str, size_t len) {
+char *Trace::AllocString2(TraceEventSource source, const char *str, size_t len) {
     if (len + 1 > MAX_EVENT_SIZE) {
         return nullptr;
     }
 
-    auto p = (char *)this->AllocEventWithSize(STRING_EVENT, len + 1);
+    auto p = (char *)this->AllocEventWithSize(STRING_EVENT, source, len + 1);
     if (p) {
         if (str) {
             memcpy(p, str, len + 1);

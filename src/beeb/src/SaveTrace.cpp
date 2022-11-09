@@ -39,14 +39,14 @@ class TraceSaver {
         // It would be nice to have the TraceEventType handle the conversion to
         // strings itself. The INSTRUCTION_EVENT handler has to be able to read
         // the config stored by the INITIAL_EVENT handler, though...
-        this->SetMFn(BBCMicro::HOST_INSTRUCTION_EVENT, &TraceSaver::HandleHostInstruction);
+        this->SetMFn(BBCMicro::INSTRUCTION_EVENT, &TraceSaver::HandleInstruction);
         this->SetMFn(Trace::WRITE_ROMSEL_EVENT, &TraceSaver::HandleWriteROMSEL);
         this->SetMFn(Trace::WRITE_ACCCON_EVENT, &TraceSaver::HandleWriteACCCON);
         this->SetMFn(Trace::STRING_EVENT, &TraceSaver::HandleString);
         this->SetMFn(SN76489::WRITE_EVENT, &TraceSaver::HandleSN76489WriteEvent);
         this->SetMFn(SN76489::UPDATE_EVENT, &TraceSaver::HandleSN76489UpdateEvent);
         this->SetMFn(R6522::IRQ_EVENT, &TraceSaver::HandleR6522IRQEvent);
-        this->SetMFn(Trace::BLANK_LINE_EVENT, &TraceSaver::HandleBlankLine);
+        //this->SetMFn(Trace::BLANK_LINE_EVENT, &TraceSaver::HandleBlankLine);
         this->SetMFn(R6522::TIMER_TICK_EVENT, &TraceSaver::HandleR6522TimerTickEvent);
 
         {
@@ -137,10 +137,15 @@ class TraceSaver {
     MemoryBigPageTables m_paging_tables = {};
     bool m_io = true;
 
+    // <pre>
     // 0         1         2
     // 01234567890123456789012
     // 18446744073709551616
-    char m_time_prefix[23];
+    // </pre>
+    //
+    // But the time prefix is still larger than that, to accommodate some
+    // indentation.
+    char m_time_prefix[100];
     size_t m_time_prefix_len = 0;
     uint64_t m_time_initial_value = 0;
 
@@ -451,15 +456,15 @@ class TraceSaver {
         m_output->EnsureBOL();
     }
 
-    void HandleBlankLine(const TraceEvent *e) {
-        (void)e;
+    //void HandleBlankLine(const TraceEvent *e) {
+    //    (void)e;
 
-        static const char BLANK_LINE_CHAR = '\n';
+    //    static const char BLANK_LINE_CHAR = '\n';
 
-        (*m_save_data_fn)(&BLANK_LINE_CHAR, 1, m_save_data_context);
-    }
+    //    (*m_save_data_fn)(&BLANK_LINE_CHAR, 1, m_save_data_context);
+    //}
 
-    void HandleHostInstruction(const TraceEvent *e) {
+    void HandleInstruction(const TraceEvent *e) {
         auto ev = (const BBCMicro::InstructionTraceEvent *)e->event;
 
         m_last_instruction_time = e->time;
@@ -656,6 +661,29 @@ class TraceSaver {
 
         {
             char *c = this_->m_time_prefix;
+            uint64_t time_shift;
+
+            switch (e->source) {
+            case TraceEventSource_Host:
+                *c++ = 'H';
+                time_shift = RSHIFT_CYCLE_COUNT_TO_2MHZ;
+                break;
+
+            case TraceEventSource_Parasite:
+                {
+                    *c++ = 'P';
+                    size_t n = 80;
+                    memset(c, ' ', n);
+                    c += n;
+                    time_shift = RSHIFT_CYCLE_COUNT_TO_4MHZ;
+                }
+                break;
+
+            default:
+                *c++ = '?';
+                time_shift = 0;
+                break;
+            }
 
             if (this_->m_cycles_output != TraceCyclesOutput_None) {
 
@@ -672,7 +700,7 @@ class TraceSaver {
                 char zero = ' ';
 
                 for (uint64_t value = this_->m_time_initial_value; value != 0; value /= 10) {
-                    uint64_t digit = (time.n >> RSHIFT_CYCLE_COUNT_TO_2MHZ) / value % 10;
+                    uint64_t digit = (time.n >> time_shift) / value % 10;
 
                     if (digit != 0) {
                         *c++ = (char)('0' + digit);

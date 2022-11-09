@@ -9,8 +9,8 @@
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_TRACE
-const TraceEventType SN76489::WRITE_EVENT("SN76489WriteEvent", sizeof(WriteEvent));
-const TraceEventType SN76489::UPDATE_EVENT("SN76489UpdateEvent", sizeof(UpdateEvent));
+const TraceEventType SN76489::WRITE_EVENT("SN76489WriteEvent", sizeof(WriteEvent), TraceEventSource_Host);
+const TraceEventType SN76489::UPDATE_EVENT("SN76489UpdateEvent", sizeof(UpdateEvent), TraceEventSource_Host);
 #endif
 
 //////////////////////////////////////////////////////////////////////////

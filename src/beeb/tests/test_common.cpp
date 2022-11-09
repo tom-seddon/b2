@@ -375,13 +375,13 @@ bool TestDiscImage::GetByteIndex(size_t *index,
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static std::shared_ptr<const BBCMicro::ROMData> LoadROM(const std::string &name) {
+static std::shared_ptr<const std::array<uint8_t, 16384>> LoadROM(const std::string &name) {
     std::string path = PathJoined(ROMS_FOLDER, name);
 
     std::vector<uint8_t> data;
     TEST_TRUE(PathLoadBinaryFile(&data, path));
 
-    auto rom = std::make_shared<BBCMicro::ROMData>();
+    auto rom = std::make_shared<std::array<uint8_t, 16384>>();
 
     TEST_LE_UU(data.size(), rom->size());
     for (size_t i = 0; i < data.size(); ++i) {
@@ -475,9 +475,7 @@ TestBBCMicro::TestBBCMicro(TestBBCMicroType type)
                GetDiscInterfaceDef(type),
                GetNVRAMContents(type),
                nullptr,
-               false,
-               false,
-               false,
+               0,
                nullptr,
                {0}) {
 #if BBCMICRO_TRACE

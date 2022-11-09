@@ -252,8 +252,8 @@ void ConfigsUI::DoEditConfigGui() {
             ROMEditAction a = this->DoROMEditGui(CAPTIONS[bank],
                                                  rom,
                                                  &rom->writeable,
-                                                 bank<15,
-                                                      bank> 0);
+                                                 (bank < 15),
+                                                 bank > 0);
             if (a != ROMEditAction_None) {
                 action = a;
                 action_bank = bank;
@@ -297,6 +297,16 @@ void ConfigsUI::DoEditConfigGui() {
 
     if (ImGui::Checkbox("Video NuLA", &config->video_nula)) {
         edited = true;
+    }
+
+    if (ImGui::Checkbox("6502 Second Processor", &config->parasite)) {
+        edited = true;
+    }
+
+    if (config->parasite) {
+        if (this->DoROMEditGui("OS", &config->parasite_os, nullptr, false, false) != ROMEditAction_None) {
+            edited = true;
+        }
     }
 
     if (edited) {

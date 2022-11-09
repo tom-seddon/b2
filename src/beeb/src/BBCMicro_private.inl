@@ -1,7 +1,14 @@
+// The IRQ/NMI flags for host and parasite could be separate, but they aren't. No danger of running out just yet.
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 #define ENAME BBCMicroIRQDevice
 EBEGIN()
-EPNV(SystemVIA, 1)
-EPNV(UserVIA, 2)
+EPNV(SystemVIA, 1 << 0)
+EPNV(UserVIA, 1 << 1)
+EPNV(HostTube, 1 << 2)
+EPNV(ParasiteTube, 1 << 3)
 EEND()
 #undef ENAME
 
@@ -10,7 +17,8 @@ EEND()
 
 #define ENAME BBCMicroNMIDevice
 EBEGIN()
-EPNV(1770, 1)
+EPNV(1770, 1 << 0)
+EPNV(ParasiteTube, 1 << 1)
 EEND()
 #undef ENAME
 
@@ -19,11 +27,19 @@ EEND()
 
 #define ENAME BBCMicroUpdateFlag
 EBEGIN()
-EPNV(HasRTC,1<<0)
-EPNV(HasBeebLink,1<<1)
-EPNV(Hacks,1<<2)
-EPNV(Debug,1<<3)
-EPNV(Trace,1<<4)
+EPNV(HasRTC, 1 << 0)
+EPNV(HasBeebLink, 1 << 1)
+EPNV(Hacks, 1 << 2)
+EPNV(Debug, 1 << 3)
+EPNV(Trace, 1 << 4)
+EPNV(Parasite, 1 << 5)
+
+// Special mode covers non-default Tube operation modes: any or all of boot
+// mode, host-initiated Tube reset, and parasite reset.
+//
+// Special mode is not efficient.
+EPNV(ParasiteSpecial, 1 << 6)
+
 EEND()
 #undef ENAME
 

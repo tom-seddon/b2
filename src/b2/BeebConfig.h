@@ -37,11 +37,13 @@ class BeebConfig {
     const BBCMicroType *type = nullptr;
     ROM os;
     SidewaysROM roms[16];
+    ROM parasite_os;
     uint8_t keyboard_links = 0;
     const DiscInterfaceDef *disc_interface = nullptr;
     bool video_nula = true;
     bool ext_mem = false;
     bool beeblink = false;
+    bool parasite = false;
 
   protected:
   private:
@@ -74,7 +76,8 @@ class BeebLoadedConfig {
   public:
     BeebConfig config;
 
-    std::shared_ptr<const BeebRomData> os, roms[16];
+    std::shared_ptr<const std::array<uint8_t, 16384>> os, roms[16];
+    std::shared_ptr<const std::array<uint8_t, 4096>> parasite_os;
 
     static bool Load(BeebLoadedConfig *dest, const BeebConfig &src, Messages *msg);
 

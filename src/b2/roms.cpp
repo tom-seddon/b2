@@ -27,7 +27,7 @@ const BeebROM BEEB_ROM_WATFORD_DDFS_DDB3 = {"DDFS-1.54T.rom", "Watford DDFS (DDB
 const BeebROM BEEB_ROM_OPUS_DDOS = {"OPUS-DDOS-3.45.rom", "Opus DDOS", StandardROM_OpusDDOS};
 const BeebROM BEEB_ROM_OPUS_CHALLENGER = {"challenger-1.01.rom", "Opus Challenger", StandardROM_OpusChallenger};
 
-const BeebROM BEEB_ROM_MASTER_TURBO_PARASITE = {"MasterTurboParasite.rom", "Master Turbo Parasite", StandardROM_MasterTurboParasite};
+const BeebROM BEEB_ROM_MASTER_TURBO_PARASITE = {"MasterTurboParasite.rom", "65C102 TUBE 1.20", StandardROM_MasterTurboParasite};
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

@@ -24,10 +24,10 @@ struct BeebROM {
     std::string GetAssetPath() const;
 };
 
-static const size_t ROM_SIZE = 16384;
+//static const size_t ROM_SIZE = 16384;
 
 // Ugh... maddening inconsistent capitalization!
-typedef std::array<uint8_t, ROM_SIZE> BeebRomData;
+//typedef std::array<uint8_t, ROM_SIZE> BeebRomData;
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

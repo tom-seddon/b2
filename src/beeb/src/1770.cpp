@@ -33,9 +33,9 @@ LOG_TAGGED_DEFINE(1770nd, "1770", "1770", &log_printer_stdout, false);
     }                                           \
     END_MACRO
 
-#define BEGIN_LOG_TRACE(OBJ, N)                                                            \
-    if (Trace *t = (OBJ)->m_trace) {                                                       \
-        Log log_value("", (OBJ)->m_trace->GetLogPrinter((N)), 1), *const log = &log_value; \
+#define BEGIN_LOG_TRACE(OBJ, N)                                                                                   \
+    if (Trace *t = (OBJ)->m_trace) {                                                                              \
+        Log log_value("", (OBJ)->m_trace->GetLogPrinter(TraceEventSource_Host, (N)), 1), *const log = &log_value; \
         {
 #define END_LOG_TRACE() \
     }                   \

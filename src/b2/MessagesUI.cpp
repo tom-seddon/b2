@@ -85,7 +85,7 @@ void MessagesUI::DoImGui() {
 
     cc.DoButton("copy");
 
-    ImGui::BeginChild("", ImVec2(), true);
+    ImGui::BeginChild("##messages", ImVec2(), true);
 
     m_message_list->ForEachMessage(&ImGuiMessageListMessage);
 

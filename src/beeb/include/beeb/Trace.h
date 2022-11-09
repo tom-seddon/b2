@@ -39,6 +39,10 @@
 #include <string>
 #include "type.h"
 
+#include <shared/enum_decl.h>
+#include "Trace.inl"
+#include <shared/enum_end.h>
+
 struct M6502Config;
 
 //////////////////////////////////////////////////////////////////////////
@@ -48,8 +52,9 @@ class TraceEventType {
   public:
     const uint8_t type_id;
     const size_t size;
+    const TraceEventSource default_source;
 
-    explicit TraceEventType(const char *name, size_t size = 0);
+    explicit TraceEventType(const char *name, size_t size, TraceEventSource default_source);
     ~TraceEventType();
 
     TraceEventType(const TraceEventType &) = delete;
@@ -85,6 +90,9 @@ struct TraceEvent {
     // absolute time of this event.
     CycleCount time;
 
+    // source of this event.
+    TraceEventSource source;
+
     // size of this event's data.
     size_t size;
 
@@ -109,7 +117,7 @@ class Trace : public std::enable_shared_from_this<Trace> {
     };
 #include <shared/poppack.h>
 
-    static const TraceEventType BLANK_LINE_EVENT;
+    //static const TraceEventType BLANK_LINE_EVENT;
     static const TraceEventType STRING_EVENT;
     static const TraceEventType DISCONTINUITY_EVENT;
     static const TraceEventType WRITE_ROMSEL_EVENT;
@@ -117,9 +125,6 @@ class Trace : public std::enable_shared_from_this<Trace> {
 
     // max_num_bytes is approximate - actual consumption may be greater.
     // Supply SIZE_MAX to just have the data grow indefinitely.
-    //
-    // bbc_micro_type is actually a BBCMicroType value - I made a mess of the
-    // header structure here :(
     explicit Trace(size_t max_num_bytes,
                    const BBCMicroType *type,
                    ROMSEL initial_romsel_value,
@@ -136,25 +141,38 @@ class Trace : public std::enable_shared_from_this<Trace> {
     // out each event's time field.
     void SetTime(const CycleCount *time_ptr);
 
-    // Allocate a new event with fixed-size data, returning a pointer
-    // to its data or nullptr if the data size is 0. (The type is used to find
-    // the data size.)
-    void *AllocEvent(const TraceEventType &type);
+    // Allocate a new event with fixed-size data, returning a pointer to its
+    // data or nullptr if the data size is 0. (The type is used to find the data
+    // size.)
+    //
+    // When the source isn't explicitly specified, the TraceEventType's default
+    // source will be used.
+    void *AllocEvent(const TraceEventType &type) {
+        return this->AllocEvent(type, type.default_source);
+    }
+
+    void *AllocEvent(const TraceEventType &type, TraceEventSource source);
 
     // TYPE must be the type of event the data was allocated for.
     void CancelEvent(const TraceEventType &type, void *data);
 
-    void AllocBlankLineEvent();
+    //void AllocBlankLineEvent();
 
     // Inefficient convenience functions for low-frequency trace events.
     //
     // When a string doesn't finish with a '\n', one will be added when
     // saving the output.
+    //
+    // If the source isn't specified, it comes from the host.
 
     // Space for format expansion is limited to 1K.
     void PRINTF_LIKE(2, 3) AllocStringf(const char *fmt, ...);
-    void AllocStringv(const char *fmt, va_list v);
-    void AllocString(const char *str);
+    //void AllocStringv(const char *fmt, va_list v);
+    //void AllocString(const char *str);
+
+    void PRINTF_LIKE(3, 4) AllocStringf(TraceEventSource source, const char *fmt, ...);
+    void AllocStringv(TraceEventSource source, const char *fmt, va_list v);
+    void AllocString(TraceEventSource source, const char *str);
 
     // Allocate events for ROMSEL/ACCCON writes. These need special handling so
     // the initial values can be correctly maintained.
@@ -163,7 +181,7 @@ class Trace : public std::enable_shared_from_this<Trace> {
 
     // max_len bytes is allocated. Call FinishLog to try to truncate the
     // allocation if possible.
-    LogPrinter *GetLogPrinter(size_t max_len);
+    LogPrinter *GetLogPrinter(TraceEventSource source, size_t max_len);
     void FinishLog(Log *log);
 
     void GetStats(TraceStats *stats) const;
@@ -212,8 +230,8 @@ class Trace : public std::enable_shared_from_this<Trace> {
     // Allocate a new event with variable-sized data, and return a
     // pointer to its data. (The event must have been registered with
     // a size of 0.)
-    void *AllocEventWithSize(const TraceEventType &type, size_t size);
-    char *AllocString2(const char *str, size_t len);
+    void *AllocEventWithSize(const TraceEventType &type, TraceEventSource source, size_t size);
+    char *AllocString2(TraceEventSource source, const char *str, size_t len);
 
     void *Alloc(CycleCount time, size_t n);
     void Check();

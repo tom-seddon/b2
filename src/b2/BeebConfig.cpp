@@ -16,7 +16,8 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static std::shared_ptr<BeebRomData> LoadROM(const BeebConfig::ROM &rom, Messages *msg) {
+template <size_t MAX_SIZE, bool OS>
+static std::shared_ptr<std::array<uint8_t, MAX_SIZE>> LoadROM(const BeebConfig::ROM &rom, Messages *msg) {
     std::vector<uint8_t> data;
 
     std::string path;
@@ -30,23 +31,35 @@ static std::shared_ptr<BeebRomData> LoadROM(const BeebConfig::ROM &rom, Messages
         return nullptr;
     }
 
-    if (data.size() > ROM_SIZE) {
+    if (rom.standard_rom) {
+        path = rom.standard_rom->GetAssetPath();
+    } else {
+        path = rom.file_name;
+    }
+
+    if (!LoadFile(&data, path, msg)) {
+        return nullptr;
+    }
+
+    if (data.size() > MAX_SIZE) {
         msg->e.f(
             "ROM too large (%zu bytes; max: %zu bytes): %s\n",
             data.size(),
-            ROM_SIZE,
+            MAX_SIZE,
             path.c_str());
         return nullptr;
     }
 
-    auto result = std::make_shared<BeebRomData>();
+    auto result = std::make_shared<std::array<uint8_t, MAX_SIZE>>();
 
-    for (size_t i = 0; i < ROM_SIZE; ++i) {
-        if (i < data.size()) {
-            (*result)[i] = data[i];
-        } else {
-            (*result)[i] = 0;
-        }
+    for (size_t i = 0; i < MAX_SIZE; ++i) {
+        (*result)[i] = 0;
+    }
+
+    size_t end = OS ? MAX_SIZE : data.size();
+
+    for (size_t i = 0; i < data.size(); ++i) {
+        (*result)[end - data.size() + i] = data[i];
     }
 
     return result;
@@ -173,6 +186,31 @@ void InitDefaultBeebConfigs() {
 
         g_default_configs.push_back(config);
     }
+
+    // Master Turbo MOS 3.50
+    {
+        BeebConfig config;
+
+        config.name = "Master Turbo (MOS 3.20)";
+        config.disc_interface = &DISC_INTERFACE_MASTER128;
+        config.type = &BBC_MICRO_TYPE_MASTER;
+        config.os.standard_rom = FindBeebROM(StandardROM_MOS320_MOS);
+        config.roms[15].standard_rom = FindBeebROM(StandardROM_MOS320_TERMINAL);
+        config.roms[14].standard_rom = FindBeebROM(StandardROM_MOS320_VIEW);
+        config.roms[13].standard_rom = FindBeebROM(StandardROM_MOS320_ADFS);
+        config.roms[12].standard_rom = FindBeebROM(StandardROM_MOS320_BASIC4);
+        config.roms[11].standard_rom = FindBeebROM(StandardROM_MOS320_EDIT);
+        config.roms[10].standard_rom = FindBeebROM(StandardROM_MOS320_VIEWSHEET);
+        config.roms[9].standard_rom = FindBeebROM(StandardROM_MOS320_DFS);
+        config.roms[7].writeable = true;
+        config.roms[6].writeable = true;
+        config.roms[5].writeable = true;
+        config.roms[4].writeable = true;
+        config.parasite = true;
+        config.parasite_os.standard_rom = FindBeebROM(StandardROM_MasterTurboParasite);
+
+        g_default_configs.push_back(config);
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -229,7 +267,7 @@ bool BeebLoadedConfig::Load(
     Messages *msg) {
     dest->config = src;
 
-    dest->os = LoadROM(dest->config.os, msg);
+    dest->os = LoadROM<16384, true>(dest->config.os, msg);
     if (!dest->os) {
         return false;
     }
@@ -237,10 +275,18 @@ bool BeebLoadedConfig::Load(
     for (int i = 0; i < 16; ++i) {
         if (dest->config.roms[i].standard_rom ||
             !dest->config.roms[i].file_name.empty()) {
-            dest->roms[i] = LoadROM(dest->config.roms[i], msg);
+            dest->roms[i] = LoadROM<16384, false>(dest->config.roms[i], msg);
             if (!dest->roms[i]) {
                 return false;
             }
+        }
+    }
+
+    if (dest->config.parasite_os.standard_rom ||
+        !dest->config.parasite_os.file_name.empty()) {
+        dest->parasite_os = LoadROM<4096, true>(dest->config.parasite_os, msg);
+        if (!dest->parasite_os) {
+            return false;
         }
     }
 
