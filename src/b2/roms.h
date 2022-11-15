@@ -42,8 +42,23 @@ extern const BeebROM BEEB_ROM_WATFORD_DDFS_DDB3;
 extern const BeebROM BEEB_ROM_OPUS_DDOS;
 extern const BeebROM BEEB_ROM_OPUS_CHALLENGER;
 
-extern const BeebROM BEEB_ROMS_MOS320[8];
-extern const BeebROM BEEB_ROMS_MOS350[8];
+extern const BeebROM BEEB_ROM_MOS320_SIDEWAYS_ROM_9;
+extern const BeebROM BEEB_ROM_MOS320_SIDEWAYS_ROM_A;
+extern const BeebROM BEEB_ROM_MOS320_SIDEWAYS_ROM_B;
+extern const BeebROM BEEB_ROM_MOS320_SIDEWAYS_ROM_C;
+extern const BeebROM BEEB_ROM_MOS320_SIDEWAYS_ROM_D;
+extern const BeebROM BEEB_ROM_MOS320_SIDEWAYS_ROM_E;
+extern const BeebROM BEEB_ROM_MOS320_SIDEWAYS_ROM_F;
+extern const BeebROM BEEB_ROM_MOS320_MOS_ROM;
+
+extern const BeebROM BEEB_ROM_MOS350_SIDEWAYS_ROM_9;
+extern const BeebROM BEEB_ROM_MOS350_SIDEWAYS_ROM_A;
+extern const BeebROM BEEB_ROM_MOS350_SIDEWAYS_ROM_B;
+extern const BeebROM BEEB_ROM_MOS350_SIDEWAYS_ROM_C;
+extern const BeebROM BEEB_ROM_MOS350_SIDEWAYS_ROM_D;
+extern const BeebROM BEEB_ROM_MOS350_SIDEWAYS_ROM_E;
+extern const BeebROM BEEB_ROM_MOS350_SIDEWAYS_ROM_F;
+extern const BeebROM BEEB_ROM_MOS350_MOS_ROM;
 
 // all ROMs, one after the other, terminated by nullptr.
 extern const BeebROM *const BEEB_ROMS[];

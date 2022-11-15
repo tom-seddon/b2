@@ -48,7 +48,15 @@ class ConfigsUI : public SettingsUI {
     int m_config_index = -1;
 
     void DoROMInfoGui(const char *caption, const BeebConfig::ROM &rom, const bool *writeable);
-    ROMEditAction DoROMEditGui(const char *caption, BeebConfig::ROM *rom, bool *writeable, bool can_move_up, bool can_move_down);
+
+    // rom_edit_flags is a combination of ROMEditFlag values
+    ROMEditAction DoROMEditGui(const char *caption, BeebConfig::ROM *rom, bool *writeable, uint32_t rom_edit_flags);
+    void DoROMs(BeebConfig::ROM *rom,
+                bool *edited,
+                uint32_t rom_edit_flags,
+                uint32_t rom_edit_flag,
+                const char *label,
+                const BeebROM *const *roms);
 
     void DoEditConfigGui();
 };
@@ -190,6 +198,28 @@ void ConfigsUI::DoEditConfigGui() {
         return;
     }
 
+    uint32_t rom_edit_sideways_rom_flags;
+    uint32_t rom_edit_os_rom_flags;
+    switch (config->type->type_id) {
+    default:
+        ASSERT(false);
+        [[fallthrough]];
+    case BBCMicroTypeID_B:
+        rom_edit_sideways_rom_flags = ROMEditFlag_BSidewaysROMs;
+        rom_edit_os_rom_flags = ROMEditFlag_BOSROMs;
+        break;
+
+    case BBCMicroTypeID_BPlus:
+        rom_edit_sideways_rom_flags = ROMEditFlag_BPlusSidewaysROMs;
+        rom_edit_os_rom_flags = ROMEditFlag_BPlusOSROMs;
+        break;
+
+    case BBCMicroTypeID_Master:
+        rom_edit_sideways_rom_flags = ROMEditFlag_MasterSidewaysROMs;
+        rom_edit_os_rom_flags = ROMEditFlag_MasterOSROMs;
+        break;
+    }
+
     // set to true if *config was edited - as well as
     // dirtying the corresponding loaded config, this will set
     // m_edited.
@@ -232,7 +262,10 @@ void ConfigsUI::DoEditConfigGui() {
 
     ImGui::Separator();
 
-    if (this->DoROMEditGui("OS", &config->os, nullptr, false, false) != ROMEditAction_None) {
+    if (this->DoROMEditGui("Host OS",
+                           &config->os,
+                           nullptr,
+                           rom_edit_os_rom_flags) != ROMEditAction_None) {
         edited = true;
     }
 
@@ -249,11 +282,14 @@ void ConfigsUI::DoEditConfigGui() {
 
             BeebConfig::SidewaysROM *rom = &config->roms[bank];
 
+            uint32_t rom_edit_flags = (bank < 15 ? ROMEditFlag_CanMoveUp : 0) |
+                                      (bank > 0 ? ROMEditFlag_CanMoveDown : 0) |
+                                      rom_edit_sideways_rom_flags;
+
             ROMEditAction a = this->DoROMEditGui(CAPTIONS[bank],
                                                  rom,
                                                  &rom->writeable,
-                                                 (bank < 15),
-                                                 bank > 0);
+                                                 rom_edit_flags);
             if (a != ROMEditAction_None) {
                 action = a;
                 action_bank = bank;
@@ -304,7 +340,10 @@ void ConfigsUI::DoEditConfigGui() {
     }
 
     if (config->parasite) {
-        if (this->DoROMEditGui("OS", &config->parasite_os, nullptr, false, false) != ROMEditAction_None) {
+        if (this->DoROMEditGui("Parasite OS",
+                               &config->parasite_os,
+                               nullptr,
+                               ROMEditFlag_ParasiteROMs)) {
             edited = true;
         }
     }
@@ -367,18 +406,22 @@ static bool ImGuiROM(BeebConfig::ROM *rom, const BeebROM *beeb_rom) {
     }
 }
 
-static bool ImGuiMasterROMs(BeebConfig::ROM *rom, const BeebROM *master_roms) {
-    for (size_t i = 0; i < 8; ++i) {
-        if (ImGuiROM(rom, &master_roms[7 - i])) {
-            return true;
-        }
-    }
+//static bool ImGuiMasterROMs(BeebConfig::ROM *rom, const BeebROM *master_roms) {
+//    for (size_t i = 0; i < 8; ++i) {
+//        if (ImGuiROM(rom, &master_roms[7 - i])) {
+//            return true;
+//        }
+//    }
+//
+//    return false;
+//}
 
-    return false;
-}
-
-static const BeebROM *const B_ROMS[] = {
+static const BeebROM *const B_OS_ROMS[] = {
     &BEEB_ROM_OS12,
+    nullptr,
+};
+
+static const BeebROM *const B_SIDEWAYS_ROMS[] = {
     &BEEB_ROM_BASIC2,
     &BEEB_ROM_ACORN_DFS,
     &BEEB_ROM_WATFORD_DDFS_DDB2,
@@ -388,14 +431,55 @@ static const BeebROM *const B_ROMS[] = {
     nullptr,
 };
 
-static const BeebROM *const BPLUS_ROMS[] = {
+static const BeebROM *const BPLUS_OS_ROMS[] = {
     &BEEB_ROM_BPLUS_MOS,
+    nullptr,
+};
+
+static const BeebROM *const BPLUS_SIDEWAYS_ROMS[] = {
     &BEEB_ROM_BASIC2,
     &BEEB_ROM_ACORN_DFS,
     nullptr,
 };
 
-static bool ImGuiBROMs(BeebConfig::ROM *rom, const BeebROM *const *b_roms) {
+static const BeebROM *const PARASITE_ROMS[] = {
+    &BEEB_ROM_MASTER_TURBO_PARASITE,
+    nullptr,
+};
+
+static const BeebROM *const MOS320_SIDEWAYS_ROMS[] = {
+    &BEEB_ROM_MOS320_SIDEWAYS_ROM_9,
+    &BEEB_ROM_MOS320_SIDEWAYS_ROM_A,
+    &BEEB_ROM_MOS320_SIDEWAYS_ROM_B,
+    &BEEB_ROM_MOS320_SIDEWAYS_ROM_C,
+    &BEEB_ROM_MOS320_SIDEWAYS_ROM_D,
+    &BEEB_ROM_MOS320_SIDEWAYS_ROM_E,
+    &BEEB_ROM_MOS320_SIDEWAYS_ROM_F,
+    nullptr,
+};
+
+static const BeebROM *const MOS320_MOS_ROMS[] = {
+    &BEEB_ROM_MOS320_MOS_ROM,
+    nullptr,
+};
+
+static const BeebROM *const MOS350_SIDEWAYS_ROMS[] = {
+    &BEEB_ROM_MOS350_SIDEWAYS_ROM_9,
+    &BEEB_ROM_MOS350_SIDEWAYS_ROM_A,
+    &BEEB_ROM_MOS350_SIDEWAYS_ROM_B,
+    &BEEB_ROM_MOS350_SIDEWAYS_ROM_C,
+    &BEEB_ROM_MOS350_SIDEWAYS_ROM_D,
+    &BEEB_ROM_MOS350_SIDEWAYS_ROM_E,
+    &BEEB_ROM_MOS350_SIDEWAYS_ROM_F,
+    nullptr,
+};
+
+static const BeebROM *const MOS350_MOS_ROMS[] = {
+    &BEEB_ROM_MOS350_MOS_ROM,
+    nullptr,
+};
+
+static bool ImGuiROMs(BeebConfig::ROM *rom, const BeebROM *const *b_roms) {
     for (size_t i = 0; b_roms[i]; ++i) {
         if (ImGuiROM(rom, b_roms[i])) {
             return true;
@@ -405,11 +489,26 @@ static bool ImGuiBROMs(BeebConfig::ROM *rom, const BeebROM *const *b_roms) {
     return false;
 }
 
+void ConfigsUI::DoROMs(BeebConfig::ROM *rom,
+                       bool *edited,
+                       uint32_t rom_edit_flags,
+                       uint32_t rom_edit_flag,
+                       const char *label,
+                       const BeebROM *const *roms) {
+    if (rom_edit_flags & rom_edit_flag) {
+        if (ImGui::BeginMenu(label)) {
+            if (ImGuiROMs(rom, roms)) {
+                *edited = true;
+            }
+            ImGui::EndMenu();
+        }
+    }
+}
+
 ROMEditAction ConfigsUI::DoROMEditGui(const char *caption,
                                       BeebConfig::ROM *rom,
                                       bool *writeable,
-                                      bool can_move_up,
-                                      bool can_move_down) {
+                                      uint32_t rom_edit_flags) {
     ROMEditAction action = ROMEditAction_None;
     bool edited = false;
 
@@ -420,11 +519,12 @@ ROMEditAction ConfigsUI::DoROMEditGui(const char *caption,
 
     ImGui::TextUnformatted(caption);
 
-    if (can_move_up || can_move_down) {
+    if (rom_edit_flags & (ROMEditFlag_CanMoveUp | ROMEditFlag_CanMoveDown)) {
         ImGui::SameLine();
 
         {
             ImGuiStyleColourPusher pusher;
+            bool can_move_up = !!!(rom_edit_flags & ROMEditFlag_CanMoveUp);
             pusher.PushDisabledButtonColours(!can_move_up);
             if (ImGui::Button(ICON_FA_LONG_ARROW_ALT_UP)) {
                 if (can_move_up) {
@@ -437,6 +537,7 @@ ROMEditAction ConfigsUI::DoROMEditGui(const char *caption,
 
         {
             ImGuiStyleColourPusher pusher;
+            bool can_move_down = !!(rom_edit_flags & ROMEditFlag_CanMoveDown);
             pusher.PushDisabledButtonColours(!can_move_down);
             if (ImGui::Button(ICON_FA_LONG_ARROW_ALT_DOWN)) {
                 if (can_move_down) {
@@ -496,33 +597,15 @@ ROMEditAction ConfigsUI::DoROMEditGui(const char *caption,
             edited = true;
         }
 
-        if (ImGui::BeginMenu("B ROMs")) {
-            if (ImGuiBROMs(rom, B_ROMS)) {
-                edited = true;
-            }
-            ImGui::EndMenu();
-        }
-
-        if (ImGui::BeginMenu("B+ ROMs")) {
-            if (ImGuiBROMs(rom, BPLUS_ROMS)) {
-                edited = true;
-            }
-            ImGui::EndMenu();
-        }
-
-        if (ImGui::BeginMenu("MOS 3.20 ROMs")) {
-            if (ImGuiMasterROMs(rom, BEEB_ROMS_MOS320)) {
-                edited = true;
-            }
-            ImGui::EndMenu();
-        }
-
-        if (ImGui::BeginMenu("MOS 3.50 ROMs")) {
-            if (ImGuiMasterROMs(rom, BEEB_ROMS_MOS350)) {
-                edited = true;
-            }
-            ImGui::EndMenu();
-        }
+        this->DoROMs(rom, &edited, rom_edit_flags, ROMEditFlag_BOSROMs, "B OS ROM", B_OS_ROMS);
+        this->DoROMs(rom, &edited, rom_edit_flags, ROMEditFlag_BSidewaysROMs, "B Sideways ROM", B_SIDEWAYS_ROMS);
+        this->DoROMs(rom, &edited, rom_edit_flags, ROMEditFlag_BPlusOSROMs, "B+ OS ROM", BPLUS_OS_ROMS);
+        this->DoROMs(rom, &edited, rom_edit_flags, ROMEditFlag_BPlusSidewaysROMs, "B+ Sideways ROM", BPLUS_SIDEWAYS_ROMS);
+        this->DoROMs(rom, &edited, rom_edit_flags, ROMEditFlag_MasterOSROMs, "MOS 3.20 OS ROM", MOS320_MOS_ROMS);
+        this->DoROMs(rom, &edited, rom_edit_flags, ROMEditFlag_MasterSidewaysROMs, "MOS 3.20 Sideways ROM", MOS320_SIDEWAYS_ROMS);
+        this->DoROMs(rom, &edited, rom_edit_flags, ROMEditFlag_MasterOSROMs, "MOS 3.50 OS ROM", MOS350_MOS_ROMS);
+        this->DoROMs(rom, &edited, rom_edit_flags, ROMEditFlag_MasterSidewaysROMs, "MOS 3.50 Sideways ROM", MOS350_SIDEWAYS_ROMS);
+        this->DoROMs(rom, &edited, rom_edit_flags, ROMEditFlag_ParasiteROMs, "Parasite ROM", PARASITE_ROMS);
 
         ImGui::EndPopup();
     }

@@ -32,30 +32,26 @@ const BeebROM BEEB_ROM_MASTER_TURBO_PARASITE = {"MasterTurboParasite.rom", "65C1
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-const BeebROM BEEB_ROMS_MOS320[8] = {
-    {"m128/3.20/dfs.rom", "MOS 3.20 DFS (9)", StandardROM_MOS320_DFS},
-    {"m128/3.20/viewsht.rom", "MOS 3.20 Viewsheet (a)", StandardROM_MOS320_VIEWSHEET},
-    {"m128/3.20/edit.rom", "MOS 3.20 Edit (b)", StandardROM_MOS320_EDIT},
-    {"m128/3.20/basic4.rom", "MOS 3.20 BASIC (c)", StandardROM_MOS320_BASIC4},
-    {"m128/3.20/adfs.rom", "MOS 3.20 ADFS (d)", StandardROM_MOS320_ADFS},
-    {"m128/3.20/view.rom", "MOS 3.20 View (e)", StandardROM_MOS320_VIEW},
-    {"m128/3.20/terminal.rom", "MOS 3.20 Terminal (f)", StandardROM_MOS320_TERMINAL},
-    {"m128/3.20/mos.rom", "MOS 3.20 MOS (OS)", StandardROM_MOS320_MOS},
-};
+extern const BeebROM BEEB_ROM_MOS320_SIDEWAYS_ROM_9 = {"m128/3.20/dfs.rom", "MOS 3.20 DFS (9)", StandardROM_MOS320_DFS};
+extern const BeebROM BEEB_ROM_MOS320_SIDEWAYS_ROM_A = {"m128/3.20/viewsht.rom", "MOS 3.20 Viewsheet (a)", StandardROM_MOS320_VIEWSHEET};
+extern const BeebROM BEEB_ROM_MOS320_SIDEWAYS_ROM_B = {"m128/3.20/edit.rom", "MOS 3.20 Edit (b)", StandardROM_MOS320_EDIT};
+extern const BeebROM BEEB_ROM_MOS320_SIDEWAYS_ROM_C = {"m128/3.20/basic4.rom", "MOS 3.20 BASIC (c)", StandardROM_MOS320_BASIC4};
+extern const BeebROM BEEB_ROM_MOS320_SIDEWAYS_ROM_D = {"m128/3.20/adfs.rom", "MOS 3.20 ADFS (d)", StandardROM_MOS320_ADFS};
+extern const BeebROM BEEB_ROM_MOS320_SIDEWAYS_ROM_E = {"m128/3.20/view.rom", "MOS 3.20 View (e)", StandardROM_MOS320_VIEW};
+extern const BeebROM BEEB_ROM_MOS320_SIDEWAYS_ROM_F = {"m128/3.20/terminal.rom", "MOS 3.20 Terminal (f)", StandardROM_MOS320_TERMINAL};
+extern const BeebROM BEEB_ROM_MOS320_MOS_ROM = {"m128/3.20/mos.rom", "MOS 3.20 MOS (OS)", StandardROM_MOS320_MOS};
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-const BeebROM BEEB_ROMS_MOS350[8] = {
-    {"m128/3.50/dfs.rom", "MOS 3.50 DFS (9)", StandardROM_MOS350_DFS},
-    {"m128/3.50/viewsht.rom", "MOS 3.50 Viewsheet (a)", StandardROM_MOS350_VIEWSHEET},
-    {"m128/3.50/edit.rom", "MOS 3.50 Edit (b)", StandardROM_MOS350_EDIT},
-    {"m128/3.50/basic4.rom", "MOS 3.50 BASIC (c)", StandardROM_MOS350_BASIC4},
-    {"m128/3.50/adfs.rom", "MOS 3.50 ADFS (d)", StandardROM_MOS350_ADFS},
-    {"m128/3.50/view.rom", "MOS 3.50 View (e)", StandardROM_MOS350_VIEW},
-    {"m128/3.50/terminal.rom", "MOS 3.50 Terminal (f)", StandardROM_MOS350_TERMINAL},
-    {"m128/3.50/mos.rom", "MOS 3.50 MOS (OS)", StandardROM_MOS350_MOS},
-};
+extern const BeebROM BEEB_ROM_MOS350_SIDEWAYS_ROM_9 = {"m128/3.50/dfs.rom", "MOS 3.50 DFS (9)", StandardROM_MOS350_DFS};
+extern const BeebROM BEEB_ROM_MOS350_SIDEWAYS_ROM_A = {"m128/3.50/viewsht.rom", "MOS 3.50 Viewsheet (a)", StandardROM_MOS350_VIEWSHEET};
+extern const BeebROM BEEB_ROM_MOS350_SIDEWAYS_ROM_B = {"m128/3.50/edit.rom", "MOS 3.50 Edit (b)", StandardROM_MOS350_EDIT};
+extern const BeebROM BEEB_ROM_MOS350_SIDEWAYS_ROM_C = {"m128/3.50/basic4.rom", "MOS 3.50 BASIC (c)", StandardROM_MOS350_BASIC4};
+extern const BeebROM BEEB_ROM_MOS350_SIDEWAYS_ROM_D = {"m128/3.50/adfs.rom", "MOS 3.50 ADFS (d)", StandardROM_MOS350_ADFS};
+extern const BeebROM BEEB_ROM_MOS350_SIDEWAYS_ROM_E = {"m128/3.50/view.rom", "MOS 3.50 View (e)", StandardROM_MOS350_VIEW};
+extern const BeebROM BEEB_ROM_MOS350_SIDEWAYS_ROM_F = {"m128/3.50/terminal.rom", "MOS 3.50 Terminal (f)", StandardROM_MOS350_TERMINAL};
+extern const BeebROM BEEB_ROM_MOS350_MOS_ROM = {"m128/3.50/mos.rom", "MOS 3.50 MOS (OS)", StandardROM_MOS350_MOS};
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -63,29 +59,34 @@ const BeebROM BEEB_ROMS_MOS350[8] = {
 const BeebROM *const BEEB_ROMS[] = {
     &BEEB_ROM_OS12,
     &BEEB_ROM_BPLUS_MOS,
+
     &BEEB_ROM_BASIC2,
     &BEEB_ROM_ACORN_DFS,
     &BEEB_ROM_WATFORD_DDFS_DDB2,
     &BEEB_ROM_WATFORD_DDFS_DDB3,
     &BEEB_ROM_OPUS_DDOS,
     &BEEB_ROM_OPUS_CHALLENGER,
-    &BEEB_ROMS_MOS320[0],
-    &BEEB_ROMS_MOS320[1],
-    &BEEB_ROMS_MOS320[2],
-    &BEEB_ROMS_MOS320[3],
-    &BEEB_ROMS_MOS320[4],
-    &BEEB_ROMS_MOS320[5],
-    &BEEB_ROMS_MOS320[6],
-    &BEEB_ROMS_MOS320[7],
-    &BEEB_ROMS_MOS350[0],
-    &BEEB_ROMS_MOS350[1],
-    &BEEB_ROMS_MOS350[2],
-    &BEEB_ROMS_MOS350[3],
-    &BEEB_ROMS_MOS350[4],
-    &BEEB_ROMS_MOS350[5],
-    &BEEB_ROMS_MOS350[6],
-    &BEEB_ROMS_MOS350[7],
+
+    &BEEB_ROM_MOS320_SIDEWAYS_ROM_9,
+    &BEEB_ROM_MOS320_SIDEWAYS_ROM_A,
+    &BEEB_ROM_MOS320_SIDEWAYS_ROM_B,
+    &BEEB_ROM_MOS320_SIDEWAYS_ROM_C,
+    &BEEB_ROM_MOS320_SIDEWAYS_ROM_D,
+    &BEEB_ROM_MOS320_SIDEWAYS_ROM_E,
+    &BEEB_ROM_MOS320_SIDEWAYS_ROM_F,
+    &BEEB_ROM_MOS320_MOS_ROM,
+
+    &BEEB_ROM_MOS350_SIDEWAYS_ROM_9,
+    &BEEB_ROM_MOS350_SIDEWAYS_ROM_A,
+    &BEEB_ROM_MOS350_SIDEWAYS_ROM_B,
+    &BEEB_ROM_MOS350_SIDEWAYS_ROM_C,
+    &BEEB_ROM_MOS350_SIDEWAYS_ROM_D,
+    &BEEB_ROM_MOS350_SIDEWAYS_ROM_E,
+    &BEEB_ROM_MOS350_SIDEWAYS_ROM_F,
+    &BEEB_ROM_MOS350_MOS_ROM,
+
     &BEEB_ROM_MASTER_TURBO_PARASITE,
+
     nullptr,
 };
 
