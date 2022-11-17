@@ -166,13 +166,14 @@ class Trace : public std::enable_shared_from_this<Trace> {
     // If the source isn't specified, it comes from the host.
 
     // Space for format expansion is limited to 1K.
-    void PRINTF_LIKE(2, 3) AllocStringf(const char *fmt, ...);
+    //void PRINTF_LIKE(2, 3) AllocStringf(const char *fmt, ...);
     //void AllocStringv(const char *fmt, va_list v);
     //void AllocString(const char *str);
 
-    void PRINTF_LIKE(3, 4) AllocStringf(TraceEventSource source, const char *fmt, ...);
-    void AllocStringv(TraceEventSource source, const char *fmt, va_list v);
-    void AllocString(TraceEventSource source, const char *str);
+    size_t PRINTF_LIKE(3, 4) AllocStringf(TraceEventSource source, const char *fmt, ...);
+    size_t AllocStringv(TraceEventSource source, const char *fmt, va_list v);
+    size_t AllocString(TraceEventSource source, const char *str);
+    void AllocStringn(TraceEventSource source, const char *str, size_t n);
 
     // Allocate events for ROMSEL/ACCCON writes. These need special handling so
     // the initial values can be correctly maintained.
@@ -241,22 +242,22 @@ class Trace : public std::enable_shared_from_this<Trace> {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-#define TRACEF(T, ...)                      \
-    BEGIN_MACRO {                           \
-        if (T) {                            \
-            (T)->AllocStringf(__VA_ARGS__); \
-        }                                   \
-    }                                       \
+#define TRACEF(T, ...)                                             \
+    BEGIN_MACRO {                                                  \
+        if (T) {                                                   \
+            (T)->AllocStringf(TraceEventSource_Host, __VA_ARGS__); \
+        }                                                          \
+    }                                                              \
     END_MACRO
 
-#define TRACEF_IF(COND, T, ...)                 \
-    BEGIN_MACRO {                               \
-        if (T) {                                \
-            if (COND) {                         \
-                (T)->AllocStringf(__VA_ARGS__); \
-            }                                   \
-        }                                       \
-    }                                           \
+#define TRACEF_IF(COND, T, ...)                                        \
+    BEGIN_MACRO {                                                      \
+        if (T) {                                                       \
+            if (COND) {                                                \
+                (T)->AllocStringf(TraceEventSource_Host, __VA_ARGS__); \
+            }                                                          \
+        }                                                              \
+    }                                                                  \
     END_MACRO
 
 //////////////////////////////////////////////////////////////////////////

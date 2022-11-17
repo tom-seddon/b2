@@ -230,7 +230,7 @@ uint8_t MC146818::Read() {
     if (m_trace) {
         char d[100];
         GetRegisterDescription(d, sizeof d, m_reg);
-        m_trace->AllocStringf("CMOS - Read %s: %d ($%02X)\n", d, value, value);
+        m_trace->AllocStringf(TraceEventSource_Host, "CMOS - Read %s: %d ($%02X)\n", d, value, value);
     }
 #endif
 
@@ -255,7 +255,7 @@ void MC146818::SetAddress(uint8_t value) {
         char d[100];
         GetRegisterDescription(d, sizeof d, m_reg);
 
-        m_trace->AllocStringf("CMOS - Set address: %s\n", d);
+        m_trace->AllocStringf(TraceEventSource_Host, "CMOS - Set address: %s\n", d);
     }
 #endif
 }
@@ -275,7 +275,7 @@ void MC146818::SetData(uint8_t value) {
     if (m_trace) {
         char d[100];
         GetRegisterDescription(d, sizeof d, m_reg);
-        m_trace->AllocStringf("CMOS - Write %s: Value now: %d ($%02X)\n", d, m_regs.values[m_reg], m_regs.values[m_reg]);
+        m_trace->AllocStringf(TraceEventSource_Host, "CMOS - Write %s: Value now: %d ($%02X)\n", d, m_regs.values[m_reg], m_regs.values[m_reg]);
     }
 #endif
 }

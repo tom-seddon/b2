@@ -28,6 +28,7 @@ EPNV(SN76489, 1 << 8)
 EPNV(BeebLink, 1 << 9)
 EPNV(SystemVIAExtra, 1 << 10)
 EPNV(UserVIAExtra, 1 << 11)
+EPNV(Tube,1<<12)
 EEND()
 #undef ENAME
 

@@ -147,6 +147,7 @@ BBCMicro::State::State(const BBCMicroType *type,
         this->parasite_enabled = true;
         this->parasite_boot_mode = true;
         M6502_Init(&this->parasite_cpu, &M6502_cmos6502_config);
+        ResetTube(&this->parasite_tube);
     }
 
     this->sn76489.Reset(!!(init_flags & BBCMicroInitFlag_PowerOnTone));
@@ -261,6 +262,7 @@ void BBCMicro::SetTrace(std::shared_ptr<Trace> trace, uint32_t trace_flags) {
                               !!(trace_flags & BBCMicroTraceFlag_UserVIAExtra));
     m_state.video_ula.SetTrace(trace_flags & BBCMicroTraceFlag_VideoULA ? m_trace : nullptr);
     m_state.sn76489.SetTrace(trace_flags & BBCMicroTraceFlag_SN76489 ? m_trace : nullptr);
+    SetTubeTrace(&m_state.parasite_tube, trace_flags & BBCMicroTraceFlag_Tube ? m_trace : nullptr);
 
     if (!!m_beeblink) {
         m_beeblink->SetTrace(trace_flags & BBCMicroTraceFlag_BeebLink ? m_trace : nullptr);
@@ -403,7 +405,8 @@ void BBCMicro::Write1770ControlRegister(void *m_, M6502Word a, uint8_t value) {
 
 #if BBCMICRO_TRACE
     if (m->m_trace) {
-        m->m_trace->AllocStringf("1770 - Control Register: Reset=%d; DDEN=%d; drive=%d, side=%d\n", m->m_state.disc_control.reset, m->m_state.disc_control.dden, m->m_state.disc_control.drive, m->m_state.disc_control.side);
+        m->m_trace->AllocStringf(TraceEventSource_Host, "1770 - Control Register: Reset=%d; DDEN=%d; drive=%d, side=%d\n", 
+            m->m_state.disc_control.reset, m->m_state.disc_control.dden, m->m_state.disc_control.drive, m->m_state.disc_control.side);
     }
 #endif
 
@@ -652,6 +655,7 @@ bool BBCMicro::SetKeyState(BeebKey key, bool new_state) {
             } else {
                 M6502_Reset(&m_state.cpu);
                 M6502_Reset(&m_state.parasite_cpu);
+                ResetTube(&m_state.parasite_tube);
                 this->StopPaste();
             }
 
@@ -853,7 +857,7 @@ uint32_t BBCMicro::Update(VideoDataUnit *video_unit, SoundDataUnit *sound_unit) 
 
         if (m_state.parasite_cpu.read) {
             if ((m_state.parasite_cpu.abus.w & 0xfff0) == 0xfef0) {
-                m_state.parasite_cpu.dbus = 0; //(*m_rmmio_fns[m_state.parasite_cpu.abus.w&7])(nullptr,
+                m_state.parasite_cpu.dbus = (*m_parasite_rmmio_fns[m_state.parasite_cpu.abus.w & 7])(&m_state.parasite_tube, m_state.parasite_cpu.abus);
                 if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_ParasiteSpecial) != 0) {
                     if (m_state.parasite_boot_mode) {
                         if (m_trace) {
@@ -876,7 +880,7 @@ uint32_t BBCMicro::Update(VideoDataUnit *video_unit, SoundDataUnit *sound_unit) 
             }
         } else {
             if ((m_state.parasite_cpu.abus.w & 0xfff0) == 0xfef0) {
-                // ...
+                (*m_parasite_wmmio_fns[m_state.parasite_cpu.abus.w & 7])(&m_state.parasite_tube, m_state.parasite_cpu.abus, m_state.parasite_cpu.dbus);
                 if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_ParasiteSpecial) != 0) {
                     if (m_state.parasite_boot_mode) {
                         if (m_trace) {
@@ -2569,8 +2573,9 @@ void BBCMicro::InitStuff() {
     //m_state.parasite_ram = std::vector<uint8_t>();
     //m_state.parasite_enabled = false;
     if (m_init_flags & BBCMicroInitFlag_Parasite) {
-        //m_state.parasite_ram.resize(65536, 0);
         m_state.parasite_cpu.context = this;
+
+        ASSERT(m_state.parasite_ram_buffer.size() == 65536);
         m_parasite_ram = m_state.parasite_ram_buffer.data();
         //m_state.parasite_enabled = true;
         //m_state.parasite_boot_mode = true;
@@ -2618,6 +2623,8 @@ void BBCMicro::InitStuff() {
         for (uint16_t a = 0xfee0; a < 0xff00; ++a) {
             this->SetMMIOFns(a, host_rmmio_fns[a & 7], host_wmmio_fns[a & 7], &m_state.parasite_tube);
         }
+    } else {
+        ASSERT(m_state.parasite_ram_buffer.empty());
     }
 }
 

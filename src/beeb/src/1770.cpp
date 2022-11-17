@@ -25,12 +25,12 @@ LOG_TAGGED_DEFINE(1770nd, "1770", "1770", &log_printer_stdout, false);
 
 #define HEX_DUMP_TRACE_LEN (16384u)
 
-#define TRACE(...)                              \
-    BEGIN_MACRO {                               \
-        if (m_trace) {                          \
-            m_trace->AllocStringf(__VA_ARGS__); \
-        }                                       \
-    }                                           \
+#define TRACE(...)                                                     \
+    BEGIN_MACRO {                                                      \
+        if (m_trace) {                                                 \
+            m_trace->AllocStringf(TraceEventSource_Host, __VA_ARGS__); \
+        }                                                              \
+    }                                                                  \
     END_MACRO
 
 #define BEGIN_LOG_TRACE(OBJ, N)                                                                                   \

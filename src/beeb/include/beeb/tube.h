@@ -4,7 +4,15 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#include "conf.h"
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 union M6502Word;
+#if BBCMICRO_TRACE
+class Trace;
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -91,41 +99,48 @@ struct Tube {
     TubeFIFOStatus pstatus4 = {};
     uint8_t h2p4 = 0;
     uint8_t p2h4 = 0;
+
+#if BBCMICRO_TRACE
+    Trace *trace = nullptr;
+#endif
 };
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 void ResetTube(Tube *t);
+#if BBCMICRO_TRACE
+void SetTubeTrace(Tube *t, Trace *trace);
+#endif
 
-uint8_t ReadHostTube0(void *m_, M6502Word a);
-uint8_t ReadHostTube1(void *m_, M6502Word a);
-uint8_t ReadHostTube2(void *m_, M6502Word a);
-uint8_t ReadHostTube3(void *m_, M6502Word a);
-uint8_t ReadHostTube4(void *m_, M6502Word a);
-uint8_t ReadHostTube5(void *m_, M6502Word a);
-uint8_t ReadHostTube6(void *m_, M6502Word a);
-uint8_t ReadHostTube7(void *m_, M6502Word a);
-void WriteHostTube0(void *m_, M6502Word a, uint8_t value);
-void WriteHostTube1(void *m_, M6502Word a, uint8_t value);
-void WriteHostTube3(void *m_, M6502Word a, uint8_t value);
-void WriteHostTube5(void *m_, M6502Word a, uint8_t value);
-void WriteHostTube7(void *m_, M6502Word a, uint8_t value);
+uint8_t ReadHostTube0(void *tube, M6502Word a);
+uint8_t ReadHostTube1(void *tube, M6502Word a);
+uint8_t ReadHostTube2(void *tube, M6502Word a);
+uint8_t ReadHostTube3(void *tube, M6502Word a);
+uint8_t ReadHostTube4(void *tube, M6502Word a);
+uint8_t ReadHostTube5(void *tube, M6502Word a);
+uint8_t ReadHostTube6(void *tube, M6502Word a);
+uint8_t ReadHostTube7(void *tube, M6502Word a);
+void WriteHostTube0(void *tube, M6502Word a, uint8_t value);
+void WriteHostTube1(void *tube, M6502Word a, uint8_t value);
+void WriteHostTube3(void *tube, M6502Word a, uint8_t value);
+void WriteHostTube5(void *tube, M6502Word a, uint8_t value);
+void WriteHostTube7(void *tube, M6502Word a, uint8_t value);
 
-uint8_t ReadParasiteTube0(void *m_, M6502Word a);
-uint8_t ReadParasiteTube1(void *m_, M6502Word a);
-uint8_t ReadParasiteTube2(void *m_, M6502Word a);
-uint8_t ReadParasiteTube3(void *m_, M6502Word a);
-uint8_t ReadParasiteTube4(void *m_, M6502Word a);
-uint8_t ReadParasiteTube5(void *m_, M6502Word a);
-uint8_t ReadParasiteTube6(void *m_, M6502Word a);
-uint8_t ReadParasiteTube7(void *m_, M6502Word a);
-void WriteParasiteTube1(void *m_, M6502Word a, uint8_t value);
-void WriteParasiteTube3(void *m_, M6502Word a, uint8_t value);
-void WriteParasiteTube5(void *m_, M6502Word a, uint8_t value);
-void WriteParasiteTube7(void *m_, M6502Word a, uint8_t value);
+uint8_t ReadParasiteTube0(void *tube, M6502Word a);
+uint8_t ReadParasiteTube1(void *tube, M6502Word a);
+uint8_t ReadParasiteTube2(void *tube, M6502Word a);
+uint8_t ReadParasiteTube3(void *tube, M6502Word a);
+uint8_t ReadParasiteTube4(void *tube, M6502Word a);
+uint8_t ReadParasiteTube5(void *tube, M6502Word a);
+uint8_t ReadParasiteTube6(void *tube, M6502Word a);
+uint8_t ReadParasiteTube7(void *tube, M6502Word a);
+void WriteParasiteTube1(void *tube, M6502Word a, uint8_t value);
+void WriteParasiteTube3(void *tube, M6502Word a, uint8_t value);
+void WriteParasiteTube5(void *tube, M6502Word a, uint8_t value);
+void WriteParasiteTube7(void *tube, M6502Word a, uint8_t value);
 
-void WriteTubeDummy(void *m_, M6502Word a, uint8_t value);
+void WriteTubeDummy(void *tube, M6502Word a, uint8_t value);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

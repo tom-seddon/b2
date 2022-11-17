@@ -224,13 +224,13 @@ void Trace::CancelEvent(const TraceEventType &type, void *data) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void Trace::AllocStringf(const char *fmt, ...) {
-    va_list v;
-
-    va_start(v, fmt);
-    this->AllocStringv(TraceEventSource_Host, fmt, v);
-    va_end(v);
-}
+//void Trace::AllocStringf(const char *fmt, ...) {
+//    va_list v;
+//
+//    va_start(v, fmt);
+//    this->AllocStringv(TraceEventSource_Host, fmt, v);
+//    va_end(v);
+//}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -253,35 +253,50 @@ void Trace::AllocStringf(const char *fmt, ...) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void Trace::AllocStringf(TraceEventSource source, const char *fmt, ...) {
+size_t Trace::AllocStringf(TraceEventSource source, const char *fmt, ...) {
     va_list v;
 
     va_start(v, fmt);
-    this->AllocStringv(source, fmt, v);
+    size_t n = this->AllocStringv(source, fmt, v);
     va_end(v);
+
+    return n;
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void Trace::AllocStringv(TraceEventSource source, const char *fmt, va_list v) {
+size_t Trace::AllocStringv(TraceEventSource source, const char *fmt, va_list v) {
     char buf[1024];
 
     int n = vsnprintf(buf, sizeof buf, fmt, v);
-    if (n >= 0) {
-        if ((size_t)n >= sizeof(buf)) {
-            n = (int)sizeof buf - 1;
-        }
-
-        this->AllocString2(source, buf, (size_t)n);
+    if (n < 0) {
+        return 0;
     }
+
+    if ((size_t)n >= sizeof(buf)) {
+        n = (int)sizeof buf - 1;
+    }
+
+    this->AllocString2(source, buf, (size_t)n);
+
+    return (size_t)n;
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void Trace::AllocString(TraceEventSource source, const char *str) {
-    this->AllocString2(source, str, strlen(str));
+size_t Trace::AllocString(TraceEventSource source, const char *str) {
+    size_t n = strlen(str);
+    this->AllocString2(source, str, n);
+    return n;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void Trace::AllocStringn(TraceEventSource source, const char *str, size_t n) {
+    this->AllocString2(source, str, n);
 }
 
 //////////////////////////////////////////////////////////////////////////
