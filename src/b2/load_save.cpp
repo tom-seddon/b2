@@ -1084,6 +1084,8 @@ static const char INTERLACE[] = "interlace";
 static const char LEDS_POPUP_MODE[] = "leds_popup_mode";
 static const char PARASITE[] = "parasite";
 static const char PARASITE_OS[] = "parasite_os";
+static const char AUTO_SAVE[] = "auto_save";
+static const char AUTO_SAVE_PATH[] = "auto_save_path";
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -1893,6 +1895,8 @@ static bool LoadTrace(rapidjson::Value *trace_json, Messages *msg) {
     FindUInt16Member(&settings.start_instruction_address, trace_json, START_INSTRUCTION_ADDRESS, nullptr);
     FindUInt16Member(&settings.start_write_address, trace_json, START_WRITE_ADDRESS, nullptr);
     FindUInt16Member(&settings.stop_write_address, trace_json, STOP_WRITE_ADDRESS, nullptr);
+    FindBoolMember(&settings.auto_save, trace_json, AUTO_SAVE, nullptr);
+    FindStringMember(&settings.auto_save_path, trace_json, AUTO_SAVE_PATH, nullptr);
 
     SetDefaultTraceUISettings(settings);
 
@@ -1934,6 +1938,12 @@ static void SaveTrace(JSONWriter<StringStream> *writer) {
 
         writer->Key(CYCLES_OUTPUT);
         SaveEnum(writer, settings.cycles_output, &GetTraceCyclesOutputEnumName);
+
+        writer->Key(AUTO_SAVE);
+        writer->Bool(settings.auto_save);
+
+        writer->Key(AUTO_SAVE_PATH);
+        writer->String(settings.auto_save_path.c_str());
     }
 }
 

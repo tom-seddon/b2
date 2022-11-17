@@ -76,9 +76,12 @@ class TraceUI : public SettingsUI {
 
     bool m_config_changed = false;
 
+    bool m_auto_saved = false;
+
     int GetKeyIndex(uint8_t beeb_key) const;
     void ResetTextBoxes();
     void DoAddressGui(uint16_t *addr, char *str, size_t str_size);
+    void StartTrace();
 
     static bool GetBeebKeyName(void *data, int idx, const char **out_text);
 #endif
@@ -97,6 +100,7 @@ class TraceUI::SaveTraceJob : public JobQueue::Job {
         , m_file_name(std::move(file_name))
         , m_cycles_output(cycles_output)
         , m_msgs(message_list) {
+        ASSERT(!!m_trace);
     }
 
     void ThreadExecute() {
@@ -228,6 +232,8 @@ static void DoTraceFlag(uint32_t *flags_seen,
 void TraceUI::DoImGui() {
     std::shared_ptr<BeebThread> beeb_thread = m_beeb_window->GetBeebThread();
 
+    // If there's a save trace job, just show the info for that while it's
+    // ongoing.
     if (m_save_trace_job) {
         uint64_t n, t;
         m_save_trace_job->GetProgress(&n, &t);
@@ -266,6 +272,23 @@ void TraceUI::DoImGui() {
     const volatile TraceStats *running_stats = beeb_thread->GetTraceStats();
 
     if (!running_stats) {
+        if (!m_auto_saved) {
+            m_auto_saved = true;
+
+            if (g_default_settings.auto_save) {
+                if (!g_default_settings.auto_save_path.empty()) {
+                    std::shared_ptr<Trace> last_trace = beeb_thread->GetLastTrace();
+                    if (!!last_trace) {
+                        m_save_trace_job = std::make_shared<SaveTraceJob>(last_trace,
+                                                                          g_default_settings.auto_save_path,
+                                                                          m_beeb_window->GetMessageList(),
+                                                                          g_default_settings.cycles_output);
+                        BeebWindows::AddJob(m_save_trace_job);
+                    }
+                }
+            }
+        }
+
         ImGui::AlignTextToFramePadding();
         ImGui::TextUnformatted("Start condition");
         {
@@ -355,67 +378,35 @@ void TraceUI::DoImGui() {
         ImGui::TextUnformatted("Other settings");
         ImGui::Checkbox("Unlimited recording", &g_default_settings.unlimited);
 
+        ImGui::TextUnformatted("Cycles output:");
+        ImGuiRadioButton(&g_default_settings.cycles_output, TraceCyclesOutput_Absolute, "Absolute");
+        ImGuiRadioButton(&g_default_settings.cycles_output, TraceCyclesOutput_Relative, "Relative");
+        ImGuiRadioButton(&g_default_settings.cycles_output, TraceCyclesOutput_None, "None");
+
+        ImGui::Checkbox("Auto-save on stop", &g_default_settings.auto_save);
+        if (g_default_settings.auto_save) {
+            if (ImGui::Button("...")) {
+                SaveFileDialog fd(RECENT_PATHS_TRACES);
+
+                fd.AddFilter("Text files", {".txt"});
+                fd.AddAllFilesFilter();
+                fd.Open(&g_default_settings.auto_save_path);
+            }
+            ImGui::SameLine();
+            ImGuiInputText(&g_default_settings.auto_save_path, "Path", g_default_settings.auto_save_path);
+        }
+
         if (ImGui::Button("Start")) {
-            TraceConditions c;
+            this->StartTrace();
+        }
 
-            switch (g_default_settings.start) {
-            case TraceUIStartCondition_Now:
-                c.start = BeebThreadStartTraceCondition_Immediate;
-                break;
+        ImGui::SameLine();
 
-            case TraceUIStartCondition_Return:
-                c.start = BeebThreadStartTraceCondition_NextKeypress;
-                c.start_key = BeebKey_Return;
-                break;
+        if (ImGui::Button("Hard Reset & Start")) {
+            auto hard_reset_message = std::make_shared<BeebThread::HardResetAndReloadConfigMessage>(BeebThreadHardResetFlag_Run);
+            beeb_thread->Send(std::move(hard_reset_message));
 
-            case TraceUIStartCondition_Instruction:
-                c.start = BeebThreadStartTraceCondition_Instruction;
-                c.start_address = g_default_settings.start_instruction_address;
-                break;
-
-            case TraceUIStartCondition_WriteAddress:
-                c.start = BeebThreadStartTraceCondition_WriteAddress;
-                c.start_address = g_default_settings.start_write_address;
-                break;
-            }
-
-            switch (g_default_settings.stop) {
-            case TraceUIStopCondition_ByRequest:
-                c.stop = BeebThreadStopTraceCondition_ByRequest;
-                break;
-
-            case TraceUIStopCondition_OSWORD0:
-                c.stop = BeebThreadStopTraceCondition_OSWORD0;
-                break;
-
-            case TraceUIStopCondition_NumCycles:
-                c.stop = BeebThreadStopTraceCondition_NumCycles;
-                c.stop_num_cycles = g_default_settings.stop_num_cycles;
-                break;
-
-            case TraceUIStopCondition_WriteAddress:
-                c.stop = BeebThreadStopTraceCondition_WriteAddress;
-                c.stop_address = g_default_settings.stop_write_address;
-                break;
-            }
-
-            c.trace_flags = g_default_settings.flags;
-
-            size_t max_num_bytes;
-            if (g_default_settings.unlimited) {
-                max_num_bytes = SIZE_MAX;
-            } else {
-                // 64MBytes = ~12m cycles, or ~6 sec, with all the flags on,
-                // recorded sitting at the BASIC prompt, producing a ~270MByte
-                // text file.
-                //
-                // 256MBytes, then, ought to be ~25 seconds, and a ~1GByte
-                // text file. This ought to be enough to be getting on with,
-                // and the buffer size is not excessive even for 32-bit systems.
-                max_num_bytes = 256 * 1024 * 1024;
-            }
-
-            beeb_thread->Send(std::make_shared<BeebThread::StartTraceMessage>(c, max_num_bytes));
+            this->StartTrace();
         }
 
         std::shared_ptr<Trace> last_trace = beeb_thread->GetLastTrace();
@@ -425,11 +416,6 @@ void TraceUI::DoImGui() {
             last_trace->GetStats(&stats);
 
             DoTraceStatsImGui(&stats);
-
-            ImGui::TextUnformatted("Cycles output:");
-            ImGuiRadioButton(&g_default_settings.cycles_output, TraceCyclesOutput_Absolute, "Absolute");
-            ImGuiRadioButton(&g_default_settings.cycles_output, TraceCyclesOutput_Relative, "Relative");
-            ImGuiRadioButton(&g_default_settings.cycles_output, TraceCyclesOutput_None, "None");
 
             if (ImGui::Button("Save...")) {
                 SaveFileDialog fd(RECENT_PATHS_TRACES);
@@ -533,6 +519,76 @@ bool TraceUI::GetBeebKeyName(void *data, int idx, const char **out_text) {
     } else {
         return false;
     }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void TraceUI::StartTrace() {
+    TraceConditions c;
+
+    switch (g_default_settings.start) {
+    case TraceUIStartCondition_Now:
+        c.start = BeebThreadStartTraceCondition_Immediate;
+        break;
+
+    case TraceUIStartCondition_Return:
+        c.start = BeebThreadStartTraceCondition_NextKeypress;
+        c.start_key = BeebKey_Return;
+        break;
+
+    case TraceUIStartCondition_Instruction:
+        c.start = BeebThreadStartTraceCondition_Instruction;
+        c.start_address = g_default_settings.start_instruction_address;
+        break;
+
+    case TraceUIStartCondition_WriteAddress:
+        c.start = BeebThreadStartTraceCondition_WriteAddress;
+        c.start_address = g_default_settings.start_write_address;
+        break;
+    }
+
+    switch (g_default_settings.stop) {
+    case TraceUIStopCondition_ByRequest:
+        c.stop = BeebThreadStopTraceCondition_ByRequest;
+        break;
+
+    case TraceUIStopCondition_OSWORD0:
+        c.stop = BeebThreadStopTraceCondition_OSWORD0;
+        break;
+
+    case TraceUIStopCondition_NumCycles:
+        c.stop = BeebThreadStopTraceCondition_NumCycles;
+        c.stop_num_cycles = g_default_settings.stop_num_cycles;
+        break;
+
+    case TraceUIStopCondition_WriteAddress:
+        c.stop = BeebThreadStopTraceCondition_WriteAddress;
+        c.stop_address = g_default_settings.stop_write_address;
+        break;
+    }
+
+    c.trace_flags = g_default_settings.flags;
+
+    size_t max_num_bytes;
+    if (g_default_settings.unlimited) {
+        max_num_bytes = SIZE_MAX;
+    } else {
+        // 64MBytes = ~12m cycles, or ~6 sec, with all the flags on,
+        // recorded sitting at the BASIC prompt, producing a ~270MByte
+        // text file.
+        //
+        // 256MBytes, then, ought to be ~25 seconds, and a ~1GByte
+        // text file. This ought to be enough to be getting on with,
+        // and the buffer size is not excessive even for 32-bit systems.
+        max_num_bytes = 256 * 1024 * 1024;
+    }
+
+    auto message = std::make_shared<BeebThread::StartTraceMessage>(c, max_num_bytes);
+    std::shared_ptr<BeebThread> beeb_thread = m_beeb_window->GetBeebThread();
+    beeb_thread->Send(std::move(message));
+
+    m_auto_saved = false;
 }
 
 //////////////////////////////////////////////////////////////////////////

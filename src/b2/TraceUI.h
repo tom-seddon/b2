@@ -36,6 +36,10 @@ struct TraceUISettings {
     uint32_t flags = 0;
     bool unlimited = false;
     TraceCyclesOutput cycles_output = TraceCyclesOutput_Relative;
+
+    // Auto-save settings.
+    bool auto_save = false;
+    std::string auto_save_path;
 };
 
 TraceUISettings GetDefaultTraceUISettings();
