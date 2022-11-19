@@ -15,7 +15,7 @@ set(SRCS
   ${S}/MC146818.cpp ${I}/MC146818.h ${I}/MC146818.inl
   ${S}/OutputData.cpp ${I}/OutputData.h
   ${S}/SN76489.cpp ${I}/SN76489.h
-  ${S}/SaveTrace.cpp ${I}/SaveTrace.h ${I}/SaveTrace.inl
+  ${S}/SaveTrace.cpp ${I}/SaveTrace.h ${I}/SaveTrace.inl ${S}/SaveTrace_private.inl
   ${S}/TVOutput.cpp ${I}/TVOutput.h ${I}/TVOutput.inl
   ${S}/Trace.cpp ${I}/Trace.h
   ${S}/VideoULA.cpp ${I}/VideoULA.h

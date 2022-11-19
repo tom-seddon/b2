@@ -6,12 +6,15 @@
 
 #include "conf.h"
 
+static constexpr size_t TUBE_FIFO1_SIZE_BYTES = 24;
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 union M6502Word;
 #if BBCMICRO_TRACE
 class Trace;
+class TraceEventType;
 #endif
 
 //////////////////////////////////////////////////////////////////////////
@@ -75,7 +78,7 @@ struct Tube {
     TubeFIFOStatus hstatus1 = {};
     TubeFIFOStatus pstatus1 = {};
     uint8_t h2p1 = 0;
-    uint8_t p2h1[24] = {};
+    uint8_t p2h1[TUBE_FIFO1_SIZE_BYTES] = {};
     uint8_t p2h1_windex = 0;
     uint8_t p2h1_rindex = 0;
     uint8_t p2h1_n = 0;
@@ -104,6 +107,50 @@ struct Tube {
     Trace *trace = nullptr;
 #endif
 };
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_TRACE
+extern const TraceEventType TUBE_WRITE_STATUS_EVENT;
+
+extern const TraceEventType TUBE_WRITE_FIFO1_EVENT;
+extern const TraceEventType TUBE_READ_FIFO1_EVENT;
+
+extern const TraceEventType TUBE_WRITE_FIFO2_EVENT;
+extern const TraceEventType TUBE_READ_FIFO2_EVENT;
+
+extern const TraceEventType TUBE_WRITE_FIFO3_EVENT;
+extern const TraceEventType TUBE_READ_FIFO3_EVENT;
+
+extern const TraceEventType TUBE_WRITE_FIFO4_EVENT;
+extern const TraceEventType TUBE_READ_FIFO4_EVENT;
+
+#include <shared/pshpack1.h>
+struct TubeFIFOEvent {
+    // Value read or written.
+    uint8_t value;
+
+    // Copy of the appropriate FIFO's status registers.
+    uint8_t h_not_full : 1;
+    uint8_t h_available : 1;
+    uint8_t p_not_full : 1;
+    uint8_t p_available : 1;
+
+    // Copy of the interrupt flags.
+    uint8_t h_irq : 1;
+    uint8_t p_irq : 1;
+    uint8_t p_nmi : 1;
+};
+#include <shared/poppack.h>
+
+#include <shared/pshpack1.h>
+struct TubeWriteStatusEvent {
+    TubeStatus new_status;
+};
+#include <shared/poppack.h>
+
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

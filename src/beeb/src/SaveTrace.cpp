@@ -13,6 +13,15 @@
 #include <beeb/6522.h>
 #include <math.h>
 #include <string.h>
+#include <beeb/tube.h>
+
+#include <shared/enum_decl.h>
+#include "SaveTrace_private.inl"
+#include <shared/enum_end.h>
+
+#include <shared/enum_def.h>
+#include "SaveTrace_private.inl"
+#include <shared/enum_end.h>
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -39,15 +48,24 @@ class TraceSaver {
         // It would be nice to have the TraceEventType handle the conversion to
         // strings itself. The INSTRUCTION_EVENT handler has to be able to read
         // the config stored by the INITIAL_EVENT handler, though...
-        this->SetMFn(BBCMicro::INSTRUCTION_EVENT, &TraceSaver::HandleInstruction);
-        this->SetMFn(Trace::WRITE_ROMSEL_EVENT, &TraceSaver::HandleWriteROMSEL);
-        this->SetMFn(Trace::WRITE_ACCCON_EVENT, &TraceSaver::HandleWriteACCCON);
-        this->SetMFn(Trace::STRING_EVENT, &TraceSaver::HandleString);
-        this->SetMFn(SN76489::WRITE_EVENT, &TraceSaver::HandleSN76489WriteEvent);
-        this->SetMFn(SN76489::UPDATE_EVENT, &TraceSaver::HandleSN76489UpdateEvent);
-        this->SetMFn(R6522::IRQ_EVENT, &TraceSaver::HandleR6522IRQEvent);
+        this->SetHandler(BBCMicro::INSTRUCTION_EVENT, &TraceSaver::HandleInstruction);
+        this->SetHandler(Trace::WRITE_ROMSEL_EVENT, &TraceSaver::HandleWriteROMSEL);
+        this->SetHandler(Trace::WRITE_ACCCON_EVENT, &TraceSaver::HandleWriteACCCON);
+        this->SetHandler(Trace::STRING_EVENT, &TraceSaver::HandleString, HandlerFlag_PrintPrefix);
+        this->SetHandler(SN76489::WRITE_EVENT, &TraceSaver::HandleSN76489WriteEvent, HandlerFlag_PrintPrefix);
+        this->SetHandler(SN76489::UPDATE_EVENT, &TraceSaver::HandleSN76489UpdateEvent, HandlerFlag_PrintPrefix);
+        this->SetHandler(R6522::IRQ_EVENT, &TraceSaver::HandleR6522IRQEvent, HandlerFlag_PrintPrefix);
         //this->SetMFn(Trace::BLANK_LINE_EVENT, &TraceSaver::HandleBlankLine);
-        this->SetMFn(R6522::TIMER_TICK_EVENT, &TraceSaver::HandleR6522TimerTickEvent);
+        this->SetHandler(R6522::TIMER_TICK_EVENT, &TraceSaver::HandleR6522TimerTickEvent);
+        this->SetHandler(TUBE_WRITE_FIFO1_EVENT, &TraceSaver::HandleTubeWriteFIFO1Event, HandlerFlag_PrintPrefix);
+        this->SetHandler(TUBE_WRITE_FIFO2_EVENT, &TraceSaver::HandleTubeWriteFIFO2Event, HandlerFlag_PrintPrefix);
+        this->SetHandler(TUBE_WRITE_FIFO3_EVENT, &TraceSaver::HandleTubeWriteFIFO3Event, HandlerFlag_PrintPrefix);
+        this->SetHandler(TUBE_WRITE_FIFO4_EVENT, &TraceSaver::HandleTubeWriteFIFO4Event, HandlerFlag_PrintPrefix);
+        this->SetHandler(TUBE_READ_FIFO1_EVENT, &TraceSaver::HandleTubeReadFIFO1Event, HandlerFlag_PrintPrefix);
+        this->SetHandler(TUBE_READ_FIFO2_EVENT, &TraceSaver::HandleTubeReadFIFO2Event, HandlerFlag_PrintPrefix);
+        this->SetHandler(TUBE_READ_FIFO3_EVENT, &TraceSaver::HandleTubeReadFIFO3Event, HandlerFlag_PrintPrefix);
+        this->SetHandler(TUBE_READ_FIFO4_EVENT, &TraceSaver::HandleTubeReadFIFO4Event, HandlerFlag_PrintPrefix);
+        this->SetHandler(TUBE_WRITE_STATUS_EVENT, &TraceSaver::HandleTubeWriteStatusEvent, HandlerFlag_PrintPrefix);
 
         {
             TraceStats stats;
@@ -85,6 +103,8 @@ class TraceSaver {
             completed = false;
         }
 
+        m_output->Flush();
+
         //            m_msgs.i.f(
         //                       "trace output file saved: %s\n",
         //                       m_file_name.c_str());
@@ -120,10 +140,15 @@ class TraceSaver {
         R6522::IRQ ifr, ier;
     };
 
+    struct Handler {
+        MFn mfn = nullptr;
+        uint32_t flags = 0; //combination of HandlerFlag
+    };
+
     std::shared_ptr<Trace> m_trace;
     std::string m_file_name;
     TraceCyclesOutput m_cycles_output = TraceCyclesOutput_Relative;
-    MFn m_mfns[256] = {};
+    Handler m_handlers[256] = {};
     std::unique_ptr<Log> m_output;
     const BBCMicroType *m_type = nullptr;
     int m_sound_channel2_value = -1;
@@ -136,6 +161,7 @@ class TraceSaver {
     bool m_paging_dirty = true;
     MemoryBigPageTables m_paging_tables = {};
     bool m_io = true;
+    std::vector<uint8_t> m_tube_fifo1;
 
     // <pre>
     // 0         1         2
@@ -248,8 +274,6 @@ class TraceSaver {
     }
 
     void HandleString(const TraceEvent *e) {
-        m_output->s(m_time_prefix);
-        LogIndenter indent(m_output.get());
         m_output->s((const char *)e->event);
         m_output->EnsureBOL();
     }
@@ -333,7 +357,7 @@ class TraceSaver {
         last_ev->ifr = ev->ifr;
         last_ev->ier = ev->ier;
 
-        m_output->s(m_time_prefix);
+        //m_output->s(m_time_prefix);
         m_output->f("%s - IRQ state: ", GetBBCMicroVIAIDEnumName(ev->id));
         LogIndenter indent(m_output.get());
 
@@ -366,8 +390,6 @@ class TraceSaver {
     void HandleSN76489UpdateEvent(const TraceEvent *e) {
         auto ev = (const SN76489::UpdateEvent *)e->event;
 
-        m_output->s(m_time_prefix);
-
         m_output->f("SN76489 - Update - ");
 
         LogIndenter indent(m_output.get());
@@ -398,8 +420,8 @@ class TraceSaver {
     void HandleSN76489WriteEvent(const TraceEvent *e) {
         auto ev = (const SN76489::WriteEvent *)e->event;
 
-        m_output->s(m_time_prefix);
-        LogIndenter indent(m_output.get());
+        //m_output->s(m_time_prefix);
+        //LogIndenter indent(m_output.get());
 
         m_output->f("SN76489 - $%02x (%d; %%%s) - write ",
                     ev->write_value,
@@ -654,6 +676,142 @@ class TraceSaver {
         m_paging_dirty = true;
     }
 
+    void HandleTubeWriteFIFO1Event(const TraceEvent *e) {
+        // The asymmetry is a bit annoying.
+        if (e->source == TraceEventSource_Host) {
+            this->HandleTubeWriteLatchEvent(e, 1);
+        } else {
+            auto ev = (TubeFIFOEvent *)e->event;
+
+            this->HandleTubeWriteLatchEvent(e, 1);
+            m_tube_fifo1.push_back(ev->value);
+            this->DumpTubeFIFO1();
+        }
+    }
+
+    void HandleTubeWriteFIFO2Event(const TraceEvent *e) {
+        this->HandleTubeWriteLatchEvent(e, 2);
+    }
+
+    void HandleTubeWriteFIFO3Event(const TraceEvent *e) {
+        // TODO: deal with this properly...
+        this->HandleTubeWriteLatchEvent(e, 3);
+    }
+
+    void HandleTubeWriteFIFO4Event(const TraceEvent *e) {
+        this->HandleTubeWriteLatchEvent(e, 4);
+    }
+
+    void HandleTubeReadFIFO1Event(const TraceEvent *e) {
+        // The asymmetry is a bit annoying.
+        if (e->source == TraceEventSource_Host) {
+            this->HandleTubeReadLatchEvent(e, 1);
+            ASSERT(!m_tube_fifo1.empty());
+            m_tube_fifo1.erase(m_tube_fifo1.begin());
+            this->DumpTubeFIFO1();
+        } else {
+            this->HandleTubeReadLatchEvent(e, 1);
+        }
+    }
+
+    void HandleTubeReadFIFO2Event(const TraceEvent *e) {
+        this->HandleTubeReadLatchEvent(e, 2);
+    }
+
+    void HandleTubeReadFIFO3Event(const TraceEvent *e) {
+        // TODO: deal with this properly...
+        this->HandleTubeReadLatchEvent(e, 3);
+    }
+
+    void HandleTubeReadFIFO4Event(const TraceEvent *e) {
+        this->HandleTubeReadLatchEvent(e, 4);
+    }
+
+    void HandleTubeReadLatchEvent(const TraceEvent *e, int index) {
+        this->HandleTubeLatchEvent(e, index, "Read");
+    }
+
+    void HandleTubeWriteLatchEvent(const TraceEvent *e, int index) {
+        this->HandleTubeLatchEvent(e, index, "Write");
+    }
+
+    void HandleTubeLatchEvent(const TraceEvent *e, int index, const char *operation) {
+        auto ev = (TubeFIFOEvent *)e->event;
+
+        m_output->f("%s FIFO%d: %u $%02x %%%s", operation, index, ev->value, ev->value, BINARY_BYTE_STRINGS[ev->value]);
+        if (ev->value >= 32 && ev->value <= 126) {
+            m_output->f(" '%c'", ev->value);
+        }
+
+        m_output->f(": H !full=%d avail=%d IRQ=%d; P !full=%d avail=%d IRQ=%d NMI=%d\n",
+                    ev->h_not_full,
+                    ev->h_available,
+                    ev->h_irq,
+                    ev->p_not_full,
+                    ev->p_available,
+                    ev->p_irq,
+                    ev->p_nmi);
+    }
+
+    void DumpTubeFIFO1() {
+        size_t n = m_tube_fifo1.size();
+
+        m_output->s("Index: ");
+        for (size_t i = 0; i < n; ++i) {
+            m_output->f("%-4zu", i);
+        }
+        m_output->s("\n");
+
+        m_output->s("Dec:   ");
+        for (size_t i = 0; i < n; ++i) {
+            m_output->f("%-4u", m_tube_fifo1[i]);
+        }
+        m_output->s("\n");
+
+        m_output->s("Hex:   ");
+        for (size_t i = 0; i < n; ++i) {
+            m_output->f("$%02x ", m_tube_fifo1[i]);
+        }
+        m_output->s("\n");
+
+        m_output->s("ASCII: ");
+        for (size_t i = 0; i < n; ++i) {
+            uint8_t c = m_tube_fifo1[i];
+
+            if (c >= 32 && c <= 126) {
+                m_output->f("%c   ", c);
+            } else {
+                switch (c) {
+                case 10:
+                    m_output->s("\\n  ");
+                    break;
+                case 13:
+                    m_output->s("\\r  ");
+                    break;
+                case 9:
+                    m_output->s("\\t  ");
+                    break;
+                default:
+                    m_output->s("    ");
+                    break;
+                }
+            }
+        }
+        m_output->s("\n");
+    }
+
+    void HandleTubeWriteStatusEvent(const TraceEvent *e) {
+        auto ev = (TubeWriteStatusEvent *)e->event;
+
+        m_output->f("Q: Enable HIRQ from R4: %s\n", BOOL_STR(ev->new_status.bits.q));
+        m_output->f("I: Enable PIRQ from R1: %s\n", BOOL_STR(ev->new_status.bits.i));
+        m_output->f("J: Enable PIRQ from R4: %s\n", BOOL_STR(ev->new_status.bits.j));
+        m_output->f("M: Enable PNMI from R3: %s\n", BOOL_STR(ev->new_status.bits.m));
+        m_output->f("V: Enable 2-byte R3   : %s\n", BOOL_STR(ev->new_status.bits.v));
+        m_output->f("P: PRST               : %s\n", BOOL_STR(ev->new_status.bits.p));
+        m_output->f("T: Clear Tube state   : %s\n", BOOL_STR(ev->new_status.bits.t));
+    }
+
     static bool PrintTrace(Trace *t, const TraceEvent *e, void *context) {
         (void)t;
 
@@ -724,14 +882,25 @@ class TraceSaver {
             ASSERT(c <= this_->m_time_prefix + sizeof this_->m_time_prefix);
         }
 
-        MFn mfn = this_->m_mfns[e->type->type_id];
-        if (mfn) {
-            (this_->*mfn)(e);
+        Handler *h = &this_->m_handlers[e->type->type_id];
+        bool need_pop_indent = false;
+        if (h->flags & HandlerFlag_PrintPrefix) {
+            this_->m_output->s(this_->m_time_prefix);
+            this_->m_output->PushIndent();
+            need_pop_indent = true;
+        }
+
+        if (h->mfn) {
+            (this_->*h->mfn)(e);
         } else {
             this_->m_output->f("EVENT: type=%s; size=%zu\n", e->type->GetName().c_str(), e->size);
         }
 
-        this_->m_output->Flush();
+        if (need_pop_indent) {
+            this_->m_output->PopIndent();
+        }
+
+        //this_->m_output->Flush();
 
         if (this_->m_was_canceled_fn) {
             if ((*this_->m_was_canceled_fn)(this_->m_was_canceled_context)) {
@@ -746,9 +915,13 @@ class TraceSaver {
         return true;
     }
 
-    void SetMFn(const TraceEventType &type, MFn print_mfn) {
-        ASSERT(!m_mfns[type.type_id]);
-        m_mfns[type.type_id] = print_mfn;
+    void SetHandler(const TraceEventType &type, MFn mfn, uint32_t flags = 0) {
+        Handler *h = &m_handlers[type.type_id];
+
+        ASSERT(!h->mfn);
+
+        h->mfn = mfn;
+        h->flags = flags;
     }
 };
 

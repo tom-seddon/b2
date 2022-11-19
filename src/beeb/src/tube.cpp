@@ -15,6 +15,25 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#if BBCMICRO_TRACE
+const TraceEventType TUBE_WRITE_STATUS_EVENT("Write Tube status", 1, TraceEventSource_Host);
+
+const TraceEventType TUBE_WRITE_FIFO1_EVENT("Write Tube FIFO1", sizeof(TubeFIFOEvent), TraceEventSource_None);
+const TraceEventType TUBE_READ_FIFO1_EVENT("Read Tube FIFO1", sizeof(TubeFIFOEvent), TraceEventSource_None);
+
+const TraceEventType TUBE_WRITE_FIFO2_EVENT("Write Tube FIFO2", sizeof(TubeFIFOEvent), TraceEventSource_None);
+const TraceEventType TUBE_READ_FIFO2_EVENT("Read Tube FIFO2", sizeof(TubeFIFOEvent), TraceEventSource_None);
+
+const TraceEventType TUBE_WRITE_FIFO3_EVENT("Write Tube FIFO3", sizeof(TubeFIFOEvent), TraceEventSource_None);
+const TraceEventType TUBE_READ_FIFO3_EVENT("Read Tube FIFO3", sizeof(TubeFIFOEvent), TraceEventSource_None);
+
+const TraceEventType TUBE_WRITE_FIFO4_EVENT("Write Tube FIFO4", sizeof(TubeFIFOEvent), TraceEventSource_None);
+const TraceEventType TUBE_READ_FIFO4_EVENT("Read Tube FIFO4", sizeof(TubeFIFOEvent), TraceEventSource_None);
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 #define CH(X) ((X) >= 32 && (X) <= 126 ? (X) : '?')
 
 //////////////////////////////////////////////////////////////////////////
@@ -78,6 +97,33 @@ void SetTubeTrace(Tube *t, Trace *trace) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#if BBCMICRO_TRACE
+static inline void SetFIFOEvent(TubeFIFOEvent *ev, const Tube *t, uint8_t value, TubeFIFOStatus hstatus, TubeFIFOStatus pstatus) {
+    ev->value = value;
+
+    ev->h_available = hstatus.bits.available;
+    ev->h_not_full = hstatus.bits.not_full;
+    ev->p_available = pstatus.bits.available;
+    ev->p_not_full = pstatus.bits.not_full;
+    ev->p_irq = t->pirq.bits.pirq;
+    ev->p_nmi = t->pirq.bits.pnmi;
+    ev->h_irq = t->hirq.bits.hirq;
+}
+
+#define TRACE_FIFO(INDEX, OPERATION, SOURCE, VALUE)                                                                             \
+    BEGIN_MACRO {                                                                                                               \
+        if (t->trace) {                                                                                                         \
+            auto ev = (TubeFIFOEvent *)t->trace->AllocEvent(TUBE_##OPERATION##_FIFO##INDEX##_EVENT, TraceEventSource_##SOURCE); \
+            SetFIFOEvent(ev, t, (VALUE), t->hstatus##INDEX, t->pstatus##INDEX);                                                 \
+        }                                                                                                                       \
+    }                                                                                                                           \
+    END_MACRO
+
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 static void UpdateHIRQ(Tube *t) {
     t->hirq.bits.hirq = t->status.bits.q && t->hstatus4.bits.available;
 }
@@ -120,98 +166,18 @@ void WriteHostTube0(void *tube_, M6502Word, uint8_t value) {
     } else {
         t->status.value &= ~value;
     }
-}
 
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-//
-// FIFO 1
-//
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
+    UpdateHIRQ(t);
+    UpdatePIRQ(t);
+    UpdatePNMI(t);
 
 #if BBCMICRO_TRACE
-
-// Want to have this stuff global, like BINARY_STRS?
-static char g_dec_strs[256][5];
-static char g_hex_strs[256][5];
-static char g_char_strs[256][5];
-
-static bool InitializeStrs() {
-    for (unsigned i = 0; i < 256; ++i) {
-        snprintf(g_dec_strs[i], sizeof g_dec_strs[i], "%3u ", i);
-        ASSERT(strlen(g_dec_strs[i]) == 4);
-
-        snprintf(g_hex_strs[i], sizeof g_hex_strs[i], "$%02x ", i);
-        ASSERT(strlen(g_hex_strs[i]) == 4);
-
-        if (i >= 32 && i <= 126) {
-            snprintf(g_char_strs[i], sizeof g_char_strs[i], "%c   ", (char)i);
-        } else {
-            const char *str;
-            switch (i) {
-            case 9:
-                str = "\\t";
-                break;
-
-            case 10:
-                str = "\\n";
-                break;
-
-            case 13:
-                str = "\\r";
-                break;
-
-            default:
-                str = "";
-                break;
-            }
-
-            snprintf(g_char_strs[i], sizeof g_char_strs[i], "%-4s", str);
-        }
-        ASSERT(strlen(g_char_strs[i]) == 4);
-    }
-
-    return true;
-}
-
-static const bool g_got_strs = InitializeStrs();
-
-static void TraceParasiteToHostFIFO1(Tube *t, TraceEventSource source, const char *op) {
     if (t->trace) {
-        static constexpr size_t STR_SIZE = sizeof t->p2h1 * 4 + 1;
-        char dec[STR_SIZE], hex[STR_SIZE], chars[STR_SIZE], index[STR_SIZE];
-        size_t src = t->p2h1_rindex, dest = 0;
-        for (uint8_t i = 0; i < t->p2h1_n; ++i) {
-            uint8_t value = t->p2h1[src];
-            memcpy(&index[dest], g_dec_strs[i], 4);
-            memcpy(&dec[dest], g_dec_strs[value], 4);
-            memcpy(&hex[dest], g_hex_strs[value], 4);
-            memcpy(&chars[dest], g_char_strs[value], 4);
-
-            dest += 4;
-
-            src = (src + 1) % sizeof t->p2h1;
-        }
-
-        index[dest] = 0;
-        dec[dest] = 0;
-        hex[dest] = 0;
-        chars[dest] = 0;
-
-        t->trace->AllocStringf(source, "%s FIFO1", op);
-        t->trace->AllocStringf(source, "Index: %s", index);
-        t->trace->AllocStringf(source, "Dec  : %s", dec);
-        t->trace->AllocStringf(source, "Hex  : %s", hex);
-        t->trace->AllocStringf(source, "ASCII: %s", chars);
+        auto ev = (TubeWriteStatusEvent *)t->trace->AllocEvent(TUBE_WRITE_STATUS_EVENT);
+        ev->new_status = t->status;
     }
-}
-
-#else
-
-#define TraceParasiteToHostFIFO1(T) ((void)0)
-
 #endif
+}
 
 // Read Tube control register + FIFO 1 host status
 uint8_t ReadHostTube0(void *tube_, M6502Word) {
@@ -239,7 +205,7 @@ uint8_t ReadHostTube1(void *tube_, M6502Word) {
             t->hstatus1.bits.available = 0;
         }
 
-        TraceParasiteToHostFIFO1(t, TraceEventSource_Host, "read");
+        TRACE_FIFO(1, READ, Host, value);
     }
 
     return value;
@@ -251,6 +217,7 @@ uint8_t ReadParasiteTube1(void *tube_, M6502Word) {
 
     UpdateLatchForRead(&t->pstatus1, &t->hstatus1);
     UpdatePIRQ(t);
+    TRACE_FIFO(1, READ, Parasite, t->h2p1);
 
     return t->h2p1;
 }
@@ -258,7 +225,7 @@ uint8_t ReadParasiteTube1(void *tube_, M6502Word) {
 // Read Tube control register + FIFO 1 parasite status
 uint8_t ReadParasiteTube0(void *tube_, M6502Word) {
     auto t = (Tube *)tube_;
-
+    
     return t->pstatus1.value | (t->status.value & 0x3f);
 }
 
@@ -272,13 +239,7 @@ void WriteHostTube1(void *tube_, M6502Word, uint8_t value) {
 
     UpdatePIRQ(t);
 
-    TRACEF(t->trace, "h->p FIFO1=%u (0x%02x, '%c') H not full=%u, P available=%u, PIRQ=%u",
-           t->h2p1,
-           t->h2p1,
-           CH(t->h2p1),
-           t->hstatus1.bits.not_full,
-           t->pstatus1.bits.available,
-           t->pirq.bits.pirq);
+    TRACE_FIFO(1, WRITE, Host, value);
 }
 
 // Write FIFO 1 parasite->host
@@ -300,7 +261,7 @@ void WriteParasiteTube1(void *tube_, M6502Word, uint8_t value) {
 
         t->hstatus1.bits.available = 1;
 
-        TraceParasiteToHostFIFO1(t, TraceEventSource_Parasite, "write");
+        TRACE_FIFO(1, WRITE, Parasite, value);
     }
 }
 
@@ -326,6 +287,8 @@ uint8_t ReadHostTube3(void *tube_, M6502Word) {
 
     UpdateLatchForRead(&t->hstatus2, &t->pstatus2);
 
+    TRACE_FIFO(2, READ, Host, t->p2h2);
+
     return t->p2h2;
 }
 
@@ -336,6 +299,8 @@ void WriteHostTube3(void *tube_, M6502Word, uint8_t value) {
     t->h2p2 = value;
 
     UpdateLatchForWrite(&t->hstatus2, &t->pstatus2);
+
+    TRACE_FIFO(2, WRITE, Host, value);
 }
 
 // Read FIFO 2 parasite status
@@ -351,6 +316,8 @@ uint8_t ReadParasiteTube3(void *tube_, M6502Word) {
 
     UpdateLatchForRead(&t->pstatus2, &t->hstatus2);
 
+    TRACE_FIFO(2, READ, Parasite, t->h2p2);
+
     return t->h2p2;
 }
 
@@ -361,6 +328,8 @@ void WriteParasiteTube3(void *tube_, M6502Word, uint8_t value) {
     t->p2h2 = value;
 
     UpdateLatchForWrite(&t->pstatus2, &t->hstatus2);
+
+    TRACE_FIFO(2, WRITE, Parasite, value);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -377,14 +346,18 @@ static uint8_t ReadFIFO3(Tube *t,
                          uint8_t *fifo,
                          uint8_t *fifo_n) {
     uint8_t value = fifo[0];
-    fifo[0] = fifo[1];
-    if (*fifo_n > 0) {
-        --*fifo_n;
-    }
+    if (t->status.bits.v) {
+        fifo[0] = fifo[1];
+        if (*fifo_n > 0) {
+            --*fifo_n;
+        }
 
-    if (*fifo_n == 0 || !t->status.bits.v) {
-        this_status->bits.not_full = 1;
-        other_status->bits.available = 0;
+        if (*fifo_n == 0 || !t->status.bits.v) {
+            this_status->bits.not_full = 1;
+            other_status->bits.available = 0;
+        }
+    } else {
+        UpdateLatchForRead(this_status, other_status);
     }
 
     UpdatePNMI(t);
@@ -412,8 +385,7 @@ static void WriteFIFO3(Tube *t,
         // 1-byte mode
         fifo[0] = value;
         *fifo_n = 1;
-        this_status->bits.not_full = 0;
-        other_status->bits.available = 1;
+        UpdateLatchForWrite(this_status, other_status);
     }
 
     UpdatePNMI(t);
@@ -431,6 +403,7 @@ uint8_t ReadHostTube5(void *tube_, M6502Word) {
     auto t = (Tube *)tube_;
 
     uint8_t value = ReadFIFO3(t, &t->hstatus3, &t->pstatus3, t->p2h3, &t->p2h3_n);
+    TRACE_FIFO(3, READ, Host, value);
     return value;
 }
 
@@ -439,6 +412,7 @@ void WriteHostTube5(void *tube_, M6502Word, uint8_t value) {
     auto t = (Tube *)tube_;
 
     WriteFIFO3(t, &t->hstatus3, &t->pstatus3, t->h2p3, &t->h2p3_n, value);
+    TRACE_FIFO(3, WRITE, Host, value);
 }
 
 // Read FIFO 3 parasite status
@@ -453,6 +427,7 @@ uint8_t ReadParasiteTube5(void *tube_, M6502Word) {
     auto t = (Tube *)tube_;
 
     uint8_t value = ReadFIFO3(t, &t->pstatus3, &t->hstatus3, t->h2p3, &t->h2p3_n);
+    TRACE_FIFO(3, READ, Parasite, value);
     return value;
 }
 
@@ -461,6 +436,7 @@ void WriteParasiteTube5(void *tube_, M6502Word, uint8_t value) {
     auto t = (Tube *)tube_;
 
     WriteFIFO3(t, &t->pstatus3, &t->hstatus3, t->p2h3, &t->p2h3_n, value);
+    TRACE_FIFO(3, WRITE, Parasite, value);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -484,6 +460,7 @@ uint8_t ReadHostTube7(void *tube_, M6502Word) {
 
     UpdateLatchForRead(&t->hstatus4, &t->pstatus4);
     UpdateHIRQ(t);
+    TRACE_FIFO(4, READ, Host, t->p2h4);
 
     return t->p2h4;
 }
@@ -496,6 +473,7 @@ void WriteHostTube7(void *tube_, M6502Word, uint8_t value) {
 
     UpdateLatchForWrite(&t->hstatus4, &t->pstatus4);
     UpdatePIRQ(t);
+    TRACE_FIFO(4, WRITE, Host, value);
 }
 
 // Read FIFO 4 parasite status
@@ -513,6 +491,7 @@ void WriteParasiteTube7(void *tube_, M6502Word, uint8_t value) {
 
     UpdateLatchForWrite(&t->pstatus4, &t->hstatus4);
     UpdateHIRQ(t);
+    TRACE_FIFO(4, WRITE, Parasite, value);
 }
 
 // Read FIFO 4 host->parasite
@@ -521,6 +500,7 @@ uint8_t ReadParasiteTube7(void *tube_, M6502Word) {
 
     UpdateLatchForRead(&t->pstatus4, &t->hstatus4);
     UpdatePIRQ(t);
+    TRACE_FIFO(4, READ, Parasite, t->h2p4);
 
     return t->h2p4;
 }
