@@ -405,8 +405,8 @@ void BBCMicro::Write1770ControlRegister(void *m_, M6502Word a, uint8_t value) {
 
 #if BBCMICRO_TRACE
     if (m->m_trace) {
-        m->m_trace->AllocStringf(TraceEventSource_Host, "1770 - Control Register: Reset=%d; DDEN=%d; drive=%d, side=%d\n", 
-            m->m_state.disc_control.reset, m->m_state.disc_control.dden, m->m_state.disc_control.drive, m->m_state.disc_control.side);
+        m->m_trace->AllocStringf(TraceEventSource_Host, "1770 - Control Register: Reset=%d; DDEN=%d; drive=%d, side=%d\n",
+                                 m->m_state.disc_control.reset, m->m_state.disc_control.dden, m->m_state.disc_control.drive, m->m_state.disc_control.side);
     }
 #endif
 
@@ -656,6 +656,7 @@ bool BBCMicro::SetKeyState(BeebKey key, bool new_state) {
                 M6502_Reset(&m_state.cpu);
                 M6502_Reset(&m_state.parasite_cpu);
                 ResetTube(&m_state.parasite_tube);
+                m_state.parasite_boot_mode = true;
                 this->StopPaste();
             }
 
@@ -848,6 +849,7 @@ uint32_t BBCMicro::Update(VideoDataUnit *video_unit, SoundDataUnit *sound_unit) 
 
             if (m_state.parasite_tube.status.bits.p) {
                 M6502_Reset(&m_state.parasite_cpu);
+                m_state.parasite_boot_mode = true;
             }
         }
 
@@ -2577,8 +2579,6 @@ void BBCMicro::InitStuff() {
 
         ASSERT(m_state.parasite_ram_buffer.size() == 65536);
         m_parasite_ram = m_state.parasite_ram_buffer.data();
-        //m_state.parasite_enabled = true;
-        //m_state.parasite_boot_mode = true;
 
         m_parasite_rmmio_fns[0] = &ReadParasiteTube0;
         m_parasite_rmmio_fns[1] = &ReadParasiteTube1;
