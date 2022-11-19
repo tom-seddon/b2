@@ -538,6 +538,19 @@ class BeebThread {
     };
 #endif
 
+#if BBCMICRO_TRACE
+    class CancelTraceMessage : public Message {
+      public:
+        bool ThreadPrepare(std::shared_ptr<Message> *ptr,
+                           CompletionFun *completion_fun,
+                           BeebThread *beeb_thread,
+                           ThreadState *ts) override;
+
+      protected:
+      private:
+    };
+#endif
+
     class CloneWindowMessage : public Message {
       public:
         explicit CloneWindowMessage(BeebWindowInitArguments init_arguments);
@@ -1032,6 +1045,7 @@ class BeebThread {
     void ThreadStartTrace(ThreadState *ts);
     void ThreadBeebStartTrace(ThreadState *ts);
     void ThreadStopTrace(ThreadState *ts);
+    void ThreadCancelTrace(ThreadState *ts);
 #endif
     void ThreadSetKeyState(ThreadState *ts, BeebKey beeb_key, bool state);
     void ThreadSetFakeShiftState(ThreadState *ts, BeebShiftState state);

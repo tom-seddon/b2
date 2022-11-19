@@ -445,6 +445,10 @@ void TraceUI::DoImGui() {
             beeb_thread->Send(std::make_shared<BeebThread::StopTraceMessage>());
         }
 
+        if (ImGui::Button("Cancel")) {
+            beeb_thread->Send(std::make_shared<BeebThread::CancelTraceMessage>());
+        }
+
         DoTraceStatsImGui(running_stats);
     }
 }

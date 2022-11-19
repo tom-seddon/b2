@@ -1066,6 +1066,23 @@ bool BeebThread::StopTraceMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#if BBCMICRO_TRACE
+bool BeebThread::CancelTraceMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
+                                                   CompletionFun *completion_fun,
+                                                   BeebThread *beeb_thread,
+                                                   ThreadState *ts) {
+    beeb_thread->ThreadCancelTrace(ts);
+
+    CallCompletionFun(completion_fun, true, nullptr);
+
+    ptr->reset();
+    return true;
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 BeebThread::CloneWindowMessage::CloneWindowMessage(BeebWindowInitArguments init_arguments)
     : m_init_arguments(std::move(init_arguments)) {
 }
@@ -2462,6 +2479,17 @@ void BeebThread::ThreadStopTrace(ThreadState *ts) {
 
     ts->trace_state = BeebThreadTraceState_None;
     ts->trace_conditions = TraceConditions();
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_TRACE
+void BeebThread::ThreadCancelTrace(ThreadState *ts) {
+    this->ThreadStopTrace(ts);
+
+    m_last_trace = nullptr;
 }
 #endif
 
