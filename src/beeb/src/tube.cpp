@@ -16,7 +16,7 @@
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_TRACE
-const TraceEventType TUBE_WRITE_STATUS_EVENT("Write Tube status", 1, TraceEventSource_Host);
+const TraceEventType TUBE_WRITE_STATUS_EVENT("Write Tube status", sizeof(TubeWriteStatusEvent), TraceEventSource_Host);
 
 const TraceEventType TUBE_WRITE_FIFO1_EVENT("Write Tube FIFO1", sizeof(TubeFIFOEvent), TraceEventSource_None);
 const TraceEventType TUBE_READ_FIFO1_EVENT("Read Tube FIFO1", sizeof(TubeFIFOEvent), TraceEventSource_None);
@@ -54,35 +54,6 @@ static void UpdateLatchForRead(TubeFIFOStatus *this_status, TubeFIFOStatus *othe
 static void UpdateLatchForWrite(TubeFIFOStatus *this_status, TubeFIFOStatus *other_status) {
     this_status->bits.not_full = 0;
     other_status->bits.available = 1;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-void ResetTube(Tube *t) {
-    TubeStatus old_status = t->status;
-
-    TubeFIFOStatus empty = {};
-    empty.bits.not_full = 1;
-    empty.bits.available = 0;
-
-    *t = Tube();
-
-    t->status = old_status;
-
-    t->hstatus1 = empty;
-    t->hstatus2 = empty;
-    t->hstatus4 = empty;
-
-    t->pstatus1 = empty;
-    t->pstatus2 = empty;
-    t->pstatus4 = empty;
-
-    t->hstatus3.bits.not_full = 0;
-    t->hstatus3.bits.available = 1;
-
-    t->pstatus3.bits.not_full = 0;
-    t->pstatus3.bits.available = 0;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -151,6 +122,46 @@ static void UpdatePNMI(Tube *t) {
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
+
+void ResetTube(Tube *t) {
+    TubeStatus old_status = t->status;
+
+    TubeFIFOStatus empty = {};
+    empty.bits.not_full = 1;
+    empty.bits.available = 0;
+
+    *t = Tube();
+
+    t->status = old_status;
+
+    t->hstatus1 = empty;
+    t->pstatus1 = empty;
+    t->p2h1_windex = 0;
+    t->p2h1_rindex = 0;
+    t->p2h1_n = 0;
+
+    t->hstatus2 = empty;
+    t->pstatus2 = empty;
+
+    t->hstatus3.bits.not_full = 0;
+    t->hstatus3.bits.available = 1;
+
+    t->pstatus3.bits.not_full = 0;
+    t->pstatus3.bits.available = 0;
+
+    t->p2h3_n = 1;
+    t->h2p3_n = 0;
+
+    t->hstatus4 = empty;
+    t->pstatus4 = empty;
+
+    UpdatePNMI(t);
+    UpdatePIRQ(t);
+    UpdateHIRQ(t);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
 //
 // Status
 //
@@ -175,6 +186,18 @@ void WriteHostTube0(void *tube_, M6502Word, uint8_t value) {
     if (t->trace) {
         auto ev = (TubeWriteStatusEvent *)t->trace->AllocEvent(TUBE_WRITE_STATUS_EVENT);
         ev->new_status = t->status;
+
+        ev->h_irq = t->hirq.bits.hirq;
+        ev->p_irq = t->pirq.bits.pirq;
+        ev->p_nmi = t->pirq.bits.pnmi;
+
+        ev->h2p1_available = t->pstatus1.bits.available;
+
+        ev->h2p3_n = t->h2p3_n;
+        ev->p2h3_n = t->p2h3_n;
+
+        ev->h2p4_available = t->pstatus4.bits.available;
+        ev->p2h4_available = t->hstatus4.bits.available;
     }
 #endif
 }
@@ -225,7 +248,7 @@ uint8_t ReadParasiteTube1(void *tube_, M6502Word) {
 // Read Tube control register + FIFO 1 parasite status
 uint8_t ReadParasiteTube0(void *tube_, M6502Word) {
     auto t = (Tube *)tube_;
-    
+
     return t->pstatus1.value | (t->status.value & 0x3f);
 }
 

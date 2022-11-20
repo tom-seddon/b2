@@ -810,6 +810,10 @@ class TraceSaver {
         m_output->f("V: Enable 2-byte R3   : %s\n", BOOL_STR(ev->new_status.bits.v));
         m_output->f("P: PRST               : %s\n", BOOL_STR(ev->new_status.bits.p));
         m_output->f("T: Clear Tube state   : %s\n", BOOL_STR(ev->new_status.bits.t));
+        m_output->f("FIFO1: h->p available: %d\n", ev->h2p1_available);
+        m_output->f("FIFO3: # h->p: %u; # p->h: %u\n", ev->h2p3_n, ev->p2h3_n);
+        m_output->f("FIFO4: h->p available: %u; p->h available: %u\n", ev->h2p4_available, ev->p2h4_available);
+        m_output->f("HIRQ=%u PIRQ=%u PNMI=%u\n", ev->h_irq, ev->p_irq, ev->p_nmi);
     }
 
     static bool PrintTrace(Trace *t, const TraceEvent *e, void *context) {

@@ -147,6 +147,18 @@ struct TubeFIFOEvent {
 #include <shared/pshpack1.h>
 struct TubeWriteStatusEvent {
     TubeStatus new_status;
+
+    // Copy of various flags.
+    uint8_t h2p3_n : 2;
+    uint8_t p2h3_n : 2;
+
+    uint8_t h2p1_available : 1;
+    uint8_t h2p4_available : 1;
+    uint8_t p2h4_available : 1;
+
+    uint8_t h_irq : 1;
+    uint8_t p_irq : 1;
+    uint8_t p_nmi : 1;
 };
 #include <shared/poppack.h>
 
