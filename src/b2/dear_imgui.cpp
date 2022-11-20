@@ -951,7 +951,7 @@ bool ImGuiInputText(std::string *new_str,
 //////////////////////////////////////////////////////////////////////////
 
 void ImGuiHeader(const char *str) {
-    ImGui::CollapsingHeader(str, ImGuiTreeNodeFlags_NoTreePushOnOpen | ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_Bullet);
+    ImGui::CollapsingHeader(str, ImGuiTreeNodeFlags_NoTreePushOnOpen | ImGuiTreeNodeFlags_Leaf);
 }
 
 //////////////////////////////////////////////////////////////////////////

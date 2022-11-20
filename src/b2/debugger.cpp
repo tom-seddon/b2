@@ -713,61 +713,49 @@ class M6502DebugWindow : public DebugUI {
         //m_beeb_thread->SendUpdate6502StateMessage();
 
         bool halted;
-        uint16_t pc, abus;
-        uint8_t a, x, y, sp, opcode, read, dbus;
-        M6502P p;
-        M6502Fn tfn, ifn;
-        const M6502Config *config;
+        M6502State host_state, parasite_state;
+        bool got_parasite_state = false;
         const CycleCount *cycles;
         char halt_reason[1000];
 
         {
             std::unique_lock<Mutex> lock;
             const BBCMicro *m = m_beeb_thread->LockBeeb(&lock);
-            const M6502 *s = m->GetM6502();
 
-            config = s->config;
+            const M6502 *host_cpu = m->GetM6502();
+            this->GetStateForCPU(&host_state, host_cpu);
+
+            if (const M6502 *parasite_cpu = m->GetParasiteM6502()) {
+                this->GetStateForCPU(&parasite_state, parasite_cpu);
+                got_parasite_state = true;
+            }
+
             halted = m->DebugIsHalted();
             if (const char *tmp = m->DebugGetHaltReason()) {
                 strlcpy(halt_reason, tmp, sizeof halt_reason);
             } else {
                 halt_reason[0] = 0;
             }
-            a = s->a;
-            x = s->x;
-            y = s->y;
-            pc = s->opcode_pc.w;
-            sp = s->s.b.l;
-            read = s->read;
-            abus = s->abus.w;
-            dbus = s->dbus;
-            p = M6502_GetP(s);
-            tfn = s->tfn;
-            ifn = s->ifn;
-            opcode = M6502_GetOpcode(s);
             cycles = m->GetCycleCountPtr();
         }
 
-        this->Reg("A", a);
-        this->Reg("X", x);
-        this->Reg("Y", y);
-        ImGui::Text("PC = $%04x", pc);
-        ImGui::Text("S = $01%02X", sp);
-        const char *mnemonic = config->disassembly_info[opcode].mnemonic;
-        const char *mode_name = M6502AddrMode_GetName(config->disassembly_info[opcode].mode);
+        ImGuiHeader("Host CPU");
 
-        char pstr[9];
-        ImGui::Text("P = $%02x %s", p.value, M6502P_GetString(pstr, p));
+        this->StateImGui(host_state);
 
+        if (got_parasite_state) {
+            ImGuiHeader("Parasite CPU");
+            this->StateImGui(parasite_state);
+        }
+
+        ImGuiHeader("System state");
         char cycles_str[MAX_UINT64_THOUSANDS_LEN];
-        GetThousandsString(cycles_str, cycles->n);
+        GetThousandsString(cycles_str, cycles->n >> RSHIFT_CYCLE_COUNT_TO_4MHZ);
+        ImGui::Text("4 MHz Cycles = %s", cycles_str);
 
-        ImGui::Separator();
+        GetThousandsString(cycles_str, cycles->n >> RSHIFT_CYCLE_COUNT_TO_2MHZ);
+        ImGui::Text("2 MHz Cycles = %s", cycles_str);
 
-        ImGui::Text("Cycles = %s", cycles_str);
-        ImGui::Text("Opcode = $%02X %03d - %s %s", opcode, opcode, mnemonic, mode_name);
-        ImGui::Text("tfn = %s", GetFnName(tfn));
-        ImGui::Text("ifn = %s", GetFnName(ifn));
         if (halted) {
             if (halt_reason[0] == 0) {
                 ImGui::TextUnformatted("State = halted");
@@ -777,12 +765,52 @@ class M6502DebugWindow : public DebugUI {
         } else {
             ImGui::TextUnformatted("State = running");
         }
-
-        ImGui::Text("Address = $%04x; Data = $%02x %03d %s", abus, dbus, dbus, BINARY_BYTE_STRINGS[dbus]);
-        ImGui::Text("Access = %s", M6502ReadType_GetName(read));
     }
 
   private:
+    struct M6502State {
+        uint16_t pc, abus;
+        uint8_t a, x, y, sp, opcode, read, dbus;
+        M6502P p;
+        M6502Fn tfn, ifn;
+        const M6502Config *config;
+    };
+
+    void StateImGui(const M6502State &state) {
+        this->Reg("A", state.a);
+        this->Reg("X", state.x);
+        this->Reg("Y", state.y);
+        ImGui::Text("PC = $%04x", state.pc);
+        ImGui::Text("S = $01%02X", state.sp);
+        const char *mnemonic = state.config->disassembly_info[state.opcode].mnemonic;
+        const char *mode_name = M6502AddrMode_GetName(state.config->disassembly_info[state.opcode].mode);
+
+        char pstr[9];
+        ImGui::Text("P = $%02x %s", state.p.value, M6502P_GetString(pstr, state.p));
+
+        ImGui::Text("Opcode = $%02X %03d - %s %s", state.opcode, state.opcode, mnemonic, mode_name);
+        ImGui::Text("tfn = %s", GetFnName(state.tfn));
+        ImGui::Text("ifn = %s", GetFnName(state.ifn));
+        ImGui::Text("Address = $%04x; Data = $%02x %03d %s", state.abus, state.dbus, state.dbus, BINARY_BYTE_STRINGS[state.dbus]);
+        ImGui::Text("Access = %s", M6502ReadType_GetName(state.read));
+    }
+
+    void GetStateForCPU(M6502State *state, const M6502 *cpu) {
+        state->config = cpu->config;
+        state->a = cpu->a;
+        state->x = cpu->x;
+        state->y = cpu->y;
+        state->pc = cpu->opcode_pc.w;
+        state->sp = cpu->s.b.l;
+        state->read = cpu->read;
+        state->abus = cpu->abus.w;
+        state->dbus = cpu->dbus;
+        state->p = M6502_GetP(cpu);
+        state->tfn = cpu->tfn;
+        state->ifn = cpu->ifn;
+        state->opcode = M6502_GetOpcode(cpu);
+    }
+
     void Reg(const char *name, uint8_t value) {
         ImGui::Text("%s = $%02x %03d %s", name, value, value, BINARY_BYTE_STRINGS[value]);
     }

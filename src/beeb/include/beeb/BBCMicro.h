@@ -382,6 +382,9 @@ class BBCMicro : private WD1770Handler {
 
     const M6502 *GetM6502() const;
 
+    // Will return null if parasite not enabled.
+    const M6502 *GetParasiteM6502() const;
+
 #if BBCMICRO_DEBUGGER
     uint16_t DebugGetBeebAddressFromCRTCAddress(uint8_t h, uint8_t l) const;
 
