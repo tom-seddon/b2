@@ -93,27 +93,6 @@ static std::string GetUTF8String(const wchar_t *str) {
 }
 #endif
 
-#if SYSTEM_WINDOWS
-static std::wstring GetWideString(const char *str) {
-    size_t len = strlen(str);
-
-    if (len > INT_MAX) {
-        return L"";
-    }
-
-    int n = MultiByteToWideChar(CP_UTF8, 0, str, (int)len, nullptr, 0);
-    if (n == 0) {
-        return L"";
-    }
-
-    std::vector<wchar_t> buffer;
-    buffer.resize(n);
-    MultiByteToWideChar(CP_UTF8, 0, str, (int)len, buffer.data(), (int)buffer.size());
-
-    return std::wstring(buffer.begin(), buffer.end());
-}
-#endif
-
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
@@ -412,21 +391,6 @@ static void AddError(Messages *msg,
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-FILE *fopenUTF8(const char *path, const char *mode) {
-#if SYSTEM_WINDOWS
-
-    return _wfopen(GetWideString(path).c_str(), GetWideString(mode).c_str());
-
-#else
-
-    return fopen(path, mode);
-
-#endif
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 template <class ContType>
 static bool LoadFile2(ContType *data,
                       const std::string &path,
@@ -533,7 +497,7 @@ bool LoadTextFile(std::vector<char> *data,
 //////////////////////////////////////////////////////////////////////////
 
 static bool SaveFile2(const void *data, size_t data_size, const std::string &path, Messages *messages, const char *fopen_mode) {
-    FILE *f = fopen(path.c_str(), fopen_mode);
+    FILE *f = fopenUTF8(path.c_str(), fopen_mode);
     if (!f) {
         AddError(messages, path, "save", "fopen failed", errno);
         return false;
@@ -1086,6 +1050,7 @@ static const char PARASITE[] = "parasite";
 static const char PARASITE_OS[] = "parasite_os";
 static const char AUTO_SAVE[] = "auto_save";
 static const char AUTO_SAVE_PATH[] = "auto_save_path";
+static const char UNIX_LINE_ENDINGS[] = "unix_line_endings";
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -1897,6 +1862,7 @@ static bool LoadTrace(rapidjson::Value *trace_json, Messages *msg) {
     FindUInt16Member(&settings.stop_write_address, trace_json, STOP_WRITE_ADDRESS, nullptr);
     FindBoolMember(&settings.auto_save, trace_json, AUTO_SAVE, nullptr);
     FindStringMember(&settings.auto_save_path, trace_json, AUTO_SAVE_PATH, nullptr);
+    FindBoolMember(&settings.unix_line_endings, trace_json, UNIX_LINE_ENDINGS, nullptr);
 
     SetDefaultTraceUISettings(settings);
 
@@ -1944,6 +1910,9 @@ static void SaveTrace(JSONWriter<StringStream> *writer) {
 
         writer->Key(AUTO_SAVE_PATH);
         writer->String(settings.auto_save_path.c_str());
+
+        writer->Key(UNIX_LINE_ENDINGS);
+        writer->Bool(settings.unix_line_endings);
     }
 }
 

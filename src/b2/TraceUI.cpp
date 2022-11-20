@@ -16,6 +16,7 @@
 #include <math.h>
 #include <atomic>
 #include "SettingsUI.h"
+#include <shared/path.h>
 
 #include <shared/enum_def.h>
 #include "TraceUI.inl"
@@ -82,6 +83,7 @@ class TraceUI : public SettingsUI {
     void ResetTextBoxes();
     void DoAddressGui(uint16_t *addr, char *str, size_t str_size);
     void StartTrace();
+    void StartSaveTraceJob(std::shared_ptr<Trace> last_trace, std::string path);
 
     static bool GetBeebKeyName(void *data, int idx, const char **out_text);
 #endif
@@ -95,16 +97,18 @@ class TraceUI::SaveTraceJob : public JobQueue::Job {
     explicit SaveTraceJob(std::shared_ptr<Trace> trace,
                           std::string file_name,
                           std::shared_ptr<MessageList> message_list,
-                          TraceCyclesOutput cycles_output)
+                          TraceCyclesOutput cycles_output,
+                          std::string fopen_mode)
         : m_trace(std::move(trace))
         , m_file_name(std::move(file_name))
         , m_cycles_output(cycles_output)
-        , m_msgs(message_list) {
+        , m_msgs(message_list)
+        , m_fopen_mode(std::move(fopen_mode)) {
         ASSERT(!!m_trace);
     }
 
     void ThreadExecute() {
-        FILE *f = fopen(m_file_name.c_str(), "wt");
+        FILE *f = fopenUTF8(m_file_name.c_str(), m_fopen_mode.c_str());
         if (!f) {
             int err = errno;
             m_msgs.e.f(
@@ -156,6 +160,7 @@ class TraceUI::SaveTraceJob : public JobQueue::Job {
     TraceCyclesOutput m_cycles_output = TraceCyclesOutput_Relative;
     Messages m_msgs; // this is quite a big object
     SaveTraceProgress m_progress;
+    std::string m_fopen_mode;
 
     static bool SaveData(const void *data, size_t num_bytes, void *context) {
         size_t num_bytes_written = fwrite(data, 1, num_bytes, (FILE *)context);
@@ -279,11 +284,7 @@ void TraceUI::DoImGui() {
                 if (!g_default_settings.auto_save_path.empty()) {
                     std::shared_ptr<Trace> last_trace = beeb_thread->GetLastTrace();
                     if (!!last_trace) {
-                        m_save_trace_job = std::make_shared<SaveTraceJob>(last_trace,
-                                                                          g_default_settings.auto_save_path,
-                                                                          m_beeb_window->GetMessageList(),
-                                                                          g_default_settings.cycles_output);
-                        BeebWindows::AddJob(m_save_trace_job);
+                        this->StartSaveTraceJob(last_trace, g_default_settings.auto_save_path);
                     }
                 }
             }
@@ -377,6 +378,9 @@ void TraceUI::DoImGui() {
 
         ImGui::TextUnformatted("Other settings");
         ImGui::Checkbox("Unlimited recording", &g_default_settings.unlimited);
+#if SYSTEM_WINDOWS
+        ImGui::Checkbox("Unix line endings", &g_default_settings.unix_line_endings);
+#endif
 
         ImGui::TextUnformatted("Cycles output:");
         ImGuiRadioButton(&g_default_settings.cycles_output, TraceCyclesOutput_Absolute, "Absolute");
@@ -426,11 +430,7 @@ void TraceUI::DoImGui() {
                 std::string path;
                 if (fd.Open(&path)) {
                     fd.AddLastPathToRecentPaths();
-                    m_save_trace_job = std::make_shared<SaveTraceJob>(last_trace,
-                                                                      path,
-                                                                      m_beeb_window->GetMessageList(),
-                                                                      g_default_settings.cycles_output);
-                    BeebWindows::AddJob(m_save_trace_job);
+                    this->StartSaveTraceJob(last_trace, std::move(path));
                 }
             }
 
@@ -593,6 +593,28 @@ void TraceUI::StartTrace() {
     beeb_thread->Send(std::move(message));
 
     m_auto_saved = false;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void TraceUI::StartSaveTraceJob(std::shared_ptr<Trace> last_trace, std::string path) {
+    ASSERT(!!last_trace);
+    ASSERT(!m_save_trace_job);
+
+    std::string fopen_mode = "wt";
+#if SYSTEM_WINDOWS
+    if (g_default_settings.unix_line_endings) {
+        fopen_mode = "wb";
+    }
+#endif
+
+    m_save_trace_job = std::make_shared<SaveTraceJob>(last_trace,
+                                                      std::move(path),
+                                                      m_beeb_window->GetMessageList(),
+                                                      g_default_settings.cycles_output,
+                                                      std::move(fopen_mode));
+    BeebWindows::AddJob(m_save_trace_job);
 }
 
 //////////////////////////////////////////////////////////////////////////

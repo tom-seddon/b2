@@ -6,6 +6,7 @@
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <shared/system_specific.h>
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -189,7 +190,7 @@ bool PathLoadBinaryFile(std::vector<uint8_t> *contents, const std::string &path)
     size_t num_read;
     long len;
 
-    f = fopen(path.c_str(), "rb");
+    f = fopenUTF8(path.c_str(), "rb");
     if (!f) {
         goto done;
     }
@@ -236,6 +237,42 @@ done:;
 
     errno = e;
     return good;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if SYSTEM_WINDOWS
+static std::wstring GetWideString(const char *str) {
+    size_t len = strlen(str);
+
+    if (len > INT_MAX) {
+        return L"";
+    }
+
+    int n = MultiByteToWideChar(CP_UTF8, 0, str, (int)len, nullptr, 0);
+    if (n == 0) {
+        return L"";
+    }
+
+    std::vector<wchar_t> buffer;
+    buffer.resize(n);
+    MultiByteToWideChar(CP_UTF8, 0, str, (int)len, buffer.data(), (int)buffer.size());
+
+    return std::wstring(buffer.begin(), buffer.end());
+}
+#endif
+
+FILE *fopenUTF8(const char *path, const char *mode) {
+#if SYSTEM_WINDOWS
+
+    return _wfopen(GetWideString(path).c_str(), GetWideString(mode).c_str());
+
+#else
+
+    return fopen(path, mode); //non-UTF8 ok
+
+#endif
 }
 
 //////////////////////////////////////////////////////////////////////////

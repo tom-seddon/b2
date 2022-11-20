@@ -35,6 +35,9 @@ struct TraceUISettings {
     // Other stuff.
     uint32_t flags = 0;
     bool unlimited = false;
+#if SYSTEM_WINDOWS
+    bool unix_line_endings = false;
+#endif
     TraceCyclesOutput cycles_output = TraceCyclesOutput_Relative;
 
     // Auto-save settings.

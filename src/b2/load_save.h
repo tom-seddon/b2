@@ -64,8 +64,6 @@ bool SaveTextFile(const std::string &data,
                   const std::string &path,
                   Messages *messages);
 
-FILE *fopenUTF8(const char *path, const char *mode);
-
 bool GetFileDetails(size_t *size, bool *can_write, const char *path);
 
 //////////////////////////////////////////////////////////////////////////

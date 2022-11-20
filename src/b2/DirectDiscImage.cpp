@@ -1,11 +1,12 @@
 #include <shared/system.h>
+#include <shared/path.h>
 #include <string>
 #include "misc.h"
-#include "load_save.h"
 #include "DirectDiscImage.h"
 #include "native_ui.h"
 #include "Messages.h"
 #include <limits.h>
+#include "load_save.h"
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
