@@ -375,12 +375,13 @@ static uint8_t ReadFIFO3(Tube *t,
             --*fifo_n;
         }
 
-        if (*fifo_n == 0 || !t->status.bits.v) {
+        if (*fifo_n == 0) {
             this_status->bits.not_full = 1;
             other_status->bits.available = 0;
         }
     } else {
         UpdateLatchForRead(this_status, other_status);
+        *fifo_n = 0;
     }
 
     UpdatePNMI(t);
