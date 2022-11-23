@@ -137,6 +137,9 @@ class DebugUI : public SettingsUI {
 
     void SetBeebWindow(BeebWindow *beeb_window);
 
+    uint32_t GetDebugPagingOverrides() const;
+    void SetDebugPagingOverrides(uint32_t dpo);
+
   protected:
     BeebWindow *m_beeb_window = nullptr;
     std::shared_ptr<BeebThread> m_beeb_thread;
@@ -227,6 +230,20 @@ void DebugUI::SetBeebWindow(BeebWindow *beeb_window) {
     m_beeb_window = beeb_window;
     ASSERT(!m_beeb_thread);
     m_beeb_thread = m_beeb_window->GetBeebThread();
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+uint32_t DebugUI::GetDebugPagingOverrides() const {
+    return m_dpo;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void DebugUI::SetDebugPagingOverrides(uint32_t dpo) {
+    m_dpo = dpo;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -2761,7 +2778,7 @@ class StackDebugWindow : public DebugUI {
         {
             std::unique_lock<Mutex> lock;
             const BBCMicro *m = m_beeb_thread->LockBeeb(&lock);
-            const M6502 *cpu = m->GetM6502();
+            const M6502 *cpu = m->DebugGetM6502(m_dpo);
             s = cpu->s.b.l;
         }
 
@@ -2862,8 +2879,18 @@ class StackDebugWindow : public DebugUI {
   private:
 };
 
-std::unique_ptr<SettingsUI> CreateStackDebugWindow(BeebWindow *beeb_window) {
+std::unique_ptr<SettingsUI> CreateHostStackDebugWindow(BeebWindow *beeb_window) {
     return CreateDebugUI<StackDebugWindow>(beeb_window);
+}
+
+std::unique_ptr<SettingsUI> CreateParasiteStackDebugWindow(BeebWindow *beeb_window) {
+    std::unique_ptr<StackDebugWindow> window = CreateDebugUI<StackDebugWindow>(beeb_window);
+
+    uint32_t dpo = window->GetDebugPagingOverrides();
+    dpo |= BBCMicroDebugPagingOverride_Parasite;
+    window->SetDebugPagingOverrides(dpo);
+
+    return window;
 }
 
 //////////////////////////////////////////////////////////////////////////

@@ -60,6 +60,7 @@ EPN(SN76489Debugger)
 EPN(PagingDebugger)
 EPN(BreakpointsDebugger)
 EPN(StackDebugger)
+EPN(ParasiteStackDebugger)
 
 // must be last
 EQPN(MaxValue)
