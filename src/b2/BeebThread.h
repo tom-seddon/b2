@@ -663,12 +663,7 @@ class BeebThread {
 #if BBCMICRO_DEBUGGER
     class DebugSetBytesMessage : public Message {
       public:
-        // TODO - I can't remember why addr is 32 bits here, but 16 bits in
-        // DebugSetByteMessage :( - might be a relic of when using JGH's
-        // addressing scheme?
-        //
-        // Probably worth keeping, as there'll be Tube support one day...
-        DebugSetBytesMessage(uint32_t addr, uint32_t dpo, std::vector<uint8_t> values);
+        DebugSetBytesMessage(uint16_t addr, uint32_t dpo, std::vector<uint8_t> values);
 
         bool ThreadPrepare(std::shared_ptr<Message> *ptr,
                            CompletionFun *completion_fun,
@@ -678,7 +673,7 @@ class BeebThread {
 
       protected:
       private:
-        const uint32_t m_addr = 0;
+        const uint16_t m_addr = 0;
         const uint32_t m_dpo = 0;
         const std::vector<uint8_t> m_values;
     };

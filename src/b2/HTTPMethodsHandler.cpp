@@ -58,7 +58,7 @@ static std::vector<std::string> GetPathParts(const std::string &path) {
 
 class BeebThreadPeekMessage : public BeebThread::CustomMessage {
   public:
-    BeebThreadPeekMessage(uint32_t addr,
+    BeebThreadPeekMessage(uint16_t addr,
                           uint32_t dpo,
                           uint64_t count,
                           HTTPServer *server,
@@ -73,7 +73,7 @@ class BeebThreadPeekMessage : public BeebThread::CustomMessage {
 
     void ThreadHandleMessage(BBCMicro *beeb) override {
         HTTPResponse m_response;
-        M6502Word addr = {(uint16_t)m_addr};
+        M6502Word addr = {m_addr};
 
         std::vector<uint8_t> data;
         data.resize(m_count);
@@ -86,7 +86,7 @@ class BeebThreadPeekMessage : public BeebThread::CustomMessage {
 
   protected:
   private:
-    uint32_t m_addr = {};
+    uint16_t m_addr = 0;
     uint32_t m_dpo = 0;
     uint64_t m_count = 0;
     HTTPServer *m_server = nullptr;
@@ -330,10 +330,10 @@ class HTTPMethodsHandler : public HTTPHandler {
 
     void HandlePokeRequest(HTTPServer *server, HTTPRequest &&request, const std::vector<std::string> &path_parts, size_t command_index) {
         BeebWindow *beeb_window;
-        uint32_t addr;
+        uint16_t addr;
         if (!this->ParseArgsOrSendResponse(server, request, path_parts, command_index,
                                            "window", nullptr, &beeb_window,
-                                           "x32", nullptr, &addr,
+                                           "x16", nullptr, &addr,
                                            nullptr)) {
             return;
         }
@@ -343,12 +343,12 @@ class HTTPMethodsHandler : public HTTPHandler {
 
     void HandlePeekRequest(HTTPServer *server, HTTPRequest &&request, const std::vector<std::string> &path_parts, size_t command_index) {
         BeebWindow *beeb_window;
-        uint32_t begin;
+        uint16_t begin;
         uint64_t end;
         bool end_is_len;
         if (!this->ParseArgsOrSendResponse(server, request, path_parts, command_index,
                                            "window", nullptr, &beeb_window,
-                                           "x32", nullptr, &begin,
+                                           "x16", nullptr, &begin,
                                            "x64/len", nullptr, &end, &end_is_len,
                                            nullptr)) {
             return;
