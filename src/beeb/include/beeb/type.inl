@@ -42,6 +42,11 @@ EEND()
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_DEBUGGER
+
+// This name has ended up a bit of a misnomer - it should really be
+// BBCMicroDebugStateOverride, or something. It's a set of flags that indicate
+// which aspects of the system may get overridden for debugging purposes.
+
 #define ENAME BBCMicroDebugPagingOverride
 EBEGIN()
 EPNV(ROM, 15)
@@ -62,6 +67,7 @@ EPNV(OverrideParasiteROM, 1 << 14)
 // system. It's always assumed to be clear (so the debugger views the host), but
 // can be set to view the parasite instead.
 EPNV(Parasite, 1 << 15)
+
 EEND()
 #undef ENAME
 #endif

@@ -1291,7 +1291,7 @@ void BeebThread::DebugSetByteMessage::ThreadHandle(BeebThread *beeb_thread,
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_DEBUGGER
-BeebThread::DebugSetBytesMessage::DebugSetBytesMessage(uint32_t addr,
+BeebThread::DebugSetBytesMessage::DebugSetBytesMessage(uint16_t addr,
                                                        uint32_t dpo,
                                                        std::vector<uint8_t> values)
     : m_addr(addr)
@@ -1320,17 +1320,7 @@ void BeebThread::DebugSetBytesMessage::ThreadHandle(BeebThread *beeb_thread,
                                                     ThreadState *ts) const {
     (void)beeb_thread;
 
-    ts->beeb->DebugSetBytes({(uint16_t)m_addr}, m_dpo, m_values.data(), m_values.size());
-    //
-    //    M6502Word addr={(uint16_t)m_addr};
-    //
-    //    for(uint8_t value:m_values) {
-    //        ts->beeb->DebugSetByte(
-    //        const BBCMicro::BigPage *bp=ts->beeb->DebugGetBigPageForAddress(addr,m_dpo);
-    //        bp->
-    //        ts->beeb->DebugSetByte(addr,m_dpo,value);
-    //        ++addr.w;
-    //    }
+    ts->beeb->DebugSetBytes({m_addr}, m_dpo, m_values.data(), m_values.size());
 }
 #endif
 

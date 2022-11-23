@@ -201,6 +201,9 @@ Items of optional hardware are as follows:
   [Video NuLA](https://www.stardot.org.uk/forums/viewtopic.php?f=3&t=12150).
   (This is ticked by default, as it's very unlikely to cause a
   problem.)
+  
+- Tick the `6502 Second Processor` box to add a 4 MHz 65C02 second
+  processor.
 
 Changes to a configuration don't affect the running Beeb until you do
 a `File` > `Hard Reset` (if you're editing the current config) or a

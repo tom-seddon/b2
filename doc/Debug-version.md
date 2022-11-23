@@ -20,15 +20,26 @@ debug-related functionality, accessible from the `Debug` menu.
 
 Find all this stuff in the `Debug` menu.
 
+## **Second processor support is WIP**
+
+- Examining the parasite state should work OK, but you may find that
+  the host CPU state is affected if you try to change anything
+
+- The paging prefix indicators in the parasite trace output are
+  currently nonsense. The parasite paging is simple enough that things
+  should still be comprehensible
+
+This will improve!
+
 ## General debugging ##
 
 Use `Stop` to stop the emulated BBC in its tracks.
 
 `Run` will set it going again.
 
-`Step In` will run one instruction and then stop.
+`Step In` will run one host instruction and then stop.
 
-`Step Over` will run until the next instruction visible.
+`Step Over` will run until the next host instruction visible.
 
 ## Paging overrides
 
@@ -84,18 +95,26 @@ Prefix octal numbers with `0`, like C.
 
 ## Address prefixes
 
-Addresses are annotated with a prefix, indicating which bank they come
-from. The possible prefixes are as follows:
+Addresses are annotated with a prefix, indicating which paging
+settings are in force when deciding what's visible at that address.The
+possible prefixes are as follows.
 
-- `m` - main RAM
-- `0` - `f` - paged ROM
-- `s` - shadow RAM (B+/Master only)
-- `n` - ANDY (B+/Master only)
-- `h` - HAZEL (Master only)
-- `o` - OS ROM
-- `i` - I/O area
+Host memory:
 
-The prefix is sometimes redundant. (For example, address $0000 is
+- `m` - main RAM ($0000...$7fff)
+- `0` - `f` - paged ROM ($8000...$bfff)
+- `s` - shadow RAM (B+/Master only) ($3000...$7fff)
+- `n` - ANDY (B+/Master only) (B+: $8000...$afff; Master: $8000...$8fff)
+- `h` - HAZEL (Master only) ($c000...$dfff)
+- `o` - OS ROM ($c000...$ffff)
+- `i` - I/O area ($fc00...$feff)
+
+Parasite memory:
+
+- `p` - parasite RAM ($0000...$ffff)
+- `r` - parasite ROM ($f000...$ffff)
+
+The prefix is sometimes redundant. (For example, host address $0000 is
 always shown as ``m`$0000``, even though there's no other prefix it
 could have.)
 
@@ -110,6 +129,8 @@ order given, though this isn't always especially useful.
 Note that on B+ and Master, a ROM bank prefix (`0` - `f`) implies ANDY
 is disabled, and on Master the OS ROM (`o`) implies HAZEL is disabled.
 Supply further prefixes to change this if desired.
+
+Inappropriate prefixes are ignored. 
 
 # Debugger windows
 
@@ -158,45 +179,85 @@ Tick `Unlimited recording` to have the emulator store all events, so
 longer periods can be traced. Each emulated second takes up ~10MBytes
 of RAM and adds ~35MBytes to the output file.
 
-Once a trace has been started and stopped, it can be saved to a file
-using `Save` or `Save (no cycles)`. The output is along these lines:
+On Windows, you can tick the Windows-specific `Unix line endings`
+option to have the trace output saved with Unix-style line endings.
+This means slightly quicker saving, and slightly better performance in
+Emacs (since you can use the load literally option).
+
+The `Cycles output` options let you specify how the cycle count is
+displayed in the output. `Absolute` is the absolute number of emulated
+cycles since the BBC was rebooted, probably not very useful;
+`Relative` counts the start of the trace as cycle 0, and goes from
+there; `None` omits the cycle count entirely, which can be useful if
+trying to diff the output from multiple runs.
+
+Tick `Auto-save on stop` to have the trace saved automatically when
+the trace stops. Select the file name to save to. It will be
+overwritten, no questions asked, if the trace finishes without being
+cancelled.
+
+Otherwise, the trace will be stored in memory, and you can click
+`Save` to save it to a file.
+
+The trace output is along these lines:
 
 ```
-      63  m`17cc: lda #$81                 A=81 X=65 Y=00 S=f0 P=Nvdizc (D=81)
-      65  m`17ce: ldy #$ff                 A=81 X=65 Y=ff S=f0 P=Nvdizc (D=ff)
-      67  m`17d0: jsr $1bba                A=81 X=65 Y=ff S=ee P=Nvdizc (D=17)
-      73  m`1bba: stx $1b8f [m`1b8f]       A=81 X=65 Y=ff S=ee P=Nvdizc (D=65)
-      77  m`1bbd: ldx #$04                 A=81 X=04 Y=ff S=ee P=nvdizc (D=04)
-      79  m`1bbf: jmp $1b75                A=81 X=04 Y=ff S=ee P=nvdizc (D=04)
-      82  m`1b75: sta $1b91 [m`1b91]       A=81 X=04 Y=ff S=ee P=nvdizc (D=81)
-      86  m`1b78: lda $f4 [m`00f4]         A=04 X=04 Y=ff S=ee P=nvdizc (D=04)
-      89  m`1b7a: pha                      A=04 X=04 Y=ff S=ed P=nvdizc (D=04)
-      92  m`1b7b: lda #$05                 A=05 X=04 Y=ff S=ed P=nvdizc (D=05)
-      94  m`1b7d: sta $f4 [m`00f4]         A=05 X=04 Y=ff S=ed P=nvdizc (D=05)
-      97  m`1b7f: sta $fe30 [i`fe30]       A=05 X=04 Y=ff S=ed P=nvdizc (D=05)
+H      63  m`17cc: lda #$81                 A=81 X=65 Y=00 S=f0 P=Nvdizc (D=81)
+H      65  m`17ce: ldy #$ff                 A=81 X=65 Y=ff S=f0 P=Nvdizc (D=ff)
+H      67  m`17d0: jsr $1bba                A=81 X=65 Y=ff S=ee P=Nvdizc (D=17)
+H      73  m`1bba: stx $1b8f [m`1b8f]       A=81 X=65 Y=ff S=ee P=Nvdizc (D=65)
+H      77  m`1bbd: ldx #$04                 A=81 X=04 Y=ff S=ee P=nvdizc (D=04)
+H      79  m`1bbf: jmp $1b75                A=81 X=04 Y=ff S=ee P=nvdizc (D=04)
+H      82  m`1b75: sta $1b91 [m`1b91]       A=81 X=04 Y=ff S=ee P=nvdizc (D=81)
+H      86  m`1b78: lda $f4 [m`00f4]         A=04 X=04 Y=ff S=ee P=nvdizc (D=04)
+H      89  m`1b7a: pha                      A=04 X=04 Y=ff S=ed P=nvdizc (D=04)
+H      92  m`1b7b: lda #$05                 A=05 X=04 Y=ff S=ed P=nvdizc (D=05)
+H      94  m`1b7d: sta $f4 [m`00f4]         A=05 X=04 Y=ff S=ed P=nvdizc (D=05)
+H      97  m`1b7f: sta $fe30 [i`fe30]       A=05 X=04 Y=ff S=ed P=nvdizc (D=05)
 ```
 
-The first column is the cycle count - then instruction address,
-instruction, effective address, and register values after the
-instruction is complete.
+`H`/`P` indicates whether this line relates to the host or parasite.
+Parasite trace output, when present, has the same format as the host
+output, but offset so that it's easier... marginally... to scan by
+eye:
+
+```
+P                                                                                       0  o`$f800: ldx #$00                 A=00 X=00 Y=00 S=fd P=nvdiZc (D=00)
+P                                                                                       2  o`$f802: lda $ff00,X [o`$ff00]    A=ff X=00 Y=00 S=fd P=Nvdizc (D=ff)
+P                                                                                       6  o`$f805: sta $ff00,X [o`$ff00]    A=ff X=00 Y=00 S=fd P=Nvdizc (D=ff)
+H       3  o`$e364: lda #$40                 A=40 X=00 Y=00 S=fd P=nvdizc (D=40)
+P                                                                                      11  o`$f808: dex                      A=ff X=ff Y=00 S=fd P=Nvdizc (D=d0)
+H       5  o`$e366: sta $0d00 [m`$0d00]      A=40 X=00 Y=00 S=fd P=nvdizc (D=40)
+P                                                                                      13  o`$f809: bne $f802                A=ff X=ff Y=00 S=fd P=Nvdizc (D=01)
+P                                                                                      16  o`$f802: lda $ff00,X [o`$ffff]    A=fc X=ff Y=00 S=fd P=Nvdizc (D=fc)
+H       9  o`$e369: sei                      A=40 X=00 Y=00 S=fd P=nvdIzc (D=a9)
+P                                                                                      20  o`$f805: sta $ff00,X [o`$ffff]    A=fc X=ff Y=00 S=fd P=Nvdizc (D=fc)
+H      11  o`$e36a: lda #$53                 A=53 X=00 Y=00 S=fd P=nvdIzc (D=53)
+P                                                                                      25  o`$f808: dex                      A=fc X=fe Y=00 S=fd P=Nvdizc (D=d0)
+P                                                                                      27  o`$f809: bne $f802                A=fc X=fe Y=00 S=fd P=Nvdizc (D=01)
+```
+
+Host or parasite, the first column is the cycle count - then
+instruction address, instruction, effective address, and register
+values after the instruction is complete.
 
 The bracketed `D` value is the value of the emulated CPU's internal
 data register. For read or read-modify-write instructions, this is the
 value read; for branch instructions, this is the result of the test
 (1=taken, 0=not taken).
 
-Tick the `Flags` checkboxes to get additional hardware state output in
+The `Other traces` checkboxes add additional hardware state output in
 the file:
 
 ```
-   24939  m`21f5: stx $fe40 [i`fe40]       A=e3 X=00 Y=03 S=da P=nvdIZc (D=00)
-   24944  Port value now: 048 ($30) (%00110000) ('0')
-   24944  SystemVIA - Write ORB. Reset IFR CB2.
-   24945  m`21f8: lda $fe40 [i`fe40]       A=30 X=00 Y=03 S=da P=nvdIzc (D=30)
-   24946  PORTB - PB = $30 (%00110000): RTC AS=0; RTC CS=0; Sound Write=true
-   24950  SN76489 - write noise mode: periodic noise, 3 (unknown
-   24951  m`21fb: ora #$08                 A=38 X=00 Y=03 S=da P=nvdIzc (D=08)
-   24953  m`21fd: sta $fe40 [i`fe40]       A=38 X=00 Y=03 S=da P=nvdIzc (D=38)
+H   24939  m`21f5: stx $fe40 [i`fe40]       A=e3 X=00 Y=03 S=da P=nvdIZc (D=00)
+H   24944  Port value now: 048 ($30) (%00110000) ('0')
+H   24944  SystemVIA - Write ORB. Reset IFR CB2.
+H   24945  m`21f8: lda $fe40 [i`fe40]       A=30 X=00 Y=03 S=da P=nvdIzc (D=30)
+H   24946  PORTB - PB = $30 (%00110000): RTC AS=0; RTC CS=0; Sound Write=true
+H   24950  SN76489 - write noise mode: periodic noise, 3 (unknown
+H   24951  m`21fb: ora #$08                 A=38 X=00 Y=03 S=da P=nvdIzc (D=08)
+H   24953  m`21fd: sta $fe40 [i`fe40]       A=38 X=00 Y=03 S=da P=nvdIzc (D=38)
 ```
 
 The categories are hopefully mostly fairly obvious, except for perhaps
@@ -204,9 +265,6 @@ The categories are hopefully mostly fairly obvious, except for perhaps
 paragraph commands can navigate between them), and the VIA `Extra`
 flags (adds a huge pile of extra logging that you probably don't
 want).
-
-`Save (no cycles)` produces output with no cycle count column. This
-can be more useful for diffs.
 
 ## `Pixel metadata` ##
 
@@ -219,7 +277,7 @@ Show a 6502 debug window. Displays typical register info in the top
 half, and internal stuff (cycle count, internal state, data bus
 address, etc.) in the bottom half.
 
-## `Memory Debug` ##
+## `Host Memory Debug`, `Parasite Memory Debug` ##
 
 Show a memory debug window. Click to edit memory.
 
@@ -230,7 +288,7 @@ addresses - which may be more useful sometimes.
 
 Click `Options` to get a popup options window.
 
-## `Disassembly Debug` ##
+## `Host Disassembly Debug`, `Parasite Disassembly Debug` ##
 
 Show running disassembly.
 
@@ -250,7 +308,7 @@ showing current register values and additional useful info.
 
 ## `Paging debug`
 
-Shows current paging settings.
+Shows current paging settings for the host system.
 
 ## `Breakpoints`
 
@@ -262,7 +320,7 @@ particular address or byte, that byte or address will continue to be
 shown in the list even if all its breakpoint flags are cleared. When
 this happens, click the `x` button to get rid of it.
 
-## `Stack`
+## `Host Stack`, `Parasite Stack`
 
 Shows a dump of the stack contents. Values below the bottom of the
 stack are shown in a darker colour.

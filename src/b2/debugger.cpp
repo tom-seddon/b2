@@ -79,6 +79,10 @@ static bool ParseAddress(uint16_t *addr_ptr,
     uint32_t dpo = 0;
     uint16_t addr;
 
+    // Hmm, not really sure about this.
+    uint32_t dpo_fixed_bits_mask = BBCMicroDebugPagingOverride_Parasite;
+    uint32_t dpo_fixed_bits = *dpo_ptr & dpo_fixed_bits_mask;
+
     const char *sep = strchr(text, ADDRESS_PREFIX_SEPARATOR);
     if (sep) {
         if (!ParseAddressPrefix(&dpo, type, text, sep, nullptr)) {
@@ -93,7 +97,7 @@ static bool ParseAddress(uint16_t *addr_ptr,
     }
 
     *addr_ptr = addr;
-    *dpo_ptr = dpo;
+    *dpo_ptr = dpo & ~dpo_fixed_bits_mask | dpo_fixed_bits;
 
     return true;
 }
@@ -169,6 +173,10 @@ class DebugUI : public SettingsUI {
 
     const DebugBigPage *GetDebugBigPageForAddress(M6502Word addr,
                                                   bool mos);
+
+    // If CPU struct is null, implying state unavailable, shows a suitable
+    // message and returns true.
+    bool IsStateUnavailableImGui(const M6502 *s) const;
 
   private:
     std::unique_ptr<DebugBigPage> m_dbps[2][16]; // [mos][mem big page]
@@ -325,10 +333,10 @@ void DebugUI::DoDebugPageOverrideImGui() {
         dpo_current = m->DebugGetCurrentPageOverride();
     }
 
-    if (dpo_mask & BBCMicroDebugPagingOverride_Parasite) {
-        ImGui::CheckboxFlags("Parasite", &m_dpo, BBCMicroDebugPagingOverride_Parasite);
-        ImGui::SameLine();
-    }
+    //if (dpo_mask & BBCMicroDebugPagingOverride_Parasite) {
+    //    ImGui::CheckboxFlags("Parasite", &m_dpo, BBCMicroDebugPagingOverride_Parasite);
+    //    ImGui::SameLine();
+    //}
 
     if (m_dpo & BBCMicroDebugPagingOverride_Parasite) {
         this->DoDebugPageOverrideFlagImGui(dpo_mask,
@@ -411,7 +419,7 @@ void DebugUI::DoDebugPageOverrideImGui() {
     ImGui::SameLine();
 
     if (ImGui::Button("Reset")) {
-        m_dpo &= ~BBCMicroDebugPagingOverride_Parasite;
+        m_dpo &= BBCMicroDebugPagingOverride_Parasite;
     }
 }
 
@@ -677,6 +685,18 @@ const DebugUI::DebugBigPage *DebugUI::GetDebugBigPageForAddress(M6502Word addr,
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+bool DebugUI::IsStateUnavailableImGui(const M6502 *s) const {
+    if (!s) {
+        ImGui::TextUnformatted("State not available");
+        return true;
+    }
+
+    return false;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 void DebugUI::DoDebugPageOverrideFlagImGui(uint32_t mask,
                                            uint32_t current,
                                            const char *name,
@@ -736,6 +756,17 @@ static std::unique_ptr<DerivedType> CreateDebugUI(BeebWindow *beeb_window) {
     return ptr;
 }
 
+template <class DerivedType>
+static std::unique_ptr<DerivedType> CreateParasiteDebugUI(BeebWindow *beeb_window) {
+    std::unique_ptr<DerivedType> ptr = CreateDebugUI<DerivedType>(beeb_window);
+
+    uint32_t dpo = ptr->GetDebugPagingOverrides();
+    dpo |= BBCMicroDebugPagingOverride_Parasite;
+    ptr->SetDebugPagingOverrides(dpo);
+
+    return ptr;
+}
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
@@ -772,15 +803,6 @@ class M6502DebugWindow : public DebugUI {
             cycles = m->GetCycleCountPtr();
         }
 
-        ImGuiHeader("Host CPU");
-
-        this->StateImGui(host_state);
-
-        if (got_parasite_state) {
-            ImGuiHeader("Parasite CPU");
-            this->StateImGui(parasite_state);
-        }
-
         ImGuiHeader("System state");
         char cycles_str[MAX_UINT64_THOUSANDS_LEN];
         GetThousandsString(cycles_str, cycles->n >> RSHIFT_CYCLE_COUNT_TO_4MHZ);
@@ -797,6 +819,15 @@ class M6502DebugWindow : public DebugUI {
             }
         } else {
             ImGui::TextUnformatted("State = running");
+        }
+
+        ImGuiHeader("Host CPU");
+
+        this->StateImGui(host_state);
+
+        if (got_parasite_state) {
+            ImGuiHeader("Parasite CPU");
+            this->StateImGui(parasite_state);
         }
     }
 
@@ -877,14 +908,19 @@ class MemoryDebugWindow : public DebugUI,
 
   protected:
     void DoImGui2() override {
-        this->DoDebugPageOverrideImGui();
 
         {
             std::unique_lock<Mutex> lock;
             const BBCMicro *m = m_beeb_thread->LockBeeb(&lock);
 
+            if (this->IsStateUnavailableImGui(m->DebugGetM6502(m_dpo))) {
+                return;
+            }
+
             m_type = m->GetType();
         }
+
+        this->DoDebugPageOverrideImGui();
 
         m_hex_editor.DoImGui();
 
@@ -981,8 +1017,12 @@ class MemoryDebugWindow : public DebugUI,
     const BBCMicroType *m_type = nullptr;
 };
 
-std::unique_ptr<SettingsUI> CreateMemoryDebugWindow(BeebWindow *beeb_window) {
+std::unique_ptr<SettingsUI> CreateHostMemoryDebugWindow(BeebWindow *beeb_window) {
     return CreateDebugUI<MemoryDebugWindow>(beeb_window);
+}
+
+std::unique_ptr<SettingsUI> CreateParasiteMemoryDebugWindow(BeebWindow *beeb_window) {
+    return CreateParasiteDebugUI<MemoryDebugWindow>(beeb_window);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -1103,7 +1143,11 @@ class DisassemblyDebugWindow : public DebugUI,
         {
             std::unique_lock<Mutex> lock;
             const BBCMicro *m = m_beeb_thread->LockBeeb(&lock);
+
             const M6502 *s = m->DebugGetM6502(m_dpo);
+            if (this->IsStateUnavailableImGui(s)) {
+                return;
+            }
 
             type = m->GetType();
             halted = m->DebugIsHalted();
@@ -1678,9 +1722,18 @@ ObjectCommandTable<DisassemblyDebugWindow> DisassemblyDebugWindow::ms_command_ta
                                                                                                               {CommandDef("page_down", "Page Down").Shortcut(SDLK_PAGEDOWN), &DisassemblyDebugWindow::PageDown, &DisassemblyDebugWindow::IsMoveEnabled},
                                                                                                           });
 
-std::unique_ptr<SettingsUI> CreateDisassemblyDebugWindow(BeebWindow *beeb_window,
-                                                         bool initial_track_pc) {
+std::unique_ptr<SettingsUI> CreateHostDisassemblyDebugWindow(BeebWindow *beeb_window,
+                                                             bool initial_track_pc) {
     auto ui = CreateDebugUI<DisassemblyDebugWindow>(beeb_window);
+
+    ui->SetTrackPC(initial_track_pc);
+
+    return ui;
+}
+
+std::unique_ptr<SettingsUI> CreateParasiteDisassemblyDebugWindow(BeebWindow *beeb_window,
+                                                                 bool initial_track_pc) {
+    auto ui = CreateParasiteDebugUI<DisassemblyDebugWindow>(beeb_window);
 
     ui->SetTrackPC(initial_track_pc);
 
@@ -2779,6 +2832,9 @@ class StackDebugWindow : public DebugUI {
             std::unique_lock<Mutex> lock;
             const BBCMicro *m = m_beeb_thread->LockBeeb(&lock);
             const M6502 *cpu = m->DebugGetM6502(m_dpo);
+            if (this->IsStateUnavailableImGui(cpu)) {
+                return;
+            }
             s = cpu->s.b.l;
         }
 
@@ -2884,13 +2940,7 @@ std::unique_ptr<SettingsUI> CreateHostStackDebugWindow(BeebWindow *beeb_window) 
 }
 
 std::unique_ptr<SettingsUI> CreateParasiteStackDebugWindow(BeebWindow *beeb_window) {
-    std::unique_ptr<StackDebugWindow> window = CreateDebugUI<StackDebugWindow>(beeb_window);
-
-    uint32_t dpo = window->GetDebugPagingOverrides();
-    dpo |= BBCMicroDebugPagingOverride_Parasite;
-    window->SetDebugPagingOverrides(dpo);
-
-    return window;
+    return CreateParasiteDebugUI<StackDebugWindow>(beeb_window);
 }
 
 //////////////////////////////////////////////////////////////////////////

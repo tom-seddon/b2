@@ -826,14 +826,26 @@ struct BeebWindow::SettingsUIMetadata {
 };
 
 #if BBCMICRO_DEBUGGER
-static std::unique_ptr<SettingsUI> CreateDisassemblyDebugWindow1(BeebWindow *beeb_window) {
-    return CreateDisassemblyDebugWindow(beeb_window, true);
+static std::unique_ptr<SettingsUI> CreateHostDisassemblyDebugWindow1(BeebWindow *beeb_window) {
+    return CreateHostDisassemblyDebugWindow(beeb_window, true);
 }
 #endif
 
 #if BBCMICRO_DEBUGGER
-static std::unique_ptr<SettingsUI> CreateDisassemblyDebugWindowN(BeebWindow *beeb_window) {
-    return CreateDisassemblyDebugWindow(beeb_window, false);
+static std::unique_ptr<SettingsUI> CreateHostDisassemblyDebugWindowN(BeebWindow *beeb_window) {
+    return CreateHostDisassemblyDebugWindow(beeb_window, false);
+}
+#endif
+
+#if BBCMICRO_DEBUGGER
+static std::unique_ptr<SettingsUI> CreateParasiteDisassemblyDebugWindow1(BeebWindow *beeb_window) {
+    return CreateParasiteDisassemblyDebugWindow(beeb_window, true);
+}
+#endif
+
+#if BBCMICRO_DEBUGGER
+static std::unique_ptr<SettingsUI> CreateParasiteDisassemblyDebugWindowN(BeebWindow *beeb_window) {
+    return CreateParasiteDisassemblyDebugWindow(beeb_window, false);
 }
 #endif
 
@@ -866,27 +878,27 @@ const BeebWindow::SettingsUIMetadata BeebWindow::ms_settings_uis[] = {
     },
     {
         BeebWindowPopupType_MemoryDebugger1,
-        "Memory Debug 1",
+        "Host Memory Debug 1",
         "toggle_memory_debugger1",
-        &CreateMemoryDebugWindow,
+        &CreateHostMemoryDebugWindow,
     },
     {
         BeebWindowPopupType_MemoryDebugger2,
-        "Memory Debug 2",
+        "Host Memory Debug 2",
         "toggle_memory_debugger2",
-        &CreateMemoryDebugWindow,
+        &CreateHostMemoryDebugWindow,
     },
     {
         BeebWindowPopupType_MemoryDebugger3,
-        "Memory Debug 3",
+        "Host Memory Debug 3",
         "toggle_memory_debugger3",
-        &CreateMemoryDebugWindow,
+        &CreateHostMemoryDebugWindow,
     },
     {
         BeebWindowPopupType_MemoryDebugger4,
-        "Memory Debug 4",
+        "Host Memory Debug 4",
         "toggle_memory_debugger4",
-        &CreateMemoryDebugWindow,
+        &CreateHostMemoryDebugWindow,
     },
     {
         BeebWindowPopupType_ExtMemoryDebugger1,
@@ -914,27 +926,27 @@ const BeebWindow::SettingsUIMetadata BeebWindow::ms_settings_uis[] = {
     },
     {
         BeebWindowPopupType_DisassemblyDebugger1,
-        "Disassembly Debug 1",
+        "Host Disassembly Debug 1",
         "toggle_disassembly_debugger1",
-        &CreateDisassemblyDebugWindow1,
+        &CreateHostDisassemblyDebugWindow1,
     },
     {
         BeebWindowPopupType_DisassemblyDebugger2,
-        "Disassembly Debug 2",
+        "Host Disassembly Debug 2",
         "toggle_disassembly_debugger2",
-        &CreateDisassemblyDebugWindowN,
+        &CreateHostDisassemblyDebugWindowN,
     },
     {
         BeebWindowPopupType_DisassemblyDebugger3,
-        "Disassembly Debug 3",
+        "Host Disassembly Debug 3",
         "toggle_disassembly_debugger3",
-        &CreateDisassemblyDebugWindowN,
+        &CreateHostDisassemblyDebugWindowN,
     },
     {
         BeebWindowPopupType_DisassemblyDebugger4,
-        "Disassembly Debug 4",
+        "Host Disassembly Debug 4",
         "toggle_disassembly_debugger4",
-        &CreateDisassemblyDebugWindowN,
+        &CreateHostDisassemblyDebugWindowN,
     },
     {
         BeebWindowPopupType_CRTCDebugger,
@@ -995,6 +1007,54 @@ const BeebWindow::SettingsUIMetadata BeebWindow::ms_settings_uis[] = {
         "Parasite Stack",
         "toggle_parasite_stack_debugger",
         &CreateParasiteStackDebugWindow,
+    },
+    {
+        BeebWindowPopupType_ParasiteMemoryDebugger1,
+        "Parasite Memory Debug 1",
+        "toggle_parasite_memory_debugger1",
+        &CreateParasiteMemoryDebugWindow,
+    },
+    {
+        BeebWindowPopupType_ParasiteMemoryDebugger2,
+        "Parasite Memory Debug 2",
+        "toggle_parasite_memory_debugger2",
+        &CreateParasiteMemoryDebugWindow,
+    },
+    {
+        BeebWindowPopupType_ParasiteMemoryDebugger3,
+        "Parasite Memory Debug 3",
+        "toggle_parasite_memory_debugger3",
+        &CreateParasiteMemoryDebugWindow,
+    },
+    {
+        BeebWindowPopupType_ParasiteMemoryDebugger4,
+        "Parasite Memory Debug 4",
+        "toggle_parasite_memory_debugger4",
+        &CreateParasiteMemoryDebugWindow,
+    },
+    {
+        BeebWindowPopupType_ParasiteDisassemblyDebugger1,
+        "Parasite Disassembly Debug 1",
+        "toggle_parasite_disassembly_debugger1",
+        &CreateParasiteDisassemblyDebugWindow1,
+    },
+    {
+        BeebWindowPopupType_ParasiteDisassemblyDebugger2,
+        "Parasite Disassembly Debug 2",
+        "toggle_parasite_disassembly_debugger2",
+        &CreateParasiteDisassemblyDebugWindowN,
+    },
+    {
+        BeebWindowPopupType_ParasiteDisassemblyDebugger3,
+        "Parasite Disassembly Debug 3",
+        "toggle_parasite_disassembly_debugger3",
+        &CreateParasiteDisassemblyDebugWindowN,
+    },
+    {
+        BeebWindowPopupType_ParasiteDisassemblyDebugger4,
+        "Parasite Disassembly Debug 4",
+        "toggle_parasite_disassembly_debugger4",
+        &CreateParasiteDisassemblyDebugWindowN,
     },
 #endif
     {BeebWindowPopupType_BeebLink, "BeebLink Options", "toggle_beeblink_options", &CreateBeebLinkUI},
@@ -1714,11 +1774,11 @@ void BeebWindow::DoDebugMenu() {
             m_cc.DoMenuItemUI("toggle_memory_debugger4");
             ImGui::EndMenu();
         }
-        if (ImGui::BeginMenu("External Memory Debug")) {
-            m_cc.DoMenuItemUI("toggle_ext_memory_debugger1");
-            m_cc.DoMenuItemUI("toggle_ext_memory_debugger2");
-            m_cc.DoMenuItemUI("toggle_ext_memory_debugger3");
-            m_cc.DoMenuItemUI("toggle_ext_memory_debugger4");
+        if (ImGui::BeginMenu("Parasite Memory Debug")) {
+            m_cc.DoMenuItemUI("toggle_parasite_memory_debugger1");
+            m_cc.DoMenuItemUI("toggle_parasite_memory_debugger2");
+            m_cc.DoMenuItemUI("toggle_parasite_memory_debugger3");
+            m_cc.DoMenuItemUI("toggle_parasite_memory_debugger4");
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("Disassembly Debug")) {
@@ -1726,6 +1786,20 @@ void BeebWindow::DoDebugMenu() {
             m_cc.DoMenuItemUI("toggle_disassembly_debugger2");
             m_cc.DoMenuItemUI("toggle_disassembly_debugger3");
             m_cc.DoMenuItemUI("toggle_disassembly_debugger4");
+            ImGui::EndMenu();
+        }
+        if (ImGui::BeginMenu("Parasite Disassembly Debug")) {
+            m_cc.DoMenuItemUI("toggle_parasite_disassembly_debugger1");
+            m_cc.DoMenuItemUI("toggle_parasite_disassembly_debugger2");
+            m_cc.DoMenuItemUI("toggle_parasite_disassembly_debugger3");
+            m_cc.DoMenuItemUI("toggle_parasite_disassembly_debugger4");
+            ImGui::EndMenu();
+        }
+        if (ImGui::BeginMenu("External Memory Debug")) {
+            m_cc.DoMenuItemUI("toggle_ext_memory_debugger1");
+            m_cc.DoMenuItemUI("toggle_ext_memory_debugger2");
+            m_cc.DoMenuItemUI("toggle_ext_memory_debugger3");
+            m_cc.DoMenuItemUI("toggle_ext_memory_debugger4");
             ImGui::EndMenu();
         }
         m_cc.DoMenuItemUI("toggle_crtc_debugger");
@@ -3396,6 +3470,14 @@ ObjectCommandTable<BeebWindow> BeebWindow::ms_command_table("Beeb Window", {
         GetTogglePopupCommand<BeebWindowPopupType_BreakpointsDebugger>(),
         GetTogglePopupCommand<BeebWindowPopupType_StackDebugger>(),
         GetTogglePopupCommand<BeebWindowPopupType_ParasiteStackDebugger>(),
+        GetTogglePopupCommand<BeebWindowPopupType_ParasiteMemoryDebugger1>(),
+        GetTogglePopupCommand<BeebWindowPopupType_ParasiteMemoryDebugger2>(),
+        GetTogglePopupCommand<BeebWindowPopupType_ParasiteMemoryDebugger3>(),
+        GetTogglePopupCommand<BeebWindowPopupType_ParasiteMemoryDebugger4>(),
+        GetTogglePopupCommand<BeebWindowPopupType_ParasiteDisassemblyDebugger1>(),
+        GetTogglePopupCommand<BeebWindowPopupType_ParasiteDisassemblyDebugger2>(),
+        GetTogglePopupCommand<BeebWindowPopupType_ParasiteDisassemblyDebugger3>(),
+        GetTogglePopupCommand<BeebWindowPopupType_ParasiteDisassemblyDebugger4>(),
 
         {CommandDef("debug_stop", "Stop").Shortcut(SDLK_F5 | PCKeyModifier_Shift), &BeebWindow::DebugStop, nullptr, &BeebWindow::DebugIsStopEnabled},
         {CommandDef("debug_run", "Run").Shortcut(SDLK_F5), &BeebWindow::DebugRun, nullptr, &BeebWindow::DebugIsRunEnabled},

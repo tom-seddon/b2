@@ -16,9 +16,11 @@
 class BeebWindow;
 
 std::unique_ptr<SettingsUI> Create6502DebugWindow(BeebWindow *beeb_window);
-std::unique_ptr<SettingsUI> CreateMemoryDebugWindow(BeebWindow *beeb_window);
+std::unique_ptr<SettingsUI> CreateHostMemoryDebugWindow(BeebWindow *beeb_window);
+std::unique_ptr<SettingsUI> CreateParasiteMemoryDebugWindow(BeebWindow *beeb_window);
 std::unique_ptr<SettingsUI> CreateExtMemoryDebugWindow(BeebWindow *beeb_window);
-std::unique_ptr<SettingsUI> CreateDisassemblyDebugWindow(BeebWindow *beeb_window, bool initial_track_pc);
+std::unique_ptr<SettingsUI> CreateHostDisassemblyDebugWindow(BeebWindow *beeb_window, bool initial_track_pc);
+std::unique_ptr<SettingsUI> CreateParasiteDisassemblyDebugWindow(BeebWindow *beeb_window, bool initial_track_pc);
 std::unique_ptr<SettingsUI> CreateCRTCDebugWindow(BeebWindow *beeb_window);
 std::unique_ptr<SettingsUI> CreateVideoULADebugWindow(BeebWindow *beeb_window);
 std::unique_ptr<SettingsUI> CreateSystemVIADebugWindow(BeebWindow *beeb_window);
