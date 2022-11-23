@@ -49,7 +49,7 @@ struct M6502Config;
 // 76-79   ROM 15
 // 80-83   MOS
 // 84-99   parasite
-// 100     parasite ROM 
+// 100     parasite ROM
 // 101-116 second parasite [planned]
 // 117     second parasite ROM (double up to make 4K) [planned]
 // </pre>
@@ -102,13 +102,11 @@ static constexpr uint8_t NUM_ROM_BIG_PAGES = 16 / 4;
 static constexpr uint8_t MOS_BIG_PAGE_INDEX = ROM0_BIG_PAGE_INDEX + 16 * NUM_ROM_BIG_PAGES;
 static constexpr uint8_t NUM_MOS_BIG_PAGES = 16 / 4;
 
-// TODO: hmm, is this actually a good idea???
+static constexpr uint8_t PARASITE_BIG_PAGE_INDEX = MOS_BIG_PAGE_INDEX + NUM_MOS_BIG_PAGES;
+static constexpr uint8_t NUM_PARASITE_BIG_PAGES = 64 / 4;
 
-//static constexpr uint8_t PARASITE_BIG_PAGE_INDEX = MOS_BIG_PAGE_INDEX + NUM_MOS_BIG_PAGES;
-//static constexpr uint8_t NUM_PARASITE_BIG_PAGES = 64 / 4;
-//
-//static constexpr uint8_t PARASITE_ROM_BIG_PAGE_INDEX = PARASITE_BIG_PAGE_INDEX + NUM_PARASITE_BIG_PAGES;
-//static constexpr uint8_t NUM_PARASITE_ROM_BIG_PAGES = 1;
+static constexpr uint8_t PARASITE_ROM_BIG_PAGE_INDEX = PARASITE_BIG_PAGE_INDEX + NUM_PARASITE_BIG_PAGES;
+static constexpr uint8_t NUM_PARASITE_ROM_BIG_PAGES = 1;
 
 //static constexpr uint8_t SECOND_PARASITE_BIG_PAGE_INDEX = PARASITE_ROM_BIG_PAGE_INDEX + NUM_PARASITE_ROM_BIG_PAGES;
 //static constexpr uint8_t NUM_SECOND_PARASITE_BIG_PAGES = 64 / 4;
@@ -116,7 +114,7 @@ static constexpr uint8_t NUM_MOS_BIG_PAGES = 16 / 4;
 //static constexpr uint8_t SECOND_PARASITE_ROM_BIG_PAGE_INDEX = SECOND_PARASITE_BIG_PAGE_INDEX + NUM_SECOND_PARASITE_BIG_PAGES;
 //static constexpr uint8_t NUM_SECOND_PARASITE_ROM_BIG_PAGES = 1;
 
-static constexpr uint8_t NUM_BIG_PAGES = MOS_BIG_PAGE_INDEX + NUM_MOS_BIG_PAGES;
+static constexpr uint8_t NUM_BIG_PAGES = MOS_BIG_PAGE_INDEX + NUM_MOS_BIG_PAGES + NUM_PARASITE_BIG_PAGES + NUM_PARASITE_ROM_BIG_PAGES;
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -274,7 +272,7 @@ struct BBCMicroType {
     std::vector<SHEILACycleStretchRegion> sheila_cycle_stretch_regions;
 
 #if BBCMICRO_DEBUGGER
-    bool (*parse_prefix_char_fn)(uint32_t *dpo, char c);
+    bool (*parse_prefix_lower_case_char_fn)(uint32_t *dpo, char c);
 #endif
 };
 

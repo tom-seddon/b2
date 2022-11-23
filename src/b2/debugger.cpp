@@ -297,88 +297,104 @@ void DebugUI::DoDebugPageOverrideImGui() {
     static const char ANDY_POPUP[] = "andy_popup";
     static const char HAZEL_POPUP[] = "hazel_popup";
     static const char OS_POPUP[] = "os_popup";
+    static const char PARASITE_ROM_POPUP[] = "parasite_rom_popup";
 
     uint32_t dpo_mask;
     uint32_t dpo_current;
     {
         std::unique_lock<Mutex> lock;
         const BBCMicro *m = m_beeb_thread->LockBeeb(&lock);
-        dpo_mask = m->GetType()->dpo_mask;
+        dpo_mask = m->DebugGetPagingOverrideMask();
         dpo_current = m->DebugGetCurrentPageOverride();
     }
 
-    // ROM.
-    if (dpo_mask & BBCMicroDebugPagingOverride_OverrideROM) {
-        if (ImGui::Button("ROM")) {
-            ImGui::OpenPopup(ROM_POPUP);
-        }
-
+    if (dpo_mask & BBCMicroDebugPagingOverride_Parasite) {
+        ImGui::CheckboxFlags("Parasite", &m_dpo, BBCMicroDebugPagingOverride_Parasite);
         ImGui::SameLine();
-
-        if (m_dpo & BBCMicroDebugPagingOverride_OverrideROM) {
-            ImGui::Text("%x!", m_dpo & BBCMicroDebugPagingOverride_ROM);
-        } else {
-            ImGui::Text("%x", dpo_current & BBCMicroDebugPagingOverride_ROM);
-        }
-
-        if (ImGui::BeginPopup(ROM_POPUP)) {
-            if (ImGui::Button("Use current")) {
-                m_dpo &= ~(uint32_t)BBCMicroDebugPagingOverride_OverrideROM;
-                m_dpo &= ~(uint32_t)BBCMicroDebugPagingOverride_ROM;
-                ImGui::CloseCurrentPopup();
-            }
-
-            ImGui::Text("Force");
-
-            for (uint8_t i = 0; i < 16; ++i) {
-                ImGui::SameLine();
-
-                char text[10];
-                snprintf(text, sizeof text, "%X", i);
-
-                if (ImGui::Button(text)) {
-                    m_dpo |= BBCMicroDebugPagingOverride_OverrideROM;
-                    m_dpo = (m_dpo & ~(uint32_t)BBCMicroDebugPagingOverride_ROM) | i;
-                    ImGui::CloseCurrentPopup();
-                }
-            }
-
-            ImGui::EndPopup();
-        }
     }
 
-    this->DoDebugPageOverrideFlagImGui(dpo_mask,
-                                       dpo_current,
-                                       "Shadow",
-                                       SHADOW_POPUP,
-                                       BBCMicroDebugPagingOverride_OverrideShadow,
-                                       BBCMicroDebugPagingOverride_Shadow);
+    if (m_dpo & BBCMicroDebugPagingOverride_Parasite) {
+        this->DoDebugPageOverrideFlagImGui(dpo_mask,
+                                           dpo_current,
+                                           "Parasite ROM",
+                                           PARASITE_ROM_POPUP,
+                                           BBCMicroDebugPagingOverride_OverrideParasiteROM,
+                                           BBCMicroDebugPagingOverride_ParasiteROM);
 
-    this->DoDebugPageOverrideFlagImGui(dpo_mask,
-                                       dpo_current,
-                                       "ANDY",
-                                       ANDY_POPUP,
-                                       BBCMicroDebugPagingOverride_OverrideANDY,
-                                       BBCMicroDebugPagingOverride_ANDY);
+    } else {
+        // ROM.
+        if (dpo_mask & BBCMicroDebugPagingOverride_OverrideROM) {
+            if (ImGui::Button("ROM")) {
+                ImGui::OpenPopup(ROM_POPUP);
+            }
 
-    this->DoDebugPageOverrideFlagImGui(dpo_mask,
-                                       dpo_current,
-                                       "HAZEL",
-                                       HAZEL_POPUP,
-                                       BBCMicroDebugPagingOverride_OverrideHAZEL,
-                                       BBCMicroDebugPagingOverride_HAZEL);
+            ImGui::SameLine();
 
-    this->DoDebugPageOverrideFlagImGui(dpo_mask,
-                                       dpo_current,
-                                       "OS",
-                                       OS_POPUP,
-                                       BBCMicroDebugPagingOverride_OverrideOS,
-                                       BBCMicroDebugPagingOverride_OS);
+            if (m_dpo & BBCMicroDebugPagingOverride_OverrideROM) {
+                ImGui::Text("%x!", m_dpo & BBCMicroDebugPagingOverride_ROM);
+            } else {
+                ImGui::Text("%x", dpo_current & BBCMicroDebugPagingOverride_ROM);
+            }
+
+            if (ImGui::BeginPopup(ROM_POPUP)) {
+                if (ImGui::Button("Use current")) {
+                    m_dpo &= ~(uint32_t)BBCMicroDebugPagingOverride_OverrideROM;
+                    m_dpo &= ~(uint32_t)BBCMicroDebugPagingOverride_ROM;
+                    ImGui::CloseCurrentPopup();
+                }
+
+                ImGui::Text("Force");
+
+                for (uint8_t i = 0; i < 16; ++i) {
+                    ImGui::SameLine();
+
+                    char text[10];
+                    snprintf(text, sizeof text, "%X", i);
+
+                    if (ImGui::Button(text)) {
+                        m_dpo |= BBCMicroDebugPagingOverride_OverrideROM;
+                        m_dpo = (m_dpo & ~(uint32_t)BBCMicroDebugPagingOverride_ROM) | i;
+                        ImGui::CloseCurrentPopup();
+                    }
+                }
+
+                ImGui::EndPopup();
+            }
+        }
+
+        this->DoDebugPageOverrideFlagImGui(dpo_mask,
+                                           dpo_current,
+                                           "Shadow",
+                                           SHADOW_POPUP,
+                                           BBCMicroDebugPagingOverride_OverrideShadow,
+                                           BBCMicroDebugPagingOverride_Shadow);
+
+        this->DoDebugPageOverrideFlagImGui(dpo_mask,
+                                           dpo_current,
+                                           "ANDY",
+                                           ANDY_POPUP,
+                                           BBCMicroDebugPagingOverride_OverrideANDY,
+                                           BBCMicroDebugPagingOverride_ANDY);
+
+        this->DoDebugPageOverrideFlagImGui(dpo_mask,
+                                           dpo_current,
+                                           "HAZEL",
+                                           HAZEL_POPUP,
+                                           BBCMicroDebugPagingOverride_OverrideHAZEL,
+                                           BBCMicroDebugPagingOverride_HAZEL);
+
+        this->DoDebugPageOverrideFlagImGui(dpo_mask,
+                                           dpo_current,
+                                           "OS",
+                                           OS_POPUP,
+                                           BBCMicroDebugPagingOverride_OverrideOS,
+                                           BBCMicroDebugPagingOverride_OS);
+    }
 
     ImGui::SameLine();
 
     if (ImGui::Button("Reset")) {
-        m_dpo = 0;
+        m_dpo &= ~BBCMicroDebugPagingOverride_Parasite;
     }
 }
 
@@ -725,7 +741,7 @@ class M6502DebugWindow : public DebugUI {
             const M6502 *host_cpu = m->GetM6502();
             this->GetStateForCPU(&host_state, host_cpu);
 
-            if (const M6502 *parasite_cpu = m->GetParasiteM6502()) {
+            if (const M6502 *parasite_cpu = m->DebugGetM6502(BBCMicroDebugPagingOverride_Parasite)) {
                 this->GetStateForCPU(&parasite_state, parasite_cpu);
                 got_parasite_state = true;
             }
@@ -1070,7 +1086,7 @@ class DisassemblyDebugWindow : public DebugUI,
         {
             std::unique_lock<Mutex> lock;
             const BBCMicro *m = m_beeb_thread->LockBeeb(&lock);
-            const M6502 *s = m->GetM6502();
+            const M6502 *s = m->DebugGetM6502(m_dpo);
 
             type = m->GetType();
             halted = m->DebugIsHalted();
@@ -1082,7 +1098,7 @@ class DisassemblyDebugWindow : public DebugUI,
             y = s->y;
             p = M6502_GetP(s);
             sp = s->s;
-            m->GetMemBigPageIsMOSTable(pc_is_mos, m_dpo);
+            m->DebugGetMemBigPageIsMOSTable(pc_is_mos, m_dpo);
         }
 
         float maxY = ImGui::GetCurrentWindow()->Size.y; //-ImGui::GetTextLineHeight()-GImGui->Style.WindowPadding.y*2.f;
@@ -2547,13 +2563,13 @@ class BreakpointsDebugWindow : public DebugUI {
 
     // This is quite a large object, by BBC standards at least.
     uint8_t m_addr_debug_flags[65536] = {};
-    uint8_t m_big_page_debug_flags[BBCMicro::NUM_BIG_PAGES][BBCMicro::BIG_PAGE_SIZE_BYTES] = {};
+    uint8_t m_big_page_debug_flags[NUM_BIG_PAGES][BBCMicro::BIG_PAGE_SIZE_BYTES] = {};
 
     // The retain flag indicates that the byte should be listed even if there's
     // no breakpoint set. This prevents rows disappearing when you untick all
     // the entries.
     uint8_t m_addr_debug_flags_retain[65536 >> 3] = {};
-    uint8_t m_big_page_debug_flags_retain[BBCMicro::NUM_BIG_PAGES][BBCMicro::BIG_PAGE_SIZE_BYTES >> 3] = {};
+    uint8_t m_big_page_debug_flags_retain[NUM_BIG_PAGES][BBCMicro::BIG_PAGE_SIZE_BYTES >> 3] = {};
 
     std::vector<Breakpoint> m_breakpoints;
 
@@ -2574,7 +2590,7 @@ class BreakpointsDebugWindow : public DebugUI {
             flags = &m_addr_debug_flags[bp->offset];
             retain = &m_addr_debug_flags_retain[bp->offset >> 3];
         } else {
-            ASSERT(bp->big_page < BBCMicro::NUM_BIG_PAGES);
+            ASSERT(bp->big_page < NUM_BIG_PAGES);
             ASSERT(bp->offset < BBCMicro::BIG_PAGE_SIZE_BYTES);
             flags = &m_big_page_debug_flags[bp->big_page][bp->offset];
             retain = &m_big_page_debug_flags_retain[bp->big_page][bp->offset >> 3];
@@ -2641,7 +2657,7 @@ class BreakpointsDebugWindow : public DebugUI {
             }
         }
 
-        for (uint8_t i = 0; i < BBCMicro::NUM_BIG_PAGES; ++i) {
+        for (uint8_t i = 0; i < NUM_BIG_PAGES; ++i) {
             const uint8_t *big_page_debug_flags = m_big_page_debug_flags[i];
 
             for (size_t j = 0; j < BBCMicro::BIG_PAGE_SIZE_BYTES; ++j) {

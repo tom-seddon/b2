@@ -370,6 +370,21 @@ void BBCMicro::InitPaging() {
         }
     }
 
+    if (m_state.parasite_enabled) {
+        for (size_t i = 0; i < NUM_PARASITE_BIG_PAGES; ++i) {
+            BigPage *bp = &m_big_pages[PARASITE_BIG_PAGE_INDEX + i];
+
+            bp->r = m_state.parasite_ram_buffer.data() + i * BIG_PAGE_SIZE_BYTES;
+            bp->w = m_state.parasite_ram_buffer.data() + i * BIG_PAGE_SIZE_BYTES;
+        }
+
+        for (size_t i = 0; i < NUM_PARASITE_ROM_BIG_PAGES; ++i) {
+            BigPage *bp = &m_big_pages[PARASITE_ROM_BIG_PAGE_INDEX + i];
+
+            bp->r = m_state.parasite_rom_buffer->data() + i * BIG_PAGE_SIZE_BYTES;
+        }
+    }
+
     // Fix up everything else.
     for (uint8_t i = 0; i < NUM_BIG_PAGES; ++i) {
         BigPage *bp = &m_big_pages[i];
@@ -1835,17 +1850,6 @@ const M6502 *BBCMicro::GetM6502() const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-const M6502 *BBCMicro::GetParasiteM6502() const {
-    if (m_state.parasite_enabled) {
-        return &m_state.parasite_cpu;
-    } else {
-        return nullptr;
-    }
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 #if BBCMICRO_DEBUGGER
 const CRTC *BBCMicro::DebugGetCRTC() const {
     return &m_state.crtc;
@@ -1939,18 +1943,50 @@ void BBCMicro::DebugGetPaging(ROMSEL *romsel, ACCCON *acccon) const {
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_DEBUGGER
+const M6502 *BBCMicro::DebugGetM6502(uint32_t dpo) const {
+    if (dpo & BBCMicroDebugPagingOverride_Parasite) {
+        if (m_state.parasite_enabled) {
+            return &m_state.parasite_cpu;
+        } else {
+            return nullptr;
+        }
+    } else {
+        return &m_state.cpu;
+    }
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_DEBUGGER
 const BBCMicro::BigPage *BBCMicro::DebugGetBigPageForAddress(M6502Word addr,
                                                              bool mos,
                                                              uint32_t dpo) const {
-    ROMSEL romsel = m_state.romsel;
-    ACCCON acccon = m_state.acccon;
-    (*m_type->apply_dpo_fn)(&romsel, &acccon, dpo);
+    unsigned big_page;
+    if (dpo & BBCMicroDebugPagingOverride_Parasite) {
+        bool parasite_boot_mode = m_state.parasite_boot_mode;
+        if (dpo & BBCMicroDebugPagingOverride_OverrideParasiteROM) {
+            parasite_boot_mode = !!(dpo & BBCMicroDebugPagingOverride_ParasiteROM);
+        }
 
-    MemoryBigPageTables tables;
-    bool io, crt_shadow;
-    (*m_type->get_mem_big_page_tables_fn)(&tables, &io, &crt_shadow, romsel, acccon);
+        if (addr.w >= 0xf000 && parasite_boot_mode) {
+            big_page = PARASITE_ROM_BIG_PAGE_INDEX;
+        } else {
+            big_page = PARASITE_BIG_PAGE_INDEX + addr.p.p;
+        }
+    } else {
+        ROMSEL romsel = m_state.romsel;
+        ACCCON acccon = m_state.acccon;
+        (*m_type->apply_dpo_fn)(&romsel, &acccon, dpo);
 
-    uint8_t big_page = tables.mem_big_pages[mos][addr.p.p];
+        MemoryBigPageTables tables;
+        bool io, crt_shadow;
+        (*m_type->get_mem_big_page_tables_fn)(&tables, &io, &crt_shadow, romsel, acccon);
+
+        big_page = tables.mem_big_pages[mos][addr.p.p];
+    }
+
     ASSERT(big_page < NUM_BIG_PAGES);
     const BigPage *bp = &m_big_pages[big_page];
     return bp;
@@ -1961,19 +1997,21 @@ const BBCMicro::BigPage *BBCMicro::DebugGetBigPageForAddress(M6502Word addr,
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_DEBUGGER
-void BBCMicro::GetMemBigPageIsMOSTable(uint8_t *mem_big_page_is_mos, uint32_t dpo) const {
-
+void BBCMicro::DebugGetMemBigPageIsMOSTable(uint8_t *mem_big_page_is_mos, uint32_t dpo) const {
     // Should maybe try to make this all fit together a bit better...
+    if (dpo & BBCMicroDebugPagingOverride_Parasite) {
+        memset(mem_big_page_is_mos, 0, 16);
+    } else {
+        ROMSEL romsel = m_state.romsel;
+        ACCCON acccon = m_state.acccon;
+        (*m_type->apply_dpo_fn)(&romsel, &acccon, dpo);
 
-    ROMSEL romsel = m_state.romsel;
-    ACCCON acccon = m_state.acccon;
-    (*m_type->apply_dpo_fn)(&romsel, &acccon, dpo);
+        MemoryBigPageTables tables;
+        bool io, crt_shadow;
+        (*m_type->get_mem_big_page_tables_fn)(&tables, &io, &crt_shadow, romsel, acccon);
 
-    MemoryBigPageTables tables;
-    bool io, crt_shadow;
-    (*m_type->get_mem_big_page_tables_fn)(&tables, &io, &crt_shadow, romsel, acccon);
-
-    memcpy(mem_big_page_is_mos, tables.pc_mem_big_pages_set, 16);
+        memcpy(mem_big_page_is_mos, tables.pc_mem_big_pages_set, 16);
+    }
 }
 #endif
 
@@ -2298,7 +2336,15 @@ void BBCMicro::SetHardwareDebugState(const HardwareDebugState &hw) {
 
 #if BBCMICRO_DEBUGGER
 uint32_t BBCMicro::DebugGetCurrentPageOverride() const {
-    return (*m_type->get_dpo_fn)(m_state.romsel, m_state.acccon);
+    uint32_t dpo = (*m_type->get_dpo_fn)(m_state.romsel, m_state.acccon);
+
+    if (m_state.parasite_enabled) {
+        if (m_state.parasite_boot_mode) {
+            dpo |= BBCMicroDebugPagingOverride_ParasiteROM;
+        }
+    }
+
+    return dpo;
 }
 #endif
 
@@ -2328,6 +2374,23 @@ void BBCMicro::DebugGetDebugFlags(uint8_t *addr_debug_flags,
         memset(addr_debug_flags, 0, 65536);
         memset(big_pages_debug_flags, 0, NUM_BIG_PAGES * BIG_PAGE_SIZE_BYTES);
     }
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_DEBUGGER
+uint32_t BBCMicro::DebugGetPagingOverrideMask() const {
+    uint32_t dpo_mask = m_type->dpo_mask;
+
+    if (m_state.parasite_enabled) {
+        dpo_mask |= (BBCMicroDebugPagingOverride_Parasite |
+                     BBCMicroDebugPagingOverride_ParasiteROM |
+                     BBCMicroDebugPagingOverride_OverrideParasiteROM);
+    }
+
+    return dpo_mask;
 }
 #endif
 
@@ -2423,7 +2486,6 @@ void BBCMicro::InitStuff() {
     CHECK_SIZEOF(ROMSEL, 1);
     CHECK_SIZEOF(ACCCON, 1);
     CHECK_SIZEOF(SystemVIAPB, 1);
-    static_assert(::NUM_BIG_PAGES == BBCMicro::NUM_BIG_PAGES, "oops");
 
     m_ram = m_state.ram_buffer.data();
 

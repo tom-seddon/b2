@@ -21,6 +21,8 @@ static void ApplyROMDPO(ROMSEL *romsel, uint32_t dpo) {
 }
 #endif
 
+static std::string g_all_lower_case_big_page_codes;
+
 static void InitBigPagesMetadata(std::vector<BigPageMetadata> *big_pages,
                                  size_t index,
                                  size_t n,
@@ -31,6 +33,8 @@ static void InitBigPagesMetadata(std::vector<BigPageMetadata> *big_pages,
                                  uint32_t dpo_set,
 #endif
                                  uint16_t base) {
+    code = tolower(code);
+
     for (size_t i = 0; i < n; ++i) {
         ASSERT(index + i <= NUM_BIG_PAGES);
         BigPageMetadata *bp = &(*big_pages)[index + i];
@@ -44,6 +48,10 @@ static void InitBigPagesMetadata(std::vector<BigPageMetadata> *big_pages,
         bp->dpo_value = dpo_set;
 #endif
         bp->addr = (uint16_t)(base + i * 4096);
+    }
+
+    if (g_all_lower_case_big_page_codes.find(code) == std::string::npos) {
+        g_all_lower_case_big_page_codes.push_back(code);
     }
 }
 
@@ -89,25 +97,25 @@ static std::vector<BigPageMetadata> GetBigPagesMetadataCommon() {
 #endif
                          0xc000);
 
-//    InitBigPagesMetadata(&big_pages,
-//                         PARASITE_BIG_PAGE_INDEX,
-//                         NUM_PARASITE_BIG_PAGES,
-//                         'p', "Parasite",
-//#if BBCMICRO_DEBUGGER
-//                         0,
-//                         0,
-//#endif
-//                         0x0000);
+    InitBigPagesMetadata(&big_pages,
+                         PARASITE_BIG_PAGE_INDEX,
+                         NUM_PARASITE_BIG_PAGES,
+                         'p', "Parasite",
+#if BBCMICRO_DEBUGGER
+                         0,
+                         0,
+#endif
+                         0x0000);
 
-//    InitBigPagesMetadata(&big_pages,
-//                         PARASITE_ROM_BIG_PAGE_INDEX,
-//                         NUM_PARASITE_ROM_BIG_PAGES,
-//                         0, "Parasite ROM",
-//#if BBCMICRO_DEBUGGER
-//                         0,
-//                         0,
-//#endif
-//                         0x0000);
+    InitBigPagesMetadata(&big_pages,
+                         PARASITE_ROM_BIG_PAGE_INDEX,
+                         NUM_PARASITE_ROM_BIG_PAGES,
+                         'r', "Parasite ROM",
+#if BBCMICRO_DEBUGGER
+                         0,
+                         BBCMicroDebugPagingOverride_OverrideParasiteROM | BBCMicroDebugPagingOverride_ParasiteROM,
+#endif
+                         0xf000);
 
     return big_pages;
 }
@@ -125,13 +133,10 @@ static bool HandleROMPrefixChar(uint32_t *dpo, uint8_t rom) {
 
 #if BBCMICRO_DEBUGGER
 // select ROM
-static bool ParseROMPrefixChar(uint32_t *dpo, char c) {
+static bool ParseROMPrefixLowerCaseChar(uint32_t *dpo, char c) {
     if (c >= '0' && c <= '9') {
         return HandleROMPrefixChar(dpo, (uint8_t)(c - '0'));
     } else if (c >= 'a' && c <= 'f') {
-        return HandleROMPrefixChar(dpo, (uint8_t)(c - 'a' + 10));
-    } else if (c >= 'A' && c <= 'F') {
-        return HandleROMPrefixChar(dpo, (uint8_t)(c - 'A' + 10));
     } else {
         return false;
     }
@@ -202,12 +207,9 @@ static std::vector<BigPageMetadata> GetBigPagesMetadataB() {
 }
 
 #if BBCMICRO_DEBUGGER
-static bool ParsePrefixCharB(uint32_t *dpo, char c) {
-    if (ParseROMPrefixChar(dpo, c)) {
+static bool ParsePrefixLowerCaseCharB(uint32_t *dpo, char c) {
+    if (ParseROMPrefixLowerCaseChar(dpo, c)) {
         // ...
-    } else if (c == 'm' || c == 'M' || c == 'o' || c == 'O' || c == 'i' || c == 'I') {
-        // Valid, but no effect. These are supported on the basis that if you
-        // can see them in the UI, you ought to be able to type them in...
     } else {
         return false;
     }
@@ -241,7 +243,7 @@ const BBCMicroType BBC_MICRO_TYPE_B = {
         {0xc0, 0xdf},
     }, //sheila_cycle_stretch_regions
 #if BBCMICRO_DEBUGGER
-    &ParsePrefixCharB, //parse_prefix_char_fn
+    &ParsePrefixLowerCaseCharB, //parse_prefix_char_fn
 #endif
 };
 
@@ -392,19 +394,19 @@ static std::vector<BigPageMetadata> GetBigPagesMetadataBPlus() {
 }
 
 #if BBCMICRO_DEBUGGER
-static bool ParsePrefixCharBPlus(uint32_t *dpo, char c) {
-    if (ParseROMPrefixChar(dpo, c)) {
+static bool ParsePrefixLowerCaseCharBPlus(uint32_t *dpo, char c) {
+    if (ParseROMPrefixLowerCaseChar(dpo, c)) {
         // ...
-    } else if (c == 's' || c == 'S') {
+    } else if (c == 's') {
         *dpo |= BBCMicroDebugPagingOverride_OverrideShadow | BBCMicroDebugPagingOverride_Shadow;
-    } else if (c == 'm' || c == 'M') {
+    } else if (c == 'm') {
         *dpo |= BBCMicroDebugPagingOverride_OverrideShadow;
         *dpo &= ~(uint32_t)BBCMicroDebugPagingOverride_Shadow;
-    } else if (c == 'n' || c == 'N') {
+    } else if (c == 'n') {
         *dpo |= BBCMicroDebugPagingOverride_OverrideANDY | BBCMicroDebugPagingOverride_ANDY;
-    } else if (c == 'i' || c == 'I' || c == 'o' || c == 'O') {
-        // Valid, but no effect. These are supported on the basis that if you
-        // can see them in the UI, you ought to be able to type them in...
+        //} else if (c == 'i' || c == 'I' || c == 'o' || c == 'O') {
+        //    // Valid, but no effect. These are supported on the basis that if you
+        //    // can see them in the UI, you ought to be able to type them in...
     } else {
         return false;
     }
@@ -443,7 +445,7 @@ const BBCMicroType BBC_MICRO_TYPE_B_PLUS = {
         {0xc0, 0xdf},
     }, //sheila_cycle_stretch_regions
 #if BBCMICRO_DEBUGGER
-    &ParsePrefixCharBPlus, //parse_prefix_char_fn
+    &ParsePrefixLowerCaseCharBPlus, //parse_prefix_char_fn
 #endif
 };
 
@@ -653,22 +655,22 @@ static std::vector<BigPageMetadata> GetBigPagesMetadataMaster() {
 }
 
 #if BBCMICRO_DEBUGGER
-static bool ParsePrefixCharMaster(uint32_t *dpo, char c) {
-    if (ParseROMPrefixChar(dpo, c)) {
+static bool ParsePrefixLowerCaseCharMaster(uint32_t *dpo, char c) {
+    if (ParseROMPrefixLowerCaseChar(dpo, c)) {
         // ...
-    } else if (c == 's' || c == 'S') {
+    } else if (c == 's') {
         *dpo |= BBCMicroDebugPagingOverride_OverrideShadow | BBCMicroDebugPagingOverride_Shadow;
-    } else if (c == 'm' || c == 'M') {
+    } else if (c == 'm') {
         *dpo |= BBCMicroDebugPagingOverride_OverrideShadow;
         *dpo &= ~(uint32_t)BBCMicroDebugPagingOverride_Shadow;
-    } else if (c == 'h' || c == 'H') {
+    } else if (c == 'h') {
         *dpo |= BBCMicroDebugPagingOverride_OverrideHAZEL | BBCMicroDebugPagingOverride_HAZEL;
-    } else if (c == 'n' || c == 'N') {
+    } else if (c == 'n') {
         *dpo |= BBCMicroDebugPagingOverride_OverrideANDY | BBCMicroDebugPagingOverride_ANDY;
-    } else if (c == 'o' || c == 'O') {
+    } else if (c == 'o') {
         *dpo |= BBCMicroDebugPagingOverride_OverrideHAZEL | BBCMicroDebugPagingOverride_OverrideOS | BBCMicroDebugPagingOverride_OS;
         *dpo &= ~(uint32_t)BBCMicroDebugPagingOverride_HAZEL;
-    } else if (c == 'i' || c == 'I') {
+    } else if (c == 'i') {
         *dpo |= BBCMicroDebugPagingOverride_OverrideOS;
         *dpo &= ~(uint32_t)BBCMicroDebugPagingOverride_OS;
     } else {
@@ -714,7 +716,7 @@ const BBCMicroType BBC_MICRO_TYPE_MASTER = {
         {0x40, 0x7f},
     }, //sheila_cycle_stretch_regions
 #if BBCMICRO_DEBUGGER
-    &ParsePrefixCharMaster, //parse_prefix_char_fn
+    &ParsePrefixLowerCaseCharMaster, //parse_prefix_char_fn
 #endif
 };
 
@@ -768,10 +770,20 @@ bool ParseAddressPrefix(uint32_t *dpo_ptr,
                         Log *log) {
     uint32_t dpo = *dpo_ptr;
 
-    for (const char *c = prefix_begin; c != prefix_end; ++c) {
-        if (!(*type->parse_prefix_char_fn)(&dpo, *c)) {
+    for (const char *prefix_char = prefix_begin; prefix_char != prefix_end; ++prefix_char) {
+        char c = tolower(*prefix_char);
+
+        if (c == 'p') {
+            dpo |= BBCMicroDebugPagingOverride_Parasite;
+        } else if (c == 'r') {
+            dpo |= BBCMicroDebugPagingOverride_OverrideParasiteROM | BBCMicroDebugPagingOverride_ParasiteROM;
+        } else if ((*type->parse_prefix_lower_case_char_fn)(&dpo, c)) {
+            // Valid flag for this model.
+        } else if (g_all_lower_case_big_page_codes.find(c) != std::string::npos) {
+            // Valid flag - but not for this model, so ignore.
+        } else {
             if (log) {
-                log->f("'%c': unknown address prefix", *c);
+                log->f("'%c': unknown address prefix", *prefix_char);
             }
 
             return false;

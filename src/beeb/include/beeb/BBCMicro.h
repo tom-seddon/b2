@@ -48,7 +48,6 @@ class BeebLink;
 
 class BBCMicro : private WD1770Handler {
   public:
-    static constexpr uint8_t NUM_BIG_PAGES = 84;
     static const uint16_t SCREEN_WRAP_ADJUSTMENTS[];
 
     typedef void (*UpdateROMSELPagesFn)(BBCMicro *);
@@ -382,8 +381,8 @@ class BBCMicro : private WD1770Handler {
 
     const M6502 *GetM6502() const;
 
-    // Will return null if parasite not enabled.
-    const M6502 *GetParasiteM6502() const;
+    //// Will return null if parasite not enabled.
+    //const M6502 *GetParasiteM6502() const;
 
 #if BBCMICRO_DEBUGGER
     uint16_t DebugGetBeebAddressFromCRTCAddress(uint8_t h, uint8_t l) const;
@@ -401,6 +400,8 @@ class BBCMicro : private WD1770Handler {
     const MC146818 *DebugGetRTC() const;
     void DebugGetPaging(ROMSEL *romsel, ACCCON *acccon) const;
 
+    const M6502 *DebugGetM6502(uint32_t dpo) const;
+
     //uint16_t DebugGetFlatPage(uint8_t page) const;
 
     // Given address, return the BigPage for the memory there, taking
@@ -410,7 +411,7 @@ class BBCMicro : private WD1770Handler {
     // (false).
     const BigPage *DebugGetBigPageForAddress(M6502Word addr, bool mos, uint32_t dpo) const;
 
-    void GetMemBigPageIsMOSTable(uint8_t *mem_big_page_is_mos, uint32_t dpo) const;
+    void DebugGetMemBigPageIsMOSTable(uint8_t *mem_big_page_is_mos, uint32_t dpo) const;
 
     // Get/set per-byte debug flags for one byte.
     uint8_t DebugGetByteDebugFlags(const BigPage *big_page, uint32_t offset) const;
@@ -463,6 +464,8 @@ class BBCMicro : private WD1770Handler {
     //
     // big_pages_debug_flags data is NUM_BIG_PAGES*BIG_PAGE_SIZE_BYTES.
     void DebugGetDebugFlags(uint8_t *addr_debug_flags, uint8_t *big_pages_debug_flags) const;
+
+    uint32_t DebugGetPagingOverrideMask() const;
 #endif
 
     void SendBeebLinkResponse(std::vector<uint8_t> data);

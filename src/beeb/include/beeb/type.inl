@@ -54,6 +54,14 @@ EPNV(Shadow, 1 << 9)
 EPNV(OverrideShadow, 1 << 10)
 EPNV(OS, 1 << 11)
 EPNV(OverrideOS, 1 << 12)
+EPNV(ParasiteROM, 1 << 13)
+EPNV(OverrideParasiteROM, 1 << 14)
+
+// This flag is special: it doesn't have a separate Override flag, and is itself
+// the override flag, since it's only a property of the debugger's view of the
+// system. It's always assumed to be clear (so the debugger views the host), but
+// can be set to view the parasite instead.
+EPNV(Parasite, 1 << 15)
 EEND()
 #undef ENAME
 #endif

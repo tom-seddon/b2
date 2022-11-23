@@ -3185,7 +3185,7 @@ void BeebWindow::DebugStepOver() {
         // More work than required here - but it's not a massive problem, just
         // a bit ugly :(
         uint8_t pc_is_mos[16];
-        m->GetMemBigPageIsMOSTable(pc_is_mos, 0);
+        m->DebugGetMemBigPageIsMOSTable(pc_is_mos, 0);
 
         // Try to put a breakpoint on the actual next instruction, rather than
         // its address.
