@@ -14,9 +14,9 @@
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_DEBUGGER
-static void ApplyROMDPO(ROMSEL *romsel, uint32_t dpo) {
-    if (dpo & BBCMicroDebugPagingOverride_OverrideROM) {
-        romsel->b_bits.pr = dpo & BBCMicroDebugPagingOverride_ROM;
+static void ApplyROMDPO(ROMSEL *romsel, uint32_t dso) {
+    if (dso & BBCMicroDebugStateOverride_OverrideROM) {
+        romsel->b_bits.pr = dso & BBCMicroDebugStateOverride_ROM;
     }
 }
 #endif
@@ -29,11 +29,11 @@ static void InitBigPagesMetadata(std::vector<BigPageMetadata> *big_pages,
                                  char code,
                                  const std::string &description,
 #if BBCMICRO_DEBUGGER
-                                 uint32_t dpo_clear,
-                                 uint32_t dpo_set,
+                                 uint32_t dso_clear,
+                                 uint32_t dso_set,
 #endif
                                  uint16_t base) {
-    code = tolower(code);
+    code = (char)tolower(code);
 
     for (size_t i = 0; i < n; ++i) {
         ASSERT(index + i <= NUM_BIG_PAGES);
@@ -44,8 +44,8 @@ static void InitBigPagesMetadata(std::vector<BigPageMetadata> *big_pages,
         bp->code = code;
         bp->description = description;
 #if BBCMICRO_DEBUGGER
-        bp->dpo_mask = ~dpo_clear;
-        bp->dpo_value = dpo_set;
+        bp->dso_mask = ~dso_clear;
+        bp->dso_value = dso_set;
 #endif
         bp->addr = (uint16_t)(base + i * 4096);
     }
@@ -81,8 +81,8 @@ static std::vector<BigPageMetadata> GetBigPagesMetadataCommon() {
                              NUM_ROM_BIG_PAGES,
                              code[0], description,
 #if BBCMICRO_DEBUGGER
-                             (uint32_t)BBCMicroDebugPagingOverride_ROM,
-                             BBCMicroDebugPagingOverride_OverrideROM | i,
+                             (uint32_t)BBCMicroDebugStateOverride_ROM,
+                             BBCMicroDebugStateOverride_OverrideROM | i,
 #endif
                              0x8000);
     }
@@ -113,7 +113,7 @@ static std::vector<BigPageMetadata> GetBigPagesMetadataCommon() {
                          'r', "Parasite ROM",
 #if BBCMICRO_DEBUGGER
                          0,
-                         BBCMicroDebugPagingOverride_OverrideParasiteROM | BBCMicroDebugPagingOverride_ParasiteROM,
+                         BBCMicroDebugStateOverride_OverrideParasiteROM | BBCMicroDebugStateOverride_ParasiteROM,
 #endif
                          0xf000);
 
@@ -121,11 +121,11 @@ static std::vector<BigPageMetadata> GetBigPagesMetadataCommon() {
 }
 
 #if BBCMICRO_DEBUGGER
-static bool HandleROMPrefixChar(uint32_t *dpo, uint8_t rom) {
+static bool HandleROMPrefixChar(uint32_t *dso, uint8_t rom) {
     ASSERT(rom >= 0 && rom <= 15);
 
-    *dpo &= ~(uint32_t)(BBCMicroDebugPagingOverride_ROM | BBCMicroDebugPagingOverride_ANDY);
-    *dpo |= BBCMicroDebugPagingOverride_OverrideANDY | BBCMicroDebugPagingOverride_OverrideROM | rom;
+    *dso &= ~(uint32_t)(BBCMicroDebugStateOverride_ROM | BBCMicroDebugStateOverride_ANDY);
+    *dso |= BBCMicroDebugStateOverride_OverrideANDY | BBCMicroDebugStateOverride_OverrideROM | rom;
 
     return true;
 }
@@ -133,10 +133,11 @@ static bool HandleROMPrefixChar(uint32_t *dpo, uint8_t rom) {
 
 #if BBCMICRO_DEBUGGER
 // select ROM
-static bool ParseROMPrefixLowerCaseChar(uint32_t *dpo, char c) {
+static bool ParseROMPrefixLowerCaseChar(uint32_t *dso, char c) {
     if (c >= '0' && c <= '9') {
-        return HandleROMPrefixChar(dpo, (uint8_t)(c - '0'));
+        return HandleROMPrefixChar(dso, (uint8_t)(c - '0'));
     } else if (c >= 'a' && c <= 'f') {
+        return HandleROMPrefixChar(dso, (uint8_t)(c - 'a'));
     } else {
         return false;
     }
@@ -180,10 +181,10 @@ static void GetMemBigPageTablesB(MemoryBigPageTables *tables,
 }
 
 #if BBCMICRO_DEBUGGER
-static void ApplyDPOB(ROMSEL *romsel, ACCCON *acccon, uint32_t dpo) {
+static void ApplyDPOB(ROMSEL *romsel, ACCCON *acccon, uint32_t dso) {
     (void)acccon;
 
-    ApplyROMDPO(romsel, dpo);
+    ApplyROMDPO(romsel, dso);
 }
 #endif
 
@@ -191,12 +192,12 @@ static void ApplyDPOB(ROMSEL *romsel, ACCCON *acccon, uint32_t dpo) {
 static uint32_t GetDPOB(ROMSEL romsel, ACCCON acccon) {
     (void)acccon;
 
-    uint32_t dpo = 0;
+    uint32_t dso = 0;
 
-    dpo |= romsel.b_bits.pr;
-    dpo |= BBCMicroDebugPagingOverride_OverrideROM;
+    dso |= romsel.b_bits.pr;
+    dso |= BBCMicroDebugStateOverride_OverrideROM;
 
-    return dpo;
+    return dso;
 }
 #endif
 
@@ -207,8 +208,8 @@ static std::vector<BigPageMetadata> GetBigPagesMetadataB() {
 }
 
 #if BBCMICRO_DEBUGGER
-static bool ParsePrefixLowerCaseCharB(uint32_t *dpo, char c) {
-    if (ParseROMPrefixLowerCaseChar(dpo, c)) {
+static bool ParsePrefixLowerCaseCharB(uint32_t *dso, char c) {
+    if (ParseROMPrefixLowerCaseChar(dso, c)) {
         // ...
     } else {
         return false;
@@ -225,14 +226,14 @@ const BBCMicroType BBC_MICRO_TYPE_B = {
     32768,                  //ram_buffer_size
     DiscDriveType_133mm,    //default_disc_drive_type
 #if BBCMICRO_DEBUGGER
-    (BBCMicroDebugPagingOverride_OverrideROM |
-     BBCMicroDebugPagingOverride_ROM), //dpo_mask
+    (BBCMicroDebugStateOverride_OverrideROM |
+     BBCMicroDebugStateOverride_ROM), //dso_mask
 #endif
     GetBigPagesMetadataB(),
     &GetMemBigPageTablesB, //get_mem_big_page_tables_fn,
 #if BBCMICRO_DEBUGGER
-    &ApplyDPOB, //apply_dpo_fn
-    &GetDPOB,   //get_dpo_fn
+    &ApplyDPOB, //apply_dso_fn
+    &GetDPOB,   //get_dso_fn
 #endif
     0x0f,                                      //romsel_mask,
     0x00,                                      //acccon_mask,
@@ -333,37 +334,37 @@ static void GetMemBigPageTablesBPlus(MemoryBigPageTables *tables,
 }
 
 #if BBCMICRO_DEBUGGER
-static void ApplyDPOBPlus(ROMSEL *romsel, ACCCON *acccon, uint32_t dpo) {
-    ApplyROMDPO(romsel, dpo);
+static void ApplyDPOBPlus(ROMSEL *romsel, ACCCON *acccon, uint32_t dso) {
+    ApplyROMDPO(romsel, dso);
 
-    if (dpo & BBCMicroDebugPagingOverride_OverrideANDY) {
-        romsel->bplus_bits.ram = !!(dpo & BBCMicroDebugPagingOverride_ANDY);
+    if (dso & BBCMicroDebugStateOverride_OverrideANDY) {
+        romsel->bplus_bits.ram = !!(dso & BBCMicroDebugStateOverride_ANDY);
     }
 
-    if (dpo & BBCMicroDebugPagingOverride_OverrideShadow) {
-        acccon->bplus_bits.shadow = !!(dpo & BBCMicroDebugPagingOverride_Shadow);
+    if (dso & BBCMicroDebugStateOverride_OverrideShadow) {
+        acccon->bplus_bits.shadow = !!(dso & BBCMicroDebugStateOverride_Shadow);
     }
 }
 #endif
 
 #if BBCMICRO_DEBUGGER
 static uint32_t GetDPOBPlus(ROMSEL romsel, ACCCON acccon) {
-    uint32_t dpo = 0;
+    uint32_t dso = 0;
 
-    dpo |= romsel.bplus_bits.pr;
-    dpo |= BBCMicroDebugPagingOverride_OverrideROM;
+    dso |= romsel.bplus_bits.pr;
+    dso |= BBCMicroDebugStateOverride_OverrideROM;
 
     if (romsel.bplus_bits.ram) {
-        dpo |= BBCMicroDebugPagingOverride_ANDY;
+        dso |= BBCMicroDebugStateOverride_ANDY;
     }
-    dpo |= BBCMicroDebugPagingOverride_OverrideANDY;
+    dso |= BBCMicroDebugStateOverride_OverrideANDY;
 
     if (acccon.bplus_bits.shadow) {
-        dpo |= BBCMicroDebugPagingOverride_Shadow;
+        dso |= BBCMicroDebugStateOverride_Shadow;
     }
-    dpo |= BBCMicroDebugPagingOverride_OverrideShadow;
+    dso |= BBCMicroDebugStateOverride_OverrideShadow;
 
-    return dpo;
+    return dso;
 }
 #endif
 
@@ -376,7 +377,7 @@ static std::vector<BigPageMetadata> GetBigPagesMetadataBPlus() {
                          'n', "ANDY",
 #if BBCMICRO_DEBUGGER
                          0,
-                         BBCMicroDebugPagingOverride_OverrideANDY | BBCMicroDebugPagingOverride_ANDY,
+                         BBCMicroDebugStateOverride_OverrideANDY | BBCMicroDebugStateOverride_ANDY,
 #endif
                          0x8000);
 
@@ -386,7 +387,7 @@ static std::vector<BigPageMetadata> GetBigPagesMetadataBPlus() {
                          's', "Shadow RAM",
 #if BBCMICRO_DEBUGGER
                          0,
-                         BBCMicroDebugPagingOverride_OverrideShadow | BBCMicroDebugPagingOverride_Shadow,
+                         BBCMicroDebugStateOverride_OverrideShadow | BBCMicroDebugStateOverride_Shadow,
 #endif
                          0x3000);
 
@@ -394,16 +395,16 @@ static std::vector<BigPageMetadata> GetBigPagesMetadataBPlus() {
 }
 
 #if BBCMICRO_DEBUGGER
-static bool ParsePrefixLowerCaseCharBPlus(uint32_t *dpo, char c) {
-    if (ParseROMPrefixLowerCaseChar(dpo, c)) {
+static bool ParsePrefixLowerCaseCharBPlus(uint32_t *dso, char c) {
+    if (ParseROMPrefixLowerCaseChar(dso, c)) {
         // ...
     } else if (c == 's') {
-        *dpo |= BBCMicroDebugPagingOverride_OverrideShadow | BBCMicroDebugPagingOverride_Shadow;
+        *dso |= BBCMicroDebugStateOverride_OverrideShadow | BBCMicroDebugStateOverride_Shadow;
     } else if (c == 'm') {
-        *dpo |= BBCMicroDebugPagingOverride_OverrideShadow;
-        *dpo &= ~(uint32_t)BBCMicroDebugPagingOverride_Shadow;
+        *dso |= BBCMicroDebugStateOverride_OverrideShadow;
+        *dso &= ~(uint32_t)BBCMicroDebugStateOverride_Shadow;
     } else if (c == 'n') {
-        *dpo |= BBCMicroDebugPagingOverride_OverrideANDY | BBCMicroDebugPagingOverride_ANDY;
+        *dso |= BBCMicroDebugStateOverride_OverrideANDY | BBCMicroDebugStateOverride_ANDY;
         //} else if (c == 'i' || c == 'I' || c == 'o' || c == 'O') {
         //    // Valid, but no effect. These are supported on the basis that if you
         //    // can see them in the UI, you ought to be able to type them in...
@@ -422,18 +423,18 @@ const BBCMicroType BBC_MICRO_TYPE_B_PLUS = {
     65536,                  //ram_buffer_size
     DiscDriveType_133mm,    //default_disc_drive_type
 #if BBCMICRO_DEBUGGER
-    (BBCMicroDebugPagingOverride_ROM |
-     BBCMicroDebugPagingOverride_OverrideROM |
-     BBCMicroDebugPagingOverride_ANDY |
-     BBCMicroDebugPagingOverride_OverrideANDY |
-     BBCMicroDebugPagingOverride_Shadow |
-     BBCMicroDebugPagingOverride_OverrideShadow), //dpo_mask
+    (BBCMicroDebugStateOverride_ROM |
+     BBCMicroDebugStateOverride_OverrideROM |
+     BBCMicroDebugStateOverride_ANDY |
+     BBCMicroDebugStateOverride_OverrideANDY |
+     BBCMicroDebugStateOverride_Shadow |
+     BBCMicroDebugStateOverride_OverrideShadow), //dso_mask
 #endif
     GetBigPagesMetadataBPlus(),
     &GetMemBigPageTablesBPlus, //get_mem_big_page_tables_fn,
 #if BBCMICRO_DEBUGGER
-    &ApplyDPOBPlus, //apply_dpo_fn
-    &GetDPOBPlus,   //get_dpo_fn
+    &ApplyDPOBPlus, //apply_dso_fn
+    &GetDPOBPlus,   //get_dso_fn
 #endif
     0x8f, //romsel_mask,
     0x80, //acccon_mask,
@@ -551,55 +552,55 @@ static void GetMemBigPagesTablesMaster(MemoryBigPageTables *tables,
 }
 
 #if BBCMICRO_DEBUGGER
-static void ApplyDPOMaster(ROMSEL *romsel, ACCCON *acccon, uint32_t dpo) {
-    ApplyROMDPO(romsel, dpo);
+static void ApplyDPOMaster(ROMSEL *romsel, ACCCON *acccon, uint32_t dso) {
+    ApplyROMDPO(romsel, dso);
 
-    if (dpo & BBCMicroDebugPagingOverride_OverrideANDY) {
-        romsel->m128_bits.ram = !!(dpo & BBCMicroDebugPagingOverride_ANDY);
+    if (dso & BBCMicroDebugStateOverride_OverrideANDY) {
+        romsel->m128_bits.ram = !!(dso & BBCMicroDebugStateOverride_ANDY);
     }
 
-    if (dpo & BBCMicroDebugPagingOverride_OverrideHAZEL) {
-        acccon->m128_bits.y = !!(dpo & BBCMicroDebugPagingOverride_HAZEL);
+    if (dso & BBCMicroDebugStateOverride_OverrideHAZEL) {
+        acccon->m128_bits.y = !!(dso & BBCMicroDebugStateOverride_HAZEL);
     }
 
-    if (dpo & BBCMicroDebugPagingOverride_OverrideShadow) {
-        acccon->m128_bits.x = !!(dpo & BBCMicroDebugPagingOverride_Shadow);
+    if (dso & BBCMicroDebugStateOverride_OverrideShadow) {
+        acccon->m128_bits.x = !!(dso & BBCMicroDebugStateOverride_Shadow);
     }
 
-    if (dpo & BBCMicroDebugPagingOverride_OverrideOS) {
-        acccon->m128_bits.tst = !!(dpo & BBCMicroDebugPagingOverride_OS);
+    if (dso & BBCMicroDebugStateOverride_OverrideOS) {
+        acccon->m128_bits.tst = !!(dso & BBCMicroDebugStateOverride_OS);
     }
 }
 #endif
 
 #if BBCMICRO_DEBUGGER
 static uint32_t GetDPOMaster(ROMSEL romsel, ACCCON acccon) {
-    uint32_t dpo = 0;
+    uint32_t dso = 0;
 
-    dpo |= romsel.m128_bits.pm;
-    dpo |= BBCMicroDebugPagingOverride_OverrideROM;
+    dso |= romsel.m128_bits.pm;
+    dso |= BBCMicroDebugStateOverride_OverrideROM;
 
     if (romsel.m128_bits.ram) {
-        dpo |= BBCMicroDebugPagingOverride_ANDY;
+        dso |= BBCMicroDebugStateOverride_ANDY;
     }
-    dpo |= BBCMicroDebugPagingOverride_OverrideANDY;
+    dso |= BBCMicroDebugStateOverride_OverrideANDY;
 
     if (acccon.m128_bits.x) {
-        dpo |= BBCMicroDebugPagingOverride_Shadow;
+        dso |= BBCMicroDebugStateOverride_Shadow;
     }
-    dpo |= BBCMicroDebugPagingOverride_OverrideShadow;
+    dso |= BBCMicroDebugStateOverride_OverrideShadow;
 
     if (acccon.m128_bits.y) {
-        dpo |= BBCMicroDebugPagingOverride_HAZEL;
+        dso |= BBCMicroDebugStateOverride_HAZEL;
     }
-    dpo |= BBCMicroDebugPagingOverride_OverrideHAZEL;
+    dso |= BBCMicroDebugStateOverride_OverrideHAZEL;
 
     if (acccon.m128_bits.tst) {
-        dpo |= BBCMicroDebugPagingOverride_OS;
+        dso |= BBCMicroDebugStateOverride_OS;
     }
-    dpo |= BBCMicroDebugPagingOverride_OverrideOS;
+    dso |= BBCMicroDebugStateOverride_OverrideOS;
 
-    return dpo;
+    return dso;
 }
 #endif
 
@@ -612,7 +613,7 @@ static std::vector<BigPageMetadata> GetBigPagesMetadataMaster() {
                          'n', "ANDY",
 #if BBCMICRO_DEBUGGER
                          0,
-                         BBCMicroDebugPagingOverride_OverrideANDY | BBCMicroDebugPagingOverride_ANDY,
+                         BBCMicroDebugStateOverride_OverrideANDY | BBCMicroDebugStateOverride_ANDY,
 #endif
                          0x8000);
 
@@ -622,7 +623,7 @@ static std::vector<BigPageMetadata> GetBigPagesMetadataMaster() {
                          'h', "HAZEL",
 #if BBCMICRO_DEBUGGER
                          0,
-                         BBCMicroDebugPagingOverride_OverrideHAZEL | BBCMicroDebugPagingOverride_HAZEL,
+                         BBCMicroDebugStateOverride_OverrideHAZEL | BBCMicroDebugStateOverride_HAZEL,
 #endif
                          0xc000);
 
@@ -632,7 +633,7 @@ static std::vector<BigPageMetadata> GetBigPagesMetadataMaster() {
                          's', "Shadow RAM",
 #if BBCMICRO_DEBUGGER
                          0,
-                         BBCMicroDebugPagingOverride_OverrideShadow | BBCMicroDebugPagingOverride_Shadow,
+                         BBCMicroDebugStateOverride_OverrideShadow | BBCMicroDebugStateOverride_Shadow,
 #endif
                          0x3000);
 
@@ -641,38 +642,38 @@ static std::vector<BigPageMetadata> GetBigPagesMetadataMaster() {
 
     // Switch HAZEL off to see the first 8K of MOS.
     for (size_t i = 0; i < 2; ++i) {
-        big_pages[MOS_BIG_PAGE_INDEX + i].dpo_mask &= ~(uint32_t)~BBCMicroDebugPagingOverride_HAZEL;
-        big_pages[MOS_BIG_PAGE_INDEX + i].dpo_value |= BBCMicroDebugPagingOverride_OverrideHAZEL;
+        big_pages[MOS_BIG_PAGE_INDEX + i].dso_mask &= ~(uint32_t)~BBCMicroDebugStateOverride_HAZEL;
+        big_pages[MOS_BIG_PAGE_INDEX + i].dso_value |= BBCMicroDebugStateOverride_OverrideHAZEL;
     }
 
     // Switch IO off to see all of the last 4K of MOS.
     //
     // Might as well, since the hardware lets you...
-    big_pages[MOS_BIG_PAGE_INDEX + 3].dpo_value |= BBCMicroDebugPagingOverride_OverrideOS | BBCMicroDebugPagingOverride_OS;
+    big_pages[MOS_BIG_PAGE_INDEX + 3].dso_value |= BBCMicroDebugStateOverride_OverrideOS | BBCMicroDebugStateOverride_OS;
 #endif
 
     return big_pages;
 }
 
 #if BBCMICRO_DEBUGGER
-static bool ParsePrefixLowerCaseCharMaster(uint32_t *dpo, char c) {
-    if (ParseROMPrefixLowerCaseChar(dpo, c)) {
+static bool ParsePrefixLowerCaseCharMaster(uint32_t *dso, char c) {
+    if (ParseROMPrefixLowerCaseChar(dso, c)) {
         // ...
     } else if (c == 's') {
-        *dpo |= BBCMicroDebugPagingOverride_OverrideShadow | BBCMicroDebugPagingOverride_Shadow;
+        *dso |= BBCMicroDebugStateOverride_OverrideShadow | BBCMicroDebugStateOverride_Shadow;
     } else if (c == 'm') {
-        *dpo |= BBCMicroDebugPagingOverride_OverrideShadow;
-        *dpo &= ~(uint32_t)BBCMicroDebugPagingOverride_Shadow;
+        *dso |= BBCMicroDebugStateOverride_OverrideShadow;
+        *dso &= ~(uint32_t)BBCMicroDebugStateOverride_Shadow;
     } else if (c == 'h') {
-        *dpo |= BBCMicroDebugPagingOverride_OverrideHAZEL | BBCMicroDebugPagingOverride_HAZEL;
+        *dso |= BBCMicroDebugStateOverride_OverrideHAZEL | BBCMicroDebugStateOverride_HAZEL;
     } else if (c == 'n') {
-        *dpo |= BBCMicroDebugPagingOverride_OverrideANDY | BBCMicroDebugPagingOverride_ANDY;
+        *dso |= BBCMicroDebugStateOverride_OverrideANDY | BBCMicroDebugStateOverride_ANDY;
     } else if (c == 'o') {
-        *dpo |= BBCMicroDebugPagingOverride_OverrideHAZEL | BBCMicroDebugPagingOverride_OverrideOS | BBCMicroDebugPagingOverride_OS;
-        *dpo &= ~(uint32_t)BBCMicroDebugPagingOverride_HAZEL;
+        *dso |= BBCMicroDebugStateOverride_OverrideHAZEL | BBCMicroDebugStateOverride_OverrideOS | BBCMicroDebugStateOverride_OS;
+        *dso &= ~(uint32_t)BBCMicroDebugStateOverride_HAZEL;
     } else if (c == 'i') {
-        *dpo |= BBCMicroDebugPagingOverride_OverrideOS;
-        *dpo &= ~(uint32_t)BBCMicroDebugPagingOverride_OS;
+        *dso |= BBCMicroDebugStateOverride_OverrideOS;
+        *dso &= ~(uint32_t)BBCMicroDebugStateOverride_OS;
     } else {
         return false;
     }
@@ -688,22 +689,22 @@ const BBCMicroType BBC_MICRO_TYPE_MASTER = {
     65536,                  //ram_buffer_size
     DiscDriveType_133mm,    //default_disc_drive_type
 #if BBCMICRO_DEBUGGER
-    (BBCMicroDebugPagingOverride_ROM |
-     BBCMicroDebugPagingOverride_OverrideROM |
-     BBCMicroDebugPagingOverride_ANDY |
-     BBCMicroDebugPagingOverride_OverrideANDY |
-     BBCMicroDebugPagingOverride_HAZEL |
-     BBCMicroDebugPagingOverride_OverrideHAZEL |
-     BBCMicroDebugPagingOverride_Shadow |
-     BBCMicroDebugPagingOverride_OverrideShadow |
-     BBCMicroDebugPagingOverride_OS |
-     BBCMicroDebugPagingOverride_OverrideOS), //dpo_mask
+    (BBCMicroDebugStateOverride_ROM |
+     BBCMicroDebugStateOverride_OverrideROM |
+     BBCMicroDebugStateOverride_ANDY |
+     BBCMicroDebugStateOverride_OverrideANDY |
+     BBCMicroDebugStateOverride_HAZEL |
+     BBCMicroDebugStateOverride_OverrideHAZEL |
+     BBCMicroDebugStateOverride_Shadow |
+     BBCMicroDebugStateOverride_OverrideShadow |
+     BBCMicroDebugStateOverride_OS |
+     BBCMicroDebugStateOverride_OverrideOS), //dso_mask
 #endif
     GetBigPagesMetadataMaster(),
     &GetMemBigPagesTablesMaster, //get_mem_big_page_tables_fn,
 #if BBCMICRO_DEBUGGER
-    &ApplyDPOMaster, //apply_dpo_fn
-    &GetDPOMaster,   //get_dpo_fn
+    &ApplyDPOMaster, //apply_dso_fn
+    &GetDPOMaster,   //get_dso_fn
 #endif
     0x8f, //romsel_mask,
     0xff, //acccon_mask,
@@ -763,21 +764,21 @@ const BBCMicroType *GetBBCMicroTypeForTypeID(BBCMicroTypeID type_id) {
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_DEBUGGER
-bool ParseAddressPrefix(uint32_t *dpo_ptr,
+bool ParseAddressPrefix(uint32_t *dso_ptr,
                         const BBCMicroType *type,
                         const char *prefix_begin,
                         const char *prefix_end,
                         Log *log) {
-    uint32_t dpo = *dpo_ptr;
+    uint32_t dso = *dso_ptr;
 
     for (const char *prefix_char = prefix_begin; prefix_char != prefix_end; ++prefix_char) {
-        char c = tolower(*prefix_char);
+        char c = (char)tolower(*prefix_char);
 
         if (c == 'p') {
-            dpo |= BBCMicroDebugPagingOverride_Parasite;
+            dso |= BBCMicroDebugStateOverride_Parasite;
         } else if (c == 'r') {
-            dpo |= BBCMicroDebugPagingOverride_OverrideParasiteROM | BBCMicroDebugPagingOverride_ParasiteROM;
-        } else if ((*type->parse_prefix_lower_case_char_fn)(&dpo, c)) {
+            dso |= BBCMicroDebugStateOverride_OverrideParasiteROM | BBCMicroDebugStateOverride_ParasiteROM;
+        } else if ((*type->parse_prefix_lower_case_char_fn)(&dso, c)) {
             // Valid flag for this model.
         } else if (g_all_lower_case_big_page_codes.find(c) != std::string::npos) {
             // Valid flag - but not for this model, so ignore.
@@ -790,7 +791,7 @@ bool ParseAddressPrefix(uint32_t *dpo_ptr,
         }
     }
 
-    *dpo_ptr = dpo;
+    *dso_ptr = dso;
 
     return true;
 }

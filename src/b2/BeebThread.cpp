@@ -1253,10 +1253,10 @@ bool BeebThread::StopCopyMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
 
 #if BBCMICRO_DEBUGGER
 BeebThread::DebugSetByteMessage::DebugSetByteMessage(uint16_t addr,
-                                                     uint32_t dpo,
+                                                     uint32_t dso,
                                                      uint8_t value)
     : m_addr(addr)
-    , m_dpo(dpo)
+    , m_dso(dso)
     , m_value(value) {
 }
 #endif
@@ -1283,7 +1283,7 @@ void BeebThread::DebugSetByteMessage::ThreadHandle(BeebThread *beeb_thread,
 
     M6502Word addr = {m_addr};
 
-    ts->beeb->DebugSetBytes(addr, m_dpo, &m_value, 1);
+    ts->beeb->DebugSetBytes(addr, m_dso, &m_value, 1);
 }
 #endif
 
@@ -1292,10 +1292,10 @@ void BeebThread::DebugSetByteMessage::ThreadHandle(BeebThread *beeb_thread,
 
 #if BBCMICRO_DEBUGGER
 BeebThread::DebugSetBytesMessage::DebugSetBytesMessage(uint16_t addr,
-                                                       uint32_t dpo,
+                                                       uint32_t dso,
                                                        std::vector<uint8_t> values)
     : m_addr(addr)
-    , m_dpo(dpo)
+    , m_dso(dso)
     , m_values(std::move(values)) {
 }
 #endif
@@ -1320,7 +1320,7 @@ void BeebThread::DebugSetBytesMessage::ThreadHandle(BeebThread *beeb_thread,
                                                     ThreadState *ts) const {
     (void)beeb_thread;
 
-    ts->beeb->DebugSetBytes({m_addr}, m_dpo, m_values.data(), m_values.size());
+    ts->beeb->DebugSetBytes({m_addr}, m_dso, m_values.data(), m_values.size());
 }
 #endif
 

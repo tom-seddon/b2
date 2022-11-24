@@ -59,12 +59,12 @@ static std::vector<std::string> GetPathParts(const std::string &path) {
 class BeebThreadPeekMessage : public BeebThread::CustomMessage {
   public:
     BeebThreadPeekMessage(uint16_t addr,
-                          uint32_t dpo,
+                          uint32_t dso,
                           uint64_t count,
                           HTTPServer *server,
                           HTTPRequest &&request)
         : m_addr(addr)
-        , m_dpo(dpo)
+        , m_dso(dso)
         , m_count(count)
         , m_server(server)
         , m_response_data(request.response_data) {
@@ -78,7 +78,7 @@ class BeebThreadPeekMessage : public BeebThread::CustomMessage {
         std::vector<uint8_t> data;
         data.resize(m_count);
 
-        beeb->DebugGetBytes(data.data(), data.size(), addr, m_dpo);
+        beeb->DebugGetBytes(data.data(), data.size(), addr, m_dso);
 
         HTTPResponse response(HTTP_OCTET_STREAM_CONTENT_TYPE, std::move(data));
         m_server->SendResponse(m_response_data, std::move(response));
@@ -87,7 +87,7 @@ class BeebThreadPeekMessage : public BeebThread::CustomMessage {
   protected:
   private:
     uint16_t m_addr = 0;
-    uint32_t m_dpo = 0;
+    uint32_t m_dso = 0;
     uint64_t m_count = 0;
     HTTPServer *m_server = nullptr;
     HTTPResponseData m_response_data;
@@ -369,7 +369,7 @@ class HTTPMethodsHandler : public HTTPHandler {
         }
 
         beeb_window->GetBeebThread()->Send(std::make_unique<BeebThreadPeekMessage>(begin,
-                                                                                   0, //dpo
+                                                                                   0, //dso
                                                                                    end - begin,
                                                                                    server,
                                                                                    std::move(request)));

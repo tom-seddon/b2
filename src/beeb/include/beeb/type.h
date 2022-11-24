@@ -183,9 +183,9 @@ struct BigPageMetadata {
     std::string description;
 
 #if BBCMICRO_DEBUGGER
-    // dpo mask/value that must be applied to have this big page mapped in.
-    uint32_t dpo_mask = ~(uint32_t)0;
-    uint32_t dpo_value = 0;
+    // dso mask/value that must be applied to have this big page mapped in.
+    uint32_t dso_mask = ~(uint32_t)0;
+    uint32_t dso_value = 0;
 #endif
 
     // where this big page will appear in the address space when mapped in.
@@ -209,7 +209,7 @@ struct BBCMicroType {
     DiscDriveType default_disc_drive_type;
 
 #if BBCMICRO_DEBUGGER
-    uint32_t dpo_mask;
+    uint32_t dso_mask;
 #endif
 
     //    // indexed by big page index. These don't actually vary much from model to
@@ -247,13 +247,13 @@ struct BBCMicroType {
                                        ACCCON acccon);
 
 #if BBCMICRO_DEBUGGER
-    void (*apply_dpo_fn)(ROMSEL *romsel,
+    void (*apply_dso_fn)(ROMSEL *romsel,
                          ACCCON *acccon,
-                         uint32_t dpo);
+                         uint32_t dso);
 #endif
 
 #if BBCMICRO_DEBUGGER
-    uint32_t (*get_dpo_fn)(ROMSEL romsel,
+    uint32_t (*get_dso_fn)(ROMSEL romsel,
                            ACCCON accon);
 #endif
 
@@ -272,7 +272,7 @@ struct BBCMicroType {
     std::vector<SHEILACycleStretchRegion> sheila_cycle_stretch_regions;
 
 #if BBCMICRO_DEBUGGER
-    bool (*parse_prefix_lower_case_char_fn)(uint32_t *dpo, char c);
+    bool (*parse_prefix_lower_case_char_fn)(uint32_t *dso, char c);
 #endif
 };
 
@@ -290,11 +290,11 @@ size_t GetNumBBCMicroTypes();
 const BBCMicroType *GetBBCMicroTypeByIndex(size_t index);
 
 #if BBCMICRO_DEBUGGER
-// Parse address prefix and add additional flags to *dpo_ptr.
+// Parse address prefix and add additional flags to *dso_ptr.
 //
-// Returns true if OK, false if not (*dpo_ptr unmodified), and prints error
+// Returns true if OK, false if not (*dso_ptr unmodified), and prints error
 // messages on *log if not NULL.
-bool ParseAddressPrefix(uint32_t *dpo_ptr,
+bool ParseAddressPrefix(uint32_t *dso_ptr,
                         const BBCMicroType *type,
                         const char *prefix_begin,
                         const char *prefix_end,

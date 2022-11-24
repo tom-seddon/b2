@@ -400,7 +400,7 @@ class BBCMicro : private WD1770Handler {
     const MC146818 *DebugGetRTC() const;
     void DebugGetPaging(ROMSEL *romsel, ACCCON *acccon) const;
 
-    const M6502 *DebugGetM6502(uint32_t dpo) const;
+    const M6502 *DebugGetM6502(uint32_t dso) const;
 
     //uint16_t DebugGetFlatPage(uint8_t page) const;
 
@@ -409,9 +409,9 @@ class BBCMicro : private WD1770Handler {
     //
     // mos indicates whether the access is from MOS code (true) or user code
     // (false).
-    const BigPage *DebugGetBigPageForAddress(M6502Word addr, bool mos, uint32_t dpo) const;
+    const BigPage *DebugGetBigPageForAddress(M6502Word addr, bool mos, uint32_t dso) const;
 
-    void DebugGetMemBigPageIsMOSTable(uint8_t *mem_big_page_is_mos, uint32_t dpo) const;
+    void DebugGetMemBigPageIsMOSTable(uint8_t *mem_big_page_is_mos, uint32_t dso) const;
 
     // Get/set per-byte debug flags for one byte.
     uint8_t DebugGetByteDebugFlags(const BigPage *big_page, uint32_t offset) const;
@@ -425,8 +425,8 @@ class BBCMicro : private WD1770Handler {
     uint8_t DebugGetAddressDebugFlags(M6502Word addr) const;
     void DebugSetAddressDebugFlags(M6502Word addr, uint8_t flags) const;
 
-    void DebugGetBytes(uint8_t *bytes, size_t num_bytes, M6502Word addr, uint32_t dpo);
-    void DebugSetBytes(M6502Word addr, uint32_t dpo, const uint8_t *bytes, size_t num_bytes);
+    void DebugGetBytes(uint8_t *bytes, size_t num_bytes, M6502Word addr, uint32_t dso);
+    void DebugSetBytes(M6502Word addr, uint32_t dso, const uint8_t *bytes, size_t num_bytes);
 
     void SetExtMemory(uint32_t addr, uint8_t value);
 
@@ -622,7 +622,7 @@ class BBCMicro : private WD1770Handler {
     //////////////////////////////////////////////////////////////////////////
 
     BigPage m_big_pages[NUM_BIG_PAGES];
-    uint32_t m_dpo_mask = 0;
+    uint32_t m_dso_mask = 0;
     typedef uint32_t (BBCMicro::*UpdateMFn)(VideoDataUnit *, SoundDataUnit *);
     UpdateMFn m_update_mfn = nullptr;
 

@@ -47,7 +47,7 @@ EEND()
 // BBCMicroDebugStateOverride, or something. It's a set of flags that indicate
 // which aspects of the system may get overridden for debugging purposes.
 
-#define ENAME BBCMicroDebugPagingOverride
+#define ENAME BBCMicroDebugStateOverride
 EBEGIN()
 EPNV(ROM, 15)
 EPNV(OverrideROM, 1 << 4)
