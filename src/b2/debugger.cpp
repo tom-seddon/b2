@@ -953,7 +953,7 @@ class MemoryDebugWindow : public DebugUI,
             data.resize(1);
             data[0] = value;
 
-            m_window->m_beeb_thread->Send(std::make_shared<BeebThread::DebugSetBytesMessage>((uint32_t)offset,
+            m_window->m_beeb_thread->Send(std::make_shared<BeebThread::DebugSetBytesMessage>((uint16_t)offset,
                                                                                              m_window->m_dpo,
                                                                                              std::move(data)));
         }
