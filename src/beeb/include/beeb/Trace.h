@@ -117,18 +117,26 @@ class Trace : public std::enable_shared_from_this<Trace> {
     };
 #include <shared/poppack.h>
 
+#include <shared/pshpack1.h>
+    struct ParasiteBootModeEvent {
+        bool parasite_boot_mode;
+    };
+#include <shared/poppack.h>
+
     //static const TraceEventType BLANK_LINE_EVENT;
     static const TraceEventType STRING_EVENT;
     static const TraceEventType DISCONTINUITY_EVENT;
     static const TraceEventType WRITE_ROMSEL_EVENT;
     static const TraceEventType WRITE_ACCCON_EVENT;
+    static const TraceEventType PARASITE_BOOT_MODE_EVENT;
 
     // max_num_bytes is approximate - actual consumption may be greater.
     // Supply SIZE_MAX to just have the data grow indefinitely.
     explicit Trace(size_t max_num_bytes,
                    const BBCMicroType *type,
                    ROMSEL initial_romsel_value,
-                   ACCCON initial_acccon_value);
+                   ACCCON initial_acccon_value,
+                   bool initial_parasite_boot_mode);
     ~Trace();
 
     Trace(const Trace &) = delete;
@@ -175,10 +183,11 @@ class Trace : public std::enable_shared_from_this<Trace> {
     size_t AllocString(TraceEventSource source, const char *str);
     void AllocStringn(TraceEventSource source, const char *str, size_t n);
 
-    // Allocate events for ROMSEL/ACCCON writes. These need special handling so
-    // the initial values can be correctly maintained.
+    // Allocate events for things that need special handling so the initial
+    // values can be correctly maintained.
     void AllocWriteROMSELEvent(ROMSEL romsel);
     void AllocWriteACCCONEvent(ACCCON acccon);
+    void AllocParasiteBootModeEvent(bool parasite_boot_mode);
 
     // max_len bytes is allocated. Call FinishLog to try to truncate the
     // allocation if possible.
@@ -190,6 +199,7 @@ class Trace : public std::enable_shared_from_this<Trace> {
     const BBCMicroType *GetBBCMicroType() const;
     ROMSEL GetInitialROMSEL() const;
     ACCCON GetInitialACCCON() const;
+    bool GetInitialParasiteBootMode() const;
 
     typedef bool (*ForEachEventFn)(Trace *t, const TraceEvent *e, void *context);
 
@@ -227,6 +237,7 @@ class Trace : public std::enable_shared_from_this<Trace> {
     const BBCMicroType *m_bbc_micro_type = nullptr;
     ROMSEL m_romsel = {};
     ACCCON m_acccon = {};
+    bool m_parasite_boot_mode = false;
 
     // Allocate a new event with variable-sized data, and return a
     // pointer to its data. (The event must have been registered with

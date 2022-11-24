@@ -878,7 +878,7 @@ uint32_t BBCMicro::Update(VideoDataUnit *video_unit, SoundDataUnit *sound_unit) 
                 if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_ParasiteSpecial) != 0) {
                     if (m_state.parasite_boot_mode) {
                         if (m_trace) {
-                            m_trace->AllocString(TraceEventSource_Parasite, "Read Tube register - leaving boot mode");
+                            m_trace->AllocParasiteBootModeEvent(false);
                         }
                         m_state.parasite_boot_mode = false;
                         this->UpdateCPUDataBusFn();
@@ -901,7 +901,7 @@ uint32_t BBCMicro::Update(VideoDataUnit *video_unit, SoundDataUnit *sound_unit) 
                 if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_ParasiteSpecial) != 0) {
                     if (m_state.parasite_boot_mode) {
                         if (m_trace) {
-                            m_trace->AllocString(TraceEventSource_Parasite, "Write Tube register - leaving boot mode");
+                            m_trace->AllocParasiteBootModeEvent(false);
                         }
                         m_state.parasite_boot_mode = false;
                     }
@@ -1644,7 +1644,8 @@ void BBCMicro::StartTrace(uint32_t trace_flags, size_t max_num_bytes) {
     this->SetTrace(std::make_shared<Trace>(max_num_bytes,
                                            m_type,
                                            m_state.romsel,
-                                           m_state.acccon),
+                                           m_state.acccon,
+                                           m_state.parasite_boot_mode),
                    trace_flags);
 }
 #endif

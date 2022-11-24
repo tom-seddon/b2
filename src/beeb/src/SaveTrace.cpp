@@ -51,6 +51,7 @@ class TraceSaver {
         this->SetHandler(BBCMicro::INSTRUCTION_EVENT, &TraceSaver::HandleInstruction);
         this->SetHandler(Trace::WRITE_ROMSEL_EVENT, &TraceSaver::HandleWriteROMSEL);
         this->SetHandler(Trace::WRITE_ACCCON_EVENT, &TraceSaver::HandleWriteACCCON);
+        this->SetHandler(Trace::PARASITE_BOOT_MODE_EVENT, &TraceSaver::HandleParasiteBootModeEvent, HandlerFlag_PrintPrefix);
         this->SetHandler(Trace::STRING_EVENT, &TraceSaver::HandleString, HandlerFlag_PrintPrefix);
         this->SetHandler(SN76489::WRITE_EVENT, &TraceSaver::HandleSN76489WriteEvent, HandlerFlag_PrintPrefix);
         this->SetHandler(SN76489::UPDATE_EVENT, &TraceSaver::HandleSN76489UpdateEvent, HandlerFlag_PrintPrefix);
@@ -92,6 +93,7 @@ class TraceSaver {
         m_type = m_trace->GetBBCMicroType();
         m_romsel = m_trace->GetInitialROMSEL();
         m_acccon = m_trace->GetInitialACCCON();
+        m_parasite_boot_mode = m_trace->GetInitialParasiteBootMode();
         m_paging_dirty = true;
 
         bool completed;
@@ -158,6 +160,7 @@ class TraceSaver {
     CycleCount m_first_event_time = {0};
     ROMSEL m_romsel = {};
     ACCCON m_acccon = {};
+    bool m_parasite_boot_mode = false;
     bool m_paging_dirty = true;
     MemoryBigPageTables m_paging_tables = {};
     bool m_io = true;
@@ -230,7 +233,7 @@ class TraceSaver {
         return c;
     }
 
-    char *AddAddress(char *c, const char *prefix, uint16_t pc_, uint16_t value, const char *suffix) {
+    char *AddAddress(const TraceEvent *ev, char *c, const char *prefix, uint16_t pc_, uint16_t value, const char *suffix) {
         while ((*c = *prefix++) != 0) {
             ++c;
         }
@@ -249,13 +252,32 @@ class TraceSaver {
         M6502Word addr = {value};
 
         char code;
-        if (addr.b.h >= 0xfc && addr.b.h <= 0xfe && m_io) {
-            code = 'i';
-        } else {
-            M6502Word pc = {pc_};
-            uint8_t big_page = m_paging_tables.mem_big_pages[m_paging_tables.pc_mem_big_pages_set[pc.p.p]][addr.p.p];
-            ASSERT(big_page < NUM_BIG_PAGES);
-            code = m_type->big_pages_metadata[big_page].code;
+        switch (ev->source) {
+        default:
+            ASSERT(false);
+            // fall through
+        case TraceEventSource_None:
+            code = '?';
+            break;
+
+        case TraceEventSource_Host:
+            if (addr.b.h >= 0xfc && addr.b.h <= 0xfe && m_io) {
+                code = 'i';
+            } else {
+                M6502Word pc = {pc_};
+                uint8_t big_page = m_paging_tables.mem_big_pages[m_paging_tables.pc_mem_big_pages_set[pc.p.p]][addr.p.p];
+                ASSERT(big_page < NUM_BIG_PAGES);
+                code = m_type->big_pages_metadata[big_page].code;
+            }
+            break;
+
+        case TraceEventSource_Parasite:
+            if (m_parasite_boot_mode && addr.b.h >= 0xf0) {
+                code = 'r';
+            } else {
+                code = 'p';
+            }
+            break;
         }
 
         *c++ = code;
@@ -502,7 +524,7 @@ class TraceSaver {
             c += m_time_prefix_len;
         }
 
-        c = AddAddress(c, "", 0, ev->pc, ":");
+        c = AddAddress(e, c, "", 0, ev->pc, ":");
 
         *c++ = i->undocumented ? '*' : ' ';
 
@@ -543,17 +565,17 @@ class TraceSaver {
 
         case M6502AddrMode_ZPG:
             c = AddByte(c, "$", (uint8_t)ev->ad, "");
-            c = AddAddress(c, " [", ev->pc, (uint8_t)ev->ad, "]");
+            c = AddAddress(e, c, " [", ev->pc, (uint8_t)ev->ad, "]");
             break;
 
         case M6502AddrMode_ZPX:
             c = AddByte(c, "$", (uint8_t)ev->ad, ",X");
-            c = AddAddress(c, " [", ev->pc, (uint8_t)(ev->ad + ev->x), "]");
+            c = AddAddress(e, c, " [", ev->pc, (uint8_t)(ev->ad + ev->x), "]");
             break;
 
         case M6502AddrMode_ZPY:
             c = AddByte(c, "$", (uint8_t)ev->ad, ",Y");
-            c = AddAddress(c, " [", ev->pc, (uint8_t)(ev->ad + ev->y), "]");
+            c = AddAddress(e, c, " [", ev->pc, (uint8_t)(ev->ad + ev->y), "]");
             break;
 
         case M6502AddrMode_ABS:
@@ -564,28 +586,28 @@ class TraceSaver {
                 // aren't useful anyway, since the next line shows where
                 // execution ended up.
             } else {
-                c = AddAddress(c, " [", ev->pc, ev->ad, "]");
+                c = AddAddress(e, c, " [", ev->pc, ev->ad, "]");
             }
             break;
 
         case M6502AddrMode_ABX:
             c = AddWord(c, "$", ev->ad, ",X");
-            c = AddAddress(c, " [", ev->pc, (uint16_t)(ev->ad + ev->x), "]");
+            c = AddAddress(e, c, " [", ev->pc, (uint16_t)(ev->ad + ev->x), "]");
             break;
 
         case M6502AddrMode_ABY:
             c = AddWord(c, "$", ev->ad, ",Y");
-            c = AddAddress(c, " [", ev->pc, (uint16_t)(ev->ad + ev->y), "]");
+            c = AddAddress(e, c, " [", ev->pc, (uint16_t)(ev->ad + ev->y), "]");
             break;
 
         case M6502AddrMode_INX:
             c = AddByte(c, "($", (uint8_t)ev->ia, ",X)");
-            c = AddAddress(c, " [", ev->pc, ev->ad, "]");
+            c = AddAddress(e, c, " [", ev->pc, ev->ad, "]");
             break;
 
         case M6502AddrMode_INY:
             c = AddByte(c, "($", (uint8_t)ev->ia, "),Y");
-            c = AddAddress(c, " [", ev->pc, (uint16_t)(ev->ad + ev->y), "]");
+            c = AddAddress(e, c, " [", ev->pc, (uint16_t)(ev->ad + ev->y), "]");
             break;
 
         case M6502AddrMode_IND:
@@ -602,7 +624,7 @@ class TraceSaver {
         case M6502AddrMode_INZ:
             {
                 c = AddByte(c, "($", (uint8_t)ev->ia, ")");
-                c = AddAddress(c, " [", ev->pc, ev->ad, "]");
+                c = AddAddress(e, c, " [", ev->pc, ev->ad, "]");
             }
             break;
 
@@ -674,6 +696,13 @@ class TraceSaver {
 
         m_acccon = ev->acccon;
         m_paging_dirty = true;
+    }
+
+    void HandleParasiteBootModeEvent(const TraceEvent *e) {
+        auto ev = (const Trace::ParasiteBootModeEvent *)e->event;
+
+        m_parasite_boot_mode = ev->parasite_boot_mode;
+        m_output->f("Parasite boot mode: %s\n", BOOL_STR(m_parasite_boot_mode));
     }
 
     void HandleTubeWriteFIFO1Event(const TraceEvent *e) {

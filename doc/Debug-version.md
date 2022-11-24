@@ -222,19 +222,25 @@ output, but offset so that it's easier... marginally... to scan by
 eye:
 
 ```
-P                                                                                       0  o`$f800: ldx #$00                 A=00 X=00 Y=00 S=fd P=nvdiZc (D=00)
-P                                                                                       2  o`$f802: lda $ff00,X [o`$ff00]    A=ff X=00 Y=00 S=fd P=Nvdizc (D=ff)
-P                                                                                       6  o`$f805: sta $ff00,X [o`$ff00]    A=ff X=00 Y=00 S=fd P=Nvdizc (D=ff)
+P                                                                                       0  r`$f800: ldx #$00                 A=00 X=00 Y=00 S=fd P=nvdiZc (D=00)
+P                                                                                       2  r`$f802: lda $ff00,X [r`$ff00]    A=ff X=00 Y=00 S=fd P=Nvdizc (D=ff)
+P                                                                                       6  r`$f805: sta $ff00,X [r`$ff00]    A=ff X=00 Y=00 S=fd P=Nvdizc (D=ff)
 H       3  o`$e364: lda #$40                 A=40 X=00 Y=00 S=fd P=nvdizc (D=40)
-P                                                                                      11  o`$f808: dex                      A=ff X=ff Y=00 S=fd P=Nvdizc (D=d0)
+P                                                                                      11  r`$f808: dex                      A=ff X=ff Y=00 S=fd P=Nvdizc (D=d0)
 H       5  o`$e366: sta $0d00 [m`$0d00]      A=40 X=00 Y=00 S=fd P=nvdizc (D=40)
-P                                                                                      13  o`$f809: bne $f802                A=ff X=ff Y=00 S=fd P=Nvdizc (D=01)
-P                                                                                      16  o`$f802: lda $ff00,X [o`$ffff]    A=fc X=ff Y=00 S=fd P=Nvdizc (D=fc)
+P                                                                                      13  r`$f809: bne $f802                A=ff X=ff Y=00 S=fd P=Nvdizc (D=01)
+P                                                                                      16  r`$f802: lda $ff00,X [r`$ffff]    A=fc X=ff Y=00 S=fd P=Nvdizc (D=fc)
 H       9  o`$e369: sei                      A=40 X=00 Y=00 S=fd P=nvdIzc (D=a9)
-P                                                                                      20  o`$f805: sta $ff00,X [o`$ffff]    A=fc X=ff Y=00 S=fd P=Nvdizc (D=fc)
+P                                                                                      20  r`$f805: sta $ff00,X [r`$ffff]    A=fc X=ff Y=00 S=fd P=Nvdizc (D=fc)
 H      11  o`$e36a: lda #$53                 A=53 X=00 Y=00 S=fd P=nvdIzc (D=53)
-P                                                                                      25  o`$f808: dex                      A=fc X=fe Y=00 S=fd P=Nvdizc (D=d0)
-P                                                                                      27  o`$f809: bne $f802                A=fc X=fe Y=00 S=fd P=Nvdizc (D=01)
+P                                                                                      25  r`$f808: dex                      A=fc X=fe Y=00 S=fd P=Nvdizc (D=d0)
+P                                                                                      27  r`$f809: bne $f802                A=fc X=fe Y=00 S=fd P=Nvdizc (D=01)
+H      13  o`$e36c: sta $fe8e [i`$fe8e]      A=53 X=00 Y=00 S=fd P=nvdIzc (D=53)
+P                                                                                      30  r`$f802: lda $ff00,X [r`$fffe]    A=e6 X=fe Y=00 S=fd P=Nvdizc (D=e6)
+P                                                                                      34  r`$f805: sta $ff00,X [r`$fffe]    A=e6 X=fe Y=00 S=fd P=Nvdizc (D=e6)
+H      17  o`$e36f: jsr $e590                A=53 X=00 Y=00 S=fb P=nvdIzc (D=00)
+P                                                                                      39  r`$f808: dex                      A=e6 X=fd Y=00 S=fd P=Nvdizc (D=d0)
+P                                                                                      41  r`$f809: bne $f802                A=e6 X=fd Y=00 S=fd P=Nvdizc (D=01)
 ```
 
 Host or parasite, the first column is the cycle count - then
@@ -245,6 +251,12 @@ The bracketed `D` value is the value of the emulated CPU's internal
 data register. For read or read-modify-write instructions, this is the
 value read; for branch instructions, this is the result of the test
 (1=taken, 0=not taken).
+
+Addresses in the trace are annotated with an address prefix hint. Note
+this is a hint, and while it's usually correct it may not actually
+reflect the affected byte when the prefix is `r` (read parasite ROM,
+write parasite RAM) or `i` (write host I/O, read one of host I/O or
+MOS ROM).
 
 The `Other traces` checkboxes add additional hardware state output in
 the file:

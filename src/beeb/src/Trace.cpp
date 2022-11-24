@@ -113,6 +113,7 @@ const TraceEventType Trace::DISCONTINUITY_EVENT("_discontinuity", sizeof(Discont
 
 const TraceEventType Trace::WRITE_ROMSEL_EVENT("_write_romsel", sizeof(WriteROMSELEvent), TraceEventSource_Host);
 const TraceEventType Trace::WRITE_ACCCON_EVENT("_write_acccon", sizeof(WriteACCCONEvent), TraceEventSource_Host);
+const TraceEventType Trace::PARASITE_BOOT_MODE_EVENT("_parasite_boot_mode", sizeof(ParasiteBootModeEvent), TraceEventSource_Parasite);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -129,6 +130,7 @@ struct Trace::Chunk {
 
     ROMSEL initial_romsel;
     ACCCON initial_acccon;
+    bool initial_parasite_boot_mode;
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -137,11 +139,13 @@ struct Trace::Chunk {
 Trace::Trace(size_t max_num_bytes,
              const BBCMicroType *bbc_micro_type,
              ROMSEL initial_romsel,
-             ACCCON initial_acccon)
+             ACCCON initial_acccon,
+             bool initial_parasite_boot_mode)
     : m_max_num_bytes(max_num_bytes)
     , m_bbc_micro_type(bbc_micro_type)
     , m_romsel(initial_romsel)
-    , m_acccon(initial_acccon) {
+    , m_acccon(initial_acccon)
+    , m_parasite_boot_mode(initial_parasite_boot_mode) {
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -322,6 +326,16 @@ void Trace::AllocWriteACCCONEvent(ACCCON acccon) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+void Trace::AllocParasiteBootModeEvent(bool parasite_boot_mode) {
+    auto ev = (ParasiteBootModeEvent *)this->AllocEvent(PARASITE_BOOT_MODE_EVENT);
+
+    ev->parasite_boot_mode = parasite_boot_mode;
+    m_parasite_boot_mode = parasite_boot_mode;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 LogPrinter *Trace::GetLogPrinter(TraceEventSource source, size_t max_len) {
     if (max_len > MAX_EVENT_SIZE) {
         max_len = MAX_EVENT_SIZE;
@@ -408,6 +422,17 @@ ACCCON Trace::GetInitialACCCON() const {
         return m_head->initial_acccon;
     } else {
         return m_acccon;
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool Trace::GetInitialParasiteBootMode() const {
+    if (m_head) {
+        return m_head->initial_parasite_boot_mode;
+    } else {
+        return m_parasite_boot_mode;
     }
 }
 
@@ -579,6 +604,7 @@ void *Trace::Alloc(CycleCount time, size_t n) {
         c->initial_time = c->last_time = time;
         c->initial_romsel = m_romsel;
         c->initial_acccon = m_acccon;
+        c->initial_parasite_boot_mode = m_parasite_boot_mode;
 
         if (!m_head) {
             m_head = c;
