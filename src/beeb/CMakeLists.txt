@@ -7,7 +7,7 @@ set(SRCS
   ${S}/1770.cpp ${I}/1770.h ${I}/1770.inl
   ${S}/6502.cpp ${I}/6502.h
   ${S}/6522.cpp ${I}/6522.h ${I}/6522.inl
-  ${S}/BBCMicro.cpp ${S}/BBCMicro_private.inl ${I}/BBCMicro.h ${I}/BBCMicro.inl
+  ${S}/BBCMicro.cpp ${S}/BBCMicro_Update.cpp ${S}/BBCMicro_private.inl ${I}/BBCMicro.h ${I}/BBCMicro.inl
   ${S}/BeebLink.cpp ${I}/BeebLink.h ${I}/BeebLink.inl
   ${S}/DiscImage.cpp ${I}/DiscImage.h
   ${S}/DiscInterface.cpp ${I}/DiscInterface.h ${I}/DiscInterface.inl

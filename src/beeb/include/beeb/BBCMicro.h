@@ -387,6 +387,7 @@ class BBCMicro : private WD1770Handler {
     // false.
     bool GetAndResetDiscAccessFlag();
 
+    static const BeebKey PASTE_START_KEY;
     static const char PASTE_START_CHAR;
 
     bool IsPasting() const;
@@ -795,6 +796,7 @@ class BBCMicro : private WD1770Handler {
     template <uint32_t UPDATE_FLAGS>
     uint32_t Update(VideoDataUnit *video_unit, SoundDataUnit *sound_unit);
 
+    static const uint8_t CURSOR_PATTERNS[8];
     static const UpdateMFn ms_update_mfns[512];
 };
 
