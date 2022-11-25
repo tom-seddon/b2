@@ -356,17 +356,17 @@ class BBCMicro : private WD1770Handler {
     int GetTraceStats(struct TraceStats *stats);
 #endif
 
-    // Add instruction/write callback. It's an error to add the same one
-    // twice.
+    // Add host CPU instruction/host CPU write callback. It's an error to add
+    // the same one twice.
     //
     // To remove, have the callback return false, or use RemoveInstructionFn
     // (providing both fn and context).
     //
     // The callback mustn't affect reproducability.
-    void AddInstructionFn(InstructionFn fn, void *context);
-    void RemoveInstructionFn(InstructionFn fn, void *context);
+    void AddHostInstructionFn(InstructionFn fn, void *context);
+    void RemoveHostInstructionFn(InstructionFn fn, void *context);
 
-    void AddWriteFn(WriteFn fn, void *context);
+    void AddHostWriteFn(WriteFn fn, void *context);
 
     void SetMMIOFns(uint16_t addr, ReadMMIOFn read_fn, WriteMMIOFn write_fn, void *context);
 
@@ -719,8 +719,8 @@ class BBCMicro : private WD1770Handler {
     InstructionTraceEvent *m_trace_parasite_current_instruction = nullptr;
 #endif
 
-    std::vector<std::pair<InstructionFn, void *>> m_instruction_fns;
-    std::vector<std::pair<WriteFn, void *>> m_write_fns;
+    std::vector<std::pair<InstructionFn, void *>> m_host_instruction_fns;
+    std::vector<std::pair<WriteFn, void *>> m_host_write_fns;
 
 #if BBCMICRO_DEBUGGER
     std::unique_ptr<DebugState> m_debug_ptr;

@@ -974,10 +974,10 @@ uint32_t BBCMicro::Update(VideoDataUnit *video_unit, SoundDataUnit *sound_unit) 
             // Update CPU data bus.
             if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_Hacks) != 0) {
                 if (m_state.cpu.read == 0) {
-                    if (!m_write_fns.empty()) {
+                    if (!m_host_write_fns.empty()) {
                         // Same deal as instruction fns.
-                        auto *fn = m_write_fns.data();
-                        auto *fns_end = fn + m_write_fns.size();
+                        auto *fn = m_host_write_fns.data();
+                        auto *fns_end = fn + m_host_write_fns.size();
                         bool any_removed = false;
 
                         while (fn != fns_end) {
@@ -990,7 +990,7 @@ uint32_t BBCMicro::Update(VideoDataUnit *video_unit, SoundDataUnit *sound_unit) 
                         }
 
                         if (any_removed) {
-                            m_write_fns.resize((size_t)(fns_end - m_write_fns.data()));
+                            m_host_write_fns.resize((size_t)(fns_end - m_host_write_fns.data()));
 
                             UpdateCPUDataBusFn();
                         }
@@ -1079,15 +1079,15 @@ uint32_t BBCMicro::Update(VideoDataUnit *video_unit, SoundDataUnit *sound_unit) 
 
             if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_Hacks) != 0) {
                 if (M6502_IsAboutToExecute(&m_state.cpu)) {
-                    if (!m_instruction_fns.empty()) {
+                    if (!m_host_instruction_fns.empty()) {
 
                         // This is a bit bizarre, but I just can't stomach the
                         // idea of literally like 1,000,000 std::vector calls per
                         // second. But this way, it's hopefully more like only
                         // 300,000.
 
-                        auto *fn = m_instruction_fns.data();
-                        auto *fns_end = fn + m_instruction_fns.size();
+                        auto *fn = m_host_instruction_fns.data();
+                        auto *fns_end = fn + m_host_instruction_fns.size();
                         bool removed = false;
 
                         while (fn != fns_end) {
@@ -1100,7 +1100,7 @@ uint32_t BBCMicro::Update(VideoDataUnit *video_unit, SoundDataUnit *sound_unit) 
                         }
 
                         if (removed) {
-                            m_instruction_fns.resize((size_t)(fns_end - m_instruction_fns.data()));
+                            m_host_instruction_fns.resize((size_t)(fns_end - m_host_instruction_fns.data()));
 
                             UpdateCPUDataBusFn();
                         }
@@ -1692,10 +1692,10 @@ int BBCMicro::GetTraceStats(struct TraceStats *stats) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void BBCMicro::AddInstructionFn(InstructionFn fn, void *context) {
-    ASSERT(std::find(m_instruction_fns.begin(), m_instruction_fns.end(), std::make_pair(fn, context)) == m_instruction_fns.end());
+void BBCMicro::AddHostInstructionFn(InstructionFn fn, void *context) {
+    ASSERT(std::find(m_host_instruction_fns.begin(), m_host_instruction_fns.end(), std::make_pair(fn, context)) == m_host_instruction_fns.end());
 
-    m_instruction_fns.emplace_back(fn, context);
+    m_host_instruction_fns.emplace_back(fn, context);
 
     this->UpdateCPUDataBusFn();
 }
@@ -1703,11 +1703,11 @@ void BBCMicro::AddInstructionFn(InstructionFn fn, void *context) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void BBCMicro::RemoveInstructionFn(InstructionFn fn, void *context) {
-    auto &&it = std::find(m_instruction_fns.begin(), m_instruction_fns.end(), std::make_pair(fn, context));
+void BBCMicro::RemoveHostInstructionFn(InstructionFn fn, void *context) {
+    auto &&it = std::find(m_host_instruction_fns.begin(), m_host_instruction_fns.end(), std::make_pair(fn, context));
 
-    if (it != m_instruction_fns.end()) {
-        m_instruction_fns.erase(it);
+    if (it != m_host_instruction_fns.end()) {
+        m_host_instruction_fns.erase(it);
 
         this->UpdateCPUDataBusFn();
     }
@@ -1716,10 +1716,10 @@ void BBCMicro::RemoveInstructionFn(InstructionFn fn, void *context) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void BBCMicro::AddWriteFn(WriteFn fn, void *context) {
-    ASSERT(std::find(m_write_fns.begin(), m_write_fns.end(), std::make_pair(fn, context)) == m_write_fns.end());
+void BBCMicro::AddHostWriteFn(WriteFn fn, void *context) {
+    ASSERT(std::find(m_host_write_fns.begin(), m_host_write_fns.end(), std::make_pair(fn, context)) == m_host_write_fns.end());
 
-    m_write_fns.emplace_back(fn, context);
+    m_host_write_fns.emplace_back(fn, context);
 
     this->UpdateCPUDataBusFn();
 }
@@ -3043,11 +3043,11 @@ void BBCMicro::UpdateCPUDataBusFn() {
     }
 #endif
 
-    if (!m_instruction_fns.empty()) {
+    if (!m_host_instruction_fns.empty()) {
         update_flags |= BBCMicroUpdateFlag_Hacks;
     }
 
-    if (!m_write_fns.empty()) {
+    if (!m_host_write_fns.empty()) {
         update_flags |= BBCMicroUpdateFlag_Hacks;
     }
 
