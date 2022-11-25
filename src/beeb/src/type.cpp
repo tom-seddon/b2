@@ -14,7 +14,7 @@
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_DEBUGGER
-static void ApplyROMDPO(ROMSEL *romsel, uint32_t dso) {
+static void ApplyROMDSO(ROMSEL *romsel, uint32_t dso) {
     if (dso & BBCMicroDebugStateOverride_OverrideROM) {
         romsel->b_bits.pr = dso & BBCMicroDebugStateOverride_ROM;
     }
@@ -117,6 +117,14 @@ static std::vector<BigPageMetadata> GetBigPagesMetadataCommon() {
 #endif
                          0xf000);
 
+    for (size_t i = 0; i < NUM_PARASITE_BIG_PAGES; ++i) {
+        big_pages[PARASITE_BIG_PAGE_INDEX + i].is_parasite = true;
+    }
+
+    for (size_t i = 0; i < NUM_PARASITE_ROM_BIG_PAGES; ++i) {
+        big_pages[PARASITE_ROM_BIG_PAGE_INDEX + i].is_parasite = true;
+    }
+
     return big_pages;
 }
 
@@ -181,15 +189,15 @@ static void GetMemBigPageTablesB(MemoryBigPageTables *tables,
 }
 
 #if BBCMICRO_DEBUGGER
-static void ApplyDPOB(ROMSEL *romsel, ACCCON *acccon, uint32_t dso) {
+static void ApplyDSOB(ROMSEL *romsel, ACCCON *acccon, uint32_t dso) {
     (void)acccon;
 
-    ApplyROMDPO(romsel, dso);
+    ApplyROMDSO(romsel, dso);
 }
 #endif
 
 #if BBCMICRO_DEBUGGER
-static uint32_t GetDPOB(ROMSEL romsel, ACCCON acccon) {
+static uint32_t GetDSOB(ROMSEL romsel, ACCCON acccon) {
     (void)acccon;
 
     uint32_t dso = 0;
@@ -232,8 +240,8 @@ const BBCMicroType BBC_MICRO_TYPE_B = {
     GetBigPagesMetadataB(),
     &GetMemBigPageTablesB, //get_mem_big_page_tables_fn,
 #if BBCMICRO_DEBUGGER
-    &ApplyDPOB, //apply_dso_fn
-    &GetDPOB,   //get_dso_fn
+    &ApplyDSOB, //apply_dso_fn
+    &GetDSOB,   //get_dso_fn
 #endif
     0x0f,                                      //romsel_mask,
     0x00,                                      //acccon_mask,
@@ -334,8 +342,8 @@ static void GetMemBigPageTablesBPlus(MemoryBigPageTables *tables,
 }
 
 #if BBCMICRO_DEBUGGER
-static void ApplyDPOBPlus(ROMSEL *romsel, ACCCON *acccon, uint32_t dso) {
-    ApplyROMDPO(romsel, dso);
+static void ApplyDSOBPlus(ROMSEL *romsel, ACCCON *acccon, uint32_t dso) {
+    ApplyROMDSO(romsel, dso);
 
     if (dso & BBCMicroDebugStateOverride_OverrideANDY) {
         romsel->bplus_bits.ram = !!(dso & BBCMicroDebugStateOverride_ANDY);
@@ -348,7 +356,7 @@ static void ApplyDPOBPlus(ROMSEL *romsel, ACCCON *acccon, uint32_t dso) {
 #endif
 
 #if BBCMICRO_DEBUGGER
-static uint32_t GetDPOBPlus(ROMSEL romsel, ACCCON acccon) {
+static uint32_t GetDSOBPlus(ROMSEL romsel, ACCCON acccon) {
     uint32_t dso = 0;
 
     dso |= romsel.bplus_bits.pr;
@@ -433,8 +441,8 @@ const BBCMicroType BBC_MICRO_TYPE_B_PLUS = {
     GetBigPagesMetadataBPlus(),
     &GetMemBigPageTablesBPlus, //get_mem_big_page_tables_fn,
 #if BBCMICRO_DEBUGGER
-    &ApplyDPOBPlus, //apply_dso_fn
-    &GetDPOBPlus,   //get_dso_fn
+    &ApplyDSOBPlus, //apply_dso_fn
+    &GetDSOBPlus,   //get_dso_fn
 #endif
     0x8f, //romsel_mask,
     0x80, //acccon_mask,
@@ -552,8 +560,8 @@ static void GetMemBigPagesTablesMaster(MemoryBigPageTables *tables,
 }
 
 #if BBCMICRO_DEBUGGER
-static void ApplyDPOMaster(ROMSEL *romsel, ACCCON *acccon, uint32_t dso) {
-    ApplyROMDPO(romsel, dso);
+static void ApplyDSOMaster(ROMSEL *romsel, ACCCON *acccon, uint32_t dso) {
+    ApplyROMDSO(romsel, dso);
 
     if (dso & BBCMicroDebugStateOverride_OverrideANDY) {
         romsel->m128_bits.ram = !!(dso & BBCMicroDebugStateOverride_ANDY);
@@ -574,7 +582,7 @@ static void ApplyDPOMaster(ROMSEL *romsel, ACCCON *acccon, uint32_t dso) {
 #endif
 
 #if BBCMICRO_DEBUGGER
-static uint32_t GetDPOMaster(ROMSEL romsel, ACCCON acccon) {
+static uint32_t GetDSOMaster(ROMSEL romsel, ACCCON acccon) {
     uint32_t dso = 0;
 
     dso |= romsel.m128_bits.pm;
@@ -638,7 +646,7 @@ static std::vector<BigPageMetadata> GetBigPagesMetadataMaster() {
                          0x3000);
 
 #if BBCMICRO_DEBUGGER
-    // Update the MOS DPO flags.
+    // Update the MOS DSO flags.
 
     // Switch HAZEL off to see the first 8K of MOS.
     for (size_t i = 0; i < 2; ++i) {
@@ -703,8 +711,8 @@ const BBCMicroType BBC_MICRO_TYPE_MASTER = {
     GetBigPagesMetadataMaster(),
     &GetMemBigPagesTablesMaster, //get_mem_big_page_tables_fn,
 #if BBCMICRO_DEBUGGER
-    &ApplyDPOMaster, //apply_dso_fn
-    &GetDPOMaster,   //get_dso_fn
+    &ApplyDSOMaster, //apply_dso_fn
+    &GetDSOMaster,   //get_dso_fn
 #endif
     0x8f, //romsel_mask,
     0xff, //acccon_mask,

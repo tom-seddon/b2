@@ -700,7 +700,7 @@ class BeebThread {
 #if BBCMICRO_DEBUGGER
     class DebugSetAddressDebugFlags : public Message {
       public:
-        DebugSetAddressDebugFlags(M6502Word addr, uint8_t addr_flags);
+        DebugSetAddressDebugFlags(M6502Word addr, uint32_t dso, uint8_t addr_flags);
 
         bool ThreadPrepare(std::shared_ptr<Message> *ptr,
                            CompletionFun *completion_fun,
@@ -710,6 +710,7 @@ class BeebThread {
       protected:
       private:
         const M6502Word m_addr = {};
+        const uint32_t m_dso = 0;
         const uint8_t m_addr_flags = 0;
     };
 #endif

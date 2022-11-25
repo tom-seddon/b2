@@ -1362,8 +1362,9 @@ void BeebThread::DebugSetExtByteMessage::ThreadHandle(BeebThread *beeb_thread,
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_DEBUGGER
-BeebThread::DebugSetAddressDebugFlags::DebugSetAddressDebugFlags(M6502Word addr, uint8_t addr_flags)
+BeebThread::DebugSetAddressDebugFlags::DebugSetAddressDebugFlags(M6502Word addr, uint32_t dso, uint8_t addr_flags)
     : m_addr(addr)
+    , m_dso(dso)
     , m_addr_flags(addr_flags) {
 }
 #endif
@@ -1378,7 +1379,7 @@ bool BeebThread::DebugSetAddressDebugFlags::ThreadPrepare(std::shared_ptr<Messag
                                                           ThreadState *ts) {
     (void)completion_fun, (void)beeb_thread;
 
-    ts->beeb->DebugSetAddressDebugFlags(m_addr, m_addr_flags);
+    ts->beeb->DebugSetAddressDebugFlags(m_addr, m_dso,m_addr_flags);
 
     ptr->reset();
     return true;

@@ -167,7 +167,9 @@ class DebugUI : public SettingsUI {
     // Address info, checkboxes for breakpoint flags, etc.
     void DoByteDebugGui(const DebugBigPage *dbp, M6502Word addr);
 
-    RevealTargetUI *DoRevealGui(const char *text);
+    RevealTargetUI *DoRevealByteGui();
+    RevealTargetUI *DoRevealAddressGui();
+    RevealTargetUI *DoRevealGui(const char *text, bool address);
 
     void ApplyOverridesForDebugBigPage(const DebugBigPage *dbp);
 
@@ -478,26 +480,29 @@ void DebugUI::DoBytePopupGui(const DebugBigPage *dbp, M6502Word addr) {
 //////////////////////////////////////////////////////////////////////////
 
 void DebugUI::DoByteDebugGui(const DebugBigPage *dbp, M6502Word addr) {
-    ImGui::Text("Address: $%04x", addr.w);
+    const char *cpu = dbp->metadata->is_parasite ? "Parasite" : "Host";
+
+    ImGui::Text("Address: $%04x (%s)", addr.w, cpu);
 
     if (!dbp) {
         ImGui::Separator();
         ImGui::Text("Byte: *unknown*");
     } else {
         if (dbp->addr_flags) {
-            char addr_str[10];
-            snprintf(addr_str, sizeof addr_str, "$%04x", addr.w);
+            char addr_str[50];
+            snprintf(addr_str, sizeof addr_str, "$%04x (%s)", addr.w, cpu);
 
             uint8_t addr_flags = dbp->addr_flags[addr.p.o];
             if (this->DoDebugByteFlagsGui(addr_str, &addr_flags)) {
-                m_beeb_thread->Send(std::make_shared<BeebThread::DebugSetAddressDebugFlags>(addr, addr_flags));
+                uint32_t dso = dbp->metadata->is_parasite ? BBCMicroDebugStateOverride_Parasite : 0;
+                m_beeb_thread->Send(std::make_shared<BeebThread::DebugSetAddressDebugFlags>(addr, dso, addr_flags));
                 //                std::unique_lock<Mutex> lock;
                 //                BBCMicro *m=m_beeb_thread->LockMutableBeeb(&lock);
                 //                m->DebugSetAddressDebugFlags(addr,addr_flags);
                 //                m_beeb_thread->InvalidateDebugBigPageForAddress(addr);
             }
 
-            if (RevealTargetUI *reveal_target_ui = this->DoRevealGui("Reveal address...")) {
+            if (RevealTargetUI *reveal_target_ui = this->DoRevealAddressGui()) {
                 reveal_target_ui->RevealAddress(addr);
             }
         }
@@ -524,7 +529,7 @@ void DebugUI::DoByteDebugGui(const DebugBigPage *dbp, M6502Word addr) {
             }
         }
 
-        if (RevealTargetUI *reveal_target_ui = this->DoRevealGui("Reveal byte...")) {
+        if (RevealTargetUI *reveal_target_ui = this->DoRevealByteGui()) {
             reveal_target_ui->RevealByte(dbp, addr);
         }
 
@@ -542,7 +547,23 @@ void DebugUI::DoByteDebugGui(const DebugBigPage *dbp, M6502Word addr) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-RevealTargetUI *DebugUI::DoRevealGui(const char *text) {
+RevealTargetUI *DebugUI::DoRevealAddressGui() {
+    RevealTargetUI *ui = this->DoRevealGui("Reveal address...", true);
+    return ui;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+RevealTargetUI *DebugUI::DoRevealByteGui() {
+    RevealTargetUI *ui = this->DoRevealGui("Reveal byte...", false);
+    return ui;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+RevealTargetUI *DebugUI::DoRevealGui(const char *text, bool address) {
     static const char POPUP_NAME[] = "reveal_target_selector_popup";
     RevealTargetUI *result = nullptr;
 
@@ -554,19 +575,34 @@ RevealTargetUI *DebugUI::DoRevealGui(const char *text) {
 
     if (ImGui::BeginPopup(POPUP_NAME)) {
         struct UI {
-            SettingsUI *settings;
+            DebugUI *debug;
             RevealTargetUI *target;
         };
         UI uis[BeebWindowPopupType_MaxValue];
         size_t num_uis = 0;
 
+        uint32_t this_dso = this->GetDebugStateOverrides();
+
         for (int i = 0; i < BeebWindowPopupType_MaxValue; ++i) {
             UI ui;
-            ui.settings = m_beeb_window->GetPopupByType((BeebWindowPopupType)i);
-            if (ui.settings) {
-                ui.target = dynamic_cast<RevealTargetUI *>(ui.settings);
+            ui.debug = dynamic_cast<DebugUI *>(m_beeb_window->GetPopupByType((BeebWindowPopupType)i));
+            if (ui.debug) {
+                ui.target = dynamic_cast<RevealTargetUI *>(ui.debug);
                 if (ui.target) {
-                    uis[num_uis++] = ui;
+                    if (address) {
+                        // all good - any window can show an address.
+                    } else {
+                        uint32_t other_dso = ui.debug->GetDebugStateOverrides();
+                        if ((other_dso & BBCMicroDebugStateOverride_Parasite) != (this_dso & BBCMicroDebugStateOverride_Parasite)) {
+                            // parasite flag doesn't match! the other window
+                            // can't show this specific byte.
+                            ui.target = nullptr;
+                        }
+                    }
+
+                    if (ui.target) {
+                        uis[num_uis++] = ui;
+                    }
                 }
             }
         }
@@ -575,7 +611,7 @@ RevealTargetUI *DebugUI::DoRevealGui(const char *text) {
             ImGui::Text("No suitable windows active");
         } else {
             for (size_t i = 0; i < num_uis; ++i) {
-                if (ImGui::Selectable(uis[i].settings->GetName().c_str())) {
+                if (ImGui::Selectable(uis[i].debug->GetName().c_str())) {
                     result = uis[i].target;
                 }
             }
@@ -662,17 +698,18 @@ const DebugUI::DebugBigPage *DebugUI::GetDebugBigPageForAddress(M6502Word addr,
             dbp->writeable = false;
         }
 
-        if (bp->debug) {
-            memcpy(dbp->byte_flags_buffer, bp->debug, BBCMicro::BIG_PAGE_SIZE_BYTES);
-            dbp->byte_flags = dbp->byte_flags_buffer;
-        } else {
-            dbp->byte_flags = nullptr;
-        }
+        if (bp->byte_debug_flags) {
+            ASSERT(bp->address_debug_flags);
 
-        if (const uint8_t *addr_flags = m->DebugGetAddressDebugFlagsForMemBigPage(addr.p.p)) {
-            memcpy(dbp->addr_flags_buffer, addr_flags, 4096);
+            memcpy(dbp->byte_flags_buffer, bp->byte_debug_flags, BBCMicro::BIG_PAGE_SIZE_BYTES);
+            dbp->byte_flags = dbp->byte_flags_buffer;
+
+            memcpy(dbp->addr_flags_buffer, bp->address_debug_flags, BBCMicro::BIG_PAGE_SIZE_BYTES);
             dbp->addr_flags = dbp->addr_flags_buffer;
         } else {
+            ASSERT(!bp->address_debug_flags);
+
+            dbp->byte_flags = nullptr;
             dbp->addr_flags = nullptr;
         }
 
@@ -2549,7 +2586,7 @@ class BreakpointsDebugWindow : public DebugUI {
 
             uint64_t breakpoints_change_counter = m->DebugGetBreakpointsChangeCounter();
             if (breakpoints_change_counter != m_breakpoints_change_counter) {
-                m->DebugGetDebugFlags(m_addr_debug_flags, &m_big_page_debug_flags[0][0]);
+                m->DebugGetDebugFlags(m_host_address_debug_flags, m_parasite_address_debug_flags, &m_big_page_debug_flags[0][0]);
                 m_breakpoints_change_counter = breakpoints_change_counter;
                 ++m_num_updates;
                 changed = true;
@@ -2570,6 +2607,7 @@ class BreakpointsDebugWindow : public DebugUI {
             for (size_t i = 0; i < 100; ++i) {
                 M6502Word addr = {(uint16_t)i};
                 m_beeb_thread->Send(std::make_shared<BeebThread::DebugSetAddressDebugFlags>(addr,
+                                                                                            0,
                                                                                             (uint8_t)BBCMicroByteDebugFlag_BreakExecute));
             }
         }
@@ -2588,13 +2626,17 @@ class BreakpointsDebugWindow : public DebugUI {
                 for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; ++i) {
                     Breakpoint *bp = &m_breakpoints[(size_t)i];
 
-                    if (bp->big_page == 0xff) {
-                        // Address breakpoint
-
-                        if (uint8_t *flags = this->Row(bp, "$%04x", bp->offset)) {
+                    if (bp->big_page == HOST_ADDRESS_BREAKPOINT_BIG_PAGE) {
+                        if (uint8_t *flags = this->Row(bp, "$%04x Host", bp->offset)) {
 
                             M6502Word addr = {bp->offset};
-                            m_beeb_thread->Send(std::make_shared<BeebThread::DebugSetAddressDebugFlags>(addr, *flags));
+                            m_beeb_thread->Send(std::make_shared<BeebThread::DebugSetAddressDebugFlags>(addr, 0, *flags));
+                        }
+                    } else if (bp->big_page == PARASITE_ADDRESS_BREAKPOINT_BIG_PAGE) {
+                        if (uint8_t *flags = this->Row(bp, "$%04x Parasite", bp->offset)) {
+
+                            M6502Word addr = {bp->offset};
+                            m_beeb_thread->Send(std::make_shared<BeebThread::DebugSetAddressDebugFlags>(addr, BBCMicroDebugStateOverride_Parasite, *flags));
                         }
                     } else {
                         // Byte breakpoint
@@ -2622,6 +2664,9 @@ class BreakpointsDebugWindow : public DebugUI {
     }
 
   private:
+    static constexpr uint8_t HOST_ADDRESS_BREAKPOINT_BIG_PAGE = NUM_BIG_PAGES + 0;
+    static constexpr uint8_t PARASITE_ADDRESS_BREAKPOINT_BIG_PAGE = NUM_BIG_PAGES + 1;
+
     struct Breakpoint {
         uint8_t big_page;
         uint16_t offset;
@@ -2632,13 +2677,15 @@ class BreakpointsDebugWindow : public DebugUI {
     uint64_t m_num_updates = 0;
 
     // This is quite a large object, by BBC standards at least.
-    uint8_t m_addr_debug_flags[65536] = {};
+    uint8_t m_host_address_debug_flags[65536] = {};
+    uint8_t m_parasite_address_debug_flags[65536] = {};
     uint8_t m_big_page_debug_flags[NUM_BIG_PAGES][BBCMicro::BIG_PAGE_SIZE_BYTES] = {};
 
     // The retain flag indicates that the byte should be listed even if there's
     // no breakpoint set. This prevents rows disappearing when you untick all
     // the entries.
-    uint8_t m_addr_debug_flags_retain[65536 >> 3] = {};
+    uint8_t m_host_address_debug_flags_retain[65536 >> 3] = {};
+    uint8_t m_parasite_address_debug_flags_retain[65536 >> 3] = {};
     uint8_t m_big_page_debug_flags_retain[NUM_BIG_PAGES][BBCMicro::BIG_PAGE_SIZE_BYTES >> 3] = {};
 
     std::vector<Breakpoint> m_breakpoints;
@@ -2656,9 +2703,12 @@ class BreakpointsDebugWindow : public DebugUI {
         ImGui::NextColumn();
 
         uint8_t *flags, *retain;
-        if (bp->big_page == 0xff) {
-            flags = &m_addr_debug_flags[bp->offset];
-            retain = &m_addr_debug_flags_retain[bp->offset >> 3];
+        if (bp->big_page == HOST_ADDRESS_BREAKPOINT_BIG_PAGE) {
+            flags = &m_host_address_debug_flags[bp->offset];
+            retain = &m_host_address_debug_flags_retain[bp->offset >> 3];
+        } else if (bp->big_page == PARASITE_ADDRESS_BREAKPOINT_BIG_PAGE) {
+            flags = &m_parasite_address_debug_flags[bp->offset];
+            retain = &m_parasite_address_debug_flags_retain[bp->offset >> 3];
         } else {
             ASSERT(bp->big_page < NUM_BIG_PAGES);
             ASSERT(bp->offset < BBCMicro::BIG_PAGE_SIZE_BYTES);
@@ -2721,11 +2771,8 @@ class BreakpointsDebugWindow : public DebugUI {
     void Update() {
         m_breakpoints.clear();
 
-        for (size_t i = 0; i < 65536; ++i) {
-            if (m_addr_debug_flags[i] != 0 || m_addr_debug_flags_retain[i >> 3] & 1 << (i & 7)) {
-                m_breakpoints.push_back({0xff, (uint16_t)i});
-            }
-        }
+        UpdateAddressBreakpoints(m_host_address_debug_flags, m_host_address_debug_flags_retain, HOST_ADDRESS_BREAKPOINT_BIG_PAGE);
+        UpdateAddressBreakpoints(m_parasite_address_debug_flags, m_parasite_address_debug_flags_retain, PARASITE_ADDRESS_BREAKPOINT_BIG_PAGE);
 
         for (uint8_t i = 0; i < NUM_BIG_PAGES; ++i) {
             const uint8_t *big_page_debug_flags = m_big_page_debug_flags[i];
@@ -2734,6 +2781,14 @@ class BreakpointsDebugWindow : public DebugUI {
                 if (big_page_debug_flags[j] || m_big_page_debug_flags_retain[i][j >> 3] & 1 << (j & 7)) {
                     m_breakpoints.push_back({i, (uint16_t)j});
                 }
+            }
+        }
+    }
+
+    void UpdateAddressBreakpoints(uint8_t *address_debug_flags, uint8_t *address_debug_flags_retain, uint8_t big_page_index) {
+        for (size_t i = 0; i < 65536; ++i) {
+            if (address_debug_flags[i] != 0 || address_debug_flags_retain[i >> 3] & 1 << (i & 7)) {
+                m_breakpoints.push_back({big_page_index, (uint16_t)i});
             }
         }
     }

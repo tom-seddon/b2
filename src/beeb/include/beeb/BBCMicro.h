@@ -81,7 +81,7 @@ class BBCMicro : private WD1770Handler {
         // the saved states, so whatever.
 
         // Byte-specific breakpoint flags.
-        uint8_t big_pages_debug_flags[NUM_BIG_PAGES][BIG_PAGE_SIZE_BYTES] = {};
+        uint8_t big_pages_byte_debug_flags[NUM_BIG_PAGES][BIG_PAGE_SIZE_BYTES] = {};
 
         //
         uint64_t breakpoints_changed_counter = 1;
@@ -98,8 +98,14 @@ class BBCMicro : private WD1770Handler {
         // much point.
         std::vector<uint8_t *> temp_execute_breakpoints;
 
-        // Address-specific breakpoint flags.
-        uint8_t address_debug_flags[65536] = {};
+        // Host address-specific breakpoint flags.
+        uint8_t host_address_debug_flags[65536] = {};
+
+        // Parasite address-specific breakpoint flags.
+        //
+        // (This buffer exists even if the parasite is disabled. 64 KB just
+        // isn't enough to worry about any more.)
+        uint8_t parasite_address_debug_flags[65536] = {};
 
         char halt_reason[1000] = {};
     };
@@ -121,7 +127,14 @@ class BBCMicro : private WD1770Handler {
 #if BBCMICRO_DEBUGGER
         // if non-NULL, points to BIG_PAGE_SIZE_BYTES values. NULL if this
         // BBCMicro has no associated DebugState.
-        uint8_t *debug = nullptr;
+        uint8_t *byte_debug_flags = nullptr;
+
+        // if non-NULL, points to BIG_PAGE_SIZE_BYTES values. NULL if this
+        // BBCMicro has no associated DebugState.
+        //
+        // The address flags are per-address, so multiple BigPage structs may
+        // point to the same set of address flags.
+        uint8_t *address_debug_flags = nullptr;
 #endif
 
         // Index of this big page, from 0 (inclusive) to NUM_BIG_PAGES
@@ -224,7 +237,7 @@ class BBCMicro : private WD1770Handler {
         uint8_t *w[16] = {};
         const uint8_t *r[16] = {};
 #if BBCMICRO_DEBUGGER
-        uint8_t *debug[16] = {};
+        uint8_t *byte_debug_flags[16] = {};
         const BigPage *bp[16] = {};
 #endif
     };
@@ -422,8 +435,8 @@ class BBCMicro : private WD1770Handler {
     const uint8_t *DebugGetAddressDebugFlagsForMemBigPage(uint8_t mem_big_page) const;
 
     // Get/set per-address byte debug flags for one address.
-    uint8_t DebugGetAddressDebugFlags(M6502Word addr) const;
-    void DebugSetAddressDebugFlags(M6502Word addr, uint8_t flags) const;
+    uint8_t DebugGetAddressDebugFlags(M6502Word addr, uint32_t dso) const;
+    void DebugSetAddressDebugFlags(M6502Word addr, uint32_t dso, uint8_t flags) const;
 
     void DebugGetBytes(uint8_t *bytes, size_t num_bytes, M6502Word addr, uint32_t dso);
     void DebugSetBytes(M6502Word addr, uint32_t dso, const uint8_t *bytes, size_t num_bytes);
@@ -460,10 +473,14 @@ class BBCMicro : private WD1770Handler {
 
     // Get copies of the debug flags.
     //
-    // addr_debug_flags data is 65536 bytes.
+    // host_address_debug_flags data is 65536 bytes.
+    //
+    // parasite_address_debug_flags data is 65536 bytes.
     //
     // big_pages_debug_flags data is NUM_BIG_PAGES*BIG_PAGE_SIZE_BYTES.
-    void DebugGetDebugFlags(uint8_t *addr_debug_flags, uint8_t *big_pages_debug_flags) const;
+    void DebugGetDebugFlags(uint8_t *host_address_debug_flags,
+                            uint8_t *parasite_address_debug_flags,
+                            uint8_t *big_pages_debug_flags) const;
 
     uint32_t DebugGetPagingOverrideMask() const;
 #endif

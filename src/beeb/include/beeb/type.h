@@ -116,6 +116,10 @@ static constexpr uint8_t NUM_PARASITE_ROM_BIG_PAGES = 1;
 
 static constexpr uint8_t NUM_BIG_PAGES = MOS_BIG_PAGE_INDEX + NUM_MOS_BIG_PAGES + NUM_PARASITE_BIG_PAGES + NUM_PARASITE_ROM_BIG_PAGES;
 
+// A few big page indexes from NUM_BIG_PAGES onwards will never be valid, so
+// they can be used for other purposes.
+static_assert(NUM_BIG_PAGES <= 0xf0, "too many big pages");
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
@@ -190,6 +194,11 @@ struct BigPageMetadata {
 
     // where this big page will appear in the address space when mapped in.
     uint16_t addr = 0xffff;
+
+    // Set if this big page is in the parasite address space.
+    //
+    // (This mechanism could be tidier. But it should hang together for now...)
+    bool is_parasite = false;
 };
 
 //////////////////////////////////////////////////////////////////////////
