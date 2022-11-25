@@ -28,7 +28,7 @@ EPNV(SN76489, 1 << 8)
 EPNV(BeebLink, 1 << 9)
 EPNV(SystemVIAExtra, 1 << 10)
 EPNV(UserVIAExtra, 1 << 11)
-EPNV(Tube,1<<12)
+EPNV(Tube, 1 << 12)
 EEND()
 #undef ENAME
 
@@ -104,6 +104,7 @@ EBEGIN()
 EPN(None)
 EPN(StepIn)
 EPN(StepIntoIRQHandler)
+EPN(Count)
 EEND()
 #undef ENAME
 
@@ -141,6 +142,8 @@ EPNV(BreakExecute, 1 << 0)
 EPNV(TempBreakExecute, 1 << 1)
 EPNV(BreakRead, 1 << 2)
 EPNV(BreakWrite, 1 << 3)
+EQPNV(AnyBreakReadMask, BBCMicroByteDebugFlag_BreakExecute | BBCMicroByteDebugFlag_TempBreakExecute | BBCMicroByteDebugFlag_BreakRead)
+EQPNV(AnyBreakWriteMask, BBCMicroByteDebugFlag_BreakWrite)
 EEND()
 #undef ENAME
 #endif
@@ -160,10 +163,10 @@ EEND()
 
 #define ENAME BBCMicroInitFlag
 EBEGIN()
-EPNV(VideoNuLA,1<<0)
-EPNV(ExtMem,1<<1)
-EPNV(PowerOnTone,1<<2)
-EPNV(Parasite,1<<3)
+EPNV(VideoNuLA, 1 << 0)
+EPNV(ExtMem, 1 << 1)
+EPNV(PowerOnTone, 1 << 2)
+EPNV(Parasite, 1 << 3)
 EEND()
 #undef ENAME
 

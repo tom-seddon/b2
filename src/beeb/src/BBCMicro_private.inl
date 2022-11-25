@@ -40,6 +40,9 @@ EPNV(Parasite, 1 << 5)
 // Special mode is not efficient.
 EPNV(ParasiteSpecial, 1 << 6)
 
+EPNV(DebugStepParasite, 1 << 7)
+EPNV(DebugStepHost, 1 << 8)
+
 EEND()
 #undef ENAME
 

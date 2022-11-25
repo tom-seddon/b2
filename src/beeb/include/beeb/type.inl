@@ -46,6 +46,8 @@ EEND()
 // This name has ended up a bit of a misnomer - it should really be
 // BBCMicroDebugStateOverride, or something. It's a set of flags that indicate
 // which aspects of the system may get overridden for debugging purposes.
+//
+// Flags not supported by the current setup should be treated as no-ops.
 
 #define ENAME BBCMicroDebugStateOverride
 EBEGIN()

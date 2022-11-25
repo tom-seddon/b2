@@ -176,9 +176,9 @@ class DebugUI : public SettingsUI {
     const DebugBigPage *GetDebugBigPageForAddress(M6502Word addr,
                                                   bool mos);
 
-    // If CPU struct is null, implying state unavailable, shows a suitable
-    // message and returns true.
-    bool IsStateUnavailableImGui(const M6502 *s) const;
+    // If required state implied by m_dso is unavailable, display a suitable
+    // message.
+    bool IsStateUnavailableImGui(const BBCMicro *m) const;
 
   private:
     std::unique_ptr<DebugBigPage> m_dbps[2][16]; // [mos][mem big page]
@@ -331,7 +331,7 @@ void DebugUI::DoDebugPageOverrideImGui() {
     {
         std::unique_lock<Mutex> lock;
         const BBCMicro *m = m_beeb_thread->LockBeeb(&lock);
-        dso_mask = m->DebugGetPagingOverrideMask();
+        dso_mask = m->DebugGetStateOverrideMask();
         dso_current = m->DebugGetCurrentPageOverride();
     }
 
@@ -722,10 +722,12 @@ const DebugUI::DebugBigPage *DebugUI::GetDebugBigPageForAddress(M6502Word addr,
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool DebugUI::IsStateUnavailableImGui(const M6502 *s) const {
-    if (!s) {
-        ImGui::TextUnformatted("State not available");
-        return true;
+bool DebugUI::IsStateUnavailableImGui(const BBCMicro *m) const {
+    if (m_dso & BBCMicroDebugStateOverride_Parasite) {
+        if (!(m->DebugGetStateOverrideMask() & BBCMicroDebugStateOverride_Parasite)) {
+            ImGui::TextUnformatted("State not available");
+            return true;
+        }
     }
 
     return false;
@@ -826,7 +828,8 @@ class M6502DebugWindow : public DebugUI {
             const M6502 *host_cpu = m->GetM6502();
             this->GetStateForCPU(&host_state, host_cpu);
 
-            if (const M6502 *parasite_cpu = m->DebugGetM6502(BBCMicroDebugStateOverride_Parasite)) {
+            if (m->DebugGetStateOverrideMask() & BBCMicroDebugStateOverride_Parasite) {
+                const M6502 *parasite_cpu = m->DebugGetM6502(BBCMicroDebugStateOverride_Parasite);
                 this->GetStateForCPU(&parasite_state, parasite_cpu);
                 got_parasite_state = true;
             }
@@ -950,7 +953,7 @@ class MemoryDebugWindow : public DebugUI,
             std::unique_lock<Mutex> lock;
             const BBCMicro *m = m_beeb_thread->LockBeeb(&lock);
 
-            if (this->IsStateUnavailableImGui(m->DebugGetM6502(m_dso))) {
+            if (this->IsStateUnavailableImGui(m)) {
                 return;
             }
 
@@ -1182,7 +1185,7 @@ class DisassemblyDebugWindow : public DebugUI,
             const BBCMicro *m = m_beeb_thread->LockBeeb(&lock);
 
             const M6502 *s = m->DebugGetM6502(m_dso);
-            if (this->IsStateUnavailableImGui(s)) {
+            if (this->IsStateUnavailableImGui(m)) {
                 return;
             }
 
@@ -1238,6 +1241,10 @@ class DisassemblyDebugWindow : public DebugUI,
                 this->GoTo(addr);
             }
         }
+
+        cc.DoButton("step_over");
+        ImGui::SameLine();
+        cc.DoButton("step_in");
 
         if (m_track_pc) {
             if (halted) {
@@ -1745,19 +1752,35 @@ class DisassemblyDebugWindow : public DebugUI,
         ImGui::Text("$%04x", value.w);
     }
 
+    void StepOver() {
+        m_beeb_window->DebugStepOver(m_dso);
+    }
+
+    void StepIn() {
+        m_beeb_window->DebugStepIn(m_dso);
+    }
+
+    bool IsRunEnabled() const {
+        return m_beeb_window->DebugIsRunEnabled();
+    }
+
     static ObjectCommandTable<DisassemblyDebugWindow> ms_command_table;
 };
 
 const char DisassemblyDebugWindow::IND_PREFIX[] = " --> $";
 
-ObjectCommandTable<DisassemblyDebugWindow> DisassemblyDebugWindow::ms_command_table("Disassembly Window", {
-                                                                                                              {CommandDef("toggle_track_pc", "Track PC").Shortcut(SDLK_t), &DisassemblyDebugWindow::ToggleTrackPC, &DisassemblyDebugWindow::IsTrackingPC, nullptr},
-                                                                                                              {CommandDef("back", "Back").Shortcut(SDLK_BACKSPACE), &DisassemblyDebugWindow::Back, nullptr, &DisassemblyDebugWindow::IsBackEnabled},
-                                                                                                              {CommandDef("up", "Up").Shortcut(SDLK_UP), &DisassemblyDebugWindow::Up, &DisassemblyDebugWindow::IsMoveEnabled},
-                                                                                                              {CommandDef("down", "Down").Shortcut(SDLK_DOWN), &DisassemblyDebugWindow::Down, &DisassemblyDebugWindow::IsMoveEnabled},
-                                                                                                              {CommandDef("page_up", "Page Up").Shortcut(SDLK_PAGEUP), &DisassemblyDebugWindow::PageUp, &DisassemblyDebugWindow::IsMoveEnabled},
-                                                                                                              {CommandDef("page_down", "Page Down").Shortcut(SDLK_PAGEDOWN), &DisassemblyDebugWindow::PageDown, &DisassemblyDebugWindow::IsMoveEnabled},
-                                                                                                          });
+ObjectCommandTable<DisassemblyDebugWindow> DisassemblyDebugWindow::ms_command_table(
+    "Disassembly Window",
+    {
+        {CommandDef("toggle_track_pc", "Track PC").Shortcut(SDLK_t), &DisassemblyDebugWindow::ToggleTrackPC, &DisassemblyDebugWindow::IsTrackingPC, nullptr},
+        {CommandDef("back", "Back").Shortcut(SDLK_BACKSPACE), &DisassemblyDebugWindow::Back, nullptr, &DisassemblyDebugWindow::IsBackEnabled},
+        {CommandDef("up", "Up").Shortcut(SDLK_UP), &DisassemblyDebugWindow::Up, &DisassemblyDebugWindow::IsMoveEnabled},
+        {CommandDef("down", "Down").Shortcut(SDLK_DOWN), &DisassemblyDebugWindow::Down, &DisassemblyDebugWindow::IsMoveEnabled},
+        {CommandDef("page_up", "Page Up").Shortcut(SDLK_PAGEUP), &DisassemblyDebugWindow::PageUp, &DisassemblyDebugWindow::IsMoveEnabled},
+        {CommandDef("page_down", "Page Down").Shortcut(SDLK_PAGEDOWN), &DisassemblyDebugWindow::PageDown, &DisassemblyDebugWindow::IsMoveEnabled},
+        {CommandDef("step_over", "Step Over").Shortcut(SDLK_F10), &DisassemblyDebugWindow::StepOver, nullptr, &DisassemblyDebugWindow::IsRunEnabled},
+        {CommandDef("step_in", "Step In").Shortcut(SDLK_F11), &DisassemblyDebugWindow::StepIn, nullptr, &DisassemblyDebugWindow::IsRunEnabled},
+    });
 
 std::unique_ptr<SettingsUI> CreateHostDisassemblyDebugWindow(BeebWindow *beeb_window,
                                                              bool initial_track_pc) {
@@ -2886,10 +2909,10 @@ class StackDebugWindow : public DebugUI {
         {
             std::unique_lock<Mutex> lock;
             const BBCMicro *m = m_beeb_thread->LockBeeb(&lock);
-            const M6502 *cpu = m->DebugGetM6502(m_dso);
-            if (this->IsStateUnavailableImGui(cpu)) {
+            if (this->IsStateUnavailableImGui(m)) {
                 return;
             }
+            const M6502 *cpu = m->DebugGetM6502(m_dso);
             s = cpu->s.b.l;
         }
 

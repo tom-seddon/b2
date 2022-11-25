@@ -247,6 +247,14 @@ class BeebWindow {
 
     const std::string &GetConfigName() const;
 
+#if BBCMICRO_DEBUGGER
+    bool DebugIsStopEnabled() const;
+    bool DebugIsRunEnabled() const;
+    bool DebugIsHalted() const;
+    void DebugStepOver(uint32_t dso);
+    void DebugStepIn(uint32_t dso);
+#endif
+
   protected:
   private:
     struct SettingsUIMetadata;
@@ -473,12 +481,6 @@ class BeebWindow {
 #if BBCMICRO_DEBUGGER
     void DebugStop();
     void DebugRun();
-    void DebugStepOver();
-    void DebugStepIn();
-    void DebugStepInLocked(BBCMicro *m);
-    bool DebugIsStopEnabled() const;
-    bool DebugIsRunEnabled() const;
-    bool DebugIsHalted() const;
 #endif
 
     void ResetDefaultNVRAM();

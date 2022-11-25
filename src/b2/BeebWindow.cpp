@@ -1817,8 +1817,6 @@ void BeebWindow::DoDebugMenu() {
 
         m_cc.DoMenuItemUI("debug_stop");
         m_cc.DoMenuItemUI("debug_run");
-        m_cc.DoMenuItemUI("debug_step_over");
-        m_cc.DoMenuItemUI("debug_step_in");
 
 #endif
 
@@ -3252,36 +3250,13 @@ void BeebWindow::DebugRun() {
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_DEBUGGER
-void BeebWindow::DebugStepOver() {
+void BeebWindow::DebugStepOver(uint32_t dso) {
     std::unique_lock<Mutex> lock;
     BBCMicro *m = m_beeb_thread->LockMutableBeeb(&lock);
 
-    const M6502 *s = m->GetM6502();
-    uint8_t opcode = M6502_GetOpcode(s);
-    const M6502DisassemblyInfo *di = &s->config->disassembly_info[opcode];
-
-    if (di->always_step_in) {
-        this->DebugStepInLocked(m);
-    } else {
-        // More work than required here - but it's not a massive problem, just
-        // a bit ugly :(
-        uint8_t pc_is_mos[16];
-        m->DebugGetMemBigPageIsMOSTable(pc_is_mos, 0);
-
-        // Try to put a breakpoint on the actual next instruction, rather than
-        // its address.
-        M6502Word next_pc = {(uint16_t)(s->opcode_pc.w + di->num_bytes)};
-        const BBCMicro::BigPage *big_page = m->DebugGetBigPageForAddress(next_pc,
-                                                                         !!pc_is_mos[s->pc.p.p],
-                                                                         m->DebugGetCurrentPageOverride());
-
-        uint8_t flags = m->DebugGetByteDebugFlags(big_page, next_pc.p.o);
-        flags |= BBCMicroByteDebugFlag_TempBreakExecute;
-        m->DebugSetByteDebugFlags(big_page->index, next_pc.p.o, flags);
-
-        m->DebugRun();
-        m_beeb_thread->Send(std::make_shared<BeebThread::DebugWakeUpMessage>());
-    }
+    m->DebugStepOver(dso);
+    m->DebugRun();
+    m_beeb_thread->Send(std::make_shared<BeebThread::DebugWakeUpMessage>());
 }
 #endif
 
@@ -3289,20 +3264,11 @@ void BeebWindow::DebugStepOver() {
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_DEBUGGER
-void BeebWindow::DebugStepIn() {
+void BeebWindow::DebugStepIn(uint32_t dso) {
     std::unique_lock<Mutex> lock;
     BBCMicro *m = m_beeb_thread->LockMutableBeeb(&lock);
 
-    this->DebugStepInLocked(m);
-}
-#endif
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-#if BBCMICRO_DEBUGGER
-void BeebWindow::DebugStepInLocked(BBCMicro *m) {
-    m->DebugStepIn();
+    m->DebugStepIn(dso);
     m->DebugRun();
     m_beeb_thread->Send(std::make_shared<BeebThread::DebugWakeUpMessage>());
 }
@@ -3481,8 +3447,6 @@ ObjectCommandTable<BeebWindow> BeebWindow::ms_command_table("Beeb Window", {
 
         {CommandDef("debug_stop", "Stop").Shortcut(SDLK_F5 | PCKeyModifier_Shift), &BeebWindow::DebugStop, nullptr, &BeebWindow::DebugIsStopEnabled},
         {CommandDef("debug_run", "Run").Shortcut(SDLK_F5), &BeebWindow::DebugRun, nullptr, &BeebWindow::DebugIsRunEnabled},
-        {CommandDef("debug_step_over", "Step Over").Shortcut(SDLK_F10), &BeebWindow::DebugStepOver, nullptr, &BeebWindow::DebugIsRunEnabled},
-        {CommandDef("debug_step_in", "Step In").Shortcut(SDLK_F11), &BeebWindow::DebugStepIn, nullptr, &BeebWindow::DebugIsRunEnabled},
 #endif
         {CommandDef("save_default_nvram", "Save default NVRAM"), &BeebWindow::SaveDefaultNVRAM, nullptr, &BeebWindow::SaveDefaultNVRAMIsEnabled},
         {CommandDef("reset_default_nvram", "Reset default NVRAM").MustConfirm(), &BeebWindow::ResetDefaultNVRAM, nullptr, &BeebWindow::SaveDefaultNVRAMIsEnabled},

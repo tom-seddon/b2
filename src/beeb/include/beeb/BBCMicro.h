@@ -74,6 +74,7 @@ class BBCMicro : private WD1770Handler {
 
         //bool is_halted = false;
         BBCMicroStepType step_type = BBCMicroStepType_None;
+        const M6502 *step_cpu = nullptr;
 
         HardwareDebugState hw;
 
@@ -394,9 +395,6 @@ class BBCMicro : private WD1770Handler {
 
     const M6502 *GetM6502() const;
 
-    //// Will return null if parasite not enabled.
-    //const M6502 *GetParasiteM6502() const;
-
 #if BBCMICRO_DEBUGGER
     uint16_t DebugGetBeebAddressFromCRTCAddress(uint8_t h, uint8_t l) const;
 
@@ -453,7 +451,8 @@ class BBCMicro : private WD1770Handler {
 
     void DebugRun();
 
-    void DebugStepIn();
+    void DebugStepOver(uint32_t dso);
+    void DebugStepIn(uint32_t dso);
 
     bool HasDebugState() const;
     std::unique_ptr<DebugState> TakeDebugState();
@@ -482,7 +481,7 @@ class BBCMicro : private WD1770Handler {
                             uint8_t *parasite_address_debug_flags,
                             uint8_t *big_pages_debug_flags) const;
 
-    uint32_t DebugGetPagingOverrideMask() const;
+    uint32_t DebugGetStateOverrideMask() const;
 #endif
 
     void SendBeebLinkResponse(std::vector<uint8_t> data);
@@ -502,14 +501,13 @@ class BBCMicro : private WD1770Handler {
     void TestRTS();
 
   private:
-    //////////////////////////////////////////////////////////////////////////
-    //////////////////////////////////////////////////////////////////////////
-    //
-    // stuff that's mostly copyable using copy ctor. A few things do
-    // require minor fixups afterwards.
-    //
-    //////////////////////////////////////////////////////////////////////////
-    //////////////////////////////////////////////////////////////////////////
+    struct M6502Metadata {
+        const char *name = nullptr;
+#if BBCMICRO_DEBUGGER
+        uint32_t dso = 0;
+        uint32_t debug_step_update_flag = 0;
+#endif
+    };
 
     struct State {
         // 6845
@@ -612,6 +610,15 @@ class BBCMicro : private WD1770Handler {
                        CycleCount initial_cycle_count);
     };
 
+    //////////////////////////////////////////////////////////////////////////
+    //////////////////////////////////////////////////////////////////////////
+    //
+    // stuff that's mostly copyable using copy ctor. A few things do
+    // require minor fixups afterwards.
+    //
+    //////////////////////////////////////////////////////////////////////////
+    //////////////////////////////////////////////////////////////////////////
+
     State m_state;
 
     //////////////////////////////////////////////////////////////////////////
@@ -697,6 +704,9 @@ class BBCMicro : private WD1770Handler {
     //////////////////////////////////////////////////////////////////////////
     //////////////////////////////////////////////////////////////////////////
 
+    M6502Metadata m_host_cpu_metadata;
+    M6502Metadata m_parasite_cpu_metadata;
+
     // This doesn't need to be copied. The event list records its
     // influence.
     bool m_disc_access = false;
@@ -758,7 +768,9 @@ class BBCMicro : private WD1770Handler {
 #if BBCMICRO_DEBUGGER
     void UpdateDebugBigPages(MemoryBigPages *mem_big_pages);
     void UpdateDebugState();
-    void SetDebugStepType(BBCMicroStepType step_type);
+    void SetDebugStepType(BBCMicroStepType step_type, const M6502 *step_cpu);
+    void DebugHitBreakpoint(const M6502 *cpu, uint8_t flags);
+    void DebugHandleStep();
 #endif
     static void CheckMemoryBigPages(const MemoryBigPages *pages, bool non_null);
 
@@ -783,7 +795,7 @@ class BBCMicro : private WD1770Handler {
     template <uint32_t UPDATE_FLAGS>
     uint32_t Update(VideoDataUnit *video_unit, SoundDataUnit *sound_unit);
 
-    static const UpdateMFn ms_update_mfns[128];
+    static const UpdateMFn ms_update_mfns[512];
 };
 
 //////////////////////////////////////////////////////////////////////////

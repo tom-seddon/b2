@@ -887,6 +887,8 @@ uint32_t BBCMicro::Update(VideoDataUnit *video_unit, SoundDataUnit *sound_unit) 
             } else {
                 if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_ParasiteSpecial) != 0) {
                     if (m_state.parasite_boot_mode && (m_state.parasite_cpu.abus.w & 0xf000) == 0xf000) {
+                        // Really not concerned about the efficiency of special
+                        // mode. The emulator is not in this state for long.
                         m_state.parasite_cpu.dbus = m_state.parasite_rom_buffer->at(m_state.parasite_cpu.abus.w & 0xfff);
                     } else {
                         m_state.parasite_cpu.dbus = m_parasite_ram[m_state.parasite_cpu.abus.w];
@@ -895,6 +897,28 @@ uint32_t BBCMicro::Update(VideoDataUnit *video_unit, SoundDataUnit *sound_unit) 
                     m_state.parasite_cpu.dbus = m_parasite_ram[m_state.parasite_cpu.abus.w];
                 }
             }
+
+#if BBCMICRO_DEBUGGER
+            if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_Debug) != 0) {
+                // The parasite paging is uncomplicated, and the byte address
+                // flags can be treated as a single 64 KB array.
+                uint8_t flags = (m_debug->parasite_address_debug_flags[m_state.parasite_cpu.abus.w] |
+                                 *((uint8_t *)m_debug->big_pages_byte_debug_flags[PARASITE_BIG_PAGE_INDEX] + m_state.parasite_cpu.abus.w));
+
+                if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_ParasiteSpecial) != 0) {
+                    // Really not concerned about the efficiency of special
+                    // mode. The emulator is not in this state for long.
+                    if (m_state.parasite_boot_mode && (m_state.parasite_cpu.abus.w & 0xf000) == 0xf000) {
+                        flags = (m_debug->parasite_address_debug_flags[m_state.parasite_cpu.abus.w] |
+                                 m_debug->big_pages_byte_debug_flags[PARASITE_ROM_BIG_PAGE_INDEX][m_state.parasite_cpu.abus.p.o]);
+                    }
+                }
+
+                if (flags & BBCMicroByteDebugFlag_AnyBreakReadMask) {
+                    this->DebugHitBreakpoint(&m_state.parasite_cpu, flags);
+                }
+            }
+#endif
         } else {
             if ((m_state.parasite_cpu.abus.w & 0xfff0) == 0xfef0) {
                 (*m_parasite_wmmio_fns[m_state.parasite_cpu.abus.w & 7])(&m_state.parasite_tube, m_state.parasite_cpu.abus, m_state.parasite_cpu.dbus);
@@ -911,6 +935,18 @@ uint32_t BBCMicro::Update(VideoDataUnit *video_unit, SoundDataUnit *sound_unit) 
             } else {
                 m_parasite_ram[m_state.parasite_cpu.abus.w] = m_state.parasite_cpu.dbus;
             }
+
+#if BBCMICRO_DEBUGGER
+            if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_Debug) != 0) {
+                // The parasite paging is uncomplicated, and the byte address
+                // flags can be treated as a single 64 KB array.
+                uint8_t flags = (m_debug->parasite_address_debug_flags[m_state.parasite_cpu.abus.w] |
+                                 *((uint8_t *)m_debug->big_pages_byte_debug_flags[PARASITE_BIG_PAGE_INDEX] + m_state.parasite_cpu.abus.w));
+                if (flags & BBCMicroByteDebugFlag_AnyBreakWriteMask) {
+                    this->DebugHitBreakpoint(&m_state.parasite_cpu, flags);
+                }
+            }
+#endif
         }
 
         if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_Trace) != 0) {
@@ -939,6 +975,12 @@ uint32_t BBCMicro::Update(VideoDataUnit *video_unit, SoundDataUnit *sound_unit) 
                     }
                 }
             }
+#endif
+        }
+
+        if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_DebugStepParasite) != 0) {
+#if BBCMICRO_DEBUGGER
+            this->DebugHandleStep();
 #endif
         }
     }
@@ -998,83 +1040,53 @@ uint32_t BBCMicro::Update(VideoDataUnit *video_unit, SoundDataUnit *sound_unit) 
                 }
             }
 
-#if BBCMICRO_DEBUGGER
-            if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_Debug) != 0) {
-                uint8_t mmio_page = m_state.cpu.abus.b.h - 0xfc;
-                if (const uint8_t read = m_state.cpu.read) {
-                    if (mmio_page < 3) {
-                        ReadMMIOFn fn = m_rmmio_fns[mmio_page][m_state.cpu.abus.b.l];
-                        void *context = m_mmio_fn_contexts[mmio_page][m_state.cpu.abus.b.l];
-                        m_state.cpu.dbus = (*fn)(context, m_state.cpu.abus);
-                    } else {
-                        m_state.cpu.dbus = m_pc_mem_big_pages[m_state.cpu.opcode_pc.p.p]->r[m_state.cpu.abus.p.p][m_state.cpu.abus.p.o];
-                    }
+            uint8_t mmio_page = m_state.cpu.abus.b.h - 0xfc;
+            if (const uint8_t read = m_state.cpu.read) {
+                if (mmio_page < 3) {
+                    ReadMMIOFn fn = m_rmmio_fns[mmio_page][m_state.cpu.abus.b.l];
+                    void *context = m_mmio_fn_contexts[mmio_page][m_state.cpu.abus.b.l];
+                    m_state.cpu.dbus = (*fn)(context, m_state.cpu.abus);
+                } else {
+                    m_state.cpu.dbus = m_pc_mem_big_pages[m_state.cpu.opcode_pc.p.p]->r[m_state.cpu.abus.p.p][m_state.cpu.abus.p.o];
+                }
 
+#if BBCMICRO_DEBUGGER
+                if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_Debug) != 0) {
                     uint8_t flags = (m_debug->host_address_debug_flags[m_state.cpu.abus.w] |
                                      m_pc_mem_big_pages[m_state.cpu.opcode_pc.p.p]->byte_debug_flags[m_state.cpu.abus.p.p][m_state.cpu.abus.p.o]);
-                    if (flags != 0) {
-                        if (flags & BBCMicroByteDebugFlag_BreakExecute) {
-                            if (read == M6502ReadType_Opcode) {
-                                this->DebugHalt("execute: $%04x", m_state.cpu.abus.w);
-                            }
-                        } else if (flags & BBCMicroByteDebugFlag_TempBreakExecute) {
-                            if (read == M6502ReadType_Opcode) {
-                                this->DebugHalt("single step");
-                            }
-                        }
-
-                        if (flags & BBCMicroByteDebugFlag_BreakRead) {
-                            if (read <= M6502ReadType_LastInterestingDataRead) {
-                                this->DebugHalt("data read: $%04x", m_state.cpu.abus.w);
-                            }
-                        }
+                    if (flags & BBCMicroByteDebugFlag_AnyBreakReadMask) {
+                        this->DebugHitBreakpoint(&m_state.cpu, flags);
                     }
 
                     if (read == M6502ReadType_Interrupt) {
                         if (M6502_IsProbablyIRQ(&m_state.cpu)) {
                             if ((m_state.system_via.ifr.value & m_state.system_via.ier.value & m_debug->hw.system_via_irq_breakpoints.value) ||
                                 (m_state.user_via.ifr.value & m_state.user_via.ier.value & m_debug->hw.user_via_irq_breakpoints.value)) {
-                                this->SetDebugStepType(BBCMicroStepType_StepIntoIRQHandler);
+                                this->SetDebugStepType(BBCMicroStepType_StepIntoIRQHandler, &m_state.cpu);
                             }
                         }
                     }
+                }
+#endif
+            } else {
+                if (mmio_page < 3) {
+                    WriteMMIOFn fn = m_hw_wmmio_fns[mmio_page][m_state.cpu.abus.b.l];
+                    void *context = m_hw_mmio_fn_contexts[mmio_page][m_state.cpu.abus.b.l];
+                    (*fn)(context, m_state.cpu.abus, m_state.cpu.dbus);
                 } else {
-                    if (mmio_page < 3) {
-                        WriteMMIOFn fn = m_hw_wmmio_fns[mmio_page][m_state.cpu.abus.b.l];
-                        void *context = m_hw_mmio_fn_contexts[mmio_page][m_state.cpu.abus.b.l];
-                        (*fn)(context, m_state.cpu.abus, m_state.cpu.dbus);
-                    } else {
-                        m_pc_mem_big_pages[m_state.cpu.opcode_pc.p.p]->w[m_state.cpu.abus.p.p][m_state.cpu.abus.p.o] = m_state.cpu.dbus;
-                    }
+                    m_pc_mem_big_pages[m_state.cpu.opcode_pc.p.p]->w[m_state.cpu.abus.p.p][m_state.cpu.abus.p.o] = m_state.cpu.dbus;
+                }
 
+#if BBCMICRO_DEBUGGER
+                if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_Debug) != 0) {
                     uint8_t flags = (m_debug->host_address_debug_flags[m_state.cpu.abus.w] |
                                      m_pc_mem_big_pages[m_state.cpu.opcode_pc.p.p]->byte_debug_flags[m_state.cpu.abus.p.p][m_state.cpu.abus.p.o]);
 
-                    if (flags & BBCMicroByteDebugFlag_BreakWrite) {
-                        DebugHalt("data write: $%04x", m_state.cpu.abus.w);
+                    if (flags & BBCMicroByteDebugFlag_AnyBreakWriteMask) {
+                        this->DebugHitBreakpoint(&m_state.cpu, flags);
                     }
                 }
-            } else //<-- note
-#endif             //<-- note
-            {      //<-- note
-                uint8_t mmio_page = m_state.cpu.abus.b.h - 0xfc;
-                if (const uint8_t read = m_state.cpu.read) {
-                    if (mmio_page < 3) {
-                        ReadMMIOFn fn = m_rmmio_fns[mmio_page][m_state.cpu.abus.b.l];
-                        void *context = m_mmio_fn_contexts[mmio_page][m_state.cpu.abus.b.l];
-                        m_state.cpu.dbus = (*fn)(context, m_state.cpu.abus);
-                    } else {
-                        m_state.cpu.dbus = m_pc_mem_big_pages[m_state.cpu.opcode_pc.p.p]->r[m_state.cpu.abus.p.p][m_state.cpu.abus.p.o];
-                    }
-                } else {
-                    if (mmio_page < 3) {
-                        WriteMMIOFn fn = m_hw_wmmio_fns[mmio_page][m_state.cpu.abus.b.l];
-                        void *context = m_hw_mmio_fn_contexts[mmio_page][m_state.cpu.abus.b.l];
-                        (*fn)(context, m_state.cpu.abus, m_state.cpu.dbus);
-                    } else {
-                        m_pc_mem_big_pages[m_state.cpu.opcode_pc.p.p]->w[m_state.cpu.abus.p.p][m_state.cpu.abus.p.o] = m_state.cpu.dbus;
-                    }
-                }
+#endif
             }
 
             if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_Hacks) != 0) {
@@ -1182,47 +1194,9 @@ uint32_t BBCMicro::Update(VideoDataUnit *video_unit, SoundDataUnit *sound_unit) 
 #endif
             }
 
-            if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_Debug) != 0) {
+            if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_DebugStepHost) != 0) {
 #if BBCMICRO_DEBUGGER
-                if (m_state.cpu.read >= M6502ReadType_Opcode) {
-                    switch (m_debug->step_type) {
-                    default:
-                        ASSERT(false);
-                        // fall through
-                    case BBCMicroStepType_None:
-                        break;
-
-                    case BBCMicroStepType_StepIn:
-                        {
-                            if (m_state.cpu.read == M6502ReadType_Opcode) {
-                                // Done.
-                                DebugHalt("single step");
-                            } else {
-                                ASSERT(m_state.cpu.read == M6502ReadType_Interrupt);
-                                // The instruction was interrupted, so set a temp
-                                // breakpoint in the right place.
-                                uint8_t flags = DebugGetAddressDebugFlags(m_state.cpu.pc, 0);
-
-                                flags |= BBCMicroByteDebugFlag_TempBreakExecute;
-
-                                DebugSetAddressDebugFlags(m_state.cpu.pc, 0, flags);
-                            }
-
-                            SetDebugStepType(BBCMicroStepType_None);
-                        }
-                        break;
-
-                    case BBCMicroStepType_StepIntoIRQHandler:
-                        {
-                            ASSERT(m_state.cpu.read == M6502ReadType_Opcode || m_state.cpu.read == M6502ReadType_Interrupt);
-                            if (m_state.cpu.read == M6502ReadType_Opcode) {
-                                SetDebugStepType(BBCMicroStepType_None);
-                                DebugHalt("IRQ/NMI");
-                            }
-                        }
-                        break;
-                    }
-                }
+                this->DebugHandleStep();
 #endif
             }
         }
@@ -1948,12 +1922,10 @@ const M6502 *BBCMicro::DebugGetM6502(uint32_t dso) const {
     if (dso & BBCMicroDebugStateOverride_Parasite) {
         if (m_state.parasite_enabled) {
             return &m_state.parasite_cpu;
-        } else {
-            return nullptr;
         }
-    } else {
-        return &m_state.cpu;
     }
+
+    return &m_state.cpu;
 }
 #endif
 
@@ -2188,7 +2160,7 @@ void BBCMicro::DebugHalt(const char *fmt, ...) {
             ++m_debug->breakpoints_changed_counter;
         }
 
-        this->SetDebugStepType(BBCMicroStepType_None);
+        this->SetDebugStepType(BBCMicroStepType_None, nullptr);
     }
 }
 #endif
@@ -2256,13 +2228,51 @@ void BBCMicro::DebugRun() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-#if BBCMICRO_DEBUGGER
-void BBCMicro::DebugStepIn() {
+void BBCMicro::DebugStepOver(uint32_t dso) {
     if (!m_debug) {
         return;
     }
 
-    this->SetDebugStepType(BBCMicroStepType_StepIn);
+    const M6502 *s = this->DebugGetM6502(dso);
+    if (!s) {
+        return;
+    }
+
+    uint8_t opcode = M6502_GetOpcode(s);
+    const M6502DisassemblyInfo *di = &s->config->disassembly_info[opcode];
+
+    if (di->always_step_in) {
+        this->DebugStepIn(dso);
+    } else {
+        // More work than required here - but it's not a massive problem, just
+        // a bit ugly :(
+        uint8_t pc_is_mos[16];
+        this->DebugGetMemBigPageIsMOSTable(pc_is_mos, dso);
+
+        // Try to put a breakpoint on the actual next instruction, rather than
+        // its address.
+        M6502Word next_pc = {(uint16_t)(s->opcode_pc.w + di->num_bytes)};
+        const BBCMicro::BigPage *big_page = this->DebugGetBigPageForAddress(next_pc,
+                                                                            !!pc_is_mos[s->pc.p.p],
+                                                                            dso | this->DebugGetCurrentPageOverride());
+
+        uint8_t flags = this->DebugGetByteDebugFlags(big_page, next_pc.p.o);
+        flags |= BBCMicroByteDebugFlag_TempBreakExecute;
+        this->DebugSetByteDebugFlags(big_page->index, next_pc.p.o, flags);
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_DEBUGGER
+void BBCMicro::DebugStepIn(uint32_t dso) {
+    if (!m_debug) {
+        return;
+    }
+
+    const M6502 *cpu = this->DebugGetM6502(dso);
+    this->SetDebugStepType(BBCMicroStepType_StepIn, cpu);
 }
 #endif
 
@@ -2381,7 +2391,7 @@ void BBCMicro::DebugGetDebugFlags(uint8_t *host_address_debug_flags,
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_DEBUGGER
-uint32_t BBCMicro::DebugGetPagingOverrideMask() const {
+uint32_t BBCMicro::DebugGetStateOverrideMask() const {
     uint32_t dso_mask = m_type->dso_mask;
 
     if (m_state.parasite_enabled) {
@@ -2478,12 +2488,89 @@ void BBCMicro::UpdateDebugState() {
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_DEBUGGER
-void BBCMicro::SetDebugStepType(BBCMicroStepType step_type) {
+void BBCMicro::SetDebugStepType(BBCMicroStepType step_type, const M6502 *step_cpu) {
+    ASSERT(step_type >= 0 && step_type < BBCMicroStepType_Count);
+    ASSERT((step_type == BBCMicroStepType_None && !step_cpu) || (step_type != BBCMicroStepType_None && step_cpu));
+
     if (m_debug) {
+        // changes in CPU pointer won't affect the update function.
         if (m_debug->step_type != step_type) {
             m_debug->step_type = step_type;
+            m_debug->step_cpu = step_cpu;
             this->UpdateCPUDataBusFn();
         }
+    }
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_DEBUGGER
+void BBCMicro::DebugHitBreakpoint(const M6502 *cpu, uint8_t flags) {
+    auto metadata = (const M6502Metadata *)cpu->context;
+
+    if (cpu->read == 0) {
+        if (flags & BBCMicroByteDebugFlag_BreakWrite) {
+            DebugHalt("%s data write: $%04x", metadata->name, m_state.cpu.abus.w);
+        }
+    } else {
+        if (flags & BBCMicroByteDebugFlag_BreakExecute) {
+            if (cpu->read == M6502ReadType_Opcode) {
+                this->DebugHalt("%s execute: $%04x", metadata->name, m_state.cpu.abus.w);
+            }
+        } else if (flags & BBCMicroByteDebugFlag_TempBreakExecute) {
+            if (cpu->read == M6502ReadType_Opcode) {
+                this->DebugHalt("%s single step", metadata->name);
+            }
+        }
+
+        if (flags & BBCMicroByteDebugFlag_BreakRead) {
+            if (cpu->read <= M6502ReadType_LastInterestingDataRead) {
+                this->DebugHalt("%s data read: $%04x", metadata->name, m_state.cpu.abus.w);
+            }
+        }
+    }
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_DEBUGGER
+void BBCMicro::DebugHandleStep() {
+    ASSERT(m_debug->step_cpu);
+    auto metadata = (const M6502Metadata *)m_debug->step_cpu->context;
+
+    switch (m_debug->step_type) {
+    default:
+        ASSERT(false);
+        break;
+
+    case BBCMicroStepType_StepIn:
+        {
+            if (m_debug->step_cpu->read == M6502ReadType_Opcode) {
+                // Done.
+                this->DebugHalt("%s single step", metadata->name);
+            } else if (m_debug->step_cpu->read == M6502ReadType_Interrupt) {
+                // The instruction was interrupted, so set a temp
+                // breakpoint in the right place.
+                uint8_t flags = this->DebugGetAddressDebugFlags(m_debug->step_cpu->pc, metadata->dso);
+
+                flags |= BBCMicroByteDebugFlag_TempBreakExecute;
+
+                this->DebugSetAddressDebugFlags(m_debug->step_cpu->pc, metadata->dso, flags);
+                this->SetDebugStepType(BBCMicroStepType_None, nullptr);
+            }
+        }
+        break;
+
+    case BBCMicroStepType_StepIntoIRQHandler:
+        ASSERT(m_debug->step_cpu->read == M6502ReadType_Opcode || m_debug->step_cpu->read == M6502ReadType_Interrupt);
+        if (m_debug->step_cpu->read == M6502ReadType_Opcode) {
+            this->DebugHalt("%s IRQ/NMI", metadata->name);
+        }
+        break;
     }
 }
 #endif
@@ -2496,10 +2583,11 @@ void BBCMicro::InitStuff() {
     CHECK_SIZEOF(ROMSEL, 1);
     CHECK_SIZEOF(ACCCON, 1);
     CHECK_SIZEOF(SystemVIAPB, 1);
+    for (size_t i = 0; i < sizeof ms_update_mfns / sizeof ms_update_mfns[0]; ++i) {
+        ASSERT(ms_update_mfns[i]);
+    }
 
     m_ram = m_state.ram_buffer.data();
-
-    m_state.cpu.context = this;
 
     for (int i = 0; i < 3; ++i) {
         m_hw_rmmio_fns[i] = std::vector<ReadMMIOFn>(256);
@@ -2709,6 +2797,20 @@ void BBCMicro::InitStuff() {
     } else {
         ASSERT(m_state.parasite_ram_buffer.empty());
     }
+
+    m_host_cpu_metadata.name = "host";
+#if BBCMICRO_DEBUGGER
+    m_host_cpu_metadata.dso = 0;
+    m_host_cpu_metadata.debug_step_update_flag = BBCMicroUpdateFlag_DebugStepHost;
+#endif
+    m_state.cpu.context = &m_host_cpu_metadata;
+
+    m_parasite_cpu_metadata.name = "parasite";
+#if BBCMICRO_DEBUGGER
+    m_parasite_cpu_metadata.dso = 0;
+    m_parasite_cpu_metadata.debug_step_update_flag = BBCMicroUpdateFlag_DebugStepParasite;
+#endif
+    m_state.parasite_cpu.context = &m_parasite_cpu_metadata;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -3038,7 +3140,9 @@ void BBCMicro::UpdateCPUDataBusFn() {
 #if BBCMICRO_DEBUGGER
     if (m_debug) {
         if (m_debug->step_type != BBCMicroStepType_None) {
-            update_flags |= BBCMicroUpdateFlag_Hacks;
+            ASSERT(m_debug->step_cpu);
+            auto metadata = (const M6502Metadata *)m_debug->step_cpu->context;
+            update_flags |= metadata->debug_step_update_flag;
         }
     }
 #endif
@@ -3087,9 +3191,11 @@ void BBCMicro::UpdateCPUDataBusFn() {
 #define UPDATE16(N) UPDATE8(N + 0), UPDATE8(N + 8)
 #define UPDATE32(N) UPDATE16(N + 0), UPDATE16(N + 16)
 #define UPDATE64(N) UPDATE32(N + 0), UPDATE32(N + 32)
+#define UPDATE128(N) UPDATE64(N + 0), UPDATE64(N + 64)
+#define UPDATE256(N) UPDATE128(N + 0), UPDATE128(N + 128)
 
 // No particular reason to minimize the number of flags here.
-const BBCMicro::UpdateMFn BBCMicro::ms_update_mfns[128] = {UPDATE64(0), UPDATE64(64)};
+const BBCMicro::UpdateMFn BBCMicro::ms_update_mfns[512] = {UPDATE256(0), UPDATE256(256)};
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
