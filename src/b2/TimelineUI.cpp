@@ -37,7 +37,7 @@ class TimelineUI : public SettingsUI {
         BeebThreadTimelineState timeline_state;
         beeb_thread->GetTimelineState(&timeline_state);
 
-        ASSERT(timeline_state.end_cycles.n>= timeline_state.begin_cycles.n);
+        ASSERT(timeline_state.end_cycles.n >= timeline_state.begin_cycles.n);
         const CycleCount timeline_duration = {timeline_state.end_cycles.n - timeline_state.begin_cycles.n};
 
         ImGui::Text("Timeline Mode: %s", GetBeebThreadTimelineModeEnumName(timeline_state.mode));

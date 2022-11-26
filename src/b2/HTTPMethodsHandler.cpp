@@ -419,7 +419,7 @@ class HTTPMethodsHandler : public HTTPHandler {
         beeb_window->GetBeebThread()->Send(std::make_shared<BeebThread::LoadDiscMessage>(0, std::move(disc_image), true));
 
         auto message = std::make_shared<BeebThread::HardResetAndReloadConfigMessage>(BeebThreadHardResetFlag_Run |
-                                                                                        BeebThreadHardResetFlag_Boot);
+                                                                                     BeebThreadHardResetFlag_Boot);
         this->SendMessage(beeb_window, server, request, std::move(message));
         return;
     }

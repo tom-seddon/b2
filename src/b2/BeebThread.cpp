@@ -1379,7 +1379,7 @@ bool BeebThread::DebugSetAddressDebugFlags::ThreadPrepare(std::shared_ptr<Messag
                                                           ThreadState *ts) {
     (void)completion_fun, (void)beeb_thread;
 
-    ts->beeb->DebugSetAddressDebugFlags(m_addr, m_dso,m_addr_flags);
+    ts->beeb->DebugSetAddressDebugFlags(m_addr, m_dso, m_addr_flags);
 
     ptr->reset();
     return true;
