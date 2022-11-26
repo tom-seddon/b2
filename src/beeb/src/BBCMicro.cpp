@@ -1735,20 +1735,20 @@ void BBCMicro::UpdateDebugState() {
     for (size_t i = 0; i < NUM_BIG_PAGES; ++i) {
         BigPage *bp = &m_big_pages[i];
 
+        bp->byte_debug_flags = nullptr;
+        bp->address_debug_flags = nullptr;
+
         if (m_debug) {
-            bp->byte_debug_flags = m_debug->big_pages_byte_debug_flags[bp->index];
-
             const BigPageMetadata *metadata = &m_type->big_pages_metadata[i];
-            ASSERT(metadata->addr != 0xffff);
+            if (metadata->addr != 0xffff) {
+                bp->byte_debug_flags = m_debug->big_pages_byte_debug_flags[bp->index];
 
-            if (metadata->is_parasite) {
-                bp->address_debug_flags = &m_debug->parasite_address_debug_flags[metadata->addr];
-            } else {
-                bp->address_debug_flags = &m_debug->host_address_debug_flags[metadata->addr];
+                if (metadata->is_parasite) {
+                    bp->address_debug_flags = &m_debug->parasite_address_debug_flags[metadata->addr];
+                } else {
+                    bp->address_debug_flags = &m_debug->host_address_debug_flags[metadata->addr];
+                }
             }
-        } else {
-            bp->byte_debug_flags = nullptr;
-            bp->address_debug_flags = nullptr;
         }
     }
 
