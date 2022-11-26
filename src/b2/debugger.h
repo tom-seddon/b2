@@ -34,6 +34,7 @@ std::unique_ptr<SettingsUI> CreatePixelMetadataDebugWindow(BeebWindow *beeb_wind
 #endif
 std::unique_ptr<SettingsUI> CreateHostStackDebugWindow(BeebWindow *beeb_window);
 std::unique_ptr<SettingsUI> CreateParasiteStackDebugWindow(BeebWindow *beeb_window);
+std::unique_ptr<SettingsUI> CreateTubeDebugWindow(BeebWindow *beeb_window);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

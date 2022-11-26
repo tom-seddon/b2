@@ -796,7 +796,6 @@ uint16_t BBCMicro::DebugGetBeebAddressFromCRTCAddress(uint8_t h, uint8_t l) cons
 }
 #endif
 
-
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_ENABLE_DISC_DRIVE_SOUND
@@ -1196,6 +1195,19 @@ const MC146818 *BBCMicro::DebugGetRTC() const {
 void BBCMicro::DebugGetPaging(ROMSEL *romsel, ACCCON *acccon) const {
     *romsel = m_state.romsel;
     *acccon = m_state.acccon;
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_DEBUGGER
+const Tube *BBCMicro::DebugGetTube() const {
+    if (m_state.parasite_enabled) {
+        return &m_state.parasite_tube;
+    } else {
+        return nullptr;
+    }
 }
 #endif
 
@@ -2468,4 +2480,3 @@ void BBCMicro::UpdateCPUDataBusFn() {
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
-

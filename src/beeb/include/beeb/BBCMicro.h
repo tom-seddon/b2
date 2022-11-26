@@ -411,6 +411,7 @@ class BBCMicro : private WD1770Handler {
     const SN76489 *DebugGetSN76489() const;
     const MC146818 *DebugGetRTC() const;
     void DebugGetPaging(ROMSEL *romsel, ACCCON *acccon) const;
+    const Tube *DebugGetTube() const;
 
     const M6502 *DebugGetM6502(uint32_t dso) const;
 

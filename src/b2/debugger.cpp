@@ -3024,4 +3024,225 @@ std::unique_ptr<SettingsUI> CreateParasiteStackDebugWindow(BeebWindow *beeb_wind
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+class TubeDebugWindow : public DebugUI {
+  public:
+    TubeDebugWindow() {
+        for (uint8_t i = 0; i < TUBE_FIFO1_SIZE_BYTES; ++i) {
+            snprintf(m_fifo1_header + i * 3, 4, "%-3u", i);
+        }
+    }
+
+  protected:
+    void DoImGui2() override {
+        Tube tube;
+        {
+            std::unique_lock<Mutex> lock;
+            const BBCMicro *m = m_beeb_thread->LockBeeb(&lock);
+            const Tube *t = m->DebugGetTube();
+            if (!m) {
+                ImGui::Text("No Tube");
+                return;
+            }
+
+            tube = *t; // the whole thing is 64 bytes
+        }
+
+        ImGui::Checkbox("Sort FIFOs by index", &m_sort_by_index);
+
+        ImGuiHeader("Tube Status");
+
+        ImGui::BulletText("Parasite: IRQ=%d NMI=%d", tube.pirq.bits.pirq, tube.pirq.bits.pnmi);
+        ImGui::BulletText("Host: IRQ=%d", tube.hirq.bits.hirq);
+        ImGui::Text("Status: $%02x (%%%s) (T=%d P=%d V=%d M=%d J=%d I=%d Q=%d)",
+                    tube.status.value,
+                    BINARY_BYTE_STRINGS[tube.status.value],
+                    tube.status.bits.t,
+                    tube.status.bits.p,
+                    tube.status.bits.v,
+                    tube.status.bits.m,
+                    tube.status.bits.j,
+                    tube.status.bits.i,
+                    tube.status.bits.q);
+        ImGui::BulletText("FIFO1: PIRQ=%s", BOOL_STR(tube.status.bits.i));
+        ImGui::BulletText("FIFO3: PNMI=%s", BOOL_STR(tube.status.bits.m));
+        ImGui::BulletText("FIFO4: PIRQ=%s HIRQ=%s", BOOL_STR(tube.status.bits.j), BOOL_STR(tube.status.bits.q));
+
+        if (m_sort_by_index) {
+            this->DoFIFO1P2HGui(&tube);
+            this->DoFIFO1H2PGui(&tube);
+            this->DoFIFO2P2HGui(&tube);
+            this->DoFIFO2H2PGui(&tube);
+            this->DoFIFO3P2HGui(&tube);
+            this->DoFIFO3H2PGui(&tube);
+            this->DoFIFO4P2HGui(&tube);
+            this->DoFIFO4H2PGui(&tube);
+        } else {
+            this->DoFIFO1P2HGui(&tube);
+            this->DoFIFO2P2HGui(&tube);
+            this->DoFIFO3P2HGui(&tube);
+            this->DoFIFO4P2HGui(&tube);
+            this->DoFIFO1H2PGui(&tube);
+            this->DoFIFO2H2PGui(&tube);
+            this->DoFIFO3H2PGui(&tube);
+            this->DoFIFO4H2PGui(&tube);
+        }
+    }
+
+  private:
+    static constexpr size_t FIFO1_STRING_SIZE = TUBE_FIFO1_SIZE_BYTES * 3 + 1;
+    char m_fifo1_header[FIFO1_STRING_SIZE];
+    bool m_sort_by_index = true;
+
+    void DoFIFO1P2HGui(const Tube *t) {
+        this->Header(1, true);
+
+        this->DoStatusImGui(1, true, t->pstatus1, t->hstatus1);
+
+        char hex_buffer[FIFO1_STRING_SIZE], *hex = hex_buffer;
+        char ascii_buffer[FIFO1_STRING_SIZE], *ascii = ascii_buffer;
+
+        size_t dest = 0;
+        for (uint8_t i = 0; i < t->p2h1_n; ++i) {
+            uint8_t byte = t->p2h1[(t->p2h1_rindex + i) % TUBE_FIFO1_SIZE_BYTES];
+
+            *hex++ = HEX_CHARS_LC[byte >> 4];
+            *hex++ = HEX_CHARS_LC[byte & 0xf];
+            *hex++ = ' ';
+
+            *ascii++ = byte >= 32 && byte < 127 ? byte : ' ';
+            *ascii++ = ' ';
+            *ascii++ = ' ';
+        }
+
+        ASSERT(hex <= hex_buffer + sizeof hex_buffer);
+        *hex = 0;
+
+        ASSERT(ascii <= ascii_buffer + sizeof ascii_buffer);
+        *ascii = 0;
+
+        ImGui::TextUnformatted(m_fifo1_header);
+        ImGui::TextUnformatted(hex_buffer);
+        ImGui::TextUnformatted(ascii_buffer);
+    }
+
+    void DoFIFO1H2PGui(const Tube *t) {
+        this->Header(1, false);
+
+        this->DoStatusImGui(1, false, t->pstatus1, t->hstatus1);
+
+        this->DoLatchImGui(t->h2p1, t->pstatus1.bits.available);
+    }
+
+    void DoFIFO2P2HGui(const Tube *t) {
+        this->Header(2, true);
+
+        this->DoStatusImGui(2, true, t->pstatus2, t->hstatus2);
+
+        this->DoLatchImGui(t->p2h2, t->hstatus2.bits.available);
+    }
+
+    void DoFIFO2H2PGui(const Tube *t) {
+        this->Header(2, false);
+
+        this->DoStatusImGui(2, false, t->pstatus2, t->hstatus2);
+
+        this->DoLatchImGui(t->h2p2, t->pstatus2.bits.available);
+    }
+
+    void DoFIFO3P2HGui(const Tube *t) {
+        this->Header(3, true);
+
+        this->DoStatusImGui(3, true, t->pstatus3, t->hstatus3);
+
+        this->DoFIFO3ImGui(t->status.bits.v, t->p2h3, t->p2h3_n);
+    }
+
+    void DoFIFO3H2PGui(const Tube *t) {
+        this->Header(3, false);
+
+        this->DoStatusImGui(3, false, t->pstatus3, t->hstatus3);
+
+        this->DoFIFO3ImGui(t->status.bits.v, t->h2p3, t->h2p3_n);
+    }
+
+    void DoFIFO4P2HGui(const Tube *t) {
+        this->Header(4, true);
+
+        this->DoStatusImGui(4, true, t->pstatus4, t->hstatus4);
+
+        this->DoLatchImGui(t->p2h4, t->hstatus4.bits.available);
+    }
+
+    void DoFIFO4H2PGui(const Tube *t) {
+        this->Header(4, false);
+
+        this->DoStatusImGui(4, false, t->pstatus4, t->hstatus4);
+
+        this->DoLatchImGui(t->h2p4, t->pstatus4.bits.available);
+    }
+
+    void DoLatchImGui(uint8_t value, bool available) {
+        if (available) {
+            this->DoDataImGui("Data", value);
+        } else {
+            ImGui::Text("Data: *empty*");
+        }
+    }
+
+    void DoFIFO3ImGui(bool two_bytes, const uint8_t *values, uint8_t n) {
+        const char *data1_empty = two_bytes ? "*empty*" : "*N/A*";
+
+        if (n == 0) {
+            ImGui::Text("Data 0: *empty*");
+            ImGui::Text("Data 1: %s", data1_empty);
+        } else if (n == 1) {
+            this->DoDataImGui("Data 0", values[0]);
+            ImGui::Text("Data 1: %s", data1_empty);
+        } else {
+            this->DoDataImGui("Data 0", values[0]);
+            this->DoDataImGui("Data 1", values[1]);
+        }
+    }
+
+    void DoDataImGui(const char *prefix, uint8_t value) {
+        char ch[5];
+        if (value >= 32 && value <= 126) {
+            snprintf(ch, sizeof ch, " '%c'", value);
+        } else {
+            ch[0] = 0;
+        }
+
+        ImGui::Text("%s: %3d %3uu%s ($%02x) (%%%s)", prefix, (int8_t)value, value, ch, value, BINARY_BYTE_STRINGS[value]);
+    }
+
+    void Header(int fifo, bool parasite) {
+        char str[100];
+        snprintf(str, sizeof str, "FIFO %d %s->%s", fifo, this->GetName(parasite), this->GetName(!parasite));
+        ImGuiHeader(str);
+    }
+
+    const char *GetName(bool parasite) const {
+        return parasite ? "Parasite" : "Host";
+    }
+
+    void DoStatusImGui(int fifo, bool parasite, TubeFIFOStatus pstatus, TubeFIFOStatus hstatus) {
+        bool not_full, available;
+        if (parasite) {
+            not_full = pstatus.bits.not_full;
+            available = hstatus.bits.available;
+        } else {
+            not_full = hstatus.bits.not_full;
+            available = pstatus.bits.available;
+        }
+
+        const char *here = this->GetName(parasite), *there = this->GetName(!parasite);
+        ImGui::BulletText("FIFO %d %s->%s Full: %s", fifo, here, there, BOOL_STR(!not_full));
+        ImGui::BulletText("FIFO %d %s->%s Data: %s", fifo, here, there, BOOL_STR(available));
+    }
+};
+
+std::unique_ptr<SettingsUI> CreateTubeDebugWindow(BeebWindow *beeb_window) {
+    return CreateDebugUI<TubeDebugWindow>(beeb_window);
+}
+
 #endif
