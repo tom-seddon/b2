@@ -3,7 +3,7 @@
 Prerequisites:
 
 - Visual Studio 2019
-- [cmake](https://cmake.org/) version 3.9+ on the PATH
+- [cmake](https://cmake.org/) version 3.20+ on the PATH
   
 Optional, but recommended:
 
