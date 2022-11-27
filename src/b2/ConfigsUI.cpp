@@ -337,6 +337,12 @@ void ConfigsUI::DoEditConfigGui() {
 
     if (ImGui::Checkbox("6502 Second Processor", &config->parasite)) {
         edited = true;
+
+        if (config->parasite) {
+            if (config->parasite_os.file_name.empty() && !config->parasite_os.standard_rom) {
+                config->parasite_os.standard_rom = FindBeebROM(StandardROM_MasterTurboParasite);
+            }
+        }
     }
 
     if (config->parasite) {

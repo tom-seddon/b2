@@ -187,7 +187,7 @@ void InitDefaultBeebConfigs() {
         g_default_configs.push_back(config);
     }
 
-    // Master Turbo MOS 3.50
+    // Master Turbo MOS 3.20
     {
         BeebConfig config;
 
