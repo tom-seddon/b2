@@ -2389,7 +2389,7 @@ class NVRAMDebugWindow : public DebugUI {
                 ImGui::Text("*FX5 setting: %d\n", nvram[15] >> 5 & 7);
                 // 16 bit 0 unused
                 ImGui::Text("Default beep volume: %s\n", nvram[16] & 2 ? "loud" : "quiet");
-                ImGui::Text("Use Tube: %s\n", nvram[16] & 4 ? "external" : "internal");
+                ImGui::Text("Default Tube: %s\n", nvram[16] & 4 ? "external" : "internal");
                 ImGui::Text("Default scrolling: %s\n", nvram[16] & 8 ? "protected" : "enabled");
                 ImGui::Text("Default boot mode: %s\n", nvram[16] & 16 ? "auto boot" : "no boot");
                 ImGui::Text("Default serial data format: %d\n", nvram[16] >> 5 & 7);

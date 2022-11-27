@@ -346,6 +346,12 @@ void ConfigsUI::DoEditConfigGui() {
     }
 
     if (config->parasite) {
+        if (config->type->type_id == BBCMicroTypeID_Master) {
+            ImGui::TextWrapped("Note: When using MOS 3.20/MOS 3.50, try *CONFIGURE TUBE if 2nd processor doesn't seem to be working");
+        } else {
+            ImGui::TextWrapped("Note: Ensure a ROM with Tube host code is installed, e.g., Acorn 1770 DFS");
+        }
+
         if (this->DoROMEditGui("Parasite OS",
                                &config->parasite_os,
                                nullptr,

@@ -85,7 +85,7 @@ static std::vector<uint8_t> GetDefaultMasterNVRAM() {
     nvram[12] = 55;   //12 - DELAY 55
     nvram[13] = 0x03; //13 - REPEAT 3
     nvram[14] = 0x00; //14
-    nvram[15] = 0x00; //15
+    nvram[15] = 0x01; //15 - TUBE
     nvram[16] = 0x02; //16 - LOUD
 
     return nvram;

@@ -203,7 +203,10 @@ Items of optional hardware are as follows:
   problem.)
   
 - Tick the `6502 Second Processor` box to add a 4 MHz 65C02 second
-  processor.
+  processor. If adding this to a B/B+, ensure one of the ROMs is the
+  Acorn 1770 DFS ROM, as that includes the Tube support code; if
+  adding this to a Master 128, note you may have to do `*CONFIGURE
+  TUBE` to get the OS to detect the second processor
 
 Changes to a configuration don't affect the running Beeb until you do
 a `File` > `Hard Reset` (if you're editing the current config) or a
