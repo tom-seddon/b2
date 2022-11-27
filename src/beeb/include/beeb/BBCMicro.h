@@ -317,7 +317,7 @@ class BBCMicro : private WD1770Handler {
 
     // Result is a combination of BBCMicroUpdateResultFlag values.
     uint32_t Update(VideoDataUnit *video_unit, SoundDataUnit *sound_unit) {
-        return {(this->*m_update_mfn)(video_unit, sound_unit)};
+        return (this->*m_update_mfn)(video_unit, sound_unit);
     }
 
 #if BBCMICRO_ENABLE_DISC_DRIVE_SOUND

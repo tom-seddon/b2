@@ -66,8 +66,8 @@ static size_t g_trace_next_id = 0;
 
 TraceEventType::TraceEventType(const char *name, size_t size_, TraceEventSource default_source_)
     : type_id((uint8_t)g_trace_next_id++)
-    , default_source(default_source_)
     , size(size_)
+    , default_source(default_source_)
     , m_name(name) {
     ASSERT(this->size <= MAX_EVENT_SIZE);
     ASSERT(g_trace_next_id <= sizeof g_trace_event_types / sizeof g_trace_event_types[0]);

@@ -93,7 +93,7 @@ void MC146818::SetTimeValue(uint8_t *dest, int value) {
     if (m_regs.bits.b.bits.dm) {
         *dest = (uint8_t)value;
     } else {
-        *dest = value % 10 + value / 10 % 10 * 16;
+        *dest = (uint8_t)(value % 10 + value / 10 % 10 * 16);
     }
 }
 

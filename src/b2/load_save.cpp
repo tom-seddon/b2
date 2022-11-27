@@ -1050,7 +1050,9 @@ static const char PARASITE[] = "parasite";
 static const char PARASITE_OS[] = "parasite_os";
 static const char AUTO_SAVE[] = "auto_save";
 static const char AUTO_SAVE_PATH[] = "auto_save_path";
+#if SYSTEM_WINDOWS
 static const char UNIX_LINE_ENDINGS[] = "unix_line_endings";
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -1862,7 +1864,9 @@ static bool LoadTrace(rapidjson::Value *trace_json, Messages *msg) {
     FindUInt16Member(&settings.stop_write_address, trace_json, STOP_WRITE_ADDRESS, nullptr);
     FindBoolMember(&settings.auto_save, trace_json, AUTO_SAVE, nullptr);
     FindStringMember(&settings.auto_save_path, trace_json, AUTO_SAVE_PATH, nullptr);
+#if SYSTEM_WINDOWS
     FindBoolMember(&settings.unix_line_endings, trace_json, UNIX_LINE_ENDINGS, nullptr);
+#endif
 
     SetDefaultTraceUISettings(settings);
 
@@ -1911,8 +1915,10 @@ static void SaveTrace(JSONWriter<StringStream> *writer) {
         writer->Key(AUTO_SAVE_PATH);
         writer->String(settings.auto_save_path.c_str());
 
+#if SYSTEM_WINDOWS
         writer->Key(UNIX_LINE_ENDINGS);
         writer->Bool(settings.unix_line_endings);
+#endif
     }
 }
 

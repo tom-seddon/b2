@@ -325,6 +325,8 @@ extern "C" int SDL_SendKeyboardKey(Uint8 state, SDL_Scancode scancode); //sorry
 
 #if SYSTEM_OSX
 static void HIDCallback(void *context, IOReturn result, void *sender, IOHIDValueRef value) {
+    (void)result, (void)sender;
+
     if (context != g_hid_manager) {
         // An old callback, ignore it (related to bug 2157 below).
         return;

@@ -97,7 +97,7 @@ static bool ParseAddress(uint16_t *addr_ptr,
     }
 
     *addr_ptr = addr;
-    *dso_ptr = dso & ~dso_fixed_bits_mask | dso_fixed_bits;
+    *dso_ptr = (dso & ~dso_fixed_bits_mask) | dso_fixed_bits;
 
     return true;
 }
@@ -3101,7 +3101,6 @@ class TubeDebugWindow : public DebugUI {
         char hex_buffer[FIFO1_STRING_SIZE], *hex = hex_buffer;
         char ascii_buffer[FIFO1_STRING_SIZE], *ascii = ascii_buffer;
 
-        size_t dest = 0;
         for (uint8_t i = 0; i < t->p2h1_n; ++i) {
             uint8_t byte = t->p2h1[(t->p2h1_rindex + i) % TUBE_FIFO1_SIZE_BYTES];
 
@@ -3109,7 +3108,7 @@ class TubeDebugWindow : public DebugUI {
             *hex++ = HEX_CHARS_LC[byte & 0xf];
             *hex++ = ' ';
 
-            *ascii++ = byte >= 32 && byte < 127 ? byte : ' ';
+            *ascii++ = byte >= 32 && byte < 127 ? (char)byte : ' ';
             *ascii++ = ' ';
             *ascii++ = ' ';
         }

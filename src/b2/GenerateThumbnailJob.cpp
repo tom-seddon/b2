@@ -50,7 +50,7 @@ void GenerateThumbnailJob::ThreadExecute() {
             if (update_result & BBCMicroUpdateResultFlag_VideoUnit) {
                 ++vunit;
                 if (vunit == vunits_end) {
-                    m_tv_output.Update(vunits, vunit - vunits);
+                    m_tv_output.Update(vunits, (size_t)(vunit - vunits));
                     vunit = vunits;
                 }
             }
@@ -61,7 +61,7 @@ void GenerateThumbnailJob::ThreadExecute() {
             if (update_result & BBCMicroUpdateResultFlag_VideoUnit) {
                 ++vunit;
                 if (vunit == vunits_end) {
-                    m_tv_output.Update(vunits, vunit - vunits);
+                    m_tv_output.Update(vunits, (size_t)(vunit - vunits));
                     vunit = vunits;
                 }
             }
@@ -69,7 +69,7 @@ void GenerateThumbnailJob::ThreadExecute() {
     }
 
     if (vunit > vunits) {
-        m_tv_output.Update(vunits, vunit - vunits);
+        m_tv_output.Update(vunits, (size_t)(vunit - vunits));
     }
 
     // Don't bother keeping these around any longer than necessary...
