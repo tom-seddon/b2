@@ -255,8 +255,8 @@ value read; for branch instructions, this is the result of the test
 Addresses in the trace are annotated with an address prefix hint. Note
 this is a hint, and while it's usually correct it may not actually
 reflect the affected byte when the prefix is `r` (read parasite ROM,
-write parasite RAM) or `i` (write host I/O, read one of host I/O or
-MOS ROM).
+write parasite RAM) or `i` on Master 128 (read either host I/O or MOS
+ROM, write host I/O).
 
 The `Other traces` checkboxes add additional hardware state output in
 the file:
@@ -340,6 +340,11 @@ stack are shown in a darker colour.
 The `Addr` column is right-clickable. The address shown is exactly
 what was pushed, but the right click popup includes the address after
 it, for dealing with addresses pushed by `jsr`.
+
+## `Tube`
+
+Shows current Tube status: IRQ state, control register values,
+contents and status for each FIFO.
 
 # Other debug-related options #
 
