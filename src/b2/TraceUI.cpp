@@ -324,13 +324,13 @@ void TraceUI::DoImGui() {
 
             ImGuiRadioButton(&g_default_settings.stop, TraceUIStopCondition_ByRequest, "By request");
             ImGuiRadioButton(&g_default_settings.stop, TraceUIStopCondition_OSWORD0, "OSWORD 0");
-            ImGuiRadioButton(&g_default_settings.stop, TraceUIStopCondition_NumCycles, "Cycle count");
+            ImGuiRadioButton(&g_default_settings.stop, TraceUIStopCondition_NumCycles, "2MHz cycle count");
             if (g_default_settings.stop == TraceUIStopCondition_NumCycles) {
                 if (ImGui::InputText("Cycles",
                                      m_stop_num_cycles_str,
                                      sizeof m_stop_num_cycles_str,
                                      ImGuiInputTextFlags_EnterReturnsTrue)) {
-                    if (!GetUInt64FromString(&g_default_settings.stop_num_cycles.n,
+                    if (!GetUInt64FromString(&g_default_settings.stop_num_2MHz_cycles,
                                              m_stop_num_cycles_str)) {
                         this->ResetTextBoxes();
                     }
@@ -490,7 +490,7 @@ void TraceUI::ResetTextBoxes() {
     snprintf(m_stop_num_cycles_str,
              sizeof m_stop_num_cycles_str,
              "%" PRIu64,
-             g_default_settings.stop_num_cycles.n);
+             g_default_settings.stop_num_2MHz_cycles);
 
     snprintf(m_stop_write_address_str,
              sizeof m_stop_write_address_str,
@@ -563,7 +563,7 @@ void TraceUI::StartTrace() {
 
     case TraceUIStopCondition_NumCycles:
         c.stop = BeebThreadStopTraceCondition_NumCycles;
-        c.stop_num_cycles = g_default_settings.stop_num_cycles;
+        c.stop_num_cycles.n = g_default_settings.stop_num_2MHz_cycles << LSHIFT_2MHZ_TO_CYCLE_COUNT;
         break;
 
     case TraceUIStopCondition_WriteAddress:
