@@ -3039,7 +3039,7 @@ class TubeDebugWindow : public DebugUI {
             std::unique_lock<Mutex> lock;
             const BBCMicro *m = m_beeb_thread->LockBeeb(&lock);
             const Tube *t = m->DebugGetTube();
-            if (!m) {
+            if (!t) {
                 ImGui::Text("No Tube");
                 return;
             }
