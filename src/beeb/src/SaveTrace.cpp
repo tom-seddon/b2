@@ -81,6 +81,18 @@ class TraceSaver {
                 // fingers crossed this is actually accurate enough??
                 double exp = floor(1. + log10((double)stats.max_time.n));
                 m_time_initial_value = (uint64_t)pow(10., exp - 1.);
+
+                // Try to ensure the time column stays the same width for any
+                // reasonable trace size when output with relative cycle counts.
+                // I've got tripped up by this when trying to diff diverging
+                // traces that aren't the same length.
+                //
+                // No point trying to make room for the full 1<<64 cycles, as
+                // (a) that's like 20+ columns, and (b) that's nearly 150,000
+                // years of emulated time. But a 1-minute trace would have a 10
+                // digit cycle count, and that's not a ridiculous number of
+                // columns to reserve.
+                m_time_initial_value = std::max(m_time_initial_value, 60 * CYCLES_PER_SECOND);
             }
         }
 
@@ -96,6 +108,12 @@ class TraceSaver {
         m_parasite_m6502_config = m_trace->GetParasiteM6502Config();
         m_parasite_boot_mode = m_trace->GetInitialParasiteBootMode();
         m_paging_dirty = true;
+
+        std::vector<char> host_m6502_padded_mnemonics_buffer;
+        this->InitPaddedMnemonics(&host_m6502_padded_mnemonics_buffer, m_host_m6502_padded_mnemonics, m_type->m6502_config);
+
+        std::vector<char> parasite_m6502_padded_mnemonics_buffer;
+        this->InitPaddedMnemonics(&parasite_m6502_padded_mnemonics_buffer, m_parasite_m6502_padded_mnemonics, m_parasite_m6502_config);
 
         bool completed;
         if (m_trace->ForEachEvent(&PrintTrace, this)) {
@@ -168,6 +186,15 @@ class TraceSaver {
     std::vector<uint8_t> m_tube_fifo1;
     const M6502Config *m_parasite_m6502_config = nullptr;
 
+    // State appropriate for current event.
+    const M6502Config *m_m6502_config = nullptr;
+    const char *const *m_m6502_padded_mnemonics = nullptr;
+
+    // memcpy-friendly.
+    static constexpr size_t PADDED_MNEMONIC_SIZE = 5; //padded with trailing spaces
+    const char *m_host_m6502_padded_mnemonics[256] = {};
+    const char *m_parasite_m6502_padded_mnemonics[256] = {};
+
     // <pre>
     // 0         1         2
     // 01234567890123456789012
@@ -202,6 +229,20 @@ class TraceSaver {
       private:
         TraceSaver *m_saver = nullptr;
     };
+
+    void InitPaddedMnemonics(std::vector<char> *buffer, const char **mnemonics, const M6502Config *config) {
+        buffer->resize(256 * (PADDED_MNEMONIC_SIZE + 1));
+
+        for (size_t opcode = 0; opcode < 256; ++opcode) {
+            char *padded_mnemonic = &buffer->at(opcode * (PADDED_MNEMONIC_SIZE + 1));
+
+            const char *mnemonic = config ? config->disassembly_info[opcode].mnemonic : "???";
+            ASSERT(strlen(mnemonic) <= PADDED_MNEMONIC_SIZE);
+
+            snprintf(padded_mnemonic, PADDED_MNEMONIC_SIZE + 1, "%-*s", (int)PADDED_MNEMONIC_SIZE, mnemonic);
+            mnemonics[opcode] = padded_mnemonic;
+        }
+    }
 
     static char *AddByte(char *c, const char *prefix, uint8_t value, const char *suffix) {
         while ((*c = *prefix++) != 0) {
@@ -515,12 +556,7 @@ class TraceSaver {
 
         m_last_instruction_time = e->time;
 
-        const M6502DisassemblyInfo *i;
-        if (e->source == TraceEventSource_Parasite) {
-            i = &m_parasite_m6502_config->disassembly_info[ev->opcode];
-        } else {
-            i = &m_type->m6502_config->disassembly_info[ev->opcode];
-        }
+        const M6502DisassemblyInfo *i = &m_m6502_config->disassembly_info[ev->opcode];
 
         // This buffer size has been carefully selected to be Big
         // Enough(tm).
@@ -536,21 +572,8 @@ class TraceSaver {
         *c++ = i->undocumented ? '*' : ' ';
 
         char *mnemonic_begin = c;
-
-        {
-            size_t n = 0;
-
-            while (i->mnemonic[n] != 0) {
-                c[n] = i->mnemonic[n];
-                ++n;
-            }
-
-            c += n;
-
-            while (n++ < 6) {
-                *c++ = ' ';
-            }
-        }
+        memcpy(c, m_m6502_padded_mnemonics[ev->opcode], PADDED_MNEMONIC_SIZE);
+        c += PADDED_MNEMONIC_SIZE;
 
         // This logic is a bit gnarly, and probably wants hiding away
         // somewhere closer to the 6502 code.
@@ -889,6 +912,8 @@ class TraceSaver {
             case TraceEventSource_Host:
                 *c++ = 'H';
                 time_shift = RSHIFT_CYCLE_COUNT_TO_2MHZ;
+                this_->m_m6502_config = this_->m_type->m6502_config;
+                this_->m_m6502_padded_mnemonics = this_->m_host_m6502_padded_mnemonics;
                 break;
 
             case TraceEventSource_Parasite:
@@ -898,14 +923,21 @@ class TraceSaver {
                     memset(c, ' ', n);
                     c += n;
                     time_shift = RSHIFT_CYCLE_COUNT_TO_4MHZ;
+                    this_->m_m6502_config = this_->m_parasite_m6502_config;
+                    this_->m_m6502_padded_mnemonics = this_->m_parasite_m6502_padded_mnemonics;
                 }
                 break;
 
             default:
                 *c++ = '?';
                 time_shift = 0;
+                this_->m_m6502_config = this_->m_type->m6502_config;
+                this_->m_m6502_padded_mnemonics = this_->m_host_m6502_padded_mnemonics;
                 break;
             }
+
+            // Maintain a gap between event source and whatever comes next.
+            *c++ = ' ';
 
             if (this_->m_cycles_output != TraceCyclesOutput_None) {
 
