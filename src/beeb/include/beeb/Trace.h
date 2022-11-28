@@ -136,6 +136,7 @@ class Trace : public std::enable_shared_from_this<Trace> {
                    const BBCMicroType *type,
                    ROMSEL initial_romsel_value,
                    ACCCON initial_acccon_value,
+                   const M6502Config *parasite_m6502_config,
                    bool initial_parasite_boot_mode);
     ~Trace();
 
@@ -200,6 +201,7 @@ class Trace : public std::enable_shared_from_this<Trace> {
     ROMSEL GetInitialROMSEL() const;
     ACCCON GetInitialACCCON() const;
     bool GetInitialParasiteBootMode() const;
+    const M6502Config *GetParasiteM6502Config() const;
 
     typedef bool (*ForEachEventFn)(Trace *t, const TraceEvent *e, void *context);
 
@@ -237,6 +239,7 @@ class Trace : public std::enable_shared_from_this<Trace> {
     const BBCMicroType *m_bbc_micro_type = nullptr;
     ROMSEL m_romsel = {};
     ACCCON m_acccon = {};
+    const M6502Config *m_parasite_m6502_config = nullptr;
     bool m_parasite_boot_mode = false;
 
     // Allocate a new event with variable-sized data, and return a

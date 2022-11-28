@@ -140,6 +140,7 @@ static std::map<InstrType, std::set<std::string>> INSTR_TYPES = {
          "adc", "and", "bit", "cmp", "cpx", "cpy", "eor", "lda", "ldx", "ldy", "ora", "sbc",
          "adc_cmos", "sbc_cmos", "bit_cmos",
          "lax", "asr", "arr", "ane", "lxa", "sbx", "anc", "lds", //illegal
+
      }},
     {InstrType_W,
      {
@@ -151,6 +152,8 @@ static std::map<InstrType, std::set<std::string>> INSTR_TYPES = {
      {
          "bcc", "bcs", "beq", "bmi", "bne", "bpl", "bvc", "bvs",
          "bra", // cmos
+         "bbr0", "bbr1", "bbr2", "bbr3", "bbr4", "bbr5", "bbr6", "bbr7",
+         "bbs0", "bbs1", "bbs2", "bbs3", "bbs4", "bbs5", "bbs6", "bbs7", //Rockwell
      }},
     {InstrType_IMP,
      {
@@ -173,6 +176,8 @@ static std::map<InstrType, std::set<std::string>> INSTR_TYPES = {
          "asl", "dec", "inc", "lsr", "rol", "ror",
          "slo", "rla", "sre", "rra", "dcp", "isb", //illegal
          "trb", "tsb",                             // cmos
+         "rmb0", "rmb1", "rmb2", "rmb3", "rmb4", "rmb5", "rmb6", "rmb7",
+         "smb0", "smb1", "smb2", "smb3", "smb4", "smb5", "smb6", "smb7", //Rockwell
      }},
 };
 
@@ -189,6 +194,9 @@ class Instr {
 
     // Set if this is an undocumented NMOS instruction.
     bool undocumented = false;
+
+    // Set if this is a Rockwell instruction.
+    bool rockwell = false;
 
     Instr() = default;
 
@@ -296,6 +304,7 @@ class Instr {
         case Mode_Nop34_CMOS:
         case Mode_Nop38_CMOS:
         case Mode_Abx2_CMOS:
+        case Mode_Zpg_Rel_Rockwell:
             return 3;
         }
 
@@ -377,10 +386,17 @@ class Instr {
                             *tfun;
                 }
             }
+
+            if (this->rockwell) {
+                if (ifun->size() == 4 && isdigit(ifun->back())) {
+                    ifun->pop_back();
+                }
+            }
         }
     }
 
-    bool IsShiftInstruction() const {
+    bool
+    IsShiftInstruction() const {
         return this->mnemonic == "asl" || this->mnemonic == "lsr" || this->mnemonic == "rol" || this->mnemonic == "ror";
     }
 
@@ -566,6 +582,12 @@ static void AddBulkInstructions(std::map<uint8_t, Instr> *instructions, const ch
     }
 }
 
+static void ReplaceBulkInstructions(std::map<uint8_t, Instr> *instructions, const char *mnemonic, Mode mode, const std::initializer_list<uint8_t> &opcodes) {
+    for (uint8_t opcode : opcodes) {
+        (*instructions)[opcode] = Instr(mnemonic, mode);
+    }
+}
+
 static void MarkInstructions(std::map<uint8_t, Instr> *instructions, bool Instr::*mptr) {
     for (auto &&it : *instructions) {
         it.second.*mptr = true;
@@ -734,6 +756,33 @@ static std::map<uint8_t, Instr> GetCMOSInstructions() {
     }
 
     MarkInstructions(&instructions, &Instr::cmos);
+
+    return instructions;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+static void AddRockwellBitInstructions(std::map<uint8_t, Instr> *instructions, const char *base_mnemonic, Mode mode, uint8_t base_opcode) {
+    ASSERT((base_opcode & 0x70) == 0);
+
+    for (uint8_t bit = 0; bit < 8; ++bit) {
+        std::string mnemonic = base_mnemonic + std::to_string(bit);
+        uint8_t opcode = base_opcode | bit << 4;
+        ReplaceBulkInstructions(instructions, mnemonic.c_str(), mode, {opcode});
+        (*instructions)[opcode].rockwell = true;
+    }
+}
+
+static std::map<uint8_t, Instr> GetRockwellInstructions() {
+    std::map<uint8_t, Instr> instructions = GetCMOSInstructions();
+
+    for (uint8_t bit = 0; bit < 8; ++bit) {
+        AddRockwellBitInstructions(&instructions, "rmb", Mode_Zpg, 0x7);
+        AddRockwellBitInstructions(&instructions, "smb", Mode_Zpg, 0x87);
+        AddRockwellBitInstructions(&instructions, "bbr", Mode_Zpg_Rel_Rockwell, 0xf);
+        AddRockwellBitInstructions(&instructions, "bbs", Mode_Zpg_Rel_Rockwell, 0x8f);
+    }
 
     return instructions;
 }
@@ -1430,7 +1479,7 @@ static void GenerateConfig(std::set<std::string> *tfns, std::set<std::string> *i
 
         bool branch = BRANCH.count(mnemonic) > 0;
 
-        ASSERT(mnemonic.size() == 3);
+        ASSERT(mnemonic.size() <= 4);
         P("[0x%02zx]={.mnemonic=\"%s\",.mode=%s,.num_bytes=%u,.undocumented=%d,.always_step_in=%d,.branch=%d},\n",
           i,
           mnemonic.c_str(),
@@ -1630,6 +1679,7 @@ int main(int argc, char *argv[]) {
     GenerateConfig(&tfns, &ifuns, "defined", GetDefinedInstructions(), GetUndefinedTrapInstructions());
     GenerateConfig(&tfns, &ifuns, "nmos6502", GetDefinedInstructions(), GetUndefinedInstructions());
     GenerateConfig(&tfns, &ifuns, "cmos6502", GetCMOSInstructions(), {});
+    GenerateConfig(&tfns, &ifuns, "rockwell65c02", GetRockwellInstructions(), {});
 
     GenerateFnNameStuff(gens, tfns, extra_tfns, ifuns);
 

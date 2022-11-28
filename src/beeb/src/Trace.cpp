@@ -140,11 +140,13 @@ Trace::Trace(size_t max_num_bytes,
              const BBCMicroType *bbc_micro_type,
              ROMSEL initial_romsel,
              ACCCON initial_acccon,
+             const M6502Config *parasite_m6502_config,
              bool initial_parasite_boot_mode)
     : m_max_num_bytes(max_num_bytes)
     , m_bbc_micro_type(bbc_micro_type)
     , m_romsel(initial_romsel)
     , m_acccon(initial_acccon)
+    , m_parasite_m6502_config(parasite_m6502_config)
     , m_parasite_boot_mode(initial_parasite_boot_mode) {
 }
 
@@ -434,6 +436,13 @@ bool Trace::GetInitialParasiteBootMode() const {
     } else {
         return m_parasite_boot_mode;
     }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+const M6502Config *Trace::GetParasiteM6502Config() const {
+    return m_parasite_m6502_config;
 }
 
 //////////////////////////////////////////////////////////////////////////

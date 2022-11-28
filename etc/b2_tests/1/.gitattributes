@@ -1,2 +1,4 @@
 T.CMOSBRK diff=bbcbasic
 T.RTWT1 diff=bbcbasic
+T.BBR#2fBBS diff=bbcbasic
+T.RMB#2fSMB diff=bbcbasic

@@ -952,6 +952,36 @@ static void LDS(M6502 *s) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+// Rockwell instructions.
+
+/* RMW */
+static void RMB(M6502 *s) {
+    uint8_t bit = s->opcode >> 4 & 7;
+    s->data &= ~(1 << bit);
+}
+
+/* RMW */
+static void SMB(M6502 *s) {
+    uint8_t bit = s->opcode >> 4 & 7;
+    s->data |= 1 << bit;
+}
+
+/* Weird branch. Data set on entry as if a read instruction. Set data for exit
+ * as if a branch instruction.
+ */
+static void BBR(M6502 *s) {
+    uint8_t bit = s->opcode >> 4 & 7;
+    s->data = ~s->data & 1 << bit;
+}
+
+static void BBS(M6502 *s) {
+    uint8_t bit = s->opcode >> 4 & 7;
+    s->data &= 1 << bit;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 static void Cycle0_All(M6502 *s);
 
 void M6502_NextInstruction(M6502 *s) {
@@ -1057,6 +1087,40 @@ static void Cycle3_Branch(M6502 *s) {
     /* T0 phase 1 */
     CheckForInterrupts(s);
     M6502_NextInstruction(s);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+static void Cycle1_Branch_ZPG_REL_ROCKWELL(M6502 *s);
+static void Cycle2_Branch_ZPG_REL_ROCKWELL(M6502 *s);
+static void Cycle3_Branch_ZPG_REL_ROCKWELL(M6502 *s);
+
+void Cycle0_Branch_ZPG_REL_ROCKWELL(M6502 *s) {
+    s->abus.w = s->pc.w++;
+    s->read = M6502ReadType_Instruction;
+    s->tfn = &Cycle1_Branch_ZPG_REL_ROCKWELL;
+}
+
+static void Cycle1_Branch_ZPG_REL_ROCKWELL(M6502 *s) {
+    s->abus.w = s->dbus; //Zero page address
+    s->ia.b.l = s->dbus; //Save it somewhere the trace can find it
+    s->read = M6502ReadType_Data;
+    s->tfn = &Cycle2_Branch_ZPG_REL_ROCKWELL;
+}
+
+static void Cycle2_Branch_ZPG_REL_ROCKWELL(M6502 *s) {
+    s->data = s->dbus; //Save zero page data
+    // Hmm. What actually happens here?
+    s->read = M6502ReadType_Uninteresting;
+    s->tfn = &Cycle3_Branch_ZPG_REL_ROCKWELL;
+}
+
+static void Cycle3_Branch_ZPG_REL_ROCKWELL(M6502 *s) {
+    // Hmm. What actually happens here?
+    s->abus.w = s->pc.w++;
+    s->read = M6502ReadType_Instruction;
+    s->tfn = &Cycle1_Branch;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -2496,6 +2560,13 @@ const M6502Config M6502_cmos6502_config = {
     .fns = g_cmos6502_fns,
     .interrupt_tfn = &Cycle0_InterruptCMOS,
     .disassembly_info = g_cmos6502_disassembly_info,
+};
+
+const M6502Config M6502_rockwell65c02_config = {
+    .name = "Rockwell 65C02",
+    .fns = g_rockwell65c02_fns,
+    .interrupt_tfn = &Cycle0_InterruptCMOS,
+    .disassembly_info = g_rockwell65c02_disassembly_info,
 };
 
 //////////////////////////////////////////////////////////////////////////

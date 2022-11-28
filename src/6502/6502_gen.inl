@@ -48,6 +48,7 @@ EPN(Abx2_CMOS)
 EPN(Abx_Broken_NMOS)
 EPN(Aby_Broken_NMOS)
 EPN(Iny_Broken_NMOS)
+EPN(Zpg_Rel_Rockwell)
 EEND()
 #undef ENAME
 

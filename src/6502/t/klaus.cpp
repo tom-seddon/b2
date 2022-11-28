@@ -116,7 +116,10 @@ int main() {
 
     good &= DoTest("6502.bin", 0, 0x400, &M6502_nmos6502_config);
     good &= DoTest("6502.bin", 0, 0x400, &M6502_cmos6502_config);
+
     good &= DoTest("65c02.bin", 0, 0x400, &M6502_cmos6502_config);
+    good &= DoTest("65c02_rockwell.bin", 0, 0x400, &M6502_rockwell65c02_config);
+
     good &= DoTest("d0.bin", 0x200, 0x200, &M6502_nmos6502_config);
     good &= DoTest("d1.bin", 0x200, 0x200, &M6502_cmos6502_config);
 

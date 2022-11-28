@@ -104,6 +104,7 @@ enum M6502AddrMode {
     M6502AddrMode_ACC,
     M6502AddrMode_INZ,
     M6502AddrMode_INDX,
+    M6502AddrMode_ZPG_REL_ROCKWELL,
 };
 typedef enum M6502AddrMode M6502AddrMode;
 
@@ -122,9 +123,6 @@ struct M6502Fns {
 typedef struct M6502Fns M6502Fns;
 
 struct M6502DisassemblyInfo {
-    // 3-char mnemonic.
-    char mnemonic[4];
-
     // M6502AddrMode.
     uint8_t mode;
 
@@ -140,6 +138,9 @@ struct M6502DisassemblyInfo {
 
     // Set if this is a branch instruction of some kind.
     uint8_t branch : 1;
+
+    // Mnemonic.
+    char mnemonic[5];
 };
 typedef struct M6502DisassemblyInfo M6502DisassemblyInfo;
 
@@ -169,23 +170,30 @@ typedef struct M6502Config M6502Config;
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-/* Config for a 6502 that mimics the NMOS part exactly... hopefully.
- *
- * (The M6502 object's ill_fn will never be called; as on a real 6502,
- * every instruction does something.)
+// * NMOS: standard defined set of instructions
+// * Undocumented: undocumented NMOS-specific instructions
+// * CMOS: additional 65c02 instructions and addressing modes
+// * Rockwell: BBRn, BBSn, RMBn, SMBn (replacing some CMOS NOPs)
+// * WDC: WAI, STP (replacing some CMOS NOPs)
+
+/* NMOS, Undocumented
  */
 extern const M6502Config M6502_nmos6502_config;
 
-/* Config for a 6502 that only executes the defined instructions. If
- * an undefined instruction is encountered, the M6502 object's ill_fn
- * will be called.
+/* NMOS
+ *
+ * If an undefined instruction is encountered, the M6502 object's ill_fn will be
+ * called.
  */
 extern const M6502Config M6502_defined_config;
 
-/* Config for a 65C02. This does the standard CMOS bits, but not the
- * Rockwell or WDC bits.
+/* NMOS, CMOS
  */
 extern const M6502Config M6502_cmos6502_config;
+
+/* NMOS, CMOS, Rockwell
+ */
+extern const M6502Config M6502_rockwell65c02_config;
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

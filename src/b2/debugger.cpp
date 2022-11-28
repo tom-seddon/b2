@@ -1478,6 +1478,15 @@ class DisassemblyDebugWindow : public DebugUI,
                 this->AddWord("(", operand.w, false, ",X)");
                 this->DoIndirect(operand.w + x, mos, 0xffff, 0);
                 break;
+
+            case M6502AddrMode_ZPG_REL_ROCKWELL:
+                {
+                    M6502Word dest;
+                    dest.w = addr + (uint16_t)(int16_t)(int8_t)operand.b.h;
+                    this->AddByte("", operand.b.l, false, "");
+                    this->AddWord(",", dest.w, false, "");
+                }
+                break;
             }
         }
 

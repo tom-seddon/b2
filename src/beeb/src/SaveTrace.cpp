@@ -93,6 +93,7 @@ class TraceSaver {
         m_type = m_trace->GetBBCMicroType();
         m_romsel = m_trace->GetInitialROMSEL();
         m_acccon = m_trace->GetInitialACCCON();
+        m_parasite_m6502_config = m_trace->GetParasiteM6502Config();
         m_parasite_boot_mode = m_trace->GetInitialParasiteBootMode();
         m_paging_dirty = true;
 
@@ -165,6 +166,7 @@ class TraceSaver {
     MemoryBigPageTables m_paging_tables = {};
     bool m_io = true;
     std::vector<uint8_t> m_tube_fifo1;
+    const M6502Config *m_parasite_m6502_config = nullptr;
 
     // <pre>
     // 0         1         2
@@ -513,7 +515,12 @@ class TraceSaver {
 
         m_last_instruction_time = e->time;
 
-        const M6502DisassemblyInfo *i = &m_type->m6502_config->disassembly_info[ev->opcode];
+        const M6502DisassemblyInfo *i;
+        if (e->source == TraceEventSource_Parasite) {
+            i = &m_parasite_m6502_config->disassembly_info[ev->opcode];
+        } else {
+            i = &m_type->m6502_config->disassembly_info[ev->opcode];
+        }
 
         // This buffer size has been carefully selected to be Big
         // Enough(tm).
@@ -530,10 +537,20 @@ class TraceSaver {
 
         char *mnemonic_begin = c;
 
-        memcpy(c, i->mnemonic, sizeof i->mnemonic - 1);
-        c += sizeof i->mnemonic - 1;
+        {
+            size_t n = 0;
 
-        *c++ = ' ';
+            while (i->mnemonic[n] != 0) {
+                c[n] = i->mnemonic[n];
+                ++n;
+            }
+
+            c += n;
+
+            while (n++ < 6) {
+                *c++ = ' ';
+            }
+        }
 
         // This logic is a bit gnarly, and probably wants hiding away
         // somewhere closer to the 6502 code.
@@ -633,6 +650,20 @@ class TraceSaver {
             // the effective address isn't stored anywhere - it's
             // loaded straight into the program counter. But it's not
             // really a problem... a JMP is easy to follow.
+            break;
+
+        case M6502AddrMode_ZPG_REL_ROCKWELL:
+            {
+                uint16_t tmp;
+
+                if (!ev->data) {
+                    tmp = (uint16_t)(ev->pc + 3 + (uint16_t)(int16_t)(int8_t)ev->ad);
+                } else {
+                    tmp = ev->ad;
+                }
+                c = AddByte(c, "$", ev->ia & 0xff, "");
+                c = AddWord(c, ",$", tmp, "");
+            }
             break;
         }
 

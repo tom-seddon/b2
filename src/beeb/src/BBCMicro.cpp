@@ -146,7 +146,7 @@ BBCMicro::State::State(const BBCMicroType *type,
         this->parasite_ram_buffer.resize(65536);
         this->parasite_enabled = true;
         this->parasite_boot_mode = true;
-        M6502_Init(&this->parasite_cpu, &M6502_cmos6502_config);
+        M6502_Init(&this->parasite_cpu, &M6502_rockwell65c02_config);
         ResetTube(&this->parasite_tube);
     }
 
@@ -899,11 +899,19 @@ void BBCMicro::SetParasiteOS(std::shared_ptr<const std::array<uint8_t, 4096>> da
 void BBCMicro::StartTrace(uint32_t trace_flags, size_t max_num_bytes) {
     this->StopTrace(nullptr);
 
+    bool parasite_boot_mode = false;
+    const M6502Config *parasite_m6502_config = nullptr;
+    if (m_state.parasite_enabled) {
+        parasite_boot_mode = m_state.parasite_boot_mode;
+        parasite_m6502_config = m_state.parasite_cpu.config;
+    }
+
     this->SetTrace(std::make_shared<Trace>(max_num_bytes,
                                            m_type,
                                            m_state.romsel,
                                            m_state.acccon,
-                                           m_state.parasite_boot_mode),
+                                           parasite_m6502_config,
+                                           parasite_boot_mode),
                    trace_flags);
 }
 #endif
