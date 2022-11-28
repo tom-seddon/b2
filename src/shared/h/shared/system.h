@@ -9,6 +9,9 @@
 #include <stddef.h>
 #include <stdarg.h>
 #include <stdlib.h>
+#ifdef _MSC_VER
+#include <intrin.h>
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -169,7 +172,9 @@ int IsDebuggerAttached(void);
 
 #ifdef _MSC_VER
 
-#define DEBUG_BREAK() (__debugbreak())
+// Regarding the __nop():
+// https://github.com/EpicGames/UnrealEngine/blob/9e0f5f2a419a75b83392c44bf75462366ca8c1e2/Engine/Source/Runtime/Core/Public/Windows/WIndowsPlatform.h#L103
+#define DEBUG_BREAK() (__nop(), __debugbreak())
 
 #define BREAK()        \
     BEGIN_MACRO {      \
