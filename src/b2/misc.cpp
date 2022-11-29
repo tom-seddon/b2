@@ -394,21 +394,28 @@ std::vector<std::string> GetSplitString(const std::string &str, const std::strin
 
 template <class T>
 static bool GetValueFromString(T *value, const char *str, int radix) {
+    // Always skip leading spaces.
+    const char *c = str;
+    while (*c != 0 && isspace(*c)) {
+        ++c;
+    }
+
+    // If empty, fail.
+    if (*c == 0) {
+        return false;
+    }
+
     if (radix == 0) {
         // Handle &/$.
-        const char *c = str;
-        while (*c != 0 && isspace(*c)) {
-            ++c;
-        }
 
         if (*c == '$' || *c == '&') {
-            str = c + 1;
+            c++;
             radix = 16;
         }
     }
 
     char *ep;
-    unsigned long long tmp = strtoull(str, &ep, radix);
+    unsigned long long tmp = strtoull(c, &ep, radix);
     if (*ep != 0 && !isspace(*ep)) {
         return false;
     }

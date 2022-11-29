@@ -300,6 +300,18 @@ addresses - which may be more useful sometimes.
 
 Click `Options` to get a popup options window.
 
+From the options window, you can save a block of memory: specify start
+address, then end address (exclusive, save as `*SAVE`) or size in
+bytes, using the tick box to indicate which. Then click `Save
+memory...` to specify the file to save it to.
+
+Outsize end/size values will be clamped so that the saved region fits
+in the $0000...$ffff (inclusive) region.
+
+Memory is read with the paging overrides that are currently in effect.
+As per the memory view window contents, any memory-mapped I/O devices
+are bypassed and you see what's in the ROM or RAM behind them.
+
 ## `Host Disassembly Debug`, `Parasite Disassembly Debug` ##
 
 Show running disassembly.

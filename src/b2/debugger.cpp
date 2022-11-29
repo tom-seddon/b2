@@ -10,6 +10,8 @@
 #include <dear_imgui_hex_editor.h>
 #include <inttypes.h>
 #include "misc.h"
+#include "load_save.h"
+#include <algorithm>
 
 // Ugh, ugh, ugh.
 #ifdef __GNUC__
@@ -1019,6 +1021,70 @@ class MemoryDebugWindow : public DebugUI,
             this->HexEditorHandler::DoContextPopupExtraGui(hex, offset);
         }
 
+        void DoOptionsPopupExtraGui() override {
+            ImGui::Separator();
+
+            ImGui::InputText("Save Begin", m_save_begin_buffer, sizeof m_save_begin_buffer);
+
+            const char *label = m_specify_end ? "Save End" : "Save Size";
+            ImGui::InputText(label, m_save_end_buffer, sizeof m_save_end_buffer);
+
+            if (ImGui::Checkbox("Specify End", &m_specify_end)) {
+                uint16_t begin;
+                uint32_t end_or_size;
+                if (this->GetSaveParameters(&begin, &end_or_size)) {
+                    if (m_specify_end) {
+                        // end_or_size was size
+                        snprintf(m_save_end_buffer, sizeof m_save_end_buffer, "0x%x", begin + end_or_size);
+                    } else {
+                        // end_or_size was end
+                        snprintf(m_save_end_buffer, sizeof m_save_end_buffer, "0x%x", end_or_size - begin);
+                    }
+                }
+            }
+
+            uint16_t begin;
+            uint32_t end_or_size;
+            bool save_enabled = this->GetSaveParameters(&begin, &end_or_size);
+            if (m_specify_end && end_or_size < begin) {
+                save_enabled = false;
+            }
+
+            {
+                ImGuiStyleColourPusher pusher;
+                pusher.PushDisabledButtonColours(!save_enabled);
+                if (ImGui::Button("Save memory...") && save_enabled) {
+                    SaveFileDialog fd("save_memory");
+
+                    fd.AddAllFilesFilter();
+
+                    std::string path;
+                    if (fd.Open(&path)) {
+                        uint32_t end;
+                        if (m_specify_end) {
+                            end = end_or_size;
+                        } else {
+                            end = begin + end_or_size;
+                        }
+
+                        end = std::min(end, 0x10000u);
+
+                        std::vector<uint8_t> buffer;
+                        for (uint16_t addr = begin; addr != end; ++addr) {
+                            uint8_t value;
+                            if (!m_window->ReadByte(&value, nullptr, nullptr, addr, false)) {
+                                value = 0;
+                            }
+                            buffer.push_back(value);
+                        }
+
+                        Messages msgs(m_window->m_beeb_window->GetMessageList());
+                        SaveFile(buffer, path, &msgs);
+                    }
+                }
+            }
+        }
+
         void GetAddressText(char *text,
                             size_t text_size,
                             size_t offset,
@@ -1049,7 +1115,22 @@ class MemoryDebugWindow : public DebugUI,
 
       protected:
       private:
+        char m_save_begin_buffer[50] = {};
+        char m_save_end_buffer[50] = {};
+        bool m_specify_end = false;
         MemoryDebugWindow *const m_window;
+
+        bool GetSaveParameters(uint16_t *begin, uint32_t *end_or_size) const {
+            if (!GetUInt16FromString(begin, m_save_begin_buffer)) {
+                return false;
+            }
+
+            if (!GetUInt32FromString(end_or_size, m_save_end_buffer)) {
+                return false;
+            }
+
+            return true;
+        }
     };
 
     Handler m_handler;
