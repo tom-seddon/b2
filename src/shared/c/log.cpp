@@ -407,7 +407,10 @@ LogPrinter *Log::GetLogPrinter() const {
 //////////////////////////////////////////////////////////////////////////
 
 void Log::SetLogPrinter(LogPrinter *printer) {
-    m_printer = printer;
+    if (printer != m_printer) {
+        this->Flush();
+        m_printer = printer;
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////
