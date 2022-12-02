@@ -255,6 +255,9 @@ class BeebWindow {
     void DebugStepIn(uint32_t dso);
 #endif
 
+    // Handle double click or drag'n'drop.
+    void LoadFile(std::string path);
+
   protected:
   private:
     struct SettingsUIMetadata;

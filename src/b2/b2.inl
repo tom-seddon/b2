@@ -13,6 +13,9 @@ EPN(NewWindow)
 // (std::function<void()> *)data1 - delete
 EPN(Function)
 
+// (char *)data1 - SDL_free
+EPN(LoadFile)
+
 EPN(Count)
 
 EEND()

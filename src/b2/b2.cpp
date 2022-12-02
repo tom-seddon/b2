@@ -1159,6 +1159,23 @@ static bool main2(int argc, char *argv[], const std::shared_ptr<MessageList> &in
                 }
                 break;
 
+            case SDL_DROPBEGIN:
+                LOGF(OUTPUT, "SDL_DROPBEGIN\n");
+                break;
+
+            case SDL_DROPFILE:
+                LOGF(OUTPUT, "SDL_DROPFILE: %s\n", event.drop.file);
+                if (BeebWindow *beeb_window = BeebWindows::FindBeebWindowBySDLWindowID(event.drop.windowID)) {
+                    beeb_window->LoadFile(event.drop.file);
+                }
+                SDL_free(event.drop.file);
+                event.drop.file = nullptr;
+                break;
+
+            case SDL_DROPCOMPLETE:
+                LOGF(OUTPUT, "SDL_DROPFILE\n");
+                break;
+
             default:
                 {
                     if (event.type >= g_first_event_type && event.type < g_first_event_type + SDLEventType_Count) {
@@ -1210,6 +1227,11 @@ static bool main2(int argc, char *argv[], const std::shared_ptr<MessageList> &in
 
                                 delete fun;
                                 fun = nullptr;
+                            }
+                            break;
+
+                        case SDLEventType_LoadFile:
+                            {
                             }
                             break;
 

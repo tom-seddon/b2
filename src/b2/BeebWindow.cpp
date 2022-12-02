@@ -2826,6 +2826,19 @@ const std::string &BeebWindow::GetConfigName() const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+void BeebWindow::LoadFile(std::string path) {
+    std::shared_ptr<MemoryDiscImage> disc_image = MemoryDiscImage::LoadFromFile(path, &m_msg);
+    if (!disc_image) {
+        return;
+    }
+
+    m_beeb_thread->Send(std::make_shared<BeebThread::LoadDiscMessage>(0, std::move(disc_image), true));
+    m_beeb_thread->Send(std::make_shared<BeebThread::HardResetAndReloadConfigMessage>(BeebThreadHardResetFlag_Boot | BeebThreadHardResetFlag_Run));
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 bool BeebWindow::HandleVBlank(VBlankMonitor *vblank_monitor, void *display_data, uint64_t ticks) {
     // There's an API for exactly this on Windows. But it's probably
     // better to have the same code on every platform. 99% of the time

@@ -4,15 +4,16 @@ A brief summary of the main features of the emulator.
 
 ## Load a disc
 
-If the disc auto-boots, use `Run` on the `File` menu to load a disc
-and have the emulator auto-boot it. Use
-the `Disc image...` or `Direct disc image...` option to select an .ssd
-file, and it will start automatically.
+If the disc auto-boots - and most that you'll find on the internet
+will - use `Run` on the `File` menu to load a disc and have the
+emulator auto-boot it. Use the `Disc image...` or `Direct disc
+image...` option to select an .ssd file, and it will start
+automatically. Or drag and drop the disk image from the File Explorer.
 
-`Disc image...` loads the file into memory. The file isn't updated
-when changes are made in the emulator (use `Save` to do that), and
-changes made to the file won't be seen in the emulator (reload the
-disc image for that).
+`Disc image...` or drag and drop loads the file into memory. The file
+isn't updated when changes are made in the emulator (use `Save` to do
+that), and changes made to the file won't be seen in the emulator
+(reload the disc image for that).
 
 `Direct disc image...` accesses the file directly for each read or
 write. Any changes made in the emulator are immediately made to the
