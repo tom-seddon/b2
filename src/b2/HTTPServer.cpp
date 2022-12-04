@@ -44,7 +44,7 @@ const std::string CONTINUE_RESPONSE = "100 Continue\r\n";
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static void PrintLibUVError(int rc, const char *fmt, ...) {
+static void PRINTF_LIKE(2, 3) PrintLibUVError(int rc, const char *fmt, ...) {
     va_list v;
 
     va_start(v, fmt);
@@ -377,7 +377,7 @@ class HTTPServerImpl : public HTTPServer {
     HTTPServerImpl();
     ~HTTPServerImpl();
 
-    bool Start(int port) override;
+    bool Start(int port, bool listen_on_all_interfaces, Messages *messages) override;
     void SetHandler(HTTPHandler *handler) override;
     void SendResponse(const HTTPResponseData &response_data, HTTPResponse response) override;
 
@@ -429,7 +429,7 @@ class HTTPServerImpl : public HTTPServer {
     ThreadData m_td;
     std::thread m_thread;
 
-    void ThreadMain(int port);
+    void ThreadMain(int port, bool listen_on_all_interfaces);
     void CloseConnection(Connection *conn);
     void ResetRequest(Connection *conn);
     void StartReading(Connection *conn);
@@ -485,7 +485,7 @@ HTTPServerImpl::~HTTPServerImpl() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool HTTPServerImpl::Start(int port) {
+bool HTTPServerImpl::Start(int port, bool listen_on_all_interfaces, Messages *messages) {
     {
         std::lock_guard<Mutex> sd_lock(m_sd.mutex);
 
@@ -494,9 +494,15 @@ bool HTTPServerImpl::Start(int port) {
         }
     }
 
-    m_thread = std::thread([this, port]() {
-        this->ThreadMain(port);
+    m_thread = std::thread([this, port, listen_on_all_interfaces]() {
+        this->ThreadMain(port, listen_on_all_interfaces);
     });
+
+    messages->i.f("HTTP server listening on port %d (0x%x)", port, port);
+    if (listen_on_all_interfaces) {
+        messages->i.f(" (all interfaces)");
+    }
+    messages->i.f("\n");
 
     return true;
 }
@@ -545,7 +551,7 @@ void HTTPServerImpl::SendResponse(const HTTPResponseData &response_data, HTTPRes
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void HTTPServerImpl::ThreadMain(int port) {
+void HTTPServerImpl::ThreadMain(int port, bool listen_on_all_interfaces) {
     int rc;
 
     SetCurrentThreadNamef("HTTP Server");
@@ -570,7 +576,8 @@ void HTTPServerImpl::ThreadMain(int port) {
 
     {
         struct sockaddr_in addr;
-        uv_ip4_addr("127.0.0.1", port, &addr);
+
+        uv_ip4_addr(listen_on_all_interfaces ? "0.0.0.0" : "127.0.0.1", port, &addr);
         rc = uv_tcp_bind(&m_td.listen_tcp, (struct sockaddr *)&addr, 0);
         if (rc != 0) {
             PrintLibUVError(rc, "uv_tcp_bind failed");

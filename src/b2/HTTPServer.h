@@ -13,7 +13,7 @@
 #include <map>
 #include <vector>
 
-class MessageList;
+class Messages;
 class HTTPServer;
 
 // stupid X11.h crap.
@@ -144,7 +144,7 @@ class HTTPServer {
     HTTPServer(HTTPServer &&) = delete;
     HTTPServer &operator=(HTTPServer &&) = delete;
 
-    virtual bool Start(int port) = 0;
+    virtual bool Start(int port, bool listen_on_all_interfaces, Messages *messages) = 0;
 
     virtual void SetHandler(HTTPHandler *handler) = 0;
 
