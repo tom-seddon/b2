@@ -483,7 +483,7 @@ static std::string GetLogList() {
 
     for (auto &&it : GetLogListsByTag()) {
         if (!list.empty()) {
-            list += ", ";
+            list += " ";
         }
 
         list += it.first;
@@ -545,8 +545,8 @@ static bool DoCommandLineOptions(
     if (!GetLogListsByTag().empty()) {
         std::string list = GetLogList();
 
-        p.AddOption('e', "enable-log").AddArgToList(&options->enable_logs).Meta("LOG").Help("enable additional log LOG (one of: " + list + ")");
-        p.AddOption('d', "disable-log").AddArgToList(&options->disable_logs).Meta("LOG").Help("disable additional log LOG (one of: " + list + ")");
+        p.AddOption('e', "enable-log").AddArgToList(&options->enable_logs).Meta("LOG").Help("enable additional log LOG. One of: " + list);
+        p.AddOption('d', "disable-log").AddArgToList(&options->disable_logs).Meta("LOG").Help("disable additional log LOG. One of: " + list);
     }
 
     p.AddOption('v', "verbose").SetIfPresent(&options->verbose).Help("be extra verbose");
@@ -561,7 +561,7 @@ static bool DoCommandLineOptions(
     p.AddOption("timer").SetIfPresent(&options->timer).Help("use timer for timing");
 
 #if RMT_ENABLED
-    p.AddOption("remotery").SetIfPresent(&options->remotery).Help("activate Remotery (see https://github.com/Celtoys/Remotery");
+    p.AddOption("remotery").SetIfPresent(&options->remotery).Help("activate Remotery. See: https://github.com/Celtoys/Remotery");
     p.AddOption("remotery-thread-sampler").SetIfPresent(&options->remotery_thread_sampler).Help("activate Remotery thread sampler");
 #endif
 
