@@ -157,6 +157,8 @@ void MessageList::SetPrintToStdio(bool print_to_stdio) {
 
         this->LockedClearMessages();
     }
+
+    m_print_to_stdio = print_to_stdio;
 }
 
 //////////////////////////////////////////////////////////////////////////
