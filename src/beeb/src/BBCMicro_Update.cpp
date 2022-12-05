@@ -95,11 +95,17 @@ uint32_t BBCMicro::Update(VideoDataUnit *video_unit, SoundDataUnit *sound_unit) 
         if (m_state.parasite_cpu.read) {
             if ((m_state.parasite_cpu.abus.w & 0xfff0) == 0xfef0) {
                 m_state.parasite_cpu.dbus = (*m_parasite_rmmio_fns[m_state.parasite_cpu.abus.w & 7])(&m_state.parasite_tube, m_state.parasite_cpu.abus);
+
+                // This bit is a bit careless about checking for the `Trace`
+                // flag, but that's only an efficiency issue, not important for
+                // parasite special mode.
                 if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_ParasiteSpecial) != 0) {
                     if (m_state.parasite_boot_mode) {
+#if BBCMICRO_TRACE
                         if (m_trace) {
                             m_trace->AllocParasiteBootModeEvent(false);
                         }
+#endif
                         m_state.parasite_boot_mode = false;
                         this->UpdateCPUDataBusFn();
                     }
@@ -144,9 +150,11 @@ uint32_t BBCMicro::Update(VideoDataUnit *video_unit, SoundDataUnit *sound_unit) 
                 (*m_parasite_wmmio_fns[m_state.parasite_cpu.abus.w & 7])(&m_state.parasite_tube, m_state.parasite_cpu.abus, m_state.parasite_cpu.dbus);
                 if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_ParasiteSpecial) != 0) {
                     if (m_state.parasite_boot_mode) {
+#if BBCMICRO_TRACE
                         if (m_trace) {
                             m_trace->AllocParasiteBootModeEvent(false);
                         }
+#endif
                         m_state.parasite_boot_mode = false;
                     }
 

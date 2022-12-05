@@ -90,6 +90,10 @@ static inline void SetFIFOEvent(TubeFIFOEvent *ev, const Tube *t, uint8_t value,
     }                                                                                                                           \
     END_MACRO
 
+#else
+
+#define TRACE_FIFO(...) ((void)0)
+
 #endif
 
 //////////////////////////////////////////////////////////////////////////
