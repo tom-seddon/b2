@@ -448,9 +448,7 @@ struct Options {
     bool boot = false;
     bool help = false;
     std::vector<std::string> enable_logs, disable_logs;
-#if HTTP_SERVER
     bool http_listen_on_all_interfaces = false;
-#endif
     bool reset_windows = false;
     bool vsync = false;
     bool timer = false;
@@ -539,9 +537,7 @@ static bool DoCommandLineOptions(
 
     p.AddOption(0, "reset-windows").SetIfPresent(&options->reset_windows).Help("reset window position and dock data");
 
-#if HTTP_SERVER
     p.AddOption("http-listen-on-all-interfaces").SetIfPresent(&options->http_listen_on_all_interfaces).Help("at own risk, listen for HTTP connections on all network interfaces, not just localhost");
-#endif
 
     p.AddOption("vsync").SetIfPresent(&options->vsync).Help("use vsync for timing");
     p.AddOption("timer").SetIfPresent(&options->timer).Help("use timer for timing");
@@ -893,6 +889,8 @@ static bool BootDiskInExistingProcess(const std::string &path, Messages *message
 static bool main2(int argc, char *argv[], const std::shared_ptr<MessageList> &init_message_list) {
     Messages init_messages(init_message_list);
 
+    init_messages.i.f("%s\n", PRODUCT_NAME);
+
     CheckAssetPaths();
 
     // https://curl.haxx.se/libcurl/c/curl_global_init.html
@@ -966,34 +964,29 @@ static bool main2(int argc, char *argv[], const std::shared_ptr<MessageList> &in
     }
 #endif
 
-    // Don't listen on all interfaces for the default server.
-    std::unique_ptr<HTTPServer> default_http_server = CreateHTTPServer();
-    if (!default_http_server->Start(0xbbcd, false, &init_messages)) {
-        default_http_server.reset();
-        init_messages.w.f("Failed to start default HTTP server.\n");
+    int http_port = 0xbbcb;
+    std::unique_ptr<HTTPServer> http_server = CreateHTTPServer();
+    if (!http_server->Start(http_port, options.http_listen_on_all_interfaces, &init_messages)) {
+        http_server.reset();
+        init_messages.w.f("Failed to start HTTP server.\n");
         // but carry on... it's not fatal.
     }
 
-    std::unique_ptr<HTTPHandler> default_http_handler;
-    if (!!default_http_server) {
-        default_http_handler = CreateHTTPMethodsHandler();
-        default_http_server->SetHandler(default_http_handler.get());
-    }
+    std::unique_ptr<HTTPHandler> http_handler;
+    if (!!http_server) {
+        http_handler = CreateHTTPMethodsHandler();
+        http_server->SetHandler(http_handler.get());
 
-#if BBCMICRO_DEBUGGER
-    std::unique_ptr<HTTPServer> debugger_http_server = CreateHTTPServer();
-    if (!debugger_http_server->Start(0xbbcb, options.http_listen_on_all_interfaces, &init_messages)) {
-        debugger_http_server.reset();
-        init_messages.w.f("Failed to start debugger HTTP server.\n");
-        // but carry on... it's not fatal.
+        if (options.http_listen_on_all_interfaces) {
+            init_messages.e.f("+----------------------------------------------------------+\n"
+                              "|                                                          |\n"
+                              "| HTTP server is listening on all interfaces               |\n"
+                              "|                                                          |\n"
+                              "| b2 does not promise to be resistant to deliberate attack |\n"
+                              "|                                                          |\n"
+                              "+----------------------------------------------------------+\n");
+        }
     }
-
-    std::unique_ptr<HTTPHandler> debugger_http_handler;
-    if (!!debugger_http_server) {
-        debugger_http_handler = CreateHTTPMethodsHandler();
-        debugger_http_server->SetHandler(debugger_http_handler.get());
-    }
-#endif
 
 #if HAVE_FFMPEG
     if (!InitFFmpeg(&init_messages)) {
@@ -1316,13 +1309,8 @@ static bool main2(int argc, char *argv[], const std::shared_ptr<MessageList> &in
         BeebWindows::Shutdown();
         //Timeline::Shutdown();
 
-#if BBCMICRO_DEBUGGER
-        debugger_http_server = nullptr;
-        debugger_http_handler = nullptr;
-#endif
-
-        default_http_server = nullptr;
-        default_http_handler = nullptr;
+        http_server = nullptr;
+        http_handler = nullptr;
 
         vblank_monitor = nullptr;
         vblank_handler = nullptr;

@@ -4,8 +4,6 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-#if HTTP_SERVER
-
 #include "b2.h"
 #include <utility>
 #include <regex>
@@ -56,6 +54,7 @@ static std::vector<std::string> GetPathParts(const std::string &path) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#if BBCMICRO_DEBUGGER
 class BeebThreadPeekMessage : public BeebThread::CustomMessage {
   public:
     BeebThreadPeekMessage(uint16_t addr,
@@ -92,6 +91,7 @@ class BeebThreadPeekMessage : public BeebThread::CustomMessage {
     HTTPServer *m_server = nullptr;
     HTTPResponseData m_response_data;
 };
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -126,12 +126,14 @@ class HTTPMethodsHandler : public HTTPHandler {
   protected:
   private:
     const std::map<std::string, void (HTTPMethodsHandler::*)(HTTPServer *, HTTPRequest &&, const std::vector<std::string> &, size_t)> m_request_handlers = {
+#if BBCMICRO_DEBUGGER
         {"reset", &HTTPMethodsHandler::HandleResetRequest},
         {"paste", &HTTPMethodsHandler::HandlePasteRequest},
         {"poke", &HTTPMethodsHandler::HandlePokeRequest},
         {"peek", &HTTPMethodsHandler::HandlePeekRequest},
         {"mount", &HTTPMethodsHandler::HandleMountRequest},
         {"run", &HTTPMethodsHandler::HandleRunRequest},
+#endif
     };
 
     // Parse path parts.
@@ -264,6 +266,7 @@ class HTTPMethodsHandler : public HTTPHandler {
         return true;
     }
 
+#if BBCMICRO_DEBUGGER
     void HandleResetRequest(HTTPServer *server, HTTPRequest &&request, const std::vector<std::string> &path_parts, size_t command_index) {
         BeebWindow *beeb_window;
         std::string config_name;
@@ -296,7 +299,9 @@ class HTTPMethodsHandler : public HTTPHandler {
 
         this->SendMessage(beeb_window, server, request, std::move(reset_message));
     }
+#endif
 
+#if BBCMICRO_DEBUGGER
     void HandlePasteRequest(HTTPServer *server, HTTPRequest &&request, const std::vector<std::string> &path_parts, size_t command_index) {
         BeebWindow *beeb_window;
         if (!this->ParseArgsOrSendResponse(server, request, path_parts, command_index,
@@ -327,7 +332,9 @@ class HTTPMethodsHandler : public HTTPHandler {
 
         this->SendMessage(beeb_window, server, request, std::make_shared<BeebThread::StartPasteMessage>(std::move(ascii)));
     }
+#endif
 
+#if BBCMICRO_DEBUGGER
     void HandlePokeRequest(HTTPServer *server, HTTPRequest &&request, const std::vector<std::string> &path_parts, size_t command_index) {
         BeebWindow *beeb_window;
         uint16_t addr;
@@ -340,7 +347,9 @@ class HTTPMethodsHandler : public HTTPHandler {
 
         this->SendMessage(beeb_window, server, request, std::make_shared<BeebThread::DebugSetBytesMessage>(addr, 0, std::move(request.body)));
     }
+#endif
 
+#if BBCMICRO_DEBUGGER
     void HandlePeekRequest(HTTPServer *server, HTTPRequest &&request, const std::vector<std::string> &path_parts, size_t command_index) {
         BeebWindow *beeb_window;
         uint16_t begin;
@@ -374,7 +383,9 @@ class HTTPMethodsHandler : public HTTPHandler {
                                                                                    server,
                                                                                    std::move(request)));
     }
+#endif
 
+#if BBCMICRO_DEBUGGER
     void HandleMountRequest(HTTPServer *server, HTTPRequest &&request, const std::vector<std::string> &path_parts, size_t command_index) {
         BeebWindow *beeb_window;
         std::string name;
@@ -399,7 +410,9 @@ class HTTPMethodsHandler : public HTTPHandler {
 
         this->SendMessage(beeb_window, server, request, std::make_shared<BeebThread::LoadDiscMessage>((int)drive, std::move(disc_image), true));
     }
+#endif
 
+#if BBCMICRO_DEBUGGER
     void HandleRunRequest(HTTPServer *server, HTTPRequest &&request, const std::vector<std::string> &path_parts, size_t command_index) {
         BeebWindow *beeb_window;
         std::string name;
@@ -423,6 +436,7 @@ class HTTPMethodsHandler : public HTTPHandler {
         this->SendMessage(beeb_window, server, request, std::move(message));
         return;
     }
+#endif
 
     std::shared_ptr<DiscImage> LoadDiscImageFromRequestOrSendResponse(HTTPServer *server, const HTTPRequest &request, const std::string &name) {
         auto message_list = std::make_shared<MessageList>();
@@ -529,5 +543,3 @@ std::unique_ptr<HTTPHandler> CreateHTTPMethodsHandler() {
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
-
-#endif

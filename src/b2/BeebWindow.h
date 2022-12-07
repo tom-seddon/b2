@@ -389,14 +389,12 @@ class BeebWindow {
 
     SDL_Point m_mouse_pos = {-1, -1};
 
-#if HTTP_SERVER
-    struct HTTPPoke {
-        uint32_t addr = 0;
-        std::vector<uint8_t> data;
-    };
+    //struct HTTPPoke {
+    //    uint32_t addr = 0;
+    //    std::vector<uint8_t> data;
+    //};
 
-    std::vector<HTTPPoke> m_http_pokes;
-#endif
+    //std::vector<HTTPPoke> m_http_pokes;
 
     struct UpdateTVTextureThreadState {
         Mutex mutex;

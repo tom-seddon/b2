@@ -1,8 +1,6 @@
 #include <shared/system.h>
 #include "HTTPServer.h"
 
-#if HTTP_SERVER
-
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
@@ -1205,4 +1203,31 @@ std::unique_ptr<HTTPServer> CreateHTTPServer() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-#endif
+//bool SendHTTPRequest(const HTTPRequest &request, HTTPResponse *response, Messages *messages) {
+//    CURL*curl=curl_easy_init();
+//}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+//static bool SendHTTPRequest(const std::string &url,
+//                            const std::map<std::string, std::string> &headers,
+//                            const std::vector<char> *payload,
+//                            Messages *messages) {
+//    CURL *curl = curl_easy_init();
+//    if (!curl) {
+//        messages->e.f("libcurl initialization failed.\n");
+//        return false;
+//    }
+//
+//    curl_easy_setopt(curl, CURLOPT_DEBUGFUNCTION, &CurlDebugFunction);
+//    curl_easy_setopt(curl, CURLOPT_DEBUGDATA, &messages->i);
+//
+//    char curl_error_buffer[CURL_ERROR_SIZE];
+//    curl_easy_setopt(curl, CURLOPT_ERRORBUFFER, curl_error_buffer);
+//
+//    curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
+//
+//    curl_easy_setopt(curl, CURLOPT_POST, 1L);
+//    curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "POST");
+//}
