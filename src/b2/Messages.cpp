@@ -245,7 +245,7 @@ void MessageList::LockedForEachMessage(size_t n, std::function<void(Message *)> 
 
     size_t index = m_head + (m_messages.size() - n);
 
-    for (size_t j = 0; j < m_messages.size(); ++j) {
+    for (size_t j = 0; j < n; ++j) {
         fun(&m_messages[index % m_messages.size()]);
 
         ++index;
