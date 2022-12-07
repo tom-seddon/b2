@@ -42,6 +42,7 @@
 #if SYSTEM_OSX
 #include <IOKit/hid/IOHIDLib.h>
 #endif
+#include "BeebLinkHTTPHandler.h"
 
 #include <shared/enum_decl.h>
 #include "b2.inl"
@@ -444,7 +445,7 @@ struct Options {
     bool direct_disc[NUM_DRIVES] = {};
     int audio_hz = DEFAULT_AUDIO_HZ;
     int audio_buffer_size = DEFAULT_AUDIO_BUFFER_SIZE;
-    bool boot = 0;
+    bool boot = false;
     bool help = false;
     std::vector<std::string> enable_logs, disable_logs;
 #if HTTP_SERVER
@@ -459,21 +460,6 @@ struct Options {
     bool remotery_thread_sampler = false;
 #endif
 };
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-static bool InitializeOptions(
-    Options *options,
-    Messages *init_messages) {
-    (void)init_messages;
-
-    *options = Options();
-
-    // ???
-
-    return true;
-}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -878,6 +864,32 @@ static void SetRmtThreadName(const char *name, void *context) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+static void PushLoadFileEvent(uint32_t sdl_window_id, std::unique_ptr<BeebWindowLoadFileArguments> arguments) {
+    SDL_Event event{};
+
+    event.type = g_first_event_type + SDLEventType_LoadFile;
+    event.user.windowID = sdl_window_id;
+    event.user.data1 = arguments.release();
+
+    SDL_PushEvent(&event);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+static bool BootDiskInExistingProcess(const std::string &path, Messages *messages) {
+
+    //bool ok = SendHTTPRequest("http://127.0.0.1/bootx?name=" + path,
+    //                          {},
+    //                          nullptr,
+    //                          messages);
+    //return ok;
+    return false;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 static bool main2(int argc, char *argv[], const std::shared_ptr<MessageList> &init_message_list) {
     Messages init_messages(init_message_list);
 
@@ -893,23 +905,37 @@ static bool main2(int argc, char *argv[], const std::shared_ptr<MessageList> &in
     }
 
     Options options;
-    if (!InitializeOptions(&options, &init_messages)) {
-        return false;
-    }
 
-    if (!DoCommandLineOptions(&options, argc, argv, &init_messages)) {
-        if (options.help) {
-#if SYSTEM_WINDOWS
-            if (!GetConsoleWindow()) {
-                // Probably a GUI app build, so pop up the message box.
-                FailureMessageBox("Command line help", init_message_list, SIZE_MAX);
-                return true;
-            }
-#endif
-
+    // Detect the File Explorer double-click case on Windows (also acts as a
+    // convenient command-line shortcut).
+    if (argc == 2 && PathIsFileOnDisk(argv[1])) {
+        if (BootDiskInExistingProcess(argv[1], &init_messages)) {
             return true;
         }
 
+        // No existing process handled the request, so just launch this one and
+        // boot the disk.
+        options.boot = true;
+        options.discs[0] = argv[1];
+    } else {
+        if (!DoCommandLineOptions(&options, argc, argv, &init_messages)) {
+            if (options.help) {
+#if SYSTEM_WINDOWS
+                if (!GetConsoleWindow()) {
+                    // Probably a GUI app build, so pop up the message box.
+                    FailureMessageBox("Command line help", init_message_list, SIZE_MAX);
+                    return true;
+                }
+#endif
+
+                return true;
+            }
+
+            return false;
+        }
+    }
+
+    if (!InitLogs(options, &init_messages)) {
         return false;
     }
 
@@ -928,12 +954,6 @@ static bool main2(int argc, char *argv[], const std::shared_ptr<MessageList> &in
     }
 #endif
 
-    if (!InitLogs(options, &init_messages)) {
-        return false;
-    }
-
-    init_messages.i.f("%s\n", PRODUCT_NAME);
-
     SDL_AudioDeviceID audio_device;
     SDL_AudioSpec audio_spec;
     if (!InitSystem(&audio_device, &audio_spec, options, &init_messages)) {
@@ -946,18 +966,32 @@ static bool main2(int argc, char *argv[], const std::shared_ptr<MessageList> &in
     }
 #endif
 
-#if HTTP_SERVER
-    std::unique_ptr<HTTPServer> http_server = CreateHTTPServer();
-    if (!http_server->Start(0xbbcb, options.http_listen_on_all_interfaces, &init_messages)) {
-        http_server.reset();
-        init_messages.w.f("Failed to start HTTP server.\n");
+    // Don't listen on all interfaces for the default server.
+    std::unique_ptr<HTTPServer> default_http_server = CreateHTTPServer();
+    if (!default_http_server->Start(0xbbcd, false, &init_messages)) {
+        default_http_server.reset();
+        init_messages.w.f("Failed to start default HTTP server.\n");
         // but carry on... it's not fatal.
     }
 
-    std::unique_ptr<HTTPHandler> http_handler;
-    if (!!http_server) {
-        http_handler = CreateHTTPMethodsHandler();
-        http_server->SetHandler(http_handler.get());
+    std::unique_ptr<HTTPHandler> default_http_handler;
+    if (!!default_http_server) {
+        default_http_handler = CreateHTTPMethodsHandler();
+        default_http_server->SetHandler(default_http_handler.get());
+    }
+
+#if BBCMICRO_DEBUGGER
+    std::unique_ptr<HTTPServer> debugger_http_server = CreateHTTPServer();
+    if (!debugger_http_server->Start(0xbbcb, options.http_listen_on_all_interfaces, &init_messages)) {
+        debugger_http_server.reset();
+        init_messages.w.f("Failed to start debugger HTTP server.\n");
+        // but carry on... it's not fatal.
+    }
+
+    std::unique_ptr<HTTPHandler> debugger_http_handler;
+    if (!!debugger_http_server) {
+        debugger_http_handler = CreateHTTPMethodsHandler();
+        debugger_http_server->SetHandler(debugger_http_handler.get());
     }
 #endif
 
@@ -1168,12 +1202,19 @@ static bool main2(int argc, char *argv[], const std::shared_ptr<MessageList> &in
                 break;
 
             case SDL_DROPFILE:
-                LOGF(OUTPUT, "SDL_DROPFILE: %s\n", event.drop.file);
-                if (BeebWindow *beeb_window = BeebWindows::FindBeebWindowBySDLWindowID(event.drop.windowID)) {
-                    beeb_window->LoadFile(event.drop.file);
+                {
+                    LOGF(OUTPUT, "SDL_DROPFILE: %s\n", event.drop.file);
+
+                    auto arguments = std::make_unique<BeebWindowLoadFileArguments>();
+
+                    arguments->type = BeebWindowLoadFileType_DragAndDrop;
+                    arguments->file_path = event.drop.file;
+
+                    PushLoadFileEvent(event.drop.windowID, std::move(arguments));
+
+                    SDL_free(event.drop.file);
+                    event.drop.file = nullptr;
                 }
-                SDL_free(event.drop.file);
-                event.drop.file = nullptr;
                 break;
 
             case SDL_DROPCOMPLETE:
@@ -1236,6 +1277,21 @@ static bool main2(int argc, char *argv[], const std::shared_ptr<MessageList> &in
 
                         case SDLEventType_LoadFile:
                             {
+                                auto arguments = (BeebWindowLoadFileArguments *)event.user.data1;
+
+                                BeebWindow *beeb_window = nullptr;
+                                if (event.user.windowID != 0) {
+                                    beeb_window = BeebWindows::FindBeebWindowBySDLWindowID(event.user.windowID);
+                                }
+
+                                if (!beeb_window) {
+                                    beeb_window = BeebWindows::GetWindowByIndex(0);
+                                }
+
+                                beeb_window->LoadFile(*arguments);
+
+                                delete arguments;
+                                arguments = nullptr;
                             }
                             break;
 
@@ -1260,10 +1316,13 @@ static bool main2(int argc, char *argv[], const std::shared_ptr<MessageList> &in
         BeebWindows::Shutdown();
         //Timeline::Shutdown();
 
-#if HTTP_SERVER
-        http_server = nullptr;
-        http_handler = nullptr;
+#if BBCMICRO_DEBUGGER
+        debugger_http_server = nullptr;
+        debugger_http_handler = nullptr;
 #endif
+
+        default_http_server = nullptr;
+        default_http_handler = nullptr;
 
         vblank_monitor = nullptr;
         vblank_handler = nullptr;

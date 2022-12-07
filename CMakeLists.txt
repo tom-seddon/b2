@@ -170,7 +170,7 @@ else()
   # was found by FindSDL2. It doesn't look like the SDL2 cmake build
   # process is designed for this, so this is a bit of a hack.
 
-# can't remember what this is for...
+  # can't remember what this is for...
   option(LIBC "" ON)
 
   set(SDL_SHARED_ENABLED_BY_DEFAULT OFF)

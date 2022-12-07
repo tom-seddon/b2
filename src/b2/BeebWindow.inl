@@ -96,3 +96,15 @@ EEND()
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
+
+#define ENAME BeebWindowLoadFileType
+EBEGIN()
+EPN(Unknown)
+
+// using the command line, or double click from Explorer/Finder
+EPN(UseExistingProcess)
+
+// file drag-and-drop onto window
+EPN(DragAndDrop)
+EEND()
+#undef ENAME

@@ -173,6 +173,16 @@ struct BeebWindowInitArguments {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+struct BeebWindowLoadFileArguments {
+    BeebWindowLoadFileType type = BeebWindowLoadFileType_Unknown;
+
+    // Full path of file to load.
+    std::string file_path;
+};
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 class BeebWindow {
   public:
     struct VBlankRecord {
@@ -256,7 +266,7 @@ class BeebWindow {
 #endif
 
     // Handle double click or drag'n'drop.
-    void LoadFile(std::string path);
+    void LoadFile(const BeebWindowLoadFileArguments &arguments);
 
   protected:
   private:
