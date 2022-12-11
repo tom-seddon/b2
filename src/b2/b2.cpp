@@ -459,6 +459,8 @@ struct Options {
     bool remotery = false;
     bool remotery_thread_sampler = false;
 #endif
+    bool launch = false;
+    std::string launch_path;
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -512,6 +514,16 @@ static bool DoCommandLineOptions(
     Options *options,
     int argc, char *argv[],
     Messages *init_messages) {
+
+    // Detect the File Explorer double-click case on Windows (also acts as a
+    // convenient command-line shortcut).
+    if (argc == 2 && PathIsFileOnDisk(argv[1])) {
+        options->launch = true;
+        options->launch_path = argv[1];
+
+        return true;
+    }
+
     CommandLineParser p(PRODUCT_NAME);
 
     p.SetLogs(&init_messages->i, &init_messages->e);
@@ -919,33 +931,30 @@ static bool main2(int argc, char *argv[], const std::shared_ptr<MessageList> &in
 
     Options options;
 
-    // Detect the File Explorer double-click case on Windows (also acts as a
-    // convenient command-line shortcut).
-    if (argc == 2 && PathIsFileOnDisk(argv[1])) {
-        if (BootDiskInExistingProcess(argv[1], &init_messages)) {
+    if (!DoCommandLineOptions(&options, argc, argv, &init_messages)) {
+        if (options.help) {
+#if SYSTEM_WINDOWS
+            if (!GetConsoleWindow()) {
+                // Probably a GUI app build, so pop up the message box.
+                FailureMessageBox("Command line help", init_message_list, SIZE_MAX);
+                return true;
+            }
+#endif
+
             return true;
         }
 
-        // No existing process handled the request, so just launch this one and
-        // boot the disk.
-        options.boot = true;
-        options.discs[0] = argv[1];
-    } else {
-        if (!DoCommandLineOptions(&options, argc, argv, &init_messages)) {
-            if (options.help) {
-#if SYSTEM_WINDOWS
-                if (!GetConsoleWindow()) {
-                    // Probably a GUI app build, so pop up the message box.
-                    FailureMessageBox("Command line help", init_message_list, SIZE_MAX);
-                    return true;
-                }
-#endif
+        return false;
+    }
 
-                return true;
-            }
-
-            return false;
+    if (options.launch) {
+        if (BootDiskInExistingProcess(options.launch_path, &init_messages)) {
+            return true;
         }
+
+        // Fake a -0 PATH -boot.
+        options.boot = true;
+        options.discs[0] = options.launch_path;
     }
 
     if (!InitLogs(options, &init_messages)) {
