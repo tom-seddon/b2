@@ -55,14 +55,14 @@ static std::string strprintfv(const char *fmt, va_list v) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static void PRINTF_LIKE(2, 3) PrintLibUVError(int rc, const char *fmt, ...) {
+static void PRINTF_LIKE(2, 3) PrintLibUVError(Log *log, int rc, const char *fmt, ...) {
     va_list v;
 
     va_start(v, fmt);
-    LOGV(HTTPSV, fmt, v);
+    log->v(fmt, v);
     va_end(v);
 
-    LOGF(HTTPSV, ": %s (%s)\n", uv_strerror(rc), uv_err_name(rc));
+    log->f(": %s (%s)\n", uv_strerror(rc), uv_err_name(rc));
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -149,8 +149,8 @@ static void ScalarDeleteCloseCallback(uv_handle_t *handle) {
     delete (T *)handle;
 }
 
-static void EmptyCloseCallback(uv_handle_t *handle) {
-    (void)handle;
+static void ResetDataCallback(uv_handle_t *handle) {
+    handle->data=nullptr;
 }
 
 static int GetHexCharValue(char c) {
@@ -444,7 +444,6 @@ class HTTPServerImpl : public HTTPServer {
     ~HTTPServerImpl();
 
     bool Start(int port, bool listen_on_all_interfaces, Messages *messages) override;
-    bool IsServerListening() const override;
     void SetHandler(std::shared_ptr<HTTPHandler> handler) override;
     void SendResponse(const HTTPResponseData &response_data, HTTPResponse response) override;
 
@@ -489,14 +488,13 @@ class HTTPServerImpl : public HTTPServer {
     struct SharedData {
         uv_loop_t loop{};
         std::shared_ptr<HTTPHandler> handler;
-        std::atomic<bool> is_server_listening;
     };
 
     SharedData m_sd;
     ThreadData m_td;
     std::thread m_thread;
 
-    void ThreadMain(int port, bool listen_on_all_interfaces);
+    void ThreadMain();
     void CloseConnection(Connection *conn);
     void ResetRequest(Connection *conn);
     void StartReading(Connection *conn);
@@ -540,8 +538,19 @@ HTTPServerImpl::~HTTPServerImpl() {
         m_thread.join();
     }
 
-    uv_loop_close(&m_sd.loop);
-    m_sd.loop.data = nullptr;
+    // This normally gets closed by the thread, but if an error prevented the
+    // thread from starting it could still need closing.
+    if (m_td.listen_tcp.data) {
+        uv_close((uv_handle_t *)&m_td.listen_tcp, &ResetDataCallback);
+    }
+
+    if (m_sd.loop.data) {
+        // Handle any remaining callbacks.
+        uv_run(&m_sd.loop, UV_RUN_DEFAULT);
+
+        uv_loop_close(&m_sd.loop);
+        m_sd.loop.data = nullptr;
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -552,15 +561,43 @@ bool HTTPServerImpl::Start(int port, bool listen_on_all_interfaces, Messages *me
 
     int rc = uv_loop_init(&m_sd.loop);
     if (rc != 0) {
-        messages->e.f("HTTP server uv_loop_init failed: %s (%s)\n",
-                      uv_strerror(rc), uv_err_name(rc));
+        PrintLibUVError(&messages->e, rc, "uv_loop_init failed");
         return false;
     }
 
     m_sd.loop.data = this;
 
-    m_thread = std::thread([this, port, listen_on_all_interfaces]() {
-        this->ThreadMain(port, listen_on_all_interfaces);
+    rc = uv_tcp_init(&m_sd.loop, &m_td.listen_tcp);
+    if (rc != 0) {
+        PrintLibUVError(&messages->e, rc, "uv_tcp_init failed");
+        return false;
+    }
+
+    m_td.listen_tcp.data = this;
+
+    // The uv_close calls will leave some pending operations in the uv_loop. But
+    // that's ok; the destructor does a uv_run, so they'll get handled.
+    {
+        struct sockaddr_in addr;
+
+        uv_ip4_addr(listen_on_all_interfaces ? "0.0.0.0" : "127.0.0.1", port, &addr);
+        rc = uv_tcp_bind(&m_td.listen_tcp, (struct sockaddr *)&addr, 0);
+        if (rc != 0) {
+            PrintLibUVError(&messages->e, rc, "uv_tcp_bind failed");
+            uv_close((uv_handle_t *)&m_td.listen_tcp, &ResetDataCallback);
+            return false;
+        }
+
+        rc = uv_listen((uv_stream_t *)&m_td.listen_tcp, 10, &HandleNewConnection);
+        if (rc != 0) {
+            PrintLibUVError(&messages->e, rc, "uv_listen failed");
+            uv_close((uv_handle_t *)&m_td.listen_tcp, &ResetDataCallback);
+            return false;
+        }
+    }
+
+    m_thread = std::thread([this]() {
+        this->ThreadMain();
     });
 
     messages->i.f("HTTP server listening on port %d (0x%x)", port, port);
@@ -570,13 +607,6 @@ bool HTTPServerImpl::Start(int port, bool listen_on_all_interfaces, Messages *me
     messages->i.f("\n");
 
     return true;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-bool HTTPServerImpl::IsServerListening() const {
-    return m_sd.is_server_listening;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -619,42 +649,14 @@ void HTTPServerImpl::SendResponse(const HTTPResponseData &response_data, HTTPRes
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void HTTPServerImpl::ThreadMain(int port, bool listen_on_all_interfaces) {
+void HTTPServerImpl::ThreadMain() {
     int rc;
 
     SetCurrentThreadNamef("HTTP Server");
 
-    rc = uv_tcp_init(&m_sd.loop, &m_td.listen_tcp);
-    if (rc != 0) {
-        PrintLibUVError(rc, "uv_tcp_init failed");
-        return;
-    }
-
-    m_td.listen_tcp.data = this;
-
-    {
-        struct sockaddr_in addr;
-
-        uv_ip4_addr(listen_on_all_interfaces ? "0.0.0.0" : "127.0.0.1", port, &addr);
-        rc = uv_tcp_bind(&m_td.listen_tcp, (struct sockaddr *)&addr, 0);
-        if (rc != 0) {
-            PrintLibUVError(rc, "uv_tcp_bind failed");
-            uv_close((uv_handle_t *)&m_td.listen_tcp, &EmptyCloseCallback);
-        } else {
-            rc = uv_listen((uv_stream_t *)&m_td.listen_tcp, 10, &HandleNewConnection);
-            if (rc != 0) {
-                PrintLibUVError(rc, "uv_listen failed");
-                uv_close((uv_handle_t *)&m_td.listen_tcp, &EmptyCloseCallback);
-            }
-
-            // Looks like it's valid to set this flag right now.
-            m_sd.is_server_listening = true;
-        }
-    }
-
     rc = uv_run(&m_sd.loop, UV_RUN_DEFAULT);
     if (rc != 0) {
-        PrintLibUVError(rc, "uv_run failed");
+        PrintLibUVError(&LOG(HTTPSV), rc, "uv_run failed");
     }
 }
 
@@ -689,7 +691,7 @@ void HTTPServerImpl::ResetRequest(Connection *conn) {
 void HTTPServerImpl::StartReading(Connection *conn) {
     int rc = uv_read_start((uv_stream_t *)&conn->tcp, &HandleReadAlloc, &HandleRead);
     if (rc != 0) {
-        PrintLibUVError(rc, "uv_read_start failed");
+        PrintLibUVError(&LOG(HTTPSV), rc, "uv_read_start failed");
         this->CloseConnection(conn);
         return;
     }
@@ -701,7 +703,7 @@ void HTTPServerImpl::StartReading(Connection *conn) {
 bool HTTPServerImpl::StopReading(Connection *conn) {
     int rc = uv_read_stop((uv_stream_t *)&conn->tcp);
     if (rc != 0) {
-        PrintLibUVError(rc, "uv_read_stop failed");
+        PrintLibUVError(&LOG(HTTPSV), rc, "uv_read_stop failed");
         conn->server->CloseConnection(conn);
         return false;
     }
@@ -771,7 +773,7 @@ void HTTPServerImpl::SendResponse(Connection *conn, bool dump, HTTPResponse &&re
 
     rc = uv_write(&conn->write_response_req, (uv_stream_t *)&conn->tcp, bufs.data(), (unsigned)bufs.size(), &HandleResponseWritten);
     if (rc != 0) {
-        PrintLibUVError(rc, "uv_write failed");
+        PrintLibUVError(&LOG(HTTPSV), rc, "uv_write failed");
         this->CloseConnection(conn);
         return;
     }
@@ -812,7 +814,7 @@ void HTTPServerImpl::StopAsyncCallback(uv_async_t *stop_async) {
         server->CloseConnection(server->m_td.connection_by_id.begin()->second);
     }
 
-    uv_close((uv_handle_t *)&server->m_td.listen_tcp, &EmptyCloseCallback);
+    uv_close((uv_handle_t *)&server->m_td.listen_tcp, &ResetDataCallback);
     uv_close((uv_handle_t *)stop_async, &ScalarDeleteCloseCallback<uv_async_t>);
 }
 
@@ -1084,7 +1086,7 @@ void HTTPServerImpl::HandleNewConnection(uv_stream_t *server_tcp, int status) {
     LOGF(HTTPSV, "%s: start: (ticks=%" PRIu64 ")\n", __func__, GetCurrentTickCount());
 
     if (status != 0) {
-        PrintLibUVError(status, "connection callback");
+        PrintLibUVError(&LOG(HTTPSV), status, "connection callback");
         return;
     }
 
@@ -1104,14 +1106,14 @@ void HTTPServerImpl::HandleNewConnection(uv_stream_t *server_tcp, int status) {
 
     rc = uv_tcp_init(server_tcp->loop, &conn->tcp);
     if (rc != 0) {
-        PrintLibUVError(rc, "uv_tcp_init failed");
+        PrintLibUVError(&LOG(HTTPSV), rc, "uv_tcp_init failed");
         delete conn;
         return;
     }
 
     rc = uv_accept(server_tcp, (uv_stream_t *)&conn->tcp);
     if (rc != 0) {
-        PrintLibUVError(rc, "uv_accept failed");
+        PrintLibUVError(&LOG(HTTPSV), rc, "uv_accept failed");
         delete conn;
         return;
     }
@@ -1155,7 +1157,7 @@ void HTTPServerImpl::HandleRead(uv_stream_t *stream, ssize_t num_read, const uv_
     if (num_read == UV_EOF) {
         conn->server->CloseConnection(conn);
     } else if (num_read < 0) {
-        PrintLibUVError((int)num_read, "connection read callback");
+        PrintLibUVError(&LOG(HTTPSV), (int)num_read, "connection read callback");
         conn->server->CloseConnection(conn);
     } else if (num_read == 0) {
         // ignore...
@@ -1210,7 +1212,7 @@ void HTTPServerImpl::HandleResponseWritten(uv_write_t *req, int status) {
     req->data = nullptr;
 
     if (status != 0) {
-        PrintLibUVError(status, "%s status", __func__);
+        PrintLibUVError(&LOG(HTTPSV), status, "%s status", __func__);
         conn->server->CloseConnection(conn);
         return;
     }

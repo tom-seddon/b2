@@ -33,17 +33,6 @@ class HTTPTestHandler : public HTTPHandler {
 
 static const int PORT = 0xbbcd;
 
-static void WaitForServerListening(HTTPServer *server) {
-    for (int i = 0; i < 5000; ++i) {
-        if (server->IsServerListening()) {
-            return;
-        }
-        SleepMS(1);
-    }
-
-    TEST_FAIL("server took too long to start listening");
-}
-
 int main() {
 
     auto message_list = std::make_shared<MessageList>();
@@ -58,8 +47,6 @@ int main() {
 
         auto handler = std::make_shared<HTTPTestHandler>();
         server->SetHandler(handler);
-
-        WaitForServerListening(server.get());
 
         {
             HTTPRequest request("http://127.0.0.1:" + std::to_string(PORT) + "/test_url");

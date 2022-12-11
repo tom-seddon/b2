@@ -153,9 +153,6 @@ class HTTPServer {
 
     virtual bool Start(int port, bool listen_on_all_interfaces, Messages *messages) = 0;
 
-    // Fairly useless flag, suitable only for polling, used by the tests.
-    virtual bool IsServerListening() const = 0;
-
     virtual void SetHandler(std::shared_ptr<HTTPHandler> handler) = 0;
 
     void SendResponse(const HTTPRequest &request, HTTPResponse response);
