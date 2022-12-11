@@ -4,7 +4,7 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-#include "conf.h"
+//#include "conf.h"
 
 #include <memory>
 #include <string>
@@ -47,24 +47,32 @@ struct HTTPResponseData {
     bool dump = false;
 };
 
+// Client ignores response_data.
+//
+// Client ignores url_path, which must be empty. url is the URL to use.
+//
+// Client appends query parameters from query array to URL to use. First, if the
+// URL contains a '?', a '&' is appended; otherwise, a '?' is appended. Then the
+// query parameters, separated by '&', percent-encoded. Caller must ensure the
+// result of this will be valid.
 class HTTPRequest {
   public:
     HTTPResponseData response_data;
     std::map<std::string, std::string> headers;
     std::string url;
     std::string url_path;
-    std::string url_fragment;
     std::vector<HTTPQueryParameter> query;
     std::string content_type, content_type_charset;
     std::vector<uint8_t> body;
-    std::string method;
+    std::string method; // if empty, method is GET.
 
     HTTPRequest() = default;
+    explicit HTTPRequest(std::string url);
 
+    void SetHeaderValue(std::string key, std::string value);
     const std::string *GetHeaderValue(const std::string &key) const;
 
-    bool IsPOST() const;
-    bool IsGET() const;
+    void AddQueryParameter(std::string key,std::string value);
 
   protected:
   private:
@@ -73,6 +81,7 @@ class HTTPRequest {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+// Client only fills in content_vec.
 class HTTPResponse {
   public:
     std::string status;
@@ -116,7 +125,7 @@ class HTTPResponse {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-class HTTPHandler {
+class HTTPHandler : public std::enable_shared_from_this<HTTPHandler> {
   public:
     virtual ~HTTPHandler() = 0;
 
@@ -144,7 +153,10 @@ class HTTPServer {
 
     virtual bool Start(int port, bool listen_on_all_interfaces, Messages *messages) = 0;
 
-    virtual void SetHandler(HTTPHandler *handler) = 0;
+    // Fairly useless flag, suitable only for polling, used by the tests.
+    virtual bool IsServerListening() const = 0;
+
+    virtual void SetHandler(std::shared_ptr<HTTPHandler> handler) = 0;
 
     void SendResponse(const HTTPRequest &request, HTTPResponse response);
     virtual void SendResponse(const HTTPResponseData &response_data, HTTPResponse response) = 0;
@@ -156,7 +168,33 @@ class HTTPServer {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+class HTTPClient {
+  public:
+    HTTPClient();
+    virtual ~HTTPClient();
+
+    HTTPClient(const HTTPClient &) = delete;
+    HTTPClient &operator=(const HTTPClient &) = delete;
+
+    HTTPClient(HTTPClient &&) = delete;
+    HTTPClient &operator=(HTTPClient &&) = delete;
+
+    virtual void SetMessages(Messages *messages) = 0;
+    virtual void SetVerbose(bool verbose) = 0;
+
+    virtual void AddDefaultHeader(const char *key, const char *value) = 0;
+
+    virtual int SendRequest(const HTTPRequest &request, HTTPResponse *response) = 0;
+
+  protected:
+  private:
+};
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 std::unique_ptr<HTTPServer> CreateHTTPServer();
+std::unique_ptr<HTTPClient> CreateHTTPClient();
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

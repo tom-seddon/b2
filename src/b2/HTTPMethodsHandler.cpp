@@ -134,6 +134,7 @@ class HTTPMethodsHandler : public HTTPHandler {
         {"mount", &HTTPMethodsHandler::HandleMountRequest},
         {"run", &HTTPMethodsHandler::HandleRunRequest},
 #endif
+        {"launch", &HTTPMethodsHandler::HandleLaunchRequest},
     };
 
     // Parse path parts.
@@ -438,6 +439,24 @@ class HTTPMethodsHandler : public HTTPHandler {
     }
 #endif
 
+    void HandleLaunchRequest(HTTPServer *server, HTTPRequest &&request, const std::vector<std::string> &path_parts, size_t command_index) {
+        std::string path;
+        if (!this->ParseArgsOrSendResponse(server, request, path_parts, command_index,
+                                           "std::string", "path", &path,
+                                           nullptr)) {
+            return;
+        }
+
+        BeebWindowLaunchArguments arguments;
+        arguments.file_path = path;
+        arguments.type = BeebWindowLaunchType_UseExistingProcess;
+
+        BeebWindow *beeb_window = BeebWindows::FindMRUBeebWindow();
+        beeb_window->Launch(arguments);
+
+        server->SendResponse(request,HTTPResponse::OK());
+    }
+
     std::shared_ptr<DiscImage> LoadDiscImageFromRequestOrSendResponse(HTTPServer *server, const HTTPRequest &request, const std::string &name) {
         auto message_list = std::make_shared<MessageList>();
         Messages messages(message_list);
@@ -537,8 +556,8 @@ class HTTPMethodsHandler : public HTTPHandler {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-std::unique_ptr<HTTPHandler> CreateHTTPMethodsHandler() {
-    return std::make_unique<HTTPMethodsHandler>();
+std::shared_ptr<HTTPHandler> CreateHTTPMethodsHandler() {
+    return std::make_shared<HTTPMethodsHandler>();
 }
 
 //////////////////////////////////////////////////////////////////////////

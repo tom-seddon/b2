@@ -2826,7 +2826,7 @@ const std::string &BeebWindow::GetConfigName() const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void BeebWindow::LoadFile(const BeebWindowLoadFileArguments &arguments) {
+void BeebWindow::Launch(const BeebWindowLaunchArguments &arguments) {
     std::shared_ptr<MemoryDiscImage> disc_image = MemoryDiscImage::LoadFromFile(arguments.file_path, &m_msg);
     if (!disc_image) {
         return;

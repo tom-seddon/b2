@@ -326,19 +326,7 @@ target_link_libraries(b2 PRIVATE ${SDL2_LIBRARY})
 ##########################################################################
 ##########################################################################
 
-if(HAVE_LIBCURL)
-  if(TARGET ${LIBCURL_TARGET})
-    target_link_libraries(b2 PRIVATE ${LIBCURL_TARGET})
-  else()
-    target_link_libraries(b2 PRIVATE ${CURL_LIBRARY})
-    target_include_directories(b2 PRIVATE ${CURL_INCLUDE_DIRS})
-  endif()
-endif()
-
-##########################################################################
-##########################################################################
-
-target_link_libraries(b2 PRIVATE ${LibUV_LIBRARIES} http-parser)
+target_link_libraries(b2 PRIVATE ${LIBCURL_TARGET} ${LibUV_LIBRARIES} http-parser)
 
 ##########################################################################
 ##########################################################################
@@ -432,3 +420,16 @@ add_test(
 
 ##########################################################################
 ##########################################################################
+
+# HTTP unit tests.
+
+add_executable(test_http
+  test_http.cpp
+  HTTPServer.cpp HTTPServer.h
+  Messages.cpp Messages.h
+  )
+add_sanitizers(test_http)
+target_link_libraries(test_http PRIVATE shared_lib ${LibUV_LIBRARIES} http-parser ${LIBCURL_TARGET})
+add_test(
+  NAME b2/test_http
+  COMMAND $<TARGET_FILE:test_http>)

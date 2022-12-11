@@ -134,6 +134,9 @@ namespace BeebWindows {
 
     BeebWindow *FindBeebWindowByName(const std::string &name);
 
+    // Used by the launch mechanism to get the most recently-used window.
+    BeebWindow *FindMRUBeebWindow();
+
     const std::vector<uint8_t> &GetLastWindowPlacementData();
     void SetLastWindowPlacementData(std::vector<uint8_t> placement_data);
 

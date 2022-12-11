@@ -82,6 +82,8 @@ static const int DEFAULT_AUDIO_HZ = 48000;
 
 static const int DEFAULT_AUDIO_BUFFER_SIZE = 1024;
 
+static const int HTTP_SERVER_PORT = 0xbbcb;
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
@@ -860,10 +862,10 @@ static void SetRmtThreadName(const char *name, void *context) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static void PushLoadFileEvent(uint32_t sdl_window_id, std::unique_ptr<BeebWindowLoadFileArguments> arguments) {
+static void PushLaunchEvent(uint32_t sdl_window_id, std::unique_ptr<BeebWindowLaunchArguments> arguments) {
     SDL_Event event{};
 
-    event.type = g_first_event_type + SDLEventType_LoadFile;
+    event.type = g_first_event_type + SDLEventType_Launch;
     event.user.windowID = sdl_window_id;
     event.user.data1 = arguments.release();
 
@@ -874,13 +876,26 @@ static void PushLoadFileEvent(uint32_t sdl_window_id, std::unique_ptr<BeebWindow
 //////////////////////////////////////////////////////////////////////////
 
 static bool BootDiskInExistingProcess(const std::string &path, Messages *messages) {
+    auto client_message_list = std::make_shared<MessageList>();
+    Messages client_messages(client_message_list);
 
-    //bool ok = SendHTTPRequest("http://127.0.0.1/bootx?name=" + path,
-    //                          {},
-    //                          nullptr,
-    //                          messages);
-    //return ok;
-    return false;
+    std::unique_ptr<HTTPClient> client = CreateHTTPClient();
+    client->SetMessages(messages);
+
+    HTTPRequest request;
+    request.url = strprintf("http://127.0.0.1:%d/launch", HTTP_SERVER_PORT);
+    request.method = "POST";
+    request.AddQueryParameter("path", path);
+
+    HTTPResponse response;
+    int status = client->SendRequest(request, &response);
+    if (status == 200) {
+        // handled.
+        return true;
+    } else {
+        // not handled.
+        return false;
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -964,18 +979,17 @@ static bool main2(int argc, char *argv[], const std::shared_ptr<MessageList> &in
     }
 #endif
 
-    int http_port = 0xbbcb;
     std::unique_ptr<HTTPServer> http_server = CreateHTTPServer();
-    if (!http_server->Start(http_port, options.http_listen_on_all_interfaces, &init_messages)) {
+    if (!http_server->Start(HTTP_SERVER_PORT, options.http_listen_on_all_interfaces, &init_messages)) {
         http_server.reset();
         init_messages.w.f("Failed to start HTTP server.\n");
         // but carry on... it's not fatal.
     }
 
-    std::unique_ptr<HTTPHandler> http_handler;
+    std::shared_ptr<HTTPHandler> http_handler;
     if (!!http_server) {
         http_handler = CreateHTTPMethodsHandler();
-        http_server->SetHandler(http_handler.get());
+        http_server->SetHandler(http_handler);
 
         if (options.http_listen_on_all_interfaces) {
             init_messages.e.f("+----------------------------------------------------------+\n"
@@ -1198,12 +1212,12 @@ static bool main2(int argc, char *argv[], const std::shared_ptr<MessageList> &in
                 {
                     LOGF(OUTPUT, "SDL_DROPFILE: %s\n", event.drop.file);
 
-                    auto arguments = std::make_unique<BeebWindowLoadFileArguments>();
+                    auto arguments = std::make_unique<BeebWindowLaunchArguments>();
 
-                    arguments->type = BeebWindowLoadFileType_DragAndDrop;
+                    arguments->type = BeebWindowLaunchType_DragAndDrop;
                     arguments->file_path = event.drop.file;
 
-                    PushLoadFileEvent(event.drop.windowID, std::move(arguments));
+                    PushLaunchEvent(event.drop.windowID, std::move(arguments));
 
                     SDL_free(event.drop.file);
                     event.drop.file = nullptr;
@@ -1268,9 +1282,9 @@ static bool main2(int argc, char *argv[], const std::shared_ptr<MessageList> &in
                             }
                             break;
 
-                        case SDLEventType_LoadFile:
+                        case SDLEventType_Launch:
                             {
-                                auto arguments = (BeebWindowLoadFileArguments *)event.user.data1;
+                                auto arguments = (BeebWindowLaunchArguments *)event.user.data1;
 
                                 BeebWindow *beeb_window = nullptr;
                                 if (event.user.windowID != 0) {
@@ -1278,10 +1292,10 @@ static bool main2(int argc, char *argv[], const std::shared_ptr<MessageList> &in
                                 }
 
                                 if (!beeb_window) {
-                                    beeb_window = BeebWindows::GetWindowByIndex(0);
+                                    beeb_window = BeebWindows::FindMRUBeebWindow();
                                 }
 
-                                beeb_window->LoadFile(*arguments);
+                                beeb_window->Launch(*arguments);
 
                                 delete arguments;
                                 arguments = nullptr;

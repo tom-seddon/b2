@@ -30,6 +30,7 @@ struct BeebWindowsState {
     // so no locking necessary.)
     Mutex windows_mutex;
     std::vector<BeebWindow *> windows;
+    std::vector<BeebWindow *> windows_mru;
 
     std::vector<std::unique_ptr<BeebKeymap>> beeb_keymaps;
     std::vector<std::unique_ptr<BeebConfig>> configs;
@@ -52,6 +53,14 @@ static BeebWindowsState *g_;
 
 BeebWindowSettings BeebWindows::defaults;
 std::string BeebWindows::default_config_name;
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+static void RemoveWindowFromList(BeebWindow *window, std::vector<BeebWindow *> *list) {
+    ASSERT(std::find(list->begin(), list->end(), window) != list->end());
+    list->erase(std::remove(list->begin(), list->end(), window), list->end());
+}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -138,13 +147,18 @@ bool BeebWindows::Init() {
 //////////////////////////////////////////////////////////////////////////
 
 void BeebWindows::Shutdown() {
+    std::vector<BeebWindow *> windows;
     {
         std::lock_guard<Mutex> lock(g_->windows_mutex);
 
-        for (BeebWindow *window : g_->windows) {
-            delete window;
-        }
+        std::swap(windows, g_->windows);
     }
+
+    for (BeebWindow *window : windows) {
+        delete window;
+    }
+
+    g_->windows_mru.clear();
 
     {
         std::lock_guard<Mutex> lock(g_->saved_states_mutex);
@@ -175,8 +189,11 @@ BeebWindow *BeebWindows::CreateBeebWindow(BeebWindowInitArguments init_arguments
         return nullptr;
     }
 
-    std::lock_guard<Mutex> lock(g_->windows_mutex);
-    g_->windows.push_back(window);
+    {
+        std::lock_guard<Mutex> lock(g_->windows_mutex);
+        g_->windows.push_back(window);
+    }
+    g_->windows_mru.push_back(window);
 
     //    // There probably needs to be a more general mechanism than this.
     //    Timeline::DidChange();
@@ -217,9 +234,13 @@ void BeebWindows::HandleSDLWindowEvent(const SDL_WindowEvent &event) {
         {
             window->SaveSettings();
 
-            std::lock_guard<Mutex> lock(g_->windows_mutex);
+            {
+                std::lock_guard<Mutex> lock(g_->windows_mutex);
 
-            g_->windows.erase(std::remove(g_->windows.begin(), g_->windows.end(), window), g_->windows.end());
+                RemoveWindowFromList(window, &g_->windows);
+            }
+
+            RemoveWindowFromList(window, &g_->windows_mru);
 
             delete window;
             window = nullptr;
@@ -228,6 +249,10 @@ void BeebWindows::HandleSDLWindowEvent(const SDL_WindowEvent &event) {
         }
         break;
 
+    case SDL_WINDOWEVENT_FOCUS_GAINED:
+        RemoveWindowFromList(window, &g_->windows_mru);
+        g_->windows_mru.push_back(window);
+        // fall through
     case SDL_WINDOWEVENT_SHOWN:
     case SDL_WINDOWEVENT_HIDDEN:
     case SDL_WINDOWEVENT_MOVED:
@@ -235,7 +260,6 @@ void BeebWindows::HandleSDLWindowEvent(const SDL_WindowEvent &event) {
     case SDL_WINDOWEVENT_SIZE_CHANGED:
     case SDL_WINDOWEVENT_MAXIMIZED:
     case SDL_WINDOWEVENT_RESTORED:
-    case SDL_WINDOWEVENT_FOCUS_GAINED:
         window->SavePosition();
         break;
     }
@@ -304,12 +328,15 @@ void BeebWindows::HandleVBlank(VBlankMonitor *vblank_monitor, void *display_data
         if (keep_window) {
             ++i;
         } else {
-            std::lock_guard<Mutex> lock(g_->windows_mutex);
+            {
+                std::lock_guard<Mutex> lock(g_->windows_mutex);
+                g_->windows.erase(g_->windows.begin() + (ptrdiff_t)i);
+            }
+
+            RemoveWindowFromList(window, &g_->windows_mru);
 
             delete window;
             window = nullptr;
-
-            g_->windows.erase(g_->windows.begin() + (ptrdiff_t)i);
         }
 
         rmt_EndCPUSample();
@@ -516,6 +543,13 @@ BeebWindow *BeebWindows::FindBeebWindowByName(const std::string &name) {
     }
 
     return nullptr;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+BeebWindow *BeebWindows::FindMRUBeebWindow() {
+    return g_->windows_mru.back();
 }
 
 //////////////////////////////////////////////////////////////////////////

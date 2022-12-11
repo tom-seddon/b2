@@ -101,18 +101,9 @@ check_sanitizer(ADDRESS ASan)
 ##########################################################################
 
 if(USE_SYSTEM_CURL)
-  find_package(CURL 7
+  find_package(CURL 7 REQUIRED
     COMPONENTS HTTP)
-  if(NOT CURL_FOUND)
-    set(HAVE_LIBCURL OFF)
-  else()
-    set(HAVE_LIBCURL ON)
-    set(LIBCURL_TARGET CURL::libcurl)
-  endif()
-  
-  if(NOT HAVE_LIBCURL)
-    message(WARNING "libcurl not found - no BeebLink support")
-  endif()
+  set(LIBCURL_TARGET CURL::libcurl)
 else()
   # (Even though Windows libcurl is part of submodules, the
   # configuration process sets some variables, and find_package (as used
@@ -146,7 +137,6 @@ else()
   option(CURL_ZLIB "" OFF)
 
   add_subdirectory(${CMAKE_SOURCE_DIR}/submodules/curl)
-  set(HAVE_LIBCURL ON)
   set(LIBCURL_TARGET libcurl)
 endif()
 

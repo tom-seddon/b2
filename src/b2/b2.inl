@@ -17,8 +17,8 @@ EPN(NewWindow)
 EPN(Function)
 
 // event windowID - the window ID of the target, or 0 if any will do
-// (BeebWindowLoadFileArguments *)data1 - delete
-EPN(LoadFile)
+// (BeebWindowLaunchArguments *)data1 - delete
+EPN(Launch)
 
 EPN(Count)
 

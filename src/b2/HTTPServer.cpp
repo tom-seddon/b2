@@ -7,21 +7,19 @@
 #include <uv.h>
 #include <http_parser.h>
 #include <shared/mutex.h>
-#include "misc.h"
+//#include "misc.h"
 #include <set>
 #include <shared/debug.h>
 #include <map>
 #include <string>
-#include "b2.h"
-#include "BeebWindow.h"
-#include "BeebWindows.h"
-#include "BeebThread.h"
+#include "Messages.h"
 #include <inttypes.h>
+#include <curl/curl.h>
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-LOG_TAGGED_DEFINE(HTTP, "http", "HTTP  ", &log_printer_stdout_and_debugger, false);
+LOG_TAGGED_DEFINE(HTTPSV, "http", "HTTPSV", &log_printer_stdout_and_debugger, false);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -42,14 +40,29 @@ const std::string CONTINUE_RESPONSE = "100 Continue\r\n";
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+static std::string strprintfv(const char *fmt, va_list v) {
+    char *str;
+    int n = vasprintf(&str, fmt, v);
+
+    std::string result(str, str + n);
+
+    free(str);
+    str = nullptr;
+
+    return result;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 static void PRINTF_LIKE(2, 3) PrintLibUVError(int rc, const char *fmt, ...) {
     va_list v;
 
     va_start(v, fmt);
-    LOGV(HTTP, fmt, v);
+    LOGV(HTTPSV, fmt, v);
     va_end(v);
 
-    LOGF(HTTP, ": %s (%s)\n", uv_strerror(rc), uv_err_name(rc));
+    LOGF(HTTPSV, ": %s (%s)\n", uv_strerror(rc), uv_err_name(rc));
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -76,8 +89,9 @@ static std::string GetEscaped(std::string str) {
     return result;
 }
 
-static HTTPResponse CreateErrorResponse(const HTTPRequest &request,
-                                        std::string status) {
+static HTTPResponse
+CreateErrorResponse(const HTTPRequest &request,
+                    std::string status) {
     std::string body;
 
     //HTTPResponse r;
@@ -189,12 +203,68 @@ static bool GetPercentDecoded(std::string *result, const std::string &str, size_
 static bool GetPercentDecodedURLPart(std::string *result, const http_parser_url &url, http_parser_url_fields field, const std::string &url_str, const char *part_name) {
     if (url.field_set & 1 << field) {
         if (!GetPercentDecoded(result, url_str, url.field_data[field].off, url.field_data[field].len)) {
-            LOGF(HTTP, "invalid percent-encoded %s in URL: %s\n", part_name, url_str.c_str());
+            LOGF(HTTPSV, "invalid percent-encoded %s in URL: %s\n", part_name, url_str.c_str());
             return false;
         }
     }
 
     return true;
+}
+
+static const char HEX_CHARS[] = "0123456789ABCDEF";
+
+static std::string GetPercentEncoded(const std::string &str) {
+    std::string encoded;
+
+    for (char c : str) {
+        // don't think about this too hard.
+        switch (c) {
+        default:
+            if (c >= 32 && c <= 126) {
+                encoded.push_back(c);
+            } else {
+            case ' ':
+            case '!':
+            case '#':
+            case '$':
+            case '%':
+            case '&':
+            case '\'':
+            case '(':
+            case ')':
+            case '*':
+            case '+':
+            case ',':
+            case '/':
+            case ':':
+            case ';':
+            case '=':
+            case '?':
+            case '@':
+            case '[':
+            case ']':
+                encoded.push_back('%');
+                encoded.push_back(HEX_CHARS[(uint8_t)c >> 4]);
+                encoded.push_back(HEX_CHARS[c & 0xf]);
+            }
+        }
+    }
+
+    return encoded;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+HTTPRequest::HTTPRequest(std::string url_)
+    : url(std::move(url_)) {
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void HTTPRequest::SetHeaderValue(std::string key, std::string value) {
+    this->headers.insert(std::make_pair<std::string, std::string>(std::move(key), std::move(value)));
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -212,15 +282,13 @@ const std::string *HTTPRequest::GetHeaderValue(const std::string &key) const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool HTTPRequest::IsPOST() const {
-    return this->method == "POST";
-}
+void HTTPRequest::AddQueryParameter(std::string key, std::string value) {
+    HTTPQueryParameter p;
 
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
+    p.key = std::move(key);
+    p.value = std::move(value);
 
-bool HTTPRequest::IsGET() const {
-    return this->method == "GET";
+    this->query.push_back(std::move(p));
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -376,7 +444,8 @@ class HTTPServerImpl : public HTTPServer {
     ~HTTPServerImpl();
 
     bool Start(int port, bool listen_on_all_interfaces, Messages *messages) override;
-    void SetHandler(HTTPHandler *handler) override;
+    bool IsServerListening() const override;
+    void SetHandler(std::shared_ptr<HTTPHandler> handler) override;
     void SendResponse(const HTTPResponseData &response_data, HTTPResponse response) override;
 
   protected:
@@ -418,9 +487,9 @@ class HTTPServerImpl : public HTTPServer {
     };
 
     struct SharedData {
-        Mutex mutex;
-        uv_loop_t *loop = nullptr;
-        HTTPHandler *handler = nullptr;
+        uv_loop_t loop{};
+        std::shared_ptr<HTTPHandler> handler;
+        std::atomic<bool> is_server_listening;
     };
 
     SharedData m_sd;
@@ -460,37 +529,35 @@ HTTPServerImpl::HTTPServerImpl() {
 //////////////////////////////////////////////////////////////////////////
 
 HTTPServerImpl::~HTTPServerImpl() {
-    {
-        std::lock_guard<Mutex> sd_lock(m_sd.mutex);
+    if (m_thread.joinable()) {
+        ASSERT(m_sd.loop.data);
 
-        if (m_sd.loop) {
-            auto stop_async = new uv_async_t{};
-            stop_async->data = this;
-            uv_async_init(m_sd.loop, stop_async, &StopAsyncCallback);
-            uv_async_send(stop_async);
-        }
+        auto stop_async = new uv_async_t{};
+        stop_async->data = this;
+        uv_async_init(&m_sd.loop, stop_async, &StopAsyncCallback);
+        uv_async_send(stop_async);
+
+        m_thread.join();
     }
 
-    m_thread.join();
-
-    {
-        std::lock_guard<Mutex> sd_lock(m_sd.mutex);
-
-        ASSERT(!m_sd.loop);
-    }
+    uv_loop_close(&m_sd.loop);
+    m_sd.loop.data = nullptr;
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 bool HTTPServerImpl::Start(int port, bool listen_on_all_interfaces, Messages *messages) {
-    {
-        std::lock_guard<Mutex> sd_lock(m_sd.mutex);
+    ASSERT(!m_sd.loop.data);
 
-        if (m_sd.loop) {
-            return false;
-        }
+    int rc = uv_loop_init(&m_sd.loop);
+    if (rc != 0) {
+        messages->e.f("HTTP server uv_loop_init failed: %s (%s)\n",
+                      uv_strerror(rc), uv_err_name(rc));
+        return false;
     }
+
+    m_sd.loop.data = this;
 
     m_thread = std::thread([this, port, listen_on_all_interfaces]() {
         this->ThreadMain(port, listen_on_all_interfaces);
@@ -508,10 +575,15 @@ bool HTTPServerImpl::Start(int port, bool listen_on_all_interfaces, Messages *me
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void HTTPServerImpl::SetHandler(HTTPHandler *handler) {
-    std::lock_guard<Mutex> sd_lock(m_sd.mutex);
+bool HTTPServerImpl::IsServerListening() const {
+    return m_sd.is_server_listening;
+}
 
-    m_sd.handler = handler;
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void HTTPServerImpl::SetHandler(std::shared_ptr<HTTPHandler> handler) {
+    m_sd.handler = std::move(handler);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -525,9 +597,7 @@ struct SendResponseData {
 };
 
 void HTTPServerImpl::SendResponse(const HTTPResponseData &response_data, HTTPResponse response) {
-    std::lock_guard<Mutex> sd_lock(m_sd.mutex);
-
-    if (!m_sd.loop) {
+    if (!m_sd.loop.data) {
         return;
     }
 
@@ -541,7 +611,7 @@ void HTTPServerImpl::SendResponse(const HTTPResponseData &response_data, HTTPRes
     auto send_response_async = new uv_async_t{};
     send_response_async->data = data;
 
-    uv_async_init(m_sd.loop, send_response_async, &SendResponseAsyncCallback);
+    uv_async_init(&m_sd.loop, send_response_async, &SendResponseAsyncCallback);
     uv_async_send(send_response_async);
     send_response_async = nullptr;
 }
@@ -554,20 +624,10 @@ void HTTPServerImpl::ThreadMain(int port, bool listen_on_all_interfaces) {
 
     SetCurrentThreadNamef("HTTP Server");
 
-    uv_loop_t loop = {};
-
-    rc = uv_loop_init(&loop);
-    if (rc != 0) {
-        PrintLibUVError(rc, "uv_loop_init failed");
-        goto done;
-    }
-
-    loop.data = this;
-
-    rc = uv_tcp_init(&loop, &m_td.listen_tcp);
+    rc = uv_tcp_init(&m_sd.loop, &m_td.listen_tcp);
     if (rc != 0) {
         PrintLibUVError(rc, "uv_tcp_init failed");
-        goto done;
+        return;
     }
 
     m_td.listen_tcp.data = this;
@@ -586,25 +646,15 @@ void HTTPServerImpl::ThreadMain(int port, bool listen_on_all_interfaces) {
                 PrintLibUVError(rc, "uv_listen failed");
                 uv_close((uv_handle_t *)&m_td.listen_tcp, &EmptyCloseCallback);
             }
+
+            // Looks like it's valid to set this flag right now.
+            m_sd.is_server_listening = true;
         }
     }
 
-    {
-        std::lock_guard<Mutex> sd_lock(m_sd.mutex);
-        m_sd.loop = &loop;
-    }
-
-    rc = uv_run(&loop, UV_RUN_DEFAULT);
-
-done:
-    {
-        std::lock_guard<Mutex> sd_lock(m_sd.mutex);
-        m_sd.loop = nullptr;
-    }
-
-    if (loop.data) {
-        uv_loop_close(&loop);
-        loop.data = nullptr;
+    rc = uv_run(&m_sd.loop, UV_RUN_DEFAULT);
+    if (rc != 0) {
+        PrintLibUVError(rc, "uv_run failed");
     }
 }
 
@@ -713,9 +763,9 @@ void HTTPServerImpl::SendResponse(Connection *conn, bool dump, HTTPResponse &&re
 
     if (dump) {
         for (size_t i = 0; i < bufs.size(); ++i) {
-            LOGF(HTTP, "Buf %zu: ", i);
-            LogIndenter indent(&LOG(HTTP));
-            LogDumpBytes(&LOG(HTTP), bufs[i].base, bufs[i].len);
+            LOGF(HTTPSV, "Buf %zu: ", i);
+            LogIndenter indent(&LOG(HTTPSV));
+            LogDumpBytes(&LOG(HTTPSV), bufs[i].base, bufs[i].len);
         }
     }
 
@@ -734,7 +784,7 @@ void HTTPServerImpl::SendResponseAsyncCallback(uv_async_t *send_response_async) 
     auto data = (SendResponseData *)send_response_async->data;
     auto server = (HTTPServerImpl *)send_response_async->loop->data;
 
-    LOGF(HTTP, "%s: latency = %.3f sec\n", __func__, GetSecondsFromTicks(GetCurrentTickCount() - data->tick_count));
+    LOGF(HTTPSV, "%s: latency = %.3f sec\n", __func__, GetSecondsFromTicks(GetCurrentTickCount() - data->tick_count));
 
     auto &&it = server->m_td.connection_by_id.find(data->connection_id);
     if (it != server->m_td.connection_by_id.end()) {
@@ -754,14 +804,9 @@ void HTTPServerImpl::SendResponseAsyncCallback(uv_async_t *send_response_async) 
 
 void HTTPServerImpl::StopAsyncCallback(uv_async_t *stop_async) {
     auto server = (HTTPServerImpl *)stop_async->loop->data;
+    ASSERT(stop_async->loop == &server->m_sd.loop);
 
     uv_print_all_handles(stop_async->loop, stderr);
-
-    {
-        std::lock_guard<Mutex> lock(server->m_sd.mutex);
-        ASSERT(stop_async->loop == server->m_sd.loop);
-        server->m_sd.loop = nullptr;
-    }
 
     while (!server->m_td.connection_by_id.empty()) {
         server->CloseConnection(server->m_td.connection_by_id.begin()->second);
@@ -778,7 +823,7 @@ int HTTPServerImpl::HandleMessageBegin(http_parser *parser) {
     (void)parser;
     //auto conn=(HTTPConnection *)parser->data;
 
-    LOGF(HTTP, "%s\n", __func__);
+    LOGF(HTTPSV, "%s\n", __func__);
 
     return 0;
 }
@@ -833,7 +878,7 @@ int HTTPServerImpl::HandleHeaderValue(http_parser *parser, const char *at, size_
 int HTTPServerImpl::HandleHeadersComplete(http_parser *parser) {
     auto conn = (Connection *)parser->data;
 
-    LOGF(HTTP, "%s: start.\n", __func__);
+    LOGF(HTTPSV, "%s: start.\n", __func__);
 
     conn->request.method = http_method_str((http_method)parser->method);
     //conn->status=200;
@@ -842,15 +887,11 @@ int HTTPServerImpl::HandleHeadersComplete(http_parser *parser) {
     http_parser_url url = {};
     // 0 = not connect
     if (http_parser_parse_url(conn->request.url.data(), conn->request.url.size(), 0, &url) != 0) {
-        LOGF(HTTP, "invalid URL: %s\n", conn->request.url.c_str());
+        LOGF(HTTPSV, "invalid URL: %s\n", conn->request.url.c_str());
         return -1;
     }
 
     if (!GetPercentDecodedURLPart(&conn->request.url_path, url, UF_PATH, conn->request.url, "path")) {
-        return -1;
-    }
-
-    if (!GetPercentDecodedURLPart(&conn->request.url_fragment, url, UF_FRAGMENT, conn->request.url, "fragment")) {
         return -1;
     }
 
@@ -868,12 +909,12 @@ int HTTPServerImpl::HandleHeadersComplete(http_parser *parser) {
             }
 
             if (b >= end) {
-                LOGF(HTTP, "invalid URL query (missing '='): %s\n", conn->request.url.c_str());
+                LOGF(HTTPSV, "invalid URL query (missing '='): %s\n", conn->request.url.c_str());
                 return -1;
             }
 
             if (!GetPercentDecoded(&kv.key, conn->request.url, a, b - a)) {
-                LOGF(HTTP, "invalid URL query (bad key percent encoding): %s\n", conn->request.url.c_str());
+                LOGF(HTTPSV, "invalid URL query (bad key percent encoding): %s\n", conn->request.url.c_str());
                 return -1;
             }
 
@@ -883,7 +924,7 @@ int HTTPServerImpl::HandleHeadersComplete(http_parser *parser) {
             }
 
             if (!GetPercentDecoded(&kv.value, conn->request.url, a, b - a)) {
-                LOGF(HTTP, "invalid URL query (bad value percent encoding): %s\n", conn->request.url.c_str());
+                LOGF(HTTPSV, "invalid URL query (bad value percent encoding): %s\n", conn->request.url.c_str());
                 return -1;
             }
 
@@ -925,7 +966,7 @@ int HTTPServerImpl::HandleHeadersComplete(http_parser *parser) {
         }
     }
 
-    LOGF(HTTP, "%s: finish.\n", __func__);
+    LOGF(HTTPSV, "%s: finish.\n", __func__);
 
     return 0;
 }
@@ -936,11 +977,11 @@ int HTTPServerImpl::HandleHeadersComplete(http_parser *parser) {
 int HTTPServerImpl::HandleBody(http_parser *parser, const char *at, size_t length) {
     auto conn = (Connection *)parser->data;
 
-    LOGF(HTTP, "%s: start.\n", __func__);
+    LOGF(HTTPSV, "%s: start.\n", __func__);
 
     conn->request.body.insert(conn->request.body.end(), at, at + length);
 
-    LOGF(HTTP, "%s: finish.\n", __func__);
+    LOGF(HTTPSV, "%s: finish.\n", __func__);
 
     return 0;
 }
@@ -951,7 +992,7 @@ int HTTPServerImpl::HandleBody(http_parser *parser, const char *at, size_t lengt
 int HTTPServerImpl::HandleMessageComplete(http_parser *parser) {
     auto conn = (Connection *)parser->data;
 
-    LOGF(HTTP, "%s: start.\n", __func__);
+    LOGF(HTTPSV, "%s: start.\n", __func__);
 
     conn->keep_alive = !!http_should_keep_alive(parser);
 
@@ -959,62 +1000,55 @@ int HTTPServerImpl::HandleMessageComplete(http_parser *parser) {
         return -1;
     }
 
-    LOGF(HTTP, "Headers: ");
+    LOGF(HTTPSV, "Headers: ");
     {
-        LogIndenter indent(&LOG(HTTP));
-        //LOGF(HTTP,"Status: %u\n",conn->status);
-        LOGF(HTTP, "Method: %s\n", conn->request.method.c_str());
+        LogIndenter indent(&LOG(HTTPSV));
+        //LOGF(HTTPSV,"Status: %u\n",conn->status);
+        LOGF(HTTPSV, "Method: %s\n", conn->request.method.c_str());
 
-        LOGF(HTTP, "URL: ");
+        LOGF(HTTPSV, "URL: ");
         {
-            LogIndenter indent2(&LOG(HTTP));
-            LOGF(HTTP, "%s\n", conn->request.url.c_str());
-            LOGF(HTTP, "Path: %s\n", conn->request.url_path.c_str());
-            //LOGF(HTTP,"Query: %s\n",conn->request.url_query.c_str());
+            LogIndenter indent2(&LOG(HTTPSV));
+            LOGF(HTTPSV, "%s\n", conn->request.url.c_str());
+            LOGF(HTTPSV, "Path: %s\n", conn->request.url_path.c_str());
+            //LOGF(HTTPSV,"Query: %s\n",conn->request.url_query.c_str());
 
             if (!conn->request.query.empty()) {
-                LOGF(HTTP, "Query: ");
+                LOGF(HTTPSV, "Query: ");
                 {
-                    LogIndenter indent3(&LOG(HTTP));
+                    LogIndenter indent3(&LOG(HTTPSV));
 
                     for (const HTTPQueryParameter &kv : conn->request.query) {
-                        LOGF(HTTP, "%s: %s\n", kv.key.c_str(), kv.value.c_str());
+                        LOGF(HTTPSV, "%s: %s\n", kv.key.c_str(), kv.value.c_str());
                     }
                 }
             }
-
-            LOGF(HTTP, "Fragment: %s\n", conn->request.url_fragment.c_str());
         }
 
         if (!conn->request.headers.empty()) {
-            LOGF(HTTP, "Fields: ");
-            LogIndenter indent2(&LOG(HTTP));
+            LOGF(HTTPSV, "Fields: ");
+            LogIndenter indent2(&LOG(HTTPSV));
             for (auto &&kv : conn->request.headers) {
-                LOGF(HTTP, "%s: %s\n", kv.first.c_str(), kv.second.c_str());
+                LOGF(HTTPSV, "%s: %s\n", kv.first.c_str(), kv.second.c_str());
             }
         }
     }
 
     if (!conn->request.body.empty()) {
         if (conn->request.response_data.dump) {
-            LOGF(HTTP, "Body: ");
+            LOGF(HTTPSV, "Body: ");
             {
-                LogIndenter indent(&LOG(HTTP));
-                LogDumpBytes(&LOG(HTTP), conn->request.body.data(), conn->request.body.size());
+                LogIndenter indent(&LOG(HTTPSV));
+                LogDumpBytes(&LOG(HTTPSV), conn->request.body.data(), conn->request.body.size());
             }
         }
     }
 
-    HTTPHandler *handler;
-    {
-        std::lock_guard<Mutex> sd_lock(conn->server->m_sd.mutex);
-
-        handler = conn->server->m_sd.handler;
-    }
+    std::shared_ptr<HTTPHandler> handler = conn->server->m_sd.handler;
 
     HTTPResponse response;
     bool send_response = false;
-    if (handler) {
+    if (!!handler) {
         send_response = handler->ThreadHandleRequest(&response, conn->server, std::move(conn->request));
     } else {
         response = CreateErrorResponse(conn->request, "404 Not Found");
@@ -1035,7 +1069,7 @@ int HTTPServerImpl::HandleMessageComplete(http_parser *parser) {
     //    DispatchRequestMainThread(conn);
     //});
 
-    LOGF(HTTP, "%s: finish.\n", __func__);
+    LOGF(HTTPSV, "%s: finish.\n", __func__);
 
     return 0;
 }
@@ -1047,7 +1081,7 @@ void HTTPServerImpl::HandleNewConnection(uv_stream_t *server_tcp, int status) {
     auto server = (HTTPServerImpl *)server_tcp->data;
     int rc;
 
-    LOGF(HTTP, "%s: start: (ticks=%" PRIu64 ")\n", __func__, GetCurrentTickCount());
+    LOGF(HTTPSV, "%s: start: (ticks=%" PRIu64 ")\n", __func__, GetCurrentTickCount());
 
     if (status != 0) {
         PrintLibUVError(status, "connection callback");
@@ -1099,7 +1133,7 @@ void HTTPServerImpl::HandleReadAlloc(uv_handle_t *handle, size_t suggested_size,
     auto conn = (Connection *)handle->data;
     (void)suggested_size;
 
-    LOGF(HTTP, "%s: start: (ticks=%" PRIu64 ")\n", __func__, GetCurrentTickCount());
+    LOGF(HTTPSV, "%s: start: (ticks=%" PRIu64 ")\n", __func__, GetCurrentTickCount());
 
     ASSERT(handle == (uv_handle_t *)&conn->tcp);
     ASSERT(conn->num_read < sizeof conn->read_buf);
@@ -1116,7 +1150,7 @@ void HTTPServerImpl::HandleRead(uv_stream_t *stream, ssize_t num_read, const uv_
     auto conn = (Connection *)stream->data;
     ASSERT(stream == (uv_stream_t *)&conn->tcp);
 
-    LOGF(HTTP, "%s: start: num_read=%zd (ticks=%" PRIu64 ")\n", __func__, num_read, GetCurrentTickCount());
+    LOGF(HTTPSV, "%s: start: num_read=%zd (ticks=%" PRIu64 ")\n", __func__, num_read, GetCurrentTickCount());
 
     if (num_read == UV_EOF) {
         conn->server->CloseConnection(conn);
@@ -1138,7 +1172,7 @@ void HTTPServerImpl::HandleRead(uv_stream_t *stream, ssize_t num_read, const uv_
         }
 
         if (conn->parser.http_errno != 0) {
-            LOGF(HTTP, "HTTP error: %s\n", http_errno_description((http_errno)conn->parser.http_errno));
+            LOGF(HTTPSV, "HTTP error: %s\n", http_errno_description((http_errno)conn->parser.http_errno));
             conn->server->SendResponse(conn, conn->request.response_data.dump, CreateErrorResponse(conn->request, "400 Bad Request"), false);
             //CloseConnection(conn);
         } else {
@@ -1148,7 +1182,7 @@ void HTTPServerImpl::HandleRead(uv_stream_t *stream, ssize_t num_read, const uv_
         }
     }
 
-    LOGF(HTTP, "%s: finish.\n", __func__);
+    LOGF(HTTPSV, "%s: finish.\n", __func__);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -1231,3 +1265,311 @@ std::unique_ptr<HTTPServer> CreateHTTPServer() {
 //    curl_easy_setopt(curl, CURLOPT_POST, 1L);
 //    curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "POST");
 //}
+
+HTTPClient::HTTPClient() {
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+HTTPClient::~HTTPClient() {
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+//struct ClientReadPayloadState {
+//    const std::vector<uint8_t> *payload = nullptr;
+//    size_t index = 0;
+//};
+//
+//static size_t ClientReadPayload(char*buffer,
+//    size_t size,
+//    size_t nitems,
+//    void*userdata){
+//    auto state = (ClientReadPayloadState*)userdata;
+//
+//    size_t i,n=state->payload->size();
+//
+//    for(i=0;i<size*nitems;++i){
+//        if(state->index>=n){
+//            break;
+//        }
+//
+//        buffer[i]=
+//    }
+
+static size_t WriteServerToClientData(char *ptr,
+                                      size_t size,
+                                      size_t nmemb,
+                                      void *userdata) {
+    auto buffer = (std::vector<uint8_t> *)userdata;
+
+    size_t n = size * nmemb;
+
+    buffer->insert(buffer->end(), ptr, ptr + n);
+
+    return n;
+}
+
+struct ReadClientToServerState {
+    const std::vector<uint8_t> *buffer = nullptr;
+    size_t index = 0;
+};
+
+static size_t ReadClientToServerData(char *buffer,
+                                     size_t size,
+                                     size_t nitems,
+                                     void *userdata) {
+    auto state = (ReadClientToServerState *)userdata;
+
+    size_t n = 0;
+    const uint8_t *p = nullptr;
+    if (state->buffer) {
+        n = state->buffer->size();
+        p = state->buffer->data();
+    }
+
+    size_t i;
+    for (i = 0; i < size * nitems; ++i) {
+        if (state->index >= n) {
+            break;
+        }
+
+        buffer[i] = (char)(p[state->index++]);
+    }
+
+    return i;
+}
+
+static const char *const CURL_INFOTYPE_PREFIXES[] = {
+    nullptr,        //    CURLINFO_TEXT = 0,
+    "HEADER_IN",    //    CURLINFO_HEADER_IN,    /* 1 */
+    "HEADER_OUT",   //    CURLINFO_HEADER_OUT,   /* 2 */
+    "DATA_IN",      //    CURLINFO_DATA_IN,      /* 3 */
+    "DATA_OUT",     //    CURLINFO_DATA_OUT,     /* 4 */
+    "SSL_DATA_IN",  //    CURLINFO_SSL_DATA_IN,  /* 5 */
+    "SSL_DATA_OUT", //    CURLINFO_SSL_DATA_OUT, /* 6 */
+};
+
+class HTTPClientImpl : public HTTPClient {
+  public:
+    HTTPClientImpl() {
+    }
+
+    ~HTTPClientImpl() {
+    }
+
+    void SetMessages(Messages *messages) override {
+        m_messages = messages;
+    }
+
+    void SetVerbose(bool verbose) override {
+        m_verbose = verbose;
+    }
+
+    void AddDefaultHeader(const char *key, const char *value) override {
+        std::string key_str = key;
+        m_default_header_by_key[key_str] = key_str + ": " + value;
+    }
+
+    int SendRequest(const HTTPRequest &request, HTTPResponse *response) override {
+        ASSERT(response);
+
+        if (!m_curl) {
+            m_curl = curl_easy_init();
+            if (!m_curl) {
+                if (m_messages) {
+                    m_messages->e.f("Failed to initialize libcurl\n");
+                }
+                return -1;
+            }
+
+            // see notes regarding DNS timeouts in
+            // https://curl.haxx.se/libcurl/c/CURLOPT_NOSIGNAL.html. Hopefully
+            // not too much an issue here, as the connection is almost always to
+            // 127.0.0.1
+            curl_easy_setopt(m_curl, CURLOPT_NOSIGNAL, 1L);
+
+            curl_easy_setopt(m_curl, CURLOPT_FAILONERROR, 1L);
+        }
+
+        // Collate full list of header lines.
+        std::map<std::string, std::string> header_by_key = m_default_header_by_key;
+
+        for (auto &&key_and_value : request.headers) {
+            header_by_key[key_and_value.first] = key_and_value.first + ": " + key_and_value.second;
+        }
+
+        // If there's an explicit Content-Type, pop that in. Also, the charset.
+        if (!request.content_type.empty()) {
+            std::string content_type_header = CONTENT_TYPE + ": " + request.content_type;
+            if (!request.content_type_charset.empty()) {
+                content_type_header += "; " + CHARSET_PREFIX + request.content_type_charset;
+            }
+            header_by_key[CONTENT_TYPE] = content_type_header;
+        }
+
+        // Form URL.
+        std::string url = request.url;
+        ASSERT(request.url_path.empty());
+
+        // Add additional request parameters.
+        if (!request.query.empty()) {
+            if (url.find('?') != std::string::npos) {
+                url.push_back('&');
+            } else {
+                url.push_back('?');
+            }
+
+            for (size_t i = 0; i < request.query.size(); ++i) {
+                const HTTPQueryParameter &parameter = request.query[i];
+
+                if (i > 0) {
+                    url.push_back('&');
+                }
+
+                url += GetPercentEncoded(parameter.key);
+                url.push_back('=');
+                url += GetPercentEncoded(parameter.value);
+            }
+        }
+
+        // Form headers.
+        curl_slist *headers = nullptr;
+        for (auto &&key_and_header : header_by_key) {
+            headers = curl_slist_append(headers, key_and_header.second.c_str());
+        }
+
+        // Curlstuff.
+        curl_easy_setopt(m_curl, CURLOPT_URL, url.c_str());
+        curl_easy_setopt(m_curl, CURLOPT_HTTPHEADER, headers);
+
+        // CURLOPT_POST is weird: https://curl.se/libcurl/c/CURLOPT_POST.html
+        //
+        // Set it to 0 and do the method by hand.
+        curl_easy_setopt(m_curl, CURLOPT_POST, (long)0);
+        curl_easy_setopt(m_curl,
+                         CURLOPT_CUSTOMREQUEST,
+                         request.method.empty() ? "GET" : request.method.c_str());
+
+        curl_easy_setopt(m_curl, CURLOPT_POSTFIELDSIZE_LARGE, (curl_off_t)request.body.size());
+
+        // Server->client data.
+        std::vector<uint8_t> server_to_client_data_buffer;
+        curl_easy_setopt(m_curl, CURLOPT_WRITEFUNCTION, &WriteServerToClientData);
+        curl_easy_setopt(m_curl, CURLOPT_WRITEDATA, &server_to_client_data_buffer);
+
+        // Client->server data.
+        ReadClientToServerState client_to_server_state = {};
+        if (response) {
+            client_to_server_state.buffer = &response->content_vec;
+        }
+        curl_easy_setopt(m_curl, CURLOPT_READFUNCTION, &ReadClientToServerData);
+        curl_easy_setopt(m_curl, CURLOPT_READDATA, &client_to_server_state);
+
+        // Debug output.
+        if (m_messages) {
+            curl_easy_setopt(m_curl, CURLOPT_VERBOSE, (long)m_verbose);
+            curl_easy_setopt(m_curl, CURLOPT_DEBUGFUNCTION, &ClientDebugFunction);
+            curl_easy_setopt(m_curl, CURLOPT_DEBUGDATA, this);
+        } else {
+            curl_easy_setopt(m_curl, CURLOPT_VERBOSE, (long)0);
+            curl_easy_setopt(m_curl, CURLOPT_DEBUGFUNCTION, nullptr);
+            curl_easy_setopt(m_curl, CURLOPT_DEBUGDATA, nullptr);
+        }
+
+        // Error buffer.
+        char curl_error_buffer[CURL_ERROR_SIZE];
+        curl_easy_setopt(m_curl, CURLOPT_ERRORBUFFER, curl_error_buffer);
+
+        // Do the thing.
+        CURLcode perform_result = curl_easy_perform(m_curl);
+
+        curl_slist_free_all(headers);
+        headers = nullptr;
+
+        if (m_verbose) {
+            if (m_messages) {
+                m_messages->i.f("curl_easy_perform returned: %d\n", (int)perform_result);
+            }
+        }
+
+        int http_status;
+        if (perform_result == CURLE_OK) {
+            char *content_type;
+            curl_easy_getinfo(m_curl, CURLINFO_CONTENT_TYPE, &content_type);
+
+            response->content_type.clear();
+            if (content_type) {
+                response->content_type = content_type;
+            }
+
+            long status;
+            curl_easy_getinfo(m_curl, CURLINFO_RESPONSE_CODE, &status);
+
+            response->status = std::to_string(status);
+            http_status = (int)status;
+
+            return http_status;
+        } else {
+            if (m_messages) {
+                m_messages->e.f("Request failed: %s: %s\n",
+                                curl_easy_strerror(perform_result),
+                                curl_error_buffer);
+            }
+
+            return -1;
+        }
+    }
+
+  protected:
+  private:
+    CURL *m_curl = nullptr;
+    Messages *m_messages = nullptr;
+    bool m_verbose = false;
+
+    std::map<std::string, std::string> m_default_header_by_key;
+
+    static void ClientDebugFunction(CURL *handle,
+                                    curl_infotype type,
+                                    char *data,
+                                    size_t size,
+                                    void *userptr) {
+        auto client = (HTTPClientImpl *)userptr;
+        Log *log = &client->m_messages->i;
+
+        if (type == CURLINFO_TEXT) {
+            // Judging by https://curl.haxx.se/libcurl/c/CURLOPT_DEBUGFUNCTION.html,
+            // this seems to be the special case.
+
+            log->f("TEXT: ");
+
+            LogIndenter indent(log);
+
+            for (size_t i = 0; i < size; ++i) {
+                log->c(data[i]);
+            }
+        } else {
+            const char *prefix;
+            if (type >= 0 && (size_t)type < sizeof CURL_INFOTYPE_PREFIXES / sizeof CURL_INFOTYPE_PREFIXES[0]) {
+                prefix = CURL_INFOTYPE_PREFIXES[type];
+            } else {
+                prefix = "?";
+            }
+
+            log->f("%s: ", prefix);
+
+            LogIndenter indent(log);
+
+            LogDumpBytes(log, data, size);
+        }
+    }
+};
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+std::unique_ptr<HTTPClient> CreateHTTPClient() {
+    return std::make_unique<HTTPClientImpl>();
+}

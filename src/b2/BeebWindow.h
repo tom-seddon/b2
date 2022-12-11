@@ -173,8 +173,8 @@ struct BeebWindowInitArguments {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-struct BeebWindowLoadFileArguments {
-    BeebWindowLoadFileType type = BeebWindowLoadFileType_Unknown;
+struct BeebWindowLaunchArguments {
+    BeebWindowLaunchType type = BeebWindowLaunchType_Unknown;
 
     // Full path of file to load.
     std::string file_path;
@@ -266,7 +266,7 @@ class BeebWindow {
 #endif
 
     // Handle double click or drag'n'drop.
-    void LoadFile(const BeebWindowLoadFileArguments &arguments);
+    void Launch(const BeebWindowLaunchArguments &arguments);
 
   protected:
   private:
