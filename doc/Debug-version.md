@@ -22,24 +22,16 @@ Find all this stuff in the `Debug` menu.
 
 ## **Second processor support is WIP**
 
-- Examining the parasite state should work OK, but you may find that
-  the host CPU state is affected if you try to change anything
-
-- The paging prefix indicators in the parasite trace output are
-  currently nonsense. The parasite paging is simple enough that things
-  should still be comprehensible
-
 This will improve!
 
 ## General debugging ##
 
-Use `Stop` to stop the emulated BBC in its tracks.
+Use `Stop` to stop the entire system in its tracks.
 
 `Run` will set it going again.
 
-`Step In` will run one host instruction and then stop.
-
-`Step Over` will run until the next host instruction visible.
+The system is emulated as a unit. `Stop` stops everything, and `Run`
+sets the entire system going again.
 
 ## Paging overrides
 
@@ -325,6 +317,19 @@ addresses, when not statically obvious. Its guesses are based on the
 current state of the system, trying to take paging overrides into
 account, and are for advisory purposes only.
 
+Two step buttons allow instruction-resolution steeping: `Step In` will
+run one instruction for the given CPU and then stop, and `Step Over`
+will run until the given CPU reaches the next instruction visible.
+
+As with `Run`/`Stop`, note that the the entire system runs (or not) as
+a unit. When stepping one CPU, the other CPU will continue to run. It
+isn't possible to step just one CPU at a time.
+
+Also note that the system will stop when it hits a breakpoint on
+either CPU,meaning a breakpoint for one CPU could interrupt a step
+operation for the other. Debugging code on two CPUs simultaneously
+isn't very well supported at the moment.
+
 ## `CRTC Debug`, `Video ULA Debug`, `System VIA Debug`, `User VIA Debug`, `NVRAM Debug` ##
 
 Activate a debug window for the corresponding piece of BBC hardware,
@@ -386,7 +391,7 @@ from anywhere - consult the `--help` output.
 
 **The HTTP API is a work in progress, and may change.**
 
-## HTTP Methods
+## HTTP endpoints
 
 Values in capitals indicate parameters. Parameters listed as part of
 the path are found by position, and are mandatory; those listed as
@@ -473,33 +478,28 @@ In either case, read the disc image data from the request body.
 "Run" a file. The file type is deduced from the file name `N`, if
 specified, or the request content type if not.
 
-#### `application/x-c64-program`, `*.prg` - C64-style PRG ####
+Currently, onle one file type is supported: a BBC disc image, as per
+the list above. The image will be inserted in drive 0, as per `mount`
+and the emulator reset.
 
-Load file at load address (taken from first 2 bytes of file) as per
-`poke`, and start execution at that address as per `call`.
+## Using the HTTP API for developing BBC software
 
-#### (content type or file extension as above) - disc image ####
+The process involves having the Makefile (or batch
+file, if you prefer) invoke [curl](https://curl.se/) to use the
+`reset` endpoint to reset the emulator with a specific configuration,
+then the `run` endpoint to get it to boot the disk of interest. Two
+commands will do:
 
-Mount disc image in drive 0, as per `mount`, and reset emulator with
-autoboot.
+    curl -G "http://localhost:48075/reset/b2" --data-urlencode "config=Master 128 (MOS 3.20)"
+	curl -H "Content-Type:application/binary" --upload-file "my_program.ssd" "http://localhost:48075/run/b2?name=my_program.ssd"
+	
+Other examples from GitHub:
 
-## HTTP Example
+* https://github.com/kieranhj/scr-beeb/blob/03342c776bf489cbc8ba2c22e26baa5e3f8c3b1d/Makefile#L213
+* https://github.com/kieranhj/stnicc-beeb/blob/a5df6b838a8183fe141d7a12cb5a7d167a6d912a/Makefile#L84
+* https://github.com/tom-seddon/256_bytes/blob/b30ca923d1613642e89484faef9518d1b7c78c60/Makefile#L125
 
-See `etc/http_api_example` in the repo. Run the makefile in Windows,
-with `curl` on the path, using `bin\snmake.exe` from the repo.
-
-(It ought to work on macOS and Linux without too much effort, but
-that's never been tested.)
-
-The makefile assembles the example code using 64tass (supplied),
-producing a C64-style .PRG file. It then resets the emulator with a
-`reset` request, and runs the assembled code using the `run` request.
-(All these requests are sent to the `b2` window, which will typically
-exist as it's the window created when the emulator starts.)
-
-When using Emacs, M-x compile will assemble the code and set it
-running in the emulator straight away. Instant turnaround! Other
-editors can be configured similarly.
-
-This demo is not amazing or anything, but it might at least
-demonstrate the process...
+If you're working on a sideways ROM, you can make a hardware config
+that refers to the ROM you're building, then use `reset` to reboot the
+emulated BBC. `reset` will reload the paged ROMs from disk, so it'll
+be running with the updated code.
