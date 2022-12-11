@@ -888,8 +888,8 @@ static void PushLaunchEvent(uint32_t sdl_window_id, std::unique_ptr<BeebWindowLa
 //////////////////////////////////////////////////////////////////////////
 
 static bool BootDiskInExistingProcess(const std::string &path, Messages *messages) {
-    auto client_message_list = std::make_shared<MessageList>();
-    Messages client_messages(client_message_list);
+    //auto client_message_list = std::make_shared<MessageList>();
+    //Messages client_messages(client_message_list);
 
     std::unique_ptr<HTTPClient> client = CreateHTTPClient();
     client->SetMessages(messages);
@@ -947,9 +947,37 @@ static bool main2(int argc, char *argv[], const std::shared_ptr<MessageList> &in
         return false;
     }
 
+    std::unique_ptr<HTTPServer> http_server = CreateHTTPServer();
+    if (!http_server->Start(HTTP_SERVER_PORT, options.http_listen_on_all_interfaces, &init_messages)) {
+        http_server.reset();
+        init_messages.w.f("Failed to start HTTP server.\n");
+        // but carry on... it's not fatal.
+    }
+
+    std::shared_ptr<HTTPHandler> http_handler;
+    if (!!http_server) {
+        http_handler = CreateHTTPMethodsHandler();
+        http_server->SetHandler(http_handler);
+
+        if (options.http_listen_on_all_interfaces) {
+            init_messages.e.f("+----------------------------------------------------------+\n"
+                              "|                                                          |\n"
+                              "| HTTP server is listening on all interfaces               |\n"
+                              "|                                                          |\n"
+                              "| b2 does not promise to be resistant to deliberate attack |\n"
+                              "|                                                          |\n"
+                              "+----------------------------------------------------------+\n");
+        }
+    }
+
     if (options.launch) {
-        if (BootDiskInExistingProcess(options.launch_path, &init_messages)) {
-            return true;
+        if (!!http_server) {
+            // The HTTP server started, so there's definitely no other instance
+            // running that could handle the request.
+        } else {
+            if (BootDiskInExistingProcess(options.launch_path, &init_messages)) {
+                return true;
+            }
         }
 
         // Fake a -0 PATH -boot.
@@ -987,29 +1015,6 @@ static bool main2(int argc, char *argv[], const std::shared_ptr<MessageList> &in
         return false;
     }
 #endif
-
-    std::unique_ptr<HTTPServer> http_server = CreateHTTPServer();
-    if (!http_server->Start(HTTP_SERVER_PORT, options.http_listen_on_all_interfaces, &init_messages)) {
-        http_server.reset();
-        init_messages.w.f("Failed to start HTTP server.\n");
-        // but carry on... it's not fatal.
-    }
-
-    std::shared_ptr<HTTPHandler> http_handler;
-    if (!!http_server) {
-        http_handler = CreateHTTPMethodsHandler();
-        http_server->SetHandler(http_handler);
-
-        if (options.http_listen_on_all_interfaces) {
-            init_messages.e.f("+----------------------------------------------------------+\n"
-                              "|                                                          |\n"
-                              "| HTTP server is listening on all interfaces               |\n"
-                              "|                                                          |\n"
-                              "| b2 does not promise to be resistant to deliberate attack |\n"
-                              "|                                                          |\n"
-                              "+----------------------------------------------------------+\n");
-        }
-    }
 
 #if HAVE_FFMPEG
     if (!InitFFmpeg(&init_messages)) {

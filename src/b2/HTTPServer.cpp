@@ -149,10 +149,6 @@ static void ScalarDeleteCloseCallback(uv_handle_t *handle) {
     delete (T *)handle;
 }
 
-static void ResetDataCallback(uv_handle_t *handle) {
-    handle->data=nullptr;
-}
-
 static int GetHexCharValue(char c) {
     if (c >= '0' && c <= '9') {
         return c - '0';
@@ -541,7 +537,7 @@ HTTPServerImpl::~HTTPServerImpl() {
     // This normally gets closed by the thread, but if an error prevented the
     // thread from starting it could still need closing.
     if (m_td.listen_tcp.data) {
-        uv_close((uv_handle_t *)&m_td.listen_tcp, &ResetDataCallback);
+        uv_close((uv_handle_t *)&m_td.listen_tcp, nullptr);
     }
 
     if (m_sd.loop.data) {
@@ -584,14 +580,16 @@ bool HTTPServerImpl::Start(int port, bool listen_on_all_interfaces, Messages *me
         rc = uv_tcp_bind(&m_td.listen_tcp, (struct sockaddr *)&addr, 0);
         if (rc != 0) {
             PrintLibUVError(&messages->e, rc, "uv_tcp_bind failed");
-            uv_close((uv_handle_t *)&m_td.listen_tcp, &ResetDataCallback);
+            uv_close((uv_handle_t *)&m_td.listen_tcp, nullptr);
+            m_td.listen_tcp.data = nullptr;
             return false;
         }
 
         rc = uv_listen((uv_stream_t *)&m_td.listen_tcp, 10, &HandleNewConnection);
         if (rc != 0) {
             PrintLibUVError(&messages->e, rc, "uv_listen failed");
-            uv_close((uv_handle_t *)&m_td.listen_tcp, &ResetDataCallback);
+            uv_close((uv_handle_t *)&m_td.listen_tcp, nullptr);
+            m_td.listen_tcp.data = nullptr;
             return false;
         }
     }
@@ -814,7 +812,9 @@ void HTTPServerImpl::StopAsyncCallback(uv_async_t *stop_async) {
         server->CloseConnection(server->m_td.connection_by_id.begin()->second);
     }
 
-    uv_close((uv_handle_t *)&server->m_td.listen_tcp, &ResetDataCallback);
+    uv_close((uv_handle_t *)&server->m_td.listen_tcp, nullptr);
+    server->m_td.listen_tcp.data = nullptr;
+
     uv_close((uv_handle_t *)stop_async, &ScalarDeleteCloseCallback<uv_async_t>);
 }
 
