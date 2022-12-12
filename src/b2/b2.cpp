@@ -656,7 +656,15 @@ static void CheckAssetPath(const std::string &path_) {
 
     std::string path = path_;
 
-    ASSERT(path.find("/./") == std::string::npos);
+    for (;;) {
+        std::string dot = "/./";
+        std::string::size_type pos = path.find(dot);
+        if (pos == std::string::npos) {
+            break;
+        }
+
+        path = path.substr(0, pos) + "/" + path.substr(pos + dot.size());
+    }
 
     for (;;) {
         std::string dotdot = "/../";
