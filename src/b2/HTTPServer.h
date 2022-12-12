@@ -151,7 +151,7 @@ class HTTPServer {
     HTTPServer(HTTPServer &&) = delete;
     HTTPServer &operator=(HTTPServer &&) = delete;
 
-    virtual bool Start(int port, bool listen_on_all_interfaces, Messages *messages) = 0;
+    virtual bool Start(int port, Messages *messages) = 0;
 
     virtual void SetHandler(std::shared_ptr<HTTPHandler> handler) = 0;
 

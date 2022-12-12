@@ -439,7 +439,7 @@ class HTTPServerImpl : public HTTPServer {
     HTTPServerImpl();
     ~HTTPServerImpl();
 
-    bool Start(int port, bool listen_on_all_interfaces, Messages *messages) override;
+    bool Start(int port, Messages *messages) override;
     void SetHandler(std::shared_ptr<HTTPHandler> handler) override;
     void SendResponse(const HTTPResponseData &response_data, HTTPResponse response) override;
 
@@ -552,7 +552,7 @@ HTTPServerImpl::~HTTPServerImpl() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool HTTPServerImpl::Start(int port, bool listen_on_all_interfaces, Messages *messages) {
+bool HTTPServerImpl::Start(int port, Messages *messages) {
     ASSERT(!m_sd.loop.data);
 
     int rc = uv_loop_init(&m_sd.loop);
@@ -576,7 +576,7 @@ bool HTTPServerImpl::Start(int port, bool listen_on_all_interfaces, Messages *me
     {
         struct sockaddr_in addr;
 
-        uv_ip4_addr(listen_on_all_interfaces ? "0.0.0.0" : "127.0.0.1", port, &addr);
+        uv_ip4_addr("127.0.0.1", port, &addr);
         rc = uv_tcp_bind(&m_td.listen_tcp, (struct sockaddr *)&addr, 0);
         if (rc != 0) {
             PrintLibUVError(&messages->e, rc, "uv_tcp_bind failed");
@@ -598,11 +598,7 @@ bool HTTPServerImpl::Start(int port, bool listen_on_all_interfaces, Messages *me
         this->ThreadMain();
     });
 
-    messages->i.f("HTTP server listening on port %d (0x%x)", port, port);
-    if (listen_on_all_interfaces) {
-        messages->i.f(" (all interfaces)");
-    }
-    messages->i.f("\n");
+    messages->i.f("HTTP server listening on port %d (0x%x)\n", port, port);
 
     return true;
 }

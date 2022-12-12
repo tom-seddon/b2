@@ -386,8 +386,7 @@ shell script or batch file, say, using `curl`, or from a program,
 using an HTTP client library.
 
 The emulator listens on port 48075 (0xbbcb) for connections from
-localhost. **At your own risk**, you can have it accept connections
-from anywhere - consult the `--help` output.
+localhost only.
 
 **The HTTP API is a work in progress, and may change.**
 

@@ -237,6 +237,23 @@ void BeebWindow::OptionsUI::DoImGui() {
 
     ImGui::NewLine();
 
+    if (ImGui::CollapsingHeader("HTTP Server", ImGuiTreeNodeFlags_DefaultOpen)) {
+        int port = GetHTTPServerListenPort();
+        if (port == 0) {
+            ImGui::TextUnformatted("HTTP server not running");
+            if (ImGui::Button("Start HTTP server")) {
+                StartHTTPServer(&m_beeb_window->m_msg);
+            }
+        } else {
+            ImGui::Text("HTTP server listening on port %d (0x%x)", port, port);
+            if (ImGui::Button("Stop HTTP server")) {
+                StopHTTPServer();
+            }
+        }
+    }
+
+    ImGui::NewLine();
+
 #if BBCMICRO_DEBUGGER
     if (ImGui::CollapsingHeader("Display Debug Flags", ImGuiTreeNodeFlags_DefaultOpen)) {
         {

@@ -25,8 +25,18 @@ When opening disk images in this way, b2 will launch, load the disk
 into drive 0, and attempt to auto-boot it. An existing copy of b2 will
 be used to do this if there's one running.
 
-(You don't get any control over which window is used if you've got
-more than one copy running, or multiple windows open.)
+### Running multiple instances?
+
+If you run just one instance of b2 at a time, no problem.
+
+But you can run several at once if you like, and in that situation
+only one of them will deal with these requests. To tell which, look in
+`Tools` > `Options`, `HTTP Server` section: if the HTTP server is
+listening, that's the instance that will deal with these requests.
+
+If necessary, you can use the `Stop HTTP server` button to stop the
+HTTP server, and that will allow you to use the `Start HTTP server`
+button on another instance.
 
 ## Windows 7 performance
 

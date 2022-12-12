@@ -43,7 +43,7 @@ int main() {
     {
         std::unique_ptr<HTTPServer> server = CreateHTTPServer();
 
-        TEST_TRUE(server->Start(PORT, false, &messages));
+        TEST_TRUE(server->Start(PORT, &messages));
 
         auto handler = std::make_shared<HTTPTestHandler>();
         server->SetHandler(handler);

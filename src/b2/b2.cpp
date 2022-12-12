@@ -450,7 +450,6 @@ struct Options {
     bool boot = false;
     bool help = false;
     std::vector<std::string> enable_logs, disable_logs;
-    bool http_listen_on_all_interfaces = false;
     bool reset_windows = false;
     bool vsync = false;
     bool timer = false;
@@ -550,8 +549,6 @@ static bool DoCommandLineOptions(
     p.AddOption('v', "verbose").SetIfPresent(&options->verbose).Help("be extra verbose");
 
     p.AddOption(0, "reset-windows").SetIfPresent(&options->reset_windows).Help("reset window position and dock data");
-
-    p.AddOption("http-listen-on-all-interfaces").SetIfPresent(&options->http_listen_on_all_interfaces).Help("at own risk, listen for HTTP connections on all network interfaces, not just localhost");
 
     p.AddOption("vsync").SetIfPresent(&options->vsync).Help("use vsync for timing");
     p.AddOption("timer").SetIfPresent(&options->timer).Help("use timer for timing");
@@ -913,6 +910,41 @@ static bool BootDiskInExistingProcess(const std::string &path, Messages *message
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+static std::unique_ptr<HTTPServer> g_http_server;
+static std::shared_ptr<HTTPHandler> g_http_handler;
+
+void StartHTTPServer(Messages *messages) {
+    if (GetHTTPServerListenPort() != 0) {
+        return;
+    }
+
+    g_http_server = CreateHTTPServer();
+    if (!g_http_server->Start(HTTP_SERVER_PORT, messages)) {
+        g_http_server.reset();
+        messages->e.f("Failed to start HTTP server.\n");
+        return;
+    }
+
+    g_http_handler = CreateHTTPMethodsHandler();
+    g_http_server->SetHandler(g_http_handler);
+}
+
+void StopHTTPServer() {
+    g_http_handler.reset();
+    g_http_server.reset();
+}
+
+int GetHTTPServerListenPort() {
+    if (!g_http_server) {
+        return 0;
+    } else {
+        return HTTP_SERVER_PORT;
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 static bool main2(int argc, char *argv[], const std::shared_ptr<MessageList> &init_message_list) {
     Messages init_messages(init_message_list);
 
@@ -947,31 +979,10 @@ static bool main2(int argc, char *argv[], const std::shared_ptr<MessageList> &in
         return false;
     }
 
-    std::unique_ptr<HTTPServer> http_server = CreateHTTPServer();
-    if (!http_server->Start(HTTP_SERVER_PORT, options.http_listen_on_all_interfaces, &init_messages)) {
-        http_server.reset();
-        init_messages.w.f("Failed to start HTTP server.\n");
-        // but carry on... it's not fatal.
-    }
-
-    std::shared_ptr<HTTPHandler> http_handler;
-    if (!!http_server) {
-        http_handler = CreateHTTPMethodsHandler();
-        http_server->SetHandler(http_handler);
-
-        if (options.http_listen_on_all_interfaces) {
-            init_messages.e.f("+----------------------------------------------------------+\n"
-                              "|                                                          |\n"
-                              "| HTTP server is listening on all interfaces               |\n"
-                              "|                                                          |\n"
-                              "| b2 does not promise to be resistant to deliberate attack |\n"
-                              "|                                                          |\n"
-                              "+----------------------------------------------------------+\n");
-        }
-    }
+    StartHTTPServer(&init_messages);
 
     if (options.launch) {
-        if (!!http_server) {
+        if (GetHTTPServerListenPort() != 0) {
             // The HTTP server started, so there's definitely no other instance
             // running that could handle the request.
         } else {
@@ -1337,8 +1348,7 @@ static bool main2(int argc, char *argv[], const std::shared_ptr<MessageList> &in
         BeebWindows::Shutdown();
         //Timeline::Shutdown();
 
-        http_server = nullptr;
-        http_handler = nullptr;
+        StopHTTPServer();
 
         vblank_monitor = nullptr;
         vblank_handler = nullptr;
