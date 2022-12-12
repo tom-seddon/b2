@@ -36,5 +36,25 @@
 	<string>NSApplication</string>
 	<key>NSHighResolutionCapable</key>
 	<false/>
+	<key>CFBundleDocumentTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeExtensions</key>
+			<array>
+				<string>ssd</string>
+				<string>dsd</string>
+				<string>sdd</string>
+				<string>ddd</string>
+				<string>adm</string>
+				<string>adl</string>
+				<string>ads</string>
+				<string>adf</string>
+			</array>
+			<key>LSHandlerRank</key>
+			<string>Default</string>
+		</dict>
+	</array>
+	<key>LSApplicationCategoryType</key>
+	<string></string>
 </dict>
 </plist>

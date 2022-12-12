@@ -353,3 +353,7 @@ target_sources(b2 PRIVATE ${CMAKE_CURRENT_LIST_DIR}/submodules/CMakeLists.txt)
 if(INCLUDE_EXPERIMENTAL)
   target_sources(b2 PRIVATE ${CMAKE_CURRENT_LIST_DIR}/experimental/CMakeLists.txt)
 endif()
+
+if(OSX)
+  target_sources(b2 PRIVATE ${CMAKE_CURRENT_LIST_DIR}/src/b2/macos/template.Info.plist)
+endif()

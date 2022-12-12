@@ -8,6 +8,10 @@ macOS computer to play your old BBC games or develop new BBC software.
 See the
 [Windows installation instructions](./doc/Installing-on-Windows.md).
 
+You can set b2 to run when you double click a disk image in the
+Windows file explorer. See the
+[file assocation instructions](./doc/File-Association.md).
+
 You can also follow the [building instructions](./doc/Building.md) to
 build from source.
 
@@ -16,6 +20,10 @@ build from source.
 See the [macOS installation instructions](./doc/Installing-on-OSX.md).
 **Please also revisit the installation instructions when upgrading
 from a previous version!**
+
+You can set b2 to run when you double click a disk image in the
+Finder. See the
+[file assocation instructions](./doc/File-Association.md).
 
 You can also follow the [building instructions](./doc/Building.md) to
 build from source.

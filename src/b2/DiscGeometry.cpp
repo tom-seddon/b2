@@ -63,6 +63,7 @@ struct DiscImageType {
     size_t num_possible_geometries;
 };
 
+// If adding more extensions, update the Info.plist for macOS too.
 #define SSD_EXT ".ssd"
 #define DSD_EXT ".dsd"
 #define SDD_EXT ".sdd"
