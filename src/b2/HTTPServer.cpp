@@ -55,7 +55,7 @@ static std::string strprintfv(const char *fmt, va_list v) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static void PRINTF_LIKE(2, 3) PrintLibUVError(Log *log, int rc, const char *fmt, ...) {
+static void PRINTF_LIKE(3, 4) PrintLibUVError(Log *log, int rc, const char *fmt, ...) {
     va_list v;
 
     va_start(v, fmt);
@@ -1534,6 +1534,8 @@ class HTTPClientImpl : public HTTPClient {
                                     char *data,
                                     size_t size,
                                     void *userptr) {
+        (void)handle;
+        
         auto client = (HTTPClientImpl *)userptr;
         Log *log = &client->m_messages->i;
 
