@@ -46,7 +46,7 @@ class TestBBCMicro : public BBCMicro {
 
     void Paste(std::string text);
 
-    void Update1();
+    uint32_t Update1();
 
     double GetSpeed() const;
 

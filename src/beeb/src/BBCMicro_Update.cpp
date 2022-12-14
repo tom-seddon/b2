@@ -75,6 +75,7 @@ uint32_t BBCMicro::Update(VideoDataUnit *video_unit, SoundDataUnit *sound_unit) 
     uint32_t result = 0;
 
     if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_Parasite) != 0) {
+        result |= BBCMicroUpdateResultFlag_Parasite;
         (*m_state.parasite_cpu.tfn)(&m_state.parasite_cpu);
 
         if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_ParasiteSpecial) != 0) {
@@ -228,6 +229,7 @@ uint32_t BBCMicro::Update(VideoDataUnit *video_unit, SoundDataUnit *sound_unit) 
                 m_state.stretch = false;
             }
         } else {
+            result |= BBCMicroUpdateResultFlag_Host;
             (*m_state.cpu.tfn)(&m_state.cpu);
 
             uint8_t mmio_page = m_state.cpu.abus.b.h - 0xfc;

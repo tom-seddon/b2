@@ -155,6 +155,8 @@ EEND()
 EBEGIN()
 EPNV(AudioUnit, 1 << 0)
 EPNV(VideoUnit, 1 << 1)
+EPNV(Host, 1 << 2)
+EPNV(Parasite, 1 << 4)
 EEND()
 #undef ENAME
 

@@ -567,16 +567,19 @@ void TestBBCMicro::RunUntilOSWORD0(double max_num_seconds) {
 
     CycleCount num_cycles = {0};
     while (num_cycles.n < max_num_cycles.n) {
-        if (M6502_IsAboutToExecute(cpu)) {
-            if (cpu->abus.b.l == ram[WORDV + 0] &&
-                cpu->abus.b.h == ram[WORDV + 1] &&
-                cpu->a == 0) {
-                break;
+
+        uint32_t update_result = this->Update1();
+        ++num_cycles.n;
+
+        if (update_result & BBCMicroUpdateResultFlag_Host) {
+            if (M6502_IsAboutToExecute(cpu)) {
+                if (cpu->abus.b.l == ram[WORDV + 0] &&
+                    cpu->abus.b.h == ram[WORDV + 1] &&
+                    cpu->a == 0) {
+                    break;
+                }
             }
         }
-
-        this->Update1();
-        ++num_cycles.n;
     }
 
     m_num_ticks += GetCurrentTickCount() - start_ticks;
@@ -599,7 +602,6 @@ std::vector<uint32_t> TestBBCMicro::RunForNFrames(size_t num_frames) {
 
     while (num_frames_got < num_frames) {
         size_t a = m_video_data_unit_idx;
-        size_t n = 1024;
 
         for (size_t i = 0; i < 1024; ++i) {
             uint32_t update_result = this->Update(&m_video_data_units[m_video_data_unit_idx],
@@ -607,12 +609,15 @@ std::vector<uint32_t> TestBBCMicro::RunForNFrames(size_t num_frames) {
 
             if (update_result & BBCMicroUpdateResultFlag_VideoUnit) {
                 ++m_video_data_unit_idx;
-                m_video_data_unit_idx &= VIDEO_DATA_UNIT_INDEX_MASK;
+                if (m_video_data_unit_idx > VIDEO_DATA_UNIT_INDEX_MASK) {
+                    tv.Update(&m_video_data_units[a], m_video_data_unit_idx - a);
+                    m_video_data_unit_idx = 0;
+                    a = m_video_data_unit_idx;
+                }
             }
         }
 
-        ASSERT(a + n <= m_video_data_units.size());
-        tv.Update(&m_video_data_units[a], n);
+        tv.Update(&m_video_data_units[a], m_video_data_unit_idx - a);
 
         uint64_t new_version;
         pixels = tv.GetTexturePixels(&new_version);
@@ -644,21 +649,7 @@ void TestBBCMicro::Paste(std::string text) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void TestBBCMicro::Update1() {
-    const M6502 *cpu = this->GetM6502();
-
-    if (M6502_IsAboutToExecute(cpu)) {
-        const uint8_t *ram = this->GetRAM();
-
-        if (cpu->abus.b.l == ram[WRCHV + 0] && cpu->abus.b.h == ram[WRCHV + 1]) {
-            this->GotOSWRCH();
-        } else if (cpu->abus.b.l == ram[CLIV + 0] && cpu->abus.b.h == ram[CLIV + 1]) {
-            if (this->GotOSCLI()) {
-                this->TestRTS();
-            }
-        }
-    }
-
+uint32_t TestBBCMicro::Update1() {
     uint32_t update_result = this->Update(&m_video_data_units[m_video_data_unit_idx],
                                           &m_temp_sound_data_unit);
 
@@ -668,6 +659,24 @@ void TestBBCMicro::Update1() {
         ++m_video_data_unit_idx;
         m_video_data_unit_idx &= VIDEO_DATA_UNIT_INDEX_MASK;
     }
+
+    if (update_result & BBCMicroUpdateResultFlag_Host) {
+        const M6502 *cpu = this->GetM6502();
+
+        if (M6502_IsAboutToExecute(cpu)) {
+            const uint8_t *ram = this->GetRAM();
+
+            if (cpu->abus.b.l == ram[WRCHV + 0] && cpu->abus.b.h == ram[WRCHV + 1]) {
+                this->GotOSWRCH();
+            } else if (cpu->abus.b.l == ram[CLIV + 0] && cpu->abus.b.h == ram[CLIV + 1]) {
+                if (this->GotOSCLI()) {
+                    this->TestRTS();
+                }
+            }
+        }
+    }
+
+    return update_result;
 }
 
 //////////////////////////////////////////////////////////////////////////
