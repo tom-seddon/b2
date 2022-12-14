@@ -95,14 +95,15 @@ endif
 ##########################################################################
 
 .PHONY:tom_emacs
+tom_emacs: _BUILD_FOLDER=$(shell pwd)/$(BUILD_FOLDER)/r.$(OS)
 tom_emacs:
 # let Emacs know where the build is actually taking place -
 # compilation mode watches the build output to figure out where
 # relative paths are relative to, but it doesn't reliably spot
 # everything...
-	@echo make: Entering directory \'$(shell pwd)/$(BUILD_FOLDER)/d.$(OS)\'
-	cd $(BUILD_FOLDER)/d.$(OS) && ninja
-#	cd $(BUILD_FOLDER)/d.$(OS) && ctest -LE 'slow|kevin_edwards' -j $(NPROC) --output-on-failure
+	@echo make: Entering directory \'$(_BUILD_FOLDER)\'
+	cd "$(_BUILD_FOLDER)" && ninja
+#	cd "$(_BUILD_FOLDER)" && ctest -LE 'slow|kevin_edwards' -j $(NPROC) --output-on-failure
 
 ##########################################################################
 ##########################################################################

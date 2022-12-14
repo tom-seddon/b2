@@ -366,7 +366,7 @@ bool TestDiscImage::GetByteIndex(size_t *index,
     }
 
     if (index) {
-        *index = (track * 10 + sector) * 256 + offset;
+        *index = (track * 10u + sector) * 256u + offset;
     }
 
     return true;

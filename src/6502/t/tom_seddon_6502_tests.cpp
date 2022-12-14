@@ -2,6 +2,7 @@
 #include <shared/log.h>
 #include <shared/testing.h>
 #include <6502/6502.h>
+#include <string.h>
 
 LOG_DEFINE(TEST, "TEST", &log_printer_stdout);
 

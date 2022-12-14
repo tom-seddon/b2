@@ -143,7 +143,7 @@ SN76489::Output SN76489::Update(bool write, uint8_t value) {
                 TRACE_EVENT(channel->values.vol);
             } else {
                 // data
-                channel->values.freq &= ~0xf;
+                channel->values.freq &= ~0xfu;
                 channel->values.freq |= v;
                 TRACE_EVENT(channel->values.freq);
 

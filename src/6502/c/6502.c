@@ -566,7 +566,7 @@ static void BIT(M6502 *s) {
     uint8_t result = s->a & s->data;
     s->p.bits.z = result == 0;
 
-    s->p.value &= ~0xc0;
+    s->p.value &= ~0xc0u;
     s->p.value |= s->data & 0xc0;
 }
 

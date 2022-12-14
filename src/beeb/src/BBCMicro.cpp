@@ -788,7 +788,7 @@ uint16_t BBCMicro::DebugGetBeebAddressFromCRTCAddress(uint8_t h, uint8_t l) cons
     } else {
         if (addr.w & 0x1000) {
             addr.w -= SCREEN_WRAP_ADJUSTMENTS[m_state.addressable_latch.bits.screen_base];
-            addr.w &= ~0x1000;
+            addr.w &= ~0x1000u;
         }
 
         return addr.w << 3;
@@ -1457,7 +1457,7 @@ void BBCMicro::DebugHalt(const char *fmt, ...) {
                 // Doesn't matter.
                 //ASSERT(*flags&BBCMicroByteDebugFlag_TempBreakExecute);
 
-                *flags &= ~BBCMicroByteDebugFlag_TempBreakExecute;
+                *flags &= ~(uint32_t)BBCMicroByteDebugFlag_TempBreakExecute;
             }
 
             m_debug->temp_execute_breakpoints.clear();
@@ -2343,7 +2343,7 @@ void BBCMicro::StepSound(DiscDrive *dd) {
         dd->step_sound_index = 0;
     } else if (dd->seek_sound == DiscDriveSound_EndValue) {
         // skip a bit of the step sound
-        dd->step_sound_index += SOUND_CLOCK_HZ / 100;
+        dd->step_sound_index += (int)SOUND_CLOCK_HZ / 100;
 
         // seek. Start with 20ms... it's as good a guess as any.
         dd->seek_sound = DiscDriveSound_Seek20ms;

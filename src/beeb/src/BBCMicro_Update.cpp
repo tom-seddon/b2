@@ -442,7 +442,7 @@ uint32_t BBCMicro::Update(VideoDataUnit *video_unit, SoundDataUnit *sound_unit) 
             } else {
                 if (addr & 0x1000) {
                     addr -= SCREEN_WRAP_ADJUSTMENTS[m_state.addressable_latch.bits.screen_base];
-                    addr &= ~0x1000;
+                    addr &= ~0x1000u;
                 }
 
                 addr <<= 3;

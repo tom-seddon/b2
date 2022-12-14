@@ -571,8 +571,8 @@ static void TestVisual6502URL(const std::string &description, const std::string 
             //
             // If there's a discrepancy when P is pushed, the data bus contents
             // check will pick it up.
-            uint8_t sim_p = (M6502_GetP(s).value) & ~0x10;
-            uint8_t real_p = readP(perfect6502) & ~0x10;
+            uint8_t sim_p = (M6502_GetP(s).value) & ~0x10u;
+            uint8_t real_p = readP(perfect6502) & ~0x10u;
             Check(&discrepancy, sim_p, real_p, "P", 'b');
         }
 
