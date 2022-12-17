@@ -335,7 +335,7 @@ void ConfigsUI::DoEditConfigGui() {
         edited = true;
     }
 
-    if (ImGui::Checkbox("6502 Second Processor", &config->parasite)) {
+    if (ImGui::Checkbox("4 MHz 65C102 Second Processor", &config->parasite)) {
         edited = true;
 
         if (config->parasite) {
