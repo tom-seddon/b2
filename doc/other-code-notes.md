@@ -135,3 +135,17 @@ Notes:
 
     ((nil . ((compile-command . "cd ~/b2/ && make tom_emacs"))))
 	
+
+# config versioning notes
+
+Tag each default config with a feature name, a string
+
+When saving: save off features seen in all configs
+
+When loading: any default configs with an unseen feature are added to
+the list. And the cycle repeats.
+
+Configs predating the feature mechanism - i.e., the stock B/B+/M128
+set - are marked by having an empty feature name., They never get
+re-added.
+

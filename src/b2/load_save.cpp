@@ -1070,6 +1070,7 @@ static const char AUTO_SAVE_PATH[] = "auto_save_path";
 #if SYSTEM_WINDOWS
 static const char UNIX_LINE_ENDINGS[] = "unix_line_endings";
 #endif
+static const char FEATURE_FLAGS[] = "feature_flags";
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -1161,10 +1162,20 @@ static void AddDefaultBeebKeymaps() {
 }
 
 static void AddDefaultBeebConfigs() {
+    const uint32_t old_features_seen = BeebWindows::GetBeebConfigFeatureFlags();
+    uint32_t new_features_seen = old_features_seen;
+
     for (size_t i = 0; i < GetNumDefaultBeebConfigs(); ++i) {
         const BeebConfig *config = GetDefaultBeebConfigByIndex(i);
-        BeebWindows::AddConfig(*config);
+        if (config->feature_flags != 0) {
+            if ((old_features_seen & config->feature_flags) == 0) {
+                BeebWindows::AddConfig(*config);
+                new_features_seen |= config->feature_flags;
+            }
+        }
     }
+
+    BeebWindows::SetBeebConfigFeatureFlags(new_features_seen);
 }
 
 static void EnsureDefaultBeebKeymapsAvailable() {
@@ -1182,6 +1193,11 @@ static bool LoadGlobals(rapidjson::Value *globals,
 
     FindBoolMember(&g_option_vsync, globals, VSYNC, nullptr);
 
+    uint32_t feature_flags = 0;
+    if (FindFlagsMember(&feature_flags, globals, FEATURE_FLAGS, "feature flag", &GetBeebConfigFeatureFlagEnumName, msg)) {
+        BeebWindows::SetBeebConfigFeatureFlags(feature_flags);
+    }
+
     return true;
 }
 
@@ -1190,6 +1206,13 @@ static void SaveGlobals(JSONWriter<StringStream> *writer) {
     {
         writer->Key(VSYNC);
         writer->Bool(g_option_vsync);
+
+        {
+            auto feature_flags_json = ArrayWriter(writer, FEATURE_FLAGS);
+
+            uint32_t feature_flags = BeebWindows::GetBeebConfigFeatureFlags();
+            SaveFlags(writer, feature_flags, &GetBeebConfigFeatureFlagEnumName);
+        }
     }
 }
 
@@ -1997,6 +2020,15 @@ bool LoadGlobalConfig(Messages *msg) {
 
         //LogDumpBytes(&LOG(LOADSAVE),data->data(),data->size());
 
+        rapidjson::Value globals;
+        if (FindObjectMember(&globals, doc.get(), GLOBALS, msg)) {
+            LOGF(LOADSAVE, "Loading globals.\n");
+
+            if (!LoadGlobals(&globals, msg)) {
+                return false;
+            }
+        }
+
         rapidjson::Value recent_paths;
         if (FindObjectMember(&recent_paths, doc.get(), RECENT_PATHS, msg)) {
             LOGF(LOADSAVE, "Loading recent paths.\n");
@@ -2047,6 +2079,7 @@ bool LoadGlobalConfig(Messages *msg) {
         if (FindArrayMember(&configs, doc.get(), OLD_CONFIGS, msg)) {
             LOGF(LOADSAVE, "Loading configs.\n");
 
+            BeebWindows::SetBeebConfigFeatureFlags(0); //sneaky hack.
             AddDefaultBeebConfigs();
 
             if (!LoadConfigs(&configs, OLD_CONFIGS, msg)) {
@@ -2058,6 +2091,8 @@ bool LoadGlobalConfig(Messages *msg) {
             if (!LoadConfigs(&configs, NEW_CONFIGS, msg)) {
                 return false;
             }
+
+            AddDefaultBeebConfigs();
         }
 
         rapidjson::Value trace;
@@ -2083,15 +2118,6 @@ bool LoadGlobalConfig(Messages *msg) {
             LOGF(LOADSAVE, "Loading NVRAM.\n");
 
             if (!LoadNVRAM(&nvram, msg)) {
-                return false;
-            }
-        }
-
-        rapidjson::Value globals;
-        if (FindObjectMember(&globals, doc.get(), GLOBALS, msg)) {
-            LOGF(LOADSAVE, "Loading globals.\n");
-
-            if (!LoadGlobals(&globals, msg)) {
                 return false;
             }
         }

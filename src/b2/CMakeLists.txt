@@ -4,7 +4,7 @@ cmake_minimum_required(VERSION 3.5)
 ##########################################################################
 
 add_executable(b2 MACOSX_BUNDLE
-  BeebConfig.cpp BeebConfig.h
+  BeebConfig.cpp BeebConfig.h BeebConfig.inl
   BeebKeymap.cpp BeebKeymap.h
   BeebLinkHTTPHandler.cpp BeebLinkHTTPHandler.h
   BeebLinkUI.cpp BeebLinkUI.h

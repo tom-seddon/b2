@@ -13,6 +13,10 @@
 #include <beeb/DiscImage.h>
 #include "misc.h"
 
+#include <shared/enum_def.h>
+#include "BeebConfig.inl"
+#include <shared/enum_end.h>
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
@@ -208,6 +212,33 @@ void InitDefaultBeebConfigs() {
         config.roms[4].writeable = true;
         config.parasite = true;
         config.parasite_os.standard_rom = FindBeebROM(StandardROM_MasterTurboParasite);
+        config.feature_flags = BeebConfigFeatureFlag_MasterTurbo;
+
+        g_default_configs.push_back(config);
+    }
+
+    // Master Turbo MOS 3.50
+    {
+        BeebConfig config;
+
+        config.name = "Master Turbo (MOS 3.50)";
+        config.disc_interface = &DISC_INTERFACE_MASTER128;
+        config.type = &BBC_MICRO_TYPE_MASTER;
+        config.os.standard_rom = FindBeebROM(StandardROM_MOS350_MOS);
+        config.roms[15].standard_rom = FindBeebROM(StandardROM_MOS350_TERMINAL);
+        config.roms[14].standard_rom = FindBeebROM(StandardROM_MOS350_VIEW);
+        config.roms[13].standard_rom = FindBeebROM(StandardROM_MOS350_ADFS);
+        config.roms[12].standard_rom = FindBeebROM(StandardROM_MOS350_BASIC4);
+        config.roms[11].standard_rom = FindBeebROM(StandardROM_MOS350_EDIT);
+        config.roms[10].standard_rom = FindBeebROM(StandardROM_MOS350_VIEWSHEET);
+        config.roms[9].standard_rom = FindBeebROM(StandardROM_MOS350_DFS);
+        config.roms[7].writeable = true;
+        config.roms[6].writeable = true;
+        config.roms[5].writeable = true;
+        config.roms[4].writeable = true;
+        config.parasite = true;
+        config.parasite_os.standard_rom = FindBeebROM(StandardROM_MasterTurboParasite);
+        config.feature_flags = BeebConfigFeatureFlag_MasterTurbo;
 
         g_default_configs.push_back(config);
     }

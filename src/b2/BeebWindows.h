@@ -113,6 +113,9 @@ namespace BeebWindows {
     // false if there was a problem and printing messages out to *msg.
     bool LoadConfigByName(BeebLoadedConfig *loaded_config, const std::string &config_name, Messages *msg);
 
+    uint32_t GetBeebConfigFeatureFlags();
+    void SetBeebConfigFeatureFlags(uint32_t flags);
+
     void AddConfig(BeebConfig config);
     void RemoveConfigByIndex(size_t index);
 

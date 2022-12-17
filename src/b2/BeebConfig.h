@@ -10,6 +10,10 @@
 #include <vector>
 #include "roms.h"
 
+#include <shared/enum_decl.h>
+#include "BeebConfig.inl"
+#include <shared/enum_end.h>
+
 class BBCMicro;
 class Messages;
 struct DiscInterfaceDef;
@@ -44,6 +48,7 @@ class BeebConfig {
     bool ext_mem = false;
     bool beeblink = false;
     bool parasite = false;
+    uint32_t feature_flags = 0;//combination of BeebConfigFeatureFlag
 
   protected:
   private:
