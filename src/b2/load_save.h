@@ -25,6 +25,10 @@ class Messages;
 std::string GetAssetPath(const std::string &f0);
 std::string GetAssetPath(const std::string &f0, const std::string &f1);
 
+// Set folder for config files explicitly. If never set, a system-specific
+// default will be used.
+void SetConfigFolder(std::string folder);
+
 // Get path to user-specific config file. This will be stored
 // somewhere persistent, that may follow the user around.
 //

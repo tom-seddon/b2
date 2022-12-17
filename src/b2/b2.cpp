@@ -460,6 +460,8 @@ struct Options {
 #endif
     bool launch = false;
     std::string launch_path;
+    std::string override_config_folder = GetConfigPath("");
+    bool override_config_folder_specified = false;
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -509,7 +511,7 @@ static void RemovePSNArguments(std::vector<const char *> *argv) {
 }
 #endif
 
-static bool DoCommandLineOptions(
+static bool ParseCommandLineOptions(
     Options *options,
     int argc, char *argv[],
     Messages *init_messages) {
@@ -557,6 +559,8 @@ static bool DoCommandLineOptions(
     p.AddOption("remotery").SetIfPresent(&options->remotery).Help("activate Remotery. See: https://github.com/Celtoys/Remotery");
     p.AddOption("remotery-thread-sampler").SetIfPresent(&options->remotery_thread_sampler).Help("activate Remotery thread sampler");
 #endif
+
+    p.AddOption("config-folder").Arg(&options->override_config_folder).SetIfPresent(&options->override_config_folder_specified).Help("specify folder for config files (will be created if non-existent)").ShowDefault();
 
     p.AddHelpOption(&options->help);
 
@@ -971,7 +975,7 @@ static bool main2(int argc, char *argv[], const std::shared_ptr<MessageList> &in
 
     Options options;
 
-    if (!DoCommandLineOptions(&options, argc, argv, &init_messages)) {
+    if (!ParseCommandLineOptions(&options, argc, argv, &init_messages)) {
         if (options.help) {
 #if SYSTEM_WINDOWS
             if (!GetConsoleWindow()) {
@@ -985,6 +989,10 @@ static bool main2(int argc, char *argv[], const std::shared_ptr<MessageList> &in
         }
 
         return false;
+    }
+
+    if (options.override_config_folder_specified) {
+        SetConfigFolder(options.override_config_folder);
     }
 
     StartHTTPServer(&init_messages);
