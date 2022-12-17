@@ -272,6 +272,10 @@ struct BBCMicroType {
     // Mask for ACCCON bits. If 0x00, the system has no ACCCON register.
     uint8_t acccon_mask;
 
+    // Whether parasite is accessible, indexed by ITU bit. (ITU is always 0 on
+    // B/B+.)
+    bool parasite_accessible[2];
+
     // combination of BBCMicroTypeFlag
     uint32_t flags;
 

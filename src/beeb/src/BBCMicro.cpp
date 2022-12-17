@@ -328,6 +328,45 @@ void BBCMicro::UpdatePaging() {
 
         m_rom_mmio = io;
     }
+
+    if (m_state.parasite_enabled) {
+        bool parasite_accessible = m_type->parasite_accessible[m_state.acccon.m128_bits.itu];
+        if (parasite_accessible != m_state.parasite_accessible) {
+            if (parasite_accessible) {
+                static constexpr ReadMMIOFn host_rmmio_fns[8] = {
+                    &ReadHostTube0,
+                    &ReadHostTube1,
+                    &ReadHostTube2,
+                    &ReadHostTube3,
+                    &ReadHostTube4,
+                    &ReadHostTube5,
+                    &ReadHostTube6,
+                    &ReadHostTube7,
+                };
+
+                static constexpr WriteMMIOFn host_wmmio_fns[8] = {
+                    &WriteHostTube0,
+                    &WriteHostTube1,
+                    &WriteTubeDummy,
+                    &WriteHostTube3,
+                    &WriteTubeDummy,
+                    &WriteHostTube5,
+                    &WriteTubeDummy,
+                    &WriteHostTube7,
+                };
+
+                for (uint16_t a = 0xfee0; a < 0xff00; ++a) {
+                    this->SetMMIOFns(a, host_rmmio_fns[a & 7], host_wmmio_fns[a & 7], &m_state.parasite_tube);
+                }
+            } else {
+                for (uint16_t a = 0xfee0; a < 0xff00; ++a) {
+                    this->SetMMIOFns(a, nullptr, nullptr, nullptr);
+                }
+            }
+
+            m_state.parasite_accessible = parasite_accessible;
+        }
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -2050,8 +2089,6 @@ void BBCMicro::InitStuff() {
         ASSERT(m_mmio_stretch[i] == m_hw_mmio_stretch[i].data() || m_mmio_stretch[i] == m_rom_mmio_stretch.data());
     }
 
-    //m_state.parasite_ram = std::vector<uint8_t>();
-    //m_state.parasite_enabled = false;
     if (m_init_flags & BBCMicroInitFlag_Parasite) {
         m_state.parasite_cpu.context = this;
 
@@ -2075,32 +2112,6 @@ void BBCMicro::InitStuff() {
         m_parasite_wmmio_fns[5] = &WriteParasiteTube5;
         m_parasite_wmmio_fns[6] = &WriteTubeDummy;
         m_parasite_wmmio_fns[7] = &WriteParasiteTube7;
-
-        static const ReadMMIOFn host_rmmio_fns[8] = {
-            &ReadHostTube0,
-            &ReadHostTube1,
-            &ReadHostTube2,
-            &ReadHostTube3,
-            &ReadHostTube4,
-            &ReadHostTube5,
-            &ReadHostTube6,
-            &ReadHostTube7,
-        };
-
-        static const WriteMMIOFn host_wmmio_fns[8] = {
-            &WriteHostTube0,
-            &WriteHostTube1,
-            &WriteTubeDummy,
-            &WriteHostTube3,
-            &WriteTubeDummy,
-            &WriteHostTube5,
-            &WriteTubeDummy,
-            &WriteHostTube7,
-        };
-
-        for (uint16_t a = 0xfee0; a < 0xff00; ++a) {
-            this->SetMMIOFns(a, host_rmmio_fns[a & 7], host_wmmio_fns[a & 7], &m_state.parasite_tube);
-        }
     } else {
         ASSERT(m_state.parasite_ram_buffer.empty());
     }

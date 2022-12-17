@@ -599,6 +599,7 @@ class BBCMicro : private WD1770Handler {
 
         // Tube stuff.
         bool parasite_enabled = false;
+        bool parasite_accessible = false;
         M6502 parasite_cpu = {};
         std::shared_ptr<const std::array<uint8_t, 4096>> parasite_rom_buffer;
         std::vector<uint8_t> parasite_ram_buffer;

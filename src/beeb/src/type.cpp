@@ -245,6 +245,7 @@ const BBCMicroType BBC_MICRO_TYPE_B = {
 #endif
     0x0f,                                      //romsel_mask,
     0x00,                                      //acccon_mask,
+    {true, false},                             //parasite_accessible
     (BBCMicroTypeFlag_CanDisplayTeletext3c00), //flags
     {
         {0x00, 0x1f},
@@ -444,8 +445,9 @@ const BBCMicroType BBC_MICRO_TYPE_B_PLUS = {
     &ApplyDSOBPlus, //apply_dso_fn
     &GetDSOBPlus,   //get_dso_fn
 #endif
-    0x8f, //romsel_mask,
-    0x80, //acccon_mask,
+    0x8f,          //romsel_mask,
+    0x80,          //acccon_mask,
+    {true, false}, //parasite_accessible
     (BBCMicroTypeFlag_CanDisplayTeletext3c00 |
      BBCMicroTypeFlag_HasShadowRAM), //flags
     {
@@ -714,8 +716,9 @@ const BBCMicroType BBC_MICRO_TYPE_MASTER = {
     &ApplyDSOMaster, //apply_dso_fn
     &GetDSOMaster,   //get_dso_fn
 #endif
-    0x8f, //romsel_mask,
-    0xff, //acccon_mask,
+    0x8f,          //romsel_mask,
+    0xff,          //acccon_mask,
+    {false, true}, //parasite_accessible
     (BBCMicroTypeFlag_HasShadowRAM |
      BBCMicroTypeFlag_HasRTC |
      BBCMicroTypeFlag_HasNumericKeypad), //flags
