@@ -11,6 +11,15 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#if SYSTEM_WINDOWS
+static const char DEFAULT_SEPARATOR[] = "\\";
+#else
+static const char DEFAULT_SEPARATOR[] = "/";
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 bool PathIsSeparatorChar(char c) {
     return c == '/' || c == '\\';
 }
@@ -97,7 +106,7 @@ std::string PathJoined(const std::string &a, const std::string &b) {
     if (PathIsSeparatorChar(a.back())) {
         return a + b;
     } else {
-        return a + "/" + b;
+        return a + DEFAULT_SEPARATOR + b;
     }
 }
 
