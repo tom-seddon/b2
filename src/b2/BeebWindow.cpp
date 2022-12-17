@@ -1775,13 +1775,6 @@ void BeebWindow::DoDebugMenu() {
         m_cc.DoMenuItemUI("toggle_event_trace");
         m_cc.DoMenuItemUI("toggle_date_rate");
 
-#if SYSTEM_WINDOWS
-        if (GetConsoleWindow()) {
-            m_cc.DoMenuItemUI("clear_console");
-            m_cc.DoMenuItemUI("print_separator");
-        }
-#endif
-
 #if VIDEO_TRACK_METADATA
         m_cc.DoMenuItemUI("toggle_pixel_metadata");
 #endif
@@ -1845,6 +1838,16 @@ void BeebWindow::DoDebugMenu() {
 #endif
 
         ImGui::Separator();
+
+#if SYSTEM_WINDOWS
+        m_cc.DoMenuItemUI("toggle_console");
+        if (HasWindowsConsole()) {
+            m_cc.DoMenuItemUI("clear_console");
+            m_cc.DoMenuItemUI("print_separator");
+        }
+
+        ImGui::Separator();
+#endif
 
 #if ENABLE_IMGUI_DEMO
         ImGui::MenuItem("ImGui demo...", NULL, &m_imgui_demo);
@@ -2985,6 +2988,37 @@ void BeebWindow::ResetDockWindows() {
 //////////////////////////////////////////////////////////////////////////
 
 #if SYSTEM_WINDOWS
+void BeebWindow::ToggleWin32Console() {
+    if (HasWindowsConsole()) {
+        FreeWindowsConsole();
+    } else {
+        AllocWindowsConsole();
+    }
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if SYSTEM_WINDOWS
+bool BeebWindow::IsToggleWin32ConsoleTicked() const {
+    return HasWindowsConsole();
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if SYSTEM_WINDOWS
+bool BeebWindow::IsToggleWin32ConsoleEnabled() const {
+    return CanDetachFromWindowsConsole();
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if SYSTEM_WINDOWS
 void BeebWindow::ClearConsole() {
     HANDLE h = GetStdHandle(STD_OUTPUT_HANDLE);
 
@@ -3435,6 +3469,7 @@ ObjectCommandTable<BeebWindow> BeebWindow::ms_command_table("Beeb Window", {
         {CommandDef("clean_up_recent_files_lists", "Clean up recent files lists").MustConfirm(), &BeebWindow::CleanUpRecentFilesLists},
         {CommandDef("reset_dock_windows", "Reset dock windows").MustConfirm(), &BeebWindow::ResetDockWindows},
 #if SYSTEM_WINDOWS
+        {{"toggle_console", "Show Win32 console"}, &BeebWindow::ToggleWin32Console, &BeebWindow::IsToggleWin32ConsoleTicked, &BeebWindow::IsToggleWin32ConsoleEnabled},
         {{"clear_console", "Clear Win32 console"}, &BeebWindow::ClearConsole},
 #endif
         {{"print_separator", "Print stdout separator"}, &BeebWindow::PrintSeparator},

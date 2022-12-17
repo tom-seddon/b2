@@ -458,6 +458,9 @@ class BeebWindow {
     void Exit();
     void CleanUpRecentFilesLists();
     void ResetDockWindows();
+    void ToggleWin32Console();
+    bool IsToggleWin32ConsoleTicked() const;
+    bool IsToggleWin32ConsoleEnabled() const;
     void ClearConsole();
     void PrintSeparator();
     static size_t ConsumeTVTexture(OutputDataBuffer<VideoDataUnit> *video_output, TVOutput *tv, bool inhibit_update);

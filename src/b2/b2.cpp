@@ -61,7 +61,7 @@ static const char PRODUCT_NAME[] = "b2 - BBC Micro B/B+/Master 128 emulator - " 
 //////////////////////////////////////////////////////////////////////////
 
 #if SYSTEM_WINDOWS
-#if BUILD_TYPE_Final
+#if BUILD_TYPE_Final || BUILD_TYPE_RelWithDebInfo
 
 // Seems like there's no good way to do this from CMake:
 // http://stackoverflow.com/questions/8054734/
@@ -105,6 +105,16 @@ bool g_option_vsync = true;
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#if SYSTEM_WINDOWS
+// Assume not detchable, if the process has a console on startup. Either it was
+// built that way, or launched that way.
+static bool g_can_detach_from_windows_console;
+static bool g_got_console = false;
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 //void *operator new(size_t n) {
 //    return malloc(n);
 //}
@@ -120,6 +130,116 @@ bool g_option_vsync = true;
 //void operator delete[](void *p) {
 //    free(p);
 //}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if SYSTEM_WINDOWS
+static void ReopenOutputHandles(const char *dest) {
+    fclose(stdout);
+    fclose(stderr);
+
+    freopen(dest, "w", stdout);
+    freopen(dest, "w", stderr);
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if SYSTEM_WINDOWS
+static void InitWindowsConsoleStuff() {
+    HANDLE h = GetStdHandle(STD_OUTPUT_HANDLE);
+    if (h && h != INVALID_HANDLE_VALUE) {
+        g_can_detach_from_windows_console = false;
+        g_got_console = true;
+    } else {
+        g_can_detach_from_windows_console = true;
+        g_got_console = false;
+    }
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if SYSTEM_WINDOWS
+bool CanDetachFromWindowsConsole() {
+    return g_can_detach_from_windows_console;
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if SYSTEM_WINDOWS
+bool HasWindowsConsole() {
+    return g_got_console;
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if SYSTEM_WINDOWS
+static BOOL WINAPI ConsoleControlHandler(DWORD dwCtrlType) {
+    switch (dwCtrlType) {
+    case CTRL_CLOSE_EVENT:
+    case CTRL_LOGOFF_EVENT:
+    case CTRL_SHUTDOWN_EVENT:
+    case CTRL_C_EVENT:
+    case CTRL_BREAK_EVENT:
+        {
+            SDL_Event event = {};
+            event.type = SDL_QUIT;
+
+            SDL_PushEvent(&event);
+
+            // Once the ctrl handler is running, the process will inevitably
+            // finish, one way or the other. Give it 5 seconds to hopefully shut
+            // down from the main thread before then.
+            Sleep(5000);
+        }
+        return TRUE;
+    }
+    return FALSE;
+}
+#endif
+
+#if SYSTEM_WINDOWS
+void AllocWindowsConsole() {
+    if (!g_got_console) {
+        if (AllocConsole()) {
+            g_got_console = true;
+
+            ReopenOutputHandles("CON");
+
+            // The control handler needs adding for each AllocConsole call.
+            SetConsoleCtrlHandler(&ConsoleControlHandler, TRUE);
+        }
+    }
+
+    printf("stdout redirected to console window\n");
+    fflush(stdout);
+
+    fprintf(stderr, "stderr redirected to console window\n");
+    fflush(stderr);
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if SYSTEM_WINDOWS
+void FreeWindowsConsole() {
+    ReopenOutputHandles("NUL");
+
+    FreeConsole();
+    g_got_console = false;
+
+    //LOGF(OUTPUT, "%s: HasWindowsConsole=%s\n", __FUNCTION__, BOOL_STR(HasWindowsConsole()));
+}
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -1394,6 +1514,10 @@ int main(int argc, char *argv[]) {
     _CrtSetDbgFlag(_CrtSetDbgFlag(_CRTDBG_REPORT_FLAG) | _CRTDBG_LEAK_CHECK_DF);
     //_CrtSetDbgFlag(_CrtSetDbgFlag(_CRTDBG_REPORT_FLAG)|_CRTDBG_CHECK_ALWAYS_DF|);
     //_crtBreakAlloc=12520;
+#endif
+
+#if SYSTEM_WINDOWS
+    InitWindowsConsoleStuff();
 #endif
 
     SetCurrentThreadName("Main Thread");
