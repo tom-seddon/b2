@@ -753,14 +753,13 @@ parasite_update_done:
 
     return result;
 
-#ifdef _MSC_VER
-    // Dumb way of inhibiting unreferenced label warning. And you can't goto
-    // into an if constexpr, so the label can't be surrounded by one whose
-    // condition matches the goto.
+    // Dumb way of inhibiting unreferenced label warning. And you
+    // can't goto into an if constexpr, so the label can't be
+    // surrounded by one whose condition matches the goto.
     //
-    // Luckily, the compiler seems not to spot that this code is unreachable...
+    // Luckily, neither VC++ nor gcc seems not to mind that this code
+    // is unreachable...
     goto parasite_update_done;
-#endif
 }
 
 //////////////////////////////////////////////////////////////////////////

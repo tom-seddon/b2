@@ -350,6 +350,10 @@ void ConfigsUI::DoEditConfigGui() {
     if (config->parasite_type != BeebConfigParasiteType_None) {
         if (config->parasite_os.file_name.empty() && !config->parasite_os.standard_rom) {
             switch (config->parasite_type) {
+            case BeebConfigParasiteType_None:
+                // inhibit spurious warning
+                break;
+                
             case BeebConfigParasiteType_External3MHz6502:
                 config->parasite_os.standard_rom = FindBeebROM(StandardROM_TUBE110);
                 break;
