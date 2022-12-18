@@ -43,12 +43,10 @@ EPNV(ParasiteSpecial, 1 << 6)
 EPNV(DebugStepParasite, 1 << 7)
 EPNV(DebugStepHost, 1 << 8)
 
-// If clear, parasite (if any) runs at 4 MHz, and on Master it's accessible when
-// ITU set. This corresponds to a Master Turbo, or (if B/B+) a universal second
-// processor with a Master Turbo board in it.
+// If clear, parasite (if any) runs at 4 MHz.
 //
-// If set, parasite (if any) runs at 3 MHz, and on Master it's accessible when
-// XTU set. This corresponds to a cheese wedge second processor.
+// If set, parasite (if any) runs at an effective 3 MHz, by running for 3 cycles
+// out of every 4.
 EPNV(Parasite3MHzExternal, 1 << 9)
 
 EEND()

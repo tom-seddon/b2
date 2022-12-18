@@ -473,6 +473,7 @@ static std::vector<uint8_t> GetNVRAMContents(TestBBCMicroType type) {
 TestBBCMicro::TestBBCMicro(TestBBCMicroType type)
     : BBCMicro(GetBBCMicroType(type),
                GetDiscInterfaceDef(type),
+               BBCMicroParasiteType_None,
                GetNVRAMContents(type),
                nullptr,
                0,

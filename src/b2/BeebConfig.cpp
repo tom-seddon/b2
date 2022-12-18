@@ -212,7 +212,7 @@ void InitDefaultBeebConfigs() {
         config.roms[6].writeable = true;
         config.roms[5].writeable = true;
         config.roms[4].writeable = true;
-        config.parasite_type = BeebConfigParasiteType_MasterTurbo;
+        config.parasite_type = BBCMicroParasiteType_MasterTurbo;
         config.parasite_os.standard_rom = FindBeebROM(StandardROM_MasterTurboParasite);
         config.feature_flags = BeebConfigFeatureFlag_MasterTurbo;
 
@@ -238,7 +238,7 @@ void InitDefaultBeebConfigs() {
         config.roms[6].writeable = true;
         config.roms[5].writeable = true;
         config.roms[4].writeable = true;
-        config.parasite_type = BeebConfigParasiteType_MasterTurbo;
+        config.parasite_type = BBCMicroParasiteType_MasterTurbo;
         config.parasite_os.standard_rom = FindBeebROM(StandardROM_MasterTurboParasite);
         config.feature_flags = BeebConfigFeatureFlag_MasterTurbo;
 
@@ -250,7 +250,7 @@ void InitDefaultBeebConfigs() {
         BeebConfig config = GetBConfig(&DISC_INTERFACE_ACORN_1770);
 
         config.name += " + 6502 second processor";
-        config.parasite_type = BeebConfigParasiteType_External3MHz6502;
+        config.parasite_type = BBCMicroParasiteType_External3MHz6502;
         config.parasite_os.standard_rom = FindBeebROM(StandardROM_TUBE110);
         config.feature_flags = BeebConfigFeatureFlag_6502SecondProcessor;
 

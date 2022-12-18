@@ -126,6 +126,7 @@ const uint16_t BBCMicro::SCREEN_WRAP_ADJUSTMENTS[] = {
 //////////////////////////////////////////////////////////////////////////
 
 BBCMicro::State::State(const BBCMicroType *type,
+                       BBCMicroParasiteType parasite_type,
                        const std::vector<uint8_t> &nvram_contents,
                        uint32_t init_flags,
                        const tm *rtc_time,
@@ -142,13 +143,15 @@ BBCMicro::State::State(const BBCMicroType *type,
         }
     }
 
-    if (init_flags & BBCMicroInitFlag_Parasite) {
+    if (parasite_type != BBCMicroParasiteType_None) {
         this->parasite_ram_buffer.resize(65536);
-        this->parasite_enabled = true;
         this->parasite_boot_mode = true;
-        this->parasite_3MHz_external = !!(init_flags & BBCMicroInitFlag_Parasite3MHzExternal);
         M6502_Init(&this->parasite_cpu, &M6502_rockwell65c02_config);
         ResetTube(&this->parasite_tube);
+
+        // Whether disabled or not, the parasite starts out inaccessible, as the
+        // relevant I/O functions start out as the defaults. InitPaging will
+        // sort this out, if it needs to change.
     }
 
     this->sn76489.Reset(!!(init_flags & BBCMicroInitFlag_PowerOnTone));
@@ -159,18 +162,21 @@ BBCMicro::State::State(const BBCMicroType *type,
 
 BBCMicro::BBCMicro(const BBCMicroType *type,
                    const DiscInterfaceDef *def,
+                   BBCMicroParasiteType parasite_type,
                    const std::vector<uint8_t> &nvram_contents,
                    const tm *rtc_time,
                    uint32_t init_flags,
                    BeebLinkHandler *beeblink_handler,
                    CycleCount initial_cycle_count)
     : m_state(type,
+              parasite_type,
               nvram_contents,
               init_flags,
               rtc_time,
               initial_cycle_count)
     , m_type(type)
     , m_disc_interface(def ? def->create_fun() : nullptr)
+    , m_parasite_type(parasite_type)
     , m_init_flags(init_flags)
     , m_beeblink_handler(beeblink_handler) {
     this->InitStuff();
@@ -181,6 +187,7 @@ BBCMicro::BBCMicro(const BBCMicroType *type,
 
 BBCMicro::BBCMicro(const BBCMicro &src)
     : m_state(src.m_state)
+    , m_parasite_type(src.m_parasite_type)
     , m_type(src.m_type)
     , m_disc_interface(src.m_disc_interface ? src.m_disc_interface->Clone() : nullptr)
     , m_init_flags(src.m_init_flags) {
@@ -330,52 +337,66 @@ void BBCMicro::UpdatePaging() {
         m_rom_mmio = io;
     }
 
-    if (m_state.parasite_enabled) {
-        bool parasite_accessible;
+    bool parasite_accessible;
+    switch (m_parasite_type) {
+    default:
+        ASSERT(false);
+        // fall through
+    case BBCMicroParasiteType_None:
+        parasite_accessible = false;
+        break;
+
+    case BBCMicroParasiteType_External3MHz6502:
         if (m_type->type_id == BBCMicroTypeID_Master) {
-            // External copro only when ITU reset. Internal copro only when ITU
-            // set.
-            parasite_accessible = m_state.acccon.m128_bits.itu != m_state.parasite_3MHz_external;
+            parasite_accessible = !m_state.acccon.m128_bits.itu;
         } else {
-            // No itu/xtu distinction.
             parasite_accessible = true;
         }
+        break;
 
-        if (parasite_accessible != m_state.parasite_accessible) {
-            if (parasite_accessible) {
-                static constexpr ReadMMIOFn host_rmmio_fns[8] = {
-                    &ReadHostTube0,
-                    &ReadHostTube1,
-                    &ReadHostTube2,
-                    &ReadHostTube3,
-                    &ReadHostTube4,
-                    &ReadHostTube5,
-                    &ReadHostTube6,
-                    &ReadHostTube7,
-                };
-
-                static constexpr WriteMMIOFn host_wmmio_fns[8] = {
-                    &WriteHostTube0,
-                    &WriteHostTube1,
-                    &WriteTubeDummy,
-                    &WriteHostTube3,
-                    &WriteTubeDummy,
-                    &WriteHostTube5,
-                    &WriteTubeDummy,
-                    &WriteHostTube7,
-                };
-
-                for (uint16_t a = 0xfee0; a < 0xff00; ++a) {
-                    this->SetMMIOFns(a, host_rmmio_fns[a & 7], host_wmmio_fns[a & 7], &m_state.parasite_tube);
-                }
-            } else {
-                for (uint16_t a = 0xfee0; a < 0xff00; ++a) {
-                    this->SetMMIOFns(a, nullptr, nullptr, nullptr);
-                }
-            }
-
-            m_state.parasite_accessible = parasite_accessible;
+    case BBCMicroParasiteType_MasterTurbo:
+        if (m_type->type_id == BBCMicroTypeID_Master) {
+            parasite_accessible = m_state.acccon.m128_bits.itu;
+        } else {
+            parasite_accessible = true;
         }
+        break;
+    }
+
+    if (parasite_accessible != m_state.parasite_accessible) {
+        if (parasite_accessible) {
+            static constexpr ReadMMIOFn host_rmmio_fns[8] = {
+                &ReadHostTube0,
+                &ReadHostTube1,
+                &ReadHostTube2,
+                &ReadHostTube3,
+                &ReadHostTube4,
+                &ReadHostTube5,
+                &ReadHostTube6,
+                &ReadHostTube7,
+            };
+
+            static constexpr WriteMMIOFn host_wmmio_fns[8] = {
+                &WriteHostTube0,
+                &WriteHostTube1,
+                &WriteTubeDummy,
+                &WriteHostTube3,
+                &WriteTubeDummy,
+                &WriteHostTube5,
+                &WriteTubeDummy,
+                &WriteHostTube7,
+            };
+
+            for (uint16_t a = 0xfee0; a < 0xff00; ++a) {
+                this->SetMMIOFns(a, host_rmmio_fns[a & 7], host_wmmio_fns[a & 7], &m_state.parasite_tube);
+            }
+        } else {
+            for (uint16_t a = 0xfee0; a < 0xff00; ++a) {
+                this->SetMMIOFns(a, nullptr, nullptr, nullptr);
+            }
+        }
+
+        m_state.parasite_accessible = parasite_accessible;
     }
 }
 
@@ -419,7 +440,7 @@ void BBCMicro::InitPaging() {
         }
     }
 
-    if (m_state.parasite_enabled) {
+    if (m_parasite_type!=BBCMicroParasiteType_None) {
         for (size_t i = 0; i < NUM_PARASITE_BIG_PAGES; ++i) {
             BigPage *bp = &m_big_pages[PARASITE_BIG_PAGE_INDEX + i];
 
@@ -950,7 +971,7 @@ void BBCMicro::StartTrace(uint32_t trace_flags, size_t max_num_bytes) {
 
     bool parasite_boot_mode = false;
     const M6502Config *parasite_m6502_config = nullptr;
-    if (m_state.parasite_enabled) {
+    if (m_parasite_type != BBCMicroParasiteType_None) {
         parasite_boot_mode = m_state.parasite_boot_mode;
         parasite_m6502_config = m_state.parasite_cpu.config;
     }
@@ -1260,7 +1281,7 @@ void BBCMicro::DebugGetPaging(ROMSEL *romsel, ACCCON *acccon) const {
 
 #if BBCMICRO_DEBUGGER
 const Tube *BBCMicro::DebugGetTube() const {
-    if (m_state.parasite_enabled) {
+    if (m_parasite_type != BBCMicroParasiteType_None) {
         return &m_state.parasite_tube;
     } else {
         return nullptr;
@@ -1274,7 +1295,7 @@ const Tube *BBCMicro::DebugGetTube() const {
 #if BBCMICRO_DEBUGGER
 const M6502 *BBCMicro::DebugGetM6502(uint32_t dso) const {
     if (dso & BBCMicroDebugStateOverride_Parasite) {
-        if (m_state.parasite_enabled) {
+        if (m_parasite_type != BBCMicroParasiteType_None) {
             return &m_state.parasite_cpu;
         }
     }
@@ -1701,7 +1722,7 @@ void BBCMicro::SetHardwareDebugState(const HardwareDebugState &hw) {
 uint32_t BBCMicro::DebugGetCurrentPageOverride() const {
     uint32_t dso = (*m_type->get_dso_fn)(m_state.romsel, m_state.acccon);
 
-    if (m_state.parasite_enabled) {
+    if (m_parasite_type != BBCMicroParasiteType_None) {
         if (m_state.parasite_boot_mode) {
             dso |= BBCMicroDebugStateOverride_ParasiteROM;
         }
@@ -1750,7 +1771,7 @@ void BBCMicro::DebugGetDebugFlags(uint8_t *host_address_debug_flags,
 uint32_t BBCMicro::DebugGetStateOverrideMask() const {
     uint32_t dso_mask = m_type->dso_mask;
 
-    if (m_state.parasite_enabled) {
+    if (m_parasite_type != BBCMicroParasiteType_None) {
         dso_mask |= (BBCMicroDebugStateOverride_Parasite |
                      BBCMicroDebugStateOverride_ParasiteROM |
                      BBCMicroDebugStateOverride_OverrideParasiteROM);
@@ -2099,7 +2120,7 @@ void BBCMicro::InitStuff() {
         ASSERT(m_mmio_stretch[i] == m_hw_mmio_stretch[i].data() || m_mmio_stretch[i] == m_rom_mmio_stretch.data());
     }
 
-    if (m_init_flags & BBCMicroInitFlag_Parasite) {
+    if (m_parasite_type != BBCMicroParasiteType_None) {
         m_state.parasite_cpu.context = this;
 
         ASSERT(m_state.parasite_ram_buffer.size() == 65536);
@@ -2491,10 +2512,10 @@ void BBCMicro::UpdateCPUDataBusFn() {
         update_flags |= BBCMicroUpdateFlag_HasRTC;
     }
 
-    if (m_state.parasite_enabled) {
+    if (m_parasite_type != BBCMicroParasiteType_None) {
         update_flags |= BBCMicroUpdateFlag_Parasite;
 
-        if (m_state.parasite_3MHz_external) {
+        if (m_parasite_type == BBCMicroParasiteType_External3MHz6502) {
             update_flags |= BBCMicroUpdateFlag_Parasite3MHzExternal;
         }
 

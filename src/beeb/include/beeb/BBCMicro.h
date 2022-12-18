@@ -149,6 +149,7 @@ class BBCMicro : private WD1770Handler {
     // support such things.
     BBCMicro(const BBCMicroType *type,
              const DiscInterfaceDef *def,
+             BBCMicroParasiteType parasite_type,
              const std::vector<uint8_t> &nvram_contents,
              const tm *rtc_time,
              uint32_t init_flags,
@@ -598,16 +599,15 @@ class BBCMicro : private WD1770Handler {
         uint64_t paste_wait_end = 0;
 
         // Tube stuff.
-        bool parasite_enabled = false;
         bool parasite_accessible = false;
         M6502 parasite_cpu = {};
         std::shared_ptr<const std::array<uint8_t, 4096>> parasite_rom_buffer;
         std::vector<uint8_t> parasite_ram_buffer;
         bool parasite_boot_mode = true;
-        bool parasite_3MHz_external = false;
         Tube parasite_tube;
 
         explicit State(const BBCMicroType *type,
+                       BBCMicroParasiteType parasite_type,
                        const std::vector<uint8_t> &nvram_contents,
                        uint32_t init_flags,
                        const tm *rtc_time,
@@ -633,8 +633,9 @@ class BBCMicro : private WD1770Handler {
     //////////////////////////////////////////////////////////////////////////
     //////////////////////////////////////////////////////////////////////////
 
-    const BBCMicroType *const m_type;
+    const BBCMicroType *const m_type = nullptr;
     DiscInterface *const m_disc_interface = nullptr;
+    const BBCMicroParasiteType m_parasite_type = BBCMicroParasiteType_None;
     std::shared_ptr<DiscImage> m_disc_images[NUM_DRIVES];
     bool m_is_drive_write_protected[NUM_DRIVES] = {};
     const uint32_t m_init_flags = 0;

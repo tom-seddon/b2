@@ -335,29 +335,29 @@ void ConfigsUI::DoEditConfigGui() {
         edited = true;
     }
 
-    if (ImGuiRadioButton(&config->parasite_type, BeebConfigParasiteType_None, "No second processor")) {
+    if (ImGuiRadioButton(&config->parasite_type, BBCMicroParasiteType_None, "No second processor")) {
         edited = true;
     }
 
-    if (ImGuiRadioButton(&config->parasite_type, BeebConfigParasiteType_External3MHz6502, "6502 Second Processor")) {
+    if (ImGuiRadioButton(&config->parasite_type, BBCMicroParasiteType_External3MHz6502, "6502 Second Processor")) {
         edited = true;
     }
 
-    if (ImGuiRadioButton(&config->parasite_type, BeebConfigParasiteType_MasterTurbo, "Master Turbo")) {
+    if (ImGuiRadioButton(&config->parasite_type, BBCMicroParasiteType_MasterTurbo, "Master Turbo")) {
         edited = true;
     }
 
-    if (config->parasite_type != BeebConfigParasiteType_None) {
+    if (config->parasite_type != BBCMicroParasiteType_None) {
         if (config->parasite_os.file_name.empty() && !config->parasite_os.standard_rom) {
             switch (config->parasite_type) {
-            case BeebConfigParasiteType_None:
+            case BBCMicroParasiteType_None:
                 // inhibit spurious warning
                 break;
                 
-            case BeebConfigParasiteType_External3MHz6502:
+            case BBCMicroParasiteType_External3MHz6502:
                 config->parasite_os.standard_rom = FindBeebROM(StandardROM_TUBE110);
                 break;
-            case BeebConfigParasiteType_MasterTurbo:
+            case BBCMicroParasiteType_MasterTurbo:
                 config->parasite_os.standard_rom = FindBeebROM(StandardROM_MasterTurboParasite);
                 break;
             }

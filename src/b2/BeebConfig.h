@@ -9,6 +9,7 @@
 #include <array>
 #include <vector>
 #include "roms.h"
+#include <beeb/BBCMicro.h>//bit heavyweight...?
 
 #include <shared/enum_decl.h>
 #include "BeebConfig.inl"
@@ -48,7 +49,7 @@ class BeebConfig {
     bool ext_mem = false;
     bool beeblink = false;
 
-    BeebConfigParasiteType parasite_type = BeebConfigParasiteType_None;
+    BBCMicroParasiteType parasite_type = BBCMicroParasiteType_None;
 
     uint32_t feature_flags = 0; //combination of BeebConfigFeatureFlag
 

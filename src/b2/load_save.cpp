@@ -1684,15 +1684,15 @@ static bool LoadConfigs(rapidjson::Value *configs_json, const char *configs_path
         FindBoolMember(&config.ext_mem, config_json, EXT_MEM, msg);
         FindBoolMember(&config.beeblink, config_json, BEEBLINK, msg);
 
-        if (FindEnumMember(&config.parasite_type, config_json, PARASITE_TYPE, "parasite type", &GetBeebConfigParasiteTypeEnumName, msg)) {
+        if (FindEnumMember(&config.parasite_type, config_json, PARASITE_TYPE, "parasite type", &GetBBCMicroParasiteTypeEnumName, msg)) {
             // ...
         } else {
             bool parasite;
             if (FindBoolMember(&parasite, config_json, PARASITE, msg)) {
                 if (parasite) {
-                    config.parasite_type = BeebConfigParasiteType_MasterTurbo;
+                    config.parasite_type = BBCMicroParasiteType_MasterTurbo;
                 } else {
-                    config.parasite_type = BeebConfigParasiteType_None;
+                    config.parasite_type = BBCMicroParasiteType_None;
                 }
             }
         }
@@ -1753,7 +1753,7 @@ static void SaveConfigs(JSONWriter<StringStream> *writer) {
             writer->Bool(config->beeblink);
 
             writer->Key(PARASITE_TYPE);
-            SaveEnum(writer, config->parasite_type, &GetBeebConfigParasiteTypeEnumName);
+            SaveEnum(writer, config->parasite_type, &GetBBCMicroParasiteTypeEnumName);
 
             writer->Key(PARASITE_OS);
             SaveROM(writer, config->parasite_os);
