@@ -19,6 +19,21 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+uint64_t BBCMicro::Get3MHzCycleCount(CycleCount n) {
+    uint64_t n_4mhz = n.n >> RSHIFT_CYCLE_COUNT_TO_4MHZ;
+    uint64_t result = n.n / 4 * 3;
+
+    uint64_t rem = n_4mhz & 3;
+    if (rem > 0) {
+        result += rem - 1;
+    }
+
+    return result;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 // Timing diagram:
 //
 // see https://stardot.org.uk/forums/viewtopic.php?f=3&t=17896#p248051
@@ -64,8 +79,6 @@
 // the clocks' alignment, or because this was originally case 2), this is case
 // 1. Delay the trailing edge for 1 x 2 MHz cycle. The trailing edges of both
 // clocks then line up.
-//
-//
 template <uint32_t UPDATE_FLAGS>
 uint32_t BBCMicro::Update(VideoDataUnit *video_unit, SoundDataUnit *sound_unit) {
     static_assert(CYCLES_PER_SECOND == 4000000, "BBCMicro::Update needs updating");
@@ -75,8 +88,11 @@ uint32_t BBCMicro::Update(VideoDataUnit *video_unit, SoundDataUnit *sound_unit) 
     uint32_t result = 0;
 
     if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_Parasite) != 0) {
-        // If running in 3 MHz mode, just cheekily skip every 4th update.
         if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_Parasite3MHzExternal) != 0) {
+            // When running in 3 MHz mode, just cheekily skip every 4th update.
+            //
+            // If tweaking this logic, update Get3MHzCycleCount, conveniently
+            // also located in this file.
             if ((m_state.cycle_count.n & 3) == 0) {
                 goto parasite_update_done;
             }

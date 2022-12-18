@@ -440,7 +440,7 @@ void BBCMicro::InitPaging() {
         }
     }
 
-    if (m_parasite_type!=BBCMicroParasiteType_None) {
+    if (m_parasite_type != BBCMicroParasiteType_None) {
         for (size_t i = 0; i < NUM_PARASITE_BIG_PAGES; ++i) {
             BigPage *bp = &m_big_pages[PARASITE_BIG_PAGE_INDEX + i];
 
@@ -677,6 +677,13 @@ void BBCMicro::WriteACCCON(void *m_, M6502Word a, uint8_t value) {
 
 const BBCMicroType *BBCMicro::GetType() const {
     return m_type;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+BBCMicroParasiteType BBCMicro::GetParasiteType() const {
+    return m_parasite_type;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -980,6 +987,7 @@ void BBCMicro::StartTrace(uint32_t trace_flags, size_t max_num_bytes) {
                                            m_type,
                                            m_state.romsel,
                                            m_state.acccon,
+                                           m_parasite_type,
                                            parasite_m6502_config,
                                            parasite_boot_mode),
                    trace_flags);

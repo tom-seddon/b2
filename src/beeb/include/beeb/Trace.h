@@ -43,6 +43,8 @@
 #include "Trace.inl"
 #include <shared/enum_end.h>
 
+#include "BBCMicroParasiteType.h"
+
 struct M6502Config;
 
 //////////////////////////////////////////////////////////////////////////
@@ -136,6 +138,7 @@ class Trace : public std::enable_shared_from_this<Trace> {
                    const BBCMicroType *type,
                    ROMSEL initial_romsel_value,
                    ACCCON initial_acccon_value,
+                   BBCMicroParasiteType parasite_type,
                    const M6502Config *parasite_m6502_config,
                    bool initial_parasite_boot_mode);
     ~Trace();
@@ -200,6 +203,7 @@ class Trace : public std::enable_shared_from_this<Trace> {
     const BBCMicroType *GetBBCMicroType() const;
     ROMSEL GetInitialROMSEL() const;
     ACCCON GetInitialACCCON() const;
+    BBCMicroParasiteType GetParasiteType() const;
     bool GetInitialParasiteBootMode() const;
     const M6502Config *GetParasiteM6502Config() const;
 
@@ -239,6 +243,7 @@ class Trace : public std::enable_shared_from_this<Trace> {
     const BBCMicroType *m_bbc_micro_type = nullptr;
     ROMSEL m_romsel = {};
     ACCCON m_acccon = {};
+    BBCMicroParasiteType m_parasite_type = BBCMicroParasiteType_None;
     const M6502Config *m_parasite_m6502_config = nullptr;
     bool m_parasite_boot_mode = false;
 

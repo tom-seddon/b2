@@ -14,6 +14,7 @@
 #include <math.h>
 #include <string.h>
 #include <beeb/tube.h>
+#include <beeb/BBCMicroParasiteType.h>
 
 #include <shared/enum_decl.h>
 #include "SaveTrace_private.inl"
@@ -92,7 +93,7 @@ class TraceSaver {
                 // years of emulated time. But a 1-minute trace would have a 10
                 // digit cycle count, and that's not a ridiculous number of
                 // columns to reserve.
-                m_time_initial_value = std::max(m_time_initial_value, 60 * CYCLES_PER_SECOND);
+                m_time_initial_value = std::max(m_time_initial_value, 10000000000ull);
             }
         }
 
@@ -108,6 +109,7 @@ class TraceSaver {
         m_parasite_m6502_config = m_trace->GetParasiteM6502Config();
         m_parasite_boot_mode = m_trace->GetInitialParasiteBootMode();
         m_paging_dirty = true;
+        m_parasite_type = m_trace->GetParasiteType();
 
         std::vector<char> host_m6502_padded_mnemonics_buffer;
         this->InitPaddedMnemonics(&host_m6502_padded_mnemonics_buffer, m_host_m6502_padded_mnemonics, m_type->m6502_config);
@@ -185,6 +187,7 @@ class TraceSaver {
     bool m_io = true;
     std::vector<uint8_t> m_tube_fifo1;
     const M6502Config *m_parasite_m6502_config = nullptr;
+    BBCMicroParasiteType m_parasite_type = BBCMicroParasiteType_None;
 
     // State appropriate for current event.
     const M6502Config *m_m6502_config = nullptr;
@@ -904,14 +907,23 @@ class TraceSaver {
 
         auto this_ = (TraceSaver *)context;
 
+        uint64_t display_time; //in whatever units make sense for the event source
+        char *c = this_->m_time_prefix;
         {
-            char *c = this_->m_time_prefix;
-            uint64_t time_shift;
+            CycleCount time = e->time;
+            if (this_->m_cycles_output == TraceCyclesOutput_Relative) {
+                if (!this_->m_got_first_event_time) {
+                    this_->m_got_first_event_time = true;
+                    this_->m_first_event_time = e->time;
+                }
+
+                time.n -= this_->m_first_event_time.n;
+            }
 
             switch (e->source) {
             case TraceEventSource_Host:
                 *c++ = 'H';
-                time_shift = RSHIFT_CYCLE_COUNT_TO_2MHZ;
+                display_time = time.n >> RSHIFT_CYCLE_COUNT_TO_2MHZ;
                 this_->m_m6502_config = this_->m_type->m6502_config;
                 this_->m_m6502_padded_mnemonics = this_->m_host_m6502_padded_mnemonics;
                 break;
@@ -922,7 +934,11 @@ class TraceSaver {
                     size_t n = 80;
                     memset(c, ' ', n);
                     c += n;
-                    time_shift = RSHIFT_CYCLE_COUNT_TO_4MHZ;
+                    if (this_->m_parasite_type == BBCMicroParasiteType_External3MHz6502) {
+                        display_time = BBCMicro::Get3MHzCycleCount(time);
+                    } else {
+                        display_time = time.n >> RSHIFT_CYCLE_COUNT_TO_4MHZ;
+                    }
                     this_->m_m6502_config = this_->m_parasite_m6502_config;
                     this_->m_m6502_padded_mnemonics = this_->m_parasite_m6502_padded_mnemonics;
                 }
@@ -930,7 +946,7 @@ class TraceSaver {
 
             default:
                 *c++ = '?';
-                time_shift = 0;
+                display_time = time.n;
                 this_->m_m6502_config = this_->m_type->m6502_config;
                 this_->m_m6502_padded_mnemonics = this_->m_host_m6502_padded_mnemonics;
                 break;
@@ -938,45 +954,34 @@ class TraceSaver {
 
             // Maintain a gap between event source and whatever comes next.
             *c++ = ' ';
+        }
 
-            if (this_->m_cycles_output != TraceCyclesOutput_None) {
+        if (this_->m_cycles_output != TraceCyclesOutput_None) {
+            char zero = ' ';
 
-                CycleCount time = e->time;
-                if (this_->m_cycles_output == TraceCyclesOutput_Relative) {
-                    if (!this_->m_got_first_event_time) {
-                        this_->m_got_first_event_time = true;
-                        this_->m_first_event_time = e->time;
-                    }
+            for (uint64_t value = this_->m_time_initial_value; value != 0; value /= 10) {
+                uint64_t digit = display_time / value % 10;
 
-                    time.n -= this_->m_first_event_time.n;
+                if (digit != 0) {
+                    *c++ = (char)('0' + digit);
+                    zero = '0';
+                } else {
+                    *c++ = zero;
                 }
-
-                char zero = ' ';
-
-                for (uint64_t value = this_->m_time_initial_value; value != 0; value /= 10) {
-                    uint64_t digit = (time.n >> time_shift) / value % 10;
-
-                    if (digit != 0) {
-                        *c++ = (char)('0' + digit);
-                        zero = '0';
-                    } else {
-                        *c++ = zero;
-                    }
-                }
-
-                if (time.n == 0) {
-                    c[-1] = '0';
-                }
-
-                *c++ = ' ';
-                *c++ = ' ';
             }
 
-            this_->m_time_prefix_len = (size_t)(c - this_->m_time_prefix);
+            if (display_time == 0) {
+                c[-1] = '0';
+            }
 
-            *c++ = 0;
-            ASSERT(c <= this_->m_time_prefix + sizeof this_->m_time_prefix);
+            *c++ = ' ';
+            *c++ = ' ';
         }
+
+        this_->m_time_prefix_len = (size_t)(c - this_->m_time_prefix);
+
+        *c++ = 0;
+        ASSERT(c <= this_->m_time_prefix + sizeof this_->m_time_prefix);
 
         Handler *h = &this_->m_handlers[e->type->type_id];
         bool need_pop_indent = false;
@@ -1011,7 +1016,8 @@ class TraceSaver {
         return true;
     }
 
-    void SetHandler(const TraceEventType &type, MFn mfn, uint32_t flags = 0) {
+    void
+    SetHandler(const TraceEventType &type, MFn mfn, uint32_t flags = 0) {
         Handler *h = &m_handlers[type.type_id];
 
         ASSERT(!h->mfn);

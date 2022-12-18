@@ -819,7 +819,7 @@ class M6502DebugWindow : public DebugUI {
 
         bool halted;
         M6502State host_state, parasite_state;
-        bool got_parasite_state = false;
+        BBCMicroParasiteType parasite_type;
         const CycleCount *cycles;
         char halt_reason[1000];
 
@@ -830,10 +830,11 @@ class M6502DebugWindow : public DebugUI {
             const M6502 *host_cpu = m->GetM6502();
             this->GetStateForCPU(&host_state, host_cpu);
 
-            if (m->DebugGetStateOverrideMask() & BBCMicroDebugStateOverride_Parasite) {
+            parasite_type = m->GetParasiteType();
+
+            if (parasite_type != BBCMicroParasiteType_None) {
                 const M6502 *parasite_cpu = m->DebugGetM6502(BBCMicroDebugStateOverride_Parasite);
                 this->GetStateForCPU(&parasite_state, parasite_cpu);
-                got_parasite_state = true;
             }
 
             halted = m->DebugIsHalted();
@@ -846,9 +847,26 @@ class M6502DebugWindow : public DebugUI {
         }
 
         ImGuiHeader("System state");
+
         char cycles_str[MAX_UINT64_THOUSANDS_LEN];
-        GetThousandsString(cycles_str, cycles->n >> RSHIFT_CYCLE_COUNT_TO_4MHZ);
-        ImGui::Text("4 MHz Cycles = %s", cycles_str);
+
+        switch (parasite_type) {
+        default:
+            ASSERT(false);
+            // fall through
+        case BBCMicroParasiteType_None:
+            break;
+
+        case BBCMicroParasiteType_External3MHz6502:
+            GetThousandsString(cycles_str, BBCMicro::Get3MHzCycleCount(*cycles));
+            ImGui::Text("3 MHz Cycles = %s", cycles_str);
+            break;
+
+        case BBCMicroParasiteType_MasterTurbo:
+            GetThousandsString(cycles_str, cycles->n >> RSHIFT_CYCLE_COUNT_TO_4MHZ);
+            ImGui::Text("4 MHz Cycles = %s", cycles_str);
+            break;
+        }
 
         GetThousandsString(cycles_str, cycles->n >> RSHIFT_CYCLE_COUNT_TO_2MHZ);
         ImGui::Text("2 MHz Cycles = %s", cycles_str);
@@ -867,7 +885,7 @@ class M6502DebugWindow : public DebugUI {
 
         this->StateImGui(host_state);
 
-        if (got_parasite_state) {
+        if (parasite_type != BBCMicroParasiteType_None) {
             ImGuiHeader("Parasite CPU");
             this->StateImGui(parasite_state);
         }

@@ -36,6 +36,7 @@ class BeebLink;
 #include "video.h"
 #include "type.h"
 #include "tube.h"
+#include "BBCMicroParasiteType.h"
 
 #include <shared/enum_decl.h>
 #include "BBCMicro.inl"
@@ -283,6 +284,7 @@ class BBCMicro : private WD1770Handler {
     typedef bool (*WriteFn)(const BBCMicro *m, const M6502 *cpu, void *context);
 
     const BBCMicroType *GetType() const;
+    BBCMicroParasiteType GetParasiteType() const;
 
     // Get read-only pointer to the cycle counter. The pointer is never
     // NULL and remains valid for the lifetime of the BBCMicro.
@@ -291,6 +293,8 @@ class BBCMicro : private WD1770Handler {
     // also cheap enough in a debug build (unlike a getter) that I don't
     // have to worry about that.)
     const CycleCount *GetCycleCountPtr() const;
+
+    static uint64_t Get3MHzCycleCount(CycleCount n);
 
     uint8_t GetKeyState(BeebKey key);
 

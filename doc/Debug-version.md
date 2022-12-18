@@ -20,10 +20,6 @@ debug-related functionality, accessible from the `Debug` menu.
 
 Find all this stuff in the `Debug` menu.
 
-## **Second processor support is WIP**
-
-This will improve!
-
 ## General debugging ##
 
 Use `Stop` to stop the entire system in its tracks.
