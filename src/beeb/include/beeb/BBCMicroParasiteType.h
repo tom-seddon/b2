@@ -1,8 +1,8 @@
 #ifndef HEADER_4B1CAAABB6E04C018160A5E326C41E6B// -*- mode:c++ -*-
 #define HEADER_4B1CAAABB6E04C018160A5E326C41E6B
 
-// TODO: this should really be part of BBCMicro.h, but the include structure
-// seems to have ended up a mess.
+// TODO: I'd planned on having this as part of BBCMicro.h, but the include
+// structure seems to have ended up a mess.
 //
 // Or maybe every enum should have its own header, same as this?
 
