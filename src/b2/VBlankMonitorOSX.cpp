@@ -94,6 +94,7 @@ class VBlankMonitorOSX : public VBlankMonitor {
 
         ~Display() {
             CVReturn cvr = CVDisplayLinkStop(this->link);
+            (void)cvr;
             ASSERTF(cvr == kCVReturnSuccess, "%s", GetCVReturnEnumName(cvr));
             this->link = nullptr;
 
