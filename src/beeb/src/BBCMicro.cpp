@@ -146,6 +146,7 @@ BBCMicro::State::State(const BBCMicroType *type,
         this->parasite_ram_buffer.resize(65536);
         this->parasite_enabled = true;
         this->parasite_boot_mode = true;
+        this->parasite_3MHz_external = !!(init_flags & BBCMicroInitFlag_Parasite3MHzExternal);
         M6502_Init(&this->parasite_cpu, &M6502_rockwell65c02_config);
         ResetTube(&this->parasite_tube);
     }
@@ -330,7 +331,16 @@ void BBCMicro::UpdatePaging() {
     }
 
     if (m_state.parasite_enabled) {
-        bool parasite_accessible = m_type->parasite_accessible[m_state.acccon.m128_bits.itu];
+        bool parasite_accessible;
+        if (m_type->type_id == BBCMicroTypeID_Master) {
+            // External copro only when ITU reset. Internal copro only when ITU
+            // set.
+            parasite_accessible = m_state.acccon.m128_bits.itu != m_state.parasite_3MHz_external;
+        } else {
+            // No itu/xtu distinction.
+            parasite_accessible = true;
+        }
+
         if (parasite_accessible != m_state.parasite_accessible) {
             if (parasite_accessible) {
                 static constexpr ReadMMIOFn host_rmmio_fns[8] = {
@@ -2483,6 +2493,11 @@ void BBCMicro::UpdateCPUDataBusFn() {
 
     if (m_state.parasite_enabled) {
         update_flags |= BBCMicroUpdateFlag_Parasite;
+
+        if (m_state.parasite_3MHz_external) {
+            update_flags |= BBCMicroUpdateFlag_Parasite3MHzExternal;
+        }
+
         if (m_state.parasite_boot_mode ||
             m_state.parasite_tube.status.bits.p ||
             m_state.parasite_tube.status.bits.t) {

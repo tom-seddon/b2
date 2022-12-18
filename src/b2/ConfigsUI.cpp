@@ -335,21 +335,28 @@ void ConfigsUI::DoEditConfigGui() {
         edited = true;
     }
 
-    if (ImGui::Checkbox("4 MHz 65C102 Second Processor", &config->parasite)) {
+    if (ImGuiRadioButton(&config->parasite_type, BeebConfigParasiteType_None, "No second processor")) {
         edited = true;
-
-        if (config->parasite) {
-            if (config->parasite_os.file_name.empty() && !config->parasite_os.standard_rom) {
-                config->parasite_os.standard_rom = FindBeebROM(StandardROM_MasterTurboParasite);
-            }
-        }
     }
 
-    if (config->parasite) {
-        if (config->type->type_id == BBCMicroTypeID_Master) {
-            ImGui::TextWrapped("Note: When using MOS 3.20/MOS 3.50, try *CONFIGURE TUBE if 2nd processor doesn't seem to be working");
-        } else {
-            ImGui::TextWrapped("Note: Ensure a ROM with Tube host code is installed, e.g., Acorn 1770 DFS");
+    if (ImGuiRadioButton(&config->parasite_type, BeebConfigParasiteType_External3MHz6502, "6502 Second Processor")) {
+        edited = true;
+    }
+
+    if (ImGuiRadioButton(&config->parasite_type, BeebConfigParasiteType_MasterTurbo, "Master Turbo")) {
+        edited = true;
+    }
+
+    if (config->parasite_type != BeebConfigParasiteType_None) {
+        if (config->parasite_os.file_name.empty() && !config->parasite_os.standard_rom) {
+            switch (config->parasite_type) {
+            case BeebConfigParasiteType_External3MHz6502:
+                config->parasite_os.standard_rom = FindBeebROM(StandardROM_TUBE110);
+                break;
+            case BeebConfigParasiteType_MasterTurbo:
+                config->parasite_os.standard_rom = FindBeebROM(StandardROM_MasterTurboParasite);
+                break;
+            }
         }
 
         if (this->DoROMEditGui("Parasite OS",
@@ -357,6 +364,12 @@ void ConfigsUI::DoEditConfigGui() {
                                nullptr,
                                ROMEditFlag_ParasiteROMs)) {
             edited = true;
+        }
+
+        if (config->type->type_id == BBCMicroTypeID_Master) {
+            ImGui::TextWrapped("Note: When using MOS 3.20/MOS 3.50, try *CONFIGURE TUBE if 2nd processor doesn't seem to be working");
+        } else {
+            ImGui::TextWrapped("Note: Ensure a ROM with Tube host code is installed, e.g., Acorn 1770 DFS");
         }
     }
 
@@ -455,6 +468,7 @@ static const BeebROM *const BPLUS_SIDEWAYS_ROMS[] = {
 };
 
 static const BeebROM *const PARASITE_ROMS[] = {
+    &BEEB_ROM_TUBE110,
     &BEEB_ROM_MASTER_TURBO_PARASITE,
     nullptr,
 };

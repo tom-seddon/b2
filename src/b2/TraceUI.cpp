@@ -297,19 +297,19 @@ void TraceUI::DoImGui() {
 
             ImGuiRadioButton(&g_default_settings.start, TraceUIStartCondition_Now, "Immediate");
             ImGuiRadioButton(&g_default_settings.start, TraceUIStartCondition_Return, "Return");
-            ImGuiRadioButton(&g_default_settings.start,
-                             TraceUIStartCondition_Instruction,
-                             "Execute $%04x",
-                             g_default_settings.start_instruction_address);
+            ImGuiRadioButtonf(&g_default_settings.start,
+                              TraceUIStartCondition_Instruction,
+                              "Execute $%04x",
+                              g_default_settings.start_instruction_address);
             if (g_default_settings.start == TraceUIStartCondition_Instruction) {
                 this->DoAddressGui(&g_default_settings.start_instruction_address,
                                    m_start_instruction_address_str,
                                    sizeof m_start_instruction_address_str);
             }
-            ImGuiRadioButton(&g_default_settings.start,
-                             TraceUIStartCondition_WriteAddress,
-                             "Write $%04x",
-                             g_default_settings.start_write_address);
+            ImGuiRadioButtonf(&g_default_settings.start,
+                              TraceUIStartCondition_WriteAddress,
+                              "Write $%04x",
+                              g_default_settings.start_write_address);
             if (g_default_settings.start == TraceUIStartCondition_WriteAddress) {
                 this->DoAddressGui(&g_default_settings.start_write_address,
                                    m_start_write_address_str,
@@ -336,10 +336,10 @@ void TraceUI::DoImGui() {
                     }
                 }
             }
-            ImGuiRadioButton(&g_default_settings.stop,
-                             TraceUIStopCondition_WriteAddress,
-                             "Write $%04x",
-                             g_default_settings.stop_write_address);
+            ImGuiRadioButtonf(&g_default_settings.stop,
+                              TraceUIStopCondition_WriteAddress,
+                              "Write $%04x",
+                              g_default_settings.stop_write_address);
             if (g_default_settings.stop == TraceUIStopCondition_WriteAddress) {
                 this->DoAddressGui(&g_default_settings.stop_write_address,
                                    m_stop_write_address_str,

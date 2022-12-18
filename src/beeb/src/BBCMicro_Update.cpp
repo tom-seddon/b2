@@ -75,6 +75,13 @@ uint32_t BBCMicro::Update(VideoDataUnit *video_unit, SoundDataUnit *sound_unit) 
     uint32_t result = 0;
 
     if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_Parasite) != 0) {
+        // If running in 3 MHz mode, just cheekily skip every 4th update.
+        if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_Parasite3MHzExternal) != 0) {
+            if ((m_state.cycle_count.n & 3) == 0) {
+                goto parasite_update_done;
+            }
+        }
+
         result |= BBCMicroUpdateResultFlag_Parasite;
         (*m_state.parasite_cpu.tfn)(&m_state.parasite_cpu);
 
@@ -116,7 +123,11 @@ uint32_t BBCMicro::Update(VideoDataUnit *video_unit, SoundDataUnit *sound_unit) 
                     if (m_state.parasite_boot_mode && (m_state.parasite_cpu.abus.w & 0xf000) == 0xf000) {
                         // Really not concerned about the efficiency of special
                         // mode. The emulator is not in this state for long.
-                        m_state.parasite_cpu.dbus = m_state.parasite_rom_buffer->at(m_state.parasite_cpu.abus.w & 0xfff);
+                        if (!m_state.parasite_rom_buffer) {
+                            m_state.parasite_cpu.dbus = 0;
+                        } else {
+                            m_state.parasite_cpu.dbus = m_state.parasite_rom_buffer->at(m_state.parasite_cpu.abus.w & 0xfff);
+                        }
                     } else {
                         m_state.parasite_cpu.dbus = m_parasite_ram[m_state.parasite_cpu.abus.w];
                     }
@@ -213,6 +224,8 @@ uint32_t BBCMicro::Update(VideoDataUnit *video_unit, SoundDataUnit *sound_unit) 
 #endif
         }
     }
+
+parasite_update_done:
 
     if (!phi2_2MHz_trailing_edge) {
 #if VIDEO_TRACK_METADATA
@@ -739,6 +752,15 @@ uint32_t BBCMicro::Update(VideoDataUnit *video_unit, SoundDataUnit *sound_unit) 
     ++m_state.cycle_count.n;
 
     return result;
+
+#ifdef _MSC_VER
+    // Dumb way of inhibiting unreferenced label warning. And you can't goto
+    // into an if constexpr, so the label can't be surrounded by one whose
+    // condition matches the goto.
+    //
+    // Luckily, the compiler seems not to spot that this code is unreachable...
+    goto parasite_update_done;
+#endif
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -753,6 +775,7 @@ uint32_t BBCMicro::Update(VideoDataUnit *video_unit, SoundDataUnit *sound_unit) 
 #define UPDATE64(N) UPDATE32(N + 0), UPDATE32(N + 32)
 #define UPDATE128(N) UPDATE64(N + 0), UPDATE64(N + 64)
 #define UPDATE256(N) UPDATE128(N + 0), UPDATE128(N + 128)
+#define UPDATE512(N) UPDATE256(N + 0), UPDATE256(N + 256)
 
 // The compile time can get a bit much. Tried splitting it into 8*64, hopefully
 // getting a bit of parallelism, but this seemed to make very little different
@@ -763,7 +786,7 @@ uint32_t BBCMicro::Update(VideoDataUnit *video_unit, SoundDataUnit *sound_unit) 
 // at least for my laptop, maybe some other value would be just right.
 //
 // More experimentation necessary.
-const BBCMicro::UpdateMFn BBCMicro::ms_update_mfns[512] = {UPDATE256(0), UPDATE256(256)};
+const BBCMicro::UpdateMFn BBCMicro::ms_update_mfns[1024] = {UPDATE512(0), UPDATE512(512)};
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

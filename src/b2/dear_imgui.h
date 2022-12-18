@@ -299,9 +299,20 @@ void ImGuiLEDf(bool on, const char *fmt, ...) PRINTF_LIKE(2, 3);
 //////////////////////////////////////////////////////////////////////////
 
 template <class T>
-static bool PRINTF_LIKE(3, 4) ImGuiRadioButton(T *value,
-                                               T button_value,
-                                               const char *fmt, ...) {
+static bool ImGuiRadioButton(T *value, T button_value, const char *label) {
+    int tmp = *value;
+
+    bool result = ImGui::RadioButton(label, &tmp, button_value);
+
+    *value = (T)tmp;
+
+    return result;
+}
+
+template <class T>
+static bool PRINTF_LIKE(3, 4) ImGuiRadioButtonf(T *value,
+                                                T button_value,
+                                                const char *fmt, ...) {
     char label[1000];
 
     va_list v;
@@ -309,12 +320,7 @@ static bool PRINTF_LIKE(3, 4) ImGuiRadioButton(T *value,
     vsnprintf(label, sizeof label, fmt, v);
     va_end(v);
 
-    int tmp = *value;
-
-    bool result = ImGui::RadioButton(label, &tmp, button_value);
-
-    *value = (T)tmp;
-
+    bool result = ImGuiRadioButton(value, button_value, label);
     return result;
 }
 

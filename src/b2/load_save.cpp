@@ -1071,6 +1071,7 @@ static const char AUTO_SAVE_PATH[] = "auto_save_path";
 static const char UNIX_LINE_ENDINGS[] = "unix_line_endings";
 #endif
 static const char FEATURE_FLAGS[] = "feature_flags";
+static const char PARASITE_TYPE[] = "parasite_type";
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -1682,7 +1683,19 @@ static bool LoadConfigs(rapidjson::Value *configs_json, const char *configs_path
 
         FindBoolMember(&config.ext_mem, config_json, EXT_MEM, msg);
         FindBoolMember(&config.beeblink, config_json, BEEBLINK, msg);
-        FindBoolMember(&config.parasite, config_json, PARASITE, msg);
+
+        if (FindEnumMember(&config.parasite_type, config_json, PARASITE_TYPE, "parasite type", &GetBeebConfigParasiteTypeEnumName, msg)) {
+            // ...
+        } else {
+            bool parasite;
+            if (FindBoolMember(&parasite, config_json, PARASITE, msg)) {
+                if (parasite) {
+                    config.parasite_type = BeebConfigParasiteType_MasterTurbo;
+                } else {
+                    config.parasite_type = BeebConfigParasiteType_None;
+                }
+            }
+        }
 
         rapidjson::Document::MemberIterator parasite_os_it = config_json->FindMember(PARASITE_OS);
         if (parasite_os_it != config_json->MemberEnd()) {
@@ -1739,8 +1752,8 @@ static void SaveConfigs(JSONWriter<StringStream> *writer) {
             writer->Key(BEEBLINK);
             writer->Bool(config->beeblink);
 
-            writer->Key(PARASITE);
-            writer->Bool(config->parasite);
+            writer->Key(PARASITE_TYPE);
+            SaveEnum(writer, config->parasite_type, &GetBeebConfigParasiteTypeEnumName);
 
             writer->Key(PARASITE_OS);
             SaveROM(writer, config->parasite_os);

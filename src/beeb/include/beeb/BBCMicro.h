@@ -604,6 +604,7 @@ class BBCMicro : private WD1770Handler {
         std::shared_ptr<const std::array<uint8_t, 4096>> parasite_rom_buffer;
         std::vector<uint8_t> parasite_ram_buffer;
         bool parasite_boot_mode = true;
+        bool parasite_3MHz_external = false;
         Tube parasite_tube;
 
         explicit State(const BBCMicroType *type,
@@ -799,7 +800,7 @@ class BBCMicro : private WD1770Handler {
     uint32_t Update(VideoDataUnit *video_unit, SoundDataUnit *sound_unit);
 
     static const uint8_t CURSOR_PATTERNS[8];
-    static const UpdateMFn ms_update_mfns[512];
+    static const UpdateMFn ms_update_mfns[1024];
 };
 
 //////////////////////////////////////////////////////////////////////////

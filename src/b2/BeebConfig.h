@@ -47,8 +47,10 @@ class BeebConfig {
     bool video_nula = true;
     bool ext_mem = false;
     bool beeblink = false;
-    bool parasite = false;
-    uint32_t feature_flags = 0;//combination of BeebConfigFeatureFlag
+
+    BeebConfigParasiteType parasite_type = BeebConfigParasiteType_None;
+
+    uint32_t feature_flags = 0; //combination of BeebConfigFeatureFlag
 
   protected:
   private:

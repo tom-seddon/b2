@@ -203,11 +203,25 @@ Items of optional hardware are as follows:
   (This is ticked by default, as it's very unlikely to cause a
   problem.)
   
-- Tick the `6502 Second Processor` box to add a 4 MHz 65C02 second
-  processor. If adding this to a B/B+, ensure one of the ROMs is the
-  Acorn 1770 DFS ROM, as that includes the Tube support code; if
-  adding this to a Master 128, note you may have to do `*CONFIGURE
-  TUBE` to get the OS to detect the second processor
+There are also some second processor options:
+
+- `None` for no second processor
+
+- `6502 cheese wedge` for an external 3 MHz 6502 second processor.
+  (The Acorn documentation doesn't specify what specific type of CPU
+  these cntain, but in practice they all seem to come with a Rockwell
+  65C02)
+
+- `Master Turbo` for a 4 MHz 65C102 second processor. (With a Master,
+  this appears on the internal Tube, replicating the Master Turbo;
+  with a B/B+, this setup corresponds to a
+  [universal second processor](http://chrisacorns.computinghistory.org.uk/8bit_Upgrades/Acorn_ANC21_Uni2Proc.html)
+  with a Master Turbo board fitted)
+ 
+(In either case, as per the on-screen reminder: with a Master, a
+`*CONFIGURE TUBE` may be required to get the OS to detect the second
+processor. With a B/B+, be sure to install a ROM installed with the
+Tube host code in it, such as the Acorn 1770 DFS.)
 
 Changes to a configuration don't affect the running Beeb until you do
 a `File` > `Hard Reset` (if you're editing the current config) or a

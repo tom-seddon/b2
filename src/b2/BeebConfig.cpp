@@ -100,25 +100,27 @@ static std::vector<uint8_t> g_default_master_nvram_contents = GetDefaultMasterNV
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+static BeebConfig GetBConfig(const DiscInterfaceDef *di) {
+    BeebConfig config;
+
+    config.name = std::string("B/") + di->name;
+
+    config.type = &BBC_MICRO_TYPE_B;
+    config.disc_interface = di;
+
+    config.os.standard_rom = &BEEB_ROM_OS12;
+    config.roms[15].standard_rom = &BEEB_ROM_BASIC2;
+    config.roms[14].standard_rom = FindBeebROM(config.disc_interface->fs_rom);
+    config.roms[13].writeable = true;
+
+    return config;
+}
+
 void InitDefaultBeebConfigs() {
     ASSERT(g_default_configs.empty());
 
     for (const DiscInterfaceDef *const *di_ptr = ALL_DISC_INTERFACES; *di_ptr; ++di_ptr) {
-        const DiscInterfaceDef *di = *di_ptr;
-
-        BeebConfig config;
-
-        config.name = std::string("B/") + di->name;
-
-        config.type = &BBC_MICRO_TYPE_B;
-        config.disc_interface = di;
-
-        config.os.standard_rom = &BEEB_ROM_OS12;
-        config.roms[15].standard_rom = &BEEB_ROM_BASIC2;
-        config.roms[14].standard_rom = FindBeebROM(config.disc_interface->fs_rom);
-        config.roms[13].writeable = true;
-
-        g_default_configs.push_back(std::move(config));
+        g_default_configs.push_back(GetBConfig(*di_ptr));
     }
 
     // B+/B+128
@@ -210,7 +212,7 @@ void InitDefaultBeebConfigs() {
         config.roms[6].writeable = true;
         config.roms[5].writeable = true;
         config.roms[4].writeable = true;
-        config.parasite = true;
+        config.parasite_type = BeebConfigParasiteType_MasterTurbo;
         config.parasite_os.standard_rom = FindBeebROM(StandardROM_MasterTurboParasite);
         config.feature_flags = BeebConfigFeatureFlag_MasterTurbo;
 
@@ -236,9 +238,21 @@ void InitDefaultBeebConfigs() {
         config.roms[6].writeable = true;
         config.roms[5].writeable = true;
         config.roms[4].writeable = true;
-        config.parasite = true;
+        config.parasite_type = BeebConfigParasiteType_MasterTurbo;
         config.parasite_os.standard_rom = FindBeebROM(StandardROM_MasterTurboParasite);
         config.feature_flags = BeebConfigFeatureFlag_MasterTurbo;
+
+        g_default_configs.push_back(config);
+    }
+
+    // BBC B with 6502 second processor
+    {
+        BeebConfig config = GetBConfig(&DISC_INTERFACE_ACORN_1770);
+
+        config.name += " + 6502 second processor";
+        config.parasite_type = BeebConfigParasiteType_External3MHz6502;
+        config.parasite_os.standard_rom = FindBeebROM(StandardROM_TUBE110);
+        config.feature_flags = BeebConfigFeatureFlag_6502SecondProcessor;
 
         g_default_configs.push_back(config);
     }

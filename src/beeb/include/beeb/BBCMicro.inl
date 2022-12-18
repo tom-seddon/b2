@@ -168,7 +168,11 @@ EBEGIN()
 EPNV(VideoNuLA, 1 << 0)
 EPNV(ExtMem, 1 << 1)
 EPNV(PowerOnTone, 1 << 2)
+
+// TODO: move 2nd processor type enum from b2 into beeb. Remove these flags.
+// Pass enum around instead.
 EPNV(Parasite, 1 << 3)
+EPNV(Parasite3MHzExternal, 1 << 4)
 EEND()
 #undef ENAME
 

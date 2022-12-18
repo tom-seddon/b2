@@ -453,8 +453,19 @@ void BeebThread::HardResetMessage::HardReset(BeebThread *beeb_thread,
         init_flags |= BBCMicroInitFlag_PowerOnTone;
     }
 
-    if (ts->current_config.config.parasite) {
+    switch (ts->current_config.config.parasite_type) {
+    default:
+        ASSERT(false);
+    case BeebConfigParasiteType_None:
+        break;
+
+    case BeebConfigParasiteType_External3MHz6502:
+        init_flags |= BBCMicroInitFlag_Parasite | BBCMicroInitFlag_Parasite3MHzExternal;
+        break;
+
+    case BeebConfigParasiteType_MasterTurbo:
         init_flags |= BBCMicroInitFlag_Parasite;
+        break;
     }
 
     auto beeb = std::make_unique<BBCMicro>(ts->current_config.config.type,
