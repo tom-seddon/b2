@@ -261,12 +261,12 @@ parasite_update_done:
             result |= BBCMicroUpdateResultFlag_Host;
             (*m_state.cpu.tfn)(&m_state.cpu);
 
-            uint8_t mmio_page = m_state.cpu.abus.b.h - 0xfc;
-            if (mmio_page < 3) {
+            M6502Word mmio_addr = {m_state.cpu.abus.w - 0xfc00u};
+            if (mmio_addr.b.h < 3) {
                 if (m_state.cpu.read) {
-                    m_state.stretch = m_mmio_stretch[mmio_page][m_state.cpu.abus.b.l];
+                    m_state.stretch = m_mmio_stretch[mmio_addr.w];
                 } else {
-                    m_state.stretch = m_hw_mmio_stretch[mmio_page][m_state.cpu.abus.b.l];
+                    m_state.stretch = m_hw_mmio_stretch[mmio_addr.w];
                 }
             }
         }
@@ -299,11 +299,11 @@ parasite_update_done:
                 }
             }
 
-            uint8_t mmio_page = m_state.cpu.abus.b.h - 0xfc;
+            M6502Word mmio_addr = {m_state.cpu.abus.w - 0xfc00u};
             if (const uint8_t read = m_state.cpu.read) {
-                if (mmio_page < 3) {
-                    ReadMMIOFn fn = m_rmmio_fns[mmio_page][m_state.cpu.abus.b.l];
-                    void *context = m_mmio_fn_contexts[mmio_page][m_state.cpu.abus.b.l];
+                if (mmio_addr.b.h < 3) {
+                    ReadMMIOFn fn = m_rmmio_fns[mmio_addr.w];
+                    void *context = m_mmio_fn_contexts[mmio_addr.w];
                     m_state.cpu.dbus = (*fn)(context, m_state.cpu.abus);
                 } else {
                     m_state.cpu.dbus = m_pc_mem_big_pages[m_state.cpu.opcode_pc.p.p]->r[m_state.cpu.abus.p.p][m_state.cpu.abus.p.o];
@@ -328,9 +328,9 @@ parasite_update_done:
                 }
 #endif
             } else {
-                if (mmio_page < 3) {
-                    WriteMMIOFn fn = m_hw_wmmio_fns[mmio_page][m_state.cpu.abus.b.l];
-                    void *context = m_hw_mmio_fn_contexts[mmio_page][m_state.cpu.abus.b.l];
+                if (mmio_addr.b.h < 3) {
+                    WriteMMIOFn fn = m_hw_wmmio_fns[mmio_addr.w];
+                    void *context = m_hw_mmio_fn_contexts[mmio_addr.w];
                     (*fn)(context, m_state.cpu.abus, m_state.cpu.dbus);
                 } else {
                     m_pc_mem_big_pages[m_state.cpu.opcode_pc.p.p]->w[m_state.cpu.abus.p.p][m_state.cpu.abus.p.o] = m_state.cpu.dbus;

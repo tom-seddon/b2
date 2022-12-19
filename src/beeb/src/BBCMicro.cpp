@@ -321,17 +321,13 @@ void BBCMicro::UpdatePaging() {
 
     if (io != m_rom_mmio) {
         if (io) {
-            for (int i = 0; i < 3; ++i) {
-                m_rmmio_fns[i] = m_hw_rmmio_fns[i].data();
-                m_mmio_fn_contexts[i] = m_hw_mmio_fn_contexts[i].data();
-                m_mmio_stretch[i] = m_hw_mmio_stretch[i].data();
-            }
+            m_rmmio_fns = m_hw_rmmio_fns.data();
+            m_mmio_fn_contexts = m_hw_mmio_fn_contexts.data();
+            m_mmio_stretch = m_hw_mmio_stretch.data();
         } else {
-            for (int i = 0; i < 3; ++i) {
-                m_rmmio_fns[i] = m_rom_rmmio_fns.data();
-                m_mmio_fn_contexts[i] = m_rom_mmio_fn_contexts.data();
-                m_mmio_stretch[i] = m_rom_mmio_stretch.data();
-            }
+            m_rmmio_fns = m_rom_rmmio_fns.data();
+            m_mmio_fn_contexts = m_rom_mmio_fn_contexts.data();
+            m_mmio_stretch = m_rom_mmio_stretch.data();
         }
 
         m_rom_mmio = io;
@@ -1080,9 +1076,9 @@ void BBCMicro::SetMMIOFns(uint16_t addr, ReadMMIOFn read_fn, WriteMMIOFn write_f
     tmp.w = addr;
     tmp.b.h -= 0xfc;
 
-    m_hw_rmmio_fns[tmp.b.h][tmp.b.l] = read_fn ? read_fn : &ReadUnmappedMMIO;
-    m_hw_wmmio_fns[tmp.b.h][tmp.b.l] = write_fn ? write_fn : &WriteUnmappedMMIO;
-    m_hw_mmio_fn_contexts[tmp.b.h][tmp.b.l] = context;
+    m_hw_rmmio_fns[tmp.w] = read_fn ? read_fn : &ReadUnmappedMMIO;
+    m_hw_wmmio_fns[tmp.w] = write_fn ? write_fn : &WriteUnmappedMMIO;
+    m_hw_mmio_fn_contexts[tmp.w] = context;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -1976,19 +1972,17 @@ void BBCMicro::InitStuff() {
 
     m_ram = m_state.ram_buffer.data();
 
-    for (int i = 0; i < 3; ++i) {
-        m_hw_rmmio_fns[i] = std::vector<ReadMMIOFn>(256);
-        m_hw_wmmio_fns[i] = std::vector<WriteMMIOFn>(256);
-        m_hw_mmio_fn_contexts[i] = std::vector<void *>(256);
-        m_hw_mmio_stretch[i] = std::vector<uint8_t>(256);
+    m_hw_rmmio_fns = std::vector<ReadMMIOFn>(768);
+    m_hw_wmmio_fns = std::vector<WriteMMIOFn>(768);
+    m_hw_mmio_fn_contexts = std::vector<void *>(768);
+    m_hw_mmio_stretch = std::vector<uint8_t>(768);
 
-        // Assume hardware is mapped. It will get fixed up later if
-        // not.
-        m_rmmio_fns[i] = m_hw_rmmio_fns[i].data();
-        m_mmio_fn_contexts[i] = m_hw_mmio_fn_contexts[i].data();
-        m_mmio_stretch[i] = m_hw_mmio_stretch[i].data();
-        m_rom_mmio = false;
-    }
+    // Assume hardware is mapped. It will get fixed up later if
+    // not.
+    m_rmmio_fns = m_hw_rmmio_fns.data();
+    m_mmio_fn_contexts = m_hw_mmio_fn_contexts.data();
+    m_mmio_stretch = m_hw_mmio_stretch.data();
+    m_rom_mmio = false;
 
     // initially no I/O
     for (uint16_t i = 0xfc00; i < 0xff00; ++i) {
@@ -2093,23 +2087,29 @@ void BBCMicro::InitStuff() {
     //m_has_rtc = !!(m_type->flags & BBCMicroTypeFlag_HasRTC);
 
     for (int i = 0; i < 3; ++i) {
-        m_rom_rmmio_fns = std::vector<ReadMMIOFn>(256, &ReadROMMMIO);
-        m_rom_mmio_fn_contexts = std::vector<void *>(256, this);
-        m_rom_mmio_stretch = std::vector<uint8_t>(256, 0x00);
+        m_rom_rmmio_fns = std::vector<ReadMMIOFn>(768, &ReadROMMMIO);
+        m_rom_mmio_fn_contexts = std::vector<void *>(768, this);
+        m_rom_mmio_stretch = std::vector<uint8_t>(768, 0x00);
     }
 
     // FRED = all stretched
-    m_hw_mmio_stretch[0] = std::vector<uint8_t>(256, 0xff);
+    for (size_t i = 0; i < 0x100; ++i) {
+        m_hw_mmio_stretch[i] = 0xff;
+    }
 
     // JIM = all stretched
-    m_hw_mmio_stretch[1] = std::vector<uint8_t>(256, 0xff);
+    for (size_t i = 0x100; i < 0x200; ++i) {
+        m_hw_mmio_stretch[i] = 0xff;
+    }
 
     // SHEILA = part stretched
-    m_hw_mmio_stretch[2] = std::vector<uint8_t>(256, 0x00);
+    for (size_t i = 0x200; i < 0x300; ++i) {
+        m_hw_mmio_stretch[i] = 0x00;
+    }
     for (const BBCMicroType::SHEILACycleStretchRegion &region : m_type->sheila_cycle_stretch_regions) {
         ASSERT(region.first < region.last);
         for (uint8_t i = region.first; i <= region.last; ++i) {
-            m_hw_mmio_stretch[2][i] = 0xff;
+            m_hw_mmio_stretch[0x200 + i] = 0xff;
         }
     }
 
@@ -2124,11 +2124,9 @@ void BBCMicro::InitStuff() {
     this->SetTrace(nullptr, 0);
 #endif
 
-    for (int i = 0; i < 3; ++i) {
-        ASSERT(m_rmmio_fns[i] == m_hw_rmmio_fns[i].data() || m_rmmio_fns[i] == m_rom_rmmio_fns.data());
-        ASSERT(m_mmio_fn_contexts[i] == m_hw_mmio_fn_contexts[i].data() || m_mmio_fn_contexts[i] == m_rom_mmio_fn_contexts.data());
-        ASSERT(m_mmio_stretch[i] == m_hw_mmio_stretch[i].data() || m_mmio_stretch[i] == m_rom_mmio_stretch.data());
-    }
+    ASSERT(m_rmmio_fns == m_hw_rmmio_fns.data() || m_rmmio_fns == m_rom_rmmio_fns.data());
+    ASSERT(m_mmio_fn_contexts == m_hw_mmio_fn_contexts.data() || m_mmio_fn_contexts == m_rom_mmio_fn_contexts.data());
+    ASSERT(m_mmio_stretch == m_hw_mmio_stretch.data() || m_mmio_stretch == m_rom_mmio_stretch.data());
 
     if (m_parasite_type != BBCMicroParasiteType_None) {
         m_state.parasite_cpu.context = this;

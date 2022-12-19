@@ -663,26 +663,23 @@ class BBCMicro : private WD1770Handler {
     MemoryBigPages m_mem_big_pages[2] = {};
     const MemoryBigPages *m_pc_mem_big_pages[16];
 
-    // [0] is for page FC, [1] for FD and [2] for FE.
+    // Each points to 768 entries, one per byte. [0x000...0x0ff] is for page FC,
+    // [0x100...0x1ff] for FD and [0x200...0x2ff] for FE.
     //
-    // Each points to 256 entries, one per byte.
-    //
-    // These tables are used for reads. Writes always go to the
-    // hardware.
-    const ReadMMIOFn *m_rmmio_fns[3] = {};
-    void *const *m_mmio_fn_contexts[3] = {};
-    const uint8_t *m_mmio_stretch[3] = {};
+    // These tables are used for reads. Writes always go to the hardware.
+    const ReadMMIOFn *m_rmmio_fns = nullptr;
+    void *const *m_mmio_fn_contexts = nullptr;
+    const uint8_t *m_mmio_stretch = nullptr;
 
-    // Tables for pages FC/FD/FE that access the hardware - B, B+,
-    // M128 when ACCCON TST=0.
-    std::vector<ReadMMIOFn> m_hw_rmmio_fns[3];
-    std::vector<WriteMMIOFn> m_hw_wmmio_fns[3];
-    std::vector<void *> m_hw_mmio_fn_contexts[3];
-    std::vector<uint8_t> m_hw_mmio_stretch[3];
+    // Tables for pages FC/FD/FE that access the hardware - B, B+, M128 when
+    // ACCCON TST=0.
+    std::vector<ReadMMIOFn> m_hw_rmmio_fns;
+    std::vector<WriteMMIOFn> m_hw_wmmio_fns;
+    std::vector<void *> m_hw_mmio_fn_contexts;
+    std::vector<uint8_t> m_hw_mmio_stretch;
 
-    // Tables for pages FC/FD/FE that access the ROM - reads on M128
-    // when ACCCON TST=1. All 3 pages behave the same in this case, so
-    // there's just one set of tables.
+    // Tables for pages FC/FD/FE that access the ROM - reads on M128 when ACCCON
+    // TST=1.
     std::vector<ReadMMIOFn> m_rom_rmmio_fns;
     std::vector<void *> m_rom_mmio_fn_contexts;
     std::vector<uint8_t> m_rom_mmio_stretch;
