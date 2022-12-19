@@ -118,7 +118,7 @@ uint32_t BBCMicro::Update(VideoDataUnit *video_unit, SoundDataUnit *sound_unit) 
 
         if (m_state.parasite_cpu.read) {
             if ((m_state.parasite_cpu.abus.w & 0xfff0) == 0xfef0) {
-                m_state.parasite_cpu.dbus = (*m_parasite_rmmio_fns[m_state.parasite_cpu.abus.w & 7])(&m_state.parasite_tube, m_state.parasite_cpu.abus);
+                m_state.parasite_cpu.dbus = (*m_parasite_read_mmio_fns[m_state.parasite_cpu.abus.w & 7])(&m_state.parasite_tube, m_state.parasite_cpu.abus);
 
                 // This bit is a bit careless about checking for the `Trace`
                 // flag, but that's only an efficiency issue, not important for
@@ -175,7 +175,7 @@ uint32_t BBCMicro::Update(VideoDataUnit *video_unit, SoundDataUnit *sound_unit) 
 #endif
         } else {
             if ((m_state.parasite_cpu.abus.w & 0xfff0) == 0xfef0) {
-                (*m_parasite_wmmio_fns[m_state.parasite_cpu.abus.w & 7])(&m_state.parasite_tube, m_state.parasite_cpu.abus, m_state.parasite_cpu.dbus);
+                (*m_parasite_write_mmio_fns[m_state.parasite_cpu.abus.w & 7])(&m_state.parasite_tube, m_state.parasite_cpu.abus, m_state.parasite_cpu.dbus);
                 if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_ParasiteSpecial) != 0) {
                     if (m_state.parasite_boot_mode) {
 #if BBCMICRO_TRACE
@@ -264,9 +264,10 @@ parasite_update_done:
             M6502Word mmio_addr = {m_state.cpu.abus.w - 0xfc00u};
             if (mmio_addr.b.h < 3) {
                 if (m_state.cpu.read) {
-                    m_state.stretch = m_mmio_stretch[mmio_addr.w];
+                    m_state.stretch = m_mmios_stretch[mmio_addr.w];
                 } else {
-                    m_state.stretch = m_hw_mmio_stretch[mmio_addr.w];
+                    // std::vector::operator[]!! - oops. But it optimises away nicely in an optimised build.
+                    m_state.stretch = m_mmios_stretch_hw[mmio_addr.w];
                 }
             }
         }
@@ -302,9 +303,8 @@ parasite_update_done:
             M6502Word mmio_addr = {m_state.cpu.abus.w - 0xfc00u};
             if (const uint8_t read = m_state.cpu.read) {
                 if (mmio_addr.b.h < 3) {
-                    ReadMMIOFn fn = m_rmmio_fns[mmio_addr.w];
-                    void *context = m_mmio_fn_contexts[mmio_addr.w];
-                    m_state.cpu.dbus = (*fn)(context, m_state.cpu.abus);
+                    const ReadMMIO *read_mmio = &m_read_mmios[mmio_addr.w];
+                    m_state.cpu.dbus = (*read_mmio->fn)(read_mmio->context, m_state.cpu.abus);
                 } else {
                     m_state.cpu.dbus = m_pc_mem_big_pages[m_state.cpu.opcode_pc.p.p]->r[m_state.cpu.abus.p.p][m_state.cpu.abus.p.o];
                 }
@@ -329,9 +329,9 @@ parasite_update_done:
 #endif
             } else {
                 if (mmio_addr.b.h < 3) {
-                    WriteMMIOFn fn = m_hw_wmmio_fns[mmio_addr.w];
-                    void *context = m_hw_mmio_fn_contexts[mmio_addr.w];
-                    (*fn)(context, m_state.cpu.abus, m_state.cpu.dbus);
+                    // std::vector::operator[]!! - oops. But it optimises away nicely in an optimised build.
+                    const WriteMMIO *write_mmio = &m_write_mmios_hw[mmio_addr.w];
+                    (*write_mmio->fn)(write_mmio->context, m_state.cpu.abus, m_state.cpu.dbus);
                 } else {
                     m_pc_mem_big_pages[m_state.cpu.opcode_pc.p.p]->w[m_state.cpu.abus.p.p][m_state.cpu.abus.p.o] = m_state.cpu.dbus;
                 }

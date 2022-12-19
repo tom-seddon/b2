@@ -321,13 +321,11 @@ void BBCMicro::UpdatePaging() {
 
     if (io != m_rom_mmio) {
         if (io) {
-            m_rmmio_fns = m_hw_rmmio_fns.data();
-            m_mmio_fn_contexts = m_hw_mmio_fn_contexts.data();
-            m_mmio_stretch = m_hw_mmio_stretch.data();
+            m_read_mmios = m_read_mmios_hw.data();
+            m_mmios_stretch = m_mmios_stretch_hw.data();
         } else {
-            m_rmmio_fns = m_rom_rmmio_fns.data();
-            m_mmio_fn_contexts = m_rom_mmio_fn_contexts.data();
-            m_mmio_stretch = m_rom_mmio_stretch.data();
+            m_read_mmios = m_read_mmios_rom.data();
+            m_mmios_stretch = m_mmios_stretch_rom.data();
         }
 
         m_rom_mmio = io;
@@ -594,9 +592,12 @@ void BBCMicro::WriteUnmappedMMIO(void *m_, M6502Word a, uint8_t value) {
 //////////////////////////////////////////////////////////////////////////
 
 uint8_t BBCMicro::ReadUnmappedMMIO(void *m_, M6502Word a) {
-    (void)m_, (void)a;
+    (void)a;
 
-    return 0;
+    auto m=(BBCMicro*)m_;
+    (void)m;
+
+    return 0;//m->m_state.cpu.dbus;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -1072,13 +1073,21 @@ void BBCMicro::AddHostWriteFn(WriteFn fn, void *context) {
 void BBCMicro::SetMMIOFns(uint16_t addr, ReadMMIOFn read_fn, WriteMMIOFn write_fn, void *context) {
     ASSERT(addr >= 0xfc00 && addr <= 0xfeff);
 
-    M6502Word tmp;
-    tmp.w = addr;
-    tmp.b.h -= 0xfc;
+    uint16_t index = addr - 0xfc00;
 
-    m_hw_rmmio_fns[tmp.w] = read_fn ? read_fn : &ReadUnmappedMMIO;
-    m_hw_wmmio_fns[tmp.w] = write_fn ? write_fn : &WriteUnmappedMMIO;
-    m_hw_mmio_fn_contexts[tmp.w] = context;
+    ReadMMIO *read_mmio = &m_read_mmios_hw[index];
+    if (read_fn) {
+        *read_mmio = {read_fn, context};
+    } else {
+        *read_mmio = {&ReadUnmappedMMIO, this};
+    }
+
+    WriteMMIO *write_mmio = &m_write_mmios_hw[index];
+    if (write_fn) {
+        *write_mmio = {write_fn, context};
+    } else {
+        *write_mmio = {&WriteUnmappedMMIO, this};
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -1972,16 +1981,14 @@ void BBCMicro::InitStuff() {
 
     m_ram = m_state.ram_buffer.data();
 
-    m_hw_rmmio_fns = std::vector<ReadMMIOFn>(768);
-    m_hw_wmmio_fns = std::vector<WriteMMIOFn>(768);
-    m_hw_mmio_fn_contexts = std::vector<void *>(768);
-    m_hw_mmio_stretch = std::vector<uint8_t>(768);
+    m_read_mmios_hw = std::vector<ReadMMIO>(768);
+    m_write_mmios_hw = std::vector<WriteMMIO>(768);
+    m_mmios_stretch_hw = std::vector<uint8_t>(768);
 
     // Assume hardware is mapped. It will get fixed up later if
     // not.
-    m_rmmio_fns = m_hw_rmmio_fns.data();
-    m_mmio_fn_contexts = m_hw_mmio_fn_contexts.data();
-    m_mmio_stretch = m_hw_mmio_stretch.data();
+    m_read_mmios = m_read_mmios_hw.data();
+    m_mmios_stretch = m_mmios_stretch_hw.data();
     m_rom_mmio = false;
 
     // initially no I/O
@@ -2086,30 +2093,27 @@ void BBCMicro::InitStuff() {
 
     //m_has_rtc = !!(m_type->flags & BBCMicroTypeFlag_HasRTC);
 
-    for (int i = 0; i < 3; ++i) {
-        m_rom_rmmio_fns = std::vector<ReadMMIOFn>(768, &ReadROMMMIO);
-        m_rom_mmio_fn_contexts = std::vector<void *>(768, this);
-        m_rom_mmio_stretch = std::vector<uint8_t>(768, 0x00);
-    }
+    m_read_mmios_rom = std::vector<ReadMMIO>(768, {&ReadROMMMIO, this});
+    m_mmios_stretch_rom = std::vector<uint8_t>(768, 0x00);
 
     // FRED = all stretched
     for (size_t i = 0; i < 0x100; ++i) {
-        m_hw_mmio_stretch[i] = 0xff;
+        m_mmios_stretch_hw[i] = 0xff;
     }
 
     // JIM = all stretched
     for (size_t i = 0x100; i < 0x200; ++i) {
-        m_hw_mmio_stretch[i] = 0xff;
+        m_mmios_stretch_hw[i] = 0xff;
     }
 
     // SHEILA = part stretched
     for (size_t i = 0x200; i < 0x300; ++i) {
-        m_hw_mmio_stretch[i] = 0x00;
+        m_mmios_stretch_hw[i] = 0x00;
     }
     for (const BBCMicroType::SHEILACycleStretchRegion &region : m_type->sheila_cycle_stretch_regions) {
         ASSERT(region.first < region.last);
         for (uint8_t i = region.first; i <= region.last; ++i) {
-            m_hw_mmio_stretch[0x200 + i] = 0xff;
+            m_mmios_stretch_hw[0x200 + i] = 0xff;
         }
     }
 
@@ -2124,9 +2128,8 @@ void BBCMicro::InitStuff() {
     this->SetTrace(nullptr, 0);
 #endif
 
-    ASSERT(m_rmmio_fns == m_hw_rmmio_fns.data() || m_rmmio_fns == m_rom_rmmio_fns.data());
-    ASSERT(m_mmio_fn_contexts == m_hw_mmio_fn_contexts.data() || m_mmio_fn_contexts == m_rom_mmio_fn_contexts.data());
-    ASSERT(m_mmio_stretch == m_hw_mmio_stretch.data() || m_mmio_stretch == m_rom_mmio_stretch.data());
+    ASSERT(m_read_mmios == m_read_mmios_hw.data() || m_read_mmios == m_read_mmios_rom.data());
+    ASSERT(m_mmios_stretch == m_mmios_stretch_hw.data() || m_mmios_stretch == m_mmios_stretch_rom.data());
 
     if (m_parasite_type != BBCMicroParasiteType_None) {
         m_state.parasite_cpu.context = this;
@@ -2134,23 +2137,23 @@ void BBCMicro::InitStuff() {
         ASSERT(m_state.parasite_ram_buffer.size() == 65536);
         m_parasite_ram = m_state.parasite_ram_buffer.data();
 
-        m_parasite_rmmio_fns[0] = &ReadParasiteTube0;
-        m_parasite_rmmio_fns[1] = &ReadParasiteTube1;
-        m_parasite_rmmio_fns[2] = &ReadParasiteTube2;
-        m_parasite_rmmio_fns[3] = &ReadParasiteTube3;
-        m_parasite_rmmio_fns[4] = &ReadParasiteTube4;
-        m_parasite_rmmio_fns[5] = &ReadParasiteTube5;
-        m_parasite_rmmio_fns[6] = &ReadParasiteTube6;
-        m_parasite_rmmio_fns[7] = &ReadParasiteTube7;
+        m_parasite_read_mmio_fns[0] = &ReadParasiteTube0;
+        m_parasite_read_mmio_fns[1] = &ReadParasiteTube1;
+        m_parasite_read_mmio_fns[2] = &ReadParasiteTube2;
+        m_parasite_read_mmio_fns[3] = &ReadParasiteTube3;
+        m_parasite_read_mmio_fns[4] = &ReadParasiteTube4;
+        m_parasite_read_mmio_fns[5] = &ReadParasiteTube5;
+        m_parasite_read_mmio_fns[6] = &ReadParasiteTube6;
+        m_parasite_read_mmio_fns[7] = &ReadParasiteTube7;
 
-        m_parasite_wmmio_fns[0] = &WriteTubeDummy;
-        m_parasite_wmmio_fns[1] = &WriteParasiteTube1;
-        m_parasite_wmmio_fns[2] = &WriteTubeDummy;
-        m_parasite_wmmio_fns[3] = &WriteParasiteTube3;
-        m_parasite_wmmio_fns[4] = &WriteTubeDummy;
-        m_parasite_wmmio_fns[5] = &WriteParasiteTube5;
-        m_parasite_wmmio_fns[6] = &WriteTubeDummy;
-        m_parasite_wmmio_fns[7] = &WriteParasiteTube7;
+        m_parasite_write_mmio_fns[0] = &WriteTubeDummy;
+        m_parasite_write_mmio_fns[1] = &WriteParasiteTube1;
+        m_parasite_write_mmio_fns[2] = &WriteTubeDummy;
+        m_parasite_write_mmio_fns[3] = &WriteParasiteTube3;
+        m_parasite_write_mmio_fns[4] = &WriteTubeDummy;
+        m_parasite_write_mmio_fns[5] = &WriteParasiteTube5;
+        m_parasite_write_mmio_fns[6] = &WriteTubeDummy;
+        m_parasite_write_mmio_fns[7] = &WriteParasiteTube7;
     } else {
         ASSERT(m_state.parasite_ram_buffer.empty());
     }

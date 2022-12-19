@@ -246,16 +246,16 @@ class BBCMicro : private WD1770Handler {
     };
 
     typedef uint8_t (*ReadMMIOFn)(void *, M6502Word);
-    //struct ReadMMIO {
-    //    ReadMMIOFn fn;
-    //    void *obj;
-    //};
+    struct ReadMMIO {
+        ReadMMIOFn fn;
+        void *context;
+    };
 
     typedef void (*WriteMMIOFn)(void *, M6502Word, uint8_t value);
-    //struct WriteMMIO {
-    //    WriteMMIOFn fn;
-    //    void *obj;
-    //};
+    struct WriteMMIO {
+        WriteMMIOFn fn;
+        void *context;
+    };
 
     struct DiscDrive {
         bool motor = false;
@@ -667,22 +667,20 @@ class BBCMicro : private WD1770Handler {
     // [0x100...0x1ff] for FD and [0x200...0x2ff] for FE.
     //
     // These tables are used for reads. Writes always go to the hardware.
-    const ReadMMIOFn *m_rmmio_fns = nullptr;
-    void *const *m_mmio_fn_contexts = nullptr;
-    const uint8_t *m_mmio_stretch = nullptr;
+    const ReadMMIO *m_read_mmios = nullptr;
+    const uint8_t *m_mmios_stretch = nullptr;
 
     // Tables for pages FC/FD/FE that access the hardware - B, B+, M128 when
     // ACCCON TST=0.
-    std::vector<ReadMMIOFn> m_hw_rmmio_fns;
-    std::vector<WriteMMIOFn> m_hw_wmmio_fns;
-    std::vector<void *> m_hw_mmio_fn_contexts;
-    std::vector<uint8_t> m_hw_mmio_stretch;
+    std::vector<ReadMMIO> m_read_mmios_hw;
+    std::vector<WriteMMIO> m_write_mmios_hw;
+    std::vector<uint8_t> m_mmios_stretch_hw;
 
     // Tables for pages FC/FD/FE that access the ROM - reads on M128 when ACCCON
     // TST=1.
-    std::vector<ReadMMIOFn> m_rom_rmmio_fns;
-    std::vector<void *> m_rom_mmio_fn_contexts;
-    std::vector<uint8_t> m_rom_mmio_stretch;
+    std::vector<ReadMMIO> m_read_mmios_rom;
+    std::vector<void *> m_write_mmios_rom;
+    std::vector<uint8_t> m_mmios_stretch_rom;
 
     // Whether memory-mapped I/O reads currently access ROM or not.
     bool m_rom_mmio = false;
@@ -697,8 +695,8 @@ class BBCMicro : private WD1770Handler {
     uint8_t *m_ram = nullptr;
 
     uint8_t *m_parasite_ram = nullptr;
-    ReadMMIOFn m_parasite_rmmio_fns[8] = {};
-    WriteMMIOFn m_parasite_wmmio_fns[8] = {};
+    ReadMMIOFn m_parasite_read_mmio_fns[8] = {};
+    WriteMMIOFn m_parasite_write_mmio_fns[8] = {};
 
     const std::vector<float> *m_disc_drive_sounds[DiscDriveSound_EndValue];
 
