@@ -6,3 +6,4 @@ imgui.ini
 /build/
 /cmake-build-*/
 /.dir-locals-build.sh
+/etc/b2_tests/[Zz]/
