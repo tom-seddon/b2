@@ -1800,8 +1800,11 @@ uint32_t BBCMicro::DebugGetStateOverrideMask() const {
 //////////////////////////////////////////////////////////////////////////
 
 void BBCMicro::SendBeebLinkResponse(std::vector<uint8_t> data) {
-    ASSERT(!!m_beeblink);
-    m_beeblink->SendResponse(std::move(data));
+    if (!m_beeblink) {
+        // Just discard the response. The request is now outdated.
+    } else {
+        m_beeblink->SendResponse(std::move(data));
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////
