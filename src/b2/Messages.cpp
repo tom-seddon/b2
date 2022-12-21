@@ -294,9 +294,9 @@ Messages::Messages()
 //////////////////////////////////////////////////////////////////////////
 
 Messages::Messages(std::shared_ptr<MessageList> message_list)
-    : i("", &message_list->m_info_printer)
-    , w("", &message_list->m_warning_printer)
-    , e("", &message_list->m_error_printer)
+    : i("", !!message_list ? static_cast<LogPrinter *>(&message_list->m_info_printer) : static_cast<LogPrinter *>(&log_printer_nowhere), !!message_list)
+    , w("", !!message_list ? static_cast<LogPrinter *>(&message_list->m_warning_printer) : static_cast<LogPrinter *>(&log_printer_nowhere), !!message_list)
+    , e("", !!message_list ? static_cast<LogPrinter *>(&message_list->m_error_printer) : static_cast<LogPrinter *>(&log_printer_nowhere), !!message_list)
     , m_message_list(std::move(message_list)) {
 }
 
