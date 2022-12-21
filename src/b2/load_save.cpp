@@ -26,6 +26,7 @@
 #include <beeb/BBCMicro.h>
 #include "b2.h"
 #include "BeebLinkHTTPHandler.h"
+#include "joysticks.h"
 
 #include <shared/enum_def.h>
 #include "load_save.inl"
@@ -1072,6 +1073,8 @@ static const char UNIX_LINE_ENDINGS[] = "unix_line_endings";
 #endif
 static const char FEATURE_FLAGS[] = "feature_flags";
 static const char PARASITE_TYPE[] = "parasite_type";
+static const char JOYSTICKS[] = "joysticks";
+static const char DEVICE_NAMES[] = "device_names";
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -1803,6 +1806,39 @@ static void SaveNVRAM(JSONWriter<StringStream> *writer) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+static bool LoadJoysticks(rapidjson::Value *joysticks_json, Messages *msg) {
+    rapidjson::Value device_names_json;
+    if (FindArrayMember(&device_names_json, joysticks_json, DEVICE_NAMES, msg)) {
+        for (unsigned i = 0; i < device_names_json.Size() && i < NUM_BEEB_JOYSTICKS; ++i) {
+            if (!device_names_json[i].IsString()) {
+                msg->e.f("not a string: %s.%s[%u]\n", JOYSTICKS, DEVICE_NAMES, i);
+                continue;
+            }
+
+            SetPCJoystickDeviceNameByBeebIndex(i, device_names_json[i].GetString());
+        }
+    }
+
+    return true;
+}
+
+static void SaveJoysticks(JSONWriter<StringStream> *writer) {
+    {
+        auto joysticks_json = ObjectWriter(writer, JOYSTICKS);
+        {
+            auto device_names_json = ArrayWriter(writer, DEVICE_NAMES);
+
+            for (int i = 0; i < NUM_BEEB_JOYSTICKS; ++i) {
+                std::string device_name = GetPCJoystickDeviceNameByBeebIndex(i);
+                writer->String(device_name.c_str());
+            }
+        }
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 static bool LoadWindows(rapidjson::Value *windows, Messages *msg) {
     {
         std::string placement_str;
@@ -2134,6 +2170,15 @@ bool LoadGlobalConfig(Messages *msg) {
                 return false;
             }
         }
+
+        rapidjson::Value joysticks;
+        if (FindObjectMember(&joysticks, doc.get(), JOYSTICKS, msg)) {
+            LOGF(LOADSAVE, "Loading joysticks.\n");
+
+            if (!LoadJoysticks(&joysticks, msg)) {
+                return false;
+            }
+        }
     }
 
     // don't bother with error checking for this... not really worth
@@ -2191,6 +2236,8 @@ bool SaveGlobalConfig(Messages *messages) {
         SaveConfigs(&writer);
 
         SaveNVRAM(&writer);
+
+        SaveJoysticks(&writer);
     }
 
     if (!SaveTextFile(json, fname, messages)) {

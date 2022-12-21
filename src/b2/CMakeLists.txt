@@ -52,6 +52,7 @@ add_executable(b2 MACOSX_BUNDLE
   native_ui.cpp native_ui.h
   roms.cpp roms.h roms.inl
   profiler.cpp profiler.h
+  joysticks.cpp joysticks.h
   )
 
 if(OSX)

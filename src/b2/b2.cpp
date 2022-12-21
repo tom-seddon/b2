@@ -43,6 +43,7 @@
 #include <IOKit/hid/IOHIDLib.h>
 #endif
 #include "BeebLinkHTTPHandler.h"
+#include "joysticks.h"
 
 #include <shared/enum_decl.h>
 #include "b2.inl"
@@ -719,7 +720,7 @@ static bool InitSystem(
     (void)options;
 
     // Initialise SDL
-    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_TIMER) != 0) {
+    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_TIMER | SDL_INIT_JOYSTICK | SDL_INIT_GAMECONTROLLER) != 0) {
         init_messages->e.f("FATAL: SDL_Init failed: %s\n", SDL_GetError());
         return false;
     }
@@ -1077,6 +1078,17 @@ int GetHTTPServerListenPort() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+static std::shared_ptr<MessageList> GetMRUMessageList() {
+    if (BeebWindow *beeb_window = BeebWindows::FindMRUBeebWindow()) {
+        return beeb_window->GetMessageList();
+    } else {
+        return nullptr;
+    }
+}
+
 static bool main2(int argc, char *argv[], const std::shared_ptr<MessageList> &init_message_list) {
     Messages init_messages(init_message_list);
 
@@ -1389,6 +1401,33 @@ static bool main2(int argc, char *argv[], const std::shared_ptr<MessageList> &in
                 LOGF(OUTPUT, "SDL_DROPFILE\n");
                 break;
 
+            case SDL_JOYDEVICEADDED:
+                {
+                    // constructing a Messages is a bit expensive, but this
+                    // doesn't happen all that often...
+                    Messages msg(GetMRUMessageList());
+                    JoystickDeviceAdded(event.jdevice.which, &msg);
+                }
+                break;
+
+            case SDL_JOYDEVICEREMOVED:
+                {
+                    // constructing a Messages is a bit expensive, but this
+                    // doesn't happen all that often...
+                    Messages msg(GetMRUMessageList());
+                    JoystickDeviceRemoved(event.jdevice.which, &msg);
+                }
+                break;
+
+            case SDL_CONTROLLERAXISMOTION:
+                ControllerAxisMotion(event.caxis.timestamp, event.caxis.which, event.caxis.axis, event.caxis.value);
+                break;
+
+            case SDL_CONTROLLERBUTTONDOWN:
+            case SDL_CONTROLLERBUTTONUP:
+                ControllerButton(event.cbutton.timestamp, event.cbutton.which, event.cbutton.button, event.cbutton.state == SDL_PRESSED);
+                break;
+
             default:
                 {
                     if (event.type >= g_first_event_type && event.type < g_first_event_type + SDLEventType_Count) {
@@ -1488,6 +1527,8 @@ static bool main2(int argc, char *argv[], const std::shared_ptr<MessageList> &in
 
         vblank_monitor = nullptr;
         vblank_handler = nullptr;
+
+        CloseJoysticks();
     }
 
 #if SYSTEM_OSX

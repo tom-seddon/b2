@@ -40,6 +40,7 @@
 #include "SettingsUI.h"
 #include "discs.h"
 #include "profiler.h"
+#include "joysticks.h"
 
 #ifdef _MSC_VER
 #include <crtdbg.h>
@@ -818,6 +819,7 @@ bool BeebWindow::DoMenuUI() {
         this->DoEditMenu();
         this->DoHardwareMenu();
         this->DoKeyboardMenu();
+        this->DoJoysticksMenu();
         this->DoToolsMenu();
         this->DoDebugMenu();
         if (!this->DoWindowMenu()) {
@@ -1714,6 +1716,18 @@ void BeebWindow::DoKeyboardMenu() {
             }
         }
 
+        ImGui::EndMenu();
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+static const std::string NULL_JOYSTICK_NAME("(none)");
+
+void BeebWindow::DoJoysticksMenu() {
+    if (ImGui::BeginMenu("Joysticks")) {
+        DoJoysticksMenuImGui(&m_msg);
         ImGui::EndMenu();
     }
 }
