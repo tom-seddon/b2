@@ -11,6 +11,8 @@ struct SDL_Renderer;
 struct SDL_Texture;
 struct SDL_Surface;
 struct SDL_PixelFormat;
+struct _SDL_Joystick;
+struct _SDL_GameController;
 class BBCMicro;
 struct ROM;
 class Messages;
@@ -70,6 +72,8 @@ struct SDL_Deleter {
     void operator()(SDL_Texture *t) const;
     void operator()(SDL_Surface *s) const;
     void operator()(SDL_PixelFormat *p) const;
+    void operator()(_SDL_Joystick *p) const;
+    void operator()(_SDL_GameController *p) const;
 };
 
 template <class T>
