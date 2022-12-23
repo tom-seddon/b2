@@ -280,6 +280,10 @@ struct BBCMicroType {
     };
     std::vector<SHEILACycleStretchRegion> sheila_cycle_stretch_regions;
 
+    // Where the ADC lives, and how many addresses it occupies.
+    uint16_t adc_addr = 0;
+    uint16_t adc_count = 0;
+
 #if BBCMICRO_DEBUGGER
     bool (*parse_prefix_lower_case_char_fn)(uint32_t *dso, char c);
 #endif

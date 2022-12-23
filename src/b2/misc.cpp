@@ -174,7 +174,7 @@ std::string GetCycleCountString(CycleCount cycle_count) {
 
     uint64_t minutes = n;
 
-    snprintf(str, sizeof str, "%" PRIu64 " min %02u sec %03u ms %03u.%02d \xc2\xb5s", minutes, secs, ms, us, cycles * 25);
+    snprintf(str, sizeof str, "%" PRIu64 " min %02u sec %03u ms %03u.%02d " MICROSECONDS_UTF8, minutes, secs, ms, us, cycles * 25);
 
     return str;
 }

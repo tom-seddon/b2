@@ -1081,6 +1081,12 @@ const BeebWindow::SettingsUIMetadata BeebWindow::ms_settings_uis[] = {
         "toggle_tube_debugger",
         &CreateTubeDebugWindow,
     },
+    {
+        BeebWindowPopupType_ADCDebugger,
+        "ADC Debug",
+        "toggle_adc_debugger",
+        &CreateADCDebugWindow,
+    },
 #endif
     {BeebWindowPopupType_BeebLink, "BeebLink Options", "toggle_beeblink_options", &CreateBeebLinkUI},
 
@@ -1838,6 +1844,7 @@ void BeebWindow::DoDebugMenu() {
         m_cc.DoMenuItemUI("toggle_user_via_debugger");
         m_cc.DoMenuItemUI("toggle_nvram_debugger");
         m_cc.DoMenuItemUI("toggle_sn76489_debugger");
+        m_cc.DoMenuItemUI("toggle_adc_debugger");
         m_cc.DoMenuItemUI("toggle_paging_debugger");
         m_cc.DoMenuItemUI("toggle_breakpoints_debugger");
         m_cc.DoMenuItemUI("toggle_stack_debugger");
@@ -3531,6 +3538,7 @@ ObjectCommandTable<BeebWindow> BeebWindow::ms_command_table("Beeb Window", {
         GetTogglePopupCommand<BeebWindowPopupType_ParasiteDisassemblyDebugger3>(),
         GetTogglePopupCommand<BeebWindowPopupType_ParasiteDisassemblyDebugger4>(),
         GetTogglePopupCommand<BeebWindowPopupType_TubeDebugger>(),
+        GetTogglePopupCommand<BeebWindowPopupType_ADCDebugger>(),
 
         {CommandDef("debug_stop", "Stop").Shortcut(SDLK_F5 | PCKeyModifier_Shift), &BeebWindow::DebugStop, nullptr, &BeebWindow::DebugIsStopEnabled},
         {CommandDef("debug_run", "Run").Shortcut(SDLK_F5), &BeebWindow::DebugRun, nullptr, &BeebWindow::DebugIsRunEnabled},

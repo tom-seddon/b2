@@ -271,6 +271,7 @@ void BBCMicro::SetTrace(std::shared_ptr<Trace> trace, uint32_t trace_flags) {
     m_state.video_ula.SetTrace(trace_flags & BBCMicroTraceFlag_VideoULA ? m_trace : nullptr);
     m_state.sn76489.SetTrace(trace_flags & BBCMicroTraceFlag_SN76489 ? m_trace : nullptr);
     SetTubeTrace(&m_state.parasite_tube, trace_flags & BBCMicroTraceFlag_Tube ? m_trace : nullptr);
+    m_state.adc.SetTrace(trace_flags & BBCMicroTraceFlag_ADC ? m_trace : nullptr);
 
     if (!!m_beeblink) {
         m_beeblink->SetTrace(trace_flags & BBCMicroTraceFlag_BeebLink ? m_trace : nullptr);
@@ -594,10 +595,10 @@ void BBCMicro::WriteUnmappedMMIO(void *m_, M6502Word a, uint8_t value) {
 uint8_t BBCMicro::ReadUnmappedMMIO(void *m_, M6502Word a) {
     (void)a;
 
-    auto m=(BBCMicro*)m_;
+    auto m = (BBCMicro *)m_;
     (void)m;
 
-    return 0;//m->m_state.cpu.dbus;
+    return 0; //m->m_state.cpu.dbus;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -768,6 +769,32 @@ bool BBCMicro::SetKeyState(BeebKey key, bool new_state) {
     }
 
     return false;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool BBCMicro::GetJoystickButtonState(uint8_t index) const {
+    ASSERT(index == 0 || index == 1);
+
+    uint8_t mask = 1 << (4 + (index & 1));
+
+    return !(m_state.not_joystick_buttons & mask);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BBCMicro::SetJoystickButtonState(uint8_t index, bool new_state) {
+    ASSERT(index == 0 || index == 1);
+
+    uint8_t mask = 1 << (4 + (index & 1));
+
+    if (new_state) {
+        m_state.not_joystick_buttons &= ~mask;
+    } else {
+        m_state.not_joystick_buttons |= mask;
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -1301,6 +1328,12 @@ const Tube *BBCMicro::DebugGetTube() const {
     } else {
         return nullptr;
     }
+}
+#endif
+
+#if BBCMICRO_DEBUGGER
+const ADC *BBCMicro::DebugGetADC() const {
+    return &m_state.adc;
 }
 #endif
 
@@ -2092,6 +2125,16 @@ void BBCMicro::InitStuff() {
             this->SetMMIOFns((uint16_t)(0xfe30 + i), &ReadROMSEL, &WriteROMSEL, this);
             this->SetMMIOFns((uint16_t)(0xfe34 + i), &ReadACCCON, &WriteACCCON, this);
         }
+    }
+
+    //
+    ASSERT(m_type->adc_addr != 0);
+    ASSERT(m_type->adc_count % 4 == 0);
+    for (uint16_t i = 0; i < m_type->adc_count; i += 4) {
+        this->SetMMIOFns(m_type->adc_addr + i + 0u, &ADC::Read0, &ADC::Write0, &m_state.adc);
+        this->SetMMIOFns(m_type->adc_addr + i + 1u, &ADC::Read1, &ADC::Write1, &m_state.adc);
+        this->SetMMIOFns(m_type->adc_addr + i + 2u, &ADC::Read2, &ADC::Write2, &m_state.adc);
+        this->SetMMIOFns(m_type->adc_addr + i + 3u, &ADC::Read3, &ADC::Write3, &m_state.adc);
     }
 
     //m_has_rtc = !!(m_type->flags & BBCMicroTypeFlag_HasRTC);

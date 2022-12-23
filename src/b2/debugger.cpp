@@ -3352,4 +3352,50 @@ std::unique_ptr<SettingsUI> CreateTubeDebugWindow(BeebWindow *beeb_window) {
     return CreateDebugUI<TubeDebugWindow>(beeb_window);
 }
 
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+class ADCDebugWindow : public DebugUI {
+  public:
+  protected:
+    void DoImGui2() override {
+        ADC adc;
+        uint16_t adc_addr;
+        {
+            std::unique_lock<Mutex> lock;
+            const BBCMicro *m = m_beeb_thread->LockBeeb(&lock);
+
+            adc = *m->DebugGetADC();
+            adc_addr = m->GetType()->adc_addr;
+        }
+
+        ImGui::Text("ADC address: $%04x", adc_addr);
+
+        //ImGuiHeader("\"Analogue\" values");
+        //for (int ch = 0; ch < 4; ++ch) {
+        //    uint16_t avalue = adc.avalues[ch];
+        //    ImGui::BulletText("%d: %-5u $%04x %.5f", ch, avalue, avalue, avalue / 65535.);
+        //}
+
+        ImGuiHeader("Status");
+        ImGui::Text("Status: %3u $%02x %%%s", adc.m_status.value, adc.m_status.value, BINARY_BYTE_STRINGS[adc.m_status.value]);
+        ImGui::Text("Conversion time left: %d " MICROSECONDS_UTF8, adc.m_timer);
+        ImGui::BulletText("Channel: %u", adc.m_status.bits.channel);
+        ImGui::BulletText("Flag: %u", adc.m_status.bits.flag);
+        ImGui::BulletText("Precision: %d bits", adc.m_status.bits.prec_10_bit ? 10 : 8);
+        ImGui::BulletText("MSB: %u", adc.m_status.bits.msb);
+        ImGui::BulletText("Busy: %s", BOOL_STR(!adc.m_status.bits.not_busy));
+        ImGui::BulletText("EOC: %s", BOOL_STR(!adc.m_status.bits.not_eoc));
+    }
+
+  private:
+};
+
+std::unique_ptr<SettingsUI> CreateADCDebugWindow(BeebWindow *beeb_window) {
+    return CreateDebugUI<ADCDebugWindow>(beeb_window);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 #endif

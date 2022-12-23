@@ -37,6 +37,7 @@ class BeebLink;
 #include "type.h"
 #include "tube.h"
 #include "BBCMicroParasiteType.h"
+#include "ADC.h"
 
 #include <shared/enum_decl.h>
 #include "BBCMicro.inl"
@@ -313,6 +314,10 @@ class BBCMicro : private WD1770Handler {
     // Returns true if the key state changed.
     bool SetKeyState(BeebKey key, bool new_state);
 
+    // Get/set joystick button state.
+    bool GetJoystickButtonState(uint8_t index) const;
+    void SetJoystickButtonState(uint8_t index, bool state);
+
     bool HasNumericKeypad() const;
 
 #if BBCMICRO_DEBUGGER
@@ -417,6 +422,7 @@ class BBCMicro : private WD1770Handler {
     const MC146818 *DebugGetRTC() const;
     void DebugGetPaging(ROMSEL *romsel, ACCCON *acccon) const;
     const Tube *DebugGetTube() const;
+    const ADC *DebugGetADC() const;
 
     const M6502 *DebugGetM6502(uint32_t dso) const;
 
@@ -570,6 +576,15 @@ class BBCMicro : private WD1770Handler {
 
         // RTC
         MC146818 rtc;
+
+        // ADC
+        ADC adc;
+
+        // Joystick states.
+        //
+        // Suitable for ORing into the PB value - only the two joystick button
+        // bits are ever set (indicating button unpressed).
+        uint8_t not_joystick_buttons = 1 << 4 | 1 << 5;
 
         // External 1MHz bus RAM.
         ExtMem ext_mem;

@@ -70,6 +70,7 @@ EPN(ParasiteDisassemblyDebugger2)
 EPN(ParasiteDisassemblyDebugger3)
 EPN(ParasiteDisassemblyDebugger4)
 EPN(TubeDebugger)
+EPN(ADCDebugger)
 
 // must be last
 EQPN(MaxValue)

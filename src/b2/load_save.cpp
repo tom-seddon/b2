@@ -1809,7 +1809,7 @@ static void SaveNVRAM(JSONWriter<StringStream> *writer) {
 static bool LoadJoysticks(rapidjson::Value *joysticks_json, Messages *msg) {
     rapidjson::Value device_names_json;
     if (FindArrayMember(&device_names_json, joysticks_json, DEVICE_NAMES, msg)) {
-        for (unsigned i = 0; i < device_names_json.Size() && i < NUM_BEEB_JOYSTICKS; ++i) {
+        for (uint8_t i = 0; i < device_names_json.Size() && i < NUM_BEEB_JOYSTICKS; ++i) {
             if (!device_names_json[i].IsString()) {
                 msg->e.f("not a string: %s.%s[%u]\n", JOYSTICKS, DEVICE_NAMES, i);
                 continue;
@@ -1828,7 +1828,7 @@ static void SaveJoysticks(JSONWriter<StringStream> *writer) {
         {
             auto device_names_json = ArrayWriter(writer, DEVICE_NAMES);
 
-            for (int i = 0; i < NUM_BEEB_JOYSTICKS; ++i) {
+            for (uint8_t i = 0; i < NUM_BEEB_JOYSTICKS; ++i) {
                 std::string device_name = GetPCJoystickDeviceNameByBeebIndex(i);
                 writer->String(device_name.c_str());
             }

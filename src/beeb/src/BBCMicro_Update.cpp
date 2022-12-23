@@ -688,6 +688,9 @@ parasite_update_done:
                 m_beeblink->Update(&m_state.user_via);
             }
 
+            // Update joystick buttons.
+            m_state.system_via.b.p |= m_state.not_joystick_buttons;
+
             // Update addressable latch and RTC.
             SystemVIAPB pb;
             pb.value = m_state.system_via.b.p;
@@ -746,9 +749,12 @@ parasite_update_done:
             m_state.user_via_irq_pending = m_state.user_via.UpdatePhi2LeadingEdge();
         }
 
-        // Update 1770.
         if (phi2_1MHz_trailing_edge) {
+            // Update 1770.
             M6502_SetDeviceNMI(&m_state.cpu, BBCMicroNMIDevice_1770, m_state.fdc.Update().value);
+
+            // Update ADC.
+            m_state.system_via.b.c1 = m_state.adc.Update();
         }
 
         // Update sound.

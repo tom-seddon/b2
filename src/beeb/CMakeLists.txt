@@ -29,6 +29,7 @@ set(SRCS
   ${S}/video.cpp ${I}/video.h ${I}/video.inl
   ${S}/tube.cpp ${I}/tube.h
   ${S}/BBCMicroParasiteType.cpp ${I}/BBCMicroParasiteType.inl ${I}/BBCMicroParasiteType.h
+  ${S}/adc.cpp ${I}/adc.h
 )
 
 if(MSVC)

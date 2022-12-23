@@ -250,7 +250,9 @@ const BBCMicroType BBC_MICRO_TYPE_B = {
         {0x00, 0x1f},
         {0x40, 0x7f},
         {0xc0, 0xdf},
-    }, //sheila_cycle_stretch_regions
+    },      //sheila_cycle_stretch_regions
+    0xfec0, //adc_addr
+    32,     //adc_count
 #if BBCMICRO_DEBUGGER
     &ParsePrefixLowerCaseCharB, //parse_prefix_char_fn
 #endif
@@ -444,15 +446,17 @@ const BBCMicroType BBC_MICRO_TYPE_B_PLUS = {
     &ApplyDSOBPlus, //apply_dso_fn
     &GetDSOBPlus,   //get_dso_fn
 #endif
-    0x8f,          //romsel_mask,
-    0x80,          //acccon_mask,
+    0x8f, //romsel_mask,
+    0x80, //acccon_mask,
     (BBCMicroTypeFlag_CanDisplayTeletext3c00 |
      BBCMicroTypeFlag_HasShadowRAM), //flags
     {
         {0x00, 0x1f},
         {0x40, 0x7f},
         {0xc0, 0xdf},
-    }, //sheila_cycle_stretch_regions
+    },      //sheila_cycle_stretch_regions
+    0xfec0, //adc_addr
+    32,     //adc_count
 #if BBCMICRO_DEBUGGER
     &ParsePrefixLowerCaseCharBPlus, //parse_prefix_char_fn
 #endif
@@ -714,8 +718,8 @@ const BBCMicroType BBC_MICRO_TYPE_MASTER = {
     &ApplyDSOMaster, //apply_dso_fn
     &GetDSOMaster,   //get_dso_fn
 #endif
-    0x8f,          //romsel_mask,
-    0xff,          //acccon_mask,
+    0x8f, //romsel_mask,
+    0xff, //acccon_mask,
     (BBCMicroTypeFlag_HasShadowRAM |
      BBCMicroTypeFlag_HasRTC |
      BBCMicroTypeFlag_HasNumericKeypad), //flags
@@ -723,7 +727,9 @@ const BBCMicroType BBC_MICRO_TYPE_MASTER = {
         {0x00, 0x1f},
         {0x28, 0x2b},
         {0x40, 0x7f},
-    }, //sheila_cycle_stretch_regions
+    },      //sheila_cycle_stretch_regions
+    0xfe18, //adc_addr
+    8,      //adc_count
 #if BBCMICRO_DEBUGGER
     &ParsePrefixLowerCaseCharMaster, //parse_prefix_char_fn
 #endif
