@@ -251,9 +251,14 @@ void BeebWindows::HandleSDLWindowEvent(const SDL_WindowEvent &event) {
         }
         break;
 
+    case SDL_WINDOWEVENT_FOCUS_LOST:
+        window->HandleSDLFocusLostEvent();
+        break;
+
     case SDL_WINDOWEVENT_FOCUS_GAINED:
         RemoveWindowFromList(window, &g_->windows_mru);
         g_->windows_mru.push_back(window);
+        window->HandleSDLFocusGainedEvent();
         // fall through
     case SDL_WINDOWEVENT_SHOWN:
     case SDL_WINDOWEVENT_HIDDEN:
@@ -264,42 +269,6 @@ void BeebWindows::HandleSDLWindowEvent(const SDL_WindowEvent &event) {
     case SDL_WINDOWEVENT_RESTORED:
         window->SavePosition();
         break;
-    }
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-void BeebWindows::HandleSDLKeyEvent(const SDL_KeyboardEvent &event) {
-    if (BeebWindow *window = FindBeebWindowBySDLWindowID(event.windowID)) {
-        window->HandleSDLKeyEvent(event);
-    }
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-void BeebWindows::SetSDLMouseWheelState(uint32_t sdl_window_id, int x, int y) {
-    if (BeebWindow *window = FindBeebWindowBySDLWindowID(sdl_window_id)) {
-        window->SetSDLMouseWheelState(x, y);
-    }
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-void BeebWindows::HandleSDLTextInput(uint32_t sdl_window_id, const char *text) {
-    if (BeebWindow *window = FindBeebWindowBySDLWindowID(sdl_window_id)) {
-        window->HandleSDLTextInput(text);
-    }
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-void BeebWindows::HandleSDLMouseMotionEvent(const SDL_MouseMotionEvent &event) {
-    if (BeebWindow *window = FindBeebWindowBySDLWindowID(event.windowID)) {
-        window->HandleSDLMouseMotionEvent(event);
     }
 }
 
@@ -530,6 +499,18 @@ std::vector<std::shared_ptr<JobQueue::Job>> BeebWindows::GetJobs() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+BeebWindow *BeebWindows::FindBeebWindowForSDLWindow(SDL_Window *sdl_window) {
+    auto window = (BeebWindow *)SDL_GetWindowData(sdl_window, BeebWindow::SDL_WINDOW_DATA_NAME);
+    if (!window) {
+        return NULL;
+    }
+
+    return window;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 BeebWindow *BeebWindows::FindBeebWindowBySDLWindowID(uint32_t sdl_window_id) {
     // In principle, you ought to be able to have multiple independent
     // b2BeebWindows collections (not that this would be especially
@@ -540,12 +521,7 @@ BeebWindow *BeebWindows::FindBeebWindowBySDLWindowID(uint32_t sdl_window_id) {
         return NULL;
     }
 
-    auto window = (BeebWindow *)SDL_GetWindowData(sdl_window, BeebWindow::SDL_WINDOW_DATA_NAME);
-    if (!window) {
-        return NULL;
-    }
-
-    return window;
+    return FindBeebWindowForSDLWindow(sdl_window);
 }
 
 //////////////////////////////////////////////////////////////////////////

@@ -776,8 +776,8 @@ bool BBCMicro::SetKeyState(BeebKey key, bool new_state) {
 
 bool BBCMicro::GetJoystickButtonState(uint8_t index) const {
     ASSERT(index == 0 || index == 1);
-
-    uint8_t mask = 1 << (4 + (index & 1));
+    static_assert(SystemVIAPBBits::NOT_JOYSTICK1_FIRE_BIT == SystemVIAPBBits::NOT_JOYSTICK0_FIRE_BIT + 1, "");
+    uint8_t mask = 1 << (SystemVIAPBBits::NOT_JOYSTICK1_FIRE_BIT + (index & 1));
 
     return !(m_state.not_joystick_buttons & mask);
 }
@@ -2590,6 +2590,30 @@ void BBCMicro::UpdateCPUDataBusFn() {
     ASSERT(update_flags < sizeof ms_update_mfns / sizeof ms_update_mfns[0]);
     m_update_mfn = ms_update_mfns[update_flags];
     ASSERT(m_update_mfn);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+uint16_t BBCMicro::GetAnalogueChannel(uint8_t channel) const {
+    ASSERT(channel < 4);
+    return m_state.analogue_channel_values[channel];
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BBCMicro::SetAnalogueChannel(uint8_t channel, uint16_t value) {
+    ASSERT(channel < 4);
+    m_state.analogue_channel_values[channel] = value;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+uint16_t BBCMicro::ReadAnalogueChannel(uint8_t channel) const {
+    uint16_t value = this->GetAnalogueChannel(channel);
+    return value;
 }
 
 //////////////////////////////////////////////////////////////////////////

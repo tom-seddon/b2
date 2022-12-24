@@ -25,6 +25,9 @@ class CommandKeymapsUI;
 class SettingsUI;
 class DiscImage;
 class FileMenuItem;
+struct SDL_ControllerAxisEvent;
+struct SDL_ControllerButtonEvent;
+struct JoystickResult;
 
 #include "keys.h"
 #include "dear_imgui.h"
@@ -42,7 +45,7 @@ class FileMenuItem;
 #include "BeebConfig.h"
 #include "BeebKeymap.h"
 #include "commands.h"
-#include "SDL_video.h"
+//#include "SDL_video.h"
 #include <beeb/video.h>
 
 #include <shared/enum_decl.h>
@@ -212,7 +215,11 @@ class BeebWindow {
 
     uint32_t GetSDLWindowID() const;
 
+    void HandleSDLFocusGainedEvent();
+    void HandleSDLFocusLostEvent();
     void HandleSDLKeyEvent(const SDL_KeyboardEvent &event);
+    void HandleSDLControllerAxisMotionEvent(const SDL_ControllerAxisEvent &event);
+    void HandleSDLControllerButtonEvent(const SDL_ControllerButtonEvent &event);
 
     void SetSDLMouseWheelState(int x, int y);
     void HandleSDLTextInput(const char *text);
@@ -454,6 +461,7 @@ class BeebWindow {
     void HardReset();
     void SaveState();
     bool SaveStateIsEnabled() const;
+    void HandleJoystickResult(const JoystickResult &jr);
     bool HandleBeebKey(const SDL_Keysym &keysym, bool state);
     bool RecreateTexture();
     void Exit();

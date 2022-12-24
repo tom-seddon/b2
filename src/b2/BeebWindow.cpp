@@ -416,9 +416,59 @@ bool BeebWindow::GetBeebKeyState(BeebKey key) const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+void BeebWindow::HandleSDLFocusGainedEvent() {
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BeebWindow::HandleSDLFocusLostEvent() {
+    for (uint8_t i = 0; i < NUM_BEEB_JOYSTICKS; ++i) {
+        auto message = std::make_shared<BeebThread::JoystickButtonMessage>(i, false);
+        m_beeb_thread->Send(std::move(message));
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 void BeebWindow::HandleSDLKeyEvent(const SDL_KeyboardEvent &event) {
     m_sdl_keyboard_events.push_back(event);
 }
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BeebWindow::HandleSDLControllerAxisMotionEvent(const SDL_ControllerAxisEvent &event) {
+    JoystickResult jr = ControllerAxisMotion(event.timestamp, event.which, event.axis, event.value);
+    this->HandleJoystickResult(jr);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BeebWindow::HandleSDLControllerButtonEvent(const SDL_ControllerButtonEvent &event) {
+    JoystickResult jr = ControllerButton(event.timestamp, event.which, event.button, event.state == SDL_PRESSED);
+    this->HandleJoystickResult(jr);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BeebWindow::HandleJoystickResult(const JoystickResult &jr) {
+    if (jr.channel >= 0) {
+        auto message = std::make_shared<BeebThread::AnalogueChannelMessage>(jr.channel, jr.channel_value);
+        m_beeb_thread->Send(std::move(message));
+    }
+
+    if (jr.button_joystick_index >= 0) {
+        auto message = std::make_shared<BeebThread::JoystickButtonMessage>(jr.button_joystick_index, jr.button_state);
+        m_beeb_thread->Send(std::move(message));
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
 
 bool BeebWindow::HandleBeebKey(const SDL_Keysym &keysym, bool state) {
     const BeebKeymap *keymap = m_settings.keymap;

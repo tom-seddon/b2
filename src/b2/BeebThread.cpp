@@ -380,6 +380,64 @@ void BeebThread::KeySymMessage::ThreadHandle(BeebThread *beeb_thread,
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+BeebThread::JoystickButtonMessage::JoystickButtonMessage(uint8_t index, bool state)
+    : m_index(index)
+    , m_state(state) {
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool BeebThread::JoystickButtonMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
+                                                      CompletionFun *completion_fun,
+                                                      BeebThread *beeb_thread,
+                                                      ThreadState *ts) {
+    if (!this->PrepareUnlessReplayingOrHalted(ptr, completion_fun, beeb_thread, ts)) {
+        return false;
+    }
+
+    return true;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BeebThread::JoystickButtonMessage::ThreadHandle(BeebThread *beeb_thread, ThreadState *ts) const {
+    beeb_thread->ThreadSetJoystickButtonState(ts, m_index, m_state);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+BeebThread::AnalogueChannelMessage::AnalogueChannelMessage(uint8_t index, uint16_t value)
+    : m_index(index)
+    , m_value(value) {
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool BeebThread::AnalogueChannelMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
+                                                       CompletionFun *completion_fun,
+                                                       BeebThread *beeb_thread,
+                                                       ThreadState *ts) {
+    if (!this->PrepareUnlessReplayingOrHalted(ptr, completion_fun, beeb_thread, ts)) {
+        return false;
+    }
+
+    return true;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BeebThread::AnalogueChannelMessage::ThreadHandle(BeebThread *beeb_thread, ThreadState *ts) const {
+    beeb_thread->ThreadSetAnalogueChannel(ts, m_index, m_value);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 BeebThread::HardResetMessage::HardResetMessage(uint32_t flags)
     : m_flags(flags) {
 }
@@ -2544,6 +2602,13 @@ void BeebThread::ThreadSetFakeShiftState(ThreadState *ts, BeebShiftState state) 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+void BeebThread::ThreadSetAnalogueChannel(ThreadState *ts, uint8_t index, uint16_t value) {
+    ts->beeb->SetAnalogueChannel(index, value);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 void BeebThread::ThreadSetBootState(ThreadState *ts, bool state) {
     ts->boot = state;
 
@@ -2555,6 +2620,13 @@ void BeebThread::ThreadSetBootState(ThreadState *ts, bool state) {
 
 void BeebThread::ThreadUpdateShiftKeyState(ThreadState *ts) {
     this->ThreadSetKeyState(ts, BeebKey_Shift, m_real_key_states.GetState(BeebKey_Shift));
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BeebThread::ThreadSetJoystickButtonState(ThreadState *ts, uint8_t index, bool state) {
+    ts->beeb->SetJoystickButtonState(index, state);
 }
 
 //////////////////////////////////////////////////////////////////////////

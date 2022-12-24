@@ -1078,6 +1078,20 @@ int GetHTTPServerListenPort() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+static BeebWindow *FindBeebKeyboardFocusWindow() {
+    SDL_Window *keyboard_focus_window = SDL_GetKeyboardFocus();
+    if (!keyboard_focus_window) {
+        return nullptr;
+    }
+
+    BeebWindow *beeb_window = BeebWindows::FindBeebWindowForSDLWindow(keyboard_focus_window);
+    if (!beeb_window) {
+        return nullptr;
+    }
+
+    return beeb_window;
+}
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
@@ -1337,14 +1351,18 @@ static bool main2(int argc, char *argv[], const std::shared_ptr<MessageList> &in
             case SDL_MOUSEMOTION:
                 {
                     rmt_ScopedCPUSample(SDL_MOUSEMOTION, 0);
-                    BeebWindows::HandleSDLMouseMotionEvent(event.motion);
+                    if (BeebWindow *window = BeebWindows::FindBeebWindowBySDLWindowID(event.motion.windowID)) {
+                        window->HandleSDLMouseMotionEvent(event.motion);
+                    }
                 }
                 break;
 
             case SDL_TEXTINPUT:
                 {
                     rmt_ScopedCPUSample(SDL_TEXTINPUT, 0);
-                    BeebWindows::HandleSDLTextInput(event.text.windowID, event.text.text);
+                    if (BeebWindow *window = BeebWindows::FindBeebWindowBySDLWindowID(event.text.windowID)) {
+                        window->HandleSDLTextInput(event.text.text);
+                    }
                 }
                 break;
 
@@ -1365,7 +1383,9 @@ static bool main2(int argc, char *argv[], const std::shared_ptr<MessageList> &in
 #endif
 
                     if (handle) {
-                        BeebWindows::HandleSDLKeyEvent(event.key);
+                        if (BeebWindow *window = BeebWindows::FindBeebWindowBySDLWindowID(event.key.windowID)) {
+                            window->HandleSDLKeyEvent(event.key);
+                        }
                     }
                 }
                 break;
@@ -1373,7 +1393,9 @@ static bool main2(int argc, char *argv[], const std::shared_ptr<MessageList> &in
             case SDL_MOUSEWHEEL:
                 {
                     rmt_ScopedCPUSample(SDL_MOUSEWHEEL, 0);
-                    BeebWindows::SetSDLMouseWheelState(event.wheel.windowID, event.wheel.x, event.wheel.y);
+                    if (BeebWindow *window = BeebWindows::FindBeebWindowBySDLWindowID(event.wheel.windowID)) {
+                        window->SetSDLMouseWheelState(event.wheel.x, event.wheel.y);
+                    }
                 }
                 break;
 
@@ -1420,12 +1442,20 @@ static bool main2(int argc, char *argv[], const std::shared_ptr<MessageList> &in
                 break;
 
             case SDL_CONTROLLERAXISMOTION:
-                ControllerAxisMotion(event.caxis.timestamp, event.caxis.which, event.caxis.axis, event.caxis.value);
+                {
+                    if (BeebWindow *window = FindBeebKeyboardFocusWindow()) {
+                        window->HandleSDLControllerAxisMotionEvent(event.caxis);
+                    }
+                }
                 break;
 
             case SDL_CONTROLLERBUTTONDOWN:
             case SDL_CONTROLLERBUTTONUP:
-                ControllerButton(event.cbutton.timestamp, event.cbutton.which, event.cbutton.button, event.cbutton.state == SDL_PRESSED);
+                {
+                    if (BeebWindow *window = FindBeebKeyboardFocusWindow()) {
+                        window->HandleSDLControllerButtonEvent(event.cbutton);
+                    }
+                }
                 break;
 
             default:

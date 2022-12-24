@@ -237,6 +237,38 @@ class BeebThread {
         BeebShiftState m_shift_state = BeebShiftState_Any;
     };
 
+    class JoystickButtonMessage : public Message {
+      public:
+        JoystickButtonMessage(uint8_t index, bool state);
+
+        bool ThreadPrepare(std::shared_ptr<Message> *ptr,
+                           CompletionFun *completion_fun,
+                           BeebThread *beeb_thread,
+                           ThreadState *ts) override;
+        void ThreadHandle(BeebThread *beeb_thread, ThreadState *ts) const override;
+
+      protected:
+      private:
+        const uint8_t m_index = 0;
+        const bool m_state = false;
+    };
+
+    class AnalogueChannelMessage : public Message {
+      public:
+        explicit AnalogueChannelMessage(uint8_t index, uint16_t value);
+
+        bool ThreadPrepare(std::shared_ptr<Message> *ptr,
+                           CompletionFun *completion_fun,
+                           BeebThread *beeb_thread,
+                           ThreadState *ts) override;
+        void ThreadHandle(BeebThread *beeb_thread, ThreadState *ts) const override;
+
+      protected:
+      private:
+        const uint8_t m_index = 0;
+        const uint16_t m_value = 0;
+    };
+
     class HardResetMessage : public Message {
       public:
         // Flags are a combination of BeebThreadHardResetFlag.
@@ -1045,8 +1077,10 @@ class BeebThread {
 #endif
     void ThreadSetKeyState(ThreadState *ts, BeebKey beeb_key, bool state);
     void ThreadSetFakeShiftState(ThreadState *ts, BeebShiftState state);
+    void ThreadSetAnalogueChannel(ThreadState *ts, uint8_t index, uint16_t value);
     void ThreadSetBootState(ThreadState *ts, bool state);
     void ThreadUpdateShiftKeyState(ThreadState *ts);
+    void ThreadSetJoystickButtonState(ThreadState *ts, uint8_t index, bool state);
     void ThreadSetDiscImage(ThreadState *ts, int drive, std::shared_ptr<DiscImage> disc_image);
     void ThreadStartPaste(ThreadState *ts, std::shared_ptr<const std::string> text);
     void ThreadStopCopy(ThreadState *ts);

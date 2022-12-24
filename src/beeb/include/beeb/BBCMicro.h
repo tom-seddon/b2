@@ -48,7 +48,8 @@ class BeebLink;
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-class BBCMicro : private WD1770Handler {
+class BBCMicro : private WD1770Handler,
+                 private ADCHandler {
   public:
     static const uint16_t SCREEN_WRAP_ADJUSTMENTS[];
 
@@ -184,6 +185,8 @@ class BBCMicro : private WD1770Handler {
 
 #include <shared/pushwarn_bitfields.h>
     struct SystemVIAPBBits {
+        static const uint8_t NOT_JOYSTICK0_FIRE_BIT = 4;
+        static const uint8_t NOT_JOYSTICK1_FIRE_BIT = 5;
         uint8_t latch_index : 3, latch_value : 1, not_joystick0_fire : 1, not_joystick1_fire : 1;
     };
 #include <shared/popwarn.h>
@@ -499,6 +502,9 @@ class BBCMicro : private WD1770Handler {
 
     void SendBeebLinkResponse(std::vector<uint8_t> data);
 
+    uint16_t GetAnalogueChannel(uint8_t channel) const;
+    void SetAnalogueChannel(uint8_t channel, uint16_t value);
+
   protected:
     // Hacks, not part of the public API, for use by the testing stuff so that
     // it can run even when the debugger isn't compiled in.
@@ -585,6 +591,8 @@ class BBCMicro : private WD1770Handler {
         // Suitable for ORing into the PB value - only the two joystick button
         // bits are ever set (indicating button unpressed).
         uint8_t not_joystick_buttons = 1 << 4 | 1 << 5;
+
+        uint16_t analogue_channel_values[4] = {};
 
         // External 1MHz bus RAM.
         ExtMem ext_mem;
@@ -810,6 +818,9 @@ class BBCMicro : private WD1770Handler {
     float UpdateDiscDriveSound(DiscDrive *dd);
 #endif
     void UpdateCPUDataBusFn();
+
+    // ADC handler stuff.
+    uint16_t ReadAnalogueChannel(uint8_t channel) const override;
 
     template <uint32_t UPDATE_FLAGS>
     uint32_t Update(VideoDataUnit *video_unit, SoundDataUnit *sound_unit);
