@@ -440,7 +440,7 @@ void BeebWindow::HandleSDLKeyEvent(const SDL_KeyboardEvent &event) {
 //////////////////////////////////////////////////////////////////////////
 
 void BeebWindow::HandleSDLControllerAxisMotionEvent(const SDL_ControllerAxisEvent &event) {
-    JoystickResult jr = ControllerAxisMotion(event.timestamp, event.which, event.axis, event.value);
+    JoystickResult jr = ControllerAxisMotion(event.which, event.axis, event.value);
     this->HandleJoystickResult(jr);
 }
 
@@ -448,7 +448,7 @@ void BeebWindow::HandleSDLControllerAxisMotionEvent(const SDL_ControllerAxisEven
 //////////////////////////////////////////////////////////////////////////
 
 void BeebWindow::HandleSDLControllerButtonEvent(const SDL_ControllerButtonEvent &event) {
-    JoystickResult jr = ControllerButton(event.timestamp, event.which, event.button, event.state == SDL_PRESSED);
+    JoystickResult jr = ControllerButton(event.which, event.button, event.state == SDL_PRESSED);
     this->HandleJoystickResult(jr);
 }
 

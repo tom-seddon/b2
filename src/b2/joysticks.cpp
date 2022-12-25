@@ -173,7 +173,7 @@ void JoystickDeviceRemoved(int device_instance, Messages *msg) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-JoystickResult ControllerAxisMotion(int timestamp, int device_instance, int axis, int16_t value) {
+JoystickResult ControllerAxisMotion(int device_instance, int axis, int16_t value) {
     if (axis >= 0 && axis < SDL_CONTROLLER_AXIS_MAX) {
         if (PCJoystick *pc_joystick = FindPCJoystick(device_instance)) {
             pc_joystick->controller_axis_values[axis] = value;
@@ -261,7 +261,7 @@ static JoystickResult GetJoystickResultForButton(const PCJoystick *pc_joystick, 
     return jr;
 }
 
-JoystickResult ControllerButton(int timestamp, int device_instance, int button, bool state) {
+JoystickResult ControllerButton(int device_instance, int button, bool state) {
     if (button >= 0 && button < SDL_CONTROLLER_BUTTON_MAX) {
         if (PCJoystick *pc_joystick = FindPCJoystick(device_instance)) {
             uint32_t mask = 1u << button;

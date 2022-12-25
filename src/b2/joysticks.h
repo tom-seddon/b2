@@ -34,8 +34,8 @@ struct JoystickResult {
     bool button_state = false;
 };
 
-JoystickResult ControllerAxisMotion(int timestamp, int device_instance, int axis, int16_t value);
-JoystickResult ControllerButton(int timestamp, int device_instance, int button, bool state);
+JoystickResult ControllerAxisMotion(int device_instance, int axis, int16_t value);
+JoystickResult ControllerButton(int device_instance, int button, bool state);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
