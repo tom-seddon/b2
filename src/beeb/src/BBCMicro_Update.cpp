@@ -261,7 +261,7 @@ parasite_update_done:
             result |= BBCMicroUpdateResultFlag_Host;
             (*m_state.cpu.tfn)(&m_state.cpu);
 
-            M6502Word mmio_addr = {m_state.cpu.abus.w - 0xfc00u};
+            M6502Word mmio_addr = {(uint16_t)(m_state.cpu.abus.w - 0xfc00u)};
             if (mmio_addr.b.h < 3) {
                 if (m_state.cpu.read) {
                     m_state.stretch = m_mmios_stretch[mmio_addr.w];
@@ -300,7 +300,7 @@ parasite_update_done:
                 }
             }
 
-            M6502Word mmio_addr = {m_state.cpu.abus.w - 0xfc00u};
+            M6502Word mmio_addr = {(uint16_t)(m_state.cpu.abus.w - 0xfc00u)};
             if (const uint8_t read = m_state.cpu.read) {
                 if (mmio_addr.b.h < 3) {
                     const ReadMMIO *read_mmio = &m_read_mmios[mmio_addr.w];

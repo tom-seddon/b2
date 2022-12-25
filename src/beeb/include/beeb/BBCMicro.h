@@ -37,7 +37,7 @@ class BeebLink;
 #include "type.h"
 #include "tube.h"
 #include "BBCMicroParasiteType.h"
-#include "ADC.h"
+#include "adc.h"
 
 #include <shared/enum_decl.h>
 #include "BBCMicro.inl"

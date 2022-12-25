@@ -187,9 +187,9 @@ BBCMicro::BBCMicro(const BBCMicroType *type,
 
 BBCMicro::BBCMicro(const BBCMicro &src)
     : m_state(src.m_state)
-    , m_parasite_type(src.m_parasite_type)
     , m_type(src.m_type)
     , m_disc_interface(src.m_disc_interface ? src.m_disc_interface->Clone() : nullptr)
+    , m_parasite_type(src.m_parasite_type)
     , m_init_flags(src.m_init_flags) {
     ASSERT(src.GetCloneImpediments() == 0);
 
