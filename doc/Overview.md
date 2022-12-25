@@ -55,6 +55,21 @@ BBC backslash.
 
 If using `Default US` character map, press PC ` to get BBC pound sign.
 
+## Joysticks
+
+If you have compatible game controllers connected, use the Joysticks
+menu to pick which ones are used for BBC joysticks 0 and 1.
+
+Assuming an Xbox/Playstation-style game controller, left thumbstick
+and d-pad correspond to the BBC joystick X and Y axes, and main 4
+buttons and the 2 shoulder buttons correspond to the BBC joystick
+button. (Other buttons or triggers are unused.)
+
+You can use the same gamepad for both BBC joysticks. In this
+situation, the left thumbstick and left shoulder button control BBC
+joystick 0, and the right thumbstick and right shoulder button control
+BBC joystick 1. The other buttons and triggers are unused.
+
 ## Save states
 
 Use `File` > `Save state` to save your place, and `File` > `Load last
