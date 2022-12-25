@@ -58,6 +58,10 @@ class ADCHandler {
 
     virtual uint16_t ReadAnalogueChannel(uint8_t channel) const = 0;
 
+#if BBCMICRO_DEBUGGER
+    virtual uint16_t DebugReadAnalogueChannel(uint8_t channel) const = 0;
+#endif
+
   protected:
   private:
 };
@@ -84,6 +88,10 @@ class ADC {
 
 #if BBCMICRO_TRACE
     void SetTrace(Trace *t);
+#endif
+
+#if BBCMICRO_DEBUGGER
+    void DebugGetChannelValues(uint16_t avalues[4]) const;
 #endif
 
     void SetHandler(ADCHandler *handler);

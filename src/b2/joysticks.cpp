@@ -178,7 +178,7 @@ JoystickResult ControllerAxisMotion(int timestamp, int device_instance, int axis
         if (PCJoystick *pc_joystick = FindPCJoystick(device_instance)) {
             pc_joystick->controller_axis_values[axis] = value;
 
-            uint16_t uvalue = (uint16_t)((int32_t)value + 32768);
+            uint16_t uvalue = (uint16_t)~((int32_t)value + 32768);
             if (g_beeb_joysticks[0].pc_joystick && g_beeb_joysticks[0].pc_joystick == g_beeb_joysticks[1].pc_joystick) {
                 // two Beeb joysticks from one PC controller
                 switch (axis) {
@@ -233,9 +233,9 @@ static JoystickResult GetJoystickResultForButton(const PCJoystick *pc_joystick, 
     case SDL_CONTROLLER_BUTTON_DPAD_DOWN:
         jr.channel = beeb_index * 2 + 1;
         if (pc_joystick->controller_button_states & 1 << SDL_CONTROLLER_BUTTON_DPAD_UP) {
-            jr.channel_value = -32768;
+            jr.channel_value = 0;
         } else if (pc_joystick->controller_button_states & 1 << SDL_CONTROLLER_BUTTON_DPAD_DOWN) {
-            jr.channel_value = 32767;
+            jr.channel_value = 0xffff;
         }
         break;
 
@@ -243,9 +243,9 @@ static JoystickResult GetJoystickResultForButton(const PCJoystick *pc_joystick, 
     case SDL_CONTROLLER_BUTTON_DPAD_RIGHT:
         jr.channel = beeb_index * 2 + 0;
         if (pc_joystick->controller_button_states & 1 << SDL_CONTROLLER_BUTTON_DPAD_LEFT) {
-            jr.channel_value = -32768;
+            jr.channel_value = 0;
         } else if (pc_joystick->controller_button_states & 1 << SDL_CONTROLLER_BUTTON_DPAD_RIGHT) {
-            jr.channel_value = 32767;
+            jr.channel_value = 0xffff;
         }
         break;
 

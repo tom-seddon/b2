@@ -821,6 +821,9 @@ class BBCMicro : private WD1770Handler,
 
     // ADC handler stuff.
     uint16_t ReadAnalogueChannel(uint8_t channel) const override;
+#if BBCMICRO_DEBUGGER
+    uint16_t DebugReadAnalogueChannel(uint8_t channel) const override;
+#endif
 
     template <uint32_t UPDATE_FLAGS>
     uint32_t Update(VideoDataUnit *video_unit, SoundDataUnit *sound_unit);

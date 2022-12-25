@@ -2217,6 +2217,8 @@ void BBCMicro::InitStuff() {
     m_parasite_cpu_metadata.debug_step_update_flag = BBCMicroUpdateFlag_DebugStepParasite;
 #endif
     m_state.parasite_cpu.context = &m_parasite_cpu_metadata;
+
+    m_state.adc.SetHandler(this);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -2612,6 +2614,14 @@ void BBCMicro::SetAnalogueChannel(uint8_t channel, uint16_t value) {
 //////////////////////////////////////////////////////////////////////////
 
 uint16_t BBCMicro::ReadAnalogueChannel(uint8_t channel) const {
+    uint16_t value = this->GetAnalogueChannel(channel);
+    return value;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+uint16_t BBCMicro::DebugReadAnalogueChannel(uint8_t channel) const {
     uint16_t value = this->GetAnalogueChannel(channel);
     return value;
 }

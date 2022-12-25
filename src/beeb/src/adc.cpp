@@ -8,6 +8,7 @@
 
 static constexpr uint16_t CONVERSION_TIME_USEC_10_BIT = 10000;
 static constexpr uint16_t CONVERSION_TIME_USEC_8_BIT = 4000;
+static constexpr uint16_t DEFAULT_CHANNEL_VALUE = 0xffff;
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -44,7 +45,7 @@ void ADC::Write0(void *adc_, M6502Word, uint8_t value) {
     if (adc->m_handler) {
         adc->m_avalue = adc->m_handler->ReadAnalogueChannel(adc->m_status.bits.channel);
     } else {
-        adc->m_avalue = 0;
+        adc->m_avalue = DEFAULT_CHANNEL_VALUE;
     }
 
     TRACEF(adc->m_trace, "ADC: Conversion begin: ch=%d (avalue=$%04x) prec=%s (timer=%u ms)", adc->m_status.bits.channel, adc->m_avalue, adc->m_status.bits.prec_10_bit ? "10" : "8", adc->m_timer);
@@ -133,6 +134,21 @@ bool ADC::Update() {
 #if BBCMICRO_TRACE
 void ADC::SetTrace(Trace *t) {
     m_trace = t;
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_DEBUGGER
+void ADC::DebugGetChannelValues(uint16_t avalues[4]) const {
+    for (uint8_t i = 0; i < 4; ++i) {
+        if (m_handler) {
+            avalues[i] = m_handler->DebugReadAnalogueChannel(i);
+        } else {
+            avalues[i] = DEFAULT_CHANNEL_VALUE;
+        }
+    }
 }
 #endif
 

@@ -3359,33 +3359,38 @@ class ADCDebugWindow : public DebugUI {
   public:
   protected:
     void DoImGui2() override {
-        ADC adc;
-        uint16_t adc_addr;
+        ADCStatusRegister status;
+        uint16_t addr;
+        uint16_t avalues[4];
+        uint16_t timer;
         {
             std::unique_lock<Mutex> lock;
             const BBCMicro *m = m_beeb_thread->LockBeeb(&lock);
+            const ADC *adc = m->DebugGetADC();
 
-            adc = *m->DebugGetADC();
-            adc_addr = m->GetType()->adc_addr;
+            addr = m->GetType()->adc_addr;
+            status = adc->m_status;
+            timer=adc->m_timer;
+            adc->DebugGetChannelValues(avalues);
         }
 
-        ImGui::Text("ADC address: $%04x", adc_addr);
+        ImGui::Text("ADC address: $%04x", addr);
 
-        //ImGuiHeader("\"Analogue\" values");
-        //for (int ch = 0; ch < 4; ++ch) {
-        //    uint16_t avalue = adc.avalues[ch];
-        //    ImGui::BulletText("%d: %-5u $%04x %.5f", ch, avalue, avalue, avalue / 65535.);
-        //}
+        ImGuiHeader("\"Analogue\" values");
+        for (int ch = 0; ch < 4; ++ch) {
+            uint16_t avalue = avalues[ch];
+            ImGui::BulletText("%d: %-5u $%04x %.5f", ch, avalue, avalue, avalue / 65535.);
+        }
 
         ImGuiHeader("Status");
-        ImGui::Text("Status: %3u $%02x %%%s", adc.m_status.value, adc.m_status.value, BINARY_BYTE_STRINGS[adc.m_status.value]);
-        ImGui::Text("Conversion time left: %d " MICROSECONDS_UTF8, adc.m_timer);
-        ImGui::BulletText("Channel: %u", adc.m_status.bits.channel);
-        ImGui::BulletText("Flag: %u", adc.m_status.bits.flag);
-        ImGui::BulletText("Precision: %d bits", adc.m_status.bits.prec_10_bit ? 10 : 8);
-        ImGui::BulletText("MSB: %u", adc.m_status.bits.msb);
-        ImGui::BulletText("Busy: %s", BOOL_STR(!adc.m_status.bits.not_busy));
-        ImGui::BulletText("EOC: %s", BOOL_STR(!adc.m_status.bits.not_eoc));
+        ImGui::Text("Status: %3u $%02x %%%s", status.value, status.value, BINARY_BYTE_STRINGS[status.value]);
+        ImGui::Text("Conversion time left: %d " MICROSECONDS_UTF8, timer);
+        ImGui::BulletText("Channel: %u", status.bits.channel);
+        ImGui::BulletText("Flag: %u", status.bits.flag);
+        ImGui::BulletText("Precision: %d bits", status.bits.prec_10_bit ? 10 : 8);
+        ImGui::BulletText("MSB: %u", status.bits.msb);
+        ImGui::BulletText("Busy: %s", BOOL_STR(!status.bits.not_busy));
+        ImGui::BulletText("EOC: %s", BOOL_STR(!status.bits.not_eoc));
     }
 
   private:

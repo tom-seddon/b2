@@ -425,6 +425,11 @@ bool BeebThread::AnalogueChannelMessage::ThreadPrepare(std::shared_ptr<Message> 
         return false;
     }
 
+    uint16_t value = ts->beeb->GetAnalogueChannel(m_index);
+    if (value == m_value) {
+        return false;
+    }
+
     return true;
 }
 
