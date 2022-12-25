@@ -72,7 +72,7 @@ class HTTPRequest {
     void SetHeaderValue(std::string key, std::string value);
     const std::string *GetHeaderValue(const std::string &key) const;
 
-    void AddQueryParameter(std::string key,std::string value);
+    void AddQueryParameter(std::string key, std::string value);
 
   protected:
   private:

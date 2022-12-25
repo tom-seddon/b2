@@ -9,7 +9,7 @@
 #include <array>
 #include <vector>
 #include "roms.h"
-#include <beeb/BBCMicro.h>//bit heavyweight...?
+#include <beeb/BBCMicro.h> //bit heavyweight...?
 
 #include <shared/enum_decl.h>
 #include "BeebConfig.inl"

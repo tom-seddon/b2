@@ -1,4 +1,4 @@
-#ifndef HEADER_4B1CAAABB6E04C018160A5E326C41E6B// -*- mode:c++ -*-
+#ifndef HEADER_4B1CAAABB6E04C018160A5E326C41E6B // -*- mode:c++ -*-
 #define HEADER_4B1CAAABB6E04C018160A5E326C41E6B
 
 // TODO: I'd planned on having this as part of BBCMicro.h, but the include

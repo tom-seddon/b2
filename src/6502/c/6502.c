@@ -2508,7 +2508,7 @@ const char *M6502AddrMode_GetName(uint8_t mode) {
 
     case M6502AddrMode_INDX:
         return "(Absolute,X)";
-        
+
     case M6502AddrMode_ZPG_REL_ROCKWELL:
         return "Zero Page,Relative";
     }
@@ -2992,4 +2992,3 @@ M6502P M6502_GetP(const M6502 *s) {
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
-    

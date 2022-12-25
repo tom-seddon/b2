@@ -178,7 +178,7 @@ JoystickResult ControllerAxisMotion(int timestamp, int device_instance, int axis
         if (PCJoystick *pc_joystick = FindPCJoystick(device_instance)) {
             pc_joystick->controller_axis_values[axis] = value;
 
-            uint16_t uvalue = (uint16_t)~((int32_t)value + 32768);
+            uint16_t uvalue = (uint16_t) ~((int32_t)value + 32768);
             if (g_beeb_joysticks[0].pc_joystick && g_beeb_joysticks[0].pc_joystick == g_beeb_joysticks[1].pc_joystick) {
                 // two Beeb joysticks from one PC controller
                 switch (axis) {

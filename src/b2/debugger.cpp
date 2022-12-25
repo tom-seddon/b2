@@ -3370,7 +3370,7 @@ class ADCDebugWindow : public DebugUI {
 
             addr = m->GetType()->adc_addr;
             status = adc->m_status;
-            timer=adc->m_timer;
+            timer = adc->m_timer;
             adc->DebugGetChannelValues(avalues);
         }
 

@@ -456,7 +456,7 @@ class HTTPMethodsHandler : public HTTPHandler {
         BeebWindow *beeb_window = BeebWindows::FindMRUBeebWindow();
         beeb_window->Launch(arguments);
 
-        server->SendResponse(request,HTTPResponse::OK());
+        server->SendResponse(request, HTTPResponse::OK());
     }
 
     std::shared_ptr<DiscImage> LoadDiscImageFromRequestOrSendResponse(HTTPServer *server, const HTTPRequest &request, const std::string &name) {

@@ -1536,7 +1536,7 @@ class HTTPClientImpl : public HTTPClient {
                                     size_t size,
                                     void *userptr) {
         (void)handle;
-        
+
         auto client = (HTTPClientImpl *)userptr;
         Log *log = &client->m_messages->i;
 

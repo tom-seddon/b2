@@ -353,7 +353,7 @@ void ConfigsUI::DoEditConfigGui() {
             case BBCMicroParasiteType_None:
                 // inhibit spurious warning
                 break;
-                
+
             case BBCMicroParasiteType_External3MHz6502:
                 config->parasite_os.standard_rom = FindBeebROM(StandardROM_TUBE110);
                 break;
