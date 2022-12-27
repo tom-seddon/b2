@@ -1,4 +1,5 @@
 #include <shared/system.h>
+#include <shared/debug.h>
 #include <6502/6502.h>
 #include <beeb/adc.h>
 #include <beeb/Trace.h>
@@ -8,7 +9,7 @@
 
 static constexpr uint16_t CONVERSION_TIME_USEC_10_BIT = 10000;
 static constexpr uint16_t CONVERSION_TIME_USEC_8_BIT = 4000;
-static constexpr uint16_t DEFAULT_CHANNEL_VALUE = 0xffff;
+static constexpr uint16_t DEFAULT_CHANNEL_VALUE = 1023;
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -47,6 +48,7 @@ void ADC::Write0(void *adc_, M6502Word, uint8_t value) {
     } else {
         adc->m_avalue = DEFAULT_CHANNEL_VALUE;
     }
+    ASSERT(adc->m_avalue < 1024);
 
     TRACEF(adc->m_trace, "ADC: Conversion begin: ch=%d (avalue=$%04x) prec=%s (timer=%u ms)", adc->m_status.bits.channel, adc->m_avalue, adc->m_status.bits.prec_10_bit ? "10" : "8", adc->m_timer);
 }
@@ -115,7 +117,7 @@ bool ADC::Update() {
         --m_timer;
 
         if (m_timer == 0) {
-            m_dvalue.w = m_avalue & 0xfff0;
+            m_dvalue.w = m_avalue << 6;
             m_status.bits.msb = m_dvalue.b.h >> 6;
 
             m_status.bits.not_busy = 1;

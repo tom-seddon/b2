@@ -70,7 +70,51 @@ static void SetPCJoystick(int beeb_index, const std::unique_ptr<PCJoystick> &pc_
         }
     }
 
-    g_beeb_joysticks[beeb_index].pc_joystick = pc_joystick.get();
+    beeb_joystick->pc_joystick = pc_joystick.get();
+
+    if (!!pc_joystick) {
+        for (int axis = 0; axis < SDL_CONTROLLER_AXIS_MAX; ++axis) {
+            int16_t value = SDL_GameControllerGetAxis(pc_joystick->sdl_controller.get(),
+                                                      (SDL_GameControllerAxis)axis);
+            pc_joystick->controller_axis_values[axis] = value;
+        }
+
+        beeb_joystick->pc_joystick->controller_button_states = 0;
+        for (int button = 0; button < SDL_CONTROLLER_BUTTON_MAX; ++button) {
+            if (SDL_GameControllerGetButton(pc_joystick->sdl_controller.get(),
+                                            (SDL_GameControllerButton)button)) {
+                pc_joystick->controller_button_states |= 1 << button;
+            }
+        }
+
+        // Re-send events so that the new joystick state is updated.
+        uint32_t timestamp = SDL_GetTicks();
+
+        for (int axis = 0; axis < SDL_CONTROLLER_AXIS_MAX; ++axis) {
+            SDL_Event event = {};
+
+            event.caxis.type = SDL_CONTROLLERAXISMOTION;
+            event.caxis.timestamp = timestamp;
+            event.caxis.which = pc_joystick->id;
+            event.caxis.axis = axis;
+            event.caxis.value = pc_joystick->controller_axis_values[axis];
+
+            SDL_PushEvent(&event);
+        }
+
+        for (int button = 0; button < SDL_CONTROLLER_BUTTON_MAX; ++button) {
+            bool state = !!(pc_joystick->controller_button_states & 1 << button);
+            SDL_Event event = {};
+
+            event.cbutton.type = state ? SDL_CONTROLLERBUTTONDOWN : SDL_CONTROLLERBUTTONUP;
+            event.cbutton.timestamp = timestamp;
+            event.cbutton.which = pc_joystick->id;
+            event.cbutton.button = button;
+            event.cbutton.state = state ? SDL_PRESSED : SDL_RELEASED;
+
+            SDL_PushEvent(&event);
+        }
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -173,12 +217,21 @@ void JoystickDeviceRemoved(int device_instance, Messages *msg) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+static uint16_t GetAnalogueChannelValueFromJoystickAxisValue(int16_t joystick_axis_value) {
+    uint16_t value = (uint16_t) ~((int32_t)joystick_axis_value + 32768);
+    value >>= 6;
+    return value;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 JoystickResult ControllerAxisMotion(int device_instance, int axis, int16_t value) {
     if (axis >= 0 && axis < SDL_CONTROLLER_AXIS_MAX) {
         if (PCJoystick *pc_joystick = FindPCJoystick(device_instance)) {
             pc_joystick->controller_axis_values[axis] = value;
 
-            uint16_t uvalue = (uint16_t) ~((int32_t)value + 32768);
+            uint16_t uvalue = GetAnalogueChannelValueFromJoystickAxisValue(value);
             if (g_beeb_joysticks[0].pc_joystick && g_beeb_joysticks[0].pc_joystick == g_beeb_joysticks[1].pc_joystick) {
                 // two Beeb joysticks from one PC controller
                 switch (axis) {
@@ -198,21 +251,17 @@ JoystickResult ControllerAxisMotion(int device_instance, int axis, int16_t value
             } else if (g_beeb_joysticks[0].pc_joystick == pc_joystick) {
                 switch (axis) {
                 case SDL_CONTROLLER_AXIS_LEFTX:
-                case SDL_CONTROLLER_AXIS_RIGHTX:
                     return {0, uvalue};
 
                 case SDL_CONTROLLER_AXIS_LEFTY:
-                case SDL_CONTROLLER_AXIS_RIGHTY:
                     return {1, uvalue};
                 }
             } else if (g_beeb_joysticks[1].pc_joystick == pc_joystick) {
                 switch (axis) {
                 case SDL_CONTROLLER_AXIS_LEFTX:
-                case SDL_CONTROLLER_AXIS_RIGHTX:
                     return {2, uvalue};
 
                 case SDL_CONTROLLER_AXIS_LEFTY:
-                case SDL_CONTROLLER_AXIS_RIGHTY:
                     return {3, uvalue};
                 }
             }
@@ -229,23 +278,27 @@ static JoystickResult GetJoystickResultForButton(const PCJoystick *pc_joystick, 
     JoystickResult jr;
 
     switch (button) {
-    case SDL_CONTROLLER_BUTTON_DPAD_UP:
-    case SDL_CONTROLLER_BUTTON_DPAD_DOWN:
-        jr.channel = beeb_index * 2 + 1;
-        if (pc_joystick->controller_button_states & 1 << SDL_CONTROLLER_BUTTON_DPAD_UP) {
-            jr.channel_value = 0;
-        } else if (pc_joystick->controller_button_states & 1 << SDL_CONTROLLER_BUTTON_DPAD_DOWN) {
-            jr.channel_value = 0xffff;
-        }
-        break;
-
     case SDL_CONTROLLER_BUTTON_DPAD_LEFT:
     case SDL_CONTROLLER_BUTTON_DPAD_RIGHT:
         jr.channel = beeb_index * 2 + 0;
         if (pc_joystick->controller_button_states & 1 << SDL_CONTROLLER_BUTTON_DPAD_LEFT) {
-            jr.channel_value = 0;
+            jr.channel_value = GetAnalogueChannelValueFromJoystickAxisValue(-32768);
         } else if (pc_joystick->controller_button_states & 1 << SDL_CONTROLLER_BUTTON_DPAD_RIGHT) {
-            jr.channel_value = 0xffff;
+            jr.channel_value = GetAnalogueChannelValueFromJoystickAxisValue(32767);
+        } else {
+            jr.channel_value = GetAnalogueChannelValueFromJoystickAxisValue(pc_joystick->controller_axis_values[SDL_CONTROLLER_AXIS_LEFTX]);
+        }
+        break;
+
+    case SDL_CONTROLLER_BUTTON_DPAD_UP:
+    case SDL_CONTROLLER_BUTTON_DPAD_DOWN:
+        jr.channel = beeb_index * 2 + 1;
+        if (pc_joystick->controller_button_states & 1 << SDL_CONTROLLER_BUTTON_DPAD_UP) {
+            jr.channel_value = GetAnalogueChannelValueFromJoystickAxisValue(-32768);
+        } else if (pc_joystick->controller_button_states & 1 << SDL_CONTROLLER_BUTTON_DPAD_DOWN) {
+            jr.channel_value = GetAnalogueChannelValueFromJoystickAxisValue(32767);
+        } else {
+            jr.channel_value = GetAnalogueChannelValueFromJoystickAxisValue(pc_joystick->controller_axis_values[SDL_CONTROLLER_AXIS_LEFTY]);
         }
         break;
 

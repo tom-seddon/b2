@@ -3379,7 +3379,7 @@ class ADCDebugWindow : public DebugUI {
         ImGuiHeader("\"Analogue\" values");
         for (int ch = 0; ch < 4; ++ch) {
             uint16_t avalue = avalues[ch];
-            ImGui::BulletText("%d: %-5u $%04x %.5f", ch, avalue, avalue, avalue / 65535.);
+            ImGui::BulletText("%d: %-4u $%03x %.5f", ch, avalue, avalue, avalue / 65535.);
         }
 
         ImGuiHeader("Status");
