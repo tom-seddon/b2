@@ -2778,18 +2778,17 @@ void BeebThread::ThreadMain(void) {
                     // Message was discarded, probably due to being redundant.
                     // But ThreadPrepare returned true, so it's all good!
                     Message::CallCompletionFun(&m.completion_fun, true, nullptr);
-                    continue;
-                }
+                } else {
+                    m.message->ThreadHandle(this, &ts);
 
-                m.message->ThreadHandle(this, &ts);
+                    Message::CallCompletionFun(&m.completion_fun, true, nullptr);
 
-                Message::CallCompletionFun(&m.completion_fun, true, nullptr);
-
-                if (ts.timeline_mode == BeebThreadTimelineMode_Record) {
-                    ASSERT(!ts.timeline_event_lists.empty());
-                    TimelineEvent event{*ts.num_executed_cycles, std::move(m.message)};
-                    ts.timeline_event_lists.back().events.emplace_back(std::move(event));
-                    ++m_timeline_state.num_events;
+                    if (ts.timeline_mode == BeebThreadTimelineMode_Record) {
+                        ASSERT(!ts.timeline_event_lists.empty());
+                        TimelineEvent event{*ts.num_executed_cycles, std::move(m.message)};
+                        ts.timeline_event_lists.back().events.emplace_back(std::move(event));
+                        ++m_timeline_state.num_events;
+                    }
                 }
 
                 if (ts.stop) {
