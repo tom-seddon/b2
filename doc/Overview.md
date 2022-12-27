@@ -61,7 +61,7 @@ If you have compatible game controllers connected, use the Joysticks
 menu to pick which ones are used for BBC joysticks 0 and 1.
 
 Assuming an Xbox/Playstation-style game controller, left thumbstick
-and d-pad correspond to the BBC joystick X and Y axes, and main 4
+and d-pad correspond to the BBC joystick X and Y axes, and the main 4
 buttons and the 2 shoulder buttons correspond to the BBC joystick
 button. (Other buttons or triggers are unused.)
 
