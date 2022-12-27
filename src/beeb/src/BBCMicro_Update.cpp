@@ -689,7 +689,7 @@ parasite_update_done:
             }
 
             // Update joystick buttons.
-            m_state.system_via.b.p = (m_state.system_via.b.p & ~(1 << SystemVIAPBBits::NOT_JOYSTICK0_FIRE_BIT | 1 << SystemVIAPBBits::NOT_JOYSTICK1_FIRE_BIT)) | m_state.not_joystick_buttons;
+            m_state.system_via.b.p = (m_state.system_via.b.p & ~(1u << SystemVIAPBBits::NOT_JOYSTICK0_FIRE_BIT | 1u << SystemVIAPBBits::NOT_JOYSTICK1_FIRE_BIT)) | m_state.not_joystick_buttons;
 
             // Update addressable latch and RTC.
             SystemVIAPB pb;

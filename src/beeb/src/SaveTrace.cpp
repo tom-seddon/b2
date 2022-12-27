@@ -93,7 +93,8 @@ class TraceSaver {
                 // years of emulated time. But a 1-minute trace would have a 10
                 // digit cycle count, and that's not a ridiculous number of
                 // columns to reserve.
-                m_time_initial_value = std::max(m_time_initial_value, 10000000000ull);
+                m_time_initial_value = std::max(m_time_initial_value,
+                                                (uint64_t)10000000000);
             }
         }
 
