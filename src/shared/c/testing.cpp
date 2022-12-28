@@ -229,6 +229,36 @@ int TestEqSS(const char *got, const char *got_str, const char *wanted, const cha
         LogStringPrintable(&tmp, got);
         tmp.s("\"\n");
 
+        tmp.f("    Wanted length: %zu\n", strlen(wanted));
+        tmp.f("       Got length: %zu\n", strlen(got));
+
+        if (strlen(wanted) == strlen(got)) {
+            size_t begin = 0;
+            for (size_t i = 0; wanted[i] != 0; ++i) {
+                if (got[i] == '\r' || got[i] == '\n') {
+                    begin = i + 1;
+                }
+
+                if (got[i] != wanted[i]) {
+                    size_t n=i-begin+10;
+                    std::string got_part(got + begin, n);
+                    std::string wanted_part(wanted + begin, n);
+
+                    tmp.f("First difference: +%zu\n", i);
+
+                    tmp.f("          Wanted: \"");
+                    LogStringPrintable(&tmp, wanted_part.c_str());
+                    tmp.s("\"\n");
+
+                    tmp.f("             Got: \"");
+                    LogStringPrintable(&tmp, got_part.c_str());
+                    tmp.s("\"\n");
+
+                    break;
+                }
+            }
+        }
+
         return 0;
     } else {
         return 1;
