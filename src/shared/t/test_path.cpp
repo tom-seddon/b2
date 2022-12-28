@@ -42,7 +42,7 @@ int main(int argc, char *argv[]) {
     TEST_EQ_SS(PathGetFolder("folder/fred"), "folder/");
     TEST_EQ_SS(PathGetFolder("folder/"), "folder/");
 
-    TEST_EQ_SS(PathJoined("a", "b"), "a/b");
+    TEST_EQ_SS(PathJoined("a", "b"), "a" DEFAULT_SEPARATOR "b");
     TEST_EQ_SS(PathJoined("a/", "b"), "a/b");
     TEST_EQ_SS(PathJoined("a", "/b"), "/b");
     TEST_EQ_SS(PathJoined("a/", "/b"), "/b");
