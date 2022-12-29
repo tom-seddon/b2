@@ -31,8 +31,6 @@ else
 # least...
 PYTHON3:=python3
 
-# version number roulette.
-CLANG_FORMAT:=clang-format
 
 CAT:=cat
 
@@ -43,6 +41,8 @@ OS:=osx
 NPROC:=$(shell sysctl -n hw.ncpu)
 INSTALLER:=
 CMAKE_DEFINES:=$(CMAKE_DEFINES) -DCMAKE_OSX_DEPLOYMENT_TARGET=10.9
+# version number roulette.
+CLANG_FORMAT:=clang-format
 
 include Makefile.unix.mak
 include Makefile.osx.mak
@@ -54,6 +54,10 @@ OS:=linux
 NPROC:=$(shell nproc)
 INSTALLER:=1
 CMAKE_DEFINES:=$(CMAKE_DEFINES)
+
+# this is what it ends up called on Ubuntu 22, at any rate.
+CLANG_FORMAT:=clang-format-11
+
 include Makefile.unix.mak
 endif
 
