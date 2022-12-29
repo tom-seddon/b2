@@ -3209,7 +3209,7 @@ class TubeDebugWindow : public DebugUI {
         char hex_buffer[FIFO1_STRING_SIZE], *hex = hex_buffer;
         char ascii_buffer[FIFO1_STRING_SIZE], *ascii = ascii_buffer;
 
-        for (uint8_t i = 0; i < t->p2h1_n; ++i) {
+        for (unsigned i = 0; i < t->p2h1_n; ++i) {
             uint8_t byte = t->p2h1[(t->p2h1_rindex + i) % TUBE_FIFO1_SIZE_BYTES];
 
             *hex++ = HEX_CHARS_LC[byte >> 4];

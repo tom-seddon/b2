@@ -99,7 +99,7 @@ static uint8_t GetTeletextGraphicsFontByte(uint8_t ch,
     ASSERT(ch >= 32 && ch < 128);
     ASSERT(y < 10);
 
-    if (blank_row_mask & 1 << y) {
+    if (blank_row_mask & 1u << y) {
         return 0;
     }
 

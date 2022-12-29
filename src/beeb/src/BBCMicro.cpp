@@ -1369,7 +1369,7 @@ const BBCMicro::BigPage *BBCMicro::DebugGetBigPageForAddress(M6502Word addr,
         if (addr.w >= 0xf000 && parasite_boot_mode) {
             big_page = PARASITE_ROM_BIG_PAGE_INDEX;
         } else {
-            big_page = PARASITE_BIG_PAGE_INDEX + addr.p.p;
+            big_page = (uint8_t)(PARASITE_BIG_PAGE_INDEX + addr.p.p);
         }
     } else {
         ROMSEL romsel = m_state.romsel;
@@ -2130,11 +2130,11 @@ void BBCMicro::InitStuff() {
     //
     ASSERT(m_type->adc_addr != 0);
     ASSERT(m_type->adc_count % 4 == 0);
-    for (uint16_t i = 0; i < m_type->adc_count; i += 4) {
-        this->SetMMIOFns(m_type->adc_addr + i + 0u, &ADC::Read0, &ADC::Write0, &m_state.adc);
-        this->SetMMIOFns(m_type->adc_addr + i + 1u, &ADC::Read1, &ADC::Write1, &m_state.adc);
-        this->SetMMIOFns(m_type->adc_addr + i + 2u, &ADC::Read2, &ADC::Write2, &m_state.adc);
-        this->SetMMIOFns(m_type->adc_addr + i + 3u, &ADC::Read3, &ADC::Write3, &m_state.adc);
+    for (unsigned i = 0; i < m_type->adc_count; i += 4) {
+        this->SetMMIOFns((uint16_t)(m_type->adc_addr + i + 0u), &ADC::Read0, &ADC::Write0, &m_state.adc);
+        this->SetMMIOFns((uint16_t)(m_type->adc_addr + i + 1u), &ADC::Read1, &ADC::Write1, &m_state.adc);
+        this->SetMMIOFns((uint16_t)(m_type->adc_addr + i + 2u), &ADC::Read2, &ADC::Write2, &m_state.adc);
+        this->SetMMIOFns((uint16_t)(m_type->adc_addr + i + 3u), &ADC::Read3, &ADC::Write3, &m_state.adc);
     }
 
     //m_has_rtc = !!(m_type->flags & BBCMicroTypeFlag_HasRTC);
@@ -2159,7 +2159,7 @@ void BBCMicro::InitStuff() {
     for (const BBCMicroType::SHEILACycleStretchRegion &region : m_type->sheila_cycle_stretch_regions) {
         ASSERT(region.first < region.last);
         for (uint8_t i = region.first; i <= region.last; ++i) {
-            m_mmios_stretch_hw[0x200 + i] = 0xff;
+            m_mmios_stretch_hw[0x200u + i] = 0xff;
         }
     }
 

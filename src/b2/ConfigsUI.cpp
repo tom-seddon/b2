@@ -282,9 +282,9 @@ void ConfigsUI::DoEditConfigGui() {
 
             BeebConfig::SidewaysROM *rom = &config->roms[bank];
 
-            uint32_t rom_edit_flags = (bank < 15 ? ROMEditFlag_CanMoveUp : 0) |
-                                      (bank > 0 ? ROMEditFlag_CanMoveDown : 0) |
-                                      rom_edit_sideways_rom_flags;
+            uint32_t rom_edit_flags = (bank < 15 ? (uint32_t)ROMEditFlag_CanMoveUp : 0) |
+                (bank > 0 ? (uint32_t)ROMEditFlag_CanMoveDown : 0) |
+                rom_edit_sideways_rom_flags;
 
             ROMEditAction a = this->DoROMEditGui(CAPTIONS[bank],
                                                  rom,

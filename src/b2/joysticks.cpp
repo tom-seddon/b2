@@ -83,7 +83,7 @@ static void SetPCJoystick(int beeb_index, const std::unique_ptr<PCJoystick> &pc_
         for (int button = 0; button < SDL_CONTROLLER_BUTTON_MAX; ++button) {
             if (SDL_GameControllerGetButton(pc_joystick->sdl_controller.get(),
                                             (SDL_GameControllerButton)button)) {
-                pc_joystick->controller_button_states |= 1 << button;
+                pc_joystick->controller_button_states |= 1u << button;
             }
         }
 
@@ -103,7 +103,7 @@ static void SetPCJoystick(int beeb_index, const std::unique_ptr<PCJoystick> &pc_
         }
 
         for (int button = 0; button < SDL_CONTROLLER_BUTTON_MAX; ++button) {
-            bool state = !!(pc_joystick->controller_button_states & 1 << button);
+            bool state = !!(pc_joystick->controller_button_states & 1u << button);
             SDL_Event event = {};
 
             event.cbutton.type = state ? SDL_CONTROLLERBUTTONDOWN : SDL_CONTROLLERBUTTONUP;

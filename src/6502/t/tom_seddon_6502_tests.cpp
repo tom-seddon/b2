@@ -66,8 +66,8 @@ static void HackOpcode(M6502 *s) {
     } else {
         TEST_GE_UU(pc, LOAD_ADDR + 3);
         TEST_LT_UU(pc, LOAD_ADDR + 3 + Callback_Count * CALLBACK_SIZE);
-        TEST_EQ_UU((pc - (LOAD_ADDR + 3)) % CALLBACK_SIZE, 0);
-        auto callback = (Callback)((pc - (LOAD_ADDR + 3)) / CALLBACK_SIZE);
+        TEST_EQ_UU((pc - (LOAD_ADDR + 3u)) % CALLBACK_SIZE, 0);
+        auto callback = (Callback)((pc - (LOAD_ADDR + 3u)) / CALLBACK_SIZE);
         switch (callback) {
         case Callback_Start:
             break;
