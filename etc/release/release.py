@@ -208,7 +208,7 @@ def build_win32(options,ifolder,rev_hash):
     set_tree_timestamps(options,ifolder)
 
     # The ZipFile module is a bit annoying to use.
-    with ChangeDirectory(ifolder): run(["7z.exe","a",zip_fname,"b2"])
+    with ChangeDirectory(ifolder): run(["7z.exe","a",'-mx=9',zip_fname,"b2"])
 
     set_file_timestamps(options,zip_fname)
     
