@@ -22,7 +22,7 @@ install:
         echo 'Windows'
         $env:deploy=$true
         $env:OUTPUT_NAME="build\_Rel\win32\b2-windows-"+$env:SUFFIX+".zip"
-        $env:SYMBOLS_NAME="build\_Rel\win32\b2-windows-"+$env:SUFFIX+".symbols.7z"
+        $env:SYMBOLS_NAME="build\_Rel\win32\symbols.b2-windows-"+$env:SUFFIX+".7z"
         $env:TOOLCHAIN="vs2019"
         $env:PYTHON3="py"
         $env:PY_PYTHON="3"
@@ -37,7 +37,7 @@ install:
         echo 'macOS'
         $env:deploy=$true
         $env:OUTPUT_NAME="build/_Rel/osx/b2-osx-"+$env:SUFFIX+".dmg"
-        $env:SYMBOLS_NAME="build/_Rel/osx/b2-osx-"+$env:SUFFIX+".symbols.7z"
+        $env:SYMBOLS_NAME="build/_Rel/osx/symbols.b2-osx-"+$env:SUFFIX+".7z"
         $env:HOMEBREW_NO_AUTO_UPDATE=1
         $env:HOMEBREW_NO_INSTALL_CLEANUP=1
         # https://github.com/appveyor/ci/issues/3786
@@ -85,7 +85,9 @@ deploy:
     provider: GitHub
     auth_token:
       secure: NTWtNQsxaMVhAyad5bBM3H6lTGsqRCprICrq8kvYvXgjnaeDcjjLpNe0H0ZaG4sl
-    artifact: output
+    artifact:
+      - output
+      - symbols
     draft: false
     prerelease: false
     on:

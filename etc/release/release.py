@@ -224,7 +224,7 @@ def build_win32(options,ifolder,rev_hash):
                     os.path.join(ifolder,
                                  "b2.pdb"))
     with ChangeDirectory(ifolder):
-        zip_fname='b2-windows-%s.symbols.7z'%options.release_name
+        zip_fname='symbols.b2-windows-%s.7z'%options.release_name
         run(['7z.exe','a','-mx=9',zip_fname,'b2 Debug.pdb','b2.pdb'])
     
 ##########################################################################
@@ -313,7 +313,7 @@ def build_darwin(options,ifolder,rev_hash):
     #
     # Symbols stuff.
     #
-    symbols_zip=os.path.join(ifolder,stem+".symbols.7z")
+    symbols_zip=os.path.join(ifolder,"symbols.%s.7z"%stem)
 
     for config,dest in [('r','b2 Debug'),
                         ('f','b2')]:
