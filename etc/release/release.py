@@ -324,7 +324,7 @@ def build_darwin(options,ifolder,rev_hash):
              os.path.join(ifolder,dest)])
 
     with ChangeDirectory(ifolder):
-        run(['7z','a','-mx=9',stem+'.symbols.7z','b2','b2 Debug'])
+        run(['7z','a','-mx=9',symbols_zip,'b2','b2 Debug'])
         shutil.rmtree('b2',ignore_errors=True)
         shutil.rmtree('b2 Debug',ignore_errors=True)
 
