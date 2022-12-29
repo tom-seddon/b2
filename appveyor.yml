@@ -85,9 +85,7 @@ deploy:
     provider: GitHub
     auth_token:
       secure: NTWtNQsxaMVhAyad5bBM3H6lTGsqRCprICrq8kvYvXgjnaeDcjjLpNe0H0ZaG4sl
-    artifact:
-      - output
-      - symbols
+    artifact: output,symbols
     draft: false
     prerelease: false
     on:
