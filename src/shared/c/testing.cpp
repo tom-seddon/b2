@@ -240,7 +240,7 @@ int TestEqSS(const char *got, const char *got_str, const char *wanted, const cha
                 }
 
                 if (got[i] != wanted[i]) {
-                    size_t n=i-begin+10;
+                    size_t n = i - begin + 10;
                     std::string got_part(got + begin, n);
                     std::string wanted_part(wanted + begin, n);
 
