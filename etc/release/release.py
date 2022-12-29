@@ -260,7 +260,7 @@ def build_darwin(options,ifolder,rev_hash):
     shutil.copyfile("./etc/release/template.dmg",temp_dmg)
 
     # Resize temp DMG.
-    run(['hdiutil','resize','-size','300m',temp_dmg])
+    run(['hdiutil','resize','-size','500m',temp_dmg])
 
     # Mount temp DMG.
     run(["hdiutil","attach",temp_dmg,"-mountpoint",mount])
