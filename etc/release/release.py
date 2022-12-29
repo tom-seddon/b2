@@ -252,6 +252,9 @@ def build_darwin(options,ifolder,rev_hash):
 
     stem="b2-osx-"+options.release_name
     
+    # 
+    # DMG stuff.
+    # 
     temp_dmg=os.path.join(ifolder,stem+"_temp.dmg")
     final_dmg=os.path.join(ifolder,stem+".dmg")
     mount=os.path.join(ifolder,stem+".dmg")
@@ -286,11 +289,30 @@ def build_darwin(options,ifolder,rev_hash):
         run(["hdiutil","detach",mount])
 
     # Convert temp DMG into final DMG.
-    run(["hdiutil","convert",temp_dmg,"-format","UDBZ","-o",final_dmg])
+    run(["hdiutil","convert",temp_dmg,"-format","ULMO","-o",final_dmg])
     set_file_timestamps(options,final_dmg)
 
     # Delete temp DMG.
     rm(temp_dmg)
+
+    #
+    # Symbols stuff.
+    #
+    symbols_zip=os.path.join(ifolder,stem+".symbols.7z")
+
+    for config,dest in [('r','b2 Debug'),
+                        ('f','b2')]:
+        suffix='src/b2/b2.app/Contents/MacOS/b2'
+        run(['dsymutil',get_darwin_build_path(config,suffix)])
+        run(['ditto',
+             get_darwin_build_path(config,suffix+'.dSYM'),
+             os.path.join(ifolder,dest)])
+
+    with ChangeDirectory(ifolder):
+        run(['7z','a','-mx=9',stem+'.symbols.7z','b2','b2 Debug'])
+        shutil.rmtree('b2',ignore_errors=True)
+        shutil.rmtree('b2 Debug',ignore_errors=True)
+
 
 ##########################################################################
 ##########################################################################
