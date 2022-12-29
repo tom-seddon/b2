@@ -211,6 +211,21 @@ def build_win32(options,ifolder,rev_hash):
     with ChangeDirectory(ifolder): run(["7z.exe","a",'-mx=9',zip_fname,"b2"])
 
     set_file_timestamps(options,zip_fname)
+
+    #
+    # Symbols stuff.
+    #
+    shutil.copyfile(os.path.join(get_win32_build_folder(options),
+                                 "src/b2/RelWithDebInfo/b2.pdb"),
+                    os.path.join(ifolder,
+                                 "b2 Debug.pdb"))
+    shutil.copyfile(os.path.join(get_win32_build_folder(options),
+                                 "src/b2/Final/b2.pdb"),
+                    os.path.join(ifolder,
+                                 "b2.pdb"))
+    with ChangeDirectory(ifolder):
+        zip_fname='b2-windows-%s.symbols.7z'%options.release_name
+        run(['7z.exe','a','-mx=9',zip_fname,'b2 Debug.pdb','b2.pdb'])
     
 ##########################################################################
 ##########################################################################
