@@ -127,6 +127,10 @@ For best results, leave these options on.
 For (inauthentic!) 1:1 pixel output, switch them off and set a manual
 scale of 1.0, or 2.0, and so on.
 
+If you find the UI text a bit small, use the GUI Font Size setting to
+make it larger. (This only affects the emulator UI, not the BBC
+display.)
+
 ### Sound options
 
 `BBC volume` controls BBC sound chip volume. `Disc volume` controls

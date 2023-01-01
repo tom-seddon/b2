@@ -93,8 +93,9 @@ ImGuiStuff::~ImGuiStuff() {
 
         ImGuiIO &io = ImGui::GetIO();
 
-        delete io.Fonts;
         io.Fonts = m_original_font_atlas;
+
+        m_new_font_atlas.reset();
 
         ImGui::DestroyContext(m_context);
         m_context = nullptr;
@@ -228,41 +229,30 @@ bool ImGuiStuff::Init() {
     // https://github.com/ocornut/imgui/commit/aa11934efafe4db75993e23aacacf9ed8b1dd40c#diff-bbaa16f299ca6d388a3a779b16572882L446
 
     m_original_font_atlas = io.Fonts;
-    io.Fonts = new ImFontAtlas;
-    io.Fonts->AddFontDefault();
 
-    ImFontConfig fa_config;
-    fa_config.MergeMode = true;
-    fa_config.PixelSnapH = true;
-    io.Fonts->AddFontFromFileTTF(GetAssetPath(FAS_FILE_NAME).c_str(), 12.f, &fa_config, FA_ICONS_RANGES);
-
-    unsigned char *pixels;
-    int width, height;
-    io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);
-
-    SetRenderScaleQualityHint(false);
-    m_font_texture = SDL_CreateTexture(m_renderer, SDL_PIXELFORMAT_RGBA32, SDL_TEXTUREACCESS_STATIC, width, height);
-    if (!m_font_texture) {
-        return false;
-    }
-
-    SDL_SetTextureBlendMode(m_font_texture, SDL_BLENDMODE_BLEND);
-
-    Uint32 font_texture_format;
-    rc = SDL_QueryTexture(m_font_texture, &font_texture_format, NULL, NULL, NULL);
-    ASSERT(rc == 0);
-
-    std::vector<uint8_t> tmp((size_t)(width * height * 4));
-
-    rc = SDL_ConvertPixels(width, height, SDL_PIXELFORMAT_ARGB8888, pixels, width * 4, font_texture_format, tmp.data(), width * 4);
-    ASSERT(rc == 0);
-
-    rc = SDL_UpdateTexture(m_font_texture, NULL, tmp.data(), width * 4);
-    ASSERT(rc == 0);
-
-    io.Fonts->TexID = m_font_texture;
+    this->SetFontSizePixels(13);
 
     return true;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+unsigned ImGuiStuff::GetFontSizePixels() const {
+    return m_font_size_pixels;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void ImGuiStuff::SetFontSizePixels(unsigned font_size_pixels) {
+    font_size_pixels = (std::max)(font_size_pixels, 13u);
+    font_size_pixels = (std::min)(font_size_pixels, 50u);
+
+    if (font_size_pixels != m_font_size_pixels) {
+        m_font_size_pixels = font_size_pixels;
+        m_font_dirty = true;
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -279,6 +269,55 @@ void ImGuiStuff::NewFrame(bool got_mouse_focus) {
     uint64_t now_ticks = GetCurrentTickCount();
     io.DeltaTime = (float)GetSecondsFromTicks(now_ticks - m_last_new_frame_ticks);
     m_last_new_frame_ticks = now_ticks;
+
+    if (m_font_dirty) {
+        int rc;
+        ImGuiIO &io = ImGui::GetIO();
+
+        m_new_font_atlas = std::make_unique<ImFontAtlas>();
+        io.Fonts = m_new_font_atlas.get();
+        ImFontConfig font_config;
+        font_config.SizePixels = m_font_size_pixels;
+        io.Fonts->AddFontDefault(&font_config);
+
+        ImFontConfig fa_config;
+        fa_config.MergeMode = true;
+        fa_config.PixelSnapH = true;
+        io.Fonts->AddFontFromFileTTF(GetAssetPath(FAS_FILE_NAME).c_str(), m_font_size_pixels, &fa_config, FA_ICONS_RANGES);
+
+        unsigned char *pixels;
+        int width, height;
+        io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);
+
+        if (m_font_texture) {
+            SDL_DestroyTexture(m_font_texture);
+            m_font_texture = nullptr;
+        }
+
+        SetRenderScaleQualityHint(false);
+        m_font_texture = SDL_CreateTexture(m_renderer, SDL_PIXELFORMAT_RGBA32, SDL_TEXTUREACCESS_STATIC, width, height);
+        if (!m_font_texture) {
+            io.Fonts->TexID = nullptr;
+        } else {
+            SDL_SetTextureBlendMode(m_font_texture, SDL_BLENDMODE_BLEND);
+
+            Uint32 font_texture_format;
+            rc = SDL_QueryTexture(m_font_texture, &font_texture_format, NULL, NULL, NULL);
+            ASSERT(rc == 0);
+
+            std::vector<uint8_t> tmp((size_t)(width * height * 4));
+
+            rc = SDL_ConvertPixels(width, height, SDL_PIXELFORMAT_ARGB8888, pixels, width * 4, font_texture_format, tmp.data(), width * 4);
+            ASSERT(rc == 0);
+
+            rc = SDL_UpdateTexture(m_font_texture, NULL, tmp.data(), width * 4);
+            ASSERT(rc == 0);
+
+            io.Fonts->TexID = m_font_texture;
+        }
+
+        m_font_dirty = false;
+    }
 
     if (got_mouse_focus) {
         int x, y;
@@ -1125,6 +1164,16 @@ bool ImGuiConfirmButton(const char *label, bool needs_confirm) {
     } else {
         return ImGui::Button(label);
     }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool ImGuiInputUInt(const char *label, unsigned *v, int step, int step_fast, ImGuiInputTextFlags flags) {
+    int value = (std::min)(*v, (unsigned)INT_MAX);
+    bool result = ImGui::InputInt(label, &value, step, step_fast, flags);
+    *v = (unsigned)(std::max)(value, 0);
+    return result;
 }
 
 //////////////////////////////////////////////////////////////////////////

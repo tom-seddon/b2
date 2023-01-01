@@ -103,6 +103,13 @@ struct BottomHalfKeycap {
     const Keycap *keycap;
 };
 
+// Defaults assume 13px Proggy Clean font.
+struct Metrics {
+    float key_height = 36.f;
+    float key_width = 32.f;
+    float keypad_x = 750.f;
+};
+
 class KeymapsUI : public SettingsUI {
   public:
     KeymapsUI(BeebWindow *beeb_window);
@@ -116,9 +123,11 @@ class KeymapsUI : public SettingsUI {
     bool m_wants_keyboard_focus = false;
     bool m_edited = false;
     int m_keymap_index = -1;
+    Metrics m_metrics;
 
     void DoScancodesList(BeebKeymap *keymap, BeebKey beeb_key);
     ImGuiStyleColourPusher GetColourPusherForKeycap(const BeebKeymap *keymap, int8_t keymap_key, const Keycap *keycap);
+    ImVec2 GetKeySize(const Keycap *key) const;
     void DoScancodeKeyboardLinePart(BeebKeymap *keymap, const Keycap *line);
     void DoScancodeKeyboardLineParts(BeebKeymap *keymap, const Keycap *line, const Keycap *m128_line);
     void DoKeySymButton(BeebKeymap *keymap, const char *label, const ImVec2 &size, BeebKeySym key_sym, const Keycap *keycap);
@@ -674,9 +683,37 @@ ImGuiStyleColourPusher KeymapsUI::GetColourPusherForKeycap(const BeebKeymap *key
     return pusher;
 }
 
-static const float KEY_WIDTH = 36.f;
-static const float KEY_HEIGHT = 32.f;
-static const float KEYPAD_X = 750.f;
+//void HexEditor::GetMetrics(Metrics *metrics, const ImGuiStyle &style) {
+//    (void)style;
+//
+//    metrics->num_addr_chars = m_handler->GetNumAddressChars();
+//
+//    metrics->line_height = ImGui::GetTextLineHeight();
+//    metrics->glyph_width = ImGui::CalcTextSize("F").x + 1;
+//
+//    metrics->hex_left_x = (metrics->num_addr_chars + 2) * metrics->glyph_width;
+//    metrics->hex_column_width = 2.5f * metrics->glyph_width;
+//
+//    metrics->ascii_left_x = metrics->hex_left_x;
+//    if (this->options.hex) {
+//        metrics->ascii_left_x += m_num_columns * metrics->hex_column_width + 2.f * metrics->glyph_width;
+//    }
+//
+//    const ImVec4 &text_colour = style.Colors[ImGuiCol_Text];
+//    const ImVec4 &text_disabled_colour = style.Colors[ImGuiCol_TextDisabled];
+//    ImVec4 grey_colour(GetHalf(text_colour.x, text_disabled_colour.x),
+//                       GetHalf(text_colour.y, text_disabled_colour.y),
+//                       GetHalf(text_colour.z, text_disabled_colour.z),
+//                       text_colour.w);
+//    metrics->grey_colour = ImGui::ColorConvertFloat4ToU32(grey_colour);
+//
+//    metrics->disabled_colour = ImGui::ColorConvertFloat4ToU32(style.Colors[ImGuiCol_TextDisabled]);
+//    metrics->text_colour = ImGui::ColorConvertFloat4ToU32(style.Colors[ImGuiCol_Text]);
+//}
+
+//static const float KEY_WIDTH = 36.f;
+//static const float KEY_HEIGHT = 32.f;
+//static const float KEYPAD_X = 750.f;
 static const size_t MAX_NUM_KEYCAPS = 100;
 
 struct Row2Key {
@@ -684,22 +721,22 @@ struct Row2Key {
     float x, w;
 };
 
-static ImVec2 GetKeySize(const Keycap *key) {
+ImVec2 KeymapsUI::GetKeySize(const Keycap *key) const {
     float w = (float)key->width_in_halves;
     if (w == 0.f) {
         w = 2.f;
     }
 
-    w *= KEY_WIDTH / 2.f;
+    w *= m_metrics.key_width / 2.f;
 
-    return ImVec2(w, KEY_HEIGHT);
+    return ImVec2(w, m_metrics.key_height);
 }
 
 void KeymapsUI::DoScancodeKeyboardLinePart(BeebKeymap *keymap, const Keycap *line) {
     for (const Keycap *key = line; key->width_in_halves >= 0; ++key) {
         ImGuiIDPusher id_pusher(key);
 
-        const ImVec2 &size = GetKeySize(key);
+        const ImVec2 &size = this->GetKeySize(key);
 
         if (key->key < 0) {
             ImGui::InvisibleButton("", size);
@@ -744,11 +781,13 @@ void KeymapsUI::DoScancodeKeyboardLinePart(BeebKeymap *keymap, const Keycap *lin
     }
 }
 
-void KeymapsUI::DoScancodeKeyboardLineParts(BeebKeymap *keymap, const Keycap *line, const Keycap *m128_line) {
+void KeymapsUI::DoScancodeKeyboardLineParts(BeebKeymap *keymap,
+                                            const Keycap *line,
+                                            const Keycap *m128_line) {
     this->DoScancodeKeyboardLinePart(keymap, line);
 
     if (m128_line) {
-        ImGui::SetCursorPosX(KEYPAD_X);
+        ImGui::SetCursorPosX(m_metrics.keypad_x);
 
         this->DoScancodeKeyboardLinePart(keymap, m128_line);
     }
@@ -786,7 +825,7 @@ void KeymapsUI::DoKeySymKeyboardLineTopHalves(BeebKeymap *keymap,
     for (const Keycap *keycap = line; keycap->width_in_halves >= 0; ++keycap) {
         ImGuiIDPusher id_pusher(keycap);
 
-        ImVec2 size = GetKeySize(keycap);
+        ImVec2 size = this->GetKeySize(keycap);
 
         if (keycap->key < 0) {
             ImGui::InvisibleButton("", size);
@@ -846,12 +885,12 @@ void KeymapsUI::DoKeySymKeyboardLineParts(BeebKeymap *keymap, const Keycap *line
     this->DoKeySymKeyboardLineTopHalves(keymap, line, keycaps, &num_keycaps);
 
     if (m128_line) {
-        ImGui::SetCursorPosX(KEYPAD_X);
+        ImGui::SetCursorPosX(m_metrics.keypad_x);
 
         this->DoKeySymKeyboardLineTopHalves(keymap, m128_line, keycaps, &num_keycaps);
     }
 
-    this->DoKeySymKeyboardLineBottomHalves(keymap, y + KEY_HEIGHT * .5f, keycaps, num_keycaps);
+    this->DoKeySymKeyboardLineBottomHalves(keymap, y + m_metrics.key_height * .5f, keycaps, num_keycaps);
 
     ImGui::SetCursorPosY(y);
 }
@@ -877,6 +916,12 @@ void KeymapsUI::DoEditKeymapGui() {
     if (!keymap) {
         return;
     }
+
+    // The factors here are all just arbitrary numbers that make things line
+    // up roughly.
+    m_metrics.key_height = ImGui::GetTextLineHeight() * 2.75;
+    m_metrics.key_width = (ImGui::CalcTextSize("W").x + 1.f) * 4.f;
+    m_metrics.keypad_x = m_metrics.key_width * 21;
 
     bool edited = false;
 

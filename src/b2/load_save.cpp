@@ -748,6 +748,18 @@ static bool FindUInt64Member(uint64_t *value, rapidjson::Value *object, const ch
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+static bool FindUIntMember(unsigned *value, rapidjson::Value *object, const char *key, Messages *msg) {
+    rapidjson::Value tmp;
+    if (!FindMember(&tmp, object, key, msg, &rapidjson::Value::IsNumber, "number")) {
+        return false;
+    }
+
+    *value = tmp.GetUint();
+    return true;
+}
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 static bool FindUInt16Member(uint16_t *value, rapidjson::Value *object, const char *key, Messages *msg) {
     uint64_t tmp;
     if (!FindUInt64Member(&tmp, object, key, msg)) {
@@ -1075,6 +1087,7 @@ static const char FEATURE_FLAGS[] = "feature_flags";
 static const char PARASITE_TYPE[] = "parasite_type";
 static const char JOYSTICKS[] = "joysticks";
 static const char DEVICE_NAMES[] = "device_names";
+static const char GUI_FONT_SIZE[] = "gui_font_size";
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -1863,6 +1876,7 @@ static bool LoadWindows(rapidjson::Value *windows, Messages *msg) {
     FindBoolMember(&BeebWindows::defaults.display_interlace, windows, INTERLACE, nullptr);
     FindStringMember(&BeebWindows::default_config_name, windows, CONFIG, nullptr);
     FindEnumMember(&BeebWindows::defaults.leds_popup_mode, windows, LEDS_POPUP_MODE, "LEDs popup mode", &GetBeebWindowLEDsPopupModeEnumName, msg);
+    FindUIntMember(&BeebWindows::defaults.gui_font_size, windows, GUI_FONT_SIZE, nullptr);
 
     {
         std::string keymap_name;
@@ -1928,6 +1942,9 @@ static void SaveWindows(JSONWriter<StringStream> *writer) {
 
         writer->Key(LEDS_POPUP_MODE);
         SaveEnum(writer, BeebWindows::defaults.leds_popup_mode, &GetBeebWindowLEDsPopupModeEnumName);
+
+        writer->Key(GUI_FONT_SIZE);
+        writer->Uint(BeebWindows::defaults.gui_font_size);
 
         if (!BeebWindows::default_config_name.empty()) {
             writer->Key(CONFIG);

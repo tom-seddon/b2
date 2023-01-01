@@ -106,6 +106,9 @@ class ImGuiStuff {
 #endif
     void DoDebugWindow();
 
+    unsigned GetFontSizePixels() const;
+    void SetFontSizePixels(unsigned font_size_pixels);
+
   protected:
   private:
     SDL_Renderer *m_renderer = nullptr;
@@ -113,10 +116,11 @@ class ImGuiStuff {
     ImGui::DockContext *m_dock_context = nullptr;
     bool m_reset_dock_context = false;
     bool m_in_frame = false;
-    struct SDL_Texture *m_font_texture = nullptr;
+    SDL_Texture *m_font_texture = nullptr;
     uint64_t m_last_new_frame_ticks = 0;
     int m_next_wheel = 0;
     ImFontAtlas *m_original_font_atlas = nullptr;
+    std::unique_ptr<ImFontAtlas> m_new_font_atlas;
     std::string m_imgui_ini_path;
     std::string m_imgui_log_txt_path;
     SDL_Cursor *m_cursors[ImGuiMouseCursor_COUNT] = {};
@@ -135,6 +139,9 @@ class ImGuiStuff {
 
     std::vector<StoredDrawList> m_draw_lists;
 #endif
+
+    unsigned m_font_size_pixels = 0;
+    bool m_font_dirty = true;
 
     friend class ImGuiContextSetter;
 };
@@ -348,6 +355,8 @@ bool ImGuiMenuItemEnumValue(const char *label, const char *shortcut, T *value_pt
 bool ImGuiButton(const char *label, bool enabled = true);
 
 bool ImGuiConfirmButton(const char *label, bool needs_confirm = true);
+
+bool ImGuiInputUInt(const char *label, unsigned *v, int step = 1, int step_fast = 100, ImGuiInputTextFlags flags = 0);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

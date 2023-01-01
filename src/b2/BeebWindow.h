@@ -82,6 +82,8 @@ struct BeebWindowSettings {
 
     const BeebKeymap *keymap = nullptr;
 
+    unsigned gui_font_size = 0;
+
     BeebWindowLEDsPopupMode leds_popup_mode = BeebWindowLEDsPopupMode_Auto;
 };
 

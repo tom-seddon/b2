@@ -236,6 +236,12 @@ void BeebWindow::OptionsUI::DoImGui() {
     }
 #endif
 
+    unsigned font_size = m_beeb_window->m_imgui_stuff->GetFontSizePixels();
+    if (ImGuiInputUInt("GUI Font Size", &font_size, 1, 1, ImGuiInputTextFlags_EnterReturnsTrue)) {
+        m_beeb_window->m_imgui_stuff->SetFontSizePixels(font_size);
+        settings->gui_font_size = m_beeb_window->m_imgui_stuff->GetFontSizePixels();
+    }
+
     ImGui::NewLine();
 
     if (ImGui::CollapsingHeader("HTTP Server", ImGuiTreeNodeFlags_DefaultOpen)) {
@@ -2619,6 +2625,8 @@ bool BeebWindow::InitInternal() {
         m_msg.e.f("failed to initialise ImGui\n");
         return false;
     }
+
+    m_imgui_stuff->SetFontSizePixels(m_settings.gui_font_size);
 
     if (!m_beeb_thread->Start()) {
         m_msg.e.f("Failed to start BBC\n"); //: %s",BeebThread_GetError(m_beeb_thread));
