@@ -304,7 +304,7 @@ def build_darwin(options,ifolder,rev_hash):
         run(["hdiutil","detach",mount])
 
     # Convert temp DMG into final DMG.
-    run(["hdiutil","convert",temp_dmg,"-format","ULMO","-o",final_dmg])
+    run(["hdiutil","convert",temp_dmg,"-format","UDBZ","-o",final_dmg])
     set_file_timestamps(options,final_dmg)
 
     # Delete temp DMG.
