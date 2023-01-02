@@ -1170,7 +1170,7 @@ bool ImGuiConfirmButton(const char *label, bool needs_confirm) {
 //////////////////////////////////////////////////////////////////////////
 
 bool ImGuiInputUInt(const char *label, unsigned *v, int step, int step_fast, ImGuiInputTextFlags flags) {
-    int value = (std::min)(*v, (unsigned)INT_MAX);
+    int value = (int)(std::min)(*v, (unsigned)INT_MAX);
     bool result = ImGui::InputInt(label, &value, step, step_fast, flags);
     *v = (unsigned)(std::max)(value, 0);
     return result;
