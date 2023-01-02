@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-import argparse,os,os.path,sys,stat,subprocess,pipes,time,shutil,multiprocessing,datetime,time
+import argparse,os,os.path,sys,stat,subprocess,shlex,time,shutil,multiprocessing,datetime,time
 
 ##########################################################################
 ##########################################################################
@@ -64,7 +64,7 @@ def fatal(str):
 
 def run(argv,ignore_errors=False):
     print(80*"-")
-    print(" ".join([pipes.quote(x) for x in argv]))
+    print(" ".join([shlex.quote(x) for x in argv]))
     print(80*"-")
 
     ret=subprocess.call(argv)
