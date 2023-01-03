@@ -6,7 +6,6 @@
 
 class BeebState;
 struct SDL_Renderer;
-struct SDL_PixelFormat;
 
 #include <memory>
 #include <map>
@@ -19,7 +18,7 @@ struct SDL_PixelFormat;
 
 class ThumbnailsUI {
   public:
-    ThumbnailsUI(SDL_Renderer *renderer, const SDL_PixelFormat *pixel_format);
+    explicit ThumbnailsUI(SDL_Renderer *renderer);
     ~ThumbnailsUI();
 
     ThumbnailsUI(const ThumbnailsUI &) = delete;
@@ -40,7 +39,6 @@ class ThumbnailsUI {
     struct Thumbnail;
 
     SDL_Renderer *m_renderer;
-    const SDL_PixelFormat *m_pixel_format;
 
     std::map<std::shared_ptr<const BeebState>, struct Thumbnail> m_thumbnails;
     std::vector<SDLUniquePtr<SDL_Texture>> m_textures;

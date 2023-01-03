@@ -17,28 +17,14 @@
 
 //LOG_EXTERN(OUTPUT);
 
+#if !CPU_LITTLE_ENDIAN
+#error TVOutput will need some fixing up for non-little-endian systems
+#endif
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 TVOutput::TVOutput() {
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-TVOutput::~TVOutput() {
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-void TVOutput::Init(uint32_t r_shift, uint32_t g_shift, uint32_t b_shift) {
-    m_r_shift = r_shift;
-    m_g_shift = g_shift;
-    m_b_shift = b_shift;
-
-    ASSERT((0xffu << m_r_shift & 0xffu << m_g_shift & 0xffu << m_b_shift) == 0);
-
     // +1 to accommodate writing an extra row when emulating interlace. (This
     // extra row is ignored.)
     m_texture_pixels.resize(TV_TEXTURE_WIDTH * (TV_TEXTURE_HEIGHT + 1));
@@ -52,157 +38,23 @@ void TVOutput::Init(uint32_t r_shift, uint32_t g_shift, uint32_t b_shift) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+TVOutput::~TVOutput() {
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 static const uint8_t DIGITS[10][13] = {
-    {
-        0x00,
-        0x00,
-        0x04,
-        0x0A,
-        0x11,
-        0x11,
-        0x11,
-        0x11,
-        0x11,
-        0x0A,
-        0x04,
-        0x00,
-        0x00,
-    }, // 48 (0x30) '0'
-    {
-        0x00,
-        0x00,
-        0x04,
-        0x06,
-        0x05,
-        0x04,
-        0x04,
-        0x04,
-        0x04,
-        0x04,
-        0x1F,
-        0x00,
-        0x00,
-    }, // 49 (0x31) '1'
-    {
-        0x00,
-        0x00,
-        0x0E,
-        0x11,
-        0x11,
-        0x10,
-        0x08,
-        0x04,
-        0x02,
-        0x01,
-        0x1F,
-        0x00,
-        0x00,
-    }, // 50 (0x32) '2'
-    {
-        0x00,
-        0x00,
-        0x1F,
-        0x10,
-        0x08,
-        0x04,
-        0x0E,
-        0x10,
-        0x10,
-        0x11,
-        0x0E,
-        0x00,
-        0x00,
-    }, // 51 (0x33) '3'
-    {
-        0x00,
-        0x00,
-        0x08,
-        0x08,
-        0x0C,
-        0x0A,
-        0x0A,
-        0x09,
-        0x1F,
-        0x08,
-        0x08,
-        0x00,
-        0x00,
-    }, // 52 (0x34) '4'
-    {
-        0x00,
-        0x00,
-        0x1F,
-        0x01,
-        0x01,
-        0x0D,
-        0x13,
-        0x10,
-        0x10,
-        0x11,
-        0x0E,
-        0x00,
-        0x00,
-    }, // 53 (0x35) '5'
-    {
-        0x00,
-        0x00,
-        0x0E,
-        0x11,
-        0x01,
-        0x01,
-        0x0F,
-        0x11,
-        0x11,
-        0x11,
-        0x0E,
-        0x00,
-        0x00,
-    }, // 54 (0x36) '6'
-    {
-        0x00,
-        0x00,
-        0x1F,
-        0x10,
-        0x08,
-        0x08,
-        0x04,
-        0x04,
-        0x02,
-        0x02,
-        0x02,
-        0x00,
-        0x00,
-    }, // 55 (0x37) '7'
-    {
-        0x00,
-        0x00,
-        0x0E,
-        0x11,
-        0x11,
-        0x11,
-        0x0E,
-        0x11,
-        0x11,
-        0x11,
-        0x0E,
-        0x00,
-        0x00,
-    }, // 56 (0x38) '8'
-    {
-        0x00,
-        0x00,
-        0x0E,
-        0x11,
-        0x11,
-        0x11,
-        0x1E,
-        0x10,
-        0x10,
-        0x11,
-        0x0E,
-        0x00,
-        0x00,
-    }, // 57 (0x39) '9'
+    {0x00, 0x00, 0x04, 0x0A, 0x11, 0x11, 0x11, 0x11, 0x11, 0x0A, 0x04, 0x00, 0x00}, // 48 (0x30) '0'
+    {0x00, 0x00, 0x04, 0x06, 0x05, 0x04, 0x04, 0x04, 0x04, 0x04, 0x1F, 0x00, 0x00}, // 49 (0x31) '1'
+    {0x00, 0x00, 0x0E, 0x11, 0x11, 0x10, 0x08, 0x04, 0x02, 0x01, 0x1F, 0x00, 0x00}, // 50 (0x32) '2'
+    {0x00, 0x00, 0x1F, 0x10, 0x08, 0x04, 0x0E, 0x10, 0x10, 0x11, 0x0E, 0x00, 0x00}, // 51 (0x33) '3'
+    {0x00, 0x00, 0x08, 0x08, 0x0C, 0x0A, 0x0A, 0x09, 0x1F, 0x08, 0x08, 0x00, 0x00}, // 52 (0x34) '4'
+    {0x00, 0x00, 0x1F, 0x01, 0x01, 0x0D, 0x13, 0x10, 0x10, 0x11, 0x0E, 0x00, 0x00}, // 53 (0x35) '5'
+    {0x00, 0x00, 0x0E, 0x11, 0x01, 0x01, 0x0F, 0x11, 0x11, 0x11, 0x0E, 0x00, 0x00}, // 54 (0x36) '6'
+    {0x00, 0x00, 0x1F, 0x10, 0x08, 0x08, 0x04, 0x04, 0x02, 0x02, 0x02, 0x00, 0x00}, // 55 (0x37) '7'
+    {0x00, 0x00, 0x0E, 0x11, 0x11, 0x11, 0x0E, 0x11, 0x11, 0x11, 0x0E, 0x00, 0x00}, // 56 (0x38) '8'
+    {0x00, 0x00, 0x0E, 0x11, 0x11, 0x11, 0x1E, 0x10, 0x10, 0x11, 0x0E, 0x00, 0x00}, // 57 (0x39) '9'
 };
 
 // (272 scanned lines + 40 retrace lines + 0.5 interlace lines) * (52+4+8=64)us = 20000us = 20ms
@@ -316,29 +168,18 @@ void TVOutput::Update(const VideoDataUnit *units, size_t num_units) {
                             pixels0 = m_pixels_line + m_x;
                             pixels1 = pixels0 + TV_TEXTURE_WIDTH;
 
-                            const VideoDataPixel p0 = unit->pixels.pixels[0];
-                            pixels1[0] = pixels0[0] = m_rs[p0.bits.r] | m_gs[p0.bits.g] | m_bs[p0.bits.b];
+#define EXPAND_16MHZ(I)                                 \
+    const VideoDataPixel p##I = unit->pixels.pixels[I]; \
+    pixels1[I] = pixels0[I] = p##I.bits.b << 0 | p##I.bits.b << 4 | p##I.bits.g << 8 | p##I.bits.g << 12 | p##I.bits.r << 16 | p##I.bits.r << 20
 
-                            const VideoDataPixel p1 = unit->pixels.pixels[1];
-                            pixels1[1] = pixels0[1] = m_rs[p1.bits.r] | m_gs[p1.bits.g] | m_bs[p1.bits.b];
-
-                            const VideoDataPixel p2 = unit->pixels.pixels[2];
-                            pixels1[2] = pixels0[2] = m_rs[p2.bits.r] | m_gs[p2.bits.g] | m_bs[p2.bits.b];
-
-                            const VideoDataPixel p3 = unit->pixels.pixels[3];
-                            pixels1[3] = pixels0[3] = m_rs[p3.bits.r] | m_gs[p3.bits.g] | m_bs[p3.bits.b];
-
-                            const VideoDataPixel p4 = unit->pixels.pixels[4];
-                            pixels1[4] = pixels0[4] = m_rs[p4.bits.r] | m_gs[p4.bits.g] | m_bs[p4.bits.b];
-
-                            const VideoDataPixel p5 = unit->pixels.pixels[5];
-                            pixels1[5] = pixels0[5] = m_rs[p5.bits.r] | m_gs[p5.bits.g] | m_bs[p5.bits.b];
-
-                            const VideoDataPixel p6 = unit->pixels.pixels[6];
-                            pixels1[6] = pixels0[6] = m_rs[p6.bits.r] | m_gs[p6.bits.g] | m_bs[p6.bits.b];
-
-                            const VideoDataPixel p7 = unit->pixels.pixels[7];
-                            pixels1[7] = pixels0[7] = m_rs[p7.bits.r] | m_gs[p7.bits.g] | m_bs[p7.bits.b];
+                            EXPAND_16MHZ(0);
+                            EXPAND_16MHZ(1);
+                            EXPAND_16MHZ(2);
+                            EXPAND_16MHZ(3);
+                            EXPAND_16MHZ(4);
+                            EXPAND_16MHZ(5);
+                            EXPAND_16MHZ(6);
+                            EXPAND_16MHZ(7);
 
 #if VIDEO_TRACK_METADATA
                             VideoDataUnit *units0 = m_units_line + m_x;
@@ -378,95 +219,76 @@ void TVOutput::Update(const VideoDataUnit *units, size_t num_units) {
                             const VideoDataPixel p50 = unit->pixels.pixels[p_0 >> 5 & 1];
                             const VideoDataPixel p51 = unit->pixels.pixels[p_1 >> 5 & 1];
 
-                            // 000
-                            uint32_t r00 = m_rs[p00.bits.r];
-                            uint32_t g00 = m_gs[p00.bits.g];
-                            uint32_t b00 = m_bs[p00.bits.b];
+#define EXPAND_12MHZ_VDP(VAR) ((VAR).bits.b << 0 | (VAR).bits.b << 4 | (VAR).bits.g << 8 | (VAR).bits.g << 12 | (VAR).bits.r << 16 | (VAR).bits.r << 20)
+#define EXPAND_12MHZ_VARS(SUFFIX) ((b##SUFFIX) << 0 | (g##SUFFIX) << 8 | (r##SUFFIX) << 16)
 
-                            uint32_t r01 = m_rs[p01.bits.r];
-                            uint32_t g01 = m_gs[p01.bits.g];
-                            uint32_t b01 = m_bs[p01.bits.b];
+                            // 6 pixels:
+                            // <pre>
+                            // 0 1 2 3 4 5
+                            // </pre>
+                            //
+                            // Expand into 8. Scale up 4x, producing 24 pixels:
+                            //
+                            // <pre>
+                            // 0 0 0 0 1 1 1 1 2 2 2 2 3 3 3 3 4 4 4 4 5 5 5 5
+                            // </pre>
+                            //
+                            // Scale to 2/3 size, producing 8: (each pixel here
+                            // is the gamma-corrected average of all
+                            // contributing pixels)
+                            //
+                            // <pre>
+                            // 000 011 112 222 333 344 445 555
+                            // </pre>
 
-                            // 011
-                            uint32_t r10 = (uint32_t)m_blend[p00.bits.r][p10.bits.r] << m_r_shift;
-                            uint32_t g10 = (uint32_t)m_blend[p00.bits.g][p10.bits.g] << m_g_shift;
-                            uint32_t b10 = (uint32_t)m_blend[p00.bits.b][p10.bits.b] << m_b_shift;
-
-                            uint32_t r11 = (uint32_t)m_blend[p01.bits.r][p11.bits.r] << m_r_shift;
-                            uint32_t g11 = (uint32_t)m_blend[p01.bits.g][p11.bits.g] << m_g_shift;
-                            uint32_t b11 = (uint32_t)m_blend[p01.bits.b][p11.bits.b] << m_b_shift;
+                            uint8_t r011_0 = m_blend[p00.bits.r][p10.bits.r];
+                            uint8_t g011_0 = m_blend[p00.bits.g][p10.bits.g];
+                            uint8_t b011_0 = m_blend[p00.bits.b][p10.bits.b];
+                            uint8_t r011_1 = m_blend[p01.bits.r][p11.bits.r];
+                            uint8_t g011_1 = m_blend[p01.bits.g][p11.bits.g];
+                            uint8_t b011_1 = m_blend[p01.bits.b][p11.bits.b];
 
                             // 112
-                            uint32_t r20 = (uint32_t)m_blend[p20.bits.r][p10.bits.r] << m_r_shift;
-                            uint32_t g20 = (uint32_t)m_blend[p20.bits.g][p10.bits.g] << m_g_shift;
-                            uint32_t b20 = (uint32_t)m_blend[p20.bits.b][p10.bits.b] << m_b_shift;
-
-                            uint32_t r21 = (uint32_t)m_blend[p21.bits.r][p11.bits.r] << m_r_shift;
-                            uint32_t g21 = (uint32_t)m_blend[p21.bits.g][p11.bits.g] << m_g_shift;
-                            uint32_t b21 = (uint32_t)m_blend[p21.bits.b][p11.bits.b] << m_b_shift;
-
-                            // 222
-                            uint32_t r30 = m_rs[p20.bits.r];
-                            uint32_t g30 = m_gs[p20.bits.g];
-                            uint32_t b30 = m_bs[p20.bits.b];
-
-                            uint32_t r31 = m_rs[p21.bits.r];
-                            uint32_t g31 = m_gs[p21.bits.g];
-                            uint32_t b31 = m_bs[p21.bits.b];
-
-                            // 333
-                            uint32_t r40 = m_rs[p30.bits.r];
-                            uint32_t g40 = m_gs[p30.bits.g];
-                            uint32_t b40 = m_bs[p30.bits.b];
-
-                            uint32_t r41 = m_rs[p31.bits.r];
-                            uint32_t g41 = m_gs[p31.bits.g];
-                            uint32_t b41 = m_bs[p31.bits.b];
+                            uint8_t r112_0 = m_blend[p20.bits.r][p10.bits.r];
+                            uint8_t g112_0 = m_blend[p20.bits.g][p10.bits.g];
+                            uint8_t b112_0 = m_blend[p20.bits.b][p10.bits.b];
+                            uint8_t r112_1 = m_blend[p21.bits.r][p11.bits.r];
+                            uint8_t g112_1 = m_blend[p21.bits.g][p11.bits.g];
+                            uint8_t b112_1 = m_blend[p21.bits.b][p11.bits.b];
 
                             // 344
-                            uint32_t r50 = (uint32_t)m_blend[p30.bits.r][p40.bits.r] << m_r_shift;
-                            uint32_t g50 = (uint32_t)m_blend[p30.bits.g][p40.bits.g] << m_g_shift;
-                            uint32_t b50 = (uint32_t)m_blend[p30.bits.b][p40.bits.b] << m_b_shift;
-
-                            uint32_t r51 = (uint32_t)m_blend[p31.bits.r][p41.bits.r] << m_r_shift;
-                            uint32_t g51 = (uint32_t)m_blend[p31.bits.g][p41.bits.g] << m_g_shift;
-                            uint32_t b51 = (uint32_t)m_blend[p31.bits.b][p41.bits.b] << m_b_shift;
+                            uint8_t r344_0 = m_blend[p30.bits.r][p40.bits.r];
+                            uint8_t g344_0 = m_blend[p30.bits.g][p40.bits.g];
+                            uint8_t b344_0 = m_blend[p30.bits.b][p40.bits.b];
+                            uint8_t r344_1 = m_blend[p31.bits.r][p41.bits.r];
+                            uint8_t g344_1 = m_blend[p31.bits.g][p41.bits.g];
+                            uint8_t b344_1 = m_blend[p31.bits.b][p41.bits.b];
 
                             // 445
-                            uint32_t r60 = (uint32_t)m_blend[p50.bits.r][p40.bits.r] << m_r_shift;
-                            uint32_t g60 = (uint32_t)m_blend[p50.bits.g][p40.bits.g] << m_g_shift;
-                            uint32_t b60 = (uint32_t)m_blend[p50.bits.b][p40.bits.b] << m_b_shift;
+                            uint8_t r445_0 = m_blend[p50.bits.r][p40.bits.r];
+                            uint8_t g445_0 = m_blend[p50.bits.g][p40.bits.g];
+                            uint8_t b445_0 = m_blend[p50.bits.b][p40.bits.b];
+                            uint8_t r445_1 = m_blend[p51.bits.r][p41.bits.r];
+                            uint8_t g445_1 = m_blend[p51.bits.g][p41.bits.g];
+                            uint8_t b445_1 = m_blend[p51.bits.b][p41.bits.b];
 
-                            uint32_t r61 = (uint32_t)m_blend[p51.bits.r][p41.bits.r] << m_r_shift;
-                            uint32_t g61 = (uint32_t)m_blend[p51.bits.g][p41.bits.g] << m_g_shift;
-                            uint32_t b61 = (uint32_t)m_blend[p51.bits.b][p41.bits.b] << m_b_shift;
+                            pixels0[0] = EXPAND_12MHZ_VDP(p00);    //000
+                            pixels0[1] = EXPAND_12MHZ_VARS(011_0); //011
+                            pixels0[2] = EXPAND_12MHZ_VARS(112_0); //112
+                            pixels0[3] = EXPAND_12MHZ_VDP(p20);    //222
+                            pixels0[4] = EXPAND_12MHZ_VDP(p30);    //333
+                            pixels0[5] = EXPAND_12MHZ_VARS(344_0); //344
+                            pixels0[6] = EXPAND_12MHZ_VARS(445_0); //445
+                            pixels0[7] = EXPAND_12MHZ_VDP(p50);    //555
 
-                            // 555
-                            uint32_t r70 = m_rs[p50.bits.r];
-                            uint32_t g70 = m_gs[p50.bits.g];
-                            uint32_t b70 = m_bs[p50.bits.b];
-
-                            uint32_t r71 = m_rs[p51.bits.r];
-                            uint32_t g71 = m_gs[p51.bits.g];
-                            uint32_t b71 = m_bs[p51.bits.b];
-
-                            pixels0[0] = r00 | g00 | b00;
-                            pixels0[1] = r10 | g10 | b10;
-                            pixels0[2] = r20 | g20 | b20;
-                            pixels0[3] = r30 | g30 | b30;
-                            pixels0[4] = r40 | g40 | b40;
-                            pixels0[5] = r50 | g50 | b50;
-                            pixels0[6] = r60 | g60 | b60;
-                            pixels0[7] = r70 | g70 | b70;
-
-                            pixels1[0] = r01 | g01 | b01;
-                            pixels1[1] = r11 | g11 | b11;
-                            pixels1[2] = r21 | g21 | b21;
-                            pixels1[3] = r31 | g31 | b31;
-                            pixels1[4] = r41 | g41 | b41;
-                            pixels1[5] = r51 | g51 | b51;
-                            pixels1[6] = r61 | g61 | b61;
-                            pixels1[7] = r71 | g71 | b71;
+                            pixels1[0] = EXPAND_12MHZ_VDP(p01);
+                            pixels1[1] = EXPAND_12MHZ_VARS(011_1);
+                            pixels1[2] = EXPAND_12MHZ_VARS(112_1);
+                            pixels1[3] = EXPAND_12MHZ_VDP(p21);
+                            pixels1[4] = EXPAND_12MHZ_VDP(p31);
+                            pixels1[5] = EXPAND_12MHZ_VARS(344_1);
+                            pixels1[6] = EXPAND_12MHZ_VARS(445_1);
+                            pixels1[7] = EXPAND_12MHZ_VDP(p51);
 
 #if VIDEO_TRACK_METADATA
                             VideoDataUnit *units0 = m_units_line + m_x;
@@ -492,54 +314,30 @@ void TVOutput::Update(const VideoDataUnit *units, size_t num_units) {
                             const VideoDataPixel p4 = unit->pixels.pixels[4];
                             const VideoDataPixel p5 = unit->pixels.pixels[5];
 
-                            // 000
-                            uint32_t r0 = m_rs[p0.bits.r];
-                            uint32_t g0 = m_gs[p0.bits.g];
-                            uint32_t b0 = m_bs[p0.bits.b];
+                            uint8_t r011 = m_blend[p0.bits.r][p1.bits.r];
+                            uint8_t g011 = m_blend[p0.bits.g][p1.bits.g];
+                            uint8_t b011 = m_blend[p0.bits.b][p1.bits.b];
 
-                            // 011
-                            uint32_t r1 = (uint32_t)m_blend[p0.bits.r][p1.bits.r] << m_r_shift;
-                            uint32_t g1 = (uint32_t)m_blend[p0.bits.g][p1.bits.g] << m_g_shift;
-                            uint32_t b1 = (uint32_t)m_blend[p0.bits.b][p1.bits.b] << m_b_shift;
+                            uint8_t r112 = m_blend[p2.bits.r][p1.bits.r];
+                            uint8_t g112 = m_blend[p2.bits.g][p1.bits.g];
+                            uint8_t b112 = m_blend[p2.bits.b][p1.bits.b];
 
-                            // 112
-                            uint32_t r2 = (uint32_t)m_blend[p2.bits.r][p1.bits.r] << m_r_shift;
-                            uint32_t g2 = (uint32_t)m_blend[p2.bits.g][p1.bits.g] << m_g_shift;
-                            uint32_t b2 = (uint32_t)m_blend[p2.bits.b][p1.bits.b] << m_b_shift;
+                            uint8_t r334 = m_blend[p3.bits.r][p4.bits.r];
+                            uint8_t g334 = m_blend[p3.bits.g][p4.bits.g];
+                            uint8_t b334 = m_blend[p3.bits.b][p4.bits.b];
 
-                            // 222
-                            uint32_t r3 = m_rs[p2.bits.r];
-                            uint32_t g3 = m_gs[p2.bits.g];
-                            uint32_t b3 = m_bs[p2.bits.b];
+                            uint8_t r445 = m_blend[p5.bits.r][p4.bits.r];
+                            uint8_t g445 = m_blend[p5.bits.g][p4.bits.g];
+                            uint8_t b445 = m_blend[p5.bits.b][p4.bits.b];
 
-                            // 333
-                            uint32_t r4 = m_rs[p3.bits.r];
-                            uint32_t g4 = m_gs[p3.bits.g];
-                            uint32_t b4 = m_bs[p3.bits.b];
-
-                            // 344
-                            uint32_t r5 = (uint32_t)m_blend[p3.bits.r][p4.bits.r] << m_r_shift;
-                            uint32_t g5 = (uint32_t)m_blend[p3.bits.g][p4.bits.g] << m_g_shift;
-                            uint32_t b5 = (uint32_t)m_blend[p3.bits.b][p4.bits.b] << m_b_shift;
-
-                            // 445
-                            uint32_t r6 = (uint32_t)m_blend[p5.bits.r][p4.bits.r] << m_r_shift;
-                            uint32_t g6 = (uint32_t)m_blend[p5.bits.g][p4.bits.g] << m_g_shift;
-                            uint32_t b6 = (uint32_t)m_blend[p5.bits.b][p4.bits.b] << m_b_shift;
-
-                            // 555
-                            uint32_t r7 = m_rs[p5.bits.r];
-                            uint32_t g7 = m_gs[p5.bits.g];
-                            uint32_t b7 = m_bs[p5.bits.b];
-
-                            pixels1[0] = pixels0[0] = r0 | g0 | b0;
-                            pixels1[1] = pixels0[1] = r1 | g1 | b1;
-                            pixels1[2] = pixels0[2] = r2 | g2 | b2;
-                            pixels1[3] = pixels0[3] = r3 | g3 | b3;
-                            pixels1[4] = pixels0[4] = r4 | g4 | b4;
-                            pixels1[5] = pixels0[5] = r5 | g5 | b5;
-                            pixels1[6] = pixels0[6] = r6 | g6 | b6;
-                            pixels1[7] = pixels0[7] = r7 | g7 | b7;
+                            pixels1[0] = pixels0[0] = EXPAND_12MHZ_VDP(p0);
+                            pixels1[1] = pixels0[1] = EXPAND_12MHZ_VARS(011);
+                            pixels1[2] = pixels0[2] = EXPAND_12MHZ_VARS(112);
+                            pixels1[3] = pixels0[3] = EXPAND_12MHZ_VDP(p2);
+                            pixels1[4] = pixels0[4] = EXPAND_12MHZ_VDP(p3);
+                            pixels1[5] = pixels0[5] = EXPAND_12MHZ_VARS(334);
+                            pixels1[6] = pixels0[6] = EXPAND_12MHZ_VARS(445);
+                            pixels1[7] = pixels0[7] = EXPAND_12MHZ_VDP(p5);
 
 #if VIDEO_TRACK_METADATA
                             VideoDataUnit *units0 = m_units_line + m_x;
@@ -623,7 +421,7 @@ void TVOutput::FillWithTestPattern() {
 
     uint32_t palette[8];
     for (size_t i = 0; i < 8; ++i) {
-        palette[i] = (i & 1 ? m_rs[15] : 0) | (i & 2 ? m_gs[15] : 0) | (i & 4 ? m_bs[15] : 0);
+        palette[i] = (i & 1 ? 0xff0000 : 0x000000) | (i & 2 ? 0x00ff00 : 0x000000) | (i & 4 ? 0x0000ff : 0x000000);
     }
 
     for (int y = 0; y < TV_TEXTURE_HEIGHT; ++y) {
@@ -760,7 +558,7 @@ void TVOutput::CopyTexturePixels(void *dest_pixels, size_t dest_pitch_bytes) con
         this->show_6845_dispen_markers ||
         this->show_6845_row_markers) {
         uint32_t bg = 0;
-        uint32_t fg = 0xffu << m_r_shift | 0xffu << m_g_shift | 0xffu << m_b_shift;
+        uint32_t fg = 0xffffffu;
 
         for (size_t x = 0; x < TV_TEXTURE_WIDTH; x += 16) {
             size_t column = x / 16;
@@ -885,24 +683,10 @@ static uint8_t GetByte(double x) {
 //////////////////////////////////////////////////////////////////////////
 
 uint32_t TVOutput::GetTexelValue(uint8_t r, uint8_t g, uint8_t b) const {
-    uint32_t value = 0;
-
-    value |= (uint32_t)r << m_r_shift;
-    value |= (uint32_t)g << m_g_shift;
-    value |= (uint32_t)b << m_b_shift;
-
-    return value;
+    return b << 0 | g << 8 | r << 16;
 }
 
 void TVOutput::InitPalette() {
-    for (uint8_t i = 0; i < 16; ++i) {
-        uint8_t value = i << 4 | i;
-
-        m_rs[i] = this->GetTexelValue(value, 0, 0);
-        m_gs[i] = this->GetTexelValue(0, value, 0);
-        m_bs[i] = this->GetTexelValue(0, 0, value);
-    }
-
     for (size_t i = 0; i < 16; ++i) {
         for (size_t j = 0; j < 16; ++j) {
             double a = pow(i / 15., m_gamma);

@@ -31,10 +31,8 @@ struct ThumbnailsUI::Thumbnail {
 ////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////
 
-ThumbnailsUI::ThumbnailsUI(SDL_Renderer *renderer,
-                           const SDL_PixelFormat *pixel_format)
-    : m_renderer(renderer)
-    , m_pixel_format(pixel_format) {
+ThumbnailsUI::ThumbnailsUI(SDL_Renderer *renderer)
+    : m_renderer(renderer) {
 }
 
 ////////////////////////////////////////////////////////////////////////////
@@ -76,7 +74,7 @@ void ThumbnailsUI::Thumbnail(const std::shared_ptr<const BeebState> &beeb_state)
     case ThumbnailState_Start:
         ASSERT(!t->job);
         t->job = std::make_shared<GenerateThumbnailJob>();
-        if (!t->job->Init(beeb_state, NUM_THUMBNAIL_RENDER_FRAMES, m_pixel_format)) {
+        if (!t->job->Init(beeb_state, NUM_THUMBNAIL_RENDER_FRAMES)) {
             t->state = ThumbnailState_Error;
             break;
         }
@@ -198,7 +196,7 @@ SDLUniquePtr<SDL_Texture> ThumbnailsUI::GetTexture() {
     if (m_textures.empty()) {
         SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "linear");
         texture = SDLUniquePtr<SDL_Texture>(SDL_CreateTexture(m_renderer,
-                                                              m_pixel_format->format,
+                                                              SDL_PIXELFORMAT_ARGB8888,
                                                               SDL_TEXTUREACCESS_STATIC,
                                                               TV_TEXTURE_WIDTH,
                                                               TV_TEXTURE_HEIGHT));

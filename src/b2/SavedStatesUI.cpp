@@ -15,10 +15,9 @@
 class SavedStatesUI : public SettingsUI {
   public:
     explicit SavedStatesUI(BeebWindow *beeb_window,
-                           SDL_Renderer *renderer,
-                           const SDL_PixelFormat *pixel_format)
+                           SDL_Renderer *renderer)
         : m_beeb_window(beeb_window)
-        , m_thumbnails(renderer, pixel_format) {
+        , m_thumbnails(renderer) {
     }
 
     void DoImGui() override {
@@ -125,8 +124,6 @@ class SavedStatesUI : public SettingsUI {
 ////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////
 
-std::unique_ptr<SettingsUI> CreateSavedStatesUI(BeebWindow *beeb_window,
-                                                SDL_Renderer *renderer,
-                                                const SDL_PixelFormat *pixel_format) {
-    return std::make_unique<SavedStatesUI>(beeb_window, renderer, pixel_format);
+std::unique_ptr<SettingsUI> CreateSavedStatesUI(BeebWindow *beeb_window, SDL_Renderer *renderer) {
+    return std::make_unique<SavedStatesUI>(beeb_window, renderer);
 }

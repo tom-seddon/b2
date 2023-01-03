@@ -25,10 +25,9 @@ static const char VIDEO_FORMATS_POPUP[] = "video_formats_popup";
 class TimelineUI : public SettingsUI {
   public:
     explicit TimelineUI(BeebWindow *beeb_window,
-                        SDL_Renderer *renderer,
-                        const SDL_PixelFormat *pixel_format)
+                        SDL_Renderer *renderer)
         : m_beeb_window(beeb_window)
-        , m_thumbnails(renderer, pixel_format) {
+        , m_thumbnails(renderer) {
     }
 
     void DoImGui() override {
@@ -291,8 +290,6 @@ class TimelineUI : public SettingsUI {
 ////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////
 
-std::unique_ptr<SettingsUI> CreateTimelineUI(BeebWindow *beeb_window,
-                                             SDL_Renderer *renderer,
-                                             const SDL_PixelFormat *pixel_format) {
-    return std::make_unique<TimelineUI>(beeb_window, renderer, pixel_format);
+std::unique_ptr<SettingsUI> CreateTimelineUI(BeebWindow *beeb_window, SDL_Renderer *renderer) {
+    return std::make_unique<TimelineUI>(beeb_window, renderer);
 }

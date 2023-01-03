@@ -594,8 +594,6 @@ void TestBBCMicro::RunUntilOSWORD0(double max_num_seconds) {
 std::vector<uint32_t> TestBBCMicro::RunForNFrames(size_t num_frames) {
     TVOutput tv;
 
-    tv.Init(0, 8, 16); //RGBx32
-
     uint64_t version;
     const uint32_t *pixels = tv.GetTexturePixels(&version);
 
@@ -1045,17 +1043,23 @@ void RunStandardTest(const std::string &beeblink_volume_path,
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void RunImageTest(const std::string &wanted_png_path,
+void RunImageTest(const std::string &wanted_png_src_path,
                   const std::string &png_name,
                   TestBBCMicro *beeb) {
     std::vector<uint32_t> got_image = beeb->RunForNFrames(10);
 
-    // The emulator doesn't bother to fill in the alpha channel.
+    // The emulator doesn't bother to fill in the alpha channel. Also, all the
+    // pixels are the wrong way round for stb_image, which wants
+    // DXGI_FORMAT_R8G8B8A8_UNORM.
     for (uint32_t &pixel : got_image) {
-        pixel |= 0xff000000u;
+        uint8_t r = (uint8_t)(pixel >> 16);
+        uint8_t g = (uint8_t)(pixel >> 8);
+        uint8_t b = (uint8_t)(pixel >> 0);
+
+        pixel = r << 0 | g << 8 | b << 16 | 0xff << 24;
     }
 
-    std::string got_png_path = GetOutputFileName(png_name + ".png");
+    std::string got_png_path = GetOutputFileName(png_name + ".got.png");
 
     // Unlike the test_common stuff, stbi_write_png won't create the folder.
     TEST_TRUE(PathCreateFolder(PathGetFolder(got_png_path)));
@@ -1066,6 +1070,13 @@ void RunImageTest(const std::string &wanted_png_path,
                              4,
                              got_image.data(),
                              TV_TEXTURE_WIDTH * 4));
+
+    // Put a copy of the wanted PNG in the output folder, so it's accessible.
+    // The differences PNG isn't always illuminating.
+    std::string wanted_png_path = GetOutputFileName(png_name + ".wanted.png");
+    std::vector<uint8_t> wanted_png_data;
+    TEST_TRUE(PathLoadBinaryFile(&wanted_png_data,wanted_png_src_path));
+    TEST_TRUE(PathSaveBinaryFile(wanted_png_data,wanted_png_path));
 
     int wanted_width, wanted_height;
     unsigned char *wanted_data = stbi_load(wanted_png_path.c_str(),

@@ -9,11 +9,8 @@
 class BeebWindow;
 class SettingsUI;
 struct SDL_Renderer;
-struct SDL_PixelFormat;
 
-std::unique_ptr<SettingsUI> CreateSavedStatesUI(BeebWindow *beeb_window,
-                                                SDL_Renderer *renderer,
-                                                const SDL_PixelFormat *pixel_format);
+std::unique_ptr<SettingsUI> CreateSavedStatesUI(BeebWindow *beeb_window, SDL_Renderer *renderer);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

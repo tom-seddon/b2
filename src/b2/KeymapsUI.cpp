@@ -919,7 +919,7 @@ void KeymapsUI::DoEditKeymapGui() {
 
     // The factors here are all just arbitrary numbers that make things line
     // up roughly.
-    m_metrics.key_height = ImGui::GetTextLineHeight() * 2.75;
+    m_metrics.key_height = ImGui::GetTextLineHeight() * 2.75f;
     m_metrics.key_width = (ImGui::CalcTextSize("W").x + 1.f) * 4.f;
     m_metrics.keypad_x = m_metrics.key_width * 21;
 

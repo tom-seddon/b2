@@ -368,10 +368,6 @@ BeebWindow::~BeebWindow() {
         SDL_DestroyWindow(m_window);
     }
 
-    if (m_pixel_format) {
-        SDL_FreeFormat(m_pixel_format);
-    }
-
 #if RMT_ENABLED
     if (g_num_BeebWindow_inits > 0) {
         --g_num_BeebWindow_inits;
@@ -1134,18 +1130,14 @@ std::unique_ptr<SettingsUI> BeebWindow::CreateOptionsUI(BeebWindow *beeb_window)
 //////////////////////////////////////////////////////////////////////////
 
 std::unique_ptr<SettingsUI> BeebWindow::CreateTimelineUI(BeebWindow *beeb_window) {
-    return ::CreateTimelineUI(beeb_window,
-                              beeb_window->m_renderer,
-                              beeb_window->m_pixel_format);
+    return ::CreateTimelineUI(beeb_window, beeb_window->m_renderer);
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 std::unique_ptr<SettingsUI> BeebWindow::CreateSavedStatesUI(BeebWindow *beeb_window) {
-    return ::CreateSavedStatesUI(beeb_window,
-                                 beeb_window->m_renderer,
-                                 beeb_window->m_pixel_format);
+    return ::CreateSavedStatesUI(beeb_window, beeb_window->m_renderer);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -2362,13 +2354,6 @@ bool BeebWindow::InitInternal() {
         return false;
     }
 
-    // The OpenGL driver supports SDL_PIXELFORMAT_ARGB8888.
-    m_pixel_format = SDL_AllocFormat(SDL_PIXELFORMAT_ARGB8888);
-    if (!m_pixel_format) {
-        m_msg.e.f("SDL_AllocFormat failed: %s\n", SDL_GetError());
-        return false;
-    }
-
     SDL_SetWindowData(m_window, SDL_WINDOW_DATA_NAME, this);
 
     SDL_SysWMinfo wmi;
@@ -2445,15 +2430,6 @@ bool BeebWindow::InitInternal() {
     if (!this->RecreateTexture()) {
         return false;
     }
-
-    if (m_pixel_format->BitsPerPixel != 32) {
-        m_msg.e.f("Pixel format not 32 bpp\n");
-        return false;
-    }
-
-    m_tv.Init(m_pixel_format->Rshift,
-              m_pixel_format->Gshift,
-              m_pixel_format->Bshift);
 
     m_imgui_stuff = new ImGuiStuff(m_renderer);
     if (!m_imgui_stuff->Init()) {
@@ -2856,7 +2832,7 @@ bool BeebWindow::RecreateTexture() {
 
     SetRenderScaleQualityHint(m_settings.display_filter);
 
-    m_tv_texture = SDL_CreateTexture(m_renderer, m_pixel_format->format, SDL_TEXTUREACCESS_STREAMING, TV_TEXTURE_WIDTH, TV_TEXTURE_HEIGHT);
+    m_tv_texture = SDL_CreateTexture(m_renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, TV_TEXTURE_WIDTH, TV_TEXTURE_HEIGHT);
     if (!m_tv_texture) {
         m_msg.e.f("Failed to create TV texture: %s\n", SDL_GetError());
         return false;

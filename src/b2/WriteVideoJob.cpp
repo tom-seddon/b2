@@ -247,12 +247,6 @@ void WriteVideoJob::ThreadExecute() {
         //}
     }
 
-    {
-        std::unique_ptr<SDL_PixelFormat, SDL_Deleter> pixel_format(SDL_AllocFormat(SDL_PIXELFORMAT_ARGB8888));
-
-        tv_output.Init(pixel_format->Rshift, pixel_format->Gshift, pixel_format->Bshift);
-    }
-
     start_state = m_event_list.state_event.message->GetBeebState();
 
     event_lists.push_back(std::move(m_event_list));
