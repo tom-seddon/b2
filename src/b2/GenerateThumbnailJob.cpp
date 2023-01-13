@@ -13,18 +13,16 @@
 //////////////////////////////////////////////////////////////////////////
 
 bool GenerateThumbnailJob::Init(std::unique_ptr<BBCMicro> beeb,
-                                int num_frames,
-                                const SDL_PixelFormat *pixel_format) {
-    return this->Init(&beeb, nullptr, num_frames, pixel_format);
+                                int num_frames) {
+    return this->Init(&beeb, nullptr, num_frames);
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 bool GenerateThumbnailJob::Init(std::shared_ptr<const BeebState> beeb_state,
-                                int num_frames,
-                                const SDL_PixelFormat *pixel_format) {
-    return this->Init(nullptr, &beeb_state, num_frames, pixel_format);
+                                int num_frames) {
+    return this->Init(nullptr, &beeb_state, num_frames);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -89,11 +87,8 @@ const void *GenerateThumbnailJob::GetTexturePixels() const {
 
 bool GenerateThumbnailJob::Init(std::unique_ptr<BBCMicro> *beeb,
                                 std::shared_ptr<const BeebState> *beeb_state,
-                                int num_frames,
-                                const SDL_PixelFormat *pixel_format) {
+                                int num_frames) {
     ASSERT(!!beeb != !!beeb_state);
-
-    m_tv_output.Init(pixel_format->Rshift, pixel_format->Gshift, pixel_format->Bshift);
 
     if (beeb) {
         m_beeb = std::move(*beeb);

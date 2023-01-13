@@ -12,7 +12,6 @@
 class BeebState;
 class DiscImage;
 class BBCMicro;
-struct SDL_PixelFormat;
 
 #include <beeb/conf.h>
 #include <memory>
@@ -27,13 +26,9 @@ class GenerateThumbnailJob : public JobQueue::Job {
   public:
     //GenerateThumbnailJob()=default;
 
-    bool Init(std::unique_ptr<BBCMicro> beeb,
-              int num_frames,
-              const SDL_PixelFormat *pixel_format);
+    bool Init(std::unique_ptr<BBCMicro> beeb, int num_frames);
 
-    bool Init(std::shared_ptr<const BeebState> beeb_state,
-              int num_frames,
-              const SDL_PixelFormat *pixel_format);
+    bool Init(std::shared_ptr<const BeebState> beeb_state, int num_frames);
 
     void ThreadExecute() override;
 
@@ -47,8 +42,7 @@ class GenerateThumbnailJob : public JobQueue::Job {
 
     bool Init(std::unique_ptr<BBCMicro> *beeb,
               std::shared_ptr<const BeebState> *beeb_state,
-              int num_frames,
-              const SDL_PixelFormat *pixel_format);
+              int num_frames);
 };
 
 //////////////////////////////////////////////////////////////////////////

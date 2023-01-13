@@ -120,7 +120,7 @@ class ImGuiStuff {
     uint64_t m_last_new_frame_ticks = 0;
     int m_next_wheel = 0;
     ImFontAtlas *m_original_font_atlas = nullptr;
-    std::unique_ptr<ImFontAtlas> m_new_font_atlas;
+    ImFontAtlas *m_new_font_atlas = nullptr;
     std::string m_imgui_ini_path;
     std::string m_imgui_log_txt_path;
     SDL_Cursor *m_cursors[ImGuiMouseCursor_COUNT] = {};

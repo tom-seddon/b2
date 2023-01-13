@@ -95,7 +95,8 @@ ImGuiStuff::~ImGuiStuff() {
 
         io.Fonts = m_original_font_atlas;
 
-        m_new_font_atlas.reset();
+        delete m_new_font_atlas;
+        m_new_font_atlas = nullptr;
 
         ImGui::DestroyContext(m_context);
         m_context = nullptr;
@@ -274,8 +275,8 @@ void ImGuiStuff::NewFrame(bool got_mouse_focus) {
         int rc;
         ImGuiIO &io = ImGui::GetIO();
 
-        m_new_font_atlas = std::make_unique<ImFontAtlas>();
-        io.Fonts = m_new_font_atlas.get();
+        m_new_font_atlas = new ImFontAtlas;
+        io.Fonts = m_new_font_atlas;
         ImFontConfig font_config;
         font_config.SizePixels = m_font_size_pixels;
         io.Fonts->AddFontDefault(&font_config);

@@ -296,7 +296,6 @@ class BeebWindow {
     // SDLstuff.
     SDL_Window *m_window = nullptr;
     SDL_Renderer *m_renderer = nullptr;
-    SDL_PixelFormat *m_pixel_format = nullptr;
 
 #if SYSTEM_WINDOWS
     void *m_hwnd = nullptr;

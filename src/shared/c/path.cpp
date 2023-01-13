@@ -242,6 +242,35 @@ done:;
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+bool PathSaveBinaryFile(const std::vector<uint8_t> &contents, const std::string &path) {
+    FILE *f = nullptr;
+    bool good = false;
+
+    f = fopenUTF8(path.c_str(), "wb");
+    if (!f) {
+        goto done;
+    }
+
+    fwrite(contents.data(), 1, contents.size(), f);
+
+    if (ferror(f)) {
+        goto done;
+    }
+
+    good = true;
+
+done:
+    if (f) {
+        fclose(f);
+        f = nullptr;
+    }
+
+    return good;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 #if SYSTEM_WINDOWS
 static std::wstring GetWideString(const char *str) {
     size_t len = strlen(str);

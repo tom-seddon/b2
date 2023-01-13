@@ -22,13 +22,14 @@ struct VideoDataUnit;
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-// TVOutput is the analogue of a combination of the video encoding and
-// the TV - it looks after converting a stream of video data chunks
-// into a graphical display. Output format is 32-bit, RGB, 8-bit R/G/B
-// channels (in any order), no alpha info.
-//
-// The texture is always TV_TEXTURE_WIDTH*TV_TEXTURE_HEIGHT, and its
-// stride is TV_OUTPUT_WIDTH*4.
+// TVOutput is the analogue of a combination of the video encoding and the TV -
+// it looks after converting a stream of video data chunks into a graphical
+// display. Output format is DXGI_FORMAT_B8G8R8A8_UNORM, aka
+// SDL_PIXELFORMAT_ARGB8888. The texture is always
+// TV_TEXTURE_WIDTH*TV_TEXTURE_HEIGHT, and its stride is TV_OUTPUT_WIDTH*4.
+
+// TODO: should be a CreateSDLTexture function, that creates an appropriate
+// SDL_Texture. Just supply the texture access flags.
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -43,8 +44,6 @@ class TVOutput {
 
     TVOutput();
     ~TVOutput();
-
-    void Init(uint32_t r_shift, uint32_t g_shift, uint32_t b_shift);
 
     // returns number of us consumed.
     void Update(const VideoDataUnit *units, size_t num_units);
@@ -90,10 +89,6 @@ class TVOutput {
     size_t m_num_fields = 0;
     bool m_interlace = false; //it's horrid. It's there, but you don't want it
 
-    uint32_t m_r_shift = 0;
-    uint32_t m_g_shift = 0;
-    uint32_t m_b_shift = 0;
-
     // TV - output texture and its properties
     std::vector<uint32_t> m_texture_pixels;
 #if VIDEO_TRACK_METADATA
@@ -105,10 +100,6 @@ class TVOutput {
     uint64_t render_latency_ticks;
     size_t num_renders;
 #endif
-
-    uint32_t m_rs[16] = {};
-    uint32_t m_gs[16] = {};
-    uint32_t m_bs[16] = {};
 
     double m_gamma = 2.2;
 
