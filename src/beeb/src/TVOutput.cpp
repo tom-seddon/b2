@@ -170,7 +170,7 @@ void TVOutput::Update(const VideoDataUnit *units, size_t num_units) {
 
 #define EXPAND_16MHZ(I)                                 \
     const VideoDataPixel p##I = unit->pixels.pixels[I]; \
-    pixels1[I] = pixels0[I] = p##I.bits.b << 0 | p##I.bits.b << 4 | p##I.bits.g << 8 | p##I.bits.g << 12 | p##I.bits.r << 16 | p##I.bits.r << 20
+    pixels1[I] = pixels0[I] = (uint32_t)p##I.bits.b << 0u | (uint32_t)p##I.bits.b << 4u | (uint32_t)p##I.bits.g << 8u | (uint32_t)p##I.bits.g << 12u | (uint32_t)p##I.bits.r << 16u | (uint32_t)p##I.bits.r << 20u
 
                             EXPAND_16MHZ(0);
                             EXPAND_16MHZ(1);
@@ -219,8 +219,8 @@ void TVOutput::Update(const VideoDataUnit *units, size_t num_units) {
                             const VideoDataPixel p50 = unit->pixels.pixels[p_0 >> 5 & 1];
                             const VideoDataPixel p51 = unit->pixels.pixels[p_1 >> 5 & 1];
 
-#define EXPAND_12MHZ_VDP(VAR) ((VAR).bits.b << 0 | (VAR).bits.b << 4 | (VAR).bits.g << 8 | (VAR).bits.g << 12 | (VAR).bits.r << 16 | (VAR).bits.r << 20)
-#define EXPAND_12MHZ_VARS(SUFFIX) ((b##SUFFIX) << 0 | (g##SUFFIX) << 8 | (r##SUFFIX) << 16)
+#define EXPAND_12MHZ_VDP(VAR) ((uint32_t)(VAR).bits.b << 0u | (uint32_t)(VAR).bits.b << 4u | (uint32_t)(VAR).bits.g << 8u | (uint32_t)(VAR).bits.g << 12u | (uint32_t)(VAR).bits.r << 16u | (uint32_t)(VAR).bits.r << 20u)
+#define EXPAND_12MHZ_VARS(SUFFIX) ((uint32_t)(b##SUFFIX) << 0u | (uint32_t)(g##SUFFIX) << 8u | (uint32_t)(r##SUFFIX) << 16u)
 
                             // 6 pixels:
                             // <pre>
@@ -683,7 +683,7 @@ static uint8_t GetByte(double x) {
 //////////////////////////////////////////////////////////////////////////
 
 uint32_t TVOutput::GetTexelValue(uint8_t r, uint8_t g, uint8_t b) const {
-    return b << 0 | g << 8 | r << 16;
+    return (uint32_t)b << 0u | (uint32_t)g << 8u | (uint32_t)r << 16u;
 }
 
 void TVOutput::InitPalette() {

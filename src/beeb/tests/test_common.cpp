@@ -1052,11 +1052,11 @@ void RunImageTest(const std::string &wanted_png_src_path,
     // pixels are the wrong way round for stb_image, which wants
     // DXGI_FORMAT_R8G8B8A8_UNORM.
     for (uint32_t &pixel : got_image) {
-        uint8_t r = (uint8_t)(pixel >> 16);
-        uint8_t g = (uint8_t)(pixel >> 8);
-        uint8_t b = (uint8_t)(pixel >> 0);
+        uint32_t r = (uint8_t)(pixel >> 16);
+        uint32_t g = (uint8_t)(pixel >> 8);
+        uint32_t b = (uint8_t)(pixel >> 0);
 
-        pixel = r << 0 | g << 8 | b << 16 | 0xff << 24;
+        pixel = r << 0 | g << 8 | b << 16 | 0xffu << 24;
     }
 
     std::string got_png_path = GetOutputFileName(png_name + ".got.png");
