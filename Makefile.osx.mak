@@ -26,8 +26,9 @@ reinit_xcode:
 .PHONY:run_tests
 run_tests: BUILD?=Debug
 run_tests: _OUTPUT=b2_tests_output/
+run_tests: MELD?=/Applications/Meld.app/Contents/MacOS/Meld
 run_tests:
-	cd build/Xcode && rm -R $(_OUTPUT) && ctest -C $(BUILD) -j$(NPROC) -LE 'slow|kevin_edwards' --output-on-failure || meld $(_OUTPUT)/got/ $(_OUTPUT)/wanted/
+	cd build/Xcode && rm -Rf $(_OUTPUT) && ctest -C $(BUILD) -j$(NPROC) -LE 'slow|kevin_edwards' --output-on-failure || $(MELD) $(_OUTPUT)/got/ $(_OUTPUT)/wanted/
 
 .PHONY:run_all_tests
 run_all_tests: BUILD?=RelWithDebInfo
