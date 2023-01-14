@@ -1899,8 +1899,10 @@ static void SaveWindows(JSONWriter<StringStream> *writer) {
             SaveBitIndexedFlags(writer, BeebWindows::defaults.popups, &GetBeebWindowPopupTypeEnumName);
         }
 
-        writer->Key(KEYMAP);
-        writer->String(BeebWindows::defaults.keymap->GetName().c_str());
+        if(BeebWindows::defaults.keymap) {
+            writer->Key(KEYMAP);
+            writer->String(BeebWindows::defaults.keymap->GetName().c_str());
+        }
 
         writer->Key(BBC_VOLUME);
         writer->Double(BeebWindows::defaults.bbc_volume);
