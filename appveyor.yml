@@ -59,8 +59,8 @@ install:
         } else {
           $env:MACOS_VER="11.0"
         }
-        $env:OUTPUT_NAME="build/_Rel/osx/b2-osx-"+$env:SUFFIX+".dmg"
-        $env:SYMBOLS_NAME="build/_Rel/osx/symbols.b2-osx-"+$env:SUFFIX+".7z"
+        $env:OUTPUT_NAME="build/_Rel/osx/b2-osx-"+$env:MACOS_VER+"-"+$env:SUFFIX+".dmg"
+        $env:SYMBOLS_NAME="build/_Rel/osx/symbols.b2-osx-"+$env:MACOS_VER+"-"+$env:SUFFIX+".7z"
         $env:HOMEBREW_NO_AUTO_UPDATE=1
         $env:HOMEBREW_NO_INSTALL_CLEANUP=1
         # https://github.com/appveyor/ci/issues/3786
@@ -94,7 +94,7 @@ install:
   
 build_script:
   - ps: |
-      & $env:PYTHON3 -u ./etc/release/release.py --verbose --timestamp=$env:TIMESTAMP -t `"$env:TOOLCHAIN`" --macos-deployment-target `"$env:MACOS_VER`" $env:SUFFIX
+      & $env:PYTHON3 -u ./etc/release/release.py --verbose --timestamp=$env:TIMESTAMP -t `"$env:TOOLCHAIN`" `"--macos-deployment-target=$env:MACOS_VER`" $env:SUFFIX
       if($lastexitcode -eq 0) {
         $host.SetShouldExit(0);
       }
