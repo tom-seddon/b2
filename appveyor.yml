@@ -94,7 +94,7 @@ install:
   
 build_script:
   - ps: |
-      & $env:PYTHON3 -u ./etc/release/release.py --verbose --timestamp=$env:TIMESTAMP -t `"$env:TOOLCHAIN`" `"--macos-deployment-target=$env:MACOS_VER`" $env:SUFFIX
+      & $env:PYTHON3 -u ./etc/release/release.py --verbose --timestamp=$env:TIMESTAMP -t `"$env:TOOLCHAIN`" --macos-deployment-target `"$env:MACOS_VER`" $env:SUFFIX
       if($lastexitcode -eq 0) {
         $host.SetShouldExit(0);
       }
