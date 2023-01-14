@@ -1165,14 +1165,14 @@ static void AddDefaultBeebKeymaps() {
     }
 }
 
-static void AddDefaultBeebConfigs() {
+static void AddDefaultBeebConfigs(bool force) {
     const uint32_t old_features_seen = BeebWindows::GetBeebConfigFeatureFlags();
     uint32_t new_features_seen = old_features_seen;
 
     for (size_t i = 0; i < GetNumDefaultBeebConfigs(); ++i) {
         const BeebConfig *config = GetDefaultBeebConfigByIndex(i);
-        if (config->feature_flags != 0) {
-            if ((old_features_seen & config->feature_flags) == 0) {
+        if (force || config->feature_flags != 0) {
+            if (force || (old_features_seen & config->feature_flags) == 0) {
                 BeebWindows::AddConfig(*config);
                 new_features_seen |= config->feature_flags;
             }
@@ -2130,8 +2130,7 @@ bool LoadGlobalConfig(Messages *msg) {
         if (FindArrayMember(&configs, doc.get(), OLD_CONFIGS, msg)) {
             LOGF(LOADSAVE, "Loading configs.\n");
 
-            BeebWindows::SetBeebConfigFeatureFlags(0); //sneaky hack.
-            AddDefaultBeebConfigs();
+            AddDefaultBeebConfigs(true);
 
             if (!LoadConfigs(&configs, OLD_CONFIGS, msg)) {
                 return false;
@@ -2143,7 +2142,7 @@ bool LoadGlobalConfig(Messages *msg) {
                 return false;
             }
 
-            AddDefaultBeebConfigs();
+            AddDefaultBeebConfigs(false);
         }
 
         rapidjson::Value trace;
@@ -2192,7 +2191,7 @@ bool LoadGlobalConfig(Messages *msg) {
     EnsureDefaultBeebKeymapsAvailable();
 
     if (BeebWindows::GetNumConfigs() == 0) {
-        AddDefaultBeebConfigs();
+        AddDefaultBeebConfigs(true);
     }
 
     return true;
