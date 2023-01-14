@@ -265,7 +265,10 @@ def build_darwin(options,ifolder,rev_hash):
     if not options.skip_debug: build_darwin_config(options,"r")
     build_darwin_config(options,"f")
 
-    stem="b2-osx-"+options.release_name
+    stem="b2-osx-"
+    if options.macos_deployment_target is not None:
+        stem+='%s-'%options.macos_deployment_target
+    stem+=options.release_name
     
     # 
     # DMG stuff.
@@ -378,12 +381,18 @@ def main(options):
         # the output is a bit difficult to read, but by the time this
         # script is run there ought not to be any need to debug
         # things, hopefully.
+        extra_cmake_args=[
+            "FOLDER_PREFIX=%s"%FOLDER_PREFIX,
+             "RELEASE_MODE=1",
+             "RELEASE_NAME=%s"%options.release_name
+        ]
+
+        if options.macos_deployment_target is not None:
+            extra_cmake_args.append('OSX_DEPLOYMENT_TARGET=%s'%options.macos_deployment_target)
+        
         run([options.make,
              "-j%d"%options.make_jobs,
-             init_target,
-             "FOLDER_PREFIX=%s"%FOLDER_PREFIX,
-             "RELEASE_MODE=1",
-             "RELEASE_NAME=%s"%options.release_name])
+             init_target]+extra_cmake_args)
 
     ifolder=create_intermediate_folder()
 
@@ -433,5 +442,14 @@ if __name__=="__main__":
         parser.add_argument('-t','--toolchain',
                             metavar='TOOLCHAIN',
                             help='placeholder, ignored')
+
+    if sys.platform=='darwin':
+        macos_deployment_target_help='''macOS deployment target. Default is whatever the Makefile defaults to'''
+    else:
+        macos_deployment_target_help='''ignored'''
+
+    parser.add_argument('--macos-deployment-target',
+                        metavar='VERSION',
+                        help=macos_deployment_target_help)
     
     main(parser.parse_args(sys.argv[1:]))
