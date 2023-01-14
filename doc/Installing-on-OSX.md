@@ -4,10 +4,18 @@ Requires a 64-bit machine running OS X 10.9 (Mavericks) or later.
 
 Get a binary .dmg release from the
 [b2 GitHub releases page](https://github.com/tom-seddon/b2/releases).
-Find the latest release with files attached - probably the one at the
-top - and download the `b2-osx-XXX.dmg` file. (You don't need to
-download any of the other files; this file contains everything
-required.)
+Find the latest release with files attached, which will probably the
+one at the top.
+
+If using macOS 11 (Big Sur) or later, download the
+`b2-osx-11.0-XXX.dmg` file.
+
+If using OS X 10.9 (Mavericks) or later, download the
+`b2-osx-10.9-XXX.dmg` file. (The 10.9 version does not support video
+writing, but is otherwise fully-featured.)
+
+You don't need to download any of the other files; the dmg contains
+everything required.
 
 Open the dmg, drag b2 to your Applications folder, and run it from
 there.

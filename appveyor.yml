@@ -8,10 +8,28 @@ branches:
   only:
     - master
 
+# the variable is called "support 10.9", because that's the net
+# result, but it's not very well named, because it actually just
+# controls linking against ffmpeg 4 or not. The opposite of "support
+# 10.9" is "target 11.0" - because that's what Homebrew's ffmpeg 4
+# supports - at least at the time of writing. 
+
+environment:
+  matrix:
+    - MACOS_SUPPORT_10_9: true
+    - MACOS_SUPPORT_10_9: false
+
 image:
   - Visual Studio 2019
   - Ubuntu2004
   - macos-bigsur
+
+matrix:
+  exclude:
+    - image: Visual Studio 2019
+      MACOS_SUPPORT_10_9: false
+    - image: Ubuntu2004
+      MACOS_SUPPORT_10_9: false
 
 install:
   - ps: $env:SUFFIX = $(git log -1 --format=%cd-%h --date=format:%Y%m%d-%H%M%S $env:APPVEYOR_REPO_COMMIT)
@@ -36,6 +54,11 @@ install:
       } elseif ($env:CI_MACOS -eq $true) {
         echo 'macOS'
         $env:deploy=$true
+        if ($env:MACOS_SUPPORT_10_9 -eq $true) {
+          $env:MACOS_VER="10.9"
+        } else {
+          $env:MACOS_VER="11.0"
+        }
         $env:OUTPUT_NAME="build/_Rel/osx/b2-osx-"+$env:SUFFIX+".dmg"
         $env:SYMBOLS_NAME="build/_Rel/osx/symbols.b2-osx-"+$env:SUFFIX+".7z"
         $env:HOMEBREW_NO_AUTO_UPDATE=1
@@ -43,18 +66,21 @@ install:
         # https://github.com/appveyor/ci/issues/3786
         rm -f /usr/local/include/X11
         brew install ninja
-        brew install ffmpeg@4
-        # brew install libav
-        # which pkg-config
-        # pkg-config --variable pc_path pkg-config
-        # ls -l /usr/local/bin/
-        # ls -l /usr/local/lib/
-        # ls -l /usr/local/lib/pkgconfig/
-        $env:PKG_CONFIG_PATH=$env:PKG_CONFIG_PATH+"/usr/local/opt/ffmpeg@4/lib/pkgconfig:"
-        pkg-config --cflags libavcodec
-        find /usr/local/Cellar/ffmpeg@4/4.4.1/include -type f
-        pkg-config --libs libavcodec
-        pkg-config --list-all | sort
+
+        if ($env:MACOS_SUPPORT_10_9 -eq $false) {
+          brew install ffmpeg@4
+          # brew install libav
+          # which pkg-config
+          # pkg-config --variable pc_path pkg-config
+          # ls -l /usr/local/bin/
+          # ls -l /usr/local/lib/
+          # ls -l /usr/local/lib/pkgconfig/
+          $env:PKG_CONFIG_PATH=$env:PKG_CONFIG_PATH+"/usr/local/opt/ffmpeg@4/lib/pkgconfig:"
+          pkg-config --cflags libavcodec
+          find /usr/local/Cellar/ffmpeg@4/4.4.1/include -type f
+          pkg-config --libs libavcodec
+          pkg-config --list-all | sort
+        }
         $env:PYTHON3="python3"
       } else {
         echo 'Unknown platform'
@@ -68,7 +94,7 @@ install:
   
 build_script:
   - ps: |
-      & $env:PYTHON3 -u ./etc/release/release.py --verbose --timestamp=$env:TIMESTAMP -t `"$env:TOOLCHAIN`" $env:SUFFIX
+      & $env:PYTHON3 -u ./etc/release/release.py --verbose --timestamp=$env:TIMESTAMP -t `"$env:TOOLCHAIN`" --macos-deployment-target `"$env:MACOS_VER`" $env:SUFFIX
       if($lastexitcode -eq 0) {
         $host.SetShouldExit(0);
       }

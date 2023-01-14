@@ -39,10 +39,11 @@ CAT:=cat
 UNAME:=$(shell uname -s)
 
 ifeq ($(UNAME),Darwin)
+OSX_DEPLOYMENT_TARGET?=10.9
 OS:=osx
 NPROC:=$(shell sysctl -n hw.ncpu)
 INSTALLER:=
-CMAKE_DEFINES:=$(CMAKE_DEFINES) -DCMAKE_OSX_DEPLOYMENT_TARGET=10.9
+CMAKE_DEFINES:=$(CMAKE_DEFINES) -DCMAKE_OSX_DEPLOYMENT_TARGET=$(OSX_DEPLOYMENT_TARGET)
 
 include Makefile.unix.mak
 include Makefile.osx.mak
