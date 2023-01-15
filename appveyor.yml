@@ -106,7 +106,11 @@ artifacts:
 
 deploy:
   - release: $(RELEASE_NAME)
-    description: $(APPVEYOR_REPO_COMMIT_MESSAGE_EXTENDED)
+    description: |
+      $(APPVEYOR_REPO_COMMIT_MESSAGE)
+      
+      $(APPVEYOR_REPO_COMMIT_MESSAGE_EXTENDED)
+      
     provider: GitHub
     auth_token:
       secure: NTWtNQsxaMVhAyad5bBM3H6lTGsqRCprICrq8kvYvXgjnaeDcjjLpNe0H0ZaG4sl
