@@ -342,8 +342,8 @@ void BeebWindows::UpdateWindowTitles() {
 
 void BeebWindows::RemoveBeebKeymapByIndex(size_t index) {
     ASSERT(index < g_->beeb_keymaps.size());
-    
-    std::unique_ptr<BeebKeymap> keymap=std::move(g_->beeb_keymaps[index]);
+
+    std::unique_ptr<BeebKeymap> keymap = std::move(g_->beeb_keymaps[index]);
     g_->beeb_keymaps.erase(g_->beeb_keymaps.begin() + (ptrdiff_t)index);
 
     for (BeebWindow *window : g_->windows) {
@@ -563,7 +563,7 @@ void BeebWindows::SetLastWindowPlacementData(std::vector<uint8_t> placement_data
 //////////////////////////////////////////////////////////////////////////
 
 const BeebKeymap *BeebWindows::GetDefaultBeebKeymap() {
-    if(g_->beeb_keymaps.empty()) {
+    if (g_->beeb_keymaps.empty()) {
         return nullptr;
     } else {
         return g_->beeb_keymaps[0].get();

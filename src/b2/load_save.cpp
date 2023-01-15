@@ -1913,7 +1913,7 @@ static void SaveWindows(JSONWriter<StringStream> *writer) {
             SaveBitIndexedFlags(writer, BeebWindows::defaults.popups, &GetBeebWindowPopupTypeEnumName);
         }
 
-        if(BeebWindows::defaults.keymap) {
+        if (BeebWindows::defaults.keymap) {
             writer->Key(KEYMAP);
             writer->String(BeebWindows::defaults.keymap->GetName().c_str());
         }

@@ -1075,8 +1075,8 @@ void RunImageTest(const std::string &wanted_png_src_path,
     // The differences PNG isn't always illuminating.
     std::string wanted_png_path = GetOutputFileName(png_name + ".wanted.png");
     std::vector<uint8_t> wanted_png_data;
-    TEST_TRUE(PathLoadBinaryFile(&wanted_png_data,wanted_png_src_path));
-    TEST_TRUE(PathSaveBinaryFile(wanted_png_data,wanted_png_path));
+    TEST_TRUE(PathLoadBinaryFile(&wanted_png_data, wanted_png_src_path));
+    TEST_TRUE(PathSaveBinaryFile(wanted_png_data, wanted_png_path));
 
     int wanted_width, wanted_height;
     unsigned char *wanted_data = stbi_load(wanted_png_path.c_str(),
