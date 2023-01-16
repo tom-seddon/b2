@@ -188,6 +188,9 @@ static bool GetPercentDecoded(std::string *result, const std::string &str, size_
 
             result->append(1, (char)(h << 4 | l));
             i += 3;
+        } else if (str[i] == '+') {
+            result->append(1, ' ');
+            ++i;
         } else {
             result->append(1, str[i]);
             ++i;
