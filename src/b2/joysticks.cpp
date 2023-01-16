@@ -90,7 +90,7 @@ static void SetPCJoystick(int beeb_index, const std::unique_ptr<PCJoystick> &pc_
         // Re-send events so that the new joystick state is updated.
         uint32_t timestamp = SDL_GetTicks();
 
-        for (int axis = 0; axis < SDL_CONTROLLER_AXIS_MAX; ++axis) {
+        for (Uint8 axis = 0; axis < SDL_CONTROLLER_AXIS_MAX; ++axis) {
             SDL_Event event = {};
 
             event.caxis.type = SDL_CONTROLLERAXISMOTION;
@@ -102,7 +102,7 @@ static void SetPCJoystick(int beeb_index, const std::unique_ptr<PCJoystick> &pc_
             SDL_PushEvent(&event);
         }
 
-        for (int button = 0; button < SDL_CONTROLLER_BUTTON_MAX; ++button) {
+        for (Uint8 button = 0; button < SDL_CONTROLLER_BUTTON_MAX; ++button) {
             bool state = !!(pc_joystick->controller_button_states & 1u << button);
             SDL_Event event = {};
 

@@ -273,18 +273,17 @@ void ImGuiStuff::NewFrame(bool got_mouse_focus) {
 
     if (m_font_dirty) {
         int rc;
-        ImGuiIO &io = ImGui::GetIO();
 
         m_new_font_atlas = new ImFontAtlas;
         io.Fonts = m_new_font_atlas;
         ImFontConfig font_config;
-        font_config.SizePixels = m_font_size_pixels;
+        font_config.SizePixels = (float)m_font_size_pixels;
         io.Fonts->AddFontDefault(&font_config);
 
         ImFontConfig fa_config;
         fa_config.MergeMode = true;
         fa_config.PixelSnapH = true;
-        io.Fonts->AddFontFromFileTTF(GetAssetPath(FAS_FILE_NAME).c_str(), m_font_size_pixels, &fa_config, FA_ICONS_RANGES);
+        io.Fonts->AddFontFromFileTTF(GetAssetPath(FAS_FILE_NAME).c_str(), (float)m_font_size_pixels, &fa_config, FA_ICONS_RANGES);
 
         unsigned char *pixels;
         int width, height;

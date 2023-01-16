@@ -160,7 +160,7 @@ static void RunTests(const M6502Config *cpu_config) {
         uint16_t addr = LOAD_ADDR;
         int c;
         while ((c = fgetc(f)) != EOF) {
-            test_state.ram[addr++] = c;
+            test_state.ram[addr++] = (char)c;
         }
 
         fclose(f);
@@ -177,7 +177,7 @@ static void RunTests(const M6502Config *cpu_config) {
     test_state.ram[0xfffd] = (char)load_addr.b.h;
 
     for (size_t i = 0; i < Callback_Count; ++i) {
-        uint16_t addr = LOAD_ADDR + 3 + i * CALLBACK_SIZE;
+        uint16_t addr = (uint16_t)(LOAD_ADDR + 3 + i * CALLBACK_SIZE);
         test_state.ram[addr + 0] = HACK_OPCODE;
         test_state.ram[addr + 1] = 0x60;
     }
