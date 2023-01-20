@@ -406,6 +406,11 @@ if(OSX)
     VERBATIM)
 endif()
 
+add_custom_command(
+  TARGET b2 POST_BUILD
+  COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_CURRENT_LIST_DIR}/../../submodules/SDL_GameControllerDB/gamecontrollerdb.txt $<TARGET_FILE_DIR:b2>/${ASSETS}
+  VERBATIM)
+
 ##########################################################################
 ##########################################################################
 

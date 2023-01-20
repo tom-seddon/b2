@@ -736,6 +736,8 @@ static bool InitSystem(
 
     SDL_StartTextInput();
 
+    SDL_GameControllerAddMappingsFromFile(GetAssetPath("gamecontrollerdb.txt").c_str());
+
 #if SYSTEM_OSX
     InitHIDCallback();
 #endif
