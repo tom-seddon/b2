@@ -73,3 +73,6 @@
 [submodule "submodules/6502-tests"]
 	path = submodules/6502-tests
 	url = https://github.com/tom-seddon/6502-tests
+[submodule "submodules/SDL_GameControllerDB"]
+	path = submodules/SDL_GameControllerDB
+	url = https://github.com/gabomdq/SDL_GameControllerDB
