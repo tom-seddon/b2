@@ -3006,17 +3006,17 @@ void BeebThread::ThreadMain(void) {
 
                         ++sunit;
 
+                        m_sound_output.Produce(1);
+
                         if (sunit == sunit_end) {
                             if (sunits_a && num_sb > 0) {
                                 sunit = sb;
                                 sunit_end = sb + num_sb;
                                 sunits_a = false;
                             } else {
-                                sunit = nullptr;
+                                break;
                             }
                         }
-
-                        m_sound_output.Produce(1);
 
                         lock.lock();
                     }
