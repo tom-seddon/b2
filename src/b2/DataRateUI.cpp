@@ -214,7 +214,7 @@ void DataRateUI::DoImGui() {
 
     if (ImGui::CollapsingHeader("Audio Data Availability (mark=25%)")) {
         std::vector<BeebThread::AudioCallbackRecord> audio_records = beeb_thread->GetAudioCallbackRecords();
-        ImGuiPlotLines("", &GetAudioCallbackRecordPercentage, &audio_records, (int)audio_records.size(), 0, nullptr, 0.f, 120., ImVec2(0, 100), ImVec2(0, 25));
+        ImGuiPlotLines("", &GetAudioCallbackRecordPercentage, &audio_records, (int)audio_records.size(), 0, nullptr, 0.f, 250., ImVec2(0, 100), ImVec2(0, 25));
     }
 
     if (ImGui::CollapsingHeader("PC VBlank Time (mark=1/60 sec)")) {

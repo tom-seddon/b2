@@ -2395,6 +2395,12 @@ void BeebThread::ThreadReplaceBeeb(ThreadState *ts, std::unique_ptr<BBCMicro> be
         AudioDeviceLock lock(m_sound_device_id);
 
         m_audio_thread_data->num_consumed_sound_units = ts->num_executed_cycles->n >> RSHIFT_CYCLE_COUNT_TO_SOUND_CLOCK;
+
+        const SoundDataUnit *a, *b;
+        size_t na, nb;
+        if (m_sound_output.GetConsumerBuffers(&a, &na, &b, &nb)) {
+            m_sound_output.Consume(na + nb);
+        }
     }
 
     m_has_nvram.store(!ts->beeb->GetNVRAM().empty(), std::memory_order_release);
