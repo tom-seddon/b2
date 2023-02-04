@@ -484,6 +484,9 @@ void DebugUI::DoBytePopupGui(const DebugBigPage *dbp, M6502Word addr) {
 void DebugUI::DoByteDebugGui(const DebugBigPage *dbp, M6502Word addr) {
     const char *cpu = dbp->metadata->is_parasite ? "Parasite" : "Host";
 
+    ImGuiStyleColourPusher pusher;
+    pusher.PushDefault(ImGuiCol_Text);
+
     ImGui::Text("Address: $%04x (%s)", addr.w, cpu);
 
     if (!dbp) {
