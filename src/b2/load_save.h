@@ -14,6 +14,7 @@
 #include <stdio.h>
 
 class Messages;
+struct SDL_Surface;
 
 #include <shared/enum_decl.h>
 #include "load_save.inl"
@@ -64,9 +65,9 @@ bool SaveFile(const void *data, size_t data_size, const std::string &path, Messa
 
 bool SaveFile(const std::vector<uint8_t> &data, const std::string &path, Messages *messages);
 
-bool SaveTextFile(const std::string &data,
-                  const std::string &path,
-                  Messages *messages);
+bool SaveTextFile(const std::string &data, const std::string &path, Messages *messages);
+
+bool SaveSDLSurface(SDL_Surface *surface, const std::string &path, Messages *messages);
 
 bool GetFileDetails(size_t *size, bool *can_write, const char *path);
 

@@ -28,6 +28,10 @@
 #include "BeebLinkHTTPHandler.h"
 #include "joysticks.h"
 
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#define STBI_WINDOWS_UTF8
+#include <stb_image_write.h>
+
 #include <shared/enum_def.h>
 #include "load_save.inl"
 #include <shared/enum_end.h>
@@ -556,6 +560,40 @@ bool SaveFile(const std::vector<uint8_t> &data, const std::string &path, Message
 
 bool SaveTextFile(const std::string &data, const std::string &path, Messages *messages) {
     return SaveFile2(data.c_str(), data.size(), path, messages, "wt");
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool SaveSDLSurface(SDL_Surface *surface, const std::string &path, Messages *messages) {
+    std::vector<uint8_t> file_pixels;
+
+    {
+        SDL_SurfaceLocker locker(surface);
+
+        if (!locker.IsLocked()) {
+            messages->e.f("Failed to lock surface: %s\n", SDL_GetError());
+            return false;
+        }
+
+        // The stb PNG writer can accommodate any pitch. But since this is
+        // rearranging the bytes, might as well flatten it at the same time.
+
+        file_pixels.resize(surface->w * surface->h * 4);
+
+        if (SDL_ConvertPixels(surface->w, surface->h, surface->format->format, surface->pixels, surface->pitch,
+                              SDL_PIXELFORMAT_ABGR8888, file_pixels.data(), surface->w * 4) < 0) {
+            messages->e.f("Failed to convert pixel data: %s\n", SDL_GetError());
+            return false;
+        }
+    }
+
+    if (!stbi_write_png(path.c_str(), surface->w, surface->h, 4, file_pixels.data(), surface->w * 4)) {
+        messages->e.f("Failed to save: %s\n", path.c_str());
+        return false;
+    }
+
+    return true;
 }
 
 //////////////////////////////////////////////////////////////////////////

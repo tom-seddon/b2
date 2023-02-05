@@ -309,6 +309,7 @@ target_link_libraries(b2 PRIVATE
   rapidjson_lib
   IconFontCppHeaders_lib
   dear_imgui_hex_editor_lib
+  stb_image_lib
   )
 
 ##########################################################################

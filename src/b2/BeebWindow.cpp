@@ -41,6 +41,7 @@
 #include "discs.h"
 #include "profiler.h"
 #include "joysticks.h"
+#include <stb_image_write.h>
 
 #ifdef _MSC_VER
 #include <crtdbg.h>
@@ -103,6 +104,7 @@ static int g_unbind_opengl = 0;
 
 static const double MESSAGES_POPUP_TIME_SECONDS = 2.5;
 static const double LEDS_POPUP_TIME_SECONDS = 1.;
+static constexpr double CORRECT_ASPECT_RATIO_X_SCALE = 1.2 / 1.25;
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -110,6 +112,7 @@ static const double LEDS_POPUP_TIME_SECONDS = 1.;
 static const std::string RECENT_PATHS_DISC_IMAGE = "disc_image";
 //static const std::string RECENT_PATHS_RAM="ram";
 static const std::string RECENT_PATHS_NVRAM = "nvram";
+static const std::string RECENT_PATHS_SCREENSHOT = "screenshot";
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -1376,6 +1379,7 @@ void BeebWindow::DoFileMenu() {
         m_cc.DoMenuItemUI("save_state");
         ImGui::Separator();
         m_cc.DoMenuItemUI("save_config");
+        m_cc.DoMenuItemUI("save_screenshot");
         ImGui::Separator();
         m_cc.DoMenuItemUI("exit");
         ImGui::EndMenu();
@@ -2017,7 +2021,7 @@ bool BeebWindow::DoBeebDisplayUI() {
 
     double scale_x;
     if (m_settings.correct_aspect_ratio) {
-        scale_x = 1.2 / 1.25;
+        scale_x = CORRECT_ASPECT_RATIO_X_SCALE;
     } else {
         scale_x = 1;
     }
@@ -3312,6 +3316,52 @@ void BeebWindow::SaveConfig() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+static void SaveScreenshot2(const TVOutput &tv, const std::string &path, Messages *messages, bool correct_aspect_ratio) {
+    static constexpr uint32_t R_MASK = 0x00ff0000;
+    static constexpr uint32_t G_MASK = 0x0000ff00;
+    static constexpr uint32_t B_MASK = 0x000000ff;
+    static constexpr uint32_t A_MASK = 0x00000000;
+
+    std::unique_ptr<SDL_Surface, SDL_Deleter> surface(SDL_CreateRGBSurfaceFrom(tv.GetTexturePixels(nullptr),
+                                                                               TV_TEXTURE_WIDTH, TV_TEXTURE_HEIGHT,
+                                                                               32,
+                                                                               TV_TEXTURE_WIDTH * 4,
+                                                                               R_MASK, G_MASK, B_MASK, A_MASK));
+
+    if (correct_aspect_ratio) {
+        std::unique_ptr<SDL_Surface, SDL_Deleter> surface2(SDL_CreateRGBSurface(0, int(TV_TEXTURE_WIDTH * CORRECT_ASPECT_RATIO_X_SCALE), TV_TEXTURE_HEIGHT,
+                                                                                32,
+                                                                                R_MASK, G_MASK, B_MASK, A_MASK));
+
+        if (SDL_SoftStretchLinear(surface.get(), nullptr, surface2.get(), nullptr) < 0) {
+            messages->e.f("Failed to resize image: %s\n", SDL_GetError());
+            return;
+        }
+
+        surface = std::move(surface2);
+    }
+
+    SaveSDLSurface(surface.get(), path, messages);
+}
+
+void BeebWindow::SaveScreenshot() {
+    SaveFileDialog fd(RECENT_PATHS_SCREENSHOT);
+
+    fd.AddFilter("PNG", {".png"});
+
+    std::string path;
+    if (fd.Open(&path)) {
+        m_tv.AddNextVSyncCallback([path, message_list = m_msg.GetMessageList(), correct_aspect_ratio = m_settings.correct_aspect_ratio](const TVOutput &tv) {
+            Messages messages(message_list);
+
+            SaveScreenshot2(tv, path, &messages, correct_aspect_ratio);
+        });
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 void BeebWindow::TogglePrioritizeCommandShortcuts() {
     m_prefer_shortcuts = !m_prefer_shortcuts;
 
@@ -3416,4 +3466,5 @@ ObjectCommandTable<BeebWindow> BeebWindow::ms_command_table("Beeb Window", {
         {CommandDef("reset_default_nvram", "Reset default NVRAM").MustConfirm(), &BeebWindow::ResetDefaultNVRAM, nullptr, &BeebWindow::SaveDefaultNVRAMIsEnabled},
         {CommandDef("save_config", "Save config"), &BeebWindow::SaveConfig},
         {CommandDef("toggle_prioritize_shortcuts", "Prioritize command keys"), &BeebWindow::TogglePrioritizeCommandShortcuts, &BeebWindow::IsPrioritizeCommandShortcutsTicked, nullptr},
+        {CommandDef("save_screenshot", "Save screenshot"), &BeebWindow::SaveScreenshot},
 });

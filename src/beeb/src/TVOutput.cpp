@@ -5,7 +5,6 @@
 #include <string.h>
 #include <stdlib.h>
 #include <beeb/video.h>
-//#include <SDL.h>
 //#include "misc.h"
 //#include "conf.h"
 #include <shared/log.h>
@@ -31,6 +30,8 @@ TVOutput::TVOutput() {
 #if VIDEO_TRACK_METADATA
     m_texture_units.resize(m_texture_pixels.size());
 #endif
+
+    MUTEX_SET_NAME(m_next_vsync_callbacks_mutex, "TVOutput vsync callbacks");
 
     this->InitPalette();
 }
@@ -98,6 +99,18 @@ void TVOutput::Update(const VideoDataUnit *units, size_t num_units) {
             break;
 
         case TVOutputState_VerticalRetrace:
+            {
+                std::vector<std::function<void(const TVOutput &)>> vsync_callbacks;
+                {
+                    std::lock_guard<Mutex> lock(m_next_vsync_callbacks_mutex);
+                    vsync_callbacks = std::move(m_next_vsync_callbacks);
+                }
+
+                for (const std::function<void(const TVOutput &)> &vsync_callback : vsync_callbacks) {
+                    vsync_callback(*this);
+                }
+            }
+
             // With interlaced output, odd fields start 1 scanline lower.
             //
             // If interlace flag off: draw odd fields at y=0, so they start
@@ -486,7 +499,7 @@ void TVOutput::FillWithTestPattern() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-const uint32_t *TVOutput::GetTexturePixels(uint64_t *texture_data_version) const {
+uint32_t *TVOutput::GetTexturePixels(uint64_t *texture_data_version) const {
     if (texture_data_version) {
         *texture_data_version = m_texture_data_version;
     }
@@ -664,6 +677,15 @@ bool TVOutput::GetInterlace() const {
 
 void TVOutput::SetInterlace(bool interlace) {
     m_interlace = interlace;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void TVOutput::AddNextVSyncCallback(std::function<void(const TVOutput &)> callback) {
+    std::lock_guard<Mutex> lock(m_next_vsync_callbacks_mutex);
+
+    m_next_vsync_callbacks.push_back(std::move(callback));
 }
 
 //////////////////////////////////////////////////////////////////////////

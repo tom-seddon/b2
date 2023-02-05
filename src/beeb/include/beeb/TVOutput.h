@@ -12,7 +12,9 @@
 
 #include <memory>
 #include <vector>
+#include <functional>
 #include <beeb/OutputData.h>
+#include <shared/mutex.h>
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -45,6 +47,11 @@ class TVOutput {
     TVOutput();
     ~TVOutput();
 
+    TVOutput(const TVOutput &) = delete;
+    TVOutput &operator=(const TVOutput &) = delete;
+    TVOutput(TVOutput &&) = delete;
+    TVOutput &operator=(TVOutput &&) = delete;
+
     // returns number of us consumed.
     void Update(const VideoDataUnit *units, size_t num_units);
 
@@ -54,7 +61,9 @@ class TVOutput {
 
     // *data_version (optional) is set to texture data version, incremented on
     // each vblank. (Between vblanks, the buffer contains a partially scanned-out frame.)
-    const uint32_t *GetTexturePixels(uint64_t *texture_data_version) const;
+    //
+    // The pointer is not const. Any modifications will just eventually get overwritten.
+    uint32_t *GetTexturePixels(uint64_t *texture_data_version) const;
 
     void CopyTexturePixels(void *dest_pixels, size_t dest_pitch) const;
 
@@ -76,6 +85,8 @@ class TVOutput {
     bool GetInterlace() const;
     void SetInterlace(bool interlace);
 
+    void AddNextVSyncCallback(std::function<void(const TVOutput &)> callback);
+
   protected:
   private:
     TVOutputState m_state = TVOutputState_VerticalRetrace;
@@ -90,7 +101,7 @@ class TVOutput {
     bool m_interlace = false; //it's horrid. It's there, but you don't want it
 
     // TV - output texture and its properties
-    std::vector<uint32_t> m_texture_pixels;
+    mutable std::vector<uint32_t> m_texture_pixels;
 #if VIDEO_TRACK_METADATA
     std::vector<VideoDataUnit> m_texture_units;
 #endif
@@ -112,6 +123,9 @@ class TVOutput {
     uint32_t m_6845_raster0_marker_xor = 0;
     uint32_t m_6845_dispen_marker_xor = 0;
     uint32_t m_beam_marker_xor = 0;
+
+    Mutex m_next_vsync_callbacks_mutex;
+    std::vector<std::function<void(const TVOutput &)>> m_next_vsync_callbacks;
 
     uint32_t GetTexelValue(uint8_t r, uint8_t g, uint8_t b) const;
     void InitPalette();

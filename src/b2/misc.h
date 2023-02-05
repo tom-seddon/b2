@@ -82,6 +82,27 @@ using SDLUniquePtr = std::unique_ptr<T, SDL_Deleter>;
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+class SDL_SurfaceLocker {
+  public:
+    explicit SDL_SurfaceLocker(SDL_Surface *surface);
+    ~SDL_SurfaceLocker();
+
+    SDL_SurfaceLocker(const SDL_SurfaceLocker &) = delete;
+    SDL_SurfaceLocker &operator=(const SDL_SurfaceLocker &) = delete;
+    SDL_SurfaceLocker(const SDL_SurfaceLocker &&) = delete;
+    SDL_SurfaceLocker &operator=(SDL_SurfaceLocker &&) = delete;
+
+    bool IsLocked() const;
+    void Unlock();
+
+  protected:
+  private:
+    SDL_Surface *m_surface = nullptr;
+};
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 SDL_PixelFormat *ClonePixelFormat(const SDL_PixelFormat *pixel_format);
 
 //////////////////////////////////////////////////////////////////////////
