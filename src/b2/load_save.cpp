@@ -28,9 +28,18 @@
 #include "BeebLinkHTTPHandler.h"
 #include "joysticks.h"
 
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#endif
+
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #define STBI_WINDOWS_UTF8
 #include <stb_image_write.h>
+
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
 
 #include <shared/enum_def.h>
 #include "load_save.inl"
@@ -568,7 +577,7 @@ bool SaveTextFile(const std::string &data, const std::string &path, Messages *me
 bool SaveSDLSurface(SDL_Surface *surface, const std::string &path, Messages *messages) {
     std::vector<uint8_t> file_pixels;
 
-    {
+    if(surface->w>0&&surface->h>0)    {
         SDL_SurfaceLocker locker(surface);
 
         if (!locker.IsLocked()) {
@@ -579,7 +588,7 @@ bool SaveSDLSurface(SDL_Surface *surface, const std::string &path, Messages *mes
         // The stb PNG writer can accommodate any pitch. But since this is
         // rearranging the bytes, might as well flatten it at the same time.
 
-        file_pixels.resize(surface->w * surface->h * 4);
+        file_pixels.resize((size_t)surface->w * (size_t)surface->h * 4u);
 
         if (SDL_ConvertPixels(surface->w, surface->h, surface->format->format, surface->pixels, surface->pitch,
                               SDL_PIXELFORMAT_ABGR8888, file_pixels.data(), surface->w * 4) < 0) {
