@@ -324,6 +324,7 @@ void TraceUI::DoImGui() {
 
             ImGuiRadioButton(&g_default_settings.stop, TraceUIStopCondition_ByRequest, "By request");
             ImGuiRadioButton(&g_default_settings.stop, TraceUIStopCondition_OSWORD0, "OSWORD 0");
+            ImGuiRadioButton(&g_default_settings.stop, TraceUIStopCondition_BRK,"BRK");
             ImGuiRadioButton(&g_default_settings.stop, TraceUIStopCondition_NumCycles, "2MHz cycle count");
             if (g_default_settings.stop == TraceUIStopCondition_NumCycles) {
                 if (ImGui::InputText("Cycles",
@@ -559,6 +560,10 @@ void TraceUI::StartTrace() {
 
     case TraceUIStopCondition_OSWORD0:
         c.stop = BeebThreadStopTraceCondition_OSWORD0;
+        break;
+        
+    case TraceUIStopCondition_BRK:
+        c.stop = BeebThreadStopTraceCondition_BRK;
         break;
 
     case TraceUIStopCondition_NumCycles:

@@ -2212,6 +2212,13 @@ bool BeebThread::ThreadHandleTraceInstructionConditions(const BBCMicro *beeb,
             // stop condition not instruction-related, so no need for
             // the callback any more.
             return false;
+            
+        case BeebThreadStopTraceCondition_BRK:
+            if (cpu->opcode == 0) {
+                ts->beeb_thread->ThreadStopTrace(ts);
+                return false;
+            }
+            break;
 
         case BeebThreadStopTraceCondition_OSWORD0:
             if (cpu->pc.w == 0xfff2 && cpu->a == 0) {
@@ -2490,6 +2497,7 @@ void BeebThread::ThreadStartTrace(ThreadState *ts) {
         // By request...
         break;
 
+    case BeebThreadStopTraceCondition_BRK: 
     case BeebThreadStopTraceCondition_OSWORD0:
     case BeebThreadStopTraceCondition_NumCycles:
         any_instruction_condition = true;

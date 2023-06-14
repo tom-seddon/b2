@@ -13,5 +13,6 @@ EPN(ByRequest)
 EPN(OSWORD0)
 EPN(NumCycles)
 EPN(WriteAddress)
+EPN(BRK)
 EEND()
 #undef ENAME
