@@ -103,9 +103,11 @@ pixels. (Both are 50 Hz.) The 2:1 option doesn't do anything remotely
 clever, and exists only so that when uploaded to YouTube the video
 comes out as HD 1080p50.
 
-Depending on system, you may get multiple audio bitrate options. Pick
-the highest bitrate that works with whichever program you're using to
-play back.
+Depending on system, you may get multiple audio bitrate and/or output
+format options (apologies for inconsistency - I hope to improve this).
+FLAC is best quality, and failing that higher Kb/sec = better. Pick
+the best output that works with whichever program you're using to play
+back.
 
 Click `Replay` to play the timeline back. 
 

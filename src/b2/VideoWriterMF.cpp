@@ -22,6 +22,16 @@
 #include "VideoWriterMF_private.inl"
 #include <shared/enum_end.h>
 
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+// b2 builds (currently) with the Windows 7 SDK, but FLAC is Windows 10+ only.
+// So this little bit from mfapi.h needs reproducing.
+DEFINE_MEDIATYPE_GUID(MFAudioFormat_FLAC, WAVE_FORMAT_FLAC);
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 struct MFAttribute {
     MFAttributeType type = MFAttributeType_None;
     GUID guid{};
@@ -108,14 +118,19 @@ static const UINT32 FPS = 50;
 static const double TICKS_PER_SEC = 1e7;
 static const LONGLONG TICKS_PER_FRAME = (LONGLONG)(TICKS_PER_SEC / FPS);
 static const UINT32 VIDEO_AVG_BITRATE = 4000000;
+
+// 24000 bytes/sec is the max allowed for AAC. See
+// https://learn.microsoft.com/en-us/windows/win32/medfound/aac-encoder#output-types
 static const UINT32 AUDIO_AVG_BYTES_PER_SECOND = 24000;
 
-static const std::string FORMAT_DESCRIPTION = strprintf("MPEG-4 (H264 %.1fMb/sec; AAC %.1fKb/sec)", VIDEO_AVG_BITRATE / 1.e6, AUDIO_AVG_BYTES_PER_SECOND * 8 / 1.e3);
-
-static const VideoWriterFormat FORMATS[] = {
-    {".mp4", strprintf("%dx%d ", TV_TEXTURE_WIDTH, TV_TEXTURE_HEIGHT) + FORMAT_DESCRIPTION},
-    {".mp4", strprintf("%dx%d ", TV_TEXTURE_WIDTH * 2, TV_TEXTURE_HEIGHT * 2) + FORMAT_DESCRIPTION},
+struct VideoWriterMFFormat {
+    VideoWriterFormat vwf;
+    UINT width = 0;
+    UINT height = 0;
+    bool lossless_audio = false;
 };
+
+static std::vector<VideoWriterMFFormat> g_formats;
 
 class VideoWriterMF : public VideoWriter {
   public:
@@ -136,15 +151,8 @@ class VideoWriterMF : public VideoWriter {
     bool BeginWrite() override {
         HRESULT hr;
 
-        UINT width, height;
-        if (m_format_index == 1) {
-            // 2x
-            width = 2 * TV_TEXTURE_WIDTH;
-            height = 2 * TV_TEXTURE_HEIGHT;
-        } else {
-            width = TV_TEXTURE_WIDTH;
-            height = TV_TEXTURE_HEIGHT;
-        }
+        ASSERT(m_format_index < g_formats.size());
+        const VideoWriterMFFormat *const format = &g_formats[m_format_index];
 
         std::vector<MFAttribute> sink_writer_attributes_list = {
             MFAttributeUINT32(MF_READWRITE_ENABLE_HARDWARE_TRANSFORMS, TRUE),
@@ -172,7 +180,7 @@ class VideoWriterMF : public VideoWriter {
             MFAttributeGUID(MF_MT_SUBTYPE, MFVideoFormat_H264),
             MFAttributeUINT32(MF_MT_AVG_BITRATE, VIDEO_AVG_BITRATE),
             MFAttributeUINT32(MF_MT_INTERLACE_MODE, MFVideoInterlace_Progressive),
-            MFAttributeSize(MF_MT_FRAME_SIZE, width, height),
+            MFAttributeSize(MF_MT_FRAME_SIZE, format->width, format->height),
             MFAttributeRatio(MF_MT_FRAME_RATE, FPS, 1),
             MFAttributeRatio(MF_MT_PIXEL_ASPECT_RATIO, 1, 1),
         };
@@ -189,15 +197,29 @@ class VideoWriterMF : public VideoWriter {
         };
         CComPtr<IMFMediaType> video_input_type = this->CreateMediaType(video_input_attributes, "video input");
 
-        std::vector<MFAttribute> audio_output_attributes = {
-            MFAttributeGUID(MF_MT_MAJOR_TYPE, MFMediaType_Audio),
-            MFAttributeGUID(MF_MT_SUBTYPE, MFAudioFormat_AAC),
-            MFAttributeUINT32(MF_MT_AUDIO_NUM_CHANNELS, 1),
-            MFAttributeUINT32(MF_MT_AUDIO_BITS_PER_SAMPLE, 16),
-            MFAttributeUINT32(MF_MT_AUDIO_AVG_BYTES_PER_SECOND, AUDIO_AVG_BYTES_PER_SECOND),
-            MFAttributeUINT32(MF_MT_AUDIO_SAMPLES_PER_SECOND, m_afmt.nSamplesPerSec),
-            MFAttributeUINT32(MF_MT_AUDIO_NUM_CHANNELS, m_afmt.nChannels),
-        };
+        std::vector<MFAttribute> audio_output_attributes;
+        if (format->lossless_audio) {
+            audio_output_attributes = {
+                // MFAudioFormat_FLAC isn't available, as it's Windows 10+ only
+                // and b2 currently builds with the Windows 7 SDK.
+                MFAttributeGUID(MF_MT_MAJOR_TYPE, MFMediaType_Audio),
+                MFAttributeGUID(MF_MT_SUBTYPE, MFAudioFormat_FLAC),
+                //MFAttributeUINT32(MF_MT_AUDIO_NUM_CHANNELS, 1),
+                MFAttributeUINT32(MF_MT_AUDIO_BITS_PER_SAMPLE, 16),
+                //MFAttributeUINT32(MF_MT_AUDIO_AVG_BYTES_PER_SECOND, AUDIO_AVG_BYTES_PER_SECOND),
+                MFAttributeUINT32(MF_MT_AUDIO_SAMPLES_PER_SECOND, m_afmt.nSamplesPerSec),
+                MFAttributeUINT32(MF_MT_AUDIO_NUM_CHANNELS, m_afmt.nChannels),
+            };
+        } else {
+            audio_output_attributes = {
+                MFAttributeGUID(MF_MT_MAJOR_TYPE, MFMediaType_Audio),
+                MFAttributeGUID(MF_MT_SUBTYPE, MFAudioFormat_AAC),
+                MFAttributeUINT32(MF_MT_AUDIO_NUM_CHANNELS, m_afmt.nChannels),
+                MFAttributeUINT32(MF_MT_AUDIO_BITS_PER_SAMPLE, 16),
+                MFAttributeUINT32(MF_MT_AUDIO_AVG_BYTES_PER_SECOND, AUDIO_AVG_BYTES_PER_SECOND),
+                MFAttributeUINT32(MF_MT_AUDIO_SAMPLES_PER_SECOND, m_afmt.nSamplesPerSec),
+            };
+        }
         CComPtr<IMFMediaType> audio_output_type = this->CreateMediaType(audio_output_attributes, "audio output");
 
         std::vector<MFAttribute> audio_input_attributes = {
@@ -499,6 +521,29 @@ bool InitMF(Messages *messages) {
         return false;
     }
 
+    for (UINT vscale = 1; vscale <= 2; ++vscale) {
+        for (int lossless_audio = 0; lossless_audio < 2; ++lossless_audio) {
+            VideoWriterMFFormat f;
+
+            f.width = TV_TEXTURE_WIDTH * vscale;
+            f.height = TV_TEXTURE_HEIGHT * vscale;
+            f.lossless_audio = !!lossless_audio;
+
+            f.vwf.extension = ".mp4";
+            f.vwf.description = strprintf("%dx%d MPEG-4 (H264 %.1f Mb/sec; ", f.width, f.height, VIDEO_AVG_BITRATE / 1.e6);
+
+            if (f.lossless_audio) {
+                f.vwf.description += "FLAC";
+            } else {
+                f.vwf.description += strprintf("MP3 %.1f Kb/sec)", AUDIO_AVG_BYTES_PER_SECOND * 8 / 1.e3);
+            }
+
+            f.vwf.description += ")";
+
+            g_formats.push_back(f);
+        }
+    }
+
     return true;
 }
 
@@ -506,14 +551,15 @@ bool InitMF(Messages *messages) {
 //////////////////////////////////////////////////////////////////////////
 
 size_t GetNumVideoWriterMFFormats() {
-    return sizeof FORMATS / sizeof FORMATS[0];
+    return g_formats.size();
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 const VideoWriterFormat *GetVideoWriterMFFormatByIndex(size_t index) {
-    return &FORMATS[index];
+    ASSERT(index < g_formats.size());
+    return &g_formats[index].vwf;
 }
 
 //////////////////////////////////////////////////////////////////////////
