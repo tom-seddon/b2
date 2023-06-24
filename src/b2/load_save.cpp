@@ -577,7 +577,7 @@ bool SaveTextFile(const std::string &data, const std::string &path, Messages *me
 bool SaveSDLSurface(SDL_Surface *surface, const std::string &path, Messages *messages) {
     std::vector<uint8_t> file_pixels;
 
-    if(surface->w>0&&surface->h>0)    {
+    if (surface->w > 0 && surface->h > 0) {
         SDL_SurfaceLocker locker(surface);
 
         if (!locker.IsLocked()) {

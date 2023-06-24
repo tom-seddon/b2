@@ -137,30 +137,30 @@ std::string SaveFileDialogWindows(const std::vector<OpenFileDialog::Filter> &fil
     // because you don't get the "File exists" message box if the
     // name+extension does actually exist.)
 
-    if(!filters.empty()) {
-        default_ext=filters[0].extensions[0];
+    if (!filters.empty()) {
+        default_ext = filters[0].extensions[0];
 
-        got_default_ext=true;
+        got_default_ext = true;
 
-        for(size_t i=0;i<filters.size();++i) {
-            if(filters[i].extensions.size()!=1) {
-                got_default_ext=false;
+        for (size_t i = 0; i < filters.size(); ++i) {
+            if (filters[i].extensions.size() != 1) {
+                got_default_ext = false;
                 break;
             }
 
             // Ignore the all files wildcard.
-            if(filters[i].extensions[0]==".*") {
+            if (filters[i].extensions[0] == ".*") {
                 continue;
             }
 
-            if(i>0&&filters[i].extensions[0]!=filters[i-1].extensions[0]) {
-                got_default_ext=false;
+            if (i > 0 && filters[i].extensions[0] != filters[i - 1].extensions[0]) {
+                got_default_ext = false;
                 break;
             }
         }
 
-        if(got_default_ext&&default_ext.size()>=1&&default_ext.size()<=4&&default_ext[0]=='.') {
-            default_ext=default_ext.substr(1);
+        if (got_default_ext && default_ext.size() >= 1 && default_ext.size() <= 4 && default_ext[0] == '.') {
+            default_ext = default_ext.substr(1);
         }
     }
 
