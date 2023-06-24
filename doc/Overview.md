@@ -95,10 +95,17 @@ timeline to rewind the timeline back to that point and continue
 recording.
 
 Having recorded a timeline, click the `Video` button to produce a
-video starting from that point. There are two output formats
-available: 50Hz 1:1 BBC pixels, and 50Hz 2:1 BBC pixels. Note that the
-2:1 output does nothing advanced; it's just there so that when
-uploaded to YouTube it comes out as a 1080p50 video.
+video starting from that point. Select the combination of resolution
+and audio bitrate from the popup.
+
+You'll always get two resolution options: 1:1 BBC pixels, and 2:1 BBC
+pixels. (Both are 50 Hz.) The 2:1 option doesn't do anything remotely
+clever, and exists only so that when uploaded to YouTube the video
+comes out as HD 1080p50.
+
+Depending on system, you may get multiple audio bitrate options. Pick
+the highest bitrate that works with whichever program you're using to
+play back.
 
 Click `Replay` to play the timeline back. 
 

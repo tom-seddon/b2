@@ -623,27 +623,29 @@ bool InitFFmpeg(Messages *messages) {
 
     LOGF(FFMPEG, "Video output formats:\n");
 
-    for (int size_scale = 1; size_scale <= 2; ++size_scale) {
-        VideoWriterFFmpegFormat f;
+    for (int vscale = 1; vscale <= 2; ++vscale) {
+        for (int ascale = 1; ascale <= 2; ++ascale) {
+            VideoWriterFFmpegFormat f;
 
-        f.vwidth = TV_TEXTURE_WIDTH * size_scale;
-        f.vheight = TV_TEXTURE_HEIGHT * size_scale;
-        f.vbitrate = 4000000;
-        f.abitrate = 128000;
+            f.vwidth = TV_TEXTURE_WIDTH * vscale;
+            f.vheight = TV_TEXTURE_HEIGHT * vscale;
+            f.vbitrate = 4000000;
+            f.abitrate = 128000 * ascale;
 
-        f.vwf.extension = std::string(".") + FORMAT;
-        f.vwf.description = strprintf("%dx%d %s (%s %.1fMb/sec; %s %.1fKb/sec)",
-                                      TV_TEXTURE_WIDTH * size_scale,
-                                      TV_TEXTURE_HEIGHT * size_scale,
-                                      output_format->name,
-                                      g_vcodec->name,
-                                      f.vbitrate / 1e6,
-                                      g_acodec->name,
-                                      f.abitrate / 1e3);
+            f.vwf.extension = std::string(".") + FORMAT;
+            f.vwf.description = strprintf("%dx%d %s (%s %.1fMb/sec; %s %.1fKb/sec)",
+                                          f.vwidth,
+                                          f.vheight,
+                                          output_format->name,
+                                          g_vcodec->name,
+                                          f.vbitrate / 1e6,
+                                          g_acodec->name,
+                                          f.abitrate / 1e3);
 
-        LOGF(FFMPEG, "    %zu. %s\n", g_formats.size() + 1, f.vwf.description.c_str());
+            LOGF(FFMPEG, "    %zu. %s\n", g_formats.size() + 1, f.vwf.description.c_str());
 
-        g_formats.push_back(std::move(f));
+            g_formats.push_back(std::move(f));
+        }
     }
 
     g_can_write_video = true;
