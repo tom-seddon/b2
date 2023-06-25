@@ -7,7 +7,25 @@ skip_tags: true
 branches:
   only:
     - master
+    - wip/master
 
+for:
+  -
+    branches:
+      only:
+        - master
+
+    environment:
+      PRERELEASE: false
+
+  -
+    branches:
+      only:
+        - wip/master
+
+    environment:
+      PRERELEASE: true
+    
 # the variable is called "support 10.9", because that's the net
 # result, but it's not very well named, because it actually just
 # controls linking against ffmpeg 4 or not. The opposite of "support
@@ -116,7 +134,4 @@ deploy:
       secure: NTWtNQsxaMVhAyad5bBM3H6lTGsqRCprICrq8kvYvXgjnaeDcjjLpNe0H0ZaG4sl
     artifact: output,symbols
     draft: false
-    prerelease: false
-    on:
-      branch: master
-      deploy: true
+    prerelease: $(PRERELEASE)
