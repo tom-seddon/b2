@@ -42,6 +42,9 @@
 #include "profiler.h"
 #include "joysticks.h"
 #include <stb_image_write.h>
+#if SYSTEM_WINDOWS
+#include <dwmapi.h>
+#endif
 
 #ifdef _MSC_VER
 #include <crtdbg.h>
@@ -2370,6 +2373,14 @@ bool BeebWindow::InitInternal() {
 #if SYSTEM_WINDOWS
 
     m_hwnd = wmi.info.win.window;
+
+    // 33 = window corner preference -
+    // https://learn.microsoft.com/en-us/windows/win32/api/dwmapi/ne-dwmapi-dwmwindowattribute
+    //
+    // 1 = don't round -
+    // https://learn.microsoft.com/en-us/windows/win32/api/dwmapi/ne-dwmapi-dwm_window_corner_preference
+    uint32_t wcp = 1;
+    DwmSetWindowAttribute((HWND)m_hwnd, 33, &wcp, sizeof wcp);
 
     if (!reset_windows) {
         if (m_hwnd) {

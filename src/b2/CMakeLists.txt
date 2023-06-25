@@ -204,7 +204,8 @@ if(WIN32)
     TARGET b2 POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E $<IF:${USE_PIX},copy_if_different,true> ${PIX_FOLDER}/bin/x64/WinPixEventRuntime.dll $<TARGET_FILE_DIR:b2>
     VERBATIM)
-    
+
+  target_link_libraries(b2 PRIVATE Dwmapi.lib)
 endif()
 
 ##########################################################################
