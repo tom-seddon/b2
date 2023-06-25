@@ -4,6 +4,7 @@ project(b2)
 set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT b2)
 enable_testing()
 include(FindPkgConfig)
+include(CheckCXXSymbolExists)
 
 ##########################################################################
 ##########################################################################
@@ -236,6 +237,17 @@ else()
   set(SDL2_DEFINITIONS -DUSING_GENERATED_CONFIG_H)
 
 endif()
+
+set(CMAKE_REQUIRED_INCLUDES ${SDL2_INCLUDE_DIR})
+set(CMAKE_REQUIRED_DEFINITIONS ${SDL2_DEFINITIONS} -DSDL_MAIN_HANDLED)
+# check_cxx_source_compiles has to compile to something linkable, but
+# linking with SDL might not be possible at this point as it isn't
+# necessarily actually compiled yet.
+check_cxx_source_compiles("#include <SDL.h>
+typedef decltype(&SDL_SoftStretchLinear) T;int main(void){return 0;}" HAVE_SDL_SOFTSTRETCHLINEAR)
+message(STATUS "SDL_SoftStretchLinear exists: ``${HAVE_SDL_SOFTSTRETCHLINEAR}''")
+unset(CMAKE_REQUIRED_INCLUDES)
+unset(CMAKE_REQUIRED_DEFINITIONS)
 
 ##########################################################################
 ##########################################################################

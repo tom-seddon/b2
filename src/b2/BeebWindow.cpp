@@ -3343,8 +3343,12 @@ static void SaveScreenshot2(const TVOutput &tv, const std::string &path, Message
         std::unique_ptr<SDL_Surface, SDL_Deleter> surface2(SDL_CreateRGBSurface(0, int(TV_TEXTURE_WIDTH * CORRECT_ASPECT_RATIO_X_SCALE), TV_TEXTURE_HEIGHT,
                                                                                 32,
                                                                                 R_MASK, G_MASK, B_MASK, A_MASK));
-
-        if (SDL_SoftStretchLinear(surface.get(), nullptr, surface2.get(), nullptr) < 0) {
+#if HAVE_SDL_SOFTSTRETCHLINEAR
+        int blit_result = SDL_SoftStretchLinear(surface.get(), nullptr, surface2.get(), nullptr);
+#else
+        int blit_result = SDL_BlitScaled(surface.get(), nullptr, surface2.get(), nullptr);
+#endif
+        if (blit_result < 0) {
             messages->e.f("Failed to resize image: %s\n", SDL_GetError());
             return;
         }

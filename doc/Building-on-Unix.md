@@ -31,6 +31,14 @@ Additional apt package dependencies can be installed with:
 
     sudo apt-get -y install libcurl4-openssl-dev libgl1-mesa-dev libglvnd-dev libgtk2.0-dev libpulse-dev uuid-dev libsdl2-dev libuv1-dev
 	
+b2 should build with any version of SDL2, the newer the better!
+
+SDL 2.0.16 or later will give slightly better-quality results from
+`File` > `Save screenshot` when the `Correct aspect ratio` option is
+ticked.
+	
+## Additional prerequisites for video writing
+	
 There are additional dependencies for video writing, which are
 optional. The project will build without these, but video writing
 won't be available.

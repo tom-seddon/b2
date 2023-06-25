@@ -73,6 +73,10 @@ endif()
 
 target_compile_definitions(b2 PRIVATE RELEASE_NAME=${RELEASE_NAME})
 
+if(HAVE_SDL_SOFTSTRETCHLINEAR)
+  target_compile_definitions(b2 PRIVATE HAVE_SDL_SOFTSTRETCHLINEAR=1)
+endif()
+
 ##########################################################################
 ##########################################################################
 
