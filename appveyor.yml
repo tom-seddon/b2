@@ -54,6 +54,10 @@ install:
   - ps: $env:TIMESTAMP = $(git log -1 --format=%cd --date=format:%Y%m%d-%H%M%S $env:APPVEYOR_REPO_COMMIT)
   - ps: $env:RELEASE_NAME = "b2-"+$env:SUFFIX
   - ps: |
+      if ($env:PRERELEASE -eq $true) {
+        $env:RELEASE_NAME="$env:RELEASE_NAME-prerelease"
+      }
+  - ps: |
       if ($env:CI_WINDOWS -eq $true) {
         echo 'Windows'
         $env:deploy=$true
