@@ -3,7 +3,7 @@
 Requires a fast PC running Windows 7 or better.
 
 Files for the latest release are here:
-https://github.com/tom-seddon/beeblink/releases/latest.
+https://github.com/tom-seddon/b2/releases/latest.
 
 Download the `b2-windows-XXX.zip` file. (You don't need to download
 any of the other files; this file contains everything required.)

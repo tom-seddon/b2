@@ -3,7 +3,7 @@
 Requires a 64-bit machine running OS X 10.9 (Mavericks) or later.
 
 Files for the latest release are here:
-https://github.com/tom-seddon/beeblink/releases/latest.
+https://github.com/tom-seddon/b2/releases/latest.
 
 If using macOS 11 (Big Sur) or later, download the
 `b2-osx-11.0-XXX.dmg` file.
