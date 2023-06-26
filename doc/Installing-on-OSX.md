@@ -2,10 +2,8 @@
 
 Requires a 64-bit machine running OS X 10.9 (Mavericks) or later.
 
-Get a binary .dmg release from the
-[b2 GitHub releases page](https://github.com/tom-seddon/b2/releases).
-Find the latest release with files attached, which will probably the
-one at the top.
+Files for the latest release are here:
+https://github.com/tom-seddon/b2/releases/latest.
 
 If using macOS 11 (Big Sur) or later, download the
 `b2-osx-11.0-XXX.dmg` file.
