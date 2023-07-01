@@ -514,6 +514,7 @@ class BeebWindow {
     void SaveConfig();
 
     void SaveScreenshot();
+    void CopyScreenshot();
 
     void TogglePrioritizeCommandShortcuts();
     bool IsPrioritizeCommandShortcutsTicked() const;

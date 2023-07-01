@@ -1554,6 +1554,7 @@ void BeebWindow::DoEditMenu() {
     if (ImGui::BeginMenu("Edit")) {
         m_cc.DoMenuItemUI("toggle_copy_oswrch_text");
         m_cc.DoMenuItemUI("copy_basic");
+        m_cc.DoMenuItemUI("copy_screenshot");
 
         //m_cc.DoMenuItemUI("toggle_copy_oswrch_binary");
         m_cc.DoMenuItemUI("paste");
@@ -3327,7 +3328,7 @@ void BeebWindow::SaveConfig() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static void SaveScreenshot2(const TVOutput &tv, const std::string &path, Messages *messages, bool correct_aspect_ratio) {
+static std::unique_ptr<SDL_Surface, SDL_Deleter> CreateScreenshot(const TVOutput &tv, bool correct_aspect_ratio, Messages *messages) {
     static constexpr uint32_t R_MASK = 0x00ff0000;
     static constexpr uint32_t G_MASK = 0x0000ff00;
     static constexpr uint32_t B_MASK = 0x000000ff;
@@ -3348,15 +3349,26 @@ static void SaveScreenshot2(const TVOutput &tv, const std::string &path, Message
 #else
         int blit_result = SDL_BlitScaled(surface.get(), nullptr, surface2.get(), nullptr);
 #endif
-        if (blit_result < 0) {
-            messages->e.f("Failed to resize image: %s\n", SDL_GetError());
-            return;
-        }
+        if (blit_result == 0) {
+            surface = std::move(surface2);
+        } else {
+            if (messages) {
+                messages->e.f("Failed to resize image: %s\n", SDL_GetError());
+            }
 
-        surface = std::move(surface2);
+            // ...and return the uncorrected bitmap.
+        }
     }
 
-    SaveSDLSurface(surface.get(), path, messages);
+    return surface;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+static void SaveScreenshot2(const TVOutput &tv, const std::string &path, Messages *messages, bool correct_aspect_ratio) {
+    std::unique_ptr<SDL_Surface, SDL_Deleter> screenshot = CreateScreenshot(tv, correct_aspect_ratio, messages);
+    SaveSDLSurface(screenshot.get(), path, messages);
 }
 
 void BeebWindow::SaveScreenshot() {
@@ -3372,6 +3384,22 @@ void BeebWindow::SaveScreenshot() {
             SaveScreenshot2(tv, path, &messages, correct_aspect_ratio);
         });
     }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+static void CopyScreenshot2(const TVOutput &tv, bool correct_aspect_ratio, Messages *messages) {
+    std::unique_ptr<SDL_Surface, SDL_Deleter> screenshot = CreateScreenshot(tv, correct_aspect_ratio, messages);
+    SetClipboardImage(screenshot.get(), messages);
+}
+
+void BeebWindow::CopyScreenshot() {
+    m_tv.AddNextVSyncCallback([message_list = m_msg.GetMessageList(), correct_aspect_ratio = m_settings.correct_aspect_ratio](const TVOutput &tv) {
+        Messages messages(message_list);
+
+        CopyScreenshot2(tv, correct_aspect_ratio, &messages);
+    });
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -3482,4 +3510,5 @@ ObjectCommandTable<BeebWindow> BeebWindow::ms_command_table("Beeb Window", {
         {CommandDef("save_config", "Save config"), &BeebWindow::SaveConfig},
         {CommandDef("toggle_prioritize_shortcuts", "Prioritize command keys"), &BeebWindow::TogglePrioritizeCommandShortcuts, &BeebWindow::IsPrioritizeCommandShortcutsTicked, nullptr},
         {CommandDef("save_screenshot", "Save screenshot"), &BeebWindow::SaveScreenshot},
+        {CommandDef("copy_screenshot", "Copy screenshot"), &BeebWindow::CopyScreenshot},
 });

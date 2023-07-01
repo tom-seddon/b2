@@ -7,6 +7,95 @@
 #include <shlobj.h>
 #include <shobjidl.h>
 #include <atlbase.h>
+#include <SDL.h>
+#include "misc.h"
+#include "Messages.h"
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void SetClipboardImage(SDL_Surface *surface, Messages *messages) {
+    SDL_SurfaceLocker locker(surface);
+    if (!locker.IsLocked()) {
+        messages->e.f("Failed to lock surface: %s\n", SDL_GetError());
+        return;
+    }
+
+    BITMAPV5HEADER header = {};
+    header.bV5Size = sizeof header;
+    header.bV5Width = surface->w;
+    header.bV5Height = surface->h;
+    header.bV5Planes = 1;
+    header.bV5BitCount = surface->format->BitsPerPixel;
+    header.bV5Compression = BI_RGB;
+    header.bV5RedMask = surface->format->Rmask;
+    header.bV5GreenMask = surface->format->Gmask;
+    header.bV5BlueMask = surface->format->Bmask;
+    header.bV5AlphaMask = surface->format->Amask;
+    //header.bV5CSType = LCS_sRGB;
+
+    size_t stride = (((header.bV5Width * header.bV5BitCount) + 31) & ~31) >> 3;
+
+    std::vector<char> dibits(stride * header.bV5Height, 0);
+    for (int y = 0; y < header.bV5Height; ++y) {
+        // Top-down SDL surface.
+        auto src = (const char *)surface->pixels + y * surface->pitch;
+
+        // Bottom-up DI bitmap.
+        auto dest = &dibits[(header.bV5Height - 1 - y) * stride];
+
+        memcpy(dest, src, stride);
+    }
+
+    HDC screen_dc = nullptr;
+    HBITMAP bitmap = nullptr;
+
+    screen_dc = CreateDC("DISPLAY", nullptr, nullptr, nullptr);
+    if (!screen_dc) {
+        messages->e.f("CreateDC failed: %s", GetLastErrorDescription());
+        goto done;
+    }
+
+    bitmap = CreateCompatibleBitmap(screen_dc, surface->w, surface->h);
+    if (!bitmap) {
+        messages->e.f("CreateCompatibleBitmap failed: size was %d x %d", surface->w, surface->h);
+        goto done;
+    }
+
+    int n = SetDIBits(screen_dc, bitmap, 0, surface->h, dibits.data(), (BITMAPINFO *)&header, DIB_RGB_COLORS);
+    if (n != surface->h) {
+        messages->e.f("SetDIBits failed: result was %d", n);
+        goto done;
+    }
+
+    if (!OpenClipboard(nullptr)) {
+        messages->e.f("OpenClipboard failed: %s", GetLastErrorDescription());
+        goto done;
+    }
+
+    if (!EmptyClipboard()) {
+        messages->e.f("EmptyClipboard failed: %s", GetLastErrorDescription());
+        goto done;
+    }
+
+    if (!SetClipboardData(CF_BITMAP, bitmap)) {
+        messages->e.f("SetClipboardData failed: %s", GetLastErrorDescription());
+        goto done;
+    }
+
+    CloseClipboard();
+
+done:
+    if (bitmap) {
+        DeleteObject(bitmap);
+        bitmap = nullptr;
+    }
+
+    if (screen_dc) {
+        DeleteDC(screen_dc);
+        screen_dc = nullptr;
+    }
+}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
