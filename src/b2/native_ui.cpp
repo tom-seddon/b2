@@ -81,7 +81,7 @@ void FailureMessageBox(const std::string &title, const std::shared_ptr<MessageLi
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-#if SYSTEM_OSX || SYSTEM_LINUX
+#if SYSTEM_OSX
 void SetClipboardImage(SDL_Surface *surface, Messages *messages) {
     (void)surface;
 

@@ -114,6 +114,17 @@ Click `Replay` to play the timeline back.
 As with save states, some functionality may cause recording to be
 disabled.
 
+## Screenshot
+
+Use `File` > `Save screenshot...` to save a PNG format screenshot to
+disk.
+
+Use `Edit` > `Copy screenshot` to copy a screenshot to the clipboard.
+On Linux, this relies on the
+[`xclip`](https://github.com/astrand/xclip) utility, which you will
+need to have installed. (Probably available via most package managers
+too.)
+
 ## Options
 
 Use `Tools` > `Options...` to bring up the options dialog, letting you

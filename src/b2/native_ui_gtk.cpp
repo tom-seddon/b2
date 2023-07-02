@@ -5,6 +5,79 @@
 G_GNUC_BEGIN_IGNORE_DEPRECATIONS
 #include <gtk/gtk.h>
 G_GNUC_END_IGNORE_DEPRECATIONS
+#include "misc.h"
+#include "Messages.h"
+#include <SDL.h>
+#include <spawn.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include "load_save.h"
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+// I couldn't get gtk_clipboard_set_image to work, and it's a pain
+// having to faff about with the GdxPixbuf stuff anyway. So this
+// shells out to xclip.
+//
+// As a bonus, xclip does a sort of auto-daemonize kind of thing so
+// the clipped image data can live on after b2 quits.
+
+static void RunXClip(const std::string &temp_file_path,
+    Messages*messages) {
+
+    // Ugh
+    char *argv[]={
+        (char *)"xclip",
+        (char *)"-selection",
+        (char *)"clipboard",
+        (char *)"-target",
+        (char *)"image/png",
+        (char *)"-in",
+        (char *)temp_file_path.c_str(),
+        nullptr,
+    };
+    pid_t xclip_pid;
+    int rc=posix_spawnp(&xclip_pid,"xclip",nullptr,nullptr,argv,environ);
+    if(rc!=0){
+        messages->e.f("Failed to run xclip: %s\n",strerror(rc));
+        return;
+    }
+
+    int status;
+    if(waitpid(xclip_pid,&status,0)!=xclip_pid){
+        messages->e.f("xclip failed: %s\n",strerror(errno));
+        return;
+    }
+
+    if(!WIFEXITED(status)){
+        messages->e.f("xclip didn't exit\n");
+        return;
+    }
+
+    if(WEXITSTATUS(status)!=0){
+        messages->e.f("xclip failed with exit code %d\n",WEXITSTATUS(status));
+        return;
+    }
+}
+
+void SetClipboardImage(SDL_Surface *surface, Messages *messages) {
+    char temp_file_path[]="/tmp/b2_png_XXXXXX";
+    int fd=mkstemp(temp_file_path);
+    if(fd==-1){
+        messages->e.f("Failed to open temp file: %s\n",strerror(errno));
+        return;
+    }
+
+    close(fd);
+    fd=-1;
+
+    if(SaveSDLSurface(surface,temp_file_path,messages)){
+        RunXClip(temp_file_path,messages);
+    }
+
+    unlink(temp_file_path);
+}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
