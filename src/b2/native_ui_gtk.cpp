@@ -24,10 +24,10 @@ G_GNUC_END_IGNORE_DEPRECATIONS
 // the clipped image data can live on after b2 quits.
 
 static void RunXClip(const std::string &temp_file_path,
-    Messages*messages) {
+                     Messages *messages) {
 
     // Ugh
-    char *argv[]={
+    char *argv[] = {
         (char *)"xclip",
         (char *)"-selection",
         (char *)"clipboard",
@@ -38,42 +38,42 @@ static void RunXClip(const std::string &temp_file_path,
         nullptr,
     };
     pid_t xclip_pid;
-    int rc=posix_spawnp(&xclip_pid,"xclip",nullptr,nullptr,argv,environ);
-    if(rc!=0){
-        messages->e.f("Failed to run xclip: %s\n",strerror(rc));
+    int rc = posix_spawnp(&xclip_pid, "xclip", nullptr, nullptr, argv, environ);
+    if (rc != 0) {
+        messages->e.f("Failed to run xclip: %s\n", strerror(rc));
         return;
     }
 
     int status;
-    if(waitpid(xclip_pid,&status,0)!=xclip_pid){
-        messages->e.f("xclip failed: %s\n",strerror(errno));
+    if (waitpid(xclip_pid, &status, 0) != xclip_pid) {
+        messages->e.f("xclip failed: %s\n", strerror(errno));
         return;
     }
 
-    if(!WIFEXITED(status)){
+    if (!WIFEXITED(status)) {
         messages->e.f("xclip didn't exit\n");
         return;
     }
 
-    if(WEXITSTATUS(status)!=0){
-        messages->e.f("xclip failed with exit code %d\n",WEXITSTATUS(status));
+    if (WEXITSTATUS(status) != 0) {
+        messages->e.f("xclip failed with exit code %d\n", WEXITSTATUS(status));
         return;
     }
 }
 
 void SetClipboardImage(SDL_Surface *surface, Messages *messages) {
-    char temp_file_path[]="/tmp/b2_png_XXXXXX";
-    int fd=mkstemp(temp_file_path);
-    if(fd==-1){
-        messages->e.f("Failed to open temp file: %s\n",strerror(errno));
+    char temp_file_path[] = "/tmp/b2_png_XXXXXX";
+    int fd = mkstemp(temp_file_path);
+    if (fd == -1) {
+        messages->e.f("Failed to open temp file: %s\n", strerror(errno));
         return;
     }
 
     close(fd);
-    fd=-1;
+    fd = -1;
 
-    if(SaveSDLSurface(surface,temp_file_path,messages)){
-        RunXClip(temp_file_path,messages);
+    if (SaveSDLSurface(surface, temp_file_path, messages)) {
+        RunXClip(temp_file_path, messages);
     }
 
     unlink(temp_file_path);
