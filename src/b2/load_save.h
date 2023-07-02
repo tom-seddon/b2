@@ -69,6 +69,9 @@ bool SaveTextFile(const std::string &data, const std::string &path, Messages *me
 
 bool SaveSDLSurface(SDL_Surface *surface, const std::string &path, Messages *messages);
 
+// Free result using free.
+unsigned char *SaveSDLSurfaceToPNGData(SDL_Surface *surface, size_t *png_size_out, Messages *messages);
+
 bool GetFileDetails(size_t *size, bool *can_write, const char *path);
 
 //////////////////////////////////////////////////////////////////////////

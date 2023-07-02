@@ -6,16 +6,36 @@
 #include "native_ui.h"
 #include "native_ui_osx.h"
 #include <vector>
+#include "load_save.h"
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void MessageBox(const std::string &title,const std::string &text) {
-    NSString *nstitle=[[NSString alloc] initWithUTF8String:title.c_str()];
+void SetClipboardImage(SDL_Surface *surface, Messages *messages) {
+    size_t png_size;
+    unsigned char *png = SaveSDLSurfaceToPNGData(surface, &png_size, messages);
+    if (!png) {
+        return;
+    }
 
-    NSString *nstext=[[NSString alloc] initWithUTF8String:text.c_str()];
+    auto data = [NSData dataWithBytesNoCopy:png
+                                     length:png_size
+                               freeWhenDone:YES];
+    auto pasteboard = [NSPasteboard generalPasteboard];
+    [pasteboard clearContents];
+    [pasteboard setData:data
+                forType:NSPasteboardTypePNG];
+}
 
-    NSAlert *alert=[[NSAlert alloc] init];
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void MessageBox(const std::string &title, const std::string &text) {
+    NSString *nstitle = [[NSString alloc] initWithUTF8String:title.c_str()];
+
+    NSString *nstext = [[NSString alloc] initWithUTF8String:text.c_str()];
+
+    NSAlert *alert = [[NSAlert alloc] init];
 
     [alert setInformativeText:nstext];
 
@@ -26,13 +46,13 @@ void MessageBox(const std::string &title,const std::string &text) {
     [alert runModal];
 
     [alert release];
-    alert=nil;
+    alert = nil;
 
     [nstext release];
-    nstext=nil;
+    nstext = nil;
 
     [nstitle release];
-    nstitle=nil;
+    nstitle = nil;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -52,9 +72,9 @@ double GetDoubleClickIntervalSeconds() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static void SetDefaultPath(NSSavePanel *panel,const std::string &default_path) {
-    if(!default_path.empty()) {
-        auto default_url=[NSURL fileURLWithPath:[NSString stringWithUTF8String:default_path.c_str()]];
+static void SetDefaultPath(NSSavePanel *panel, const std::string &default_path) {
+    if (!default_path.empty()) {
+        auto default_url = [NSURL fileURLWithPath:[NSString stringWithUTF8String:default_path.c_str()]];
         [panel setDirectoryURL:[default_url URLByDeletingLastPathComponent]];
         [panel setNameFieldStringValue:default_url.lastPathComponent];
     }
@@ -64,10 +84,10 @@ static void SetDefaultPath(NSSavePanel *panel,const std::string &default_path) {
 //////////////////////////////////////////////////////////////////////////
 
 static std::string RunModal(NSSavePanel *panel) {
-    auto old_key_window=[NSApp keyWindow];
+    auto old_key_window = [NSApp keyWindow];
 
     std::string result;
-    if([panel runModal]==NSModalResponseOK) {
+    if ([panel runModal] == NSModalResponseOK) {
         result.assign([[[panel URL] path] UTF8String]);
     }
 
@@ -85,32 +105,31 @@ static std::string RunModal(NSSavePanel *panel) {
 
 static std::string DoFileDialogOSX(const std::vector<OpenFileDialog::Filter> &filters,
                                    const std::string &default_path,
-                                   NSSavePanel *panel)
-{
-    SetDefaultPath(panel,default_path);
+                                   NSSavePanel *panel) {
+    SetDefaultPath(panel, default_path);
 
-    if(!filters.empty()) {
+    if (!filters.empty()) {
         // Special handling for ".*". The OS X dialog doesn't work quite like
         // the Windows one.
-        bool all_files=false;
-        for(const OpenFileDialog::Filter &filter:filters) {
-            for(const std::string &extension:filter.extensions) {
-                if(extension==".*") {
-                    all_files=true;
+        bool all_files = false;
+        for (const OpenFileDialog::Filter &filter : filters) {
+            for (const std::string &extension : filter.extensions) {
+                if (extension == ".*") {
+                    all_files = true;
                     break;
                 }
             }
         }
 
-        if(all_files) {
+        if (all_files) {
             // This is the default, so do nothing.
         } else {
-            NSMutableArray<NSString *> *types=[NSMutableArray array];
+            NSMutableArray<NSString *> *types = [NSMutableArray array];
 
-            for(const OpenFileDialog::Filter &filter:filters) {
-                for(const std::string &extension:filter.extensions) {
+            for (const OpenFileDialog::Filter &filter : filters) {
+                for (const std::string &extension : filter.extensions) {
                     ASSERT(!extension.empty());
-                    ASSERT(extension[0]=='.');
+                    ASSERT(extension[0] == '.');
                     [types addObject:[NSString stringWithUTF8String:extension.substr(1).c_str()]];
                 }
             }
@@ -126,14 +145,13 @@ static std::string DoFileDialogOSX(const std::vector<OpenFileDialog::Filter> &fi
 //////////////////////////////////////////////////////////////////////////
 
 std::string OpenFileDialogOSX(const std::vector<OpenFileDialog::Filter> &filters,
-                              const std::string &default_path)
-{
-    auto pool=[[NSAutoreleasePool alloc] init];
+                              const std::string &default_path) {
+    auto pool = [[NSAutoreleasePool alloc] init];
 
-    std::string result=DoFileDialogOSX(filters,default_path,[NSOpenPanel openPanel]);
+    std::string result = DoFileDialogOSX(filters, default_path, [NSOpenPanel openPanel]);
 
     [pool release];
-    pool=nil;
+    pool = nil;
 
     return result;
 }
@@ -142,14 +160,13 @@ std::string OpenFileDialogOSX(const std::vector<OpenFileDialog::Filter> &filters
 //////////////////////////////////////////////////////////////////////////
 
 std::string SaveFileDialogOSX(const std::vector<OpenFileDialog::Filter> &filters,
-                              const std::string &default_path)
-{
-    auto pool=[[NSAutoreleasePool alloc] init];
+                              const std::string &default_path) {
+    auto pool = [[NSAutoreleasePool alloc] init];
 
-    std::string result=DoFileDialogOSX(filters,default_path,[NSSavePanel savePanel]);
+    std::string result = DoFileDialogOSX(filters, default_path, [NSSavePanel savePanel]);
 
     [pool release];
-    pool=nil;
+    pool = nil;
 
     return result;
 }
@@ -158,19 +175,19 @@ std::string SaveFileDialogOSX(const std::vector<OpenFileDialog::Filter> &filters
 //////////////////////////////////////////////////////////////////////////
 
 std::string SelectFolderDialogOSX(const std::string &default_path) {
-    auto pool=[[NSAutoreleasePool alloc] init];
+    auto pool = [[NSAutoreleasePool alloc] init];
 
-    auto panel=[NSOpenPanel openPanel];
+    auto panel = [NSOpenPanel openPanel];
 
     [panel setCanChooseDirectories:YES];
     [panel setCanChooseFiles:NO];
 
-    SetDefaultPath(panel,default_path);
+    SetDefaultPath(panel, default_path);
 
-    std::string result=RunModal(panel);
+    std::string result = RunModal(panel);
 
     [pool release];
-    pool=nil;
+    pool = nil;
 
     return result;
 }

@@ -81,19 +81,6 @@ void FailureMessageBox(const std::string &title, const std::shared_ptr<MessageLi
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-#if SYSTEM_OSX
-void SetClipboardImage(SDL_Surface *surface, Messages *messages) {
-    (void)surface;
-
-    if (messages) {
-        messages->e.f("Copy image to clipboard unsupported");
-    }
-}
-#endif
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 void ForEachRecentPaths(std::function<void(const std::string &, const RecentPaths &)> fun) {
     for (auto &&it : g_recent_paths_by_tag) {
         fun(it.first, it.second);

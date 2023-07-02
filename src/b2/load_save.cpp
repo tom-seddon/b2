@@ -590,41 +590,67 @@ static bool IsR8G8B8(const SDL_PixelFormat *format) {
     return true;
 }
 
-bool SaveSDLSurface(SDL_Surface *surface, const std::string &path, Messages *messages) {
-    int stbi_write_result;
-
+static unsigned char *SaveSDLSurface2(int *out_len, SDL_Surface *surface, Messages *messages) {
     SDL_SurfaceLocker locker(surface);
 
     if (!locker.IsLocked()) {
         messages->e.f("Failed to lock surface: %s\n", SDL_GetError());
-        return false;
+        return nullptr;
     }
 
     if (surface->format->BytesPerPixel == 3 && IsR8G8B8(surface->format)) {
-        stbi_write_result = stbi_write_png(path.c_str(), surface->w, surface->h, 3, surface->pixels, surface->pitch);
+        return stbi_write_png_to_mem((unsigned char *)surface->pixels, surface->pitch, surface->w, surface->h, 3, out_len);
     } else if (surface->format->BytesPerPixel == 4 && IsR8G8B8(surface->format) && surface->format->Amask == (0xffu << 24)) {
-        stbi_write_result = stbi_write_png(path.c_str(), surface->w, surface->h, 4, surface->pixels, surface->pitch);
+        return stbi_write_png_to_mem((unsigned char *)surface->pixels, surface->pitch, surface->w, surface->h, 4, out_len);
     } else {
         // The stb PNG writer can accommodate any pitch. But since this is
         // rearranging the bytes, might as well flatten it at the same time.
 
-        std::vector<uint8_t> file_pixels((size_t)surface->w * (size_t)surface->h * 4u);
+        std::vector<unsigned char> file_pixels((size_t)surface->w * (size_t)surface->h * 4u);
 
         if (SDL_ConvertPixels(surface->w, surface->h, surface->format->format, surface->pixels, surface->pitch,
                               SDL_PIXELFORMAT_ABGR8888, file_pixels.data(), surface->w * 4) < 0) {
             messages->e.f("Failed to convert pixel data: %s\n", SDL_GetError());
-            return false;
+            return nullptr;
         }
 
-        stbi_write_result = stbi_write_png(path.c_str(), surface->w, surface->h, 4, file_pixels.data(), surface->w * 4);
+        return stbi_write_png_to_mem(file_pixels.data(), surface->w * 4, surface->w, surface->h, 4, out_len);
+    }
+}
+
+bool SaveSDLSurface(SDL_Surface *surface, const std::string &path, Messages *messages) {
+    int png_size;
+    unsigned char *png = SaveSDLSurface2(&png_size, surface, messages);
+    if (!png || png_size < 0) {
+        free(png);
+        return false;
     }
 
-    if (!stbi_write_result) {
-        messages->e.f("Failed to save: %s\n", path.c_str());
+    bool good = SaveFile(png, (size_t)png_size, path, messages);
+
+    free(png);
+    png = nullptr;
+
+    if (!good) {
         return false;
     }
 
     return true;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+unsigned char *SaveSDLSurfaceToPNGData(SDL_Surface *surface, size_t *png_size_out, Messages *messages) {
+    int png_size;
+    unsigned char *png = SaveSDLSurface2(&png_size, surface, messages);
+    if (!png || png_size < 0) {
+        free(png);
+        return nullptr;
+    }
+
+    *png_size_out = (size_t)png_size;
+    return png;
 }
 
 //////////////////////////////////////////////////////////////////////////

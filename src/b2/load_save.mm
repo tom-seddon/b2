@@ -9,41 +9,41 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void SaveCocoaFrameUsingName(void *nswindow,const std::string &name) {
-    if(!nswindow) {
+void SaveCocoaFrameUsingName(void *nswindow, const std::string &name) {
+    if (!nswindow) {
         return;
     }
 
-    if(name.empty()) {
+    if (name.empty()) {
         return;
     }
 
-    NSString *nsname=[[NSString alloc] initWithUTF8String:name.c_str()];
-    
+    NSString *nsname = [[NSString alloc] initWithUTF8String:name.c_str()];
+
     [(NSWindow *)nswindow saveFrameUsingName:nsname];
-    
+
     [nsname release];
-    nsname=nil;
+    nsname = nil;
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool SetCocoaFrameUsingName(void *nswindow,const std::string &name) {
-    if(!nswindow) {
+bool SetCocoaFrameUsingName(void *nswindow, const std::string &name) {
+    if (!nswindow) {
         return false;
     }
 
-    if(name.empty()) {
+    if (name.empty()) {
         return false;
     }
 
-    NSString *nsname=[[NSString alloc] initWithUTF8String:name.c_str()];
-    
-    bool result=!![(NSWindow *)nswindow setFrameUsingName:nsname];
-    
+    NSString *nsname = [[NSString alloc] initWithUTF8String:name.c_str()];
+
+    bool result = !![(NSWindow *)nswindow setFrameUsingName:nsname];
+
     [nsname release];
-    nsname=nil;
+    nsname = nil;
 
     return result;
 }
@@ -52,43 +52,42 @@ bool SetCocoaFrameUsingName(void *nswindow,const std::string &name) {
 //////////////////////////////////////////////////////////////////////////
 
 static std::string GetPath(const std::string &path,
-                           NSSearchPathDirectory directory)
-{
+                           NSSearchPathDirectory directory) {
     std::string fname;
-    
+
     @autoreleasepool {
-        NSFileManager *defaultManager=[NSFileManager defaultManager];
-        NSError *error=nil;
+        NSFileManager *defaultManager = [NSFileManager defaultManager];
+        NSError *error = nil;
 
-        NSURL *url=[defaultManager URLForDirectory:directory
-                                          inDomain:NSUserDomainMask
-                                 appropriateForURL:nil
-                                            create:TRUE
-                                             error:&error];
-        if(!url) {
+        NSURL *url = [defaultManager URLForDirectory:directory
+                                            inDomain:NSUserDomainMask
+                                   appropriateForURL:nil
+                                              create:TRUE
+                                               error:&error];
+        if (!url) {
             return "";
         }
 
-        const char *fileSystemRepresentation=[url fileSystemRepresentation];
-        if(!fileSystemRepresentation) {
+        const char *fileSystemRepresentation = [url fileSystemRepresentation];
+        if (!fileSystemRepresentation) {
             return "";
         }
 
-        fname=fileSystemRepresentation;
+        fname = fileSystemRepresentation;
 
-        NSBundle *mainBundle=[NSBundle mainBundle];
+        NSBundle *mainBundle = [NSBundle mainBundle];
 
-        NSString *bundleIdentifier=[mainBundle bundleIdentifier];
+        NSString *bundleIdentifier = [mainBundle bundleIdentifier];
 
-        if([bundleIdentifier length]>0) {
-            fname=PathJoined(fname,[bundleIdentifier UTF8String]);
+        if ([bundleIdentifier length] > 0) {
+            fname = PathJoined(fname, [bundleIdentifier UTF8String]);
         }
     }
 
-    fname=PathJoined(fname,path);
+    fname = PathJoined(fname, path);
 
-    if(!PathCreateFolder(PathGetFolder(fname))) {
-        LOGF(OUTPUT,"%s: PathCreateFolder failed: %s\n",__func__,strerror(errno));
+    if (!PathCreateFolder(PathGetFolder(fname))) {
+        LOGF(OUTPUT, "%s: PathCreateFolder failed: %s\n", __func__, strerror(errno));
         return "";
     }
 
@@ -99,14 +98,14 @@ static std::string GetPath(const std::string &path,
 //////////////////////////////////////////////////////////////////////////
 
 std::string GetOSXApplicationSupportPath(const std::string &path) {
-    return GetPath(path,NSApplicationSupportDirectory);
+    return GetPath(path, NSApplicationSupportDirectory);
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 std::string GetOSXCachePath(const std::string &path) {
-    return GetPath(path,NSCachesDirectory);
+    return GetPath(path, NSCachesDirectory);
 }
 
 //////////////////////////////////////////////////////////////////////////
