@@ -1,6 +1,6 @@
 # DO NOT EDIT - Copied from src/.clang-format
 ---
-Language:        Cpp
+# Language:        Cpp
 AccessModifierOffset: -2
 AlignAfterOpenBracket: Align
 AlignConsecutiveMacros: false

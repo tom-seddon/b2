@@ -197,15 +197,15 @@ const VideoWriterFormat *GetVideoWriterAVFoundationFormatByIndex(size_t index) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-LOG_DEFINE(VOUT,"",&log_printer_stdout_and_debugger,false);
-LOG_DEFINE(OUT,"",&log_printer_stdout_and_debugger);
-LOG_DEFINE(ERR,"",&log_printer_stderr_and_debugger);
+LOG_DEFINE(VOUT, "", &log_printer_stdout_and_debugger, false);
+LOG_DEFINE(OUT, "", &log_printer_stdout_and_debugger);
+LOG_DEFINE(ERR, "", &log_printer_stderr_and_debugger);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 struct Options {
-    bool verbose=false;
+    bool verbose = false;
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -214,13 +214,13 @@ struct Options {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static bool DoOptions(Options *options,int argc,char *argv[]) {
+static bool DoOptions(Options *options, int argc, char *argv[]) {
     CommandLineParser p;
 
-    p.AddOption('v',"verbose").Help("be more verbose").SetIfPresent(&options->verbose);
+    p.AddOption('v', "verbose").Help("be more verbose").SetIfPresent(&options->verbose);
 
     std::vector<std::string> other_args;
-    if(!p.Parse(argc,argv,&other_args)) {
+    if (!p.Parse(argc, argv, &other_args)) {
         return false;
     }
 
@@ -230,14 +230,13 @@ static bool DoOptions(Options *options,int argc,char *argv[]) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-int main(int argc,char *argv[]) {
+int main(int argc, char *argv[]) {
     Options options;
-    if(!DoOptions(&options,argc,argv)) {
+    if (!DoOptions(&options, argc, argv)) {
         return EXIT_FAILURE;
     }
 
-    if(options.verbose) {
+    if (options.verbose) {
         LOG(VOUT).Enable();
     }
 }
-

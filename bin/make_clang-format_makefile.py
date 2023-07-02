@@ -9,7 +9,9 @@ def main3(f,options):
         '*.c',
         '*.cpp',
         '*.h',
-        '*.inl'
+        '*.inl',
+        '*.m',
+        '*.mm',
     ]
 
     file_paths=set()
