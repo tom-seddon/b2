@@ -1190,6 +1190,12 @@ static bool main2(int argc, char *argv[], const std::shared_ptr<MessageList> &in
         return false;
     }
 
+#if SYSTEM_LINUX
+    // Need to do this after SDL_Init. See, e.g.,
+    // https://discourse.libsdl.org/t/gtk2-sdl2-partial-fail/19274
+    gtk_init(&argc, &argv);
+#endif
+
 #if SYSTEM_WINDOWS
     if (!InitMF(&init_messages)) {
         return false;
@@ -1596,8 +1602,6 @@ int main(int argc, char *argv[]) {
 
 #if SYSTEM_WINDOWS
     InitWindowsConsoleStuff();
-#elif SYSTEM_LINUX
-    gtk_init(&argc, &argv);
 #endif
 
     SetCurrentThreadName("Main Thread");
