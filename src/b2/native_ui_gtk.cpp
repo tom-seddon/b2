@@ -10,8 +10,6 @@ G_GNUC_END_IGNORE_DEPRECATIONS
 //////////////////////////////////////////////////////////////////////////
 
 void MessageBox(const std::string &title, const std::string &text) {
-    gtk_init_check(nullptr, nullptr);
-
     GtkWidget *dialog = gtk_message_dialog_new(nullptr,
                                                GTK_DIALOG_MODAL,
                                                GTK_MESSAGE_ERROR,
@@ -30,7 +28,6 @@ void MessageBox(const std::string &title, const std::string &text) {
 
 static GtkWidget *CreateFileDialog(const char *title,
                                    GtkFileChooserAction action) {
-    gtk_init_check(nullptr, nullptr);
     GtkWidget *gdialog = gtk_file_chooser_dialog_new(title,
                                                      nullptr,
                                                      action,
