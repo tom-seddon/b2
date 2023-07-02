@@ -26,8 +26,8 @@ struct VideoDataUnit;
 
 // TVOutput is the analogue of a combination of the video encoding and the TV -
 // it looks after converting a stream of video data chunks into a graphical
-// display. Output format is DXGI_FORMAT_B8G8R8A8_UNORM, aka
-// SDL_PIXELFORMAT_ARGB8888. The texture is always
+// display. Output format is DXGI_FORMAT_B8G8R8X8_UNORM, aka
+// SDL_PIXELFORMAT_XRGB8888. The texture is always
 // TV_TEXTURE_WIDTH*TV_TEXTURE_HEIGHT, and its stride is TV_OUTPUT_WIDTH*4.
 
 // TODO: should be a CreateSDLTexture function, that creates an appropriate

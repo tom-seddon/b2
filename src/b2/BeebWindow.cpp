@@ -3328,36 +3328,54 @@ void BeebWindow::SaveConfig() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static std::unique_ptr<SDL_Surface, SDL_Deleter> CreateScreenshot(const TVOutput &tv, bool correct_aspect_ratio, Messages *messages) {
-    static constexpr uint32_t R_MASK = 0x00ff0000;
-    static constexpr uint32_t G_MASK = 0x0000ff00;
-    static constexpr uint32_t B_MASK = 0x000000ff;
-    static constexpr uint32_t A_MASK = 0x00000000;
+static int BlitScaledLinear(SDL_Surface *src, const SDL_Rect *srcrect, SDL_Surface *dst, SDL_Rect *dstrect) {
+    return
+#if HAVE_SDL_SOFTSTRETCHLINEAR
+        SDL_SoftStretchLinear
+#else
+        SDL_BlitScaled
+#endif
+        (src, srcrect, dst, dstrect);
+}
 
-    std::unique_ptr<SDL_Surface, SDL_Deleter> surface(SDL_CreateRGBSurfaceFrom(tv.GetTexturePixels(nullptr),
-                                                                               TV_TEXTURE_WIDTH, TV_TEXTURE_HEIGHT,
-                                                                               32,
-                                                                               TV_TEXTURE_WIDTH * 4,
-                                                                               R_MASK, G_MASK, B_MASK, A_MASK));
+// Creates a 24 bpp R8_G8_B8 surface. This format coexists nicely with
+// stbi_image_write and GdkPixbuf.
+static std::unique_ptr<SDL_Surface, SDL_Deleter> CreateScreenshot(const TVOutput &tv, bool correct_aspect_ratio, Messages *messages) {
+    // temporary surface referring to the 32 bpp BGRA actual pixel data in the TVOutput
+    // object.
+    std::unique_ptr<SDL_Surface, SDL_Deleter> src_surface(SDL_CreateRGBSurfaceFrom(tv.GetTexturePixels(nullptr),
+                                                                                   TV_TEXTURE_WIDTH, TV_TEXTURE_HEIGHT,
+                                                                                   32,
+                                                                                   TV_TEXTURE_WIDTH * 4,
+                                                                                   0x00ff0000,
+                                                                                   0x0000ff00,
+                                                                                   0x000000ff,
+                                                                                   0x00000000));
 
     if (correct_aspect_ratio) {
-        std::unique_ptr<SDL_Surface, SDL_Deleter> surface2(SDL_CreateRGBSurface(0, int(TV_TEXTURE_WIDTH * CORRECT_ASPECT_RATIO_X_SCALE), TV_TEXTURE_HEIGHT,
-                                                                                32,
-                                                                                R_MASK, G_MASK, B_MASK, A_MASK));
-#if HAVE_SDL_SOFTSTRETCHLINEAR
-        int blit_result = SDL_SoftStretchLinear(surface.get(), nullptr, surface2.get(), nullptr);
-#else
-        int blit_result = SDL_BlitScaled(surface.get(), nullptr, surface2.get(), nullptr);
-#endif
-        if (blit_result == 0) {
-            surface = std::move(surface2);
-        } else {
+        std::unique_ptr<SDL_Surface, SDL_Deleter> surface(SDL_CreateRGBSurface(0,
+                                                                               int(TV_TEXTURE_WIDTH * CORRECT_ASPECT_RATIO_X_SCALE), TV_TEXTURE_HEIGHT,
+                                                                               32,
+                                                                               src_surface->format->Rmask,
+                                                                               src_surface->format->Gmask,
+                                                                               src_surface->format->Bmask,
+                                                                               src_surface->format->Amask));
+        if (BlitScaledLinear(src_surface.get(), nullptr, surface.get(), nullptr) != 0) {
             if (messages) {
                 messages->e.f("Failed to resize image: %s\n", SDL_GetError());
             }
-
-            // ...and return the uncorrected bitmap.
+            return nullptr;
         }
+
+        src_surface = std::move(surface);
+    }
+
+    std::unique_ptr<SDL_Surface, SDL_Deleter> surface(SDL_CreateRGBSurfaceWithFormat(0, src_surface->w, src_surface->h, 24, SDL_PIXELFORMAT_RGB24));
+    if (SDL_BlitSurface(src_surface.get(), nullptr, surface.get(), nullptr) != 0) {
+        if (messages) {
+            messages->e.f("Failed to copy image: %s\n", SDL_GetError());
+        }
+        return nullptr;
     }
 
     return surface;
@@ -3368,7 +3386,9 @@ static std::unique_ptr<SDL_Surface, SDL_Deleter> CreateScreenshot(const TVOutput
 
 static void SaveScreenshot2(const TVOutput &tv, const std::string &path, Messages *messages, bool correct_aspect_ratio) {
     std::unique_ptr<SDL_Surface, SDL_Deleter> screenshot = CreateScreenshot(tv, correct_aspect_ratio, messages);
-    SaveSDLSurface(screenshot.get(), path, messages);
+    if (!!screenshot) {
+        SaveSDLSurface(screenshot.get(), path, messages);
+    }
 }
 
 void BeebWindow::SaveScreenshot() {
@@ -3391,7 +3411,9 @@ void BeebWindow::SaveScreenshot() {
 
 static void CopyScreenshot2(const TVOutput &tv, bool correct_aspect_ratio, Messages *messages) {
     std::unique_ptr<SDL_Surface, SDL_Deleter> screenshot = CreateScreenshot(tv, correct_aspect_ratio, messages);
-    SetClipboardImage(screenshot.get(), messages);
+    if (!!screenshot) {
+        SetClipboardImage(screenshot.get(), messages);
+    }
 }
 
 void BeebWindow::CopyScreenshot() {
