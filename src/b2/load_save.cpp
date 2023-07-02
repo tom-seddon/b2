@@ -574,30 +574,52 @@ bool SaveTextFile(const std::string &data, const std::string &path, Messages *me
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+static bool IsR8G8B8(const SDL_PixelFormat *format) {
+    if (format->Rmask != (0xff << 0)) {
+        return false;
+    }
+
+    if (format->Gmask != (0xff << 8)) {
+        return false;
+    }
+
+    if (format->Bmask != (0xff << 16)) {
+        return false;
+    }
+
+    return true;
+}
+
 bool SaveSDLSurface(SDL_Surface *surface, const std::string &path, Messages *messages) {
-    std::vector<uint8_t> file_pixels;
+    int stbi_write_result;
 
-    if (surface->w > 0 && surface->h > 0) {
-        SDL_SurfaceLocker locker(surface);
+    SDL_SurfaceLocker locker(surface);
 
-        if (!locker.IsLocked()) {
-            messages->e.f("Failed to lock surface: %s\n", SDL_GetError());
-            return false;
-        }
+    if (!locker.IsLocked()) {
+        messages->e.f("Failed to lock surface: %s\n", SDL_GetError());
+        return false;
+    }
 
+    if (surface->format->BytesPerPixel == 3 && IsR8G8B8(surface->format)) {
+        stbi_write_result = stbi_write_png(path.c_str(), surface->w, surface->h, 3, surface->pixels, surface->pitch);
+    } else if (surface->format->BytesPerPixel == 4 && IsR8G8B8(surface->format) && surface->format->Amask == (0xff << 24)) {
+        stbi_write_result = stbi_write_png(path.c_str(), surface->w, surface->h, 4, surface->pixels, surface->pitch);
+    } else {
         // The stb PNG writer can accommodate any pitch. But since this is
         // rearranging the bytes, might as well flatten it at the same time.
 
-        file_pixels.resize((size_t)surface->w * (size_t)surface->h * 4u);
+        std::vector<uint8_t> file_pixels((size_t)surface->w * (size_t)surface->h * 4u);
 
         if (SDL_ConvertPixels(surface->w, surface->h, surface->format->format, surface->pixels, surface->pitch,
                               SDL_PIXELFORMAT_ABGR8888, file_pixels.data(), surface->w * 4) < 0) {
             messages->e.f("Failed to convert pixel data: %s\n", SDL_GetError());
             return false;
         }
+
+        stbi_write_result = stbi_write_png(path.c_str(), surface->w, surface->h, 4, file_pixels.data(), surface->w * 4);
     }
 
-    if (!stbi_write_png(path.c_str(), surface->w, surface->h, 4, file_pixels.data(), surface->w * 4)) {
+    if (!stbi_write_result) {
         messages->e.f("Failed to save: %s\n", path.c_str());
         return false;
     }
