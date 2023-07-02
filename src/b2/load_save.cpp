@@ -602,7 +602,7 @@ bool SaveSDLSurface(SDL_Surface *surface, const std::string &path, Messages *mes
 
     if (surface->format->BytesPerPixel == 3 && IsR8G8B8(surface->format)) {
         stbi_write_result = stbi_write_png(path.c_str(), surface->w, surface->h, 3, surface->pixels, surface->pitch);
-    } else if (surface->format->BytesPerPixel == 4 && IsR8G8B8(surface->format) && surface->format->Amask == (0xff << 24)) {
+    } else if (surface->format->BytesPerPixel == 4 && IsR8G8B8(surface->format) && surface->format->Amask == (0xffu << 24)) {
         stbi_write_result = stbi_write_png(path.c_str(), surface->w, surface->h, 4, surface->pixels, surface->pitch);
     } else {
         // The stb PNG writer can accommodate any pitch. But since this is

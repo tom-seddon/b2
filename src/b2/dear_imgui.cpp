@@ -273,6 +273,7 @@ void ImGuiStuff::NewFrame(bool got_mouse_focus) {
 
     if (m_font_dirty) {
         int rc;
+        (void)rc; //only used by ASSERTs...
 
         m_new_font_atlas = new ImFontAtlas;
         io.Fonts = m_new_font_atlas;
