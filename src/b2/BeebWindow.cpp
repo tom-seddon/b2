@@ -212,45 +212,76 @@ void BeebWindow::OptionsUI::DoImGui() {
         }
     }
 
-    ImGui::Checkbox("Correct aspect ratio", &settings->correct_aspect_ratio);
+    ImGui::NewLine();
 
-    ImGui::Checkbox("Auto scale", &settings->display_auto_scale);
+    {
+        ImGuiHeader("Display");
 
-    ImGui::DragFloat("Manual scale", &settings->display_manual_scale, .01f, 0.f, 10.f);
+        ImGui::Checkbox("Correct aspect ratio", &settings->correct_aspect_ratio);
 
-    if (ImGui::Checkbox("Filter display", &settings->display_filter)) {
-        m_beeb_window->RecreateTexture();
-    }
+        if (ImGui::Checkbox("Filter display", &settings->display_filter)) {
+            m_beeb_window->RecreateTexture();
+        }
 
-    ImGui::Checkbox("Emulate interlace", &settings->display_interlace);
+        ImGui::Checkbox("Auto scale", &settings->display_auto_scale);
 
-    if (ImGui::SliderFloat("BBC volume", &settings->bbc_volume, MIN_DB, MAX_DB, "%.1f dB")) {
-        beeb_thread->SetBBCVolume(settings->bbc_volume);
-    }
+        ImGui::DragFloat("Manual scale", &settings->display_manual_scale, .01f, 0.f, 10.f);
 
-    if (ImGui::SliderFloat("Disc volume", &settings->disc_volume, MIN_DB, MAX_DB, "%.1f dB")) {
-        beeb_thread->SetDiscVolume(settings->disc_volume);
-    }
-
-    if (ImGui::Checkbox("Power-on tone", &settings->power_on_tone)) {
-        beeb_thread->SetPowerOnTone(settings->power_on_tone);
-    }
+        ImGui::Checkbox("Emulate interlace", &settings->display_interlace);
 
 #if 1 //BUILD_TYPE_Debug
-    if (ImGui::Checkbox("Threaded texture update", &m_beeb_window->m_update_tv_texture_thread_enabled)) {
-        ResetTimerDefs();
-    }
+        if (ImGui::Checkbox("Threaded texture update", &m_beeb_window->m_update_tv_texture_thread_enabled)) {
+            ResetTimerDefs();
+        }
 #endif
-
-    unsigned font_size = m_beeb_window->m_imgui_stuff->GetFontSizePixels();
-    if (ImGuiInputUInt("GUI Font Size", &font_size, 1, 1, ImGuiInputTextFlags_EnterReturnsTrue)) {
-        m_beeb_window->m_imgui_stuff->SetFontSizePixels(font_size);
-        settings->gui_font_size = m_beeb_window->m_imgui_stuff->GetFontSizePixels();
     }
 
     ImGui::NewLine();
 
-    if (ImGui::CollapsingHeader("HTTP Server", ImGuiTreeNodeFlags_DefaultOpen)) {
+    {
+        ImGuiHeader("Screenshot");
+        ImGuiIDPusher pusher(&pusher);
+
+        ImGui::Checkbox("Correct aspect ratio", &settings->screenshot_correct_aspect_ratio);
+#if HAVE_SDL_SOFTSTRETCHLINEAR
+        ImGui::Checkbox("Bilinear filtering", &settings->screenshot_filter);
+#endif
+    }
+
+    ImGui::NewLine();
+
+    {
+        ImGuiHeader("Sound");
+
+        if (ImGui::SliderFloat("BBC volume", &settings->bbc_volume, MIN_DB, MAX_DB, "%.1f dB")) {
+            beeb_thread->SetBBCVolume(settings->bbc_volume);
+        }
+
+        if (ImGui::SliderFloat("Disc volume", &settings->disc_volume, MIN_DB, MAX_DB, "%.1f dB")) {
+            beeb_thread->SetDiscVolume(settings->disc_volume);
+        }
+
+        if (ImGui::Checkbox("Power-on tone", &settings->power_on_tone)) {
+            beeb_thread->SetPowerOnTone(settings->power_on_tone);
+        }
+    }
+
+    ImGui::NewLine();
+
+    {
+        ImGuiHeader("UI");
+
+        unsigned font_size = m_beeb_window->m_imgui_stuff->GetFontSizePixels();
+        if (ImGuiInputUInt("GUI Font Size", &font_size, 1, 1, ImGuiInputTextFlags_EnterReturnsTrue)) {
+            m_beeb_window->m_imgui_stuff->SetFontSizePixels(font_size);
+            settings->gui_font_size = m_beeb_window->m_imgui_stuff->GetFontSizePixels();
+        }
+    }
+
+    ImGui::NewLine();
+
+    {
+        ImGuiHeader("HTTP Server");
         int port = GetHTTPServerListenPort();
         if (port == 0) {
             ImGui::TextUnformatted("HTTP server not running");
@@ -268,16 +299,15 @@ void BeebWindow::OptionsUI::DoImGui() {
     ImGui::NewLine();
 
 #if BBCMICRO_DEBUGGER
-    if (ImGui::CollapsingHeader("Display Debug Flags", ImGuiTreeNodeFlags_DefaultOpen)) {
-        {
-            std::unique_lock<Mutex> lock;
-            BBCMicro *m = m_beeb_window->m_beeb_thread->LockMutableBeeb(&lock);
-            bool debug;
+    {
+        ImGuiHeader("Display Debug Options");
+        std::unique_lock<Mutex> lock;
+        BBCMicro *m = m_beeb_window->m_beeb_thread->LockMutableBeeb(&lock);
+        bool debug;
 
-            debug = m->GetTeletextDebug();
-            if (ImGui::Checkbox("Teletext debug", &debug)) {
-                m->SetTeletextDebug(debug);
-            }
+        debug = m->GetTeletextDebug();
+        if (ImGui::Checkbox("Teletext debug", &debug)) {
+            m->SetTeletextDebug(debug);
         }
 
         ImGui::Checkbox("Show TV beam position", &m_beeb_window->m_tv.show_beam_position);
@@ -3328,19 +3358,12 @@ void BeebWindow::SaveConfig() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static int BlitScaledLinear(SDL_Surface *src, const SDL_Rect *srcrect, SDL_Surface *dst, SDL_Rect *dstrect) {
-    return
-#if HAVE_SDL_SOFTSTRETCHLINEAR
-        SDL_SoftStretchLinear
-#else
-        SDL_BlitScaled
-#endif
-        (src, srcrect, dst, dstrect);
-}
-
 // Creates a 24 bpp R8_G8_B8 surface. This format coexists nicely with
 // stbi_image_write and GdkPixbuf.
-static std::unique_ptr<SDL_Surface, SDL_Deleter> CreateScreenshot(const TVOutput &tv, bool correct_aspect_ratio, Messages *messages) {
+static std::unique_ptr<SDL_Surface, SDL_Deleter> CreateScreenshot(const TVOutput &tv,
+                                                                  bool correct_aspect_ratio,
+                                                                  bool filter,
+                                                                  Messages *messages) {
     // temporary surface referring to the 32 bpp BGRA actual pixel data in the TVOutput
     // object.
     std::unique_ptr<SDL_Surface, SDL_Deleter> src_surface(SDL_CreateRGBSurfaceFrom(tv.GetTexturePixels(nullptr),
@@ -3360,7 +3383,20 @@ static std::unique_ptr<SDL_Surface, SDL_Deleter> CreateScreenshot(const TVOutput
                                                                                src_surface->format->Gmask,
                                                                                src_surface->format->Bmask,
                                                                                src_surface->format->Amask));
-        if (BlitScaledLinear(src_surface.get(), nullptr, surface.get(), nullptr) != 0) {
+        int blit_result;
+        if (filter) {
+            blit_result =
+#if HAVE_SDL_SOFTSTRETCHLINEAR
+                SDL_SoftStretchLinear
+#else
+                SDL_BlitScaled
+#endif
+                (src_surface.get(), nullptr, surface.get(), nullptr);
+        } else {
+            blit_result = SDL_BlitScaled(src_surface.get(), nullptr, surface.get(), nullptr);
+        }
+
+        if (blit_result != 0) {
             if (messages) {
                 messages->e.f("Failed to resize image: %s\n", SDL_GetError());
             }
@@ -3384,8 +3420,12 @@ static std::unique_ptr<SDL_Surface, SDL_Deleter> CreateScreenshot(const TVOutput
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static void SaveScreenshot2(const TVOutput &tv, const std::string &path, Messages *messages, bool correct_aspect_ratio) {
-    std::unique_ptr<SDL_Surface, SDL_Deleter> screenshot = CreateScreenshot(tv, correct_aspect_ratio, messages);
+static void SaveScreenshot2(const TVOutput &tv,
+                            bool correct_aspect_ratio,
+                            bool filter,
+                            const std::string &path,
+                            Messages *messages) {
+    std::unique_ptr<SDL_Surface, SDL_Deleter> screenshot = CreateScreenshot(tv, correct_aspect_ratio, filter, messages);
     if (!!screenshot) {
         SaveSDLSurface(screenshot.get(), path, messages);
     }
@@ -3398,10 +3438,13 @@ void BeebWindow::SaveScreenshot() {
 
     std::string path;
     if (fd.Open(&path)) {
-        m_tv.AddNextVSyncCallback([path, message_list = m_msg.GetMessageList(), correct_aspect_ratio = m_settings.correct_aspect_ratio](const TVOutput &tv) {
+        m_tv.AddNextVSyncCallback([path,
+                                   message_list = m_msg.GetMessageList(),
+                                   correct_aspect_ratio = m_settings.screenshot_correct_aspect_ratio,
+                                   filter = m_settings.screenshot_filter](const TVOutput &tv) {
             Messages messages(message_list);
 
-            SaveScreenshot2(tv, path, &messages, correct_aspect_ratio);
+            SaveScreenshot2(tv, correct_aspect_ratio, filter, path, &messages);
         });
     }
 }
@@ -3409,18 +3452,23 @@ void BeebWindow::SaveScreenshot() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static void CopyScreenshot2(const TVOutput &tv, bool correct_aspect_ratio, Messages *messages) {
-    std::unique_ptr<SDL_Surface, SDL_Deleter> screenshot = CreateScreenshot(tv, correct_aspect_ratio, messages);
+static void CopyScreenshot2(const TVOutput &tv,
+                            bool correct_aspect_ratio,
+                            bool filter,
+                            Messages *messages) {
+    std::unique_ptr<SDL_Surface, SDL_Deleter> screenshot = CreateScreenshot(tv, correct_aspect_ratio, filter, messages);
     if (!!screenshot) {
         SetClipboardImage(screenshot.get(), messages);
     }
 }
 
 void BeebWindow::CopyScreenshot() {
-    m_tv.AddNextVSyncCallback([message_list = m_msg.GetMessageList(), correct_aspect_ratio = m_settings.correct_aspect_ratio](const TVOutput &tv) {
+    m_tv.AddNextVSyncCallback([message_list = m_msg.GetMessageList(),
+                               correct_aspect_ratio = m_settings.screenshot_correct_aspect_ratio,
+                               filter = m_settings.screenshot_filter](const TVOutput &tv) {
         Messages messages(message_list);
 
-        CopyScreenshot2(tv, correct_aspect_ratio, &messages);
+        CopyScreenshot2(tv, correct_aspect_ratio, filter, &messages);
     });
 }
 

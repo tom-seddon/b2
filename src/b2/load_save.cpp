@@ -1183,6 +1183,8 @@ static const char PARASITE_TYPE[] = "parasite_type";
 static const char JOYSTICKS[] = "joysticks";
 static const char DEVICE_NAMES[] = "device_names";
 static const char GUI_FONT_SIZE[] = "gui_font_size";
+static const char SCREENSHOT_FILTER[] = "screenshot_filter";
+static const char SCREENSHOT_CORRECT_ASPECT_RATIO[] = "screenshot_correct_aspect_ratio";
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -1972,6 +1974,8 @@ static bool LoadWindows(rapidjson::Value *windows, Messages *msg) {
     FindStringMember(&BeebWindows::default_config_name, windows, CONFIG, nullptr);
     FindEnumMember(&BeebWindows::defaults.leds_popup_mode, windows, LEDS_POPUP_MODE, "LEDs popup mode", &GetBeebWindowLEDsPopupModeEnumName, msg);
     FindUIntMember(&BeebWindows::defaults.gui_font_size, windows, GUI_FONT_SIZE, nullptr);
+    FindBoolMember(&BeebWindows::defaults.screenshot_filter, windows, SCREENSHOT_FILTER, nullptr);
+    FindBoolMember(&BeebWindows::defaults.screenshot_correct_aspect_ratio, windows, SCREENSHOT_CORRECT_ASPECT_RATIO, nullptr);
 
     {
         std::string keymap_name;
@@ -2024,6 +2028,12 @@ static void SaveWindows(JSONWriter<StringStream> *writer) {
 
         writer->Key(CORRECT_ASPECT_RATIO);
         writer->Bool(BeebWindows::defaults.correct_aspect_ratio);
+
+        writer->Key(SCREENSHOT_FILTER);
+        writer->Bool(BeebWindows::defaults.screenshot_filter);
+
+        writer->Key(SCREENSHOT_CORRECT_ASPECT_RATIO);
+        writer->Bool(BeebWindows::defaults.screenshot_correct_aspect_ratio);
 
         writer->Key(AUTO_SCALE);
         writer->Bool(BeebWindows::defaults.display_auto_scale);

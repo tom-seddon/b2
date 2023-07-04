@@ -151,6 +151,11 @@ If you find the UI text a bit small, use the GUI Font Size setting to
 make it larger. (This only affects the emulator UI, not the BBC
 display.)
 
+### Screenshot options
+
+`Correct aspect ratio` and `Filter display` have the same effect as
+the corresponding Display options, but apply to screenshots only.
+
 ### Sound options
 
 `BBC volume` controls BBC sound chip volume. `Disc volume` controls

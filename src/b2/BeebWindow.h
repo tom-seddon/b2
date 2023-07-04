@@ -80,6 +80,9 @@ struct BeebWindowSettings {
     bool display_filter = true;
     bool display_interlace = false;
 
+    bool screenshot_correct_aspect_ratio = true;
+    bool screenshot_filter = true;
+
     const BeebKeymap *keymap = nullptr;
 
     unsigned gui_font_size = 0;
