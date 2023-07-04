@@ -120,10 +120,10 @@ Use `File` > `Save screenshot...` to save a PNG format screenshot to
 disk.
 
 Use `Edit` > `Copy screenshot` to copy a screenshot to the clipboard.
-On Linux, this relies on the
-[`xclip`](https://github.com/astrand/xclip) utility, which you will
-need to have installed. (Probably available via most package managers
-too.)
+(On Windows and macOS, this will just work. On Linux, this relies on
+the [`xclip`](https://github.com/astrand/xclip) utility, which you
+will need to have installed. Available from the package manager on
+Ubuntu, and probably on most other distributions too.)
 
 ## Options
 
@@ -147,9 +147,9 @@ For best results, leave these options on.
 For (inauthentic!) 1:1 pixel output, switch them off and set a manual
 scale of 1.0, or 2.0, and so on.
 
-If you find the UI text a bit small, use the GUI Font Size setting to
-make it larger. (This only affects the emulator UI, not the BBC
-display.)
+`Emulate interlace`, which you probably don't want to tick,
+approximates the visual effect of an interlaced display when
+interlacing is switched on.
 
 ### Screenshot options
 
@@ -165,6 +165,16 @@ When `Power-on tone` is unticked, the Brrrr... power-on tone will be
 silenced. This is not very authentic! - but it might make things a bit
 less annoying when you find yourself hearing it a lot. (You will still
 get the beep.)
+
+### UI options
+
+If you find the UI text a bit small, use the GUI Font Size setting to
+make it larger. (This only affects the emulator UI, not the BBC
+display.)
+
+### HTTP Server options
+
+See [the file association section](./File-Association.md).
 
 ## Customize keyboard keys
 

@@ -384,6 +384,10 @@ using an HTTP client library.
 The emulator listens on port 48075 (0xbbcb) for connections from
 localhost only.
 
+The HTTP API also supports
+[the file associaton mechanism](./File-Association.md), so the
+documentation for that applies.
+
 **The HTTP API is a work in progress, and may change.**
 
 ## HTTP endpoints
@@ -407,6 +411,14 @@ specified, the response is an HTTP status code with no content.
 Generally this will be one of `200 OK` (success), `400 Bad Request` or
 `404 Not Found` (invalid request), or `503 Service Unavailable` (request
 was valid but couldn't be fulfilled).
+
+### `launch?path=PATH`
+
+Launch the given file as if double clicked in Explorer/Finder/etc.
+
+This endpoint is the one used by the file association mechanism, so
+the same limitations apply. You don't get control over which window is
+used, and the emulator auto-detects the file type from the name.
 
 ### `reset/WIN?config=CONFIG` ###
 
@@ -432,11 +444,15 @@ specified) or `utf-8`.
 
 ### `poke/WIN/ADDR` ###
 
+**This endpoint is deprecated and will probably be going away**
+
 Store the request body into memory at `ADDR` (a 32-bit hex value), the
 address as per
 [JGH's addressing scheme](http://mdfs.net/Docs/Comp/BBC/MemAddrs).
 
 ### `peek/WIN/BEGIN-ADDR/END-ADDR`; `peek/WIN/BEGIN-ADDR/+SIZE` ###
+
+**This endpoint is deprecated and will probably be going away**
 
 Retrieve memory from `BEGIN-ADDR` (32-bit hex, inclusive) to
 `END-ADDR` (32-bit hex, exclusive) or `BEGIN-ADDR+SIZE` (exclusive -
