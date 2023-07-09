@@ -240,7 +240,7 @@ void BeebWindow::OptionsUI::DoImGui() {
 
     {
         ImGuiHeader("Screenshot");
-        ImGuiIDPusher pusher(&pusher);
+        ImGuiIDPusher pusher(1);
 
         ImGui::Checkbox("Correct aspect ratio", &settings->screenshot_correct_aspect_ratio);
 #if HAVE_SDL_SOFTSTRETCHLINEAR
