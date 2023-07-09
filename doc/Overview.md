@@ -65,10 +65,15 @@ and d-pad correspond to the BBC joystick X and Y axes, and the main 4
 buttons and the 2 shoulder buttons correspond to the BBC joystick
 button. (Other buttons or triggers are unused.)
 
-You can use the same gamepad for both BBC joysticks. In this
-situation, the left thumbstick and left shoulder button control BBC
-joystick 0, and the right thumbstick and right shoulder button control
-BBC joystick 1. The other buttons and triggers are unused.
+You can use the same gamepad for both BBC joysticks. By default, the
+left thumbstick and left shoulder button control BBC joystick 0, and
+the right thumbstick and right shoulder button control BBC joystick 1.
+(The other buttons and triggers are unused.) Tick `Swap shared
+joysticks` to have the assignment the other way round.
+
+The joysticks menu shows you the name of the last used joystick - the
+one on which a button was last pressed. If you've got several of the
+same type plugged in, this can help you figure out which is which.
 
 ## Save states
 

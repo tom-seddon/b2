@@ -1186,6 +1186,7 @@ static const char GUI_FONT_SIZE[] = "gui_font_size";
 static const char SCREENSHOT_FILTER[] = "screenshot_filter";
 static const char SCREENSHOT_CORRECT_ASPECT_RATIO[] = "screenshot_correct_aspect_ratio";
 static const char SCREENSHOT_LAST_VSYNC[] = "screenshot_last_vsync";
+static const char SWAP_JOYSTICKS_WHEN_SHARED[] = "swap_joysticks_when_shared";
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -1918,32 +1919,43 @@ static void SaveNVRAM(JSONWriter<StringStream> *writer) {
 //////////////////////////////////////////////////////////////////////////
 
 static bool LoadJoysticks(rapidjson::Value *joysticks_json, Messages *msg) {
+    JoysticksConfig config;
+
     rapidjson::Value device_names_json;
     if (FindArrayMember(&device_names_json, joysticks_json, DEVICE_NAMES, msg)) {
+
         for (uint8_t i = 0; i < device_names_json.Size() && i < NUM_BEEB_JOYSTICKS; ++i) {
             if (!device_names_json[i].IsString()) {
                 msg->e.f("not a string: %s.%s[%u]\n", JOYSTICKS, DEVICE_NAMES, i);
                 continue;
             }
 
-            SetPCJoystickDeviceNameByBeebIndex(i, device_names_json[i].GetString());
+            config.device_names[i] = device_names_json[i].GetString();
         }
     }
+
+    FindBoolMember(&config.swap_joysticks_when_shared, joysticks_json, SWAP_JOYSTICKS_WHEN_SHARED, msg);
+
+    SetJoysticksConfig(config);
 
     return true;
 }
 
 static void SaveJoysticks(JSONWriter<StringStream> *writer) {
+    const JoysticksConfig config = GetJoysticksConfig();
+
     {
         auto joysticks_json = ObjectWriter(writer, JOYSTICKS);
         {
             auto device_names_json = ArrayWriter(writer, DEVICE_NAMES);
 
             for (uint8_t i = 0; i < NUM_BEEB_JOYSTICKS; ++i) {
-                std::string device_name = GetPCJoystickDeviceNameByBeebIndex(i);
-                writer->String(device_name.c_str());
+                writer->String(config.device_names[i].c_str());
             }
         }
+
+        writer->Key(SWAP_JOYSTICKS_WHEN_SHARED);
+        writer->Bool(config.swap_joysticks_when_shared);
     }
 }
 

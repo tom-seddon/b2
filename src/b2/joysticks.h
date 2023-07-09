@@ -50,8 +50,14 @@ void DoJoysticksMenuImGui(Messages *msg);
 //////////////////////////////////////////////////////////////////////////
 
 static constexpr uint8_t NUM_BEEB_JOYSTICKS = 2;
-std::string GetPCJoystickDeviceNameByBeebIndex(uint8_t beeb_index);
-void SetPCJoystickDeviceNameByBeebIndex(uint8_t beeb_index, std::string device_name);
+
+struct JoysticksConfig {
+    std::string device_names[NUM_BEEB_JOYSTICKS];
+    bool swap_joysticks_when_shared = false;
+};
+
+JoysticksConfig GetJoysticksConfig();
+void SetJoysticksConfig(const JoysticksConfig &config);
 
 void CloseJoysticks();
 

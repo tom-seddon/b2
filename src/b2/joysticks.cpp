@@ -37,6 +37,7 @@ static std::vector<std::unique_ptr<PCJoystick>> g_pc_joysticks;
 
 static BeebJoystick g_beeb_joysticks[NUM_BEEB_JOYSTICKS];
 static PCJoystick *g_last_used_pc_joystick;
+static bool g_swap_shared_joysticks = false;
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -217,6 +218,20 @@ void JoystickDeviceRemoved(int device_instance, Messages *msg) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+// Returns true if a single gamepad is driving both Beeb joysticks.
+static bool AreJoysticksShared() {
+    if (g_beeb_joysticks[0].pc_joystick) {
+        if (g_beeb_joysticks[0].pc_joystick == g_beeb_joysticks[1].pc_joystick) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 static uint16_t GetAnalogueChannelValueFromJoystickAxisValue(int16_t joystick_axis_value) {
     uint16_t value = (uint16_t) ~((int32_t)joystick_axis_value + 32768);
     value >>= 6;
@@ -232,22 +247,33 @@ JoystickResult ControllerAxisMotion(int device_instance, int axis, int16_t value
             pc_joystick->controller_axis_values[axis] = value;
 
             uint16_t uvalue = GetAnalogueChannelValueFromJoystickAxisValue(value);
-            if (g_beeb_joysticks[0].pc_joystick && g_beeb_joysticks[0].pc_joystick == g_beeb_joysticks[1].pc_joystick) {
-                // two Beeb joysticks from one PC controller
+            if (AreJoysticksShared()) {
+                JoystickResult result = {};
                 switch (axis) {
                 case SDL_CONTROLLER_AXIS_LEFTX:
-                    return {0, uvalue};
+                    result = {0, uvalue};
                     break;
+
                 case SDL_CONTROLLER_AXIS_LEFTY:
-                    return {1, uvalue};
+                    result = {1, uvalue};
                     break;
+
                 case SDL_CONTROLLER_AXIS_RIGHTX:
-                    return {2, uvalue};
+                    result = {2, uvalue};
                     break;
+
                 case SDL_CONTROLLER_AXIS_RIGHTY:
-                    return {3, uvalue};
+                    result = {3, uvalue};
                     break;
                 }
+
+                if (g_swap_shared_joysticks) {
+                    if (result.channel >= 0) {
+                        result.channel ^= 2;
+                    }
+                }
+
+                return result;
             } else if (g_beeb_joysticks[0].pc_joystick == pc_joystick) {
                 switch (axis) {
                 case SDL_CONTROLLER_AXIS_LEFTX:
@@ -320,25 +346,29 @@ JoystickResult ControllerButton(int device_instance, int button, bool state) {
             uint32_t mask = 1u << button;
             if (state) {
                 pc_joystick->controller_button_states |= mask;
+                g_last_used_pc_joystick = pc_joystick;
             } else {
                 pc_joystick->controller_button_states &= ~mask;
             }
 
-            g_last_used_pc_joystick = pc_joystick;
+            if (AreJoysticksShared()) {
+                JoystickResult jr;
 
-            if (g_beeb_joysticks[0].pc_joystick && g_beeb_joysticks[0].pc_joystick == g_beeb_joysticks[1].pc_joystick) {
-                // two Beeb joysticks from one PC controller. Only the shoulder buttons count.
                 if (button == SDL_CONTROLLER_BUTTON_LEFTSHOULDER) {
-                    JoystickResult jr;
                     jr.button_joystick_index = 0;
                     jr.button_state = state;
-                    return jr;
                 } else if (button == SDL_CONTROLLER_BUTTON_RIGHTSHOULDER) {
-                    JoystickResult jr;
                     jr.button_joystick_index = 1;
                     jr.button_state = state;
-                    return jr;
                 }
+
+                if (g_swap_shared_joysticks) {
+                    if (jr.button_joystick_index >= 0) {
+                        jr.button_joystick_index ^= 1;
+                    }
+                }
+
+                return jr;
             } else if (g_beeb_joysticks[0].pc_joystick == pc_joystick) {
                 return GetJoystickResultForButton(pc_joystick, button, 0);
             } else if (g_beeb_joysticks[1].pc_joystick == pc_joystick) {
@@ -386,40 +416,53 @@ void DoJoysticksMenuImGui(Messages *msg) {
                 }
             }
 
-            ImGui::Separator();
-
-            label = "Last used joystick: ";
-
-            if (g_last_used_pc_joystick) {
-                label += g_last_used_pc_joystick->display_name;
-            } else {
-                label += NULL_JOYSTICK_NAME;
-            }
-
-            ImGui::MenuItem(label.c_str());
-
             ImGui::EndMenu();
         }
     }
+
+    if (AreJoysticksShared()) {
+        ImGui::Separator();
+
+        ImGui::Checkbox("Swap shared joysticks", &g_swap_shared_joysticks);
+    }
+
+    ImGui::Separator();
+
+    std::string label = "Last used joystick: ";
+
+    if (g_last_used_pc_joystick) {
+        label += g_last_used_pc_joystick->display_name;
+    } else {
+        label += NULL_JOYSTICK_NAME;
+    }
+
+    ImGui::MenuItem(label.c_str());
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-std::string GetPCJoystickDeviceNameByBeebIndex(uint8_t beeb_index) {
-    ASSERT(beeb_index < NUM_BEEB_JOYSTICKS);
+JoysticksConfig GetJoysticksConfig() {
+    JoysticksConfig config;
 
-    return g_beeb_joysticks[beeb_index].device_name;
+    for (uint8_t beeb_index = 0; beeb_index < NUM_BEEB_JOYSTICKS; ++beeb_index) {
+        config.device_names[beeb_index] = g_beeb_joysticks[beeb_index].device_name;
+    }
+
+    config.swap_joysticks_when_shared = g_swap_shared_joysticks;
+
+    return config;
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void SetPCJoystickDeviceNameByBeebIndex(uint8_t beeb_index, std::string device_name) {
-    ASSERT(g_pc_joysticks.empty());
-    ASSERT(beeb_index < NUM_BEEB_JOYSTICKS);
+void SetJoysticksConfig(const JoysticksConfig &config) {
+    for (uint8_t beeb_index = 0; beeb_index < NUM_BEEB_JOYSTICKS; ++beeb_index) {
+        g_beeb_joysticks[beeb_index].device_name = config.device_names[beeb_index];
+    }
 
-    g_beeb_joysticks[beeb_index].device_name = std::move(device_name);
+    g_swap_shared_joysticks = config.swap_joysticks_when_shared;
 }
 
 //////////////////////////////////////////////////////////////////////////
