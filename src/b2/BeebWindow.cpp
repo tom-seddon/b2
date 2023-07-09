@@ -2651,7 +2651,17 @@ void BeebWindow::UpdateTitle() {
         m_last_title_update_ticks = now;
     }
 
+    // try to smooth the value a bit.
+    double smoothed_speed;
+    if (m_last_title_speed > 0.) {
+        smoothed_speed = m_last_title_speed + (speed - m_last_title_speed) * .75;
+    } else {
+        smoothed_speed = speed;
+    }
+
     snprintf(title, sizeof title, "%s [%.3fx]", m_name.c_str(), speed);
+
+    m_last_title_speed = speed;
 
     SDL_SetWindowTitle(m_window, title);
 }

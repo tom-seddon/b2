@@ -332,6 +332,7 @@ class BeebWindow {
     // title update.
     CycleCount m_last_title_update_cycles = {0};
     uint64_t m_last_title_update_ticks = 0;
+    double m_last_title_speed = 0.;
 
     // copy of BeebThread state
     DriveState m_drives[NUM_DRIVES];
