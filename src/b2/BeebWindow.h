@@ -47,6 +47,7 @@ struct JoystickResult;
 #include "commands.h"
 //#include "SDL_video.h"
 #include <beeb/video.h>
+#include "misc.h"
 
 #include <shared/enum_decl.h>
 #include "BeebWindow.inl"
@@ -80,6 +81,7 @@ struct BeebWindowSettings {
     bool display_filter = true;
     bool display_interlace = false;
 
+    bool screenshot_last_vsync = true;
     bool screenshot_correct_aspect_ratio = true;
     bool screenshot_filter = true;
 
@@ -517,6 +519,7 @@ class BeebWindow {
 
     void SaveConfig();
 
+    SDLUniquePtr<SDL_Surface> CreateScreenshot() const;
     void SaveScreenshot();
     void CopyScreenshot();
 
@@ -533,7 +536,7 @@ class BeebWindow {
     static const SettingsUIMetadata ms_settings_uis[];
 
     // Keep this at the end. It's massive.
-    Messages m_msg;
+    mutable Messages m_msg;
 };
 
 //////////////////////////////////////////////////////////////////////////

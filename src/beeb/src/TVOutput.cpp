@@ -30,8 +30,9 @@ TVOutput::TVOutput() {
 #if VIDEO_TRACK_METADATA
     m_texture_units.resize(m_texture_pixels.size());
 #endif
+    m_last_vsync_texture_pixels.resize(TV_TEXTURE_WIDTH * (TV_TEXTURE_HEIGHT + 1));
 
-    MUTEX_SET_NAME(m_next_vsync_callbacks_mutex, "TVOutput vsync callbacks");
+    MUTEX_SET_NAME(m_last_vsync_texture_pixels_mutex, "Last vsync texture pixels");
 
     this->InitPalette();
 }
@@ -100,15 +101,12 @@ void TVOutput::Update(const VideoDataUnit *units, size_t num_units) {
 
         case TVOutputState_VerticalRetrace:
             {
-                std::vector<std::function<void(const TVOutput &)>> vsync_callbacks;
-                {
-                    std::lock_guard<Mutex> lock(m_next_vsync_callbacks_mutex);
-                    vsync_callbacks = std::move(m_next_vsync_callbacks);
-                }
+                std::lock_guard<Mutex> lock(m_last_vsync_texture_pixels_mutex);
 
-                for (const std::function<void(const TVOutput &)> &vsync_callback : vsync_callbacks) {
-                    vsync_callback(*this);
-                }
+                ASSERT(m_last_vsync_texture_pixels.size() == m_texture_pixels.size());
+                memcpy(m_last_vsync_texture_pixels.data(),
+                       m_texture_pixels.data(),
+                       m_texture_pixels.size() * sizeof m_texture_pixels[0]);
             }
 
             // With interlaced output, odd fields start 1 scanline lower.
@@ -510,6 +508,15 @@ uint32_t *TVOutput::GetTexturePixels(uint64_t *texture_data_version) const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+uint32_t *TVOutput::GetLastVSyncTexturePixels(std::unique_lock<Mutex> *lock) const {
+    *lock = std::unique_lock<Mutex>(m_last_vsync_texture_pixels_mutex);
+
+    return m_last_vsync_texture_pixels.data();
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 void TVOutput::CopyTexturePixels(void *dest_pixels, size_t dest_pitch_bytes) const {
     ASSERT(dest_pitch_bytes > 0);
     size_t src_pitch_bytes = TV_TEXTURE_WIDTH * 4;
@@ -677,15 +684,6 @@ bool TVOutput::GetInterlace() const {
 
 void TVOutput::SetInterlace(bool interlace) {
     m_interlace = interlace;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-void TVOutput::AddNextVSyncCallback(std::function<void(const TVOutput &)> callback) {
-    std::lock_guard<Mutex> lock(m_next_vsync_callbacks_mutex);
-
-    m_next_vsync_callbacks.push_back(std::move(callback));
 }
 
 //////////////////////////////////////////////////////////////////////////

@@ -30,8 +30,8 @@ struct VideoDataUnit;
 // SDL_PIXELFORMAT_XRGB8888. The texture is always
 // TV_TEXTURE_WIDTH*TV_TEXTURE_HEIGHT, and its stride is TV_OUTPUT_WIDTH*4.
 
-// TODO: should be a CreateSDLTexture function, that creates an appropriate
-// SDL_Texture. Just supply the texture access flags.
+// It's OK to call the const functions on one thread and the Update function
+// on another.
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -60,10 +60,18 @@ class TVOutput {
 #endif
 
     // *data_version (optional) is set to texture data version, incremented on
-    // each vblank. (Between vblanks, the buffer contains a partially scanned-out frame.)
+    // each vblank. (Between vblanks, the buffer contains a partially scanned-out frame,
+    // with no guarantees of anything.)
     //
     // The pointer is not const. Any modifications will just eventually get overwritten.
     uint32_t *GetTexturePixels(uint64_t *texture_data_version) const;
+
+    // There's no versioning for this - you just get whatever was there last time.
+    // There is however a mutex, to ensure the data doesn't get overwritten while
+    // still in use if the Update call is being made on another thread.
+    //
+    // The pointer is not const. Any modifications will just eventually get overwritten.
+    uint32_t *GetLastVSyncTexturePixels(std::unique_lock<Mutex> *lock) const;
 
     void CopyTexturePixels(void *dest_pixels, size_t dest_pitch) const;
 
@@ -85,8 +93,6 @@ class TVOutput {
     bool GetInterlace() const;
     void SetInterlace(bool interlace);
 
-    void AddNextVSyncCallback(std::function<void(const TVOutput &)> callback);
-
   protected:
   private:
     TVOutputState m_state = TVOutputState_VerticalRetrace;
@@ -107,6 +113,9 @@ class TVOutput {
 #endif
     uint64_t m_texture_data_version = 1;
 
+    mutable Mutex m_last_vsync_texture_pixels_mutex;
+    mutable std::vector<uint32_t> m_last_vsync_texture_pixels;
+
 #if TRACK_VIDEO_LATENCY
     uint64_t render_latency_ticks;
     size_t num_renders;
@@ -123,9 +132,6 @@ class TVOutput {
     uint32_t m_6845_raster0_marker_xor = 0;
     uint32_t m_6845_dispen_marker_xor = 0;
     uint32_t m_beam_marker_xor = 0;
-
-    Mutex m_next_vsync_callbacks_mutex;
-    std::vector<std::function<void(const TVOutput &)>> m_next_vsync_callbacks;
 
     uint32_t GetTexelValue(uint8_t r, uint8_t g, uint8_t b) const;
     void InitPalette();

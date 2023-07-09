@@ -246,6 +246,7 @@ void BeebWindow::OptionsUI::DoImGui() {
 #if HAVE_SDL_SOFTSTRETCHLINEAR
         ImGui::Checkbox("Bilinear filtering", &settings->screenshot_filter);
 #endif
+        ImGui::Checkbox("Last completed frame", &settings->screenshot_last_vsync);
     }
 
     ImGui::NewLine();
@@ -300,7 +301,7 @@ void BeebWindow::OptionsUI::DoImGui() {
 
 #if BBCMICRO_DEBUGGER
     {
-        ImGuiHeader("Display Debug Options");
+        ImGuiHeader("Debug Options");
         std::unique_lock<Mutex> lock;
         BBCMicro *m = m_beeb_window->m_beeb_thread->LockMutableBeeb(&lock);
         bool debug;
@@ -3369,32 +3370,37 @@ void BeebWindow::SaveConfig() {
 //////////////////////////////////////////////////////////////////////////
 
 // Creates a 24 bpp R8_G8_B8 surface. This format coexists nicely with
-// stbi_image_write and GdkPixbuf.
-static std::unique_ptr<SDL_Surface, SDL_Deleter> CreateScreenshot(const TVOutput &tv,
-                                                                  bool correct_aspect_ratio,
-                                                                  bool filter,
-                                                                  Messages *messages) {
+// stbi_image_write, which is a bit inflexible in terms of input format.
+SDLUniquePtr<SDL_Surface> BeebWindow::CreateScreenshot() const {
+    std::unique_lock<Mutex> lock;
+    uint32_t *tv_pixels;
+    if (m_settings.screenshot_last_vsync) {
+        tv_pixels = m_tv.GetLastVSyncTexturePixels(&lock);
+    } else {
+        tv_pixels = m_tv.GetTexturePixels(nullptr);
+    }
+
     // temporary surface referring to the 32 bpp BGRA actual pixel data in the TVOutput
     // object.
-    std::unique_ptr<SDL_Surface, SDL_Deleter> src_surface(SDL_CreateRGBSurfaceFrom(tv.GetTexturePixels(nullptr),
-                                                                                   TV_TEXTURE_WIDTH, TV_TEXTURE_HEIGHT,
-                                                                                   32,
-                                                                                   TV_TEXTURE_WIDTH * 4,
-                                                                                   0x00ff0000,
-                                                                                   0x0000ff00,
-                                                                                   0x000000ff,
-                                                                                   0x00000000));
+    SDLUniquePtr<SDL_Surface> src_surface(SDL_CreateRGBSurfaceFrom(tv_pixels,
+                                                                   TV_TEXTURE_WIDTH, TV_TEXTURE_HEIGHT,
+                                                                   32,
+                                                                   TV_TEXTURE_WIDTH * 4,
+                                                                   0x00ff0000,
+                                                                   0x0000ff00,
+                                                                   0x000000ff,
+                                                                   0x00000000));
 
-    if (correct_aspect_ratio) {
-        std::unique_ptr<SDL_Surface, SDL_Deleter> surface(SDL_CreateRGBSurface(0,
-                                                                               int(TV_TEXTURE_WIDTH * CORRECT_ASPECT_RATIO_X_SCALE), TV_TEXTURE_HEIGHT,
-                                                                               32,
-                                                                               src_surface->format->Rmask,
-                                                                               src_surface->format->Gmask,
-                                                                               src_surface->format->Bmask,
-                                                                               src_surface->format->Amask));
+    if (m_settings.screenshot_correct_aspect_ratio) {
+        SDLUniquePtr<SDL_Surface> surface(SDL_CreateRGBSurface(0,
+                                                               int(TV_TEXTURE_WIDTH * CORRECT_ASPECT_RATIO_X_SCALE), TV_TEXTURE_HEIGHT,
+                                                               32,
+                                                               src_surface->format->Rmask,
+                                                               src_surface->format->Gmask,
+                                                               src_surface->format->Bmask,
+                                                               src_surface->format->Amask));
         int blit_result;
-        if (filter) {
+        if (m_settings.screenshot_filter) {
             blit_result =
 #if HAVE_SDL_SOFTSTRETCHLINEAR
                 SDL_SoftStretchLinear
@@ -3407,9 +3413,7 @@ static std::unique_ptr<SDL_Surface, SDL_Deleter> CreateScreenshot(const TVOutput
         }
 
         if (blit_result != 0) {
-            if (messages) {
-                messages->e.f("Failed to resize image: %s\n", SDL_GetError());
-            }
+            m_msg.e.f("Failed to resize image: %s\n", SDL_GetError());
             return nullptr;
         }
 
@@ -3418,9 +3422,7 @@ static std::unique_ptr<SDL_Surface, SDL_Deleter> CreateScreenshot(const TVOutput
 
     std::unique_ptr<SDL_Surface, SDL_Deleter> surface(SDL_CreateRGBSurfaceWithFormat(0, src_surface->w, src_surface->h, 24, SDL_PIXELFORMAT_RGB24));
     if (SDL_BlitSurface(src_surface.get(), nullptr, surface.get(), nullptr) != 0) {
-        if (messages) {
-            messages->e.f("Failed to copy image: %s\n", SDL_GetError());
-        }
+        m_msg.e.f("Failed to copy image: %s\n", SDL_GetError());
         return nullptr;
     }
 
@@ -3430,17 +3432,6 @@ static std::unique_ptr<SDL_Surface, SDL_Deleter> CreateScreenshot(const TVOutput
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static void SaveScreenshot2(const TVOutput &tv,
-                            bool correct_aspect_ratio,
-                            bool filter,
-                            const std::string &path,
-                            Messages *messages) {
-    std::unique_ptr<SDL_Surface, SDL_Deleter> screenshot = CreateScreenshot(tv, correct_aspect_ratio, filter, messages);
-    if (!!screenshot) {
-        SaveSDLSurface(screenshot.get(), path, messages);
-    }
-}
-
 void BeebWindow::SaveScreenshot() {
     SaveFileDialog fd(RECENT_PATHS_SCREENSHOT);
 
@@ -3448,38 +3439,21 @@ void BeebWindow::SaveScreenshot() {
 
     std::string path;
     if (fd.Open(&path)) {
-        m_tv.AddNextVSyncCallback([path,
-                                   message_list = m_msg.GetMessageList(),
-                                   correct_aspect_ratio = m_settings.screenshot_correct_aspect_ratio,
-                                   filter = m_settings.screenshot_filter](const TVOutput &tv) {
-            Messages messages(message_list);
-
-            SaveScreenshot2(tv, correct_aspect_ratio, filter, path, &messages);
-        });
+        SDLUniquePtr<SDL_Surface> screenshot = this->CreateScreenshot();
+        if (!!screenshot) {
+            SaveSDLSurface(screenshot.get(), path, &m_msg);
+        }
     }
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
-
-static void CopyScreenshot2(const TVOutput &tv,
-                            bool correct_aspect_ratio,
-                            bool filter,
-                            Messages *messages) {
-    std::unique_ptr<SDL_Surface, SDL_Deleter> screenshot = CreateScreenshot(tv, correct_aspect_ratio, filter, messages);
-    if (!!screenshot) {
-        SetClipboardImage(screenshot.get(), messages);
-    }
-}
 
 void BeebWindow::CopyScreenshot() {
-    m_tv.AddNextVSyncCallback([message_list = m_msg.GetMessageList(),
-                               correct_aspect_ratio = m_settings.screenshot_correct_aspect_ratio,
-                               filter = m_settings.screenshot_filter](const TVOutput &tv) {
-        Messages messages(message_list);
-
-        CopyScreenshot2(tv, correct_aspect_ratio, filter, &messages);
-    });
+    SDLUniquePtr<SDL_Surface> screenshot = this->CreateScreenshot();
+    if (!!screenshot) {
+        SetClipboardImage(screenshot.get(), &m_msg);
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////
