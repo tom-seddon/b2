@@ -26,15 +26,14 @@ void SetClipboardImage(SDL_Surface *surface, Messages *messages) {
     header.bV5Width = surface->w;
     header.bV5Height = surface->h;
     header.bV5Planes = 1;
-    header.bV5BitCount = surface->format->BitsPerPixel;
+    header.bV5BitCount = 24;
     header.bV5Compression = BI_RGB;
-    header.bV5RedMask = surface->format->Rmask;
-    header.bV5GreenMask = surface->format->Gmask;
-    header.bV5BlueMask = surface->format->Bmask;
-    header.bV5AlphaMask = surface->format->Amask;
-    //header.bV5CSType = LCS_sRGB;
 
     size_t stride = (((header.bV5Width * header.bV5BitCount) + 31) & ~31) >> 3;
+
+    // TODO: if the surface is BGR24 already, could just lock the bits and use
+    // them directly. But it's not like setting the clipboard image is
+    // performance-sensitive.
 
     std::vector<char> dibits(stride * header.bV5Height, 0);
     for (int y = 0; y < header.bV5Height; ++y) {
@@ -44,7 +43,7 @@ void SetClipboardImage(SDL_Surface *surface, Messages *messages) {
         // Bottom-up DI bitmap.
         auto dest = &dibits[(header.bV5Height - 1 - y) * stride];
 
-        memcpy(dest, src, stride);
+        SDL_ConvertPixels(surface->w, 1, surface->format->format, src, surface->pitch, SDL_PIXELFORMAT_BGR24, dest, (int)stride);
     }
 
     HDC screen_dc = nullptr;
@@ -52,34 +51,34 @@ void SetClipboardImage(SDL_Surface *surface, Messages *messages) {
 
     screen_dc = CreateDC("DISPLAY", nullptr, nullptr, nullptr);
     if (!screen_dc) {
-        messages->e.f("CreateDC failed: %s", GetLastErrorDescription());
+        messages->e.f("CreateDC failed: %s\n", GetLastErrorDescription());
         goto done;
     }
 
     bitmap = CreateCompatibleBitmap(screen_dc, surface->w, surface->h);
     if (!bitmap) {
-        messages->e.f("CreateCompatibleBitmap failed: size was %d x %d", surface->w, surface->h);
+        messages->e.f("CreateCompatibleBitmap failed: size was %d x %d\n", surface->w, surface->h);
         goto done;
     }
 
     int n = SetDIBits(screen_dc, bitmap, 0, surface->h, dibits.data(), (BITMAPINFO *)&header, DIB_RGB_COLORS);
     if (n != surface->h) {
-        messages->e.f("SetDIBits failed: result was %d", n);
+        messages->e.f("SetDIBits failed: result was %d\n", n);
         goto done;
     }
 
     if (!OpenClipboard(nullptr)) {
-        messages->e.f("OpenClipboard failed: %s", GetLastErrorDescription());
+        messages->e.f("OpenClipboard failed: %s\n", GetLastErrorDescription());
         goto done;
     }
 
     if (!EmptyClipboard()) {
-        messages->e.f("EmptyClipboard failed: %s", GetLastErrorDescription());
+        messages->e.f("EmptyClipboard failed: %s\n", GetLastErrorDescription());
         goto done;
     }
 
     if (!SetClipboardData(CF_BITMAP, bitmap)) {
-        messages->e.f("SetClipboardData failed: %s", GetLastErrorDescription());
+        messages->e.f("SetClipboardData failed: %s\n", GetLastErrorDescription());
         goto done;
     }
 
