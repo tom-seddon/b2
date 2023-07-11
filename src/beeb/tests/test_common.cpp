@@ -18,6 +18,9 @@
 #include <stb_image_write.h>
 
 #define STB_IMAGE_IMPLEMENTATION
+#ifdef _MSC_VER
+#pragma warning(disable : 4244) //OPERATOR: conversion from TYPE to TYPE, possible loss of data
+#endif
 #include <stb_image.h>
 
 #ifdef __GNUC__
