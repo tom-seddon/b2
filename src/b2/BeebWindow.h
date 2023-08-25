@@ -89,6 +89,8 @@ struct BeebWindowSettings {
 
     unsigned gui_font_size = 0;
 
+    bool full_screen = false;
+
     BeebWindowLEDsPopupMode leds_popup_mode = BeebWindowLEDsPopupMode_Auto;
 };
 
@@ -522,6 +524,9 @@ class BeebWindow {
     SDLUniquePtr<SDL_Surface> CreateScreenshot() const;
     void SaveScreenshot();
     void CopyScreenshot();
+    void ToggleFullScreen();
+    bool IsWindowFullScreen() const;
+    void SetWindowFullScreen(bool is_full_screen);
 
     void TogglePrioritizeCommandShortcuts();
     bool IsPrioritizeCommandShortcutsTicked() const;

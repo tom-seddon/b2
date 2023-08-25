@@ -1823,6 +1823,8 @@ bool BeebWindow::DoWindowMenu() {
             }
         }
 
+        m_cc.DoMenuItemUI("toggle_full_screen");
+
         ImGui::Separator();
 
         if (ImGui::MenuItem("New")) {
@@ -2290,6 +2292,7 @@ bool BeebWindow::Init() {
 
 void BeebWindow::SaveSettings() {
     m_settings.dock_config = m_imgui_stuff->SaveDockContext();
+    m_settings.full_screen = this->IsWindowFullScreen();
 
     BeebWindows::defaults = m_settings;
     BeebWindows::default_config_name = m_init_arguments.default_config.config.name;
@@ -2303,16 +2306,29 @@ void BeebWindow::SaveSettings() {
 void BeebWindow::SavePosition() {
 #if SYSTEM_WINDOWS
 
-    if (m_hwnd) {
-        std::vector<uint8_t> placement_data;
-        placement_data.resize(sizeof(WINDOWPLACEMENT));
+    uint32_t flags = SDL_GetWindowFlags(m_window);
+    if (flags & SDL_WINDOW_FULLSCREEN) {
+        // Don't overwrite any previously saved size.
+    } else {
+        if (m_hwnd) {
+            std::vector<uint8_t> placement_data;
+            placement_data.resize(sizeof(WINDOWPLACEMENT));
 
-        auto wp = (WINDOWPLACEMENT *)placement_data.data();
-        memset(wp, 0, sizeof *wp);
-        wp->length = sizeof *wp;
+            auto wp = (WINDOWPLACEMENT *)placement_data.data();
+            memset(wp, 0, sizeof *wp);
+            wp->length = sizeof *wp;
 
-        if (GetWindowPlacement((HWND)m_hwnd, wp)) {
-            BeebWindows::SetLastWindowPlacementData(std::move(placement_data));
+            if (GetWindowPlacement((HWND)m_hwnd, wp)) {
+                LOGF(OUTPUT, "%s: flags=0x%x showCmd=%u MinPosition=(%ld,%ld) MaxPosition=(%ld,%ld) NormalPosition=(%ld,%ld)-(%ld,%ld) (%ldx%ld)\n",
+                     __func__,
+                     wp->flags,
+                     wp->showCmd,
+                     wp->ptMinPosition.x, wp->ptMinPosition.y,
+                     wp->ptMaxPosition.x, wp->ptMaxPosition.y,
+                     wp->rcNormalPosition.left, wp->rcNormalPosition.top, wp->rcNormalPosition.right, wp->rcNormalPosition.bottom,
+                     wp->rcNormalPosition.right - wp->rcNormalPosition.left, wp->rcNormalPosition.bottom - wp->rcNormalPosition.top);
+                BeebWindows::SetLastWindowPlacementData(std::move(placement_data));
+            }
         }
     }
 
@@ -2455,6 +2471,10 @@ bool BeebWindow::InitInternal() {
     }
 
 #endif
+
+    if (!reset_windows) {
+        this->SetWindowFullScreen(m_settings.full_screen);
+    }
 
     SDL_RendererInfo info;
     if (SDL_GetRendererInfo(m_renderer, &info) < 0) {
@@ -3459,6 +3479,35 @@ void BeebWindow::CopyScreenshot() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+void BeebWindow::ToggleFullScreen() {
+    bool is_full_screen = this->IsWindowFullScreen();
+    this->SetWindowFullScreen(!is_full_screen);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool BeebWindow::IsWindowFullScreen() const {
+    uint32_t flags = SDL_GetWindowFlags(m_window);
+    return !!(flags & SDL_WINDOW_FULLSCREEN);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BeebWindow::SetWindowFullScreen(bool is_full_screen) {
+    uint32_t flags;
+    if (is_full_screen) {
+        flags = SDL_WINDOW_FULLSCREEN_DESKTOP;
+    } else {
+        flags = 0;
+    }
+    SDL_SetWindowFullscreen(m_window, flags);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 void BeebWindow::TogglePrioritizeCommandShortcuts() {
     m_prefer_shortcuts = !m_prefer_shortcuts;
 
@@ -3565,4 +3614,5 @@ ObjectCommandTable<BeebWindow> BeebWindow::ms_command_table("Beeb Window", {
         {CommandDef("toggle_prioritize_shortcuts", "Prioritize command keys"), &BeebWindow::TogglePrioritizeCommandShortcuts, &BeebWindow::IsPrioritizeCommandShortcutsTicked, nullptr},
         {CommandDef("save_screenshot", "Save screenshot"), &BeebWindow::SaveScreenshot},
         {CommandDef("copy_screenshot", "Copy screenshot"), &BeebWindow::CopyScreenshot},
+        {CommandDef("toggle_full_screen", "Full screen"), &BeebWindow::ToggleFullScreen, &BeebWindow::IsWindowFullScreen},
 });
