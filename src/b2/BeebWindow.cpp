@@ -2319,14 +2319,15 @@ void BeebWindow::SavePosition() {
             wp->length = sizeof *wp;
 
             if (GetWindowPlacement((HWND)m_hwnd, wp)) {
-                LOGF(OUTPUT, "%s: flags=0x%x showCmd=%u MinPosition=(%ld,%ld) MaxPosition=(%ld,%ld) NormalPosition=(%ld,%ld)-(%ld,%ld) (%ldx%ld)\n",
-                     __func__,
-                     wp->flags,
-                     wp->showCmd,
-                     wp->ptMinPosition.x, wp->ptMinPosition.y,
-                     wp->ptMaxPosition.x, wp->ptMaxPosition.y,
-                     wp->rcNormalPosition.left, wp->rcNormalPosition.top, wp->rcNormalPosition.right, wp->rcNormalPosition.bottom,
-                     wp->rcNormalPosition.right - wp->rcNormalPosition.left, wp->rcNormalPosition.bottom - wp->rcNormalPosition.top);
+                //LOGF(OUTPUT, "%s: flags=0x%x showCmd=%u MinPosition=(%ld,%ld) MaxPosition=(%ld,%ld) NormalPosition=(%ld,%ld)-(%ld,%ld) (%ldx%ld)\n",
+                //     __func__,
+                //     wp->flags,
+                //     wp->showCmd,
+                //     wp->ptMinPosition.x, wp->ptMinPosition.y,
+                //     wp->ptMaxPosition.x, wp->ptMaxPosition.y,
+                //     wp->rcNormalPosition.left, wp->rcNormalPosition.top, wp->rcNormalPosition.right, wp->rcNormalPosition.bottom,
+                //     wp->rcNormalPosition.right - wp->rcNormalPosition.left, wp->rcNormalPosition.bottom - wp->rcNormalPosition.top);
+
                 BeebWindows::SetLastWindowPlacementData(std::move(placement_data));
             }
         }
