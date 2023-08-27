@@ -1604,6 +1604,8 @@ int main(int argc, char *argv[]) {
     InitWindowsConsoleStuff();
 #endif
 
+    LinkCommands();
+
     SetCurrentThreadName("Main Thread");
 
     auto &&messages = std::make_shared<MessageList>();

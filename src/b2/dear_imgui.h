@@ -115,7 +115,6 @@ class ImGuiStuff {
     ImGuiContext *m_context = nullptr;
     ImGui::DockContext *m_dock_context = nullptr;
     bool m_reset_dock_context = false;
-    bool m_in_frame = false;
     SDL_Texture *m_font_texture = nullptr;
     uint64_t m_last_new_frame_ticks = 0;
     int m_next_wheel = 0;
@@ -467,6 +466,11 @@ uint32_t ImGuiConsumePressedKeycode();
 bool ImGuiRecentMenu(std::string *selected_path,
                      const char *title,
                      const SelectorDialog &selector);
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+uint64_t GetImGuiFrameCounter();
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

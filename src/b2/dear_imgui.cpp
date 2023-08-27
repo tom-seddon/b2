@@ -48,6 +48,14 @@ static const ImWchar FA_ICONS_RANGES[] = {ICON_MIN_FA, ICON_MAX_FA, 0};
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+// true if any ImGuiStuff is in a frame. Only one can be in a frame at a given
+// point.
+static bool g_in_frame = false;
+static uint64_t g_imgui_frame_counter = 0;
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 ImGuiContextSetter::ImGuiContextSetter(const ImGuiStuff *stuff)
     : m_old_imgui_context(ImGui::GetCurrentContext())
     , m_old_dock_context(ImGui::GetCurrentDockContext()) {
@@ -86,9 +94,9 @@ ImGuiStuff::~ImGuiStuff() {
         ImGui::DestroyDockContext(m_dock_context);
         m_dock_context = nullptr;
 
-        if (m_in_frame) {
+        if (g_in_frame) {
             ImGui::EndFrame();
-            m_in_frame = false;
+            g_in_frame = false;
         }
 
         ImGuiIO &io = ImGui::GetIO();
@@ -259,11 +267,9 @@ void ImGuiStuff::SetFontSizePixels(unsigned font_size_pixels) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-#if SYSTEM_WINDOWS
-extern "C" HCURSOR SDL_cursor;
-#endif
-
 void ImGuiStuff::NewFrame(bool got_mouse_focus) {
+    ASSERT(!g_in_frame);
+
     ImGuiContextSetter setter(this);
     ImGuiIO &io = ImGui::GetIO();
 
@@ -389,17 +395,20 @@ void ImGuiStuff::NewFrame(bool got_mouse_focus) {
     }
 
     ImGui::NewFrame();
-    m_in_frame = true;
+    g_in_frame = true;
+    ++g_imgui_frame_counter;
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 void ImGuiStuff::RenderImGui() {
+    ASSERT(g_in_frame);
+
     ImGuiContextSetter setter(this);
 
     ImGui::Render();
-    m_in_frame = false;
+    g_in_frame = false;
 }
 
 void ImGuiStuff::RenderSDL() {
@@ -1528,3 +1537,14 @@ bool ImGuiRecentMenu(std::string *selected_path,
 
     return selected;
 }
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+uint64_t GetImGuiFrameCounter() {
+    ASSERT(g_imgui_frame_counter != 0);
+    return g_imgui_frame_counter;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////

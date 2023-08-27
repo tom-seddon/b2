@@ -113,6 +113,8 @@ class ObjectCommand : public Command {
 
 class CommandTable {
   public:
+    typedef Command CommandType; //temporary measure
+
     static void ForEachCommandTable(std::function<void(CommandTable *)> fun);
     static CommandTable *FindCommandTableByName(const std::string &name);
 
@@ -238,13 +240,17 @@ class ObjectCommandTable : public CommandTable {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+class CommandTable2;
+
 // Links a CommandTable with its object's self pointer.
 //
 // (Not a great name for it - should really be BoundCommandTable, or something.)
 class CommandContext {
   public:
     CommandContext() = default;
+    explicit CommandContext(const CommandTable2 *table2);
     CommandContext(void *object, const CommandTable *table);
+    CommandContext(void *object, const CommandTable *table, const CommandTable2 *table2);
 
     void DoButton(const char *name) const;
     void DoMenuItemUI(const char *name) const;
@@ -255,13 +261,134 @@ class CommandContext {
     // When the context isn't bound, does nothing and returns false.
     bool ExecuteCommandsForPCKey(uint32_t keycode) const;
 
-    bool IsBound() const;
-
   protected:
   private:
     void *m_object = nullptr;
     const CommandTable *m_table = nullptr;
+    const CommandTable2 *m_table2 = nullptr;
 };
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+// New Command Table - see https://github.com/tom-seddon/b2/issues/262
+
+class Command2;
+
+class CommandTable2 {
+  public:
+    typedef Command2 CommandType; //temporary measure
+
+    CommandTable2(std::string name);
+    ~CommandTable2();
+
+    const std::string &GetName() const;
+
+    void ForEachCommand(std::function<void(Command2 *)> fun) const;
+
+    // sets command to have its default shortcuts.
+    void ResetDefaultMappingsByCommand(Command2 *command);
+
+    // sets command to explicitly have no shortcuts at all.
+    void ClearMappingsByCommand(Command2 *command);
+
+    void AddMapping(uint32_t pc_key, Command2 *command);
+    void RemoveMapping(uint32_t pc_key, Command2 *command);
+
+    const std::vector<uint32_t> *GetPCKeysForCommand(bool *are_defaults, Command2 *command) const;
+
+    bool ActionCommandsForPCKey(uint32_t keycode) const;
+
+    Command2 *FindCommandByName(const char *name) const;
+    Command2 *FindCommandByName(const std::string &name) const;
+
+  protected:
+  private:
+    std::string m_name;
+
+    std::map<Command2 *, std::vector<uint32_t>> m_pc_keys_by_command;
+
+    mutable std::map<uint32_t, std::vector<Command2 *>> m_commands_by_pc_key;
+    mutable bool m_commands_by_pc_key_dirty = true;
+
+    std::vector<Command2 *> m_commands_sorted;
+
+    friend class Command2;
+    friend void LinkCommands();
+};
+
+// Annoying 2-part class, so that the default constructors can be used for the
+// data while still having extra code to look after a global list of these
+// things.
+
+class Command2Data {
+  public:
+    bool enabled = true;
+    bool ticked = false;
+
+    Command2Data(CommandTable2 *table, std::string name, std::string text);
+
+  protected:
+    CommandTable2 *m_table = nullptr;
+    std::string m_name;
+    std::string m_text;
+    bool m_must_confirm = false;
+    bool m_has_tick = false;
+    mutable uint64_t m_frame_counter = 0;
+    std::vector<uint32_t> m_shortcuts;
+
+    Command2Data(const Command2Data &) = default;
+    Command2Data(Command2Data &&) = default;
+
+  private:
+    Command2Data &operator=(const Command2Data &) = delete;
+    Command2Data &operator=(Command2Data &&) = delete;
+};
+
+class Command2 : private Command2Data {
+  public:
+    using Command2Data::enabled;
+    using Command2Data::ticked;
+
+    Command2(CommandTable2 *table, std::string id, std::string label);
+    ~Command2();
+
+    // TODO: terminology...
+    const std::string &GetName() const;
+    const std::string &GetText() const;
+
+    void DoButton();
+    void DoMenuItem();
+    void DoToggleCheckbox();
+
+    bool WasActioned() const;
+
+    // fluent interface
+    Command2 MustConfirm() const;
+    Command2 WithTick() const;
+    Command2 WithShortcut(uint32_t shortcut) const;
+
+  protected:
+  private:
+    void Action();
+
+    Command2(const Command2 &);
+    Command2 &operator=(const Command2 &) = delete;
+    Command2(Command2 &&);
+    Command2 &operator=(Command2 &&) = delete;
+
+    static void AddCommand(Command2 *command);
+    static void RemoveCommand(Command2 *command);
+
+    friend class CommandTable2;
+    friend void LinkCommands();
+};
+
+void ForEachCommand2(std::function<void(Command2 *)> fun);
+void ForEachCommandTable2(std::function<void(CommandTable2 *)> fun);
+CommandTable2 *FindCommandTable2ByName(const std::string &name);
+
+void LinkCommands();
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

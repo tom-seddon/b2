@@ -82,6 +82,29 @@ static TimerDef g_HandleVBlank_DoImGui_timer_def("DoImGui",
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+static CommandTable2 g_beeb_window_command_table("Beeb Window");
+#if SYSTEM_WINDOWS
+static Command2 g_toggle_console_command = Command2(&g_beeb_window_command_table, "toggle_console", "Show Win32 console").WithTick();
+static Command2 g_clear_console_command(&g_beeb_window_command_table, "clear_console", "Clear Win32 console");
+static Command2 g_print_separator_command(&g_beeb_window_command_table, "print_separator", "Print stdout separator");
+#endif
+static Command2 g_hard_reset_command(&g_beeb_window_command_table, "hard_reset", "Hard Reset");
+static Command2 g_save_state_command(&g_beeb_window_command_table, "save_state", "Save State");
+static Command2 g_exit_command = Command2(&g_beeb_window_command_table, "exit", "Exit").MustConfirm();
+static Command2 g_clean_up_recent_files_lists_command = Command2(&g_beeb_window_command_table, "clean_up_recent_files_lists", "Clean up recent files lists").MustConfirm();
+static Command2 g_reset_dock_windows_command = Command2(&g_beeb_window_command_table, "reset_dock_windows", "Reset dock windows").MustConfirm();
+static Command2 g_paste_command(&g_beeb_window_command_table, "paste", "OSRDCH Paste");
+static Command2 g_paste_return_command(&g_beeb_window_command_table, "paste_return", "OSRDCH Paste (+Return)");
+static Command2 g_toggle_copy_oswrch_text_command(&g_beeb_window_command_table, "toggle_copy_oswrch_text", "OSWRCH Copy Text");
+static Command2 g_copy_basic_command(&g_beeb_window_command_table, "copy_basic", "Copy BASIC listing");
+#if BBCMICRO_DEBUGGER
+static Command2 g_debug_stop_command = Command2(&g_beeb_window_command_table, "debug_stop", "Stop").WithShortcut(SDLK_F5 | PCKeyModifier_Shift);
+static Command2 g_debug_run_command = Command2(&g_beeb_window_command_table, "debug_run", "Run").WithShortcut(SDLK_F5);
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 // if true, beeb display should fill the entire imgui window, ignoring
 // aspect ratio. Use when debugging imgui window size.
 #define BEEB_DISPLAY_FILL 0
@@ -740,8 +763,8 @@ bool BeebWindow::DoImGui(uint64_t ticks) {
 
     // Command contexts to try, in order of preference.
     CommandContext ccs[] = {
-        {},                                      //panel that has focus - if any
-        CommandContext(this, &ms_command_table), //for this window
+        {},                                                                    //panel that has focus - if any
+        CommandContext(this, &ms_command_table, &g_beeb_window_command_table), //for this window
     };
     static const size_t num_ccs = sizeof ccs / sizeof ccs[0];
 
@@ -902,6 +925,106 @@ bool BeebWindow::HandleCommandKey(uint32_t keycode,
 
 bool BeebWindow::DoMenuUI() {
     bool keep_window = true;
+
+    if (g_hard_reset_command.WasActioned()) {
+        this->HardReset();
+    }
+
+    g_save_state_command.enabled = m_beeb_thread->GetBBCMicroCloneImpediments() == 0;
+    if (g_save_state_command.WasActioned()) {
+        m_beeb_thread->Send(std::make_shared<BeebThread::SaveStateMessage>(true));
+    }
+
+#if SYSTEM_WINDOWS
+    g_toggle_console_command.enabled = CanDetachFromWindowsConsole();
+    g_toggle_console_command.ticked = HasWindowsConsole();
+    if (g_toggle_console_command.WasActioned()) {
+        if (HasWindowsConsole()) {
+            FreeWindowsConsole();
+        } else {
+            AllocWindowsConsole();
+        }
+    }
+
+    if (g_clear_console_command.WasActioned()) {
+        HANDLE h = GetStdHandle(STD_OUTPUT_HANDLE);
+
+        CONSOLE_SCREEN_BUFFER_INFO csbi;
+        if (GetConsoleScreenBufferInfo(h, &csbi)) {
+            COORD coord = {0, 0};
+            DWORD num_chars = csbi.dwSize.X * csbi.dwSize.Y, num_written;
+            FillConsoleOutputAttribute(h, csbi.wAttributes, num_chars, coord, &num_written);
+            FillConsoleOutputCharacter(h, ' ', num_chars, coord, &num_written);
+            SetConsoleCursorPosition(h, coord);
+        }
+    }
+
+    if (g_print_separator_command.WasActioned()) {
+        printf("--------------------------------------------------\n");
+    }
+#endif
+
+    if (g_exit_command.WasActioned()) {
+        this->SaveSettings();
+
+        SDL_Event event = {};
+        event.type = SDL_QUIT;
+
+        SDL_PushEvent(&event);
+    }
+
+    if (g_clean_up_recent_files_lists_command.WasActioned()) {
+        size_t n = 0;
+
+        n += CleanUpRecentPaths(RECENT_PATHS_DISC_IMAGE, &PathIsFileOnDisk);
+        n += CleanUpRecentPaths(RECENT_PATHS_NVRAM, &PathIsFileOnDisk);
+
+        if (n > 0) {
+            m_msg.i.f("Removed %zu items\n", n);
+        }
+    }
+
+    if (g_reset_dock_windows_command.WasActioned()) {
+        m_imgui_stuff->ResetDockContext();
+    }
+
+    g_paste_command.ticked = m_beeb_thread->IsPasting();
+    if (g_paste_command.WasActioned()) {
+        this->DoPaste(false);
+    }
+
+    g_paste_return_command.ticked = g_paste_command.ticked;
+    if (g_paste_return_command.WasActioned()) {
+        this->DoPaste(true);
+    }
+
+    g_toggle_copy_oswrch_text_command.ticked = m_beeb_thread->IsCopying();
+    if (g_toggle_copy_oswrch_text_command.WasActioned()) {
+        this->CopyOSWRCH<true>();
+    }
+
+    g_copy_basic_command.ticked = g_toggle_copy_oswrch_text_command.ticked;
+    g_copy_basic_command.enabled = !m_beeb_thread->IsPasting();
+    if (g_copy_basic_command.WasActioned()) {
+        this->CopyBASIC();
+    }
+
+    g_debug_run_command.enabled = this->DebugIsHalted();
+    if (g_debug_run_command.WasActioned()) {
+        std::unique_lock<Mutex> lock;
+        BBCMicro *m = m_beeb_thread->LockMutableBeeb(&lock);
+
+        m->DebugRun();
+        m_beeb_thread->Send(std::make_shared<BeebThread::DebugWakeUpMessage>());
+    }
+
+    g_debug_stop_command.enabled = !g_debug_run_command.enabled;
+    if (g_debug_stop_command.WasActioned()) {
+        std::unique_lock<Mutex> lock;
+        BBCMicro *m = m_beeb_thread->LockMutableBeeb(&lock);
+
+        m->DebugHalt("manual stop");
+    }
 
     if (ImGui::BeginMainMenuBar()) {
         this->DoFileMenu();
@@ -1373,7 +1496,7 @@ void BeebWindow::DoPopupUI(uint64_t now, int output_width, int output_height) {
 
 void BeebWindow::DoFileMenu() {
     if (ImGui::BeginMenu("File")) {
-        m_cc.DoMenuItemUI("hard_reset");
+        g_hard_reset_command.DoMenuItem(); //m_cc.DoMenuItemUI("hard_reset");
 
         if (ImGui::BeginMenu("Run")) {
             this->DoDiscImageSubMenu(0, true);
@@ -1410,12 +1533,13 @@ void BeebWindow::DoFileMenu() {
         ImGui::Separator();
 
         //m_cc.DoMenuItemUI("load_last_state");
-        m_cc.DoMenuItemUI("save_state");
+        g_save_state_command.DoMenuItem(); //m_cc.DoMenuItemUI("save_state");
+
         ImGui::Separator();
         m_cc.DoMenuItemUI("save_config");
         m_cc.DoMenuItemUI("save_screenshot");
         ImGui::Separator();
-        m_cc.DoMenuItemUI("exit");
+        g_exit_command.DoMenuItem(); //m_cc.DoMenuItemUI("exit");
         ImGui::EndMenu();
     }
 }
@@ -1583,13 +1707,13 @@ void BeebWindow::DoDiscImageSubMenuItem(int drive,
 
 void BeebWindow::DoEditMenu() {
     if (ImGui::BeginMenu("Edit")) {
-        m_cc.DoMenuItemUI("toggle_copy_oswrch_text");
-        m_cc.DoMenuItemUI("copy_basic");
+        g_toggle_copy_oswrch_text_command.DoMenuItem(); //m_cc.DoMenuItemUI("toggle_copy_oswrch_text");
+        g_copy_basic_command.DoMenuItem();              //m_cc.DoMenuItemUI("copy_basic");
         m_cc.DoMenuItemUI("copy_screenshot");
 
         //m_cc.DoMenuItemUI("toggle_copy_oswrch_binary");
-        m_cc.DoMenuItemUI("paste");
-        m_cc.DoMenuItemUI("paste_return");
+        g_paste_command.DoMenuItem();        //m_cc.DoMenuItemUI("paste");
+        g_paste_return_command.DoMenuItem(); //m_cc.DoMenuItemUI("paste_return");
 
         ImGui::EndMenu();
     }
@@ -1698,8 +1822,8 @@ void BeebWindow::DoToolsMenu() {
         m_cc.DoMenuItemUI("reset_default_nvram");
 
         ImGui::Separator();
-        m_cc.DoMenuItemUI("clean_up_recent_files_lists");
-        m_cc.DoMenuItemUI("reset_dock_windows");
+        g_clean_up_recent_files_lists_command.DoMenuItem(); //m_cc.DoMenuItemUI("clean_up_recent_files_lists");
+        g_reset_dock_windows_command.DoMenuItem();          //.DoMenuItemUI("reset_dock_windows");
 
         ImGui::EndMenu();
     }
@@ -1775,18 +1899,20 @@ void BeebWindow::DoDebugMenu() {
 
         ImGui::Separator();
 
-        m_cc.DoMenuItemUI("debug_stop");
-        m_cc.DoMenuItemUI("debug_run");
+        g_debug_stop_command.DoMenuItem(); //m_cc.DoMenuItemUI("debug_stop");
+        g_debug_run_command.DoMenuItem();  //m_cc.DoMenuItemUI("debug_run");
 
 #endif
 
         ImGui::Separator();
 
 #if SYSTEM_WINDOWS
-        m_cc.DoMenuItemUI("toggle_console");
+        g_toggle_console_command.DoMenuItem(); //m_cc.DoMenuItemUI("toggle_console")
+
         if (HasWindowsConsole()) {
-            m_cc.DoMenuItemUI("clear_console");
-            m_cc.DoMenuItemUI("print_separator");
+            g_clear_console_command.DoMenuItem();
+
+            g_print_separator_command.DoMenuItem();
         }
 
         ImGui::Separator();
@@ -2175,6 +2301,28 @@ bool BeebWindow::HandleVBlank(uint64_t ticks) {
     bool threaded_update = m_update_tv_texture_thread_enabled;
 
     {
+        Timer tmr2(&g_HandleVBlank_start_of_frame_timer_def);
+
+        bool got_mouse_focus = false;
+        {
+            SDL_Window *mouse_window = SDL_GetMouseFocus();
+            if (mouse_window == m_window) {
+                got_mouse_focus = true;
+            }
+        }
+
+        if (m_pushed_window_padding) {
+            ImGui::PopStyleVar(1);
+        }
+
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.f, 0.f));
+
+        m_imgui_stuff->NewFrame(got_mouse_focus);
+
+        m_pushed_window_padding = true;
+    }
+
+    {
         Timer HandleVBlank_end_of_frame_timer(&g_HandleVBlank_end_of_frame_timer_def);
 
         VBlankRecord *vblank_record = this->NewVBlankRecord(ticks);
@@ -2229,29 +2377,7 @@ bool BeebWindow::HandleVBlank(uint64_t ticks) {
         }
     }
 
-    {
-        Timer tmr2(&g_HandleVBlank_start_of_frame_timer_def);
-
-        bool got_mouse_focus = false;
-        {
-            SDL_Window *mouse_window = SDL_GetMouseFocus();
-            if (mouse_window == m_window) {
-                got_mouse_focus = true;
-            }
-        }
-
-        if (m_pushed_window_padding) {
-            ImGui::PopStyleVar(1);
-        }
-
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.f, 0.f));
-
-        m_imgui_stuff->NewFrame(got_mouse_focus);
-
-        m_pushed_window_padding = true;
-
-        return keep_window;
-    }
+    return keep_window;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -2560,8 +2686,6 @@ bool BeebWindow::InitInternal() {
     if (reset_windows) {
         m_imgui_stuff->ResetDockContext();
     }
-
-    m_imgui_stuff->NewFrame(false);
 
     m_display_size_options.push_back("Auto");
 
@@ -2888,20 +3012,6 @@ void BeebWindow::HardReset() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void BeebWindow::SaveState() {
-    m_beeb_thread->Send(std::make_shared<BeebThread::SaveStateMessage>(true));
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-bool BeebWindow::SaveStateIsEnabled() const {
-    return m_beeb_thread->GetBBCMicroCloneImpediments() == 0;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 bool BeebWindow::RecreateTexture() {
     if (m_tv_texture) {
         SDL_DestroyTexture(m_tv_texture);
@@ -2922,93 +3032,35 @@ bool BeebWindow::RecreateTexture() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void BeebWindow::Exit() {
-    this->SaveSettings();
-
-    SDL_Event event = {};
-    event.type = SDL_QUIT;
-
-    SDL_PushEvent(&event);
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-void BeebWindow::CleanUpRecentFilesLists() {
-    size_t n = 0;
-
-    n += CleanUpRecentPaths(RECENT_PATHS_DISC_IMAGE, &PathIsFileOnDisk);
-    n += CleanUpRecentPaths(RECENT_PATHS_NVRAM, &PathIsFileOnDisk);
-
-    if (n > 0) {
-        m_msg.i.f("Removed %zu items\n", n);
-    }
-}
+//void BeebWindow::Exit() {
+//    this->SaveSettings();
+//
+//    SDL_Event event = {};
+//    event.type = SDL_QUIT;
+//
+//    SDL_PushEvent(&event);
+//}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void BeebWindow::ResetDockWindows() {
-    m_imgui_stuff->ResetDockContext();
-}
+//void BeebWindow::CleanUpRecentFilesLists() {
+//    size_t n = 0;
+//
+//    n += CleanUpRecentPaths(RECENT_PATHS_DISC_IMAGE, &PathIsFileOnDisk);
+//    n += CleanUpRecentPaths(RECENT_PATHS_NVRAM, &PathIsFileOnDisk);
+//
+//    if (n > 0) {
+//        m_msg.i.f("Removed %zu items\n", n);
+//    }
+//}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-#if SYSTEM_WINDOWS
-void BeebWindow::ToggleWin32Console() {
-    if (HasWindowsConsole()) {
-        FreeWindowsConsole();
-    } else {
-        AllocWindowsConsole();
-    }
-}
-#endif
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-#if SYSTEM_WINDOWS
-bool BeebWindow::IsToggleWin32ConsoleTicked() const {
-    return HasWindowsConsole();
-}
-#endif
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-#if SYSTEM_WINDOWS
-bool BeebWindow::IsToggleWin32ConsoleEnabled() const {
-    return CanDetachFromWindowsConsole();
-}
-#endif
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-#if SYSTEM_WINDOWS
-void BeebWindow::ClearConsole() {
-    HANDLE h = GetStdHandle(STD_OUTPUT_HANDLE);
-
-    CONSOLE_SCREEN_BUFFER_INFO csbi;
-    if (!GetConsoleScreenBufferInfo(h, &csbi)) {
-        return;
-    }
-
-    COORD coord = {0, 0};
-    DWORD num_chars = csbi.dwSize.X * csbi.dwSize.Y, num_written;
-    FillConsoleOutputAttribute(h, csbi.wAttributes, num_chars, coord, &num_written);
-    FillConsoleOutputCharacter(h, ' ', num_chars, coord, &num_written);
-    SetConsoleCursorPosition(h, coord);
-}
-#endif
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-void BeebWindow::PrintSeparator() {
-    printf("--------------------------------------------------\n");
-}
+//void BeebWindow::ResetDockWindows() {
+//    m_imgui_stuff->ResetDockContext();
+//}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -3061,16 +3113,16 @@ ObjectCommandTable<BeebWindow>::Initializer BeebWindow::GetTogglePopupCommand() 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void BeebWindow::Paste() {
-    this->DoPaste(false);
-}
+//void BeebWindow::Paste() {
+//    this->DoPaste(false);
+//}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void BeebWindow::PasteThenReturn() {
-    this->DoPaste(true);
-}
+//void BeebWindow::PasteThenReturn() {
+//    this->DoPaste(true);
+//}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -3135,9 +3187,9 @@ void BeebWindow::DoPaste(bool add_return) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool BeebWindow::IsPasteTicked() const {
-    return m_beeb_thread->IsPasting();
-}
+//bool BeebWindow::IsPasteTicked() const {
+//    return m_beeb_thread->IsPasting();
+//}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -3235,9 +3287,9 @@ void BeebWindow::CopyOSWRCH() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool BeebWindow::IsCopyOSWRCHTicked() const {
-    return m_beeb_thread->IsCopying();
-}
+//bool BeebWindow::IsCopyOSWRCHTicked() const {
+//    return m_beeb_thread->IsCopying();
+//}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -3263,27 +3315,27 @@ bool BeebWindow::IsCopyBASICEnabled() const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-#if BBCMICRO_DEBUGGER
-void BeebWindow::DebugStop() {
-    std::unique_lock<Mutex> lock;
-    BBCMicro *m = m_beeb_thread->LockMutableBeeb(&lock);
-
-    m->DebugHalt("manual stop");
-}
-#endif
+//#if BBCMICRO_DEBUGGER
+//void BeebWindow::DebugStop() {
+//    std::unique_lock<Mutex> lock;
+//    BBCMicro *m = m_beeb_thread->LockMutableBeeb(&lock);
+//
+//    m->DebugHalt("manual stop");
+//}
+//#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-#if BBCMICRO_DEBUGGER
-void BeebWindow::DebugRun() {
-    std::unique_lock<Mutex> lock;
-    BBCMicro *m = m_beeb_thread->LockMutableBeeb(&lock);
-
-    m->DebugRun();
-    m_beeb_thread->Send(std::make_shared<BeebThread::DebugWakeUpMessage>());
-}
-#endif
+//#if BBCMICRO_DEBUGGER
+//void BeebWindow::DebugRun() {
+//    std::unique_lock<Mutex> lock;
+//    BBCMicro *m = m_beeb_thread->LockMutableBeeb(&lock);
+//
+//    m->DebugRun();
+//    m_beeb_thread->Send(std::make_shared<BeebThread::DebugWakeUpMessage>());
+//}
+//#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -3316,11 +3368,11 @@ void BeebWindow::DebugStepIn(uint32_t dso) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-#if BBCMICRO_DEBUGGER
-bool BeebWindow::DebugIsStopEnabled() const {
-    return !this->DebugIsHalted();
-}
-#endif
+//#if BBCMICRO_DEBUGGER
+//bool BeebWindow::DebugIsStopEnabled() const {
+//    return !this->DebugIsHalted();
+//}
+//#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -3537,10 +3589,10 @@ bool BeebWindow::IsPrioritizeCommandShortcutsTicked() const {
 //////////////////////////////////////////////////////////////////////////
 
 ObjectCommandTable<BeebWindow> BeebWindow::ms_command_table("Beeb Window", {
-    {{"hard_reset", "Hard Reset"}, &BeebWindow::HardReset},
-        //    {{"load_last_state","Load Last State"},&BeebWindow::LoadLastState,nullptr,&BeebWindow::IsLoadLastStateEnabled},
-        {{"save_state", "Save State"}, &BeebWindow::SaveState, nullptr, &BeebWindow::SaveStateIsEnabled},
-        GetTogglePopupCommand<BeebWindowPopupType_Options>(),
+    //{"hard_reset", "Hard Reset"}, &BeebWindow::HardReset},
+    //    {{"load_last_state","Load Last State"},&BeebWindow::LoadLastState,nullptr,&BeebWindow::IsLoadLastStateEnabled},
+    //{{"save_state", "Save State"}, &BeebWindow::SaveState, nullptr, &BeebWindow::SaveStateIsEnabled},
+    GetTogglePopupCommand<BeebWindowPopupType_Options>(),
         GetTogglePopupCommand<BeebWindowPopupType_Keymaps>(),
         GetTogglePopupCommand<BeebWindowPopupType_Timeline>(),
         GetTogglePopupCommand<BeebWindowPopupType_SavedStates>(),
@@ -3552,18 +3604,18 @@ ObjectCommandTable<BeebWindow> BeebWindow::ms_command_table("Beeb Window", {
         GetTogglePopupCommand<BeebWindowPopupType_AudioCallback>(),
         GetTogglePopupCommand<BeebWindowPopupType_CommandContextStack>(),
         GetTogglePopupCommand<BeebWindowPopupType_CommandKeymaps>(),
-        {CommandDef("exit", "Exit").MustConfirm(), &BeebWindow::Exit},
-        {CommandDef("clean_up_recent_files_lists", "Clean up recent files lists").MustConfirm(), &BeebWindow::CleanUpRecentFilesLists},
-        {CommandDef("reset_dock_windows", "Reset dock windows").MustConfirm(), &BeebWindow::ResetDockWindows},
+    //{CommandDef("exit", "Exit").MustConfirm(), &BeebWindow::Exit},
+    //{CommandDef("clean_up_recent_files_lists", "Clean up recent files lists").MustConfirm(), &BeebWindow::CleanUpRecentFilesLists},
+    //{CommandDef("reset_dock_windows", "Reset dock windows").MustConfirm(), &BeebWindow::ResetDockWindows},
 #if SYSTEM_WINDOWS
-        {{"toggle_console", "Show Win32 console"}, &BeebWindow::ToggleWin32Console, &BeebWindow::IsToggleWin32ConsoleTicked, &BeebWindow::IsToggleWin32ConsoleEnabled},
-        {{"clear_console", "Clear Win32 console"}, &BeebWindow::ClearConsole},
+    //{{"toggle_console", "Show Win32 console"}, &BeebWindow::ToggleWin32Console, &BeebWindow::IsToggleWin32ConsoleTicked, &BeebWindow::IsToggleWin32ConsoleEnabled},
+    //{{"clear_console", "Clear Win32 console"}, &BeebWindow::ClearConsole},
 #endif
-        {{"print_separator", "Print stdout separator"}, &BeebWindow::PrintSeparator},
-        {{"paste", "OSRDCH Paste"}, &BeebWindow::Paste, &BeebWindow::IsPasteTicked},
-        {{"paste_return", "OSRDCH Paste (+Return)"}, &BeebWindow::PasteThenReturn, &BeebWindow::IsPasteTicked},
-        {{"toggle_copy_oswrch_text", "OSWRCH Copy Text"}, &BeebWindow::CopyOSWRCH<true>, &BeebWindow::IsCopyOSWRCHTicked},
-        {{"copy_basic", "Copy BASIC listing"}, &BeebWindow::CopyBASIC, &BeebWindow::IsCopyOSWRCHTicked, &BeebWindow::IsCopyBASICEnabled},
+    //{{"print_separator", "Print stdout separator"}, &BeebWindow::PrintSeparator},
+    //{{"paste", "OSRDCH Paste"}, &BeebWindow::Paste, &BeebWindow::IsPasteTicked},
+    //{{"paste_return", "OSRDCH Paste (+Return)"}, &BeebWindow::PasteThenReturn, &BeebWindow::IsPasteTicked},
+    //{{"toggle_copy_oswrch_text", "OSWRCH Copy Text"}, &BeebWindow::CopyOSWRCH<true>, &BeebWindow::IsCopyOSWRCHTicked},
+    //{{"copy_basic", "Copy BASIC listing"}, &BeebWindow::CopyBASIC, &BeebWindow::IsCopyOSWRCHTicked, &BeebWindow::IsCopyBASICEnabled},
 #if VIDEO_TRACK_METADATA
         GetTogglePopupCommand<BeebWindowPopupType_PixelMetadata>(),
 #endif
@@ -3606,8 +3658,8 @@ ObjectCommandTable<BeebWindow> BeebWindow::ms_command_table("Beeb Window", {
         GetTogglePopupCommand<BeebWindowPopupType_TubeDebugger>(),
         GetTogglePopupCommand<BeebWindowPopupType_ADCDebugger>(),
 
-        {CommandDef("debug_stop", "Stop").Shortcut(SDLK_F5 | PCKeyModifier_Shift), &BeebWindow::DebugStop, nullptr, &BeebWindow::DebugIsStopEnabled},
-        {CommandDef("debug_run", "Run").Shortcut(SDLK_F5), &BeebWindow::DebugRun, nullptr, &BeebWindow::DebugIsRunEnabled},
+    //{CommandDef("debug_stop", "Stop").Shortcut(SDLK_F5 | PCKeyModifier_Shift), &BeebWindow::DebugStop, nullptr, &BeebWindow::DebugIsStopEnabled},
+    //{CommandDef("debug_run", "Run").Shortcut(SDLK_F5), &BeebWindow::DebugRun, nullptr, &BeebWindow::DebugIsRunEnabled},
 #endif
         {CommandDef("save_default_nvram", "Save default NVRAM"), &BeebWindow::SaveDefaultNVRAM, nullptr, &BeebWindow::SaveDefaultNVRAMIsEnabled},
         {CommandDef("reset_default_nvram", "Reset default NVRAM").MustConfirm(), &BeebWindow::ResetDefaultNVRAM, nullptr, &BeebWindow::SaveDefaultNVRAMIsEnabled},

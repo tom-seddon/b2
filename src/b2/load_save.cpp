@@ -1568,8 +1568,11 @@ static bool LoadShortcuts(rapidjson::Value *shortcuts_json, Messages *msg) {
     for (rapidjson::Value::MemberIterator table_it = shortcuts_json->MemberBegin();
          table_it != shortcuts_json->MemberEnd();
          ++table_it) {
+
         CommandTable *table = CommandTable::FindCommandTableByName(table_it->name.GetString());
-        if (!table) {
+        CommandTable2 *table2 = FindCommandTable2ByName(table_it->name.GetString());
+        ;
+        if (!table && !table2) {
             msg->w.f("unknown command table: %s\n", table_it->name.GetString());
             continue;
         }
@@ -1583,8 +1586,10 @@ static bool LoadShortcuts(rapidjson::Value *shortcuts_json, Messages *msg) {
         for (rapidjson::Value::MemberIterator command_it = table_it->value.MemberBegin();
              command_it != table_it->value.MemberEnd();
              ++command_it) {
+
             Command *command = table->FindCommandByName(command_it->name.GetString());
-            if (!command) {
+            Command2 *command2 = table2->FindCommandByName(command_it->name.GetString());
+            if (!command && !command2) {
                 msg->w.f("unknown %s command: %s\n", table_it->name.GetString(), command_it->name.GetString());
                 continue;
             }
@@ -1595,7 +1600,13 @@ static bool LoadShortcuts(rapidjson::Value *shortcuts_json, Messages *msg) {
                 continue;
             }
 
-            table->ClearMappingsByCommand(command);
+            if (table && command) {
+                table->ClearMappingsByCommand(command);
+            }
+
+            if (table2 && command2) {
+                table2->ClearMappingsByCommand(command2);
+            }
 
             for (rapidjson::SizeType i = 0; i < command_it->value.Size(); ++i) {
                 uint32_t keycode;
@@ -1604,7 +1615,13 @@ static bool LoadShortcuts(rapidjson::Value *shortcuts_json, Messages *msg) {
                     continue;
                 }
 
-                table->AddMapping(keycode, command);
+                if (table && command) {
+                    table->AddMapping(keycode, command);
+                }
+
+                if (table2 && command2) {
+                    table2->AddMapping(keycode, command2);
+                }
             }
         }
     }
@@ -1612,25 +1629,45 @@ static bool LoadShortcuts(rapidjson::Value *shortcuts_json, Messages *msg) {
     return true;
 }
 
+template <class CommandTableType>
+static void SaveCommandTableShortcuts(JSONWriter<StringStream> *writer, const CommandTableType *table) {
+    if (!table) {
+        return;
+    }
+
+    table->ForEachCommand([writer, table](typename CommandTableType::CommandType *command) {
+        bool are_defaults;
+        if (const std::vector<uint32_t> *pc_keys = table->GetPCKeysForCommand(&are_defaults, command)) {
+            if (!are_defaults) {
+                auto command_json = ArrayWriter(writer, command->GetName().c_str());
+
+                for (uint32_t pc_key : *pc_keys) {
+                    SaveKeycodeObject(writer, pc_key);
+                }
+            }
+        }
+    });
+}
+
 static void SaveShortcuts(JSONWriter<StringStream> *writer) {
     auto shortcuts_json = ObjectWriter(writer, SHORTCUTS);
 
-    CommandTable::ForEachCommandTable([&](CommandTable *table) {
-        auto commands_json = ObjectWriter(writer, table->GetName().c_str());
-
-        table->ForEachCommand([&](Command *command) {
-            bool are_defaults;
-            if (const std::vector<uint32_t> *pc_keys = table->GetPCKeysForCommand(&are_defaults, command)) {
-                if (!are_defaults) {
-                    auto command_json = ArrayWriter(writer, command->GetName().c_str());
-
-                    for (uint32_t pc_key : *pc_keys) {
-                        SaveKeycodeObject(writer, pc_key);
-                    }
-                }
-            }
-        });
+    std::map<std::string, std::pair<CommandTable *, CommandTable2 *>> tables_by_name;
+    CommandTable::ForEachCommandTable([&tables_by_name](CommandTable *table) {
+        ASSERT(!tables_by_name[table->GetName()].first);
+        tables_by_name[table->GetName()].first = table;
     });
+    ForEachCommandTable2([&tables_by_name](CommandTable2 *table) {
+        ASSERT(!tables_by_name[table->GetName()].second);
+        tables_by_name[table->GetName()].second = table;
+    });
+
+    for (auto &&name_and_tables : tables_by_name) {
+        auto commands_json = ObjectWriter(writer, name_and_tables.first.c_str());
+
+        SaveCommandTableShortcuts(writer, name_and_tables.second.first);
+        SaveCommandTableShortcuts(writer, name_and_tables.second.second);
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////
