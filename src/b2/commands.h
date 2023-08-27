@@ -279,8 +279,13 @@ class CommandTable2 {
   public:
     typedef Command2 CommandType; //temporary measure
 
-    CommandTable2(std::string name);
+    CommandTable2(std::string name, int default_command_visibility = 1);
     ~CommandTable2();
+
+    CommandTable2(const CommandTable2 &) = delete;
+    CommandTable2 &operator=(const CommandTable2 &) = delete;
+    CommandTable2(CommandTable2 &&) = delete;
+    CommandTable2 &operator=(CommandTable2 &&) = delete;
 
     const std::string &GetName() const;
 
@@ -305,6 +310,7 @@ class CommandTable2 {
   protected:
   private:
     std::string m_name;
+    bool m_default_command_visibility = true;
 
     std::map<Command2 *, std::vector<uint32_t>> m_pc_keys_by_command;
 

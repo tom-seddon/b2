@@ -69,14 +69,20 @@ class CommandKeymapsUI : public SettingsUI {
         for (auto &&name_and_table : m_tables_by_name) {
             ImGuiIDPusher id_pusher(name_and_table.first.c_str());
             std::string title = name_and_table.first + " shortcuts";
-            if (ImGui::CollapsingHeader(title.c_str(), ImGuiTreeNodeFlags_DefaultOpen)) {
-                for (const CommandTemp &c : name_and_table.second.commands) {
-                    if (c.command) {
-                        this->DoCommandKeymapsRowUI(name_and_table.second.table, c.command);
-                    } else {
-                        if (c.command2->IsVisible()) {
-                            this->DoCommandKeymapsRowUI(name_and_table.second.table2, c.command2);
+            bool header_shown = false;
+
+            for (const CommandTemp &c : name_and_table.second.commands) {
+                if (c.command) {
+                    if (!this->Header(&header_shown, title)) {
+                        break;
+                    }
+                    this->DoCommandKeymapsRowUI(name_and_table.second.table, c.command);
+                } else {
+                    if (c.command2->IsVisible()) {
+                        if (!this->Header(&header_shown, title)) {
+                            break;
                         }
+                        this->DoCommandKeymapsRowUI(name_and_table.second.table2, c.command2);
                     }
                 }
             }
@@ -93,6 +99,15 @@ class CommandKeymapsUI : public SettingsUI {
     bool m_edited = false;
     bool m_wants_keyboard_focus = false;
     float m_max_command_text_width = 0.f;
+
+    bool Header(bool *header_shown, const std::string &title) {
+        if (!*header_shown) {
+            *header_shown = true;
+            return ImGui::CollapsingHeader(title.c_str(), ImGuiTreeNodeFlags_DefaultOpen);
+        } else {
+            return true;
+        }
+    }
 
     void UpdateTextWidth(const std::string &text) {
         ImVec2 size = ImGui::CalcTextSize(text.c_str());

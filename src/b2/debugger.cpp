@@ -1,5 +1,23 @@
 #include <shared/system.h>
 #include "debugger.h"
+#include "commands.h"
+#include <SDL.h>
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+static CommandTable2 g_disassembly_table("Disassembly Window", BBCMICRO_DEBUGGER);
+static Command2 g_toggle_track_pc_command = Command2(&g_disassembly_table, "toggle_track_pc", "Track PC").WithShortcut(SDLK_t);
+static Command2 g_back_command = Command2(&g_disassembly_table, "back", "Back").WithShortcut(SDLK_BACKSPACE);
+static Command2 g_up_command = Command2(&g_disassembly_table, "up", "Up").WithShortcut(SDLK_UP);
+static Command2 g_down_command = Command2(&g_disassembly_table, "down", "Down").WithShortcut(SDLK_DOWN);
+static Command2 g_page_up_command = Command2(&g_disassembly_table, "page_up", "Page Up").WithShortcut(SDLK_PAGEUP);
+static Command2 g_page_down_command = Command2(&g_disassembly_table, "page_down", "Page Down").WithShortcut(SDLK_PAGEDOWN);
+static Command2 g_step_over_command = Command2(&g_disassembly_table, "step_over", "Step Over").WithShortcut(SDLK_F10);
+static Command2 g_step_in_command = Command2(&g_disassembly_table, "step_in", "Step In").WithShortcut(SDLK_F11);
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_DEBUGGER
 
@@ -1252,8 +1270,8 @@ class DisassemblyDebugWindow : public DebugUI,
         return ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse;
     }
 
-    const CommandTable *GetCommandTable() const override {
-        return &ms_command_table;
+    const CommandTable2 *GetCommandTable2() const override {
+        return &g_disassembly_table;
     }
 
     void RevealAddress(M6502Word addr) override {
@@ -1272,8 +1290,6 @@ class DisassemblyDebugWindow : public DebugUI,
 
   protected:
     void DoImGui2() override {
-        CommandContext cc(this, this->GetCommandTable());
-
         const M6502Config *config;
         uint16_t pc;
         uint8_t a, x, y;
@@ -1304,6 +1320,54 @@ class DisassemblyDebugWindow : public DebugUI,
             m->DebugGetMemBigPageIsMOSTable(pc_is_mos, m_dso);
         }
 
+        g_toggle_track_pc_command.ticked = m_track_pc;
+        if (g_toggle_track_pc_command.WasActioned()) {
+            m_track_pc = !m_track_pc;
+
+            if (m_track_pc) {
+                // force snap to current PC if it's halted.
+                m_old_pc = -1;
+            }
+        }
+
+        g_back_command.enabled = !m_history.empty();
+        if (g_back_command.WasActioned()) {
+            ASSERT(!m_history.empty());
+            m_track_pc = false;
+            m_addr = m_history.back();
+            m_history.pop_back();
+        }
+
+        g_up_command.enabled = !m_track_pc;
+        if (g_up_command.WasActioned()) {
+            this->Up(config, 1);
+        }
+
+        g_down_command.enabled = !m_track_pc;
+        if (g_down_command.WasActioned()) {
+            this->Down(config, 1);
+        }
+
+        g_page_up_command.enabled = !m_track_pc;
+        if (g_page_up_command.WasActioned()) {
+            this->Up(config, m_num_lines - 2);
+        }
+
+        g_page_down_command.enabled = !m_track_pc;
+        if (g_page_down_command.WasActioned()) {
+            this->Down(config, m_num_lines - 2);
+        }
+
+        g_step_over_command.enabled = m_beeb_window->DebugIsRunEnabled();
+        if (g_step_over_command.WasActioned()) {
+            m_beeb_window->DebugStepOver(m_dso);
+        }
+
+        g_step_in_command.enabled = m_beeb_window->DebugIsRunEnabled();
+        if (g_step_in_command.WasActioned()) {
+            m_beeb_window->DebugStepOver(m_dso);
+        }
+
         float maxY = ImGui::GetCurrentWindow()->Size.y; //-ImGui::GetTextLineHeight()-GImGui->Style.WindowPadding.y*2.f;
 
         this->DoDebugPageOverrideImGui();
@@ -1331,9 +1395,9 @@ class DisassemblyDebugWindow : public DebugUI,
         ImGui::SameLine();
         this->WordRegGui("PC", {pc});
         ImGui::SameLine();
-        cc.DoToggleCheckboxUI("toggle_track_pc");
+        g_toggle_track_pc_command.DoToggleCheckbox();
 
-        cc.DoButton("go_back");
+        g_back_command.DoButton();
 
         if (ImGui::InputText("Address",
                              m_address_text, sizeof m_address_text,
@@ -1344,9 +1408,9 @@ class DisassemblyDebugWindow : public DebugUI,
             }
         }
 
-        cc.DoButton("step_over");
+        g_step_over_command.DoButton();
         ImGui::SameLine();
-        cc.DoButton("step_in");
+        g_step_in_command.DoButton();
 
         if (m_track_pc) {
             if (halted) {
@@ -1734,66 +1798,66 @@ class DisassemblyDebugWindow : public DebugUI,
         m_addr = address;
     }
 
-    bool IsTrackingPC() const {
-        return m_track_pc;
-    }
+    //bool IsTrackingPC() const {
+    //    return m_track_pc;
+    //}
 
-    void ToggleTrackPC() {
-        m_track_pc = !m_track_pc;
+    //void ToggleTrackPC() {
+    //    m_track_pc = !m_track_pc;
 
-        if (m_track_pc) {
-            // force snap to current PC if it's halted.
-            m_old_pc = -1;
-        }
-    }
+    //    if (m_track_pc) {
+    //        // force snap to current PC if it's halted.
+    //        m_old_pc = -1;
+    //    }
+    //}
 
-    bool IsBackEnabled() const {
-        return !m_history.empty();
-    }
+    //bool IsBackEnabled() const {
+    //    return !m_history.empty();
+    //}
 
-    void Back() {
-        if (!m_history.empty()) {
-            m_track_pc = false;
-            m_addr = m_history.back();
-            m_history.pop_back();
-        }
-    }
+    //void Back() {
+    //    if (!m_history.empty()) {
+    //        m_track_pc = false;
+    //        m_addr = m_history.back();
+    //        m_history.pop_back();
+    //    }
+    //}
 
-    bool IsMoveEnabled() const {
-        if (m_track_pc) {
-            return false;
-        }
+    //bool IsMoveEnabled() const {
+    //    if (m_track_pc) {
+    //        return false;
+    //    }
 
-        //if(m_line_addrs.empty()) {
-        //    return false;
-        //}
+    //    //if(m_line_addrs.empty()) {
+    //    //    return false;
+    //    //}
 
-        return true;
-    }
+    //    return true;
+    //}
 
-    void PageUp() {
-        const M6502Config *config = this->Get6502Config();
+    //void PageUp() {
+    //    const M6502Config *config = this->Get6502Config();
 
-        this->Up(config, m_num_lines - 2);
-    }
+    //    this->Up(config, m_num_lines - 2);
+    //}
 
-    void PageDown() {
-        const M6502Config *config = this->Get6502Config();
+    //void PageDown() {
+    //    const M6502Config *config = this->Get6502Config();
 
-        this->Down(config, m_num_lines - 2);
-    }
+    //    this->Down(config, m_num_lines - 2);
+    //}
 
-    void Up() {
-        const M6502Config *config = this->Get6502Config();
+    //void Up() {
+    //    const M6502Config *config = this->Get6502Config();
 
-        this->Up(config, 1);
-    }
+    //    this->Up(config, 1);
+    //}
 
-    void Down() {
-        const M6502Config *config = this->Get6502Config();
+    //void Down() {
+    //    const M6502Config *config = this->Get6502Config();
 
-        this->Down(config, 1);
-    }
+    //    this->Down(config, 1);
+    //}
 
     void Up(const M6502Config *config, int n) {
         for (int i = 0; i < n; ++i) {
@@ -1874,24 +1938,9 @@ class DisassemblyDebugWindow : public DebugUI,
     bool IsRunEnabled() const {
         return m_beeb_window->DebugIsRunEnabled();
     }
-
-    static ObjectCommandTable<DisassemblyDebugWindow> ms_command_table;
 };
 
 const char DisassemblyDebugWindow::IND_PREFIX[] = " --> $";
-
-ObjectCommandTable<DisassemblyDebugWindow> DisassemblyDebugWindow::ms_command_table(
-    "Disassembly Window",
-    {
-        {CommandDef("toggle_track_pc", "Track PC").Shortcut(SDLK_t), &DisassemblyDebugWindow::ToggleTrackPC, &DisassemblyDebugWindow::IsTrackingPC, nullptr},
-        {CommandDef("back", "Back").Shortcut(SDLK_BACKSPACE), &DisassemblyDebugWindow::Back, nullptr, &DisassemblyDebugWindow::IsBackEnabled},
-        {CommandDef("up", "Up").Shortcut(SDLK_UP), &DisassemblyDebugWindow::Up, &DisassemblyDebugWindow::IsMoveEnabled},
-        {CommandDef("down", "Down").Shortcut(SDLK_DOWN), &DisassemblyDebugWindow::Down, &DisassemblyDebugWindow::IsMoveEnabled},
-        {CommandDef("page_up", "Page Up").Shortcut(SDLK_PAGEUP), &DisassemblyDebugWindow::PageUp, &DisassemblyDebugWindow::IsMoveEnabled},
-        {CommandDef("page_down", "Page Down").Shortcut(SDLK_PAGEDOWN), &DisassemblyDebugWindow::PageDown, &DisassemblyDebugWindow::IsMoveEnabled},
-        {CommandDef("step_over", "Step Over").Shortcut(SDLK_F10), &DisassemblyDebugWindow::StepOver, nullptr, &DisassemblyDebugWindow::IsRunEnabled},
-        {CommandDef("step_in", "Step In").Shortcut(SDLK_F11), &DisassemblyDebugWindow::StepIn, nullptr, &DisassemblyDebugWindow::IsRunEnabled},
-    });
 
 std::unique_ptr<SettingsUI> CreateHostDisassemblyDebugWindow(BeebWindow *beeb_window,
                                                              bool initial_track_pc) {

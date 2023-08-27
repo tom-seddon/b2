@@ -47,7 +47,7 @@ class MessagesUI : public SettingsUI {
 
     bool OnClose() override;
 
-    const CommandTable *GetCommandTable() const override;
+    const CommandTable2 *GetCommandTable2() const override;
 
   protected:
   private:
@@ -55,15 +55,14 @@ class MessagesUI : public SettingsUI {
 
     void Copy();
     void Clear();
-
-    static ObjectCommandTable<MessagesUI> ms_command_table;
 };
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-ObjectCommandTable<MessagesUI> MessagesUI::ms_command_table("Messages Window", {{{"copy", "Copy"}, &MessagesUI::Copy},
-                                                                                {{"clear", "Clear"}, &MessagesUI::Clear}});
+static CommandTable2 g_messages_table("Messages Window");
+static Command2 g_copy_command(&g_messages_table, "copy", "Copy");
+static Command2 g_clear_command(&g_messages_table, "clear", "Clear");
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -79,11 +78,11 @@ void MessagesUI::DoImGui() {
     CommandContext cc(this, this->GetCommandTable());
     //cc_stack->Push(m_occ);
 
-    cc.DoButton("clear");
+    g_clear_command.DoButton();
 
     ImGui::SameLine();
 
-    cc.DoButton("copy");
+    g_copy_command.DoButton();
 
     ImGui::BeginChild("##messages", ImVec2(), true);
 
@@ -102,8 +101,8 @@ bool MessagesUI::OnClose() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-const CommandTable *MessagesUI::GetCommandTable() const {
-    return &ms_command_table;
+const CommandTable2 *MessagesUI::GetCommandTable2() const {
+    return &g_messages_table;
 }
 
 //////////////////////////////////////////////////////////////////////////

@@ -41,7 +41,7 @@ class SettingsUI {
 
     // default impl returns NULL.
     virtual const CommandTable *GetCommandTable() const;
-    virtual const CommandTable2*GetCommandTable2()const;
+    virtual const CommandTable2 *GetCommandTable2() const;
 
   protected:
   private:

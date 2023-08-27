@@ -494,8 +494,9 @@ static std::vector<CommandTable2 *> *GetCommandTable2sList() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-CommandTable2::CommandTable2(std::string name)
-    : m_name(std::move(name)) {
+CommandTable2::CommandTable2(std::string name, int default_command_visibility)
+    : m_name(std::move(name))
+    , m_default_command_visibility(!!default_command_visibility) {
     std::vector<CommandTable2 *> *const list = GetCommandTable2sList();
     ASSERT(!Contains(*list, this));
     list->push_back(this);
@@ -703,6 +704,9 @@ Command2::Command2()
 Command2::Command2(CommandTable2 *table, std::string name, std::string text)
     : Command2Data(table, std::move(name), std::move(text)) {
     AddCommand(this);
+    if (table) {
+        m_visible = table->m_default_command_visibility;
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -807,11 +811,15 @@ void Command2::DoToggleCheckbox() {
 bool Command2::WasActioned() const {
     ASSERT(g_linked);
 
-    if (m_frame_counter != 0) {
-        uint64_t f = GetImGuiFrameCounter();
-        if (m_frame_counter == f - 1) {
-            m_frame_counter = 0;
-            return true;
+    uint64_t frame_counter = m_frame_counter;
+    m_frame_counter = 0;
+
+    if (this->enabled) {
+        if (frame_counter != 0) {
+            uint64_t f = GetImGuiFrameCounter();
+            if (frame_counter == f - 1) {
+                return true;
+            }
         }
     }
 
