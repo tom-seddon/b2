@@ -466,21 +466,10 @@ class BeebWindow {
     void DoDebugMenu();
     bool DoWindowMenu();
     BeebWindowInitArguments GetNewWindowInitArguments() const;
-    void MaybeSaveConfig(bool save_config);
     void HardReset();
-    void SaveState();
-    bool SaveStateIsEnabled() const;
     void HandleJoystickResult(const JoystickResult &jr);
     bool HandleBeebKey(const SDL_Keysym &keysym, bool state);
     bool RecreateTexture();
-    void Exit();
-    void CleanUpRecentFilesLists();
-    void ResetDockWindows();
-    void ToggleWin32Console();
-    bool IsToggleWin32ConsoleTicked() const;
-    bool IsToggleWin32ConsoleEnabled() const;
-    void ClearConsole();
-    void PrintSeparator();
     static size_t ConsumeTVTexture(OutputDataBuffer<VideoDataUnit> *video_output, TVOutput *tv, bool inhibit_update);
     bool InhibitUpdateTVTexture() const;
     void BeginUpdateTVTexture(bool threaded, void *dest_pixels, int dest_pitch);
@@ -497,39 +486,20 @@ class BeebWindow {
     template <BeebWindowPopupType>
     static ObjectCommandTable<BeebWindow>::Initializer GetTogglePopupCommand();
 
-    void Paste();
-    void PasteThenReturn();
     void DoPaste(bool add_return);
-    bool IsPasteTicked() const;
 
     template <bool IS_TEXT>
     void CopyOSWRCH();
     void SetClipboardData(std::vector<uint8_t> data, bool is_text);
-    bool IsCopyOSWRCHTicked() const;
 
     void CopyBASIC();
     bool IsCopyBASICEnabled() const;
 
-#if BBCMICRO_DEBUGGER
-    void DebugStop();
-    void DebugRun();
-#endif
-
-    void ResetDefaultNVRAM();
-    void SaveDefaultNVRAM();
-    bool SaveDefaultNVRAMIsEnabled() const;
-
     void SaveConfig();
 
     SDLUniquePtr<SDL_Surface> CreateScreenshot() const;
-    void SaveScreenshot();
-    void CopyScreenshot();
-    void ToggleFullScreen();
     bool IsWindowFullScreen() const;
     void SetWindowFullScreen(bool is_full_screen);
-
-    void TogglePrioritizeCommandShortcuts();
-    bool IsPrioritizeCommandShortcutsTicked() const;
 
     void ShowPrioritizeCommandShortcutsStatus();
 

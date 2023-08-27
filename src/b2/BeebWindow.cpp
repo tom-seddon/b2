@@ -101,6 +101,13 @@ static Command2 g_copy_basic_command(&g_beeb_window_command_table, "copy_basic",
 static Command2 g_debug_stop_command = Command2(&g_beeb_window_command_table, "debug_stop", "Stop").WithShortcut(SDLK_F5 | PCKeyModifier_Shift);
 static Command2 g_debug_run_command = Command2(&g_beeb_window_command_table, "debug_run", "Run").WithShortcut(SDLK_F5);
 #endif
+static Command2 g_save_default_nvram_command = Command2(&g_beeb_window_command_table, "save_default_nvram", "Save default NVRAM");
+static Command2 g_reset_default_nvram_command = Command2(&g_beeb_window_command_table, "reset_default_nvram", "Reset default NVRAM").MustConfirm();
+static Command2 g_save_config_command = Command2(&g_beeb_window_command_table, "save_config", "Save config");
+static Command2 g_toggle_prioritize_shortcuts_command = Command2(&g_beeb_window_command_table, "toggle_prioritize_shortcuts", "Prioritize command keys").WithTick();
+static Command2 g_save_screenshot_command = Command2(&g_beeb_window_command_table, "save_screenshot", "Save screenshot");
+static Command2 g_copy_screenshot_command = Command2(&g_beeb_window_command_table, "copy_screenshot", "Copy screenshot");
+static Command2 g_toggle_full_screen_command = Command2(&g_beeb_window_command_table, "toggle_full_screen", "Full screen").WithTick();
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -1026,6 +1033,61 @@ bool BeebWindow::DoMenuUI() {
         m->DebugHalt("manual stop");
     }
 
+    g_save_default_nvram_command.enabled = m_beeb_thread->HasNVRAM();
+    if (g_save_default_nvram_command.WasActioned()) {
+        std::vector<uint8_t> nvram = m_beeb_thread->GetNVRAM();
+        if (!nvram.empty()) {
+            const BBCMicroType *type = m_beeb_thread->GetBBCMicroType();
+            SetDefaultNVRAMContents(type, std::move(nvram));
+        }
+
+        this->SaveConfig();
+    }
+
+    g_reset_default_nvram_command.enabled = g_save_default_nvram_command.enabled;
+    if (g_reset_default_nvram_command.WasActioned()) {
+        const BBCMicroType *type = m_beeb_thread->GetBBCMicroType();
+        ResetDefaultNVRAMContents(type);
+    }
+
+    if (g_save_config_command.WasActioned()) {
+        this->SaveConfig();
+    }
+
+    g_toggle_prioritize_shortcuts_command.ticked = m_prefer_shortcuts;
+    if (g_toggle_prioritize_shortcuts_command.WasActioned()) {
+        m_prefer_shortcuts = !m_prefer_shortcuts;
+
+        this->ShowPrioritizeCommandShortcutsStatus();
+    }
+
+    if (g_save_screenshot_command.WasActioned()) {
+        SaveFileDialog fd(RECENT_PATHS_SCREENSHOT);
+
+        fd.AddFilter("PNG", {".png"});
+
+        std::string path;
+        if (fd.Open(&path)) {
+            SDLUniquePtr<SDL_Surface> screenshot = this->CreateScreenshot();
+            if (!!screenshot) {
+                SaveSDLSurface(screenshot.get(), path, &m_msg);
+            }
+        }
+    }
+
+    if (g_copy_screenshot_command.WasActioned()) {
+        SDLUniquePtr<SDL_Surface> screenshot = this->CreateScreenshot();
+        if (!!screenshot) {
+            SetClipboardImage(screenshot.get(), &m_msg);
+        }
+    }
+
+    g_toggle_full_screen_command.ticked = this->IsWindowFullScreen();
+    if (g_toggle_full_screen_command.WasActioned()) {
+        bool is_full_screen = this->IsWindowFullScreen();
+        this->SetWindowFullScreen(!is_full_screen);
+    }
+
     if (ImGui::BeginMainMenuBar()) {
         this->DoFileMenu();
         this->DoEditMenu();
@@ -1528,7 +1590,7 @@ void BeebWindow::DoFileMenu() {
             ImGui::Separator();
         }
 
-        m_cc.DoMenuItemUI("save_default_nvram");
+        g_save_default_nvram_command.DoMenuItem(); //m_cc.DoMenuItemUI("save_default_nvram");
 
         ImGui::Separator();
 
@@ -1819,7 +1881,7 @@ void BeebWindow::DoToolsMenu() {
         ImGui::Separator();
 
         // Is there somewhere better for this?
-        m_cc.DoMenuItemUI("reset_default_nvram");
+        g_reset_default_nvram_command.DoMenuItem(); // m_cc.DoMenuItemUI("reset_default_nvram");
 
         ImGui::Separator();
         g_clean_up_recent_files_lists_command.DoMenuItem(); //m_cc.DoMenuItemUI("clean_up_recent_files_lists");
@@ -3032,39 +3094,6 @@ bool BeebWindow::RecreateTexture() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-//void BeebWindow::Exit() {
-//    this->SaveSettings();
-//
-//    SDL_Event event = {};
-//    event.type = SDL_QUIT;
-//
-//    SDL_PushEvent(&event);
-//}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-//void BeebWindow::CleanUpRecentFilesLists() {
-//    size_t n = 0;
-//
-//    n += CleanUpRecentPaths(RECENT_PATHS_DISC_IMAGE, &PathIsFileOnDisk);
-//    n += CleanUpRecentPaths(RECENT_PATHS_NVRAM, &PathIsFileOnDisk);
-//
-//    if (n > 0) {
-//        m_msg.i.f("Removed %zu items\n", n);
-//    }
-//}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-//void BeebWindow::ResetDockWindows() {
-//    m_imgui_stuff->ResetDockContext();
-//}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 template <BeebWindowPopupType POPUP_TYPE>
 void BeebWindow::TogglePopupCommand() {
     m_settings.popups ^= (uint64_t)1 << POPUP_TYPE;
@@ -3109,20 +3138,6 @@ ObjectCommandTable<BeebWindow>::Initializer BeebWindow::GetTogglePopupCommand() 
                                                        &BeebWindow::TogglePopupCommand<POPUP_TYPE>,
                                                        &BeebWindow::IsPopupCommandTicked<POPUP_TYPE>);
 }
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-//void BeebWindow::Paste() {
-//    this->DoPaste(false);
-//}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-//void BeebWindow::PasteThenReturn() {
-//    this->DoPaste(true);
-//}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -3183,13 +3198,6 @@ void BeebWindow::DoPaste(bool add_return) {
         m_beeb_thread->Send(std::make_shared<BeebThread::StartPasteMessage>(std::move(ascii)));
     }
 }
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-//bool BeebWindow::IsPasteTicked() const {
-//    return m_beeb_thread->IsPasting();
-//}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -3287,13 +3295,6 @@ void BeebWindow::CopyOSWRCH() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-//bool BeebWindow::IsCopyOSWRCHTicked() const {
-//    return m_beeb_thread->IsCopying();
-//}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 void BeebWindow::CopyBASIC() {
     if (m_beeb_thread->IsCopying()) {
         m_beeb_thread->Send(std::make_shared<BeebThread::StopCopyMessage>());
@@ -3311,31 +3312,6 @@ void BeebWindow::CopyBASIC() {
 bool BeebWindow::IsCopyBASICEnabled() const {
     return !m_beeb_thread->IsPasting();
 }
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-//#if BBCMICRO_DEBUGGER
-//void BeebWindow::DebugStop() {
-//    std::unique_lock<Mutex> lock;
-//    BBCMicro *m = m_beeb_thread->LockMutableBeeb(&lock);
-//
-//    m->DebugHalt("manual stop");
-//}
-//#endif
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-//#if BBCMICRO_DEBUGGER
-//void BeebWindow::DebugRun() {
-//    std::unique_lock<Mutex> lock;
-//    BBCMicro *m = m_beeb_thread->LockMutableBeeb(&lock);
-//
-//    m->DebugRun();
-//    m_beeb_thread->Send(std::make_shared<BeebThread::DebugWakeUpMessage>());
-//}
-//#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -3368,15 +3344,6 @@ void BeebWindow::DebugStepIn(uint32_t dso) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-//#if BBCMICRO_DEBUGGER
-//bool BeebWindow::DebugIsStopEnabled() const {
-//    return !this->DebugIsHalted();
-//}
-//#endif
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 #if BBCMICRO_DEBUGGER
 bool BeebWindow::DebugIsRunEnabled() const {
     return this->DebugIsHalted();
@@ -3399,34 +3366,6 @@ bool BeebWindow::DebugIsHalted() const {
     return m_debug_halted;
 }
 #endif
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-void BeebWindow::ResetDefaultNVRAM() {
-    const BBCMicroType *type = m_beeb_thread->GetBBCMicroType();
-    ResetDefaultNVRAMContents(type);
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-void BeebWindow::SaveDefaultNVRAM() {
-    std::vector<uint8_t> nvram = m_beeb_thread->GetNVRAM();
-    if (!nvram.empty()) {
-        const BBCMicroType *type = m_beeb_thread->GetBBCMicroType();
-        SetDefaultNVRAMContents(type, std::move(nvram));
-    }
-
-    this->SaveConfig();
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-bool BeebWindow::SaveDefaultNVRAMIsEnabled() const {
-    return m_beeb_thread->HasNVRAM();
-}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -3505,41 +3444,6 @@ SDLUniquePtr<SDL_Surface> BeebWindow::CreateScreenshot() const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void BeebWindow::SaveScreenshot() {
-    SaveFileDialog fd(RECENT_PATHS_SCREENSHOT);
-
-    fd.AddFilter("PNG", {".png"});
-
-    std::string path;
-    if (fd.Open(&path)) {
-        SDLUniquePtr<SDL_Surface> screenshot = this->CreateScreenshot();
-        if (!!screenshot) {
-            SaveSDLSurface(screenshot.get(), path, &m_msg);
-        }
-    }
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-void BeebWindow::CopyScreenshot() {
-    SDLUniquePtr<SDL_Surface> screenshot = this->CreateScreenshot();
-    if (!!screenshot) {
-        SetClipboardImage(screenshot.get(), &m_msg);
-    }
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-void BeebWindow::ToggleFullScreen() {
-    bool is_full_screen = this->IsWindowFullScreen();
-    this->SetWindowFullScreen(!is_full_screen);
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 bool BeebWindow::IsWindowFullScreen() const {
     uint32_t flags = SDL_GetWindowFlags(m_window);
     return !!(flags & SDL_WINDOW_FULLSCREEN);
@@ -3561,15 +3465,6 @@ void BeebWindow::SetWindowFullScreen(bool is_full_screen) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void BeebWindow::TogglePrioritizeCommandShortcuts() {
-    m_prefer_shortcuts = !m_prefer_shortcuts;
-
-    this->ShowPrioritizeCommandShortcutsStatus();
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 void BeebWindow::ShowPrioritizeCommandShortcutsStatus() {
     if (m_prefer_shortcuts) {
         m_msg.i.f("Prioritize command keys\n");
@@ -3581,17 +3476,7 @@ void BeebWindow::ShowPrioritizeCommandShortcutsStatus() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool BeebWindow::IsPrioritizeCommandShortcutsTicked() const {
-    return m_prefer_shortcuts;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 ObjectCommandTable<BeebWindow> BeebWindow::ms_command_table("Beeb Window", {
-    //{"hard_reset", "Hard Reset"}, &BeebWindow::HardReset},
-    //    {{"load_last_state","Load Last State"},&BeebWindow::LoadLastState,nullptr,&BeebWindow::IsLoadLastStateEnabled},
-    //{{"save_state", "Save State"}, &BeebWindow::SaveState, nullptr, &BeebWindow::SaveStateIsEnabled},
     GetTogglePopupCommand<BeebWindowPopupType_Options>(),
         GetTogglePopupCommand<BeebWindowPopupType_Keymaps>(),
         GetTogglePopupCommand<BeebWindowPopupType_Timeline>(),
@@ -3604,18 +3489,6 @@ ObjectCommandTable<BeebWindow> BeebWindow::ms_command_table("Beeb Window", {
         GetTogglePopupCommand<BeebWindowPopupType_AudioCallback>(),
         GetTogglePopupCommand<BeebWindowPopupType_CommandContextStack>(),
         GetTogglePopupCommand<BeebWindowPopupType_CommandKeymaps>(),
-    //{CommandDef("exit", "Exit").MustConfirm(), &BeebWindow::Exit},
-    //{CommandDef("clean_up_recent_files_lists", "Clean up recent files lists").MustConfirm(), &BeebWindow::CleanUpRecentFilesLists},
-    //{CommandDef("reset_dock_windows", "Reset dock windows").MustConfirm(), &BeebWindow::ResetDockWindows},
-#if SYSTEM_WINDOWS
-    //{{"toggle_console", "Show Win32 console"}, &BeebWindow::ToggleWin32Console, &BeebWindow::IsToggleWin32ConsoleTicked, &BeebWindow::IsToggleWin32ConsoleEnabled},
-    //{{"clear_console", "Clear Win32 console"}, &BeebWindow::ClearConsole},
-#endif
-    //{{"print_separator", "Print stdout separator"}, &BeebWindow::PrintSeparator},
-    //{{"paste", "OSRDCH Paste"}, &BeebWindow::Paste, &BeebWindow::IsPasteTicked},
-    //{{"paste_return", "OSRDCH Paste (+Return)"}, &BeebWindow::PasteThenReturn, &BeebWindow::IsPasteTicked},
-    //{{"toggle_copy_oswrch_text", "OSWRCH Copy Text"}, &BeebWindow::CopyOSWRCH<true>, &BeebWindow::IsCopyOSWRCHTicked},
-    //{{"copy_basic", "Copy BASIC listing"}, &BeebWindow::CopyBASIC, &BeebWindow::IsCopyOSWRCHTicked, &BeebWindow::IsCopyBASICEnabled},
 #if VIDEO_TRACK_METADATA
         GetTogglePopupCommand<BeebWindowPopupType_PixelMetadata>(),
 #endif
@@ -3657,15 +3530,5 @@ ObjectCommandTable<BeebWindow> BeebWindow::ms_command_table("Beeb Window", {
         GetTogglePopupCommand<BeebWindowPopupType_ParasiteDisassemblyDebugger4>(),
         GetTogglePopupCommand<BeebWindowPopupType_TubeDebugger>(),
         GetTogglePopupCommand<BeebWindowPopupType_ADCDebugger>(),
-
-    //{CommandDef("debug_stop", "Stop").Shortcut(SDLK_F5 | PCKeyModifier_Shift), &BeebWindow::DebugStop, nullptr, &BeebWindow::DebugIsStopEnabled},
-    //{CommandDef("debug_run", "Run").Shortcut(SDLK_F5), &BeebWindow::DebugRun, nullptr, &BeebWindow::DebugIsRunEnabled},
 #endif
-        {CommandDef("save_default_nvram", "Save default NVRAM"), &BeebWindow::SaveDefaultNVRAM, nullptr, &BeebWindow::SaveDefaultNVRAMIsEnabled},
-        {CommandDef("reset_default_nvram", "Reset default NVRAM").MustConfirm(), &BeebWindow::ResetDefaultNVRAM, nullptr, &BeebWindow::SaveDefaultNVRAMIsEnabled},
-        {CommandDef("save_config", "Save config"), &BeebWindow::SaveConfig},
-        {CommandDef("toggle_prioritize_shortcuts", "Prioritize command keys"), &BeebWindow::TogglePrioritizeCommandShortcuts, &BeebWindow::IsPrioritizeCommandShortcutsTicked, nullptr},
-        {CommandDef("save_screenshot", "Save screenshot"), &BeebWindow::SaveScreenshot},
-        {CommandDef("copy_screenshot", "Copy screenshot"), &BeebWindow::CopyScreenshot},
-        {CommandDef("toggle_full_screen", "Full screen"), &BeebWindow::ToggleFullScreen, &BeebWindow::IsWindowFullScreen},
 });
