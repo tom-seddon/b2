@@ -120,8 +120,6 @@ static void InitialiseTogglePopupCommand(BeebWindowPopupType type, const char *n
     PopupMetadata *p = &g_popups[type];
     p->command = Command2(&g_beeb_window_command_table, name, text).WithTick();
     p->create_fun = std::move(create_fun);
-
-    //
 }
 
 static bool InitialiseTogglePopupCommands() {
@@ -2316,6 +2314,15 @@ bool BeebWindow::HandleVBlank(uint64_t ticks) {
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.f, 0.f));
 
         m_imgui_stuff->NewFrame(got_mouse_focus);
+
+        // Show/hide popup commands in the UI. Try to create each popup in turn,
+        // and hide it if the attempt fails! A bit of a cheap hack, but it saves
+        // on having to get the #ifs perfectly consistent.
+        if (GetImGuiFrameCounter() == 1) {
+            for (PopupMetadata &popup : g_popups) {
+                popup.command.VisibleIf(!!popup.create_fun(this));
+            }
+        }
 
         m_pushed_window_padding = true;
     }
