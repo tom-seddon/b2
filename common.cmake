@@ -136,9 +136,10 @@ elseif(MSVC)
   # C4133: incompatible types
   # C4098: void function returning a value
   # C4113: <function pointer type> differs in parameter lists from <function pointer>
+  # C4715: not all control paths return a value
   
-  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /we4013 /we4022 /we4028 /we4716 /we4047 /we4020 /we4133 /we4096 /we4113")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /we4013 /we4022 /we4028 /we4716 /we4047 /we4020 /we4133 /we4098 /we4113")
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /we4013 /we4022 /we4028 /we4716 /we4047 /we4020 /we4133 /we4096 /we4113 /we4715")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /we4013 /we4022 /we4028 /we4716 /we4047 /we4020 /we4133 /we4098 /we4113 /we4715")
   
   # Warnings not relevant for C99:
   #
