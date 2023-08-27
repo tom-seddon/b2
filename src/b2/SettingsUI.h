@@ -5,6 +5,7 @@
 //////////////////////////////////////////////////////////////////////////
 
 class CommandTable;
+class CommandTable2;
 
 #include <string>
 
@@ -26,7 +27,7 @@ class SettingsUI {
     SettingsUI(SettingsUI &&) = delete;
     SettingsUI &operator=(SettingsUI &&) = delete;
 
-    // Used to name this panel's tab.
+    // Used by other panels to determine the name of this one.
     const std::string &GetName() const;
     void SetName(std::string name);
 
@@ -40,6 +41,7 @@ class SettingsUI {
 
     // default impl returns NULL.
     virtual const CommandTable *GetCommandTable() const;
+    virtual const CommandTable2*GetCommandTable2()const;
 
   protected:
   private:

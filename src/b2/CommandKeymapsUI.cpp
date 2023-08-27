@@ -74,7 +74,9 @@ class CommandKeymapsUI : public SettingsUI {
                     if (c.command) {
                         this->DoCommandKeymapsRowUI(name_and_table.second.table, c.command);
                     } else {
-                        this->DoCommandKeymapsRowUI(name_and_table.second.table2, c.command2);
+                        if (c.command2->IsVisible()) {
+                            this->DoCommandKeymapsRowUI(name_and_table.second.table2, c.command2);
+                        }
                     }
                 }
             }

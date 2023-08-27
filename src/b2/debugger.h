@@ -3,8 +3,6 @@
 
 #include "conf.h"
 
-#if BBCMICRO_DEBUGGER
-
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
@@ -14,6 +12,9 @@
 #include <beeb/type.h>
 
 class BeebWindow;
+
+// If the relevant features are compiled out, the Create... function will return
+// nullptr.
 
 std::unique_ptr<SettingsUI> Create6502DebugWindow(BeebWindow *beeb_window);
 std::unique_ptr<SettingsUI> CreateHostMemoryDebugWindow(BeebWindow *beeb_window);
@@ -29,9 +30,7 @@ std::unique_ptr<SettingsUI> CreateNVRAMDebugWindow(BeebWindow *beeb_window);
 std::unique_ptr<SettingsUI> CreateSN76489DebugWindow(BeebWindow *beeb_window);
 std::unique_ptr<SettingsUI> CreatePagingDebugWindow(BeebWindow *beeb_window);
 std::unique_ptr<SettingsUI> CreateBreakpointsDebugWindow(BeebWindow *beeb_window);
-#if VIDEO_TRACK_METADATA
 std::unique_ptr<SettingsUI> CreatePixelMetadataDebugWindow(BeebWindow *beeb_window);
-#endif
 std::unique_ptr<SettingsUI> CreateHostStackDebugWindow(BeebWindow *beeb_window);
 std::unique_ptr<SettingsUI> CreateParasiteStackDebugWindow(BeebWindow *beeb_window);
 std::unique_ptr<SettingsUI> CreateTubeDebugWindow(BeebWindow *beeb_window);
@@ -39,7 +38,5 @@ std::unique_ptr<SettingsUI> CreateADCDebugWindow(BeebWindow *beeb_window);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
-
-#endif
 
 #endif

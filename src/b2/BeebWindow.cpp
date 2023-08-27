@@ -109,6 +109,97 @@ static Command2 g_save_screenshot_command = Command2(&g_beeb_window_command_tabl
 static Command2 g_copy_screenshot_command = Command2(&g_beeb_window_command_table, "copy_screenshot", "Copy screenshot");
 static Command2 g_toggle_full_screen_command = Command2(&g_beeb_window_command_table, "toggle_full_screen", "Full screen").WithTick();
 
+struct PopupMetadata {
+    Command2 command;
+    std::function<std::unique_ptr<SettingsUI>(BeebWindow *)> create_fun;
+};
+
+static PopupMetadata g_popups[BeebWindowPopupType_MaxValue];
+
+static void InitialiseTogglePopupCommand(BeebWindowPopupType type, const char *name, const char *text, std::function<std::unique_ptr<SettingsUI>(BeebWindow *)> create_fun) {
+    PopupMetadata *p = &g_popups[type];
+    p->command = Command2(&g_beeb_window_command_table, name, text).WithTick();
+    p->create_fun = std::move(create_fun);
+
+    //
+}
+
+static bool InitialiseTogglePopupCommands() {
+    InitialiseTogglePopupCommand(BeebWindowPopupType_Keymaps, "toggle_keyboard_layout", "Keyboard Layouts", &CreateKeymapsUI);
+    InitialiseTogglePopupCommand(BeebWindowPopupType_CommandKeymaps, "toggle_command_keymaps", "Command Keys", &CreateCommandKeymapsUI);
+    InitialiseTogglePopupCommand(BeebWindowPopupType_Options, "toggle_emulator_options", "Options", &BeebWindow::CreateOptionsUI);
+    InitialiseTogglePopupCommand(BeebWindowPopupType_Messages, "toggle_messages", "Messages", &CreateMessagesUI);
+    InitialiseTogglePopupCommand(BeebWindowPopupType_Timeline, "toggle_timeline", "Timeline", &BeebWindow::CreateTimelineUI);
+    InitialiseTogglePopupCommand(BeebWindowPopupType_SavedStates, "toggle_saved_states", "Saved States", &BeebWindow::CreateSavedStatesUI);
+    InitialiseTogglePopupCommand(BeebWindowPopupType_Configs, "toggle_configurations", "Configs", &CreateConfigsUI);
+    InitialiseTogglePopupCommand(BeebWindowPopupType_Trace, "toggle_event_trace", "Tracing", &CreateTraceUI);
+    InitialiseTogglePopupCommand(BeebWindowPopupType_AudioCallback, "toggle_date_rate", "Performance", &CreateDataRateUI);
+    InitialiseTogglePopupCommand(BeebWindowPopupType_PixelMetadata, "toggle_pixel_metadata", "Pixel Metadata", &CreatePixelMetadataDebugWindow);
+    InitialiseTogglePopupCommand(BeebWindowPopupType_DearImguiTest, "toggle_dear_imgui_test", "dear imgui Test", &CreateDearImguiTestUI);
+    InitialiseTogglePopupCommand(BeebWindowPopupType_6502Debugger, "toggle_6502_debugger", "6502 Debug", &Create6502DebugWindow);
+    InitialiseTogglePopupCommand(BeebWindowPopupType_MemoryDebugger1, "toggle_memory_debugger1", "Host Memory Debug 1", &CreateHostMemoryDebugWindow);
+    InitialiseTogglePopupCommand(BeebWindowPopupType_MemoryDebugger2, "toggle_memory_debugger2", "Host Memory Debug 2", &CreateHostMemoryDebugWindow);
+    InitialiseTogglePopupCommand(BeebWindowPopupType_MemoryDebugger3, "toggle_memory_debugger3", "Host Memory Debug 3", &CreateHostMemoryDebugWindow);
+    InitialiseTogglePopupCommand(BeebWindowPopupType_MemoryDebugger4, "toggle_memory_debugger4", "Host Memory Debug 4", &CreateHostMemoryDebugWindow);
+    InitialiseTogglePopupCommand(BeebWindowPopupType_ExtMemoryDebugger1, "toggle_ext_memory_debugger1", "External Memory Debug 1", &CreateExtMemoryDebugWindow);
+    InitialiseTogglePopupCommand(BeebWindowPopupType_ExtMemoryDebugger2, "toggle_ext_memory_debugger2", "External Memory Debug 2", &CreateExtMemoryDebugWindow);
+    InitialiseTogglePopupCommand(BeebWindowPopupType_ExtMemoryDebugger3, "toggle_ext_memory_debugger3", "External Memory Debug 3", &CreateExtMemoryDebugWindow);
+    InitialiseTogglePopupCommand(BeebWindowPopupType_ExtMemoryDebugger4, "toggle_ext_memory_debugger4", "External Memory Debug 4", &CreateExtMemoryDebugWindow);
+    InitialiseTogglePopupCommand(BeebWindowPopupType_DisassemblyDebugger1, "toggle_disassembly_debugger1", "Host Disassembly Debug 1",
+                                 [](BeebWindow *beeb_window) {
+                                     return CreateHostDisassemblyDebugWindow(beeb_window, true);
+                                 });
+    InitialiseTogglePopupCommand(BeebWindowPopupType_DisassemblyDebugger2, "toggle_disassembly_debugger2", "Host Disassembly Debug 2",
+                                 [](BeebWindow *beeb_window) {
+                                     return CreateHostDisassemblyDebugWindow(beeb_window, false);
+                                 });
+    InitialiseTogglePopupCommand(BeebWindowPopupType_DisassemblyDebugger3, "toggle_disassembly_debugger3", "Host Disassembly Debug 3",
+                                 [](BeebWindow *beeb_window) {
+                                     return CreateHostDisassemblyDebugWindow(beeb_window, false);
+                                 });
+    InitialiseTogglePopupCommand(BeebWindowPopupType_DisassemblyDebugger4, "toggle_disassembly_debugger4", "Host Disassembly Debug 4",
+                                 [](BeebWindow *beeb_window) {
+                                     return CreateHostDisassemblyDebugWindow(beeb_window, false);
+                                 });
+    InitialiseTogglePopupCommand(BeebWindowPopupType_CRTCDebugger, "toggle_crtc_debugger", "CRTC Debug", &CreateCRTCDebugWindow);
+    InitialiseTogglePopupCommand(BeebWindowPopupType_VideoULADebugger, "toggle_video_ula_debugger", "Video ULA Debug", &CreateVideoULADebugWindow);
+    InitialiseTogglePopupCommand(BeebWindowPopupType_SystemVIADebugger, "toggle_system_via_debugger", "System VIA Debug", &CreateSystemVIADebugWindow);
+    InitialiseTogglePopupCommand(BeebWindowPopupType_UserVIADebugger, "toggle_user_via_debugger", "User VIA Debug", &CreateUserVIADebugWindow);
+    InitialiseTogglePopupCommand(BeebWindowPopupType_NVRAMDebugger, "toggle_nvram_debugger", "NVRAM Debug", &CreateNVRAMDebugWindow);
+    InitialiseTogglePopupCommand(BeebWindowPopupType_SN76489Debugger, "toggle_sn76489_debugger", "SN76489 Debug", &CreateSN76489DebugWindow);
+    InitialiseTogglePopupCommand(BeebWindowPopupType_PagingDebugger, "toggle_paging_debugger", "Paging Debug", &CreatePagingDebugWindow);
+    InitialiseTogglePopupCommand(BeebWindowPopupType_BreakpointsDebugger, "toggle_breakpoints_debugger", "Breakpoints", &CreateBreakpointsDebugWindow);
+    InitialiseTogglePopupCommand(BeebWindowPopupType_StackDebugger, "toggle_stack_debugger", "Stack", &CreateHostStackDebugWindow);
+    InitialiseTogglePopupCommand(BeebWindowPopupType_ParasiteStackDebugger, "toggle_parasite_stack_debugger", "Parasite Stack", &CreateParasiteStackDebugWindow);
+    InitialiseTogglePopupCommand(BeebWindowPopupType_ParasiteMemoryDebugger1, "toggle_parasite_memory_debugger1", "Parasite Memory Debug 1", &CreateParasiteMemoryDebugWindow);
+    InitialiseTogglePopupCommand(BeebWindowPopupType_ParasiteMemoryDebugger2, "toggle_parasite_memory_debugger2", "Parasite Memory Debug 2", &CreateParasiteMemoryDebugWindow);
+    InitialiseTogglePopupCommand(BeebWindowPopupType_ParasiteMemoryDebugger3, "toggle_parasite_memory_debugger3", "Parasite Memory Debug 3", &CreateParasiteMemoryDebugWindow);
+    InitialiseTogglePopupCommand(BeebWindowPopupType_ParasiteMemoryDebugger4, "toggle_parasite_memory_debugger4", "Parasite Memory Debug 4", &CreateParasiteMemoryDebugWindow);
+    InitialiseTogglePopupCommand(BeebWindowPopupType_ParasiteDisassemblyDebugger1, "toggle_parasite_disassembly_debugger1", "Parasite Disassembly Debug 1",
+                                 [](BeebWindow *beeb_window) {
+                                     return CreateParasiteDisassemblyDebugWindow(beeb_window, true);
+                                 });
+    InitialiseTogglePopupCommand(BeebWindowPopupType_ParasiteDisassemblyDebugger2, "toggle_parasite_disassembly_debugger2", "Parasite Disassembly Debug 2",
+                                 [](BeebWindow *beeb_window) {
+                                     return CreateParasiteDisassemblyDebugWindow(beeb_window, false);
+                                 });
+    InitialiseTogglePopupCommand(BeebWindowPopupType_ParasiteDisassemblyDebugger3, "toggle_parasite_disassembly_debugger3", "Parasite Disassembly Debug 3",
+                                 [](BeebWindow *beeb_window) {
+                                     return CreateParasiteDisassemblyDebugWindow(beeb_window, false);
+                                 });
+    InitialiseTogglePopupCommand(BeebWindowPopupType_ParasiteDisassemblyDebugger4, "toggle_parasite_disassembly_debugger4", "Parasite Disassembly Debug 4",
+                                 [](BeebWindow *beeb_window) {
+                                     return CreateParasiteDisassemblyDebugWindow(beeb_window, false);
+                                 });
+    InitialiseTogglePopupCommand(BeebWindowPopupType_TubeDebugger, "toggle_tube_debugger", "Tube Debug", &CreateTubeDebugWindow);
+    InitialiseTogglePopupCommand(BeebWindowPopupType_ADCDebugger, "toggle_adc_debugger", "ADC Debug", &CreateADCDebugWindow);
+    InitialiseTogglePopupCommand(BeebWindowPopupType_BeebLink, "toggle_beeblink_options", "BeebLink Options", &CreateBeebLinkUI);
+
+    return true;
+}
+
+static const bool g_toggle_popup_commands_initialised = InitialiseTogglePopupCommands();
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
@@ -770,8 +861,8 @@ bool BeebWindow::DoImGui(uint64_t ticks) {
 
     // Command contexts to try, in order of preference.
     CommandContext ccs[] = {
-        {},                                                                    //panel that has focus - if any
-        CommandContext(this, &ms_command_table, &g_beeb_window_command_table), //for this window
+        {},                                                             //panel that has focus - if any
+        CommandContext(nullptr, nullptr, &g_beeb_window_command_table), //for this window
     };
     static const size_t num_ccs = sizeof ccs / sizeof ccs[0];
 
@@ -1016,6 +1107,7 @@ bool BeebWindow::DoMenuUI() {
         this->CopyBASIC();
     }
 
+#if BBCMICRO_DEBUGGER
     g_debug_run_command.enabled = this->DebugIsHalted();
     if (g_debug_run_command.WasActioned()) {
         std::unique_lock<Mutex> lock;
@@ -1024,7 +1116,9 @@ bool BeebWindow::DoMenuUI() {
         m->DebugRun();
         m_beeb_thread->Send(std::make_shared<BeebThread::DebugWakeUpMessage>());
     }
+#endif
 
+#if BBCMICRO_DEBUGGER
     g_debug_stop_command.enabled = !g_debug_run_command.enabled;
     if (g_debug_stop_command.WasActioned()) {
         std::unique_lock<Mutex> lock;
@@ -1032,6 +1126,7 @@ bool BeebWindow::DoMenuUI() {
 
         m->DebugHalt("manual stop");
     }
+#endif
 
     g_save_default_nvram_command.enabled = m_beeb_thread->HasNVRAM();
     if (g_save_default_nvram_command.WasActioned()) {
@@ -1108,126 +1203,24 @@ bool BeebWindow::DoMenuUI() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-// The table can be in any order. Entries are found by their type
-// field (since C++11 doesn't have C99-style designated
-// initializers..).
-struct BeebWindow::SettingsUIMetadata {
-    BeebWindowPopupType type;
-    const char *name;
-    const char *command_name;
-    std::unique_ptr<SettingsUI> (*create_fn)(BeebWindow *beeb_window);
-};
-
-#if BBCMICRO_DEBUGGER
-static std::unique_ptr<SettingsUI> CreateHostDisassemblyDebugWindow1(BeebWindow *beeb_window) {
-    return CreateHostDisassemblyDebugWindow(beeb_window, true);
-}
-#endif
-
-#if BBCMICRO_DEBUGGER
-static std::unique_ptr<SettingsUI> CreateHostDisassemblyDebugWindowN(BeebWindow *beeb_window) {
-    return CreateHostDisassemblyDebugWindow(beeb_window, false);
-}
-#endif
-
-#if BBCMICRO_DEBUGGER
-static std::unique_ptr<SettingsUI> CreateParasiteDisassemblyDebugWindow1(BeebWindow *beeb_window) {
-    return CreateParasiteDisassemblyDebugWindow(beeb_window, true);
-}
-#endif
-
-#if BBCMICRO_DEBUGGER
-static std::unique_ptr<SettingsUI> CreateParasiteDisassemblyDebugWindowN(BeebWindow *beeb_window) {
-    return CreateParasiteDisassemblyDebugWindow(beeb_window, false);
-}
-#endif
-
-const BeebWindow::SettingsUIMetadata BeebWindow::ms_settings_uis[] = {
-    {BeebWindowPopupType_Keymaps, "Keyboard Layouts", "toggle_keyboard_layout", &CreateKeymapsUI},
-    {BeebWindowPopupType_CommandKeymaps, "Command Keys", "toggle_command_keymaps", &CreateCommandKeymapsUI},
-    {BeebWindowPopupType_Options, "Options", "toggle_emulator_options", &BeebWindow::CreateOptionsUI},
-    {BeebWindowPopupType_Messages, "Messages", "toggle_messages", &CreateMessagesUI},
-    {BeebWindowPopupType_Timeline, "Timeline", "toggle_timeline", &BeebWindow::CreateTimelineUI},
-    {BeebWindowPopupType_SavedStates, "Saved States", "toggle_saved_states", &BeebWindow::CreateSavedStatesUI},
-    {BeebWindowPopupType_Configs, "Configs", "toggle_configurations", &CreateConfigsUI},
-#if BBCMICRO_TRACE
-    {BeebWindowPopupType_Trace, "Tracing", "toggle_event_trace", &CreateTraceUI},
-#endif
-    // inconsistent naming as this window has had multiple rebrands.
-    {BeebWindowPopupType_AudioCallback, "Performance", "toggle_date_rate", &CreateDataRateUI},
-#if BBCMICRO_DEBUGGER && VIDEO_TRACK_METADATA
-    // slightly inconsistent naming as this was created before the debugger...
-    {BeebWindowPopupType_PixelMetadata, "Pixel Metadata", "toggle_pixel_metadata", &CreatePixelMetadataDebugWindow},
-#endif
-#if ENABLE_IMGUI_TEST
-    {BeebWindowPopupType_DearImguiTest, "dear imgui Test", "toggle_dear_imgui_test", &CreateDearImguiTestUI},
-#endif
-#if BBCMICRO_DEBUGGER
-    {BeebWindowPopupType_6502Debugger, "6502 Debug", "toggle_6502_debugger", &Create6502DebugWindow},
-    {BeebWindowPopupType_MemoryDebugger1, "Host Memory Debug 1", "toggle_memory_debugger1", &CreateHostMemoryDebugWindow},
-    {BeebWindowPopupType_MemoryDebugger2, "Host Memory Debug 2", "toggle_memory_debugger2", &CreateHostMemoryDebugWindow},
-    {BeebWindowPopupType_MemoryDebugger3, "Host Memory Debug 3", "toggle_memory_debugger3", &CreateHostMemoryDebugWindow},
-    {BeebWindowPopupType_MemoryDebugger4, "Host Memory Debug 4", "toggle_memory_debugger4", &CreateHostMemoryDebugWindow},
-    {BeebWindowPopupType_ExtMemoryDebugger1, "External Memory Debug 1", "toggle_ext_memory_debugger1", &CreateExtMemoryDebugWindow},
-    {BeebWindowPopupType_ExtMemoryDebugger2, "External Memory Debug 2", "toggle_ext_memory_debugger2", &CreateExtMemoryDebugWindow},
-    {BeebWindowPopupType_ExtMemoryDebugger3, "External Memory Debug 3", "toggle_ext_memory_debugger3", &CreateExtMemoryDebugWindow},
-    {BeebWindowPopupType_ExtMemoryDebugger4, "External Memory Debug 4", "toggle_ext_memory_debugger4", &CreateExtMemoryDebugWindow},
-    {BeebWindowPopupType_DisassemblyDebugger1, "Host Disassembly Debug 1", "toggle_disassembly_debugger1", &CreateHostDisassemblyDebugWindow1},
-    {BeebWindowPopupType_DisassemblyDebugger2, "Host Disassembly Debug 2", "toggle_disassembly_debugger2", &CreateHostDisassemblyDebugWindowN},
-    {BeebWindowPopupType_DisassemblyDebugger3, "Host Disassembly Debug 3", "toggle_disassembly_debugger3", &CreateHostDisassemblyDebugWindowN},
-    {BeebWindowPopupType_DisassemblyDebugger4, "Host Disassembly Debug 4", "toggle_disassembly_debugger4", &CreateHostDisassemblyDebugWindowN},
-    {BeebWindowPopupType_CRTCDebugger, "CRTC Debug", "toggle_crtc_debugger", &CreateCRTCDebugWindow},
-    {BeebWindowPopupType_VideoULADebugger, "Video ULA Debug", "toggle_video_ula_debugger", &CreateVideoULADebugWindow},
-    {BeebWindowPopupType_SystemVIADebugger, "System VIA Debug", "toggle_system_via_debugger", &CreateSystemVIADebugWindow},
-    {BeebWindowPopupType_UserVIADebugger, "User VIA Debug", "toggle_user_via_debugger", &CreateUserVIADebugWindow},
-    {BeebWindowPopupType_NVRAMDebugger, "NVRAM Debug", "toggle_nvram_debugger", &CreateNVRAMDebugWindow},
-    {BeebWindowPopupType_SN76489Debugger, "SN76489 Debug", "toggle_sn76489_debugger", &CreateSN76489DebugWindow},
-    {BeebWindowPopupType_PagingDebugger, "Paging Debug", "toggle_paging_debugger", &CreatePagingDebugWindow},
-    {BeebWindowPopupType_BreakpointsDebugger, "Breakpoints", "toggle_breakpoints_debugger", &CreateBreakpointsDebugWindow},
-    {BeebWindowPopupType_StackDebugger, "Stack", "toggle_stack_debugger", &CreateHostStackDebugWindow},
-    {BeebWindowPopupType_ParasiteStackDebugger, "Parasite Stack", "toggle_parasite_stack_debugger", &CreateParasiteStackDebugWindow},
-    {BeebWindowPopupType_ParasiteMemoryDebugger1, "Parasite Memory Debug 1", "toggle_parasite_memory_debugger1", &CreateParasiteMemoryDebugWindow},
-    {BeebWindowPopupType_ParasiteMemoryDebugger2, "Parasite Memory Debug 2", "toggle_parasite_memory_debugger2", &CreateParasiteMemoryDebugWindow},
-    {BeebWindowPopupType_ParasiteMemoryDebugger3, "Parasite Memory Debug 3", "toggle_parasite_memory_debugger3", &CreateParasiteMemoryDebugWindow},
-    {BeebWindowPopupType_ParasiteMemoryDebugger4, "Parasite Memory Debug 4", "toggle_parasite_memory_debugger4", &CreateParasiteMemoryDebugWindow},
-    {BeebWindowPopupType_ParasiteDisassemblyDebugger1, "Parasite Disassembly Debug 1", "toggle_parasite_disassembly_debugger1", &CreateParasiteDisassemblyDebugWindow1},
-    {BeebWindowPopupType_ParasiteDisassemblyDebugger2, "Parasite Disassembly Debug 2", "toggle_parasite_disassembly_debugger2", &CreateParasiteDisassemblyDebugWindowN},
-    {BeebWindowPopupType_ParasiteDisassemblyDebugger3, "Parasite Disassembly Debug 3", "toggle_parasite_disassembly_debugger3", &CreateParasiteDisassemblyDebugWindowN},
-    {BeebWindowPopupType_ParasiteDisassemblyDebugger4, "Parasite Disassembly Debug 4", "toggle_parasite_disassembly_debugger4", &CreateParasiteDisassemblyDebugWindowN},
-    {BeebWindowPopupType_TubeDebugger, "Tube Debug", "toggle_tube_debugger", &CreateTubeDebugWindow},
-    {BeebWindowPopupType_ADCDebugger, "ADC Debug", "toggle_adc_debugger", &CreateADCDebugWindow},
-#endif
-    {BeebWindowPopupType_BeebLink, "BeebLink Options", "toggle_beeblink_options", &CreateBeebLinkUI},
-
-    // terminator
-    {BeebWindowPopupType_MaxValue},
-};
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 CommandContext BeebWindow::DoSettingsUI() {
     CommandContext cc;
 
     for (int type = 0; type < BeebWindowPopupType_MaxValue; ++type) {
-        uint64_t mask = (uint64_t)1 << type;
-        bool opened = !!(m_settings.popups & mask);
+        const uint64_t mask = (uint64_t)1 << type;
 
-        if (opened) {
+        PopupMetadata *popup_metadata = &g_popups[type];
+
+        if (popup_metadata->command.WasActioned()) {
+            m_settings.popups ^= mask;
+        }
+        popup_metadata->command.ticked = !!(m_settings.popups & mask);
+
+        if (m_settings.popups & mask) {
             if (!m_popups[type]) {
-                const SettingsUIMetadata *ui = ms_settings_uis;
-                while (ui->type != BeebWindowPopupType_MaxValue) {
-                    if (ui->type == type) {
-                        break;
-                    }
-
-                    ++ui;
-                }
-
-                if (ui->type == type) {
-                    m_popups[type] = (*ui->create_fn)(this);
-                    ASSERT(!!m_popups[type]);
-                    m_popups[type]->SetName(ui->name);
+                m_popups[type] = popup_metadata->create_fun(this);
+                if (m_popups[type]) {
+                    m_popups[type]->SetName(popup_metadata->command.GetText());
                 }
             }
 
@@ -1237,31 +1230,37 @@ CommandContext BeebWindow::DoSettingsUI() {
             ImVec2 default_pos = ImVec2(10.f, 30.f);
             ImVec2 default_size = ImGui::GetIO().DisplaySize * .4f;
 
+            bool opened = true;
+            ImGuiWindowFlags extra_flags = 0;
             if (popup) {
-                if (ImGui::BeginDock(popup->GetName().c_str(),
-                                     &opened,
-                                     (ImGuiWindowFlags)popup->GetExtraImGuiWindowFlags(),
-                                     default_size,
-                                     default_pos)) {
-                    m_settings.popups |= mask;
+                extra_flags = (ImGuiWindowFlags)popup->GetExtraImGuiWindowFlags();
+            }
 
-                    if (ImGui::IsWindowFocused(ImGuiFocusedFlags_ChildWindows)) {
+            if (ImGui::BeginDock(popup_metadata->command.GetText().c_str(), &opened, extra_flags, default_size, default_pos)) {
+                m_settings.popups |= mask;
+
+                if (ImGui::IsWindowFocused(ImGuiFocusedFlags_ChildWindows)) {
+                    if (popup) {
                         if (const CommandTable *table = popup->GetCommandTable()) {
                             cc = CommandContext(popup, table);
                         }
                     }
+                }
 
+                if (popup) {
                     popup->DoImGui();
+                } else {
+                    ImGui::TextWrapped("This version of b2 does not support this type of window.");
                 }
-                ImGui::EndDock();
+            }
+            ImGui::EndDock();
 
-                if (!opened) {
-                    m_settings.popups &= ~mask;
+            if (!opened) {
+                m_settings.popups &= ~mask;
 
-                    // Leave the deletion until the next frame -
-                    // references to its textures might still be queued up
-                    // in the dear imgui drawlists.
-                }
+                // Leave the deletion until the next frame -
+                // references to its textures might still be queued up
+                // in the dear imgui drawlists.
             }
         } else {
             if (m_popups[type]) {
@@ -1273,66 +1272,6 @@ CommandContext BeebWindow::DoSettingsUI() {
             }
         }
     }
-
-    //    for(const SettingsUIMetadata *ui=ms_settings_uis;ui->type!=BeebWindowPopupType_MaxValue;++ui) {
-    //        uint64_t mask=(uint64_t)1<<ui->type;
-    //        bool opened=!!(m_settings.popups&mask);
-    //
-    //        SettingsUI *popup=m_popups[ui->type].get();
-    //
-    //        if(opened) {
-    //            ImGui::SetNextDock(ImGuiDockSlot_None);
-    //            ImVec2 default_pos=ImVec2(10.f,30.f);
-    //            ImVec2 default_size=ImGui::GetIO().DisplaySize*.4f;
-    //
-    //            // The extra flags could be wrong for the first frame
-    //            // after the window is created.
-    //            ImGuiWindowFlags extra_flags=0;
-    //            if(popup) {
-    //                extra_flags|=(ImGuiWindowFlags)popup->GetExtraImGuiWindowFlags();
-    //            }
-    //
-    //            if(ImGui::BeginDock(ui->name,&opened,extra_flags,default_size,default_pos)) {
-    //                if(!popup) {
-    //                    m_popups[ui->type]=(*ui->create_fn)(this);
-    //                    ASSERT(!!m_popups[ui->type]);
-    //                    popup=m_popups[ui->type].get();
-    //                    popup->SetName(ui->name);
-    //                }
-    //
-    //                if(ImGui::IsWindowFocused(ImGuiFocusedFlags_ChildWindows)) {
-    //                    if(const CommandTable *table=popup->GetCommandTable()) {
-    //                        cc=CommandContext(popup,table);
-    //                    }
-    //                }
-    //
-    //                popup->DoImGui();
-    //
-    ////                if(m_popups[ui->type]->WantsKeyboardFocus()) {
-    ////                    m_imgui_has_kb_focus=true;
-    ////                }
-    //
-    //                m_settings.popups|=mask;
-    //            }
-    //            ImGui::EndDock();
-    //
-    //            if(!opened) {
-    //                m_settings.popups&=~mask;
-    //
-    //                // Leave the deletion until the next frame -
-    //                // references to its textures might still be queued up
-    //                // in the dear imgui drawlists.
-    //            }
-    //        } else {
-    //            if(m_popups[ui->type]) {
-    //                if(m_popups[ui->type]->OnClose()) {
-    //                    this->SaveConfig();
-    //                }
-    //
-    //                m_popups[ui->type]=nullptr;
-    //            }
-    //        }
-    //    }
 
     if (ValueChanged(&m_msg_last_num_errors_and_warnings_printed, m_message_list->GetNumErrorsAndWarningsPrinted())) {
         m_settings.popups |= 1 << BeebWindowPopupType_Messages;
@@ -1558,7 +1497,7 @@ void BeebWindow::DoPopupUI(uint64_t now, int output_width, int output_height) {
 
 void BeebWindow::DoFileMenu() {
     if (ImGui::BeginMenu("File")) {
-        g_hard_reset_command.DoMenuItem(); //m_cc.DoMenuItemUI("hard_reset");
+        g_hard_reset_command.DoMenuItem();
 
         if (ImGui::BeginMenu("Run")) {
             this->DoDiscImageSubMenu(0, true);
@@ -1590,18 +1529,17 @@ void BeebWindow::DoFileMenu() {
             ImGui::Separator();
         }
 
-        g_save_default_nvram_command.DoMenuItem(); //m_cc.DoMenuItemUI("save_default_nvram");
+        g_save_default_nvram_command.DoMenuItem();
 
         ImGui::Separator();
 
-        //m_cc.DoMenuItemUI("load_last_state");
-        g_save_state_command.DoMenuItem(); //m_cc.DoMenuItemUI("save_state");
+        g_save_state_command.DoMenuItem();
 
         ImGui::Separator();
-        m_cc.DoMenuItemUI("save_config");
-        m_cc.DoMenuItemUI("save_screenshot");
+        g_save_config_command.DoMenuItem();
+        g_save_screenshot_command.DoMenuItem();
         ImGui::Separator();
-        g_exit_command.DoMenuItem(); //m_cc.DoMenuItemUI("exit");
+        g_exit_command.DoMenuItem();
         ImGui::EndMenu();
     }
 }
@@ -1769,13 +1707,11 @@ void BeebWindow::DoDiscImageSubMenuItem(int drive,
 
 void BeebWindow::DoEditMenu() {
     if (ImGui::BeginMenu("Edit")) {
-        g_toggle_copy_oswrch_text_command.DoMenuItem(); //m_cc.DoMenuItemUI("toggle_copy_oswrch_text");
-        g_copy_basic_command.DoMenuItem();              //m_cc.DoMenuItemUI("copy_basic");
-        m_cc.DoMenuItemUI("copy_screenshot");
-
-        //m_cc.DoMenuItemUI("toggle_copy_oswrch_binary");
-        g_paste_command.DoMenuItem();        //m_cc.DoMenuItemUI("paste");
-        g_paste_return_command.DoMenuItem(); //m_cc.DoMenuItemUI("paste_return");
+        g_toggle_copy_oswrch_text_command.DoMenuItem();
+        g_copy_basic_command.DoMenuItem();
+        g_copy_screenshot_command.DoMenuItem();
+        g_paste_command.DoMenuItem();
+        g_paste_return_command.DoMenuItem();
 
         ImGui::EndMenu();
     }
@@ -1786,7 +1722,7 @@ void BeebWindow::DoEditMenu() {
 
 void BeebWindow::DoHardwareMenu() {
     if (ImGui::BeginMenu("Hardware")) {
-        m_cc.DoMenuItemUI("toggle_configurations");
+        g_popups[BeebWindowPopupType_Configs].command.DoMenuItem();
 
         ImGui::Separator();
 
@@ -1809,12 +1745,12 @@ void BeebWindow::DoHardwareMenu() {
 
 void BeebWindow::DoKeyboardMenu() {
     if (ImGui::BeginMenu("Keyboard")) {
-        m_cc.DoMenuItemUI("toggle_keyboard_layout");
-        m_cc.DoMenuItemUI("toggle_command_keymaps");
+        g_popups[BeebWindowPopupType_Keymaps].command.DoMenuItem();
+        g_popups[BeebWindowPopupType_CommandKeymaps].command.DoMenuItem();
 
         ImGui::Separator();
 
-        m_cc.DoMenuItemUI("toggle_prioritize_shortcuts");
+        g_toggle_prioritize_shortcuts_command.DoMenuItem(); //.DoMenuItemUI("toggle_prioritize_shortcuts");
 
         ImGui::Separator();
 
@@ -1851,11 +1787,11 @@ void BeebWindow::DoJoysticksMenu() {
 
 void BeebWindow::DoToolsMenu() {
     if (ImGui::BeginMenu("Tools")) {
-        m_cc.DoMenuItemUI("toggle_emulator_options");
-        m_cc.DoMenuItemUI("toggle_messages");
-        m_cc.DoMenuItemUI("toggle_timeline");
-        m_cc.DoMenuItemUI("toggle_saved_states");
-        m_cc.DoMenuItemUI("toggle_beeblink_options");
+        g_popups[BeebWindowPopupType_Options].command.DoMenuItem();
+        g_popups[BeebWindowPopupType_Messages].command.DoMenuItem();
+        g_popups[BeebWindowPopupType_Timeline].command.DoMenuItem();
+        g_popups[BeebWindowPopupType_SavedStates].command.DoMenuItem();
+        g_popups[BeebWindowPopupType_BeebLink].command.DoMenuItem();
 
         ImGui::Separator();
 
@@ -1881,11 +1817,11 @@ void BeebWindow::DoToolsMenu() {
         ImGui::Separator();
 
         // Is there somewhere better for this?
-        g_reset_default_nvram_command.DoMenuItem(); // m_cc.DoMenuItemUI("reset_default_nvram");
+        g_reset_default_nvram_command.DoMenuItem();
 
         ImGui::Separator();
-        g_clean_up_recent_files_lists_command.DoMenuItem(); //m_cc.DoMenuItemUI("clean_up_recent_files_lists");
-        g_reset_dock_windows_command.DoMenuItem();          //.DoMenuItemUI("reset_dock_windows");
+        g_clean_up_recent_files_lists_command.DoMenuItem();
+        g_reset_dock_windows_command.DoMenuItem();
 
         ImGui::EndMenu();
     }
@@ -1898,78 +1834,78 @@ void BeebWindow::DoDebugMenu() {
 #if ENABLE_DEBUG_MENU
     if (ImGui::BeginMenu("Debug")) {
 #if ENABLE_IMGUI_TEST
-        m_cc.DoMenuItemUI("toggle_dear_imgui_test");
+        g_popups[BeebWindowPopupType_DearImguiTest].command.DoMenuItem();
 #endif
-        m_cc.DoMenuItemUI("toggle_event_trace");
-        m_cc.DoMenuItemUI("toggle_date_rate");
+        g_popups[BeebWindowPopupType_Trace].command.DoMenuItem();
+        g_popups[BeebWindowPopupType_AudioCallback].command.DoMenuItem();
 
 #if VIDEO_TRACK_METADATA
-        m_cc.DoMenuItemUI("toggle_pixel_metadata");
+        g_popups[BeebWindowPopupType_PixelMetadata].command.DoMenuItem();
 #endif
 
 #if BBCMICRO_DEBUGGER
         ImGui::Separator();
 
-        m_cc.DoMenuItemUI("toggle_6502_debugger");
+        g_popups[BeebWindowPopupType_6502Debugger].command.DoMenuItem();
         if (ImGui::BeginMenu("Memory Debug")) {
-            m_cc.DoMenuItemUI("toggle_memory_debugger1");
-            m_cc.DoMenuItemUI("toggle_memory_debugger2");
-            m_cc.DoMenuItemUI("toggle_memory_debugger3");
-            m_cc.DoMenuItemUI("toggle_memory_debugger4");
+            g_popups[BeebWindowPopupType_MemoryDebugger1].command.DoMenuItem();
+            g_popups[BeebWindowPopupType_MemoryDebugger2].command.DoMenuItem();
+            g_popups[BeebWindowPopupType_MemoryDebugger3].command.DoMenuItem();
+            g_popups[BeebWindowPopupType_MemoryDebugger4].command.DoMenuItem();
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("Parasite Memory Debug")) {
-            m_cc.DoMenuItemUI("toggle_parasite_memory_debugger1");
-            m_cc.DoMenuItemUI("toggle_parasite_memory_debugger2");
-            m_cc.DoMenuItemUI("toggle_parasite_memory_debugger3");
-            m_cc.DoMenuItemUI("toggle_parasite_memory_debugger4");
+            g_popups[BeebWindowPopupType_ParasiteMemoryDebugger1].command.DoMenuItem();
+            g_popups[BeebWindowPopupType_ParasiteMemoryDebugger2].command.DoMenuItem();
+            g_popups[BeebWindowPopupType_ParasiteMemoryDebugger3].command.DoMenuItem();
+            g_popups[BeebWindowPopupType_ParasiteMemoryDebugger4].command.DoMenuItem();
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("Disassembly Debug")) {
-            m_cc.DoMenuItemUI("toggle_disassembly_debugger1");
-            m_cc.DoMenuItemUI("toggle_disassembly_debugger2");
-            m_cc.DoMenuItemUI("toggle_disassembly_debugger3");
-            m_cc.DoMenuItemUI("toggle_disassembly_debugger4");
+            g_popups[BeebWindowPopupType_DisassemblyDebugger1].command.DoMenuItem();
+            g_popups[BeebWindowPopupType_DisassemblyDebugger2].command.DoMenuItem();
+            g_popups[BeebWindowPopupType_DisassemblyDebugger3].command.DoMenuItem();
+            g_popups[BeebWindowPopupType_DisassemblyDebugger4].command.DoMenuItem();
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("Parasite Disassembly Debug")) {
-            m_cc.DoMenuItemUI("toggle_parasite_disassembly_debugger1");
-            m_cc.DoMenuItemUI("toggle_parasite_disassembly_debugger2");
-            m_cc.DoMenuItemUI("toggle_parasite_disassembly_debugger3");
-            m_cc.DoMenuItemUI("toggle_parasite_disassembly_debugger4");
+            g_popups[BeebWindowPopupType_ParasiteDisassemblyDebugger1].command.DoMenuItem();
+            g_popups[BeebWindowPopupType_ParasiteDisassemblyDebugger2].command.DoMenuItem();
+            g_popups[BeebWindowPopupType_ParasiteDisassemblyDebugger3].command.DoMenuItem();
+            g_popups[BeebWindowPopupType_ParasiteDisassemblyDebugger4].command.DoMenuItem();
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("External Memory Debug")) {
-            m_cc.DoMenuItemUI("toggle_ext_memory_debugger1");
-            m_cc.DoMenuItemUI("toggle_ext_memory_debugger2");
-            m_cc.DoMenuItemUI("toggle_ext_memory_debugger3");
-            m_cc.DoMenuItemUI("toggle_ext_memory_debugger4");
+            g_popups[BeebWindowPopupType_ExtMemoryDebugger1].command.DoMenuItem();
+            g_popups[BeebWindowPopupType_ExtMemoryDebugger2].command.DoMenuItem();
+            g_popups[BeebWindowPopupType_ExtMemoryDebugger3].command.DoMenuItem();
+            g_popups[BeebWindowPopupType_ExtMemoryDebugger4].command.DoMenuItem();
             ImGui::EndMenu();
         }
-        m_cc.DoMenuItemUI("toggle_crtc_debugger");
-        m_cc.DoMenuItemUI("toggle_video_ula_debugger");
-        m_cc.DoMenuItemUI("toggle_system_via_debugger");
-        m_cc.DoMenuItemUI("toggle_user_via_debugger");
-        m_cc.DoMenuItemUI("toggle_nvram_debugger");
-        m_cc.DoMenuItemUI("toggle_sn76489_debugger");
-        m_cc.DoMenuItemUI("toggle_adc_debugger");
-        m_cc.DoMenuItemUI("toggle_paging_debugger");
-        m_cc.DoMenuItemUI("toggle_breakpoints_debugger");
-        m_cc.DoMenuItemUI("toggle_stack_debugger");
-        m_cc.DoMenuItemUI("toggle_parasite_stack_debugger");
-        m_cc.DoMenuItemUI("toggle_tube_debugger");
+        g_popups[BeebWindowPopupType_CRTCDebugger].command.DoMenuItem();
+        g_popups[BeebWindowPopupType_VideoULADebugger].command.DoMenuItem();
+        g_popups[BeebWindowPopupType_SystemVIADebugger].command.DoMenuItem();
+        g_popups[BeebWindowPopupType_UserVIADebugger].command.DoMenuItem();
+        g_popups[BeebWindowPopupType_NVRAMDebugger].command.DoMenuItem();
+        g_popups[BeebWindowPopupType_SN76489Debugger].command.DoMenuItem();
+        g_popups[BeebWindowPopupType_ADCDebugger].command.DoMenuItem();
+        g_popups[BeebWindowPopupType_PagingDebugger].command.DoMenuItem();
+        g_popups[BeebWindowPopupType_BreakpointsDebugger].command.DoMenuItem();
+        g_popups[BeebWindowPopupType_StackDebugger].command.DoMenuItem();
+        g_popups[BeebWindowPopupType_ParasiteStackDebugger].command.DoMenuItem();
+        g_popups[BeebWindowPopupType_TubeDebugger].command.DoMenuItem();
 
         ImGui::Separator();
 
-        g_debug_stop_command.DoMenuItem(); //m_cc.DoMenuItemUI("debug_stop");
-        g_debug_run_command.DoMenuItem();  //m_cc.DoMenuItemUI("debug_run");
+        g_debug_stop_command.DoMenuItem();
+        g_debug_run_command.DoMenuItem();
 
 #endif
 
         ImGui::Separator();
 
 #if SYSTEM_WINDOWS
-        g_toggle_console_command.DoMenuItem(); //m_cc.DoMenuItemUI("toggle_console")
+        g_toggle_console_command.DoMenuItem();
 
         if (HasWindowsConsole()) {
             g_clear_console_command.DoMenuItem();
@@ -2011,7 +1947,7 @@ bool BeebWindow::DoWindowMenu() {
             }
         }
 
-        m_cc.DoMenuItemUI("toggle_full_screen");
+        g_toggle_full_screen_command.DoMenuItem(); //.DoMenuItemUI("toggle_full_screen");
 
         ImGui::Separator();
 
@@ -3094,54 +3030,6 @@ bool BeebWindow::RecreateTexture() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-template <BeebWindowPopupType POPUP_TYPE>
-void BeebWindow::TogglePopupCommand() {
-    m_settings.popups ^= (uint64_t)1 << POPUP_TYPE;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-template <BeebWindowPopupType POPUP_TYPE>
-bool BeebWindow::IsPopupCommandTicked() const {
-    return !!(m_settings.popups & (uint64_t)1 << POPUP_TYPE);
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-template <BeebWindowPopupType POPUP_TYPE>
-ObjectCommandTable<BeebWindow>::Initializer BeebWindow::GetTogglePopupCommand() {
-    const SettingsUIMetadata *ui;
-    for (ui = ms_settings_uis; ui->type != BeebWindowPopupType_MaxValue; ++ui) {
-        if (ui->type == POPUP_TYPE) {
-            break;
-        }
-    }
-
-    const char *command_name;
-    if (ui->type == BeebWindowPopupType_MaxValue) {
-        command_name = "?";
-    } else {
-        command_name = ui->command_name;
-    }
-
-    std::string text;
-    if (ui->type == BeebWindowPopupType_MaxValue || strlen(ui->name) == 0) {
-        text = "?";
-    } else {
-        text = std::string(ui->name) + "...";
-    }
-
-    return ObjectCommandTable<BeebWindow>::Initializer(CommandDef(command_name,
-                                                                  std::move(text)),
-                                                       &BeebWindow::TogglePopupCommand<POPUP_TYPE>,
-                                                       &BeebWindow::IsPopupCommandTicked<POPUP_TYPE>);
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 void BeebWindow::DoPaste(bool add_return) {
     if (m_beeb_thread->IsPasting()) {
         m_beeb_thread->Send(std::make_shared<BeebThread::StopPasteMessage>());
@@ -3475,60 +3363,3 @@ void BeebWindow::ShowPrioritizeCommandShortcutsStatus() {
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
-
-ObjectCommandTable<BeebWindow> BeebWindow::ms_command_table("Beeb Window", {
-    GetTogglePopupCommand<BeebWindowPopupType_Options>(),
-        GetTogglePopupCommand<BeebWindowPopupType_Keymaps>(),
-        GetTogglePopupCommand<BeebWindowPopupType_Timeline>(),
-        GetTogglePopupCommand<BeebWindowPopupType_SavedStates>(),
-        GetTogglePopupCommand<BeebWindowPopupType_Messages>(),
-        GetTogglePopupCommand<BeebWindowPopupType_Configs>(),
-#if BBCMICRO_TRACE
-        GetTogglePopupCommand<BeebWindowPopupType_Trace>(),
-#endif
-        GetTogglePopupCommand<BeebWindowPopupType_AudioCallback>(),
-        GetTogglePopupCommand<BeebWindowPopupType_CommandContextStack>(),
-        GetTogglePopupCommand<BeebWindowPopupType_CommandKeymaps>(),
-#if VIDEO_TRACK_METADATA
-        GetTogglePopupCommand<BeebWindowPopupType_PixelMetadata>(),
-#endif
-#if ENABLE_IMGUI_TEST
-        GetTogglePopupCommand<BeebWindowPopupType_DearImguiTest>(),
-#endif
-#if BBCMICRO_DEBUGGER
-        GetTogglePopupCommand<BeebWindowPopupType_6502Debugger>(),
-        GetTogglePopupCommand<BeebWindowPopupType_MemoryDebugger1>(),
-        GetTogglePopupCommand<BeebWindowPopupType_MemoryDebugger2>(),
-        GetTogglePopupCommand<BeebWindowPopupType_MemoryDebugger3>(),
-        GetTogglePopupCommand<BeebWindowPopupType_MemoryDebugger4>(),
-        GetTogglePopupCommand<BeebWindowPopupType_ExtMemoryDebugger1>(),
-        GetTogglePopupCommand<BeebWindowPopupType_ExtMemoryDebugger2>(),
-        GetTogglePopupCommand<BeebWindowPopupType_ExtMemoryDebugger3>(),
-        GetTogglePopupCommand<BeebWindowPopupType_ExtMemoryDebugger4>(),
-        GetTogglePopupCommand<BeebWindowPopupType_DisassemblyDebugger1>(),
-        GetTogglePopupCommand<BeebWindowPopupType_DisassemblyDebugger2>(),
-        GetTogglePopupCommand<BeebWindowPopupType_DisassemblyDebugger3>(),
-        GetTogglePopupCommand<BeebWindowPopupType_DisassemblyDebugger4>(),
-        GetTogglePopupCommand<BeebWindowPopupType_CRTCDebugger>(),
-        GetTogglePopupCommand<BeebWindowPopupType_VideoULADebugger>(),
-        GetTogglePopupCommand<BeebWindowPopupType_SystemVIADebugger>(),
-        GetTogglePopupCommand<BeebWindowPopupType_UserVIADebugger>(),
-        GetTogglePopupCommand<BeebWindowPopupType_NVRAMDebugger>(),
-        GetTogglePopupCommand<BeebWindowPopupType_BeebLink>(),
-        GetTogglePopupCommand<BeebWindowPopupType_SN76489Debugger>(),
-        GetTogglePopupCommand<BeebWindowPopupType_PagingDebugger>(),
-        GetTogglePopupCommand<BeebWindowPopupType_BreakpointsDebugger>(),
-        GetTogglePopupCommand<BeebWindowPopupType_StackDebugger>(),
-        GetTogglePopupCommand<BeebWindowPopupType_ParasiteStackDebugger>(),
-        GetTogglePopupCommand<BeebWindowPopupType_ParasiteMemoryDebugger1>(),
-        GetTogglePopupCommand<BeebWindowPopupType_ParasiteMemoryDebugger2>(),
-        GetTogglePopupCommand<BeebWindowPopupType_ParasiteMemoryDebugger3>(),
-        GetTogglePopupCommand<BeebWindowPopupType_ParasiteMemoryDebugger4>(),
-        GetTogglePopupCommand<BeebWindowPopupType_ParasiteDisassemblyDebugger1>(),
-        GetTogglePopupCommand<BeebWindowPopupType_ParasiteDisassemblyDebugger2>(),
-        GetTogglePopupCommand<BeebWindowPopupType_ParasiteDisassemblyDebugger3>(),
-        GetTogglePopupCommand<BeebWindowPopupType_ParasiteDisassemblyDebugger4>(),
-        GetTogglePopupCommand<BeebWindowPopupType_TubeDebugger>(),
-        GetTogglePopupCommand<BeebWindowPopupType_ADCDebugger>(),
-#endif
-});

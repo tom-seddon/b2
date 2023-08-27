@@ -40,3 +40,10 @@ uint32_t SettingsUI::GetExtraImGuiWindowFlags() const {
 const CommandTable *SettingsUI::GetCommandTable() const {
     return nullptr;
 }
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+const CommandTable2 *SettingsUI::GetCommandTable2() const {
+    return nullptr;
+}

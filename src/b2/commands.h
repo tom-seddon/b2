@@ -336,13 +336,14 @@ class Command2Data {
     bool m_has_tick = false;
     mutable uint64_t m_frame_counter = 0;
     std::vector<uint32_t> m_shortcuts;
+    bool m_visible = true;
 
     Command2Data(const Command2Data &) = default;
     Command2Data(Command2Data &&) = default;
+    Command2Data &operator=(const Command2Data &) = default;
+    Command2Data &operator=(Command2Data &&) = default;
 
   private:
-    Command2Data &operator=(const Command2Data &) = delete;
-    Command2Data &operator=(Command2Data &&) = delete;
 };
 
 class Command2 : private Command2Data {
@@ -350,12 +351,23 @@ class Command2 : private Command2Data {
     using Command2Data::enabled;
     using Command2Data::ticked;
 
+    Command2();
     Command2(CommandTable2 *table, std::string id, std::string label);
     ~Command2();
+
+    Command2(const Command2 &);
+    Command2 &operator=(const Command2 &) = default;
+    Command2(Command2 &&);
+    Command2 &operator=(Command2 &&) = default;
 
     // TODO: terminology...
     const std::string &GetName() const;
     const std::string &GetText() const;
+
+    // Invisible commands refer to functionality that's compiled out of this
+    // build, or otherwise hidden. They remain present, but aren't exposed in
+    // the UI.
+    bool IsVisible() const;
 
     void DoButton();
     void DoMenuItem();
@@ -364,18 +376,14 @@ class Command2 : private Command2Data {
     bool WasActioned() const;
 
     // fluent interface
-    Command2 MustConfirm() const;
-    Command2 WithTick() const;
-    Command2 WithShortcut(uint32_t shortcut) const;
+    Command2 &MustConfirm();
+    Command2 &WithTick();
+    Command2 &WithShortcut(uint32_t shortcut);
+    Command2 &VisibleIf(int flag); //invisible if any such flag is false
 
   protected:
   private:
     void Action();
-
-    Command2(const Command2 &);
-    Command2 &operator=(const Command2 &) = delete;
-    Command2(Command2 &&);
-    Command2 &operator=(Command2 &&) = delete;
 
     static void AddCommand(Command2 *command);
     static void RemoveCommand(Command2 *command);

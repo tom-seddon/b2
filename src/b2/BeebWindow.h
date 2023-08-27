@@ -286,7 +286,7 @@ class BeebWindow {
 
   protected:
   private:
-    struct SettingsUIMetadata;
+    //struct SettingsUIMetadata;
 
     struct DriveState {
         SaveFileDialog new_disc_image_file_dialog;
@@ -445,8 +445,6 @@ class BeebWindow {
     std::thread m_update_tv_texture_thread;
     bool m_update_tv_texture_thread_enabled = false;
 
-    const CommandContext m_cc{this, &ms_command_table};
-
     bool InitInternal();
     static void UpdateTVTextureThread(UpdateTVTextureThreadState *state);
     bool DoImGui(uint64_t ticks);
@@ -477,15 +475,6 @@ class BeebWindow {
     VBlankRecord *NewVBlankRecord(uint64_t ticks);
     bool DoBeebDisplayUI();
 
-    template <BeebWindowPopupType>
-    void TogglePopupCommand();
-
-    template <BeebWindowPopupType>
-    bool IsPopupCommandTicked() const;
-
-    template <BeebWindowPopupType>
-    static ObjectCommandTable<BeebWindow>::Initializer GetTogglePopupCommand();
-
     void DoPaste(bool add_return);
 
     template <bool IS_TEXT>
@@ -507,11 +496,10 @@ class BeebWindow {
     static std::unique_ptr<SettingsUI> CreateTimelineUI(BeebWindow *beeb_window);
     static std::unique_ptr<SettingsUI> CreateSavedStatesUI(BeebWindow *beeb_window);
 
-    static ObjectCommandTable<BeebWindow> ms_command_table;
-    static const SettingsUIMetadata ms_settings_uis[];
-
     // Keep this at the end. It's massive.
     mutable Messages m_msg;
+
+    friend static bool InitialiseTogglePopupCommands();
 };
 
 //////////////////////////////////////////////////////////////////////////

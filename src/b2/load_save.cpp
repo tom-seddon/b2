@@ -1587,8 +1587,16 @@ static bool LoadShortcuts(rapidjson::Value *shortcuts_json, Messages *msg) {
              command_it != table_it->value.MemberEnd();
              ++command_it) {
 
-            Command *command = table->FindCommandByName(command_it->name.GetString());
-            Command2 *command2 = table2->FindCommandByName(command_it->name.GetString());
+            Command *command = nullptr;
+            if (table) {
+                command = table->FindCommandByName(command_it->name.GetString());
+            }
+
+            Command2 *command2 = nullptr;
+            if (table2) {
+                command2 = table2->FindCommandByName(command_it->name.GetString());
+            }
+
             if (!command && !command2) {
                 msg->w.f("unknown %s command: %s\n", table_it->name.GetString(), command_it->name.GetString());
                 continue;
