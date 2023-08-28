@@ -448,9 +448,9 @@ class BeebWindow {
     bool InitInternal();
     static void UpdateTVTextureThread(UpdateTVTextureThreadState *state);
     bool DoImGui(uint64_t ticks);
-    bool HandleCommandKey(uint32_t keycode, const CommandContext *ccs, size_t num_ccs);
+    bool HandleCommandKey(uint32_t keycode, const CommandTable2 **tables,size_t num_tables);
     bool DoMenuUI();
-    CommandContext DoSettingsUI();
+    const CommandTable2 *DoSettingsUI();
     void DoPopupUI(uint64_t now, int output_width, int output_height);
     void DoFileMenu();
     void DoDiscDriveSubMenu(int drive, const std::shared_ptr<const DiscImage> &disc_image);

@@ -1569,10 +1569,9 @@ static bool LoadShortcuts(rapidjson::Value *shortcuts_json, Messages *msg) {
          table_it != shortcuts_json->MemberEnd();
          ++table_it) {
 
-        CommandTable *table = CommandTable::FindCommandTableByName(table_it->name.GetString());
         CommandTable2 *table2 = FindCommandTable2ByName(table_it->name.GetString());
-        ;
-        if (!table && !table2) {
+
+        if (!table2) {
             msg->w.f("unknown command table: %s\n", table_it->name.GetString());
             continue;
         }
@@ -1587,17 +1586,8 @@ static bool LoadShortcuts(rapidjson::Value *shortcuts_json, Messages *msg) {
              command_it != table_it->value.MemberEnd();
              ++command_it) {
 
-            Command *command = nullptr;
-            if (table) {
-                command = table->FindCommandByName(command_it->name.GetString());
-            }
-
-            Command2 *command2 = nullptr;
-            if (table2) {
-                command2 = table2->FindCommandByName(command_it->name.GetString());
-            }
-
-            if (!command && !command2) {
+            Command2 *command2 = table2->FindCommandByName(command_it->name.GetString());
+            if (!command2) {
                 msg->w.f("unknown %s command: %s\n", table_it->name.GetString(), command_it->name.GetString());
                 continue;
             }
@@ -1608,13 +1598,7 @@ static bool LoadShortcuts(rapidjson::Value *shortcuts_json, Messages *msg) {
                 continue;
             }
 
-            if (table && command) {
-                table->ClearMappingsByCommand(command);
-            }
-
-            if (table2 && command2) {
-                table2->ClearMappingsByCommand(command2);
-            }
+            table2->ClearMappingsByCommand(command2);
 
             for (rapidjson::SizeType i = 0; i < command_it->value.Size(); ++i) {
                 uint32_t keycode;
@@ -1623,13 +1607,7 @@ static bool LoadShortcuts(rapidjson::Value *shortcuts_json, Messages *msg) {
                     continue;
                 }
 
-                if (table && command) {
-                    table->AddMapping(keycode, command);
-                }
-
-                if (table2 && command2) {
-                    table2->AddMapping(keycode, command2);
-                }
+                table2->AddMapping(keycode, command2);
             }
         }
     }
@@ -1660,22 +1638,22 @@ static void SaveCommandTableShortcuts(JSONWriter<StringStream> *writer, const Co
 static void SaveShortcuts(JSONWriter<StringStream> *writer) {
     auto shortcuts_json = ObjectWriter(writer, SHORTCUTS);
 
-    std::map<std::string, std::pair<CommandTable *, CommandTable2 *>> tables_by_name;
-    CommandTable::ForEachCommandTable([&tables_by_name](CommandTable *table) {
-        ASSERT(!tables_by_name[table->GetName()].first);
-        tables_by_name[table->GetName()].first = table;
-    });
-    ForEachCommandTable2([&tables_by_name](CommandTable2 *table) {
-        ASSERT(!tables_by_name[table->GetName()].second);
-        tables_by_name[table->GetName()].second = table;
-    });
+    ForEachCommandTable2([writer](CommandTable2 *table) {
+        auto commands_json = ObjectWriter(writer, table->GetName().c_str());
 
-    for (auto &&name_and_tables : tables_by_name) {
-        auto commands_json = ObjectWriter(writer, name_and_tables.first.c_str());
+        table->ForEachCommand([table, writer, &commands_json](Command2 *command) {
+            bool are_defaults;
+            if (const std::vector<uint32_t> *pc_keys = table->GetPCKeysForCommand(&are_defaults, command)) {
+                if (!are_defaults) {
+                    auto command_json = ArrayWriter(writer, command->GetName().c_str());
 
-        SaveCommandTableShortcuts(writer, name_and_tables.second.first);
-        SaveCommandTableShortcuts(writer, name_and_tables.second.second);
-    }
+                    for (uint32_t pc_key : *pc_keys) {
+                        SaveKeycodeObject(writer, pc_key);
+                    }
+                }
+            }
+        });
+    });
 }
 
 //////////////////////////////////////////////////////////////////////////

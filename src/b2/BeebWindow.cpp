@@ -858,11 +858,11 @@ bool BeebWindow::DoImGui(uint64_t ticks) {
     }
 
     // Command contexts to try, in order of preference.
-    CommandContext ccs[] = {
-        {},                                                             //panel that has focus - if any
-        CommandContext(nullptr, nullptr, &g_beeb_window_command_table), //for this window
+    const CommandTable2 *command_tables[] = {
+        nullptr,                      //panel that has focus - if any
+        &g_beeb_window_command_table, //this window
     };
-    static const size_t num_ccs = sizeof ccs / sizeof ccs[0];
+    static const size_t num_command_tables = sizeof command_tables / sizeof command_tables[0];
 
     // Set if the BBC display panel has focus. This isn't entirely regular,
     // because the BBC display panel is handled by separate code - this will
@@ -918,7 +918,7 @@ bool BeebWindow::DoImGui(uint64_t ticks) {
                 {
                     ImGuiStyleVarPusher vpusher2(ImGuiStyleVar_WindowPadding, IMGUI_DEFAULT_STYLE.WindowPadding);
 
-                    ccs[0] = this->DoSettingsUI();
+                    command_tables[0] = this->DoSettingsUI();
 
                     beeb_focus = this->DoBeebDisplayUI();
                 }
@@ -976,7 +976,7 @@ bool BeebWindow::DoImGui(uint64_t ticks) {
                 bool handled = false;
 
                 if (m_prefer_shortcuts) {
-                    handled = this->HandleCommandKey(keycode, ccs, num_ccs);
+                    handled = this->HandleCommandKey(keycode, command_tables, num_command_tables);
                 }
 
                 if (!handled) {
@@ -985,11 +985,11 @@ bool BeebWindow::DoImGui(uint64_t ticks) {
 
                 if (!m_prefer_shortcuts) {
                     if (!handled) {
-                        handled = this->HandleCommandKey(keycode, ccs, num_ccs);
+                        handled = this->HandleCommandKey(keycode, command_tables, num_command_tables);
                     }
                 }
             } else {
-                this->HandleCommandKey(keycode, ccs, num_ccs);
+                this->HandleCommandKey(keycode, command_tables, num_command_tables);
             }
         }
     }
@@ -1002,13 +1002,13 @@ bool BeebWindow::DoImGui(uint64_t ticks) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool BeebWindow::HandleCommandKey(uint32_t keycode,
-                                  const CommandContext *ccs,
-                                  size_t num_ccs) {
+bool BeebWindow::HandleCommandKey(uint32_t keycode, const CommandTable2 **tables, size_t num_tables) {
     if (keycode != 0) {
-        for (size_t i = 0; i < num_ccs; ++i) {
-            if (ccs[i].ExecuteCommandsForPCKey(keycode)) {
-                return true;
+        for (size_t i = 0; i < num_tables; ++i) {
+            if (tables[i]) {
+                if (tables[i]->ActionCommandsForPCKey(keycode)) {
+                    return true;
+                }
             }
         }
     }
@@ -1201,9 +1201,8 @@ bool BeebWindow::DoMenuUI() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-CommandContext BeebWindow::DoSettingsUI() {
-    CommandContext cc;
-
+const CommandTable2 *BeebWindow::DoSettingsUI() {
+    const CommandTable2 *command_table = nullptr;
     for (int type = 0; type < BeebWindowPopupType_MaxValue; ++type) {
         const uint64_t mask = (uint64_t)1 << type;
 
@@ -1239,9 +1238,7 @@ CommandContext BeebWindow::DoSettingsUI() {
 
                 if (ImGui::IsWindowFocused(ImGuiFocusedFlags_ChildWindows)) {
                     if (popup) {
-                        if (const CommandTable2 *table = popup->GetCommandTable2()) {
-                            cc = CommandContext(table);
-                        }
+                        command_table = popup->GetCommandTable2();
                     }
                 }
 
@@ -1275,7 +1272,7 @@ CommandContext BeebWindow::DoSettingsUI() {
         m_settings.popups |= 1 << BeebWindowPopupType_Messages;
     }
 
-    return cc;
+    return command_table;
 }
 
 //////////////////////////////////////////////////////////////////////////
