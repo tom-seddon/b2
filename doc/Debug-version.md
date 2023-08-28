@@ -154,6 +154,8 @@ there are additional options for the trace end condition:
   written to. (Same rules as for the corresponding start condition.)
   When using `Write $xxxx` for start and end conditions, the same
   address can be used for both
+* `BRK` - recording will stop the next time `BRK` (opcode $00) is
+  encountered
 
 (`Return` and `OSWORD 0` often go together, because this works well
 for tracing code CALLed from the BASIC prompt.)
