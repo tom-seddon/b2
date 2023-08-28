@@ -26,8 +26,9 @@ Use `Stop` to stop the entire system in its tracks.
 
 `Run` will set it going again.
 
-The system is emulated as a unit. `Stop` stops everything, and `Run`
-sets the entire system going again.
+The system is emulated as a unit: host processor, second processor, TV
+output, disk drives, VIA timers, and so on. `Stop` stops absolutely
+everything, and `Run` sets the entire system going again.
 
 ## Paging overrides
 
@@ -298,9 +299,10 @@ memory...` to specify the file to save it to.
 Outsize end/size values will be clamped so that the saved region fits
 in the $0000...$ffff (inclusive) region.
 
-Memory is read with the paging overrides that are currently in effect.
-As per the memory view window contents, any memory-mapped I/O devices
-are bypassed and you see what's in the ROM or RAM behind them.
+Memory is read with the paging overrides that are currently in effect,
+with one restriction: memory-mapped I/O devices are bypassed, and you
+see what's in the ROM or RAM behind them. (A future revision of the
+emulator will fix this.)
 
 ## `Host Disassembly Debug`, `Parasite Disassembly Debug` ##
 
@@ -324,9 +326,9 @@ a unit. When stepping one CPU, the other CPU will continue to run. It
 isn't possible to step just one CPU at a time.
 
 Also note that the system will stop when it hits a breakpoint on
-either CPU,meaning a breakpoint for one CPU could interrupt a step
-operation for the other. Debugging code on two CPUs simultaneously
-isn't very well supported at the moment.
+either CPU, meaning a breakpoint for one CPU could interrupt a step
+operation for the other. Debugging code on two CPUs simultaneously is
+inevitably going to be a little inconvenient.
 
 ## `CRTC Debug`, `Video ULA Debug`, `System VIA Debug`, `User VIA Debug`, `NVRAM Debug` ##
 
