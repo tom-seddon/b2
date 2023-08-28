@@ -335,6 +335,9 @@ CommandContext::CommandContext(const CommandTable2 *table2)
     : CommandContext(nullptr, nullptr, table2) {
 }
 
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 CommandContext::CommandContext(void *object, const CommandTable *table, const CommandTable2 *table2)
     : m_object(object)
     , m_table(table)

@@ -75,9 +75,6 @@ MessagesUI::MessagesUI(std::shared_ptr<MessageList> message_list)
 //////////////////////////////////////////////////////////////////////////
 
 void MessagesUI::DoImGui() {
-    CommandContext cc(this, this->GetCommandTable());
-    //cc_stack->Push(m_occ);
-
     g_clear_command.DoButton();
 
     ImGui::SameLine();

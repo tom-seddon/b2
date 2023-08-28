@@ -1239,8 +1239,8 @@ CommandContext BeebWindow::DoSettingsUI() {
 
                 if (ImGui::IsWindowFocused(ImGuiFocusedFlags_ChildWindows)) {
                     if (popup) {
-                        if (const CommandTable *table = popup->GetCommandTable()) {
-                            cc = CommandContext(popup, table);
+                        if (const CommandTable2 *table = popup->GetCommandTable2()) {
+                            cc = CommandContext(table);
                         }
                     }
                 }

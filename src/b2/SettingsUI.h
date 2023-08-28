@@ -40,7 +40,6 @@ class SettingsUI {
     virtual bool OnClose() = 0;
 
     // default impl returns NULL.
-    virtual const CommandTable *GetCommandTable() const;
     virtual const CommandTable2 *GetCommandTable2() const;
 
   protected:

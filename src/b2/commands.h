@@ -259,6 +259,8 @@ class CommandContext {
     void DoToggleCheckboxUI(const char *name) const;
 
     // When the context isn't bound, does nothing and returns false.
+    //
+    // Command2s are actioned rather than executed.
     bool ExecuteCommandsForPCKey(uint32_t keycode) const;
 
   protected:
@@ -279,7 +281,7 @@ class CommandTable2 {
   public:
     typedef Command2 CommandType; //temporary measure
 
-    CommandTable2(std::string name, int default_command_visibility = 1);
+    explicit CommandTable2(std::string name, int default_command_visibility = 1);
     ~CommandTable2();
 
     CommandTable2(const CommandTable2 &) = delete;
