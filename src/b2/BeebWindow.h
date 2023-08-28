@@ -89,8 +89,10 @@ struct BeebWindowSettings {
 
     unsigned gui_font_size = 0;
 
+#if !ENABLE_SDL_FULL_SCREEN
     bool full_screen = false;
-
+#endif
+    
     BeebWindowLEDsPopupMode leds_popup_mode = BeebWindowLEDsPopupMode_Auto;
 };
 
@@ -491,9 +493,12 @@ class BeebWindow {
     void SaveConfig();
 
     SDLUniquePtr<SDL_Surface> CreateScreenshot() const;
+    
+#if !ENABLE_SDL_FULL_SCREEN
     bool IsWindowFullScreen() const;
     void SetWindowFullScreen(bool is_full_screen);
-
+#endif
+    
     void ShowPrioritizeCommandShortcutsStatus();
 
     // Keep this at the end. It's massive.

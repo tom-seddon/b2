@@ -107,7 +107,9 @@ static Command2 g_save_config_command = Command2(&g_beeb_window_command_table, "
 static Command2 g_toggle_prioritize_shortcuts_command = Command2(&g_beeb_window_command_table, "toggle_prioritize_shortcuts", "Prioritize command keys").WithTick();
 static Command2 g_save_screenshot_command = Command2(&g_beeb_window_command_table, "save_screenshot", "Save screenshot");
 static Command2 g_copy_screenshot_command = Command2(&g_beeb_window_command_table, "copy_screenshot", "Copy screenshot");
+#if !ENABLE_SDL_FULL_SCREEN
 static Command2 g_toggle_full_screen_command = Command2(&g_beeb_window_command_table, "toggle_full_screen", "Full screen").WithTick();
+#endif
 
 struct PopupMetadata {
     Command2 command;
@@ -1175,11 +1177,13 @@ bool BeebWindow::DoMenuUI() {
         }
     }
 
+#if !ENABLE_SDL_FULL_SCREEN
     g_toggle_full_screen_command.ticked = this->IsWindowFullScreen();
     if (g_toggle_full_screen_command.WasActioned()) {
         bool is_full_screen = this->IsWindowFullScreen();
         this->SetWindowFullScreen(!is_full_screen);
     }
+#endif
 
     if (ImGui::BeginMainMenuBar()) {
         this->DoFileMenu();
@@ -1921,8 +1925,10 @@ bool BeebWindow::DoWindowMenu() {
             }
         }
 
+#if !ENABLE_SDL_FULL_SCREEN
         g_toggle_full_screen_command.DoMenuItem(); //.DoMenuItemUI("toggle_full_screen");
-
+#endif
+        
         ImGui::Separator();
 
         if (ImGui::MenuItem("New")) {
@@ -2399,8 +2405,10 @@ bool BeebWindow::Init() {
 
 void BeebWindow::SaveSettings() {
     m_settings.dock_config = m_imgui_stuff->SaveDockContext();
+#if !ENABLE_SDL_FULL_SCREEN
     m_settings.full_screen = this->IsWindowFullScreen();
-
+#endif
+    
     BeebWindows::defaults = m_settings;
     BeebWindows::default_config_name = m_init_arguments.default_config.config.name;
 
@@ -2580,9 +2588,11 @@ bool BeebWindow::InitInternal() {
 
 #endif
 
+#if !ENABLE_SDL_FULL_SCREEN
     if (!reset_windows) {
         this->SetWindowFullScreen(m_settings.full_screen);
     }
+#endif
 
     SDL_RendererInfo info;
     if (SDL_GetRendererInfo(m_renderer, &info) < 0) {
@@ -3336,14 +3346,17 @@ SDLUniquePtr<SDL_Surface> BeebWindow::CreateScreenshot() const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#if !ENABLE_SDL_FULL_SCREEN
 bool BeebWindow::IsWindowFullScreen() const {
     uint32_t flags = SDL_GetWindowFlags(m_window);
     return !!(flags & SDL_WINDOW_FULLSCREEN);
 }
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#if !ENABLE_SDL_FULL_SCREEN
 void BeebWindow::SetWindowFullScreen(bool is_full_screen) {
     uint32_t flags;
     if (is_full_screen) {
@@ -3353,6 +3366,7 @@ void BeebWindow::SetWindowFullScreen(bool is_full_screen) {
     }
     SDL_SetWindowFullscreen(m_window, flags);
 }
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
