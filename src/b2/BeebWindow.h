@@ -455,6 +455,7 @@ class BeebWindow {
     static void UpdateTVTextureThread(UpdateTVTextureThreadState *state);
     bool DoImGui(uint64_t ticks);
     bool HandleCommandKey(uint32_t keycode, const CommandTable2 **tables,size_t num_tables);
+    void DoCommands();
     bool DoMenuUI();
     const CommandTable2 *DoSettingsUI();
     void DoPopupUI(uint64_t now, int output_width, int output_height);

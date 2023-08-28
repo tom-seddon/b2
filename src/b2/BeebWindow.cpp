@@ -883,6 +883,8 @@ bool BeebWindow::DoImGui(uint64_t ticks) {
     // various places. Need to fix this...
     ImGuiStyleVarPusher vpusher1(ImGuiStyleVar_WindowPadding, ImVec2(0.f, 0.f));
     {
+        this->DoCommands();
+
         {
             ImGuiStyleVarPusher vpusher2(ImGuiStyleVar_WindowPadding, IMGUI_DEFAULT_STYLE.WindowPadding);
 
@@ -1021,9 +1023,7 @@ bool BeebWindow::HandleCommandKey(uint32_t keycode, const CommandTable2 **tables
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool BeebWindow::DoMenuUI() {
-    bool keep_window = true;
-
+void BeebWindow::DoCommands() {
     if (g_hard_reset_command.WasActioned()) {
         this->HardReset();
     }
@@ -1185,6 +1185,24 @@ bool BeebWindow::DoMenuUI() {
     }
 #endif
 
+    for (int type = 0; type < BeebWindowPopupType_MaxValue; ++type) {
+        const uint64_t mask = (uint64_t)1 << type;
+
+        PopupMetadata *popup_metadata = &g_popups[type];
+
+        if (popup_metadata->command.WasActioned()) {
+            m_settings.popups ^= mask;
+        }
+        popup_metadata->command.ticked = !!(m_settings.popups & mask);
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool BeebWindow::DoMenuUI() {
+    bool keep_window = true;
+
     if (ImGui::BeginMainMenuBar()) {
         this->DoFileMenu();
         this->DoEditMenu();
@@ -1211,11 +1229,6 @@ const CommandTable2 *BeebWindow::DoSettingsUI() {
         const uint64_t mask = (uint64_t)1 << type;
 
         PopupMetadata *popup_metadata = &g_popups[type];
-
-        if (popup_metadata->command.WasActioned()) {
-            m_settings.popups ^= mask;
-        }
-        popup_metadata->command.ticked = !!(m_settings.popups & mask);
 
         if (m_settings.popups & mask) {
             if (!m_popups[type]) {
@@ -1928,7 +1941,7 @@ bool BeebWindow::DoWindowMenu() {
 #if !ENABLE_SDL_FULL_SCREEN
         g_toggle_full_screen_command.DoMenuItem(); //.DoMenuItemUI("toggle_full_screen");
 #endif
-        
+
         ImGui::Separator();
 
         if (ImGui::MenuItem("New")) {
@@ -2408,7 +2421,7 @@ void BeebWindow::SaveSettings() {
 #if !ENABLE_SDL_FULL_SCREEN
     m_settings.full_screen = this->IsWindowFullScreen();
 #endif
-    
+
     BeebWindows::defaults = m_settings;
     BeebWindows::default_config_name = m_init_arguments.default_config.config.name;
 
