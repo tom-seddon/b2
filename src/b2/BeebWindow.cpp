@@ -1278,27 +1278,6 @@ const CommandTable2 *BeebWindow::DoSettingsUI() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-std::unique_ptr<SettingsUI> BeebWindow::CreateOptionsUI(BeebWindow *beeb_window) {
-    return std::make_unique<OptionsUI>(beeb_window);
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-std::unique_ptr<SettingsUI> BeebWindow::CreateTimelineUI(BeebWindow *beeb_window) {
-    return ::CreateTimelineUI(beeb_window, beeb_window->m_renderer);
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-std::unique_ptr<SettingsUI> BeebWindow::CreateSavedStatesUI(BeebWindow *beeb_window) {
-    return ::CreateSavedStatesUI(beeb_window, beeb_window->m_renderer);
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 void BeebWindow::DoPopupUI(uint64_t now, int output_width, int output_height) {
     (void)output_width;
 
@@ -2807,7 +2786,7 @@ void BeebWindow::UpdateTitle() {
         smoothed_speed = speed;
     }
 
-    snprintf(title, sizeof title, "%s [%.3fx]", m_name.c_str(), speed);
+    snprintf(title, sizeof title, "%s [%.3fx]", m_name.c_str(), smoothed_speed);
 
     m_last_title_speed = speed;
 
@@ -2948,6 +2927,27 @@ void BeebWindow::Launch(const BeebWindowLaunchArguments &arguments) {
 
     m_beeb_thread->Send(std::make_shared<BeebThread::LoadDiscMessage>(0, std::move(disc_image), true));
     m_beeb_thread->Send(std::make_shared<BeebThread::HardResetAndReloadConfigMessage>(BeebThreadHardResetFlag_Boot | BeebThreadHardResetFlag_Run));
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+std::unique_ptr<SettingsUI> BeebWindow::CreateOptionsUI(BeebWindow *beeb_window) {
+    return std::make_unique<OptionsUI>(beeb_window);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+std::unique_ptr<SettingsUI> BeebWindow::CreateTimelineUI(BeebWindow *beeb_window) {
+    return ::CreateTimelineUI(beeb_window, beeb_window->m_renderer);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+std::unique_ptr<SettingsUI> BeebWindow::CreateSavedStatesUI(BeebWindow *beeb_window) {
+    return ::CreateSavedStatesUI(beeb_window, beeb_window->m_renderer);
 }
 
 //////////////////////////////////////////////////////////////////////////

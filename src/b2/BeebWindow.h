@@ -284,6 +284,10 @@ class BeebWindow {
     // Handle double click or drag'n'drop.
     void Launch(const BeebWindowLaunchArguments &arguments);
 
+    static std::unique_ptr<SettingsUI> CreateOptionsUI(BeebWindow *beeb_window);
+    static std::unique_ptr<SettingsUI> CreateTimelineUI(BeebWindow *beeb_window);
+    static std::unique_ptr<SettingsUI> CreateSavedStatesUI(BeebWindow *beeb_window);
+
   protected:
   private:
     //struct SettingsUIMetadata;
@@ -492,14 +496,8 @@ class BeebWindow {
 
     void ShowPrioritizeCommandShortcutsStatus();
 
-    static std::unique_ptr<SettingsUI> CreateOptionsUI(BeebWindow *beeb_window);
-    static std::unique_ptr<SettingsUI> CreateTimelineUI(BeebWindow *beeb_window);
-    static std::unique_ptr<SettingsUI> CreateSavedStatesUI(BeebWindow *beeb_window);
-
     // Keep this at the end. It's massive.
     mutable Messages m_msg;
-
-    friend static bool InitialiseTogglePopupCommands();
 };
 
 //////////////////////////////////////////////////////////////////////////
