@@ -505,6 +505,8 @@ class BBCMicro : private WD1770Handler,
     uint16_t GetAnalogueChannel(uint8_t channel) const;
     void SetAnalogueChannel(uint8_t channel, uint16_t value);
 
+    static void PrintUpdateFnInfo(Log *log);
+
   protected:
     // Hacks, not part of the public API, for use by the testing stuff so that
     // it can run even when the debugger isn't compiled in.
@@ -826,7 +828,7 @@ class BBCMicro : private WD1770Handler,
 #endif
 
     template <uint32_t UPDATE_FLAGS>
-    uint32_t Update(VideoDataUnit *video_unit, SoundDataUnit *sound_unit);
+    uint32_t UpdateTemplated(VideoDataUnit *video_unit, SoundDataUnit *sound_unit);
 
     static const uint8_t CURSOR_PATTERNS[8];
     static const UpdateMFn ms_update_mfns[1024];

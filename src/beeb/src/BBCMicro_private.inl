@@ -49,6 +49,11 @@ EPNV(DebugStepHost, 1 << 8)
 // out of every 4.
 EPNV(Parasite3MHzExternal, 1 << 9)
 
+// If set, bail immediately.
+//
+// This flag is deliberately out of the way.
+EPNV(EmptyUpdate, 1 << 30)
+
 EEND()
 #undef ENAME
 

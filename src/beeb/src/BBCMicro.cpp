@@ -1843,6 +1843,66 @@ void BBCMicro::SendBeebLinkResponse(std::vector<uint8_t> data) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+static std::string GetUpdateFlagExpr(uint32_t flags) {
+    std::string expr;
+
+    uint32_t mask = 1;
+    while (flags != 0) {
+        if (flags & mask) {
+            if (!expr.empty()) {
+                expr += "|";
+            }
+
+            const char *name = GetBBCMicroUpdateFlagEnumName(mask);
+            if (name[0] == '?') {
+                char tmp[100];
+                snprintf(tmp, sizeof tmp, "0x%" PRIx32, mask);
+                expr += tmp;
+            } else {
+                expr += name;
+            }
+        }
+        flags &= ~mask;
+        mask <<= 1;
+    }
+
+    if (expr.empty()) {
+        expr = "0";
+    }
+
+    return expr;
+}
+
+void BBCMicro::PrintUpdateFnInfo(Log *log) {
+    std::map<uint32_t, std::vector<uint32_t>> map;
+    for (uint32_t i = 0; i < sizeof ms_update_mfns / sizeof ms_update_mfns[0]; ++i) {
+        if (ms_update_mfns[i] == &BBCMicro::UpdateTemplated<BBCMicroUpdateFlag_EmptyUpdate>) {
+            continue;
+        }
+        for (uint32_t j = 0; j <= i; ++j) {
+            if (ms_update_mfns[i] == ms_update_mfns[j]) {
+                map[j].push_back(i);
+                break;
+            }
+        }
+    }
+
+    log->f("%zu/%zu unique BBCMicro::UpdateTemplate instantiations\n", map.size(), sizeof ms_update_mfns / sizeof ms_update_mfns[0]);
+    for (auto &&it : map) {
+        if (it.second.size() > 1) {
+            log->f("0x%08" PRIx32 ": ", it.first);
+            log->PushIndent();
+            for (uint32_t x : it.second) {
+                log->f("%s\n", GetUpdateFlagExpr(x).c_str());
+            }
+            log->PopIndent();
+        }
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 void BBCMicro::TestSetByte(uint16_t ram_buffer_index, uint8_t value) {
     ASSERT(ram_buffer_index < m_state.ram_buffer.size());
     m_state.ram_buffer[ram_buffer_index] = value;

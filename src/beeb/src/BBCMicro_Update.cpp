@@ -80,7 +80,7 @@ uint64_t BBCMicro::Get3MHzCycleCount(CycleCount n) {
 // 1. Delay the trailing edge for 1 x 2 MHz cycle. The trailing edges of both
 // clocks then line up.
 template <uint32_t UPDATE_FLAGS>
-uint32_t BBCMicro::Update(VideoDataUnit *video_unit, SoundDataUnit *sound_unit) {
+uint32_t BBCMicro::UpdateTemplated(VideoDataUnit *video_unit, SoundDataUnit *sound_unit) {
     static_assert(CYCLES_PER_SECOND == 4000000, "BBCMicro::Update needs updating");
 
     uint8_t phi2_2MHz_trailing_edge = m_state.cycle_count.n & 1;
@@ -787,7 +787,44 @@ parasite_update_done:
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-#define UPDATE1(N) &BBCMicro::Update<N>
+template <>
+uint32_t BBCMicro::UpdateTemplated<BBCMicroUpdateFlag_EmptyUpdate>(VideoDataUnit *video_unit, SoundDataUnit *sound_unit) {
+    (void)video_unit,(void)sound_unit;
+
+    return 0;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+// Not all combinations of update flags are meaningful. (For example, if the
+// Parasite flag isn't set, the ParasiteSpecial flag is irrelevant.) Given an
+// arbitrary set of update flags, this function sets any ignored bits to 0.
+//
+//
+static constexpr uint32_t GetNormalizedBBCMicroUpdateFlags(uint32_t flags) {
+    if (!(flags & BBCMicroUpdateFlag_Parasite)) {
+        flags &= ~(BBCMicroUpdateFlag_DebugStepParasite | BBCMicroUpdateFlag_Parasite3MHzExternal | BBCMicroUpdateFlag_ParasiteSpecial);
+    }
+
+    if (flags & BBCMicroUpdateFlag_EmptyUpdate) {
+        flags &= ~BBCMicroUpdateFlag_EmptyUpdate;
+    }
+
+    return flags;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+static constexpr bool AreUpdateFlagsMeaningful(uint32_t flags) {
+    return flags == GetNormalizedBBCMicroUpdateFlags(flags);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#define UPDATE1(N) &BBCMicro::UpdateTemplated<AreUpdateFlagsMeaningful(N) ? N : BBCMicroUpdateFlag_EmptyUpdate>
 #define UPDATE2(N) UPDATE1(N + 0), UPDATE1(N + 1)
 #define UPDATE4(N) UPDATE2(N + 0), UPDATE2(N + 2)
 #define UPDATE8(N) UPDATE4(N + 0), UPDATE4(N + 4)
