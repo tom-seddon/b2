@@ -45,6 +45,8 @@ class BeebLink;
 
 #define BBCMicroLEDFlags_AllDrives (255u * BBCMicroLEDFlag_Drive0)
 
+constexpr uint32_t GetNormalizedBBCMicroUpdateFlags(uint32_t flags);
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
@@ -831,7 +833,7 @@ class BBCMicro : private WD1770Handler,
     uint32_t UpdateTemplated(VideoDataUnit *video_unit, SoundDataUnit *sound_unit);
 
     static const uint8_t CURSOR_PATTERNS[8];
-    static const UpdateMFn ms_update_mfns[1024];
+    static const UpdateMFn ms_update_mfns[2048];
 };
 
 //////////////////////////////////////////////////////////////////////////

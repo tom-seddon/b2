@@ -787,28 +787,18 @@ parasite_update_done:
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-template <>
-uint32_t BBCMicro::UpdateTemplated<BBCMicroUpdateFlag_EmptyUpdate>(VideoDataUnit *video_unit, SoundDataUnit *sound_unit) {
-    (void)video_unit,(void)sound_unit;
-
-    return 0;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 // Not all combinations of update flags are meaningful. (For example, if the
 // Parasite flag isn't set, the ParasiteSpecial flag is irrelevant.) Given an
 // arbitrary set of update flags, this function sets any ignored bits to 0.
 //
 //
-static constexpr uint32_t GetNormalizedBBCMicroUpdateFlags(uint32_t flags) {
+constexpr uint32_t GetNormalizedBBCMicroUpdateFlags(uint32_t flags) {
     if (!(flags & BBCMicroUpdateFlag_Parasite)) {
         flags &= ~(BBCMicroUpdateFlag_DebugStepParasite | BBCMicroUpdateFlag_Parasite3MHzExternal | BBCMicroUpdateFlag_ParasiteSpecial);
     }
 
-    if (flags & BBCMicroUpdateFlag_EmptyUpdate) {
-        flags &= ~BBCMicroUpdateFlag_EmptyUpdate;
+    if (!(flags & BBCMicroUpdateFlag_Debug)) {
+        flags &= ~(BBCMicroUpdateFlag_DebugStepHost | BBCMicroUpdateFlag_DebugStepParasite);
     }
 
     return flags;
@@ -817,14 +807,7 @@ static constexpr uint32_t GetNormalizedBBCMicroUpdateFlags(uint32_t flags) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static constexpr bool AreUpdateFlagsMeaningful(uint32_t flags) {
-    return flags == GetNormalizedBBCMicroUpdateFlags(flags);
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-#define UPDATE1(N) &BBCMicro::UpdateTemplated<AreUpdateFlagsMeaningful(N) ? N : BBCMicroUpdateFlag_EmptyUpdate>
+#define UPDATE1(N) &BBCMicro::UpdateTemplated<GetNormalizedBBCMicroUpdateFlags(N)>
 #define UPDATE2(N) UPDATE1(N + 0), UPDATE1(N + 1)
 #define UPDATE4(N) UPDATE2(N + 0), UPDATE2(N + 2)
 #define UPDATE8(N) UPDATE4(N + 0), UPDATE4(N + 4)
@@ -834,6 +817,7 @@ static constexpr bool AreUpdateFlagsMeaningful(uint32_t flags) {
 #define UPDATE128(N) UPDATE64(N + 0), UPDATE64(N + 64)
 #define UPDATE256(N) UPDATE128(N + 0), UPDATE128(N + 128)
 #define UPDATE512(N) UPDATE256(N + 0), UPDATE256(N + 256)
+#define UPDATE1024(N) UPDATE512(N + 0), UPDATE512(N + 512)
 
 // The compile time can get a bit much. Tried splitting it into 8*64, hopefully
 // getting a bit of parallelism, but this seemed to make very little different
@@ -844,7 +828,7 @@ static constexpr bool AreUpdateFlagsMeaningful(uint32_t flags) {
 // at least for my laptop, maybe some other value would be just right.
 //
 // More experimentation necessary.
-const BBCMicro::UpdateMFn BBCMicro::ms_update_mfns[1024] = {UPDATE512(0), UPDATE512(512)};
+const BBCMicro::UpdateMFn BBCMicro::ms_update_mfns[2048] = {UPDATE1024(0), UPDATE1024(1024)};
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

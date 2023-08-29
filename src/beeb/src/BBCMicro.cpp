@@ -1843,9 +1843,10 @@ void BBCMicro::SendBeebLinkResponse(std::vector<uint8_t> data) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static std::string GetUpdateFlagExpr(uint32_t flags) {
+static std::string GetUpdateFlagExpr(const uint32_t flags_) {
     std::string expr;
 
+    uint32_t flags = flags_;
     uint32_t mask = 1;
     while (flags != 0) {
         if (flags & mask) {
@@ -1868,17 +1869,19 @@ static std::string GetUpdateFlagExpr(uint32_t flags) {
 
     if (expr.empty()) {
         expr = "0";
+    } else {
+        char tmp[100];
+        snprintf(tmp, sizeof tmp, " (0x%" PRIx32 ")", flags_);
+        expr += tmp;
     }
 
     return expr;
 }
 
 void BBCMicro::PrintUpdateFnInfo(Log *log) {
+    size_t num_update_mfns = sizeof ms_update_mfns / sizeof ms_update_mfns[0];
     std::map<uint32_t, std::vector<uint32_t>> map;
-    for (uint32_t i = 0; i < sizeof ms_update_mfns / sizeof ms_update_mfns[0]; ++i) {
-        if (ms_update_mfns[i] == &BBCMicro::UpdateTemplated<BBCMicroUpdateFlag_EmptyUpdate>) {
-            continue;
-        }
+    for (uint32_t i = 0; i < num_update_mfns; ++i) {
         for (uint32_t j = 0; j <= i; ++j) {
             if (ms_update_mfns[i] == ms_update_mfns[j]) {
                 map[j].push_back(i);
@@ -1888,16 +1891,32 @@ void BBCMicro::PrintUpdateFnInfo(Log *log) {
     }
 
     log->f("%zu/%zu unique BBCMicro::UpdateTemplate instantiations\n", map.size(), sizeof ms_update_mfns / sizeof ms_update_mfns[0]);
-    for (auto &&it : map) {
-        if (it.second.size() > 1) {
-            log->f("0x%08" PRIx32 ": ", it.first);
-            log->PushIndent();
-            for (uint32_t x : it.second) {
-                log->f("%s\n", GetUpdateFlagExpr(x).c_str());
+    //for (auto &&it : map) {
+    //    if (it.second.size() > 1) {
+    //        log->f("    0x%08" PRIx32 ": ", it.first);
+    //        log->PushIndent();
+    //        for (uint32_t x : it.second) {
+    //            log->f("%s\n", GetUpdateFlagExpr(x).c_str());
+    //        }
+    //        log->PopIndent();
+    //    }
+    //}
+
+    uint32_t unused_bits = ~(uint32_t)0;
+    for (uint32_t bit = 0; bit < 32; ++bit) {
+        uint32_t mask = 1 << bit;
+        if (mask >= num_update_mfns) {
+            unused_bits &= mask - 1;
+            break;
+        }
+        for (uint32_t i = 0; i < num_update_mfns; ++i) {
+            if (ms_update_mfns[i] != ms_update_mfns[i | mask]) {
+                unused_bits &= ~mask;
             }
-            log->PopIndent();
         }
     }
+
+    log->f("unused BBCMicroUpdateFlag values: %s\n", GetUpdateFlagExpr(unused_bits).c_str());
 }
 
 //////////////////////////////////////////////////////////////////////////
