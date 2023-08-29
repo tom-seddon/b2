@@ -92,7 +92,7 @@ struct BeebWindowSettings {
 #if !ENABLE_SDL_FULL_SCREEN
     bool full_screen = false;
 #endif
-    
+
     BeebWindowLEDsPopupMode leds_popup_mode = BeebWindowLEDsPopupMode_Auto;
 };
 
@@ -454,7 +454,7 @@ class BeebWindow {
     bool InitInternal();
     static void UpdateTVTextureThread(UpdateTVTextureThreadState *state);
     bool DoImGui(uint64_t ticks);
-    bool HandleCommandKey(uint32_t keycode, const CommandTable2 **tables,size_t num_tables);
+    bool HandleCommandKey(uint32_t keycode, const CommandTable2 **tables, size_t num_tables);
     void DoCommands();
     bool DoMenuUI();
     const CommandTable2 *DoSettingsUI();
@@ -494,12 +494,12 @@ class BeebWindow {
     void SaveConfig();
 
     SDLUniquePtr<SDL_Surface> CreateScreenshot() const;
-    
+
 #if !ENABLE_SDL_FULL_SCREEN
     bool IsWindowFullScreen() const;
     void SetWindowFullScreen(bool is_full_screen);
 #endif
-    
+
     void ShowPrioritizeCommandShortcutsStatus();
 
     // Keep this at the end. It's massive.
