@@ -183,7 +183,7 @@ std::string GetCycleCountString(CycleCount cycle_count) {
 //////////////////////////////////////////////////////////////////////////
 
 void GetThousandsString(char *str, uint64_t value) {
-    char tmp[MAX_UINT64_THOUSANDS_LEN + 1];
+    char tmp[MAX_UINT64_THOUSANDS_SIZE];
     char *p = tmp + sizeof tmp - 1;
     int n = 3;
 

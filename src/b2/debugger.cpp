@@ -869,7 +869,7 @@ class M6502DebugWindow : public DebugUI {
 
         ImGuiHeader("System state");
 
-        char cycles_str[MAX_UINT64_THOUSANDS_LEN];
+        char cycles_str[MAX_UINT64_THOUSANDS_SIZE];
 
         switch (parasite_type) {
         default:

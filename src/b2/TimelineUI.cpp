@@ -254,7 +254,7 @@ class TimelineUI : public SettingsUI {
                         }
                     }
 
-                    char cycles_str[MAX_UINT64_THOUSANDS_LEN];
+                    char cycles_str[MAX_UINT64_THOUSANDS_SIZE];
                     GetThousandsString(cycles_str, e->time_cycles.n);
                     ImGui::Text("%s (%s)", cycles_str, GetCycleCountString(e->time_cycles).c_str());
 
