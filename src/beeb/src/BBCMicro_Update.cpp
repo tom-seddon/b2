@@ -718,7 +718,7 @@ parasite_update_done:
 
                 m_state.old_system_via_pb = pb;
             }
-
+            
             if constexpr (UPDATE_FLAGS & BBCMicroUpdateFlag_HasRTC) {
                 if (pb.m128_bits.rtc_chip_select &&
                     !pb.m128_bits.rtc_address_strobe) {
@@ -737,6 +737,26 @@ parasite_update_done:
                 }
 
                 m_state.rtc.Update();
+            }
+
+            if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_ParallelPrinter) != 0) {
+                m_state.user_via.a.c1 = m_state.printer_busy_counter != 1;
+                if (m_state.printer_busy_counter > 0) {
+                    --m_state.printer_busy_counter;
+                } else {
+                    if (!m_state.user_via.a.c2) {
+                        if (m_printer_buffer) {
+                            m_printer_buffer->push_back(m_state.user_via.a.p);
+                        }
+                        //uint8_t printer_byte = m_state.user_via.a.p;
+                        //printf("Printer byte: %03d 0x%02x ", printer_byte, printer_byte);
+                        //if (printer_byte >= 32 && printer_byte < 127) {
+                        //    printf(" '%c'", printer_byte);
+                        //}
+                        //printf("\n");
+                        m_state.printer_busy_counter = 10;
+                    }
+                }
             }
 
             m_state.old_addressable_latch = m_state.addressable_latch;

@@ -1922,6 +1922,29 @@ void BBCMicro::PrintUpdateFnInfo(Log *log) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+void BBCMicro::SetPrinterEnabled(bool printer_enabled) {
+    if (printer_enabled != m_state.printer_enabled) {
+        m_state.printer_enabled = printer_enabled;
+        if (m_state.printer_enabled) {
+            // Ensure there's a CA1 blip so the OS knows a printer is attached.
+            m_state.printer_busy_counter = 2;
+        } else {
+            m_state.printer_busy_counter = 0;
+        }
+        this->UpdateCPUDataBusFn();
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BBCMicro::SetPrinterBuffer(std::vector<uint8_t> *buffer) {
+    m_printer_buffer = buffer;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 void BBCMicro::TestSetByte(uint16_t ram_buffer_index, uint8_t value) {
     ASSERT(ram_buffer_index < m_state.ram_buffer.size());
     m_state.ram_buffer[ram_buffer_index] = value;
@@ -2666,6 +2689,10 @@ void BBCMicro::UpdateCPUDataBusFn() {
 
     if (update_flags & BBCMicroUpdateFlag_ParasiteSpecial) {
         ASSERT(update_flags & BBCMicroUpdateFlag_Parasite);
+    }
+
+    if (m_state.printer_enabled) {
+        update_flags |= BBCMicroUpdateFlag_ParallelPrinter;
     }
 
     ASSERT(update_flags < sizeof ms_update_mfns / sizeof ms_update_mfns[0]);

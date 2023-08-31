@@ -509,6 +509,13 @@ class BBCMicro : private WD1770Handler,
 
     static void PrintUpdateFnInfo(Log *log);
 
+    // When the printer is enabled, printer output will be captured into a
+    // buffer.
+    void SetPrinterEnabled(bool is_printer_enabled);
+
+    // Overly simplistic mechanism?
+    void SetPrinterBuffer(std::vector<uint8_t> *buffer);
+
   protected:
     // Hacks, not part of the public API, for use by the testing stuff so that
     // it can run even when the debugger isn't compiled in.
@@ -589,6 +596,10 @@ class BBCMicro : private WD1770Handler,
 
         // ADC
         ADC adc;
+
+        // Parallel printer
+        bool printer_enabled = false;
+        uint16_t printer_busy_counter = 0;
 
         // Joystick states.
         //
@@ -777,6 +788,8 @@ class BBCMicro : private WD1770Handler,
     // active - so none of this stuff participates.
     BeebLinkHandler *m_beeblink_handler = nullptr;
     std::unique_ptr<BeebLink> m_beeblink;
+
+    std::vector<uint8_t> *m_printer_buffer = nullptr;
 
     void InitStuff();
 #if BBCMICRO_TRACE

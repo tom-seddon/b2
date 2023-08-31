@@ -97,6 +97,10 @@ static Command2 g_paste_command(&g_beeb_window_command_table, "paste", "OSRDCH P
 static Command2 g_paste_return_command(&g_beeb_window_command_table, "paste_return", "OSRDCH Paste (+Return)");
 static Command2 g_toggle_copy_oswrch_text_command(&g_beeb_window_command_table, "toggle_copy_oswrch_text", "OSWRCH Copy Text");
 static Command2 g_copy_basic_command(&g_beeb_window_command_table, "copy_basic", "Copy BASIC listing");
+static Command2 g_parallel_printer_command = Command2(&g_beeb_window_command_table, "parallel_printer", "Parallel printer").WithTick();
+static Command2 g_reset_printer_buffer_command = Command2(&g_beeb_window_command_table, "reset_printer_buffer", "Reset printer buffer").MustConfirm();
+static Command2 g_copy_printer_buffer_command = Command2(&g_beeb_window_command_table, "copy_printer_buffer", "Copy printer buffer");
+static Command2 g_save_printer_buffer_command = Command2(&g_beeb_window_command_table, "save_printer_buffer", "Save printer buffer...");
 #if BBCMICRO_DEBUGGER
 static Command2 g_debug_stop_command = Command2(&g_beeb_window_command_table, "debug_stop", "Stop").WithShortcut(SDLK_F5 | PCKeyModifier_Shift);
 static Command2 g_debug_run_command = Command2(&g_beeb_window_command_table, "debug_run", "Run").WithShortcut(SDLK_F5);
@@ -237,6 +241,7 @@ static const std::string RECENT_PATHS_DISC_IMAGE = "disc_image";
 //static const std::string RECENT_PATHS_RAM="ram";
 static const std::string RECENT_PATHS_NVRAM = "nvram";
 static const std::string RECENT_PATHS_SCREENSHOT = "screenshot";
+static const std::string RECENT_PATHS_PRINTER = "printer";
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -1107,6 +1112,30 @@ void BeebWindow::DoCommands() {
         this->CopyBASIC();
     }
 
+    g_parallel_printer_command.ticked = m_beeb_thread->IsParallelPrinterEnabled();
+    if (g_parallel_printer_command.WasActioned()) {
+        m_beeb_thread->Send(std::make_shared<BeebThread::SetPrinterEnabledMessage>(!g_parallel_printer_command.ticked));
+    }
+
+    g_reset_printer_buffer_command.enabled = m_beeb_thread->GetPrinterDataSizeBytes() > 0;
+    if (g_reset_printer_buffer_command.WasActioned()) {
+        m_beeb_thread->Send(std::make_shared<BeebThread::ResetPrinterBufferMessage>());
+    }
+
+    g_save_printer_buffer_command.enabled = g_reset_printer_buffer_command.enabled;
+    if (g_save_printer_buffer_command.WasActioned()) {
+        std::vector<uint8_t> data = m_beeb_thread->GetPrinterData();
+
+        SaveFileDialog fd(RECENT_PATHS_PRINTER);
+
+        fd.AddFilter("Data", {".dat"});
+
+        std::string path;
+        if (fd.Open(&path)) {
+            SaveFile(data, path, &m_msg);
+        }
+    }
+
 #if BBCMICRO_DEBUGGER
     g_debug_run_command.enabled = this->DebugIsHalted();
     if (g_debug_run_command.WasActioned()) {
@@ -1209,6 +1238,7 @@ bool BeebWindow::DoMenuUI() {
         this->DoHardwareMenu();
         this->DoKeyboardMenu();
         this->DoJoysticksMenu();
+        this->DoPrinterMenu();
         this->DoToolsMenu();
         this->DoDebugMenu();
         if (!this->DoWindowMenu()) {
@@ -1769,6 +1799,35 @@ static const std::string NULL_JOYSTICK_NAME("(none)");
 void BeebWindow::DoJoysticksMenu() {
     if (ImGui::BeginMenu("Joysticks")) {
         DoJoysticksMenuImGui(&m_msg);
+        ImGui::EndMenu();
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BeebWindow::DoPrinterMenu() {
+    if (ImGui::BeginMenu("Printer")) {
+        g_parallel_printer_command.DoMenuItem();
+
+        ImGui::Separator();
+
+        char size_str[MAX_UINT64_THOUSANDS_SIZE];
+        GetThousandsString(size_str, m_beeb_thread->GetPrinterDataSizeBytes());
+
+        char label[100];
+        snprintf(label, sizeof label, "Printer data: %s bytes", size_str);
+
+        ImGui::Separator();
+
+        ImGui::MenuItem(label, nullptr, nullptr, false);
+
+        g_reset_printer_buffer_command.DoMenuItem();
+
+        //g_copy_printer_buffer_command.DoMenuItem();
+
+        g_save_printer_buffer_command.DoMenuItem();
+
         ImGui::EndMenu();
     }
 }

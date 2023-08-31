@@ -467,6 +467,7 @@ class BeebWindow {
     void DoHardwareMenu();
     void DoKeyboardMenu();
     void DoJoysticksMenu();
+    void DoPrinterMenu();
     void DoToolsMenu();
     void DoDebugMenu();
     bool DoWindowMenu();

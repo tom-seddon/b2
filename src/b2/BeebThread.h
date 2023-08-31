@@ -829,6 +829,34 @@ class BeebThread {
         std::vector<uint8_t> m_data;
     };
 
+    class SetPrinterEnabledMessage : public Message {
+      public:
+        explicit SetPrinterEnabledMessage(bool enabled);
+
+        //bool ThreadPrepare(std::shared_ptr<Message> *ptr,
+        //                   CompletionFun *completion_fun,
+        //                   BeebThread *beeb_thread,
+        //                   ThreadState *ts) override;
+        void ThreadHandle(BeebThread *beeb_thread, ThreadState *ts) const override;
+
+      protected:
+      private:
+        const bool m_enabled = false;
+    };
+
+    class ResetPrinterBufferMessage : public Message {
+      public:
+        explicit ResetPrinterBufferMessage();
+
+        bool ThreadPrepare(std::shared_ptr<Message> *ptr,
+                           CompletionFun *completion_fun,
+                           BeebThread *beeb_thread,
+                           ThreadState *ts) override;
+
+      protected:
+      private:
+    };
+
     struct AudioCallbackRecord {
         uint64_t time = 0;
         uint64_t needed = 0;
@@ -973,6 +1001,12 @@ class BeebThread {
 
     bool IsDriveWriteProtected(int drive) const;
 
+    bool IsParallelPrinterEnabled() const;
+
+    size_t GetPrinterDataSizeBytes() const;
+
+    std::vector<uint8_t> GetPrinterData() const;
+
   protected:
   private:
     struct AudioThreadData;
@@ -1018,7 +1052,6 @@ class BeebThread {
 #if BBCMICRO_TRACE
     std::atomic<bool> m_is_tracing{false};
 #endif
-    //std::atomic<bool> m_is_replaying{false};
     std::atomic<bool> m_is_pasting{false};
     std::atomic<bool> m_is_copying{false};
     std::atomic<bool> m_has_nvram{false};
@@ -1026,6 +1059,8 @@ class BeebThread {
     std::atomic<uint32_t> m_clone_impediments{0};
     std::atomic<bool> m_power_on_tone{true};
     std::atomic<bool> m_is_drive_write_protected[NUM_DRIVES]{};
+    std::atomic<bool> m_is_printer_enabled{false};
+    std::atomic<size_t> m_printer_data_size_bytes{false};
 
     // Controlled by m_mutex.
     BeebThreadTimelineState m_timeline_state;
@@ -1041,6 +1076,9 @@ class BeebThread {
 
     // Last recorded trace. Controlled by m_mutex.
     std::shared_ptr<Trace> m_last_trace;
+
+    // Controlled by m_mutex.
+    std::vector<uint8_t> m_printer_buffer;
 
 #if BBCMICRO_TRACE
     // Trace stats. Updated regularly when a trace is active. There's

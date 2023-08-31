@@ -1597,6 +1597,35 @@ bool BeebThread::BeebLinkResponseMessage::ThreadPrepare(std::shared_ptr<Message>
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+BeebThread::SetPrinterEnabledMessage::SetPrinterEnabledMessage(bool enabled)
+    : m_enabled(enabled) {
+}
+
+void BeebThread::SetPrinterEnabledMessage::ThreadHandle(BeebThread *beeb_thread, ThreadState *ts) const {
+    ts->beeb->SetPrinterEnabled(m_enabled);
+    beeb_thread->m_is_printer_enabled.store(m_enabled, std::memory_order_release);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+BeebThread::ResetPrinterBufferMessage::ResetPrinterBufferMessage() {
+}
+
+bool BeebThread::ResetPrinterBufferMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
+                                                          CompletionFun *completion_fun,
+                                                          BeebThread *beeb_thread,
+                                                          ThreadState *ts) {
+    (void)completion_fun, (void)ts;
+
+    beeb_thread->m_printer_buffer.clear();
+    ptr->reset();
+    return true;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 bool BeebThread::KeyStates::GetState(BeebKey key) const {
     ASSERT(key >= 0 && (int)key < 128);
 
@@ -2159,6 +2188,29 @@ bool BeebThread::IsDriveWriteProtected(int drive) const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+bool BeebThread::IsParallelPrinterEnabled() const {
+    return m_is_printer_enabled.load(std::memory_order_acquire);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+size_t BeebThread::GetPrinterDataSizeBytes() const {
+    return m_printer_data_size_bytes.load(std::memory_order_acquire);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+std::vector<uint8_t> BeebThread::GetPrinterData() const {
+    std::lock_guard<Mutex> lock(m_mutex);
+
+    return m_printer_buffer;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 std::vector<BeebThread::TimelineBeebStateEvent>
 BeebThread::GetTimelineBeebStateEvents(size_t begin_index,
                                        size_t end_index) {
@@ -2367,6 +2419,7 @@ void BeebThread::ThreadReplaceBeeb(ThreadState *ts, std::unique_ptr<BBCMicro> be
 #if BBCMICRO_DEBUGGER
             debug_state = ts->beeb->TakeDebugState();
 #endif
+            ts->beeb->SetPrinterBuffer(nullptr);
 
             if (flags & BeebThreadReplaceFlag_KeepCurrentDiscs) {
                 for (int i = 0; i < NUM_DRIVES; ++i) {
@@ -2391,6 +2444,7 @@ void BeebThread::ThreadReplaceBeeb(ThreadState *ts, std::unique_ptr<BBCMicro> be
 #if BBCMICRO_DEBUGGER
         ts->beeb->SetDebugState(std::move(debug_state));
 #endif
+        ts->beeb->SetPrinterBuffer(&m_printer_buffer);
 
         Message::CallCompletionFun(&ts->reset_completion_fun, false, nullptr);
         Message::CallCompletionFun(&ts->paste_completion_fun, false, nullptr);
@@ -2892,40 +2946,28 @@ void BeebThread::ThreadMain(void) {
 
             m_timeline_state.current_cycles = *ts.num_executed_cycles;
             m_timeline_state.mode = ts.timeline_mode;
-        }
 
-        //        if(m_is_replaying) {
-        //            ASSERT(*ts.num_executed_2MHz_cycles<=ts.replay_next_event_cycles);
-        //            if(*ts.num_executed_2MHz_cycles==ts.replay_next_event_cycles) {
-        //                this->ThreadHandleReplayEvents(&ts);
-        //            }
-        //
-        //            if(m_is_replaying) {
-        //                if(ts.replay_next_event_cycles<stop_2MHz_cycles) {
-        //                    stop_2MHz_cycles=ts.replay_next_event_cycles;
-        //                }
-        //            }
-        //        }
-
-        if (m_is_pasting) {
-            if (!ts.beeb->IsPasting()) {
-                m_is_pasting.store(false, std::memory_order_release);
-                Message::CallCompletionFun(&ts.paste_completion_fun, true, nullptr);
+            if (m_is_pasting) {
+                if (!ts.beeb->IsPasting()) {
+                    m_is_pasting.store(false, std::memory_order_release);
+                    Message::CallCompletionFun(&ts.paste_completion_fun, true, nullptr);
+                }
             }
-        }
 
-        // TODO - can ts.beeb actually ever be null? I can't remember...
-        if (ts.beeb) {
-            m_leds.store(ts.beeb->GetLEDs(), std::memory_order_release);
+            // TODO - can ts.beeb actually ever be null? I can't remember...
+            if (ts.beeb) {
+                m_leds.store(ts.beeb->GetLEDs(), std::memory_order_release);
 
 #if BBCMICRO_TRACE
-            ts.beeb->GetTraceStats(&m_trace_stats);
+                ts.beeb->GetTraceStats(&m_trace_stats);
 #endif
-        }
+                m_printer_data_size_bytes.store(m_printer_buffer.size(), std::memory_order_release);
+            }
 
-        if (ts.boot) {
-            if (ts.beeb->GetAndResetDiscAccessFlag()) {
-                this->ThreadSetBootState(&ts, false);
+            if (ts.boot) {
+                if (ts.beeb->GetAndResetDiscAccessFlag()) {
+                    this->ThreadSetBootState(&ts, false);
+                }
             }
         }
 

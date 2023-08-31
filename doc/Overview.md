@@ -336,3 +336,12 @@ It's explicitly described as `Copy Text`, because it strips out VDU
 control codes and normalizes line endings. You stand a good chance of
 being able to paste the result into a word processor or text editor or
 what have you.
+
+## Printer
+
+Click `Printer` > `Parallel printer` to attach an emulated printer to
+the BBC. Printed data is buffered as it is printed; use `Printer` >
+`Save printer buffer...` to save the raw data to a file. 
+
+`Printer` > `Reset printer buffer` resets the printer buffer,
+discarding the current contents.

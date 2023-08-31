@@ -49,6 +49,8 @@ EPNV(DebugStepHost, 1 << 8)
 // out of every 4.
 EPNV(Parasite3MHzExternal, 1 << 9)
 
+EPNV(ParallelPrinter, 1 << 10)
+
 EEND()
 #undef ENAME
 
