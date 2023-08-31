@@ -149,3 +149,23 @@ Configs predating the feature mechanism - i.e., the stock B/B+/M128
 set - are marked by having an empty feature name., They never get
 re-added.
 
+# notes about why stuff is in one of `BBCMicro` or `BeebThread` rather than the other 
+
+Saved states/rewind/timeline/etc. is supposed to be at heart managed
+by copying `BBCMicro` objects. So anything that affects
+reproducibility has to be part of that. Hence pasting state being in
+`BBCMicro`.
+
+But `BBCMicro` should also have no more functionality in it than
+necessary, so which is why the trace stuff is just start/stop on the
+BBCMicro class and then a pile of junk in BeebThread to handle the
+various start and stop conditions.
+
+Would be nice to get the instruction/write callbacks out of BBCMicro
+too, since in theory the BeebThread could do that bit. But having them
+there does mean they can be easily stripped out of the templated
+Update functions via `if constexpr`, meaning no overhead when not
+updating.
+
+Could maybe template the BeebThread update function, along similar
+lines? The stretch flag complicates that a bit, though.

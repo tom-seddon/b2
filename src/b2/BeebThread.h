@@ -117,8 +117,8 @@ class BeebThread {
                                       const char *message);
 
         // Translate this, incoming message, into the message that will be
-        // recorded into the timeline. *PTR points to this (and may be the
-        // only pointer to it - exercise care when resetting).
+        // recorded into the timeline. *PTR points to this (and may be the only
+        // pointer to it - exercise care when resetting).
         //
         // If this message isn't recordable, apply effect and do a PTR->reset().
         //
@@ -129,14 +129,17 @@ class BeebThread {
         //
         // COMPLETION_FUN, if non-null, points to the completion fun to be
         // called when the message completes for the first time. ('completion'
-        // is rather vaguely defined, and is message-dependent.) Leave this
-        // as it is to have the completion function called automatically: if
-        // *PTR is non-null, with true (and no message) after the ThreadHandle
-        // call returns, or with false (and no message) if *PTR is null. Move
-        // it and handle in ThreadPrepare if special handling is necessary and/
-        // or a message would be helpful.
+        // is rather vaguely defined, and is message-dependent.) Leave this as
+        // it is to have the completion function called automatically: if *PTR
+        // is non-null, with true (and no message) after the ThreadHandle call
+        // returns, or with false (and no message) if *PTR is null. Move it and
+        // handle in ThreadPrepare if special handling is necessary and/ or a
+        // message would be helpful.
         //
-        // Default impl does nothing.
+        // Default impl does nothing and returns true.
+        //
+        // Return false to reject the message. The completion_fun will be called
+        // with false, and the message will be discarded.
         //
         // Called on Beeb thread.
         virtual bool ThreadPrepare(std::shared_ptr<Message> *ptr,
