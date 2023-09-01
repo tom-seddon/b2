@@ -47,14 +47,12 @@ class MessagesUI : public SettingsUI {
 
     bool OnClose() override;
 
-    const CommandTable2 *GetCommandTable2() const override;
+    bool ActionCommandsForPCKey(uint32_t pc_key) override;
 
   protected:
   private:
     std::shared_ptr<MessageList> m_message_list;
-
-    void Copy();
-    void Clear();
+    CommandStateTable m_cst;
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -75,11 +73,29 @@ MessagesUI::MessagesUI(std::shared_ptr<MessageList> message_list)
 //////////////////////////////////////////////////////////////////////////
 
 void MessagesUI::DoImGui() {
-    g_clear_command.DoButton();
+    if (m_cst.WasActioned(g_clear_command)) {
+        m_message_list->ClearMessages();
+    }
+
+    if (m_cst.WasActioned(g_copy_command)) {
+        ImGuiIO &io = ImGui::GetIO();
+
+        std::string text;
+
+        m_message_list->ForEachMessage(
+            [&text](const MessageList::Message *m) {
+                text += m->text;
+            });
+
+        (*io.SetClipboardTextFn)(io.ClipboardUserData, text.c_str());
+    }
+
+    //
+    m_cst.DoMenuItem(g_clear_command);
 
     ImGui::SameLine();
 
-    g_copy_command.DoButton();
+    m_cst.DoButton(g_copy_command);
 
     ImGui::BeginChild("##messages", ImVec2(), true);
 
@@ -98,31 +114,8 @@ bool MessagesUI::OnClose() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-const CommandTable2 *MessagesUI::GetCommandTable2() const {
-    return &g_messages_table;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-void MessagesUI::Copy() {
-    ImGuiIO &io = ImGui::GetIO();
-
-    std::string text;
-
-    m_message_list->ForEachMessage(
-        [&text](const MessageList::Message *m) {
-            text += m->text;
-        });
-
-    (*io.SetClipboardTextFn)(io.ClipboardUserData, text.c_str());
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-void MessagesUI::Clear() {
-    m_message_list->ClearMessages();
+bool MessagesUI::ActionCommandsForPCKey(uint32_t pc_key) {
+    return m_cst.ActionCommandsForPCKey(g_messages_table, pc_key);
 }
 
 //////////////////////////////////////////////////////////////////////////

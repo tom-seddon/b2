@@ -39,8 +39,10 @@ class SettingsUI {
     // Return true to have the config saved when this UI window is closed.
     virtual bool OnClose() = 0;
 
-    // default impl returns NULL.
-    virtual const CommandTable2 *GetCommandTable2() const;
+    // Return true if any command actioned.
+    //
+    // default impl returns false.
+    virtual bool ActionCommandsForPCKey(uint32_t pc_key);
 
   protected:
   private:

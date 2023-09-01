@@ -155,7 +155,7 @@ const std::vector<uint32_t> *CommandTable2::GetPCKeysForCommand(bool *are_defaul
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool CommandTable2::ActionCommandsForPCKey(uint32_t pc_key) const {
+const std::vector<Command2 *> *CommandTable2::GetCommandsForPCKey(uint32_t pc_key) const {
     if (m_commands_by_pc_key_dirty) {
         m_commands_by_pc_key.clear();
 
@@ -170,14 +170,10 @@ bool CommandTable2::ActionCommandsForPCKey(uint32_t pc_key) const {
 
     auto &&pc_key_and_commands = m_commands_by_pc_key.find(pc_key);
     if (pc_key_and_commands == m_commands_by_pc_key.end()) {
-        return false;
+        return nullptr;
     }
 
-    for (Command2 *command : pc_key_and_commands->second) {
-        command->Action();
-    }
-
-    return true;
+    return &pc_key_and_commands->second;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -210,6 +206,7 @@ Command2 *CommandTable2::FindCommandByName(const std::string &name) const {
 //////////////////////////////////////////////////////////////////////////
 
 static void AddCommand(std::vector<Command2 *> *commands, Command2 *command) {
+    ASSERT(!g_linked);
     ASSERT(!Contains(*commands, command));
     commands->push_back(command);
 }
@@ -309,79 +306,6 @@ bool Command2::IsVisible() const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void Command2::DoButton() {
-    if (m_has_tick) {
-        if (ImGui::Checkbox(m_text.c_str(), &this->ticked)) {
-            this->Action();
-        }
-    } else {
-        if (ImGuiButton(m_text.c_str(), &this->enabled)) {
-            this->Action();
-        }
-    }
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-void Command2::DoMenuItem() {
-    std::string shortcut_str;
-    //if (this->shortcut != 0) {
-    //    shortcut_str = GetKeycodeName(this->shortcut);
-    //}
-
-    if (m_must_confirm) {
-        if (ImGui::BeginMenu(m_text.c_str(), this->enabled)) {
-            if (ImGui::MenuItem("Confirm")) {
-                this->Action();
-            }
-            ImGui::EndMenu();
-        }
-    } else {
-        bool t = m_has_tick && ticked;
-
-        if (ImGui::MenuItem(m_text.c_str(),
-                            shortcut_str.empty() ? nullptr : shortcut_str.c_str(),
-                            &t,
-                            this->enabled)) {
-            this->Action();
-        }
-    }
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-void Command2::DoToggleCheckbox() {
-    if (ImGui::Checkbox(m_text.c_str(), &this->ticked)) {
-        this->Action();
-    }
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-bool Command2::WasActioned() const {
-    ASSERT(g_linked);
-
-    uint64_t frame_counter = m_frame_counter;
-    m_frame_counter = 0;
-
-    if (this->enabled) {
-        if (frame_counter != 0) {
-            uint64_t f = GetImGuiFrameCounter();
-            if (frame_counter == f - 1) {
-                return true;
-            }
-        }
-    }
-
-    return false;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 Command2 &Command2::MustConfirm() {
     m_must_confirm = true;
 
@@ -420,8 +344,156 @@ Command2 &Command2::VisibleIf(int flag) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void Command2::Action() {
-    m_frame_counter = GetImGuiFrameCounter();
+CommandStateTable::CommandStateTable() {
+    ASSERT(g_linked);
+
+    State initial_state = {};
+    initial_state.enabled = 1;
+
+    m_states.resize(GetCommand2sList()->size(), initial_state);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+CommandStateTable::~CommandStateTable() {
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool CommandStateTable::GetEnabled(const Command2 &command) const {
+    ASSERT(command.m_index < m_states.size());
+    const State *state = &m_states[command.m_index];
+
+    return state->enabled;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void CommandStateTable::SetEnabled(const Command2 &command, bool enabled) {
+    ASSERT(command.m_index < m_states.size());
+    State *state = &m_states[command.m_index];
+
+    state->enabled = enabled;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool CommandStateTable::GetTicked(const Command2 &command) const {
+    ASSERT(command.m_index < m_states.size());
+    const State *state = &m_states[command.m_index];
+
+    return state->ticked;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void CommandStateTable::SetTicked(const Command2 &command, bool ticked) {
+    ASSERT(command.m_index < m_states.size());
+    State *state = &m_states[command.m_index];
+
+    state->ticked = ticked;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void CommandStateTable::DoButton(const Command2 &command) {
+    ASSERT(command.m_index < m_states.size());
+    State *state = &m_states[command.m_index];
+
+    if (command.m_has_tick) {
+        bool ticked = state->ticked;
+        if (ImGui::Checkbox(command.m_text.c_str(), &ticked)) {
+            state->ticked = ticked;
+            state->actioned = 1;
+        }
+    } else {
+        bool enabled = state->enabled;
+        if (ImGuiButton(command.m_text.c_str(), &enabled)) {
+            state->actioned = 1;
+        }
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void CommandStateTable::DoMenuItem(const Command2 &command) {
+    ASSERT(command.m_index < m_states.size());
+    State *state = &m_states[command.m_index];
+
+    std::string shortcut_str;
+    //if (this->shortcut != 0) {
+    //    shortcut_str = GetKeycodeName(this->shortcut);
+    //}
+
+    if (command.m_must_confirm) {
+        if (ImGui::BeginMenu(command.m_text.c_str(), state->enabled)) {
+            if (ImGui::MenuItem("Confirm")) {
+                state->actioned = 1;
+            }
+            ImGui::EndMenu();
+        }
+    } else {
+        bool ticked = command.m_has_tick && state->ticked;
+
+        if (ImGui::MenuItem(command.m_text.c_str(),
+                            shortcut_str.empty() ? nullptr : shortcut_str.c_str(),
+                            &ticked,
+                            state->enabled)) {
+            state->actioned = 1;
+        }
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void CommandStateTable::DoToggleCheckbox(const Command2 &command) {
+    ASSERT(command.m_index < m_states.size());
+    State *state = &m_states[command.m_index];
+
+    bool ticked = state->ticked;
+    if (ImGui::Checkbox(command.m_text.c_str(), &ticked)) {
+        state->actioned = 1;
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool CommandStateTable::WasActioned(const Command2 &command) {
+    ASSERT(command.m_index < m_states.size());
+    State *state = &m_states[command.m_index];
+
+    bool actioned = state->actioned;
+    state->actioned = 0;
+
+    return actioned;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool CommandStateTable::ActionCommandsForPCKey(const CommandTable2 &table, uint32_t pc_key) {
+    const std::vector<Command2 *> *commands = table.GetCommandsForPCKey(pc_key);
+    if (!commands) {
+        return false;
+    }
+
+    for (Command2 *command : *commands) {
+        ASSERT(command->m_index < m_states.size());
+        State *state = &m_states[command->m_index];
+
+        state->actioned = 1;
+    }
+
+    return true;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -465,10 +537,16 @@ CommandTable2 *FindCommandTable2ByName(const std::string &name) {
 void LinkCommands() {
     ASSERT(!g_linked);
 
+    const std::vector<Command2 *> *list = GetCommand2sList();
+
     std::set<std::string> names;
-    for (Command2 *command : *GetCommand2sList()) {
+    for (size_t i = 0; i < list->size(); ++i) {
+        Command2 *command = (*list)[i];
         ASSERT(names.find(command->GetName()) == names.end());
         names.insert(command->GetName());
+
+        ASSERT(command->m_index == ~(size_t)0);
+        command->m_index = i;
 
         if (!command->m_table) {
             continue;

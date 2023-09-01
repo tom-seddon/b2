@@ -1270,8 +1270,8 @@ class DisassemblyDebugWindow : public DebugUI,
         return ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse;
     }
 
-    const CommandTable2 *GetCommandTable2() const override {
-        return &g_disassembly_table;
+    bool ActionCommandsForPCKey(uint32_t pc_key) override {
+        return m_cst.ActionCommandsForPCKey(g_disassembly_table, pc_key);
     }
 
     void RevealAddress(M6502Word addr) override {
@@ -1320,8 +1320,8 @@ class DisassemblyDebugWindow : public DebugUI,
             m->DebugGetMemBigPageIsMOSTable(pc_is_mos, m_dso);
         }
 
-        g_toggle_track_pc_command.ticked = m_track_pc;
-        if (g_toggle_track_pc_command.WasActioned()) {
+        m_cst.SetTicked(g_toggle_track_pc_command, m_track_pc);
+        if (m_cst.WasActioned(g_toggle_track_pc_command)) {
             m_track_pc = !m_track_pc;
 
             if (m_track_pc) {
@@ -1330,41 +1330,41 @@ class DisassemblyDebugWindow : public DebugUI,
             }
         }
 
-        g_back_command.enabled = !m_history.empty();
-        if (g_back_command.WasActioned()) {
+        m_cst.SetEnabled(g_back_command, !m_history.empty());
+        if (m_cst.WasActioned(g_back_command)) {
             ASSERT(!m_history.empty());
             m_track_pc = false;
             m_addr = m_history.back();
             m_history.pop_back();
         }
 
-        g_up_command.enabled = !m_track_pc;
-        if (g_up_command.WasActioned()) {
+        m_cst.SetEnabled(g_up_command, !m_track_pc);
+        if (m_cst.WasActioned(g_up_command)) {
             this->Up(config, 1);
         }
 
-        g_down_command.enabled = !m_track_pc;
-        if (g_down_command.WasActioned()) {
+        m_cst.SetEnabled(g_down_command, !m_track_pc);
+        if (m_cst.WasActioned(g_down_command)) {
             this->Down(config, 1);
         }
 
-        g_page_up_command.enabled = !m_track_pc;
-        if (g_page_up_command.WasActioned()) {
+        m_cst.SetEnabled(g_page_up_command, !m_track_pc);
+        if (m_cst.WasActioned(g_page_up_command)) {
             this->Up(config, m_num_lines - 2);
         }
 
-        g_page_down_command.enabled = !m_track_pc;
-        if (g_page_down_command.WasActioned()) {
+        m_cst.SetEnabled(g_page_down_command, !m_track_pc);
+        if (m_cst.WasActioned(g_page_down_command)) {
             this->Down(config, m_num_lines - 2);
         }
 
-        g_step_over_command.enabled = m_beeb_window->DebugIsRunEnabled();
-        if (g_step_over_command.WasActioned()) {
+        m_cst.SetEnabled(g_step_over_command, m_beeb_window->DebugIsRunEnabled());
+        if (m_cst.WasActioned(g_step_over_command)) {
             m_beeb_window->DebugStepOver(m_dso);
         }
 
-        g_step_in_command.enabled = m_beeb_window->DebugIsRunEnabled();
-        if (g_step_in_command.WasActioned()) {
+        m_cst.SetEnabled(g_step_in_command, m_beeb_window->DebugIsRunEnabled());
+        if (m_cst.WasActioned(g_step_in_command)) {
             m_beeb_window->DebugStepOver(m_dso);
         }
 
@@ -1395,9 +1395,9 @@ class DisassemblyDebugWindow : public DebugUI,
         ImGui::SameLine();
         this->WordRegGui("PC", {pc});
         ImGui::SameLine();
-        g_toggle_track_pc_command.DoToggleCheckbox();
+        m_cst.DoToggleCheckbox(g_toggle_track_pc_command);
 
-        g_back_command.DoButton();
+        m_cst.DoButton(g_back_command);
 
         if (ImGui::InputText("Address",
                              m_address_text, sizeof m_address_text,
@@ -1408,9 +1408,9 @@ class DisassemblyDebugWindow : public DebugUI,
             }
         }
 
-        g_step_over_command.DoButton();
+        m_cst.DoButton(g_step_over_command);
         ImGui::SameLine();
-        g_step_in_command.DoButton();
+        m_cst.DoButton(g_step_in_command);
 
         if (m_track_pc) {
             if (halted) {
@@ -1687,6 +1687,7 @@ class DisassemblyDebugWindow : public DebugUI,
     int m_num_lines = 0;
     //char m_disassembly_text[100];
     float m_wheel = 0;
+    CommandStateTable m_cst;
 
     void PRINTF_LIKE(4, 5) TextWithBreakpointBackground(uint8_t addr_flags,
                                                         uint8_t byte_flags,

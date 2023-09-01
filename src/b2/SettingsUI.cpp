@@ -37,6 +37,8 @@ uint32_t SettingsUI::GetExtraImGuiWindowFlags() const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-const CommandTable2 *SettingsUI::GetCommandTable2() const {
-    return nullptr;
+bool SettingsUI::ActionCommandsForPCKey(uint32_t pc_key) {
+    (void)pc_key;
+
+    return false;
 }

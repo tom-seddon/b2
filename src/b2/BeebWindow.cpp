@@ -121,6 +121,7 @@ struct PopupMetadata {
 };
 
 static PopupMetadata g_popups[BeebWindowPopupType_MaxValue];
+static bool g_popups_visibility_checked = false;
 
 static void InitialiseTogglePopupCommand(BeebWindowPopupType type, const char *name, const char *text, std::function<std::unique_ptr<SettingsUI>(BeebWindow *)> create_fun) {
     PopupMetadata *p = &g_popups[type];
@@ -864,12 +865,7 @@ bool BeebWindow::DoImGui(uint64_t ticks) {
         }
     }
 
-    // Command contexts to try, in order of preference.
-    const CommandTable2 *command_tables[] = {
-        nullptr,                      //panel that has focus - if any
-        &g_beeb_window_command_table, //this window
-    };
-    static const size_t num_command_tables = sizeof command_tables / sizeof command_tables[0];
+    SettingsUI *active_popup = nullptr;
 
     // Set if the BBC display panel has focus. This isn't entirely regular,
     // because the BBC display panel is handled by separate code - this will
@@ -927,7 +923,7 @@ bool BeebWindow::DoImGui(uint64_t ticks) {
                 {
                     ImGuiStyleVarPusher vpusher2(ImGuiStyleVar_WindowPadding, IMGUI_DEFAULT_STYLE.WindowPadding);
 
-                    command_tables[0] = this->DoSettingsUI();
+                    active_popup = this->DoSettingsUI();
 
                     beeb_focus = this->DoBeebDisplayUI();
                 }
@@ -985,7 +981,7 @@ bool BeebWindow::DoImGui(uint64_t ticks) {
                 bool handled = false;
 
                 if (m_prefer_shortcuts) {
-                    handled = this->HandleCommandKey(keycode, command_tables, num_command_tables);
+                    handled = this->HandleCommandKey(keycode, active_popup);
                 }
 
                 if (!handled) {
@@ -994,11 +990,11 @@ bool BeebWindow::DoImGui(uint64_t ticks) {
 
                 if (!m_prefer_shortcuts) {
                     if (!handled) {
-                        handled = this->HandleCommandKey(keycode, command_tables, num_command_tables);
+                        handled = this->HandleCommandKey(keycode, active_popup);
                     }
                 }
             } else {
-                this->HandleCommandKey(keycode, command_tables, num_command_tables);
+                this->HandleCommandKey(keycode, active_popup);
             }
         }
     }
@@ -1011,13 +1007,15 @@ bool BeebWindow::DoImGui(uint64_t ticks) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool BeebWindow::HandleCommandKey(uint32_t keycode, const CommandTable2 **tables, size_t num_tables) {
+bool BeebWindow::HandleCommandKey(uint32_t keycode, SettingsUI *active_popup) {
     if (keycode != 0) {
-        for (size_t i = 0; i < num_tables; ++i) {
-            if (tables[i]) {
-                if (tables[i]->ActionCommandsForPCKey(keycode)) {
-                    return true;
-                }
+        if (m_cst.ActionCommandsForPCKey(g_beeb_window_command_table, keycode)) {
+            return true;
+        }
+
+        if (active_popup) {
+            if (active_popup->ActionCommandsForPCKey(keycode)) {
+                return true;
             }
         }
     }
@@ -1029,19 +1027,19 @@ bool BeebWindow::HandleCommandKey(uint32_t keycode, const CommandTable2 **tables
 //////////////////////////////////////////////////////////////////////////
 
 void BeebWindow::DoCommands() {
-    if (g_hard_reset_command.WasActioned()) {
+    if (m_cst.WasActioned(g_hard_reset_command)) {
         this->HardReset();
     }
 
-    g_save_state_command.enabled = m_beeb_thread->GetBBCMicroCloneImpediments() == 0;
-    if (g_save_state_command.WasActioned()) {
+    m_cst.SetEnabled(g_save_state_command, m_beeb_thread->GetBBCMicroCloneImpediments() == 0);
+    if (m_cst.WasActioned(g_save_state_command)) {
         m_beeb_thread->Send(std::make_shared<BeebThread::SaveStateMessage>(true));
     }
 
 #if SYSTEM_WINDOWS
-    g_toggle_console_command.enabled = CanDetachFromWindowsConsole();
-    g_toggle_console_command.ticked = HasWindowsConsole();
-    if (g_toggle_console_command.WasActioned()) {
+    m_cst.SetEnabled(g_toggle_console_command, CanDetachFromWindowsConsole());
+    m_cst.SetTicked(g_toggle_console_command, HasWindowsConsole());
+    if (m_cst.WasActioned(g_toggle_console_command)) {
         if (HasWindowsConsole()) {
             FreeWindowsConsole();
         } else {
@@ -1049,7 +1047,7 @@ void BeebWindow::DoCommands() {
         }
     }
 
-    if (g_clear_console_command.WasActioned()) {
+    if (m_cst.WasActioned(g_clear_console_command)) {
         HANDLE h = GetStdHandle(STD_OUTPUT_HANDLE);
 
         CONSOLE_SCREEN_BUFFER_INFO csbi;
@@ -1062,12 +1060,12 @@ void BeebWindow::DoCommands() {
         }
     }
 
-    if (g_print_separator_command.WasActioned()) {
+    if (m_cst.WasActioned(g_print_separator_command)) {
         printf("--------------------------------------------------\n");
     }
 #endif
 
-    if (g_exit_command.WasActioned()) {
+    if (m_cst.WasActioned(g_exit_command)) {
         this->SaveSettings();
 
         SDL_Event event = {};
@@ -1076,7 +1074,7 @@ void BeebWindow::DoCommands() {
         SDL_PushEvent(&event);
     }
 
-    if (g_clean_up_recent_files_lists_command.WasActioned()) {
+    if (m_cst.WasActioned(g_clean_up_recent_files_lists_command)) {
         size_t n = 0;
 
         n += CleanUpRecentPaths(RECENT_PATHS_DISC_IMAGE, &PathIsFileOnDisk);
@@ -1087,43 +1085,43 @@ void BeebWindow::DoCommands() {
         }
     }
 
-    if (g_reset_dock_windows_command.WasActioned()) {
+    if (m_cst.WasActioned(g_reset_dock_windows_command)) {
         m_imgui_stuff->ResetDockContext();
     }
 
-    g_paste_command.ticked = m_beeb_thread->IsPasting();
-    if (g_paste_command.WasActioned()) {
+    m_cst.SetTicked(g_paste_command, m_beeb_thread->IsPasting());
+    if (m_cst.WasActioned(g_paste_command)) {
         this->DoPaste(false);
     }
 
-    g_paste_return_command.ticked = g_paste_command.ticked;
-    if (g_paste_return_command.WasActioned()) {
+    m_cst.SetTicked(g_paste_return_command, m_cst.GetTicked(g_paste_command));
+    if (m_cst.WasActioned(g_paste_return_command)) {
         this->DoPaste(true);
     }
 
-    g_toggle_copy_oswrch_text_command.ticked = m_beeb_thread->IsCopying();
-    if (g_toggle_copy_oswrch_text_command.WasActioned()) {
+    m_cst.SetTicked(g_toggle_copy_oswrch_text_command, m_beeb_thread->IsCopying());
+    if (m_cst.WasActioned(g_toggle_copy_oswrch_text_command)) {
         this->CopyOSWRCH<true>();
     }
 
-    g_copy_basic_command.ticked = g_toggle_copy_oswrch_text_command.ticked;
-    g_copy_basic_command.enabled = !m_beeb_thread->IsPasting();
-    if (g_copy_basic_command.WasActioned()) {
+    m_cst.SetTicked(g_copy_basic_command, m_cst.GetTicked(g_toggle_copy_oswrch_text_command));
+    m_cst.SetEnabled(g_copy_basic_command, !m_beeb_thread->IsPasting());
+    if (m_cst.WasActioned(g_copy_basic_command)) {
         this->CopyBASIC();
     }
 
-    g_parallel_printer_command.ticked = m_beeb_thread->IsParallelPrinterEnabled();
-    if (g_parallel_printer_command.WasActioned()) {
-        m_beeb_thread->Send(std::make_shared<BeebThread::SetPrinterEnabledMessage>(!g_parallel_printer_command.ticked));
+    m_cst.SetTicked(g_parallel_printer_command, m_beeb_thread->IsParallelPrinterEnabled());
+    if (m_cst.WasActioned(g_parallel_printer_command)) {
+        m_beeb_thread->Send(std::make_shared<BeebThread::SetPrinterEnabledMessage>(!m_cst.GetTicked(g_parallel_printer_command)));
     }
 
-    g_reset_printer_buffer_command.enabled = m_beeb_thread->GetPrinterDataSizeBytes() > 0;
-    if (g_reset_printer_buffer_command.WasActioned()) {
+    m_cst.SetEnabled(g_reset_printer_buffer_command, m_beeb_thread->GetPrinterDataSizeBytes() > 0);
+    if (m_cst.WasActioned(g_reset_printer_buffer_command)) {
         m_beeb_thread->Send(std::make_shared<BeebThread::ResetPrinterBufferMessage>());
     }
 
-    g_save_printer_buffer_command.enabled = g_reset_printer_buffer_command.enabled;
-    if (g_save_printer_buffer_command.WasActioned()) {
+    m_cst.SetEnabled(g_save_printer_buffer_command, m_cst.GetEnabled(g_reset_printer_buffer_command));
+    if (m_cst.WasActioned(g_save_printer_buffer_command)) {
         std::vector<uint8_t> data = m_beeb_thread->GetPrinterData();
 
         SaveFileDialog fd(RECENT_PATHS_PRINTER);
@@ -1137,8 +1135,8 @@ void BeebWindow::DoCommands() {
     }
 
 #if BBCMICRO_DEBUGGER
-    g_debug_run_command.enabled = this->DebugIsHalted();
-    if (g_debug_run_command.WasActioned()) {
+    m_cst.SetEnabled(g_debug_run_command, this->DebugIsHalted());
+    if (m_cst.WasActioned(g_debug_run_command)) {
         std::unique_lock<Mutex> lock;
         BBCMicro *m = m_beeb_thread->LockMutableBeeb(&lock);
 
@@ -1148,8 +1146,8 @@ void BeebWindow::DoCommands() {
 #endif
 
 #if BBCMICRO_DEBUGGER
-    g_debug_stop_command.enabled = !g_debug_run_command.enabled;
-    if (g_debug_stop_command.WasActioned()) {
+    m_cst.SetEnabled(g_debug_stop_command, !m_cst.GetEnabled(g_debug_run_command));
+    if (m_cst.WasActioned(g_debug_stop_command)) {
         std::unique_lock<Mutex> lock;
         BBCMicro *m = m_beeb_thread->LockMutableBeeb(&lock);
 
@@ -1157,8 +1155,8 @@ void BeebWindow::DoCommands() {
     }
 #endif
 
-    g_save_default_nvram_command.enabled = m_beeb_thread->HasNVRAM();
-    if (g_save_default_nvram_command.WasActioned()) {
+    m_cst.SetEnabled(g_save_default_nvram_command, m_beeb_thread->HasNVRAM());
+    if (m_cst.WasActioned(g_save_default_nvram_command)) {
         std::vector<uint8_t> nvram = m_beeb_thread->GetNVRAM();
         if (!nvram.empty()) {
             const BBCMicroType *type = m_beeb_thread->GetBBCMicroType();
@@ -1168,24 +1166,24 @@ void BeebWindow::DoCommands() {
         this->SaveConfig();
     }
 
-    g_reset_default_nvram_command.enabled = g_save_default_nvram_command.enabled;
-    if (g_reset_default_nvram_command.WasActioned()) {
+    m_cst.SetEnabled(g_reset_default_nvram_command, m_cst.GetEnabled(g_save_default_nvram_command));
+    if (m_cst.WasActioned(g_reset_default_nvram_command)) {
         const BBCMicroType *type = m_beeb_thread->GetBBCMicroType();
         ResetDefaultNVRAMContents(type);
     }
 
-    if (g_save_config_command.WasActioned()) {
+    if (m_cst.WasActioned(g_save_config_command)) {
         this->SaveConfig();
     }
 
-    g_toggle_prioritize_shortcuts_command.ticked = m_prefer_shortcuts;
-    if (g_toggle_prioritize_shortcuts_command.WasActioned()) {
+    m_cst.SetTicked(g_toggle_prioritize_shortcuts_command, m_prefer_shortcuts);
+    if (m_cst.WasActioned(g_toggle_prioritize_shortcuts_command)) {
         m_prefer_shortcuts = !m_prefer_shortcuts;
 
         this->ShowPrioritizeCommandShortcutsStatus();
     }
 
-    if (g_save_screenshot_command.WasActioned()) {
+    if (m_cst.WasActioned(g_save_screenshot_command)) {
         SaveFileDialog fd(RECENT_PATHS_SCREENSHOT);
 
         fd.AddFilter("PNG", {".png"});
@@ -1199,7 +1197,7 @@ void BeebWindow::DoCommands() {
         }
     }
 
-    if (g_copy_screenshot_command.WasActioned()) {
+    if (m_cst.WasActioned(g_copy_screenshot_command)) {
         SDLUniquePtr<SDL_Surface> screenshot = this->CreateScreenshot();
         if (!!screenshot) {
             SetClipboardImage(screenshot.get(), &m_msg);
@@ -1208,7 +1206,7 @@ void BeebWindow::DoCommands() {
 
 #if !ENABLE_SDL_FULL_SCREEN
     g_toggle_full_screen_command.ticked = this->IsWindowFullScreen();
-    if (g_toggle_full_screen_command.WasActioned()) {
+    if (m_cst.WasActioned(g_toggle_full_screen_command)) {
         bool is_full_screen = this->IsWindowFullScreen();
         this->SetWindowFullScreen(!is_full_screen);
     }
@@ -1219,10 +1217,10 @@ void BeebWindow::DoCommands() {
 
         PopupMetadata *popup_metadata = &g_popups[type];
 
-        if (popup_metadata->command.WasActioned()) {
+        if (m_cst.WasActioned(popup_metadata->command)) {
             m_settings.popups ^= mask;
         }
-        popup_metadata->command.ticked = !!(m_settings.popups & mask);
+        m_cst.SetTicked(popup_metadata->command, !!(m_settings.popups & mask));
     }
 }
 
@@ -1253,8 +1251,9 @@ bool BeebWindow::DoMenuUI() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-const CommandTable2 *BeebWindow::DoSettingsUI() {
-    const CommandTable2 *command_table = nullptr;
+SettingsUI *BeebWindow::DoSettingsUI() {
+    SettingsUI *active_popup = nullptr;
+
     for (int type = 0; type < BeebWindowPopupType_MaxValue; ++type) {
         const uint64_t mask = (uint64_t)1 << type;
 
@@ -1284,9 +1283,7 @@ const CommandTable2 *BeebWindow::DoSettingsUI() {
                 m_settings.popups |= mask;
 
                 if (ImGui::IsWindowFocused(ImGuiFocusedFlags_ChildWindows)) {
-                    if (popup) {
-                        command_table = popup->GetCommandTable2();
-                    }
+                    active_popup = popup;
                 }
 
                 if (popup) {
@@ -1319,7 +1316,7 @@ const CommandTable2 *BeebWindow::DoSettingsUI() {
         m_settings.popups |= 1 << BeebWindowPopupType_Messages;
     }
 
-    return command_table;
+    return active_popup;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -1518,7 +1515,7 @@ void BeebWindow::DoPopupUI(uint64_t now, int output_width, int output_height) {
 
 void BeebWindow::DoFileMenu() {
     if (ImGui::BeginMenu("File")) {
-        g_hard_reset_command.DoMenuItem();
+        m_cst.DoMenuItem(g_hard_reset_command);
 
         if (ImGui::BeginMenu("Run")) {
             this->DoDiscImageSubMenu(0, true);
@@ -1550,17 +1547,17 @@ void BeebWindow::DoFileMenu() {
             ImGui::Separator();
         }
 
-        g_save_default_nvram_command.DoMenuItem();
+        m_cst.DoMenuItem(g_save_default_nvram_command);
 
         ImGui::Separator();
 
-        g_save_state_command.DoMenuItem();
+        m_cst.DoMenuItem(g_save_state_command);
 
         ImGui::Separator();
-        g_save_config_command.DoMenuItem();
-        g_save_screenshot_command.DoMenuItem();
+        m_cst.DoMenuItem(g_save_config_command);
+        m_cst.DoMenuItem(g_save_screenshot_command);
         ImGui::Separator();
-        g_exit_command.DoMenuItem();
+        m_cst.DoMenuItem(g_exit_command);
         ImGui::EndMenu();
     }
 }
@@ -1728,11 +1725,11 @@ void BeebWindow::DoDiscImageSubMenuItem(int drive,
 
 void BeebWindow::DoEditMenu() {
     if (ImGui::BeginMenu("Edit")) {
-        g_toggle_copy_oswrch_text_command.DoMenuItem();
-        g_copy_basic_command.DoMenuItem();
-        g_copy_screenshot_command.DoMenuItem();
-        g_paste_command.DoMenuItem();
-        g_paste_return_command.DoMenuItem();
+        m_cst.DoMenuItem(g_toggle_copy_oswrch_text_command);
+        m_cst.DoMenuItem(g_copy_basic_command);
+        m_cst.DoMenuItem(g_copy_screenshot_command);
+        m_cst.DoMenuItem(g_paste_command);
+        m_cst.DoMenuItem(g_paste_return_command);
 
         ImGui::EndMenu();
     }
@@ -1743,7 +1740,7 @@ void BeebWindow::DoEditMenu() {
 
 void BeebWindow::DoHardwareMenu() {
     if (ImGui::BeginMenu("Hardware")) {
-        g_popups[BeebWindowPopupType_Configs].command.DoMenuItem();
+        m_cst.DoMenuItem(g_popups[BeebWindowPopupType_Configs].command);
 
         ImGui::Separator();
 
@@ -1766,12 +1763,12 @@ void BeebWindow::DoHardwareMenu() {
 
 void BeebWindow::DoKeyboardMenu() {
     if (ImGui::BeginMenu("Keyboard")) {
-        g_popups[BeebWindowPopupType_Keymaps].command.DoMenuItem();
-        g_popups[BeebWindowPopupType_CommandKeymaps].command.DoMenuItem();
+        m_cst.DoMenuItem(g_popups[BeebWindowPopupType_Keymaps].command);
+        m_cst.DoMenuItem(g_popups[BeebWindowPopupType_CommandKeymaps].command);
 
         ImGui::Separator();
 
-        g_toggle_prioritize_shortcuts_command.DoMenuItem(); //.DoMenuItemUI("toggle_prioritize_shortcuts");
+        m_cst.DoMenuItem(g_toggle_prioritize_shortcuts_command); //.DoMenuItemUI("toggle_prioritize_shortcuts");
 
         ImGui::Separator();
 
@@ -1808,7 +1805,7 @@ void BeebWindow::DoJoysticksMenu() {
 
 void BeebWindow::DoPrinterMenu() {
     if (ImGui::BeginMenu("Printer")) {
-        g_parallel_printer_command.DoMenuItem();
+        m_cst.DoMenuItem(g_parallel_printer_command);
 
         ImGui::Separator();
 
@@ -1818,15 +1815,15 @@ void BeebWindow::DoPrinterMenu() {
         char label[100];
         snprintf(label, sizeof label, "Printer data: %s bytes", size_str);
 
-        ImGui::Separator();
-
         ImGui::MenuItem(label, nullptr, nullptr, false);
 
-        g_reset_printer_buffer_command.DoMenuItem();
+        ImGui::Separator();
 
-        //g_copy_printer_buffer_command.DoMenuItem();
+        m_cst.DoMenuItem(g_reset_printer_buffer_command);
 
-        g_save_printer_buffer_command.DoMenuItem();
+        //m_cst.DoMenuItem(g_copy_printer_buffer_command);
+
+        m_cst.DoMenuItem(g_save_printer_buffer_command);
 
         ImGui::EndMenu();
     }
@@ -1837,11 +1834,11 @@ void BeebWindow::DoPrinterMenu() {
 
 void BeebWindow::DoToolsMenu() {
     if (ImGui::BeginMenu("Tools")) {
-        g_popups[BeebWindowPopupType_Options].command.DoMenuItem();
-        g_popups[BeebWindowPopupType_Messages].command.DoMenuItem();
-        g_popups[BeebWindowPopupType_Timeline].command.DoMenuItem();
-        g_popups[BeebWindowPopupType_SavedStates].command.DoMenuItem();
-        g_popups[BeebWindowPopupType_BeebLink].command.DoMenuItem();
+        m_cst.DoMenuItem(g_popups[BeebWindowPopupType_Options].command);
+        m_cst.DoMenuItem(g_popups[BeebWindowPopupType_Messages].command);
+        m_cst.DoMenuItem(g_popups[BeebWindowPopupType_Timeline].command);
+        m_cst.DoMenuItem(g_popups[BeebWindowPopupType_SavedStates].command);
+        m_cst.DoMenuItem(g_popups[BeebWindowPopupType_BeebLink].command);
 
         ImGui::Separator();
 
@@ -1867,11 +1864,11 @@ void BeebWindow::DoToolsMenu() {
         ImGui::Separator();
 
         // Is there somewhere better for this?
-        g_reset_default_nvram_command.DoMenuItem();
+        m_cst.DoMenuItem(g_reset_default_nvram_command);
 
         ImGui::Separator();
-        g_clean_up_recent_files_lists_command.DoMenuItem();
-        g_reset_dock_windows_command.DoMenuItem();
+        m_cst.DoMenuItem(g_clean_up_recent_files_lists_command);
+        m_cst.DoMenuItem(g_reset_dock_windows_command);
 
         ImGui::EndMenu();
     }
@@ -1884,83 +1881,83 @@ void BeebWindow::DoDebugMenu() {
 #if ENABLE_DEBUG_MENU
     if (ImGui::BeginMenu("Debug")) {
 #if ENABLE_IMGUI_TEST
-        g_popups[BeebWindowPopupType_DearImguiTest].command.DoMenuItem();
+        m_cst.DoMenuItem(g_popups[BeebWindowPopupType_DearImguiTest].command);
 #endif
-        g_popups[BeebWindowPopupType_Trace].command.DoMenuItem();
-        g_popups[BeebWindowPopupType_AudioCallback].command.DoMenuItem();
+        m_cst.DoMenuItem(g_popups[BeebWindowPopupType_Trace].command);
+        m_cst.DoMenuItem(g_popups[BeebWindowPopupType_AudioCallback].command);
 
 #if VIDEO_TRACK_METADATA
-        g_popups[BeebWindowPopupType_PixelMetadata].command.DoMenuItem();
+        m_cst.DoMenuItem(g_popups[BeebWindowPopupType_PixelMetadata].command);
 #endif
 
 #if BBCMICRO_DEBUGGER
         ImGui::Separator();
 
-        g_popups[BeebWindowPopupType_6502Debugger].command.DoMenuItem();
+        m_cst.DoMenuItem(g_popups[BeebWindowPopupType_6502Debugger].command);
         if (ImGui::BeginMenu("Memory Debug")) {
-            g_popups[BeebWindowPopupType_MemoryDebugger1].command.DoMenuItem();
-            g_popups[BeebWindowPopupType_MemoryDebugger2].command.DoMenuItem();
-            g_popups[BeebWindowPopupType_MemoryDebugger3].command.DoMenuItem();
-            g_popups[BeebWindowPopupType_MemoryDebugger4].command.DoMenuItem();
+            m_cst.DoMenuItem(g_popups[BeebWindowPopupType_MemoryDebugger1].command);
+            m_cst.DoMenuItem(g_popups[BeebWindowPopupType_MemoryDebugger2].command);
+            m_cst.DoMenuItem(g_popups[BeebWindowPopupType_MemoryDebugger3].command);
+            m_cst.DoMenuItem(g_popups[BeebWindowPopupType_MemoryDebugger4].command);
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("Parasite Memory Debug")) {
-            g_popups[BeebWindowPopupType_ParasiteMemoryDebugger1].command.DoMenuItem();
-            g_popups[BeebWindowPopupType_ParasiteMemoryDebugger2].command.DoMenuItem();
-            g_popups[BeebWindowPopupType_ParasiteMemoryDebugger3].command.DoMenuItem();
-            g_popups[BeebWindowPopupType_ParasiteMemoryDebugger4].command.DoMenuItem();
+            m_cst.DoMenuItem(g_popups[BeebWindowPopupType_ParasiteMemoryDebugger1].command);
+            m_cst.DoMenuItem(g_popups[BeebWindowPopupType_ParasiteMemoryDebugger2].command);
+            m_cst.DoMenuItem(g_popups[BeebWindowPopupType_ParasiteMemoryDebugger3].command);
+            m_cst.DoMenuItem(g_popups[BeebWindowPopupType_ParasiteMemoryDebugger4].command);
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("Disassembly Debug")) {
-            g_popups[BeebWindowPopupType_DisassemblyDebugger1].command.DoMenuItem();
-            g_popups[BeebWindowPopupType_DisassemblyDebugger2].command.DoMenuItem();
-            g_popups[BeebWindowPopupType_DisassemblyDebugger3].command.DoMenuItem();
-            g_popups[BeebWindowPopupType_DisassemblyDebugger4].command.DoMenuItem();
+            m_cst.DoMenuItem(g_popups[BeebWindowPopupType_DisassemblyDebugger1].command);
+            m_cst.DoMenuItem(g_popups[BeebWindowPopupType_DisassemblyDebugger2].command);
+            m_cst.DoMenuItem(g_popups[BeebWindowPopupType_DisassemblyDebugger3].command);
+            m_cst.DoMenuItem(g_popups[BeebWindowPopupType_DisassemblyDebugger4].command);
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("Parasite Disassembly Debug")) {
-            g_popups[BeebWindowPopupType_ParasiteDisassemblyDebugger1].command.DoMenuItem();
-            g_popups[BeebWindowPopupType_ParasiteDisassemblyDebugger2].command.DoMenuItem();
-            g_popups[BeebWindowPopupType_ParasiteDisassemblyDebugger3].command.DoMenuItem();
-            g_popups[BeebWindowPopupType_ParasiteDisassemblyDebugger4].command.DoMenuItem();
+            m_cst.DoMenuItem(g_popups[BeebWindowPopupType_ParasiteDisassemblyDebugger1].command);
+            m_cst.DoMenuItem(g_popups[BeebWindowPopupType_ParasiteDisassemblyDebugger2].command);
+            m_cst.DoMenuItem(g_popups[BeebWindowPopupType_ParasiteDisassemblyDebugger3].command);
+            m_cst.DoMenuItem(g_popups[BeebWindowPopupType_ParasiteDisassemblyDebugger4].command);
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("External Memory Debug")) {
-            g_popups[BeebWindowPopupType_ExtMemoryDebugger1].command.DoMenuItem();
-            g_popups[BeebWindowPopupType_ExtMemoryDebugger2].command.DoMenuItem();
-            g_popups[BeebWindowPopupType_ExtMemoryDebugger3].command.DoMenuItem();
-            g_popups[BeebWindowPopupType_ExtMemoryDebugger4].command.DoMenuItem();
+            m_cst.DoMenuItem(g_popups[BeebWindowPopupType_ExtMemoryDebugger1].command);
+            m_cst.DoMenuItem(g_popups[BeebWindowPopupType_ExtMemoryDebugger2].command);
+            m_cst.DoMenuItem(g_popups[BeebWindowPopupType_ExtMemoryDebugger3].command);
+            m_cst.DoMenuItem(g_popups[BeebWindowPopupType_ExtMemoryDebugger4].command);
             ImGui::EndMenu();
         }
-        g_popups[BeebWindowPopupType_CRTCDebugger].command.DoMenuItem();
-        g_popups[BeebWindowPopupType_VideoULADebugger].command.DoMenuItem();
-        g_popups[BeebWindowPopupType_SystemVIADebugger].command.DoMenuItem();
-        g_popups[BeebWindowPopupType_UserVIADebugger].command.DoMenuItem();
-        g_popups[BeebWindowPopupType_NVRAMDebugger].command.DoMenuItem();
-        g_popups[BeebWindowPopupType_SN76489Debugger].command.DoMenuItem();
-        g_popups[BeebWindowPopupType_ADCDebugger].command.DoMenuItem();
-        g_popups[BeebWindowPopupType_PagingDebugger].command.DoMenuItem();
-        g_popups[BeebWindowPopupType_BreakpointsDebugger].command.DoMenuItem();
-        g_popups[BeebWindowPopupType_StackDebugger].command.DoMenuItem();
-        g_popups[BeebWindowPopupType_ParasiteStackDebugger].command.DoMenuItem();
-        g_popups[BeebWindowPopupType_TubeDebugger].command.DoMenuItem();
+        m_cst.DoMenuItem(g_popups[BeebWindowPopupType_CRTCDebugger].command);
+        m_cst.DoMenuItem(g_popups[BeebWindowPopupType_VideoULADebugger].command);
+        m_cst.DoMenuItem(g_popups[BeebWindowPopupType_SystemVIADebugger].command);
+        m_cst.DoMenuItem(g_popups[BeebWindowPopupType_UserVIADebugger].command);
+        m_cst.DoMenuItem(g_popups[BeebWindowPopupType_NVRAMDebugger].command);
+        m_cst.DoMenuItem(g_popups[BeebWindowPopupType_SN76489Debugger].command);
+        m_cst.DoMenuItem(g_popups[BeebWindowPopupType_ADCDebugger].command);
+        m_cst.DoMenuItem(g_popups[BeebWindowPopupType_PagingDebugger].command);
+        m_cst.DoMenuItem(g_popups[BeebWindowPopupType_BreakpointsDebugger].command);
+        m_cst.DoMenuItem(g_popups[BeebWindowPopupType_StackDebugger].command);
+        m_cst.DoMenuItem(g_popups[BeebWindowPopupType_ParasiteStackDebugger].command);
+        m_cst.DoMenuItem(g_popups[BeebWindowPopupType_TubeDebugger].command);
 
         ImGui::Separator();
 
-        g_debug_stop_command.DoMenuItem();
-        g_debug_run_command.DoMenuItem();
+        m_cst.DoMenuItem(g_debug_stop_command);
+        m_cst.DoMenuItem(g_debug_run_command);
 
 #endif
 
         ImGui::Separator();
 
 #if SYSTEM_WINDOWS
-        g_toggle_console_command.DoMenuItem();
+        m_cst.DoMenuItem(g_toggle_console_command);
 
         if (HasWindowsConsole()) {
-            g_clear_console_command.DoMenuItem();
+            m_cst.DoMenuItem(g_clear_console_command);
 
-            g_print_separator_command.DoMenuItem();
+            m_cst.DoMenuItem(g_print_separator_command);
         }
 
         ImGui::Separator();
@@ -1998,7 +1995,7 @@ bool BeebWindow::DoWindowMenu() {
         }
 
 #if !ENABLE_SDL_FULL_SCREEN
-        g_toggle_full_screen_command.DoMenuItem(); //.DoMenuItemUI("toggle_full_screen");
+        m_cst.DoMenuItem(g_toggle_full_screen_command); //.DoMenuItemUI("toggle_full_screen");
 #endif
 
         ImGui::Separator();
@@ -2372,10 +2369,11 @@ bool BeebWindow::HandleVBlank(uint64_t ticks) {
         // Show/hide popup commands in the UI. Try to create each popup in turn,
         // and hide it if the attempt fails! A bit of a cheap hack, but it saves
         // on having to get the #ifs perfectly consistent.
-        if (GetImGuiFrameCounter() == 1) {
+        if (!g_popups_visibility_checked) {
             for (PopupMetadata &popup : g_popups) {
                 popup.command.VisibleIf(!!popup.create_fun(this));
             }
+            g_popups_visibility_checked = true;
         }
 
         m_pushed_window_padding = true;

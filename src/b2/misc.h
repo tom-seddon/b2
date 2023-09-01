@@ -57,7 +57,7 @@ std::string GetCycleCountString(CycleCount cycle_count);
 // 18,446,744,073,709,551,616
 
 static const size_t MAX_UINT64_THOUSANDS_LEN = 26;
-static const size_t MAX_UINT64_THOUSANDS_SIZE = MAX_UINT64_THOUSANDS_LEN+1;
+static const size_t MAX_UINT64_THOUSANDS_SIZE = MAX_UINT64_THOUSANDS_LEN + 1;
 void GetThousandsString(char *str, uint64_t value);
 
 //////////////////////////////////////////////////////////////////////////

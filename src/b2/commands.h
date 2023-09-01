@@ -15,21 +15,7 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 //
-// To use a command:
 //
-// 0. start dear imgui frame
-//
-// 1. set enabled/ticked
-//
-// 2. check WasActioned - do the action if so
-//
-// 3. DoButton/DoMenuItem/etc. to show the UI where necessary
-//
-// Steps 1 and 2 should be performed on every frame, even if step 3 won't, so
-// that keyboard shortcuts can work correctly.
-//
-// Having the command execute on the following frame isn't really ideal, but
-// 1-frame delays are inevitable with the immediate mode approach...
 //
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -62,8 +48,7 @@ class CommandTable2 {
     void RemoveMapping(uint32_t pc_key, Command2 *command);
 
     const std::vector<uint32_t> *GetPCKeysForCommand(bool *are_defaults, Command2 *command) const;
-
-    bool ActionCommandsForPCKey(uint32_t keycode) const;
+    const std::vector<Command2 *> *GetCommandsForPCKey(uint32_t pc_key) const;
 
     Command2 *FindCommandByName(const char *name) const;
     Command2 *FindCommandByName(const std::string &name) const;
@@ -81,6 +66,7 @@ class CommandTable2 {
     std::vector<Command2 *> m_commands_sorted;
 
     friend class Command2;
+    friend class CommandStateTable;
     friend void LinkCommands();
 };
 
@@ -93,9 +79,6 @@ class CommandTable2 {
 
 class Command2Data {
   public:
-    bool enabled = true;
-    bool ticked = false;
-
     Command2Data(CommandTable2 *table, std::string name, std::string text);
 
   protected:
@@ -104,9 +87,9 @@ class Command2Data {
     std::string m_text;
     bool m_must_confirm = false;
     bool m_has_tick = false;
-    mutable uint64_t m_frame_counter = 0;
     std::vector<uint32_t> m_shortcuts;
     bool m_visible = true;
+    size_t m_index = ~(size_t)0;
 
     Command2Data(const Command2Data &) = default;
     Command2Data(Command2Data &&) = default;
@@ -121,9 +104,6 @@ class Command2Data {
 
 class Command2 : private Command2Data {
   public:
-    using Command2Data::enabled;
-    using Command2Data::ticked;
-
     Command2();
     Command2(CommandTable2 *table, std::string id, std::string label);
     ~Command2();
@@ -142,11 +122,7 @@ class Command2 : private Command2Data {
     // the UI.
     bool IsVisible() const;
 
-    void DoButton();
-    void DoMenuItem();
-    void DoToggleCheckbox();
-
-    bool WasActioned() const;
+    //bool WasActioned() const;
 
     // fluent interface
     Command2 &MustConfirm();
@@ -156,13 +132,51 @@ class Command2 : private Command2Data {
 
   protected:
   private:
-    void Action();
-
     static void AddCommand(Command2 *command);
     static void RemoveCommand(Command2 *command);
 
     friend class CommandTable2;
+    friend class CommandStateTable;
     friend void LinkCommands();
+};
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+// Holds per-window state for each command. Every state table has room for all
+// possible commands, so mix and match as appropriate.
+
+class CommandStateTable {
+  public:
+    CommandStateTable();
+    ~CommandStateTable();
+
+    bool GetEnabled(const Command2 &command) const;
+    void SetEnabled(const Command2 &command, bool enabled);
+
+    bool GetTicked(const Command2 &command) const;
+    void SetTicked(const Command2 &command, bool ticked);
+
+    void DoButton(const Command2 &command);
+    void DoMenuItem(const Command2 &command);
+    void DoToggleCheckbox(const Command2 &command);
+
+    bool WasActioned(const Command2 &command);
+
+    bool ActionCommandsForPCKey(const CommandTable2 &table, uint32_t pc_key);
+
+  protected:
+  private:
+    struct State {
+        bool actioned : 1;
+        bool ticked : 1;
+        bool enabled : 1;
+    };
+    CHECK_SIZEOF(State, 1);
+
+    void Action();
+
+    std::vector<State> m_states;
 };
 
 //////////////////////////////////////////////////////////////////////////

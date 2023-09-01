@@ -718,7 +718,7 @@ parasite_update_done:
 
                 m_state.old_system_via_pb = pb;
             }
-            
+
             if constexpr (UPDATE_FLAGS & BBCMicroUpdateFlag_HasRTC) {
                 if (pb.m128_bits.rtc_chip_select &&
                     !pb.m128_bits.rtc_address_strobe) {

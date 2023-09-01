@@ -451,13 +451,15 @@ class BeebWindow {
     std::thread m_update_tv_texture_thread;
     bool m_update_tv_texture_thread_enabled = false;
 
+    CommandStateTable m_cst;
+
     bool InitInternal();
     static void UpdateTVTextureThread(UpdateTVTextureThreadState *state);
     bool DoImGui(uint64_t ticks);
-    bool HandleCommandKey(uint32_t keycode, const CommandTable2 **tables, size_t num_tables);
+    bool HandleCommandKey(uint32_t keycode, SettingsUI *active_popup);
     void DoCommands();
     bool DoMenuUI();
-    const CommandTable2 *DoSettingsUI();
+    SettingsUI *DoSettingsUI();
     void DoPopupUI(uint64_t now, int output_width, int output_height);
     void DoFileMenu();
     void DoDiscDriveSubMenu(int drive, const std::shared_ptr<const DiscImage> &disc_image);
