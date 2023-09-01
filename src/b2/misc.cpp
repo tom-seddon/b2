@@ -676,6 +676,83 @@ uint32_t GetBBCASCIIFromISO88511(std::string *ascii, const std::vector<uint8_t> 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+static const uint8_t VDU_CODE_LENGTHS[32] = {
+    0,
+    1,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    1,
+    2,
+    5,
+    0,
+    0,
+    1,
+    9,
+    8,
+    5,
+    0,
+    0,
+    4,
+    4,
+    0,
+    2,
+};
+
+std::string GetUTF8FromBBCASCII(const std::vector<uint8_t> &data) {
+    // Normalize line endings and strip out control codes.
+    //
+    // TODO: do it in a less dumb fashion.
+    std::string utf8;
+    utf8.reserve(data.size());
+
+    for (size_t i = 0; i < data.size(); ++i) {
+        if (data[i] == 10 || data[i] == 13) {
+            // Translate line endings.
+            if (i + 1 < data.size() &&
+                (data[i + 1] == 10 || data[i + 1] == 13) &&
+                data[i] != data[i + 1]) {
+                // Consume 2-byte line ending.
+                ++i;
+            }
+#if SYSTEM_WINDOWS
+            utf8 += "\r\n";
+#else
+            utf8 += "\n";
+
+#endif
+        } else if (data[i] < 32) {
+            // Skip VDU codes.
+            i += 1 + VDU_CODE_LENGTHS[data[i]];
+        } else if (data[i] == 95) {
+            // Translate pound sign into UTF8.
+            utf8 += POUND_SIGN_UTF8;
+        } else if (data[i] < 127) {
+            // Pass other printable 7-bit ASCII chars straight through.
+            utf8.push_back(data[i]);
+        } else {
+            // Discard DEL and 128+. TODO.
+        }
+    }
+
+    return utf8;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 void FixBBCASCIINewlines(std::string *str) {
     // Knobble newlines.
     if (str->size() > 1) {

@@ -190,6 +190,10 @@ bool GetBBCASCIIFromUTF8(std::string *ascii,
 uint32_t GetBBCASCIIFromISO88511(std::string *ascii,
                                  const std::vector<uint8_t> &data);
 
+// Normalizes line endings, strips out BBC-type control codes, and translates
+// ASCII 95 to U+00A3 Pound Sign.
+std::string GetUTF8FromBBCASCII(const std::vector<uint8_t> &data);
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
@@ -201,6 +205,8 @@ void FixBBCASCIINewlines(std::string *str);
 
 // Exapnds to a string literal: mu, then "s", UTF8-encoded
 #define MICROSECONDS_UTF8 "\xc2\xb5s"
+
+#define POUND_SIGN_UTF8 "\xc2\xa3"
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

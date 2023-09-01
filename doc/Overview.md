@@ -345,3 +345,8 @@ the BBC. Printed data is buffered as it is printed; use `Printer` >
 
 `Printer` > `Reset printer buffer` resets the printer buffer,
 discarding the current contents.
+
+`Printer` > `Copy printer buffer text` copies the printer buffer as
+text, stripping out any BBC control codes and translating line
+endings. Note that this won't properly strip out Epson-style ESC
+control codes though!

@@ -1101,13 +1101,27 @@ void BeebWindow::DoCommands() {
 
     m_cst.SetTicked(g_toggle_copy_oswrch_text_command, m_beeb_thread->IsCopying());
     if (m_cst.WasActioned(g_toggle_copy_oswrch_text_command)) {
-        this->CopyOSWRCH<true>();
+        if (m_beeb_thread->IsCopying()) {
+            m_beeb_thread->Send(std::make_shared<BeebThread::StopCopyMessage>());
+        } else {
+            m_beeb_thread->Send(std::make_shared<BeebThread::StartCopyMessage>([this](std::vector<uint8_t> data) {
+                this->SetClipboardFromBBCASCII(data);
+            },
+                                                                               false)); //false=not Copy BASIC
+        }
     }
 
     m_cst.SetTicked(g_copy_basic_command, m_cst.GetTicked(g_toggle_copy_oswrch_text_command));
     m_cst.SetEnabled(g_copy_basic_command, !m_beeb_thread->IsPasting());
     if (m_cst.WasActioned(g_copy_basic_command)) {
-        this->CopyBASIC();
+        if (m_beeb_thread->IsCopying()) {
+            m_beeb_thread->Send(std::make_shared<BeebThread::StopCopyMessage>());
+        } else {
+            m_beeb_thread->Send(std::make_shared<BeebThread::StartCopyMessage>([this](std::vector<uint8_t> data) {
+                this->SetClipboardFromBBCASCII(data);
+            },
+                                                                               true)); //true=Copy BASIC
+        }
     }
 
     m_cst.SetTicked(g_parallel_printer_command, m_beeb_thread->IsParallelPrinterEnabled());
@@ -1118,6 +1132,13 @@ void BeebWindow::DoCommands() {
     m_cst.SetEnabled(g_reset_printer_buffer_command, m_beeb_thread->GetPrinterDataSizeBytes() > 0);
     if (m_cst.WasActioned(g_reset_printer_buffer_command)) {
         m_beeb_thread->Send(std::make_shared<BeebThread::ResetPrinterBufferMessage>());
+    }
+
+    m_cst.SetEnabled(g_copy_printer_buffer_command, m_cst.GetEnabled(g_reset_printer_buffer_command));
+    if (m_cst.WasActioned(g_copy_printer_buffer_command)) {
+        std::vector<uint8_t> data = m_beeb_thread->GetPrinterData();
+
+        this->SetClipboardFromBBCASCII(data);
     }
 
     m_cst.SetEnabled(g_save_printer_buffer_command, m_cst.GetEnabled(g_reset_printer_buffer_command));
@@ -1821,7 +1842,7 @@ void BeebWindow::DoPrinterMenu() {
 
         m_cst.DoMenuItem(g_reset_printer_buffer_command);
 
-        //m_cst.DoMenuItem(g_copy_printer_buffer_command);
+        m_cst.DoMenuItem(g_copy_printer_buffer_command);
 
         m_cst.DoMenuItem(g_save_printer_buffer_command);
 
@@ -3174,115 +3195,13 @@ void BeebWindow::DoPaste(bool add_return) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static const uint8_t VDU_CODE_LENGTHS[32] = {
-    0,
-    1,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    1,
-    2,
-    5,
-    0,
-    0,
-    1,
-    9,
-    8,
-    5,
-    0,
-    0,
-    4,
-    4,
-    0,
-    2,
-};
+void BeebWindow::SetClipboardFromBBCASCII(const std::vector<uint8_t> &data) const {
+    std::string utf8 = GetUTF8FromBBCASCII(data);
 
-void BeebWindow::SetClipboardData(std::vector<uint8_t> data, bool is_text) {
-    if (is_text) {
-        // Normalize line endings and strip out control codes.
-        //
-        // TODO: do it in a less dumb fashion.
-
-        std::vector<uint8_t>::iterator it = data.begin();
-        uint8_t delete_counter = 0;
-        while (it != data.end()) {
-            if (delete_counter > 0) {
-                it = data.erase(it);
-                --delete_counter;
-            } else if (*it == 10 && it + 1 != data.end() && *(it + 1) == 13) {
-#if SYSTEM_WINDOWS
-                // DOS-style line endings.
-                *it = 13;
-                *(it + 1) = 10;
-                it += 2;
-#else
-                // Unix-style line endings.
-                *it++ = '\n';
-                delete_counter = 1;
-#endif
-            } else if (*it < 32) {
-                delete_counter = VDU_CODE_LENGTHS[*it];
-                ++it;
-            } else {
-                ++it;
-            }
-        }
-    }
-
-    data.push_back(0);
-
-    int rc = SDL_SetClipboardText((const char *)data.data());
+    int rc = SDL_SetClipboardText(utf8.c_str());
     if (rc != 0) {
         m_msg.e.f("Failed to copy to clipboard: %s\n", SDL_GetError());
     }
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-template <bool IS_TEXT>
-void BeebWindow::CopyOSWRCH() {
-    if (m_beeb_thread->IsCopying()) {
-        m_beeb_thread->Send(std::make_shared<BeebThread::StopCopyMessage>());
-    } else {
-        m_beeb_thread->Send(std::make_shared<BeebThread::StartCopyMessage>([this](std::vector<uint8_t> data) {
-            this->SetClipboardData(std::move(data), IS_TEXT);
-        },
-                                                                           false)); //false=not Copy BASIC
-    }
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-void BeebWindow::CopyBASIC() {
-    if (m_beeb_thread->IsCopying()) {
-        m_beeb_thread->Send(std::make_shared<BeebThread::StopCopyMessage>());
-    } else {
-        m_beeb_thread->Send(std::make_shared<BeebThread::StartCopyMessage>([this](std::vector<uint8_t> data) {
-            this->SetClipboardData(std::move(data), true);
-        },
-                                                                           true)); //true=Copy BASIC
-    }
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-bool BeebWindow::IsCopyBASICEnabled() const {
-    return !m_beeb_thread->IsPasting();
 }
 
 //////////////////////////////////////////////////////////////////////////

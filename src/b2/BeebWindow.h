@@ -487,12 +487,7 @@ class BeebWindow {
 
     void DoPaste(bool add_return);
 
-    template <bool IS_TEXT>
-    void CopyOSWRCH();
-    void SetClipboardData(std::vector<uint8_t> data, bool is_text);
-
-    void CopyBASIC();
-    bool IsCopyBASICEnabled() const;
+    void SetClipboardFromBBCASCII(const std::vector<uint8_t> &data) const;
 
     void SaveConfig();
 
