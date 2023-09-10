@@ -1643,7 +1643,7 @@ static void SaveShortcuts(JSONWriter<StringStream> *writer) {
     ForEachCommandTable2([writer](CommandTable2 *table) {
         auto commands_json = ObjectWriter(writer, table->GetName().c_str());
 
-        table->ForEachCommand([table, writer, &commands_json](Command2 *command) {
+        table->ForEachCommand([table, writer](Command2 *command) {
             bool are_defaults;
             if (const std::vector<uint32_t> *pc_keys = table->GetPCKeysForCommand(&are_defaults, command)) {
                 if (!are_defaults) {

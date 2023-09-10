@@ -1226,7 +1226,7 @@ void BeebWindow::DoCommands() {
     }
 
 #if !ENABLE_SDL_FULL_SCREEN
-    g_toggle_full_screen_command.ticked = this->IsWindowFullScreen();
+    m_cst.SetTicked(g_toggle_full_screen_command, this->IsWindowFullScreen());
     if (m_cst.WasActioned(g_toggle_full_screen_command)) {
         bool is_full_screen = this->IsWindowFullScreen();
         this->SetWindowFullScreen(!is_full_screen);

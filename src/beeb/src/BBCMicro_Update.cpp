@@ -810,11 +810,11 @@ parasite_update_done:
 //
 constexpr uint32_t GetNormalizedBBCMicroUpdateFlags(uint32_t flags) {
     if (!(flags & BBCMicroUpdateFlag_Parasite)) {
-        flags &= ~(BBCMicroUpdateFlag_DebugStepParasite | BBCMicroUpdateFlag_Parasite3MHzExternal | BBCMicroUpdateFlag_ParasiteSpecial);
+        flags &= ~(uint32_t)(BBCMicroUpdateFlag_DebugStepParasite | BBCMicroUpdateFlag_Parasite3MHzExternal | BBCMicroUpdateFlag_ParasiteSpecial);
     }
 
     if (!(flags & BBCMicroUpdateFlag_Debug)) {
-        flags &= ~(BBCMicroUpdateFlag_DebugStepHost | BBCMicroUpdateFlag_DebugStepParasite);
+        flags &= ~(uint32_t)(BBCMicroUpdateFlag_DebugStepHost | BBCMicroUpdateFlag_DebugStepParasite);
     }
 
     return flags;

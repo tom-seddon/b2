@@ -741,7 +741,7 @@ std::string GetUTF8FromBBCASCII(const std::vector<uint8_t> &data) {
             utf8 += POUND_SIGN_UTF8;
         } else if (data[i] < 127) {
             // Pass other printable 7-bit ASCII chars straight through.
-            utf8.push_back(data[i]);
+            utf8.push_back((char)data[i]);
         } else {
             // Discard DEL and 128+. TODO.
         }

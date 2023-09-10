@@ -1854,7 +1854,7 @@ static std::string GetUpdateFlagExpr(const uint32_t flags_) {
                 expr += "|";
             }
 
-            const char *name = GetBBCMicroUpdateFlagEnumName(mask);
+            const char *name = GetBBCMicroUpdateFlagEnumName((int)mask);
             if (name[0] == '?') {
                 char tmp[100];
                 snprintf(tmp, sizeof tmp, "0x%" PRIx32, mask);
