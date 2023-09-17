@@ -208,25 +208,27 @@ uint32_t BBCMicro::UpdateTemplated(VideoDataUnit *video_unit, SoundDataUnit *sou
         if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_Trace) != 0) {
 #if BBCMICRO_TRACE
             if (M6502_IsAboutToExecute(&m_state.parasite_cpu)) {
-                InstructionTraceEvent *e;
+                if (m_trace) {
+                    InstructionTraceEvent *e;
 
-                if ((e = m_trace_parasite_current_instruction) != nullptr) {
-                    e->a = m_state.parasite_cpu.a;
-                    e->x = m_state.parasite_cpu.x;
-                    e->y = m_state.parasite_cpu.y;
-                    e->p = m_state.parasite_cpu.p.value;
-                    e->data = m_state.parasite_cpu.data;
-                    e->opcode = m_state.parasite_cpu.opcode;
-                    e->s = m_state.parasite_cpu.s.b.l;
-                    //e->pc=m_state.parasite_cpu.pc.w;//...for next instruction
-                    e->ad = m_state.parasite_cpu.ad.w;
-                    e->ia = m_state.parasite_cpu.ia.w;
-                }
+                    if ((e = m_trace_parasite_current_instruction) != nullptr) {
+                        e->a = m_state.parasite_cpu.a;
+                        e->x = m_state.parasite_cpu.x;
+                        e->y = m_state.parasite_cpu.y;
+                        e->p = m_state.parasite_cpu.p.value;
+                        e->data = m_state.parasite_cpu.data;
+                        e->opcode = m_state.parasite_cpu.opcode;
+                        e->s = m_state.parasite_cpu.s.b.l;
+                        //e->pc=m_state.parasite_cpu.pc.w;//...for next instruction
+                        e->ad = m_state.parasite_cpu.ad.w;
+                        e->ia = m_state.parasite_cpu.ia.w;
+                    }
 
-                e = m_trace_parasite_current_instruction = (InstructionTraceEvent *)m_trace->AllocEvent(INSTRUCTION_EVENT, TraceEventSource_Parasite);
+                    e = m_trace_parasite_current_instruction = (InstructionTraceEvent *)m_trace->AllocEvent(INSTRUCTION_EVENT, TraceEventSource_Parasite);
 
-                if (e) {
-                    e->pc = m_state.parasite_cpu.abus.w;
+                    if (e) {
+                        e->pc = m_state.parasite_cpu.abus.w;
+                    }
                 }
             }
 #endif
@@ -420,30 +422,32 @@ parasite_update_done:
             if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_Trace) != 0) {
 #if BBCMICRO_TRACE
                 if (M6502_IsAboutToExecute(&m_state.cpu)) {
-                    InstructionTraceEvent *e;
+                    if (m_trace) {
+                        InstructionTraceEvent *e;
 
-                    // Fill out results of last instruction.
-                    if ((e = m_trace_current_instruction) != NULL) {
-                        e->a = m_state.cpu.a;
-                        e->x = m_state.cpu.x;
-                        e->y = m_state.cpu.y;
-                        e->p = m_state.cpu.p.value;
-                        e->data = m_state.cpu.data;
-                        e->opcode = m_state.cpu.opcode;
-                        e->s = m_state.cpu.s.b.l;
-                        //e->pc=m_state.cpu.pc.w;//...for next instruction
-                        e->ad = m_state.cpu.ad.w;
-                        e->ia = m_state.cpu.ia.w;
-                    }
+                        // Fill out results of last instruction.
+                        if ((e = m_trace_current_instruction) != NULL) {
+                            e->a = m_state.cpu.a;
+                            e->x = m_state.cpu.x;
+                            e->y = m_state.cpu.y;
+                            e->p = m_state.cpu.p.value;
+                            e->data = m_state.cpu.data;
+                            e->opcode = m_state.cpu.opcode;
+                            e->s = m_state.cpu.s.b.l;
+                            //e->pc=m_state.cpu.pc.w;//...for next instruction
+                            e->ad = m_state.cpu.ad.w;
+                            e->ia = m_state.cpu.ia.w;
+                        }
 
-                    // Allocate event for next instruction.
-                    e = m_trace_current_instruction = (InstructionTraceEvent *)m_trace->AllocEvent(INSTRUCTION_EVENT, TraceEventSource_Host);
+                        // Allocate event for next instruction.
+                        e = m_trace_current_instruction = (InstructionTraceEvent *)m_trace->AllocEvent(INSTRUCTION_EVENT, TraceEventSource_Host);
 
-                    if (e) {
-                        e->pc = m_state.cpu.abus.w;
+                        if (e) {
+                            e->pc = m_state.cpu.abus.w;
 
-                        // doesn't matter if the last instruction ends up
-                        // bogus... there are no invalid values.
+                            // doesn't matter if the last instruction ends up
+                            // bogus... there are no invalid values.
+                        }
                     }
                 }
 #endif
@@ -699,13 +703,13 @@ parasite_update_done:
                     m_state.addressable_latch.value |= mask;
                 }
 
-                if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_Trace) != 0) {
 #if BBCMICRO_TRACE
+                if (m_trace) {
                     if (m_trace_flags & BBCMicroTraceFlag_SystemVIA) {
                         TracePortB(pb);
                     }
-#endif
                 }
+#endif
 
                 if constexpr (UPDATE_FLAGS & BBCMicroUpdateFlag_HasRTC) {
                     if (pb.m128_bits.rtc_chip_select &&
