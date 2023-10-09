@@ -19,7 +19,7 @@
 
 // If true, assume that try_lock is effectively free when it succeeds.
 // Potentially save on some system calls for every lock.
-#define MUTEX_ASSUME_UNCONTENDED_LOCKS_ARE_FREE 0
+#define MUTEX_ASSUME_UNCONTENDED_LOCKS_ARE_FREE 1
 
 #include <atomic>
 #include <vector>
