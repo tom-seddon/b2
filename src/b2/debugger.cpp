@@ -1109,7 +1109,7 @@ class MemoryDebugWindow : public DebugUI,
                         end = std::min(end, 0x10000u);
 
                         std::vector<uint8_t> buffer;
-                        for (uint16_t addr = begin; addr != end; ++addr) {
+                        for (uint32_t addr = begin; addr != end; ++addr) {
                             uint8_t value;
                             if (!m_window->ReadByte(&value, nullptr, nullptr, addr, false)) {
                                 value = 0;
