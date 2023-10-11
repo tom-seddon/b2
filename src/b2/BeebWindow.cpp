@@ -111,7 +111,7 @@ static Command2 g_save_config_command = Command2(&g_beeb_window_command_table, "
 static Command2 g_toggle_prioritize_shortcuts_command = Command2(&g_beeb_window_command_table, "toggle_prioritize_shortcuts", "Prioritize command keys").WithTick();
 static Command2 g_save_screenshot_command = Command2(&g_beeb_window_command_table, "save_screenshot", "Save screenshot");
 static Command2 g_copy_screenshot_command = Command2(&g_beeb_window_command_table, "copy_screenshot", "Copy screenshot");
-#if !ENABLE_SDL_FULL_SCREEN
+#if ENABLE_SDL_FULL_SCREEN
 static Command2 g_toggle_full_screen_command = Command2(&g_beeb_window_command_table, "toggle_full_screen", "Full screen").WithTick();
 #endif
 
@@ -1225,7 +1225,7 @@ void BeebWindow::DoCommands() {
         }
     }
 
-#if !ENABLE_SDL_FULL_SCREEN
+#if ENABLE_SDL_FULL_SCREEN
     m_cst.SetTicked(g_toggle_full_screen_command, this->IsWindowFullScreen());
     if (m_cst.WasActioned(g_toggle_full_screen_command)) {
         bool is_full_screen = this->IsWindowFullScreen();
@@ -2015,7 +2015,7 @@ bool BeebWindow::DoWindowMenu() {
             }
         }
 
-#if !ENABLE_SDL_FULL_SCREEN
+#if ENABLE_SDL_FULL_SCREEN
         m_cst.DoMenuItem(g_toggle_full_screen_command); //.DoMenuItemUI("toggle_full_screen");
 #endif
 
@@ -2496,7 +2496,7 @@ bool BeebWindow::Init() {
 
 void BeebWindow::SaveSettings() {
     m_settings.dock_config = m_imgui_stuff->SaveDockContext();
-#if !ENABLE_SDL_FULL_SCREEN
+#if ENABLE_SDL_FULL_SCREEN
     m_settings.full_screen = this->IsWindowFullScreen();
 #endif
 
@@ -2679,7 +2679,7 @@ bool BeebWindow::InitInternal() {
 
 #endif
 
-#if !ENABLE_SDL_FULL_SCREEN
+#if ENABLE_SDL_FULL_SCREEN
     if (!reset_windows) {
         this->SetWindowFullScreen(m_settings.full_screen);
     }
@@ -3335,7 +3335,7 @@ SDLUniquePtr<SDL_Surface> BeebWindow::CreateScreenshot() const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-#if !ENABLE_SDL_FULL_SCREEN
+#if ENABLE_SDL_FULL_SCREEN
 bool BeebWindow::IsWindowFullScreen() const {
     uint32_t flags = SDL_GetWindowFlags(m_window);
     return !!(flags & SDL_WINDOW_FULLSCREEN);
@@ -3345,7 +3345,7 @@ bool BeebWindow::IsWindowFullScreen() const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-#if !ENABLE_SDL_FULL_SCREEN
+#if ENABLE_SDL_FULL_SCREEN
 void BeebWindow::SetWindowFullScreen(bool is_full_screen) {
     uint32_t flags;
     if (is_full_screen) {

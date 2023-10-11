@@ -1187,7 +1187,7 @@ static const char SCREENSHOT_FILTER[] = "screenshot_filter";
 static const char SCREENSHOT_CORRECT_ASPECT_RATIO[] = "screenshot_correct_aspect_ratio";
 static const char SCREENSHOT_LAST_VSYNC[] = "screenshot_last_vsync";
 static const char SWAP_JOYSTICKS_WHEN_SHARED[] = "swap_joysticks_when_shared";
-#if !ENABLE_SDL_FULL_SCREEN
+#if ENABLE_SDL_FULL_SCREEN
 static const char FULL_SCREEN[] = "full_screen";
 #endif
 
@@ -2016,7 +2016,7 @@ static bool LoadWindows(rapidjson::Value *windows, Messages *msg) {
     FindBoolMember(&BeebWindows::defaults.screenshot_filter, windows, SCREENSHOT_FILTER, nullptr);
     FindBoolMember(&BeebWindows::defaults.screenshot_correct_aspect_ratio, windows, SCREENSHOT_CORRECT_ASPECT_RATIO, nullptr);
     FindBoolMember(&BeebWindows::defaults.screenshot_last_vsync, windows, SCREENSHOT_LAST_VSYNC, nullptr);
-#if !ENABLE_SDL_FULL_SCREEN
+#if ENABLE_SDL_FULL_SCREEN
     FindBoolMember(&BeebWindows::defaults.full_screen, windows, FULL_SCREEN, nullptr);
 #endif
 
@@ -2081,7 +2081,7 @@ static void SaveWindows(JSONWriter<StringStream> *writer) {
         writer->Key(SCREENSHOT_LAST_VSYNC);
         writer->Bool(BeebWindows::defaults.screenshot_last_vsync);
 
-#if !ENABLE_SDL_FULL_SCREEN
+#if ENABLE_SDL_FULL_SCREEN
         writer->Key(FULL_SCREEN);
         writer->Bool(BeebWindows::defaults.full_screen);
 #endif

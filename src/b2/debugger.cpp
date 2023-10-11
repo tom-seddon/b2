@@ -1106,12 +1106,15 @@ class MemoryDebugWindow : public DebugUI,
                             end = begin + end_or_size;
                         }
 
+                        // (this clamp means that addr has to be the full 32
+                        // bits. But this value is the terminating value, so the
+                        // cast to uint16_t inside the loop is quite safe.)
                         end = std::min(end, 0x10000u);
 
                         std::vector<uint8_t> buffer;
                         for (uint32_t addr = begin; addr != end; ++addr) {
                             uint8_t value;
-                            if (!m_window->ReadByte(&value, nullptr, nullptr, addr, false)) {
+                            if (!m_window->ReadByte(&value, nullptr, nullptr, (uint16_t)addr, false)) {
                                 value = 0;
                             }
                             buffer.push_back(value);

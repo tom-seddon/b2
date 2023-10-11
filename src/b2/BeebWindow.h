@@ -89,7 +89,7 @@ struct BeebWindowSettings {
 
     unsigned gui_font_size = 0;
 
-#if !ENABLE_SDL_FULL_SCREEN
+#if ENABLE_SDL_FULL_SCREEN
     bool full_screen = false;
 #endif
 
@@ -493,7 +493,7 @@ class BeebWindow {
 
     SDLUniquePtr<SDL_Surface> CreateScreenshot() const;
 
-#if !ENABLE_SDL_FULL_SCREEN
+#if ENABLE_SDL_FULL_SCREEN
     bool IsWindowFullScreen() const;
     void SetWindowFullScreen(bool is_full_screen);
 #endif
