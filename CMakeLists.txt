@@ -37,6 +37,17 @@ set(CMAKE_C_FLAGS_FINAL ${CMAKE_C_FLAGS_RELWITHDEBINFO})
 set(CMAKE_EXE_LINKER_FLAGS_FINAL ${CMAKE_EXE_LINKER_FLAGS_RELWITHDEBINFO})
 set(CMAKE_SHARED_LINKER_FLAGS_FINAL ${CMAKE_SHARED_LINKER_FLAGS_RELWITHDEBINFO})
 
+# Use statically linked CRT, to reduce the chances of needing to
+# install the VC++ runtime redist. Adds <300 KB to b2.exe.
+#
+# This only needs to apply to b2.exe, but it's a pain to set this
+# seting up on a case by case basis with VC++, and easiest to just set
+# it for everything. This does noticeably increase the total size of
+# the build byproducts though :( - 3.07 GB when building absolutely
+# everything with DLL CRT, and 5.50 GB when building absolutely
+# everything with .lib CRT.
+set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+
 ##########################################################################
 ##########################################################################
 
