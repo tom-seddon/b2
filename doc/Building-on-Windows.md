@@ -2,8 +2,7 @@
 
 Prerequisites:
 
-- Visual Studio 2019
-- [cmake](https://cmake.org/) version 3.20+ on the PATH
+- Visual Studio 2019 (ensure C++ CMake tools for Windows is included)
   
 Optional, but recommended:
 
@@ -16,25 +15,13 @@ Initial build steps:
 2. Run `bin\snmake init_vs2019` to generate a solution for Visual
    Studio 2019.
    
-   You can also generate solutions for other Visual Studio versions,
-   as follows. These are supposed to work, but I only test them
-   occasionally, and I'll remove them if they become too difficult to
-   support.
-   
-   - Visual Studio 2017: `bin\snmake init_vs2017`
-   - Visual Studio 2015: `bin\snmake init_vs2015`
-
    You should get a bunch of output - there may be the odd warning,
    but there should be no obvious errors, and it should finish with an
    exit code of 0
 
 General day-to-day build steps:
 
-1. Load appropriate solution into Visual Studio:
-
-   - VS2019: `build\vs2019\b2.sln`
-   - VS2017: `build\vs2017\b2.sln`
-   - VS2015: `build\vs2015\b2.sln`
+1. Load solution into Visual Studio: `build\vs2019\b2.sln`
 
 2. Build
 
