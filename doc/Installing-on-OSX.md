@@ -9,14 +9,22 @@ If using macOS 11 (Big Sur) or later, download the
 `b2-osx-11.0-XXX.dmg` file.
 
 If using OS X 10.9 (Mavericks) or later, download the
-`b2-osx-10.9-XXX.dmg` file. (The 10.9 version does not support video
-writing, but is otherwise fully-featured.)
+`b2-osx-10.9-XXX.dmg` file. The 10.9 version does not support video
+writing, but is otherwise fully-featured.
 
 You don't need to download any of the other files; the dmg contains
 everything required.
 
 Open the dmg, drag b2 to your Applications folder, and run it from
 there.
+
+## macOS files missing from releases page?
+
+The releases are created automatically, and it can sometimes take a
+day or two for the macOS version to appear.
+
+If this happens, you can download an older version for now from the
+full list at https://github.com/tom-seddon/b2/releases.
 
 ## Keystroke Receiving warning
 
