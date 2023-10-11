@@ -554,7 +554,7 @@ ROMEditAction ConfigsUI::DoROMEditGui(const char *caption,
 
         {
             ImGuiStyleColourPusher pusher;
-            bool can_move_up = !!!(rom_edit_flags & ROMEditFlag_CanMoveUp);
+            bool can_move_up = !!(rom_edit_flags & ROMEditFlag_CanMoveUp);
             pusher.PushDisabledButtonColours(!can_move_up);
             if (ImGui::Button(ICON_FA_LONG_ARROW_ALT_UP)) {
                 if (can_move_up) {
