@@ -479,12 +479,12 @@ If a file name is provided, deduce the format from that, as if it were
 loaded from disk via the GUI. Otherwise, deduce the disc image format
 from the request content type, as follows:
 
-* `application/vnd.acorn.disc-image.ssd` - `.ssd` file
-* `application/vnd.acorn.disc-image.dsd` - `.dsd` file
-* `application/vnd.acorn.disc-image.sdd` - `.sdd` file
-* `application/vnd.acorn.disc-image.ddd` - `.ddd` file
-* `application/vnd.acorn.disc-image.adm` - `.adm` file
-* `application/vnd.acorn.disc-image.adl` - `.adl` file
+* `application/x.acorn.disc-image.ssd` - `.ssd` file
+* `application/x.acorn.disc-image.dsd` - `.dsd` file
+* `application/x.acorn.disc-image.sdd` - `.sdd` file
+* `application/x.acorn.disc-image.ddd` - `.ddd` file
+* `application/x.acorn.disc-image.adm` - `.adm` file
+* `application/x.acorn.disc-image.adl` - `.adl` file
 
 In either case, read the disc image data from the request body.
 

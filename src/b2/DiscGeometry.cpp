@@ -176,14 +176,14 @@ static bool FindADFSDiscGeometry(DiscGeometry *geometry, const char *name, size_
 }
 
 static const DiscImageType DISC_IMAGE_TYPES[] = {
-    {SSD_EXT, "application/vnd.acorn.disc-image.ssd", &FindSingleDensityDiscGeometry, &SSD_GEOMETRY, 1},
-    {DSD_EXT, "application/vnd.acorn.disc-image.dsd", &FindSingleDensityDiscGeometry, &DSD_GEOMETRY, 1},
-    {SDD_EXT, "application/vnd.acorn.disc-image.sdd", &FindDiscGeometryFromFileSize, SDD_GEOMETRIES, NUM_SDD_GEOMETRIES},
-    {DDD_EXT, "application/vnd.acorn.disc-image.ddd", &FindDiscGeometryFromFileSize, DDD_GEOMETRIES, NUM_DDD_GEOMETRIES},
-    {ADM_EXT, "application/vnd.acorn.disc-image.adm", &FindDiscGeometryFromFileSize, &ADM_GEOMETRY, 1},
-    {ADL_EXT, "application/vnd.acorn.disc-image.adl", &FindDiscGeometryFromFileSize, &ADL_GEOMETRY, 1},
-    {ADS_EXT, "application/vnd.acorn.disc-image.ads", &FindDiscGeometryFromFileSize, &ADS_GEOMETRY, 1},
-    {ADF_EXT, "application/vnd.acorn.disc-image.adf", &FindADFSDiscGeometry, nullptr, 0},
+    {SSD_EXT, "application/x.acorn.disc-image.ssd", &FindSingleDensityDiscGeometry, &SSD_GEOMETRY, 1},
+    {DSD_EXT, "application/x.acorn.disc-image.dsd", &FindSingleDensityDiscGeometry, &DSD_GEOMETRY, 1},
+    {SDD_EXT, "application/x.acorn.disc-image.sdd", &FindDiscGeometryFromFileSize, SDD_GEOMETRIES, NUM_SDD_GEOMETRIES},
+    {DDD_EXT, "application/x.acorn.disc-image.ddd", &FindDiscGeometryFromFileSize, DDD_GEOMETRIES, NUM_DDD_GEOMETRIES},
+    {ADM_EXT, "application/x.acorn.disc-image.adm", &FindDiscGeometryFromFileSize, &ADM_GEOMETRY, 1},
+    {ADL_EXT, "application/x.acorn.disc-image.adl", &FindDiscGeometryFromFileSize, &ADL_GEOMETRY, 1},
+    {ADS_EXT, "application/x.acorn.disc-image.ads", &FindDiscGeometryFromFileSize, &ADS_GEOMETRY, 1},
+    {ADF_EXT, "application/x.acorn.disc-image.adf", &FindADFSDiscGeometry, nullptr, 0},
     {},
 };
 
