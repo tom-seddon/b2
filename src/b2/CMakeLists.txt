@@ -335,7 +335,7 @@ target_link_libraries(b2 PRIVATE ${SDL2_LIBRARY})
 ##########################################################################
 ##########################################################################
 
-target_link_libraries(b2 PRIVATE ${LIBCURL_TARGET} ${LibUV_LIBRARIES} http-parser)
+target_link_libraries(b2 PRIVATE ${LIBCURL_TARGET} ${LibUV_LIBRARIES} llhttp_static)
 
 ##########################################################################
 ##########################################################################
@@ -443,7 +443,7 @@ add_executable(test_http
   Messages.cpp Messages.h
   )
 add_sanitizers(test_http)
-target_link_libraries(test_http PRIVATE shared_lib ${LibUV_LIBRARIES} http-parser ${LIBCURL_TARGET})
+target_link_libraries(test_http PRIVATE shared_lib ${LibUV_LIBRARIES} llhttp_static ${LIBCURL_TARGET})
 add_test(
   NAME b2/test_http
   COMMAND $<TARGET_FILE:test_http>)

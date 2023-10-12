@@ -5,6 +5,14 @@
 #include "Messages.h"
 #include <set>
 
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+LOG_EXTERN(HTTPSV);
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 class HTTPTestHandler : public HTTPHandler {
   public:
     bool ThreadHandleRequest(HTTPResponse *response, HTTPServer *server, HTTPRequest &&request) override {
@@ -12,26 +20,32 @@ class HTTPTestHandler : public HTTPHandler {
 
         std::lock_guard<Mutex> lock(m_mutex);
 
-        m_urls_requested.insert(request.url);
+        m_requests.push_back(request);
 
         *response = HTTPResponse::OK();
 
         return true;
     }
 
-    std::set<std::string> GetURLsRequested() const {
+    std::vector<HTTPRequest> GetRequests() const {
         std::lock_guard<Mutex> lock(m_mutex);
 
-        return m_urls_requested;
+        return m_requests;
     }
 
   protected:
   private:
     mutable Mutex m_mutex;
-    std::set<std::string> m_urls_requested;
+    std::vector<HTTPRequest> m_requests;
 };
 
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 static const int PORT = 0xbbcd;
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
 
 int main() {
 
@@ -39,6 +53,8 @@ int main() {
     message_list->SetPrintToStdio(true);
 
     Messages messages(message_list);
+
+    LOG(HTTPSV).enabled = true;
 
     {
         std::unique_ptr<HTTPServer> server = CreateHTTPServer();
@@ -59,10 +75,25 @@ int main() {
             int status = client->SendRequest(request, &response);
             TEST_EQ_II(status, 200);
 
-            std::set<std::string> urls_requested = handler->GetURLsRequested();
-            TEST_EQ_UU(urls_requested.size(), 1);
+            status = client->SendRequest(HTTPRequest("http://127.0.0.1:" + std::to_string(PORT) + "/test_url?key=value"), &response);
         }
+
+        std::vector<HTTPRequest> requests = handler->GetRequests();
+
+        TEST_EQ_UU(requests.size(), 2);
+
+        TEST_EQ_SS(requests[0].url_path, "/test_url");
+        TEST_TRUE(requests[0].query.empty());
+        TEST_EQ_SS(requests[0].url, "/test_url");
+
+        TEST_EQ_SS(requests[1].url_path, "/test_url");
+        TEST_EQ_UU(requests[1].query.size(), 1);
+        TEST_EQ_SS(requests[1].query[0].key, "key");
+        TEST_EQ_SS(requests[1].query[0].value, "value");
     }
 
     return 0;
 }
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////

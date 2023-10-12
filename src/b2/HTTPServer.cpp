@@ -4,8 +4,9 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#include <shared/path.h>
 #include <uv.h>
-#include <http_parser.h>
+#include <llhttp.h>
 #include <shared/mutex.h>
 //#include "misc.h"
 #include <set>
@@ -20,6 +21,13 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#ifdef _MSC_VER
+#define strcasecmp(A, B) (_stricmp((A), (B)))
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 LOG_TAGGED_DEFINE(HTTPSV, "http", "HTTPSV", &log_printer_stdout_and_debugger, false);
 
 //////////////////////////////////////////////////////////////////////////
@@ -28,6 +36,8 @@ LOG_TAGGED_DEFINE(HTTPSV, "http", "HTTPSV", &log_printer_stdout_and_debugger, fa
 static const std::string CONTENT_TYPE = "Content-Type";
 static const std::string CHARSET_PREFIX = "charset:";
 static const std::string CONTENT_LENGTH = "Content-Length";
+static const std::string HOST = "Host";
+static const std::string UNKNOWN_HOST = "unknown-host";
 const std::string HTTP_OCTET_STREAM_CONTENT_TYPE = "application/octet-stream";
 const std::string HTTP_TEXT_CONTENT_TYPE = "text/plain";
 static const std::string DEFAULT_CONTENT_TYPE = HTTP_OCTET_STREAM_CONTENT_TYPE;
@@ -37,6 +47,22 @@ const std::string HTTP_UTF8_CHARSET = "utf-8";
 const std::string EXPECT = "Expect";
 const std::string EXPECT_CONTINUE = "100-continue";
 const std::string CONTINUE_RESPONSE = "100 Continue\r\n";
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+struct CURLUDeleter {
+    void operator()(CURLU *curlu) const {
+        curl_url_cleanup(curlu);
+    }
+};
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool HTTPHeaderNameComparer::operator()(const std::string &a, const std::string &b) const {
+    return strcasecmp(a.c_str(), b.c_str()) < 0;
+}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -150,63 +176,28 @@ static void ScalarDeleteCloseCallback(uv_handle_t *handle) {
     delete (T *)handle;
 }
 
-static int GetHexCharValue(char c) {
-    if (c >= '0' && c <= '9') {
-        return c - '0';
-    } else if (c >= 'a' && c <= 'f') {
-        return c - 'a' + 10;
-    } else if (c >= 'A' && c <= 'F') {
-        return c - 'A' + 10;
-    } else {
-        return -1;
-    }
-}
+//static bool GetPercentDecodedURLPart(std::string *result, const http_parser_url &url, http_parser_url_fields field, const std::string &url_str, const char *part_name) {
+//    if (url.field_set & 1 << field) {
+//        if (!GetPercentDecoded(result, url_str, url.field_data[field].off, url.field_data[field].len)) {
+//            LOGF(HTTPSV, "invalid percent-encoded %s in URL: %s\n", part_name, url_str.c_str());
+//            return false;
+//        }
+//    }
+//
+//    return true;
+//}
 
-static bool GetPercentDecoded(std::string *result, const std::string &str, size_t offset, size_t n) {
-    ASSERT(offset + n <= str.size());
-
-    result->clear();
-    result->reserve(n);
-
-    size_t i = offset;
-    size_t end = offset + n;
-    while (i < end) {
-        if (str[i] == '%') {
-            if (i + 3 > end) {
-                return false;
-            }
-
-            int h = GetHexCharValue(str[i + 1]);
-            if (h < 0) {
-                return false;
-            }
-
-            int l = GetHexCharValue(str[i + 2]);
-            if (l < 0) {
-                return false;
-            }
-
-            result->append(1, (char)(h << 4 | l));
-            i += 3;
-        } else if (str[i] == '+') {
-            result->append(1, ' ');
-            ++i;
-        } else {
-            result->append(1, str[i]);
-            ++i;
-        }
+static bool GetPercentDecodedURLPart(std::string *result, CURLU *url, CURLUPart part, const std::string &url_str, const char *part_name) {
+    char *result_tmp;
+    int rc = curl_url_get(url, part, &result_tmp, CURLU_URLDECODE);
+    if (rc != 0) {
+        LOGF(HTTPSV, "invalid percent-encoded %s in URL: %s\n", part_name, url_str.c_str());
+        curl_free(result_tmp);
+        return false;
     }
 
-    return true;
-}
-
-static bool GetPercentDecodedURLPart(std::string *result, const http_parser_url &url, http_parser_url_fields field, const std::string &url_str, const char *part_name) {
-    if (url.field_set & 1 << field) {
-        if (!GetPercentDecoded(result, url_str, url.field_data[field].off, url.field_data[field].len)) {
-            LOGF(HTTPSV, "invalid percent-encoded %s in URL: %s\n", part_name, url_str.c_str());
-            return false;
-        }
-    }
+    result->assign(result_tmp);
+    curl_free(result_tmp);
 
     return true;
 }
@@ -453,8 +444,8 @@ class HTTPServerImpl : public HTTPServer {
         uint64_t id = 0;
         HTTPServerImpl *server = nullptr;
         uv_tcp_t tcp = {};
-        http_parser parser = {};
-        http_parser_settings parser_settings = {};
+        llhttp_t parser = {};
+        llhttp_settings_t parser_settings = {};
 
         std::string key;
         std::string *value = nullptr;
@@ -493,6 +484,7 @@ class HTTPServerImpl : public HTTPServer {
     SharedData m_sd;
     ThreadData m_td;
     std::thread m_thread;
+    const uint64_t m_create_tick_count = GetCurrentTickCount();
 
     void ThreadMain();
     void CloseConnection(Connection *conn);
@@ -503,13 +495,13 @@ class HTTPServerImpl : public HTTPServer {
 
     static void SendResponseAsyncCallback(uv_async_t *send_response_async);
     static void StopAsyncCallback(uv_async_t *stop_async);
-    static int HandleMessageBegin(http_parser *parser);
-    static int HandleURL(http_parser *parser, const char *at, size_t length);
-    static int HandleHeaderField(http_parser *parser, const char *at, size_t length);
-    static int HandleHeaderValue(http_parser *parser, const char *at, size_t length);
-    static int HandleHeadersComplete(http_parser *parser);
-    static int HandleBody(http_parser *parser, const char *at, size_t length);
-    static int HandleMessageComplete(http_parser *parser);
+    static int HandleMessageBegin(llhttp_t *parser);
+    static int HandleURL(llhttp_t *parser, const char *at, size_t length);
+    static int HandleHeaderField(llhttp_t *parser, const char *at, size_t length);
+    static int HandleHeaderValue(llhttp_t *parser, const char *at, size_t length);
+    static int HandleHeadersComplete(llhttp_t *parser);
+    static int HandleBody(llhttp_t *parser, const char *at, size_t length);
+    static int HandleMessageComplete(llhttp_t *parser);
     static void HandleNewConnection(uv_stream_t *server_tcp, int status);
     static void HandleReadAlloc(uv_handle_t *handle, size_t suggested_size, uv_buf_t *buf);
     static void HandleRead(uv_stream_t *stream, ssize_t num_read, const uv_buf_t *buf);
@@ -821,7 +813,7 @@ void HTTPServerImpl::StopAsyncCallback(uv_async_t *stop_async) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-int HTTPServerImpl::HandleMessageBegin(http_parser *parser) {
+int HTTPServerImpl::HandleMessageBegin(llhttp_t *parser) {
     (void)parser;
     //auto conn=(HTTPConnection *)parser->data;
 
@@ -833,7 +825,7 @@ int HTTPServerImpl::HandleMessageBegin(http_parser *parser) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-int HTTPServerImpl::HandleURL(http_parser *parser, const char *at, size_t length) {
+int HTTPServerImpl::HandleURL(llhttp_t *parser, const char *at, size_t length) {
     auto conn = (Connection *)parser->data;
 
     conn->request.url.append(at, length);
@@ -844,7 +836,7 @@ int HTTPServerImpl::HandleURL(http_parser *parser, const char *at, size_t length
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-int HTTPServerImpl::HandleHeaderField(http_parser *parser, const char *at, size_t length) {
+int HTTPServerImpl::HandleHeaderField(llhttp_t *parser, const char *at, size_t length) {
     auto conn = (Connection *)parser->data;
 
     conn->value = nullptr;
@@ -856,7 +848,7 @@ int HTTPServerImpl::HandleHeaderField(http_parser *parser, const char *at, size_
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-int HTTPServerImpl::HandleHeaderValue(http_parser *parser, const char *at, size_t length) {
+int HTTPServerImpl::HandleHeaderValue(llhttp_t *parser, const char *at, size_t length) {
     auto conn = (Connection *)parser->data;
 
     if (!conn->value) {
@@ -877,63 +869,76 @@ int HTTPServerImpl::HandleHeaderValue(http_parser *parser, const char *at, size_
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-int HTTPServerImpl::HandleHeadersComplete(http_parser *parser) {
+int HTTPServerImpl::HandleHeadersComplete(llhttp_t *parser) {
     auto conn = (Connection *)parser->data;
+    int rc;
 
     LOGF(HTTPSV, "%s: start.\n", __func__);
 
-    conn->request.method = http_method_str((http_method)parser->method);
+    // libcurl request a client-style URL, so form something that's enough like
+    // that to keep it happy.
+
+    std::string url_str;
+    if (!conn->request.url.empty()) {
+        url_str = "x" + conn->request.url;
+    }
+
+    conn->request.method = llhttp_method_name((llhttp_method_t)parser->method);
     //conn->status=200;
     //conn->status=parser->status_code;
 
-    http_parser_url url = {};
-    // 0 = not connect
-    if (http_parser_parse_url(conn->request.url.data(), conn->request.url.size(), 0, &url) != 0) {
+    std::unique_ptr<CURLU, CURLUDeleter> url(curl_url());
+
+    rc = curl_url_set(url.get(), CURLUPART_URL, url_str.c_str(), CURLU_DEFAULT_SCHEME);
+    if (rc != 0) {
         LOGF(HTTPSV, "invalid URL: %s\n", conn->request.url.c_str());
         return -1;
     }
 
-    if (!GetPercentDecodedURLPart(&conn->request.url_path, url, UF_PATH, conn->request.url, "path")) {
+    if (!GetPercentDecodedURLPart(&conn->request.url_path, url.get(), CURLUPART_PATH, conn->request.url, "path")) {
         return -1;
     }
 
-    if (url.field_set & 1 << UF_QUERY) {
-        size_t begin = url.field_data[UF_QUERY].off;
-        size_t end = begin + url.field_data[UF_QUERY].len;
+    //if (!GetPercentDecodedURLPart(&conn->request.url_path, url, UF_PATH, conn->request.url, "path")) {
+    //    return -1;
+    //}
 
-        size_t a = begin;
-        while (a < end) {
-            HTTPQueryParameter kv;
+    char *query;
+    if (curl_url_get(url.get(), CURLUPART_QUERY, &query, CURLU_URLDECODE) == 0) {
+        const char *begin = query;
+        while (*begin != 0) {
 
-            size_t b = a;
-            while (b < end && conn->request.url[b] != '=') {
-                ++b;
+            const char *k_begin = begin;
+            const char *k_end = begin;
+            while (*k_end != 0 && *k_end != '=') {
+                ++k_end;
             }
 
-            if (b >= end) {
+            if (*k_end == 0) {
                 LOGF(HTTPSV, "invalid URL query (missing '='): %s\n", conn->request.url.c_str());
                 return -1;
             }
 
-            if (!GetPercentDecoded(&kv.key, conn->request.url, a, b - a)) {
-                LOGF(HTTPSV, "invalid URL query (bad key percent encoding): %s\n", conn->request.url.c_str());
-                return -1;
+            const char *v_begin = k_end + 1;
+            const char *v_end = v_begin;
+            while (*v_end != 0 && *v_end != '&') {
+                ++v_end;
             }
 
-            a = b + 1;
-            while (b < end && conn->request.url[b] != '&') {
-                ++b;
-            }
-
-            if (!GetPercentDecoded(&kv.value, conn->request.url, a, b - a)) {
-                LOGF(HTTPSV, "invalid URL query (bad value percent encoding): %s\n", conn->request.url.c_str());
-                return -1;
-            }
+            HTTPQueryParameter kv;
+            kv.key.assign(k_begin, k_end);
+            kv.value.assign(v_begin, v_end);
 
             conn->request.query.push_back(std::move(kv));
 
-            a = b + 1;
+            begin = v_end;
+            if (*begin != 0) {
+                ++begin;
+            }
         }
+
+        curl_free(query);
+        query = nullptr;
     }
 
     if (const std::string *content_type = conn->request.GetHeaderValue(CONTENT_TYPE)) {
@@ -976,7 +981,7 @@ int HTTPServerImpl::HandleHeadersComplete(http_parser *parser) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-int HTTPServerImpl::HandleBody(http_parser *parser, const char *at, size_t length) {
+int HTTPServerImpl::HandleBody(llhttp_t *parser, const char *at, size_t length) {
     auto conn = (Connection *)parser->data;
 
     LOGF(HTTPSV, "%s: start.\n", __func__);
@@ -991,12 +996,12 @@ int HTTPServerImpl::HandleBody(http_parser *parser, const char *at, size_t lengt
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-int HTTPServerImpl::HandleMessageComplete(http_parser *parser) {
+int HTTPServerImpl::HandleMessageComplete(llhttp_t *parser) {
     auto conn = (Connection *)parser->data;
 
     LOGF(HTTPSV, "%s: start.\n", __func__);
 
-    conn->keep_alive = !!http_should_keep_alive(parser);
+    conn->keep_alive = !!llhttp_should_keep_alive(parser);
 
     if (!conn->server->StopReading(conn)) {
         return -1;
@@ -1083,7 +1088,7 @@ void HTTPServerImpl::HandleNewConnection(uv_stream_t *server_tcp, int status) {
     auto server = (HTTPServerImpl *)server_tcp->data;
     int rc;
 
-    LOGF(HTTPSV, "%s: start: (ticks=%" PRIu64 ")\n", __func__, GetCurrentTickCount());
+    LOGF(HTTPSV, "%s: start: (ticks=+%" PRIu64 ")\n", __func__, GetCurrentTickCount() - server->m_create_tick_count);
 
     if (status != 0) {
         PrintLibUVError(&LOG(HTTPSV), status, "connection callback");
@@ -1093,6 +1098,8 @@ void HTTPServerImpl::HandleNewConnection(uv_stream_t *server_tcp, int status) {
     auto conn = new Connection;
 
     conn->id = server->m_td.next_connection_id++;
+
+    llhttp_settings_init(&conn->parser_settings);
     conn->parser_settings.on_url = &HandleURL;
     conn->parser_settings.on_header_field = &HandleHeaderField;
     conn->parser_settings.on_header_value = &HandleHeaderValue;
@@ -1101,7 +1108,7 @@ void HTTPServerImpl::HandleNewConnection(uv_stream_t *server_tcp, int status) {
     conn->parser_settings.on_message_complete = &HandleMessageComplete;
     conn->parser_settings.on_message_begin = &HandleMessageBegin;
 
-    http_parser_init(&conn->parser, HTTP_REQUEST);
+    llhttp_init(&conn->parser, HTTP_REQUEST, &conn->parser_settings);
     conn->parser.data = conn;
 
     rc = uv_tcp_init(server_tcp->loop, &conn->tcp);
@@ -1135,7 +1142,7 @@ void HTTPServerImpl::HandleReadAlloc(uv_handle_t *handle, size_t suggested_size,
     auto conn = (Connection *)handle->data;
     (void)suggested_size;
 
-    LOGF(HTTPSV, "%s: start: (ticks=%" PRIu64 ")\n", __func__, GetCurrentTickCount());
+    LOGF(HTTPSV, "%s: start: (ticks=+%" PRIu64 ")\n", __func__, GetCurrentTickCount() - conn->server->m_create_tick_count);
 
     ASSERT(handle == (uv_handle_t *)&conn->tcp);
     ASSERT(conn->num_read < sizeof conn->read_buf);
@@ -1152,7 +1159,7 @@ void HTTPServerImpl::HandleRead(uv_stream_t *stream, ssize_t num_read, const uv_
     auto conn = (Connection *)stream->data;
     ASSERT(stream == (uv_stream_t *)&conn->tcp);
 
-    LOGF(HTTPSV, "%s: start: num_read=%zd (ticks=%" PRIu64 ")\n", __func__, num_read, GetCurrentTickCount());
+    LOGF(HTTPSV, "%s: start: num_read=%zd (ticks=+%" PRIu64 ")\n", __func__, num_read, GetCurrentTickCount() - conn->server->m_create_tick_count);
 
     if (num_read == UV_EOF) {
         conn->server->CloseConnection(conn);
@@ -1165,22 +1172,14 @@ void HTTPServerImpl::HandleRead(uv_stream_t *stream, ssize_t num_read, const uv_
         ASSERT((size_t)num_read <= sizeof conn->read_buf);
         size_t total_num_read = conn->num_read + (size_t)num_read;
         ASSERT(total_num_read <= sizeof conn->read_buf);
-        size_t num_consumed = http_parser_execute(&conn->parser, &conn->parser_settings, conn->read_buf, total_num_read);
-        if (num_consumed == 0) {
-            if (conn->parser.http_errno == 0) {
-                // Is this even possible?
-                conn->parser.http_errno = HPE_UNKNOWN;
-            }
-        }
+        llhttp_errno execute_err = llhttp_execute(&conn->parser, conn->read_buf, total_num_read);
 
-        if (conn->parser.http_errno != 0) {
-            LOGF(HTTPSV, "HTTP error: %s\n", http_errno_description((http_errno)conn->parser.http_errno));
+        if (execute_err != HPE_OK) {
+            LOGF(HTTPSV, "Parse error: %s %s\n", llhttp_errno_name(execute_err), conn->parser.reason);
             conn->server->SendResponse(conn, conn->request.response_data.dump, CreateErrorResponse(conn->request, "400 Bad Request"), false);
-            //CloseConnection(conn);
         } else {
-            ASSERT(num_consumed <= total_num_read);
-            memmove(conn->read_buf, conn->read_buf + num_consumed, total_num_read - num_consumed);
-            conn->num_read = total_num_read - num_consumed;
+            //memmove(conn->read_buf, conn->read_buf + num_consumed, total_num_read - num_consumed);
+            //conn->num_read = total_num_read - num_consumed;
         }
     }
 
@@ -1220,7 +1219,7 @@ void HTTPServerImpl::HandleResponseWritten(uv_write_t *req, int status) {
     if (conn->interim_response) {
         conn->server->StartReading(conn);
     } else {
-        if (conn->keep_alive && conn->parser.http_errno == 0) {
+        if (conn->keep_alive && llhttp_get_errno(&conn->parser) == 0) {
             conn->server->ResetRequest(conn);
             conn->server->StartReading(conn);
         } else {

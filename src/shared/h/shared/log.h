@@ -32,7 +32,7 @@ class LogPrinter {
 
     void SetMutexName(std::string name);
 
-  protected:
+  protected:    
   private:
     Mutex m_mutex;
 };

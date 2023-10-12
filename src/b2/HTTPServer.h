@@ -47,6 +47,10 @@ struct HTTPResponseData {
     bool dump = false;
 };
 
+struct HTTPHeaderNameComparer {
+    bool operator()(const std::string &a, const std::string &b) const;
+};
+
 // Client ignores response_data.
 //
 // Client ignores url_path, which must be empty. url is the URL to use.
@@ -58,7 +62,7 @@ struct HTTPResponseData {
 class HTTPRequest {
   public:
     HTTPResponseData response_data;
-    std::map<std::string, std::string> headers;
+    std::map<std::string, std::string, HTTPHeaderNameComparer> headers;
     std::string url;
     std::string url_path;
     std::vector<HTTPQueryParameter> query;
