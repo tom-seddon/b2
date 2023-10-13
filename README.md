@@ -75,4 +75,6 @@ Licence: GPL v3.
 
 -----
 
-[Build Status: ![status](https://ci.appveyor.com/api/projects/status/3sdnt3mh1r61h74y?svg=true)](https://ci.appveyor.com/project/tom-seddon/b2)
+[Build status: ![status](https://ci.appveyor.com/api/projects/status/3sdnt3mh1r61h74y/branch/master?svg=true)](https://ci.appveyor.com/project/tom-seddon/b2/branch/master)
+
+[Pre-release build status: ![status](https://ci.appveyor.com/api/projects/status/3sdnt3mh1r61h74y/branch/wip/master?svg=true)](https://ci.appveyor.com/project/tom-seddon/b2/branch/wip/master)
