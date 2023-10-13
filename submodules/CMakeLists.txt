@@ -92,7 +92,15 @@ add_library(remotery_lib STATIC
 	${CMAKE_CURRENT_SOURCE_DIR}/Remotery/lib/Remotery.h
 	)
 target_include_directories(remotery_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/Remotery/lib)
-target_compile_definitions(remotery_lib PUBLIC RMT_ENABLED=1 RMT_USE_D3D11=0 RMT_USE_OPENGL=0)
+if(WIN32)
+  # got PIX on Windows.
+  target_compile_definitions(remotery_lib PUBLIC RMT_ENABLED=0)
+else()
+  # exclude from Final build.
+  target_compile_definitions(remotery_lib PUBLIC RMT_ENABLED=$<NOT:$<BOOL:$<CONFIG:Final>>>)
+endif()
+target_compile_definitions(remotery_lib PUBLIC RMT_USE_D3D11=0 RMT_USE_OPENGL=0)
+
 
 ##########################################################################
 ##########################################################################
