@@ -158,10 +158,12 @@ class MessageQueue {
         }
 
 #if MESSAGE_QUEUE_TRACK_LATENCY
-        uint64_t latency = GetCurrentTickCount() - push_ticks;
-        m_total_latency += latency;
-        m_min_latency = std::min(m_min_latency, latency);
-        m_max_latency = std::max(m_max_latency, latency);
+        if (any) {
+            uint64_t latency = GetCurrentTickCount() - push_ticks;
+            m_total_latency += latency;
+            m_min_latency = std::min(m_min_latency, latency);
+            m_max_latency = std::max(m_max_latency, latency);
+        }
 #endif
 
         return any;

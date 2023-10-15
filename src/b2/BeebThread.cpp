@@ -1797,6 +1797,8 @@ bool BeebThread::IsCopying() const {
 
 #if BBCMICRO_DEBUGGER
 const BBCMicro *BeebThread::LockBeeb(std::unique_lock<Mutex> *lock) const {
+    PROFILE_SCOPE(PROFILER_COLOUR_DARK_ORCHID, "LockBeeb");
+
     *lock = std::unique_lock<Mutex>(m_mutex);
 
     return m_thread_state->beeb;
@@ -1808,6 +1810,8 @@ const BBCMicro *BeebThread::LockBeeb(std::unique_lock<Mutex> *lock) const {
 
 #if BBCMICRO_DEBUGGER
 BBCMicro *BeebThread::LockMutableBeeb(std::unique_lock<Mutex> *lock) {
+    PROFILE_SCOPE(PROFILER_COLOUR_DARK_ORCHID, "LockMutableBeeb");
+
     *lock = std::unique_lock<Mutex>(m_mutex);
 
     return m_thread_state->beeb;
@@ -2821,7 +2825,11 @@ void BeebThread::ThreadMain(void) {
             m_mq.ConsumerWaitForMessages(&messages);
             what = "waited";
         } else {
-            PROFILE_SCOPE(PROFILER_COLOUR_ALICE_BLUE, "MQ Poll");
+            // Don't add a PROFILE_SCOPE in this case - it generates zillions of
+            // events, almost none of which are interesting, measurably
+            // increasing the time it takes for PIX to load the trace.
+
+            //PROFILE_SCOPE(PROFILER_COLOUR_ALICE_BLUE, "MQ Poll");
             m_mq.ConsumerPollForMessages(&messages);
             what = "polled";
         }
@@ -2972,9 +2980,6 @@ void BeebThread::ThreadMain(void) {
         }
 
         if (!paused && stop_cycles.n > ts.num_executed_cycles->n) {
-            PROFILE_SCOPE(PROFILER_COLOUR_BLUE, "Beeb Update");
-            rmt_ScopedCPUSample(BeebUpdate, 0);
-
             ASSERT(ts.beeb);
 
             CycleCount num_cycles = {stop_cycles.n - ts.num_executed_cycles->n};
@@ -3021,6 +3026,9 @@ void BeebThread::ThreadMain(void) {
             total_num_audio_units_produced += num_sound_units;
 
             if (num_va + num_vb > 0) {
+                PROFILE_SCOPE(PROFILER_COLOUR_BLUE, "Beeb Update");
+                rmt_ScopedCPUSample(BeebUpdate, 0);
+
                 VideoDataUnit *vunit = va;
                 VideoDataUnit *vunit_end = va + num_va;
                 bool vunits_a = true;
@@ -3053,6 +3061,8 @@ void BeebThread::ThreadMain(void) {
 
                     if (update_result & BBCMicroUpdateResultFlag_AudioUnit) {
                         lock.unlock();
+
+                        PROFILE_MARKER(PROFILER_COLOUR_MEDIUM_VIOLET_RED, "AudioUnit");
 
                         ++sunit;
 

@@ -228,8 +228,8 @@ class ScopeProfiler {
 
 template <typename... ARGS>
 static inline void ProfileMarker(
-    uint8_t r, uint8_t g, uint8_t b, const char *fmt, ARGS... args) {
-    PIXSetMarker(0xff000000 | r << 16 | g << 8 | b, fmt, args...);
+    ProfilerColour colour, const char *fmt, ARGS... args) {
+    PIXSetMarker(colour.value, fmt, args...);
 }
 
 template <typename... ARGS>
