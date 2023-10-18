@@ -199,9 +199,15 @@ static void MutexMetadataUI(const MutexMetadata *m) {
     ImGui::Spacing();
     ImGui::Text("Mutex Name: %s", m->name.c_str());
     ImGui::Text("Locks: %" PRIu64, m->num_locks);
-    ImGui::Text("Contended Locks: %" PRIu64 " (%.3f%%)", m->num_contended_locks, m->num_locks == 0 ? 0. : (double)m->num_contended_locks / m->num_locks);
-    ImGui::Text("Lock Wait Time: %.01f ms", GetSecondsFromTicks(m->total_lock_wait_ticks) * 1000.);
-    ImGui::Text("Successful Try Locks: %" PRIu64 "/%" PRIu64, m->num_successful_try_locks, m->num_try_locks.load(std::memory_order_acquire));
+    if (m->num_locks > 0) {
+        ImGui::Text("Contended Locks: %" PRIu64 " (%.3f%%)", m->num_contended_locks, m->num_locks == 0 ? 0. : (double)m->num_contended_locks / m->num_locks);
+        ImGui::Text("Lock Wait Time: %.01f ms (Min: %.01f ms; Max: %0.1f ms; Mean: %.01f ms)",
+                    GetMillisecondsFromTicks(m->total_lock_wait_ticks),
+                    GetMillisecondsFromTicks(m->min_lock_wait_ticks),
+                    GetMillisecondsFromTicks(m->max_lock_wait_ticks),
+                    GetMillisecondsFromTicks(m->total_lock_wait_ticks) / m->num_locks);
+        ImGui::Text("Successful Try Locks: %" PRIu64 "/%" PRIu64, m->num_successful_try_locks, m->num_try_locks.load(std::memory_order_acquire));
+    }
 }
 #endif
 

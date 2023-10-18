@@ -33,6 +33,8 @@ struct MutexMetadata {
     uint64_t num_locks = 0;
     uint64_t num_contended_locks = 0;
     uint64_t total_lock_wait_ticks = 0;
+    uint64_t min_lock_wait_ticks = UINT64_MAX;
+    uint64_t max_lock_wait_ticks = 0;
 
     std::atomic<uint64_t> num_try_locks{0};
     uint64_t num_successful_try_locks = 0;
@@ -61,6 +63,7 @@ class Mutex {
 #if !MUTEX_ASSUME_UNCONTENDED_LOCKS_ARE_FREE
         uint64_t lock_start_ticks = GetCurrentTickCount();
 #endif
+        uint64_t lock_wait_ticks = 0;
 
         if (!m_mutex.try_lock()) {
 #if MUTEX_ASSUME_UNCONTENDED_LOCKS_ARE_FREE
@@ -69,14 +72,24 @@ class Mutex {
             m_mutex.lock();
             ++m_meta->num_contended_locks;
 #if MUTEX_ASSUME_UNCONTENDED_LOCKS_ARE_FREE
-            m_meta->total_lock_wait_ticks += GetCurrentTickCount() - lock_start_ticks;
+            lock_wait_ticks += GetCurrentTickCount() - lock_start_ticks;
 #endif
         }
 
         ++m_meta->num_locks;
 #if !MUTEX_ASSUME_UNCONTENDED_LOCKS_ARE_FREE
-        m_meta->total_lock_wait_ticks += GetCurrentTickCount() - lock_start_ticks;
+        lock_wait_ticks += GetCurrentTickCount() - lock_start_ticks;
 #endif
+
+        m_meta->total_lock_wait_ticks += lock_wait_ticks;
+
+        if (lock_wait_ticks < m_meta->min_lock_wait_ticks) {
+            m_meta->min_lock_wait_ticks = lock_wait_ticks;
+        }
+
+        if (lock_wait_ticks > m_meta->max_lock_wait_ticks) {
+            m_meta->max_lock_wait_ticks = lock_wait_ticks;
+        }
     }
 
     bool try_lock() {
