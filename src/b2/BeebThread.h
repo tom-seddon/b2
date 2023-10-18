@@ -988,7 +988,6 @@ class BeebThread {
     // Get info about the previous N audio callbacks.
     std::vector<AudioCallbackRecord> GetAudioCallbackRecords() const;
 
-    //
     void GetTimelineState(BeebThreadTimelineState *timeline_state) const;
 
     // Got total number of events on the timeline.
@@ -1062,8 +1061,12 @@ class BeebThread {
     std::atomic<bool> m_is_printer_enabled{false};
     std::atomic<size_t> m_printer_data_size_bytes{false};
 
-    // Controlled by m_mutex.
+    // Lock m_mutex first, if locking both. (The public API makes this hard to
+    // get wrong.)
+    mutable Mutex m_timeline_state_mutex;
     BeebThreadTimelineState m_timeline_state;
+
+    // Controlled by m_mutex.
     std::vector<TimelineBeebStateEvent> m_timeline_beeb_state_events_copy;
     std::string m_config_name;
 
