@@ -1555,8 +1555,16 @@ bool BeebThread::TimingMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
                                               ThreadState *ts) {
     (void)completion_fun, (void)beeb_thread;
 
-    //uint64_t old=ts->next_stop_2MHz_cycles;
-    ts->next_stop_cycles.n = m_max_sound_units << LSHIFT_SOUND_CLOCK_TO_CYCLE_COUNT;
+    // Quantize stop point to prevous 2 MHz cycle count, so that any error means
+    // the CPU runs ahead of the stop point. The message handling counts system
+    // cycles, and the emulation loop counts video cycles, and they aren't the
+    // same. Don't let the CPU stop behind the stop point when unnecessary,
+    // because the message handling interprets that as the emulation missing its
+    // speed target, and the loop turns into CPU-pinning polling.
+    //
+    // (This isn't quite the wrong fix, but, really, the emulation loop should
+    // just run the correct number of system cycles...)
+    ts->next_stop_cycles.n = (m_max_sound_units << LSHIFT_SOUND_CLOCK_TO_CYCLE_COUNT) - ((1 << LSHIFT_2MHZ_TO_CYCLE_COUNT) - 1);
 
     // The new next stop can be sooner than the old next stop when the speed
     // limit is being reduced.
@@ -3010,7 +3018,6 @@ void BeebThread::ThreadMain(void) {
                 num_cycles.n = RUN_CYCLES.n;
             }
 
-            // One day I'll clear up the units mismatch...
             VideoDataUnit *va, *vb;
             size_t num_va, num_vb;
             size_t num_video_units = (size_t)(num_cycles.n >> RSHIFT_CYCLE_COUNT_TO_2MHZ);
@@ -3083,8 +3090,6 @@ void BeebThread::ThreadMain(void) {
                     }
 
                     if (update_result & BBCMicroUpdateResultFlag_AudioUnit) {
-                        lock.unlock();
-
                         PROFILE_MARKER(PROFILER_COLOUR_MEDIUM_VIOLET_RED, "AudioUnit");
 
                         ++sunit;
@@ -3100,8 +3105,6 @@ void BeebThread::ThreadMain(void) {
                                 break;
                             }
                         }
-
-                        lock.lock();
                     }
                 }
 
