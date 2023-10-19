@@ -541,6 +541,7 @@ class BBCMicro : private WD1770Handler,
 
     struct State {
         const BBCMicroType *const type = nullptr;
+        const uint32_t init_flags = 0;
 
         // 6845
         CRTC crtc;
@@ -681,7 +682,6 @@ class BBCMicro : private WD1770Handler,
     const BBCMicroParasiteType m_parasite_type = BBCMicroParasiteType_None;
     std::shared_ptr<DiscImage> m_disc_images[NUM_DRIVES];
     bool m_is_drive_write_protected[NUM_DRIVES] = {};
-    const uint32_t m_init_flags = 0;
     //const bool m_video_nula;
     //const bool m_ext_mem;
 

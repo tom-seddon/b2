@@ -128,10 +128,11 @@ const uint16_t BBCMicro::SCREEN_WRAP_ADJUSTMENTS[] = {
 BBCMicro::State::State(const BBCMicroType *type_,
                        BBCMicroParasiteType parasite_type,
                        const std::vector<uint8_t> &nvram_contents,
-                       uint32_t init_flags,
+                       uint32_t init_flags_,
                        const tm *rtc_time,
                        CycleCount initial_cycle_count)
     : type(type_)
+    , init_flags(init_flags_)
     , cycle_count(initial_cycle_count) {
     M6502_Init(&this->cpu, this->type->m6502_config);
     this->ram_buffer.resize(this->type->ram_buffer_size);
@@ -155,7 +156,7 @@ BBCMicro::State::State(const BBCMicroType *type_,
         // sort this out, if it needs to change.
     }
 
-    this->sn76489.Reset(!!(init_flags & BBCMicroInitFlag_PowerOnTone));
+    this->sn76489.Reset(!!(this->init_flags & BBCMicroInitFlag_PowerOnTone));
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -177,7 +178,6 @@ BBCMicro::BBCMicro(const BBCMicroType *type,
               initial_cycle_count)
     , m_disc_interface(def ? def->create_fun() : nullptr)
     , m_parasite_type(parasite_type)
-    , m_init_flags(init_flags)
     , m_beeblink_handler(beeblink_handler) {
     this->InitStuff();
 }
@@ -188,8 +188,7 @@ BBCMicro::BBCMicro(const BBCMicroType *type,
 BBCMicro::BBCMicro(const BBCMicro &src)
     : m_state(src.m_state)
     , m_disc_interface(src.m_disc_interface ? src.m_disc_interface->Clone() : nullptr)
-    , m_parasite_type(src.m_parasite_type)
-    , m_init_flags(src.m_init_flags) {
+    , m_parasite_type(src.m_parasite_type) {
     ASSERT(src.GetCloneImpediments() == 0);
 
     for (int i = 0; i < NUM_DRIVES; ++i) {
@@ -1240,7 +1239,7 @@ const CRTC *BBCMicro::DebugGetCRTC() const {
 #if BBCMICRO_DEBUGGER
 
 const ExtMem *BBCMicro::DebugGetExtMem() const {
-    if (m_init_flags & BBCMicroInitFlag_ExtMem) {
+    if (m_state.init_flags & BBCMicroInitFlag_ExtMem) {
         return &m_state.ext_mem;
     } else {
         return nullptr;
@@ -2133,7 +2132,7 @@ void BBCMicro::InitStuff() {
         this->SetMMIOFns(i, nullptr, nullptr, nullptr);
     }
 
-    if (m_init_flags & BBCMicroInitFlag_ExtMem) {
+    if (m_state.init_flags & BBCMicroInitFlag_ExtMem) {
         m_state.ext_mem.AllocateBuffer();
 
         this->SetMMIOFns(0xfc00, nullptr, &ExtMem::WriteAddressL, &m_state.ext_mem);
@@ -2159,13 +2158,13 @@ void BBCMicro::InitStuff() {
     }
 
     // I/O: Video ULA
-    m_state.video_ula.nula = !!(m_init_flags & BBCMicroInitFlag_VideoNuLA);
+    m_state.video_ula.nula = !!(m_state.init_flags & BBCMicroInitFlag_VideoNuLA);
     for (int i = 0; i < 2; ++i) {
         this->SetMMIOFns((uint16_t)(0xfe20 + i * 2), nullptr, &VideoULA::WriteControlRegister, &m_state.video_ula);
         this->SetMMIOFns((uint16_t)(0xfe21 + i * 2), nullptr, &VideoULA::WritePalette, &m_state.video_ula);
     }
 
-    if (m_init_flags & BBCMicroInitFlag_VideoNuLA) {
+    if (m_state.init_flags & BBCMicroInitFlag_VideoNuLA) {
         this->SetMMIOFns(0xfe22, nullptr, &VideoULA::WriteNuLAControlRegister, &m_state.video_ula);
         this->SetMMIOFns(0xfe23, nullptr, &VideoULA::WriteNuLAPalette, &m_state.video_ula);
     }
