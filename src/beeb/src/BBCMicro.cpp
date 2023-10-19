@@ -125,17 +125,18 @@ const uint16_t BBCMicro::SCREEN_WRAP_ADJUSTMENTS[] = {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-BBCMicro::State::State(const BBCMicroType *type,
+BBCMicro::State::State(const BBCMicroType *type_,
                        BBCMicroParasiteType parasite_type,
                        const std::vector<uint8_t> &nvram_contents,
                        uint32_t init_flags,
                        const tm *rtc_time,
                        CycleCount initial_cycle_count)
-    : cycle_count(initial_cycle_count) {
-    M6502_Init(&this->cpu, type->m6502_config);
-    this->ram_buffer.resize(type->ram_buffer_size);
+    : type(type_)
+    , cycle_count(initial_cycle_count) {
+    M6502_Init(&this->cpu, this->type->m6502_config);
+    this->ram_buffer.resize(this->type->ram_buffer_size);
 
-    if (type->flags & BBCMicroTypeFlag_HasRTC) {
+    if (this->type->flags & BBCMicroTypeFlag_HasRTC) {
         this->rtc.SetRAMContents(nvram_contents);
 
         if (rtc_time) {
@@ -174,7 +175,6 @@ BBCMicro::BBCMicro(const BBCMicroType *type,
               init_flags,
               rtc_time,
               initial_cycle_count)
-    , m_type(type)
     , m_disc_interface(def ? def->create_fun() : nullptr)
     , m_parasite_type(parasite_type)
     , m_init_flags(init_flags)
@@ -187,7 +187,6 @@ BBCMicro::BBCMicro(const BBCMicroType *type,
 
 BBCMicro::BBCMicro(const BBCMicro &src)
     : m_state(src.m_state)
-    , m_type(src.m_type)
     , m_disc_interface(src.m_disc_interface ? src.m_disc_interface->Clone() : nullptr)
     , m_parasite_type(src.m_parasite_type)
     , m_init_flags(src.m_init_flags) {
@@ -288,11 +287,11 @@ void BBCMicro::UpdatePaging() {
     MemoryBigPageTables tables;
     bool io;
     bool crt_shadow;
-    (*m_type->get_mem_big_page_tables_fn)(&tables,
-                                          &io,
-                                          &crt_shadow,
-                                          m_state.romsel,
-                                          m_state.acccon);
+    (*m_state.type->get_mem_big_page_tables_fn)(&tables,
+                                                &io,
+                                                &crt_shadow,
+                                                m_state.romsel,
+                                                m_state.acccon);
 
     for (size_t i = 0; i < 2; ++i) {
         MemoryBigPages *mbp = &m_mem_big_pages[i];
@@ -342,7 +341,7 @@ void BBCMicro::UpdatePaging() {
         break;
 
     case BBCMicroParasiteType_External3MHz6502:
-        if (m_type->type_id == BBCMicroTypeID_Master) {
+        if (m_state.type->type_id == BBCMicroTypeID_Master) {
             parasite_accessible = !m_state.acccon.m128_bits.itu;
         } else {
             parasite_accessible = true;
@@ -350,7 +349,7 @@ void BBCMicro::UpdatePaging() {
         break;
 
     case BBCMicroParasiteType_MasterTurbo:
-        if (m_type->type_id == BBCMicroTypeID_Master) {
+        if (m_state.type->type_id == BBCMicroTypeID_Master) {
             parasite_accessible = m_state.acccon.m128_bits.itu;
         } else {
             parasite_accessible = true;
@@ -462,7 +461,7 @@ void BBCMicro::InitPaging() {
             bp->w = g_unmapped_writes;
         }
 
-        bp->metadata = &m_type->big_pages_metadata[i];
+        bp->metadata = &m_state.type->big_pages_metadata[i];
         bp->index = i;
     }
 
@@ -521,7 +520,7 @@ void BBCMicro::TracePortB(SystemVIAPB pb) {
 
     log.f("PORTB - PB = $%02X (%%%s): ", pb.value, BINARY_BYTE_STRINGS[pb.value]);
 
-    bool has_rtc = !!(m_type->flags & BBCMicroTypeFlag_HasRTC);
+    bool has_rtc = !!(m_state.type->flags & BBCMicroTypeFlag_HasRTC);
 
     if (has_rtc) {
         log.f("RTC AS=%u; RTC CS=%u; ", pb.m128_bits.rtc_address_strobe, pb.m128_bits.rtc_chip_select);
@@ -674,7 +673,7 @@ void BBCMicro::WriteACCCON(void *m_, M6502Word a, uint8_t value) {
 //////////////////////////////////////////////////////////////////////////
 
 const BBCMicroType *BBCMicro::GetType() const {
-    return m_type;
+    return m_state.type;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -801,7 +800,7 @@ void BBCMicro::SetJoystickButtonState(uint8_t index, bool new_state) {
 //////////////////////////////////////////////////////////////////////////
 
 bool BBCMicro::HasNumericKeypad() const {
-    return !!(m_type->flags & BBCMicroTypeFlag_HasNumericKeypad);
+    return !!(m_state.type->flags & BBCMicroTypeFlag_HasNumericKeypad);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -940,7 +939,7 @@ uint32_t BBCMicro::GetLEDs() {
 //////////////////////////////////////////////////////////////////////////
 
 std::vector<uint8_t> BBCMicro::GetNVRAM() const {
-    if (m_type->flags & BBCMicroTypeFlag_HasRTC) {
+    if (m_state.type->flags & BBCMicroTypeFlag_HasRTC) {
         return m_state.rtc.GetRAMContents();
     } else {
         return std::vector<uint8_t>();
@@ -1010,7 +1009,7 @@ void BBCMicro::StartTrace(uint32_t trace_flags, size_t max_num_bytes) {
     }
 
     this->SetTrace(std::make_shared<Trace>(max_num_bytes,
-                                           m_type,
+                                           m_state.type,
                                            m_state.romsel,
                                            m_state.acccon,
                                            m_parasite_type,
@@ -1300,7 +1299,7 @@ const SN76489 *BBCMicro::DebugGetSN76489() const {
 
 #if BBCMICRO_DEBUGGER
 const MC146818 *BBCMicro::DebugGetRTC() const {
-    if (m_type->flags & BBCMicroTypeFlag_HasRTC) {
+    if (m_state.type->flags & BBCMicroTypeFlag_HasRTC) {
         return &m_state.rtc;
     } else {
         return nullptr;
@@ -1374,11 +1373,11 @@ const BBCMicro::BigPage *BBCMicro::DebugGetBigPageForAddress(M6502Word addr,
     } else {
         ROMSEL romsel = m_state.romsel;
         ACCCON acccon = m_state.acccon;
-        (*m_type->apply_dso_fn)(&romsel, &acccon, dso);
+        (*m_state.type->apply_dso_fn)(&romsel, &acccon, dso);
 
         MemoryBigPageTables tables;
         bool io, crt_shadow;
-        (*m_type->get_mem_big_page_tables_fn)(&tables, &io, &crt_shadow, romsel, acccon);
+        (*m_state.type->get_mem_big_page_tables_fn)(&tables, &io, &crt_shadow, romsel, acccon);
 
         big_page = tables.mem_big_pages[mos][addr.p.p];
     }
@@ -1400,11 +1399,11 @@ void BBCMicro::DebugGetMemBigPageIsMOSTable(uint8_t *mem_big_page_is_mos, uint32
     } else {
         ROMSEL romsel = m_state.romsel;
         ACCCON acccon = m_state.acccon;
-        (*m_type->apply_dso_fn)(&romsel, &acccon, dso);
+        (*m_state.type->apply_dso_fn)(&romsel, &acccon, dso);
 
         MemoryBigPageTables tables;
         bool io, crt_shadow;
-        (*m_type->get_mem_big_page_tables_fn)(&tables, &io, &crt_shadow, romsel, acccon);
+        (*m_state.type->get_mem_big_page_tables_fn)(&tables, &io, &crt_shadow, romsel, acccon);
 
         memcpy(mem_big_page_is_mos, tables.pc_mem_big_pages_set, 16);
     }
@@ -1768,7 +1767,7 @@ void BBCMicro::SetHardwareDebugState(const HardwareDebugState &hw) {
 
 #if BBCMICRO_DEBUGGER
 uint32_t BBCMicro::DebugGetCurrentPageOverride() const {
-    uint32_t dso = (*m_type->get_dso_fn)(m_state.romsel, m_state.acccon);
+    uint32_t dso = (*m_state.type->get_dso_fn)(m_state.romsel, m_state.acccon);
 
     if (m_parasite_type != BBCMicroParasiteType_None) {
         if (m_state.parasite_boot_mode) {
@@ -1817,7 +1816,7 @@ void BBCMicro::DebugGetDebugFlags(uint8_t *host_address_debug_flags,
 
 #if BBCMICRO_DEBUGGER
 uint32_t BBCMicro::DebugGetStateOverrideMask() const {
-    uint32_t dso_mask = m_type->dso_mask;
+    uint32_t dso_mask = m_state.type->dso_mask;
 
     if (m_parasite_type != BBCMicroParasiteType_None) {
         dso_mask |= (BBCMicroDebugStateOverride_Parasite |
@@ -1984,7 +1983,7 @@ void BBCMicro::UpdateDebugState() {
         bp->address_debug_flags = nullptr;
 
         if (m_debug) {
-            const BigPageMetadata *metadata = &m_type->big_pages_metadata[i];
+            const BigPageMetadata *metadata = &m_state.type->big_pages_metadata[i];
             if (metadata->addr != 0xffff) {
                 bp->byte_debug_flags = m_debug->big_pages_byte_debug_flags[bp->index];
 
@@ -2207,10 +2206,10 @@ void BBCMicro::InitStuff() {
 
     this->UpdateCPUDataBusFn();
 
-    m_romsel_mask = m_type->romsel_mask;
-    m_acccon_mask = m_type->acccon_mask;
+    m_romsel_mask = m_state.type->romsel_mask;
+    m_acccon_mask = m_state.type->acccon_mask;
 
-    if (m_type->flags & BBCMicroTypeFlag_CanDisplayTeletext3c00) {
+    if (m_state.type->flags & BBCMicroTypeFlag_CanDisplayTeletext3c00) {
         m_teletext_bases[0] = 0x3c00;
         m_teletext_bases[1] = 0x7c00;
     } else {
@@ -2230,16 +2229,16 @@ void BBCMicro::InitStuff() {
     }
 
     //
-    ASSERT(m_type->adc_addr != 0);
-    ASSERT(m_type->adc_count % 4 == 0);
-    for (unsigned i = 0; i < m_type->adc_count; i += 4) {
-        this->SetMMIOFns((uint16_t)(m_type->adc_addr + i + 0u), &ADC::Read0, &ADC::Write0, &m_state.adc);
-        this->SetMMIOFns((uint16_t)(m_type->adc_addr + i + 1u), &ADC::Read1, &ADC::Write1, &m_state.adc);
-        this->SetMMIOFns((uint16_t)(m_type->adc_addr + i + 2u), &ADC::Read2, &ADC::Write2, &m_state.adc);
-        this->SetMMIOFns((uint16_t)(m_type->adc_addr + i + 3u), &ADC::Read3, &ADC::Write3, &m_state.adc);
+    ASSERT(m_state.type->adc_addr != 0);
+    ASSERT(m_state.type->adc_count % 4 == 0);
+    for (unsigned i = 0; i < m_state.type->adc_count; i += 4) {
+        this->SetMMIOFns((uint16_t)(m_state.type->adc_addr + i + 0u), &ADC::Read0, &ADC::Write0, &m_state.adc);
+        this->SetMMIOFns((uint16_t)(m_state.type->adc_addr + i + 1u), &ADC::Read1, &ADC::Write1, &m_state.adc);
+        this->SetMMIOFns((uint16_t)(m_state.type->adc_addr + i + 2u), &ADC::Read2, &ADC::Write2, &m_state.adc);
+        this->SetMMIOFns((uint16_t)(m_state.type->adc_addr + i + 3u), &ADC::Read3, &ADC::Write3, &m_state.adc);
     }
 
-    //m_has_rtc = !!(m_type->flags & BBCMicroTypeFlag_HasRTC);
+    //m_has_rtc = !!(m_state.type->flags & BBCMicroTypeFlag_HasRTC);
 
     m_read_mmios_rom = std::vector<ReadMMIO>(768, {&ReadROMMMIO, this});
     m_mmios_stretch_rom = std::vector<uint8_t>(768, 0x00);
@@ -2258,7 +2257,7 @@ void BBCMicro::InitStuff() {
     for (size_t i = 0x200; i < 0x300; ++i) {
         m_mmios_stretch_hw[i] = 0x00;
     }
-    for (const BBCMicroType::SHEILACycleStretchRegion &region : m_type->sheila_cycle_stretch_regions) {
+    for (const BBCMicroType::SHEILACycleStretchRegion &region : m_state.type->sheila_cycle_stretch_regions) {
         ASSERT(region.first < region.last);
         for (uint8_t i = region.first; i <= region.last; ++i) {
             m_mmios_stretch_hw[0x200u + i] = 0xff;
@@ -2269,7 +2268,7 @@ void BBCMicro::InitStuff() {
     this->InitPaging();
 
 #if BBCMICRO_ENABLE_DISC_DRIVE_SOUND
-    this->InitDiscDriveSounds(m_type->default_disc_drive_type);
+    this->InitDiscDriveSounds(m_state.type->default_disc_drive_type);
 #endif
 
 #if BBCMICRO_TRACE
@@ -2669,7 +2668,7 @@ void BBCMicro::UpdateCPUDataBusFn() {
         update_flags |= BBCMicroUpdateFlag_HasBeebLink;
     }
 
-    if (m_type->flags & BBCMicroTypeFlag_HasRTC) {
+    if (m_state.type->flags & BBCMicroTypeFlag_HasRTC) {
         update_flags |= BBCMicroUpdateFlag_HasRTC;
     }
 

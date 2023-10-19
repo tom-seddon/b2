@@ -540,6 +540,8 @@ class BBCMicro : private WD1770Handler,
     };
 
     struct State {
+        const BBCMicroType *const type = nullptr;
+
         // 6845
         CRTC crtc;
         CRTC::Output crtc_last_output = {};
@@ -675,7 +677,6 @@ class BBCMicro : private WD1770Handler,
     //////////////////////////////////////////////////////////////////////////
     //////////////////////////////////////////////////////////////////////////
 
-    const BBCMicroType *const m_type = nullptr;
     DiscInterface *const m_disc_interface = nullptr;
     const BBCMicroParasiteType m_parasite_type = BBCMicroParasiteType_None;
     std::shared_ptr<DiscImage> m_disc_images[NUM_DRIVES];
