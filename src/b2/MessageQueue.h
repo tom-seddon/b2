@@ -38,17 +38,6 @@ class MessageQueue {
         m_cv.notify_one();
     }
 
-    template <class SeqIt>
-    void ProducerPush(SeqIt begin, SeqIt end) {
-        std::lock_guard<Mutex> lock(m_mutex);
-
-        for (auto &&it = begin; it != end; ++it) {
-            m_messages.push_back(Message(std::move(*it)));
-        }
-
-        m_cv.notify_one();
-    }
-
     // When no pushed messages are available, an indexed pushed
     // message is retrieved. Each message pushed with a particular
     // index replaces the previous message with that index, so that
