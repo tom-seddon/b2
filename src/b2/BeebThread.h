@@ -863,6 +863,11 @@ class BeebThread {
         uint64_t available = 0;
     };
 
+    struct TimingStats {
+        size_t num_mq_waits = 0;
+        size_t num_mq_polls = 0;
+    };
+
     // When planning to set up the BeebThread using a saved state,
     // DEFAULT_LOADED_CONFIG may be default-constructed. In this case hard reset
     // messages and clone window messages won't work, though.
@@ -988,6 +993,8 @@ class BeebThread {
     // Get info about the previous N audio callbacks.
     std::vector<AudioCallbackRecord> GetAudioCallbackRecords() const;
 
+    TimingStats GetTimingStats() const;
+
     void GetTimelineState(BeebThreadTimelineState *timeline_state) const;
 
     // Got total number of events on the timeline.
@@ -1060,6 +1067,8 @@ class BeebThread {
     std::atomic<bool> m_is_drive_write_protected[NUM_DRIVES]{};
     std::atomic<bool> m_is_printer_enabled{false};
     std::atomic<size_t> m_printer_data_size_bytes{false};
+    std::atomic<uint64_t> m_num_mq_polls{0};
+    std::atomic<uint64_t> m_num_mq_waits{0};
 
     // Lock m_mutex first, if locking both. (The public API makes this hard to
     // get wrong.)

@@ -2166,6 +2166,18 @@ std::vector<BeebThread::AudioCallbackRecord> BeebThread::GetAudioCallbackRecords
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+BeebThread::TimingStats BeebThread::GetTimingStats() const {
+    TimingStats ts;
+
+    ts.num_mq_polls = m_num_mq_polls.load(std::memory_order_acquire);
+    ts.num_mq_waits = m_num_mq_waits.load(std::memory_order_acquire);
+
+    return ts;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 void BeebThread::GetTimelineState(BeebThreadTimelineState *timeline_state) const {
     std::lock_guard<Mutex> lock(m_timeline_state_mutex);
 
@@ -2828,6 +2840,7 @@ void BeebThread::ThreadMain(void) {
             PROFILE_SCOPE(PROFILER_COLOUR_ALICE_BLUE, "MQ Wait");
             rmt_ScopedCPUSample(MessageQueueWaitForMessage, 0);
             m_mq.ConsumerWaitForMessages(&messages);
+            ++m_num_mq_waits;
             what = "waited";
         } else {
             // Don't add a PROFILE_SCOPE in this case - it generates zillions of
@@ -2836,6 +2849,7 @@ void BeebThread::ThreadMain(void) {
 
             //PROFILE_SCOPE(PROFILER_COLOUR_ALICE_BLUE, "MQ Poll");
             m_mq.ConsumerPollForMessages(&messages);
+            ++m_num_mq_polls;
             what = "polled";
         }
 
@@ -2885,7 +2899,7 @@ void BeebThread::ThreadMain(void) {
 
             m_clone_impediments.store(clone_impediments, std::memory_order_release);
 
-            bool can_record=false;
+            bool can_record = false;
 
             // Update ThreadState timeline stuff.
             switch (ts.timeline_mode) {

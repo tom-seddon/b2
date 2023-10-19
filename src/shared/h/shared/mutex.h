@@ -19,7 +19,7 @@
 
 // If true, assume that try_lock is effectively free when it succeeds.
 // Potentially save on some system calls for every lock.
-#define MUTEX_ASSUME_UNCONTENDED_LOCKS_ARE_FREE 1
+#define MUTEX_ASSUME_UNCONTENDED_LOCKS_ARE_FREE 0
 
 #include <atomic>
 #include <vector>
@@ -27,17 +27,32 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-struct MutexMetadata {
-    std::string name;
+class Mutex;
 
+struct MutexStats {
+    // The mutex itself must be locked to modify any of these.
     uint64_t num_locks = 0;
     uint64_t num_contended_locks = 0;
     uint64_t total_lock_wait_ticks = 0;
     uint64_t min_lock_wait_ticks = UINT64_MAX;
     uint64_t max_lock_wait_ticks = 0;
-
-    std::atomic<uint64_t> num_try_locks{0};
     uint64_t num_successful_try_locks = 0;
+};
+
+struct MutexMetadata {
+    std::string name;
+
+    MutexStats stats;
+
+    // A try_lock needs accounting for even if the mutex ends up not taken.
+    std::atomic<uint64_t> num_try_locks{0};
+
+    // Not safe to take the lock for this on an ad-hoc basis from the UI thread.
+    mutable std::atomic<bool> reset{false};
+
+    Mutex *mutex = nullptr;
+
+    void Reset();
 };
 
 struct MutexFullMetadata;
@@ -70,25 +85,29 @@ class Mutex {
             uint64_t lock_start_ticks = GetCurrentTickCount();
 #endif
             m_mutex.lock();
-            ++m_meta->num_contended_locks;
+            ++m_meta->stats.num_contended_locks;
 #if MUTEX_ASSUME_UNCONTENDED_LOCKS_ARE_FREE
             lock_wait_ticks += GetCurrentTickCount() - lock_start_ticks;
 #endif
         }
 
-        ++m_meta->num_locks;
+        ++m_meta->stats.num_locks;
 #if !MUTEX_ASSUME_UNCONTENDED_LOCKS_ARE_FREE
         lock_wait_ticks += GetCurrentTickCount() - lock_start_ticks;
 #endif
 
-        m_meta->total_lock_wait_ticks += lock_wait_ticks;
-
-        if (lock_wait_ticks < m_meta->min_lock_wait_ticks) {
-            m_meta->min_lock_wait_ticks = lock_wait_ticks;
+        if (m_meta->reset.exchange(false)) {
+            m_meta->Reset();
         }
 
-        if (lock_wait_ticks > m_meta->max_lock_wait_ticks) {
-            m_meta->max_lock_wait_ticks = lock_wait_ticks;
+        m_meta->stats.total_lock_wait_ticks += lock_wait_ticks;
+
+        if (lock_wait_ticks < m_meta->stats.min_lock_wait_ticks) {
+            m_meta->stats.min_lock_wait_ticks = lock_wait_ticks;
+        }
+
+        if (lock_wait_ticks > m_meta->stats.max_lock_wait_ticks) {
+            m_meta->stats.max_lock_wait_ticks = lock_wait_ticks;
         }
     }
 
@@ -96,10 +115,14 @@ class Mutex {
         bool succeeded = m_mutex.try_lock();
 
         if (succeeded) {
-            ++m_meta->num_successful_try_locks;
+            ++m_meta->stats.num_successful_try_locks;
         }
 
         ++m_meta->num_try_locks;
+
+        if (m_meta->reset.exchange(false)) {
+            m_meta->Reset();
+        }
 
         return succeeded;
     }
