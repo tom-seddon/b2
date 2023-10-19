@@ -1077,7 +1077,11 @@ class BeebThread {
     // Main thread must take mutex to access.
     ThreadState *m_thread_state = nullptr;
 
-    // Last recorded trace. Controlled by m_mutex.
+    // Lock m_mutex first, if locking both. (The public API makes this hard to
+    // get wrong.)
+    Mutex m_last_trace_mutex;
+
+    // Last recorded trace. Controlled by m_last_trace_mutex.
     std::shared_ptr<Trace> m_last_trace;
 
     // Controlled by m_mutex.
@@ -1154,6 +1158,8 @@ class BeebThread {
     void ThreadNextReplayEvent(ThreadState *ts);
 
     void ThreadStopReplay(ThreadState *ts);
+
+    void SetLastTrace(std::shared_ptr<Trace> last_trace);
 
     static bool ThreadWaitForHardReset(const BBCMicro *beeb, const M6502 *cpu, void *context);
 };

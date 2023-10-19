@@ -1677,7 +1677,8 @@ BeebThread::BeebThread(std::shared_ptr<MessageList> message_list,
     this->SetDiscVolume(MAX_DB);
 
     MUTEX_SET_NAME(m_mutex, "BeebThread");
-    MUTEX_SET_NAME(m_timeline_state_mutex, "BeebThreadTimelineState");
+    MUTEX_SET_NAME(m_timeline_state_mutex, "BeebThread timeline_state");
+    MUTEX_SET_NAME(m_last_trace_mutex, "BeebThread last_trace");
     m_mq.SetName("BeebThread MQ");
 }
 
@@ -1917,16 +1918,14 @@ uint32_t BeebThread::GetBBCMicroCloneImpediments() const {
 //////////////////////////////////////////////////////////////////////////
 
 void BeebThread::ClearLastTrace() {
-    std::lock_guard<Mutex> lock(m_mutex);
-
-    m_last_trace = nullptr;
+    this->SetLastTrace(nullptr);
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 std::shared_ptr<Trace> BeebThread::GetLastTrace() {
-    std::lock_guard<Mutex> lock(m_mutex);
+    std::lock_guard<Mutex> lock(m_last_trace_mutex);
 
     return m_last_trace;
 }
@@ -2578,7 +2577,8 @@ void BeebThread::ThreadStartTrace(ThreadState *ts) {
 
     m_trace_stats = {};
     m_is_tracing.store(true, std::memory_order_release);
-    m_last_trace = nullptr;
+
+    this->SetLastTrace(nullptr);
 }
 #endif
 
@@ -2603,10 +2603,13 @@ void BeebThread::ThreadStopTrace(ThreadState *ts) {
     m_trace_stats = {};
     m_is_tracing.store(false, std::memory_order_release);
 
-    ts->beeb->StopTrace(&m_last_trace);
+    std::shared_ptr<Trace> last_trace;
+    ts->beeb->StopTrace(&last_trace);
 
     ts->trace_state = BeebThreadTraceState_None;
     ts->trace_conditions = TraceConditions();
+
+    this->SetLastTrace(std::move(last_trace));
 }
 #endif
 
@@ -2617,7 +2620,7 @@ void BeebThread::ThreadStopTrace(ThreadState *ts) {
 void BeebThread::ThreadCancelTrace(ThreadState *ts) {
     this->ThreadStopTrace(ts);
 
-    m_last_trace = nullptr;
+    this->SetLastTrace(nullptr);
 }
 #endif
 
@@ -3379,6 +3382,15 @@ void BeebThread::ThreadStopReplay(ThreadState *ts) {
         this->ThreadReplaceBeeb(ts, ts->timeline_replay_old_state->CloneBBCMicro(), 0);
         ts->timeline_replay_old_state.reset();
     }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BeebThread::SetLastTrace(std::shared_ptr<Trace> last_trace) {
+    std::lock_guard<Mutex> lock(m_last_trace_mutex);
+
+    m_last_trace = std::move(last_trace);
 }
 
 //////////////////////////////////////////////////////////////////////////
