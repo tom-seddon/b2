@@ -30,13 +30,19 @@
 class Mutex;
 
 struct MutexStats {
-    // The mutex itself must be locked to modify any of these.
+    // The mutex itself must be locked to correctly modify any of these.
+    //
+    // May read, at own risk...
     uint64_t num_locks = 0;
     uint64_t num_contended_locks = 0;
     uint64_t total_lock_wait_ticks = 0;
     uint64_t min_lock_wait_ticks = UINT64_MAX;
     uint64_t max_lock_wait_ticks = 0;
     uint64_t num_successful_try_locks = 0;
+
+    uint64_t start_ticks;
+
+    MutexStats();
 };
 
 struct MutexMetadata {
@@ -47,12 +53,20 @@ struct MutexMetadata {
     // A try_lock needs accounting for even if the mutex ends up not taken.
     std::atomic<uint64_t> num_try_locks{0};
 
-    // Not safe to take the lock for this on an ad-hoc basis from the UI thread.
-    mutable std::atomic<bool> reset{false};
+    std::atomic<bool> reset{false};
 
     Mutex *mutex = nullptr;
 
+    // This is never reset, so that it's possible to distinguish no locks ever
+    // from no locks since stats last reset.
+    bool ever_locked = false;
+
+    void RequestReset();
+
+  private:
     void Reset();
+
+    friend class Mutex;
 };
 
 struct MutexFullMetadata;
@@ -100,6 +114,7 @@ class Mutex {
             m_meta->Reset();
         }
 
+        m_meta->ever_locked = true;
         m_meta->stats.total_lock_wait_ticks += lock_wait_ticks;
 
         if (lock_wait_ticks < m_meta->stats.min_lock_wait_ticks) {
@@ -116,6 +131,7 @@ class Mutex {
 
         if (succeeded) {
             ++m_meta->stats.num_successful_try_locks;
+            m_meta->ever_locked = true;
         }
 
         ++m_meta->num_try_locks;
@@ -131,7 +147,7 @@ class Mutex {
         m_mutex.unlock();
     }
 
-    static std::vector<std::shared_ptr<const MutexMetadata>> GetAllMetadata();
+    static std::vector<std::shared_ptr<MutexMetadata>> GetAllMetadata();
 
   protected:
   private:

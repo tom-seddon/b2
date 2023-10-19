@@ -50,6 +50,21 @@ static void CheckMetadataList() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+MutexStats::MutexStats()
+    : start_ticks(GetCurrentTickCount()) {
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void MutexMetadata::RequestReset() {
+    this->stats = {};
+    this->reset.store(true, std::memory_order_release);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 void MutexMetadata::Reset() {
     this->stats = {};
     this->num_try_locks.store(0);
@@ -165,8 +180,8 @@ const MutexMetadata *Mutex::GetMetadata() const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-std::vector<std::shared_ptr<const MutexMetadata>> Mutex::GetAllMetadata() {
-    std::vector<std::shared_ptr<const MutexMetadata>> list;
+std::vector<std::shared_ptr<MutexMetadata>> Mutex::GetAllMetadata() {
+    std::vector<std::shared_ptr<MutexMetadata>> list;
 
     std::call_once(g_mutex_metadata_list_mutex_initialise_once_flag, &InitMutexMetadataListMutex);
 
@@ -174,7 +189,7 @@ std::vector<std::shared_ptr<const MutexMetadata>> Mutex::GetAllMetadata() {
 
     if (MutexFullMetadata *m = g_mutex_metadata_head) {
         do {
-            list.push_back(std::shared_ptr<const MutexMetadata>(m->shared_from_this(), &m->meta));
+            list.push_back(std::shared_ptr<MutexMetadata>(m->shared_from_this(), &m->meta));
 
             m = m->next;
         } while (m != g_mutex_metadata_head);
