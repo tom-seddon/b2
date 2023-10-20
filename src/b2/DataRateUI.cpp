@@ -189,6 +189,13 @@ static void MutexMetadataUI(MutexMetadata *m) {
 
     ImGui::Spacing();
     ImGui::Text("Mutex Name: %s", m->name.c_str());
+    if (m->ever_locked) {
+        ImGui::SameLine();
+        if (ImGui::Button("Reset Stats")) {
+            m->RequestReset();
+        }
+    }
+
     ImGui::Text("Locks: %" PRIu64 " (~%.1f/sec)", m->stats.num_locks, num_ticks == 0 ? 0 : m->stats.num_locks / GetSecondsFromTicks(num_ticks));
     if (m->stats.num_locks > 0) {
         ImGui::Text("Contended Locks: %" PRIu64 " (%.3f%%)", m->stats.num_contended_locks, m->stats.num_locks == 0 ? 0. : (double)m->stats.num_contended_locks / m->stats.num_locks);
@@ -206,12 +213,6 @@ static void MutexMetadataUI(MutexMetadata *m) {
         ImGui::TextUnformatted("Contended Locks: N/A");
         ImGui::TextUnformatted("Lock Wait Time: N/A");
         ImGui::TextUnformatted("Lock Wait Stats: N/A");
-    }
-
-    if (m->ever_locked) {
-        if (ImGui::Button("Reset Stats")) {
-            m->RequestReset();
-        }
     }
 
     uint64_t num_try_locks = m->num_try_locks.load(std::memory_order_acquire);
@@ -289,6 +290,7 @@ void DataRateUI::DoImGui() {
         MutexMetadata *m = metadata[i].get();
 
         if (m->ever_locked) {
+            ImGui::Separator();
             MutexMetadataUI(m);
         } else {
             ++num_skipped;
@@ -301,6 +303,7 @@ void DataRateUI::DoImGui() {
                 MutexMetadata *m = metadata[i].get();
 
                 if (!m->ever_locked) {
+                    ImGui::Separator();
                     MutexMetadataUI(m);
                 }
             }
