@@ -1013,6 +1013,10 @@ class BeebThread {
 
     std::vector<uint8_t> GetPrinterData() const;
 
+#if BBCMICRO_DEBUGGER
+    std::shared_ptr<const BBCMicro::State> DebugGetState() const;
+#endif
+
   protected:
   private:
     struct AudioThreadData;
@@ -1069,6 +1073,11 @@ class BeebThread {
     std::atomic<size_t> m_printer_data_size_bytes{false};
     std::atomic<uint64_t> m_num_mq_polls{0};
     std::atomic<uint64_t> m_num_mq_waits{0};
+
+    // Lock m_mutex first, if locking both. (The public API makes this hard to
+    // get wrong.)
+    mutable Mutex m_beeb_state_mutex;
+    std::shared_ptr<const BBCMicro::State> m_beeb_state;
 
     // Lock m_mutex first, if locking both. (The public API makes this hard to
     // get wrong.)

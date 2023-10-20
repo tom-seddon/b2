@@ -53,6 +53,7 @@ constexpr uint32_t GetNormalizedBBCMicroUpdateFlags(uint32_t flags);
 class BBCMicro : private WD1770Handler,
                  private ADCHandler {
   public:
+    struct State;
     static const uint16_t SCREEN_WRAP_ADJUSTMENTS[];
 
     typedef void (*UpdateROMSELPagesFn)(BBCMicro *);
@@ -409,6 +410,8 @@ class BBCMicro : private WD1770Handler,
     void StartPaste(std::shared_ptr<const std::string> text);
     void StopPaste();
 
+    std::shared_ptr<const BBCMicro::State> DebugGetState() const;
+
     const M6502 *GetM6502() const;
 
 #if BBCMICRO_DEBUGGER
@@ -539,10 +542,17 @@ class BBCMicro : private WD1770Handler,
 #endif
     };
 
+  public: //TODO rationalize this a bit
     struct State {
-        const BBCMicroType *const type = nullptr;
-        const uint32_t init_flags = 0;
-        const BBCMicroParasiteType parasite_type = BBCMicroParasiteType_None;
+        // There's deliberately not much you can publicly do with one of these
+        // other than default-construct it or copy it.
+        explicit State() = default;
+        explicit State(const State &) = default;
+        State &operator=(const State &) = default;
+      private:
+        const BBCMicroType *type = nullptr;
+        uint32_t init_flags = 0;
+        BBCMicroParasiteType parasite_type = BBCMicroParasiteType_None;
 
         // 6845
         CRTC crtc;
@@ -655,8 +665,11 @@ class BBCMicro : private WD1770Handler,
                        uint32_t init_flags,
                        const tm *rtc_time,
                        CycleCount initial_cycle_count);
+
+        friend class BBCMicro;
     };
 
+  private:
     //////////////////////////////////////////////////////////////////////////
     //////////////////////////////////////////////////////////////////////////
     //

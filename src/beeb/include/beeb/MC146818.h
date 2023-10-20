@@ -107,8 +107,8 @@ class MC146818 {
 
     MC146818();
 
-    MC146818(const MC146818 &) = default;
-    MC146818(MC146818 &&) = default;
+    //MC146818(const MC146818 &) = default;
+    //MC146818(MC146818 &&) = default;
 
 #if BBCMICRO_TRACE
     void SetTrace(Trace *t);

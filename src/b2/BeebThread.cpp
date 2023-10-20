@@ -1687,6 +1687,7 @@ BeebThread::BeebThread(std::shared_ptr<MessageList> message_list,
     MUTEX_SET_NAME(m_mutex, "BeebThread");
     MUTEX_SET_NAME(m_timeline_state_mutex, "BeebThread timeline_state");
     MUTEX_SET_NAME(m_last_trace_mutex, "BeebThread last_trace");
+    MUTEX_SET_NAME(m_beeb_state_mutex, "BeebThread beeb_state");
     m_mq.SetName("BeebThread MQ");
 }
 
@@ -2232,6 +2233,17 @@ std::vector<uint8_t> BeebThread::GetPrinterData() const {
 
     return m_printer_buffer;
 }
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_DEBUGGER
+std::shared_ptr<const BBCMicro::State> BeebThread::DebugGetState() const {
+    std::lock_guard<Mutex> lock(m_beeb_state_mutex);
+
+    return m_beeb_state;
+}
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -3007,6 +3019,12 @@ void BeebThread::ThreadMain(void) {
                 m_timeline_state.num_events = ts.total_num_events;
                 m_timeline_state.can_record = can_record;
                 m_timeline_state.clone_impediments = clone_impediments;
+            }
+
+            {
+                std::lock_guard<Mutex> lock2(m_beeb_state_mutex);
+
+                m_beeb_state = ts.beeb->DebugGetState();
             }
         }
 
