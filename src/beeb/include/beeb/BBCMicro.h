@@ -507,7 +507,7 @@ class BBCMicro : private WD1770Handler,
     uint16_t GetAnalogueChannel(uint8_t channel) const;
     void SetAnalogueChannel(uint8_t channel, uint16_t value);
 
-    static void PrintUpdateFnInfo(Log *log);
+    static void PrintInfo(Log *log);
 
     // When the printer is enabled, printer output will be captured into a
     // buffer.
@@ -619,15 +619,12 @@ class BBCMicro : private WD1770Handler,
         CycleCount last_vsync_cycle_count = {0};
         CycleCount last_frame_cycle_count = {0};
 
-        std::vector<uint8_t> ram_buffer;
+        std::shared_ptr<std::vector<uint8_t>> ram_buffer;
 
         std::shared_ptr<const std::array<uint8_t, 16384>> os_buffer;
         std::shared_ptr<const std::array<uint8_t, 16384>> sideways_rom_buffers[16];
-        // Each element is either 16K (i.e., copy of ROMData
-        // contents), or empty (nothing). Ideally this would be
-        // something like unique_ptr<ROMData>, but that isn't
-        // copyable.
-        std::vector<uint8_t> sideways_ram_buffers[16];
+        // Each element is either a copy of the ROMData contents, or null.
+        std::shared_ptr<std::array<uint8_t, 16384>> sideways_ram_buffers[16];
 
         // Combination of BBCMicroHackFlag.
         uint32_t hack_flags = 0;
@@ -648,7 +645,7 @@ class BBCMicro : private WD1770Handler,
         bool parasite_accessible = false;
         M6502 parasite_cpu = {};
         std::shared_ptr<const std::array<uint8_t, 4096>> parasite_rom_buffer;
-        std::vector<uint8_t> parasite_ram_buffer;
+        std::shared_ptr<std::vector<uint8_t>> parasite_ram_buffer;
         bool parasite_boot_mode = true;
         Tube parasite_tube;
 
@@ -694,7 +691,6 @@ class BBCMicro : private WD1770Handler,
     //////////////////////////////////////////////////////////////////////////
 
     BigPage m_big_pages[NUM_BIG_PAGES];
-    uint32_t m_dso_mask = 0;
     typedef uint32_t (BBCMicro::*UpdateMFn)(VideoDataUnit *, SoundDataUnit *);
     UpdateMFn m_update_mfn = nullptr;
 

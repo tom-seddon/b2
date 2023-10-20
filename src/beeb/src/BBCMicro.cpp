@@ -136,7 +136,7 @@ BBCMicro::State::State(const BBCMicroType *type_,
     , init_flags(init_flags_)
     , cycle_count(initial_cycle_count) {
     M6502_Init(&this->cpu, this->type->m6502_config);
-    this->ram_buffer.resize(this->type->ram_buffer_size);
+    this->ram_buffer = std::make_shared<std::vector<uint8_t>>(this->type->ram_buffer_size);
 
     if (this->type->flags & BBCMicroTypeFlag_HasRTC) {
         this->rtc.SetRAMContents(nvram_contents);
@@ -147,7 +147,7 @@ BBCMicro::State::State(const BBCMicroType *type_,
     }
 
     if (this->parasite_type != BBCMicroParasiteType_None) {
-        this->parasite_ram_buffer.resize(65536);
+        this->parasite_ram_buffer = std::make_shared<std::vector<uint8_t>>(65536);
         this->parasite_boot_mode = true;
         M6502_Init(&this->parasite_cpu, &M6502_rockwell65c02_config);
         ResetTube(&this->parasite_tube);
@@ -403,10 +403,10 @@ void BBCMicro::InitPaging() {
     for (size_t i = 0; i < 32; ++i) {
         size_t offset = i * BIG_PAGE_SIZE_BYTES;
 
-        if (offset < m_state.ram_buffer.size()) {
+        if (offset < m_state.ram_buffer->size()) {
             BigPage *bp = &m_big_pages[i];
 
-            bp->r = bp->w = &m_state.ram_buffer[offset];
+            bp->r = bp->w = &m_state.ram_buffer->at(offset);
         }
     }
 
@@ -416,8 +416,8 @@ void BBCMicro::InitPaging() {
 
             if (!!m_state.sideways_rom_buffers[i]) {
                 bp->r = m_state.sideways_rom_buffers[i]->data() + j * BIG_PAGE_SIZE_BYTES;
-            } else if (!m_state.sideways_ram_buffers[i].empty()) {
-                bp->r = bp->w = m_state.sideways_ram_buffers[i].data() + j * BIG_PAGE_SIZE_BYTES;
+            } else if (!!m_state.sideways_ram_buffers[i]) {
+                bp->r = bp->w = m_state.sideways_ram_buffers[i]->data() + j * BIG_PAGE_SIZE_BYTES;
             } else {
                 // not mapped...
             }
@@ -436,8 +436,8 @@ void BBCMicro::InitPaging() {
         for (size_t i = 0; i < NUM_PARASITE_BIG_PAGES; ++i) {
             BigPage *bp = &m_big_pages[PARASITE_BIG_PAGE_INDEX + i];
 
-            bp->r = m_state.parasite_ram_buffer.data() + i * BIG_PAGE_SIZE_BYTES;
-            bp->w = m_state.parasite_ram_buffer.data() + i * BIG_PAGE_SIZE_BYTES;
+            bp->r = m_state.parasite_ram_buffer->data() + i * BIG_PAGE_SIZE_BYTES;
+            bp->w = m_state.parasite_ram_buffer->data() + i * BIG_PAGE_SIZE_BYTES;
         }
 
         for (size_t i = 0; i < NUM_PARASITE_ROM_BIG_PAGES; ++i) {
@@ -959,7 +959,7 @@ void BBCMicro::SetOSROM(std::shared_ptr<const std::array<uint8_t, 16384>> data) 
 void BBCMicro::SetSidewaysROM(uint8_t bank, std::shared_ptr<const std::array<uint8_t, 16384>> data) {
     ASSERT(bank < 16);
 
-    m_state.sideways_ram_buffers[bank].clear();
+    m_state.sideways_ram_buffers[bank].reset();
 
     m_state.sideways_rom_buffers[bank] = std::move(data);
 
@@ -973,9 +973,9 @@ void BBCMicro::SetSidewaysRAM(uint8_t bank, std::shared_ptr<const std::array<uin
     ASSERT(bank < 16);
 
     if (data) {
-        m_state.sideways_ram_buffers[bank] = std::vector<uint8_t>(data->begin(), data->end());
+        m_state.sideways_ram_buffers[bank] = std::make_shared<std::array<uint8_t, 16384>>(*data);
     } else {
-        m_state.sideways_ram_buffers[bank] = std::vector<uint8_t>(16384);
+        m_state.sideways_ram_buffers[bank] = std::make_shared<std::array<uint8_t, 16384>>();
     }
 
     m_state.sideways_rom_buffers[bank] = nullptr;
@@ -1875,7 +1875,7 @@ static std::string GetUpdateFlagExpr(const uint32_t flags_) {
     return expr;
 }
 
-void BBCMicro::PrintUpdateFnInfo(Log *log) {
+void BBCMicro::PrintInfo(Log *log) {
     size_t num_update_mfns = sizeof ms_update_mfns / sizeof ms_update_mfns[0];
     std::map<uint32_t, std::vector<uint32_t>> map;
     for (uint32_t i = 0; i < num_update_mfns; ++i) {
@@ -1914,6 +1914,9 @@ void BBCMicro::PrintUpdateFnInfo(Log *log) {
     }
 
     log->f("unused BBCMicroUpdateFlag values: %s\n", GetUpdateFlagExpr(unused_bits).c_str());
+
+    log->f("sizeof(BBCMicro): %zu\n", sizeof(BBCMicro));
+    log->f("sizeof(BBCMicro::State): %zu\n", sizeof(BBCMicro::State));
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -1943,8 +1946,8 @@ void BBCMicro::SetPrinterBuffer(std::vector<uint8_t> *buffer) {
 //////////////////////////////////////////////////////////////////////////
 
 void BBCMicro::TestSetByte(uint16_t ram_buffer_index, uint8_t value) {
-    ASSERT(ram_buffer_index < m_state.ram_buffer.size());
-    m_state.ram_buffer[ram_buffer_index] = value;
+    ASSERT(ram_buffer_index < m_state.ram_buffer->size());
+    m_state.ram_buffer->at(ram_buffer_index) = value;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -2114,7 +2117,7 @@ void BBCMicro::InitStuff() {
         ASSERT(ms_update_mfns[i]);
     }
 
-    m_ram = m_state.ram_buffer.data();
+    m_ram = m_state.ram_buffer->data();
 
     m_read_mmios_hw = std::vector<ReadMMIO>(768);
     m_write_mmios_hw = std::vector<WriteMMIO>(768);
@@ -2279,8 +2282,9 @@ void BBCMicro::InitStuff() {
     if (m_state.parasite_type != BBCMicroParasiteType_None) {
         m_state.parasite_cpu.context = this;
 
-        ASSERT(m_state.parasite_ram_buffer.size() == 65536);
-        m_parasite_ram = m_state.parasite_ram_buffer.data();
+        ASSERT(!!m_state.parasite_ram_buffer);
+        ASSERT(m_state.parasite_ram_buffer->size() == 65536);
+        m_parasite_ram = m_state.parasite_ram_buffer->data();
 
         m_parasite_read_mmio_fns[0] = &ReadParasiteTube0;
         m_parasite_read_mmio_fns[1] = &ReadParasiteTube1;
@@ -2300,7 +2304,7 @@ void BBCMicro::InitStuff() {
         m_parasite_write_mmio_fns[6] = &WriteTubeDummy;
         m_parasite_write_mmio_fns[7] = &WriteParasiteTube7;
     } else {
-        ASSERT(m_state.parasite_ram_buffer.empty());
+        ASSERT(!m_state.parasite_ram_buffer);
     }
 
     m_host_cpu_metadata.name = "host";

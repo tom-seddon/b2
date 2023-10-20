@@ -1169,7 +1169,7 @@ static bool main2(int argc, char *argv[], const std::shared_ptr<MessageList> &in
         return false;
     }
 
-    BBCMicro::PrintUpdateFnInfo(&LOG(OUTPUT));
+    BBCMicro::PrintInfo(&LOG(OUTPUT));
 
 #if RMT_ENABLED
     if (options.remotery) {
