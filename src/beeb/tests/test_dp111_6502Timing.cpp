@@ -20,7 +20,7 @@ int main() {
     bbc.RunUntilOSWORD0(10.0);
     bbc.Paste("*CAT\r");
     bbc.Paste("*RUN 6502tim\r");
-    bbc.SetMMIOFns(0xfcd0, nullptr, &WriteFailureCount, nullptr);
+    bbc.SetXFJIO(0xfcd0, nullptr, &WriteFailureCount, nullptr);
     bbc.RunUntilOSWORD0(20.0);
 
     {

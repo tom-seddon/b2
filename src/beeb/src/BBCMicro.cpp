@@ -295,13 +295,41 @@ void BBCMicro::SetTrace(std::shared_ptr<Trace> trace, uint32_t trace_flags) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+static_assert(PagingFlags_ROMIO == 1);
+static_assert(PagingFlags_IFJ == 2);
+std::vector<BBCMicro::ReadMMIO>(BBCMicro::*BBCMicro::ms_read_mmios_mptrs[]) = {
+    &BBCMicro::m_read_mmios_hw,           //0
+    &BBCMicro::m_read_mmios_rom,          //ROMIO
+    &BBCMicro::m_read_mmios_hw_cartridge, //IFJ
+    &BBCMicro::m_read_mmios_rom,          //IFJ|ROMIO
+};
+
+std::vector<uint8_t>(BBCMicro::*BBCMicro::ms_read_mmios_stretch_mptrs[]) = {
+    &BBCMicro::m_mmios_stretch_hw,           //0
+    &BBCMicro::m_mmios_stretch_rom,          //ROMIO
+    &BBCMicro::m_mmios_stretch_hw_cartridge, //IFJ
+    &BBCMicro::m_mmios_stretch_rom,          //IFJ|ROMIO
+};
+
+std::vector<BBCMicro::WriteMMIO>(BBCMicro::*BBCMicro::ms_write_mmios_mptrs[]) = {
+    &BBCMicro::m_write_mmios_hw,           //0
+    &BBCMicro::m_write_mmios_hw,           //ROMIO
+    &BBCMicro::m_write_mmios_hw_cartridge, //IFJ
+    &BBCMicro::m_write_mmios_hw_cartridge, //IFJ|ROMIO
+};
+
+std::vector<uint8_t>(BBCMicro::*BBCMicro::ms_write_mmios_stretch_mptrs[]) = {
+    &BBCMicro::m_mmios_stretch_hw,           //0
+    &BBCMicro::m_mmios_stretch_hw,           //ROMIO
+    &BBCMicro::m_mmios_stretch_hw_cartridge, //IFJ
+    &BBCMicro::m_mmios_stretch_hw_cartridge, //IFJ|ROMIO
+};
+
 void BBCMicro::UpdatePaging() {
     MemoryBigPageTables tables;
-    bool io;
-    bool crt_shadow;
+    uint32_t paging_flags;
     (*m_state.type->get_mem_big_page_tables_fn)(&tables,
-                                                &io,
-                                                &crt_shadow,
+                                                &paging_flags,
                                                 m_state.romsel,
                                                 m_state.acccon);
 
@@ -325,23 +353,17 @@ void BBCMicro::UpdatePaging() {
         m_pc_mem_big_pages[i] = &m_mem_big_pages[tables.pc_mem_big_pages_set[i]];
     }
 
-    if (crt_shadow) {
+    if (paging_flags & PagingFlags_DisplayShadow) {
         m_state.shadow_select_mask = 0x8000;
     } else {
         m_state.shadow_select_mask = 0;
     }
 
-    if (io != m_rom_mmio) {
-        if (io) {
-            m_read_mmios = m_read_mmios_hw.data();
-            m_mmios_stretch = m_mmios_stretch_hw.data();
-        } else {
-            m_read_mmios = m_read_mmios_rom.data();
-            m_mmios_stretch = m_mmios_stretch_rom.data();
-        }
-
-        m_rom_mmio = io;
-    }
+    uint32_t index = paging_flags & (PagingFlags_ROMIO | PagingFlags_IFJ);
+    m_read_mmios = (this->*ms_read_mmios_mptrs[index]).data();
+    m_read_mmios_stretch = (this->*ms_read_mmios_stretch_mptrs[index]).data();
+    m_write_mmios = (this->*ms_write_mmios_mptrs[index]).data();
+    m_write_mmios_stretch = (this->*ms_write_mmios_stretch_mptrs[index]).data();
 
     bool parasite_accessible;
     switch (m_state.parasite_type) {
@@ -394,11 +416,11 @@ void BBCMicro::UpdatePaging() {
             };
 
             for (uint16_t a = 0xfee0; a < 0xff00; ++a) {
-                this->SetMMIOFns(a, host_rmmio_fns[a & 7], host_wmmio_fns[a & 7], &m_state.parasite_tube);
+                this->SetSIO(a, host_rmmio_fns[a & 7], host_wmmio_fns[a & 7], &m_state.parasite_tube);
             }
         } else {
             for (uint16_t a = 0xfee0; a < 0xff00; ++a) {
-                this->SetMMIOFns(a, nullptr, nullptr, nullptr);
+                this->SetSIO(a, nullptr, nullptr, nullptr);
             }
         }
 
@@ -1108,24 +1130,25 @@ void BBCMicro::AddHostWriteFn(WriteFn fn, void *context) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void BBCMicro::SetMMIOFns(uint16_t addr, ReadMMIOFn read_fn, WriteMMIOFn write_fn, void *context) {
-    ASSERT(addr >= 0xfc00 && addr <= 0xfeff);
+void BBCMicro::SetSIO(uint16_t addr, ReadMMIOFn read_fn, WriteMMIOFn write_fn, void *context) {
+    ASSERT(addr >= 0xfe00 && addr <= 0xfeff);
+    this->SetMMIOFnsInternal(addr, read_fn, write_fn, context, true, true);
+}
 
-    uint16_t index = addr - 0xfc00;
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
 
-    ReadMMIO *read_mmio = &m_read_mmios_hw[index];
-    if (read_fn) {
-        *read_mmio = {read_fn, context};
-    } else {
-        *read_mmio = {&ReadUnmappedMMIO, this};
-    }
+void BBCMicro::SetXFJIO(uint16_t addr, ReadMMIOFn read_fn, WriteMMIOFn write_fn, void *context) {
+    ASSERT(addr >= 0xfc00 && addr <= 0xfdff);
+    this->SetMMIOFnsInternal(addr, read_fn, write_fn, context, true, false);
+}
 
-    WriteMMIO *write_mmio = &m_write_mmios_hw[index];
-    if (write_fn) {
-        *write_mmio = {write_fn, context};
-    } else {
-        *write_mmio = {&WriteUnmappedMMIO, this};
-    }
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BBCMicro::SetIFJIO(uint16_t addr, ReadMMIOFn read_fn, WriteMMIOFn write_fn, void *context) {
+    ASSERT(addr >= 0xfc00 && addr <= 0xfdff);
+    this->SetMMIOFnsInternal(addr, read_fn, write_fn, context, true, false);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -1397,8 +1420,8 @@ const BBCMicro::BigPage *BBCMicro::DebugGetBigPageForAddress(M6502Word addr,
         (*m_state.type->apply_dso_fn)(&romsel, &acccon, dso);
 
         MemoryBigPageTables tables;
-        bool io, crt_shadow;
-        (*m_state.type->get_mem_big_page_tables_fn)(&tables, &io, &crt_shadow, romsel, acccon);
+        uint32_t paging_flags;
+        (*m_state.type->get_mem_big_page_tables_fn)(&tables, &paging_flags, romsel, acccon);
 
         big_page = tables.mem_big_pages[mos][addr.p.p];
     }
@@ -1423,8 +1446,8 @@ void BBCMicro::DebugGetMemBigPageIsMOSTable(uint8_t *mem_big_page_is_mos, uint32
         (*m_state.type->apply_dso_fn)(&romsel, &acccon, dso);
 
         MemoryBigPageTables tables;
-        bool io, crt_shadow;
-        (*m_state.type->get_mem_big_page_tables_fn)(&tables, &io, &crt_shadow, romsel, acccon);
+        uint32_t paging_flags;
+        (*m_state.type->get_mem_big_page_tables_fn)(&tables, &paging_flags, romsel, acccon);
 
         memcpy(mem_big_page_is_mos, tables.pc_mem_big_pages_set, 16);
     }
@@ -2146,52 +2169,56 @@ void BBCMicro::InitStuff() {
     m_write_mmios_hw = std::vector<WriteMMIO>(768);
     m_mmios_stretch_hw = std::vector<uint8_t>(768);
 
+    m_read_mmios_hw_cartridge = std::vector<ReadMMIO>(768);
+    m_write_mmios_hw_cartridge = std::vector<WriteMMIO>(768);
+    m_mmios_stretch_hw_cartridge = std::vector<uint8_t>(768);
+
     // Assume hardware is mapped. It will get fixed up later if
     // not.
-    m_read_mmios = m_read_mmios_hw.data();
-    m_mmios_stretch = m_mmios_stretch_hw.data();
-    m_rom_mmio = false;
+    //m_read_mmios = m_read_mmios_hw.data();
+    //m_mmios_stretch = m_mmios_stretch_hw.data();
+    //m_rom_mmio = false;
 
     // initially no I/O
     for (uint16_t i = 0xfc00; i < 0xff00; ++i) {
-        this->SetMMIOFns(i, nullptr, nullptr, nullptr);
+        this->SetMMIOFnsInternal(i, nullptr, nullptr, nullptr, true, true);
     }
 
     if (m_state.init_flags & BBCMicroInitFlag_ExtMem) {
         m_state.ext_mem.AllocateBuffer();
 
-        this->SetMMIOFns(0xfc00, nullptr, &ExtMem::WriteAddressL, &m_state.ext_mem);
-        this->SetMMIOFns(0xfc01, nullptr, &ExtMem::WriteAddressH, &m_state.ext_mem);
-        this->SetMMIOFns(0xfc02, &ExtMem::ReadAddressL, nullptr, &m_state.ext_mem);
-        this->SetMMIOFns(0xfc03, &ExtMem::ReadAddressH, nullptr, &m_state.ext_mem);
+        this->SetXFJIO(0xfc00, nullptr, &ExtMem::WriteAddressL, &m_state.ext_mem);
+        this->SetXFJIO(0xfc01, nullptr, &ExtMem::WriteAddressH, &m_state.ext_mem);
+        this->SetXFJIO(0xfc02, &ExtMem::ReadAddressL, nullptr, &m_state.ext_mem);
+        this->SetXFJIO(0xfc03, &ExtMem::ReadAddressH, nullptr, &m_state.ext_mem);
 
         for (uint16_t i = 0xfd00; i <= 0xfdff; ++i) {
-            this->SetMMIOFns(i, &ExtMem::ReadData, &ExtMem::WriteData, &m_state.ext_mem);
+            this->SetXFJIO(i, &ExtMem::ReadData, &ExtMem::WriteData, &m_state.ext_mem);
         }
     }
 
     // I/O: VIAs
     for (uint16_t i = 0; i < 32; ++i) {
-        this->SetMMIOFns(0xfe40 + i, g_R6522_read_fns[i & 15], g_R6522_write_fns[i & 15], &m_state.system_via);
-        this->SetMMIOFns(0xfe60 + i, g_R6522_read_fns[i & 15], g_R6522_write_fns[i & 15], &m_state.user_via);
+        this->SetSIO(0xfe40 + i, g_R6522_read_fns[i & 15], g_R6522_write_fns[i & 15], &m_state.system_via);
+        this->SetSIO(0xfe60 + i, g_R6522_read_fns[i & 15], g_R6522_write_fns[i & 15], &m_state.user_via);
     }
 
     // I/O: 6845
     for (int i = 0; i < 8; i += 2) {
-        this->SetMMIOFns((uint16_t)(0xfe00 + i + 0), &CRTC::ReadAddress, &CRTC::WriteAddress, &m_state.crtc);
-        this->SetMMIOFns((uint16_t)(0xfe00 + i + 1), &CRTC::ReadData, &CRTC::WriteData, &m_state.crtc);
+        this->SetSIO((uint16_t)(0xfe00 + i + 0), &CRTC::ReadAddress, &CRTC::WriteAddress, &m_state.crtc);
+        this->SetSIO((uint16_t)(0xfe00 + i + 1), &CRTC::ReadData, &CRTC::WriteData, &m_state.crtc);
     }
 
     // I/O: Video ULA
     m_state.video_ula.nula = !!(m_state.init_flags & BBCMicroInitFlag_VideoNuLA);
     for (int i = 0; i < 2; ++i) {
-        this->SetMMIOFns((uint16_t)(0xfe20 + i * 2), nullptr, &VideoULA::WriteControlRegister, &m_state.video_ula);
-        this->SetMMIOFns((uint16_t)(0xfe21 + i * 2), nullptr, &VideoULA::WritePalette, &m_state.video_ula);
+        this->SetSIO((uint16_t)(0xfe20 + i * 2), nullptr, &VideoULA::WriteControlRegister, &m_state.video_ula);
+        this->SetSIO((uint16_t)(0xfe21 + i * 2), nullptr, &VideoULA::WritePalette, &m_state.video_ula);
     }
 
     if (m_state.init_flags & BBCMicroInitFlag_VideoNuLA) {
-        this->SetMMIOFns(0xfe22, nullptr, &VideoULA::WriteNuLAControlRegister, &m_state.video_ula);
-        this->SetMMIOFns(0xfe23, nullptr, &VideoULA::WriteNuLAPalette, &m_state.video_ula);
+        this->SetSIO(0xfe22, nullptr, &VideoULA::WriteNuLAControlRegister, &m_state.video_ula);
+        this->SetSIO(0xfe23, nullptr, &VideoULA::WriteNuLAPalette, &m_state.video_ula);
     }
 
     // I/O: disc interface
@@ -2208,11 +2235,15 @@ void BBCMicro::InitStuff() {
         f.b.h -= 0xfc;
         ASSERT(f.b.h < 3);
 
+        // Slightly annoying code, to work around Challenger FDC being in the
+        // external 1 MHz bus area.
         for (int i = 0; i < 4; ++i) {
-            this->SetMMIOFns((uint16_t)(m_disc_interface->fdc_addr + i), g_WD1770_read_fns[i], g_WD1770_write_fns[i], &m_state.fdc);
+            uint16_t addr = (uint16_t)(m_disc_interface->fdc_addr + i);
+
+            this->SetMMIOFnsInternal(addr, g_WD1770_read_fns[i], g_WD1770_write_fns[i], &m_state.fdc, true, false);
         }
 
-        this->SetMMIOFns(m_disc_interface->control_addr, &Read1770ControlRegister, &Write1770ControlRegister, this);
+        this->SetMMIOFnsInternal(m_disc_interface->control_addr, &Read1770ControlRegister, &Write1770ControlRegister, this, true, false);
 
         m_disc_interface->InstallExtraHardware(this);
     } else {
@@ -2243,12 +2274,12 @@ void BBCMicro::InitStuff() {
 
     if (m_acccon_mask == 0) {
         for (uint16_t i = 0; i < 16; ++i) {
-            this->SetMMIOFns((uint16_t)(0xfe30 + i), &ReadROMSEL, &WriteROMSEL, this);
+            this->SetSIO((uint16_t)(0xfe30 + i), &ReadROMSEL, &WriteROMSEL, this);
         }
     } else {
         for (uint16_t i = 0; i < 4; ++i) {
-            this->SetMMIOFns((uint16_t)(0xfe30 + i), &ReadROMSEL, &WriteROMSEL, this);
-            this->SetMMIOFns((uint16_t)(0xfe34 + i), &ReadACCCON, &WriteACCCON, this);
+            this->SetSIO((uint16_t)(0xfe30 + i), &ReadROMSEL, &WriteROMSEL, this);
+            this->SetSIO((uint16_t)(0xfe34 + i), &ReadACCCON, &WriteACCCON, this);
         }
     }
 
@@ -2256,36 +2287,43 @@ void BBCMicro::InitStuff() {
     ASSERT(m_state.type->adc_addr != 0);
     ASSERT(m_state.type->adc_count % 4 == 0);
     for (unsigned i = 0; i < m_state.type->adc_count; i += 4) {
-        this->SetMMIOFns((uint16_t)(m_state.type->adc_addr + i + 0u), &ADC::Read0, &ADC::Write0, &m_state.adc);
-        this->SetMMIOFns((uint16_t)(m_state.type->adc_addr + i + 1u), &ADC::Read1, &ADC::Write1, &m_state.adc);
-        this->SetMMIOFns((uint16_t)(m_state.type->adc_addr + i + 2u), &ADC::Read2, &ADC::Write2, &m_state.adc);
-        this->SetMMIOFns((uint16_t)(m_state.type->adc_addr + i + 3u), &ADC::Read3, &ADC::Write3, &m_state.adc);
+        this->SetSIO((uint16_t)(m_state.type->adc_addr + i + 0u), &ADC::Read0, &ADC::Write0, &m_state.adc);
+        this->SetSIO((uint16_t)(m_state.type->adc_addr + i + 1u), &ADC::Read1, &ADC::Write1, &m_state.adc);
+        this->SetSIO((uint16_t)(m_state.type->adc_addr + i + 2u), &ADC::Read2, &ADC::Write2, &m_state.adc);
+        this->SetSIO((uint16_t)(m_state.type->adc_addr + i + 3u), &ADC::Read3, &ADC::Write3, &m_state.adc);
     }
 
-    //m_has_rtc = !!(m_state.type->flags & BBCMicroTypeFlag_HasRTC);
-
+    // Set up TST=1 tables.
     m_read_mmios_rom = std::vector<ReadMMIO>(768, {&ReadROMMMIO, this});
     m_mmios_stretch_rom = std::vector<uint8_t>(768, 0x00);
 
-    // FRED = all stretched
+    // FRED = external stretched, internal not
     for (size_t i = 0; i < 0x100; ++i) {
         m_mmios_stretch_hw[i] = 0xff;
+        m_mmios_stretch_hw_cartridge[i] = 0x00;
     }
 
-    // JIM = all stretched
+    // JIM = external stretched, internal not
     for (size_t i = 0x100; i < 0x200; ++i) {
         m_mmios_stretch_hw[i] = 0xff;
+        m_mmios_stretch_hw_cartridge[i] = 0x00;
     }
 
     // SHEILA = part stretched
     for (size_t i = 0x200; i < 0x300; ++i) {
         m_mmios_stretch_hw[i] = 0x00;
     }
+
     for (const BBCMicroType::SHEILACycleStretchRegion &region : m_state.type->sheila_cycle_stretch_regions) {
         ASSERT(region.first < region.last);
         for (uint8_t i = region.first; i <= region.last; ++i) {
             m_mmios_stretch_hw[0x200u + i] = 0xff;
         }
+    }
+
+    // Copy SHEILA stretching flags for the cartridge copy.
+    for (size_t i = 0x200; i < 0x300; ++i) {
+        m_mmios_stretch_hw_cartridge[i] = m_mmios_stretch_hw[i];
     }
 
     // Page in current ROM bank and sort out ACCCON.
@@ -2298,9 +2336,6 @@ void BBCMicro::InitStuff() {
 #if BBCMICRO_TRACE
     this->SetTrace(nullptr, 0);
 #endif
-
-    ASSERT(m_read_mmios == m_read_mmios_hw.data() || m_read_mmios == m_read_mmios_rom.data());
-    ASSERT(m_mmios_stretch == m_mmios_stretch_hw.data() || m_mmios_stretch == m_mmios_stretch_rom.data());
 
     if (m_state.parasite_type != BBCMicroParasiteType_None) {
         m_state.parasite_cpu.context = this;
@@ -2722,6 +2757,40 @@ void BBCMicro::UpdateCPUDataBusFn() {
     ASSERT(update_flags < sizeof ms_update_mfns / sizeof ms_update_mfns[0]);
     m_update_mfn = ms_update_mfns[update_flags];
     ASSERT(m_update_mfn);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BBCMicro::SetMMIOFnsInternal(uint16_t addr, ReadMMIOFn read_fn, WriteMMIOFn write_fn, void *context, bool set_xfj, bool set_ifj) {
+    ASSERT(set_xfj || set_ifj);
+    ASSERT(addr >= 0xfc00 && addr <= 0xfeff);
+
+    uint16_t index = addr - 0xfc00;
+
+    ReadMMIO read_mmio;
+    if (read_fn) {
+        read_mmio = {read_fn, context};
+    } else {
+        read_mmio = {&ReadUnmappedMMIO, this};
+    }
+
+    WriteMMIO write_mmio;
+    if (write_fn) {
+        write_mmio = {write_fn, context};
+    } else {
+        write_mmio = {&WriteUnmappedMMIO, this};
+    }
+
+    if (set_xfj) {
+        m_write_mmios_hw[index] = write_mmio;
+        m_read_mmios_hw[index] = read_mmio;
+    }
+
+    if (set_ifj) {
+        m_write_mmios_hw_cartridge[index] = write_mmio;
+        m_read_mmios_hw_cartridge[index] = read_mmio;
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////

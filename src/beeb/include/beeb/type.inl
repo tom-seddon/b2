@@ -41,6 +41,24 @@ EEND()
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#define ENAME PagingFlags
+EBEGIN()
+// Corresponds to Master 128 ACCCON TST bit. 1 = read ROM at $fc00...$feff, 0 =
+// read I/O at $fc00...$feff. (Writes to this area always go to I/O.)
+EPNV(ROMIO, 1 << 0)
+
+// Corresponds to Master 128 ACCCON IFJ bit. 1 = FRED+JIM access cartridge, 0 =
+// FRED+JIM access external connectors.
+EPNV(IFJ, 1 << 1)
+
+// Set if display comes from shadow RAM rather than main RAM.
+EPNV(DisplayShadow, 1 << 2)
+EEND()
+#undef ENAME
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 #if BBCMICRO_DEBUGGER
 
 // This name has ended up a bit of a misnomer - it should really be

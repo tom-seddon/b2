@@ -238,20 +238,15 @@ struct BBCMicroType {
     // usr[i] is the big page to use when user code accesses memory big page i,
     // and mos[i] likewise for MOS code.
     //
-    // mos_pc_mem_big_pages[i] is 0 if memory big page i counts as user code,
-    // or 1 if it counts as MOS code. This is indexed by the program counter
-    // to figure out whether to use the usr or mos table.
+    // mos_pc_mem_big_pages[i] is 0 if memory big page i counts as user code, or
+    // 1 if it counts as MOS code. This is indexed by the program counter to
+    // figure out whether to use the usr or mos table.
     //
-    // *io corresponds to the Master's TST bit - true if I/O mapped at
-    // $fc00...$feff, or false if reads there access ROM.
-    //
-    // *crt_shadow is set if the CRT should read from shadow RAM rather than
-    // main RAM.
+    // *paging_flags is set to a combination of PagingFlags bits.
     //
     // (The naming of these isn't the best.)
     void (*get_mem_big_page_tables_fn)(MemoryBigPageTables *tables,
-                                       bool *io,
-                                       bool *crt_shadow,
+                                       uint32_t *paging_flags,
                                        ROMSEL romsel,
                                        ACCCON acccon);
 

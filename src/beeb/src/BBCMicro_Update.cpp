@@ -264,10 +264,9 @@ parasite_update_done:
             M6502Word mmio_addr = {(uint16_t)(m_state.cpu.abus.w - 0xfc00u)};
             if (mmio_addr.b.h < 3) {
                 if (m_state.cpu.read) {
-                    m_state.stretch = m_mmios_stretch[mmio_addr.w];
+                    m_state.stretch = m_read_mmios_stretch[mmio_addr.w];
                 } else {
-                    // std::vector::operator[]!! - oops. But it optimises away nicely in an optimised build.
-                    m_state.stretch = m_mmios_stretch_hw[mmio_addr.w];
+                    m_state.stretch = m_write_mmios_stretch[mmio_addr.w];
                 }
             }
         }
@@ -329,8 +328,7 @@ parasite_update_done:
 #endif
             } else {
                 if (mmio_addr.b.h < 3) {
-                    // std::vector::operator[]!! - oops. But it optimises away nicely in an optimised build.
-                    const WriteMMIO *write_mmio = &m_write_mmios_hw[mmio_addr.w];
+                    const WriteMMIO *write_mmio = &m_write_mmios[mmio_addr.w];
                     (*write_mmio->fn)(write_mmio->context, m_state.cpu.abus, m_state.cpu.dbus);
                 } else {
                     m_pc_mem_big_pages[m_state.cpu.opcode_pc.p.p]->w[m_state.cpu.abus.p.p][m_state.cpu.abus.p.o] = m_state.cpu.dbus;

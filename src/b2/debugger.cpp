@@ -2674,8 +2674,8 @@ class PagingDebugWindow : public DebugUI {
         (*type->apply_dso_fn)(&romsel, &acccon, m_dso);
 
         MemoryBigPageTables tables;
-        bool io, crt_shadow;
-        (*type->get_mem_big_page_tables_fn)(&tables, &io, &crt_shadow, romsel, acccon);
+        uint32_t paging_flags;
+        (*type->get_mem_big_page_tables_fn)(&tables, &paging_flags, romsel, acccon);
 
         bool all_user = memcmp(tables.pc_mem_big_pages_set, ALL_USER_MEM_BIG_PAGES, 16) == 0;
 
@@ -2696,13 +2696,13 @@ class PagingDebugWindow : public DebugUI {
             ImGui::Text("%04zx - %04zx", i << 12, i << 12 | 0xfff);
             ImGui::NextColumn();
 
-            this->DoTypeColumn(type, tables, io, 0, i);
+            this->DoTypeColumn(type, tables, paging_flags, 0, i);
             ImGui::NextColumn();
 
             if (all_user) {
                 ImGui::TextUnformatted("N/A");
             } else {
-                this->DoTypeColumn(type, tables, io, 1, i);
+                this->DoTypeColumn(type, tables, paging_flags, 1, i);
             }
             ImGui::NextColumn();
         }
@@ -2711,7 +2711,7 @@ class PagingDebugWindow : public DebugUI {
 
         ImGui::Separator();
 
-        ImGui::Text("Display memory: %s", crt_shadow ? "Shadow RAM" : "Main RAM");
+        ImGui::Text("Display memory: %s", paging_flags & PagingFlags_DisplayShadow ? "Shadow RAM" : "Main RAM");
 
         if (all_user) {
             ImGui::TextUnformatted("Paging setup does not distinguish between user code and MOS code");
@@ -2742,12 +2742,12 @@ class PagingDebugWindow : public DebugUI {
     }
 
   private:
-    void DoTypeColumn(const BBCMicroType *type, const MemoryBigPageTables &tables, bool io, size_t index, size_t mem_big_page_index) {
+    void DoTypeColumn(const BBCMicroType *type, const MemoryBigPageTables &tables, uint32_t paging_flags, size_t index, size_t mem_big_page_index) {
         uint8_t big_page_index = tables.mem_big_pages[index][mem_big_page_index];
         const BigPageMetadata *metadata = &type->big_pages_metadata[big_page_index];
 
-        if (big_page_index == MOS_BIG_PAGE_INDEX + 3 && io) {
-            ImGui::Text("%s + I/O", metadata->description.c_str());
+        if (big_page_index == MOS_BIG_PAGE_INDEX + 3 && !(paging_flags & PagingFlags_ROMIO)) {
+            ImGui::Text("%s + I/O (%s)", metadata->description.c_str(), paging_flags & PagingFlags_IFJ ? "IFJ" : "XFJ");
         } else {
             ImGui::TextUnformatted(metadata->description.c_str());
         }

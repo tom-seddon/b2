@@ -385,7 +385,14 @@ class BBCMicro : private WD1770Handler,
 
     void AddHostWriteFn(WriteFn fn, void *context);
 
-    void SetMMIOFns(uint16_t addr, ReadMMIOFn read_fn, WriteMMIOFn write_fn, void *context);
+    // Set SHEILA IO functions.
+    void SetSIO(uint16_t addr, ReadMMIOFn read_fn, WriteMMIOFn write_fn, void *context);
+
+    // Set external FRED/JIM IO functions.
+    void SetXFJIO(uint16_t addr, ReadMMIOFn read_fn, WriteMMIOFn write_fn, void *context);
+
+    // Set internal FRED/JIM IO functions (Master 128 only).
+    void SetIFJIO(uint16_t addr, ReadMMIOFn read_fn, WriteMMIOFn write_fn, void *context);
 
     // The pointer is moved into the result.
     std::shared_ptr<DiscImage> TakeDiscImage(int drive);
@@ -549,6 +556,7 @@ class BBCMicro : private WD1770Handler,
         explicit State() = default;
         explicit State(const State &) = default;
         State &operator=(const State &) = default;
+
       private:
         const BBCMicroType *type = nullptr;
         uint32_t init_flags = 0;
@@ -713,10 +721,15 @@ class BBCMicro : private WD1770Handler,
 
     // Each points to 768 entries, one per byte. [0x000...0x0ff] is for page FC,
     // [0x100...0x1ff] for FD and [0x200...0x2ff] for FE.
-    //
-    // These tables are used for reads. Writes always go to the hardware.
     const ReadMMIO *m_read_mmios = nullptr;
-    const uint8_t *m_mmios_stretch = nullptr;
+    const uint8_t *m_read_mmios_stretch = nullptr;
+    const WriteMMIO *m_write_mmios = nullptr;
+    const uint8_t *m_write_mmios_stretch = nullptr;
+
+    static std::vector<ReadMMIO>(BBCMicro::*ms_read_mmios_mptrs[]);
+    static std::vector<uint8_t>(BBCMicro::*ms_read_mmios_stretch_mptrs[]);
+    static std::vector<WriteMMIO>(BBCMicro::*ms_write_mmios_mptrs[]);
+    static std::vector<uint8_t>(BBCMicro::*ms_write_mmios_stretch_mptrs[]);
 
     // Tables for pages FC/FD/FE that access the hardware - B, B+, M128 when
     // ACCCON TST=0.
@@ -724,14 +737,22 @@ class BBCMicro : private WD1770Handler,
     std::vector<WriteMMIO> m_write_mmios_hw;
     std::vector<uint8_t> m_mmios_stretch_hw;
 
+    // Tables for pages FC/FD/FE that access cartridge hardware - M128 when
+    // ACCON IFJ=1.
+    std::vector<ReadMMIO> m_read_mmios_hw_cartridge;
+    std::vector<WriteMMIO> m_write_mmios_hw_cartridge;
+    std::vector<uint8_t> m_mmios_stretch_hw_cartridge;
+
     // Tables for pages FC/FD/FE that access the ROM - reads on M128 when ACCCON
     // TST=1.
     std::vector<ReadMMIO> m_read_mmios_rom;
-    std::vector<void *> m_write_mmios_rom;
     std::vector<uint8_t> m_mmios_stretch_rom;
 
-    // Whether memory-mapped I/O reads currently access ROM or not.
-    bool m_rom_mmio = false;
+    //// Whether memory-mapped I/O reads currently access ROM or not.
+    //bool m_rom_mmio = false;
+
+    //// Whether IFJ mode is currently on or not.
+    //bool m_ifj = false;
 
     uint8_t m_romsel_mask = 0;
     uint8_t m_acccon_mask = 0;
@@ -845,6 +866,7 @@ class BBCMicro : private WD1770Handler,
     float UpdateDiscDriveSound(DiscDrive *dd);
 #endif
     void UpdateCPUDataBusFn();
+    void SetMMIOFnsInternal(uint16_t addr, ReadMMIOFn read_fn, WriteMMIOFn write_fn, void *context, bool set_xfj, bool set_ifj);
 
     // ADC handler stuff.
     uint16_t ReadAnalogueChannel(uint8_t channel) const override;

@@ -156,8 +156,7 @@ static bool ParseROMPrefixLowerCaseChar(uint32_t *dso, char c) {
 //////////////////////////////////////////////////////////////////////////
 
 static void GetMemBigPageTablesB(MemoryBigPageTables *tables,
-                                 bool *io,
-                                 bool *crt_shadow,
+                                 uint32_t *paging_flags,
                                  ROMSEL romsel,
                                  ACCCON acccon) {
     (void)acccon; //not relevant for B
@@ -184,8 +183,7 @@ static void GetMemBigPageTablesB(MemoryBigPageTables *tables,
 
     memset(tables->mem_big_pages[1], 0, 16);
     memset(tables->pc_mem_big_pages_set, 0, 16);
-    *io = true;
-    *crt_shadow = false;
+    *paging_flags = 0;
 }
 
 #if BBCMICRO_DEBUGGER
@@ -277,8 +275,7 @@ const BBCMicroType BBC_MICRO_TYPE_B = {
 // MOS Shadow = (Y AND X) OR (NOT Y AND E)
 
 static void GetMemBigPageTablesBPlus(MemoryBigPageTables *tables,
-                                     bool *io,
-                                     bool *crt_shadow,
+                                     uint32_t *paging_flags,
                                      ROMSEL romsel,
                                      ACCCON acccon) {
     tables->mem_big_pages[0][0] = MAIN_BIG_PAGE_INDEX + 0;
@@ -339,8 +336,7 @@ static void GetMemBigPageTablesBPlus(MemoryBigPageTables *tables,
 
     memcpy(&tables->mem_big_pages[1][8], &tables->mem_big_pages[0][8], 8);
 
-    *crt_shadow = acccon.bplus_bits.shadow != 0;
-    *io = true;
+    *paging_flags = acccon.bplus_bits.shadow ? PagingFlags_DisplayShadow : 0;
 }
 
 #if BBCMICRO_DEBUGGER
@@ -466,8 +462,7 @@ const BBCMicroType BBC_MICRO_TYPE_B_PLUS = {
 //////////////////////////////////////////////////////////////////////////
 
 static void GetMemBigPagesTablesMaster(MemoryBigPageTables *tables,
-                                       bool *io,
-                                       bool *crt_shadow,
+                                       uint32_t *paging_flags,
                                        ROMSEL romsel,
                                        ACCCON acccon) {
     // YXE  Usr  MOS
@@ -559,8 +554,9 @@ static void GetMemBigPagesTablesMaster(MemoryBigPageTables *tables,
 
     memcpy(&tables->mem_big_pages[1][8], &tables->mem_big_pages[0][8], 8);
 
-    *io = acccon.m128_bits.tst == 0;
-    *crt_shadow = acccon.m128_bits.d != 0;
+    *paging_flags = ((acccon.m128_bits.tst ? PagingFlags_ROMIO : 0) |
+                     (acccon.m128_bits.d ? PagingFlags_DisplayShadow : 0) |
+                     (acccon.m128_bits.ifj ? PagingFlags_IFJ : 0));
 }
 
 #if BBCMICRO_DEBUGGER

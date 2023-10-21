@@ -185,7 +185,7 @@ class TraceSaver {
     bool m_parasite_boot_mode = false;
     bool m_paging_dirty = true;
     MemoryBigPageTables m_paging_tables = {};
-    bool m_io = true;
+    uint32_t m_paging_flags = 0;
     std::vector<uint8_t> m_tube_fifo1;
     const M6502Config *m_parasite_m6502_config = nullptr;
     BBCMicroParasiteType m_parasite_type = BBCMicroParasiteType_None;
@@ -286,10 +286,8 @@ class TraceSaver {
         }
 
         if (m_paging_dirty) {
-            bool crt_shadow;
             (*m_type->get_mem_big_page_tables_fn)(&m_paging_tables,
-                                                  &m_io,
-                                                  &crt_shadow,
+                                                  &m_paging_flags,
                                                   m_romsel,
                                                   m_acccon);
             m_paging_dirty = false;
@@ -308,7 +306,7 @@ class TraceSaver {
             break;
 
         case TraceEventSource_Host:
-            if (addr.b.h >= 0xfc && addr.b.h <= 0xfe && m_io) {
+            if (addr.b.h >= 0xfc && addr.b.h <= 0xfe && !(m_paging_flags & PagingFlags_ROMIO)) {
                 code = 'i';
             } else {
                 M6502Word pc = {pc_};
