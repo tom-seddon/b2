@@ -196,6 +196,20 @@ BBCMicro::BBCMicro(const BBCMicro &src)
         m_is_drive_write_protected[i] = src.m_is_drive_write_protected[i];
     }
 
+    if (m_state.ram_buffer) {
+        m_state.ram_buffer = std::make_shared<std::vector<uint8_t>>(*m_state.ram_buffer);
+    }
+
+    for (int i = 0; i < 16; ++i) {
+        if (m_state.sideways_ram_buffers[i]) {
+            m_state.sideways_ram_buffers[i] = std::make_shared<std::array<uint8_t, 16384>>(*m_state.sideways_ram_buffers[i]);
+        }
+    }
+
+    if (m_state.parasite_ram_buffer) {
+        m_state.parasite_ram_buffer = std::make_shared<std::vector<uint8_t>>(*m_state.parasite_ram_buffer);
+    }
+
     this->InitStuff();
 }
 
