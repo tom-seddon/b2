@@ -242,11 +242,11 @@ char **GetBacktraceSymbols(void *const *addresses, int num_addresses) {
      * very clear what a good alternative is, though? The following
      * should at least not go wrong too badly... */
 
+    size_t dyld_index = 0;
     for (;;) {
-        size_t i = images.size();
-
-        const char *image_name = _dyld_get_image_name(i);
-        const struct mach_header *image_header = _dyld_get_image_header(i);
+        const char *image_name = _dyld_get_image_name(dyld_index);
+        const struct mach_header *image_header = _dyld_get_image_header(dyld_index);
+        ++dyld_index;
 
         if (!image_name || !image_header) {
             break;
@@ -254,7 +254,7 @@ char **GetBacktraceSymbols(void *const *addresses, int num_addresses) {
 
         Image image;
 
-        image.dyld_index = i;
+        image.dyld_index = dyld_index;
         image.name = image_name;
         image.begin = (uint64_t)image_header;
 
