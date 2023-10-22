@@ -196,6 +196,13 @@ static void MutexMetadataUI(MutexMetadata *m) {
         }
     }
 
+    {
+        bool interesting = m->interesting.load(std::memory_order_acquire);
+        if (ImGui::Checkbox("Interesting", &interesting)) {
+            m->interesting.store(interesting, std::memory_order_release);
+        }
+    }
+
     ImGui::Text("Locks: %" PRIu64 " (~%.1f/sec)", m->stats.num_locks, num_ticks == 0 ? 0 : m->stats.num_locks / GetSecondsFromTicks(num_ticks));
     if (m->stats.num_locks > 0) {
         ImGui::Text("Contended Locks: %" PRIu64 " (%.3f%%)", m->stats.num_contended_locks, m->stats.num_locks == 0 ? 0. : (double)m->stats.num_contended_locks / m->stats.num_locks);
@@ -285,6 +292,12 @@ void DataRateUI::DoImGui() {
 
     uint64_t runtime_ticks = GetCurrentTickCount() - APPROX_STARTUP_TICKS;
     ImGui::Text("Total run time: ~%.3f sec (~%.1f ms)", GetSecondsFromTicks(runtime_ticks), GetMillisecondsFromTicks(runtime_ticks));
+
+    uint64_t total_lock_wait_ticks = 0;
+    for (const std::shared_ptr<MutexMetadata> &m : metadata) {
+        total_lock_wait_ticks += m->stats.total_lock_wait_ticks;
+    }
+    ImGui::Text("Total lock wait time: ~%.3f sec (~%.1f ms)", GetSecondsFromTicks(total_lock_wait_ticks), GetMillisecondsFromTicks(total_lock_wait_ticks));
 
     for (size_t i = 0; i < metadata.size(); ++i) {
         MutexMetadata *m = metadata[i].get();

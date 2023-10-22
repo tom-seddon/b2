@@ -55,6 +55,8 @@ struct MutexMetadata {
 
     std::atomic<bool> reset{false};
 
+    std::atomic<bool> interesting{false};
+
     Mutex *mutex = nullptr;
 
     // This is never reset, so that it's possible to distinguish no locks ever
@@ -89,6 +91,7 @@ class Mutex {
     const MutexMetadata *GetMetadata() const;
 
     void lock() {
+        bool interesting = false;
 #if !MUTEX_ASSUME_UNCONTENDED_LOCKS_ARE_FREE
         uint64_t lock_start_ticks = GetCurrentTickCount();
 #endif
@@ -103,6 +106,10 @@ class Mutex {
 #if MUTEX_ASSUME_UNCONTENDED_LOCKS_ARE_FREE
             lock_wait_ticks += GetCurrentTickCount() - lock_start_ticks;
 #endif
+
+            if (m_meta->interesting.load(std::memory_order_acquire)) {
+                interesting = true;
+            }
         }
 
         ++m_meta->stats.num_locks;
@@ -123,6 +130,10 @@ class Mutex {
 
         if (lock_wait_ticks > m_meta->stats.max_lock_wait_ticks) {
             m_meta->stats.max_lock_wait_ticks = lock_wait_ticks;
+        }
+
+        if (interesting) {
+            this->OnInterestingEvent();
         }
     }
 
@@ -161,6 +172,8 @@ class Mutex {
     // This is just the value of &m_metadata_shared_ptr.get()->meta,
     // in an attempt to avoid atrocious debug build performance.
     MutexMetadata *m_meta = nullptr;
+
+    void OnInterestingEvent();
 };
 
 #define MUTEX_SET_NAME(MUTEX, NAME) ((MUTEX).SetName((NAME)))
