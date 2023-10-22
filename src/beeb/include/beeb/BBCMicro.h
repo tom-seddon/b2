@@ -439,13 +439,9 @@ class BBCMicro : private WD1770Handler,
     const M6502 *GetM6502() const;
 
 #if BBCMICRO_DEBUGGER
-    uint16_t DebugGetBeebAddressFromCRTCAddress(uint8_t h, uint8_t l) const;
-
     // Hiding these behind accessors really doesn't buy much. Just
     // trying to avoid making the debug stuff a friend of this
     // class... though maybe it wouldn't matter?
-    const CRTC *DebugGetCRTC() const;
-    const ExtMem *DebugGetExtMem() const;
     const VideoULA *DebugGetVideoULA() const;
     AddressableLatch DebugGetAddressableLatch() const;
     const R6522 *DebugGetSystemVIA() const;
@@ -455,8 +451,6 @@ class BBCMicro : private WD1770Handler,
     void DebugGetPaging(ROMSEL *romsel, ACCCON *acccon) const;
     const Tube *DebugGetTube() const;
     const ADC *DebugGetADC() const;
-
-    const M6502 *DebugGetM6502(uint32_t dso) const;
 
     //uint16_t DebugGetFlatPage(uint8_t page) const;
 
@@ -473,7 +467,7 @@ class BBCMicro : private WD1770Handler,
                                           bool mos,
                                           uint32_t dso);
 
-    void DebugGetMemBigPageIsMOSTable(uint8_t *mem_big_page_is_mos, uint32_t dso) const;
+    static void DebugGetMemBigPageIsMOSTable(uint8_t *mem_big_page_is_mos, const State *state, uint32_t dso);
 
     // Get/set per-byte debug flags for one byte.
     uint8_t DebugGetByteDebugFlags(const BigPage *big_page, uint32_t offset) const;
@@ -513,10 +507,7 @@ class BBCMicro : private WD1770Handler,
     HardwareDebugState GetHardwareDebugState() const;
     void SetHardwareDebugState(const HardwareDebugState &hw);
 
-    // Ugly terminology - returns the current paging state, expressed as
-    // a combination of paging override flags. All the override bits are
-    // set, and the actual flags are set appropriately.
-    uint32_t DebugGetCurrentPageOverride() const;
+    static uint32_t DebugGetCurrentStateOverride(const State *state);
 
     // The breakpoints change counter is incremented any time the set of
     // breakpoints changes.
@@ -532,8 +523,6 @@ class BBCMicro : private WD1770Handler,
     void DebugGetDebugFlags(uint8_t *host_address_debug_flags,
                             uint8_t *parasite_address_debug_flags,
                             uint8_t *big_pages_debug_flags) const;
-
-    uint32_t DebugGetStateOverrideMask() const;
 #endif
 
     void SendBeebLinkResponse(std::vector<uint8_t> data);
@@ -574,9 +563,12 @@ class BBCMicro : private WD1770Handler,
     };
 
   public: //TODO rationalize this a bit
-    // All the shared_ptr<vector>> point to vectors that are never resized
-    // once created. So in principle it's safe(ish) to call size() and
+    // All the shared_ptr<vector<uint8_t>> point to vectors that are never
+    // resized once created. So in principle it's safe(ish) to call size() and
     // operator[] from multiple threads without bothering to lock.
+    //
+    // The ExtMem has a shared_ptr<vector<uint8_t>> inside it, and that follows
+    // the same rules.
     //
     // This will get improved.
     struct State {
@@ -586,20 +578,28 @@ class BBCMicro : private WD1770Handler,
         explicit State(const State &) = default;
         State &operator=(const State &) = default;
 
-      private:
+        const M6502 *DebugGetM6502(uint32_t dso) const;
+        const ExtMem *DebugGetExtMem() const;
+
         const BBCMicroType *type = nullptr;
+
+      private:
         uint32_t init_flags = 0;
 
       public:
         BBCMicroParasiteType parasite_type = BBCMicroParasiteType_None;
 
-      private:
         // 6845
         CRTC crtc;
+
+      private:
         CRTC::Output crtc_last_output = {};
 
+      public:
         // Video output
         VideoULA video_ula;
+
+      private:
         SAA5050 saa5050;
         uint8_t ic15_byte = 0;
 
@@ -614,10 +614,10 @@ class BBCMicro : private WD1770Handler,
         // output and measure (for informational purposes) time between vsyncs.
         CycleCount cycle_count = {0};
 
-      private:
         // Addressable latch.
         AddressableLatch addressable_latch = {0xff};
 
+      private:
         // Previous values, for detecting edge transitions.
         AddressableLatch old_addressable_latch = {0xff};
 
@@ -698,7 +698,6 @@ class BBCMicro : private WD1770Handler,
         // Tube stuff.
         bool parasite_accessible = false;
 
-      public:
         M6502 parasite_cpu = {};
 
       private:

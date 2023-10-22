@@ -163,6 +163,32 @@ BBCMicro::State::State(const BBCMicroType *type_,
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#if BBCMICRO_DEBUGGER
+const M6502 *BBCMicro::State::DebugGetM6502(uint32_t dso) const {
+    if (dso & BBCMicroDebugStateOverride_Parasite) {
+        if (this->parasite_type != BBCMicroParasiteType_None) {
+            return &this->parasite_cpu;
+        }
+    }
+
+    return &this->cpu;
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+const ExtMem *BBCMicro::State::DebugGetExtMem() const {
+    if (this->init_flags & BBCMicroInitFlag_ExtMem) {
+        return &this->ext_mem;
+    } else {
+        return nullptr;
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 BBCMicro::BBCMicro(const BBCMicroType *type,
                    const DiscInterfaceDef *def,
                    BBCMicroParasiteType parasite_type,
@@ -1005,27 +1031,6 @@ const uint8_t BBCMicro::CURSOR_PATTERNS[8] = {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-#if BBCMICRO_DEBUGGER
-uint16_t BBCMicro::DebugGetBeebAddressFromCRTCAddress(uint8_t h, uint8_t l) const {
-    M6502Word addr;
-    addr.b.h = h;
-    addr.b.l = l;
-
-    if (addr.w & 0x2000) {
-        return (addr.w & 0x3ff) | m_teletext_bases[addr.w >> 11 & 1];
-    } else {
-        if (addr.w & 0x1000) {
-            addr.w -= SCREEN_WRAP_ADJUSTMENTS[m_state.addressable_latch.bits.screen_base];
-            addr.w &= ~0x1000u;
-        }
-
-        return addr.w << 3;
-    }
-}
-#endif
-
-//////////////////////////////////////////////////////////////////////////
-
 #if BBCMICRO_ENABLE_DISC_DRIVE_SOUND
 void BBCMicro::SetDiscDriveSound(DiscDriveType type, DiscDriveSound sound, std::vector<float> samples) {
     ASSERT(sound >= 0 && sound < DiscDriveSound_EndValue);
@@ -1367,30 +1372,6 @@ const M6502 *BBCMicro::GetM6502() const {
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_DEBUGGER
-const CRTC *BBCMicro::DebugGetCRTC() const {
-    return &m_state.crtc;
-}
-#endif
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-#if BBCMICRO_DEBUGGER
-
-const ExtMem *BBCMicro::DebugGetExtMem() const {
-    if (m_state.init_flags & BBCMicroInitFlag_ExtMem) {
-        return &m_state.ext_mem;
-    } else {
-        return nullptr;
-    }
-}
-
-#endif
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-#if BBCMICRO_DEBUGGER
 const VideoULA *BBCMicro::DebugGetVideoULA() const {
     return &m_state.video_ula;
 }
@@ -1478,21 +1459,6 @@ const ADC *BBCMicro::DebugGetADC() const {
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_DEBUGGER
-const M6502 *BBCMicro::DebugGetM6502(uint32_t dso) const {
-    if (dso & BBCMicroDebugStateOverride_Parasite) {
-        if (m_state.parasite_type != BBCMicroParasiteType_None) {
-            return &m_state.parasite_cpu;
-        }
-    }
-
-    return &m_state.cpu;
-}
-#endif
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-#if BBCMICRO_DEBUGGER
 const BBCMicro::BigPage *BBCMicro::DebugGetBigPageForAddress(M6502Word addr,
                                                              bool mos,
                                                              uint32_t dso) const {
@@ -1568,18 +1534,18 @@ void BBCMicro::DebugGetBigPageForAddress(ReadOnlyBigPage *bp,
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_DEBUGGER
-void BBCMicro::DebugGetMemBigPageIsMOSTable(uint8_t *mem_big_page_is_mos, uint32_t dso) const {
+void BBCMicro::DebugGetMemBigPageIsMOSTable(uint8_t *mem_big_page_is_mos, const State *state, uint32_t dso) {
     // Should maybe try to make this all fit together a bit better...
     if (dso & BBCMicroDebugStateOverride_Parasite) {
         memset(mem_big_page_is_mos, 0, 16);
     } else {
-        ROMSEL romsel = m_state.romsel;
-        ACCCON acccon = m_state.acccon;
-        (*m_state.type->apply_dso_fn)(&romsel, &acccon, dso);
+        ROMSEL romsel = state->romsel;
+        ACCCON acccon = state->acccon;
+        (*state->type->apply_dso_fn)(&romsel, &acccon, dso);
 
         MemoryBigPageTables tables;
         uint32_t paging_flags;
-        (*m_state.type->get_mem_big_page_tables_fn)(&tables, &paging_flags, romsel, acccon);
+        (*state->type->get_mem_big_page_tables_fn)(&tables, &paging_flags, romsel, acccon);
 
         memcpy(mem_big_page_is_mos, tables.pc_mem_big_pages_set, 16);
     }
@@ -1832,7 +1798,7 @@ void BBCMicro::DebugStepOver(uint32_t dso) {
         return;
     }
 
-    const M6502 *s = this->DebugGetM6502(dso);
+    const M6502 *s = m_state.DebugGetM6502(dso);
     if (!s) {
         return;
     }
@@ -1846,14 +1812,14 @@ void BBCMicro::DebugStepOver(uint32_t dso) {
         // More work than required here - but it's not a massive problem, just
         // a bit ugly :(
         uint8_t pc_is_mos[16];
-        this->DebugGetMemBigPageIsMOSTable(pc_is_mos, dso);
+        this->DebugGetMemBigPageIsMOSTable(pc_is_mos, &m_state, dso);
 
         // Try to put a breakpoint on the actual next instruction, rather than
         // its address.
         M6502Word next_pc = {(uint16_t)(s->opcode_pc.w + di->num_bytes)};
         const BBCMicro::BigPage *big_page = this->DebugGetBigPageForAddress(next_pc,
                                                                             !!pc_is_mos[s->pc.p.p],
-                                                                            dso | this->DebugGetCurrentPageOverride());
+                                                                            dso | DebugGetCurrentStateOverride(&m_state));
 
         uint8_t flags = this->DebugGetByteDebugFlags(big_page, next_pc.p.o);
         flags |= BBCMicroByteDebugFlag_TempBreakExecute;
@@ -1871,7 +1837,7 @@ void BBCMicro::DebugStepIn(uint32_t dso) {
         return;
     }
 
-    const M6502 *cpu = this->DebugGetM6502(dso);
+    const M6502 *cpu = m_state.DebugGetM6502(dso);
     this->SetDebugStepType(BBCMicroStepType_StepIn, cpu);
 }
 #endif
@@ -1950,11 +1916,11 @@ void BBCMicro::SetHardwareDebugState(const HardwareDebugState &hw) {
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_DEBUGGER
-uint32_t BBCMicro::DebugGetCurrentPageOverride() const {
-    uint32_t dso = (*m_state.type->get_dso_fn)(m_state.romsel, m_state.acccon);
+uint32_t BBCMicro::DebugGetCurrentStateOverride(const State *state) {
+    uint32_t dso = (state->type->get_dso_fn)(state->romsel, state->acccon);
 
-    if (m_state.parasite_type != BBCMicroParasiteType_None) {
-        if (m_state.parasite_boot_mode) {
+    if (state->parasite_type != BBCMicroParasiteType_None) {
+        if (state->parasite_boot_mode) {
             dso |= BBCMicroDebugStateOverride_ParasiteROM;
         }
     }
@@ -1992,23 +1958,6 @@ void BBCMicro::DebugGetDebugFlags(uint8_t *host_address_debug_flags,
         memset(parasite_address_debug_flags, 0, 65536);
         memset(big_pages_debug_flags, 0, NUM_BIG_PAGES * BIG_PAGE_SIZE_BYTES);
     }
-}
-#endif
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-#if BBCMICRO_DEBUGGER
-uint32_t BBCMicro::DebugGetStateOverrideMask() const {
-    uint32_t dso_mask = m_state.type->dso_mask;
-
-    if (m_state.parasite_type != BBCMicroParasiteType_None) {
-        dso_mask |= (BBCMicroDebugStateOverride_Parasite |
-                     BBCMicroDebugStateOverride_ParasiteROM |
-                     BBCMicroDebugStateOverride_OverrideParasiteROM);
-    }
-
-    return dso_mask;
 }
 #endif
 

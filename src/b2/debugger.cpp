@@ -180,9 +180,12 @@ class DebugUI : public SettingsUI {
 
     const DebugBigPage *GetDebugBigPageForAddress(M6502Word addr,
                                                   bool mos);
+
+    uint32_t GetDebugStateOverrideMask() const;
+
     // If required state implied by m_dso is unavailable, display a suitable
     // message.
-    bool IsStateUnavailableImGui(const BBCMicro *m) const;
+    bool IsStateUnavailableImGui() const;
 
   private:
     std::unique_ptr<DebugBigPage> m_dbps[2][16]; // [mos][mem big page]
@@ -332,14 +335,8 @@ void DebugUI::DoDebugPageOverrideImGui() {
     static const char OS_POPUP[] = "os_popup";
     static const char PARASITE_ROM_POPUP[] = "parasite_rom_popup";
 
-    uint32_t dso_mask;
-    uint32_t dso_current;
-    {
-        std::unique_lock<Mutex> lock;
-        const BBCMicro *m = m_beeb_thread->LockBeeb(&lock);
-        dso_mask = m->DebugGetStateOverrideMask();
-        dso_current = m->DebugGetCurrentPageOverride();
-    }
+    uint32_t dso_mask = this->GetDebugStateOverrideMask();
+    uint32_t dso_current = BBCMicro::DebugGetCurrentStateOverride(m_beeb_state.get());
 
     //if (dso_mask & BBCMicroDebugStateOverride_Parasite) {
     //    ImGui::CheckboxFlags("Parasite", &m_dso, BBCMicroDebugStateOverride_Parasite);
@@ -717,9 +714,24 @@ const DebugUI::DebugBigPage *DebugUI::GetDebugBigPageForAddress(M6502Word addr,
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool DebugUI::IsStateUnavailableImGui(const BBCMicro *m) const {
+uint32_t DebugUI::GetDebugStateOverrideMask() const {
+    uint32_t dso_mask = m_beeb_state->type->dso_mask;
+
+    if (m_beeb_state->parasite_type != BBCMicroParasiteType_None) {
+        dso_mask |= (BBCMicroDebugStateOverride_Parasite |
+                     BBCMicroDebugStateOverride_ParasiteROM |
+                     BBCMicroDebugStateOverride_OverrideParasiteROM);
+    }
+
+    return dso_mask;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool DebugUI::IsStateUnavailableImGui() const {
     if (m_dso & BBCMicroDebugStateOverride_Parasite) {
-        if (!(m->DebugGetStateOverrideMask() & BBCMicroDebugStateOverride_Parasite)) {
+        if (!(this->GetDebugStateOverrideMask() & BBCMicroDebugStateOverride_Parasite)) {
             ImGui::TextUnformatted("State not available");
             return true;
         }
@@ -845,11 +857,11 @@ class M6502DebugWindow : public DebugUI {
 
         ImGuiHeader("Host CPU");
 
-        this->StateImGui(&m_beeb_state->cpu);
+        this->StateImGui(m_beeb_state->DebugGetM6502(0));
 
         if (m_beeb_state->parasite_type != BBCMicroParasiteType_None) {
             ImGuiHeader("Parasite CPU");
-            this->StateImGui(&m_beeb_state->parasite_cpu);
+            this->StateImGui(m_beeb_state->DebugGetM6502(BBCMicroDebugStateOverride_Parasite));
         }
     }
 
@@ -860,11 +872,11 @@ class M6502DebugWindow : public DebugUI {
         this->Reg("Y", cpu->y);
         ImGui::Text("PC = $%04x", cpu->opcode_pc.w);
         ImGui::Text("S = $01%02X", cpu->s.b.l);
-        uint8_t opcode=M6502_GetOpcode(cpu);
+        uint8_t opcode = M6502_GetOpcode(cpu);
         const char *mnemonic = cpu->config->disassembly_info[opcode].mnemonic;
         const char *mode_name = M6502AddrMode_GetName(cpu->config->disassembly_info[opcode].mode);
 
-        M6502P p=M6502_GetP(cpu);
+        M6502P p = M6502_GetP(cpu);
         char pstr[9];
         ImGui::Text("P = $%02x %s", p.value, M6502P_GetString(pstr, p));
 
@@ -908,23 +920,9 @@ class MemoryDebugWindow : public DebugUI,
 
   protected:
     void DoImGui2() override {
-
-        {
-            std::unique_lock<Mutex> lock;
-            const BBCMicro *m = m_beeb_thread->LockBeeb(&lock);
-
-            if (this->IsStateUnavailableImGui(m)) {
-                return;
-            }
-
-            m_type = m->GetType();
-        }
-
         this->DoDebugPageOverrideImGui();
 
         m_hex_editor.DoImGui();
-
-        m_type = nullptr;
     }
 
   private:
@@ -1062,7 +1060,10 @@ class MemoryDebugWindow : public DebugUI,
 
         bool ParseAddressText(size_t *offset, const char *text) override {
             uint16_t addr;
-            if (!ParseAddress(&addr, &m_window->m_dso, m_window->m_type, text)) {
+            if (!ParseAddress(&addr,
+                              &m_window->m_dso,
+                              m_window->m_beeb_state->type,
+                              text)) {
                 return false;
             }
 
@@ -1096,7 +1097,6 @@ class MemoryDebugWindow : public DebugUI,
 
     Handler m_handler;
     HexEditor m_hex_editor;
-    const BBCMicroType *m_type = nullptr;
 };
 
 std::unique_ptr<SettingsUI> CreateHostMemoryDebugWindow(BeebWindow *beeb_window) {
@@ -1121,18 +1121,14 @@ class ExtMemoryDebugWindow : public DebugUI {
     void DoImGui2() override {
         bool enabled;
         uint8_t l, h;
-        {
-            std::unique_lock<Mutex> lock;
-            const BBCMicro *m = m_beeb_thread->LockBeeb(&lock);
 
-            if (const ExtMem *s = m->DebugGetExtMem()) {
-                enabled = true;
-                l = s->GetAddressL();
-                h = s->GetAddressH();
-            } else {
-                enabled = false;
-                h = l = 0; //inhibit spurious unused variable warning.
-            }
+        if (const ExtMem *s = m_beeb_state->DebugGetExtMem()) {
+            enabled = true;
+            l = s->GetAddressL();
+            h = s->GetAddressH();
+        } else {
+            enabled = false;
+            h = l = 0; //inhibit spurious unused variable warning.
         }
 
         if (enabled) {
@@ -1155,9 +1151,7 @@ class ExtMemoryDebugWindow : public DebugUI {
 
         ASSERT((uint32_t)off == off);
 
-        std::unique_lock<Mutex> lock;
-        const BBCMicro *m = self->m_beeb_thread->LockBeeb(&lock);
-        const ExtMem *s = m->DebugGetExtMem();
+        const ExtMem *s = self->m_beeb_state->DebugGetExtMem();
         return ExtMem::ReadMemory(s, (uint32_t)off);
     }
 
@@ -1212,35 +1206,40 @@ class DisassemblyDebugWindow : public DebugUI,
 
   protected:
     void DoImGui2() override {
-        const M6502Config *config;
-        uint16_t pc;
-        uint8_t a, x, y;
-        M6502Word sp;
-        M6502P p;
-        uint8_t pc_is_mos[16];
-        const BBCMicroType *type;
-        bool halted;
-        {
-            std::unique_lock<Mutex> lock;
-            const BBCMicro *m = m_beeb_thread->LockBeeb(&lock);
-
-            const M6502 *s = m->DebugGetM6502(m_dso);
-            if (this->IsStateUnavailableImGui(m)) {
-                return;
-            }
-
-            type = m->GetType();
-            halted = m->DebugIsHalted();
-
-            config = s->config;
-            pc = s->opcode_pc.w;
-            a = s->a;
-            x = s->x;
-            y = s->y;
-            p = M6502_GetP(s);
-            sp = s->s;
-            m->DebugGetMemBigPageIsMOSTable(pc_is_mos, m_dso);
+        if (this->IsStateUnavailableImGui()) {
+            return;
         }
+
+        const M6502 *cpu = m_beeb_state->DebugGetM6502(m_dso);
+
+        //const M6502Config *config;
+        //uint16_t pc;
+        //uint8_t a, x, y;
+        //M6502Word sp;
+        //M6502P p;
+        uint8_t pc_is_mos[16];
+        BBCMicro::DebugGetMemBigPageIsMOSTable(pc_is_mos, m_beeb_state.get(), m_dso);
+
+        //const BBCMicroType *type;
+        //bool halted;
+        //{
+        //    std::unique_lock<Mutex> lock;
+        //    const BBCMicro *m = m_beeb_thread->LockBeeb(&lock);
+
+        //    const M6502 *s = m->DebugGetM6502(m_dso);
+
+        //    type = m->GetType();
+        //    halted = m->DebugIsHalted();
+
+        //    config = s->config;
+        //    pc = s->opcode_pc.w;
+        //    a = s->a;
+        //    x = s->x;
+        //    y = s->y;
+        //    p = M6502_GetP(s);
+        //    sp = s->s;
+        //    m->DebugGetMemBigPageIsMOSTable(pc_is_mos, m_dso);
+        //}
 
         m_cst.SetTicked(g_toggle_track_pc_command, m_track_pc);
         if (m_cst.WasActioned(g_toggle_track_pc_command)) {
@@ -1262,22 +1261,22 @@ class DisassemblyDebugWindow : public DebugUI,
 
         m_cst.SetEnabled(g_up_command, !m_track_pc);
         if (m_cst.WasActioned(g_up_command)) {
-            this->Up(config, 1);
+            this->Up(cpu->config, 1);
         }
 
         m_cst.SetEnabled(g_down_command, !m_track_pc);
         if (m_cst.WasActioned(g_down_command)) {
-            this->Down(config, 1);
+            this->Down(cpu->config, 1);
         }
 
         m_cst.SetEnabled(g_page_up_command, !m_track_pc);
         if (m_cst.WasActioned(g_page_up_command)) {
-            this->Up(config, m_num_lines - 2);
+            this->Up(cpu->config, m_num_lines - 2);
         }
 
         m_cst.SetEnabled(g_page_down_command, !m_track_pc);
         if (m_cst.WasActioned(g_page_down_command)) {
-            this->Down(config, m_num_lines - 2);
+            this->Down(cpu->config, m_num_lines - 2);
         }
 
         m_cst.SetEnabled(g_step_over_command, m_beeb_window->DebugIsRunEnabled());
@@ -1294,13 +1293,14 @@ class DisassemblyDebugWindow : public DebugUI,
 
         this->DoDebugPageOverrideImGui();
 
-        this->ByteRegUI("A", a);
+        this->ByteRegUI("A", cpu->a);
         ImGui::SameLine();
-        this->ByteRegUI("X", x);
+        this->ByteRegUI("X", cpu->x);
         ImGui::SameLine();
-        this->ByteRegUI("Y", y);
+        this->ByteRegUI("Y", cpu->y);
         ImGui::SameLine();
         {
+            M6502P p = M6502_GetP(cpu);
             char pstr[9];
             M6502P_GetString(pstr, p);
             ImGui::TextUnformatted("P=");
@@ -1313,9 +1313,9 @@ class DisassemblyDebugWindow : public DebugUI,
             }
             ImGui::SameLine();
         }
-        this->WordRegGui("S", sp);
+        this->ByteRegUI("S", cpu->s.b.l);
         ImGui::SameLine();
-        this->WordRegGui("PC", {pc});
+        this->WordRegUI("PC", cpu->pc);
         ImGui::SameLine();
         m_cst.DoToggleCheckbox(g_toggle_track_pc_command);
 
@@ -1325,7 +1325,7 @@ class DisassemblyDebugWindow : public DebugUI,
                              m_address_text, sizeof m_address_text,
                              ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_AutoSelectAll)) {
             uint16_t addr;
-            if (ParseAddress(&addr, &m_dso, type, m_address_text)) {
+            if (ParseAddress(&addr, &m_dso, m_beeb_state->type, m_address_text)) {
                 this->GoTo(addr);
             }
         }
@@ -1335,14 +1335,14 @@ class DisassemblyDebugWindow : public DebugUI,
         m_cst.DoButton(g_step_in_command);
 
         if (m_track_pc) {
-            if (halted) {
-                if (m_old_pc != pc) {
+            if (m_beeb_debug_state->is_halted) {
+                if (m_old_pc != cpu->pc.w) {
                     // well, *something* happened since last time...
-                    m_addr = pc;
-                    m_old_pc = pc;
+                    m_addr = cpu->pc.w;
+                    m_old_pc = cpu->pc.w;
                 }
             } else {
-                m_addr = pc;
+                m_addr = cpu->pc.w;
             }
         }
 
@@ -1366,7 +1366,7 @@ class DisassemblyDebugWindow : public DebugUI,
                            false);
             char ascii[4];
 
-            const M6502DisassemblyInfo *di = &config->disassembly_info[opcode];
+            const M6502DisassemblyInfo *di = &cpu->config->disassembly_info[opcode];
 
             M6502Word operand = {};
             M6502Word operand_addr_flags = {};
@@ -1388,7 +1388,7 @@ class DisassemblyDebugWindow : public DebugUI,
 
             ImGuiStyleColourPusher pusher;
 
-            if (line_addr.w == pc) {
+            if (line_addr.w == cpu->pc.w) {
                 pusher.Push(ImGuiCol_Text, ImVec4(1.f, 1.f, 0.f, 1.f));
             }
 
@@ -1513,12 +1513,12 @@ class DisassemblyDebugWindow : public DebugUI,
 
             case M6502AddrMode_ZPX:
                 this->AddByte("", operand.b.l, false, ",X");
-                this->AddByte(IND_PREFIX, operand.b.l + x, mos, "");
+                this->AddByte(IND_PREFIX, operand.b.l + cpu->x, mos, "");
                 break;
 
             case M6502AddrMode_ZPY:
                 this->AddByte("", operand.b.l, false, ",Y");
-                this->AddByte(IND_PREFIX, operand.b.l + y, mos, "");
+                this->AddByte(IND_PREFIX, operand.b.l + cpu->y, mos, "");
                 break;
 
             case M6502AddrMode_ABS:
@@ -1528,22 +1528,22 @@ class DisassemblyDebugWindow : public DebugUI,
 
             case M6502AddrMode_ABX:
                 this->AddWord("", operand.w, mos, ",X");
-                this->AddWord(IND_PREFIX, operand.w + x, mos, "");
+                this->AddWord(IND_PREFIX, operand.w + cpu->x, mos, "");
                 break;
 
             case M6502AddrMode_ABY:
                 this->AddWord("", operand.w, mos, ",Y");
-                this->AddWord(IND_PREFIX, operand.w + y, mos, "");
+                this->AddWord(IND_PREFIX, operand.w + cpu->y, mos, "");
                 break;
 
             case M6502AddrMode_INX:
                 this->AddByte("(", operand.b.l, false, ",X)");
-                this->DoIndirect((operand.b.l + x) & 0xff, mos, 0xff, 0);
+                this->DoIndirect((operand.b.l + cpu->x) & 0xff, mos, 0xff, 0);
                 break;
 
             case M6502AddrMode_INY:
                 this->AddByte("(", operand.b.l, false, "),Y");
-                this->DoIndirect(operand.b.l, mos, 0xff, y);
+                this->DoIndirect(operand.b.l, mos, 0xff, cpu->y);
                 break;
 
             case M6502AddrMode_IND:
@@ -1564,7 +1564,7 @@ class DisassemblyDebugWindow : public DebugUI,
 
             case M6502AddrMode_INDX:
                 this->AddWord("(", operand.w, false, ",X)");
-                this->DoIndirect(operand.w + x, mos, 0xffff, 0);
+                this->DoIndirect(operand.w + cpu->x, mos, 0xffff, 0);
                 break;
 
             case M6502AddrMode_ZPG_REL_ROCKWELL:
@@ -1590,9 +1590,9 @@ class DisassemblyDebugWindow : public DebugUI,
             wheel *= 5; //wild guess...
 
             if (wheel < 0) {
-                this->Down(config, -wheel);
+                this->Down(cpu->config, -wheel);
             } else if (wheel > 0) {
-                this->Up(config, wheel);
+                this->Up(cpu->config, wheel);
             }
         }
     }
@@ -1721,67 +1721,6 @@ class DisassemblyDebugWindow : public DebugUI,
         m_addr = address;
     }
 
-    //bool IsTrackingPC() const {
-    //    return m_track_pc;
-    //}
-
-    //void ToggleTrackPC() {
-    //    m_track_pc = !m_track_pc;
-
-    //    if (m_track_pc) {
-    //        // force snap to current PC if it's halted.
-    //        m_old_pc = -1;
-    //    }
-    //}
-
-    //bool IsBackEnabled() const {
-    //    return !m_history.empty();
-    //}
-
-    //void Back() {
-    //    if (!m_history.empty()) {
-    //        m_track_pc = false;
-    //        m_addr = m_history.back();
-    //        m_history.pop_back();
-    //    }
-    //}
-
-    //bool IsMoveEnabled() const {
-    //    if (m_track_pc) {
-    //        return false;
-    //    }
-
-    //    //if(m_line_addrs.empty()) {
-    //    //    return false;
-    //    //}
-
-    //    return true;
-    //}
-
-    //void PageUp() {
-    //    const M6502Config *config = this->Get6502Config();
-
-    //    this->Up(config, m_num_lines - 2);
-    //}
-
-    //void PageDown() {
-    //    const M6502Config *config = this->Get6502Config();
-
-    //    this->Down(config, m_num_lines - 2);
-    //}
-
-    //void Up() {
-    //    const M6502Config *config = this->Get6502Config();
-
-    //    this->Up(config, 1);
-    //}
-
-    //void Down() {
-    //    const M6502Config *config = this->Get6502Config();
-
-    //    this->Down(config, 1);
-    //}
-
     void Up(const M6502Config *config, int n) {
         for (int i = 0; i < n; ++i) {
             uint8_t opcode;
@@ -1821,14 +1760,6 @@ class DisassemblyDebugWindow : public DebugUI,
         }
     }
 
-    const M6502Config *Get6502Config() {
-        std::unique_lock<Mutex> lock;
-        const BBCMicro *m = m_beeb_thread->LockBeeb(&lock);
-        const M6502 *s = m->GetM6502();
-
-        return s->config;
-    }
-
     void ByteRegUI(const char *name, uint8_t value) {
         ImGui::Text("%s=", name);
         ImGui::SameLine(0, 0);
@@ -1844,7 +1775,7 @@ class DisassemblyDebugWindow : public DebugUI,
         ImGui::Text("% 3d %3uu $%02x %s", (int8_t)value, value, value, BINARY_BYTE_STRINGS[value]);
     }
 
-    void WordRegGui(const char *name, M6502Word value) {
+    void WordRegUI(const char *name, M6502Word value) {
         ImGui::Text("%s=", name);
         ImGui::SameLine(0, 0);
         ImGui::Text("$%04x", value.w);
@@ -1890,85 +1821,86 @@ class CRTCDebugWindow : public DebugUI {
   public:
   protected:
     void DoImGui2() override {
-        CRTC::Registers registers;
-        uint8_t address;
-        uint16_t cursor_address;
-        uint16_t display_address;
-        BBCMicro::AddressableLatch latch;
-        CRTC::InternalState st;
-        uint16_t char_addr, line_addr, next_line_addr;
+        const CRTC *c = &m_beeb_state->crtc;
 
-        {
-            std::unique_lock<Mutex> lock;
-            const BBCMicro *m = m_beeb_thread->LockBeeb(&lock);
-
-            const CRTC *c = m->DebugGetCRTC();
-            //const VideoULA *u=m->DebugGetVideoULA();
-
-            registers = c->m_registers;
-            address = c->m_address;
-            st = c->m_st;
-
-            cursor_address = m->DebugGetBeebAddressFromCRTCAddress(registers.bits.cursorh, registers.bits.cursorl);
-            display_address = m->DebugGetBeebAddressFromCRTCAddress(registers.bits.addrh, registers.bits.addrl);
-            char_addr = m->DebugGetBeebAddressFromCRTCAddress(st.char_addr.b.h, st.char_addr.b.l);
-            line_addr = m->DebugGetBeebAddressFromCRTCAddress(st.line_addr.b.h, st.line_addr.b.l);
-            next_line_addr = m->DebugGetBeebAddressFromCRTCAddress(st.next_line_addr.b.h, st.next_line_addr.b.l);
-
-            latch = m->DebugGetAddressableLatch();
-
-            //ucontrol=u->control;
-            //memcpy(upalette,u->m_palette,16);
-        }
+        uint16_t cursor_address = this->GetBeebAddressFromCRTCAddress(c->m_registers.bits.cursorh, c->m_registers.bits.cursorl);
+        uint16_t display_address = this->GetBeebAddressFromCRTCAddress(c->m_registers.bits.addrh, c->m_registers.bits.addrl);
+        uint16_t char_addr = this->GetBeebAddressFromCRTCAddress(c->m_st.char_addr.b.h, c->m_st.char_addr.b.l);
+        uint16_t line_addr = this->GetBeebAddressFromCRTCAddress(c->m_st.line_addr.b.h, c->m_st.line_addr.b.l);
+        uint16_t next_line_addr = this->GetBeebAddressFromCRTCAddress(c->m_st.next_line_addr.b.h, c->m_st.next_line_addr.b.l);
 
         if (ImGui::CollapsingHeader("Register Values")) {
-            ImGui::Text("Address = $%02x %03u", address, address);
+            ImGui::Text("Address = $%02x %03u", c->m_address, c->m_address);
             for (size_t i = 0; i < 18; ++i) {
-                ImGui::Text("R%zu = $%02x %03u %s", i, registers.values[i], registers.values[i], BINARY_BYTE_STRINGS[registers.values[i]]);
+                ImGui::Text("R%zu = $%02x %03u %s", i, c->m_registers.values[i], c->m_registers.values[i], BINARY_BYTE_STRINGS[c->m_registers.values[i]]);
             }
             ImGui::Separator();
         }
 
-        ImGui::Text("H Displayed = %u, Total = %u", registers.bits.nhd, registers.bits.nht);
-        ImGui::Text("V Displayed = %u, Total = %u", registers.bits.nvd, registers.bits.nvt);
-        ImGui::Text("Scanlines = %u * %u + %u = %u", registers.bits.nvd, registers.bits.nr + 1, registers.bits.nadj, registers.bits.nvd * (registers.bits.nr + 1) + registers.bits.nadj);
+        ImGui::Text("H Displayed = %u, Total = %u", c->m_registers.bits.nhd, c->m_registers.bits.nht);
+        ImGui::Text("V Displayed = %u, Total = %u", c->m_registers.bits.nvd, c->m_registers.bits.nvt);
+        ImGui::Text("Scanlines = %u * %u + %u = %u", c->m_registers.bits.nvd, c->m_registers.bits.nr + 1, c->m_registers.bits.nadj, c->m_registers.bits.nvd * (c->m_registers.bits.nr + 1) + c->m_registers.bits.nadj);
         ImGui::Text("Address = $%04x", display_address);
-        ImGui::Text("(Wrap Adjustment = $%04x)", BBCMicro::SCREEN_WRAP_ADJUSTMENTS[latch.bits.screen_base] << 3);
+        ImGui::Text("(Wrap Adjustment = $%04x)", BBCMicro::SCREEN_WRAP_ADJUSTMENTS[m_beeb_state->addressable_latch.bits.screen_base] << 3);
         ImGui::Separator();
-        ImGui::Text("HSync Pos = %u, Width = %u", registers.bits.nhsp, registers.bits.nsw.bits.wh);
-        ImGui::Text("VSync Pos = %u, Width = %u", registers.bits.nvsp, registers.bits.nsw.bits.wv);
-        ImGui::Text("Interlace Sync = %s, Video = %s", BOOL_STR(registers.bits.r8.bits.s), BOOL_STR(registers.bits.r8.bits.v));
-        ImGui::Text("Delay Mode = %s", DELAY_NAMES[registers.bits.r8.bits.d]);
+        ImGui::Text("HSync Pos = %u, Width = %u", c->m_registers.bits.nhsp, c->m_registers.bits.nsw.bits.wh);
+        ImGui::Text("VSync Pos = %u, Width = %u", c->m_registers.bits.nvsp, c->m_registers.bits.nsw.bits.wv);
+        ImGui::Text("Interlace Sync = %s, Video = %s", BOOL_STR(c->m_registers.bits.r8.bits.s), BOOL_STR(c->m_registers.bits.r8.bits.v));
+        ImGui::Text("Delay Mode = %s", DELAY_NAMES[c->m_registers.bits.r8.bits.d]);
         ImGui::Separator();
-        ImGui::Text("Cursor Start = %u, End = %u, Mode = %s", registers.bits.ncstart.bits.start, registers.bits.ncend, GetCRTCCursorModeEnumName(registers.bits.ncstart.bits.mode));
-        ImGui::Text("Cursor Delay Mode = %s", DELAY_NAMES[registers.bits.r8.bits.c]);
+        ImGui::Text("Cursor Start = %u, End = %u, Mode = %s", c->m_registers.bits.ncstart.bits.start, c->m_registers.bits.ncend, GetCRTCCursorModeEnumName(c->m_registers.bits.ncstart.bits.mode));
+        ImGui::Text("Cursor Delay Mode = %s", DELAY_NAMES[c->m_registers.bits.r8.bits.c]);
         ImGui::Text("Cursor Address = $%04x", cursor_address);
         ImGui::Separator();
-        ImGui::Text("Column = %u, hdisp=%s", st.column, BOOL_STR(st.hdisp));
-        ImGui::Text("Row = %u, Raster = %u, vdisp=%s", st.row, st.raster, BOOL_STR(st.vdisp));
-        ImGui::Text("Char address = $%04X (CRTC) / $%04X (BBC)", st.char_addr.w, char_addr);
-        ImGui::Text("Line address = $%04X (CRTC) / $%04X (BBC)", st.line_addr.w, line_addr);
-        ImGui::Text("Next line address = $%04X (CRTC) / $%04X (BBC)", st.next_line_addr.w, next_line_addr);
-        ImGui::Text("DISPEN queue = %%%s", BINARY_BYTE_STRINGS[st.skewed_display]);
-        ImGui::Text("CUDISP queue = %%%s", BINARY_BYTE_STRINGS[st.skewed_cudisp]);
-        ImGui::Text("VSync counter = %d", st.vsync_counter);
-        ImGui::Text("HSync counter = %d", st.hsync_counter);
-        ImGui::Text("VAdj counter = %d", st.vadj_counter);
-        ImGui::Text("check_vadj = %s", BOOL_STR(st.check_vadj));
-        ImGui::Text("in_vadj = %s", BOOL_STR(st.in_vadj));
-        ImGui::Text("end_of_vadj_latched = %s", BOOL_STR(st.end_of_vadj_latched));
-        ImGui::Text("had_vsync_this_row = %s", BOOL_STR(st.had_vsync_this_row));
-        ImGui::Text("end_of_main_latched = %s", BOOL_STR(st.end_of_main_latched));
-        ImGui::Text("do_even_frame_logic = %s", BOOL_STR(st.do_even_frame_logic));
-        ImGui::Text("first_scanline = %s", BOOL_STR(st.first_scanline));
-        ImGui::Text("in_dummy_raster = %s", BOOL_STR(st.in_dummy_raster));
-        ImGui::Text("end_of_frame_latched = %s", BOOL_STR(st.end_of_frame_latched));
-        ImGui::Text("cursor = %s", BOOL_STR(st.cursor));
+        ImGui::Text("Column = %u, hdisp=%s", c->m_st.column, BOOL_STR(c->m_st.hdisp));
+        ImGui::Text("Row = %u, Raster = %u, vdisp=%s", c->m_st.row, c->m_st.raster, BOOL_STR(c->m_st.vdisp));
+        ImGui::Text("Char address = $%04X (CRTC) / $%04X (BBC)", c->m_st.char_addr.w, char_addr);
+        ImGui::Text("Line address = $%04X (CRTC) / $%04X (BBC)", c->m_st.line_addr.w, line_addr);
+        ImGui::Text("Next line address = $%04X (CRTC) / $%04X (BBC)", c->m_st.next_line_addr.w, next_line_addr);
+        ImGui::Text("DISPEN queue = %%%s", BINARY_BYTE_STRINGS[c->m_st.skewed_display]);
+        ImGui::Text("CUDISP queue = %%%s", BINARY_BYTE_STRINGS[c->m_st.skewed_cudisp]);
+        ImGui::Text("VSync counter = %d", c->m_st.vsync_counter);
+        ImGui::Text("HSync counter = %d", c->m_st.hsync_counter);
+        ImGui::Text("VAdj counter = %d", c->m_st.vadj_counter);
+        ImGui::Text("check_vadj = %s", BOOL_STR(c->m_st.check_vadj));
+        ImGui::Text("in_vadj = %s", BOOL_STR(c->m_st.in_vadj));
+        ImGui::Text("end_of_vadj_latched = %s", BOOL_STR(c->m_st.end_of_vadj_latched));
+        ImGui::Text("had_vsync_this_row = %s", BOOL_STR(c->m_st.had_vsync_this_row));
+        ImGui::Text("end_of_main_latched = %s", BOOL_STR(c->m_st.end_of_main_latched));
+        ImGui::Text("do_even_frame_logic = %s", BOOL_STR(c->m_st.do_even_frame_logic));
+        ImGui::Text("first_scanline = %s", BOOL_STR(c->m_st.first_scanline));
+        ImGui::Text("in_dummy_raster = %s", BOOL_STR(c->m_st.in_dummy_raster));
+        ImGui::Text("end_of_frame_latched = %s", BOOL_STR(c->m_st.end_of_frame_latched));
+        ImGui::Text("cursor = %s", BOOL_STR(c->m_st.cursor));
     }
 
   private:
     static const char *const INTERLACE_NAMES[];
     static const char *const DELAY_NAMES[];
+
+    uint16_t GetBeebAddressFromCRTCAddress(uint8_t h, uint8_t l) {
+        M6502Word addr;
+        addr.b.h = h;
+        addr.b.l = l;
+
+        if (addr.w & 0x2000) {
+            uint16_t base = 0x7c00;
+            if (!(addr.w >> 11 & 1)) {
+                if (m_beeb_state->type->flags & BBCMicroTypeFlag_CanDisplayTeletext3c00) {
+                    base = 0x3c00;
+                }
+            }
+
+            return (addr.w & 0x3ff) | base;
+        } else {
+            if (addr.w & 0x1000) {
+                addr.w -= BBCMicro::SCREEN_WRAP_ADJUSTMENTS[m_beeb_state->addressable_latch.bits.screen_base];
+                addr.w &= ~0x1000u;
+            }
+
+            return addr.w << 3;
+        }
+    }
 };
 
 const char *const CRTCDebugWindow::INTERLACE_NAMES[] = {"Normal", "Normal", "Interlace sync", "Interlace sync+video"};
@@ -1986,44 +1918,46 @@ class VideoULADebugWindow : public DebugUI {
   public:
   protected:
     void DoImGui2() override {
-        VideoULA::Control control;
-        uint8_t palette[16];
-        VideoDataPixel nula_palette[16];
-        uint8_t nula_flash[16];
-        uint8_t nula_direct_palette;
-        uint8_t nula_disable_a1;
-        uint8_t nula_scroll_offset;
-        uint8_t nula_blanking_size;
-        VideoULA::NuLAAttributeMode nula_attribute_mode;
-        bool nula;
+        //VideoULA::Control control;
+        //uint8_t palette[16];
+        //VideoDataPixel nula_palette[16];
+        //uint8_t nula_flash[16];
+        //uint8_t nula_direct_palette;
+        //uint8_t nula_disable_a1;
+        //uint8_t nula_scroll_offset;
+        //uint8_t nula_blanking_size;
+        //VideoULA::NuLAAttributeMode nula_attribute_mode;
+        //bool nula;
 
-        {
-            std::unique_lock<Mutex> lock;
-            const BBCMicro *m = m_beeb_thread->LockBeeb(&lock);
+        //{
+        //    std::unique_lock<Mutex> lock;
+        //    const BBCMicro *m = m_beeb_thread->LockBeeb(&lock);
 
-            const VideoULA *u = m->DebugGetVideoULA();
+        //    const VideoULA *u = m->DebugGetVideoULA();
 
-            control = u->control;
-            memcpy(palette, u->m_palette, 16);
-            memcpy(nula_palette, u->output_palette, 16 * sizeof(VideoDataPixel));
-            memcpy(nula_flash, u->m_flash, 16);
-            nula_direct_palette = u->m_direct_palette;
-            nula_disable_a1 = u->m_disable_a1;
-            nula_scroll_offset = u->m_scroll_offset;
-            nula_blanking_size = u->m_blanking_size;
-            nula_attribute_mode = u->m_attribute_mode;
-            nula = u->nula;
-        }
+        //    control = u->control;
+        //    memcpy(palette, u->m_palette, 16);
+        //    memcpy(nula_palette, u->output_palette, 16 * sizeof(VideoDataPixel));
+        //    memcpy(nula_flash, u->m_flash, 16);
+        //    nula_direct_palette = u->m_direct_palette;
+        //    nula_disable_a1 = u->m_disable_a1;
+        //    nula_scroll_offset = u->m_scroll_offset;
+        //    nula_blanking_size = u->m_blanking_size;
+        //    nula_attribute_mode = u->m_attribute_mode;
+        //    nula = u->nula;
+        //}
+
+        const VideoULA *u = &m_beeb_state->video_ula;
 
         if (ImGui::CollapsingHeader("Register Values")) {
-            ImGui::Text("Control = $%02x %03u %s", control.value, control.value, BINARY_BYTE_STRINGS[control.value]);
+            ImGui::Text("Control = $%02x %03u %s", u->control.value, u->control.value, BINARY_BYTE_STRINGS[u->control.value]);
             for (size_t i = 0; i < 16; ++i) {
-                uint8_t p = palette[i];
+                uint8_t p = u->m_palette[i];
                 ImGui::Text("Palette[%zu] = $%01x %02u %s ", i, p, p, BINARY_BYTE_STRINGS[p] + 4);
 
                 uint8_t colour = p & 7;
                 if (p & 8) {
-                    if (control.bits.flash) {
+                    if (u->control.bits.flash) {
                         colour ^= 7;
                     }
                 }
@@ -2043,11 +1977,11 @@ class VideoULADebugWindow : public DebugUI {
             ImGui::Separator();
         }
 
-        ImGui::Text("Flash colour = %u", control.bits.flash);
-        ImGui::Text("Teletext output = %s", BOOL_STR(control.bits.teletext));
-        ImGui::Text("Chars per line = %u", (1 << control.bits.line_width) * 10);
-        ImGui::Text("6845 clock = %u MHz", 1 + control.bits.fast_6845);
-        ImGui::Text("Cursor Shape = %s", CURSOR_SHAPES[control.bits.cursor]);
+        ImGui::Text("Flash colour = %u", u->control.bits.flash);
+        ImGui::Text("Teletext output = %s", BOOL_STR(u->control.bits.teletext));
+        ImGui::Text("Chars per line = %u", (1 << u->control.bits.line_width) * 10);
+        ImGui::Text("6845 clock = %u MHz", 1 + u->control.bits.fast_6845);
+        ImGui::Text("Cursor Shape = %s", CURSOR_SHAPES[u->control.bits.cursor]);
 
         for (uint8_t i = 0; i < 16; i += 4) {
             ImGui::Text("Palette:");
@@ -2055,11 +1989,11 @@ class VideoULADebugWindow : public DebugUI {
 
             for (uint8_t j = 0; j < 4; ++j) {
                 uint8_t index = i + j;
-                uint8_t entry = palette[index];
+                uint8_t entry = u->m_palette[index];
 
                 uint8_t colour = entry & 7;
                 if (entry & 8) {
-                    if (control.bits.flash) {
+                    if (u->control.bits.flash) {
                         colour ^= 7;
                     }
                 }
@@ -2072,19 +2006,19 @@ class VideoULADebugWindow : public DebugUI {
         }
 
         ImGuiTreeNodeFlags nula_section_flags = 0;
-        if (!nula_disable_a1) {
+        if (!u->m_disable_a1) {
             nula_section_flags |= ImGuiTreeNodeFlags_DefaultOpen;
         }
 
-        if (nula) {
+        if (u->nula) {
             if (ImGui::CollapsingHeader("Video NuLA", nula_section_flags)) {
-                ImGui::Text("Enabled: %s", BOOL_STR(!nula_disable_a1));
+                ImGui::Text("Enabled: %s", BOOL_STR(!u->m_disable_a1));
 
-                ImGui::Text("Direct palette mode: %s", BOOL_STR(nula_direct_palette));
-                ImGui::Text("Scroll offset: %u", nula_scroll_offset);
-                ImGui::Text("Blanking size: %u", nula_blanking_size);
-                ImGui::Text("Attribute mode: %s", BOOL_STR(nula_attribute_mode.bits.enabled));
-                ImGui::Text("Text attribute mode: %s", BOOL_STR(nula_attribute_mode.bits.text));
+                ImGui::Text("Direct palette mode: %s", BOOL_STR(u->m_direct_palette));
+                ImGui::Text("Scroll offset: %u", u->m_scroll_offset);
+                ImGui::Text("Blanking size: %u", u->m_blanking_size);
+                ImGui::Text("Attribute mode: %s", BOOL_STR(u->m_attribute_mode.bits.enabled));
+                ImGui::Text("Text attribute mode: %s", BOOL_STR(u->m_attribute_mode.bits.text));
 
                 for (uint8_t i = 0; i < 16; i += 4) {
                     ImGui::Text("Palette:");
@@ -2093,7 +2027,7 @@ class VideoULADebugWindow : public DebugUI {
 
                     for (uint8_t j = 0; j < 4; ++j) {
                         uint8_t index = i + j;
-                        const VideoDataPixel *e = &nula_palette[index];
+                        const VideoDataPixel *e = &u->output_palette[index];
 
                         ImGuiIDPusher id_pusher(index);
 
@@ -2988,16 +2922,12 @@ class StackDebugWindow : public DebugUI {
     void DoImGui2() override {
         static const char ADDR_CONTEXT_POPUP_NAME[] = "stack_addr_context_popup";
 
-        uint8_t s;
-        {
-            std::unique_lock<Mutex> lock;
-            const BBCMicro *m = m_beeb_thread->LockBeeb(&lock);
-            if (this->IsStateUnavailableImGui(m)) {
-                return;
-            }
-            const M6502 *cpu = m->DebugGetM6502(m_dso);
-            s = cpu->s.b.l;
+        if (this->IsStateUnavailableImGui()) {
+            return;
         }
+
+        const M6502 *cpu = m_beeb_state->DebugGetM6502(m_dso);
+        uint8_t s = cpu->s.b.l;
 
         const DebugBigPage *value_dbp = this->GetDebugBigPageForAddress({0}, false);
 

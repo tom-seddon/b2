@@ -12,7 +12,7 @@ ExtMem::ExtMem() {
 //////////////////////////////////////////////////////////////////////////
 
 void ExtMem::AllocateBuffer() {
-    m_ram_buffer.resize(16777216);
+    m_ram_buffer = std::make_shared<std::vector<uint8_t>>(16777216);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -81,7 +81,7 @@ uint8_t ExtMem::ReadData(void *c_, M6502Word a) {
     address += (uint32_t)c->m_address_l << 8;
     address += (uint32_t)a.b.l;
 
-    return c->m_ram_buffer[address];
+    return (*c->m_ram_buffer)[address];
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -96,7 +96,7 @@ void ExtMem::WriteData(void *c_, M6502Word a, uint8_t value) {
     address += (uint32_t)c->m_address_l << 8;
     address += (uint32_t)a.b.l;
 
-    c->m_ram_buffer[address] = value;
+    (*c->m_ram_buffer)[address] = value;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -105,7 +105,7 @@ void ExtMem::WriteData(void *c_, M6502Word a, uint8_t value) {
 uint8_t ExtMem::ReadMemory(const void *c_, uint32_t a) {
     auto c = (ExtMem *)c_;
 
-    return c->m_ram_buffer[a];
+    return (*c->m_ram_buffer)[a];
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -114,7 +114,7 @@ uint8_t ExtMem::ReadMemory(const void *c_, uint32_t a) {
 void ExtMem::WriteMemory(void *c_, uint32_t a, uint8_t value) {
     auto c = (ExtMem *)c_;
 
-    c->m_ram_buffer[a] = value;
+    (*c->m_ram_buffer)[a] = value;
 }
 
 //////////////////////////////////////////////////////////////////////////
