@@ -24,10 +24,10 @@ void HandleAssertFailed(void);
 #define ASSERT(EXPR)                                              \
     BEGIN_MACRO {                                                 \
         if (!(EXPR)) {                                            \
-            LogAssertFailed(__FILE__, __LINE__, __func__, #EXPR); \
             if (IsDebuggerAttached()) {                           \
                 BREAK();                                          \
             }                                                     \
+            LogAssertFailed(__FILE__, __LINE__, __func__, #EXPR); \
             HandleAssertFailed();                                 \
         }                                                         \
     }                                                             \
@@ -36,11 +36,11 @@ void HandleAssertFailed(void);
 #define ASSERTF(EXPR, ...)                                        \
     BEGIN_MACRO {                                                 \
         if (!(EXPR)) {                                            \
-            LogAssertFailed(__FILE__, __LINE__, __func__, #EXPR); \
-            LogAssertElaboration(__VA_ARGS__);                    \
             if (IsDebuggerAttached()) {                           \
                 BREAK();                                          \
             }                                                     \
+            LogAssertFailed(__FILE__, __LINE__, __func__, #EXPR); \
+            LogAssertElaboration(__VA_ARGS__);                    \
             HandleAssertFailed();                                 \
         }                                                         \
     }                                                             \
