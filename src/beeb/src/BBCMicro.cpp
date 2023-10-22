@@ -558,62 +558,31 @@ void BBCMicro::InitReadOnlyBigPage(ReadOnlyBigPage *bp,
 //////////////////////////////////////////////////////////////////////////
 
 void BBCMicro::InitPaging() {
-    // TODO: call InitReadOnlyBigPage
-
     for (BigPage &bp : m_big_pages) {
         bp = {};
     }
 
-    for (size_t i = 0; i < 16; ++i) {
-        size_t offset = i * BIG_PAGE_SIZE_BYTES;
-
-        if (offset < m_state.ram_buffer->size()) {
-            BigPage *bp = &m_big_pages[i];
-
-            bp->r = bp->w = &m_state.ram_buffer->at(offset);
-        }
-    }
-
-    for (size_t i = 0; i < 16; ++i) {
-        for (size_t j = 0; j < NUM_ROM_BIG_PAGES; ++j) {
-            BigPage *bp = &m_big_pages[ROM0_BIG_PAGE_INDEX + i * NUM_ROM_BIG_PAGES + j];
-
-            if (!!m_state.sideways_rom_buffers[i]) {
-                bp->r = m_state.sideways_rom_buffers[i]->data() + j * BIG_PAGE_SIZE_BYTES;
-            } else if (!!m_state.sideways_ram_buffers[i]) {
-                bp->r = bp->w = m_state.sideways_ram_buffers[i]->data() + j * BIG_PAGE_SIZE_BYTES;
-            } else {
-                // not mapped...
-            }
-        }
-    }
-
-    for (size_t i = 0; i < NUM_MOS_BIG_PAGES; ++i) {
-        if (!!m_state.os_buffer) {
-            BigPage *bp = &m_big_pages[MOS_BIG_PAGE_INDEX + i];
-
-            bp->r = m_state.os_buffer->data() + i * BIG_PAGE_SIZE_BYTES;
-        }
-    }
-
-    if (m_state.parasite_type != BBCMicroParasiteType_None) {
-        for (size_t i = 0; i < NUM_PARASITE_BIG_PAGES; ++i) {
-            BigPage *bp = &m_big_pages[PARASITE_BIG_PAGE_INDEX + i];
-
-            bp->r = m_state.parasite_ram_buffer->data() + i * BIG_PAGE_SIZE_BYTES;
-            bp->w = m_state.parasite_ram_buffer->data() + i * BIG_PAGE_SIZE_BYTES;
-        }
-
-        for (size_t i = 0; i < NUM_PARASITE_ROM_BIG_PAGES; ++i) {
-            BigPage *bp = &m_big_pages[PARASITE_ROM_BIG_PAGE_INDEX + i];
-
-            bp->r = m_state.parasite_rom_buffer->data() + i * BIG_PAGE_SIZE_BYTES;
-        }
-    }
-
-    // Fix up everything else.
     for (uint8_t i = 0; i < NUM_BIG_PAGES; ++i) {
+        ReadOnlyBigPage rbp;
+        InitReadOnlyBigPage(&rbp,
+                            &m_state,
+#if BBCMICRO_DEBUGGER
+                            m_debug,
+#endif
+                            i);
+
         BigPage *bp = &m_big_pages[i];
+        bp->index = rbp.index;
+        bp->metadata = rbp.metadata;
+        bp->r = rbp.r;
+        if (rbp.writeable) {
+            bp->w = const_cast<uint8_t *>(bp->r);
+        }
+
+#if BBCMICRO_DEBUGGER
+        bp->address_debug_flags = const_cast<uint8_t *>(rbp.address_debug_flags);
+        bp->byte_debug_flags = const_cast<uint8_t *>(rbp.byte_debug_flags);
+#endif
 
         if (!bp->r) {
             bp->r = g_unmapped_reads;
@@ -622,9 +591,6 @@ void BBCMicro::InitPaging() {
         if (!bp->w) {
             bp->w = g_unmapped_writes;
         }
-
-        bp->metadata = &m_state.type->big_pages_metadata[i];
-        bp->index = i;
     }
 
 #if BBCMICRO_DEBUGGER
@@ -632,27 +598,6 @@ void BBCMicro::InitPaging() {
 #endif
 
     this->UpdatePaging();
-
-    for (uint8_t i = 0; i < NUM_BIG_PAGES; ++i) {
-        ReadOnlyBigPage bp;
-        InitReadOnlyBigPage(&bp,
-                            &m_state,
-#if BBCMICRO_DEBUGGER
-                            m_debug,
-#endif
-                            i);
-
-        const BigPage *bp2 = &m_big_pages[i];
-
-#if ASSERT_ENABLED
-        ASSERT(bp.address_debug_flags == bp2->address_debug_flags);
-        ASSERT(bp.byte_debug_flags == bp2->byte_debug_flags);
-        ASSERT(bp.index == bp2->index);
-        ASSERT(bp.metadata == bp2->metadata);
-        ASSERT((bp.r ? bp.r : g_unmapped_reads) == bp2->r);
-        ASSERT((bp.writeable ? bp.r : g_unmapped_writes) == bp2->w);
-#endif
-    }
 }
 
 //////////////////////////////////////////////////////////////////////////
