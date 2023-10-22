@@ -1014,7 +1014,7 @@ class BeebThread {
     std::vector<uint8_t> GetPrinterData() const;
 
 #if BBCMICRO_DEBUGGER
-    std::shared_ptr<const BBCMicro::State> DebugGetState() const;
+    void DebugGetState(std::shared_ptr<const BBCMicro::State> *state_ptr, std::shared_ptr<const BBCMicro::DebugState> *debug_state_ptr) const;
 #endif
 
   protected:
@@ -1078,6 +1078,7 @@ class BeebThread {
     // get wrong.)
     mutable Mutex m_beeb_state_mutex;
     std::shared_ptr<const BBCMicro::State> m_beeb_state;
+    std::shared_ptr<const BBCMicro::DebugState> m_beeb_debug_state;
 
     // Lock m_mutex first, if locking both. (The public API makes this hard to
     // get wrong.)

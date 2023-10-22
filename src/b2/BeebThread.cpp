@@ -2238,10 +2238,12 @@ std::vector<uint8_t> BeebThread::GetPrinterData() const {
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_DEBUGGER
-std::shared_ptr<const BBCMicro::State> BeebThread::DebugGetState() const {
+void BeebThread::DebugGetState(std::shared_ptr<const BBCMicro::State> *state_ptr,
+                               std::shared_ptr<const BBCMicro::DebugState> *debug_state_ptr) const {
     std::lock_guard<Mutex> lock(m_beeb_state_mutex);
 
-    return m_beeb_state;
+    *state_ptr = m_beeb_state;
+    *debug_state_ptr = m_beeb_debug_state;
 }
 #endif
 
@@ -2449,7 +2451,7 @@ void BeebThread::ThreadReplaceBeeb(ThreadState *ts, std::unique_ptr<BBCMicro> be
     std::shared_ptr<DiscImage> old_disc_images[NUM_DRIVES];
     {
 #if BBCMICRO_DEBUGGER
-        std::unique_ptr<BBCMicro::DebugState> debug_state;
+        std::shared_ptr<BBCMicro::DebugState> debug_state;
 #endif
 
         if (ts->beeb) {
@@ -2472,7 +2474,7 @@ void BeebThread::ThreadReplaceBeeb(ThreadState *ts, std::unique_ptr<BBCMicro> be
         if (!debug_state) {
             // Probably just the first time round.
             ts->log.f("Creating new BBCMicro::DebugState.\n");
-            debug_state = std::make_unique<BBCMicro::DebugState>();
+            debug_state = std::make_shared<BBCMicro::DebugState>();
         }
 #endif
 
@@ -3025,6 +3027,7 @@ void BeebThread::ThreadMain(void) {
                 std::lock_guard<Mutex> lock2(m_beeb_state_mutex);
 
                 m_beeb_state = ts.beeb->DebugGetState();
+                m_beeb_debug_state = ts.beeb->GetDebugState();
             }
         }
 

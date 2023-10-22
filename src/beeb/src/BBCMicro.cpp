@@ -431,12 +431,88 @@ void BBCMicro::UpdatePaging() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+void BBCMicro::InitBigPage(BigPage *bp,
+                           uint8_t big_page_index,
+                           State *state,
+                           DebugState *debug_state) {
+    bp->w = nullptr;
+    bp->r = nullptr;
+
+    if (big_page_index >= 0 &&
+        big_page_index < 16) {
+        size_t offset = big_page_index * BIG_PAGE_SIZE_BYTES;
+
+        if (offset < state->ram_buffer->size()) {
+            bp->w = &state->ram_buffer->at(offset);
+            bp->r = bp->w;
+        }
+    } else if (big_page_index >= ROM0_BIG_PAGE_INDEX &&
+               big_page_index < ROM0_BIG_PAGE_INDEX + 16 * NUM_ROM_BIG_PAGES) {
+        size_t bank = (big_page_index - ROM0_BIG_PAGE_INDEX) / NUM_ROM_BIG_PAGES;
+        size_t offset = (big_page_index - ROM0_BIG_PAGE_INDEX) % NUM_ROM_BIG_PAGES * BIG_PAGE_SIZE_BYTES;
+
+        if (!!state->sideways_rom_buffers[bank]) {
+            bp->r = &state->sideways_rom_buffers[bank]->at(offset);
+        } else if (!!state->sideways_ram_buffers[bank]) {
+            bp->w = &state->sideways_ram_buffers[bank]->at(offset);
+            bp->r = bp->w;
+        }
+    } else if (big_page_index >= MOS_BIG_PAGE_INDEX &&
+               big_page_index < MOS_BIG_PAGE_INDEX + NUM_MOS_BIG_PAGES) {
+        if (!!state->os_buffer) {
+            size_t offset = (big_page_index - MOS_BIG_PAGE_INDEX) * BIG_PAGE_SIZE_BYTES;
+            bp->r = &state->os_buffer->at(offset);
+        }
+    } else if (big_page_index >= PARASITE_BIG_PAGE_INDEX &&
+               big_page_index < PARASITE_BIG_PAGE_INDEX + NUM_PARASITE_BIG_PAGES) {
+        if (state->parasite_type != BBCMicroParasiteType_None) {
+            ASSERT(!!state->parasite_ram_buffer);
+            size_t offset = (big_page_index - PARASITE_BIG_PAGE_INDEX) * BIG_PAGE_SIZE_BYTES;
+            bp->w = &state->parasite_ram_buffer->at(offset);
+            bp->r = bp->w;
+        }
+    } else if (big_page_index >= PARASITE_ROM_BIG_PAGE_INDEX &&
+               big_page_index < PARASITE_ROM_BIG_PAGE_INDEX + NUM_PARASITE_ROM_BIG_PAGES) {
+        // During the initialisation, this can get called before the parasite OS
+        // contents are set. Don't assert there's a rom buffer. Leave the area
+        // unmapped if there isn't.
+        if (!!state->parasite_rom_buffer) {
+            size_t offset = (big_page_index - PARASITE_ROM_BIG_PAGE_INDEX) * BIG_PAGE_SIZE_BYTES;
+            bp->r = &state->parasite_rom_buffer->at(offset);
+        }
+    } else {
+        ASSERT(false);
+    }
+
+    bp->index = big_page_index;
+    bp->metadata = &state->type->big_pages_metadata[bp->index];
+
+#if BBCMICRO_DEBUGGER
+    bp->byte_debug_flags = nullptr;
+    bp->address_debug_flags = nullptr;
+
+    if (debug_state) {
+        if (bp->metadata->addr != 0xffff) {
+            bp->byte_debug_flags = debug_state->big_pages_byte_debug_flags[bp->index];
+
+            if (bp->metadata->is_parasite) {
+                bp->address_debug_flags = &debug_state->parasite_address_debug_flags[bp->index];
+            } else {
+                bp->address_debug_flags = &debug_state->host_address_debug_flags[bp->index];
+            }
+        }
+    }
+#endif
+}
+
+//    struct BigPage {
+
 void BBCMicro::InitPaging() {
     for (BigPage &bp : m_big_pages) {
         bp = {};
     }
 
-    for (size_t i = 0; i < 32; ++i) {
+    for (size_t i = 0; i < 16; ++i) {
         size_t offset = i * BIG_PAGE_SIZE_BYTES;
 
         if (offset < m_state.ram_buffer->size()) {
@@ -504,6 +580,20 @@ void BBCMicro::InitPaging() {
 #endif
 
     this->UpdatePaging();
+
+    for (uint8_t i = 0; i < NUM_BIG_PAGES; ++i) {
+        BigPage bp;
+        InitBigPage(&bp, i, &m_state, m_debug);
+
+        const BigPage *bp2 = &m_big_pages[i];
+
+        ASSERT(bp.address_debug_flags == bp2->address_debug_flags);
+        ASSERT(bp.byte_debug_flags == bp2->byte_debug_flags);
+        ASSERT(bp.index == bp2->index);
+        ASSERT(bp.metadata == bp2->metadata);
+        ASSERT((bp.r ? bp.r : g_unmapped_reads) == bp2->r);
+        ASSERT((bp.w ? bp.w : g_unmapped_writes) == bp2->w);
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -1757,8 +1847,8 @@ bool BBCMicro::HasDebugState() const {
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_DEBUGGER
-std::unique_ptr<BBCMicro::DebugState> BBCMicro::TakeDebugState() {
-    std::unique_ptr<BBCMicro::DebugState> debug = std::move(m_debug_ptr);
+std::shared_ptr<BBCMicro::DebugState> BBCMicro::TakeDebugState() {
+    std::shared_ptr<BBCMicro::DebugState> debug = std::move(m_debug_ptr);
 
     m_debug = nullptr;
 
@@ -1771,8 +1861,16 @@ std::unique_ptr<BBCMicro::DebugState> BBCMicro::TakeDebugState() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+std::shared_ptr<const BBCMicro::DebugState> BBCMicro::GetDebugState() const {
+    return m_debug_ptr;
+    //return std::const_pointer_cast<const BBCMicro::DebugState>(m_debug_ptr);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 #if BBCMICRO_DEBUGGER
-void BBCMicro::SetDebugState(std::unique_ptr<DebugState> debug) {
+void BBCMicro::SetDebugState(std::shared_ptr<DebugState> debug) {
     m_debug_ptr = std::move(debug);
     m_debug = m_debug_ptr.get();
 
@@ -2326,17 +2424,6 @@ void BBCMicro::InitStuff() {
         m_mmios_stretch_hw_cartridge[i] = m_mmios_stretch_hw[i];
     }
 
-    // Page in current ROM bank and sort out ACCCON.
-    this->InitPaging();
-
-#if BBCMICRO_ENABLE_DISC_DRIVE_SOUND
-    this->InitDiscDriveSounds(m_state.type->default_disc_drive_type);
-#endif
-
-#if BBCMICRO_TRACE
-    this->SetTrace(nullptr, 0);
-#endif
-
     if (m_state.parasite_type != BBCMicroParasiteType_None) {
         m_state.parasite_cpu.context = this;
 
@@ -2380,6 +2467,17 @@ void BBCMicro::InitStuff() {
     m_state.parasite_cpu.context = &m_parasite_cpu_metadata;
 
     m_state.adc.SetHandler(this);
+
+    // Page in current ROM bank and sort out ACCCON.
+    this->InitPaging();
+
+#if BBCMICRO_ENABLE_DISC_DRIVE_SOUND
+    this->InitDiscDriveSounds(m_state.type->default_disc_drive_type);
+#endif
+
+#if BBCMICRO_TRACE
+    this->SetTrace(nullptr, 0);
+#endif
 }
 
 //////////////////////////////////////////////////////////////////////////

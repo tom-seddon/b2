@@ -483,8 +483,9 @@ class BBCMicro : private WD1770Handler,
     void DebugStepIn(uint32_t dso);
 
     bool HasDebugState() const;
-    std::unique_ptr<DebugState> TakeDebugState();
-    void SetDebugState(std::unique_ptr<DebugState> debug);
+    std::shared_ptr<DebugState> TakeDebugState();
+    std::shared_ptr<const DebugState> GetDebugState() const;
+    void SetDebugState(std::shared_ptr<DebugState> debug);
 
     HardwareDebugState GetHardwareDebugState() const;
     void SetHardwareDebugState(const HardwareDebugState &hw);
@@ -526,6 +527,9 @@ class BBCMicro : private WD1770Handler,
     // Overly simplistic mechanism?
     void SetPrinterBuffer(std::vector<uint8_t> *buffer);
 
+    // Public for the debugger's benefit.
+    static void InitBigPage(BigPage *bp, uint8_t big_page_index, State *state, DebugState *debug_state);
+
   protected:
     // Hacks, not part of the public API, for use by the testing stuff so that
     // it can run even when the debugger isn't compiled in.
@@ -550,6 +554,11 @@ class BBCMicro : private WD1770Handler,
     };
 
   public: //TODO rationalize this a bit
+    // All the shared_ptr<vector>> point to vectors that are never resized
+    // once created. So in principle it's safe(ish) to call size() and
+    // operator[] from multiple threads without bothering to lock.
+    //
+    // This will get improved.
     struct State {
         // There's deliberately not much you can publicly do with one of these
         // other than default-construct it or copy it.
@@ -806,7 +815,7 @@ class BBCMicro : private WD1770Handler,
     std::vector<std::pair<WriteFn, void *>> m_host_write_fns;
 
 #if BBCMICRO_DEBUGGER
-    std::unique_ptr<DebugState> m_debug_ptr;
+    std::shared_ptr<DebugState> m_debug_ptr;
 
     // try to avoid appalling debug build performance...
     DebugState *m_debug = nullptr;
