@@ -166,6 +166,10 @@ class MC146818 {
     void SetHours(int h);
     int IncHours();
     int IncDay();
+
+#if BBCMICRO_DEBUGGER
+    friend class NVRAMDebugWindow;
+#endif
 };
 
 CHECK_SIZEOF(MC146818::Registers, 64);

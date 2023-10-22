@@ -189,6 +189,28 @@ const ExtMem *BBCMicro::State::DebugGetExtMem() const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+const MC146818 *BBCMicro::State::DebugGetRTC() const {
+    if (this->type->flags & BBCMicroTypeFlag_HasRTC) {
+        return &this->rtc;
+    } else {
+        return nullptr;
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+const Tube *BBCMicro::State::DebugGetTube() const {
+    if (this->parasite_type != BBCMicroParasiteType_None) {
+        return &this->parasite_tube;
+    } else {
+        return nullptr;
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 BBCMicro::BBCMicro(const BBCMicroType *type,
                    const DiscInterfaceDef *def,
                    BBCMicroParasiteType parasite_type,
@@ -1372,93 +1394,6 @@ const M6502 *BBCMicro::GetM6502() const {
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_DEBUGGER
-const VideoULA *BBCMicro::DebugGetVideoULA() const {
-    return &m_state.video_ula;
-}
-#endif
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-#if BBCMICRO_DEBUGGER
-BBCMicro::AddressableLatch BBCMicro::DebugGetAddressableLatch() const {
-    return m_state.addressable_latch;
-}
-#endif
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-#if BBCMICRO_DEBUGGER
-const R6522 *BBCMicro::DebugGetSystemVIA() const {
-    return &m_state.system_via;
-}
-#endif
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-#if BBCMICRO_DEBUGGER
-const R6522 *BBCMicro::DebugGetUserVIA() const {
-    return &m_state.user_via;
-}
-#endif
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-#if BBCMICRO_DEBUGGER
-const SN76489 *BBCMicro::DebugGetSN76489() const {
-    return &m_state.sn76489;
-}
-#endif
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-#if BBCMICRO_DEBUGGER
-const MC146818 *BBCMicro::DebugGetRTC() const {
-    if (m_state.type->flags & BBCMicroTypeFlag_HasRTC) {
-        return &m_state.rtc;
-    } else {
-        return nullptr;
-    }
-}
-#endif
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-#if BBCMICRO_DEBUGGER
-void BBCMicro::DebugGetPaging(ROMSEL *romsel, ACCCON *acccon) const {
-    *romsel = m_state.romsel;
-    *acccon = m_state.acccon;
-}
-#endif
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-#if BBCMICRO_DEBUGGER
-const Tube *BBCMicro::DebugGetTube() const {
-    if (m_state.parasite_type != BBCMicroParasiteType_None) {
-        return &m_state.parasite_tube;
-    } else {
-        return nullptr;
-    }
-}
-#endif
-
-#if BBCMICRO_DEBUGGER
-const ADC *BBCMicro::DebugGetADC() const {
-    return &m_state.adc;
-}
-#endif
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-#if BBCMICRO_DEBUGGER
 const BBCMicro::BigPage *BBCMicro::DebugGetBigPageForAddress(M6502Word addr,
                                                              bool mos,
                                                              uint32_t dso) const {
@@ -1945,21 +1880,21 @@ uint64_t BBCMicro::DebugGetBreakpointsChangeCounter() const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-#if BBCMICRO_DEBUGGER
-void BBCMicro::DebugGetDebugFlags(uint8_t *host_address_debug_flags,
-                                  uint8_t *parasite_address_debug_flags,
-                                  uint8_t *big_pages_debug_flags) const {
-    if (m_debug) {
-        memcpy(host_address_debug_flags, m_debug->host_address_debug_flags, 65536);
-        memcpy(parasite_address_debug_flags, m_debug->parasite_address_debug_flags, 65536);
-        memcpy(big_pages_debug_flags, m_debug->big_pages_byte_debug_flags, NUM_BIG_PAGES * BIG_PAGE_SIZE_BYTES);
-    } else {
-        memset(host_address_debug_flags, 0, 65536);
-        memset(parasite_address_debug_flags, 0, 65536);
-        memset(big_pages_debug_flags, 0, NUM_BIG_PAGES * BIG_PAGE_SIZE_BYTES);
-    }
-}
-#endif
+//#if BBCMICRO_DEBUGGER
+//void BBCMicro::DebugGetDebugFlags(uint8_t *host_address_debug_flags,
+//                                  uint8_t *parasite_address_debug_flags,
+//                                  uint8_t *big_pages_debug_flags) const {
+//    if (m_debug) {
+//        memcpy(host_address_debug_flags, m_debug->host_address_debug_flags, 65536);
+//        memcpy(parasite_address_debug_flags, m_debug->parasite_address_debug_flags, 65536);
+//        memcpy(big_pages_debug_flags, m_debug->big_pages_byte_debug_flags, NUM_BIG_PAGES * BIG_PAGE_SIZE_BYTES);
+//    } else {
+//        memset(host_address_debug_flags, 0, 65536);
+//        memset(parasite_address_debug_flags, 0, 65536);
+//        memset(big_pages_debug_flags, 0, NUM_BIG_PAGES * BIG_PAGE_SIZE_BYTES);
+//    }
+//}
+//#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -2905,16 +2840,6 @@ uint16_t BBCMicro::ReadAnalogueChannel(uint8_t channel) const {
     uint16_t value = this->GetAnalogueChannel(channel);
     return value;
 }
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-#if BBCMICRO_DEBUGGER
-uint16_t BBCMicro::DebugReadAnalogueChannel(uint8_t channel) const {
-    uint16_t value = this->GetAnalogueChannel(channel);
-    return value;
-}
-#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

@@ -203,17 +203,6 @@ void SN76489::SetTrace(Trace *t) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void SN76489::GetState(ChannelValues *channels, uint16_t *noise_seed) const {
-    channels[0] = m_state.channels[0].values;
-    channels[1] = m_state.channels[1].values;
-    channels[2] = m_state.channels[2].values;
-    channels[3] = m_state.channels[3].values;
-    *noise_seed = m_state.noise_seed;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 // http://www.zeridajh.org/articles/various/sn76489/index.htm
 uint8_t SN76489::NextWhiteNoiseBit() {
     uint8_t feed_bit = ((m_state.noise_seed >> 1) ^ m_state.noise_seed) & 1;

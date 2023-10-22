@@ -142,21 +142,6 @@ void ADC::SetTrace(Trace *t) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-#if BBCMICRO_DEBUGGER
-void ADC::DebugGetChannelValues(uint16_t avalues[4]) const {
-    for (uint8_t i = 0; i < 4; ++i) {
-        if (m_handler) {
-            avalues[i] = m_handler->DebugReadAnalogueChannel(i);
-        } else {
-            avalues[i] = DEFAULT_CHANNEL_VALUE;
-        }
-    }
-}
-#endif
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 void ADC::SetHandler(ADCHandler *handler) {
     m_handler = handler;
 }

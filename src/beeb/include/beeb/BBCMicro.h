@@ -439,21 +439,6 @@ class BBCMicro : private WD1770Handler,
     const M6502 *GetM6502() const;
 
 #if BBCMICRO_DEBUGGER
-    // Hiding these behind accessors really doesn't buy much. Just
-    // trying to avoid making the debug stuff a friend of this
-    // class... though maybe it wouldn't matter?
-    const VideoULA *DebugGetVideoULA() const;
-    AddressableLatch DebugGetAddressableLatch() const;
-    const R6522 *DebugGetSystemVIA() const;
-    const R6522 *DebugGetUserVIA() const;
-    const SN76489 *DebugGetSN76489() const;
-    const MC146818 *DebugGetRTC() const;
-    void DebugGetPaging(ROMSEL *romsel, ACCCON *acccon) const;
-    const Tube *DebugGetTube() const;
-    const ADC *DebugGetADC() const;
-
-    //uint16_t DebugGetFlatPage(uint8_t page) const;
-
     // Given address, return the BigPage for the memory there, taking
     // the debug page overrides into account.
     //
@@ -520,9 +505,9 @@ class BBCMicro : private WD1770Handler,
     // parasite_address_debug_flags data is 65536 bytes.
     //
     // big_pages_debug_flags data is NUM_BIG_PAGES*BIG_PAGE_SIZE_BYTES.
-    void DebugGetDebugFlags(uint8_t *host_address_debug_flags,
-                            uint8_t *parasite_address_debug_flags,
-                            uint8_t *big_pages_debug_flags) const;
+    //void DebugGetDebugFlags(uint8_t *host_address_debug_flags,
+    //                        uint8_t *parasite_address_debug_flags,
+    //                        uint8_t *big_pages_debug_flags) const;
 #endif
 
     void SendBeebLinkResponse(std::vector<uint8_t> data);
@@ -580,6 +565,8 @@ class BBCMicro : private WD1770Handler,
 
         const M6502 *DebugGetM6502(uint32_t dso) const;
         const ExtMem *DebugGetExtMem() const;
+        const MC146818 *DebugGetRTC() const;
+        const Tube *DebugGetTube() const;
 
         const BBCMicroType *type = nullptr;
 
@@ -607,9 +594,9 @@ class BBCMicro : private WD1770Handler,
         uint16_t shadow_select_mask = 0x0000;
         uint8_t cursor_pattern = 0;
 
+      public:
         SN76489 sn76489;
 
-      public:
         // Number of emulated system cycles elapsed. Used to regulate sound
         // output and measure (for informational purposes) time between vsyncs.
         CycleCount cycle_count = {0};
@@ -628,16 +615,24 @@ class BBCMicro : private WD1770Handler,
         uint8_t stretch = 0;
         bool resetting = false;
 
+      public:
         R6522 system_via;
+
+      private:
         SystemVIAPB old_system_via_pb;
         uint8_t system_via_irq_pending = 0;
 
+      public:
         R6522 user_via;
+
+      private:
         uint8_t user_via_irq_pending = 0;
 
+      public:
         ROMSEL romsel = {};
         ACCCON acccon = {};
 
+      private:
         // Key states
         uint8_t key_columns[16] = {};
         uint8_t key_scan_column = 0;
@@ -652,9 +647,11 @@ class BBCMicro : private WD1770Handler,
         // RTC
         MC146818 rtc;
 
+      public:
         // ADC
         ADC adc;
 
+      private:
         // Parallel printer
         bool printer_enabled = false;
         uint16_t printer_busy_counter = 0;
@@ -665,8 +662,10 @@ class BBCMicro : private WD1770Handler,
         // bits are ever set (indicating button unpressed).
         uint8_t not_joystick_buttons = 1 << 4 | 1 << 5;
 
+      public:
         uint16_t analogue_channel_values[4] = {};
 
+      private:
         // External 1MHz bus RAM.
         ExtMem ext_mem;
 
@@ -915,9 +914,6 @@ class BBCMicro : private WD1770Handler,
 
     // ADC handler stuff.
     uint16_t ReadAnalogueChannel(uint8_t channel) const override;
-#if BBCMICRO_DEBUGGER
-    uint16_t DebugReadAnalogueChannel(uint8_t channel) const override;
-#endif
 
     template <uint32_t UPDATE_FLAGS>
     uint32_t UpdateTemplated(VideoDataUnit *video_unit, SoundDataUnit *sound_unit);

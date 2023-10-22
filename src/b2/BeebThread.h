@@ -914,7 +914,7 @@ class BeebThread {
 #if BBCMICRO_DEBUGGER
     // It's safe to call any of the const BBCMicro public member
     // functions on the result as long as the lock is held.
-    const BBCMicro *LockBeeb(std::unique_lock<Mutex> *lock) const;
+    //const BBCMicro *LockBeeb(std::unique_lock<Mutex> *lock) const;
 
     // As well as the LockBeeb guarantees, it's also safe to call the
     // non-const DebugXXX functions.

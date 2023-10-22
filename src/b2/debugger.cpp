@@ -845,7 +845,7 @@ class M6502DebugWindow : public DebugUI {
         GetThousandsString(cycles_str, m_beeb_state->cycle_count.n >> RSHIFT_CYCLE_COUNT_TO_2MHZ);
         ImGui::Text("2 MHz Cycles = %s", cycles_str);
 
-        if (m_beeb_debug_state->is_halted) {
+        if (m_beeb_debug_state && m_beeb_debug_state->is_halted) {
             if (m_beeb_debug_state->halt_reason[0] == 0) {
                 ImGui::TextUnformatted("State = halted");
             } else {
@@ -1335,7 +1335,7 @@ class DisassemblyDebugWindow : public DebugUI,
         m_cst.DoButton(g_step_in_command);
 
         if (m_track_pc) {
-            if (m_beeb_debug_state->is_halted) {
+            if (m_beeb_debug_state && m_beeb_debug_state->is_halted) {
                 if (m_old_pc != cpu->pc.w) {
                     // well, *something* happened since last time...
                     m_addr = cpu->pc.w;
@@ -2087,48 +2087,39 @@ std::unique_ptr<SettingsUI> CreateVideoULADebugWindow(BeebWindow *beeb_window) {
 
 class R6522DebugWindow : public DebugUI {
   public:
-    struct PortState {
-        uint8_t or_, ddr, p, c1, c2;
-    };
-
-    struct State {
-        uint16_t t1, t2;
-        M6502Word t1l;
-        uint8_t t2ll;
-        uint8_t sr;
-        R6522::ACR acr;
-        R6522::PCR pcr;
-        R6522::IRQ ifr, ier;
-        PortState a, b;
-    };
-
   protected:
-    void DoRegisterValuesGui(const State &s, bool has_debug_state, BBCMicro::HardwareDebugState hw, R6522::IRQ BBCMicro::HardwareDebugState::*irq_mptr) {
-        this->DoPortRegisterValuesGui('A', s.a);
-        this->DoPortRegisterValuesGui('B', s.b);
-        ImGui::Text("T1 : $%04x %05d %s%s", s.t1, s.t1, BINARY_BYTE_STRINGS[s.t1 >> 8 & 0xff], BINARY_BYTE_STRINGS[s.t1 & 0xff]);
-        ImGui::Text("T1L: $%04x %05d %s%s", s.t1l.w, s.t1l.w, BINARY_BYTE_STRINGS[s.t1l.b.h], BINARY_BYTE_STRINGS[s.t1l.b.l]);
-        ImGui::Text("T2 : $%04x %05d %s%s", s.t2, s.t2, BINARY_BYTE_STRINGS[s.t2 >> 8 & 0xff], BINARY_BYTE_STRINGS[s.t2 & 0xff]);
-        ImGui::Text("SR : $%02x %03d %s", s.sr, s.sr, BINARY_BYTE_STRINGS[s.sr]);
-        ImGui::Text("ACR: PA latching = %s", BOOL_STR(s.acr.bits.pa_latching));
-        ImGui::Text("ACR: PB latching = %s", BOOL_STR(s.acr.bits.pb_latching));
-        ImGui::Text("ACR: Shift mode = %s", ACR_SHIFT_MODES[s.acr.bits.sr]);
-        ImGui::Text("ACR: T2 mode = %s", s.acr.bits.t2_count_pb6 ? "Count PB6 pulses" : "Timed interrupt");
-        ImGui::Text("ACR: T1 continuous = %s, output PB7 = %s", BOOL_STR(s.acr.bits.t1_continuous), BOOL_STR(s.acr.bits.t1_output_pb7));
-        ImGui::Text("PCR: CA1 = %cve edge", s.pcr.bits.ca1_pos_irq ? '+' : '-');
-        ImGui::Text("PCR: CA2 = %s", PCR_CONTROL_MODES[s.pcr.bits.ca2_mode]);
-        ImGui::Text("PCR: CB1 = %cve edge", s.pcr.bits.cb1_pos_irq ? '+' : '-');
-        ImGui::Text("PCR: CB2 = %s", PCR_CONTROL_MODES[s.pcr.bits.cb2_mode]);
+    void DoRegisterValuesGui(const R6522 &via, const std::shared_ptr<const BBCMicro::DebugState> &debug_state, R6522::IRQ BBCMicro::HardwareDebugState::*irq_mptr) {
+        this->DoPortRegisterValuesGui('A', via.a);
+        this->DoPortRegisterValuesGui('B', via.b);
+
+        M6502Word t1l;
+        t1l.b.l = via.m_t1ll;
+        t1l.b.h = via.m_t1lh;
+
+        ImGui::Text("T1 : $%04x %05d %s%s", via.m_t1, via.m_t1, BINARY_BYTE_STRINGS[via.m_t1 >> 8 & 0xff], BINARY_BYTE_STRINGS[via.m_t1 & 0xff]);
+        ImGui::Text("T1L: $%04x %05d %s%s", t1l.w, t1l.w, BINARY_BYTE_STRINGS[t1l.b.h], BINARY_BYTE_STRINGS[t1l.b.l]);
+        ImGui::Text("T2 : $%04x %05d %s%s", via.m_t2, via.m_t2, BINARY_BYTE_STRINGS[via.m_t2 >> 8 & 0xff], BINARY_BYTE_STRINGS[via.m_t2 & 0xff]);
+        ImGui::Text("SR : $%02x %03d %s", via.m_sr, via.m_sr, BINARY_BYTE_STRINGS[via.m_sr]);
+        ImGui::Text("ACR: PA latching = %s", BOOL_STR(via.m_acr.bits.pa_latching));
+        ImGui::Text("ACR: PB latching = %s", BOOL_STR(via.m_acr.bits.pb_latching));
+        ImGui::Text("ACR: Shift mode = %s", ACR_SHIFT_MODES[via.m_acr.bits.sr]);
+        ImGui::Text("ACR: T2 mode = %s", via.m_acr.bits.t2_count_pb6 ? "Count PB6 pulses" : "Timed interrupt");
+        ImGui::Text("ACR: T1 continuous = %s, output PB7 = %s", BOOL_STR(via.m_acr.bits.t1_continuous), BOOL_STR(via.m_acr.bits.t1_output_pb7));
+        ImGui::Text("PCR: CA1 = %cve edge", via.m_pcr.bits.ca1_pos_irq ? '+' : '-');
+        ImGui::Text("PCR: CA2 = %s", PCR_CONTROL_MODES[via.m_pcr.bits.ca2_mode]);
+        ImGui::Text("PCR: CB1 = %cve edge", via.m_pcr.bits.cb1_pos_irq ? '+' : '-');
+        ImGui::Text("PCR: CB2 = %s", PCR_CONTROL_MODES[via.m_pcr.bits.cb2_mode]);
 
         ImGui::Text("     [%-3s][%-3s][%-3s][%-3s][%-3s][%-3s][%-3s]", IRQ_NAMES[6], IRQ_NAMES[5], IRQ_NAMES[4], IRQ_NAMES[3], IRQ_NAMES[2], IRQ_NAMES[1], IRQ_NAMES[0]);
-        ImGui::Text("IFR:  %2u   %2u   %2u   %2u   %2u   %2u   %2u", s.ifr.value & 1 << 6, s.ifr.value & 1 << 5, s.ifr.value & 1 << 4, s.ifr.value & 1 << 3, s.ifr.value & 1 << 2, s.ifr.value & 1 << 1, s.ifr.value & 1 << 0);
-        ImGui::Text("IER:  %2u   %2u   %2u   %2u   %2u   %2u   %2u", s.ier.value & 1 << 6, s.ier.value & 1 << 5, s.ier.value & 1 << 4, s.ier.value & 1 << 3, s.ier.value & 1 << 2, s.ier.value & 1 << 1, s.ier.value & 1 << 0);
+        ImGui::Text("IFR:  %2u   %2u   %2u   %2u   %2u   %2u   %2u", via.ifr.value & 1 << 6, via.ifr.value & 1 << 5, via.ifr.value & 1 << 4, via.ifr.value & 1 << 3, via.ifr.value & 1 << 2, via.ifr.value & 1 << 1, via.ifr.value & 1 << 0);
+        ImGui::Text("IER:  %2u   %2u   %2u   %2u   %2u   %2u   %2u", via.ier.value & 1 << 6, via.ier.value & 1 << 5, via.ier.value & 1 << 4, via.ier.value & 1 << 3, via.ier.value & 1 << 2, via.ier.value & 1 << 1, via.ier.value & 1 << 0);
 
-        if (has_debug_state) {
+        if (!!debug_state) {
             ImGui::Separator();
 
             bool changed = false;
 
+            BBCMicro::HardwareDebugState hw = debug_state->hw;
             R6522::IRQ *irq = &(hw.*irq_mptr);
 
             ImGui::Text("Break: ");
@@ -2157,33 +2148,8 @@ class R6522DebugWindow : public DebugUI {
         }
     }
 
-    void GetState(State *state, const R6522 *via) {
-        state->t1 = (uint16_t)via->m_t1;
-        state->t2 = (uint16_t)via->m_t2;
-        state->t1l.b.l = via->m_t1ll;
-        state->t1l.b.h = via->m_t1lh;
-        state->t2ll = via->m_t2ll;
-        state->sr = via->m_sr;
-        state->acr = via->m_acr;
-        state->pcr = via->m_pcr;
-        state->ifr = via->ifr;
-        state->ier = via->ier;
-
-        state->a.or_ = via->a.or_;
-        state->a.ddr = via->a.ddr;
-        state->a.p = via->a.p;
-        state->a.c1 = via->a.c1;
-        state->a.c2 = via->a.c2;
-
-        state->b.or_ = via->b.or_;
-        state->b.ddr = via->b.ddr;
-        state->b.p = via->b.p;
-        state->b.c1 = via->b.c1;
-        state->b.c2 = via->b.c2;
-    }
-
   private:
-    void DoPortRegisterValuesGui(char port, const PortState &p) {
+    void DoPortRegisterValuesGui(char port, const R6522::Port &p) {
         ImGui::Text("Port %c: Pins = $%02x %03d %s", port, p.p, p.p, BINARY_BYTE_STRINGS[p.p]);
         ImGui::Text("Port %c: DDR%c = $%02x %03d %s", port, port, p.ddr, p.ddr, BINARY_BYTE_STRINGS[p.ddr]);
         ImGui::Text("Port %c: OR%c  = $%02x %03d %s", port, port, p.or_, p.or_, BINARY_BYTE_STRINGS[p.or_]);
@@ -2235,40 +2201,20 @@ class SystemVIADebugWindow : public R6522DebugWindow {
   public:
   protected:
     void DoImGui2() override {
-        State state;
-        BBCMicro::AddressableLatch latch;
-        const BBCMicroType *type;
-        bool has_debug_state;
-        BBCMicro::HardwareDebugState hw;
-        uint8_t rtc_addr = 0;
-        {
-            std::unique_lock<Mutex> lock;
-            const BBCMicro *m = m_beeb_thread->LockBeeb(&lock);
-            this->GetState(&state, m->DebugGetSystemVIA());
-            latch = m->DebugGetAddressableLatch();
-            type = m->GetType();
-            has_debug_state = m->HasDebugState();
-            hw = m->GetHardwareDebugState();
+        const MC146818 *rtc = m_beeb_state->DebugGetRTC();
 
-            if (type->flags & BBCMicroTypeFlag_HasRTC) {
-                const MC146818 *rtc = m->DebugGetRTC();
-
-                rtc_addr = rtc->GetAddress();
-            }
-        }
-
-        this->DoRegisterValuesGui(state, has_debug_state, hw, &BBCMicro::HardwareDebugState::system_via_irq_breakpoints);
+        this->DoRegisterValuesGui(m_beeb_state->system_via, m_beeb_debug_state, &BBCMicro::HardwareDebugState::system_via_irq_breakpoints);
 
         ImGui::Separator();
 
         BBCMicro::SystemVIAPB pb;
-        pb.value = state.b.p;
+        pb.value = m_beeb_state->system_via.b.p;
 
         ImGui::Text("Port B inputs:");
 
         ImGui::BulletText("Joystick 0 Fire = %s", BOOL_STR(!pb.bits.not_joystick0_fire));
         ImGui::BulletText("Joystick 1 Fire = %s", BOOL_STR(!pb.bits.not_joystick1_fire));
-        if (!(type->flags & BBCMicroTypeFlag_HasRTC)) {
+        if (!(m_beeb_state->type->flags & BBCMicroTypeFlag_HasRTC)) {
             ImGui::BulletText("Speech Ready = %u, IRQ = %u", pb.b_bits.speech_ready, pb.b_bits.speech_interrupt);
         }
 
@@ -2278,15 +2224,16 @@ class SystemVIADebugWindow : public R6522DebugWindow {
 
         ImGui::BulletText("Latch Bit = %u, Value = %u", pb.bits.latch_index, pb.bits.latch_value);
 
-        if (type->flags & BBCMicroTypeFlag_HasRTC) {
+        if (rtc) {
             ImGui::BulletText("RTC CS = %u, AS = %u",
                               pb.m128_bits.rtc_chip_select,
                               pb.m128_bits.rtc_address_strobe);
-            ImGui::BulletText("(FYI: RTC address register value = %u)", rtc_addr);
+            ImGui::BulletText("(FYI: RTC address register value = %u)", rtc->GetAddress());
         }
 
         ImGui::Separator();
 
+        BBCMicro::AddressableLatch latch = m_beeb_state->addressable_latch;
         ImGui::Text("Addressable latch:");
         ImGui::Text("Value: %%%s ($%02x) (%03u)", BINARY_BYTE_STRINGS[latch.value], latch.value, latch.value);
 
@@ -2296,7 +2243,7 @@ class SystemVIADebugWindow : public R6522DebugWindow {
         ImGui::BulletText("Caps Lock LED = %s", BOOL_STR(latch.bits.caps_lock_led));
         ImGui::BulletText("Shift Lock LED = %s", BOOL_STR(latch.bits.shift_lock_led));
 
-        if (type->flags & BBCMicroTypeFlag_HasRTC) {
+        if (rtc) {
             ImGui::BulletText("RTC Read = %u, DS = %u", latch.m128_bits.rtc_read, latch.m128_bits.rtc_data_strobe);
         } else {
             ImGui::BulletText("Speech Read = %u, Write = %u", latch.b_bits.speech_read, latch.b_bits.speech_write);
@@ -2317,18 +2264,7 @@ class UserVIADebugWindow : public R6522DebugWindow {
   public:
   protected:
     void DoImGui2() override {
-        State state;
-        bool has_debug_state;
-        BBCMicro::HardwareDebugState hw;
-        {
-            std::unique_lock<Mutex> lock;
-            const BBCMicro *m = m_beeb_thread->LockBeeb(&lock);
-            this->GetState(&state, m->DebugGetUserVIA());
-            has_debug_state = m->HasDebugState();
-            hw = m->GetHardwareDebugState();
-        }
-
-        this->DoRegisterValuesGui(state, has_debug_state, hw, &BBCMicro::HardwareDebugState::user_via_irq_breakpoints);
+        this->DoRegisterValuesGui(m_beeb_state->user_via, m_beeb_debug_state, &BBCMicro::HardwareDebugState::user_via_irq_breakpoints);
     }
 
   private:
@@ -2345,76 +2281,72 @@ class NVRAMDebugWindow : public DebugUI {
   public:
   protected:
     void DoImGui2() override {
-        std::vector<uint8_t> nvram;
-        {
-            std::unique_lock<Mutex> lock;
-            const BBCMicro *m = m_beeb_thread->LockBeeb(&lock);
-
-            nvram = m->GetNVRAM();
-        }
-
-        if (nvram.empty()) {
-            ImGui::Text("This computer has no non-volatile RAM.");
+        if (const MC146818 *rtc = m_beeb_state->DebugGetRTC()) {
+            this->DoNVRAMUI(rtc->m_regs.bits.ram, sizeof rtc->m_regs.bits.ram);
         } else {
-            if (ImGui::CollapsingHeader("NVRAM contents")) {
-                for (size_t i = 0; i < nvram.size(); ++i) {
-                    uint8_t value = nvram[i];
-                    ImGui::Text("%zu. %3d %3uu $%02x %%%s", i, value, value, value, BINARY_BYTE_STRINGS[value]);
-                }
-                ImGui::Separator();
-            }
-
-            if (nvram.size() >= 50) {
-                ImGui::Text("Econet station number: $%02X\n", nvram[0]);
-                ImGui::Text("File server station number: $%02X\n", nvram[1]);
-                ImGui::Text("File server network number: $%02X\n", nvram[2]);
-                ImGui::Text("Printer server station number: $%02X\n", nvram[3]);
-                ImGui::Text("Printer server station number: $%02X\n", nvram[4]);
-                ImGui::Text("Default ROMs: Filing system: %d\n", nvram[5] & 15);
-                ImGui::Text("              Language: %d\n", nvram[5] >> 4);
-                {
-                    char roms_str[17] = "0123456789ABCDEF";
-
-                    uint16_t tmp = nvram[6] | nvram[7] << 8;
-                    for (size_t i = 0; i < 16; ++i) {
-                        if (!(tmp & 1 << i)) {
-                            roms_str[i] = '_';
-                        }
-                    }
-
-                    ImGui::Text("Inserted ROMs: %s", roms_str);
-                }
-                ImGui::Text("EDIT ROM byte: $%02X (%d)\n", nvram[8], nvram[8]);
-                ImGui::Text("Telecommunication applications byte: $%02X (%d)\n", nvram[9], nvram[9]);
-                ImGui::Text("Default MODE: %d\n", nvram[10] & 7);
-                ImGui::Text("Default Shadow RAM: %s\n", BOOL_STR(nvram[10] & 8));
-                ImGui::Text("Default Interlace: %s\n", BOOL_STR((nvram[10] & 16) == 0));
-                ImGui::Text("Default *TV: %d\n", (nvram[10] >> 5 & 3) - (nvram[10] >> 5 & 4));
-                ImGui::Text("Default FDRIVE: %d\n", nvram[11] & 7);
-                ImGui::Text("Default Shift lock: %s\n", BOOL_STR(nvram[11] & 8));
-                ImGui::Text("Default No lock: %s\n", BOOL_STR(nvram[11] & 16));
-                ImGui::Text("Default Caps lock: %s\n", BOOL_STR(nvram[11] & 32));
-                ImGui::Text("Default ADFS load dir: %s\n", BOOL_STR(nvram[11] & 64));
-                // nvram[11] contrary to what NAUG says...
-                ImGui::Text("Default drive: %s\n", nvram[11] & 128 ? "floppy drive" : "hard drive");
-                ImGui::Text("Keyboard auto-repeat delay: %d\n", nvram[12]);
-                ImGui::Text("Keyboard auto-repeat rate: %d\n", nvram[13]);
-                ImGui::Text("Printer ignore char: %d (0x%02X)\n", nvram[14], nvram[14]);
-                ImGui::Text("Tube on: %s\n", BOOL_STR(nvram[15] & 1));
-                ImGui::Text("Use printer ignore char: %s\n", BOOL_STR((nvram[15] & 2) == 0));
-                ImGui::Text("Serial baud rate index: %d\n", nvram[15] >> 2 & 7);
-                ImGui::Text("*FX5 setting: %d\n", nvram[15] >> 5 & 7);
-                // 16 bit 0 unused
-                ImGui::Text("Default beep volume: %s\n", nvram[16] & 2 ? "loud" : "quiet");
-                ImGui::Text("Default Tube: %s\n", nvram[16] & 4 ? "external" : "internal");
-                ImGui::Text("Default scrolling: %s\n", nvram[16] & 8 ? "protected" : "enabled");
-                ImGui::Text("Default boot mode: %s\n", nvram[16] & 16 ? "auto boot" : "no boot");
-                ImGui::Text("Default serial data format: %d\n", nvram[16] >> 5 & 7);
-            }
+            ImGui::Text("This computer has no non-volatile RAM.");
         }
     }
 
   private:
+    void
+    DoNVRAMUI(const uint8_t *nvram, size_t nvram_size_bytes) const {
+        if (ImGui::CollapsingHeader("NVRAM contents")) {
+            for (size_t i = 0; i < nvram_size_bytes; ++i) {
+                uint8_t value = nvram[i];
+                ImGui::Text("%3zu. %3d %3uu $%02x %%%s", i, value, value, value, BINARY_BYTE_STRINGS[value]);
+            }
+        }
+        ImGui::Separator();
+
+        if (nvram_size_bytes >= 50) {
+            ImGui::Text("Econet station number: $%02X\n", nvram[0]);
+            ImGui::Text("File server station number: $%02X\n", nvram[1]);
+            ImGui::Text("File server network number: $%02X\n", nvram[2]);
+            ImGui::Text("Printer server station number: $%02X\n", nvram[3]);
+            ImGui::Text("Printer server station number: $%02X\n", nvram[4]);
+            ImGui::Text("Default ROMs: Filing system: %d\n", nvram[5] & 15);
+            ImGui::Text("              Language: %d\n", nvram[5] >> 4);
+            {
+                char roms_str[17] = "0123456789ABCDEF";
+
+                uint16_t tmp = nvram[6] | nvram[7] << 8;
+                for (size_t i = 0; i < 16; ++i) {
+                    if (!(tmp & 1 << i)) {
+                        roms_str[i] = '_';
+                    }
+                }
+
+                ImGui::Text("Inserted ROMs: %s", roms_str);
+            }
+            ImGui::Text("EDIT ROM byte: $%02X (%d)\n", nvram[8], nvram[8]);
+            ImGui::Text("Telecommunication applications byte: $%02X (%d)\n", nvram[9], nvram[9]);
+            ImGui::Text("Default MODE: %d\n", nvram[10] & 7);
+            ImGui::Text("Default Shadow RAM: %s\n", BOOL_STR(nvram[10] & 8));
+            ImGui::Text("Default Interlace: %s\n", BOOL_STR((nvram[10] & 16) == 0));
+            ImGui::Text("Default *TV: %d\n", (nvram[10] >> 5 & 3) - (nvram[10] >> 5 & 4));
+            ImGui::Text("Default FDRIVE: %d\n", nvram[11] & 7);
+            ImGui::Text("Default Shift lock: %s\n", BOOL_STR(nvram[11] & 8));
+            ImGui::Text("Default No lock: %s\n", BOOL_STR(nvram[11] & 16));
+            ImGui::Text("Default Caps lock: %s\n", BOOL_STR(nvram[11] & 32));
+            ImGui::Text("Default ADFS load dir: %s\n", BOOL_STR(nvram[11] & 64));
+            // nvram[11] contrary to what NAUG says...
+            ImGui::Text("Default drive: %s\n", nvram[11] & 128 ? "floppy drive" : "hard drive");
+            ImGui::Text("Keyboard auto-repeat delay: %d\n", nvram[12]);
+            ImGui::Text("Keyboard auto-repeat rate: %d\n", nvram[13]);
+            ImGui::Text("Printer ignore char: %d (0x%02X)\n", nvram[14], nvram[14]);
+            ImGui::Text("Tube on: %s\n", BOOL_STR(nvram[15] & 1));
+            ImGui::Text("Use printer ignore char: %s\n", BOOL_STR((nvram[15] & 2) == 0));
+            ImGui::Text("Serial baud rate index: %d\n", nvram[15] >> 2 & 7);
+            ImGui::Text("*FX5 setting: %d\n", nvram[15] >> 5 & 7);
+            // 16 bit 0 unused
+            ImGui::Text("Default beep volume: %s\n", nvram[16] & 2 ? "loud" : "quiet");
+            ImGui::Text("Default Tube: %s\n", nvram[16] & 4 ? "external" : "internal");
+            ImGui::Text("Default scrolling: %s\n", nvram[16] & 8 ? "protected" : "enabled");
+            ImGui::Text("Default boot mode: %s\n", nvram[16] & 16 ? "auto boot" : "no boot");
+            ImGui::Text("Default serial data format: %d\n", nvram[16] >> 5 & 7);
+        }
+    }
 };
 
 std::unique_ptr<SettingsUI> CreateNVRAMDebugWindow(BeebWindow *beeb_window) {
@@ -2424,32 +2356,27 @@ std::unique_ptr<SettingsUI> CreateNVRAMDebugWindow(BeebWindow *beeb_window) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 class SN76489DebugWindow : public DebugUI {
   public:
   protected:
     void DoImGui2() override {
-        SN76489::ChannelValues values[4];
-        uint16_t seed;
-        bool we;
-        {
-            std::unique_lock<Mutex> lock;
-            const BBCMicro *m = m_beeb_thread->LockBeeb(&lock);
-            const SN76489 *sn = m->DebugGetSN76489();
-            sn->GetState(values, &seed);
+        const SN76489 *sn = &m_beeb_state->sn76489;
 
-            BBCMicro::AddressableLatch latch = m->DebugGetAddressableLatch();
-            we = !latch.bits.not_sound_write;
+        ImGui::Text("Write Enable: %s", BOOL_STR(!m_beeb_state->addressable_latch.bits.not_sound_write));
+
+        for (int i = 0; i < 3; ++i) {
+            const SN76489::ChannelValues *values = &sn->m_state.channels[i].values;
+
+            ImGui::Text("Tone %d: vol=%-2d freq=%-5u (0x%04x) (%uHz)",
+                        i, values->vol, values->freq, values->freq, GetHz(values->freq));
         }
-
-        ImGui::Text("Write Enable: %s", BOOL_STR(we));
-
-        Tone(values[0], 0);
-        Tone(values[1], 1);
-        Tone(values[2], 2);
 
         {
             const char *type;
-            if (values[3].freq & 4) {
+            if (sn->m_state.channels[3].values.freq & 4) {
                 type = "White";
             } else {
                 type = "Periodic";
@@ -2457,7 +2384,7 @@ class SN76489DebugWindow : public DebugUI {
 
             uint16_t sn_freq;
             const char *suffix = "";
-            switch (values[3].freq & 3) {
+            switch (sn->m_state.channels[3].values.freq & 3) {
             default:
             case 0:
                 sn_freq = 0x10;
@@ -2473,15 +2400,15 @@ class SN76489DebugWindow : public DebugUI {
 
             case 3:
                 suffix = " (Tone 2)";
-                sn_freq = values[2].freq;
+                sn_freq = sn->m_state.channels[2].values.freq;
                 break;
             }
 
             ImGui::Text("Noise : vol=%-2d freq=%-5u (0x%04x) (%uHz)",
-                        values[3].vol, sn_freq, sn_freq, GetHz(sn_freq));
+                        sn->m_state.channels[3].values.vol, sn_freq, sn_freq, GetHz(sn_freq));
             ImGui::Text("        %s%s", type, suffix);
             ImGui::Text("        seed: $%04x %%%s%s",
-                        seed, BINARY_BYTE_STRINGS[seed >> 8], BINARY_BYTE_STRINGS[seed & 0xff]);
+                        sn->m_state.noise_seed, BINARY_BYTE_STRINGS[sn->m_state.noise_seed >> 8], BINARY_BYTE_STRINGS[sn->m_state.noise_seed & 0xff]);
         }
     }
 
@@ -2491,11 +2418,6 @@ class SN76489DebugWindow : public DebugUI {
             sn_freq = 1024;
         }
         return 4000000u / (sn_freq * 32u);
-    }
-
-    static void Tone(const SN76489::ChannelValues &values, int n) {
-        ImGui::Text("Tone %d: vol=%-2d freq=%-5u (0x%04x) (%uHz)",
-                    n, values.vol, values.freq, values.freq, GetHz(values.freq));
     }
 };
 
@@ -2514,15 +2436,9 @@ class PagingDebugWindow : public DebugUI {
     void DoImGui2() override {
         this->DoDebugPageOverrideImGui();
 
-        ROMSEL romsel;
-        ACCCON acccon;
-        const BBCMicroType *type;
-        {
-            std::unique_lock<Mutex> lock;
-            const BBCMicro *m = m_beeb_thread->LockBeeb(&lock);
-            m->DebugGetPaging(&romsel, &acccon);
-            type = m->GetType();
-        }
+        ROMSEL romsel = m_beeb_state->romsel;
+        ACCCON acccon = m_beeb_state->acccon;
+        const BBCMicroType *type = m_beeb_state->type;
 
         (*type->apply_dso_fn)(&romsel, &acccon, m_dso);
 
@@ -2619,21 +2535,27 @@ class BreakpointsDebugWindow : public DebugUI {
   protected:
     void DoImGui2() override {
         bool changed = false;
-        const BBCMicroType *type;
-        {
-            std::unique_lock<Mutex> lock;
-            const BBCMicro *m = m_beeb_thread->LockBeeb(&lock);
 
-            uint64_t breakpoints_change_counter = m->DebugGetBreakpointsChangeCounter();
-            if (breakpoints_change_counter != m_breakpoints_change_counter) {
-                m->DebugGetDebugFlags(m_host_address_debug_flags, m_parasite_address_debug_flags, &m_big_page_debug_flags[0][0]);
-                m_breakpoints_change_counter = breakpoints_change_counter;
+        if (m_beeb_debug_state) {
+            if (m_beeb_debug_state->breakpoints_changed_counter != m_breakpoints_change_counter) {
+                //m->DebugGetDebugFlags(m_host_address_debug_flags, m_parasite_address_debug_flags, &m_big_page_debug_flags[0][0]);
+
+                static_assert(sizeof m_host_address_debug_flags == sizeof m_beeb_debug_state->host_address_debug_flags);
+                memcpy(m_host_address_debug_flags, m_beeb_debug_state->host_address_debug_flags, sizeof m_host_address_debug_flags);
+
+                static_assert(sizeof m_parasite_address_debug_flags == sizeof m_beeb_debug_state->parasite_address_debug_flags);
+                memcpy(m_parasite_address_debug_flags, m_beeb_debug_state->parasite_address_debug_flags, sizeof m_parasite_address_debug_flags);
+
+                static_assert(sizeof m_big_page_debug_flags == sizeof m_beeb_debug_state->big_pages_byte_debug_flags);
+                memcpy(m_big_page_debug_flags, m_beeb_debug_state->big_pages_byte_debug_flags, sizeof m_big_page_debug_flags);
+
+                m_breakpoints_change_counter = m_beeb_debug_state->breakpoints_changed_counter;
                 ++m_num_updates;
                 changed = true;
             }
-
-            type = m->GetType();
         }
+
+        const BBCMicroType *type = m_beeb_state->type;
 
         if (changed) {
             this->Update();
@@ -2848,12 +2770,7 @@ class PixelMetadataUI : public DebugUI {
     void DoImGui2() override {
         if (const VideoDataUnit *unit = m_beeb_window->GetVideoDataUnitForMousePixel()) {
             if (unit->metadata.flags & VideoDataUnitMetadataFlag_HasAddress) {
-                const BBCMicroType *type;
-                {
-                    std::unique_lock<Mutex> lock;
-                    const BBCMicro *m = m_beeb_thread->LockBeeb(&lock);
-                    type = m->GetType();
-                }
+                const BBCMicroType *type = m_beeb_state->type;
 
                 // The debug stuff is oriented around the CPU's view of memory,
                 // but the video unit's address is from the CRTC's perspective.
@@ -3047,57 +2964,50 @@ class TubeDebugWindow : public DebugUI {
 
   protected:
     void DoImGui2() override {
-        Tube tube;
-        {
-            std::unique_lock<Mutex> lock;
-            const BBCMicro *m = m_beeb_thread->LockBeeb(&lock);
-            const Tube *t = m->DebugGetTube();
-            if (!t) {
-                ImGui::Text("No Tube");
-                return;
-            }
-
-            tube = *t; // the whole thing is 64 bytes
+        const Tube *tube = m_beeb_state->DebugGetTube();
+        if (!tube) {
+            ImGui::Text("No Tube");
+            return;
         }
 
         ImGui::Checkbox("Sort FIFOs by index", &m_sort_by_index);
 
         ImGuiHeader("Tube Status");
 
-        ImGui::BulletText("Parasite: IRQ=%d NMI=%d", tube.pirq.bits.pirq, tube.pirq.bits.pnmi);
-        ImGui::BulletText("Host: IRQ=%d", tube.hirq.bits.hirq);
+        ImGui::BulletText("Parasite: IRQ=%d NMI=%d", tube->pirq.bits.pirq, tube->pirq.bits.pnmi);
+        ImGui::BulletText("Host: IRQ=%d", tube->hirq.bits.hirq);
         ImGui::Text("Status: $%02x (%%%s) (T=%d P=%d V=%d M=%d J=%d I=%d Q=%d)",
-                    tube.status.value,
-                    BINARY_BYTE_STRINGS[tube.status.value],
-                    tube.status.bits.t,
-                    tube.status.bits.p,
-                    tube.status.bits.v,
-                    tube.status.bits.m,
-                    tube.status.bits.j,
-                    tube.status.bits.i,
-                    tube.status.bits.q);
-        ImGui::BulletText("FIFO1: PIRQ=%s", BOOL_STR(tube.status.bits.i));
-        ImGui::BulletText("FIFO3: PNMI=%s", BOOL_STR(tube.status.bits.m));
-        ImGui::BulletText("FIFO4: PIRQ=%s HIRQ=%s", BOOL_STR(tube.status.bits.j), BOOL_STR(tube.status.bits.q));
+                    tube->status.value,
+                    BINARY_BYTE_STRINGS[tube->status.value],
+                    tube->status.bits.t,
+                    tube->status.bits.p,
+                    tube->status.bits.v,
+                    tube->status.bits.m,
+                    tube->status.bits.j,
+                    tube->status.bits.i,
+                    tube->status.bits.q);
+        ImGui::BulletText("FIFO1: PIRQ=%s", BOOL_STR(tube->status.bits.i));
+        ImGui::BulletText("FIFO3: PNMI=%s", BOOL_STR(tube->status.bits.m));
+        ImGui::BulletText("FIFO4: PIRQ=%s HIRQ=%s", BOOL_STR(tube->status.bits.j), BOOL_STR(tube->status.bits.q));
 
         if (m_sort_by_index) {
-            this->DoFIFO1P2HGui(&tube);
-            this->DoFIFO1H2PGui(&tube);
-            this->DoFIFO2P2HGui(&tube);
-            this->DoFIFO2H2PGui(&tube);
-            this->DoFIFO3P2HGui(&tube);
-            this->DoFIFO3H2PGui(&tube);
-            this->DoFIFO4P2HGui(&tube);
-            this->DoFIFO4H2PGui(&tube);
+            this->DoFIFO1P2HGui(tube);
+            this->DoFIFO1H2PGui(tube);
+            this->DoFIFO2P2HGui(tube);
+            this->DoFIFO2H2PGui(tube);
+            this->DoFIFO3P2HGui(tube);
+            this->DoFIFO3H2PGui(tube);
+            this->DoFIFO4P2HGui(tube);
+            this->DoFIFO4H2PGui(tube);
         } else {
-            this->DoFIFO1P2HGui(&tube);
-            this->DoFIFO2P2HGui(&tube);
-            this->DoFIFO3P2HGui(&tube);
-            this->DoFIFO4P2HGui(&tube);
-            this->DoFIFO1H2PGui(&tube);
-            this->DoFIFO2H2PGui(&tube);
-            this->DoFIFO3H2PGui(&tube);
-            this->DoFIFO4H2PGui(&tube);
+            this->DoFIFO1P2HGui(tube);
+            this->DoFIFO2P2HGui(tube);
+            this->DoFIFO3P2HGui(tube);
+            this->DoFIFO4P2HGui(tube);
+            this->DoFIFO1H2PGui(tube);
+            this->DoFIFO2H2PGui(tube);
+            this->DoFIFO3H2PGui(tube);
+            this->DoFIFO4H2PGui(tube);
         }
     }
 
@@ -3264,38 +3174,26 @@ class ADCDebugWindow : public DebugUI {
   public:
   protected:
     void DoImGui2() override {
-        ADCStatusRegister status;
-        uint16_t addr;
-        uint16_t avalues[4];
-        uint16_t timer;
-        {
-            std::unique_lock<Mutex> lock;
-            const BBCMicro *m = m_beeb_thread->LockBeeb(&lock);
-            const ADC *adc = m->DebugGetADC();
+        const ADC *adc = &m_beeb_state->adc;
 
-            addr = m->GetType()->adc_addr;
-            status = adc->m_status;
-            timer = adc->m_timer;
-            adc->DebugGetChannelValues(avalues);
-        }
-
-        ImGui::Text("ADC address: $%04x", addr);
+        ImGui::Text("ADC address: $%04x", m_beeb_state->type->adc_addr);
 
         ImGuiHeader("\"Analogue\" values");
         for (int ch = 0; ch < 4; ++ch) {
-            uint16_t avalue = avalues[ch];
+            uint16_t avalue = m_beeb_state->analogue_channel_values[ch];
             ImGui::BulletText("%d: %-4u $%03x %.5f", ch, avalue, avalue, avalue / 65535.);
         }
 
         ImGuiHeader("Status");
-        ImGui::Text("Status: %3u $%02x %%%s", status.value, status.value, BINARY_BYTE_STRINGS[status.value]);
-        ImGui::Text("Conversion time left: %d " MICROSECONDS_UTF8, timer);
-        ImGui::BulletText("Channel: %u", status.bits.channel);
-        ImGui::BulletText("Flag: %u", status.bits.flag);
-        ImGui::BulletText("Precision: %d bits", status.bits.prec_10_bit ? 10 : 8);
-        ImGui::BulletText("MSB: %u", status.bits.msb);
-        ImGui::BulletText("Busy: %s", BOOL_STR(!status.bits.not_busy));
-        ImGui::BulletText("EOC: %s", BOOL_STR(!status.bits.not_eoc));
+        ImGui::Text("Status: %3u $%02x %%%s", adc->m_status.value, adc->m_status.value, BINARY_BYTE_STRINGS[adc->m_status.value]);
+        ImGui::Text("Conversion time left: %d " MICROSECONDS_UTF8, adc->m_timer);
+        ImGui::BulletText("Sampled value: %u", adc->m_avalue);
+        ImGui::BulletText("Channel: %u", adc->m_status.bits.channel);
+        ImGui::BulletText("Flag: %u", adc->m_status.bits.flag);
+        ImGui::BulletText("Precision: %d bits", adc->m_status.bits.prec_10_bit ? 10 : 8);
+        ImGui::BulletText("MSB: %u", adc->m_status.bits.msb);
+        ImGui::BulletText("Busy: %s", BOOL_STR(!adc->m_status.bits.not_busy));
+        ImGui::BulletText("EOC: %s", BOOL_STR(!adc->m_status.bits.not_eoc));
     }
 
   private:

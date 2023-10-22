@@ -1807,15 +1807,15 @@ bool BeebThread::IsCopying() const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-#if BBCMICRO_DEBUGGER
-const BBCMicro *BeebThread::LockBeeb(std::unique_lock<Mutex> *lock) const {
-    PROFILE_SCOPE(PROFILER_COLOUR_DARK_ORCHID, "LockBeeb");
-
-    *lock = std::unique_lock<Mutex>(m_mutex);
-
-    return m_thread_state->beeb;
-}
-#endif
+//#if BBCMICRO_DEBUGGER
+//const BBCMicro *BeebThread::LockBeeb(std::unique_lock<Mutex> *lock) const {
+//    PROFILE_SCOPE(PROFILER_COLOUR_DARK_ORCHID, "LockBeeb");
+//
+//    *lock = std::unique_lock<Mutex>(m_mutex);
+//
+//    return m_thread_state->beeb;
+//}
+//#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

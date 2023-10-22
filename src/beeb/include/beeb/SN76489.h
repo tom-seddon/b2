@@ -54,9 +54,6 @@ class SN76489 {
     void SetTrace(Trace *t);
 #endif
 
-    // CHANNELS should point to an array of 4.
-    void GetState(ChannelValues *channels, uint16_t *noise_seed) const;
-
   protected:
   private:
     struct Channel {
@@ -96,6 +93,10 @@ class SN76489 {
         Output output;
     };
 #include <shared/poppack.h>
+#endif
+
+#if BBCMICRO_DEBUGGER
+    friend class SN76489DebugWindow;
 #endif
 };
 
