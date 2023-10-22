@@ -2238,12 +2238,26 @@ std::vector<uint8_t> BeebThread::GetPrinterData() const {
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_DEBUGGER
+bool BeebThread::DebugIsHalted() const {
+    return m_debug_is_halted.load(std::memory_order_acquire);
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_DEBUGGER
 void BeebThread::DebugGetState(std::shared_ptr<const BBCMicro::State> *state_ptr,
                                std::shared_ptr<const BBCMicro::DebugState> *debug_state_ptr) const {
     std::lock_guard<Mutex> lock(m_beeb_state_mutex);
 
-    *state_ptr = m_beeb_state;
-    *debug_state_ptr = m_beeb_debug_state;
+    if (state_ptr) {
+        *state_ptr = m_beeb_state;
+    }
+
+    if (debug_state_ptr) {
+        *debug_state_ptr = m_beeb_debug_state;
+    }
 }
 #endif
 
@@ -3027,7 +3041,14 @@ void BeebThread::ThreadMain(void) {
                 std::lock_guard<Mutex> lock2(m_beeb_state_mutex);
 
                 m_beeb_state = ts.beeb->DebugGetState();
+#if BBCMICRO_DEBUGGER
                 m_beeb_debug_state = ts.beeb->GetDebugState();
+                if (!!m_beeb_debug_state) {
+                    m_debug_is_halted.store(m_beeb_debug_state->is_halted, std::memory_order_release);
+                } else {
+                    m_debug_is_halted.store(false, std::memory_order_release);
+                }
+#endif
             }
         }
 

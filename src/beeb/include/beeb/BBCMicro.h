@@ -344,7 +344,7 @@ class BBCMicro : private WD1770Handler,
     bool HasNumericKeypad() const;
 
 #if BBCMICRO_DEBUGGER
-    bool GetTeletextDebug() const;
+    //bool GetTeletextDebug() const;
     void SetTeletextDebug(bool teletext_debug);
 #endif
 
@@ -586,8 +586,9 @@ class BBCMicro : private WD1770Handler,
         // Video output
         VideoULA video_ula;
 
-      private:
         SAA5050 saa5050;
+
+      private:
         uint8_t ic15_byte = 0;
 
         // 0x8000 to display shadow RAM; 0x0000 to display normal RAM.
@@ -888,7 +889,9 @@ class BBCMicro : private WD1770Handler,
 #endif
     static void InitReadOnlyBigPage(ReadOnlyBigPage *bp,
                                     const State *state,
+#if BBCMICRO_DEBUGGER
                                     const DebugState *debug_state,
+#endif
                                     uint8_t big_page_index);
 
     static void CheckMemoryBigPages(const MemoryBigPages *pages, bool non_null);

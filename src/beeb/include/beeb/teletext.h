@@ -19,6 +19,10 @@ union VideoDataUnitPixels;
 
 class SAA5050 {
   public:
+#if BBCMICRO_DEBUGGER
+    bool debug = false;
+#endif
+
     SAA5050();
 
     void Byte(uint8_t byte, uint8_t dispen);
@@ -31,10 +35,6 @@ class SAA5050 {
 
     void VSync();
 
-#if BBCMICRO_DEBUGGER
-    bool IsDebug() const;
-    void SetDebug(bool debug);
-#endif
   protected:
   private:
     struct Output {
@@ -70,9 +70,6 @@ class SAA5050 {
     bool m_hold = false;
     bool m_text_visible = false;
     bool m_frame_flash_visible = false;
-#if BBCMICRO_DEBUGGER
-    bool m_debug = false;
-#endif
 };
 
 //////////////////////////////////////////////////////////////////////////

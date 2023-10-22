@@ -481,7 +481,9 @@ void BBCMicro::UpdatePaging() {
 
 void BBCMicro::InitReadOnlyBigPage(ReadOnlyBigPage *bp,
                                    const State *state,
+#if BBCMICRO_DEBUGGER
                                    const DebugState *debug_state,
+#endif
                                    uint8_t big_page_index) {
     bp->writeable = false;
     bp->r = nullptr;
@@ -633,7 +635,12 @@ void BBCMicro::InitPaging() {
 
     for (uint8_t i = 0; i < NUM_BIG_PAGES; ++i) {
         ReadOnlyBigPage bp;
-        InitReadOnlyBigPage(&bp, &m_state, m_debug, i);
+        InitReadOnlyBigPage(&bp,
+                            &m_state,
+#if BBCMICRO_DEBUGGER
+                            m_debug,
+#endif
+                            i);
 
         const BigPage *bp2 = &m_big_pages[i];
 
@@ -983,17 +990,8 @@ bool BBCMicro::HasNumericKeypad() const {
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_DEBUGGER
-bool BBCMicro::GetTeletextDebug() const {
-    return m_state.saa5050.IsDebug();
-}
-#endif
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-#if BBCMICRO_DEBUGGER
 void BBCMicro::SetTeletextDebug(bool teletext_debug) {
-    m_state.saa5050.SetDebug(teletext_debug);
+    m_state.saa5050.debug = teletext_debug;
 }
 #endif
 
@@ -1804,10 +1802,11 @@ std::shared_ptr<BBCMicro::DebugState> BBCMicro::TakeDebugState() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#if BBCMICRO_DEBUGGER
 std::shared_ptr<const BBCMicro::DebugState> BBCMicro::GetDebugState() const {
     return m_debug_ptr;
-    //return std::const_pointer_cast<const BBCMicro::DebugState>(m_debug_ptr);
 }
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

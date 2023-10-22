@@ -429,13 +429,15 @@ void BeebWindow::OptionsUI::DoImGui() {
 #if BBCMICRO_DEBUGGER
     {
         ImGuiHeader("Debug Options");
-        std::unique_lock<Mutex> lock;
-        BBCMicro *m = m_beeb_window->m_beeb_thread->LockMutableBeeb(&lock);
-        bool debug;
 
-        debug = m->GetTeletextDebug();
-        if (ImGui::Checkbox("Teletext debug", &debug)) {
-            m->SetTeletextDebug(debug);
+        std::shared_ptr<const BBCMicro::State> beeb_state;
+        m_beeb_window->m_beeb_thread->DebugGetState(&beeb_state, nullptr);
+
+        bool teletext_debug = beeb_state->saa5050.debug;
+        if (ImGui::Checkbox("Teletext debug", &teletext_debug)) {
+            std::unique_lock<Mutex> lock;
+            BBCMicro *m = m_beeb_window->m_beeb_thread->LockMutableBeeb(&lock);
+            m->SetTeletextDebug(teletext_debug);
         }
 
         ImGui::Checkbox("Show TV beam position", &m_beeb_window->m_tv.show_beam_position);
@@ -840,10 +842,6 @@ bool BeebWindow::DoImGui(uint64_t ticks) {
     SDL_GetRendererOutputSize(m_renderer, &output_width, &output_height);
 
     bool keep_window = true;
-
-#if BBCMICRO_DEBUGGER
-    m_got_debug_halted = false;
-#endif
 
     for (const SDL_KeyboardEvent &event : m_sdl_keyboard_events) {
         //LOGF(OUTPUT,"%s: event=0x%x key=%s timestamp=%u repeat=%u\n",__func__,event.type,SDL_GetScancodeName(event.keysym.scancode),event.timestamp,event.repeat);
@@ -3246,15 +3244,7 @@ bool BeebWindow::DebugIsRunEnabled() const {
 
 #if BBCMICRO_DEBUGGER
 bool BeebWindow::DebugIsHalted() const {
-    if (!m_got_debug_halted) {
-        std::unique_lock<Mutex> lock;
-        BBCMicro *m = m_beeb_thread->LockMutableBeeb(&lock);
-
-        m_debug_halted = m->DebugIsHalted();
-        m_got_debug_halted = true;
-    }
-
-    return m_debug_halted;
+    return m_beeb_thread->DebugIsHalted();
 }
 #endif
 
