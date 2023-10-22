@@ -431,11 +431,11 @@ void BBCMicro::UpdatePaging() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void BBCMicro::InitBigPage(BigPage *bp,
-                           uint8_t big_page_index,
-                           State *state,
-                           DebugState *debug_state) {
-    bp->w = nullptr;
+void BBCMicro::InitReadOnlyBigPage(ReadOnlyBigPage *bp,
+                                   const State *state,
+                                   const DebugState *debug_state,
+                                   uint8_t big_page_index) {
+    bp->writeable = false;
     bp->r = nullptr;
 
     if (big_page_index >= 0 &&
@@ -443,8 +443,8 @@ void BBCMicro::InitBigPage(BigPage *bp,
         size_t offset = big_page_index * BIG_PAGE_SIZE_BYTES;
 
         if (offset < state->ram_buffer->size()) {
-            bp->w = &state->ram_buffer->at(offset);
-            bp->r = bp->w;
+            bp->r = &state->ram_buffer->at(offset);
+            bp->writeable = true;
         }
     } else if (big_page_index >= ROM0_BIG_PAGE_INDEX &&
                big_page_index < ROM0_BIG_PAGE_INDEX + 16 * NUM_ROM_BIG_PAGES) {
@@ -454,8 +454,8 @@ void BBCMicro::InitBigPage(BigPage *bp,
         if (!!state->sideways_rom_buffers[bank]) {
             bp->r = &state->sideways_rom_buffers[bank]->at(offset);
         } else if (!!state->sideways_ram_buffers[bank]) {
-            bp->w = &state->sideways_ram_buffers[bank]->at(offset);
-            bp->r = bp->w;
+            bp->r = &state->sideways_ram_buffers[bank]->at(offset);
+            bp->writeable = true;
         }
     } else if (big_page_index >= MOS_BIG_PAGE_INDEX &&
                big_page_index < MOS_BIG_PAGE_INDEX + NUM_MOS_BIG_PAGES) {
@@ -466,10 +466,9 @@ void BBCMicro::InitBigPage(BigPage *bp,
     } else if (big_page_index >= PARASITE_BIG_PAGE_INDEX &&
                big_page_index < PARASITE_BIG_PAGE_INDEX + NUM_PARASITE_BIG_PAGES) {
         if (state->parasite_type != BBCMicroParasiteType_None) {
-            ASSERT(!!state->parasite_ram_buffer);
             size_t offset = (big_page_index - PARASITE_BIG_PAGE_INDEX) * BIG_PAGE_SIZE_BYTES;
-            bp->w = &state->parasite_ram_buffer->at(offset);
-            bp->r = bp->w;
+            bp->r = &state->parasite_ram_buffer->at(offset);
+            bp->writeable = true;
         }
     } else if (big_page_index >= PARASITE_ROM_BIG_PAGE_INDEX &&
                big_page_index < PARASITE_ROM_BIG_PAGE_INDEX + NUM_PARASITE_ROM_BIG_PAGES) {
@@ -505,9 +504,12 @@ void BBCMicro::InitBigPage(BigPage *bp,
 #endif
 }
 
-//    struct BigPage {
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
 
 void BBCMicro::InitPaging() {
+    // TODO: call InitReadOnlyBigPage
+
     for (BigPage &bp : m_big_pages) {
         bp = {};
     }
@@ -582,17 +584,19 @@ void BBCMicro::InitPaging() {
     this->UpdatePaging();
 
     for (uint8_t i = 0; i < NUM_BIG_PAGES; ++i) {
-        BigPage bp;
-        InitBigPage(&bp, i, &m_state, m_debug);
+        ReadOnlyBigPage bp;
+        InitReadOnlyBigPage(&bp, &m_state, m_debug, i);
 
         const BigPage *bp2 = &m_big_pages[i];
 
+#if ASSERT_ENABLED
         ASSERT(bp.address_debug_flags == bp2->address_debug_flags);
         ASSERT(bp.byte_debug_flags == bp2->byte_debug_flags);
         ASSERT(bp.index == bp2->index);
         ASSERT(bp.metadata == bp2->metadata);
         ASSERT((bp.r ? bp.r : g_unmapped_reads) == bp2->r);
-        ASSERT((bp.w ? bp.w : g_unmapped_writes) == bp2->w);
+        ASSERT((bp.writeable ? bp.r : g_unmapped_writes) == bp2->w);
+#endif
     }
 }
 
@@ -1526,6 +1530,44 @@ const BBCMicro::BigPage *BBCMicro::DebugGetBigPageForAddress(M6502Word addr,
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_DEBUGGER
+void BBCMicro::DebugGetBigPageForAddress(ReadOnlyBigPage *bp,
+                                         const State *state,
+                                         const DebugState *debug_state,
+                                         M6502Word addr,
+                                         bool mos,
+                                         uint32_t dso) {
+    uint8_t index;
+    if (dso & BBCMicroDebugStateOverride_Parasite) {
+        bool boot_mode = state->parasite_boot_mode;
+        if (dso & BBCMicroDebugStateOverride_OverrideParasiteROM) {
+            boot_mode = !!(dso & BBCMicroDebugStateOverride_ParasiteROM);
+        }
+
+        if (addr.w >= 0xf000 && boot_mode) {
+            index = PARASITE_ROM_BIG_PAGE_INDEX;
+        } else {
+            index = (uint8_t)(PARASITE_BIG_PAGE_INDEX + addr.p.p);
+        }
+    } else {
+        ROMSEL romsel = state->romsel;
+        ACCCON acccon = state->acccon;
+        (*state->type->apply_dso_fn)(&romsel, &acccon, dso);
+
+        MemoryBigPageTables tables;
+        uint32_t paging_flags;
+        (*state->type->get_mem_big_page_tables_fn)(&tables, &paging_flags, romsel, acccon);
+
+        index = tables.mem_big_pages[mos][addr.p.p];
+    }
+
+    InitReadOnlyBigPage(bp, state, debug_state, index);
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_DEBUGGER
 void BBCMicro::DebugGetMemBigPageIsMOSTable(uint8_t *mem_big_page_is_mos, uint32_t dso) const {
     // Should maybe try to make this all fit together a bit better...
     if (dso & BBCMicroDebugStateOverride_Parasite) {
@@ -1683,7 +1725,7 @@ void BBCMicro::SetExtMemory(uint32_t addr, uint8_t value) {
 #if BBCMICRO_DEBUGGER
 void BBCMicro::DebugHalt(const char *fmt, ...) {
     if (m_debug) {
-        m_debug_is_halted = true;
+        m_debug->is_halted = m_debug_is_halted = true;
 
         if (fmt) {
             va_list v;
@@ -1743,7 +1785,7 @@ const char *BBCMicro::DebugGetHaltReason() const {
 
 #if BBCMICRO_DEBUGGER
 void BBCMicro::DebugRun() {
-    m_debug_is_halted = false;
+    m_debug->is_halted = m_debug_is_halted = false;
 }
 #endif
 

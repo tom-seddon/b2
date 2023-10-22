@@ -78,7 +78,8 @@ class BBCMicro : private WD1770Handler,
             uint64_t id = 0;
         };
 
-        //bool is_halted = false;
+        bool is_halted = false;
+
         BBCMicroStepType step_type = BBCMicroStepType_None;
         const M6502 *step_cpu = nullptr;
 
@@ -148,6 +149,22 @@ class BBCMicro : private WD1770Handler,
         // (exclusive).
         uint8_t index = 0;
 
+        const BigPageMetadata *metadata = nullptr;
+    };
+
+    // Same, but for reading only.
+    struct ReadOnlyBigPage {
+        const uint8_t *r = nullptr;
+
+        // set if memory is actually writeable - as there's no w field to
+        // indicate this.
+        bool writeable = false;
+
+#if BBCMICRO_DEBUGGER
+        const uint8_t *byte_debug_flags = nullptr;
+        const uint8_t *address_debug_flags = nullptr;
+#endif
+        uint8_t index = 0;
         const BigPageMetadata *metadata = nullptr;
     };
 
@@ -449,6 +466,12 @@ class BBCMicro : private WD1770Handler,
     // mos indicates whether the access is from MOS code (true) or user code
     // (false).
     const BigPage *DebugGetBigPageForAddress(M6502Word addr, bool mos, uint32_t dso) const;
+    static void DebugGetBigPageForAddress(ReadOnlyBigPage *bp,
+                                          const State *state,
+                                          const DebugState *debug_state,
+                                          M6502Word addr,
+                                          bool mos,
+                                          uint32_t dso);
 
     void DebugGetMemBigPageIsMOSTable(uint8_t *mem_big_page_is_mos, uint32_t dso) const;
 
@@ -527,9 +550,6 @@ class BBCMicro : private WD1770Handler,
     // Overly simplistic mechanism?
     void SetPrinterBuffer(std::vector<uint8_t> *buffer);
 
-    // Public for the debugger's benefit.
-    static void InitBigPage(BigPage *bp, uint8_t big_page_index, State *state, DebugState *debug_state);
-
   protected:
     // Hacks, not part of the public API, for use by the testing stuff so that
     // it can run even when the debugger isn't compiled in.
@@ -569,8 +589,11 @@ class BBCMicro : private WD1770Handler,
       private:
         const BBCMicroType *type = nullptr;
         uint32_t init_flags = 0;
+
+      public:
         BBCMicroParasiteType parasite_type = BBCMicroParasiteType_None;
 
+      private:
         // 6845
         CRTC crtc;
         CRTC::Output crtc_last_output = {};
@@ -586,18 +609,22 @@ class BBCMicro : private WD1770Handler,
 
         SN76489 sn76489;
 
-        // Number of emulated 2MHz cycles elapsed. Used to regulate sound
-        // output and measure (for informational purposes) time between
-        // vsyncs.
+      public:
+        // Number of emulated system cycles elapsed. Used to regulate sound
+        // output and measure (for informational purposes) time between vsyncs.
         CycleCount cycle_count = {0};
 
+      private:
         // Addressable latch.
         AddressableLatch addressable_latch = {0xff};
 
         // Previous values, for detecting edge transitions.
         AddressableLatch old_addressable_latch = {0xff};
 
+      public:
         M6502 cpu = {};
+
+      private:
         uint8_t stretch = 0;
         bool resetting = false;
 
@@ -670,7 +697,11 @@ class BBCMicro : private WD1770Handler,
 
         // Tube stuff.
         bool parasite_accessible = false;
+
+      public:
         M6502 parasite_cpu = {};
+
+      private:
         std::shared_ptr<const std::array<uint8_t, 4096>> parasite_rom_buffer;
         std::shared_ptr<std::vector<uint8_t>> parasite_ram_buffer;
         bool parasite_boot_mode = true;
@@ -855,7 +886,13 @@ class BBCMicro : private WD1770Handler,
     void SetDebugStepType(BBCMicroStepType step_type, const M6502 *step_cpu);
     void DebugHitBreakpoint(const M6502 *cpu, uint8_t flags);
     void DebugHandleStep();
+    // Public for the debugger's benefit.
 #endif
+    static void InitReadOnlyBigPage(ReadOnlyBigPage *bp,
+                                    const State *state,
+                                    const DebugState *debug_state,
+                                    uint8_t big_page_index);
+
     static void CheckMemoryBigPages(const MemoryBigPages *pages, bool non_null);
 
     // 1770 handler stuff.
