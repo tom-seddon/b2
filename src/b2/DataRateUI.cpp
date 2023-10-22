@@ -299,6 +299,12 @@ void DataRateUI::DoImGui() {
     }
     ImGui::Text("Total lock wait time: ~%.3f sec (~%.1f ms)", GetSecondsFromTicks(total_lock_wait_ticks), GetMillisecondsFromTicks(total_lock_wait_ticks));
 
+    if (ImGui::Button("Reset all stats")) {
+        for (const std::shared_ptr<MutexMetadata> &m : metadata) {
+            m->RequestReset();
+        }
+    }
+
     for (size_t i = 0; i < metadata.size(); ++i) {
         MutexMetadata *m = metadata[i].get();
 
