@@ -272,6 +272,22 @@ class BeebThread {
         const uint16_t m_value = 0;
     };
 
+    class DigitalJoystickStateMessage : public Message {
+      public:
+        explicit DigitalJoystickStateMessage(uint8_t index, BBCMicro::DigitalJoystickInput state);
+
+        bool ThreadPrepare(std::shared_ptr<Message> *ptr,
+                           CompletionFun *completion_fun,
+                           BeebThread *beeb_thread,
+                           ThreadState *ts) override;
+        void ThreadHandle(BeebThread *beeb_thread, ThreadState *ts) const override;
+
+      protected:
+      private:
+        const uint8_t m_index = 0;
+        const BBCMicro::DigitalJoystickInput m_state = {};
+    };
+
     class HardResetMessage : public Message {
       public:
         // Flags are a combination of BeebThreadHardResetFlag.
@@ -1148,7 +1164,6 @@ class BeebThread {
 #endif
     void ThreadSetKeyState(ThreadState *ts, BeebKey beeb_key, bool state);
     void ThreadSetFakeShiftState(ThreadState *ts, BeebShiftState state);
-    void ThreadSetAnalogueChannel(ThreadState *ts, uint8_t index, uint16_t value);
     void ThreadSetBootState(ThreadState *ts, bool state);
     void ThreadUpdateShiftKeyState(ThreadState *ts);
     void ThreadSetJoystickButtonState(ThreadState *ts, uint8_t index, bool state);

@@ -199,6 +199,7 @@ static bool InitialiseTogglePopupCommands() {
     InitialiseTogglePopupCommand(BeebWindowPopupType_TubeDebugger, "toggle_tube_debugger", "Tube Debug", &CreateTubeDebugWindow);
     InitialiseTogglePopupCommand(BeebWindowPopupType_ADCDebugger, "toggle_adc_debugger", "ADC Debug", &CreateADCDebugWindow);
     InitialiseTogglePopupCommand(BeebWindowPopupType_BeebLink, "toggle_beeblink_options", "BeebLink Options", &CreateBeebLinkUI);
+    InitialiseTogglePopupCommand(BeebWindowPopupType_DigitalJoystickDebugger, "toggle_digital_joystick_debugger", "Digital Joystick Debug", &CreateDigitalJoystickDebugWindow);
 
     return true;
 }
@@ -629,8 +630,11 @@ void BeebWindow::HandleJoystickResult(const JoystickResult &jr) {
         m_beeb_thread->Send(std::move(message));
     }
 
-    if (jr.button_joystick_index >= 0) {
-        auto message = std::make_shared<BeebThread::JoystickButtonMessage>(jr.button_joystick_index, jr.button_state);
+    if (jr.digital_joystick_index == 0 || jr.digital_joystick_index == 1) {
+        auto message = std::make_shared<BeebThread::JoystickButtonMessage>(jr.digital_joystick_index, jr.digital_state.bits.fire0);
+        m_beeb_thread->Send(std::move(message));
+    } else if (jr.digital_joystick_index == 2) {
+        auto message=std::make_shared<BeebThread::DigitalJoystickStateMessage>(jr.digital_joystick_index,jr.digital_state);
         m_beeb_thread->Send(std::move(message));
     }
 }
@@ -1960,6 +1964,7 @@ void BeebWindow::DoDebugMenu() {
         m_cst.DoMenuItem(g_popups[BeebWindowPopupType_StackDebugger].command);
         m_cst.DoMenuItem(g_popups[BeebWindowPopupType_ParasiteStackDebugger].command);
         m_cst.DoMenuItem(g_popups[BeebWindowPopupType_TubeDebugger].command);
+        m_cst.DoMenuItem(g_popups[BeebWindowPopupType_DigitalJoystickDebugger].command);
 
         ImGui::Separator();
 

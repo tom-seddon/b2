@@ -120,7 +120,15 @@ const uint16_t BBCMicro::SCREEN_WRAP_ADJUSTMENTS[] = {
     0x4000 >> 3,
     0x2000 >> 3,
     0x5000 >> 3,
-    0x2800 >> 3};
+    0x2800 >> 3,
+};
+
+const uint16_t BBCMicro::ADJI_ADDRESSES[4] = {
+    0xfcc0,
+    0xfcd0,
+    0xfce0,
+    0xfcf0,
+};
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -205,6 +213,17 @@ const Tube *BBCMicro::State::DebugGetTube() const {
         return &this->parasite_tube;
     } else {
         return nullptr;
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+int BBCMicro::State::DebugGetADJIDIPSwitches() const {
+    if (this->init_flags & BBCMicroInitFlag_ADJI) {
+        return this->init_flags >> BBCMicroInitFlag_ADJIDIPSwitchesShift & 3;
+    } else {
+        return -1;
     }
 }
 
@@ -800,6 +819,16 @@ void BBCMicro::WriteACCCON(void *m_, M6502Word a, uint8_t value) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+uint8_t BBCMicro::ReadADJI(void *m_, M6502Word a) {
+    auto m = (BBCMicro *)m_;
+    (void)a;
+
+    return m->m_state.digital_joystick_state.value;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 const BBCMicroType *BBCMicro::GetType() const {
     return m_state.type;
 }
@@ -913,8 +942,6 @@ bool BBCMicro::GetJoystickButtonState(uint8_t index) const {
 //////////////////////////////////////////////////////////////////////////
 
 void BBCMicro::SetJoystickButtonState(uint8_t index, bool new_state) {
-    ASSERT(index == 0 || index == 1);
-
     uint8_t mask = 1 << (4 + (index & 1));
 
     if (new_state) {
@@ -1212,7 +1239,7 @@ void BBCMicro::SetXFJIO(uint16_t addr, ReadMMIOFn read_fn, WriteMMIOFn write_fn,
 
 void BBCMicro::SetIFJIO(uint16_t addr, ReadMMIOFn read_fn, WriteMMIOFn write_fn, void *context) {
     ASSERT(addr >= 0xfc00 && addr <= 0xfdff);
-    this->SetMMIOFnsInternal(addr, read_fn, write_fn, context, true, false);
+    this->SetMMIOFnsInternal(addr, read_fn, write_fn, context, false, true);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -2261,6 +2288,11 @@ void BBCMicro::InitStuff() {
         this->SetSIO((uint16_t)(m_state.type->adc_addr + i + 3u), &ADC::Read3, &ADC::Write3, &m_state.adc);
     }
 
+    if (m_state.init_flags & BBCMicroInitFlag_ADJI) {
+        uint8_t adji_addr = m_state.init_flags >> BBCMicroInitFlag_ADJIDIPSwitchesShift & 3;
+        this->SetIFJIO(ADJI_ADDRESSES[adji_addr], &ReadADJI, nullptr, this);
+    }
+
     // Set up TST=1 tables.
     m_read_mmios_rom = std::vector<ReadMMIO>(768, {&ReadROMMMIO, this});
     m_mmios_stretch_rom = std::vector<uint8_t>(768, 0x00);
@@ -2783,6 +2815,24 @@ void BBCMicro::SetAnalogueChannel(uint8_t channel, uint16_t value) {
 uint16_t BBCMicro::ReadAnalogueChannel(uint8_t channel) const {
     uint16_t value = this->GetAnalogueChannel(channel);
     return value;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+BBCMicro::DigitalJoystickInput BBCMicro::GetDigitalJoystickState(uint8_t index) const {
+    (void)index;
+
+    return m_state.digital_joystick_state;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BBCMicro::SetDigitalJoystickState(uint8_t index, DigitalJoystickInput state) {
+    (void)index;
+
+    m_state.digital_joystick_state = state;
 }
 
 //////////////////////////////////////////////////////////////////////////

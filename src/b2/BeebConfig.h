@@ -48,6 +48,8 @@ class BeebConfig {
     bool video_nula = true;
     bool ext_mem = false;
     bool beeblink = false;
+    bool adji = false;
+    uint8_t adji_dip_switches = 0;
 
     BBCMicroParasiteType parasite_type = BBCMicroParasiteType_None;
 

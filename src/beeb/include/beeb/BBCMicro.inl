@@ -164,6 +164,8 @@ EEND()
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+// TODO if this were a struct with bit fields, that would simplify things...
+
 #define ENAME BBCMicroInitFlag
 EBEGIN()
 // Set if the video ULA is in fact a Video NuLA.
@@ -198,6 +200,14 @@ EPNV(PowerOnTone, 1 << 2)
 // messages or with a BBCMicro pointer obtained from
 // BeebThread::LockMutableBeeb.)
 EPNV(Clone, 1 << 3)
+
+// If set, ADJI inserted, available via IFJ.
+EPNV(ADJI, 1 << 4)
+
+// If ADJI bit set, there's a 2-bit value encoding the base address.
+EQPNV(ADJIDIPSwitchesShift, 5)
+
+// next free bit is bit 7
 EEND()
 #undef ENAME
 

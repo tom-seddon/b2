@@ -2,6 +2,7 @@
 #include "debugger.h"
 #include "commands.h"
 #include <SDL.h>
+#include "joysticks.h"
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -3206,6 +3207,41 @@ std::unique_ptr<SettingsUI> CreateADCDebugWindow(BeebWindow *beeb_window) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+class DigitalJoystickDebugWindow : public DebugUI {
+  public:
+  protected:
+    void DoImGui2() override {
+        int adji_dip = m_beeb_state->DebugGetADJIDIPSwitches();
+        if (adji_dip >= 0) {
+            ImGui::Text("Type: Retro Hardware ADJI cartridge");
+            ImGui::Text("Address: $%04x", BBCMicro::ADJI_ADDRESSES[adji_dip & 3]);
+        } else {
+            ImGui::Text("Type: (none)");
+        }
+
+        BBCMicro::DigitalJoystickInputBits bits = m_beeb_state->digital_joystick_state.bits;
+
+        this->Checkbox("Up", bits.up);
+        this->Checkbox("Down", bits.down);
+        this->Checkbox("Left", bits.left);
+        this->Checkbox("Right", bits.right);
+        this->Checkbox("Fire 1", bits.fire0);
+        this->Checkbox("Fire 2", bits.fire1);
+    }
+
+  private:
+    void Checkbox(const char *label, bool value) {
+        ImGui::Checkbox(label, &value);
+    }
+};
+
+std::unique_ptr<SettingsUI> CreateDigitalJoystickDebugWindow(BeebWindow *beeb_window) {
+    return CreateDebugUI<DigitalJoystickDebugWindow>(beeb_window);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 #else
 
 std::unique_ptr<SettingsUI> Create6502DebugWindow(BeebWindow *) {
@@ -3281,6 +3317,10 @@ std::unique_ptr<SettingsUI> CreateTubeDebugWindow(BeebWindow *) {
 }
 
 std::unique_ptr<SettingsUI> CreateADCDebugWindow(BeebWindow *) {
+    return nullptr;
+}
+
+std::unique_ptr<SettingsUI> CreateDigitalJoystickDebugWindow(BeebWindow *beeb_window) {
     return nullptr;
 }
 

@@ -192,6 +192,16 @@ void ConfigsUI::DoImGui() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+static bool GetADJIDIPSwitchesString(void *data, int index, const char **str) {
+    ASSERT(index >= 0 && index < 4);
+
+    auto tmp = (std::string *)data;
+    *tmp = strprintf("%d (&%04X) (DIP 1=%s, DIP 2=%s)", 1 + index, BBCMicro::ADJI_ADDRESSES[index], index & 1 ? "ON" : "OFF", index & 2 ? "ON" : "OFF");
+    *str = tmp->c_str();
+
+    return true;
+}
+
 void ConfigsUI::DoEditConfigGui() {
     BeebConfig *config = GetConfigByIndex(m_config_index);
     if (!config) {
@@ -333,6 +343,21 @@ void ConfigsUI::DoEditConfigGui() {
 
     if (ImGui::Checkbox("Video NuLA", &config->video_nula)) {
         edited = true;
+    }
+
+    if (config->type->type_id == BBCMicroTypeID_Master) {
+        if (ImGui::Checkbox("Retro Hardware ADJI cartridge", &config->adji)) {
+            edited = true;
+        }
+
+        if (config->adji) {
+            std::string tmp;
+            int adji_dip_switches = config->adji_dip_switches & 3;
+            if (ImGui::ListBox("Address", &adji_dip_switches, &GetADJIDIPSwitchesString, &tmp, 4)) {
+                config->adji_dip_switches = adji_dip_switches & 3;
+                edited = true;
+            }
+        }
     }
 
     if (ImGuiRadioButton(&config->parasite_type, BBCMicroParasiteType_None, "No second processor")) {

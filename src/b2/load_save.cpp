@@ -868,6 +868,19 @@ static bool FindUInt16Member(uint16_t *value, rapidjson::Value *object, const ch
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+static bool FindUInt8Member(uint8_t *value, rapidjson::Value *object, const char *key, Messages *msg) {
+    uint64_t tmp;
+    if (!FindUInt64Member(&tmp, object, key, msg)) {
+        return false;
+    }
+
+    *value = (uint8_t)tmp;
+    return true;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 // Bit-indexed flags are flags where the enum values relate to the bit
 // indexes rather than the mask values.
 //
@@ -1190,6 +1203,8 @@ static const char SWAP_JOYSTICKS_WHEN_SHARED[] = "swap_joysticks_when_shared";
 #if ENABLE_SDL_FULL_SCREEN
 static const char FULL_SCREEN[] = "full_screen";
 #endif
+static const char ADJI[] = "adji";
+static const char ADJI_DIP_SWITCHES[] = "adji_dip_switches";
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -1824,6 +1839,8 @@ static bool LoadConfigs(rapidjson::Value *configs_json, const char *configs_path
 
         FindBoolMember(&config.ext_mem, config_json, EXT_MEM, msg);
         FindBoolMember(&config.beeblink, config_json, BEEBLINK, msg);
+        FindBoolMember(&config.adji, config_json, ADJI, msg);
+        FindUInt8Member(&config.adji_dip_switches, config_json, ADJI_DIP_SWITCHES, msg);
 
         if (FindEnumMember(&config.parasite_type, config_json, PARASITE_TYPE, "parasite type", &GetBBCMicroParasiteTypeEnumName, msg)) {
             // ...
@@ -1892,6 +1909,14 @@ static void SaveConfigs(JSONWriter<StringStream> *writer) {
 
             writer->Key(BEEBLINK);
             writer->Bool(config->beeblink);
+
+            writer->Key(ADJI);
+            writer->Bool(config->adji);
+
+            if (config->adji) {
+                writer->Key(ADJI_DIP_SWITCHES);
+                writer->Uint(config->adji_dip_switches);
+            }
 
             writer->Key(PARASITE_TYPE);
             SaveEnum(writer, config->parasite_type, &GetBBCMicroParasiteTypeEnumName);

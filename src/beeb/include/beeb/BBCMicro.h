@@ -56,6 +56,8 @@ class BBCMicro : private WD1770Handler,
     struct State;
     static const uint16_t SCREEN_WRAP_ADJUSTMENTS[];
 
+    static const uint16_t ADJI_ADDRESSES[4];
+
     typedef void (*UpdateROMSELPagesFn)(BBCMicro *);
     typedef void (*UpdateACCCONPagesFn)(BBCMicro *, const ACCCON *);
 
@@ -297,6 +299,24 @@ class BBCMicro : private WD1770Handler,
 #endif
     };
 
+    // Somewhere better for this? Maybe?
+    //
+    // Not coincidentally, the layout for this is identical to the
+    // ADJI/Slogger/First Byte interface hardware.
+    struct DigitalJoystickInputBits {
+        bool up : 1;
+        bool down : 1;
+        bool left : 1;
+        bool right : 1;
+        bool fire0 : 1;
+        bool fire1 : 1;
+    };
+
+    union DigitalJoystickInput {
+        uint8_t value;
+        DigitalJoystickInputBits bits;
+    };
+
     // Called after an opcode fetch and before execution.
     //
     // cpu->pc.w is PC+1; cpu->pc.dbus is the opcode fetched.
@@ -515,6 +535,9 @@ class BBCMicro : private WD1770Handler,
     uint16_t GetAnalogueChannel(uint8_t channel) const;
     void SetAnalogueChannel(uint8_t channel, uint16_t value);
 
+    DigitalJoystickInput GetDigitalJoystickState(uint8_t index) const;
+    void SetDigitalJoystickState(uint8_t index, DigitalJoystickInput state);
+
     static void PrintInfo(Log *log);
 
     // When the printer is enabled, printer output will be captured into a
@@ -567,6 +590,8 @@ class BBCMicro : private WD1770Handler,
         const ExtMem *DebugGetExtMem() const;
         const MC146818 *DebugGetRTC() const;
         const Tube *DebugGetTube() const;
+
+        int DebugGetADJIDIPSwitches() const;
 
         const BBCMicroType *type = nullptr;
 
@@ -651,6 +676,7 @@ class BBCMicro : private WD1770Handler,
       public:
         // ADC
         ADC adc;
+        DigitalJoystickInput digital_joystick_state = {};
 
       private:
         // Parallel printer
@@ -879,6 +905,7 @@ class BBCMicro : private WD1770Handler,
     static void WriteROMSEL(void *m_, M6502Word a, uint8_t value);
     static uint8_t ReadACCCON(void *m_, M6502Word a);
     static void WriteACCCON(void *m_, M6502Word a, uint8_t value);
+    static uint8_t ReadADJI(void *m_, M6502Word a);
 #if BBCMICRO_DEBUGGER
     void UpdateDebugBigPages(MemoryBigPages *mem_big_pages);
     void UpdateDebugState();

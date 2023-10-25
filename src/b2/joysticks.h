@@ -15,6 +15,7 @@
 //////////////////////////////////////////////////////////////////////////
 
 #include <string>
+#include <beeb/BBCMicro.h>
 
 class Messages;
 
@@ -29,9 +30,9 @@ struct JoystickResult {
     int8_t channel = -1;
     uint16_t channel_value = 0;
 
-    // if >=0, this event resulted in button state info for this joystick.
-    int8_t button_joystick_index = -1;
-    bool button_state = false;
+    // if >=0, this event resulted in digital state info for this joystick.
+    int8_t digital_joystick_index = -1;
+    BBCMicro::DigitalJoystickInput digital_state = {};
 };
 
 JoystickResult ControllerAxisMotion(int device_instance, int axis, int16_t value);
@@ -49,7 +50,12 @@ void DoJoysticksMenuImGui(Messages *msg);
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static constexpr uint8_t NUM_BEEB_JOYSTICKS = 2;
+// 0 = ADC 0
+// 1 = ADC 1
+// 2 = digital
+//
+// (this arrangement will be improved...)
+static constexpr uint8_t NUM_BEEB_JOYSTICKS = 3;
 
 struct JoysticksConfig {
     std::string device_names[NUM_BEEB_JOYSTICKS];

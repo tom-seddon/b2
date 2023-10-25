@@ -58,22 +58,42 @@ If using `Default US` character map, press PC ` to get BBC pound sign.
 ## Joysticks
 
 If you have compatible game controllers connected, use the Joysticks
-menu to pick which ones are used for BBC joysticks 0 and 1.
+menu to pick which ones are used for the BBC.
+
+(Joysticks are referred to by name, and are numbered if you have
+several of the same type connected. At the bottom of the joysticks
+menu is an entry showing you the name of the last used joystick: the
+one on which a button was last pressed. This may help you figure out
+which is which.)
+
+### Analogue
+
+Joysticks 0 and 1 refer to the analogue joysticks.
 
 Assuming an Xbox/Playstation-style game controller, left thumbstick
 and d-pad correspond to the BBC joystick X and Y axes, and the main 4
 buttons and the 2 shoulder buttons correspond to the BBC joystick
 button. (Other buttons or triggers are unused.)
 
-You can use the same gamepad for both BBC joysticks. By default, the
-left thumbstick and left shoulder button control BBC joystick 0, and
-the right thumbstick and right shoulder button control BBC joystick 1.
-(The other buttons and triggers are unused.) Tick `Swap shared
-joysticks` to have the assignment the other way round.
+You can use the same gamepad for both BBC joysticks. In this case, by
+default, the left thumbstick and left shoulder button control BBC
+joystick 0, and the right thumbstick and right shoulder button control
+BBC joystick 1. (The other buttons and triggers are unused.) Tick
+`Swap shared joysticks` to have the assignment the other way round.
 
-The joysticks menu shows you the name of the last used joystick - the
-one on which a button was last pressed. If you've got several of the
-same type plugged in, this can help you figure out which is which.
+### Digital
+
+The digital joystick refers to a digital joystick, connected via some
+alternative add-on (since digital joysticks weren't supported on the
+BBC Micro by default).
+
+Currently one such add-on is supported: the Retro Hardware ADJI
+cartridge. See the Customize Hardware section for how to enable this!
+
+Assuming an Xbox-/Playstation-style game controller, left thumbstick
+and d-pad correspond to the digital X and Y axes, the A and X buttons
+correspond to fire button 1, and the B and Y buttons corresponding to
+fire button 2 (when supported).
 
 ## Save states
 
@@ -261,6 +281,12 @@ Items of optional hardware are as follows:
   [Video NuLA](https://www.stardot.org.uk/forums/viewtopic.php?f=3&t=12150).
   (This is ticked by default, as it's very unlikely to cause a
   problem.)
+  
+- If using a Master, tick the `Retro Hardware ADJI` to add a Retro
+  Hardware ADJI cartridge (upcoming modern remake of the
+  [Slogger Switched Joystick Interface](https://www.computinghistory.org.uk/det/32296/Slogger%20Switched%20Joystick%20Interface/).
+  Select the DIP switch settings from the list box. The ADJI will use
+  the digital joystick selected in the joysticks menu.
   
 There are also some second processor options:
 

@@ -413,6 +413,7 @@ void BeebThread::JoystickButtonMessage::ThreadHandle(BeebThread *beeb_thread, Th
 BeebThread::AnalogueChannelMessage::AnalogueChannelMessage(uint8_t index, uint16_t value)
     : m_index(index)
     , m_value(value) {
+    ASSERT(m_index >= 0 && m_index < 4);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -441,7 +442,47 @@ bool BeebThread::AnalogueChannelMessage::ThreadPrepare(std::shared_ptr<Message> 
 //////////////////////////////////////////////////////////////////////////
 
 void BeebThread::AnalogueChannelMessage::ThreadHandle(BeebThread *beeb_thread, ThreadState *ts) const {
-    beeb_thread->ThreadSetAnalogueChannel(ts, m_index, m_value);
+    (void)beeb_thread;
+
+    ts->beeb->SetAnalogueChannel(m_index, m_value);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+BeebThread::DigitalJoystickStateMessage::DigitalJoystickStateMessage(uint8_t index, BBCMicro::DigitalJoystickInput state)
+    : m_index(index)
+    , m_state(state) {
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool BeebThread::DigitalJoystickStateMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
+                                                            CompletionFun *completion_fun,
+                                                            BeebThread *beeb_thread,
+                                                            ThreadState *ts) {
+    if (!this->PrepareUnlessReplayingOrHalted(ptr, completion_fun, beeb_thread, ts)) {
+        return false;
+    }
+
+    BBCMicro::DigitalJoystickInput state = ts->beeb->GetDigitalJoystickState(m_index);
+    if (state.value == m_state.value) {
+        // not an error - just don't duplicate events if the state didn't actually change.
+        ptr->reset();
+        return true;
+    }
+
+    return true;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BeebThread::DigitalJoystickStateMessage::ThreadHandle(BeebThread *beeb_thread, ThreadState *ts) const {
+    (void)beeb_thread;
+
+    ts->beeb->SetDigitalJoystickState(m_index, m_state);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -518,6 +559,11 @@ void BeebThread::HardResetMessage::HardReset(BeebThread *beeb_thread,
 
     if (beeb_thread->m_power_on_tone.load(std::memory_order_acquire)) {
         init_flags |= BBCMicroInitFlag_PowerOnTone;
+    }
+
+    if (ts->current_config.config.adji) {
+        init_flags |= BBCMicroInitFlag_ADJI;
+        init_flags |= (ts->current_config.config.adji_dip_switches & 3) << BBCMicroInitFlag_ADJIDIPSwitchesShift;
     }
 
     auto beeb = std::make_unique<BBCMicro>(ts->current_config.config.type,
@@ -2730,13 +2776,6 @@ void BeebThread::ThreadSetFakeShiftState(ThreadState *ts, BeebShiftState state) 
     ts->fake_shift_state = state;
 
     this->ThreadUpdateShiftKeyState(ts);
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-void BeebThread::ThreadSetAnalogueChannel(ThreadState *ts, uint8_t index, uint16_t value) {
-    ts->beeb->SetAnalogueChannel(index, value);
 }
 
 //////////////////////////////////////////////////////////////////////////
