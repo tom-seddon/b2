@@ -26,6 +26,7 @@
 #include <inttypes.h>
 #include <beeb/BeebLink.h>
 #include <beeb/tube.h>
+#include <set>
 
 #include <shared/enum_decl.h>
 #include "BBCMicro_private.inl"
@@ -146,7 +147,7 @@ BBCMicro::State::State(const BBCMicroType *type_,
     M6502_Init(&this->cpu, this->type->m6502_config);
     this->ram_buffer = std::make_shared<std::vector<uint8_t>>(this->type->ram_buffer_size);
 
-    if (this->type->flags & BBCMicroTypeFlag_HasRTC) {
+    if (this->type->type_id == BBCMicroTypeID_Master) {
         this->rtc.SetRAMContents(nvram_contents);
 
         if (rtc_time) {
@@ -198,7 +199,7 @@ const ExtMem *BBCMicro::State::DebugGetExtMem() const {
 //////////////////////////////////////////////////////////////////////////
 
 const MC146818 *BBCMicro::State::DebugGetRTC() const {
-    if (this->type->flags & BBCMicroTypeFlag_HasRTC) {
+    if (this->type->type_id == BBCMicroTypeID_Master) {
         return &this->rtc;
     } else {
         return nullptr;
@@ -211,6 +212,17 @@ const MC146818 *BBCMicro::State::DebugGetRTC() const {
 const Tube *BBCMicro::State::DebugGetTube() const {
     if (this->parasite_type != BBCMicroParasiteType_None) {
         return &this->parasite_tube;
+    } else {
+        return nullptr;
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+const ADC *BBCMicro::State::DebugGetADC() const {
+    if (this->type->adc_addr != 0) {
+        return &this->adc;
     } else {
         return nullptr;
     }
@@ -667,7 +679,7 @@ void BBCMicro::TracePortB(SystemVIAPB pb) {
 
     log.f("PORTB - PB = $%02X (%%%s): ", pb.value, BINARY_BYTE_STRINGS[pb.value]);
 
-    bool has_rtc = !!(m_state.type->flags & BBCMicroTypeFlag_HasRTC);
+    bool has_rtc = m_state.type->type_id == BBCMicroTypeID_Master;
 
     if (has_rtc) {
         log.f("RTC AS=%u; RTC CS=%u; ", pb.m128_bits.rtc_address_strobe, pb.m128_bits.rtc_chip_select);
@@ -955,7 +967,7 @@ void BBCMicro::SetJoystickButtonState(uint8_t index, bool new_state) {
 //////////////////////////////////////////////////////////////////////////
 
 bool BBCMicro::HasNumericKeypad() const {
-    return !!(m_state.type->flags & BBCMicroTypeFlag_HasNumericKeypad);
+    return ::HasNumericKeypad(m_state.type);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -1064,7 +1076,7 @@ uint32_t BBCMicro::GetLEDs() {
 //////////////////////////////////////////////////////////////////////////
 
 std::vector<uint8_t> BBCMicro::GetNVRAM() const {
-    if (m_state.type->flags & BBCMicroTypeFlag_HasRTC) {
+    if (m_state.type->type_id == BBCMicroTypeID_Master) {
         return m_state.rtc.GetRAMContents();
     } else {
         return std::vector<uint8_t>();
@@ -1918,6 +1930,14 @@ static std::string GetUpdateFlagExpr(const uint32_t flags_) {
 
 void BBCMicro::PrintInfo(Log *log) {
     size_t num_update_mfns = sizeof ms_update_mfns / sizeof ms_update_mfns[0];
+
+    std::set<uint32_t> normalized_flags;
+    for (uint32_t i = 0; i < num_update_mfns; ++i) {
+        normalized_flags.insert(GetNormalizedBBCMicroUpdateFlags(i));
+    }
+
+    log->f("%zu/%zu normalized BBCMicroUpdateFlag combinations\n", normalized_flags.size(), num_update_mfns);
+
     std::map<uint32_t, std::vector<uint32_t>> map;
     for (uint32_t i = 0; i < num_update_mfns; ++i) {
         for (uint32_t j = 0; j <= i; ++j) {
@@ -1928,7 +1948,7 @@ void BBCMicro::PrintInfo(Log *log) {
         }
     }
 
-    log->f("%zu/%zu unique BBCMicro::UpdateTemplate instantiations\n", map.size(), sizeof ms_update_mfns / sizeof ms_update_mfns[0]);
+    log->f("%zu/%zu unique BBCMicro::UpdateTemplate instantiations\n", map.size(), num_update_mfns);
     //for (auto &&it : map) {
     //    if (it.second.size() > 1) {
     //        log->f("    0x%08" PRIx32 ": ", it.first);
@@ -1981,6 +2001,13 @@ void BBCMicro::SetPrinterEnabled(bool printer_enabled) {
 
 void BBCMicro::SetPrinterBuffer(std::vector<uint8_t> *buffer) {
     m_printer_buffer = buffer;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool BBCMicro::HasADC() const {
+    return m_state.type->adc_addr != 0;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -2259,7 +2286,7 @@ void BBCMicro::InitStuff() {
     m_romsel_mask = m_state.type->romsel_mask;
     m_acccon_mask = m_state.type->acccon_mask;
 
-    if (m_state.type->flags & BBCMicroTypeFlag_CanDisplayTeletext3c00) {
+    if (CanDisplayTeletextAt3C00(m_state.type)) {
         m_teletext_bases[0] = 0x3c00;
         m_teletext_bases[1] = 0x7c00;
     } else {
@@ -2279,13 +2306,14 @@ void BBCMicro::InitStuff() {
     }
 
     //
-    ASSERT(m_state.type->adc_addr != 0);
-    ASSERT(m_state.type->adc_count % 4 == 0);
-    for (unsigned i = 0; i < m_state.type->adc_count; i += 4) {
-        this->SetSIO((uint16_t)(m_state.type->adc_addr + i + 0u), &ADC::Read0, &ADC::Write0, &m_state.adc);
-        this->SetSIO((uint16_t)(m_state.type->adc_addr + i + 1u), &ADC::Read1, &ADC::Write1, &m_state.adc);
-        this->SetSIO((uint16_t)(m_state.type->adc_addr + i + 2u), &ADC::Read2, &ADC::Write2, &m_state.adc);
-        this->SetSIO((uint16_t)(m_state.type->adc_addr + i + 3u), &ADC::Read3, &ADC::Write3, &m_state.adc);
+    if (m_state.type->adc_addr != 0) {
+        ASSERT(m_state.type->adc_count % 4 == 0);
+        for (unsigned i = 0; i < m_state.type->adc_count; i += 4) {
+            this->SetSIO((uint16_t)(m_state.type->adc_addr + i + 0u), &ADC::Read0, &ADC::Write0, &m_state.adc);
+            this->SetSIO((uint16_t)(m_state.type->adc_addr + i + 1u), &ADC::Read1, &ADC::Write1, &m_state.adc);
+            this->SetSIO((uint16_t)(m_state.type->adc_addr + i + 2u), &ADC::Read2, &ADC::Write2, &m_state.adc);
+            this->SetSIO((uint16_t)(m_state.type->adc_addr + i + 3u), &ADC::Read3, &ADC::Write3, &m_state.adc);
+        }
     }
 
     if (m_state.init_flags & BBCMicroInitFlag_ADJI) {
@@ -2728,8 +2756,10 @@ void BBCMicro::UpdateCPUDataBusFn() {
         update_flags |= BBCMicroUpdateFlag_HasBeebLink;
     }
 
-    if (m_state.type->flags & BBCMicroTypeFlag_HasRTC) {
-        update_flags |= BBCMicroUpdateFlag_HasRTC;
+    if (m_state.type->type_id == BBCMicroTypeID_Master) {
+        update_flags |= BBCMicroUpdateFlag_IsMaster128;
+    } else if (m_state.type->type_id == BBCMicroTypeID_MasterCompact) {
+        update_flags |= BBCMicroUpdateFlag_IsMasterCompact;
     }
 
     if (m_state.parasite_type != BBCMicroParasiteType_None) {

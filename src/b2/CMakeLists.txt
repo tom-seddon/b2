@@ -378,6 +378,19 @@ endfunction()
 do_master_ROMs(3.20)
 do_master_ROMs(3.50)
 
+# Compact ROMs
+function(do_compact_ROMs VERSION)
+  add_custom_command(
+    TARGET b2 POST_BUILD
+	COMMAND ${CMAKE_COMMAND} -E make_directory $<TARGET_FILE_DIR:b2>/${ROMS}/mcompact/${VERSION}
+	COMMAND ${CMAKE_COMMAND} -E copy_if_different adfs.rom basic4.rom utils.rom mos.rom $<TARGET_FILE_DIR:b2>/${ROMS}/mcompact/${VERSION}/
+	WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/../../etc/roms/MCompact/${VERSION}
+	VERBATIM)
+endfunction()
+
+do_compact_ROMs(5.00)
+do_compact_ROMs(5.10)
+
 # Discs
 add_custom_command(
   TARGET b2 POST_BUILD

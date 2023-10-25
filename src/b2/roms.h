@@ -24,11 +24,6 @@ struct BeebROM {
     std::string GetAssetPath() const;
 };
 
-//static const size_t ROM_SIZE = 16384;
-
-// Ugh... maddening inconsistent capitalization!
-//typedef std::array<uint8_t, ROM_SIZE> BeebRomData;
-
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
@@ -59,6 +54,16 @@ extern const BeebROM BEEB_ROM_MOS350_SIDEWAYS_ROM_D;
 extern const BeebROM BEEB_ROM_MOS350_SIDEWAYS_ROM_E;
 extern const BeebROM BEEB_ROM_MOS350_SIDEWAYS_ROM_F;
 extern const BeebROM BEEB_ROM_MOS350_MOS_ROM;
+
+extern const BeebROM BEEB_ROM_MOS500_SIDEWAYS_ROM_D;
+extern const BeebROM BEEB_ROM_MOS500_SIDEWAYS_ROM_E;
+extern const BeebROM BEEB_ROM_MOS500_SIDEWAYS_ROM_F;
+extern const BeebROM BEEB_ROM_MOS500_MOS_ROM;
+
+extern const BeebROM BEEB_ROM_MOS510_SIDEWAYS_ROM_D;
+extern const BeebROM BEEB_ROM_MOS510_SIDEWAYS_ROM_E;
+extern const BeebROM BEEB_ROM_MOS510_SIDEWAYS_ROM_F;
+extern const BeebROM BEEB_ROM_MOS510_MOS_ROM;
 
 // all ROMs, one after the other, terminated by nullptr.
 extern const BeebROM *const BEEB_ROMS[];

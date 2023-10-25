@@ -1889,7 +1889,7 @@ class CRTCDebugWindow : public DebugUI {
         if (addr.w & 0x2000) {
             uint16_t base = 0x7c00;
             if (!(addr.w >> 11 & 1)) {
-                if (m_beeb_state->type->flags & BBCMicroTypeFlag_CanDisplayTeletext3c00) {
+                if (CanDisplayTeletextAt3C00(m_beeb_state->type)) {
                     base = 0x3c00;
                 }
             }
@@ -2217,7 +2217,7 @@ class SystemVIADebugWindow : public R6522DebugWindow {
 
         ImGui::BulletText("Joystick 0 Fire = %s", BOOL_STR(!pb.bits.not_joystick0_fire));
         ImGui::BulletText("Joystick 1 Fire = %s", BOOL_STR(!pb.bits.not_joystick1_fire));
-        if (!(m_beeb_state->type->flags & BBCMicroTypeFlag_HasRTC)) {
+        if (HasSpeech(m_beeb_state->type)) {
             ImGui::BulletText("Speech Ready = %u, IRQ = %u", pb.b_bits.speech_ready, pb.b_bits.speech_interrupt);
         }
 
@@ -3177,7 +3177,11 @@ class ADCDebugWindow : public DebugUI {
   public:
   protected:
     void DoImGui2() override {
-        const ADC *adc = &m_beeb_state->adc;
+        const ADC *adc = m_beeb_state->DebugGetADC();
+        if (!adc) {
+            ImGui::Text("No ADC");
+            return;
+        }
 
         ImGui::Text("ADC address: $%04x", m_beeb_state->type->adc_addr);
 

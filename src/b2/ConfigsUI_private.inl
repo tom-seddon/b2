@@ -21,9 +21,11 @@ EPNV(BSidewaysROMs, 1 << 2)
 EPNV(BOSROMs, 1 << 3)
 EPNV(BPlusSidewaysROMs, 1 << 4)
 EPNV(BPlusOSROMs, 1 << 5)
-EPNV(MasterSidewaysROMs, 1 << 6)
-EPNV(MasterOSROMs, 1 << 7)
+EPNV(Master128SidewaysROMs, 1 << 6)
+EPNV(Master128OSROMs, 1 << 7)
 EPNV(ParasiteROMs, 1 << 8)
+EPNV(MasterCompactSidewaysROMs, 1 << 9)
+EPNV(MasterCompactOSROMs, 1 << 10)
 EEND()
 #undef ENAME
 

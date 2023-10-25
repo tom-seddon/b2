@@ -5,7 +5,8 @@
 EBEGIN()
 EPN(B)
 EPN(BPlus)
-EPN(Master)
+EPN(Master) // this should be Master128, but it's saved into b2.json... oops
+EPN(MasterCompact)
 EEND()
 #undef ENAME
 
@@ -16,25 +17,6 @@ EEND()
 EBEGIN()
 //EPN(90mm)
 EPN(133mm)
-EEND()
-#undef ENAME
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-#define ENAME BBCMicroTypeFlag
-EBEGIN()
-// if set, system has shadow RAM, so it needs an extra 32K in its memory buffer.
-EPNV(HasShadowRAM, 1 << 0)
-
-// if set, system displays teletext data from $3c00 when MA11 is set.
-EPNV(CanDisplayTeletext3c00, 1 << 1)
-
-// if set, system has RTC.
-EPNV(HasRTC, 1 << 2)
-
-// if set, numeric keypad.
-EPNV(HasNumericKeypad, 1 << 3)
 EEND()
 #undef ENAME
 

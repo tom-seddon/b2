@@ -408,7 +408,7 @@ static const BBCMicroType *GetBBCMicroType(TestBBCMicroType type) {
 
     case TestBBCMicroType_Master128MOS320:
     case TestBBCMicroType_Master128MOS350:
-        return &BBC_MICRO_TYPE_MASTER;
+        return &BBC_MICRO_TYPE_MASTER_128;
     }
 
     ASSERT(false);

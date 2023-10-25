@@ -373,6 +373,8 @@ class BBCMicro : private WD1770Handler,
         return (this->*m_update_mfn)(video_unit, sound_unit);
     }
 
+    static uint32_t GetNormalizedBBCMicroUpdateFlags(uint32_t flags);
+
 #if BBCMICRO_ENABLE_DISC_DRIVE_SOUND
     // The disc drive sounds are used by all BBCMicro objects created
     // after they're set.
@@ -547,6 +549,8 @@ class BBCMicro : private WD1770Handler,
     // Overly simplistic mechanism?
     void SetPrinterBuffer(std::vector<uint8_t> *buffer);
 
+    bool HasADC() const;
+
   protected:
     // Hacks, not part of the public API, for use by the testing stuff so that
     // it can run even when the debugger isn't compiled in.
@@ -590,6 +594,7 @@ class BBCMicro : private WD1770Handler,
         const ExtMem *DebugGetExtMem() const;
         const MC146818 *DebugGetRTC() const;
         const Tube *DebugGetTube() const;
+        const ADC *DebugGetADC() const;
 
         int DebugGetADJIDIPSwitches() const;
 
@@ -673,9 +678,10 @@ class BBCMicro : private WD1770Handler,
         // RTC
         MC146818 rtc;
 
-      public:
         // ADC
         ADC adc;
+
+      public:
         DigitalJoystickInput digital_joystick_state = {};
 
       private:
@@ -949,7 +955,7 @@ class BBCMicro : private WD1770Handler,
     uint32_t UpdateTemplated(VideoDataUnit *video_unit, SoundDataUnit *sound_unit);
 
     static const uint8_t CURSOR_PATTERNS[8];
-    static const UpdateMFn ms_update_mfns[2048];
+    static const UpdateMFn ms_update_mfns[4096];
 };
 
 //////////////////////////////////////////////////////////////////////////

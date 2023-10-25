@@ -1934,13 +1934,11 @@ static bool LoadNVRAM(rapidjson::Value *nvram_json, Messages *msg) {
     for (size_t i = 0; i < GetNumBBCMicroTypes(); ++i) {
         const BBCMicroType *type = GetBBCMicroTypeByIndex(i);
 
-        if (type->flags & BBCMicroTypeFlag_HasRTC) {
-            std::string hex;
-            if (FindStringMember(&hex, nvram_json, GetBBCMicroTypeIDEnumName(type->type_id), msg)) {
-                std::vector<uint8_t> data;
-                if (GetDataFromHexString(&data, hex)) {
-                    SetDefaultNVRAMContents(type, std::move(data));
-                }
+        std::string hex;
+        if (FindStringMember(&hex, nvram_json, GetBBCMicroTypeIDEnumName(type->type_id), msg)) {
+            std::vector<uint8_t> data;
+            if (GetDataFromHexString(&data, hex)) {
+                SetDefaultNVRAMContents(type, std::move(data));
             }
         }
     }
@@ -1955,12 +1953,10 @@ static void SaveNVRAM(JSONWriter<StringStream> *writer) {
         for (size_t i = 0; i < GetNumBBCMicroTypes(); ++i) {
             const BBCMicroType *type = GetBBCMicroTypeByIndex(i);
 
-            if (type->flags & BBCMicroTypeFlag_HasRTC) {
-                std::vector<uint8_t> data = GetDefaultNVRAMContents(type);
-                if (!data.empty()) {
-                    writer->Key(GetBBCMicroTypeIDEnumName(type->type_id));
-                    writer->String(GetHexStringFromData(data).c_str());
-                }
+            std::vector<uint8_t> data = GetDefaultNVRAMContents(type);
+            if (!data.empty()) {
+                writer->Key(GetBBCMicroTypeIDEnumName(type->type_id));
+                writer->String(GetHexStringFromData(data).c_str());
             }
         }
     }

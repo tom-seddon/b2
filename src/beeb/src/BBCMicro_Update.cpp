@@ -709,7 +709,7 @@ parasite_update_done:
                 }
 #endif
 
-                if constexpr (UPDATE_FLAGS & BBCMicroUpdateFlag_HasRTC) {
+                if constexpr (UPDATE_FLAGS & BBCMicroUpdateFlag_IsMaster128) {
                     if (pb.m128_bits.rtc_chip_select &&
                         m_state.old_system_via_pb.m128_bits.rtc_address_strobe &&
                         !pb.m128_bits.rtc_address_strobe) {
@@ -721,7 +721,7 @@ parasite_update_done:
                 m_state.old_system_via_pb = pb;
             }
 
-            if constexpr (UPDATE_FLAGS & BBCMicroUpdateFlag_HasRTC) {
+            if constexpr (UPDATE_FLAGS & BBCMicroUpdateFlag_IsMaster128) {
                 if (pb.m128_bits.rtc_chip_select &&
                     !pb.m128_bits.rtc_address_strobe) {
                     // AS=0
@@ -811,6 +811,14 @@ parasite_update_done:
 //
 //
 constexpr uint32_t GetNormalizedBBCMicroUpdateFlags(uint32_t flags) {
+    if (flags & BBCMicroUpdateFlag_IsMasterCompact) {
+        flags &= ~(uint32_t)(BBCMicroUpdateFlag_HasBeebLink |
+                             BBCMicroUpdateFlag_IsMaster128|
+                             BBCMicroUpdateFlag_Parasite);
+        
+        // (the parasite-specific debug flags are dealt with below)
+    }
+
     if (!(flags & BBCMicroUpdateFlag_Parasite)) {
         flags &= ~(uint32_t)(BBCMicroUpdateFlag_DebugStepParasite | BBCMicroUpdateFlag_Parasite3MHzExternal | BBCMicroUpdateFlag_ParasiteSpecial);
     }
@@ -825,7 +833,15 @@ constexpr uint32_t GetNormalizedBBCMicroUpdateFlags(uint32_t flags) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-#define UPDATE1(N) &BBCMicro::UpdateTemplated<GetNormalizedBBCMicroUpdateFlags(N)>
+// non-constexpr thunk for the above
+uint32_t BBCMicro::GetNormalizedBBCMicroUpdateFlags(uint32_t flags) {
+    return ::GetNormalizedBBCMicroUpdateFlags(flags);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#define UPDATE1(N) &BBCMicro::UpdateTemplated<::GetNormalizedBBCMicroUpdateFlags(N)>
 #define UPDATE2(N) UPDATE1(N + 0), UPDATE1(N + 1)
 #define UPDATE4(N) UPDATE2(N + 0), UPDATE2(N + 2)
 #define UPDATE8(N) UPDATE4(N + 0), UPDATE4(N + 4)
@@ -836,6 +852,7 @@ constexpr uint32_t GetNormalizedBBCMicroUpdateFlags(uint32_t flags) {
 #define UPDATE256(N) UPDATE128(N + 0), UPDATE128(N + 128)
 #define UPDATE512(N) UPDATE256(N + 0), UPDATE256(N + 256)
 #define UPDATE1024(N) UPDATE512(N + 0), UPDATE512(N + 512)
+#define UPDATE2048(N) UPDATE1024(N + 0), UPDATE1024(N + 512)
 
 // The compile time can get a bit much. Tried splitting it into 8*64, hopefully
 // getting a bit of parallelism, but this seemed to make very little different
@@ -846,7 +863,7 @@ constexpr uint32_t GetNormalizedBBCMicroUpdateFlags(uint32_t flags) {
 // at least for my laptop, maybe some other value would be just right.
 //
 // More experimentation necessary.
-const BBCMicro::UpdateMFn BBCMicro::ms_update_mfns[2048] = {UPDATE1024(0), UPDATE1024(1024)};
+const BBCMicro::UpdateMFn BBCMicro::ms_update_mfns[4096] = {UPDATE2048(0), UPDATE2048(2048)};
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

@@ -153,7 +153,7 @@ void InitDefaultBeebConfigs() {
 
         config.name = "Master 128 (MOS 3.20)";
         config.disc_interface = &DISC_INTERFACE_MASTER128;
-        config.type = &BBC_MICRO_TYPE_MASTER;
+        config.type = &BBC_MICRO_TYPE_MASTER_128;
         config.os.standard_rom = FindBeebROM(StandardROM_MOS320_MOS);
         config.roms[15].standard_rom = FindBeebROM(StandardROM_MOS320_TERMINAL);
         config.roms[14].standard_rom = FindBeebROM(StandardROM_MOS320_VIEW);
@@ -176,7 +176,7 @@ void InitDefaultBeebConfigs() {
 
         config.name = "Master 128 (MOS 3.50)";
         config.disc_interface = &DISC_INTERFACE_MASTER128;
-        config.type = &BBC_MICRO_TYPE_MASTER;
+        config.type = &BBC_MICRO_TYPE_MASTER_128;
         config.os.standard_rom = FindBeebROM(StandardROM_MOS350_MOS);
         config.roms[15].standard_rom = FindBeebROM(StandardROM_MOS350_TERMINAL);
         config.roms[14].standard_rom = FindBeebROM(StandardROM_MOS350_VIEW);
@@ -199,7 +199,7 @@ void InitDefaultBeebConfigs() {
 
         config.name = "Master Turbo (MOS 3.20)";
         config.disc_interface = &DISC_INTERFACE_MASTER128;
-        config.type = &BBC_MICRO_TYPE_MASTER;
+        config.type = &BBC_MICRO_TYPE_MASTER_128;
         config.os.standard_rom = FindBeebROM(StandardROM_MOS320_MOS);
         config.roms[15].standard_rom = FindBeebROM(StandardROM_MOS320_TERMINAL);
         config.roms[14].standard_rom = FindBeebROM(StandardROM_MOS320_VIEW);
@@ -225,7 +225,7 @@ void InitDefaultBeebConfigs() {
 
         config.name = "Master Turbo (MOS 3.50)";
         config.disc_interface = &DISC_INTERFACE_MASTER128;
-        config.type = &BBC_MICRO_TYPE_MASTER;
+        config.type = &BBC_MICRO_TYPE_MASTER_128;
         config.os.standard_rom = FindBeebROM(StandardROM_MOS350_MOS);
         config.roms[15].standard_rom = FindBeebROM(StandardROM_MOS350_TERMINAL);
         config.roms[14].standard_rom = FindBeebROM(StandardROM_MOS350_VIEW);
@@ -253,6 +253,46 @@ void InitDefaultBeebConfigs() {
         config.parasite_type = BBCMicroParasiteType_External3MHz6502;
         config.parasite_os.standard_rom = FindBeebROM(StandardROM_TUBE110);
         config.feature_flags = BeebConfigFeatureFlag_6502SecondProcessor;
+
+        g_default_configs.push_back(config);
+    }
+
+    // Master Compact MOS 5.00
+    {
+        BeebConfig config;
+
+        config.name = "Master Compact (MOS 5.00)";
+        config.disc_interface = &DISC_INTERFACE_MASTER128;
+        config.type = &BBC_MICRO_TYPE_MASTER_COMPACT;
+        config.os.standard_rom = &BEEB_ROM_MOS500_MOS_ROM;
+        config.roms[15].standard_rom = &BEEB_ROM_MOS500_SIDEWAYS_ROM_F;
+        config.roms[14].standard_rom = &BEEB_ROM_MOS500_SIDEWAYS_ROM_E;
+        config.roms[13].standard_rom = &BEEB_ROM_MOS500_SIDEWAYS_ROM_D;
+        config.roms[7].writeable = true;
+        config.roms[6].writeable = true;
+        config.roms[5].writeable = true;
+        config.roms[4].writeable = true;
+        config.feature_flags = BeebConfigFeatureFlag_MasterCompact;
+
+        g_default_configs.push_back(config);
+    }
+
+    // Master Compact MOS 5.00
+    {
+        BeebConfig config;
+
+        config.name = "Master Compact (MOS 5.10)";
+        config.disc_interface = &DISC_INTERFACE_MASTER128;
+        config.type = &BBC_MICRO_TYPE_MASTER_COMPACT;
+        config.os.standard_rom = &BEEB_ROM_MOS510_MOS_ROM;
+        config.roms[15].standard_rom = &BEEB_ROM_MOS510_SIDEWAYS_ROM_F;
+        config.roms[14].standard_rom = &BEEB_ROM_MOS510_SIDEWAYS_ROM_E;
+        config.roms[13].standard_rom = &BEEB_ROM_MOS510_SIDEWAYS_ROM_D;
+        config.roms[7].writeable = true;
+        config.roms[6].writeable = true;
+        config.roms[5].writeable = true;
+        config.roms[4].writeable = true;
+        config.feature_flags = BeebConfigFeatureFlag_MasterCompact;
 
         g_default_configs.push_back(config);
     }

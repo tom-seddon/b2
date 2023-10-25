@@ -57,6 +57,22 @@ extern const BeebROM BEEB_ROM_MOS350_MOS_ROM = {"m128/3.50/mos.rom", "MOS 3.50 M
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+extern const BeebROM BEEB_ROM_MOS500_SIDEWAYS_ROM_D = {"mcompact/5.00/adfs.rom", "MOS 5.00 ADFS (d)", StandardROM_MOS500_ADFS};
+extern const BeebROM BEEB_ROM_MOS500_SIDEWAYS_ROM_E = {"mcompact/5.00/basic4.rom", "MOS 5.00 BASIC (e)", StandardROM_MOS500_BASIC4};
+extern const BeebROM BEEB_ROM_MOS500_SIDEWAYS_ROM_F = {"mcompact/5.00/utils.rom", "MOS 5.00 UTILS (f)", StandardROM_MOS500_UTILS};
+extern const BeebROM BEEB_ROM_MOS500_MOS_ROM = {"mcompact/5.00/mos.rom", "MOS 5.00 MOS (OS)", StandardROM_MOS500_MOS};
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+extern const BeebROM BEEB_ROM_MOS510_SIDEWAYS_ROM_D = {"mcompact/5.10/adfs.rom", "MOS 5.10 ADFS (d)", StandardROM_MOS510_ADFS};
+extern const BeebROM BEEB_ROM_MOS510_SIDEWAYS_ROM_E = {"mcompact/5.10/basic4.rom", "MOS 5.10 BASIC (e)", StandardROM_MOS510_BASIC4};
+extern const BeebROM BEEB_ROM_MOS510_SIDEWAYS_ROM_F = {"mcompact/5.10/utils.rom", "MOS 5.10 UTILS (f)", StandardROM_MOS510_UTILS};
+extern const BeebROM BEEB_ROM_MOS510_MOS_ROM = {"mcompact/5.10/mos.rom", "MOS 5.10 MOS (OS)", StandardROM_MOS510_MOS};
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 const BeebROM *const BEEB_ROMS[] = {
     &BEEB_ROM_OS12,
     &BEEB_ROM_BPLUS_MOS,
@@ -88,6 +104,16 @@ const BeebROM *const BEEB_ROMS[] = {
 
     &BEEB_ROM_MASTER_TURBO_PARASITE,
     &BEEB_ROM_TUBE110,
+
+    &BEEB_ROM_MOS500_SIDEWAYS_ROM_D,
+    &BEEB_ROM_MOS500_SIDEWAYS_ROM_E,
+    &BEEB_ROM_MOS500_SIDEWAYS_ROM_F,
+    &BEEB_ROM_MOS500_MOS_ROM,
+
+    &BEEB_ROM_MOS510_SIDEWAYS_ROM_D,
+    &BEEB_ROM_MOS510_SIDEWAYS_ROM_E,
+    &BEEB_ROM_MOS510_SIDEWAYS_ROM_F,
+    &BEEB_ROM_MOS510_MOS_ROM,
 
     nullptr,
 };

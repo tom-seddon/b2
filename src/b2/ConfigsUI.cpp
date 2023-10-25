@@ -225,8 +225,13 @@ void ConfigsUI::DoEditConfigGui() {
         break;
 
     case BBCMicroTypeID_Master:
-        rom_edit_sideways_rom_flags = ROMEditFlag_MasterSidewaysROMs;
-        rom_edit_os_rom_flags = ROMEditFlag_MasterOSROMs;
+        rom_edit_sideways_rom_flags = ROMEditFlag_Master128SidewaysROMs;
+        rom_edit_os_rom_flags = ROMEditFlag_Master128OSROMs;
+        break;
+
+    case BBCMicroTypeID_MasterCompact:
+        rom_edit_sideways_rom_flags = ROMEditFlag_MasterCompactSidewaysROMs;
+        rom_edit_os_rom_flags = ROMEditFlag_MasterCompactOSROMs;
         break;
     }
 
@@ -331,21 +336,25 @@ void ConfigsUI::DoEditConfigGui() {
 
     ImGui::Columns(1);
 
-    if (!config->disc_interface->uses_1MHz_bus) {
-        if (ImGui::Checkbox("External memory", &config->ext_mem)) {
-            edited = true;
+    if (Has1MHzBus(config->type)) {
+        if (!config->disc_interface->uses_1MHz_bus) {
+            if (ImGui::Checkbox("External memory", &config->ext_mem)) {
+                edited = true;
+            }
         }
     }
 
-    if (ImGui::Checkbox("BeebLink", &config->beeblink)) {
-        edited = true;
+    if (HasUserPort(config->type)) {
+        if (ImGui::Checkbox("BeebLink", &config->beeblink)) {
+            edited = true;
+        }
     }
 
     if (ImGui::Checkbox("Video NuLA", &config->video_nula)) {
         edited = true;
     }
 
-    if (config->type->type_id == BBCMicroTypeID_Master) {
+    if (HasCartridges(config->type)) {
         if (ImGui::Checkbox("Retro Hardware ADJI cartridge", &config->adji)) {
             edited = true;
         }
@@ -360,45 +369,47 @@ void ConfigsUI::DoEditConfigGui() {
         }
     }
 
-    if (ImGuiRadioButton(&config->parasite_type, BBCMicroParasiteType_None, "No second processor")) {
-        edited = true;
-    }
-
-    if (ImGuiRadioButton(&config->parasite_type, BBCMicroParasiteType_External3MHz6502, "6502 Second Processor")) {
-        edited = true;
-    }
-
-    if (ImGuiRadioButton(&config->parasite_type, BBCMicroParasiteType_MasterTurbo, "Master Turbo")) {
-        edited = true;
-    }
-
-    if (config->parasite_type != BBCMicroParasiteType_None) {
-        if (config->parasite_os.file_name.empty() && !config->parasite_os.standard_rom) {
-            switch (config->parasite_type) {
-            case BBCMicroParasiteType_None:
-                // inhibit spurious warning
-                break;
-
-            case BBCMicroParasiteType_External3MHz6502:
-                config->parasite_os.standard_rom = FindBeebROM(StandardROM_TUBE110);
-                break;
-            case BBCMicroParasiteType_MasterTurbo:
-                config->parasite_os.standard_rom = FindBeebROM(StandardROM_MasterTurboParasite);
-                break;
-            }
-        }
-
-        if (this->DoROMEditGui("Parasite OS",
-                               &config->parasite_os,
-                               nullptr,
-                               ROMEditFlag_ParasiteROMs)) {
+    if (HasTube(config->type)) {
+        if (ImGuiRadioButton(&config->parasite_type, BBCMicroParasiteType_None, "No second processor")) {
             edited = true;
         }
 
-        if (config->type->type_id == BBCMicroTypeID_Master) {
-            ImGui::TextWrapped("Note: When using MOS 3.20/MOS 3.50, try *CONFIGURE TUBE if 2nd processor doesn't seem to be working");
-        } else {
-            ImGui::TextWrapped("Note: Ensure a ROM with Tube host code is installed, e.g., Acorn 1770 DFS");
+        if (ImGuiRadioButton(&config->parasite_type, BBCMicroParasiteType_External3MHz6502, "6502 Second Processor")) {
+            edited = true;
+        }
+
+        if (ImGuiRadioButton(&config->parasite_type, BBCMicroParasiteType_MasterTurbo, "Master Turbo")) {
+            edited = true;
+        }
+
+        if (config->parasite_type != BBCMicroParasiteType_None) {
+            if (config->parasite_os.file_name.empty() && !config->parasite_os.standard_rom) {
+                switch (config->parasite_type) {
+                case BBCMicroParasiteType_None:
+                    // inhibit spurious warning
+                    break;
+
+                case BBCMicroParasiteType_External3MHz6502:
+                    config->parasite_os.standard_rom = FindBeebROM(StandardROM_TUBE110);
+                    break;
+                case BBCMicroParasiteType_MasterTurbo:
+                    config->parasite_os.standard_rom = FindBeebROM(StandardROM_MasterTurboParasite);
+                    break;
+                }
+            }
+
+            if (this->DoROMEditGui("Parasite OS",
+                                   &config->parasite_os,
+                                   nullptr,
+                                   ROMEditFlag_ParasiteROMs)) {
+                edited = true;
+            }
+
+            if (config->type->type_id == BBCMicroTypeID_Master) {
+                ImGui::TextWrapped("Note: When using MOS 3.20/MOS 3.50, try *CONFIGURE TUBE if 2nd processor doesn't seem to be working");
+            } else {
+                ImGui::TextWrapped("Note: Ensure a ROM with Tube host code is installed, e.g., Acorn 1770 DFS");
+            }
         }
     }
 
@@ -534,6 +545,30 @@ static const BeebROM *const MOS350_MOS_ROMS[] = {
     nullptr,
 };
 
+static const BeebROM *const MOS500_SIDEWAYS_ROMS[] = {
+    &BEEB_ROM_MOS500_SIDEWAYS_ROM_D,
+    &BEEB_ROM_MOS500_SIDEWAYS_ROM_E,
+    &BEEB_ROM_MOS500_SIDEWAYS_ROM_F,
+    nullptr,
+};
+
+static const BeebROM *const MOS500_MOS_ROMS[] = {
+    &BEEB_ROM_MOS500_MOS_ROM,
+    nullptr,
+};
+
+static const BeebROM *const MOS510_SIDEWAYS_ROMS[] = {
+    &BEEB_ROM_MOS510_SIDEWAYS_ROM_D,
+    &BEEB_ROM_MOS510_SIDEWAYS_ROM_E,
+    &BEEB_ROM_MOS510_SIDEWAYS_ROM_F,
+    nullptr,
+};
+
+static const BeebROM *const MOS510_MOS_ROMS[] = {
+    &BEEB_ROM_MOS510_MOS_ROM,
+    nullptr,
+};
+
 static bool ImGuiROMs(BeebConfig::ROM *rom, const BeebROM *const *b_roms) {
     for (size_t i = 0; b_roms[i]; ++i) {
         if (ImGuiROM(rom, b_roms[i])) {
@@ -656,11 +691,15 @@ ROMEditAction ConfigsUI::DoROMEditGui(const char *caption,
         this->DoROMs(rom, &edited, rom_edit_flags, ROMEditFlag_BSidewaysROMs, "B Sideways ROM", B_SIDEWAYS_ROMS);
         this->DoROMs(rom, &edited, rom_edit_flags, ROMEditFlag_BPlusOSROMs, "B+ OS ROM", BPLUS_OS_ROMS);
         this->DoROMs(rom, &edited, rom_edit_flags, ROMEditFlag_BPlusSidewaysROMs, "B+ Sideways ROM", BPLUS_SIDEWAYS_ROMS);
-        this->DoROMs(rom, &edited, rom_edit_flags, ROMEditFlag_MasterOSROMs, "MOS 3.20 OS ROM", MOS320_MOS_ROMS);
-        this->DoROMs(rom, &edited, rom_edit_flags, ROMEditFlag_MasterSidewaysROMs, "MOS 3.20 Sideways ROM", MOS320_SIDEWAYS_ROMS);
-        this->DoROMs(rom, &edited, rom_edit_flags, ROMEditFlag_MasterOSROMs, "MOS 3.50 OS ROM", MOS350_MOS_ROMS);
-        this->DoROMs(rom, &edited, rom_edit_flags, ROMEditFlag_MasterSidewaysROMs, "MOS 3.50 Sideways ROM", MOS350_SIDEWAYS_ROMS);
+        this->DoROMs(rom, &edited, rom_edit_flags, ROMEditFlag_Master128OSROMs, "MOS 3.20 OS ROM", MOS320_MOS_ROMS);
+        this->DoROMs(rom, &edited, rom_edit_flags, ROMEditFlag_Master128SidewaysROMs, "MOS 3.20 Sideways ROM", MOS320_SIDEWAYS_ROMS);
+        this->DoROMs(rom, &edited, rom_edit_flags, ROMEditFlag_Master128OSROMs, "MOS 3.50 OS ROM", MOS350_MOS_ROMS);
+        this->DoROMs(rom, &edited, rom_edit_flags, ROMEditFlag_Master128SidewaysROMs, "MOS 3.50 Sideways ROM", MOS350_SIDEWAYS_ROMS);
         this->DoROMs(rom, &edited, rom_edit_flags, ROMEditFlag_ParasiteROMs, "Parasite ROM", PARASITE_ROMS);
+        this->DoROMs(rom, &edited, rom_edit_flags, ROMEditFlag_MasterCompactSidewaysROMs, "MOS 5.00 Sideways ROM", MOS500_SIDEWAYS_ROMS);
+        this->DoROMs(rom, &edited, rom_edit_flags, ROMEditFlag_MasterCompactSidewaysROMs, "MOS 5.10 Sideways ROM", MOS510_SIDEWAYS_ROMS);
+        this->DoROMs(rom, &edited, rom_edit_flags, ROMEditFlag_MasterCompactOSROMs, "MOS 5.00 OS ROM", MOS500_MOS_ROMS);
+        this->DoROMs(rom, &edited, rom_edit_flags, ROMEditFlag_MasterCompactOSROMs, "MOS 5.10 OS ROM", MOS510_MOS_ROMS);
 
         ImGui::EndPopup();
     }

@@ -267,9 +267,6 @@ struct BBCMicroType {
     // Mask for ACCCON bits. If 0x00, the system has no ACCCON register.
     uint8_t acccon_mask;
 
-    // combination of BBCMicroTypeFlag
-    uint32_t flags;
-
     struct SHEILACycleStretchRegion {
         uint8_t first, last; //both inclusive
     };
@@ -289,10 +286,21 @@ struct BBCMicroType {
 
 extern const BBCMicroType BBC_MICRO_TYPE_B;
 extern const BBCMicroType BBC_MICRO_TYPE_B_PLUS;
-extern const BBCMicroType BBC_MICRO_TYPE_MASTER;
+extern const BBCMicroType BBC_MICRO_TYPE_MASTER_128;
+extern const BBCMicroType BBC_MICRO_TYPE_MASTER_COMPACT;
 
 // returns a pointer to one of the global BBCMicroType objects.
 const BBCMicroType *GetBBCMicroTypeForTypeID(BBCMicroTypeID type_id);
+
+// a few per-type ID fixed properties.
+bool HasNVRAM(const BBCMicroType *type);
+bool CanDisplayTeletextAt3C00(const BBCMicroType *type);
+bool HasNumericKeypad(const BBCMicroType *type);
+bool HasSpeech(const BBCMicroType *type);
+bool HasTube(const BBCMicroType *type);
+bool HasCartridges(const BBCMicroType *type);
+bool HasUserPort(const BBCMicroType *type);
+bool Has1MHzBus(const BBCMicroType *type);
 
 size_t GetNumBBCMicroTypes();
 const BBCMicroType *GetBBCMicroTypeByIndex(size_t index);

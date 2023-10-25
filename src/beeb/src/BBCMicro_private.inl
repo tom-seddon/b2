@@ -27,7 +27,7 @@ EEND()
 
 #define ENAME BBCMicroUpdateFlag
 EBEGIN()
-EPNV(HasRTC, 1 << 0)
+EPNV(IsMaster128, 1 << 0)
 EPNV(HasBeebLink, 1 << 1)
 EPNV(Hacks, 1 << 2)
 EPNV(Debug, 1 << 3)
@@ -50,6 +50,13 @@ EPNV(DebugStepHost, 1 << 8)
 EPNV(Parasite3MHzExternal, 1 << 9)
 
 EPNV(ParallelPrinter, 1 << 10)
+
+// Master Compact gets its own flag, as it implies multiple things:
+//
+// - no BeebLink (user port is used for the digital joystick)
+// - no Tube
+// - has Master Compact EEPROM
+EPNV(IsMasterCompact, 1 << 11)
 
 EEND()
 #undef ENAME

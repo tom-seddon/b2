@@ -397,6 +397,12 @@ bool BeebThread::JoystickButtonMessage::ThreadPrepare(std::shared_ptr<Message> *
         return false;
     }
 
+    if (!ts->beeb->HasADC()) {
+        // just ignore if this system has no ADC.
+        ptr->reset();
+        return true;
+    }
+
     return true;
 }
 
@@ -404,7 +410,9 @@ bool BeebThread::JoystickButtonMessage::ThreadPrepare(std::shared_ptr<Message> *
 //////////////////////////////////////////////////////////////////////////
 
 void BeebThread::JoystickButtonMessage::ThreadHandle(BeebThread *beeb_thread, ThreadState *ts) const {
-    ts->beeb->SetJoystickButtonState(m_index,m_state);
+    (void)beeb_thread;
+
+    ts->beeb->SetJoystickButtonState(m_index, m_state);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -425,6 +433,12 @@ bool BeebThread::AnalogueChannelMessage::ThreadPrepare(std::shared_ptr<Message> 
                                                        ThreadState *ts) {
     if (!this->PrepareUnlessReplayingOrHalted(ptr, completion_fun, beeb_thread, ts)) {
         return false;
+    }
+
+    if (!ts->beeb->HasADC()) {
+        // just ignore if this system has no ADC.
+        ptr->reset();
+        return true;
     }
 
     uint16_t value = ts->beeb->GetAnalogueChannel(m_index);
