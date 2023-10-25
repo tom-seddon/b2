@@ -1166,7 +1166,6 @@ class BeebThread {
     void ThreadSetFakeShiftState(ThreadState *ts, BeebShiftState state);
     void ThreadSetBootState(ThreadState *ts, bool state);
     void ThreadUpdateShiftKeyState(ThreadState *ts);
-    void ThreadSetJoystickButtonState(ThreadState *ts, uint8_t index, bool state);
     void ThreadSetDiscImage(ThreadState *ts, int drive, std::shared_ptr<DiscImage> disc_image);
     void ThreadStartPaste(ThreadState *ts, std::shared_ptr<const std::string> text);
     void ThreadStopCopy(ThreadState *ts);

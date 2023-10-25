@@ -404,7 +404,7 @@ bool BeebThread::JoystickButtonMessage::ThreadPrepare(std::shared_ptr<Message> *
 //////////////////////////////////////////////////////////////////////////
 
 void BeebThread::JoystickButtonMessage::ThreadHandle(BeebThread *beeb_thread, ThreadState *ts) const {
-    beeb_thread->ThreadSetJoystickButtonState(ts, m_index, m_state);
+    ts->beeb->SetJoystickButtonState(m_index,m_state);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -2792,13 +2792,6 @@ void BeebThread::ThreadSetBootState(ThreadState *ts, bool state) {
 
 void BeebThread::ThreadUpdateShiftKeyState(ThreadState *ts) {
     this->ThreadSetKeyState(ts, BeebKey_Shift, m_real_key_states.GetState(BeebKey_Shift));
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-void BeebThread::ThreadSetJoystickButtonState(ThreadState *ts, uint8_t index, bool state) {
-    ts->beeb->SetJoystickButtonState(index, state);
 }
 
 //////////////////////////////////////////////////////////////////////////
