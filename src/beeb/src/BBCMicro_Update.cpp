@@ -709,13 +709,18 @@ parasite_update_done:
                 }
 #endif
 
-                if constexpr (UPDATE_FLAGS & BBCMicroUpdateFlag_IsMaster128) {
+                if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_IsMaster128) != 0) {
                     if (pb.m128_bits.rtc_chip_select &&
                         m_state.old_system_via_pb.m128_bits.rtc_address_strobe &&
                         !pb.m128_bits.rtc_address_strobe) {
                         // Latch address on AS 1->0 transition.
                         m_state.rtc.SetAddress(m_state.system_via.a.p);
                     }
+                } else if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_IsMasterCompact) != 0) {
+                    bool output_data = UpdatePCD8572(&m_state.eeprom, pb.mcompact_bits.clk, pb.mcompact_bits.data);
+
+                    pb.mcompact_bits.data = pb.mcompact_bits.data && output_data;
+                    m_state.system_via.b.p = pb.value;
                 }
 
                 m_state.old_system_via_pb = pb;
@@ -813,9 +818,9 @@ parasite_update_done:
 constexpr uint32_t GetNormalizedBBCMicroUpdateFlags(uint32_t flags) {
     if (flags & BBCMicroUpdateFlag_IsMasterCompact) {
         flags &= ~(uint32_t)(BBCMicroUpdateFlag_HasBeebLink |
-                             BBCMicroUpdateFlag_IsMaster128|
+                             BBCMicroUpdateFlag_IsMaster128 |
                              BBCMicroUpdateFlag_Parasite);
-        
+
         // (the parasite-specific debug flags are dealt with below)
     }
 

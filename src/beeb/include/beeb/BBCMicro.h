@@ -38,6 +38,7 @@ class BeebLink;
 #include "tube.h"
 #include "BBCMicroParasiteType.h"
 #include "adc.h"
+#include "PCD8572.h"
 
 #include <shared/enum_decl.h>
 #include "BBCMicro.inl"
@@ -225,10 +226,17 @@ class BBCMicro : private WD1770Handler,
     };
 #include <shared/popwarn.h>
 
+#include <shared/pushwarn_bitfields.h>
+    struct MasterCompactSystemVIAPBBits {
+        uint8_t _ : 4, data : 1, clk : 1;
+    };
+#include <shared/popwarn.h>
+
     union SystemVIAPB {
         SystemVIAPBBits bits;
         BSystemVIAPBBits b_bits;
         Master128SystemVIAPBBits m128_bits;
+        MasterCompactSystemVIAPBBits mcompact_bits;
         uint8_t value;
     };
 
@@ -595,6 +603,7 @@ class BBCMicro : private WD1770Handler,
         const MC146818 *DebugGetRTC() const;
         const Tube *DebugGetTube() const;
         const ADC *DebugGetADC() const;
+        const PCD8572 *DebugGetEEPROM() const;
 
         int DebugGetADJIDIPSwitches() const;
 
@@ -677,6 +686,9 @@ class BBCMicro : private WD1770Handler,
 
         // RTC
         MC146818 rtc;
+
+        // EEPROM
+        PCD8572 eeprom;
 
         // ADC
         ADC adc;

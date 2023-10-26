@@ -231,6 +231,17 @@ const ADC *BBCMicro::State::DebugGetADC() const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+const PCD8572 *BBCMicro::State::DebugGetEEPROM() const {
+    if (this->type->type_id == BBCMicroTypeID_MasterCompact) {
+        return &this->eeprom;
+    } else {
+        return nullptr;
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 int BBCMicro::State::DebugGetADJIDIPSwitches() const {
     if (this->init_flags & BBCMicroInitFlag_ADJI) {
         return this->init_flags >> BBCMicroInitFlag_ADJIDIPSwitchesShift & 3;
@@ -362,6 +373,7 @@ void BBCMicro::SetTrace(std::shared_ptr<Trace> trace, uint32_t trace_flags) {
     m_state.sn76489.SetTrace(trace_flags & BBCMicroTraceFlag_SN76489 ? m_trace : nullptr);
     SetTubeTrace(&m_state.parasite_tube, trace_flags & BBCMicroTraceFlag_Tube ? m_trace : nullptr);
     m_state.adc.SetTrace(trace_flags & BBCMicroTraceFlag_ADC ? m_trace : nullptr);
+    SetPCD8572Trace(&m_state.eeprom, trace_flags & BBCMicroTraceFlag_EEPROM ? m_trace : nullptr);
 
     if (!!m_beeblink) {
         m_beeblink->SetTrace(trace_flags & BBCMicroTraceFlag_BeebLink ? m_trace : nullptr);
@@ -680,9 +692,12 @@ void BBCMicro::TracePortB(SystemVIAPB pb) {
     log.f("PORTB - PB = $%02X (%%%s): ", pb.value, BINARY_BYTE_STRINGS[pb.value]);
 
     bool has_rtc = m_state.type->type_id == BBCMicroTypeID_Master;
+    bool has_eeprom = m_state.type->type_id == BBCMicroTypeID_MasterCompact;
 
     if (has_rtc) {
         log.f("RTC AS=%u; RTC CS=%u; ", pb.m128_bits.rtc_address_strobe, pb.m128_bits.rtc_chip_select);
+    } else if (has_eeprom) {
+        log.f("EEPROM Clk=%u; EEPROM Data=%u", pb.mcompact_bits.clk, pb.mcompact_bits.data);
     }
 
     const char *name = nullptr;
@@ -697,11 +712,23 @@ void BBCMicro::TracePortB(SystemVIAPB pb) {
         break;
 
     case 1:
-        name = has_rtc ? "RTC Read" : "Speech Read";
+        if (has_rtc) {
+            name = "RTC Read";
+        } else if (has_eeprom) {
+            name = "Bit 1";
+        } else {
+            name = "Speech Read";
+        }
         goto print_bool;
 
     case 2:
-        name = has_rtc ? "RTC DS" : "Speech Write";
+        if (has_rtc) {
+            name = "RTC DS";
+        } else if (has_eeprom) {
+            name = "Bit 2";
+        } else {
+            name = "Speech Write";
+        }
         goto print_bool;
 
     case 3:

@@ -30,6 +30,7 @@ EPNV(SystemVIAExtra, 1 << 10)
 EPNV(UserVIAExtra, 1 << 11)
 EPNV(Tube, 1 << 12)
 EPNV(ADC, 1 << 13)
+EPNV(EEPROM, 1 << 14)
 EEND()
 #undef ENAME
 
