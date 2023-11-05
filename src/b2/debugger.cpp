@@ -1316,7 +1316,7 @@ class DisassemblyDebugWindow : public DebugUI,
         }
         this->ByteRegUI("S", cpu->s.b.l);
         ImGui::SameLine();
-        this->WordRegUI("PC", cpu->pc);
+        this->WordRegUI("PC", cpu->opcode_pc);
         ImGui::SameLine();
         m_cst.DoToggleCheckbox(g_toggle_track_pc_command);
 
@@ -1337,13 +1337,13 @@ class DisassemblyDebugWindow : public DebugUI,
 
         if (m_track_pc) {
             if (m_beeb_debug_state && m_beeb_debug_state->is_halted) {
-                if (m_old_pc != cpu->pc.w) {
+                if (m_old_pc != cpu->opcode_pc.w) {
                     // well, *something* happened since last time...
-                    m_addr = cpu->pc.w;
-                    m_old_pc = cpu->pc.w;
+                    m_addr = cpu->opcode_pc.w;
+                    m_old_pc = cpu->opcode_pc.w;
                 }
             } else {
-                m_addr = cpu->pc.w;
+                m_addr = cpu->opcode_pc.w;
             }
         }
 
@@ -1389,7 +1389,7 @@ class DisassemblyDebugWindow : public DebugUI,
 
             ImGuiStyleColourPusher pusher;
 
-            if (line_addr.w == cpu->pc.w) {
+            if (line_addr.w == cpu->opcode_pc.w) {
                 pusher.Push(ImGuiCol_Text, ImVec4(1.f, 1.f, 0.f, 1.f));
             }
 
