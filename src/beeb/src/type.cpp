@@ -145,7 +145,7 @@ static bool ParseROMPrefixLowerCaseChar(uint32_t *dso, char c) {
     if (c >= '0' && c <= '9') {
         return HandleROMPrefixChar(dso, (uint8_t)(c - '0'));
     } else if (c >= 'a' && c <= 'f') {
-        return HandleROMPrefixChar(dso, (uint8_t)(c - 'a'));
+        return HandleROMPrefixChar(dso, (uint8_t)(c - 'a' + 10));
     } else {
         return false;
     }
