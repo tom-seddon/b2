@@ -300,8 +300,11 @@ const BBCMicroType *GetBBCMicroTypeByIndex(size_t index);
 #if BBCMICRO_DEBUGGER
 // Parse address prefix and add additional flags to *dso_ptr.
 //
-// Returns true if OK, false if not (*dso_ptr unmodified), and prints error
-// messages on *log if not NULL.
+// Returns true if OK. Any bits set or cleared in *dso_ptr will have their
+// corresponding DebugStateOverride_OverrideXXX flag set too.
+//
+// Returns false if not ok (*dso_ptr unmodified), and prints error messages on
+// *log if not NULL.
 bool ParseAddressPrefix(uint32_t *dso_ptr,
                         const BBCMicroType *type,
                         const char *prefix_begin,

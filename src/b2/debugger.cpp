@@ -100,10 +100,6 @@ static bool ParseAddress(uint16_t *addr_ptr,
     uint32_t dso = 0;
     uint16_t addr;
 
-    // Hmm, not really sure about this.
-    uint32_t dso_fixed_bits_mask = BBCMicroDebugStateOverride_Parasite;
-    uint32_t dso_fixed_bits = *dso_ptr & dso_fixed_bits_mask;
-
     const char *sep = strchr(text, ADDRESS_PREFIX_SEPARATOR);
     if (sep) {
         if (!ParseAddressPrefix(&dso, type, text, sep, nullptr)) {
@@ -118,7 +114,13 @@ static bool ParseAddress(uint16_t *addr_ptr,
     }
 
     *addr_ptr = addr;
-    *dso_ptr = (dso & ~dso_fixed_bits_mask) | dso_fixed_bits;
+
+    // The fixed bits are the ones that are fixed for the calling window, and
+    // can't be overridden.
+    static const uint32_t dso_fixed_bits_mask = BBCMicroDebugStateOverride_Parasite;
+    if ((dso & ~dso_fixed_bits_mask) != 0) {
+        *dso_ptr = (dso & ~dso_fixed_bits_mask) | (*dso_ptr & dso_fixed_bits_mask);
+    }
 
     return true;
 }
