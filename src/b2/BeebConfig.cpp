@@ -257,6 +257,7 @@ void InitDefaultBeebConfigs() {
         g_default_configs.push_back(config);
     }
 
+#if BBCMICRO_ENABLE_MASTER_COMPACT
     // Master Compact MOS 5.00
     {
         BeebConfig config;
@@ -296,6 +297,7 @@ void InitDefaultBeebConfigs() {
 
         g_default_configs.push_back(config);
     }
+#endif
 }
 
 //////////////////////////////////////////////////////////////////////////
