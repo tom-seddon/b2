@@ -91,3 +91,9 @@ PNMI: M=1, V=0, 1+ byte in R3 h2p
   };
 #+end_src
 
+* test_AVFoundation
+
+Convert video to .jpg files:
+
+: ffmpeg -i "../IMG_1145.MOV" -q:v 2 %06d.jpg
+
