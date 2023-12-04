@@ -95,8 +95,8 @@ static Command2 g_clean_up_recent_files_lists_command = Command2(&g_beeb_window_
 static Command2 g_reset_dock_windows_command = Command2(&g_beeb_window_command_table, "reset_dock_windows", "Reset dock windows").MustConfirm();
 static Command2 g_paste_command(&g_beeb_window_command_table, "paste", "OSRDCH Paste");
 static Command2 g_paste_return_command(&g_beeb_window_command_table, "paste_return", "OSRDCH Paste (+Return)");
-static Command2 g_toggle_copy_oswrch_text_command=Command2(&g_beeb_window_command_table, "toggle_copy_oswrch_text", "OSWRCH Copy Text").WithTick();
-static Command2 g_copy_basic_command=Command2(&g_beeb_window_command_table, "copy_basic", "Copy BASIC listing");
+static Command2 g_toggle_copy_oswrch_text_command = Command2(&g_beeb_window_command_table, "toggle_copy_oswrch_text", "OSWRCH Copy Text").WithTick();
+static Command2 g_copy_basic_command = Command2(&g_beeb_window_command_table, "copy_basic", "Copy BASIC listing");
 static Command2 g_parallel_printer_command = Command2(&g_beeb_window_command_table, "parallel_printer", "Parallel printer").WithTick();
 static Command2 g_reset_printer_buffer_command = Command2(&g_beeb_window_command_table, "reset_printer_buffer", "Reset printer buffer").MustConfirm();
 static Command2 g_copy_printer_buffer_command = Command2(&g_beeb_window_command_table, "copy_printer_buffer", "Copy printer buffer");
@@ -634,7 +634,7 @@ void BeebWindow::HandleJoystickResult(const JoystickResult &jr) {
         auto message = std::make_shared<BeebThread::JoystickButtonMessage>(jr.digital_joystick_index, jr.digital_state.bits.fire0);
         m_beeb_thread->Send(std::move(message));
     } else if (jr.digital_joystick_index == 2) {
-        auto message=std::make_shared<BeebThread::DigitalJoystickStateMessage>(jr.digital_joystick_index,jr.digital_state);
+        auto message = std::make_shared<BeebThread::DigitalJoystickStateMessage>(jr.digital_joystick_index, jr.digital_state);
         m_beeb_thread->Send(std::move(message));
     }
 }
