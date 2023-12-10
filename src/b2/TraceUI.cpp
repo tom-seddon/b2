@@ -97,11 +97,11 @@ class TraceUI::SaveTraceJob : public JobQueue::Job {
     explicit SaveTraceJob(std::shared_ptr<Trace> trace,
                           std::string file_name,
                           std::shared_ptr<MessageList> message_list,
-                          TraceCyclesOutput cycles_output,
+                          uint32_t output_flags,
                           std::string fopen_mode)
         : m_trace(std::move(trace))
         , m_file_name(std::move(file_name))
-        , m_cycles_output(cycles_output)
+        , m_output_flags(output_flags)
         , m_msgs(message_list)
         , m_fopen_mode(std::move(fopen_mode)) {
         ASSERT(!!m_trace);
@@ -125,7 +125,7 @@ class TraceUI::SaveTraceJob : public JobQueue::Job {
         uint64_t start_ticks = GetCurrentTickCount();
 
         if (SaveTrace(m_trace,
-                      m_cycles_output,
+                      m_output_flags,
                       &SaveData, f,
                       &WasCanceledThunk, this,
                       &m_progress)) {
@@ -157,7 +157,7 @@ class TraceUI::SaveTraceJob : public JobQueue::Job {
   private:
     std::shared_ptr<Trace> m_trace;
     std::string m_file_name;
-    TraceCyclesOutput m_cycles_output = TraceCyclesOutput_Relative;
+    uint32_t m_output_flags = DEFAULT_TRACE_OUTPUT_FLAGS;
     Messages m_msgs; // this is quite a big object
     SaveTraceProgress m_progress;
     std::string m_fopen_mode;
@@ -383,10 +383,11 @@ void TraceUI::DoImGui() {
         ImGui::Checkbox("Unix line endings", &g_default_settings.unix_line_endings);
 #endif
 
-        ImGui::TextUnformatted("Cycles output:");
-        ImGuiRadioButton(&g_default_settings.cycles_output, TraceCyclesOutput_Absolute, "Absolute");
-        ImGuiRadioButton(&g_default_settings.cycles_output, TraceCyclesOutput_Relative, "Relative");
-        ImGuiRadioButton(&g_default_settings.cycles_output, TraceCyclesOutput_None, "None");
+        ImGuiCheckboxFlags("Include cycle count", &g_default_settings.output_flags, TraceOutputFlags_Cycles);
+        if (g_default_settings.output_flags & TraceOutputFlags_Cycles) {
+            ImGuiCheckboxFlags("Absolute cycle count", &g_default_settings.output_flags, TraceOutputFlags_AbsoluteCycles);
+        }
+        ImGuiCheckboxFlags("Include register names", &g_default_settings.output_flags, TraceOutputFlags_RegisterNames);
 
         ImGui::Checkbox("Auto-save on stop", &g_default_settings.auto_save);
         if (g_default_settings.auto_save) {
@@ -617,7 +618,7 @@ void TraceUI::StartSaveTraceJob(std::shared_ptr<Trace> last_trace, std::string p
     m_save_trace_job = std::make_shared<SaveTraceJob>(last_trace,
                                                       std::move(path),
                                                       m_beeb_window->GetMessageList(),
-                                                      g_default_settings.cycles_output,
+                                                      g_default_settings.output_flags,
                                                       std::move(fopen_mode));
     BeebWindows::AddJob(m_save_trace_job);
 }

@@ -30,14 +30,14 @@
 class TraceSaver {
   public:
     TraceSaver(std::shared_ptr<Trace> trace,
-               TraceCyclesOutput cycles_output,
+               uint32_t output_flags,
                SaveTraceSaveDataFn save_data_fn,
                void *save_data_context,
                SaveTraceWasCanceledFn was_canceled_fn,
                void *was_canceled_context,
                SaveTraceProgress *progress)
         : m_trace(std::move(trace))
-        , m_cycles_output(cycles_output)
+        , m_output_flags(output_flags)
         , m_save_data_fn(save_data_fn)
         , m_save_data_context(save_data_context)
         , m_was_canceled_fn(was_canceled_fn)
@@ -171,7 +171,7 @@ class TraceSaver {
 
     std::shared_ptr<Trace> m_trace;
     std::string m_file_name;
-    TraceCyclesOutput m_cycles_output = TraceCyclesOutput_Relative;
+    uint32_t m_output_flags = DEFAULT_TRACE_OUTPUT_FLAGS;
     Handler m_handlers[256] = {};
     std::unique_ptr<Log> m_output;
     const BBCMicroType *m_type = nullptr;
@@ -703,17 +703,17 @@ class TraceSaver {
             *c++ = ' ';
         }
 
-        c = AddByte(c, "A=", ev->a, " ");
-        c = AddByte(c, "X=", ev->x, " ");
-        c = AddByte(c, "Y=", ev->y, " ");
-        c = AddByte(c, "S=", ev->s, " P=");
+        c = AddByte(c, m_output_flags & TraceOutputFlags_RegisterNames ? "A=" : "", ev->a, " ");
+        c = AddByte(c, m_output_flags & TraceOutputFlags_RegisterNames ? "X=" : "", ev->x, " ");
+        c = AddByte(c, m_output_flags & TraceOutputFlags_RegisterNames ? "Y=" : "", ev->y, " ");
+        c = AddByte(c, m_output_flags & TraceOutputFlags_RegisterNames ? "S=" : "", ev->s, m_output_flags & TraceOutputFlags_RegisterNames ? " P=" : " ");
         *c++ = "nN"[p.bits.n];
         *c++ = "vV"[p.bits.v];
         *c++ = "dD"[p.bits.d];
         *c++ = "iI"[p.bits.i];
         *c++ = "zZ"[p.bits.z];
         *c++ = "cC"[p.bits.c];
-        c = AddByte(c, " (D=", ev->data, "");
+        c = AddByte(c, m_output_flags & TraceOutputFlags_RegisterNames ? " (D=" : " (", ev->data, "");
 
         // Add some BBC-specific annotations
         if (ev->pc == 0xffee || ev->pc == 0xffe3) {
@@ -910,7 +910,7 @@ class TraceSaver {
         char *c = this_->m_time_prefix;
         {
             CycleCount time = e->time;
-            if (this_->m_cycles_output == TraceCyclesOutput_Relative) {
+            if ((this_->m_output_flags & (TraceOutputFlags_Cycles | TraceOutputFlags_AbsoluteCycles)) == TraceOutputFlags_Cycles) {
                 if (!this_->m_got_first_event_time) {
                     this_->m_got_first_event_time = true;
                     this_->m_first_event_time = e->time;
@@ -955,7 +955,7 @@ class TraceSaver {
             *c++ = ' ';
         }
 
-        if (this_->m_cycles_output != TraceCyclesOutput_None) {
+        if (this_->m_output_flags & TraceOutputFlags_Cycles) {
             char zero = ' ';
 
             for (uint64_t value = this_->m_time_initial_value; value != 0; value /= 10) {
@@ -1030,14 +1030,14 @@ class TraceSaver {
 //////////////////////////////////////////////////////////////////////////
 
 bool SaveTrace(std::shared_ptr<Trace> trace,
-               TraceCyclesOutput cycles_output,
+               uint32_t output_flags,
                SaveTraceSaveDataFn save_data_fn,
                void *save_data_context,
                SaveTraceWasCanceledFn was_canceled_fn,
                void *was_canceled_context,
                SaveTraceProgress *progress) {
     TraceSaver saver(std::move(trace),
-                     cycles_output,
+                     output_flags,
                      save_data_fn, save_data_context,
                      was_canceled_fn, was_canceled_context,
                      progress);

@@ -21,6 +21,11 @@ class Trace;
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+static constexpr uint32_t DEFAULT_TRACE_OUTPUT_FLAGS = TraceOutputFlags_Cycles | TraceOutputFlags_RegisterNames;
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 struct SaveTraceProgress {
     std::atomic<uint64_t> num_bytes_written{0};
     std::atomic<uint64_t> num_events_handled{0};
@@ -34,7 +39,7 @@ typedef bool (*SaveTraceWasCanceledFn)(void *context);
 typedef bool (*SaveTraceSaveDataFn)(const void *data, size_t num_bytes, void *context);
 
 bool SaveTrace(std::shared_ptr<Trace> trace,
-               TraceCyclesOutput cycles_output,
+               uint32_t output_flags, //combination of TraceOutputFlags
                SaveTraceSaveDataFn save_data_fn,
                void *save_data_context,
                SaveTraceWasCanceledFn was_canceled_fn,

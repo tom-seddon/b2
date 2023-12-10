@@ -1178,7 +1178,7 @@ static const char START_INSTRUCTION_ADDRESS[] = "start_address"; //yes, inconsis
 static const char START_WRITE_ADDRESS[] = "start_write_address";
 static const char STOP_WRITE_ADDRESS[] = "stop_write_address";
 static const char STOP_NUM_CYCLES[] = "stop_num_cycles";
-static const char CYCLES_OUTPUT[] = "cycles_output";
+static const char OUTPUT_FLAGS[] = "output_flags";
 static const char POWER_ON_TONE[] = "power_on_tone";
 static const char STANDARD_ROM[] = "standard_rom";
 static const char CONFIG[] = "config";
@@ -2142,7 +2142,7 @@ static bool LoadTrace(rapidjson::Value *trace_json, Messages *msg) {
     FindEnumMember(&settings.start, trace_json, START, "start condition", &GetTraceUIStartConditionEnumName, msg);
     FindEnumMember(&settings.stop, trace_json, STOP, "stop condition", &GetTraceUIStopConditionEnumName, msg);
     FindBoolMember(&settings.unlimited, trace_json, UNLIMITED, nullptr);
-    FindEnumMember(&settings.cycles_output, trace_json, CYCLES_OUTPUT, "cycles output", &GetTraceCyclesOutputEnumName, msg);
+    FindFlagsMember(&settings.output_flags, trace_json, OUTPUT_FLAGS, "output flags", &GetTraceOutputFlagsEnumName, msg);
     FindUInt64Member(&settings.stop_num_2MHz_cycles, trace_json, STOP_NUM_CYCLES, nullptr);
     FindUInt16Member(&settings.start_instruction_address, trace_json, START_INSTRUCTION_ADDRESS, nullptr);
     FindUInt16Member(&settings.start_write_address, trace_json, START_WRITE_ADDRESS, nullptr);
@@ -2191,8 +2191,11 @@ static void SaveTrace(JSONWriter<StringStream> *writer) {
         writer->Key(STOP_NUM_CYCLES);
         writer->Uint64(settings.stop_num_2MHz_cycles);
 
-        writer->Key(CYCLES_OUTPUT);
-        SaveEnum(writer, settings.cycles_output, &GetTraceCyclesOutputEnumName);
+        {
+            auto output_flags_json = ArrayWriter(writer, OUTPUT_FLAGS);
+
+            SaveFlags(writer, settings.output_flags, &GetTraceOutputFlagsEnumName);
+        }
 
         writer->Key(AUTO_SAVE);
         writer->Bool(settings.auto_save);

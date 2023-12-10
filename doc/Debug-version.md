@@ -175,6 +175,14 @@ option to have the trace output saved with Unix-style line endings.
 This means slightly quicker saving, and slightly better performance in
 Emacs (since you can use the load literally option).
 
+Tick `Include cycle count` to add a cycle count column in the output.
+By default the cycle count relative to the start of the trace is
+shown; tick `Absolute cycle count` to have the absolute count shown
+(not typically terribly useful).
+
+Tick `Include register names` to include register names in the output.
+This takes up a few more columns but you may find it easier to read.
+
 The `Cycles output` options let you specify how the cycle count is
 displayed in the output. `Absolute` is the absolute number of emulated
 cycles since the BBC was rebooted, probably not very useful;
@@ -190,7 +198,8 @@ cancelled.
 Otherwise, the trace will be stored in memory, and you can click
 `Save` to save it to a file.
 
-The trace output is along these lines:
+The trace output is along these lines, here shown with relative cycle
+count and register names included:
 
 ```
 H      63  m`17cc: lda #$81                 A=81 X=65 Y=00 S=f0 P=Nvdizc (D=81)

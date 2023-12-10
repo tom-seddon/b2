@@ -732,7 +732,7 @@ void TestBBCMicro::SaveTestTrace(const std::string &stem) {
         TEST_NON_NULL(f);
 
         ::SaveTrace(m_test_trace,
-                    TraceCyclesOutput_Absolute,
+                    TraceOutputFlags_Cycles | TraceOutputFlags_AbsoluteCycles | TraceOutputFlags_RegisterNames,
                     &SaveTraceData,
                     f,
                     nullptr,
