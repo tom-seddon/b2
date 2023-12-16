@@ -30,7 +30,7 @@ set_source_files_properties(${IMGUI__FOLDER}/imgui_widgets.cpp PROPERTIES HEADER
 
 target_include_directories(imgui_lib PUBLIC ${IMGUI__FOLDER})
 target_compile_definitions(imgui_lib PUBLIC IMGUI_INCLUDE_IMGUI_USER_H IMGUI_INCLUDE_IMGUI_USER_INL NO_IMGUI_ADDONS)
-target_compile_definitions(imgui_lib PUBLIC IMGUI_DISABLE_OBSOLETE_FUNCTIONS)
+#target_compile_definitions(imgui_lib PUBLIC IMGUI_DISABLE_OBSOLETE_FUNCTIONS)
 
 # target_compile_definitions(imgui_lib PUBLIC "IMGUI_OVERRIDE_DRAWVERT_STRUCT_LAYOUT=struct ImDrawVert {ImVec2 pos\\; ImU32 col\\; ImVec2 uv\\;}")
 
