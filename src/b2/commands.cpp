@@ -413,8 +413,7 @@ void CommandStateTable::DoButton(const Command2 &command) {
             state->actioned = 1;
         }
     } else {
-        bool enabled = state->enabled;
-        if (ImGuiButton(command.m_text.c_str(), &enabled)) {
+        if (ImGuiButton(command.m_text.c_str(), state->enabled)) {
             state->actioned = 1;
         }
     }

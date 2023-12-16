@@ -12,6 +12,7 @@
 #pragma warning(disable : 4312) //C4312: OPERATION: conversion from TYPE to TYPE of greater size
 #pragma warning(disable : 4302) //C4302: OPERATION: truncation from TYPE to TYPE
 #pragma warning(disable : 4267) //C4267: THING: conversion from TYPE to TYPE, possible loss of data
+#pragma warning(disable : 4800) //C4800: Implicit conversion from TYPE to bool. Possible information loss
 #define RL_MSVC_OUTPUT
 #elif defined __GNUC__
 #pragma GCC diagnostic push

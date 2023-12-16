@@ -532,12 +532,12 @@ static void TestVisual6502URL(const std::string &description, const std::string 
         PinState *nmi_state = FindPinStateByCycle(&g_nmis, c);
 
         if (irq_state) {
-            setIRQ(perfect6502, irq_state->level);
+            setIRQ(perfect6502, !!irq_state->level);
             irq_state->seen = true;
         }
 
         if (nmi_state) {
-            setNMI(perfect6502, nmi_state->level);
+            setNMI(perfect6502, !!nmi_state->level);
             nmi_state->seen = true;
         }
 
