@@ -70,6 +70,7 @@ EPN(ParasiteDisassemblyDebugger4)
 EPN(TubeDebugger)
 EPN(ADCDebugger)
 EPN(DigitalJoystickDebugger)
+EPN(ImGuiDebug)
 
 // must be last
 EQPN(MaxValue)

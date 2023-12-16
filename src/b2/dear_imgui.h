@@ -104,7 +104,7 @@ class ImGuiStuff {
 #if STORE_DRAWLISTS
     void DoStoredDrawListWindow();
 #endif
-    void DoDebugWindow();
+    void DoDebugGui();
 
     unsigned GetFontSizePixels() const;
     void SetFontSizePixels(unsigned font_size_pixels);

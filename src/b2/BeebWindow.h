@@ -205,6 +205,7 @@ class BeebWindow {
     };
 
     class OptionsUI;
+    class ImGuiDebugUI;
 
     static const char SDL_WINDOW_DATA_NAME[];
 
@@ -289,6 +290,7 @@ class BeebWindow {
     static std::unique_ptr<SettingsUI> CreateOptionsUI(BeebWindow *beeb_window);
     static std::unique_ptr<SettingsUI> CreateTimelineUI(BeebWindow *beeb_window);
     static std::unique_ptr<SettingsUI> CreateSavedStatesUI(BeebWindow *beeb_window);
+    static std::unique_ptr<SettingsUI> CreateImGuiDebugWindow(BeebWindow *beeb_window);
 
   protected:
   private:
@@ -380,7 +382,6 @@ class BeebWindow {
 #if STORE_DRAWLISTS
     bool m_imgui_drawlists = false;
 #endif
-    bool m_imgui_debug = false;
     bool m_imgui_metrics = false;
 
     std::vector<std::string> m_display_size_options;

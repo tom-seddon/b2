@@ -650,55 +650,65 @@ static void DoImGuiWindowText(const char *name, const ImGuiWindow *window) {
     }
 }
 
-void ImGuiStuff::DoDebugWindow() {
-    if (ImGui::Begin("Debug")) {
-        DoImGuiWindowText("NavWindow", GImGui->NavWindow);
-        ImGui::Text("NavID: 0x%x (alive=%s)", GImGui->NavId, BOOL_STR(GImGui->NavIdIsAlive));
+void ImGuiStuff::DoDebugGui() {
+    ImGuiHeader("Windows");
 
-        ImGui::Separator();
+    DoImGuiWindowText("NavWindow", GImGui->NavWindow);
+    ImGui::Text("NavID: 0x%x (alive=%s)", GImGui->NavId, BOOL_STR(GImGui->NavIdIsAlive));
 
-        DoImGuiWindowText("HoveredWindow", GImGui->HoveredWindow);
-        ImGui::Text("HoveredID: 0x%x", GImGui->HoveredId);
+    ImGui::Separator();
 
-        ImGui::Separator();
+    DoImGuiWindowText("HoveredWindow", GImGui->HoveredWindow);
+    ImGui::Text("HoveredID: 0x%x", GImGui->HoveredId);
 
-        DoImGuiWindowText("ActiveIdWindow", GImGui->ActiveIdWindow);
-        ImGui::Text("ActiveID: 0x%x (alive=%s)", GImGui->ActiveId, BOOL_STR(GImGui->ActiveIdIsAlive));
+    ImGui::Separator();
 
-        //        if (window != ignore_window && window->WasActive && !(window->Flags & ImGuiWindowFlags_ChildWindow))
-        //            if ((window->Flags & (ImGuiWindowFlags_NoMouseInputs | ImGuiWindowFlags_NoNavInputs)) != (ImGuiWindowFlags_NoMouseInputs | ImGuiWindowFlags_NoNavInputs))
-        //            {
-        //                ImGuiWindow* focus_window = NavRestoreLastChildNavWindow(window);
-        //                FocusWindow(focus_window);
-        //                return;
-        //            }
+    DoImGuiWindowText("ActiveIdWindow", GImGui->ActiveIdWindow);
+    ImGui::Text("ActiveID: 0x%x (alive=%s)", GImGui->ActiveId, BOOL_STR(GImGui->ActiveIdIsAlive));
 
-        ImGui::Text("IsAnyItemFocused: %s", BOOL_STR(ImGui::IsAnyItemFocused()));
+    //        if (window != ignore_window && window->WasActive && !(window->Flags & ImGuiWindowFlags_ChildWindow))
+    //            if ((window->Flags & (ImGuiWindowFlags_NoMouseInputs | ImGuiWindowFlags_NoNavInputs)) != (ImGuiWindowFlags_NoMouseInputs | ImGuiWindowFlags_NoNavInputs))
+    //            {
+    //                ImGuiWindow* focus_window = NavRestoreLastChildNavWindow(window);
+    //                FocusWindow(focus_window);
+    //                return;
+    //            }
 
-        ImGui::Separator();
+    ImGui::Text("IsAnyItemFocused: %s", BOOL_STR(ImGui::IsAnyItemFocused()));
 
-        if (ImGui::CollapsingHeader("WindowsFocusOrder")) {
-            for (int i = 0; i < GImGui->WindowsFocusOrder.size(); ++i) {
-                //ImGuiIDPusher id_pusher(i);
+    ImGui::Separator();
 
-                ImGuiWindow *w = GImGui->WindowsFocusOrder[i];
-                ImGui::Text("%-2d. %s", i, w->Name);
-                if (ImGui::IsItemHovered()) {
-                    ImGui::BeginTooltip();
-                    ImGui::Text("Name: %s", w->Name);
-                    ImGui::Text("ID: 0x%x", w->ID);
-                    ImGui::Text("WasActive: %s", BOOL_STR(w->WasActive));
-                    ImGui::Text("Flags: Child: %s", BOOL_STR(w->Flags & ImGuiWindowFlags_ChildWindow));
-                    ImGui::Text("       NoMouseInputs: %s", BOOL_STR(w->Flags & ImGuiWindowFlags_NoMouseInputs));
-                    ImGui::Text("       NoNavInputs: %s", BOOL_STR(w->Flags & ImGuiWindowFlags_NoNavInputs));
-                    ImGui::Text("NavLastIDs: Main: 0x%x", w->NavLastIds[0]);
-                    ImGui::Text("            Menu: 0x%x", w->NavLastIds[1]);
-                    ImGui::EndTooltip();
-                }
+    ImGuiHeader("IO");
+
+    {
+        ImGuiIO &io = ImGui::GetIO();
+
+        ImGui::Text("WantCaptureKeyboard: %d", io.WantCaptureKeyboard);
+        ImGui::Text("WantCaptureMouse: %d", io.WantCaptureMouse);
+        ImGui::Text("WantCaptureMouseUnlessPopupClose: %d", io.WantCaptureMouseUnlessPopupClose);
+        ImGui::Text("WantTextInput: %d", io.WantTextInput);
+    }
+
+    if (ImGui::CollapsingHeader("WindowsFocusOrder")) {
+        for (int i = 0; i < GImGui->WindowsFocusOrder.size(); ++i) {
+            //ImGuiIDPusher id_pusher(i);
+
+            ImGuiWindow *w = GImGui->WindowsFocusOrder[i];
+            ImGui::Text("%-2d. %s", i, w->Name);
+            if (ImGui::IsItemHovered()) {
+                ImGui::BeginTooltip();
+                ImGui::Text("Name: %s", w->Name);
+                ImGui::Text("ID: 0x%x", w->ID);
+                ImGui::Text("WasActive: %s", BOOL_STR(w->WasActive));
+                ImGui::Text("Flags: Child: %s", BOOL_STR(w->Flags & ImGuiWindowFlags_ChildWindow));
+                ImGui::Text("       NoMouseInputs: %s", BOOL_STR(w->Flags & ImGuiWindowFlags_NoMouseInputs));
+                ImGui::Text("       NoNavInputs: %s", BOOL_STR(w->Flags & ImGuiWindowFlags_NoNavInputs));
+                ImGui::Text("NavLastIDs: Main: 0x%x", w->NavLastIds[0]);
+                ImGui::Text("            Menu: 0x%x", w->NavLastIds[1]);
+                ImGui::EndTooltip();
             }
         }
     }
-    ImGui::End();
 }
 
 //////////////////////////////////////////////////////////////////////////

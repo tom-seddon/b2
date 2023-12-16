@@ -95,8 +95,8 @@ static Command2 g_clean_up_recent_files_lists_command = Command2(&g_beeb_window_
 static Command2 g_reset_dock_windows_command = Command2(&g_beeb_window_command_table, "reset_dock_windows", "Reset dock windows").MustConfirm();
 static Command2 g_paste_command(&g_beeb_window_command_table, "paste", "OSRDCH Paste");
 static Command2 g_paste_return_command(&g_beeb_window_command_table, "paste_return", "OSRDCH Paste (+Return)");
-static Command2 g_toggle_copy_oswrch_text_command=Command2(&g_beeb_window_command_table, "toggle_copy_oswrch_text", "OSWRCH Copy Text").WithTick();
-static Command2 g_copy_basic_command=Command2(&g_beeb_window_command_table, "copy_basic", "Copy BASIC listing");
+static Command2 g_toggle_copy_oswrch_text_command = Command2(&g_beeb_window_command_table, "toggle_copy_oswrch_text", "OSWRCH Copy Text").WithTick();
+static Command2 g_copy_basic_command = Command2(&g_beeb_window_command_table, "copy_basic", "Copy BASIC listing");
 static Command2 g_parallel_printer_command = Command2(&g_beeb_window_command_table, "parallel_printer", "Parallel printer").WithTick();
 static Command2 g_reset_printer_buffer_command = Command2(&g_beeb_window_command_table, "reset_printer_buffer", "Reset printer buffer").MustConfirm();
 static Command2 g_copy_printer_buffer_command = Command2(&g_beeb_window_command_table, "copy_printer_buffer", "Copy printer buffer");
@@ -200,6 +200,7 @@ static bool InitialiseTogglePopupCommands() {
     InitialiseTogglePopupCommand(BeebWindowPopupType_ADCDebugger, "toggle_adc_debugger", "ADC Debug", &CreateADCDebugWindow);
     InitialiseTogglePopupCommand(BeebWindowPopupType_BeebLink, "toggle_beeblink_options", "BeebLink Options", &CreateBeebLinkUI);
     InitialiseTogglePopupCommand(BeebWindowPopupType_DigitalJoystickDebugger, "toggle_digital_joystick_debugger", "Digital Joystick Debug", &CreateDigitalJoystickDebugWindow);
+    InitialiseTogglePopupCommand(BeebWindowPopupType_ImGuiDebug, "toggle_imgui_debug", "Imgui debug", &BeebWindow::CreateImGuiDebugWindow);
 
     return true;
 }
@@ -273,6 +274,43 @@ BeebWindow::DriveState::DriveState()
     this->new_direct_disc_image_file_dialog.AddFilter("BBC disc images", DISC_IMAGE_EXTENSIONS);
 
     this->open_direct_disc_image_file_dialog.AddFilter("BBC disc images", DISC_IMAGE_EXTENSIONS);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+class BeebWindow::ImGuiDebugUI : public SettingsUI {
+  public:
+    explicit ImGuiDebugUI(BeebWindow *beeb_window);
+
+    void DoImGui() override;
+
+    bool OnClose() override;
+
+  protected:
+  private:
+    BeebWindow *m_beeb_window = nullptr;
+};
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+BeebWindow::ImGuiDebugUI::ImGuiDebugUI(BeebWindow *beeb_window)
+    : m_beeb_window(beeb_window) {
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BeebWindow::ImGuiDebugUI::DoImGui() {
+    m_beeb_window->m_imgui_stuff->DoDebugGui();
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool BeebWindow::ImGuiDebugUI::OnClose() {
+    return false;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -634,7 +672,7 @@ void BeebWindow::HandleJoystickResult(const JoystickResult &jr) {
         auto message = std::make_shared<BeebThread::JoystickButtonMessage>(jr.digital_joystick_index, jr.digital_state.bits.fire0);
         m_beeb_thread->Send(std::move(message));
     } else if (jr.digital_joystick_index == 2) {
-        auto message=std::make_shared<BeebThread::DigitalJoystickStateMessage>(jr.digital_joystick_index,jr.digital_state);
+        auto message = std::make_shared<BeebThread::DigitalJoystickStateMessage>(jr.digital_joystick_index, jr.digital_state);
         m_beeb_thread->Send(std::move(message));
     }
 }
@@ -949,10 +987,6 @@ bool BeebWindow::DoImGui(uint64_t ticks) {
                         m_imgui_stuff->DoStoredDrawListWindow();
                     }
 #endif
-
-                    if (m_imgui_debug) {
-                        m_imgui_stuff->DoDebugWindow();
-                    }
 
                     if (m_imgui_metrics) {
                         ImGui::ShowMetricsWindow();
@@ -1990,10 +2024,10 @@ void BeebWindow::DoDebugMenu() {
         ImGui::MenuItem("ImGui demo...", NULL, &m_imgui_demo);
 #endif
         ImGui::MenuItem("ImGui dock debug...", nullptr, &m_imgui_dock_debug);
+        m_cst.DoMenuItem(g_popups[BeebWindowPopupType_ImGuiDebug].command);
 #if STORE_DRAWLISTS
         ImGui::MenuItem("ImGui drawlists...", nullptr, &m_imgui_drawlists);
 #endif
-        ImGui::MenuItem("ImGui debug...", nullptr, &m_imgui_debug);
         ImGui::MenuItem("ImGui metrics...", nullptr, &m_imgui_metrics);
 
         ImGui::EndMenu();
@@ -3051,6 +3085,13 @@ std::unique_ptr<SettingsUI> BeebWindow::CreateTimelineUI(BeebWindow *beeb_window
 
 std::unique_ptr<SettingsUI> BeebWindow::CreateSavedStatesUI(BeebWindow *beeb_window) {
     return ::CreateSavedStatesUI(beeb_window, beeb_window->m_renderer);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+std::unique_ptr<SettingsUI> BeebWindow::CreateImGuiDebugWindow(BeebWindow *beeb_window) {
+    return std::make_unique<ImGuiDebugUI>(beeb_window);
 }
 
 //////////////////////////////////////////////////////////////////////////
