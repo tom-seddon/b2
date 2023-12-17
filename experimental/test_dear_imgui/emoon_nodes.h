@@ -1,6 +1,0 @@
-#ifndef HEADER_2DE62F7090204A4F9C408622AF13B7E3 // -*- mode:c++ -*-
-#define HEADER_2DE62F7090204A4F9C408622AF13B7E3
-
-void EmoonNodes();
-
-#endif

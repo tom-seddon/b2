@@ -1,6 +1,0 @@
-#ifndef HEADER_14B242C0BA544B2CA8C24E3CFE6A3004 // -*- mode:c++ -*-
-#define HEADER_14B242C0BA544B2CA8C24E3CFE6A3004
-
-void TestImguiMemoryEditor();
-
-#endif
