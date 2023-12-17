@@ -1405,11 +1405,19 @@ static bool main2(int argc, char *argv[], const std::shared_ptr<MessageList> &in
                 }
                 break;
 
+            case SDL_MOUSEBUTTONUP:
+            case SDL_MOUSEBUTTONDOWN:
+                {
+                    if (BeebWindow *window = BeebWindows::FindBeebWindowBySDLWindowID(event.button.windowID)) {
+                        window->HandleSDLMouseButtonEvent(event.button);
+                    }
+                }
+
             case SDL_MOUSEWHEEL:
                 {
                     rmt_ScopedCPUSample(SDL_MOUSEWHEEL, 0);
                     if (BeebWindow *window = BeebWindows::FindBeebWindowBySDLWindowID(event.wheel.windowID)) {
-                        window->SetSDLMouseWheelState(event.wheel.x, event.wheel.y);
+                        window->HandleSDLMouseWheelEvent(event.wheel);
                     }
                 }
                 break;

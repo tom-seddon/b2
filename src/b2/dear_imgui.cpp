@@ -81,6 +81,8 @@ ImGuiContextSetter::~ImGuiContextSetter() {
 ImGuiStuff::ImGuiStuff(SDL_Renderer *renderer)
     : m_renderer(renderer) {
     m_last_new_frame_ticks = GetCurrentTickCount();
+
+    static_assert(sizeof m_imgui_key_from_sdl_scancode / sizeof m_imgui_key_from_sdl_scancode[0] == SDL_NUM_SCANCODES);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -214,25 +216,25 @@ bool ImGuiStuff::Init() {
 
 #endif
 
-    io.KeyMap[ImGuiKey_Tab] = SDL_SCANCODE_TAB;          // for tabbing through fields
-    io.KeyMap[ImGuiKey_LeftArrow] = SDL_SCANCODE_LEFT;   // for text edit
-    io.KeyMap[ImGuiKey_RightArrow] = SDL_SCANCODE_RIGHT; // for text edit
-    io.KeyMap[ImGuiKey_UpArrow] = SDL_SCANCODE_UP;       // for text edit
-    io.KeyMap[ImGuiKey_DownArrow] = SDL_SCANCODE_DOWN;   // for text edit
-    io.KeyMap[ImGuiKey_PageUp] = SDL_SCANCODE_PAGEUP;
-    io.KeyMap[ImGuiKey_PageDown] = SDL_SCANCODE_PAGEDOWN;
-    io.KeyMap[ImGuiKey_Home] = SDL_SCANCODE_HOME;           // for text edit
-    io.KeyMap[ImGuiKey_End] = SDL_SCANCODE_END;             // for text edit
-    io.KeyMap[ImGuiKey_Delete] = SDL_SCANCODE_DELETE;       // for text edit
-    io.KeyMap[ImGuiKey_Backspace] = SDL_SCANCODE_BACKSPACE; // for text edit
-    io.KeyMap[ImGuiKey_Enter] = SDL_SCANCODE_RETURN;        // for text edit
-    io.KeyMap[ImGuiKey_Escape] = SDL_SCANCODE_ESCAPE;       // for text edit
-    io.KeyMap[ImGuiKey_A] = SDL_GetScancodeFromKey(SDLK_a); // for text edit CTRL+A: select all
-    io.KeyMap[ImGuiKey_C] = SDL_GetScancodeFromKey(SDLK_c); // for text edit CTRL+C: copy
-    io.KeyMap[ImGuiKey_V] = SDL_GetScancodeFromKey(SDLK_v); // for text edit CTRL+V: paste
-    io.KeyMap[ImGuiKey_X] = SDL_GetScancodeFromKey(SDLK_x); // for text edit CTRL+X: cut
-    io.KeyMap[ImGuiKey_Y] = SDL_GetScancodeFromKey(SDLK_y); // for text edit CTRL+Y: redo
-    io.KeyMap[ImGuiKey_Z] = SDL_GetScancodeFromKey(SDLK_z); // for text edit CTRL+Z: undo
+    m_imgui_key_from_sdl_scancode[SDL_SCANCODE_TAB] = ImGuiKey_Tab;          // for tabbing through fields
+    m_imgui_key_from_sdl_scancode[SDL_SCANCODE_LEFT] = ImGuiKey_LeftArrow;   // for text edit
+    m_imgui_key_from_sdl_scancode[SDL_SCANCODE_RIGHT] = ImGuiKey_RightArrow; // for text edit
+    m_imgui_key_from_sdl_scancode[SDL_SCANCODE_UP] = ImGuiKey_UpArrow;       // for text edit
+    m_imgui_key_from_sdl_scancode[SDL_SCANCODE_DOWN] = ImGuiKey_DownArrow;   // for text edit
+    m_imgui_key_from_sdl_scancode[SDL_SCANCODE_PAGEUP] = ImGuiKey_PageUp;
+    m_imgui_key_from_sdl_scancode[SDL_SCANCODE_PAGEDOWN] = ImGuiKey_PageDown;
+    m_imgui_key_from_sdl_scancode[SDL_SCANCODE_HOME] = ImGuiKey_Home;           // for text edit
+    m_imgui_key_from_sdl_scancode[SDL_SCANCODE_END] = ImGuiKey_End;             // for text edit
+    m_imgui_key_from_sdl_scancode[SDL_SCANCODE_DELETE] = ImGuiKey_Delete;       // for text edit
+    m_imgui_key_from_sdl_scancode[SDL_SCANCODE_BACKSPACE] = ImGuiKey_Backspace; // for text edit
+    m_imgui_key_from_sdl_scancode[SDL_SCANCODE_RETURN] = ImGuiKey_Enter;        // for text edit
+    m_imgui_key_from_sdl_scancode[SDL_SCANCODE_ESCAPE] = ImGuiKey_Escape;       // for text edit
+    m_imgui_key_from_sdl_scancode[SDL_GetScancodeFromKey(SDLK_a)] = ImGuiKey_A; // for text edit CTRL+A: select all
+    m_imgui_key_from_sdl_scancode[SDL_GetScancodeFromKey(SDLK_c)] = ImGuiKey_C; // for text edit CTRL+C: copy
+    m_imgui_key_from_sdl_scancode[SDL_GetScancodeFromKey(SDLK_v)] = ImGuiKey_V; // for text edit CTRL+V: paste
+    m_imgui_key_from_sdl_scancode[SDL_GetScancodeFromKey(SDLK_x)] = ImGuiKey_X; // for text edit CTRL+X: cut
+    m_imgui_key_from_sdl_scancode[SDL_GetScancodeFromKey(SDLK_y)] = ImGuiKey_Y; // for text edit CTRL+Y: redo
+    m_imgui_key_from_sdl_scancode[SDL_GetScancodeFromKey(SDLK_z)] = ImGuiKey_Z; // for text edit CTRL+Z: undo
 
     // https://github.com/ocornut/imgui/commit/aa11934efafe4db75993e23aacacf9ed8b1dd40c#diff-bbaa16f299ca6d388a3a779b16572882L446
 
@@ -374,8 +376,8 @@ void ImGuiStuff::NewFrame(bool got_mouse_focus) {
         io.DisplaySize.y = (float)output_height;
     }
 
-    io.MouseWheel = (float)m_next_wheel;
-    m_next_wheel = 0;
+    //io.MouseWheel = (float)m_next_wheel;
+    //m_next_wheel = 0;
 
     if (m_reset_dock_context) {
         bool set = false;
@@ -551,20 +553,71 @@ void ImGuiStuff::RenderSDL() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void ImGuiStuff::SetMouseWheel(int delta) {
-    m_next_wheel = delta;
+void ImGuiStuff::AddMouseWheelEvent(float x, float y) {
+    ImGuiContextSetter setter(this);
+    ImGuiIO &io = ImGui::GetIO();
+
+    io.AddMouseWheelEvent(x, y);
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void ImGuiStuff::SetKeyDown(uint32_t scancode, bool state) {
+void ImGuiStuff::AddMouseButtonEvent(uint8_t button, bool state) {
     ImGuiContextSetter setter(this);
     ImGuiIO &io = ImGui::GetIO();
 
-    if (scancode < sizeof io.KeysDown / sizeof io.KeysDown[0]) {
-        io.KeysDown[scancode] = state;
+    int imgui_button;
+    switch (button) {
+    default:
+        imgui_button = -1;
+        break;
+
+    case SDL_BUTTON_LEFT:
+        imgui_button = ImGuiMouseButton_Left;
+        break;
+
+    case SDL_BUTTON_MIDDLE:
+        imgui_button = ImGuiMouseButton_Middle;
+        break;
+
+    case SDL_BUTTON_RIGHT:
+        imgui_button = ImGuiMouseButton_Right;
+        break;
     }
+
+    if (imgui_button >= 0) {
+        io.AddMouseButtonEvent(imgui_button, state);
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void ImGuiStuff::AddMouseMotionEvent(int x, int y) {
+    ImGuiContextSetter setter(this);
+    ImGuiIO &io = ImGui::GetIO();
+
+    io.AddMousePosEvent((float)x, (float)y);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void ImGuiStuff::AddKeyEvent(uint32_t scancode, bool state) {
+    ImGuiContextSetter setter(this);
+    ImGuiIO &io = ImGui::GetIO();
+
+    if (scancode < SDL_NUM_SCANCODES) {
+        ImGuiKey imgui_key = m_imgui_key_from_sdl_scancode[scancode];
+        io.AddKeyEvent(imgui_key, state);
+    }
+
+    //ImGuiKey key = ImGuiKey_None;
+
+    //if (scancode < sizeof io.KeysDown / sizeof io.KeysDown[0]) {
+    //    io.KeysDown[scancode] = state;
+    //}
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -1479,27 +1532,27 @@ static bool IsModifierKey(SDL_Scancode k) {
 }
 
 uint32_t ImGuiConsumePressedKeycode() {
-    ImGuiIO *io = &ImGui::GetIO();
+    //ImGuiIO *io = &ImGui::GetIO();
 
-    // Slightly ugly mishmash of SDL and dear imgui here.
-    uint32_t modifiers = GetPCKeyModifiersFromSDLKeymod((uint16_t)SDL_GetModState());
+    //// Slightly ugly mishmash of SDL and dear imgui here.
+    //uint32_t modifiers = GetPCKeyModifiersFromSDLKeymod((uint16_t)SDL_GetModState());
 
-    for (int scancode_ = 0; scancode_ < SDL_NUM_SCANCODES; ++scancode_) {
-        auto scancode = (SDL_Scancode)scancode_;
+    //for (int scancode_ = 0; scancode_ < SDL_NUM_SCANCODES; ++scancode_) {
+    //    auto scancode = (SDL_Scancode)scancode_;
 
-        if (io->KeysDown[scancode]) {
-            if (IsModifierKey(scancode)) {
-                // Ignore...
-            } else {
-                SDL_Keycode keycode = SDL_GetKeyFromScancode(scancode);
-                if (keycode != 0) {
-                    io->KeysDown[scancode] = false;
+    //    if (io->KeysDown[scancode]) {
+    //        if (IsModifierKey(scancode)) {
+    //            // Ignore...
+    //        } else {
+    //            SDL_Keycode keycode = SDL_GetKeyFromScancode(scancode);
+    //            if (keycode != 0) {
+    //                io->KeysDown[scancode] = false;
 
-                    return (uint32_t)keycode | modifiers;
-                }
-            }
-        }
-    }
+    //                return (uint32_t)keycode | modifiers;
+    //            }
+    //        }
+    //    }
+    //}
 
     return 0;
 }

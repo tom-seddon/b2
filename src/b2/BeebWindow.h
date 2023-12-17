@@ -230,12 +230,12 @@ class BeebWindow {
     void HandleSDLFocusGainedEvent();
     void HandleSDLFocusLostEvent();
     void HandleSDLKeyEvent(const SDL_KeyboardEvent &event);
+    void HandleSDLMouseButtonEvent(const SDL_MouseButtonEvent &event);
     void HandleSDLControllerAxisMotionEvent(const SDL_ControllerAxisEvent &event);
     void HandleSDLControllerButtonEvent(const SDL_ControllerButtonEvent &event);
-
-    void SetSDLMouseWheelState(int x, int y);
-    void HandleSDLTextInput(const char *text);
+    void HandleSDLMouseWheelEvent(const SDL_MouseWheelEvent &event);
     void HandleSDLMouseMotionEvent(const SDL_MouseMotionEvent &event);
+    void HandleSDLTextInput(const char *text);
 
     void ThreadFillAudioBuffer(SDL_AudioDeviceID audio_device_id, float *mix_buffer, size_t num_samples);
 
@@ -407,8 +407,6 @@ class BeebWindow {
     bool m_got_mouse_pixel_unit = false;
     VideoDataUnit m_mouse_pixel_unit = {};
 #endif
-
-    SDL_Point m_mouse_pos = {-1, -1};
 
     //struct HTTPPoke {
     //    uint32_t addr = 0;

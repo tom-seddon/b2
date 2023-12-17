@@ -91,10 +91,10 @@ class ImGuiStuff {
     // does the SDL rendering stuff.
     void RenderSDL();
 
-    // Temporary (?) fix for disappearing mousewheel messages.
-    void SetMouseWheel(int delta);
-
-    void SetKeyDown(uint32_t scancode, bool state);
+    void AddMouseWheelEvent(float x, float y);
+    void AddMouseButtonEvent(uint8_t button, bool state);
+    void AddMouseMotionEvent(int x, int y);
+    void AddKeyEvent(uint32_t scancode, bool state);
     void AddInputCharactersUTF8(const char *text);
 
     bool LoadDockContext(const std::string &config);
@@ -117,7 +117,6 @@ class ImGuiStuff {
     bool m_reset_dock_context = false;
     SDL_Texture *m_font_texture = nullptr;
     uint64_t m_last_new_frame_ticks = 0;
-    int m_next_wheel = 0;
     ImFontAtlas *m_original_font_atlas = nullptr;
     ImFontAtlas *m_new_font_atlas = nullptr;
     std::string m_imgui_ini_path;
@@ -141,6 +140,8 @@ class ImGuiStuff {
 
     unsigned m_font_size_pixels = 0;
     bool m_font_dirty = true;
+
+    ImGuiKey m_imgui_key_from_sdl_scancode[512] = {}; //512 = SDL_NUM_SCANCODES
 
     friend class ImGuiContextSetter;
 };

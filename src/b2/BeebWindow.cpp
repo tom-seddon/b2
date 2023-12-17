@@ -641,6 +641,33 @@ void BeebWindow::HandleSDLFocusLostEvent() {
 
 void BeebWindow::HandleSDLKeyEvent(const SDL_KeyboardEvent &event) {
     m_sdl_keyboard_events.push_back(event);
+
+    if (m_imgui_stuff) {
+        switch (event.type) {
+        case SDL_KEYDOWN:
+            if (event.repeat) {
+                // Don't set again if it's just key repeat. If the flag is
+                // still set from last time, that's fine; if it's been reset,
+                // there'll be a reason, so don't set it again.
+            } else {
+                m_imgui_stuff->AddKeyEvent(event.keysym.scancode, true);
+            }
+            break;
+
+        case SDL_KEYUP:
+            m_imgui_stuff->AddKeyEvent(event.keysym.scancode, false);
+            break;
+        }
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BeebWindow::HandleSDLMouseButtonEvent(const SDL_MouseButtonEvent &event) {
+    if (m_imgui_stuff) {
+        m_imgui_stuff->AddMouseButtonEvent(event.button, event.type == SDL_MOUSEBUTTONDOWN);
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -749,10 +776,19 @@ uint32_t BeebWindow::GetSDLWindowID() const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void BeebWindow::SetSDLMouseWheelState(int x, int y) {
-    (void)x;
+void BeebWindow::HandleSDLMouseWheelEvent(const SDL_MouseWheelEvent &event) {
+    if (m_imgui_stuff) {
+        m_imgui_stuff->AddMouseWheelEvent(event.preciseX, event.preciseY);
+    }
+}
 
-    m_imgui_stuff->SetMouseWheel(y);
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BeebWindow::HandleSDLMouseMotionEvent(const SDL_MouseMotionEvent &event) {
+    if (m_imgui_stuff) {
+        m_imgui_stuff->AddMouseMotionEvent(event.x, event.y);
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -760,15 +796,6 @@ void BeebWindow::SetSDLMouseWheelState(int x, int y) {
 
 void BeebWindow::HandleSDLTextInput(const char *text) {
     m_imgui_stuff->AddInputCharactersUTF8(text);
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-void BeebWindow::HandleSDLMouseMotionEvent(const SDL_MouseMotionEvent &event) {
-    //LOGF(OUTPUT,"%s: x=%" PRId32 " y=%" PRId32 "\n",__func__,event.x,event.y);
-    m_mouse_pos.x = event.x;
-    m_mouse_pos.y = event.y;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -885,25 +912,25 @@ bool BeebWindow::DoImGui(uint64_t ticks) {
 
     bool keep_window = true;
 
-    for (const SDL_KeyboardEvent &event : m_sdl_keyboard_events) {
-        //LOGF(OUTPUT,"%s: event=0x%x key=%s timestamp=%u repeat=%u\n",__func__,event.type,SDL_GetScancodeName(event.keysym.scancode),event.timestamp,event.repeat);
+    //for (const SDL_KeyboardEvent &event : m_sdl_keyboard_events) {
+    //    //LOGF(OUTPUT,"%s: event=0x%x key=%s timestamp=%u repeat=%u\n",__func__,event.type,SDL_GetScancodeName(event.keysym.scancode),event.timestamp,event.repeat);
 
-        switch (event.type) {
-        case SDL_KEYDOWN:
-            if (event.repeat) {
-                // Don't set again if it's just key repeat. If the flag is
-                // still set from last time, that's fine; if it's been reset,
-                // there'll be a reason, so don't set it again.
-            } else {
-                m_imgui_stuff->SetKeyDown(event.keysym.scancode, true);
-            }
-            break;
+    //    switch (event.type) {
+    //    case SDL_KEYDOWN:
+    //        if (event.repeat) {
+    //            // Don't set again if it's just key repeat. If the flag is
+    //            // still set from last time, that's fine; if it's been reset,
+    //            // there'll be a reason, so don't set it again.
+    //        } else {
+    //            m_imgui_stuff->SetKeyDown(event.keysym.scancode, true);
+    //        }
+    //        break;
 
-        case SDL_KEYUP:
-            m_imgui_stuff->SetKeyDown(event.keysym.scancode, false);
-            break;
-        }
-    }
+    //    case SDL_KEYUP:
+    //        m_imgui_stuff->SetKeyDown(event.keysym.scancode, false);
+    //        break;
+    //    }
+    //}
 
     SettingsUI *active_popup = nullptr;
 
@@ -1007,10 +1034,10 @@ bool BeebWindow::DoImGui(uint64_t ticks) {
             uint32_t keycode = 0;
             bool state = false;
             if (event.type == SDL_KEYDOWN) {
-                if (ImGui::IsKeyDown(event.keysym.scancode)) {
-                    keycode = (uint32_t)event.keysym.sym | GetPCKeyModifiersFromSDLKeymod(event.keysym.mod);
-                    state = true;
-                }
+                //if (ImGui::IsKeyDown(event.keysym.scancode)) {
+                keycode = (uint32_t)event.keysym.sym | GetPCKeyModifiersFromSDLKeymod(event.keysym.mod);
+                state = true;
+                //}
             }
 
             if (beeb_focus) {
