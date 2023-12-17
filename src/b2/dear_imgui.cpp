@@ -236,6 +236,18 @@ bool ImGuiStuff::Init() {
     m_imgui_key_from_sdl_scancode[SDL_GetScancodeFromKey(SDLK_y)] = ImGuiKey_Y; // for text edit CTRL+Y: redo
     m_imgui_key_from_sdl_scancode[SDL_GetScancodeFromKey(SDLK_z)] = ImGuiKey_Z; // for text edit CTRL+Z: undo
 
+    m_imgui_key_from_sdl_scancode[SDL_GetScancodeFromKey(SDLK_LCTRL)] = ImGuiKey_LeftCtrl;
+    m_imgui_key_from_sdl_scancode[SDL_GetScancodeFromKey(SDLK_RCTRL)] = ImGuiKey_RightCtrl;
+
+    m_imgui_key_from_sdl_scancode[SDL_GetScancodeFromKey(SDLK_LSHIFT)] = ImGuiKey_LeftShift;
+    m_imgui_key_from_sdl_scancode[SDL_GetScancodeFromKey(SDLK_RSHIFT)] = ImGuiKey_RightShift;
+
+    m_imgui_key_from_sdl_scancode[SDL_GetScancodeFromKey(SDLK_LALT)] = ImGuiKey_LeftAlt;
+    m_imgui_key_from_sdl_scancode[SDL_GetScancodeFromKey(SDLK_RALT)] = ImGuiKey_RightAlt;
+
+    m_imgui_key_from_sdl_scancode[SDL_GetScancodeFromKey(SDLK_LGUI)] = ImGuiKey_LeftSuper;
+    m_imgui_key_from_sdl_scancode[SDL_GetScancodeFromKey(SDLK_RGUI)] = ImGuiKey_RightSuper;
+
     // https://github.com/ocornut/imgui/commit/aa11934efafe4db75993e23aacacf9ed8b1dd40c#diff-bbaa16f299ca6d388a3a779b16572882L446
 
     m_original_font_atlas = io.Fonts;
@@ -268,7 +280,7 @@ void ImGuiStuff::SetFontSizePixels(unsigned font_size_pixels) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void ImGuiStuff::NewFrame(bool got_mouse_focus) {
+void ImGuiStuff::NewFrame() {
     ASSERT(!g_in_frame);
 
     ImGuiContextSetter setter(this);
@@ -327,47 +339,15 @@ void ImGuiStuff::NewFrame(bool got_mouse_focus) {
         m_font_dirty = false;
     }
 
-    if (got_mouse_focus) {
-        int x, y;
-        Uint32 b = SDL_GetMouseState(&x, &y);
+    {
+        ImGuiMouseCursor cursor = ImGui::GetMouseCursor();
 
-        io.MousePos.x = (float)x;
-        io.MousePos.y = (float)y;
-
-        io.MouseDown[0] = !!(b & SDL_BUTTON_LMASK);
-        io.MouseDown[1] = !!(b & SDL_BUTTON_RMASK);
-        io.MouseDown[2] = !!(b & SDL_BUTTON_MMASK);
-
-        SDL_Keymod m = SDL_GetModState();
-
-        io.KeyCtrl = !!(m & KMOD_CTRL);
-        io.KeyAlt = !!(m & KMOD_ALT);
-        io.KeyShift = !!(m & KMOD_SHIFT);
-        io.KeySuper = !!(m & KMOD_GUI);
-
-        {
-            ImGuiMouseCursor cursor = ImGui::GetMouseCursor();
-
-            if (cursor >= 0 && cursor < ImGuiMouseCursor_COUNT && m_cursors[cursor]) {
-                SDL_SetCursor(m_cursors[cursor]);
-            } else {
-                SDL_SetCursor(nullptr);
-            }
+        if (cursor >= 0 && cursor < ImGuiMouseCursor_COUNT && m_cursors[cursor]) {
+            SDL_SetCursor(m_cursors[cursor]);
+        } else {
+            SDL_SetCursor(nullptr);
         }
-
-    } else {
-        io.MousePos.x = -FLT_MAX;
-        io.MousePos.y = -FLT_MAX;
-
-        io.MouseDown[0] = false;
-        io.MouseDown[1] = false;
-        io.MouseDown[2] = false;
-
-        io.KeyCtrl = false;
-        io.KeyAlt = false;
-        io.KeyShift = false;
     }
-
     {
         int output_width, output_height;
         SDL_GetRendererOutputSize(m_renderer, &output_width, &output_height);
@@ -375,9 +355,6 @@ void ImGuiStuff::NewFrame(bool got_mouse_focus) {
         io.DisplaySize.x = (float)output_width;
         io.DisplaySize.y = (float)output_height;
     }
-
-    //io.MouseWheel = (float)m_next_wheel;
-    //m_next_wheel = 0;
 
     if (m_reset_dock_context) {
         bool set = false;
@@ -604,6 +581,23 @@ void ImGuiStuff::AddMouseMotionEvent(int x, int y) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+// Synthesize modifier press/release at the appropriate moment.
+static void AddModEvent(ImGuiIO *io, ImGuiKey key, bool state, ImGuiKey lkey, ImGuiKey rkey, ImGuiKey mkey) {
+    if (key == lkey || key == rkey) {
+        if (state) {
+            // The physical key is down, therefore the modifier is down. The
+            // other physical key's state doesn't matter.
+            io->AddKeyEvent(mkey, true);
+        } else {
+            // The physical key is up. If the other physical key is up too, the
+            // modifier is up.
+            if (!ImGui::IsKeyDown(key == lkey ? rkey : lkey)) {
+                io->AddKeyEvent(mkey, false);
+            }
+        }
+    }
+}
+
 void ImGuiStuff::AddKeyEvent(uint32_t scancode, bool state) {
     ImGuiContextSetter setter(this);
     ImGuiIO &io = ImGui::GetIO();
@@ -611,6 +605,11 @@ void ImGuiStuff::AddKeyEvent(uint32_t scancode, bool state) {
     if (scancode < SDL_NUM_SCANCODES) {
         ImGuiKey imgui_key = m_imgui_key_from_sdl_scancode[scancode];
         io.AddKeyEvent(imgui_key, state);
+
+        AddModEvent(&io, imgui_key, state, ImGuiKey_LeftShift, ImGuiKey_RightShift, ImGuiKey_ModShift);
+        AddModEvent(&io, imgui_key, state, ImGuiKey_LeftAlt, ImGuiKey_RightAlt, ImGuiKey_ModAlt);
+        AddModEvent(&io, imgui_key, state, ImGuiKey_LeftCtrl, ImGuiKey_RightCtrl, ImGuiKey_ModCtrl);
+        AddModEvent(&io, imgui_key, state, ImGuiKey_LeftSuper, ImGuiKey_RightSuper, ImGuiKey_ModSuper);
     }
 
     //ImGuiKey key = ImGuiKey_None;

@@ -82,8 +82,7 @@ class ImGuiStuff {
 
     bool Init();
 
-    // bool parameter, yum.
-    void NewFrame(bool got_mouse_focus);
+    void NewFrame();
 
     // does ImGui::Render.
     void RenderImGui();

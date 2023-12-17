@@ -2434,21 +2434,13 @@ bool BeebWindow::HandleVBlank(uint64_t ticks) {
     {
         Timer tmr2(&g_HandleVBlank_start_of_frame_timer_def);
 
-        bool got_mouse_focus = false;
-        {
-            SDL_Window *mouse_window = SDL_GetMouseFocus();
-            if (mouse_window == m_window) {
-                got_mouse_focus = true;
-            }
-        }
-
         if (m_pushed_window_padding) {
             ImGui::PopStyleVar(1);
         }
 
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.f, 0.f));
 
-        m_imgui_stuff->NewFrame(got_mouse_focus);
+        m_imgui_stuff->NewFrame();
 
         // Show/hide popup commands in the UI. Try to create each popup in turn,
         // and hide it if the attempt fails! A bit of a cheap hack, but it saves
