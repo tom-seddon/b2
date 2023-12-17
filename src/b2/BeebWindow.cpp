@@ -906,6 +906,47 @@ static size_t CleanUpRecentPaths(const std::string &tag, bool (*exists_fn)(const
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+// True if this keyboard event probably represents an interesting text input
+// event for Dear ImGui purposes. (Such events should not be treated as shortcut
+// key presses if a widget is currently wanting text input. Let the widget have
+// the event.)
+//
+// (This is a bit of a hack! It'd be nice to have the input systems properly
+// unified, but the Dear ImGui side doesn't quite support everything that b2
+// would want.)
+static bool IsProbablyInterestingTextInputEvent(const SDL_KeyboardEvent &event) {
+    switch (event.keysym.sym) {
+    default:
+        return true;
+
+    case SDLK_F1:
+    case SDLK_F2:
+    case SDLK_F3:
+    case SDLK_F4:
+    case SDLK_F5:
+    case SDLK_F6:
+    case SDLK_F7:
+    case SDLK_F8:
+    case SDLK_F9:
+    case SDLK_F10:
+    case SDLK_F11:
+    case SDLK_F12:
+    case SDLK_F13:
+    case SDLK_F14:
+    case SDLK_F15:
+    case SDLK_F16:
+    case SDLK_F17:
+    case SDLK_F18:
+    case SDLK_F19:
+    case SDLK_F20:
+    case SDLK_F21:
+    case SDLK_F22:
+    case SDLK_F23:
+    case SDLK_F24:
+        return false;
+    }
+}
+
 bool BeebWindow::DoImGui(uint64_t ticks) {
     int output_width, output_height;
     SDL_GetRendererOutputSize(m_renderer, &output_width, &output_height);
@@ -1030,21 +1071,31 @@ bool BeebWindow::DoImGui(uint64_t ticks) {
     //
     // TODO - could the command key stuff use dear imgui functionality instead?
     {
+        const ImGuiIO &io = ImGui::GetIO();
+
         for (const SDL_KeyboardEvent &event : m_sdl_keyboard_events) {
             uint32_t keycode = 0;
             bool state = false;
+            bool is_valid_shortcut = true;
             if (event.type == SDL_KEYDOWN) {
-                //if (ImGui::IsKeyDown(event.keysym.scancode)) {
                 keycode = (uint32_t)event.keysym.sym | GetPCKeyModifiersFromSDLKeymod(event.keysym.mod);
                 state = true;
-                //}
+
+                if (io.WantTextInput) {
+                    // In this case, only allow function key shortcuts though.
+                    // Whatever is wanting the text input will probably
+                    // want everything else.
+                    is_valid_shortcut = !IsProbablyInterestingTextInputEvent(event);
+                }
             }
 
             if (beeb_focus) {
                 bool handled = false;
 
                 if (m_prefer_shortcuts) {
-                    handled = this->HandleCommandKey(keycode, active_popup);
+                    if (is_valid_shortcut) {
+                        handled = this->HandleCommandKey(keycode, active_popup);
+                    }
                 }
 
                 if (!handled) {
@@ -1053,11 +1104,15 @@ bool BeebWindow::DoImGui(uint64_t ticks) {
 
                 if (!m_prefer_shortcuts) {
                     if (!handled) {
-                        handled = this->HandleCommandKey(keycode, active_popup);
+                        if (is_valid_shortcut) {
+                            handled = this->HandleCommandKey(keycode, active_popup);
+                        }
                     }
                 }
             } else {
-                this->HandleCommandKey(keycode, active_popup);
+                if (is_valid_shortcut) {
+                    this->HandleCommandKey(keycode, active_popup);
+                }
             }
         }
     }
