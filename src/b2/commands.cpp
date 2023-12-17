@@ -459,7 +459,9 @@ void CommandStateTable::DoToggleCheckbox(const Command2 &command) {
 
     bool ticked = state->ticked;
     if (ImGui::Checkbox(command.m_text.c_str(), &ticked)) {
-        state->actioned = 1;
+        if (state->enabled) {
+            state->actioned = 1;
+        }
     }
 }
 
@@ -489,7 +491,9 @@ bool CommandStateTable::ActionCommandsForPCKey(const CommandTable2 &table, uint3
         ASSERT(command->m_index < m_states.size());
         State *state = &m_states[command->m_index];
 
-        state->actioned = 1;
+        if (state->enabled) {
+            state->actioned = 1;
+        }
     }
 
     return true;
