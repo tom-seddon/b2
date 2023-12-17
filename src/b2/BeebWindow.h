@@ -69,8 +69,6 @@ struct BeebWindowTextureDataVersion {
 struct BeebWindowSettings {
     uint64_t popups = 0;
 
-    std::string dock_config;
-
     float bbc_volume = 0.f;
     float disc_volume = 0.f;
     bool power_on_tone = true;
@@ -378,7 +376,6 @@ class BeebWindow {
 #if ENABLE_IMGUI_DEMO
     bool m_imgui_demo = false;
 #endif
-    bool m_imgui_dock_debug = false;
 #if STORE_DRAWLISTS
     bool m_imgui_drawlists = false;
 #endif

@@ -18,7 +18,7 @@ class DearImguiTestUI : public SettingsUI {
 
   protected:
   private:
-    void DoDock(const char *slot_name, ImGuiDockSlot slot);
+    //void DoDock(const char *slot_name, ImGuiDockSlot slot);
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -49,15 +49,15 @@ bool DearImguiTestUI::OnClose() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void DearImguiTestUI::DoDock(const char *slot_name, ImGuiDockSlot slot) {
-    std::string title = std::string("Dock ") + slot_name;
-
-    ImGui::SetNextDock(slot);
-    if (ImGui::BeginDock(title.c_str())) {
-        ImGui::Text("Dock: %s", slot_name);
-    }
-    ImGui::EndDock();
-}
+//void DearImguiTestUI::DoDock(const char *slot_name, ImGuiDockSlot slot) {
+//    std::string title = std::string("Dock ") + slot_name;
+//
+//    ImGui::SetNextDock(slot);
+//    if (ImGui::BeginDock(title.c_str())) {
+//        ImGui::Text("Dock: %s", slot_name);
+//    }
+//    ImGui::EndDock();
+//}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

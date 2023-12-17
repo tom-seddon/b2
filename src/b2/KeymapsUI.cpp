@@ -205,16 +205,14 @@ static BeebKeymap *GetBeebKeymapByIndex(int index) {
 
 // Requires annoying std::string context, so that there's somewhere for the
 // temporary string to live.
-static bool GetBeebKeymapNameCallback(void *context, int index, const char **name_ptr) {
+static const char *GetBeebKeymapNameCallback(void *context, int index) {
     auto tmp_str = (std::string *)context;
 
     const BeebKeymap *keymap = GetBeebKeymapByIndex(index);
     ASSERT(keymap);
 
     tmp_str->assign(GetKeymapUIName(*keymap));
-    *name_ptr = tmp_str->c_str();
-
-    return true;
+    return tmp_str->c_str();
 }
 
 void KeymapsUI::DoImGui() {

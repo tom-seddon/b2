@@ -14,55 +14,18 @@ set(IMGUI__FOLDER ${CMAKE_CURRENT_SOURCE_DIR}/imgui)
 add_library(imgui_lib STATIC
   ${IMGUI__FOLDER}/imconfig.h
   ${IMGUI__FOLDER}/imgui.cpp
+  ${IMGUI__FOLDER}/imgui.h
   ${IMGUI__FOLDER}/imgui_demo.cpp
   ${IMGUI__FOLDER}/imgui_draw.cpp
-  ${IMGUI__FOLDER}/imgui_tables.cpp
-  ${IMGUI__FOLDER}/imgui.h
   ${IMGUI__FOLDER}/imgui_internal.h
+  ${IMGUI__FOLDER}/imgui_tables.cpp
   ${IMGUI__FOLDER}/imgui_widgets.cpp
   ${IMGUI__FOLDER}/imstb_rectpack.h
   ${IMGUI__FOLDER}/imstb_textedit.h
-  ${IMGUI__FOLDER}/imstb_truetype.h
-  ${IMGUI__FOLDER}/addons/imgui_user.h
-  ${IMGUI__FOLDER}/addons/imgui_user.inl)
-
-set_source_files_properties(${IMGUI__FOLDER}/imgui_widgets.cpp PROPERTIES HEADER_FILE_ONLY TRUE)
+  ${IMGUI__FOLDER}/imstb_truetype.h)
 
 target_include_directories(imgui_lib PUBLIC ${IMGUI__FOLDER})
-target_compile_definitions(imgui_lib PUBLIC IMGUI_INCLUDE_IMGUI_USER_H IMGUI_INCLUDE_IMGUI_USER_INL NO_IMGUI_ADDONS)
 target_compile_definitions(imgui_lib PUBLIC IMGUI_DISABLE_OBSOLETE_FUNCTIONS IMGUI_DISABLE_OBSOLETE_KEYIO)
-
-# target_compile_definitions(imgui_lib PUBLIC "IMGUI_OVERRIDE_DRAWVERT_STRUCT_LAYOUT=struct ImDrawVert {ImVec2 pos\\; ImU32 col\\; ImVec2 uv\\;}")
-
-target_compile_definitions(imgui_lib PUBLIC YES_IMGUIDOCK)
-target_sources(imgui_lib PRIVATE
-  ${IMGUI__FOLDER}/addons/imguidock/imguidock.cpp
-  ${IMGUI__FOLDER}/addons/imguidock/imguidock.h)
-set_source_files_properties(${IMGUI__FOLDER}/addons/imguidock/imguidock.cpp PROPERTIES HEADER_FILE_ONLY TRUE)
-
-target_compile_definitions(imgui_lib PUBLIC YES_IMGUITABWINDOW)
-target_sources(imgui_lib PRIVATE
-  ${IMGUI__FOLDER}/addons/imguitabwindow/imguitabwindow.cpp
-  ${IMGUI__FOLDER}/addons/imguitabwindow/imguitabwindow.h)
-set_source_files_properties(${IMGUI__FOLDER}/addons/imguitabwindow/imguitabwindow.cpp PROPERTIES HEADER_FILE_ONLY TRUE)
-
-target_compile_definitions(imgui_lib PUBLIC YES_IMGUITOOLBAR)
-target_sources(imgui_lib PRIVATE
-  ${IMGUI__FOLDER}/addons/imguitoolbar/imguitoolbar.cpp
-  ${IMGUI__FOLDER}/addons/imguitoolbar/imguitoolbar.h)
-set_source_files_properties(${IMGUI__FOLDER}/addons/imguitoolbar/imguitoolbar.cpp PROPERTIES HEADER_FILE_ONLY TRUE)
-
-target_compile_definitions(imgui_lib PUBLIC YES_IMGUIPANELMANAGER)
-target_sources(imgui_lib PRIVATE
-  ${IMGUI__FOLDER}/addons/imguipanelmanager/imguipanelmanager.cpp
-  ${IMGUI__FOLDER}/addons/imguipanelmanager/imguipanelmanager.h)
-set_source_files_properties(${IMGUI__FOLDER}/addons/imguipanelmanager/imguipanelmanager.cpp PROPERTIES HEADER_FILE_ONLY TRUE)
-
-target_compile_definitions(imgui_lib PUBLIC YES_IMGUIHELPER)
-target_sources(imgui_lib PRIVATE
-  ${IMGUI__FOLDER}/addons/imguihelper/imguihelper.cpp
-  ${IMGUI__FOLDER}/addons/imguihelper/imguihelper.h)
-set_source_files_properties(${IMGUI__FOLDER}/addons/imguihelper/imguihelper.cpp PROPERTIES HEADER_FILE_ONLY TRUE)
 
 if(MSVC)
 	target_compile_definitions(imgui_lib PRIVATE _CRT_SECURE_NO_WARNINGS)

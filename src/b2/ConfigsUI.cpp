@@ -115,14 +115,13 @@ static BeebConfig *GetConfigByIndex(int index) {
     }
 }
 
-static bool GetBeebWindowConfigNameCallback(void *context, int index, const char **name_ptr) {
+static const char*GetBeebWindowConfigNameCallback(void *context, int index) {
     (void)context;
 
     const BeebConfig *config = GetConfigByIndex(index);
     ASSERT(config);
 
-    *name_ptr = config->name.c_str();
-    return true;
+    return config->name.c_str();
 }
 
 void ConfigsUI::DoImGui() {
@@ -192,14 +191,13 @@ void ConfigsUI::DoImGui() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static bool GetADJIDIPSwitchesString(void *data, int index, const char **str) {
+static const char *GetADJIDIPSwitchesString(void *data, int index) {
     ASSERT(index >= 0 && index < 4);
 
     auto tmp = (std::string *)data;
     *tmp = strprintf("%d (&%04X) (DIP 1=%s, DIP 2=%s)", 1 + index, BBCMicro::ADJI_ADDRESSES[index], index & 1 ? "ON" : "OFF", index & 2 ? "ON" : "OFF");
-    *str = tmp->c_str();
 
-    return true;
+    return tmp->c_str();
 }
 
 void ConfigsUI::DoEditConfigGui() {

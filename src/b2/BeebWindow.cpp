@@ -1027,7 +1027,7 @@ bool BeebWindow::DoImGui(uint64_t ticks) {
                 ImGuiStyleColourPusher cpusher2;
                 cpusher2.PushDefault(style_colour);
 
-                ImGui::BeginDockspace();
+                //ImGui::BeginDockspace();
                 {
                     ImGuiStyleVarPusher vpusher2(ImGuiStyleVar_WindowPadding, IMGUI_DEFAULT_STYLE.WindowPadding);
 
@@ -1035,7 +1035,7 @@ bool BeebWindow::DoImGui(uint64_t ticks) {
 
                     beeb_focus = this->DoBeebDisplayUI();
                 }
-                ImGui::EndDockspace();
+                //ImGui::EndDockspace();
 
                 {
                     ImGuiStyleVarPusher vpusher2(ImGuiStyleVar_WindowPadding, IMGUI_DEFAULT_STYLE.WindowPadding);
@@ -1045,10 +1045,6 @@ bool BeebWindow::DoImGui(uint64_t ticks) {
                         ImGui::ShowDemoWindow();
                     }
 #endif
-
-                    if (m_imgui_dock_debug) {
-                        ImGui::DockDebugWindow();
-                    }
 
 #if STORE_DRAWLISTS
                     if (m_imgui_drawlists) {
@@ -1204,7 +1200,7 @@ void BeebWindow::DoCommands() {
     }
 
     if (m_cst.WasActioned(g_reset_dock_windows_command)) {
-        m_imgui_stuff->ResetDockContext();
+        //m_imgui_stuff->ResetDockContext();
     }
 
     m_cst.SetTicked(g_paste_command, m_beeb_thread->IsPasting());
@@ -1407,7 +1403,7 @@ SettingsUI *BeebWindow::DoSettingsUI() {
 
             SettingsUI *popup = m_popups[type].get();
 
-            ImGui::SetNextDock(ImGuiDockSlot_None);
+            //ImGui::SetNextDock(ImGuiDockSlot_None);
             ImVec2 default_pos = ImVec2(10.f, 30.f);
             ImVec2 default_size = ImGui::GetIO().DisplaySize * .4f;
 
@@ -1417,7 +1413,7 @@ SettingsUI *BeebWindow::DoSettingsUI() {
                 extra_flags = (ImGuiWindowFlags)popup->GetExtraImGuiWindowFlags();
             }
 
-            if (ImGui::BeginDock(popup_metadata->command.GetText().c_str(), &opened, extra_flags, default_size, default_pos)) {
+            if (ImGui::Begin(popup_metadata->command.GetText().c_str(), &opened, extra_flags)) {
                 m_settings.popups |= mask;
 
                 if (ImGui::IsWindowFocused(ImGuiFocusedFlags_ChildWindows)) {
@@ -1430,7 +1426,7 @@ SettingsUI *BeebWindow::DoSettingsUI() {
                     ImGui::TextWrapped("This version of b2 does not support this type of window.");
                 }
             }
-            ImGui::EndDock();
+            ImGui::End();
 
             if (!opened) {
                 m_settings.popups &= ~mask;
@@ -2105,7 +2101,6 @@ void BeebWindow::DoDebugMenu() {
 #if ENABLE_IMGUI_DEMO
         ImGui::MenuItem("ImGui demo...", NULL, &m_imgui_demo);
 #endif
-        ImGui::MenuItem("ImGui dock debug...", nullptr, &m_imgui_dock_debug);
         m_cst.DoMenuItem(g_popups[BeebWindowPopupType_ImGuiDebug].command);
 #if STORE_DRAWLISTS
         ImGui::MenuItem("ImGui drawlists...", nullptr, &m_imgui_drawlists);
@@ -2390,7 +2385,7 @@ bool BeebWindow::DoBeebDisplayUI() {
         ImGui::SetNextWindowContentSize(size);
     }
 
-    if (ImGui::BeginDock("Display", nullptr, flags)) {
+    if (ImGui::Begin("Display", nullptr, flags)) {
 
         if (ImGui::IsWindowAppearing()) {
             ImGui::FocusWindow(GImGui->CurrentWindow);
@@ -2466,7 +2461,7 @@ bool BeebWindow::DoBeebDisplayUI() {
 #endif
         }
     }
-    ImGui::EndDock();
+    ImGui::End();
 
     return focus;
 }
@@ -2605,7 +2600,6 @@ bool BeebWindow::Init() {
 //////////////////////////////////////////////////////////////////////////
 
 void BeebWindow::SaveSettings() {
-    m_settings.dock_config = m_imgui_stuff->SaveDockContext();
 #if ENABLE_SDL_FULL_SCREEN
     m_settings.full_screen = this->IsWindowFullScreen();
 #endif
@@ -2876,7 +2870,7 @@ bool BeebWindow::InitInternal() {
     //    }
 
     if (reset_windows) {
-        m_imgui_stuff->ResetDockContext();
+        // TODO...
     }
 
     m_display_size_options.push_back("Auto");
@@ -2902,11 +2896,11 @@ bool BeebWindow::InitInternal() {
         }
     }
 
-    if (!m_settings.dock_config.empty()) {
-        if (!m_imgui_stuff->LoadDockContext(m_settings.dock_config)) {
-            m_msg.w.f("failed to load dock config\n");
-        }
-    }
+    //if (!m_settings.dock_config.empty()) {
+    //    if (!m_imgui_stuff->LoadDockContext(m_settings.dock_config)) {
+    //        m_msg.w.f("failed to load dock config\n");
+    //    }
+    //}
 
     {
         Uint32 format;

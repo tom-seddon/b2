@@ -18,6 +18,7 @@
 
 struct ImGuiStyle;
 struct ImDrawList;
+enum ImGuiKey : int;
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -208,9 +209,8 @@ class HexEditor {
     void DoHexPart(size_t num_skip_columns, size_t begin_offset, size_t end_offset);
     void DoAsciiPart(size_t begin_offset, size_t end_offset);
     void GetChar(uint16_t *ch, bool *editing, const char *id);
-    void UpdateOffsetByKey(int key, int delta, int times);
+    void UpdateOffsetByKey(ImGuiKey key, int delta, int times);
     void SetNewOffset(size_t base, int delta, bool invalidate_on_failure);
-    char GetDisplayChar(int value, bool *wasprint = nullptr) const;
     void OpenContextPopup(bool hex, size_t offset);
     void DoOptionsPopup();
     void DoContextPopup();

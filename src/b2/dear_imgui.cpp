@@ -56,14 +56,9 @@ static bool g_in_frame = false;
 //////////////////////////////////////////////////////////////////////////
 
 ImGuiContextSetter::ImGuiContextSetter(const ImGuiStuff *stuff)
-    : m_old_imgui_context(ImGui::GetCurrentContext())
-    , m_old_dock_context(ImGui::GetCurrentDockContext()) {
+    : m_old_imgui_context(ImGui::GetCurrentContext()) {
     if (stuff->m_context) {
         ImGui::SetCurrentContext(stuff->m_context);
-    }
-
-    if (stuff->m_dock_context) {
-        ImGui::SetCurrentDockContext(stuff->m_dock_context);
     }
 }
 
@@ -72,7 +67,6 @@ ImGuiContextSetter::ImGuiContextSetter(const ImGuiStuff *stuff)
 
 ImGuiContextSetter::~ImGuiContextSetter() {
     ImGui::SetCurrentContext(m_old_imgui_context);
-    ImGui::SetCurrentDockContext(m_old_dock_context);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -91,9 +85,6 @@ ImGuiStuff::ImGuiStuff(SDL_Renderer *renderer)
 ImGuiStuff::~ImGuiStuff() {
     if (m_context) {
         ImGuiContextSetter setter(this);
-
-        ImGui::DestroyDockContext(m_dock_context);
-        m_dock_context = nullptr;
 
         if (g_in_frame) {
             ImGui::EndFrame();
@@ -171,7 +162,6 @@ bool ImGuiStuff::Init() {
     (void)rc;
 
     m_context = ImGui::CreateContext();
-    m_dock_context = ImGui::CreateDockContext();
 
     ImGuiContextSetter setter(this);
 
@@ -354,22 +344,6 @@ void ImGuiStuff::NewFrame() {
 
         io.DisplaySize.x = (float)output_width;
         io.DisplaySize.y = (float)output_height;
-    }
-
-    if (m_reset_dock_context) {
-        bool set = false;
-        if (ImGui::GetCurrentDockContext() == m_dock_context) {
-            set = true;
-        }
-
-        ImGui::DestroyDockContext(m_dock_context);
-        m_dock_context = ImGui::CreateDockContext();
-
-        if (set) {
-            ImGui::SetCurrentDockContext(m_dock_context);
-        }
-
-        m_reset_dock_context = false;
     }
 
     ImGui::NewFrame();
@@ -606,10 +580,10 @@ void ImGuiStuff::AddKeyEvent(uint32_t scancode, bool state) {
         ImGuiKey imgui_key = m_imgui_key_from_sdl_scancode[scancode];
         io.AddKeyEvent(imgui_key, state);
 
-        AddModEvent(&io, imgui_key, state, ImGuiKey_LeftShift, ImGuiKey_RightShift, ImGuiKey_ModShift);
-        AddModEvent(&io, imgui_key, state, ImGuiKey_LeftAlt, ImGuiKey_RightAlt, ImGuiKey_ModAlt);
-        AddModEvent(&io, imgui_key, state, ImGuiKey_LeftCtrl, ImGuiKey_RightCtrl, ImGuiKey_ModCtrl);
-        AddModEvent(&io, imgui_key, state, ImGuiKey_LeftSuper, ImGuiKey_RightSuper, ImGuiKey_ModSuper);
+        AddModEvent(&io, imgui_key, state, ImGuiKey_LeftShift, ImGuiKey_RightShift, ImGuiMod_Shift);
+        AddModEvent(&io, imgui_key, state, ImGuiKey_LeftAlt, ImGuiKey_RightAlt, ImGuiMod_Alt);
+        AddModEvent(&io, imgui_key, state, ImGuiKey_LeftCtrl, ImGuiKey_RightCtrl, ImGuiMod_Ctrl);
+        AddModEvent(&io, imgui_key, state, ImGuiKey_LeftSuper, ImGuiKey_RightSuper, ImGuiMod_Super);
     }
 
     //ImGuiKey key = ImGuiKey_None;
@@ -627,37 +601,6 @@ void ImGuiStuff::AddInputCharactersUTF8(const char *text) {
     ImGuiIO &io = ImGui::GetIO();
 
     io.AddInputCharactersUTF8(text);
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-bool ImGuiStuff::LoadDockContext(const std::string &config) {
-    ImGuiContextSetter setter(this);
-
-    ImGuiHelper::Deserializer deserializer(config.data(), config.size());
-    return ImGui::LoadDock(deserializer);
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-std::string ImGuiStuff::SaveDockContext() const {
-    ImGuiContextSetter setter(this);
-
-    ImGuiHelper::Serializer serializer;
-    ImGui::SaveDock(serializer);
-
-    ASSERT(serializer.getBufferSize() >= 0);
-    std::string result(serializer.getBuffer());
-    return result;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-void ImGuiStuff::ResetDockContext() {
-    m_reset_dock_context = true;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -1139,8 +1082,9 @@ void ImGuiLEDv(bool on, const char *fmt, va_list v) {
         return;
     }
 
-    const char *text_end = GImGui->TempBuffer + ImFormatStringV(GImGui->TempBuffer, IM_ARRAYSIZE(GImGui->TempBuffer), fmt, v);
-    ImGuiLED2(on, GImGui->TempBuffer, text_end);
+    char buf[1000];
+    int n = ImFormatStringV(buf, IM_ARRAYSIZE(buf), fmt, v);
+    ImGuiLED2(on, buf, buf + n);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -1307,7 +1251,7 @@ static int PlotEx2(
     ItemSize(total_bb, style.FramePadding.y);
     if (!ItemAdd(total_bb, 0, &frame_bb))
         return -1;
-    const bool hovered = ItemHoverable(frame_bb, id);
+    const bool hovered = ItemHoverable(frame_bb, id, g.LastItemData.InFlags);
 
     // Determine scale from values if not specified
     if (scale_min == FLT_MAX || scale_max == FLT_MAX) {

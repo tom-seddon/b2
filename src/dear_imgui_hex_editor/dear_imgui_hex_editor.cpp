@@ -31,9 +31,8 @@
 
 #endif
 
-#include <imgui.h>
-
 #define IMGUI_DEFINE_MATH_OPERATORS
+#include <imgui.h>
 #include <imgui_internal.h>
 
 #ifdef _MSC_VER
@@ -889,7 +888,7 @@ void HexEditor::GetChar(uint16_t *ch, bool *editing, const char *id) {
     bool take_focus_this_frame;
     if (m_input_take_focus_next_frame) {
         ImGui::SetKeyboardFocusHere();
-        ImGui::CaptureKeyboardFromApp(true);
+        ImGui::SetNextFrameWantCaptureKeyboard(true);
 
         m_handler->DebugPrint("Taking focus.\n");
 
@@ -922,9 +921,9 @@ void HexEditor::GetChar(uint16_t *ch, bool *editing, const char *id) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void HexEditor::UpdateOffsetByKey(int key, int delta, int times) {
+void HexEditor::UpdateOffsetByKey(ImGuiKey key, int delta, int times) {
     if (!m_set_new_offset) {
-        if (ImGui::IsKeyPressed(ImGui::GetKeyIndex(key))) {
+        if (ImGui::IsKeyPressed(key)) {
             for (int i = 0; i < times; ++i) {
                 this->SetNewOffset(m_set_new_offset ? m_new_offset : m_offset, delta, false);
             }

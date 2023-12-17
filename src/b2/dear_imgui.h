@@ -30,9 +30,8 @@
 
 #endif
 
-#include <imgui.h>
-
 #define IMGUI_DEFINE_MATH_OPERATORS
+#include <imgui.h>
 #include <imgui_internal.h>
 
 #ifdef _MSC_VER
@@ -96,10 +95,6 @@ class ImGuiStuff {
     void AddKeyEvent(uint32_t scancode, bool state);
     void AddInputCharactersUTF8(const char *text);
 
-    bool LoadDockContext(const std::string &config);
-    std::string SaveDockContext() const;
-    void ResetDockContext();
-
 #if STORE_DRAWLISTS
     void DoStoredDrawListWindow();
 #endif
@@ -112,8 +107,6 @@ class ImGuiStuff {
   private:
     SDL_Renderer *m_renderer = nullptr;
     ImGuiContext *m_context = nullptr;
-    ImGui::DockContext *m_dock_context = nullptr;
-    bool m_reset_dock_context = false;
     SDL_Texture *m_font_texture = nullptr;
     uint64_t m_last_new_frame_ticks = 0;
     ImFontAtlas *m_original_font_atlas = nullptr;
@@ -162,7 +155,6 @@ class ImGuiContextSetter {
   protected:
   private:
     ImGuiContext *m_old_imgui_context = nullptr;
-    ImGui::DockContext *m_old_dock_context = nullptr;
 };
 
 //////////////////////////////////////////////////////////////////////////

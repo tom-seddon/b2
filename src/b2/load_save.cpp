@@ -219,10 +219,6 @@ static std::string GetConfigFileName() {
     return GetConfigPath("b2.json");
 }
 
-static std::string GetDockLayoutFileName() {
-    return GetConfigPath("imguidock.ini");
-}
-
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
@@ -1271,23 +1267,6 @@ static void SaveKeycodeObject(JSONWriter<StringStream> *writer, uint32_t keycode
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
-
-static bool LoadDockConfig(Messages *msg) {
-    std::string fname = GetDockLayoutFileName();
-    if (fname.empty()) {
-        msg->e.f("failed to load dock layout file\n");
-        msg->i.f("(couldn't get file name)\n");
-        return false;
-    }
-
-    std::vector<char> data;
-    if (!LoadTextFile(&data, fname, msg, LoadFlag_MightNotExist)) {
-        return true;
-    }
-
-    BeebWindows::defaults.dock_config = std::string(data.data());
-    return true;
-}
 
 static void AddDefaultBeebKeymaps() {
     for (size_t i = 0; i < GetNumDefaultBeebKeymaps(); ++i) {
@@ -2379,10 +2358,6 @@ bool LoadGlobalConfig(Messages *msg) {
         }
     }
 
-    // don't bother with error checking for this... not really worth
-    // it?
-    LoadDockConfig(msg);
-
     // the rest of the code assumes there's at least 1 config and 1 keymap -
     // so either list ended up empty, populate it with the default set.
     EnsureDefaultBeebKeymapsAvailable();
@@ -2441,8 +2416,6 @@ bool SaveGlobalConfig(Messages *messages) {
     if (!SaveTextFile(json, fname, messages)) {
         return false;
     }
-
-    SaveTextFile(BeebWindows::defaults.dock_config, GetDockLayoutFileName(), messages);
 
     return true;
 }
