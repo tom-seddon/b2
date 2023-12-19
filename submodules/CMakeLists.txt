@@ -28,14 +28,25 @@ target_include_directories(imgui_lib PUBLIC ${IMGUI__FOLDER})
 target_compile_definitions(imgui_lib PUBLIC IMGUI_DISABLE_OBSOLETE_FUNCTIONS IMGUI_DISABLE_OBSOLETE_KEYIO)
 
 if(MSVC)
-	target_compile_definitions(imgui_lib PRIVATE _CRT_SECURE_NO_WARNINGS)
+  target_compile_definitions(imgui_lib PRIVATE _CRT_SECURE_NO_WARNINGS)
 
-	# C4305: 'identifier' : truncation from 'type1' to 'type2'
-	# C4267: 'var' : conversion from 'size_t' to 'type', possible loss of data
-	# C4800: 'type' : forcing value to bool 'true' or 'false' (performance warning)
-	# C4244: 'conversion' conversion from 'type1' to 'type2', possible loss of data
-	# C4312: 'operation' : conversion from 'type1' to 'type2' of greater size 
-	target_compile_options(imgui_lib PRIVATE /wd4305 /wd4267 /wd4800 /wd4244 /wd4312 /wd4458)
+  # C4305: 'identifier' : truncation from 'type1' to 'type2'
+  # C4267: 'var' : conversion from 'size_t' to 'type', possible loss of data
+  # C4800: 'type' : forcing value to bool 'true' or 'false' (performance warning)
+  # C4244: 'conversion' conversion from 'type1' to 'type2', possible loss of data
+  # C4312: 'operation' : conversion from 'type1' to 'type2' of greater size 
+  target_compile_options(imgui_lib PRIVATE /wd4305 /wd4267 /wd4800 /wd4244 /wd4312 /wd4458)
+endif()
+
+if(WIN32)
+  # Add the minimal-dependency standalone example, for emergency
+  # testing purposes.
+  add_executable(imgui_example_win32_directx11
+    ${IMGUI__FOLDER}/examples/example_win32_directx11/main.cpp
+    ${IMGUI__FOLDER}/backends/imgui_impl_dx11.cpp
+    ${IMGUI__FOLDER}/backends/imgui_impl_win32.cpp)
+  target_include_directories(imgui_example_win32_directx11 PRIVATE ${IMGUI__FOLDER}/backends)
+  target_link_libraries(imgui_example_win32_directx11 PRIVATE d3d11.lib imgui_lib)
 endif()
 
 ##########################################################################
