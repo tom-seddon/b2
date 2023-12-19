@@ -246,6 +246,8 @@ bool ImGuiStuff::Init(ImGuiConfigFlags extra_config_flags) {
 
     this->SetFontSizePixels(13);
 
+    m_font_texture_id = this->AllocateTexture();
+
     return true;
 }
 
@@ -267,6 +269,23 @@ void ImGuiStuff::SetFontSizePixels(unsigned font_size_pixels) {
         m_font_size_pixels = font_size_pixels;
         m_font_dirty = true;
     }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+ImTextureID ImGuiStuff::AllocateTexture() {
+    m_textures.push_back(nullptr);
+    return (ImTextureID)m_textures.size();
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void ImGuiStuff::SetTexture(ImTextureID id, SDL_Texture *texture) {
+    size_t index = (size_t)id - 1;
+    ASSERT(index < m_textures.size());
+    m_textures[index] = texture;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -308,9 +327,7 @@ void ImGuiStuff::NewFrame() {
 
         SetRenderScaleQualityHint(false);
         m_font_texture = SDL_CreateTexture(m_renderer, SDL_PIXELFORMAT_RGBA32, SDL_TEXTUREACCESS_STATIC, width, height);
-        if (!m_font_texture) {
-            io.Fonts->TexID = nullptr;
-        } else {
+        if (m_font_texture) {
             SDL_SetTextureBlendMode(m_font_texture, SDL_BLENDMODE_BLEND);
 
             Uint32 font_texture_format;
@@ -324,9 +341,10 @@ void ImGuiStuff::NewFrame() {
 
             rc = SDL_UpdateTexture(m_font_texture, NULL, tmp.data(), width * 4);
             ASSERT(rc == 0);
-
-            io.Fonts->TexID = m_font_texture;
         }
+
+        io.Fonts->TexID = m_font_texture_id;
+        this->SetTexture(io.Fonts->TexID, m_font_texture);
 
         m_font_dirty = false;
     }
@@ -454,8 +472,14 @@ void ImGuiStuff::RenderSDL() {
 
                 (*cmd.UserCallback)(draw_list, &cmd);
             } else {
-                SDL_Texture *texture = (SDL_Texture *)cmd.TextureId;
-                SDL_GL_BindTexture(texture, nullptr, nullptr);
+                SDL_Texture *texture = nullptr;
+                size_t texture_index = (size_t)cmd.TextureId - 1;
+                if (texture_index <= m_textures.size()) {
+                    texture = m_textures[texture_index];
+                    if (texture) {
+                        SDL_GL_BindTexture(texture, nullptr, nullptr);
+                    }
+                }
 
                 SDL_BlendMode blend_mode;
                 SDL_GetTextureBlendMode(texture, &blend_mode);

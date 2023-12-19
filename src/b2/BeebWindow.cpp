@@ -2440,7 +2440,7 @@ bool BeebWindow::DoBeebDisplayUI() {
 
             ImGui::SetCursorPos(pos);
             ImVec2 screen_pos = ImGui::GetCursorScreenPos();
-            ImGui::Image(m_tv_texture, size);
+            ImGui::Image(m_tv_texture_id, size);
 
 #if VIDEO_TRACK_METADATA
 
@@ -2535,6 +2535,7 @@ bool BeebWindow::HandleVBlank(uint64_t ticks) {
                 keep_window = false;
             }
 
+            m_imgui_stuff->SetTexture(m_tv_texture_id, m_tv_texture);
             m_imgui_stuff->RenderImGui();
         }
 
@@ -2825,6 +2826,8 @@ bool BeebWindow::InitInternal() {
         m_msg.e.f("failed to initialise ImGui\n");
         return false;
     }
+
+    m_tv_texture_id = m_imgui_stuff->AllocateTexture();
 
     m_imgui_stuff->SetFontSizePixels(m_settings.gui_font_size);
 

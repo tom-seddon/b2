@@ -103,10 +103,16 @@ class ImGuiStuff {
     unsigned GetFontSizePixels() const;
     void SetFontSizePixels(unsigned font_size_pixels);
 
+    // the returned value is not a valid pointer, but it will at least never be nullptr
+    ImTextureID AllocateTexture();
+    void SetTexture(ImTextureID id, SDL_Texture *texture);
+
   protected:
   private:
     SDL_Renderer *m_renderer = nullptr;
     ImGuiContext *m_context = nullptr;
+    std::vector<SDL_Texture *> m_textures;
+    ImTextureID m_font_texture_id=nullptr;
     SDL_Texture *m_font_texture = nullptr;
     uint64_t m_last_new_frame_ticks = 0;
     ImFontAtlas *m_original_font_atlas = nullptr;
