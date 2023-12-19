@@ -370,7 +370,7 @@ class BeebWindow {
 
     //
     //bool m_ui=false;
-    bool m_pushed_window_padding = false;
+    //bool m_pushed_window_padding = false;
     ImGuiStuff *m_imgui_stuff = nullptr;
 
 #if ENABLE_IMGUI_DEMO

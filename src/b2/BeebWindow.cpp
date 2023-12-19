@@ -953,26 +953,6 @@ bool BeebWindow::DoImGui(uint64_t ticks) {
 
     bool keep_window = true;
 
-    //for (const SDL_KeyboardEvent &event : m_sdl_keyboard_events) {
-    //    //LOGF(OUTPUT,"%s: event=0x%x key=%s timestamp=%u repeat=%u\n",__func__,event.type,SDL_GetScancodeName(event.keysym.scancode),event.timestamp,event.repeat);
-
-    //    switch (event.type) {
-    //    case SDL_KEYDOWN:
-    //        if (event.repeat) {
-    //            // Don't set again if it's just key repeat. If the flag is
-    //            // still set from last time, that's fine; if it's been reset,
-    //            // there'll be a reason, so don't set it again.
-    //        } else {
-    //            m_imgui_stuff->SetKeyDown(event.keysym.scancode, true);
-    //        }
-    //        break;
-
-    //    case SDL_KEYUP:
-    //        m_imgui_stuff->SetKeyDown(event.keysym.scancode, false);
-    //        break;
-    //    }
-    //}
-
     SettingsUI *active_popup = nullptr;
 
     // Set if the BBC display panel has focus. This isn't entirely regular,
@@ -982,86 +962,108 @@ bool BeebWindow::DoImGui(uint64_t ticks) {
     // The BBC display panel never has any dear imgui text widgets in it.
     bool beeb_focus = false;
 
-    // Set the window padding to 0x0, so that the docking stuff, which
-    // makes its own child windows, ends up tightly aligned to the
-    // window border. (Well, tightly enough, anyway... in fact there's
-    // still a 1 pixel border that I haven't figured out yet.)
-    //
-    // 0x0 padding makes everything else look a bit of a mess, so this
-    // does mean that the default window padding has to be pushed in
-    // various places. Need to fix this...
-    ImGuiStyleVarPusher vpusher1(ImGuiStyleVar_WindowPadding, ImVec2(0.f, 0.f));
-    {
-        this->DoCommands();
-
-        {
-            ImGuiStyleVarPusher vpusher2(ImGuiStyleVar_WindowPadding, IMGUI_DEFAULT_STYLE.WindowPadding);
-
-            if (!this->DoMenuUI()) {
-                keep_window = false;
-            }
-        }
-
-        {
-            ImVec2 pos = ImGui::GetCursorPos();
-            pos.x = 0.f;
-            ImVec2 size = {(float)output_width - pos.x, (float)output_height - pos.y};
-
-            ImGui::SetNextWindowPos(pos);
-            ImGui::SetNextWindowSize(size);
-        }
-
-        ImGuiCol style_colour = ImGuiCol_WindowBg;
-        ImGuiStyleColourPusher cpusher1(style_colour, ImVec4(0.f, 0.f, 0.f, 0.f));
-
-        if (ImGui::Begin("DockHolder",
-                         nullptr,
-                         (ImGuiWindowFlags_NoScrollWithMouse |
-                          ImGuiWindowFlags_NoTitleBar |
-                          ImGuiWindowFlags_NoResize |
-                          ImGuiWindowFlags_NoMove |
-                          ImGuiWindowFlags_NoScrollbar |
-                          ImGuiWindowFlags_NoSavedSettings |
-                          ImGuiWindowFlags_NoBringToFrontOnFocus))) {
-            {
-                ImGuiStyleColourPusher cpusher2;
-                cpusher2.PushDefault(style_colour);
-
-                //ImGui::BeginDockspace();
-                {
-                    ImGuiStyleVarPusher vpusher2(ImGuiStyleVar_WindowPadding, IMGUI_DEFAULT_STYLE.WindowPadding);
-
-                    active_popup = this->DoSettingsUI();
-
-                    beeb_focus = this->DoBeebDisplayUI();
-                }
-                //ImGui::EndDockspace();
-
-                {
-                    ImGuiStyleVarPusher vpusher2(ImGuiStyleVar_WindowPadding, IMGUI_DEFAULT_STYLE.WindowPadding);
-
-#if ENABLE_IMGUI_DEMO
-                    if (m_imgui_demo) {
-                        ImGui::ShowDemoWindow();
-                    }
-#endif
-
-#if STORE_DRAWLISTS
-                    if (m_imgui_drawlists) {
-                        m_imgui_stuff->DoStoredDrawListWindow();
-                    }
-#endif
-
-                    if (m_imgui_metrics) {
-                        ImGui::ShowMetricsWindow();
-                    }
-
-                    this->DoPopupUI(ticks, output_width, output_height);
-                }
-            }
-            ImGui::End();
-        }
+    if (!this->DoMenuUI()) {
+        keep_window = false;
     }
+
+    this->DoCommands();
+
+    ImGuiViewport *viewport = ImGui::GetMainViewport();
+
+    ImGuiDockNodeFlags dock_space_flags = (ImGuiDockNodeFlags_PassthruCentralNode |
+                                           ImGuiDockNodeFlags_NoDockingOverCentralNode);
+    ImGuiID dock_space_id = ImGui::DockSpaceOverViewport(viewport, dock_space_flags);
+
+    if (ImGuiDockNode *central_node = ImGui::DockBuilderGetCentralNode(dock_space_id)) {
+        ImGui::SetNextWindowPos(central_node->Pos);
+        ImGui::SetNextWindowSize(central_node->Size);
+
+        beeb_focus = this->DoBeebDisplayUI();
+    }
+
+    active_popup = this->DoSettingsUI();
+
+    //    // Set the window padding to 0x0, so that the docking stuff, which
+    //    // makes its own child windows, ends up tightly aligned to the
+    //    // window border. (Well, tightly enough, anyway... in fact there's
+    //    // still a 1 pixel border that I haven't figured out yet.)
+    //    //
+    //    // 0x0 padding makes everything else look a bit of a mess, so this
+    //    // does mean that the default window padding has to be pushed in
+    //    // various places. Need to fix this...
+    //    ImGuiStyleVarPusher vpusher1(ImGuiStyleVar_WindowPadding, ImVec2(0.f, 0.f));
+    //    {
+    //        this->DoCommands();
+    //
+    //        {
+    //            ImGuiStyleVarPusher vpusher2(ImGuiStyleVar_WindowPadding, IMGUI_DEFAULT_STYLE.WindowPadding);
+    //
+    //            if (!this->DoMenuUI()) {
+    //                keep_window = false;
+    //            }
+    //        }
+    //
+    //        {
+    //            ImVec2 pos = ImGui::GetCursorPos();
+    //            pos.x = 0.f;
+    //            ImVec2 size = {(float)output_width - pos.x, (float)output_height - pos.y};
+    //
+    //            ImGui::SetNextWindowPos(pos);
+    //            ImGui::SetNextWindowSize(size);
+    //        }
+    //
+    //        ImGuiCol style_colour = ImGuiCol_WindowBg;
+    //        ImGuiStyleColourPusher cpusher1(style_colour, ImVec4(0.f, 0.f, 0.f, 0.f));
+    //
+    //        if (ImGui::Begin("DockHolder",
+    //                         nullptr,
+    //                         (ImGuiWindowFlags_NoScrollWithMouse |
+    //                          ImGuiWindowFlags_NoTitleBar |
+    //                          ImGuiWindowFlags_NoResize |
+    //                          ImGuiWindowFlags_NoMove |
+    //                          ImGuiWindowFlags_NoScrollbar |
+    //                          ImGuiWindowFlags_NoSavedSettings |
+    //                          ImGuiWindowFlags_NoBringToFrontOnFocus))) {
+    //            {
+    //                ImGuiStyleColourPusher cpusher2;
+    //                cpusher2.PushDefault(style_colour);
+    //
+    //                if(ImGuiDockNode*node=ImGui::DockBuilderGetCentralNode(
+    //                //ImGui::BeginDockspace();
+    //                {
+    //                    ImGuiStyleVarPusher vpusher2(ImGuiStyleVar_WindowPadding, IMGUI_DEFAULT_STYLE.WindowPadding);
+    //
+    //                    active_popup = this->DoSettingsUI();
+    //
+    //                    beeb_focus = this->DoBeebDisplayUI();
+    //                }
+    //                //ImGui::EndDockspace();
+    //
+    //                {
+    //                    ImGuiStyleVarPusher vpusher2(ImGuiStyleVar_WindowPadding, IMGUI_DEFAULT_STYLE.WindowPadding);
+    //
+    //#if ENABLE_IMGUI_DEMO
+    //                    if (m_imgui_demo) {
+    //                        ImGui::ShowDemoWindow();
+    //                    }
+    //#endif
+    //
+    //#if STORE_DRAWLISTS
+    //                    if (m_imgui_drawlists) {
+    //                        m_imgui_stuff->DoStoredDrawListWindow();
+    //                    }
+    //#endif
+    //
+    //                    if (m_imgui_metrics) {
+    //                        ImGui::ShowMetricsWindow();
+    //                    }
+    //
+    //                    this->DoPopupUI(ticks, output_width, output_height);
+    //                }
+    //            }
+    //            ImGui::End();
+    //        }
+    //    }
 
     // Handle input as appropriate.
     //
@@ -2370,7 +2372,15 @@ bool BeebWindow::DoBeebDisplayUI() {
         scale_x = 1;
     }
 
-    ImGuiWindowFlags flags = ImGuiWindowFlags_NoTitleBar;
+    //ImGuiWindowFlags flags = ImGuiWindowFlags_NoTitleBar;
+    ImGuiWindowFlags flags = (ImGuiWindowFlags_MenuBar |
+                              ImGuiWindowFlags_NoDocking |
+                              ImGuiWindowFlags_NoTitleBar |
+                              ImGuiWindowFlags_NoCollapse |
+                              ImGuiWindowFlags_NoResize |
+                              ImGuiWindowFlags_NoMove |
+                              ImGuiWindowFlags_NoBringToFrontOnFocus |
+                              ImGuiWindowFlags_NoNavFocus);
     ImVec2 pos;
     ImVec2 size;
     if (!m_settings.display_auto_scale) {
@@ -2484,11 +2494,11 @@ bool BeebWindow::HandleVBlank(uint64_t ticks) {
     {
         Timer tmr2(&g_HandleVBlank_start_of_frame_timer_def);
 
-        if (m_pushed_window_padding) {
-            ImGui::PopStyleVar(1);
-        }
+        //if (m_pushed_window_padding) {
+        //    ImGui::PopStyleVar(1);
+        //}
 
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.f, 0.f));
+        //ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.f, 0.f));
 
         m_imgui_stuff->NewFrame();
 
@@ -2502,7 +2512,7 @@ bool BeebWindow::HandleVBlank(uint64_t ticks) {
             g_popups_visibility_checked = true;
         }
 
-        m_pushed_window_padding = true;
+        //m_pushed_window_padding = true;
     }
 
     {
@@ -2812,7 +2822,7 @@ bool BeebWindow::InitInternal() {
     }
 
     m_imgui_stuff = new ImGuiStuff(m_renderer);
-    if (!m_imgui_stuff->Init()) {
+    if (!m_imgui_stuff->Init(ImGuiConfigFlags_DockingEnable)) {
         m_msg.e.f("failed to initialise ImGui\n");
         return false;
     }

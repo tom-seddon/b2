@@ -79,7 +79,7 @@ class ImGuiStuff {
     ImGuiStuff(ImGuiStuff &&) = delete;
     ImGuiStuff &operator=(ImGuiStuff &&) = delete;
 
-    bool Init();
+    bool Init(ImGuiConfigFlags extra_config_flags);
 
     void NewFrame();
 

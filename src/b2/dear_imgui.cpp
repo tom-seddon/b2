@@ -157,7 +157,7 @@ static void SetClipboardText(void *user_data, const char *text) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool ImGuiStuff::Init() {
+bool ImGuiStuff::Init(ImGuiConfigFlags extra_config_flags) {
     int rc;
     (void)rc;
 
@@ -198,6 +198,8 @@ bool ImGuiStuff::Init() {
     // On OS X, could this usefully go in ~/Library/Logs?
     m_imgui_log_txt_path = GetCachePath("imgui_log.txt");
     io.LogFilename = m_imgui_log_txt_path.c_str();
+
+    io.ConfigFlags |= extra_config_flags;
 
 #if USE_SDL_CLIPBOARD
 
@@ -508,6 +510,7 @@ void ImGuiStuff::AddMouseWheelEvent(float x, float y) {
     ImGuiContextSetter setter(this);
     ImGuiIO &io = ImGui::GetIO();
 
+    //printf("%s: x=%f y=%f\n",__func__,x,y);
     io.AddMouseWheelEvent(x, y);
 }
 
@@ -538,6 +541,7 @@ void ImGuiStuff::AddMouseButtonEvent(uint8_t button, bool state) {
     }
 
     if (imgui_button >= 0) {
+        //printf("%s: button=%d state=%s\n",__func__,imgui_button,BOOL_STR(state));
         io.AddMouseButtonEvent(imgui_button, state);
     }
 }
@@ -549,6 +553,7 @@ void ImGuiStuff::AddMouseMotionEvent(int x, int y) {
     ImGuiContextSetter setter(this);
     ImGuiIO &io = ImGui::GetIO();
 
+    //printf("%s: x=%d y=%d\n",__func__,x,y);
     io.AddMousePosEvent((float)x, (float)y);
 }
 

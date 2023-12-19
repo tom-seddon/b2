@@ -1412,6 +1412,7 @@ static bool main2(int argc, char *argv[], const std::shared_ptr<MessageList> &in
                         window->HandleSDLMouseButtonEvent(event.button);
                     }
                 }
+                break;
 
             case SDL_MOUSEWHEEL:
                 {
