@@ -34,7 +34,9 @@ struct PCD8572 {
     bool odata = false;
 };
 
+#if BBCMICRO_TRACE
 void SetPCD8572Trace(PCD8572 *p, Trace *t);
+#endif
 bool UpdatePCD8572(PCD8572 *p, bool clk, bool data);
 
 //protected:
