@@ -115,7 +115,7 @@ static BeebConfig *GetConfigByIndex(int index) {
     }
 }
 
-static const char*GetBeebWindowConfigNameCallback(void *context, int index) {
+static const char *GetBeebWindowConfigNameCallback(void *context, int index) {
     (void)context;
 
     const BeebConfig *config = GetConfigByIndex(index);

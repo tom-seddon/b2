@@ -46,6 +46,18 @@ TVOutput::~TVOutput() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+void TVOutput::PrepareForUpdate() {
+#if BBCMICRO_DEBUGGER
+    if (m_texture_dirty) {
+        std::fill(m_texture_pixels.begin(), m_texture_pixels.end(), this->GetTexelValue(0, 0, 0));
+        m_texture_dirty = false;
+    }
+#endif
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 static const uint8_t DIGITS[10][13] = {
     {0x00, 0x00, 0x04, 0x0A, 0x11, 0x11, 0x11, 0x11, 0x11, 0x0A, 0x04, 0x00, 0x00}, // 48 (0x30) '0'
     {0x00, 0x00, 0x04, 0x06, 0x05, 0x04, 0x04, 0x04, 0x04, 0x04, 0x1F, 0x00, 0x00}, // 49 (0x31) '1'
@@ -428,14 +440,14 @@ void TVOutput::Update(const VideoDataUnit *units, size_t num_units) {
 
 void TVOutput::FillWithTestPattern() {
     m_texture_pixels.clear();
-    m_texture_pixels.reserve(TV_TEXTURE_WIDTH * TV_TEXTURE_HEIGHT);
+    m_texture_dirty = true;
 
     uint32_t palette[8];
     for (size_t i = 0; i < 8; ++i) {
         palette[i] = (i & 1 ? 0xff0000 : 0x000000) | (i & 2 ? 0x00ff00 : 0x000000) | (i & 4 ? 0x0000ff : 0x000000);
     }
 
-    for (int y = 0; y < TV_TEXTURE_HEIGHT; ++y) {
+    for (int y = 0; y < TV_TEXTURE_HEIGHT + 1; ++y) {
         for (int x = 0; x < TV_TEXTURE_WIDTH; ++x) {
             if ((x ^ y) & 1) {
                 m_texture_pixels.push_back(palette[1]);
@@ -445,7 +457,7 @@ void TVOutput::FillWithTestPattern() {
         }
     }
 
-    uint32_t colours[] = {palette[1], palette[6]};
+    uint32_t colours[] = {palette[7], palette[0], palette[6], palette[0]};
 
     for (size_t i = 0; i < sizeof colours / sizeof colours[0]; ++i) {
         uint32_t colour = colours[i];

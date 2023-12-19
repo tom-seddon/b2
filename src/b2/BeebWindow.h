@@ -394,6 +394,7 @@ class BeebWindow {
 
 #if BBCMICRO_DEBUGGER
     bool m_test_pattern = false;
+    bool m_display_fill = false;
 #endif
 
     //

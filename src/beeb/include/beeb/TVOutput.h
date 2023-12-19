@@ -52,6 +52,8 @@ class TVOutput {
     TVOutput(TVOutput &&) = delete;
     TVOutput &operator=(TVOutput &&) = delete;
 
+    void PrepareForUpdate();
+
     // returns number of us consumed.
     void Update(const VideoDataUnit *units, size_t num_units);
 
@@ -105,6 +107,9 @@ class TVOutput {
     int m_state_timer = 0;
     size_t m_num_fields = 0;
     bool m_interlace = false; //it's horrid. It's there, but you don't want it
+#if BBCMICRO_DEBUGGER
+    bool m_texture_dirty = false;
+#endif
 
     // TV - output texture and its properties
     mutable std::vector<uint32_t> m_texture_pixels;

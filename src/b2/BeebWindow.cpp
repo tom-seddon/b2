@@ -210,13 +210,6 @@ static const bool g_toggle_popup_commands_initialised = InitialiseTogglePopupCom
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-// if true, beeb display should fill the entire imgui window, ignoring
-// aspect ratio. Use when debugging imgui window size.
-#define BEEB_DISPLAY_FILL 0
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 LOG_EXTERN(OUTPUT);
 LOG_EXTERN(OUTPUTND);
 
@@ -485,6 +478,8 @@ void BeebWindow::OptionsUI::DoImGui() {
                 m_beeb_window->m_tv.FillWithTestPattern();
             }
         }
+
+        ImGui::Checkbox("Fill window (overrides auto scale/correct aspect ratio)", &m_beeb_window->m_display_fill);
 
         ImGui::Checkbox("1.0 usec", &m_beeb_window->m_tv.show_usec_markers);
         ImGui::SameLine();
@@ -2236,6 +2231,8 @@ size_t BeebWindow::ConsumeTVTexture(OutputDataBuffer<VideoDataUnit> *video_outpu
             size_t num_left;
             const size_t MAX_UPDATE_SIZE = 200;
 
+            tv->PrepareForUpdate();
+
             // A.
             num_left = na;
             while (num_left > 0) {
@@ -2373,14 +2370,15 @@ bool BeebWindow::DoBeebDisplayUI() {
     }
 
     //ImGuiWindowFlags flags = ImGuiWindowFlags_NoTitleBar;
-    ImGuiWindowFlags flags = (ImGuiWindowFlags_MenuBar |
-                              ImGuiWindowFlags_NoDocking |
+    ImGuiWindowFlags flags = (ImGuiWindowFlags_NoDocking |
                               ImGuiWindowFlags_NoTitleBar |
                               ImGuiWindowFlags_NoCollapse |
                               ImGuiWindowFlags_NoResize |
                               ImGuiWindowFlags_NoMove |
                               ImGuiWindowFlags_NoBringToFrontOnFocus |
-                              ImGuiWindowFlags_NoNavFocus);
+                              ImGuiWindowFlags_NoNavFocus |
+                              ImGuiWindowFlags_NoScrollbar |
+                              ImGuiWindowFlags_NoScrollWithMouse);
     ImVec2 pos;
     ImVec2 size;
     if (!m_settings.display_auto_scale) {
@@ -2393,6 +2391,8 @@ bool BeebWindow::DoBeebDisplayUI() {
         flags |= ImGuiWindowFlags_HorizontalScrollbar;
 
         ImGui::SetNextWindowContentSize(size);
+
+        flags &= ~(ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
     }
 
     if (ImGui::Begin("Display", nullptr, flags)) {
@@ -2407,37 +2407,36 @@ bool BeebWindow::DoBeebDisplayUI() {
 
         ImGuiStyleVarPusher vpusher(ImGuiStyleVar_WindowPadding, ImVec2(0.f, 0.f));
         if (m_tv_texture) {
-#if BEEB_DISPLAY_FILL
+#if BBCMICRO_DEBUGGER
+            if (m_display_fill) {
+                pos = {0.f, 0.f};
+                size = ImGui::GetWindowSize();
+            } else //<--note
+#endif             //<--note
+            {      //<--note
+                ImVec2 window_size = ImGui::GetWindowSize() - padding * 2.f;
 
-            const ImVec2 &size = ImGui::GetWindowSize();
-            ImVec2 pos(0.f, 0.f);
+                if (m_settings.display_auto_scale) {
+                    double tv_aspect = (TV_TEXTURE_WIDTH * scale_x) / TV_TEXTURE_HEIGHT;
 
-#else
+                    double width = window_size.x;
+                    double height = width / tv_aspect;
 
-            ImVec2 window_size = ImGui::GetWindowSize() - padding * 2.f;
+                    if (height > window_size.y) {
+                        height = window_size.y;
+                        width = height * tv_aspect;
+                    }
 
-            if (m_settings.display_auto_scale) {
-                double tv_aspect = (TV_TEXTURE_WIDTH * scale_x) / TV_TEXTURE_HEIGHT;
+                    size.x = (float)width;
+                    size.y = (float)height;
 
-                double width = window_size.x;
-                double height = width / tv_aspect;
+                    pos = (window_size - size) * .5f;
 
-                if (height > window_size.y) {
-                    height = window_size.y;
-                    width = height * tv_aspect;
+                    // Don't fight any half pixel offset.
+                    pos.x = (float)(int)pos.x;
+                    pos.y = (float)(int)pos.y;
                 }
-
-                size.x = (float)width;
-                size.y = (float)height;
-
-                pos = (window_size - size) * .5f;
-
-                // Don't fight any half pixel offset.
-                pos.x = (float)(int)pos.x;
-                pos.y = (float)(int)pos.y;
             }
-
-#endif
 
             ImGui::SetCursorPos(pos);
             ImVec2 screen_pos = ImGui::GetCursorScreenPos();
@@ -2716,7 +2715,7 @@ bool BeebWindow::InitInternal() {
                                 SDL_WINDOWPOS_UNDEFINED,
                                 SDL_WINDOWPOS_UNDEFINED,
                                 TV_TEXTURE_WIDTH + (int)(IMGUI_DEFAULT_STYLE.WindowPadding.x * 2.f),
-                                19 + TV_TEXTURE_HEIGHT + (int)(IMGUI_DEFAULT_STYLE.WindowPadding.y * 2.f),
+                                TV_TEXTURE_HEIGHT + (int)(IMGUI_DEFAULT_STYLE.WindowPadding.y * 2.f),
                                 SDL_WINDOW_RESIZABLE | SDL_WINDOW_OPENGL);
     if (!m_window) {
         m_msg.e.f("SDL_CreateWindow failed: %s\n", SDL_GetError());
