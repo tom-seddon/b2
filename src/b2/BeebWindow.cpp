@@ -974,6 +974,24 @@ bool BeebWindow::DoImGui(uint64_t ticks) {
         ImGui::SetNextWindowSize(central_node->Size);
 
         beeb_focus = this->DoBeebDisplayUI();
+
+        this->DoPopupUI(ticks, output_width, output_height);
+    }
+
+#if ENABLE_IMGUI_DEMO
+    if (m_imgui_demo) {
+        ImGui::ShowDemoWindow();
+    }
+#endif
+
+#if STORE_DRAWLISTS
+    if (m_imgui_drawlists) {
+        m_imgui_stuff->DoStoredDrawListWindow();
+    }
+#endif
+
+    if (m_imgui_metrics) {
+        ImGui::ShowMetricsWindow();
     }
 
     active_popup = this->DoSettingsUI();

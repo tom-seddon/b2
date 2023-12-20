@@ -93,12 +93,17 @@ PNMI: M=1, V=0, 1+ byte in R3 h2p
 
 * Dock Fix Fallout
 
-** TODO LEDs popup
-** TODO Messages popup
+** DONE LEDs popup
+CLOSED: [2023-12-19 Tue 23:58]
+** DONE Messages popup
+CLOSED: [2023-12-19 Tue 23:59]
 ** TODO ~ImGuiConsumePressedKeycode~
-** TODO Demo window
-** TODO Stored drawlists window
-** TODO Metrics window
+** DONE Demo window
+CLOSED: [2023-12-20 Wed 00:01]
+** DONE Stored drawlists window
+CLOSED: [2023-12-20 Wed 00:01]
+** DONE Metrics window
+CLOSED: [2023-12-20 Wed 00:01]
 ** DONE Beeb display size+borders
 CLOSED: [2023-12-19 Tue 18:23]
 ** DONE Glitch when toggling texture filtering
