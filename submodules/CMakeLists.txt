@@ -26,6 +26,7 @@ add_library(imgui_lib STATIC
 
 target_include_directories(imgui_lib PUBLIC ${IMGUI__FOLDER})
 target_compile_definitions(imgui_lib PUBLIC IMGUI_DISABLE_OBSOLETE_FUNCTIONS IMGUI_DISABLE_OBSOLETE_KEYIO)
+target_compile_features(imgui_lib PUBLIC cxx_constexpr)
 
 if(MSVC)
   target_compile_definitions(imgui_lib PRIVATE _CRT_SECURE_NO_WARNINGS)

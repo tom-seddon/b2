@@ -141,8 +141,8 @@ BBCMicro::State::State(const BBCMicroType *type_,
                        const tm *rtc_time,
                        CycleCount initial_cycle_count)
     : type(type_)
-    , parasite_type(parasite_type_)
     , init_flags(init_flags_)
+    , parasite_type(parasite_type_)
     , cycle_count(initial_cycle_count) {
     M6502_Init(&this->cpu, this->type->m6502_config);
     this->ram_buffer = std::make_shared<std::vector<uint8_t>>(this->type->ram_buffer_size);

@@ -112,7 +112,7 @@ class ImGuiStuff {
     SDL_Renderer *m_renderer = nullptr;
     ImGuiContext *m_context = nullptr;
     std::vector<SDL_Texture *> m_textures;
-    ImTextureID m_font_texture_id=nullptr;
+    ImTextureID m_font_texture_id = nullptr;
     SDL_Texture *m_font_texture = nullptr;
     uint64_t m_last_new_frame_ticks = 0;
     ImFontAtlas *m_original_font_atlas = nullptr;
