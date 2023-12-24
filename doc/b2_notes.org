@@ -108,3 +108,13 @@ CLOSED: [2023-12-20 Wed 00:01]
 CLOSED: [2023-12-19 Tue 18:23]
 ** DONE Glitch when toggling texture filtering
 CLOSED: [2023-12-19 Tue 19:28]
+
+* test_AVFoundation
+
+Convert video to .jpg files:
+
+: ffmpeg -i "../IMG_1145.MOV" -q:v 2 %06d.jpg
+
+Convert video to .wav file:
+
+: ffmpeg -i "../IMG_1145.MOV" -f wav -vn test.wav
