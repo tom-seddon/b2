@@ -97,3 +97,6 @@ Convert video to .jpg files:
 
 : ffmpeg -i "../IMG_1145.MOV" -q:v 2 %06d.jpg
 
+Convert video to .wav file:
+
+: ffmpeg -i "../IMG_1145.MOV" -f wav -vn test.wav
