@@ -38,7 +38,7 @@ struct TraceUISettings {
 #if SYSTEM_WINDOWS
     bool unix_line_endings = false;
 #endif
-    TraceCyclesOutput cycles_output = TraceCyclesOutput_Relative;
+    uint32_t output_flags = DEFAULT_TRACE_OUTPUT_FLAGS;
 
     // Auto-save settings.
     bool auto_save = false;

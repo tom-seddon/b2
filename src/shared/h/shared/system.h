@@ -62,7 +62,7 @@
 #define CPU_X86 1
 #elif (defined __x86_64)
 #define CPU_X64 1
-#elif (defined __arm__)
+#elif (defined __arm__) || (defined __aarch64__)
 #define CPU_ARM 1
 #elif defined __PPC && __SIZEOF_POINTER__ == 4
 #define CPU_PPC32 1
