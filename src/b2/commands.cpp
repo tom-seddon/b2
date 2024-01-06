@@ -121,14 +121,14 @@ void CommandTable2::RemoveMapping(uint32_t pc_key, Command2 *command) {
     std::vector<uint32_t> *pc_keys = &command_and_pc_keys->second;
 
     auto &&pc_key_it = std::find(pc_keys->begin(), pc_keys->end(), pc_key);
-    if (pc_key_it != pc_keys->end()) {
+    if (pc_key_it == pc_keys->end()) {
         return;
     }
 
     pc_keys->erase(pc_key_it);
 
     if (pc_keys->empty()) {
-    } else {
+        m_pc_keys_by_command.erase(command);
     }
 
     m_commands_by_pc_key_dirty = true;

@@ -10,8 +10,9 @@
 class SettingsUI;
 class BeebWindow;
 class BeebKeymap;
+class ImGuiStuff;
 
-std::unique_ptr<SettingsUI> CreateKeymapsUI(BeebWindow *beeb_window);
+std::unique_ptr<SettingsUI> CreateKeymapsUI(BeebWindow *beeb_window, ImGuiStuff *imgui_stuff);
 
 std::string GetKeymapUIName(const BeebKeymap &keymap);
 
@@ -19,3 +20,4 @@ std::string GetKeymapUIName(const BeebKeymap &keymap);
 //////////////////////////////////////////////////////////////////////////
 
 #endif
+	

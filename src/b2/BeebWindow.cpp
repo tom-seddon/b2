@@ -117,8 +117,19 @@ static Command2 g_toggle_full_screen_command = Command2(&g_beeb_window_command_t
 
 struct PopupMetadata {
     Command2 command;
-    std::function<std::unique_ptr<SettingsUI>(BeebWindow *)> create_fun;
+    std::function<std::unique_ptr<SettingsUI>(BeebWindow *)> create_fun_1;
+    std::function<std::unique_ptr<SettingsUI>(BeebWindow *, ImGuiStuff *)> create_fun_2;
 };
+
+static std::unique_ptr<SettingsUI> CreatePopup(const PopupMetadata &popup, BeebWindow *beeb_window, ImGuiStuff *imgui_stuff) {
+    if (!!popup.create_fun_1) {
+        return popup.create_fun_1(beeb_window);
+    } else if (!!popup.create_fun_2) {
+        return popup.create_fun_2(beeb_window, imgui_stuff);
+    } else {
+        return nullptr;
+    }
+}
 
 static PopupMetadata g_popups[BeebWindowPopupType_MaxValue];
 static bool g_popups_visibility_checked = false;
@@ -126,7 +137,13 @@ static bool g_popups_visibility_checked = false;
 static void InitialiseTogglePopupCommand(BeebWindowPopupType type, const char *name, const char *text, std::function<std::unique_ptr<SettingsUI>(BeebWindow *)> create_fun) {
     PopupMetadata *p = &g_popups[type];
     p->command = Command2(&g_beeb_window_command_table, name, text).WithTick();
-    p->create_fun = std::move(create_fun);
+    p->create_fun_1 = std::move(create_fun);
+}
+
+static void InitialiseTogglePopupCommand(BeebWindowPopupType type, const char *name, const char *text, std::function<std::unique_ptr<SettingsUI>(BeebWindow *, ImGuiStuff *)> create_fun_2) {
+    PopupMetadata *p = &g_popups[type];
+    p->command = Command2(&g_beeb_window_command_table, name, text).WithTick();
+    p->create_fun_2 = std::move(create_fun_2);
 }
 
 static bool InitialiseTogglePopupCommands() {
@@ -635,7 +652,6 @@ void BeebWindow::HandleSDLFocusLostEvent() {
 //////////////////////////////////////////////////////////////////////////
 
 void BeebWindow::HandleSDLKeyEvent(const SDL_KeyboardEvent &event) {
-    m_sdl_keyboard_events.push_back(event);
 
     if (m_imgui_stuff) {
         switch (event.type) {
@@ -645,14 +661,20 @@ void BeebWindow::HandleSDLKeyEvent(const SDL_KeyboardEvent &event) {
                 // still set from last time, that's fine; if it's been reset,
                 // there'll be a reason, so don't set it again.
             } else {
-                m_imgui_stuff->AddKeyEvent(event.keysym.scancode, true);
+                if (m_imgui_stuff->AddKeyEvent(event.keysym.scancode, true)) {
+                    m_sdl_keyboard_events.push_back(event);
+                }
             }
             break;
 
         case SDL_KEYUP:
-            m_imgui_stuff->AddKeyEvent(event.keysym.scancode, false);
+            if (m_imgui_stuff->AddKeyEvent(event.keysym.scancode, false)) {
+                m_sdl_keyboard_events.push_back(event);
+            }
             break;
         }
+    } else {
+        m_sdl_keyboard_events.push_back(event);
     }
 }
 
@@ -1410,7 +1432,8 @@ SettingsUI *BeebWindow::DoSettingsUI() {
 
         if (m_settings.popups & mask) {
             if (!m_popups[type]) {
-                m_popups[type] = popup_metadata->create_fun(this);
+                m_popups[type] = CreatePopup(*popup_metadata, this, m_imgui_stuff);
+
                 if (m_popups[type]) {
                     m_popups[type]->SetName(popup_metadata->command.GetText());
                 }
@@ -2524,7 +2547,7 @@ bool BeebWindow::HandleVBlank(uint64_t ticks) {
         // on having to get the #ifs perfectly consistent.
         if (!g_popups_visibility_checked) {
             for (PopupMetadata &popup : g_popups) {
-                popup.command.VisibleIf(!!popup.create_fun(this));
+                popup.command.VisibleIf(!!CreatePopup(popup, this, m_imgui_stuff));
             }
             g_popups_visibility_checked = true;
         }

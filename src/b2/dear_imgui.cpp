@@ -291,6 +291,27 @@ void ImGuiStuff::SetTexture(ImTextureID id, SDL_Texture *texture) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+uint32_t ImGuiStuff::ConsumePressedKeycode() {
+    switch (m_consume_pressed_keycode_state) {
+    default:
+        ASSERT(false);
+        // fall through
+    case ConsumePressedKeycodeState_Off:
+        m_consume_pressed_keycode_state = ConsumePressedKeycodeState_Waiting;
+        return 0;
+
+    case ConsumePressedKeycodeState_Waiting:
+        return 0;
+
+    case ConsumePressedKeycodeState_Consumed:
+        m_consume_pressed_keycode_state = ConsumePressedKeycodeState_Off;
+        return m_consumed_keycode;
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 void ImGuiStuff::NewFrame() {
     ASSERT(!g_in_frame);
 
@@ -601,20 +622,54 @@ static void AddModEvent(ImGuiIO *io, ImGuiKey key, bool state, ImGuiKey lkey, Im
     }
 }
 
-void ImGuiStuff::AddKeyEvent(uint32_t scancode, bool state) {
+static bool IsModifierKey(SDL_Scancode k) {
+    switch (k) {
+    case SDL_SCANCODE_LSHIFT:
+    case SDL_SCANCODE_RSHIFT:
+    case SDL_SCANCODE_LCTRL:
+    case SDL_SCANCODE_RCTRL:
+    case SDL_SCANCODE_LALT:
+    case SDL_SCANCODE_RALT:
+    case SDL_SCANCODE_LGUI:
+    case SDL_SCANCODE_RGUI:
+    case SDL_SCANCODE_MODE:
+        return true;
+
+    default:
+        return false;
+    }
+}
+
+bool ImGuiStuff::AddKeyEvent(uint32_t scancode, bool state) {
     ImGuiContextSetter setter(this);
     ImGuiIO &io = ImGui::GetIO();
 
-    if (scancode < SDL_NUM_SCANCODES) {
-        ImGuiKey imgui_key = m_imgui_key_from_sdl_scancode[scancode];
-        io.AddKeyEvent(imgui_key, state);
+    if (m_consume_pressed_keycode_state == ConsumePressedKeycodeState_Waiting) {
+        if (state) {
+            if (!IsModifierKey((SDL_Scancode)scancode)) {
+                SDL_Keycode keycode = SDL_GetKeyFromScancode((SDL_Scancode)scancode);
+                if (keycode != 0) {
+                    uint32_t modifiers = GetPCKeyModifiersFromSDLKeymod((uint16_t)SDL_GetModState());
+                    m_consumed_keycode = keycode | modifiers;
+                    m_consume_pressed_keycode_state = ConsumePressedKeycodeState_Consumed;
+                    return false;
+                }
+            }
+        }
 
-        AddModEvent(&io, imgui_key, state, ImGuiKey_LeftShift, ImGuiKey_RightShift, ImGuiMod_Shift);
-        AddModEvent(&io, imgui_key, state, ImGuiKey_LeftAlt, ImGuiKey_RightAlt, ImGuiMod_Alt);
-        AddModEvent(&io, imgui_key, state, ImGuiKey_LeftCtrl, ImGuiKey_RightCtrl, ImGuiMod_Ctrl);
-        AddModEvent(&io, imgui_key, state, ImGuiKey_LeftSuper, ImGuiKey_RightSuper, ImGuiMod_Super);
+    } else {
+        if (scancode < SDL_NUM_SCANCODES) {
+            ImGuiKey imgui_key = m_imgui_key_from_sdl_scancode[scancode];
+            io.AddKeyEvent(imgui_key, state);
+
+            AddModEvent(&io, imgui_key, state, ImGuiKey_LeftShift, ImGuiKey_RightShift, ImGuiMod_Shift);
+            AddModEvent(&io, imgui_key, state, ImGuiKey_LeftAlt, ImGuiKey_RightAlt, ImGuiMod_Alt);
+            AddModEvent(&io, imgui_key, state, ImGuiKey_LeftCtrl, ImGuiKey_RightCtrl, ImGuiMod_Ctrl);
+            AddModEvent(&io, imgui_key, state, ImGuiKey_LeftSuper, ImGuiKey_RightSuper, ImGuiMod_Super);
+        }
     }
 
+    return true;
     //ImGuiKey key = ImGuiKey_None;
 
     //if (scancode < sizeof io.KeysDown / sizeof io.KeysDown[0]) {
@@ -1480,53 +1535,6 @@ void ImGuiPlotHistogram(const char *label,
             scale_max,
             graph_size,
             markers);
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-static bool IsModifierKey(SDL_Scancode k) {
-    switch (k) {
-    case SDL_SCANCODE_LSHIFT:
-    case SDL_SCANCODE_RSHIFT:
-    case SDL_SCANCODE_LCTRL:
-    case SDL_SCANCODE_RCTRL:
-    case SDL_SCANCODE_LALT:
-    case SDL_SCANCODE_RALT:
-    case SDL_SCANCODE_LGUI:
-    case SDL_SCANCODE_RGUI:
-    case SDL_SCANCODE_MODE:
-        return true;
-
-    default:
-        return false;
-    }
-}
-
-uint32_t ImGuiConsumePressedKeycode() {
-    //ImGuiIO *io = &ImGui::GetIO();
-
-    //// Slightly ugly mishmash of SDL and dear imgui here.
-    //uint32_t modifiers = GetPCKeyModifiersFromSDLKeymod((uint16_t)SDL_GetModState());
-
-    //for (int scancode_ = 0; scancode_ < SDL_NUM_SCANCODES; ++scancode_) {
-    //    auto scancode = (SDL_Scancode)scancode_;
-
-    //    if (io->KeysDown[scancode]) {
-    //        if (IsModifierKey(scancode)) {
-    //            // Ignore...
-    //        } else {
-    //            SDL_Keycode keycode = SDL_GetKeyFromScancode(scancode);
-    //            if (keycode != 0) {
-    //                io->KeysDown[scancode] = false;
-
-    //                return (uint32_t)keycode | modifiers;
-    //            }
-    //        }
-    //    }
-    //}
-
-    return 0;
 }
 
 //////////////////////////////////////////////////////////////////////////

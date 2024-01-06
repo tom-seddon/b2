@@ -8,8 +8,9 @@
 
 class SettingsUI;
 class BeebWindow;
+class ImGuiStuff;
 
-std::unique_ptr<SettingsUI> CreateCommandKeymapsUI(BeebWindow *beeb_window);
+std::unique_ptr<SettingsUI> CreateCommandKeymapsUI(BeebWindow *beeb_window, ImGuiStuff *imgui_stuff);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

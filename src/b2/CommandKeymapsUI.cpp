@@ -15,7 +15,8 @@ static const char SHORTCUT_KEYCODES_POPUP[] = "CommandKeymapsUIShortcutKeycodesP
 
 class CommandKeymapsUI : public SettingsUI {
   public:
-    CommandKeymapsUI() {
+    CommandKeymapsUI(ImGuiStuff *imgui_stuff)
+        : m_imgui_stuff(imgui_stuff) {
         ForEachCommandTable2([this](CommandTable2 *table) {
             table->ForEachCommand([this](Command2 *command) {
                 ImVec2 size = ImGui::CalcTextSize(command->GetText().c_str());
@@ -54,6 +55,7 @@ class CommandKeymapsUI : public SettingsUI {
 
   protected:
   private:
+    ImGuiStuff *m_imgui_stuff = nullptr;
     bool m_edited = false;
     bool m_wants_keyboard_focus = false;
     float m_max_command_text_width = 0.f;
@@ -87,7 +89,7 @@ class CommandKeymapsUI : public SettingsUI {
         if (ImGui::BeginPopup(SHORTCUT_KEYCODES_POPUP)) {
             ImGui::TextUnformatted("(press key to add)");
 
-            uint32_t keycode = ImGuiConsumePressedKeycode();
+            uint32_t keycode = m_imgui_stuff->ConsumePressedKeycode();
             if (keycode != 0) {
                 table->AddMapping(keycode, command);
                 m_edited = true;
@@ -130,9 +132,9 @@ class CommandKeymapsUI : public SettingsUI {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-std::unique_ptr<SettingsUI> CreateCommandKeymapsUI(BeebWindow *beeb_window) {
+std::unique_ptr<SettingsUI> CreateCommandKeymapsUI(BeebWindow *beeb_window, ImGuiStuff *imgui_stuff) {
     (void)beeb_window;
-    return std::make_unique<CommandKeymapsUI>();
+    return std::make_unique<CommandKeymapsUI>(imgui_stuff);
 }
 
 //////////////////////////////////////////////////////////////////////////

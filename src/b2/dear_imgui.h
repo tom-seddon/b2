@@ -92,7 +92,7 @@ class ImGuiStuff {
     void AddMouseWheelEvent(float x, float y);
     void AddMouseButtonEvent(uint8_t button, bool state);
     void AddMouseMotionEvent(int x, int y);
-    void AddKeyEvent(uint32_t scancode, bool state);
+    bool AddKeyEvent(uint32_t scancode, bool state);
     void AddInputCharactersUTF8(const char *text);
 
 #if STORE_DRAWLISTS
@@ -107,8 +107,17 @@ class ImGuiStuff {
     ImTextureID AllocateTexture();
     void SetTexture(ImTextureID id, SDL_Texture *texture);
 
+    // The non-modifier key returned will be marked as no longer pressed.
+    uint32_t ConsumePressedKeycode();
+
   protected:
   private:
+    enum ConsumePressedKeycodeState {
+        ConsumePressedKeycodeState_Off,
+        ConsumePressedKeycodeState_Waiting,
+        ConsumePressedKeycodeState_Consumed,
+    };
+
     SDL_Renderer *m_renderer = nullptr;
     ImGuiContext *m_context = nullptr;
     std::vector<SDL_Texture *> m_textures;
@@ -135,6 +144,8 @@ class ImGuiStuff {
 
     std::vector<StoredDrawList> m_draw_lists;
 #endif
+    ConsumePressedKeycodeState m_consume_pressed_keycode_state = ConsumePressedKeycodeState_Off;
+    uint32_t m_consumed_keycode = 0;
 
     unsigned m_font_size_pixels = 0;
     bool m_font_dirty = true;
@@ -445,12 +456,6 @@ void ImGuiPlotHistogram(const char *label,
                         float scale_max = DEFAULT_PLOT_SCALE_MAX,
                         ImVec2 graph_size = DEFAULT_PLOT_GRAPH_SIZE,
                         ImVec2 markers = DEFAULT_PLOT_MARKERS);
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-// The non-modifier key returned will be marked as no longer pressed.
-uint32_t ImGuiConsumePressedKeycode();
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
