@@ -514,7 +514,7 @@ TestBBCMicro::TestBBCMicro(TestBBCMicroType type)
         break;
     }
 
-    this->SetXFJIO(0xfc10, &ReadTestCommand, &WriteTestCommand, this);
+    this->SetXFJIO(0xfc10, &ReadTestCommand, this, &WriteTestCommand, this);
 
     m_video_data_units.resize(NUM_VIDEO_DATA_UNITS);
 }

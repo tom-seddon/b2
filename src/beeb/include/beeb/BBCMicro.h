@@ -433,13 +433,13 @@ class BBCMicro : private WD1770Handler,
     void AddHostWriteFn(WriteFn fn, void *context);
 
     // Set SHEILA IO functions.
-    void SetSIO(uint16_t addr, ReadMMIOFn read_fn, WriteMMIOFn write_fn, void *context);
+    void SetSIO(uint16_t addr, ReadMMIOFn read_fn, void *read_context, WriteMMIOFn write_fn, void *write_context);
 
     // Set external FRED/JIM IO functions.
-    void SetXFJIO(uint16_t addr, ReadMMIOFn read_fn, WriteMMIOFn write_fn, void *context);
+    void SetXFJIO(uint16_t addr, ReadMMIOFn read_fn, void *read_context, WriteMMIOFn write_fn, void *write_context);
 
     // Set internal FRED/JIM IO functions (Master 128 only).
-    void SetIFJIO(uint16_t addr, ReadMMIOFn read_fn, WriteMMIOFn write_fn, void *context);
+    void SetIFJIO(uint16_t addr, ReadMMIOFn read_fn, void *read_context, WriteMMIOFn write_fn, void *write_context);
 
     // The pointer is moved into the result.
     std::shared_ptr<DiscImage> TakeDiscImage(int drive);
@@ -958,7 +958,9 @@ class BBCMicro : private WD1770Handler,
     float UpdateDiscDriveSound(DiscDrive *dd);
 #endif
     void UpdateCPUDataBusFn();
-    void SetMMIOFnsInternal(uint16_t addr, ReadMMIOFn read_fn, WriteMMIOFn write_fn, void *context, bool set_xfj, bool set_ifj);
+    void SetMMIOFnsInternal(uint16_t addr, ReadMMIOFn read_fn, void *read_context, WriteMMIOFn write_fn, void *write_context, bool set_xfj, bool set_ifj);
+
+    static void WriteHostTube0Wrapper(void *context, M6502Word a, uint8_t value);
 
     // ADC handler stuff.
     uint16_t ReadAnalogueChannel(uint8_t channel) const override;

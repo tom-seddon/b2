@@ -424,11 +424,11 @@ class DiscInterfaceChallenger : public DiscInterface {
     }
 
     void InstallExtraHardware(BBCMicro *m) override {
-        m->SetXFJIO(0xfcfe, &ReadPagingMSB, WritePagingMSB, this);
-        m->SetXFJIO(0xfcff, &ReadPagingLSB, WritePagingLSB, this);
+        m->SetXFJIO(0xfcfe, &ReadPagingMSB, this, WritePagingMSB, this);
+        m->SetXFJIO(0xfcff, &ReadPagingLSB, this, WritePagingLSB, this);
 
         for (uint16_t addr = 0xfd00; addr < 0xfe00; ++addr) {
-            m->SetXFJIO(addr, &ReadRAM, &WriteRAM, this);
+            m->SetXFJIO(addr, &ReadRAM, this, &WriteRAM, this);
         }
     }
 

@@ -484,8 +484,7 @@ void BBCMicro::UpdatePaging() {
 
     if (parasite_accessible != m_state.parasite_accessible) {
         if (parasite_accessible) {
-            static constexpr ReadMMIOFn host_rmmio_fns[8] = {
-                &ReadHostTube0,
+            static constexpr ReadMMIOFn host_rmmio_fns[7] = {
                 &ReadHostTube1,
                 &ReadHostTube2,
                 &ReadHostTube3,
@@ -495,8 +494,7 @@ void BBCMicro::UpdatePaging() {
                 &ReadHostTube7,
             };
 
-            static constexpr WriteMMIOFn host_wmmio_fns[8] = {
-                &WriteHostTube0,
+            static constexpr WriteMMIOFn host_wmmio_fns[7] = {
                 &WriteHostTube1,
                 &WriteTubeDummy,
                 &WriteHostTube3,
@@ -506,17 +504,33 @@ void BBCMicro::UpdatePaging() {
                 &WriteHostTube7,
             };
 
-            for (uint16_t a = 0xfee0; a < 0xff00; ++a) {
-                this->SetSIO(a, host_rmmio_fns[a & 7], host_wmmio_fns[a & 7], &m_state.parasite_tube);
+            for (uint16_t a = 0xfee0; a < 0xff00; a += 8) {
+                this->SetSIO(a + 0, &ReadHostTube0, &m_state.parasite_tube, &WriteHostTube0Wrapper, this);
+                for (uint16_t i = 0; i < 7; ++i) {
+                    this->SetSIO(a + 1 + i, host_rmmio_fns[i], &m_state.parasite_tube, host_wmmio_fns[i], &m_state.parasite_tube);
+                }
             }
         } else {
             for (uint16_t a = 0xfee0; a < 0xff00; ++a) {
-                this->SetSIO(a, nullptr, nullptr, nullptr);
+                this->SetSIO(a, nullptr, nullptr, nullptr, nullptr);
             }
         }
 
         m_state.parasite_accessible = parasite_accessible;
     }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BBCMicro::WriteHostTube0Wrapper(void *m_, M6502Word a, uint8_t value) {
+    auto m = (BBCMicro *)m_;
+
+    uint8_t old_status = m->m_state.parasite_tube.status.value;
+
+    WriteHostTube0(&m->m_state.parasite_tube, a, value);
+
+    m->UpdateCPUDataBusFn();
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -1260,25 +1274,25 @@ void BBCMicro::AddHostWriteFn(WriteFn fn, void *context) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void BBCMicro::SetSIO(uint16_t addr, ReadMMIOFn read_fn, WriteMMIOFn write_fn, void *context) {
+void BBCMicro::SetSIO(uint16_t addr, ReadMMIOFn read_fn, void *read_context, WriteMMIOFn write_fn, void *write_context) {
     ASSERT(addr >= 0xfe00 && addr <= 0xfeff);
-    this->SetMMIOFnsInternal(addr, read_fn, write_fn, context, true, true);
+    this->SetMMIOFnsInternal(addr, read_fn, read_context, write_fn, write_context, true, true);
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void BBCMicro::SetXFJIO(uint16_t addr, ReadMMIOFn read_fn, WriteMMIOFn write_fn, void *context) {
+void BBCMicro::SetXFJIO(uint16_t addr, ReadMMIOFn read_fn, void *read_context, WriteMMIOFn write_fn, void *write_context) {
     ASSERT(addr >= 0xfc00 && addr <= 0xfdff);
-    this->SetMMIOFnsInternal(addr, read_fn, write_fn, context, true, false);
+    this->SetMMIOFnsInternal(addr, read_fn, read_context, write_fn, write_context, true, false);
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void BBCMicro::SetIFJIO(uint16_t addr, ReadMMIOFn read_fn, WriteMMIOFn write_fn, void *context) {
+void BBCMicro::SetIFJIO(uint16_t addr, ReadMMIOFn read_fn, void *read_context, WriteMMIOFn write_fn, void *write_context) {
     ASSERT(addr >= 0xfc00 && addr <= 0xfdff);
-    this->SetMMIOFnsInternal(addr, read_fn, write_fn, context, false, true);
+    this->SetMMIOFnsInternal(addr, read_fn, read_context, write_fn, write_context, false, true);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -2230,44 +2244,44 @@ void BBCMicro::InitStuff() {
 
     // initially no I/O
     for (uint16_t i = 0xfc00; i < 0xff00; ++i) {
-        this->SetMMIOFnsInternal(i, nullptr, nullptr, nullptr, true, true);
+        this->SetMMIOFnsInternal(i, nullptr, nullptr, nullptr, nullptr, true, true);
     }
 
     if (m_state.init_flags & BBCMicroInitFlag_ExtMem) {
         m_state.ext_mem.AllocateBuffer();
 
-        this->SetXFJIO(0xfc00, nullptr, &ExtMem::WriteAddressL, &m_state.ext_mem);
-        this->SetXFJIO(0xfc01, nullptr, &ExtMem::WriteAddressH, &m_state.ext_mem);
-        this->SetXFJIO(0xfc02, &ExtMem::ReadAddressL, nullptr, &m_state.ext_mem);
-        this->SetXFJIO(0xfc03, &ExtMem::ReadAddressH, nullptr, &m_state.ext_mem);
+        this->SetXFJIO(0xfc00, nullptr, nullptr, &ExtMem::WriteAddressL, &m_state.ext_mem);
+        this->SetXFJIO(0xfc01, nullptr, nullptr, &ExtMem::WriteAddressH, &m_state.ext_mem);
+        this->SetXFJIO(0xfc02, &ExtMem::ReadAddressL, &m_state.ext_mem, nullptr, nullptr);
+        this->SetXFJIO(0xfc03, &ExtMem::ReadAddressH, &m_state.ext_mem, nullptr, nullptr);
 
         for (uint16_t i = 0xfd00; i <= 0xfdff; ++i) {
-            this->SetXFJIO(i, &ExtMem::ReadData, &ExtMem::WriteData, &m_state.ext_mem);
+            this->SetXFJIO(i, &ExtMem::ReadData, &m_state.ext_mem, &ExtMem::WriteData, &m_state.ext_mem);
         }
     }
 
     // I/O: VIAs
     for (uint16_t i = 0; i < 32; ++i) {
-        this->SetSIO(0xfe40 + i, g_R6522_read_fns[i & 15], g_R6522_write_fns[i & 15], &m_state.system_via);
-        this->SetSIO(0xfe60 + i, g_R6522_read_fns[i & 15], g_R6522_write_fns[i & 15], &m_state.user_via);
+        this->SetSIO(0xfe40 + i, g_R6522_read_fns[i & 15], &m_state.system_via, g_R6522_write_fns[i & 15], &m_state.system_via);
+        this->SetSIO(0xfe60 + i, g_R6522_read_fns[i & 15], &m_state.user_via, g_R6522_write_fns[i & 15], &m_state.user_via);
     }
 
     // I/O: 6845
     for (int i = 0; i < 8; i += 2) {
-        this->SetSIO((uint16_t)(0xfe00 + i + 0), &CRTC::ReadAddress, &CRTC::WriteAddress, &m_state.crtc);
-        this->SetSIO((uint16_t)(0xfe00 + i + 1), &CRTC::ReadData, &CRTC::WriteData, &m_state.crtc);
+        this->SetSIO((uint16_t)(0xfe00 + i + 0), &CRTC::ReadAddress, &m_state.crtc, &CRTC::WriteAddress, &m_state.crtc);
+        this->SetSIO((uint16_t)(0xfe00 + i + 1), &CRTC::ReadData, &m_state.crtc, &CRTC::WriteData, &m_state.crtc);
     }
 
     // I/O: Video ULA
     m_state.video_ula.nula = !!(m_state.init_flags & BBCMicroInitFlag_VideoNuLA);
     for (int i = 0; i < 2; ++i) {
-        this->SetSIO((uint16_t)(0xfe20 + i * 2), nullptr, &VideoULA::WriteControlRegister, &m_state.video_ula);
-        this->SetSIO((uint16_t)(0xfe21 + i * 2), nullptr, &VideoULA::WritePalette, &m_state.video_ula);
+        this->SetSIO((uint16_t)(0xfe20 + i * 2), nullptr, nullptr, &VideoULA::WriteControlRegister, &m_state.video_ula);
+        this->SetSIO((uint16_t)(0xfe21 + i * 2), nullptr, nullptr, &VideoULA::WritePalette, &m_state.video_ula);
     }
 
     if (m_state.init_flags & BBCMicroInitFlag_VideoNuLA) {
-        this->SetSIO(0xfe22, nullptr, &VideoULA::WriteNuLAControlRegister, &m_state.video_ula);
-        this->SetSIO(0xfe23, nullptr, &VideoULA::WriteNuLAPalette, &m_state.video_ula);
+        this->SetSIO(0xfe22, nullptr, nullptr, &VideoULA::WriteNuLAControlRegister, &m_state.video_ula);
+        this->SetSIO(0xfe23, nullptr, nullptr, &VideoULA::WriteNuLAPalette, &m_state.video_ula);
     }
 
     // I/O: disc interface
@@ -2289,10 +2303,10 @@ void BBCMicro::InitStuff() {
         for (int i = 0; i < 4; ++i) {
             uint16_t addr = (uint16_t)(m_disc_interface->fdc_addr + i);
 
-            this->SetMMIOFnsInternal(addr, g_WD1770_read_fns[i], g_WD1770_write_fns[i], &m_state.fdc, true, false);
+            this->SetMMIOFnsInternal(addr, g_WD1770_read_fns[i], &m_state.fdc, g_WD1770_write_fns[i], &m_state.fdc, true, false);
         }
 
-        this->SetMMIOFnsInternal(m_disc_interface->control_addr, &Read1770ControlRegister, &Write1770ControlRegister, this, true, false);
+        this->SetMMIOFnsInternal(m_disc_interface->control_addr, &Read1770ControlRegister, this, &Write1770ControlRegister, this, true, false);
 
         m_disc_interface->InstallExtraHardware(this);
     } else {
@@ -2323,12 +2337,12 @@ void BBCMicro::InitStuff() {
 
     if (m_acccon_mask == 0) {
         for (uint16_t i = 0; i < 16; ++i) {
-            this->SetSIO((uint16_t)(0xfe30 + i), &ReadROMSEL, &WriteROMSEL, this);
+            this->SetSIO((uint16_t)(0xfe30 + i), &ReadROMSEL, this, &WriteROMSEL, this);
         }
     } else {
         for (uint16_t i = 0; i < 4; ++i) {
-            this->SetSIO((uint16_t)(0xfe30 + i), &ReadROMSEL, &WriteROMSEL, this);
-            this->SetSIO((uint16_t)(0xfe34 + i), &ReadACCCON, &WriteACCCON, this);
+            this->SetSIO((uint16_t)(0xfe30 + i), &ReadROMSEL, this, &WriteROMSEL, this);
+            this->SetSIO((uint16_t)(0xfe34 + i), &ReadACCCON, this, &WriteACCCON, this);
         }
     }
 
@@ -2336,16 +2350,16 @@ void BBCMicro::InitStuff() {
     if (m_state.type->adc_addr != 0) {
         ASSERT(m_state.type->adc_count % 4 == 0);
         for (unsigned i = 0; i < m_state.type->adc_count; i += 4) {
-            this->SetSIO((uint16_t)(m_state.type->adc_addr + i + 0u), &ADC::Read0, &ADC::Write0, &m_state.adc);
-            this->SetSIO((uint16_t)(m_state.type->adc_addr + i + 1u), &ADC::Read1, &ADC::Write1, &m_state.adc);
-            this->SetSIO((uint16_t)(m_state.type->adc_addr + i + 2u), &ADC::Read2, &ADC::Write2, &m_state.adc);
-            this->SetSIO((uint16_t)(m_state.type->adc_addr + i + 3u), &ADC::Read3, &ADC::Write3, &m_state.adc);
+            this->SetSIO((uint16_t)(m_state.type->adc_addr + i + 0u), &ADC::Read0, &m_state.adc, &ADC::Write0, &m_state.adc);
+            this->SetSIO((uint16_t)(m_state.type->adc_addr + i + 1u), &ADC::Read1, &m_state.adc, &ADC::Write1, &m_state.adc);
+            this->SetSIO((uint16_t)(m_state.type->adc_addr + i + 2u), &ADC::Read2, &m_state.adc, &ADC::Write2, &m_state.adc);
+            this->SetSIO((uint16_t)(m_state.type->adc_addr + i + 3u), &ADC::Read3, &m_state.adc, &ADC::Write3, &m_state.adc);
         }
     }
 
     if (m_state.init_flags & BBCMicroInitFlag_ADJI) {
         uint8_t adji_addr = m_state.init_flags >> BBCMicroInitFlag_ADJIDIPSwitchesShift & 3;
-        this->SetIFJIO(ADJI_ADDRESSES[adji_addr], &ReadADJI, nullptr, this);
+        this->SetIFJIO(ADJI_ADDRESSES[adji_addr], &ReadADJI, this, nullptr, nullptr);
     }
 
     // Set up TST=1 tables.
@@ -2819,7 +2833,7 @@ void BBCMicro::UpdateCPUDataBusFn() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void BBCMicro::SetMMIOFnsInternal(uint16_t addr, ReadMMIOFn read_fn, WriteMMIOFn write_fn, void *context, bool set_xfj, bool set_ifj) {
+void BBCMicro::SetMMIOFnsInternal(uint16_t addr, ReadMMIOFn read_fn, void *read_context, WriteMMIOFn write_fn, void *write_context, bool set_xfj, bool set_ifj) {
     ASSERT(set_xfj || set_ifj);
     ASSERT(addr >= 0xfc00 && addr <= 0xfeff);
 
@@ -2827,14 +2841,14 @@ void BBCMicro::SetMMIOFnsInternal(uint16_t addr, ReadMMIOFn read_fn, WriteMMIOFn
 
     ReadMMIO read_mmio;
     if (read_fn) {
-        read_mmio = {read_fn, context};
+        read_mmio = {read_fn, read_context};
     } else {
         read_mmio = {&ReadUnmappedMMIO, this};
     }
 
     WriteMMIO write_mmio;
     if (write_fn) {
-        write_mmio = {write_fn, context};
+        write_mmio = {write_fn, write_context};
     } else {
         write_mmio = {&WriteUnmappedMMIO, this};
     }
