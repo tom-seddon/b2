@@ -795,7 +795,11 @@ uint32_t BeebWindow::GetSDLWindowID() const {
 
 void BeebWindow::HandleSDLMouseWheelEvent(const SDL_MouseWheelEvent &event) {
     if (m_imgui_stuff) {
+#if SDL_COMPILEDVERSION < SDL_VERSIONNUM(2, 0, 18)
+        m_imgui_stuff->AddMouseWheelEvent((float)event.x, (float)event.y);
+#else
         m_imgui_stuff->AddMouseWheelEvent(event.preciseX, event.preciseY);
+#endif
     }
 }
 
