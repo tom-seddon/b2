@@ -184,15 +184,14 @@ For example, ~5.8003~, to refer to address 8003 in ROM bank 5.
 
 The available prefixes are as follows:
 
-* ~0~, ~1~, ~2~, ~3~, ~4~, ~5~, ~6~, ~7~, ~8~, ~9~, ~a~, ~b~, ~c~, ~d~, ~e~, ~f~,  - the given ROM bank
-* ~n~ - ANDY (Master), extra 12K RAM (B+)
-* ~m~, ~s~ - main RAM or shadow RAM
-* ~h~ - HAZEL (Master)
-* ~i~ - I/O area (only useful on Master)
-* ~o~ - OS
+- ~0~, ~1~, ~2~, ~3~, ~4~, ~5~, ~6~, ~7~, ~8~, ~9~, ~a~, ~b~, ~c~, ~d~, ~e~, ~f~,  - the given ROM bank
+- ~n~ - ANDY (Master), extra 12K RAM (B+)
+- ~m~, ~s~ - main RAM or shadow RAM
+- ~h~ - HAZEL (Master)
+- ~i~ - I/O area (only useful on Master)
+- ~o~ - OS
 
 prefix precedence? overlapping areas??
-
 
 ** B
 
@@ -218,7 +217,7 @@ prefix precedence? overlapping areas??
 
 Notes:
 
-* ~n~ is for aNdy, which is what the RAM at 8000 is called on the Master
+- ~n~ is for aNdy, which is what the RAM at 8000 is called on the Master
 
 ** Master
 
