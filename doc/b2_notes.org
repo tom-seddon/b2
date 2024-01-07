@@ -127,7 +127,11 @@ tracks the right source of the fork. Use the URL of the forked repo
 (as shown on its GitHub repo page) as the ~upstream~ remote.
 
 Because of the way submodules work, it's basically impossible to
-remove one once it's been added, so not all of them are actually used.
+remove one once it's been added, in case some historical revision
+still uses it. So not all of them are actually used by the head
+revision, but... hopefully... if you were to check out every single
+revision of the repo, you'd find that every one was used at at least
+one point.
 
 Other submodule-specific notes:
 
