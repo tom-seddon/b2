@@ -33,3 +33,4 @@ V.TOTIME diff=bbcbasic
 T.VIA#2eTO diff=bbcbasic
 T.VPOLL diff=bbcbasic
 T.VTIMEOU diff=bbcbasic
+T.RTWT1 diff=bbcbasic
