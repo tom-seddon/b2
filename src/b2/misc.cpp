@@ -735,7 +735,7 @@ std::string GetUTF8FromBBCASCII(const std::vector<uint8_t> &data) {
 #endif
         } else if (data[i] < 32) {
             // Skip VDU codes.
-            i += 1 + VDU_CODE_LENGTHS[data[i]];
+            i += 1u + VDU_CODE_LENGTHS[data[i]];
         } else if (data[i] == 95) {
             // Translate pound sign into UTF8.
             utf8 += POUND_SIGN_UTF8;

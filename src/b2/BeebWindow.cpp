@@ -1446,8 +1446,8 @@ SettingsUI *BeebWindow::DoSettingsUI() {
             SettingsUI *popup = m_popups[type].get();
 
             //ImGui::SetNextDock(ImGuiDockSlot_None);
-            ImVec2 default_pos = ImVec2(10.f, 30.f);
-            ImVec2 default_size = ImGui::GetIO().DisplaySize * .4f;
+            //ImVec2 default_pos = ImVec2(10.f, 30.f);
+            //ImVec2 default_size = ImGui::GetIO().DisplaySize * .4f;
 
             bool opened = true;
             ImGuiWindowFlags extra_flags = 0;

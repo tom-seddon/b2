@@ -39,14 +39,16 @@ struct M6502Config;
 // pages are assigned like this:
 //
 // <pre>
-// 0-7     main                     \
-// 8       ANDY (M128)/ANDY (B+)    | "RAM"
-// 9,10    HAZEL (M128)/ANDY (B+)   |
-// 11-15   shadow RAM (M128/B+)     /
-// 16-19   ROM 0                    \
-// 20-23   ROM 1                    | "ROM"
-// ...                              |
-// 76-79   ROM 15                   /
+// 0-7     main                     }
+// 8       ANDY (M128)/ANDY (B+)    } "RAM"
+// 9,10    HAZEL (M128)/ANDY (B+)   }
+// 11-15   shadow RAM (M128/B+)     }
+//
+// 16-19   ROM 0                    }
+// 20-23   ROM 1                    } "ROM"
+// ...                              }
+// 76-79   ROM 15                   }
+//
 // 80-83   MOS
 // 84-99   parasite
 // 100     parasite ROM

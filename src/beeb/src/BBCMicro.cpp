@@ -388,28 +388,28 @@ void BBCMicro::SetTrace(std::shared_ptr<Trace> trace, uint32_t trace_flags) {
 
 static_assert(PagingFlags_ROMIO == 1);
 static_assert(PagingFlags_IFJ == 2);
-std::vector<BBCMicro::ReadMMIO>(BBCMicro::*BBCMicro::ms_read_mmios_mptrs[]) = {
+std::vector<BBCMicro::ReadMMIO> BBCMicro::*BBCMicro::ms_read_mmios_mptrs[] = {
     &BBCMicro::m_read_mmios_hw,           //0
     &BBCMicro::m_read_mmios_rom,          //ROMIO
     &BBCMicro::m_read_mmios_hw_cartridge, //IFJ
     &BBCMicro::m_read_mmios_rom,          //IFJ|ROMIO
 };
 
-std::vector<uint8_t>(BBCMicro::*BBCMicro::ms_read_mmios_stretch_mptrs[]) = {
+std::vector<uint8_t> BBCMicro::*BBCMicro::ms_read_mmios_stretch_mptrs[] = {
     &BBCMicro::m_mmios_stretch_hw,           //0
     &BBCMicro::m_mmios_stretch_rom,          //ROMIO
     &BBCMicro::m_mmios_stretch_hw_cartridge, //IFJ
     &BBCMicro::m_mmios_stretch_rom,          //IFJ|ROMIO
 };
 
-std::vector<BBCMicro::WriteMMIO>(BBCMicro::*BBCMicro::ms_write_mmios_mptrs[]) = {
+std::vector<BBCMicro::WriteMMIO> BBCMicro::*BBCMicro::ms_write_mmios_mptrs[] = {
     &BBCMicro::m_write_mmios_hw,           //0
     &BBCMicro::m_write_mmios_hw,           //ROMIO
     &BBCMicro::m_write_mmios_hw_cartridge, //IFJ
     &BBCMicro::m_write_mmios_hw_cartridge, //IFJ|ROMIO
 };
 
-std::vector<uint8_t>(BBCMicro::*BBCMicro::ms_write_mmios_stretch_mptrs[]) = {
+std::vector<uint8_t> BBCMicro::*BBCMicro::ms_write_mmios_stretch_mptrs[] = {
     &BBCMicro::m_mmios_stretch_hw,           //0
     &BBCMicro::m_mmios_stretch_hw,           //ROMIO
     &BBCMicro::m_mmios_stretch_hw_cartridge, //IFJ
@@ -541,8 +541,8 @@ void BBCMicro::InitReadOnlyBigPage(ReadOnlyBigPage *bp,
         }
     } else if (big_page_index >= ROM0_BIG_PAGE_INDEX &&
                big_page_index < ROM0_BIG_PAGE_INDEX + 16 * NUM_ROM_BIG_PAGES) {
-        size_t bank = (big_page_index - ROM0_BIG_PAGE_INDEX) / NUM_ROM_BIG_PAGES;
-        size_t offset = (big_page_index - ROM0_BIG_PAGE_INDEX) % NUM_ROM_BIG_PAGES * BIG_PAGE_SIZE_BYTES;
+        size_t bank = ((size_t)big_page_index - ROM0_BIG_PAGE_INDEX) / NUM_ROM_BIG_PAGES;
+        size_t offset = ((size_t)big_page_index - ROM0_BIG_PAGE_INDEX) % NUM_ROM_BIG_PAGES * BIG_PAGE_SIZE_BYTES;
 
         if (!!state->sideways_rom_buffers[bank]) {
             bp->r = &state->sideways_rom_buffers[bank]->at(offset);

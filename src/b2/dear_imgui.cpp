@@ -650,7 +650,7 @@ bool ImGuiStuff::AddKeyEvent(uint32_t scancode, bool state) {
                 SDL_Keycode keycode = SDL_GetKeyFromScancode((SDL_Scancode)scancode);
                 if (keycode != 0) {
                     uint32_t modifiers = GetPCKeyModifiersFromSDLKeymod((uint16_t)SDL_GetModState());
-                    m_consumed_keycode = keycode | modifiers;
+                    m_consumed_keycode = (uint32_t)keycode | modifiers;
                     m_consume_pressed_keycode_state = ConsumePressedKeycodeState_Consumed;
                     return false;
                 }

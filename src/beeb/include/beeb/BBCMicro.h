@@ -809,10 +809,10 @@ class BBCMicro : private WD1770Handler,
     const WriteMMIO *m_write_mmios = nullptr;
     const uint8_t *m_write_mmios_stretch = nullptr;
 
-    static std::vector<ReadMMIO>(BBCMicro::*ms_read_mmios_mptrs[]);
-    static std::vector<uint8_t>(BBCMicro::*ms_read_mmios_stretch_mptrs[]);
-    static std::vector<WriteMMIO>(BBCMicro::*ms_write_mmios_mptrs[]);
-    static std::vector<uint8_t>(BBCMicro::*ms_write_mmios_stretch_mptrs[]);
+    static std::vector<ReadMMIO> BBCMicro::*ms_read_mmios_mptrs[];
+    static std::vector<uint8_t> BBCMicro::*ms_read_mmios_stretch_mptrs[];
+    static std::vector<WriteMMIO> BBCMicro::*ms_write_mmios_mptrs[];
+    static std::vector<uint8_t> BBCMicro::*ms_write_mmios_stretch_mptrs[];
 
     // Tables for pages FC/FD/FE that access the hardware - B, B+, M128 when
     // ACCCON TST=0.

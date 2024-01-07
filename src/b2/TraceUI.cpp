@@ -383,11 +383,11 @@ void TraceUI::DoImGui() {
         ImGui::Checkbox("Unix line endings", &g_default_settings.unix_line_endings);
 #endif
 
-        ImGuiCheckboxFlags("Include cycle count", &g_default_settings.output_flags, TraceOutputFlags_Cycles);
+        ImGuiCheckboxFlags("Include cycle count", &g_default_settings.output_flags, (uint32_t)TraceOutputFlags_Cycles);
         if (g_default_settings.output_flags & TraceOutputFlags_Cycles) {
-            ImGuiCheckboxFlags("Absolute cycle count", &g_default_settings.output_flags, TraceOutputFlags_AbsoluteCycles);
+            ImGuiCheckboxFlags("Absolute cycle count", &g_default_settings.output_flags, (uint32_t)TraceOutputFlags_AbsoluteCycles);
         }
-        ImGuiCheckboxFlags("Include register names", &g_default_settings.output_flags, TraceOutputFlags_RegisterNames);
+        ImGuiCheckboxFlags("Include register names", &g_default_settings.output_flags, (uint32_t)TraceOutputFlags_RegisterNames);
 
         ImGui::Checkbox("Auto-save on stop", &g_default_settings.auto_save);
         if (g_default_settings.auto_save) {
