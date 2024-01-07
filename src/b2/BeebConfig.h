@@ -87,7 +87,7 @@ class BeebLoadedConfig {
     BeebConfig config;
 
     std::shared_ptr<const std::array<uint8_t, 16384>> os, roms[16];
-    std::shared_ptr<const std::array<uint8_t, 4096>> parasite_os;
+    std::shared_ptr<const std::array<uint8_t, 2048>> parasite_os;
 
     static bool Load(BeebLoadedConfig *dest, const BeebConfig &src, Messages *msg);
 

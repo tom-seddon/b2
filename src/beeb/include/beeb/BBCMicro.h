@@ -405,7 +405,7 @@ class BBCMicro : private WD1770Handler,
     void SetSidewaysRAM(uint8_t bank, std::shared_ptr<const std::array<uint8_t, 16384>> data);
 
     // The shared_ptr is copied.
-    void SetParasiteOS(std::shared_ptr<const std::array<uint8_t, 4096>> data);
+    void SetParasiteOS(std::shared_ptr<const std::array<uint8_t, 2048>> data);
 
 #if BBCMICRO_TRACE
     /* Allocates a new trace (replacing any existing one) and sets it
@@ -745,7 +745,7 @@ class BBCMicro : private WD1770Handler,
         M6502 parasite_cpu = {};
 
       private:
-        std::shared_ptr<const std::array<uint8_t, 4096>> parasite_rom_buffer;
+        std::shared_ptr<const std::array<uint8_t, 2048>> parasite_rom_buffer;
         std::shared_ptr<std::vector<uint8_t>> parasite_ram_buffer;
         bool parasite_boot_mode = true;
         Tube parasite_tube;

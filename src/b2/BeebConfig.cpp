@@ -371,7 +371,7 @@ bool BeebLoadedConfig::Load(
 
     if (dest->config.parasite_os.standard_rom ||
         !dest->config.parasite_os.file_name.empty()) {
-        dest->parasite_os = LoadROM<4096, true>(dest->config.parasite_os, msg);
+        dest->parasite_os = LoadROM<2048, true>(dest->config.parasite_os, msg);
         if (!dest->parasite_os) {
             return false;
         }

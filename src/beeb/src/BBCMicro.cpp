@@ -1166,7 +1166,7 @@ void BBCMicro::SetSidewaysRAM(uint8_t bank, std::shared_ptr<const std::array<uin
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void BBCMicro::SetParasiteOS(std::shared_ptr<const std::array<uint8_t, 4096>> data) {
+void BBCMicro::SetParasiteOS(std::shared_ptr<const std::array<uint8_t, 2048>> data) {
     m_state.parasite_rom_buffer = std::move(data);
 
     this->InitPaging();
