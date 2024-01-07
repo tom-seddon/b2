@@ -11,7 +11,7 @@
 
 int main() {
     RunStandardTest(BEEBLINK_VOLUME_PATH,
-                    0,
+                    BEEBLINK_DRIVE,
                     BBC_TEST_NAME,
                     BBC_TYPE,
                     CLEAR_TRACE_FLAGS,

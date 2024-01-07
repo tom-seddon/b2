@@ -945,10 +945,10 @@ static void SaveTextOutput(const std::string &output, const std::string &test_na
 //////////////////////////////////////////////////////////////////////////
 
 std::string GetTestFileName(const std::string &beeblink_volume_path,
-                            int drive,
+                            const std::string &beeblink_drive,
                             const std::string &name) {
     return PathJoined(beeblink_volume_path,
-                      strprintf("%d", drive),
+                      beeblink_drive,
                       GetBeebLinkName(name));
 }
 
@@ -963,7 +963,7 @@ std::string GetOutputFileName(const std::string &path) {
 //////////////////////////////////////////////////////////////////////////
 
 void RunStandardTest(const std::string &beeblink_volume_path,
-                     int beeblink_drive,
+                     const std::string &beeblink_drive,
                      const std::string &test_name,
                      TestBBCMicroType type,
                      uint32_t clear_trace_flags,

@@ -93,7 +93,7 @@ std::string PRINTF_LIKE(1, 2) strprintf(const char *fmt, ...);
 
 //
 std::string GetTestFileName(const std::string &beeblink_volume_path,
-                            int drive,
+                            const std::string &drive,
                             const std::string &name);
 
 std::string GetOutputFileName(const std::string &path);
@@ -109,7 +109,7 @@ std::string GetOutputFileName(const std::string &path);
 //
 // TODO - maybe move this into test_standard.cpp...?
 void RunStandardTest(const std::string &beeblink_volume_path,
-                     int beeblink_drive,
+                     const std::string &beeblink_drive,
                      const std::string &test_name,
                      TestBBCMicroType type,
                      uint32_t clear_trace_flags,

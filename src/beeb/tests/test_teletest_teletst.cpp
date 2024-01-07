@@ -8,7 +8,7 @@ int main() {
 
     bbc.RunUntilOSWORD0(10.0);
 
-    bbc.LoadFile(GetTestFileName(BEEBLINK_VOLUME_PATH, 0, "$.TELETST"), 0xe00);
+    bbc.LoadFile(GetTestFileName(BEEBLINK_VOLUME_PATH, "0", "$.TELETST"), 0xe00);
 
     bbc.Paste("OLD\rRUN\r");
 

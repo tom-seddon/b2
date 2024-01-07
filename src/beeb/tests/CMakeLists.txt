@@ -63,56 +63,57 @@ test_target_boilerplate(test_new_tests)
 ##########################################################################
 ##########################################################################
 
-function(add_standard_test bbc_test_name bbc_type)
+function(add_standard_test bbc_drive bbc_test_name bbc_type)
   string(MAKE_C_IDENTIFIER ${bbc_test_name} bbc_test_name_c_identifier)
   set(target test_${bbc_test_name_c_identifier}_${bbc_type})
   add_executable(${target} test_standard.cpp)
   target_compile_definitions(${target} PRIVATE
     -DBEEBLINK_VOLUME_PATH="${b2_SOURCE_DIR}/etc/b2_tests"
+    -DBEEBLINK_DRIVE="${bbc_drive}"
     -DBBC_TEST_NAME="${bbc_test_name}"
     -DBBC_TYPE=TestBBCMicroType_${bbc_type})
   test_target_boilerplate(${target})
   set_tests_properties(${target} PROPERTIES LABELS bbc)
 endfunction()
 
-add_standard_test(VTIMERS BTape)
-add_standard_test(VIA.AC1 BTape)
-add_standard_test(VIA.AC2 BTape)
-add_standard_test(VIA.AC3 BTape)
-add_standard_test(VIA.AC4 BTape)
-add_standard_test(VIA.AC5 BTape)
-add_standard_test(VIA.AC6 BTape)
-add_standard_test(VIA.AC7 BTape)
-add_standard_test(VIA.C1 BTape)
-add_standard_test(VIA.C2 BTape)
-add_standard_test(VIA.C3 BTape)
+add_standard_test(0 VTIMERS BTape)
+add_standard_test(0 VIA.AC1 BTape)
+add_standard_test(0 VIA.AC2 BTape)
+add_standard_test(0 VIA.AC3 BTape)
+add_standard_test(0 VIA.AC4 BTape)
+add_standard_test(0 VIA.AC5 BTape)
+add_standard_test(0 VIA.AC6 BTape)
+add_standard_test(0 VIA.AC7 BTape)
+add_standard_test(0 VIA.C1 BTape)
+add_standard_test(0 VIA.C2 BTape)
+add_standard_test(0 VIA.C3 BTape)
 
 # VIA.C4 isn't Master-specific, but it uses ASL $xxxx,X, which behaves
 # differently on CMOS CPUs, and the output in the repo comes from a
 # Master 128.
-add_standard_test(VIA.C4 Master128MOS320)
+add_standard_test(0 VIA.C4 Master128MOS320)
 
 # (VIA.C5 appears to be B only, and I've only got my Master set up at
 # time of writing)
 
-# add_standard_test(VIA.C5 BTape)
+# add_standard_test(0 VIA.C5 BTape)
 
-add_standard_test(VIA.I1 BTape)
-add_standard_test(VIA.I2 BTape)
-add_standard_test(VIA.PB2 BTape)
-add_standard_test(VIA.PB7 BTape)
-add_standard_test(VIA.T11 BTape)
-add_standard_test(VIA.T21 BTape)
-add_standard_test(VIA.T22 BTape)
-add_standard_test(VIA.PB6 BTape)
+add_standard_test(0 VIA.I1 BTape)
+add_standard_test(0 VIA.I2 BTape)
+add_standard_test(0 VIA.PB2 BTape)
+add_standard_test(0 VIA.PB7 BTape)
+add_standard_test(0 VIA.T11 BTape)
+add_standard_test(0 VIA.T21 BTape)
+add_standard_test(0 VIA.T22 BTape)
+add_standard_test(0 VIA.PB6 BTape)
 
-add_standard_test(TIMINGS BTape)
+add_standard_test(0 TIMINGS BTape)
 target_compile_definitions(test_TIMINGS_BTape PRIVATE
   -DSET_TRACE_FLAGS=BBCMicroTraceFlag_UserVIAExtra)
 
 # should be the same on a B, but I haven't tested it.
-add_standard_test(VTIMEOU Master128MOS320)
-add_standard_test(VPOLL Master128MOS320)
+add_standard_test(0 VTIMEOU Master128MOS320)
+add_standard_test(0 VPOLL Master128MOS320)
 
 ##########################################################################
 ##########################################################################

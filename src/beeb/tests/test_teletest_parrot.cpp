@@ -8,7 +8,7 @@ int main() {
 
     bbc.RunUntilOSWORD0(10.0);
 
-    bbc.LoadFile(GetTestFileName(BEEBLINK_VOLUME_PATH, 0, "$.RED"), 0x7c00);
+    bbc.LoadFile(GetTestFileName(BEEBLINK_VOLUME_PATH, "0", "$.RED"), 0x7c00);
 
     RunImageTest(PathJoined(BEEBLINK_VOLUME_PATH, "red.png"),
                  "red",
