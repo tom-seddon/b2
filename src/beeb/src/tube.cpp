@@ -34,6 +34,12 @@ const TraceEventType TUBE_READ_FIFO4_EVENT("Read Tube FIFO4", sizeof(TubeFIFOEve
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+static constexpr uint8_t H2P_FIFO3_DUMMY_VALUE = 0xe4;
+static constexpr uint8_t P2H_FIFO3_DUMMY_VALUE = 0x96;
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 #define CH(X) ((X) >= 32 && (X) <= 126 ? (X) : '?')
 
 //////////////////////////////////////////////////////////////////////////
@@ -115,10 +121,17 @@ static void UpdatePIRQ(Tube *t) {
 //////////////////////////////////////////////////////////////////////////
 
 static void UpdatePNMI(Tube *t) {
-    if (t->status.bits.m && t->status.bits.v) {
-        t->pirq.bits.pnmi = t->h2p3_n == 2 || t->p2h3_n == 0;
-    } else if (t->status.bits.m && !t->status.bits.v) {
-        t->pirq.bits.pnmi = t->h2p3_n > 0 || t->p2h3_n == 0;
+    bool pnmi;
+    if (t->status.bits.v) {
+        pnmi = t->h2p3_n == 2 || t->p2h3_n == 0;
+    } else {
+        pnmi = t->h2p3_n > 0 || t->p2h3_n == 0;
+    }
+
+    t->pstatus3.bits.available = pnmi;
+
+    if (t->status.bits.m) {
+        t->pirq.bits.pnmi = pnmi;
     } else {
         t->pirq.bits.pnmi = 0;
     }
@@ -147,14 +160,17 @@ void ResetTube(Tube *t) {
     t->hstatus2 = empty;
     t->pstatus2 = empty;
 
-    t->hstatus3.bits.not_full = 0;
+    t->hstatus3.bits.not_full = 1;
     t->hstatus3.bits.available = 1;
 
     t->pstatus3.bits.not_full = 0;
     t->pstatus3.bits.available = 0;
 
     t->p2h3_n = 1;
+    t->p2h3[1] = t->p2h3[0] = P2H_FIFO3_DUMMY_VALUE;
+
     t->h2p3_n = 0;
+    t->h2p3[1] = t->h2p3[0] = H2P_FIFO3_DUMMY_VALUE;
 
     t->hstatus4 = empty;
     t->pstatus4 = empty;
@@ -210,6 +226,7 @@ void WriteHostTube0(void *tube_, M6502Word, uint8_t value) {
 uint8_t ReadHostTube0(void *tube_, M6502Word) {
     auto t = (Tube *)tube_;
 
+    ASSERT(t->hstatus1.bits._ == 0);
     return t->hstatus1.value | (t->status.value & 0x3f);
 }
 
@@ -371,21 +388,20 @@ static uint8_t ReadFIFO3(Tube *t,
                          TubeFIFOStatus *this_status,
                          TubeFIFOStatus *other_status,
                          uint8_t *fifo,
-                         uint8_t *fifo_n) {
-    uint8_t value = fifo[0];
-    if (t->status.bits.v) {
+                         uint8_t *fifo_n,
+                         uint8_t dummy) {
+    uint8_t value;
+    if (*fifo_n > 0) {
+        value = fifo[0];
         fifo[0] = fifo[1];
-        if (*fifo_n > 0) {
-            --*fifo_n;
-        }
-
-        if (*fifo_n == 0) {
-            this_status->bits.not_full = 1;
-            other_status->bits.available = 0;
-        }
+        --*fifo_n;
     } else {
-        UpdateLatchForRead(this_status, other_status);
-        *fifo_n = 0;
+        value = dummy;
+    }
+
+    if (*fifo_n == 0) {
+        this_status->bits.available = 0;
+        other_status->bits.not_full = 1;
     }
 
     UpdatePNMI(t);
@@ -399,20 +415,19 @@ static void WriteFIFO3(Tube *t,
                        uint8_t *fifo,
                        uint8_t *fifo_n,
                        uint8_t value) {
+    if (*fifo_n < 2) {
+        fifo[*fifo_n] = value;
+        ++*fifo_n;
+    }
+
     if (t->status.bits.v) {
         // 2-byte mode
-        if (*fifo_n < 2) {
-            fifo[*fifo_n] = value;
-            ++*fifo_n;
-        }
         if (*fifo_n == 2) {
             this_status->bits.not_full = 0;
             other_status->bits.available = 1;
         }
     } else {
         // 1-byte mode
-        fifo[0] = value;
-        *fifo_n = 1;
         UpdateLatchForWrite(this_status, other_status);
     }
 
@@ -426,11 +441,11 @@ uint8_t ReadHostTube4(void *tube_, M6502Word) {
     return t->hstatus3.value;
 }
 
-// Read FIFO 3 parasite->Host
+// Read FIFO 3 parasite->host
 uint8_t ReadHostTube5(void *tube_, M6502Word) {
     auto t = (Tube *)tube_;
 
-    uint8_t value = ReadFIFO3(t, &t->hstatus3, &t->pstatus3, t->p2h3, &t->p2h3_n);
+    uint8_t value = ReadFIFO3(t, &t->hstatus3, &t->pstatus3, t->p2h3, &t->p2h3_n, P2H_FIFO3_DUMMY_VALUE);
     TRACE_FIFO(3, READ, Host, value);
     return value;
 }
@@ -447,14 +462,16 @@ void WriteHostTube5(void *tube_, M6502Word, uint8_t value) {
 uint8_t ReadParasiteTube4(void *tube_, M6502Word) {
     auto t = (Tube *)tube_;
 
-    return t->pstatus3.value;
+    TubeFIFOStatus status = t->pstatus3;
+
+    return status.value;
 }
 
 // Read FIFO 3 host->parasite
 uint8_t ReadParasiteTube5(void *tube_, M6502Word) {
     auto t = (Tube *)tube_;
 
-    uint8_t value = ReadFIFO3(t, &t->pstatus3, &t->hstatus3, t->h2p3, &t->h2p3_n);
+    uint8_t value = ReadFIFO3(t, &t->pstatus3, &t->hstatus3, t->h2p3, &t->h2p3_n, H2P_FIFO3_DUMMY_VALUE);
     TRACE_FIFO(3, READ, Parasite, value);
     return value;
 }
