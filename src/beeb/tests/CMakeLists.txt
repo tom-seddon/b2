@@ -195,3 +195,10 @@ tube_test_target_boilerplate(test_tube_xtu_prst)
 
 add_executable(test_tube_xtu_r124 test_tube_xtu_r124.cpp)
 tube_test_target_boilerplate(test_tube_xtu_r124)
+
+add_executable(test_tube_xtu_r3 test_tube_xtu_r3.cpp)
+tube_test_target_boilerplate(test_tube_xtu_r3)
+
+# set_tests_properties(test_TIMINGS_BTape test_kevin_edwards_Nightsh test_kevin_edwards_Jetman
+#   PROPERTIES
+#   WILL_FAIL TRUE)
