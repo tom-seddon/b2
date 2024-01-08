@@ -31,7 +31,6 @@ class TestBBCMicro : public BBCMicro {
     std::string spool_output_name;
 
     explicit TestBBCMicro(TestBBCMicroType type);
-    TestBBCMicro(TestBBCMicroType type, size_t num_video_data_units);
 
     void StartCaptureOSWRCH();
     void StopCaptureOSWRCH();
@@ -77,6 +76,7 @@ class TestBBCMicro : public BBCMicro {
     void LoadROMsB();
     void LoadROMsBPlus();
     void LoadROMsMaster(const std::string &version);
+    void LoadParasiteOS(const std::string &name);
 
     static uint8_t ReadTestCommand(void *context, M6502Word addr);
     static void WriteTestCommand(void *context, M6502Word addr, uint8_t value);
@@ -114,6 +114,14 @@ void RunStandardTest(const std::string &beeblink_volume_path,
                      TestBBCMicroType type,
                      uint32_t clear_trace_flags,
                      uint32_t set_trace_flags);
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void TestSpooledOutput(const TestBBCMicro &bbc,
+                       const std::string &beeblink_volume_path,
+                       const std::string &beeblink_drive,
+                       const std::string &test_name);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

@@ -5,5 +5,7 @@ EPN(BAcorn1770DFS)
 EPN(BPlusTape)
 EPN(Master128MOS320)
 EPN(Master128MOS350)
+EPN(Master128MOS320WithMasterTurbo)
+EPN(Master128MOS320WithExternal3MHz6502)
 EEND()
 #undef ENAME

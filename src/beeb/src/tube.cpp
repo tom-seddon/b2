@@ -217,7 +217,7 @@ uint8_t ReadHostTube0(void *tube_, M6502Word) {
 uint8_t ReadHostTube1(void *tube_, M6502Word) {
     auto t = (Tube *)tube_;
 
-    uint8_t value = 0;
+    uint8_t value = 1;
     if (t->p2h1_n > 0) {
         value = t->p2h1[t->p2h1_rindex];
 

@@ -399,6 +399,9 @@ static std::shared_ptr<const std::array<uint8_t, 16384>> LoadROM(const std::stri
 
 static const BBCMicroType *GetBBCMicroType(TestBBCMicroType type) {
     switch (type) {
+    default:
+        TEST_FAIL("%s: unknown TestBBCMicroType", __func__);
+        // fall through
     case TestBBCMicroType_BTape:
     case TestBBCMicroType_BAcorn1770DFS:
         return &BBC_MICRO_TYPE_B;
@@ -408,11 +411,10 @@ static const BBCMicroType *GetBBCMicroType(TestBBCMicroType type) {
 
     case TestBBCMicroType_Master128MOS320:
     case TestBBCMicroType_Master128MOS350:
+    case TestBBCMicroType_Master128MOS320WithMasterTurbo:
+    case TestBBCMicroType_Master128MOS320WithExternal3MHz6502:
         return &BBC_MICRO_TYPE_MASTER_128;
     }
-
-    ASSERT(false);
-    return nullptr;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -420,6 +422,9 @@ static const BBCMicroType *GetBBCMicroType(TestBBCMicroType type) {
 
 static const DiscInterfaceDef *GetDiscInterfaceDef(TestBBCMicroType type) {
     switch (type) {
+    default:
+        TEST_FAIL("%s: unknown TestBBCMicroType", __func__);
+        // fall through
     case TestBBCMicroType_BTape:
     case TestBBCMicroType_BPlusTape:
         return nullptr;
@@ -429,11 +434,33 @@ static const DiscInterfaceDef *GetDiscInterfaceDef(TestBBCMicroType type) {
 
     case TestBBCMicroType_Master128MOS320:
     case TestBBCMicroType_Master128MOS350:
+    case TestBBCMicroType_Master128MOS320WithMasterTurbo:
+    case TestBBCMicroType_Master128MOS320WithExternal3MHz6502:
         return &DISC_INTERFACE_MASTER128;
     }
+}
 
-    ASSERT(false);
-    return nullptr;
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+static BBCMicroParasiteType GetBBCMicroParasiteType(TestBBCMicroType type) {
+    switch (type) {
+    default:
+        TEST_FAIL("%s: unknown TestBBCMicroType", __func__);
+        // fall through
+    case TestBBCMicroType_BTape:
+    case TestBBCMicroType_BPlusTape:
+    case TestBBCMicroType_BAcorn1770DFS:
+    case TestBBCMicroType_Master128MOS320:
+    case TestBBCMicroType_Master128MOS350:
+        return BBCMicroParasiteType_None;
+
+    case TestBBCMicroType_Master128MOS320WithMasterTurbo:
+        return BBCMicroParasiteType_MasterTurbo;
+
+    case TestBBCMicroType_Master128MOS320WithExternal3MHz6502:
+        return BBCMicroParasiteType_External3MHz6502;
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -442,10 +469,17 @@ static const DiscInterfaceDef *GetDiscInterfaceDef(TestBBCMicroType type) {
 static std::vector<uint8_t> GetNVRAMContents(TestBBCMicroType type) {
     switch (type) {
     default:
+        TEST_FAIL("%s: unknown TestBBCMicroType", __func__);
+        // fall through
+    case TestBBCMicroType_BTape:
+    case TestBBCMicroType_BPlusTape:
+    case TestBBCMicroType_BAcorn1770DFS:
         return {};
 
     case TestBBCMicroType_Master128MOS320:
     case TestBBCMicroType_Master128MOS350:
+    case TestBBCMicroType_Master128MOS320WithMasterTurbo:
+    case TestBBCMicroType_Master128MOS320WithExternal3MHz6502:
         {
             std::vector<uint8_t> nvram;
 
@@ -461,7 +495,7 @@ static std::vector<uint8_t> GetNVRAMContents(TestBBCMicroType type) {
             nvram[12] = 55;   //12 - DELAY 55
             nvram[13] = 0x03; //13 - REPEAT 3
             nvram[14] = 0x00; //14
-            nvram[15] = 0x00; //15
+            nvram[15] = 0x00; //15 - NOTUBE
             nvram[16] = 0x02; //16 - LOUD
 
             return nvram;
@@ -476,7 +510,7 @@ static std::vector<uint8_t> GetNVRAMContents(TestBBCMicroType type) {
 TestBBCMicro::TestBBCMicro(TestBBCMicroType type)
     : BBCMicro(GetBBCMicroType(type),
                GetDiscInterfaceDef(type),
-               BBCMicroParasiteType_None,
+               GetBBCMicroParasiteType(type),
                GetNVRAMContents(type),
                nullptr,
                0,
@@ -492,6 +526,10 @@ TestBBCMicro::TestBBCMicro(TestBBCMicroType type)
 #endif
 
     switch (type) {
+    default:
+        TEST_FAIL("unknown TestBBCMicroType");
+        break;
+
     case TestBBCMicroType_BTape:
         this->LoadROMsB();
         break;
@@ -511,6 +549,16 @@ TestBBCMicro::TestBBCMicro(TestBBCMicroType type)
 
     case TestBBCMicroType_Master128MOS350:
         this->LoadROMsMaster("3.50");
+        break;
+
+    case TestBBCMicroType_Master128MOS320WithMasterTurbo:
+        this->LoadROMsMaster("3.20");
+        this->LoadParasiteOS("MasterTurboParasite.rom");
+        break;
+
+    case TestBBCMicroType_Master128MOS320WithExternal3MHz6502:
+        this->LoadROMsMaster("3.20");
+        this->LoadParasiteOS("TUBE110.rom");
         break;
     }
 
@@ -782,6 +830,25 @@ void TestBBCMicro::LoadROMsMaster(const std::string &version) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+void TestBBCMicro::LoadParasiteOS(const std::string &name) {
+    std::string path = PathJoined(ROMS_FOLDER, name);
+
+    std::vector<uint8_t> data;
+    TEST_TRUE(PathLoadBinaryFile(&data, path));
+
+    auto rom = std::make_shared<std::array<uint8_t, 2048>>();
+
+    TEST_LE_UU(data.size(), rom->size());
+    for (size_t i = 0; i < data.size(); ++i) {
+        (*rom)[i] = data[i];
+    }
+
+    this->SetParasiteOS(rom);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 uint8_t TestBBCMicro::ReadTestCommand(void *context, M6502Word addr) {
     (void)context, (void)addr;
 
@@ -844,7 +911,8 @@ bool TestBBCMicro::GotOSCLI() {
     M6502Word addr;
     addr.b.l = cpu->x;
     addr.b.h = cpu->y;
-    TEST_EQ_UU(addr.w & 0x8000, 0); //must be in main RAM...
+    // can't be in the sideways area
+    TEST_FALSE(addr.w >= 0x8000 && addr.w <= 0xc000);
 
     std::string str;
     for (size_t i = 0; i < 256; ++i) {
@@ -962,6 +1030,45 @@ std::string GetOutputFileName(const std::string &path) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+void TestSpooledOutput(const TestBBCMicro &bbc,
+                       const std::string &beeblink_volume_path,
+                       const std::string &beeblink_drive,
+                       const std::string &test_name) {
+    TEST_FALSE(bbc.spool_output.empty());
+    if (!bbc.spool_output.empty()) {
+        {
+            LOGF(BBC_OUTPUT, "Spooled: ");
+            LOGI(BBC_OUTPUT);
+            LOG_STR(BBC_OUTPUT, GetPrintable(bbc.spool_output).c_str());
+            LOG(BBC_OUTPUT).EnsureBOL();
+        }
+
+        std::vector<uint8_t> wanted_results;
+        TEST_TRUE(PathLoadBinaryFile(&wanted_results,
+                                     GetTestFileName(beeblink_volume_path,
+                                                     beeblink_drive,
+                                                     bbc.spool_output_name)));
+
+        std::string wanted_output(wanted_results.begin(), wanted_results.end());
+
+        {
+            LOGF(BBC_OUTPUT, "Wanted: ");
+            LOGI(BBC_OUTPUT);
+            LOG_STR(BBC_OUTPUT, GetPrintable(wanted_output).c_str());
+            LOG(BBC_OUTPUT).EnsureBOL();
+        }
+
+        SaveTextOutput(wanted_output, test_name, "wanted");
+        SaveTextOutput(bbc.spool_output, test_name, "got");
+
+        TEST_EQ_SS(bbc.spool_output, wanted_output);
+        //LOGF(OUTPUT,"Match: %d\n",wanted_output==bbc.tspool_output);
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 void RunStandardTest(const std::string &beeblink_volume_path,
                      const std::string &beeblink_drive,
                      const std::string &test_name,
@@ -1009,36 +1116,10 @@ void RunStandardTest(const std::string &beeblink_volume_path,
 
     bbc.SaveTestTrace(stem);
 
-    TEST_FALSE(bbc.spool_output.empty());
-    if (!bbc.spool_output.empty()) {
-        {
-            LOGF(BBC_OUTPUT, "Spooled: ");
-            LOGI(BBC_OUTPUT);
-            LOG_STR(BBC_OUTPUT, GetPrintable(bbc.spool_output).c_str());
-            LOG(BBC_OUTPUT).EnsureBOL();
-        }
-
-        std::vector<uint8_t> wanted_results;
-        TEST_TRUE(PathLoadBinaryFile(&wanted_results,
-                                     GetTestFileName(beeblink_volume_path,
-                                                     beeblink_drive,
-                                                     bbc.spool_output_name)));
-
-        std::string wanted_output(wanted_results.begin(), wanted_results.end());
-
-        {
-            LOGF(BBC_OUTPUT, "Wanted: ");
-            LOGI(BBC_OUTPUT);
-            LOG_STR(BBC_OUTPUT, GetPrintable(wanted_output).c_str());
-            LOG(BBC_OUTPUT).EnsureBOL();
-        }
-
-        SaveTextOutput(wanted_output, stem, "wanted");
-        SaveTextOutput(bbc.spool_output, stem, "got");
-
-        TEST_EQ_SS(wanted_output, bbc.spool_output);
-        //LOGF(OUTPUT,"Match: %d\n",wanted_output==bbc.tspool_output);
-    }
+    TestSpooledOutput(bbc,
+                      beeblink_volume_path,
+                      beeblink_drive,
+                      stem);
 
     LOGF(OUTPUT, "Speed: ~%.3fx\n", bbc.GetSpeed());
 }

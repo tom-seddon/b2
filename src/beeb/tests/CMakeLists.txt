@@ -39,7 +39,8 @@ endif()
 
 add_library(test_common_lib
   test_common.h test_common.cpp test_common.inl
-  test_kevin_edwards.h test_kevin_edwards.cpp)
+  test_kevin_edwards.h test_kevin_edwards.cpp
+  test_tube.h test_tube.cpp)
 target_compile_definitions(test_common_lib PUBLIC
   -DROMS_FOLDER="${b2_SOURCE_DIR}/etc/roms"
   -DBBC_TESTS_OUTPUT_FOLDER="${CMAKE_BINARY_DIR}/b2_tests_output"
@@ -175,3 +176,16 @@ add_dp111_6502Timing_test(65C12timing1M Master128MOS320)
 
 ##########################################################################
 ##########################################################################
+
+function(tube_test_target_boilerplate target)
+  target_compile_definitions(${target} PRIVATE
+    -DBEEBLINK_VOLUME_PATH="${b2_SOURCE_DIR}/etc/b2_tests")
+  target_link_libraries(${target} PRIVATE shared_lib 6502_lib beeb_lib)
+  test_target_boilerplate(${target})
+endfunction()
+
+add_executable(test_tube_itu_prst test_tube_itu_prst.cpp)
+tube_test_target_boilerplate(test_tube_itu_prst)
+
+add_executable(test_tube_xtu_prst test_tube_xtu_prst.cpp)
+tube_test_target_boilerplate(test_tube_xtu_prst)
