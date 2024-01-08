@@ -526,7 +526,7 @@ void BBCMicro::UpdatePaging() {
 void BBCMicro::WriteHostTube0Wrapper(void *m_, M6502Word a, uint8_t value) {
     auto m = (BBCMicro *)m_;
 
-    uint8_t old_status = m->m_state.parasite_tube.status.value;
+    //uint8_t old_status = m->m_state.parasite_tube.status.value;
 
     WriteHostTube0(&m->m_state.parasite_tube, a, value);
 
