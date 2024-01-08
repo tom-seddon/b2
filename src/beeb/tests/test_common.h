@@ -30,12 +30,13 @@ class TestBBCMicro : public BBCMicro {
     std::string spool_output;
     std::string spool_output_name;
 
-    explicit TestBBCMicro(TestBBCMicroType type);
+    // Flags are a combination of TestBBCMicroFlags
+    explicit TestBBCMicro(TestBBCMicroType type, uint32_t flags = 0);
 
     void StartCaptureOSWRCH();
     void StopCaptureOSWRCH();
 
-    void LoadFile(const std::string &path, uint16_t addr);
+    void LoadFile(const std::string &path, uint32_t addr);
     void LoadSSD(int drive, const std::string &path);
 
     void RunUntilOSWORD0(double max_num_seconds);

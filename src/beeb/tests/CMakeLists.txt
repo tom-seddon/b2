@@ -189,3 +189,9 @@ tube_test_target_boilerplate(test_tube_itu_prst)
 
 add_executable(test_tube_xtu_prst test_tube_xtu_prst.cpp)
 tube_test_target_boilerplate(test_tube_xtu_prst)
+
+# b2 behaves same as the Ferranti Tube ULA, as found in the 6502
+# cheese wedge and some internal copros.
+
+add_executable(test_tube_xtu_r124 test_tube_xtu_r124.cpp)
+tube_test_target_boilerplate(test_tube_xtu_r124)

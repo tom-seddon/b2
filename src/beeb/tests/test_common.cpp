@@ -397,7 +397,7 @@ static std::shared_ptr<const std::array<uint8_t, 16384>> LoadROM(const std::stri
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static const BBCMicroType *GetBBCMicroType(TestBBCMicroType type) {
+static const BBCMicroType *GetBBCMicroType(TestBBCMicroType type, uint32_t) {
     switch (type) {
     default:
         TEST_FAIL("%s: unknown TestBBCMicroType", __func__);
@@ -420,7 +420,7 @@ static const BBCMicroType *GetBBCMicroType(TestBBCMicroType type) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static const DiscInterfaceDef *GetDiscInterfaceDef(TestBBCMicroType type) {
+static const DiscInterfaceDef *GetDiscInterfaceDef(TestBBCMicroType type, uint32_t) {
     switch (type) {
     default:
         TEST_FAIL("%s: unknown TestBBCMicroType", __func__);
@@ -443,7 +443,7 @@ static const DiscInterfaceDef *GetDiscInterfaceDef(TestBBCMicroType type) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static BBCMicroParasiteType GetBBCMicroParasiteType(TestBBCMicroType type) {
+static BBCMicroParasiteType GetBBCMicroParasiteType(TestBBCMicroType type, uint32_t) {
     switch (type) {
     default:
         TEST_FAIL("%s: unknown TestBBCMicroType", __func__);
@@ -466,7 +466,7 @@ static BBCMicroParasiteType GetBBCMicroParasiteType(TestBBCMicroType type) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static std::vector<uint8_t> GetNVRAMContents(TestBBCMicroType type) {
+static std::vector<uint8_t> GetNVRAMContents(TestBBCMicroType type, uint32_t flags) {
     switch (type) {
     default:
         TEST_FAIL("%s: unknown TestBBCMicroType", __func__);
@@ -495,8 +495,16 @@ static std::vector<uint8_t> GetNVRAMContents(TestBBCMicroType type) {
             nvram[12] = 55;   //12 - DELAY 55
             nvram[13] = 0x03; //13 - REPEAT 3
             nvram[14] = 0x00; //14
-            nvram[15] = 0x00; //15 - NOTUBE
-            nvram[16] = 0x02; //16 - LOUD
+            nvram[15] = 0x01; //15 - TUBE
+            nvram[16] = 0x02; //16 - LOUD; INTUBE
+
+            if (flags & TestBBCMicroFlags_ConfigureExTube) {
+                nvram[16] |= 4;
+            }
+
+            if (flags & TestBBCMicroFlags_ConfigureNoTube) {
+                nvram[15] &= ~1;
+            }
 
             return nvram;
         }
@@ -507,11 +515,11 @@ static std::vector<uint8_t> GetNVRAMContents(TestBBCMicroType type) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-TestBBCMicro::TestBBCMicro(TestBBCMicroType type)
-    : BBCMicro(GetBBCMicroType(type),
-               GetDiscInterfaceDef(type),
-               GetBBCMicroParasiteType(type),
-               GetNVRAMContents(type),
+TestBBCMicro::TestBBCMicro(TestBBCMicroType type, uint32_t flags)
+    : BBCMicro(GetBBCMicroType(type, flags),
+               GetDiscInterfaceDef(type, flags),
+               GetBBCMicroParasiteType(type, flags),
+               GetNVRAMContents(type, flags),
                nullptr,
                0,
                nullptr,
@@ -585,15 +593,20 @@ void TestBBCMicro::StopCaptureOSWRCH() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void TestBBCMicro::LoadFile(const std::string &path, uint16_t addr) {
+void TestBBCMicro::LoadFile(const std::string &path, uint32_t addr) {
     std::vector<uint8_t> contents;
     TEST_TRUE(PathLoadBinaryFile(&contents, path));
 
-    // try to just hide the fact that BBCMicro::TestSetByte doesn't actually
-    // use proper BBC addresses...
-    TEST_LE_UU(addr + contents.size(), 0x8000);
-    for (size_t i = 0; i < contents.size(); ++i) {
-        this->TestSetByte((uint16_t)(addr + i), contents[i]);
+    if (this->GetParasiteType() == BBCMicroParasiteType_None || (addr & 0xffff0000) == 0xffff0000) {
+        addr &= 0xffff;
+        TEST_LE_UU(addr + contents.size(), 0x8000);
+        for (size_t i = 0; i < contents.size(); ++i) {
+            this->TestSetByte((uint16_t)(addr + i), contents[i]);
+        }
+    } else {
+        for (size_t i = 0; i < contents.size(); ++i) {
+            this->TestSetParasiteByte((uint16_t)(addr + i), contents[i]);
+        }
     }
 }
 

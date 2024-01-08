@@ -567,6 +567,8 @@ class BBCMicro : private WD1770Handler,
     // BBC Micro address.
     void TestSetByte(uint16_t ram_buffer_index, uint8_t value);
 
+    void TestSetParasiteByte(uint16_t address,uint8_t value);
+
     // Use from inside an InstructionFn. Sets the data bus to 0x60, so that
     // it appears an RTS was fetched.
     //

@@ -11,10 +11,13 @@
 
 void TestTube(const std::string &test_name,
               TestBBCMicroType type,
+              uint32_t flags,
               const std::string &beeblink_volume_path,
               const std::string &beeblink_drive,
               const std::string &name,
-              const std::string &paste_text);
+              uint32_t addr,
+              const std::string &pre_paste_text,
+              const std::string &post_paste_text);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
