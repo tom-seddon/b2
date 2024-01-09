@@ -109,6 +109,7 @@ uint32_t BBCMicro::UpdateTemplated(VideoDataUnit *video_unit, SoundDataUnit *sou
             if (m_state.parasite_tube.status.bits.p) {
                 M6502_Reset(&m_state.parasite_cpu);
                 m_state.parasite_boot_mode = true;
+                this->UpdateCPUDataBusFn();
             }
         }
 
@@ -184,9 +185,8 @@ uint32_t BBCMicro::UpdateTemplated(VideoDataUnit *video_unit, SoundDataUnit *sou
                         }
 #endif
                         m_state.parasite_boot_mode = false;
+                        this->UpdateCPUDataBusFn();
                     }
-
-                    this->UpdateCPUDataBusFn();
                 }
             } else {
                 m_parasite_ram[m_state.parasite_cpu.abus.w] = m_state.parasite_cpu.dbus;

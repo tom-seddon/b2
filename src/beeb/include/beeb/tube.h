@@ -96,6 +96,7 @@ struct Tube {
     uint8_t p2h3_n = 0;
     uint8_t h2p3[2] = {};
     uint8_t h2p3_n = 0;
+    bool pnmi = false;
 
     // "FIFO" 4
     TubeFIFOStatus hstatus4 = {};

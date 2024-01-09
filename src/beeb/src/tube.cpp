@@ -121,17 +121,14 @@ static void UpdatePIRQ(Tube *t) {
 //////////////////////////////////////////////////////////////////////////
 
 static void UpdatePNMI(Tube *t) {
-    bool pnmi;
-    if (t->status.bits.v) {
-        pnmi = t->h2p3_n == 2 || t->p2h3_n == 0;
-    } else {
-        pnmi = t->h2p3_n > 0 || t->p2h3_n == 0;
-    }
-
-    t->pstatus3.bits.available = pnmi;
+    //if (t->status.bits.v) {
+    //    t->pnmi = t->h2p3_n == 2 || t->p2h3_n < 2;
+    //} else {
+    //    t->pnmi = t->h2p3_n > 0 || t->p2h3_n == 0;
+    //}
 
     if (t->status.bits.m) {
-        t->pirq.bits.pnmi = pnmi;
+        t->pirq.bits.pnmi = t->pnmi;
     } else {
         t->pirq.bits.pnmi = 0;
     }
@@ -447,6 +444,12 @@ uint8_t ReadHostTube5(void *tube_, M6502Word) {
 
     uint8_t value = ReadFIFO3(t, &t->hstatus3, &t->pstatus3, t->p2h3, &t->p2h3_n, P2H_FIFO3_DUMMY_VALUE);
     TRACE_FIFO(3, READ, Host, value);
+
+    if (t->p2h3_n == 0) {
+        t->pnmi = true;
+        UpdatePNMI(t);
+    }
+
     return value;
 }
 
@@ -456,6 +459,18 @@ void WriteHostTube5(void *tube_, M6502Word, uint8_t value) {
 
     WriteFIFO3(t, &t->hstatus3, &t->pstatus3, t->h2p3, &t->h2p3_n, value);
     TRACE_FIFO(3, WRITE, Host, value);
+
+    if (t->status.bits.v) {
+        if (t->h2p3_n == 2) {
+            t->pnmi = true;
+            UpdatePNMI(t);
+        }
+    } else {
+        if (t->h2p3_n >= 1) {
+            t->pnmi = true;
+            UpdatePNMI(t);
+        }
+    }
 }
 
 // Read FIFO 3 parasite status
@@ -463,6 +478,8 @@ uint8_t ReadParasiteTube4(void *tube_, M6502Word) {
     auto t = (Tube *)tube_;
 
     TubeFIFOStatus status = t->pstatus3;
+
+    status.bits.available = t->pnmi;
 
     return status.value;
 }
@@ -473,6 +490,12 @@ uint8_t ReadParasiteTube5(void *tube_, M6502Word) {
 
     uint8_t value = ReadFIFO3(t, &t->pstatus3, &t->hstatus3, t->h2p3, &t->h2p3_n, H2P_FIFO3_DUMMY_VALUE);
     TRACE_FIFO(3, READ, Parasite, value);
+
+    if (t->h2p3_n == 0) {
+        t->pnmi = false;
+        UpdatePNMI(t);
+    }
+
     return value;
 }
 
@@ -482,6 +505,16 @@ void WriteParasiteTube5(void *tube_, M6502Word, uint8_t value) {
 
     WriteFIFO3(t, &t->pstatus3, &t->hstatus3, t->p2h3, &t->p2h3_n, value);
     TRACE_FIFO(3, WRITE, Parasite, value);
+
+    if (t->status.bits.v) {
+        if (t->p2h3_n == 2) {
+            t->pnmi = false;
+            UpdatePNMI(t);
+        }
+    } else {
+        t->pnmi = false;
+        UpdatePNMI(t);
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////
