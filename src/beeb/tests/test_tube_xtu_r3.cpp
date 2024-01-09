@@ -4,7 +4,7 @@
 int main() {
     TestTube("test_tube_xtu_r3",
              TestBBCMicroType_Master128MOS320WithExternal3MHz6502,
-             TestBBCMicroFlags_ConfigureExTube,
+             {},
              BEEBLINK_VOLUME_PATH,
              "4",
              "R3",

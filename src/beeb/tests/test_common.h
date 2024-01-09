@@ -24,6 +24,10 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+struct TestBBCMicroArgs {
+    uint32_t flags = 0;
+};
+
 class TestBBCMicro : public BBCMicro {
   public:
     std::string oswrch_output;
@@ -31,7 +35,7 @@ class TestBBCMicro : public BBCMicro {
     std::string spool_output_name;
 
     // Flags are a combination of TestBBCMicroFlags
-    explicit TestBBCMicro(TestBBCMicroType type, uint32_t flags = 0);
+    explicit TestBBCMicro(TestBBCMicroType type, const TestBBCMicroArgs &args = {});
 
     void StartCaptureOSWRCH();
     void StopCaptureOSWRCH();

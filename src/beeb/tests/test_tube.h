@@ -11,7 +11,7 @@
 
 void TestTube(const std::string &test_name,
               TestBBCMicroType type,
-              uint32_t flags,
+              const TestBBCMicroArgs &args,
               const std::string &beeblink_volume_path,
               const std::string &beeblink_drive,
               const std::string &name,

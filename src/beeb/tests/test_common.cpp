@@ -515,11 +515,11 @@ static std::vector<uint8_t> GetNVRAMContents(TestBBCMicroType type, uint32_t fla
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-TestBBCMicro::TestBBCMicro(TestBBCMicroType type, uint32_t flags)
-    : BBCMicro(GetBBCMicroType(type, flags),
-               GetDiscInterfaceDef(type, flags),
-               GetBBCMicroParasiteType(type, flags),
-               GetNVRAMContents(type, flags),
+TestBBCMicro::TestBBCMicro(TestBBCMicroType type, const TestBBCMicroArgs &args)
+    : BBCMicro(GetBBCMicroType(type, args.flags),
+               GetDiscInterfaceDef(type, args.flags),
+               GetBBCMicroParasiteType(type, args.flags),
+               GetNVRAMContents(type, args.flags),
                nullptr,
                0,
                nullptr,

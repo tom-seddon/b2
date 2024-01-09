@@ -10,14 +10,14 @@ LOG_EXTERN(BBC_OUTPUT);
 
 void TestTube(const std::string &test_name,
               TestBBCMicroType type,
-              uint32_t flags,
+              const TestBBCMicroArgs &args,
               const std::string &beeblink_volume_path,
               const std::string &beeblink_drive,
               const std::string &name,
               uint32_t addr,
               const std::string &pre_paste_text,
               const std::string &post_paste_text) {
-    TestBBCMicro bbc(type, flags);
+    TestBBCMicro bbc(type, args);
 
     //bbc.StartTrace(0, 256 * 1024 * 1024);
     bbc.StartCaptureOSWRCH();
