@@ -121,12 +121,6 @@ static void UpdatePIRQ(Tube *t) {
 //////////////////////////////////////////////////////////////////////////
 
 static void UpdatePNMI(Tube *t) {
-    //if (t->status.bits.v) {
-    //    t->pnmi = t->h2p3_n == 2 || t->p2h3_n < 2;
-    //} else {
-    //    t->pnmi = t->h2p3_n > 0 || t->p2h3_n == 0;
-    //}
-
     if (t->status.bits.m) {
         t->pirq.bits.pnmi = t->pnmi;
     } else {
@@ -138,15 +132,9 @@ static void UpdatePNMI(Tube *t) {
 //////////////////////////////////////////////////////////////////////////
 
 void ResetTube(Tube *t) {
-    TubeStatus old_status = t->status;
-
     TubeFIFOStatus empty = {};
     empty.bits.not_full = 1;
     empty.bits.available = 0;
-
-    *t = Tube();
-
-    t->status = old_status;
 
     t->hstatus1 = empty;
     t->pstatus1 = empty;
@@ -164,10 +152,8 @@ void ResetTube(Tube *t) {
     t->pstatus3.bits.available = 0;
 
     t->p2h3_n = 1;
-    t->p2h3[1] = t->p2h3[0] = P2H_FIFO3_DUMMY_VALUE;
-
     t->h2p3_n = 0;
-    t->h2p3[1] = t->h2p3[0] = H2P_FIFO3_DUMMY_VALUE;
+    t->pnmi=false;
 
     t->hstatus4 = empty;
     t->pstatus4 = empty;
