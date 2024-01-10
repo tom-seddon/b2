@@ -104,6 +104,9 @@ struct Tube {
     uint8_t h2p4 = 0;
     uint8_t p2h4 = 0;
 
+    uint8_t last_p2h_value = 0;
+    uint8_t last_h2p_value = 0;
+
 #if BBCMICRO_TRACE
     Trace *trace = nullptr;
 #endif

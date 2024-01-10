@@ -34,12 +34,6 @@ const TraceEventType TUBE_READ_FIFO4_EVENT("Read Tube FIFO4", sizeof(TubeFIFOEve
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static constexpr uint8_t H2P_FIFO3_DUMMY_VALUE = 0xe4;
-static constexpr uint8_t P2H_FIFO3_DUMMY_VALUE = 0x96;
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 #define CH(X) ((X) >= 32 && (X) <= 126 ? (X) : '?')
 
 //////////////////////////////////////////////////////////////////////////
@@ -151,9 +145,12 @@ void ResetTube(Tube *t) {
     t->pstatus3.bits.not_full = 0;
     t->pstatus3.bits.available = 0;
 
+    if (t->p2h3_n == 0) {
+        t->p2h3[0] = t->last_p2h_value;
+    }
     t->p2h3_n = 1;
     t->h2p3_n = 0;
-    t->pnmi=false;
+    t->pnmi = false;
 
     t->hstatus4 = empty;
     t->pstatus4 = empty;
@@ -203,6 +200,8 @@ void WriteHostTube0(void *tube_, M6502Word, uint8_t value) {
         ev->p2h4_available = t->hstatus4.bits.available;
     }
 #endif
+
+    t->last_h2p_value = value;
 }
 
 // Read Tube control register + FIFO 1 host status
@@ -217,7 +216,7 @@ uint8_t ReadHostTube0(void *tube_, M6502Word) {
 uint8_t ReadHostTube1(void *tube_, M6502Word) {
     auto t = (Tube *)tube_;
 
-    uint8_t value = 1;
+    uint8_t value = t->last_p2h_value;
     if (t->p2h1_n > 0) {
         value = t->p2h1[t->p2h1_rindex];
 
@@ -267,6 +266,8 @@ void WriteHostTube1(void *tube_, M6502Word, uint8_t value) {
     UpdatePIRQ(t);
 
     TRACE_FIFO(1, WRITE, Host, value);
+
+    t->last_h2p_value = value;
 }
 
 // Write FIFO 1 parasite->host
@@ -290,6 +291,8 @@ void WriteParasiteTube1(void *tube_, M6502Word, uint8_t value) {
 
         TRACE_FIFO(1, WRITE, Parasite, value);
     }
+
+    t->last_p2h_value = value;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -328,6 +331,8 @@ void WriteHostTube3(void *tube_, M6502Word, uint8_t value) {
     UpdateLatchForWrite(&t->hstatus2, &t->pstatus2);
 
     TRACE_FIFO(2, WRITE, Host, value);
+
+    t->last_h2p_value = value;
 }
 
 // Read FIFO 2 parasite status
@@ -357,6 +362,8 @@ void WriteParasiteTube3(void *tube_, M6502Word, uint8_t value) {
     UpdateLatchForWrite(&t->pstatus2, &t->hstatus2);
 
     TRACE_FIFO(2, WRITE, Parasite, value);
+
+    t->last_p2h_value = value;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -428,7 +435,7 @@ uint8_t ReadHostTube4(void *tube_, M6502Word) {
 uint8_t ReadHostTube5(void *tube_, M6502Word) {
     auto t = (Tube *)tube_;
 
-    uint8_t value = ReadFIFO3(t, &t->hstatus3, &t->pstatus3, t->p2h3, &t->p2h3_n, P2H_FIFO3_DUMMY_VALUE);
+    uint8_t value = ReadFIFO3(t, &t->hstatus3, &t->pstatus3, t->p2h3, &t->p2h3_n, t->last_p2h_value);
     TRACE_FIFO(3, READ, Host, value);
 
     if (t->p2h3_n == 0) {
@@ -457,6 +464,8 @@ void WriteHostTube5(void *tube_, M6502Word, uint8_t value) {
             UpdatePNMI(t);
         }
     }
+
+    t->last_h2p_value = value;
 }
 
 // Read FIFO 3 parasite status
@@ -474,7 +483,7 @@ uint8_t ReadParasiteTube4(void *tube_, M6502Word) {
 uint8_t ReadParasiteTube5(void *tube_, M6502Word) {
     auto t = (Tube *)tube_;
 
-    uint8_t value = ReadFIFO3(t, &t->pstatus3, &t->hstatus3, t->h2p3, &t->h2p3_n, H2P_FIFO3_DUMMY_VALUE);
+    uint8_t value = ReadFIFO3(t, &t->pstatus3, &t->hstatus3, t->h2p3, &t->h2p3_n, t->last_h2p_value);
     TRACE_FIFO(3, READ, Parasite, value);
 
     if (t->h2p3_n == 0) {
@@ -501,6 +510,8 @@ void WriteParasiteTube5(void *tube_, M6502Word, uint8_t value) {
         t->pnmi = false;
         UpdatePNMI(t);
     }
+
+    t->last_p2h_value = value;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -538,6 +549,8 @@ void WriteHostTube7(void *tube_, M6502Word, uint8_t value) {
     UpdateLatchForWrite(&t->hstatus4, &t->pstatus4);
     UpdatePIRQ(t);
     TRACE_FIFO(4, WRITE, Host, value);
+
+    t->last_h2p_value = value;
 }
 
 // Read FIFO 4 parasite status
@@ -556,6 +569,8 @@ void WriteParasiteTube7(void *tube_, M6502Word, uint8_t value) {
     UpdateLatchForWrite(&t->pstatus4, &t->hstatus4);
     UpdateHIRQ(t);
     TRACE_FIFO(4, WRITE, Parasite, value);
+
+    t->last_p2h_value = value;
 }
 
 // Read FIFO 4 host->parasite
