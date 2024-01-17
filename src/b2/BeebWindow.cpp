@@ -101,10 +101,8 @@ static Command2 g_parallel_printer_command = Command2(&g_beeb_window_command_tab
 static Command2 g_reset_printer_buffer_command = Command2(&g_beeb_window_command_table, "reset_printer_buffer", "Reset printer buffer").MustConfirm();
 static Command2 g_copy_printer_buffer_command = Command2(&g_beeb_window_command_table, "copy_printer_buffer", "Copy printer buffer");
 static Command2 g_save_printer_buffer_command = Command2(&g_beeb_window_command_table, "save_printer_buffer", "Save printer buffer...");
-#if BBCMICRO_DEBUGGER
-static Command2 g_debug_stop_command = Command2(&g_beeb_window_command_table, "debug_stop", "Stop").WithShortcut(SDLK_F5 | PCKeyModifier_Shift);
-static Command2 g_debug_run_command = Command2(&g_beeb_window_command_table, "debug_run", "Run").WithShortcut(SDLK_F5);
-#endif
+static Command2 g_debug_stop_command = Command2(&g_beeb_window_command_table, "debug_stop", "Stop").WithShortcut(SDLK_F5 | PCKeyModifier_Shift).VisibleIf(BBCMICRO_DEBUGGER);
+static Command2 g_debug_run_command = Command2(&g_beeb_window_command_table, "debug_run", "Run").WithShortcut(SDLK_F5).VisibleIf(BBCMICRO_DEBUGGER);
 static Command2 g_save_default_nvram_command = Command2(&g_beeb_window_command_table, "save_default_nvram", "Save default NVRAM");
 static Command2 g_reset_default_nvram_command = Command2(&g_beeb_window_command_table, "reset_default_nvram", "Reset default NVRAM").MustConfirm();
 static Command2 g_save_config_command = Command2(&g_beeb_window_command_table, "save_config", "Save config");
