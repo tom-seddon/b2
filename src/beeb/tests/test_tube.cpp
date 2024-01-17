@@ -1,4 +1,5 @@
 #include <shared/system.h>
+#include <shared/log.h>
 #include <shared/testing.h>
 #include "test_common.h"
 #include "test_tube.h"
