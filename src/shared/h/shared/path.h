@@ -97,6 +97,10 @@ bool PathIsFolderOnDisk(const std::string &path);
 bool PathLoadBinaryFile(std::vector<uint8_t> *contents, const std::string &path);
 bool PathSaveBinaryFile(const std::vector<uint8_t> &contents, const std::string &path);
 
+// Newlines are normalized to '\n'. A trailing 0 is not appended, but space for
+// it is reserved.
+bool PathLoadTextFile(std::vector<char> *contents, const std::string &path);
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 

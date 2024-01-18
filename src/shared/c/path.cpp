@@ -184,13 +184,16 @@ int PathCompare(const std::string &a, const std::string &b) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool PathLoadBinaryFile(std::vector<uint8_t> *contents, const std::string &path) {
+template <class T, bool text>
+static bool PathLoadFile(std::vector<T> *contents, const std::string &path) {
+    static_assert(sizeof(T) == 1);
+
     FILE *f = NULL;
     bool good = false;
     size_t num_read;
     long len;
 
-    f = fopenUTF8(path.c_str(), "rb");
+    f = fopenUTF8(path.c_str(), text ? "rt" : "rb");
     if (!f) {
         goto done;
     }
@@ -214,11 +217,23 @@ bool PathLoadBinaryFile(std::vector<uint8_t> *contents, const std::string &path)
         goto done;
     }
 
+    // book space for the 0, should the caller want to add it.
+    contents->reserve((size_t)len + 1);
     contents->resize((size_t)len);
 
     num_read = fread(contents->data(), 1, contents->size(), f);
-    if (num_read != contents->size()) {
-        goto done;
+
+    if constexpr (text) {
+        if (ferror(f)) {
+            goto done;
+        }
+
+        // Number of bytes read may have ended up smaller, if mode was rt.
+        contents->resize(num_read);
+    } else {
+        if (num_read != contents->size()) {
+            goto done;
+        }
     }
 
     good = true;
@@ -237,6 +252,20 @@ done:;
 
     errno = e;
     return good;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool PathLoadTextFile(std::vector<char> *contents, const std::string &path) {
+    return PathLoadFile<char, true>(contents, path);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool PathLoadBinaryFile(std::vector<uint8_t> *contents, const std::string &path) {
+    return PathLoadFile<uint8_t, false>(contents, path);
 }
 
 //////////////////////////////////////////////////////////////////////////
