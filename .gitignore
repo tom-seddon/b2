@@ -7,3 +7,4 @@ imgui.ini
 /cmake-build-*/
 /.dir-locals-build.sh
 /etc/b2_tests/[Zz]/
+/dependencies/ProcessorTests/
