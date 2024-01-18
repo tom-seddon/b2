@@ -66,3 +66,23 @@ add_test(
   NAME tom_seddon_6502_tests
   COMMAND $<TARGET_FILE:tom_seddon_6502_tests>)
 set_tests_properties(tom_seddon_6502_tests PROPERTIES LABELS slow)
+
+##########################################################################
+##########################################################################
+
+# Slightly ugly path...
+set(PROCESSOR_TESTS ${b2_SOURCE_DIR}/dependencies/ProcessorTests)
+
+message(STATUS "Processor tests folder: ${PROCESSOR_TESTS}")
+if(EXISTS ${PROCESSOR_TESTS})
+  add_executable(test_6502_ProcessorTests
+    test_6502_ProcessorTests.cpp)
+  target_link_libraries(test_6502_ProcessorTests PRIVATE
+    shared_lib
+    6502_lib
+    rapidjson_lib)
+  target_compile_definitions(test_6502_ProcessorTests PRIVATE
+    -DPROCESSOR_TESTS_FOLDER="${PROCESSOR_TESTS}"
+    -DVISUAL6502_PATH="${b2_SOURCE_DIR}/submodules/visual6502")
+  add_sanitizers(test_6502_ProcessorTests)
+endif()
