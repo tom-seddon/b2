@@ -200,7 +200,7 @@ else()
 
   set(HAVE_SDL_SOFTSTRETCHLINEAR TRUE)
 
-  set(SDL2_LIBRARY SDL-static SDL2main)
+  set(SDL2_LIBRARY SDL2::SDL2-static SDL2::SDL2main)
 
 endif()
 
