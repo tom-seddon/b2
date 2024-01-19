@@ -12,7 +12,7 @@ debugger.
 For prerequisites, see the
 [building from the command line notes](./Building-on-Unix.md).
 
-Initial build steps:
+Initial setup, for use after cloning or updating the repo:
 
 1. Open terminal in working copy folder
 

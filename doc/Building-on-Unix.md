@@ -61,7 +61,7 @@ install` so the system could find the new libraries.)
 
 # Building
 
-Initial setup:
+Initial setup, for use after cloning or updating the repo:
 
 1. Open terminal and change to working copy folder
 
@@ -88,6 +88,10 @@ Day-to-day build steps:
 4. On Linux, run `./src/b2/b2` to run
 
    On macOS, run `./src/b2/b2.app/Contents/MacOS/b2` to run
+
+(The day-to-day build steps may also work after updating the repo;
+cmake is supposed to sort itself out. But it does cache some
+information and the initial build steps ensure everything is rebuilt.)
 
 You'll probably be able to automate all of this somehow from whatever
 text editor you use...

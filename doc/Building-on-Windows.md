@@ -8,7 +8,7 @@ Optional, but recommended:
 
 - [Microsoft Child Process Debugging Power Tool](https://marketplace.visualstudio.com/items?itemName=GreggMiskelly.MicrosoftChildProcessDebuggingPowerTool)
 
-Initial build steps:
+Initial setup, for use after cloning or updating the repo:
 
 1. Open command prompt in working copy folder 
 
@@ -26,6 +26,10 @@ General day-to-day build steps:
 2. Build
 
 3. Run
+
+(The day-to-day build steps may also work after updating the repo;
+cmake is supposed to sort itself out. But it does cache some
+information and the initial build steps ensure everything is rebuilt.)
 
 # Notes
 

@@ -326,16 +326,7 @@ target_link_libraries(b2 PRIVATE ${OPENGL_LIBRARIES})
 ##########################################################################
 ##########################################################################
 
-# SDL2.
-
-target_include_directories(b2 PRIVATE ${SDL2_INCLUDE_DIR})
-target_compile_definitions(b2 PRIVATE ${SDL2_DEFINITIONS})
-target_link_libraries(b2 PRIVATE ${SDL2_LIBRARY})
-
-##########################################################################
-##########################################################################
-
-target_link_libraries(b2 PRIVATE ${LIBCURL_TARGET} ${LibUV_LIBRARIES} llhttp_static)
+target_link_libraries(b2 PRIVATE ${LIBCURL_TARGET} ${LibUV_LIBRARIES} llhttp_static ${SDL2_LIBRARY})
 
 ##########################################################################
 ##########################################################################

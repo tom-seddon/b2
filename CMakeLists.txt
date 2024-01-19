@@ -19,6 +19,13 @@ set(OpenGL_GL_PREFERENCE GLVND)
 ##########################################################################
 ##########################################################################
 
+# Normal variables take priority over OPTION.
+set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
+cmake_policy(SET CMP0077 NEW)
+
+##########################################################################
+##########################################################################
+
 if(DEFINED RELEASE_NAME)
   set(INCLUDE_EXPERIMENTAL OFF)
   option(LIBUV_BUILD_TESTS "" OFF)
@@ -161,29 +168,23 @@ message(STATUS "libcurl found: ${HAVE_LIBCURL}")
 
 if(USE_SYSTEM_SDL)
 
-  find_package(SDL2 REQUIRED)
+  find_package(SDL2 REQUIRED CONFIG REQUIRED COMPONENTS SDL2)
+  find_package(SDL2 REQUIRED CONFIG REQUIRED COMPONENTS SDL2main)
+
+  # Find out whether the version is new enough for
+  # SDL_SoftStretchLinear.
+  get_target_property(CMAKE_REQUIRED_INCLUDES SDL2::SDL2 INCLUDE_DIRECTORIES)
+  get_target_property(CMAKE_REQUIRED_DEFINITIONS SDL2::SDL2 COMPILE_DEFINITIONS)
+  set(CMAKE_REQUIRED_DEFINITIONS ${CMAKE_REQUIRED_DEFINITIONS} -DSDL_MAIN_HANDLED)
+  check_cxx_source_compiles("#include <SDL.h>
+typedef decltype(&SDL_SoftStretchLinear) T;int main(void){return 0;}" HAVE_SDL_SOFTSTRETCHLINEAR)
+  message(STATUS "SDL_SoftStretchLinear exists: ``${HAVE_SDL_SOFTSTRETCHLINEAR}''")
+  unset(CMAKE_REQUIRED_INCLUDES)
+  unset(CMAKE_REQUIRED_DEFINITIONS)
+
+  set(SDL2_LIBRARY SDL2::SDL2 SDL2::SDL2main)
 
 else()
-
-  # (Even though SDL is part of submodules, the configuration process
-  # sets some variables, so it's massively easier to do it in the
-  # top-level CMakeLists.txt.)
-  # 
-  # Use the SDL submodule, but set the variables up so it looks like it
-  # was found by FindSDL2. It doesn't look like the SDL2 cmake build
-  # process is designed for this, so this is a bit of a hack.
-
-  # can't remember what this is for...
-  option(LIBC "" ON)
-
-  set(SDL_SHARED_ENABLED_BY_DEFAULT OFF)
-
-  set(SDL__NAME SDL_official)
-  set(SDL__SOURCE_DIR ${CMAKE_SOURCE_DIR}/submodules/${SDL__NAME})
-
-  if(NOT EXISTS ${SDL__SOURCE_DIR}/CMakeLists.txt)
-    message(FATAL_ERROR "SDL not found in folder: " ${SDL__SOURCE_DIR})
-  endif()
 
   if(LINUX)
     # https://github.com/tom-seddon/b2/issues/36
@@ -193,73 +194,16 @@ else()
     endif()
   endif()
 
-  add_subdirectory(${SDL__SOURCE_DIR})
+  set(SDL_STATIC ON)
+  set(SDL_SHARED_ENABLED_BY_DEFAULT OFF)
+  add_subdirectory(${CMAKE_SOURCE_DIR}/submodules/SDL_official)
 
-  set(SDL2_FOUND ON)
-  set(SDL2_LIBRARY SDL2-static SDL2main)
-  set(SDL2_INCLUDE_DIR ${CMAKE_BINARY_DIR}/submodules/${SDL__NAME}/include)
+  set(HAVE_SDL_SOFTSTRETCHLINEAR TRUE)
 
-  # The build process generates an SDL_config.h file that goes in the
-  # binary folder, holding all the correct #defines for whatever. The
-  # idea seems to be that you then install this (rather than the source
-  # SDL_config.h) alongside the other headers in the install folder.
-  #
-  # You're then supposed to define USING_GENERATED_CONFIG_H, to ensure
-  # that the code uses the generated SDL_config.h rather than the
-  # original placeholder one in the source tree.
-  #
-  # But when using the source in-place, the generated SDL_config.h
-  # appears to be impossible to access, because all the SDL headers just
-  # do ``#include "SDL_config.h"''. So they get the original header.
-  #
-  # (This doesn't cause much of a problem of Windows or OS X, because
-  # the set of libraries is known and there aren't any significant
-  # options. But this means a couple of things go missing from the
-  # public API on Linux , because it doesn't have the
-  # SDL_VIDEO_DRIVER_xxx defines that the generated SDL_config.h
-  # includes.)
-  #
-  # To fix this copy all the relevant SDL include files into the binary
-  # folder, as a kind of fake install step, and use that as the include
-  # path. Use configure_file so that the source headers are noted as
-  # inputs to the build without having to find a project to attach a
-  # post-build step to.
-  #
-  # (cmake re-runs when these files change, but it doesn't necessarily
-  # regenerate the Visual Studio projects. So it takes a bit longer than
-  # it might, but there are at least no message boxes to click through.)
-
-  set(SDL__HEADERS_SRC ${SDL__SOURCE_DIR}/include)
-  set(SDL__HEADERS_DEST ${CMAKE_BINARY_DIR}/submodules/${SDL__NAME}/include)
-
-  file(GLOB SDL__HEADERS
-    LIST_DIRECTORIES false
-    RELATIVE ${SDL__HEADERS_SRC}
-    ${SDL__HEADERS_SRC}/*.h)
-
-  foreach(SDL__HEADER ${SDL__HEADERS})
-    if(NOT SDL__HEADER STREQUAL "SDL_config.h")
-      configure_file(
-	${SDL__HEADERS_SRC}/${SDL__HEADER}
-	${SDL__HEADERS_DEST}/${SDL__HEADER}
-	COPYONLY)
-    endif()
-  endforeach()
-
-  set(SDL2_DEFINITIONS -DUSING_GENERATED_CONFIG_H)
+  set(SDL2_LIBRARY SDL-static SDL2main)
 
 endif()
 
-set(CMAKE_REQUIRED_INCLUDES ${SDL2_INCLUDE_DIR})
-set(CMAKE_REQUIRED_DEFINITIONS ${SDL2_DEFINITIONS} -DSDL_MAIN_HANDLED)
-# check_cxx_source_compiles has to compile to something linkable, but
-# linking with SDL might not be possible at this point as it isn't
-# necessarily actually compiled yet.
-check_cxx_source_compiles("#include <SDL.h>
-typedef decltype(&SDL_SoftStretchLinear) T;int main(void){return 0;}" HAVE_SDL_SOFTSTRETCHLINEAR)
-message(STATUS "SDL_SoftStretchLinear exists: ``${HAVE_SDL_SOFTSTRETCHLINEAR}''")
-unset(CMAKE_REQUIRED_INCLUDES)
-unset(CMAKE_REQUIRED_DEFINITIONS)
 
 ##########################################################################
 ##########################################################################
