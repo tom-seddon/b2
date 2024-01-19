@@ -503,7 +503,7 @@ static std::vector<uint8_t> GetNVRAMContents(TestBBCMicroType type, uint32_t fla
             }
 
             if (flags & TestBBCMicroFlags_ConfigureNoTube) {
-                nvram[15] &= ~1;
+                nvram[15] &= ~1u;
             }
 
             return nvram;
