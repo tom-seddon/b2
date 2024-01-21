@@ -2019,6 +2019,7 @@ static bool LoadWindows(rapidjson::Value *windows, Messages *msg) {
 #if ENABLE_SDL_FULL_SCREEN
     FindBoolMember(&BeebWindows::defaults.full_screen, windows, FULL_SCREEN, nullptr);
 #endif
+    FindBoolMember(&BeebWindows::defaults.prefer_shortcuts, windows, PREFER_SHORTCUTS, nullptr);
 
     {
         std::string keymap_name;
@@ -2085,6 +2086,9 @@ static void SaveWindows(JSONWriter<StringStream> *writer) {
         writer->Key(FULL_SCREEN);
         writer->Bool(BeebWindows::defaults.full_screen);
 #endif
+
+        writer->Key(PREFER_SHORTCUTS);
+        writer->Bool(BeebWindows::defaults.prefer_shortcuts);
 
         writer->Key(AUTO_SCALE);
         writer->Bool(BeebWindows::defaults.display_auto_scale);

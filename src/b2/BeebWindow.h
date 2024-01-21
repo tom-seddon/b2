@@ -91,6 +91,8 @@ struct BeebWindowSettings {
     bool full_screen = false;
 #endif
 
+    bool prefer_shortcuts = false;
+
     BeebWindowLEDsPopupMode leds_popup_mode = BeebWindowLEDsPopupMode_Auto;
 };
 
@@ -336,8 +338,6 @@ class BeebWindow {
 
     // Audio output
     SDL_AudioDeviceID m_sound_device = 0;
-
-    bool m_prefer_shortcuts = false;
 
     // number of emulated us that had passed at the time of the last
     // title update.

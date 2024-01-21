@@ -1127,7 +1127,7 @@ bool BeebWindow::DoImGui(uint64_t ticks) {
             if (beeb_focus) {
                 bool handled = false;
 
-                if (m_prefer_shortcuts) {
+                if (m_settings.prefer_shortcuts) {
                     if (is_valid_shortcut) {
                         handled = this->HandleCommandKey(keycode, active_popup);
                     }
@@ -1137,7 +1137,7 @@ bool BeebWindow::DoImGui(uint64_t ticks) {
                     handled = this->HandleBeebKey(event.keysym, state);
                 }
 
-                if (!m_prefer_shortcuts) {
+                if (!m_settings.prefer_shortcuts) {
                     if (!handled) {
                         if (is_valid_shortcut) {
                             handled = this->HandleCommandKey(keycode, active_popup);
@@ -1349,9 +1349,9 @@ void BeebWindow::DoCommands() {
         this->SaveConfig();
     }
 
-    m_cst.SetTicked(g_toggle_prioritize_shortcuts_command, m_prefer_shortcuts);
+    m_cst.SetTicked(g_toggle_prioritize_shortcuts_command, m_settings.prefer_shortcuts);
     if (m_cst.WasActioned(g_toggle_prioritize_shortcuts_command)) {
-        m_prefer_shortcuts = !m_prefer_shortcuts;
+        m_settings.prefer_shortcuts = !m_settings.prefer_shortcuts;
 
         this->ShowPrioritizeCommandShortcutsStatus();
     }
@@ -3126,7 +3126,7 @@ const BeebKeymap *BeebWindow::GetCurrentKeymap() const {
 
 void BeebWindow::SetCurrentKeymap(const BeebKeymap *keymap) {
     m_settings.keymap = keymap;
-    m_prefer_shortcuts = m_settings.keymap->GetPreferShortcuts();
+    m_settings.prefer_shortcuts = m_settings.keymap->GetPreferShortcuts();
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -3519,7 +3519,7 @@ void BeebWindow::SetWindowFullScreen(bool is_full_screen) {
 //////////////////////////////////////////////////////////////////////////
 
 void BeebWindow::ShowPrioritizeCommandShortcutsStatus() {
-    if (m_prefer_shortcuts) {
+    if (m_settings.prefer_shortcuts) {
         m_msg.i.f("Prioritize command keys\n");
     } else {
         m_msg.i.f("Prioritize BBC keys\n");
