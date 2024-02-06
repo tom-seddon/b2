@@ -332,7 +332,6 @@ class BeebWindow {
     // TV output.
     TVOutput m_tv;
     SDL_Texture *m_tv_texture = nullptr;
-    ImTextureID m_tv_texture_id = nullptr;
 
     float m_blend_amt = 0.f;
 
