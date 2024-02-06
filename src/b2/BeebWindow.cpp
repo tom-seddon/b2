@@ -394,7 +394,7 @@ void BeebWindow::OptionsUI::DoImGui() {
         ImGui::Checkbox("Correct aspect ratio", &settings->correct_aspect_ratio);
 
         if (ImGui::Checkbox("Filter display", &settings->display_filter)) {
-            m_beeb_window->RecreateTexture();
+            m_beeb_window->RequestRecreateTexture();
         }
 
         ImGui::Checkbox("Auto scale", &settings->display_auto_scale);
@@ -2448,6 +2448,11 @@ bool BeebWindow::DoBeebDisplayUI() {
 
         focus = ImGui::IsWindowFocused(ImGuiFocusedFlags_ChildWindows);
 
+        if (m_recreate_tv_texture) {
+            this->RecreateTexture();
+            m_recreate_tv_texture = false;
+        }
+
         ImGuiStyleVarPusher vpusher(ImGuiStyleVar_WindowPadding, ImVec2(0.f, 0.f));
         if (m_tv_texture) {
 #if BBCMICRO_DEBUGGER
@@ -3273,6 +3278,13 @@ void BeebWindow::HardReset() {
 
     // Something went wrong. Just reuse the current config, whatever it is.
     m_beeb_thread->Send(std::make_shared<BeebThread::HardResetAndReloadConfigMessage>(BeebThreadHardResetFlag_Run));
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BeebWindow::RequestRecreateTexture() {
+    m_recreate_tv_texture = true;
 }
 
 //////////////////////////////////////////////////////////////////////////

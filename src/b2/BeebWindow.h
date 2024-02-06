@@ -332,6 +332,7 @@ class BeebWindow {
     // TV output.
     TVOutput m_tv;
     SDL_Texture *m_tv_texture = nullptr;
+    bool m_recreate_tv_texture = false;
 
     float m_blend_amt = 0.f;
 
@@ -472,6 +473,7 @@ class BeebWindow {
     void HardReset();
     void HandleJoystickResult(const JoystickResult &jr);
     bool HandleBeebKey(const SDL_Keysym &keysym, bool state);
+    void RequestRecreateTexture();
     bool RecreateTexture();
     static size_t ConsumeTVTexture(OutputDataBuffer<VideoDataUnit> *video_output, TVOutput *tv, bool inhibit_update);
     bool InhibitUpdateTVTexture() const;
