@@ -58,6 +58,7 @@ install` so the system could find the new libraries.)
 
 - [cmake](https://cmake.org/) version 3.20+ on the PATH (I built it from [the CMake github repo](https://github.com/Kitware/CMake))
 - [ninja](https://ninja-build.org/) (build from the [Ninja github repo](https://github.com/ninja-build/ninja), install from MacPorts, etc.)
+- Python 3.x
 
 # Building
 

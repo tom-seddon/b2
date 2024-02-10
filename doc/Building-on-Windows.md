@@ -3,6 +3,7 @@
 Prerequisites:
 
 - Visual Studio 2019 (ensure C++ CMake tools for Windows is included)
+- Python 3.x (the version that comes with Visual Studio 2019 is fine)
   
 Optional, but recommended:
 
