@@ -11,14 +11,14 @@ endif()
 set(H h/shared)
 
 set(SRCS
-  c/debug.c ${H}/debug.h
+  c/debug.cpp ${H}/debug.h
   c/log.cpp ${H}/log.h
   c/system.cpp ${H}/system.h
   c/CommandLineParser.cpp ${H}/CommandLineParser.h
   c/testing.cpp ${H}/testing.h
   c/sha1.cpp ${H}/sha1.h
   c/path.cpp ${H}/path.h
-  c/load_store.c ${H}/load_store.h
+  c/load_store.cpp ${H}/load_store.h
   ${H}/enum_decl.h  ${H}/enum_def.h  ${H}/enum_end.h  ${H}/system_specific.h
   ${H}/popwarn.h ${H}/pushwarn_bitfields.h ${H}/pushwarn_flexible_struct_member.h ${H}/pushwarn_padded_struct.h
   c/relacy.cpp ${H}/relacy.h
