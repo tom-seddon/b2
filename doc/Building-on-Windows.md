@@ -13,8 +13,8 @@ Initial setup, for use after cloning or updating the repo:
 
 1. Open command prompt in working copy folder 
 
-2. Run `bin\snmake init_vs2019` to generate a solution for Visual
-   Studio 2019.
+2. Run `make init_vs2019` to generate a solution for Visual Studio
+   2019.
    
    You should get a bunch of output - there may be the odd warning,
    but there should be no obvious errors, and it should finish with an
