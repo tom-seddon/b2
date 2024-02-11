@@ -93,30 +93,6 @@ static std::string g_override_config_folder;
 //////////////////////////////////////////////////////////////////////////
 
 #if SYSTEM_WINDOWS
-static std::string GetUTF8String(const wchar_t *str) {
-    size_t len = wcslen(str);
-
-    if (len > INT_MAX) {
-        return "";
-    }
-
-    int n = WideCharToMultiByte(CP_UTF8, 0, str, (int)len, nullptr, 0, nullptr, nullptr);
-    if (n == 0) {
-        return "";
-    }
-
-    std::vector<char> buffer;
-    buffer.resize(n);
-    WideCharToMultiByte(CP_UTF8, 0, str, (int)len, buffer.data(), (int)buffer.size(), nullptr, nullptr);
-
-    return std::string(buffer.begin(), buffer.end());
-}
-#endif
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-#if SYSTEM_WINDOWS
 static std::string GetWindowsPath(const GUID &known_folder, const std::string &path) {
     std::string result;
     WCHAR *wpath;

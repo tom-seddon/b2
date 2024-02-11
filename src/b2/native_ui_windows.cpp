@@ -99,48 +99,6 @@ done:
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-// TODO - Basically a duplicate of code in load_save.cpp
-static std::string GetUTF8String(const std::wstring &str) {
-    if (str.size() > INT_MAX) {
-        return "";
-    }
-
-    int n = WideCharToMultiByte(CP_UTF8, 0, str.data(), (int)str.size(), nullptr, 0, nullptr, nullptr);
-    if (n == 0) {
-        return "";
-    }
-
-    std::vector<char> buffer;
-    buffer.resize(n);
-    WideCharToMultiByte(CP_UTF8, 0, str.data(), (int)str.size(), buffer.data(), (int)buffer.size(), nullptr, nullptr);
-
-    return std::string(buffer.begin(), buffer.end());
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-// TODO - Basically a duplicate of code in load_save.cpp
-static std::wstring GetWideString(const std::string &str) {
-    if (str.size() > INT_MAX) {
-        return L"";
-    }
-
-    int n = MultiByteToWideChar(CP_UTF8, 0, str.data(), (int)str.size(), nullptr, 0);
-    if (n == 0) {
-        return L"";
-    }
-
-    std::vector<wchar_t> buffer;
-    buffer.resize(n);
-    MultiByteToWideChar(CP_UTF8, 0, str.data(), (int)str.size(), buffer.data(), (int)buffer.size());
-
-    return std::wstring(buffer.begin(), buffer.end());
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 static std::wstring GetFiltersWin32(const std::vector<OpenFileDialog::Filter> &filters) {
     std::wstring result;
 

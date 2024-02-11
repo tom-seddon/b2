@@ -271,27 +271,6 @@ done:
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-#if SYSTEM_WINDOWS
-static std::wstring GetWideString(const char *str) {
-    size_t len = strlen(str);
-
-    if (len > INT_MAX) {
-        return L"";
-    }
-
-    int n = MultiByteToWideChar(CP_UTF8, 0, str, (int)len, nullptr, 0);
-    if (n == 0) {
-        return L"";
-    }
-
-    std::vector<wchar_t> buffer;
-    buffer.resize(n);
-    MultiByteToWideChar(CP_UTF8, 0, str, (int)len, buffer.data(), (int)buffer.size());
-
-    return std::wstring(buffer.begin(), buffer.end());
-}
-#endif
-
 FILE *fopenUTF8(const char *path, const char *mode) {
 #if SYSTEM_WINDOWS
 

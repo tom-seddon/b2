@@ -409,3 +409,68 @@ uint64_t GetTicksFromSeconds(double seconds) {
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
+
+static std::string GetUTF8String(const wchar_t *str, size_t len) {
+    if (len > INT_MAX) {
+        return "";
+    }
+
+    int n = WideCharToMultiByte(CP_UTF8, 0, str, (int)len, nullptr, 0, nullptr, nullptr);
+    if (n == 0) {
+        return "";
+    }
+
+    std::vector<char> buffer;
+    buffer.resize(n);
+    WideCharToMultiByte(CP_UTF8, 0, str, (int)len, buffer.data(), (int)buffer.size(), nullptr, nullptr);
+
+    return std::string(buffer.begin(), buffer.end());
+}
+
+std::string GetUTF8String(const wchar_t *str) {
+    size_t len = wcslen(str);
+    return GetUTF8String(str, len);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+std::string GetUTF8String(const std::wstring &str) {
+    return GetUTF8String(str.data(), str.size());
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+static std::wstring GetWideString(const char *str, size_t len) {
+    if (len > INT_MAX) {
+        return L"";
+    }
+
+    int n = MultiByteToWideChar(CP_UTF8, 0, str, (int)len, nullptr, 0);
+    if (n == 0) {
+        return L"";
+    }
+
+    std::vector<wchar_t> buffer;
+    buffer.resize(n);
+    MultiByteToWideChar(CP_UTF8, 0, str, (int)len, buffer.data(), (int)buffer.size());
+
+    return std::wstring(buffer.begin(), buffer.end());
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+std::wstring GetWideString(const char *str) {
+    size_t len = strlen(str);
+    return GetWideString(str, len);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+std::wstring GetWideString(const std::string &str) {
+    return GetWideString(str.data(), str.size());
+}
+
