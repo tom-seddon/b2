@@ -584,10 +584,15 @@ struct Options {
     bool remotery = false;
     bool remotery_thread_sampler = false;
 #endif
-    bool launch = false;
-    std::string launch_path;
     std::string override_config_folder = GetConfigPath("");
     bool override_config_folder_specified = false;
+
+    // File association mode is what you get when b2 has been set up as the
+    // program to use when double clicking on disk images.
+    //
+    // Just one argument is supplied: the disk image.
+    bool file_association_mode = false;
+    std::string file_association_path;
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -645,8 +650,8 @@ static bool ParseCommandLineOptions(
     // Detect the File Explorer double-click case on Windows (also acts as a
     // convenient command-line shortcut).
     if (argc == 2 && PathIsFileOnDisk(argv[1])) {
-        options->launch = true;
-        options->launch_path = argv[1];
+        options->file_association_mode = true;
+        options->file_association_path = argv[1];
 
         return true;
     }
@@ -1150,19 +1155,19 @@ static bool main2(int argc, char *argv[], const std::shared_ptr<MessageList> &in
 
     StartHTTPServer(&init_messages);
 
-    if (options.launch) {
+    if (options.file_association_mode) {
         if (GetHTTPServerListenPort() != 0) {
             // The HTTP server started, so there's definitely no other instance
             // running that could handle the request.
         } else {
-            if (BootDiskInExistingProcess(options.launch_path, &init_messages)) {
+            if (BootDiskInExistingProcess(options.file_association_path, &init_messages)) {
                 return true;
             }
         }
 
         // Fake a -0 PATH -boot.
         options.boot = true;
-        options.discs[0] = options.launch_path;
+        options.discs[0] = options.file_association_path;
     }
 
     if (!InitLogs(options, &init_messages)) {
