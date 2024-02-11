@@ -4,7 +4,6 @@
 #include "MemoryDiscImage.h"
 #include <stdio.h>
 #include <stdlib.h>
-#include "download.h"
 #include "misc.h"
 #include <shared/sha1.h>
 #include <shared/mutex.h>

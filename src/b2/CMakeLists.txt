@@ -43,7 +43,6 @@ add_executable(b2 MACOSX_BUNDLE
   dear_imgui.cpp dear_imgui.h
   debugger.cpp debugger.h debugger.inl
   discs.cpp discs.h
-  download.h
   filters.cpp filters.h
   keymap.cpp keymap.h
   keys.cpp keys.h keys.inl
@@ -250,18 +249,6 @@ elseif(LINUX)
   target_include_directories(b2 PRIVATE ${GTK2_INCLUDE_DIRS})
   target_link_libraries(b2 PRIVATE ${GTK2_LIBRARIES})
   target_sources(b2 PRIVATE native_ui_gtk.cpp native_ui_gtk.h)
-endif()
-
-##########################################################################
-##########################################################################
-
-# HTTP download stuff.
-
-if(WIN32)
-  target_sources(b2 PRIVATE download_windows.cpp)
-  target_link_libraries(b2 PRIVATE urlmon.lib)
-else()
-  target_sources(b2 PRIVATE download_null.c)
 endif()
 
 ##########################################################################
