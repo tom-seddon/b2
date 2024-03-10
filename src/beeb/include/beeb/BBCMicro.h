@@ -233,11 +233,11 @@ class BBCMicro : private WD1770Handler,
 #include <shared/popwarn.h>
 
     union SystemVIAPB {
+        uint8_t value;
         SystemVIAPBBits bits;
         BSystemVIAPBBits b_bits;
         Master128SystemVIAPBBits m128_bits;
         MasterCompactSystemVIAPBBits mcompact_bits;
-        uint8_t value;
     };
 
 #include <shared/pushwarn_bitfields.h>
