@@ -686,12 +686,13 @@ parasite_update_done:
                 m_beeblink->Update(&m_state.user_via);
             }
 
-            // Update joystick buttons.
-            m_state.system_via.b.p = (m_state.system_via.b.p & ~(1u << SystemVIAPBBits::NOT_JOYSTICK0_FIRE_BIT | 1u << SystemVIAPBBits::NOT_JOYSTICK1_FIRE_BIT)) | m_state.not_joystick_buttons;
+            if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_IsMasterCompact) == 0) {
+                // Update analogue joystick buttons.
+                m_state.system_via.b.p = (m_state.system_via.b.p & ~(1u << SystemVIAPBBits::NOT_JOYSTICK0_FIRE_BIT | 1u << SystemVIAPBBits::NOT_JOYSTICK1_FIRE_BIT)) | m_state.not_joystick_buttons;
+            }
 
             // Update addressable latch and RTC.
-            SystemVIAPB pb;
-            pb.value = m_state.system_via.b.p;
+            const SystemVIAPB pb = {m_state.system_via.b.p};
 
             if (m_state.old_system_via_pb.value != pb.value) {
                 uint8_t mask = 1 << pb.bits.latch_index;
@@ -719,8 +720,9 @@ parasite_update_done:
                 } else if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_IsMasterCompact) != 0) {
                     bool output_data = UpdatePCD8572(&m_state.eeprom, pb.mcompact_bits.clk, pb.mcompact_bits.data);
 
-                    pb.mcompact_bits.data = pb.mcompact_bits.data && output_data;
-                    m_state.system_via.b.p = pb.value;
+                    SystemVIAPB new_pb = {m_state.system_via.b.p};
+                    new_pb.mcompact_bits.data = new_pb.mcompact_bits.data && output_data;
+                    m_state.system_via.b.p = new_pb.value;
                 }
 
                 m_state.old_system_via_pb = pb;
@@ -776,8 +778,10 @@ parasite_update_done:
             // Update 1770.
             M6502_SetDeviceNMI(&m_state.cpu, BBCMicroNMIDevice_1770, m_state.fdc.Update().value);
 
-            // Update ADC.
-            m_state.system_via.b.c1 = m_state.adc.Update();
+            if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_IsMasterCompact) == 0) {
+                // Update ADC.
+                m_state.system_via.b.c1 = m_state.adc.Update();
+            }
         }
 
         // Update sound.
