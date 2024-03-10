@@ -730,7 +730,7 @@ const BBCMicroType BBC_MICRO_TYPE_MASTER_COMPACT = {
     "Master Compact",
     &M6502_cmos6502_config,
     65536,
-    DiscDriveType_133mm,
+    DiscDriveType_90mm,
 #if BBCMICRO_DEBUGGER
     (BBCMicroDebugStateOverride_ROM |
      BBCMicroDebugStateOverride_OverrideROM |

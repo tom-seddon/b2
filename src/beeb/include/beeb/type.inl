@@ -15,7 +15,7 @@ EEND()
 
 #define ENAME DiscDriveType
 EBEGIN()
-//EPN(90mm)
+EPN(90mm)
 EPN(133mm)
 EEND()
 #undef ENAME
