@@ -2,6 +2,9 @@
 #include <shared/debug.h>
 #include <shared/log.h>
 #include <beeb/PCD8572.h>
+#include <beeb/Trace.h>
+#include <6502/6502.h>
+#include <unordered_map>
 
 #include <shared/enum_def.h>
 #include <beeb/PCD8572.inl>
@@ -31,18 +34,182 @@ void SetPCD8572Trace(PCD8572 *p, Trace *t) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool UpdatePCD8572(PCD8572 *p, bool clk, bool data) {
-    const bool start = p->oclk && clk && p->odata && !data;
-    const bool stop = p->oclk && clk && !p->odata && data;
-    const bool clkup = !p->oclk && clk;
-    const int bit = clkup ? data : -1;
+#define ELOG(FMT, ...)                       \
+    BEGIN_MACRO {                            \
+        LOGF(EEPROM, FMT "\n", __VA_ARGS__); \
+        TRACEF(p->t, FMT, __VA_ARGS__);      \
+    }                                        \
+    END_MACRO
 
-    LOGF(EEPROM, "clk=%d data=%d: start=%d stop=%d clkup=%d bit=%d\n", clk, data, start, stop, clkup, bit);
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if PCD8572_MOS510_DEBUG
+static const std::unordered_map<uint32_t, std::string> g_mos510_names = {
+    {0x9ea9, "i2cStartDataTransfer"},
+    {0x9eeb, "i2cStopDataTransfer"},
+    {0x9e92, "i2cSetClockHigh"},
+    {0x9e9d, "i2cSetClockLow"},
+    {0x9ef8, "i2cSetDataHigh"},
+    {0x9ec3, "i2cSetDataLow"},
+    {0x9fa1, "i2cTransmitByteAndReceiveBit"},
+};
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+// If outputting data, return the desired output. If inputting, return data.
+
+static bool ReceivedValue(PCD8572 *p, bool clk, bool data) {
+    if (p->oclk && !clk) {
+        if (p->value_mask == 0) {
+            p->value_mask = 0x80;
+        }
+
+        ELOG("Received bit: %d (mask=$%02x)", data, p->value_mask);
+
+        if (data) {
+            p->value |= p->value_mask;
+        } else {
+            p->value &= ~p->value_mask;
+        }
+
+        p->value_mask >>= 1;
+        if (p->value_mask == 0) {
+            ELOG("Received value: %-3u $%02X %%%s %s", p->value, p->value, BINARY_BYTE_STRINGS[p->value], ASCII_BYTE_STRINGS[p->value]);
+            return true;
+        }
+    }
+
+    return false;
+}
+
+static void SendAcknowledge(PCD8572 *p, PCD8572State next_state) {
+    p->state = PCD8572State_SendAcknowledge;
+    p->next_state = next_state;
+}
+
+bool UpdatePCD8572(PCD8572 *p, bool clk, bool data) {
+    bool output = data;
+
+    if (clk != p->oclk || data != p->odata) {
+        uint16_t pc = 0;
+        const char *symbol = "?";
+#if PCD8572_MOS510_DEBUG
+        if (p->cpu) {
+            pc = p->cpu->opcode_pc.w;
+            auto &&it = g_mos510_names.find(pc);
+            if (it != g_mos510_names.end()) {
+                symbol = it->second.c_str();
+            }
+        }
+#endif
+
+        ELOG("%s: clk=%d->%d data=%d->%d: pc=$%04x (%s)", GetPCD8572StateEnumName(p->state), p->oclk, clk, p->odata, data, pc, symbol);
+    }
+
+    if (p->oclk && clk) {
+        if (p->odata && !data) {
+            ELOG("Got START condition");
+            p->value_mask = 0;
+            p->state = PCD8572State_StartReceiveSlaveAddress;
+        } else if (!p->odata && data) {
+            ELOG("Got STOP condition");
+            p->state = PCD8572State_Idle;
+        }
+    }
+
+    switch (p->state) {
+    default:
+        ASSERT(false);
+        break;
+
+    case PCD8572State_Idle:
+        //// Enter Receive mode on START condition.
+        break;
+
+    case PCD8572State_StartReceiveSlaveAddress:
+        if (!clk) {
+            p->state = PCD8572State_ReceiveSlaveAddress;
+        }
+        break;
+
+    case PCD8572State_ReceiveSlaveAddress:
+        if (ReceivedValue(p, clk, data)) {
+            if ((p->value & 0xe) != 0) {
+                // Wrong address. Ignore.
+                p->state = PCD8572State_Idle;
+                break;
+            }
+
+            if (p->value & 1) {
+                // Alternate read mode.
+                SendAcknowledge(p, PCD8572State_SendData);
+            } else {
+                // Read mode/erase+write mode.
+                SendAcknowledge(p, PCD8572State_ReceiveWordAddress);
+            }
+        }
+        break;
+
+    case PCD8572State_SendAcknowledge:
+        if (clk) {
+            output = false;
+        } else if (p->oclk && !clk) {
+            p->state = p->next_state;
+            p->next_state = PCD8572State_Idle;
+        }
+        break;
+
+    case PCD8572State_ReceiveWordAddress:
+        if (ReceivedValue(p, clk, data)) {
+            p->addr = p->value;
+            ELOG("write: got address: %-3u ($%02x)", p->addr, p->addr);
+            SendAcknowledge(p, PCD8572State_ReceiveData);
+        }
+        break;
+
+    case PCD8572State_ReceiveData:
+        if (ReceivedValue(p, clk, data)) {
+            ELOG("write: address: %-3u ($%02x); value: %-3u $%02x %%%s %s", p->addr, p->addr, p->value, p->value, BINARY_BYTE_STRINGS[p->value], ASCII_BYTE_STRINGS[p->value]);
+            p->ram[p->addr & 0x7f] = p->value;
+            ++p->addr;
+
+            SendAcknowledge(p, PCD8572State_ReceiveData);
+        }
+        break;
+
+    case PCD8572State_SendData:
+        if (p->value_mask == 0) {
+            p->value = p->ram[p->addr & 0x7f];
+            ELOG("read: address: %-3u ($%02x); value: %-3u $%02x %%%s %s", p->addr, p->addr, p->value, p->value, BINARY_BYTE_STRINGS[p->value], ASCII_BYTE_STRINGS[p->value]);
+
+            p->value_mask = 0x80;
+        }
+
+        if (p->oclk && clk) {
+            output = !!(p->value & p->value_mask);
+        } else if (p->oclk && !clk) {
+            p->value_mask >>= 1;
+            if (p->value_mask == 0) {
+                p->state = PCD8572State_ReceiveAcknowledge;
+            }
+        }
+        break;
+
+    case PCD8572State_ReceiveAcknowledge:
+        if (p->oclk && clk && !data) {
+            ++p->addr;
+            p->state = PCD8572State_SendData;
+        }
+        break;
+    }
 
     p->oclk = clk;
     p->odata = data;
 
-    return data;
+    return output;
 }
 
 //////////////////////////////////////////////////////////////////////////

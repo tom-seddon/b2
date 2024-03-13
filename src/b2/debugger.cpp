@@ -2205,6 +2205,7 @@ class SystemVIADebugWindow : public R6522DebugWindow {
   protected:
     void DoImGui2() override {
         const MC146818 *rtc = m_beeb_state->DebugGetRTC();
+        const PCD8572 *eeprom = m_beeb_state->DebugGetEEPROM();
 
         this->DoRegisterValuesGui(m_beeb_state->system_via, m_beeb_debug_state, &BBCMicro::HardwareDebugState::system_via_irq_breakpoints);
 
@@ -2215,8 +2216,11 @@ class SystemVIADebugWindow : public R6522DebugWindow {
 
         ImGui::Text("Port B inputs:");
 
-        ImGui::BulletText("Joystick 0 Fire = %s", BOOL_STR(!pb.bits.not_joystick0_fire));
-        ImGui::BulletText("Joystick 1 Fire = %s", BOOL_STR(!pb.bits.not_joystick1_fire));
+        if (HasADC(m_beeb_state->type)) {
+            ImGui::BulletText("Joystick 0 Fire = %s", BOOL_STR(!pb.bits.not_joystick0_fire));
+            ImGui::BulletText("Joystick 1 Fire = %s", BOOL_STR(!pb.bits.not_joystick1_fire));
+        }
+
         if (HasSpeech(m_beeb_state->type)) {
             ImGui::BulletText("Speech Ready = %u, IRQ = %u", pb.b_bits.speech_ready, pb.b_bits.speech_interrupt);
         }
@@ -2232,6 +2236,9 @@ class SystemVIADebugWindow : public R6522DebugWindow {
                               pb.m128_bits.rtc_chip_select,
                               pb.m128_bits.rtc_address_strobe);
             ImGui::BulletText("(FYI: RTC address register value = %u)", rtc->GetAddress());
+        } else if (eeprom) {
+            ImGui::BulletText("EEPROM clock = %u, data = %u", pb.mcompact_bits.clk, pb.mcompact_bits.data);
+            ImGui::BulletText("(FYI: EEPROM address: %u ($%02X))", eeprom->addr, eeprom->addr);
         }
 
         ImGui::Separator();
@@ -2286,6 +2293,8 @@ class NVRAMDebugWindow : public DebugUI {
     void DoImGui2() override {
         if (const MC146818 *rtc = m_beeb_state->DebugGetRTC()) {
             this->DoNVRAMUI(rtc->m_regs.bits.ram, sizeof rtc->m_regs.bits.ram);
+        } else if (const PCD8572 *eeprom = m_beeb_state->DebugGetEEPROM()) {
+            this->DoNVRAMUI(eeprom->ram, sizeof eeprom->ram);
         } else {
             ImGui::Text("This computer has no non-volatile RAM.");
         }
@@ -2348,6 +2357,10 @@ class NVRAMDebugWindow : public DebugUI {
             ImGui::Text("Default scrolling: %s\n", nvram[16] & 8 ? "protected" : "enabled");
             ImGui::Text("Default boot mode: %s\n", nvram[16] & 16 ? "auto boot" : "no boot");
             ImGui::Text("Default serial data format: %d\n", nvram[16] >> 5 & 7);
+            ImGui::Text("Unused byte 17: %u ($%02X)", nvram[17], nvram[17]);
+            ImGui::Text("Compact joystick mode: %s", nvram[18] & 0x20 ? "Switched" : "Proportional");
+            ImGui::Text("Compact STICK value: %d", nvram[18] & 0xf);
+            ImGui::Text("Compact country code: %u ($%02X)", nvram[19], nvram[19]);
         }
     }
 };

@@ -1,7 +1,12 @@
 #define ENAME PCD8572State
 EBEGIN()
 EPN(Idle)
-EPN(Receive)
-EPN(Acknowledge)
+EPN(StartReceiveSlaveAddress)
+EPN(ReceiveSlaveAddress)
+EPN(ReceiveWordAddress)
+EPN(SendAcknowledge)
+EPN(ReceiveData)
+EPN(SendData)
+EPN(ReceiveAcknowledge)
 EEND()
 #undef ENAME

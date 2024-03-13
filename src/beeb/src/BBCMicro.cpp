@@ -2237,6 +2237,10 @@ void BBCMicro::InitStuff() {
 
     m_ram = m_state.ram_buffer->data();
 
+#if PCD8572_MOS510_DEBUG
+    m_state.eeprom.cpu = &m_state.cpu;
+#endif
+
     m_read_mmios_hw = std::vector<ReadMMIO>(768);
     m_write_mmios_hw = std::vector<WriteMMIO>(768);
     m_mmios_stretch_hw = std::vector<uint8_t>(768);
