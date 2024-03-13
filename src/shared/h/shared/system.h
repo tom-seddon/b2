@@ -327,7 +327,8 @@ size_t GetNumSetBits64(uint64_t value);
 // TODO: somewhere better for these, surely?
 #define BOOL_STR(X) ((X) ? "true" : "false")
 
-extern const char BINARY_BYTE_STRINGS[256][9];
+extern const char BINARY_BYTE_STRINGS[256][9];//8 binary digits
+extern const char ASCII_BYTE_STRINGS[256][5];//"" or "'x'" if isprint
 extern const char HEX_CHARS_UC[];
 extern const char HEX_CHARS_LC[];
 
