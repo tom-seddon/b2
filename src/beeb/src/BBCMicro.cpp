@@ -147,12 +147,20 @@ BBCMicro::State::State(const BBCMicroType *type_,
     M6502_Init(&this->cpu, this->type->m6502_config);
     this->ram_buffer = std::make_shared<std::vector<uint8_t>>(this->type->ram_buffer_size);
 
-    if (this->type->type_id == BBCMicroTypeID_Master) {
+    switch (this->type->type_id) {
+    case BBCMicroTypeID_Master:
         this->rtc.SetRAMContents(nvram_contents);
 
         if (rtc_time) {
             this->rtc.SetTime(rtc_time);
         }
+        break;
+
+    case BBCMicroTypeID_MasterCompact:
+        for (size_t i = 0; i < sizeof this->eeprom.ram; ++i) {
+            this->eeprom.ram[i] = i < nvram_contents.size() ? nvram_contents[i] : 0;
+        }
+        break;
     }
 
     if (this->parasite_type != BBCMicroParasiteType_None) {
@@ -711,7 +719,7 @@ void BBCMicro::TracePortB(SystemVIAPB pb) {
     if (has_rtc) {
         log.f("RTC AS=%u; RTC CS=%u; ", pb.m128_bits.rtc_address_strobe, pb.m128_bits.rtc_chip_select);
     } else if (has_eeprom) {
-        log.f("EEPROM Clk=%u; EEPROM Data=%u", pb.mcompact_bits.clk, pb.mcompact_bits.data);
+        log.f("EEPROM Clk=%u; EEPROM Data=%u; ", pb.mcompact_bits.clk, pb.mcompact_bits.data);
     }
 
     const char *name = nullptr;
@@ -1117,9 +1125,14 @@ uint32_t BBCMicro::GetLEDs() {
 //////////////////////////////////////////////////////////////////////////
 
 std::vector<uint8_t> BBCMicro::GetNVRAM() const {
-    if (m_state.type->type_id == BBCMicroTypeID_Master) {
+    switch (m_state.type->type_id) {
+    case BBCMicroTypeID_Master:
         return m_state.rtc.GetRAMContents();
-    } else {
+
+    case BBCMicroTypeID_MasterCompact:
+        return std::vector<uint8_t>(m_state.eeprom.ram, m_state.eeprom.ram + sizeof m_state.eeprom.ram);
+
+    default:
         return std::vector<uint8_t>();
     }
 }

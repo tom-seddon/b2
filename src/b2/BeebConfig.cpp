@@ -74,10 +74,8 @@ static std::shared_ptr<std::array<uint8_t, MAX_SIZE>> LoadROM(const BeebConfig::
 
 static std::vector<BeebConfig> g_default_configs;
 
-static std::vector<uint8_t> GetDefaultMasterNVRAM() {
-    std::vector<uint8_t> nvram;
-
-    nvram.resize(50);
+static std::vector<uint8_t> GetDefaultMaster128NVRAM() {
+    std::vector<uint8_t> nvram(50);
 
     nvram[5] = 0xC9;  // 5 - LANG 12; FS 9
     nvram[6] = 0xFF;  // 6 - INSERT 0 ... INSERT 7
@@ -95,7 +93,30 @@ static std::vector<uint8_t> GetDefaultMasterNVRAM() {
     return nvram;
 }
 
-static std::vector<uint8_t> g_default_master_nvram_contents = GetDefaultMasterNVRAM();
+static std::vector<uint8_t> GetDefaultMasterCompactNVRAM() {
+    std::vector<uint8_t> nvram(128);
+
+    nvram[5] = 0xED;  // 5 - LANG 14; FS 13
+    nvram[6] = 0xFF;  // 6 - INSERT 0 ... INSERT 7
+    nvram[7] = 0xFF;  // 7 - INSERT 8 ... INSERT 15
+    nvram[8] = 0x00;  // 8
+    nvram[9] = 0x00;  // 9
+    nvram[10] = 0x17; //10 - MODE 7; SHADOW 0; TV 0 1
+    nvram[11] = 0x80; //11 - FLOPPY
+    nvram[12] = 55;   //12 - DELAY 55
+    nvram[13] = 0x03; //13 - REPEAT 3
+    nvram[14] = 0x00; //14
+    nvram[15] = 0x01; //15 - TUBE
+    nvram[16] = 0x02; //16 - LOUD
+    nvram[17] = 0x00; //17 - unused?
+    nvram[18] = 0x00; //18 - joystick settings
+    nvram[19] = 0x00; //19 - country code
+
+    return nvram;
+}
+
+static std::vector<uint8_t> g_default_master_128_nvram_contents = GetDefaultMaster128NVRAM();
+static std::vector<uint8_t> g_default_master_compact_nvram_contents = GetDefaultMasterCompactNVRAM();
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -320,9 +341,14 @@ const BeebConfig *GetDefaultBeebConfigByIndex(size_t index) {
 //////////////////////////////////////////////////////////////////////////
 
 std::vector<uint8_t> GetDefaultNVRAMContents(const BBCMicroType *type) {
-    if (type->type_id == BBCMicroTypeID_Master) {
-        return g_default_master_nvram_contents;
-    } else {
+    switch (type->type_id) {
+    case BBCMicroTypeID_Master:
+        return g_default_master_128_nvram_contents;
+
+    case BBCMicroTypeID_MasterCompact:
+        return g_default_master_compact_nvram_contents;
+
+    default:
         return std::vector<uint8_t>();
     }
 }
@@ -331,8 +357,14 @@ std::vector<uint8_t> GetDefaultNVRAMContents(const BBCMicroType *type) {
 //////////////////////////////////////////////////////////////////////////
 
 void ResetDefaultNVRAMContents(const BBCMicroType *type) {
-    if (type->type_id == BBCMicroTypeID_Master) {
-        g_default_master_nvram_contents = GetDefaultMasterNVRAM();
+    switch (type->type_id) {
+    case BBCMicroTypeID_Master:
+        g_default_master_128_nvram_contents = GetDefaultMaster128NVRAM();
+        break;
+
+    case BBCMicroTypeID_MasterCompact:
+        g_default_master_compact_nvram_contents = GetDefaultMasterCompactNVRAM();
+        break;
     }
 }
 
@@ -340,8 +372,14 @@ void ResetDefaultNVRAMContents(const BBCMicroType *type) {
 //////////////////////////////////////////////////////////////////////////
 
 void SetDefaultNVRAMContents(const BBCMicroType *type, std::vector<uint8_t> nvram_contents) {
-    if (type->type_id == BBCMicroTypeID_Master) {
-        g_default_master_nvram_contents = std::move(nvram_contents);
+    switch (type->type_id) {
+    case BBCMicroTypeID_Master:
+        g_default_master_128_nvram_contents = std::move(nvram_contents);
+        break;
+
+    case BBCMicroTypeID_MasterCompact:
+        g_default_master_compact_nvram_contents = std::move(nvram_contents);
+        break;
     }
 }
 
