@@ -2646,7 +2646,6 @@ void BeebThread::ThreadStartTrace(ThreadState *ts) {
 
     case BeebThreadStartTraceCondition_Instruction:
         any_instruction_condition = true;
-        ts->beeb->AddHostInstructionFn(&ThreadHandleTraceInstructionConditions, ts);
         break;
 
     case BeebThreadStartTraceCondition_WriteAddress:
