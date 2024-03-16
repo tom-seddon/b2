@@ -316,3 +316,47 @@ updating.
 
 Could maybe template the BeebThread update function, along similar
 lines? The stretch flag complicates that a bit, though.
+
+* Compact EEPROM stuff
+
+f`$82d9: - print "Options reset"
+
+bra resetCMOSRAM:
+
+H     2475011  f`$8279: bra  $82bb               00 00 00 ff nvdIZc (01)
+
+powerOnReset:
+
+H     2463066  f`$8264: ldx  #$ff                00 ff 0f ff NvdIzc (ff)
+
+#+begin_example
+605	.8264					powerOnReset:
+607	.8264	a2 ff		ldx #$ff	                ldx #$ff
+608	.8266	20 3a 9f	jsr $9f3a	                jsr i2cReadEEPROMByte
+609	.8269	b0 10		bcs $827b	                bcs checkForNVRAMReset
+
+C=0, so branch not taken. Read succeeded, at least.
+
+Y=$00
+
+610	.826b	98		tya		                tya
+
+A=$00
+
+611	.826c	29 7f		and #$7f	                and #$7f
+
+A=$00
+
+615	.826e	c9 30		cmp #$30	                cmp #$30
+
+Nope...
+
+617	.8270	f0 09		beq $827b	                beq checkForNVRAMReset
+
+It is done.
+
+618	.8272	a2 00		ldx #$00	                ldx #0
+619	.8274	a0 00		ldy #$00	                ldy #0
+620	.8276	20 09 9f	jsr $9f09	                jsr L9E99
+621	.8279	80 40		bra $82bb	                bra resetCMOSRAM
+#+end_example

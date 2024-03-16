@@ -4,9 +4,12 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#ifdef BUILD_TYPE_Debug
 // Add in some slightly ugly MOS 5.10-specific debug stuff (that gets its
-// tentacles elsewhere).
+// tentacles elsewhere). Deliberately only included in the cmake Debug
+// configuration, as it's not general-purpose.
 #define PCD8572_MOS510_DEBUG 1
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -44,6 +47,7 @@ struct PCD8572 {
     bool odata = false;
     uint8_t value = 0;
     uint8_t value_mask = 0;
+    bool data_output = true;
 
     bool read = false;
     uint8_t addr = 0;
@@ -62,7 +66,7 @@ struct PCD8572 {
 #if BBCMICRO_TRACE
 void SetPCD8572Trace(PCD8572 *p, Trace *t);
 #endif
-bool UpdatePCD8572(PCD8572 *p, bool clk, bool data);
+void UpdatePCD8572(PCD8572 *p, bool clk, bool data);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

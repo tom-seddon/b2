@@ -34,11 +34,17 @@ void SetPCD8572Trace(PCD8572 *p, Trace *t) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-#define ELOG(FMT, ...)                       \
-    BEGIN_MACRO {                            \
-        LOGF(EEPROM, FMT "\n", __VA_ARGS__); \
-        TRACEF(p->t, FMT, __VA_ARGS__);      \
-    }                                        \
+#if 0//BUILD_TYPE_Debug
+#define ELOG_LOGF LOGF
+#else
+#define ELOG_LOGF(...) ((void)0)
+#endif
+
+#define ELOG(FMT, ...)                              \
+    BEGIN_MACRO {                                   \
+        ELOG_LOGF(EEPROM, FMT "\n", __VA_ARGS__);   \
+        TRACEF(p->t, "EEPROM - " FMT, __VA_ARGS__); \
+    }                                               \
     END_MACRO
 
 //////////////////////////////////////////////////////////////////////////
@@ -52,7 +58,9 @@ static const std::unordered_map<uint32_t, std::string> g_mos510_names = {
     {0x9e9d, "i2cSetClockLow"},
     {0x9ef8, "i2cSetDataHigh"},
     {0x9ec3, "i2cSetDataLow"},
-    {0x9fa1, "i2cTransmitByteAndReceiveBit"},
+    {0x9fa1, "i2cTransmitByteAndReceiveBit - set data line as input"},
+    {0x9fb4, "i2cTransmitByteAndReceiveBit - set data line as output"},
+    {0x9f76, "i2cReadEEPROMByte - restore old DDRB"},
 };
 #endif
 
@@ -90,9 +98,7 @@ static void SendAcknowledge(PCD8572 *p, PCD8572State next_state) {
     p->next_state = next_state;
 }
 
-bool UpdatePCD8572(PCD8572 *p, bool clk, bool data) {
-    bool output = data;
-
+void UpdatePCD8572(PCD8572 *p, bool clk, bool data) {
     if (clk != p->oclk || data != p->odata) {
         uint16_t pc = 0;
         const char *symbol = "?";
@@ -155,7 +161,7 @@ bool UpdatePCD8572(PCD8572 *p, bool clk, bool data) {
 
     case PCD8572State_SendAcknowledge:
         if (clk) {
-            output = false;
+            p->data_output = false;
         } else if (p->oclk && !clk) {
             p->state = p->next_state;
             p->next_state = PCD8572State_Idle;
@@ -165,7 +171,7 @@ bool UpdatePCD8572(PCD8572 *p, bool clk, bool data) {
     case PCD8572State_ReceiveWordAddress:
         if (ReceivedValue(p, clk, data)) {
             p->addr = p->value;
-            ELOG("write: got address: %-3u ($%02x)", p->addr, p->addr);
+            ELOG("received address: %-3u ($%02x)", p->addr, p->addr);
             SendAcknowledge(p, PCD8572State_ReceiveData);
         }
         break;
@@ -188,9 +194,12 @@ bool UpdatePCD8572(PCD8572 *p, bool clk, bool data) {
             p->value_mask = 0x80;
         }
 
-        if (p->oclk && clk) {
-            output = !!(p->value & p->value_mask);
-        } else if (p->oclk && !clk) {
+        if (!p->oclk && clk) {
+            p->data_output = !!(p->value & p->value_mask);
+            ELOG("Sent bit: %d (mask=$%02x)", p->data_output, p->value_mask);
+        }
+
+        if (p->oclk && !clk) {
             p->value_mask >>= 1;
             if (p->value_mask == 0) {
                 p->state = PCD8572State_ReceiveAcknowledge;
@@ -208,8 +217,6 @@ bool UpdatePCD8572(PCD8572 *p, bool clk, bool data) {
 
     p->oclk = clk;
     p->odata = data;
-
-    return output;
 }
 
 //////////////////////////////////////////////////////////////////////////

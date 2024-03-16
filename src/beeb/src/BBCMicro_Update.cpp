@@ -718,14 +718,15 @@ parasite_update_done:
                         m_state.rtc.SetAddress(m_state.system_via.a.p);
                     }
                 } else if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_IsMasterCompact) != 0) {
-                    bool output_data = UpdatePCD8572(&m_state.eeprom, pb.mcompact_bits.clk, pb.mcompact_bits.data);
-
-                    SystemVIAPB new_pb = {m_state.system_via.b.p};
-                    new_pb.mcompact_bits.data = new_pb.mcompact_bits.data && output_data;
-                    m_state.system_via.b.p = new_pb.value;
+                    UpdatePCD8572(&m_state.eeprom, pb.mcompact_bits.clk, pb.mcompact_bits.data);
                 }
 
                 m_state.old_system_via_pb = pb;
+            }
+
+            if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_IsMasterCompact) != 0) {
+                // Update EEPROM data output bit.
+                m_state.system_via.b.p = (m_state.system_via.b.p & ~(1u << MasterCompactSystemVIAPBBits::DATA_BIT)) | m_state.eeprom.data_output << MasterCompactSystemVIAPBBits::DATA_BIT;
             }
 
             if constexpr (UPDATE_FLAGS & BBCMicroUpdateFlag_IsMaster128) {

@@ -228,6 +228,7 @@ class BBCMicro : private WD1770Handler,
 
 #include <shared/pushwarn_bitfields.h>
     struct MasterCompactSystemVIAPBBits {
+        static constexpr uint8_t DATA_BIT = 4;
         uint8_t _ : 4, data : 1, clk : 1;
     };
 #include <shared/popwarn.h>

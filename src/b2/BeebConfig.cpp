@@ -102,7 +102,7 @@ static std::vector<uint8_t> GetDefaultMasterCompactNVRAM() {
     nvram[8] = 0x00;  // 8
     nvram[9] = 0x00;  // 9
     nvram[10] = 0x17; //10 - MODE 7; SHADOW 0; TV 0 1
-    nvram[11] = 0x80; //11 - FLOPPY
+    nvram[11] = 0xC0; //11 - FLOPPY; NODIR
     nvram[12] = 55;   //12 - DELAY 55
     nvram[13] = 0x03; //13 - REPEAT 3
     nvram[14] = 0x00; //14
@@ -111,6 +111,9 @@ static std::vector<uint8_t> GetDefaultMasterCompactNVRAM() {
     nvram[17] = 0x00; //17 - unused?
     nvram[18] = 0x00; //18 - joystick settings
     nvram[19] = 0x00; //19 - country code
+
+    // Additional flag to indicate contents are valid.
+    nvram[127] = 0xb0;
 
     return nvram;
 }
