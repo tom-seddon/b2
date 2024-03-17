@@ -1,4 +1,4 @@
-# Building
+# Cloning the repo
 
 This repo has submodules, so you have to clone it to build it - the
 source code archives in the releases page won't work. (This is a
@@ -13,7 +13,14 @@ If you're reading this after already cloning it:
     git submodule init
 	git submodule update
 
-Regarding branches, the following should always build:
+(If anything goes wrong during initial cloning or updating, a `git
+submodule update --force` may or may not fix things. If you're not
+intending to make any changes, the easiest thing is usually to delete
+the working copy and start again.)
+
+# Branches
+
+The following should always build:
 
 * `master` - used to prepare latest GitHub release. Should always
   build and shouldn't contain anything too half-baked
@@ -28,6 +35,8 @@ they're roughly working.)
 After switching branches, you will need to do `git submodule update`
 again, to ensure the submodules are also at the correct revisions. Git
 doesn't do this for you.
+
+# Building
 
 Once you're all set up:
 
