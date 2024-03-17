@@ -148,6 +148,9 @@ BBCMicro::State::State(const BBCMicroType *type_,
     this->ram_buffer = std::make_shared<std::vector<uint8_t>>(this->type->ram_buffer_size);
 
     switch (this->type->type_id) {
+    default:
+        break;
+        
     case BBCMicroTypeID_Master:
         this->rtc.SetRAMContents(nvram_contents);
 

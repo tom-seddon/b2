@@ -726,7 +726,7 @@ parasite_update_done:
 
             if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_IsMasterCompact) != 0) {
                 // Update EEPROM data output bit.
-                m_state.system_via.b.p = (m_state.system_via.b.p & ~(1u << MasterCompactSystemVIAPBBits::DATA_BIT)) | m_state.eeprom.data_output << MasterCompactSystemVIAPBBits::DATA_BIT;
+                m_state.system_via.b.p = (m_state.system_via.b.p & ~(1u << MasterCompactSystemVIAPBBits::DATA_BIT)) | (uint8_t)(m_state.eeprom.data_output << MasterCompactSystemVIAPBBits::DATA_BIT);
             }
 
             if constexpr (UPDATE_FLAGS & BBCMicroUpdateFlag_IsMaster128) {

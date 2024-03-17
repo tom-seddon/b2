@@ -361,6 +361,9 @@ std::vector<uint8_t> GetDefaultNVRAMContents(const BBCMicroType *type) {
 
 void ResetDefaultNVRAMContents(const BBCMicroType *type) {
     switch (type->type_id) {
+    default:
+        break;
+        
     case BBCMicroTypeID_Master:
         g_default_master_128_nvram_contents = GetDefaultMaster128NVRAM();
         break;
@@ -376,6 +379,9 @@ void ResetDefaultNVRAMContents(const BBCMicroType *type) {
 
 void SetDefaultNVRAMContents(const BBCMicroType *type, std::vector<uint8_t> nvram_contents) {
     switch (type->type_id) {
+    default:
+        break;
+        
     case BBCMicroTypeID_Master:
         g_default_master_128_nvram_contents = std::move(nvram_contents);
         break;
