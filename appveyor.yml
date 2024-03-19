@@ -39,7 +39,7 @@ environment:
 
 image:
   - Visual Studio 2019
-  - Ubuntu2004
+  - Ubuntu2204
   - macos-bigsur
 
 matrix:
