@@ -39,14 +39,14 @@ environment:
 
 image:
   - Visual Studio 2019
-  - Ubuntu2004
+  - Ubuntu2204
   - macos-bigsur
 
 matrix:
   exclude:
     - image: Visual Studio 2019
       MACOS_SUPPORT_10_9: true
-    - image: Ubuntu2004
+    - image: Ubuntu2204
       MACOS_SUPPORT_10_9: true
 
 install:
