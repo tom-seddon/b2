@@ -25,7 +25,7 @@ class DirectDiscImage : public DiscImage {
   public:
     static const std::string LOAD_METHOD_DIRECT;
 
-    ~DirectDiscImage() = default;
+    ~DirectDiscImage();
 
     static std::shared_ptr<DirectDiscImage> CreateForFile(std::string path, Messages *msg);
 
@@ -50,6 +50,7 @@ class DirectDiscImage : public DiscImage {
 
     bool Read(uint8_t *value, uint8_t side, uint8_t track, uint8_t sector, size_t offset) const override;
     bool Write(uint8_t side, uint8_t track, uint8_t sector, size_t offset, uint8_t value) override;
+    void Flush() override;
 
     bool GetDiscSectorSize(size_t *size, uint8_t side, uint8_t track, uint8_t sector, bool double_density) const override;
     bool IsWriteProtected() const override;
@@ -59,9 +60,12 @@ class DirectDiscImage : public DiscImage {
     std::string m_path;
     DiscGeometry m_geometry;
     bool m_write_protected;
+    mutable FILE *m_fp = nullptr;
+    mutable bool m_fp_write= false;
 
     DirectDiscImage(std::string path, const DiscGeometry &geometry, bool write_protected);
-    FILE *fopenAndSeek(const char *mode, uint8_t side, uint8_t track, uint8_t sector, size_t offset) const;
+    bool fopenAndSeek(bool write, uint8_t side, uint8_t track, uint8_t sector, size_t offset) const;
+    void Close() const;
 };
 
 //////////////////////////////////////////////////////////////////////////

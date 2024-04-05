@@ -2528,6 +2528,10 @@ void BBCMicro::SpinDown() {
         dd->spin_sound_index = 0;
         dd->spin_sound = DiscDriveSound_SpinEnd;
 #endif
+
+        if (m_disc_images[m_state.disc_control.drive]) {
+            m_disc_images[m_state.disc_control.drive]->Flush();
+        }
     }
 }
 

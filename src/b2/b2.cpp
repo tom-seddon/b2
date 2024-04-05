@@ -962,9 +962,9 @@ static bool InitLogs(const std::vector<std::string> &names_list,
 }
 
 static bool InitLogs(const Options &options, Messages *init_messages) {
-#if !BUILD_TYPE_Debug    ////<---note
+#if !BUILD_TYPE_Debug    //<---note
     if (options.verbose) //<---note
-#endif                   ///////////////////<---note
+#endif                   //<---note
     {
         LOG(OUTPUT).Enable();
         LOG(OUTPUTND).Enable();

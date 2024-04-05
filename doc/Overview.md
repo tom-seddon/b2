@@ -15,10 +15,12 @@ isn't updated when changes are made in the emulator (use `Save` to do
 that), and changes made to the file won't be seen in the emulator
 (reload the disc image for that).
 
-`Direct disc image...` accesses the file directly for each read or
-write. Any changes made in the emulator are immediately made to the
-file, and any changes made to the file are immediately visible in the
-emulator.
+`Direct disc image...` accesses the file directly. While the disc
+motor indicator is on, the emulator has the file open, and will read
+and write it directly. When the disc motor indicator switches off, the
+file will reflect any changes made. You can also write to the image
+(using tools such as [beebasm](https://github.com/stardot/beebasm/))
+and the changes will be picked up on the next access.
 
 To load a disc without auto-booting, go to `Drive 0` or `Drive 1` on
 the `File` menu instead, and use `Disc image...` or `Direct disc

@@ -11,7 +11,16 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+LOG_EXTERN(OUTPUT);
+
 const std::string DirectDiscImage::LOAD_METHOD_DIRECT = "direct";
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+DirectDiscImage::~DirectDiscImage() {
+    this->Close();
+}
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -102,6 +111,8 @@ void DirectDiscImage::AddFileDialogFilter(FileDialog *fd) const {
 //////////////////////////////////////////////////////////////////////////
 
 bool DirectDiscImage::SaveToFile(const std::string &file_name, Messages *msg) const {
+    this->Close();
+
     std::vector<uint8_t> data;
     if (!LoadFile(&data, m_path, msg)) {
         return false;
@@ -122,12 +133,11 @@ bool DirectDiscImage::Read(uint8_t *value,
                            uint8_t track,
                            uint8_t sector,
                            size_t offset) const {
-    FILE *fp = this->fopenAndSeek("rb", side, track, sector, offset);
-    if (!fp) {
+    if (!this->fopenAndSeek(false, side, track, sector, offset)) {
         return false;
     }
 
-    int c = fgetc(fp);
+    int c = fgetc(m_fp);
     if (c == EOF) {
         // This case is OK - the disc image is logically its full size, even
         // when truncated.
@@ -138,9 +148,6 @@ bool DirectDiscImage::Read(uint8_t *value,
     } else {
         *value = (uint8_t)c;
     }
-
-    fclose(fp);
-    fp = nullptr;
 
     return true;
 }
@@ -153,20 +160,23 @@ bool DirectDiscImage::Write(uint8_t side,
                             uint8_t sector,
                             size_t offset,
                             uint8_t value) {
-    FILE *fp = this->fopenAndSeek("r+b", side, track, sector, offset);
-    if (!fp) {
+    if (!this->fopenAndSeek(true, side, track, sector, offset)) {
         return false;
     }
 
     bool good = false;
-    if (fputc(value, fp) != EOF) {
+    if (fputc(value, m_fp) != EOF) {
         good = true;
     }
 
-    fclose(fp);
-    fp = nullptr;
-
     return good;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void DirectDiscImage::Flush() {
+    this->Close();
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -212,32 +222,57 @@ DirectDiscImage::DirectDiscImage(std::string path,
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-FILE *DirectDiscImage::fopenAndSeek(const char *mode,
-                                    uint8_t side,
-                                    uint8_t track,
-                                    uint8_t sector,
-                                    size_t offset) const {
+bool DirectDiscImage::fopenAndSeek(bool write,
+                                   uint8_t side,
+                                   uint8_t track,
+                                   uint8_t sector,
+                                   size_t offset) const {
     size_t index;
     if (!m_geometry.GetIndex(&index, side, track, sector, offset)) {
-        return nullptr;
+        return false;
     }
 
     if (index > LONG_MAX) {
-        return nullptr;
+        return false;
     }
 
-    FILE *fp = fopenUTF8(m_path.c_str(), mode);
-    if (!fp) {
-        return nullptr;
+    if (m_fp && write && !m_fp_write) {
+        this->Close();
     }
 
-    if (fseek(fp, (long)index, SEEK_SET) != 0) {
-        fclose(fp);
-        return nullptr;
+    if (!m_fp) {
+        const char *mode;
+        if (write) {
+            mode = "r+b";
+        } else {
+            mode = "rb";
+        }
+
+        LOGF(OUTPUT, "Opening: %s (mode=%s)\n", m_path.c_str(), mode);
+
+        m_fp = fopenUTF8(m_path.c_str(), mode);
+        if (!m_fp) {
+            return false;
+        }
+
+        m_fp_write = write;
     }
 
-    return fp;
+    if (fseek(m_fp, (long)index, SEEK_SET) != 0) {
+        this->Close();
+        return false;
+    }
+
+    return true;
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
+
+void DirectDiscImage::Close() const {
+    if (m_fp) {
+        LOGF(OUTPUT, "Closing: %s\n", m_path.c_str());
+        fclose(m_fp);
+        m_fp = nullptr;
+    }
+}

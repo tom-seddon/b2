@@ -51,6 +51,8 @@ class MemoryDiscImage : public DiscImage {
 
     bool Read(uint8_t *value, uint8_t side, uint8_t track, uint8_t sector, size_t offset) const override;
     bool Write(uint8_t side, uint8_t track, uint8_t sector, size_t offset, uint8_t value) override;
+    void Flush() override;
+
     bool GetDiscSectorSize(size_t *size, uint8_t side, uint8_t track, uint8_t sector, bool double_density) const override;
     bool IsWriteProtected() const override;
 
