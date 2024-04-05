@@ -6,26 +6,25 @@ A brief summary of the main features of the emulator.
 
 If the disc auto-boots - and most that you'll find on the internet
 will - use `Run` on the `File` menu to load a disc and have the
-emulator auto-boot it. Use the `Disc image...` or `Direct disc
-image...` option to select an .ssd file, and it will start
-automatically. Or drag and drop the disk image from the File Explorer.
+emulator auto-boot it. Or drag and drop the disk image from the File
+Explorer.
 
-`Disc image...` or drag and drop loads the file into memory. The file
-isn't updated when changes are made in the emulator (use `Save` to do
-that), and changes made to the file won't be seen in the emulator
-(reload the disc image for that).
+`Disc image...` accesses the file directly. While the disc motor
+indicator is on, the emulator has the file open, and will read and
+write it. When the disc motor indicator switches off, the file will
+reflect any changes made. You can also modify the image (using tools
+such as [beebasm](https://github.com/stardot/beebasm/)) and the
+changes will be picked up on the next access.
 
-`Direct disc image...` accesses the file directly. While the disc
-motor indicator is on, the emulator has the file open, and will read
-and write it directly. When the disc motor indicator switches off, the
-file will reflect any changes made. You can also write to the image
-(using tools such as [beebasm](https://github.com/stardot/beebasm/))
-and the changes will be picked up on the next access.
+`In-memory disc image...` or drag and drop loads the file into memory.
+The file isn't updated when changes are made in the emulator (use
+`Save` to do that), and changes made to the file won't be seen in the
+emulator (reload the disc image for that).
 
 To load a disc without auto-booting, go to `Drive 0` or `Drive 1` on
-the `File` menu instead, and use `Disc image...` or `Direct disc
+the `File` menu instead, and use `Disc image...` or `In-memory disc
 image...`. Or, to create a new blank disc, use `New disc image` or
-`New direct disc image`.
+`New in-memory disc image`.
 
 ## Change config
 
@@ -104,9 +103,13 @@ state` to reload it. (All state is saved, including disc contents.)
 Use `Tools` > `Saved states` to see the list of states saved; click
 `Load` to reload one, or `Delete` to delete it.
 
-(Note that if you load a direct disc image, save states become
-disabled, as the disc contents can be changed from outside the
-emulator.)
+Save states are only available when the emulator has complete control
+over the entire state of the emulated BBC. That means the following
+restrictions apply:
+
+- all disk images loaded must be in-memory disk images
+
+- the current hardware config must have BeebLink disabled
 
 ## Timeline
 
@@ -114,6 +117,9 @@ Use the timeline functionality to record a sequence of events for
 later playback. *This functionality is a work in progress* - so it's
 not super useful yet. But having recorded a timeline, you have the
 option of creating a video from it.
+
+(The timeline uses the save state functionality, so the same
+restrictions apply.)
 
 Use `Tools` > `Timeline...` to show the Timeline window. Click
 `Record` to start recording; events are recorded to the timeline,
@@ -137,9 +143,6 @@ the best output that works with whichever program you're using to play
 back.
 
 Click `Replay` to play the timeline back. 
-
-As with save states, some functionality may cause recording to be
-disabled.
 
 ## Screenshot
 

@@ -1827,11 +1827,33 @@ void BeebWindow::DoDiscImageSubMenu(int drive, bool boot) {
     ASSERT(drive >= 0 && drive < NUM_DRIVES);
     DriveState *d = &m_drives[drive];
 
+    FileMenuItem direct_item(&d->new_direct_disc_image_file_dialog,
+                             &d->open_direct_disc_image_file_dialog,
+                             "New disc image",
+                             "Disc image...",
+                             "Recent disc image",
+                             &m_msg);
+    if (direct_item.load) {
+        if (direct_item.new_disc_type) {
+            if (!SaveFile(direct_item.new_disc_data,
+                          direct_item.path,
+                          &m_msg)) {
+                return;
+            }
+        }
+
+        std::shared_ptr<DirectDiscImage> new_disc_image = DirectDiscImage::CreateForFile(direct_item.path, &m_msg);
+
+        this->DoDiscImageSubMenuItem(drive,
+                                     std::move(new_disc_image),
+                                     &direct_item, boot);
+    }
+
     FileMenuItem file_item(&d->new_disc_image_file_dialog,
                            &d->open_disc_image_file_dialog,
-                           "New disc image",
-                           "Disc image...",
-                           "Recent disc image",
+                           "New in-memory disc image",
+                           "In-memory disc image...",
+                           "Recent in-memory disc image",
                            &m_msg);
     if (file_item.load) {
         std::shared_ptr<MemoryDiscImage> new_disc_image;
@@ -1849,28 +1871,6 @@ void BeebWindow::DoDiscImageSubMenu(int drive, bool boot) {
         this->DoDiscImageSubMenuItem(drive,
                                      std::move(new_disc_image),
                                      &file_item, boot);
-    }
-
-    FileMenuItem direct_item(&d->new_direct_disc_image_file_dialog,
-                             &d->open_direct_disc_image_file_dialog,
-                             "New direct disc image",
-                             "Direct disc image...",
-                             "Recent direct disc image",
-                             &m_msg);
-    if (direct_item.load) {
-        if (direct_item.new_disc_type) {
-            if (!SaveFile(direct_item.new_disc_data,
-                          direct_item.path,
-                          &m_msg)) {
-                return;
-            }
-        }
-
-        std::shared_ptr<DirectDiscImage> new_disc_image = DirectDiscImage::CreateForFile(direct_item.path, &m_msg);
-
-        this->DoDiscImageSubMenuItem(drive,
-                                     std::move(new_disc_image),
-                                     &direct_item, boot);
     }
 }
 

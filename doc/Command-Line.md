@@ -8,7 +8,8 @@ useful ones are described here.
 
 You can run b2 from the command line and supply a single disk image
 file name. In this case, b2 will load the given disk image into drive
-0 (as if using `-0 FILE`) and auto-boot (as if using `-b`).
+0 as an in-memory image (as if using `-0 FILE`) and auto-boot (as if
+using `-b`).
 
 If there's an existing copy of b2 running, the disk will be booted
 using that.
@@ -19,12 +20,15 @@ explorer, but it's potentially useful from the command line too.)
 ## `-0 FILE`, `-1 FILE`
 
 Load disc image `FILE` into drive 0 or drive 1, as if using `File` >
-`Drive X` > `Disc image...`.
+`Drive X` > `In-memory disc image...`.
 
 When using `-0` or `-1`, you can also supply `--0-direct` or
-`--1-direct` respectively, indicating that direct disc image access
-should be used, as if using `File` > `Drive X` > `Direct disc
+`--1-direct` respectively, indicating that the disc image should be
+accessed directly as if using `File` > `Drive X` > `Direct disc
 image...`.
+
+(These options are named after a previous iteration of the UI, which
+is why they're not terribly mnemonic.)
 
 ## `-b`
 
