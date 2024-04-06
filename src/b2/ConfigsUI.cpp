@@ -567,6 +567,18 @@ static const BeebROM *const MOS510_MOS_ROMS[] = {
     nullptr,
 };
 
+static const BeebROM *const MOSI510C_SIDEWAYS_ROMS[] = {
+    &BEEB_ROM_MOSI510C_SIDEWAYS_ROM_D,
+    &BEEB_ROM_MOSI510C_SIDEWAYS_ROM_E,
+    &BEEB_ROM_MOSI510C_SIDEWAYS_ROM_F,
+    nullptr,
+};
+
+static const BeebROM *const MOSI510C_MOS_ROMS[] = {
+    &BEEB_ROM_MOSI510C_MOS_ROM,
+    nullptr,
+};
+
 static bool ImGuiROMs(BeebConfig::ROM *rom, const BeebROM *const *b_roms) {
     for (size_t i = 0; b_roms[i]; ++i) {
         if (ImGuiROM(rom, b_roms[i])) {
@@ -696,8 +708,10 @@ ROMEditAction ConfigsUI::DoROMEditGui(const char *caption,
         this->DoROMs(rom, &edited, rom_edit_flags, ROMEditFlag_ParasiteROMs, "Parasite ROM", PARASITE_ROMS);
         this->DoROMs(rom, &edited, rom_edit_flags, ROMEditFlag_MasterCompactSidewaysROMs, "MOS 5.00 Sideways ROM", MOS500_SIDEWAYS_ROMS);
         this->DoROMs(rom, &edited, rom_edit_flags, ROMEditFlag_MasterCompactSidewaysROMs, "MOS 5.10 Sideways ROM", MOS510_SIDEWAYS_ROMS);
+        this->DoROMs(rom, &edited, rom_edit_flags, ROMEditFlag_MasterCompactSidewaysROMs, "PC 128 S Sideways ROM", MOSI510C_SIDEWAYS_ROMS);
         this->DoROMs(rom, &edited, rom_edit_flags, ROMEditFlag_MasterCompactOSROMs, "MOS 5.00 OS ROM", MOS500_MOS_ROMS);
         this->DoROMs(rom, &edited, rom_edit_flags, ROMEditFlag_MasterCompactOSROMs, "MOS 5.10 OS ROM", MOS510_MOS_ROMS);
+        this->DoROMs(rom, &edited, rom_edit_flags, ROMEditFlag_MasterCompactOSROMs, "PC 128 S OS ROM", MOSI510C_MOS_ROMS);
 
         ImGui::EndPopup();
     }

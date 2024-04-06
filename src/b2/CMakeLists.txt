@@ -368,12 +368,13 @@ endfunction()
 
 do_compact_ROMs(5.00)
 do_compact_ROMs(5.10)
+do_compact_ROMs(I5.10C)
 
 # Discs
 add_custom_command(
   TARGET b2 POST_BUILD
   COMMAND ${CMAKE_COMMAND} -E make_directory $<TARGET_FILE_DIR:b2>/${DISCS}
-  COMMAND ${CMAKE_COMMAND} -E copy_if_different 80.ssd 80.dsd 40.ssd 40.dsd Welcome.ssd adl.adl adm.adm ads.ads MasterWelcome.adl CompactWelcome.adl $<TARGET_FILE_DIR:b2>/${DISCS}
+  COMMAND ${CMAKE_COMMAND} -E copy_if_different 80.ssd 80.dsd 40.ssd 40.dsd Welcome.ssd adl.adl adm.adm ads.ads MasterWelcome.adl CompactWelcome.adl PC128SWelcome.adl $<TARGET_FILE_DIR:b2>/${DISCS}
   WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/../../etc/discs
   VERBATIM)
 

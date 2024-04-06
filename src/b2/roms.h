@@ -65,6 +65,12 @@ extern const BeebROM BEEB_ROM_MOS510_SIDEWAYS_ROM_E;
 extern const BeebROM BEEB_ROM_MOS510_SIDEWAYS_ROM_F;
 extern const BeebROM BEEB_ROM_MOS510_MOS_ROM;
 
+// MOS I5.10C is for the Olivetti PC 128 S.
+extern const BeebROM BEEB_ROM_MOSI510C_SIDEWAYS_ROM_D;
+extern const BeebROM BEEB_ROM_MOSI510C_SIDEWAYS_ROM_E;
+extern const BeebROM BEEB_ROM_MOSI510C_SIDEWAYS_ROM_F;
+extern const BeebROM BEEB_ROM_MOSI510C_MOS_ROM;
+
 // all ROMs, one after the other, terminated by nullptr.
 extern const BeebROM *const BEEB_ROMS[];
 

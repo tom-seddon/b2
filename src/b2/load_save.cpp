@@ -2338,8 +2338,8 @@ bool LoadGlobalConfig(Messages *msg) {
         }
     }
 
-    // the rest of the code assumes there's at least 1 config and 1 keymap -
-    // so either list ended up empty, populate it with the default set.
+    // The rest of the code assumes there's at least 1 config and 1 keymap - so
+    // if either list ended up empty, populate it with the default set.
     EnsureDefaultBeebKeymapsAvailable();
 
     if (BeebWindows::GetNumConfigs() == 0) {

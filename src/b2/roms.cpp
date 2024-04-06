@@ -73,6 +73,14 @@ extern const BeebROM BEEB_ROM_MOS510_MOS_ROM = {"mcompact/5.10/mos.rom", "MOS 5.
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+extern const BeebROM BEEB_ROM_MOSI510C_SIDEWAYS_ROM_D = {"mcompact/I5.10C/adfs.rom", "MOS I5.10C ADFS (d)", StandardROM_MOS510_ADFS};
+extern const BeebROM BEEB_ROM_MOSI510C_SIDEWAYS_ROM_E = {"mcompact/I5.10C/basic4.rom", "MOS I5.10C BASIC (e)", StandardROM_MOS510_BASIC4};
+extern const BeebROM BEEB_ROM_MOSI510C_SIDEWAYS_ROM_F = {"mcompact/I5.10C/utils.rom", "MOS I5.10C UTILS (f)", StandardROM_MOS510_UTILS};
+extern const BeebROM BEEB_ROM_MOSI510C_MOS_ROM = {"mcompact/I5.10C/mos.rom", "MOS I5.10C MOS (OS)", StandardROM_MOS510_MOS};
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 const BeebROM *const BEEB_ROMS[] = {
     &BEEB_ROM_OS12,
     &BEEB_ROM_BPLUS_MOS,
@@ -114,6 +122,11 @@ const BeebROM *const BEEB_ROMS[] = {
     &BEEB_ROM_MOS510_SIDEWAYS_ROM_E,
     &BEEB_ROM_MOS510_SIDEWAYS_ROM_F,
     &BEEB_ROM_MOS510_MOS_ROM,
+
+    &BEEB_ROM_MOSI510C_SIDEWAYS_ROM_D,
+    &BEEB_ROM_MOSI510C_SIDEWAYS_ROM_E,
+    &BEEB_ROM_MOSI510C_SIDEWAYS_ROM_F,
+    &BEEB_ROM_MOSI510C_MOS_ROM,
 
     nullptr,
 };

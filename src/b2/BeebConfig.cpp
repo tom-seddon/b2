@@ -113,6 +113,9 @@ static std::vector<uint8_t> GetDefaultMasterCompactNVRAM() {
     nvram[19] = 0x00; //19 - country code
 
     // Additional flag to indicate contents are valid.
+    //
+    // Values for this are $b0 for MOS 5.00/MOS 5.10 or $b2 for MOS I5.10C/MOS
+    // 5.11.
     nvram[127] = 0xb0;
 
     return nvram;
@@ -302,7 +305,7 @@ void InitDefaultBeebConfigs() {
         g_default_configs.push_back(config);
     }
 
-    // Master Compact MOS 5.00
+    // Master Compact MOS 5.10
     {
         BeebConfig config;
 
@@ -318,6 +321,26 @@ void InitDefaultBeebConfigs() {
         config.roms[5].writeable = true;
         config.roms[4].writeable = true;
         config.feature_flags = BeebConfigFeatureFlag_MasterCompact;
+
+        g_default_configs.push_back(config);
+    }
+
+    // Olivetti PC 128S
+    {
+        BeebConfig config;
+
+        config.name = "Olivetti PC 128 S";
+        config.disc_interface = &DISC_INTERFACE_MASTER128;
+        config.type = &BBC_MICRO_TYPE_MASTER_COMPACT;
+        config.os.standard_rom = &BEEB_ROM_MOSI510C_MOS_ROM;
+        config.roms[15].standard_rom = &BEEB_ROM_MOSI510C_SIDEWAYS_ROM_F;
+        config.roms[14].standard_rom = &BEEB_ROM_MOSI510C_SIDEWAYS_ROM_E;
+        config.roms[13].standard_rom = &BEEB_ROM_MOSI510C_SIDEWAYS_ROM_D;
+        config.roms[7].writeable = true;
+        config.roms[6].writeable = true;
+        config.roms[5].writeable = true;
+        config.roms[4].writeable = true;
+        config.feature_flags = BeebConfigFeatureFlag_OlivettiPC128S;
 
         g_default_configs.push_back(config);
     }
@@ -363,7 +386,7 @@ void ResetDefaultNVRAMContents(const BBCMicroType *type) {
     switch (type->type_id) {
     default:
         break;
-        
+
     case BBCMicroTypeID_Master:
         g_default_master_128_nvram_contents = GetDefaultMaster128NVRAM();
         break;
@@ -381,7 +404,7 @@ void SetDefaultNVRAMContents(const BBCMicroType *type, std::vector<uint8_t> nvra
     switch (type->type_id) {
     default:
         break;
-        
+
     case BBCMicroTypeID_Master:
         g_default_master_128_nvram_contents = std::move(nvram_contents);
         break;
