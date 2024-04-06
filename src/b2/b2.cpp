@@ -661,9 +661,9 @@ static bool ParseCommandLineOptions(
     p.SetLogs(&init_messages->i, &init_messages->e);
 
     for (int drive = 0; drive < NUM_DRIVES; ++drive) {
-        p.AddOption((char)('0' + drive)).Arg(&options->discs[drive]).Meta("FILE").Help("load drive " + std::to_string(drive) + " from disc image FILE");
+        p.AddOption((char)('0' + drive)).Arg(&options->discs[drive]).Meta("FILE").Help("load in-memory disc image from FILE into drive " + std::to_string(drive));
 
-        p.AddOption(0, strprintf("%d-direct", drive)).SetIfPresent(&options->direct_disc[drive]).Help(strprintf("if -%d specified, load a direct disc image", drive));
+        p.AddOption(0, strprintf("%d-direct", drive)).SetIfPresent(&options->direct_disc[drive]).Help(strprintf("if -%d specified as well, use disc image rather than in-memory disc image", drive));
     }
 
     p.AddOption('b', "boot").SetIfPresent(&options->boot).Help("attempt to auto-boot disc");
@@ -962,9 +962,9 @@ static bool InitLogs(const std::vector<std::string> &names_list,
 }
 
 static bool InitLogs(const Options &options, Messages *init_messages) {
-#if !BUILD_TYPE_Debug    ////<---note
+#if !BUILD_TYPE_Debug    //<---note
     if (options.verbose) //<---note
-#endif                   ///////////////////<---note
+#endif                   //<---note
     {
         LOG(OUTPUT).Enable();
         LOG(OUTPUTND).Enable();

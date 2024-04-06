@@ -193,6 +193,7 @@ class TestDiscImage : public DiscImage {
                uint8_t sector,
                size_t offset,
                uint8_t value) override;
+    void Flush() override;
     bool GetDiscSectorSize(size_t *size,
                            uint8_t side,
                            uint8_t track,
@@ -315,6 +316,12 @@ bool TestDiscImage::Write(uint8_t side,
 
     m_contents[index] = value;
     return true;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void TestDiscImage::Flush() {
 }
 
 //////////////////////////////////////////////////////////////////////////

@@ -1390,15 +1390,17 @@ bool BBCMicro::IsPasting() const {
 void BBCMicro::StartPaste(std::shared_ptr<const std::string> text) {
     this->StopPaste();
 
-    m_state.hack_flags |= BBCMicroHackFlag_Paste;
-    m_state.paste_state = BBCMicroPasteState_Wait;
-    m_state.paste_text = std::move(text);
-    m_state.paste_index = 0;
-    m_state.paste_wait_end = m_state.cycle_count.n + CYCLES_PER_SECOND;
+    if (!text->empty()) {
+        m_state.hack_flags |= BBCMicroHackFlag_Paste;
+        m_state.paste_state = BBCMicroPasteState_Wait;
+        m_state.paste_text = std::move(text);
+        m_state.paste_index = 0;
+        m_state.paste_wait_end = m_state.cycle_count.n + CYCLES_PER_SECOND;
 
-    this->SetKeyState(PASTE_START_KEY, true);
+        this->SetKeyState(PASTE_START_KEY, true);
 
-    this->UpdateCPUDataBusFn();
+        this->UpdateCPUDataBusFn();
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -2546,6 +2548,10 @@ void BBCMicro::SpinDown() {
         dd->spin_sound_index = 0;
         dd->spin_sound = DiscDriveSound_SpinEnd;
 #endif
+
+        if (m_disc_images[m_state.disc_control.drive]) {
+            m_disc_images[m_state.disc_control.drive]->Flush();
+        }
     }
 }
 

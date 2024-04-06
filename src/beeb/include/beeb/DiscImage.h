@@ -87,6 +87,7 @@ class DiscImage : public std::enable_shared_from_this<DiscImage> {
     //
     virtual bool Read(uint8_t *value, uint8_t side, uint8_t track, uint8_t sector, size_t offset) const = 0;
     virtual bool Write(uint8_t side, uint8_t track, uint8_t sector, size_t offset, uint8_t value) = 0;
+    virtual void Flush() = 0;
 
     virtual bool GetDiscSectorSize(size_t *size, uint8_t side, uint8_t track, uint8_t sector, bool double_density) const = 0;
     virtual bool IsWriteProtected() const = 0;
