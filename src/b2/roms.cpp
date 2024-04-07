@@ -73,10 +73,10 @@ extern const BeebROM BEEB_ROM_MOS510_MOS_ROM = {"mcompact/5.10/mos.rom", "MOS 5.
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-extern const BeebROM BEEB_ROM_MOSI510C_SIDEWAYS_ROM_D = {"mcompact/I5.10C/adfs.rom", "MOS I5.10C ADFS (d)", StandardROM_MOS510_ADFS};
-extern const BeebROM BEEB_ROM_MOSI510C_SIDEWAYS_ROM_E = {"mcompact/I5.10C/basic4.rom", "MOS I5.10C BASIC (e)", StandardROM_MOS510_BASIC4};
-extern const BeebROM BEEB_ROM_MOSI510C_SIDEWAYS_ROM_F = {"mcompact/I5.10C/utils.rom", "MOS I5.10C UTILS (f)", StandardROM_MOS510_UTILS};
-extern const BeebROM BEEB_ROM_MOSI510C_MOS_ROM = {"mcompact/I5.10C/mos.rom", "MOS I5.10C MOS (OS)", StandardROM_MOS510_MOS};
+extern const BeebROM BEEB_ROM_MOSI510C_SIDEWAYS_ROM_D = {"mcompact/I5.10C/adfs.rom", "MOS I5.10C ADFS (d)", StandardROM_MOSI510C_ADFS};
+extern const BeebROM BEEB_ROM_MOSI510C_SIDEWAYS_ROM_E = {"mcompact/I5.10C/basic4.rom", "MOS I5.10C BASIC (e)", StandardROM_MOSI510C_BASIC4};
+extern const BeebROM BEEB_ROM_MOSI510C_SIDEWAYS_ROM_F = {"mcompact/I5.10C/utils.rom", "MOS I5.10C UTILS (f)", StandardROM_MOSI510C_UTILS};
+extern const BeebROM BEEB_ROM_MOSI510C_MOS_ROM = {"mcompact/I5.10C/mos.rom", "MOS I5.10C MOS (OS)", StandardROM_MOSI510C_MOS};
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

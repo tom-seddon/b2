@@ -103,8 +103,8 @@ static Command2 g_copy_printer_buffer_command = Command2(&g_beeb_window_command_
 static Command2 g_save_printer_buffer_command = Command2(&g_beeb_window_command_table, "save_printer_buffer", "Save printer buffer...");
 static Command2 g_debug_stop_command = Command2(&g_beeb_window_command_table, "debug_stop", "Stop").WithShortcut(SDLK_F5 | PCKeyModifier_Shift).VisibleIf(BBCMICRO_DEBUGGER);
 static Command2 g_debug_run_command = Command2(&g_beeb_window_command_table, "debug_run", "Run").WithShortcut(SDLK_F5).VisibleIf(BBCMICRO_DEBUGGER);
-static Command2 g_save_default_nvram_command = Command2(&g_beeb_window_command_table, "save_default_nvram", "Save default NVRAM");
-static Command2 g_reset_default_nvram_command = Command2(&g_beeb_window_command_table, "reset_default_nvram", "Reset default NVRAM").MustConfirm();
+static Command2 g_save_default_nvram_command = Command2(&g_beeb_window_command_table, "save_default_nvram", "Save CMOS/EEPROM contents");
+static Command2 g_reset_default_nvram_command = Command2(&g_beeb_window_command_table, "reset_default_nvram", "Reset CMOS/EEPROM").MustConfirm();
 static Command2 g_save_config_command = Command2(&g_beeb_window_command_table, "save_config", "Save config");
 static Command2 g_toggle_prioritize_shortcuts_command = Command2(&g_beeb_window_command_table, "toggle_prioritize_shortcuts", "Prioritize command keys").WithTick();
 static Command2 g_save_screenshot_command = Command2(&g_beeb_window_command_table, "save_screenshot", "Save screenshot");
@@ -1179,6 +1179,17 @@ bool BeebWindow::HandleCommandKey(uint32_t keycode, SettingsUI *active_popup) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+static BeebConfig *FindBeebConfigByName(const std::string &name) {
+    for (size_t i = 0; i < BeebWindows::GetNumConfigs(); ++i) {
+        BeebConfig *config = BeebWindows::GetConfigByIndex(i);
+        if (config->name == name) {
+            return config;
+        }
+    }
+
+    return nullptr;
+}
+
 void BeebWindow::DoCommands() {
     if (m_cst.WasActioned(g_hard_reset_command)) {
         this->HardReset();
@@ -1330,20 +1341,21 @@ void BeebWindow::DoCommands() {
 
     m_cst.SetEnabled(g_save_default_nvram_command, m_beeb_thread->HasNVRAM());
     if (m_cst.WasActioned(g_save_default_nvram_command)) {
-        std::vector<uint8_t> nvram = m_beeb_thread->GetNVRAM();
-        if (!nvram.empty()) {
-            const BBCMicroType *type = m_beeb_thread->GetBBCMicroType();
-            SetDefaultNVRAMContents(type, std::move(nvram));
+        if (BeebConfig *config = FindBeebConfigByName(this->GetConfigName())) {
+            config->nvram = m_beeb_thread->GetNVRAM();
         }
-
-        this->SaveConfig();
     }
 
     m_cst.SetEnabled(g_reset_default_nvram_command, m_cst.GetEnabled(g_save_default_nvram_command));
     if (m_cst.WasActioned(g_reset_default_nvram_command)) {
-        const BBCMicroType *type = m_beeb_thread->GetBBCMicroType();
-        ResetDefaultNVRAMContents(type);
+        m_msg.e.f("TODO...\n");
     }
+    //    if (BeebConfig *config = FindBeebConfigByName(this->GetConfigName())) {
+
+    //    }
+    //    //const BBCMicroType *type = m_beeb_thread->GetBBCMicroType();
+    //    //ResetDefaultNVRAMContents(type);
+    //}
 
     if (m_cst.WasActioned(g_save_config_command)) {
         this->SaveConfig();

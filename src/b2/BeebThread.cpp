@@ -627,7 +627,7 @@ BeebThread::HardResetAndChangeConfigMessage::HardResetAndChangeConfigMessage(uin
                                                                              BeebLoadedConfig loaded_config)
     : HardResetMessage(flags)
     , m_loaded_config(std::move(loaded_config))
-    , m_nvram_contents(GetDefaultNVRAMContents(m_loaded_config.config.type)) {
+    , m_nvram_contents(m_loaded_config.config.nvram) {
 }
 
 //////////////////////////////////////////////////////////////////////////

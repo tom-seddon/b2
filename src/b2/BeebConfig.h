@@ -50,6 +50,7 @@ class BeebConfig {
     bool beeblink = false;
     bool adji = false;
     uint8_t adji_dip_switches = 0;
+    std::vector<uint8_t> nvram;
 
     BBCMicroParasiteType parasite_type = BBCMicroParasiteType_None;
 
@@ -64,9 +65,12 @@ void InitDefaultBeebConfigs();
 size_t GetNumDefaultBeebConfigs();
 const BeebConfig *GetDefaultBeebConfigByIndex(size_t index);
 
-std::vector<uint8_t> GetDefaultNVRAMContents(const BBCMicroType *type);
-void ResetDefaultNVRAMContents(const BBCMicroType *type);
-void SetDefaultNVRAMContents(const BBCMicroType *type, std::vector<uint8_t> nvram_contents);
+std::vector<uint8_t> GetDefaultMaster128NVRAM();
+std::vector<uint8_t> GetDefaultMasterCompactNVRAM();
+
+//std::vector<uint8_t> GetDefaultNVRAMContents(const BBCMicroType *type);
+//void ResetDefaultNVRAMContents(const BBCMicroType *type);
+//void SetDefaultNVRAMContents(const BBCMicroType *type, std::vector<uint8_t> nvram_contents);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

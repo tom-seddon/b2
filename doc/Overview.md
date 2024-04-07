@@ -250,10 +250,10 @@ one that's a copy of one of the ones in the list.
 ## Customize hardware
 
 The hardware menu by default lists several types of BBC B (with
-different disk interfaces), B+, B+128, Master 128 with MOS 3.20 and
-Master 128 with MOS 3.50. `Hardware` > `Configs` lets you edit this
-list and choose what each config includes - ROMs, sideways RAM status,
-and extra hardware.
+different disk interfaces), B+, B+128, Master 128 with MOS 3.20 or MOS
+3.50, Master Compact with MOS 5.00 or MOS 5.10, and Olivetti PC 128 S.
+`Hardware` > `Configs` lets you edit this list and choose what each
+config includes - ROMs, sideways RAM status, and extra hardware.
 
 Select the config to modify in the list on the left hand side. The
 right hand side will display the ROM slot contents, and tick boxes for
@@ -287,13 +287,14 @@ Items of optional hardware are as follows:
   (This is ticked by default, as it's very unlikely to cause a
   problem.)
   
-- If using a Master, tick the `Retro Hardware ADJI` to add a Retro
+- If using a Master 128, tick the `Retro Hardware ADJI` to add a Retro
   Hardware ADJI cartridge (upcoming modern remake of the
   [Slogger Switched Joystick Interface](https://www.computinghistory.org.uk/det/32296/Slogger%20Switched%20Joystick%20Interface/).
   Select the DIP switch settings from the list box. The ADJI will use
   the digital joystick selected in the joysticks menu.
   
-There are also some second processor options:
+There are also some second processor options, for models that support
+this:
 
 - `None` for no second processor
 
@@ -323,21 +324,21 @@ create one that's a copy of one of the ones in the list.
 
 The `Delete` button will delete the currently selected config.
 
-## Non-volatile RAM
+## Non-volatile CMOS RAM/EEPROM
 
-The Master 128 has non-volatile RAM. If you're using an emulated
-Master 128, use `File` > `Save default NVRAM` to save the current
-non-volatile RAM state to the config file, so it'll be restored on the
-next run.
+If you're using an emulated Master 128, Master Compact or PC 128 S,
+use `File` > `Save CMOS/EEPROM contents` to save the current
+CMOS/EEPROM contents for the current config.
 
-Use `Tools` > `Reset default NVRAM` to reset to default settings.
-(This may be preferable to using MOS 3.20's reset functionality,
-should it be needed, because the MOS resets the CMOS to fairly useless
-values.)
+These affect the values used when using `File` > `Hard reset` or when
+re-selecting the current config from the Hardware menu.
 
-The saved contents will also be restored on the next `File` > `Hard
-reset`, or when using `File` > `Change config' to change to a Master
-128 config.
+(Each hardware config on the Hardware menu has its own independent
+set of CMOS/EEPROM contents.)
+
+Use `Tools` > `Reset CMOS/EEPROM` to reset the saved settings to
+reasonable default settings. Use `File` > `Hard reset` to see the
+effect.
 
 ## Paste from clipboard
 

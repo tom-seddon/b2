@@ -1753,7 +1753,7 @@ static bool LoadConfigs(rapidjson::Value *configs_json, const char *configs_path
                          &config.os,
                          strprintf("%s.%s", json_path.c_str(), OS).c_str(),
                          msg)) {
-                return false;
+                continue;
             }
         }
 
@@ -1816,7 +1816,14 @@ static bool LoadConfigs(rapidjson::Value *configs_json, const char *configs_path
                          &config.parasite_os,
                          strprintf("%s.%s", json_path.c_str(), PARASITE_OS).c_str(),
                          msg)) {
-                return false;
+                continue;
+            }
+        }
+
+        std::string nvram_hex;
+        if (FindStringMember(&nvram_hex, config_json, NVRAM, msg)) {
+            if (!GetDataFromHexString(&config.nvram, nvram_hex)) {
+                config.nvram.clear();
             }
         }
 
@@ -1878,6 +1885,11 @@ static void SaveConfigs(JSONWriter<StringStream> *writer) {
 
             writer->Key(PARASITE_OS);
             SaveROM(writer, config->parasite_os);
+
+            if (!config->nvram.empty()) {
+                writer->Key(NVRAM);
+                writer->String(GetHexStringFromData(config->nvram).c_str());
+            }
         }
     }
 }
@@ -1885,36 +1897,22 @@ static void SaveConfigs(JSONWriter<StringStream> *writer) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static bool LoadNVRAM(rapidjson::Value *nvram_json, Messages *msg) {
-    for (size_t i = 0; i < GetNumBBCMicroTypes(); ++i) {
-        const BBCMicroType *type = GetBBCMicroTypeByIndex(i);
+static void LoadNVRAM2(rapidjson::Value *nvram_json, std::vector<uint8_t> *nvram, Messages *msg, const char *key) {
+    nvram->clear();
 
-        std::string hex;
-        if (FindStringMember(&hex, nvram_json, GetBBCMicroTypeIDEnumName(type->type_id), msg)) {
-            std::vector<uint8_t> data;
-            if (GetDataFromHexString(&data, hex)) {
-                SetDefaultNVRAMContents(type, std::move(data));
-            }
+    std::string hex;
+    if (FindStringMember(&hex, nvram_json, key, msg)) {
+        if (!GetDataFromHexString(nvram, hex)) {
+            nvram->clear();
         }
     }
+}
+
+static bool LoadNVRAM(rapidjson::Value *nvram_json, std::vector<uint8_t> *master_nvram, std::vector<uint8_t> *compact_nvram, Messages *msg) {
+    LoadNVRAM2(nvram_json, master_nvram, msg, "Master");
+    LoadNVRAM2(nvram_json, compact_nvram, msg, "MasterCompact");
 
     return true;
-}
-
-static void SaveNVRAM(JSONWriter<StringStream> *writer) {
-    {
-        auto nvram_json = ObjectWriter(writer, NVRAM);
-
-        for (size_t i = 0; i < GetNumBBCMicroTypes(); ++i) {
-            const BBCMicroType *type = GetBBCMicroTypeByIndex(i);
-
-            std::vector<uint8_t> data = GetDefaultNVRAMContents(type);
-            if (!data.empty()) {
-                writer->Key(GetBBCMicroTypeIDEnumName(type->type_id));
-                writer->String(GetHexStringFromData(data).c_str());
-            }
-        }
-    }
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -2218,6 +2216,9 @@ bool LoadGlobalConfig(Messages *msg) {
         return false;
     }
 
+    // Special-case handling to accommodate old-style config files.
+    std::vector<uint8_t> master_nvram, compact_nvram;
+
     std::vector<char> data;
     if (LoadTextFile(&data, fname, msg, LoadFlag_MightNotExist)) {
         std::unique_ptr<rapidjson::Document> doc = LoadDocument(&data, msg);
@@ -2319,11 +2320,13 @@ bool LoadGlobalConfig(Messages *msg) {
             }
         }
 
+        // Only 2 types of NVRAM were ever supported by the old-style NVRAM
+        // setup.
         rapidjson::Value nvram;
         if (FindObjectMember(&nvram, doc.get(), NVRAM, msg)) {
-            LOGF(LOADSAVE, "Loading NVRAM.\n");
+            LOGF(LOADSAVE, "Loading old NVRAM.\n");
 
-            if (!LoadNVRAM(&nvram, msg)) {
+            if (!LoadNVRAM(&nvram, &master_nvram, &compact_nvram, msg)) {
                 return false;
             }
         }
@@ -2344,6 +2347,32 @@ bool LoadGlobalConfig(Messages *msg) {
 
     if (BeebWindows::GetNumConfigs() == 0) {
         AddDefaultBeebConfigs(true);
+    }
+
+    // Handle old-style NVRAM by propagating loaded Master/Compact NVRAM
+    // settings.
+    if (master_nvram.empty()) {
+        master_nvram = GetDefaultMaster128NVRAM();
+    }
+
+    if (compact_nvram.empty()) {
+        compact_nvram = GetDefaultMasterCompactNVRAM();
+    }
+
+    for (size_t i = 0; i < BeebWindows::GetNumConfigs(); ++i) {
+        BeebConfig *config = BeebWindows::GetConfigByIndex(i);
+
+        if (config->nvram.empty()) {
+            switch (config->type->type_id) {
+            case BBCMicroTypeID_Master:
+                config->nvram = master_nvram;
+                break;
+
+            case BBCMicroTypeID_MasterCompact:
+                config->nvram = compact_nvram;
+                break;
+            }
+        }
     }
 
     return true;
@@ -2387,8 +2416,6 @@ bool SaveGlobalConfig(Messages *messages) {
         SaveBeebLink(&writer);
 
         SaveConfigs(&writer);
-
-        SaveNVRAM(&writer);
 
         SaveJoysticks(&writer);
     }
