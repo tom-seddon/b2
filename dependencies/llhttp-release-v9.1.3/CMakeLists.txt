@@ -38,11 +38,13 @@ set(LLHTTP_HEADERS
   ${CMAKE_CURRENT_SOURCE_DIR}/include/llhttp.h
 )
 
-configure_file(
-  ${CMAKE_CURRENT_SOURCE_DIR}/libllhttp.pc.in
-  ${CMAKE_CURRENT_SOURCE_DIR}/libllhttp.pc
-  @ONLY
-)
+if(NOT CMAKE_SKIP_INSTALL_RULES)
+  configure_file(
+    ${CMAKE_CURRENT_SOURCE_DIR}/libllhttp.pc.in
+    ${CMAKE_CURRENT_SOURCE_DIR}/libllhttp.pc
+    @ONLY
+    )
+endif()
 
 function(config_library target)
   target_sources(${target} PRIVATE ${LLHTTP_SOURCES} ${LLHTTP_HEADERS})
