@@ -315,7 +315,7 @@ void SAA5050::Byte(uint8_t value, uint8_t dispen) {
             // Double Height
 
             // State change clears hold graphics state.
-            if (m_raster_shift != 0) {
+            if (m_raster_shift != 1) {
                 data0 = 0;
                 data1 = 0;
                 m_last_graphics_data0 = 0;
