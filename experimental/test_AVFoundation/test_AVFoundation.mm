@@ -113,16 +113,16 @@ struct WAVFile {
     std::vector<char> fmt_buf, data;
 };
 
-template<class T>
-static const T*GetBuf(const std::vector<char>&buf){
-    if(buf.size()>=sizeof(T)){
-        return(T*)buf.data();
-    }else{
+template <class T>
+static const T *GetBuf(const std::vector<char> &buf) {
+    if (buf.size() >= sizeof(T)) {
+        return (T *)buf.data();
+    } else {
         return nullptr;
     }
 }
 
-static const WAVEFORMATEX *GetWAVEFORMATEX(const WAVFile&wav_file){
+static const WAVEFORMATEX *GetWAVEFORMATEX(const WAVFile &wav_file) {
     return GetBuf<WAVEFORMATEX>(wav_file.fmt_buf);
 }
 
@@ -238,22 +238,22 @@ static void PixelBufferFreeSTBImageCallback(void *context, const void *data) {
     free((void *)data);
 }
 
-static void DumpSettings(const char*name,NSDictionary<NSString*,id>*dict){
-    LOGF(VOUT,"%s settings: ",name);
+static void DumpSettings(const char *name, NSDictionary<NSString *, id> *dict) {
+    LOGF(VOUT, "%s settings: ", name);
     LOGI(VOUT);
-    @autoreleasepool{
-        NSEnumerator*enumerator=[dict keyEnumerator];
-        NSString*key;
-        while((key=[enumerator nextObject])){
-            LOGF(VOUT,"%s: ",[key UTF8String]);
-            id value=[dict objectForKey:key];
-            if([value isKindOfClass:[NSNumber class]]){
-                auto number=(NSNumber*)value;
-                LOGF(VOUT,"%s",[[number stringValue] UTF8String]);
-            }else{
-                LOGF(VOUT,"<<type: %s>>",[NSStringFromClass([value class]) UTF8String]);
+    @autoreleasepool {
+        NSEnumerator *enumerator = [dict keyEnumerator];
+        NSString *key;
+        while ((key = [enumerator nextObject])) {
+            LOGF(VOUT, "%s: ", [key UTF8String]);
+            id value = [dict objectForKey:key];
+            if ([value isKindOfClass:[NSNumber class]]) {
+                auto number = (NSNumber *)value;
+                LOGF(VOUT, "%s", [[number stringValue] UTF8String]);
+            } else {
+                LOGF(VOUT, "<<type: %s>>", [NSStringFromClass([value class]) UTF8String]);
             }
-            LOGF(VOUT,"\n");
+            LOGF(VOUT, "\n");
         }
     }
 }
@@ -284,9 +284,9 @@ int main(int argc, char *argv[]) {
         if (wav_paths.size() > 1) {
             LOGF(ERR, "path contains %zu .wav files: %s\n", wav_paths.size(), options.input_folder_path.c_str());
             return 1;
-        } else if(wav_paths.empty()){
-            if(options.hz<=0){
-                LOGF(ERR,"FATAL: must specify frames per second if no .wav file\n");
+        } else if (wav_paths.empty()) {
+            if (options.hz <= 0) {
+                LOGF(ERR, "FATAL: must specify frames per second if no .wav file\n");
                 return 1;
             }
         }
@@ -304,37 +304,37 @@ int main(int argc, char *argv[]) {
         LOGF(VOUT, "%zu wav file(s)\n", wav_paths.size());
         LOGF(VOUT, "%zu jpg file(s)\n", jpg_paths.size());
     }
-    
-    bool got_wav_file=false;
+
+    bool got_wav_file = false;
     WAVFile wav_file;
-    if(!wav_paths.empty()){
-        if(!LoadWAVFile(&wav_file,wav_paths[0])){
-            LOGF(ERR,"FATAL: failed to load .wav file: %s\n",wav_paths[0].c_str());
+    if (!wav_paths.empty()) {
+        if (!LoadWAVFile(&wav_file, wav_paths[0])) {
+            LOGF(ERR, "FATAL: failed to load .wav file: %s\n", wav_paths[0].c_str());
             return 1;
         }
-        
-        if(const WAVEFORMATEX*fmt=GetWAVEFORMATEX(wav_file)){
-            if(fmt->wFormatTag!=WAVE_FORMAT_PCM){
-                LOGF(ERR,"FATAL: .wav format is 0x%04X, not 0x%04X (WAVE_FORMAT_PCM): %s\n",
+
+        if (const WAVEFORMATEX *fmt = GetWAVEFORMATEX(wav_file)) {
+            if (fmt->wFormatTag != WAVE_FORMAT_PCM) {
+                LOGF(ERR, "FATAL: .wav format is 0x%04X, not 0x%04X (WAVE_FORMAT_PCM): %s\n",
                      fmt->wFormatTag,
                      WAVE_FORMAT_PCM,
                      wav_paths[0].c_str());
                 return 1;
             }
-        }else{
-            LOGF(ERR,"FATAL: .wav file has no good fmt chunk: %s\n",wav_paths[0].c_str());
+        } else {
+            LOGF(ERR, "FATAL: .wav file has no good fmt chunk: %s\n", wav_paths[0].c_str());
             return 1;
         }
-        
-        got_wav_file=true;
+
+        got_wav_file = true;
     }
-    
-    double frames_per_second=options.hz;
-    if(got_wav_file){
-        const WAVEFORMATEX *fmt=GetWAVEFORMATEX(wav_file);
-        double length_seconds=wav_file.data.size()/(double)fmt->nAvgBytesPerSec;
-        frames_per_second=jpg_paths.size()/length_seconds;
-        LOGF(VOUT,"Frames per second: %.3f\n",frames_per_second);
+
+    double frames_per_second = options.hz;
+    if (got_wav_file) {
+        const WAVEFORMATEX *fmt = GetWAVEFORMATEX(wav_file);
+        double length_seconds = wav_file.data.size() / (double)fmt->nAvgBytesPerSec;
+        frames_per_second = jpg_paths.size() / length_seconds;
+        LOGF(VOUT, "Frames per second: %.3f\n", frames_per_second);
     }
 
     //STBIDEF stbi_uc *stbi_load(char const *filename, int *x, int *y, int *comp, int req_comp)
@@ -355,104 +355,104 @@ int main(int argc, char *argv[]) {
         // AVVideoWidthKey
         // AVVideoHeightKey
         // AVVideoPixelAspectRatioKey
-        NSDictionary<NSString*,id>*video_settings=nil;
+        NSDictionary<NSString *, id> *video_settings = nil;
         {
             auto *assistant = [AVOutputSettingsAssistant outputSettingsAssistantWithPreset:AVOutputSettingsPreset1920x1080];
-            
-            video_settings=[assistant videoSettings];
-            
-//            // wtf. this doesn't actually seem to affect the video settings...?
-//            
-//            CMVideoFormatDescriptionRef vfd_ref;
-//            OSStatus result=CMVideoFormatDescriptionCreate(kCFAllocatorDefault,
-//                                                           kCMVideoCodecType_H264,
-//                                                           image_width,
-//                                                           image_height,
-//                                                           nil, 
-//                                                           &vfd_ref);
-//            if(result!=noErr){
-//                LOGF(ERR,"FATAL: CMVideoFormatDescriptionCreate failed: %" PRId32 " (0x%" PRIx32 ")\n",result,result);
-//                return 1;
-//            }
-//            
-//            assistant.sourceVideoFormat=vfd_ref;
-//            
-//            CFRelease(vfd_ref),vfd_ref=nullptr;
-//            
-//            assistant.sourceVideoMinFrameDuration=CMTimeMake(1000,(int32_t)(frames_per_second*1000.));
-//            assistant.sourceVideoAverageFrameDuration=assistant.sourceVideoMinFrameDuration;
-            
-//            NSDictionary<NSString*,id>*vs=[assistant videoSettings];
-//            NSDictionary<NSString*,id>*vs2=[assistant videoSettings];
+
+            video_settings = [assistant videoSettings];
+
+            //            // wtf. this doesn't actually seem to affect the video settings...?
+            //
+            //            CMVideoFormatDescriptionRef vfd_ref;
+            //            OSStatus result=CMVideoFormatDescriptionCreate(kCFAllocatorDefault,
+            //                                                           kCMVideoCodecType_H264,
+            //                                                           image_width,
+            //                                                           image_height,
+            //                                                           nil,
+            //                                                           &vfd_ref);
+            //            if(result!=noErr){
+            //                LOGF(ERR,"FATAL: CMVideoFormatDescriptionCreate failed: %" PRId32 " (0x%" PRIx32 ")\n",result,result);
+            //                return 1;
+            //            }
+            //
+            //            assistant.sourceVideoFormat=vfd_ref;
+            //
+            //            CFRelease(vfd_ref),vfd_ref=nullptr;
+            //
+            //            assistant.sourceVideoMinFrameDuration=CMTimeMake(1000,(int32_t)(frames_per_second*1000.));
+            //            assistant.sourceVideoAverageFrameDuration=assistant.sourceVideoMinFrameDuration;
+
+            //            NSDictionary<NSString*,id>*vs=[assistant videoSettings];
+            //            NSDictionary<NSString*,id>*vs2=[assistant videoSettings];
             [video_settings setValue:[NSNumber numberWithInt:image_width] forKey:AVVideoWidthKey];
             [video_settings setValue:[NSNumber numberWithInt:image_height] forKey:AVVideoHeightKey];
             //[video_settings setValue:[NSNumber numberWithDouble:frames_per_second] forKey:AVVideoExpectedSourceFrameRateKey];
         }
-        
-//        NSDictionary<NSString*,id>*audio_settings=nil;
-//        if(got_wav_file)        {
-//            auto *assistant=[AVOutputSettingsAssistant outputSettingsAssistantWithPreset:AVOutputSettingsPreset1920x1080];
-//            const WAVEFORMATEX*fmt=GetWAVEFORMATEX(wav_file);
-//            
-////            AVAudioChannelLayout*layout;
-////            if(fmt->nChannels==1){
-////                layout=[AVAudioChannelLayout layoutWithLayoutTag:kAudioChannelLayoutTag_Mono];
-////            }else if(fmt->nChannels==2){
-////                layout=[AVAudioChannelLayout layoutWithLayoutTag:kAudioChannelLayoutTag_Stereo];
-////            }else{
-////                LOGF(ERR,"FATAL: unexpected number of .wav channels: %" PRIu16 "\n",fmt->nChannels);
-////                return 1;
-////            }
-//            
-//            audio_settings=[assistant audioSettings];
-//            //[audio_settings setValue:layout forKey:AVChannelLayoutKey];
-//            [audio_settings setValue:[NSNumber numberWithInt:fmt->wBitsPerSample] forKey:AVLinearPCMBitDepthKey];
-//            [audio_settings setValue:[NSNumber numberWithBool:NO] forKey:AVLinearPCMIsBigEndianKey];
-//            [audio_settings setValue:[NSNumber numberWithBool:NO] forKey:AVLinearPCMIsFloatKey];
-//            [audio_settings setValue:[NSNumber numberWithBool:NO] forKey:AVLinearPCMIsNonInterleavedKey];
-//            [audio_settings setValue:[NSNumber numberWithUnsignedInt:fmt->nSamplesPerSec] forKey:AVSampleRateKey];
-//        }
-        
-        DumpSettings("video",video_settings);
+
+        //        NSDictionary<NSString*,id>*audio_settings=nil;
+        //        if(got_wav_file)        {
+        //            auto *assistant=[AVOutputSettingsAssistant outputSettingsAssistantWithPreset:AVOutputSettingsPreset1920x1080];
+        //            const WAVEFORMATEX*fmt=GetWAVEFORMATEX(wav_file);
+        //
+        ////            AVAudioChannelLayout*layout;
+        ////            if(fmt->nChannels==1){
+        ////                layout=[AVAudioChannelLayout layoutWithLayoutTag:kAudioChannelLayoutTag_Mono];
+        ////            }else if(fmt->nChannels==2){
+        ////                layout=[AVAudioChannelLayout layoutWithLayoutTag:kAudioChannelLayoutTag_Stereo];
+        ////            }else{
+        ////                LOGF(ERR,"FATAL: unexpected number of .wav channels: %" PRIu16 "\n",fmt->nChannels);
+        ////                return 1;
+        ////            }
+        //
+        //            audio_settings=[assistant audioSettings];
+        //            //[audio_settings setValue:layout forKey:AVChannelLayoutKey];
+        //            [audio_settings setValue:[NSNumber numberWithInt:fmt->wBitsPerSample] forKey:AVLinearPCMBitDepthKey];
+        //            [audio_settings setValue:[NSNumber numberWithBool:NO] forKey:AVLinearPCMIsBigEndianKey];
+        //            [audio_settings setValue:[NSNumber numberWithBool:NO] forKey:AVLinearPCMIsFloatKey];
+        //            [audio_settings setValue:[NSNumber numberWithBool:NO] forKey:AVLinearPCMIsNonInterleavedKey];
+        //            [audio_settings setValue:[NSNumber numberWithUnsignedInt:fmt->nSamplesPerSec] forKey:AVSampleRateKey];
+        //        }
+
+        DumpSettings("video", video_settings);
         //DumpSettings("audio",audio_settings);
 
         auto *video_input = [AVAssetWriterInput assetWriterInputWithMediaType:AVMediaTypeVideo
-                                                         outputSettings:video_settings];
+                                                               outputSettings:video_settings];
 
         auto *video_adaptor = [AVAssetWriterInputPixelBufferAdaptor
             assetWriterInputPixelBufferAdaptorWithAssetWriterInput:video_input
                                        sourcePixelBufferAttributes:nil];
-        
-        AVAssetWriterInput*audio_input=nil;
-        if(got_wav_file){
-            const WAVEFORMATEX*fmt=GetWAVEFORMATEX(wav_file);
 
-            AudioStreamBasicDescription asbd={};
-            asbd.mSampleRate=fmt->nSamplesPerSec;
-            asbd.mFormatID=kAudioFormatLinearPCM;
-            asbd.mFramesPerPacket=1;
-            asbd.mChannelsPerFrame=fmt->nChannels;
-            asbd.mBitsPerChannel=fmt->wBitsPerSample;
-            asbd.mBytesPerFrame=asbd.mChannelsPerFrame*asbd.mBitsPerChannel/8;
-            asbd.mBytesPerPacket=asbd.mFramesPerPacket*asbd.mBytesPerFrame;
-            asbd.mFormatFlags=(kAudioFormatFlagIsSignedInteger|
-                               kAudioFormatFlagsNativeEndian|
-                               kAudioFormatFlagIsPacked);
-            
+        AVAssetWriterInput *audio_input = nil;
+        if (got_wav_file) {
+            const WAVEFORMATEX *fmt = GetWAVEFORMATEX(wav_file);
+
+            AudioStreamBasicDescription asbd = {};
+            asbd.mSampleRate = fmt->nSamplesPerSec;
+            asbd.mFormatID = kAudioFormatLinearPCM;
+            asbd.mFramesPerPacket = 1;
+            asbd.mChannelsPerFrame = fmt->nChannels;
+            asbd.mBitsPerChannel = fmt->wBitsPerSample;
+            asbd.mBytesPerFrame = asbd.mChannelsPerFrame * asbd.mBitsPerChannel / 8;
+            asbd.mBytesPerPacket = asbd.mFramesPerPacket * asbd.mBytesPerFrame;
+            asbd.mFormatFlags = (kAudioFormatFlagIsSignedInteger |
+                                 kAudioFormatFlagsNativeEndian |
+                                 kAudioFormatFlagIsPacked);
+
             CMFormatDescriptionRef afd_ref;
-            OSStatus result=CMAudioFormatDescriptionCreate(kCFAllocatorDefault, &asbd, 0, nullptr, 0, nullptr, nullptr, &afd_ref);
-            if(result!=noErr){
-                LOGF(ERR,"FATAL: CMAudioFormatDescriptionCreate failed: %" PRId32 " (0x%" PRIx32 ")\n",result,result);
+            OSStatus result = CMAudioFormatDescriptionCreate(kCFAllocatorDefault, &asbd, 0, nullptr, 0, nullptr, nullptr, &afd_ref);
+            if (result != noErr) {
+                LOGF(ERR, "FATAL: CMAudioFormatDescriptionCreate failed: %" PRId32 " (0x%" PRIx32 ")\n", result, result);
                 return 1;
             }
-            
-            audio_input=[AVAssetWriterInput assetWriterInputWithMediaType:AVMediaTypeAudio
-                                                           outputSettings:nil
-                                                         sourceFormatHint:afd_ref];
-            
-            CFRelease(afd_ref),afd_ref=nullptr;
-            
-            audio_input=nil;
+
+            audio_input = [AVAssetWriterInput assetWriterInputWithMediaType:AVMediaTypeAudio
+                                                             outputSettings:nil
+                                                           sourceFormatHint:afd_ref];
+
+            CFRelease(afd_ref), afd_ref = nullptr;
+
+            audio_input = nil;
         }
 
         AVAssetWriter *writer = nil;
@@ -470,7 +470,7 @@ int main(int argc, char *argv[]) {
 
         if (writer) {
             [writer addInput:video_input];
-            if(audio_input){
+            if (audio_input) {
                 [writer addInput:audio_input];
             }
             [writer startWriting];
@@ -481,18 +481,18 @@ int main(int argc, char *argv[]) {
         if (options.max_num_frames > 0) {
             num_frames = std::min(num_frames, (size_t)options.max_num_frames);
         }
-        
-        double audio_data_index=0.;
-        double audio_data_samples_per_frame=0.;
-        if(got_wav_file){
-            const WAVEFORMATEX*fmt=GetWAVEFORMATEX(wav_file);
-            audio_data_samples_per_frame=wav_file.data.size()/(fmt->nSamplesPerSec/frames_per_second);
+
+        double audio_data_index = 0.;
+        double audio_data_samples_per_frame = 0.;
+        if (got_wav_file) {
+            const WAVEFORMATEX *fmt = GetWAVEFORMATEX(wav_file);
+            audio_data_samples_per_frame = wav_file.data.size() / (fmt->nSamplesPerSec / frames_per_second);
         }
-        
-        LOGF(VOUT,"audio samples per frame: %.3f\n",audio_data_samples_per_frame);
-        
-        uint64_t num_append_spins=0;
-        
+
+        LOGF(VOUT, "audio samples per frame: %.3f\n", audio_data_samples_per_frame);
+
+        uint64_t num_append_spins = 0;
+
         for (size_t frame_index = 0; frame_index < num_frames; ++frame_index) {
             const std::string &jpg_path = jpg_paths[frame_index];
             LOGF(VOUT, "Frame %zu: %s\n", frame_index, jpg_path.c_str());
@@ -530,70 +530,70 @@ int main(int argc, char *argv[]) {
             }
 
             if (writer) {
-                while(!video_input.isReadyForMoreMediaData){
+                while (!video_input.isReadyForMoreMediaData) {
                     SleepMS(1);
                     ++num_append_spins;
                 }
                 [video_adaptor appendPixelBuffer:pixel_buffer
-                            withPresentationTime:CMTimeMake((int64_t)frame_index*1000,
-                                                            (int32_t)(frames_per_second*1000.))];
-                
-//                if(got_wav_file){
-//                    //OSStatus CMBlockBufferCreateWithMemoryBlock(CFAllocatorRef structureAllocator, 
-//                    //                                            void *memoryBlock,
-//                    //                                            size_t blockLength,
-//                    //                                            CFAllocatorRef blockAllocator, 
-//                    //                                            const CMBlockBufferCustomBlockSource *customBlockSource,
-//                    //                                            size_t offsetToData, 
-//                    //                                            size_t dataLength, 
-//                    //                                            CMBlockBufferFlags flags,
-//                    //                                            CMBlockBufferRef  _Nullable *blockBufferOut);
-//                    
-//                    double begin=audio_data_index;
-//                    double end=audio_data_index+audio_data_samples_per_frame;
-//                    //size_t num_bytes=
-//                    
-//                    CMBlockBufferRef bb_ref;
-//                    OSStatus status=CMBlockBufferCreateWithMemoryBlock(nullptr,
-//                                                                       wav_file.data.data(),
-//                                                                       wav_file.data.size(),
-//                                                                       kCFAllocatorNull,
-//                                                                       nullptr,
-//                                                                       (size_t)begin,
-//                                                                       (size_t)end-(size_t)begin,
-//                                                                       0,
-//                                                                       &bb_ref);
-//                    if(status!=noErr){
-//                        LOGF(ERR,"FATAL: CMBlockBufferCreateWithMemoryBlock failed: %" PRId32 " (0x%" PRIx32 ")\n",
-//                             status,
-//                             status);
-//                        return 1;
-//                    }
-//                    
-//                    //OSStatus CMSampleBufferCreate(CFAllocatorRef allocator,
-//                    //                              CMBlockBufferRef dataBuffer,
-//                    //                              Boolean dataReady,
-//                    //                              CMSampleBufferMakeDataReadyCallback makeDataReadyCallback,
-//                    //                              void *makeDataReadyRefcon, 
-//                    //                              CMFormatDescriptionRef formatDescription, 
-//                    //                              CMItemCount numSamples, 
-//                    //                              CMItemCount numSampleTimingEntries,
-//                    //                              const CMSampleTimingInfo *sampleTimingArray,
-//                    //                              CMItemCount numSampleSizeEntries,
-//                    //                              const size_t *sampleSizeArray,
-//                    //                              CMSampleBufferRef  _Nullable *sampleBufferOut);
-//                    
-//                    CMSampleBufferRef sb_ref;
-//                    status=CMSampleBufferCreate(kCFAllocatorDefault,
-//                                                bb_ref,
-//                                                1,
-//                                                nullptr,
-//                                                nullptr,
-//                                                ??CMFortatDescriptionRef,
-//                                                
-//                                                                       
-//                    [audio_input appendSampleBuffer:
-//                }
+                            withPresentationTime:CMTimeMake((int64_t)frame_index * 1000,
+                                                            (int32_t)(frames_per_second * 1000.))];
+
+                //                if(got_wav_file){
+                //                    //OSStatus CMBlockBufferCreateWithMemoryBlock(CFAllocatorRef structureAllocator,
+                //                    //                                            void *memoryBlock,
+                //                    //                                            size_t blockLength,
+                //                    //                                            CFAllocatorRef blockAllocator,
+                //                    //                                            const CMBlockBufferCustomBlockSource *customBlockSource,
+                //                    //                                            size_t offsetToData,
+                //                    //                                            size_t dataLength,
+                //                    //                                            CMBlockBufferFlags flags,
+                //                    //                                            CMBlockBufferRef  _Nullable *blockBufferOut);
+                //
+                //                    double begin=audio_data_index;
+                //                    double end=audio_data_index+audio_data_samples_per_frame;
+                //                    //size_t num_bytes=
+                //
+                //                    CMBlockBufferRef bb_ref;
+                //                    OSStatus status=CMBlockBufferCreateWithMemoryBlock(nullptr,
+                //                                                                       wav_file.data.data(),
+                //                                                                       wav_file.data.size(),
+                //                                                                       kCFAllocatorNull,
+                //                                                                       nullptr,
+                //                                                                       (size_t)begin,
+                //                                                                       (size_t)end-(size_t)begin,
+                //                                                                       0,
+                //                                                                       &bb_ref);
+                //                    if(status!=noErr){
+                //                        LOGF(ERR,"FATAL: CMBlockBufferCreateWithMemoryBlock failed: %" PRId32 " (0x%" PRIx32 ")\n",
+                //                             status,
+                //                             status);
+                //                        return 1;
+                //                    }
+                //
+                //                    //OSStatus CMSampleBufferCreate(CFAllocatorRef allocator,
+                //                    //                              CMBlockBufferRef dataBuffer,
+                //                    //                              Boolean dataReady,
+                //                    //                              CMSampleBufferMakeDataReadyCallback makeDataReadyCallback,
+                //                    //                              void *makeDataReadyRefcon,
+                //                    //                              CMFormatDescriptionRef formatDescription,
+                //                    //                              CMItemCount numSamples,
+                //                    //                              CMItemCount numSampleTimingEntries,
+                //                    //                              const CMSampleTimingInfo *sampleTimingArray,
+                //                    //                              CMItemCount numSampleSizeEntries,
+                //                    //                              const size_t *sampleSizeArray,
+                //                    //                              CMSampleBufferRef  _Nullable *sampleBufferOut);
+                //
+                //                    CMSampleBufferRef sb_ref;
+                //                    status=CMSampleBufferCreate(kCFAllocatorDefault,
+                //                                                bb_ref,
+                //                                                1,
+                //                                                nullptr,
+                //                                                nullptr,
+                //                                                ??CMFortatDescriptionRef,
+                //
+                //
+                //                    [audio_input appendSampleBuffer:
+                //                }
             }
 
             CFRelease(pixel_buffer), pixel_buffer = nullptr;

@@ -466,4 +466,3 @@ std::wstring GetWideString(const char *str) {
 std::wstring GetWideString(const std::string &str) {
     return GetWideString(str.data(), str.size());
 }
-

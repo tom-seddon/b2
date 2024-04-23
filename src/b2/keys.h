@@ -36,8 +36,6 @@ bool GetBeebKeyComboForKeySym(BeebKey *beeb_key, BeebShiftState *shift_state, Be
 
 uint32_t GetPCKeyModifiersFromSDLKeymod(uint16_t mod);
 
-
-
 // Get name of combined SDL_Keycode/PCKeyModifier value.
 //
 // If the SDL_Keycode part is 0, returns an empty string, ignoring any

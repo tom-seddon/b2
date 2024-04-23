@@ -411,8 +411,8 @@ static double GetSecondsPerTick(void) {
 
         // Intel: 1/1 = 1.0000
         // M: 125/3 = 41.6667
-        double ns_per_tick=(double)tbi.numer/tbi.denom;
-        g_timebase_secs_per_tick=ns_per_tick/1e9;
+        double ns_per_tick = (double)tbi.numer / tbi.denom;
+        g_timebase_secs_per_tick = ns_per_tick / 1e9;
 
         g_got_timebase_metrics = 1;
     }

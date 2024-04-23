@@ -105,6 +105,7 @@ class ImGuiStuff {
 
     // The non-modifier key returned will be marked as no longer pressed.
     uint32_t ConsumePressedKeycode();
+
   protected:
   private:
     enum ConsumePressedKeycodeState {
