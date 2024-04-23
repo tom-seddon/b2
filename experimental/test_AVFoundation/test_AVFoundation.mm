@@ -5,6 +5,8 @@
 #include <shared/path.h>
 #import <AVFoundation/AVFoundation.h>
 #import <CoreMedia/CoreMedia.h>
+#import <AppKit/AppKit.h>
+#import <AppKit/NSGraphicsContext.h>
 #define STB_IMAGE_IMPLEMENTATION
 #ifdef __clang__
 #pragma GCC diagnostic push
@@ -456,10 +458,28 @@ int main(int argc, char *argv[]) {
         }
 
         AVAssetWriter *writer = nil;
+        NSURL *output_file_url = nil;
         if (!options.output_path.empty()) {
             NSError *error;
-            auto *output_file_url = [NSURL fileURLWithPath:[NSString stringWithUTF8String:options.output_path.c_str()]];
-            writer = [AVAssetWriter assetWriterWithURL:output_file_url
+
+            output_file_url = [NSURL fileURLWithPath:[NSString stringWithUTF8String:options.output_path.c_str()]];
+            auto *temp_output_file_url = [[NSFileManager defaultManager] URLForDirectory:NSItemReplacementDirectory
+                                                                                inDomain:NSUserDomainMask
+                                                                       appropriateForURL:output_file_url
+                                                                                  create:YES
+                                                                                   error:&error];
+            if (!temp_output_file_url) {
+                LOGF(ERR, "FATAL: Temp directory creation error: %s\n", [[error description] UTF8String]);
+                return 1;
+            }
+
+            std::string output_name = PathGetName(options.output_path);
+            temp_output_file_url = [temp_output_file_url URLByAppendingPathComponent:[NSString stringWithUTF8String:output_name.c_str()]
+                                                                         isDirectory:NO];
+
+            LOGF(VOUT, "Output file URL: %s\n", [[temp_output_file_url absoluteString] UTF8String]);
+
+            writer = [AVAssetWriter assetWriterWithURL:temp_output_file_url
                                               fileType:output_file_type
                                                  error:&error];
             if (error) {
@@ -492,41 +512,121 @@ int main(int argc, char *argv[]) {
         LOGF(VOUT, "audio samples per frame: %.3f\n", audio_data_samples_per_frame);
 
         uint64_t num_append_spins = 0;
+        bool use_stb = false;
+
+// For NSImage conversion.        
+        auto *pixel_buffer_dictionary=[NSDictionary dictionaryWithObjectsAndKeys:
+                                       [NSNumber numberWithBool:YES],kCVPixelBufferCGImageCompatibilityKey,
+                                       [NSNumber numberWithBool:YES],kCVPixelBufferCGBitmapContextCompatibilityKey,
+                                       nil];
+        
+        CGColorSpaceRef colour_space_rgb=CGColorSpaceCreateWithName(kCGColorSpaceGenericRGB);
 
         for (size_t frame_index = 0; frame_index < num_frames; ++frame_index) {
             const std::string &jpg_path = jpg_paths[frame_index];
-            LOGF(VOUT, "Frame %zu: %s\n", frame_index, jpg_path.c_str());
-            int frame_width, frame_height, frame_comp;
-            stbi_uc *frame_data = stbi_load(jpg_path.c_str(),
-                                            &frame_width,
-                                            &frame_height,
-                                            &frame_comp,
-                                            3);
-
-            if (frame_width != image_width || frame_height != image_height) {
-                LOGF(ERR, "FATAL: expected %dx%d image, got %dx%d: %s\n",
-                     frame_width, frame_height,
-                     image_width, image_height,
-                     jpg_path.c_str());
-                return 1;
-            }
 
             CVPixelBufferRef pixel_buffer;
-            CVReturn create_result = CVPixelBufferCreateWithBytes(kCFAllocatorDefault,
-                                                                  (size_t)frame_width,
-                                                                  (size_t)frame_height,
-                                                                  kCVPixelFormatType_24RGB,
-                                                                  frame_data,
-                                                                  (size_t)frame_width * 3,
-                                                                  &PixelBufferFreeSTBImageCallback,
-                                                                  nullptr,
-                                                                  nil,
-                                                                  &pixel_buffer);
-            if (create_result != kCVReturnSuccess) {
-                LOGF(ERR, "FATAL: CVPixelBufferCreateWithBytes failed: %" PRId32 " (0x%" PRIx32 ") (%s)\n",
-                     create_result,
-                     create_result,
-                     GetCVReturnEnumName(create_result));
+
+            if (use_stb) {
+                LOGF(VOUT, "(stb) Frame %zu: %s\n", frame_index, jpg_path.c_str());
+                int frame_width, frame_height, frame_comp;
+                stbi_uc *frame_data = stbi_load(jpg_path.c_str(),
+                                                &frame_width,
+                                                &frame_height,
+                                                &frame_comp,
+                                                3);
+
+                if (frame_width != image_width || frame_height != image_height) {
+                    LOGF(ERR, "FATAL: expected %dx%d image, got %dx%d: %s\n",
+                         image_width, image_height,
+                         frame_width, frame_height,
+                         jpg_path.c_str());
+                    return 1;
+                    CVReturn create_result = CVPixelBufferCreateWithBytes(kCFAllocatorDefault,
+                                                                          (size_t)frame_width,
+                                                                          (size_t)frame_height,
+                                                                          kCVPixelFormatType_24RGB,
+                                                                          frame_data,
+                                                                          (size_t)frame_width * 3,
+                                                                          &PixelBufferFreeSTBImageCallback,
+                                                                          nullptr,
+                                                                          nil,
+                                                                          &pixel_buffer);
+                    if (create_result != kCVReturnSuccess) {
+                        LOGF(ERR, "FATAL: CVPixelBufferCreateWithBytes failed: %" PRId32 " (0x%" PRIx32 ") (%s)\n",
+                             create_result,
+                             create_result,
+                             GetCVReturnEnumName(create_result));
+                    }
+                }
+            } else {
+                CVReturn cvr;
+                
+                LOGF(VOUT, "(NS) Frame %zu: %s\n", frame_index, jpg_path.c_str());
+                NSImage *image = [[NSImage alloc] initWithContentsOfFile:[NSString stringWithUTF8String:jpg_path.c_str()]];
+                if (!image) {
+                    LOGF(ERR, "FATAL: failed to load NSImage from: %s\n", jpg_path.c_str());
+                    return 1;
+                }
+
+                NSSize size = [image size];
+                if (size.width != image_width || size.height != image_height) {
+                    LOGF(ERR, "FATAL: expected %dx%d image, got %fx%f: %s\n",
+                         image_width, image_height,
+                         size.width, size.height,
+                         jpg_path.c_str());
+                    return 1;
+                }
+                
+                cvr=CVPixelBufferCreate(kCFAllocatorDefault,
+                                                           (size_t)image_width,
+                                                           (size_t)image_height,
+                                                           k32ARGBPixelFormat,
+                                                           (CFDictionaryRef)pixel_buffer_dictionary,
+                                                           &pixel_buffer);
+                if (cvr != kCVReturnSuccess) {
+                    LOGF(ERR, "FATAL: CVPixelBufferCreateWithBytes failed: %" PRId32 " (0x%" PRIx32 ") (%s)\n",cvr,cvr,GetCVReturnEnumName(cvr));
+                    return 1;
+                }
+                
+                cvr=CVPixelBufferLockBaseAddress(pixel_buffer,0);
+                if(cvr!=kCVReturnSuccess){
+                    LOGF(ERR, "FATAL: CVPixelBufferLockBaseAddress failed: %" PRId32 " (0x%" PRIx32 ") (%s)\n",cvr,cvr,GetCVReturnEnumName(cvr));
+                    return 1;
+                }
+                
+                void *base_address=CVPixelBufferGetBaseAddress(pixel_buffer);
+                size_t bytes_per_row=CVPixelBufferGetBytesPerRow(pixel_buffer);
+                
+                CGContextRef context_ref=CGBitmapContextCreate(base_address,
+                                                               (size_t)image_width,
+                                                               (size_t)image_height,
+                                                               8,
+                                                               bytes_per_row,
+                                                               colour_space_rgb,
+                                                               kCGImageAlphaNoneSkipFirst);
+                if(!context_ref){
+                    LOGF(ERR,"FATAL: CGBitmapContextCreate failed\n");
+                    return 1;
+                }
+                
+                auto *graphics_context=[NSGraphicsContext graphicsContextWithCGContext:context_ref
+            flipped:NO];
+                
+                [NSGraphicsContext saveGraphicsState];
+                [NSGraphicsContext setCurrentContext:graphics_context];
+                //- (void)drawAtPoint:(NSPoint)point fromRect:(NSRect)fromRect operation:(NSCompositingOperation)op fraction:(CGFloat)delta;
+                [image compositeToPoint:NSMakePoint(0,0)
+                              operation:NSCompositingOperationCopy];
+                [NSGraphicsContext restoreGraphicsState];
+                
+                cvr=CVPixelBufferUnlockBaseAddress(pixel_buffer,0);
+                if(cvr!=kCVReturnSuccess){
+                    LOGF(ERR, "FATAL: CVPixelBufferUnlockBaseAddress failed: %" PRId32 " (0x%" PRIx32 ") (%s)\n",cvr,cvr,GetCVReturnEnumName(cvr));
+                    return 1;
+                }
+                
+                CFRelease(context_ref);
             }
 
             if (writer) {

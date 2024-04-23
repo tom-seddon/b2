@@ -120,6 +120,12 @@ Convert video to .wav file:
 
 : ffmpeg -i "../IMG_1145.MOV" -f wav -vn test.wav
 
+Command line options for test_AVFoundation:
+
+#+begin_example
+  --verbose -o /tmp/xyz.mov /Users/tom/tmp/video_test/frames
+#+end_example
+
 * Submodule notes
 
 Where a submodule tracks a GitHub repo that's a fork, GitHub mostly
