@@ -33,8 +33,7 @@
 //////////////////////////////////////////////////////////////////////////
 
 static volatile uint32_t g_got_timebase_metrics;
-static uint64_t g_timebase_ticks_per_sec;
-static uint64_t g_timebase_ticks_per_msec;
+static double g_timebase_secs_per_tick;
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -395,24 +394,6 @@ size_t GetNumSetBits64(uint64_t value) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static void GetTimebaseMetrics(void) {
-    if (!g_got_timebase_metrics) {
-        /* It doesn't matter if there's a race here; all the threads
-         * will (should...) get the same value. */
-
-        mach_timebase_info_data_t tbi;
-        mach_timebase_info(&tbi);
-
-        g_timebase_ticks_per_sec = (uint64_t)tbi.numer / tbi.denom * 1000000000ull;
-        g_timebase_ticks_per_msec = g_timebase_ticks_per_sec / 1000;
-
-        g_got_timebase_metrics = 1;
-    }
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 uint64_t GetCurrentTickCount(void) {
     return mach_absolute_time();
 }
@@ -420,26 +401,30 @@ uint64_t GetCurrentTickCount(void) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static uint64_t GetTicksPerSecond(void) {
-    GetTimebaseMetrics();
+static double GetSecondsPerTick(void) {
+    if (!g_got_timebase_metrics) {
+        /* It doesn't matter if there's a race here; all the threads
+         * will (should...) get the same value. */
 
-    return g_timebase_ticks_per_sec;
+        mach_timebase_info_data_t tbi;
+        mach_timebase_info(&tbi);
+
+        // Intel: 1/1 = 1.0000
+        // M: 125/3 = 41.6667
+        double ns_per_tick=(double)tbi.numer/tbi.denom;
+        g_timebase_secs_per_tick=ns_per_tick/1e9;
+
+        g_got_timebase_metrics = 1;
+    }
+
+    return g_timebase_secs_per_tick;
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 double GetSecondsFromTicks(uint64_t ticks) {
-    return ticks / (double)GetTicksPerSecond();
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-uint64_t GetTicksFromSeconds(double seconds) {
-    ASSERT(seconds >= 0);
-
-    return (uint64_t)seconds * GetTicksPerSecond();
+    return ticks * GetSecondsPerTick();
 }
 
 //////////////////////////////////////////////////////////////////////////
