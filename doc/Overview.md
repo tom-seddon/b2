@@ -82,19 +82,24 @@ joystick 0, and the right thumbstick and right shoulder button control
 BBC joystick 1. (The other buttons and triggers are unused.) Tick
 `Swap shared joysticks` to have the assignment the other way round.
 
-### Digital
+### Digital (Master 128/Master Compact only)
 
-The digital joystick refers to a digital joystick, connected via some
-alternative add-on (since digital joysticks weren't supported on the
-BBC Micro by default).
-
-Currently one such add-on is supported: the Retro Hardware ADJI
-cartridge. See the Customize Hardware section for how to enable this!
+Digital joysticks are only available on Master 128 and Master Compact.
 
 Assuming an Xbox-/Playstation-style game controller, left thumbstick
 and d-pad correspond to the digital X and Y axes, the A and X buttons
 correspond to fire button 1, and the B and Y buttons corresponding to
 fire button 2 (when supported).
+
+For Master 128, the digital joystick is connected via a Retro Hardware
+ADJI cartridge (mostly compatible with the Slogger Switched Joystick
+Interface cartridge, designed for the Electron). See the Customize
+Hardware section for how to enable this. This isn't supported by the
+OS, but some Electron games do support it.
+
+For Master Compact, the digital joystick is connected to the 9-pin
+joystick connector on the back of the machine. This is supported by
+the OS in the usual fashion.
 
 ## Save states
 
@@ -315,8 +320,9 @@ processor. With a B/B+, be sure to install a ROM installed with the
 Tube host code in it, such as the Acorn 1770 DFS.)
 
 Changes to a configuration don't affect the running Beeb until you do
-a `File` > `Hard Reset` (if you're editing the current config) or a
-`File` > `Configuration`.
+a `File` > `Hard Reset` (if you're editing the current config) or
+select the updated configuration from the `File` > `Configuration`
+submenu.
 
 To create a new configuration, click the `New...` button to create one
 based off one of the default configs, or the `Copy...` button to

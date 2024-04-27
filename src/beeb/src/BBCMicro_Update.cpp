@@ -686,6 +686,23 @@ parasite_update_done:
                 m_beeblink->Update(&m_state.user_via);
             }
 
+            if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_IsMasterCompact) != 0) {
+                // <pre>
+                //  PB4 PB3 PB2 PB1 PB0
+                // +---+---+---+---+---+
+                // | R | U | D | L | F |
+                // +---+---+---+---+---+
+                // </pre>
+                //
+                // Annoyingly, this is completely different from the First Byte layout.
+                m_state.user_via.b.p = m_state.user_via.b.p & ~0x1f |
+                                       0x1f ^ (m_state.digital_joystick_state.bits.right << 4 |
+                                               m_state.digital_joystick_state.bits.up << 3 |
+                                               m_state.digital_joystick_state.bits.down << 2 |
+                                               m_state.digital_joystick_state.bits.left << 1 |
+                                               (uint8_t)m_state.digital_joystick_state.bits.fire1 | (uint8_t)m_state.digital_joystick_state.bits.fire0);
+            }
+
             if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_IsMasterCompact) == 0) {
                 // Update analogue joystick buttons.
                 m_state.system_via.b.p = (m_state.system_via.b.p & ~(1u << SystemVIAPBBits::NOT_JOYSTICK0_FIRE_BIT | 1u << SystemVIAPBBits::NOT_JOYSTICK1_FIRE_BIT)) | m_state.not_joystick_buttons;
