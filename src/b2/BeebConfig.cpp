@@ -72,6 +72,65 @@ static std::shared_ptr<std::array<uint8_t, MAX_SIZE>> LoadROM(const BeebConfig::
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+void BeebConfig::ResetNVRAM() {
+    switch (this->nvram_type) {
+    default:
+        ASSERT(false);
+        // fall through
+    case BeebConfigNVRAMType_None:
+    BeebConfigNVRAMType_None:
+        this->nvram.clear();
+        break;
+
+    case BeebConfigNVRAMType_Unknown:
+        // Handle the case where the
+        switch (this->type->type_id) {
+        default:
+            ASSERT(false);
+            // fall through
+        case BBCMicroTypeID_B:
+        case BBCMicroTypeID_BPlus:
+            goto BeebConfigNVRAMType_None;
+
+        case BBCMicroTypeID_Master:
+            goto BeebConfigNVRAMType_Master128;
+
+        case BBCMicroTypeID_MasterCompact:
+            goto BeebConfigNVRAMType_MasterCompact;
+        }
+        break;
+
+    case BeebConfigNVRAMType_Master128:
+    BeebConfigNVRAMType_Master128:
+        this->nvram = GetDefaultMaster128NVRAM();
+        break;
+
+    case BeebConfigNVRAMType_MasterCompact:
+    BeebConfigNVRAMType_MasterCompact:
+        this->nvram = GetDefaultMasterCompactNVRAM();
+        break;
+
+    case BeebConfigNVRAMType_PC128S:
+        this->nvram = GetDefaultMasterCompactNVRAM();
+
+        this->nvram[10] = 0xf9;
+        this->nvram[11] = 0xe3;
+        this->nvram[12] = 32;
+        this->nvram[13] = 8;
+        this->nvram[14] = 10;
+        this->nvram[15] = 44;
+        this->nvram[16] = 128;
+        this->nvram[18] = 3;
+        this->nvram[19] = 4;
+        this->nvram[127] = 0xb2;
+
+        break;
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 static std::vector<BeebConfig> g_default_configs;
 
 std::vector<uint8_t> GetDefaultMaster128NVRAM() {
@@ -120,26 +179,6 @@ std::vector<uint8_t> GetDefaultMasterCompactNVRAM() {
 
     return nvram;
 }
-
-static std::vector<uint8_t> GetDefaultPC128SNVRAM() {
-    std::vector<uint8_t> nvram = GetDefaultMasterCompactNVRAM();
-
-    nvram[10] = 0xf9;
-    nvram[11] = 0xe3;
-    nvram[12] = 32;
-    nvram[13] = 8;
-    nvram[14] = 10;
-    nvram[15] = 44;
-    nvram[16] = 128;
-    nvram[18] = 3;
-    nvram[19] = 4;
-    nvram[127] = 0xb2;
-
-    return nvram;
-}
-
-static std::vector<uint8_t> g_default_master_128_nvram_contents = GetDefaultMaster128NVRAM();
-static std::vector<uint8_t> g_default_master_compact_nvram_contents = GetDefaultMasterCompactNVRAM();
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -210,7 +249,7 @@ void InitDefaultBeebConfigs() {
         config.roms[6].writeable = true;
         config.roms[5].writeable = true;
         config.roms[4].writeable = true;
-        config.nvram = GetDefaultMaster128NVRAM();
+        config.nvram_type = BeebConfigNVRAMType_Master128;
 
         g_default_configs.push_back(config);
     }
@@ -234,7 +273,7 @@ void InitDefaultBeebConfigs() {
         config.roms[6].writeable = true;
         config.roms[5].writeable = true;
         config.roms[4].writeable = true;
-        config.nvram = GetDefaultMaster128NVRAM();
+        config.nvram_type = BeebConfigNVRAMType_Master128;
 
         g_default_configs.push_back(config);
     }
@@ -261,7 +300,7 @@ void InitDefaultBeebConfigs() {
         config.parasite_type = BBCMicroParasiteType_MasterTurbo;
         config.parasite_os.standard_rom = FindBeebROM(StandardROM_MasterTurboParasite);
         config.feature_flags = BeebConfigFeatureFlag_MasterTurbo;
-        config.nvram = GetDefaultMaster128NVRAM();
+        config.nvram_type = BeebConfigNVRAMType_Master128;
 
         g_default_configs.push_back(config);
     }
@@ -288,7 +327,7 @@ void InitDefaultBeebConfigs() {
         config.parasite_type = BBCMicroParasiteType_MasterTurbo;
         config.parasite_os.standard_rom = FindBeebROM(StandardROM_MasterTurboParasite);
         config.feature_flags = BeebConfigFeatureFlag_MasterTurbo;
-        config.nvram = GetDefaultMaster128NVRAM();
+        config.nvram_type = BeebConfigNVRAMType_Master128;
 
         g_default_configs.push_back(config);
     }
@@ -322,7 +361,7 @@ void InitDefaultBeebConfigs() {
         config.roms[5].writeable = true;
         config.roms[4].writeable = true;
         config.feature_flags = BeebConfigFeatureFlag_MasterCompact;
-        config.nvram = GetDefaultMasterCompactNVRAM();
+        config.nvram_type = BeebConfigNVRAMType_MasterCompact;
 
         g_default_configs.push_back(config);
     }
@@ -343,7 +382,7 @@ void InitDefaultBeebConfigs() {
         config.roms[5].writeable = true;
         config.roms[4].writeable = true;
         config.feature_flags = BeebConfigFeatureFlag_MasterCompact;
-        config.nvram = GetDefaultMasterCompactNVRAM();
+        config.nvram_type = BeebConfigNVRAMType_MasterCompact;
 
         g_default_configs.push_back(config);
     }
@@ -364,11 +403,15 @@ void InitDefaultBeebConfigs() {
         config.roms[5].writeable = true;
         config.roms[4].writeable = true;
         config.feature_flags = BeebConfigFeatureFlag_OlivettiPC128S;
-        config.nvram = GetDefaultPC128SNVRAM();
+        config.nvram_type = BeebConfigNVRAMType_PC128S;
 
         g_default_configs.push_back(config);
     }
 #endif
+
+    for (BeebConfig &config : g_default_configs) {
+        config.ResetNVRAM();
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////

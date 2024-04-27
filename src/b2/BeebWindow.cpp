@@ -1348,14 +1348,10 @@ void BeebWindow::DoCommands() {
 
     m_cst.SetEnabled(g_reset_default_nvram_command, m_cst.GetEnabled(g_save_default_nvram_command));
     if (m_cst.WasActioned(g_reset_default_nvram_command)) {
-        m_msg.e.f("TODO...\n");
+        if (BeebConfig *config = FindBeebConfigByName(this->GetConfigName())) {
+            config->ResetNVRAM();
+        }
     }
-    //    if (BeebConfig *config = FindBeebConfigByName(this->GetConfigName())) {
-
-    //    }
-    //    //const BBCMicroType *type = m_beeb_thread->GetBBCMicroType();
-    //    //ResetDefaultNVRAMContents(type);
-    //}
 
     if (m_cst.WasActioned(g_save_config_command)) {
         this->SaveConfig();

@@ -1158,6 +1158,7 @@ static const char INTERLACE[] = "interlace";
 static const char LEDS_POPUP_MODE[] = "leds_popup_mode";
 static const char PARASITE[] = "parasite";
 static const char PARASITE_OS[] = "parasite_os";
+static const char NVRAM_TYPE[] = "nvram_type";
 static const char AUTO_SAVE[] = "auto_save";
 static const char AUTO_SAVE_PATH[] = "auto_save_path";
 #if SYSTEM_WINDOWS
@@ -1820,6 +1821,8 @@ static bool LoadConfigs(rapidjson::Value *configs_json, const char *configs_path
             }
         }
 
+        FindEnumMember(&config.nvram_type, config_json, NVRAM_TYPE, "NVRAM type", &GetBeebConfigNVRAMTypeEnumName, msg);
+
         std::string nvram_hex;
         if (FindStringMember(&nvram_hex, config_json, NVRAM, msg)) {
             if (!GetDataFromHexString(&config.nvram, nvram_hex)) {
@@ -1885,6 +1888,9 @@ static void SaveConfigs(JSONWriter<StringStream> *writer) {
 
             writer->Key(PARASITE_OS);
             SaveROM(writer, config->parasite_os);
+
+            writer->Key(NVRAM_TYPE);
+            SaveEnum(writer, config->nvram_type, &GetBeebConfigNVRAMTypeEnumName);
 
             if (!config->nvram.empty()) {
                 writer->Key(NVRAM);
