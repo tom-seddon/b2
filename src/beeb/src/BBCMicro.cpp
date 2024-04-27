@@ -150,7 +150,7 @@ BBCMicro::State::State(const BBCMicroType *type_,
     switch (this->type->type_id) {
     default:
         break;
-        
+
     case BBCMicroTypeID_Master:
         this->rtc.SetRAMContents(nvram_contents);
 

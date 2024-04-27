@@ -514,13 +514,13 @@ int main(int argc, char *argv[]) {
         uint64_t num_append_spins = 0;
         bool use_stb = false;
 
-// For NSImage conversion.        
-        auto *pixel_buffer_dictionary=[NSDictionary dictionaryWithObjectsAndKeys:
-                                       [NSNumber numberWithBool:YES],kCVPixelBufferCGImageCompatibilityKey,
-                                       [NSNumber numberWithBool:YES],kCVPixelBufferCGBitmapContextCompatibilityKey,
-                                       nil];
-        
-        CGColorSpaceRef colour_space_rgb=CGColorSpaceCreateWithName(kCGColorSpaceGenericRGB);
+        // For NSImage conversion.
+        auto *pixel_buffer_dictionary = [NSDictionary dictionaryWithObjectsAndKeys:
+                                                          [NSNumber numberWithBool:YES], kCVPixelBufferCGImageCompatibilityKey,
+                                                          [NSNumber numberWithBool:YES], kCVPixelBufferCGBitmapContextCompatibilityKey,
+                                                          nil];
+
+        CGColorSpaceRef colour_space_rgb = CGColorSpaceCreateWithName(kCGColorSpaceGenericRGB);
 
         for (size_t frame_index = 0; frame_index < num_frames; ++frame_index) {
             const std::string &jpg_path = jpg_paths[frame_index];
@@ -561,7 +561,7 @@ int main(int argc, char *argv[]) {
                 }
             } else {
                 CVReturn cvr;
-                
+
                 LOGF(VOUT, "(NS) Frame %zu: %s\n", frame_index, jpg_path.c_str());
                 NSImage *image = [[NSImage alloc] initWithContentsOfFile:[NSString stringWithUTF8String:jpg_path.c_str()]];
                 if (!image) {
@@ -577,55 +577,55 @@ int main(int argc, char *argv[]) {
                          jpg_path.c_str());
                     return 1;
                 }
-                
-                cvr=CVPixelBufferCreate(kCFAllocatorDefault,
-                                                           (size_t)image_width,
-                                                           (size_t)image_height,
-                                                           k32ARGBPixelFormat,
-                                                           (CFDictionaryRef)pixel_buffer_dictionary,
-                                                           &pixel_buffer);
+
+                cvr = CVPixelBufferCreate(kCFAllocatorDefault,
+                                          (size_t)image_width,
+                                          (size_t)image_height,
+                                          k32ARGBPixelFormat,
+                                          (CFDictionaryRef)pixel_buffer_dictionary,
+                                          &pixel_buffer);
                 if (cvr != kCVReturnSuccess) {
-                    LOGF(ERR, "FATAL: CVPixelBufferCreateWithBytes failed: %" PRId32 " (0x%" PRIx32 ") (%s)\n",cvr,cvr,GetCVReturnEnumName(cvr));
+                    LOGF(ERR, "FATAL: CVPixelBufferCreateWithBytes failed: %" PRId32 " (0x%" PRIx32 ") (%s)\n", cvr, cvr, GetCVReturnEnumName(cvr));
                     return 1;
                 }
-                
-                cvr=CVPixelBufferLockBaseAddress(pixel_buffer,0);
-                if(cvr!=kCVReturnSuccess){
-                    LOGF(ERR, "FATAL: CVPixelBufferLockBaseAddress failed: %" PRId32 " (0x%" PRIx32 ") (%s)\n",cvr,cvr,GetCVReturnEnumName(cvr));
+
+                cvr = CVPixelBufferLockBaseAddress(pixel_buffer, 0);
+                if (cvr != kCVReturnSuccess) {
+                    LOGF(ERR, "FATAL: CVPixelBufferLockBaseAddress failed: %" PRId32 " (0x%" PRIx32 ") (%s)\n", cvr, cvr, GetCVReturnEnumName(cvr));
                     return 1;
                 }
-                
-                void *base_address=CVPixelBufferGetBaseAddress(pixel_buffer);
-                size_t bytes_per_row=CVPixelBufferGetBytesPerRow(pixel_buffer);
-                
-                CGContextRef context_ref=CGBitmapContextCreate(base_address,
-                                                               (size_t)image_width,
-                                                               (size_t)image_height,
-                                                               8,
-                                                               bytes_per_row,
-                                                               colour_space_rgb,
-                                                               kCGImageAlphaNoneSkipFirst);
-                if(!context_ref){
-                    LOGF(ERR,"FATAL: CGBitmapContextCreate failed\n");
+
+                void *base_address = CVPixelBufferGetBaseAddress(pixel_buffer);
+                size_t bytes_per_row = CVPixelBufferGetBytesPerRow(pixel_buffer);
+
+                CGContextRef context_ref = CGBitmapContextCreate(base_address,
+                                                                 (size_t)image_width,
+                                                                 (size_t)image_height,
+                                                                 8,
+                                                                 bytes_per_row,
+                                                                 colour_space_rgb,
+                                                                 kCGImageAlphaNoneSkipFirst);
+                if (!context_ref) {
+                    LOGF(ERR, "FATAL: CGBitmapContextCreate failed\n");
                     return 1;
                 }
-                
-                auto *graphics_context=[NSGraphicsContext graphicsContextWithCGContext:context_ref
-            flipped:NO];
-                
+
+                auto *graphics_context = [NSGraphicsContext graphicsContextWithCGContext:context_ref
+                                                                                 flipped:NO];
+
                 [NSGraphicsContext saveGraphicsState];
                 [NSGraphicsContext setCurrentContext:graphics_context];
                 //- (void)drawAtPoint:(NSPoint)point fromRect:(NSRect)fromRect operation:(NSCompositingOperation)op fraction:(CGFloat)delta;
-                [image compositeToPoint:NSMakePoint(0,0)
+                [image compositeToPoint:NSMakePoint(0, 0)
                               operation:NSCompositingOperationCopy];
                 [NSGraphicsContext restoreGraphicsState];
-                
-                cvr=CVPixelBufferUnlockBaseAddress(pixel_buffer,0);
-                if(cvr!=kCVReturnSuccess){
-                    LOGF(ERR, "FATAL: CVPixelBufferUnlockBaseAddress failed: %" PRId32 " (0x%" PRIx32 ") (%s)\n",cvr,cvr,GetCVReturnEnumName(cvr));
+
+                cvr = CVPixelBufferUnlockBaseAddress(pixel_buffer, 0);
+                if (cvr != kCVReturnSuccess) {
+                    LOGF(ERR, "FATAL: CVPixelBufferUnlockBaseAddress failed: %" PRId32 " (0x%" PRIx32 ") (%s)\n", cvr, cvr, GetCVReturnEnumName(cvr));
                     return 1;
                 }
-                
+
                 CFRelease(context_ref);
             }
 

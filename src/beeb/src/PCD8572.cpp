@@ -34,17 +34,17 @@ void SetPCD8572Trace(PCD8572 *p, Trace *t) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-#if 0//BUILD_TYPE_Debug
+#if 0 //BUILD_TYPE_Debug
 #define ELOG_LOGF LOGF
 #else
 #define ELOG_LOGF(FMT, ...) ((void)0)
 #endif
 
 #define ELOG(...)                              \
-    BEGIN_MACRO {                                   \
-        ELOG_LOGF(EEPROM, __VA_ARGS__);   \
+    BEGIN_MACRO {                              \
+        ELOG_LOGF(EEPROM, __VA_ARGS__);        \
         TRACEF(p->t, "EEPROM - " __VA_ARGS__); \
-    }                                               \
+    }                                          \
     END_MACRO
 
 //////////////////////////////////////////////////////////////////////////
