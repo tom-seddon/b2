@@ -1,8 +1,30 @@
+##########################################################################
+##########################################################################
+
+function(progress_message message)
+  string(TIMESTAMP time)
+  message(STATUS "***************************************************************************")
+  message(STATUS "**")
+  message(STATUS "** ${message}")
+  message(STATUS "** (Time now: ${time})")
+  message(STATUS "**")
+  message(STATUS "***************************************************************************")
+endfunction()
+
+progress_message("Starting...")
+
+##########################################################################
+##########################################################################
+
 cmake_minimum_required(VERSION 3.20)
 set(CMAKE_CONFIGURATION_TYPES Debug RelWithDebInfo Final)
 project(b2)
 set(CMAKE_SKIP_INSTALL_RULES YES)
 set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT b2)
+
+##########################################################################
+##########################################################################
+
 enable_testing()
 include(FindPkgConfig)
 include(CheckCXXSourceCompiles)
@@ -102,6 +124,8 @@ set(WANTED_SANITIZE_UNDEFINED ${SANITIZE_UNDEFINED})
 set(WANTED_SANITIZE_MEMORY ${SANITIZE_MEMORY})
 set(WANTED_SANITIZE_ADDRESS ${SANITIZE_ADDRESS})
 
+progress_message("Sanitizers")
+
 find_package(Sanitizers)
 
 function(check_sanitizer NAME PREFIX)
@@ -120,10 +144,30 @@ check_sanitizer(ADDRESS ASan)
 ##########################################################################
 ##########################################################################
 
+progress_message("libcurl")
+
 if(USE_SYSTEM_CURL)
+
+  if(OSX)
+    # The objective here is to link against the system copy of
+    # libcurl, not the MacPorts one.
+    #
+    # (Nor the Homebrew one! - but I don't use Homebrew, so I don't
+    # know which folders to ignore.)
+    set(OLD_CMAKE_IGNORE_PATH ${CMAKE_IGNORE_PATH})
+    set(CMAKE_IGNORE_PATH
+      /opt/local/lib
+      /opt/local/include
+      /opt/local/bin)
+  endif()
+  
   find_package(CURL 7 REQUIRED
     COMPONENTS HTTP)
   set(LIBCURL_TARGET CURL::libcurl)
+
+  if(OSX)
+    set(CMAKE_IGNORE_PATH ${OLD_CMAKE_IGNORE_PATH})
+  endif()
 else()
   # (Even though Windows libcurl is part of submodules, the
   # configuration process sets some variables, and find_package (as used
@@ -160,11 +204,13 @@ else()
   set(LIBCURL_TARGET libcurl)
 endif()
 
-message(STATUS "libcurl found: ${HAVE_LIBCURL}")
+message(STATUS "libcurl target: ${LIBCURL_TARGET}")
 
 
 ##########################################################################
 ##########################################################################
+
+progress_message("SDL")
 
 if(USE_SYSTEM_SDL)
 
@@ -209,6 +255,8 @@ endif()
 ##########################################################################
 
 if(LINUX OR OSX)
+  progress_message("ffmpeg")
+
   find_package(PkgConfig)
   if(PKG_CONFIG_FOUND)
     pkg_check_modules(FFMPEG libavcodec libavformat libavutil libswresample libswscale)
@@ -273,6 +321,8 @@ endif()
 ##########################################################################
 ##########################################################################
 
+progress_message("libuv")
+
 if(USE_SYSTEM_LIBUV)
   find_package(LibUV REQUIRED)
 else()
@@ -292,6 +342,8 @@ endif()
 
 ##########################################################################
 ##########################################################################
+
+progress_message("submodules; src; dependencies")
 
 add_subdirectory(submodules)
 add_subdirectory(src)
@@ -327,3 +379,8 @@ endif()
 if(OSX)
   target_sources(b2 PRIVATE ${CMAKE_CURRENT_LIST_DIR}/src/b2/macos/template.Info.plist)
 endif()
+
+##########################################################################
+##########################################################################
+
+progress_message("Done")

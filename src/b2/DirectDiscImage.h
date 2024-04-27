@@ -61,7 +61,7 @@ class DirectDiscImage : public DiscImage {
     DiscGeometry m_geometry;
     bool m_write_protected;
     mutable FILE *m_fp = nullptr;
-    mutable bool m_fp_write= false;
+    mutable bool m_fp_write = false;
 
     DirectDiscImage(std::string path, const DiscGeometry &geometry, bool write_protected);
     bool fopenAndSeek(bool write, uint8_t side, uint8_t track, uint8_t sector, size_t offset) const;
