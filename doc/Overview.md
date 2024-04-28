@@ -334,7 +334,8 @@ The `Delete` button will delete the currently selected config.
 
 If you're using an emulated Master 128, Master Compact or PC 128 S,
 use `File` > `Save CMOS/EEPROM contents` to save the current
-CMOS/EEPROM contents for the current config.
+CMOS/EEPROM contents for the current config. (For technical reasons,
+this doesn't currently happen automatically - sorry!)
 
 These affect the values used when using `File` > `Hard reset` or when
 re-selecting the current config from the Hardware menu.
@@ -343,8 +344,8 @@ re-selecting the current config from the Hardware menu.
 set of CMOS/EEPROM contents.)
 
 Use `Tools` > `Reset CMOS/EEPROM` to reset the saved settings to
-reasonable default settings. Use `File` > `Hard reset` to see the
-effect.
+reasonable default settings. Again, use `File` > `Hard reset` to see
+the effect.
 
 ## Paste from clipboard
 
