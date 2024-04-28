@@ -83,7 +83,10 @@ void BeebConfig::ResetNVRAM() {
         break;
 
     case BeebConfigNVRAMType_Unknown:
-        // Handle the case where the
+        // Handle the case where the BeebConfig was set up before the nvram_type
+        // field was added. (This only really causes a problem in the Master
+        // Compact case, as the NVRAM contents aren't always cross-variant
+        // compatible. None of the GitHub releases are affected.)
         switch (this->type->type_id) {
         default:
             ASSERT(false);
