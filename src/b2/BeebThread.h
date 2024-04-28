@@ -1034,6 +1034,8 @@ class BeebThread {
     void DebugGetState(std::shared_ptr<const BBCMicro::State> *state_ptr, std::shared_ptr<const BBCMicro::DebugState> *debug_state_ptr) const;
 #endif
 
+    uint32_t GetUpdateFlags() const;
+
   protected:
   private:
     struct AudioThreadData;
@@ -1091,6 +1093,7 @@ class BeebThread {
     std::atomic<uint64_t> m_num_mq_polls{0};
     std::atomic<uint64_t> m_num_mq_waits{0};
     std::atomic<bool> m_debug_is_halted{false};
+    std::atomic<uint32_t> m_update_flags{0};
 
     // Lock m_mutex first, if locking both. (The public API makes this hard to
     // get wrong.)

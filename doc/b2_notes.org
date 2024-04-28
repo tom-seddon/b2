@@ -501,3 +501,8 @@ Default CMOS:
   [126]	0 '\0'	unsigned char
   [127]	50 '2'	unsigned char
 #+end_example
+
+* Breakpoint bug
+
+address_debug_flags=0x0000017971e2d28a
+addr_flags=0x0000017971e3bc38

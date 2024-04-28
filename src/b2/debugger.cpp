@@ -133,12 +133,10 @@ class RevealTargetUI;
 class DebugUI : public SettingsUI {
   public:
     struct DebugBigPage {
+        bool valid = false;
         BBCMicro::ReadOnlyBigPage bp;
 
-        // buffers for the above.
-        uint8_t ram_buffer[BBCMicro::BIG_PAGE_SIZE_BYTES] = {};
-        uint8_t addr_flags_buffer[BBCMicro::BIG_PAGE_SIZE_BYTES] = {};
-        uint8_t byte_flags_buffer[BBCMicro::BIG_PAGE_SIZE_BYTES] = {};
+        // ...any more???
     };
 
     bool OnClose() override;
@@ -191,8 +189,8 @@ class DebugUI : public SettingsUI {
     bool IsStateUnavailableImGui() const;
 
   private:
-    std::unique_ptr<DebugBigPage> m_dbps[2][16]; // [mos][mem big page]
-    uint32_t m_popup_id = 0;                     //salt for byte popup gui IDs
+    DebugBigPage m_dbps[2][16]; //[mos][mem big page]
+    uint32_t m_popup_id = 0;    //salt for byte popup gui IDs
 
     bool DoDebugByteFlagsGui(const char *str,
                              uint8_t *flags);
@@ -234,7 +232,7 @@ bool DebugUI::OnClose() {
 void DebugUI::DoImGui() {
     for (size_t i = 0; i < 2; ++i) {
         for (size_t j = 0; j < 16; ++j) {
-            m_dbps[i][j].reset();
+            m_dbps[i][j].valid = false;
         }
     }
 
@@ -686,32 +684,32 @@ const DebugUI::DebugBigPage *DebugUI::GetDebugBigPageForAddress(M6502Word addr,
                                                                 bool mos) {
     ASSERT((int)mos == 0 || (int)mos == 1);
 
-    if (!m_dbps[mos][addr.p.p]) {
-        auto dbp = std::make_unique<DebugBigPage>();
+    DebugUI::DebugBigPage *dbp = &m_dbps[mos][addr.p.p];
 
+    if (!dbp->valid) {
         BBCMicro::DebugGetBigPageForAddress(&dbp->bp, m_beeb_state.get(), m_beeb_debug_state.get(), addr, mos, m_dso);
 
-        if (dbp->bp.r) {
-            memcpy(dbp->ram_buffer, dbp->bp.r, BBCMicro::BIG_PAGE_SIZE_BYTES);
-            dbp->bp.r = dbp->ram_buffer;
-        }
+        //if (dbp->bp.r) {
+        //    memcpy(dbp->ram_buffer, dbp->bp.r, BBCMicro::BIG_PAGE_SIZE_BYTES);
+        //    dbp->bp.r = dbp->ram_buffer;
+        //}
 
-        if (dbp->bp.byte_debug_flags) {
-            ASSERT(dbp->bp.address_debug_flags);
+        //if (dbp->bp.byte_debug_flags) {
+        //    ASSERT(dbp->bp.address_debug_flags);
 
-            memcpy(dbp->byte_flags_buffer, dbp->bp.byte_debug_flags, BBCMicro::BIG_PAGE_SIZE_BYTES);
-            dbp->bp.byte_debug_flags = dbp->byte_flags_buffer;
+        //    memcpy(dbp->byte_flags_buffer, dbp->bp.byte_debug_flags, BBCMicro::BIG_PAGE_SIZE_BYTES);
+        //    dbp->bp.byte_debug_flags = dbp->byte_flags_buffer;
 
-            memcpy(dbp->addr_flags_buffer, dbp->bp.address_debug_flags, BBCMicro::BIG_PAGE_SIZE_BYTES);
-            dbp->bp.address_debug_flags = dbp->addr_flags_buffer;
-        } else {
-            ASSERT(!dbp->bp.address_debug_flags);
-        }
+        //    memcpy(dbp->addr_flags_buffer, dbp->bp.address_debug_flags, BBCMicro::BIG_PAGE_SIZE_BYTES);
+        //    dbp->bp.address_debug_flags = dbp->addr_flags_buffer;
+        //} else {
+        //    ASSERT(!dbp->bp.address_debug_flags);
+        //}
 
-        m_dbps[mos][addr.p.p] = std::move(dbp);
+        dbp->valid = true;
     }
 
-    return m_dbps[mos][addr.p.p].get();
+    return dbp;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -866,6 +864,21 @@ class M6502DebugWindow : public DebugUI {
             ImGuiHeader("Parasite CPU");
             this->StateImGui(m_beeb_state->DebugGetM6502(BBCMicroDebugStateOverride_Parasite));
         }
+
+        ImGuiHeader("Update Flags");
+        {
+            uint32_t flags = m_beeb_thread->GetUpdateFlags();
+            for (uint32_t mask = 1; mask != 0; mask <<= 1) {
+                if (flags & mask) {
+                    const char *flag = GetBBCMicroUpdateFlagEnumName((int32_t)mask);
+                    ImGui::BulletText("%s", flag);
+                }
+            }
+        }
+
+        ImGuiHeader("Debugger State");
+        ImGui::Text("Breakpoint change counter = %" PRIu64, m_beeb_debug_state->breakpoints_changed_counter);
+        ImGui::Text("Num bytes+addresses with breakpoints = %" PRIu64, m_beeb_debug_state->num_breakpoint_bytes);
     }
 
   private:

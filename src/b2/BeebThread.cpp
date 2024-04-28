@@ -2297,6 +2297,13 @@ std::vector<uint8_t> BeebThread::GetPrinterData() const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+uint32_t BeebThread::GetUpdateFlags() const {
+    return m_update_flags.load(std::memory_order_acquire);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 #if BBCMICRO_DEBUGGER
 bool BeebThread::DebugIsHalted() const {
     return m_debug_is_halted.load(std::memory_order_acquire);
@@ -2979,6 +2986,7 @@ void BeebThread::ThreadMain(void) {
             uint32_t clone_impediments = ts.beeb->GetCloneImpediments();
 
             m_clone_impediments.store(clone_impediments, std::memory_order_release);
+            m_update_flags.store(ts.beeb->GetUpdateFlags(), std::memory_order_release);
 
             bool can_record = false;
 

@@ -94,12 +94,13 @@ class BBCMicro : private WD1770Handler,
         // Byte-specific breakpoint flags.
         uint8_t big_pages_byte_debug_flags[NUM_BIG_PAGES][BIG_PAGE_SIZE_BYTES] = {};
 
-        //
+        // Increases every time the breakpoint state changes.
         uint64_t breakpoints_changed_counter = 1;
 
-        // List of all addresses that have address breakpoints associated with
-        // them.
-        std::vector<M6502Word> addr_breakpoints;
+        // Total number of bytes and/or addresses that currently have any
+        // breakpoints set on them. When num_breakpoint_bytes==0, no breakpoints
+        // are set.
+        uint64_t num_breakpoint_bytes = 0;
 
         // List of temp execute breakpoints to be reset on a halt. Each entry is
         // a pointer to one of the bytes in big_pages_debug_flags or
@@ -165,6 +166,9 @@ class BBCMicro : private WD1770Handler,
 
 #if BBCMICRO_DEBUGGER
         const uint8_t *byte_debug_flags = nullptr;
+
+        // Multiple big pages can occupy the same address. The address flags
+        // often overlap.
         const uint8_t *address_debug_flags = nullptr;
 #endif
         uint8_t index = 0;
@@ -495,7 +499,7 @@ class BBCMicro : private WD1770Handler,
 
     // Get/set per-address byte debug flags for one address.
     uint8_t DebugGetAddressDebugFlags(M6502Word addr, uint32_t dso) const;
-    void DebugSetAddressDebugFlags(M6502Word addr, uint32_t dso, uint8_t flags) const;
+    void DebugSetAddressDebugFlags(M6502Word addr, uint32_t dso, uint8_t flags);
 
     void DebugGetBytes(uint8_t *bytes, size_t num_bytes, M6502Word addr, uint32_t dso);
     void DebugSetBytes(M6502Word addr, uint32_t dso, const uint8_t *bytes, size_t num_bytes);
@@ -528,17 +532,6 @@ class BBCMicro : private WD1770Handler,
     // The breakpoints change counter is incremented any time the set of
     // breakpoints changes.
     uint64_t DebugGetBreakpointsChangeCounter() const;
-
-    // Get copies of the debug flags.
-    //
-    // host_address_debug_flags data is 65536 bytes.
-    //
-    // parasite_address_debug_flags data is 65536 bytes.
-    //
-    // big_pages_debug_flags data is NUM_BIG_PAGES*BIG_PAGE_SIZE_BYTES.
-    //void DebugGetDebugFlags(uint8_t *host_address_debug_flags,
-    //                        uint8_t *parasite_address_debug_flags,
-    //                        uint8_t *big_pages_debug_flags) const;
 #endif
 
     void SendBeebLinkResponse(std::vector<uint8_t> data);
@@ -559,6 +552,8 @@ class BBCMicro : private WD1770Handler,
     void SetPrinterBuffer(std::vector<uint8_t> *buffer);
 
     bool HasADC() const;
+
+    uint32_t GetUpdateFlags() const;
 
   protected:
     // Hacks, not part of the public API, for use by the testing stuff so that
@@ -800,6 +795,7 @@ class BBCMicro : private WD1770Handler,
     BigPage m_big_pages[NUM_BIG_PAGES];
     typedef uint32_t (BBCMicro::*UpdateMFn)(VideoDataUnit *, SoundDataUnit *);
     UpdateMFn m_update_mfn = nullptr;
+    uint32_t m_update_flags = 0;
 
     // Memory
     MemoryBigPages m_mem_big_pages[2] = {};

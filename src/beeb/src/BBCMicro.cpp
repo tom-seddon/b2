@@ -610,12 +610,13 @@ void BBCMicro::InitReadOnlyBigPage(ReadOnlyBigPage *bp,
 
     if (debug_state) {
         if (bp->metadata->addr != 0xffff) {
+            ASSERT(bp->metadata->addr % BIG_PAGE_SIZE_BYTES == 0);
             bp->byte_debug_flags = debug_state->big_pages_byte_debug_flags[bp->index];
 
             if (bp->metadata->is_parasite) {
-                bp->address_debug_flags = &debug_state->parasite_address_debug_flags[bp->index];
+                bp->address_debug_flags = &debug_state->parasite_address_debug_flags[bp->metadata->addr];
             } else {
-                bp->address_debug_flags = &debug_state->host_address_debug_flags[bp->index];
+                bp->address_debug_flags = &debug_state->host_address_debug_flags[bp->metadata->addr];
             }
         }
     }
@@ -1559,6 +1560,13 @@ void BBCMicro::DebugSetByteDebugFlags(uint8_t big_page_index,
         uint8_t *byte_flags = &big_page->byte_debug_flags[offset & BIG_PAGE_OFFSET_MASK];
 
         if (*byte_flags != flags) {
+            if (*byte_flags == 0) {
+                ++m_debug->num_breakpoint_bytes;
+            } else if (flags == 0) {
+                ASSERT(m_debug->num_breakpoint_bytes > 0);
+                --m_debug->num_breakpoint_bytes;
+            }
+
             *byte_flags = flags;
 
             ++m_debug->breakpoints_changed_counter;
@@ -1567,6 +1575,8 @@ void BBCMicro::DebugSetByteDebugFlags(uint8_t big_page_index,
                 m_debug->temp_execute_breakpoints.push_back(byte_flags);
             }
         }
+
+        this->UpdateCPUDataBusFn();
     }
 }
 #endif
@@ -1592,7 +1602,7 @@ uint8_t BBCMicro::DebugGetAddressDebugFlags(M6502Word addr, uint32_t dso) const 
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_DEBUGGER
-void BBCMicro::DebugSetAddressDebugFlags(M6502Word addr, uint32_t dso, uint8_t flags) const {
+void BBCMicro::DebugSetAddressDebugFlags(M6502Word addr, uint32_t dso, uint8_t flags) {
     if (m_debug) {
         uint8_t *addr_flags;
         if (dso & BBCMicroDebugStateOverride_Parasite) {
@@ -1602,6 +1612,13 @@ void BBCMicro::DebugSetAddressDebugFlags(M6502Word addr, uint32_t dso, uint8_t f
         }
 
         if (*addr_flags != flags) {
+            if (*addr_flags == 0) {
+                ++m_debug->num_breakpoint_bytes;
+            } else if (flags == 0) {
+                ASSERT(m_debug->num_breakpoint_bytes > 0);
+                --m_debug->num_breakpoint_bytes;
+            }
+
             *addr_flags = flags;
 
             ++m_debug->breakpoints_changed_counter;
@@ -1610,6 +1627,8 @@ void BBCMicro::DebugSetAddressDebugFlags(M6502Word addr, uint32_t dso, uint8_t f
                 m_debug->temp_execute_breakpoints.push_back(addr_flags);
             }
         }
+
+        this->UpdateCPUDataBusFn();
     }
 }
 #endif
@@ -1689,15 +1708,19 @@ void BBCMicro::DebugHalt(const char *fmt, ...) {
                        ((uintptr_t)flags >= (uintptr_t)m_debug->parasite_address_debug_flags &&
                         (uintptr_t)flags < (uintptr_t)((char *)m_debug->parasite_address_debug_flags + sizeof m_debug->parasite_address_debug_flags)));
 
-                // Doesn't matter.
-                //ASSERT(*flags&BBCMicroByteDebugFlag_TempBreakExecute);
-
+                uint8_t old = *flags;
                 *flags &= ~(uint32_t)BBCMicroByteDebugFlag_TempBreakExecute;
+                if (old != 0 && *flags == 0) {
+                    ASSERT(m_debug->num_breakpoint_bytes > 0);
+                    --m_debug->num_breakpoint_bytes;
+                }
             }
 
             m_debug->temp_execute_breakpoints.clear();
 
             ++m_debug->breakpoints_changed_counter;
+
+            this->UpdateCPUDataBusFn();
         }
 
         this->SetDebugStepType(BBCMicroStepType_None, nullptr);
@@ -2067,6 +2090,13 @@ void BBCMicro::SetPrinterBuffer(std::vector<uint8_t> *buffer) {
 
 bool BBCMicro::HasADC() const {
     return m_state.type->adc_addr != 0;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+uint32_t BBCMicro::GetUpdateFlags() const {
+    return m_update_flags;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -2794,12 +2824,6 @@ float BBCMicro::UpdateDiscDriveSound(DiscDrive *dd) {
 void BBCMicro::UpdateCPUDataBusFn() {
     uint32_t update_flags = 0;
 
-#if BBCMICRO_DEBUGGER
-    if (m_debug) {
-        update_flags |= BBCMicroUpdateFlag_Debug;
-    }
-#endif
-
     if (m_state.hack_flags != 0) {
         update_flags |= BBCMicroUpdateFlag_Hacks;
     }
@@ -2812,10 +2836,14 @@ void BBCMicro::UpdateCPUDataBusFn() {
 
 #if BBCMICRO_DEBUGGER
     if (m_debug) {
-        if (m_debug->step_type != BBCMicroStepType_None) {
+        if (m_debug->step_type == BBCMicroStepType_None) {
+            if (m_debug->num_breakpoint_bytes > 0) {
+                update_flags |= BBCMicroUpdateFlag_Debug;
+            }
+        } else {
             ASSERT(m_debug->step_cpu);
             auto metadata = (const M6502Metadata *)m_debug->step_cpu->context;
-            update_flags |= metadata->debug_step_update_flag;
+            update_flags |= BBCMicroUpdateFlag_Debug | metadata->debug_step_update_flag;
         }
     }
 #endif
@@ -2861,6 +2889,7 @@ void BBCMicro::UpdateCPUDataBusFn() {
     }
 
     ASSERT(update_flags < sizeof ms_update_mfns / sizeof ms_update_mfns[0]);
+    m_update_flags = update_flags;
     m_update_mfn = ms_update_mfns[update_flags];
     ASSERT(m_update_mfn);
 }
