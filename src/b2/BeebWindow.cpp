@@ -112,6 +112,9 @@ static Command2 g_copy_screenshot_command = Command2(&g_beeb_window_command_tabl
 #if ENABLE_SDL_FULL_SCREEN
 static Command2 g_toggle_full_screen_command = Command2(&g_beeb_window_command_table, "toggle_full_screen", "Full screen").WithTick();
 #endif
+static Command2 g_new_window_command = Command2(&g_beeb_window_command_table, "new_window", "New window");
+static Command2 g_clone_window_command = Command2(&g_beeb_window_command_table, "clone_window", "Clone window");
+static Command2 g_close_window_command = Command2(&g_beeb_window_command_table, "close_window", "Close window");
 
 struct PopupMetadata {
     Command2 command;
@@ -970,8 +973,6 @@ bool BeebWindow::DoImGui(uint64_t ticks) {
     int output_width, output_height;
     SDL_GetRendererOutputSize(m_renderer, &output_width, &output_height);
 
-    bool keep_window = true;
-
     SettingsUI *active_popup = nullptr;
 
     // Set if the BBC display panel has focus. This isn't entirely regular,
@@ -981,11 +982,10 @@ bool BeebWindow::DoImGui(uint64_t ticks) {
     // The BBC display panel never has any dear imgui text widgets in it.
     bool beeb_focus = false;
 
-    if (!this->DoMenuUI()) {
-        keep_window = false;
-    }
+    this->DoMenuUI();
 
-    this->DoCommands();
+    bool close_window = false;
+    this->DoCommands(&close_window);
 
     ImGuiViewport *viewport = ImGui::GetMainViewport();
 
@@ -1019,88 +1019,6 @@ bool BeebWindow::DoImGui(uint64_t ticks) {
     }
 
     active_popup = this->DoSettingsUI();
-
-    //    // Set the window padding to 0x0, so that the docking stuff, which
-    //    // makes its own child windows, ends up tightly aligned to the
-    //    // window border. (Well, tightly enough, anyway... in fact there's
-    //    // still a 1 pixel border that I haven't figured out yet.)
-    //    //
-    //    // 0x0 padding makes everything else look a bit of a mess, so this
-    //    // does mean that the default window padding has to be pushed in
-    //    // various places. Need to fix this...
-    //    ImGuiStyleVarPusher vpusher1(ImGuiStyleVar_WindowPadding, ImVec2(0.f, 0.f));
-    //    {
-    //        this->DoCommands();
-    //
-    //        {
-    //            ImGuiStyleVarPusher vpusher2(ImGuiStyleVar_WindowPadding, IMGUI_DEFAULT_STYLE.WindowPadding);
-    //
-    //            if (!this->DoMenuUI()) {
-    //                keep_window = false;
-    //            }
-    //        }
-    //
-    //        {
-    //            ImVec2 pos = ImGui::GetCursorPos();
-    //            pos.x = 0.f;
-    //            ImVec2 size = {(float)output_width - pos.x, (float)output_height - pos.y};
-    //
-    //            ImGui::SetNextWindowPos(pos);
-    //            ImGui::SetNextWindowSize(size);
-    //        }
-    //
-    //        ImGuiCol style_colour = ImGuiCol_WindowBg;
-    //        ImGuiStyleColourPusher cpusher1(style_colour, ImVec4(0.f, 0.f, 0.f, 0.f));
-    //
-    //        if (ImGui::Begin("DockHolder",
-    //                         nullptr,
-    //                         (ImGuiWindowFlags_NoScrollWithMouse |
-    //                          ImGuiWindowFlags_NoTitleBar |
-    //                          ImGuiWindowFlags_NoResize |
-    //                          ImGuiWindowFlags_NoMove |
-    //                          ImGuiWindowFlags_NoScrollbar |
-    //                          ImGuiWindowFlags_NoSavedSettings |
-    //                          ImGuiWindowFlags_NoBringToFrontOnFocus))) {
-    //            {
-    //                ImGuiStyleColourPusher cpusher2;
-    //                cpusher2.PushDefault(style_colour);
-    //
-    //                if(ImGuiDockNode*node=ImGui::DockBuilderGetCentralNode(
-    //                //ImGui::BeginDockspace();
-    //                {
-    //                    ImGuiStyleVarPusher vpusher2(ImGuiStyleVar_WindowPadding, IMGUI_DEFAULT_STYLE.WindowPadding);
-    //
-    //                    active_popup = this->DoSettingsUI();
-    //
-    //                    beeb_focus = this->DoBeebDisplayUI();
-    //                }
-    //                //ImGui::EndDockspace();
-    //
-    //                {
-    //                    ImGuiStyleVarPusher vpusher2(ImGuiStyleVar_WindowPadding, IMGUI_DEFAULT_STYLE.WindowPadding);
-    //
-    //#if ENABLE_IMGUI_DEMO
-    //                    if (m_imgui_demo) {
-    //                        ImGui::ShowDemoWindow();
-    //                    }
-    //#endif
-    //
-    //#if STORE_DRAWLISTS
-    //                    if (m_imgui_drawlists) {
-    //                        m_imgui_stuff->DoStoredDrawListWindow();
-    //                    }
-    //#endif
-    //
-    //                    if (m_imgui_metrics) {
-    //                        ImGui::ShowMetricsWindow();
-    //                    }
-    //
-    //                    this->DoPopupUI(ticks, output_width, output_height);
-    //                }
-    //            }
-    //            ImGui::End();
-    //        }
-    //    }
 
     // Handle input as appropriate.
     //
@@ -1154,7 +1072,7 @@ bool BeebWindow::DoImGui(uint64_t ticks) {
 
     m_sdl_keyboard_events.clear();
 
-    return keep_window;
+    return !close_window; // sigh, inverted logic
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -1190,12 +1108,14 @@ static BeebConfig *FindBeebConfigByName(const std::string &name) {
     return nullptr;
 }
 
-void BeebWindow::DoCommands() {
+void BeebWindow::DoCommands(bool *close_window) {
     if (m_cst.WasActioned(g_hard_reset_command)) {
         this->HardReset();
     }
 
-    m_cst.SetEnabled(g_save_state_command, m_beeb_thread->GetBBCMicroCloneImpediments() == 0);
+    bool can_clone = m_beeb_thread->GetBBCMicroCloneImpediments() == 0;
+
+    m_cst.SetEnabled(g_save_state_command, can_clone);
     if (m_cst.WasActioned(g_save_state_command)) {
         m_beeb_thread->Send(std::make_shared<BeebThread::SaveStateMessage>(true));
     }
@@ -1393,6 +1313,28 @@ void BeebWindow::DoCommands() {
     }
 #endif
 
+    if (m_cst.WasActioned(g_new_window_command)) {
+        PushNewWindowMessage(this->GetNewWindowInitArguments());
+    }
+
+    m_cst.SetEnabled(g_clone_window_command, can_clone);
+    if (m_cst.WasActioned(g_clone_window_command)) {
+        BeebWindowInitArguments init_arguments = this->GetNewWindowInitArguments();
+
+        if (m_settings.keymap) {
+            init_arguments.keymap_name = m_settings.keymap->GetName();
+        }
+
+        init_arguments.settings = m_settings;
+        init_arguments.use_settings = true;
+
+        m_beeb_thread->Send(std::make_shared<BeebThread::CloneWindowMessage>(init_arguments));
+    }
+
+    if (m_cst.WasActioned(g_close_window_command)) {
+        *close_window = true;
+    }
+
     for (int type = 0; type < BeebWindowPopupType_MaxValue; ++type) {
         const uint64_t mask = (uint64_t)1 << type;
 
@@ -1408,9 +1350,7 @@ void BeebWindow::DoCommands() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool BeebWindow::DoMenuUI() {
-    bool keep_window = true;
-
+void BeebWindow::DoMenuUI() {
     if (ImGui::BeginMainMenuBar()) {
         this->DoFileMenu();
         this->DoEditMenu();
@@ -1420,13 +1360,9 @@ bool BeebWindow::DoMenuUI() {
         this->DoPrinterMenu();
         this->DoToolsMenu();
         this->DoDebugMenu();
-        if (!this->DoWindowMenu()) {
-            keep_window = false;
-        }
+        this->DoWindowMenu();
         ImGui::EndMainMenuBar();
     }
-
-    return keep_window;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -2163,9 +2099,7 @@ void BeebWindow::DoDebugMenu() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool BeebWindow::DoWindowMenu() {
-    bool keep_window = true;
-
+void BeebWindow::DoWindowMenu() {
     if (ImGui::BeginMenu("Window")) {
         {
             char name[100];
@@ -2182,36 +2116,13 @@ bool BeebWindow::DoWindowMenu() {
 
         ImGui::Separator();
 
-        if (ImGui::MenuItem("New")) {
-            PushNewWindowMessage(this->GetNewWindowInitArguments());
-        }
-
-        if (ImGui::MenuItem("Clone")) {
-            BeebWindowInitArguments init_arguments = this->GetNewWindowInitArguments();
-
-            if (m_settings.keymap) {
-                init_arguments.keymap_name = m_settings.keymap->GetName();
-            }
-
-            init_arguments.settings = m_settings;
-            init_arguments.use_settings = true;
-
-            m_beeb_thread->Send(std::make_shared<BeebThread::CloneWindowMessage>(init_arguments));
-        }
-
+        m_cst.DoMenuItem(g_new_window_command);
+        m_cst.DoMenuItem(g_clone_window_command);
         ImGui::Separator();
-
-        if (ImGui::BeginMenu("Close")) {
-            if (ImGui::MenuItem("Confirm")) {
-                keep_window = false;
-            }
-            ImGui::EndMenu();
-        }
+        m_cst.DoMenuItem(g_close_window_command);
 
         ImGui::EndMenu();
     }
-
-    return keep_window;
 }
 
 //////////////////////////////////////////////////////////////////////////

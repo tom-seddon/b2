@@ -453,8 +453,8 @@ class BeebWindow {
     static void UpdateTVTextureThread(UpdateTVTextureThreadState *state);
     bool DoImGui(uint64_t ticks);
     bool HandleCommandKey(uint32_t keycode, SettingsUI *active_popup);
-    void DoCommands();
-    bool DoMenuUI();
+    void DoCommands(bool *close_window);
+    void DoMenuUI();
     SettingsUI *DoSettingsUI();
     void DoPopupUI(uint64_t now, int output_width, int output_height);
     void DoFileMenu();
@@ -468,7 +468,7 @@ class BeebWindow {
     void DoPrinterMenu();
     void DoToolsMenu();
     void DoDebugMenu();
-    bool DoWindowMenu();
+    void DoWindowMenu();
     BeebWindowInitArguments GetNewWindowInitArguments() const;
     void HardReset();
     void HandleJoystickResult(const JoystickResult &jr);
