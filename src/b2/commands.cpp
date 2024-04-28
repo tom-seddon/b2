@@ -307,6 +307,8 @@ bool Command2::IsVisible() const {
 //////////////////////////////////////////////////////////////////////////
 
 Command2 &Command2::MustConfirm() {
+    ASSERT(!m_has_tick); //Dear ImGui submenus can't have ticks :(
+
     m_must_confirm = true;
 
     return *this;
@@ -316,6 +318,8 @@ Command2 &Command2::MustConfirm() {
 //////////////////////////////////////////////////////////////////////////
 
 Command2 &Command2::WithTick() {
+    ASSERT(!m_must_confirm); //Dear ImGui submenus can't have ticks :(
+
     m_has_tick = true;
 
     return *this;
