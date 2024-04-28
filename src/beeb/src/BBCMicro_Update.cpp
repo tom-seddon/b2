@@ -879,7 +879,7 @@ uint32_t BBCMicro::GetNormalizedBBCMicroUpdateFlags(uint32_t flags) {
 #define UPDATE256(N) UPDATE128(N + 0), UPDATE128(N + 128)
 #define UPDATE512(N) UPDATE256(N + 0), UPDATE256(N + 256)
 #define UPDATE1024(N) UPDATE512(N + 0), UPDATE512(N + 512)
-#define UPDATE2048(N) UPDATE1024(N + 0), UPDATE1024(N + 512)
+#define UPDATE2048(N) UPDATE1024(N + 0), UPDATE1024(N + 1024)
 
 // The compile time can get a bit much. Tried splitting it into 8*64, hopefully
 // getting a bit of parallelism, but this seemed to make very little different
