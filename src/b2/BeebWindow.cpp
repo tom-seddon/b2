@@ -219,7 +219,7 @@ static bool InitialiseTogglePopupCommands() {
     InitialiseTogglePopupCommand(BeebWindowPopupType_BeebLink, "toggle_beeblink_options", "BeebLink Options", &CreateBeebLinkUI);
     InitialiseTogglePopupCommand(BeebWindowPopupType_DigitalJoystickDebugger, "toggle_digital_joystick_debugger", "Digital Joystick Debug", &CreateDigitalJoystickDebugWindow);
     InitialiseTogglePopupCommand(BeebWindowPopupType_ImGuiDebug, "toggle_imgui_debug", "Imgui debug", &BeebWindow::CreateImGuiDebugWindow);
-
+    InitialiseTogglePopupCommand(BeebWindowPopupType_KeyboardDebug, "toggle_keyboard_debug", "Keyboard debug", &CreateKeyboardDebugWindow);
     return true;
 }
 
@@ -2060,6 +2060,7 @@ void BeebWindow::DoDebugMenu() {
         m_cst.DoMenuItem(g_popups[BeebWindowPopupType_ParasiteStackDebugger].command);
         m_cst.DoMenuItem(g_popups[BeebWindowPopupType_TubeDebugger].command);
         m_cst.DoMenuItem(g_popups[BeebWindowPopupType_DigitalJoystickDebugger].command);
+        m_cst.DoMenuItem(g_popups[BeebWindowPopupType_KeyboardDebug].command);
 
         ImGui::Separator();
 

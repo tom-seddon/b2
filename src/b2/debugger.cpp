@@ -3274,6 +3274,56 @@ std::unique_ptr<SettingsUI> CreateDigitalJoystickDebugWindow(BeebWindow *beeb_wi
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+class KeyboardDebugWindow : public DebugUI {
+  public:
+  protected:
+    void DoImGui2() override {
+        ImGuiHeader("Keyboard Matrix");
+        ImGui::TextUnformatted("    | 0 1 2 3 4 5 6 7 8 9 A B C D E F");
+        ImGui::TextUnformatted("----+--------------------------------");
+
+        char text[100];
+        for (uint8_t row = 0; row < 8; ++row) {
+            char *p = text;
+            *p++ = '$';
+            *p++ = (char)('0' + row);
+            *p++ = 'x';
+            *p++ = ' ';
+            *p++ = '|';
+
+            for (uint8_t col = 0; col < 16; ++col) {
+                *p++ = ' ';
+                *p++ = m_beeb_state->key_columns[col] & 1 << row ? '*' : '.';
+            }
+            *p++ = 0;
+            ImGui::TextUnformatted(text);
+        }
+
+        ImGuiHeader("Keys Pressed");
+        bool any = false;
+        for (uint8_t row = 1; row < 8; ++row) {
+            for (uint8_t col = 0; col < 16; ++col) {
+                if (m_beeb_state->key_columns[col] & 1 << row) {
+                    ImGui::BulletText("%s", GetBeebKeyEnumName(row << 4 | col));
+                    any = true;
+                }
+            }
+        }
+        if (!any) {
+            ImGui::TextUnformatted("(None)");
+        }
+    }
+
+  private:
+};
+
+std::unique_ptr<SettingsUI> CreateKeyboardDebugWindow(BeebWindow *beeb_window) {
+    return CreateDebugUI<KeyboardDebugWindow>(beeb_window);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 #else
 
 std::unique_ptr<SettingsUI> Create6502DebugWindow(BeebWindow *) {
@@ -3353,6 +3403,10 @@ std::unique_ptr<SettingsUI> CreateADCDebugWindow(BeebWindow *) {
 }
 
 std::unique_ptr<SettingsUI> CreateDigitalJoystickDebugWindow(BeebWindow *beeb_window) {
+    return nullptr;
+}
+
+std::unique_ptr<SettingsUI> CreateKeyboardDebugWindow(BeebWindow *beeb_window) {
     return nullptr;
 }
 

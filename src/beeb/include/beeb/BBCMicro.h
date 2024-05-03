@@ -670,10 +670,11 @@ class BBCMicro : private WD1770Handler,
         ROMSEL romsel = {};
         ACCCON acccon = {};
 
-      private:
         // Key states
         uint8_t key_columns[16] = {};
         uint8_t key_scan_column = 0;
+
+      private:
         int num_keys_down = 0;
         //BeebKey auto_reset_key=BeebKey_None;
 

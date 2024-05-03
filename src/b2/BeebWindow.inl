@@ -71,6 +71,7 @@ EPN(TubeDebugger)
 EPN(ADCDebugger)
 EPN(DigitalJoystickDebugger)
 EPN(ImGuiDebug)
+EPN(KeyboardDebug)
 
 // must be last
 EQPN(MaxValue)

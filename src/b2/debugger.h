@@ -36,6 +36,7 @@ std::unique_ptr<SettingsUI> CreateParasiteStackDebugWindow(BeebWindow *beeb_wind
 std::unique_ptr<SettingsUI> CreateTubeDebugWindow(BeebWindow *beeb_window);
 std::unique_ptr<SettingsUI> CreateADCDebugWindow(BeebWindow *beeb_window);
 std::unique_ptr<SettingsUI> CreateDigitalJoystickDebugWindow(BeebWindow *beeb_window);
+std::unique_ptr<SettingsUI> CreateKeyboardDebugWindow(BeebWindow *beeb_window);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
