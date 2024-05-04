@@ -3278,6 +3278,9 @@ class KeyboardDebugWindow : public DebugUI {
   public:
   protected:
     void DoImGui2() override {
+        ImGuiHeader("Keyboard State");
+        ImGui::Text("Auto scan: %s",BOOL_STR(m_beeb_state->addressable_latch.bits.not_kb_write));
+        ImGui::Text("Auto scan column: %u (0x%x)",m_beeb_state->key_scan_column,m_beeb_state->key_scan_column);
         ImGuiHeader("Keyboard Matrix");
         ImGui::TextUnformatted("    | 0 1 2 3 4 5 6 7 8 9 A B C D E F");
         ImGui::TextUnformatted("----+--------------------------------");
