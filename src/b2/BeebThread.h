@@ -695,7 +695,7 @@ class BeebThread {
 #if BBCMICRO_DEBUGGER
     class DebugSetByteMessage : public Message {
       public:
-        DebugSetByteMessage(uint16_t addr, uint32_t dso, uint8_t value);
+        DebugSetByteMessage(uint16_t addr, uint32_t dso, bool mos, uint8_t value);
 
         bool ThreadPrepare(std::shared_ptr<Message> *ptr,
                            CompletionFun *completion_fun,
@@ -707,6 +707,7 @@ class BeebThread {
       private:
         const uint16_t m_addr = 0;
         const uint32_t m_dso = 0;
+        const bool m_mos = false;
         const uint8_t m_value = 0;
     };
 #endif
@@ -714,7 +715,7 @@ class BeebThread {
 #if BBCMICRO_DEBUGGER
     class DebugSetBytesMessage : public Message {
       public:
-        DebugSetBytesMessage(uint16_t addr, uint32_t dso, std::vector<uint8_t> values);
+        DebugSetBytesMessage(uint16_t addr, uint32_t dso, bool mos, std::vector<uint8_t> values);
 
         bool ThreadPrepare(std::shared_ptr<Message> *ptr,
                            CompletionFun *completion_fun,
@@ -726,6 +727,7 @@ class BeebThread {
       private:
         const uint16_t m_addr = 0;
         const uint32_t m_dso = 0;
+        const bool m_mos = false;
         const std::vector<uint8_t> m_values;
     };
 #endif

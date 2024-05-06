@@ -501,8 +501,8 @@ class BBCMicro : private WD1770Handler,
     uint8_t DebugGetAddressDebugFlags(M6502Word addr, uint32_t dso) const;
     void DebugSetAddressDebugFlags(M6502Word addr, uint32_t dso, uint8_t flags);
 
-    void DebugGetBytes(uint8_t *bytes, size_t num_bytes, M6502Word addr, uint32_t dso);
-    void DebugSetBytes(M6502Word addr, uint32_t dso, const uint8_t *bytes, size_t num_bytes);
+    void DebugGetBytes(uint8_t *bytes, size_t num_bytes, M6502Word addr, uint32_t dso, bool mos);
+    void DebugSetBytes(M6502Word addr, uint32_t dso, bool mos, const uint8_t *bytes, size_t num_bytes);
 
     void SetExtMemory(uint32_t addr, uint8_t value);
 

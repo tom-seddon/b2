@@ -44,6 +44,11 @@ want to use.
 
 Overridden settings are displayed with a `!` suffix.
 
+If there's a `MOS's view` checkbox, tick it to show the memory as
+would be seen by the OS's VDU drivers rather than (as is the default)
+by ordinary code. For technical reasons, this flag isn't integrated
+very well into the debugger or the paging override mechanism.
+
 ## Byte popup ##
 
 Most places where you see the value of a byte in the debugger UI, or

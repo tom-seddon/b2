@@ -925,6 +925,10 @@ class MemoryDebugWindow : public DebugUI,
         , m_hex_editor(&m_handler) {
     }
 
+    void AllowMOSToggle() {
+        m_show_mos_toggle = true;
+    }
+
     virtual void RevealAddress(M6502Word addr) override {
         m_hex_editor.SetOffset(addr.w);
     }
@@ -938,12 +942,21 @@ class MemoryDebugWindow : public DebugUI,
     void DoImGui2() override {
         this->DoDebugPageOverrideImGui();
 
+        if (m_show_mos_toggle) {
+            if (HasIndependentMOSView(m_beeb_window->GetBeebThread()->GetBBCMicroType())) {
+                ImGui::SameLine();
+                ImGui::Checkbox("MOS's view", &this->m_handler.mos);
+            }
+        }
+
         m_hex_editor.DoImGui();
     }
 
   private:
     class Handler : public HexEditorHandler {
       public:
+        bool mos = false;
+
         explicit Handler(MemoryDebugWindow *window)
             : m_window(window) {
         }
@@ -969,6 +982,7 @@ class MemoryDebugWindow : public DebugUI,
 
             m_window->m_beeb_thread->Send(std::make_shared<BeebThread::DebugSetBytesMessage>((uint16_t)offset,
                                                                                              m_window->m_dso,
+                                                                                             this->mos,
                                                                                              std::move(data)));
         }
 
@@ -1047,7 +1061,7 @@ class MemoryDebugWindow : public DebugUI,
                         std::vector<uint8_t> buffer;
                         for (uint32_t addr = begin; addr != end; ++addr) {
                             uint8_t value;
-                            if (!m_window->ReadByte(&value, nullptr, nullptr, (uint16_t)addr, false)) {
+                            if (!m_window->ReadByte(&value, nullptr, nullptr, (uint16_t)addr, this->mos)) {
                                 value = 0;
                             }
                             buffer.push_back(value);
@@ -1064,7 +1078,7 @@ class MemoryDebugWindow : public DebugUI,
                             size_t text_size,
                             size_t offset,
                             bool upper_case) override {
-            const DebugBigPage *dbp = m_window->GetDebugBigPageForAddress({(uint16_t)offset}, false);
+            const DebugBigPage *dbp = m_window->GetDebugBigPageForAddress({(uint16_t)offset}, this->mos);
 
             snprintf(text,
                      text_size,
@@ -1111,12 +1125,15 @@ class MemoryDebugWindow : public DebugUI,
         }
     };
 
+    bool m_show_mos_toggle = false;
     Handler m_handler;
     HexEditor m_hex_editor;
 };
 
 std::unique_ptr<SettingsUI> CreateHostMemoryDebugWindow(BeebWindow *beeb_window) {
-    return CreateDebugUI<MemoryDebugWindow>(beeb_window);
+    std::unique_ptr<MemoryDebugWindow> window = CreateDebugUI<MemoryDebugWindow>(beeb_window);
+    window->AllowMOSToggle();
+    return window;
 }
 
 std::unique_ptr<SettingsUI> CreateParasiteMemoryDebugWindow(BeebWindow *beeb_window) {
@@ -3279,8 +3296,8 @@ class KeyboardDebugWindow : public DebugUI {
   protected:
     void DoImGui2() override {
         ImGuiHeader("Keyboard State");
-        ImGui::Text("Auto scan: %s",BOOL_STR(m_beeb_state->addressable_latch.bits.not_kb_write));
-        ImGui::Text("Auto scan column: %u (0x%x)",m_beeb_state->key_scan_column,m_beeb_state->key_scan_column);
+        ImGui::Text("Auto scan: %s", BOOL_STR(m_beeb_state->addressable_latch.bits.not_kb_write));
+        ImGui::Text("Auto scan column: %u (0x%x)", m_beeb_state->key_scan_column, m_beeb_state->key_scan_column);
         ImGuiHeader("Keyboard Matrix");
         ImGui::TextUnformatted("    | 0 1 2 3 4 5 6 7 8 9 A B C D E F");
         ImGui::TextUnformatted("----+--------------------------------");
@@ -3307,7 +3324,8 @@ class KeyboardDebugWindow : public DebugUI {
         for (uint8_t row = 1; row < 8; ++row) {
             for (uint8_t col = 0; col < 16; ++col) {
                 if (m_beeb_state->key_columns[col] & 1 << row) {
-                    ImGui::BulletText("%s", GetBeebKeyEnumName(row << 4 | col));
+                    uint8_t code = row << 4 | col;
+                    ImGui::BulletText("$%02x: %s", code, GetBeebKeyEnumName(code));
                     any = true;
                 }
             }

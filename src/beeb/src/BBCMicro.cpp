@@ -1637,10 +1637,10 @@ void BBCMicro::DebugSetAddressDebugFlags(M6502Word addr, uint32_t dso, uint8_t f
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_DEBUGGER
-void BBCMicro::DebugGetBytes(uint8_t *bytes, size_t num_bytes, M6502Word addr, uint32_t dso) {
+void BBCMicro::DebugGetBytes(uint8_t *bytes, size_t num_bytes, M6502Word addr, uint32_t dso, bool mos) {
     // Not currently very clever.
     for (size_t i = 0; i < num_bytes; ++i) {
-        const BigPage *bp = this->DebugGetBigPageForAddress(addr, {}, dso);
+        const BigPage *bp = this->DebugGetBigPageForAddress(addr, mos, dso);
 
         if (bp->r) {
             bytes[i] = bp->r[addr.p.o];
@@ -1657,10 +1657,10 @@ void BBCMicro::DebugGetBytes(uint8_t *bytes, size_t num_bytes, M6502Word addr, u
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_DEBUGGER
-void BBCMicro::DebugSetBytes(M6502Word addr, uint32_t dso, const uint8_t *bytes, size_t num_bytes) {
+void BBCMicro::DebugSetBytes(M6502Word addr, uint32_t dso, bool mos, const uint8_t *bytes, size_t num_bytes) {
     // Not currently very clever.
     for (size_t i = 0; i < num_bytes; ++i) {
-        const BigPage *bp = this->DebugGetBigPageForAddress(addr, {}, dso);
+        const BigPage *bp = this->DebugGetBigPageForAddress(addr, mos, dso);
 
         if (bp->w) {
             bp->w[addr.p.o] = bytes[i];

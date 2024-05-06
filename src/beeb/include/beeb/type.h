@@ -304,6 +304,7 @@ bool HasCartridges(const BBCMicroType *type);
 bool HasUserPort(const BBCMicroType *type);
 bool Has1MHzBus(const BBCMicroType *type);
 bool HasADC(const BBCMicroType *type);
+bool HasIndependentMOSView(const BBCMicroType*type);
 
 size_t GetNumBBCMicroTypes();
 const BBCMicroType *GetBBCMicroTypeByIndex(size_t index);

@@ -61,11 +61,13 @@ class BeebThreadPeekMessage : public BeebThread::CustomMessage {
   public:
     BeebThreadPeekMessage(uint16_t addr,
                           uint32_t dso,
+                          bool mos,
                           uint64_t count,
                           HTTPServer *server,
                           HTTPRequest &&request)
         : m_addr(addr)
         , m_dso(dso)
+        , m_mos(mos)
         , m_count(count)
         , m_server(server)
         , m_response_data(request.response_data) {
@@ -79,7 +81,7 @@ class BeebThreadPeekMessage : public BeebThread::CustomMessage {
         std::vector<uint8_t> data;
         data.resize(m_count);
 
-        beeb->DebugGetBytes(data.data(), data.size(), addr, m_dso);
+        beeb->DebugGetBytes(data.data(), data.size(), addr, m_dso, m_mos);
 
         HTTPResponse response(HTTP_OCTET_STREAM_CONTENT_TYPE, std::move(data));
         m_server->SendResponse(m_response_data, std::move(response));
@@ -89,6 +91,7 @@ class BeebThreadPeekMessage : public BeebThread::CustomMessage {
   private:
     uint16_t m_addr = 0;
     uint32_t m_dso = 0;
+    bool m_mos = false;
     uint64_t m_count = 0;
     HTTPServer *m_server = nullptr;
     HTTPResponseData m_response_data;
@@ -97,6 +100,14 @@ class BeebThreadPeekMessage : public BeebThread::CustomMessage {
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_DEBUGGER
+// Implicit dso/mos values for the peek and poke endpoints.
+//
+// This needs tidying up!
+static const uint32_t IMPLICIT_DSO = 0;
+static const bool IMPLICIT_MOS = false;
+#endif
 
 class HTTPMethodsHandler : public HTTPHandler {
     struct HandleRequestData {
@@ -348,7 +359,7 @@ class HTTPMethodsHandler : public HTTPHandler {
             return;
         }
 
-        this->SendMessage(beeb_window, server, request, std::make_shared<BeebThread::DebugSetBytesMessage>(addr, 0, std::move(request.body)));
+        this->SendMessage(beeb_window, server, request, std::make_shared<BeebThread::DebugSetBytesMessage>(addr, IMPLICIT_DSO, IMPLICIT_MOS, std::move(request.body)));
     }
 #endif
 
@@ -380,11 +391,7 @@ class HTTPMethodsHandler : public HTTPHandler {
             }
         }
 
-        beeb_window->GetBeebThread()->Send(std::make_unique<BeebThreadPeekMessage>(begin,
-                                                                                   0, //dso
-                                                                                   end - begin,
-                                                                                   server,
-                                                                                   std::move(request)));
+        beeb_window->GetBeebThread()->Send(std::make_unique<BeebThreadPeekMessage>(begin, IMPLICIT_DSO, IMPLICIT_MOS, end - begin, server, std::move(request)));
     }
 #endif
 
