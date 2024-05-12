@@ -744,6 +744,11 @@ bool DebugUI::IsStateUnavailableImGui() const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+// These want to be the same width, so the UI doesn't jiggle around if the
+// values are changing rapidly.
+static const char DSO_FLAG_ON[] = "on ";
+static const char DSO_FLAG_OFF[] = "off";
+
 void DebugUI::DoDebugPageOverrideFlagImGui(uint32_t mask,
                                            uint32_t current,
                                            const char *name,
@@ -763,9 +768,9 @@ void DebugUI::DoDebugPageOverrideFlagImGui(uint32_t mask,
     ImGui::SameLine();
 
     if (m_dso & override_mask) {
-        ImGui::Text("%s!", m_dso & flag_mask ? "on" : "off");
+        ImGui::Text("%s!", m_dso & flag_mask ? DSO_FLAG_ON : DSO_FLAG_OFF);
     } else {
-        ImGui::Text("%s", current & flag_mask ? "on" : "off");
+        ImGui::Text("%s", current & flag_mask ? DSO_FLAG_ON : DSO_FLAG_OFF);
     }
 
     if (ImGui::BeginPopup(popup_name)) {
