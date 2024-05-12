@@ -2235,8 +2235,6 @@ void BBCMicro::DebugHitBreakpoint(const M6502 *cpu, uint8_t flags) {
 
 #if BBCMICRO_DEBUGGER
 void BBCMicro::DebugHandleStep() {
-    ASSERT(m_debug->step_cpu);
-    auto metadata = (const M6502Metadata *)m_debug->step_cpu->context;
 
     switch (m_debug->step_type) {
     default:
@@ -2245,6 +2243,9 @@ void BBCMicro::DebugHandleStep() {
 
     case BBCMicroStepType_StepIn:
         {
+            ASSERT(m_debug->step_cpu);
+            auto metadata = (const M6502Metadata *)m_debug->step_cpu->context;
+
             if (m_debug->step_cpu->read == M6502ReadType_Opcode) {
                 // Done.
                 this->DebugHalt("%s single step", metadata->name);
@@ -2262,9 +2263,14 @@ void BBCMicro::DebugHandleStep() {
         break;
 
     case BBCMicroStepType_StepIntoIRQHandler:
-        ASSERT(m_debug->step_cpu->read == M6502ReadType_Opcode || m_debug->step_cpu->read == M6502ReadType_Interrupt);
-        if (m_debug->step_cpu->read == M6502ReadType_Opcode) {
-            this->DebugHalt("%s IRQ/NMI", metadata->name);
+        {
+            ASSERT(m_debug->step_cpu);
+            auto metadata = (const M6502Metadata *)m_debug->step_cpu->context;
+
+            ASSERT(m_debug->step_cpu->read == M6502ReadType_Opcode || m_debug->step_cpu->read == M6502ReadType_Interrupt);
+            if (m_debug->step_cpu->read == M6502ReadType_Opcode) {
+                this->DebugHalt("%s IRQ/NMI", metadata->name);
+            }
         }
         break;
     }
