@@ -3428,11 +3428,11 @@ std::unique_ptr<SettingsUI> CreateADCDebugWindow(BeebWindow *) {
     return nullptr;
 }
 
-std::unique_ptr<SettingsUI> CreateDigitalJoystickDebugWindow(BeebWindow *beeb_window) {
+std::unique_ptr<SettingsUI> CreateDigitalJoystickDebugWindow(BeebWindow *) {
     return nullptr;
 }
 
-std::unique_ptr<SettingsUI> CreateKeyboardDebugWindow(BeebWindow *beeb_window) {
+std::unique_ptr<SettingsUI> CreateKeyboardDebugWindow(BeebWindow *) {
     return nullptr;
 }
 

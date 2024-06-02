@@ -695,12 +695,12 @@ parasite_update_done:
                 // </pre>
                 //
                 // Annoyingly, this is completely different from the First Byte layout.
-                m_state.user_via.b.p = m_state.user_via.b.p & ~0x1f |
-                                       0x1f ^ (m_state.digital_joystick_state.bits.right << 4 |
-                                               m_state.digital_joystick_state.bits.up << 3 |
-                                               m_state.digital_joystick_state.bits.down << 2 |
-                                               m_state.digital_joystick_state.bits.left << 1 |
-                                               (uint8_t)m_state.digital_joystick_state.bits.fire1 | (uint8_t)m_state.digital_joystick_state.bits.fire0);
+                m_state.user_via.b.p = (uint8_t)(m_state.user_via.b.p & ~0x1f) |
+                                       (0x1f ^ ((m_state.digital_joystick_state.bits.right << 4) |
+                                                (m_state.digital_joystick_state.bits.up << 3) |
+                                                (m_state.digital_joystick_state.bits.down << 2) |
+                                                (m_state.digital_joystick_state.bits.left << 1) |
+                                                (uint8_t)m_state.digital_joystick_state.bits.fire1 | (uint8_t)m_state.digital_joystick_state.bits.fire0));
             }
 
             if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_IsMasterCompact) == 0) {

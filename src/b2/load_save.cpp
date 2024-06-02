@@ -2390,6 +2390,9 @@ bool LoadGlobalConfig(Messages *msg) {
 
         if (config->nvram.empty()) {
             switch (config->type->type_id) {
+            default:
+                break;
+
             case BBCMicroTypeID_Master:
                 config->nvram = master_nvram;
                 break;
