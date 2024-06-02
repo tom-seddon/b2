@@ -182,7 +182,7 @@ class TestDiscImage : public DiscImage {
     std::string GetLoadMethod() const override;
     std::string GetDescription() const override;
     void AddFileDialogFilter(FileDialog *fd) const override;
-    bool SaveToFile(const std::string &file_name, Messages *msg) const override;
+    bool SaveToFile(const std::string &file_name, const LogSet &logs) const override;
     bool Read(uint8_t *value,
               uint8_t side,
               uint8_t track,
@@ -269,8 +269,8 @@ void TestDiscImage::AddFileDialogFilter(FileDialog *fd) const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool TestDiscImage::SaveToFile(const std::string &file_name, Messages *msg) const {
-    (void)file_name, (void)msg;
+bool TestDiscImage::SaveToFile(const std::string &file_name, const LogSet &logs) const {
+    (void)file_name, (void)logs;
 
     return false;
 }

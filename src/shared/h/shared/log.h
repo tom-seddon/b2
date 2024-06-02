@@ -198,6 +198,22 @@ const std::vector<Log *> &GetLogListByTag(const std::string &tag);
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+struct LogSet {
+    Log &i;
+    Log &w;
+    Log &e;
+
+    LogSet() = delete;
+    //LogSet(Log &i, Log &w, Log &e);
+    LogSet(const LogSet &src) = default;
+    LogSet &operator=(const LogSet &src) = default;
+    LogSet(LogSet &&src) = delete;
+    LogSet &operator=(const LogSet &&src) = delete;
+};
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 void LogDumpBytes(Log *log, const void *p, size_t n);
 
 typedef int (*LogDumpHighlightFn)(size_t offset, void *data);

@@ -2882,7 +2882,7 @@ void BeebThread::ThreadMain(void) {
         SetCurrentThreadNamef("BeebThread");
 
         ts.beeb_thread = this;
-        ts.msgs = Messages(m_message_list);
+        ts.msgs.SetMessageList(m_message_list);
         ts.timeline_event_lists = std::move(m_initial_timeline_event_lists);
 
         //ts.timeline_state.num_beeb_state_events = ts.timeline_event_lists.size();

@@ -141,10 +141,8 @@ class MessageList : public std::enable_shared_from_this<MessageList> {
 //////////////////////////////////////////////////////////////////////////
 
 // N.B. - this is quite a large object.
-class Messages {
+class Messages : public LogSet {
   public:
-    Log i, w, e;
-
     // When default-constructed, all three logs are disabled and go to
     // the nowhere printer.
     Messages();
@@ -153,14 +151,16 @@ class Messages {
     Messages(const Messages &) = delete;
     Messages &operator=(const Messages &) = delete;
 
-    Messages(Messages &&) = default;
-    Messages &operator=(Messages &&) = default;
+    Messages(Messages &&) = delete;
+    Messages &operator=(Messages &&) = delete;
 
     std::shared_ptr<MessageList> GetMessageList() const;
+    void SetMessageList(std::shared_ptr<MessageList> message_list);
 
   protected:
   private:
     std::shared_ptr<MessageList> m_message_list;
+    Log m_info, m_warning, m_error;
 };
 
 //////////////////////////////////////////////////////////////////////////

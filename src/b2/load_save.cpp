@@ -377,17 +377,17 @@ static bool GetDataFromHexString(std::vector<uint8_t> *data, const std::string &
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static void AddError(Messages *msg,
+static void AddError(const LogSet &logs,
                      const std::string &path,
                      const char *what1,
                      const char *what2,
                      int err) {
-    msg->w.f("%s failed: %s\n", what1, path.c_str());
+    logs.w.f("%s failed: %s\n", what1, path.c_str());
 
     if (err != 0) {
-        msg->i.f("(%s: %s)\n", what2, strerror(err));
+        logs.i.f("(%s: %s)\n", what2, strerror(err));
     } else {
-        msg->i.f("(%s)\n", what2);
+        logs.i.f("(%s)\n", what2);
     }
 }
 
@@ -397,7 +397,7 @@ static void AddError(Messages *msg,
 template <class ContType>
 static bool LoadFile2(ContType *data,
                       const std::string &path,
-                      Messages *msg,
+                      const LogSet &logs,
                       uint32_t flags,
                       const char *mode) {
     static_assert(sizeof(typename ContType::value_type) == 1, "LoadFile2 can only load into a vector of bytes");
@@ -411,32 +411,32 @@ static bool LoadFile2(ContType *data,
         if (errno == ENOENT && (flags & LoadFlag_MightNotExist)) {
             // ignore this error.
         } else {
-            AddError(msg, path, "load", "open failed", errno);
+            AddError(logs, path, "load", "open failed", errno);
         }
 
         goto done;
     }
 
     if (fseek(f, 0, SEEK_END) == -1) {
-        AddError(msg, path, "load", "fseek (1) failed", errno);
+        AddError(logs, path, "load", "fseek (1) failed", errno);
         goto done;
     }
 
     len = ftell(f);
     if (len < 0) {
-        AddError(msg, path, "load", "ftell failed", errno);
+        AddError(logs, path, "load", "ftell failed", errno);
         goto done;
     }
 
 #if LONG_MAX > SIZE_MAX
     if (len > (long)SIZE_MAX) {
-        AddError(msg, path, "load", "file is too large", 0);
+        AddError(logs, path, "load", "file is too large", 0);
         goto done;
     }
 #endif
 
     if (fseek(f, 0, SEEK_SET) == -1) {
-        AddError(msg, path, "load", "fseek (2) failed", errno);
+        AddError(logs, path, "load", "fseek (2) failed", errno);
         goto done;
     }
 
@@ -445,7 +445,7 @@ static bool LoadFile2(ContType *data,
 
     num_read = fread(data->data(), 1, num_bytes, f);
     if (ferror(f)) {
-        AddError(msg, path, "load", "read failed", errno);
+        AddError(logs, path, "load", "read failed", errno);
         goto done;
     }
 
@@ -469,11 +469,8 @@ done:;
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool LoadFile(std::vector<uint8_t> *data,
-              const std::string &path,
-              Messages *messages,
-              uint32_t flags) {
-    if (!LoadFile2(data, path, messages, flags, "rb")) {
+bool LoadFile(std::vector<uint8_t> *data, const std::string &path, const LogSet &logs, uint32_t flags) {
+    if (!LoadFile2(data, path, logs, flags, "rb")) {
         return false;
     }
 
@@ -484,11 +481,15 @@ bool LoadFile(std::vector<uint8_t> *data,
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool LoadTextFile(std::vector<char> *data,
-                  const std::string &path,
-                  Messages *messages,
-                  uint32_t flags) {
-    if (!LoadFile2(data, path, messages, flags, "rt")) {
+bool LoadFile(std::vector<uint8_t> *data, const std::string &path, Messages *messages, uint32_t flags) {
+    return LoadFile(data, path, *messages, flags);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool LoadTextFile(std::vector<char> *data, const std::string &path, const LogSet &logs, uint32_t flags) {
+    if (!LoadFile2(data, path, logs, flags, "rt")) {
         return false;
     }
 
@@ -499,10 +500,17 @@ bool LoadTextFile(std::vector<char> *data,
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static bool SaveFile2(const void *data, size_t data_size, const std::string &path, Messages *messages, const char *fopen_mode) {
+bool LoadTextFile(std::vector<char> *data, const std::string &path, Messages *messages, uint32_t flags) {
+    return LoadTextFile(data, path, *messages, flags);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+static bool SaveFile2(const void *data, size_t data_size, const std::string &path, const LogSet &logs, const char *fopen_mode) {
     FILE *f = fopenUTF8(path.c_str(), fopen_mode);
     if (!f) {
-        AddError(messages, path, "save", "fopen failed", errno);
+        AddError(logs, path, "save", "fopen failed", errno);
         return false;
     }
 
@@ -515,7 +523,7 @@ static bool SaveFile2(const void *data, size_t data_size, const std::string &pat
     f = nullptr;
 
     if (bad) {
-        AddError(messages, path, "save", "write failed", e);
+        AddError(logs, path, "save", "write failed", e);
         return false;
     }
 
@@ -525,22 +533,34 @@ static bool SaveFile2(const void *data, size_t data_size, const std::string &pat
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+bool SaveFile(const void *data, size_t data_size, const std::string &path, const LogSet &logs) {
+    return SaveFile2(data, data_size, path, logs, "wb");
+}
+
 bool SaveFile(const void *data, size_t data_size, const std::string &path, Messages *messages) {
-    return SaveFile2(data, data_size, path, messages, "wb");
+    return SaveFile(data, data_size, path, *messages);
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
+
+bool SaveFile(const std::vector<uint8_t> &data, const std::string &path, const LogSet &logs) {
+    return SaveFile(data.data(), data.size(), path, logs);
+}
 
 bool SaveFile(const std::vector<uint8_t> &data, const std::string &path, Messages *messages) {
-    return SaveFile(data.data(), data.size(), path, messages);
+    return SaveFile(data, path, *messages);
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+bool SaveTextFile(const std::string &data, const std::string &path, const LogSet &logs) {
+    return SaveFile2(data.c_str(), data.size(), path, logs, "wt");
+}
+
 bool SaveTextFile(const std::string &data, const std::string &path, Messages *messages) {
-    return SaveFile2(data.c_str(), data.size(), path, messages, "wt");
+    return SaveTextFile(data, path, *messages);
 }
 
 //////////////////////////////////////////////////////////////////////////

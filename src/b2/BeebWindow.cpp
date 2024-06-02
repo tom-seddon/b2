@@ -525,7 +525,7 @@ BeebWindow::BeebWindow(BeebWindowInitArguments init_arguments)
     m_name = m_init_arguments.name;
 
     m_message_list = std::make_shared<MessageList>();
-    m_msg = Messages(m_message_list);
+    m_msg.SetMessageList(m_message_list);
 
     m_beeb_thread = std::make_shared<BeebThread>(m_message_list,
                                                  m_init_arguments.sound_device,
@@ -1744,7 +1744,7 @@ void BeebWindow::DoDiscDriveSubMenu(int drive,
 
         if (disc_image->CanSave()) {
             if (ImGui::MenuItem("Save")) {
-                disc_image->SaveToFile(disc_image->GetName(), &m_msg);
+                disc_image->SaveToFile(disc_image->GetName(), m_msg);
             }
         }
 
@@ -1756,7 +1756,7 @@ void BeebWindow::DoDiscDriveSubMenu(int drive,
 
             std::string path;
             if (fd.Open(&path)) {
-                if (disc_image->SaveToFile(path, &m_msg)) {
+                if (disc_image->SaveToFile(path, m_msg)) {
                     fd.AddLastPathToRecentPaths();
                 }
             }

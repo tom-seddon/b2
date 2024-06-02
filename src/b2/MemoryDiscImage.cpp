@@ -361,9 +361,8 @@ void MemoryDiscImage::AddFileDialogFilter(FileDialog *fd) const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool MemoryDiscImage::SaveToFile(const std::string &file_name,
-                                 Messages *msg) const {
-    return SaveFile(m_data->data, file_name, msg);
+bool MemoryDiscImage::SaveToFile(const std::string &file_name, const LogSet &logs) const {
+    return SaveFile(m_data->data, file_name, logs);
 }
 
 //////////////////////////////////////////////////////////////////////////

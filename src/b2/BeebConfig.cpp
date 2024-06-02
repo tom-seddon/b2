@@ -31,7 +31,7 @@ static std::shared_ptr<std::array<uint8_t, MAX_SIZE>> LoadROM(const BeebConfig::
         path = rom.file_name;
     }
 
-    if (!LoadFile(&data, path, msg)) {
+    if (!LoadFile(&data, path, *msg)) {
         return nullptr;
     }
 
@@ -41,7 +41,7 @@ static std::shared_ptr<std::array<uint8_t, MAX_SIZE>> LoadROM(const BeebConfig::
         path = rom.file_name;
     }
 
-    if (!LoadFile(&data, path, msg)) {
+    if (!LoadFile(&data, path, *msg)) {
         return nullptr;
     }
 
