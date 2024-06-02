@@ -205,8 +205,8 @@ struct LogSet {
 
     LogSet() = delete;
     //LogSet(Log &i, Log &w, Log &e);
-    LogSet(const LogSet &src) = default;
-    LogSet &operator=(const LogSet &src) = default;
+    LogSet(const LogSet &src) = delete;
+    LogSet &operator=(const LogSet &src) = delete;
     LogSet(LogSet &&src) = delete;
     LogSet &operator=(const LogSet &&src) = delete;
 };
