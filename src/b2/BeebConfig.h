@@ -17,7 +17,6 @@
 
 class BBCMicro;
 class Messages;
-struct DiscInterfaceDef;
 struct BBCMicroType;
 
 //////////////////////////////////////////////////////////////////////////
@@ -44,7 +43,7 @@ class BeebConfig {
     SidewaysROM roms[16];
     ROM parasite_os;
     uint8_t keyboard_links = 0;
-    const DiscInterfaceDef *disc_interface = nullptr;
+    const DiscInterface *disc_interface = nullptr;
     bool video_nula = true;
     bool ext_mem = false;
     bool beeblink = false;

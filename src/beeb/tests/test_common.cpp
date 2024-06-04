@@ -427,7 +427,7 @@ static const BBCMicroType *GetBBCMicroType(TestBBCMicroType type, uint32_t) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static const DiscInterfaceDef *GetDiscInterfaceDef(TestBBCMicroType type, uint32_t) {
+static const DiscInterface *GetDiscInterface(TestBBCMicroType type, uint32_t) {
     switch (type) {
     default:
         TEST_FAIL("%s: unknown TestBBCMicroType", __func__);
@@ -437,13 +437,13 @@ static const DiscInterfaceDef *GetDiscInterfaceDef(TestBBCMicroType type, uint32
         return nullptr;
 
     case TestBBCMicroType_BAcorn1770DFS:
-        return &DISC_INTERFACE_ACORN_1770;
+        return DISC_INTERFACE_ACORN_1770;
 
     case TestBBCMicroType_Master128MOS320:
     case TestBBCMicroType_Master128MOS350:
     case TestBBCMicroType_Master128MOS320WithMasterTurbo:
     case TestBBCMicroType_Master128MOS320WithExternal3MHz6502:
-        return &DISC_INTERFACE_MASTER128;
+        return DISC_INTERFACE_MASTER128;
     }
 }
 
@@ -524,7 +524,7 @@ static std::vector<uint8_t> GetNVRAMContents(TestBBCMicroType type, uint32_t fla
 
 TestBBCMicro::TestBBCMicro(TestBBCMicroType type, const TestBBCMicroArgs &args)
     : BBCMicro(GetBBCMicroType(type, args.flags),
-               GetDiscInterfaceDef(type, args.flags),
+               GetDiscInterface(type, args.flags),
                GetBBCMicroParasiteType(type, args.flags),
                GetNVRAMContents(type, args.flags),
                nullptr,

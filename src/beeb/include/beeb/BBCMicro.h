@@ -9,7 +9,6 @@ struct DiscDriveCallbacks;
 class Log;
 struct VideoDataUnit;
 struct SoundDataUnit;
-struct DiscInterfaceDef;
 class Trace;
 struct TraceStats;
 class TraceEventType;
@@ -178,7 +177,7 @@ class BBCMicro : private WD1770Handler,
     // nvram_contents and rtc_time are ignored if the BBCMicro doesn't
     // support such things.
     BBCMicro(const BBCMicroType *type,
-             const DiscInterfaceDef *def,
+             const DiscInterface *disc_interface,
              BBCMicroParasiteType parasite_type,
              const std::vector<uint8_t> &nvram_contents,
              const tm *rtc_time,
@@ -679,9 +678,11 @@ class BBCMicro : private WD1770Handler,
         //BeebKey auto_reset_key=BeebKey_None;
 
         // Disk stuff
+        const DiscInterface *const disc_interface = nullptr;
         WD1770 fdc;
         DiscInterfaceControl disc_control = {};
         DiscDrive drives[NUM_DRIVES];
+        DiscInterfaceExtraHardwareState *disc_interface_extra_hardware = nullptr;
 
         // RTC
         MC146818 rtc;
@@ -750,6 +751,7 @@ class BBCMicro : private WD1770Handler,
         Tube parasite_tube;
 
         explicit State(const BBCMicroType *type,
+                       const DiscInterface *disc_interface,
                        BBCMicroParasiteType parasite_type,
                        const std::vector<uint8_t> &nvram_contents,
                        uint32_t init_flags,
@@ -779,7 +781,6 @@ class BBCMicro : private WD1770Handler,
     //////////////////////////////////////////////////////////////////////////
     //////////////////////////////////////////////////////////////////////////
 
-    DiscInterface *const m_disc_interface = nullptr;
     std::shared_ptr<DiscImage> m_disc_images[NUM_DRIVES];
     bool m_is_drive_write_protected[NUM_DRIVES] = {};
     //const bool m_video_nula;

@@ -135,6 +135,7 @@ const uint16_t BBCMicro::ADJI_ADDRESSES[4] = {
 //////////////////////////////////////////////////////////////////////////
 
 BBCMicro::State::State(const BBCMicroType *type_,
+                       const DiscInterface *disc_interface_,
                        BBCMicroParasiteType parasite_type_,
                        const std::vector<uint8_t> &nvram_contents,
                        uint32_t init_flags_,
@@ -143,9 +144,14 @@ BBCMicro::State::State(const BBCMicroType *type_,
     : type(type_)
     , init_flags(init_flags_)
     , parasite_type(parasite_type_)
-    , cycle_count(initial_cycle_count) {
+    , cycle_count(initial_cycle_count)
+    , disc_interface(disc_interface_) {
     M6502_Init(&this->cpu, this->type->m6502_config);
     this->ram_buffer = std::make_shared<std::vector<uint8_t>>(this->type->ram_buffer_size);
+
+    if (this->disc_interface) {
+        this->disc_interface_extra_hardware = this->disc_interface->CreateExtraHardwareState();
+    }
 
     switch (this->type->type_id) {
     default:
@@ -265,7 +271,7 @@ int BBCMicro::State::DebugGetADJIDIPSwitches() const {
 //////////////////////////////////////////////////////////////////////////
 
 BBCMicro::BBCMicro(const BBCMicroType *type,
-                   const DiscInterfaceDef *def,
+                   const DiscInterface *disc_interface,
                    BBCMicroParasiteType parasite_type,
                    const std::vector<uint8_t> &nvram_contents,
                    const tm *rtc_time,
@@ -273,12 +279,12 @@ BBCMicro::BBCMicro(const BBCMicroType *type,
                    BeebLinkHandler *beeblink_handler,
                    CycleCount initial_cycle_count)
     : m_state(type,
+              disc_interface,
               parasite_type,
               nvram_contents,
               init_flags,
               rtc_time,
               initial_cycle_count)
-    , m_disc_interface(def ? def->create_fun() : nullptr)
     , m_beeblink_handler(beeblink_handler) {
     this->InitStuff();
 }
@@ -287,8 +293,7 @@ BBCMicro::BBCMicro(const BBCMicroType *type,
 //////////////////////////////////////////////////////////////////////////
 
 BBCMicro::BBCMicro(const BBCMicro &src)
-    : m_state(src.m_state)
-    , m_disc_interface(src.m_disc_interface ? src.m_disc_interface->Clone() : nullptr) {
+    : m_state(src.m_state) {
     ASSERT(src.GetCloneImpediments() == 0);
 
     for (int i = 0; i < NUM_DRIVES; ++i) {
@@ -311,6 +316,10 @@ BBCMicro::BBCMicro(const BBCMicro &src)
         m_state.parasite_ram_buffer = std::make_shared<std::vector<uint8_t>>(*m_state.parasite_ram_buffer);
     }
 
+    if (m_state.disc_interface) {
+        m_state.disc_interface_extra_hardware = m_state.disc_interface->CloneExtraHardwareState(m_state.disc_interface_extra_hardware);
+    }
+
     this->InitStuff();
 }
 
@@ -321,8 +330,6 @@ BBCMicro::~BBCMicro() {
 #if BBCMICRO_TRACE
     this->StopTrace(nullptr);
 #endif
-
-    delete m_disc_interface;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -672,12 +679,13 @@ void BBCMicro::InitPaging() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+// TODO: could the state pointer be m_state?
 void BBCMicro::Write1770ControlRegister(void *m_, M6502Word a, uint8_t value) {
     auto m = (BBCMicro *)m_;
     (void)a;
 
-    ASSERT(m->m_disc_interface);
-    m->m_state.disc_control = m->m_disc_interface->GetControlFromByte(value);
+    ASSERT(m->m_state.disc_interface);
+    m->m_state.disc_control = m->m_state.disc_interface->GetControlFromByte(value);
 
 #if BBCMICRO_TRACE
     if (m->m_trace) {
@@ -698,13 +706,14 @@ void BBCMicro::Write1770ControlRegister(void *m_, M6502Word a, uint8_t value) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+// TODO: could the state pointer be m_state?
 uint8_t BBCMicro::Read1770ControlRegister(void *m_, M6502Word a) {
     auto m = (BBCMicro *)m_;
     (void)a;
 
-    ASSERT(m->m_disc_interface);
+    ASSERT(m->m_state.disc_interface);
 
-    uint8_t value = m->m_disc_interface->GetByteFromControl(m->m_state.disc_control);
+    uint8_t value = m->m_state.disc_interface->GetByteFromControl(m->m_state.disc_control);
     return value;
 }
 
@@ -2352,30 +2361,30 @@ void BBCMicro::InitStuff() {
     }
 
     // I/O: disc interface
-    if (m_disc_interface) {
+    if (m_state.disc_interface) {
         m_state.fdc.SetHandler(this);
-        m_state.fdc.SetNoINTRQ(!!(m_disc_interface->flags & DiscInterfaceFlag_NoINTRQ));
-        m_state.fdc.Set1772(!!(m_disc_interface->flags & DiscInterfaceFlag_1772));
+        m_state.fdc.SetNoINTRQ(!!(m_state.disc_interface->flags & DiscInterfaceFlag_NoINTRQ));
+        m_state.fdc.Set1772(!!(m_state.disc_interface->flags & DiscInterfaceFlag_1772));
 
-        M6502Word c = {m_disc_interface->control_addr};
+        M6502Word c = {m_state.disc_interface->control_addr};
         c.b.h -= 0xfc;
         ASSERT(c.b.h < 3);
 
-        M6502Word f = {m_disc_interface->fdc_addr};
+        M6502Word f = {m_state.disc_interface->fdc_addr};
         f.b.h -= 0xfc;
         ASSERT(f.b.h < 3);
 
-        // Slightly annoying code, to work around Challenger FDC being in the
-        // external 1 MHz bus area.
+        // Slightly ugly code gonig straight to the internal function, to work
+        // around Challenger FDC being in the external 1 MHz bus area.
         for (int i = 0; i < 4; ++i) {
-            uint16_t addr = (uint16_t)(m_disc_interface->fdc_addr + i);
+            uint16_t addr = (uint16_t)(m_state.disc_interface->fdc_addr + i);
 
             this->SetMMIOFnsInternal(addr, g_WD1770_read_fns[i], &m_state.fdc, g_WD1770_write_fns[i], &m_state.fdc, true, false);
         }
 
-        this->SetMMIOFnsInternal(m_disc_interface->control_addr, &Read1770ControlRegister, this, &Write1770ControlRegister, this, true, false);
+        this->SetMMIOFnsInternal(m_state.disc_interface->control_addr, &Read1770ControlRegister, this, &Write1770ControlRegister, this, true, false);
 
-        m_disc_interface->InstallExtraHardware(this);
+        m_state.disc_interface->InstallExtraHardware(this, m_state.disc_interface_extra_hardware);
     } else {
         m_state.fdc.SetHandler(nullptr);
     }

@@ -335,7 +335,7 @@ void ConfigsUI::DoEditConfigGui() {
     ImGui::Columns(1);
 
     if (Has1MHzBus(config->type)) {
-        if (!config->disc_interface->uses_1MHz_bus) {
+        if (!(config->disc_interface->flags & DiscInterfaceFlag_Uses1MHzBus)) {
             if (ImGui::Checkbox("External memory", &config->ext_mem)) {
                 edited = true;
             }
