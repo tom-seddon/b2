@@ -507,6 +507,76 @@ Default CMOS:
 address_debug_flags=0x0000017971e2d28a
 addr_flags=0x0000017971e3bc38
 
+
+
+* b2 UEF save state extra stuff
+
+** Memory chunks
+
+May as well reuse the BeebEm memory state and sideways ROM chunks,
+though it might be nice to tidy up the shadow RAM while doing it.
+Maybe just save all 32 KB of shadow RAM and skip the separate
+private/FS RAM chunks?
+
+** 6502 stuff
+
+Cycle count for each 6502 is unnecessary, as there's a global one for
+the entire system. Include that as part of some global system state
+chunk that also holds machine type.
+
+For saving 6502 state, it must be possible to save it on any cycle
+boundary (pretty much) - the entire state will have to be saved. Can't
+cheat by trying to put the 6502 to a known point, because it'll only
+end up with the same issue as issue #2 for BeebEm compat...
+
+The only complicated bit here is the tfn/ifn pointers, but
+=g_named_ifns= and =g_name_tfns= to the rescue (hopefully). I'm not
+certain there are no holes in the table, though - could this be
+detected statically? Accesses to it are not really
+performance-sensitive. (Answer: looks like it'd be possible to do at
+least something, but a bit hard to guarantee the tables are set up
+properly. Would be easier if it were C++. For now, can advance the
+system cycle by cycle until all have known names, and flag any problem
+cases.)
+
+** VIA stuff
+
+b2 will need to save more stuff than there's room for in the
+BeebEm-format chunk.
+
+** Sound stuff
+
+The BeebEm stuff might be good?
+
+** Video stuff
+
+The 
+
+* b2/BeebEm UEF save state compat stuff
+
+Limitations if saving BeebEm-compatible state:
+
+1. Can't save during 1770 operation, as the b2 internal state doesn't
+   map to the BeebEm FDCCommand stuff. Probably no bad thing
+
+2. Can't reliably save with second processor, as it may not be
+   possible to advance tho emulation to a point where both CPUs are
+   about to fetch an instruction
+
+3. Have to fake the FDC DLL name
+
+4. NMILock ain't a thing so it'll probably have to be saved as 0
+
+5. Might not work anyway...!
+
+Loading BeebEm-compatible states should be easy enough, probably.
+Restrictions:
+
+1. Note unsupported hardware (Master ET, 8271, Z80, Music 5000, etc.)
+
+2. Can't load if 1770 active
+
+
 * BeebEm UEF chunks
 
 Current BeebEm UEF version is major 0, minor 14.
@@ -525,12 +595,12 @@ Current BeebEm UEF version is major 0, minor 14.
 |    046a | BeebWin::SaveEmuUEF       |                                            |
 |    046b | SaveSoundUEF              |                                            |
 |    046c | BeebWin::SaveBeebEmID     |                                            |
-|    046e | Save8271UEF               |                                            |
-|    046f | Save1770UEF               |                                            |
+|    046e | Save8271UEF               | *Not yet supported*                        |
+|    046f | Save1770UEF               | *Going to be painful*                      |
 |    0470 | SaveTubeUEF               |                                            |
 |    0471 | Save65C02UEF              |                                            |
 |    0472 | Save65C02MemUEF           |                                            |
-|    0473 | SaveSerialUEF             |                                            |
+|    0473 | SaveSerialUEF             | *Not yet supported*                        |
 |    0474 | SaveMusic5000UEF          | *Out of scope*                             |
 |    0475 | SaveMemUEF                | ROM bank                                   |
 |    0478 | SaveZ80UEF                | *Out of scope*                             |
@@ -553,7 +623,7 @@ Current BeebEm UEF version is major 0, minor 14.
 |    1 | intStatus   |       |
 |    1 | NMIStatus   |       |
 |    0 | NMILock     |       |
-|    2 | 0           | ?    |
+|    2 | 0           | ?     |
 
 - ~intStatus~ is a bitfield. (See ~IRQ_Nums~ (6502core.h) for the bit
   indexes.) If any are set, initiate IRQ
@@ -606,12 +676,16 @@ Current BeebEm UEF version is major 0, minor 14.
 |-------+---------------------|
 | 32768 | shadow RAM contents |
 
+In this mode, shadow RAM contents below $3000 are ignored.
+
 *** Master
 
 |  Size | What                | Notes |
 |-------+---------------------+-------|
 |     2 | 0                   | Why?  |
 | 32768 | shadow RAM contents |       |
+
+In this mode, shadow RAM contents below $3000 are ignored.
 
 ** 0464 Private RAM
 
@@ -623,23 +697,32 @@ Current BeebEm UEF version is major 0, minor 14.
 
 *** B+
 
-|  Size | What        | Notes                                      |
-|-------+-------------+--------------------------------------------|
-| 12288 | private RAM | ANDY - but doesn't this overlap with 0463? |
+|  Size | What        | Notes |
+|-------+-------------+-------|
+| 12288 | private RAM | ANDY  |
+
+There is no overlap with the contents of chunk 0463; the corresponding
+region of chunk 0463 is simply ignored.
 
 *** Master
 
-| Size | What        | Notes                                             |
-|------+-------------+---------------------------------------------------|
-| 4096 | private RAM | ANDY - but doesn't this overlap with 0463? |
+| Size | What        | Notes |
+|------+-------------+-------|
+| 4096 | private RAM | ANDY  |
+
+There is no overlap with the contents of chunk 0463; the corresponding
+region of chunk 0463 is simply ignored.
 
 ** 0465 Filing System RAM
 
 *** Master
 
-| Size | What   | Notes                                        |
-|------+--------+----------------------------------------------|
-| 8192 | FS RAM | HAZEL -  but doesn't this overlap with 0463? |
+| Size | What   | Notes |
+|------+--------+-------|
+| 8192 | FS RAM | HAZEL |
+
+There is no overlap with the contents of chunk 0463; the corresponding
+region of chunk 0463 is simply ignored.
 
 ** 0466 Sideways RAM
 
@@ -719,7 +802,7 @@ Current BeebEm UEF version is major 0, minor 14.
 |    1 | Mode7lashOn                        |                                | >=13 |
 |    4 | VideoTriggerCount-TotalCycles      |                                | >=13 |
 
-** 46A Emulator Specifics
+** 046A Emulator Specifics
 
 |   Size | What         | Notes                                                                       | Min Ver |
 |--------+--------------+-----------------------------------------------------------------------------+---------|
@@ -739,7 +822,7 @@ Key mapping types are:
 
 The Key Map Path is set if Key Mapping is IDM_USERKYBDMAPPING.
 
-** 46B Sound
+** 046B Sound
 
 | Size | What                  | Notes                          |
 |------+-----------------------+--------------------------------|
@@ -760,7 +843,7 @@ The Key Map Path is set if Key Mapping is IDM_USERKYBDMAPPING.
 ~GenIndex~ entries increment once per update and are used to decide
 when to flip the polarity of the output.
 
-** 46C BeebEm Id
+** 046C BeebEm Id
 
 Used to indicate this is a BeebEm save state UEF file.
 
@@ -773,11 +856,11 @@ Used to indicate this is a BeebEm save state UEF file.
 
 Versions come from https://github.com/stardot/beebem-windows/blob/master/Src/Version.h
 
-** 46E 8271
+** 046E 8271
 
 (Not relevant for b2)
 
-** 46F 1770
+** 046F 1770
 
 |     Size | What          | Notes                                            |
 |----------+---------------+--------------------------------------------------|
@@ -826,6 +909,56 @@ needs to be one of:
 - `Acorn1770.dll` :: Acorn 1770
 - `OpusDDOS.dll` :: Opus 1770
 - `Watford.dll` :: Watford DDB2
+
+** 0470 Tube ULA State
+
+| Size | What          | Notes                                                          |
+|------+---------------+----------------------------------------------------------------|
+|    1 | R1 Status     | Holds the PVMKIQ bits                                          |
+|   24 | R1 P->H Data  |                                                                |
+|    1 | R1 P->H Index |                                                                |
+|    1 | R1 H Status   | Holds the full/available bits (same applies to all H/P status) |
+|    1 | R1 H->P Data  |                                                                |
+|    1 | R1 P Status   |                                                                |
+|    1 | R2 P->H Data  |                                                                |
+|    1 | R2 H Status   |                                                                |
+|    1 | R2 H->P Data  |                                                                |
+|    1 | R2 P Status   |                                                                |
+|    2 | R3 P->H Data  |                                                                |
+|    1 | R3 P->H Index |                                                                |
+|    1 | R3 H Status   |                                                                |
+|    2 | R3 H->P Data  |                                                                |
+|    1 | R3 H->P Index |                                                                |
+|    1 | R3 P Status   |                                                                |
+|    1 | R4 P->H Data  |                                                                |
+|    1 | R4 H Status   |                                                                |
+|    1 | R4 H->P Data  |                                                                |
+|    1 | R4 P Status   |                                                                |
+
+** 0471 65c02 Second Processor State
+
+| Size | What            | Notes |
+|------+-----------------+-------|
+|    2 | PC              |       |
+|    1 | A               |       |
+|    1 | X               |       |
+|    1 | Y               |       |
+|    1 | S               |       |
+|    1 | P               |       |
+|    4 | TotalTubeCycles |       |
+|    1 | TubeintStatus   |       |
+|    1 | TubeNMIStatus   |       |
+|    1 | TubeNMILock     |       |
+|    2 | 0               | ?     |
+
+Boot mode is not handled. BeebEm copies the second processor ROM into
+memory before starting execution.
+
+** 0472 65c02 Second Processor Memory
+
+|  Size | What | Notes |
+|-------+------+-------|
+| 65536 | RAM  |       |
 
 ** 0475 Sideways ROM
 
