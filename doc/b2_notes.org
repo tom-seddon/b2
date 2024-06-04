@@ -506,3 +506,333 @@ Default CMOS:
 
 address_debug_flags=0x0000017971e2d28a
 addr_flags=0x0000017971e3bc38
+
+* BeebEm UEF chunks
+
+Current BeebEm UEF version is major 0, minor 14.
+
+| # (hex) | Func                      | Notes                                      |
+|---------+---------------------------+--------------------------------------------|
+|    0460 | Save6502UEF               |                                            |
+|    0461 | SaveMemUEF                | ROMSEL+ACCCON. 3=IntegraB                  |
+|    0462 | SaveMemUEF                | Main memory: 32 KB                         |
+|    0463 | SaveMemUEF                | Shadow RAM                                 |
+|    0464 | SaveMemUEF                | Private RAM/ANDY                           |
+|    0465 | SaveMemUEF                | FS RAM/HAZEL                               |
+|    0466 | SaveMemUEF                | Sideways RAM                               |
+|    0467 | SaveVIAUEF                | Saved twice. Flag in chunk indicates which |
+|    0468 | SaveVideoUEF              |                                            |
+|    046a | BeebWin::SaveEmuUEF       |                                            |
+|    046b | SaveSoundUEF              |                                            |
+|    046c | BeebWin::SaveBeebEmID     |                                            |
+|    046e | Save8271UEF               |                                            |
+|    046f | Save1770UEF               |                                            |
+|    0470 | SaveTubeUEF               |                                            |
+|    0471 | Save65C02UEF              |                                            |
+|    0472 | Save65C02MemUEF           |                                            |
+|    0473 | SaveSerialUEF             |                                            |
+|    0474 | SaveMusic5000UEF          | *Out of scope*                             |
+|    0475 | SaveMemUEF                | ROM bank                                   |
+|    0478 | SaveZ80UEF                | *Out of scope*                             |
+|    0479 | CArm::SaveState           | *Out of scope*                             |
+|    047C | SaveMemUEF                | PAL ROM bank                               |
+|    047a | SprowCoPro::SaveState     | *Out of scope*                             |
+|    047b | Master512CoPro::SaveState | *Out of scope*                             |
+
+** 0460 6502 State
+
+| Size | What        | Notes |
+|------+-------------+-------|
+|    2 | PC          |       |
+|    1 | A           |       |
+|    1 | X           |       |
+|    1 | Y           |       |
+|    1 | S           |       |
+|    1 | P           |       |
+|    4 | TotalCycles |       |
+|    1 | intStatus   |       |
+|    1 | NMIStatus   |       |
+|    0 | NMILock     |       |
+|    2 | 0           | ?    |
+
+- ~intStatus~ is a bitfield. (See ~IRQ_Nums~ (6502core.h) for the bit
+  indexes.) If any are set, initiate IRQ
+- ~NMIStatus~ is a bitfield. (See ~NMI_Nums" (6502core.h) for the bit
+  indexes.)
+- ~NMILock~ is there to handle the edge-triggering. It's set if an NMI
+  is initiated, then reset once the RTI occurs
+
+** 0461 Memory Control State
+
+*** Integra B
+
+| Size | What                   |
+|------+------------------------|
+|    1 | ROMSEL+MemSel+PrvEn    |
+|    1 | ShEn+Prvs8+Prvs4+Prvs1 |
+|    1 | HiAdd                  |
+
+*** B+
+
+| Size | What          |
+|------+---------------|
+|    1 | ROMSEL+MemSel |
+|    1 | Sh_Display    |
+
+*** Master
+
+| Size | What   |
+|------+--------|
+|    1 | ROMSEL |
+|    1 | ACCCON |
+
+** 0462 Main RAM
+
+|  Size | What     |
+|-------+----------|
+| 32768 | Main RAM |
+
+** 0463 Shadow RAM
+
+*** Integra B
+
+|  Size | What                |
+|-------+---------------------|
+| 20480 | shadow RAM contents |
+
+*** B+
+
+|  Size | What                |
+|-------+---------------------|
+| 32768 | shadow RAM contents |
+
+*** Master
+
+|  Size | What                | Notes |
+|-------+---------------------+-------|
+|     2 | 0                   | Why?  |
+| 32768 | shadow RAM contents |       |
+
+** 0464 Private RAM
+
+*** Integra B
+
+|  Size | What        |
+|-------+-------------|
+| 12288 | private RAM |
+
+*** B+
+
+|  Size | What        | Notes                                      |
+|-------+-------------+--------------------------------------------|
+| 12288 | private RAM | ANDY - but doesn't this overlap with 0463? |
+
+*** Master
+
+| Size | What        | Notes                                             |
+|------+-------------+---------------------------------------------------|
+| 4096 | private RAM | ANDY - but doesn't this overlap with 0463? |
+
+** 0465 Filing System RAM
+
+*** Master
+
+| Size | What   | Notes                                        |
+|------+--------+----------------------------------------------|
+| 8192 | FS RAM | HAZEL -  but doesn't this overlap with 0463? |
+
+** 0466 Sideways RAM
+
+|  Size | What          |
+|-------+---------------|
+| 16384 | Bank contents |
+|     1 | Bank index    |
+
+** 0467 VIA
+
+| Size | What      | Notes                                   |
+|------+-----------+-----------------------------------------|
+|    1 | ident     | 0=System VIA, 1=User VIA                |
+|    1 | ORB       |                                         |
+|    1 | IRB       |                                         |
+|    1 | ORA       |                                         |
+|    1 | IRB       |                                         |
+|    1 | DDRB      |                                         |
+|    1 | DDRA      |                                         |
+|    2 | T1C       | 2 MHz value/2                           |
+|    2 | T1L       |                                         |
+|    2 | T2C       | 2 MHz value/2                           |
+|    2 | T1L       |                                         |
+|    1 | ACR       |                                         |
+|    1 | PCR       |                                         |
+|    1 | IFR       |                                         |
+|    1 | IER       |                                         |
+|    1 | t1hasshot |                                         |
+|    1 | t2hasshot |                                         |
+|    1 | extra     | IC32 state if System VIA; 0 if User VIA |
+|      |           |                                         |
+
+** 0468 Video
+
+| Size | What                               | Notes                          | Ver  |
+|------+------------------------------------+--------------------------------+------|
+|    1 | H Total                            |                                |      |
+|    1 | H Displayed                        |                                |      |
+|    1 | H Sync Pos                         |                                |      |
+|    1 | Sync Width                         |                                |      |
+|    1 | V Total                            |                                |      |
+|    1 | V Total Adjust                     |                                |      |
+|    1 | V Displayed                        |                                |      |
+|    1 | V Sync Pos                         |                                |      |
+|    1 | Interlace & Delay                  |                                |      |
+|    1 | Scan Lines/Char                    |                                |      |
+|    1 | Cursor Start                       |                                |      |
+|    1 | Cursor End                         |                                |      |
+|    1 | Screen Start MSB                   |                                |      |
+|    1 | Screen Start LSB                   |                                |      |
+|    1 | Cursor MSB                         |                                |      |
+|    1 | Cursor LSB                         |                                |      |
+|    1 | Light Pen MSB                      |                                |      |
+|    1 | Light Pen LSB                      |                                |      |
+|    1 | ULA Control Register               |                                |      |
+|   16 | Palette                            | Actual colour values are saved |      |
+|    2 | ActualScreenWidth                  |                                |      |
+|    4 | ScreenAdjust                       |                                |      |
+|    1 | CRTC Control Reg                   |                                |      |
+|    1 | Teletext Style                     | 1 or 2                         |      |
+|    4 | VideoState Addr                    |                                | >=13 |
+|    4 | VideoState StartAddr               |                                | >=13 |
+|    4 | VideoState PixmapLine              |                                | >=13 |
+|    4 | VideoState PreviousFirstPixmapLine |                                | >=13 |
+|    4 | VideoState CharLine                |                                | >=13 |
+|    4 | VideoState InCharLineUp            |                                | >=13 |
+|    4 | VideoState VSyncState              |                                | >=13 |
+|    1 | VideoState IsNewTVFrame            |                                | >=13 |
+|    1 | VideoState InterlaceFrame          |                                | >=13 |
+|    1 | VideoState DoCA1Int                |                                | >=13 |
+|    4 | ova                                |                                | >=13 |
+|    4 | ovn                                |                                | >=13 |
+|    4 | CursorFieldCount                   |                                | >=13 |
+|    1 | CursorOnState                      |                                | >=13 |
+|    4 | CurY                               |                                | >=13 |
+|    4 | Mode7FlashTrigger                  |                                | >=13 |
+|    1 | Mode7lashOn                        |                                | >=13 |
+|    4 | VideoTriggerCount-TotalCycles      |                                | >=13 |
+
+** 46A Emulator Specifics
+
+|   Size | What         | Notes                                                                       | Min Ver |
+|--------+--------------+-----------------------------------------------------------------------------+---------|
+|      1 | Machine Type | 0=B; 1=B+Integra B; 2=B+; 3=M128; 4=ET                                      |         |
+|      1 | Native FDC   | set if 8271 rather than FDC DLL??                                           |         |
+|      1 | Tube Type    | 0=None; 1=65c02; 2=M512; 3=Acorn Z80; 4=Torch Z80; 5=Acorn ARM; 6=Sprow ARM |         |
+|      2 | Key Mapping  | Key mapping type                                                            | >=11    |
+|    256 | Key Map Path |                                                                             | <14     |
+| String | Key Map Path |                                                                             | >=14    |
+|      1 | 0            |                                                                             |         |
+
+Key mapping types are:
+
+- IDM_USERKYBDMAPPING :: 40060
+- IDM_DEFAULTKYBDMAPPING :: 40034
+- IDM_LOGICALKYBDMAPPING :: 40035
+
+The Key Map Path is set if Key Mapping is IDM_USERKYBDMAPPING.
+
+** 46B Sound
+
+| Size | What                  | Notes                          |
+|------+-----------------------+--------------------------------|
+|    2 | Tone 2 Freq           |                                |
+|    2 | Tone 1 Freq           |                                |
+|    2 | Tone 0 Freq           |                                |
+|    1 | Channel 3 Attenuation |                                |
+|    1 | Channel 2 Attenuation |                                |
+|    1 | Channel 1 Attenuation |                                |
+|    1 | Noise register value  |                                |
+|    1 | Channel 0 Attenuation |                                |
+|    1 | Last channel set      | Used for handling the 2nd byte |
+|    2 | GenIndex[0]           |                                |
+|    2 | GenIndex[1]           |                                |
+|    2 | GenIndex[2]           |                                |
+|    2 | GenIndex[3]           |                                |
+
+~GenIndex~ entries increment once per update and are used to decide
+when to flip the polarity of the output.
+
+** 46C BeebEm Id
+
+Used to indicate this is a BeebEm save state UEF file.
+
+| Size | What          |
+|------+---------------|
+|    6 | "BeebEm"      |
+|    8 | 0 bytes       |
+|    1 | Major version |
+|    1 | Minor version |
+
+Versions come from https://github.com/stardot/beebem-windows/blob/master/Src/Version.h
+
+** 46E 8271
+
+(Not relevant for b2)
+
+** 46F 1770
+
+|     Size | What          | Notes                                            |
+|----------+---------------+--------------------------------------------------|
+|      2*1 | Drive Type    | 0=SSD 1=DSD 2=ADFS 3=IMG 4=DOS 5=FSD             |
+| 2*string | Drive File    |                                                  |
+|        1 | Status        | status register                                  |
+|        1 | Data          | data register                                    |
+|        1 | Track         | actual track head is on??                        |
+|        1 | ATrack        | value returned when track register read          |
+|        1 | Sector        | sector register                                  |
+|        1 | HeadDir       | step direction - true: track+=1, false: track-=1 |
+|        1 | FDCCommand    | see below...                                     |
+|        1 | LoadingCycles | spinup counter                                   |
+|      2*4 | SpinDown      |                                                  |
+|        1 | UpdateTrack   |                                                  |
+|        1 | MultiSect     |                                                  |
+|        1 | StepRate      |                                                  |
+|        1 | SpinUp        |                                                  |
+|        1 | Verify        |                                                  |
+|      2*1 | LightsOn      |                                                  |
+|        4 | ByteCount     |                                                  |
+|        4 | 0             | unused                                           |
+|        1 | ExtControl    |                                                  |
+|        1 | CurrentDrive  |                                                  |
+|      2*4 | HeadPos       | offset in current disk file                      |
+|      2*1 | CurrentHead   |                                                  |
+|      2*4 | DiscStep      |                                                  |
+|      2*4 | DiscStrt      |                                                  |
+|      2*1 | MaxSects      |                                                  |
+|      2*4 | DefStart      |                                                  |
+|      2*4 | Trklen        |                                                  |
+|      2*1 | DWriteable    |                                                  |
+|      2*1 | DiskDensity   |                                                  |
+|        1 | RotSect       |                                                  |
+|   string | FDCDLL        |                                                  |
+
+=FDCCommand= is the state in BeebEm's internal 1770 state machine,
+which is probably going to be a bit painful to map to anything in b2
+(or vice versa). So perhaps it'll be safest just to insist on the 1770
+being idle when saving or loading a BeebEm-compatible state. I think
+an FDCCommand of 0 indicatse that the 1770 is waiting for a command.
+
+FDCDLL probably easiest handled by checking the file name part, which
+needs to be one of:
+
+- `Acorn1770.dll` :: Acorn 1770
+- `OpusDDOS.dll` :: Opus 1770
+- `Watford.dll` :: Watford DDB2
+
+** 0475 Sideways ROM
+
+|  Size | What          | Notes              |
+|-------+---------------+--------------------|
+|     1 | Bank index    |                    |
+|     1 | 0             | indicates ROM bank |
+| 16384 | Bank contents |                    |
+
+* eof.
