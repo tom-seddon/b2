@@ -1787,7 +1787,7 @@ static bool LoadConfigs(rapidjson::Value *configs_json, const char *configs_path
 
         std::string disc_interface_name;
         if (FindStringMember(&disc_interface_name, config_json, DISC_INTERFACE, nullptr)) {
-            config.disc_interface = FindDiscInterfaceByName(disc_interface_name.c_str());
+            config.disc_interface = FindDiscInterfaceByConfigName(disc_interface_name.c_str());
             if (!config.disc_interface) {
                 msg->w.f("unknown disc interface: %s\n", disc_interface_name.c_str());
             }
@@ -1878,7 +1878,7 @@ static void SaveConfigs(JSONWriter<StringStream> *writer) {
             if (!config->disc_interface) {
                 writer->Null();
             } else {
-                writer->String(config->disc_interface->name.c_str());
+                writer->String(config->disc_interface->config_name.c_str());
             }
 
             {

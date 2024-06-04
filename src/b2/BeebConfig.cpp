@@ -189,7 +189,7 @@ std::vector<uint8_t> GetDefaultMasterCompactNVRAM() {
 static BeebConfig GetBConfig(const DiscInterface *di) {
     BeebConfig config;
 
-    config.name = std::string("B/") + di->name;
+    config.name = std::string("B/") + di->display_name;
 
     config.type = &BBC_MICRO_TYPE_B;
     config.disc_interface = di;
@@ -205,8 +205,8 @@ static BeebConfig GetBConfig(const DiscInterface *di) {
 void InitDefaultBeebConfigs() {
     ASSERT(g_default_configs.empty());
 
-    for (size_t i = 0; ALL_DISC_INTERFACES[i]; ++i) {
-        g_default_configs.push_back(GetBConfig(ALL_DISC_INTERFACES[i]));
+    for (size_t i = 0; MODEL_B_DISC_INTERFACES[i]; ++i) {
+        g_default_configs.push_back(GetBConfig(MODEL_B_DISC_INTERFACES[i]));
     }
 
     // B+/B+128

@@ -243,7 +243,7 @@ void ConfigsUI::DoEditConfigGui() {
     ImGuiIDPusher config_id_pusher(config);
 
     ImGui::Text("Model: %s", config->type->model_name);
-    ImGui::Text("Disc interface: %s", config->disc_interface->name.c_str());
+    ImGui::Text("Disc interface: %s", config->disc_interface->display_name.c_str());
 
     std::string title = config->name;
 

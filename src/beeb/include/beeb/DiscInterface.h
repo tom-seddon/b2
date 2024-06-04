@@ -59,13 +59,14 @@ class DiscInterfaceExtraHardwareState {
 
 class DiscInterface {
   public:
-    const std::string name;
+    const std::string config_name;
+    const std::string display_name;
     const StandardROM fs_rom;
     const uint16_t fdc_addr = 0;
     const uint16_t control_addr = 0;
     const uint32_t flags = 0;
 
-    DiscInterface(std::string name, StandardROM fs_rom, uint16_t fdc_addr, uint16_t control_addr, uint32_t flags);
+    DiscInterface(std::string config_name, std::string display_name, StandardROM fs_rom, uint16_t fdc_addr, uint16_t control_addr, uint32_t flags);
     virtual ~DiscInterface() = 0;
 
     //virtual DiscInterface *Clone() const = 0;
@@ -102,9 +103,9 @@ extern const DiscInterface *const DISC_INTERFACE_MASTER128;
 
 // The list of disc interfaces that can be used with a model B. Array
 // ends with NULL.
-extern const DiscInterface *const ALL_DISC_INTERFACES[];
+extern const DiscInterface *const MODEL_B_DISC_INTERFACES[];
 
-const DiscInterface *FindDiscInterfaceByName(const char *name);
+const DiscInterface *FindDiscInterfaceByConfigName(const char *config_name);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

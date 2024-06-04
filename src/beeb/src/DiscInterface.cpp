@@ -44,8 +44,9 @@ DiscInterfaceExtraHardwareState ::~DiscInterfaceExtraHardwareState() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-DiscInterface::DiscInterface(std::string name_, StandardROM fs_rom_, uint16_t fdc_addr_, uint16_t control_addr_, uint32_t flags_)
-    : name(std::move(name_))
+DiscInterface::DiscInterface(std::string config_name_, std::string display_name_, StandardROM fs_rom_, uint16_t fdc_addr_, uint16_t control_addr_, uint32_t flags_)
+    : config_name(std::move(config_name_))
+    , display_name(std::move(display_name_))
     , fs_rom(fs_rom_)
     , fdc_addr(fdc_addr_)
     , control_addr(control_addr_)
@@ -85,10 +86,12 @@ void DiscInterface::InstallExtraHardware(BBCMicro *m, DiscInterfaceExtraHardware
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+static const char ACORN_1770_CONFIG_NAME[] = "Acorn 1770";
+
 class DiscInterfaceAcorn1770 : public DiscInterface {
   public:
     DiscInterfaceAcorn1770()
-        : DiscInterface("Acorn 1770", StandardROM_Acorn1770DFS, 0xfe84, 0xfe80, 0) {
+        : DiscInterface(ACORN_1770_CONFIG_NAME, "Acorn 1770", StandardROM_Acorn1770DFS, 0xfe84, 0xfe80, 0) {
     }
 
     DiscInterfaceControl GetControlFromByte(uint8_t value) const override {
@@ -161,10 +164,12 @@ const DiscInterface *const DISC_INTERFACE_ACORN_1770 = &DISC_INTERFACE_ACORN_177
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+static const char WATFORD_1770_DDB2_CONFIG_NAME[] = "Watford 1770 (DDB2)";
+
 class DiscInterfaceWatford1770DDB2 : public DiscInterface {
   public:
     DiscInterfaceWatford1770DDB2()
-        : DiscInterface("Watford 1770 (DDB2)", StandardROM_WatfordDDFS_DDB2, 0xfe84, 0xfe80, 0) {
+        : DiscInterface(WATFORD_1770_DDB2_CONFIG_NAME, "Watford 1770 (DDB2)", StandardROM_WatfordDDFS_DDB2, 0xfe84, 0xfe80, 0) {
     }
 
     DiscInterfaceControl GetControlFromByte(uint8_t value) const override {
@@ -208,11 +213,12 @@ static const DiscInterfaceWatford1770DDB2 DISC_INTERFACE_WATFORD_DDB2;
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
+static const char WATFORD_1770_DDB3_CONFIG_NAME[] = "Watford 1770 (DDB3)";
 
 class DiscInterfaceWatford1770DDB3 : public DiscInterface {
   public:
     DiscInterfaceWatford1770DDB3()
-        : DiscInterface("Watford 1770 (DDB3)", StandardROM_WatfordDDFS_DDB3, 0xfe84, 0xfe80, 0) {
+        : DiscInterface(WATFORD_1770_DDB3_CONFIG_NAME, "Watford 1770 (DDB3)", StandardROM_WatfordDDFS_DDB3, 0xfe84, 0xfe80, 0) {
     }
 
     DiscInterfaceControl GetControlFromByte(uint8_t value) const override {
@@ -261,10 +267,12 @@ static const DiscInterfaceWatford1770DDB3 DISC_INTERFACE_WATFORD_DDB3;
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+static const char OPUS_1770_CONFIG_NAME[] = "Opus 1770";
+
 class DiscInterfaceOpus1770 : public DiscInterface {
   public:
     DiscInterfaceOpus1770()
-        : DiscInterface("Opus 1770", StandardROM_OpusDDOS, 0xfe80, 0xfe84, 0) {
+        : DiscInterface(OPUS_1770_CONFIG_NAME, "Opus 1770", StandardROM_OpusDDOS, 0xfe80, 0xfe84, 0) {
     }
 
     DiscInterfaceControl GetControlFromByte(uint8_t value) const override {
@@ -484,8 +492,8 @@ class DiscInterfaceChallenger : public DiscInterface {
     static const bool INTRQ = false;
 
   public:
-    DiscInterfaceChallenger(std::string name, size_t ram_size)
-        : DiscInterface(std::move(name), StandardROM_OpusChallenger, 0xfcf8, 0xfcfc, DiscInterfaceFlag_NoINTRQ | DiscInterfaceFlag_Uses1MHzBus) {
+    DiscInterfaceChallenger(std::string config_name, std::string display_name, size_t ram_size)
+        : DiscInterface(std::move(config_name), std::move(display_name), StandardROM_OpusChallenger, 0xfcf8, 0xfcfc, DiscInterfaceFlag_NoINTRQ | DiscInterfaceFlag_Uses1MHzBus) {
         ASSERT(ram_size % CHALLENGER_CHUNK_SIZE == 0);
         m_num_state_chunks = ram_size / CHALLENGER_CHUNK_SIZE;
     }
@@ -559,32 +567,21 @@ class DiscInterfaceChallenger : public DiscInterface {
     size_t m_num_state_chunks = 0;
 };
 
-static const DiscInterfaceChallenger DISC_INTERFACE_CHALLENGER_256K("Opus CHALLENGER 256K", 256 * 1024);
-static const DiscInterfaceChallenger DISC_INTERFACE_CHALLENGER_512K("Opus CHALLENGER 512K", 512 * 1024);
+static const char CHALLENGER_256K_CONFIG_NAME[] = "Opus CHALLENGER 256K";
+static const DiscInterfaceChallenger DISC_INTERFACE_CHALLENGER_256K(CHALLENGER_256K_CONFIG_NAME, "Opus CHALLENGER 256K", 256 * 1024);
 
-//static const DiscInterfaceDef DISC_INTERFACE_CHALLENGER_256K{
-//    "Opus CHALLENGER 256K",
-//    StandardROM_OpusChallenger,
-//    []() {
-//        return new DiscInterfaceChallenger(256 * 1024);
-//    },
-//    true};
-//
-//static const DiscInterfaceDef DISC_INTERFACE_CHALLENGER_512K{
-//    "Opus CHALLENGER 512K",
-//    StandardROM_OpusChallenger,
-//    []() {
-//        return new DiscInterfaceChallenger(512 * 1024);
-//    },
-//    true};
+static const char CHALLENGER_512K_CONFIG_NAME[] = "Opus CHALLENGER 512K";
+static const DiscInterfaceChallenger DISC_INTERFACE_CHALLENGER_512K(CHALLENGER_512K_CONFIG_NAME, "Opus CHALLENGER 512K", 512 * 1024);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
+
+static const char MASTER_128_CONFIG_NAME[] = "Master 128";
 
 class DiscInterfaceMaster128 : public DiscInterface {
   public:
     DiscInterfaceMaster128()
-        : DiscInterface("Master 128", StandardROM_None, 0xfe28, 0xfe24, 0) {
+        : DiscInterface(MASTER_128_CONFIG_NAME, "Master 128", StandardROM_None, 0xfe28, 0xfe24, 0) {
     }
 
     DiscInterfaceControl GetControlFromByte(uint8_t value) const override {
@@ -636,7 +633,7 @@ const DiscInterface *const DISC_INTERFACE_MASTER128 = &DISC_INTERFACE_MASTER128_
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-const DiscInterface *const ALL_DISC_INTERFACES[] = {
+const DiscInterface *const MODEL_B_DISC_INTERFACES[] = {
     &DISC_INTERFACE_ACORN_1770_VALUE,
     &DISC_INTERFACE_WATFORD_DDB2,
     &DISC_INTERFACE_WATFORD_DDB3,
@@ -649,16 +646,16 @@ const DiscInterface *const ALL_DISC_INTERFACES[] = {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-const DiscInterface *FindDiscInterfaceByName(const char *name) {
-    for (const DiscInterface *const *di_ptr = ALL_DISC_INTERFACES; *di_ptr != NULL; ++di_ptr) {
+const DiscInterface *FindDiscInterfaceByConfigName(const char *config_name) {
+    for (const DiscInterface *const *di_ptr = MODEL_B_DISC_INTERFACES; *di_ptr != NULL; ++di_ptr) {
         const DiscInterface *di = *di_ptr;
 
-        if (strcmp(name, di->name.c_str()) == 0) {
+        if (di->config_name == config_name) {
             return di;
         }
     }
 
-    if (DISC_INTERFACE_MASTER128->name == name) {
+    if (DISC_INTERFACE_MASTER128->config_name == config_name) {
         return DISC_INTERFACE_MASTER128;
     }
 
