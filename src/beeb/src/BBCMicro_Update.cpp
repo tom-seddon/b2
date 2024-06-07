@@ -705,11 +705,11 @@ parasite_update_done:
 
             if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_IsMasterCompact) == 0) {
                 // Update analogue joystick buttons.
-                m_state.system_via.b.p = (m_state.system_via.b.p & ~(1u << SystemVIAPBBits::NOT_JOYSTICK0_FIRE_BIT | 1u << SystemVIAPBBits::NOT_JOYSTICK1_FIRE_BIT)) | m_state.not_joystick_buttons;
+                m_state.system_via.b.p = (m_state.system_via.b.p & ~(1u << BBCMicroState::SystemVIAPBBits::NOT_JOYSTICK0_FIRE_BIT | 1u << BBCMicroState::SystemVIAPBBits::NOT_JOYSTICK1_FIRE_BIT)) | m_state.not_joystick_buttons;
             }
 
             // Update addressable latch and RTC.
-            const SystemVIAPB pb = {m_state.system_via.b.p};
+            const BBCMicroState::SystemVIAPB pb = {m_state.system_via.b.p};
 
             if (m_state.old_system_via_pb.value != pb.value) {
                 uint8_t mask = 1 << pb.bits.latch_index;
@@ -743,7 +743,7 @@ parasite_update_done:
 
             if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_IsMasterCompact) != 0) {
                 // Update EEPROM data output bit.
-                m_state.system_via.b.p = (m_state.system_via.b.p & ~(1u << MasterCompactSystemVIAPBBits::DATA_BIT)) | (uint8_t)(m_state.eeprom.data_output << MasterCompactSystemVIAPBBits::DATA_BIT);
+                m_state.system_via.b.p = (m_state.system_via.b.p & ~(1u << BBCMicroState::MasterCompactSystemVIAPBBits::DATA_BIT)) | (uint8_t)(m_state.eeprom.data_output << BBCMicroState::MasterCompactSystemVIAPBBits::DATA_BIT);
             }
 
             if constexpr (UPDATE_FLAGS & BBCMicroUpdateFlag_IsMaster128) {

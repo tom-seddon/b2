@@ -274,7 +274,7 @@ class BeebThread {
 
     class DigitalJoystickStateMessage : public Message {
       public:
-        explicit DigitalJoystickStateMessage(uint8_t index, BBCMicro::DigitalJoystickInput state);
+        explicit DigitalJoystickStateMessage(uint8_t index, BBCMicroState::DigitalJoystickInput state);
 
         bool ThreadPrepare(std::shared_ptr<Message> *ptr,
                            CompletionFun *completion_fun,
@@ -285,7 +285,7 @@ class BeebThread {
       protected:
       private:
         const uint8_t m_index = 0;
-        const BBCMicro::DigitalJoystickInput m_state = {};
+        const BBCMicroState::DigitalJoystickInput m_state = {};
     };
 
     class HardResetMessage : public Message {
@@ -1033,7 +1033,7 @@ class BeebThread {
 
 #if BBCMICRO_DEBUGGER
     bool DebugIsHalted() const;
-    void DebugGetState(std::shared_ptr<const BBCMicro::State> *state_ptr, std::shared_ptr<const BBCMicro::DebugState> *debug_state_ptr) const;
+    void DebugGetState(std::shared_ptr<const BBCMicroState> *state_ptr, std::shared_ptr<const BBCMicro::DebugState> *debug_state_ptr) const;
 #endif
 
     uint32_t GetUpdateFlags() const;
@@ -1100,7 +1100,7 @@ class BeebThread {
     // Lock m_mutex first, if locking both. (The public API makes this hard to
     // get wrong.)
     mutable Mutex m_beeb_state_mutex;
-    std::shared_ptr<const BBCMicro::State> m_beeb_state;
+    std::shared_ptr<const BBCMicroState> m_beeb_state;
 #if BBCMICRO_DEBUGGER
     std::shared_ptr<const BBCMicro::DebugState> m_beeb_debug_state;
 #endif

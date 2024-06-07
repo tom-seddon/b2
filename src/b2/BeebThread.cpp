@@ -464,7 +464,7 @@ void BeebThread::AnalogueChannelMessage::ThreadHandle(BeebThread *beeb_thread, T
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-BeebThread::DigitalJoystickStateMessage::DigitalJoystickStateMessage(uint8_t index, BBCMicro::DigitalJoystickInput state)
+BeebThread::DigitalJoystickStateMessage::DigitalJoystickStateMessage(uint8_t index, BBCMicroState::DigitalJoystickInput state)
     : m_index(index)
     , m_state(state) {
 }
@@ -480,7 +480,7 @@ bool BeebThread::DigitalJoystickStateMessage::ThreadPrepare(std::shared_ptr<Mess
         return false;
     }
 
-    BBCMicro::DigitalJoystickInput state = ts->beeb->GetDigitalJoystickState(m_index);
+    BBCMicroState::DigitalJoystickInput state = ts->beeb->GetDigitalJoystickState(m_index);
     if (state.value == m_state.value) {
         // not an error - just don't duplicate events if the state didn't actually change.
         ptr->reset();
@@ -2318,7 +2318,7 @@ bool BeebThread::DebugIsHalted() const {
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_DEBUGGER
-void BeebThread::DebugGetState(std::shared_ptr<const BBCMicro::State> *state_ptr,
+void BeebThread::DebugGetState(std::shared_ptr<const BBCMicroState> *state_ptr,
                                std::shared_ptr<const BBCMicro::DebugState> *debug_state_ptr) const {
     std::lock_guard<Mutex> lock(m_beeb_state_mutex);
 

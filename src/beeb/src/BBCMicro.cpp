@@ -134,142 +134,6 @@ const uint16_t BBCMicro::ADJI_ADDRESSES[4] = {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-BBCMicro::State::State(const BBCMicroType *type_,
-                       const DiscInterface *disc_interface_,
-                       BBCMicroParasiteType parasite_type_,
-                       const std::vector<uint8_t> &nvram_contents,
-                       uint32_t init_flags_,
-                       const tm *rtc_time,
-                       CycleCount initial_cycle_count)
-    : type(type_)
-    , init_flags(init_flags_)
-    , parasite_type(parasite_type_)
-    , cycle_count(initial_cycle_count)
-    , disc_interface(disc_interface_) {
-    M6502_Init(&this->cpu, this->type->m6502_config);
-    this->ram_buffer = std::make_shared<std::vector<uint8_t>>(this->type->ram_buffer_size);
-
-    if (this->disc_interface) {
-        this->disc_interface_extra_hardware = this->disc_interface->CreateExtraHardwareState();
-    }
-
-    switch (this->type->type_id) {
-    default:
-        break;
-
-    case BBCMicroTypeID_Master:
-        this->rtc.SetRAMContents(nvram_contents);
-
-        if (rtc_time) {
-            this->rtc.SetTime(rtc_time);
-        }
-        break;
-
-    case BBCMicroTypeID_MasterCompact:
-        for (size_t i = 0; i < sizeof this->eeprom.ram; ++i) {
-            this->eeprom.ram[i] = i < nvram_contents.size() ? nvram_contents[i] : 0;
-        }
-        break;
-    }
-
-    if (this->parasite_type != BBCMicroParasiteType_None) {
-        this->parasite_ram_buffer = std::make_shared<std::vector<uint8_t>>(65536);
-        this->parasite_boot_mode = true;
-        M6502_Init(&this->parasite_cpu, &M6502_rockwell65c02_config);
-        ResetTube(&this->parasite_tube);
-
-        // Whether disabled or not, the parasite starts out inaccessible, as the
-        // relevant I/O functions start out as the defaults. InitPaging will
-        // sort this out, if it needs to change.
-    }
-
-    this->sn76489.Reset(!!(this->init_flags & BBCMicroInitFlag_PowerOnTone));
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-#if BBCMICRO_DEBUGGER
-const M6502 *BBCMicro::State::DebugGetM6502(uint32_t dso) const {
-    if (dso & BBCMicroDebugStateOverride_Parasite) {
-        if (this->parasite_type != BBCMicroParasiteType_None) {
-            return &this->parasite_cpu;
-        }
-    }
-
-    return &this->cpu;
-}
-#endif
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-const ExtMem *BBCMicro::State::DebugGetExtMem() const {
-    if (this->init_flags & BBCMicroInitFlag_ExtMem) {
-        return &this->ext_mem;
-    } else {
-        return nullptr;
-    }
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-const MC146818 *BBCMicro::State::DebugGetRTC() const {
-    if (this->type->type_id == BBCMicroTypeID_Master) {
-        return &this->rtc;
-    } else {
-        return nullptr;
-    }
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-const Tube *BBCMicro::State::DebugGetTube() const {
-    if (this->parasite_type != BBCMicroParasiteType_None) {
-        return &this->parasite_tube;
-    } else {
-        return nullptr;
-    }
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-const ADC *BBCMicro::State::DebugGetADC() const {
-    if (this->type->adc_addr != 0) {
-        return &this->adc;
-    } else {
-        return nullptr;
-    }
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-const PCD8572 *BBCMicro::State::DebugGetEEPROM() const {
-    if (this->type->type_id == BBCMicroTypeID_MasterCompact) {
-        return &this->eeprom;
-    } else {
-        return nullptr;
-    }
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-int BBCMicro::State::DebugGetADJIDIPSwitches() const {
-    if (this->init_flags & BBCMicroInitFlag_ADJI) {
-        return this->init_flags >> BBCMicroInitFlag_ADJIDIPSwitchesShift & 3;
-    } else {
-        return -1;
-    }
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 BBCMicro::BBCMicro(const BBCMicroType *type,
                    const DiscInterface *disc_interface,
                    BBCMicroParasiteType parasite_type,
@@ -296,7 +160,7 @@ BBCMicro::BBCMicro(const BBCMicro &src)
     : m_state(src.m_state) {
     ASSERT(src.GetCloneImpediments() == 0);
 
-    for (DiscDrive &dd : m_state.drives) {
+    for (BBCMicroState::DiscDrive &dd : m_state.drives) {
         dd.disc_image = DiscImage::Clone(dd.disc_image);
     }
 
@@ -337,7 +201,7 @@ uint32_t BBCMicro::GetCloneImpediments() const {
     uint32_t result = 0;
 
     for (int i = 0; i < NUM_DRIVES; ++i) {
-        const DiscDrive *drive = &m_state.drives[i];
+        const BBCMicroState::DiscDrive *drive = &m_state.drives[i];
         if (!!drive->disc_image) {
             if (!drive->disc_image->CanClone()) {
                 result |= (uint32_t)BBCMicroCloneImpediment_Drive0 << i;
@@ -557,7 +421,7 @@ void BBCMicro::WriteHostTube0Wrapper(void *m_, M6502Word a, uint8_t value) {
 //////////////////////////////////////////////////////////////////////////
 
 void BBCMicro::InitReadOnlyBigPage(ReadOnlyBigPage *bp,
-                                   const State *state,
+                                   const BBCMicroState *state,
 #if BBCMICRO_DEBUGGER
                                    const DebugState *debug_state,
 #endif
@@ -723,7 +587,7 @@ uint8_t BBCMicro::Read1770ControlRegister(void *m_, M6502Word a) {
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_TRACE
-void BBCMicro::TracePortB(SystemVIAPB pb) {
+void BBCMicro::TracePortB(BBCMicroState::SystemVIAPB pb) {
     Log log("", m_trace->GetLogPrinter(TraceEventSource_Host, 1000));
 
     log.f("PORTB - PB = $%02X (%%%s): ", pb.value, BINARY_BYTE_STRINGS[pb.value]);
@@ -1008,8 +872,8 @@ bool BBCMicro::SetKeyState(BeebKey key, bool new_state) {
 
 bool BBCMicro::GetJoystickButtonState(uint8_t index) const {
     ASSERT(index == 0 || index == 1);
-    static_assert(SystemVIAPBBits::NOT_JOYSTICK1_FIRE_BIT == SystemVIAPBBits::NOT_JOYSTICK0_FIRE_BIT + 1, "");
-    uint8_t mask = 1 << (SystemVIAPBBits::NOT_JOYSTICK1_FIRE_BIT + (index & 1));
+    static_assert(BBCMicroState::SystemVIAPBBits::NOT_JOYSTICK1_FIRE_BIT == BBCMicroState::SystemVIAPBBits::NOT_JOYSTICK0_FIRE_BIT + 1, "");
+    uint8_t mask = 1 << (BBCMicroState::SystemVIAPBBits::NOT_JOYSTICK1_FIRE_BIT + (index & 1));
 
     return !(m_state.not_joystick_buttons & mask);
 }
@@ -1355,7 +1219,7 @@ void BBCMicro::SetDiscImage(int drive,
         return;
     }
 
-    DiscDrive *dd = &m_state.drives[drive];
+    BBCMicroState::DiscDrive *dd = &m_state.drives[drive];
 
     dd->disc_image = std::move(disc_image);
     dd->is_write_protected = false;
@@ -1432,8 +1296,8 @@ void BBCMicro::StopPaste() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-std::shared_ptr<const BBCMicro::State> BBCMicro::DebugGetState() const {
-    auto result = std::make_shared<BBCMicro::State>(m_state);
+std::shared_ptr<const BBCMicroState> BBCMicro::DebugGetState() const {
+    auto result = std::make_shared<BBCMicroState>(m_state);
     result->init_flags |= BBCMicroInitFlag_Clone;
     return result;
 }
@@ -1487,7 +1351,7 @@ const BBCMicro::BigPage *BBCMicro::DebugGetBigPageForAddress(M6502Word addr,
 
 #if BBCMICRO_DEBUGGER
 void BBCMicro::DebugGetBigPageForAddress(ReadOnlyBigPage *bp,
-                                         const State *state,
+                                         const BBCMicroState *state,
                                          const DebugState *debug_state,
                                          M6502Word addr,
                                          bool mos,
@@ -1524,7 +1388,7 @@ void BBCMicro::DebugGetBigPageForAddress(ReadOnlyBigPage *bp,
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_DEBUGGER
-void BBCMicro::DebugGetMemBigPageIsMOSTable(uint8_t *mem_big_page_is_mos, const State *state, uint32_t dso) {
+void BBCMicro::DebugGetMemBigPageIsMOSTable(uint8_t *mem_big_page_is_mos, const BBCMicroState *state, uint32_t dso) {
     // Should maybe try to make this all fit together a bit better...
     if (dso & BBCMicroDebugStateOverride_Parasite) {
         memset(mem_big_page_is_mos, 0, 16);
@@ -1929,7 +1793,7 @@ void BBCMicro::SetHardwareDebugState(const HardwareDebugState &hw) {
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_DEBUGGER
-uint32_t BBCMicro::DebugGetCurrentStateOverride(const State *state) {
+uint32_t BBCMicro::DebugGetCurrentStateOverride(const BBCMicroState *state) {
     uint32_t dso = (state->type->get_dso_fn)(state->romsel, state->acccon);
 
     if (state->parasite_type != BBCMicroParasiteType_None) {
@@ -2072,7 +1936,7 @@ void BBCMicro::PrintInfo(Log *log) {
     log->f("unused BBCMicroUpdateFlag values: %s\n", GetUpdateFlagExpr(unused_bits).c_str());
 
     log->f("sizeof(BBCMicro): %zu\n", sizeof(BBCMicro));
-    log->f("sizeof(BBCMicro::State): %zu\n", sizeof(BBCMicro::State));
+    log->f("sizeof(BBCMicroState): %zu\n", sizeof(BBCMicroState));
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -2294,10 +2158,10 @@ void BBCMicro::DebugHandleStep() {
 //////////////////////////////////////////////////////////////////////////
 
 void BBCMicro::InitStuff() {
-    CHECK_SIZEOF(AddressableLatch, 1);
+    CHECK_SIZEOF(BBCMicroState::AddressableLatch, 1);
     CHECK_SIZEOF(ROMSEL, 1);
     CHECK_SIZEOF(ACCCON, 1);
-    CHECK_SIZEOF(SystemVIAPB, 1);
+    CHECK_SIZEOF(BBCMicroState::SystemVIAPB, 1);
     for (size_t i = 0; i < sizeof ms_update_mfns / sizeof ms_update_mfns[0]; ++i) {
         ASSERT(ms_update_mfns[i]);
     }
@@ -2535,7 +2399,7 @@ void BBCMicro::InitStuff() {
 //////////////////////////////////////////////////////////////////////////
 
 bool BBCMicro::IsTrack0() {
-    if (DiscDrive *dd = this->GetDiscDrive()) {
+    if (BBCMicroState::DiscDrive *dd = this->GetDiscDrive()) {
         return dd->track == 0;
     }
 
@@ -2546,7 +2410,7 @@ bool BBCMicro::IsTrack0() {
 //////////////////////////////////////////////////////////////////////////
 
 void BBCMicro::StepOut() {
-    if (DiscDrive *dd = this->GetDiscDrive()) {
+    if (BBCMicroState::DiscDrive *dd = this->GetDiscDrive()) {
         if (dd->track > 0) {
             --dd->track;
 
@@ -2561,7 +2425,7 @@ void BBCMicro::StepOut() {
 //////////////////////////////////////////////////////////////////////////
 
 void BBCMicro::StepIn() {
-    if (DiscDrive *dd = this->GetDiscDrive()) {
+    if (BBCMicroState::DiscDrive *dd = this->GetDiscDrive()) {
         if (dd->track < 255) {
             ++dd->track;
 
@@ -2576,7 +2440,7 @@ void BBCMicro::StepIn() {
 //////////////////////////////////////////////////////////////////////////
 
 void BBCMicro::SpinUp() {
-    if (DiscDrive *dd = this->GetDiscDrive()) {
+    if (BBCMicroState::DiscDrive *dd = this->GetDiscDrive()) {
         dd->motor = true;
 
 #if BBCMICRO_ENABLE_DISC_DRIVE_SOUND
@@ -2590,7 +2454,7 @@ void BBCMicro::SpinUp() {
 //////////////////////////////////////////////////////////////////////////
 
 void BBCMicro::SpinDown() {
-    if (DiscDrive *dd = this->GetDiscDrive()) {
+    if (BBCMicroState::DiscDrive *dd = this->GetDiscDrive()) {
         dd->motor = false;
 
 #if BBCMICRO_ENABLE_DISC_DRIVE_SOUND
@@ -2608,7 +2472,7 @@ void BBCMicro::SpinDown() {
 //////////////////////////////////////////////////////////////////////////
 
 bool BBCMicro::IsWriteProtected() {
-    if (DiscDrive *dd = this->GetDiscDrive()) {
+    if (BBCMicroState::DiscDrive *dd = this->GetDiscDrive()) {
         if (dd->disc_image) {
             if (dd->disc_image->IsWriteProtected()) {
                 return true;
@@ -2627,7 +2491,7 @@ bool BBCMicro::IsWriteProtected() {
 //////////////////////////////////////////////////////////////////////////
 
 bool BBCMicro::GetByte(uint8_t *value, uint8_t sector, size_t offset) {
-    if (DiscDrive *dd = this->GetDiscDrive()) {
+    if (BBCMicroState::DiscDrive *dd = this->GetDiscDrive()) {
         m_disc_access = true;
 
         if (dd->disc_image) {
@@ -2644,7 +2508,7 @@ bool BBCMicro::GetByte(uint8_t *value, uint8_t sector, size_t offset) {
 //////////////////////////////////////////////////////////////////////////
 
 bool BBCMicro::SetByte(uint8_t sector, size_t offset, uint8_t value) {
-    if (DiscDrive *dd = this->GetDiscDrive()) {
+    if (BBCMicroState::DiscDrive *dd = this->GetDiscDrive()) {
         m_disc_access = true;
 
         if (dd->disc_image) {
@@ -2661,7 +2525,7 @@ bool BBCMicro::SetByte(uint8_t sector, size_t offset, uint8_t value) {
 //////////////////////////////////////////////////////////////////////////
 
 bool BBCMicro::GetSectorDetails(uint8_t *track, uint8_t *side, size_t *size, uint8_t sector, bool double_density) {
-    if (DiscDrive *dd = this->GetDiscDrive()) {
+    if (BBCMicroState::DiscDrive *dd = this->GetDiscDrive()) {
         m_disc_access = true;
 
         if (dd->disc_image) {
@@ -2679,7 +2543,7 @@ bool BBCMicro::GetSectorDetails(uint8_t *track, uint8_t *side, size_t *size, uin
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-BBCMicro::DiscDrive *BBCMicro::GetDiscDrive() {
+BBCMicroState::DiscDrive *BBCMicro::GetDiscDrive() {
     if (m_state.disc_control.drive >= 0 && m_state.disc_control.drive < NUM_DRIVES) {
         return &m_state.drives[m_state.disc_control.drive];
     } else {
@@ -2744,7 +2608,7 @@ static const SeekSound g_seek_sounds[] = {
     {0},
 };
 
-void BBCMicro::StepSound(DiscDrive *dd) {
+void BBCMicro::StepSound(BBCMicroState::DiscDrive *dd) {
     if (dd->step_sound_index < 0) {
         // step
         dd->step_sound_index = 0;
@@ -2773,7 +2637,7 @@ void BBCMicro::StepSound(DiscDrive *dd) {
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_ENABLE_DISC_DRIVE_SOUND
-float BBCMicro::UpdateDiscDriveSound(DiscDrive *dd) {
+float BBCMicro::UpdateDiscDriveSound(BBCMicroState::DiscDrive *dd) {
     float acc = 0.f;
 
     if (dd->spin_sound != DiscDriveSound_EndValue) {
@@ -2966,7 +2830,7 @@ uint16_t BBCMicro::ReadAnalogueChannel(uint8_t channel) const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-BBCMicro::DigitalJoystickInput BBCMicro::GetDigitalJoystickState(uint8_t index) const {
+BBCMicroState::DigitalJoystickInput BBCMicro::GetDigitalJoystickState(uint8_t index) const {
     (void)index;
 
     return m_state.digital_joystick_state;
@@ -2975,7 +2839,7 @@ BBCMicro::DigitalJoystickInput BBCMicro::GetDigitalJoystickState(uint8_t index) 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void BBCMicro::SetDigitalJoystickState(uint8_t index, DigitalJoystickInput state) {
+void BBCMicro::SetDigitalJoystickState(uint8_t index, BBCMicroState::DigitalJoystickInput state) {
     (void)index;
 
     m_state.digital_joystick_state = state;

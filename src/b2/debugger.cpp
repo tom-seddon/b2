@@ -152,7 +152,7 @@ class DebugUI : public SettingsUI {
     BeebWindow *m_beeb_window = nullptr;
     std::shared_ptr<BeebThread> m_beeb_thread;
     uint32_t m_dso = 0;
-    std::shared_ptr<const BBCMicro::State> m_beeb_state;
+    std::shared_ptr<const BBCMicroState> m_beeb_state;
     std::shared_ptr<const BBCMicro::DebugState> m_beeb_debug_state;
 
     virtual void DoImGui2() = 0;
@@ -2246,7 +2246,7 @@ class SystemVIADebugWindow : public R6522DebugWindow {
 
         ImGui::Separator();
 
-        BBCMicro::SystemVIAPB pb;
+        BBCMicroState::SystemVIAPB pb;
         pb.value = m_beeb_state->system_via.b.p;
 
         ImGui::Text("Port B inputs:");
@@ -2278,7 +2278,7 @@ class SystemVIADebugWindow : public R6522DebugWindow {
 
         ImGui::Separator();
 
-        BBCMicro::AddressableLatch latch = m_beeb_state->addressable_latch;
+        BBCMicroState::AddressableLatch latch = m_beeb_state->addressable_latch;
         ImGui::Text("Addressable latch:");
         ImGui::Text("Value: %%%s ($%02x) (%03u)", BINARY_BYTE_STRINGS[latch.value], latch.value, latch.value);
 
@@ -3273,7 +3273,7 @@ class DigitalJoystickDebugWindow : public DebugUI {
             ImGui::Text("Type: (none)");
         }
 
-        BBCMicro::DigitalJoystickInputBits bits = m_beeb_state->digital_joystick_state.bits;
+        BBCMicroState::DigitalJoystickInputBits bits = m_beeb_state->digital_joystick_state.bits;
 
         this->Checkbox("Up", bits.up);
         this->Checkbox("Down", bits.down);

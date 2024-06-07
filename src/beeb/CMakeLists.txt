@@ -32,6 +32,7 @@ set(SRCS
   ${S}/adc.cpp ${I}/adc.h
   ${S}/PCD8572.cpp ${I}/PCD8572.h ${I}/PCD8572.inl
   ${S}/uef.cpp ${I}/uef.h
+  ${S}/BBCMicroState.cpp ${I}/BBCMicroState.h ${I}/BBCMicroState.inl
 )
 
 if(MSVC)

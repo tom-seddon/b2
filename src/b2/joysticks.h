@@ -32,7 +32,7 @@ struct JoystickResult {
 
     // if >=0, this event resulted in digital state info for this joystick.
     int8_t digital_joystick_index = -1;
-    BBCMicro::DigitalJoystickInput digital_state = {};
+    BBCMicroState::DigitalJoystickInput digital_state = {};
 };
 
 JoystickResult ControllerAxisMotion(int device_instance, int axis, int16_t value);
