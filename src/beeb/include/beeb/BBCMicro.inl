@@ -208,7 +208,8 @@ EPNV(ADJI, 1 << 4)
 // If ADJI bit set, there's a 2-bit value encoding the base address.
 EQPNV(ADJIDIPSwitchesShift, 5)
 
-// next free bit is bit 7
+// If set, BeebLink.
+EPNV(BeebLink, 1 << 7)
 EEND()
 #undef ENAME
 

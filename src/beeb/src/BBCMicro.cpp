@@ -282,7 +282,7 @@ BBCMicro::BBCMicro(const BBCMicroType *type,
               disc_interface,
               parasite_type,
               nvram_contents,
-              init_flags,
+              init_flags | (beeblink_handler ? BBCMicroInitFlag_BeebLink : 0),
               rtc_time,
               initial_cycle_count)
     , m_beeblink_handler(beeblink_handler) {
@@ -345,8 +345,11 @@ uint32_t BBCMicro::GetCloneImpediments() const {
         }
     }
 
-    if (m_beeblink_handler) {
+    if (m_state.init_flags & BBCMicroInitFlag_BeebLink) {
+        ASSERT(m_beeblink_handler);
         result |= BBCMicroCloneImpediment_BeebLink;
+    } else {
+        ASSERT(!m_beeblink_handler);
     }
 
     return result;
