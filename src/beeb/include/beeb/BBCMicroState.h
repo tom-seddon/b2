@@ -34,14 +34,14 @@ class DiscImage;
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-// All the shared_ptr<vector<uint8_t>> point to vectors that are never
-// resized once created. So in principle it's safe(ish) to call size() and
-// operator[] from multiple threads without bothering to lock.
+// All the shared_ptr<vector<uint8_t>> point to vectors that are never resized
+// once created. So in principle it's safe(ish) to call size() and operator[]
+// from multiple threads without bothering to lock.
 //
-// The ExtMem has a shared_ptr<vector<uint8_t>> inside it, and that follows
-// the same rules.
+// The ExtMem has a shared_ptr<vector<uint8_t>> inside it, and that follows the
+// same rules.
 //
-// This will get improved.
+// This will get improved, along with the random jumble of access specifiers.
 struct BBCMicroState {
 #include <shared/pushwarn_bitfields.h>
     struct SystemVIAPBBits {
@@ -294,6 +294,10 @@ struct BBCMicroState {
 
     M6502 parasite_cpu = {};
 
+  protected:
+    // Disallow values of base type. Disallow delete of pointer to base type.
+    ~BBCMicroState() = default;
+
   private:
     std::shared_ptr<const std::array<uint8_t, 2048>> parasite_rom_buffer;
     std::shared_ptr<std::vector<uint8_t>> parasite_ram_buffer;
@@ -309,6 +313,46 @@ struct BBCMicroState {
                            CycleCount initial_cycle_count);
 
     friend class BBCMicro;
+};
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+// A read-only state is potentially a simple value copy of an existing state,
+// possibly itself a read-only one too. Read-only states may share buffers with
+// other states, so the following apply:
+//
+// - the various ROM and RAM shared_ptr'd buffers can refer to the same buffers
+//   as the original state. They may be out of sync relative to the rest of the
+//   hardware state!
+// - any hardware Handler or Trace pointers (etc.) are not necessarily valid
+//
+// This means that a read-only state is kind of useless! They're there purely
+// for the debugger to use for updating its UI without having to have each
+// window take a lock (or have the debugger copy all of BBC memory).
+//
+// The potential discrepancy between RAM contents and hardware state doesn't
+// matter; when the BBC is running, it's impossible to tell, and when it's
+// stopped, the two are actually in sync.
+//
+// (Any actual modification to the BBCMicro state is done via BeebThread
+// messages or with a BBCMicro pointer obtained from
+// BeebThread::LockMutableBeeb.)
+
+struct BBCMicroReadOnlyState : BBCMicroState {
+    using BBCMicroState::BBCMicroState;
+
+    ~BBCMicroReadOnlyState() = default;
+};
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+// A unique state has its own copy of all the shared_ptr'd buffers and all the
+// Handler and Trace pointers (etc.) are valid.
+
+struct BBCMicroUniqueState : BBCMicroReadOnlyState {
+    using BBCMicroReadOnlyState::BBCMicroReadOnlyState;
 };
 
 //////////////////////////////////////////////////////////////////////////

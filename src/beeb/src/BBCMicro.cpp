@@ -1296,9 +1296,8 @@ void BBCMicro::StopPaste() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-std::shared_ptr<const BBCMicroState> BBCMicro::DebugGetState() const {
-    auto result = std::make_shared<BBCMicroState>(m_state);
-    result->init_flags |= BBCMicroInitFlag_Clone;
+std::shared_ptr<const BBCMicroReadOnlyState> BBCMicro::DebugGetState() const {
+    auto result = std::make_shared<BBCMicroReadOnlyState>(m_state);
     return result;
 }
 

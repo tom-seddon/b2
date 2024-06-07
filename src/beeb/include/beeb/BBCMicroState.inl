@@ -61,28 +61,7 @@ EPNV(ExtMem, 1 << 1)
 // (this ended up here because it's convenient, not because it makes sense).
 EPNV(PowerOnTone, 1 << 2)
 
-// Set if the state is a clone: a simple value copy of an existing state,
-// possibly itself a clone.
-//
-// Clones are simple copies, so the following apply:
-//
-// - the various ROM and RAM shared_ptr'd buffers refer to the same buffers as
-//   the original state. They may be out of sync relative to the rest of the
-//   hardware state!
-// - any hardware Handler or Trace pointers (etc.) are not valid
-//
-// This means that a cloned state is kind of useless! They're there purely for
-// the debugger to use for updating its UI without having to have each window
-// take a lock (or have the debugger copy all of BBC memory).
-//
-// The potential discrepancy between RAM contents and hardware state doesn't
-// matter; when the BBC is running, it's impossible to tell, and when it's
-// stopped, the two are actually in sync.
-//
-// (Any actual modification to the BBCMicro state is done via BeebThread
-// messages or with a BBCMicro pointer obtained from
-// BeebThread::LockMutableBeeb.)
-EPNV(Clone, 1 << 3)
+//EPNV(..., 1 << 3)
 
 // If set, ADJI inserted, available via IFJ.
 EPNV(ADJI, 1 << 4)

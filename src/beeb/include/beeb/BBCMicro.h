@@ -359,7 +359,7 @@ class BBCMicro : private WD1770Handler,
     void StartPaste(std::shared_ptr<const std::string> text);
     void StopPaste();
 
-    std::shared_ptr<const BBCMicroState> DebugGetState() const;
+    std::shared_ptr<const BBCMicroReadOnlyState> DebugGetState() const;
 
     const M6502 *GetM6502() const;
 
@@ -480,7 +480,7 @@ class BBCMicro : private WD1770Handler,
     //////////////////////////////////////////////////////////////////////////
     //////////////////////////////////////////////////////////////////////////
 
-    BBCMicroState m_state;
+    BBCMicroUniqueState m_state;
 
     //////////////////////////////////////////////////////////////////////////
     //////////////////////////////////////////////////////////////////////////
