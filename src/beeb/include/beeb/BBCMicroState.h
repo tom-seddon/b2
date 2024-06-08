@@ -141,9 +141,11 @@ struct BBCMicroState {
 
     // There's deliberately not much you can publicly do with one of these
     // other than default-construct it or copy it.
-    explicit BBCMicroState() = default;
+    explicit BBCMicroState() = delete;
     explicit BBCMicroState(const BBCMicroState &) = default;
-    BBCMicroState &operator=(const BBCMicroState &) = default;
+    BBCMicroState &operator=(const BBCMicroState &) = delete;
+    explicit BBCMicroState(BBCMicroState &&) = delete;
+    BBCMicroState &operator=(BBCMicroState &&) = delete;
 
     const M6502 *DebugGetM6502(uint32_t dso) const;
     const ExtMem *DebugGetExtMem() const;
