@@ -42,7 +42,8 @@ class DiscImage;
 // same rules.
 //
 // This will get improved, along with the random jumble of access specifiers.
-struct BBCMicroState {
+class BBCMicroState {
+  public:
 #include <shared/pushwarn_bitfields.h>
     struct SystemVIAPBBits {
         static const uint8_t NOT_JOYSTICK0_FIRE_BIT = 4;
@@ -156,9 +157,11 @@ struct BBCMicroState {
 
     int DebugGetADJIDIPSwitches() const;
 
+    std::shared_ptr<const DiscImage> GetDiscImage(int drive) const;
+
     const BBCMicroType *type = nullptr;
 
-  private:
+  protected:
     uint32_t init_flags = 0;
 
   public:
@@ -167,7 +170,7 @@ struct BBCMicroState {
     // 6845
     CRTC crtc;
 
-  private:
+  protected:
     CRTC::Output crtc_last_output = {};
 
   public:
@@ -176,7 +179,7 @@ struct BBCMicroState {
 
     SAA5050 saa5050;
 
-  private:
+  protected:
     uint8_t ic15_byte = 0;
 
     // 0x8000 to display shadow RAM; 0x0000 to display normal RAM.
@@ -193,28 +196,28 @@ struct BBCMicroState {
     // Addressable latch.
     AddressableLatch addressable_latch = {0xff};
 
-  private:
+  protected:
     // Previous values, for detecting edge transitions.
     AddressableLatch old_addressable_latch = {0xff};
 
   public:
     M6502 cpu = {};
 
-  private:
+  protected:
     uint8_t stretch = 0;
     bool resetting = false;
 
   public:
     R6522 system_via;
 
-  private:
+  protected:
     SystemVIAPB old_system_via_pb;
     uint8_t system_via_irq_pending = 0;
 
   public:
     R6522 user_via;
 
-  private:
+  protected:
     uint8_t user_via_irq_pending = 0;
 
   public:
@@ -225,7 +228,7 @@ struct BBCMicroState {
     uint8_t key_columns[16] = {};
     uint8_t key_scan_column = 0;
 
-  private:
+  protected:
     int num_keys_down = 0;
     //BeebKey auto_reset_key=BeebKey_None;
 
@@ -248,7 +251,7 @@ struct BBCMicroState {
   public:
     DigitalJoystickInput digital_joystick_state = {};
 
-  private:
+  protected:
     // Parallel printer
     bool printer_enabled = false;
     uint16_t printer_busy_counter = 0;
@@ -262,7 +265,7 @@ struct BBCMicroState {
   public:
     uint16_t analogue_channel_values[4] = {};
 
-  private:
+  protected:
     // External 1MHz bus RAM.
     ExtMem ext_mem;
 
@@ -300,7 +303,7 @@ struct BBCMicroState {
     // Disallow values of base type. Disallow delete of pointer to base type.
     ~BBCMicroState() = default;
 
-  private:
+  protected:
     std::shared_ptr<const std::array<uint8_t, 2048>> parasite_rom_buffer;
     std::shared_ptr<std::vector<uint8_t>> parasite_ram_buffer;
     bool parasite_boot_mode = true;
@@ -341,10 +344,15 @@ struct BBCMicroState {
 // messages or with a BBCMicro pointer obtained from
 // BeebThread::LockMutableBeeb.)
 
-struct BBCMicroReadOnlyState : BBCMicroState {
+class BBCMicroReadOnlyState : public BBCMicroState {
+  public:
     using BBCMicroState::BBCMicroState;
 
     ~BBCMicroReadOnlyState() = default;
+
+  protected:
+  private:
+    BBCMicroReadOnlyState(const BBCMicroState &);
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -353,8 +361,15 @@ struct BBCMicroReadOnlyState : BBCMicroState {
 // A unique state has its own copy of all the shared_ptr'd buffers and all the
 // Handler and Trace pointers (etc.) are valid.
 
-struct BBCMicroUniqueState : BBCMicroReadOnlyState {
+class BBCMicroUniqueState : public BBCMicroReadOnlyState {
+  public:
     using BBCMicroReadOnlyState::BBCMicroReadOnlyState;
+
+    explicit BBCMicroUniqueState(const BBCMicroUniqueState &src);
+
+  protected:
+  private:
+    BBCMicroUniqueState(const BBCMicroReadOnlyState &);
 };
 
 //////////////////////////////////////////////////////////////////////////

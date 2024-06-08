@@ -1,9 +1,19 @@
 #include <shared/system.h>
 #include <beeb/BBCMicroState.h>
+#include <beeb/DiscImage.h>
+#include <array>
+#include <type_traits>
 
 #include <shared/enum_def.h>
 #include <beeb/BBCMicroState.inl>
 #include <shared/enum_end.h>
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+static_assert(!std::is_convertible<BBCMicroState, BBCMicroUniqueState>::value);
+static_assert(!std::is_convertible<BBCMicroState, BBCMicroReadOnlyState>::value);
+static_assert(!std::is_convertible<BBCMicroReadOnlyState, BBCMicroUniqueState>::value);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -144,6 +154,41 @@ int BBCMicroState::DebugGetADJIDIPSwitches() const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-//BBCMicroReadOnlyState::BBCMicroReadOnlyState(const BBCMicroUniqueState &src)
-//    : BBCMicroState(src) {
-//}
+std::shared_ptr<const DiscImage> BBCMicroState::GetDiscImage(int drive) const {
+    if (drive >= 0 && drive < NUM_DRIVES) {
+        return this->drives[drive].disc_image;
+    } else {
+        return nullptr;
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+BBCMicroUniqueState::BBCMicroUniqueState(const BBCMicroUniqueState &src)
+    : BBCMicroReadOnlyState(src) {
+    for (BBCMicroState::DiscDrive &dd : this->drives) {
+        dd.disc_image = DiscImage::Clone(dd.disc_image);
+    }
+
+    if (this->ram_buffer) {
+        this->ram_buffer = std::make_shared<std::vector<uint8_t>>(*this->ram_buffer);
+    }
+
+    for (int i = 0; i < 16; ++i) {
+        if (this->sideways_ram_buffers[i]) {
+            this->sideways_ram_buffers[i] = std::make_shared<std::array<uint8_t, 16384>>(*this->sideways_ram_buffers[i]);
+        }
+    }
+
+    if (this->parasite_ram_buffer) {
+        this->parasite_ram_buffer = std::make_shared<std::vector<uint8_t>>(*this->parasite_ram_buffer);
+    }
+
+    if (this->disc_interface) {
+        this->disc_interface_extra_hardware = this->disc_interface->CloneExtraHardwareState(this->disc_interface_extra_hardware);
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////

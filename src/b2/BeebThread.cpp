@@ -989,7 +989,7 @@ bool BeebThread::SaveStateMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
         return false;
     }
 
-    auto &&state = std::make_shared<BeebState>(ts->beeb->Clone());
+    auto &&state = std::make_shared<BeebState>(ts->beeb->CloneState());
     state->SetName(GetTimeString(GetUTCTimeNow()));
 
     if (m_verbose) {
@@ -1036,7 +1036,7 @@ bool BeebThread::StartReplayMessage::ThreadPrepare(std::shared_ptr<Message> *ptr
         if (ts->beeb) {
             // TODO - how to get the TVOutput here? Don't remember what I had
             // planned originally...
-            ts->timeline_replay_old_state = std::make_shared<BeebState>(ts->beeb->Clone());
+            ts->timeline_replay_old_state = std::make_shared<BeebState>(ts->beeb->CloneState());
         }
     }
 
@@ -2517,8 +2517,7 @@ bool BeebThread::ThreadAddCopyData(const BBCMicro *beeb, const M6502 *cpu, void 
 //////////////////////////////////////////////////////////////////////////
 
 std::shared_ptr<BeebState> BeebThread::ThreadSaveState(ThreadState *ts) {
-    std::unique_ptr<BBCMicro> clone_beeb = ts->beeb->Clone();
-
+    std::unique_ptr<BBCMicroUniqueState> clone_beeb = ts->beeb->CloneState();
     if (!clone_beeb) {
         return nullptr;
     }
@@ -3250,7 +3249,7 @@ void BeebThread::SetVolume(float *scale_var, float db) {
 bool BeebThread::ThreadRecordSaveState(ThreadState *ts, bool user_initiated) {
     this->ThreadCheckTimeline(ts);
 
-    std::unique_ptr<BBCMicro> clone = ts->beeb->Clone();
+    std::unique_ptr<BBCMicroUniqueState> clone = ts->beeb->CloneState();
     if (!clone) {
         return false;
     }

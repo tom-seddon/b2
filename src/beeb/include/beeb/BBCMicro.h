@@ -170,8 +170,8 @@ class BBCMicro : private WD1770Handler,
              BeebLinkHandler *beeblink_handler,
              CycleCount initial_cycle_count);
 
-  protected:
-    BBCMicro(const BBCMicro &src);
+    explicit BBCMicro(const BBCMicroUniqueState &state);
+    BBCMicro(const BBCMicro &) = delete;
 
   public:
     ~BBCMicro();
@@ -179,7 +179,7 @@ class BBCMicro : private WD1770Handler,
     // result is a combination of BBCMicroCloneImpediment.
     uint32_t GetCloneImpediments() const;
 
-    std::unique_ptr<BBCMicro> Clone() const;
+    std::unique_ptr<BBCMicroUniqueState> CloneState() const;
 
     //typedef std::array<uint8_t, 16384> ROMData;
 

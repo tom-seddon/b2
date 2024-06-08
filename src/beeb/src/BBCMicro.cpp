@@ -156,32 +156,8 @@ BBCMicro::BBCMicro(const BBCMicroType *type,
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-BBCMicro::BBCMicro(const BBCMicro &src)
-    : m_state(src.m_state) {
-    ASSERT(src.GetCloneImpediments() == 0);
-
-    for (BBCMicroState::DiscDrive &dd : m_state.drives) {
-        dd.disc_image = DiscImage::Clone(dd.disc_image);
-    }
-
-    if (m_state.ram_buffer) {
-        m_state.ram_buffer = std::make_shared<std::vector<uint8_t>>(*m_state.ram_buffer);
-    }
-
-    for (int i = 0; i < 16; ++i) {
-        if (m_state.sideways_ram_buffers[i]) {
-            m_state.sideways_ram_buffers[i] = std::make_shared<std::array<uint8_t, 16384>>(*m_state.sideways_ram_buffers[i]);
-        }
-    }
-
-    if (m_state.parasite_ram_buffer) {
-        m_state.parasite_ram_buffer = std::make_shared<std::vector<uint8_t>>(*m_state.parasite_ram_buffer);
-    }
-
-    if (m_state.disc_interface) {
-        m_state.disc_interface_extra_hardware = m_state.disc_interface->CloneExtraHardwareState(m_state.disc_interface_extra_hardware);
-    }
-
+BBCMicro::BBCMicro(const BBCMicroUniqueState &state)
+    : m_state(state) {
     this->InitStuff();
 }
 
@@ -222,12 +198,12 @@ uint32_t BBCMicro::GetCloneImpediments() const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-std::unique_ptr<BBCMicro> BBCMicro::Clone() const {
+std::unique_ptr<BBCMicroUniqueState> BBCMicro::CloneState() const {
     if (this->GetCloneImpediments() != 0) {
         return nullptr;
     }
 
-    return std::unique_ptr<BBCMicro>(new BBCMicro(*this));
+    return std::make_unique<BBCMicroUniqueState>(m_state);
 }
 
 //////////////////////////////////////////////////////////////////////////

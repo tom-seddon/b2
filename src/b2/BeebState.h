@@ -12,6 +12,7 @@ class BeebThread;
 class BeebLoadedConfig;
 class TVOutput;
 struct BBCMicroType;
+class BBCMicroUniqueState;
 
 #include <beeb/conf.h>
 #include <beeb/BBCMicro.h>
@@ -26,15 +27,14 @@ struct BBCMicroType;
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-// Holds a named BBCMicro, and, optionally, its TV output texture.
+// Holds a named BBCMicroUniqueState and exposes shared_from_this.
 
 class BeebState : public std::enable_shared_from_this<BeebState> {
   public:
     // Creation time.
     const struct tm creation_time;
 
-    BeebState(std::unique_ptr<BBCMicro> beeb);
-    BeebState(std::unique_ptr<BBCMicro> beeb, const TVOutput &tv);
+    explicit BeebState(std::unique_ptr<BBCMicroUniqueState> state);
     ~BeebState();
 
     // Number of emulated cycles elapsed.
@@ -47,8 +47,6 @@ class BeebState : public std::enable_shared_from_this<BeebState> {
     const BBCMicroType *GetBBCMicroType() const;
     std::shared_ptr<const DiscImage> GetDiscImageByDrive(int drive) const;
 
-    const void *GetTVTextureData() const;
-
     const std::string &GetName() const;
     void SetName(std::string name);
 
@@ -60,15 +58,8 @@ class BeebState : public std::enable_shared_from_this<BeebState> {
     BeebState &operator=(const BeebState &) = delete;
 
   private:
-    std::unique_ptr<BBCMicro> m_beeb;
-
-    // No need to store the pixel format. It's the same for every
-    // window.
-    std::vector<uint32_t> m_tv_texture_data;
-
+    std::unique_ptr<BBCMicroUniqueState> m_state;
     std::string m_name;
-
-    BeebState(std::unique_ptr<BBCMicro> beeb, const TVOutput *tv);
 };
 
 //////////////////////////////////////////////////////////////////////////
