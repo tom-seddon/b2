@@ -295,11 +295,8 @@ Messages::Messages()
 //////////////////////////////////////////////////////////////////////////
 
 Messages::Messages(std::shared_ptr<MessageList> message_list)
-    : LogSet{m_info, m_warning, m_error}
-    , m_message_list(std::move(message_list))
-    , m_info("", !!m_message_list ? static_cast<LogPrinter *>(&m_message_list->m_info_printer) : static_cast<LogPrinter *>(&log_printer_nowhere), !!m_message_list)
-    , m_warning("", !!m_message_list ? static_cast<LogPrinter *>(&m_message_list->m_warning_printer) : static_cast<LogPrinter *>(&log_printer_nowhere), !!m_message_list)
-    , m_error("", !!m_message_list ? static_cast<LogPrinter *>(&m_message_list->m_error_printer) : static_cast<LogPrinter *>(&log_printer_nowhere), !!m_message_list) {
+    : Messages() {
+    this->SetMessageList(std::move(message_list));
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -314,7 +311,24 @@ std::shared_ptr<MessageList> Messages::GetMessageList() const {
 
 void Messages::SetMessageList(std::shared_ptr<MessageList> message_list) {
     m_message_list = std::move(message_list);
+
+    this->UpdateLog(&m_info, &m_message_list->m_info_printer);
+    this->UpdateLog(&m_warning, &m_message_list->m_warning_printer);
+    this->UpdateLog(&m_error, &m_message_list->m_error_printer);
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
+
+void Messages::UpdateLog(Log *log, LogPrinter *printer) {
+    if (m_message_list) {
+        log->SetLogPrinter(printer);
+
+        // Don't increase the enable count unnecessarily.
+        if (!log->enabled) {
+            log->Enable();
+        }
+    } else {
+        log->SetLogPrinter(&log_printer_nowhere);
+    }
+}

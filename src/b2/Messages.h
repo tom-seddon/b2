@@ -155,12 +155,16 @@ class Messages : public LogSet {
     Messages &operator=(Messages &&) = delete;
 
     std::shared_ptr<MessageList> GetMessageList() const;
+
+    // Setting the message list to non-null enables all logs.
     void SetMessageList(std::shared_ptr<MessageList> message_list);
 
   protected:
   private:
     std::shared_ptr<MessageList> m_message_list;
     Log m_info, m_warning, m_error;
+
+    void UpdateLog(Log *log, LogPrinter *printer);
 };
 
 //////////////////////////////////////////////////////////////////////////
