@@ -47,7 +47,7 @@ class CommandTable2 {
     void AddMapping(uint32_t pc_key, Command2 *command);
     void RemoveMapping(uint32_t pc_key, Command2 *command);
 
-    const std::vector<uint32_t> *GetPCKeysForCommand(bool *are_defaults, Command2 *command) const;
+    const std::vector<uint32_t> *GetPCKeysForCommand(bool *are_defaults, const Command2 *command) const;
     const std::vector<Command2 *> *GetCommandsForPCKey(uint32_t pc_key) const;
 
     Command2 *FindCommandByName(const char *name) const;
@@ -58,7 +58,7 @@ class CommandTable2 {
     std::string m_name;
     bool m_default_command_visibility = true;
 
-    std::map<Command2 *, std::vector<uint32_t>> m_pc_keys_by_command;
+    std::map<const Command2 *, std::vector<uint32_t>> m_pc_keys_by_command;
 
     mutable std::map<uint32_t, std::vector<Command2 *>> m_commands_by_pc_key;
     mutable bool m_commands_by_pc_key_dirty = true;

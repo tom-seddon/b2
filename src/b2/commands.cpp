@@ -137,19 +137,27 @@ void CommandTable2::RemoveMapping(uint32_t pc_key, Command2 *command) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-const std::vector<uint32_t> *CommandTable2::GetPCKeysForCommand(bool *are_defaults, Command2 *command) const {
+const std::vector<uint32_t> *CommandTable2::GetPCKeysForCommand(bool *are_defaults, const Command2 *command) const {
     auto &&command_and_pc_keys = m_pc_keys_by_command.find(command);
+    bool defaults;
+    const std::vector<uint32_t> *keys;
     if (command_and_pc_keys == m_pc_keys_by_command.end()) {
-        if (are_defaults) {
-            *are_defaults = true;
-        }
-        return &command->m_shortcuts;
+        defaults = true;
+        keys = &command->m_shortcuts;
     } else {
-        if (are_defaults) {
-            *are_defaults = false;
-        }
-        return &command_and_pc_keys->second;
+        defaults = false;
+        keys = &command_and_pc_keys->second;
     }
+
+    if (are_defaults) {
+        *are_defaults = defaults;
+    }
+
+    if (keys->empty()) {
+        keys = nullptr;
+    }
+
+    return keys;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -160,9 +168,10 @@ const std::vector<Command2 *> *CommandTable2::GetCommandsForPCKey(uint32_t pc_ke
         m_commands_by_pc_key.clear();
 
         this->ForEachCommand([this](Command2 *command) {
-            const std::vector<uint32_t> *pc_keys = this->GetPCKeysForCommand(nullptr, command);
-            for (uint32_t pc_key : *pc_keys) {
-                m_commands_by_pc_key[pc_key].push_back(command);
+            if (const std::vector<uint32_t> *pc_keys = this->GetPCKeysForCommand(nullptr, command)) {
+                for (uint32_t pc_key : *pc_keys) {
+                    m_commands_by_pc_key[pc_key].push_back(command);
+                }
             }
         });
         m_commands_by_pc_key_dirty = false;
@@ -430,11 +439,6 @@ void CommandStateTable::DoMenuItem(const Command2 &command) {
     ASSERT(command.m_index < m_states.size());
     State *state = &m_states[command.m_index];
 
-    std::string shortcut_str;
-    //if (this->shortcut != 0) {
-    //    shortcut_str = GetKeycodeName(this->shortcut);
-    //}
-
     if (command.m_must_confirm) {
         if (ImGui::BeginMenu(command.m_text.c_str(), state->enabled)) {
             if (ImGui::MenuItem("Confirm")) {
@@ -444,6 +448,14 @@ void CommandStateTable::DoMenuItem(const Command2 &command) {
         }
     } else {
         bool ticked = command.m_has_tick && state->ticked;
+
+        std::string shortcut_str;
+
+        // Taking address of const reference... worst case should be fairly
+        // benign though!
+        if (const std::vector<uint32_t> *shortcuts = command.m_table->GetPCKeysForCommand(nullptr, &command)) {
+            shortcut_str = GetKeycodeName((*shortcuts)[0]);
+        }
 
         if (ImGui::MenuItem(command.m_text.c_str(),
                             shortcut_str.empty() ? nullptr : shortcut_str.c_str(),
