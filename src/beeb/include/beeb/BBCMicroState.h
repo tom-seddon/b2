@@ -24,6 +24,7 @@ class Log;
 #include "tube.h"
 #include "video.h"
 #include "type.h"
+#include "BBCMicroParasiteType.h"
 
 #include <shared/enum_decl.h>
 #include "BBCMicroState.inl"
