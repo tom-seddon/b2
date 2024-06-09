@@ -900,7 +900,7 @@ bool BeebThread::LoadStateMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
     }
 
     beeb_thread->ThreadReplaceBeeb(ts,
-                                   this->GetBeebState()->CloneBBCMicro(),
+                                   std::make_unique<BBCMicro>(*this->GetBeebState()),
                                    BeebThreadReplaceFlag_ResetKeyState);
 
     return true;
@@ -935,7 +935,7 @@ bool BeebThread::LoadTimelineStateMessage::ThreadPrepare(std::shared_ptr<Message
     }
 
     beeb_thread->ThreadReplaceBeeb(ts,
-                                   this->GetBeebState()->CloneBBCMicro(),
+                                   std::make_unique<BBCMicro>(*this->GetBeebState()),
                                    BeebThreadReplaceFlag_ResetKeyState);
 
     ptr->reset();
@@ -989,11 +989,11 @@ bool BeebThread::SaveStateMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
         return false;
     }
 
-    auto &&state = std::make_shared<BeebState>(ts->beeb->CloneState());
-    state->SetName(GetTimeString(GetUTCTimeNow()));
+    auto &&state = std::make_shared<BeebState>(*ts->beeb->GetUniqueState());
+    state->name = GetTimeString(GetUTCTimeNow());
 
     if (m_verbose) {
-        std::string time_str = GetCycleCountString(state->GetCycleCount());
+        std::string time_str = GetCycleCountString(state->cycle_count);
         ts->msgs.i.f("Saved state: %s\n", time_str.c_str());
     }
 
@@ -1034,9 +1034,7 @@ bool BeebThread::StartReplayMessage::ThreadPrepare(std::shared_ptr<Message> *ptr
 
     if (ts->timeline_mode == BeebThreadTimelineMode_None) {
         if (ts->beeb) {
-            // TODO - how to get the TVOutput here? Don't remember what I had
-            // planned originally...
-            ts->timeline_replay_old_state = std::make_shared<BeebState>(ts->beeb->CloneState());
+            ts->timeline_replay_old_state = std::make_shared<BeebState>(*ts->beeb->GetUniqueState());
         }
     }
 
@@ -1044,14 +1042,14 @@ bool BeebThread::StartReplayMessage::ThreadPrepare(std::shared_ptr<Message> *ptr
     ts->timeline_replay_list_index = index;
     ts->timeline_replay_list_event_index = ~(size_t)0;
     beeb_thread->ThreadNextReplayEvent(ts);
-    ts->timeline_replay_time_cycle_count = m_start_state->GetCycleCount();
+    ts->timeline_replay_time_cycle_count = m_start_state->cycle_count;
 
     LOGF(REPLAY, "replay initiated: list index=%zu, list event index=%zu, replay cycles=%" PRIu64 "\n",
          ts->timeline_replay_list_index,
          ts->timeline_replay_list_event_index,
          ts->timeline_replay_time_cycle_count.n);
 
-    beeb_thread->ThreadReplaceBeeb(ts, m_start_state->CloneBBCMicro(), 0);
+    beeb_thread->ThreadReplaceBeeb(ts, std::make_unique<BBCMicro>(*m_start_state), 0);
 
     beeb_thread->ThreadCheckTimeline(ts);
 
@@ -2510,13 +2508,11 @@ bool BeebThread::ThreadAddCopyData(const BBCMicro *beeb, const M6502 *cpu, void 
 //////////////////////////////////////////////////////////////////////////
 
 std::shared_ptr<BeebState> BeebThread::ThreadSaveState(ThreadState *ts) {
-    std::unique_ptr<BBCMicroUniqueState> clone_beeb = ts->beeb->CloneState();
-    if (!clone_beeb) {
+    if (const BBCMicroUniqueState *state = ts->beeb->GetUniqueState()) {
+        return std::make_shared<BeebState>(*state);
+    } else {
         return nullptr;
     }
-
-    auto state = std::make_shared<BeebState>(std::move(clone_beeb));
-    return state;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -3242,12 +3238,12 @@ void BeebThread::SetVolume(float *scale_var, float db) {
 bool BeebThread::ThreadRecordSaveState(ThreadState *ts, bool user_initiated) {
     this->ThreadCheckTimeline(ts);
 
-    std::unique_ptr<BBCMicroUniqueState> clone = ts->beeb->CloneState();
-    if (!clone) {
+    const BBCMicroUniqueState *beeb_state = ts->beeb->GetUniqueState();
+    if (!beeb_state) {
         return false;
     }
 
-    auto message = std::make_shared<BeebStateMessage>(std::make_unique<BeebState>(std::move(clone)),
+    auto message = std::make_shared<BeebStateMessage>(std::make_shared<BeebState>(*beeb_state),
                                                       user_initiated);
 
     CycleCount time = *ts->num_executed_cycles;
@@ -3304,7 +3300,7 @@ void BeebThread::ThreadCheckTimeline(ThreadState *ts) {
 
             ASSERT(e->state_event.time_cycles.n == m_timeline_beeb_state_events_copy[i].time_cycles.n);
             ASSERT(e->state_event.message == m_timeline_beeb_state_events_copy[i].message);
-            ASSERT(e->state_event.time_cycles.n == e->state_event.message->GetBeebState()->GetCycleCount().n);
+            ASSERT(e->state_event.time_cycles.n == e->state_event.message->GetBeebState()->cycle_count.n);
 
             num_events += 1 + e->events.size();
 
@@ -3487,7 +3483,7 @@ void BeebThread::ThreadStopReplay(ThreadState *ts) {
     ts->timeline_mode = BeebThreadTimelineMode_None;
 
     if (!!ts->timeline_replay_old_state) {
-        this->ThreadReplaceBeeb(ts, ts->timeline_replay_old_state->CloneBBCMicro(), 0);
+        this->ThreadReplaceBeeb(ts, std::make_unique<BBCMicro>(*ts->timeline_replay_old_state), 0);
         ts->timeline_replay_old_state.reset();
     }
 }

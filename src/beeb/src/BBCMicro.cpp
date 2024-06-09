@@ -198,12 +198,12 @@ uint32_t BBCMicro::GetCloneImpediments() const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-std::unique_ptr<BBCMicroUniqueState> BBCMicro::CloneState() const {
+const BBCMicroUniqueState *BBCMicro::GetUniqueState() const {
     if (this->GetCloneImpediments() != 0) {
         return nullptr;
     }
 
-    return std::make_unique<BBCMicroUniqueState>(m_state);
+    return &m_state;
 }
 
 //////////////////////////////////////////////////////////////////////////

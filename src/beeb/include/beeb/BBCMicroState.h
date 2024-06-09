@@ -322,6 +322,23 @@ class BBCMicroState {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+// A unique state has its own copy of all the shared_ptr'd buffers and all the
+// Handler and Trace pointers (etc.) are valid.
+
+class BBCMicroUniqueState : public BBCMicroState {
+  public:
+    using BBCMicroState::BBCMicroState;
+
+    explicit BBCMicroUniqueState(const BBCMicroUniqueState &src);
+    ~BBCMicroUniqueState() = default;
+
+  protected:
+  private:
+};
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 // A read-only state is potentially a simple value copy of an existing state,
 // possibly itself a read-only one too. Read-only states may share buffers with
 // other states, so the following apply:
@@ -347,28 +364,11 @@ class BBCMicroReadOnlyState : public BBCMicroState {
   public:
     using BBCMicroState::BBCMicroState;
 
+    BBCMicroReadOnlyState(const BBCMicroUniqueState &src);
     ~BBCMicroReadOnlyState() = default;
 
   protected:
   private:
-    BBCMicroReadOnlyState(const BBCMicroState &);
-};
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-// A unique state has its own copy of all the shared_ptr'd buffers and all the
-// Handler and Trace pointers (etc.) are valid.
-
-class BBCMicroUniqueState : public BBCMicroReadOnlyState {
-  public:
-    using BBCMicroReadOnlyState::BBCMicroReadOnlyState;
-
-    explicit BBCMicroUniqueState(const BBCMicroUniqueState &src);
-
-  protected:
-  private:
-    BBCMicroUniqueState(const BBCMicroReadOnlyState &);
 };
 
 //////////////////////////////////////////////////////////////////////////

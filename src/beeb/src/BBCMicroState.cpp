@@ -166,7 +166,7 @@ std::shared_ptr<const DiscImage> BBCMicroState::GetDiscImage(int drive) const {
 //////////////////////////////////////////////////////////////////////////
 
 BBCMicroUniqueState::BBCMicroUniqueState(const BBCMicroUniqueState &src)
-    : BBCMicroReadOnlyState(src) {
+    : BBCMicroState(src) {
     for (BBCMicroState::DiscDrive &dd : this->drives) {
         dd.disc_image = DiscImage::Clone(dd.disc_image);
     }
@@ -188,6 +188,13 @@ BBCMicroUniqueState::BBCMicroUniqueState(const BBCMicroUniqueState &src)
     if (this->disc_interface) {
         this->disc_interface_extra_hardware = this->disc_interface->CloneExtraHardwareState(this->disc_interface_extra_hardware);
     }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+BBCMicroReadOnlyState::BBCMicroReadOnlyState(const BBCMicroUniqueState &src)
+    : BBCMicroState(src) {
 }
 
 //////////////////////////////////////////////////////////////////////////
