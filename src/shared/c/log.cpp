@@ -689,11 +689,13 @@ void LogStringPrintable(Log *log, const char *str) {
                 log->c((char)x);
             } else {
             hex:
-                /* The \x notation is no good, because it isn't restricted
-                 * to 2 chars. (So \177F can't be written \x7fF, because
-                 * that's something else, assuming it's even valid.)
-                 */
-                log->f("\\%03o", x);
+                // The \x notation isn't restricted to 2 chars. So use octal
+                // notation if there's a hex digit following.
+                if (c[1] >= '0' && c[1] <= '9' || c[1] >= 'A' && c[1] <= 'F' || c[1] >= 'a' && c[1] <= 'f') {
+                    log->f("\\%03o", x);
+                } else {
+                    log->f("\\x%02x", x);
+                }
             }
         }
     }
