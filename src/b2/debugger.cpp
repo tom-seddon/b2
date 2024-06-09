@@ -3267,12 +3267,23 @@ class DigitalJoystickDebugWindow : public DebugUI {
     void DoImGui2() override {
         int adji_dip = m_beeb_state->DebugGetADJIDIPSwitches();
         if (adji_dip >= 0) {
-            ImGui::Text("Type: Retro Hardware ADJI cartridge");
+            ImGuiHeader("Retro Hardware ADJI cartridge");
             ImGui::Text("Address: $%04x", BBCMicro::ADJI_ADDRESSES[adji_dip & 3]);
+            this->State();
+        } else if (m_beeb_state->type->type_id == BBCMicroTypeID_MasterCompact) {
+            ImGuiHeader("Master Compact digital joystick");
+            this->State();
         } else {
-            ImGui::Text("Type: (none)");
+            ImGui::Text("No digital joystick");
         }
+    }
 
+  private:
+    void Checkbox(const char *label, bool value) {
+        ImGui::Checkbox(label, &value);
+    }
+
+    void State() {
         BBCMicroState::DigitalJoystickInputBits bits = m_beeb_state->digital_joystick_state.bits;
 
         this->Checkbox("Up", bits.up);
@@ -3281,11 +3292,6 @@ class DigitalJoystickDebugWindow : public DebugUI {
         this->Checkbox("Right", bits.right);
         this->Checkbox("Fire 1", bits.fire0);
         this->Checkbox("Fire 2", bits.fire1);
-    }
-
-  private:
-    void Checkbox(const char *label, bool value) {
-        ImGui::Checkbox(label, &value);
     }
 };
 
