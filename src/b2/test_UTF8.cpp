@@ -35,7 +35,7 @@ int main(int, char *[]) {
     }
 
     {
-        std::string utf8 = GetUTF8FromBBCASCII(annoying_chars, BBCUTF8ConvertMode_SAA5050,false);
+        std::string utf8 = GetUTF8FromBBCASCII(annoying_chars, BBCUTF8ConvertMode_SAA5050, false);
         std::string ascii;
 
         uint32_t bad_codepoint;
