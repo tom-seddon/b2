@@ -308,6 +308,13 @@ const std::string &Command2::GetText() const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+const std::string &Command2::GetExtraText() const {
+    return m_extra_text;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 bool Command2::IsVisible() const {
     return m_visible;
 }
@@ -350,6 +357,15 @@ Command2 &Command2::VisibleIf(int flag) {
     if (!flag) {
         m_visible = false;
     }
+
+    return *this;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+Command2 &Command2::WithExtraText(std::string extra_text) {
+    m_extra_text = std::move(extra_text);
 
     return *this;
 }
@@ -580,7 +596,23 @@ void LinkCommands() {
         std::sort(table->m_commands_sorted.begin(),
                   table->m_commands_sorted.end(),
                   [](const Command2 *a, const Command2 *b) {
-                      return a->GetText() < b->GetText();
+                      const std::string &a_text = a->GetText();
+                      const std::string &b_text = b->GetText();
+                      if (a_text < b_text) {
+                          return true;
+                      } else if (b_text < a_text) {
+                          return false;
+                      }
+
+                      const std::string &a_extra_text = a->GetExtraText();
+                      const std::string &b_extra_text = b->GetExtraText();
+                      if (a_extra_text < b_extra_text) {
+                          return true;
+                      } else if (b_extra_text < a_extra_text) {
+                          return false;
+                      }
+
+                      return false;
                   });
     }
 

@@ -85,6 +85,7 @@ class Command2Data {
     CommandTable2 *m_table = nullptr;
     std::string m_name;
     std::string m_text;
+    std::string m_extra_text;
     bool m_must_confirm = false;
     bool m_has_tick = false;
     std::vector<uint32_t> m_shortcuts;
@@ -116,6 +117,7 @@ class Command2 : private Command2Data {
     // TODO: terminology...
     const std::string &GetName() const;
     const std::string &GetText() const;
+    const std::string &GetExtraText() const;
 
     // Invisible commands refer to functionality that's compiled out of this
     // build, or otherwise hidden. They remain present, but aren't exposed in
@@ -129,6 +131,7 @@ class Command2 : private Command2Data {
     Command2 &WithTick();
     Command2 &WithShortcut(uint32_t shortcut);
     Command2 &VisibleIf(int flag); //invisible if any such flag is false
+    Command2 &WithExtraText(std::string extra_text);
 
   protected:
   private:
