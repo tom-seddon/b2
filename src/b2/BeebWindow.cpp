@@ -95,14 +95,16 @@ static Command2 g_clean_up_recent_files_lists_command = Command2(&g_beeb_window_
 static Command2 g_reset_dock_windows_command = Command2(&g_beeb_window_command_table, "reset_dock_windows", "Reset dock windows").MustConfirm();
 static Command2 g_paste_command(&g_beeb_window_command_table, "paste", "OSRDCH Paste");
 static Command2 g_paste_return_command(&g_beeb_window_command_table, "paste_return", "OSRDCH Paste (+Return)");
-static Command2 g_toggle_copy_oswrch_text_command = Command2(&g_beeb_window_command_table, "toggle_copy_oswrch_text", "OSWRCH Copy Text").WithTick();
+static Command2 g_toggle_copy_oswrch_text_command = Command2(&g_beeb_window_command_table, "toggle_copy_oswrch_text", "Copy OSWRCH text output").WithTick();
 static Command2 g_copy_basic_command = Command2(&g_beeb_window_command_table, "copy_basic", "Copy BASIC listing");
 static Command2 g_copy_translation_pass_through = Command2(&g_beeb_window_command_table, "copy_translation_none", "No translation").WithTick().WithExtraText("Copy text");
 static Command2 g_copy_translation_only_gbp = Command2(&g_beeb_window_command_table, "copy_translation_only_gbp", "Translate " POUND_SIGN_UTF8 " only").WithTick().WithExtraText("Copy text");
 static Command2 g_copy_translation_SAA5050 = Command2(&g_beeb_window_command_table, "copy_translation_SAA5050", "Translate Mode 7 chars").WithTick().WithExtraText("Copy text");
+static Command2 g_copy_toggle_handle_delete = Command2(&g_beeb_window_command_table, "copy_toggle_handle_delete", "Handle delete").WithTick().WithExtraText("Copy text");
 static Command2 g_printer_translation_pass_through = Command2(&g_beeb_window_command_table, "printer_translation_none", "No translation").WithTick().WithExtraText("Copy printer");
 static Command2 g_printer_translation_only_gbp = Command2(&g_beeb_window_command_table, "printer_translation_only_gbp", "Translate " POUND_SIGN_UTF8 " only").WithTick().WithExtraText("Copy printer");
 static Command2 g_printer_translation_SAA5050 = Command2(&g_beeb_window_command_table, "printer_translation_SAA5050", "Translate Mode 7 chars").WithTick().WithExtraText("Copy printer");
+static Command2 g_printer_toggle_handle_delete = Command2(&g_beeb_window_command_table, "printer_toggle_handle_delete", "Handle delete").WithTick().WithExtraText("Copy printer");
 static Command2 g_parallel_printer_command = Command2(&g_beeb_window_command_table, "parallel_printer", "Parallel printer").WithTick();
 static Command2 g_reset_printer_buffer_command = Command2(&g_beeb_window_command_table, "reset_printer_buffer", "Reset printer buffer").MustConfirm();
 static Command2 g_copy_printer_buffer_command = Command2(&g_beeb_window_command_table, "copy_printer_buffer", "Copy printer buffer");
@@ -1114,29 +1116,36 @@ static BeebConfig *FindBeebConfigByName(const std::string &name) {
     return nullptr;
 }
 
-void BeebWindow::DoCopyModeCommands(BBCUTF8ConvertMode *mode,
+void BeebWindow::DoCopyModeCommands(BeebWindowSettings::CopySettings *settings,
                                     bool enabled,
                                     const Command2 &pass_through,
                                     const Command2 &only_gbp,
-                                    const Command2 &SAA5050) {
-    m_cst.SetTicked(pass_through, *mode == BBCUTF8ConvertMode_PassThrough);
-    m_cst.SetTicked(only_gbp, *mode == BBCUTF8ConvertMode_OnlyGBP);
-    m_cst.SetTicked(SAA5050, *mode == BBCUTF8ConvertMode_SAA5050);
+                                    const Command2 &SAA5050,
+                                    const Command2 &toggle_handle_delete) {
+    m_cst.SetTicked(pass_through, settings->convert_mode == BBCUTF8ConvertMode_PassThrough);
+    m_cst.SetTicked(only_gbp, settings->convert_mode == BBCUTF8ConvertMode_OnlyGBP);
+    m_cst.SetTicked(SAA5050, settings->convert_mode == BBCUTF8ConvertMode_SAA5050);
+    m_cst.SetTicked(toggle_handle_delete, settings->handle_delete);
 
     m_cst.SetEnabled(pass_through, enabled);
     m_cst.SetEnabled(only_gbp, enabled);
     m_cst.SetEnabled(SAA5050, enabled);
+    m_cst.SetEnabled(toggle_handle_delete, enabled);
 
     if (m_cst.WasActioned(pass_through)) {
-        *mode = BBCUTF8ConvertMode_PassThrough;
+        settings->convert_mode = BBCUTF8ConvertMode_PassThrough;
     }
 
     if (m_cst.WasActioned(only_gbp)) {
-        *mode = BBCUTF8ConvertMode_OnlyGBP;
+        settings->convert_mode = BBCUTF8ConvertMode_OnlyGBP;
     }
 
     if (m_cst.WasActioned(SAA5050)) {
-        *mode = BBCUTF8ConvertMode_SAA5050;
+        settings->convert_mode = BBCUTF8ConvertMode_SAA5050;
+    }
+
+    if (m_cst.WasActioned(toggle_handle_delete)) {
+        settings->handle_delete = !settings->handle_delete;
     }
 }
 
@@ -1222,17 +1231,18 @@ void BeebWindow::DoCommands(bool *close_window) {
             m_beeb_thread->Send(std::make_shared<BeebThread::StopCopyMessage>());
         } else {
             m_beeb_thread->Send(std::make_shared<BeebThread::StartCopyMessage>([this](std::vector<uint8_t> data) {
-                this->SetClipboardFromBBCASCII(data, m_settings.text_utf8_convert_mode);
+                this->SetClipboardFromBBCASCII(data, m_settings.text_copy_settings);
             },
                                                                                false)); //false=not Copy BASIC
         }
     }
 
-    DoCopyModeCommands(&m_settings.text_utf8_convert_mode,
+    DoCopyModeCommands(&m_settings.text_copy_settings,
                        !is_copying,
                        g_copy_translation_pass_through,
                        g_copy_translation_only_gbp,
-                       g_copy_translation_SAA5050);
+                       g_copy_translation_SAA5050,
+                       g_copy_toggle_handle_delete);
 
     m_cst.SetEnabled(g_copy_basic_command, !m_beeb_thread->IsPasting());
     if (m_cst.WasActioned(g_copy_basic_command)) {
@@ -1240,7 +1250,7 @@ void BeebWindow::DoCommands(bool *close_window) {
             m_beeb_thread->Send(std::make_shared<BeebThread::StopCopyMessage>());
         } else {
             m_beeb_thread->Send(std::make_shared<BeebThread::StartCopyMessage>([this](std::vector<uint8_t> data) {
-                this->SetClipboardFromBBCASCII(data, m_settings.text_utf8_convert_mode);
+                this->SetClipboardFromBBCASCII(data, m_settings.text_copy_settings);
             },
                                                                                true)); //true=Copy BASIC
         }
@@ -1261,7 +1271,7 @@ void BeebWindow::DoCommands(bool *close_window) {
     if (m_cst.WasActioned(g_copy_printer_buffer_command)) {
         std::vector<uint8_t> data = m_beeb_thread->GetPrinterData();
 
-        this->SetClipboardFromBBCASCII(data, m_settings.printer_utf8_convert_mode);
+        this->SetClipboardFromBBCASCII(data, m_settings.printer_copy_settings);
     }
 
     m_cst.SetEnabled(g_save_printer_buffer_command, any_printer_data);
@@ -1278,11 +1288,12 @@ void BeebWindow::DoCommands(bool *close_window) {
         }
     }
 
-    DoCopyModeCommands(&m_settings.printer_utf8_convert_mode,
+    DoCopyModeCommands(&m_settings.printer_copy_settings,
                        true, //no reason not to have these permanently enabled?
                        g_printer_translation_pass_through,
                        g_printer_translation_only_gbp,
-                       g_printer_translation_SAA5050);
+                       g_printer_translation_SAA5050,
+                       g_printer_toggle_handle_delete);
 
 #if BBCMICRO_DEBUGGER
     m_cst.SetEnabled(g_debug_run_command, this->DebugIsHalted());
@@ -1891,10 +1902,12 @@ void BeebWindow::DoEditMenu() {
     if (ImGui::BeginMenu("Edit")) {
         m_cst.DoMenuItem(g_toggle_copy_oswrch_text_command);
         m_cst.DoMenuItem(g_copy_basic_command);
-        if (ImGui::BeginMenu("Copy mode")) {
+        if (ImGui::BeginMenu("Copy options")) {
             m_cst.DoMenuItem(g_copy_translation_pass_through);
             m_cst.DoMenuItem(g_copy_translation_only_gbp);
             m_cst.DoMenuItem(g_copy_translation_SAA5050);
+            ImGui::Separator();
+            m_cst.DoMenuItem(g_copy_toggle_handle_delete);
             ImGui::EndMenu();
         }
         ImGui::Separator();
@@ -1995,10 +2008,12 @@ void BeebWindow::DoPrinterMenu() {
 
         m_cst.DoMenuItem(g_copy_printer_buffer_command);
 
-        if (ImGui::BeginMenu("Copy mode")) {
+        if (ImGui::BeginMenu("Copy options")) {
             m_cst.DoMenuItem(g_printer_translation_pass_through);
             m_cst.DoMenuItem(g_printer_translation_only_gbp);
             m_cst.DoMenuItem(g_printer_translation_SAA5050);
+            ImGui::Separator();
+            m_cst.DoMenuItem(g_printer_toggle_handle_delete);
             ImGui::EndMenu();
         }
 
@@ -3351,8 +3366,8 @@ void BeebWindow::DoPaste(bool add_return) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void BeebWindow::SetClipboardFromBBCASCII(const std::vector<uint8_t> &data, BBCUTF8ConvertMode convert_mode) const {
-    std::string utf8 = GetUTF8FromBBCASCII(data, convert_mode);
+void BeebWindow::SetClipboardFromBBCASCII(const std::vector<uint8_t> &data, const BeebWindowSettings::CopySettings &settings) const {
+    std::string utf8 = GetUTF8FromBBCASCII(data, settings.convert_mode, settings.handle_delete);
 
     int rc = SDL_SetClipboardText(utf8.c_str());
     if (rc != 0) {

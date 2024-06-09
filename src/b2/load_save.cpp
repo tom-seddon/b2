@@ -1200,6 +1200,8 @@ static const char ADJI[] = "adji";
 static const char ADJI_DIP_SWITCHES[] = "adji_dip_switches";
 static const char TEXT_UTF8_CONVERT_MODE[] = "text_utf8_convert_mode";
 static const char PRINTER_UTF8_CONVERT_MODE[] = "printer_utf8_convert_mode";
+static const char TEXT_HANDLE_DELETE[] = "text_handle_delete";
+static const char PRINTER_HANDLE_DELETE[] = "printer_handle_delete";
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -1990,6 +1992,11 @@ static void SaveJoysticks(JSONWriter<StringStream> *writer) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+static void LoadCopySettings(BeebWindowSettings::CopySettings *settings, rapidjson::Value *windows, const char *convert_mode_key, const char *handle_delete_key, const char *what, Messages *msg) {
+    FindEnumMember(&settings->convert_mode, windows, convert_mode_key, what, &GetBBCUTF8ConvertModeEnumName, msg);
+    FindBoolMember(&settings->handle_delete, windows, handle_delete_key, msg);
+}
+
 static bool LoadWindows(rapidjson::Value *windows, Messages *msg) {
     {
         std::string placement_str;
@@ -2022,8 +2029,8 @@ static bool LoadWindows(rapidjson::Value *windows, Messages *msg) {
     FindBoolMember(&BeebWindows::defaults.full_screen, windows, FULL_SCREEN, nullptr);
 #endif
     FindBoolMember(&BeebWindows::defaults.prefer_shortcuts, windows, PREFER_SHORTCUTS, nullptr);
-    FindEnumMember(&BeebWindows::defaults.text_utf8_convert_mode, windows, TEXT_UTF8_CONVERT_MODE, "Text copy mode", &GetBBCUTF8ConvertModeEnumName, msg);
-    FindEnumMember(&BeebWindows::defaults.printer_utf8_convert_mode, windows, PRINTER_UTF8_CONVERT_MODE, "Printer copy mode", &GetBBCUTF8ConvertModeEnumName, msg);
+    LoadCopySettings(&BeebWindows::defaults.text_copy_settings, windows, TEXT_UTF8_CONVERT_MODE, TEXT_HANDLE_DELETE, "Text copy mode", msg);
+    LoadCopySettings(&BeebWindows::defaults.printer_copy_settings, windows, PRINTER_UTF8_CONVERT_MODE, PRINTER_HANDLE_DELETE, "Printe copy mode", msg);
 
     {
         std::string keymap_name;
@@ -2040,6 +2047,14 @@ static bool LoadWindows(rapidjson::Value *windows, Messages *msg) {
     }
 
     return true;
+}
+
+static void SaveCopySettings(JSONWriter<StringStream> *writer, const BeebWindowSettings::CopySettings &settings, const char *convert_mode_key, const char *handle_delete_key) {
+    writer->Key(convert_mode_key);
+    SaveEnum(writer, settings.convert_mode, &GetBBCUTF8ConvertModeEnumName);
+
+    writer->Key(handle_delete_key);
+    writer->Bool(settings.handle_delete);
 }
 
 static void SaveWindows(JSONWriter<StringStream> *writer) {
@@ -2112,11 +2127,8 @@ static void SaveWindows(JSONWriter<StringStream> *writer) {
         writer->Key(GUI_FONT_SIZE);
         writer->Uint(BeebWindows::defaults.gui_font_size);
 
-        writer->Key(TEXT_UTF8_CONVERT_MODE);
-        SaveEnum(writer, BeebWindows::defaults.text_utf8_convert_mode, &GetBBCUTF8ConvertModeEnumName);
-
-        writer->Key(PRINTER_UTF8_CONVERT_MODE);
-        SaveEnum(writer, BeebWindows::defaults.printer_utf8_convert_mode, &GetBBCUTF8ConvertModeEnumName);
+        SaveCopySettings(writer, BeebWindows::defaults.text_copy_settings, TEXT_UTF8_CONVERT_MODE, TEXT_HANDLE_DELETE);
+        SaveCopySettings(writer, BeebWindows::defaults.printer_copy_settings, PRINTER_UTF8_CONVERT_MODE, PRINTER_HANDLE_DELETE);
 
         if (!BeebWindows::default_config_name.empty()) {
             writer->Key(CONFIG);

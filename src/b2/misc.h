@@ -194,9 +194,9 @@ bool GetBBCASCIIFromUTF8(std::string *ascii,
 uint32_t GetBBCASCIIFromISO8859_1(std::string *ascii,
                                   const std::vector<uint8_t> &data);
 
-// Normalizes line endings, strips out BBC-type control codes, and translates
-// ASCII 95 to U+00A3 Pound Sign.
-std::string GetUTF8FromBBCASCII(const std::vector<uint8_t> &data, BBCUTF8ConvertMode mode);
+// Normalizes line endings, strips out BBC-type control codes, converts chars
+// according to the mode.
+std::string GetUTF8FromBBCASCII(const std::vector<uint8_t> &data, BBCUTF8ConvertMode mode, bool handle_delete);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

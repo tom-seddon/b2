@@ -349,26 +349,35 @@ the effect.
 
 ## Copy to clipboard
 
-Copy text output using `OSWRCH Copy Text`. This works a bit like
+Copy text output using `Copy OSWRCH nexn output`. It works a bit like
 `*SPOOL`, in that once activated it captures anything printed via
 `OSWRCH` until deactivated.
 
-It's explicitly described as `Copy Text`, because it strips out VDU
+It's explicitly described as "text output", because it strips out VDU
 control codes and normalizes line endings. You stand a good chance of
 being able to paste the result into a word processor or text editor or
 what have you.
 
-There are 3 text translation modes available on the `Copy Mode`
+There are 3 text translation modes available on the `Copy options`
 submenu:
 
 - `No translation` - BBC ASCII chars come through as-is in the
   clipboard data. BBC £ chars will turn into `
   
-- `Translate £ only` - BBC £ chars will come through as £
+- `Translate £ only` (default) - BBC £ chars will come through as £
 
 - `Translate Mode 7 chars` - characters will be translated to symbols
   that resemble their Mode 7 appearance. (For example, `{` will come
   through as `¼`.) Perfect results from this are not guaranteed
+  
+When `Handle delete` is ticked (which is the default setting), the
+emulator will try to handle delete (ASCII 127) chars properly and
+remove previous chars when they're printed. This won't handle
+everything perfectly, but if you're copying stuff you're typing in at
+the BASIC prompt then it will do about the right thing.
+
+(When unticked, the delete chars are stripped out entirely, same as
+other control codes.)
 
 ## Paste from clipboard
 
@@ -406,5 +415,8 @@ text, stripping out any BBC control codes and translating line
 endings. Note that this won't properly strip out Epson-style ESC
 control codes though!
 
-As when copying text, there are 3 text translation modes for copying
-the printer buffer text. See the Copy to clipboard section above.
+As when copying text, there are copy options available on the `Copy
+options` submenu. (See the Copy to clipboard section above.) One thing
+to note though is that delete handling is not as useful as with text
+output because 127 chars are stripped from the output unless
+explicitly sent using VDU 1.

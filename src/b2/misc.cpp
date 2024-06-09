@@ -829,7 +829,7 @@ static const uint8_t VDU_CODE_LENGTHS[32] = {
     2,
 };
 
-std::string GetUTF8FromBBCASCII(const std::vector<uint8_t> &data, BBCUTF8ConvertMode mode) {
+std::string GetUTF8FromBBCASCII(const std::vector<uint8_t> &data, BBCUTF8ConvertMode mode, bool handle_delete) {
     ASSERT(mode >= 0 && mode < BBCUTF8ConvertMode_Count);
     InitUTF8ConvertTables();
 
@@ -839,7 +839,12 @@ std::string GetUTF8FromBBCASCII(const std::vector<uint8_t> &data, BBCUTF8Convert
     std::string utf8;
     utf8.reserve(data.size());
 
+    std::vector<uint8_t> output_sizes;
+    output_sizes.reserve(data.size());
+
     for (size_t i = 0; i < data.size(); ++i) {
+        size_t old_utf8_size = utf8.size();
+
         if (data[i] == 10 || data[i] == 13) {
             // Translate line endings.
             if (i + 1 < data.size() &&
@@ -852,16 +857,33 @@ std::string GetUTF8FromBBCASCII(const std::vector<uint8_t> &data, BBCUTF8Convert
             utf8 += "\r\n";
 #else
             utf8 += "\n";
-
 #endif
         } else if (data[i] < 32) {
             // Skip VDU codes.
             i += 1u + VDU_CODE_LENGTHS[data[i]];
         } else if (data[i] >= 32 && data[i] < 127) {
             utf8 += g_utf8_char_by_bbc_char[mode][data[i]];
+        } else if (data[i] == 127) {
+            if (handle_delete) {
+                // Remove the last char (if any).
+                uint8_t n = output_sizes.back();
+                output_sizes.pop_back();
+
+                if (n > utf8.size()) {
+                    n = (uint8_t)utf8.size();
+                }
+
+                utf8.erase(utf8.end() - n);
+
+                continue;
+            }
         } else {
-            // Discard DEL and 128+. TODO.
+            // 128+. TODO.
         }
+
+        size_t delta = utf8.size() - old_utf8_size;
+        ASSERT(delta < UINT8_MAX);
+        output_sizes.push_back((uint8_t)delta);
     }
 
     return utf8;
