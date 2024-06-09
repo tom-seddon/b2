@@ -108,7 +108,6 @@ class BBCMicroState {
     struct DiscDrive {
         bool motor = false;
         uint8_t track = 0;
-#if BBCMICRO_ENABLE_DISC_DRIVE_SOUND
         int step_sound_index = -1;
 
         DiscDriveSound seek_sound = DiscDriveSound_EndValue;
@@ -118,7 +117,6 @@ class BBCMicroState {
         size_t spin_sound_index = 0;
 
         float noise = 0.f;
-#endif
         std::shared_ptr<DiscImage> disc_image;
         bool is_write_protected = false;
     };

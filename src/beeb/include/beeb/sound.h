@@ -23,9 +23,7 @@ static constexpr unsigned SOUND_CLOCK_HZ = CYCLES_PER_SECOND >> RSHIFT_CYCLE_COU
 
 struct SoundDataUnit {
     SN76489::Output sn_output;
-#if BBCMICRO_ENABLE_DISC_DRIVE_SOUND
     float disc_drive_sound;
-#endif
 };
 typedef struct SoundDataUnit SoundDataUnit;
 

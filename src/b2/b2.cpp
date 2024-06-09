@@ -847,15 +847,12 @@ static void CheckAssetPaths() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-#if BBCMICRO_ENABLE_DISC_DRIVE_SOUND
 static void LoadDiscDriveSampleFailed(bool *good, Messages *init_messages, const std::string &path, const char *what) {
     init_messages->e.f("failed to load disc sound sample: %s\n", path.c_str());
     init_messages->i.f("(%s failed: %s)\n", what, SDL_GetError());
     *good = false;
 }
-#endif
 
-#if BBCMICRO_ENABLE_DISC_DRIVE_SOUND
 static void LoadDiscDriveSound(bool *good, DiscDriveType type, DiscDriveSound sound, const char *fname, Messages *init_messages) {
     if (!*good) {
         return;
@@ -917,9 +914,6 @@ static void LoadDiscDriveSound(bool *good, DiscDriveType type, DiscDriveSound so
     buf = nullptr;
     len = 0;
 }
-#endif
-
-#if BBCMICRO_ENABLE_DISC_DRIVE_SOUND
 
 static bool LoadDiscDriveSamples(Messages *init_messages) {
     bool good = true;
@@ -937,7 +931,6 @@ static bool LoadDiscDriveSamples(Messages *init_messages) {
 
     return good;
 }
-#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -1215,12 +1208,10 @@ static bool main2(int argc, char *argv[], const std::shared_ptr<MessageList> &in
     }
 #endif
 
-#if BBCMICRO_ENABLE_DISC_DRIVE_SOUND
     if (!LoadDiscDriveSamples(&init_messages)) {
         init_messages.e.f("Failed to initialise disc drive samples.\n");
         return false;
     }
-#endif
 
     InitDefaultBeebConfigs();
 

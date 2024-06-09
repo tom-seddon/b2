@@ -807,11 +807,8 @@ parasite_update_done:
             sound_unit->sn_output = m_state.sn76489.Update(!m_state.addressable_latch.bits.not_sound_write,
                                                            m_state.system_via.a.p);
 
-#if BBCMICRO_ENABLE_DISC_DRIVE_SOUND
-            // The disc drive sounds are pretty quiet.
             sound_unit->disc_drive_sound = this->UpdateDiscDriveSound(&m_state.drives[0]);
             sound_unit->disc_drive_sound += this->UpdateDiscDriveSound(&m_state.drives[1]);
-#endif
             result |= BBCMicroUpdateResultFlag_AudioUnit;
         }
     }

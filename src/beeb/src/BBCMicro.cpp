@@ -939,19 +939,12 @@ const uint8_t BBCMicro::CURSOR_PATTERNS[8] = {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-#if BBCMICRO_ENABLE_DISC_DRIVE_SOUND
 void BBCMicro::SetDiscDriveSound(DiscDriveType type, DiscDriveSound sound, std::vector<float> samples) {
     ASSERT(sound >= 0 && sound < DiscDriveSound_EndValue);
     ASSERT(g_disc_drive_sounds[type][sound].empty());
     ASSERT(samples.size() <= INT_MAX);
     g_disc_drive_sounds[type][sound] = std::move(samples);
 }
-
-//void BBCMicro::SetDiscDriveSound(int drive,DiscDriveSound sound,const float *samples,size_t num_samples) {
-//    ASSERT(drive>=0&&drive<NUM_DRIVES);
-//    DiscDrive_SetSoundData(&m_state.drives[drive],sound,samples,num_samples);
-//}
-#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -2361,9 +2354,7 @@ void BBCMicro::InitStuff() {
     // Page in current ROM bank and sort out ACCCON.
     this->InitPaging();
 
-#if BBCMICRO_ENABLE_DISC_DRIVE_SOUND
     this->InitDiscDriveSounds(m_state.type->default_disc_drive_type);
-#endif
 
 #if BBCMICRO_TRACE
     this->SetTrace(nullptr, 0);
@@ -2389,9 +2380,7 @@ void BBCMicro::StepOut() {
         if (dd->track > 0) {
             --dd->track;
 
-#if BBCMICRO_ENABLE_DISC_DRIVE_SOUND
             this->StepSound(dd);
-#endif
         }
     }
 }
@@ -2404,9 +2393,7 @@ void BBCMicro::StepIn() {
         if (dd->track < 255) {
             ++dd->track;
 
-#if BBCMICRO_ENABLE_DISC_DRIVE_SOUND
             this->StepSound(dd);
-#endif
         }
     }
 }
@@ -2418,10 +2405,8 @@ void BBCMicro::SpinUp() {
     if (BBCMicroState::DiscDrive *dd = this->GetDiscDrive()) {
         dd->motor = true;
 
-#if BBCMICRO_ENABLE_DISC_DRIVE_SOUND
         dd->spin_sound_index = 0;
         dd->spin_sound = DiscDriveSound_SpinStartLoaded;
-#endif
     }
 }
 
@@ -2432,10 +2417,8 @@ void BBCMicro::SpinDown() {
     if (BBCMicroState::DiscDrive *dd = this->GetDiscDrive()) {
         dd->motor = false;
 
-#if BBCMICRO_ENABLE_DISC_DRIVE_SOUND
         dd->spin_sound_index = 0;
         dd->spin_sound = DiscDriveSound_SpinEnd;
-#endif
 
         if (dd->disc_image) {
             dd->disc_image->Flush();
@@ -2529,7 +2512,6 @@ BBCMicroState::DiscDrive *BBCMicro::GetDiscDrive() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-#if BBCMICRO_ENABLE_DISC_DRIVE_SOUND
 void BBCMicro::InitDiscDriveSounds(DiscDriveType type) {
     for (size_t i = 0; i < DiscDriveSound_EndValue; ++i) {
         m_disc_drive_sounds[i] = &DUMMY_DISC_DRIVE_SOUND;
@@ -2546,12 +2528,9 @@ void BBCMicro::InitDiscDriveSounds(DiscDriveType type) {
         }
     }
 }
-#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
-
-#if BBCMICRO_ENABLE_DISC_DRIVE_SOUND
 
 // As per http://www.ninerpedia.org/index.php?title=MAME_Floppy_sound_emulation
 
@@ -2606,12 +2585,10 @@ void BBCMicro::StepSound(BBCMicroState::DiscDrive *dd) {
         }
     }
 }
-#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-#if BBCMICRO_ENABLE_DISC_DRIVE_SOUND
 float BBCMicro::UpdateDiscDriveSound(BBCMicroState::DiscDrive *dd) {
     float acc = 0.f;
 
@@ -2666,7 +2643,6 @@ float BBCMicro::UpdateDiscDriveSound(BBCMicroState::DiscDrive *dd) {
 
     return acc;
 }
-#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

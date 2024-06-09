@@ -278,13 +278,11 @@ class BBCMicro : private WD1770Handler,
 
     static uint32_t GetNormalizedBBCMicroUpdateFlags(uint32_t flags);
 
-#if BBCMICRO_ENABLE_DISC_DRIVE_SOUND
     // The disc drive sounds are used by all BBCMicro objects created
     // after they're set.
     //
     // Once a particular sound is set, it can't be changed.
     static void SetDiscDriveSound(DiscDriveType type, DiscDriveSound sound, std::vector<float> samples);
-#endif
 
     uint32_t GetLEDs();
 
@@ -649,11 +647,9 @@ class BBCMicro : private WD1770Handler,
     bool SetByte(uint8_t sector, size_t offset, uint8_t value) override;
     bool GetSectorDetails(uint8_t *track, uint8_t *side, size_t *size, uint8_t sector, bool double_density) override;
     BBCMicroState::DiscDrive *GetDiscDrive();
-#if BBCMICRO_ENABLE_DISC_DRIVE_SOUND
     void InitDiscDriveSounds(DiscDriveType type);
     void StepSound(BBCMicroState::DiscDrive *dd);
     float UpdateDiscDriveSound(BBCMicroState::DiscDrive *dd);
-#endif
     void UpdateCPUDataBusFn();
     void SetMMIOFnsInternal(uint16_t addr, ReadMMIOFn read_fn, void *read_context, WriteMMIOFn write_fn, void *write_context, bool set_xfj, bool set_ifj);
 

@@ -2103,18 +2103,11 @@ size_t BeebThread::AudioThreadFillAudioBuffer(float *samples,
     float *dest = samples;
 
     float sn_scale = 1 / 4.f * atd->bbc_sound_scale;
-#if BBCMICRO_ENABLE_DISC_DRIVE_SOUND
     float disc_sound_scale = 1.f * atd->disc_sound_scale;
-#endif
 
 #define MIXCH(CH) (VOLUMES_TABLE[unit->sn_output.ch[CH]])
 #define MIXSN (sn_scale * (MIXCH(0) + MIXCH(1) + MIXCH(2) + MIXCH(3)))
-#if BBCMICRO_ENABLE_DISC_DRIVE_SOUND
 #define MIXALL (disc_sound_scale * unit->disc_drive_sound + MIXSN)
-#else
-#define MIXALL MIXSN
-#endif
-
 #define MIX (*filter++ * MIXALL)
 
     // This functionality may return.
