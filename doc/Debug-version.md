@@ -344,10 +344,11 @@ either CPU, meaning a breakpoint for one CPU could interrupt a step
 operation for the other. Debugging code on two CPUs simultaneously is
 inevitably going to be a little inconvenient.
 
-## `CRTC Debug`, `Video ULA Debug`, `System VIA Debug`, `User VIA Debug`, `NVRAM Debug` ##
+## `CRTC Debug`, `Video ULA Debug`, `System VIA Debug`, `User VIA Debug`, `NVRAM Debug`, `Analogue Debug` ##
 
-Activate a debug window for the corresponding piece of BBC hardware,
-showing current register values and additional useful info.
+Activate a debug window for the corresponding piece of BBC hardware
+(if present), showing current register values and additional useful
+info.
 
 ## `Paging debug`
 
@@ -363,7 +364,7 @@ particular address or byte, that byte or address will continue to be
 shown in the list even if all its breakpoint flags are cleared. When
 this happens, click the `x` button to get rid of it.
 
-## `Host Stack`, `Parasite Stack`
+## `Stack`, `Parasite Stack`
 
 Shows a dump of the stack contents. Values below the bottom of the
 stack are shown in a darker colour.
@@ -372,10 +373,21 @@ The `Addr` column is right-clickable. The address shown is exactly
 what was pushed, but the right click popup includes the address after
 it, for dealing with addresses pushed by `jsr`.
 
-## `Tube`
+## `Tube Debug`
 
 Shows current Tube status: IRQ state, control register values,
 contents and status for each FIFO.
+
+## `Digital Joystick Debug`
+
+Shows current digital joystick input state, if supported.
+
+## `Keyboard Debug`
+
+Lists current BBC keys pressed, keyboard scan state, and a diagram of
+the keyborad matrix.
+
+## `Keyboard Debug`
 
 # Other debug-related options #
 
