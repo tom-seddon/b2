@@ -347,6 +347,29 @@ Use `Tools` > `Reset CMOS/EEPROM` to reset the saved settings to
 reasonable default settings. Again, use `File` > `Hard reset` to see
 the effect.
 
+## Copy to clipboard
+
+Copy text output using `OSWRCH Copy Text`. This works a bit like
+`*SPOOL`, in that once activated it captures anything printed via
+`OSWRCH` until deactivated.
+
+It's explicitly described as `Copy Text`, because it strips out VDU
+control codes and normalizes line endings. You stand a good chance of
+being able to paste the result into a word processor or text editor or
+what have you.
+
+There are 3 text translation modes available on the `Copy Mode`
+submenu:
+
+- `No translation` - BBC ASCII chars come through as-is in the
+  clipboard data. BBC £ chars will turn into `
+  
+- `Translate £ only` - BBC £ chars will come through as £
+
+- `Translate Mode 7 chars` - characters will be translated to symbols
+  that resemble their Mode 7 appearance. (For example, `{` will come
+  through as `¼`.) Perfect results from this are not guaranteed
+
 ## Paste from clipboard
 
 Paste text from the clipboard to the BASIC prompt using `OSRDCH Paste`
@@ -359,22 +382,15 @@ guarantees it will work properly anywhere else, but you might get
 lucky...
 
 To make it easy to paste text in from modern applications, newlines
-(`CR LF`, `LF CR`, `LF`) are translated into `CR` (ASCII 13), and £ is
-translated into BBC-style £ (ASCII 95). ASCII characters between 32
-and 126 are passed on as-is.
+(`CR LF`, `LF CR`, `LF`) are translated into `CR` (ASCII 13).
 
-Other characters are not currently supported.
+`£` is automatically translated into BBC-style £ (ASCII 96).
 
-## Copy to clipboard
+The Mode 7 characters produced by the `Translate Mode 7 chars` will
+automatically be translated into the corresponding BBC chars, so the
+data will round trip correctly.
 
-Copy text output using `OSWRCH Copy Text`. This works a bit like
-`*SPOOL`, in that once activated it captures anything printed via
-`OSWRCH` until deactivated.
-
-It's explicitly described as `Copy Text`, because it strips out VDU
-control codes and normalizes line endings. You stand a good chance of
-being able to paste the result into a word processor or text editor or
-what have you.
+Other non-ASCII characters are not currently supported.
 
 ## Printer
 
@@ -389,3 +405,6 @@ discarding the current contents.
 text, stripping out any BBC control codes and translating line
 endings. Note that this won't properly strip out Epson-style ESC
 control codes though!
+
+As when copying text, there are 3 text translation modes for copying
+the printer buffer text. See the Copy to clipboard section above.

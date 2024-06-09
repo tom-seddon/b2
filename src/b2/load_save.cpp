@@ -1198,6 +1198,8 @@ static const char FULL_SCREEN[] = "full_screen";
 #endif
 static const char ADJI[] = "adji";
 static const char ADJI_DIP_SWITCHES[] = "adji_dip_switches";
+static const char TEXT_UTF8_CONVERT_MODE[] = "text_utf8_convert_mode";
+static const char PRINTER_UTF8_CONVERT_MODE[] = "printer_utf8_convert_mode";
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -2020,6 +2022,8 @@ static bool LoadWindows(rapidjson::Value *windows, Messages *msg) {
     FindBoolMember(&BeebWindows::defaults.full_screen, windows, FULL_SCREEN, nullptr);
 #endif
     FindBoolMember(&BeebWindows::defaults.prefer_shortcuts, windows, PREFER_SHORTCUTS, nullptr);
+    FindEnumMember(&BeebWindows::defaults.text_utf8_convert_mode, windows, TEXT_UTF8_CONVERT_MODE, "Text copy mode", &GetBBCUTF8ConvertModeEnumName, msg);
+    FindEnumMember(&BeebWindows::defaults.printer_utf8_convert_mode, windows, PRINTER_UTF8_CONVERT_MODE, "Printer copy mode", &GetBBCUTF8ConvertModeEnumName, msg);
 
     {
         std::string keymap_name;
@@ -2107,6 +2111,12 @@ static void SaveWindows(JSONWriter<StringStream> *writer) {
 
         writer->Key(GUI_FONT_SIZE);
         writer->Uint(BeebWindows::defaults.gui_font_size);
+
+        writer->Key(TEXT_UTF8_CONVERT_MODE);
+        SaveEnum(writer, BeebWindows::defaults.text_utf8_convert_mode, &GetBBCUTF8ConvertModeEnumName);
+
+        writer->Key(PRINTER_UTF8_CONVERT_MODE);
+        SaveEnum(writer, BeebWindows::defaults.printer_utf8_convert_mode, &GetBBCUTF8ConvertModeEnumName);
 
         if (!BeebWindows::default_config_name.empty()) {
             writer->Key(CONFIG);

@@ -326,7 +326,7 @@ class HTTPMethodsHandler : public HTTPHandler {
 
         std::string ascii;
         if (request.content_type == HTTP_TEXT_CONTENT_TYPE && (request.content_type_charset.empty() || request.content_type_charset == HTTP_ISO_8859_1_CHARSET)) {
-            if (GetBBCASCIIFromISO88511(&ascii, request.body) != 0) {
+            if (GetBBCASCIIFromISO8859_1(&ascii, request.body) != 0) {
                 server->SendResponse(request, HTTPResponse::BadRequest(request));
                 return;
             }

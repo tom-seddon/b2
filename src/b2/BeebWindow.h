@@ -94,6 +94,9 @@ struct BeebWindowSettings {
     bool prefer_shortcuts = false;
 
     BeebWindowLEDsPopupMode leds_popup_mode = BeebWindowLEDsPopupMode_Auto;
+
+    BBCUTF8ConvertMode text_utf8_convert_mode = BBCUTF8ConvertMode_OnlyGBP;
+    BBCUTF8ConvertMode printer_utf8_convert_mode = BBCUTF8ConvertMode_OnlyGBP;
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -454,6 +457,7 @@ class BeebWindow {
     bool DoImGui(uint64_t ticks);
     bool HandleCommandKey(uint32_t keycode, SettingsUI *active_popup);
     void DoCommands(bool *close_window);
+    void DoCopyModeCommands(BBCUTF8ConvertMode *mode, bool enabled, const Command2 &pass_through, const Command2 &only_gbp, const Command2 &SAA5050);
     void DoMenuUI();
     SettingsUI *DoSettingsUI();
     void DoPopupUI(uint64_t now, int output_width, int output_height);
@@ -484,7 +488,7 @@ class BeebWindow {
 
     void DoPaste(bool add_return);
 
-    void SetClipboardFromBBCASCII(const std::vector<uint8_t> &data) const;
+    void SetClipboardFromBBCASCII(const std::vector<uint8_t> &data, BBCUTF8ConvertMode convert_mode) const;
 
     void SaveConfig();
 

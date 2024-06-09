@@ -47,7 +47,7 @@ add_executable(b2 MACOSX_BUNDLE
   keymap.cpp keymap.h
   keys.cpp keys.h keys.inl
   load_save.cpp load_save.h load_save.inl
-  misc.cpp misc.h
+  misc.cpp misc.h misc.inl
   native_ui.cpp native_ui.h
   roms.cpp roms.h roms.inl
   profiler.cpp profiler.h
@@ -439,3 +439,20 @@ target_link_libraries(test_http PRIVATE shared_lib ${LibUV_LIBRARIES} llhttp_sta
 add_test(
   NAME b2/test_http
   COMMAND $<TARGET_FILE:test_http>)
+
+##########################################################################
+##########################################################################
+
+# Don't add misc.cpp. There doesn't seem to be any way to set the
+# HEADER_FILE_ONLY source file property on a per-target basis.
+add_executable(test_UTF8
+  test_UTF8.cpp
+  misc.inl misc.h
+  Messages.cpp Messages.h
+  )
+add_sanitizers(test_UTF8)
+add_config_define(test_UTF8)
+target_link_libraries(test_UTF8 PRIVATE shared_lib beeb_lib ${SDL2_LIBRARY})
+add_test(
+  NAME b2/test_UTF8
+  COMMAND $<TARGET_FILE:test_UTF8>)

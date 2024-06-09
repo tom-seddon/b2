@@ -24,6 +24,10 @@ class Messages;
 #include <shared/log.h>
 #include <memory>
 
+#include <shared/enum_decl.h>
+#include "misc.inl"
+#include <shared/enum_end.h>
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
@@ -187,12 +191,12 @@ bool GetBBCASCIIFromUTF8(std::string *ascii,
                          int *bad_char_len_ptr);
 
 // returns 0 on success, or the unsupported codepoint on failure.q
-uint32_t GetBBCASCIIFromISO88511(std::string *ascii,
-                                 const std::vector<uint8_t> &data);
+uint32_t GetBBCASCIIFromISO8859_1(std::string *ascii,
+                                  const std::vector<uint8_t> &data);
 
 // Normalizes line endings, strips out BBC-type control codes, and translates
 // ASCII 95 to U+00A3 Pound Sign.
-std::string GetUTF8FromBBCASCII(const std::vector<uint8_t> &data);
+std::string GetUTF8FromBBCASCII(const std::vector<uint8_t> &data, BBCUTF8ConvertMode mode);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

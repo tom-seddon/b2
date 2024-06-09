@@ -10,6 +10,11 @@
 #include <beeb/BBCMicro.h>
 #include <beeb/Trace.h>
 #include "Messages.h"
+#include <shared/debug.h>
+
+#include <shared/enum_def.h>
+#include "misc.inl"
+#include <shared/enum_end.h>
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -590,16 +595,122 @@ uint32_t inline decode(uint32_t *state, uint32_t *codep, uint32_t byte) {
 }
 
 //////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
 
-static int GetBBCChar(uint32_t codepoint) {
-    if (codepoint == 13 || codepoint == 10) {
-        return (int)codepoint;
-    } else if (codepoint >= 32 && codepoint <= 126) {
-        return (int)codepoint;
-    } else if (codepoint == 0xa3) {
-        return 95; //GBP symbol
+static std::unordered_map<uint32_t, uint8_t> g_bbc_char_by_codepoint;
+static std::string g_utf8_char_by_bbc_char[BBCUTF8ConvertMode_Count][128];
+static bool g_utf8_convert_tables_initialised = false;
+
+static uint32_t GetCodePointForBBCChar(uint8_t bbc_char, BBCUTF8ConvertMode mode) {
+    ASSERT(bbc_char >= 32 && bbc_char < 127);
+
+    switch (mode) {
+    default:
+        ASSERT(false);
+        // fall through
+    case BBCUTF8ConvertMode_PassThrough:
+        return bbc_char;
+        //return std::string(1, (char)bbc_char);
+
+    case BBCUTF8ConvertMode_OnlyGBP:
+        switch (bbc_char) {
+        case '`':
+            return 0xa3; //return "\xc2\xa3"; // U+00A3 POUND SIGN
+
+        default:
+            return bbc_char; //return std::string(1, (char)bbc_char);
+        }
+
+    case BBCUTF8ConvertMode_SAA5050:
+        switch (bbc_char) {
+        case '`':
+            return 0xa3; //"\xc2\xa3"; // U+00A3 POUND SIGN
+
+        case '\\':
+            return 0xbd; //"\xc2\xbd"; //U+00BD VULGAR FRACTION ONE HALF
+
+        case '_':
+            return 0x2015; //"\xe2\x80\x95"; //U+2015 HORIZONTAL BAR
+
+        case '[':
+            return 0x2190; //"\xe2\x86\x90"; // U+2190 LEFTWARDS ARROW
+
+        case ']':
+            return 0x2192; //"\xe2\x86\x92"; // U+2192 RIGHTWARDS ARROW
+
+        case '{':
+            return 0xbc; //"\xc2\xbc"; //U+00BC VULGAR FRACTION ONE QUARTER
+
+        case '}':
+            return 0xbe; //"\xc2\xbe"; // U+00BE VULGAR FRACTION THREE QUARTERS
+
+        case '|':
+            return 0x2016; //"\xe2\x80\x96"; //U+2016 DOUBLE VERTICAL LINE
+
+        case '^':
+            return 0x2191; //"\xe2\x86\x91"; //U+2191 UPWARDS ARROW
+
+        case '~':
+            return 0xf7; //"\xc3\xb7"; // U+00F7 DIVISION SIGN
+
+        default:
+            return bbc_char; //std::string(1, (char)bbc_char);
+        }
+    }
+}
+
+static std::string GetUTF8StringForCodePoint(uint32_t u) {
+    if (u < 0x80) {
+        return std::string(1, (char)u);
+    } else if (u < 0x800) {
+        char buf[2] = {
+            0xc0 | (char)(u >> 6),
+            0x80 | (char)(u & 0x3f),
+        };
+        return std::string(buf, buf + 2);
+    } else if (u < 0x10000) {
+        char buf[3] = {
+            0xe0 | (char)(u >> 12),
+            0x80 | (char)(u >> 6 & 0x3f),
+            0x80 | (char)(u & 0x3f),
+        };
+        return std::string(buf, buf + 3);
     } else {
-        return -1;
+        ASSERT(u < 0x110000);
+        char buf[4] = {
+            0xf0 | (char)(u >> 18),
+            0x80 | (char)(u >> 12 & 0x3f),
+            0x80 | (char)(u >> 6 & 0x3f),
+            0x80 | (char)(u & 0x3f),
+        };
+        return std::string(buf, buf + 4);
+    }
+}
+
+static void InitUTF8ConvertTables() {
+    if (!g_utf8_convert_tables_initialised) {
+        for (int mode = 0; mode < BBCUTF8ConvertMode_Count; ++mode) {
+            for (char c = 32; c < 127; ++c) {
+                uint32_t u = GetCodePointForBBCChar(c, (BBCUTF8ConvertMode)mode);
+
+                g_utf8_char_by_bbc_char[mode][c] = GetUTF8StringForCodePoint(u);
+
+                auto &&it = g_bbc_char_by_codepoint.find(u);
+                if (it == g_bbc_char_by_codepoint.end()) {
+                    g_bbc_char_by_codepoint[u] = c;
+                } else {
+                    ASSERT(g_bbc_char_by_codepoint[u] == c);
+                }
+            }
+        }
+
+        ASSERT(g_bbc_char_by_codepoint.count(10) == 0);
+        g_bbc_char_by_codepoint[10] = 10;
+
+        ASSERT(g_bbc_char_by_codepoint.count(13) == 0);
+        g_bbc_char_by_codepoint[13] = 13;
+
+        g_utf8_convert_tables_initialised = true;
     }
 }
 
@@ -613,6 +724,8 @@ bool GetBBCASCIIFromUTF8(std::string *ascii,
                          int *bad_char_len_ptr) {
     uint32_t state = UTF8_ACCEPT, codepoint;
 
+    InitUTF8ConvertTables();
+
     ascii->clear();
     size_t char_start = 0;
 
@@ -623,8 +736,8 @@ bool GetBBCASCIIFromUTF8(std::string *ascii,
     for (size_t i = 0; i < data.size(); ++i) {
         decode(&state, &codepoint, data[i]);
         if (state == UTF8_ACCEPT) {
-            int c = GetBBCChar(codepoint);
-            if (c < 0) {
+            auto &&it = g_bbc_char_by_codepoint.find(codepoint);
+            if (it == g_bbc_char_by_codepoint.end()) {
                 bad_codepoint = codepoint;
                 bad_char_start = &data[char_start];
                 bad_char_len = (int)(i - char_start);
@@ -632,7 +745,7 @@ bool GetBBCASCIIFromUTF8(std::string *ascii,
                 goto bad;
             }
 
-            ascii->push_back((char)c);
+            ascii->push_back(it->second);
         } else if (state == UTF8_REJECT) {
             goto bad;
         }
@@ -659,14 +772,19 @@ bad:;
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-uint32_t GetBBCASCIIFromISO88511(std::string *ascii, const std::vector<uint8_t> &data) {
+uint32_t GetBBCASCIIFromISO8859_1(std::string *ascii, const std::vector<uint8_t> &data) {
     ascii->clear();
 
     for (uint8_t x : data) {
-        int c = GetBBCChar(x);
-        if (c < 0) {
+        if (x >= 32 && x <= 126) {
+            // ok...
+        } else if (x == 0xa3) {
+            // GBP
+            x = '`';
+        } else {
             return x;
         }
+
         ascii->push_back((char)x);
     }
 
@@ -711,7 +829,10 @@ static const uint8_t VDU_CODE_LENGTHS[32] = {
     2,
 };
 
-std::string GetUTF8FromBBCASCII(const std::vector<uint8_t> &data) {
+std::string GetUTF8FromBBCASCII(const std::vector<uint8_t> &data, BBCUTF8ConvertMode mode) {
+    ASSERT(mode >= 0 && mode < BBCUTF8ConvertMode_Count);
+    InitUTF8ConvertTables();
+
     // Normalize line endings and strip out control codes.
     //
     // TODO: do it in a less dumb fashion.
@@ -736,12 +857,8 @@ std::string GetUTF8FromBBCASCII(const std::vector<uint8_t> &data) {
         } else if (data[i] < 32) {
             // Skip VDU codes.
             i += 1u + VDU_CODE_LENGTHS[data[i]];
-        } else if (data[i] == 95) {
-            // Translate pound sign into UTF8.
-            utf8 += POUND_SIGN_UTF8;
-        } else if (data[i] < 127) {
-            // Pass other printable 7-bit ASCII chars straight through.
-            utf8.push_back((char)data[i]);
+        } else if (data[i] >= 32 && data[i] < 127) {
+            utf8 += g_utf8_char_by_bbc_char[mode][data[i]];
         } else {
             // Discard DEL and 128+. TODO.
         }
