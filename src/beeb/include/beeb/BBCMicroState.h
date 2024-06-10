@@ -236,7 +236,7 @@ class BBCMicroState {
     WD1770 fdc;
     DiscInterfaceControl disc_control = {};
     DiscDrive drives[NUM_DRIVES];
-    DiscInterfaceExtraHardwareState *disc_interface_extra_hardware = nullptr;
+    std::shared_ptr<DiscInterfaceExtraHardwareState> disc_interface_extra_hardware;
 
     // RTC
     MC146818 rtc;

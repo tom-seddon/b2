@@ -75,12 +75,12 @@ class DiscInterface {
     virtual uint8_t GetByteFromControl(DiscInterfaceControl control) const = 0;
 
     // create accompanying ExtraHardwareState.
-    virtual [[nodiscard]] DiscInterfaceExtraHardwareState *CreateExtraHardwareState() const;
+    virtual [[nodiscard]] std::shared_ptr<DiscInterfaceExtraHardwareState> CreateExtraHardwareState() const;
 
     // close accompanying ExtraHardwareState.
-    virtual [[nodiscard]] DiscInterfaceExtraHardwareState *CloneExtraHardwareState(const DiscInterfaceExtraHardwareState *src) const;
+    virtual [[nodiscard]] std::shared_ptr<DiscInterfaceExtraHardwareState> CloneExtraHardwareState(const std::shared_ptr<DiscInterfaceExtraHardwareState> &src) const;
 
-    virtual void InstallExtraHardware(BBCMicro *m, DiscInterfaceExtraHardwareState *state) const;
+    virtual void InstallExtraHardware(BBCMicro *m, const std::shared_ptr<DiscInterfaceExtraHardwareState> &state) const;
 
   protected:
     DiscInterface(DiscInterface &) = default;

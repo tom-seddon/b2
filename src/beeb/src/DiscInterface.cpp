@@ -62,14 +62,14 @@ DiscInterface::~DiscInterface() {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-DiscInterfaceExtraHardwareState *DiscInterface::CreateExtraHardwareState() const {
+std::shared_ptr<DiscInterfaceExtraHardwareState> DiscInterface::CreateExtraHardwareState() const {
     return nullptr;
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-DiscInterfaceExtraHardwareState *DiscInterface::CloneExtraHardwareState(const DiscInterfaceExtraHardwareState *src) const {
+std::shared_ptr<DiscInterfaceExtraHardwareState> DiscInterface::CloneExtraHardwareState(const std::shared_ptr<DiscInterfaceExtraHardwareState> &src) const {
     (void)src;
     ASSERT(!src);
 
@@ -79,7 +79,7 @@ DiscInterfaceExtraHardwareState *DiscInterface::CloneExtraHardwareState(const Di
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void DiscInterface::InstallExtraHardware(BBCMicro *m, DiscInterfaceExtraHardwareState *state) const {
+void DiscInterface::InstallExtraHardware(BBCMicro *m, const std::shared_ptr<DiscInterfaceExtraHardwareState> &state) const {
     (void)m, (void)state;
 }
 
@@ -352,6 +352,10 @@ class DiscInterfaceChallengerState : public DiscInterfaceExtraHardwareState {
         }
     }
 
+    // Not actually intended for public use, but std::make_shared needs it to be
+    // public, and it's not in a header, so it's not exactly a big problem.
+    DiscInterfaceChallengerState(const DiscInterfaceChallengerState &src) = default;
+
     ~DiscInterfaceChallengerState() {
         for (size_t i = 0; i < m_chunks.size(); ++i) {
             this->DecLockedChunkRef(i, std::unique_lock<Mutex>(m_chunks[i]->mutex));
@@ -362,8 +366,6 @@ class DiscInterfaceChallengerState : public DiscInterfaceExtraHardwareState {
   private:
     M6502Word m_page = {};
     std::vector<ChallengerRAMChunk *> m_chunks;
-
-    DiscInterfaceChallengerState(const DiscInterfaceChallengerState &src) = default;
 
     bool GetChallengerRAMPtr(std::unique_lock<Mutex> *lock_ptr, size_t *index_ptr, size_t *offset_ptr, uint8_t addr_lsb) {
         size_t addr = (uint32_t)m_page.w << 8 | addr_lsb;
@@ -534,13 +536,13 @@ class DiscInterfaceChallenger : public DiscInterface {
         return value;
     }
 
-    DiscInterfaceExtraHardwareState *CreateExtraHardwareState() const override {
-        return new DiscInterfaceChallengerState(m_num_state_chunks);
+    std::shared_ptr<DiscInterfaceExtraHardwareState> CreateExtraHardwareState() const override {
+        return std::make_shared<DiscInterfaceChallengerState>(m_num_state_chunks);
     }
 
-    DiscInterfaceExtraHardwareState *CloneExtraHardwareState(const DiscInterfaceExtraHardwareState *src) const override {
-        ASSERT(dynamic_cast<const DiscInterfaceChallengerState *>(src));
-        auto clone = new DiscInterfaceChallengerState(*(const DiscInterfaceChallengerState *)src);
+    std::shared_ptr<DiscInterfaceExtraHardwareState> CloneExtraHardwareState(const std::shared_ptr<DiscInterfaceExtraHardwareState> &src) const override {
+        ASSERT(dynamic_cast<const DiscInterfaceChallengerState *>(src.get()));
+        auto clone = std::make_shared<DiscInterfaceChallengerState>(*(const DiscInterfaceChallengerState *)src.get());
 
         for (ChallengerRAMChunk *chunk : clone->m_chunks) {
             std::lock_guard<Mutex> lock(chunk->mutex);
@@ -551,14 +553,15 @@ class DiscInterfaceChallenger : public DiscInterface {
         return clone;
     }
 
-    void InstallExtraHardware(BBCMicro *m, DiscInterfaceExtraHardwareState *state) const override {
-        ASSERT(dynamic_cast<const DiscInterfaceChallengerState *>(state));
+    void InstallExtraHardware(BBCMicro *m, const std::shared_ptr<DiscInterfaceExtraHardwareState> &state) const override {
+        auto *challenger_state = dynamic_cast<DiscInterfaceChallengerState *>(state.get());
+        ASSERT(challenger_state);
 
-        m->SetXFJIO(0xfcfe, &DiscInterfaceChallengerState::ReadPagingMSB, state, DiscInterfaceChallengerState::WritePagingMSB, state);
-        m->SetXFJIO(0xfcff, &DiscInterfaceChallengerState::ReadPagingLSB, state, DiscInterfaceChallengerState::WritePagingLSB, state);
+        m->SetXFJIO(0xfcfe, &DiscInterfaceChallengerState::ReadPagingMSB, challenger_state, DiscInterfaceChallengerState::WritePagingMSB, challenger_state);
+        m->SetXFJIO(0xfcff, &DiscInterfaceChallengerState::ReadPagingLSB, challenger_state, DiscInterfaceChallengerState::WritePagingLSB, challenger_state);
 
         for (uint16_t addr = 0xfd00; addr < 0xfe00; ++addr) {
-            m->SetXFJIO(addr, &DiscInterfaceChallengerState::ReadRAM, state, &DiscInterfaceChallengerState::WriteRAM, state);
+            m->SetXFJIO(addr, &DiscInterfaceChallengerState::ReadRAM, challenger_state, &DiscInterfaceChallengerState::WriteRAM, challenger_state);
         }
     }
 
