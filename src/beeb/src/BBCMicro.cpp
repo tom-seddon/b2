@@ -2048,29 +2048,42 @@ void BBCMicro::SetDebugStepType(BBCMicroStepType step_type, const M6502 *step_cp
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_DEBUGGER
-void BBCMicro::DebugHitBreakpoint(const M6502 *cpu, uint8_t flags) {
+void BBCMicro::DebugHitBreakpoint(const M6502 *cpu, BBCMicro::DebugState::BreakpointHits *hits, uint8_t flags) {
     auto metadata = (const M6502Metadata *)cpu->context;
+    bool update_hits = false;
 
     if (cpu->read == 0) {
         if (flags & BBCMicroByteDebugFlag_BreakWrite) {
+            update_hits = true;
             DebugHalt("%s data write: $%04x", metadata->name, m_state.cpu.abus.w);
         }
     } else {
-        if (flags & BBCMicroByteDebugFlag_BreakExecute) {
-            if (cpu->read == M6502ReadType_Opcode) {
-                this->DebugHalt("%s execute: $%04x", metadata->name, m_state.cpu.abus.w);
-            }
-        } else if (flags & BBCMicroByteDebugFlag_TempBreakExecute) {
+        if (flags & BBCMicroByteDebugFlag_TempBreakExecute) {
             if (cpu->read == M6502ReadType_Opcode) {
                 this->DebugHalt("%s single step", metadata->name);
+            }
+        } else if (flags & BBCMicroByteDebugFlag_BreakExecute) {
+            if (cpu->read == M6502ReadType_Opcode) {
+                // Only update the hit cycle count when not stepping.
+                if (m_debug->step_type == BBCMicroStepType_None) {
+                    update_hits = true;
+                }
+
+                this->DebugHalt("%s execute: $%04x", metadata->name, m_state.cpu.abus.w);
             }
         }
 
         if (flags & BBCMicroByteDebugFlag_BreakRead) {
             if (cpu->read <= M6502ReadType_LastInterestingDataRead) {
+                update_hits = true;
                 this->DebugHalt("%s data read: $%04x", metadata->name, m_state.cpu.abus.w);
             }
         }
+    }
+
+    if (update_hits) {
+        hits->hit_prev = hits->hit_recent;
+        hits->hit_recent = m_state.cycle_count;
     }
 }
 #endif

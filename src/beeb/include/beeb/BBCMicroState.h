@@ -147,12 +147,14 @@ class BBCMicroState {
     explicit BBCMicroState(BBCMicroState &&) = delete;
     BBCMicroState &operator=(BBCMicroState &&) = delete;
 
+#if BBCMICRO_DEBUGGER
     const M6502 *DebugGetM6502(uint32_t dso) const;
     const ExtMem *DebugGetExtMem() const;
     const MC146818 *DebugGetRTC() const;
     const Tube *DebugGetTube() const;
     const ADC *DebugGetADC() const;
     const PCD8572 *DebugGetEEPROM() const;
+#endif
 
     int DebugGetADJIDIPSwitches() const;
 

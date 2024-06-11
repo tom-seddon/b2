@@ -294,6 +294,10 @@ Show a 6502 debug window. Displays typical register info in the top
 half, and internal stuff (cycle count, internal state, data bus
 address, etc.) in the bottom half.
 
+Cycles since last breakpoint only tracks breakpoints hit when running.
+If you hit a breakpoint while single stepping, the counter continues
+to count up.
+
 ## `Host Memory Debug`, `Parasite Memory Debug` ##
 
 Show a memory debug window. Click to edit memory.

@@ -968,4 +968,11 @@ memory before starting execution.
 |     1 | 0             | indicates ROM bank |
 | 16384 | Bank contents |                    |
 
+* bp cycle counts
+
+-		hits	0x0000016d73723638 {hit_recent={n=42490100 } hit_prev={n=42489926 } }	BBCMicro::DebugState::BreakpointHits *
++		hit_recent	{n=42490100 }	CycleCount
++		hit_prev	{n=42489926 }	CycleCount
+
+
 * eof.

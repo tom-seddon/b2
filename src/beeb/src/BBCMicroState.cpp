@@ -88,6 +88,7 @@ const M6502 *BBCMicroState::DebugGetM6502(uint32_t dso) const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#if BBCMICRO_DEBUGGER
 const ExtMem *BBCMicroState::DebugGetExtMem() const {
     if (this->init_flags & BBCMicroInitFlag_ExtMem) {
         return &this->ext_mem;
@@ -95,10 +96,12 @@ const ExtMem *BBCMicroState::DebugGetExtMem() const {
         return nullptr;
     }
 }
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#if BBCMICRO_DEBUGGER
 const MC146818 *BBCMicroState::DebugGetRTC() const {
     if (this->type->type_id == BBCMicroTypeID_Master) {
         return &this->rtc;
@@ -106,10 +109,12 @@ const MC146818 *BBCMicroState::DebugGetRTC() const {
         return nullptr;
     }
 }
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#if BBCMICRO_DEBUGGER
 const Tube *BBCMicroState::DebugGetTube() const {
     if (this->parasite_type != BBCMicroParasiteType_None) {
         return &this->parasite_tube;
@@ -117,10 +122,12 @@ const Tube *BBCMicroState::DebugGetTube() const {
         return nullptr;
     }
 }
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#if BBCMICRO_DEBUGGER
 const ADC *BBCMicroState::DebugGetADC() const {
     if (this->type->adc_addr != 0) {
         return &this->adc;
@@ -128,10 +135,12 @@ const ADC *BBCMicroState::DebugGetADC() const {
         return nullptr;
     }
 }
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#if BBCMICRO_DEBUGGER
 const PCD8572 *BBCMicroState::DebugGetEEPROM() const {
     if (this->type->type_id == BBCMicroTypeID_MasterCompact) {
         return &this->eeprom;
@@ -139,10 +148,12 @@ const PCD8572 *BBCMicroState::DebugGetEEPROM() const {
         return nullptr;
     }
 }
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#if BBCMICRO_DEBUGGER
 int BBCMicroState::DebugGetADJIDIPSwitches() const {
     if (this->init_flags & BBCMicroInitFlag_ADJI) {
         return this->init_flags >> BBCMicroInitFlag_ADJIDIPSwitchesShift & 3;
@@ -150,6 +161,7 @@ int BBCMicroState::DebugGetADJIDIPSwitches() const {
         return -1;
     }
 }
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

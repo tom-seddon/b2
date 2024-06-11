@@ -830,6 +830,10 @@ class M6502DebugWindow : public DebugUI {
 
         char cycles_str[MAX_UINT64_THOUSANDS_SIZE];
 
+        uint64_t parasite_cycles = INVALID_CYCLE_COUNT;
+        uint64_t parasite_cycles_since_bp = INVALID_CYCLE_COUNT;
+        const char *parasite_units = nullptr;
+
         switch (m_beeb_state->parasite_type) {
         default:
             ASSERT(false);
@@ -838,18 +842,48 @@ class M6502DebugWindow : public DebugUI {
             break;
 
         case BBCMicroParasiteType_External3MHz6502:
-            GetThousandsString(cycles_str, BBCMicro::Get3MHzCycleCount(m_beeb_state->cycle_count));
-            ImGui::Text("3 MHz Cycles = %s", cycles_str);
+            {
+                parasite_units = "3 MHz";
+
+                parasite_cycles = BBCMicro::Get3MHzCycleCount(m_beeb_state->cycle_count);
+
+                CycleCount hit_cycle_count = this->GetHitCycleCount(m_beeb_debug_state->parasite_hits);
+                if (hit_cycle_count.n < m_beeb_state->cycle_count.n) {
+                    parasite_cycles_since_bp = parasite_cycles - BBCMicro::Get3MHzCycleCount(hit_cycle_count);
+                }
+            }
             break;
 
         case BBCMicroParasiteType_MasterTurbo:
-            GetThousandsString(cycles_str, m_beeb_state->cycle_count.n >> RSHIFT_CYCLE_COUNT_TO_4MHZ);
-            ImGui::Text("4 MHz Cycles = %s", cycles_str);
+            {
+                parasite_units = "4 MHz";
+
+                parasite_cycles = m_beeb_state->cycle_count.n >> RSHIFT_CYCLE_COUNT_TO_4MHZ;
+
+                CycleCount hit_cycle_count = this->GetHitCycleCount(m_beeb_debug_state->parasite_hits);
+                if (hit_cycle_count.n < m_beeb_state->cycle_count.n) {
+                    parasite_cycles_since_bp = parasite_cycles - (hit_cycle_count.n >> RSHIFT_CYCLE_COUNT_TO_4MHZ);
+                }
+            }
             break;
         }
 
-        GetThousandsString(cycles_str, m_beeb_state->cycle_count.n >> RSHIFT_CYCLE_COUNT_TO_2MHZ);
-        ImGui::Text("2 MHz Cycles = %s", cycles_str);
+        uint64_t host_cycles = m_beeb_state->cycle_count.n >> RSHIFT_CYCLE_COUNT_TO_2MHZ;
+        uint64_t host_cycles_since_bp = INVALID_CYCLE_COUNT;
+        {
+            CycleCount hit_cycle_count = this->GetHitCycleCount(m_beeb_debug_state->host_hits);
+            if (hit_cycle_count.n < m_beeb_state->cycle_count.n) {
+                host_cycles_since_bp = host_cycles - (hit_cycle_count.n >> RSHIFT_CYCLE_COUNT_TO_2MHZ);
+            }
+        }
+
+        GetThousandsString(cycles_str, host_cycles);
+        ImGui::Text("2 MHz host cycles = %s", cycles_str);
+
+        if (m_beeb_state->parasite_type != BBCMicroParasiteType_None) {
+            GetThousandsString(cycles_str, parasite_cycles);
+            ImGui::Text("%s parasite cycles = %s", cycles_str);
+        }
 
         if (m_beeb_debug_state && m_beeb_debug_state->is_halted) {
             if (m_beeb_debug_state->halt_reason[0] == 0) {
@@ -863,11 +897,11 @@ class M6502DebugWindow : public DebugUI {
 
         ImGuiHeader("Host CPU");
 
-        this->StateImGui(m_beeb_state->DebugGetM6502(0));
+        this->StateImGui(m_beeb_state->DebugGetM6502(0), host_cycles_since_bp);
 
         if (m_beeb_state->parasite_type != BBCMicroParasiteType_None) {
             ImGuiHeader("Parasite CPU");
-            this->StateImGui(m_beeb_state->DebugGetM6502(BBCMicroDebugStateOverride_Parasite));
+            this->StateImGui(m_beeb_state->DebugGetM6502(BBCMicroDebugStateOverride_Parasite), parasite_cycles_since_bp);
         }
 
         ImGuiHeader("Update Flags");
@@ -887,7 +921,7 @@ class M6502DebugWindow : public DebugUI {
     }
 
   private:
-    void StateImGui(const M6502 *cpu) {
+    void StateImGui(const M6502 *cpu, uint64_t cycles_since_bp) {
         this->Reg("A", cpu->a);
         this->Reg("X", cpu->x);
         this->Reg("Y", cpu->y);
@@ -904,12 +938,29 @@ class M6502DebugWindow : public DebugUI {
         ImGui::Text("Opcode = $%02X %03d - %s %s", opcode, opcode, mnemonic, mode_name);
         ImGui::Text("tfn = %s", GetFnName(cpu->tfn));
         ImGui::Text("ifn = %s", GetFnName(cpu->ifn));
-        ImGui::Text("Address = $%04x; Data = $%02x %03d %s", cpu->abus.w, cpu->dbus, cpu->dbus, BINARY_BYTE_STRINGS[cpu->dbus]);
+        ImGui::Text("Address = $%04x; Data = $%02x %03d %s %s", cpu->abus.w, cpu->dbus, cpu->dbus, BINARY_BYTE_STRINGS[cpu->dbus], ASCII_BYTE_STRINGS[cpu->dbus]);
         ImGui::Text("Access = %s", M6502ReadType_GetName(cpu->read));
+
+        if (cycles_since_bp != INVALID_CYCLE_COUNT) {
+            char cycles_str[MAX_UINT64_THOUSANDS_SIZE];
+            GetThousandsString(cycles_str, cycles_since_bp);
+            ImGui::Text("Cycles since last breakpoint = %s", cycles_str);
+        } else {
+            ImGui::TextUnformatted("Cycles since last breakpoint = N/A");
+        }
     }
 
     void Reg(const char *name, uint8_t value) {
         ImGui::Text("%s = $%02x %03d %s", name, value, value, BINARY_BYTE_STRINGS[value]);
+    }
+
+    CycleCount GetHitCycleCount(const BBCMicro::DebugState::BreakpointHits &hits) const {
+        // The state has advanced past the hit cycle, so compensate with a -1.
+        if (m_beeb_state->cycle_count.n - 1 == hits.hit_recent.n && hits.hit_prev.n != INVALID_CYCLE_COUNT) {
+            return hits.hit_prev;
+        } else {
+            return hits.hit_recent;
+        }
     }
 };
 
@@ -1324,7 +1375,7 @@ class DisassemblyDebugWindow : public DebugUI,
 
         m_cst.SetEnabled(g_step_in_command, m_beeb_window->DebugIsRunEnabled());
         if (m_cst.WasActioned(g_step_in_command)) {
-            m_beeb_window->DebugStepOver(m_dso);
+            m_beeb_window->DebugStepIn(m_dso);
         }
 
         float maxY = ImGui::GetCurrentWindow()->Size.y; //-ImGui::GetTextLineHeight()-GImGui->Style.WindowPadding.y*2.f;

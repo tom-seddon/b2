@@ -53,6 +53,9 @@ class BBCMicro : private WD1770Handler,
     static constexpr size_t BIG_PAGE_SIZE_PAGES = BIG_PAGE_SIZE_BYTES / 256u;
 
 #if BBCMICRO_DEBUGGER
+
+    // TODO: need to do a pass on the thread safety of this stuff?
+
     struct HardwareDebugState {
         R6522::IRQ system_via_irq_breakpoints = {};
         R6522::IRQ user_via_irq_breakpoints = {};
@@ -60,6 +63,16 @@ class BBCMicro : private WD1770Handler,
 
     struct DebugState {
         static const uint16_t INVALID_PAGE_INDEX = 0xffff;
+
+        struct BreakpointHits {
+            // Cycle count of most recent hit, or invalid if no such.
+            CycleCount hit_recent = {INVALID_CYCLE_COUNT};
+
+            // Cycle count of previous hit, if any. Used to provide a useful
+            // time-since-last-breakpoint indicator if a breakpoint was hit this
+            // cycle (thus overwriting hit_recent).
+            CycleCount hit_prev = {INVALID_CYCLE_COUNT};
+        };
 
         struct Breakpoint {
             uint64_t id = 0;
@@ -71,6 +84,9 @@ class BBCMicro : private WD1770Handler,
         const M6502 *step_cpu = nullptr;
 
         HardwareDebugState hw;
+
+        BreakpointHits host_hits;
+        BreakpointHits parasite_hits;
 
         // No attempt made to minimize this stuff... it doesn't go into
         // the saved states, so whatever.
@@ -623,7 +639,7 @@ class BBCMicro : private WD1770Handler,
     void UpdateDebugBigPages(MemoryBigPages *mem_big_pages);
     void UpdateDebugState();
     void SetDebugStepType(BBCMicroStepType step_type, const M6502 *step_cpu);
-    void DebugHitBreakpoint(const M6502 *cpu, uint8_t flags);
+    void DebugHitBreakpoint(const M6502 *cpu, BBCMicro::DebugState::BreakpointHits *hits, uint8_t flags);
     void DebugHandleStep();
     // Public for the debugger's benefit.
 #endif
