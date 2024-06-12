@@ -426,14 +426,14 @@ documentation for that applies.
 
 ## HTTP endpoints
 
-Values in capitals indicate parameters. Parameters listed as part of
-the path are found by position, and are mandatory; those listed as
-part of the query string are found by name, and are optional.
+Names in capitals are argument placeholders. When listed as part of
+the path, they are found by position, and are mandatory; those given
+as part of the query string are found by name, and are optional.
 
 Every method takes a window name, `WIN` - as seen in the title bar -
-as a parameter, indicating which window to send the request to. In
-most cases, this will probably be `b2`, the name of the initial window
-the emulator creates on startup.
+indicating which window to send the request to. In most cases, this
+will probably be `b2`, the name of the initial window the emulator
+creates on startup.
 
 Parameters expecting numbers are typically hex values, e.g., `ffff`
 (65535), or C-style literals, e.g., `65535` (65535), `0xffff` (65535),
@@ -476,28 +476,26 @@ The text to paste is taken from the request body, which must be
 `text/plain`, with `Content-Encoding` of `ISO-8859-1` (assumed if not
 specified) or `utf-8`.
 
-### `poke/WIN/ADDR` ###
+### `peek/WIN/BEGIN-ADDR/END-ADDR?p=PREFIX&mos=MOS`; `peek/WIN/BEGIN-ADDR/+SIZE?p=PREFIX&mos=MOS` ###
 
-**This endpoint is deprecated and will probably be going away**
-
-Store the request body into memory at `ADDR` (a 32-bit hex value), the
-address as per
-[JGH's addressing scheme](http://mdfs.net/Docs/Comp/BBC/MemAddrs).
-
-### `peek/WIN/BEGIN-ADDR/END-ADDR`; `peek/WIN/BEGIN-ADDR/+SIZE` ###
-
-**This endpoint is deprecated and will probably be going away**
-
-Retrieve memory from `BEGIN-ADDR` (32-bit hex, inclusive) to
+Retrieve memory from `BEGIN-ADDR` (16-bit hex, inclusive) to
 `END-ADDR` (32-bit hex, exclusive) or `BEGIN-ADDR+SIZE` (exclusive -
 `SIZE` is a C-style 32-bit literal). Respond with
 `application/octet-stream`, a dump of the requested range.
 
-There is a limit on the amount of data that can be peeked. Currently
-this is 4MBytes.
+You can't peek past 0xffff.
 
-Addresses are as per
-[JGH's addressing scheme](http://mdfs.net/Docs/Comp/BBC/MemAddrs).
+The `PREFIX` argument is any debugger address prefixes (default:
+none), and the `MOS` argument is the value for the `MOS's view` flag
+(default: false). Both are discussed above.
+
+### `poke/WIN/ADDR?p=PREFIX&mos=MOS` ###
+
+Store the request body into memory at `ADDR` (16-bit hex).
+
+As with `peek`, you can't poke past 0xffff.
+
+For info about `PREFIX` and `MOS`, see the `peek` endpoint.
 
 ### `mount/WIN?drive=D&name=N` ###
 

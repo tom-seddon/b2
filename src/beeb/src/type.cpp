@@ -895,7 +895,9 @@ bool ParseAddressPrefix(uint32_t *dso_ptr,
                         Log *log) {
     uint32_t dso = *dso_ptr;
 
-    for (const char *prefix_char = prefix_begin; prefix_char != prefix_end; ++prefix_char) {
+    for (const char *prefix_char = prefix_begin;
+         *prefix_char != 0 && prefix_char != prefix_end;
+         ++prefix_char) {
         char c = (char)tolower(*prefix_char);
 
         if (c == 'p') {

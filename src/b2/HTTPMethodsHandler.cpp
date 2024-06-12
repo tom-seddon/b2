@@ -21,11 +21,6 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-#if BBCMICRO_DEBUGGER
-// somewhat arbitrary limit here...
-static const uint64_t MAX_PEEK_SIZE = 4 * 1024 * 1024;
-#endif
-
 static const std::string HTTP_DISC_IMAGE_LOAD_METHOD = "http";
 
 //////////////////////////////////////////////////////////////////////////
@@ -55,14 +50,6 @@ static std::vector<std::string> GetPathParts(const std::string &path) {
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
-
-#if BBCMICRO_DEBUGGER
-// Implicit dso/mos values for the peek and poke endpoints.
-//
-// This needs tidying up!
-static const uint32_t IMPLICIT_DSO = 0;
-static const bool IMPLICIT_MOS = false;
-#endif
 
 class HTTPMethodsHandler : public HTTPHandler {
     struct HandleRequestData {
@@ -139,6 +126,11 @@ class HTTPMethodsHandler : public HTTPHandler {
 
     bool ParseArgsOrSendResponse2(HTTPServer *server, const HTTPRequest &request, const std::vector<std::string> &parts, size_t command_index, const char *fmt0, va_list v) {
         size_t arg_index = command_index + 1;
+        BeebWindow *beeb_window = nullptr;
+
+        std::string log_string;
+        LogPrinterString log_printer_string(&log_string);
+        Log log("", &log_printer_string);
 
         for (const char *fmt = fmt0; fmt; fmt = va_arg(v, const char *)) {
             const char *name = va_arg(v, const char *);
@@ -217,6 +209,24 @@ class HTTPMethodsHandler : public HTTPHandler {
                     *ptr = BeebWindows::FindBeebWindowByName(*value);
                     if (!*ptr) {
                         server->SendResponse(request, HTTPResponse::NotFound(request));
+                        return false;
+                    }
+                }
+                if (!beeb_window) {
+                    beeb_window = *ptr;
+                }
+            } else if (strcmp(fmt, "dso") == 0) {
+                // Paging overrides. The BBCMicroType to use is inferred from
+                // the first `window' type seen.
+                auto ptr = va_arg(v, uint32_t *);
+                ASSERT(beeb_window);
+                if (value) {
+                    if (!ParseAddressPrefix(ptr,
+                                            beeb_window->GetBeebThread()->GetBBCMicroType(),
+                                            value->c_str(),
+                                            nullptr,
+                                            &log)) {
+                        server->SendResponse(request, HTTPResponse::BadRequest(request, "%s", log_string.c_str()));
                         return false;
                     }
                 }
@@ -307,14 +317,23 @@ class HTTPMethodsHandler : public HTTPHandler {
     void HandlePokeRequest(HTTPServer *server, HTTPRequest &&request, const std::vector<std::string> &path_parts, size_t command_index) {
         BeebWindow *beeb_window;
         uint16_t addr;
+        uint32_t dso = 0;
+        bool mos = false;
         if (!this->ParseArgsOrSendResponse(server, request, path_parts, command_index,
                                            "window", nullptr, &beeb_window,
                                            "x16", nullptr, &addr,
+                                           "dso", "p", &dso,
+                                           "bool", "mos", &mos,
                                            nullptr)) {
             return;
         }
 
-        this->SendMessage(beeb_window, server, request, std::make_shared<BeebThread::DebugSetBytesMessage>(addr, IMPLICIT_DSO, IMPLICIT_MOS, std::move(request.body)));
+        if (addr + request.body.size() > 0x10000) {
+            server->SendResponse(request, HTTPResponse::BadRequest(request, "can't poke past 0xffff"));
+            return;
+        }
+
+        this->SendMessage(beeb_window, server, request, std::make_shared<BeebThread::DebugSetBytesMessage>(addr, dso, mos, std::move(request.body)));
     }
 #endif
 
@@ -324,33 +343,32 @@ class HTTPMethodsHandler : public HTTPHandler {
         uint16_t begin;
         uint64_t end;
         bool end_is_len;
+        uint32_t dso = 0;
+        bool mos = false;
         if (!this->ParseArgsOrSendResponse(server, request, path_parts, command_index,
                                            "window", nullptr, &beeb_window,
                                            "x16", nullptr, &begin,
                                            "x64/len", nullptr, &end, &end_is_len,
+                                           "dso", "p", &dso,
+                                           "bool", "mos", &mos,
                                            nullptr)) {
             return;
         }
 
         if (end_is_len) {
-            if (end > MAX_PEEK_SIZE) {
-                server->SendResponse(request, HTTPResponse::BadRequest(request, "count is too large: %" PRIu64, end));
-                return;
-            }
-
             end += begin;
-        } else {
-            if (end < begin || end > 1ull << 32 || end - begin > MAX_PEEK_SIZE) {
-                server->SendResponse(request, HTTPResponse::BadRequest(request, "bad end address: %" PRIu64, end));
-                return;
-            }
         }
 
-        beeb_window->GetBeebThread()->Send(std::make_unique<BeebThread::CallbackMessage>([begin, end, server, response_data = request.response_data](BBCMicro *m) -> void {
+        if (end > 0x10000) {
+            server->SendResponse(request, HTTPResponse::BadRequest(request, "can't peek past 0xffff"));
+            return;
+        }
+
+        beeb_window->GetBeebThread()->Send(std::make_unique<BeebThread::CallbackMessage>([begin, end, dso, mos, server, response_data = request.response_data](BBCMicro *m) -> void {
             std::vector<uint8_t> data;
             data.resize(end - begin);
 
-            m->DebugGetBytes(data.data(), data.size(), {begin}, IMPLICIT_DSO, IMPLICIT_MOS);
+            m->DebugGetBytes(data.data(), data.size(), {begin}, dso, mos);
 
             HTTPResponse response(HTTP_OCTET_STREAM_CONTENT_TYPE, std::move(data));
             server->SendResponse(response_data, std::move(response));
