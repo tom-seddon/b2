@@ -397,10 +397,6 @@ class BBCMicro : private WD1770Handler,
     uint8_t DebugGetByteDebugFlags(const BigPage *big_page, uint32_t offset) const;
     void DebugSetByteDebugFlags(uint8_t big_page_index, uint32_t offset, uint8_t flags);
 
-    // Returns pointer to per-address debug flags for the entire given mem big
-    // page.
-    const uint8_t *DebugGetAddressDebugFlagsForMemBigPage(uint8_t mem_big_page) const;
-
     // Get/set per-address byte debug flags for one address.
     uint8_t DebugGetAddressDebugFlags(M6502Word addr, uint32_t dso) const;
     void DebugSetAddressDebugFlags(M6502Word addr, uint32_t dso, uint8_t flags);
@@ -436,6 +432,8 @@ class BBCMicro : private WD1770Handler,
     // The breakpoints change counter is incremented any time the set of
     // breakpoints changes.
     uint64_t DebugGetBreakpointsChangeCounter() const;
+
+    void DebugResetLastBreakpointHit(uint32_t dso);
 #endif
 
     void SendBeebLinkResponse(std::vector<uint8_t> data);

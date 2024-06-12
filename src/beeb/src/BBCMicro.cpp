@@ -1790,21 +1790,19 @@ uint64_t BBCMicro::DebugGetBreakpointsChangeCounter() const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-//#if BBCMICRO_DEBUGGER
-//void BBCMicro::DebugGetDebugFlags(uint8_t *host_address_debug_flags,
-//                                  uint8_t *parasite_address_debug_flags,
-//                                  uint8_t *big_pages_debug_flags) const {
-//    if (m_debug) {
-//        memcpy(host_address_debug_flags, m_debug->host_address_debug_flags, 65536);
-//        memcpy(parasite_address_debug_flags, m_debug->parasite_address_debug_flags, 65536);
-//        memcpy(big_pages_debug_flags, m_debug->big_pages_byte_debug_flags, NUM_BIG_PAGES * BIG_PAGE_SIZE_BYTES);
-//    } else {
-//        memset(host_address_debug_flags, 0, 65536);
-//        memset(parasite_address_debug_flags, 0, 65536);
-//        memset(big_pages_debug_flags, 0, NUM_BIG_PAGES * BIG_PAGE_SIZE_BYTES);
-//    }
-//}
-//#endif
+#if BBCMICRO_DEBUGGER
+void BBCMicro::DebugResetLastBreakpointHit(uint32_t dso) {
+    if (dso & BBCMicroDebugStateOverride_Parasite) {
+        if (m_state.parasite_type != BBCMicroParasiteType_None) {
+            m_debug->parasite_hits.hit_prev = m_state.cycle_count;
+            m_debug->parasite_hits.hit_recent = m_state.cycle_count;
+        }
+    } else {
+        m_debug->host_hits.hit_prev = m_state.cycle_count;
+        m_debug->host_hits.hit_recent = m_state.cycle_count;
+    }
+}
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

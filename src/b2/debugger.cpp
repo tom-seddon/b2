@@ -17,6 +17,10 @@ static Command2 g_page_down_command = Command2(&g_disassembly_table, "page_down"
 static Command2 g_step_over_command = Command2(&g_disassembly_table, "step_over", "Step Over").WithShortcut(SDLK_F10);
 static Command2 g_step_in_command = Command2(&g_disassembly_table, "step_in", "Step In").WithShortcut(SDLK_F11);
 
+static CommandTable2 g_6502_table("6502 Window", BBCMICRO_DEBUGGER);
+static Command2 g_reset_host_cycles_since_breakpoint_command = Command2(&g_6502_table, "reset_host_cycles_since_breakpoint", "Reset").WithExtraText("(Cycles since last breakpoint)");
+static Command2 g_reset_parasite_cycles_since_breakpoint_command = Command2(&g_6502_table, "reset_parasite_cycles_since_breakpoint", "Reset").WithExtraText("(Cycles since last parasite breakpoint)");
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
@@ -816,8 +820,24 @@ static std::unique_ptr<DerivedType> CreateParasiteDebugUI(BeebWindow *beeb_windo
 
 class M6502DebugWindow : public DebugUI {
   public:
+    bool ActionCommandsForPCKey(uint32_t pc_key) override {
+        return m_cst.ActionCommandsForPCKey(g_6502_table, pc_key);
+    }
+
   protected:
     void DoImGui2() override {
+        if (m_cst.WasActioned(g_reset_host_cycles_since_breakpoint_command)) {
+            m_beeb_thread->Send(std::make_shared<BeebThread::CallbackMessage>([](BBCMicro *m) -> void {
+                m->DebugResetLastBreakpointHit(0);
+            }));
+        }
+
+        if (m_cst.WasActioned(g_reset_parasite_cycles_since_breakpoint_command)) {
+            m_beeb_thread->Send(std::make_shared<BeebThread::CallbackMessage>([](BBCMicro *m) -> void {
+                m->DebugResetLastBreakpointHit(BBCMicroDebugStateOverride_Parasite);
+            }));
+        }
+
         ImGuiHeader("System state");
 
         char cycles_str[MAX_UINT64_THOUSANDS_SIZE];
@@ -864,7 +884,7 @@ class M6502DebugWindow : public DebugUI {
         uint64_t host_cycles_since_bp = INVALID_CYCLE_COUNT;
         {
             CycleCount hit_cycle_count = this->GetHitCycleCount(m_beeb_debug_state->host_hits);
-            if (hit_cycle_count.n < m_beeb_state->cycle_count.n) {
+            if (hit_cycle_count.n <= m_beeb_state->cycle_count.n) {
                 host_cycles_since_bp = host_cycles - (hit_cycle_count.n >> RSHIFT_CYCLE_COUNT_TO_2MHZ);
             }
         }
@@ -889,11 +909,11 @@ class M6502DebugWindow : public DebugUI {
 
         ImGuiHeader("Host CPU");
 
-        this->StateImGui(m_beeb_state->DebugGetM6502(0), host_cycles_since_bp);
+        this->StateImGui(m_beeb_state->DebugGetM6502(0), host_cycles_since_bp, g_reset_host_cycles_since_breakpoint_command);
 
         if (m_beeb_state->parasite_type != BBCMicroParasiteType_None) {
             ImGuiHeader("Parasite CPU");
-            this->StateImGui(m_beeb_state->DebugGetM6502(BBCMicroDebugStateOverride_Parasite), parasite_cycles_since_bp);
+            this->StateImGui(m_beeb_state->DebugGetM6502(BBCMicroDebugStateOverride_Parasite), parasite_cycles_since_bp, g_reset_parasite_cycles_since_breakpoint_command);
         }
 
         ImGuiHeader("Update Flags");
@@ -913,7 +933,9 @@ class M6502DebugWindow : public DebugUI {
     }
 
   private:
-    void StateImGui(const M6502 *cpu, uint64_t cycles_since_bp) {
+    CommandStateTable m_cst;
+
+    void StateImGui(const M6502 *cpu, uint64_t cycles_since_bp, const Command2 &reset_cycles_since_bp_command) {
         this->Reg("A", cpu->a);
         this->Reg("X", cpu->x);
         this->Reg("Y", cpu->y);
@@ -940,6 +962,9 @@ class M6502DebugWindow : public DebugUI {
         } else {
             ImGui::TextUnformatted("Cycles since last breakpoint = N/A");
         }
+
+        ImGui::SameLine();
+        m_cst.DoButton(reset_cycles_since_bp_command);
     }
 
     void Reg(const char *name, uint8_t value) {
@@ -2226,7 +2251,6 @@ class R6522DebugWindow : public DebugUI {
                     [hw](BBCMicro *m) -> void {
                         m->SetHardwareDebugState(hw);
                     }));
-
             }
         }
     }

@@ -296,7 +296,7 @@ address, etc.) in the bottom half.
 
 Cycles since last breakpoint only tracks breakpoints hit when running.
 If you hit a breakpoint while single stepping, the counter continues
-to count up.
+to count up. Click `Reset` to reset the counter to 0.
 
 ## `Host Memory Debug`, `Parasite Memory Debug` ##
 
