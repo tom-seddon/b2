@@ -130,13 +130,11 @@ class BeebThread {
         // COMPLETION_FUN, if non-null, points to the completion fun to be
         // called when the message completes for the first time. ('completion'
         // is rather vaguely defined, and is message-dependent.) Leave this as
-        // it is to have the completion function called automatically: if *PTR
-        // is non-null, with true (and no message) after the ThreadHandle call
-        // returns, or with false (and no message) if *PTR is null. Move it and
-        // handle in ThreadPrepare if special handling is necessary and/ or a
-        // message would be helpful.
+        // it is to have the completion function called automatically, or move
+        // its contents for later calling to do it manually.
         //
-        // Default impl does nothing and returns true.
+        // Default impl does nothing and returns true (completion_fun will be
+        // called straight away with no message).
         //
         // Return false to reject the message. The completion_fun will be called
         // with false, and the message will be discarded.
@@ -669,14 +667,6 @@ class BeebThread {
       private:
     };
 
-    // Wake thread up when emulator is being resumed. The thread could
-    // have gone to sleep.
-    class DebugWakeUpMessage : public Message {
-      public:
-      protected:
-      private:
-    };
-
     //    class PauseMessage:
     //        public Message
     //    {
@@ -819,6 +809,17 @@ class BeebThread {
       private:
     };
 
+    class CallbackMessage : public CustomMessage {
+      public:
+        explicit CallbackMessage(std::function<void(BBCMicro *)> callback);
+
+        virtual void ThreadHandleMessage(BBCMicro *beeb) override;
+
+      protected:
+      private:
+        std::function<void(BBCMicro *)> m_callback;
+    };
+
     class TimingMessage : public Message {
       public:
         explicit TimingMessage(uint64_t max_sound_units);
@@ -928,16 +929,6 @@ class BeebThread {
     bool IsPasting() const;
 
     bool IsCopying() const;
-
-#if BBCMICRO_DEBUGGER
-    // It's safe to call any of the const BBCMicro public member
-    // functions on the result as long as the lock is held.
-    //const BBCMicro *LockBeeb(std::unique_lock<Mutex> *lock) const;
-
-    // As well as the LockBeeb guarantees, it's also safe to call the
-    // non-const DebugXXX functions.
-    BBCMicro *LockMutableBeeb(std::unique_lock<Mutex> *lock);
-#endif
 
     // Get trace stats, or nullptr if there's no trace.
     const volatile TraceStats *GetTraceStats() const;

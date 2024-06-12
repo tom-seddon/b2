@@ -503,10 +503,6 @@ void DebugUI::DoByteDebugGui(const DebugBigPage *dbp, M6502Word addr) {
             if (this->DoDebugByteFlagsGui(addr_str, &addr_flags)) {
                 uint32_t dso = dbp->bp.metadata->is_parasite ? BBCMicroDebugStateOverride_Parasite : 0;
                 m_beeb_thread->Send(std::make_shared<BeebThread::DebugSetAddressDebugFlags>(addr, dso, addr_flags));
-                //                std::unique_lock<Mutex> lock;
-                //                BBCMicro *m=m_beeb_thread->LockMutableBeeb(&lock);
-                //                m->DebugSetAddressDebugFlags(addr,addr_flags);
-                //                m_beeb_thread->InvalidateDebugBigPageForAddress(addr);
             }
 
             if (RevealTargetUI *reveal_target_ui = this->DoRevealAddressGui()) {
@@ -530,10 +526,6 @@ void DebugUI::DoByteDebugGui(const DebugBigPage *dbp, M6502Word addr) {
                 m_beeb_thread->Send(std::make_shared<BeebThread::DebugSetByteDebugFlags>(dbp->bp.metadata->index,
                                                                                          (uint16_t)addr.p.o,
                                                                                          byte_flags));
-                //                std::unique_lock<Mutex> lock;
-                //                BBCMicro *m=m_beeb_thread->LockMutableBeeb(&lock);
-                //                m->DebugSetByteDebugFlags(dbp->bp,addr.p.o,byte_flags);
-                //                m_beeb_thread->InvalidateDebugBigPageForAddress(addr);
             }
         }
 
@@ -2230,9 +2222,11 @@ class R6522DebugWindow : public DebugUI {
             }
 
             if (changed) {
-                std::unique_lock<Mutex> lock;
-                BBCMicro *m = m_beeb_thread->LockMutableBeeb(&lock);
-                m->SetHardwareDebugState(hw);
+                m_beeb_thread->Send(std::make_shared<BeebThread::CallbackMessage>(
+                    [hw](BBCMicro *m) -> void {
+                        m->SetHardwareDebugState(hw);
+                    }));
+
             }
         }
     }

@@ -359,8 +359,7 @@ class BBCMicroUniqueState : public BBCMicroState {
 // stopped, the two are actually in sync.
 //
 // (Any actual modification to the BBCMicro state is done via BeebThread
-// messages or with a BBCMicro pointer obtained from
-// BeebThread::LockMutableBeeb.)
+// messages.)
 
 class BBCMicroReadOnlyState : public BBCMicroState {
   public:

@@ -493,9 +493,10 @@ void BeebWindow::OptionsUI::DoImGui() {
 
         bool teletext_debug = beeb_state->saa5050.debug;
         if (ImGui::Checkbox("Teletext debug", &teletext_debug)) {
-            std::unique_lock<Mutex> lock;
-            BBCMicro *m = m_beeb_window->m_beeb_thread->LockMutableBeeb(&lock);
-            m->SetTeletextDebug(teletext_debug);
+            m_beeb_window->m_beeb_thread->Send(
+                std::make_shared<BeebThread::CallbackMessage>([teletext_debug](BBCMicro *m) -> void {
+                    m->SetTeletextDebug(teletext_debug);
+                }));
         }
 
         ImGui::Checkbox("Show TV beam position", &m_beeb_window->m_tv.show_beam_position);
@@ -1298,21 +1299,18 @@ void BeebWindow::DoCommands(bool *close_window) {
 #if BBCMICRO_DEBUGGER
     m_cst.SetEnabled(g_debug_run_command, this->DebugIsHalted());
     if (m_cst.WasActioned(g_debug_run_command)) {
-        std::unique_lock<Mutex> lock;
-        BBCMicro *m = m_beeb_thread->LockMutableBeeb(&lock);
-
-        m->DebugRun();
-        m_beeb_thread->Send(std::make_shared<BeebThread::DebugWakeUpMessage>());
+        m_beeb_thread->Send(std::make_shared<BeebThread::CallbackMessage>([](BBCMicro *m) -> void {
+            m->DebugRun();
+        }));
     }
 #endif
 
 #if BBCMICRO_DEBUGGER
     m_cst.SetEnabled(g_debug_stop_command, !m_cst.GetEnabled(g_debug_run_command));
     if (m_cst.WasActioned(g_debug_stop_command)) {
-        std::unique_lock<Mutex> lock;
-        BBCMicro *m = m_beeb_thread->LockMutableBeeb(&lock);
-
-        m->DebugHalt("manual stop");
+        m_beeb_thread->Send(std::make_shared<BeebThread::CallbackMessage>([](BBCMicro *m) -> void {
+            m->DebugHalt("manual stop");
+        }));
     }
 #endif
 
@@ -3380,12 +3378,10 @@ void BeebWindow::SetClipboardFromBBCASCII(const std::vector<uint8_t> &data, cons
 
 #if BBCMICRO_DEBUGGER
 void BeebWindow::DebugStepOver(uint32_t dso) {
-    std::unique_lock<Mutex> lock;
-    BBCMicro *m = m_beeb_thread->LockMutableBeeb(&lock);
-
-    m->DebugStepOver(dso);
-    m->DebugRun();
-    m_beeb_thread->Send(std::make_shared<BeebThread::DebugWakeUpMessage>());
+    m_beeb_thread->Send(std::make_shared<BeebThread::CallbackMessage>([dso](BBCMicro *m) -> void {
+        m->DebugStepOver(dso);
+        m->DebugRun();
+    }));
 }
 #endif
 
@@ -3394,12 +3390,10 @@ void BeebWindow::DebugStepOver(uint32_t dso) {
 
 #if BBCMICRO_DEBUGGER
 void BeebWindow::DebugStepIn(uint32_t dso) {
-    std::unique_lock<Mutex> lock;
-    BBCMicro *m = m_beeb_thread->LockMutableBeeb(&lock);
-
-    m->DebugStepIn(dso);
-    m->DebugRun();
-    m_beeb_thread->Send(std::make_shared<BeebThread::DebugWakeUpMessage>());
+    m_beeb_thread->Send(std::make_shared<BeebThread::CallbackMessage>([dso](BBCMicro *m) -> void {
+        m->DebugStepIn(dso);
+        m->DebugRun();
+    }));
 }
 #endif
 
