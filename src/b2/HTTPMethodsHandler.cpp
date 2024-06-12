@@ -57,51 +57,6 @@ static std::vector<std::string> GetPathParts(const std::string &path) {
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_DEBUGGER
-class BeebThreadPeekMessage : public BeebThread::CustomMessage {
-  public:
-    BeebThreadPeekMessage(uint16_t addr,
-                          uint32_t dso,
-                          bool mos,
-                          uint64_t count,
-                          HTTPServer *server,
-                          HTTPRequest &&request)
-        : m_addr(addr)
-        , m_dso(dso)
-        , m_mos(mos)
-        , m_count(count)
-        , m_server(server)
-        , m_response_data(request.response_data) {
-        LOGF(OUTPUT, "BeebThreadPeekMessage: this=%p\n", (void *)this);
-    }
-
-    void ThreadHandleMessage(BBCMicro *beeb) override {
-        HTTPResponse m_response;
-        M6502Word addr = {m_addr};
-
-        std::vector<uint8_t> data;
-        data.resize(m_count);
-
-        beeb->DebugGetBytes(data.data(), data.size(), addr, m_dso, m_mos);
-
-        HTTPResponse response(HTTP_OCTET_STREAM_CONTENT_TYPE, std::move(data));
-        m_server->SendResponse(m_response_data, std::move(response));
-    }
-
-  protected:
-  private:
-    uint16_t m_addr = 0;
-    uint32_t m_dso = 0;
-    bool m_mos = false;
-    uint64_t m_count = 0;
-    HTTPServer *m_server = nullptr;
-    HTTPResponseData m_response_data;
-};
-#endif
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-#if BBCMICRO_DEBUGGER
 // Implicit dso/mos values for the peek and poke endpoints.
 //
 // This needs tidying up!
@@ -391,8 +346,17 @@ class HTTPMethodsHandler : public HTTPHandler {
             }
         }
 
-        beeb_window->GetBeebThread()->Send(std::make_unique<BeebThreadPeekMessage>(begin, IMPLICIT_DSO, IMPLICIT_MOS, end - begin, server, std::move(request)));
+        beeb_window->GetBeebThread()->Send(std::make_unique<BeebThread::CallbackMessage>([begin, end, server, response_data = request.response_data](BBCMicro *m) -> void {
+            std::vector<uint8_t> data;
+            data.resize(end - begin);
+
+            m->DebugGetBytes(data.data(), data.size(), {begin}, IMPLICIT_DSO, IMPLICIT_MOS);
+
+            HTTPResponse response(HTTP_OCTET_STREAM_CONTENT_TYPE, std::move(data));
+            server->SendResponse(response_data, std::move(response));
+        }));
     }
+
 #endif
 
 #if BBCMICRO_DEBUGGER

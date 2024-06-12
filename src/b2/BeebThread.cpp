@@ -1587,18 +1587,6 @@ bool BeebThread::CreateTimelineVideoMessage::ThreadPrepare(std::shared_ptr<Messa
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool BeebThread::CustomMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
-                                              CompletionFun *completion_fun,
-                                              BeebThread *beeb_thread,
-                                              ThreadState *ts) {
-    (void)completion_fun, (void)beeb_thread;
-
-    this->ThreadHandleMessage(ts->beeb);
-
-    ptr->reset();
-    return true;
-}
-
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
@@ -1609,10 +1597,18 @@ BeebThread::CallbackMessage::CallbackMessage(std::function<void(BBCMicro *)> cal
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void BeebThread::CallbackMessage::ThreadHandleMessage(BBCMicro *beeb) {
+bool BeebThread::CallbackMessage::ThreadPrepare(std::shared_ptr<Message> *ptr,
+                                                CompletionFun *completion_fun,
+                                                BeebThread *beeb_thread,
+                                                ThreadState *ts) {
+    (void)completion_fun, (void)beeb_thread;
+
     if (m_callback) {
-        m_callback(beeb);
+        m_callback(ts->beeb);
     }
+
+    ptr->reset();
+    return true;
 }
 
 //////////////////////////////////////////////////////////////////////////

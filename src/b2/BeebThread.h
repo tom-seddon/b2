@@ -792,28 +792,16 @@ class BeebThread {
         std::unique_ptr<VideoWriter> m_video_writer;
     };
 
-    // Somewhat open-ended extension mechanism.
-    //
-    // This does the bare minimum needed for the HTTP stuff to hang
-    // together.
-    class CustomMessage : public Message {
+    // Extension mechanism. The supplied callback is called on the BeebThread
+    // once, when the message is prepared.
+    class CallbackMessage : public Message {
       public:
+        explicit CallbackMessage(std::function<void(BBCMicro *)> callback);
+
         bool ThreadPrepare(std::shared_ptr<Message> *ptr,
                            CompletionFun *completion_fun,
                            BeebThread *beeb_thread,
                            ThreadState *ts) override;
-
-        virtual void ThreadHandleMessage(BBCMicro *beeb) = 0;
-
-      protected:
-      private:
-    };
-
-    class CallbackMessage : public CustomMessage {
-      public:
-        explicit CallbackMessage(std::function<void(BBCMicro *)> callback);
-
-        virtual void ThreadHandleMessage(BBCMicro *beeb) override;
 
       protected:
       private:
