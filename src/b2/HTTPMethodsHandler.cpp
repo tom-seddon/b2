@@ -215,7 +215,9 @@ class HTTPMethodsHandler : public HTTPHandler {
                 if (!beeb_window) {
                     beeb_window = *ptr;
                 }
-            } else if (strcmp(fmt, "dso") == 0) {
+            }                                   //<-- note
+#if BBCMICRO_DEBUGGER                           //<-- note
+            else if (strcmp(fmt, "dso") == 0) { //<-- note
                 // Paging overrides. The BBCMicroType to use is inferred from
                 // the first `window' type seen.
                 auto ptr = va_arg(v, uint32_t *);
@@ -230,7 +232,9 @@ class HTTPMethodsHandler : public HTTPHandler {
                         return false;
                     }
                 }
-            } else {
+            }      //<-- note
+#endif             //<-- note
+            else { //<-- note
                 ASSERT(false);
                 server->SendResponse(request, HTTPResponse());
                 return false;
