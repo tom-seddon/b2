@@ -41,7 +41,7 @@ add_executable(b2 MACOSX_BUNDLE
   commands.cpp commands.h
   conf.cpp conf.h
   dear_imgui.cpp dear_imgui.h
-  debugger.cpp debugger.h debugger.inl
+  debugger.cpp debugger.h
   discs.cpp discs.h
   filters.cpp filters.h
   keymap.cpp keymap.h
