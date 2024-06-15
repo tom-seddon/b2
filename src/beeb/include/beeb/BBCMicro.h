@@ -64,14 +64,17 @@ class BBCMicro : private WD1770Handler,
     struct DebugState {
         static const uint16_t INVALID_PAGE_INDEX = 0xffff;
 
-        struct BreakpointHits {
-            // Cycle count of most recent hit, or invalid if no such.
-            CycleCount hit_recent = {INVALID_CYCLE_COUNT};
+        struct RelativeCycleCountBase {
+            // Cycle count of most recent reset, or invalid if no such.
+            CycleCount recent = {};
 
-            // Cycle count of previous hit, if any. Used to provide a useful
+            // Cycle count of previous reset, if any. Used to provide a useful
             // time-since-last-breakpoint indicator if a breakpoint was hit this
             // cycle (thus overwriting hit_recent).
-            CycleCount hit_prev = {INVALID_CYCLE_COUNT};
+            CycleCount prev = {};
+
+            // Whether to reset when a breokpoint is hit.
+            bool reset_on_breakpoint = true;
         };
 
         struct Breakpoint {
@@ -85,8 +88,8 @@ class BBCMicro : private WD1770Handler,
 
         HardwareDebugState hw;
 
-        BreakpointHits host_hits;
-        BreakpointHits parasite_hits;
+        RelativeCycleCountBase host_relative_base;
+        RelativeCycleCountBase parasite_relative_base;
 
         // No attempt made to minimize this stuff... it doesn't go into
         // the saved states, so whatever.
@@ -433,7 +436,8 @@ class BBCMicro : private WD1770Handler,
     // breakpoints changes.
     uint64_t DebugGetBreakpointsChangeCounter() const;
 
-    void DebugResetLastBreakpointHit(uint32_t dso);
+    void DebugResetRelativeCycleBase(uint32_t dso);
+    void DebugToggleResetRelativeCycleBaseOnBreakpoint(uint32_t dso);
 #endif
 
     void SendBeebLinkResponse(std::vector<uint8_t> data);
@@ -637,7 +641,7 @@ class BBCMicro : private WD1770Handler,
     void UpdateDebugBigPages(MemoryBigPages *mem_big_pages);
     void UpdateDebugState();
     void SetDebugStepType(BBCMicroStepType step_type, const M6502 *step_cpu);
-    void DebugHitBreakpoint(const M6502 *cpu, BBCMicro::DebugState::BreakpointHits *hits, uint8_t flags);
+    void DebugHitBreakpoint(const M6502 *cpu, BBCMicro::DebugState::RelativeCycleCountBase *base, uint8_t flags);
     void DebugHandleStep();
     // Public for the debugger's benefit.
 #endif

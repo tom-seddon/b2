@@ -18,8 +18,10 @@ static Command2 g_step_over_command = Command2(&g_disassembly_table, "step_over"
 static Command2 g_step_in_command = Command2(&g_disassembly_table, "step_in", "Step In").WithShortcut(SDLK_F11);
 
 static CommandTable2 g_6502_table("6502 Window", BBCMICRO_DEBUGGER);
-static Command2 g_reset_host_cycles_since_breakpoint_command = Command2(&g_6502_table, "reset_host_cycles_since_breakpoint", "Reset").WithExtraText("(Cycles since last breakpoint)");
-static Command2 g_reset_parasite_cycles_since_breakpoint_command = Command2(&g_6502_table, "reset_parasite_cycles_since_breakpoint", "Reset").WithExtraText("(Cycles since last parasite breakpoint)");
+static Command2 g_reset_host_relative_cycles_command = Command2(&g_6502_table, "reset_host_relative_cycles", "Reset").WithExtraText("(Relative cycles)");
+static Command2 g_toggle_reset_host_relative_cycles_on_breakpoint_command = Command2(&g_6502_table, "toggle_reset_host_relative_cycles_on_breakpoint", "Reset on breakpint").WithExtraText("(Relative cycles)").WithTick();
+static Command2 g_reset_parasite_relative_cycles_command = Command2(&g_6502_table, "reset_parasite_relative_cycles", "Reset").WithExtraText("(Parasite relative cycles)");
+static Command2 g_toggle_reset_parasite_relative_cycles_on_breakpoint_command = Command2(&g_6502_table, "toggle_reset_parasite_relative_cycles_on_breakpoint", "Reset on breakpint").WithExtraText("(Parasite relative cycles)").WithTick();
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -826,15 +828,29 @@ class M6502DebugWindow : public DebugUI {
 
   protected:
     void DoImGui2() override {
-        if (m_cst.WasActioned(g_reset_host_cycles_since_breakpoint_command)) {
+        if (m_cst.WasActioned(g_reset_host_relative_cycles_command)) {
             m_beeb_thread->Send(std::make_shared<BeebThread::CallbackMessage>([](BBCMicro *m) -> void {
-                m->DebugResetLastBreakpointHit(0);
+                m->DebugResetRelativeCycleBase(0);
             }));
         }
 
-        if (m_cst.WasActioned(g_reset_parasite_cycles_since_breakpoint_command)) {
+        m_cst.SetTicked(g_toggle_reset_host_relative_cycles_on_breakpoint_command, m_beeb_debug_state->host_relative_base.reset_on_breakpoint);
+        if (m_cst.WasActioned(g_toggle_reset_host_relative_cycles_on_breakpoint_command)) {
             m_beeb_thread->Send(std::make_shared<BeebThread::CallbackMessage>([](BBCMicro *m) -> void {
-                m->DebugResetLastBreakpointHit(BBCMicroDebugStateOverride_Parasite);
+                m->DebugToggleResetRelativeCycleBaseOnBreakpoint(0);
+            }));
+        }
+
+        if (m_cst.WasActioned(g_reset_parasite_relative_cycles_command)) {
+            m_beeb_thread->Send(std::make_shared<BeebThread::CallbackMessage>([](BBCMicro *m) -> void {
+                m->DebugResetRelativeCycleBase(BBCMicroDebugStateOverride_Parasite);
+            }));
+        }
+
+        m_cst.SetTicked(g_toggle_reset_parasite_relative_cycles_on_breakpoint_command, m_beeb_debug_state->parasite_relative_base.reset_on_breakpoint);
+        if (m_cst.WasActioned(g_toggle_reset_parasite_relative_cycles_on_breakpoint_command)) {
+            m_beeb_thread->Send(std::make_shared<BeebThread::CallbackMessage>([](BBCMicro *m) -> void {
+                m->DebugToggleResetRelativeCycleBaseOnBreakpoint(BBCMicroDebugStateOverride_Parasite);
             }));
         }
 
@@ -842,8 +858,8 @@ class M6502DebugWindow : public DebugUI {
 
         char cycles_str[MAX_UINT64_THOUSANDS_SIZE];
 
-        uint64_t parasite_cycles = INVALID_CYCLE_COUNT;
-        uint64_t parasite_cycles_since_bp = INVALID_CYCLE_COUNT;
+        uint64_t parasite_cycles = 0;
+        uint64_t parasite_cycles_relative = 0;
         const char *parasite_units = nullptr;
 
         switch (m_beeb_state->parasite_type) {
@@ -854,47 +870,29 @@ class M6502DebugWindow : public DebugUI {
             break;
 
         case BBCMicroParasiteType_External3MHz6502:
-            {
-                parasite_units = "3 MHz";
+            parasite_units = "3 MHz";
 
-                parasite_cycles = BBCMicro::Get3MHzCycleCount(m_beeb_state->cycle_count);
-
-                CycleCount hit_cycle_count = this->GetHitCycleCount(m_beeb_debug_state->parasite_hits);
-                if (hit_cycle_count.n < m_beeb_state->cycle_count.n) {
-                    parasite_cycles_since_bp = parasite_cycles - BBCMicro::Get3MHzCycleCount(hit_cycle_count);
-                }
-            }
+            parasite_cycles = BBCMicro::Get3MHzCycleCount(m_beeb_state->cycle_count);
+            parasite_cycles_relative = parasite_cycles - BBCMicro::Get3MHzCycleCount(this->GetRelativeBase(m_beeb_debug_state->parasite_relative_base));
             break;
 
         case BBCMicroParasiteType_MasterTurbo:
-            {
-                parasite_units = "4 MHz";
+            parasite_units = "4 MHz";
 
-                parasite_cycles = m_beeb_state->cycle_count.n >> RSHIFT_CYCLE_COUNT_TO_4MHZ;
-
-                CycleCount hit_cycle_count = this->GetHitCycleCount(m_beeb_debug_state->parasite_hits);
-                if (hit_cycle_count.n < m_beeb_state->cycle_count.n) {
-                    parasite_cycles_since_bp = parasite_cycles - (hit_cycle_count.n >> RSHIFT_CYCLE_COUNT_TO_4MHZ);
-                }
-            }
+            parasite_cycles = m_beeb_state->cycle_count.n >> RSHIFT_CYCLE_COUNT_TO_4MHZ;
+            parasite_cycles_relative = parasite_cycles - (this->GetRelativeBase(m_beeb_debug_state->parasite_relative_base).n >> RSHIFT_CYCLE_COUNT_TO_4MHZ);
             break;
         }
 
         uint64_t host_cycles = m_beeb_state->cycle_count.n >> RSHIFT_CYCLE_COUNT_TO_2MHZ;
-        uint64_t host_cycles_since_bp = INVALID_CYCLE_COUNT;
-        {
-            CycleCount hit_cycle_count = this->GetHitCycleCount(m_beeb_debug_state->host_hits);
-            if (hit_cycle_count.n <= m_beeb_state->cycle_count.n) {
-                host_cycles_since_bp = host_cycles - (hit_cycle_count.n >> RSHIFT_CYCLE_COUNT_TO_2MHZ);
-            }
-        }
+        uint64_t host_cycles_relative = host_cycles - (this->GetRelativeBase(m_beeb_debug_state->host_relative_base).n >> RSHIFT_CYCLE_COUNT_TO_2MHZ);
 
         GetThousandsString(cycles_str, host_cycles);
         ImGui::Text("2 MHz host cycles = %s", cycles_str);
 
         if (m_beeb_state->parasite_type != BBCMicroParasiteType_None) {
             GetThousandsString(cycles_str, parasite_cycles);
-            ImGui::Text("%s parasite cycles = %s", cycles_str);
+            ImGui::Text("%s parasite cycles = %s", parasite_units, cycles_str);
         }
 
         if (m_beeb_debug_state && m_beeb_debug_state->is_halted) {
@@ -909,11 +907,11 @@ class M6502DebugWindow : public DebugUI {
 
         ImGuiHeader("Host CPU");
 
-        this->StateImGui(m_beeb_state->DebugGetM6502(0), host_cycles_since_bp, g_reset_host_cycles_since_breakpoint_command);
+        this->StateImGui(m_beeb_state->DebugGetM6502(0), host_cycles_relative, g_reset_host_relative_cycles_command, g_toggle_reset_host_relative_cycles_on_breakpoint_command);
 
         if (m_beeb_state->parasite_type != BBCMicroParasiteType_None) {
             ImGuiHeader("Parasite CPU");
-            this->StateImGui(m_beeb_state->DebugGetM6502(BBCMicroDebugStateOverride_Parasite), parasite_cycles_since_bp, g_reset_parasite_cycles_since_breakpoint_command);
+            this->StateImGui(m_beeb_state->DebugGetM6502(BBCMicroDebugStateOverride_Parasite), parasite_cycles_relative, g_reset_parasite_relative_cycles_command, g_toggle_reset_parasite_relative_cycles_on_breakpoint_command);
         }
 
         ImGuiHeader("Update Flags");
@@ -935,7 +933,10 @@ class M6502DebugWindow : public DebugUI {
   private:
     CommandStateTable m_cst;
 
-    void StateImGui(const M6502 *cpu, uint64_t cycles_since_bp, const Command2 &reset_cycles_since_bp_command) {
+    void StateImGui(const M6502 *cpu,
+                    uint64_t cycles_relative,
+                    const Command2 &reset_relative_cycles_command,
+                    const Command2 &toggle_reset_relative_cycles_on_breakpoint_command) {
         this->Reg("A", cpu->a);
         this->Reg("X", cpu->x);
         this->Reg("Y", cpu->y);
@@ -955,28 +956,28 @@ class M6502DebugWindow : public DebugUI {
         ImGui::Text("Address = $%04x; Data = $%02x %03d %s %s", cpu->abus.w, cpu->dbus, cpu->dbus, BINARY_BYTE_STRINGS[cpu->dbus], ASCII_BYTE_STRINGS[cpu->dbus]);
         ImGui::Text("Access = %s", M6502ReadType_GetName(cpu->read));
 
-        if (cycles_since_bp != INVALID_CYCLE_COUNT) {
+        {
             char cycles_str[MAX_UINT64_THOUSANDS_SIZE];
-            GetThousandsString(cycles_str, cycles_since_bp);
-            ImGui::Text("Cycles since last breakpoint = %s", cycles_str);
-        } else {
-            ImGui::TextUnformatted("Cycles since last breakpoint = N/A");
+            GetThousandsString(cycles_str, cycles_relative);
+            ImGui::Text("Relative cycles = %s", cycles_str);
         }
 
         ImGui::SameLine();
-        m_cst.DoButton(reset_cycles_since_bp_command);
+        m_cst.DoButton(reset_relative_cycles_command);
+        ImGui::SameLine();
+        m_cst.DoToggleCheckbox(toggle_reset_relative_cycles_on_breakpoint_command);
     }
 
     void Reg(const char *name, uint8_t value) {
         ImGui::Text("%s = $%02x %03d %s", name, value, value, BINARY_BYTE_STRINGS[value]);
     }
 
-    CycleCount GetHitCycleCount(const BBCMicro::DebugState::BreakpointHits &hits) const {
+    CycleCount GetRelativeBase(const BBCMicro::DebugState::RelativeCycleCountBase &base) const {
         // The state has advanced past the hit cycle, so compensate with a -1.
-        if (m_beeb_state->cycle_count.n - 1 == hits.hit_recent.n && hits.hit_prev.n != INVALID_CYCLE_COUNT) {
-            return hits.hit_prev;
+        if (m_beeb_state->cycle_count.n - 1 == base.recent.n) {
+            return base.prev;
         } else {
-            return hits.hit_recent;
+            return base.recent;
         }
     }
 };

@@ -126,9 +126,6 @@ static_assert(TV_TEXTURE_WIDTH % 8 == 0, "");
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-// As a uint64_t, this invalid cycle count has no specific frequency.
-static const uint64_t INVALID_CYCLE_COUNT = 0xffffffffffffffffull;
-
 // Slightly pointless struct that distinguishes uint64_t values that count
 // cycles from other types.
 //

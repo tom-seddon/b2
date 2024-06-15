@@ -1791,15 +1791,30 @@ uint64_t BBCMicro::DebugGetBreakpointsChangeCounter() const {
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_DEBUGGER
-void BBCMicro::DebugResetLastBreakpointHit(uint32_t dso) {
+void BBCMicro::DebugResetRelativeCycleBase(uint32_t dso) {
     if (dso & BBCMicroDebugStateOverride_Parasite) {
         if (m_state.parasite_type != BBCMicroParasiteType_None) {
-            m_debug->parasite_hits.hit_prev = m_state.cycle_count;
-            m_debug->parasite_hits.hit_recent = m_state.cycle_count;
+            m_debug->parasite_relative_base.prev = m_state.cycle_count;
+            m_debug->parasite_relative_base.recent = m_state.cycle_count;
         }
     } else {
-        m_debug->host_hits.hit_prev = m_state.cycle_count;
-        m_debug->host_hits.hit_recent = m_state.cycle_count;
+        m_debug->host_relative_base.prev = m_state.cycle_count;
+        m_debug->host_relative_base.recent = m_state.cycle_count;
+    }
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_DEBUGGER
+void BBCMicro::DebugToggleResetRelativeCycleBaseOnBreakpoint(uint32_t dso) {
+    if (dso & BBCMicroDebugStateOverride_Parasite) {
+        if (m_state.parasite_type != BBCMicroParasiteType_None) {
+            m_debug->parasite_relative_base.reset_on_breakpoint = !m_debug->parasite_relative_base.reset_on_breakpoint;
+        }
+    } else {
+        m_debug->host_relative_base.reset_on_breakpoint = !m_debug->host_relative_base.reset_on_breakpoint;
     }
 }
 #endif
@@ -2046,13 +2061,13 @@ void BBCMicro::SetDebugStepType(BBCMicroStepType step_type, const M6502 *step_cp
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_DEBUGGER
-void BBCMicro::DebugHitBreakpoint(const M6502 *cpu, BBCMicro::DebugState::BreakpointHits *hits, uint8_t flags) {
+void BBCMicro::DebugHitBreakpoint(const M6502 *cpu, BBCMicro::DebugState::RelativeCycleCountBase *base, uint8_t flags) {
     auto metadata = (const M6502Metadata *)cpu->context;
-    bool update_hits = false;
+    bool maybe_update_base = false;
 
     if (cpu->read == 0) {
         if (flags & BBCMicroByteDebugFlag_BreakWrite) {
-            update_hits = true;
+            maybe_update_base = true;
             DebugHalt("%s data write: $%04x", metadata->name, m_state.cpu.abus.w);
         }
     } else {
@@ -2064,7 +2079,7 @@ void BBCMicro::DebugHitBreakpoint(const M6502 *cpu, BBCMicro::DebugState::Breakp
             if (cpu->read == M6502ReadType_Opcode) {
                 // Only update the hit cycle count when not stepping.
                 if (m_debug->step_type == BBCMicroStepType_None) {
-                    update_hits = true;
+                    maybe_update_base = true;
                 }
 
                 this->DebugHalt("%s execute: $%04x", metadata->name, m_state.cpu.abus.w);
@@ -2073,15 +2088,17 @@ void BBCMicro::DebugHitBreakpoint(const M6502 *cpu, BBCMicro::DebugState::Breakp
 
         if (flags & BBCMicroByteDebugFlag_BreakRead) {
             if (cpu->read <= M6502ReadType_LastInterestingDataRead) {
-                update_hits = true;
+                maybe_update_base = true;
                 this->DebugHalt("%s data read: $%04x", metadata->name, m_state.cpu.abus.w);
             }
         }
     }
 
-    if (update_hits) {
-        hits->hit_prev = hits->hit_recent;
-        hits->hit_recent = m_state.cycle_count;
+    if (maybe_update_base) {
+        if (base->reset_on_breakpoint) {
+            base->prev = base->recent;
+            base->recent = m_state.cycle_count;
+        }
     }
 }
 #endif

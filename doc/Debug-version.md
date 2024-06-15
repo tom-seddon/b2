@@ -294,9 +294,16 @@ Show a 6502 debug window. Displays typical register info in the top
 half, and internal stuff (cycle count, internal state, data bus
 address, etc.) in the bottom half.
 
-Cycles since last breakpoint only tracks breakpoints hit when running.
-If you hit a breakpoint while single stepping, the counter continues
-to count up. Click `Reset` to reset the counter to 0.
+(Unlike the other windows, the host and parasite 6502s share a window.
+This will get fixed eventually!)
+
+The cycle count indicator always counts cycles since the emulated
+system was started. The relative cycle count indicator counts at the
+same rate, but can also be reset to 0 using `Reset`.
+
+When `Reset on breakpoint` is ticked (as is the default), the relative
+cycle count is reset when a breakpoint is hit when running.
+Breakpoints hit while single stepping won't affect the counter.
 
 ## `Host Memory Debug`, `Parasite Memory Debug` ##
 

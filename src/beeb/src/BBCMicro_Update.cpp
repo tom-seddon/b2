@@ -170,7 +170,7 @@ uint32_t BBCMicro::UpdateTemplated(VideoDataUnit *video_unit, SoundDataUnit *sou
                 }
 
                 if (flags & BBCMicroByteDebugFlag_AnyBreakReadMask) {
-                    this->DebugHitBreakpoint(&m_state.parasite_cpu, &m_debug->parasite_hits, flags);
+                    this->DebugHitBreakpoint(&m_state.parasite_cpu, &m_debug->parasite_relative_base, flags);
                 }
             }
 #endif
@@ -199,7 +199,7 @@ uint32_t BBCMicro::UpdateTemplated(VideoDataUnit *video_unit, SoundDataUnit *sou
                 uint8_t flags = (m_debug->parasite_address_debug_flags[m_state.parasite_cpu.abus.w] |
                                  *((uint8_t *)m_debug->big_pages_byte_debug_flags[PARASITE_BIG_PAGE_INDEX] + m_state.parasite_cpu.abus.w));
                 if (flags & BBCMicroByteDebugFlag_AnyBreakWriteMask) {
-                    this->DebugHitBreakpoint(&m_state.parasite_cpu, &m_debug->parasite_hits, flags);
+                    this->DebugHitBreakpoint(&m_state.parasite_cpu, &m_debug->parasite_relative_base, flags);
                 }
             }
 #endif
@@ -313,7 +313,7 @@ parasite_update_done:
                     uint8_t flags = (m_debug->host_address_debug_flags[m_state.cpu.abus.w] |
                                      m_pc_mem_big_pages[m_state.cpu.opcode_pc.p.p]->byte_debug_flags[m_state.cpu.abus.p.p][m_state.cpu.abus.p.o]);
                     if (flags & BBCMicroByteDebugFlag_AnyBreakReadMask) {
-                        this->DebugHitBreakpoint(&m_state.cpu, &m_debug->host_hits, flags);
+                        this->DebugHitBreakpoint(&m_state.cpu, &m_debug->host_relative_base, flags);
                     }
 
                     if (read == M6502ReadType_Interrupt) {
@@ -340,7 +340,7 @@ parasite_update_done:
                                      m_pc_mem_big_pages[m_state.cpu.opcode_pc.p.p]->byte_debug_flags[m_state.cpu.abus.p.p][m_state.cpu.abus.p.o]);
 
                     if (flags & BBCMicroByteDebugFlag_AnyBreakWriteMask) {
-                        this->DebugHitBreakpoint(&m_state.cpu, &m_debug->host_hits, flags);
+                        this->DebugHitBreakpoint(&m_state.cpu, &m_debug->host_relative_base, flags);
                     }
                 }
 #endif
