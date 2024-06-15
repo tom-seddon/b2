@@ -2958,111 +2958,144 @@ class StackDebugWindow : public DebugUI {
   public:
   protected:
     void DoImGui2() override {
-        static const char ADDR_CONTEXT_POPUP_NAME[] = "stack_addr_context_popup";
-
         if (this->IsStateUnavailableImGui()) {
             return;
         }
+
+        this->DoDebugPageOverrideImGui();
 
         const M6502 *cpu = m_beeb_state->DebugGetM6502(m_dso);
         uint8_t s = cpu->s.b.l;
 
         const DebugBigPage *value_dbp = this->GetDebugBigPageForAddress({0}, false);
 
-        ImGui::Columns(7, "stack_columns");
-        ImGui::TextUnformatted("");
-        ImGui::NextColumn();
-        ImGui::TextUnformatted("%d");
-        ImGui::NextColumn();
-        ImGui::TextUnformatted("%u");
-        ImGui::NextColumn();
-        ImGui::TextUnformatted("%c");
-        ImGui::NextColumn();
-        ImGui::TextUnformatted("Hex");
-        ImGui::NextColumn();
-        ImGui::TextUnformatted("Binary");
-        ImGui::NextColumn();
-        ImGui::TextUnformatted("Addr");
-        ImGui::NextColumn();
-        ImGui::Separator();
+        ImGui::BeginTable("stack_table", 9, ImGuiTableFlags_Resizable | ImGuiTableFlags_Reorderable | ImGuiTableFlags_Hideable | ImGuiTableFlags_ScrollY);
 
-        ImGuiStyleColourPusher colour_pusher;
+        ImGui::TableSetupColumn("S", ImGuiTableColumnFlags_WidthFixed, 0.f);
+        ImGui::TableSetupColumn("Int", ImGuiTableColumnFlags_WidthFixed, 0.f);
+        ImGui::TableSetupColumn("Byte", ImGuiTableColumnFlags_WidthFixed, 0.f);
+        ImGui::TableSetupColumn("Char", ImGuiTableColumnFlags_WidthFixed, 0.f);
+        ImGui::TableSetupColumn("Hex", ImGuiTableColumnFlags_WidthFixed, 0.f);
+        ImGui::TableSetupColumn("Bin", ImGuiTableColumnFlags_WidthFixed, 0.f);
+        ImGui::TableSetupColumn("Addr", ImGuiTableColumnFlags_WidthFixed, 0.f);
+        ImGui::TableSetupColumn("rts", ImGuiTableColumnFlags_WidthFixed, 0.f);
+        ImGui::TableSetupColumn("jsr", ImGuiTableColumnFlags_WidthFixed, 0.f);
 
-        for (int offset = 255; offset >= 0; --offset) {
-            if (offset == s) {
-                colour_pusher.Push(ImGuiCol_Text, ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled));
-            }
+        ImGui::TableSetupScrollFreeze(0, 1);
+        ImGui::TableHeadersRow();
 
-            M6502Word value_addr = {(uint16_t)(0x100 + offset)};
-            uint8_t value = value_dbp->bp.r[value_addr.w];
+        {
+            ImVec4 disabled_colour = ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled);
+            ImGuiStyleColourPusher colour_pusher;
+            bool in_active_stack = true;
 
-            ImGui::Text("$%04x", value_addr.w);
-            this->DoBytePopupGui(value_dbp, value_addr);
-            ImGui::NextColumn();
+            for (int offset = 255; offset >= 0; --offset) {
+                ImGui::TableNextRow();
 
-            ImGui::Text("% 3d", (int8_t)value);
-            ImGui::NextColumn();
+                if (offset == s) {
+                    ImGui::Separator();
+                    colour_pusher.Push(ImGuiCol_Text, disabled_colour);
+                    in_active_stack = false;
+                }
 
-            ImGui::Text("%3u", value);
-            ImGui::NextColumn();
+                M6502Word value_addr = {(uint16_t)(0x100 + offset)};
+                uint8_t value = value_dbp->bp.r[value_addr.w];
 
-            if (value >= 32 && value < 127) {
-                ImGui::Text("%c", (char)value);
-            }
-            ImGui::NextColumn();
+                ImGui::TableNextColumn();
+                ImGui::Text("$%04x", value_addr.w);
+                this->DoBytePopupGui(value_dbp, value_addr);
 
-            ImGui::Text("$%02x", value);
-            ImGui::NextColumn();
+                ImGui::TableNextColumn();
+                ImGui::Text("%4d", (int8_t)value);
 
-            ImGui::TextUnformatted(BINARY_BYTE_STRINGS[value]);
-            ImGui::NextColumn();
+                ImGui::TableNextColumn();
+                ImGui::Text("%3u", value);
 
-            if (offset == 255) {
-                ImGui::TextUnformatted("-");
-            } else {
+                ImGui::TableNextColumn();
+                if (value >= 32 && value < 127) {
+                    ImGui::Text("%c", (char)value);
+                }
+
+                ImGui::TableNextColumn();
+                ImGui::Text("$%02x", value);
+
+                ImGui::TableNextColumn();
+                ImGui::TextUnformatted(BINARY_BYTE_STRINGS[value]);
+
                 M6502Word addr;
                 addr.b.l = value;
-                addr.b.h = value_dbp->bp.r[0x100 + offset + 1];
-                ImGui::Text("$%04x", addr.w);
+                addr.b.h = value_dbp->bp.r[0x100 + (offset + 1 & 0xff)];
 
                 ImGuiIDPusher pusher(offset);
 
-                // Check for opening popup here.
-                //
-                // Don't use ImGui::BeginPopupContextItem(), as that doesn't work properly
-                // for text items.
-                if (ImGui::IsMouseClicked(1)) {
-                    if (ImGui::IsItemHovered()) {
-                        ImGui::OpenPopup(ADDR_CONTEXT_POPUP_NAME);
-                    }
-                }
+                {
+                    bool was_jsr = false;
+                    ImGuiStyleColourPusher colour_pusher2;
 
-                if (ImGui::BeginPopup(ADDR_CONTEXT_POPUP_NAME)) {
-                    {
-                        ImGuiIDPusher pusher2(0);
-
-                        const DebugBigPage *dbp = this->GetDebugBigPageForAddress(addr, false);
-                        this->DoByteDebugGui(dbp, addr);
-                    }
-
-                    ImGui::Separator();
-
-                    {
-                        ImGuiIDPusher pusher2(1);
-
-                        const DebugBigPage *dbp = this->GetDebugBigPageForAddress({(uint16_t)(addr.w + 1)}, false);
-                        this->DoByteDebugGui(dbp, {(uint16_t)(addr.w + 1)});
+                    if (in_active_stack) {
+                        // Does this look like it was probably pushed by a jsr?
+                        //
+                        // (Paging can interfere with this! The paging overrides UI is
+                        // available if you need it.)
+                        uint8_t possible_jsr;
+                        if (this->ReadByte(&possible_jsr, nullptr, nullptr, addr.w - 2, false)) {
+                            if (possible_jsr == 0x20) {
+                                was_jsr = true;
+                            }
+                        }
                     }
 
-                    ImGui::EndPopup();
+                    ImGui::TableNextColumn();
+                    this->AddressColumn("Address", addr, 0);
+
+                    if (!was_jsr) {
+                        colour_pusher2.Push(ImGuiCol_Text, disabled_colour);
+                    }
+
+                    ImGui::TableNextColumn();
+                    this->AddressColumn("Return address", addr, 1);
+
+                    ImGui::TableNextColumn();
+                    this->AddressColumn("Call address", addr, -2);
                 }
             }
-            ImGui::NextColumn();
         }
+
+        ImGui::EndTable();
     }
 
   private:
+    static const char ADDR_CONTEXT_POPUP_NAME[];
+
+    void AddressColumn(const char *header, M6502Word addr, int delta) {
+        ImGuiIDPusher id_pusher(delta);
+
+        uint16_t actual_addr=(uint16_t)(addr.w + delta);
+
+        ImGui::Text("$%04x", actual_addr);
+
+        if (ImGui::IsMouseClicked(1)) {
+            if (ImGui::IsItemHovered()) {
+                ImGui::OpenPopup(ADDR_CONTEXT_POPUP_NAME);
+            }
+        }
+
+        if (ImGui::BeginPopup(ADDR_CONTEXT_POPUP_NAME)) {
+            {
+                ImGuiStyleColourPusher colour_pusher;
+                colour_pusher.PushDefault(ImGuiCol_Text);
+
+                ImGuiHeader(header);
+
+                const DebugBigPage *dbp = this->GetDebugBigPageForAddress({actual_addr}, false);
+                this->DoByteDebugGui(dbp, {actual_addr});
+            }
+            ImGui::EndPopup();
+        }
+    }
 };
+
+const char StackDebugWindow::ADDR_CONTEXT_POPUP_NAME[] = "stack_addr_context_popup";
 
 std::unique_ptr<SettingsUI> CreateHostStackDebugWindow(BeebWindow *beeb_window) {
     return CreateDebugUI<StackDebugWindow>(beeb_window);

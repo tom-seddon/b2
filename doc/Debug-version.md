@@ -377,12 +377,20 @@ this happens, click the `x` button to get rid of it.
 
 ## `Stack`, `Parasite Stack`
 
-Shows a dump of the stack contents. Values below the bottom of the
-stack are shown in a darker colour.
+Shows a dump of the stack contents, byte by byte. Values below the
+bottom of the stack are shown in a darker colour.
 
-The `Addr` column is right-clickable. The address shown is exactly
-what was pushed, but the right click popup includes the address after
-it, for dealing with addresses pushed by `jsr`.
+The `Addr` column shows the 2-byte address at that location in the
+stack.
+
+Assuming the `Addr` value was pushed by a `jsr` instruction, the `rts`
+and `jsr` columns show the return address and `jsr` instruction
+address respectively. These are shown in white if it looks like this
+was the case (i.e., the `jsr` address actually points to a `jsr`
+instruction), or in a darker column if not.
+
+The paging override UI doesn't affect the values read from the stack,
+but can affect whether a return address is detected as one or not.
 
 ## `Tube Debug`
 
