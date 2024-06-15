@@ -1792,14 +1792,14 @@ uint64_t BBCMicro::DebugGetBreakpointsChangeCounter() const {
 
 #if BBCMICRO_DEBUGGER
 void BBCMicro::DebugResetRelativeCycleBase(uint32_t dso) {
-    if (dso & BBCMicroDebugStateOverride_Parasite) {
-        if (m_state.parasite_type != BBCMicroParasiteType_None) {
-            m_debug->parasite_relative_base.prev = m_state.cycle_count;
-            m_debug->parasite_relative_base.recent = m_state.cycle_count;
+    if (m_debug) {
+        DebugState::RelativeCycleCountBase DebugState::*base_mptr = DebugGetRelativeCycleCountBaseMPtr(m_state, dso);
+        if (base_mptr) {
+            DebugState::RelativeCycleCountBase *base = &(m_debug->*base_mptr);
+
+            base->prev = m_state.cycle_count;
+            base->recent = m_state.cycle_count;
         }
-    } else {
-        m_debug->host_relative_base.prev = m_state.cycle_count;
-        m_debug->host_relative_base.recent = m_state.cycle_count;
     }
 }
 #endif
@@ -1809,13 +1809,31 @@ void BBCMicro::DebugResetRelativeCycleBase(uint32_t dso) {
 
 #if BBCMICRO_DEBUGGER
 void BBCMicro::DebugToggleResetRelativeCycleBaseOnBreakpoint(uint32_t dso) {
+    if (m_debug) {
+        DebugState::RelativeCycleCountBase DebugState::*base_mptr = DebugGetRelativeCycleCountBaseMPtr(m_state, dso);
+        if (base_mptr) {
+            DebugState::RelativeCycleCountBase *base = &(m_debug->*base_mptr);
+
+            base->reset_on_breakpoint = !base->reset_on_breakpoint;
+        }
+    }
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_DEBUGGER
+BBCMicro::DebugState::RelativeCycleCountBase BBCMicro::DebugState::*BBCMicro::DebugGetRelativeCycleCountBaseMPtr(const BBCMicroState &state, uint32_t dso) {
     if (dso & BBCMicroDebugStateOverride_Parasite) {
-        if (m_state.parasite_type != BBCMicroParasiteType_None) {
-            m_debug->parasite_relative_base.reset_on_breakpoint = !m_debug->parasite_relative_base.reset_on_breakpoint;
+        if (state.parasite_type != BBCMicroParasiteType_None) {
+            return &DebugState::parasite_relative_base;
         }
     } else {
-        m_debug->host_relative_base.reset_on_breakpoint = !m_debug->host_relative_base.reset_on_breakpoint;
+        return &DebugState::host_relative_base;
     }
+
+    return nullptr;
 }
 #endif
 

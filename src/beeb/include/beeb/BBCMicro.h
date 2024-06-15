@@ -438,6 +438,9 @@ class BBCMicro : private WD1770Handler,
 
     void DebugResetRelativeCycleBase(uint32_t dso);
     void DebugToggleResetRelativeCycleBaseOnBreakpoint(uint32_t dso);
+
+    // Bit ugly to actually use, but it at least centralises some logic.
+    static DebugState::RelativeCycleCountBase DebugState::*DebugGetRelativeCycleCountBaseMPtr(const BBCMicroState &state,uint32_t dso);
 #endif
 
     void SendBeebLinkResponse(std::vector<uint8_t> data);
