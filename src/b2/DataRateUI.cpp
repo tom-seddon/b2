@@ -288,8 +288,6 @@ void DataRateUI::DoImGui() {
 
     std::vector<std::shared_ptr<MutexMetadata>> metadata = Mutex::GetAllMetadata();
 
-    size_t num_skipped = 0;
-
     uint64_t runtime_ticks = GetCurrentTickCount() - APPROX_STARTUP_TICKS;
     ImGui::Text("Total run time: ~%.3f sec (~%.1f ms)", GetSecondsFromTicks(runtime_ticks), GetMillisecondsFromTicks(runtime_ticks));
 
@@ -305,19 +303,39 @@ void DataRateUI::DoImGui() {
         }
     }
 
+    size_t num_never_locked = 0;
+    size_t num_0_locks = 0;
+
     for (size_t i = 0; i < metadata.size(); ++i) {
         MutexMetadata *m = metadata[i].get();
 
         if (m->ever_locked) {
-            ImGui::Separator();
-            MutexMetadataUI(m);
+            if (m->stats.num_locks == 0) {
+                ++num_0_locks;
+            } else {
+                ImGui::Separator();
+                MutexMetadataUI(m);
+            }
         } else {
-            ++num_skipped;
+            ++num_never_locked;
         }
     }
 
-    if (num_skipped > 0) {
-        if (ImGui::CollapsingHeader("Never Locked")) {
+    if (num_0_locks > 0) {
+        if (ImGui::CollapsingHeader("0 locks since stats reset")) {
+            for (size_t i = 0; i < metadata.size(); ++i) {
+                MutexMetadata *m = metadata[i].get();
+
+                if (m->ever_locked && m->stats.num_locks == 0) {
+                    ImGui::Separator();
+                    MutexMetadataUI(m);
+                }
+            }
+        }
+    }
+
+    if (num_never_locked > 0) {
+        if (ImGui::CollapsingHeader("Never locked ever")) {
             for (size_t i = 0; i < metadata.size(); ++i) {
                 MutexMetadata *m = metadata[i].get();
 
