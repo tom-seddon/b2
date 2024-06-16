@@ -260,8 +260,6 @@ class BBCMicro : private WD1770Handler,
     // have to worry about that.)
     const CycleCount *GetCycleCountPtr() const;
 
-    static uint64_t Get3MHzCycleCount(CycleCount n);
-
     uint8_t GetKeyState(BeebKey key);
 
     // Read a value from memory. The read takes place as if the PC were in
@@ -440,7 +438,8 @@ class BBCMicro : private WD1770Handler,
     void DebugToggleResetRelativeCycleBaseOnBreakpoint(uint32_t dso);
 
     // Bit ugly to actually use, but it at least centralises some logic.
-    static DebugState::RelativeCycleCountBase DebugState::*DebugGetRelativeCycleCountBaseMPtr(const BBCMicroState &state,uint32_t dso);
+    static DebugState::RelativeCycleCountBase DebugState::*DebugGetRelativeCycleCountBaseMPtr(const BBCMicroState &state, uint32_t dso);
+
 #endif
 
     void SendBeebLinkResponse(std::vector<uint8_t> data);

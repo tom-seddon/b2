@@ -934,7 +934,7 @@ class TraceSaver {
                     memset(c, ' ', n);
                     c += n;
                     if (this_->m_parasite_type == BBCMicroParasiteType_External3MHz6502) {
-                        display_time = BBCMicro::Get3MHzCycleCount(time);
+                        display_time = Get3MHzCycleCount(time);
                     } else {
                         display_time = time.n >> RSHIFT_CYCLE_COUNT_TO_4MHZ;
                     }

@@ -288,18 +288,22 @@ want).
 Show a window that displays the RAM address of the pixel the mouse
 cursor is over.
 
-## `6502 Debug` ##
+## `System Debug`
 
-Show a 6502 debug window. Displays typical register info in the top
-half, and internal stuff (cycle count, internal state, data bus
-address, etc.) in the bottom half.
+Shows cycle counts and execution state (running/halted) for the
+system. The execution state covers the entire system (host processor,
+second processor, hardware, TV output, disk access, etc.), which runs
+as a unit.
 
-(Unlike the other windows, the host and parasite 6502s share a window.
-This will get fixed eventually!)
+## `Host 6502 Debug`, `Parasite 6502 Debug` ##
 
-The cycle count indicator always counts cycles since the emulated
-system was started. The relative cycle count indicator counts at the
-same rate, but can also be reset to 0 using `Reset`.
+Show 6502 state: register info in the top half, and internal stuff
+(cycle count, internal state, data bus address, etc.) in the bottom
+half.
+
+The absolute cycle count indicator always counts CPU cycles since the
+emulated system was started. The relative cycle count indicator counts
+at the same rate, but can also be reset to 0 using `Reset`.
 
 When `Reset on breakpoint` is ticked (as is the default), the relative
 cycle count is reset when a breakpoint is hit when running.

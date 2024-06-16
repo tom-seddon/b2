@@ -153,6 +153,26 @@ const PCD8572 *BBCMicroState::DebugGetEEPROM() const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+uint64_t BBCMicroState::DebugGetCPUCycless(uint32_t dso, CycleCount n) const {
+    if (dso & BBCMicroDebugStateOverride_Parasite) {
+        switch (this->parasite_type) {
+        default:
+            return 0;
+
+        case BBCMicroParasiteType_External3MHz6502:
+            return Get3MHzCycleCount(n);
+
+        case BBCMicroParasiteType_MasterTurbo:
+            return n.n >> RSHIFT_CYCLE_COUNT_TO_4MHZ;
+        }
+    } else {
+        return n.n >> RSHIFT_CYCLE_COUNT_TO_2MHZ;
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 #if BBCMICRO_DEBUGGER
 int BBCMicroState::DebugGetADJIDIPSwitches() const {
     if (this->init_flags & BBCMicroInitFlag_ADJI) {

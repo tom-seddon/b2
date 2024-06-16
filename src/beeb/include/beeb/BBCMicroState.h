@@ -154,9 +154,9 @@ class BBCMicroState {
     const Tube *DebugGetTube() const;
     const ADC *DebugGetADC() const;
     const PCD8572 *DebugGetEEPROM() const;
-#endif
-
+    uint64_t DebugGetCPUCycless(uint32_t dso, CycleCount n) const;
     int DebugGetADJIDIPSwitches() const;
+#endif
 
     std::shared_ptr<const DiscImage> GetDiscImage(int drive) const;
 

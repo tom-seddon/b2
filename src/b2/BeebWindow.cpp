@@ -167,7 +167,8 @@ static bool InitialiseTogglePopupCommands() {
     InitialiseTogglePopupCommand(BeebWindowPopupType_AudioCallback, "toggle_date_rate", "Performance", &CreateDataRateUI);
     InitialiseTogglePopupCommand(BeebWindowPopupType_PixelMetadata, "toggle_pixel_metadata", "Pixel Metadata", &CreatePixelMetadataDebugWindow);
     InitialiseTogglePopupCommand(BeebWindowPopupType_DearImguiTest, "toggle_dear_imgui_test", "Dear ImGui Test", &CreateDearImguiTestUI);
-    InitialiseTogglePopupCommand(BeebWindowPopupType_6502Debugger, "toggle_6502_debugger", "6502 Debug", &Create6502DebugWindow);
+    InitialiseTogglePopupCommand(BeebWindowPopupType_6502Debugger, "toggle_6502_debugger", "Host 6502 Debug", &CreateHost6502DebugWindow);
+    InitialiseTogglePopupCommand(BeebWindowPopupType_Parasite6502Debugger, "toggle_parasite_6502_debugger", "Parasite 6502 Debug", &CreateParasite6502DebugWindow);
     InitialiseTogglePopupCommand(BeebWindowPopupType_MemoryDebugger1, "toggle_memory_debugger1", "Host Memory Debug 1", &CreateHostMemoryDebugWindow);
     InitialiseTogglePopupCommand(BeebWindowPopupType_MemoryDebugger2, "toggle_memory_debugger2", "Host Memory Debug 2", &CreateHostMemoryDebugWindow);
     InitialiseTogglePopupCommand(BeebWindowPopupType_MemoryDebugger3, "toggle_memory_debugger3", "Host Memory Debug 3", &CreateHostMemoryDebugWindow);
@@ -228,6 +229,7 @@ static bool InitialiseTogglePopupCommands() {
     InitialiseTogglePopupCommand(BeebWindowPopupType_DigitalJoystickDebugger, "toggle_digital_joystick_debugger", "Digital Joystick Debug", &CreateDigitalJoystickDebugWindow);
     InitialiseTogglePopupCommand(BeebWindowPopupType_ImGuiDebug, "toggle_imgui_debug", "Imgui debug", &BeebWindow::CreateImGuiDebugWindow);
     InitialiseTogglePopupCommand(BeebWindowPopupType_KeyboardDebug, "toggle_keyboard_debug", "Keyboard debug", &CreateKeyboardDebugWindow);
+    InitialiseTogglePopupCommand(BeebWindowPopupType_SystemDebug, "toggle_system_debug", "System debug", &CreateSystemDebugWindow);
     return true;
 }
 
@@ -2085,7 +2087,10 @@ void BeebWindow::DoDebugMenu() {
 #if BBCMICRO_DEBUGGER
         ImGui::Separator();
 
+        m_cst.DoMenuItem(g_popups[BeebWindowPopupType_SystemDebug].command);
         m_cst.DoMenuItem(g_popups[BeebWindowPopupType_6502Debugger].command);
+        m_cst.DoMenuItem(g_popups[BeebWindowPopupType_Parasite6502Debugger].command);
+
         if (ImGui::BeginMenu("Memory Debug")) {
             m_cst.DoMenuItem(g_popups[BeebWindowPopupType_MemoryDebugger1].command);
             m_cst.DoMenuItem(g_popups[BeebWindowPopupType_MemoryDebugger2].command);

@@ -151,6 +151,10 @@ static constexpr uint64_t SHIFT_CONSTANTS(CYCLE_COUNT, 4MHZ, 0);
 static constexpr uint64_t SHIFT_CONSTANTS(CYCLE_COUNT, 2MHZ, 1);
 static constexpr uint64_t CYCLES_PER_SECOND = 2000000ull << LSHIFT_2MHZ_TO_CYCLE_COUNT;
 
+// defined in BBCMicro_Update.cpp - not the best place for it, but all the
+// related logic is in one file.
+uint64_t Get3MHzCycleCount(CycleCount n);
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
