@@ -182,6 +182,14 @@ static float GetPercentage(void *data_, int idx) {
 }
 
 #if MUTEX_DEBUGGING
+
+static void ImGuiCheckbox(const char *label, std::atomic<bool> *atomic_value) {
+    bool value = atomic_value->load(std::memory_order_acquire);
+    if (ImGui::Checkbox(label, &value)) {
+        atomic_value->store(value, std::memory_order_release);
+    }
+}
+
 static void MutexMetadataUI(MutexMetadata *m) {
     ImGuiIDPusher pusher(m);
 
@@ -196,12 +204,11 @@ static void MutexMetadataUI(MutexMetadata *m) {
         }
     }
 
-    {
-        bool interesting = m->interesting.load(std::memory_order_acquire);
-        if (ImGui::Checkbox("Interesting", &interesting)) {
-            m->interesting.store(interesting, std::memory_order_release);
-        }
-    }
+    ImGui::TextUnformatted("Interesting:");
+    ImGui::SameLine();
+    ImGuiCheckbox("Locks", &m->locks_are_interesting);
+    ImGui::SameLine();
+    ImGuiCheckbox("Contended locks", &m->contended_locks_are_interesting);
 
     ImGui::Text("Locks: %" PRIu64 " (~%.1f/sec)", m->stats.num_locks, num_ticks == 0 ? 0 : m->stats.num_locks / GetSecondsFromTicks(num_ticks));
     if (m->stats.num_locks > 0) {

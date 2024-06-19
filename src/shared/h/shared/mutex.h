@@ -24,6 +24,10 @@
 #include <atomic>
 #include <vector>
 
+#include "enum_decl.h"
+#include "mutex.inl"
+#include "enum_end.h"
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
@@ -55,7 +59,8 @@ struct MutexMetadata {
 
     std::atomic<bool> reset{false};
 
-    std::atomic<bool> interesting{false};
+    std::atomic<bool> locks_are_interesting{false};
+    std::atomic<bool> contended_locks_are_interesting{false};
 
     Mutex *mutex = nullptr;
 
@@ -91,11 +96,15 @@ class Mutex {
     const MutexMetadata *GetMetadata() const;
 
     void lock() {
-        bool interesting = false;
+        uint8_t interesting_events = 0;
 #if !MUTEX_ASSUME_UNCONTENDED_LOCKS_ARE_FREE
         uint64_t lock_start_ticks = GetCurrentTickCount();
 #endif
         uint64_t lock_wait_ticks = 0;
+
+        if (m_meta->locks_are_interesting.load(std::memory_order_acquire)) {
+            interesting_events |= MutexInterestingEvent_Lock;
+        }
 
         if (!m_mutex.try_lock()) {
 #if MUTEX_ASSUME_UNCONTENDED_LOCKS_ARE_FREE
@@ -107,8 +116,8 @@ class Mutex {
             lock_wait_ticks += GetCurrentTickCount() - lock_start_ticks;
 #endif
 
-            if (m_meta->interesting.load(std::memory_order_acquire)) {
-                interesting = true;
+            if (m_meta->contended_locks_are_interesting.load(std::memory_order_acquire)) {
+                interesting_events |= MutexInterestingEvent_ContendedLock;
             }
         }
 
@@ -132,8 +141,8 @@ class Mutex {
             m_meta->stats.max_lock_wait_ticks = lock_wait_ticks;
         }
 
-        if (interesting) {
-            this->OnInterestingEvent();
+        if (interesting_events != 0) {
+            this->OnInterestingEvents(interesting_events);
         }
     }
 
@@ -173,7 +182,7 @@ class Mutex {
     // in an attempt to avoid atrocious debug build performance.
     MutexMetadata *m_meta = nullptr;
 
-    void OnInterestingEvent();
+    void OnInterestingEvents(uint8_t interesting_events);
 };
 
 #define MUTEX_SET_NAME(MUTEX, NAME) ((MUTEX).SetName((NAME)))

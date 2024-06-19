@@ -8,6 +8,10 @@
 #include <set>
 #include <atomic>
 
+#include <shared/enum_def.h>
+#include <shared/mutex.inl>
+#include <shared/enum_end.h>
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
@@ -202,10 +206,18 @@ std::vector<std::shared_ptr<MutexMetadata>> Mutex::GetAllMetadata() {
 //////////////////////////////////////////////////////////////////////////
 
 // This exists purely as somewhere to put a breakpoint.
-void Mutex::OnInterestingEvent() {
+void Mutex::OnInterestingEvents(uint8_t interesting_events) {
+    if (interesting_events & MutexInterestingEvent_Lock) {
 #ifdef _MSC_VER
-    __nop();
+        __nop();
 #endif
+    }
+
+    if (interesting_events & MutexInterestingEvent_ContendedLock) {
+#ifdef _MSC_VER
+        __nop();
+#endif
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////

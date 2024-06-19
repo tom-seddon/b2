@@ -22,7 +22,7 @@ set(SRCS
   ${H}/enum_decl.h  ${H}/enum_def.h  ${H}/enum_end.h  ${H}/system_specific.h
   ${H}/popwarn.h ${H}/pushwarn_bitfields.h ${H}/pushwarn_flexible_struct_member.h ${H}/pushwarn_padded_struct.h
   c/relacy.cpp ${H}/relacy.h
-  c/mutex.cpp ${H}/mutex.h
+  c/mutex.cpp ${H}/mutex.h ${H}/mutex.inl
   ${H}/pshpack1.h ${H}/pshpack4.h ${H}/pshpack8.h ${H}/poppack.h
   )
 
