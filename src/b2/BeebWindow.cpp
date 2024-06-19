@@ -1564,10 +1564,7 @@ void BeebWindow::DoPopupUI(uint64_t now, int output_width, int output_height) {
     }
 
     if (show_leds_popup) {
-        if (!m_leds_popup_ui_active) {
-            m_leds_popup_ticks = now;
-        }
-
+        m_leds_popup_ticks = now;
         m_leds_popup_ui_active = true;
     }
 
