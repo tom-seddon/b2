@@ -41,8 +41,18 @@ class DiscImage;
 //
 // The ExtMem has a shared_ptr<vector<uint8_t>> inside it, and that follows the
 // same rules.
+
+// The access specifiers are a bit of a random jumble.
 //
-// This will get improved, along with the random jumble of access specifiers.
+// BBCMicro is a friend class, so it can always access anything.
+//
+// Anything public is safe to access from a const BBCMicroState (or derived
+// class).
+//
+// Anything protected is either never used outside BBCMicro, or requires a
+// getter for some reason (optional hardware, access controlled by a debug state
+// override, etc.).
+
 class BBCMicroState {
   public:
 #include <shared/pushwarn_bitfields.h>
