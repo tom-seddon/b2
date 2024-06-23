@@ -53,9 +53,9 @@ API for remote control.
 
 # Bugs/feedback/etc.
 
-Please submit feedback to the
-[b2 GitHub issues page](https://github.com/tom-seddon/b2/issues), or
-post in
+Please submit feedback to
+[the b2 GitHub issues page](https://github.com/tom-seddon/b2/issues),
+or post in
 [the b2 thread on Stardot](https://stardot.org.uk/forums/viewtopic.php?f=4&t=13081).
 
 # Licence
