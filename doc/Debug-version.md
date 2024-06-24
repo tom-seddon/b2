@@ -346,6 +346,12 @@ addresses, when not statically obvious. Its guesses are based on the
 current state of the system, trying to take paging overrides into
 account, and are for advisory purposes only.
 
+It will also attempt to guess whether a branch will be taken or not
+taken - taken branches have a `(taken)` indicator next to them. Again,
+this is purely based on the current state of the system, so exercise
+caution if the instruction in question is not the one about to be
+executed.
+
 Two step buttons allow instruction-resolution steeping: `Step In` will
 run one instruction for the given CPU and then stop, and `Step Over`
 will run until the given CPU reaches the next instruction visible.

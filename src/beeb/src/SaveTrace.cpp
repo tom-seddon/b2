@@ -622,7 +622,7 @@ class TraceSaver {
 
         case M6502AddrMode_ABS:
             c = AddWord(c, "$", ev->ad, "");
-            if (i->branch) {
+            if (i->branch_condition != M6502Condition_None) {
                 // don't add the address for JSR/JMP - for
                 // consistency with Bxx and JMP indirect. The addresses
                 // aren't useful anyway, since the next line shows where

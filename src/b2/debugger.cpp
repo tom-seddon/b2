@@ -1395,8 +1395,8 @@ class DisassemblyDebugWindow : public DebugUI,
         ImGui::SameLine();
         this->ByteRegUI("Y", cpu->y);
         ImGui::SameLine();
+        const M6502P p = M6502_GetP(cpu);
         {
-            M6502P p = M6502_GetP(cpu);
             char pstr[9];
             M6502P_GetString(pstr, p);
             ImGui::TextUnformatted("P=");
@@ -1585,8 +1585,8 @@ class DisassemblyDebugWindow : public DebugUI,
                 {
                     M6502Word dest;
                     dest.w = addr + (uint16_t)(int16_t)(int8_t)operand.b.l;
-
                     this->AddWord("", dest.w, false, "");
+                    this->AddBranchTakenIndicator(IsBranchTaken((M6502Condition)di->branch_condition, p));
                 }
                 break;
 
@@ -1669,6 +1669,23 @@ class DisassemblyDebugWindow : public DebugUI,
                     dest.w = addr + (uint16_t)(int16_t)(int8_t)operand.b.h;
                     this->AddByte("", operand.b.l, false, "");
                     this->AddWord(",", dest.w, false, "");
+
+                    bool taken = false;
+                    uint8_t value;
+                    if (this->ReadByte(&value, nullptr, nullptr, operand.b.l, false)) {
+                        uint8_t bit;
+                        bool set;
+                        if (di->branch_condition >= M6502Condition_BR0 && di->branch_condition <= M6502Condition_BR7) {
+                            bit = di->branch_condition - M6502Condition_BR0;
+                            set = false;
+                        } else {
+                            ASSERT(di->branch_condition >= M6502Condition_BS0 && di->branch_condition <= M6502Condition_BS7);
+                            bit = di->branch_condition - M6502Condition_BS0;
+                            set = true;
+                        }
+
+                        this->AddBranchTakenIndicator(!!(value & 1 << bit) == set);
+                    }
                 }
                 break;
             }
@@ -1706,6 +1723,48 @@ class DisassemblyDebugWindow : public DebugUI,
     //char m_disassembly_text[100];
     float m_wheel = 0;
     CommandStateTable m_cst;
+
+    static bool IsBranchTaken(M6502Condition condition, M6502P p) {
+        switch (condition) {
+        case M6502Condition_Always:
+            return true;
+
+        case M6502Condition_CC:
+            return !p.bits.c;
+
+        case M6502Condition_CS:
+            return !!p.bits.c;
+
+        case M6502Condition_VC:
+            return !p.bits.v;
+
+        case M6502Condition_VS:
+            return !!p.bits.v;
+
+        case M6502Condition_NE:
+            return !p.bits.z;
+
+        case M6502Condition_EQ:
+            return !!p.bits.z;
+
+        case M6502Condition_PL:
+            return !p.bits.n;
+
+        case M6502Condition_MI:
+            return !!p.bits.n;
+
+        default:
+            ASSERT(false);
+            return false;
+        }
+    }
+
+    static void AddBranchTakenIndicator(bool taken) {
+        if (taken) {
+            ImGui::SameLine(0.f, 0.f);
+            ImGui::TextUnformatted(" (taken)");
+        }
+    }
 
     void PRINTF_LIKE(4, 5) TextWithBreakpointBackground(uint8_t addr_flags,
                                                         uint8_t byte_flags,
