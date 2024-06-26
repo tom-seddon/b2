@@ -886,6 +886,15 @@ void BBCMicro::SetTeletextDebug(bool teletext_debug) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+void BBCMicro::OptionalLowFrequencyUpdate() {
+#if BBCMICRO_DEBUGGER
+    this->UpdateUpdateMFnData();
+#endif
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 void BBCMicro::CheckMemoryBigPages(const MemoryBigPages *mem_big_pages, bool non_null) {
     (void)non_null;
 
@@ -1978,6 +1987,13 @@ uint32_t BBCMicro::GetUpdateFlags() const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+std::shared_ptr<const BBCMicro::UpdateMFnData> BBCMicro::GetUpdateMFnData() const {
+    return m_update_mfn_data_ptr;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 void BBCMicro::TestSetByte(uint16_t ram_buffer_index, uint8_t value) {
     ASSERT(ram_buffer_index < m_state.ram_buffer->size());
     m_state.ram_buffer->at(ram_buffer_index) = value;
@@ -2184,6 +2200,13 @@ void BBCMicro::InitStuff() {
     for (size_t i = 0; i < sizeof ms_update_mfns / sizeof ms_update_mfns[0]; ++i) {
         ASSERT(ms_update_mfns[i]);
     }
+
+#if BBCMICRO_DEBUGGER
+    ASSERT(!m_update_mfn_data_ptr);
+    m_update_mfn_data_ptr = std::make_shared<UpdateMFnData>();
+    m_update_mfn_data = m_update_mfn_data_ptr.get();
+    m_last_mfn_change_cycle_count = m_state.cycle_count;
+#endif
 
     m_ram = m_state.ram_buffer->data();
 
@@ -2765,6 +2788,13 @@ void BBCMicro::UpdateCPUDataBusFn() {
         update_flags |= BBCMicroUpdateFlag_ParallelPrinter;
     }
 
+#if BBCMICRO_DEBUGGER
+    this->UpdateUpdateMFnData();
+    if (update_flags != m_update_flags) {
+        ++m_update_mfn_data->num_update_mfn_changes;
+    }
+#endif
+
     ASSERT(update_flags < sizeof ms_update_mfns / sizeof ms_update_mfns[0]);
     m_update_flags = update_flags;
     m_update_mfn = ms_update_mfns[update_flags];
@@ -2849,3 +2879,13 @@ void BBCMicro::SetDigitalJoystickState(uint8_t index, BBCMicroState::DigitalJoys
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
+
+#if BBCMICRO_DEBUGGER
+void BBCMicro::UpdateUpdateMFnData() {
+    if (m_update_mfn) {
+        ASSERT(m_update_flags < NUM_UPDATE_MFNS);
+        m_update_mfn_data->update_mfn_cycle_count[m_update_flags].n += m_state.cycle_count.n - m_last_mfn_change_cycle_count.n;
+        m_last_mfn_change_cycle_count = m_state.cycle_count;
+    }
+}
+#endif

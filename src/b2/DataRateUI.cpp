@@ -124,6 +124,7 @@ class DataRateUI : public SettingsUI {
   protected:
   private:
     BeebWindow *m_beeb_window;
+    std::string m_update_flags_names[BBCMicro::NUM_UPDATE_MFNS];
 
     void GetVBlankRecords(std::vector<BeebWindow::VBlankRecord> *vblank_records);
 };
@@ -133,6 +134,19 @@ class DataRateUI : public SettingsUI {
 
 DataRateUI::DataRateUI(BeebWindow *beeb_window)
     : m_beeb_window(beeb_window) {
+    for (uint32_t i = 0; i < BBCMicro::NUM_UPDATE_MFNS; ++i) {
+        std::string *name = &m_update_flags_names[i];
+
+        for (uint32_t mask = 1; mask != 0; mask <<= 1) {
+            if (i & mask) {
+                if (!name->empty()) {
+                    *name += " ";
+                }
+
+                *name += GetBBCMicroUpdateFlagEnumName((int32_t)mask);
+            }
+        }
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -270,24 +284,26 @@ void DataRateUI::DoImGui() {
         ImGui::Text("MQ waits: %zu", stats.num_mq_waits);
     }
 
+    if (ImGui::CollapsingHeader("Update MFn Stats")) {
+        std::shared_ptr<const BBCMicro::UpdateMFnData> data = beeb_thread->GetUpdateMFnData();
+        ImGui::Text("Update MFn changes: %" PRIu64, data->num_update_mfn_changes);
+
+        for (size_t i = 0; i < BBCMicro::NUM_UPDATE_MFNS; ++i) {
+            if (data->update_mfn_cycle_count[i].n > 0) {
+                char cycles_str[MAX_UINT64_THOUSANDS_SIZE];
+                GetThousandsString(cycles_str, data->update_mfn_cycle_count[i].n);
+
+                ImGui::Text("%s: %s", cycles_str, m_update_flags_names[i].c_str());
+            }
+        }
+    }
+
     if (!!g_all_root_timer_defs && !g_all_root_timer_defs->empty()) {
         ImGui::Separator();
         for (TimerDef *def : *g_all_root_timer_defs) {
             def->DoImGui();
         }
     }
-    //    if(!!g_all_timer_defs&&!g_all_timer_defs->empty()) {
-    //        ImGui::Separator();
-    //
-    //        for(const TimerDef *def:*g_all_timer_defs) {
-    //            uint64_t ticks=def->GetTotalNumTicks();
-    //            uint64_t count=def->GetNumSamples();
-    //
-    //            ImGui::TextUnformatted(def->name.c_str());
-    //            ImGui::Text("%.3f sec tot",GetSecondsFromTicks(ticks));
-    //            ImGui::Text("%.3f sec avg",GetSecondsFromTicks((double)ticks/count));
-    //        }
-    //    }
 
 #if MUTEX_DEBUGGING
 

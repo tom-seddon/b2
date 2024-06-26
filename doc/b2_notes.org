@@ -974,5 +974,25 @@ memory before starting execution.
 +		hit_recent	{n=42490100 }	CycleCount
 +		hit_prev	{n=42489926 }	CycleCount
 
+* PAL ROM mappers
+
+MAME link: https://github.com/mamedev/mame/blob/master/src/devices/bus/bbc/rom/pal.cpp
+
+** Interword
+
+- Mask :: 3fe0
+- Offset 0060, 3fc0 :: bank = 0
+- Offset 0040, 3fa0, 3fe0 :: bank = 1
+
+| What        | f | e | d | c | b | a | 9 | 8 | 7 | 6 | 5 | 4 | 3 | 2 | 1 | 0 |
+|-------------+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---|
+| Mask 3fe0   |   |   | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 |   |   |   |   |   |
+| Offset 0060 |   |   |   |   |   |   |   |   |   | 1 | 1 |   |   |   |   |   |
+| Offset 3fc0 |   |   | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 |   |   |   |   |   |   |
+| Offset 0040 |   |   |   |   |   |   |   |   |   | 1 |   |   |   |   |   |   |
+| Offset 3fa0 |   |   | 1 | 1 | 1 | 1 | 1 | 1 | 1 |   | 1 |   |   |   |   |   |
+| Offset 3fe0 |   |   | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 |   |   |   |   |   |
+
+9 bits, 512 bytes
 
 * eof.

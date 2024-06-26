@@ -1016,6 +1016,7 @@ class BeebThread {
 #endif
 
     uint32_t GetUpdateFlags() const;
+    std::shared_ptr<const BBCMicro::UpdateMFnData> GetUpdateMFnData() const;
 
   protected:
   private:
@@ -1082,6 +1083,7 @@ class BeebThread {
     std::shared_ptr<const BBCMicroState> m_beeb_state;
 #if BBCMICRO_DEBUGGER
     std::shared_ptr<const BBCMicro::DebugState> m_beeb_debug_state;
+    std::shared_ptr<const BBCMicro::UpdateMFnData> m_update_mfn_data;
 #endif
 
     // Lock m_mutex first, if locking both. (The public API makes this hard to

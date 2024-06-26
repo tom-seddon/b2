@@ -52,7 +52,17 @@ class BBCMicro : private WD1770Handler,
 
     static constexpr size_t BIG_PAGE_SIZE_PAGES = BIG_PAGE_SIZE_BYTES / 256u;
 
+    static constexpr size_t NUM_UPDATE_MFNS = 4096;
+
 #if BBCMICRO_DEBUGGER
+
+    struct UpdateMFnData {
+        // number of cycles spent in each state
+        CycleCount update_mfn_cycle_count[NUM_UPDATE_MFNS] = {};
+
+        // Number of times the update mfn has changed
+        uint64_t num_update_mfn_changes = 0;
+    };
 
     // TODO: need to do a pass on the thread safety of this stuff?
 
@@ -293,6 +303,10 @@ class BBCMicro : private WD1770Handler,
         return (this->*m_update_mfn)(video_unit, sound_unit);
     }
 
+    // Update stats and debug stuff that need updating only at low frequency
+    // (100 Hz, say...) - if even at all.
+    void OptionalLowFrequencyUpdate();
+
     static uint32_t GetNormalizedBBCMicroUpdateFlags(uint32_t flags);
 
     // The disc drive sounds are used by all BBCMicro objects created
@@ -462,6 +476,7 @@ class BBCMicro : private WD1770Handler,
     bool HasADC() const;
 
     uint32_t GetUpdateFlags() const;
+    std::shared_ptr<const UpdateMFnData> GetUpdateMFnData() const;
 
   protected:
     // Hacks, not part of the public API, for use by the testing stuff so that
@@ -620,6 +635,12 @@ class BBCMicro : private WD1770Handler,
 
     std::vector<uint8_t> *m_printer_buffer = nullptr;
 
+#if BBCMICRO_DEBUGGER
+    std::shared_ptr<UpdateMFnData> m_update_mfn_data_ptr;
+    UpdateMFnData *m_update_mfn_data = nullptr;
+    CycleCount m_last_mfn_change_cycle_count = {};
+#endif
+
     void InitStuff();
 #if BBCMICRO_TRACE
     void SetTrace(std::shared_ptr<Trace> trace, uint32_t trace_flags);
@@ -681,8 +702,12 @@ class BBCMicro : private WD1770Handler,
     template <uint32_t UPDATE_FLAGS>
     uint32_t UpdateTemplated(VideoDataUnit *video_unit, SoundDataUnit *sound_unit);
 
+#if BBCMICRO_DEBUGGER
+    void UpdateUpdateMFnData();
+#endif
+
     static const uint8_t CURSOR_PATTERNS[8];
-    static const UpdateMFn ms_update_mfns[4096];
+    static const UpdateMFn ms_update_mfns[NUM_UPDATE_MFNS];
 };
 
 //////////////////////////////////////////////////////////////////////////

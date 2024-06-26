@@ -1,36 +1,16 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-/*
-#define ENAME BeebROM
+// Right place for this?
+#define ENAME PALROMType
 EBEGIN()
-EPN(OS12)
-EPN(BPlusMOS)
-EPN(BASIC2)
-EPN(AcornDFS)
-EPN(WatfordDDFS_DDB2)
-EPN(WatfordDDFS_DDB3)
-EPN(OpusDDOS)
-EPN(OpusChallenger)
-EPN(MOS320_ADFS)
-EPN(MOS320_BASIC4)
-EPN(MOS320_DFS)
-EPN(MOS320_EDIT)
-EPN(MOS320_MOS)
-EPN(MOS320_TERMINAL)
-EPN(MOS320_VIEW)
-EPN(MOS320_VIEWSHEET)
-EPN(MOS350_ADFS)
-EPN(MOS350_BASIC4)
-EPN(MOS350_DFS)
-EPN(MOS350_EDIT)
-EPN(MOS350_MOS)
-EPN(MOS350_TERMINAL)
-EPN(MOS350_VIEW)
-EPN(MOS350_VIEWSHEET)
+// Ordinary 16 KB ROM
+EPN(None)
+
+// Computer Concepts 32 KB Inter-Word
+EPN(CCIWORD)
 EEND()
 #undef ENAME
-*/
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

@@ -887,7 +887,7 @@ uint32_t BBCMicro::GetNormalizedBBCMicroUpdateFlags(uint32_t flags) {
 // at least for my laptop, maybe some other value would be just right.
 //
 // More experimentation necessary.
-const BBCMicro::UpdateMFn BBCMicro::ms_update_mfns[4096] = {UPDATE2048(0), UPDATE2048(2048)};
+const BBCMicro::UpdateMFn BBCMicro::ms_update_mfns[NUM_UPDATE_MFNS] = {UPDATE2048(0), UPDATE2048(2048)};
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

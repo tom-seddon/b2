@@ -2283,6 +2283,13 @@ uint32_t BeebThread::GetUpdateFlags() const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+std::shared_ptr<const BBCMicro::UpdateMFnData> BeebThread::GetUpdateMFnData() const {
+    return m_update_mfn_data;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 #if BBCMICRO_DEBUGGER
 bool BeebThread::DebugIsHalted() const {
     return m_debug_is_halted.load(std::memory_order_acquire);
@@ -3077,11 +3084,14 @@ void BeebThread::ThreadMain(void) {
                 } else {
                     m_debug_is_halted.store(false, std::memory_order_release);
                 }
+                m_update_mfn_data = ts.beeb->GetUpdateMFnData();
 #endif
             }
         }
 
         if (!paused && stop_cycles.n > ts.num_executed_cycles->n) {
+            ts.beeb->OptionalLowFrequencyUpdate();
+
             ASSERT(ts.beeb);
 
             CycleCount num_cycles = {stop_cycles.n - ts.num_executed_cycles->n};

@@ -1670,7 +1670,7 @@ class DisassemblyDebugWindow : public DebugUI,
                     this->AddByte("", operand.b.l, false, "");
                     this->AddWord(",", dest.w, false, "");
 
-                    bool taken = false;
+                    //bool taken = false;//TODO
                     uint8_t value;
                     if (this->ReadByte(&value, nullptr, nullptr, operand.b.l, false)) {
                         uint8_t bit;
@@ -2796,7 +2796,10 @@ class BreakpointsDebugWindow : public DebugUI {
 
   private:
     static constexpr uint8_t HOST_ADDRESS_BREAKPOINT_BIG_PAGE = NUM_BIG_PAGES + 0;
+    static_assert(HOST_ADDRESS_BREAKPOINT_BIG_PAGE >= NUM_BIG_PAGES); //overflow check
+
     static constexpr uint8_t PARASITE_ADDRESS_BREAKPOINT_BIG_PAGE = NUM_BIG_PAGES + 1;
+    static_assert(PARASITE_ADDRESS_BREAKPOINT_BIG_PAGE >= NUM_BIG_PAGES); //overflow check
 
     struct Breakpoint {
         uint8_t big_page;
