@@ -9,7 +9,7 @@
 #include <array>
 #include <vector>
 #include "roms.h"
-#include <beeb/BBCMicro.h> //bit heavyweight...?
+#include <beeb/BBCMicroParasiteType.h>
 
 #include <shared/enum_decl.h>
 #include "BeebConfig.inl"
@@ -18,6 +18,7 @@
 class BBCMicro;
 class Messages;
 struct BBCMicroType;
+class DiscInterface;
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

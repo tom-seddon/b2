@@ -12,6 +12,7 @@
 #include "BeebConfig.h"
 #include <beeb/type.h>
 #include <IconsFontAwesome5.h>
+#include <beeb/BBCMicro.h>
 
 #include <shared/enum_decl.h>
 #include "ConfigsUI_private.inl"
