@@ -8,7 +8,7 @@
 // Add in some slightly ugly MOS 5.10-specific debug stuff (that gets its
 // tentacles elsewhere). Deliberately only included in the cmake Debug
 // configuration, as it's not general-purpose.
-#define PCD8572_MOS510_DEBUG 1
+#define PCD8572_MOS510_DEBUG 0
 #endif
 
 //////////////////////////////////////////////////////////////////////////
