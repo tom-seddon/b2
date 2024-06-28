@@ -378,6 +378,10 @@ void BBCMicro::UpdatePaging() {
 
         m_state.parasite_accessible = parasite_accessible;
     }
+
+#if BBCMICRO_DEBUGGER
+    ++m_update_mfn_data->num_UpdatePaging_calls;
+#endif
 }
 
 //////////////////////////////////////////////////////////////////////////

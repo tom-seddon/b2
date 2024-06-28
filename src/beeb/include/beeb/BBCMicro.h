@@ -62,6 +62,9 @@ class BBCMicro : private WD1770Handler,
 
         // Number of times the update mfn has changed
         uint64_t num_update_mfn_changes = 0;
+
+        // Number of UpdatePaging calls
+        uint64_t num_UpdatePaging_calls = 0;
     };
 
     // TODO: need to do a pass on the thread safety of this stuff?
