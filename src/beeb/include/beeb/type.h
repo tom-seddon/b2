@@ -260,9 +260,6 @@ struct BBCMicroType {
     // Switch-friendly identifier.
     const BBCMicroTypeID type_id;
 
-    // Display name suitable for UI or whatever.
-    const char *model_name;
-
     const M6502Config *m6502_config;
 
     size_t ram_buffer_size;
@@ -336,25 +333,21 @@ struct BBCMicroType {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-extern const BBCMicroType BBC_MICRO_TYPE_B;
-extern const BBCMicroType BBC_MICRO_TYPE_B_PLUS;
-extern const BBCMicroType BBC_MICRO_TYPE_MASTER_128;
-extern const BBCMicroType BBC_MICRO_TYPE_MASTER_COMPACT;
-
 // returns a pointer to one of the global BBCMicroType objects.
 const BBCMicroType *GetBBCMicroTypeForTypeID(BBCMicroTypeID type_id);
 
 // a few per-type ID fixed properties.
-bool HasNVRAM(const BBCMicroType *type);
-bool CanDisplayTeletextAt3C00(const BBCMicroType *type);
-bool HasNumericKeypad(const BBCMicroType *type);
-bool HasSpeech(const BBCMicroType *type);
-bool HasTube(const BBCMicroType *type);
-bool HasCartridges(const BBCMicroType *type);
-bool HasUserPort(const BBCMicroType *type);
-bool Has1MHzBus(const BBCMicroType *type);
-bool HasADC(const BBCMicroType *type);
-bool HasIndependentMOSView(const BBCMicroType *type);
+bool HasNVRAM(BBCMicroTypeID type_id);
+bool CanDisplayTeletextAt3C00(BBCMicroTypeID type_id);
+bool HasNumericKeypad(BBCMicroTypeID type_id);
+bool HasSpeech(BBCMicroTypeID type_id);
+bool HasTube(BBCMicroTypeID type_id);
+bool HasCartridges(BBCMicroTypeID type_id);
+bool HasUserPort(BBCMicroTypeID type_id);
+bool Has1MHzBus(BBCMicroTypeID type_id);
+bool HasADC(BBCMicroTypeID type_id);
+bool HasIndependentMOSView(BBCMicroTypeID type_id);
+const char *GetModelName(BBCMicroTypeID type_id);
 
 #if BBCMICRO_DEBUGGER
 // Parse address prefix and add additional flags to *dso_ptr.

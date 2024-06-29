@@ -1782,12 +1782,9 @@ static bool LoadConfigs(rapidjson::Value *configs_json, const char *configs_path
             }
         }
 
-        BBCMicroTypeID type_id;
-        if (!FindEnumMember(&type_id, config_json, TYPE, "BBC Micro type", &GetBBCMicroTypeIDEnumName, msg)) {
+        if (!FindEnumMember(&config.type_id, config_json, TYPE, "BBC Micro type", &GetBBCMicroTypeIDEnumName, msg)) {
             continue;
         }
-
-        config.type = GetBBCMicroTypeForTypeID(type_id);
 
         std::string disc_interface_name;
         if (FindStringMember(&disc_interface_name, config_json, DISC_INTERFACE, nullptr)) {
@@ -1876,7 +1873,7 @@ static void SaveConfigs(JSONWriter<StringStream> *writer) {
             SaveROM(writer, config->os);
 
             writer->Key(TYPE);
-            SaveEnum(writer, config->type->type_id, &GetBBCMicroTypeIDEnumName);
+            SaveEnum(writer, config->type_id, &GetBBCMicroTypeIDEnumName);
 
             writer->Key(DISC_INTERFACE);
             if (!config->disc_interface) {
@@ -2411,7 +2408,7 @@ bool LoadGlobalConfig(Messages *msg) {
         BeebConfig *config = BeebWindows::GetConfigByIndex(i);
 
         if (config->nvram.empty()) {
-            switch (config->type->type_id) {
+            switch (config->type_id) {
             default:
                 break;
 

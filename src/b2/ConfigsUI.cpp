@@ -209,7 +209,7 @@ void ConfigsUI::DoEditConfigGui() {
 
     uint32_t rom_edit_sideways_rom_flags;
     uint32_t rom_edit_os_rom_flags;
-    switch (config->type->type_id) {
+    switch (config->type_id) {
     default:
         ASSERT(false);
         [[fallthrough]];
@@ -243,7 +243,7 @@ void ConfigsUI::DoEditConfigGui() {
 
     ImGuiIDPusher config_id_pusher(config);
 
-    ImGui::Text("Model: %s", config->type->model_name);
+    ImGui::Text("Model: %s", GetModelName(config->type_id));
     ImGui::Text("Disc interface: %s", config->disc_interface->display_name.c_str());
 
     std::string title = config->name;
@@ -335,7 +335,7 @@ void ConfigsUI::DoEditConfigGui() {
 
     ImGui::Columns(1);
 
-    if (Has1MHzBus(config->type)) {
+    if (Has1MHzBus(config->type_id)) {
         if (!(config->disc_interface->flags & DiscInterfaceFlag_Uses1MHzBus)) {
             if (ImGui::Checkbox("External memory", &config->ext_mem)) {
                 edited = true;
@@ -343,7 +343,7 @@ void ConfigsUI::DoEditConfigGui() {
         }
     }
 
-    if (HasUserPort(config->type)) {
+    if (HasUserPort(config->type_id)) {
         if (ImGui::Checkbox("BeebLink", &config->beeblink)) {
             edited = true;
         }
@@ -353,7 +353,7 @@ void ConfigsUI::DoEditConfigGui() {
         edited = true;
     }
 
-    if (HasCartridges(config->type)) {
+    if (HasCartridges(config->type_id)) {
         if (ImGui::Checkbox("Retro Hardware ADJI cartridge", &config->adji)) {
             edited = true;
         }
@@ -368,7 +368,7 @@ void ConfigsUI::DoEditConfigGui() {
         }
     }
 
-    if (HasTube(config->type)) {
+    if (HasTube(config->type_id)) {
         if (ImGuiRadioButton(&config->parasite_type, BBCMicroParasiteType_None, "No second processor")) {
             edited = true;
         }
@@ -404,7 +404,7 @@ void ConfigsUI::DoEditConfigGui() {
                 edited = true;
             }
 
-            if (config->type->type_id == BBCMicroTypeID_Master) {
+            if (config->type_id == BBCMicroTypeID_Master) {
                 ImGui::TextWrapped("Note: When using MOS 3.20/MOS 3.50, try *CONFIGURE TUBE if 2nd processor doesn't seem to be working");
             } else {
                 ImGui::TextWrapped("Note: Ensure a ROM with Tube host code is installed, e.g., Acorn 1770 DFS");

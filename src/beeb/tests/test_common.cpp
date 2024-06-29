@@ -404,23 +404,23 @@ static std::shared_ptr<const std::array<uint8_t, 16384>> LoadROM(const std::stri
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static const BBCMicroType *GetBBCMicroType(TestBBCMicroType type, uint32_t) {
+static BBCMicroTypeID GetBBCMicroTypeID(TestBBCMicroType type, uint32_t) {
     switch (type) {
     default:
         TEST_FAIL("%s: unknown TestBBCMicroType", __func__);
         // fall through
     case TestBBCMicroType_BTape:
     case TestBBCMicroType_BAcorn1770DFS:
-        return &BBC_MICRO_TYPE_B;
+        return BBCMicroTypeID_B;
 
     case TestBBCMicroType_BPlusTape:
-        return &BBC_MICRO_TYPE_B_PLUS;
+        return BBCMicroTypeID_BPlus;
 
     case TestBBCMicroType_Master128MOS320:
     case TestBBCMicroType_Master128MOS350:
     case TestBBCMicroType_Master128MOS320WithMasterTurbo:
     case TestBBCMicroType_Master128MOS320WithExternal3MHz6502:
-        return &BBC_MICRO_TYPE_MASTER_128;
+        return BBCMicroTypeID_Master;
     }
 }
 
@@ -523,7 +523,7 @@ static std::vector<uint8_t> GetNVRAMContents(TestBBCMicroType type, uint32_t fla
 //////////////////////////////////////////////////////////////////////////
 
 TestBBCMicro::TestBBCMicro(TestBBCMicroType type, const TestBBCMicroArgs &args)
-    : BBCMicro(GetBBCMicroType(type, args.flags),
+    : BBCMicro(GetBBCMicroTypeForTypeID(GetBBCMicroTypeID(type, args.flags)),
                GetDiscInterface(type, args.flags),
                GetBBCMicroParasiteType(type, args.flags),
                GetNVRAMContents(type, args.flags),

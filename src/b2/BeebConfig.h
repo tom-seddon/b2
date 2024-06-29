@@ -10,6 +10,7 @@
 #include <vector>
 #include "roms.h"
 #include <beeb/BBCMicroParasiteType.h>
+#include <beeb/type.h>
 
 #include <shared/enum_decl.h>
 #include "BeebConfig.inl"
@@ -17,7 +18,6 @@
 
 class BBCMicro;
 class Messages;
-struct BBCMicroType;
 class DiscInterface;
 
 //////////////////////////////////////////////////////////////////////////
@@ -39,7 +39,7 @@ class BeebConfig {
 
     std::string name;
 
-    const BBCMicroType *type = nullptr;
+    BBCMicroTypeID type_id = BBCMicroTypeID_B;
     ROM os;
     SidewaysROM roms[16];
     ROM parasite_os;

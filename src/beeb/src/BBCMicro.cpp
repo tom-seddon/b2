@@ -875,7 +875,7 @@ void BBCMicro::SetJoystickButtonState(uint8_t index, bool new_state) {
 //////////////////////////////////////////////////////////////////////////
 
 bool BBCMicro::HasNumericKeypad() const {
-    return ::HasNumericKeypad(m_state.type);
+    return ::HasNumericKeypad(m_state.type->type_id);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -2317,7 +2317,7 @@ void BBCMicro::InitStuff() {
     m_romsel_mask = m_state.type->romsel_mask;
     m_acccon_mask = m_state.type->acccon_mask;
 
-    if (CanDisplayTeletextAt3C00(m_state.type)) {
+    if (CanDisplayTeletextAt3C00(m_state.type->type_id)) {
         m_teletext_bases[0] = 0x3c00;
         m_teletext_bases[1] = 0x7c00;
     } else {

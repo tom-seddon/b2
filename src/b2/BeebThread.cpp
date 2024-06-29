@@ -580,7 +580,7 @@ void BeebThread::HardResetMessage::HardReset(BeebThread *beeb_thread,
         init_flags |= (uint8_t)((ts->current_config.config.adji_dip_switches & 3) << BBCMicroInitFlag_ADJIDIPSwitchesShift);
     }
 
-    auto beeb = std::make_unique<BBCMicro>(ts->current_config.config.type,
+    auto beeb = std::make_unique<BBCMicro>(GetBBCMicroTypeForTypeID(ts->current_config.config.type_id),
                                            ts->current_config.config.disc_interface,
                                            ts->current_config.config.parasite_type,
                                            nvram_contents,

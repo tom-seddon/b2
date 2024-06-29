@@ -226,8 +226,7 @@ static bool ParsePrefixLowerCaseCharB(uint32_t *dso, char c) {
 #endif
 
 const BBCMicroType BBC_MICRO_TYPE_B = {
-    BBCMicroTypeID_B, //type_id
-    "B",
+    BBCMicroTypeID_B,       //type_id
     &M6502_nmos6502_config, //m6502_config
     32768,                  //ram_buffer_size
     DiscDriveType_133mm,    //default_disc_drive_type
@@ -422,8 +421,7 @@ static bool ParsePrefixLowerCaseCharBPlus(uint32_t *dso, char c) {
 #endif
 
 const BBCMicroType BBC_MICRO_TYPE_B_PLUS = {
-    BBCMicroTypeID_BPlus, //type_id
-    "B+",
+    BBCMicroTypeID_BPlus,   //type_id
     &M6502_nmos6502_config, //m6502_config
     65536,                  //ram_buffer_size
     DiscDriveType_133mm,    //default_disc_drive_type
@@ -688,8 +686,7 @@ static bool ParsePrefixLowerCaseCharMaster(uint32_t *dso, char c) {
 #endif
 
 const BBCMicroType BBC_MICRO_TYPE_MASTER_128 = {
-    BBCMicroTypeID_Master, //type_id
-    "Master 128",
+    BBCMicroTypeID_Master,  //type_id
     &M6502_cmos6502_config, //m6502_config
     65536,                  //ram_buffer_size
     DiscDriveType_133mm,    //default_disc_drive_type
@@ -727,7 +724,6 @@ const BBCMicroType BBC_MICRO_TYPE_MASTER_128 = {
 
 const BBCMicroType BBC_MICRO_TYPE_MASTER_COMPACT = {
     BBCMicroTypeID_MasterCompact, //type_id
-    "Master Compact",
     &M6502_cmos6502_config,
     65536,
     DiscDriveType_90mm,
@@ -788,82 +784,104 @@ const BBCMicroType *GetBBCMicroTypeForTypeID(BBCMicroTypeID type_id) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static bool IsMaster(const BBCMicroType *type) {
-    return type->type_id == BBCMicroTypeID_Master || type->type_id == BBCMicroTypeID_MasterCompact;
+static bool IsMaster(BBCMicroTypeID type_id) {
+    return type_id == BBCMicroTypeID_Master || type_id == BBCMicroTypeID_MasterCompact;
 }
 
-static bool IsB(const BBCMicroType *type) {
-    return type->type_id == BBCMicroTypeID_B || type->type_id == BBCMicroTypeID_BPlus;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-bool HasNVRAM(const BBCMicroType *type) {
-    return IsMaster(type);
+static bool IsB(BBCMicroTypeID type_id) {
+    return type_id == BBCMicroTypeID_B || type_id == BBCMicroTypeID_BPlus;
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool CanDisplayTeletextAt3C00(const BBCMicroType *type) {
-    return IsB(type);
+bool HasNVRAM(BBCMicroTypeID type_id) {
+    return IsMaster(type_id);
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool HasNumericKeypad(const BBCMicroType *type) {
-    return IsMaster(type);
+bool CanDisplayTeletextAt3C00(BBCMicroTypeID type_id) {
+    return IsB(type_id);
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool HasSpeech(const BBCMicroType *type) {
-    return IsB(type);
+bool HasNumericKeypad(BBCMicroTypeID type_id) {
+    return IsMaster(type_id);
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool HasTube(const BBCMicroType *type) {
-    return type->type_id != BBCMicroTypeID_MasterCompact;
+bool HasSpeech(BBCMicroTypeID type_id) {
+    return IsB(type_id);
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool HasCartridges(const BBCMicroType *type) {
-    return type->type_id == BBCMicroTypeID_Master;
+bool HasTube(BBCMicroTypeID type_id) {
+    return type_id != BBCMicroTypeID_MasterCompact;
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool HasUserPort(const BBCMicroType *type) {
-    return type->type_id != BBCMicroTypeID_MasterCompact;
+bool HasCartridges(BBCMicroTypeID type_id) {
+    return type_id == BBCMicroTypeID_Master;
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool Has1MHzBus(const BBCMicroType *type) {
-    return type->type_id != BBCMicroTypeID_MasterCompact;
+bool HasUserPort(BBCMicroTypeID type_id) {
+    return type_id != BBCMicroTypeID_MasterCompact;
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool HasADC(const BBCMicroType *type) {
-    return type->type_id != BBCMicroTypeID_MasterCompact;
+bool Has1MHzBus(BBCMicroTypeID type_id) {
+    return type_id != BBCMicroTypeID_MasterCompact;
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-bool HasIndependentMOSView(const BBCMicroType *type) {
-    return type->type_id != BBCMicroTypeID_B;
+bool HasADC(BBCMicroTypeID type_id) {
+    return type_id != BBCMicroTypeID_MasterCompact;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+bool HasIndependentMOSView(BBCMicroTypeID type_id) {
+    return type_id != BBCMicroTypeID_B;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+const char *GetModelName(BBCMicroTypeID type_id) {
+    switch (type_id) {
+    default:
+        ASSERT(false);
+        [[fallthrough]];
+    case BBCMicroTypeID_B:
+        return "B";
+
+    case BBCMicroTypeID_BPlus:
+        return "B+";
+
+    case BBCMicroTypeID_Master:
+        return "Master 128";
+
+    case BBCMicroTypeID_MasterCompact:
+        return "Master Compact";
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////

@@ -1046,4 +1046,18 @@ page addresses are no longer fixed.
 # | CCISPELL | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 |
 # | PALQST   | 1 | 1 | 1 | 1 |   |   | 1 | 1 |
 
+** Dynamic big pages
+
+Base requirements:
+
+- 32 KB RAM (B/B+/Master)
+- 12 KB ANDY (B+)
+- 4 KB ANDY (Master)
+- 8 KB HAZEL (Master)
+- 20 KB Shadow RAM (Master)
+- <N> KB paged ROMs
+- 16 KB MOS
+- 64 KB parasite
+- 2 KB parasite ROM
+
 * eof.

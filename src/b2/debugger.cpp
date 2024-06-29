@@ -1006,7 +1006,7 @@ class MemoryDebugWindow : public DebugUI,
         this->DoDebugPageOverrideImGui();
 
         if (m_show_mos_toggle) {
-            if (HasIndependentMOSView(m_beeb_window->GetBeebThread()->GetBBCMicroType())) {
+            if (HasIndependentMOSView(m_beeb_window->GetBeebThread()->GetBBCMicroType()->type_id)) {
                 ImGui::SameLine();
                 ImGui::Checkbox("MOS's view", &this->m_handler.mos);
             }
@@ -2041,7 +2041,7 @@ class CRTCDebugWindow : public DebugUI {
         if (addr.w & 0x2000) {
             uint16_t base = 0x7c00;
             if (!(addr.w >> 11 & 1)) {
-                if (CanDisplayTeletextAt3C00(m_beeb_state->type)) {
+                if (CanDisplayTeletextAt3C00(m_beeb_state->type->type_id)) {
                     base = 0x3c00;
                 }
             }
@@ -2369,12 +2369,12 @@ class SystemVIADebugWindow : public R6522DebugWindow {
 
         ImGui::Text("Port B inputs:");
 
-        if (HasADC(m_beeb_state->type)) {
+        if (HasADC(m_beeb_state->type->type_id)) {
             ImGui::BulletText("Joystick 0 Fire = %s", BOOL_STR(!pb.bits.not_joystick0_fire));
             ImGui::BulletText("Joystick 1 Fire = %s", BOOL_STR(!pb.bits.not_joystick1_fire));
         }
 
-        if (HasSpeech(m_beeb_state->type)) {
+        if (HasSpeech(m_beeb_state->type->type_id)) {
             ImGui::BulletText("Speech Ready = %u, IRQ = %u", pb.b_bits.speech_ready, pb.b_bits.speech_interrupt);
         }
 
