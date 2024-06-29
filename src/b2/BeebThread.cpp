@@ -1516,11 +1516,11 @@ bool BeebThread::DebugSetAddressDebugFlags::ThreadPrepare(std::shared_ptr<Messag
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_DEBUGGER
-BeebThread::DebugSetByteDebugFlags::DebugSetByteDebugFlags(uint8_t big_page_index, uint16_t offset, uint8_t byte_flags)
+BeebThread::DebugSetByteDebugFlags::DebugSetByteDebugFlags(BigPageIndex big_page_index, uint16_t offset, uint8_t byte_flags)
     : m_big_page_index(big_page_index)
     , m_offset(offset)
     , m_byte_flags(byte_flags) {
-    ASSERT(m_big_page_index < NUM_BIG_PAGES);
+    ASSERT(m_big_page_index.i < NUM_BIG_PAGES);
     ASSERT(offset < BBCMicro::BIG_PAGE_SIZE_BYTES);
 }
 #endif

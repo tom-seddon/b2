@@ -310,9 +310,9 @@ class TraceSaver {
                 code = 'i';
             } else {
                 M6502Word pc = {pc_};
-                uint8_t big_page = m_paging_tables.mem_big_pages[m_paging_tables.pc_mem_big_pages_set[pc.p.p]][addr.p.p];
-                ASSERT(big_page < NUM_BIG_PAGES);
-                code = m_type->big_pages_metadata[big_page].code;
+                BigPageIndex big_page = m_paging_tables.mem_big_pages[m_paging_tables.pc_mem_big_pages_set[pc.p.p]][addr.p.p];
+                ASSERT(big_page.i < NUM_BIG_PAGES);
+                code = m_type->big_pages_metadata[big_page.i].code;
             }
             break;
 

@@ -83,44 +83,94 @@ struct M6502Config;
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static constexpr uint8_t MAIN_BIG_PAGE_INDEX = 0;
-static constexpr uint8_t NUM_MAIN_BIG_PAGES = 32 / 4;
-
-static constexpr uint8_t ANDY_BIG_PAGE_INDEX = MAIN_BIG_PAGE_INDEX + NUM_MAIN_BIG_PAGES;
-static constexpr uint8_t NUM_ANDY_BIG_PAGES = 4 / 4;
-
-static constexpr uint8_t HAZEL_BIG_PAGE_INDEX = ANDY_BIG_PAGE_INDEX + NUM_ANDY_BIG_PAGES;
-static constexpr uint8_t NUM_HAZEL_BIG_PAGES = 8 / 4;
-
-static constexpr uint8_t BPLUS_RAM_BIG_PAGE_INDEX = ANDY_BIG_PAGE_INDEX;
-static constexpr uint8_t NUM_BPLUS_RAM_BIG_PAGES = 12 / 4;
-
-static constexpr uint8_t SHADOW_BIG_PAGE_INDEX = HAZEL_BIG_PAGE_INDEX + NUM_HAZEL_BIG_PAGES;
-static constexpr uint8_t NUM_SHADOW_BIG_PAGES = 20 / 4;
-
-static constexpr uint8_t ROM0_BIG_PAGE_INDEX = SHADOW_BIG_PAGE_INDEX + NUM_SHADOW_BIG_PAGES;
-static constexpr uint8_t NUM_ROM_BIG_PAGES = 16 / 4;
-
-static constexpr uint8_t MOS_BIG_PAGE_INDEX = ROM0_BIG_PAGE_INDEX + 16 * NUM_ROM_BIG_PAGES;
-static constexpr uint8_t NUM_MOS_BIG_PAGES = 16 / 4;
-
-static constexpr uint8_t PARASITE_BIG_PAGE_INDEX = MOS_BIG_PAGE_INDEX + NUM_MOS_BIG_PAGES;
-static constexpr uint8_t NUM_PARASITE_BIG_PAGES = 64 / 4;
-
-static constexpr uint8_t PARASITE_ROM_BIG_PAGE_INDEX = PARASITE_BIG_PAGE_INDEX + NUM_PARASITE_BIG_PAGES;
-static constexpr uint8_t NUM_PARASITE_ROM_BIG_PAGES = 1;
-
-//static constexpr uint8_t SECOND_PARASITE_BIG_PAGE_INDEX = PARASITE_ROM_BIG_PAGE_INDEX + NUM_PARASITE_ROM_BIG_PAGES;
-//static constexpr uint8_t NUM_SECOND_PARASITE_BIG_PAGES = 64 / 4;
+// Address prefixes:
 //
-//static constexpr uint8_t SECOND_PARASITE_ROM_BIG_PAGE_INDEX = SECOND_PARASITE_BIG_PAGE_INDEX + NUM_SECOND_PARASITE_BIG_PAGES;
-//static constexpr uint8_t NUM_SECOND_PARASITE_ROM_BIG_PAGES = 1;
+// 0 - sideways ROM 0
+// 1 - sideways ROM 1
+// 2 - sideways ROM 2
+// 3 - sideways ROM 3
+// 4 - sideways ROM 4
+// 5 - sideways ROM 5
+// 6 - sideways ROM 6
+// 7 - sideways ROM 7
+// 8 - sideways ROM 8
+// 9 - sideways ROM 9
+// a - sideways ROM a
+// b - sideways ROM b
+// c - sideways ROM c
+// d - sideways ROM d
+// e - sideways ROM e
+// f - sideways ROM f
+// g -
+// h - HAZEL
+// i - I/O
+// j -
+// k -
+// l -
+// m - main RAM
+// n - ANDY
+// o - OS ROM
+// p - parasite RAM
+// q -
+// r - parasite boot ROM
+// s - shadow RAM
+// t -
+// u -
+// v -
+// w -
+// x -
+// y -
+// z -
 
-static constexpr uint8_t NUM_BIG_PAGES = MOS_BIG_PAGE_INDEX + NUM_MOS_BIG_PAGES + NUM_PARASITE_BIG_PAGES + NUM_PARASITE_ROM_BIG_PAGES;
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+// See comment for (very similar) CycleCount struct.
+struct BigPageIndex {
+    typedef uint8_t Type;
+    Type i;
+};
+
+static constexpr BigPageIndex MAIN_BIG_PAGE_INDEX = {0};
+static constexpr BigPageIndex::Type NUM_MAIN_BIG_PAGES = {32 / 4};
+
+static constexpr BigPageIndex ANDY_BIG_PAGE_INDEX = {MAIN_BIG_PAGE_INDEX.i + NUM_MAIN_BIG_PAGES};
+static constexpr BigPageIndex::Type NUM_ANDY_BIG_PAGES = {4 / 4};
+
+static constexpr BigPageIndex HAZEL_BIG_PAGE_INDEX = {ANDY_BIG_PAGE_INDEX.i + NUM_ANDY_BIG_PAGES};
+static constexpr BigPageIndex::Type NUM_HAZEL_BIG_PAGES = {8 / 4};
+
+static constexpr BigPageIndex BPLUS_RAM_BIG_PAGE_INDEX = {ANDY_BIG_PAGE_INDEX.i};
+static constexpr BigPageIndex::Type NUM_BPLUS_RAM_BIG_PAGES = {12 / 4};
+
+static constexpr BigPageIndex SHADOW_BIG_PAGE_INDEX = {HAZEL_BIG_PAGE_INDEX.i + NUM_HAZEL_BIG_PAGES};
+static constexpr BigPageIndex::Type NUM_SHADOW_BIG_PAGES = {20 / 4};
+
+static constexpr BigPageIndex ROM0_BIG_PAGE_INDEX = {SHADOW_BIG_PAGE_INDEX.i + NUM_SHADOW_BIG_PAGES};
+static constexpr BigPageIndex::Type NUM_ROM_BIG_PAGES = {16 / 4};
+
+static constexpr BigPageIndex MOS_BIG_PAGE_INDEX = {ROM0_BIG_PAGE_INDEX.i + 16 * NUM_ROM_BIG_PAGES};
+static constexpr BigPageIndex::Type NUM_MOS_BIG_PAGES = {16 / 4};
+
+static constexpr BigPageIndex PARASITE_BIG_PAGE_INDEX = {MOS_BIG_PAGE_INDEX.i + NUM_MOS_BIG_PAGES};
+static constexpr BigPageIndex::Type NUM_PARASITE_BIG_PAGES = {64 / 4};
+
+static constexpr BigPageIndex PARASITE_ROM_BIG_PAGE_INDEX = {PARASITE_BIG_PAGE_INDEX.i + NUM_PARASITE_BIG_PAGES};
+static constexpr BigPageIndex::Type NUM_PARASITE_ROM_BIG_PAGES = {1};
+
+//static constexpr uint8_t SECOND_PARASITE_BIG_PAGE_INDEX = {PARASITE_ROM_BIG_PAGE_INDEX.i + NUM_PARASITE_ROM_BIG_PAGES.i};
+//static constexpr uint8_t NUM_SECOND_PARASITE_BIG_PAGES = {64 / 4};
+//
+//static constexpr uint8_t SECOND_PARASITE_ROM_BIG_PAGE_INDEX = {SECOND_PARASITE_BIG_PAGE_INDEX.i + NUM_SECOND_PARASITE_BIG_PAGES.i};
+//static constexpr uint8_t NUM_SECOND_PARASITE_ROM_BIG_PAGES = {1};
+
+static constexpr BigPageIndex::Type NUM_BIG_PAGES = MOS_BIG_PAGE_INDEX.i + NUM_MOS_BIG_PAGES + NUM_PARASITE_BIG_PAGES + NUM_PARASITE_ROM_BIG_PAGES;
 
 // A few big page indexes from NUM_BIG_PAGES onwards will never be valid, so
 // they can be used for other purposes.
 static_assert(NUM_BIG_PAGES <= 0xf0, "too many big pages");
+
+static constexpr BigPageIndex INVALID_BIG_PAGE_INDEX = {0xff};
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -167,7 +217,7 @@ union ACCCON {
 struct MemoryBigPageTables {
     // [0][i] is the big page to use when user code accesses memory big page i;
     // [1][i] likewise for MOS code.
-    uint8_t mem_big_pages[2][16];
+    BigPageIndex mem_big_pages[2][16];
 
     // [i] is 0 if memory big page i counts as user code, or 1 if it counts as
     // MOS code. Can use as index into mem_big_pages, hence the name.
@@ -180,7 +230,7 @@ struct MemoryBigPageTables {
 // TODO think of a better name for this!
 struct BigPageMetadata {
     // index of this big page.
-    uint8_t index = 0xff;
+    BigPageIndex index = INVALID_BIG_PAGE_INDEX;
 
     // Single char syntax for use when entering addresses in the debugger.
     char code = 0;

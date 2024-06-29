@@ -995,4 +995,55 @@ MAME link: https://github.com/mamedev/mame/blob/master/src/devices/bus/bbc/rom/p
 
 9 bits, 512 bytes
 
+** Increase big pages to 128 KB's-worth per bank?
+
+But the Watford ones have a fixed 8 KB at the bottom. So now the big
+page addresses are no longer fixed.
+
+# There would then be 32 big pages per bank, laid out as follows.
+
+# | MBank | Big page | Address |
+# |-------+----------+---------|
+# | w     |       +0 | 8000    |
+# | w     |       +1 | 9000    |
+# | w     |       +2 | a000    |
+# | w     |       +3 | b000    |
+# | x     |       +4 | 8000    |
+# | x     |       +5 | 9000    |
+# | x     |       +6 | a000    |
+# | x     |       +7 | b000    |
+# | y     |       +8 | 8000    |
+# | y     |       +9 | 9000    |
+# | y     |      +10 | a000    |
+# | y     |      +11 | b000    |
+# | z     |      +12 | 8000    |
+# | z     |      +13 | 9000    |
+# | z     |      +14 | a000    |
+# | z     |      +15 | b000    |
+# | W     |      +16 | 8000    |
+# | W     |      +17 | 9000    |
+# | W     |      +18 | a000    |
+# | W     |      +19 | b000    |
+# | X     |      +20 | 8000    |
+# | X     |      +21 | 9000    |
+# | X     |      +22 | a000    |
+# | X     |      +23 | b000    |
+# | Y     |      +24 | 8000    |
+# | Y     |      +25 | 9000    |
+# | Y     |      +26 | a000    |
+# | Y     |      +27 | b000    |
+# | Z     |      +28 | 8000    |
+# | Z     |      +29 | 9000    |
+# | Z     |      +30 | a000    |
+# | Z     |      +31 | b000    |
+
+# Then for the various mapper types (names as per MAME):
+
+# | Name     | w | x | y | z | W | X | Y | Z |
+# |----------+---+---+---+---+---+---+---+---|
+# | CCIWORD  | 1 | 1 |   |   |   |   |   |   |
+# | CCIBASE  | 1 | 1 | 1 | 1 |   |   |   |   |
+# | CCISPELL | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 |
+# | PALQST   | 1 | 1 | 1 | 1 |   |   | 1 | 1 |
+
 * eof.

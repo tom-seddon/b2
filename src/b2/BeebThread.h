@@ -761,7 +761,7 @@ class BeebThread {
 #if BBCMICRO_DEBUGGER
     class DebugSetByteDebugFlags : public Message {
       public:
-        DebugSetByteDebugFlags(uint8_t big_page_index, uint16_t offset, uint8_t byte_flags);
+        DebugSetByteDebugFlags(BigPageIndex big_page_index, uint16_t offset, uint8_t byte_flags);
 
         bool ThreadPrepare(std::shared_ptr<Message> *ptr,
                            CompletionFun *completion_fun,
@@ -770,7 +770,7 @@ class BeebThread {
 
       protected:
       private:
-        const uint8_t m_big_page_index = 0;
+        const BigPageIndex m_big_page_index = {0};
         const uint16_t m_offset = 0;
         const uint8_t m_byte_flags = 0;
     };

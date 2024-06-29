@@ -2681,10 +2681,10 @@ class PagingDebugWindow : public DebugUI {
 
   private:
     void DoTypeColumn(const BBCMicroType *type, const MemoryBigPageTables &tables, uint32_t paging_flags, size_t index, size_t mem_big_page_index) {
-        uint8_t big_page_index = tables.mem_big_pages[index][mem_big_page_index];
-        const BigPageMetadata *metadata = &type->big_pages_metadata[big_page_index];
+        BigPageIndex big_page_index = tables.mem_big_pages[index][mem_big_page_index];
+        const BigPageMetadata *metadata = &type->big_pages_metadata[big_page_index.i];
 
-        if (big_page_index == MOS_BIG_PAGE_INDEX + 3 && !(paging_flags & PagingFlags_ROMIO)) {
+        if (big_page_index.i == MOS_BIG_PAGE_INDEX.i + 3 && !(paging_flags & PagingFlags_ROMIO)) {
             ImGui::Text("%s + I/O (%s)", metadata->description.c_str(), paging_flags & PagingFlags_IFJ ? "IFJ" : "XFJ");
         } else {
             ImGui::TextUnformatted(metadata->description.c_str());
@@ -2757,13 +2757,13 @@ class BreakpointsDebugWindow : public DebugUI {
                 for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; ++i) {
                     Breakpoint *bp = &m_breakpoints[(size_t)i];
 
-                    if (bp->big_page == HOST_ADDRESS_BREAKPOINT_BIG_PAGE) {
+                    if (bp->big_page.i == HOST_ADDRESS_BREAKPOINT_BIG_PAGE) {
                         if (uint8_t *flags = this->Row(bp, "$%04x Host", bp->offset)) {
 
                             M6502Word addr = {bp->offset};
                             m_beeb_thread->Send(std::make_shared<BeebThread::DebugSetAddressDebugFlags>(addr, 0, *flags));
                         }
-                    } else if (bp->big_page == PARASITE_ADDRESS_BREAKPOINT_BIG_PAGE) {
+                    } else if (bp->big_page.i == PARASITE_ADDRESS_BREAKPOINT_BIG_PAGE) {
                         if (uint8_t *flags = this->Row(bp, "$%04x Parasite", bp->offset)) {
 
                             M6502Word addr = {bp->offset};
@@ -2775,7 +2775,7 @@ class BreakpointsDebugWindow : public DebugUI {
                         //                ASSERT(bp->offset<BBCMicro::BIG_PAGE_SIZE_BYTES);
                         //                uint8_t *flags=&m_big_page_debug_flags[bp->big_page][bp->offset];
 
-                        const BigPageMetadata *metadata = &type->big_pages_metadata[bp->big_page];
+                        const BigPageMetadata *metadata = &type->big_pages_metadata[bp->big_page.i];
 
                         if (uint8_t *flags = this->Row(bp,
                                                        "%c%c$%04x",
@@ -2802,7 +2802,7 @@ class BreakpointsDebugWindow : public DebugUI {
     static_assert(PARASITE_ADDRESS_BREAKPOINT_BIG_PAGE >= NUM_BIG_PAGES); //overflow check
 
     struct Breakpoint {
-        uint8_t big_page;
+        BigPageIndex big_page;
         uint16_t offset;
     };
     static_assert(sizeof(Breakpoint) == 4, "");
@@ -2837,17 +2837,17 @@ class BreakpointsDebugWindow : public DebugUI {
         ImGui::NextColumn();
 
         uint8_t *flags, *retain;
-        if (bp->big_page == HOST_ADDRESS_BREAKPOINT_BIG_PAGE) {
+        if (bp->big_page.i == HOST_ADDRESS_BREAKPOINT_BIG_PAGE) {
             flags = &m_host_address_debug_flags[bp->offset];
             retain = &m_host_address_debug_flags_retain[bp->offset >> 3];
-        } else if (bp->big_page == PARASITE_ADDRESS_BREAKPOINT_BIG_PAGE) {
+        } else if (bp->big_page.i == PARASITE_ADDRESS_BREAKPOINT_BIG_PAGE) {
             flags = &m_parasite_address_debug_flags[bp->offset];
             retain = &m_parasite_address_debug_flags_retain[bp->offset >> 3];
         } else {
-            ASSERT(bp->big_page < NUM_BIG_PAGES);
+            ASSERT(bp->big_page.i < NUM_BIG_PAGES);
             ASSERT(bp->offset < BBCMicro::BIG_PAGE_SIZE_BYTES);
-            flags = &m_big_page_debug_flags[bp->big_page][bp->offset];
-            retain = &m_big_page_debug_flags_retain[bp->big_page][bp->offset >> 3];
+            flags = &m_big_page_debug_flags[bp->big_page.i][bp->offset];
+            retain = &m_big_page_debug_flags_retain[bp->big_page.i][bp->offset >> 3];
         }
 
         if (ImGuiCheckboxFlags("Read", flags, BBCMicroByteDebugFlag_BreakRead)) {

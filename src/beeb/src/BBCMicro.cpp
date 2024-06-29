@@ -288,7 +288,7 @@ void BBCMicro::UpdatePaging() {
         MemoryBigPages *mbp = &m_mem_big_pages[i];
 
         for (size_t j = 0; j < 16; ++j) {
-            const BigPage *bp = &m_big_pages[tables.mem_big_pages[i][j]];
+            const BigPage *bp = &m_big_pages[tables.mem_big_pages[i][j].i];
 
             mbp->w[j] = bp->w;
             mbp->r[j] = bp->r;
@@ -405,22 +405,22 @@ void BBCMicro::InitReadOnlyBigPage(ReadOnlyBigPage *bp,
 #if BBCMICRO_DEBUGGER
                                    const DebugState *debug_state,
 #endif
-                                   uint8_t big_page_index) {
+                                   BigPageIndex big_page_index) {
     bp->writeable = false;
     bp->r = nullptr;
 
-    if (big_page_index >= 0 &&
-        big_page_index < 16) {
-        size_t offset = big_page_index * BIG_PAGE_SIZE_BYTES;
+    if (big_page_index.i >= 0 &&
+        big_page_index.i < 16) {
+        size_t offset = big_page_index.i * BIG_PAGE_SIZE_BYTES;
 
         if (offset < state->ram_buffer->size()) {
             bp->r = &state->ram_buffer->at(offset);
             bp->writeable = true;
         }
-    } else if (big_page_index >= ROM0_BIG_PAGE_INDEX &&
-               big_page_index < ROM0_BIG_PAGE_INDEX + 16 * NUM_ROM_BIG_PAGES) {
-        size_t bank = ((size_t)big_page_index - ROM0_BIG_PAGE_INDEX) / NUM_ROM_BIG_PAGES;
-        size_t offset = ((size_t)big_page_index - ROM0_BIG_PAGE_INDEX) % NUM_ROM_BIG_PAGES * BIG_PAGE_SIZE_BYTES;
+    } else if (big_page_index.i >= ROM0_BIG_PAGE_INDEX.i &&
+               big_page_index.i < ROM0_BIG_PAGE_INDEX.i + 16 * NUM_ROM_BIG_PAGES) {
+        size_t bank = ((size_t)big_page_index.i - ROM0_BIG_PAGE_INDEX.i) / NUM_ROM_BIG_PAGES;
+        size_t offset = ((size_t)big_page_index.i - ROM0_BIG_PAGE_INDEX.i) % NUM_ROM_BIG_PAGES * BIG_PAGE_SIZE_BYTES;
 
         if (!!state->sideways_rom_buffers[bank]) {
             bp->r = &state->sideways_rom_buffers[bank]->at(offset);
@@ -428,26 +428,26 @@ void BBCMicro::InitReadOnlyBigPage(ReadOnlyBigPage *bp,
             bp->r = &state->sideways_ram_buffers[bank]->at(offset);
             bp->writeable = true;
         }
-    } else if (big_page_index >= MOS_BIG_PAGE_INDEX &&
-               big_page_index < MOS_BIG_PAGE_INDEX + NUM_MOS_BIG_PAGES) {
+    } else if (big_page_index.i >= MOS_BIG_PAGE_INDEX.i &&
+               big_page_index.i < MOS_BIG_PAGE_INDEX.i + NUM_MOS_BIG_PAGES) {
         if (!!state->os_buffer) {
-            size_t offset = (big_page_index - MOS_BIG_PAGE_INDEX) * BIG_PAGE_SIZE_BYTES;
+            size_t offset = (big_page_index.i - MOS_BIG_PAGE_INDEX.i) * BIG_PAGE_SIZE_BYTES;
             bp->r = &state->os_buffer->at(offset);
         }
-    } else if (big_page_index >= PARASITE_BIG_PAGE_INDEX &&
-               big_page_index < PARASITE_BIG_PAGE_INDEX + NUM_PARASITE_BIG_PAGES) {
+    } else if (big_page_index.i >= PARASITE_BIG_PAGE_INDEX.i &&
+               big_page_index.i < PARASITE_BIG_PAGE_INDEX.i + NUM_PARASITE_BIG_PAGES) {
         if (state->parasite_type != BBCMicroParasiteType_None) {
-            size_t offset = (big_page_index - PARASITE_BIG_PAGE_INDEX) * BIG_PAGE_SIZE_BYTES;
+            size_t offset = (big_page_index.i - PARASITE_BIG_PAGE_INDEX.i) * BIG_PAGE_SIZE_BYTES;
             bp->r = &state->parasite_ram_buffer->at(offset);
             bp->writeable = true;
         }
-    } else if (big_page_index >= PARASITE_ROM_BIG_PAGE_INDEX &&
-               big_page_index < PARASITE_ROM_BIG_PAGE_INDEX + NUM_PARASITE_ROM_BIG_PAGES) {
+    } else if (big_page_index.i >= PARASITE_ROM_BIG_PAGE_INDEX.i &&
+               big_page_index.i < PARASITE_ROM_BIG_PAGE_INDEX.i + NUM_PARASITE_ROM_BIG_PAGES) {
         // During the initialisation, this can get called before the parasite OS
         // contents are set. Don't assert there's a rom buffer. Leave the area
         // unmapped if there isn't.
         if (!!state->parasite_rom_buffer) {
-            size_t offset = (big_page_index - PARASITE_ROM_BIG_PAGE_INDEX) * BIG_PAGE_SIZE_BYTES;
+            size_t offset = (big_page_index.i - PARASITE_ROM_BIG_PAGE_INDEX.i) * BIG_PAGE_SIZE_BYTES;
             bp->r = &state->parasite_rom_buffer->at(offset);
         }
     } else {
@@ -455,7 +455,7 @@ void BBCMicro::InitReadOnlyBigPage(ReadOnlyBigPage *bp,
     }
 
     bp->index = big_page_index;
-    bp->metadata = &state->type->big_pages_metadata[bp->index];
+    bp->metadata = &state->type->big_pages_metadata[bp->index.i];
 
 #if BBCMICRO_DEBUGGER
     bp->byte_debug_flags = nullptr;
@@ -464,7 +464,7 @@ void BBCMicro::InitReadOnlyBigPage(ReadOnlyBigPage *bp,
     if (debug_state) {
         if (bp->metadata->addr != 0xffff) {
             ASSERT(bp->metadata->addr % BIG_PAGE_SIZE_BYTES == 0);
-            bp->byte_debug_flags = debug_state->big_pages_byte_debug_flags[bp->index];
+            bp->byte_debug_flags = debug_state->big_pages_byte_debug_flags[bp->index.i];
 
             if (bp->metadata->is_parasite) {
                 bp->address_debug_flags = &debug_state->parasite_address_debug_flags[bp->metadata->addr];
@@ -484,7 +484,7 @@ void BBCMicro::InitPaging() {
         bp = {};
     }
 
-    for (uint8_t i = 0; i < NUM_BIG_PAGES; ++i) {
+    for (BigPageIndex i = {0}; i.i < NUM_BIG_PAGES; ++i.i) {
         ReadOnlyBigPage rbp;
         InitReadOnlyBigPage(&rbp,
                             &m_state,
@@ -493,7 +493,7 @@ void BBCMicro::InitPaging() {
 #endif
                             i);
 
-        BigPage *bp = &m_big_pages[i];
+        BigPage *bp = &m_big_pages[i.i];
         bp->index = rbp.index;
         bp->metadata = rbp.metadata;
         bp->r = rbp.r;
@@ -673,7 +673,7 @@ uint8_t BBCMicro::ReadUnmappedMMIO(void *m_, M6502Word a) {
 uint8_t BBCMicro::ReadROMMMIO(void *m_, M6502Word a) {
     auto m = (BBCMicro *)m_;
 
-    return m->m_big_pages[MOS_BIG_PAGE_INDEX + 3].r[a.p.o];
+    return m->m_big_pages[MOS_BIG_PAGE_INDEX.i + 3].r[a.p.o];
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -1297,7 +1297,7 @@ const M6502 *BBCMicro::GetM6502() const {
 const BBCMicro::BigPage *BBCMicro::DebugGetBigPageForAddress(M6502Word addr,
                                                              bool mos,
                                                              uint32_t dso) const {
-    unsigned big_page;
+    BigPageIndex big_page;
     if (dso & BBCMicroDebugStateOverride_Parasite) {
         bool parasite_boot_mode = m_state.parasite_boot_mode;
         if (dso & BBCMicroDebugStateOverride_OverrideParasiteROM) {
@@ -1307,7 +1307,7 @@ const BBCMicro::BigPage *BBCMicro::DebugGetBigPageForAddress(M6502Word addr,
         if (addr.w >= 0xf000 && parasite_boot_mode) {
             big_page = PARASITE_ROM_BIG_PAGE_INDEX;
         } else {
-            big_page = (uint8_t)(PARASITE_BIG_PAGE_INDEX + addr.p.p);
+            big_page = {(BigPageIndex::Type)(PARASITE_BIG_PAGE_INDEX.i + addr.p.p)};
         }
     } else {
         ROMSEL romsel = m_state.romsel;
@@ -1321,8 +1321,8 @@ const BBCMicro::BigPage *BBCMicro::DebugGetBigPageForAddress(M6502Word addr,
         big_page = tables.mem_big_pages[mos][addr.p.p];
     }
 
-    ASSERT(big_page < NUM_BIG_PAGES);
-    const BigPage *bp = &m_big_pages[big_page];
+    ASSERT(big_page.i < NUM_BIG_PAGES);
+    const BigPage *bp = &m_big_pages[big_page.i];
     return bp;
 }
 #endif
@@ -1337,7 +1337,7 @@ void BBCMicro::DebugGetBigPageForAddress(ReadOnlyBigPage *bp,
                                          M6502Word addr,
                                          bool mos,
                                          uint32_t dso) {
-    uint8_t index;
+    BigPageIndex index;
     if (dso & BBCMicroDebugStateOverride_Parasite) {
         bool boot_mode = state->parasite_boot_mode;
         if (dso & BBCMicroDebugStateOverride_OverrideParasiteROM) {
@@ -1347,7 +1347,7 @@ void BBCMicro::DebugGetBigPageForAddress(ReadOnlyBigPage *bp,
         if (addr.w >= 0xf000 && boot_mode) {
             index = PARASITE_ROM_BIG_PAGE_INDEX;
         } else {
-            index = (uint8_t)(PARASITE_BIG_PAGE_INDEX + addr.p.p);
+            index = {(BigPageIndex::Type)(PARASITE_BIG_PAGE_INDEX.i + addr.p.p)};
         }
     } else {
         ROMSEL romsel = state->romsel;
@@ -1407,13 +1407,13 @@ uint8_t BBCMicro::DebugGetByteDebugFlags(const BigPage *big_page,
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_DEBUGGER
-void BBCMicro::DebugSetByteDebugFlags(uint8_t big_page_index,
+void BBCMicro::DebugSetByteDebugFlags(BigPageIndex big_page_index,
                                       uint32_t offset,
                                       uint8_t flags) {
-    ASSERT(big_page_index < NUM_BIG_PAGES);
+    ASSERT(big_page_index.i < NUM_BIG_PAGES);
     ASSERT(offset < BIG_PAGE_SIZE_BYTES);
 
-    BigPage *big_page = &m_big_pages[big_page_index];
+    BigPage *big_page = &m_big_pages[big_page_index.i];
     if (big_page->byte_debug_flags) {
         uint8_t *byte_flags = &big_page->byte_debug_flags[offset & BIG_PAGE_OFFSET_MASK];
 
@@ -2048,7 +2048,7 @@ void BBCMicro::UpdateDebugState() {
         if (m_debug) {
             const BigPageMetadata *metadata = &m_state.type->big_pages_metadata[i];
             if (metadata->addr != 0xffff) {
-                bp->byte_debug_flags = m_debug->big_pages_byte_debug_flags[bp->index];
+                bp->byte_debug_flags = m_debug->big_pages_byte_debug_flags[bp->index.i];
 
                 if (metadata->is_parasite) {
                     bp->address_debug_flags = &m_debug->parasite_address_debug_flags[metadata->addr];

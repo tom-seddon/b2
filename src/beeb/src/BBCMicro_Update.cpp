@@ -158,14 +158,14 @@ uint32_t BBCMicro::UpdateTemplated(VideoDataUnit *video_unit, SoundDataUnit *sou
                 // The parasite paging is uncomplicated, and the byte address
                 // flags can be treated as a single 64 KB array.
                 uint8_t flags = (m_debug->parasite_address_debug_flags[m_state.parasite_cpu.abus.w] |
-                                 *((uint8_t *)m_debug->big_pages_byte_debug_flags[PARASITE_BIG_PAGE_INDEX] + m_state.parasite_cpu.abus.w));
+                                 *((uint8_t *)m_debug->big_pages_byte_debug_flags[PARASITE_BIG_PAGE_INDEX.i] + m_state.parasite_cpu.abus.w));
 
                 if constexpr ((UPDATE_FLAGS & BBCMicroUpdateFlag_ParasiteSpecial) != 0) {
                     // Really not concerned about the efficiency of special
                     // mode. The emulator is not in this state for long.
                     if (m_state.parasite_boot_mode && (m_state.parasite_cpu.abus.w & 0xf000) == 0xf000) {
                         flags = (m_debug->parasite_address_debug_flags[m_state.parasite_cpu.abus.w] |
-                                 m_debug->big_pages_byte_debug_flags[PARASITE_ROM_BIG_PAGE_INDEX][m_state.parasite_cpu.abus.p.o]);
+                                 m_debug->big_pages_byte_debug_flags[PARASITE_ROM_BIG_PAGE_INDEX.i][m_state.parasite_cpu.abus.p.o]);
                     }
                 }
 
@@ -197,7 +197,7 @@ uint32_t BBCMicro::UpdateTemplated(VideoDataUnit *video_unit, SoundDataUnit *sou
                 // The parasite paging is uncomplicated, and the byte address
                 // flags can be treated as a single 64 KB array.
                 uint8_t flags = (m_debug->parasite_address_debug_flags[m_state.parasite_cpu.abus.w] |
-                                 *((uint8_t *)m_debug->big_pages_byte_debug_flags[PARASITE_BIG_PAGE_INDEX] + m_state.parasite_cpu.abus.w));
+                                 *((uint8_t *)m_debug->big_pages_byte_debug_flags[PARASITE_BIG_PAGE_INDEX.i] + m_state.parasite_cpu.abus.w));
                 if (flags & BBCMicroByteDebugFlag_AnyBreakWriteMask) {
                     this->DebugHitBreakpoint(&m_state.parasite_cpu, &m_debug->parasite_relative_base, flags);
                 }

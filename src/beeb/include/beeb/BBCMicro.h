@@ -167,7 +167,7 @@ class BBCMicro : private WD1770Handler,
 
         // Index of this big page, from 0 (inclusive) to NUM_BIG_PAGES
         // (exclusive).
-        uint8_t index = 0;
+        BigPageIndex index = {0};
 
         const BigPageMetadata *metadata = nullptr;
     };
@@ -187,7 +187,7 @@ class BBCMicro : private WD1770Handler,
         // often overlap.
         const uint8_t *address_debug_flags = nullptr;
 #endif
-        uint8_t index = 0;
+        BigPageIndex index = {0};
         const BigPageMetadata *metadata = nullptr;
     };
 
@@ -413,7 +413,7 @@ class BBCMicro : private WD1770Handler,
 
     // Get/set per-byte debug flags for one byte.
     uint8_t DebugGetByteDebugFlags(const BigPage *big_page, uint32_t offset) const;
-    void DebugSetByteDebugFlags(uint8_t big_page_index, uint32_t offset, uint8_t flags);
+    void DebugSetByteDebugFlags(BigPageIndex big_page_index, uint32_t offset, uint8_t flags);
 
     // Get/set per-address byte debug flags for one address.
     uint8_t DebugGetAddressDebugFlags(M6502Word addr, uint32_t dso) const;
@@ -676,7 +676,7 @@ class BBCMicro : private WD1770Handler,
 #if BBCMICRO_DEBUGGER
                                     const DebugState *debug_state,
 #endif
-                                    uint8_t big_page_index);
+                                    BigPageIndex big_page_index);
 
     static void CheckMemoryBigPages(const MemoryBigPages *pages, bool non_null);
 
