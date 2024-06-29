@@ -518,9 +518,9 @@ static void GetMemBigPagesTablesMaster(MemoryBigPageTables *tables,
         tables->mem_big_pages[1][7].i = MAIN_BIG_PAGE_INDEX.i + 7;
     }
 
-    uint8_t rom = ROM0_BIG_PAGE_INDEX .i+ romsel.bplus_bits.pr * NUM_ROM_BIG_PAGES;
+    uint8_t rom = ROM0_BIG_PAGE_INDEX.i + romsel.bplus_bits.pr * NUM_ROM_BIG_PAGES;
     if (romsel.m128_bits.ram) {
-        tables->mem_big_pages[0][0x8].i = ANDY_BIG_PAGE_INDEX .i+ 0;
+        tables->mem_big_pages[0][0x8].i = ANDY_BIG_PAGE_INDEX.i + 0;
         tables->mem_big_pages[0][0x9].i = rom + 1;
         tables->mem_big_pages[0][0xa].i = rom + 2;
         tables->mem_big_pages[0][0xb].i = rom + 3;
@@ -532,17 +532,17 @@ static void GetMemBigPagesTablesMaster(MemoryBigPageTables *tables,
     }
 
     if (acccon.m128_bits.y) {
-        tables->mem_big_pages[0][0xc].i = HAZEL_BIG_PAGE_INDEX .i+ 0;
-        tables->mem_big_pages[0][0xd].i = HAZEL_BIG_PAGE_INDEX .i+ 1;
-        tables->mem_big_pages[0][0xe].i = MOS_BIG_PAGE_INDEX .i+ 2;
-        tables->mem_big_pages[0][0xf].i = MOS_BIG_PAGE_INDEX .i+ 3;
+        tables->mem_big_pages[0][0xc].i = HAZEL_BIG_PAGE_INDEX.i + 0;
+        tables->mem_big_pages[0][0xd].i = HAZEL_BIG_PAGE_INDEX.i + 1;
+        tables->mem_big_pages[0][0xe].i = MOS_BIG_PAGE_INDEX.i + 2;
+        tables->mem_big_pages[0][0xf].i = MOS_BIG_PAGE_INDEX.i + 3;
 
         memset(tables->pc_mem_big_pages_set, 0, 16);
     } else {
-        tables->mem_big_pages[0][0xc].i = MOS_BIG_PAGE_INDEX .i+ 0;
-        tables->mem_big_pages[0][0xd].i = MOS_BIG_PAGE_INDEX .i+ 1;
-        tables->mem_big_pages[0][0xe].i = MOS_BIG_PAGE_INDEX .i+ 2;
-        tables->mem_big_pages[0][0xf].i = MOS_BIG_PAGE_INDEX .i+ 3;
+        tables->mem_big_pages[0][0xc].i = MOS_BIG_PAGE_INDEX.i + 0;
+        tables->mem_big_pages[0][0xd].i = MOS_BIG_PAGE_INDEX.i + 1;
+        tables->mem_big_pages[0][0xe].i = MOS_BIG_PAGE_INDEX.i + 2;
+        tables->mem_big_pages[0][0xf].i = MOS_BIG_PAGE_INDEX.i + 3;
 
         memset(tables->pc_mem_big_pages_set, 0, 16);
         tables->pc_mem_big_pages_set[0xc] = 1;
@@ -647,14 +647,14 @@ static std::vector<BigPageMetadata> GetBigPagesMetadataMaster() {
 
     // Switch HAZEL off to see the first 8K of MOS.
     for (size_t i = 0; i < 2; ++i) {
-        big_pages[MOS_BIG_PAGE_INDEX .i+ i].dso_mask &= ~(uint32_t)~BBCMicroDebugStateOverride_HAZEL;
-        big_pages[MOS_BIG_PAGE_INDEX .i+ i].dso_value |= BBCMicroDebugStateOverride_OverrideHAZEL;
+        big_pages[MOS_BIG_PAGE_INDEX.i + i].dso_mask &= ~(uint32_t)~BBCMicroDebugStateOverride_HAZEL;
+        big_pages[MOS_BIG_PAGE_INDEX.i + i].dso_value |= BBCMicroDebugStateOverride_OverrideHAZEL;
     }
 
     // Switch IO off to see all of the last 4K of MOS.
     //
     // Might as well, since the hardware lets you...
-    big_pages[MOS_BIG_PAGE_INDEX .i+ 3].dso_value |= BBCMicroDebugStateOverride_OverrideOS | BBCMicroDebugStateOverride_OS;
+    big_pages[MOS_BIG_PAGE_INDEX.i + 3].dso_value |= BBCMicroDebugStateOverride_OverrideOS | BBCMicroDebugStateOverride_OS;
 #endif
 
     return big_pages;
@@ -766,41 +766,23 @@ const BBCMicroType BBC_MICRO_TYPE_MASTER_COMPACT = {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static const BBCMicroType *const BBC_MICRO_TYPES[] = {
-    &BBC_MICRO_TYPE_B,
-    &BBC_MICRO_TYPE_B_PLUS,
-    &BBC_MICRO_TYPE_MASTER_128,
-    &BBC_MICRO_TYPE_MASTER_COMPACT,
-};
-static const size_t NUM_BBC_MICRO_TYPES = sizeof BBC_MICRO_TYPES / sizeof BBC_MICRO_TYPES[0];
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-size_t GetNumBBCMicroTypes() {
-    return NUM_BBC_MICRO_TYPES;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-const BBCMicroType *GetBBCMicroTypeByIndex(size_t index) {
-    ASSERT(index < GetNumBBCMicroTypes());
-    return BBC_MICRO_TYPES[index];
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
 const BBCMicroType *GetBBCMicroTypeForTypeID(BBCMicroTypeID type_id) {
-    for (size_t i = 0; i < NUM_BBC_MICRO_TYPES; ++i) {
-        if (BBC_MICRO_TYPES[i]->type_id == type_id) {
-            return BBC_MICRO_TYPES[i];
-        }
-    }
+    switch (type_id) {
+    default:
+        ASSERT(false);
+        [[fallthrough]];
+    case BBCMicroTypeID_B:
+        return &BBC_MICRO_TYPE_B;
 
-    ASSERT(false);
-    return &BBC_MICRO_TYPE_B;
+    case BBCMicroTypeID_BPlus:
+        return &BBC_MICRO_TYPE_B_PLUS;
+
+    case BBCMicroTypeID_Master:
+        return &BBC_MICRO_TYPE_MASTER_128;
+
+    case BBCMicroTypeID_MasterCompact:
+        return &BBC_MICRO_TYPE_MASTER_COMPACT;
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////

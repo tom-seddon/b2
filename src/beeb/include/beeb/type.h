@@ -356,9 +356,6 @@ bool Has1MHzBus(const BBCMicroType *type);
 bool HasADC(const BBCMicroType *type);
 bool HasIndependentMOSView(const BBCMicroType *type);
 
-size_t GetNumBBCMicroTypes();
-const BBCMicroType *GetBBCMicroTypeByIndex(size_t index);
-
 #if BBCMICRO_DEBUGGER
 // Parse address prefix and add additional flags to *dso_ptr.
 //
