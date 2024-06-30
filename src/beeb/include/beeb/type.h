@@ -4,12 +4,13 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#include "roms.h"
+#include <string>
+#include <vector>
+
 #include <shared/enum_decl.h>
 #include "type.inl"
 #include <shared/enum_end.h>
-
-#include <string>
-#include <vector>
 
 class Log;
 struct BigPageType;
@@ -211,8 +212,17 @@ union ACCCON {
 //////////////////////////////////////////////////////////////////////////
 
 struct PagingState {
+    // Value of ROMSEL.
     ROMSEL romsel = {};
+
+    // Value of ACCCON.
     ACCCON acccon = {};
+
+    // Current ROM mapper bank for each ROM.
+    uint8_t rom_banks[16] = {};
+    
+    // ROM type for each ROM.
+    ROMType rom_types[16] = {};
 };
 
 //////////////////////////////////////////////////////////////////////////

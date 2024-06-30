@@ -419,8 +419,8 @@ void BBCMicro::InitReadOnlyBigPage(ReadOnlyBigPage *bp,
         size_t bank = ((size_t)big_page_index.i - ROM0_BIG_PAGE_INDEX.i) / NUM_ROM_BIG_PAGES;
         size_t offset = ((size_t)big_page_index.i - ROM0_BIG_PAGE_INDEX.i) % NUM_ROM_BIG_PAGES * BIG_PAGE_SIZE_BYTES;
 
-        if (!!state->sideways_roms[bank].buffer) {
-            bp->r = &state->sideways_roms[bank].buffer->at(offset);
+        if (!!state->sideways_rom_buffers[bank]) {
+            bp->r = &state->sideways_rom_buffers[bank]->at(offset);
         } else if (!!state->sideways_ram_buffers[bank]) {
             bp->r = &state->sideways_ram_buffers[bank]->at(offset);
             bp->writeable = true;
@@ -1013,9 +1013,9 @@ void BBCMicro::SetSidewaysROM(uint8_t bank, std::shared_ptr<const std::vector<ui
     // No sideways RAM in this bank.
     m_state.sideways_ram_buffers[bank].reset();
 
-    BBCMicroState::SidewaysROM *rom = &m_state.sideways_roms[bank];
-    rom->buffer = std::move(data);
-    rom->type = type;
+    m_state.sideways_rom_buffers[bank] = std::move(data);
+    m_state.paging.rom_types[bank] = type;
+    m_state.paging.rom_banks[bank] = 0;
 
     this->InitPaging();
 }
@@ -1035,7 +1035,7 @@ void BBCMicro::SetSidewaysRAM(uint8_t bank, std::shared_ptr<const std::vector<ui
     }
 
     // No sideways ROM in this bank.
-    m_state.sideways_roms[bank] = {};
+    m_state.sideways_rom_buffers[bank] = {};
 
     this->InitPaging();
 }
