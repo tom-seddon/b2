@@ -18,14 +18,14 @@ static_assert(!std::is_convertible<BBCMicroReadOnlyState, BBCMicroUniqueState>::
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-BBCMicroState::BBCMicroState(const BBCMicroType *type_,
+BBCMicroState::BBCMicroState(std::shared_ptr<const BBCMicroType> type_,
                              const DiscInterface *disc_interface_,
                              BBCMicroParasiteType parasite_type_,
                              const std::vector<uint8_t> &nvram_contents,
                              uint32_t init_flags_,
                              const tm *rtc_time,
                              CycleCount initial_cycle_count)
-    : type(type_)
+    : type(std::move(type_))
     , init_flags(init_flags_)
     , parasite_type(parasite_type_)
     , cycle_count(initial_cycle_count)

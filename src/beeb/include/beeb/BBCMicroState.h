@@ -170,7 +170,7 @@ class BBCMicroState {
 
     std::shared_ptr<const DiscImage> GetDiscImage(int drive) const;
 
-    const BBCMicroType *type = nullptr;
+    std::shared_ptr<const BBCMicroType> type;
 
   protected:
     uint32_t init_flags = 0;
@@ -320,7 +320,7 @@ class BBCMicroState {
     bool parasite_boot_mode = true;
     Tube parasite_tube;
 
-    explicit BBCMicroState(const BBCMicroType *type,
+    explicit BBCMicroState(std::shared_ptr<const BBCMicroType> type,
                            const DiscInterface *disc_interface,
                            BBCMicroParasiteType parasite_type,
                            const std::vector<uint8_t> &nvram_contents,

@@ -225,7 +225,7 @@ static bool ParsePrefixLowerCaseCharB(uint32_t *dso, char c) {
 }
 #endif
 
-const BBCMicroType BBC_MICRO_TYPE_B = {
+static const BBCMicroType BBC_MICRO_TYPE_B = {
     BBCMicroTypeID_B,       //type_id
     &M6502_nmos6502_config, //m6502_config
     32768,                  //ram_buffer_size
@@ -420,7 +420,7 @@ static bool ParsePrefixLowerCaseCharBPlus(uint32_t *dso, char c) {
 }
 #endif
 
-const BBCMicroType BBC_MICRO_TYPE_B_PLUS = {
+static const BBCMicroType BBC_MICRO_TYPE_B_PLUS = {
     BBCMicroTypeID_BPlus,   //type_id
     &M6502_nmos6502_config, //m6502_config
     65536,                  //ram_buffer_size
@@ -685,7 +685,7 @@ static bool ParsePrefixLowerCaseCharMaster(uint32_t *dso, char c) {
 }
 #endif
 
-const BBCMicroType BBC_MICRO_TYPE_MASTER_128 = {
+static const BBCMicroType BBC_MICRO_TYPE_MASTER_128 = {
     BBCMicroTypeID_Master,  //type_id
     &M6502_cmos6502_config, //m6502_config
     65536,                  //ram_buffer_size
@@ -722,7 +722,7 @@ const BBCMicroType BBC_MICRO_TYPE_MASTER_128 = {
 #endif
 };
 
-const BBCMicroType BBC_MICRO_TYPE_MASTER_COMPACT = {
+static const BBCMicroType BBC_MICRO_TYPE_MASTER_COMPACT = {
     BBCMicroTypeID_MasterCompact, //type_id
     &M6502_cmos6502_config,
     65536,
@@ -762,22 +762,22 @@ const BBCMicroType BBC_MICRO_TYPE_MASTER_COMPACT = {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-const BBCMicroType *GetBBCMicroTypeForTypeID(BBCMicroTypeID type_id) {
+std::shared_ptr<const BBCMicroType> CreateBBCMicroTypeForTypeID(BBCMicroTypeID type_id) {
     switch (type_id) {
     default:
         ASSERT(false);
         [[fallthrough]];
     case BBCMicroTypeID_B:
-        return &BBC_MICRO_TYPE_B;
+        return std::make_shared<const BBCMicroType>(BBC_MICRO_TYPE_B);
 
     case BBCMicroTypeID_BPlus:
-        return &BBC_MICRO_TYPE_B_PLUS;
+        return std::make_shared<const BBCMicroType>(BBC_MICRO_TYPE_B_PLUS);
 
     case BBCMicroTypeID_Master:
-        return &BBC_MICRO_TYPE_MASTER_128;
+        return std::make_shared<const BBCMicroType>(BBC_MICRO_TYPE_MASTER_128);
 
     case BBCMicroTypeID_MasterCompact:
-        return &BBC_MICRO_TYPE_MASTER_COMPACT;
+        return std::make_shared<const BBCMicroType>(BBC_MICRO_TYPE_MASTER_COMPACT);
     }
 }
 
@@ -889,7 +889,7 @@ const char *GetModelName(BBCMicroTypeID type_id) {
 
 #if BBCMICRO_DEBUGGER
 bool ParseAddressPrefix(uint32_t *dso_ptr,
-                        const BBCMicroType *type,
+                        const std::shared_ptr<const BBCMicroType> &type,
                         const char *prefix_begin,
                         const char *prefix_end,
                         Log *log) {

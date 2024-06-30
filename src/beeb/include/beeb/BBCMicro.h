@@ -193,7 +193,7 @@ class BBCMicro : private WD1770Handler,
 
     // nvram_contents and rtc_time are ignored if the BBCMicro doesn't
     // support such things.
-    BBCMicro(const BBCMicroType *type,
+    BBCMicro(std::shared_ptr<const BBCMicroType> type,
              const DiscInterface *disc_interface,
              BBCMicroParasiteType parasite_type,
              const std::vector<uint8_t> &nvram_contents,
@@ -262,7 +262,7 @@ class BBCMicro : private WD1770Handler,
     // Called when an address is about to be written.
     typedef bool (*WriteFn)(const BBCMicro *m, const M6502 *cpu, void *context);
 
-    const BBCMicroType *GetType() const;
+    BBCMicroTypeID GetTypeID() const;
     BBCMicroParasiteType GetParasiteType() const;
 
     // Get read-only pointer to the cycle counter. The pointer is never

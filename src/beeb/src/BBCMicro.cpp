@@ -134,7 +134,7 @@ const uint16_t BBCMicro::ADJI_ADDRESSES[4] = {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-BBCMicro::BBCMicro(const BBCMicroType *type,
+BBCMicro::BBCMicro(std::shared_ptr<const BBCMicroType> type,
                    const DiscInterface *disc_interface,
                    BBCMicroParasiteType parasite_type,
                    const std::vector<uint8_t> &nvram_contents,
@@ -142,7 +142,7 @@ BBCMicro::BBCMicro(const BBCMicroType *type,
                    uint32_t init_flags,
                    BeebLinkHandler *beeblink_handler,
                    CycleCount initial_cycle_count)
-    : m_state(type,
+    : m_state(std::move(type),
               disc_interface,
               parasite_type,
               nvram_contents,
@@ -749,8 +749,8 @@ uint8_t BBCMicro::ReadADJI(void *m_, M6502Word a) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-const BBCMicroType *BBCMicro::GetType() const {
-    return m_state.type;
+BBCMicroTypeID BBCMicro::GetTypeID() const {
+    return m_state.type->type_id;
 }
 
 //////////////////////////////////////////////////////////////////////////

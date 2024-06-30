@@ -137,14 +137,14 @@ struct Trace::Chunk {
 //////////////////////////////////////////////////////////////////////////
 
 Trace::Trace(size_t max_num_bytes,
-             const BBCMicroType *bbc_micro_type,
+             std::shared_ptr<const BBCMicroType> bbc_micro_type,
              ROMSEL initial_romsel,
              ACCCON initial_acccon,
              BBCMicroParasiteType parasite_type,
              const M6502Config *parasite_m6502_config,
              bool initial_parasite_boot_mode)
     : m_max_num_bytes(max_num_bytes)
-    , m_bbc_micro_type(bbc_micro_type)
+    , m_bbc_micro_type(std::move(bbc_micro_type))
     , m_romsel(initial_romsel)
     , m_acccon(initial_acccon)
     , m_parasite_type(parasite_type)
@@ -403,7 +403,7 @@ void Trace::GetStats(TraceStats *stats) const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-const BBCMicroType *Trace::GetBBCMicroType() const {
+std::shared_ptr<const BBCMicroType> Trace::GetBBCMicroType() const {
     return m_bbc_micro_type;
 }
 

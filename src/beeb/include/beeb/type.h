@@ -334,7 +334,7 @@ struct BBCMicroType {
 //////////////////////////////////////////////////////////////////////////
 
 // returns a pointer to one of the global BBCMicroType objects.
-const BBCMicroType *GetBBCMicroTypeForTypeID(BBCMicroTypeID type_id);
+std::shared_ptr<const BBCMicroType> CreateBBCMicroTypeForTypeID(BBCMicroTypeID type_id);
 
 // a few per-type ID fixed properties.
 bool HasNVRAM(BBCMicroTypeID type_id);
@@ -358,7 +358,7 @@ const char *GetModelName(BBCMicroTypeID type_id);
 // Returns false if not ok (*dso_ptr unmodified), and prints error messages on
 // *log if not NULL.
 bool ParseAddressPrefix(uint32_t *dso_ptr,
-                        const BBCMicroType *type,
+                        const std::shared_ptr<const BBCMicroType> &type,
                         const char *prefix_begin,
                         const char *prefix_end,
                         Log *log);

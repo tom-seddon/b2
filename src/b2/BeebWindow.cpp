@@ -490,7 +490,7 @@ void BeebWindow::OptionsUI::DoImGui() {
     {
         ImGuiHeader("Debug Options");
 
-        std::shared_ptr<const BBCMicroState> beeb_state;
+        std::shared_ptr<const BBCMicroReadOnlyState> beeb_state;
         m_beeb_window->m_beeb_thread->DebugGetState(&beeb_state, nullptr);
 
         bool teletext_debug = beeb_state->saa5050.debug;

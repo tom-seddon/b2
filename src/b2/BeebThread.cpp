@@ -580,7 +580,7 @@ void BeebThread::HardResetMessage::HardReset(BeebThread *beeb_thread,
         init_flags |= (uint8_t)((ts->current_config.config.adji_dip_switches & 3) << BBCMicroInitFlag_ADJIDIPSwitchesShift);
     }
 
-    auto beeb = std::make_unique<BBCMicro>(GetBBCMicroTypeForTypeID(ts->current_config.config.type_id),
+    auto beeb = std::make_unique<BBCMicro>(CreateBBCMicroTypeForTypeID(ts->current_config.config.type_id),
                                            ts->current_config.config.disc_interface,
                                            ts->current_config.config.parasite_type,
                                            nvram_contents,
@@ -1958,8 +1958,8 @@ bool BeebThread::HasNVRAM() const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-const BBCMicroType *BeebThread::GetBBCMicroType() const {
-    return m_beeb_type.load(std::memory_order_acquire);
+BBCMicroTypeID BeebThread::GetBBCMicroTypeID() const {
+    return m_beeb_type_id.load(std::memory_order_acquire);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -2300,7 +2300,7 @@ bool BeebThread::DebugIsHalted() const {
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_DEBUGGER
-void BeebThread::DebugGetState(std::shared_ptr<const BBCMicroState> *state_ptr,
+void BeebThread::DebugGetState(std::shared_ptr<const BBCMicroReadOnlyState> *state_ptr,
                                std::shared_ptr<const BBCMicro::DebugState> *debug_state_ptr) const {
     std::lock_guard<Mutex> lock(m_beeb_state_mutex);
 
@@ -2568,7 +2568,7 @@ void BeebThread::ThreadReplaceBeeb(ThreadState *ts, std::unique_ptr<BBCMicro> be
     }
 
     m_has_nvram.store(!ts->beeb->GetNVRAM().empty(), std::memory_order_release);
-    m_beeb_type.store(ts->beeb->GetType(), std::memory_order_release);
+    m_beeb_type_id.store(ts->beeb->GetTypeID(), std::memory_order_release);
 
     // Apply current keypresses to the emulated BBC. Reset fake shift
     // state and boot state first so that the Shift key status is set

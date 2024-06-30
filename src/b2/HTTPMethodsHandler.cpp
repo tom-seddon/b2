@@ -223,8 +223,11 @@ class HTTPMethodsHandler : public HTTPHandler {
                 auto ptr = va_arg(v, uint32_t *);
                 ASSERT(beeb_window);
                 if (value) {
+                    std::shared_ptr<const BBCMicroReadOnlyState> state;
+                    beeb_window->GetBeebThread()->DebugGetState(&state,nullptr);
+
                     if (!ParseAddressPrefix(ptr,
-                                            beeb_window->GetBeebThread()->GetBBCMicroType(),
+                                            state->type,
                                             value->c_str(),
                                             nullptr,
                                             &log)) {

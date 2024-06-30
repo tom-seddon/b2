@@ -174,7 +174,7 @@ class TraceSaver {
     uint32_t m_output_flags = DEFAULT_TRACE_OUTPUT_FLAGS;
     Handler m_handlers[256] = {};
     std::unique_ptr<Log> m_output;
-    const BBCMicroType *m_type = nullptr;
+    std::shared_ptr<const BBCMicroType> m_type;
     int m_sound_channel2_value = -1;
     R6522IRQEvent m_last_6522_irq_event_by_via_id[256];
     CycleCount m_last_instruction_time = {0};

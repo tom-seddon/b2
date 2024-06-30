@@ -99,7 +99,7 @@ static const char *GetFnName(M6502Fn fn) {
 
 static bool ParseAddress(uint16_t *addr_ptr,
                          uint32_t *dso_ptr,
-                         const BBCMicroType *type,
+                         const std::shared_ptr<const BBCMicroType> &type,
                          const char *text) {
     uint32_t dso = 0;
     uint16_t addr;
@@ -156,7 +156,7 @@ class DebugUI : public SettingsUI {
     BeebWindow *m_beeb_window = nullptr;
     std::shared_ptr<BeebThread> m_beeb_thread;
     uint32_t m_dso = 0;
-    std::shared_ptr<const BBCMicroState> m_beeb_state;
+    std::shared_ptr<const BBCMicroReadOnlyState> m_beeb_state;
     std::shared_ptr<const BBCMicro::DebugState> m_beeb_debug_state;
 
     virtual void DoImGui2() = 0;
@@ -1006,7 +1006,7 @@ class MemoryDebugWindow : public DebugUI,
         this->DoDebugPageOverrideImGui();
 
         if (m_show_mos_toggle) {
-            if (HasIndependentMOSView(m_beeb_window->GetBeebThread()->GetBBCMicroType()->type_id)) {
+            if (HasIndependentMOSView(m_beeb_window->GetBeebThread()->GetBBCMicroTypeID())) {
                 ImGui::SameLine();
                 ImGui::Checkbox("MOS's view", &this->m_handler.mos);
             }
@@ -2607,13 +2607,12 @@ class PagingDebugWindow : public DebugUI {
 
         ROMSEL romsel = m_beeb_state->romsel;
         ACCCON acccon = m_beeb_state->acccon;
-        const BBCMicroType *type = m_beeb_state->type;
 
-        (*type->apply_dso_fn)(&romsel, &acccon, m_dso);
+        (*m_beeb_state->type->apply_dso_fn)(&romsel, &acccon, m_dso);
 
         MemoryBigPageTables tables;
         uint32_t paging_flags;
-        (*type->get_mem_big_page_tables_fn)(&tables, &paging_flags, romsel, acccon);
+        (*m_beeb_state->type->get_mem_big_page_tables_fn)(&tables, &paging_flags, romsel, acccon);
 
         bool all_user = memcmp(tables.pc_mem_big_pages_set, ALL_USER_MEM_BIG_PAGES, 16) == 0;
 
@@ -2634,13 +2633,13 @@ class PagingDebugWindow : public DebugUI {
             ImGui::Text("%04zx - %04zx", i << 12, i << 12 | 0xfff);
             ImGui::NextColumn();
 
-            this->DoTypeColumn(type, tables, paging_flags, 0, i);
+            this->DoTypeColumn(m_beeb_state->type, tables, paging_flags, 0, i);
             ImGui::NextColumn();
 
             if (all_user) {
                 ImGui::TextUnformatted("N/A");
             } else {
-                this->DoTypeColumn(type, tables, paging_flags, 1, i);
+                this->DoTypeColumn(m_beeb_state->type, tables, paging_flags, 1, i);
             }
             ImGui::NextColumn();
         }
@@ -2680,7 +2679,7 @@ class PagingDebugWindow : public DebugUI {
     }
 
   private:
-    void DoTypeColumn(const BBCMicroType *type, const MemoryBigPageTables &tables, uint32_t paging_flags, size_t index, size_t mem_big_page_index) {
+    void DoTypeColumn(const std::shared_ptr<const BBCMicroType> &type, const MemoryBigPageTables &tables, uint32_t paging_flags, size_t index, size_t mem_big_page_index) {
         BigPageIndex big_page_index = tables.mem_big_pages[index][mem_big_page_index];
         const BigPageMetadata *metadata = &type->big_pages_metadata[big_page_index.i];
 
@@ -2723,8 +2722,6 @@ class BreakpointsDebugWindow : public DebugUI {
                 changed = true;
             }
         }
-
-        const BBCMicroType *type = m_beeb_state->type;
 
         if (changed) {
             this->Update();
@@ -2775,7 +2772,7 @@ class BreakpointsDebugWindow : public DebugUI {
                         //                ASSERT(bp->offset<BBCMicro::BIG_PAGE_SIZE_BYTES);
                         //                uint8_t *flags=&m_big_page_debug_flags[bp->big_page][bp->offset];
 
-                        const BigPageMetadata *metadata = &type->big_pages_metadata[bp->big_page.i];
+                        const BigPageMetadata *metadata = &m_beeb_state->type->big_pages_metadata[bp->big_page.i];
 
                         if (uint8_t *flags = this->Row(bp,
                                                        "%c%c$%04x",
@@ -2942,14 +2939,12 @@ class PixelMetadataUI : public DebugUI {
     void DoImGui2() override {
         if (const VideoDataUnit *unit = m_beeb_window->GetVideoDataUnitForMousePixel()) {
             if (unit->metadata.flags & VideoDataUnitMetadataFlag_HasAddress) {
-                const BBCMicroType *type = m_beeb_state->type;
-
                 // The debug stuff is oriented around the CPU's view of memory,
                 // but the video unit's address is from the CRTC's perspective.
 
                 M6502Word crtc_addr = {unit->metadata.address};
 
-                const BigPageMetadata *metadata = &type->big_pages_metadata[crtc_addr.p.p];
+                const BigPageMetadata *metadata = &m_beeb_state->type->big_pages_metadata[crtc_addr.p.p];
 
                 m_dso &= metadata->dso_mask;
                 m_dso |= metadata->dso_value;

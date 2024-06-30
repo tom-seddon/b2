@@ -135,7 +135,7 @@ class Trace : public std::enable_shared_from_this<Trace> {
     // max_num_bytes is approximate - actual consumption may be greater.
     // Supply SIZE_MAX to just have the data grow indefinitely.
     explicit Trace(size_t max_num_bytes,
-                   const BBCMicroType *type,
+                   std::shared_ptr<const BBCMicroType> type,
                    ROMSEL initial_romsel_value,
                    ACCCON initial_acccon_value,
                    BBCMicroParasiteType parasite_type,
@@ -200,7 +200,7 @@ class Trace : public std::enable_shared_from_this<Trace> {
 
     void GetStats(TraceStats *stats) const;
 
-    const BBCMicroType *GetBBCMicroType() const;
+    std::shared_ptr<const BBCMicroType> GetBBCMicroType() const;
     ROMSEL GetInitialROMSEL() const;
     ACCCON GetInitialACCCON() const;
     BBCMicroParasiteType GetParasiteType() const;
@@ -240,7 +240,7 @@ class Trace : public std::enable_shared_from_this<Trace> {
     LogPrinterTrace m_log_printer{this};
     size_t m_max_num_bytes;
 
-    const BBCMicroType *m_bbc_micro_type = nullptr;
+    std::shared_ptr<const BBCMicroType> m_bbc_micro_type;
     ROMSEL m_romsel = {};
     ACCCON m_acccon = {};
     BBCMicroParasiteType m_parasite_type = BBCMicroParasiteType_None;

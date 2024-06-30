@@ -944,7 +944,7 @@ class BeebThread {
     // Returns true if the emulated computer has NVRAM.
     bool HasNVRAM() const;
 
-    const BBCMicroType *GetBBCMicroType() const;
+    BBCMicroTypeID GetBBCMicroTypeID() const;
 
     uint32_t GetBBCMicroCloneImpediments() const;
 
@@ -1012,7 +1012,7 @@ class BeebThread {
 
 #if BBCMICRO_DEBUGGER
     bool DebugIsHalted() const;
-    void DebugGetState(std::shared_ptr<const BBCMicroState> *state_ptr, std::shared_ptr<const BBCMicro::DebugState> *debug_state_ptr) const;
+    void DebugGetState(std::shared_ptr<const BBCMicroReadOnlyState> *state_ptr, std::shared_ptr<const BBCMicro::DebugState> *debug_state_ptr) const;
 #endif
 
     uint32_t GetUpdateFlags() const;
@@ -1066,7 +1066,7 @@ class BeebThread {
     std::atomic<bool> m_is_pasting{false};
     std::atomic<bool> m_is_copying{false};
     std::atomic<bool> m_has_nvram{false};
-    std::atomic<const BBCMicroType *> m_beeb_type{nullptr};
+    std::atomic<BBCMicroTypeID> m_beeb_type_id{BBCMicroTypeID_B};
     std::atomic<uint32_t> m_clone_impediments{0};
     std::atomic<bool> m_power_on_tone{true};
     std::atomic<bool> m_is_drive_write_protected[NUM_DRIVES]{};
@@ -1080,7 +1080,7 @@ class BeebThread {
     // Lock m_mutex first, if locking both. (The public API makes this hard to
     // get wrong.)
     mutable Mutex m_beeb_state_mutex;
-    std::shared_ptr<const BBCMicroState> m_beeb_state;
+    std::shared_ptr<const BBCMicroReadOnlyState> m_beeb_state;
 #if BBCMICRO_DEBUGGER
     std::shared_ptr<const BBCMicro::DebugState> m_beeb_debug_state;
     std::shared_ptr<const BBCMicro::UpdateMFnData> m_update_mfn_data;
