@@ -1090,8 +1090,10 @@ Base requirements:
 
 *** Other notes
 
-=PARASITE_BIG_PAGE_INDEX= is used in update function to check for breakpoints
+=PARASITE_BIG_PAGE_INDEX= is used in update function to check for
+breakpoints.
 
-
+=MOS_BIG_PAGE_INDEX= is used in debugger code when showing the paging
+setup.
 
 * eof.

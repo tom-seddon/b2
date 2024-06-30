@@ -24,48 +24,36 @@ struct M6502Config;
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-// Total max addressable memory on the BBC is 468K:
+// Total max addressable memory in the emulated system is 2,194K:
 //
 // - 64K RAM (main+shadow+ANDY+HAZEL)
-// - 256K ROM (16 * 16K)
+// - 16 * 128K ROM
 // - 16K MOS
-// - 64K int Tube
-// - 2K int Tube ROM
-// - 64K ext Tube
-// - 2K ext Tube ROM
+// - 64K parasite RAM
+// - 2K parasite ROM
 //
 // The paging generally operates at a 4K resolution, so this can be divided into
-// 84 4K pages, or (to pick a term) big pages. (1 big page = 16 pages.) The big
-// pages are assigned like this:
+// 549 4K pages, or (to pick a term) big pages. (1 big page = 16 pages.) The
+// following big pages are defined:
 //
 // <pre>
-// 0-7     main                     }
-// 8       ANDY (M128)/ANDY (B+)    } "RAM"
-// 9,10    HAZEL (M128)/ANDY (B+)   }
-// 11-15   shadow RAM (M128/B+)     }
-//
-// 16-19   ROM 0                    }
-// 20-23   ROM 1                    } "ROM"
-// ...                              }
-// 76-79   ROM 15                   }
-//
-// 80-83   MOS
-// 84-99   parasite
-// 100     parasite ROM
-// 101-116 second parasite [planned]
-// 117     second parasite ROM (double up to make 4K) [planned]
+// 8    main RAM
+// 1    ANDY (M128)/ANDY (B+)
+// 2    HAZEL (M128)/ANDY (B+)
+// 5    shadow RAM (M128/B+)
+// 32   ROM 0 (actually typically 4, but ROM mappers may demand more)
+// 32   ROM 1 (see above)
+// ...
+// 32   ROM 15 (see above)
+// 4    MOS
+// 16   parasite RAM
+// 1    parasite ROM
 // </pre>
-//
-// (Three additional pages, for FRED/JIM/SHEILA, are planned.)
-//
-// Big pages 0-15 map directly to the BBCMicro RAM buffer, with each one being
-// at offset index<<12. (When the RAM buffer is 32K, big pages 8-15 aren't
-// mapped.)
 //
 // Each big page can be set up once, when the BBCMicro is first created,
 // simplifying some of the logic. When switching to ROM 1, for example, the
-// buffers can be found by looking at big pages 20-23, rather than having to
-// check m_state.sideways_rom_buffers[1] (etc.).
+// buffers can be found by looking at the 4 pre-prepared big pages for that
+// region, rather than having to check m_state.sideways_rom_buffers[1] (etc.).
 //
 // The per-big page struct can also contain some cold info (debug flags, static
 // data, etc.), as it's only fetched when the paging registers are changed,
@@ -85,6 +73,7 @@ struct M6502Config;
 
 // Address prefixes:
 //
+// <pre>
 // 0 - sideways ROM 0
 // 1 - sideways ROM 1
 // 2 - sideways ROM 2
@@ -117,10 +106,17 @@ struct M6502Config;
 // t -
 // u -
 // v -
-// w -
-// x -
-// y -
-// z -
+// w - ROM mapper bank 0
+// x - ROM mapper bank 1
+// y - ROM mapper bank 2
+// z - ROM mapper bank 3
+// W - ROM mapper bank 4
+// X - ROM mapper bank 5
+// Y - ROM mapper bank 6
+// Z - ROM mapper bank 7
+// </pre>
+//
+// How the ROM mapper bank affects things depends on the ROM mapper type.
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -258,7 +254,7 @@ struct BigPageMetadata {
 
 struct BBCMicroType {
     // Switch-friendly identifier.
-    const BBCMicroTypeID type_id;
+    BBCMicroTypeID type_id;
 
     const M6502Config *m6502_config;
 

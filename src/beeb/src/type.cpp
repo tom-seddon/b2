@@ -13,6 +13,17 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+static bool IsMaster(BBCMicroTypeID type_id) {
+    return type_id == BBCMicroTypeID_Master || type_id == BBCMicroTypeID_MasterCompact;
+}
+
+static bool IsB(BBCMicroTypeID type_id) {
+    return type_id == BBCMicroTypeID_B || type_id == BBCMicroTypeID_BPlus;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 #if BBCMICRO_DEBUGGER
 static void ApplyROMDSO(ROMSEL *romsel, uint32_t dso) {
     if (dso & BBCMicroDebugStateOverride_OverrideROM) {
@@ -225,34 +236,34 @@ static bool ParsePrefixLowerCaseCharB(uint32_t *dso, char c) {
 }
 #endif
 
-static const BBCMicroType BBC_MICRO_TYPE_B = {
-    BBCMicroTypeID_B,       //type_id
-    &M6502_nmos6502_config, //m6502_config
-    32768,                  //ram_buffer_size
-    DiscDriveType_133mm,    //default_disc_drive_type
-#if BBCMICRO_DEBUGGER
-    (BBCMicroDebugStateOverride_OverrideROM |
-     BBCMicroDebugStateOverride_ROM), //dso_mask
-#endif
-    GetBigPagesMetadataB(),
-    &GetMemBigPageTablesB, //get_mem_big_page_tables_fn,
-#if BBCMICRO_DEBUGGER
-    &ApplyDSOB, //apply_dso_fn
-    &GetDSOB,   //get_dso_fn
-#endif
-    0x0f, //romsel_mask,
-    0x00, //acccon_mask,
-    {
-        {0x00, 0x1f},
-        {0x40, 0x7f},
-        {0xc0, 0xdf},
-    },      //sheila_cycle_stretch_regions
-    0xfec0, //adc_addr
-    32,     //adc_count
-#if BBCMICRO_DEBUGGER
-    &ParsePrefixLowerCaseCharB, //parse_prefix_char_fn
-#endif
-};
+//static const BBCMicroType BBC_MICRO_TYPE_B = {
+//    BBCMicroTypeID_B,       //type_id
+//    &M6502_nmos6502_config, //m6502_config
+//    32768,                  //ram_buffer_size
+//    DiscDriveType_133mm,    //default_disc_drive_type
+//#if BBCMICRO_DEBUGGER
+//    (BBCMicroDebugStateOverride_OverrideROM |
+//     BBCMicroDebugStateOverride_ROM), //dso_mask
+//#endif
+//    GetBigPagesMetadataB(),
+//    &GetMemBigPageTablesB, //get_mem_big_page_tables_fn,
+//#if BBCMICRO_DEBUGGER
+//    &ApplyDSOB, //apply_dso_fn
+//    &GetDSOB,   //get_dso_fn
+//#endif
+//    0x0f, //romsel_mask,
+//    0x00, //acccon_mask,
+//    {
+//        {0x00, 0x1f},
+//        {0x40, 0x7f},
+//        {0xc0, 0xdf},
+//    },      //sheila_cycle_stretch_regions
+//    0xfec0, //adc_addr
+//    32,     //adc_count
+//#if BBCMICRO_DEBUGGER
+//    &ParsePrefixLowerCaseCharB, //parse_prefix_char_fn
+//#endif
+//};
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -420,38 +431,38 @@ static bool ParsePrefixLowerCaseCharBPlus(uint32_t *dso, char c) {
 }
 #endif
 
-static const BBCMicroType BBC_MICRO_TYPE_B_PLUS = {
-    BBCMicroTypeID_BPlus,   //type_id
-    &M6502_nmos6502_config, //m6502_config
-    65536,                  //ram_buffer_size
-    DiscDriveType_133mm,    //default_disc_drive_type
-#if BBCMICRO_DEBUGGER
-    (BBCMicroDebugStateOverride_ROM |
-     BBCMicroDebugStateOverride_OverrideROM |
-     BBCMicroDebugStateOverride_ANDY |
-     BBCMicroDebugStateOverride_OverrideANDY |
-     BBCMicroDebugStateOverride_Shadow |
-     BBCMicroDebugStateOverride_OverrideShadow), //dso_mask
-#endif
-    GetBigPagesMetadataBPlus(),
-    &GetMemBigPageTablesBPlus, //get_mem_big_page_tables_fn,
-#if BBCMICRO_DEBUGGER
-    &ApplyDSOBPlus, //apply_dso_fn
-    &GetDSOBPlus,   //get_dso_fn
-#endif
-    0x8f, //romsel_mask,
-    0x80, //acccon_mask,
-    {
-        {0x00, 0x1f},
-        {0x40, 0x7f},
-        {0xc0, 0xdf},
-    },      //sheila_cycle_stretch_regions
-    0xfec0, //adc_addr
-    32,     //adc_count
-#if BBCMICRO_DEBUGGER
-    &ParsePrefixLowerCaseCharBPlus, //parse_prefix_char_fn
-#endif
-};
+//static const BBCMicroType BBC_MICRO_TYPE_B_PLUS = {
+//    BBCMicroTypeID_BPlus,   //type_id
+//    &M6502_nmos6502_config, //m6502_config
+//    65536,                  //ram_buffer_size
+//    DiscDriveType_133mm,    //default_disc_drive_type
+//#if BBCMICRO_DEBUGGER
+//    (BBCMicroDebugStateOverride_ROM |
+//     BBCMicroDebugStateOverride_OverrideROM |
+//     BBCMicroDebugStateOverride_ANDY |
+//     BBCMicroDebugStateOverride_OverrideANDY |
+//     BBCMicroDebugStateOverride_Shadow |
+//     BBCMicroDebugStateOverride_OverrideShadow), //dso_mask
+//#endif
+//    GetBigPagesMetadataBPlus(),
+//    &GetMemBigPageTablesBPlus, //get_mem_big_page_tables_fn,
+//#if BBCMICRO_DEBUGGER
+//    &ApplyDSOBPlus, //apply_dso_fn
+//    &GetDSOBPlus,   //get_dso_fn
+//#endif
+//    0x8f, //romsel_mask,
+//    0x80, //acccon_mask,
+//    {
+//        {0x00, 0x1f},
+//        {0x40, 0x7f},
+//        {0xc0, 0xdf},
+//    },      //sheila_cycle_stretch_regions
+//    0xfec0, //adc_addr
+//    32,     //adc_count
+//#if BBCMICRO_DEBUGGER
+//    &ParsePrefixLowerCaseCharBPlus, //parse_prefix_char_fn
+//#endif
+//};
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -685,111 +696,217 @@ static bool ParsePrefixLowerCaseCharMaster(uint32_t *dso, char c) {
 }
 #endif
 
-static const BBCMicroType BBC_MICRO_TYPE_MASTER_128 = {
-    BBCMicroTypeID_Master,  //type_id
-    &M6502_cmos6502_config, //m6502_config
-    65536,                  //ram_buffer_size
-    DiscDriveType_133mm,    //default_disc_drive_type
-#if BBCMICRO_DEBUGGER
-    (BBCMicroDebugStateOverride_ROM |
-     BBCMicroDebugStateOverride_OverrideROM |
-     BBCMicroDebugStateOverride_ANDY |
-     BBCMicroDebugStateOverride_OverrideANDY |
-     BBCMicroDebugStateOverride_HAZEL |
-     BBCMicroDebugStateOverride_OverrideHAZEL |
-     BBCMicroDebugStateOverride_Shadow |
-     BBCMicroDebugStateOverride_OverrideShadow |
-     BBCMicroDebugStateOverride_OS |
-     BBCMicroDebugStateOverride_OverrideOS), //dso_mask
-#endif
-    GetBigPagesMetadataMaster(),
-    &GetMemBigPagesTablesMaster, //get_mem_big_page_tables_fn,
-#if BBCMICRO_DEBUGGER
-    &ApplyDSOMaster, //apply_dso_fn
-    &GetDSOMaster,   //get_dso_fn
-#endif
-    0x8f, //romsel_mask,
-    0xff, //acccon_mask,
-    {
-        {0x00, 0x1f},
-        {0x28, 0x2b},
-        {0x40, 0x7f},
-    },      //sheila_cycle_stretch_regions
-    0xfe18, //adc_addr
-    8,      //adc_count
-#if BBCMICRO_DEBUGGER
-    &ParsePrefixLowerCaseCharMaster, //parse_prefix_char_fn
-#endif
-};
+//static const BBCMicroType BBC_MICRO_TYPE_MASTER_128 = {
+//    BBCMicroTypeID_Master,  //type_id
+//    &M6502_cmos6502_config, //m6502_config
+//    65536,                  //ram_buffer_size
+//    DiscDriveType_133mm,    //default_disc_drive_type
+//#if BBCMICRO_DEBUGGER
+//    (BBCMicroDebugStateOverride_ROM |
+//     BBCMicroDebugStateOverride_OverrideROM |
+//     BBCMicroDebugStateOverride_ANDY |
+//     BBCMicroDebugStateOverride_OverrideANDY |
+//     BBCMicroDebugStateOverride_HAZEL |
+//     BBCMicroDebugStateOverride_OverrideHAZEL |
+//     BBCMicroDebugStateOverride_Shadow |
+//     BBCMicroDebugStateOverride_OverrideShadow |
+//     BBCMicroDebugStateOverride_OS |
+//     BBCMicroDebugStateOverride_OverrideOS), //dso_mask
+//#endif
+//    GetBigPagesMetadataMaster(),
+//    &GetMemBigPagesTablesMaster, //get_mem_big_page_tables_fn,
+//#if BBCMICRO_DEBUGGER
+//    &ApplyDSOMaster, //apply_dso_fn
+//    &GetDSOMaster,   //get_dso_fn
+//#endif
+//    0x8f, //romsel_mask,
+//    0xff, //acccon_mask,
+//    {
+//        {0x00, 0x1f},
+//        {0x28, 0x2b},
+//        {0x40, 0x7f},
+//    },      //sheila_cycle_stretch_regions
+//    0xfe18, //adc_addr
+//    8,      //adc_count
+//#if BBCMICRO_DEBUGGER
+//    &ParsePrefixLowerCaseCharMaster, //parse_prefix_char_fn
+//#endif
+//};
 
-static const BBCMicroType BBC_MICRO_TYPE_MASTER_COMPACT = {
-    BBCMicroTypeID_MasterCompact, //type_id
-    &M6502_cmos6502_config,
-    65536,
-    DiscDriveType_90mm,
-#if BBCMICRO_DEBUGGER
-    (BBCMicroDebugStateOverride_ROM |
-     BBCMicroDebugStateOverride_OverrideROM |
-     BBCMicroDebugStateOverride_ANDY |
-     BBCMicroDebugStateOverride_OverrideANDY |
-     BBCMicroDebugStateOverride_HAZEL |
-     BBCMicroDebugStateOverride_OverrideHAZEL |
-     BBCMicroDebugStateOverride_Shadow |
-     BBCMicroDebugStateOverride_OverrideShadow |
-     BBCMicroDebugStateOverride_OS |
-     BBCMicroDebugStateOverride_OverrideOS), //dso_mask
-#endif
-    GetBigPagesMetadataMaster(),
-    &GetMemBigPagesTablesMaster, //get_mem_big_page_tables_fn,
-#if BBCMICRO_DEBUGGER
-    &ApplyDSOMaster, //apply_dso_fn
-    &GetDSOMaster,   //get_dso_fn
-#endif
-    0x8f, //romsel_mask,
-    0xff, //acccon_mask,
-    {
-        {0x00, 0x1f},
-        {0x28, 0x2b},
-        {0x40, 0x7f},
-    }, //sheila_cycle_stretch_regions
-    0, //adc_addr
-    0, //adc_count
-#if BBCMICRO_DEBUGGER
-    &ParsePrefixLowerCaseCharMaster, //parse_prefix_char_fn
-#endif
-};
+//static const BBCMicroType BBC_MICRO_TYPE_MASTER_COMPACT = {
+//    BBCMicroTypeID_MasterCompact, //type_id
+//    &M6502_cmos6502_config,
+//    65536,
+//    DiscDriveType_90mm,
+//#if BBCMICRO_DEBUGGER
+//    (BBCMicroDebugStateOverride_ROM |
+//     BBCMicroDebugStateOverride_OverrideROM |
+//     BBCMicroDebugStateOverride_ANDY |
+//     BBCMicroDebugStateOverride_OverrideANDY |
+//     BBCMicroDebugStateOverride_HAZEL |
+//     BBCMicroDebugStateOverride_OverrideHAZEL |
+//     BBCMicroDebugStateOverride_Shadow |
+//     BBCMicroDebugStateOverride_OverrideShadow |
+//     BBCMicroDebugStateOverride_OS |
+//     BBCMicroDebugStateOverride_OverrideOS), //dso_mask
+//#endif
+//    GetBigPagesMetadataMaster(),
+//    &GetMemBigPagesTablesMaster, //get_mem_big_page_tables_fn,
+//#if BBCMICRO_DEBUGGER
+//    &ApplyDSOMaster, //apply_dso_fn
+//    &GetDSOMaster,   //get_dso_fn
+//#endif
+//    0x8f, //romsel_mask,
+//    0xff, //acccon_mask,
+//    {
+//        {0x00, 0x1f},
+//        {0x28, 0x2b},
+//        {0x40, 0x7f},
+//    }, //sheila_cycle_stretch_regions
+//    0, //adc_addr
+//    0, //adc_count
+//#if BBCMICRO_DEBUGGER
+//    &ParsePrefixLowerCaseCharMaster, //parse_prefix_char_fn
+//#endif
+//};
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 std::shared_ptr<const BBCMicroType> CreateBBCMicroTypeForTypeID(BBCMicroTypeID type_id) {
-    switch (type_id) {
+    auto type = std::make_shared<BBCMicroType>();
+
+    type->type_id = type_id;
+
+    if (IsMaster(type->type_id)) {
+        type->m6502_config = &M6502_cmos6502_config;
+    } else {
+        type->m6502_config = &M6502_nmos6502_config;
+    }
+
+    if (type->type_id == BBCMicroTypeID_B) {
+        type->ram_buffer_size = 32768;
+    } else {
+        type->ram_buffer_size = 65536;
+    }
+
+    if (type->type_id == BBCMicroTypeID_MasterCompact) {
+        type->default_disc_drive_type = DiscDriveType_90mm;
+    } else {
+        type->default_disc_drive_type = DiscDriveType_133mm;
+    }
+
+    switch (type->type_id) {
     default:
         ASSERT(false);
         [[fallthrough]];
     case BBCMicroTypeID_B:
-        return std::make_shared<const BBCMicroType>(BBC_MICRO_TYPE_B);
+        type->big_pages_metadata = GetBigPagesMetadataB();
+        type->get_mem_big_page_tables_fn = &GetMemBigPageTablesB;
+        break;
 
     case BBCMicroTypeID_BPlus:
-        return std::make_shared<const BBCMicroType>(BBC_MICRO_TYPE_B_PLUS);
+        type->big_pages_metadata = GetBigPagesMetadataBPlus();
+        type->get_mem_big_page_tables_fn = &GetMemBigPageTablesBPlus;
+        break;
 
     case BBCMicroTypeID_Master:
-        return std::make_shared<const BBCMicroType>(BBC_MICRO_TYPE_MASTER_128);
-
     case BBCMicroTypeID_MasterCompact:
-        return std::make_shared<const BBCMicroType>(BBC_MICRO_TYPE_MASTER_COMPACT);
+        type->big_pages_metadata = GetBigPagesMetadataMaster();
+        type->get_mem_big_page_tables_fn = &GetMemBigPagesTablesMaster;
+        break;
     }
-}
 
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
+#if BBCMICRO_DEBUGGER
+    switch (type->type_id) {
+    default:
+        ASSERT(false);
+        [[fallthrough]];
+    case BBCMicroTypeID_B:
+        type->dso_mask = (BBCMicroDebugStateOverride_OverrideROM |
+                          BBCMicroDebugStateOverride_ROM);
+        type->apply_dso_fn = &ApplyDSOB;
+        type->get_dso_fn = &GetDSOB;
+        type->parse_prefix_lower_case_char_fn = &ParsePrefixLowerCaseCharB;
+        break;
 
-static bool IsMaster(BBCMicroTypeID type_id) {
-    return type_id == BBCMicroTypeID_Master || type_id == BBCMicroTypeID_MasterCompact;
-}
+    case BBCMicroTypeID_BPlus:
+        type->dso_mask = (BBCMicroDebugStateOverride_ROM |
+                          BBCMicroDebugStateOverride_OverrideROM |
+                          BBCMicroDebugStateOverride_ANDY |
+                          BBCMicroDebugStateOverride_OverrideANDY |
+                          BBCMicroDebugStateOverride_Shadow |
+                          BBCMicroDebugStateOverride_OverrideShadow);
+        type->apply_dso_fn = &ApplyDSOBPlus;
+        type->get_dso_fn = &GetDSOBPlus;
+        type->parse_prefix_lower_case_char_fn = &ParsePrefixLowerCaseCharBPlus;
+        break;
 
-static bool IsB(BBCMicroTypeID type_id) {
-    return type_id == BBCMicroTypeID_B || type_id == BBCMicroTypeID_BPlus;
+    case BBCMicroTypeID_Master:
+    case BBCMicroTypeID_MasterCompact:
+        type->dso_mask = (BBCMicroDebugStateOverride_ROM |
+                          BBCMicroDebugStateOverride_OverrideROM |
+                          BBCMicroDebugStateOverride_ANDY |
+                          BBCMicroDebugStateOverride_OverrideANDY |
+                          BBCMicroDebugStateOverride_HAZEL |
+                          BBCMicroDebugStateOverride_OverrideHAZEL |
+                          BBCMicroDebugStateOverride_Shadow |
+                          BBCMicroDebugStateOverride_OverrideShadow |
+                          BBCMicroDebugStateOverride_OS |
+                          BBCMicroDebugStateOverride_OverrideOS);
+        type->apply_dso_fn = &ApplyDSOMaster;
+        type->get_dso_fn = &GetDSOMaster;
+        type->parse_prefix_lower_case_char_fn = &ParsePrefixLowerCaseCharMaster;
+        break;
+    }
+#endif
+
+    switch (type->type_id) {
+    default:
+        ASSERT(false);
+        [[fallthrough]];
+    case BBCMicroTypeID_B:
+        type->romsel_mask = 0x0f;
+        type->acccon_mask = 0x00;
+        break;
+
+    case BBCMicroTypeID_BPlus:
+        type->romsel_mask = 0x8f;
+        type->acccon_mask = 0x80;
+        break;
+
+    case BBCMicroTypeID_Master:
+    case BBCMicroTypeID_MasterCompact:
+        type->romsel_mask = 0x8f;
+        type->acccon_mask = 0xff;
+        break;
+    }
+
+    if (IsMaster(type->type_id)) {
+        type->sheila_cycle_stretch_regions = {
+            {0x00, 0x1f},
+            {0x40, 0x7f},
+            {0xc0, 0xdf},
+        };
+    } else {
+        type->sheila_cycle_stretch_regions = {
+            {0x00, 0x1f},
+            {0x40, 0x7f},
+            {0xc0, 0xdf},
+        };
+    }
+
+    if (HasADC(type->type_id)) {
+        if (IsMaster(type->type_id)) {
+            type->adc_addr = 0xfe18;
+            type->adc_count = 8;
+        } else {
+            type->adc_addr = 0xfec0;
+            type->adc_count = 32;
+        }
+    }
+
+    return type;
 }
 
 //////////////////////////////////////////////////////////////////////////
