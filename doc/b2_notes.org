@@ -1060,4 +1060,38 @@ Base requirements:
 - 64 KB parasite
 - 2 KB parasite ROM
 
+*** B
+
+8 main RAM
+4 OS ROM
+...plus ROMs
+
+*** B+
+
+8 main RAM
+3 ANDY
+5 shadow RAM
+4 OS ROM
+...plus ROMs
+
+*** Master/Compact
+
+8 main RAM
+1 ANDY
+2 HAZEL
+5 shadow RAM
+4 OS ROM
+...plus ROMs
+
+*** 2nd processor
+
+16 RAM
+1 ROM
+
+*** Other notes
+
+=PARASITE_BIG_PAGE_INDEX= is used in update function to check for breakpoints
+
+
+
 * eof.
