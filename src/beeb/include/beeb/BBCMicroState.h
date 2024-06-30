@@ -232,8 +232,7 @@ class BBCMicroState {
     uint8_t user_via_irq_pending = 0;
 
   public:
-    ROMSEL romsel = {};
-    ACCCON acccon = {};
+    PagingState paging;
 
     // Key states
     uint8_t key_columns[16] = {};

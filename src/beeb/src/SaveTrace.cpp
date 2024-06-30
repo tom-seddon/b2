@@ -105,8 +105,7 @@ class TraceSaver {
         //uint64_t start_ticks=GetCurrentTickCount();
 
         m_type = m_trace->GetBBCMicroType();
-        m_romsel = m_trace->GetInitialROMSEL();
-        m_acccon = m_trace->GetInitialACCCON();
+        m_paging = m_trace->GetInitialPagingState();
         m_parasite_m6502_config = m_trace->GetParasiteM6502Config();
         m_parasite_boot_mode = m_trace->GetInitialParasiteBootMode();
         m_paging_dirty = true;
@@ -180,8 +179,7 @@ class TraceSaver {
     CycleCount m_last_instruction_time = {0};
     bool m_got_first_event_time = false;
     CycleCount m_first_event_time = {0};
-    ROMSEL m_romsel = {};
-    ACCCON m_acccon = {};
+    PagingState m_paging;
     bool m_parasite_boot_mode = false;
     bool m_paging_dirty = true;
     MemoryBigPageTables m_paging_tables = {};
@@ -288,8 +286,7 @@ class TraceSaver {
         if (m_paging_dirty) {
             (*m_type->get_mem_big_page_tables_fn)(&m_paging_tables,
                                                   &m_paging_flags,
-                                                  m_romsel,
-                                                  m_acccon);
+                                                  m_paging);
             m_paging_dirty = false;
         }
 
@@ -743,14 +740,14 @@ class TraceSaver {
     void HandleWriteROMSEL(const TraceEvent *e) {
         auto ev = (const Trace::WriteROMSELEvent *)e->event;
 
-        m_romsel = ev->romsel;
+        m_paging.romsel = ev->romsel;
         m_paging_dirty = true;
     }
 
     void HandleWriteACCCON(const TraceEvent *e) {
         auto ev = (const Trace::WriteACCCONEvent *)e->event;
 
-        m_acccon = ev->acccon;
+        m_paging.acccon = ev->acccon;
         m_paging_dirty = true;
     }
 

@@ -25,9 +25,9 @@ static bool IsB(BBCMicroTypeID type_id) {
 //////////////////////////////////////////////////////////////////////////
 
 #if BBCMICRO_DEBUGGER
-static void ApplyROMDSO(ROMSEL *romsel, uint32_t dso) {
+static void ApplyROMDSO(PagingState *paging, uint32_t dso) {
     if (dso & BBCMicroDebugStateOverride_OverrideROM) {
-        romsel->b_bits.pr = dso & BBCMicroDebugStateOverride_ROM;
+        paging->romsel.b_bits.pr = dso & BBCMicroDebugStateOverride_ROM;
     }
 }
 #endif
@@ -168,10 +168,7 @@ static bool ParseROMPrefixLowerCaseChar(uint32_t *dso, char c) {
 
 static void GetMemBigPageTablesB(MemoryBigPageTables *tables,
                                  uint32_t *paging_flags,
-                                 ROMSEL romsel,
-                                 ACCCON acccon) {
-    (void)acccon; //not relevant for B
-
+                                 const PagingState &paging) {
     tables->mem_big_pages[0][0].i = MAIN_BIG_PAGE_INDEX.i + 0;
     tables->mem_big_pages[0][1].i = MAIN_BIG_PAGE_INDEX.i + 1;
     tables->mem_big_pages[0][2].i = MAIN_BIG_PAGE_INDEX.i + 2;
@@ -181,7 +178,7 @@ static void GetMemBigPageTablesB(MemoryBigPageTables *tables,
     tables->mem_big_pages[0][6].i = MAIN_BIG_PAGE_INDEX.i + 6;
     tables->mem_big_pages[0][7].i = MAIN_BIG_PAGE_INDEX.i + 7;
 
-    uint8_t rom = ROM0_BIG_PAGE_INDEX.i + romsel.b_bits.pr * NUM_ROM_BIG_PAGES;
+    uint8_t rom = ROM0_BIG_PAGE_INDEX.i + paging.romsel.b_bits.pr * NUM_ROM_BIG_PAGES;
     tables->mem_big_pages[0][0x8].i = rom + 0;
     tables->mem_big_pages[0][0x9].i = rom + 1;
     tables->mem_big_pages[0][0xa].i = rom + 2;
@@ -198,20 +195,16 @@ static void GetMemBigPageTablesB(MemoryBigPageTables *tables,
 }
 
 #if BBCMICRO_DEBUGGER
-static void ApplyDSOB(ROMSEL *romsel, ACCCON *acccon, uint32_t dso) {
-    (void)acccon;
-
-    ApplyROMDSO(romsel, dso);
+static void ApplyDSOB(PagingState *paging, uint32_t dso) {
+    ApplyROMDSO(paging, dso);
 }
 #endif
 
 #if BBCMICRO_DEBUGGER
-static uint32_t GetDSOB(ROMSEL romsel, ACCCON acccon) {
-    (void)acccon;
-
+static uint32_t GetDSOB(const PagingState &paging) {
     uint32_t dso = 0;
 
-    dso |= romsel.b_bits.pr;
+    dso |= paging.romsel.b_bits.pr;
     dso |= BBCMicroDebugStateOverride_OverrideROM;
 
     return dso;
@@ -285,8 +278,7 @@ static bool ParsePrefixLowerCaseCharB(uint32_t *dso, char c) {
 
 static void GetMemBigPageTablesBPlus(MemoryBigPageTables *tables,
                                      uint32_t *paging_flags,
-                                     ROMSEL romsel,
-                                     ACCCON acccon) {
+                                     const PagingState &paging) {
     tables->mem_big_pages[0][0].i = MAIN_BIG_PAGE_INDEX.i + 0;
     tables->mem_big_pages[0][1].i = MAIN_BIG_PAGE_INDEX.i + 1;
     tables->mem_big_pages[0][2].i = MAIN_BIG_PAGE_INDEX.i + 2;
@@ -296,7 +288,7 @@ static void GetMemBigPageTablesBPlus(MemoryBigPageTables *tables,
     tables->mem_big_pages[0][6].i = MAIN_BIG_PAGE_INDEX.i + 6;
     tables->mem_big_pages[0][7].i = MAIN_BIG_PAGE_INDEX.i + 7;
 
-    if (acccon.bplus_bits.shadow) {
+    if (paging.acccon.bplus_bits.shadow) {
         tables->mem_big_pages[1][0].i = MAIN_BIG_PAGE_INDEX.i + 0;
         tables->mem_big_pages[1][1].i = MAIN_BIG_PAGE_INDEX.i + 1;
         tables->mem_big_pages[1][2].i = MAIN_BIG_PAGE_INDEX.i + 2;
@@ -316,8 +308,8 @@ static void GetMemBigPageTablesBPlus(MemoryBigPageTables *tables,
         tables->mem_big_pages[1][7].i = MAIN_BIG_PAGE_INDEX.i + 7;
     }
 
-    uint8_t rom = ROM0_BIG_PAGE_INDEX.i + romsel.bplus_bits.pr * NUM_ROM_BIG_PAGES;
-    if (romsel.bplus_bits.ram) {
+    uint8_t rom = ROM0_BIG_PAGE_INDEX.i + paging.romsel.bplus_bits.pr * NUM_ROM_BIG_PAGES;
+    if (paging.romsel.bplus_bits.ram) {
         tables->mem_big_pages[0][0x8].i = ANDY_BIG_PAGE_INDEX.i + 0;
         tables->mem_big_pages[0][0x9].i = ANDY_BIG_PAGE_INDEX.i + 1;
         tables->mem_big_pages[0][0xa].i = ANDY_BIG_PAGE_INDEX.i + 2;
@@ -345,36 +337,36 @@ static void GetMemBigPageTablesBPlus(MemoryBigPageTables *tables,
 
     memcpy(&tables->mem_big_pages[1][8], &tables->mem_big_pages[0][8], 8);
 
-    *paging_flags = acccon.bplus_bits.shadow ? PagingFlags_DisplayShadow : 0;
+    *paging_flags = paging.acccon.bplus_bits.shadow ? PagingFlags_DisplayShadow : 0;
 }
 
 #if BBCMICRO_DEBUGGER
-static void ApplyDSOBPlus(ROMSEL *romsel, ACCCON *acccon, uint32_t dso) {
-    ApplyROMDSO(romsel, dso);
+static void ApplyDSOBPlus(PagingState *paging, uint32_t dso) {
+    ApplyROMDSO(paging, dso);
 
     if (dso & BBCMicroDebugStateOverride_OverrideANDY) {
-        romsel->bplus_bits.ram = !!(dso & BBCMicroDebugStateOverride_ANDY);
+        paging->romsel.bplus_bits.ram = !!(dso & BBCMicroDebugStateOverride_ANDY);
     }
 
     if (dso & BBCMicroDebugStateOverride_OverrideShadow) {
-        acccon->bplus_bits.shadow = !!(dso & BBCMicroDebugStateOverride_Shadow);
+        paging->acccon.bplus_bits.shadow = !!(dso & BBCMicroDebugStateOverride_Shadow);
     }
 }
 #endif
 
 #if BBCMICRO_DEBUGGER
-static uint32_t GetDSOBPlus(ROMSEL romsel, ACCCON acccon) {
+static uint32_t GetDSOBPlus(const PagingState &paging) {
     uint32_t dso = 0;
 
-    dso |= romsel.bplus_bits.pr;
+    dso |= paging.romsel.bplus_bits.pr;
     dso |= BBCMicroDebugStateOverride_OverrideROM;
 
-    if (romsel.bplus_bits.ram) {
+    if (paging.romsel.bplus_bits.ram) {
         dso |= BBCMicroDebugStateOverride_ANDY;
     }
     dso |= BBCMicroDebugStateOverride_OverrideANDY;
 
-    if (acccon.bplus_bits.shadow) {
+    if (paging.acccon.bplus_bits.shadow) {
         dso |= BBCMicroDebugStateOverride_Shadow;
     }
     dso |= BBCMicroDebugStateOverride_OverrideShadow;
@@ -469,8 +461,7 @@ static bool ParsePrefixLowerCaseCharBPlus(uint32_t *dso, char c) {
 
 static void GetMemBigPagesTablesMaster(MemoryBigPageTables *tables,
                                        uint32_t *paging_flags,
-                                       ROMSEL romsel,
-                                       ACCCON acccon) {
+                                       const PagingState &paging) {
     // YXE  Usr  MOS
     // ---  ---  ---
     // 000   M    M
@@ -486,7 +477,7 @@ static void GetMemBigPagesTablesMaster(MemoryBigPageTables *tables,
     //
     // MOS Shadow = (Y AND X) OR (NOT Y AND E)
 
-    if (acccon.m128_bits.x) {
+    if (paging.acccon.m128_bits.x) {
         tables->mem_big_pages[0][0].i = MAIN_BIG_PAGE_INDEX.i + 0;
         tables->mem_big_pages[0][1].i = MAIN_BIG_PAGE_INDEX.i + 1;
         tables->mem_big_pages[0][2].i = MAIN_BIG_PAGE_INDEX.i + 2;
@@ -506,8 +497,8 @@ static void GetMemBigPagesTablesMaster(MemoryBigPageTables *tables,
         tables->mem_big_pages[0][7].i = MAIN_BIG_PAGE_INDEX.i + 7;
     }
 
-    if ((acccon.m128_bits.y && acccon.m128_bits.x) ||
-        (!acccon.m128_bits.y && acccon.m128_bits.e)) {
+    if ((paging.acccon.m128_bits.y && paging.acccon.m128_bits.x) ||
+        (!paging.acccon.m128_bits.y && paging.acccon.m128_bits.e)) {
         tables->mem_big_pages[1][0].i = MAIN_BIG_PAGE_INDEX.i + 0;
         tables->mem_big_pages[1][1].i = MAIN_BIG_PAGE_INDEX.i + 1;
         tables->mem_big_pages[1][2].i = MAIN_BIG_PAGE_INDEX.i + 2;
@@ -527,8 +518,8 @@ static void GetMemBigPagesTablesMaster(MemoryBigPageTables *tables,
         tables->mem_big_pages[1][7].i = MAIN_BIG_PAGE_INDEX.i + 7;
     }
 
-    uint8_t rom = ROM0_BIG_PAGE_INDEX.i + romsel.bplus_bits.pr * NUM_ROM_BIG_PAGES;
-    if (romsel.m128_bits.ram) {
+    uint8_t rom = ROM0_BIG_PAGE_INDEX.i + paging.romsel.bplus_bits.pr * NUM_ROM_BIG_PAGES;
+    if (paging.romsel.m128_bits.ram) {
         tables->mem_big_pages[0][0x8].i = ANDY_BIG_PAGE_INDEX.i + 0;
         tables->mem_big_pages[0][0x9].i = rom + 1;
         tables->mem_big_pages[0][0xa].i = rom + 2;
@@ -540,7 +531,7 @@ static void GetMemBigPagesTablesMaster(MemoryBigPageTables *tables,
         tables->mem_big_pages[0][0xb].i = rom + 3;
     }
 
-    if (acccon.m128_bits.y) {
+    if (paging.acccon.m128_bits.y) {
         tables->mem_big_pages[0][0xc].i = HAZEL_BIG_PAGE_INDEX.i + 0;
         tables->mem_big_pages[0][0xd].i = HAZEL_BIG_PAGE_INDEX.i + 1;
         tables->mem_big_pages[0][0xe].i = MOS_BIG_PAGE_INDEX.i + 2;
@@ -560,56 +551,56 @@ static void GetMemBigPagesTablesMaster(MemoryBigPageTables *tables,
 
     memcpy(&tables->mem_big_pages[1][8], &tables->mem_big_pages[0][8], 8);
 
-    *paging_flags = ((acccon.m128_bits.tst ? PagingFlags_ROMIO : 0) |
-                     (acccon.m128_bits.d ? PagingFlags_DisplayShadow : 0) |
-                     (acccon.m128_bits.ifj ? PagingFlags_IFJ : 0));
+    *paging_flags = ((paging.acccon.m128_bits.tst ? PagingFlags_ROMIO : 0) |
+                     (paging.acccon.m128_bits.d ? PagingFlags_DisplayShadow : 0) |
+                     (paging.acccon.m128_bits.ifj ? PagingFlags_IFJ : 0));
 }
 
 #if BBCMICRO_DEBUGGER
-static void ApplyDSOMaster(ROMSEL *romsel, ACCCON *acccon, uint32_t dso) {
-    ApplyROMDSO(romsel, dso);
+static void ApplyDSOMaster(PagingState *paging, uint32_t dso) {
+    ApplyROMDSO(paging, dso);
 
     if (dso & BBCMicroDebugStateOverride_OverrideANDY) {
-        romsel->m128_bits.ram = !!(dso & BBCMicroDebugStateOverride_ANDY);
+        paging->romsel.m128_bits.ram = !!(dso & BBCMicroDebugStateOverride_ANDY);
     }
 
     if (dso & BBCMicroDebugStateOverride_OverrideHAZEL) {
-        acccon->m128_bits.y = !!(dso & BBCMicroDebugStateOverride_HAZEL);
+        paging->acccon.m128_bits.y = !!(dso & BBCMicroDebugStateOverride_HAZEL);
     }
 
     if (dso & BBCMicroDebugStateOverride_OverrideShadow) {
-        acccon->m128_bits.x = !!(dso & BBCMicroDebugStateOverride_Shadow);
+        paging->acccon.m128_bits.x = !!(dso & BBCMicroDebugStateOverride_Shadow);
     }
 
     if (dso & BBCMicroDebugStateOverride_OverrideOS) {
-        acccon->m128_bits.tst = !!(dso & BBCMicroDebugStateOverride_OS);
+        paging->acccon.m128_bits.tst = !!(dso & BBCMicroDebugStateOverride_OS);
     }
 }
 #endif
 
 #if BBCMICRO_DEBUGGER
-static uint32_t GetDSOMaster(ROMSEL romsel, ACCCON acccon) {
+static uint32_t GetDSOMaster(const PagingState &paging) {
     uint32_t dso = 0;
 
-    dso |= romsel.m128_bits.pm;
+    dso |= paging.romsel.m128_bits.pm;
     dso |= BBCMicroDebugStateOverride_OverrideROM;
 
-    if (romsel.m128_bits.ram) {
+    if (paging.romsel.m128_bits.ram) {
         dso |= BBCMicroDebugStateOverride_ANDY;
     }
     dso |= BBCMicroDebugStateOverride_OverrideANDY;
 
-    if (acccon.m128_bits.x) {
+    if (paging.acccon.m128_bits.x) {
         dso |= BBCMicroDebugStateOverride_Shadow;
     }
     dso |= BBCMicroDebugStateOverride_OverrideShadow;
 
-    if (acccon.m128_bits.y) {
+    if (paging.acccon.m128_bits.y) {
         dso |= BBCMicroDebugStateOverride_HAZEL;
     }
     dso |= BBCMicroDebugStateOverride_OverrideHAZEL;
 
-    if (acccon.m128_bits.tst) {
+    if (paging.acccon.m128_bits.tst) {
         dso |= BBCMicroDebugStateOverride_OS;
     }
     dso |= BBCMicroDebugStateOverride_OverrideOS;

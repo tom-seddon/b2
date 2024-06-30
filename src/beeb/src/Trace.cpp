@@ -128,8 +128,7 @@ struct Trace::Chunk {
     CycleCount initial_time;
     CycleCount last_time;
 
-    ROMSEL initial_romsel;
-    ACCCON initial_acccon;
+    PagingState initial_paging;
     bool initial_parasite_boot_mode;
 };
 
@@ -138,15 +137,13 @@ struct Trace::Chunk {
 
 Trace::Trace(size_t max_num_bytes,
              std::shared_ptr<const BBCMicroType> bbc_micro_type,
-             ROMSEL initial_romsel,
-             ACCCON initial_acccon,
+             const PagingState &initial_paging,
              BBCMicroParasiteType parasite_type,
              const M6502Config *parasite_m6502_config,
              bool initial_parasite_boot_mode)
     : m_max_num_bytes(max_num_bytes)
     , m_bbc_micro_type(std::move(bbc_micro_type))
-    , m_romsel(initial_romsel)
-    , m_acccon(initial_acccon)
+    , m_paging(initial_paging)
     , m_parasite_type(parasite_type)
     , m_parasite_m6502_config(parasite_m6502_config)
     , m_parasite_boot_mode(initial_parasite_boot_mode) {
@@ -314,7 +311,7 @@ void Trace::AllocWriteROMSELEvent(ROMSEL romsel) {
     auto ev = (WriteROMSELEvent *)this->AllocEvent(WRITE_ROMSEL_EVENT);
 
     ev->romsel = romsel;
-    m_romsel = romsel;
+    m_paging.romsel = romsel;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -324,7 +321,7 @@ void Trace::AllocWriteACCCONEvent(ACCCON acccon) {
     auto ev = (WriteACCCONEvent *)this->AllocEvent(WRITE_ACCCON_EVENT);
 
     ev->acccon = acccon;
-    m_acccon = acccon;
+    m_paging.acccon = acccon;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -410,22 +407,11 @@ std::shared_ptr<const BBCMicroType> Trace::GetBBCMicroType() const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-ROMSEL Trace::GetInitialROMSEL() const {
+const PagingState &Trace::GetInitialPagingState() const {
     if (m_head) {
-        return m_head->initial_romsel;
+        return m_head->initial_paging;
     } else {
-        return m_romsel;
-    }
-}
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-ACCCON Trace::GetInitialACCCON() const {
-    if (m_head) {
-        return m_head->initial_acccon;
-    } else {
-        return m_acccon;
+        return m_paging;
     }
 }
 
@@ -620,8 +606,7 @@ void *Trace::Alloc(CycleCount time, size_t n) {
         memset(c, 0, sizeof *c);
         c->capacity = size;
         c->initial_time = c->last_time = time;
-        c->initial_romsel = m_romsel;
-        c->initial_acccon = m_acccon;
+        c->initial_paging = m_paging;
         c->initial_parasite_boot_mode = m_parasite_boot_mode;
 
         if (!m_head) {

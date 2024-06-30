@@ -279,10 +279,7 @@ std::vector<uint8_t> BBCMicro::*BBCMicro::ms_write_mmios_stretch_mptrs[] = {
 void BBCMicro::UpdatePaging() {
     MemoryBigPageTables tables;
     uint32_t paging_flags;
-    (*m_state.type->get_mem_big_page_tables_fn)(&tables,
-                                                &paging_flags,
-                                                m_state.romsel,
-                                                m_state.acccon);
+    (*m_state.type->get_mem_big_page_tables_fn)(&tables, &paging_flags, m_state.paging);
 
     for (size_t i = 0; i < 2; ++i) {
         MemoryBigPages *mbp = &m_mem_big_pages[i];
@@ -327,7 +324,7 @@ void BBCMicro::UpdatePaging() {
 
     case BBCMicroParasiteType_External3MHz6502:
         if (m_state.type->type_id == BBCMicroTypeID_Master) {
-            parasite_accessible = !m_state.acccon.m128_bits.itu;
+            parasite_accessible = !m_state.paging.acccon.m128_bits.itu;
         } else {
             parasite_accessible = true;
         }
@@ -335,7 +332,7 @@ void BBCMicro::UpdatePaging() {
 
     case BBCMicroParasiteType_MasterTurbo:
         if (m_state.type->type_id == BBCMicroTypeID_Master) {
-            parasite_accessible = m_state.acccon.m128_bits.itu;
+            parasite_accessible = m_state.paging.acccon.m128_bits.itu;
         } else {
             parasite_accessible = true;
         }
@@ -683,7 +680,7 @@ uint8_t BBCMicro::ReadROMSEL(void *m_, M6502Word a) {
     auto m = (BBCMicro *)m_;
     (void)a;
 
-    return m->m_state.romsel.value;
+    return m->m_state.paging.romsel.value;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -693,15 +690,15 @@ void BBCMicro::WriteROMSEL(void *m_, M6502Word a, uint8_t value) {
     auto m = (BBCMicro *)m_;
     (void)a;
 
-    if ((m->m_state.romsel.value ^ value) & m->m_romsel_mask) {
-        m->m_state.romsel.value = value & m->m_romsel_mask;
+    if ((m->m_state.paging.romsel.value ^ value) & m->m_romsel_mask) {
+        m->m_state.paging.romsel.value = value & m->m_romsel_mask;
 
         m->UpdatePaging();
         //(*m->m_update_romsel_pages_fn)(m);
 
 #if BBCMICRO_TRACE
         if (m->m_trace) {
-            m->m_trace->AllocWriteROMSELEvent(m->m_state.romsel);
+            m->m_trace->AllocWriteROMSELEvent(m->m_state.paging.romsel);
         }
 #endif
     }
@@ -714,7 +711,7 @@ uint8_t BBCMicro::ReadACCCON(void *m_, M6502Word a) {
     auto m = (BBCMicro *)m_;
     (void)a;
 
-    return m->m_state.acccon.value;
+    return m->m_state.paging.acccon.value;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -724,13 +721,13 @@ void BBCMicro::WriteACCCON(void *m_, M6502Word a, uint8_t value) {
     auto m = (BBCMicro *)m_;
     (void)a;
 
-    if ((m->m_state.acccon.value ^ value) & m->m_acccon_mask) {
-        m->m_state.acccon.value = value & m->m_acccon_mask;
+    if ((m->m_state.paging.acccon.value ^ value) & m->m_acccon_mask) {
+        m->m_state.paging.acccon.value = value & m->m_acccon_mask;
         m->UpdatePaging();
 
 #if BBCMICRO_TRACE
         if (m->m_trace) {
-            m->m_trace->AllocWriteACCCONEvent(m->m_state.acccon);
+            m->m_trace->AllocWriteACCCONEvent(m->m_state.paging.acccon);
         }
 #endif
     }
@@ -1062,8 +1059,7 @@ void BBCMicro::StartTrace(uint32_t trace_flags, size_t max_num_bytes) {
 
     this->SetTrace(std::make_shared<Trace>(max_num_bytes,
                                            m_state.type,
-                                           m_state.romsel,
-                                           m_state.acccon,
+                                           m_state.paging,
                                            m_state.parasite_type,
                                            parasite_m6502_config,
                                            parasite_boot_mode),
@@ -1310,13 +1306,12 @@ const BBCMicro::BigPage *BBCMicro::DebugGetBigPageForAddress(M6502Word addr,
             big_page = {(BigPageIndex::Type)(PARASITE_BIG_PAGE_INDEX.i + addr.p.p)};
         }
     } else {
-        ROMSEL romsel = m_state.romsel;
-        ACCCON acccon = m_state.acccon;
-        (*m_state.type->apply_dso_fn)(&romsel, &acccon, dso);
+        PagingState paging = m_state.paging;
+        (*m_state.type->apply_dso_fn)(&paging, dso);
 
         MemoryBigPageTables tables;
         uint32_t paging_flags;
-        (*m_state.type->get_mem_big_page_tables_fn)(&tables, &paging_flags, romsel, acccon);
+        (*m_state.type->get_mem_big_page_tables_fn)(&tables, &paging_flags, paging);
 
         big_page = tables.mem_big_pages[mos][addr.p.p];
     }
@@ -1350,13 +1345,12 @@ void BBCMicro::DebugGetBigPageForAddress(ReadOnlyBigPage *bp,
             index = {(BigPageIndex::Type)(PARASITE_BIG_PAGE_INDEX.i + addr.p.p)};
         }
     } else {
-        ROMSEL romsel = state->romsel;
-        ACCCON acccon = state->acccon;
-        (*state->type->apply_dso_fn)(&romsel, &acccon, dso);
+        PagingState paging = state->paging;
+        (*state->type->apply_dso_fn)(&paging, dso);
 
         MemoryBigPageTables tables;
         uint32_t paging_flags;
-        (*state->type->get_mem_big_page_tables_fn)(&tables, &paging_flags, romsel, acccon);
+        (*state->type->get_mem_big_page_tables_fn)(&tables, &paging_flags, paging);
 
         index = tables.mem_big_pages[mos][addr.p.p];
     }
@@ -1374,13 +1368,12 @@ void BBCMicro::DebugGetMemBigPageIsMOSTable(uint8_t *mem_big_page_is_mos, const 
     if (dso & BBCMicroDebugStateOverride_Parasite) {
         memset(mem_big_page_is_mos, 0, 16);
     } else {
-        ROMSEL romsel = state->romsel;
-        ACCCON acccon = state->acccon;
-        (*state->type->apply_dso_fn)(&romsel, &acccon, dso);
+        PagingState paging = state->paging;
+        (*state->type->apply_dso_fn)(&paging, dso);
 
         MemoryBigPageTables tables;
         uint32_t paging_flags;
-        (*state->type->get_mem_big_page_tables_fn)(&tables, &paging_flags, romsel, acccon);
+        (*state->type->get_mem_big_page_tables_fn)(&tables, &paging_flags, paging);
 
         memcpy(mem_big_page_is_mos, tables.pc_mem_big_pages_set, 16);
     }
@@ -1775,7 +1768,7 @@ void BBCMicro::SetHardwareDebugState(const HardwareDebugState &hw) {
 
 #if BBCMICRO_DEBUGGER
 uint32_t BBCMicro::DebugGetCurrentStateOverride(const BBCMicroState *state) {
-    uint32_t dso = (state->type->get_dso_fn)(state->romsel, state->acccon);
+    uint32_t dso = (state->type->get_dso_fn)(state->paging);
 
     if (state->parasite_type != BBCMicroParasiteType_None) {
         if (state->parasite_boot_mode) {

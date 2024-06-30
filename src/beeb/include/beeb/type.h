@@ -210,6 +210,14 @@ union ACCCON {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+struct PagingState {
+    ROMSEL romsel = {};
+    ACCCON acccon = {};
+};
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 struct MemoryBigPageTables {
     // [0][i] is the big page to use when user code accesses memory big page i;
     // [1][i] likewise for MOS code.
@@ -292,18 +300,15 @@ struct BBCMicroType {
     // (The naming of these isn't the best.)
     void (*get_mem_big_page_tables_fn)(MemoryBigPageTables *tables,
                                        uint32_t *paging_flags,
-                                       ROMSEL romsel,
-                                       ACCCON acccon);
+                                       const PagingState &paging);
 
 #if BBCMICRO_DEBUGGER
-    void (*apply_dso_fn)(ROMSEL *romsel,
-                         ACCCON *acccon,
+    void (*apply_dso_fn)(PagingState *paging,
                          uint32_t dso);
 #endif
 
 #if BBCMICRO_DEBUGGER
-    uint32_t (*get_dso_fn)(ROMSEL romsel,
-                           ACCCON accon);
+    uint32_t (*get_dso_fn)(const PagingState &paging);
 #endif
 
     // Mask for ROMSEL bits.

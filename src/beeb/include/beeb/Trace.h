@@ -136,8 +136,7 @@ class Trace : public std::enable_shared_from_this<Trace> {
     // Supply SIZE_MAX to just have the data grow indefinitely.
     explicit Trace(size_t max_num_bytes,
                    std::shared_ptr<const BBCMicroType> type,
-                   ROMSEL initial_romsel_value,
-                   ACCCON initial_acccon_value,
+                   const PagingState &initial_paging,
                    BBCMicroParasiteType parasite_type,
                    const M6502Config *parasite_m6502_config,
                    bool initial_parasite_boot_mode);
@@ -201,8 +200,7 @@ class Trace : public std::enable_shared_from_this<Trace> {
     void GetStats(TraceStats *stats) const;
 
     std::shared_ptr<const BBCMicroType> GetBBCMicroType() const;
-    ROMSEL GetInitialROMSEL() const;
-    ACCCON GetInitialACCCON() const;
+    const PagingState &GetInitialPagingState() const;
     BBCMicroParasiteType GetParasiteType() const;
     bool GetInitialParasiteBootMode() const;
     const M6502Config *GetParasiteM6502Config() const;
@@ -241,8 +239,7 @@ class Trace : public std::enable_shared_from_this<Trace> {
     size_t m_max_num_bytes;
 
     std::shared_ptr<const BBCMicroType> m_bbc_micro_type;
-    ROMSEL m_romsel = {};
-    ACCCON m_acccon = {};
+    PagingState m_paging = {};
     BBCMicroParasiteType m_parasite_type = BBCMicroParasiteType_None;
     const M6502Config *m_parasite_m6502_config = nullptr;
     bool m_parasite_boot_mode = false;

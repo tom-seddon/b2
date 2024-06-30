@@ -2605,14 +2605,12 @@ class PagingDebugWindow : public DebugUI {
     void DoImGui2() override {
         this->DoDebugPageOverrideImGui();
 
-        ROMSEL romsel = m_beeb_state->romsel;
-        ACCCON acccon = m_beeb_state->acccon;
-
-        (*m_beeb_state->type->apply_dso_fn)(&romsel, &acccon, m_dso);
+        PagingState paging = m_beeb_state->paging;
+        (*m_beeb_state->type->apply_dso_fn)(&paging, m_dso);
 
         MemoryBigPageTables tables;
         uint32_t paging_flags;
-        (*m_beeb_state->type->get_mem_big_page_tables_fn)(&tables, &paging_flags, romsel, acccon);
+        (*m_beeb_state->type->get_mem_big_page_tables_fn)(&tables, &paging_flags, paging);
 
         bool all_user = memcmp(tables.pc_mem_big_pages_set, ALL_USER_MEM_BIG_PAGES, 16) == 0;
 
