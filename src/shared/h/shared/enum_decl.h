@@ -4,7 +4,11 @@
 #define EPREFIX
 #endif
 
+#ifdef EBASE
+#define EBEGIN() enum ENAME : EBASE {
+#else
 #define EBEGIN() enum ENAME {
+#endif
 
 #define EBEGIN_DERIVED(BASE_NAME) EBEGIN()
 

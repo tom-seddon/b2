@@ -326,10 +326,10 @@ class BBCMicro : private WD1770Handler,
     void SetOSROM(std::shared_ptr<const std::array<uint8_t, 16384>> data);
 
     // The shared_ptr is copied.
-    void SetSidewaysROM(uint8_t bank, std::shared_ptr<const std::array<uint8_t, 16384>> data);
+    void SetSidewaysROM(uint8_t bank, std::shared_ptr<const std::vector<uint8_t>> data, ROMType type);
 
-    // The ROM data is copied.
-    void SetSidewaysRAM(uint8_t bank, std::shared_ptr<const std::array<uint8_t, 16384>> data);
+    // The first 16 KB of the ROM data is copied.
+    void SetSidewaysRAM(uint8_t bank, std::shared_ptr<const std::vector<uint8_t>> data);
 
     // The shared_ptr is copied.
     void SetParasiteOS(std::shared_ptr<const std::array<uint8_t, 2048>> data);

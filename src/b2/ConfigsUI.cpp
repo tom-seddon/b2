@@ -51,7 +51,7 @@ class ConfigsUI : public SettingsUI {
     void DoROMInfoGui(const char *caption, const BeebConfig::ROM &rom, const bool *writeable);
 
     // rom_edit_flags is a combination of ROMEditFlag values
-    ROMEditAction DoROMEditGui(const char *caption, BeebConfig::ROM *rom, bool *writeable, uint32_t rom_edit_flags);
+    ROMEditAction DoROMEditGui(const char *caption, BeebConfig::ROM *rom, bool *writeable, ROMType *type, uint32_t rom_edit_flags);
     void DoROMs(BeebConfig::ROM *rom,
                 bool *edited,
                 uint32_t rom_edit_flags,
@@ -279,6 +279,7 @@ void ConfigsUI::DoEditConfigGui() {
     if (this->DoROMEditGui("Host OS",
                            &config->os,
                            nullptr,
+                           nullptr,
                            rom_edit_os_rom_flags) != ROMEditAction_None) {
         edited = true;
     }
@@ -303,6 +304,7 @@ void ConfigsUI::DoEditConfigGui() {
             ROMEditAction a = this->DoROMEditGui(CAPTIONS[bank],
                                                  rom,
                                                  &rom->writeable,
+                                                 &rom->type,
                                                  rom_edit_flags);
             if (a != ROMEditAction_None) {
                 action = a;
@@ -399,6 +401,7 @@ void ConfigsUI::DoEditConfigGui() {
 
             if (this->DoROMEditGui("Parasite OS",
                                    &config->parasite_os,
+                                   nullptr,
                                    nullptr,
                                    ROMEditFlag_ParasiteROMs)) {
                 edited = true;
@@ -609,6 +612,7 @@ void ConfigsUI::DoROMs(BeebConfig::ROM *rom,
 ROMEditAction ConfigsUI::DoROMEditGui(const char *caption,
                                       BeebConfig::ROM *rom,
                                       bool *writeable,
+                                      ROMType *type,
                                       uint32_t rom_edit_flags) {
     ROMEditAction action = ROMEditAction_None;
     bool edited = false;
@@ -688,6 +692,21 @@ ROMEditAction ConfigsUI::DoROMEditGui(const char *caption,
         if (ImGuiRecentMenu(&rom->file_name, "Recent file", m_ofd)) {
             rom->standard_rom = nullptr;
             edited = true;
+        }
+
+        ImGui::Separator();
+
+        if (type) {
+            if (ImGui::BeginMenu("Type", !rom->standard_rom)) {
+                for (int i = 0; i < ROMType_Count; ++i) {
+                    const ROMTypeMetadata *metadata = GetROMTypeMetadata((ROMType)i);
+                    bool selected = *type == i;
+                    if (ImGui::MenuItem(metadata->description, nullptr, &selected)) {
+                        *type = (ROMType)i;
+                    }
+                }
+                ImGui::EndMenu();
+            }
         }
 
         ImGui::Separator();

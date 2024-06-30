@@ -419,8 +419,8 @@ void BBCMicro::InitReadOnlyBigPage(ReadOnlyBigPage *bp,
         size_t bank = ((size_t)big_page_index.i - ROM0_BIG_PAGE_INDEX.i) / NUM_ROM_BIG_PAGES;
         size_t offset = ((size_t)big_page_index.i - ROM0_BIG_PAGE_INDEX.i) % NUM_ROM_BIG_PAGES * BIG_PAGE_SIZE_BYTES;
 
-        if (!!state->sideways_rom_buffers[bank]) {
-            bp->r = &state->sideways_rom_buffers[bank]->at(offset);
+        if (!!state->sideways_roms[bank].buffer) {
+            bp->r = &state->sideways_roms[bank].buffer->at(offset);
         } else if (!!state->sideways_ram_buffers[bank]) {
             bp->r = &state->sideways_ram_buffers[bank]->at(offset);
             bp->writeable = true;
@@ -1007,12 +1007,15 @@ void BBCMicro::SetOSROM(std::shared_ptr<const std::array<uint8_t, 16384>> data) 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void BBCMicro::SetSidewaysROM(uint8_t bank, std::shared_ptr<const std::array<uint8_t, 16384>> data) {
+void BBCMicro::SetSidewaysROM(uint8_t bank, std::shared_ptr<const std::vector<uint8_t>> data, ROMType type) {
     ASSERT(bank < 16);
 
+    // No sideways RAM in this bank.
     m_state.sideways_ram_buffers[bank].reset();
 
-    m_state.sideways_rom_buffers[bank] = std::move(data);
+    BBCMicroState::SidewaysROM *rom = &m_state.sideways_roms[bank];
+    rom->buffer = std::move(data);
+    rom->type = type;
 
     this->InitPaging();
 }
@@ -1020,16 +1023,19 @@ void BBCMicro::SetSidewaysROM(uint8_t bank, std::shared_ptr<const std::array<uin
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void BBCMicro::SetSidewaysRAM(uint8_t bank, std::shared_ptr<const std::array<uint8_t, 16384>> data) {
+void BBCMicro::SetSidewaysRAM(uint8_t bank, std::shared_ptr<const std::vector<uint8_t>> data) {
     ASSERT(bank < 16);
 
     if (data) {
-        m_state.sideways_ram_buffers[bank] = std::make_shared<std::array<uint8_t, 16384>>(*data);
+        m_state.sideways_ram_buffers[bank] = std::make_shared<std::array<uint8_t, 16384>>();
+        for (size_t i = 0; i < std::min(data->size(), (size_t)16384); ++i) {
+        }
     } else {
         m_state.sideways_ram_buffers[bank] = std::make_shared<std::array<uint8_t, 16384>>();
     }
 
-    m_state.sideways_rom_buffers[bank] = nullptr;
+    // No sideways ROM in this bank.
+    m_state.sideways_roms[bank] = {};
 
     this->InitPaging();
 }

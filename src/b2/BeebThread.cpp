@@ -600,9 +600,9 @@ void BeebThread::HardResetMessage::HardReset(BeebThread *beeb_thread,
             }
         } else {
             if (!!ts->current_config.roms[i]) {
-                beeb->SetSidewaysROM(i, ts->current_config.roms[i]);
+                beeb->SetSidewaysROM(i, ts->current_config.roms[i], ts->current_config.config.roms[i].type);
             } else {
-                beeb->SetSidewaysROM(i, nullptr);
+                beeb->SetSidewaysROM(i, nullptr, ROMType_16KB);
             }
         }
     }

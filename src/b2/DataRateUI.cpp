@@ -288,7 +288,9 @@ void DataRateUI::DoImGui() {
     if (ImGui::CollapsingHeader("Update MFn Stats")) {
         std::shared_ptr<const BBCMicro::UpdateMFnData> data = beeb_thread->GetUpdateMFnData();
         ImGui::Text("Update MFn changes: %" PRIu64, data->num_update_mfn_changes);
-        ImGui::Text("UpdatePaging calls: %" PRIu64, data->num_UpdatePaging_calls);
+        ImGui::Text("UpdatePaging calls: %" PRIu64 " (%~%.2f/sec)",
+                    data->num_UpdatePaging_calls,
+                    data->num_UpdatePaging_calls / ((double)beeb_thread->GetEmulatedCycles().n / CYCLES_PER_SECOND));
 
         for (size_t i = 0; i < BBCMicro::NUM_UPDATE_MFNS; ++i) {
             if (data->update_mfn_cycle_count[i].n > 0) {

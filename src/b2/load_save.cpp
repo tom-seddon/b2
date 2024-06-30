@@ -1656,18 +1656,26 @@ static void SaveShortcuts(JSONWriter<StringStream> *writer) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+static void SetROMDefaults(bool *writeable, ROMType *type) {
+    if (writeable) {
+        *writeable = false;
+    }
+
+    if (type) {
+        *type = ROMType_16KB;
+    }
+}
+
 static bool LoadROM(rapidjson::Value *rom_json,
                     BeebConfig::ROM *rom,
                     bool *writeable,
+                    ROMType *type,
                     const std::string &json_path,
                     Messages *msg) {
     if (rom_json->IsNull()) {
         rom->file_name.clear();
         rom->standard_rom = nullptr;
-
-        if (writeable) {
-            *writeable = false;
-        }
+        SetROMDefaults(writeable, type);
 
         return true;
     } else if (rom_json->IsString()) {
@@ -1677,9 +1685,7 @@ static bool LoadROM(rapidjson::Value *rom_json,
         // it might actually be a standard ROM, but...
         rom->standard_rom = nullptr;
 
-        if (writeable) {
-            *writeable = false;
-        }
+        SetROMDefaults(writeable, type);
 
         return true;
     } else if (rom_json->IsObject()) {
@@ -1693,8 +1699,14 @@ static bool LoadROM(rapidjson::Value *rom_json,
             // ...
         }
 
+        SetROMDefaults(writeable, type);
+
         if (writeable) {
             FindBoolMember(writeable, rom_json, WRITEABLE, msg);
+        }
+
+        if (type) {
+            FindEnumMember(type, rom_json, TYPE, "ROM type", &GetROMTypeEnumName, msg);
         }
 
         return true;
@@ -1708,8 +1720,10 @@ static bool LoadROM(rapidjson::Value *rom_json,
 
 static void SaveROM(JSONWriter<StringStream> *writer,
                     const BeebConfig::ROM &rom,
-                    const bool *writeable_) {
+                    const bool *writeable_,
+                    const ROMType *type_) {
     bool writeable = writeable_ && *writeable_;
+    ROMType type = type_ ? *type_ : ROMType_16KB;
 
     if (!writeable && !rom.standard_rom && rom.file_name.empty()) {
         writer->Null();
@@ -1728,6 +1742,9 @@ static void SaveROM(JSONWriter<StringStream> *writer,
             if (!rom.file_name.empty()) {
                 writer->Key(FILE_NAME);
                 writer->String(rom.file_name.c_str());
+
+                writer->Key(TYPE);
+                SaveEnum(writer, type, &GetROMTypeEnumName);
             }
         }
     }
@@ -1737,22 +1754,22 @@ static bool LoadROM(rapidjson::Value *rom_json,
                     BeebConfig::SidewaysROM *rom,
                     const std::string &json_path,
                     Messages *msg) {
-    return LoadROM(rom_json, rom, &rom->writeable, json_path, msg);
+    return LoadROM(rom_json, rom, &rom->writeable, &rom->type, json_path, msg);
 }
 
 static void SaveROM(JSONWriter<StringStream> *writer, const BeebConfig::SidewaysROM &rom) {
-    SaveROM(writer, rom, &rom.writeable);
+    SaveROM(writer, rom, &rom.writeable, &rom.type);
 }
 
 static bool LoadROM(rapidjson::Value *rom_json,
                     BeebConfig::ROM *rom,
                     const std::string &json_path,
                     Messages *msg) {
-    return LoadROM(rom_json, rom, nullptr, json_path, msg);
+    return LoadROM(rom_json, rom, nullptr, nullptr, json_path, msg);
 }
 
 static void SaveROM(JSONWriter<StringStream> *writer, const BeebConfig::ROM &rom) {
-    SaveROM(writer, rom, nullptr);
+    SaveROM(writer, rom, nullptr, nullptr);
 }
 
 static bool LoadConfigs(rapidjson::Value *configs_json, const char *configs_path, Messages *msg) {

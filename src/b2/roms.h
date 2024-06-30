@@ -20,6 +20,7 @@ struct BeebROM {
     std::string path;
     std::string name; //shown in UI
     StandardROM rom;
+    ROMType type = ROMType_16KB;
 
     std::string GetAssetPath() const;
 };

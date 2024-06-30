@@ -35,6 +35,10 @@ class BeebConfig {
 
     struct SidewaysROM : public ROM {
         bool writeable = false;
+
+        // If this ROM is a standard ROM, the standard ROM's type takes
+        // priority.
+        ROMType type = ROMType_16KB;
     };
 
     std::string name;
@@ -89,7 +93,8 @@ class BeebLoadedConfig {
   public:
     BeebConfig config;
 
-    std::shared_ptr<const std::array<uint8_t, 16384>> os, roms[16];
+    std::shared_ptr<const std::array<uint8_t, 16384>> os;
+    std::shared_ptr<const std::vector<uint8_t>> roms[16];
     std::shared_ptr<const std::array<uint8_t, 2048>> parasite_os;
 
     static bool Load(BeebLoadedConfig *dest, const BeebConfig &src, Messages *msg);

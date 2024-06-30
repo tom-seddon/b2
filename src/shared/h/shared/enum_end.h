@@ -3,6 +3,7 @@
 #endif
 
 #undef EPREFIX
+#undef EBASE
 
 #undef EBEGIN
 #undef EBEGIN_DERIVED

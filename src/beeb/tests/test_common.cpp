@@ -385,7 +385,7 @@ bool TestDiscImage::GetByteIndex(size_t *index,
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static std::shared_ptr<const std::array<uint8_t, 16384>> LoadROM(const std::string &name) {
+static std::shared_ptr<const std::array<uint8_t, 16384>> LoadOSROM(const std::string &name) {
     std::string path = PathJoined(ROMS_FOLDER, name);
 
     std::vector<uint8_t> data;
@@ -399,6 +399,11 @@ static std::shared_ptr<const std::array<uint8_t, 16384>> LoadROM(const std::stri
     }
 
     return rom;
+}
+
+static std::shared_ptr<const std::vector<uint8_t>> LoadSidewaysROM(const std::string &name) {
+    std::shared_ptr<const std::array<uint8_t, 16384>> rom = LoadOSROM(name);
+    return std::make_shared<std::vector<uint8_t>>(rom->begin(), rom->end());
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -551,7 +556,7 @@ TestBBCMicro::TestBBCMicro(TestBBCMicroType type, const TestBBCMicroArgs &args)
 
     case TestBBCMicroType_BAcorn1770DFS:
         this->LoadROMsB();
-        this->SetSidewaysROM(14, LoadROM("acorn/DFS-2.26.rom"));
+        this->SetSidewaysROM(14, LoadSidewaysROM("acorn/DFS-2.26.rom"), ROMType_16KB);
         break;
 
     case TestBBCMicroType_BPlusTape:
@@ -817,30 +822,30 @@ void TestBBCMicro::SaveTestTrace(const std::string &stem) {
 //////////////////////////////////////////////////////////////////////////
 
 void TestBBCMicro::LoadROMsB() {
-    this->SetOSROM(LoadROM("OS12.ROM"));
-    this->SetSidewaysROM(15, LoadROM("BASIC2.ROM"));
+    this->SetOSROM(LoadOSROM("OS12.ROM"));
+    this->SetSidewaysROM(15, LoadSidewaysROM("BASIC2.ROM"), ROMType_16KB);
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 void TestBBCMicro::LoadROMsBPlus() {
-    this->SetOSROM(LoadROM("B+MOS.ROM"));
-    this->SetSidewaysROM(15, LoadROM("BASIC2.ROM"));
+    this->SetOSROM(LoadOSROM("B+MOS.ROM"));
+    this->SetSidewaysROM(15, LoadSidewaysROM("BASIC2.ROM"),ROMType_16KB);
 }
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 void TestBBCMicro::LoadROMsMaster(const std::string &version) {
-    this->SetOSROM(LoadROM(PathJoined("M128", version, "mos.rom")));
-    this->SetSidewaysROM(15, LoadROM(PathJoined("M128", version, "terminal.rom")));
-    this->SetSidewaysROM(14, LoadROM(PathJoined("M128", version, "view.rom")));
-    this->SetSidewaysROM(13, LoadROM(PathJoined("M128", version, "adfs.rom")));
-    this->SetSidewaysROM(12, LoadROM(PathJoined("M128", version, "basic4.rom")));
-    this->SetSidewaysROM(11, LoadROM(PathJoined("M128", version, "edit.rom")));
-    this->SetSidewaysROM(10, LoadROM(PathJoined("M128", version, "viewsht.rom")));
-    this->SetSidewaysROM(9, LoadROM(PathJoined("M128", version, "dfs.rom")));
+    this->SetOSROM(LoadOSROM(PathJoined("M128", version, "mos.rom")));
+    this->SetSidewaysROM(15, LoadSidewaysROM(PathJoined("M128", version, "terminal.rom")), ROMType_16KB);
+    this->SetSidewaysROM(14, LoadSidewaysROM(PathJoined("M128", version, "view.rom")), ROMType_16KB);
+    this->SetSidewaysROM(13, LoadSidewaysROM(PathJoined("M128", version, "adfs.rom")), ROMType_16KB);
+    this->SetSidewaysROM(12, LoadSidewaysROM(PathJoined("M128", version, "basic4.rom")), ROMType_16KB);
+    this->SetSidewaysROM(11, LoadSidewaysROM(PathJoined("M128", version, "edit.rom")), ROMType_16KB);
+    this->SetSidewaysROM(10, LoadSidewaysROM(PathJoined("M128", version, "viewsht.rom")), ROMType_16KB);
+    this->SetSidewaysROM(9, LoadSidewaysROM(PathJoined("M128", version, "dfs.rom")), ROMType_16KB);
 
     for (uint8_t i = 4; i < 8; ++i) {
         this->SetSidewaysRAM(i, nullptr);
