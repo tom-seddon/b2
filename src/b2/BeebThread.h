@@ -1016,7 +1016,9 @@ class BeebThread {
 #endif
 
     uint32_t GetUpdateFlags() const;
+#if BBCMICRO_DEBUGGER
     std::shared_ptr<const BBCMicro::UpdateMFnData> GetUpdateMFnData() const;
+#endif
 
   protected:
   private:

@@ -284,6 +284,7 @@ void DataRateUI::DoImGui() {
         ImGui::Text("MQ waits: %zu", stats.num_mq_waits);
     }
 
+#if BBCMICRO_DEBUGGER
     if (ImGui::CollapsingHeader("Update MFn Stats")) {
         std::shared_ptr<const BBCMicro::UpdateMFnData> data = beeb_thread->GetUpdateMFnData();
         ImGui::Text("Update MFn changes: %" PRIu64, data->num_update_mfn_changes);
@@ -298,6 +299,7 @@ void DataRateUI::DoImGui() {
             }
         }
     }
+#endif
 
     if (!!g_all_root_timer_defs && !g_all_root_timer_defs->empty()) {
         ImGui::Separator();
