@@ -153,6 +153,7 @@ const PCD8572 *BBCMicroState::DebugGetEEPROM() const {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#if BBCMICRO_DEBUGGER
 uint64_t BBCMicroState::DebugGetCPUCycless(uint32_t dso, CycleCount n) const {
     if (dso & BBCMicroDebugStateOverride_Parasite) {
         switch (this->parasite_type) {
@@ -169,6 +170,7 @@ uint64_t BBCMicroState::DebugGetCPUCycless(uint32_t dso, CycleCount n) const {
         return n.n >> RSHIFT_CYCLE_COUNT_TO_2MHZ;
     }
 }
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

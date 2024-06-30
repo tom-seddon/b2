@@ -479,7 +479,9 @@ class BBCMicro : private WD1770Handler,
     bool HasADC() const;
 
     uint32_t GetUpdateFlags() const;
+#if BBCMICRO_DEBUGGER
     std::shared_ptr<const UpdateMFnData> GetUpdateMFnData() const;
+#endif
 
   protected:
     // Hacks, not part of the public API, for use by the testing stuff so that
