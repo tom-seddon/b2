@@ -39,6 +39,8 @@ class BeebConfig {
         // If this ROM is a standard ROM, the standard ROM's type takes
         // priority.
         ROMType type = ROMType_16KB;
+
+        ROMType GetROMType() const;
     };
 
     std::string name;

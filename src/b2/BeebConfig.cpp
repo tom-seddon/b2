@@ -20,6 +20,17 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+ROMType BeebConfig::SidewaysROM::GetROMType() const {
+    if (this->standard_rom) {
+        return this->standard_rom->type;
+    } else {
+        return this->type;
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 static bool LoadROM2(std::vector<uint8_t> *data, const BeebConfig::ROM &rom, size_t size, Messages *msg) {
     std::string path;
     if (rom.standard_rom) {
@@ -64,10 +75,9 @@ static std::shared_ptr<std::array<uint8_t, SIZE>> LoadOSROM(const BeebConfig::RO
     return result;
 }
 
-static std::shared_ptr<std::vector<uint8_t>> LoadSidewaysROM(const BeebConfig::ROM &rom,
-                                                             ROMType type,
+static std::shared_ptr<std::vector<uint8_t>> LoadSidewaysROM(const BeebConfig::SidewaysROM &rom,
                                                              Messages *msg) {
-    const ROMTypeMetadata *metadata = GetROMTypeMetadata(type);
+    const ROMTypeMetadata *metadata = GetROMTypeMetadata(rom.GetROMType());
 
     std::vector<uint8_t> data;
     if (!LoadROM2(&data, rom, metadata->num_bytes, msg)) {
@@ -513,7 +523,7 @@ bool BeebLoadedConfig::Load(
         BeebConfig::SidewaysROM *rom = &dest->config.roms[i];
 
         if (rom->standard_rom || !rom->file_name.empty()) {
-            dest->roms[i] = LoadSidewaysROM(*rom, rom->standard_rom ? rom->standard_rom->type : rom->type, msg);
+            dest->roms[i] = LoadSidewaysROM(*rom, msg);
             if (!dest->roms[i]) {
                 return false;
             }
