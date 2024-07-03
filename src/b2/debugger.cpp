@@ -2790,10 +2790,10 @@ class BreakpointsDebugWindow : public DebugUI {
     }
 
   private:
-    static constexpr uint8_t HOST_ADDRESS_BREAKPOINT_BIG_PAGE = NUM_BIG_PAGES + 0;
+    static constexpr BigPageIndex::Type HOST_ADDRESS_BREAKPOINT_BIG_PAGE = NUM_BIG_PAGES + 0;
     static_assert(HOST_ADDRESS_BREAKPOINT_BIG_PAGE >= NUM_BIG_PAGES); //overflow check
 
-    static constexpr uint8_t PARASITE_ADDRESS_BREAKPOINT_BIG_PAGE = NUM_BIG_PAGES + 1;
+    static constexpr BigPageIndex::Type PARASITE_ADDRESS_BREAKPOINT_BIG_PAGE = NUM_BIG_PAGES + 1;
     static_assert(PARASITE_ADDRESS_BREAKPOINT_BIG_PAGE >= NUM_BIG_PAGES); //overflow check
 
     struct Breakpoint {
@@ -2903,7 +2903,7 @@ class BreakpointsDebugWindow : public DebugUI {
         UpdateAddressBreakpoints(m_host_address_debug_flags, m_host_address_debug_flags_retain, HOST_ADDRESS_BREAKPOINT_BIG_PAGE);
         UpdateAddressBreakpoints(m_parasite_address_debug_flags, m_parasite_address_debug_flags_retain, PARASITE_ADDRESS_BREAKPOINT_BIG_PAGE);
 
-        for (uint8_t i = 0; i < NUM_BIG_PAGES; ++i) {
+        for (BigPageIndex::Type i = 0; i < NUM_BIG_PAGES; ++i) {
             const uint8_t *big_page_debug_flags = m_big_page_debug_flags[i];
 
             for (size_t j = 0; j < BBCMicro::BIG_PAGE_SIZE_BYTES; ++j) {
@@ -2914,7 +2914,7 @@ class BreakpointsDebugWindow : public DebugUI {
         }
     }
 
-    void UpdateAddressBreakpoints(uint8_t *address_debug_flags, uint8_t *address_debug_flags_retain, uint8_t big_page_index) {
+    void UpdateAddressBreakpoints(uint8_t *address_debug_flags, uint8_t *address_debug_flags_retain, BigPageIndex::Type big_page_index) {
         for (size_t i = 0; i < 65536; ++i) {
             if (address_debug_flags[i] != 0 || address_debug_flags_retain[i >> 3] & 1 << (i & 7)) {
                 m_breakpoints.push_back({big_page_index, (uint16_t)i});

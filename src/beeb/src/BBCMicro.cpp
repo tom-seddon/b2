@@ -285,6 +285,7 @@ void BBCMicro::UpdatePaging() {
         MemoryBigPages *mbp = &m_mem_big_pages[i];
 
         for (size_t j = 0; j < 16; ++j) {
+            ASSERT(tables.mem_big_pages[i][j].i < NUM_BIG_PAGES);
             const BigPage *bp = &m_big_pages[tables.mem_big_pages[i][j].i];
 
             mbp->w[j] = bp->w;
