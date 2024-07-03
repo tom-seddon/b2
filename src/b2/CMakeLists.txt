@@ -49,7 +49,7 @@ add_executable(b2 MACOSX_BUNDLE
   load_save.cpp load_save.h load_save.inl
   misc.cpp misc.h misc.inl
   native_ui.cpp native_ui.h
-  roms.cpp roms.h roms.inl
+  roms.cpp roms.h
   profiler.cpp profiler.h
   joysticks.cpp joysticks.h
   )
