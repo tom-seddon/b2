@@ -337,7 +337,7 @@ struct BBCMicroType {
     uint16_t adc_count = 0;
 
 #if BBCMICRO_DEBUGGER
-    bool (*parse_prefix_lower_case_char_fn)(uint32_t *dso, char c);
+    bool (*parse_prefix_char_fn)(uint32_t *dso, char c);
 #endif
 };
 

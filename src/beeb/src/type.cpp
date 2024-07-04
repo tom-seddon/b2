@@ -32,7 +32,7 @@ static void ApplyROMDSO(PagingState *paging, uint32_t dso) {
 }
 #endif
 
-static std::string g_all_lower_case_big_page_codes;
+static std::string g_all_big_page_codes;
 
 static void InitBigPagesMetadata(std::vector<BigPageMetadata> *big_pages,
                                  BigPageIndex index,
@@ -44,8 +44,6 @@ static void InitBigPagesMetadata(std::vector<BigPageMetadata> *big_pages,
                                  uint32_t dso_set,
 #endif
                                  uint16_t base) {
-    code = (char)tolower(code);
-
     for (size_t i = 0; i < n; ++i) {
         ASSERT(index.i + i <= NUM_BIG_PAGES);
         BigPageMetadata *bp = &(*big_pages)[index.i + i];
@@ -61,8 +59,8 @@ static void InitBigPagesMetadata(std::vector<BigPageMetadata> *big_pages,
         bp->addr = (uint16_t)(base + i * 4096);
     }
 
-    if (g_all_lower_case_big_page_codes.find(code) == std::string::npos) {
-        g_all_lower_case_big_page_codes.push_back(code);
+    if (g_all_big_page_codes.find(code) == std::string::npos) {
+        g_all_big_page_codes.push_back(code);
     }
 }
 
@@ -152,7 +150,7 @@ static bool HandleROMPrefixChar(uint32_t *dso, uint8_t rom) {
 
 #if BBCMICRO_DEBUGGER
 // select ROM
-static bool ParseROMPrefixLowerCaseChar(uint32_t *dso, char c) {
+static bool ParseROMPrefixChar(uint32_t *dso, char c) {
     if (c >= '0' && c <= '9') {
         return HandleROMPrefixChar(dso, (uint8_t)(c - '0'));
     } else if (c >= 'a' && c <= 'f') {
@@ -218,8 +216,8 @@ static std::vector<BigPageMetadata> GetBigPagesMetadataB() {
 }
 
 #if BBCMICRO_DEBUGGER
-static bool ParsePrefixLowerCaseCharB(uint32_t *dso, char c) {
-    if (ParseROMPrefixLowerCaseChar(dso, c)) {
+static bool ParsePrefixCharB(uint32_t *dso, char c) {
+    if (ParseROMPrefixChar(dso, c)) {
         // ...
     } else {
         return false;
@@ -373,8 +371,8 @@ static std::vector<BigPageMetadata> GetBigPagesMetadataBPlus() {
 }
 
 #if BBCMICRO_DEBUGGER
-static bool ParsePrefixLowerCaseCharBPlus(uint32_t *dso, char c) {
-    if (ParseROMPrefixLowerCaseChar(dso, c)) {
+static bool ParsePrefixCharBPlus(uint32_t *dso, char c) {
+    if (ParseROMPrefixChar(dso, c)) {
         // ...
     } else if (c == 's') {
         *dso |= BBCMicroDebugStateOverride_OverrideShadow | BBCMicroDebugStateOverride_Shadow;
@@ -599,8 +597,8 @@ static std::vector<BigPageMetadata> GetBigPagesMetadataMaster() {
 }
 
 #if BBCMICRO_DEBUGGER
-static bool ParsePrefixLowerCaseCharMaster(uint32_t *dso, char c) {
-    if (ParseROMPrefixLowerCaseChar(dso, c)) {
+static bool ParsePrefixCharMaster(uint32_t *dso, char c) {
+    if (ParseROMPrefixChar(dso, c)) {
         // ...
     } else if (c == 's') {
         *dso |= BBCMicroDebugStateOverride_OverrideShadow | BBCMicroDebugStateOverride_Shadow;
@@ -682,7 +680,7 @@ std::shared_ptr<const BBCMicroType> CreateBBCMicroTypeForTypeID(BBCMicroTypeID t
                           BBCMicroDebugStateOverride_ROM);
         type->apply_dso_fn = &ApplyDSOB;
         type->get_dso_fn = &GetDSOB;
-        type->parse_prefix_lower_case_char_fn = &ParsePrefixLowerCaseCharB;
+        type->parse_prefix_char_fn = &ParsePrefixCharB;
         break;
 
     case BBCMicroTypeID_BPlus:
@@ -694,7 +692,7 @@ std::shared_ptr<const BBCMicroType> CreateBBCMicroTypeForTypeID(BBCMicroTypeID t
                           BBCMicroDebugStateOverride_OverrideShadow);
         type->apply_dso_fn = &ApplyDSOBPlus;
         type->get_dso_fn = &GetDSOBPlus;
-        type->parse_prefix_lower_case_char_fn = &ParsePrefixLowerCaseCharBPlus;
+        type->parse_prefix_char_fn = &ParsePrefixCharBPlus;
         break;
 
     case BBCMicroTypeID_Master:
@@ -711,7 +709,7 @@ std::shared_ptr<const BBCMicroType> CreateBBCMicroTypeForTypeID(BBCMicroTypeID t
                           BBCMicroDebugStateOverride_OverrideOS);
         type->apply_dso_fn = &ApplyDSOMaster;
         type->get_dso_fn = &GetDSOMaster;
-        type->parse_prefix_lower_case_char_fn = &ParsePrefixLowerCaseCharMaster;
+        type->parse_prefix_char_fn = &ParsePrefixCharMaster;
         break;
     }
 #endif
@@ -870,15 +868,15 @@ bool ParseAddressPrefix(uint32_t *dso_ptr,
     for (const char *prefix_char = prefix_begin;
          *prefix_char != 0 && prefix_char != prefix_end;
          ++prefix_char) {
-        char c = (char)tolower(*prefix_char);
+        char c = *prefix_char;
 
         if (c == 'p') {
             dso |= BBCMicroDebugStateOverride_Parasite;
         } else if (c == 'r') {
             dso |= BBCMicroDebugStateOverride_OverrideParasiteROM | BBCMicroDebugStateOverride_ParasiteROM;
-        } else if ((*type->parse_prefix_lower_case_char_fn)(&dso, c)) {
+        } else if ((*type->parse_prefix_char_fn)(&dso, c)) {
             // Valid flag for this model.
-        } else if (g_all_lower_case_big_page_codes.find(c) != std::string::npos) {
+        } else if (g_all_big_page_codes.find(c) != std::string::npos) {
             // Valid flag - but not for this model, so ignore.
         } else {
             if (log) {

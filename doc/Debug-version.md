@@ -89,9 +89,9 @@ Prefix octal numbers with `0`, like C.
 
 ## Address prefixes
 
-Addresses are annotated with a prefix, indicating which paging
-settings are in force when deciding what's visible at that address.The
-possible prefixes are as follows.
+Addresses are annotated with a case-sensitive prefix, indicating which
+paging settings are in force when deciding what's visible at that
+address.The possible prefixes are as follows.
 
 Host memory:
 
