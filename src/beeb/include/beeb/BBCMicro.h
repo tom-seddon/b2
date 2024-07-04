@@ -52,7 +52,7 @@ class BBCMicro : private WD1770Handler,
 
     static constexpr size_t BIG_PAGE_SIZE_PAGES = BIG_PAGE_SIZE_BYTES / 256u;
 
-    static constexpr size_t NUM_UPDATE_MFNS = 4096;
+    static constexpr size_t NUM_UPDATE_MFNS = 32768;
 
 #if BBCMICRO_DEBUGGER
 

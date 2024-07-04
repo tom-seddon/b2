@@ -49,8 +49,7 @@ EEND()
 //////////////////////////////////////////////////////////////////////////
 
 #define ENAME ROMType
-#define EBASE uint8_t
-EBEGIN()
+EBEGIN_DERIVED(uint8_t)
 EPN(16KB)
 EPN(CCIWORD)
 

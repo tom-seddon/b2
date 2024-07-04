@@ -851,6 +851,11 @@ constexpr uint32_t GetNormalizedBBCMicroUpdateFlags(uint32_t flags) {
         flags &= ~(uint32_t)(BBCMicroUpdateFlag_DebugStepHost | BBCMicroUpdateFlag_DebugStepParasite);
     }
 
+    if ((flags & BBCMicroUpdateFlag_ROMTypeMask << BBCMicroUpdateFlag_ROMTypeShift) >= (ROMType_Count << BBCMicroUpdateFlag_ROMTypeShift)) {
+        // out of bounds ROMType... reset to 0.
+        flags &= ~(BBCMicroUpdateFlag_ROMTypeMask << BBCMicroUpdateFlag_ROMTypeShift);
+    }
+
     return flags;
 }
 
@@ -887,7 +892,24 @@ uint32_t BBCMicro::GetNormalizedBBCMicroUpdateFlags(uint32_t flags) {
 // at least for my laptop, maybe some other value would be just right.
 //
 // More experimentation necessary.
-const BBCMicro::UpdateMFn BBCMicro::ms_update_mfns[NUM_UPDATE_MFNS] = {UPDATE2048(0), UPDATE2048(2048)};
+const BBCMicro::UpdateMFn BBCMicro::ms_update_mfns[NUM_UPDATE_MFNS] = {
+    UPDATE2048(0x0 * 2048),
+    UPDATE2048(0x1 * 2048),
+    UPDATE2048(0x2 * 2048),
+    UPDATE2048(0x3 * 2048),
+    UPDATE2048(0x4 * 2048),
+    UPDATE2048(0x5 * 2048),
+    UPDATE2048(0x6 * 2048),
+    UPDATE2048(0x7 * 2048),
+    UPDATE2048(0x8 * 2048),
+    UPDATE2048(0x9 * 2048),
+    UPDATE2048(0xa * 2048),
+    UPDATE2048(0xb * 2048),
+    UPDATE2048(0xc * 2048),
+    UPDATE2048(0xd * 2048),
+    UPDATE2048(0xe * 2048),
+    UPDATE2048(0xf * 2048),
+};
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

@@ -178,7 +178,7 @@ static void GetMemBigPageTablesB(MemoryBigPageTables *tables,
     tables->mem_big_pages[0][6].i = MAIN_BIG_PAGE_INDEX.i + 6;
     tables->mem_big_pages[0][7].i = MAIN_BIG_PAGE_INDEX.i + 7;
 
-    uint8_t rom = ROM0_BIG_PAGE_INDEX.i + paging.romsel.b_bits.pr * NUM_ROM_BIG_PAGES;
+    BigPageIndex::Type rom = ROM0_BIG_PAGE_INDEX.i + paging.romsel.b_bits.pr * NUM_ROM_BIG_PAGES;
     tables->mem_big_pages[0][0x8].i = rom + 0;
     tables->mem_big_pages[0][0x9].i = rom + 1;
     tables->mem_big_pages[0][0xa].i = rom + 2;
@@ -189,8 +189,8 @@ static void GetMemBigPageTablesB(MemoryBigPageTables *tables,
     tables->mem_big_pages[0][0xe].i = MOS_BIG_PAGE_INDEX.i + 2;
     tables->mem_big_pages[0][0xf].i = MOS_BIG_PAGE_INDEX.i + 3;
 
-    memset(tables->mem_big_pages[1], 0, 16);
-    memset(tables->pc_mem_big_pages_set, 0, 16);
+    memset(tables->mem_big_pages[1], 0, sizeof tables->mem_big_pages[1]);
+    memset(tables->pc_mem_big_pages_set, 0, sizeof tables->pc_mem_big_pages_set);
     *paging_flags = 0;
 }
 
@@ -279,14 +279,14 @@ static void GetMemBigPageTablesBPlus(MemoryBigPageTables *tables,
         tables->mem_big_pages[1][7].i = MAIN_BIG_PAGE_INDEX.i + 7;
     }
 
-    uint8_t rom = ROM0_BIG_PAGE_INDEX.i + paging.romsel.bplus_bits.pr * NUM_ROM_BIG_PAGES;
+    BigPageIndex::Type rom = ROM0_BIG_PAGE_INDEX.i + paging.romsel.bplus_bits.pr * NUM_ROM_BIG_PAGES;
     if (paging.romsel.bplus_bits.ram) {
         tables->mem_big_pages[0][0x8].i = ANDY_BIG_PAGE_INDEX.i + 0;
         tables->mem_big_pages[0][0x9].i = ANDY_BIG_PAGE_INDEX.i + 1;
         tables->mem_big_pages[0][0xa].i = ANDY_BIG_PAGE_INDEX.i + 2;
         tables->mem_big_pages[0][0xb].i = rom + 3;
 
-        memset(tables->pc_mem_big_pages_set, 0, 16);
+        memset(tables->pc_mem_big_pages_set, 0, sizeof tables->pc_mem_big_pages_set);
         tables->pc_mem_big_pages_set[0xa] = 1;
         tables->pc_mem_big_pages_set[0xc] = 1;
         tables->pc_mem_big_pages_set[0xd] = 1;
@@ -296,7 +296,7 @@ static void GetMemBigPageTablesBPlus(MemoryBigPageTables *tables,
         tables->mem_big_pages[0][0xa].i = rom + 2;
         tables->mem_big_pages[0][0xb].i = rom + 3;
 
-        memset(tables->pc_mem_big_pages_set, 0, 16);
+        memset(tables->pc_mem_big_pages_set, 0, sizeof tables->pc_mem_big_pages_set);
         tables->pc_mem_big_pages_set[0xc] = 1;
         tables->pc_mem_big_pages_set[0xd] = 1;
     }
@@ -306,7 +306,7 @@ static void GetMemBigPageTablesBPlus(MemoryBigPageTables *tables,
     tables->mem_big_pages[0][0xe].i = MOS_BIG_PAGE_INDEX.i + 2;
     tables->mem_big_pages[0][0xf].i = MOS_BIG_PAGE_INDEX.i + 3;
 
-    memcpy(&tables->mem_big_pages[1][8], &tables->mem_big_pages[0][8], 8);
+    memcpy(&tables->mem_big_pages[1][8], &tables->mem_big_pages[0][8], 8 * sizeof tables->mem_big_pages[0][0]);
 
     *paging_flags = paging.acccon.bplus_bits.shadow ? PagingFlags_DisplayShadow : 0;
 }
@@ -456,7 +456,7 @@ static void GetMemBigPagesTablesMaster(MemoryBigPageTables *tables,
         tables->mem_big_pages[1][7].i = MAIN_BIG_PAGE_INDEX.i + 7;
     }
 
-    uint8_t rom = ROM0_BIG_PAGE_INDEX.i + paging.romsel.bplus_bits.pr * NUM_ROM_BIG_PAGES;
+    BigPageIndex::Type rom = ROM0_BIG_PAGE_INDEX.i + paging.romsel.bplus_bits.pr * NUM_ROM_BIG_PAGES;
     if (paging.romsel.m128_bits.ram) {
         tables->mem_big_pages[0][0x8].i = ANDY_BIG_PAGE_INDEX.i + 0;
         tables->mem_big_pages[0][0x9].i = rom + 1;
@@ -475,19 +475,19 @@ static void GetMemBigPagesTablesMaster(MemoryBigPageTables *tables,
         tables->mem_big_pages[0][0xe].i = MOS_BIG_PAGE_INDEX.i + 2;
         tables->mem_big_pages[0][0xf].i = MOS_BIG_PAGE_INDEX.i + 3;
 
-        memset(tables->pc_mem_big_pages_set, 0, 16);
+        memset(tables->pc_mem_big_pages_set, 0, sizeof tables->pc_mem_big_pages_set);
     } else {
         tables->mem_big_pages[0][0xc].i = MOS_BIG_PAGE_INDEX.i + 0;
         tables->mem_big_pages[0][0xd].i = MOS_BIG_PAGE_INDEX.i + 1;
         tables->mem_big_pages[0][0xe].i = MOS_BIG_PAGE_INDEX.i + 2;
         tables->mem_big_pages[0][0xf].i = MOS_BIG_PAGE_INDEX.i + 3;
 
-        memset(tables->pc_mem_big_pages_set, 0, 16);
+        memset(tables->pc_mem_big_pages_set, 0, sizeof tables->pc_mem_big_pages_set);
         tables->pc_mem_big_pages_set[0xc] = 1;
         tables->pc_mem_big_pages_set[0xd] = 1;
     }
 
-    memcpy(&tables->mem_big_pages[1][8], &tables->mem_big_pages[0][8], 8);
+    memcpy(&tables->mem_big_pages[1][8], &tables->mem_big_pages[0][8], 8 * sizeof tables->mem_big_pages[0][0]);
 
     *paging_flags = ((paging.acccon.m128_bits.tst ? PagingFlags_ROMIO : 0) |
                      (paging.acccon.m128_bits.d ? PagingFlags_DisplayShadow : 0) |

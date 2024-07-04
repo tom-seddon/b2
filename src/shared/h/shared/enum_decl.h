@@ -4,13 +4,8 @@
 #define EPREFIX
 #endif
 
-#ifdef EBASE
-#define EBEGIN() enum ENAME : EBASE {
-#else
 #define EBEGIN() enum ENAME {
-#endif
-
-#define EBEGIN_DERIVED(BASE_NAME) EBEGIN()
+#define EBEGIN_DERIVED(BASE_NAME) enum ENAME : BASE_NAME {
 
 #define EN(NAME) NAME,
 #define ENV(NAME, VALUE) NAME = (VALUE),

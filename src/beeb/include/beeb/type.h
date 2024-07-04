@@ -124,7 +124,7 @@ struct M6502Config;
 
 // See comment for (very similar) CycleCount struct.
 struct BigPageIndex {
-    typedef uint8_t Type;
+    typedef uint16_t Type;
     Type i;
 };
 
