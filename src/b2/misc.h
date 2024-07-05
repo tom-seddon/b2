@@ -184,6 +184,8 @@ bool GetUInt64FromString(uint64_t *value, const char *str, int radix = 0);
 //////////////////////////////////////////////////////////////////////////
 
 // returns true on success, or false on failure.
+//
+// TODO: should be std::vector<uint8_t> *bbc_ascii - 
 bool GetBBCASCIIFromUTF8(std::string *ascii,
                          const std::vector<uint8_t> &data,
                          uint32_t *bad_codepoint_ptr,
