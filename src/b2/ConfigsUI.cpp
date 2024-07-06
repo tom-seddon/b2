@@ -655,9 +655,11 @@ ROMEditAction ConfigsUI::DoROMEditGui(const char *caption,
     ImGui::NextColumn();
 
     if (writeable) {
+        ImGui::BeginDisabled(!type || *type != ROMType_16KB);
         if (ImGui::Checkbox("##ram", writeable)) {
             edited = true;
         }
+        ImGui::EndDisabled();
     }
 
     ImGui::NextColumn();
@@ -703,6 +705,12 @@ ROMEditAction ConfigsUI::DoROMEditGui(const char *caption,
                     bool selected = *type == i;
                     if (ImGui::MenuItem(metadata->description, nullptr, &selected)) {
                         *type = (ROMType)i;
+
+                        if (*type != ROMType_16KB) {
+                            if (writeable) {
+                                *writeable = false;
+                            }
+                        }
                     }
                 }
                 ImGui::EndMenu();
