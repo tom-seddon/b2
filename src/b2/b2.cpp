@@ -514,44 +514,57 @@ static void QuitHIDCallback() {
 #endif
 
 #if SYSTEM_OSX
-static void InitHIDCallback() {
-    g_hid_manager = IOHIDManagerCreate(kCFAllocatorDefault, kIOHIDOptionsTypeNone);
-    if (!g_hid_manager) {
-        return;
-    }
-
+static void InitHIDCallback(Messages *msg) {
+    IOReturn ior;
+    bool good = false;
     CFDictionaryRef keyboard = nullptr;
     CFDictionaryRef keypad = nullptr;
     CFArrayRef matches = nullptr;
 
+    g_hid_manager = IOHIDManagerCreate(kCFAllocatorDefault, kIOHIDOptionsTypeNone);
+    if (!g_hid_manager) {
+        msg->e.f("InitHIDCallback: IOHIDManagerCreate failed\n");
+        goto cleanup;
+    }
+
     keyboard = CreateHIDDeviceMatchingDictionary(kHIDPage_GenericDesktop, kHIDUsage_GD_Keyboard);
     if (!keyboard) {
-        goto fail;
+        msg->e.f("InitHIDCallback: CreateHIDDeviceMatchingDictionary failed (kHIDUsage_GD_Keyboard)\n");
+        goto cleanup;
     }
 
     keypad = CreateHIDDeviceMatchingDictionary(kHIDPage_GenericDesktop, kHIDUsage_GD_Keypad);
     if (!keypad) {
-        goto fail;
+        msg->e.f("InitHIDCallback: CreateHIDDeviceMatchingDictionary failed (kHIDUsage_GD_Keypad)\n");
+        goto cleanup;
     }
 
     {
         CFDictionaryRef matches_list[] = {keyboard, keypad};
         matches = CFArrayCreate(kCFAllocatorDefault, (const void **)matches_list, sizeof matches_list / sizeof matches_list[0], nullptr);
         if (!matches) {
-            goto fail;
+            msg->i.f("InitHIDCallback: CFArrayCreate failed\n");
+            goto cleanup;
         }
     }
+    
     IOHIDManagerSetDeviceMatchingMultiple(g_hid_manager, matches);
     IOHIDManagerRegisterInputValueCallback(g_hid_manager, &HIDCallback, g_hid_manager);
     IOHIDManagerScheduleWithRunLoop(g_hid_manager, CFRunLoopGetMain(), kCFRunLoopDefaultMode);
-    if (IOHIDManagerOpen(g_hid_manager, kIOHIDOptionsTypeNone) == kIOReturnSuccess) {
+    ior = IOHIDManagerOpen(g_hid_manager, kIOHIDOptionsTypeNone);
+    if (ior != kIOReturnSuccess) {
+        msg->i.f("InitHIDCallback: IOHIDManagerOpen returned: %" PRIu32 " (0x%" PRIx32 ")\n", (uint32_t)ior, (uint32_t)ior);
         goto cleanup;
     }
 
-fail:
-    QuitHIDCallback();
+    good = true;
+    msg->i.f("InitHIDCallback: installed\n");
 
 cleanup:
+    if (!good) {
+        QuitHIDCallback();
+    }
+
     if (matches) {
         CFRelease(matches);
     }
@@ -561,6 +574,7 @@ cleanup:
     if (keyboard) {
         CFRelease(keyboard);
     }
+    return;
 }
 #endif
 
@@ -744,7 +758,7 @@ static bool InitSystem(
     SDL_GameControllerAddMappingsFromFile(GetAssetPath("gamecontrollerdb.txt").c_str());
 
 #if SYSTEM_OSX
-    InitHIDCallback();
+    InitHIDCallback(init_messages);
 #endif
 
     // Start audio
