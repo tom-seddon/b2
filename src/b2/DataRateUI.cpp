@@ -124,7 +124,7 @@ class DataRateUI : public SettingsUI {
   protected:
   private:
     BeebWindow *m_beeb_window;
-    std::string m_update_flags_names[BBCMicro::NUM_UPDATE_MFNS];
+    std::map<uint32_t, std::string> m_name_by_update_flags;
 
     void GetVBlankRecords(std::vector<BeebWindow::VBlankRecord> *vblank_records);
 };
@@ -134,19 +134,6 @@ class DataRateUI : public SettingsUI {
 
 DataRateUI::DataRateUI(BeebWindow *beeb_window)
     : m_beeb_window(beeb_window) {
-    for (uint32_t i = 0; i < BBCMicro::NUM_UPDATE_MFNS; ++i) {
-        std::string *name = &m_update_flags_names[i];
-
-        for (uint32_t mask = 1; mask != 0; mask <<= 1) {
-            if (i & mask) {
-                if (!name->empty()) {
-                    *name += " ";
-                }
-
-                *name += GetBBCMicroUpdateFlagEnumName((int32_t)mask);
-            }
-        }
-    }
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -292,12 +279,17 @@ void DataRateUI::DoImGui() {
                     data->num_UpdatePaging_calls,
                     data->num_UpdatePaging_calls / ((double)beeb_thread->GetEmulatedCycles().n / CYCLES_PER_SECOND));
 
-        for (size_t i = 0; i < BBCMicro::NUM_UPDATE_MFNS; ++i) {
+        for (uint32_t i = 0; i < BBCMicro::NUM_UPDATE_MFNS; ++i) {
             if (data->update_mfn_cycle_count[i].n > 0) {
                 char cycles_str[MAX_UINT64_THOUSANDS_SIZE];
                 GetThousandsString(cycles_str, data->update_mfn_cycle_count[i].n);
 
-                ImGui::Text("%s: %s", cycles_str, m_update_flags_names[i].c_str());
+                std::string *name = &m_name_by_update_flags[i];
+                if (name->empty()) {
+                    *name = BBCMicro::GetUpdateFlagExpr(i);
+                }
+
+                ImGui::Text("%s: %s", cycles_str, name->c_str());
             }
         }
     }

@@ -46,13 +46,9 @@ class BBCMicro : private WD1770Handler,
     typedef void (*UpdateROMSELPagesFn)(BBCMicro *);
     typedef void (*UpdateACCCONPagesFn)(BBCMicro *, const ACCCON *);
 
-    // BIG_PAGE_SIZE_BYTES fits into a uint16_t.
-    static constexpr size_t BIG_PAGE_SIZE_BYTES = 4096;
-    static constexpr size_t BIG_PAGE_OFFSET_MASK = 4095;
-
-    static constexpr size_t BIG_PAGE_SIZE_PAGES = BIG_PAGE_SIZE_BYTES / 256u;
-
     static constexpr size_t NUM_UPDATE_MFNS = 32768;
+
+    static std::string GetUpdateFlagExpr(const uint32_t flags_);
 
 #if BBCMICRO_DEBUGGER
 

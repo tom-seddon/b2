@@ -1,7 +1,6 @@
 #include <shared/system.h>
 #include <shared/debug.h>
 #include <beeb/BBCMicro.h>
-#include <beeb/conf.h>
 #include <beeb/BeebLink.h>
 #include <beeb/sound.h>
 
@@ -305,6 +304,24 @@ parasite_update_done:
                     const ReadMMIO *read_mmio = &m_read_mmios[mmio_addr.w];
                     m_state.cpu.dbus = (*read_mmio->fn)(read_mmio->context, m_state.cpu.abus);
                 } else {
+                    if constexpr ((UPDATE_FLAGS & (BBCMicroUpdateFlag_ROMTypeMask << BBCMicroUpdateFlag_ROMTypeShift)) == (ROMType_CCIWORD << BBCMicroUpdateFlag_ROMTypeShift)) {
+                        switch (m_state.cpu.abus.w & 0xffe0) {
+                        case 0x8060:
+                        case 0xbfc0:
+                            m_state.paging.rom_regions[m_state.paging.romsel.b_bits.pr] = 0;
+                            this->UpdatePaging();
+                            // The CPU data bus fun won't change.
+                            break;
+
+                        case 0x8040:
+                        case 0xbfa0:
+                        case 0x0fe0:
+                            m_state.paging.rom_regions[m_state.paging.romsel.b_bits.pr] = 1;
+                            this->UpdatePaging();
+                            // The CPU data bus fun won't change.
+                            break;
+                        }
+                    }
                     m_state.cpu.dbus = m_pc_mem_big_pages[m_state.cpu.opcode_pc.p.p]->r[m_state.cpu.abus.p.p][m_state.cpu.abus.p.o];
                 }
 

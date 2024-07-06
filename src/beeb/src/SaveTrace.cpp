@@ -293,36 +293,37 @@ class TraceSaver {
         //const BigPageType *big_page_type=m_paging.GetBigPageTypeForAccess({pc},{value});
         M6502Word addr = {value};
 
-        char code;
+        const char *codes;
         switch (ev->source) {
         default:
             ASSERT(false);
             // fall through
         case TraceEventSource_None:
-            code = '?';
+            codes = "?";
             break;
 
         case TraceEventSource_Host:
             if (addr.b.h >= 0xfc && addr.b.h <= 0xfe && !(m_paging_flags & PagingFlags_ROMIO)) {
-                code = 'i';
+                codes = "i";
             } else {
                 M6502Word pc = {pc_};
                 BigPageIndex big_page = m_paging_tables.mem_big_pages[m_paging_tables.pc_mem_big_pages_set[pc.p.p]][addr.p.p];
                 ASSERT(big_page.i < NUM_BIG_PAGES);
-                code = m_type->big_pages_metadata[big_page.i].code;
+                codes = m_type->big_pages_metadata[big_page.i].codes;
             }
             break;
 
         case TraceEventSource_Parasite:
             if (m_parasite_boot_mode && addr.b.h >= 0xf0) {
-                code = 'r';
+                codes = "r";
             } else {
-                code = 'p';
+                codes = "p";
             }
             break;
         }
 
-        *c++ = code;
+        *c++ = codes[0];
+        *c++ = codes[1] != 0 ? codes[1] : '_';
         *c++ = ADDRESS_PREFIX_SEPARATOR;
         *c++ = '$';
         *c++ = HEX_CHARS_LC[value >> 12];

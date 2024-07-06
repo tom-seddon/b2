@@ -112,10 +112,10 @@ static const BBCMicro::ReadMMIOFn g_WD1770_read_fns[] = {
     &WD1770::Read3,
 };
 
-static const uint8_t g_unmapped_reads[BBCMicro::BIG_PAGE_SIZE_BYTES] = {
+static const uint8_t g_unmapped_reads[BIG_PAGE_SIZE_BYTES] = {
     0,
 };
-static uint8_t g_unmapped_writes[BBCMicro::BIG_PAGE_SIZE_BYTES];
+static uint8_t g_unmapped_writes[BIG_PAGE_SIZE_BYTES];
 
 const uint16_t BBCMicro::SCREEN_WRAP_ADJUSTMENTS[] = {
     0x4000 >> 3,
@@ -398,6 +398,7 @@ void BBCMicro::WriteHostTube0Wrapper(void *m_, M6502Word a, uint8_t value) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+// TODO: this should probably be part of BBCMicroType, or something...?
 void BBCMicro::InitReadOnlyBigPage(ReadOnlyBigPage *bp,
                                    const BBCMicroState *state,
 #if BBCMICRO_DEBUGGER
@@ -418,7 +419,16 @@ void BBCMicro::InitReadOnlyBigPage(ReadOnlyBigPage *bp,
     } else if (big_page_index.i >= ROM0_BIG_PAGE_INDEX.i &&
                big_page_index.i < ROM0_BIG_PAGE_INDEX.i + 16 * NUM_ROM_BIG_PAGES) {
         size_t bank = ((size_t)big_page_index.i - ROM0_BIG_PAGE_INDEX.i) / NUM_ROM_BIG_PAGES;
-        size_t offset = ((size_t)big_page_index.i - ROM0_BIG_PAGE_INDEX.i) % NUM_ROM_BIG_PAGES * BIG_PAGE_SIZE_BYTES;
+        ASSERT(bank < 16);
+        size_t region = (((size_t)big_page_index.i - ROM0_BIG_PAGE_INDEX.i) % NUM_ROM_BIG_PAGES) / 4;
+        ASSERT(region < 8);
+        size_t rom_big_page_index = (((size_t)big_page_index.i - ROM0_BIG_PAGE_INDEX.i) % NUM_ROM_BIG_PAGES) % 4;
+        ASSERT(rom_big_page_index < 4);
+
+        const ROMTypeMetadata *metadata = GetROMTypeMetadata(state->paging.rom_types[bank]);
+        size_t offset = GetROMOffset(state->paging.rom_types[bank], (uint8_t)rom_big_page_index, (uint8_t)region);
+        ASSERT(offset < metadata->num_bytes);
+        //size_t offset = ((size_t)big_page_index.i - ROM0_BIG_PAGE_INDEX.i) % NUM_ROM_BIG_PAGES * BIG_PAGE_SIZE_BYTES;
 
         if (!!state->sideways_rom_buffers[bank]) {
             bp->r = &state->sideways_rom_buffers[bank]->at(offset);
@@ -695,6 +705,7 @@ void BBCMicro::WriteROMSEL(void *m_, M6502Word a, uint8_t value) {
         m->m_state.paging.romsel.value = value & m->m_romsel_mask;
 
         m->UpdatePaging();
+        m->UpdateCPUDataBusFn();
         //(*m->m_update_romsel_pages_fn)(m);
 
 #if BBCMICRO_TRACE
@@ -1016,7 +1027,7 @@ void BBCMicro::SetSidewaysROM(uint8_t bank, std::shared_ptr<const std::vector<ui
 
     m_state.sideways_rom_buffers[bank] = std::move(data);
     m_state.paging.rom_types[bank] = type;
-    m_state.paging.rom_banks[bank] = 0;
+    m_state.paging.rom_regions[bank] = 0;
 
     this->InitPaging();
 }
@@ -1864,10 +1875,11 @@ void BBCMicro::SendBeebLinkResponse(std::vector<uint8_t> data) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static std::string GetUpdateFlagExpr(const uint32_t flags_) {
+std::string BBCMicro::GetUpdateFlagExpr(const uint32_t flags_) {
     std::string expr;
 
-    uint32_t flags = flags_;
+    // ROMType is dealt with separately.
+    uint32_t flags = flags_ & ~(BBCMicroUpdateFlag_ROMTypeMask << BBCMicroUpdateFlag_ROMTypeShift);
     uint32_t mask = 1;
     while (flags != 0) {
         if (flags & mask) {
@@ -1886,6 +1898,17 @@ static std::string GetUpdateFlagExpr(const uint32_t flags_) {
         }
         flags &= ~mask;
         mask <<= 1;
+    }
+
+    ROMType type = (ROMType)(flags_ >> BBCMicroUpdateFlag_ROMTypeShift & BBCMicroUpdateFlag_ROMTypeMask);
+    if (type != ROMType_16KB) {
+        const char *type_name = GetROMTypeEnumName(type);
+        if (type_name[0] == '?') {
+            expr += "(ROMType)" + std::to_string((int)type);
+        } else {
+            expr += type_name;
+        }
+        expr += "<<ROMTypeShift";
     }
 
     if (expr.empty()) {
@@ -1945,7 +1968,9 @@ void BBCMicro::PrintInfo(Log *log) {
         }
     }
 
-    log->f("unused BBCMicroUpdateFlag values: %s\n", GetUpdateFlagExpr(unused_bits).c_str());
+    if (unused_bits != 0) {
+        log->f("unused BBCMicroUpdateFlag values: %s\n", GetUpdateFlagExpr(unused_bits).c_str());
+    }
 
     log->f("sizeof(BBCMicro): %zu\n", sizeof(BBCMicro));
     log->f("sizeof(BBCMicroState): %zu\n", sizeof(BBCMicroState));
@@ -2800,6 +2825,8 @@ void BBCMicro::UpdateCPUDataBusFn() {
         ++m_update_mfn_data->num_update_mfn_changes;
     }
 #endif
+
+    update_flags |= m_state.paging.rom_types[m_state.paging.romsel.b_bits.pr] << BBCMicroUpdateFlag_ROMTypeShift;
 
     ASSERT(update_flags < sizeof ms_update_mfns / sizeof ms_update_mfns[0]);
     m_update_flags = update_flags;

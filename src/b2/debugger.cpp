@@ -334,6 +334,7 @@ bool DebugUI::ReadByte(uint8_t *value,
 
 void DebugUI::DoDebugPageOverrideImGui() {
     static const char ROM_POPUP[] = "rom_popup";
+    static const char REGION_POPUP[] = "region_popup";
     static const char SHADOW_POPUP[] = "shadow_popup";
     static const char ANDY_POPUP[] = "andy_popup";
     static const char HAZEL_POPUP[] = "hazel_popup";
@@ -366,9 +367,9 @@ void DebugUI::DoDebugPageOverrideImGui() {
             ImGui::SameLine();
 
             if (m_dso & BBCMicroDebugStateOverride_OverrideROM) {
-                ImGui::Text("%x!", m_dso & BBCMicroDebugStateOverride_ROM);
+                ImGui::Text("%c!", GetROMBankCode(m_dso & BBCMicroDebugStateOverride_ROM));
             } else {
-                ImGui::Text("%x", dso_current & BBCMicroDebugStateOverride_ROM);
+                ImGui::Text("%c", GetROMBankCode(dso_current & BBCMicroDebugStateOverride_ROM));
             }
 
             if (ImGui::BeginPopup(ROM_POPUP)) {
@@ -383,12 +384,54 @@ void DebugUI::DoDebugPageOverrideImGui() {
                 for (uint8_t i = 0; i < 16; ++i) {
                     ImGui::SameLine();
 
-                    char text[10];
-                    snprintf(text, sizeof text, "%X", i);
+                    char text[2] = {};
+                    text[0] = GetROMBankCode(i);
 
                     if (ImGui::Button(text)) {
                         m_dso |= BBCMicroDebugStateOverride_OverrideROM;
                         m_dso = (m_dso & ~(uint32_t)BBCMicroDebugStateOverride_ROM) | i;
+                        ImGui::CloseCurrentPopup();
+                    }
+                }
+
+                ImGui::EndPopup();
+            }
+        }
+
+        // Mapper region
+        if (dso_mask & BBCMicroDebugStateOverride_OverrideMapperRegion) {
+            ImGui::SameLine();
+
+            if (ImGui::Button("Region")) {
+                ImGui::OpenPopup(REGION_POPUP);
+            }
+
+            ImGui::SameLine();
+
+            if (m_dso & BBCMicroDebugStateOverride_OverrideMapperRegion) {
+                ImGui::Text("%c!", GetMapperRegionCode((uint8_t)(m_dso >> BBCMicroDebugStateOverride_MapperRegionShift & BBCMicroDebugStateOverride_MapperRegionMask)));
+            } else {
+                ImGui::Text("%c", GetMapperRegionCode((uint8_t)(dso_current >> BBCMicroDebugStateOverride_MapperRegionShift & BBCMicroDebugStateOverride_MapperRegionMask)));
+            }
+
+            if (ImGui::BeginPopup(REGION_POPUP)) {
+                if (ImGui::Button("Use current")) {
+                    m_dso &= ~BBCMicroDebugStateOverride_OverrideMapperRegion;
+                    m_dso &= ~(BBCMicroDebugStateOverride_MapperRegionMask << BBCMicroDebugStateOverride_MapperRegionShift);
+                    ImGui::CloseCurrentPopup();
+                }
+
+                ImGui::Text("Force Region");
+                for (uint8_t i = 0; i < 8; ++i) {
+                    ImGui::SameLine();
+
+                    char text[2] = {};
+                    text[0] = GetMapperRegionCode(i);
+
+                    if (ImGui::Button(text)) {
+                        m_dso |= BBCMicroDebugStateOverride_OverrideMapperRegion;
+                        m_dso &= ~(BBCMicroDebugStateOverride_MapperRegionMask << BBCMicroDebugStateOverride_MapperRegionShift);
+                        m_dso |= i << BBCMicroDebugStateOverride_MapperRegionShift;
                         ImGui::CloseCurrentPopup();
                     }
                 }
@@ -517,8 +560,8 @@ void DebugUI::DoByteDebugGui(const DebugBigPage *dbp, M6502Word addr) {
         ImGui::Separator();
 
         char byte_str[10];
-        snprintf(byte_str, sizeof byte_str, "%c%c$%04x",
-                 dbp->bp.metadata->code, ADDRESS_PREFIX_SEPARATOR, addr.w);
+        snprintf(byte_str, sizeof byte_str, "%s%c$%04x",
+                 dbp->bp.metadata->codes, ADDRESS_PREFIX_SEPARATOR, addr.w);
 
         ImGui::Text("Byte: %s (%s)",
                     byte_str,
@@ -686,17 +729,17 @@ const DebugUI::DebugBigPage *DebugUI::GetDebugBigPageForAddress(M6502Word addr,
         BBCMicro::DebugGetBigPageForAddress(&dbp->bp, m_beeb_state.get(), m_beeb_debug_state.get(), addr, mos, m_dso);
 
         //if (dbp->bp.r) {
-        //    memcpy(dbp->ram_buffer, dbp->bp.r, BBCMicro::BIG_PAGE_SIZE_BYTES);
+        //    memcpy(dbp->ram_buffer, dbp->bp.r, BIG_PAGE_SIZE_BYTES);
         //    dbp->bp.r = dbp->ram_buffer;
         //}
 
         //if (dbp->bp.byte_debug_flags) {
         //    ASSERT(dbp->bp.address_debug_flags);
 
-        //    memcpy(dbp->byte_flags_buffer, dbp->bp.byte_debug_flags, BBCMicro::BIG_PAGE_SIZE_BYTES);
+        //    memcpy(dbp->byte_flags_buffer, dbp->bp.byte_debug_flags, BIG_PAGE_SIZE_BYTES);
         //    dbp->bp.byte_debug_flags = dbp->byte_flags_buffer;
 
-        //    memcpy(dbp->addr_flags_buffer, dbp->bp.address_debug_flags, BBCMicro::BIG_PAGE_SIZE_BYTES);
+        //    memcpy(dbp->addr_flags_buffer, dbp->bp.address_debug_flags, BIG_PAGE_SIZE_BYTES);
         //    dbp->bp.address_debug_flags = dbp->addr_flags_buffer;
         //} else {
         //    ASSERT(!dbp->bp.address_debug_flags);
@@ -857,12 +900,15 @@ class SystemDebugWindow : public DebugUI {
         ImGuiHeader("Update Flags");
         {
             uint32_t flags = m_beeb_thread->GetUpdateFlags();
+            ROMType type = (ROMType)(flags >> BBCMicroUpdateFlag_ROMTypeShift & BBCMicroUpdateFlag_ROMTypeMask);
+            flags &= ~(BBCMicroUpdateFlag_ROMTypeMask << BBCMicroUpdateFlag_ROMTypeShift);
             for (uint32_t mask = 1; mask != 0; mask <<= 1) {
                 if (flags & mask) {
                     const char *flag = GetBBCMicroUpdateFlagEnumName((int32_t)mask);
                     ImGui::BulletText("%s", flag);
                 }
             }
+            ImGui::BulletText("ROM Type: %s", GetROMTypeEnumName(type));
         }
 
         ImGuiHeader("Debugger State");
@@ -1145,8 +1191,8 @@ class MemoryDebugWindow : public DebugUI,
 
             snprintf(text,
                      text_size,
-                     upper_case ? "%c%c$%04X" : "%c%c$%04x",
-                     dbp->bp.metadata->code,
+                     upper_case ? "%s%c$%04X" : "%s%c$%04x",
+                     dbp->bp.metadata->codes,
                      ADDRESS_PREFIX_SEPARATOR,
                      (unsigned)offset);
         }
@@ -1489,7 +1535,7 @@ class DisassemblyDebugWindow : public DebugUI,
             }
 
             const DebugBigPage *line_dbp = this->GetDebugBigPageForAddress(line_addr, false);
-            ImGui::Text("%c%c$%04x", line_dbp->bp.metadata->code, ADDRESS_PREFIX_SEPARATOR, line_addr.w);
+            ImGui::Text("%s%c$%04x", line_dbp->bp.metadata->codes, ADDRESS_PREFIX_SEPARATOR, line_addr.w);
             this->DoBytePopupGui(line_dbp, line_addr);
 
             ImGui::SameLine();
@@ -1808,8 +1854,10 @@ class DisassemblyDebugWindow : public DebugUI,
     void AddWord(const char *prefix, uint16_t w, bool mos, const char *suffix) {
         const DebugBigPage *dbp = this->GetDebugBigPageForAddress({w}, mos);
 
+        static_assert(sizeof dbp->bp.metadata->codes == 3);
         char label[] = {
-            dbp->bp.metadata->code,
+            dbp->bp.metadata->codes[0],
+            dbp->bp.metadata->codes[1],
             ADDRESS_PREFIX_SEPARATOR,
             '$',
             HEX_CHARS_LC[w >> 12 & 15],
@@ -1825,8 +1873,10 @@ class DisassemblyDebugWindow : public DebugUI,
     void AddByte(const char *prefix, uint8_t value, bool mos, const char *suffix) {
         const DebugBigPage *dbp = this->GetDebugBigPageForAddress({value}, mos);
 
+        static_assert(sizeof dbp->bp.metadata->codes == 3);
         char label[] = {
-            dbp->bp.metadata->code,
+            dbp->bp.metadata->codes[0],
+            dbp->bp.metadata->codes[1],
             ADDRESS_PREFIX_SEPARATOR,
             '$',
             HEX_CHARS_LC[value >> 4 & 15],
@@ -2767,14 +2817,14 @@ class BreakpointsDebugWindow : public DebugUI {
                     } else {
                         // Byte breakpoint
                         //                ASSERT(bp->big_page<BBCMicro::NUM_BIG_PAGES);
-                        //                ASSERT(bp->offset<BBCMicro::BIG_PAGE_SIZE_BYTES);
+                        //                ASSERT(bp->offset<BIG_PAGE_SIZE_BYTES);
                         //                uint8_t *flags=&m_big_page_debug_flags[bp->big_page][bp->offset];
 
                         const BigPageMetadata *metadata = &m_beeb_state->type->big_pages_metadata[bp->big_page.i];
 
                         if (uint8_t *flags = this->Row(bp,
-                                                       "%c%c$%04x",
-                                                       metadata->code,
+                                                       "%s%c$%04x",
+                                                       metadata->codes,
                                                        ADDRESS_PREFIX_SEPARATOR,
                                                        metadata->addr + bp->offset)) {
                             m_beeb_thread->Send(std::make_shared<BeebThread::DebugSetByteDebugFlags>(bp->big_page,
@@ -2808,14 +2858,14 @@ class BreakpointsDebugWindow : public DebugUI {
     // This is quite a large object, by BBC standards at least.
     uint8_t m_host_address_debug_flags[65536] = {};
     uint8_t m_parasite_address_debug_flags[65536] = {};
-    uint8_t m_big_page_debug_flags[NUM_BIG_PAGES][BBCMicro::BIG_PAGE_SIZE_BYTES] = {};
+    uint8_t m_big_page_debug_flags[NUM_BIG_PAGES][BIG_PAGE_SIZE_BYTES] = {};
 
     // The retain flag indicates that the byte should be listed even if there's
     // no breakpoint set. This prevents rows disappearing when you untick all
     // the entries.
     uint8_t m_host_address_debug_flags_retain[65536 >> 3] = {};
     uint8_t m_parasite_address_debug_flags_retain[65536 >> 3] = {};
-    uint8_t m_big_page_debug_flags_retain[NUM_BIG_PAGES][BBCMicro::BIG_PAGE_SIZE_BYTES >> 3] = {};
+    uint8_t m_big_page_debug_flags_retain[NUM_BIG_PAGES][BIG_PAGE_SIZE_BYTES >> 3] = {};
 
     std::vector<Breakpoint> m_breakpoints;
 
@@ -2840,7 +2890,7 @@ class BreakpointsDebugWindow : public DebugUI {
             retain = &m_parasite_address_debug_flags_retain[bp->offset >> 3];
         } else {
             ASSERT(bp->big_page.i < NUM_BIG_PAGES);
-            ASSERT(bp->offset < BBCMicro::BIG_PAGE_SIZE_BYTES);
+            ASSERT(bp->offset < BIG_PAGE_SIZE_BYTES);
             flags = &m_big_page_debug_flags[bp->big_page.i][bp->offset];
             retain = &m_big_page_debug_flags_retain[bp->big_page.i][bp->offset >> 3];
         }
@@ -2906,7 +2956,7 @@ class BreakpointsDebugWindow : public DebugUI {
         for (BigPageIndex::Type i = 0; i < NUM_BIG_PAGES; ++i) {
             const uint8_t *big_page_debug_flags = m_big_page_debug_flags[i];
 
-            for (size_t j = 0; j < BBCMicro::BIG_PAGE_SIZE_BYTES; ++j) {
+            for (size_t j = 0; j < BIG_PAGE_SIZE_BYTES; ++j) {
                 if (big_page_debug_flags[j] || m_big_page_debug_flags_retain[i][j >> 3] & 1 << (j & 7)) {
                     m_breakpoints.push_back({i, (uint16_t)j});
                 }
@@ -2949,7 +2999,7 @@ class PixelMetadataUI : public DebugUI {
 
                 M6502Word cpu_addr = {(uint16_t)(metadata->addr + crtc_addr.p.o)};
 
-                ImGui::Text("Address: %c%c$%04x", metadata->code, ADDRESS_PREFIX_SEPARATOR, cpu_addr.w);
+                ImGui::Text("Address: %s%c$%04x", metadata->codes, ADDRESS_PREFIX_SEPARATOR, cpu_addr.w);
                 ImGui::Text("CRTC Address: $%04x", unit->metadata.crtc_address);
 
                 const DebugBigPage *cpu_dbp = this->GetDebugBigPageForAddress(cpu_addr, false);

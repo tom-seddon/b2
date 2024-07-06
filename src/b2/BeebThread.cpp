@@ -580,7 +580,11 @@ void BeebThread::HardResetMessage::HardReset(BeebThread *beeb_thread,
         init_flags |= (uint8_t)((ts->current_config.config.adji_dip_switches & 3) << BBCMicroInitFlag_ADJIDIPSwitchesShift);
     }
 
-    auto beeb = std::make_unique<BBCMicro>(CreateBBCMicroTypeForTypeID(ts->current_config.config.type_id),
+    ROMType rom_types[16];
+    for (int i = 0; i < 16; ++i) {
+        rom_types[i] = ts->current_config.config.roms[i].type;
+    }
+    auto beeb = std::make_unique<BBCMicro>(CreateBBCMicroType(ts->current_config.config.type_id, rom_types),
                                            ts->current_config.config.disc_interface,
                                            ts->current_config.config.parasite_type,
                                            nvram_contents,
@@ -1521,7 +1525,7 @@ BeebThread::DebugSetByteDebugFlags::DebugSetByteDebugFlags(BigPageIndex big_page
     , m_offset(offset)
     , m_byte_flags(byte_flags) {
     ASSERT(m_big_page_index.i < NUM_BIG_PAGES);
-    ASSERT(offset < BBCMicro::BIG_PAGE_SIZE_BYTES);
+    ASSERT(offset < BIG_PAGE_SIZE_BYTES);
 }
 #endif
 

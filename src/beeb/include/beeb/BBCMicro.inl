@@ -155,8 +155,8 @@ EPNV(ParallelPrinter, 1 << 10)
 // - has Master Compact EEPROM
 EPNV(IsMasterCompact, 1 << 11)
 
-EPNV(ROMTypeShift, 12)
-EPNV(ROMTypeMask, 15)
+EQPNV(ROMTypeShift, 12)
+EQPNV(ROMTypeMask, 15)
 // next free bit is 1<<16
 
 EEND()

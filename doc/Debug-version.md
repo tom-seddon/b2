@@ -102,11 +102,18 @@ Host memory:
 - `h` - HAZEL (Master only) ($c000...$dfff)
 - `o` - OS ROM ($c000...$ffff)
 - `i` - I/O area ($fc00...$feff)
+- 'w', 'x', 'y', 'z' - ROM mapper banks 0-3 (32 KB/64 KB ROMs)
+- 'W', 'X', 'Y', 'Z' - ROM mapper banks 4-7 (128 KB ROMs)
 
 Parasite memory:
 
 - `p` - parasite RAM ($0000...$ffff)
 - `r` - parasite ROM ($f000...$ffff)
+
+An additional null prefix is also available, which the debugger may
+sometimes print to keep things aligned:
+
+- `_` - no effect
 
 The prefix is sometimes redundant. (For example, host address $0000 is
 always shown as ``m`$0000``, even though there's no other prefix it
@@ -117,12 +124,13 @@ When entering an address, you can usually supply an address prefix.
 Appropriate paging overrides will be selected to ensure the requested
 byte is visible.
 
-You can supply multiple address prefixes, and they stack up in the
-order given, though this isn't always especially useful.
+You can supply multiple address prefixes. Order is relevant, as
+certain prefixes imply the settings for other prefixes. Override this
+with further prefixes if required.
 
-Note that on B+ and Master, a ROM bank prefix (`0` - `f`) implies ANDY
-is disabled, and on Master the OS ROM (`o`) implies HAZEL is disabled.
-Supply further prefixes to change this if desired.
+- ROM bank prefix ('0' - 'f') implies ROM mapper bank `w`
+- (B+/Master) ROM bank prefix (`0` - `f`) implies ANDY disabled
+- (Master) OS ROM (`o`) implies HAZEL disabled
 
 Inappropriate prefixes are ignored. 
 

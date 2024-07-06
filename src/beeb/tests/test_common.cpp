@@ -527,8 +527,11 @@ static std::vector<uint8_t> GetNVRAMContents(TestBBCMicroType type, uint32_t fla
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+static_assert(ROMType_16KB == 0);
+static const ROMType DEFAULT_ROM_TYPES[16] = {};
+
 TestBBCMicro::TestBBCMicro(TestBBCMicroType type, const TestBBCMicroArgs &args)
-    : BBCMicro(CreateBBCMicroTypeForTypeID(GetBBCMicroTypeID(type, args.flags)),
+    : BBCMicro(CreateBBCMicroType(GetBBCMicroTypeID(type, args.flags), DEFAULT_ROM_TYPES),
                GetDiscInterface(type, args.flags),
                GetBBCMicroParasiteType(type, args.flags),
                GetNVRAMContents(type, args.flags),
@@ -831,7 +834,7 @@ void TestBBCMicro::LoadROMsB() {
 
 void TestBBCMicro::LoadROMsBPlus() {
     this->SetOSROM(LoadOSROM("B+MOS.ROM"));
-    this->SetSidewaysROM(15, LoadSidewaysROM("BASIC2.ROM"),ROMType_16KB);
+    this->SetSidewaysROM(15, LoadSidewaysROM("BASIC2.ROM"), ROMType_16KB);
 }
 
 //////////////////////////////////////////////////////////////////////////

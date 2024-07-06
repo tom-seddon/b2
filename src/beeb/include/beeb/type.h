@@ -4,6 +4,7 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+#include "conf.h"
 #include "roms.h"
 #include <string>
 #include <vector>
@@ -19,8 +20,9 @@ struct M6502Config;
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-// Various bits and pieces to make the difference between BBC types somewhat
-// data-driven. Trying to avoid BBCMicroTypeID-specific cases if possible.
+// Various paging-related bits and pieces that need a bit of a tidy up.
+//
+// At least some of this stuff could go into BBCMicro
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -122,6 +124,13 @@ struct M6502Config;
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+char GetROMBankCode(uint8_t bank);
+char GetMapperRegionCode(uint8_t region);
+
+// BIG_PAGE_SIZE_BYTES fits into a uint16_t.
+static constexpr size_t BIG_PAGE_SIZE_BYTES = 4096;
+static constexpr size_t BIG_PAGE_OFFSET_MASK = 4095;
+
 // See comment for (very similar) CycleCount struct.
 struct BigPageIndex {
     typedef uint16_t Type;
@@ -144,7 +153,7 @@ static constexpr BigPageIndex SHADOW_BIG_PAGE_INDEX = {HAZEL_BIG_PAGE_INDEX.i + 
 static constexpr BigPageIndex::Type NUM_SHADOW_BIG_PAGES = {20 / 4};
 
 static constexpr BigPageIndex ROM0_BIG_PAGE_INDEX = {SHADOW_BIG_PAGE_INDEX.i + NUM_SHADOW_BIG_PAGES};
-static constexpr BigPageIndex::Type NUM_ROM_BIG_PAGES = {16 / 4};
+static constexpr BigPageIndex::Type NUM_ROM_BIG_PAGES = {128 / 4};
 
 static constexpr BigPageIndex MOS_BIG_PAGE_INDEX = {ROM0_BIG_PAGE_INDEX.i + 16 * NUM_ROM_BIG_PAGES};
 static constexpr BigPageIndex::Type NUM_MOS_BIG_PAGES = {16 / 4};
@@ -165,9 +174,9 @@ static constexpr BigPageIndex::Type NUM_BIG_PAGES = MOS_BIG_PAGE_INDEX.i + NUM_M
 
 // A few big page indexes from NUM_BIG_PAGES onwards will never be valid, so
 // they can be used for other purposes.
-static_assert(NUM_BIG_PAGES <= 0xf0, "too many big pages");
+static_assert(NUM_BIG_PAGES <= (BigPageIndex::Type)~0xf, "too many big pages");
 
-static constexpr BigPageIndex INVALID_BIG_PAGE_INDEX = {0xff};
+static constexpr BigPageIndex INVALID_BIG_PAGE_INDEX = {(BigPageIndex::Type) ~(BigPageIndex::Type)0};
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -218,9 +227,9 @@ struct PagingState {
     // Value of ACCCON.
     ACCCON acccon = {};
 
-    // Current ROM mapper bank for each ROM.
-    uint8_t rom_banks[16] = {};
-    
+    // Current ROM mapper region for each ROM.
+    uint8_t rom_regions[16] = {};
+
     // ROM type for each ROM.
     ROMType rom_types[16] = {};
 };
@@ -246,8 +255,12 @@ struct BigPageMetadata {
     // index of this big page.
     BigPageIndex index = INVALID_BIG_PAGE_INDEX;
 
-    // Single char syntax for use when entering addresses in the debugger.
-    char code = 0;
+    // Page override char(s) to display in the debugger. (At the moment, only 2
+    // are required.)
+    //
+    // TODO: Separate into 2 types, aligned (padded with '_' so every big page's
+    // code has the same width), and minimal (no '_')
+    char codes[3];
 
     // More elaborate description, printed in UI.
     std::string description;
@@ -344,8 +357,9 @@ struct BBCMicroType {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-// returns a pointer to one of the global BBCMicroType objects.
-std::shared_ptr<const BBCMicroType> CreateBBCMicroTypeForTypeID(BBCMicroTypeID type_id);
+size_t GetROMOffset(ROMType rom_type, uint8_t relative_big_page_index, uint8_t region);
+
+std::shared_ptr<const BBCMicroType> CreateBBCMicroType(BBCMicroTypeID type_id, const ROMType *rom_types);
 
 // a few per-type ID fixed properties.
 bool HasNVRAM(BBCMicroTypeID type_id);

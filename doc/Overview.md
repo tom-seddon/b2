@@ -268,7 +268,17 @@ Click the `...` button next to a sideways ROM slot/OS ROM to select
 the ROM image. You can load a file off disk, or choose one of the
 various standard ROMs that are supplied with the emulator.
 
-Tick the box in the RAM column to make that sideways slot writeable.
+Use the `Type` option in the `...` menu to select the ROM mapper type,
+if the ROM is larger than 16 KB. The following options are available.
+The list of ROMs for each type comes from MAME's ROM list, and is not
+exhaustive.
+
+- `16 KB` - ordinary ROM, 16 KB or smaller
+- `Inter-Word (32 KB)` - Computer Concepts Inter-Word, AMX Design,
+  Beebug Master ROM
+
+If the ROM type is 16 KB, you can tick the box in the RAM column to
+make that sideways slot writeable.
 
 Use the up/down arrows to rearrange the ROM contents, changing the
 priorities.

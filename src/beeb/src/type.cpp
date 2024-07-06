@@ -13,6 +13,25 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+static const char ROM_BANK_CODES[] = "0123456789abcdef";
+static const char MAPPER_REGION_CODES[] = "wxyzWXYZ";
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+char GetROMBankCode(uint8_t bank) {
+    ASSERT(bank < 16);
+    return ROM_BANK_CODES[bank];
+}
+
+char GetMapperRegionCode(uint8_t region) {
+    ASSERT(region < 8);
+    return MAPPER_REGION_CODES[region];
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 static bool IsMaster(BBCMicroTypeID type_id) {
     return type_id == BBCMicroTypeID_Master || type_id == BBCMicroTypeID_MasterCompact;
 }
@@ -29,77 +48,135 @@ static void ApplyROMDSO(PagingState *paging, uint32_t dso) {
     if (dso & BBCMicroDebugStateOverride_OverrideROM) {
         paging->romsel.b_bits.pr = dso & BBCMicroDebugStateOverride_ROM;
     }
+
+    if (dso & BBCMicroDebugStateOverride_OverrideMapperRegion) {
+        // This is sort-of wrong, in that it only overrides the mapper region
+        // for the current ROM. But you can't tell from the UI.
+        paging->rom_regions[paging->romsel.b_bits.pr] = dso >> BBCMicroDebugStateOverride_MapperRegionShift & BBCMicroDebugStateOverride_MapperRegionMask;
+    }
 }
 #endif
 
 static std::string g_all_big_page_codes;
 
+static void AddBigPageCode(char code) {
+    if (g_all_big_page_codes.find(code) == std::string::npos) {
+        g_all_big_page_codes.push_back(code);
+    }
+}
+
 static void InitBigPagesMetadata(std::vector<BigPageMetadata> *big_pages,
                                  BigPageIndex index,
                                  size_t n,
-                                 char code,
-                                 const std::string &description,
+                                 char code0,
+                                 char code1,
+                                 std::string description,
 #if BBCMICRO_DEBUGGER
                                  uint32_t dso_clear,
                                  uint32_t dso_set,
 #endif
                                  uint16_t base) {
     for (size_t i = 0; i < n; ++i) {
-        ASSERT(index.i + i <= NUM_BIG_PAGES);
+        ASSERT(index.i + i < NUM_BIG_PAGES);
         BigPageMetadata *bp = &(*big_pages)[index.i + i];
 
         ASSERT(bp->index.i == INVALID_BIG_PAGE_INDEX.i);
         bp->index.i = (BigPageIndex::Type)(index.i + i);
-        bp->code = code;
-        bp->description = description;
+
+        static_assert(sizeof bp->codes >= 3);
+        ASSERT(code0 != 0);
+        bp->codes[0] = code0;
+        bp->codes[1] = code1 != 0 ? code1 : '_';
+        bp->codes[2] = 0;
+        bp->description = std::move(description);
+
 #if BBCMICRO_DEBUGGER
         bp->dso_mask = ~dso_clear;
         bp->dso_value = dso_set;
 #endif
+
         bp->addr = (uint16_t)(base + i * 4096);
     }
 
-    if (g_all_big_page_codes.find(code) == std::string::npos) {
-        g_all_big_page_codes.push_back(code);
+    AddBigPageCode(code0);
+    if (code1 != 0) {
+        AddBigPageCode(code1);
     }
 }
 
-static std::vector<BigPageMetadata> GetBigPagesMetadataCommon() {
+size_t GetROMOffset(ROMType rom_type, uint8_t relative_big_page_index, uint8_t region) {
+    ASSERT(relative_big_page_index < 4);
+    ASSERT(region < 8);
+
+    switch (rom_type) {
+    default:
+        ASSERT(false);
+        [[fallthrough]];
+    case ROMType_16KB:
+        return relative_big_page_index * BIG_PAGE_SIZE_BYTES;
+
+    case ROMType_CCIWORD:
+        return (region & 1) * 4 * BIG_PAGE_SIZE_BYTES + relative_big_page_index * BIG_PAGE_SIZE_BYTES;
+    }
+}
+
+static std::vector<BigPageMetadata> GetBigPagesMetadataCommon(const ROMType *rom_types) {
     std::vector<BigPageMetadata> big_pages;
     big_pages.resize(NUM_BIG_PAGES);
 
     InitBigPagesMetadata(&big_pages,
                          MAIN_BIG_PAGE_INDEX,
                          NUM_MAIN_BIG_PAGES,
-                         'm', "Main RAM",
+                         'm', 0, "Main RAM",
 #if BBCMICRO_DEBUGGER
                          0,
                          0,
 #endif
                          0x0000);
 
-    for (uint8_t i = 0; i < 16; ++i) {
-        char code[2];
-        snprintf(code, sizeof code, "%x", i);
+    for (uint8_t bank = 0; bank < 16; ++bank) {
+        for (uint8_t region = 0; region < 8; ++region) {
+            BigPageIndex::Type base_big_page_index = (BigPageIndex::Type)(ROM0_BIG_PAGE_INDEX.i + (size_t)bank * NUM_ROM_BIG_PAGES + region * 4);
 
-        char description[100];
-        snprintf(description, sizeof description, "ROM %x", i);
+            char description[100];
 
-        InitBigPagesMetadata(&big_pages,
-                             {(BigPageIndex::Type)(ROM0_BIG_PAGE_INDEX.i + (size_t)i * NUM_ROM_BIG_PAGES)},
-                             NUM_ROM_BIG_PAGES,
-                             code[0], description,
+            switch (rom_types[bank]) {
+            default:
+                ASSERT(false);
+                [[fallthrough]];
+            case ROMType_16KB:
+                snprintf(description, sizeof description, "ROM %x", bank);
+                InitBigPagesMetadata(&big_pages,
+                                     {base_big_page_index},
+                                     4,
+                                     ROM_BANK_CODES[bank], 0, description,
 #if BBCMICRO_DEBUGGER
-                             (uint32_t)BBCMicroDebugStateOverride_ROM,
-                             BBCMicroDebugStateOverride_OverrideROM | i,
+                                     (uint32_t)BBCMicroDebugStateOverride_ROM,
+                                     BBCMicroDebugStateOverride_ROM | bank,
 #endif
-                             0x8000);
+                                     0x8000);
+                break;
+
+            case ROMType_CCIWORD:
+                snprintf(description, sizeof description, "ROM %x (%c)", bank, MAPPER_REGION_CODES[region & 1]);
+                InitBigPagesMetadata(&big_pages,
+                                     {base_big_page_index},
+                                     4,
+                                     ROM_BANK_CODES[bank], MAPPER_REGION_CODES[region], description,
+#if BBCMICRO_DEBUGGER
+                                     (uint32_t)(BBCMicroDebugStateOverride_ROM | BBCMicroDebugStateOverride_MapperRegionMask << BBCMicroDebugStateOverride_MapperRegionShift),
+                                     BBCMicroDebugStateOverride_ROM | bank | BBCMicroDebugStateOverride_OverrideMapperRegion | bank << BBCMicroDebugStateOverride_MapperRegionShift,
+#endif
+                                     0x8000);
+                break;
+            }
+        }
     }
 
     InitBigPagesMetadata(&big_pages,
                          MOS_BIG_PAGE_INDEX,
                          NUM_MOS_BIG_PAGES,
-                         'o', "MOS ROM",
+                         'o', 0, "MOS ROM",
 #if BBCMICRO_DEBUGGER
                          0,
                          0,
@@ -109,7 +186,7 @@ static std::vector<BigPageMetadata> GetBigPagesMetadataCommon() {
     InitBigPagesMetadata(&big_pages,
                          PARASITE_BIG_PAGE_INDEX,
                          NUM_PARASITE_BIG_PAGES,
-                         'p', "Parasite",
+                         'p', 0, "Parasite",
 #if BBCMICRO_DEBUGGER
                          0,
                          0,
@@ -119,7 +196,7 @@ static std::vector<BigPageMetadata> GetBigPagesMetadataCommon() {
     InitBigPagesMetadata(&big_pages,
                          PARASITE_ROM_BIG_PAGE_INDEX,
                          NUM_PARASITE_ROM_BIG_PAGES,
-                         'r', "Parasite ROM",
+                         'r', 0, "Parasite ROM",
 #if BBCMICRO_DEBUGGER
                          0,
                          BBCMicroDebugStateOverride_OverrideParasiteROM | BBCMicroDebugStateOverride_ParasiteROM,
@@ -176,7 +253,7 @@ static void GetMemBigPageTablesB(MemoryBigPageTables *tables,
     tables->mem_big_pages[0][6].i = MAIN_BIG_PAGE_INDEX.i + 6;
     tables->mem_big_pages[0][7].i = MAIN_BIG_PAGE_INDEX.i + 7;
 
-    BigPageIndex::Type rom = ROM0_BIG_PAGE_INDEX.i + paging.romsel.b_bits.pr * NUM_ROM_BIG_PAGES;
+    BigPageIndex::Type rom = ROM0_BIG_PAGE_INDEX.i + paging.romsel.b_bits.pr * NUM_ROM_BIG_PAGES + paging.rom_regions[paging.romsel.b_bits.pr] * 4;
     tables->mem_big_pages[0][0x8].i = rom + 0;
     tables->mem_big_pages[0][0x9].i = rom + 1;
     tables->mem_big_pages[0][0xa].i = rom + 2;
@@ -209,8 +286,8 @@ static uint32_t GetDSOB(const PagingState &paging) {
 }
 #endif
 
-static std::vector<BigPageMetadata> GetBigPagesMetadataB() {
-    std::vector<BigPageMetadata> big_pages = GetBigPagesMetadataCommon();
+static std::vector<BigPageMetadata> GetBigPagesMetadataB(const ROMType *rom_types) {
+    std::vector<BigPageMetadata> big_pages = GetBigPagesMetadataCommon(rom_types);
 
     return big_pages;
 }
@@ -277,7 +354,7 @@ static void GetMemBigPageTablesBPlus(MemoryBigPageTables *tables,
         tables->mem_big_pages[1][7].i = MAIN_BIG_PAGE_INDEX.i + 7;
     }
 
-    BigPageIndex::Type rom = ROM0_BIG_PAGE_INDEX.i + paging.romsel.bplus_bits.pr * NUM_ROM_BIG_PAGES;
+    BigPageIndex::Type rom = ROM0_BIG_PAGE_INDEX.i + paging.romsel.bplus_bits.pr * NUM_ROM_BIG_PAGES + paging.rom_regions[paging.romsel.b_bits.pr] * 4;
     if (paging.romsel.bplus_bits.ram) {
         tables->mem_big_pages[0][0x8].i = ANDY_BIG_PAGE_INDEX.i + 0;
         tables->mem_big_pages[0][0x9].i = ANDY_BIG_PAGE_INDEX.i + 1;
@@ -344,13 +421,13 @@ static uint32_t GetDSOBPlus(const PagingState &paging) {
 }
 #endif
 
-static std::vector<BigPageMetadata> GetBigPagesMetadataBPlus() {
-    std::vector<BigPageMetadata> big_pages = GetBigPagesMetadataCommon();
+static std::vector<BigPageMetadata> GetBigPagesMetadataBPlus(const ROMType *rom_types) {
+    std::vector<BigPageMetadata> big_pages = GetBigPagesMetadataCommon(rom_types);
 
     InitBigPagesMetadata(&big_pages,
                          ANDY_BIG_PAGE_INDEX,
                          NUM_ANDY_BIG_PAGES + NUM_HAZEL_BIG_PAGES,
-                         'n', "ANDY",
+                         'n', 0, "ANDY",
 #if BBCMICRO_DEBUGGER
                          0,
                          BBCMicroDebugStateOverride_OverrideANDY | BBCMicroDebugStateOverride_ANDY,
@@ -360,7 +437,7 @@ static std::vector<BigPageMetadata> GetBigPagesMetadataBPlus() {
     InitBigPagesMetadata(&big_pages,
                          SHADOW_BIG_PAGE_INDEX,
                          NUM_SHADOW_BIG_PAGES,
-                         's', "Shadow RAM",
+                         's', 0, "Shadow RAM",
 #if BBCMICRO_DEBUGGER
                          0,
                          BBCMicroDebugStateOverride_OverrideShadow | BBCMicroDebugStateOverride_Shadow,
@@ -454,7 +531,7 @@ static void GetMemBigPagesTablesMaster(MemoryBigPageTables *tables,
         tables->mem_big_pages[1][7].i = MAIN_BIG_PAGE_INDEX.i + 7;
     }
 
-    BigPageIndex::Type rom = ROM0_BIG_PAGE_INDEX.i + paging.romsel.bplus_bits.pr * NUM_ROM_BIG_PAGES;
+    BigPageIndex::Type rom = ROM0_BIG_PAGE_INDEX.i + paging.romsel.bplus_bits.pr * NUM_ROM_BIG_PAGES + paging.rom_regions[paging.romsel.b_bits.pr] * 4;
     if (paging.romsel.m128_bits.ram) {
         tables->mem_big_pages[0][0x8].i = ANDY_BIG_PAGE_INDEX.i + 0;
         tables->mem_big_pages[0][0x9].i = rom + 1;
@@ -545,13 +622,13 @@ static uint32_t GetDSOMaster(const PagingState &paging) {
 }
 #endif
 
-static std::vector<BigPageMetadata> GetBigPagesMetadataMaster() {
-    std::vector<BigPageMetadata> big_pages = GetBigPagesMetadataCommon();
+static std::vector<BigPageMetadata> GetBigPagesMetadataMaster(const ROMType *rom_types) {
+    std::vector<BigPageMetadata> big_pages = GetBigPagesMetadataCommon(rom_types);
 
     InitBigPagesMetadata(&big_pages,
                          ANDY_BIG_PAGE_INDEX,
                          NUM_ANDY_BIG_PAGES,
-                         'n', "ANDY",
+                         'n', 0, "ANDY",
 #if BBCMICRO_DEBUGGER
                          0,
                          BBCMicroDebugStateOverride_OverrideANDY | BBCMicroDebugStateOverride_ANDY,
@@ -561,7 +638,7 @@ static std::vector<BigPageMetadata> GetBigPagesMetadataMaster() {
     InitBigPagesMetadata(&big_pages,
                          HAZEL_BIG_PAGE_INDEX,
                          NUM_HAZEL_BIG_PAGES,
-                         'h', "HAZEL",
+                         'h', 0, "HAZEL",
 #if BBCMICRO_DEBUGGER
                          0,
                          BBCMicroDebugStateOverride_OverrideHAZEL | BBCMicroDebugStateOverride_HAZEL,
@@ -571,7 +648,7 @@ static std::vector<BigPageMetadata> GetBigPagesMetadataMaster() {
     InitBigPagesMetadata(&big_pages,
                          SHADOW_BIG_PAGE_INDEX,
                          NUM_SHADOW_BIG_PAGES,
-                         's', "Shadow RAM",
+                         's', 0, "Shadow RAM",
 #if BBCMICRO_DEBUGGER
                          0,
                          BBCMicroDebugStateOverride_OverrideShadow | BBCMicroDebugStateOverride_Shadow,
@@ -626,7 +703,7 @@ static bool ParsePrefixCharMaster(uint32_t *dso, char c) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-std::shared_ptr<const BBCMicroType> CreateBBCMicroTypeForTypeID(BBCMicroTypeID type_id) {
+std::shared_ptr<const BBCMicroType> CreateBBCMicroType(BBCMicroTypeID type_id, const ROMType *rom_types) {
     auto type = std::make_shared<BBCMicroType>();
 
     type->type_id = type_id;
@@ -654,18 +731,18 @@ std::shared_ptr<const BBCMicroType> CreateBBCMicroTypeForTypeID(BBCMicroTypeID t
         ASSERT(false);
         [[fallthrough]];
     case BBCMicroTypeID_B:
-        type->big_pages_metadata = GetBigPagesMetadataB();
+        type->big_pages_metadata = GetBigPagesMetadataB(rom_types);
         type->get_mem_big_page_tables_fn = &GetMemBigPageTablesB;
         break;
 
     case BBCMicroTypeID_BPlus:
-        type->big_pages_metadata = GetBigPagesMetadataBPlus();
+        type->big_pages_metadata = GetBigPagesMetadataBPlus(rom_types);
         type->get_mem_big_page_tables_fn = &GetMemBigPageTablesBPlus;
         break;
 
     case BBCMicroTypeID_Master:
     case BBCMicroTypeID_MasterCompact:
-        type->big_pages_metadata = GetBigPagesMetadataMaster();
+        type->big_pages_metadata = GetBigPagesMetadataMaster(rom_types);
         type->get_mem_big_page_tables_fn = &GetMemBigPagesTablesMaster;
         break;
     }
@@ -711,6 +788,14 @@ std::shared_ptr<const BBCMicroType> CreateBBCMicroTypeForTypeID(BBCMicroTypeID t
         type->get_dso_fn = &GetDSOMaster;
         type->parse_prefix_char_fn = &ParsePrefixCharMaster;
         break;
+    }
+
+    for (uint8_t i = 0; i < 16; ++i) {
+        if (rom_types[i] != ROMType_16KB) {
+            type->dso_mask |= (BBCMicroDebugStateOverride_OverrideMapperRegion |
+                               BBCMicroDebugStateOverride_MapperRegionMask << BBCMicroDebugStateOverride_MapperRegionShift);
+            break;
+        }
     }
 #endif
 
@@ -870,7 +955,9 @@ bool ParseAddressPrefix(uint32_t *dso_ptr,
          ++prefix_char) {
         char c = *prefix_char;
 
-        if (c == 'p') {
+        if (c == '_') {
+            // no-op
+        } else if (c == 'p') {
             dso |= BBCMicroDebugStateOverride_Parasite;
         } else if (c == 'r') {
             dso |= BBCMicroDebugStateOverride_OverrideParasiteROM | BBCMicroDebugStateOverride_ParasiteROM;

@@ -1,12 +1,11 @@
 #include <shared/system.h>
+#include <beeb/conf.h>
 #include <beeb/TVOutput.h>
 #include <beeb/OutputData.h>
 #include <shared/debug.h>
 #include <string.h>
 #include <stdlib.h>
 #include <beeb/video.h>
-//#include "misc.h"
-//#include "conf.h"
 #include <shared/log.h>
 #include <math.h>
 
