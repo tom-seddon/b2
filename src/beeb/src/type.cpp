@@ -66,7 +66,7 @@ static uint32_t GetROMDSO(const PagingState &paging) {
 
     if (paging.rom_types[paging.romsel.b_bits.pr] != ROMType_16KB) {
         dso |= BBCMicroDebugStateOverride_OverrideMapperRegion;
-        dso |= paging.rom_regions[paging.romsel.b_bits.pr] << BBCMicroDebugStateOverride_MapperRegionShift;
+        dso |= (uint32_t)(paging.rom_regions[paging.romsel.b_bits.pr] << BBCMicroDebugStateOverride_MapperRegionShift);
     }
 
     return dso;
@@ -163,7 +163,7 @@ size_t GetROMOffset(ROMType rom_type, uint8_t relative_big_page_index, uint8_t r
 
         case 2:
         case 3:
-            return ((region & 3) << 1 | relative_big_page_index & 1) * BIG_PAGE_SIZE_BYTES;
+            return ((region & 3u) << 1u | (relative_big_page_index & 1u)) * BIG_PAGE_SIZE_BYTES;
         }
         break;
 
@@ -178,7 +178,7 @@ size_t GetROMOffset(ROMType rom_type, uint8_t relative_big_page_index, uint8_t r
 
         case 2:
         case 3:
-            return ((region & 7) << 1 | relative_big_page_index & 1) * BIG_PAGE_SIZE_BYTES;
+            return ((region & 7u) << 1u | (relative_big_page_index & 1u)) * BIG_PAGE_SIZE_BYTES;
         }
         break;
     }
@@ -198,13 +198,13 @@ static std::vector<BigPageMetadata> GetBigPagesMetadataCommon(const ROMType *rom
 #endif
                          0x0000);
 
-    for (uint8_t bank = 0; bank < 16; ++bank) {
+    for (uint32_t bank = 0; bank < 16; ++bank) {
         char bank_code = GetROMBankCode(bank);
 
         char rom_desc[100];
         snprintf(rom_desc, sizeof rom_desc, "ROM %c", bank_code);
 
-        for (uint8_t region = 0; region < 8; ++region) {
+        for (uint32_t region = 0; region < 8; ++region) {
             char region_code = GetMapperRegionCode(region);
 
             char rom_and_region_desc[100];

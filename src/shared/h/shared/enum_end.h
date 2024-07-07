@@ -8,6 +8,8 @@
 #undef EBEGIN
 #undef EBEGIN_DERIVED
 
+#undef EBEGIN__BODY
+
 #undef EN
 #undef ENV
 #undef EPN

@@ -422,7 +422,7 @@ void DebugUI::DoDebugPageOverrideImGui() {
                 }
 
                 ImGui::Text("Force Region");
-                for (uint8_t i = 0; i < 8; ++i) {
+                for (uint32_t i = 0; i < 8; ++i) {
                     ImGui::SameLine();
 
                     char text[2] = {};
@@ -904,7 +904,7 @@ class SystemDebugWindow : public DebugUI {
             flags &= ~(BBCMicroUpdateFlag_ROMTypeMask << BBCMicroUpdateFlag_ROMTypeShift);
             for (uint32_t mask = 1; mask != 0; mask <<= 1) {
                 if (flags & mask) {
-                    const char *flag = GetBBCMicroUpdateFlagEnumName((int32_t)mask);
+                    const char *flag = GetBBCMicroUpdateFlagEnumName(mask);
                     ImGui::BulletText("%s", flag);
                 }
             }

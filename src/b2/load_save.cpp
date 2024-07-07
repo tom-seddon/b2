@@ -996,9 +996,9 @@ static bool FindFlagsMember(uint32_t *flags, rapidjson::Value *object, const cha
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-template <class T>
-static void SaveEnum(JSONWriter<StringStream> *writer, T value, const char *(*get_name_fn)(int)) {
-    const char *name = (*get_name_fn)((int)value);
+template <class EnumType, class EnumBaseType>
+static void SaveEnum(JSONWriter<StringStream> *writer, EnumType value, const char *(*get_name_fn)(EnumBaseType)) {
+    const char *name = (*get_name_fn)(value);
     if (name[0] != '?') {
         writer->String(name);
     } else {
@@ -1012,9 +1012,9 @@ static void SaveEnum(JSONWriter<StringStream> *writer, T value, const char *(*ge
 
 // To be suitable for use with this function, thie enum values must
 // start from 0 and be contiguous.
-template <class T>
-static bool LoadEnum(T *value, const std::string &str, const char *what, const char *(*get_name_fn)(int), Messages *msg) {
-    int i = 0;
+template <class EnumType, class EnumBaseType>
+static bool LoadEnum(EnumType *value, const std::string &str, const char *what, const char *(*get_name_fn)(EnumBaseType), Messages *msg) {
+    EnumBaseType i = 0;
     for (;;) {
         const char *name = (*get_name_fn)(i);
         if (name[0] == '?') {
@@ -1022,7 +1022,7 @@ static bool LoadEnum(T *value, const std::string &str, const char *what, const c
         }
 
         if (str == name) {
-            *value = (T)i;
+            *value = (EnumType)i;
             return true;
         }
 
@@ -1036,8 +1036,8 @@ static bool LoadEnum(T *value, const std::string &str, const char *what, const c
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-template <class T>
-static bool FindEnumMember(T *value, rapidjson::Value *object, const char *key, const char *what, const char *(*get_name_fn)(int), Messages *msg) {
+template <class EnumType, class EnumBaseType>
+static bool FindEnumMember(EnumType *value, rapidjson::Value *object, const char *key, const char *what, const char *(*get_name_fn)(EnumBaseType), Messages *msg) {
     std::string str;
     if (!FindStringMember(&str, object, key, msg)) {
         return false;

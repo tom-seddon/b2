@@ -6,13 +6,14 @@
 
 #define EEND_EXTRA()
 
-#define EBEGIN()                                                          \
-    EPREFIX UNUSED const char *CONCAT3(Get, ENAME, EnumName)(int value) { \
-        switch (value) {                                                  \
-        default:                                                          \
+#define EBEGIN__BODY(TYPE)                                                 \
+    EPREFIX UNUSED const char *CONCAT3(Get, ENAME, EnumName)(TYPE value) { \
+        switch (value) {                                                   \
+        default:                                                           \
             return "?" STRINGIZE(ENAME) "?";
 
-#define EBEGIN_DERIVED(BASE_NAME) EBEGIN()
+#define EBEGIN() EBEGIN__BODY(int)
+#define EBEGIN_DERIVED(BASE_NAME) EBEGIN__BODY(BASE_NAME)
 
 #define EN_INTERNAL(NAME, STR) \
     case (NAME):               \

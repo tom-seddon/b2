@@ -123,7 +123,7 @@ EEND()
 // to have them displayed in the debugging UI.
 
 #define ENAME BBCMicroUpdateFlag
-EBEGIN()
+EBEGIN_DERIVED(uint32_t)
 EPNV(IsMaster128, 1 << 0)
 EPNV(HasBeebLink, 1 << 1)
 EPNV(Hacks, 1 << 2)

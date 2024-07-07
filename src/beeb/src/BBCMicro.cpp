@@ -1887,7 +1887,7 @@ std::string BBCMicro::GetUpdateFlagExpr(const uint32_t flags_) {
                 expr += "|";
             }
 
-            const char *name = GetBBCMicroUpdateFlagEnumName((int)mask);
+            const char *name = GetBBCMicroUpdateFlagEnumName(mask);
             if (name[0] == '?') {
                 char tmp[100];
                 snprintf(tmp, sizeof tmp, "0x%" PRIx32, mask);
@@ -2826,7 +2826,7 @@ void BBCMicro::UpdateCPUDataBusFn() {
     }
 #endif
 
-    update_flags |= m_state.paging.rom_types[m_state.paging.romsel.b_bits.pr] << BBCMicroUpdateFlag_ROMTypeShift;
+    update_flags |= (uint32_t)m_state.paging.rom_types[m_state.paging.romsel.b_bits.pr] << BBCMicroUpdateFlag_ROMTypeShift;
 
     ASSERT(update_flags < sizeof ms_update_mfns / sizeof ms_update_mfns[0]);
     m_update_flags = update_flags;

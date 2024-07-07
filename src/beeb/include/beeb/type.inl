@@ -51,7 +51,7 @@ EEND()
 // Flags not supported by the current setup should be treated as no-ops.
 
 #define ENAME BBCMicroDebugStateOverride
-EBEGIN()
+EBEGIN_DERIVED(uint32_t)
 EPNV(ROM, 15)
 EPNV(OverrideROM, 1 << 4)
 EPNV(ANDY, 1 << 5)

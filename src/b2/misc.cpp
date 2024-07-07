@@ -598,7 +598,7 @@ uint32_t inline decode(uint32_t *state, uint32_t *codep, uint32_t byte) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static std::unordered_map<uint32_t, uint8_t> g_bbc_char_by_codepoint;
+static std::unordered_map<uint32_t, char> g_bbc_char_by_codepoint;
 static std::string g_utf8_char_by_bbc_char[BBCUTF8ConvertMode_Count][128];
 static bool g_utf8_convert_tables_initialised = false;
 
@@ -698,7 +698,7 @@ static void InitUTF8ConvertTables() {
 
                 auto &&it = g_bbc_char_by_codepoint.find(u);
                 if (it == g_bbc_char_by_codepoint.end()) {
-                    g_bbc_char_by_codepoint[u] = c;
+                    g_bbc_char_by_codepoint[u] = (char)c;
                 } else {
                     ASSERT(g_bbc_char_by_codepoint[u] == c);
                 }
