@@ -18,26 +18,26 @@ Additional credits:
 
 * Rather essential SN76489 fix thanks to https://github.com/hexwab
 
-* Kevin Edwards protection code by [Kevin
-  Edwards](https://twitter.com/kevedwardsretro)
+* Kevin Edwards protection code by Kevin Edwards
+  (https://twitter.com/kevedwardsretro)
 
-* 6845 reverse engineering and code by [Chris
-  Evans](https://stardot.org.uk/forums/memberlist.php?mode=viewprofile&u=11307)
+* 6845 reverse engineering and code by Chris Evans
+  (https://stardot.org.uk/forums/memberlist.php?mode=viewprofile&u=11307)
 
-* 6522 reverse engineering and tests by [Rich
-  Talbot-Watkins](https://stardot.org.uk/forums/memberlist.php?mode=viewprofile&u=386)
-  and [Chris
-  Evans](https://stardot.org.uk/forums/memberlist.php?mode=viewprofile&u=11307)
+* 6522 reverse engineering and tests by Rich Talbot-Watkins
+  (https://stardot.org.uk/forums/memberlist.php?mode=viewprofile&u=386)
+  and Chris Evans
+  (https://stardot.org.uk/forums/memberlist.php?mode=viewprofile&u=11307)
 
-* Teletext tests from [Chris
-  Evans](https://stardot.org.uk/forums/memberlist.php?mode=viewprofile&u=11307)
-  (TELETST) and [Kieran
-  Connell](https://stardot.org.uk/forums/memberlist.php?mode=viewprofile&u=10431)
+* Teletext tests from Chris Evans
+  (https://stardot.org.uk/forums/memberlist.php?mode=viewprofile&u=11307)
+  (TELETST) and Kieran Connell
+  (https://stardot.org.uk/forums/memberlist.php?mode=viewprofile&u=10431)
   (RED). For more about the engineering test page, see:
   https://stardot.org.uk/forums/viewtopic.php?f=4&t=4686
 
-* Tube FIFO tests and reverse-engineering by [David
-  Banks](https://www.stardot.org.uk/forums/memberlist.php?mode=viewprofile&u=9657)
+* Tube FIFO tests and reverse-engineering by David Banks
+  (https://www.stardot.org.uk/forums/memberlist.php?mode=viewprofile&u=9657)
 
 b2 makes use of a number of open source libraries, licences for which
 are also included in this file.
