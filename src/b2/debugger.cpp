@@ -1211,7 +1211,9 @@ class MemoryDebugWindow : public DebugUI,
         }
 
         int GetNumAddressChars() override {
-            return 7;
+            // 012345678
+            // xx`$xxxxx
+            return 8;
         }
 
       protected:
