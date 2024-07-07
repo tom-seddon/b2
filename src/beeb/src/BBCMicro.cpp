@@ -425,9 +425,8 @@ void BBCMicro::InitReadOnlyBigPage(ReadOnlyBigPage *bp,
         size_t rom_big_page_index = (((size_t)big_page_index.i - ROM0_BIG_PAGE_INDEX.i) % NUM_ROM_BIG_PAGES) % 4;
         ASSERT(rom_big_page_index < 4);
 
-        const ROMTypeMetadata *metadata = GetROMTypeMetadata(state->paging.rom_types[bank]);
         size_t offset = GetROMOffset(state->paging.rom_types[bank], (uint8_t)rom_big_page_index, (uint8_t)region);
-        ASSERT(offset < metadata->num_bytes);
+        ASSERT(offset < GetROMTypeMetadata(state->paging.rom_types[bank])->num_bytes);
         //size_t offset = ((size_t)big_page_index.i - ROM0_BIG_PAGE_INDEX.i) % NUM_ROM_BIG_PAGES * BIG_PAGE_SIZE_BYTES;
 
         if (!!state->sideways_rom_buffers[bank]) {
