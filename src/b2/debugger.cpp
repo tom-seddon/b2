@@ -426,7 +426,7 @@ void DebugUI::DoDebugPageOverrideImGui() {
                     ImGui::SameLine();
 
                     char text[2] = {};
-                    text[0] = GetMapperRegionCode(i);
+                    text[0] = GetMapperRegionCode((uint8_t)i);
 
                     if (ImGui::Button(text)) {
                         m_dso |= BBCMicroDebugStateOverride_OverrideMapperRegion;
