@@ -98,7 +98,7 @@ std::vector<uint8_t> UEFWriter::Save() {
 
 void UEFWriter::AddChunk(uint16_t id, const std::vector<uint8_t> &data) {
     if (data.size() > UINT32_MAX) {
-        m_logs->e.f("chunk 0x%04X too large: %zu (0x%xz) bytes\n", data.size(), data.size());
+        m_logs->e.f("chunk 0x%04X too large: %zu (0x%zx) bytes\n", id, data.size(), data.size());
         return;
     }
 

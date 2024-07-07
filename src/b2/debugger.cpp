@@ -2966,7 +2966,7 @@ class BreakpointsDebugWindow : public DebugUI {
 
             for (size_t j = 0; j < BIG_PAGE_SIZE_BYTES; ++j) {
                 if (big_page_debug_flags[j] || m_big_page_debug_flags_retain[i][j >> 3] & 1 << (j & 7)) {
-                    m_breakpoints.push_back({i, (uint16_t)j});
+                    m_breakpoints.push_back({{i}, (uint16_t)j});
                 }
             }
         }
@@ -2975,7 +2975,7 @@ class BreakpointsDebugWindow : public DebugUI {
     void UpdateAddressBreakpoints(uint8_t *address_debug_flags, uint8_t *address_debug_flags_retain, BigPageIndex::Type big_page_index) {
         for (size_t i = 0; i < 65536; ++i) {
             if (address_debug_flags[i] != 0 || address_debug_flags_retain[i >> 3] & 1 << (i & 7)) {
-                m_breakpoints.push_back({big_page_index, (uint16_t)i});
+                m_breakpoints.push_back({{big_page_index}, (uint16_t)i});
             }
         }
     }

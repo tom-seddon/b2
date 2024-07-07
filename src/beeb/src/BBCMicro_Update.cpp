@@ -424,7 +424,11 @@ parasite_update_done:
                             break;
                         }
                     } else {
+#ifdef _MSC_VER
+                        // TODO can probably perform this check without relying
+                        // on VC++'s non-standard template instantiation...
                         static_assert(false, "unhandled ROMType");
+#endif
                     }
                     m_state.cpu.dbus = m_pc_mem_big_pages[m_state.cpu.opcode_pc.p.p]->r[m_state.cpu.abus.p.p][m_state.cpu.abus.p.o];
                 }

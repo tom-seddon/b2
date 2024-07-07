@@ -11,6 +11,7 @@
 #include <beeb/Trace.h>
 #include "Messages.h"
 #include <shared/debug.h>
+#include <unordered_map>
 
 #include <shared/enum_def.h>
 #include "misc.inl"
@@ -664,24 +665,24 @@ static std::string GetUTF8StringForCodePoint(uint32_t u) {
         return std::string(1, (char)u);
     } else if (u < 0x800) {
         char buf[2] = {
-            0xc0 | (char)(u >> 6),
-            0x80 | (char)(u & 0x3f),
+            (char)(0xc0 | (u >> 6)),
+            (char)(0x80 | (u & 0x3f)),
         };
         return std::string(buf, buf + 2);
     } else if (u < 0x10000) {
         char buf[3] = {
-            0xe0 | (char)(u >> 12),
-            0x80 | (char)(u >> 6 & 0x3f),
-            0x80 | (char)(u & 0x3f),
+            (char)(0xe0 | (u >> 12)),
+            (char)(0x80 | (u >> 6 & 0x3f)),
+            (char)(0x80 | (u & 0x3f)),
         };
         return std::string(buf, buf + 3);
     } else {
         ASSERT(u < 0x110000);
         char buf[4] = {
-            0xf0 | (char)(u >> 18),
-            0x80 | (char)(u >> 12 & 0x3f),
-            0x80 | (char)(u >> 6 & 0x3f),
-            0x80 | (char)(u & 0x3f),
+            (char)(0xf0 | (u >> 18)),
+            (char)(0x80 | (u >> 12 & 0x3f)),
+            (char)(0x80 | (u >> 6 & 0x3f)),
+            (char)(0x80 | (u & 0x3f)),
         };
         return std::string(buf, buf + 4);
     }
@@ -690,7 +691,7 @@ static std::string GetUTF8StringForCodePoint(uint32_t u) {
 static void InitUTF8ConvertTables() {
     if (!g_utf8_convert_tables_initialised) {
         for (int mode = 0; mode < BBCUTF8ConvertMode_Count; ++mode) {
-            for (char c = 32; c < 127; ++c) {
+            for (uint8_t c = 32; c < 127; ++c) {
                 uint32_t u = GetCodePointForBBCChar(c, (BBCUTF8ConvertMode)mode);
 
                 g_utf8_char_by_bbc_char[mode][c] = GetUTF8StringForCodePoint(u);
