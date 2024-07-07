@@ -1,4 +1,4 @@
-b2 Copyright (C) 2016-2022 Tom Seddon <modelb@bbcmicro.com>
+b2 Copyright (C) 2016-2024 Tom Seddon <modelb@bbcmicro.com>
 
 This program comes with ABSOLUTELY NO WARRANTY. This is free software,
 and you are welcome to redistribute it under certain conditions;
@@ -38,6 +38,9 @@ Additional credits:
 
 * Tube FIFO tests and reverse-engineering by David Banks
   (https://www.stardot.org.uk/forums/memberlist.php?mode=viewprofile&u=9657)
+
+* ROM mapper reverse-engineering by Nigel Barnes
+  (https://stardot.org.uk/forums/memberlist.php?mode=viewprofile&u=9593)
 
 b2 makes use of a number of open source libraries, licences for which
 are also included in this file.
