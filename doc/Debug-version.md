@@ -110,11 +110,6 @@ Parasite memory:
 - `p` - parasite RAM ($0000...$ffff)
 - `r` - parasite ROM ($f000...$ffff)
 
-An additional null prefix is also available, which has no effect. The
-debugger may sometimes print this to keep things aligned:
-
-- `_` - no effect
-
 The prefix displayed in the debugger is sometimes a redundant one.
 (For example, host address $0000 might be shown as ``m`$0000``, even
 though there's no other prefix it could have.)

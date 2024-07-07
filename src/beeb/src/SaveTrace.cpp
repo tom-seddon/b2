@@ -279,7 +279,7 @@ class TraceSaver {
         return c;
     }
 
-    char *AddAddress(const TraceEvent *ev, char *c, const char *prefix, uint16_t pc_, uint16_t value, const char *suffix) {
+    char *AddAddress(const TraceEvent *ev, char *c, const char *prefix, uint16_t pc_, uint16_t value, const char *suffix, bool align = false) {
         while ((*c = *prefix++) != 0) {
             ++c;
         }
@@ -310,7 +310,8 @@ class TraceSaver {
                 M6502Word pc = {pc_};
                 BigPageIndex big_page = m_paging_tables.mem_big_pages[m_paging_tables.pc_mem_big_pages_set[pc.p.p]][addr.p.p];
                 ASSERT(big_page.i < NUM_BIG_PAGES);
-                codes = m_type->big_pages_metadata[big_page.i].codes;
+                const BigPageMetadata *bp = &m_type->big_pages_metadata[big_page.i];
+                codes = align ? bp->aligned_codes : bp->minimal_codes;
             }
             break;
 
@@ -324,7 +325,9 @@ class TraceSaver {
         }
 
         *c++ = codes[0];
-        *c++ = codes[1] != 0 ? codes[1] : '_';
+        if (codes[1] != 0) {
+            *c++ = codes[1];
+        }
         *c++ = ADDRESS_PREFIX_SEPARATOR;
         *c++ = '$';
         *c++ = HEX_CHARS_LC[value >> 12];
@@ -568,7 +571,7 @@ class TraceSaver {
             c += m_time_prefix_len;
         }
 
-        c = AddAddress(e, c, "", 0, ev->pc, ":");
+        c = AddAddress(e, c, "", 0, ev->pc, ":", true); //true=align
 
         *c++ = i->undocumented ? '*' : ' ';
 

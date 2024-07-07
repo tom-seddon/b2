@@ -252,15 +252,16 @@ struct MemoryBigPageTables {
 
 // TODO think of a better name for this!
 struct BigPageMetadata {
+
     // index of this big page.
     BigPageIndex index = INVALID_BIG_PAGE_INDEX;
 
     // Page override char(s) to display in the debugger. (At the moment, only 2
     // are required.)
     //
-    // TODO: Separate into 2 types, aligned (padded with '_' so every big page's
-    // code has the same width), and minimal (no '_')
-    char codes[3];
+    // If only 1 code applies, the first char of aligned_codes is a space.
+    char aligned_codes[3] = {};
+    char minimal_codes[3] = {};
 
     // More elaborate description, printed in UI.
     std::string description;

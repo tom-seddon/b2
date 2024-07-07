@@ -99,11 +99,23 @@ static void InitBigPagesMetadata(std::vector<BigPageMetadata> *big_pages,
         ASSERT(bp->index.i == INVALID_BIG_PAGE_INDEX.i);
         bp->index.i = (BigPageIndex::Type)(index.i + i);
 
-        static_assert(sizeof bp->codes >= 3);
+        static_assert(sizeof bp->aligned_codes >= 3);
+        static_assert(sizeof bp->minimal_codes >= 3);
         ASSERT(code0 != 0);
-        bp->codes[0] = code0;
-        bp->codes[1] = code1 != 0 ? code1 : '_';
-        bp->codes[2] = 0;
+
+        if (code1 == 0) {
+            bp->aligned_codes[0] = ' ';
+            bp->aligned_codes[1] = code0;
+
+            bp->minimal_codes[0] = code0;
+        } else {
+            bp->aligned_codes[0] = code0;
+            bp->aligned_codes[1] = code1;
+
+            bp->minimal_codes[0] = code0;
+            bp->minimal_codes[1] = code1;
+        }
+
         bp->description = std::move(description);
 
 #if BBCMICRO_DEBUGGER
@@ -1035,9 +1047,7 @@ bool ParseAddressPrefix(uint32_t *dso_ptr,
          ++prefix_char) {
         char c = *prefix_char;
 
-        if (c == '_') {
-            // no-op
-        } else if (c == 'p') {
+        if (c == 'p') {
             dso |= BBCMicroDebugStateOverride_Parasite;
         } else if (c == 'r') {
             dso |= BBCMicroDebugStateOverride_OverrideParasiteROM | BBCMicroDebugStateOverride_ParasiteROM;
