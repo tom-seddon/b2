@@ -188,23 +188,27 @@ static std::vector<BigPageMetadata> GetBigPagesMetadataCommon(const ROMType *rom
 
     for (uint8_t bank = 0; bank < 16; ++bank) {
         char bank_code = GetROMBankCode(bank);
+
+        char rom_desc[100];
+        snprintf(rom_desc, sizeof rom_desc, "ROM %c", bank_code);
+
         for (uint8_t region = 0; region < 8; ++region) {
             char region_code = GetMapperRegionCode(region);
 
-            BigPageIndex::Type base_big_page_index = (BigPageIndex::Type)(ROM0_BIG_PAGE_INDEX.i + (size_t)bank * NUM_ROM_BIG_PAGES + region * 4);
+            char rom_and_region_desc[100];
+            snprintf(rom_and_region_desc, sizeof rom_and_region_desc, "ROM %c (Region %c)", bank_code, region_code);
 
-            char description[100];
+            BigPageIndex::Type base_big_page_index = (BigPageIndex::Type)(ROM0_BIG_PAGE_INDEX.i + (size_t)bank * NUM_ROM_BIG_PAGES + region * 4);
 
             switch (rom_types[bank]) {
             default:
                 ASSERT(false);
                 [[fallthrough]];
             case ROMType_16KB:
-                snprintf(description, sizeof description, "ROM %c", bank_code);
                 InitBigPagesMetadata(&big_pages,
                                      {base_big_page_index},
                                      4,
-                                     bank_code, 0, description,
+                                     bank_code, 0, rom_desc,
 #if BBCMICRO_DEBUGGER
                                      (uint32_t)BBCMicroDebugStateOverride_ROM,
                                      BBCMicroDebugStateOverride_ROM | bank,
@@ -215,11 +219,10 @@ static std::vector<BigPageMetadata> GetBigPagesMetadataCommon(const ROMType *rom
             case ROMType_CCIWORD:
             case ROMType_CCIBASE:
             case ROMType_CCISPELL:
-                snprintf(description, sizeof description, "ROM %c (%c)", bank_code, region_code);
                 InitBigPagesMetadata(&big_pages,
                                      {base_big_page_index},
                                      4,
-                                     bank_code, region_code, description,
+                                     bank_code, region_code, rom_and_region_desc,
 #if BBCMICRO_DEBUGGER
                                      (uint32_t)(BBCMicroDebugStateOverride_ROM | BBCMicroDebugStateOverride_MapperRegionMask << BBCMicroDebugStateOverride_MapperRegionShift),
                                      BBCMicroDebugStateOverride_ROM | bank | BBCMicroDebugStateOverride_OverrideMapperRegion | bank << BBCMicroDebugStateOverride_MapperRegionShift,
@@ -229,22 +232,20 @@ static std::vector<BigPageMetadata> GetBigPagesMetadataCommon(const ROMType *rom
 
             case ROMType_PALQST:
             case ROMType_PALWAP:
-                snprintf(description, sizeof description, "ROM %c", bank_code);
                 InitBigPagesMetadata(&big_pages,
                                      {base_big_page_index},
                                      2,
-                                     bank_code, 0, description,
+                                     bank_code, 0, rom_desc,
 #if BBCMICRO_DEBUGGER
                                      (uint32_t)BBCMicroDebugStateOverride_ROM,
                                      BBCMicroDebugStateOverride_ROM | bank,
 #endif
                                      0x8000);
 
-                snprintf(description, sizeof description, "ROM %c (%c)", bank_code, region_code);
                 InitBigPagesMetadata(&big_pages,
                                      {(BigPageIndex::Type)(base_big_page_index + 2)},
                                      2,
-                                     bank_code, region_code, description,
+                                     bank_code, region_code, rom_and_region_desc,
 #if BBCMICRO_DEBUGGER
                                      (uint32_t)(BBCMicroDebugStateOverride_ROM | BBCMicroDebugStateOverride_MapperRegionMask << BBCMicroDebugStateOverride_MapperRegionShift),
                                      BBCMicroDebugStateOverride_ROM | bank | BBCMicroDebugStateOverride_OverrideMapperRegion | bank << BBCMicroDebugStateOverride_MapperRegionShift,
