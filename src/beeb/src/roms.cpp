@@ -15,6 +15,7 @@ static const ROMTypeMetadata ROM_TYPES_METADATA[ROMType_Count] = {
     {ROMType_CCIBASE, "Inter-Base (64 KB)", 65536},
     {ROMType_CCISPELL, "Spellmaster (128 KB)", 131072},
     {ROMType_PALQST, "Quest Paint (32 KB)", 32768},
+    {ROMType_PALWAP, "Wapping Editor (64 KB)", 65536},
 };
 
 //////////////////////////////////////////////////////////////////////////

@@ -271,7 +271,7 @@ various standard ROMs that are supplied with the emulator.
 Use the `Type` option in the `...` menu to select the ROM mapper type,
 necessary if the ROM is larger than 16 KB. The following options are
 available, each listed with a (non-exhaustive) selection of a few ROMs
-that use that type.
+that require that type.
 
 - `16 KB` - ordinary ROM, 16 KB or smaller
 - `Inter-Word (32 KB)` - Computer Concepts Inter-Word, AMX Design,
@@ -282,6 +282,7 @@ that use that type.
   Concepts Mega3
 - `Quest Paint (32 KB)` - Watford Quest Paint, Watford ConQuest,
   Watford PCB Designer
+- `Wapping Editor (64 KB)` - The Wapping Editor
 
 If the ROM type is 16 KB, you can tick the box in the RAM column to
 make that sideways slot writeable.

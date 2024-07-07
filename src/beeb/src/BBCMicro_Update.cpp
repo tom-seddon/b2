@@ -389,6 +389,40 @@ parasite_update_done:
                             this->UpdateMapperRegion(0);
                             break;
                         }
+                    } else if constexpr (GetBBCMicroUpdateFlagsROMType(UPDATE_FLAGS) == ROMType_PALWAP) {
+                        switch (m_state.cpu.abus.w & 0xffe0) {
+                        case 0x9f00:
+                            this->UpdateMapperRegion(0);
+                            break;
+
+                        case 0x9f20:
+                            this->UpdateMapperRegion(1);
+                            break;
+
+                        case 0x9f40:
+                            this->UpdateMapperRegion(2);
+                            break;
+
+                        case 0x9f60:
+                            this->UpdateMapperRegion(3);
+                            break;
+
+                        case 0x9f80:
+                            this->UpdateMapperRegion(4);
+                            break;
+
+                        case 0x9fa0:
+                            this->UpdateMapperRegion(5);
+                            break;
+
+                        case 0x9fc0:
+                            this->UpdateMapperRegion(6);
+                            break;
+
+                        case 0x9fe0:
+                            this->UpdateMapperRegion(7);
+                            break;
+                        }
                     } else {
                         static_assert(false, "unhandled ROMType");
                     }

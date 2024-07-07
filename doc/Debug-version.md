@@ -145,8 +145,12 @@ The applicable address prefixes affect the mapped region as follows.
 - `16 KB` - mapper region irrelevant
 - `Inter-Word` - `w` - `x` select 16 KB region visible at $8000-$bfff
 - `Inter-Base` - `w` - `z` select 16 KB region visible at $8000-$bfff
-- `Spellmaster` - `w` - `z` and `W` - ``Z` select 16 KB region visible
+- `Spellmaster` - `w` - `z` and `W` - `Z` select 16 KB region visible
   at $8000-$bfff
+- `Quest Paint` - `w` - `z` select 8 KB region visible at $a000-$bfff
+  ($8000-$9fff is fixed)
+- `Wapping Editor` - `w` - `z` and `W` - `Z` select 8 KB region
+  visible at $a000-$bfff ($8000-$9fff is fixed)
 
 # Debugger windows
 

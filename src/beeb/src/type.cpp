@@ -153,6 +153,22 @@ size_t GetROMOffset(ROMType rom_type, uint8_t relative_big_page_index, uint8_t r
         case 3:
             return ((region & 3) << 1 | relative_big_page_index & 1) * BIG_PAGE_SIZE_BYTES;
         }
+        break;
+
+    case ROMType_PALWAP:
+        switch (relative_big_page_index) {
+        default:
+            ASSERT(false);
+            [[fallthrough]];
+        case 0:
+        case 1:
+            return relative_big_page_index * BIG_PAGE_SIZE_BYTES;
+
+        case 2:
+        case 3:
+            return ((region & 7) << 1 | relative_big_page_index & 1) * BIG_PAGE_SIZE_BYTES;
+        }
+        break;
     }
 }
 
@@ -212,6 +228,7 @@ static std::vector<BigPageMetadata> GetBigPagesMetadataCommon(const ROMType *rom
                 break;
 
             case ROMType_PALQST:
+            case ROMType_PALWAP:
                 snprintf(description, sizeof description, "ROM %c", bank_code);
                 InitBigPagesMetadata(&big_pages,
                                      {base_big_page_index},
