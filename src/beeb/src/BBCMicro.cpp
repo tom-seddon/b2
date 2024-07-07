@@ -2930,4 +2930,10 @@ void BBCMicro::UpdateMapperRegion(uint8_t region) {
     m_state.paging.rom_regions[m_state.paging.romsel.b_bits.pr] = region;
     this->UpdatePaging();
     // The update_mfn won't change.
+
+#if BBCMICRO_TRACE
+    if (m_trace) {
+        m_trace->AllocSetMapperRegionEvent(region);
+    }
+#endif
 }

@@ -57,6 +57,22 @@ static void ApplyROMDSO(PagingState *paging, uint32_t dso) {
 }
 #endif
 
+#if BBCMICRO_DEBUGGER
+static uint32_t GetROMDSO(const PagingState &paging) {
+    uint32_t dso = 0;
+
+    dso |= paging.romsel.b_bits.pr;
+    dso |= BBCMicroDebugStateOverride_OverrideROM;
+
+    if (paging.rom_types[paging.romsel.b_bits.pr] != ROMType_16KB) {
+        dso |= BBCMicroDebugStateOverride_OverrideMapperRegion;
+        dso |= paging.rom_regions[paging.romsel.b_bits.pr] << BBCMicroDebugStateOverride_MapperRegionShift;
+    }
+
+    return dso;
+}
+#endif
+
 static std::string g_all_big_page_codes;
 
 static void AddBigPageCode(char code) {
@@ -123,6 +139,20 @@ size_t GetROMOffset(ROMType rom_type, uint8_t relative_big_page_index, uint8_t r
 
     case ROMType_CCISPELL:
         return region * 4 * BIG_PAGE_SIZE_BYTES + relative_big_page_index * BIG_PAGE_SIZE_BYTES;
+
+    case ROMType_PALQST:
+        switch (relative_big_page_index) {
+        default:
+            ASSERT(false);
+            [[fallthrough]];
+        case 0:
+        case 1:
+            return relative_big_page_index * BIG_PAGE_SIZE_BYTES;
+
+        case 2:
+        case 3:
+            return ((region & 3) << 1 | relative_big_page_index & 1) * BIG_PAGE_SIZE_BYTES;
+        }
     }
 }
 
@@ -141,7 +171,10 @@ static std::vector<BigPageMetadata> GetBigPagesMetadataCommon(const ROMType *rom
                          0x0000);
 
     for (uint8_t bank = 0; bank < 16; ++bank) {
+        char bank_code = GetROMBankCode(bank);
         for (uint8_t region = 0; region < 8; ++region) {
+            char region_code = GetMapperRegionCode(region);
+
             BigPageIndex::Type base_big_page_index = (BigPageIndex::Type)(ROM0_BIG_PAGE_INDEX.i + (size_t)bank * NUM_ROM_BIG_PAGES + region * 4);
 
             char description[100];
@@ -151,11 +184,11 @@ static std::vector<BigPageMetadata> GetBigPagesMetadataCommon(const ROMType *rom
                 ASSERT(false);
                 [[fallthrough]];
             case ROMType_16KB:
-                snprintf(description, sizeof description, "ROM %x", bank);
+                snprintf(description, sizeof description, "ROM %c", bank_code);
                 InitBigPagesMetadata(&big_pages,
                                      {base_big_page_index},
                                      4,
-                                     ROM_BANK_CODES[bank], 0, description,
+                                     bank_code, 0, description,
 #if BBCMICRO_DEBUGGER
                                      (uint32_t)BBCMicroDebugStateOverride_ROM,
                                      BBCMicroDebugStateOverride_ROM | bank,
@@ -166,16 +199,40 @@ static std::vector<BigPageMetadata> GetBigPagesMetadataCommon(const ROMType *rom
             case ROMType_CCIWORD:
             case ROMType_CCIBASE:
             case ROMType_CCISPELL:
-                snprintf(description, sizeof description, "ROM %x (%c)", bank, MAPPER_REGION_CODES[region]);
+                snprintf(description, sizeof description, "ROM %c (%c)", bank_code, region_code);
                 InitBigPagesMetadata(&big_pages,
                                      {base_big_page_index},
                                      4,
-                                     ROM_BANK_CODES[bank], MAPPER_REGION_CODES[region], description,
+                                     bank_code, region_code, description,
 #if BBCMICRO_DEBUGGER
                                      (uint32_t)(BBCMicroDebugStateOverride_ROM | BBCMicroDebugStateOverride_MapperRegionMask << BBCMicroDebugStateOverride_MapperRegionShift),
                                      BBCMicroDebugStateOverride_ROM | bank | BBCMicroDebugStateOverride_OverrideMapperRegion | bank << BBCMicroDebugStateOverride_MapperRegionShift,
 #endif
                                      0x8000);
+                break;
+
+            case ROMType_PALQST:
+                snprintf(description, sizeof description, "ROM %c", bank_code);
+                InitBigPagesMetadata(&big_pages,
+                                     {base_big_page_index},
+                                     2,
+                                     bank_code, 0, description,
+#if BBCMICRO_DEBUGGER
+                                     (uint32_t)BBCMicroDebugStateOverride_ROM,
+                                     BBCMicroDebugStateOverride_ROM | bank,
+#endif
+                                     0x8000);
+
+                snprintf(description, sizeof description, "ROM %c (%c)", bank_code, region_code);
+                InitBigPagesMetadata(&big_pages,
+                                     {(BigPageIndex::Type)(base_big_page_index + 2)},
+                                     2,
+                                     bank_code, region_code, description,
+#if BBCMICRO_DEBUGGER
+                                     (uint32_t)(BBCMicroDebugStateOverride_ROM | BBCMicroDebugStateOverride_MapperRegionMask << BBCMicroDebugStateOverride_MapperRegionShift),
+                                     BBCMicroDebugStateOverride_ROM | bank | BBCMicroDebugStateOverride_OverrideMapperRegion | bank << BBCMicroDebugStateOverride_MapperRegionShift,
+#endif
+                                     0xa000);
                 break;
             }
         }
@@ -287,8 +344,7 @@ static void ApplyDSOB(PagingState *paging, uint32_t dso) {
 static uint32_t GetDSOB(const PagingState &paging) {
     uint32_t dso = 0;
 
-    dso |= paging.romsel.b_bits.pr;
-    dso |= BBCMicroDebugStateOverride_OverrideROM;
+    dso |= GetROMDSO(paging);
 
     return dso;
 }
@@ -412,8 +468,7 @@ static void ApplyDSOBPlus(PagingState *paging, uint32_t dso) {
 static uint32_t GetDSOBPlus(const PagingState &paging) {
     uint32_t dso = 0;
 
-    dso |= paging.romsel.bplus_bits.pr;
-    dso |= BBCMicroDebugStateOverride_OverrideROM;
+    dso |= GetROMDSO(paging);
 
     if (paging.romsel.bplus_bits.ram) {
         dso |= BBCMicroDebugStateOverride_ANDY;
@@ -603,8 +658,7 @@ static void ApplyDSOMaster(PagingState *paging, uint32_t dso) {
 static uint32_t GetDSOMaster(const PagingState &paging) {
     uint32_t dso = 0;
 
-    dso |= paging.romsel.m128_bits.pm;
-    dso |= BBCMicroDebugStateOverride_OverrideROM;
+    dso |= GetROMDSO(paging);
 
     if (paging.romsel.m128_bits.ram) {
         dso |= BBCMicroDebugStateOverride_ANDY;

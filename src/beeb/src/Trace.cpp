@@ -114,6 +114,7 @@ const TraceEventType Trace::DISCONTINUITY_EVENT("_discontinuity", sizeof(Discont
 const TraceEventType Trace::WRITE_ROMSEL_EVENT("_write_romsel", sizeof(WriteROMSELEvent), TraceEventSource_Host);
 const TraceEventType Trace::WRITE_ACCCON_EVENT("_write_acccon", sizeof(WriteACCCONEvent), TraceEventSource_Host);
 const TraceEventType Trace::PARASITE_BOOT_MODE_EVENT("_parasite_boot_mode", sizeof(ParasiteBootModeEvent), TraceEventSource_Parasite);
+const TraceEventType Trace::SET_MAPPER_REGION_EVENT("_set_mapper_region", sizeof(SetMapperRegionEvent), TraceEventSource_Host);
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -332,6 +333,16 @@ void Trace::AllocParasiteBootModeEvent(bool parasite_boot_mode) {
 
     ev->parasite_boot_mode = parasite_boot_mode;
     m_parasite_boot_mode = parasite_boot_mode;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void Trace::AllocSetMapperRegionEvent(uint8_t region) {
+    auto ev = (SetMapperRegionEvent *)this->AllocEvent(SET_MAPPER_REGION_EVENT);
+
+    ev->region = region;
+    m_paging.rom_regions[m_paging.romsel.b_bits.pr] = region;
 }
 
 //////////////////////////////////////////////////////////////////////////

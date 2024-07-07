@@ -12,11 +12,10 @@
 //////////////////////////////////////////////////////////////////////////
 
 struct ROMTypeMetadata {
+    ROMType type;
     const char *description = nullptr; //shown in UI
     size_t num_bytes = 0;
 };
-
-extern const ROMTypeMetadata ROM_TYPE_PARASITE_OS;
 
 const ROMTypeMetadata *GetROMTypeMetadata(ROMType type);
 

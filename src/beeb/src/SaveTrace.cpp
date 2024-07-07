@@ -53,6 +53,7 @@ class TraceSaver {
         this->SetHandler(Trace::WRITE_ROMSEL_EVENT, &TraceSaver::HandleWriteROMSEL);
         this->SetHandler(Trace::WRITE_ACCCON_EVENT, &TraceSaver::HandleWriteACCCON);
         this->SetHandler(Trace::PARASITE_BOOT_MODE_EVENT, &TraceSaver::HandleParasiteBootModeEvent, HandlerFlag_PrintPrefix);
+        this->SetHandler(Trace::SET_MAPPER_REGION_EVENT, &TraceSaver::HandleSetMapperRegionEvent);
         this->SetHandler(Trace::STRING_EVENT, &TraceSaver::HandleString, HandlerFlag_PrintPrefix);
         this->SetHandler(SN76489::WRITE_EVENT, &TraceSaver::HandleSN76489WriteEvent, HandlerFlag_PrintPrefix);
         this->SetHandler(SN76489::UPDATE_EVENT, &TraceSaver::HandleSN76489UpdateEvent, HandlerFlag_PrintPrefix);
@@ -757,6 +758,17 @@ class TraceSaver {
 
         m_parasite_boot_mode = ev->parasite_boot_mode;
         m_output->f("Parasite boot mode: %s\n", BOOL_STR(m_parasite_boot_mode));
+    }
+
+    void HandleSetMapperRegionEvent(const TraceEvent *e) {
+        auto ev = (const Trace::SetMapperRegionEvent *)e->event;
+
+        m_paging.rom_regions[m_paging.romsel.b_bits.pr] = ev->region;
+        m_paging_dirty = true;
+
+        if (m_output_flags & TraceOutputFlags_ROMMapper) {
+            m_output->f("Set ROM mapper region: %c\n", GetMapperRegionCode(ev->region));
+        }
     }
 
     void HandleTubeWriteFIFO1Event(const TraceEvent *e) {

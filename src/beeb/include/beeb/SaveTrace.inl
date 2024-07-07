@@ -8,5 +8,9 @@ EPNV(Cycles, 2)
 
 // If Cycles flag also set, include absolute cycle counts rather than relative
 EPNV(AbsoluteCycles, 4)
+
+// Extra ROM mapper verbosity
+EPNV(ROMMapper, 8)
+
 EEND()
 #undef ENAME

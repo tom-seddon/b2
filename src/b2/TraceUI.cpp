@@ -375,6 +375,10 @@ void TraceUI::DoImGui() {
             }
         }
 
+        // This isn't the same set of flags, but logically it's an additional
+        // trace.
+        ImGuiCheckboxFlags("ROM Mapper", &g_default_settings.output_flags, TraceOutputFlags_ROMMapper);
+
         ImGui::Spacing();
 
         ImGui::TextUnformatted("Other settings");

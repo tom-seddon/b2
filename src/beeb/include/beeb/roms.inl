@@ -55,6 +55,7 @@ EPN(16KB)
 EPN(CCIWORD)
 EPN(CCIBASE)
 EPN(CCISPELL)
+EPN(PALQST)
 
 //must be last
 EPN(Count)

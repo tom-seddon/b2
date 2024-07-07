@@ -120,6 +120,12 @@ class Trace : public std::enable_shared_from_this<Trace> {
 #include <shared/poppack.h>
 
 #include <shared/pshpack1.h>
+    struct SetMapperRegionEvent {
+        uint8_t region;
+    };
+#include <shared/poppack.h>
+
+#include <shared/pshpack1.h>
     struct ParasiteBootModeEvent {
         bool parasite_boot_mode;
     };
@@ -131,6 +137,7 @@ class Trace : public std::enable_shared_from_this<Trace> {
     static const TraceEventType WRITE_ROMSEL_EVENT;
     static const TraceEventType WRITE_ACCCON_EVENT;
     static const TraceEventType PARASITE_BOOT_MODE_EVENT;
+    static const TraceEventType SET_MAPPER_REGION_EVENT;
 
     // max_num_bytes is approximate - actual consumption may be greater.
     // Supply SIZE_MAX to just have the data grow indefinitely.
@@ -191,6 +198,7 @@ class Trace : public std::enable_shared_from_this<Trace> {
     void AllocWriteROMSELEvent(ROMSEL romsel);
     void AllocWriteACCCONEvent(ACCCON acccon);
     void AllocParasiteBootModeEvent(bool parasite_boot_mode);
+    void AllocSetMapperRegionEvent(uint8_t region);
 
     // max_len bytes is allocated. Call FinishLog to try to truncate the
     // allocation if possible.

@@ -371,8 +371,26 @@ parasite_update_done:
                                 break;
                             }
                         }
+                    } else if constexpr (GetBBCMicroUpdateFlagsROMType(UPDATE_FLAGS) == ROMType_PALQST) {
+                        switch (m_state.cpu.abus.w & 0xffe0) {
+                        case 0x8820:
+                            this->UpdateMapperRegion(2);
+                            break;
+
+                        case 0x91e0:
+                            this->UpdateMapperRegion(1);
+                            break;
+
+                        case 0x92c0:
+                            this->UpdateMapperRegion(3);
+                            break;
+
+                        case 0x9340:
+                            this->UpdateMapperRegion(0);
+                            break;
+                        }
                     } else {
-                        static_assert(false);
+                        static_assert(false, "unhandled ROMType");
                     }
                     m_state.cpu.dbus = m_pc_mem_big_pages[m_state.cpu.opcode_pc.p.p]->r[m_state.cpu.abus.p.p][m_state.cpu.abus.p.o];
                 }
