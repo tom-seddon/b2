@@ -547,7 +547,7 @@ static void InitHIDCallback(Messages *msg) {
             goto cleanup;
         }
     }
-    
+
     IOHIDManagerSetDeviceMatchingMultiple(g_hid_manager, matches);
     IOHIDManagerRegisterInputValueCallback(g_hid_manager, &HIDCallback, g_hid_manager);
     IOHIDManagerScheduleWithRunLoop(g_hid_manager, CFRunLoopGetMain(), kCFRunLoopDefaultMode);
