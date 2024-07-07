@@ -48,10 +48,13 @@ EEND()
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+// Named after the corresponding enums in the MAME source: https://github.com/mamedev/mame/blob/master/src/devices/bus/bbc/rom/pal.cpp
 #define ENAME ROMType
 EBEGIN_DERIVED(uint8_t)
 EPN(16KB)
 EPN(CCIWORD)
+EPN(CCIBASE)
+EPN(CCISPELL)
 
 //must be last
 EPN(Count)

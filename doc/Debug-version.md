@@ -102,22 +102,22 @@ Host memory:
 - `h` - HAZEL (Master only) ($c000...$dfff)
 - `o` - OS ROM ($c000...$ffff)
 - `i` - I/O area ($fc00...$feff)
-- 'w', 'x', 'y', 'z' - ROM mapper banks 0-3 (32 KB/64 KB ROMs)
-- 'W', 'X', 'Y', 'Z' - ROM mapper banks 4-7 (128 KB ROMs)
+- 'w', 'x', 'y', 'z' - ROM mapper regions 0-3
+- 'W', 'X', 'Y', 'Z' - ROM mapper regions 4-7
 
 Parasite memory:
 
 - `p` - parasite RAM ($0000...$ffff)
 - `r` - parasite ROM ($f000...$ffff)
 
-An additional null prefix is also available, which the debugger may
-sometimes print to keep things aligned:
+An additional null prefix is also available, which has no effect. The
+debugger may sometimes print this to keep things aligned:
 
 - `_` - no effect
 
-The prefix is sometimes redundant. (For example, host address $0000 is
-always shown as ``m`$0000``, even though there's no other prefix it
-could have.)
+The prefix displayed in the debugger is sometimes a redundant one.
+(For example, host address $0000 might be shown as ``m`$0000``, even
+though there's no other prefix it could have.)
 
 When entering an address, you can usually supply an address prefix.
 (For example, to view $8000 in ROM 4, you might enter ``4`$8000``.)
@@ -133,6 +133,20 @@ with further prefixes if required.
 - (Master) OS ROM (`o`) implies HAZEL disabled
 
 Inappropriate prefixes are ignored. 
+
+## ROM Mappers
+
+The MAME source is a quite readable definition of how the various ROM
+mapper PLDs fundamentally work:
+https://github.com/mamedev/mame/blob/master/src/devices/bus/bbc/rom/pal.cpp
+
+The applicable address prefixes affect the mapped region as follows.
+
+- `16 KB` - mapper region irrelevant
+- `Inter-Word` - `w` - `x` select 16 KB region visible at $8000-$bfff
+- `Inter-Base` - `w` - `z` select 16 KB region visible at $8000-$bfff
+- `Spellmaster` - `w` - `z` and `W` - ``Z` select 16 KB region visible
+  at $8000-$bfff
 
 # Debugger windows
 

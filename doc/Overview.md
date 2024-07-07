@@ -269,13 +269,17 @@ the ROM image. You can load a file off disk, or choose one of the
 various standard ROMs that are supplied with the emulator.
 
 Use the `Type` option in the `...` menu to select the ROM mapper type,
-if the ROM is larger than 16 KB. The following options are available.
+if the ROM is larger than 16 KB. The following options are available, each listed with a 
 The list of ROMs for each type comes from MAME's ROM list, and is not
 exhaustive.
 
 - `16 KB` - ordinary ROM, 16 KB or smaller
 - `Inter-Word (32 KB)` - Computer Concepts Inter-Word, AMX Design,
   Beebug Master ROM
+- `Inter-Base (64 KB)` - Computer Concepts Inter-Base, PMS The
+  Publisher,
+- `Spellmaster (128 KB)` - Computer Concepts Spellmaster, Computer
+  Concepts Mega3
 
 If the ROM type is 16 KB, you can tick the box in the RAM column to
 make that sideways slot writeable.

@@ -2922,3 +2922,12 @@ void BBCMicro::UpdateUpdateMFnData() {
     }
 }
 #endif
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+void BBCMicro::UpdateMapperRegion(uint8_t region) {
+    m_state.paging.rom_regions[m_state.paging.romsel.b_bits.pr] = region;
+    this->UpdatePaging();
+    // The update_mfn won't change.
+}

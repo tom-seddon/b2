@@ -36,6 +36,13 @@ constexpr uint32_t GetNormalizedBBCMicroUpdateFlags(uint32_t flags);
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+constexpr ROMType GetBBCMicroUpdateFlagsROMType(uint32_t update_flags) {
+    return (ROMType)(update_flags >> BBCMicroUpdateFlag_ROMTypeShift & BBCMicroUpdateFlag_ROMTypeMask);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 class BBCMicro : private WD1770Handler,
                  private ADCHandler {
   public:
@@ -706,6 +713,8 @@ class BBCMicro : private WD1770Handler,
 #if BBCMICRO_DEBUGGER
     void UpdateUpdateMFnData();
 #endif
+
+    void UpdateMapperRegion(uint8_t region);
 
     static const uint8_t CURSOR_PATTERNS[8];
     static const UpdateMFn ms_update_mfns[NUM_UPDATE_MFNS];

@@ -304,23 +304,75 @@ parasite_update_done:
                     const ReadMMIO *read_mmio = &m_read_mmios[mmio_addr.w];
                     m_state.cpu.dbus = (*read_mmio->fn)(read_mmio->context, m_state.cpu.abus);
                 } else {
-                    if constexpr ((UPDATE_FLAGS & (BBCMicroUpdateFlag_ROMTypeMask << BBCMicroUpdateFlag_ROMTypeShift)) == (ROMType_CCIWORD << BBCMicroUpdateFlag_ROMTypeShift)) {
+                    if constexpr (GetBBCMicroUpdateFlagsROMType(UPDATE_FLAGS) == ROMType_16KB) {
+                        // nothing extra to do here
+                    } else if constexpr (GetBBCMicroUpdateFlagsROMType(UPDATE_FLAGS) == ROMType_CCIWORD) {
                         switch (m_state.cpu.abus.w & 0xffe0) {
                         case 0x8060:
                         case 0xbfc0:
-                            m_state.paging.rom_regions[m_state.paging.romsel.b_bits.pr] = 0;
-                            this->UpdatePaging();
-                            // The CPU data bus fun won't change.
+                            this->UpdateMapperRegion(0);
                             break;
 
                         case 0x8040:
                         case 0xbfa0:
                         case 0x0fe0:
-                            m_state.paging.rom_regions[m_state.paging.romsel.b_bits.pr] = 1;
-                            this->UpdatePaging();
-                            // The CPU data bus fun won't change.
+                            this->UpdateMapperRegion(1);
                             break;
                         }
+                    } else if constexpr (GetBBCMicroUpdateFlagsROMType(UPDATE_FLAGS) == ROMType_CCIBASE) {
+                        switch (m_state.cpu.abus.w & 0xffe0) {
+                        case 0xbf80:
+                            this->UpdateMapperRegion(0);
+                            break;
+
+                        case 0xbfa0:
+                            this->UpdateMapperRegion(1);
+                            break;
+
+                        case 0xbfc0:
+                            this->UpdateMapperRegion(2);
+                            break;
+
+                        case 0xbfe0:
+                            this->UpdateMapperRegion(3);
+                            break;
+                        }
+                    } else if constexpr (GetBBCMicroUpdateFlagsROMType(UPDATE_FLAGS) == ROMType_CCISPELL) {
+                        if (m_state.cpu.abus.w == 0xbfe0) {
+                            this->UpdateMapperRegion(0);
+                        } else if (m_state.paging.rom_regions[m_state.paging.romsel.b_bits.pr] == 0) {
+                            switch (m_state.cpu.abus.w & 0xffe0) {
+                            case 0xbfc0:
+                                this->UpdateMapperRegion(1);
+                                break;
+
+                            case 0xbfa0:
+                                this->UpdateMapperRegion(2);
+                                break;
+
+                            case 0xbf80:
+                                this->UpdateMapperRegion(3);
+                                break;
+
+                            case 0xbf60:
+                                this->UpdateMapperRegion(4);
+                                break;
+
+                            case 0xbf40:
+                                this->UpdateMapperRegion(5);
+                                break;
+
+                            case 0xbf20:
+                                this->UpdateMapperRegion(6);
+                                break;
+
+                            case 0xbf00:
+                                this->UpdateMapperRegion(7);
+                                break;
+                            }
+                        }
+                    } else {
+                        static_assert(false);
                     }
                     m_state.cpu.dbus = m_pc_mem_big_pages[m_state.cpu.opcode_pc.p.p]->r[m_state.cpu.abus.p.p][m_state.cpu.abus.p.o];
                 }

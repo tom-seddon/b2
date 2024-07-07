@@ -978,6 +978,12 @@ memory before starting execution.
 
 MAME link: https://github.com/mamedev/mame/blob/master/src/devices/bus/bbc/rom/pal.cpp
 
+MAME BBC roms.xml: https://github.com/mamedev/mame/blob/master/hash/bbc_rom.xml
+
+Large ROMs thread: https://stardot.org.uk/forums/viewtopic.php?t=14384
+
+IntegraB V2: https://stardot.org.uk/forums/viewtopic.php?t=19392
+
 ** Interword
 
 - Mask :: 3fe0
@@ -1095,5 +1101,70 @@ breakpoints.
 
 =MOS_BIG_PAGE_INDEX= is used in debugger code when showing the paging
 setup.
+
+** Status <2024-07-05 Fri>
+
+Big page tables should be set up correctly. Regardless of mapper type,
+the big page index is bank*32+region*4+bigpage.
+
+ReadOnlyBigPage structs should be set up correctly. There's a new
+function, =GetROMOffset=, that handles the details.
+
+Mapper port access should work... maybe... there's a new =if
+constexpr= inside =BBCMicro::Update=. This calls =UpdatePaging= to
+sort out a new big page arrangement. No need to worry about switching
+update function: that's impossible in this case. Access to mapper IO
+can only change the paging. Code needs to access ROMSEL to switch to a
+different update function due to switching to a different mapper, and
+that's now handled with an additional =UpdateCPUDataBusFn= call in
+=BBCMicro::WriteROMSEL=.
+
+=UpdateCPUDataBusFn= has been updated to take the mapper type into
+account.
+
+TODOs
+
+*** DONE don't allow writeable slot unless 16 KB
+CLOSED: [2024-07-06 Sat 21:55]
+
+etc., etc. - make sure the UI makes this clear
+
+*** DONE NUM_BIG_PAGES is now a LOT
+CLOSED: [2024-07-06 Sat 21:54]
+
+Go through anywhere it's used to size arrays, and eliminate anything
+that's now far too large.
+
+Conclusion: probably going to leave this. Major offenders are:
+
+- BBCMicro :: not a big deal, as there's only one of these per running
+  emulator
+
+- BBCMicro::DebugState :: this is now a slightly monstrous 2 MBytes
+  plus, but, ditto. 
+
+- BreakpointsDebugWindow :: another singleton
+
+4 MBytes just ain't that much these days...
+
+*** DONE NUM_UPDATE_MFNS is now a LOT
+CLOSED: [2024-07-06 Sat 21:54]
+
+Ditto.
+
+Conclusion: ditto, but the sizeof BBCMicro::UpdateMFnsData is realy a
+bit ridiculous!
+
+Use a std::map or similar for this instead? It would only need
+re-examining when the update mfn actually changes.
+
+Or what about a remap table, so only the unique functions need to be
+counted. This could be built up at runtime by scanning the update_mfns
+table.
+
+*** DONE Use GetROMBankCode where appropriate
+CLOSED: [2024-07-06 Sat 21:56]
+
+Remove all the occurrences of "%x" for this purpose.
 
 * eof.
