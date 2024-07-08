@@ -283,6 +283,8 @@ that require that type.
 - `Quest Paint (32 KB)` - Watford Quest Paint, Watford ConQuest,
   Watford PCB Designer
 - `Wapping Editor (64 KB)` - The Wapping Editor
+- `TED (32 KB)` - Watford TED (Teletext Editor)
+
 
 If the ROM type is 16 KB, you can tick the box in the RAM column to
 make that sideways slot writeable.
