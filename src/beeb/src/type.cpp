@@ -144,6 +144,7 @@ size_t GetROMOffset(ROMType rom_type, uint8_t relative_big_page_index, uint8_t r
         return relative_big_page_index * BIG_PAGE_SIZE_BYTES;
 
     case ROMType_CCIWORD:
+    case ROMType_ABEP:
         return (region & 1) * 4 * BIG_PAGE_SIZE_BYTES + relative_big_page_index * BIG_PAGE_SIZE_BYTES;
 
     case ROMType_CCIBASE:
@@ -232,6 +233,8 @@ static std::vector<BigPageMetadata> GetBigPagesMetadataCommon(const ROMType *rom
             case ROMType_CCIWORD:
             case ROMType_CCIBASE:
             case ROMType_CCISPELL:
+            case ROMType_ABEP:
+                // Mapper selects region visible $8000-$bfff.
                 InitBigPagesMetadata(&big_pages,
                                      {base_big_page_index},
                                      4,
@@ -246,6 +249,7 @@ static std::vector<BigPageMetadata> GetBigPagesMetadataCommon(const ROMType *rom
             case ROMType_PALQST:
             case ROMType_PALWAP:
             case ROMType_PALTED:
+                // Mapper selects region visible $a000-$bfff.
                 InitBigPagesMetadata(&big_pages,
                                      {base_big_page_index},
                                      2,

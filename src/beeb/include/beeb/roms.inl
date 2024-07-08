@@ -58,6 +58,7 @@ EPN(CCISPELL)
 EPN(PALQST)
 EPN(PALWAP)
 EPN(PALTED)
+EPN(ABEP)
 
 //must be last
 EPN(Count)

@@ -441,6 +441,16 @@ parasite_update_done:
                             this->UpdateMapperRegion(3);
                             break;
                         }
+                    }else if constexpr(GetBBCMicroUpdateFlagsROMType(UPDATE_FLAGS)==ROMType_ABEP){
+                        switch(m_state.cpu.abus.w&0xfffc){
+                        case 0xbff8:
+                            this->UpdateMapperRegion(0);
+                            break;
+
+                        case 0xbffc:
+                            this->UpdateMapperRegion(1);
+                            break;
+                        }                            
                     } else {
 #ifdef _MSC_VER
                         // TODO can probably perform this check without relying
