@@ -285,6 +285,7 @@ that require that type.
 - `Wapping Editor (64 KB)` - The Wapping Editor
 - `TED (32 KB)` - Watford TED (Teletext Editor)
 - `PRES ABE+ (32 KB)` - PRES Advanced BASIC Editor Plus
+- `PRES ABE (32 KB)` - PRES Advanced BASIC Editor
 
 If the ROM type is 16 KB, you can tick the box in the RAM column to
 make that sideways slot writeable.

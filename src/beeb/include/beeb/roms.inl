@@ -59,6 +59,7 @@ EPN(PALQST)
 EPN(PALWAP)
 EPN(PALTED)
 EPN(ABEP)
+EPN(ABE)
 
 //must be last
 EPN(Count)

@@ -53,7 +53,7 @@ class BBCMicro : private WD1770Handler,
     typedef void (*UpdateROMSELPagesFn)(BBCMicro *);
     typedef void (*UpdateACCCONPagesFn)(BBCMicro *, const ACCCON *);
 
-    static constexpr size_t NUM_UPDATE_MFNS = 32768;
+    static constexpr size_t NUM_UPDATE_MFNS = 65536;
 
     static std::string GetUpdateFlagExpr(const uint32_t flags_);
 

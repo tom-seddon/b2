@@ -451,6 +451,16 @@ parasite_update_done:
                             this->UpdateMapperRegion(1);
                             break;
                         }                            
+                    }else if constexpr(GetBBCMicroUpdateFlagsROMType(UPDATE_FLAGS)==ROMType_ABE){
+                        switch(m_state.cpu.abus.w&0xfffc){
+                        case 0xbff8:
+                            this->UpdateMapperRegion(1);
+                            break;
+
+                        case 0xbffc:
+                            this->UpdateMapperRegion(0);
+                            break;
+                        }                            
                     } else {
 #ifdef _MSC_VER
                         // TODO can probably perform this check without relying
@@ -1035,6 +1045,7 @@ uint32_t BBCMicro::GetNormalizedBBCMicroUpdateFlags(uint32_t flags) {
 #define UPDATE512(N) UPDATE256(N + 0), UPDATE256(N + 256)
 #define UPDATE1024(N) UPDATE512(N + 0), UPDATE512(N + 512)
 #define UPDATE2048(N) UPDATE1024(N + 0), UPDATE1024(N + 1024)
+#define UPDATE4096(N) UPDATE2048(N + 0), UPDATE2048(N + 2048)
 
 // The compile time can get a bit much. Tried splitting it into 8*64, hopefully
 // getting a bit of parallelism, but this seemed to make very little different
@@ -1046,22 +1057,22 @@ uint32_t BBCMicro::GetNormalizedBBCMicroUpdateFlags(uint32_t flags) {
 //
 // More experimentation necessary.
 const BBCMicro::UpdateMFn BBCMicro::ms_update_mfns[NUM_UPDATE_MFNS] = {
-    UPDATE2048(0x0 * 2048),
-    UPDATE2048(0x1 * 2048),
-    UPDATE2048(0x2 * 2048),
-    UPDATE2048(0x3 * 2048),
-    UPDATE2048(0x4 * 2048),
-    UPDATE2048(0x5 * 2048),
-    UPDATE2048(0x6 * 2048),
-    UPDATE2048(0x7 * 2048),
-    UPDATE2048(0x8 * 2048),
-    UPDATE2048(0x9 * 2048),
-    UPDATE2048(0xa * 2048),
-    UPDATE2048(0xb * 2048),
-    UPDATE2048(0xc * 2048),
-    UPDATE2048(0xd * 2048),
-    UPDATE2048(0xe * 2048),
-    UPDATE2048(0xf * 2048),
+    UPDATE4096(0x0 * 4096),
+    UPDATE4096(0x1 * 4096),
+    UPDATE4096(0x2 * 4096),
+    UPDATE4096(0x3 * 4096),
+    UPDATE4096(0x4 * 4096),
+    UPDATE4096(0x5 * 4096),
+    UPDATE4096(0x6 * 4096),
+    UPDATE4096(0x7 * 4096),
+    UPDATE4096(0x8 * 4096),
+    UPDATE4096(0x9 * 4096),
+    UPDATE4096(0xa * 4096),
+    UPDATE4096(0xb * 4096),
+    UPDATE4096(0xc * 4096),
+    UPDATE4096(0xd * 4096),
+    UPDATE4096(0xe * 4096),
+    UPDATE4096(0xf * 4096),
 };
 
 //////////////////////////////////////////////////////////////////////////
