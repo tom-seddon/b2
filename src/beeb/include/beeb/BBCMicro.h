@@ -43,8 +43,7 @@ constexpr ROMType GetBBCMicroUpdateFlagsROMType(uint32_t update_flags) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-class BBCMicro : private WD1770Handler,
-                 private ADCHandler {
+class BBCMicro : private WD1770Handler {
   public:
     static const uint16_t SCREEN_WRAP_ADJUSTMENTS[];
 
@@ -705,7 +704,7 @@ class BBCMicro : private WD1770Handler,
     static void WriteHostTube0Wrapper(void *context, M6502Word a, uint8_t value);
 
     // ADC handler stuff.
-    uint16_t ReadAnalogueChannel(uint8_t channel) const override;
+    static uint16_t ReadAnalogueChannel(uint8_t channel, void *context);
 
     template <uint32_t UPDATE_FLAGS>
     uint32_t UpdateTemplated(VideoDataUnit *video_unit, SoundDataUnit *sound_unit);

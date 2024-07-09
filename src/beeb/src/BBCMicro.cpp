@@ -1973,6 +1973,9 @@ void BBCMicro::PrintInfo(Log *log) {
 
     log->f("sizeof(BBCMicro): %zu\n", sizeof(BBCMicro));
     log->f("sizeof(BBCMicroState): %zu\n", sizeof(BBCMicroState));
+    log->f("sizeof BBCMicro::ms_update_mfns: %zu\n", sizeof ms_update_mfns);
+    log->f("sizeof BBCMicro::ms_update_mfns[0]: %zu\n", sizeof ms_update_mfns[0]);
+    log->f("sizeof(BBCMicro::UpdateMFn): %zu\n", sizeof(UpdateMFn));
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -2453,7 +2456,7 @@ void BBCMicro::InitStuff() {
 #endif
     m_state.parasite_cpu.context = &m_parasite_cpu_metadata;
 
-    m_state.adc.SetHandler(this);
+    m_state.adc.SetHandler(&ReadAnalogueChannel, this);
 
     // Page in current ROM bank and sort out ACCCON.
     this->InitPaging();
@@ -2886,8 +2889,10 @@ void BBCMicro::SetAnalogueChannel(uint8_t channel, uint16_t value) {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-uint16_t BBCMicro::ReadAnalogueChannel(uint8_t channel) const {
-    uint16_t value = this->GetAnalogueChannel(channel);
+uint16_t BBCMicro::ReadAnalogueChannel(uint8_t channel, void *context) {
+    auto m = (BBCMicro *)context;
+
+    uint16_t value = m->GetAnalogueChannel(channel);
     return value;
 }
 
