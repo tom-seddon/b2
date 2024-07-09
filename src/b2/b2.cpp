@@ -436,16 +436,6 @@ static Remotery *g_remotery;
 // Copied from an older version of SDL. See https://github.com/tom-seddon/SDL/blob/cfcedfccf3a079be983ae571fc5160461a70ca95/src/video/cocoa/SDL_cocoakeyboard.m#L190
 
 #if SYSTEM_OSX
-// Placeholder value for the real Caps Lock state. On macOS, the event loop
-// discards any SDL_SCANCODE_CAPSLOCK events (as they're bogus), and turns
-// SDL_SCANCODE_CAPSLOCK_MACOS events into SDL_SCANCODE_CAPSLOCK ones.
-//
-// This isn't quite right, because SDL_SCANCODE_CAPSLOCK_MACOS won't affect
-// the caps lock key modifier state. But hopefully that'll get set correctly
-// by the usual SDL processing? (And besides, b2 never uses the caps lock
-// modifier state anyway...)
-static const SDL_Scancode SDL_SCANCODE_CAPSLOCK_MACOS = (SDL_Scancode)511;
-
 static IOHIDManagerRef g_hid_manager = nullptr;
 
 extern "C" int SDL_SendKeyboardKey(Uint8 state, SDL_Scancode scancode); //sorry
@@ -470,8 +460,10 @@ static void HIDCallback(void *context, IOReturn result, void *sender, IOHIDValue
         return;
     }
 
+    // This seems to interact correctly with the default SDL_SCANCODE_CAPSLOCK
+    // procossing, in that the true caps lock state is reported.
     CFIndex pressed = IOHIDValueGetIntegerValue(value);
-    SDL_SendKeyboardKey(pressed ? SDL_PRESSED : SDL_RELEASED, SDL_SCANCODE_CAPSLOCK_MACOS);
+    SDL_SendKeyboardKey(pressed ? SDL_PRESSED : SDL_RELEASED, SDL_SCANCODE_CAPSLOCK);
 }
 #endif
 
@@ -1391,21 +1383,8 @@ static bool main2(int argc, char *argv[], const std::shared_ptr<MessageList> &in
                 {
                     rmt_ScopedCPUSample(SDL_KEYxx, 0);
 
-                    bool handle = true;
-
-#if SYSTEM_OSX
-                    if (event.key.keysym.scancode == SDL_SCANCODE_CAPSLOCK_MACOS) {
-                        event.key.keysym.scancode = SDL_SCANCODE_CAPSLOCK;
-                        event.key.keysym.sym = SDL_GetKeyFromScancode(event.key.keysym.scancode);
-                    } else if (event.key.keysym.scancode == SDL_SCANCODE_CAPSLOCK) {
-                        handle = false;
-                    }
-#endif
-
-                    if (handle) {
-                        if (BeebWindow *window = BeebWindows::FindBeebWindowBySDLWindowID(event.key.windowID)) {
-                            window->HandleSDLKeyEvent(event.key);
-                        }
+                    if (BeebWindow *window = BeebWindows::FindBeebWindowBySDLWindowID(event.key.windowID)) {
+                        window->HandleSDLKeyEvent(event.key);
                     }
                 }
                 break;
