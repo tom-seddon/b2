@@ -2740,9 +2740,9 @@ class PagingDebugWindow : public DebugUI {
         const BigPageMetadata *metadata = &type->big_pages_metadata[big_page_index.i];
 
         if (big_page_index.i == MOS_BIG_PAGE_INDEX.i + 3 && !(paging_flags & PagingFlags_ROMIO)) {
-            ImGui::Text("%s + I/O (%s)", metadata->description.c_str(), paging_flags & PagingFlags_IFJ ? "IFJ" : "XFJ");
+            ImGui::Text("%s (%u) + I/O (%s)", metadata->description.c_str(), metadata->index.i, paging_flags & PagingFlags_IFJ ? "IFJ" : "XFJ");
         } else {
-            ImGui::TextUnformatted(metadata->description.c_str());
+            ImGui::Text("%s (%u)", metadata->description.c_str(), metadata->index.i);
         }
     }
 };
