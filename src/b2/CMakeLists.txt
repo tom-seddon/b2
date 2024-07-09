@@ -209,6 +209,12 @@ if(WIN32)
     VERBATIM)
 
   target_link_libraries(b2 PRIVATE Dwmapi.lib)
+
+  # For reasons unclear, constructing BBCMicro::ms_update_mfns
+  # (512 KB) requires 1 MB+8 bytes of stack space on startup, causing
+  # a stack overflow exception if the default stack size of 1 MB is in
+  # effect.
+  target_link_options(b2 PRIVATE "/STACK:2097152")
 endif()
 
 ##########################################################################
