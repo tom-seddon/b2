@@ -998,6 +998,17 @@ parasite_update_done:
 //
 //
 constexpr uint32_t GetNormalizedBBCMicroUpdateFlags(uint32_t flags) {
+    // If no debugger or no tracing, clear the relevant flags, no questions
+    // asked. Clear the minimum amount necessary and let the logic below do the
+    // rest.
+#if !BBCMICRO_TRACE
+    flags &= ~BBCMicroUpdateFlag_Trace;
+#endif
+
+#if !BBCMICRO_DEBUGGER
+    flags &= ~BBCMicroUpdateFlag_Debug;
+#endif
+
     if (flags & BBCMicroUpdateFlag_IsMasterCompact) {
         flags &= ~(uint32_t)(BBCMicroUpdateFlag_HasBeebLink |
                              BBCMicroUpdateFlag_IsMaster128 |
