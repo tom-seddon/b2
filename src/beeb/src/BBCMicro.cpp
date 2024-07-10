@@ -471,7 +471,7 @@ void BBCMicro::InitReadOnlyBigPage(ReadOnlyBigPage *bp,
     if (debug_state) {
         if (bp->metadata->addr != 0xffff) {
             ASSERT(bp->metadata->addr % BIG_PAGE_SIZE_BYTES == 0);
-            bp->byte_debug_flags = debug_state->big_pages_byte_debug_flags[bp->index.i];
+            bp->byte_debug_flags = debug_state->big_pages_byte_debug_flags[bp->metadata->debug_flags_index.i];
 
             if (bp->metadata->is_parasite) {
                 bp->address_debug_flags = &debug_state->parasite_address_debug_flags[bp->metadata->addr];

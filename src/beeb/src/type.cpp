@@ -13,18 +13,140 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+// Total max addressable memory in the emulated system is 2,194K:
+//
+// - 64K RAM (main+shadow+ANDY+HAZEL)
+// - 16 * 128K ROM
+// - 16K MOS
+// - 64K parasite RAM
+// - 2K parasite ROM
+//
+// The paging generally operates at a 4K resolution, so this can be divided into
+// 549 4K pages, or (to pick a term) big pages. (1 big page = 16 pages.) The
+// following big pages are defined:
+//
+// <pre>
+// 8    main RAM
+// 1    ANDY (M128)/ANDY (B+)
+// 2    HAZEL (M128)/ANDY (B+)
+// 5    shadow RAM (M128/B+)
+// 32   ROM 0 (actually typically 4, but ROM mappers may demand more)
+// 32   ROM 1 (see above)
+// ...
+// 32   ROM 15 (see above)
+// 4    MOS
+// 16   parasite RAM
+// 1    parasite ROM
+// </pre>
+//
+// Each big page can be set up once, when the BBCMicro is first created,
+// simplifying some of the logic. When switching to ROM 1 region w, for example,
+// the buffers can be found by looking at the 32 pre-prepared big pages for that
+// bank, and then the 4 pre-prepared big pages for that region - rather than
+// having to check m_state.sideways_rom_buffers[1] (etc.). This also then covers
+// the mapper behaviour fairly transparently.
+//
+// (This mechanism is still a little untidy. There's some logic in
+// BBCMicro::InitReadOnlyBigPage that should probably go somewhere better.)
+//
+// The per-big page struct can also contain some cold info (debug flags index,
+// static data, etc.), as it's only fetched when the paging registers are
+// changed, rather than for every instruction.
+//
+// Regarding the debug flags index: it's possible for multiple big pages to
+// share debug flags. For example, with the PALQST ROM mapper, the same data is
+// always visible at $8000-$8fff regardless of region. So whether region 0 is
+// selected (ROMn_BIG_PAGE_INDEX+0*4+0), or region 1
+// (ROMn_BIG_PAGE_INDEX+1*4+0), or whatever, the same debug flags should apply
+// to the region visible at $8000-$8fff. The big pages metadata table is scanned
+// after creation to figure out which big pages should alias in this way and
+// assign a debug flags index for each one.
+//
+// In principle the debug flags indexes could be entirely dynamically generated.
+// But: they're not. There's a(n enormous) table in BBCMicro::DebugState, and
+// each big page's index into that is either its own index in the type's table,
+// or its alias's index. More untidiness - though this does mean a DebugState is
+// (somewhat) reusable regardless of BBCMicroType...
+//
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+//
+// The BBC memory map is also divided into big pages, so things match up - the
+// terminology is a bit slack but usually a 'big page' refers to one of the big
+// pages in the list above, and a 'memory/mem big page' refers to a big page in
+// the 6502 address space.
+//
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+//
+// The Master can have 2 parasites, when there's both internal and external
+// second processors connected. This isn't supported currently.
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+// Address prefixes:
+//
+// <pre>
+// 0 - sideways ROM 0
+// 1 - sideways ROM 1
+// 2 - sideways ROM 2
+// 3 - sideways ROM 3
+// 4 - sideways ROM 4
+// 5 - sideways ROM 5
+// 6 - sideways ROM 6
+// 7 - sideways ROM 7
+// 8 - sideways ROM 8
+// 9 - sideways ROM 9
+// a - sideways ROM a
+// b - sideways ROM b
+// c - sideways ROM c
+// d - sideways ROM d
+// e - sideways ROM e
+// f - sideways ROM f
+// g -
+// h - HAZEL
+// i - I/O
+// j -
+// k -
+// l -
+// m - main RAM
+// n - ANDY
+// o - OS ROM
+// p - parasite RAM
+// q -
+// r - parasite boot ROM
+// s - shadow RAM
+// t -
+// u -
+// v -
+// w - ROM mapper bank 0
+// x - ROM mapper bank 1
+// y - ROM mapper bank 2
+// z - ROM mapper bank 3
+// W - ROM mapper bank 4
+// X - ROM mapper bank 5
+// Y - ROM mapper bank 6
+// Z - ROM mapper bank 7
+// </pre>
+//
+// How the ROM mapper bank affects things depends on the ROM mapper type.
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
 static const char ROM_BANK_CODES[] = "0123456789abcdef";
 static const char MAPPER_REGION_CODES[] = "wxyzWXYZ";
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-char GetROMBankCode(uint8_t bank) {
+char GetROMBankCode(uint32_t bank) {
     ASSERT(bank < 16);
     return ROM_BANK_CODES[bank];
 }
 
-char GetMapperRegionCode(uint8_t region) {
+char GetMapperRegionCode(uint32_t region) {
     ASSERT(region < 8);
     return MAPPER_REGION_CODES[region];
 }
@@ -86,7 +208,7 @@ static void InitBigPagesMetadata(std::vector<BigPageMetadata> *big_pages,
                                  size_t n,
                                  char code0,
                                  char code1,
-                                 std::string description,
+                                 const std::string &description,
 #if BBCMICRO_DEBUGGER
                                  uint32_t dso_clear,
                                  uint32_t dso_set,
@@ -95,9 +217,6 @@ static void InitBigPagesMetadata(std::vector<BigPageMetadata> *big_pages,
     for (size_t i = 0; i < n; ++i) {
         ASSERT(index.i + i < NUM_BIG_PAGES);
         BigPageMetadata *bp = &(*big_pages)[index.i + i];
-
-        ASSERT(bp->index.i == INVALID_BIG_PAGE_INDEX.i);
-        bp->index.i = (BigPageIndex::Type)(index.i + i);
 
         static_assert(sizeof bp->aligned_codes >= 3);
         static_assert(sizeof bp->minimal_codes >= 3);
@@ -116,7 +235,7 @@ static void InitBigPagesMetadata(std::vector<BigPageMetadata> *big_pages,
             bp->minimal_codes[1] = code1;
         }
 
-        bp->description = std::move(description);
+        bp->description = description;
 
 #if BBCMICRO_DEBUGGER
         bp->dso_mask = ~dso_clear;
@@ -132,7 +251,7 @@ static void InitBigPagesMetadata(std::vector<BigPageMetadata> *big_pages,
     }
 }
 
-size_t GetROMOffset(ROMType rom_type, uint8_t relative_big_page_index, uint8_t region) {
+size_t GetROMOffset(ROMType rom_type, uint32_t relative_big_page_index, uint32_t region) {
     ASSERT(relative_big_page_index < 4);
     ASSERT(region < 8);
 
@@ -846,6 +965,41 @@ std::shared_ptr<const BBCMicroType> CreateBBCMicroType(BBCMicroTypeID type_id, c
         type->get_mem_big_page_tables_fn = &GetMemBigPagesTablesMaster;
         break;
     }
+
+#if BBCMICRO_DEBUGGER
+    // Assign a debug flags index to each big page.
+    {
+        ASSERT(type->big_pages_metadata.size() == NUM_BIG_PAGES);
+
+        // map (bank,addr,offset) of a ROM big page to the first BigPageIndex that
+        // refers to that.
+        std::map<std::tuple<uint32_t, uint16_t, size_t>, BigPageIndex::Type> seen_rom_big_pages;
+        for (BigPageIndex::Type i = 0; i < NUM_BIG_PAGES; ++i) {
+            BigPageMetadata *bp = &type->big_pages_metadata[i];
+            ASSERT(bp->debug_flags_index.i == INVALID_BIG_PAGE_INDEX.i);
+
+            if (i >= ROM0_BIG_PAGE_INDEX.i && i < ROM0_BIG_PAGE_INDEX.i + 16 * NUM_ROM_BIG_PAGES) {
+                // A sideways bank big page. This may alias a previously seen one.
+                ASSERT(i != 0); //0 is not allowed to be a sideways big page.
+
+                uint32_t bank = (i - ROM0_BIG_PAGE_INDEX.i) / NUM_ROM_BIG_PAGES;
+                uint32_t region = (i - ROM0_BIG_PAGE_INDEX.i) % NUM_ROM_BIG_PAGES / 4;
+                uint32_t relative_big_page_index = (i - ROM0_BIG_PAGE_INDEX.i) % NUM_ROM_BIG_PAGES % 4;
+                BigPageIndex::Type *index = &seen_rom_big_pages[{bank, bp->addr, GetROMOffset(rom_types[bank], relative_big_page_index, region)}];
+                if (*index == 0) {
+                    // Not seen this one before, so here it is.
+                    *index = i;
+                }
+
+                bp->debug_flags_index.i = *index;
+            } else {
+                // A non-sideways big page. These always have their own debug
+                // flags.
+                bp->debug_flags_index.i = i;
+            }
+        }
+    }
+#endif
 
 #if BBCMICRO_DEBUGGER
     switch (type->type_id) {

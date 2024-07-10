@@ -570,7 +570,7 @@ void DebugUI::DoByteDebugGui(const DebugBigPage *dbp, M6502Word addr) {
         if (dbp->bp.byte_debug_flags) {
             uint8_t byte_flags = dbp->bp.byte_debug_flags[addr.p.o];
             if (this->DoDebugByteFlagsGui(byte_str, &byte_flags)) {
-                m_beeb_thread->Send(std::make_shared<BeebThread::DebugSetByteDebugFlags>(dbp->bp.metadata->index,
+                m_beeb_thread->Send(std::make_shared<BeebThread::DebugSetByteDebugFlags>(dbp->bp.metadata->debug_flags_index,
                                                                                          (uint16_t)addr.p.o,
                                                                                          byte_flags));
             }
@@ -2739,10 +2739,10 @@ class PagingDebugWindow : public DebugUI {
         BigPageIndex big_page_index = tables.mem_big_pages[index][mem_big_page_index];
         const BigPageMetadata *metadata = &type->big_pages_metadata[big_page_index.i];
 
+        ImGui::Text("%s (%u)", metadata->description.c_str(), metadata->debug_flags_index.i);
         if (big_page_index.i == MOS_BIG_PAGE_INDEX.i + 3 && !(paging_flags & PagingFlags_ROMIO)) {
-            ImGui::Text("%s (%u) + I/O (%s)", metadata->description.c_str(), metadata->index.i, paging_flags & PagingFlags_IFJ ? "IFJ" : "XFJ");
-        } else {
-            ImGui::Text("%s (%u)", metadata->description.c_str(), metadata->index.i);
+            ImGui::SameLine();
+            ImGui::Text(" + I/O (%s)", paging_flags & PagingFlags_IFJ ? "IFJ" : "XFJ");
         }
     }
 };

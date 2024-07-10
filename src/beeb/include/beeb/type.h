@@ -27,105 +27,8 @@ struct M6502Config;
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-// Total max addressable memory in the emulated system is 2,194K:
-//
-// - 64K RAM (main+shadow+ANDY+HAZEL)
-// - 16 * 128K ROM
-// - 16K MOS
-// - 64K parasite RAM
-// - 2K parasite ROM
-//
-// The paging generally operates at a 4K resolution, so this can be divided into
-// 549 4K pages, or (to pick a term) big pages. (1 big page = 16 pages.) The
-// following big pages are defined:
-//
-// <pre>
-// 8    main RAM
-// 1    ANDY (M128)/ANDY (B+)
-// 2    HAZEL (M128)/ANDY (B+)
-// 5    shadow RAM (M128/B+)
-// 32   ROM 0 (actually typically 4, but ROM mappers may demand more)
-// 32   ROM 1 (see above)
-// ...
-// 32   ROM 15 (see above)
-// 4    MOS
-// 16   parasite RAM
-// 1    parasite ROM
-// </pre>
-//
-// Each big page can be set up once, when the BBCMicro is first created,
-// simplifying some of the logic. When switching to ROM 1, for example, the
-// buffers can be found by looking at the 4 pre-prepared big pages for that
-// region, rather than having to check m_state.sideways_rom_buffers[1] (etc.).
-//
-// The per-big page struct can also contain some cold info (debug flags, static
-// data, etc.), as it's only fetched when the paging registers are changed,
-// rather than for every instruction.
-//
-// The BBC memory map is also divided into big pages, so things match up - the
-// terminology is a bit slack but usually a 'big page' refers to one of the big
-// pages in the list above, and a 'memory/mem big page' refers to a big page in
-// the 6502 address space.
-//
-// "Second parasite" only applies to the Master, when there's both internal and
-// external second processors connected. The external one counts as the second
-// one.
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-// Address prefixes:
-//
-// <pre>
-// 0 - sideways ROM 0
-// 1 - sideways ROM 1
-// 2 - sideways ROM 2
-// 3 - sideways ROM 3
-// 4 - sideways ROM 4
-// 5 - sideways ROM 5
-// 6 - sideways ROM 6
-// 7 - sideways ROM 7
-// 8 - sideways ROM 8
-// 9 - sideways ROM 9
-// a - sideways ROM a
-// b - sideways ROM b
-// c - sideways ROM c
-// d - sideways ROM d
-// e - sideways ROM e
-// f - sideways ROM f
-// g -
-// h - HAZEL
-// i - I/O
-// j -
-// k -
-// l -
-// m - main RAM
-// n - ANDY
-// o - OS ROM
-// p - parasite RAM
-// q -
-// r - parasite boot ROM
-// s - shadow RAM
-// t -
-// u -
-// v -
-// w - ROM mapper bank 0
-// x - ROM mapper bank 1
-// y - ROM mapper bank 2
-// z - ROM mapper bank 3
-// W - ROM mapper bank 4
-// X - ROM mapper bank 5
-// Y - ROM mapper bank 6
-// Z - ROM mapper bank 7
-// </pre>
-//
-// How the ROM mapper bank affects things depends on the ROM mapper type.
-
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-char GetROMBankCode(uint8_t bank);
-char GetMapperRegionCode(uint8_t region);
+char GetROMBankCode(uint32_t bank);
+char GetMapperRegionCode(uint32_t region);
 
 // BIG_PAGE_SIZE_BYTES fits into a uint16_t.
 static constexpr size_t BIG_PAGE_SIZE_BYTES = 4096;
@@ -255,8 +158,10 @@ struct MemoryBigPageTables {
 // TODO think of a better name for this!
 struct BigPageMetadata {
 
-    // index of this big page.
-    BigPageIndex index = INVALID_BIG_PAGE_INDEX;
+#if BBCMICRO_DEBUGGER
+    // index of the debug flags for this big page.
+    BigPageIndex debug_flags_index = INVALID_BIG_PAGE_INDEX;
+#endif
 
     // Page override char(s) to display in the debugger. (At the moment, only 2
     // are required.)
@@ -360,7 +265,7 @@ struct BBCMicroType {
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-size_t GetROMOffset(ROMType rom_type, uint8_t relative_big_page_index, uint8_t region);
+size_t GetROMOffset(ROMType rom_type, uint32_t relative_big_page_index, uint32_t region);
 
 std::shared_ptr<const BBCMicroType> CreateBBCMicroType(BBCMicroTypeID type_id, const ROMType *rom_types);
 
