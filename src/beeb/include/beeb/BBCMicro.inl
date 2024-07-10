@@ -93,7 +93,7 @@ EEND()
 #if BBCMICRO_DEBUGGER
 // 8-bit quantity.
 #define ENAME BBCMicroByteDebugFlag
-EBEGIN()
+EBEGIN_DERIVED(uint8_t)
 EPNV(BreakExecute, 1 << 0)
 EPNV(TempBreakExecute, 1 << 1)
 EPNV(BreakRead, 1 << 2)

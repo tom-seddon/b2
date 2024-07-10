@@ -1010,19 +1010,17 @@ constexpr uint32_t GetNormalizedBBCMicroUpdateFlags(uint32_t flags) {
 #endif
 
     if (flags & BBCMicroUpdateFlag_IsMasterCompact) {
-        flags &= ~(uint32_t)(BBCMicroUpdateFlag_HasBeebLink |
-                             BBCMicroUpdateFlag_IsMaster128 |
-                             BBCMicroUpdateFlag_Parasite);
+        flags &= ~(BBCMicroUpdateFlag_HasBeebLink | BBCMicroUpdateFlag_IsMaster128 | BBCMicroUpdateFlag_Parasite);
 
         // (the parasite-specific debug flags are dealt with below)
     }
 
     if (!(flags & BBCMicroUpdateFlag_Parasite)) {
-        flags &= ~(uint32_t)(BBCMicroUpdateFlag_DebugStepParasite | BBCMicroUpdateFlag_Parasite3MHzExternal | BBCMicroUpdateFlag_ParasiteSpecial);
+        flags &= ~(BBCMicroUpdateFlag_DebugStepParasite | BBCMicroUpdateFlag_Parasite3MHzExternal | BBCMicroUpdateFlag_ParasiteSpecial);
     }
 
     if (!(flags & BBCMicroUpdateFlag_Debug)) {
-        flags &= ~(uint32_t)(BBCMicroUpdateFlag_DebugStepHost | BBCMicroUpdateFlag_DebugStepParasite);
+        flags &= ~(BBCMicroUpdateFlag_DebugStepHost | BBCMicroUpdateFlag_DebugStepParasite);
     }
 
     if ((flags & BBCMicroUpdateFlag_ROMTypeMask << BBCMicroUpdateFlag_ROMTypeShift) >= (ROMType_Count << BBCMicroUpdateFlag_ROMTypeShift)) {

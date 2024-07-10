@@ -374,8 +374,8 @@ void DebugUI::DoDebugPageOverrideImGui() {
 
             if (ImGui::BeginPopup(ROM_POPUP)) {
                 if (ImGui::Button("Use current")) {
-                    m_dso &= ~(uint32_t)BBCMicroDebugStateOverride_OverrideROM;
-                    m_dso &= ~(uint32_t)BBCMicroDebugStateOverride_ROM;
+                    m_dso &= ~BBCMicroDebugStateOverride_OverrideROM;
+                    m_dso &= ~BBCMicroDebugStateOverride_ROM;
                     ImGui::CloseCurrentPopup();
                 }
 
@@ -389,7 +389,7 @@ void DebugUI::DoDebugPageOverrideImGui() {
 
                     if (ImGui::Button(text)) {
                         m_dso |= BBCMicroDebugStateOverride_OverrideROM;
-                        m_dso = (m_dso & ~(uint32_t)BBCMicroDebugStateOverride_ROM) | i;
+                        m_dso = (m_dso & ~BBCMicroDebugStateOverride_ROM) | i;
                         ImGui::CloseCurrentPopup();
                     }
                 }

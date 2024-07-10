@@ -361,7 +361,7 @@ static std::vector<BigPageMetadata> GetBigPagesMetadataCommon(const ROMType *rom
                                      4,
                                      bank_code, region_code, rom_and_region_desc,
 #if BBCMICRO_DEBUGGER
-                                     (uint32_t)(BBCMicroDebugStateOverride_ROM | BBCMicroDebugStateOverride_MapperRegionMask << BBCMicroDebugStateOverride_MapperRegionShift),
+                                     BBCMicroDebugStateOverride_ROM | BBCMicroDebugStateOverride_MapperRegionMask << BBCMicroDebugStateOverride_MapperRegionShift,
                                      BBCMicroDebugStateOverride_ROM | bank | BBCMicroDebugStateOverride_OverrideMapperRegion | bank << BBCMicroDebugStateOverride_MapperRegionShift,
 #endif
                                      0x8000);
@@ -376,7 +376,7 @@ static std::vector<BigPageMetadata> GetBigPagesMetadataCommon(const ROMType *rom
                                      2,
                                      bank_code, 0, rom_desc,
 #if BBCMICRO_DEBUGGER
-                                     (uint32_t)BBCMicroDebugStateOverride_ROM,
+                                     BBCMicroDebugStateOverride_ROM,
                                      BBCMicroDebugStateOverride_ROM | bank,
 #endif
                                      0x8000);
@@ -386,7 +386,7 @@ static std::vector<BigPageMetadata> GetBigPagesMetadataCommon(const ROMType *rom
                                      2,
                                      bank_code, region_code, rom_and_region_desc,
 #if BBCMICRO_DEBUGGER
-                                     (uint32_t)(BBCMicroDebugStateOverride_ROM | BBCMicroDebugStateOverride_MapperRegionMask << BBCMicroDebugStateOverride_MapperRegionShift),
+                                     BBCMicroDebugStateOverride_ROM | BBCMicroDebugStateOverride_MapperRegionMask << BBCMicroDebugStateOverride_MapperRegionShift,
                                      BBCMicroDebugStateOverride_ROM | bank | BBCMicroDebugStateOverride_OverrideMapperRegion | bank << BBCMicroDebugStateOverride_MapperRegionShift,
 #endif
                                      0xa000);
@@ -440,7 +440,7 @@ static std::vector<BigPageMetadata> GetBigPagesMetadataCommon(const ROMType *rom
 static bool HandleROMPrefixChar(uint32_t *dso, uint8_t rom) {
     ASSERT(rom >= 0 && rom <= 15);
 
-    *dso &= ~(uint32_t)(BBCMicroDebugStateOverride_ROM | BBCMicroDebugStateOverride_ANDY);
+    *dso &= ~(BBCMicroDebugStateOverride_ROM | BBCMicroDebugStateOverride_ANDY);
     *dso |= BBCMicroDebugStateOverride_OverrideANDY | BBCMicroDebugStateOverride_OverrideROM | rom;
 
     return true;
@@ -675,7 +675,7 @@ static bool ParsePrefixCharBPlus(uint32_t *dso, char c) {
         *dso |= BBCMicroDebugStateOverride_OverrideShadow | BBCMicroDebugStateOverride_Shadow;
     } else if (c == 'm') {
         *dso |= BBCMicroDebugStateOverride_OverrideShadow;
-        *dso &= ~(uint32_t)BBCMicroDebugStateOverride_Shadow;
+        *dso &= ~BBCMicroDebugStateOverride_Shadow;
     } else if (c == 'n') {
         *dso |= BBCMicroDebugStateOverride_OverrideANDY | BBCMicroDebugStateOverride_ANDY;
         //} else if (c == 'i' || c == 'I' || c == 'o' || c == 'O') {
@@ -879,7 +879,7 @@ static std::vector<BigPageMetadata> GetBigPagesMetadataMaster(const ROMType *rom
 
     // Switch HAZEL off to see the first 8K of MOS.
     for (size_t i = 0; i < 2; ++i) {
-        big_pages[MOS_BIG_PAGE_INDEX.i + i].dso_mask &= ~(uint32_t)~BBCMicroDebugStateOverride_HAZEL;
+        big_pages[MOS_BIG_PAGE_INDEX.i + i].dso_mask &= ~BBCMicroDebugStateOverride_HAZEL;
         big_pages[MOS_BIG_PAGE_INDEX.i + i].dso_value |= BBCMicroDebugStateOverride_OverrideHAZEL;
     }
 
@@ -900,17 +900,17 @@ static bool ParsePrefixCharMaster(uint32_t *dso, char c) {
         *dso |= BBCMicroDebugStateOverride_OverrideShadow | BBCMicroDebugStateOverride_Shadow;
     } else if (c == 'm') {
         *dso |= BBCMicroDebugStateOverride_OverrideShadow;
-        *dso &= ~(uint32_t)BBCMicroDebugStateOverride_Shadow;
+        *dso &= ~BBCMicroDebugStateOverride_Shadow;
     } else if (c == 'h') {
         *dso |= BBCMicroDebugStateOverride_OverrideHAZEL | BBCMicroDebugStateOverride_HAZEL;
     } else if (c == 'n') {
         *dso |= BBCMicroDebugStateOverride_OverrideANDY | BBCMicroDebugStateOverride_ANDY;
     } else if (c == 'o') {
         *dso |= BBCMicroDebugStateOverride_OverrideHAZEL | BBCMicroDebugStateOverride_OverrideOS | BBCMicroDebugStateOverride_OS;
-        *dso &= ~(uint32_t)BBCMicroDebugStateOverride_HAZEL;
+        *dso &= ~BBCMicroDebugStateOverride_HAZEL;
     } else if (c == 'i') {
         *dso |= BBCMicroDebugStateOverride_OverrideOS;
-        *dso &= ~(uint32_t)BBCMicroDebugStateOverride_OS;
+        *dso &= ~BBCMicroDebugStateOverride_OS;
     } else {
         return false;
     }
