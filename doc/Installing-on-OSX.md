@@ -6,7 +6,8 @@ Files for the latest release are here:
 https://github.com/tom-seddon/b2/releases/latest.
 
 If using macOS 11 (Big Sur) or later, download the
-`b2-osx-11.0-XXX.dmg` file.
+`b2-osx-11.0-XXX.dmg` file. This is currently built for Intel only,
+but it should also run fine on an Apple Silicon Mac under Rosetta.
 
 If using OS X 10.9 (Mavericks) or later, download the
 `b2-osx-10.9-XXX.dmg` file. The 10.9 version does not support video
@@ -24,7 +25,8 @@ The releases are created automatically, and it can sometimes take a
 day or two for the macOS version to appear.
 
 If this happens, you can download an older version for now from the
-full list at https://github.com/tom-seddon/b2/releases.
+full list at https://github.com/tom-seddon/b2/releases. Please revisit
+after a day or two!
 
 ## Keystroke Receiving warning
 
@@ -50,3 +52,16 @@ To fix this, go to `System Preferences`, `Security and Privacy`,
 clicking on its row and using the `-` button.
 
 Run it again, and you should get the keystroke access warning.
+
+## What about Apple Silicon?
+
+Apple Silicon releases are in the pipeline, and there's an open issue
+for this here: https://github.com/tom-seddon/b2/issues/325
+
+In the mean time, if you would be comfortable building b2 from source
+code, you can get a native build on your Apple Silicon Mac by
+following [the building instructions](./Building.md). I don't (yet!)
+have a suitable Mac for testing Apple Silicon compatibility, but it is
+supposed to work. Please report any issues via the
+[b2 GitHub issues page](https://github.com/tom-seddon/b2/issues) or
+[the b2 thread on Stardot](https://stardot.org.uk/forums/viewtopic.php?f=4&t=13081).
