@@ -539,13 +539,19 @@ static void InitHIDCallback(Messages *msg) {
             goto cleanup;
         }
     }
-    
+
     IOHIDManagerSetDeviceMatchingMultiple(g_hid_manager, matches);
     IOHIDManagerRegisterInputValueCallback(g_hid_manager, &HIDCallback, g_hid_manager);
     IOHIDManagerScheduleWithRunLoop(g_hid_manager, CFRunLoopGetMain(), kCFRunLoopDefaultMode);
     ior = IOHIDManagerOpen(g_hid_manager, kIOHIDOptionsTypeNone);
     if (ior != kIOReturnSuccess) {
-        msg->i.f("InitHIDCallback: IOHIDManagerOpen returned: %" PRIu32 " (0x%" PRIx32 ")\n", (uint32_t)ior, (uint32_t)ior);
+        if (ior == kIOReturnNotPermitted) {
+            msg->i.f("b2 has not been granted permission to monitor keyboard input.\n");
+            msg->i.f("The emulated BBC will not respond properly to the Caps Lock key!\n");
+            msg->i.f("For more info, please see https://github.com/tom-seddon/b2/blob/master/doc/Installing-on-OSX.md\n");
+        } else {
+            msg->i.f("InitHIDCallback: IOHIDManagerOpen returned: %" PRIu32 " (0x%" PRIx32 ")\n", (uint32_t)ior, (uint32_t)ior);
+        }
         goto cleanup;
     }
 

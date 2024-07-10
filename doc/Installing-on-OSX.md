@@ -17,7 +17,8 @@ You don't need to download any of the other files; the dmg contains
 everything required.
 
 Open the dmg, drag b2 to your Applications folder, and run it from
-there.
+there. (Running it from the dmg directly is unsupported, and it may
+not work. I've had reports of odd behaviour when attempting it!)
 
 ## macOS files missing from releases page?
 
