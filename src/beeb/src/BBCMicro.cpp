@@ -1577,7 +1577,7 @@ void BBCMicro::DebugHalt(const char *fmt, ...) {
                         (uintptr_t)flags < (uintptr_t)((char *)m_debug->parasite_address_debug_flags + sizeof m_debug->parasite_address_debug_flags)));
 
                 uint8_t old = *flags;
-                *flags &= ~BBCMicroByteDebugFlag_TempBreakExecute;
+                *flags &= (uint8_t)~BBCMicroByteDebugFlag_TempBreakExecute;
                 if (old != 0 && *flags == 0) {
                     ASSERT(m_debug->num_breakpoint_bytes > 0);
                     --m_debug->num_breakpoint_bytes;

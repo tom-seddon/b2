@@ -119,7 +119,7 @@ const TraceEventType Trace::SET_MAPPER_REGION_EVENT("_set_mapper_region", sizeof
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-// must be a POD type - it's allocated with malloc.
+// Allocated with malloc, so a bit of care needs to be taken.
 struct Trace::Chunk {
     struct Chunk *next;
     size_t size;
@@ -158,6 +158,7 @@ Trace::~Trace() {
     while (c) {
         Chunk *next = c->next;
 
+        static_assert(std::is_trivially_destructible<decltype(*c)>::value);
         free(c);
 
         c = next;
@@ -614,7 +615,7 @@ void *Trace::Alloc(CycleCount time, size_t n) {
             }
         }
 
-        memset(c, 0, sizeof *c);
+        new(c) Chunk;
         c->capacity = size;
         c->initial_time = c->last_time = time;
         c->initial_paging = m_paging;

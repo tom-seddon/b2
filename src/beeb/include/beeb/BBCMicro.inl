@@ -15,7 +15,7 @@ EEND()
 //////////////////////////////////////////////////////////////////////////
 
 #define ENAME BBCMicroTraceFlag
-EBEGIN()
+EBEGIN_DERIVED(uint32_t)
 EPNV(6845, 1 << 0)
 EPNV(6845Scanlines, 1 << 1)
 EPNV(6845ScanlinesSeparators, 1 << 2)

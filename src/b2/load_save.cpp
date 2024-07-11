@@ -938,9 +938,9 @@ static bool FindBitIndexedFlagsMember(T *flags, rapidjson::Value *object, const 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static void SaveFlags(JSONWriter<StringStream> *writer, uint32_t flags, const char *(*get_name_fn)(int)) {
+static void SaveFlags(JSONWriter<StringStream> *writer, uint32_t flags, const char *(*get_name_fn)(uint32_t)) {
     for (uint32_t mask = 1; mask != 0; mask <<= 1) {
-        const char *name = (*get_name_fn)((int)mask);
+        const char *name = (*get_name_fn)(mask);
         if (name[0] == '?') {
             continue;
         }
@@ -956,7 +956,7 @@ static void SaveFlags(JSONWriter<StringStream> *writer, uint32_t flags, const ch
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-static bool FindFlagsMember(uint32_t *flags, rapidjson::Value *object, const char *key, const char *what, const char *(*get_name_fn)(int), Messages *msg) {
+static bool FindFlagsMember(uint32_t *flags, rapidjson::Value *object, const char *key, const char *what, const char *(*get_name_fn)(uint32_t), Messages *msg) {
     rapidjson::Value array;
     if (!FindArrayMember(&array, object, key, msg)) {
         return false;
@@ -971,7 +971,7 @@ static bool FindFlagsMember(uint32_t *flags, rapidjson::Value *object, const cha
             const char *flag_name = array[i].GetString();
 
             for (uint32_t mask = 1; mask != 0; mask <<= 1) {
-                const char *name = (*get_name_fn)((int)mask);
+                const char *name = (*get_name_fn)(mask);
                 if (name[0] == '?') {
                     continue;
                 }

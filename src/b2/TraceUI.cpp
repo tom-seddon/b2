@@ -220,7 +220,7 @@ static void DoTraceFlag(uint32_t *flags_seen,
     *flags_seen |= flag;
 
     if (!text) {
-        text = GetBBCMicroTraceFlagEnumName((int)flag);
+        text = GetBBCMicroTraceFlagEnumName(flag);
     }
 
     ImGuiIDPusher id_pusher(flag);
@@ -366,7 +366,7 @@ void TraceUI::DoImGui() {
 
         for (uint32_t i = 1; i != 0; i <<= 1) {
             if (!(flags_seen & i)) {
-                const char *name = GetBBCMicroTraceFlagEnumName((int)i);
+                const char *name = GetBBCMicroTraceFlagEnumName(i);
                 if (name[0] == '?') {
                     continue;
                 }

@@ -1,5 +1,5 @@
 #define ENAME TraceOutputFlags
-EBEGIN()
+EBEGIN_DERIVED(uint32_t)
 // If set, include register names in output (takes up more columns...)
 EPNV(RegisterNames, 1)
 

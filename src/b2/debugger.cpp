@@ -3126,7 +3126,7 @@ class StackDebugWindow : public DebugUI {
 
                 M6502Word addr;
                 addr.b.l = value;
-                addr.b.h = value_dbp->bp.r[0x100 + (offset + 1 & 0xff)];
+                addr.b.h = value_dbp->bp.r[0x100 + ((offset + 1) & 0xff)];
 
                 ImGuiIDPusher pusher(offset);
 

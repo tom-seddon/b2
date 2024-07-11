@@ -982,9 +982,9 @@ std::shared_ptr<const BBCMicroType> CreateBBCMicroType(BBCMicroTypeID type_id, c
                 // A sideways bank big page. This may alias a previously seen one.
                 ASSERT(i != 0); //0 is not allowed to be a sideways big page.
 
-                uint32_t bank = (i - ROM0_BIG_PAGE_INDEX.i) / NUM_ROM_BIG_PAGES;
-                uint32_t region = (i - ROM0_BIG_PAGE_INDEX.i) % NUM_ROM_BIG_PAGES / 4;
-                uint32_t relative_big_page_index = (i - ROM0_BIG_PAGE_INDEX.i) % NUM_ROM_BIG_PAGES % 4;
+                uint32_t bank = (uint32_t)((i - ROM0_BIG_PAGE_INDEX.i) / NUM_ROM_BIG_PAGES);
+                uint32_t region = (uint32_t)((i - ROM0_BIG_PAGE_INDEX.i) % NUM_ROM_BIG_PAGES / 4);
+                uint32_t relative_big_page_index = (uint32_t)((i - ROM0_BIG_PAGE_INDEX.i) % NUM_ROM_BIG_PAGES % 4);
                 BigPageIndex::Type *index = &seen_rom_big_pages[{bank, bp->addr, GetROMOffset(rom_types[bank], relative_big_page_index, region)}];
                 if (*index == 0) {
                     // Not seen this one before, so here it is.
