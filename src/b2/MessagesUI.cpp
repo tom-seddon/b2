@@ -91,7 +91,7 @@ void MessagesUI::DoImGui() {
     }
 
     //
-    m_cst.DoMenuItem(g_clear_command);
+    m_cst.DoButton(g_clear_command);
 
     ImGui::SameLine();
 
