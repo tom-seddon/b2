@@ -27,6 +27,8 @@
 #include <beeb/BeebLink.h>
 #include <beeb/tube.h>
 #include <set>
+#include <unordered_set>
+#include <shared/sha1.h>
 
 #include <shared/enum_decl.h>
 #include "BBCMicro_private.inl"
@@ -1921,6 +1923,22 @@ std::string BBCMicro::GetUpdateFlagExpr(const uint32_t flags_) {
     return expr;
 }
 
+template <>
+struct std::hash<BBCMicro::UpdateMFn> {
+    uint64_t operator()(const BBCMicro::UpdateMFn &mfn) const {
+        uint8_t mfn_data[sizeof mfn];
+        memcpy(mfn_data, &mfn, sizeof mfn);
+
+        unsigned char digest[SHA1::DIGEST_SIZE];
+        SHA1::HashBuffer(digest, nullptr, mfn_data, sizeof mfn_data);
+
+        uint64_t result;
+        memcpy(&result, digest, sizeof uint64_t);
+
+        return result;
+    }
+};
+
 void BBCMicro::PrintInfo(Log *log) {
     size_t num_update_mfns = sizeof ms_update_mfns / sizeof ms_update_mfns[0];
 
@@ -1931,27 +1949,11 @@ void BBCMicro::PrintInfo(Log *log) {
 
     log->f("%zu/%zu normalized BBCMicroUpdateFlag combinations\n", normalized_flags.size(), num_update_mfns);
 
-    std::map<uint32_t, std::vector<uint32_t>> map;
-    for (uint32_t i = 0; i < num_update_mfns; ++i) {
-        for (uint32_t j = 0; j <= i; ++j) {
-            if (ms_update_mfns[i] == ms_update_mfns[j]) {
-                map[j].push_back(i);
-                break;
-            }
-        }
+    std::unordered_set<BBCMicro::UpdateMFn> update_mfns;
+    for (size_t i = 0; i < num_update_mfns; ++i) {
+        update_mfns.insert(ms_update_mfns[i]);
     }
-
-    log->f("%zu/%zu unique BBCMicro::UpdateTemplate instantiations\n", map.size(), num_update_mfns);
-    //for (auto &&it : map) {
-    //    if (it.second.size() > 1) {
-    //        log->f("    0x%08" PRIx32 ": ", it.first);
-    //        log->PushIndent();
-    //        for (uint32_t x : it.second) {
-    //            log->f("%s\n", GetUpdateFlagExpr(x).c_str());
-    //        }
-    //        log->PopIndent();
-    //    }
-    //}
+    log->f("%zu/%zu unique BBCMicro::UpdateTemplate instantiations\n", update_mfns.size(), num_update_mfns);
 
     uint32_t unused_bits = ~(uint32_t)0;
     for (uint32_t bit = 0; bit < 32; ++bit) {

@@ -51,6 +51,7 @@ class BBCMicro : private WD1770Handler {
 
     typedef void (*UpdateROMSELPagesFn)(BBCMicro *);
     typedef void (*UpdateACCCONPagesFn)(BBCMicro *, const ACCCON *);
+    typedef uint32_t (BBCMicro::*UpdateMFn)(VideoDataUnit *, SoundDataUnit *);
 
     static constexpr size_t NUM_UPDATE_MFNS = 65536;
 
@@ -531,7 +532,6 @@ class BBCMicro : private WD1770Handler {
     //////////////////////////////////////////////////////////////////////////
 
     BigPage m_big_pages[NUM_BIG_PAGES];
-    typedef uint32_t (BBCMicro::*UpdateMFn)(VideoDataUnit *, SoundDataUnit *);
     UpdateMFn m_update_mfn = nullptr;
     uint32_t m_update_flags = 0;
 
