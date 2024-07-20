@@ -741,6 +741,8 @@ static bool InitSystem(
     Messages *init_messages) {
     (void)options;
 
+    SDL_SetHint(SDL_HINT_GAMECONTROLLERCONFIG_FILE, GetAssetPath("gamecontrollerdb.txt").c_str());
+
     // Initialise SDL
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_TIMER | SDL_INIT_JOYSTICK | SDL_INIT_GAMECONTROLLER) != 0) {
         init_messages->e.f("FATAL: SDL_Init failed: %s\n", SDL_GetError());
@@ -757,8 +759,6 @@ static bool InitSystem(
     PushUpdateWindowTitleEvent();
 
     SDL_StartTextInput();
-
-    SDL_GameControllerAddMappingsFromFile(GetAssetPath("gamecontrollerdb.txt").c_str());
 
 #if SYSTEM_OSX
     InitHIDCallback(init_messages);
