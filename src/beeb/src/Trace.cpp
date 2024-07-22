@@ -119,18 +119,17 @@ const TraceEventType Trace::SET_MAPPER_REGION_EVENT("_set_mapper_region", sizeof
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-// Allocated with malloc, so a bit of care needs to be taken.
 struct Trace::Chunk {
-    struct Chunk *next;
-    size_t size;
-    size_t capacity;
-    size_t num_events;
+    struct Chunk *next = nullptr;
+    size_t size = 0;
+    size_t capacity = 0;
+    size_t num_events = 0;
 
-    CycleCount initial_time;
-    CycleCount last_time;
+    CycleCount initial_time = {};
+    CycleCount last_time = {};
 
     PagingState initial_paging;
-    bool initial_parasite_boot_mode;
+    bool initial_parasite_boot_mode = false;
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -615,7 +614,7 @@ void *Trace::Alloc(CycleCount time, size_t n) {
             }
         }
 
-        new(c) Chunk;
+        new (c) Chunk;
         c->capacity = size;
         c->initial_time = c->last_time = time;
         c->initial_paging = m_paging;
