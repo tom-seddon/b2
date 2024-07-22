@@ -1167,4 +1167,64 @@ CLOSED: [2024-07-06 Sat 21:56]
 
 Remove all the occurrences of "%x" for this purpose.
 
+* NUM_UPDATE_MFNS reduction (from 65536)
+
+Current update flags, set a:
+
+| Field                | # options |
+|----------------------+-----------|
+| IsMaster128          |         2 |
+| HasBeebLink          |         2 |
+| Hacks                |         2 |
+| Debug                |         2 |
+| Trace                |         2 |
+| Parasite             |         2 |
+| ParasiteSpecial      |         2 |
+| DebugStepParasite    |         2 |
+| DebugStepHost        |         2 |
+| Parasite3MHzExternal |         2 |
+| ParallelPrinter      |         2 |
+| IsMasterCompact      |         2 |
+| ROMType              |        16 |
+
+#+begin_src lisp-interaction
+  ;; a
+  (* 2 2 2 2 2 2 2 2 2 2 2 2 16)
+  65536
+
+  ;; b
+  (* 3 2 2 2 2 3 2 2 2 2 8)		
+  18432
+
+  ;; c
+  (* 3 2 2 2 2 5 2 2 2 8)
+  15360
+#+end_src
+
+But the actual set of options is more like this (set b):
+
+| Field             | # options | Notes                |
+|-------------------+-----------+----------------------|
+| Type              |         3 | B/B+; M128; MCompact |
+| BeebLink          |         2 |                      |
+| Hacks             |         2 |                      |
+| Debug             |         2 |                      |
+| Trace             |         2 |                      |
+| ParasiteType      |         3 | None; 3 MHz; 4 MHz   |
+| ParasiteSpecial   |         2 |                      |
+| DebugStepParasite |         2 |                      |
+| DebugStepHost     |         2 |                      |
+| ParallelPrinter   |         2 |                      |
+| ROMType           |         8 |                      |
+
+Other possibilities: merge parasite special into parasite type. 5. Set
+c.
+
+But, ultimately, this is only reducing the size of the tables. The
+number of actual routines will necessarily remain the same. So does it
+actually matter?
+
+A 512 KB table (that's 90% unused) is kind of dumb, but for a modern
+PC it's basically irrelevant.
+
 * eof.
